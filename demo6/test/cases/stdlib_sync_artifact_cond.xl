@@ -1,0 +1,5 @@
+export func syncProbe() as int
+    auto condition = cond()
+    assert(condition.signal() and condition.broadcast())
+    return 42
+end

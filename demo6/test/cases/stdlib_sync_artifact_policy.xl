@@ -1,0 +1,5 @@
+export func syncProbe() as int
+    auto locks = Stack::<mutex?>()
+    assert(locks.push(null) and locks.pop() == null)
+    return 42
+end

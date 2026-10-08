@@ -108,6 +108,13 @@ xl6IrRuntimeResourceKeyOrderAbiForType(
     const XL6_IrModule* module, XL6_IrTypeId typeId);
 static XL6_IrRuntimeResourceOp xl6IrDefaultRuntimeResourceOp(
     const XL6_IrModule* module, XL6_IrTypeId typeId);
+static XL6_IrTypeId xl6IrTreeSchemaTypeForType(const XL6_IrTypePool*, const XL6_IrType*, unsigned int);
+static int xl6IrRuntimeResourceAbiIsConcurrentQueue(XL6_IrRuntimeResourceAbi);
+static XL6_IrTypeId xl6IrConcurrentQueueSchemaTypeForType(const XL6_IrTypePool*,const XL6_IrType*);
+static int xl6IrConcurrentQueueConstructionRecipeDepth(const XL6_IrModule*,XL6_IrTypeId,
+    XL6_IrRuntimeResourceAbi*,XL6_IrTypeId*,XL6_IrNominalIdentitySetId*,size_t);
+static int xl6IrAvlConstructionRecipeDepth(const XL6_IrModule*,XL6_IrTypeId,
+    XL6_IrTypeId*,XL6_IrTypeId*,XL6_IrNominalIdentitySetId*,XL6_IrNominalIdentitySetId*,size_t);
 
 static int xl6IrDiag(XL6_DiagList* diags, const XL6_IrNode* node, const char* message)
 {
@@ -579,6 +586,10 @@ XL6_ValueAdmissionV1 xl6IrValueAdmissionAbiForType(const XL6_IrTypePool* pool, c
     }
     if (type->kind!=XL6_IR_TYPE_BUILTIN || type->collectionAbi!=XL6_IR_COLLECTION_NONE ||
         type->paramCount || type->returnCount) return XL6_VALUE_ADMIT_NONE;
+    /* A retained xvalue representation is not an open dynamic domain. Native
+     * resources require their own closed provenance/schema capability; ANY
+     * would silently admit unrelated handles and permit invalid null defaults. */
+    if (type->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_NONE) return XL6_VALUE_ADMIT_NONE;
     if (type->cAbi==XL6_IR_C_ABI_I64 || type->cAbi==XL6_IR_C_ABI_U64) {
         return xl6IrIntegerAdmissionAbi(type->integerTarget);
     }
@@ -795,6 +806,19 @@ const char* xl6IrCollectionCarrierAbiName(XL6_IrCollectionCarrierAbi abi)
     }
 }
 
+static int xl6IrSequenceLayoutComplete(XL6_IrSequenceLayoutAbi abi)
+{
+    return abi==XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2 || abi==XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2 ||
+        abi==XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2 || abi==XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1 ||
+        abi==XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1 ||
+        abi==XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1 ||
+        abi==XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE || abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 ||
+        abi==XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1 ||
+        abi==XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1 ||
+        abi==XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 ||
+        abi==XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 ||
+        abi==XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1;
+}
 static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool* pool,
     const XL6_IrType* type,size_t depth)
 {
@@ -895,14 +919,7 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
          * constructor must itself have a complete recipe. Re-derive rather
          * than trust cached metadata; bound malformed recursive graphs. */
         XL6_IrSequenceLayout child=xl6IrSequenceLayoutForTypeDepth(pool,base,depth+1);
-        result.abi=child.abi==XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2 || child.abi==XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2 ||
-            child.abi==XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2 || child.abi==XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1 ||
-            child.abi==XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1 ||
-            child.abi==XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1 ||
-            child.abi==XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ||
-            child.abi==XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1 ||
-            child.abi==XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE ||
-            child.abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1
+        result.abi=xl6IrSequenceLayoutComplete(child.abi)
             ? XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 : XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN;
         if (result.abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1) {
             result.childRole=child.role;
@@ -910,6 +927,56 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
             result.childSlotAbi=child.slotAbi;
             result.childTransferAbi=child.transferAbi;
         }
+    } else if (result.slotAbi==XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
+               result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
+               base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE &&
+               base->kind==XL6_IR_TYPE_GENERIC_INSTANCE && base->paramCount==2 && base->params) {
+        const XL6_IrType* key=xl6IrTypeGet(pool,base->params[0]);
+        /* A Tree key cannot itself be a recursive resource. Reject its shape
+         * before descent, including hostile cyclic type-pool mutations. */
+        bool ordered=key && (key->cAbi==XL6_IR_C_ABI_BOOL || key->cAbi==XL6_IR_C_ABI_I64 ||
+            key->cAbi==XL6_IR_C_ABI_U64 || key->cAbi==XL6_IR_C_ABI_F32 || key->cAbi==XL6_IR_C_ABI_F64 ||
+            key->cAbi==XL6_IR_C_ABI_TIME_I64 || key->cAbi==XL6_IR_C_ABI_TYPE_ID ||
+            key->cAbi==XL6_IR_C_ABI_MANAGED_STRING);
+        XL6_IrSequenceLayout k={0},v={0};
+        if (ordered) {
+            k=xl6IrSequenceLayoutForTypeDepth(pool,
+                xl6IrTypeGet(pool,xl6IrTreeSchemaTypeForType(pool,base,0)),depth+1);
+            v=xl6IrSequenceLayoutForTypeDepth(pool,
+                xl6IrTypeGet(pool,xl6IrTreeSchemaTypeForType(pool,base,1)),depth+1);
+        }
+        result.abi=xl6IrSequenceLayoutComplete(k.abi) && xl6IrSequenceLayoutComplete(v.abi) &&
+            k.codecAbi==XL6_IR_SEQUENCE_CODEC_DIRECT && v.codecAbi==XL6_IR_SEQUENCE_CODEC_DIRECT &&
+            k.transferAbi==xl6IrTypeResourcePayloadAbi(key) &&
+            v.transferAbi==xl6IrTypeResourcePayloadAbi(xl6IrTypeGet(pool,base->params[1]))
+            ? XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1 : XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN;
+    } else if (result.slotAbi==XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
+               result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
+               xl6IrRuntimeResourceAbiIsConcurrentQueue(base->runtimeResourceAbi) &&
+               base->kind==XL6_IR_TYPE_GENERIC_INSTANCE && base->paramCount==1 && base->params) {
+        XL6_IrSequenceLayout child=xl6IrSequenceLayoutForTypeDepth(pool,
+            xl6IrTypeGet(pool,xl6IrConcurrentQueueSchemaTypeForType(pool,base)),depth+1);
+        result.abi=xl6IrSequenceLayoutComplete(child.abi)
+            ? XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1 : XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN;
+    } else if (result.slotAbi==XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
+               result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
+               result.admissionAbi==XL6_VALUE_ADMIT_NONE &&
+               (base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SEM ||
+                base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_MUTEX ||
+                base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_COND ||
+                base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_RWLOCK) &&
+               base->kind==XL6_IR_TYPE_BUILTIN && !base->paramCount && !base->returnCount &&
+               base->collectionAbi==XL6_IR_COLLECTION_NONE && base->typeValueId &&
+               base->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+               base->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
+               base->nullAbi==XL6_IR_NULL_ABI_XVALUE_SENTINEL) {
+        /* Closed leaf capability: the resident policy verifies private native
+         * synchronization provenance, not merely this nominal identity. No generic
+         * child, module callback, capacity or live owner is part of its schema. */
+        result.abi=base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SEM ? XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1 :
+            base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_MUTEX ? XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 :
+            base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_COND ? XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 :
+            XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1;
     } else {
         result.abi=XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN;
     }
@@ -919,7 +986,13 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         result.abi == XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ||
-        result.abi == XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1) {
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1) {
         if (!result.codecAbi) result.codecAbi=XL6_IR_SEQUENCE_CODEC_DIRECT;
         result.defaultAbi=result.nullable ? XL6_IR_SEQUENCE_DEFAULT_ABSENT :
             result.admissionAbi == XL6_VALUE_ADMIT_ANY ? XL6_IR_SEQUENCE_DEFAULT_DYNAMIC_NULL :
@@ -928,7 +1001,13 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
             result.abi == XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2 ||
             result.abi == XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ||
             result.abi == XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1 ||
-            result.abi == XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 ? XL6_IR_SEQUENCE_DEFAULT_FORBIDDEN :
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 ||
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1 ||
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1 ||
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1 ||
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 ||
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 ||
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1 ? XL6_IR_SEQUENCE_DEFAULT_FORBIDDEN :
             XL6_IR_SEQUENCE_DEFAULT_ZERO;
     }
     return result;
@@ -989,6 +1068,12 @@ const char* xl6IrSequenceLayoutAbiName(XL6_IrSequenceLayoutAbi abi)
     case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1: return "numeric-enum-v1";
     case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1: return "callable-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1: return "future-reference-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1: return "tree-reference-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1: return "queue-reference-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1: return "semaphore-reference-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1: return "mutex-reference-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1: return "cond-reference-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1: return "rwlock-reference-v1";
     default: return "invalid";
     }
 }
@@ -1020,6 +1105,22 @@ static XL6_IrTypeId xl6IrConcurrentQueueSchemaTypeForType(
     return XL6_IR_TYPE_INVALID;
 }
 
+static XL6_IrTypeId xl6IrTreeSchemaTypeForType(const XL6_IrTypePool* pool,
+    const XL6_IrType* tree,unsigned int field)
+{
+    if (!pool || !tree || field>1 || tree->kind!=XL6_IR_TYPE_GENERIC_INSTANCE ||
+        tree->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_AVL_TREE ||
+        tree->paramCount!=2 || !tree->params || tree->returnCount) return XL6_IR_TYPE_INVALID;
+    for (size_t i=0;i<pool->count;++i) {
+        const XL6_IrType* schema=&pool->items[i];
+        if (schema->kind==XL6_IR_TYPE_GENERIC_INSTANCE && schema->collectionAbi==XL6_IR_COLLECTION_ARRAY &&
+            schema->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NONE &&
+            schema->abiId==xl6TypeAbiIdText("xlang.array") && schema->paramCount==1 &&
+            schema->params && !schema->returnCount && schema->params[0]==tree->params[field])
+            return (XL6_IrTypeId)(i+1);
+    }
+    return XL6_IR_TYPE_INVALID;
+}
 static int xl6IrTypeFinalizeErrorResultCName(
     XL6_IrTypePool* pool, XL6_IrType* type)
 {
@@ -1033,6 +1134,8 @@ static int xl6IrTypeFinalizeErrorResultCName(
     type->collectionCarrierAbi = xl6IrCollectionCarrierAbiForType(type);
     type->sequenceLayout = xl6IrSequenceLayoutForType(pool,type);
     type->concurrentQueueSchemaType = xl6IrConcurrentQueueSchemaTypeForType(pool,type);
+    type->treeKeySchemaType = xl6IrTreeSchemaTypeForType(pool,type,0);
+    type->treeValueSchemaType = xl6IrTreeSchemaTypeForType(pool,type,1);
     type->xvalueAdmissionAbi = xl6IrValueAdmissionAbiForType(pool,type);
     type->xvalueAdmissionNullable = type->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE &&
         type->kind == XL6_IR_TYPE_NULLABLE;
@@ -2353,6 +2456,12 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
     if (kind == XL6_IR_TYPE_GENERIC_INSTANCE && paramCount == 1 &&
         xl6IrRuntimeResourceAbiIsConcurrentQueue(runtimeResourceAbi) &&
         xl6IrTypeInternArray(&module->types, params[0]) == XL6_IR_TYPE_INVALID) {
+        xrtFree(params); xrtFree(parameterModes); xrtFree(parameterAbis);
+        xrtFree(returns); return XL6_IR_TYPE_INVALID;
+    }
+    if (kind == XL6_IR_TYPE_GENERIC_INSTANCE && runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE &&
+        paramCount==2 && (xl6IrTypeInternArray(&module->types,params[0])==XL6_IR_TYPE_INVALID ||
+                         xl6IrTypeInternArray(&module->types,params[1])==XL6_IR_TYPE_INVALID)) {
         xrtFree(params); xrtFree(parameterModes); xrtFree(parameterAbis);
         xrtFree(returns); return XL6_IR_TYPE_INVALID;
     }
@@ -4265,6 +4374,10 @@ static XL6_IrTypeId xl6IrBuildInternClassSubstitutedTypeDepth(
     if (kind == XL6_IR_TYPE_GENERIC_INSTANCE && paramCount == 1 && params &&
         xl6IrRuntimeResourceAbiIsConcurrentQueue(runtimeResourceAbi) &&
         xl6IrTypeInternArray(&module->types, params[0]) == XL6_IR_TYPE_INVALID)
+        goto failed;
+    if (kind == XL6_IR_TYPE_GENERIC_INSTANCE && runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE &&
+        paramCount==2 && params && (xl6IrTypeInternArray(&module->types,params[0])==XL6_IR_TYPE_INVALID ||
+                                  xl6IrTypeInternArray(&module->types,params[1])==XL6_IR_TYPE_INVALID))
         goto failed;
     if ( !xl6IrGrow((void**)&module->types.items, &module->types.capacity,
                      module->types.count, sizeof(*module->types.items)) )
@@ -7965,12 +8078,20 @@ static int xl6IrSequenceConstructionRecipeDepth(const XL6_IrModule* module,
     case XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1:
     case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1:
     case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1:
-    case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1: return 1;
+    case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1: return 1;
     case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2:
         return xl6IrNominalIdentitySetGet(module,plan->baseElementType,setOut)!=NULL;
     case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1:
         return xl6IrSequenceConstructionRecipeDepth(module,plan->baseElementType,
             plan->childRole,NULL,depth+1);
+    case XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1:
+        return xl6IrAvlConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,NULL,NULL,depth+1);
+    case XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1:
+        return xl6IrConcurrentQueueConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,NULL,depth+1);
     default: return 0;
     }
 }
@@ -7978,13 +8099,13 @@ int xl6IrSequenceConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId type
     XL6_IrSequenceRoleAbi role,XL6_IrNominalIdentitySetId* setOut)
 { return xl6IrSequenceConstructionRecipeDepth(module,typeId,role,setOut,0); }
 
-int xl6IrConcurrentQueueConstructionRecipe(const XL6_IrModule* module, XL6_IrTypeId typeId,
+static int xl6IrConcurrentQueueConstructionRecipeDepth(const XL6_IrModule* module, XL6_IrTypeId typeId,
     XL6_IrRuntimeResourceAbi* familyOut, XL6_IrTypeId* schemaOut,
-    XL6_IrNominalIdentitySetId* admissionSetOut)
+    XL6_IrNominalIdentitySetId* admissionSetOut,size_t depth)
 {
     const XL6_IrType* type = module ? xl6IrTypeGet(&module->types, typeId) : NULL;
     XL6_IrNominalIdentitySetId set = XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
-    if (!type || type->kind != XL6_IR_TYPE_GENERIC_INSTANCE ||
+    if (!type || depth>64 || type->kind != XL6_IR_TYPE_GENERIC_INSTANCE ||
         !xl6IrRuntimeResourceAbiIsConcurrentQueue(type->runtimeResourceAbi) ||
         type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
         type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
@@ -7992,13 +8113,16 @@ int xl6IrConcurrentQueueConstructionRecipe(const XL6_IrModule* module, XL6_IrTyp
         type->paramCount != 1 || !type->params || type->returnCount ||
         !type->concurrentQueueSchemaType || type->concurrentQueueSchemaType !=
             xl6IrConcurrentQueueSchemaTypeForType(&module->types, type) ||
-        !xl6IrSequenceConstructionRecipe(module, type->concurrentQueueSchemaType,
-            XL6_IR_SEQUENCE_ROLE_ARRAY, &set)) return 0;
+        !xl6IrSequenceConstructionRecipeDepth(module, type->concurrentQueueSchemaType,
+            XL6_IR_SEQUENCE_ROLE_ARRAY, &set,depth+1)) return 0;
     if (familyOut) *familyOut = type->runtimeResourceAbi;
     if (schemaOut) *schemaOut = type->concurrentQueueSchemaType;
     if (admissionSetOut) *admissionSetOut = set;
     return 1;
 }
+int xl6IrConcurrentQueueConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
+    XL6_IrRuntimeResourceAbi* familyOut,XL6_IrTypeId* schemaOut,XL6_IrNominalIdentitySetId* setOut)
+{ return xl6IrConcurrentQueueConstructionRecipeDepth(module,typeId,familyOut,schemaOut,setOut,0); }
 
 int xl6IrArrayImportChainRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
     XL6_IrTypeId* output,size_t capacity,size_t* count)
@@ -8039,9 +8163,17 @@ static int xl6IrStackConstructionContractDepth(const XL6_IrModule* module,
     case XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2:
     case XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1:
     case XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1:
-    case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1: return 1;
+    case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1: return 1;
     case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2:
         return xl6IrNominalIdentitySetGet(module,plan->baseElementType,setOut)!=NULL;
+    case XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1:
+        return xl6IrAvlConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,NULL,NULL,depth+1);
+    case XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1:
+        return xl6IrConcurrentQueueConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,NULL,depth+1);
     case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1:
         /* Source Array still has the Value-wire producer. Its native target
          * recipe is not authority to pass that owner as a sealed Sequence. */
@@ -10346,6 +10478,8 @@ XL6_IrIntrinsicResultAbi xl6IrRuntimeResourceResultAbiForType(
 static int xl6IrRuntimeResourceOpMayRaise(XL6_IrRuntimeResourceOp operation)
 {
     return xl6IrRuntimeResourceOpCreates(operation) ||
+           (operation>=XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE &&
+            operation<=XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLONE) ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_TRY_SEND ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_TRY_PUSH ||
@@ -10912,6 +11046,48 @@ int xl6IrStackTryResultCompatible(const XL6_IrModule* module,XL6_IrTypeId result
 
 #include "src/ir/xl6_ir_concurrent_queue.c"
 
+XL6_IrRuntimeResourceKeyOrderAbi xl6IrAvlKeyOrderAbi(const XL6_IrModule* module,XL6_IrTypeId id)
+{
+    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,id) : NULL;
+    return type && type->kind==XL6_IR_TYPE_GENERIC_INSTANCE &&
+        type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE && type->paramCount==2 && type->params
+        ? xl6IrRuntimeResourceKeyOrderAbiForType(module,type->params[0]) : XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
+}
+static int xl6IrAvlConstructionRecipeDepth(const XL6_IrModule* module,XL6_IrTypeId treeId,
+    XL6_IrTypeId* keyOut,XL6_IrTypeId* valueOut,
+    XL6_IrNominalIdentitySetId* keySetOut,XL6_IrNominalIdentitySetId* valueSetOut,size_t depth)
+{
+    const XL6_IrType* tree=module ? xl6IrTypeGet(&module->types,treeId) : NULL;
+    XL6_IrNominalIdentitySetId keySet=0,valueSet=0;
+    if (depth>64 || !tree || tree->kind!=XL6_IR_TYPE_GENERIC_INSTANCE ||
+        tree->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_AVL_TREE || tree->paramCount!=2 ||
+        !tree->params || tree->returnCount || !tree->typeValueId ||
+        tree->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR || tree->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
+        tree->nullAbi!=XL6_IR_NULL_ABI_XVALUE_SENTINEL ||
+        tree->treeKeySchemaType!=xl6IrTreeSchemaTypeForType(&module->types,tree,0) ||
+        tree->treeValueSchemaType!=xl6IrTreeSchemaTypeForType(&module->types,tree,1) ||
+        !tree->treeKeySchemaType || !tree->treeValueSchemaType ||
+        xl6IrRuntimeResourceKeyOrderAbiForType(module,tree->params[0])==XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID ||
+        !xl6IrSequenceConstructionRecipeDepth(module,tree->treeKeySchemaType,XL6_IR_SEQUENCE_ROLE_ARRAY,&keySet,depth+1) ||
+        !xl6IrSequenceConstructionRecipeDepth(module,tree->treeValueSchemaType,XL6_IR_SEQUENCE_ROLE_ARRAY,&valueSet,depth+1)) return 0;
+    const XL6_IrType* key=xl6IrTypeGet(&module->types,tree->treeKeySchemaType);
+    const XL6_IrType* value=xl6IrTypeGet(&module->types,tree->treeValueSchemaType);
+    /* Do not silently add a closure/Future codec to the Tree surface. Their
+     * invocation/native-reference ABI needs its own approved resource contract. */
+    if (keySet || key->sequenceLayout.codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT ||
+        value->sequenceLayout.codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT ||
+        key->sequenceLayout.transferAbi!=xl6IrRuntimeResourcePayloadAbiForType(module,tree->params[0]) ||
+        value->sequenceLayout.transferAbi!=xl6IrRuntimeResourcePayloadAbiForType(module,tree->params[1])) return 0;
+    if (keyOut) *keyOut=tree->treeKeySchemaType;
+    if (valueOut) *valueOut=tree->treeValueSchemaType;
+    if (keySetOut) *keySetOut=keySet;
+    if (valueSetOut) *valueSetOut=valueSet;
+    return 1;
+}
+int xl6IrAvlConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId treeId,
+    XL6_IrTypeId* keyOut,XL6_IrTypeId* valueOut,
+    XL6_IrNominalIdentitySetId* keySetOut,XL6_IrNominalIdentitySetId* valueSetOut)
+{ return xl6IrAvlConstructionRecipeDepth(module,treeId,keyOut,valueOut,keySetOut,valueSetOut,0); }
 int xl6IrAvlProjectionContract(const XL6_IrModule* module,XL6_IrTypeId treeId,
     XL6_IrTypeId resultId,int keys,XL6_IrNominalIdentitySetId* set)
 {
@@ -19948,6 +20124,9 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
         return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
     if (xl6IrConcurrentQueueInstructionType(module,instruction))
         return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
+    if (instruction->runtimeOp>=XL6_IR_RUNTIME_AVL_TREE_CREATE &&
+        instruction->runtimeOp<=XL6_IR_RUNTIME_AVL_TREE_CLONE)
+        return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
     stringAbi = xl6IrPersistenceInvocationErrorPhysicalAbi(instruction->runtimeOp);
     if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     stringAbi=xl6IrRuntimeCollectionCountErrorPhysicalAbi(instruction->runtimeOp);
@@ -20021,6 +20200,9 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     case XL6_IR_RUNTIME_STACK_CREATE:
     case XL6_IR_RUNTIME_SEM_CREATE:
     case XL6_IR_RUNTIME_SEM_CREATE_DEFAULT:
+    case XL6_IR_RUNTIME_MUTEX_CREATE:
+    case XL6_IR_RUNTIME_COND_CREATE:
+    case XL6_IR_RUNTIME_RWLOCK_CREATE:
     case XL6_IR_RUNTIME_TASK_SPAWN_CLOSURE:
     case XL6_IR_RUNTIME_FUTURE_CONTINUE_CLOSURE:
     case XL6_IR_RUNTIME_XVALUE_CALLABLE_FROM_CLOSURE:
@@ -20596,6 +20778,11 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
             (type->kind == XL6_IR_TYPE_GENERIC_INSTANCE && type->paramCount == 1 &&
              xl6IrRuntimeResourceAbiIsConcurrentQueue(type->runtimeResourceAbi) &&
              !type->concurrentQueueSchemaType)) return 0;
+        if (type->treeKeySchemaType!=xl6IrTreeSchemaTypeForType(pool,type,0) ||
+            type->treeValueSchemaType!=xl6IrTreeSchemaTypeForType(pool,type,1) ||
+            (type->kind==XL6_IR_TYPE_GENERIC_INSTANCE &&
+             type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE && type->paramCount==2 &&
+             (!type->treeKeySchemaType || !type->treeValueSchemaType))) return 0;
         if (type->xvalueAdmissionAbi != xl6IrValueAdmissionAbiForType(pool,type) ||
             type->xvalueAdmissionNullable != (type->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE &&
                 type->kind == XL6_IR_TYPE_NULLABLE)) return 0;
@@ -20989,17 +21176,7 @@ static int xl6IrRuntimeSyncOpCreates(XL6_IrRuntimeOp operation)
 
 static int xl6IrRuntimeAvlOpMayRaise(XL6_IrRuntimeOp operation)
 {
-    return operation == XL6_IR_RUNTIME_AVL_TREE_CREATE ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_SET ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_GET_INTO ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_FIRST_INTO ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_LAST_INTO ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_LOWER_BOUND_INTO ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_UPPER_BOUND_INTO ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_MERGE ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_KEYS ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_VALUES ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_CLONE;
+    return operation>=XL6_IR_RUNTIME_AVL_TREE_CREATE && operation<=XL6_IR_RUNTIME_AVL_TREE_CLONE;
 }
 
 static XL6_IrRuntimeResourceAbi xl6IrRuntimeSyncResourceAbi(
@@ -37183,6 +37360,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      (instruction->runtimeOp!=XL6_IR_RUNTIME_STACK_CREATE &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN &&
+                      instruction->runtimeOp!=XL6_IR_RUNTIME_AVL_TREE_CREATE &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_AVL_TREE_KEYS &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_AVL_TREE_VALUES &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_ARRAY_CREATE)))
@@ -41659,28 +41837,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             ? xl6IrTypeGet(&module->types, third->type) : NULL;
                         const XL6_IrType* fourthType = fourth != NULL
                             ? xl6IrTypeGet(&module->types, fourth->type) : NULL;
-                        int mayRaise = creates ||
-                            instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_AVL_TREE_SET ||
-                            instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_AVL_TREE_GET_INTO ||
-                            instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_AVL_TREE_FIRST_INTO ||
-                            instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_AVL_TREE_LAST_INTO ||
-                            instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_AVL_TREE_LOWER_BOUND_INTO ||
-                            instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_AVL_TREE_UPPER_BOUND_INTO ||
-                            instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_AVL_TREE_MERGE ||
-                            instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_AVL_TREE_KEYS ||
-                            instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_AVL_TREE_VALUES ||
-                            instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_AVL_TREE_CLONE;
+                        int mayRaise=xl6IrRuntimeAvlOpMayRaise(instruction->runtimeOp);
+                        XL6_IrNominalIdentitySetId valueConstructionSet=0;
                         if ( treeType == NULL ||
+                             !xl6IrAvlConstructionRecipe(module,treeTypeId,NULL,NULL,NULL,&valueConstructionSet) ||
                              treeType->kind !=
                                  XL6_IR_TYPE_GENERIC_INSTANCE ||
                              treeType->runtimeResourceAbi !=
@@ -41726,7 +41886,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         if ( creates ) {
                             if ( instruction->result ==
                                      XL6_IR_VALUE_INVALID ||
-                                 instruction->operandCount != 0 )
+                                 instruction->operandCount != 0 ||
+                                 instruction->sequenceAdmissionIdentitySet!=valueConstructionSet )
                                 return xl6IrDiag(diags, NULL,
                                     "XLIR runtime AvlTree create has no exact owned result ABI");
                         } else if ( left == NULL || left->type != treeTypeId ) {
@@ -41867,11 +42028,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         } else if ( instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_CLEAR ) {
                             if ( instruction->operandCount != 1 ||
-                                 instruction->result !=
-                                     XL6_IR_VALUE_INVALID ||
-                                 instruction->type != XL6_IR_TYPE_INVALID )
+                                 instruction->result == XL6_IR_VALUE_INVALID ||
+                                 resultType == NULL || resultType->cAbi != XL6_IR_C_ABI_BOOL )
                                 return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime AvlTree clear has no exact void result ABI");
+                                    "XLIR runtime AvlTree clear has no checked hidden status ABI");
                         } else if ( instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_COUNT ||
                                     instruction->runtimeOp ==
@@ -48192,8 +48352,10 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             if ( item != 0 ) xl6OutputPuts(",", out);
             xl6OutputPrintf(out, "%u", (unsigned int)type->returns[item]);
         }
-        xl6OutputPrintf(out, "],\"concurrentQueueSchemaType\":%u,\"callableResultType\":%u,\"releaseEffect\":%d}%s\n",
+        xl6OutputPrintf(out, "],\"concurrentQueueSchemaType\":%u,\"treeKeySchemaType\":%u,\"treeValueSchemaType\":%u,\"callableResultType\":%u,\"releaseEffect\":%d}%s\n",
                         (unsigned int)type->concurrentQueueSchemaType,
+                        (unsigned int)type->treeKeySchemaType,
+                        (unsigned int)type->treeValueSchemaType,
                         (unsigned int)type->callableResultType,
                         (int)xl6IrTypeReleaseEffect(module, (XL6_IrTypeId)(i + 1)),
                         i + 1 == module->types.count ? "" : ",");

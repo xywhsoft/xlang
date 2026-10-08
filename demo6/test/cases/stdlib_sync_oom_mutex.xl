@@ -1,0 +1,5 @@
+func main(...) as int
+    auto lock = mutex()
+    assert(lock.tryLock() and lock.unlock())
+    return 0
+end

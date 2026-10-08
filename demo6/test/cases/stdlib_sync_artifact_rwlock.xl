@@ -1,0 +1,5 @@
+export func syncProbe() as int
+    auto lock = rwlock()
+    assert(lock.tryReadLock() and lock.readUnlock())
+    return 42
+end

@@ -1,0 +1,25 @@
+func main(...) as int
+    auto lock = mutex()
+    assert(lock.lock() and lock.unlock())
+    assert(lock.tryLock() and lock.unlock())
+    auto condition = cond()
+    assert(condition.signal() and condition.broadcast())
+    assert(lock.lock())
+    assert(not condition.waitTimeout(lock, -1))
+    assert(not condition.waitTimeout(lock, 0))
+    assert(lock.unlock())
+    auto rw = rwlock()
+    assert(not rw.upgrade())
+    assert(rw.readLock() and rw.readUnlock())
+    assert(rw.tryReadLock() and rw.readUnlock())
+    assert(rw.writeLock() and rw.downgrade() and rw.readUnlock())
+    assert(rw.tryWriteLock() and rw.writeUnlock())
+    assert(rw.readLock() and rw.upgrade() and rw.writeUnlock())
+    mutex defaultLock
+    cond defaultCondition
+    rwlock defaultRw
+    assert(defaultLock.tryLock() and defaultLock.unlock())
+    assert(defaultCondition.signal())
+    assert(defaultRw.tryWriteLock() and defaultRw.writeUnlock())
+    return 0
+end

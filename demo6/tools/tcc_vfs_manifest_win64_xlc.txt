@@ -14,6 +14,7 @@ dir|include|%XL6_EMBED_TCC_DIST_X64%\include
 # by xl.dll; package builds therefore do not depend on release outputs.
 
 file|include/xl.h|%XL6_ROOT%\release\include\xl.h
+file|include/xl_sync_retirement.h|%XL6_ROOT%\release\include\xl_sync_retirement.h
 file|include/xlc.h|%XL6_ROOT%\release\include\xlc.h
 file|include/__xl_runtime/xl_runtime.h|%XL6_ROOT%\release\include\xl_runtime.h
 file|include/__xl_runtime/xl_extlib_abi.h|%XL6_ROOT%\release\include\xl_extlib_abi.h
@@ -53,6 +54,7 @@ file|include/__xl_runtime/xl6_future_payload.h|%XL6_ROOT%\src\runtime\xl6_future
 # 内嵌 xlang 编译器源仍按开发树包含 include/xl_runtime.h。
 # 该私有根只服务于 __xl_compiler/src，不影响用户 C 源的公开头文件布局。
 file|__xl_compiler/include/xl.h|%XL6_ROOT%\release\include\xl.h
+file|__xl_compiler/include/xl_sync_retirement.h|%XL6_ROOT%\release\include\xl_sync_retirement.h
 file|__xl_compiler/include/xl_runtime.h|%XL6_ROOT%\release\include\xl_runtime.h
 file|__xl_compiler/include/xl_extlib_abi.h|%XL6_ROOT%\release\include\xl_extlib_abi.h
 file|__xl_compiler/include/xruntime_decl.h|%XL6_ROOT%\release\include\xruntime_decl.h
@@ -74,6 +76,7 @@ file|lib/xruntime/xruntime.h|%XL6_ROOT%\lib\xruntime\xruntime.h
 dir|__xl_compiler/src|%XL6_ROOT%\src|*.c;*.h;*.inc
 file|include/__xl_runtime/xl6_log.h|%XL6_ROOT%\src\runtime\xl6_log.h
 file|include/__xl_runtime/xl6_text_value.h|%XL6_ROOT%\src\runtime\xl6_text_value.h
+file|include/__xl_runtime/xl6_tree.h|%XL6_ROOT%\src\runtime\xl6_tree.h
 file|include/__xl_runtime/xl6_error_value.h|%XL6_ROOT%\src\runtime\xl6_error_value.h
 file|include/__xl_runtime/xl6_class_text.h|%XL6_ROOT%\src\runtime\xl6_class_text.h
 file|include/__xl_runtime/xl6_error_text.h|%XL6_ROOT%\src\runtime\xl6_error_text.h

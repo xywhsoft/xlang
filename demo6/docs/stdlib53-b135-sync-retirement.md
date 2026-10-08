@@ -6,9 +6,10 @@ recovery is a host API. It does not complete the language/IR migration or
 certify a rebuilt shipping DLL. The SDK declarations are new source APIs;
 existing release products do not yet contain their exports.
 
-The subsequent current-source Windows language checkpoint has also passed,
-but its integration is still being assembled separately from this independently
-accepted native slice. Neither checkpoint certifies shipping products.
+The language/IR integration has subsequently passed on Windows and Linux,
+including an isolated snapshot of the exact staged commit candidate. It removes
+the old generated synchronization owners and selects fixed resident providers.
+Neither the native slice nor this integration certifies shipping products.
 
 ## Owner and retirement contracts
 
@@ -127,10 +128,58 @@ explicit in the report commands; these are not the exclusion-free native lanes.
 
 ## Remaining integration, not waived
 
-Fixed IR symbols and physical constructor outcomes, removal of old generated
-aborting owners, module resolver/JIT exports and precise per-family artifact
-selection now pass the current-source Windows checkpoint. The complete language
-migration still needs its independent integration commit, Linux language proof,
-rebuilt Win/Linux shipping DLL/VFS products, standalone static-XRT pruning and
-full 53-module acceptance. The reports keep all those broader acceptance flags
-false. Old release products still use the legacy generated sync Drop.
+### Isolated integration candidate (b136)
+
+`stdlib53-b136-stage-dev1/provenance.json` records the index tree at freeze,
+base commit and genuine released TCC DLL hash. Its `frozen/demo6` was exported
+from Git's index, not copied from the mixed worktree. Unrelated IDE, source
+overlay, C binding/header and scalar class-default changes are excluded. The
+Windows DLL build list is updated independently of the uncommitted response-file
+refactor. Necessary Tree/Queue schema providers and build/VFS declarations are
+included, so this candidate does not depend on untracked implementation files.
+
+The candidate rebuilds 249 Windows and 248 Linux translation units with the
+actual XRT/xruntime and compiler/native sources. The Linux list is derived from
+the same canonical Windows source list, excluding its Windows-only UTF-8 CRT
+shim and using a real Linux public driver. Only the genuine TCC core is reused.
+
+The following candidate reports are complete with unchanged hashed inputs:
+
+- `stdlib53-b136-source-win-dev1/build.json` and
+  `stdlib53-b136-source-linux-dev1/build.json`: current-source builds;
+- `stdlib53-b136-language-win-dev1/sync.language.json` and
+  `stdlib53-b136-language-linux-dev1/sync.language.json`: 120 phases each,
+  including actual JIT/AOT, held-lock checked failure/recovery, required-owner
+  NULL outcomes, closed recursive recipes and allocation-failure rollback;
+- `stdlib53-b136-artifact-win-dev1/sync.artifact.json`: 44 phases. Genuine TCC
+  native-object symbol tables prove exact family selection; eight independently
+  generated DLLs run their actual exports without xl.dll/xlc.dll imports and
+  retire their runtime/TLS before real unload;
+- `stdlib53-b136-tree-language-win-dev1/tree.language.json`: 21 deterministic
+  C/IR/O0/O2 AOT phases covering Tree primitives, exact text and class references;
+- `stdlib53-b136-tree-ownership-win-dev1/tree.ownership.json`: 38 phases,
+  32 O0/O2 modes and 384 measured real JIT lifetimes, including five cyclic
+  families and actual external roots. This is not AOT graph/unmap proof;
+- `stdlib53-b136-queue-admission-win-dev1/queue.reference.admission.json`:
+  868 strict native phases and eight complete OOM prefixes for mixed-depth
+  Tree/Queue/Sequence schema composition and existing domain regressions;
+- `stdlib53-b136-tree-native-win-dev1/tree.native.json`: 80 strict native
+  phases, eight complete OOM prefixes, genuine graph edges and reentry checks.
+
+Generated C now contains fixed provider calls and declarative closed recipes,
+not synchronization lifecycle implementations or module-owned admission hooks.
+Container schemas own immutable metadata, verify native provenance/full identity
+and distinguish nullable absence from forbidden defaults. Recursion is bounded
+at 64. Other resource/codec domains are not certified by accepting these domains.
+
+### Still required
+
+Rebuilt Win/Linux shipping DLLs and embedded VFS, standalone static-XRT pruning,
+the remaining resource domains and full 53-module acceptance are still required.
+Family absence in a DLL export table is **not** pruning proof; the accepted
+family proof above comes from actual TCC object tables. Some older diagnostic
+tools use a narrow `SourceProductAcceptance` flag for their specific provider
+proof; it does not imply shipping, full runtime instrumentation or full53
+acceptance. Old release binaries have not been replaced and still use the legacy
+generated sync Drop. The new SDK recovery exports must be tested in genuinely
+rebuilt shipping products before those products are accepted.

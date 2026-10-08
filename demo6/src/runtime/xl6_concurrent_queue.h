@@ -42,6 +42,7 @@
  * only, not a user callback or a scan of element storage. */
 #define XL6_DECLARE_CONCURRENT_QUEUE(Name) \
     XL6_TEXT_API bool xl6##Name##AdmitsSchemaV1(const xvalue*, uint64_t, const XL6_SequenceLayoutV1*, const XL6_SequenceAdmissionV3*); \
+    XL6_TEXT_API xvalue* xl6Sequence##Name##CreateTakeV1(unsigned int, uint64_t, uint64_t, uint64_t, xvalue*, bool); \
     XL6_TEXT_API xvalue* xl6##Name##CreateTakeV1(uint64_t, xvalue*, int64_t); \
     XL6_TEXT_API xqueueresult xl6##Name##PushV1(const xvalue*, uint64_t, uint64_t, size_t, const xrttype*, const void*); \
     XL6_TEXT_API xqueueresult xl6##Name##PopV1(const xvalue*, uint64_t, uint64_t, size_t, const xrttype*, void*); \

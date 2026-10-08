@@ -1,0 +1,53 @@
+func main(...) as int
+    auto spsc = SpscQueue::<string>(4)
+    auto mpsc = MpscQueue::<string>(4)
+    auto mpmc = MpmcQueue::<string>(4)
+    assert(spsc.tryPush("a\0你") == queueStatus.ok)
+    assert(mpsc.tryPush("b\0好") == queueStatus.ok)
+    assert(mpmc.tryPush("c\0世") == queueStatus.ok)
+    auto spscTree = AvlTree::<int, SpscQueue<string>>()
+    auto mpscTree = AvlTree::<int, MpscQueue<string>>()
+    auto mpmcTree = AvlTree::<int, MpmcQueue<string>>()
+    assert(spscTree.set(1, spsc) and mpscTree.set(1, mpsc) and mpmcTree.set(1, mpmc))
+    auto first = spscTree.values()
+    auto second = mpscTree.values()
+    auto third = mpmcTree.values()
+    auto s = first[0]
+    auto m = second[0]
+    auto p = third[0]
+    auto statusS, textS = s.tryPop()
+    auto statusM, textM = m.tryPop()
+    auto statusP, textP = p.tryPop()
+    assert(statusS == queueStatus.ok and textS != null)
+    assert(statusM == queueStatus.ok and textM != null)
+    assert(statusP == queueStatus.ok and textP != null)
+    if textS != null then assert(textS == "a\0你") end
+    if textM != null then assert(textM == "b\0好") end
+    if textP != null then assert(textP == "c\0世") end
+    auto clone = mpmcTree.clone()
+    assert(clone.equals(mpmcTree))
+    auto queues = Stack::<MpmcQueue<string>>()
+    assert(queues.push(mpmc))
+    auto queueTree = AvlTree::<int, Stack<MpmcQueue<string>>>()
+    assert(queueTree.set(2, queues))
+    auto stackSnapshots = queueTree.values()
+    auto sharedStack = stackSnapshots[0]
+    auto sharedQueue = sharedStack.pop()
+    assert(sharedQueue.tryPush("again\0你好") == queueStatus.ok)
+    auto poppedStatus, poppedText = mpmc.tryPop()
+    assert(poppedStatus == queueStatus.ok and poppedText != null)
+    if poppedText != null then assert(poppedText == "again\0你好") end
+    auto inner = AvlTree::<int, string>()
+    assert(inner.set(1, "value\0中文"))
+    auto treeQueue = MpmcQueue::<AvlTree<int, string>>(4)
+    assert(treeQueue.tryPush(inner) == queueStatus.ok)
+    auto nested = AvlTree::<int, MpmcQueue<AvlTree<int, string>>>()
+    assert(nested.set(1, treeQueue))
+    auto nestedValues = nested.values()
+    auto nestedQueue = nestedValues[0]
+    auto nestedStatus, nestedTree = nestedQueue.tryPop()
+    assert(nestedStatus == queueStatus.ok and nestedTree != null)
+    string text = "unchanged"
+    if nestedTree != null then assert(nestedTree.getInto(1, text) and text == "value\0中文") end
+    return 0
+end

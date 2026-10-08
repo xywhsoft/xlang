@@ -1,0 +1,2 @@
+mutex globalLock = mutex()
+assert(globalLock.lock())

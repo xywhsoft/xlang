@@ -1,0 +1,5 @@
+func main(...) as int
+    auto lock = rwlock()
+    assert(lock.readLock())
+    return 0
+end

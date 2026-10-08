@@ -1,0 +1,70 @@
+extern "tree_graph_capture" func capture(var value)
+extern "tree_graph_dropped" func dropped(int id, int values, int arrays, int second)
+string treeGraphText = "module\0" + " alive"
+
+class TreeGraphMarker
+    int id
+    AvlTree<int, TreeGraphMarker> values
+    AvlTree<int, array<TreeGraphMarker>> arrays
+    AvlTree<int, TreeGraphMarker> second
+    create(int id)
+        self.id = id
+    end
+    destroy()
+        assert(treeGraphText == "module\0 alive")
+        dropped(self.id, self.values.count(), self.arrays.count(), self.second.count())
+    end
+end
+
+func makeTreeGraph(int id, int family) as TreeGraphMarker
+    auto marker = TreeGraphMarker(id)
+    if family == 2 then
+        assert(marker.arrays.set(1, array[marker, marker]))
+    else
+        assert(marker.values.set(1, marker))
+        if family == 1 then
+            assert(marker.values.set(2, marker))
+        elseif family == 3 then
+            marker.second = marker.values
+        elseif family == 4 then
+            marker.second = marker.values.clone()
+        end
+    end
+    return marker
+end
+
+TreeGraphMarker internalSelf = makeTreeGraph(7, 0)
+TreeGraphMarker internalDuplicate = makeTreeGraph(8, 1)
+TreeGraphMarker internalArray = makeTreeGraph(9, 2)
+TreeGraphMarker internalAlias = makeTreeGraph(10, 3)
+TreeGraphMarker internalClone = makeTreeGraph(11, 4)
+AvlTree<int, TreeGraphMarker> rootedTreeGraphs = AvlTree::<int, TreeGraphMarker>()
+
+export "tree_graph_setup" func setupTreeGraph(int mode, int family) as int
+    assert(internalSelf.values.count() == 1 and internalDuplicate.values.count() == 2)
+    assert(internalArray.arrays.count() == 1 and internalAlias.second.count() == 1 and internalClone.second.count() == 1)
+    if mode > 0 then
+        auto marker = makeTreeGraph(42, family)
+        auto child = TreeGraphMarker(90)
+        assert(rootedTreeGraphs.set(42, marker))
+        if family == 2 then
+            assert(marker.arrays.set(2, array[child]))
+        else
+            assert(marker.values.set(3, child))
+        end
+        if mode == 1 then
+            capture(marker)
+        elseif family == 2 then
+            capture(marker.arrays)
+        elseif mode == 3 then
+            capture(marker.values.clone())
+        else
+            capture(marker.values)
+        end
+    end
+    return 42
+end
+
+func main(...) as int
+    return 0
+end

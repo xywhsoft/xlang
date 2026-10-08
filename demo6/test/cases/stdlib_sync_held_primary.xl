@@ -1,0 +1,6 @@
+func main(...) as int
+    auto lock = mutex()
+    assert(lock.lock())
+    assert false, "sync original assertion"
+    return 0
+end
