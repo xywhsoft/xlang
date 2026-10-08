@@ -94,6 +94,9 @@ static int xlir_multi_await_check(bool success, int* calls, int expectedCalls, x
 #endif
         xmemdebugsnapshot before,after; xrtMemDebugSnapshot(&before);
         *calls=0; int ok=xlir_module_init(); const xerror* error=xrtGetError();
+#ifdef XLIR_MULTI_AWAIT_AFTER_INIT
+        XLIR_MULTI_AWAIT_AFTER_INIT(ok);
+#endif
         if (!!ok!=success || *calls!=expectedCalls || (success ? error!=NULL : error==NULL)) {
             fprintf(stderr,"multi-await outcome: expected=%d ok=%d calls=%d error=%s\n",
                 (int)success,ok,*calls,error ? xrtErrorMessage(error) : "none"); return 1;
