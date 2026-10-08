@@ -48,7 +48,7 @@ hooks, plus existing sync/thread/task fixtures. Three negative language guards
 preserve the output sentinel. Source-derived resource fixtures reject 114 real
 IR mutations per platform, before output or artifact-plan publication.
 
-The in-progress IR changes give Sem/default-Sem/Stack constructors an explicit
+The independently isolated IR fix gives Sem/default-Sem/Stack constructors an explicit
 required-owner NULL-result failure contract. Source-derived tests require
 exactly one outcome test per producer, after full metadata binding; generated
 C must test the returned owner rather than probe a diagnostic pointer. Separate
@@ -58,9 +58,10 @@ accounting. All observed failures have XRT's static, allocation-free OOM error;
 no diagnostic-allocation failure was reproduced or claimed. No allocator,
 factory, carrier, resolver or language module is faked to obtain a pass.
 
-The diagnostic integration also closes the native-resource ANY-admission
-loophole and fixes fresh owned collection results and flow-narrowed nullable
-sync receivers. Unsupported resource domains remain fail-closed pending their
+Two independently isolated semantic fixes recognize fresh owned native collection
+results and preserve flow-narrowed nullable sync receivers. The in-progress
+diagnostic integration also closes the native-resource ANY-admission loophole.
+Unsupported resource domains remain fail-closed pending their
 real providers; this is not a decision to remove them from the original scope.
 
 All reports explicitly leave source product, shipping library and full-53

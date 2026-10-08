@@ -20014,6 +20014,13 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     case XL6_IR_RUNTIME_FUTURE_WHEN_ANY_INDEX:
     case XL6_IR_RUNTIME_FUTURE_WHEN_ANY_INDEX_ARRAY:
     case XL6_IR_RUNTIME_THREAD_CREATE:
+    /* Required resident owners: NULL is the physical failure signal. Their
+     * resource lowering already creates the explicit failure CFG after the
+     * full producer metadata is bound; do not also split it in the generic
+     * container allocation emitter before that binding is complete. */
+    case XL6_IR_RUNTIME_STACK_CREATE:
+    case XL6_IR_RUNTIME_SEM_CREATE:
+    case XL6_IR_RUNTIME_SEM_CREATE_DEFAULT:
     case XL6_IR_RUNTIME_TASK_SPAWN_CLOSURE:
     case XL6_IR_RUNTIME_FUTURE_CONTINUE_CLOSURE:
     case XL6_IR_RUNTIME_XVALUE_CALLABLE_FROM_CLOSURE:

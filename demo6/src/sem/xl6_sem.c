@@ -9597,21 +9597,13 @@ static int xl6SemCheckIntArg(XL6_SemContext* ctx, XL6_AstNode* expr, const char*
 
 static XL6_AstNode* xl6SemCloneSyncReceiverType(XL6_SemContext* ctx, XL6_AstNode* member)
 {
-    XL6_AstNode* receiver;
-    XL6_Symbol* sym;
-
     if ( member == NULL || member->kind != XL6_AST_MEMBER || member->childCount == 0 ) {
         return NULL;
     }
-    receiver = member->children[0];
-    if ( receiver == NULL || receiver->kind != XL6_AST_NAME ) {
-        return xl6SemInferAutoTypeNode(ctx, receiver);
-    }
-    sym = xl6ScopeFind(ctx->scope, receiver->text);
-    if ( sym == NULL || sym->type == NULL ) {
-        return NULL;
-    }
-    return xl6SemCloneTypeNode(sym->type);
+    /* Share the canonical value inference, including a proven nullable-flow
+     * refinement. Looking up the declaration directly loses that proof and
+     * leaves otherwise valid owned Queue results without a call result type. */
+    return xl6SemInferAutoTypeNode(ctx, member->children[0]);
 }
 
 static int xl6SemCheckSyncCtorCall(XL6_SemContext* ctx, XL6_AstNode* node)
@@ -14427,6 +14419,18 @@ static int xl6SemExprIsFreshTypeValue(XL6_SemContext* ctx, const XL6_AstNode* ex
                 xl6SemFuncReturnsFreshOnlyValue(ctx, func));
     }
     if ( callee != NULL && callee->kind == XL6_AST_MEMBER ) {
+        /* Dedicated native collection methods publish owned result handles.
+         * Use the resolved builtin call contract, not an arbitrary method's
+         * name or its diagnostic spelling. This grants a fresh returned
+         * owner (pop/peek/clone/values), never permission to copy a linear
+         * local or to declare a forbidden typed resource collection. XLIR
+         * must still verify the exact projection and ownership transfer. */
+        XL6_AstNode* nativeResult = xl6SemCloneSpecialCollectionCallType(
+            ctx, (XL6_AstNode*)expr);
+        int freshNativeResult = nativeResult != NULL &&
+            !xl6SemTypeCanCopy(ctx, nativeResult);
+        xl6AstFree(nativeResult);
+        if ( freshNativeResult ) return 1;
         /*
             async 成员方法在调用检查时已经把公开结果记为 future<T>。
             它是本次调用新建的线性句柄，不能再按声明中的完成值 T 判断可复制性。
