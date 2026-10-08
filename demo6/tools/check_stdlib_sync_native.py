@@ -19,12 +19,14 @@ def main():
     project=Path(__file__).resolve().parents[1]; cc=shutil.which('gcc'); nm=shutil.which('nm'); assert cc and nm
     manifest=compiler/('overlay.json' if os.name=='nt' else 'overlay.linux.json')
     prior=json.loads(manifest.read_text(encoding='utf-8-sig')); assert prior['Complete'] and prior['InputsUnchanged']
-    providers=['xl6_sync','xl6_mutex','xl6_cond','xl6_rwlock']
+    providers=['xl6_sync','xl6_mutex','xl6_cond','xl6_rwlock','xl6_array_sync_admission']
     sources=[project/'src/runtime'/(name+'.c') for name in providers]
     host=project/'test/cases/stdlib_sync_native_host.c'
     family_host=project/'test/cases/stdlib_sync_native_family_host.c'
     inputs={Path(__file__).resolve(),manifest,Path(cc),Path(nm),*sources,host,family_host,project/'src/runtime/xl6_sync.h',
         project/'src/runtime/xl6_sync_internal.h',project/'src/runtime/xl6_mutex_internal.h',
+        project/'src/runtime/xl6_sync_admission.h',project/'src/runtime/xl6_sequence.h',
+        project/'src/runtime/xl6_array_admission.h',project/'src/runtime/xl6_array.h',
         project/'src/runtime/xl6_ownership_plan.h',project/'release/include/xl_sync_retirement.h',
         project/'release/include/xl.h',project/'src/api/xl_foreign_error.h',
         root/'test/support/module_product_memory.c',root/'test/support/module_product_memory.h'}
@@ -57,7 +59,8 @@ def main():
         rows.append({'Name':name,'Command':command,'Exit':result.returncode}); save()
         assert result.returncode==0,(name,data[-6000:].decode(errors='replace')); return data.decode(errors='replace')
     flags=['-std=c11','-Wall','-Wextra','-Werror','-Wshadow','-DXL_STATIC_EMBED',
-        '-I'+str(project),'-I'+str(schema),'-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include')]
+        '-I'+str(project),'-I'+str(project/'release/include'),'-I'+str(schema),
+        '-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include')]
     if args.sanitize: flags+=['-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie']
     if args.race: flags+=['-g','-fsanitize=thread','-fno-omit-frame-pointer','-fno-pie','-no-pie']
     objects=[row['Path'] for row in selected]

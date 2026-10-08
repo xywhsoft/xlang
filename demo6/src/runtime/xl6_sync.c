@@ -3,7 +3,7 @@
 #define XRUNTIME_MODULE_RUNTIME_VALUE_TYPE
 #include "lib/xruntime/xruntime.h"
 #include "src/runtime/xl6_sync_internal.h"
-#include "release/include/xl_sync_retirement.h"
+#include "xl_sync_retirement.h"
 #include <limits.h>
 #include <stdlib.h>
 
