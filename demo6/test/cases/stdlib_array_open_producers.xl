@@ -1,0 +1,35 @@
+int evaluations = 0
+func item(int value) as int
+    evaluations = evaluations * 10 + value
+    return value
+end
+func make() as var
+    return ["a\0你", b"\0A\xff", null, '你', item(1), item(2)]
+end
+func choose(bool first) as var
+    return first ? [["a\0你"], [42, null]] : [b"\0A\xff"]
+end
+func inspect(var values) as int
+    assert(values[0] == "a\0你" and values[1] == b"\0A\xff")
+    return values.length
+end
+func main(...) as int
+    var empty = []
+    assert(empty.length == 0)
+    var values = make()
+    assert(evaluations == 12 and inspect(values) == 6)
+    assert(values[2] == null and values[3] == '你')
+    var alias = values
+    alias[0] = "changed"
+    assert(values[0] == "changed")
+    var nested = choose(true)
+    assert(nested[0][0] == "a\0你" and nested[1][1] == null)
+    assert(choose(false)[0] == b"\0A\xff")
+    array<int> typed = [7, 8]
+    var erased = typed
+    assert(erased[0] == 7 and erased.length == 2)
+    erased[1] = 9
+    assert(typed[1] == 9)
+    assert(string(nested) == "[[\"a\\u0000你\"],[42,null]]")
+    return 0
+end

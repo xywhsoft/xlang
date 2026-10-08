@@ -1,17 +1,12 @@
 #include "src/runtime/xl6_array_import.h"
 #include "src/runtime/xl6_array_input.h"
+#include "src/api/xl_foreign_error.h"
 #include <limits.h>
-
-static void releasePreservingError(xvalue* value)
-{
-    xerror* prior=xrtTakeError();
-    xrtValueRelease(value);
-    if (prior) { xrtClearError(); xrtSetErrorTake(prior); }
-}
+#include <stdlib.h>
 
 /* -1 recognized failure, 0 explicit conversion required, 1 copied. Never
  * infer native compatibility from a bound TypeId or a descriptor name. */
-static int copyNative(XL6_Sequence* target,const XL6_SequenceLayoutV1* layout,
+static int copyNative(xvalue* seed,XL6_Sequence* target,const XL6_SequenceLayoutV1* layout,
     const xvalueconverter* converter,const xvalue* source)
 {
     XL6_Sequence* owner=NULL; XL6_SequenceLayoutV1 sourceLayout;
@@ -20,10 +15,20 @@ static int copyNative(XL6_Sequence* target,const XL6_SequenceLayoutV1* layout,
     if (status<=0) return status;
     bool compatible=sourceLayout.elementIdentity==layout->elementIdentity &&
         sourceLayout.transfer==layout->transfer && sourceLayout.size==layout->size &&
-        sourceLayout.type==layout->type && sourceConverter==converter &&
-        xl6SequenceAdmissionEquivalentV1(target,owner);
+        sourceLayout.type==layout->type && sourceConverter==converter;
     int result=0;
-    if (compatible) {
+    if(compatible) {
+        XL6_SequenceAdmissionV3 policy={0};
+        if(!xl6SequenceAdmissionCopyV3(owner,&policy)) result=-1;
+        else {
+            /* This is a fast-path probe, not an attempted typed operation.
+             * A policy mismatch requests conversion without publishing a
+             * spurious TypeError into the surrounding transaction. */
+            compatible=xl6SequenceAdmitsSchemaV1(seed,XL6_SEQUENCE_ARRAY_V1,layout,&policy);
+            xl6SequenceAdmissionDropV3(&policy);
+        }
+    }
+    if (compatible && !result) {
         xtypedarray* storage=xl6SequenceStorageV1(owner);
         if (xrtTypedArrayCount(storage)>INT64_MAX) { xrtSetErrorKind(XERR_RANGE); result=-1; }
         else if (xrtTypedArrayAppend(xl6SequenceStorageV1(target),storage)) result=1;
@@ -34,6 +39,8 @@ static int copyNative(XL6_Sequence* target,const XL6_SequenceLayoutV1* layout,
 
 xvalue* xl6ArrayImportTakeV1(xvalue* seed, const xvalue* source)
 {
+    xl6_error_scope transaction={0};
+    if(!xl6ErrorScopeBegin(&transaction)) abort();
     XL6_Sequence* owner=NULL;
     XL6_SequenceLayoutV1 layout;
     const xvalueconverter* converter=NULL;
@@ -57,7 +64,7 @@ xvalue* xl6ArrayImportTakeV1(xvalue* seed, const xvalue* source)
     if (!admitted || xrtTypedArrayCount(storage)!=0) {
         xrtSetErrorKind(XERR_STATE); goto done;
     }
-    int copied=copyNative(owner,&layout,converter,source);
+    int copied=copyNative(seed,owner,&layout,converter,source);
     if (copied) { ok=copied>0; goto done; }
     /* Keep the destination pin through all source conversions and cleanup.
      * A converter cannot publish/mutate/retire the construction seed. */
@@ -75,8 +82,12 @@ xvalue* xl6ArrayImportTakeV1(xvalue* seed, const xvalue* source)
     }
     ok=true;
 done:
+    if(!ok) xl6ErrorScopeCaptureFailure(&transaction);
     xl6ArrayInputReleaseV1(&input);
     if (owner) xl6SequenceEndV1(owner);
-    if (!ok) { releasePreservingError(seed); return NULL; }
+    if(xrtGetError()) xl6ErrorScopeCaptureFailure(&transaction);
+    if(transaction.failed) xrtValueRelease(seed);
+    xl6_error_result outcome=xl6ErrorScopeEnd(&transaction);
+    if(!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return NULL; }
     return seed;
 }

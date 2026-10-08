@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """B85 native Array inputs and split Future aggregates/metadata with complete OOM prefixes.
 
-Language regressions use today's value-v1 carrier, not proof of its cutover.
+Language regressions link the current full source runtime; separate artifact
+closure gates prove pruning. They are not proof of the complete carrier cutover.
 Native host creates sealed resident Arrays and calls every changed consumer.
 Linux sanitizer instruments input/text/process/regex/pattern, aggregate
 kernel/Array adapter, metadata/legacy bridge and hosts; Sequence/XRT stay shared.
@@ -206,7 +207,7 @@ def main() -> int:
             for level in ("O0", "O2"):
                 binary = out / (name + "." + level + (".exe" if os.name == "nt" else ""))
                 run(name + ".build-" + level, [cc] + strict + ["-" + level] + sanitized + ["-include", str(target),
-                    "test/cases/xlir_module_product_oom_host.c", str(memory_objects[level])] + links + ["-o", str(binary)], 600)
+                    "test/cases/xlir_module_product_oom_host.c", str(memory_objects[level])] + contract_links + ["-o", str(binary)], 600)
                 run(name + ".run-" + level, [str(binary)])
             prefix = out / (name + ".product")
             if public:

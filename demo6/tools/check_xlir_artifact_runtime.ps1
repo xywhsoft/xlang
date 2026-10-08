@@ -151,6 +151,31 @@ $process=Start-Process @start
                 $plan=Get-Content -LiteralPath "$prefix.native-plan.log"|Where-Object {$_-match '^\{"Fixture"'}|ConvertFrom-Json
                 $selectedSources=@($plan.Sources)
                 $selectionMatches=$true
+                if($case-in@('cgen_dynamic_container_reference','cgen_dynamic_container_methods')){
+                    $selectionMatches='src/runtime/xl6_dynamic_collection.c'-in$selectedSources-and
+                        'src/runtime/xl6_value_contains.c'-in$selectedSources-and
+                        'src/runtime/xl6_array_method_remove.c'-in$selectedSources
+                }
+                if($case-eq'cgen_dynamic_container_param'){
+                    # This fixture only reads Array/Dict parameters; its name
+                    # does not make dynamic mutation/membership providers used.
+                    $selectionMatches='src/runtime/xl6_dynamic_collection.c'-notin$selectedSources-and
+                        'src/runtime/xl6_value_contains.c'-notin$selectedSources-and
+                        'src/runtime/xl6_array_method_remove.c'-notin$selectedSources
+                }
+                if($case-eq'stdlib_array_entry_argv'){
+                    $selectionMatches='src/runtime/xl6_array_entry.c'-in$selectedSources-and
+                        'src/runtime/xl6_array_os_argv.c'-in$selectedSources-and
+                        'XRT_MODULE_UNICODE'-in$plan.NativeModules-and
+                        'src/runtime/xl6_dynamic_collection.c'-notin$selectedSources
+                }
+                if($case-eq'cgen_basic'){
+                    $selectionMatches=$selectionMatches-and
+                        'src/runtime/xl6_array_entry.c'-notin$selectedSources-and
+                        'src/runtime/xl6_array_os_argv.c'-notin$selectedSources-and
+                        'src/runtime/xl6_dynamic_collection.c'-notin$selectedSources-and
+                        'src/runtime/xl6_value_contains.c'-notin$selectedSources
+                }
                 if($case-in@('stdlib_class_interpolation','stdlib_class_values_continuation',
                     'stdlib_class_text','stdlib_class_text_derive_only',
                     'xlir_string_conversion_abi','cgen_derive_string_hash_equals')){
@@ -169,7 +194,7 @@ $process=Start-Process @start
                     }
                 }
                 if($case-in@('basic','cgen_basic','stdlib_error_text','stdlib_class_value_fields')){
-                    $selectionMatches='src/runtime/xl6_class_text.c'-notin$selectedSources
+                    $selectionMatches=$selectionMatches-and'src/runtime/xl6_class_text.c'-notin$selectedSources
                 }
                 if($case-like'stdlib_value_iterator_checked*'){
                     $selectionMatches='src/runtime/xl6_value_iterator.c'-in$selectedSources-and

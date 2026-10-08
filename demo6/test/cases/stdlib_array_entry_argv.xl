@@ -1,0 +1,7 @@
+func main(...) as int
+    if arg.length > 1 then
+        assert(arg.length == 6 and arg[1] == "" and arg[2] == "你")
+        assert(arg[3] == "🙂" and arg[4] == "a\"b" and arg[5] == "C:\\path with space\\")
+    end
+    return 0
+end

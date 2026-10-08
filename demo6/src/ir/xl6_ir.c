@@ -14336,11 +14336,24 @@ XL6_IrTypeId xl6IrArrayAnyElementType(const XL6_IrModule* module, XL6_IrTypeId t
     if (!xl6IrTypeIsErasedArrayShape(type) || !type->typeValueId) return XL6_IR_TYPE_INVALID;
     return xl6IrFindDynamicXValueBuiltinType(module);
 }
+XL6_IrTypeId xl6IrArrayAnyType(const XL6_IrModule* module)
+{
+    XL6_IrTypeId generic=XL6_IR_TYPE_INVALID;
+    if(!module) return XL6_IR_TYPE_INVALID;
+    for(size_t i=0;i<module->types.count;++i) {
+        const XL6_IrType* type=&module->types.items[i];
+        XL6_IrTypeId id=(XL6_IrTypeId)(i+1);
+        if(type->typeValueId!=module->runtimeTypeMap.arrayTypeValueId ||
+            xl6IrArrayAnyElementType(module,id)==XL6_IR_TYPE_INVALID) continue;
+        if(type->kind==XL6_IR_TYPE_BUILTIN) return id;
+        if(generic==XL6_IR_TYPE_INVALID) generic=id;
+    }
+    return generic;
+}
 XL6_IrRuntimeOp xl6IrArrayConstructionRuntimeOp(const XL6_IrModule* module, XL6_IrTypeId typeId)
 {
     const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,typeId) : NULL;
     if (!type || type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) return XL6_IR_RUNTIME_NONE;
-    if (xl6IrTypeIsDynamicXValueBuiltin(module,typeId)) return XL6_IR_RUNTIME_XVALUE_ARRAY_NEW;
     if (type->collectionAbi!=XL6_IR_COLLECTION_ARRAY || type->kind==XL6_IR_TYPE_NULLABLE)
         return XL6_IR_RUNTIME_NONE;
     return type->paramCount==1 || xl6IrArrayAnyElementType(module,typeId)!=XL6_IR_TYPE_INVALID
@@ -18150,6 +18163,7 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
     XL6_AstNode errorType;
     XL6_AstNode stringType;
     XL6_AstNode dynamicType;
+    XL6_AstNode arrayType;
     if ( module == NULL ) return 0;
     classLayoutFailure[0] = '\0';
     classDispatchFailure[0] = '\0';
@@ -18192,6 +18206,13 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
     dynamicType.text = "var";
     if ( ok && module->root != XL6_IR_NODE_INVALID &&
          xl6IrInternAstType(module, root, &dynamicType) == XL6_IR_TYPE_INVALID ) ok = 0;
+    /* Implicit heterogeneous literals own an actual Array before var erasure.
+     * Append vocabulary after source types, never inside backend lowering. */
+    memset(&arrayType,0,sizeof(arrayType));
+    arrayType.kind=XL6_AST_TYPE;
+    arrayType.text="array";
+    if(ok && module->root!=XL6_IR_NODE_INVALID &&
+        xl6IrInternAstType(module,root,&arrayType)==XL6_IR_TYPE_INVALID) ok=0;
     xl6IrBuildRuntimeTypeMap(module);
     if ( !ok || module->root == XL6_IR_NODE_INVALID ) {
         xl6IrModuleFree(module); return 0;
@@ -36013,11 +36034,17 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             return xl6IrDiag(diags, NULL, "typed XLIR must not contain lowered export linkage");
         if ( module->abi.entryKind != XL6_IR_MODULE_ENTRY_NONE || module->abi.entrySymbol != 0 ||
              module->abi.entryArgumentAbi != XL6_IR_C_ABI_UNSUPPORTED ||
+             module->abi.entryArgumentType != XL6_IR_TYPE_INVALID ||
+             module->abi.entryArgumentCarrierAbi != XL6_IR_COLLECTION_CARRIER_NONE ||
+             module->abi.entryArgumentElementIdentity != 0 ||
              module->abi.entryReturnType != XL6_IR_TYPE_INVALID ||
              module->abi.finalizerFunction != 0 || xl6IrModuleHasFinalizerWork(module) )
             return xl6IrDiag(diags, NULL, "typed XLIR must not contain a lowered module ABI");
     } else if ( module->abi.entryKind == XL6_IR_MODULE_ENTRY_NONE ) {
         if ( module->abi.entrySymbol != 0 || module->abi.entryArgumentAbi != XL6_IR_C_ABI_UNSUPPORTED ||
+             module->abi.entryArgumentType != XL6_IR_TYPE_INVALID ||
+             module->abi.entryArgumentCarrierAbi != XL6_IR_COLLECTION_CARRIER_NONE ||
+             module->abi.entryArgumentElementIdentity != 0 ||
              module->abi.entryReturnType != XL6_IR_TYPE_INVALID )
             return xl6IrDiag(diags, NULL, "XLIR empty module ABI has residual entry data");
     } else if ( module->abi.entryKind == XL6_IR_MODULE_ENTRY_XLANG_MAIN ) {
@@ -36025,8 +36052,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         const XL6_IrNode* declaration = target != NULL ? xl6IrNodeGet(module, target->declaration) : NULL;
         const XL6_IrType* result = module->abi.entryReturnType == XL6_IR_TYPE_INVALID ? NULL :
             xl6IrTypeGet(&module->types, module->abi.entryReturnType);
+        XL6_IrTypeId element=xl6IrArrayAnyElementType(module,module->abi.entryArgumentType);
+        const XL6_IrType* elementType=xl6IrTypeGet(&module->types,element);
         if ( module->abi.entryArgumentAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR || target == NULL ||
              target->kind != XL6_IR_CALL_TARGET_INTERNAL || target->parameterCount != 1 ||
+             !target->parameterTypes || target->parameterTypes[0]!=module->abi.entryArgumentType ||
+             module->abi.entryArgumentCarrierAbi!=XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1 ||
+             !elementType || !elementType->typeValueId ||
+             module->abi.entryArgumentElementIdentity!=elementType->typeValueId ||
              target->returnType != module->abi.entryReturnType || declaration == NULL ||
              declaration->sourceKind != XL6_AST_FUNC ||
              (declaration->flags & XL6_AST_FLAG_ENTRYPOINT) == 0 ||
@@ -47764,6 +47797,10 @@ void xl6IrDumpModuleText(XL6_Output* out, const XL6_IrModule* module)
     }
     xl6IrDumpText(module, out);
     xl6OutputPrintf(out, "module-code-owner: %s\n", xl6IrModuleCodeOwnerAbiName(module->abi.codeOwnerAbi));
+    xl6OutputPrintf(out,"module-entry: %d symbol=%u argument=t%u carrier=%d element=0x%016llX\n",
+        (int)module->abi.entryKind,(unsigned)module->abi.entrySymbol,
+        (unsigned)module->abi.entryArgumentType,(int)module->abi.entryArgumentCarrierAbi,
+        (unsigned long long)module->abi.entryArgumentElementIdentity);
     xl6OutputPrintf(out, "closure-storage: %d\n", (int)module->abi.closureStorageAbi);
     xl6OutputPrintf(out, "module-retirement: %d\n", (int)module->abi.retirementAbi);
     xl6OutputPrintf(out, "cell-storage: %d\n", (int)module->abi.cellStorageAbi);
@@ -47855,6 +47892,10 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPrintf(out, "  \"moduleCodeOwnerAbi\": \"%s\",\n",
         xl6IrModuleCodeOwnerAbiName(module->abi.codeOwnerAbi));
     xl6OutputPrintf(out, "  \"moduleContinuationAbi\": %d,\n", (int)module->abi.continuationAbi);
+    xl6OutputPrintf(out,"  \"moduleEntry\": {\"kind\": %d, \"symbol\": %u, \"argumentType\": %u, \"carrierAbi\": %d, \"elementIdentity\": \"0x%016llX\"},\n",
+        (int)module->abi.entryKind,(unsigned)module->abi.entrySymbol,
+        (unsigned)module->abi.entryArgumentType,(int)module->abi.entryArgumentCarrierAbi,
+        (unsigned long long)module->abi.entryArgumentElementIdentity);
     xl6OutputPrintf(out, "  \"moduleExecutorOwnershipAbi\": %d,\n", (int)module->abi.executorOwnershipAbi);
     xl6OutputPrintf(out, "  \"moduleTaskPoolOwnershipAbi\": %d,\n", (int)module->abi.taskPoolOwnershipAbi);
     xl6OutputPrintf(out, "  \"futureAggregateAbi\": %d,\n", (int)module->abi.futureAggregateAbi);

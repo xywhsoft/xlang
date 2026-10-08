@@ -29,3 +29,18 @@ xvalue* xl6SequenceReferenceCreateV1(unsigned int role,uint64_t identity,uint64_
     *data=(XL6_ArrayAdmissionData){.refs=1,.nullable=nullable,.rule=rule,.identity=valueIdentity};
     return create(role,identity,element,data,rule==XL6_VALUE_ADMIT_BYTES && !nullable ? &bytesOps : &policyOps);
 }
+bool xl6SequenceReferenceAnyPolicyV1(XL6_Sequence* owner,uint64_t element)
+{
+    XL6_SequenceAdmissionV3 admission={0};
+    if(!xl6SequenceAdmissionCopyV3(owner,&admission)) return false;
+    bool matches=element && admission.elementIdentity==element && admission.transfer==3 &&
+        admission.size==sizeof(xvalue*) && admission.type==xrtTypeValue() &&
+        admission.ops==&policyOps && admission.data && !admission.boxedIdentity;
+    if(matches) {
+        const XL6_ArrayAdmissionData* data=admission.data;
+        matches=data->rule==XL6_VALUE_ADMIT_ANY && !data->nullable &&
+            data->identity==element && !data->childRole && !data->nominal.kind;
+    }
+    xl6SequenceAdmissionDropV3(&admission);
+    return matches;
+}

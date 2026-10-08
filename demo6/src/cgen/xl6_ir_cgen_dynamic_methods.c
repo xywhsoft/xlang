@@ -582,14 +582,15 @@ static int xl6IrCgenEmitDynamicMethodDispatcher(
     else if ( fallbackOperation != NULL )
         xl6OutputPrintf(out,
             "    if (xrtValueType(receiver) != 12) {\n"
-            "        result = xlir_xvalue_dynamic_collection_method(receiver, %s, positionalCount > 0 ? positionalValues[0] : NULL, positionalCount > 1 ? positionalValues[1] : NULL);\n"
+            "        if (keywordCount || (positionalCount && !positionalValues) || !xl6DynamicCollectionArityV1(%s, positionalCount)) { xrtSetErrorTake(xlir_error_create(\"ArgumentError\", \"invalid dynamic collection arguments\")); goto cleanup; }\n"
+            "        result = xl6DynamicCollectionCallTakeV1(receiver, %s, positionalCount > 0 ? positionalValues[0] : NULL, positionalCount > 1 ? positionalValues[1] : NULL);\n"
             "        for (argumentIndex = 0; argumentIndex < positionalCount; ++argumentIndex) positionalValues[argumentIndex] = NULL;\n"
             "        if (result == NULL && xrtGetError() == NULL) xrtSetErrorTake(xlir_error_create(\"RuntimeError\", \"dynamic collection fallback failed\"));\n"
             "        goto cleanup;\n"
             "    }\n"
             "    typeValue = xrtValueObjectGet(receiver, xrtStrView(\"$xlir.class.runtime-type\"));\n"
             "    if (typeValue == NULL || !xrtValueGetInt(typeValue, &runtimeType)) { if (xrtGetError() == NULL) xrtSetErrorTake(xlir_error_create(\"TypeError\", \"dynamic method receiver has no runtime class tag\")); goto cleanup; }\n",
-            fallbackOperation);
+            fallbackOperation,fallbackOperation);
     else
         xl6OutputPuts(
             "    typeValue = xrtValueObjectGet(receiver, xrtStrView(\"$xlir.class.runtime-type\"));\n"

@@ -5298,6 +5298,9 @@ typedef struct XL6_IrModuleAbi {
     XL6_IrModuleEntryKind entryKind;
     XL6_SymbolId entrySymbol;
     XL6_IrCAbi entryArgumentAbi;
+    XL6_IrTypeId entryArgumentType;
+    XL6_IrCollectionCarrierAbi entryArgumentCarrierAbi;
+    uint64 entryArgumentElementIdentity;
     XL6_IrTypeId entryReturnType;
     /* One-based lowered finalizer index, including owner-free modules.
      * Zero is reserved for Typed IR or fragments without an initializer. */
@@ -6456,6 +6459,9 @@ int xl6IrSequenceConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrSequenceRoleAbi, XL6_IrNominalIdentitySetId*);
 /* Exact erased Array<var> shape and canonical dynamic element identity. */
 XL6_IrTypeId xl6IrArrayAnyElementType(const XL6_IrModule*, XL6_IrTypeId);
+/* Canonical carrier for implicit heterogeneous literals and language entry
+ * parameters; lookup never reconstructs a diagnostic/source spelling. */
+XL6_IrTypeId xl6IrArrayAnyType(const XL6_IrModule*);
 /* Complete explicit data-import chain, outer Array first. Recurses only into
  * Array children; Stack children retain their native identity. No source
  * carrier cutover authority. All descendant recipes/codecs are verified before

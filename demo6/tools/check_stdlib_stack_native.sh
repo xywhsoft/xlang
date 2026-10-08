@@ -55,6 +55,9 @@ frozen_files() {
     printf '%s\0' tools/check_xlir_class_identity_plan.py test/cases/xlir_class_identity_plan_contract.c test/cases/stdlib_class_identity_inherited.xl test/cases/cgen_derive_string_hash_equals.xl
     printf '%s\0' tools/check_xlir_class_default_invocation.py test/cases/xlir_class_default_invocation_contract.c
     printf '%s\0' tools/check_stdlib_callable_variadic_array.py test/cases/stdlib_callable_variadic_array.xl test/cases/stdlib_callable_variadic_array_unused.xl
+    printf '%s\0' tools/check_stdlib_array_entry.py test/cases/stdlib_array_open_producers.xl test/cases/stdlib_array_entry_values.xl test/cases/stdlib_array_entry_argv.xl
+    printf '%s\0' test/cases/stdlib_array_entry_contract.c test/cases/stdlib_array_entry_runtime.c test/cases/stdlib_array_entry_host.c test/cases/stdlib_array_entry_module_host.c
+    printf '%s\0' test/cases/stdlib_dynamic_collection_contract.c
     printf '%s\0' test/cases/stdlib_callable_variadic_array_runtime.c test/cases/stdlib_callable_variadic_array_contract.c
     printf '%s\0' test/cases/stdlib_variadic_native_producers.xl test/cases/stdlib_variadic_native_producers_unused.xl test/cases/stdlib_variadic_native_producers_contract.c
     printf '%s\0' test/cases/stdlib_variadic_dispatch_reachability.xl
@@ -284,6 +287,7 @@ if ! run class-identity-plan "$PY" tools/check_xlir_class_identity_plan.py --out
 if ! run class-default-invocation "$PY" tools/check_xlir_class_default_invocation.py --out "$OUT/class-default-invocation"; then failures+=(class-default-invocation); fi
 if ! run callable-variadic-array "$PY" tools/check_stdlib_callable_variadic_array.py --out "$OUT/callable-variadic-array"; then failures+=(callable-variadic-array); fi
 if ! run variadic-native-producers "$PY" tools/check_stdlib_callable_variadic_array.py --producers --out "$OUT/variadic-native-producers"; then failures+=(variadic-native-producers); fi
+if ! run array-native-entry "$PY" tools/check_stdlib_array_entry.py --root "$ROOT" --out "$OUT/array-native-entry"; then failures+=(array-native-entry); fi
 if ! run persistence-root-default "$PY" tools/check_persistence_project_language.py --fixture root-default --out "$OUT/persistence-root-default"; then failures+=(persistence-root-default); fi
 if ! run sequence-identity-language "$PY" tools/check_persistence_project_language.py --fixture native-identity --out "$OUT/sequence-identity-language"; then failures+=(sequence-identity-language); fi
 if ! run sequence-factories "$PY" tools/check_stdlib_sequence_factories.py --out "$OUT/sequence-factories" --sanitize; then failures+=(sequence-factories); fi

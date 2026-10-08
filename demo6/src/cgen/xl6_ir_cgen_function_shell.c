@@ -4,32 +4,48 @@ static int xl6IrCgenEmitModuleEntry(XL6_Output* out, const XL6_IrModule* module,
     if ( module->abi.entryKind == XL6_IR_MODULE_ENTRY_NONE ) return 1;
     target = xl6IrCallTargetGet(module, module->abi.entrySymbol);
     if ( module->abi.entryKind != XL6_IR_MODULE_ENTRY_XLANG_MAIN || target == NULL ||
-         target->kind != XL6_IR_CALL_TARGET_INTERNAL || target->parameterCount != 1 )
+         target->kind != XL6_IR_CALL_TARGET_INTERNAL || target->parameterCount != 1 ||
+         module->abi.entryArgumentCarrierAbi!=XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1 )
         return xl6IrCgenDiag(diags, module, target != NULL ? target->declaration : XL6_IR_NODE_INVALID,
                              "XLIR C emitter module entry ABI is unresolved");
     /* Only the verified language outcome denotes an uncaught exception.
      * Successful status-returning native calls may leave XRT diagnostics;
      * discard those at a successful host boundary, never inside the body. */
     xl6OutputPuts("extern void xrtClearError(void);\n", out);
+    const XL6_IrType* argument=xl6IrTypeGet(&module->types,module->abi.entryArgumentType);
+    if(!argument) return xl6IrCgenDiag(diags,module,target->declaration,
+        "XLIR C emitter module entry has no canonical argument TypeId");
+    xl6OutputPuts("extern xvalue* xl6ArrayEntryAcquireV1(uint64_t, uint64_t, const xvalue*);\n",out);
     xl6OutputPuts("XLIR_C_API int xl_script_main_checked(xvalue* arg, int* exit_code)\n{\n", out);
-    xl6OutputPuts("    *exit_code = 1;\n    if (!xlir_module_init()) return 0;\n", out);
+    xl6OutputPuts("    xl6_error_scope cleanup = {0}; xl6_error_result outcome;\n"
+        "    int code = 0, ok;\n    *exit_code = 1;\n",out);
+    xl6OutputPrintf(out,"    xvalue* owned_arg = xl6ArrayEntryAcquireV1(0x%016llXULL, 0x%016llXULL, arg);\n",
+        (unsigned long long)argument->typeValueId,(unsigned long long)module->abi.entryArgumentElementIdentity);
+    xl6OutputPuts("    if (!owned_arg) return 0;\n"
+        "    ok = xlir_module_init();\n    if (!ok) goto entry_cleanup;\n",out);
     if ( target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE ) {
         const char* resultType = xl6IrCgenErrorResultType(module, target->returnType);
         if ( resultType == NULL )
             return xl6IrCgenDiag(diags, module, target->declaration,
                                  "XLIR C emitter entry error-result ABI is unresolved");
-        xl6OutputPrintf(out, "    %s result = xlir_fn_%u(arg);\n", resultType,
+        xl6OutputPrintf(out, "    %s result = xlir_fn_%u(owned_arg);\n", resultType,
                         (unsigned int)target->symbol);
-        xl6OutputPuts("    if (!result.ok) return 0;\n"
-                       "    xrtClearError();\n"
-                       "    *exit_code = (int)result.value;\n    return 1;\n", out);
+        xl6OutputPuts("    ok = result.ok;\n",out);
+        if(target->returnType!=XL6_IR_TYPE_INVALID)
+            xl6OutputPuts("    if (ok) code = (int)result.value;\n",out);
     } else if ( target->returnType == XL6_IR_TYPE_INVALID ) {
-        xl6OutputPrintf(out, "    xlir_fn_%u(arg);\n", (unsigned int)target->symbol);
-        xl6OutputPuts("    xrtClearError();\n    *exit_code = 0;\n    return 1;\n", out);
+        xl6OutputPrintf(out, "    xlir_fn_%u(owned_arg);\n", (unsigned int)target->symbol);
     } else {
-        xl6OutputPrintf(out, "    int code = (int)xlir_fn_%u(arg);\n", (unsigned int)target->symbol);
-        xl6OutputPuts("    xrtClearError();\n    *exit_code = code;\n    return 1;\n", out);
+        xl6OutputPrintf(out, "    code = (int)xlir_fn_%u(owned_arg);\n", (unsigned int)target->symbol);
     }
+    xl6OutputPuts("entry_cleanup:\n"
+        "    if (ok) xrtClearError();\n"
+        "    if (!xl6ErrorScopeBeginCleanup(&cleanup, !ok)) abort();\n"
+        "    xrtValueRelease(owned_arg);\n"
+        "    if (xrtGetError()) xl6ErrorScopeCaptureFailure(&cleanup);\n"
+        "    outcome = xl6ErrorScopeEnd(&cleanup); xrtSetErrorTake(outcome.error);\n"
+        "    if (!outcome.ok) return 0;\n"
+        "    *exit_code = code;\n    return 1;\n",out);
     xl6OutputPuts("}\n\n"
         "XLIR_C_API int xlang_main(xvalue* arg)\n{\n"
         "    int code;\n"
@@ -210,31 +226,22 @@ static int xl6IrCgenEmitHostBindings(
     if ( emitMainWrapper ) {
         xl6OutputPuts(
             "#ifndef XLIR_XRT_DECLARATIONS\n"
-            "extern xvalue* xrtValueArray(void);\n"
-            "extern xvalue* xrtValueString(xstrview);\n"
-            "extern bool xrtValueArrayAppendNew(xvalue*, xvalue*);\n"
             "extern void xrtValueRelease(xvalue*);\n"
-            "#endif\n"
-            "static xvalue* xlir_command_argv_to_arg(int argc, char** argv)\n"
-            "{\n"
-            "    xvalue* array = xrtValueArray();\n"
-            "    int i;\n"
-            "    if (array == NULL) return NULL;\n"
-            "    for (i = 0; i < argc; ++i) {\n"
-            "        xvalue* item = xrtValueString(xrtStrView(argv[i]));\n"
-            "        if (item == NULL || !xrtValueArrayAppendNew(array, item)) {\n"
-            "            xrtValueRelease(array);\n"
-            "            return NULL;\n"
-            "        }\n"
-            "    }\n"
-            "    return array;\n"
-            "}\n\n"
-            "int main(int argc, char** argv)\n"
-            "{\n"
-            "    xvalue* arg = xlir_command_argv_to_arg(argc, argv);\n"
+            "#endif\n",out);
+        if(module->abi.entryKind==XL6_IR_MODULE_ENTRY_XLANG_MAIN) {
+            const XL6_IrType* argument=xl6IrTypeGet(&module->types,module->abi.entryArgumentType);
+            xl6OutputPuts("extern xvalue* xl6ArrayOsArgvCreateV1(uint64_t, uint64_t, int, char* const*);\n"
+                "int main(int argc, char** argv)\n{\n",out);
+            xl6OutputPrintf(out,"    xvalue* arg = xl6ArrayOsArgvCreateV1(0x%016llXULL, 0x%016llXULL, argc, argv);\n",
+                (unsigned long long)argument->typeValueId,(unsigned long long)module->abi.entryArgumentElementIdentity);
+            xl6OutputPuts("    if (!arg) return 1;\n",out);
+        } else {
+            xl6OutputPuts("int main(int argc, char** argv)\n{\n"
+                "    (void)argc; (void)argv; xvalue* arg = NULL;\n",out);
+        }
+        xl6OutputPuts(
             "    xl6_error_scope cleanup = {0}; xl6_error_result outcome;\n"
             "    int code, ok;\n"
-            "    if (arg == NULL) return 1;\n"
             "    ok = xl_script_main_checked(arg, &code);\n"
             "    if (!xl6ErrorScopeBeginCleanup(&cleanup, !ok)) abort();\n"
             "    xrtValueRelease(arg);\n"

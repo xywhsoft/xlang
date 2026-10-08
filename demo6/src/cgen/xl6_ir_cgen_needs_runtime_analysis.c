@@ -299,10 +299,6 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
                module->instructions[i].dynamicCollectionOp !=
                    XL6_IR_DYNAMIC_COLLECTION_INVALID)) ) {
             needs->needsXValueDynamicCollectionRuntime = 1;
-            /* The explicit CONTAINS operation reuses the canonical dynamic
-             * membership helper; declarations are shared for every method. */
-            needs->needsXValueContainsRuntime = 1;
-            needs->needsStringViews = 1;
         }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_INTEGER ) {
