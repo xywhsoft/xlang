@@ -1841,6 +1841,12 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
         xl6IrLowerDiag(ctx,origin,"Stack construction requires a closed resident Sequence recipe; wire Array and unsupported element domains are not native slots");
         return XL6_IR_VALUE_INVALID;
     }
+    if (runtimeOp==XL6_IR_RUNTIME_AVL_TREE_CREATE &&
+        !xl6IrAvlConstructionRecipe(ctx->module,type,NULL,NULL,NULL,
+            &instruction->sequenceAdmissionIdentitySet)) {
+        xl6IrLowerDiag(ctx,origin,"AvlTree default construction requires two closed resident admission domains");
+        return XL6_IR_VALUE_INVALID;
+    }
     if (immediate != NULL) {
         instruction->immediateText = xrtStrDupN(immediate, strlen(immediate));
         if (instruction->immediateText == NULL) {
@@ -15814,34 +15820,8 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
             XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLEAR ||
         intrinsic->runtimeResourceOp ==
             XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLEAR;
-    mayRaise = creates ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_TRY_SEND ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_TRY_PUSH ||
-        xl6IrLowerRuntimeResourceOpIsStack(intrinsic->runtimeResourceOp) ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_GET_INTO ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_FIRST_INTO ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LAST_INTO ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LOWER_BOUND_INTO ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_UPPER_BOUND_INTO ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_MERGE ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_KEYS ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_VALUES ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLONE;
+    mayRaise=xl6IrRuntimeResourceErrorAbiForOwnerType(module,intrinsic->runtimeResourceOp,
+        creates ? intrinsic->resultType : intrinsic->receiverType)==XL6_IR_ERROR_ABI_MAY_RAISE;
     if ( !avlTree &&
          (intrinsic->runtimeResourceKeyType != XL6_IR_TYPE_INVALID ||
           intrinsic->runtimeResourceKeyPayloadAbi !=
@@ -24511,6 +24491,12 @@ static int xl6IrLowerIntrinsicRuntimeResource(
         intrinsic->runtimeResourceKeyPayloadAbi;
     runtimeInstruction->runtimeResourceKeyOrderAbi =
         intrinsic->runtimeResourceKeyOrderAbi;
+    if (runtimeOp==XL6_IR_RUNTIME_AVL_TREE_CREATE &&
+        !xl6IrAvlConstructionRecipe(ctx->module,runtimeInstruction->type,NULL,NULL,NULL,
+            &runtimeInstruction->sequenceAdmissionIdentitySet)) {
+        xl6IrLowerDiag(ctx,id,"AvlTree construction requires two closed resident admission domains");
+        ok=0; goto done;
+    }
     if ((runtimeOp==XL6_IR_RUNTIME_AVL_TREE_KEYS || runtimeOp==XL6_IR_RUNTIME_AVL_TREE_VALUES) &&
         !xl6IrAvlProjectionContract(ctx->module,intrinsic->receiverType,runtimeInstruction->type,
             runtimeOp==XL6_IR_RUNTIME_AVL_TREE_KEYS,&runtimeInstruction->sequenceAdmissionIdentitySet)) {

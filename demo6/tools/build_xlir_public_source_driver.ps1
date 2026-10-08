@@ -34,6 +34,14 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_array_entry.c',
     'src/runtime/xl6_array_producer.c',
     'src/runtime/xl6_tree_projection.c',
+    'src/runtime/xl6_tree.c',
+    'src/runtime/xl6_tree_admission.c',
+    'src/runtime/xl6_semaphore.c','src/runtime/xl6_array_semaphore_admission.c',
+    'src/runtime/xl6_sync.c','src/runtime/xl6_mutex.c','src/runtime/xl6_cond.c','src/runtime/xl6_rwlock.c',
+    'src/runtime/xl6_array_sync_admission.c',
+    'src/runtime/xl6_queue_spsc_admission.c',
+    'src/runtime/xl6_queue_mpsc_admission.c',
+    'src/runtime/xl6_queue_mpmc_admission.c',
     'src/runtime/xl6_queue_spsc.c','src/runtime/xl6_queue_mpsc.c','src/runtime/xl6_queue_mpmc.c',
     'src/runtime/xl6_array_os_argv.c',
     'src/runtime/xl6_array_method_remove.c','src/runtime/xl6_value_contains.c','src/runtime/xl6_dynamic_collection.c',
@@ -149,6 +157,9 @@ $objectRecords = @()
 for ($index = 0; $index -lt $sources.Count; ++$index) {
     $source = $sources[$index]
     $sourceFlags = $flags
+    if ($source -match '^src/runtime/xl6_(sync|mutex|cond|rwlock|array_sync_admission)\.c$') {
+        $sourceFlags = @($flags | Where-Object { !$_.StartsWith('-Wno-') }) + '-Wshadow'
+    }
     if ($source -match '^lib/tcc/') { $sourceFlags += '-Wno-error' }
     $record = Invoke-XlirCObject -Context $buildContext -Source (Join-Path $rootPath $source) -Object $objects[$index] -Flags $sourceFlags
     $objectRecords += $record

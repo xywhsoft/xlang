@@ -6,6 +6,7 @@
 dir|include|%XL6_EMBED_TCC_DIST%/include
 
 file|include/xl.h|%XL6_ROOT%/release/include/xl.h
+file|include/xl_sync_retirement.h|%XL6_ROOT%/release/include/xl_sync_retirement.h
 file|include/__xl_runtime/xl_runtime.h|%XL6_ROOT%/release/include/xl_runtime.h
 file|include/__xl_runtime/xl_extlib_abi.h|%XL6_ROOT%/release/include/xl_extlib_abi.h
 file|include/__xl_runtime/xruntime_decl.h|%XL6_ROOT%/release/include/xruntime_decl.h

@@ -1,0 +1,4 @@
+func main(...) as int
+    auto locks = Stack::<mutex?>()
+    return 0
+end

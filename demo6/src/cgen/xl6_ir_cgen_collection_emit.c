@@ -498,7 +498,7 @@ static int xl6IrCgenRuntimeAvlAbi(
          instruction->runtimeResourceKeyPayloadAbi !=
              xl6IrCgenChannelPayloadAbi(key) ||
          instruction->runtimeResourceKeyOrderAbi !=
-             xl6IrCgenAvlKeyOrderAbi(key) ) return 0;
+             xl6IrAvlKeyOrderAbi(module,treeTypeId) ) return 0;
     resultType = xl6IrTypeGet(&module->types, instruction->type);
     if ( creates )
         return instruction->operandCount == 0 &&
@@ -506,8 +506,8 @@ static int xl6IrCgenRuntimeAvlAbi(
     if ( operands[0] == NULL || operands[0]->type != treeTypeId ) return 0;
     if ( instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_CLEAR )
         return instruction->operandCount == 1 &&
-               instruction->result == XL6_IR_VALUE_INVALID &&
-               instruction->type == XL6_IR_TYPE_INVALID;
+               instruction->result != XL6_IR_VALUE_INVALID && resultType != NULL &&
+               resultType->cAbi == XL6_IR_C_ABI_BOOL;
     if ( instruction->result == XL6_IR_VALUE_INVALID || resultType == NULL )
         return 0;
     switch ( instruction->runtimeOp ) {
@@ -597,6 +597,10 @@ static const char* xl6IrCgenSequenceTransferAbiToken(XL6_IrRuntimeResourcePayloa
     default: return NULL;
     }
 }
+static int xl6IrCgenEmitTreeReferenceCreateDepth(XL6_Output*,const XL6_IrModule*,
+    XL6_IrTypeId,const char*,size_t);
+static int xl6IrCgenEmitQueueReferenceCreateDepth(XL6_Output*,const XL6_IrModule*,
+    XL6_IrTypeId,const char*,size_t);
 static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* module,
     XL6_IrTypeId typeId,const char* result,XL6_IrNominalIdentitySetId admissionSet,size_t depth,
     const char* importChain,size_t importCount,bool projectArrays)
@@ -660,12 +664,26 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
             XL6_SEQUENCE_CREATE_IDS,descriptor,(unsigned)plan->admissionAbi,
             plan->nullable ? "true" : "false",(unsigned long long)base->typeValueId);
         break;
+    case XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1:
+        xl6OutputPrintf(out,
+            "    %s = xl6SequenceSyncCreateV1(%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u);\n",
+            result,(unsigned)plan->role,(unsigned long long)sequence->typeValueId,
+            (unsigned long long)payload->typeValueId,(unsigned long long)base->typeValueId,
+            plan->nullable ? "true" : "false",
+            plan->abi==XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 ? 1u :
+            plan->abi==XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 ? 2u : 3u);
+        break;
     case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1:
         xl6OutputPrintf(out,
             "    %s = %s(%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s);\n",
             result,plan->abi==XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ?
-                "xl6SequenceCallableCreateV1" : "xl6SequenceFutureCreateV1",
+                "xl6SequenceCallableCreateV1" :
+                plan->abi==XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1 ?
+                "xl6SequenceSemCreateV1" : "xl6SequenceFutureCreateV1",
             (unsigned)plan->role,(unsigned long long)sequence->typeValueId,
             (unsigned long long)payload->typeValueId,(unsigned long long)base->typeValueId,
             plan->nullable ? "true" : "false");
@@ -686,6 +704,12 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
                 "    %s = xl6SequenceNestedCreateTakeV2(%u, 0x%016llXULL, 0x%016llXULL, %s, %s); }\n",
                 XL6_SEQUENCE_CREATE_IDS,childResult,plan->nullable ? "true" : "false");
         }
+        break;
+    case XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1:
+        if (xl6IrCgenEmitTreeReferenceCreateDepth(out,module,typeId,result,depth+1)<0) return -1;
+        break;
+    case XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1:
+        if (xl6IrCgenEmitQueueReferenceCreateDepth(out,module,typeId,result,depth+1)<0) return -1;
         break;
     default: return -1;
     }
@@ -874,192 +898,4 @@ static int xl6IrCgenEmitStackRuntime(
     return xl6OutputHasFailed(out) ? -1 : 1;
 }
 
-static int xl6IrCgenEmitAvlRuntime(
-    XL6_Output* out, const XL6_IrModule* module,
-    const XL6_IrInstruction* instruction)
-{
-    const XL6_IrInstruction* receiver;
-    const XL6_IrType* tree;
-    const XL6_IrType* key;
-    const XL6_IrType* value;
-    const XL6_IrType* resultType;
-    const char* keyPayloadAbi;
-    const char* valuePayloadAbi;
-    const char* keyRuntimeType;
-    const char* valueRuntimeType;
-    const char* keyCType;
-    const char* valueCType;
-    XL6_IrValueId first;
-    if ( instruction == NULL ||
-         !xl6IrCgenAvlRuntimeOpIs(instruction->runtimeOp) ) return 0;
-    if ( !xl6IrCgenRuntimeAvlAbi(module, instruction) ) return -1;
-    first = instruction->operandCount != 0
-        ? module->operands[instruction->firstOperand] : XL6_IR_VALUE_INVALID;
-    receiver = instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_CREATE
-        ? NULL : xl6IrCgenValueDefinition(module, first, NULL);
-    if ( !xl6IrCgenAvlTypeAbi(
-             module, receiver != NULL ? receiver->type : instruction->type,
-             &tree, &key, &value) ) return -1;
-    keyPayloadAbi = xl6IrCgenChannelPayloadAbiToken(
-        instruction->runtimeResourceKeyPayloadAbi);
-    valuePayloadAbi = xl6IrCgenChannelPayloadAbiToken(
-        instruction->runtimeResourcePayloadAbi);
-    keyRuntimeType = xl6IrCgenNativeValueTypeExpr(module, instruction->runtimeResourceKeyType);
-    /* A logical Value descriptor clones dynamic objects. The sealed RETAIN
-     * transfer contract instead stores the shared resident reference slot;
-     * Tree set/get/clone must all use that same physical descriptor. */
-    valueRuntimeType = instruction->runtimeResourcePayloadAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN ?
-        "xl6SequenceStorageTypeV1(3, xrtTypeValue())" :
-        xl6IrCgenNativeValueTypeExpr(module, instruction->payloadType);
-    keyCType = xl6IrCgenType(module, tree->params[0]);
-    valueCType = xl6IrCgenType(module, tree->params[1]);
-    if ( keyPayloadAbi == NULL || valuePayloadAbi == NULL ||
-         keyRuntimeType == NULL || valueRuntimeType == NULL ||
-         keyCType == NULL || valueCType == NULL ) return -1;
-#define XL6_IR_CGEN_AVL_COMMON_ARGS                                        \
-    (unsigned long long)tree->typeValueId,                                 \
-    (unsigned long long)key->typeValueId,                                  \
-    (unsigned long long)value->typeValueId, keyPayloadAbi,                  \
-    (unsigned int)instruction->runtimeResourceKeyOrderAbi,                  \
-    valuePayloadAbi, keyRuntimeType, valueRuntimeType, keyCType, valueCType
-    switch ( instruction->runtimeOp ) {
-    case XL6_IR_RUNTIME_AVL_TREE_CREATE:
-        xl6OutputPrintf(out,
-            "    v%u = xlir_avl_create(0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s));\n",
-            (unsigned int)instruction->result,
-            XL6_IR_CGEN_AVL_COMMON_ARGS);
-        break;
-    case XL6_IR_RUNTIME_AVL_TREE_SET:
-        xl6OutputPrintf(out,
-            "    v%u = xlir_avl_set(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s), &v%u, &v%u);\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            XL6_IR_CGEN_AVL_COMMON_ARGS,
-            (unsigned int)module->operands[instruction->firstOperand + 1],
-            (unsigned int)module->operands[instruction->firstOperand + 2]);
-        break;
-    case XL6_IR_RUNTIME_AVL_TREE_GET_INTO:
-    case XL6_IR_RUNTIME_AVL_TREE_TAKE_INTO:
-        xl6OutputPrintf(out,
-            "    v%u = xlir_avl_get_or_take(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s), &v%u, v%u, %s);\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            XL6_IR_CGEN_AVL_COMMON_ARGS,
-            (unsigned int)module->operands[instruction->firstOperand + 1],
-            (unsigned int)module->operands[instruction->firstOperand + 2],
-            instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_TAKE_INTO
-                ? "true" : "false");
-        break;
-    case XL6_IR_RUNTIME_AVL_TREE_CONTAINS:
-    case XL6_IR_RUNTIME_AVL_TREE_REMOVE:
-        xl6OutputPrintf(out,
-            "    v%u = xlir_avl_has_or_remove(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s), &v%u, %s);\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            XL6_IR_CGEN_AVL_COMMON_ARGS,
-            (unsigned int)module->operands[instruction->firstOperand + 1],
-            instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_REMOVE
-                ? "true" : "false");
-        break;
-    case XL6_IR_RUNTIME_AVL_TREE_FIRST_INTO:
-    case XL6_IR_RUNTIME_AVL_TREE_LAST_INTO:
-        xl6OutputPrintf(out,
-            "    v%u = xlir_avl_endpoint(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s), v%u, v%u, %s);\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            XL6_IR_CGEN_AVL_COMMON_ARGS,
-            (unsigned int)module->operands[instruction->firstOperand + 1],
-            (unsigned int)module->operands[instruction->firstOperand + 2],
-            instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_LAST_INTO
-                ? "true" : "false");
-        break;
-    case XL6_IR_RUNTIME_AVL_TREE_LOWER_BOUND_INTO:
-    case XL6_IR_RUNTIME_AVL_TREE_UPPER_BOUND_INTO:
-        xl6OutputPrintf(out,
-            "    v%u = xlir_avl_bound(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s), &v%u, v%u, v%u, %s);\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            XL6_IR_CGEN_AVL_COMMON_ARGS,
-            (unsigned int)module->operands[instruction->firstOperand + 1],
-            (unsigned int)module->operands[instruction->firstOperand + 2],
-            (unsigned int)module->operands[instruction->firstOperand + 3],
-            instruction->runtimeOp ==
-                XL6_IR_RUNTIME_AVL_TREE_UPPER_BOUND_INTO ? "true" : "false");
-        break;
-    case XL6_IR_RUNTIME_AVL_TREE_TRIM_TO:
-    case XL6_IR_RUNTIME_AVL_TREE_TRIM:
-        if ( instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_TRIM_TO )
-            xl6OutputPrintf(out,
-                "    v%u = xlir_avl_trim(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s), v%u);\n",
-                (unsigned int)instruction->result, (unsigned int)first,
-                XL6_IR_CGEN_AVL_COMMON_ARGS,
-                (unsigned int)module->operands[
-                    instruction->firstOperand + 1]);
-        else
-            xl6OutputPrintf(out,
-                "    v%u = xlir_avl_trim(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s), 0LL);\n",
-                (unsigned int)instruction->result, (unsigned int)first,
-                XL6_IR_CGEN_AVL_COMMON_ARGS);
-        break;
-    case XL6_IR_RUNTIME_AVL_TREE_EQUALS:
-        xl6OutputPrintf(out,
-            "    v%u = xlir_avl_equals(v%u, v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s));\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            (unsigned int)module->operands[instruction->firstOperand + 1],
-            XL6_IR_CGEN_AVL_COMMON_ARGS);
-        break;
-    case XL6_IR_RUNTIME_AVL_TREE_MERGE:
-        xl6OutputPrintf(out,
-            "    v%u = xlir_avl_merge(v%u, v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s), v%u);\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            (unsigned int)module->operands[instruction->firstOperand + 1],
-            XL6_IR_CGEN_AVL_COMMON_ARGS,
-            (unsigned int)module->operands[instruction->firstOperand + 2]);
-        break;
-    case XL6_IR_RUNTIME_AVL_TREE_CLEAR:
-        xl6OutputPrintf(out,
-            "    xlir_avl_clear(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s));\n",
-            (unsigned int)first, XL6_IR_CGEN_AVL_COMMON_ARGS);
-        break;
-    case XL6_IR_RUNTIME_AVL_TREE_COUNT:
-        xl6OutputPrintf(out,
-            "    v%u = xlir_avl_count(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s));\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            XL6_IR_CGEN_AVL_COMMON_ARGS);
-        break;
-    case XL6_IR_RUNTIME_AVL_TREE_KEYS:
-    case XL6_IR_RUNTIME_AVL_TREE_VALUES:
-        resultType = xl6IrTypeGet(&module->types, instruction->type);
-        XL6_IrNominalIdentitySetId projectionSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
-        if ( resultType == NULL || resultType->typeValueId == 0 ||
-             !xl6IrAvlProjectionContract(module,receiver->type,instruction->type,
-                 instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_KEYS,&projectionSet) ||
-             projectionSet!=instruction->sequenceAdmissionIdentitySet ) {
-            return -1;
-        }
-        xl6OutputPrintf(out,
-            "    { xlir_avl_handle* xlir_tree_source = xlir_avl_borrow(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s));\n"
-            "    xvalue* xlir_tree_array = NULL;\n",
-            (unsigned int)first,XL6_IR_CGEN_AVL_COMMON_ARGS);
-        if (xl6IrCgenEmitSequenceCreateDepth(out,module,instruction->type,"xlir_tree_array",
-            projectionSet,0,NULL,0,false)<0) return -1;
-        xl6OutputPrintf(out,
-            "    v%u = xl6TypedTreeProjectTakeV1(xlir_tree_source ? xlir_tree_source->tree : NULL, %s, xlir_tree_array, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %s); }\n",
-            (unsigned int)instruction->result,
-            instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_KEYS ? "true" : "false",
-            (unsigned long long)resultType->typeValueId,
-            (unsigned long long)(instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_KEYS ? key->typeValueId : value->typeValueId),
-            xl6IrCgenSequenceTransferAbiToken(resultType->sequenceLayout.transferAbi),
-            xl6IrCgenType(module,resultType->sequenceLayout.elementType),
-            xl6IrCgenNativeSlotTypeExpr(resultType->sequenceLayout.slotAbi),
-            resultType->sequenceLayout.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN ?
-                "xl6ArrayReferenceConverterV1()" : xl6IrCgenNativeValueConverterExpr(module,resultType->sequenceLayout.elementType));
-        break;
-    case XL6_IR_RUNTIME_AVL_TREE_CLONE:
-        xl6OutputPrintf(out,
-            "    v%u = xlir_avl_clone(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s));\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            XL6_IR_CGEN_AVL_COMMON_ARGS);
-        break;
-    default:
-#undef XL6_IR_CGEN_AVL_COMMON_ARGS
-        return 0;
-    }
-#undef XL6_IR_CGEN_AVL_COMMON_ARGS
-    return xl6OutputHasFailed(out) ? -1 : 1;
-}
+#include "src/cgen/xl6_ir_cgen_tree_emit.c"

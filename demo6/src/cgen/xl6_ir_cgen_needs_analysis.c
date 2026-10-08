@@ -1,4 +1,45 @@
 /* Derive all generated-runtime dependencies from reachable lowered IR. */
+static int xl6IrCgenAnalyzeSequenceRecipeNeeds(const XL6_IrModule* module,XL6_IrTypeId id,
+    XL6_IrCgenNeeds* needs,size_t depth)
+{
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
+    if (!type || depth>64 || !xl6IrSequenceConstructionRecipe(module,id,type->sequenceLayout.role,NULL)) return 0;
+    if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2) needs->needsNominalIdentityRuntime=1;
+    if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1) {
+        needs->needsSemaphoreResourceRuntime=1;
+        needs->needsForeignErrorRuntime=1;
+    }
+    if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 ||
+        type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 ||
+        type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1) {
+        needs->needsSyncResourceRuntime=1;
+        needs->needsForeignErrorRuntime=1;
+    }
+    if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1)
+        return xl6IrCgenAnalyzeSequenceRecipeNeeds(module,type->sequenceLayout.baseElementType,needs,depth+1);
+    if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1) {
+        XL6_IrTypeId key=0,value=0;
+        needs->needsAvlTreeResourceRuntime=1;
+        needs->needsForeignErrorRuntime=1;
+        return xl6IrAvlConstructionRecipe(module,type->sequenceLayout.baseElementType,&key,&value,NULL,NULL) &&
+            xl6IrCgenAnalyzeSequenceRecipeNeeds(module,key,needs,depth+1) &&
+            xl6IrCgenAnalyzeSequenceRecipeNeeds(module,value,needs,depth+1);
+    }
+    if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1) {
+        XL6_IrRuntimeResourceAbi family=XL6_IR_RUNTIME_RESOURCE_NONE;
+        XL6_IrTypeId schema=0;
+        if (!xl6IrConcurrentQueueConstructionRecipe(module,type->sequenceLayout.baseElementType,&family,&schema,NULL)) return 0;
+        switch (family) {
+        case XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE: needs->needsSpscQueueRuntime=1; break;
+        case XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE: needs->needsMpscQueueRuntime=1; break;
+        case XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE: needs->needsMpmcQueueRuntime=1; break;
+        default: return 0;
+        }
+        needs->needsForeignErrorRuntime=1;
+        return xl6IrCgenAnalyzeSequenceRecipeNeeds(module,schema,needs,depth+1);
+    }
+    return 1;
+}
 static int xl6IrCgenAnalyzePrimaryNeeds(
     const XL6_IrModule* module, XL6_IrCgenNeeds* needs,
     XL6_DiagList* diags)
@@ -495,6 +536,8 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                 else needs->needsMpmcQueueRuntime=1;
                 const XL6_IrType* schema=xl6IrTypeGet(&module->types,queue->concurrentQueueSchemaType);
                 if (!schema) return 0;
+                if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&
+                    !xl6IrCgenAnalyzeSequenceRecipeNeeds(module,queue->concurrentQueueSchemaType,needs,0)) return 0;
                 if (schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1) {
                     needs->needsXValueClosureBridgeRuntime=1;
                     needs->needsXValueClosureProjectionRuntime=1;
@@ -520,11 +563,14 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
             /* Descendant nominal recipes are needed even when the root is a
              * Sequence-reference profile. Never limit this to the root set. */
             needs->needsNominalIdentityRuntime=1;
+            if (!xl6IrCgenAnalyzeSequenceRecipeNeeds(module,module->instructions[i].type,needs,0)) return 0;
         }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              xl6IrCgenStackRuntimeOpIs(
                  module->instructions[i].runtimeOp) ) {
             needs->needsStackResourceRuntime = 1;
+            if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_STACK_CREATE &&
+                !xl6IrCgenAnalyzeSequenceRecipeNeeds(module,module->instructions[i].type,needs,0)) return 0;
             if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_STACK_CREATE &&
                 module->instructions[i].sequenceAdmissionIdentitySet!=XL6_IR_NOMINAL_IDENTITY_SET_INVALID)
                 needs->needsNominalIdentityRuntime = 1;
@@ -537,6 +583,15 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
              xl6IrCgenAvlRuntimeOpIs(
                  module->instructions[i].runtimeOp) ) {
             needs->needsAvlTreeResourceRuntime = 1;
+            if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_AVL_TREE_CREATE) {
+                XL6_IrTypeId key=0,value=0;
+                if (!xl6IrAvlConstructionRecipe(module,module->instructions[i].type,&key,&value,NULL,NULL) ||
+                    !xl6IrCgenAnalyzeSequenceRecipeNeeds(module,key,needs,0) ||
+                    !xl6IrCgenAnalyzeSequenceRecipeNeeds(module,value,needs,0)) return 0;
+            } else if ((module->instructions[i].runtimeOp==XL6_IR_RUNTIME_AVL_TREE_KEYS ||
+                        module->instructions[i].runtimeOp==XL6_IR_RUNTIME_AVL_TREE_VALUES) &&
+                !xl6IrCgenAnalyzeSequenceRecipeNeeds(module,module->instructions[i].type,needs,0)) return 0;
+            needs->needsForeignErrorRuntime = 1;
             needs->needsXValueRuntime = 1;
             needs->needsXValueHandleRuntime = 1;
             needs->needsXValueTypeIdentityRuntime = 1;
@@ -546,7 +601,13 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              xl6IrCgenSyncRuntimeOpIs(
                  module->instructions[i].runtimeOp) ) {
-            needs->needsSyncResourceRuntime = 1;
+            if (xl6IrCgenSyncResourceAbi(module->instructions[i].runtimeOp)==XL6_IR_RUNTIME_RESOURCE_SEM) {
+                needs->needsSemaphoreResourceRuntime = 1;
+                needs->needsForeignErrorRuntime = 1;
+            } else {
+                needs->needsSyncResourceRuntime = 1;
+                needs->needsForeignErrorRuntime = 1;
+            }
             needs->needsXValueRuntime = 1;
             needs->needsXValueHandleRuntime = 1;
             needs->needsXValueTypeIdentityRuntime = 1;

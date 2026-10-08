@@ -592,7 +592,13 @@ typedef enum XL6_IrSequenceLayoutAbi {
     XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1,
     XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1,
     XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1,
-    XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1
+    XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1,
+    XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1,
+    XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1,
+    XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1,
+    XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1,
+    XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1,
+    XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1
 } XL6_IrSequenceLayoutAbi;
 
 /* A recipe's physical slot need not equal its element's invocation ABI.
@@ -673,6 +679,10 @@ typedef struct XL6_IrType {
      * generic channel. NONE for WaitQueue, nullable owners and other types.
      * The schema exists even when source never mentions an Array<T> value. */
     XL6_IrTypeId concurrentQueueSchemaType;
+    /* Tree owns two independently sealed canonical Array admission domains,
+     * even when source never projects keys()/values(). No Array storage is
+     * part of the Tree owner; these are immutable construction recipes. */
+    XL6_IrTypeId treeKeySchemaType, treeValueSchemaType;
     /* Logical boxed domain, independent of physical carrier/transfer. */
     XL6_ValueAdmissionV1 xvalueAdmissionAbi;
     bool xvalueAdmissionNullable;
@@ -6559,6 +6569,9 @@ XL6_IrTypeId xl6IrConcurrentQueueInstructionType(const XL6_IrModule*,const XL6_I
 int xl6IrConcurrentQueueInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 /* A typed tree producer returns the complete native Array recipe, not a
  * logical identity rebound onto dynamic storage. */
+int xl6IrAvlConstructionRecipe(const XL6_IrModule*,XL6_IrTypeId,
+    XL6_IrTypeId*,XL6_IrTypeId*,XL6_IrNominalIdentitySetId*,XL6_IrNominalIdentitySetId*);
+XL6_IrRuntimeResourceKeyOrderAbi xl6IrAvlKeyOrderAbi(const XL6_IrModule*,XL6_IrTypeId);
 int xl6IrAvlProjectionContract(const XL6_IrModule*,XL6_IrTypeId tree,
     XL6_IrTypeId result,int keys,XL6_IrNominalIdentitySetId*);
 XL6_IrRuntimeResourcePayloadAbi xl6IrRuntimeResourcePayloadAbiForOwnerType(

@@ -251,7 +251,19 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_queue_spsc.c", D(R(SEQUENCE),R(FOREIGN_ERROR),R(ARRAY_REFERENCE_VALUE)), {"XRUNTIME_MODULE_TYPED_QUEUE_SPSC"}},
     {"src/runtime/xl6_queue_mpsc.c", D(R(SEQUENCE),R(FOREIGN_ERROR),R(ARRAY_REFERENCE_VALUE)), {"XRUNTIME_MODULE_TYPED_QUEUE_MPSC"}},
     {"src/runtime/xl6_queue_mpmc.c", D(R(SEQUENCE),R(FOREIGN_ERROR),R(ARRAY_REFERENCE_VALUE)), {"XRUNTIME_MODULE_TYPED_QUEUE_MPMC"}},
-    {"src/runtime/xl6_tree_projection.c", D(R(SEQUENCE),R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_TYPED_TREE"}}
+    {"src/runtime/xl6_tree_projection.c", D(R(SEQUENCE),R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_TYPED_TREE"}},
+    {"src/runtime/xl6_tree.c", D(R(SEQUENCE),R(TREE_PROJECTION),R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_TYPED_TREE"}},
+    {"src/runtime/xl6_tree_admission.c", D(R(TREE),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)), {NULL}},
+    {"src/runtime/xl6_queue_spsc_admission.c", D(R(TYPED_QUEUE_SPSC),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)), {NULL}},
+    {"src/runtime/xl6_queue_mpsc_admission.c", D(R(TYPED_QUEUE_MPSC),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)), {NULL}},
+    {"src/runtime/xl6_queue_mpmc_admission.c", D(R(TYPED_QUEUE_MPMC),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)), {NULL}},
+    {"src/runtime/xl6_semaphore.c", D(R(FOREIGN_ERROR)), {"XRT_MODULE_SEM", "XRT_MODULE_ATOMIC", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_array_semaphore_admission.c", D(R(SEQUENCE),R(SEMAPHORE)), {NULL}},
+    {"src/runtime/xl6_sync.c", D(R(FOREIGN_ERROR)), {"XRT_MODULE_ONCE", "XRT_MODULE_THREAD", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_mutex.c", D(R(SYNC_CORE)), {"XRT_MODULE_MUTEX", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_cond.c", D(R(SYNC_CORE)), {"XRT_MODULE_COND", "XRT_MODULE_MUTEX", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_rwlock.c", D(R(SYNC_CORE)), {"XRT_MODULE_RWLOCK", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_array_sync_admission.c", D(R(SEQUENCE),R(SYNC_CORE)), {NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -476,8 +488,17 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                 case XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1: REQUIRE(R(ARRAY_NULLABLE_C_SCALAR_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1: REQUIRE(R(ARRAY_NUMERIC_ENUM_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1: REQUIRE(R(ARRAY_SEQUENCE_ADMISSION)); break;
+                case XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1: REQUIRE(R(TREE_ADMISSION)); break;
+                case XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1:
+                    /* The shared resident-symbol visitor selects the exact
+                     * family and all descendants from this closed recipe. */
+                    break;
                 case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1: REQUIRE(R(ARRAY_CALLABLE_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1: REQUIRE(R(ARRAY_FUTURE_ADMISSION)); break;
+                case XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1: REQUIRE(R(ARRAY_SEMAPHORE_ADMISSION)); break;
+                case XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1:
+                case XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1:
+                case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1: REQUIRE(R(ARRAY_SYNC_ADMISSION)); break;
                 default: /* Verifier must reject unsupported producers. */
                     xrtFree(work.seen); xrtFree(work.queue); return 0;
                 }

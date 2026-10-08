@@ -1,0 +1,5 @@
+export func syncProbe() as int
+    auto lock = mutex()
+    assert(lock.tryLock() and lock.unlock())
+    return 42
+end

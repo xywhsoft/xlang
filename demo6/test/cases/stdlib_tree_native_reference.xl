@@ -1,0 +1,38 @@
+class TreeReferenceBox
+    int value
+end
+
+class TreeReferenceHolder
+    AvlTree<int, TreeReferenceBox> values
+end
+
+func main(...) as int
+    auto shared = TreeReferenceBox()
+    shared.value = 41
+    AvlTree<int, TreeReferenceBox> left = AvlTree::<int, TreeReferenceBox>()
+    AvlTree<int, TreeReferenceBox> right = AvlTree::<int, TreeReferenceBox>()
+    assert(left.set(1, shared) and right.set(1, shared))
+    assert(left.equals(right) and right.equals(left) and left.equals(left))
+    auto cloned = left.clone()
+    assert(cloned.equals(left))
+    auto holder = TreeReferenceHolder()
+    assert(holder.values.set(1, shared) and holder.values.equals(left))
+    auto values = cloned.values()
+    values[0].value = 53
+    assert(shared.value == 53)
+    assert(right.set(2, shared))
+    assert(not left.equals(right))
+    assert(left.merge(right) and left.equals(right))
+    assert(right.remove(2) and not left.equals(right))
+    auto missing = TreeReferenceBox()
+    missing.value = 99
+    assert(not left.getInto(10, missing) and missing.value == 99)
+    assert(not left.remove(10) and not left.contains(10))
+    left.clear()
+    right.clear()
+    cloned.clear()
+    holder.values.clear()
+    assert(left.count() == 0 and left.equals(right))
+    println("native Tree reference equality, defaults, merge and missing-result contract ok")
+    return 0
+end

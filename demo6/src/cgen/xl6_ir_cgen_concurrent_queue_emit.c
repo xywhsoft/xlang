@@ -29,6 +29,45 @@ static const char* xl6IrCgenConcurrentQueueMethod(XL6_IrRuntimeOp op)
     }
 }
 
+static const char* xl6IrCgenConcurrentQueueAdmissionFactory(XL6_IrRuntimeResourceAbi family)
+{
+    switch (family) {
+    case XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE: return "xl6SequenceSpscQueueCreateTakeV1";
+    case XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE: return "xl6SequenceMpscQueueCreateTakeV1";
+    case XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE: return "xl6SequenceMpmcQueueCreateTakeV1";
+    default: return NULL;
+    }
+}
+static int xl6IrCgenEmitQueueReferenceCreateDepth(XL6_Output* out,const XL6_IrModule* module,
+    XL6_IrTypeId sequenceId,const char* result,size_t depth)
+{
+    const XL6_IrType* sequence=xl6IrTypeGet(&module->types,sequenceId);
+    if (depth>64 || !sequence || sequence->sequenceLayout.abi!=XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1) return -1;
+    const XL6_IrSequenceLayout* plan=&sequence->sequenceLayout;
+    XL6_IrRuntimeResourceAbi family=XL6_IR_RUNTIME_RESOURCE_NONE;
+    XL6_IrTypeId schemaId=0; XL6_IrNominalIdentitySetId set=0;
+    if (!xl6IrConcurrentQueueConstructionRecipe(module,plan->baseElementType,&family,&schemaId,&set)) return -1;
+    const char* factory=xl6IrCgenConcurrentQueueAdmissionFactory(family);
+    if (!factory) return -1;
+    char seed[64],scope[64],outcome[64];
+    snprintf(seed,sizeof(seed),"xlir_queue_schema_seed_%u",(unsigned)depth);
+    snprintf(scope,sizeof(scope),"xlir_queue_schema_scope_%u",(unsigned)depth);
+    snprintf(outcome,sizeof(outcome),"xlir_queue_schema_outcome_%u",(unsigned)depth);
+    xl6OutputPrintf(out,"    { xvalue* %s = NULL; xl6_error_scope %s = {0};\n"
+        "      if (!xl6ErrorScopeBegin(&%s)) abort();\n",seed,scope,scope);
+    if (xl6IrCgenEmitSequenceCreateDepth(out,module,schemaId,seed,set,depth+1,NULL,0,false)<0) return -1;
+    xl6OutputPrintf(out,"      if (!%s) xl6ErrorScopeCaptureFailure(&%s);\n"
+        "      %s = %s(%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %s);\n"
+        "      if (!%s) xl6ErrorScopeCaptureFailure(&%s);\n"
+        "      xl6_error_result %s = xl6ErrorScopeEnd(&%s);\n"
+        "      if (!%s.ok) xl6ErrorScopePropagateFailure(%s); }\n",seed,scope,result,factory,
+        (unsigned)plan->role,(unsigned long long)sequence->typeValueId,
+        (unsigned long long)xl6IrTypeGet(&module->types,plan->elementType)->typeValueId,
+        (unsigned long long)xl6IrTypeGet(&module->types,plan->baseElementType)->typeValueId,
+        seed,plan->nullable ? "true" : "false",result,scope,outcome,scope,outcome,outcome);
+    return xl6OutputHasFailed(out) ? -1 : 1;
+}
+
 static int xl6IrCgenEmitOwnedPlaceRelease(XL6_Output*,const XL6_IrModule*,XL6_IrTypeId,const char*,XL6_DiagList*);
 static int xl6IrCgenEmitConcurrentQueueRuntime(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)

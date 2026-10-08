@@ -149,35 +149,35 @@ static int xl6IrCgenRuntimeSyncAbi(
 static const char* xl6IrCgenSyncHelper(XL6_IrRuntimeOp operation)
 {
     switch ( operation ) {
-    case XL6_IR_RUNTIME_MUTEX_CREATE: return "xlir_mutex_create";
-    case XL6_IR_RUNTIME_MUTEX_LOCK: return "xlir_mutex_lock";
-    case XL6_IR_RUNTIME_MUTEX_TRY_LOCK: return "xlir_mutex_try_lock";
-    case XL6_IR_RUNTIME_MUTEX_UNLOCK: return "xlir_mutex_unlock";
-    case XL6_IR_RUNTIME_SEM_CREATE: return "xlir_sem_create";
-    case XL6_IR_RUNTIME_SEM_WAIT: return "xlir_sem_wait";
-    case XL6_IR_RUNTIME_SEM_TRY_WAIT: return "xlir_sem_try_wait";
-    case XL6_IR_RUNTIME_SEM_WAIT_TIMEOUT: return "xlir_sem_wait_timeout";
-    case XL6_IR_RUNTIME_SEM_POST: return "xlir_sem_post";
-    case XL6_IR_RUNTIME_SEM_POST_MULTIPLE: return "xlir_sem_post_multiple";
-    case XL6_IR_RUNTIME_COND_CREATE: return "xlir_cond_create";
-    case XL6_IR_RUNTIME_COND_WAIT: return "xlir_cond_wait";
-    case XL6_IR_RUNTIME_COND_WAIT_TIMEOUT: return "xlir_cond_wait_timeout";
-    case XL6_IR_RUNTIME_COND_SIGNAL: return "xlir_cond_signal";
-    case XL6_IR_RUNTIME_COND_BROADCAST: return "xlir_cond_broadcast";
-    case XL6_IR_RUNTIME_RWLOCK_CREATE: return "xlir_rwlock_create";
-    case XL6_IR_RUNTIME_RWLOCK_READ_LOCK: return "xlir_rwlock_read_lock";
+    case XL6_IR_RUNTIME_MUTEX_CREATE: return "xl6MutexCreateV1";
+    case XL6_IR_RUNTIME_MUTEX_LOCK: return "xl6MutexLockV1";
+    case XL6_IR_RUNTIME_MUTEX_TRY_LOCK: return "xl6MutexTryLockV1";
+    case XL6_IR_RUNTIME_MUTEX_UNLOCK: return "xl6MutexUnlockV1";
+    case XL6_IR_RUNTIME_SEM_CREATE: return "xl6SemCreateV1";
+    case XL6_IR_RUNTIME_SEM_WAIT: return "xl6SemWaitV1";
+    case XL6_IR_RUNTIME_SEM_TRY_WAIT: return "xl6SemTryWaitV1";
+    case XL6_IR_RUNTIME_SEM_WAIT_TIMEOUT: return "xl6SemWaitTimeoutV1";
+    case XL6_IR_RUNTIME_SEM_POST: return "xl6SemPostV1";
+    case XL6_IR_RUNTIME_SEM_POST_MULTIPLE: return "xl6SemPostMultipleV1";
+    case XL6_IR_RUNTIME_COND_CREATE: return "xl6CondCreateV1";
+    case XL6_IR_RUNTIME_COND_WAIT: return "xl6CondWaitV1";
+    case XL6_IR_RUNTIME_COND_WAIT_TIMEOUT: return "xl6CondWaitTimeoutV1";
+    case XL6_IR_RUNTIME_COND_SIGNAL: return "xl6CondSignalV1";
+    case XL6_IR_RUNTIME_COND_BROADCAST: return "xl6CondBroadcastV1";
+    case XL6_IR_RUNTIME_RWLOCK_CREATE: return "xl6RWLockCreateV1";
+    case XL6_IR_RUNTIME_RWLOCK_READ_LOCK: return "xl6RWLockReadV1";
     case XL6_IR_RUNTIME_RWLOCK_TRY_READ_LOCK:
-        return "xlir_rwlock_try_read_lock";
+        return "xl6RWLockTryReadV1";
     case XL6_IR_RUNTIME_RWLOCK_READ_UNLOCK:
-        return "xlir_rwlock_read_unlock";
-    case XL6_IR_RUNTIME_RWLOCK_WRITE_LOCK: return "xlir_rwlock_write_lock";
+        return "xl6RWLockReadUnlockV1";
+    case XL6_IR_RUNTIME_RWLOCK_WRITE_LOCK: return "xl6RWLockWriteV1";
     case XL6_IR_RUNTIME_RWLOCK_TRY_WRITE_LOCK:
-        return "xlir_rwlock_try_write_lock";
+        return "xl6RWLockTryWriteV1";
     case XL6_IR_RUNTIME_RWLOCK_WRITE_UNLOCK:
-        return "xlir_rwlock_write_unlock";
-    case XL6_IR_RUNTIME_RWLOCK_DOWNGRADE: return "xlir_rwlock_downgrade";
-    case XL6_IR_RUNTIME_RWLOCK_UPGRADE: return "xlir_rwlock_upgrade";
-    case XL6_IR_RUNTIME_SEM_CREATE_DEFAULT: return "xlir_sem_create_default";
+        return "xl6RWLockWriteUnlockV1";
+    case XL6_IR_RUNTIME_RWLOCK_DOWNGRADE: return "xl6RWLockDowngradeV1";
+    case XL6_IR_RUNTIME_RWLOCK_UPGRADE: return "xl6RWLockUpgradeV1";
+    case XL6_IR_RUNTIME_SEM_CREATE_DEFAULT: return "xl6SemCreateDefaultV1";
     default: return NULL;
     }
 }

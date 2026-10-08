@@ -1,0 +1,560 @@
+#include "src/runtime/xl6_tree.h"
+#include "src/runtime/xl6_tree_projection.h"
+#include "src/runtime/xl6_string_type.h"
+#include "src/api/xl_foreign_error.h"
+#include <limits.h>
+#include <stdlib.h>
+
+typedef struct TreeOwner {
+    volatile int32_t refs;
+    xatomic32 busy;
+    XL6_TreeLayoutV1 layout;
+    XL6_SequenceAdmissionV3 keyPolicy, valuePolicy;
+    xtypedtree* storage;
+    xtypedtree* retired;
+    const void* claim;
+    bool cleared;
+} TreeOwner;
+typedef struct TreeTrace {
+    const TreeOwner* owner;
+    xrtownershipvisitor visit;
+    void* context;
+    bool failed;
+} TreeTrace;
+
+static void mutationBegin(xrtownershipscope* scope)
+{ if (!xrtOwnershipMutationBegin(scope)) abort(); }
+static void mutationEnd(xrtownershipscope* scope)
+{ if (!xrtOwnershipScopeEnd(scope)) abort(); }
+static void scopeBegin(xl6_error_scope* scope)
+{ if (!xl6ErrorScopeBegin(scope)) abort(); }
+static bool scopeFinish(xl6_error_scope* scope, bool success)
+{
+    if (!success || xrtGetError()) xl6ErrorScopeCaptureFailure(scope);
+    xl6_error_result result=xl6ErrorScopeEnd(scope);
+    if (!result.ok) xl6ErrorScopePropagateFailure(result);
+    return result.ok;
+}
+static bool sameLayout(const XL6_SequenceLayoutV1* a,const XL6_SequenceLayoutV1* b)
+{
+    return a->identity==b->identity && a->elementIdentity==b->elementIdentity &&
+        a->transfer==b->transfer && a->size==b->size && a->type==b->type;
+}
+static bool sameTreeLayout(const XL6_TreeLayoutV1* a,const XL6_TreeLayoutV1* b)
+{
+    return a && b && a->identity==b->identity && a->keyOrder==b->keyOrder &&
+        sameLayout(&a->key,&b->key) && sameLayout(&a->value,&b->value);
+}
+static bool samePolicy(const XL6_SequenceAdmissionV3* a,const XL6_SequenceAdmissionV3* b)
+{
+    return a->ops && a->ops==b->ops && a->elementIdentity==b->elementIdentity &&
+        a->transfer==b->transfer && a->size==b->size && a->type==b->type &&
+        a->boxedIdentity==b->boxedIdentity &&
+        (a->data==b->data || a->ops->Equivalent(a->data,b->data));
+}
+static bool layoutValid(const XL6_TreeLayoutV1* layout)
+{
+    if (!layout || !layout->identity || !layout->keyOrder || layout->keyOrder>6 ||
+        layout->key.transfer>2 || layout->value.transfer>3 ||
+        !xl6SequenceTupleV1(layout->key.identity,layout->key.elementIdentity,
+            layout->key.transfer,layout->key.size,layout->key.type) ||
+        !xl6SequenceTupleV1(layout->value.identity,layout->value.elementIdentity,
+            layout->value.transfer,layout->value.size,layout->value.type) ||
+        !xrtTypeIsComparable(layout->key.type)) {
+        if (!xrtGetError()) xrtSetErrorKind(XERR_ARGUMENT);
+        return false;
+    }
+    const xrttype* type=layout->key.type;
+    bool ordered=false;
+    switch (layout->keyOrder) {
+    case 1: ordered=type==xrtTypeBool(); break;
+    case 2: ordered=type==xrtTypeInt64() || type==xrtTypeTime(); break;
+    case 3: ordered=type==xrtTypeUInt64(); break;
+    case 4: ordered=type==xrtTypeFloat32() || type==xrtTypeFloat64(); break;
+    case 5: ordered=xl6StringTypeAbiV1(type); break;
+    case 6: ordered=type==xrtTypeType(); break;
+    }
+    if (!ordered) xrtSetErrorKind(XERR_TYPE);
+    return ordered;
+}
+
+static void drop(void* opaque,void* context)
+{
+    (void)context;
+    TreeOwner* owner=opaque;
+    if (!owner) return;
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    int32_t refs=xrtRefRelease(&owner->refs);
+    if (refs<0) abort();
+    if (refs) { mutationEnd(&mutation); return; }
+    if (owner->retired || xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE)) abort();
+    xtypedtree* storage=owner->storage; owner->storage=NULL;
+    mutationEnd(&mutation);
+    xl6_error_scope scope={0};
+    if (!xl6ErrorScopeBeginCleanup(&scope,false)) abort();
+    xrtTypedTreeDestroy(storage);
+    if (xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
+    xl6SequenceAdmissionDropV3(&owner->valuePolicy);
+    xl6SequenceAdmissionDropV3(&owner->keyPolicy);
+    xrtFree(owner);
+    (void)scopeFinish(&scope,true);
+}
+static bool retain(void* opaque,void** result,void* context)
+{
+    (void)context;
+    TreeOwner* owner=opaque;
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    bool success=owner && result && !owner->cleared && xrtRefRetain(&owner->refs)>0;
+    if (success) *result=owner;
+    else xrtSetErrorKind(XERR_STATE);
+    mutationEnd(&mutation);
+    return success;
+}
+/* Explicit Tree.equals has structural value equality. Dynamic handle identity
+ * remains the existing reference contract; no new key Hash/order is invented. */
+static const xvaluehandleops handleOps={retain,drop,NULL,NULL};
+
+static TreeOwner* begin(const xvalue* value,const XL6_TreeLayoutV1* expected)
+{
+    TreeOwner* owner=NULL;
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    void* raw=NULL; void* context=NULL; const xvaluehandleops* actual=NULL;
+    /* Check the resident operation table before touching an opaque pointer. */
+    if (value && expected && xrtValueTypeId(value)==expected->identity &&
+        xrtValueGetHandle(value,&raw,&actual,&context) && actual==&handleOps && raw && !context) {
+        TreeOwner* candidate=raw;
+        uint32 available=0;
+        /* A retirement claim reserves the owner, not an already-cleared
+         * container. Language finalizers must still observe intact fields.
+         * BUSY/cleared provide the same access boundary as resident Sequence. */
+        if (!candidate->cleared && candidate->storage &&
+            sameTreeLayout(&candidate->layout,expected) &&
+            xrtAtomic32CompareExchange(&candidate->busy,&available,1,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE)) {
+            if (xrtRefRetain(&candidate->refs)>0) owner=candidate;
+            else xrtAtomic32Store(&candidate->busy,0,XMEMORY_RELEASE);
+        }
+    }
+    if (!owner) xrtSetErrorKind(XERR_STATE);
+    mutationEnd(&mutation);
+    return owner;
+}
+static void end(TreeOwner* owner)
+{
+    if (!owner || !xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE)) abort();
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    xrtAtomic32Store(&owner->busy,0,XMEMORY_RELEASE);
+    mutationEnd(&mutation); drop(owner,NULL);
+}
+static bool finish(xl6_error_scope* scope,TreeOwner* owner,bool success)
+{
+    if (!success || xrtGetError()) xl6ErrorScopeCaptureFailure(scope);
+    if (owner) end(owner);
+    return scopeFinish(scope,true);
+}
+static bool slotAdmits(const XL6_SequenceAdmissionV3* policy,const void* slot)
+{
+    bool success=slot && policy->ops->Slot(policy->data,slot);
+    if (!success && !xrtGetError()) xrtSetErrorKind(XERR_TYPE);
+    return success;
+}
+
+/* The shell owns one counted wrapper; the wrapper visits every actual Value
+ * slot once, including duplicates. Never flatten two shells into double edges. */
+static bool ownershipCount(const void* opaque,size_t* result)
+{
+    const TreeOwner* owner=opaque;
+    if (!owner || !result || owner->refs<=0 || owner->cleared || !owner->storage ||
+        xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE)) return false;
+    *result=(size_t)owner->refs; return true;
+}
+static bool traceEntry(ptr entry,ptr opaque)
+{
+    TreeTrace* trace=opaque;
+    const TreeOwner* owner=trace->owner;
+    if (owner->layout.value.transfer==3) {
+        const xvalue* value=*(xvalue* const*)((const unsigned char*)entry+owner->storage->ValueOffset);
+        if (!trace->visit(xrtValueOwnership(value),trace->context)) { trace->failed=true; return false; }
+    }
+    return true;
+}
+static bool ownershipTrace(const void* opaque,xrtownershipvisitor visit,void* context)
+{
+    const TreeOwner* owner=opaque; size_t refs;
+    if (!visit || !ownershipCount(opaque,&refs)) return false;
+    if (owner->layout.value.transfer!=3) return true;
+    TreeTrace trace={owner,visit,context,false};
+    size_t count=owner->storage->Storage.Base.Count;
+    size_t visited=xrtAVLTreeVisit(&owner->storage->Storage,traceEntry,&trace);
+    return !trace.failed && visited==count;
+}
+static const xrtownershipops ownershipOps={ownershipCount,ownershipTrace};
+static bool handleTrace(const xvalue* value,xrtownershipvisitor visit,void* context)
+{
+    void* raw=NULL; void* user=NULL; const xvaluehandleops* actual=NULL;
+    return visit && xrtValueGetHandle(value,&raw,&actual,&user) && actual==&handleOps && raw && !user &&
+        visit((xrtownershipref){raw,&ownershipOps},context);
+}
+static bool ownershipHold(const void* opaque)
+{
+    TreeOwner* owner=(TreeOwner*)opaque;
+    return owner->refs>0 && owner->refs<INT32_MAX && xrtRefRetain(&owner->refs)>0;
+}
+static void ownershipDrop(const void* opaque) { drop((void*)opaque,NULL); }
+static bool ownershipClaim(const void* opaque,const void* token)
+{
+    TreeOwner* owner=(TreeOwner*)opaque;
+    if (!token || owner->cleared || (owner->claim && owner->claim!=token)) return false;
+    owner->claim=token; return true;
+}
+static void ownershipRestore(const void* opaque,const void* token)
+{
+    TreeOwner* owner=(TreeOwner*)opaque;
+    if (!token || owner->claim!=token || owner->cleared) abort();
+    owner->claim=NULL;
+}
+static void ownershipClear(const void* opaque,const void* token)
+{
+    TreeOwner* owner=(TreeOwner*)opaque;
+    if (!token || owner->claim!=token || owner->cleared || owner->retired ||
+        xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE)) abort();
+    owner->retired=owner->storage; owner->storage=NULL; owner->cleared=true;
+}
+static bool ownershipFinish(const void* opaque,const void* token)
+{
+    TreeOwner* owner=(TreeOwner*)opaque;
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    if (!token || owner->claim!=token || !owner->cleared) abort();
+    xtypedtree* retired=owner->retired; owner->retired=NULL;
+    mutationEnd(&mutation);
+    xl6_error_scope scope={0};
+    if (!xl6ErrorScopeBeginCleanup(&scope,false)) abort();
+    /* A previously failed caller scope is not this duty's completion result.
+     * Returning false after a successful destroy would request an endless
+     * retry of storage that has already been physically retired. */
+    xl6_error_scope work={0}; scopeBegin(&work);
+    xrtTypedTreeDestroy(retired);
+    if (xrtGetError()) xl6ErrorScopeCaptureFailure(&work);
+    xl6_error_result completed=xl6ErrorScopeEnd(&work);
+    bool success=completed.ok;
+    if (!success) xl6ErrorScopePropagateFailure(completed);
+    (void)scopeFinish(&scope,true);
+    return success;
+}
+const xrtownershipadapterv1* xl6TreeOwnershipAdapterV1(xrtownershipref ref)
+{
+    static const xrtownershipadapterv1 adapter={sizeof(adapter),ownershipHold,ownershipDrop,
+        ownershipClaim,ownershipRestore,NULL,ownershipClear,ownershipFinish};
+    size_t refs;
+    if (ref.Data && ref.Ops==&ownershipOps) return ownershipCount(ref.Data,&refs) ? &adapter : NULL;
+    return xrtValueHandleOwnershipAdapterV1(ref,&handleOps,handleTrace);
+}
+
+/* All three inputs are consumed. Called only with metadata copied from genuine
+ * admitted owners. Publication binds the complete resident graph capability. */
+static xvalue* wrap(xtypedtree* storage,const XL6_TreeLayoutV1* layout,
+    XL6_SequenceAdmissionV3* key,XL6_SequenceAdmissionV3* value)
+{
+    xl6_error_scope scope={0}; scopeBegin(&scope);
+    TreeOwner* owner=xrtMalloc(sizeof(*owner));
+    if (!owner) {
+        if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY);
+        xl6ErrorScopeCaptureFailure(&scope);
+        xrtTypedTreeDestroy(storage);
+        xl6SequenceAdmissionDropV3(value); xl6SequenceAdmissionDropV3(key);
+        (void)scopeFinish(&scope,true);
+        return NULL;
+    }
+    *owner=(TreeOwner){.refs=1,.layout=*layout,.keyPolicy=*key,.valuePolicy=*value,.storage=storage};
+    *key=(XL6_SequenceAdmissionV3){0}; *value=(XL6_SequenceAdmissionV3){0};
+    xrtAtomic32Init(&owner->busy,0);
+    xvalue* result=xrtValueHandleTake((void**)&owner,&handleOps,NULL);
+    if (!result) {
+        if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY);
+        xl6ErrorScopeCaptureFailure(&scope); drop(owner,NULL);
+        (void)scopeFinish(&scope,true); return NULL;
+    }
+    if (!xrtValueHandleOwnershipBindPhased(result,handleTrace) || !xrtValueTypeIdBind(result,layout->identity)) {
+        xl6ErrorScopeCaptureFailure(&scope); xrtValueRelease(result);
+        (void)scopeFinish(&scope,true); return NULL;
+    }
+    if (!scopeFinish(&scope,true)) { xrtValueRelease(result); return NULL; }
+    return result;
+}
+static bool witnessCopy(const xvalue* witness,const XL6_SequenceLayoutV1* expected,
+    XL6_SequenceAdmissionV3* policy)
+{
+    XL6_SequenceRoleV1 role=0; XL6_SequenceLayoutV1 actual={0};
+    if (!xl6SequenceSchemaCopyV1(witness,&role,&actual,policy)) return false;
+    if (role!=XL6_SEQUENCE_ARRAY_V1 || !sameLayout(&actual,expected)) {
+        xrtSetErrorKind(XERR_TYPE); return false;
+    }
+    XL6_Sequence* pin=xl6SequenceBeginRoleV1(witness,role,actual.identity,actual.elementIdentity,
+        actual.transfer,actual.size,actual.type);
+    if (!pin) return false;
+    bool empty=xrtTypedArrayCount(xl6SequenceStorageV1(pin))==0;
+    xl6SequenceEndV1(pin);
+    if (!empty) xrtSetErrorKind(XERR_ARGUMENT);
+    return empty;
+}
+static bool emptyPolicy(const XL6_SequenceAdmissionV3* policy)
+{
+    return policy && !policy->ops && !policy->data && !policy->elementIdentity &&
+        !policy->transfer && !policy->size && !policy->type && !policy->boxedIdentity;
+}
+bool xl6TreeDomainsCopyV1(const XL6_TreeLayoutV1* layout,const xvalue* keys,const xvalue* values,
+    XL6_SequenceAdmissionV3* keyOut,XL6_SequenceAdmissionV3* valueOut)
+{
+    if (!keys || !values || keyOut==valueOut || !emptyPolicy(keyOut) || !emptyPolicy(valueOut)) {
+        if (!xrtGetError()) xrtSetErrorKind(XERR_ARGUMENT);
+        return false;
+    }
+    XL6_SequenceAdmissionV3 key={0},value={0};
+    bool success=layoutValid(layout) && witnessCopy(keys,&layout->key,&key) &&
+        witnessCopy(values,&layout->value,&value);
+    if (success) { *keyOut=key; *valueOut=value; }
+    else { xl6SequenceAdmissionDropV3(&value); xl6SequenceAdmissionDropV3(&key); }
+    return success;
+}
+bool xl6TreeAdmitsSchemaV1(const xvalue* value,const XL6_TreeLayoutV1* layout,
+    const XL6_SequenceAdmissionV3* key,const XL6_SequenceAdmissionV3* item)
+{
+    if (!value || !layout || !key || !item || !key->ops || !item->ops ||
+        xrtValueType(value)!=XVALUE_HANDLE || xrtValueTypeId(value)!=layout->identity) return false;
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    void* raw=NULL; void* user=NULL; const xvaluehandleops* actual=NULL;
+    bool admitted=false;
+    if (xrtValueGetHandle(value,&raw,&actual,&user) && actual==&handleOps && raw && !user) {
+        const TreeOwner* owner=raw;
+        admitted=!owner->cleared && sameTreeLayout(&owner->layout,layout) &&
+            samePolicy(&owner->keyPolicy,key) && samePolicy(&owner->valuePolicy,item);
+    }
+    mutationEnd(&mutation); return admitted;
+}
+xvalue* xl6TreeCreateTakeV1(const XL6_TreeLayoutV1* layout,xvalue* keys,xvalue* values)
+{
+    xl6_error_scope scope={0};
+    if (!(keys && values ? xl6ErrorScopeBegin(&scope) : xl6ErrorScopeBeginCleanup(&scope,true))) abort();
+    XL6_SequenceAdmissionV3 key={0},value={0}; xvalue* result=NULL;
+    if (xl6TreeDomainsCopyV1(layout,keys,values,&key,&value)) {
+        xtypedtree* storage=xrtTypedTreeCreate(layout->key.type,
+            xl6SequenceStorageTypeV1(layout->value.transfer,layout->value.type));
+        if (storage) result=wrap(storage,layout,&key,&value);
+    }
+    if (!result) xl6ErrorScopeCaptureFailure(&scope);
+    xl6SequenceAdmissionDropV3(&value); xl6SequenceAdmissionDropV3(&key);
+    xrtValueRelease(values); xrtValueRelease(keys);
+    if (!scopeFinish(&scope,result!=NULL)) { xrtValueRelease(result); return NULL; }
+    return result;
+}
+bool xl6TreeSetV1(const xvalue* value,const XL6_TreeLayoutV1* layout,const void* key,const void* item)
+{
+    xl6_error_scope scope={0}; scopeBegin(&scope); TreeOwner* owner=begin(value,layout);
+    bool success=owner && slotAdmits(&owner->keyPolicy,key) && slotAdmits(&owner->valuePolicy,item) &&
+        xrtTypedTreeSet(owner->storage,key,item);
+    return finish(&scope,owner,success);
+}
+bool xl6TreeGetV1(const xvalue* value,const XL6_TreeLayoutV1* layout,const void* key,
+    void* output,bool take,bool* found)
+{
+    xl6_error_scope scope={0}; scopeBegin(&scope); TreeOwner* owner=begin(value,layout);
+    bool success=false,result=false;
+    if (owner && output && found && slotAdmits(&owner->keyPolicy,key)) {
+        const void* source=xrtTypedTreeConstGet(owner->storage,key);
+        if (!source) success=!xrtGetError();
+        else {
+            success=take ? xrtTypedTreeTake(owner->storage,key,output) :
+                xrtTypeCopyValue(xl6SequenceStorageTypeV1(layout->value.transfer,layout->value.type),output,source);
+            result=success;
+        }
+    }
+    success=finish(&scope,owner,success);
+    if (success) *found=result;
+    return success;
+}
+bool xl6TreeKeyV1(const xvalue* value,const XL6_TreeLayoutV1* layout,const void* key,bool remove,bool* found)
+{
+    xl6_error_scope scope={0}; scopeBegin(&scope); TreeOwner* owner=begin(value,layout);
+    bool success=false,result=false;
+    if (owner && found && slotAdmits(&owner->keyPolicy,key)) {
+        result=xrtTypedTreeHas(owner->storage,key);
+        success=!xrtGetError() && (!result || !remove || xrtTypedTreeRemove(owner->storage,key));
+    }
+    success=finish(&scope,owner,success);
+    if (success) *found=result;
+    return success;
+}
+static bool overlaps(const void* left,size_t leftSize,const void* right,size_t rightSize)
+{
+    uintptr_t a=(uintptr_t)left,b=(uintptr_t)right;
+    if (a>UINTPTR_MAX-leftSize || b>UINTPTR_MAX-rightSize) return true;
+    return a<b+rightSize && b<a+leftSize;
+}
+static bool copyPair(TreeOwner* owner,const void* key,const void* value,void* keyOut,void* valueOut)
+{
+    xl6_error_scope scope={0}; scopeBegin(&scope);
+    const xrttype* keyType=owner->layout.key.type;
+    const xrttype* valueType=xl6SequenceStorageTypeV1(owner->layout.value.transfer,owner->layout.value.type);
+    void* keyTemp=NULL;
+    void* valueTemp=NULL;
+    bool keyReady=false,valueReady=false,success=false;
+    keyTemp=xrtMalloc(owner->layout.key.size);
+    if (!keyTemp) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); goto done; }
+    valueTemp=xrtMalloc(owner->layout.value.size);
+    if (!valueTemp) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); goto done; }
+    if (!xrtTypeInitValue(keyType,keyTemp)) goto done;
+    keyReady=true;
+    if (!xrtTypeInitValue(valueType,valueTemp)) goto done;
+    valueReady=true;
+    if (!xrtTypeCopyValue(keyType,keyTemp,key) || !xrtTypeCopyValue(valueType,valueTemp,value)) goto done;
+    /* Resident relocatable codecs cannot fail an owning move. Keep both
+     * copies until this publication point; no partial result on copy/OOM. */
+    if (!xrtTypeMoveValue(keyType,keyOut,keyTemp) || !xrtTypeMoveValue(valueType,valueOut,valueTemp)) abort();
+    success=true;
+done:
+    if (!success || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
+    if (valueReady) xrtTypeDropValue(valueType,valueTemp);
+    if (keyReady) xrtTypeDropValue(keyType,keyTemp);
+    xrtFree(valueTemp); xrtFree(keyTemp);
+    return scopeFinish(&scope,true);
+}
+bool xl6TreeEndpointV1(const xvalue* object,const XL6_TreeLayoutV1* layout,unsigned int operation,
+    const void* search,void* keyOutput,void* valueOutput,bool* found)
+{
+    xl6_error_scope scope={0}; scopeBegin(&scope); TreeOwner* owner=begin(object,layout);
+    bool success=false,result=false;
+    if (owner && found && keyOutput && valueOutput && operation<=3 &&
+        (operation<2 ? !search : slotAdmits(&owner->keyPolicy,search))) {
+        if (overlaps(keyOutput,layout->key.size,valueOutput,layout->value.size)) success=true;
+        else {
+            const void* key=NULL; const void* value=NULL;
+            switch (operation) {
+            case 0: value=xrtTypedTreeFirst(owner->storage,&key); break;
+            case 1: value=xrtTypedTreeLast(owner->storage,&key); break;
+            case 2: value=xrtTypedTreeLowerBound(owner->storage,search,&key); break;
+            case 3: value=xrtTypedTreeUpperBound(owner->storage,search,&key); break;
+            }
+            success=value ? copyPair(owner,key,value,keyOutput,valueOutput) : !xrtGetError();
+            result=success && value;
+        }
+    }
+    success=finish(&scope,owner,success);
+    if (success) *found=result;
+    return success;
+}
+static bool compatiblePolicies(const TreeOwner* a,const TreeOwner* b)
+{
+    if (sameTreeLayout(&a->layout,&b->layout) && samePolicy(&a->keyPolicy,&b->keyPolicy) &&
+        samePolicy(&a->valuePolicy,&b->valuePolicy)) return true;
+    xrtSetErrorKind(XERR_TYPE); return false;
+}
+static TreeOwner* beginOther(const xvalue* other,const XL6_TreeLayoutV1* layout,TreeOwner* first)
+{
+    if (first) {
+        void* raw=NULL; void* user=NULL; const xvaluehandleops* actual=NULL;
+        if (other && xrtValueTypeId(other)==layout->identity && xrtValueGetHandle(other,&raw,&actual,&user) &&
+            raw==first && actual==&handleOps && !user) return first;
+    }
+    return begin(other,layout);
+}
+bool xl6TreeEqualsV1(const xvalue* left,const xvalue* right,const XL6_TreeLayoutV1* layout,bool* output)
+{
+    xl6_error_scope scope={0}; scopeBegin(&scope);
+    TreeOwner* a=begin(left,layout); TreeOwner* b=a ? beginOther(right,layout,a) : NULL;
+    bool success=false,equal=false,started=false;
+    xtypedtreeiter iterator={0};
+    if (!a || !b || !output || !compatiblePolicies(a,b)) goto done;
+    if (a==b) { success=true; equal=true; goto done; }
+    if (xrtTypedTreeCount(a->storage)!=xrtTypedTreeCount(b->storage)) { success=true; goto done; }
+    if (!xrtTypedTreeIterBegin(a->storage,&iterator)) goto done;
+    started=true; equal=true; success=true;
+    const void* key=NULL; const void* item;
+    while ((item=xrtTypedTreeIterNext(&iterator,&key))!=NULL) {
+        const void* peer=xrtTypedTreeConstGet(b->storage,key);
+        if (!peer) { equal=false; if (xrtGetError()) success=false; break; }
+        if (layout->value.transfer==3) {
+            equal=xl6SequenceReferenceEqualV1(*(xvalue* const*)item,*(xvalue* const*)peer);
+        } else {
+            int order=0;
+            if (!xrtTypeCompareValue(layout->value.type,item,peer,&order)) { success=false; break; }
+            equal=order==0;
+        }
+        if (xrtGetError()) { success=false; break; }
+        if (!equal) break;
+    }
+done:
+    if (!success || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
+    if (started) xrtTypedTreeIterEnd(&iterator);
+    if (b && b!=a) end(b);
+    success=finish(&scope,a,true);
+    if (success) *output=equal;
+    return success;
+}
+bool xl6TreeMergeV1(const xvalue* target,const xvalue* source,const XL6_TreeLayoutV1* layout,bool replace)
+{
+    xl6_error_scope scope={0}; scopeBegin(&scope);
+    TreeOwner* a=begin(target,layout); TreeOwner* b=a ? beginOther(source,layout,a) : NULL;
+    bool success=a && b && compatiblePolicies(a,b) && xrtTypedTreeMerge(a->storage,b->storage,replace);
+    if (!success || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
+    if (b && b!=a) end(b);
+    return finish(&scope,a,true);
+}
+bool xl6TreeClearV1(const xvalue* value,const XL6_TreeLayoutV1* layout)
+{
+    xl6_error_scope scope={0}; scopeBegin(&scope); TreeOwner* owner=begin(value,layout);
+    return finish(&scope,owner,owner && xrtTypedTreeClear(owner->storage));
+}
+int64_t xl6TreeCountV1(const xvalue* value,const XL6_TreeLayoutV1* layout)
+{
+    xl6_error_scope scope={0}; scopeBegin(&scope); TreeOwner* owner=begin(value,layout);
+    size_t count=owner ? xrtTypedTreeCount(owner->storage) : 0;
+    if (count>INT64_MAX) xrtSetErrorKind(XERR_RANGE);
+    return finish(&scope,owner,owner && count<=INT64_MAX) ? (int64_t)count : -1;
+}
+int64_t xl6TreeTrimV1(const xvalue* value,const XL6_TreeLayoutV1* layout,int64_t retainEmpty)
+{
+    xl6_error_scope scope={0}; scopeBegin(&scope); TreeOwner* owner=begin(value,layout);
+    bool success=owner && retainEmpty>=0 && (uint64_t)retainEmpty<=SIZE_MAX;
+    size_t count=success ? xrtTypedTreeTrim(owner->storage,(size_t)retainEmpty) : 0;
+    if ((owner && !success) || count>INT64_MAX) {
+        if (!xrtGetError()) xrtSetErrorKind(XERR_RANGE);
+        success=false;
+    }
+    return finish(&scope,owner,success) ? (int64_t)count : -1;
+}
+xvalue* xl6TreeCloneV1(const xvalue* value,const XL6_TreeLayoutV1* layout)
+{
+    xl6_error_scope scope={0}; scopeBegin(&scope); TreeOwner* owner=begin(value,layout);
+    XL6_SequenceAdmissionV3 key={0},item={0}; xvalue* result=NULL;
+    if (owner && owner->keyPolicy.ops->Retain(owner->keyPolicy.data)) {
+        key=owner->keyPolicy;
+        if (owner->valuePolicy.ops->Retain(owner->valuePolicy.data)) {
+            item=owner->valuePolicy;
+            xtypedtree* clone=xrtTypedTreeClone(owner->storage);
+            if (clone) result=wrap(clone,layout,&key,&item);
+        }
+    }
+    if (!result) xl6ErrorScopeCaptureFailure(&scope);
+    xl6SequenceAdmissionDropV3(&item); xl6SequenceAdmissionDropV3(&key);
+    if (!finish(&scope,owner,true)) { xrtValueRelease(result); return NULL; }
+    return result;
+}
+xvalue* xl6TreeProjectTakeV1(const xvalue* value,const XL6_TreeLayoutV1* layout,bool keys,
+    xvalue* seed,const xvalueconverter* converter)
+{
+    xl6_error_scope scope={0};
+    if (!(seed ? xl6ErrorScopeBegin(&scope) : xl6ErrorScopeBeginCleanup(&scope,true))) abort();
+    TreeOwner* owner=seed ? begin(value,layout) : NULL; xvalue* result=NULL;
+    if (owner) {
+        const XL6_SequenceLayoutV1* projection=keys ? &owner->layout.key : &owner->layout.value;
+        const XL6_SequenceAdmissionV3* policy=keys ? &owner->keyPolicy : &owner->valuePolicy;
+        if (xl6SequenceAdmitsSchemaV1(seed,XL6_SEQUENCE_ARRAY_V1,projection,policy)) {
+            result=xl6TypedTreeProjectTakeV1(owner->storage,keys,seed,projection->identity,
+                projection->elementIdentity,projection->transfer,projection->size,projection->type,converter);
+            seed=NULL;
+        } else xrtSetErrorKind(XERR_TYPE);
+    }
+    if (!result) xl6ErrorScopeCaptureFailure(&scope);
+    xrtValueRelease(seed);
+    if (!finish(&scope,owner,true)) { xrtValueRelease(result); return NULL; }
+    return result;
+}

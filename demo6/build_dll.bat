@@ -182,6 +182,19 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_array_call_frame.c ^
     src\runtime\xl6_array_entry.c ^
     src\runtime\xl6_array_producer.c ^
+    src\runtime\xl6_tree_projection.c ^
+    src\runtime\xl6_tree.c ^
+    src\runtime\xl6_tree_admission.c ^
+    src\runtime\xl6_semaphore.c ^
+    src\runtime\xl6_array_semaphore_admission.c ^
+    src\runtime\xl6_sync.c ^
+    src\runtime\xl6_mutex.c ^
+    src\runtime\xl6_cond.c ^
+    src\runtime\xl6_rwlock.c ^
+    src\runtime\xl6_array_sync_admission.c ^
+    src\runtime\xl6_queue_spsc_admission.c ^
+    src\runtime\xl6_queue_mpsc_admission.c ^
+    src\runtime\xl6_queue_mpmc_admission.c ^
     src\runtime\xl6_queue_spsc.c src\runtime\xl6_queue_mpsc.c src\runtime\xl6_queue_mpmc.c ^
     src\runtime\xl6_array_os_argv.c ^
     src\runtime\xl6_array_method_remove.c ^
@@ -379,6 +392,19 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_array_call_frame.c ^
     src\runtime\xl6_array_entry.c ^
     src\runtime\xl6_array_producer.c ^
+    src\runtime\xl6_tree_projection.c ^
+    src\runtime\xl6_tree.c ^
+    src\runtime\xl6_tree_admission.c ^
+    src\runtime\xl6_semaphore.c ^
+    src\runtime\xl6_array_semaphore_admission.c ^
+    src\runtime\xl6_sync.c ^
+    src\runtime\xl6_mutex.c ^
+    src\runtime\xl6_cond.c ^
+    src\runtime\xl6_rwlock.c ^
+    src\runtime\xl6_array_sync_admission.c ^
+    src\runtime\xl6_queue_spsc_admission.c ^
+    src\runtime\xl6_queue_mpsc_admission.c ^
+    src\runtime\xl6_queue_mpmc_admission.c ^
     src\runtime\xl6_queue_spsc.c src\runtime\xl6_queue_mpsc.c src\runtime\xl6_queue_mpmc.c ^
     src\runtime\xl6_array_os_argv.c ^
     src\runtime\xl6_array_method_remove.c ^

@@ -1,0 +1,5 @@
+func main(...) as int
+    auto condition = cond()
+    assert(condition.signal())
+    return 0
+end

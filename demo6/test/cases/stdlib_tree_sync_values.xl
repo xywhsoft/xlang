@@ -1,0 +1,42 @@
+func main(...) as int
+    auto lock = mutex()
+    auto locks = Stack::<mutex>()
+    assert(locks.push(lock))
+    auto returned = locks.pop()
+    assert(returned.lock() and lock.unlock())
+    auto conditions = AvlTree::<int, cond>()
+    auto condition = cond()
+    assert(conditions.set(1, condition))
+    cond fromTree
+    assert(conditions.getInto(1, fromTree) and fromTree.broadcast())
+    auto optional = Stack::<mutex?>()
+    assert(optional.push(null))
+    assert(optional.pop() == null)
+    assert(optional.push(lock))
+    auto maybe = optional.pop()
+    assert(maybe != null)
+    if maybe != null then assert(maybe.tryLock() and lock.unlock()) end
+    auto nested = AvlTree::<int, Stack<mutex>>()
+    assert(locks.push(lock) and nested.set(1, locks))
+    auto inner = Stack::<mutex>()
+    assert(nested.getInto(1, inner))
+    auto nestedLock = inner.pop()
+    assert(nestedLock.lock() and lock.unlock())
+    auto rw = rwlock()
+    auto q1 = SpscQueue::<rwlock>(2)
+    auto q2 = MpscQueue::<rwlock>(2)
+    auto q3 = MpmcQueue::<rwlock>(2)
+    assert(q1.tryPush(rw) == queueStatus.ok)
+    assert(q2.tryPush(rw) == queueStatus.ok)
+    assert(q3.tryPush(rw) == queueStatus.ok)
+    auto status1, first = q1.tryPop()
+    auto status2, second = q2.tryPop()
+    auto status3, third = q3.tryPop()
+    assert(status1 == queueStatus.ok and first != null)
+    assert(status2 == queueStatus.ok and second != null)
+    assert(status3 == queueStatus.ok and third != null)
+    if first != null then assert(first.readLock() and rw.readUnlock()) end
+    if second != null then assert(second.writeLock() and rw.writeUnlock()) end
+    if third != null then assert(third.tryWriteLock() and rw.writeUnlock()) end
+    return 0
+end

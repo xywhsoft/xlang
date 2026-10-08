@@ -199,17 +199,7 @@ static int xl6IrCgenAvlRuntimeOpIs(XL6_IrRuntimeOp operation)
 
 static int xl6IrCgenAvlRuntimeOpMayRaise(XL6_IrRuntimeOp operation)
 {
-    return operation == XL6_IR_RUNTIME_AVL_TREE_CREATE ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_SET ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_GET_INTO ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_FIRST_INTO ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_LAST_INTO ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_LOWER_BOUND_INTO ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_UPPER_BOUND_INTO ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_MERGE ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_KEYS ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_VALUES ||
-           operation == XL6_IR_RUNTIME_AVL_TREE_CLONE;
+    return operation>=XL6_IR_RUNTIME_AVL_TREE_CREATE && operation<=XL6_IR_RUNTIME_AVL_TREE_CLONE;
 }
 
 static int xl6IrCgenSpecialQueueResourceAbiIs(
@@ -318,33 +308,6 @@ static int xl6IrCgenStackTypeAbi(
            xl6IrCgenType(module, stack->params[0]) != NULL;
 }
 
-static XL6_IrRuntimeResourceKeyOrderAbi xl6IrCgenAvlKeyOrderAbi(
-    const XL6_IrType* type)
-{
-    if ( type == NULL || type->typeValueId == 0 )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
-    switch ( type->cAbi ) {
-    case XL6_IR_C_ABI_BOOL:
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_BOOL;
-    case XL6_IR_C_ABI_I64:
-    case XL6_IR_C_ABI_TIME_I64:
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_SIGNED_I64;
-    case XL6_IR_C_ABI_U64:
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_UNSIGNED_U64;
-    case XL6_IR_C_ABI_F32:
-    case XL6_IR_C_ABI_F64:
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_FLOAT_TOTAL;
-    case XL6_IR_C_ABI_MANAGED_STRING:
-        return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
-            ? XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_STRING
-            : XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
-    case XL6_IR_C_ABI_TYPE_ID:
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_TYPE_ID;
-    default:
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
-    }
-}
-
 /* xrtTypedTree owns values through immutable xrttype descriptors.  This map
  * is physical ABI only; no source spelling or AST method name reaches Cgen. */
 static const char* xl6IrCgenNativeValueConverterExpr(const XL6_IrModule* module, XL6_IrTypeId typeId)
@@ -435,7 +398,8 @@ static int xl6IrCgenAvlTypeAbi(
            tree->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
            tree->typeValueId != 0 && tree->paramCount == 2 &&
            tree->params != NULL && key != NULL && value != NULL &&
-           xl6IrCgenAvlKeyOrderAbi(key) !=
+           xl6IrAvlConstructionRecipe(module,typeId,NULL,NULL,NULL,NULL) &&
+           xl6IrAvlKeyOrderAbi(module,typeId) !=
                XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID &&
            xl6IrCgenChannelPayloadAbi(key) !=
                XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID &&
