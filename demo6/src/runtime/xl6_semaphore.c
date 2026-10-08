@@ -1,4 +1,5 @@
 #define XRT_MODULE_SEM
+#define XRT_MODULE_ATOMIC
 #define XRUNTIME_MODULE_RUNTIME_VALUE_TYPE
 #include "lib/xruntime/xruntime.h"
 #include "src/runtime/xl6_semaphore.h"
@@ -9,7 +10,7 @@
 typedef struct SemOwner {
     volatile int32_t refs;
     uint64_t identity;
-    size_t active;
+    xatomic32 active;
     const void* claim;
     bool initialized, cleared;
     xsem storage;
@@ -52,7 +53,7 @@ static void drop(void* raw, void* context)
     int32_t refs = xrtRefRelease(&owner->refs);
     if (refs < 0) abort();
     if (refs) { mutationEnd(&mutation); return; }
-    if (owner->active) abort();
+    if (xrtAtomic32Load(&owner->active, XMEMORY_ACQUIRE)) abort();
     mutationEnd(&mutation);
     /* Private semaphores have no held-lock state. Every waiter/native method
      * owns an activity pin until AFTER its XRT call returns. A quiescent,
@@ -80,7 +81,8 @@ static const xvaluehandleops handleOps = {clone, drop, NULL, NULL};
 static bool count(const void* raw, size_t* result)
 {
     const SemOwner* owner = raw;
-    if (!owner || !result || owner->refs <= 0 || owner->active || owner->cleared ||
+    if (!owner || !result || owner->refs <= 0 ||
+        xrtAtomic32Load(&owner->active, XMEMORY_ACQUIRE) || owner->cleared ||
         !owner->initialized) return false;
     *result = (size_t)owner->refs;
     return true;
@@ -109,7 +111,8 @@ static void release(const void* raw) { drop((void*)raw, NULL); }
 static bool claim(const void* raw, const void* token)
 {
     SemOwner* owner = (SemOwner*)raw;
-    if (!token || owner->active || owner->cleared || (owner->claim && owner->claim != token)) return false;
+    if (!token || xrtAtomic32Load(&owner->active, XMEMORY_ACQUIRE) || owner->cleared ||
+        (owner->claim && owner->claim != token)) return false;
     owner->claim = token;
     return true;
 }
@@ -122,13 +125,13 @@ static void restore(const void* raw, const void* token)
 static void clear(const void* raw, const void* token)
 {
     SemOwner* owner = (SemOwner*)raw;
-    if (!token || owner->claim != token || owner->active || owner->cleared) abort();
+    if (!token || owner->claim != token || xrtAtomic32Load(&owner->active, XMEMORY_ACQUIRE) || owner->cleared) abort();
     owner->cleared = true;
 }
 static bool finish(const void* raw, const void* token)
 {
     SemOwner* owner = (SemOwner*)raw;
-    if (!token || owner->claim != token || !owner->cleared || owner->active) abort();
+    if (!token || owner->claim != token || !owner->cleared || xrtAtomic32Load(&owner->active, XMEMORY_ACQUIRE)) abort();
     if (!owner->initialized) return true;
     /* Own checked completion, independent of the caller's prior failure. */
     xl6_error_scope work = {0};
@@ -162,6 +165,7 @@ xvalue* xl6SemCreateV1(uint64_t identity, int64_t initial, int64_t maximum)
         if (!owner) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); }
         else {
             owner->refs = 1; owner->identity = identity;
+            xrtAtomic32Init(&owner->active, 0);
             owner->initialized = xrtSemInit(&owner->storage, (uint32_t)initial, (uint32_t)maximum);
             if (owner->initialized) value = xrtValueHandleTake((void**)&owner, &handleOps, NULL);
             if (value && (!xrtValueTypeIdBind(value, identity) ||
@@ -183,8 +187,10 @@ static SemOwner* begin(const xvalue* value, uint64_t identity)
 {
     xrtownershipscope mutation = {0}; mutationBegin(&mutation);
     SemOwner* owner = require(value, identity);
-    if (!owner || owner->active == SIZE_MAX || xrtRefRetain(&owner->refs) <= 0) owner = NULL;
-    else ++owner->active;
+    /* Mutation is a snapshot gate, NOT mutual exclusion between callers.
+     * Each successful bounded RC pin owns one atomic activity increment. */
+    if (!owner || xrtRefRetain(&owner->refs) <= 0) owner = NULL;
+    else if (xrtAtomic32FetchAdd(&owner->active, 1, XMEMORY_ACQ_REL) >= INT32_MAX) abort();
     mutationEnd(&mutation);
     return owner;
 }
@@ -215,8 +221,7 @@ static bool run(const xvalue* value, uint64_t identity, unsigned operation, int6
         default: abort();
         }
         xrtownershipscope mutation = {0}; mutationBegin(&mutation);
-        if (!owner->active) abort();
-        --owner->active;
+        if (!xrtAtomic32FetchSub(&owner->active, 1, XMEMORY_ACQ_REL)) abort();
         mutationEnd(&mutation);
         drop(owner, NULL);
     }

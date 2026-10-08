@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <limits.h>
 #include <stdio.h>
+#include <string.h>
 
 enum { SEM_ID = 301, ARRAY_ID = 302, NULLABLE_ID = 303 };
 static bool collect(xrtownershipref ref, void* context)
@@ -126,10 +127,47 @@ static void failures(bool schema)
     assert(point > 0 && point < 64);
     printf("Semaphore %s: complete allocation prefix %zu\n", schema ? "schema" : "owner", point);
 }
-int main(void)
+typedef struct Concurrent { const xvalue* gate; bool producer; } Concurrent;
+static int32 concurrentWorker(void* raw)
+{
+    const Concurrent* work = raw;
+    for (unsigned i = 0; i < 10000; ++i) {
+        if (work->producer) assert(xl6SemPostV1(work->gate, SEM_ID));
+        else assert(xl6SemWaitV1(work->gate, SEM_ID));
+    }
+    assert(!xrtGetError()); return 0;
+}
+static void concurrentActivity(void)
+{
+    xvalue* gate = xl6SemCreateDefaultV1(SEM_ID); assert(gate);
+    Concurrent work[8]; xthread* threads[8];
+    for (unsigned i = 0; i < 8; ++i) {
+        work[i] = (Concurrent){gate, i < 4};
+        threads[i] = xrtThreadCreate(concurrentWorker, &work[i], 0); assert(threads[i]);
+    }
+    for (unsigned i = 0; i < 8; ++i) {
+        assert(xrtThreadWaitFor(threads[i], UINT64_C(30000000)) == XWAIT_OK);
+        xrtThreadDestroy(threads[i]);
+    }
+    assert(!xl6SemTryWaitV1(gate, SEM_ID));
+    xrtownershipref owner = ownerRef(gate); size_t refs = 0;
+    xrtownershipscope freeze = {0}; assert(xrtOwnershipFreezeTryBegin(&freeze));
+    assert(owner.Ops->Count(owner.Data, &refs) && refs == 1);
+    assert(xrtOwnershipScopeEnd(&freeze));
+    xrtValueRelease(gate);
+    puts("Semaphore concurrent activity: 4 producers/4 consumers, 80000 native calls, no residual pins");
+}
+int main(int argc, char** argv)
 {
     xl6ProductMemoryBegin(SIZE_MAX);
-    vectors(); activeRelease(); failures(false); failures(true);
+    /* Instrumented providers cannot observe the old runtime's freeze gate.
+     * TSan A/B focuses on actual simultaneous native calls, without any
+     * concurrent freeze observer that could produce a false-positive edge. */
+    if (argc == 2 && !strcmp(argv[1], "--race-stress-only")) concurrentActivity();
+    else {
+        assert(argc == 1);
+        vectors(); activeRelease(); concurrentActivity(); failures(false); failures(true);
+    }
     assert(!xrtGetError() && !xl6ProductMemoryEnd()); xl6ProductMemoryVerify();
     puts("Semaphore resident core: genuine provenance, alias state, owned policy, phased finish, actual busy last-shell release and OOM balanced");
     return 0;
