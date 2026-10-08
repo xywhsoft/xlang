@@ -22,6 +22,7 @@ def main():
     for folder in ['src','lib','release/include','test/support']:
         files.update(f for f in (root/folder).rglob('*') if f.suffix in ('.c','.h','.inc'))
     files.add(root/'test/cases/stdlib_concurrent_queue_native_host.c')
+    files.add(root/'test/cases/stdlib_concurrent_queue_tcc_host.c')
     if args.public:
         build=json.loads((args.public/'build.json').read_text(encoding='utf-8-sig'))
         assert build['SourceXrt'] and not build['RuntimeOnly']
@@ -60,13 +61,13 @@ def main():
     def vectors_and_faults(lane,binary):
         run(lane+'.vectors',[binary]); run(lane+'.threads',[binary,'threads'])
         for family in range(3):
-            for operation in range(3):
+            for operation in range(5):
                 for point in range(4097):
                     text=run(f'{lane}.f{family}.m{operation}.p{point}',[binary,family,operation,point])
                     if 'hit=0 complete-prefix' in text:
                         sweeps.append({'Lane':lane,'Family':family,'Operation':operation,'FirstNoHit':point,'Runs':point+1}); break
                 else: raise AssertionError('allocation prefix did not close')
-        print(lane+': vectors, threads and nine complete fault prefixes passed',flush=True)
+        print(lane+': vectors, threads and fifteen complete fault prefixes passed',flush=True)
     try:
         for optimization in ['-O0','-O2']:
             provider_objects=[]
@@ -84,12 +85,16 @@ def main():
             run('build'+optimization,[cc,*flags,optimization,'test/cases/stdlib_concurrent_queue_native_host.c',
                 'test/support/module_product_memory.c',*provider_objects,*objects,*links,'-o',binary])
             vectors_and_faults(optimization,binary)
+            tcc_binary=out/('queue-tcc'+optimization+suffix)
+            run('tcc.build'+optimization,[cc,*flags,optimization,'test/cases/stdlib_concurrent_queue_tcc_host.c',
+                'test/support/module_product_memory.c',*provider_objects,*objects,*links,'-o',tcc_binary])
+            run('tcc.abi'+optimization,[tcc_binary])
         if args.sanitize:
             native=out/'queue-sanitized'
             sources=['test/cases/stdlib_concurrent_queue_native_host.c','test/support/module_product_memory.c',
                 'test/support/concurrent_queue_native.c',*PROVIDERS,'src/runtime/xl6_sequence.c',
                 'src/runtime/xl6_array_primitive_admission.c','src/runtime/xl6_array_reference_admission.c',
-                'src/runtime/xl6_array_reference_value.c','src/runtime/xl6_array_future_admission.c',
+                'src/runtime/xl6_array_reference_value.c','src/runtime/xl6_array_erased.c','src/runtime/xl6_array_future_admission.c',
                 'src/runtime/xl6_array_c_scalar_admission.c','src/runtime/xl6_nullable_i64.c',
                 'src/runtime/xl6_value_admission.c','src/runtime/xl6_string_type.c','src/runtime/xl6_char_type.c',
                 'src/runtime/xl6_ownership_plan.c','src/api/xl_foreign_error.c']
