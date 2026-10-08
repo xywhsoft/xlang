@@ -1,5 +1,7 @@
 #include "src/runtime/xl6_sync.h"
 #include "src/runtime/xl6_ownership_plan.h"
+#include "src/runtime/xl6_sync_admission.h"
+#include "src/runtime/xl6_array.h"
 #include "release/include/xrt_decl.h"
 #include "src/api/xl_foreign_error.h"
 #include "test/support/module_product_memory.h"
@@ -100,7 +102,9 @@ static void heldDrop(unsigned kind,bool write)
 static const xrtownershipadapterv1* resolve(xrtownershipref ref,void* context)
 {
     (void)context;
-    const xrtownershipadapterv1* adapter=xl6SyncOwnershipAdapterV1(ref);
+    const XL6_SequenceAdmissionOpsV2* policies[]={xl6ArraySyncAdmissionOpsV2Get()};
+    const xrtownershipadapterv1* adapter=xl6SequenceOwnershipAdapterV2(ref,policies,1);
+    if (!adapter) adapter=xl6SyncOwnershipAdapterV1(ref);
     return adapter ? adapter : xrtValueOwnershipAdapterV1(ref);
 }
 static bool resolveV2(xrtownershipref ref,void* context,const xrtownershipadapterv1** adapter,
@@ -108,13 +112,19 @@ static bool resolveV2(xrtownershipref ref,void* context,const xrtownershipadapte
 {
     *preparation=NULL; *adapter=resolve(ref,context); return *adapter!=NULL;
 }
-static void realPlanHeld(void)
+static void realPlanHeld(bool inArray)
 {
     xvalue* mutex=xl6MutexCreateV1(MUTEX_ID); assert(mutex && xl6MutexLockV1(mutex,MUTEX_ID));
-    xvalue* weak=xrtValueWeakRef(mutex); assert(weak);
+    xvalue* root=mutex;
+    if (inArray) {
+        root=xl6SequenceSyncCreateV1(1,601,MUTEX_ID,MUTEX_ID,false,1); assert(root);
+        assert(xl6ArrayPushV1(root,601,MUTEX_ID,3,sizeof(xvalue*),xrtTypeValue(),&mutex));
+        xrtValueRelease(mutex);
+    }
+    xvalue* weak=xrtValueWeakRef(root); assert(weak);
     XL6_OwnershipPlan* plan=NULL;
-    assert(xl6OwnershipPlanTryCreateV2(xrtValueOwnership(mutex),resolveV2,NULL,&plan)==XL6_OWNERSHIP_PLAN_ROOTED && plan);
-    xrtValueRelease(mutex); /* The plan, not an invented root, now owns both real nodes. */
+    assert(xl6OwnershipPlanTryCreateV2(xrtValueOwnership(root),resolveV2,NULL,&plan)==XL6_OWNERSHIP_PLAN_ROOTED && plan);
+    xrtValueRelease(root); /* The plan, not an invented root, now owns the actual nodes. */
     assert(xl6OwnershipPlanTryRefresh(plan)==XL6_OWNERSHIP_PLAN_READY);
     assert(xl6OwnershipPlanPrepare(plan)==XL6_OWNERSHIP_STEP_READY);
     assert(xl6OwnershipPlanFinalizeV2(plan)==XL6_OWNERSHIP_STEP_READY);
@@ -133,6 +143,41 @@ static void realPlanHeld(void)
     assert(xrtValueWeakRefExpired(weak)); xrtValueRelease(weak);
     assert(xlSyncRetirementSnapshotCheckedV1(NULL,0,&total) && !total && !xrtGetError());
     puts("sync genuine ownership plan: failed Finish retains actual shell/owner pins, host repair, idempotent retry balanced");
+}
+static void policies(void)
+{
+    for (unsigned kind=1;kind<=3;++kind) {
+        uint64_t id=900+kind;
+        xvalue* object=kind==1 ? xl6MutexCreateV1(id) : kind==2 ? xl6CondCreateV1(id) : xl6RWLockCreateV1(id);
+        xvalue* a=xl6SequenceSyncCreateV1(1,800+kind,id,id,false,kind);
+        xvalue* b=xl6SequenceSyncCreateV1(2,810+kind,id,id,false,kind);
+        xvalue* optional=xl6SequenceSyncCreateV1(1,820+kind,id+10,id,true,kind);
+        xvalue* foreignKind=xl6SequenceSyncCreateV1(1,830+kind,id,id,false,kind==3 ? 1 : kind+1);
+        assert(object && a && b && optional && foreignKind);
+        XL6_SequenceRoleV1 role; XL6_SequenceLayoutV1 layout;
+        XL6_SequenceAdmissionV3 x={0},y={0},z={0},w={0};
+        assert(xl6SequenceSchemaCopyV1(a,&role,&layout,&x) && xl6SequenceSchemaCopyV1(b,&role,&layout,&y));
+        assert(xl6SequenceSchemaCopyV1(optional,&role,&layout,&z) && xl6SequenceSchemaCopyV1(foreignKind,&role,&layout,&w));
+        assert(x.ops==xl6ArraySyncAdmissionOpsV2Get() && x.data!=y.data && x.ops->Equivalent(x.data,y.data));
+        assert(!x.ops->Equivalent(x.data,z.data) && !x.ops->Equivalent(x.data,w.data));
+        assert(!x.ops->Defaultable(x.data) && z.ops->Defaultable(z.data));
+        xrtSetErrorKind(XERR_TIMEOUT); const xerror* prior=xrtGetError();
+        assert(xrtMemDebugFailAfter(0));
+        assert(x.ops->Value(x.data,object) && !w.ops->Value(w.data,object));
+        assert(!x.ops->Value(x.data,xrtValueNull()) && z.ops->Value(z.data,xrtValueNull()));
+        assert(!xrtMemDebugFailTriggered() && xrtGetError()==prior); xrtMemDebugFailClear(); xrtClearError();
+        xl6SequenceAdmissionDropV3(&x); xl6SequenceAdmissionDropV3(&y); xl6SequenceAdmissionDropV3(&z); xl6SequenceAdmissionDropV3(&w);
+        xrtValueRelease(object); xrtValueRelease(a); xrtValueRelease(b); xrtValueRelease(optional); xrtValueRelease(foreignKind);
+    }
+    size_t point;
+    for (point=0;point<64;++point) {
+        assert(xrtMemDebugFailAfter(point));
+        xvalue* value=xl6SequenceSyncCreateV1(1,601,MUTEX_ID,MUTEX_ID,false,1);
+        bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
+        assert(hit ? value==NULL : value!=NULL); xrtClearError(); xrtValueRelease(value);
+        if (!hit) break;
+    }
+    assert(point && point<64); printf("sync owned leaf policy: complete allocation prefix %zu\n",point);
 }
 static void phasedHeld(void)
 {
@@ -249,7 +294,8 @@ int main(int argc,char** argv)
     if (argc==2 && !strcmp(argv[1],"--race-stress-only")) concurrentActivity();
     else {
         assert(argc==1);
-        vectors(); nullPrimary(); heldDrop(1,false); heldDrop(3,false); heldDrop(3,true); phasedHeld(); realPlanHeld(); activeWait();
+        vectors(); nullPrimary(); policies(); heldDrop(1,false); heldDrop(3,false); heldDrop(3,true); phasedHeld();
+        realPlanHeld(false); realPlanHeld(true); activeWait();
         concurrentActivity(); allocations(1); allocations(2); allocations(3);
     }
     assert(!xrtGetError() && !xl6SyncRetirementSnapshotV1(NULL,0) && !xl6ProductMemoryEnd()); xl6ProductMemoryVerify();

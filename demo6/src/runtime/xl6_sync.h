@@ -1,7 +1,7 @@
 #ifndef XL6_SYNC_H
 #define XL6_SYNC_H
 #include "src/runtime/xl6_code_lease.h"
-#include "release/include/xl_sync_retirement.h"
+#include "xl_sync_retirement.h"
 #include <stddef.h>
 struct xvalue;
 struct xrtownershipref;
