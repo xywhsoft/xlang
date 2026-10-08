@@ -9,6 +9,9 @@ the Tree/resource IR and artifact integration, nor source/shipping acceptance.
 - Clone aliases the real native semaphore; no generated callback or module
   pointer is retained. Every actual method pins the owner until the native call
   returns. Blocking waits do not hold the ownership-world mutation scope.
+- The ownership mutation scope is a snapshot gate, not a mutual-exclusion
+  lock. Concurrent methods increment/decrement an atomic activity counter,
+  backed by their actual bounded RC pins; ordinary `size_t` updates raced.
 - Admission checks the genuine private handle ops, context and full identity
   before dereferencing opaque data. Busy owners remain valid members. Checks
   allocate nothing and leave an existing error unchanged.
@@ -71,6 +74,25 @@ acceptance. These tools require explicit root/schema/compiler arguments and
 a fresh output directory; current-source build rows and release DLL/VFS are
 not validated by these diagnostic object overrides.
 
+## Concurrent activity fix (2026-10-09)
+
+The latest native reports are `stdlib53-b135-semaphore-native-win-dev2`,
+`...-linux-dev3`, `...-linux-san-dev4`, `...-linux-race-dev4` and
+`...-linux-race-negative-dev3` (`semaphore.native.json` in each directory).
+All five complete 8 strict O0/O2 phases with unchanged inputs. The native probe
+now links only the genuine runtime and any explicitly selected neutral error
+boundary, not unrelated compiler/IR object overrides. The old language evidence
+above does not include this new atomic counter and is not upgraded by this test.
+
+Four producer and four consumer threads make 80,000 actual native calls per
+run. After joining, the genuine ownership snapshot has exactly one remaining
+reference, and tracked memory returns to baseline. TSan runs only this stress
+path: it does not concurrently inspect through the old uninstrumented freeze
+gate. The immutable old provider reproduces `begin`/`run` concurrent counter
+races at both optimization levels; the fixed provider is clean. ASan/UBSan runs
+the full native fixture. Only new providers and the host are instrumented, not
+the whole existing runtime. This is not shipping or complete language acceptance.
+
 ## Remaining work
 
 The full IR/Cgen/API/artifact/build integration remains in the worktree and
@@ -83,6 +105,8 @@ failure must be inspectable, not direct abort or automatic unlock. The old
 generated sync Drop still aborts on refused native Destroy. It must preserve
 the real owner on failed checked retirement, not clear its pointer, silently
 leak, free a live lock or merely remove the abort. This defect remains open.
+The approved recovery entry point is a checked host interface with real native
+retirement records, an owned recovery handle, explicit manual unlock and retry.
 
 The WSL distribution is already at `E:\WSL\Ubuntu`. New diagnostic outputs and
 temporary files stay on D; no VM restart or additional VM snapshot was needed.
