@@ -1,0 +1,5 @@
+func main(...) as int
+    auto gate = sem(0, 1)
+    auto duplicate = gate
+    return 0
+end

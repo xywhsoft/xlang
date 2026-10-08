@@ -1,0 +1,17 @@
+func main(...) as int
+    auto gate = sem(1, 2)
+    assert(gate.wait())
+    assert(not gate.tryWait())
+    assert(gate.postMultiple(2))
+    assert(not gate.post())
+    assert(not gate.postMultiple(2))
+    assert(gate.waitTimeout(9223372036854775807))
+    assert(gate.waitTimeout(0))
+    assert(not gate.waitTimeout(-1))
+    assert(not gate.postMultiple(0))
+    assert(not gate.postMultiple(-1))
+    assert(not gate.postMultiple(4294967296))
+    sem defaultGate
+    assert(defaultGate.post() and defaultGate.tryWait())
+    return 0
+end

@@ -1,0 +1,40 @@
+func main(...) as int
+    int caught = 0
+    int completed = 0
+    try
+        auto bad = sem(-1, 1)
+        assert(false)
+    catch failure
+        caught += 1
+    finally
+        completed += 1
+    end
+    try
+        auto bad = sem(2, 1)
+        assert(false)
+    catch failure
+        caught += 1
+    finally
+        completed += 1
+    end
+    try
+        auto bad = sem(0, 0)
+        assert(false)
+    catch failure
+        caught += 1
+    finally
+        completed += 1
+    end
+    try
+        auto bad = sem(0, 4294967296)
+        assert(false)
+    catch failure
+        caught += 1
+    finally
+        completed += 1
+    end
+    assert(caught == 4 and completed == 4)
+    auto good = sem(1, 1)
+    assert(good.tryWait())
+    return 0
+end

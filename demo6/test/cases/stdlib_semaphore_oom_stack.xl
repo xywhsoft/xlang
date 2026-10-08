@@ -1,0 +1,4 @@
+func main(...) as int
+    Stack<sem> gates
+    return 0
+end

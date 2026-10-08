@@ -223,6 +223,11 @@ is introduced. All new outputs/temporary files reside on D, not the WSL disk.
 
 ## Required before sealing
 
+Resident Sem native and diagnostic-language progress is recorded separately in
+`stdlib53-b135-semaphore.md`. Latest Windows/Linux language lanes each pass
+67 phases, including genuine checked-entry allocation prefixes. This does not
+seal this migration or resolve the legacy held-mutex/rwlock cleanup abort.
+
 1. Freeze the complete batch and rebuild current source products with both
    retirement fixes; repeat native, C/AOT/JIT and ownership evidence there.
 2. Exercise continuation handoff and language checked-failure/OOM. Existing

@@ -1,0 +1,4 @@
+func main(...) as int
+    array<sem> gates = array[sem(0, 1)]
+    return 0
+end
