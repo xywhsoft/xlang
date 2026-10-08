@@ -1,0 +1,10 @@
+extern "declaration_gate_legacy_forward" func legacyForward() as int
+
+func twice(int value) as int
+    return value * 2
+end
+
+assert twice(21) == 42
+assert math.sin(0.0) == 0.0
+assert math.sqrt(4.0) == 2.0
+assert legacyForward() == 42
