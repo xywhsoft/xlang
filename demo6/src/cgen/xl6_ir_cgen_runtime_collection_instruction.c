@@ -139,7 +139,7 @@ static int xl6IrCgenEmitCollectionRuntimeInstruction(
                         (unsigned int)module->operands[instruction->firstOperand + 1],
                         (unsigned int)module->operands[instruction->firstOperand + 2]);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_SET_STRING_NEW ) {
-                    xl6OutputPrintf(out, "    v%u = xrtValueObjectSetNew(v%u, v%u, v%u);\n",
+                    xl6OutputPrintf(out, "    v%u = xrtValueObjectSetNewPostCommit(v%u, v%u, v%u);\n",
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand],
                                     (unsigned int)module->operands[instruction->firstOperand + 1],

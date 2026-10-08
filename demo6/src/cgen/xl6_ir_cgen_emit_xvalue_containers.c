@@ -22,7 +22,7 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                     "extern xstrview xrtStrView(const char*);\n", out);
             xl6OutputPuts("extern xvalue* xrtValueObject(void);\n"
                            "extern xvalue* xrtValueObjectGet(const xvalue*, xlir_string_view);\n"
-                           "extern bool xrtValueObjectSetNew(xvalue*, xlir_string_view, xvalue*);\n"
+                           "extern bool xrtValueObjectSetNewPostCommit(xvalue*, xlir_string_view, xvalue*);\n"
                            "static xvalue* xlir_xvalue_object_get_literal_or_null(const xvalue* object, xlir_string_view key)\n"
                            "{\n"
                            "    if (object == NULL || xrtValueType(object) == 0) return xrtValueNull();\n"
@@ -85,11 +85,11 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                     "    xrtdynamicfields* fields;\n"
                     "    if (target == NULL || item == NULL) { xrtValueRelease(item); return false; }\n"
                     "    if (xrtValueObjectGet(target, key) != NULL)\n"
-                    "        return xrtValueObjectSetNew(target, key, item);\n"
+                    "        return xrtValueObjectSetNewPostCommit(target, key, item);\n"
                     "    fields = xlir_xvalue_dynamic_fields(target);\n"
                     "    return fields != NULL\n"
                     "        ? xrtDynamicFieldsSetNew(fields, key, item)\n"
-                    "        : xrtValueObjectSetNew(target, key, item);\n"
+                    "        : xrtValueObjectSetNewPostCommit(target, key, item);\n"
                     "}\n",
                         out);
                 } else {
@@ -105,7 +105,7 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                         "static bool xlir_xvalue_dynamic_field_set_new(xvalue* target, xlir_string_view key, xvalue* item)\n"
                         "{\n"
                         "    if (target == NULL || item == NULL) { xrtValueRelease(item); return false; }\n"
-                        "    return xrtValueObjectSetNew(target, key, item);\n"
+                        "    return xrtValueObjectSetNewPostCommit(target, key, item);\n"
                         "}\n",
                         out);
                 }

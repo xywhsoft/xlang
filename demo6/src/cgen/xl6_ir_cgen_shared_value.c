@@ -569,7 +569,7 @@ static int xl6IrCgenEmitSharedXValueRuntime(
     case XL6_IR_RUNTIME_CLASS_FIELD_INIT_NEW:
     case XL6_IR_RUNTIME_XVALUE_OBJECT_SET_LITERAL_NEW:
         xl6OutputPrintf(out,
-            "    v%u = xrtValueObjectSetNew(v%u, xlir_literal_view(%s), v%u);\n",
+            "    v%u = xrtValueObjectSetNewPostCommit(v%u, xlir_literal_view(%s), v%u);\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand],
             instruction->immediateText,

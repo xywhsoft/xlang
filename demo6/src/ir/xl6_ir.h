@@ -1261,7 +1261,10 @@ typedef enum XL6_IrRuntimeOp {
      * reverse-declaration-order owned-field destruction. */
     XL6_IR_RUNTIME_XVALUE_CLASS_NEW,
     /* The key is a canonical C string immediate owned by XLIR; consumes the
-     * owned item operand on both success and failure. */
+     * owned item operand on both success and failure. A replaced field is
+     * detached during publication and retired after the receiver's mutation
+     * fence, while a real receiver pin permits owned back-reference releases.
+     * Cleanup may raise/reenter; the runtime-call error edge remains required. */
     XL6_IR_RUNTIME_XVALUE_OBJECT_SET_LITERAL_NEW,
     /* Reads a literal-key object item as a borrowed xvalue.  A missing key is
      * the borrowed xvalue null singleton, never a C NULL result. */

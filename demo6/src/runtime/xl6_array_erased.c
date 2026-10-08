@@ -153,8 +153,7 @@ bool xl6ValueIndexSetTakeV1(xvalue* source, const xvalue* key, xvalue* item)
     }
     if (xrtValueType(key)==XVALUE_STRING && xrtValueType(source)==XVALUE_OBJECT &&
         xrtValueGetString(key,&text)) {
-        bool ok=xrtValueObjectSetTake(source,text,&item);
-        consume(item); return ok;
+        return xrtValueObjectSetNewPostCommit(source,text,item);
     }
     xrtSetErrorKind(XERR_TYPE); consume(item); return false;
 }
