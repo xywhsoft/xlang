@@ -1,0 +1,100 @@
+extern "queue_graph_capture" func capture(var value)
+extern "queue_graph_dropped" func dropped(int id, int a, int b, int c, int futures, int arrays, int callbacks)
+
+string queueGraphText = "module\0" + " alive"
+
+class QueueGraphMarker
+    int id
+    SpscQueue<QueueGraphMarker> spsc = SpscQueue::<QueueGraphMarker>(4)
+    MpscQueue<QueueGraphMarker> mpsc = MpscQueue::<QueueGraphMarker>(4)
+    MpmcQueue<QueueGraphMarker> mpmc = MpmcQueue::<QueueGraphMarker>(4)
+    MpmcQueue<future<QueueGraphMarker>> futures = MpmcQueue::<future<QueueGraphMarker>>(4)
+    array<QueueGraphMarker> children = array[]
+    MpscQueue<func() as int> callbacks = MpscQueue::<func() as int>(4)
+    create(int id)
+        self.id = id
+    end
+    destroy()
+        assert(queueGraphText == "module\0 alive")
+        dropped(self.id, self.spsc.count(), self.mpsc.count(), self.mpmc.count(),
+            self.futures.count(), self.children.length, self.callbacks.count())
+    end
+end
+
+async func queueGraphReady(QueueGraphMarker marker) as QueueGraphMarker
+    return marker
+end
+
+func makeQueueGraph(int id, int family) as QueueGraphMarker
+    auto marker = QueueGraphMarker(id)
+    if family == 0 then
+        assert(marker.spsc.tryPush(marker) == queueStatus.ok)
+    elseif family == 1 then
+        assert(marker.mpsc.tryPush(marker) == queueStatus.ok)
+    elseif family == 2 then
+        assert(marker.mpmc.tryPush(marker) == queueStatus.ok)
+    elseif family == 3 then
+        auto ready = queueGraphReady(marker)
+        assert(ready.wait())
+        assert(marker.futures.tryPush(ready) == queueStatus.ok)
+    elseif family == 4 then
+        marker.children = array[marker, marker]
+    elseif family == 5 then
+        auto callback = func() as int => marker.id
+        assert(marker.callbacks.tryPush(callback) == queueStatus.ok)
+    end
+    return marker
+end
+
+QueueGraphMarker internalSpsc = makeQueueGraph(7, 0)
+QueueGraphMarker internalMpsc = makeQueueGraph(8, 1)
+QueueGraphMarker internalMpmc = makeQueueGraph(9, 2)
+QueueGraphMarker internalFuture = makeQueueGraph(10, 3)
+QueueGraphMarker internalArray = makeQueueGraph(11, 4)
+QueueGraphMarker internalClosure = makeQueueGraph(12, 5)
+MpmcQueue<QueueGraphMarker> rootedQueueGraphs = MpmcQueue::<QueueGraphMarker>(8)
+
+export "queue_graph_setup" func setupQueueGraph(int mode, int family) as int
+    assert(internalSpsc.spsc.count() == 1 and internalMpsc.mpsc.count() == 1 and internalMpmc.mpmc.count() == 1)
+    assert(internalFuture.futures.count() == 1 and internalArray.children.length == 2 and internalClosure.callbacks.count() == 1)
+    if mode > 0 then
+        auto marker = makeQueueGraph(42, family)
+        auto child = QueueGraphMarker(90)
+        assert(rootedQueueGraphs.tryPush(marker) == queueStatus.ok)
+        if family == 0 then
+            assert(marker.spsc.tryPush(child) == queueStatus.ok)
+        elseif family == 1 then
+            assert(marker.mpsc.tryPush(child) == queueStatus.ok)
+        elseif family == 2 then
+            assert(marker.mpmc.tryPush(child) == queueStatus.ok)
+        elseif family == 3 then
+            auto ready = queueGraphReady(child)
+            assert(ready.wait() and marker.futures.tryPush(ready) == queueStatus.ok)
+        elseif family == 4 then
+            marker.children = array[marker, child]
+        else
+            auto callback = func() as int => child.id
+            assert(marker.callbacks.tryPush(callback) == queueStatus.ok)
+        end
+        if mode == 1 then
+            capture(marker)
+        elseif family == 0 then
+            capture(marker.spsc)
+        elseif family == 1 then
+            capture(marker.mpsc)
+        elseif family == 2 then
+            capture(marker.mpmc)
+        elseif family == 3 then
+            capture(marker.futures)
+        elseif family == 4 then
+            capture(marker.children)
+        else
+            capture(marker.callbacks)
+        end
+    end
+    return 42
+end
+
+func main(...) as int
+    return 0
+end

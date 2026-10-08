@@ -326,7 +326,7 @@ static int xl6IrCgenEmitXValueOperationRuntime(
             if ( needs->needsXValueClosureFieldRuntime )
                 xl6OutputPuts(
                     "static bool xlir_xvalue_object_set_literal_closure(xvalue* object, xlir_string_view key, xlir_closure* closure, xrtcallproc entry, uint64_t typeId)\n"
-                    "{ xvalue* boxed = closure != NULL ? xlir_closure_to_xvalue_scalar(closure, entry, typeId) : xrtValueRetain(xrtValueNull()); if (boxed == NULL) return false; return xrtValueObjectSetNew(object, key, boxed); }\n"
+                    "{ xvalue* boxed = closure != NULL ? xlir_closure_to_xvalue_scalar(closure, entry, typeId) : xrtValueRetain(xrtValueNull()); if (boxed == NULL) return false; return xrtValueObjectSetNewPostCommit(object, key, boxed); }\n"
                     "static bool xlir_xvalue_object_get_literal_closure(const xvalue* object, xlir_string_view key, void (*entry)(void), xlir_closure** output)\n"
                     "{\n"
                     "    return xlir_xvalue_project_closure_try_copy_into(xrtValueObjectGet(object, key), entry, true, output);\n"

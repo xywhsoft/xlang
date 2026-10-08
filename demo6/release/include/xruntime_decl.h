@@ -16828,6 +16828,18 @@ XRT_API bool xrtValueObjectSetNew(
 	xvalue* pItem
 );
 
+/* Consume the new owner on both outcomes. Publish the field before releasing
+ * its former owner OUTSIDE the mutation and receiver BUSY fence. The receiver
+ * is pinned through retirement; old-value callbacks may observe/mutate the
+ * committed object and release independently owned back-references to it.
+ * Failure preserves the field and its first diagnostic. Unlike SetNew, this
+ * operation does not forbid receiver reentry from the old-value destructor. */
+XRT_API bool xrtValueObjectSetNewPostCommit(
+	xvalue* pObject,
+	xstrview Key,
+	xvalue* pItem
+);
+
 
 
 /* 判断对象键是否存在。 */
