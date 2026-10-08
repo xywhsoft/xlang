@@ -148,6 +148,8 @@ try {
         'test/cases/stdlib_array_external_producers.xl','test/cases/stdlib_array_producer_host.c',
         'test/cases/xlir_array_producer_contract.c','test/support/array_producer_native.c',
         'test/support/array_producer_test.h')
+    $files += @(Get-Item -LiteralPath 'tools/check_stdlib_concurrent_queue_native.py',
+        'test/cases/stdlib_concurrent_queue_native_host.c','test/support/concurrent_queue_native.c')
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) +
         @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
     foreach ($record in $inputs) {
@@ -417,6 +419,10 @@ try {
         '--out',"$outPath/array-external-producers") -TimeoutMs 900000
     $arrayProducers=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-external-producers/results.json" -Raw | ConvertFrom-Json
     if (!$arrayProducers.Complete -or !$arrayProducers.InputsUnchanged -or $arrayProducers.Sweeps.Count-ne10) { throw 'Incomplete external Array producer evidence' }
+    Run 'typed-queue-kernel' $python @('tools/check_stdlib_concurrent_queue_native.py','--root',$rootPath,'--public',$PublicDirectory,
+        '--out',"$outPath/typed-queue-kernel") -TimeoutMs 900000
+    $typedQueues=Get-Content -Encoding UTF8 -LiteralPath "$outPath/typed-queue-kernel/results.json" -Raw | ConvertFrom-Json
+    if (!$typedQueues.Complete -or !$typedQueues.InputsUnchanged -or $typedQueues.Sweeps.Count-ne18 -or $typedQueues.Selections.Count-ne9) { throw 'Incomplete typed queue native prerequisite evidence' }
     Run 'persistence-root-default' $python @('tools/check_persistence_project_language.py','--fixture','root-default',
         '--public-directory',$PublicDirectory,'--out',"$outPath/persistence-root-default") -TimeoutMs 600000
     $rootDefault=Get-Content -Encoding UTF8 -LiteralPath "$outPath/persistence-root-default/report.json" -Raw | ConvertFrom-Json
