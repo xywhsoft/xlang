@@ -28,6 +28,7 @@
 #include "src/runtime/xl6_array_call_frame.h"
 #include "src/runtime/xl6_array_entry.h"
 #include "src/runtime/xl6_array_producer.h"
+#include "src/runtime/xl6_tree_projection.h"
 #include "src/runtime/xl6_concurrent_queue.h"
 #include "src/runtime/xl6_array_os_argv.h"
 #include "src/runtime/xl6_dynamic_collection.h"

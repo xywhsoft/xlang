@@ -97,6 +97,8 @@ static int xl6IrCgenEmitChannelRuntime(
 static int xl6IrCgenRuntimeSpecialQueueAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
 {
+    if (xl6IrConcurrentQueueInstructionType(module,instruction))
+        return xl6IrConcurrentQueueInstructionCompatible(module,instruction);
     const XL6_IrInstruction* receiver = NULL;
     const XL6_IrInstruction* payloadValue = NULL;
     const XL6_IrInstruction* timeoutValue = NULL;
@@ -108,8 +110,6 @@ static int xl6IrCgenRuntimeSpecialQueueAbi(
     int sends;
     int receives;
     int takesTimeout;
-    int batchPush;
-    int batchPop;
     int closes;
     if ( module == NULL || instruction == NULL ||
          instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
@@ -133,10 +133,6 @@ static int xl6IrCgenRuntimeSpecialQueueAbi(
             XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_TIMEOUT_INTO;
     takesTimeout = instruction->runtimeOp ==
         XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_TIMEOUT_INTO;
-    batchPush = instruction->runtimeOp ==
-        XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH;
-    batchPop = instruction->runtimeOp ==
-        XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO;
     closes = instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_CLOSE;
     if ( !creates && instruction->operandCount != 0 )
         receiver = xl6IrCgenValueDefinition(
@@ -146,15 +142,14 @@ static int xl6IrCgenRuntimeSpecialQueueAbi(
                                              : XL6_IR_TYPE_INVALID;
     if ( !xl6IrCgenSpecialQueueTypeAbi(
              module, queueTypeId, &queue, &payload) ||
+         queue->runtimeResourceAbi != XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE ||
          instruction->payloadType != queue->params[0] ||
          instruction->runtimeResourcePayloadAbi !=
              xl6IrCgenChannelPayloadAbi(payload) ) return 0;
     resultType = xl6IrTypeGet(&module->types, instruction->type);
     if ( creates ) {
         XL6_IrNominalIdentitySetId admissionSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
-        if ((queue->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE &&
-             !xl6IrConcurrentQueueConstructionRecipe(module,queueTypeId,NULL,NULL,&admissionSet)) ||
-            instruction->sequenceAdmissionIdentitySet!=admissionSet) return 0;
+        if (instruction->sequenceAdmissionIdentitySet!=admissionSet) return 0;
         const XL6_IrInstruction* capacity = instruction->operandCount == 1
             ? xl6IrCgenValueDefinition(
                 module, module->operands[instruction->firstOperand], NULL)
@@ -184,39 +179,6 @@ static int xl6IrCgenRuntimeSpecialQueueAbi(
                payloadValue->type == instruction->payloadType &&
                resultType->cAbi == XL6_IR_C_ABI_BOOL &&
                resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
-    }
-    if ( batchPush || batchPop ) {
-        const XL6_IrInstruction* arrayValue =
-            instruction->operandCount >= 2
-                ? xl6IrCgenValueDefinition(
-                    module, module->operands[
-                        instruction->firstOperand + 1], NULL) : NULL;
-        const XL6_IrInstruction* capacityValue =
-            instruction->operandCount == 3
-                ? xl6IrCgenValueDefinition(
-                    module, module->operands[
-                        instruction->firstOperand + 2], NULL) : NULL;
-        const XL6_IrType* capacityType = capacityValue != NULL
-            ? xl6IrTypeGet(&module->types, capacityValue->type) : NULL;
-        return queue->runtimeResourceAbi !=
-                   XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE &&
-               instruction->operandCount == (batchPop ? 3u : 2u) &&
-               arrayValue != NULL &&
-               xl6IrCgenExactArrayPayloadTypeAbi(
-                   module, arrayValue->type,
-                   instruction->payloadType, NULL) &&
-               (!batchPop ||
-                 (capacityType != NULL &&
-                  capacityType->cAbi == XL6_IR_C_ABI_I64 &&
-                  capacityType->ownershipAbi ==
-                      XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-                  capacityType->integerTarget ==
-                      XL6_IR_INTEGER_TARGET_SIGNED_64)) &&
-               resultType->cAbi == XL6_IR_C_ABI_I64 &&
-               resultType->ownershipAbi ==
-                   XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-               resultType->integerTarget ==
-                   XL6_IR_INTEGER_TARGET_SIGNED_64;
     }
     if ( receives ) {
         const XL6_IrType* referenceType;
@@ -276,19 +238,19 @@ static int xl6IrCgenRuntimeSpecialQueueAbi(
     return 0;
 }
 
+static int xl6IrCgenEmitConcurrentQueueRuntime(XL6_Output*,const XL6_IrModule*,const XL6_IrInstruction*);
 static int xl6IrCgenEmitSpecialQueueRuntime(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
 {
+    if (xl6IrConcurrentQueueInstructionType(module,instruction))
+        return xl6IrCgenEmitConcurrentQueueRuntime(out,module,instruction);
     const XL6_IrInstruction* receiver;
     const XL6_IrType* queue;
     const XL6_IrType* payload;
-    const XL6_IrType* array = NULL;
     const char* payloadType;
     const char* payloadAbi;
-    const char* payloadRuntimeType = NULL;
     XL6_IrValueId first;
-    XL6_IrValueId arrayValue = XL6_IR_VALUE_INVALID;
     if ( instruction == NULL ||
          !xl6IrCgenSpecialQueueRuntimeOpIs(instruction->runtimeOp) ) return 0;
     if ( !xl6IrCgenRuntimeSpecialQueueAbi(module, instruction) ) return -1;
@@ -303,19 +265,6 @@ static int xl6IrCgenEmitSpecialQueueRuntime(
     payloadAbi = xl6IrCgenChannelPayloadAbiToken(
         instruction->runtimeResourcePayloadAbi);
     if ( payloadType == NULL || payloadAbi == NULL ) return -1;
-    if ( instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH ||
-         instruction->runtimeOp ==
-             XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO ) {
-        const XL6_IrInstruction* arrayDefinition;
-        arrayValue = module->operands[instruction->firstOperand + 1];
-        arrayDefinition = xl6IrCgenValueDefinition(
-            module, arrayValue, NULL);
-        payloadRuntimeType = xl6IrCgenNativeValueTypeExpr(module, instruction->payloadType);
-        if ( arrayDefinition == NULL || payloadRuntimeType == NULL ||
-             !xl6IrCgenExactArrayPayloadTypeAbi(
-                 module, arrayDefinition->type,
-                 instruction->payloadType, &array) ) return -1;
-    }
 #define XL6_IR_CGEN_SPECIAL_QUEUE_COMMON_ARGS                              \
     (unsigned long long)queue->typeValueId,                                \
     (unsigned long long)payload->typeValueId, payloadAbi, payloadType
@@ -332,26 +281,6 @@ static int xl6IrCgenEmitSpecialQueueRuntime(
             (unsigned int)instruction->result, (unsigned int)first,
             XL6_IR_CGEN_SPECIAL_QUEUE_COMMON_ARGS,
             (unsigned int)module->operands[instruction->firstOperand + 1]);
-        break;
-    case XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH:
-        xl6OutputPrintf(out,
-            "    v%u = xlir_special_queue_push_batch(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %s, 0x%016llXULL, v%u);\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            XL6_IR_CGEN_SPECIAL_QUEUE_COMMON_ARGS, payloadRuntimeType,
-            xl6IrCgenNativeValueConverterExpr(module,instruction->payloadType),
-            (unsigned long long)array->typeValueId,
-            (unsigned int)arrayValue);
-        break;
-    case XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO:
-        xl6OutputPrintf(out,
-            "    v%u = xlir_special_queue_pop_batch_into(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %s, 0x%016llXULL, v%u, v%u);\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            XL6_IR_CGEN_SPECIAL_QUEUE_COMMON_ARGS, payloadRuntimeType,
-            xl6IrCgenNativeValueConverterExpr(module,instruction->payloadType),
-            (unsigned long long)array->typeValueId,
-            (unsigned int)arrayValue,
-            (unsigned int)module->operands[
-                instruction->firstOperand + 2]);
         break;
     case XL6_IR_RUNTIME_SPECIAL_QUEUE_TRY_POP_INTO:
     case XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_INTO:
@@ -635,6 +564,8 @@ static int xl6IrCgenRuntimeAvlAbi(
     case XL6_IR_RUNTIME_AVL_TREE_KEYS:
     case XL6_IR_RUNTIME_AVL_TREE_VALUES:
         return instruction->operandCount == 1 &&
+               xl6IrAvlProjectionContract(module,treeTypeId,instruction->type,
+                   instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_KEYS,NULL) &&
                resultType->kind == XL6_IR_TYPE_GENERIC_INSTANCE &&
                resultType->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
                resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
@@ -777,6 +708,7 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
     }
     return xl6OutputHasFailed(out) ? -1 : 1;
 }
+#include "src/cgen/xl6_ir_cgen_concurrent_queue_emit.c"
 static int xl6IrCgenEmitSequenceCreate(XL6_Output* out,const XL6_IrModule* module,
     XL6_IrTypeId typeId,XL6_IrValueId result,XL6_IrNominalIdentitySetId admissionSet)
 {
@@ -973,7 +905,12 @@ static int xl6IrCgenEmitAvlRuntime(
     valuePayloadAbi = xl6IrCgenChannelPayloadAbiToken(
         instruction->runtimeResourcePayloadAbi);
     keyRuntimeType = xl6IrCgenNativeValueTypeExpr(module, instruction->runtimeResourceKeyType);
-    valueRuntimeType = xl6IrCgenNativeValueTypeExpr(module, instruction->payloadType);
+    /* A logical Value descriptor clones dynamic objects. The sealed RETAIN
+     * transfer contract instead stores the shared resident reference slot;
+     * Tree set/get/clone must all use that same physical descriptor. */
+    valueRuntimeType = instruction->runtimeResourcePayloadAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN ?
+        "xl6SequenceStorageTypeV1(3, xrtTypeValue())" :
+        xl6IrCgenNativeValueTypeExpr(module, instruction->payloadType);
     keyCType = xl6IrCgenType(module, tree->params[0]);
     valueCType = xl6IrCgenType(module, tree->params[1]);
     if ( keyPayloadAbi == NULL || valuePayloadAbi == NULL ||
@@ -1088,21 +1025,30 @@ static int xl6IrCgenEmitAvlRuntime(
     case XL6_IR_RUNTIME_AVL_TREE_KEYS:
     case XL6_IR_RUNTIME_AVL_TREE_VALUES:
         resultType = xl6IrTypeGet(&module->types, instruction->type);
-        if ( resultType == NULL || resultType->typeValueId == 0 ) {
+        XL6_IrNominalIdentitySetId projectionSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+        if ( resultType == NULL || resultType->typeValueId == 0 ||
+             !xl6IrAvlProjectionContract(module,receiver->type,instruction->type,
+                 instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_KEYS,&projectionSet) ||
+             projectionSet!=instruction->sequenceAdmissionIdentitySet ) {
             return -1;
         }
         xl6OutputPrintf(out,
-            "    v%u = xlir_avl_collect(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s), 0x%016llXULL, 0x%016llXULL, %s, %s);\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            XL6_IR_CGEN_AVL_COMMON_ARGS,
+            "    { xlir_avl_handle* xlir_tree_source = xlir_avl_borrow(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %u, %s, %s, %s, sizeof(%s), sizeof(%s));\n"
+            "    xvalue* xlir_tree_array = NULL;\n",
+            (unsigned int)first,XL6_IR_CGEN_AVL_COMMON_ARGS);
+        if (xl6IrCgenEmitSequenceCreateDepth(out,module,instruction->type,"xlir_tree_array",
+            projectionSet,0,NULL,0,false)<0) return -1;
+        xl6OutputPrintf(out,
+            "    v%u = xl6TypedTreeProjectTakeV1(xlir_tree_source ? xlir_tree_source->tree : NULL, %s, xlir_tree_array, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %s); }\n",
+            (unsigned int)instruction->result,
+            instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_KEYS ? "true" : "false",
             (unsigned long long)resultType->typeValueId,
-            (unsigned long long)(instruction->runtimeOp ==
-                    XL6_IR_RUNTIME_AVL_TREE_KEYS
-                ? key->typeValueId : value->typeValueId),
-            instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_KEYS
-                ? "true" : "false",
-            xl6IrCgenNativeValueConverterExpr(module,instruction->runtimeOp ==
-                XL6_IR_RUNTIME_AVL_TREE_KEYS ? tree->params[0] : tree->params[1]));
+            (unsigned long long)(instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_KEYS ? key->typeValueId : value->typeValueId),
+            xl6IrCgenSequenceTransferAbiToken(resultType->sequenceLayout.transferAbi),
+            xl6IrCgenType(module,resultType->sequenceLayout.elementType),
+            xl6IrCgenNativeSlotTypeExpr(resultType->sequenceLayout.slotAbi),
+            resultType->sequenceLayout.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN ?
+                "xl6ArrayReferenceConverterV1()" : xl6IrCgenNativeValueConverterExpr(module,resultType->sequenceLayout.elementType));
         break;
     case XL6_IR_RUNTIME_AVL_TREE_CLONE:
         xl6OutputPrintf(out,

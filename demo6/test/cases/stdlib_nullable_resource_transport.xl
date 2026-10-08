@@ -1,10 +1,13 @@
 func main(...) as int
     int? item = null
     SpscQueue<int?> queue = SpscQueue::<int?>(2)
-    assert(queue.tryPush(null) and queue.tryPush(0))
-    assert(queue.tryPopInto(item) and item == null)
-    assert(queue.tryPopInto(item) and item != null and item == 0)
-    assert(not queue.tryPopInto(item))
+    assert(queue.tryPush(null) == queueStatus.ok and queue.tryPush(0) == queueStatus.ok)
+    auto nullStatus, nullItem = queue.tryPop()
+    assert(nullStatus == queueStatus.ok and nullItem == null)
+    auto itemStatus, zero = queue.tryPop()
+    assert(itemStatus == queueStatus.ok and zero != null and zero == 0)
+    auto emptyStatus, absent = queue.tryPop()
+    assert(emptyStatus == queueStatus.empty and absent == null)
 
     AvlTree<int, int?> tree = AvlTree::<int, int?>()
     assert(tree.set(1, null) and tree.set(2, 81))

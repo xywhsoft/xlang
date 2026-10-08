@@ -33,6 +33,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_array_call_frame.c',
     'src/runtime/xl6_array_entry.c',
     'src/runtime/xl6_array_producer.c',
+    'src/runtime/xl6_tree_projection.c',
     'src/runtime/xl6_queue_spsc.c','src/runtime/xl6_queue_mpsc.c','src/runtime/xl6_queue_mpmc.c',
     'src/runtime/xl6_array_os_argv.c',
     'src/runtime/xl6_array_method_remove.c','src/runtime/xl6_value_contains.c','src/runtime/xl6_dynamic_collection.c',

@@ -3,25 +3,25 @@ func main(...) as int
 
     auto producerA = func() as int
         for i in range(0, 100)
-            if not queue.tryPush(i) then return 10 end
+            if queue.tryPush(i) != queueStatus.ok then return 10 end
         end
         return 0
     end
     auto producerB = func() as int
         for i in range(100, 200)
-            if not queue.tryPush(i) then return 11 end
+            if queue.tryPush(i) != queueStatus.ok then return 11 end
         end
         return 0
     end
     auto producerC = func() as int
         for i in range(200, 300)
-            if not queue.tryPush(i) then return 12 end
+            if queue.tryPush(i) != queueStatus.ok then return 12 end
         end
         return 0
     end
     auto producerD = func() as int
         for i in range(300, 400)
-            if not queue.tryPush(i) then return 13 end
+            if queue.tryPush(i) != queueStatus.ok then return 13 end
         end
         return 0
     end
@@ -41,27 +41,33 @@ func main(...) as int
     assert(queue.count() == 400)
 
     int sum = 0
-    int value = 0
     for i in range(0, 400)
-        assert(queue.tryPopInto(value))
-        sum += value
+        auto status, value = queue.tryPop()
+        assert(status == queueStatus.ok and value != null)
+        if value != null then sum += value end
     end
     assert(sum == 79800)
     assert(queue.count() == 0)
 
     array<int> batchInput = array[7, 8, 9]
-    array<int> batchOutput = array[99, 100]
-    assert(queue.pushBatch(batchInput) == 3)
-    assert(queue.popBatchInto(batchOutput, 2) == 2)
+    auto pushStatus, pushed = queue.pushBatch(batchInput)
+    assert(pushStatus == queueStatus.ok and pushed == 3)
+    auto popStatus, batchOutput = queue.popBatch(2)
+    assert(popStatus == queueStatus.ok)
     assert(batchOutput.length == 2)
     assert(batchOutput[0] == 7)
     assert(batchOutput[1] == 8)
-    assert(queue.popBatchInto(batchOutput, 4) == 1)
-    assert(batchOutput.length == 1)
-    assert(batchOutput[0] == 9)
-    assert(queue.popBatchInto(batchOutput, -1) == -1)
-    assert(batchOutput.length == 1)
-    assert(batchOutput[0] == 9)
+    auto lastStatus, lastOutput = queue.popBatch(4)
+    assert(lastStatus == queueStatus.ok and lastOutput.length == 1 and lastOutput[0] == 9)
+    auto emptyStatus, emptyOutput = queue.popBatch(4)
+    assert(emptyStatus == queueStatus.empty and emptyOutput.length == 0)
+    bool rejected = false
+    try
+        auto invalidStatus, invalidOutput = queue.popBatch(-1)
+    catch RangeError
+        rejected = true
+    end
+    assert(rejected and lastOutput[0] == 9 and batchOutput[0] == 7)
 
     WaitQueue<string> waits = WaitQueue::<string>(8)
     auto delayed = func() as int

@@ -1,0 +1,2 @@
+MpscQueue<int?> queue = MpscQueue::<int?>(2)
+queue.pushBatch(array["wrong"])

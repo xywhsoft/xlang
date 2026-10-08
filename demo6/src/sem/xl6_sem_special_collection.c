@@ -201,6 +201,26 @@ static int xl6SemCheckSpecialCollectionArrayArg(
     const XL6_AstNode* typeArgs;
     int ok;
 
+    /* Literal arguments get the method's declared array<T> context, exactly
+     * like an ordinary typed parameter. Existing Array owners are never
+     * retagged or implicitly imported to another element domain. */
+    XL6_AstNode* literal=expr;
+    if (literal && literal->kind==XL6_AST_TYPED_LITERAL && literal->childCount)
+        literal=literal->children[0];
+    if (literal && literal->kind==XL6_AST_ARRAY_LITERAL && itemType) {
+        XL6_AstNode* expected=xl6SemNewGenericContainerType("array",xl6SemCloneTypeNode(itemType),expr);
+        if (!expected || !xl6SemContainerLiteralMatchesType(ctx,literal,expected)) {
+            xl6AstFree(expected); xl6SemErrorNode(ctx,expr,message); return 0;
+        }
+        XL6_AstNode* inner=literal!=expr ? xl6SemCloneTypeNode(expected) : NULL;
+        if (literal!=expr && !inner) {
+            xl6AstFree(expected); xl6SemErrorNode(ctx,expr,"out of memory recording array argument type"); return 0;
+        }
+        xl6SemBindInferredTypeIdentity(ctx,expected);
+        xl6AstFree(expr->inferredType); expr->inferredType=expected;
+        if (inner) { xl6AstFree(literal->inferredType); literal->inferredType=inner; }
+        return 1;
+    }
     typeNode = xl6SemInferAutoTypeNode(ctx, expr);
     concreteType = xl6SemResolveAliasType(ctx, typeNode);
     typeArgs = concreteType != NULL ? xl6SemTypeNodeGenericArgs(concreteType) : NULL;
@@ -410,20 +430,21 @@ static int xl6SemCheckSpecialCollectionMethodCall(XL6_SemContext* ctx, XL6_AstNo
             ok = 0;
         }
     } else {
-        if ( !xl6TextEquals(typeName, "WaitQueue") && xl6TextEquals(method, "pushBatch") ) {
+        if (!xl6TextEquals(typeName,"WaitQueue") &&
+            (xl6TextEquals(method,"tryPopInto") || xl6TextEquals(method,"popBatchInto"))) {
+            xl6SemErrorNode(ctx,member,"[SC-QUEUE-OWNED] 使用 tryPop()/popBatch(maximum) 的状态和拥有返回值；队列不提供 Into 写回");
+            ok=0;
+        } else if (!xl6TextEquals(typeName,"WaitQueue") && xl6TextEquals(method,"tryPop")) {
+            ok=xl6SemCheckSpecialCollectionArgCount(ctx,member,count,0u);
+        } else if (!xl6TextEquals(typeName,"WaitQueue") && xl6TextEquals(method,"popBatch")) {
+            ok=xl6SemCheckSpecialCollectionArgCount(ctx,member,count,1u) &&
+                xl6SemCheckSpecialCollectionIntArg(ctx,xl6SemSpecialCollectionArgExpr(args,0),
+                    "队列批量返回容量必须是整数");
+        } else if ( !xl6TextEquals(typeName, "WaitQueue") && xl6TextEquals(method, "pushBatch") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 1u) &&
                  xl6SemCheckSpecialCollectionArrayArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 0), itemType,
                     "队列批量输入必须是相同元素类型的 array");
-        } else if ( !xl6TextEquals(typeName, "WaitQueue") &&
-                    xl6TextEquals(method, "popBatchInto") ) {
-            ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 2u) &&
-                 xl6SemCheckSpecialCollectionArrayArg(
-                    ctx, xl6SemSpecialCollectionArgExpr(args, 0), itemType,
-                    "队列批量输出必须是相同元素类型的 array") &&
-                 xl6SemCheckSpecialCollectionIntArg(
-                    ctx, xl6SemSpecialCollectionArgExpr(args, 1),
-                    "队列批量输出容量必须是整数");
         } else if ( xl6TextEquals(typeName, "WaitQueue") &&
                     (xl6TextEquals(method, "pushBatch") ||
                      xl6TextEquals(method, "popBatchInto")) ) {
@@ -499,7 +520,13 @@ static const char* xl6SemSpecialCollectionCallResultTypeName(XL6_SemContext* ctx
         return NULL;
     }
     method = member->text;
-    if ( xl6TextEquals(method, "push") ||
+    if (xl6SemIsSpecialQueueTypeName(concreteType->text) &&
+        !xl6TextEquals(concreteType->text,"WaitQueue") && xl6TextEquals(method,"tryPush")) {
+        result="int";
+    } else if (xl6SemIsSpecialQueueTypeName(concreteType->text) &&
+        !xl6TextEquals(concreteType->text,"WaitQueue") && xl6TextEquals(method,"pushBatch")) {
+        result=NULL;
+    } else if ( xl6TextEquals(method, "push") ||
          xl6TextEquals(method, "reserve") || xl6TextEquals(method, "set") ||
          xl6TextEquals(method, "getInto") || xl6TextEquals(method, "takeInto") ||
          xl6TextEquals(method, "contains") || xl6TextEquals(method, "remove") ||
@@ -587,17 +614,29 @@ static XL6_AstNode* xl6SemCloneSpecialCollectionReturnTypes(XL6_SemContext* ctx,
         ? node->children[0] : NULL;
     if ( member == NULL || member->kind != XL6_AST_MEMBER ||
          (!xl6TextEquals(member->text, "tryPop") && !xl6TextEquals(member->text, "tryPeek") &&
-          !xl6TextEquals(member->text, "tryPeekAt")) ) return NULL;
+          !xl6TextEquals(member->text, "tryPeekAt") && !xl6TextEquals(member->text,"pushBatch") &&
+          !xl6TextEquals(member->text,"popBatch")) ) return NULL;
     XL6_AstNode* receiver = xl6SemCloneSpecialCollectionReceiverType(ctx, member);
     const XL6_AstNode* concrete = xl6SemResolveAliasType(ctx, receiver);
-    const XL6_AstNode* item = concrete != NULL && xl6TextEquals(concrete->text, "Stack")
+    bool queue=concrete && xl6SemIsSpecialQueueTypeName(concrete->text) &&
+        !xl6TextEquals(concrete->text,"WaitQueue");
+    bool stack=concrete && xl6TextEquals(concrete->text,"Stack");
+    if ((!queue && !stack) || (queue && !xl6TextEquals(member->text,"tryPop") &&
+        !xl6TextEquals(member->text,"pushBatch") && !xl6TextEquals(member->text,"popBatch")) ||
+        (stack && (xl6TextEquals(member->text,"pushBatch") || xl6TextEquals(member->text,"popBatch")))) {
+        xl6AstFree(receiver); return NULL;
+    }
+    const XL6_AstNode* item = concrete != NULL
         ? xl6SemResolveAliasType(ctx, xl6SemSpecialCollectionTypeArg(ctx, receiver, 0u)) : NULL;
-    XL6_AstNode* value = item != NULL
-        ? xl6SemLiftNullableType(xl6SemCloneTypeNode(item), member) : NULL;
+    XL6_AstNode* value = queue && xl6TextEquals(member->text,"pushBatch")
+        ? xl6AstNewText(XL6_AST_TYPE,"int",3,NULL)
+        : queue && xl6TextEquals(member->text,"popBatch")
+        ? xl6SemNewGenericContainerType("array",xl6SemCloneTypeNode(item),member)
+        : item ? xl6SemLiftNullableType(xl6SemCloneTypeNode(item),member) : NULL;
     xl6AstFree(receiver);
     if ( value == NULL ) return NULL;
     XL6_AstNode* returns = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
-    XL6_AstNode* status = xl6AstNewText(XL6_AST_TYPE, "bool", 4, NULL);
+    XL6_AstNode* status = xl6AstNewText(XL6_AST_TYPE, queue ? "int" : "bool", queue ? 3 : 4, NULL);
     if ( returns == NULL || status == NULL ) {
         xl6AstFree(returns); xl6AstFree(status); xl6AstFree(value); return NULL;
     }

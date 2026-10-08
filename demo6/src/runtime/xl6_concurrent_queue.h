@@ -1,6 +1,7 @@
 #ifndef XL6_CONCURRENT_QUEUE_H
 #define XL6_CONCURRENT_QUEUE_H
 #include "src/runtime/xl6_sequence.h"
+#include "xl6_concurrent_queue_abi.h"
 
 /* Items is a new owned ARRAY, never a supplied/mutated output container.
  * Before the first pop, the wrapper, admission, projection and initialized
@@ -10,11 +11,6 @@
  * to consume values produced later during this call. No defaults are invented
  * for nonnullable references: unpublished transfer slots are not language
  * values and only successfully moved, admitted items become visible. */
-typedef struct XL6_QueueArrayResultV2 {
-    xqueueresult Result;
-    size_t Count;
-    xvalue* Items;
-} XL6_QueueArrayResultV2;
 /* PopArray's identity/projection are a verified closed IR recipe, not a type
  * spelling or a user callback. Projection must be immutable resident metadata
  * with no Context; NULL selects builtin scalar conversion. For reference
@@ -32,6 +28,8 @@ typedef struct XL6_QueueArrayResultV2 {
  * active consumer. Sequential role handoff is release/acquire ordered, not
  * tied to a reusable OS thread id. Close/reset require quiescent operations.
  * Only resident schema factories/metadata are allowed, never module callbacks.
+ * A normal nonempty batch returns OK for its committed prefix; EMPTY/FULL/
+ * CLOSED describe a batch that moved nothing. A zero-size request is OK.
  * Batch Count is the owned successful prefix, even on ERROR; no rollback is
  * invented after publication. Output slots must all be fresh and initialized. */
 /* An output always remains initialized and owned by the caller, including
@@ -54,6 +52,4 @@ XL6_DECLARE_CONCURRENT_QUEUE(SpscQueue);
 XL6_DECLARE_CONCURRENT_QUEUE(MpscQueue);
 XL6_DECLARE_CONCURRENT_QUEUE(MpmcQueue);
 #undef XL6_DECLARE_CONCURRENT_QUEUE
-enum { XL6_QUEUE_QUERY_COUNT_V1=1, XL6_QUEUE_QUERY_CAPACITY_V1,
-       XL6_QUEUE_QUERY_CLOSED_V1, XL6_QUEUE_QUERY_DRAINED_V1 };
 #endif

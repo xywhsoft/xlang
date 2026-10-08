@@ -1,0 +1,75 @@
+class TreeProjectionBox
+    int value
+end
+
+func textSnapshot() as array<string>
+    AvlTree<int, string> tree = AvlTree::<int, string>()
+    assert(tree.set(3, "你\0好") and tree.set(1, "") and tree.set(2, "a\0b"))
+    auto keys = tree.keys()
+    assert(keys.length == 3 and keys[0] == 1 and keys[1] == 2 and keys[2] == 3)
+    auto values = tree.values()
+    assert(tree.set(2, "changed"))
+    return values
+end
+
+func main(...) as int
+    array<string> snapshot = textSnapshot()
+    assert(snapshot.length == 3 and snapshot[0] == "" and snapshot[1] == "a\0b" and snapshot[2] == "你\0好")
+    SpscQueue<string> texts = SpscQueue::<string>(4)
+    auto textStatus, textCount = texts.pushBatch(snapshot)
+    assert(textStatus == queueStatus.ok and textCount == 3)
+    auto textPop, textResult = texts.popBatch(4)
+    assert(textPop == queueStatus.ok and textResult.length == 3 and textResult[1] == "a\0b")
+    println("tree text snapshot ok")
+
+    AvlTree<int, char?> chars = AvlTree::<int, char?>()
+    assert(chars.set(3, '你') and chars.set(1, null) and chars.set(2, '\0'))
+    auto characterValues = chars.values()
+    chars.clear()
+    char? zero = '\0'
+    char? glyph = '你'
+    assert(characterValues.length == 3 and characterValues[0] == null and characterValues[1] == zero and characterValues[2] == glyph)
+    MpscQueue<char?> characters = MpscQueue::<char?>(4)
+    auto charStatus, charCount = characters.pushBatch(characterValues)
+    assert(charStatus == queueStatus.ok and charCount == 3)
+    println("tree nullable char snapshot ok")
+
+    AvlTree<int, TreeProjectionBox> objects = AvlTree::<int, TreeProjectionBox>()
+    auto box = TreeProjectionBox()
+    box.value = 17
+    assert(objects.set(1, box))
+    auto objectValues = objects.values()
+    box.value = 23
+    assert(objectValues.length == 1 and objectValues[0].value == 23)
+    auto cloned = objects.clone()
+    auto retrieved = TreeProjectionBox()
+    assert(cloned.getInto(1, retrieved) and retrieved.value == 23)
+    retrieved.value = 29
+    assert(box.value == 29 and objectValues[0].value == 29)
+    MpmcQueue<TreeProjectionBox> queue = MpmcQueue::<TreeProjectionBox>(4)
+    auto objectStatus, objectCount = queue.pushBatch(objectValues)
+    assert(objectStatus == queueStatus.ok and objectCount == 1)
+    objects.clear()
+    auto popped, result = queue.popBatch(4)
+    assert(popped == queueStatus.ok and result.length == 1 and result[0].value == 29)
+    println("tree nominal snapshot ok")
+
+    AvlTree<int, array<int>> nested = AvlTree::<int, array<int>>()
+    array<int> child = array[31, 32]
+    assert(nested.set(1, child))
+    auto nestedValues = nested.values()
+    child[0] = 33
+    nested.clear()
+    assert(nestedValues.length == 1 and nestedValues[0][0] == 33)
+    MpmcQueue<array<int>> arrays = MpmcQueue::<array<int>>(4)
+    auto nestedStatus, nestedCount = arrays.pushBatch(nestedValues)
+    assert(nestedStatus == queueStatus.ok and nestedCount == 1)
+    println("tree nested snapshot ok")
+
+    AvlTree<int, string> empty = AvlTree::<int, string>()
+    auto emptyValues = empty.values()
+    auto emptyStatus, emptyCount = texts.pushBatch(emptyValues)
+    assert(emptyStatus == queueStatus.ok and emptyCount == 0 and emptyValues.length == 0)
+    println("typed tree native projection: exact ordered snapshots and owned schema ok")
+    return 0
+end

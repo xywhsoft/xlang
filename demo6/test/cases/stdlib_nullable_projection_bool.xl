@@ -8,9 +8,10 @@ func main(...) as int
     assert(values[1] != null and values[1] == first)
     assert(values[2] != null and values[2] == second)
     SpscQueue<bool?> queue = SpscQueue::<bool?>(4)
-    array<bool?> output = array<bool?>[second]
-    assert(queue.pushBatch(values) == 3)
-    assert(queue.popBatchInto(output, 4) == 3)
+    auto pushStatus, pushed = queue.pushBatch(values)
+    assert(pushStatus == queueStatus.ok and pushed == 3)
+    auto popStatus, output = queue.popBatch(4)
+    assert(popStatus == queueStatus.ok and output.length == 3)
     assert(output.length == 3 and output[0] == null and output[1] == first and output[2] == second)
     bool? absentA = null
     bool? absentB = null

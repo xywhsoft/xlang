@@ -3,12 +3,15 @@ func main(...) as int
     string? text = "a\0b"
     string? item = "unchanged"
     SpscQueue<string?> queue = SpscQueue::<string?>(4)
-    assert(queue.tryPush(null) and queue.tryPush("") and queue.tryPush(text))
-    assert(queue.tryPopInto(item) and item == null)
-    assert(queue.tryPopInto(item) and item == empty)
-    assert(item != null)
-    assert(queue.tryPopInto(item) and item == text)
-    assert(not queue.tryPopInto(item) and item == text)
+    assert(queue.tryPush(null) == queueStatus.ok and queue.tryPush("") == queueStatus.ok and queue.tryPush(text) == queueStatus.ok)
+    auto nullStatus, nullItem = queue.tryPop()
+    assert(nullStatus == queueStatus.ok and nullItem == null)
+    auto emptyStringStatus, emptyString = queue.tryPop()
+    assert(emptyStringStatus == queueStatus.ok and emptyString == empty and emptyString != null)
+    auto textStatus, exact = queue.tryPop()
+    assert(textStatus == queueStatus.ok and exact == text)
+    auto emptyStatus, absent = queue.tryPop()
+    assert(emptyStatus == queueStatus.empty and absent == null and exact == text and item != null and item == "unchanged")
 
     AvlTree<int, string?> tree = AvlTree::<int, string?>()
     assert(tree.set(1, text) and tree.set(2, null))

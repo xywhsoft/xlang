@@ -228,6 +228,45 @@ int xl6IrCgenVisitNativeModules(const XL6_IrModule* module, XL6_DiagList* diags,
     return 1;
 }
 
+static int xl6IrCgenVisitSlotProviders(XL6_IrNativeSlotAbi slot,int projection,
+    XL6_IrCgenNativeModuleVisitor visitor,void* context)
+{
+    switch (slot) {
+#define XL6_IR_CGEN_SLOT_PROVIDER(Slot,Type,Converter) \
+    case XL6_IR_NATIVE_SLOT_##Slot: return visitor(context,#Type) && (!projection || visitor(context,#Converter));
+#include "src/cgen/xl6_ir_cgen_slot_providers.inc"
+#undef XL6_IR_CGEN_SLOT_PROVIDER
+    default: return 1; /* Builtin XRT descriptors need no private provider. */
+    }
+}
+
+static int xl6IrCgenVisitSequenceFactorySymbols(const XL6_IrModule* module,XL6_IrTypeId id,
+    XL6_IrCgenNativeModuleVisitor visitor,void* context,size_t depth)
+{
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
+    if (!type || depth>64 ||
+        !xl6IrSequenceConstructionRecipe(module,id,type->sequenceLayout.role,NULL) ||
+        !xl6IrCgenVisitSlotProviders(type->sequenceLayout.slotAbi,0,visitor,context)) return 0;
+    const char* factory=NULL;
+    switch (type->sequenceLayout.abi) {
+    case XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE:
+    case XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2: factory="xl6SequenceReferenceCreateV1"; break;
+    case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2: factory="xl6SequencePrimitiveCreateV1"; break;
+    case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2: factory="xl6SequenceNominalCreateV1"; break;
+    case XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1: factory="xl6SequenceCScalarCreateV1"; break;
+    case XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1: factory="xl6SequenceNullableCScalarCreateV1"; break;
+    case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1: factory="xl6SequenceNumericEnumCreateV1"; break;
+    case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1: factory="xl6SequenceCallableCreateV1"; break;
+    case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1: factory="xl6SequenceFutureCreateV1"; break;
+    case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1:
+        factory="xl6SequenceNestedCreateTakeV2";
+        if (!xl6IrCgenVisitSequenceFactorySymbols(module,type->sequenceLayout.baseElementType,visitor,context,depth+1)) return 0;
+        break;
+    default: return 0;
+    }
+    return visitor(context,factory);
+}
+
 int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diags,
     const XL6_IrCgenOptions* options, XL6_IrCgenNativeModuleVisitor visitor, void* context)
 {
@@ -254,7 +293,37 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             (!visitor(context,"xl6ArrayProjectionTakeV1") || !visitor(context,"xl6ArrayImportTakeV1"))) return 0;
     for (size_t i=0;i<module->instructionCount;++i) {
         const XL6_IrInstruction* instruction=&module->instructions[i];
+        XL6_IrTypeId queueId=xl6IrConcurrentQueueInstructionType(module,instruction);
+        if (queueId) {
+            if (!xl6IrCgenInstructionIsReachable(module,i)) continue;
+            if (!xl6IrConcurrentQueueInstructionCompatible(module,instruction)) return 0;
+            const XL6_IrType* type=xl6IrTypeGet(&module->types,queueId);
+            const XL6_IrType* schema=xl6IrTypeGet(&module->types,type->concurrentQueueSchemaType);
+            if (!schema || !xl6IrCgenVisitSlotProviders(schema->sequenceLayout.slotAbi,
+                    instruction->runtimeOp==XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH,visitor,context)) return 0;
+            const char* prefix=xl6IrCgenConcurrentQueuePrefix(type->runtimeResourceAbi);
+            const char* method=xl6IrCgenConcurrentQueueMethod(instruction->runtimeOp);
+            char symbol[64];
+            if (!prefix || !method || snprintf(symbol,sizeof(symbol),"%s%s",prefix,method)<0 ||
+                !visitor(context,symbol)) return 0;
+            if (instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&
+                !xl6IrCgenVisitSequenceFactorySymbols(module,type->concurrentQueueSchemaType,visitor,context,0)) return 0;
+        }
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL) {
+        if (xl6IrCgenInstructionIsReachable(module,i) &&
+            xl6IrCgenAvlRuntimeOpIs(instruction->runtimeOp) &&
+            instruction->runtimeResourcePayloadAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
+            !visitor(context,"xl6SequenceStorageTypeV1")) return 0;
+        if (xl6IrCgenInstructionIsReachable(module,i) &&
+            (instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_KEYS ||
+             instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_VALUES)) {
+            const XL6_IrType* array=xl6IrTypeGet(&module->types,instruction->type);
+            if (!array || !visitor(context,"xl6TypedTreeProjectTakeV1") ||
+                !xl6IrCgenVisitSequenceFactorySymbols(module,instruction->type,visitor,context,0) ||
+                !xl6IrCgenVisitSlotProviders(array->sequenceLayout.slotAbi,1,visitor,context) ||
+                (array->sequenceLayout.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
+                 !visitor(context,"xl6ArrayReferenceConverterV1"))) return 0;
+        }
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE &&
             instruction->collectionAbi==XL6_IR_COLLECTION_ARRAY && !visitor(context,"xl6ArrayMethodRemoveV1")) return 0;
         if ((instruction->runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||

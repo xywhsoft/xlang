@@ -487,18 +487,27 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              xl6IrCgenSpecialQueueRuntimeOpIs(
                  module->instructions[i].runtimeOp) ) {
-            /* Concurrent collections share the verified owning payload-box
-             * transport, while their RuntimeOps remain distinct. */
-            needs->needsChannelResourceRuntime = 1;
+            XL6_IrTypeId queueId=xl6IrConcurrentQueueInstructionType(module,&module->instructions[i]);
+            if (queueId) {
+                const XL6_IrType* queue=xl6IrTypeGet(&module->types,queueId);
+                if (queue->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE) needs->needsSpscQueueRuntime=1;
+                else if (queue->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE) needs->needsMpscQueueRuntime=1;
+                else needs->needsMpmcQueueRuntime=1;
+                const XL6_IrType* schema=xl6IrTypeGet(&module->types,queue->concurrentQueueSchemaType);
+                if (!schema) return 0;
+                if (schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1) {
+                    needs->needsXValueClosureBridgeRuntime=1;
+                    needs->needsXValueClosureProjectionRuntime=1;
+                    needs->needsClosureRuntime=1;
+                    needs->needsXCallRuntime=1;
+                }
+                needs->needsForeignErrorRuntime=1;
+                needs->needsNominalIdentityRuntime=1;
+            } else needs->needsChannelResourceRuntime=1; /* WaitQueue only. */
             needs->needsXValueRuntime = 1;
             needs->needsXValueHandleRuntime = 1;
             needs->needsXValueTypeIdentityRuntime = 1;
             needs->needsErrorRuntime = 1;
-            if ( module->instructions[i].runtimeOp ==
-                     XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH ||
-                 module->instructions[i].runtimeOp ==
-                     XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO )
-                needs->needsSpecialQueueBatchRuntime = 1;
         }
         if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
             (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||

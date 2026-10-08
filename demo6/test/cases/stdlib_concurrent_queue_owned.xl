@@ -1,0 +1,91 @@
+class QueueOwnedBox
+    int value = 0
+end
+
+func main(...) as int
+    SpscQueue<int> s = SpscQueue::<int>(2)
+    assert(s.capacity() == 2 and s.count() == 0)
+    auto absentStatus, absent = s.tryPop()
+    assert(absentStatus == queueStatus.empty and absent == null)
+    assert(s.tryPush(11) == queueStatus.ok and s.tryPush(12) == queueStatus.ok)
+    assert(s.tryPush(13) == queueStatus.full)
+    auto fullStatus, fullCount = s.pushBatch(array[1, 2])
+    assert(fullStatus == queueStatus.full and fullCount == 0)
+    auto firstStatus, first = s.tryPop()
+    assert(firstStatus == queueStatus.ok and first != null and first == 11)
+    auto batchStatus, batch = s.popBatch(20)
+    assert(batchStatus == queueStatus.ok and batch.length == 1 and batch[0] == 12)
+    auto emptyBatchStatus, emptyBatch = s.popBatch(2)
+    assert(emptyBatchStatus == queueStatus.empty and emptyBatch.length == 0)
+    auto zeroStatus, zero = s.popBatch(0)
+    assert(zeroStatus == queueStatus.ok and zero.length == 0)
+    s.close()
+    assert(s.isClosed() and s.isDrained())
+    assert(s.tryPush(14) == queueStatus.closed)
+    auto closedStatus, closed = s.tryPop()
+    assert(closedStatus == queueStatus.closed and closed == null)
+    assert(s.reset() and not s.isClosed())
+    assert(s.tryPush(15) == queueStatus.ok)
+    auto resetStatus, reset = s.tryPop()
+    assert(resetStatus == queueStatus.ok and reset != null and reset == 15)
+
+    MpscQueue<string> text = MpscQueue::<string>(4)
+    array<string> textInput = array["a\0b", "你🙂", ""]
+    auto textStatus, textCount = text.pushBatch(textInput)
+    assert(textStatus == queueStatus.ok and textCount == 3)
+    textInput[0] = "changed"
+    auto readStatus, read = text.popBatch(2)
+    assert(readStatus == queueStatus.ok and read.length == 2)
+    assert(read[0] == "a\0b" and read[1] == "你🙂")
+    auto emptyStringStatus, emptyString = text.tryPop()
+    assert(emptyStringStatus == queueStatus.ok and emptyString != null and emptyString == "")
+    bool rejected = false
+    try
+        auto invalidStatus, invalidItems = text.popBatch(-1)
+    catch RangeError
+        rejected = true
+    end
+    assert(rejected and text.count() == 0)
+
+    MpmcQueue<int?> nullable = MpmcQueue::<int?>(4)
+    assert(nullable.tryPush(null) == queueStatus.ok and nullable.tryPush(7) == queueStatus.ok)
+    auto nullStatus, none = nullable.tryPop()
+    assert(nullStatus == queueStatus.ok and none == null)
+    auto someStatus, some = nullable.tryPop()
+    assert(someStatus == queueStatus.ok and some != null and some == 7)
+    auto emptyStatus, empty = nullable.tryPop()
+    assert(emptyStatus == queueStatus.empty and empty == null)
+
+    SpscQueue<bytes> binary = SpscQueue::<bytes>(4)
+    bytes original = b"a\0b"
+    assert(binary.tryPush(original) == queueStatus.ok)
+    original[0] = uint8(120)
+    auto bytesStatus, data = binary.tryPop()
+    assert(bytesStatus == queueStatus.ok and data != null and data == b"a\0b")
+    assert(original == b"x\0b")
+
+    MpscQueue<QueueOwnedBox> objects = MpscQueue::<QueueOwnedBox>(4)
+    auto box = QueueOwnedBox()
+    box.value = 19
+    assert(objects.tryPush(box) == queueStatus.ok)
+    box.value = 23
+    auto objectStatus, object = objects.tryPop()
+    assert(objectStatus == queueStatus.ok and object != null)
+    if object != null then assert(object.value == 23) end
+
+    MpmcQueue<array<int>> nested = MpmcQueue::<array<int>>(4)
+    array<int> source = array[31, 32]
+    assert(nested.tryPush(source) == queueStatus.ok)
+    source[0] = 33
+    auto nestedStatus, arrays = nested.popBatch(4)
+    assert(nestedStatus == queueStatus.ok and arrays.length == 1 and arrays[0][0] == 33)
+    MpscQueue<Stack<int>> stacks = MpscQueue::<Stack<int>>(4)
+    Stack<int> stack = Stack::<int>()
+    assert(stack.push(41))
+    assert(stacks.tryPush(stack) == queueStatus.ok)
+    auto stackStatus, ownedStack = stacks.tryPop()
+    assert(stackStatus == queueStatus.ok and ownedStack != null)
+    if ownedStack != null then assert(ownedStack.pop() == 41) end
+    println("stdlib native concurrent queue owned ok")
+    return 0
+end

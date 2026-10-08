@@ -149,7 +149,7 @@
 | `extlibs/xruntime/include/xrt/typed_queue.h` | typed SPSC/MPSC/MPMC queues | language-type | direct | 54 | 0 | `test/cases/stdlib_special_collections.xl` |
 | `extlibs/xruntime/include/xrt/typed_set.h` | set<T> | language-type | direct | 33 | 20 | `test/cases/cgen_typed_container_functions.xl` |
 | `extlibs/xruntime/include/xrt/typed_stack.h` | Stack<T> | language-type | direct | 21 | 11 | `test/cases/stdlib_special_collections.xl` |
-| `extlibs/xruntime/include/xrt/typed_tree.h` | AvlTree<K,V> | language-type | direct | 33 | 19 | `test/cases/stdlib_special_collections.xl` |
+| `extlibs/xruntime/include/xrt/typed_tree.h` | AvlTree<K,V> | language-type | direct | 33 | 22 | `test/cases/stdlib_special_collections.xl` |
 | `extlibs/xruntime/include/xrt/typed_value.h` | typed values used by generic containers | kernel | direct | 32 | 27 | `test/cases/cgen_typed_container_functions.xl` |
 
 ## 扩展延期边界

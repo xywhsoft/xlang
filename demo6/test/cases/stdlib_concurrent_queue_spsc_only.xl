@@ -1,0 +1,11 @@
+func unusedQueue() as int
+    MpmcQueue<string> unused = MpmcQueue::<string>(2)
+    return unused.count()
+end
+
+SpscQueue<char> queue = SpscQueue::<char>(2)
+assert(queue.tryPush('你') == queueStatus.ok)
+auto status, value = queue.tryPop()
+assert(status == queueStatus.ok and value != null and value == '你')
+queue.close()
+assert(queue.isClosed() and queue.isDrained())

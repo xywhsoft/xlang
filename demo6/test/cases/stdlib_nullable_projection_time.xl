@@ -6,8 +6,10 @@ func main(...) as int
     array<time?> values = tree.values()
     assert(values.length == 3 and values[0] == null and values[1] == first and values[2] == second)
     SpscQueue<time?> queue = SpscQueue::<time?>(4)
-    array<time?> output = array<time?>[second]
-    assert(queue.pushBatch(values) == 3 and queue.popBatchInto(output, 4) == 3)
+    auto pushStatus, pushed = queue.pushBatch(values)
+    assert(pushStatus == queueStatus.ok and pushed == 3)
+    auto popStatus, output = queue.popBatch(4)
+    assert(popStatus == queueStatus.ok and output.length == 3)
     assert(output.length == 3 and output[0] == null and output[1] == first and output[2] == second)
     time? absentA = null
     time? absentB = null

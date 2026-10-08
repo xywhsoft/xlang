@@ -1,0 +1,9 @@
+int captured = 40
+auto callback = func(int input) as int
+    return captured + input
+end
+MpmcQueue<func(int) as int> queue = MpmcQueue::<func(int) as int>(2)
+assert(queue.tryPush(callback) == queueStatus.ok)
+auto status, value = queue.tryPop()
+assert(status == queueStatus.ok and value != null)
+if value != null then assert(value(2) == 42) end

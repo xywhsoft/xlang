@@ -1,0 +1,51 @@
+async func queueReady(int value) as int
+    return value
+end
+
+func queueRoundTrip<T>(SpscQueue<T> queue, T input) as (int, T?)
+    assert(queue.tryPush(input) == queueStatus.ok)
+    return queue.tryPop()
+end
+
+    SpscQueue<char> generic = SpscQueue::<char>(4)
+    auto genericStatus, scalar = queueRoundTrip::<char>(generic, '你')
+    assert(genericStatus == queueStatus.ok and scalar != null and scalar == '你')
+    println("queue generic char ok")
+
+    int captured = 40
+    auto callback = func(int input) as int
+        return captured + input
+    end
+    MpscQueue<func(int) as int> callbacks = MpscQueue::<func(int) as int>(4)
+    assert(callbacks.tryPush(callback) == queueStatus.ok)
+    auto callbackStatus, callable = callbacks.tryPop()
+    assert(callbackStatus == queueStatus.ok and callable != null)
+    if callable != null then assert(callable(2) == 42) end
+    println("queue owned callable ok")
+    array<func(int) as int> input = array[callback]
+    auto pushStatus, pushed = callbacks.pushBatch(input)
+    assert(pushStatus == queueStatus.ok and pushed == 1)
+    auto popStatus, output = callbacks.popBatch(4)
+    assert(popStatus == queueStatus.ok and output.length == 1 and output[0](3) == 43)
+    auto emptyStatus, empty = callbacks.popBatch(4)
+    assert(emptyStatus == queueStatus.empty and empty.length == 0)
+    println("queue callable batch ok")
+
+    MpmcQueue<future<int>?> jobs = MpmcQueue::<future<int>?>(4)
+    assert(jobs.tryPush(null) == queueStatus.ok)
+    assert(jobs.tryPush(queueReady(17)) == queueStatus.ok)
+    auto nullStatus, absent = jobs.tryPop()
+    assert(nullStatus == queueStatus.ok and absent == null)
+    auto jobStatus, job = jobs.tryPop()
+    assert(jobStatus == queueStatus.ok and job != null)
+    if job != null then assert(job.wait() and await job == 17) end
+    println("queue owned nullable future ok")
+    auto pending = queueReady(23)
+    array<future<int>?> futureInput = array[pending, null]
+    auto futurePushStatus, futurePushed = jobs.pushBatch(futureInput)
+    assert(futurePushStatus == queueStatus.ok and futurePushed == 2)
+    auto futurePopStatus, futureOutput = jobs.popBatch(4)
+    assert(futurePopStatus == queueStatus.ok and futureOutput.length == 2 and futureOutput[1] == null)
+    auto result = futureOutput[0]
+    if result != null then assert(result.wait() and await result == 23) end
+    println("queue future batch ok")

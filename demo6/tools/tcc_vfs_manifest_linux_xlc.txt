@@ -70,6 +70,7 @@ file|include/__xl_runtime/xl6_array_value_write.h|%XL6_ROOT%/src/runtime/xl6_arr
 file|include/__xl_runtime/xl6_array_value_read.h|%XL6_ROOT%/src/runtime/xl6_array_value_read.h
 file|include/__xl_runtime/xl6_array_import.h|%XL6_ROOT%/src/runtime/xl6_array_import.h
 file|include/__xl_runtime/xl6_array_import_chain.h|%XL6_ROOT%/src/runtime/xl6_array_import_chain.h
+file|include/__xl_runtime/xl6_concurrent_queue_abi.h|%XL6_ROOT%/src/runtime/xl6_concurrent_queue_abi.h
 file|include/__xl_runtime/xl6_array_algebra.h|%XL6_ROOT%/src/runtime/xl6_array_algebra.h
 file|include/__xl_runtime/xl6_array_graph.h|%XL6_ROOT%/src/runtime/xl6_array_graph.h
 file|include/__xl_runtime/xl6_persistence_project.h|%XL6_ROOT%/src/runtime/xl6_persistence_project.h

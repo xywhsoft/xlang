@@ -4,8 +4,10 @@ func main(...) as int
     array<string> values = tree.values()
     assert(values.length == 3 and values[0] == "" and values[1] == "a\0b" and values[2] == "你")
     SpscQueue<string> queue = SpscQueue::<string>(4)
-    array<string> output = array<string>["old"]
-    assert(queue.pushBatch(values) == 3 and queue.popBatchInto(output, 4) == 3)
+    auto pushStatus, pushed = queue.pushBatch(values)
+    assert(pushStatus == queueStatus.ok and pushed == 3)
+    auto popStatus, output = queue.popBatch(4)
+    assert(popStatus == queueStatus.ok and output.length == 3)
     assert(output.length == 3 and output[0] == "" and output[1] == "a\0b" and output[2] == "你")
     AvlTree<string, int> names = AvlTree::<string, int>()
     assert(names.set("a\0b", 1) and names.set("你", 2))

@@ -196,6 +196,46 @@ Lowering 明确绑定构造的 admission set，IR verifier 和 Cgen 构造边界
 IR 前置证据，不是公开 Queue API 已完成迁移的证据。旧 Into、channel
 别名、wire batch、结果/error 合同和 Queue graph resolver 仍需切换。
 
+## 公开原生 Queue 与 Tree→Array 边界（B132）
+
+本节更新 B129–B131 的历史状态：三种非阻塞队列已经切换到独立 typed
+provider，不再以 channel 别名实现；WaitQueue 的阻塞接口不在此次切换范围。
+
+| 非阻塞队列方法 | 语言结果 | 边界合同 |
+| --- | --- | --- |
+| `tryPush(value)` | `int` | `queueStatus.ok/full/closed`；真正错误抛出 |
+| `tryPop()` | `(int, T?)` | `ok/empty/closed` 与拥有的值分开；成功 null 不等于空队列 |
+| `pushBatch(array<T>)` | `(int, int)` | 状态与成功前缀数；已有不同元素域的 Array 不重新标记 |
+| `popBatch(maximum)` | `(int, array<T>)` | 独立拥有的原生 Array；非负上界，失败结果不泄露拥有前缀 |
+| `close()` / `reset()` | 无返回值 / `bool` | 隐藏 checked 状态独立观察；reset 失败抛出 |
+| `count/capacity/isClosed/isDrained` | `int/int/bool/bool` | 精确 family/身份检查；非法 owner 不能吞成普通查询结果 |
+
+公开状态为 `ok=0, empty=1, full=2, closed=3`。已有成功前缀的普通部分批量
+返回 ok；仅零前缀停止返回 full/empty/closed。零请求返回 ok 和拥有型空结果。
+原生 ERROR=-1 不是公开业务状态：即使错误对象分配失败，也必须走语言失败边。
+三种队列的 `tryPopInto/popBatchInto` 已在语义阶段拒绝；不得恢复写回参数。
+
+同一闭合 IR 合同贯穿签名、lowering、verifier、Cgen：逻辑元素身份、物理
+槽、transfer/codec、完整子 schema、nominal admission set 和效果都须一致。
+每个原生调用之后有独立 ERROR_TEST。Cgen 只渲染直接调用及拥有者/错误边界，
+不产生 wire Array 批量循环、动态 family 分发或 channel fallback。
+闭包的语言调用指针与 resident Value-box 槽位不是同一 ABI；Future 仍使用
+原生 Future 槽位。slot descriptor/converter 与裁剪根来自同一静态登记。
+
+`AvlTree<K,V>.keys()/values()` 的结果也已经是完整 recipe 构造的原生 Array，
+由 `xl6TypedTreeProjectTakeV1` 对精确 typed storage 做有序快照。空树、内嵌
+NUL、UTF-8、nullable char、nominal 引用及嵌套 Array 均不经过 wire 转换。
+字符串复制成独立值，引用元素保留同一对象；Tree 存储、get/clone 和投影
+使用与 IR transfer 一致的 retaining descriptor，不能用逻辑 Value 类型的
+COW clone 冒充语言引用复制。原生投影消费 fresh seed 的所有路径，失败
+退役未发布结果、保留首错且不修改源树。生成代码不再含 `xlir_avl_collect`。
+
+此边界修复不等于 AvlTree 全部方法迁往 resident owner：旧生成 handle 的
+图追踪、部分 no-raise 方法效果及整个生命周期仍须另批统一收敛，不为共享
+reference descriptor 添加伪造的全序比较器。宿主 Queue/Sequence resolver
+已经接线，但语言级循环图、continuation、调度器级 OOM 与 53 模块总验收
+尚未完成。当前证据及复现命令见《三组标准库接入长期任务》B132。
+
 ## 发布门槛
 
 - 仓库快照中的 XRT+xruntime 公共函数必须全部进入 TCC 符号表；
