@@ -1,8 +1,21 @@
+static int xl6IrCgenDispatchSlotHasReachableCall(
+    const XL6_IrModule* module, size_t slotIndex, XL6_IrInstructionKind kind)
+{
+    for(size_t i=0;i<module->instructionCount;++i)
+        if(module->instructions[i].kind==kind && module->instructions[i].dispatchSlot==slotIndex+1 &&
+            xl6IrCgenInstructionIsReachable(module,i)) return 1;
+    return 0;
+}
+
 static int xl6IrCgenClassDispatchSlotIsReachable(
     const XL6_IrModule* module, size_t slotIndex)
 {
     size_t i;
     int hasImplementation = 0;
+    /* A method body can be reachable through a dynamic adapter without any
+     * use of its virtual dispatcher. Emit only tables actually named by a
+     * reachable canonical call; do not retain unused code or its helpers. */
+    if(!xl6IrCgenDispatchSlotHasReachableCall(module,slotIndex,XL6_IR_INSTR_VIRTUAL_CALL)) return 0;
     for ( i = 0; i < module->classDispatchImplCount; ++i ) {
         const XL6_IrClassDispatchImpl* impl = &module->classDispatchImpls[i];
         const XL6_IrCallTarget* target;
@@ -19,6 +32,7 @@ static int xl6IrCgenProtocolDispatchSlotIsReachable(
 {
     size_t i;
     int hasImplementation = 0;
+    if(!xl6IrCgenDispatchSlotHasReachableCall(module,slotIndex,XL6_IR_INSTR_PROTOCOL_CALL)) return 0;
     for ( i = 0; i < module->protocolDispatchImplCount; ++i ) {
         const XL6_IrProtocolDispatchImpl* impl = &module->protocolDispatchImpls[i];
         const XL6_IrCallTarget* target;

@@ -671,15 +671,22 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
     if (depth>64 || !sequence || !xl6IrSequenceConstructionRecipe(module,typeId,sequence->sequenceLayout.role,&expectedSet) ||
         admissionSet!=expectedSet) return -1;
     const XL6_IrSequenceLayout* plan=&sequence->sequenceLayout;
-    const XL6_IrType* payload=xl6IrTypeGet(&module->types,plan->elementType);
-    const XL6_IrType* base=xl6IrTypeGet(&module->types,plan->baseElementType);
-    const char* descriptor=xl6IrCgenNativeSlotTypeExpr(plan->slotAbi);
+    bool any=plan->abi==XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE;
+    XL6_IrTypeId element=any ? xl6IrArrayAnyElementType(module,typeId) : plan->elementType;
+    const XL6_IrType* payload=xl6IrTypeGet(&module->types,element);
+    const XL6_IrType* base=any ? payload : xl6IrTypeGet(&module->types,plan->baseElementType);
+    const char* descriptor=any ? "xrtTypeValue()" : xl6IrCgenNativeSlotTypeExpr(plan->slotAbi);
     const char* baseDescriptor=xl6IrCgenNativeValueTypeExpr(module,plan->baseElementType);
-    const char* payloadType=xl6IrCgenType(module,plan->elementType);
-    const char* transfer=xl6IrCgenSequenceTransferAbiToken(plan->transferAbi);
+    const char* payloadType=xl6IrCgenType(module,element);
+    const char* transfer=any ? "3" : xl6IrCgenSequenceTransferAbiToken(plan->transferAbi);
 #define XL6_SEQUENCE_CREATE_IDS result,(unsigned)plan->role, \
     (unsigned long long)sequence->typeValueId,(unsigned long long)payload->typeValueId
     switch (plan->abi) {
+    case XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE:
+        xl6OutputPrintf(out,
+            "    %s = xl6SequenceReferenceCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %u, false, 0x%016llXULL);\n",
+            XL6_SEQUENCE_CREATE_IDS,(unsigned)XL6_VALUE_ADMIT_ANY,(unsigned long long)base->typeValueId);
+        break;
     case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2:
         if (!descriptor || !payloadType || !transfer) return -1;
         xl6OutputPrintf(out,
@@ -753,7 +760,7 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
             "    %s = xl6ArrayProjectionTakeV1(%s, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %s);\n",
             result,result,(unsigned long long)sequence->typeValueId,
             (unsigned long long)payload->typeValueId,transfer,payloadType,descriptor,
-            plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN ? "NULL" :
+            any || plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN ? "NULL" :
                 xl6IrCgenNativeValueConverterExpr(module,plan->elementType));
     }
     if (importChain && depth<importCount) {
@@ -761,7 +768,7 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
             "    %s[%u] = %s ? xl6ArrayEraseV1(%s, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %s) : NULL;\n",
             importChain,(unsigned)depth,result,result,(unsigned long long)sequence->typeValueId,
             (unsigned long long)payload->typeValueId,transfer,payloadType,descriptor,
-            plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN ? "NULL" :
+            any || plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN ? "NULL" :
                 xl6IrCgenNativeValueConverterExpr(module,plan->elementType));
     }
     return xl6OutputHasFailed(out) ? -1 : 1;

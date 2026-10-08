@@ -810,9 +810,9 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         (type->kind!=XL6_IR_TYPE_GENERIC_INSTANCE || type->paramCount!=1 || !type->params)) return result;
     result.role=type->collectionAbi==XL6_IR_COLLECTION_ARRAY
         ? XL6_IR_SEQUENCE_ROLE_ARRAY : XL6_IR_SEQUENCE_ROLE_STACK;
-    /* Both untyped builtins and erased zero-parameter generic rows occur in
-     * the canonical pool. Neither has an element recipe; do not recover an
-     * argument from the diagnostic spelling (for example "array<var>"). */
+    /* Erased zero-parameter Array rows carry an implicit dynamic domain. The
+     * module recipe resolves its canonical fallback identity; never recover
+     * an argument from the diagnostic spelling (for example "array<var>"). */
     if (result.role==XL6_IR_SEQUENCE_ROLE_ARRAY &&
         (type->kind == XL6_IR_TYPE_BUILTIN || type->kind == XL6_IR_TYPE_GENERIC_INSTANCE) &&
         !type->paramCount && !type->returnCount) {
@@ -901,6 +901,7 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
             child.abi==XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1 ||
             child.abi==XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ||
             child.abi==XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1 ||
+            child.abi==XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE ||
             child.abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1
             ? XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 : XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN;
         if (result.abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1) {
@@ -1239,6 +1240,15 @@ static int xl6IrVerifyRuntimeTypeMap(const XL6_IrRuntimeTypeMap* map)
     return memcmp(map, &expectedModule.runtimeTypeMap, sizeof(*map)) == 0;
 }
 
+static int xl6IrTypeIsErasedArrayShape(const XL6_IrType* type)
+{
+    return type && (type->kind==XL6_IR_TYPE_BUILTIN || type->kind==XL6_IR_TYPE_GENERIC_INSTANCE) &&
+        !type->paramCount && !type->returnCount && !type->nominalSymbol &&
+        type->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
+        type->nullAbi==XL6_IR_NULL_ABI_XVALUE_SENTINEL && type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NONE &&
+        type->collectionAbi==XL6_IR_COLLECTION_ARRAY;
+}
+
 static int xl6IrTypeValueHashIrType(
     const XL6_IrTypePool* pool, const XL6_IrType* type,
     uint64* hash, size_t depth)
@@ -1246,7 +1256,12 @@ static int xl6IrTypeValueHashIrType(
     size_t i;
     if ( pool == NULL || type == NULL || hash == NULL || depth > 64 ||
          type->name == NULL || type->name[0] == '\0' ) return 0;
-    xl6IrTypeValueHashText(hash, xl6TypeCanonicalBuiltinName(type->name));
+    /* The interner erases array<var>'s redundant parameter. Its diagnostic
+     * spelling must not create a second runtime domain for the same shape.
+     * Normalize here, including recursively in signatures and nested types;
+     * published owners are never retagged at an individual call site. */
+    xl6IrTypeValueHashText(hash, xl6IrTypeIsErasedArrayShape(type) ? "array" :
+        xl6TypeCanonicalBuiltinName(type->name));
     if ( type->paramCount == 0 ) return 1;
     if ( type->params == NULL ) return 0;
     xl6IrTypeValueHashText(hash, "<");
@@ -7859,8 +7874,10 @@ static int xl6IrSequenceConstructionRecipeDepth(const XL6_IrModule* module,
     const XL6_IrSequenceLayout* plan=&type->sequenceLayout;
     const XL6_IrType* element=xl6IrTypeGet(&module->types,plan->elementType);
     const XL6_IrType* base=xl6IrTypeGet(&module->types,plan->baseElementType);
-    if (plan->role!=role || !xl6IrSequenceLayoutEqual(plan,&expected) ||
-        !element || !base || !element->typeValueId || !base->typeValueId) return 0;
+    if (plan->role!=role || !xl6IrSequenceLayoutEqual(plan,&expected)) return 0;
+    if (plan->abi==XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE)
+        return role==XL6_IR_SEQUENCE_ROLE_ARRAY && xl6IrArrayAnyElementType(module,typeId)!=XL6_IR_TYPE_INVALID;
+    if (!element || !base || !element->typeValueId || !base->typeValueId) return 0;
     switch (plan->abi) {
     case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2:
     case XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2:
@@ -12200,7 +12217,7 @@ static int xl6IrDynamicMethodParameterAbiSupported(
          abi != XL6_IR_PARAMETER_ABI_OWNED ) return 0;
     if ( variadicAbi == XL6_IR_CALL_VARIADIC_ARRAY )
         return type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-               type->collectionAbi == XL6_IR_COLLECTION_ARRAY;
+               xl6IrArrayAnyElementType(module,typeId)!=XL6_IR_TYPE_INVALID;
     if ( variadicAbi == XL6_IR_CALL_VARIADIC_DICT )
         return type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
                type->collectionAbi == XL6_IR_COLLECTION_DICT;
@@ -12553,6 +12570,8 @@ int xl6IrRebindDynamicMethodSpecialization(
     row->adapterAbi = adapter;
     row->fixedParameterCount = fixed;
     row->variadicAbi = variadic;
+    row->variadicCarrierAbi = XL6_IR_COLLECTION_CARRIER_NONE;
+    row->variadicElementIdentity = 0;
     return 1;
 
 failed:
@@ -14311,6 +14330,12 @@ static int xl6IrBuildIntrinsicCalls(XL6_IrModule* module)
 
 /* Resolve container default semantics once at the Typed XLIR boundary.  The
  * runtime operation, not a source/generic name, is the lowering contract. */
+XL6_IrTypeId xl6IrArrayAnyElementType(const XL6_IrModule* module, XL6_IrTypeId typeId)
+{
+    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,typeId) : NULL;
+    if (!xl6IrTypeIsErasedArrayShape(type) || !type->typeValueId) return XL6_IR_TYPE_INVALID;
+    return xl6IrFindDynamicXValueBuiltinType(module);
+}
 XL6_IrRuntimeOp xl6IrArrayConstructionRuntimeOp(const XL6_IrModule* module, XL6_IrTypeId typeId)
 {
     const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,typeId) : NULL;
@@ -14318,8 +14343,8 @@ XL6_IrRuntimeOp xl6IrArrayConstructionRuntimeOp(const XL6_IrModule* module, XL6_
     if (xl6IrTypeIsDynamicXValueBuiltin(module,typeId)) return XL6_IR_RUNTIME_XVALUE_ARRAY_NEW;
     if (type->collectionAbi!=XL6_IR_COLLECTION_ARRAY || type->kind==XL6_IR_TYPE_NULLABLE)
         return XL6_IR_RUNTIME_NONE;
-    return type->paramCount==1 ? XL6_IR_RUNTIME_ARRAY_CREATE :
-        type->paramCount==0 ? XL6_IR_RUNTIME_XVALUE_ARRAY_NEW : XL6_IR_RUNTIME_NONE;
+    return type->paramCount==1 || xl6IrArrayAnyElementType(module,typeId)!=XL6_IR_TYPE_INVALID
+        ? XL6_IR_RUNTIME_ARRAY_CREATE : XL6_IR_RUNTIME_NONE;
 }
 
 static XL6_IrRuntimeOp xl6IrDefaultEmptyContainerRuntimeOp(
@@ -21957,7 +21982,8 @@ int xl6IrArrayCreateRuntimeInstructionCompatible(const XL6_IrModule* module,
     const XL6_IrType* type=xl6IrTypeGet(&module->types,instruction->type);
     XL6_IrNominalIdentitySetId set=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
     size_t count=0;
-    return type && type->paramCount==1 && type->params && instruction->payloadType==type->params[0] &&
+    return type && instruction->payloadType!=XL6_IR_TYPE_INVALID &&
+        instruction->payloadType==xl6IrCollectionElementType(module,instruction->type) &&
         xl6IrArrayImportChainRecipe(module,instruction->type,NULL,0,&count) &&
         xl6IrSequenceConstructionRecipe(module,instruction->type,XL6_IR_SEQUENCE_ROLE_ARRAY,&set) &&
         instruction->sequenceAdmissionIdentitySet==set;
@@ -23988,6 +24014,13 @@ static int xl6IrVerifyDynamicMethodRegistry(
                     : XL6_IR_DYNAMIC_METHOD_ADAPTER_UNSUPPORTED) )
             return xl6IrDiag(diags, declaration,
                 "XLIR dynamic method adapter admission conflicts with its closed ABI");
+        XL6_IrCollectionCarrierAbi carrier = module->stage==XL6_IR_STAGE_LOWERED && supported
+            ? (variadic==XL6_IR_CALL_VARIADIC_ARRAY ? XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1 :
+               variadic==XL6_IR_CALL_VARIADIC_DICT ? XL6_IR_COLLECTION_CARRIER_VALUE_V1 : XL6_IR_COLLECTION_CARRIER_NONE)
+            : XL6_IR_COLLECTION_CARRIER_NONE;
+        if (method->variadicCarrierAbi!=carrier || method->variadicElementIdentity!=
+                (carrier==XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1 ? module->runtimeTypeMap.fallbackTypeValueId : 0))
+            return xl6IrDiag(diags,declaration,"XLIR dynamic method variadic producer contract is malformed");
         for ( parameter = 0; parameter < method->parameterCount;
               ++parameter ) {
             const XL6_IrDynamicMethodParameter* item =
@@ -46870,7 +46903,7 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
     for ( i = 0; i < module->dynamicMethodCount; ++i ) {
         const XL6_IrDynamicMethod* method = &module->dynamicMethods[i];
         xl6OutputPrintf(out,
-            "  dynamic-method dm%lu kind=%s owner=t%u/n%u tag=%u declaration=n%u target=s%u name=%s returns=%lu/t%u targetError=%s adapter=%s parameters=%lu+%lu fixed=%lu variadic=%s\n",
+            "  dynamic-method dm%lu kind=%s owner=t%u/n%u tag=%u declaration=n%u target=s%u name=%s returns=%lu/t%u targetError=%s adapter=%s parameters=%lu+%lu fixed=%lu variadic=%s variadic-carrier=%s variadic-element=0x%016llX\n",
             (unsigned long)i, xl6IrDynamicCallKindName(method->kind), (unsigned int)method->ownerType,
             (unsigned int)method->ownerDeclaration,
             (unsigned int)method->runtimeTypeTag,
@@ -46884,7 +46917,8 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
             (unsigned long)method->firstParameter,
             (unsigned long)method->parameterCount,
             (unsigned long)method->fixedParameterCount,
-            xl6IrCallVariadicAbiName(method->variadicAbi));
+            xl6IrCallVariadicAbiName(method->variadicAbi),xl6IrCollectionCarrierAbiName(method->variadicCarrierAbi),
+            (unsigned long long)method->variadicElementIdentity);
     }
     for ( i = 0; i < module->dynamicMethodParameterCount; ++i ) {
         const XL6_IrDynamicMethodParameter* parameter =
@@ -48299,7 +48333,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     for ( i = 0; i < module->dynamicMethodCount; ++i ) {
         const XL6_IrDynamicMethod* method = &module->dynamicMethods[i];
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"kindName\":\"%s\",\"ownerDeclaration\":%u,\"ownerType\":%u,\"runtimeTypeTag\":%u,\"declaration\":%u,\"targetSymbol\":%u,\"name\":\"%s\",\"returnCount\":%lu,\"returnType\":%u,\"targetErrorAbi\":%d,\"targetErrorAbiName\":\"%s\",\"adapterAbi\":%d,\"adapterAbiName\":\"%s\",\"firstParameter\":%lu,\"parameterCount\":%lu,\"fixedParameterCount\":%lu,\"variadicAbi\":%d,\"variadicAbiName\":\"%s\"}%s\n",
+            "    {\"id\":%lu,\"kindName\":\"%s\",\"ownerDeclaration\":%u,\"ownerType\":%u,\"runtimeTypeTag\":%u,\"declaration\":%u,\"targetSymbol\":%u,\"name\":\"%s\",\"returnCount\":%lu,\"returnType\":%u,\"targetErrorAbi\":%d,\"targetErrorAbiName\":\"%s\",\"adapterAbi\":%d,\"adapterAbiName\":\"%s\",\"firstParameter\":%lu,\"parameterCount\":%lu,\"fixedParameterCount\":%lu,\"variadicAbi\":%d,\"variadicAbiName\":\"%s\",\"variadicCarrierAbi\":%d,\"variadicElementIdentity\":\"0x%016llX\"}%s\n",
             (unsigned long)i, xl6IrDynamicCallKindName(method->kind), (unsigned int)method->ownerDeclaration,
             (unsigned int)method->ownerType,
             (unsigned int)method->runtimeTypeTag,
@@ -48317,6 +48351,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             (unsigned long)method->fixedParameterCount,
             (int)method->variadicAbi,
             xl6IrCallVariadicAbiName(method->variadicAbi),
+            (int)method->variadicCarrierAbi,(unsigned long long)method->variadicElementIdentity,
             i + 1 == module->dynamicMethodCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"dynamicMethodParameters\": [\n", out);

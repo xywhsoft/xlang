@@ -1,6 +1,9 @@
 #include "src/runtime/xl6_text_internal.h"
 #include "src/runtime/xl6_value_format.h"
+#include "src/runtime/xl6_array_graph.h"
+#include "src/api/xl_foreign_error.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 typedef bool (*TextSink)(xstrview, void*);
 
@@ -66,11 +69,20 @@ static bool render(const xvalue* value, TextSink sink, void* output)
     }
     /* Serialization remains explicit and fallible. In particular an unknown
      * handle is not silently cast, replaced with a fake message or swallowed. */
-    char* text = xrtXlonStringify(value, false, &size);
-    if (!text) return false;
-    bool ok = sink((xstrview){text, size}, output);
+    /* The resident graph protocol projects native Array storage (including
+     * nested native/wire mixtures), not the foreign handle's private layout.
+     * Scalar/string fast paths above remain allocation-free for append. */
+    xl6_error_scope operation={0};
+    if (!xl6ErrorScopeBegin(&operation)) abort();
+    xvalue* data=xl6ValueDataSnapshotV1(value);
+    char* text=data ? xrtXlonStringify(data, false, &size) : NULL;
+    bool ok=text && sink((xstrview){text, size}, output);
+    if (!ok) xl6ErrorScopeCaptureFailure(&operation);
     xrtFree(text);
-    return ok;
+    xrtValueRelease(data);
+    xl6_error_result outcome=xl6ErrorScopeEnd(&operation);
+    if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
+    return ok && outcome.ok;
 }
 static bool copyText(xstrview text, void* output)
 {

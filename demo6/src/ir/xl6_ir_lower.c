@@ -1826,14 +1826,15 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
     instruction->runtimeIdentityType = identityType;
     if (runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE) {
         const XL6_IrType* array=xl6IrTypeGet(&ctx->module->types,type);
-        if (!array || array->paramCount!=1 || !array->params ||
+        XL6_IrTypeId element=xl6IrCollectionElementType(ctx->module,type);
+        if (!array || element==XL6_IR_TYPE_INVALID ||
             !xl6IrSequenceConstructionRecipe(ctx->module,type,XL6_IR_SEQUENCE_ROLE_ARRAY,
                 &instruction->sequenceAdmissionIdentitySet)) {
             xl6IrLowerDiag(ctx,origin,"Array construction requires a complete native Sequence recipe");
             return XL6_IR_VALUE_INVALID;
         }
         instruction->collectionAbi=XL6_IR_COLLECTION_ARRAY;
-        instruction->payloadType=array->params[0];
+        instruction->payloadType=element;
     }
     if (runtimeOp==XL6_IR_RUNTIME_STACK_CREATE &&
         !xl6IrStackConstructionContract(ctx->module,type,&instruction->sequenceAdmissionIdentitySet)) {
@@ -14441,6 +14442,8 @@ static int xl6IrLowerLinkDynamicMethods(XL6_IrLowerContext* ctx)
             xl6IrCallTargetGet(module, method->targetSymbol);
         size_t parameter;
         method->targetErrorAbi = XL6_IR_ERROR_ABI_INVALID;
+        method->variadicCarrierAbi = XL6_IR_COLLECTION_CARRIER_NONE;
+        method->variadicElementIdentity = 0;
         if ( target != NULL ) method->targetErrorAbi = target->errorAbi;
         if ( method->adapterAbi !=
                  XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED ) continue;
@@ -14521,6 +14524,11 @@ static int xl6IrLowerLinkDynamicMethods(XL6_IrLowerContext* ctx)
                         "XLIR dynamic method default cannot be canonicalized");
             }
         }
+        method->variadicCarrierAbi = method->variadicAbi==XL6_IR_CALL_VARIADIC_ARRAY
+            ? XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1 : method->variadicAbi==XL6_IR_CALL_VARIADIC_DICT
+            ? XL6_IR_COLLECTION_CARRIER_VALUE_V1 : XL6_IR_COLLECTION_CARRIER_NONE;
+        method->variadicElementIdentity = method->variadicCarrierAbi==XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1
+            ? module->runtimeTypeMap.fallbackTypeValueId : 0;
     }
     return 1;
 }
@@ -32263,9 +32271,12 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
     xl6IrLowerClearInstructions(module);
     xrtFree(module->operands); module->operands = NULL; module->operandCount = 0; module->operandCapacity = 0;
     module->entryBlock = XL6_IR_BLOCK_INVALID; module->valueCount = XL6_IR_VALUE_INVALID;
-    for ( i = 0; i < module->dynamicMethodCount; ++i )
+    for ( i = 0; i < module->dynamicMethodCount; ++i ) {
         module->dynamicMethods[i].targetErrorAbi =
             XL6_IR_ERROR_ABI_INVALID;
+        module->dynamicMethods[i].variadicCarrierAbi = XL6_IR_COLLECTION_CARRIER_NONE;
+        module->dynamicMethods[i].variadicElementIdentity = 0;
+    }
     memset(&ctx, 0, sizeof(ctx));
     ctx.module = module; ctx.diags = diags; ctx.nextValue = 1; ctx.nextSyntheticSymbol = UINT32_MAX;
     if ( !xl6IrLowerRejectUnsupportedDeclarations(&ctx) ) {

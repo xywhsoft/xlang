@@ -251,11 +251,7 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
             (unsigned long)parameter, (unsigned long)parameter,
             (unsigned long)parameter);
     }
-    if ( method->variadicAbi == XL6_IR_CALL_VARIADIC_ARRAY )
-        xl6OutputPuts(
-            "    variadic = xrtValueArray(); if (variadic == NULL) goto fail;\n",
-            out);
-    else if ( method->variadicAbi == XL6_IR_CALL_VARIADIC_DICT )
+    if ( method->variadicAbi == XL6_IR_CALL_VARIADIC_DICT )
         xl6OutputPuts(
             "    variadic = xrtValueObject(); if (variadic == NULL) goto fail;\n",
             out);
@@ -303,13 +299,17 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
     }
     xl6OutputPuts("    }\n", out);
     if ( method->variadicAbi == XL6_IR_CALL_VARIADIC_ARRAY ) {
+        const XL6_IrType* array=xl6IrTypeGet(&module->types,
+            module->dynamicMethodParameters[method->firstParameter+method->fixedParameterCount].type);
+        if (!array || method->variadicCarrierAbi!=XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1 ||
+            !method->variadicElementIdentity)
+            return xl6IrCgenDiag(diags,module,method->declaration,"Dynamic variadic method has no native Array producer contract");
         xl6OutputPrintf(out,
-            "    for (size_t positionalIndex = %lu; positionalIndex < positionalCount; ++positionalIndex) {\n"
-            "        if (positionalValues[positionalIndex] == NULL || !xrtValueArrayAppend(variadic, positionalValues[positionalIndex])) { ",
+            "    { xrtcallframe frame = {0}; frame.Arguments = positionalValues; frame.ArgumentCount = positionalCount;\n"
+            "      variadic = xl6ArrayCallFramePackV1(0x%016llXULL, 0x%016llXULL, &frame, %lu); }\n"
+            "    if (variadic == NULL) goto fail;\n",
+            (unsigned long long)array->typeValueId,(unsigned long long)method->variadicElementIdentity,
             (unsigned long)method->fixedParameterCount);
-        xl6IrCgenEmitDynamicMethodError(
-            out, "dynamic method positional capture failed");
-        xl6OutputPuts(" }\n    }\n", out);
     }
 
     for ( parameter = 0; parameter < method->fixedParameterCount; ++parameter ) {

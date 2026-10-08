@@ -1,0 +1,14 @@
+func dormant(...) as array
+    return arg
+end
+class UnusedProducer
+    func pack(...) as array
+        return arg
+    end
+end
+func main(...) as int
+    array empty
+    empty.append("a\0你")
+    assert(empty.length == 1 and empty[0] == "a\0你")
+    return 0
+end

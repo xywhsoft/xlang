@@ -1,0 +1,60 @@
+int evaluations = 0
+func item(int value) as int
+    evaluations = evaluations * 10 + value
+    return value
+end
+func pack(...) as array
+    return arg
+end
+func count(int base = 7, ...) as int
+    return base + arg.length
+end
+class Producer
+    func pack(...) as array
+        return arg
+    end
+    func count(int base = 7, ...) as int
+        return base + arg.length
+    end
+    func keywords(int base = 7, ***) as int
+        return base + arg.length
+    end
+end
+func(...) as array typedPack = pack
+var target = Producer()
+var boundPack = target.pack
+var boundCount = target.count
+var boundKeywords = target.keywords
+func main(...) as int
+    array empty
+    assert(empty.length == 0 and pack().length == 0)
+    bytes payload = b"\0A\xff\0"
+    array direct = pack("a\0你", payload, null, item(1), item(2))
+    assert(evaluations == 12 and direct.length == 5)
+    assert(direct[0] == "a\0你" and direct[1] == payload and direct[2] == null)
+    array closure = typedPack("a\0你", payload, null)
+    assert(closure.length == 3 and closure[0] == direct[0] and closure[1] == payload)
+    var dynamic = target.pack("a\0你", payload, null, direct)
+    var bound = boundPack("a\0你", payload, null, direct)
+    assert(dynamic.length == 4 and bound.length == 4)
+    assert(dynamic[0] == direct[0] and bound[1] == payload and bound[2] == null)
+    bound[0] = "changed"
+    assert(dynamic[0] == "a\0你" and direct[0] == "a\0你")
+    assert(count() == 7 and count(base = 13) == 13 and count(10, 1, 2) == 12)
+    assert(target.count() == 7 and target.count(base = 13) == 13)
+    assert(boundCount() == 7 and boundCount(10, 1, payload) == 12 and boundCount(base = 13) == 13)
+    assert(boundKeywords(5, first = "a\0你", second = payload) == 7)
+    target = null
+    assert(boundPack().length == 0 and boundCount(11, payload) == 12)
+    array<array> nested
+    nested.append(pack(payload))
+    assert(nested.length == 1 and nested[0][0] == payload)
+    var display = pack(42, null)
+    assert(string(display) == "[42,null]")
+    println("native", 42, null)
+    println(pack(42, null))
+    println("a\0你", payload, '你')
+    print()
+    println()
+    return 0
+end

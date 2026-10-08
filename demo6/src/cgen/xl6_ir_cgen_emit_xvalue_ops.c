@@ -4,6 +4,11 @@ static int xl6IrCgenEmitXValueOperationRuntime(
 {
     size_t i;
     size_t parameter;
+    /* Dynamic-method adapters and boxed-callable adapters independently use
+     * the resident frame producer. Its declaration follows that exact need,
+     * not whether an unrelated closure/call bridge happens to be present. */
+    if (needs->needsCallableArrayFrameProducer)
+        xl6OutputPuts("extern xvalue* xl6ArrayCallFramePackV1(uint64_t, uint64_t, const xrtcallframe*, size_t);\n",out);
     if ( needs->needsXValueRuntime || module->abi.entryKind == XL6_IR_MODULE_ENTRY_XLANG_MAIN ) {
         /* Direct scalar boxing and callable bridges share this resident ABI.
          * Declaration selection must not depend on an unrelated call bridge. */
@@ -281,8 +286,6 @@ static int xl6IrCgenEmitXValueOperationRuntime(
                 "extern xvalue* xrtValuePointer(void*);\n"
                 "extern char* xrtStrDup(const char*);\n"
                 "extern char* xrtStrDupN(const char*, size_t);\n", out);
-            if (needs->needsCallableArrayFrameProducer)
-                xl6OutputPuts("extern xvalue* xl6ArrayCallFramePackV1(uint64_t, uint64_t, const xrtcallframe*, size_t);\n",out);
             if (needs->needsCallableF32Reader)
                 xl6OutputPuts("extern bool xl6ValueReadF32V1(const xvalue*, uint64_t, float*);\n", out);
             if (needs->needsCallableIntegerCodec)

@@ -22,6 +22,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1])
     parser.add_argument('--public',type=Path)
+    parser.add_argument('--producers',action='store_true',help='Ordinary/closure/dynamic/bound native Array producers')
     parser.add_argument('--out',type=Path,required=True)
     args=parser.parse_args()
     root,out=args.root.resolve(),args.out.resolve()
@@ -29,10 +30,16 @@ def main():
     cc=shutil.which('gcc')
     if not cc or out.exists() or (os.name=='nt') != bool(args.public):
         parser.error('Require gcc, fresh output and --public only on Windows')
-    names=['stdlib_callable_variadic_array','stdlib_callable_variadic_array_unused']
+    names=['stdlib_variadic_native_producers','stdlib_variadic_native_producers_unused'] if args.producers else [
+        'stdlib_callable_variadic_array','stdlib_callable_variadic_array_unused']
+    contract_name='stdlib_variadic_native_producers_contract.c' if args.producers else 'stdlib_callable_variadic_array_contract.c'
+    regressions=['cgen_dynamic_method_arguments','cgen_dynamic_method_bound_lifetime',
+        'cgen_dynamic_method_inheritance','cgen_dynamic_method_overload','cgen_generic_dynamic_method',
+        'protocol_dynamic_dispatch','stdlib_variadic_dispatch_reachability'] if args.producers else []
     files={Path(__file__),Path(sys.executable),Path(cc)}
     files.update(tests/('test/cases/'+name+'.xl') for name in names)
-    for name in ['stdlib_callable_variadic_array_contract.c','stdlib_callable_variadic_array_runtime.c',
+    files.update(tests/('test/cases/'+name+'.xl') for name in regressions)
+    for name in [contract_name,'stdlib_callable_variadic_array_runtime.c',
                  'xlir_callable_bridge_mutations.h','stdlib_collection_admission_host.c','xlir_module_product_oom_host.c']:
         files.add(tests/('test/cases/'+name))
     files.update(tests/('test/support/'+name) for name in ['module_product_memory.c','module_product_memory.h'])
@@ -63,7 +70,8 @@ def main():
         for header in folder.glob('*.h'): shutil.copy2(header,private/header.name)
     rows=[]; sweeps=[]
     report={'Scope':__doc__,'Complete':False,'InputsUnchanged':False,'Platform':sys.platform,
-            'Rows':rows,'Sweeps':sweeps,'Inputs':inputs,'Full53Complete':False}
+            'Rows':rows,'Sweeps':sweeps,'Inputs':inputs,'Full53Complete':False,
+            'ProducerKinds':['ordinary','closure','dynamic','bound','default','nested'] if args.producers else ['boxed-callable']}
     env=dict(os.environ)
     def run(name,command,timeout=180):
         command=[str(p) for p in command]; start=time.monotonic()
@@ -99,18 +107,21 @@ def main():
                 memory,*objects,*links,'-o',native])
             run('native.vectors-O'+str(level),[native]); sweep('native.O'+str(level),native)
             contract=out/('contract-O'+str(level)+suffix)
-            run('contract.build-O'+str(level),[cc,*flags,'-O'+str(level),tests/'test/cases/stdlib_callable_variadic_array_contract.c',
+            run('contract.build-O'+str(level),[cc,*flags,'-O'+str(level),tests/('test/cases/'+contract_name),
                 *objects,*links,'-o',contract])
             for name in names:
                 source=tests/('test/cases/'+name+'.xl'); prefix=out/(name+'-O'+str(level))
                 c,h,ir=[Path(str(prefix)+s) for s in ['.c','.h','.json']]
                 log=run(name+'.contract-O'+str(level),[contract,source,c,h,ir]+(['--emit-only'] if level else []),600)
-                assert re.search(r'native frame plans: arrays=\d+ dicts=\d+ fixed=\d+ mutations=\d+ selected=[01]',log)
+                assert re.search(r'native producers: arrays=\d+ methods=\d+ mutations=\d+ selected=[01]' if args.producers else
+                    r'native frame plans: arrays=\d+ dicts=\d+ fixed=\d+ mutations=\d+ selected=[01]',log)
                 text=c.read_text(encoding='utf-8'); unused=name.endswith('_unused')
-                calls=re.findall(r'\ba\d+ = xl6ArrayCallFramePackV1\(',text)
+                calls=re.findall(r'\bvariadic = xl6ArrayCallFramePackV1\(' if args.producers else
+                    r'\ba\d+ = xl6ArrayCallFramePackV1\(',text)
                 assert bool(calls)!=unused
                 assert 'variadicIndex < frame->ArgumentCount' not in text
-                plans=json.loads(ir.read_text(encoding='utf-8'))['callableBridges']; assert plans
+                assert 'xrtValueArrayAppend(variadic, positionalValues[positionalIndex])' not in text
+                plans=json.loads(ir.read_text(encoding='utf-8'))['dynamicMethods' if args.producers else 'callableBridges']; assert plans
                 assert all('variadicCarrierAbi' in b and 'variadicElementIdentity' in b for b in plans)
                 repeat=[Path(str(p)+'.repeat') for p in [c,h,ir]]
                 run(name+'.repeat-O'+str(level),[contract,source,*repeat,'--emit-only'])
@@ -121,7 +132,11 @@ def main():
                 binary=out/(name+'-O'+str(level)+suffix)
                 run(name+'.build-O'+str(level),[cc,*flags,'-O'+str(level),c,tests/'test/cases/stdlib_collection_admission_host.c',
                     *objects,*links,'-o',binary])
-                run(name+'.run-O'+str(level),[binary])
+                executed=run(name+'.run-O'+str(level),[binary])
+                if args.producers and not unused:
+                    normalized=executed.replace('\r\n','\n')
+                    assert 'native 42 null\n[42,null]\n' in normalized
+                    assert 'a\0你 ' in normalized
                 if not unused:
                     module=out/(name+'.oom-O'+str(level)+suffix)
                     run(name+'.oom.build-O'+str(level),[cc,*flags,'-O'+str(level),'-DXL6_PRODUCT_USER_ENTRY','-include',c,
@@ -131,6 +146,27 @@ def main():
                 print(name+' O'+str(level)+' passed',flush=True)
         for name in names:
             source=tests/('test/cases/'+name+'.xl'); prefix=out/(name+'-product')
+            if args.public:
+                run(name+'.jit',[cli,source,'run',prefix]); run(name+'.aot.build',[cli,source,'exe',prefix])
+                product=Path(str(prefix)+'.exe')
+            else:
+                run(name+'.jit',[cli,'run',source]); product=Path(str(prefix)+'.product')
+                run(name+'.aot.build',[cli,'build',source,'-o',product])
+            assert product.is_file(); run(name+'.aot.run',[product])
+        for name in regressions:
+            source=tests/('test/cases/'+name+'.xl'); generated=out/(name+'.c')
+            command=[cli,source,'cgen-default',generated] if args.public else [cli,'cgen',source,'--emit',generated]
+            run(name+'.cgen',command)
+            emitted=generated.read_text(encoding='utf-8')
+            if name=='cgen_dynamic_method_inheritance': assert 'xlir_vdispatch_' not in emitted
+            if name=='stdlib_variadic_dispatch_reachability':
+                assert 'xlir_vdispatch_' in emitted and 'xlir_pdispatch_' in emitted
+            for level in (0,2):
+                binary=out/(name+'-O'+str(level)+suffix)
+                run(name+'.build-O'+str(level),[cc,*flags,'-O'+str(level),generated,tests/'test/cases/stdlib_collection_admission_host.c',
+                    *objects,*links,'-o',binary])
+                run(name+'.run-O'+str(level),[binary])
+            prefix=out/(name+'-regression')
             if args.public:
                 run(name+'.jit',[cli,source,'run',prefix]); run(name+'.aot.build',[cli,source,'exe',prefix])
                 product=Path(str(prefix)+'.exe')

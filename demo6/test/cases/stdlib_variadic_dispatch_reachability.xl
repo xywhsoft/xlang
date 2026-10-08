@@ -1,0 +1,28 @@
+protocol Scored
+    func score() as int
+end
+class DispatchBase
+    virtual func score() as int
+        return 1
+    end
+end
+class DispatchChild extends DispatchBase
+    override func score() as int
+        return 2
+    end
+    func pack(...) as array
+        return arg
+    end
+end
+func main(...) as int
+    DispatchChild child = DispatchChild()
+    DispatchBase base = child
+    Scored scored = child
+    var dynamic = child
+    assert(base.score() == 2 and scored.score() == 2 and int(dynamic.score()) == 2)
+    var bound = dynamic.pack
+    var values = bound("a\0你", b"\0A\xff\0", null)
+    assert(values.length == 3 and values[0] == "a\0你" and values[2] == null)
+    println("dispatch and native variadic producers ok")
+    return 0
+end

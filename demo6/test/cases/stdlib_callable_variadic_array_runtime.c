@@ -1,6 +1,7 @@
 #include "src/runtime/xl6_array_call_frame.h"
 #include "src/runtime/xl6_array_erased.h"
 #include "src/runtime/xl6_sequence.h"
+#include "src/runtime/xl6_value_format.h"
 #include "test/support/module_product_memory.h"
 #include <assert.h>
 #include <limits.h>
@@ -33,7 +34,32 @@ static void vectors(void)
     xrtValueRelease(text); xrtValueRelease(data); xrtValueRelease(number); xrtValueRelease(nil);
     first=xl6ArrayErasedReadV1(b,0); xstrview view={0};
     assert(first && xrtValueGetString(first,&view) && view.Size==5 && !memcmp(view.Data,"a\0\xe4\xbd\xa0",5));
-    xrtValueRelease(first); xrtValueRelease(a); xrtValueRelease(b);
+    xstrbuf display; xrtStrBufInit(&display);
+    assert(xl6ValueTextAppendV1(&display,first));
+    assert(display.Size==5 && !memcmp(display.Data,"a\0\xe4\xbd\xa0",5));
+    xrtStrBufFree(&display); xrtValueRelease(first);
+    /* Use the ordinary wire writer as an independent representation oracle,
+     * not another native projection. Both nested and mixed carriers must
+     * produce identical exact-byte XLON, including bytes and escaped NUL. */
+    xvalue* wire=xrtValueArray(); assert(wire);
+    for(int64_t i=0;i<4;++i){
+        first=xl6ArrayErasedReadV1(b,i); assert(first && xrtValueArrayAppend(wire,first));
+        xrtValueRelease(first);
+    }
+    size_t expectedSize=0; char* expected=xrtXlonStringify(wire,false,&expectedSize); assert(expected);
+    xrtStrBufInit(&display); assert(xl6ValueTextAppendV1(&display,b));
+    assert(display.Size==expectedSize && !memcmp(display.Data,expected,expectedSize));
+    xrtStrBufFree(&display); xrtFree(expected);
+    xvalue* children[]={b,wire}; frame.ArgumentCount=2; frame.Arguments=children;
+    xvalue* nested=xl6ArrayCallFramePackV1(ARRAY_ID,VAR_ID,&frame,0); assert(nested);
+    xvalue* wireNested=xrtValueArray(); assert(wireNested);
+    assert(xrtValueArrayAppend(wireNested,wire) && xrtValueArrayAppend(wireNested,wire));
+    expected=xrtXlonStringify(wireNested,false,&expectedSize); assert(expected);
+    xrtStrBufInit(&display); assert(xl6ValueTextAppendV1(&display,nested));
+    assert(display.Size==expectedSize && !memcmp(display.Data,expected,expectedSize));
+    xrtStrBufFree(&display); xrtFree(expected);
+    xrtValueRelease(wireNested); xrtValueRelease(nested); xrtValueRelease(wire);
+    xrtValueRelease(a); xrtValueRelease(b);
     frame.ArgumentCount=0; frame.Arguments=NULL;
     a=xl6ArrayCallFramePackV1(ARRAY_ID,VAR_ID,&frame,SIZE_MAX); assert(a && xl6ArrayErasedSizeV1(a)==0); xrtValueRelease(a);
     assert(!xl6ArrayCallFramePackV1(0,VAR_ID,&frame,0) && xrtErrorKind(xrtGetError())==XERR_ARGUMENT); xrtClearError();

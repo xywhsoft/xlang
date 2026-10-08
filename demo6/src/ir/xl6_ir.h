@@ -3402,6 +3402,9 @@ typedef struct XL6_IrDynamicMethod {
     size_t parameterCount;
     size_t fixedParameterCount;
     XL6_IrCallVariadicAbi variadicAbi;
+    /* Closed producer contract; NONE in Typed/unsupported rows. */
+    XL6_IrCollectionCarrierAbi variadicCarrierAbi;
+    uint64 variadicElementIdentity;
 } XL6_IrDynamicMethod;
 
 int xl6IrDynamicMethodMatchesCallSite(
@@ -6451,6 +6454,8 @@ int xl6IrStackConstructionContract(const XL6_IrModule*, XL6_IrTypeId,
  * are bounded. Source producer authorization remains a separate contract. */
 int xl6IrSequenceConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrSequenceRoleAbi, XL6_IrNominalIdentitySetId*);
+/* Exact erased Array<var> shape and canonical dynamic element identity. */
+XL6_IrTypeId xl6IrArrayAnyElementType(const XL6_IrModule*, XL6_IrTypeId);
 /* Complete explicit data-import chain, outer Array first. Recurses only into
  * Array children; Stack children retain their native identity. No source
  * carrier cutover authority. All descendant recipes/codecs are verified before
