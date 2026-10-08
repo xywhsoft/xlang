@@ -15,6 +15,7 @@ typedef struct QueueOwner {
     XL6_Q_TYPE* queue;
     XL6_Q_TYPE* retired;
     XL6_SequenceLayoutV1 layout;
+    uint64_t schemaIdentity;
     XL6_SequenceAdmissionV3 admission;
     xatomic32 activity, producer, consumer;
     const void* claim;
@@ -55,6 +56,33 @@ static bool retain(void* data, void** result, void* context)
     mutationEnd(&scope); return ok;
 }
 static const xvaluehandleops handleOps={retain,drop,NULL,NULL};
+/* Probe immutable admission metadata, including the genuine provider and the
+ * canonical source-schema identity. Activity/BUSY is allowed: no queue storage
+ * is touched and no producer/consumer lane is entered. Refuse foreign handles
+ * before dereferencing their raw pointer. The world gate protects retirement. */
+bool XL6_Q_PUBLIC(AdmitsSchemaV1)(const xvalue* value,uint64_t identity,
+    const XL6_SequenceLayoutV1* layout,const XL6_SequenceAdmissionV3* policy)
+{
+    if (!value || !identity || !layout || !policy || !policy->ops ||
+        xrtValueType(value)!=XVALUE_HANDLE || xrtValueTypeId(value)!=identity) return false;
+    xrtownershipscope scope={0}; mutationBegin(&scope);
+    void* raw=NULL; void* user=NULL; const xvaluehandleops* ops=NULL;
+    bool admitted=false;
+    if (xrtValueGetHandle(value,&raw,&ops,&user) && ops==&handleOps && raw && !user) {
+        const QueueOwner* owner=raw;
+        const XL6_SequenceLayoutV1* actual=&owner->layout;
+        const XL6_SequenceAdmissionV3* domain=&owner->admission;
+        admitted=!owner->cleared && actual->identity==identity &&
+            owner->schemaIdentity==layout->identity &&
+            actual->elementIdentity==layout->elementIdentity && actual->transfer==layout->transfer &&
+            actual->size==layout->size && actual->type==layout->type && domain->ops==policy->ops &&
+            domain->elementIdentity==policy->elementIdentity && domain->transfer==policy->transfer &&
+            domain->size==policy->size && domain->type==policy->type &&
+            domain->boxedIdentity==policy->boxedIdentity &&
+            (domain->data==policy->data || domain->ops->Equivalent(domain->data,policy->data));
+    }
+    mutationEnd(&scope); return admitted;
+}
 static bool countReferences(const void* data, size_t* count)
 {
     const QueueOwner* owner=data;
@@ -206,6 +234,7 @@ xvalue* XL6_Q_PUBLIC(CreateTakeV1)(uint64_t identity, xvalue* schema, int64_t ca
     owner->refs=1;
     xrtAtomic32Init(&owner->activity,0); xrtAtomic32Init(&owner->producer,0); xrtAtomic32Init(&owner->consumer,0);
     if (!xl6SequenceSchemaCopyV1(schema,&role,&owner->layout,&owner->admission)) goto fail;
+    owner->schemaIdentity=owner->layout.identity;
     owner->layout.identity=identity;
     owner->queue=XL6_Q_NATIVE(Create)(xl6SequenceStorageTypeV1(owner->layout.transfer,owner->layout.type),(size_t)capacity);
     if (!owner->queue) goto fail;
