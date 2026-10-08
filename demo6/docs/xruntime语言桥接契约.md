@@ -135,6 +135,45 @@ Clear 只在 freeze 中 detach；Finish 在 freeze 外释放。继承的原始�
 拥有返回值接口、退役输出写回接口及 JIT/AOT/continuation/图回收验收；
 不得把本前置门的通过外推成 Queue 或三组标准库封板。
 
+## typed 队列的原生 Array 批量合同（B130）
+
+三种独立队列 provider 增加私有 `PushArrayV2` / `PopArrayV2`，仅是语言
+切换所需的 resident ABI，**不是已经完成的 xlang 队列接口**。旧 Cgen
+channel 别名和旧 `Into` 形参仍待整体退役，不能用本节原生验证代替语言验收。
+
+- 输入必须是真正的原生 Array：角色、逻辑元素身份、完整 admission、
+  nullable/nominal/子 schema、物理 descriptor 与队列一致。取得 Array
+  操作 pin 后直接读取连续 typed storage；先验证整个输入，再允许发布
+  第一项。拒绝同宽但不同逻辑域、伪造身份、BUSY 或 wire Array。
+- 批量循环只存在于 resident 内核，共享同一精确前缀实现；不生成
+  逐项装箱、wire-array 读取、转换或 channel 适配代码。
+- 出队结果是 `{Result, Count, Items}`，Items 是独立拥有的原生 Array，
+  不接收输出参数，不修改已有容器或其别名。它复制队列的完整、独立
+  拥有的 resident admission 元数据；输出 Array 身份与 projection 来自
+  已验证的闭合 IR recipe，而非运行时名称推断。
+- 必须先构造最终 wrapper、绑定 resident projection 并预备全部初始化
+  传输槽，再消费队列。预备失败不消费任何项；过程中发生 ERROR，Count
+  和 Items 仍拥有成功移交的前缀，异常路径必须释放 Items。错误结果独立
+  于是否能分配诊断，不得把真实错误吞成普通部分成功。
+- `maximum` 非负、是上界，内部至多预备队列固定 capacity 个槽，不依赖
+  并发近似 Count，也不承诺继续等待后来生产的项。零上界返回拥有型空
+  Array / OK；普通空队列和关闭排空仍精确返回 EMPTY / CLOSED。
+- 未发布、BUSY 的内部传输目标不是语言默认值；只有成功移交的前缀
+  可见。非 nullable Future 不凭空变成 null；bytes 不为暂存目标构造
+  无用的空 bytes。结果依然保持各自的公开 resize/default 合同。
+- 引用传输只接受空 projection 参数，内部选用统一的 resident retain
+  codec，保持原对象身份，绝不落到 `xrtTypeValue` 动态 COW 克隆。
+  其他 projection 是无 Context 的 immutable resident 元数据，不允许
+  存储 generated-code callback。graph 的 pin、退役与 Future policy
+  allowlist 沿用实际物理节点，覆盖 Queue/Array/Future 互相拥有的循环。
+
+验收包含 Windows O0/O2、Linux O0/O2/ASan/UBSan、完整分配前缀、
+单项与原生 Array 批量的真实并发，以及 TinyCC 调用 resident GCC 的
+16-byte batch / 24-byte owned Array result 结构体 ABI。TinyCC 状态必须
+由创建它的同一 provider 配置，完整 source registrar 先于旧 DLL 默认
+绑定；实际删除 TinyCC 后结果 Array 仍可读取和释放，且产品分配平衡。
+这些证据不证明语义/IR/Cgen 切换、正式部署或三组 53 模块已完成。
+
 ## 发布门槛
 
 - 仓库快照中的 XRT+xruntime 公共函数必须全部进入 TCC 符号表；

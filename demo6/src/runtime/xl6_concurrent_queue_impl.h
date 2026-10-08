@@ -2,6 +2,7 @@
  * backend selects a direct typed XRT implementation at compile time, not a
  * runtime kind switch/function table that pulls every queue into an artifact. */
 #include "src/runtime/xl6_concurrent_queue.h"
+#include "src/runtime/xl6_array_reference_value.h"
 #include "src/api/xl_foreign_error.h"
 #include <limits.h>
 #include <stdlib.h>
@@ -238,14 +239,14 @@ xqueueresult XL6_Q_PUBLIC(PushV1)(const xvalue* value, uint64_t identity, uint64
     if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return XQUEUE_ERROR; }
     return result;
 }
-static xqueuebatchresult batch(const xvalue* value, uint64_t identity, uint64_t element,
-    size_t size, const xrttype* type, void* items, size_t count, bool pop)
+/* Caller owns the lane pin and error scope. This is the sole resident prefix
+ * loop, shared by physical-slot and native-Array transports. No nested lane
+ * entry (which would reject SPSC) and no generated wire conversion loop. */
+static xqueuebatchresult transport(QueueOwner* owner, void* items, size_t count, bool pop)
 {
-    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
-    unsigned lane=pop ? 2 : 1;
-    QueueOwner* owner=begin(value,identity,lane);
     xqueuebatchresult result={XQUEUE_ERROR,0};
-    if (owner && tuple(owner,element,size,type) && range(items,count,size,type)) {
+    size_t size=owner->layout.size;
+    if (range(items,count,size,owner->layout.type)) {
         bool admitted=true;
         if (!pop) for (size_t i=0;i<count;++i)
             if (!owner->admission.ops->Slot(owner->admission.data,(const unsigned char*)items+i*size)) {
@@ -267,6 +268,16 @@ static xqueuebatchresult batch(const xvalue* value, uint64_t identity, uint64_t 
             }
         }
     }
+    return result;
+}
+static xqueuebatchresult batch(const xvalue* value, uint64_t identity, uint64_t element,
+    size_t size, const xrttype* type, void* items, size_t count, bool pop)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
+    unsigned lane=pop ? 2 : 1;
+    QueueOwner* owner=begin(value,identity,lane);
+    xqueuebatchresult result={XQUEUE_ERROR,0};
+    if (owner && tuple(owner,element,size,type)) result=transport(owner,items,count,pop);
     if (result.Result==XQUEUE_ERROR || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
     if (owner) end(owner,lane);
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
@@ -279,12 +290,89 @@ xqueuebatchresult XL6_Q_PUBLIC(PushBatchV1)(const xvalue* value,uint64_t identit
 xqueuebatchresult XL6_Q_PUBLIC(PopBatchV1)(const xvalue* value,uint64_t identity,uint64_t element,
     size_t size,const xrttype* type,void* items,size_t count)
 { return batch(value,identity,element,size,type,items,count,true); }
+xqueuebatchresult XL6_Q_PUBLIC(PushArrayV2)(const xvalue* value,uint64_t identity,
+    const xvalue* array,uint64_t arrayIdentity)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
+    QueueOwner* owner=begin(value,identity,1);
+    XL6_Sequence* source=NULL;
+    xqueuebatchresult result={XQUEUE_ERROR,0};
+    if (owner) {
+        XL6_SequenceLayoutV1 layout=owner->layout; layout.identity=arrayIdentity;
+        /* Exact logical policy, not just tag/width. Role/ops are checked before
+         * opaque handles are dereferenced; the pin protects storage afterward. */
+        if (!xl6SequenceAdmitsSchemaV1(array,XL6_SEQUENCE_ARRAY_V1,&layout,&owner->admission))
+            xrtSetErrorKind(XERR_TYPE);
+        else source=xl6SequenceBeginRoleV1(array,XL6_SEQUENCE_ARRAY_V1,arrayIdentity,
+            layout.elementIdentity,layout.transfer,layout.size,layout.type);
+        if (source) {
+            xtypedarray* storage=xl6SequenceStorageV1(source);
+            result=transport(owner,(void*)xrtTypedArrayConstData(storage),xrtTypedArrayCount(storage),false);
+        }
+    }
+    if (result.Result==XQUEUE_ERROR || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
+    if (source) xl6SequenceEndV1(source);
+    if (owner) end(owner,1);
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); result.Result=XQUEUE_ERROR; }
+    return result;
+}
+XL6_QueueArrayResultV2 XL6_Q_PUBLIC(PopArrayV2)(const xvalue* value,uint64_t identity,
+    uint64_t arrayIdentity,int64_t maximum,const xvalueconverter* projection)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
+    XL6_QueueArrayResultV2 result={XQUEUE_ERROR,0,NULL};
+    QueueOwner* owner=NULL; XL6_Sequence* target=NULL;
+    if (!arrayIdentity || maximum<0 || (uint64_t)maximum>SIZE_MAX) {
+        xrtSetErrorKind(XERR_RANGE); goto done;
+    }
+    owner=begin(value,identity,2); if (!owner) goto done;
+    if (owner->layout.transfer==3) {
+        if (projection) { xrtSetErrorKind(XERR_ARGUMENT); goto done; }
+        projection=xl6ArrayReferenceConverterV1();
+    }
+    /* Own only immutable resident metadata. No source witness/storage or
+     * generated converter callback is kept. The IR supplies the canonical
+     * output Array identity and immutable resident projection expression. */
+    if (!owner->admission.ops->Retain(owner->admission.data)) goto done;
+    XL6_SequenceAdmissionV3 admission=owner->admission;
+    result.Items=xl6SequenceCreateAdmittedV1(XL6_SEQUENCE_ARRAY_V1,arrayIdentity,&admission);
+    if (!result.Items) goto done;
+    target=xl6SequenceBeginRoleV1(result.Items,XL6_SEQUENCE_ARRAY_V1,arrayIdentity,
+        owner->layout.elementIdentity,owner->layout.transfer,owner->layout.size,owner->layout.type);
+    if (!target || !xl6SequenceBindProjectionV1(target,projection)) goto prepareFailure;
+    size_t capacity=XL6_Q_NATIVE(Capacity)(owner->queue);
+    size_t limit=(size_t)maximum<capacity ? (size_t)maximum : capacity;
+    xtypedarray* storage=xl6SequenceStorageV1(target);
+    /* Native Init creates transfer destinations, not public language defaults.
+     * The fresh owner is BUSY/unpublished throughout; graph readers refuse it.
+     * All allocation/init occurs BEFORE a queue item can be consumed. */
+    if (!xrtTypedArrayResize(storage,limit)) goto prepareFailure;
+    xqueuebatchresult moved=transport(owner,xrtTypedArrayData(storage),limit,true);
+    result.Result=moved.Result; result.Count=moved.Count;
+    /* Shrinking a tail of empty transfer destinations cannot allocate or
+     * invoke an owned user destructor. Keep only the successfully moved prefix.
+     * Resident descriptors, never an arbitrary custom type, define this ABI. */
+    if (!xrtTypedArrayResize(storage,moved.Count)) abort();
+    goto done;
+prepareFailure:
+    if (target) { xl6SequenceEndV1(target); target=NULL; }
+    xrtValueRelease(result.Items); result.Items=NULL;
+done:
+    if (result.Result==XQUEUE_ERROR || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
+    if (target) xl6SequenceEndV1(target);
+    if (owner) end(owner,2);
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); result.Result=XQUEUE_ERROR; }
+    return result;
+}
 xqueueresult XL6_Q_PUBLIC(PopV1)(const xvalue* value, uint64_t identity, uint64_t element,
     size_t size, const xrttype* type, void* target)
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
     QueueOwner* owner=begin(value,identity,2); xqueueresult result=XQUEUE_ERROR;
-    if (owner && tuple(owner,element,size,type)) result=XL6_Q_NATIVE(TryPop)(owner->queue,target);
+    if (owner && tuple(owner,element,size,type) && range(target,1,size,type))
+        result=XL6_Q_NATIVE(TryPop)(owner->queue,target);
     if (result==XQUEUE_ERROR || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
     if (owner) end(owner,2);
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
