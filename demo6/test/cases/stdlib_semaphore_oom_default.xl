@@ -1,0 +1,4 @@
+func main(...) as int
+    sem gate
+    return 0
+end

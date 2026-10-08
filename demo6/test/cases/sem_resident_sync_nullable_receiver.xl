@@ -1,0 +1,6 @@
+func main(...) as int
+    auto queue = SpscQueue::<sem>(2)
+    auto status, gate = queue.tryPop()
+    gate.post()
+    return 0
+end

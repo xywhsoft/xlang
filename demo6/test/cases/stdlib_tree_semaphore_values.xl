@@ -1,0 +1,45 @@
+func main(...) as int
+    auto gate = sem(1, 2)
+    auto stack = Stack::<sem>()
+    assert(stack.push(gate))
+    auto popped = stack.pop()
+    assert(popped.post() and gate.tryWait())
+    auto tree = AvlTree::<int, sem>()
+    assert(tree.set(1, gate))
+    auto copy = tree.clone()
+    assert(copy.equals(tree))
+    sem fromTree
+    assert(copy.getInto(1, fromTree))
+    assert(fromTree.post() and gate.tryWait())
+    auto optionalTree = AvlTree::<int, sem?>()
+    assert(optionalTree.set(1, gate))
+    assert(optionalTree.set(2, null))
+    sem? optional = null
+    assert(optionalTree.getInto(1, optional))
+    assert(optional != null)
+    if optional != null then assert(optional.post() and gate.tryWait()) end
+    assert(optionalTree.getInto(2, optional) and optional == null)
+    auto nested = AvlTree::<int, Stack<sem>>()
+    assert(stack.push(gate))
+    assert(nested.set(1, stack))
+    auto returned = Stack::<sem>()
+    assert(nested.getInto(1, returned))
+    auto deeply = returned.pop()
+    assert(deeply.post() and gate.tryWait())
+    auto q1 = SpscQueue::<sem>(2)
+    auto q2 = MpscQueue::<sem>(2)
+    auto q3 = MpmcQueue::<sem>(2)
+    assert(q1.tryPush(gate) == queueStatus.ok)
+    assert(q2.tryPush(gate) == queueStatus.ok)
+    assert(q3.tryPush(gate) == queueStatus.ok)
+    auto status1, one = q1.tryPop()
+    auto status2, two = q2.tryPop()
+    auto status3, three = q3.tryPop()
+    assert(status1 == queueStatus.ok and one != null)
+    assert(status2 == queueStatus.ok and two != null)
+    assert(status3 == queueStatus.ok and three != null)
+    if one != null then assert(one.post() and gate.tryWait()) end
+    if two != null then assert(two.post() and gate.tryWait()) end
+    if three != null then assert(three.post() and gate.tryWait()) end
+    return 0
+end

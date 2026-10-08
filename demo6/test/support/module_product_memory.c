@@ -14,7 +14,9 @@ static bool productLive(const xmemdebugallocation* allocation, void* context)
 }
 void xl6ProductMemoryBegin(size_t point)
 {
-    assert(xrtMemDebugEnable(true));
+    /* Enabling debug mode requires an empty heap. An already-enabled mode
+     * also permits a fresh baseline/fault scope around existing live inputs. */
+    assert(xrtMemDebugEnabled() || xrtMemDebugEnable(true));
     xrtMemDebugSnapshot(&productBefore);
     if (point != SIZE_MAX) assert(xrtMemDebugFailAfter(point));
 }
