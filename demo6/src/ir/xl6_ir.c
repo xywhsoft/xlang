@@ -993,6 +993,33 @@ const char* xl6IrSequenceLayoutAbiName(XL6_IrSequenceLayoutAbi abi)
     }
 }
 
+static int xl6IrRuntimeResourceAbiIsConcurrentQueue(XL6_IrRuntimeResourceAbi abi)
+{
+    return abi == XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE ||
+        abi == XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE ||
+        abi == XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE;
+}
+
+static XL6_IrTypeId xl6IrConcurrentQueueSchemaTypeForType(
+    const XL6_IrTypePool* pool, const XL6_IrType* type)
+{
+    if (!pool || !type || type->kind != XL6_IR_TYPE_GENERIC_INSTANCE ||
+        !xl6IrRuntimeResourceAbiIsConcurrentQueue(type->runtimeResourceAbi) ||
+        type->paramCount != 1 || !type->params || type->returnCount)
+        return XL6_IR_TYPE_INVALID;
+    for (size_t i = 0; i < pool->count; ++i) {
+        const XL6_IrType* schema = &pool->items[i];
+        if (schema->kind == XL6_IR_TYPE_GENERIC_INSTANCE &&
+            schema->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
+            schema->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_NONE &&
+            schema->abiId == xl6TypeAbiIdText("array") &&
+            schema->paramCount == 1 && schema->params && !schema->returnCount &&
+            schema->params[0] == type->params[0])
+            return (XL6_IrTypeId)(i + 1);
+    }
+    return XL6_IR_TYPE_INVALID;
+}
+
 static int xl6IrTypeFinalizeErrorResultCName(
     XL6_IrTypePool* pool, XL6_IrType* type)
 {
@@ -1005,6 +1032,7 @@ static int xl6IrTypeFinalizeErrorResultCName(
     type->nativeSlotAbi = xl6IrNativeSlotAbiForType(pool,type);
     type->collectionCarrierAbi = xl6IrCollectionCarrierAbiForType(type);
     type->sequenceLayout = xl6IrSequenceLayoutForType(pool,type);
+    type->concurrentQueueSchemaType = xl6IrConcurrentQueueSchemaTypeForType(pool,type);
     type->xvalueAdmissionAbi = xl6IrValueAdmissionAbiForType(pool,type);
     type->xvalueAdmissionNullable = type->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE &&
         type->kind == XL6_IR_TYPE_NULLABLE;
@@ -1472,6 +1500,45 @@ static XL6_IrTypeId xl6IrTypePoolInternTuple(
     return (XL6_IrTypeId)pool->count;
 }
 
+XL6_IrTypeId xl6IrTypeInternArray(XL6_IrTypePool* pool, XL6_IrTypeId elementType)
+{
+    XL6_IrType* item;
+    XL6_IrTypeId* params;
+    if (!pool || !xl6IrTypeGet(pool, elementType)) return XL6_IR_TYPE_INVALID;
+    for (size_t i = 0; i < pool->count; ++i) {
+        item = &pool->items[i];
+        if (item->kind == XL6_IR_TYPE_GENERIC_INSTANCE &&
+            item->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
+            item->abiId == xl6TypeAbiIdText("array") &&
+            item->paramCount == 1 && item->params && !item->returnCount &&
+            item->params[0] == elementType)
+            return (XL6_IrTypeId)(i + 1);
+    }
+    if (!xl6IrGrow((void**)&pool->items, &pool->capacity, pool->count, sizeof(*item)))
+        return XL6_IR_TYPE_INVALID;
+    params = (XL6_IrTypeId*)xrtMalloc(sizeof(*params));
+    if (!params) return XL6_IR_TYPE_INVALID;
+    params[0] = elementType;
+    item = &pool->items[pool->count];
+    memset(item, 0, sizeof(*item));
+    item->kind = XL6_IR_TYPE_GENERIC_INSTANCE;
+    item->cAbi = XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
+    item->collectionAbi = XL6_IR_COLLECTION_ARRAY;
+    item->ownershipAbi = XL6_IR_OWNERSHIP_ABI_MANAGED;
+    item->abiId = xl6TypeAbiIdText("array");
+    item->name = xrtStrDupN("array", 5);
+    item->params = params;
+    item->paramCount = 1;
+    if (!item->name || !xl6IrTypeFinalizeRepresentation(pool, item) ||
+        !xl6IrTypeFinalizeTypeValueId(pool, item)) {
+        xrtFree(item->name); xrtFree(item->displayName); xrtFree(params);
+        memset(item, 0, sizeof(*item));
+        return XL6_IR_TYPE_INVALID;
+    }
+    ++pool->count;
+    return (XL6_IrTypeId)pool->count;
+}
+
 /* Resolve the physical callable result only after the complete type graph is
  * available.  A function type can be declared without any call expression,
  * so its multi-result product must be interned from the declaration itself;
@@ -1508,6 +1575,9 @@ static int xl6IrTypePoolFinalizeCallableResults(XL6_IrTypePool* pool)
         if (pool->items[i].collectionAbi==XL6_IR_COLLECTION_ARRAY ||
             pool->items[i].runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_STACK)
             pool->items[i].sequenceLayout=xl6IrSequenceLayoutForType(pool,&pool->items[i]);
+    for (i=0;i<pool->count;++i)
+        pool->items[i].concurrentQueueSchemaType=
+            xl6IrConcurrentQueueSchemaTypeForType(pool,&pool->items[i]);
     return 1;
 }
 
@@ -2280,6 +2350,12 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
             xl6IrFindTypeDecl(root, type)->kind == XL6_AST_PROTOCOL))
         ? XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
         : xl6IrCAbiFromFrontend(type->semanticTypeAbiId, name);
+    if (kind == XL6_IR_TYPE_GENERIC_INSTANCE && paramCount == 1 &&
+        xl6IrRuntimeResourceAbiIsConcurrentQueue(runtimeResourceAbi) &&
+        xl6IrTypeInternArray(&module->types, params[0]) == XL6_IR_TYPE_INVALID) {
+        xrtFree(params); xrtFree(parameterModes); xrtFree(parameterAbis);
+        xrtFree(returns); return XL6_IR_TYPE_INVALID;
+    }
     for ( i = 0; i < module->types.count; ++i ) {
         item = &module->types.items[i];
         if ( item->kind == kind &&
@@ -4186,6 +4262,10 @@ static XL6_IrTypeId xl6IrBuildInternClassSubstitutedTypeDepth(
         if ( returnCount != 0 && callableResult == XL6_IR_TYPE_INVALID )
             goto failed;
     }
+    if (kind == XL6_IR_TYPE_GENERIC_INSTANCE && paramCount == 1 && params &&
+        xl6IrRuntimeResourceAbiIsConcurrentQueue(runtimeResourceAbi) &&
+        xl6IrTypeInternArray(&module->types, params[0]) == XL6_IR_TYPE_INVALID)
+        goto failed;
     if ( !xl6IrGrow((void**)&module->types.items, &module->types.capacity,
                      module->types.count, sizeof(*module->types.items)) )
         goto failed;
@@ -7897,6 +7977,28 @@ static int xl6IrSequenceConstructionRecipeDepth(const XL6_IrModule* module,
 int xl6IrSequenceConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
     XL6_IrSequenceRoleAbi role,XL6_IrNominalIdentitySetId* setOut)
 { return xl6IrSequenceConstructionRecipeDepth(module,typeId,role,setOut,0); }
+
+int xl6IrConcurrentQueueConstructionRecipe(const XL6_IrModule* module, XL6_IrTypeId typeId,
+    XL6_IrRuntimeResourceAbi* familyOut, XL6_IrTypeId* schemaOut,
+    XL6_IrNominalIdentitySetId* admissionSetOut)
+{
+    const XL6_IrType* type = module ? xl6IrTypeGet(&module->types, typeId) : NULL;
+    XL6_IrNominalIdentitySetId set = XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+    if (!type || type->kind != XL6_IR_TYPE_GENERIC_INSTANCE ||
+        !xl6IrRuntimeResourceAbiIsConcurrentQueue(type->runtimeResourceAbi) ||
+        type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+        type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
+        type->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL || !type->typeValueId ||
+        type->paramCount != 1 || !type->params || type->returnCount ||
+        !type->concurrentQueueSchemaType || type->concurrentQueueSchemaType !=
+            xl6IrConcurrentQueueSchemaTypeForType(&module->types, type) ||
+        !xl6IrSequenceConstructionRecipe(module, type->concurrentQueueSchemaType,
+            XL6_IR_SEQUENCE_ROLE_ARRAY, &set)) return 0;
+    if (familyOut) *familyOut = type->runtimeResourceAbi;
+    if (schemaOut) *schemaOut = type->concurrentQueueSchemaType;
+    if (admissionSetOut) *admissionSetOut = set;
+    return 1;
+}
 
 int xl6IrArrayImportChainRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
     XL6_IrTypeId* output,size_t capacity,size_t* count)
@@ -20446,6 +20548,10 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
             XL6_IrSequenceLayout expected=xl6IrSequenceLayoutForType(pool,type);
             if (!xl6IrSequenceLayoutEqual(&type->sequenceLayout,&expected)) return 0;
         }
+        if (type->concurrentQueueSchemaType != xl6IrConcurrentQueueSchemaTypeForType(pool,type) ||
+            (type->kind == XL6_IR_TYPE_GENERIC_INSTANCE && type->paramCount == 1 &&
+             xl6IrRuntimeResourceAbiIsConcurrentQueue(type->runtimeResourceAbi) &&
+             !type->concurrentQueueSchemaType)) return 0;
         if (type->xvalueAdmissionAbi != xl6IrValueAdmissionAbiForType(pool,type) ||
             type->xvalueAdmissionNullable != (type->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE &&
                 type->kind == XL6_IR_TYPE_NULLABLE)) return 0;
@@ -37031,6 +37137,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 if (instruction->sequenceAdmissionIdentitySet!=XL6_IR_NOMINAL_IDENTITY_SET_INVALID &&
                     (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
                      (instruction->runtimeOp!=XL6_IR_RUNTIME_STACK_CREATE &&
+                      instruction->runtimeOp!=XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_ARRAY_CREATE)))
                     return xl6IrDiag(diags,instructionOrigin,"XLIR Sequence admission set is attached to an unrelated instruction");
@@ -41156,9 +41263,15 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  capacityType == NULL ||
                                  capacityType->cAbi != XL6_IR_C_ABI_I64 ||
                                  !xl6IrNodeRequiresThrowExitPlan(
-                                     module, instruction->origin) )
+                                    module, instruction->origin) )
                                 return xl6IrDiag(diags, NULL,
                                     "XLIR runtime special queue create has no exact capacity, owned result or failure ABI");
+                            XL6_IrNominalIdentitySetId admissionSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+                            if ((queueType->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE &&
+                                 !xl6IrConcurrentQueueConstructionRecipe(module,queueTypeId,NULL,NULL,&admissionSet)) ||
+                                instruction->sequenceAdmissionIdentitySet!=admissionSet)
+                                return xl6IrDiag(diags,NULL,
+                                    "XLIR nonblocking queue create has no closed native family, schema or exact admission set");
                         } else {
                             if ( left == NULL || left->type != queueTypeId )
                                 return xl6IrDiag(diags, NULL,
@@ -46696,6 +46809,10 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
                 xl6IrSequenceCodecAbiName(type->sequenceLayout.codecAbi),
                 (unsigned int)type->sequenceLayout.transferAbi, (unsigned int)type->sequenceLayout.admissionAbi,
                 (int)type->sequenceLayout.nullable, xl6IrSequenceDefaultAbiName(type->sequenceLayout.defaultAbi));
+        if (type->concurrentQueueSchemaType != XL6_IR_TYPE_INVALID)
+            xl6OutputPrintf(out,"    concurrent-queue-schema=t%u family=%s\n",
+                (unsigned)type->concurrentQueueSchemaType,
+                xl6IrRuntimeResourceAbiName(type->runtimeResourceAbi));
     }
     for ( i = 0; i < module->unionLayoutCount; ++i ) {
         const XL6_IrUnionLayout* layout = &module->unionLayouts[i];
@@ -48006,7 +48123,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             if ( item != 0 ) xl6OutputPuts(",", out);
             xl6OutputPrintf(out, "%u", (unsigned int)type->returns[item]);
         }
-        xl6OutputPrintf(out, "],\"callableResultType\":%u,\"releaseEffect\":%d}%s\n",
+        xl6OutputPrintf(out, "],\"concurrentQueueSchemaType\":%u,\"callableResultType\":%u,\"releaseEffect\":%d}%s\n",
+                        (unsigned int)type->concurrentQueueSchemaType,
                         (unsigned int)type->callableResultType,
                         (int)xl6IrTypeReleaseEffect(module, (XL6_IrTypeId)(i + 1)),
                         i + 1 == module->types.count ? "" : ",");

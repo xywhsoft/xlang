@@ -666,6 +666,11 @@ typedef struct XL6_IrType {
     XL6_IrNativeProductAbi nativeProductAbi;
     XL6_IrNativeSlotAbi nativeSlotAbi;
     XL6_IrSequenceLayout sequenceLayout;
+    /* Nonblocking queue transport uses this exact canonical Array<T> schema.
+     * The family is runtimeResourceAbi (SPSC/MPSC/MPMC), not a spelling or a
+     * generic channel. NONE for WaitQueue, nullable owners and other types.
+     * The schema exists even when source never mentions an Array<T> value. */
+    XL6_IrTypeId concurrentQueueSchemaType;
     /* Logical boxed domain, independent of physical carrier/transfer. */
     XL6_ValueAdmissionV1 xvalueAdmissionAbi;
     bool xvalueAdmissionNullable;
@@ -6535,6 +6540,12 @@ const XL6_IrEnumVariant* xl6IrEnumVariantGet(
 /* Recompute the representation facts which depend on type parameters.  This
  * is used both by primary AST type interning and generic specialization. */
 int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type);
+/* Canonical structural vocabulary, shared by source and specialization.
+ * May grow the pool; callers must reacquire any pointer into pool->items. */
+XL6_IrTypeId xl6IrTypeInternArray(XL6_IrTypePool*, XL6_IrTypeId elementType);
+int xl6IrConcurrentQueueConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
+    XL6_IrRuntimeResourceAbi* familyOut, XL6_IrTypeId* schemaOut,
+    XL6_IrNominalIdentitySetId* admissionSetOut);
 XL6_IrNativeSlotAbi xl6IrNativeSlotAbiForType(const XL6_IrTypePool*, const XL6_IrType*);
 int xl6IrArrayTrivialExtractResult(const XL6_IrType*);
 XL6_NativeScalarProfileV1 xl6IrNativeScalarProfileForCAbi(XL6_IrCAbi);

@@ -10,7 +10,18 @@
 static void refused(const XL6_IrModule* ir,XL6_IrTypeId id,XL6_IrNominalIdentitySetId set)
 {
     XL6_Output out; assert(xl6OutputOpenMemory(&out));
-    assert(xl6IrCgenEmitSequenceCreate(&out,ir,id,id,set)<0);
+    int emitted=xl6IrCgenEmitSequenceCreate(&out,ir,id,id,set);
+    if (emitted>=0) {
+        const XL6_IrType* type=xl6IrTypeGet(&ir->types,id);
+        XL6_IrNominalIdentitySetId expected=0;
+        xl6IrSequenceConstructionRecipe(ir,id,type->sequenceLayout.role,&expected);
+        fprintf(stderr,"accepted invalid recipe id=%u set=%u expected=%u layout=%u role=%u child=%u slot=%u codec=%u admission=%u default=%u\n",
+            (unsigned)id,(unsigned)set,(unsigned)expected,(unsigned)type->sequenceLayout.abi,
+            (unsigned)type->sequenceLayout.role,(unsigned)type->sequenceLayout.childElementType,
+            (unsigned)type->sequenceLayout.slotAbi,(unsigned)type->sequenceLayout.codecAbi,
+            (unsigned)type->sequenceLayout.admissionAbi,(unsigned)type->sequenceLayout.defaultAbi);
+    }
+    assert(emitted<0);
     assert(out.buffer.Size==0); xl6OutputDiscard(&out);
     size_t count=0;
     if (!xl6IrArrayImportChainRecipe(ir,id,NULL,0,&count)) {
@@ -78,7 +89,8 @@ int main(int argc,char** argv)
     type->sequenceLayout=saved; ++mutations; } while (0)
         BAD(abi,(XL6_IrSequenceLayoutAbi)UINT32_MAX);
         BAD(role,(XL6_IrSequenceRoleAbi)UINT32_MAX);
-        BAD(elementType,XL6_IR_TYPE_INVALID); BAD(baseElementType,XL6_IR_TYPE_INVALID);
+        BAD(elementType,saved.elementType ? XL6_IR_TYPE_INVALID : id);
+        BAD(baseElementType,saved.baseElementType ? XL6_IR_TYPE_INVALID : id);
         BAD(slotAbi,(XL6_IrNativeSlotAbi)UINT32_MAX);
         BAD(codecAbi,(XL6_IrSequenceCodecAbi)UINT32_MAX);
         BAD(transferAbi,(XL6_IrRuntimeResourcePayloadAbi)UINT32_MAX);
@@ -132,8 +144,13 @@ int main(int argc,char** argv)
         XL6_IrNominalIdentitySetId set=0;
         if (!xl6IrSequenceConstructionRecipe(&ir,id,type->sequenceLayout.role,&set)) continue;
         const XL6_IrSequenceLayout* plan=&type->sequenceLayout;
-        const XL6_IrType* element=xl6IrTypeGet(&ir.types,plan->elementType);
-        const char* physicalType=xl6IrCgenType(&ir,plan->elementType);
+        bool any=plan->abi==XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE;
+        XL6_IrTypeId elementId=any ? xl6IrArrayAnyElementType(&ir,id) : plan->elementType;
+        const XL6_IrType* element=xl6IrTypeGet(&ir.types,elementId);
+        const char* physicalType=xl6IrCgenType(&ir,elementId);
+        const char* descriptor=any ? "xrtTypeValue()" : xl6IrCgenNativeSlotTypeExpr(plan->slotAbi);
+        unsigned transfer=any ? XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN : (unsigned)plan->transferAbi;
+        assert(element && physicalType && descriptor);
         if (plan->codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1) physicalType="xvalue*";
         if (plan->abi==XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1) physicalType="xfuture*";
         xl6OutputPrintf(&out,"    { xvalue* v%u=NULL;\n",(unsigned)id);
@@ -146,8 +163,8 @@ int main(int argc,char** argv)
             "    assert(v%u && xl6SequenceAdmitsRoleV1(v%u,%u,0x%016llXULL,0x%016llXULL,%u,sizeof(%s),%s));\n"
             "    xrtValueRelease(v%u); assert(!xrtGetError()); }\n",
             (unsigned)id,(unsigned)id,(unsigned)plan->role,(unsigned long long)type->typeValueId,
-            (unsigned long long)element->typeValueId,(unsigned)plan->transferAbi,physicalType,
-            xl6IrCgenNativeSlotTypeExpr(plan->slotAbi),(unsigned)id);
+            (unsigned long long)element->typeValueId,transfer,physicalType,
+            descriptor,(unsigned)id);
     }
     xl6OutputPuts("    /* Explicit Array data-import plans, separate from creation. */\n",&out);
     for (size_t i=0;i<ir.types.count;++i) {
