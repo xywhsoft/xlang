@@ -27,6 +27,7 @@
 #include "src/runtime/xl6_array_erased.h"
 #include "src/runtime/xl6_array_call_frame.h"
 #include "src/runtime/xl6_array_entry.h"
+#include "src/runtime/xl6_array_producer.h"
 #include "src/runtime/xl6_array_os_argv.h"
 #include "src/runtime/xl6_dynamic_collection.h"
 #include "src/runtime/xl6_value_contains.h"

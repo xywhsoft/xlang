@@ -144,6 +144,10 @@ try {
         'test/cases/stdlib_array_entry_argv.xl','test/cases/stdlib_array_entry_contract.c',
         'test/cases/stdlib_array_entry_runtime.c','test/cases/stdlib_array_entry_host.c','test/cases/stdlib_array_entry_module_host.c',
         'test/cases/stdlib_dynamic_collection_contract.c')
+    $files += @(Get-Item -LiteralPath 'tools/check_stdlib_array_producer.py',
+        'test/cases/stdlib_array_external_producers.xl','test/cases/stdlib_array_producer_host.c',
+        'test/cases/xlir_array_producer_contract.c','test/support/array_producer_native.c',
+        'test/support/array_producer_test.h')
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) +
         @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
     foreach ($record in $inputs) {
@@ -409,6 +413,10 @@ try {
         '--out',"$outPath/array-native-entry") -TimeoutMs 900000
     $arrayEntry=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-native-entry/results.json" -Raw | ConvertFrom-Json
     if (!$arrayEntry.Complete -or !$arrayEntry.InputsUnchanged -or $arrayEntry.Sweeps.Count-ne8) { throw 'Incomplete native Array entry evidence' }
+    Run 'array-external-producers' $python @('tools/check_stdlib_array_producer.py','--root',$rootPath,'--public',$PublicDirectory,
+        '--out',"$outPath/array-external-producers") -TimeoutMs 900000
+    $arrayProducers=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-external-producers/results.json" -Raw | ConvertFrom-Json
+    if (!$arrayProducers.Complete -or !$arrayProducers.InputsUnchanged -or $arrayProducers.Sweeps.Count-ne10) { throw 'Incomplete external Array producer evidence' }
     Run 'persistence-root-default' $python @('tools/check_persistence_project_language.py','--fixture','root-default',
         '--public-directory',$PublicDirectory,'--out',"$outPath/persistence-root-default") -TimeoutMs 600000
     $rootDefault=Get-Content -Encoding UTF8 -LiteralPath "$outPath/persistence-root-default/report.json" -Raw | ConvertFrom-Json

@@ -11791,6 +11791,7 @@ static int xl6IrLowerResolveRuntimeBridge(
     if ( ctx == NULL || target == NULL ) return 0;
     target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_NONE;
     target->runtimeBridgeOperation = XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE;
+    target->nativeArrayResultAbi = xl6IrRuntimeDirectBridgeNativeArrayResultAbi(target->cName);
     target->nativeHandlePolicyCName = xl6IrRuntimeNativeHandlePolicyForName(target->cName);
     target->nativeHandlePolicyAbi = target->nativeHandlePolicyCName != NULL
         ? XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1 : XL6_IR_NATIVE_HANDLE_POLICY_NONE;
@@ -14253,6 +14254,8 @@ static int xl6IrLowerPrecomputeCallTargetErrorAbis(XL6_IrLowerContext* ctx)
         XL6_IrCallTarget* target = &module->callTargets[i];
         if ( target->errorAbi == XL6_IR_ERROR_ABI_NO_RAISE ) {
             target->errorPhysicalAbi = XL6_IR_CALL_ERROR_PHYSICAL_NONE;
+        } else if (target->nativeArrayResultAbi == XL6_IR_CALL_NATIVE_ARRAY_RESULT_PRIMITIVE_IDS_V1) {
+            target->errorPhysicalAbi = XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
         } else if ( target->kind == XL6_IR_CALL_TARGET_INTERNAL ||
                     (target->kind == XL6_IR_CALL_TARGET_EXTERN_C &&
                      xl6IrRuntimeSerializationBridgeHasErrorCarrierResult(target->runtimeBridge)) ) {
@@ -27806,7 +27809,7 @@ static int xl6IrLowerIntrinsicDynamicCollectionMember(
          intrinsic->receiverType == XL6_IR_TYPE_INVALID ||
          intrinsic->resultType != call->storageType ||
          intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_OWNED ||
-         intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
+         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
          intrinsic->collectionAbi != XL6_IR_COLLECTION_NONE ||
          !xl6IrDynamicCollectionOpOperandCountValid(
              intrinsic->dynamicCollectionOp, intrinsic->operandCount) ||
@@ -27862,6 +27865,7 @@ static int xl6IrLowerIntrinsicDynamicCollectionMember(
     if ( *result == XL6_IR_VALUE_INVALID ) return -1;
     ctx->module->instructions[ctx->module->instructionCount - 1]
         .dynamicCollectionOp = intrinsic->dynamicCollectionOp;
+    if (!xl6IrLowerEmitRuntimeErrorEdge(ctx,origin,call,*result)) return -1;
     if (!xl6IrLowerCompleteEvaluationBorrows(ctx, origin, evaluationFirst, result)) return -1;
     return 1;
 }

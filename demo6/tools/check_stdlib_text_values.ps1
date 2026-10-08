@@ -52,6 +52,7 @@ try {
         @(Get-Item test/cases/stdlib_text_values_host.c,test/cases/xlir_text_value_contract.c,test/cases/cgen_extern_native_product_i64x3_provider.c,
             test/cases/xlir_signed_integer_constants_contract.c,test/cases/xlir_component_set.c,
             test/cases/stdlib_text_queries_host.c,test/support/text_queries_native.c,
+            test/support/array_producer_test.h,
             test/cases/stdlib_text_split_host.c,test/support/text_split_native.c,
             test/cases/stdlib_text_iterator_host.c,test/support/text_iterator_native.c,
             test/cases/stdlib_text_iterator_generated_host.c,
@@ -109,6 +110,10 @@ try {
         'src/runtime/xl6_text_value.c','-o',"$outPath/native.exe"))
     Run 'native-run' "$outPath/native.exe" @()
     Run 'query-native-build' $gcc ($strict + @('test/cases/stdlib_text_queries_host.c','test/support/text_queries_native.c',
+        'src/runtime/xl6_array_producer.c','src/runtime/xl6_array_primitive_admission.c','src/runtime/xl6_sequence.c',
+        'src/runtime/xl6_array_erased.c','src/runtime/xl6_array_reference_value.c','src/runtime/xl6_value_admission.c',
+        'src/runtime/xl6_string_type.c','src/runtime/xl6_string_value.c','src/runtime/xl6_char_type.c','src/runtime/xl6_char_value.c',
+        'src/api/xl_foreign_error.c',
         'src/runtime/xl6_text_query.c','src/runtime/xl6_text_binary.c','src/runtime/xl6_text_chars.c',
         'src/runtime/xl6_text_glob.c','src/runtime/xl6_text_distance.c','-o',"$outPath/query-native.exe"))
     Run 'query-native-run' "$outPath/query-native.exe" @()
@@ -121,6 +126,9 @@ try {
         if ($point -gt 256) {throw "Incomplete native allocation sweep: $kind"}
     }
     Run 'split-native-build' $gcc ($strict + @('test/cases/stdlib_text_split_host.c','test/support/text_split_native.c',
+        'src/runtime/xl6_array_producer.c','src/runtime/xl6_array_primitive_admission.c','src/runtime/xl6_array_erased.c',
+        'src/runtime/xl6_array_reference_value.c','src/runtime/xl6_value_admission.c','src/runtime/xl6_string_type.c',
+        'src/runtime/xl6_string_value.c','src/runtime/xl6_char_type.c','src/runtime/xl6_char_value.c','src/api/xl_foreign_error.c',
         'src/runtime/xl6_text_split.c','src/runtime/xl6_text_join.c','src/runtime/xl6_array_input.c','src/runtime/xl6_sequence.c','-o',"$outPath/split-native.exe"))
     Run 'split-native-run' "$outPath/split-native.exe" @()
     foreach ($kind in @('split','lines','fields','join','split-large','lines-large','fields-large','join-large')) {
@@ -221,7 +229,7 @@ try {
             if ($name -eq 'stdlib_text_lower_only' -and $c -match 'xl6Text(?:Upper|Trim|Replace|Slice|Repeat|Reverse)V1\(') { throw 'Unused text calls retained' }
             if ($name -match '^stdlib_encoding|^stdlib_unicode_repair' -and ($c -match 'xl6_xrt_encoding_|xl6_xrt_take_cstr' -or
                 $c -match '(?m)^\s*(?:static\s+)?(?:xvalue\*|xstrview|xlir_string)\s+xl6Encoding\w+\([^;]*\)\s*\{')) {throw 'Legacy/generated encoding implementation'}
-            if ($name -eq 'stdlib_text_join_only' -and $c -match 'xl6Text(?:Split|Lines|Fields)V1\(') {throw 'Join-only retained split calls'}
+            if ($name -eq 'stdlib_text_join_only' -and $c -match 'xl6Text(?:Split|Lines|Fields)V2\(') {throw 'Join-only retained split calls'}
             if ($name -eq 'stdlib_text_split_only' -and $c -match 'xl6TextJoinV1\(') {throw 'Split-only retained join calls'}
         }
         $hostSource = if ($name -match '^stdlib_text_iterator|^stdlib_number_|^stdlib_crt_parse|^stdlib_unicode|^stdlib_html|^stdlib_encoding') {'test/cases/stdlib_text_iterator_generated_host.c'} else {'test/cases/xlir_generated_module_host.c'}

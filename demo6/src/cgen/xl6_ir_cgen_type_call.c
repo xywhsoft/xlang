@@ -485,6 +485,7 @@ static int xl6IrCgenDirectCallAbiSupported(
                   ((target->kind == XL6_IR_CALL_TARGET_EXTERN_C ||
                     target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
                    (target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ||
+                    target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT ||
                     target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR ||
                     target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER)))) ||
          (target->errorPhysicalAbi ==
@@ -724,6 +725,14 @@ static int xl6IrCgenEmitDirectCall(
                         (unsigned int)instruction->targetSymbol);
     else
         xl6OutputPrintf(out, "%s(", target->cName);
+    if (target->nativeArrayResultAbi == XL6_IR_CALL_NATIVE_ARRAY_RESULT_PRIMITIVE_IDS_V1) {
+        const XL6_IrType* owner = xl6IrTypeGet(&module->types, target->returnType);
+        const XL6_IrType* item = owner && owner->params && owner->paramCount == 1
+            ? xl6IrTypeGet(&module->types, owner->params[0]) : NULL;
+        if (!owner || !item) return 0;
+        xl6OutputPrintf(out, "0x%016llXULL, 0x%016llXULL%s", (unsigned long long)owner->typeValueId,
+            (unsigned long long)item->typeValueId, instruction->operandCount ? ", " : "");
+    }
     for ( argument = 0; argument < instruction->operandCount; ++argument ) {
         if ( argument != 0 ) xl6OutputPuts(", ", out);
         if ( argument < target->parameterCount ) {

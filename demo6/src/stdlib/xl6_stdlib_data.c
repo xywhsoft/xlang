@@ -3837,7 +3837,7 @@ static const char xl6StdStringReplaceBody[] =
     "extern \"xl6TextReplaceV1\" func __xl_std_string_replace(string text, string oldText, string newText, int size = -1, int oldSize = -1, int newSize = -1) as string\n";
 
 static const char xl6StdStringSplitBody[] =
-    "extern \"xl6TextSplitV1\" func __xl_std_string_split(string text, string sep, int size = -1, int sepSize = -1) as array<string>\n";
+    "extern \"xl6TextSplitV2\" func __xl_std_string_split(string text, string sep, int size = -1, int sepSize = -1) as array<string>\n";
 
 static const char xl6StdStringSliceBody[] =
     "extern \"xl6TextSliceV1\" func __xl_std_string_slice(string text, int start, int count = -1, int size = -1) as string\n";
@@ -3891,13 +3891,13 @@ static const char xl6StdStringReverseBody[] =
     "extern \"xl6TextReverseV1\" func __xl_std_string_reverse(string text, int size = -1) as string\n";
 
 static const char xl6StdStringSplitLinesBody[] =
-    "extern \"xl6TextLinesV1\" func __xl_std_string_split_lines(string text, int size = -1) as array<string>\n";
+    "extern \"xl6TextLinesV2\" func __xl_std_string_split_lines(string text, int size = -1) as array<string>\n";
 
 static const char xl6StdStringFieldsBody[] =
-    "extern \"xl6TextFieldsV1\" func __xl_std_string_fields(string text, int size = -1) as array<string>\n";
+    "extern \"xl6TextFieldsV2\" func __xl_std_string_fields(string text, int size = -1) as array<string>\n";
 
 static const char xl6StdStringCharsBody[] =
-    "extern \"xl6TextCharsV1\" func __xl_std_string_chars(string text, int size = -1) as array<char>\n";
+    "extern \"xl6TextCharsV2\" func __xl_std_string_chars(string text, int size = -1) as array<char>\n";
 
 static const char xl6StdStringBytesBody[] =
     "extern \"xl6TextBytesV1\" func __xl_std_string_bytes(string text, int size = -1) as bytes\n";

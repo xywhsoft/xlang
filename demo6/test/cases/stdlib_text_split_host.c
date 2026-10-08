@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_text_value.h"
+#include "test/support/array_producer_test.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,10 +21,7 @@ static void* resize(void* context, void* pointer, size_t size)
 static void release(void* context, void* pointer) {(void)context; free(pointer);}
 static void itemEquals(const xvalue* array, size_t index, xstrview expected)
 {
-    const xvalue* item = xrtValueArrayGet(array, index);
-    xstrview actual;
-    assert(item && xrtValueType(item) == XVALUE_STRING && xrtValueGetString(item, &actual));
-    assert(actual.Size == expected.Size && (!actual.Size || !memcmp(actual.Data, expected.Data, actual.Size)));
+    xl6TestArrayTextEquals(array,index,expected);
 }
 static void memoryFault(const char* mode, size_t point)
 {
@@ -48,15 +46,15 @@ static void memoryFault(const char* mode, size_t point)
     fault.calls = 0; fault.fail = point;
     xstrview text = {data, size}, joined = {NULL, 0};
     xvalue* result = NULL;
-    if (!strncmp(mode, "split", 5)) result = xl6TextSplitV1(text, XRT_STR_LITERAL("|"), -1, -1);
-    else if (lines) result = xl6TextLinesV1(text, -1);
-    else if (fields) result = xl6TextFieldsV1(text, -1);
+    if (!strncmp(mode, "split", 5)) result = xl6TextSplitV2(XL6_TEST_TEXT_ARRAY_IDS,text, XRT_STR_LITERAL("|"), -1, -1);
+    else if (lines) result = xl6TextLinesV2(XL6_TEST_TEXT_ARRAY_IDS,text, -1);
+    else if (fields) result = xl6TextFieldsV2(XL6_TEST_TEXT_ARRAY_IDS,text, -1);
     else { assert(join); joined = xl6TextJoinV1(input, XRT_STR_LITERAL("|\0"), -1, -1); }
     if (fault.hit) {
         assert(!result && !joined.Data && joined.Size == 0 && xrtErrorKind(xrtGetError()) == XERR_MEMORY);
     } else if (input) {
         assert(joined.Data && joined.Size == 64 * (width-1) + 126);
-    } else assert(result && xrtValueCount(result) == (!strncmp(mode, "split", 5) ? 65 : 64));
+    } else assert(result && xl6TestArrayCount(result) == (!strncmp(mode, "split", 5) ? 65 : 64));
     xrtFree((void*)joined.Data); xrtValueRelease(result); xrtValueRelease(input); xrtClearError();
     assert(xrtMemDebugReset());
     printf("%s allocation point=%zu calls=%zu hit=%d balanced\n", mode, point, fault.calls, fault.hit);
@@ -66,8 +64,8 @@ int main(int argc, char** argv)
     if (argc == 3) {memoryFault(argv[1], (size_t)strtoull(argv[2], NULL, 10)); return 0;}
     assert(argc == 1);
     char data[] = "你\0|😀||a\0|";
-    xvalue* result = xl6TextSplitV1((xstrview){data, sizeof(data)-1}, XRT_STR_LITERAL("|"), -1, -1);
-    assert(result && xrtValueCount(result) == 5);
+    xvalue* result = xl6TextSplitV2(XL6_TEST_TEXT_ARRAY_IDS,(xstrview){data, sizeof(data)-1}, XRT_STR_LITERAL("|"), -1, -1);
+    assert(result && xl6TestArrayCount(result) == 5);
     memset(data, 'x', sizeof(data)-1);
     itemEquals(result, 0, XRT_STR_LITERAL("你\0"));
     itemEquals(result, 1, XRT_STR_LITERAL("😀")); itemEquals(result, 2, XRT_STR_LITERAL(""));
@@ -75,23 +73,23 @@ int main(int argc, char** argv)
     xstrview joined = xl6TextJoinV1(result, XRT_STR_LITERAL("|"), -1, -1);
     assert(joined.Data && joined.Size == 14 && !memcmp(joined.Data, "你\0|😀||a\0|", 14));
     xrtValueRelease(result); assert(joined.Data[0] == (char)0xe4); xrtFree((void*)joined.Data);
-    result = xl6TextLinesV1(XRT_STR_LITERAL("a\0\r\n\r你\n"), -1);
-    assert(result && xrtValueCount(result) == 3);
+    result = xl6TextLinesV2(XL6_TEST_TEXT_ARRAY_IDS,XRT_STR_LITERAL("a\0\r\n\r你\n"), -1);
+    assert(result && xl6TestArrayCount(result) == 3);
     itemEquals(result, 0, XRT_STR_LITERAL("a\0")); itemEquals(result, 1, XRT_STR_LITERAL(""));
     itemEquals(result, 2, XRT_STR_LITERAL("你")); xrtValueRelease(result);
-    result = xl6TextFieldsV1(XRT_STR_LITERAL(" \t你\0😀\v\fx "), -1);
-    assert(result && xrtValueCount(result) == 2); itemEquals(result, 0, XRT_STR_LITERAL("你\0😀"));
+    result = xl6TextFieldsV2(XL6_TEST_TEXT_ARRAY_IDS,XRT_STR_LITERAL(" \t你\0😀\v\fx "), -1);
+    assert(result && xl6TestArrayCount(result) == 2); itemEquals(result, 0, XRT_STR_LITERAL("你\0😀"));
     itemEquals(result, 1, XRT_STR_LITERAL("x")); xrtValueRelease(result);
-    result = xl6TextSplitV1(XRT_STR_LITERAL(""), XRT_STR_LITERAL(""), -1, -1);
-    assert(result && xrtValueCount(result) == 1); itemEquals(result, 0, XRT_STR_LITERAL("")); xrtValueRelease(result);
-    result = xl6TextFieldsV1(XRT_STR_LITERAL(" \t"), -1);
+    result = xl6TextSplitV2(XL6_TEST_TEXT_ARRAY_IDS,XRT_STR_LITERAL(""), XRT_STR_LITERAL(""), -1, -1);
+    assert(result && xl6TestArrayCount(result) == 1); itemEquals(result, 0, XRT_STR_LITERAL("")); xrtValueRelease(result);
+    result = xl6TextFieldsV2(XL6_TEST_TEXT_ARRAY_IDS,XRT_STR_LITERAL(" \t"), -1);
     joined = xl6TextJoinV1(result, XRT_STR_LITERAL("|"), -1, -1);
     assert(joined.Data && !joined.Size && !joined.Data[0]); xrtFree((void*)joined.Data);
     assert(!xl6TextJoinV1(result, XRT_STR_LITERAL("|"), -1, -2).Data && xrtErrorKind(xrtGetError()) == XERR_RANGE);
     xrtClearError(); xrtValueRelease(result);
-    assert(!xl6TextSplitV1(XRT_STR_LITERAL("你"), XRT_STR_LITERAL("|"), 1, -1) && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    assert(!xl6TextSplitV2(XL6_TEST_TEXT_ARRAY_IDS,XRT_STR_LITERAL("你"), XRT_STR_LITERAL("|"), 1, -1) && xrtErrorKind(xrtGetError()) == XERR_VALUE);
     xrtClearError();
-    assert(!xl6TextLinesV1((xstrview){NULL, 5}, 0) && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
+    assert(!xl6TextLinesV2(XL6_TEST_TEXT_ARRAY_IDS,(xstrview){NULL, 5}, 0) && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     xrtClearError();
     result = xrtValueArray(); assert(result && xrtValueArrayAppendNew(result, xrtValueInt(65)));
     assert(!xl6TextJoinV1(result, XRT_STR_LITERAL("|"), -1, -1).Data && xrtErrorKind(xrtGetError()) == XERR_TYPE);

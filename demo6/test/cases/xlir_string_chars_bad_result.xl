@@ -1,2 +1,2 @@
-extern "xl6TextCharsV1" func invalid(string text, int size = -1) as array<string>
+extern "xl6TextCharsV2" func invalid(string text, int size = -1) as array<string>
 invalid("text")

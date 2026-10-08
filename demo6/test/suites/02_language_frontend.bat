@@ -2601,9 +2601,9 @@ rem resident typed string-split-lines contract. Library code is not generated;
 rem independent native closure admission is owned by check_xlir_artifact_runtime.
 release\xl.exe cgen test\cases\cgen_dynamic_to_typed_containers.xl --backend xlir --emit build\test\cgen_dynamic_to_typed_containers_xlir_generated.c
 if errorlevel 1 exit /b 1
-findstr /C:"xl6TextLinesV1(" build\test\cgen_dynamic_to_typed_containers_xlir_generated.c >nul
+findstr /C:"xl6TextLinesV2(" build\test\cgen_dynamic_to_typed_containers_xlir_generated.c >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xvalue* xl6TextLinesV1(" /C:"xrtStrSplitLines(text)" build\test\cgen_dynamic_to_typed_containers_xlir_generated.c >nul
+findstr /C:"xvalue* xl6TextLinesV2(" /C:"xrtStrSplitLines(text)" build\test\cgen_dynamic_to_typed_containers_xlir_generated.c >nul
 if not errorlevel 1 exit /b 1
 findstr /C:", 9, 0);" build\test\cgen_dynamic_to_typed_containers_xlir_generated.c >nul
 if errorlevel 1 exit /b 1

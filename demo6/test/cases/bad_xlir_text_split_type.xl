@@ -1,2 +1,2 @@
-extern "xl6TextSplitV1" func wrong(string text, string separator, int size, int separatorSize) as array<char>
+extern "xl6TextSplitV2" func wrong(string text, string separator, int size, int separatorSize) as array<char>
 wrong("a", "|", -1, -1)

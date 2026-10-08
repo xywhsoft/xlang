@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_text_value.h"
+#include "test/support/array_producer_test.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +29,7 @@ static void memoryFault(const char* name, size_t point)
     xstrview text = {data, sizeof(data)};
     xvalue* result = NULL;
     if (!strcmp(name, "bytes")) result = xl6TextBytesV1(text, -1);
-    else if (!strcmp(name, "chars")) result = xl6TextCharsV1(text, -1);
+    else if (!strcmp(name, "chars")) result = xl6TextCharsV2(XL6_TEST_CHAR_ARRAY_IDS,text, -1);
     else {
         assert(!strcmp(name, "distance"));
         char other[4096]; memset(other, 'b', sizeof(other));
@@ -79,13 +80,11 @@ int main(int argc, char** argv)
     assert(xrtValueGetBytes(binary, &bytes));
     assert(bytes.Size == 1 && bytes.Data[0] == 228);
     xrtValueRelease(binary);
-    xvalue* chars = xl6TextCharsV1(text, -1);
-    assert(chars && xrtValueCount(chars) == 7);
+    xvalue* chars = xl6TextCharsV2(XL6_TEST_CHAR_ARRAY_IDS,text, -1);
+    assert(chars && xl6TestArrayCount(chars) == 7);
     const uint32_t expected[] = {'A', 0, 0x4F60, 0x1F600, 'b', 'A', 0};
     for (size_t i = 0; i < 7; ++i) {
-        const xvalue* item = xrtValueArrayGet(chars, i);
-        uint32_t scalar = UINT32_MAX;
-        assert(item && xrtValueType(item) == XVALUE_CHAR && xrtValueGetChar(item, &scalar) && scalar == expected[i]);
+        assert(xl6TestArrayCharAt(chars,i)==expected[i]);
     }
     xrtValueRelease(chars);
     assert(xl6TextGlobV1(XRT_STR_LITERAL("a\0b"), XRT_STR_LITERAL("a?b"), 0, -1, -1));
@@ -100,7 +99,7 @@ int main(int argc, char** argv)
     xrtClearError();
     assert(xl6TextByteAtV1(text, INT64_MIN, -1) == 0 && xrtErrorKind(xrtGetError()) == XERR_RANGE);
     xrtClearError();
-    assert(!xl6TextCharsV1(XRT_STR_LITERAL("你"), 1) && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    assert(!xl6TextCharsV2(XL6_TEST_CHAR_ARRAY_IDS,XRT_STR_LITERAL("你"), 1) && xrtErrorKind(xrtGetError()) == XERR_VALUE);
     xrtClearError();
     assert(!xl6TextBytesV1((xstrview){NULL, 10}, 0) && xrtErrorKind(xrtGetError()) == XERR_ARGUMENT);
     xrtClearError();

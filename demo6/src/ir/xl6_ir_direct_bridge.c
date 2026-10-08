@@ -28,6 +28,7 @@ typedef struct XL6_IrDirectBridgeContract {
      * builtin. Its resident producer must publish this exact element ABI. */
     XL6_IrCAbi resultFutureElementAbi;
     const char* nativeHandlePolicy;
+    XL6_IrCallNativeArrayResultAbi nativeArrayResultAbi;
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -576,6 +577,12 @@ XL6_IrRuntimeBridgeKind xl6IrRuntimeDirectBridgeKind(const char* name)
     return contract != NULL ? contract->kind : XL6_IR_RUNTIME_BRIDGE_NONE;
 }
 
+XL6_IrCallNativeArrayResultAbi xl6IrRuntimeDirectBridgeNativeArrayResultAbi(const char* name)
+{
+    const XL6_IrDirectBridgeContract* contract = xl6IrDirectBridgeContract(name);
+    return contract ? contract->nativeArrayResultAbi : XL6_IR_CALL_NATIVE_ARRAY_RESULT_NONE;
+}
+
 const char* xl6IrRuntimeNativeHandlePolicyForName(const char* name)
 {
     const XL6_IrDirectBridgeContract* contract = xl6IrDirectBridgeContract(name);
@@ -666,9 +673,11 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
         target->kind != (contract->resultOwner ? XL6_IR_CALL_TARGET_NATIVE_FACTORY : XL6_IR_CALL_TARGET_EXTERN_C) ||
         target->runtimeBridge != contract->kind || target->errorAbi !=
             xl6IrRuntimeDirectBridgeErrorAbi(contract->name) ||
+        target->nativeArrayResultAbi != contract->nativeArrayResultAbi ||
         (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
          target->errorPhysicalAbi != (target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE
-            ? XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR : XL6_IR_CALL_ERROR_PHYSICAL_NONE)) ||
+            ? (contract->nativeArrayResultAbi ? XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT
+                : XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR) : XL6_IR_CALL_ERROR_PHYSICAL_NONE)) ||
         (contract->resultOwner
             ? (target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE ||
                !target->resultPhysicalDestroySymbol ||
@@ -682,6 +691,15 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
          target->parameterPhysicalAbis == NULL || target->parameterConstraintAbis == NULL ||
          target->parameterPhysicalFieldDeclarations == NULL))) return 0;
     result = xl6IrTypeGet(&module->types, target->returnType);
+    if (contract->nativeArrayResultAbi) {
+        if (!result || !result->typeValueId || result->paramCount != 1 || !result->params ||
+            !xl6IrDirectBridgeCollectionMatches(module, result, contract->resultArrayItemAbi, XL6_IR_COLLECTION_ARRAY)) return 0;
+        const XL6_IrType* item = xl6IrTypeGet(&module->types, result->params[0]);
+        XL6_IrSequenceLayout expected = xl6IrSequenceLayoutForType(&module->types, result);
+        if (!item || !item->typeValueId || expected.abi != XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2 ||
+            expected.nullable || expected.elementType != result->params[0] ||
+            !xl6IrSequenceLayoutEqual(&result->sequenceLayout, &expected)) return 0;
+    }
     if (contract->kind == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE ||
         contract->kind == XL6_IR_RUNTIME_BRIDGE_PRINT) {
         const XL6_IrNode* declaration = xl6IrNodeGet(module, target->declaration);

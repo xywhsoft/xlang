@@ -2,7 +2,7 @@ class BadSet
     private native point handle
     extern "xl6RegexSetCreateV1" create(array<string> items, int flags, int bytes, int captures, int count, int itemSize)
     extern "xl6RegexSetDestroyV1" destroy()
-    extern "xl6RegexSetHitsV1" func hits(string text, int start, int size) as array<int32>
+    extern "xl6RegexSetHitsV2" func hits(string text, int start, int size) as array<int32>
 end
 array<string> items = ["a"]
 auto set = BadSet(items, 0, 1024, 8, 4, -1)

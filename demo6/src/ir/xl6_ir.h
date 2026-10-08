@@ -3717,6 +3717,14 @@ typedef enum XL6_IrCallResultConversionAbi {
     XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY
 } XL6_IrCallResultConversionAbi;
 
+/* Compiler-private resident producers receive the verified owner/element
+ * identities before their source-level operands. This is a native result
+ * construction contract, not a Value cast or an inferred symbol convention. */
+typedef enum XL6_IrCallNativeArrayResultAbi {
+    XL6_IR_CALL_NATIVE_ARRAY_RESULT_NONE = 0,
+    XL6_IR_CALL_NATIVE_ARRAY_RESULT_PRIMITIVE_IDS_V1
+} XL6_IrCallNativeArrayResultAbi;
+
 /* A callable's semantic failure effect does not determine how that failure is
  * represented at the physical C boundary. Internal functions and async/generator
  * launchers use compiler-owned result carriers. Launchers isolate allocation
@@ -4947,6 +4955,7 @@ typedef struct XL6_IrCallTarget {
     XL6_IrTypeId returnType;
     XL6_IrCallResultPhysicalAbi resultPhysicalAbi;
     XL6_IrCallResultConversionAbi resultConversionAbi;
+    XL6_IrCallNativeArrayResultAbi nativeArrayResultAbi;
     XL6_IrCallResultCAbi resultCAbi;
     /* Exact managed class field initialized by a native factory result, or
      * invalid for DIRECT. */
@@ -6288,6 +6297,7 @@ int xl6IrRuntimeNetTcpBridgeTargetMatches(
  * payload ABI agree before Cgen consumes it. */
 XL6_IrRuntimeBridgeOperation xl6IrRuntimeBridgeOperationForName(
     const char* name);
+XL6_IrCallNativeArrayResultAbi xl6IrRuntimeDirectBridgeNativeArrayResultAbi(const char* name);
 int xl6IrRuntimeBridgeOperationTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
 /* Resolve generated-program TLS declarations into exact component roles. */
