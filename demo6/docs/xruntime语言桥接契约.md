@@ -92,6 +92,49 @@ IR 合同拒绝、旧 C 消费者、完整分配失败前缀及 JIT/AOT；Linux 
 `--sanitize` 插桩所选原生路径。该门不代表全部 Array producer 或
 53 模块总验收完成，文件系统/其他 wire producer 等仍单独收口。
 
+## 并发队列的 resident 前置内核（B129）
+
+`xl6_queue_spsc/mpsc/mpmc.c` 分别调用真实的 xruntime typed queue；共享
+模板只在编译期实例化，不做运行时 kind 分派，不使用 channel、逐项盒子
+或第二套环形队列算法。三个独立 artifact component 和 27 个私有出口
+按需选择；这不是新增的公开标准库函数，也不表示旧语言入口已迁移。
+
+构造器消费已封闭 Array/Stack schema witness，只保留独立拥有的完整
+admission/layout 元数据，不保留 witness、元素、生成代码或模块回调。
+每次访问核对实际 handle ops、owner/element TypeUID、大小及 resident
+物理 descriptor；窄语言整数和原生 C 宽度不能互相冒充。
+
+单项流控保留 OK/EMPTY/FULL/CLOSED；ERROR 独立于错误消息是否分配
+成功。批量输入域检查在发布前完成，拷贝失败保留已经成功发布的前缀
+数量，并明确报告 ERROR；不在前缀 OK 中吞掉无诊断失败。输出为原生
+内部 ABI 的 fresh initialized slots，所有路径均由调用方负责清理；
+后续 last-owner cleanup 失败不意味着已经移动的结果被回滚。
+
+操作 pin 在短 mutation 中获取，实际拷贝/释放在其外执行。SPSC 只允许
+一个活动生产者和一个活动消费者，MPSC 只允许一个活动消费者；角色
+的顺序交接有 acquire/release 同步，不依赖可能复用的 OS thread id。
+close/reset 与全部在途操作互斥，不为语言增加 scheduler 等待；原生
+序列环的内部提交仍遵守 XRT 既有进度合同。reset 要求队列空且独占，
+也允许重置尚未关闭的空队列。
+
+对象图为 Value shell → counted owner → 全部固定初始化 slots，包含
+重复引用、重试槽和 Future control block。活动 pin 拒绝快照/回收；
+Future TraceSlot 还需精确 resident policy allowlist，未知边不能当叶子。
+Clear 只在 freeze 中 detach；Finish 在 freeze 外释放。继承的原始异常
+和本次物理完成结果分开观察，不能因为已经展开而无限重试清理，也
+不能丢掉析构回调在 OOM 下的无诊断失败。
+
+`tools/check_stdlib_concurrent_queue_native.py` 验证严格 C、实际并发
+传输、精确 NUL/UTF-8、char/bytes/nullable/C-width、拥有图、错误与
+完整分配失败前缀，以及实际 provider/原生 TU 的 family 裁剪。Linux
+`--sanitize` 插桩所选原生路径；shared runtime/CLI/JIT 不因此成为全量
+插桩产物。门已纳入 Stack 父门。
+
+语言入口仍使用旧 channel 别名，其 wire batch 已不适用于原生 Array。
+后续必须一起完成闭合 IR schema/效果/失败观察、直接 native 调用、
+拥有返回值接口、退役输出写回接口及 JIT/AOT/continuation/图回收验收；
+不得把本前置门的通过外推成 Queue 或三组标准库封板。
+
 ## 发布门槛
 
 - 仓库快照中的 XRT+xruntime 公共函数必须全部进入 TCC 符号表；

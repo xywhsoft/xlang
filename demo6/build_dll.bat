@@ -182,6 +182,7 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_array_call_frame.c ^
     src\runtime\xl6_array_entry.c ^
     src\runtime\xl6_array_producer.c ^
+    src\runtime\xl6_queue_spsc.c src\runtime\xl6_queue_mpsc.c src\runtime\xl6_queue_mpmc.c ^
     src\runtime\xl6_array_os_argv.c ^
     src\runtime\xl6_array_method_remove.c ^
     src\runtime\xl6_value_contains.c ^
@@ -378,6 +379,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_array_call_frame.c ^
     src\runtime\xl6_array_entry.c ^
     src\runtime\xl6_array_producer.c ^
+    src\runtime\xl6_queue_spsc.c src\runtime\xl6_queue_mpsc.c src\runtime\xl6_queue_mpmc.c ^
     src\runtime\xl6_array_os_argv.c ^
     src\runtime\xl6_array_method_remove.c ^
     src\runtime\xl6_value_contains.c ^
