@@ -1337,6 +1337,28 @@ static int xlTccCompileSourceText(XL_Context* ctx, TCCState* s, const char* virt
 #endif
 }
 
+static int xlTccCompileGeneratedModule(XL_Context* ctx, TCCState* s, const char* source)
+{
+    int ok;
+    if ( s == NULL || source == NULL ) {
+        xlSetError(ctx, "generated C module is empty");
+        return 0;
+    }
+    /* Lowered XLIR owns every native signature. Apply the same ABI gate to
+     * JIT and external outputs, but not to user/vendor C translation units. */
+    if ( xl__tcc.tcc_set_options(s, "-Werror=implicit-function-declaration") < 0 ) {
+        xlSetError(ctx, "cannot enforce generated C declaration ABI");
+        return 0;
+    }
+    ok = xlTccCompileSourceText(ctx, s, XL_TCC_VFS_MODULE_C, source, "TCC compile failed");
+    if ( xl__tcc.tcc_set_options(s, "-Wno-error=implicit-function-declaration") < 0 ) {
+        if ( ctx != NULL && ctx->lastError == NULL )
+            xlSetError(ctx, "cannot restore C declaration diagnostic policy");
+        return 0;
+    }
+    return ok;
+}
+
 static int xlLoadUnitFromSource(XL_Context* ctx, XL6_CompileUnit* unit, const char* source, const char* virtualPath)
 {
     xl6CompileUnitInit(unit);
@@ -2173,7 +2195,7 @@ static int xlCompileUnitToExternalOutputWithC(
             "cannot compile TCC runtime constants") ) {
         goto cleanup;
     }
-    if ( !xlTccCompileSourceText(ctx, s, XL_TCC_VFS_MODULE_C, cText, "TCC compile failed") ) {
+    if ( !xlTccCompileGeneratedModule(ctx, s, cText) ) {
         goto cleanup;
     }
     xlAddDefaultTccRuntime(s, ctx, outputType);
@@ -3071,7 +3093,7 @@ static XL_Module* xlCompileUnitToModuleWithC(
     if ( !xlTccPrepareNativeSources(ctx, s, unit, cSourceFiles) ) {
         goto cleanup;
     }
-    if ( !xlTccCompileSourceText(ctx, s, XL_TCC_VFS_MODULE_C, cText, "TCC compile failed") ) {
+    if ( !xlTccCompileGeneratedModule(ctx, s, cText) ) {
         goto cleanup;
     }
     if ( !xlCompileUnitCSourceFiles(ctx, s, unit, cSourceFiles) ) {
