@@ -1,0 +1,12 @@
+func main(...) as int
+    auto queue = MpmcQueue::<string>(2)
+    assert(queue.tryPush("a\0你") == queueStatus.ok)
+    auto tree = AvlTree::<int, MpmcQueue<string>>()
+    assert(tree.set(1, queue))
+    auto values = tree.values()
+    auto shared = values[0]
+    auto status, text = shared.tryPop()
+    assert(status == queueStatus.ok and text != null)
+    if text != null then assert(text == "a\0你") end
+    return 0
+end
