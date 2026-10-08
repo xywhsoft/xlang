@@ -136,7 +136,9 @@ try {
         'test/cases/stdlib_persistence_restore_array_json_prune.xl')
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_callable_variadic_array.py',
         'test/cases/stdlib_callable_variadic_array.xl','test/cases/stdlib_callable_variadic_array_unused.xl',
-        'test/cases/stdlib_callable_variadic_array_runtime.c','test/cases/stdlib_callable_variadic_array_contract.c')
+        'test/cases/stdlib_callable_variadic_array_runtime.c','test/cases/stdlib_callable_variadic_array_contract.c',
+        'test/cases/stdlib_variadic_native_producers.xl','test/cases/stdlib_variadic_native_producers_unused.xl',
+        'test/cases/stdlib_variadic_native_producers_contract.c','test/cases/stdlib_variadic_dispatch_reachability.xl')
     $inputs = @($public.Inputs) + @($public.Headers) + @($public.Objects) +
         @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
     foreach ($record in $inputs) {
@@ -394,6 +396,10 @@ try {
         '--out',"$outPath/callable-variadic-array") -TimeoutMs 600000
     $callableVariadic=Get-Content -Encoding UTF8 -LiteralPath "$outPath/callable-variadic-array/results.json" -Raw | ConvertFrom-Json
     if (!$callableVariadic.Complete -or !$callableVariadic.InputsUnchanged -or $callableVariadic.Sweeps.Count-ne4) { throw 'Incomplete native callable frame evidence' }
+    Run 'variadic-native-producers' $python @('tools/check_stdlib_callable_variadic_array.py','--producers','--public',$PublicDirectory,
+        '--out',"$outPath/variadic-native-producers") -TimeoutMs 600000
+    $variadicProducers=Get-Content -Encoding UTF8 -LiteralPath "$outPath/variadic-native-producers/results.json" -Raw | ConvertFrom-Json
+    if (!$variadicProducers.Complete -or !$variadicProducers.InputsUnchanged -or $variadicProducers.Sweeps.Count-ne4) { throw 'Incomplete native variadic producer evidence' }
     Run 'persistence-root-default' $python @('tools/check_persistence_project_language.py','--fixture','root-default',
         '--public-directory',$PublicDirectory,'--out',"$outPath/persistence-root-default") -TimeoutMs 600000
     $rootDefault=Get-Content -Encoding UTF8 -LiteralPath "$outPath/persistence-root-default/report.json" -Raw | ConvertFrom-Json

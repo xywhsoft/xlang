@@ -227,10 +227,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_array_extract_trivial.c", D(R(SEQUENCE),R(VALUE_ADMISSION)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
     {"src/runtime/xl6_error_value.c", D(), {"XRT_MODULE_VALUE"}},
-    {"src/runtime/xl6_value_text.c", D(R(ERROR_VALUE)),
+    {"src/runtime/xl6_value_text.c", D(R(ERROR_VALUE),R(ARRAY_GRAPH),R(FOREIGN_ERROR)),
         {"XRT_MODULE_NUMBER_FORMAT", "XRT_MODULE_XLON_WRITE", "XRT_MODULE_UNICODE_TEXT"}},
-    {"src/runtime/xl6_print_values.c", D(R(VALUE_TEXT)),
-        {"XRT_MODULE_CONSOLE", "XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_STRING"}},
+    {"src/runtime/xl6_print_values.c", D(R(VALUE_TEXT),R(SEQUENCE),R(FOREIGN_ERROR)),
+        {"XRT_MODULE_CONSOLE", "XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_STRING", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
     {"src/runtime/xl6_class_text.c", D(R(VALUE_TEXT)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_STRING"}},
     {"src/runtime/xl6_error_text.c", D(), {"XRT_MODULE_STRING"}},
@@ -453,6 +453,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
             for (size_t depth=0;recipe && depth<=64;++depth) {
                 switch (recipe->sequenceLayout.abi) {
                 case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2: REQUIRE(R(ARRAY_PRIMITIVE_ADMISSION)); break;
+                case XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE: REQUIRE(R(ARRAY_REFERENCE_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2: REQUIRE(R(ARRAY_REFERENCE_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2: REQUIRE(R(ARRAY_NOMINAL_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1: REQUIRE(R(ARRAY_C_SCALAR_ADMISSION)); break;

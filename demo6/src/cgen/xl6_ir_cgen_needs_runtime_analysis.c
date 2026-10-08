@@ -4,6 +4,10 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
     XL6_DiagList* diags)
 {
     size_t i;
+    for (i=0;i<module->dynamicMethodCount;++i)
+        if (xl6IrCgenDynamicMethodNeeded(module,i) && module->dynamicMethods[i].variadicCarrierAbi==
+                XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1)
+            needs->needsCallableArrayFrameProducer=1;
     for ( i = 0; i < module->instructionCount; ++i ) {
         if ( !xl6IrCgenInstructionIsReachable(module, i) ) continue;
         if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
