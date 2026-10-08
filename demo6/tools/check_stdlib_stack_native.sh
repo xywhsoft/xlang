@@ -43,6 +43,7 @@ frozen_files() {
     printf '%s\0' src/runtime/xl6_array_algebra.c test/cases/stdlib_array_algebra_native_host.c test/support/array_algebra_native.c test/cases/stdlib_array_algebra_language.xl test/cases/xlir_array_algebra_outcome_contract.c
     printf '%s\0' src/runtime/xl6_array_import_chain.c test/cases/stdlib_array_import_chain_native_host.c
     printf '%s\0' tools/check_stdlib_sequence_recipe_emit.py test/cases/xlir_sequence_recipe_emit_contract.c test/cases/stdlib_sequence_recipe_emit_host.c
+    printf '%s\0' tools/check_stdlib_concurrent_queue_recipes.py test/cases/stdlib_concurrent_queue_recipes.xl test/cases/xlir_concurrent_queue_recipe_contract.c test/cases/stdlib_concurrent_queue_recipe_host.c
     printf '%s\0' tools/check_stdlib_sequence_schema_language.py test/cases/stdlib_sequence_nested_schema.xl test/cases/stdlib_sequence_nested_schema_continuation.xl
     printf '%s\0' tools/tcc_vfs_manifest_linux_xlc.txt test/cases/xlir_artifact_runtime_contract.c
     printf '%s\0' test/cases/xlir_stack_native_contract.c test/cases/xlir_time_text_closure_host.c
@@ -282,6 +283,7 @@ if ! run array-resident-algebra "$PY" tools/check_stdlib_array_import.py --algeb
 if ! run array-algebra-language "$PY" tools/check_stdlib_sequence_schema_language.py --algebra --out "$OUT/array-algebra-language" --sanitize; then failures+=(array-algebra-language); fi
 if ! run array-codec-import "$PY" tools/check_stdlib_array_primitive_admission.py --imports --out "$OUT/array-codec-import" --sanitize; then failures+=(array-codec-import); fi
 if ! run sequence-recipe-emitter "$PY" tools/check_stdlib_sequence_recipe_emit.py --out "$OUT/sequence-recipe-emitter"; then failures+=(sequence-recipe-emitter); fi
+if ! run concurrent-queue-recipes "$PY" tools/check_stdlib_concurrent_queue_recipes.py --root . --runtime release --out "$OUT/concurrent-queue-recipes"; then failures+=(concurrent-queue-recipes); fi
 if ! run sequence-schema-language "$PY" tools/check_stdlib_sequence_schema_language.py --out "$OUT/sequence-schema-language" --sanitize; then failures+=(sequence-schema-language); fi
 if ! run array-owned-read-native "$PY" tools/check_stdlib_array_primitive_admission.py --out "$OUT/array-owned-read-native" --reads --sanitize; then failures+=(array-owned-read-native); fi
 if ! run array-native-iterator "$PY" tools/check_stdlib_array_primitive_admission.py --out "$OUT/array-native-iterator" --iterator --sanitize; then failures+=(array-native-iterator); fi

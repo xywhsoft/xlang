@@ -106,6 +106,9 @@ try {
         'test/cases/stdlib_array_primitive_import_native_host.c','test/support/array_import_native.c',
         'tools/check_stdlib_sequence_recipe_emit.py','test/cases/xlir_sequence_recipe_emit_contract.c',
         'test/cases/stdlib_sequence_recipe_emit_host.c')
+    $files += @(Get-Item -LiteralPath 'tools/check_stdlib_concurrent_queue_recipes.py',
+        'test/cases/stdlib_concurrent_queue_recipes.xl','test/cases/xlir_concurrent_queue_recipe_contract.c',
+        'test/cases/stdlib_concurrent_queue_recipe_host.c')
     $files += @(Get-Item -LiteralPath 'tools/check_stdlib_sequence_schema_language.py',
         'test/cases/stdlib_sequence_nested_schema.xl','test/cases/stdlib_sequence_nested_schema_continuation.xl')
     $files += @(Get-Item -LiteralPath 'test/cases/stdlib_array_algebra_language.xl','test/cases/xlir_array_algebra_outcome_contract.c')
@@ -383,6 +386,12 @@ try {
     $arrayImport=Get-Content -Encoding UTF8 -LiteralPath "$outPath/array-import-language/results.json" -Raw | ConvertFrom-Json
     if (!$arrayImport.Complete -or !$arrayImport.InputsUnchanged -or $arrayImport.Sweeps.Count-ne2) { throw 'Incomplete Array import language evidence' }
     Run 'sequence-recipe-emitter' $python @('tools/check_stdlib_sequence_recipe_emit.py','--out',"$outPath/sequence-recipe-emitter",'--public-directory',$PublicDirectory) -TimeoutMs 900000
+    Run 'concurrent-queue-recipes' $python @('tools/check_stdlib_concurrent_queue_recipes.py','--root','.',
+        '--out',"$outPath/concurrent-queue-recipes",'--public-directory',$PublicDirectory) -TimeoutMs 900000
+    $queueRecipes=Get-Content -Encoding UTF8 -LiteralPath "$outPath/concurrent-queue-recipes/results.json" -Raw | ConvertFrom-Json
+    if (!$queueRecipes.Complete -or !$queueRecipes.InputsUnchanged -or $queueRecipes.Proof.FamilyMask-ne7) {
+        throw 'Incomplete concurrent Queue recipe prerequisite evidence'
+    }
     Run 'sequence-schema-language' $python @('tools/check_stdlib_sequence_schema_language.py',
         '--out',"$outPath/sequence-schema-language",'--public-directory',$PublicDirectory) -TimeoutMs 900000
     $sequenceSchema=Get-Content -Encoding UTF8 -LiteralPath "$outPath/sequence-schema-language/results.json" -Raw | ConvertFrom-Json

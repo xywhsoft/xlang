@@ -1,0 +1,89 @@
+class QueueRecipeItem
+    int value = 7
+end
+
+enum QueueRecipeEnum as int32
+    low = -2147483648
+    high = 2147483647
+end
+
+// A queue signature alone must close its schema. No Array<T> expression is
+// needed to make construction metadata exist, nor does Cgen invent a type.
+func queueInt(SpscQueue<int> s, MpscQueue<int> m, MpmcQueue<int> p) as int
+    return 0
+end
+func queueBool(SpscQueue<bool> s, MpscQueue<bool> m, MpmcQueue<bool> p) as int
+    return 0
+end
+func queueU64(SpscQueue<uint64> s, MpscQueue<uint64> m, MpmcQueue<uint64> p) as int
+    return 0
+end
+func queueF32(SpscQueue<float32> s, MpscQueue<float32> m, MpmcQueue<float32> p) as int
+    return 0
+end
+func queueChar(SpscQueue<char> s, MpscQueue<char> m, MpmcQueue<char> p) as int
+    return 0
+end
+func queueString(SpscQueue<string> s, MpscQueue<string> m, MpmcQueue<string> p) as int
+    return 0
+end
+func queueNullableString(SpscQueue<string?> s, MpscQueue<string?> m, MpmcQueue<string?> p) as int
+    return 0
+end
+func queueBytes(SpscQueue<bytes> s, MpscQueue<bytes> m, MpmcQueue<bytes> p) as int
+    return 0
+end
+func queueNullableBytes(SpscQueue<bytes?> s, MpscQueue<bytes?> m, MpmcQueue<bytes?> p) as int
+    return 0
+end
+func queueVar(SpscQueue<var> s, MpscQueue<var> m, MpmcQueue<var> p) as int
+    return 0
+end
+func queueNominal(SpscQueue<QueueRecipeItem> s, MpscQueue<QueueRecipeItem> m, MpmcQueue<QueueRecipeItem> p) as int
+    return 0
+end
+func queueCScalar(SpscQueue<c_int> s, MpscQueue<c_int> m, MpmcQueue<c_int> p) as int
+    return 0
+end
+func queueNullableCScalar(SpscQueue<c_int?> s, MpscQueue<c_int?> m, MpmcQueue<c_int?> p) as int
+    return 0
+end
+func queueEnum(SpscQueue<QueueRecipeEnum> s, MpscQueue<QueueRecipeEnum> m, MpmcQueue<QueueRecipeEnum> p) as int
+    return 0
+end
+func queueCallable(SpscQueue<func(int) as int> s, MpscQueue<func(int) as int> m, MpmcQueue<func(int) as int> p) as int
+    return 0
+end
+func queueFuture(SpscQueue<future<int>> s, MpscQueue<future<int>> m, MpmcQueue<future<int>> p) as int
+    return 0
+end
+func queueNullableFuture(SpscQueue<future<int>?> s, MpscQueue<future<int>?> m, MpmcQueue<future<int>?> p) as int
+    return 0
+end
+func queueArray(SpscQueue<array<int>> s, MpscQueue<array<int>> m, MpmcQueue<array<int>> p) as int
+    return 0
+end
+func queueStack(SpscQueue<Stack<string>> s, MpscQueue<Stack<string>> m, MpmcQueue<Stack<string>> p) as int
+    return 0
+end
+func queueNested(SpscQueue<array<array<bytes?>>> s, MpscQueue<array<array<bytes?>>> m, MpmcQueue<array<array<bytes?>>> p) as int
+    return 0
+end
+// These shapes remain pending: a retainable pointer is not a resident schema.
+func queuePending(SpscQueue<function> s, MpscQueue<channel<int>> m, MpmcQueue<generator<int>> p, WaitQueue<int> w) as int
+    return 0
+end
+func queueNullableOwner(SpscQueue<int>? s) as int
+    return 0
+end
+func queueGeneric<T>(SpscQueue<T> s) as int
+    return 0
+end
+
+func main(...) as int
+    MpmcQueue<int> q = MpmcQueue::<int>(8)
+    assert(q.count() == 0)
+    SpscQueue<char> chars = SpscQueue::<char>(8)
+    assert(queueGeneric::<char>(chars) == 0)
+    return 0
+end

@@ -151,6 +151,10 @@ static int xl6IrCgenRuntimeSpecialQueueAbi(
              xl6IrCgenChannelPayloadAbi(payload) ) return 0;
     resultType = xl6IrTypeGet(&module->types, instruction->type);
     if ( creates ) {
+        XL6_IrNominalIdentitySetId admissionSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+        if ((queue->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE &&
+             !xl6IrConcurrentQueueConstructionRecipe(module,queueTypeId,NULL,NULL,&admissionSet)) ||
+            instruction->sequenceAdmissionIdentitySet!=admissionSet) return 0;
         const XL6_IrInstruction* capacity = instruction->operandCount == 1
             ? xl6IrCgenValueDefinition(
                 module, module->operands[instruction->firstOperand], NULL)

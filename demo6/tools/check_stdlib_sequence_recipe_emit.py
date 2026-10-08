@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Actual private Cgen factory renderer, nine recipe families; source Array remains Value-v1."""
+"""Actual private Cgen Sequence factory/import renderer and native lifecycle."""
 from __future__ import annotations
 import argparse
 import hashlib
@@ -30,8 +30,9 @@ def main() -> int:
             if digest(Path(row['Path'])).lower()!=row['Sha256'].lower(): parser.error('Stale public build: '+row['Path'])
     product=root/('release/xl.dll' if os.name=='nt' else 'release/libxl.so')
     compiler=root/('release/xlc.dll' if os.name=='nt' else 'release/libxlc.so')
-    files={Path(__file__),Path(cc),Path(sys.executable),product,compiler,
+    files={Path(__file__),Path(cc),Path(sys.executable),product,
         root/'test/cases/xlir_sequence_recipe_emit_contract.c',root/'test/cases/stdlib_sequence_recipe_emit_host.c'}
+    if not public: files.add(compiler)
     files.update(root/f'test/cases/{name}.xl' for name in fixtures)
     for folder in ('src/cgen','src/ir','src/runtime','src/compile','release/include'):
         files.update(path for path in (root/folder).rglob('*') if path.suffix in ('.c','.h','.inc'))
@@ -45,7 +46,7 @@ def main() -> int:
     if os.name=='nt': shutil.copy2(product,out/'xl.dll')
     rows=[]; proofs=[]; report={'Complete':False,'InputsUnchanged':False,'Scope':__doc__,'Inputs':inputs,'Rows':rows,'Proofs':proofs}
     strict=['-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-const-variable',
-        '-Wno-unused-parameter','-Wno-unused-label','-Wno-missing-field-initializers','-I.','-Irelease','-Irelease/include','-I'+str(out/'include')]
+        '-Wno-unused-parameter','-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-I.','-Irelease','-Irelease/include','-I'+str(out/'include')]
     links=[str(product)] if os.name=='nt' else ['-Lrelease','-lxl','-Wl,-rpath,'+str(root/'release'),'-pthread','-ldl','-lm']
     # The current-source driver may be newer than the released DLL. These two
     # inseparable resident islands share a private policy-ops identity; link

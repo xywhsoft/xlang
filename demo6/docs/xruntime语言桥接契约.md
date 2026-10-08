@@ -174,6 +174,28 @@ channel 别名和旧 `Into` 形参仍待整体退役，不能用本节原生验�
 绑定；实际删除 TinyCC 后结果 Array 仍可读取和释放，且产品分配平衡。
 这些证据不证明语义/IR/Cgen 切换、正式部署或三组 53 模块已完成。
 
+## 非阻塞队列的闭合 XLIR schema（B131）
+
+`SpscQueue<T>`、`MpscQueue<T>`、`MpmcQueue<T>` 的 family 由
+`runtimeResourceAbi` 明确表示，`concurrentQueueSchemaType` 指向规范化的
+`Array<T>` 类型。该 schema 在 Typed XLIR 构建和泛型/类成员类型闭合时
+建立，不依赖源程序是否创建过数组；规范化调用复用同一 TypeId。
+队列自身不是 Array/Stack，`sequenceLayout` 不被伪造为容器 role。
+WaitQueue、可空队列 owner 和非队列类型没有这一字段的有效值。
+
+`xl6IrConcurrentQueueConstructionRecipe` 只在 owner、family、规范 schema、
+元素身份、完整 Sequence 布局与预计算 nominal admission set 都闭合时
+成功；未闭合的可保留指针仍然 pending。失败不写任何输出参数。
+Lowering 明确绑定构造的 admission set，IR verifier 和 Cgen 构造边界
+重新核对，篡改须在输出 C 前被拒绝。物理槽位相同也不是逻辑域可互换
+的依据；callable 的 closure/value codec 与 Future 的原生槽位仍保留。
+
+本批 Windows/Linux O0/O2 验证了 60 个完整 schema 的真实 Sequence
+工厂→对应原生空 Queue→owned 空 Array→清理生命周期，960 次 schema/布局
+篡改、9 次嵌套篡改，以及真实构造指令的拒绝边界。它们是原生迁移的
+IR 前置证据，不是公开 Queue API 已完成迁移的证据。旧 Into、channel
+别名、wire batch、结果/error 合同和 Queue graph resolver 仍需切换。
+
 ## 发布门槛
 
 - 仓库快照中的 XRT+xruntime 公共函数必须全部进入 TCC 符号表；

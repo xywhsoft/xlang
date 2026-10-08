@@ -1848,6 +1848,15 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
             return XL6_IR_VALUE_INVALID;
         }
     }
+    if (runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE) {
+        const XL6_IrType* queue=xl6IrTypeGet(&ctx->module->types,type);
+        if (queue && queue->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE &&
+            !xl6IrConcurrentQueueConstructionRecipe(ctx->module,type,NULL,NULL,
+                &instruction->sequenceAdmissionIdentitySet)) {
+            xl6IrLowerDiag(ctx,origin,"Nonblocking queue construction requires a closed native family and complete resident element schema");
+            return XL6_IR_VALUE_INVALID;
+        }
+    }
     /* Bind the complete producer before splitting control flow. The final
      * instruction after a checked operation belongs to its cleanup route,
      * not necessarily to the original producer. Diagnostic location and
@@ -14820,6 +14829,16 @@ static XL6_IrTypeId xl6IrLowerSpecializationSubstituteType(
         }
     }
     if ( !changed ) { xrtFree(params); xrtFree(returns); return source; }
+    if (original->kind == XL6_IR_TYPE_GENERIC_INSTANCE && original->paramCount == 1 &&
+        (original->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE ||
+         original->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE ||
+         original->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE)) {
+        if (xl6IrTypeInternArray(&module->types, params[0]) == XL6_IR_TYPE_INVALID) {
+            xrtFree(params); xrtFree(returns); return XL6_IR_TYPE_INVALID;
+        }
+        /* Canonical schema interning may reallocate the pool. */
+        original = xl6IrTypeGet(&module->types, source);
+    }
     if (original->kind == XL6_IR_TYPE_NULLABLE && original->paramCount == 1 && params) {
         const XL6_IrType* inner = xl6IrTypeGet(&module->types, params[0]);
         if (inner != NULL && (inner->kind == XL6_IR_TYPE_NULLABLE ||
