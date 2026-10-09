@@ -5781,6 +5781,55 @@ typedef struct XL6_IrPersistenceRestorePlan {
     size_t schemaCount;
 } XL6_IrPersistenceRestorePlan;
 
+/* Closed source-free construction graph. Indices inside a root's node/edge
+ * slices are LOCAL to that root, never a class-name or TypeId lookup in Cgen.
+ * A field-default node identifies the declaration context of a preconstructed
+ * private child; it is not interchangeable with a declaration-only factory. */
+typedef enum XL6_IrPersistenceRestoreNodeAbi {
+    XL6_IR_RESTORE_NODE_SCALAR = 1,
+    XL6_IR_RESTORE_NODE_ARRAY,
+    XL6_IR_RESTORE_NODE_CLASS,
+    XL6_IR_RESTORE_NODE_LIST,
+    XL6_IR_RESTORE_NODE_SET,
+    XL6_IR_RESTORE_NODE_DICT
+} XL6_IrPersistenceRestoreNodeAbi;
+enum {
+    XL6_IR_RESTORE_NODE_NULLABLE = 1u,
+    XL6_IR_RESTORE_PENDING_OPEN = 1u,
+    XL6_IR_RESTORE_PENDING_ARRAY_VALUE = 2u,
+    XL6_IR_RESTORE_PENDING_LIST = 4u,
+    XL6_IR_RESTORE_PENDING_SET = 8u,
+    XL6_IR_RESTORE_PENDING_DICT = 16u,
+    XL6_IR_RESTORE_PENDING_FACTORY = 32u,
+    XL6_IR_RESTORE_PENDING_JSON_DOMAIN = 64u
+};
+typedef struct XL6_IrPersistenceRestoreNode {
+    XL6_IrTypeId type, payloadType;
+    XL6_IrPersistenceRestoreNodeAbi abi;
+    uint32 flags;
+    uint64 identity;
+    /* SIZE_MAX for declaration defaults; otherwise an exact ClassField index
+     * whose actual private initialized child supplies the construction context. */
+    size_t contextField;
+    uint32 scalarRule;
+    XL6_IrCollectionCarrierAbi carrierAbi;
+    size_t seed, element;
+    size_t schema, firstEdge, edgeCount;
+    uint32 defaultFunction;
+    XL6_SymbolId defaultSymbol;
+    XL6_IrErrorAbi defaultErrorAbi;
+} XL6_IrPersistenceRestoreNode;
+typedef struct XL6_IrPersistenceRestoreEdge {
+    size_t field; /* Exact canonical RestoreField, including keys/assignment. */
+    size_t node;  /* Local construction node; nullable is explicit on the node. */
+} XL6_IrPersistenceRestoreEdge;
+typedef struct XL6_IrPersistenceRestoreRoot {
+    XL6_IrTypeId type;
+    uint32 format, pending;
+    size_t firstNode, nodeCount, root;
+    size_t firstEdge, edgeCount, seedCount;
+} XL6_IrPersistenceRestoreRoot;
+
 /* A virtual method slot is a frontend-resolved callable contract.  It is
  * deliberately separate from an ordinary call target: its receiver may hold
  * any derived runtime object, and the selected implementation is determined
@@ -6178,6 +6227,12 @@ typedef struct XL6_IrModule {
     XL6_IrPersistenceRestoreField* persistenceRestoreFields;
     size_t persistenceRestoreFieldCount;
     size_t persistenceRestoreFieldCapacity;
+    XL6_IrPersistenceRestoreRoot* persistenceRestoreRoots;
+    size_t persistenceRestoreRootCount, persistenceRestoreRootCapacity;
+    XL6_IrPersistenceRestoreNode* persistenceRestoreNodes;
+    size_t persistenceRestoreNodeCount, persistenceRestoreNodeCapacity;
+    XL6_IrPersistenceRestoreEdge* persistenceRestoreEdges;
+    size_t persistenceRestoreEdgeCount, persistenceRestoreEdgeCapacity;
     XL6_IrClassDestroyStep* classDestroySteps;
     size_t classDestroyStepCount;
     size_t classDestroyStepCapacity;
@@ -6392,6 +6447,9 @@ int xl6IrBuildPersistenceProjectPlans(XL6_IrModule* module);
 int xl6IrVerifyPersistenceProjectPlans(const XL6_IrModule* module);
 int xl6IrBuildPersistenceRestorePlans(XL6_IrModule* module);
 int xl6IrVerifyPersistenceRestorePlans(const XL6_IrModule* module);
+int xl6IrVerifyPersistenceRestoreGraphs(const XL6_IrModule* module);
+const XL6_IrPersistenceRestoreRoot* xl6IrPersistenceRestoreRootGet(
+    const XL6_IrModule*, XL6_IrTypeId, uint32);
 const XL6_IrPersistenceRestoreSchema* xl6IrPersistenceRestoreSchemaGet(
     const XL6_IrModule* module, XL6_IrTypeId type, uint32 format);
 XL6_IrTypeId xl6IrTypeInternPersistenceWire(

@@ -1,0 +1,101 @@
+class GraphRecipeLeaf
+    derive value
+    int value = 7
+    create(int initial)
+        self.value = initial
+    end
+end
+class GraphRecipeWide
+    derive value
+    GraphRecipeLeaf left = GraphRecipeLeaf(11)
+    GraphRecipeLeaf right = GraphRecipeLeaf(22)
+    GraphRecipeLeaf? optional = null
+    array<array<int8>> nested = []
+    int f00 = 0
+    int f01 = 1
+    int f02 = 2
+    int f03 = 3
+    int f04 = 4
+    int f05 = 5
+    int f06 = 6
+    int f07 = 7
+    int f08 = 8
+    int f09 = 9
+    int f10 = 10
+    int f11 = 11
+    int f12 = 12
+    int f13 = 13
+    int f14 = 14
+    int f15 = 15
+    int f16 = 16
+    int f17 = 17
+    int f18 = 18
+    int f19 = 19
+    int f20 = 20
+    int f21 = 21
+    int f22 = 22
+    int f23 = 23
+    int f24 = 24
+    int f25 = 25
+    int f26 = 26
+    int f27 = 27
+    int f28 = 28
+    int f29 = 29
+    int f30 = 30
+    int f31 = 31
+    int f32 = 32
+    int f33 = 33
+    int f34 = 34
+    int f35 = 35
+    int f36 = 36
+    int f37 = 37
+    int f38 = 38
+    int f39 = 39
+    int f40 = 40
+    int f41 = 41
+    int f42 = 42
+    int f43 = 43
+    int f44 = 44
+    int f45 = 45
+    int f46 = 46
+    int f47 = 47
+    int f48 = 48
+    int f49 = 49
+    int f50 = 50
+    int f51 = 51
+    int f52 = 52
+    int f53 = 53
+    int f54 = 54
+    int f55 = 55
+    int f56 = 56
+    int f57 = 57
+    int f58 = 58
+    int f59 = 59
+    int f60 = 60
+    int f61 = 61
+    int f62 = 62
+    int f63 = 63
+    int f64 = 64
+    int f65 = 65
+    int f66 = 66
+    int f67 = 67
+    int f68 = 68
+    int f69 = 69
+end
+class GraphRecipeUnused
+    derive value
+    int unused = 4
+end
+func unusedRestoreGraph() as GraphRecipeUnused
+    return json.parse::<GraphRecipeUnused>("{}")
+end
+GraphRecipeWide value = GraphRecipeWide()
+GraphRecipeWide fromJson = json.parse::<GraphRecipeWide>(json.stringify(value))
+GraphRecipeWide fromXlon = xlon.parse::<GraphRecipeWide>(xlon.stringify(value))
+assert fromJson.left.value == 11 and fromJson.right.value == 22
+assert fromXlon.left.value == 11 and fromXlon.right.value == 22
+GraphRecipeWide defaults = json.parse::<GraphRecipeWide>("{\"left\":{},\"right\":{},\"optional\":{}}")
+assert defaults.left.value == 11 and defaults.right.value == 22
+GraphRecipeLeaf optional = defaults.optional ?? GraphRecipeLeaf(0)
+assert optional.value == 7
+assert defaults.f69 == 69

@@ -14,6 +14,7 @@ import re
 import shutil
 import subprocess
 import sys
+import traceback
 
 def digest(path: Path) -> str:
     hashed = hashlib.sha256()
@@ -27,6 +28,8 @@ def main() -> int:
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--test-root', type=Path)
     parser.add_argument('--public-directory', type=Path)
+    parser.add_argument('--pending-carriers-only', action='store_true',
+                        help='Supplemental actual-source List/Set/Dict pending-ABI test, not the full matrix')
     parser.add_argument('--out', type=Path, required=True)
     args = parser.parse_args()
     root, out = args.root.resolve(), args.out.resolve()
@@ -52,18 +55,23 @@ def main() -> int:
     cases.append(('restore', test_root / 'test/cases/stdlib_persistence_restore_language.xl'))
     cases.append(('restore_domains', test_root / 'test/cases/stdlib_persistence_restore_domains.xl'))
     cases.append(('restore_construction', test_root / 'test/cases/stdlib_persistence_restore_construction.xl'))
+    cases.append(('restore_graph', test_root / 'test/cases/xlir_persistence_restore_graph.xl'))
+    if args.pending_carriers_only:
+        cases = [('pending_carriers', test_root / 'test/cases/xlir_persistence_restore_pending_carriers.xl')]
     refusals = [test_root / ('test/cases/' + name + '.xl') for name in
                 ('xlir_persistence_project_included_reject', 'xlir_persistence_project_format_skip_reject')]
     files = {Path(__file__).resolve(), Path(sys.executable), Path(cc), source, semantic,
              bridge, test_root / 'test/cases/xlir_dynamic_fields_contract.inc',
              *(path for _, path in cases), *refusals}
     product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxlc.so')
-    files.add(product)
     flags = ['-std=c11', '-Wall', '-Wextra', '-Werror', '-DXL_STATIC_EMBED',
              '-I.', '-Irelease', '-Irelease/include', '-Ilib/tcc']
     if args.public_directory:
         manifest = args.public_directory.resolve() / 'build.json'
         public = json.loads(manifest.read_text(encoding='utf-8-sig'))
+        if os.name != 'nt':
+            assert public['Complete'] and public['InputsUnchanged'] and public['SourceXrt']
+            product = Path(public['NativeRoot']) / 'release/libxl.so'
         files.add(manifest)
         for row in public['Inputs'] + public['Headers'] + public['Objects']:
             path = Path(row['Path'])
@@ -71,18 +79,26 @@ def main() -> int:
                 parser.error('Stale source compiler input: ' + str(path))
             files.add(path)
         flags += ['-I' + str(args.public_directory.resolve() / 'include')]
-        links = [row['Path'] for row in public['Objects'] if Path(row['Path']).name != 'xlir_public_source_driver.o']
-        links += [str(product), '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
+        links = [row['Path'] for row in public['Objects'] if Path(row['Path']).name not in
+                 ('xlir_public_source_driver.o', 'xlir_public_source_linux_driver.o')]
+        if os.name == 'nt':
+            links += [str(product), '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
+        else:
+            flags += ['-D_GNU_SOURCE']
+            links += [str(product), '-Wl,-rpath,' + str(product.parent), '-pthread', '-ldl', '-lm']
     else:
         flags += ['-D_GNU_SOURCE']
         links = ['-Lrelease', '-lxlc', '-Wl,-rpath,' + str(root / 'release'), '-pthread', '-ldl', '-lm']
         files.add(root / 'release/libxl.so')
         files.update(path for path in (root / 'src').rglob('*') if path.suffix in ('.c', '.h', '.inc'))
+    files.add(product)
     inputs = [{'Path': str(path), 'Sha256': digest(path)} for path in sorted(files)]
     rows, results, errors = [], [], []
     report = {'Complete': False, 'InputsUnchanged': False, 'Inputs': inputs, 'Rows': rows, 'Results': results,
               'Scope': __doc__, 'LanguageExecution': False, 'Sanitized': False,
               'SemanticOptimizations': [], 'DirectFieldPartitions': 13, 'ActualSemanticCases': 3}
+    report['SelectedCases'] = [name for name, _ in cases]
+    report['FullFixtureMatrix'] = not args.pending_carriers_only
     out.mkdir(parents=True)
     if os.name == 'nt': shutil.copy2(product, out / 'xl.dll')
     def run(name: str, command: list[str]) -> str:
@@ -132,6 +148,44 @@ def main() -> int:
                     if name == 'schema': assert count[1] >= 6 and count[2] >= 12
                     if name == 'sequences': assert len(ir['persistenceProjectSequences']) == 6
                     assert 'persistenceRestorePlans' in ir and 'persistenceRestoreFields' in ir
+                    graph = re.search(r'Restore graphs: (\d+) roots, (\d+) nodes, (\d+) edges; (\d+) graph mutations refused before C/header', log)
+                    assert graph
+                    roots, nodes, edges = [ir['persistenceRestore' + table] for table in ('Roots', 'Nodes', 'Edges')]
+                    assert [int(graph[i]) for i in (1, 2, 3)] == [len(roots), len(nodes), len(edges)]
+                    assert int(graph[4]) >= 3
+                    assert len({(row['type'], row['format']) for row in roots}) == len(roots)
+                    next_node = next_edge = 0
+                    for row in roots:
+                        assert row['firstNode'] == next_node and row['firstEdge'] == next_edge
+                        assert row['root'] == 0 and row['nodeCount'] > 0 and row['format'] in (2, 4)
+                        ns = nodes[next_node:next_node + row['nodeCount']]
+                        es = edges[next_edge:next_edge + row['edgeCount']]
+                        assert len(ns) == row['nodeCount'] and len(es) == row['edgeCount']
+                        assert ns[0]['type'] == row['type']
+                        assert len({(n['type'], n['contextField']) for n in ns}) == len(ns)
+                        assert sorted(n['seed'] for n in ns if n['abi'] == 2 and n['carrierAbi'] == 2) == list(range(row['seedCount']))
+                        assert all(e['field'] < len(ir['persistenceRestoreFields']) and e['node'] < len(ns) for e in es)
+                        for n in ns:
+                            if n['abi'] in (2, 4, 5, 6): assert n['element'] < len(ns)
+                            if n['abi'] == 3:
+                                assert n['schema'] < len(ir['persistenceRestoreSchemas'])
+                                assert n['firstEdge'] + n['edgeCount'] <= len(es)
+                                if n['defaultFunction']:
+                                    factory = ir['functions'][n['defaultFunction'] - 1]
+                                    assert factory['kindName'] == 'class-default' and factory['returnType'] == n['payloadType']
+                                for edge in es[n['firstEdge']:n['firstEdge'] + n['edgeCount']]:
+                                    field = ir['persistenceRestoreFields'][edge['field']]
+                                    child = ns[edge['node']]
+                                    assert child['type'] == field['payloadType']
+                                    if field['assignAbi'] == 2:
+                                        assert child['contextField'] == field['classField'] and child['defaultFunction'] == 0
+                            if n['abi'] == 4: assert row['pending'] & 4
+                            if n['abi'] == 5: assert row['pending'] & 8
+                            if n['abi'] == 6: assert row['pending'] & 16
+                        next_node += row['nodeCount']; next_edge += row['edgeCount']
+                    assert next_node == len(nodes) and next_edge == len(edges)
+                    prefixes = re.search(r'Restore rebuild: (\d+) exhaustive allocation-failure prefixes preserved all six tables', log)
+                    assert prefixes and (int(prefixes[1]) > 0 or not roots)
                     if name in ('defaults', 'restore'):
                         assert len(ir['persistenceRestorePlans']) == 2 and ir['persistenceRestoreFields']
                     if name == 'restore':
@@ -163,15 +217,41 @@ def main() -> int:
                             factory = ir['functions'][layout['persistenceDefaultFunction'] - 1]
                             assert factory['kindName'] == 'class-default' and factory['reachability'] == 'transitive'
                         for class_name in ('ConstructionEnvelope', 'ConstructionKeys'):
+                            layout = layouts[class_name]
+                            factory = ir['functions'][layout['persistenceDefaultFunction'] - 1]
+                            # Root declaration construction has its own actual
+                            # lowered invocation; it is not an unused factory.
+                            assert factory['reachability'] == 'transitive'
+                            assert any(i['runtimeOpName'] == 'class-default-invoke' and
+                                       i['payloadType'] == layout['type'] for i in ir['instructions'])
+                        for class_name in ('ConstructionBase', 'ConstructionMiddle'):
                             factory = ir['functions'][layouts[class_name]['persistenceDefaultFunction'] - 1]
                             assert factory['reachability'] == 'unreachable'
                         assert layouts['ConstructionItem']['destroyStepCount'] == 1
                         assert all('persistenceDefaultAbi' not in field for field in ir['classFields'])
+                    if name == 'restore_graph':
+                        types = {row['id']: row for row in ir['types']}
+                        assert len(roots) == 2 and len(ir['persistenceRestoreSchemas']) == 4
+                        for graph_root in roots:
+                            ns = nodes[graph_root['firstNode']:graph_root['firstNode'] + graph_root['nodeCount']]
+                            leaf = [n for n in ns if types[n['payloadType']]['name'] == 'GraphRecipeLeaf']
+                            assert len(leaf) == 3 and len({n['contextField'] for n in leaf}) == 3
+                            assert sum(bool(n['flags'] & 1) for n in leaf) == 1
+                            assert sum(bool(n['defaultFunction']) for n in leaf) == 1
+                            assert graph_root['pending'] == 0 and graph_root['seedCount'] == 2 and graph_root['edgeCount'] > 64
+                            assert all(types[n['type']]['name'] != 'GraphRecipeUnused' for n in ns)
+                    if name == 'pending_carriers':
+                        assert len(roots) == 2 and len(edges) == 6
+                        assert sorted(n['abi'] for n in nodes if n['abi'] in (4, 5, 6)) == [4, 4, 5, 5, 6, 6]
+                        assert all(graph_root['pending'] == (4 | 8 | 16) for graph_root in roots)
                     results.append({'Case': name, 'Optimization': opt, 'Plans': count[0], 'Schemas': count[1],
                                     'Fields': count[2], 'Sequences': len(ir['persistenceProjectSequences']),
-                                    'RejectedMutations': count[3], 'IrSha256': digest(target)})
+                                    'RejectedMutations': count[3], 'RestoreRoots': len(roots),
+                                    'RestoreNodes': len(nodes), 'RestoreEdges': len(edges),
+                                    'GraphRejectedMutations': int(graph[4]), 'IrSha256': digest(target)})
+                    results[-1]['RebuildAllocationFailurePrefixes'] = int(prefixes[1])
                 except Exception as error:
-                    errors.append(name + '.' + opt + ': ' + str(error))
+                    errors.append(name + '.' + opt + ': ' + traceback.format_exc())
             for fixture in refusals:
                 try:
                     log = run(fixture.stem + '.' + opt, [str(host), str(fixture), str(out / 'unused.json'), 'reject'])

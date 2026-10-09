@@ -52,9 +52,20 @@ def main():
         assert result.returncode==0,(name,data[-6000:].decode(errors='replace'))
     manifest=root/'tools/tcc_vfs_manifest_linux_xlc.txt'
     for line in manifest.read_text(encoding='utf-8-sig').splitlines():
+        if line.startswith('dir|include/__xl_runtime|'):
+            parts=line.split('|'); assert len(parts)==4 and parts[3]=='*.h'
+            directory=Path(parts[2].replace('%XL6_ROOT%',str(root)))
+            for original in sorted(directory.glob('*.h')):
+                assert original.is_file()
+                target=out/'include/__xl_runtime'/original.name
+                target.parent.mkdir(parents=True,exist_ok=True); assert not target.exists()
+                shutil.copy2(original,target); assert sha(target)==sha(original)
+                headers.append({'Path':str(target),'Source':str(original),'Sha256':sha(target)})
+            continue
         if not line.startswith('file|include/__xl_runtime/'): continue
         _,relative,source=line.split('|'); original=Path(source.replace('%XL6_ROOT%',str(root)))
-        target=out/relative; target.parent.mkdir(parents=True,exist_ok=True); shutil.copy2(original,target)
+        target=out/relative; target.parent.mkdir(parents=True,exist_ok=True); assert not target.exists()
+        shutil.copy2(original,target)
         assert sha(target)==sha(original)
         headers.append({'Path':str(target),'Source':str(original),'Sha256':sha(target)})
     assert len(headers)>=6

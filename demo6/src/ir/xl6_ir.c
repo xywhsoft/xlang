@@ -2055,6 +2055,9 @@ void xl6IrModuleFree(XL6_IrModule* module)
     xrtFree(module->persistenceRestorePlans);
     xrtFree(module->persistenceRestoreSchemas);
     xrtFree(module->persistenceRestoreFields);
+    xrtFree(module->persistenceRestoreRoots);
+    xrtFree(module->persistenceRestoreNodes);
+    xrtFree(module->persistenceRestoreEdges);
     xrtFree(module->classDestroySteps);
     xrtFree(module->classFields);
     xrtFree(module->classStaticFields);
@@ -6996,6 +6999,7 @@ static int xl6IrPersistenceRestoreWalkArena(XL6_IrPersistenceRestoreWalk* walk)
     return 1;
 }
 
+static int xl6IrBuildPersistenceRestoreGraphs(const XL6_IrModule*,const XL6_IrModule*,XL6_IrModule*);
 int xl6IrBuildPersistenceRestorePlans(XL6_IrModule* module)
 {
     XL6_IrModule arena;
@@ -7006,17 +7010,25 @@ int xl6IrBuildPersistenceRestorePlans(XL6_IrModule* module)
     walk.source = module; walk.output = &arena;
     ok = xl6IrPersistenceRestoreWalkArena(&walk);
     xrtFree(walk.marked);
+    if (ok) ok = xl6IrBuildPersistenceRestoreGraphs(module,&arena,&arena);
     if (!ok) {
         xrtFree(arena.persistenceRestorePlans); xrtFree(arena.persistenceRestoreSchemas);
-        xrtFree(arena.persistenceRestoreFields); return 0;
+        xrtFree(arena.persistenceRestoreFields);
+        xrtFree(arena.persistenceRestoreRoots); xrtFree(arena.persistenceRestoreNodes);
+        xrtFree(arena.persistenceRestoreEdges); return 0;
     }
     xrtFree(module->persistenceRestorePlans); xrtFree(module->persistenceRestoreSchemas);
     xrtFree(module->persistenceRestoreFields);
+    xrtFree(module->persistenceRestoreRoots); xrtFree(module->persistenceRestoreNodes);
+    xrtFree(module->persistenceRestoreEdges);
 #define XL6_IR_RESTORE_COMMIT(Name) \
     module->Name##s = arena.Name##s; module->Name##Count = arena.Name##Count; module->Name##Capacity = arena.Name##Capacity
     XL6_IR_RESTORE_COMMIT(persistenceRestorePlan);
     XL6_IR_RESTORE_COMMIT(persistenceRestoreSchema);
     XL6_IR_RESTORE_COMMIT(persistenceRestoreField);
+    XL6_IR_RESTORE_COMMIT(persistenceRestoreRoot);
+    XL6_IR_RESTORE_COMMIT(persistenceRestoreNode);
+    XL6_IR_RESTORE_COMMIT(persistenceRestoreEdge);
 #undef XL6_IR_RESTORE_COMMIT
     return 1;
 }
@@ -7034,12 +7046,12 @@ int xl6IrVerifyPersistenceRestorePlans(const XL6_IrModule* module)
 #undef XL6_IR_RESTORE_CHECK
     if (module->stage != XL6_IR_STAGE_LOWERED)
         return module->persistenceRestorePlanCount == 0 && module->persistenceRestoreSchemaCount == 0 &&
-            module->persistenceRestoreFieldCount == 0;
+            module->persistenceRestoreFieldCount == 0 && xl6IrVerifyPersistenceRestoreGraphs(module);
     memset(&walk, 0, sizeof(walk)); walk.source = module; walk.verify = 1;
     ok = xl6IrPersistenceRestoreWalkArena(&walk) && walk.plans == module->persistenceRestorePlanCount &&
         walk.schemas == module->persistenceRestoreSchemaCount && walk.fields == module->persistenceRestoreFieldCount;
     xrtFree(walk.marked);
-    return ok;
+    return ok && xl6IrVerifyPersistenceRestoreGraphs(module);
 }
 
 const XL6_IrPersistenceRestoreSchema* xl6IrPersistenceRestoreSchemaGet(
@@ -7064,6 +7076,8 @@ const XL6_IrPersistenceRestoreSchema* xl6IrPersistenceRestoreSchemaGet(
     }
     return NULL;
 }
+
+#include "src/ir/xl6_ir_persistence_restore_graph.inc"
 
 /* Generic persistence calls keep the stdlib identity and the single concrete
  * target TypeId in the generic-instant node.  Resolve that shape once while
@@ -48521,6 +48535,35 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             (unsigned long)row->classField, (unsigned)row->payloadType, (int)row->sourceKeyAbi,
             (int)row->assignAbi, row->acceptNull, row->required,
             i + 1 < module->persistenceRestoreFieldCount ? "," : "");
+    }
+    xl6OutputPuts("  ],\n  \"persistenceRestoreRoots\": [\n", out);
+    for (i = 0; i < module->persistenceRestoreRootCount; ++i) {
+        const XL6_IrPersistenceRestoreRoot* row=&module->persistenceRestoreRoots[i];
+        xl6OutputPrintf(out,
+            "    {\"type\":%u,\"format\":%u,\"pending\":%u,\"firstNode\":%llu,\"nodeCount\":%llu,\"root\":%llu,\"firstEdge\":%llu,\"edgeCount\":%llu,\"seedCount\":%llu}%s\n",
+            (unsigned)row->type,(unsigned)row->format,(unsigned)row->pending,
+            (unsigned long long)row->firstNode,(unsigned long long)row->nodeCount,(unsigned long long)row->root,
+            (unsigned long long)row->firstEdge,(unsigned long long)row->edgeCount,(unsigned long long)row->seedCount,
+            i+1<module->persistenceRestoreRootCount ? "," : "");
+    }
+    xl6OutputPuts("  ],\n  \"persistenceRestoreNodes\": [\n", out);
+    for (i = 0; i < module->persistenceRestoreNodeCount; ++i) {
+        const XL6_IrPersistenceRestoreNode* row=&module->persistenceRestoreNodes[i];
+        xl6OutputPrintf(out,
+            "    {\"type\":%u,\"payloadType\":%u,\"abi\":%u,\"flags\":%u,\"identity\":%llu,\"contextField\":%llu,\"scalarRule\":%u,\"carrierAbi\":%u,\"seed\":%llu,\"element\":%llu,\"schema\":%llu,\"firstEdge\":%llu,\"edgeCount\":%llu,\"defaultFunction\":%u,\"defaultSymbol\":%u,\"defaultErrorAbi\":%u}%s\n",
+            (unsigned)row->type,(unsigned)row->payloadType,(unsigned)row->abi,(unsigned)row->flags,
+            (unsigned long long)row->identity,(unsigned long long)row->contextField,(unsigned)row->scalarRule,
+            (unsigned)row->carrierAbi,(unsigned long long)row->seed,(unsigned long long)row->element,
+            (unsigned long long)row->schema,(unsigned long long)row->firstEdge,(unsigned long long)row->edgeCount,
+            (unsigned)row->defaultFunction,(unsigned)row->defaultSymbol,(unsigned)row->defaultErrorAbi,
+            i+1<module->persistenceRestoreNodeCount ? "," : "");
+    }
+    xl6OutputPuts("  ],\n  \"persistenceRestoreEdges\": [\n", out);
+    for (i = 0; i < module->persistenceRestoreEdgeCount; ++i) {
+        const XL6_IrPersistenceRestoreEdge* row=&module->persistenceRestoreEdges[i];
+        xl6OutputPrintf(out,"    {\"field\":%llu,\"node\":%llu}%s\n",
+            (unsigned long long)row->field,(unsigned long long)row->node,
+            i+1<module->persistenceRestoreEdgeCount ? "," : "");
     }
     xl6OutputPuts("  ],\n  \"classIdentityPlans\": [\n", out);
     for ( i = 0; i < module->classIdentityPlanCount; ++i ) {
