@@ -21,8 +21,12 @@ typedef struct Memo {
     const xvalue* source;
     xvalue* result;
     size_t depth;
-    const xvalue* instance; /* NULL for declaration/chain domains; otherwise == result. */
+    const xvalue* instance; /* Independent owned pin, including when == result. */
 } Memo;
+typedef struct StagedFields {
+    const xvalue* receiver; /* Borrowed from the independently owned record. */
+    xvalueobjectfieldsv1* fields;
+} StagedFields;
 typedef struct Import {
     xvalue** seeds;
     size_t count;
@@ -33,6 +37,8 @@ typedef struct Import {
     const XL6_CollectionImportPlanV1* plan;
     xl6_error_scope* operation;
     bool nullableRead,wireRejected;
+    StagedFields* staged;
+    size_t stagedCount,stagedCapacity;
 } Import;
 static void releasePreservingError(xvalue* value)
 {
@@ -103,9 +109,13 @@ static bool remember(Import* ctx,const xvalue* source,size_t depth,xvalue* resul
     if (!ownedSource) return false;
     xvalue* ownedResult=xrtValueRetain(result);
     if (!ownedResult) { releasePreservingError(ownedSource); return false; }
+    xvalue* ownedInstance=instance ? xrtValueRetain(instance) : NULL;
+    if (instance && !ownedInstance) {
+        releasePreservingError(ownedResult); releasePreservingError(ownedSource); return false;
+    }
     size_t at=hash(source,depth,instance)&(ctx->capacity-1);
     while (ctx->memo[at].source) at=(at+1)&(ctx->capacity-1);
-    ctx->memo[at]=(Memo){ownedSource,ownedResult,depth,instance}; ++ctx->used;
+    ctx->memo[at]=(Memo){ownedSource,ownedResult,depth,ownedInstance}; ++ctx->used;
     return true;
 }
 static bool privateSeed(const Import* ctx,const xvalue* value)
@@ -316,6 +326,7 @@ done:
     }
     for (size_t i=0;i<ctx.capacity;++i) if (ctx.memo[i].source) {
         releasePreservingError(ctx.memo[i].result);
+        releasePreservingError((xvalue*)ctx.memo[i].instance);
         releasePreservingError((xvalue*)ctx.memo[i].source);
     }
     xrtFree(ctx.memo); releasePreservingError(observed);
@@ -365,7 +376,8 @@ static bool graphPlanValid(const XL6_RestorePlanV1* plan,size_t count)
         } else if (node->kind==XL6_RESTORE_OBJECT_V1) {
             if (!node->identity || node->as.object.runtimeTag<=0 || node->as.object.first>plan->fieldCount ||
                 node->as.object.count>plan->fieldCount-node->as.object.first || !node->as.object.provider ||
-                !node->as.object.provider->IsNative || !node->as.object.provider->Admits) return false;
+                !node->as.object.provider->IsNative || !node->as.object.provider->Admits ||
+                !node->as.object.provider->OwnershipAdmits) return false;
             for (size_t j=0;j<node->as.object.count;++j) {
                 const XL6_RestoreFieldV1* field=&plan->fields[node->as.object.first+j];
                 if (!viewValid(field->source) || !viewValid(field->target) || field->node>=plan->nodeCount ||
@@ -391,6 +403,92 @@ static bool objectMatches(const xvalue* value,const XL6_RestoreNodeV1* node)
     return node->as.object.provider->Admits(value,node->identity,node->as.object.runtimeTag);
 }
 static xvalue* restoreNode(Import*,const XL6_RestorePlanV1*,size_t,size_t,const xvalue*,xvalue*);
+static xvalueobjectfieldsv1* stageFields(Import* ctx,xvalue* value)
+{
+    for (size_t i=0;i<ctx->stagedCount;++i) if (ctx->staged[i].receiver==value) {
+        /* Memo sharing must have returned before this point. A second recipe
+         * for the same actual receiver is ambiguous, not a second write. */
+        xrtSetErrorKind(XERR_STATE); return NULL;
+    }
+    if (ctx->stagedCount==ctx->stagedCapacity) {
+        if (ctx->stagedCapacity>SIZE_MAX/2/sizeof(*ctx->staged)) { xrtSetErrorKind(XERR_RANGE); return NULL; }
+        size_t capacity=ctx->stagedCapacity ? 2*ctx->stagedCapacity : 8;
+        StagedFields* grown=xrtRealloc(ctx->staged,capacity*sizeof(*grown));
+        if (!grown) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }
+        ctx->staged=grown; ctx->stagedCapacity=capacity;
+    }
+    xvalueobjectfieldsv1* fields=xrtValueObjectFieldsPrepareV1(value);
+    if (fields) ctx->staged[ctx->stagedCount++]=(StagedFields){value,fields};
+    return fields;
+}
+static void closeTemplates(Import* ctx)
+{
+    for (size_t i=ctx->count;ctx->templates && i>0;--i) {
+        Template* schema=&ctx->templates[i-1];
+        if (schema->provider && schema->context) {
+            ptr context=schema->context; schema->context=NULL; schema->provider->End(context);
+        }
+        if (schema->owner) {
+            XL6_Sequence* owner=schema->owner; schema->owner=NULL; xl6SequenceEndV1(owner);
+        }
+        if (xrtGetError()) xl6ErrorScopeCaptureFailure(ctx->operation);
+    }
+}
+static bool restoreOwnershipAdmits(xrtownershipref ref,ptr opaque)
+{
+    const XL6_RestorePlanV1* plan=opaque;
+    for (size_t i=0;i<plan->nodeCount;++i) if (plan->nodes[i].kind==XL6_RESTORE_OBJECT_V1 &&
+        plan->nodes[i].as.object.provider->OwnershipAdmits(ref)) return true;
+    return false;
+}
+static bool commitFields(Import* ctx,const XL6_RestorePlanV1* plan,xvalue* result,const xvalue* observed)
+{
+    if (!ctx->stagedCount) return true;
+    if (ctx->used>(SIZE_MAX-2-ctx->count)/3 ||
+        ctx->stagedCount>SIZE_MAX/sizeof(xvalueobjectfieldsv1*)) { xrtSetErrorKind(XERR_RANGE); return false; }
+    size_t count=ctx->count+3*ctx->used+2;
+    if (count>SIZE_MAX/sizeof(xrtownershipref)) { xrtSetErrorKind(XERR_RANGE); return false; }
+    xrtownershipref* slots=xrtMalloc(count*sizeof(*slots));
+    xvalueobjectfieldsv1** fields=xrtMalloc(ctx->stagedCount*sizeof(*fields));
+    if (!slots || !fields) {
+        xrtFree(slots); xrtFree(fields); if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return false;
+    }
+    size_t used=0;
+    /* Each entry is an ACTUAL owned reference, even if pointers coincide.
+     * Record receivers/observations/stores are already traced by their unique
+     * records. Borrowed anchors/provider tables are never fabricated slots. */
+    slots[used++]=xrtValueOwnership(result); slots[used++]=xrtValueOwnership(observed);
+    for (size_t i=0;i<ctx->count;++i) slots[used++]=xrtValueOwnership(ctx->seeds[i]);
+    for (size_t i=0;i<ctx->capacity;++i) if (ctx->memo[i].source) {
+        slots[used++]=xrtValueOwnership(ctx->memo[i].source);
+        slots[used++]=xrtValueOwnership(ctx->memo[i].result);
+        if (ctx->memo[i].instance) slots[used++]=xrtValueOwnership(ctx->memo[i].instance);
+    }
+    for (size_t i=0;i<ctx->stagedCount;++i) fields[i]=ctx->staged[i].fields;
+    xvalueobjectfieldsresultv1 outcome=xrtValueObjectFieldsCommitV1(fields,ctx->stagedCount,
+        slots,used,restoreOwnershipAdmits,(ptr)plan);
+    xrtFree(fields); xrtFree(slots);
+    if (outcome!=XVALUE_OBJECT_FIELDS_COMMITTED_V1) {
+        if (!xrtGetError()) xrtSetErrorKind(XERR_STATE);
+        return false;
+    }
+    return restoring(ctx);
+}
+static void retireFields(xvalueobjectfieldsv1* fields)
+{
+    /* As with owned Value retirement, preserve explicit boolean failures in
+     * addition to diagnostic objects; no cleanup runs under the commit fence. */
+    xerror* prior=xrtErrorRef(xrtGetError()); xl6_error_scope cleanup={0};
+    if (xl6ErrorScopeBeginCleanup(&cleanup,false)) {
+        xrtErrorFree(prior); xrtValueObjectFieldsFreeV1(fields);
+        xl6_error_result outcome=xl6ErrorScopeEnd(&cleanup);
+        if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
+    } else {
+        if (!prior) prior=xrtTakeError();
+        xrtClearError(); xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtErrorRef(prior)});
+        xrtClearError(); xrtValueObjectFieldsFreeV1(fields); xrtClearError(); xrtSetErrorTake(prior);
+    }
+}
 static bool restoreObject(Import* ctx,const XL6_RestorePlanV1* plan,const XL6_RestoreNodeV1* node,
     size_t depth,xvalue* value,const xvalue* source)
 {
@@ -399,6 +497,8 @@ static bool restoreObject(Import* ctx,const XL6_RestorePlanV1* plan,const XL6_Re
      * kept across a callback. Language/native objects are not wire input. */
     xvalue* snapshot=xrtValueClone(source);
     if (!snapshot || !restoring(ctx)) { releasePreservingError(snapshot); return false; }
+    xvalueobjectfieldsv1* fields=stageFields(ctx,value);
+    if (!fields || !restoring(ctx)) { releasePreservingError(snapshot); return false; }
     bool ok=true;
     for (size_t i=0;ok && i<node->as.object.count;++i) {
         const XL6_RestoreFieldV1* field=&plan->fields[node->as.object.first+i];
@@ -419,7 +519,7 @@ static bool restoreObject(Import* ctx,const XL6_RestorePlanV1* plan,const XL6_Re
         }
         releasePreservingError(prepared);
         ok=item && restoring(ctx);
-        if (ok) ok=xrtValueObjectSetTake(value,field->target,&item) && restoring(ctx);
+        if (ok) ok=xrtValueObjectFieldsSetTakeV1(fields,field->target,&item) && restoring(ctx);
         releasePreservingError(item); releasePreservingError(input);
     }
     if (!ok && restoring(ctx)) xrtSetErrorKind(XERR_TYPE);
@@ -591,19 +691,22 @@ static xvalue* restorePlan(xvalue** seeds,size_t count,xvalue* target,const xval
         if (!successful(&ctx)) goto finish;
     }
     result=restoreNode(&ctx,plan,plan->root,0,observed,target); target=NULL;
+    /* Template scopes own real BUSY pins and admission metadata. End ALL of
+     * them before the graph privacy check; an End failure prevents publication. */
+    closeTemplates(&ctx);
+    if (result && restoring(&ctx) && !commitFields(&ctx,plan,result,observed))
+        xl6ErrorScopeCaptureFailure(&operation);
 finish:
     if ((!result && !ctx.wireRejected) || !successful(&ctx)) xl6ErrorScopeCaptureFailure(&operation);
-    for (size_t i=count;ctx.templates && i>0;--i) {
-        Template* schema=&ctx.templates[i-1];
-        if (schema->provider && schema->context) schema->provider->End(schema->context);
-        if (schema->owner) xl6SequenceEndV1(schema->owner);
-        if (xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
-    }
+    closeTemplates(&ctx);
+    for (size_t i=ctx.stagedCount;i>0;--i) retireFields(ctx.staged[i-1].fields);
     for (size_t i=0;i<count;++i) { xvalue* owned=seeds[i]; seeds[i]=NULL; releasePreservingError(owned); }
     for (size_t i=0;i<ctx.capacity;++i) if (ctx.memo[i].source) {
         releasePreservingError(ctx.memo[i].result); releasePreservingError((xvalue*)ctx.memo[i].source);
+        releasePreservingError((xvalue*)ctx.memo[i].instance);
     }
-    xrtFree(ctx.templates); xrtFree(ctx.memo); releasePreservingError(target); releasePreservingError(observed);
+    xrtFree(ctx.staged); xrtFree(ctx.templates); xrtFree(ctx.memo);
+    releasePreservingError(target); releasePreservingError(observed);
     if (xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
     if (operation.failed) { releasePreservingError(result); result=NULL; }
     else if (nullableRead && ctx.wireRejected) {

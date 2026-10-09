@@ -18,6 +18,9 @@ def main():
     parser.add_argument('--graph',action='store_true',help='Optional single-memo List/Array/object graph provider and exact format plans')
     parser.add_argument('--restore',action='store_true',help='Mixed-family shared import memo and explicit JSON/XLON leaf restoration')
     parser.add_argument('--restore-plan',action='store_true',help='Closed class-field/collection nodes in one shared restore transaction; implies --restore')
+    parser.add_argument('--modes',help='Comma-separated subset of declared vectors; empty selects none. Recorded as focused validation, never the full native gate')
+    parser.add_argument('--operations',help='Comma-separated subset of declared complete OOM prefixes; empty selects none. Recorded as focused validation')
+    parser.add_argument('--batch-plan-prefixes',action='store_true',help='Run each plan OOM prefix in one process, with a separate verified ledger per attempt')
     args=parser.parse_args(); root=args.root.resolve(); out=args.out.resolve()
     if args.restore_plan: args.restore=True
     cc,nm=shutil.which('gcc'),shutil.which('nm')
@@ -56,6 +59,8 @@ def main():
     report={'Complete':False,'InputsUnchanged':False,'Inputs':inputs,'Rows':rows,'Prefixes':prefixes,
         'Failures':failures,'Platform':sys.platform,'Sanitized':args.sanitize,
         'Graph':args.graph,'Restore':args.restore,'RestorePlan':args.restore_plan,
+        'FocusedValidation':args.modes is not None or args.operations is not None,
+        'BatchedPlanPrefixes':args.batch_plan_prefixes,
         'SelectedNativeClosureInstrumented':args.sanitize,'WholeRuntimeInstrumented':False,
         'ShippingLibraryAcceptance':False,'SourceLanguageListCutover':False,'Full53Acceptance':False,
         'CleanupBoundaryFailureInjection':'GNU ld --wrap; real cleanup delegates except explicitly armed vectors; not actual OS exhaustion',
@@ -102,10 +107,18 @@ def main():
         operations+=('restore-native','restore-json','restore-xlon','restore-wide','restore-source-take')
     if args.restore_plan:
         modes+=('plan-shared','plan-format','plan-nested','plan-instances','plan-instance-failures','plan-instance-wide-vector','plan-rejected','plan-boundaries','plan-depth','plan-wide-domains','plan-objects','plan-mixed',
-            'plan-read-profiles','plan-read-failures','plan-read-boundaries','plan-read-scalars','plan-read-format')
+            'plan-read-profiles','plan-read-failures','plan-read-boundaries','plan-read-scalars','plan-read-format','plan-transactions')
         operations+=('plan-restore','plan-target','plan-nested-restore','plan-wide','plan-mixed-restore',
             'plan-read-valid','plan-read-rejected','plan-read-shape','plan-read-scalar',
-            'plan-instance-distinct','plan-instance-shared','plan-instance-rejected','plan-instance-wide')
+            'plan-instance-distinct','plan-instance-shared','plan-instance-rejected','plan-instance-wide',
+            'plan-transaction-private','plan-transaction-shared','plan-transaction-rejected')
+    def select(argument,available):
+        if argument is None: return available
+        requested=tuple(filter(None,argument.split(',')))
+        assert len(set(requested))==len(requested) and set(requested)<=set(available),'Unknown/duplicate focused vector'
+        return requested
+    modes=select(args.modes,modes); operations=select(args.operations,operations)
+    report['Modes']=modes; report['Operations']=operations
     try:
         for level in (0,2):
             lane='O'+str(level); binary=out/('list-'+lane+('.exe' if os.name=='nt' else ''))
@@ -126,6 +139,15 @@ def main():
             if not args.graph and not args.restore: assert 'xl6ArrayErasedReadV1' not in names
             for mode in modes: run(lane+'.'+mode,[binary,mode])
             for operation in operations:
+                if args.batch_plan_prefixes and operation.startswith('plan-'):
+                    text=run(lane+'.'+operation+'.batch',[binary,operation,'batch'],180)
+                    if text is None: continue
+                    closed=re.search(r'closed-batch runs=(\d+) first-no-hit=(\d+)',text)
+                    attempts=re.findall(r'point=(\d+) hit=([01]) complete-prefix balanced',text)
+                    assert closed and len(attempts)==int(closed[1])==int(closed[2])+1,'Unclosed batched prefix'
+                    assert all(int(point)==i and hit==('0' if i==len(attempts)-1 else '1') for i,(point,hit) in enumerate(attempts)),'Noncontinuous batched allocation failures'
+                    prefixes.append({'Lane':lane,'Operation':operation,'FirstNoHit':int(closed[2]),'Runs':int(closed[1]),'Batched':True})
+                    continue
                 for point in range(4097):
                     text=run(lane+'.'+operation+'.'+str(point),[binary,operation,point])
                     if text is None: break
@@ -139,6 +161,7 @@ def main():
     except Exception as error:
         report['Error']=repr(error); print(error,file=sys.stderr)
     finally:
+        report['Products']=[{'Path':str(path),'Sha256':sha(path)} for path in sorted(out.glob('list-*')) if path.is_file()]
         (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     print(f'Native List: {len(rows)} phases, {len(prefixes)} closed prefixes, complete={report["Complete"]}',flush=True)
     return 0 if report['Complete'] else 1

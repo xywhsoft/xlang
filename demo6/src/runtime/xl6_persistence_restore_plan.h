@@ -10,6 +10,10 @@ enum { XL6_RESTORE_REQUIRED_V1=1u, XL6_RESTORE_IN_PLACE_V1=2u };
 typedef struct XL6_RestoreObjectProviderV1 {
     bool (*IsNative)(const xvalue*);
     bool (*Admits)(const xvalue*,uint64_t,int64_t);
+    /* Read-only resident policy admission BEFORE physical Count/Trace. Every
+     * graph participant, including native children/code owners, must pass.
+     * TypeId/field markers and ordinary generated callbacks are not proof. */
+    bool (*OwnershipAdmits)(xrtownershipref);
 } XL6_RestoreObjectProviderV1;
 
 /* Closed compiler-private construction domains, not a type-name registry.
@@ -46,7 +50,7 @@ typedef struct XL6_RestorePlanV1 {
 /* One transaction/memo for all object fields and collection elements. The
  * key is (source Value, explicit node, actual FIELD_INSTANCE child), not
  * recursion depth, nominal ID or a static field recipe alone. The actual child
- * is pinned by its memo result, so pointer reuse cannot manufacture identity.
+ * has its own real memo pin, so pointer reuse cannot manufacture identity.
  * Collection templates are genuine empty projected resident Array/List
  * objects. They are consumed on both paths for a valid pointer/count pair.
  * target is an optional owned, PRIVATE declaration-default root and is
@@ -58,6 +62,9 @@ typedef struct XL6_RestorePlanV1 {
  * second time. These are construction capabilities, not mutation of an
  * arbitrary externally shared object. All object outputs must match their
  * exact nominal identity and language runtime tag before any field write.
+ * Fields are prepared without receiver writes and published as ONE checked
+ * batch only after resident whole-graph admission and actual slot privacy.
+ * A shared receiver is a checked failure, never a benign nullable rejection.
  * Missing optional fields preserve defaults; explicit null is distinct.
  * Source is borrowed wire ARRAY/OBJECT/scalar, never retagged or mutated.
  * Traversed cycles and more than 65 object/collection levels fail closed.

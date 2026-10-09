@@ -19,6 +19,10 @@
 extern void xl6TestListGraphBoundaryFailureV1(int,int);
 static unsigned factories,drops,factoryFailure,finalizerFailure,admissionFailure;
 static unsigned appendFailure;
+static bool lastFaultHit;
+static bool faultTriggered(void)
+{ lastFaultHit=xrtMemDebugFailTriggered(); return lastFaultHit; }
+bool xl6TestRestorePlanFaultLastHitV1(void) { return lastFaultHit; }
 static bool checkedAdmission(const xvalue* value,uint64_t identity,int64_t tag)
 {
     bool ok=xl6RestoreClassProviderV1()->Admits(value,identity,tag);
@@ -232,7 +236,7 @@ static void instanceRun(size_t point,bool fault,bool shared,bool reader,bool rej
     else { result=xl6PersistenceRestorePlanTakeV1(NULL,0,NULL,source,&p); ok=result!=NULL; }
     bool hit=false;
     if (fault) {
-        hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+        hit=faultTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
         assert(hit ? !ok && !result && !outcome.ok : ok && result && outcome.ok); xrtErrorFree(outcome.error);
     } else assert(ok && result && !xrtGetError());
     if (ok) {
@@ -320,7 +324,7 @@ static void instanceWide(size_t point,bool fault)
     if (fault) { assert(xl6ErrorScopeBegin(&scope)); assert(xrtMemDebugFailAfter(point)); }
     xvalue* result=xl6PersistenceRestorePlanTakeV1(NULL,0,NULL,source,&p); bool hit=false;
     if (fault) {
-        hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+        hit=faultTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
         assert(hit ? !result && !outcome.ok : result && outcome.ok); xrtErrorFree(outcome.error);
     } else assert(result && !xrtGetError());
     if (result) {
@@ -408,7 +412,7 @@ static void wide(size_t point,bool fault)
     xvalue* result=xl6PersistenceRestorePlanTakeV1(seeds,COUNT,NULL,source,&p);
     bool hit=false;
     if (fault) {
-        hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+        hit=faultTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
         assert(hit ? !result && !outcome.ok : result && outcome.ok); xrtErrorFree(outcome.error);
     } else assert(result);
     for (size_t i=0;i<COUNT;++i) {
@@ -461,7 +465,7 @@ static void mixed(size_t point,bool fault)
     xl6_error_scope scope={0}; if (fault) { assert(xl6ErrorScopeBegin(&scope)); assert(xrtMemDebugFailAfter(point)); }
     xvalue* result=xl6PersistenceRestorePlanTakeV1(seeds,2,NULL,source,&p); bool hit=false;
     if (fault) {
-        hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+        hit=faultTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
         assert(hit ? !result && !outcome.ok : result && outcome.ok); xrtErrorFree(outcome.error);
     } else assert(result);
     assert(!seeds[0] && !seeds[1]);
@@ -499,7 +503,8 @@ static void boundaries(void)
         factoryFailure=0; xrtClearError(); xrtValueRelease(source);
     }
     finalizerFailure=0;
-    const XL6_RestoreObjectProviderV1 delegate={xl6RestoreClassProviderV1()->IsNative,checkedAdmission};
+    const XL6_RestoreObjectProviderV1 delegate={xl6RestoreClassProviderV1()->IsNative,checkedAdmission,
+        xl6RestoreClassProviderV1()->OwnershipAdmits};
     for (admissionFailure=1;admissionFailure<=2;++admissionFailure) {
         XL6_RestoreNodeV1 nodes[3]; XL6_RestoreFieldV1 fields[3]; XL6_RestorePlanV1 p=plan(nodes,fields,false);
         nodes[0].as.object.provider=&delegate;
@@ -566,7 +571,8 @@ static void readerFailures(void)
 {
     for (unsigned test=0;test<16;++test) {
         XL6_RestoreNodeV1 nodes[3]; XL6_RestoreFieldV1 fields[3]; XL6_RestorePlanV1 p=plan(nodes,fields,false);
-        const XL6_RestoreObjectProviderV1 objectsProvider={xl6RestoreClassProviderV1()->IsNative,checkedAdmission};
+        const XL6_RestoreObjectProviderV1 objectsProvider={xl6RestoreClassProviderV1()->IsNative,checkedAdmission,
+            xl6RestoreClassProviderV1()->OwnershipAdmits};
         XL6_CollectionImportProviderV1 sequenceProvider=*xl6ListImportProviderV1(); sequenceProvider.Append=checkedAppend;
         xvalue* source=wire(),*seeds[]={seed()},*result=NULL; assert(seeds[0]);
         if (test<3) factoryFailure=test+1;
@@ -664,6 +670,88 @@ static void readerScalars(void)
     assert(!xl6PersistenceRestoreScalarCheckedV1(NULL,XL6_VALUE_ADMIT_I64,false,&rejected) && !rejected);
     assert(!xl6PersistenceRestoreScalarCheckedV1(xrtValueNull(),XL6_VALUE_ADMIT_NONE,false,&rejected) && !rejected);
 }
+static int64_t integerField(const xvalue* value,const char* key)
+{
+    int64_t number=0; assert(xrtValueGetInt(xrtValueObjectGet(value,(xstrview){key,strlen(key)}),&number));
+    return number;
+}
+static unsigned foreignTraces;
+static bool foreignTrace(const xvalue* value,xrtownershipvisitor visit,ptr context)
+{ (void)value; (void)visit; (void)context; ++foreignTraces; return true; }
+static void foreignDrop(ptr data,ptr user) { (void)data; (void)user; }
+static void transactionRun(unsigned mode,bool rejected,size_t point,bool fault)
+{
+    XL6_RestoreNodeV1 nodes[3]={
+        {.kind=XL6_RESTORE_OBJECT_V1,.identity=OBJECT_ID,
+         .as.object={objectDefault,TAG,0,3,xl6RestoreClassProviderV1()}},
+        {.kind=XL6_RESTORE_OBJECT_V1,.flags=XL6_RESTORE_FIELD_INSTANCE_V1,.identity=OBJECT_ID,
+         .as.object={NULL,TAG,3,1,xl6RestoreClassProviderV1()}},
+        {.kind=XL6_RESTORE_SCALAR_V1,.identity=LEAF_ID,.as.scalar=XL6_VALUE_ADMIT_I64}
+    };
+    XL6_RestoreFieldV1 fields[]={
+        {XRT_STR_INIT("n"),XRT_STR_INIT("n"),2,XL6_RESTORE_REQUIRED_V1},
+        {XRT_STR_INIT("child"),XRT_STR_INIT("child"),1,XL6_RESTORE_IN_PLACE_V1},
+        {XRT_STR_INIT("absent"),XRT_STR_INIT("keep"),2,rejected ? XL6_RESTORE_REQUIRED_V1 : 0},
+        {XRT_STR_INIT("n"),XRT_STR_INIT("n"),2,XL6_RESTORE_REQUIRED_V1}
+    };
+    XL6_RestorePlanV1 p={sizeof(p),3,4,0,nodes,fields,false};
+    xvalue* source=xrtValueObject(),*wireChild=xrtValueObject(),*owned=objectDefault(),*child=objectDefault();
+    assert(source && wireChild && owned && child && xrtValueObjectSetNew(source,XRT_STR_LITERAL("n"),xrtValueInt(41)) &&
+        xrtValueObjectSetNew(wireChild,XRT_STR_LITERAL("n"),xrtValueInt(42)) &&
+        xrtValueObjectSetNew(source,XRT_STR_LITERAL("child"),wireChild) &&
+        xrtValueObjectSetNew(owned,XRT_STR_LITERAL("n"),xrtValueInt(1)) &&
+        xrtValueObjectSetNew(child,XRT_STR_LITERAL("n"),xrtValueInt(7)) &&
+        xrtValueObjectSetNew(owned,XRT_STR_LITERAL("child"),child));
+    xvalue* witness=NULL,*weak=NULL; xvaluecursor* cursor=NULL;
+    if (mode==1) witness=xrtValueRetain(child);
+    if (mode==2) witness=xrtValueClone(child);
+    if (mode==3) cursor=xrtValueCursorCreate(child);
+    if (mode==4) witness=xrtValueClone(owned);
+    if (mode==5) witness=xrtValueRetain(owned);
+    if (mode==6) weak=xrtValueWeakRef(child);
+    if (mode==7) {
+        static const xvaluehandleops ops={NULL,foreignDrop,NULL,NULL}; ptr handle=&foreignTraces;
+        xvalue* opaque=xrtValueHandleTake(&handle,&ops,NULL);
+        assert(opaque && xrtValueHandleOwnershipBind(opaque,foreignTrace) &&
+            xrtValueObjectSetNew(owned,XRT_STR_LITERAL("opaque"),opaque));
+    }
+    assert((mode<1 || mode>5 || (mode==3 ? cursor!=NULL : witness!=NULL)) && (mode!=6 || weak));
+    xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
+    if (fault) assert(xrtMemDebugFailAfter(point));
+    xvalue* result=NULL; unsigned before=factories,traces=foreignTraces;
+    bool ok=xl6PersistenceRestorePlanReadTakeV1(NULL,0,owned,source,&p,&result);
+    bool hit=fault ? faultTriggered() : false; if (fault) xrtMemDebugFailClear();
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    assert(factories==before && foreignTraces==traces);
+    if (hit) assert(!ok && !result && !outcome.ok);
+    else if (rejected) assert(ok && result==xrtValueNull() && outcome.ok);
+    else if (mode==0 || mode==6) {
+        assert(ok && result && outcome.ok && integerField(result,"n")==41 &&
+            integerField(xrtValueObjectGet(result,XRT_STR_LITERAL("child")),"n")==42);
+        if (weak) {
+            xvalue* locked=xrtValueWeakRefLock(weak); assert(locked && locked==xrtValueObjectGet(result,XRT_STR_LITERAL("child")));
+            xrtValueRelease(locked);
+        }
+    } else assert(!ok && !result && !outcome.ok && outcome.error && xrtErrorKind(outcome.error)==XERR_STATE);
+    /* Every independently owned observer retains the ORIGINAL complete data,
+     * even after a late REQUIRED failure or an allocator/commit refusal. */
+    if (witness && mode<=2) assert(integerField(witness,"n")==7 && !xrtValueTypeId(source));
+    if (witness && mode>=4) assert(integerField(witness,"n")==1 &&
+        integerField(xrtValueObjectGet(witness,XRT_STR_LITERAL("child")),"n")==7);
+    if (cursor) {
+        xvaluekey key={0}; xvalue* item=NULL; bool found=false;
+        while (xrtValueCursorAdvance(cursor,&key,&item)==XVALUE_ITER_ITEM) {
+            if (key.Type==XVALUE_KEY_STRING && key.String.Size==1 && key.String.Data[0]=='n') {
+                int64_t number=0; assert(xrtValueGetInt(item,&number) && number==7); found=true;
+            }
+        }
+        assert(found);
+    }
+    xrtErrorFree(outcome.error); xrtValueRelease(result); xrtValueRelease(witness); xrtValueCursorRelease(cursor);
+    xrtValueRelease(weak); xrtValueRelease(source); xrtClearError();
+    if (fault) printf("native plan plan-transaction-%s point=%zu hit=%d complete-prefix balanced\n",
+        rejected ? "rejected" : mode==1 ? "shared" : "private",point,hit);
+}
 static void readerFault(const char* name,size_t point)
 {
     XL6_RestoreNodeV1 nodes[3]; XL6_RestoreFieldV1 fields[3]; XL6_RestorePlanV1 p=plan(nodes,fields,false);
@@ -678,7 +766,7 @@ static void readerFault(const char* name,size_t point)
     }
     xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope)); assert(xrtMemDebugFailAfter(point));
     bool ok=xl6PersistenceRestorePlanReadTakeV1(scalar ? NULL : seeds,scalar ? 0 : 1,NULL,source,&p,&result);
-    bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    bool hit=faultTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
     assert(hit ? !ok && !result && !outcome.ok : ok && result && outcome.ok); assert(!seeds[0]);
     if (!hit) {
         if (rejected || shape) assert(result==xrtValueNull());
@@ -712,11 +800,20 @@ void xl6TestRestorePlanVectorsV1(const char* name)
     else if (!strcmp(name,"plan-read-boundaries")) readerBoundaries();
     else if (!strcmp(name,"plan-read-scalars")) readerScalars();
     else if (!strcmp(name,"plan-read-format")) format(true);
+    else if (!strcmp(name,"plan-transactions")) {
+        for (unsigned mode=0;mode<8;++mode) for (unsigned rejected=0;rejected<2;++rejected)
+            transactionRun(mode,rejected,0,false);
+    }
     else assert(0);
 }
 bool xl6TestRestorePlanFaultV1(const char* name,size_t point)
 {
     if (strncmp(name,"plan-",5)) return false;
+    if (!strncmp(name,"plan-transaction-",17)) {
+        bool rejected=!strcmp(name,"plan-transaction-rejected"),shared=!strcmp(name,"plan-transaction-shared");
+        assert(rejected || shared || !strcmp(name,"plan-transaction-private"));
+        transactionRun(shared || rejected ? 1 : 0,rejected,point,true); return true;
+    }
     if (!strcmp(name,"plan-instance-wide")) { instanceWide(point,true); return true; }
     if (!strncmp(name,"plan-instance-",14)) {
         bool shared=!strcmp(name,"plan-instance-shared"),rejected=!strcmp(name,"plan-instance-rejected");
@@ -733,7 +830,7 @@ bool xl6TestRestorePlanFaultV1(const char* name,size_t point)
     assert(seeds[0] && (!target || owned));
     xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope)); assert(xrtMemDebugFailAfter(point));
     xvalue* result=xl6PersistenceRestorePlanTakeV1(seeds,1,owned,source,&p);
-    bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    bool hit=faultTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
     assert(hit ? !result && !outcome.ok : result && outcome.ok); assert(!seeds[0]);
     if (!hit) observed(nested ? xrtValueObjectGet(result,XRT_STR_LITERAL("child")) : result,true);
     assert(!xrtValueTypeId(source) && xrtValueCount(source)==(nested ? 1 : 2));
