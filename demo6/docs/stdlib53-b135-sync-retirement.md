@@ -174,7 +174,24 @@ at 64. Other resource/codec domains are not certified by accepting these domains
 
 ### Still required
 
-Rebuilt Win/Linux shipping DLLs and embedded VFS, standalone static-XRT pruning,
+The subsequent b137 checks close static-XRT family selection for these four
+synchronization fixtures. `stdlib53-b137-static-pruning-win-dev3/sync.artifact.json`
+passes 64 phases and `stdlib53-b137-static-pruning-linux-dev2/sync.artifact.json`
+passes 38, with unchanged hashed inputs. Both compile the real standalone XRT
+implementation generator with genuine TCC and inspect defined object symbols.
+The actual undeclared-C-source/full-runtime fallback is a negative control: it
+contains all six checked anchors, while selected outputs contain only mutex,
+mutex+cond, rwlock, or no synchronization kernel respectively. Semaphore, file
+open and process run are absent from all selected outputs. The cond dependency
+on mutex is deliberate and is not counted as unwanted code. O0/O2 refer to the
+contract host; the selected and control kernel objects use genuine TCC.
+
+Windows additionally repeats eight actual independent DLL executions/retirements;
+Linux does **not** claim standalone ELF execution from object-table checks.
+This is fixture-scoped kernel selection, not complete 53-module/function-level
+pruning or acceptance of a rebuilt shipping library.
+
+Rebuilt Win/Linux shipping DLLs and embedded VFS, standalone ELF execution,
 the remaining resource domains and full 53-module acceptance are still required.
 Family absence in a DLL export table is **not** pruning proof; the accepted
 family proof above comes from actual TCC object tables. Some older diagnostic
