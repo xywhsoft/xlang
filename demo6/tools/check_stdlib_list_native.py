@@ -1,7 +1,8 @@
 """Private resident typed List foundation: sparse keys, metadata, cursors,
 physical ownership, explicit failures and whole allocation-failure prefixes.
-Includes immutable same-owner erasure, one-level sparse wire projection and
-explicit admitted imports; no recursive List graph/schema conversion claim.
+Includes immutable same-owner erasure, one-level sparse wire projection,
+explicit admitted imports and exact mixed-family resident nested schemas.
+No recursive List graph/persistence conversion claim.
 Not shipping-library, source-language List cutover or full53 acceptance.
 """
 from __future__ import annotations
@@ -17,7 +18,7 @@ def main():
     args=parser.parse_args(); root=args.root.resolve(); out=args.out.resolve()
     cc,nm=shutil.which('gcc'),shutil.which('nm')
     assert cc and nm and not out.exists() and (not args.sanitize or sys.platform=='linux')
-    sources=['test/cases/stdlib_list_native_host.c','test/support/list_native.c',
+    sources=['test/cases/stdlib_list_native_host.c','test/cases/stdlib_list_schema_native_host.c','test/support/list_native.c',
         'test/support/module_product_memory.c','src/runtime/xl6_list.c','src/runtime/xl6_sequence.c',
         'src/runtime/xl6_array_reference_admission.c','src/runtime/xl6_array_reference_value.c',
         'src/runtime/xl6_string_value.c','src/runtime/xl6_nullable_i64_value.c','src/api/xl_foreign_error.c',
@@ -26,7 +27,8 @@ def main():
         'src/runtime/xl6_nominal_admission.c','src/runtime/xl6_string_type.c',
         'src/runtime/xl6_nullable_string.c','src/runtime/xl6_nullable_i64.c',
         'src/runtime/xl6_ownership_plan.c','src/runtime/xl6_array_future_admission.c','src/runtime/xl6_char_type.c',
-        'src/runtime/xl6_char_value.c']
+        'src/runtime/xl6_char_value.c','src/runtime/xl6_list_schema.c','src/runtime/xl6_array_sequence_admission.c',
+        'src/runtime/xl6_array.c','src/runtime/xl6_stack.c']
     files={Path(__file__).resolve(),Path(cc),Path(nm),Path(sys.executable)}
     files.update(root/name for name in sources)
     for folder in ('src/runtime','src/api','release/include','lib/xrt','lib/xruntime','test/support'):
@@ -63,10 +65,12 @@ def main():
     if args.sanitize: flags+=['-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie']
     modes=('integers','text','profiles','cursors','rejected','references','futures','phased','reentrant','boundaries',
         'identity','merges','identity-errors','shared-depth','guard-protocol',
-        'projection','projection-profiles','imports','codec-errors','projection-entry-errors')
+        'projection','projection-profiles','imports','codec-errors','projection-entry-errors',
+        'schema-profiles','schema-failures','schema-depth','schema-busy','schema-cleanup-errors')
     operations=('create','insert','replace','append','clone','cursor','get','take','cursor-read','cursor-advance','clear','trim',
         'merge-keep','merge-replace','ref-equal','value-get','value-take','value-set','value-append',
-        'wire','import-wire','import-native','import-convert','projection-take')
+        'wire','import-wire','import-native','import-convert','projection-take',
+        'schema-create','schema-list-create','schema-deep-create')
     try:
         for level in (0,2):
             lane='O'+str(level); binary=out/('list-'+lane+('.exe' if os.name=='nt' else ''))
@@ -75,7 +79,8 @@ def main():
             if symbols is None: continue
             names={line.split()[-1].lstrip('_') for line in symbols.splitlines() if line.split()}
             assert {'xl6ListCreateTakeV1','xl6ListCursorAdvanceV1','xrtTypedListClone',
-                'xl6ListToWireV1','xl6ListImportTakeV1','xrtTypedListSetValue'}<=names
+                'xl6ListToWireV1','xl6ListImportTakeV1','xrtTypedListSetValue',
+                'xl6SequenceListCreateTakeV1','xl6ListSchemaCopyV1'}<=names
             assert not {'xl6ArrayFromValueV1','xl6ArrayToValueV1','xl6ArrayErasedReadV1'}&names
             for mode in modes: run(lane+'.'+mode,[binary,mode])
             for operation in operations:

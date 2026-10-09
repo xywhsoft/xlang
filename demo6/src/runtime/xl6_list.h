@@ -17,6 +17,11 @@ typedef struct XL6_ListLayoutV1 {
  * an operation-BUSY owner and compares the full immutable logical policy. */
 XL6_TEXT_API bool xl6ListDomainCopyV1(const XL6_ListLayoutV1*,const xvalue*,XL6_SequenceAdmissionV3*);
 XL6_TEXT_API bool xl6ListAdmitsSchemaV1(const xvalue*,const XL6_ListLayoutV1*,const XL6_SequenceAdmissionV3*);
+/* Capture only owned immutable metadata from a genuine live List, including
+ * an operation-pinned owner. Does not traverse/retain storage or require an
+ * empty source. Cursor/foreign/cleared owners fail closed. The admission
+ * output must be empty; both outputs remain unchanged on failure. */
+XL6_TEXT_API bool xl6ListSchemaCopyV1(const xvalue*,XL6_ListLayoutV1*,XL6_SequenceAdmissionV3*);
 XL6_TEXT_API xvalue* xl6ListCreateTakeV1(const XL6_ListLayoutV1*,xvalue*);
 XL6_TEXT_API bool xl6ListSetV1(const xvalue*,const XL6_ListLayoutV1*,int64_t,const void*);
 /* Append uses maximum key + 1 (empty -> 0), not element count. Overflow is

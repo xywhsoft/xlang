@@ -539,11 +539,27 @@ bool xl6ListAdmitsSchemaV1(const xvalue* value,const XL6_ListLayoutV1* layout,co
     }
     mutationEnd(&mutation); return success;
 }
+bool xl6ListSchemaCopyV1(const xvalue* value,XL6_ListLayoutV1* layout,XL6_SequenceAdmissionV3* policy)
+{
+    if (!value || !layout || !emptyPolicy(policy)) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    void* raw=NULL; void* user=NULL; const xvaluehandleops* actual=NULL;
+    bool success=false;
+    if (xrtValueGetHandle(value,&raw,&actual,&user) && actual==&handleOps && raw && !user) {
+        const ListOwner* owner=raw;
+        if (owner->cleared || !owner->storage || owner->cursorIdentity ||
+            xrtValueTypeId(value)!=owner->layout.identity) xrtSetErrorKind(XERR_STATE);
+        else if (owner->policy.ops->Retain(owner->policy.data)) {
+            *layout=owner->layout; *policy=owner->policy; success=true;
+        }
+    } else xrtSetErrorKind(XERR_ARGUMENT);
+    mutationEnd(&mutation); return success;
+}
 xvalue* xl6ListCreateTakeV1(const XL6_ListLayoutV1* layout,xvalue* seed)
 {
     xl6_error_scope scope={0};
     if (!(seed ? xl6ErrorScopeBegin(&scope) : xl6ErrorScopeBeginCleanup(&scope,true))) {
-        xrtValueRelease(seed); return NULL;
+        discard(seed); return NULL;
     }
     XL6_SequenceAdmissionV3 policy={0}; xvalue* result=NULL;
     if (xl6ListDomainCopyV1(layout,seed,&policy)) {
@@ -552,7 +568,7 @@ xvalue* xl6ListCreateTakeV1(const XL6_ListLayoutV1* layout,xvalue* seed)
     }
     if (!result) xl6ErrorScopeCaptureFailure(&scope);
     xl6SequenceAdmissionDropV3(&policy); xrtValueRelease(seed);
-    if (!scopeFinish(&scope,result!=NULL)) { xrtValueRelease(result); return NULL; }
+    if (!scopeFinish(&scope,result!=NULL)) { discard(result); return NULL; }
     return result;
 }
 bool xl6ListSetV1(const xvalue* value,const XL6_ListLayoutV1* layout,int64_t key,const void* item)

@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_list.h"
+#include "src/runtime/xl6_list_schema.h"
 #include "src/runtime/xl6_array_admission.h"
 #include "src/api/xl_foreign_error.h"
 #include "test/support/module_product_memory.h"
@@ -13,6 +14,8 @@
 #define ELEMENT_ID UINT64_C(0xD612)
 #define CURSOR_ID UINT64_C(0xD613)
 static void equalLists(const xvalue*,const xvalue*,const XL6_ListLayoutV1*,bool);
+extern void xl6TestListSchemaVectorsV1(const char*);
+extern bool xl6TestListSchemaFaultV1(const char*,size_t);
 /* Linker call-boundary fault injection, not a replacement List/provider.
  * Negative budget models explicit failure without an allocated diagnostic. */
 static int cleanupFailure;
@@ -304,6 +307,8 @@ static void phased(void)
     xvalue* list=create(&tuple,XL6_VALUE_ADMIT_ANY); assert(list);
     /* Actual self edges, not a synthetic graph returned by a test callback. */
     assert(xl6ListSetV1(list,&tuple,1,&list) && xl6ListSetV1(list,&tuple,2,&list));
+    XL6_ListLayoutV1 schemaLayout={0}; XL6_SequenceAdmissionV3 schema={0};
+    assert(xl6ListSchemaCopyV1(list,&schemaLayout,&schema));
     xrtownershipref owner=ownerOf(list); Edges slots={0};
     assert(owner.Ops->Trace(owner.Data,edge,&slots) && slots.count==2 && slots.same);
     const xrtownershipadapterv1* adapter=xl6ListOwnershipAdapterV1(owner); assert(adapter);
@@ -315,6 +320,12 @@ static void phased(void)
     assert(xl6ListCountV1(list,&tuple)==2); /* Finalization precedes Clear. */
     assert(xrtOwnershipFreezeTryBegin(&freeze));
     adapter->Clear(owner.Data,&token); assert(xrtOwnershipScopeEnd(&freeze));
+    XL6_ListLayoutV1 unchanged={.identity=777}; XL6_SequenceAdmissionV3 empty={0};
+    assert(!xl6ListSchemaCopyV1(list,&unchanged,&empty) && unchanged.identity==777 && !empty.ops);
+    assert(xrtGetError() && xrtErrorKind(xrtGetError())==XERR_STATE);
+    const xerror* clearedError=xrtGetError();
+    assert(!xl6ListAdmitsSchemaV1(list,&schemaLayout,&schema) && xrtGetError()==clearedError); xrtClearError();
+    xl6SequenceAdmissionDropV3(&schema);
     xrtSetErrorKind(XERR_ARGUMENT); const xerror* prior=xrtGetError(); assert(prior);
     assert(adapter->Finish(owner.Data,&token) && xrtGetError()==prior);
     assert(adapter->Finish(owner.Data,&token) && xrtGetError()==prior); xrtClearError();
@@ -804,14 +815,16 @@ static bool projectionFault(const char* operation,size_t point)
 static void projectionEntryErrors(void)
 {
     XL6_ListLayoutV1 tuple=layout(2,xl6StringTypeV1());
-    for (unsigned absent=0;absent<2;++absent) for (unsigned operation=0;operation<2;++operation) {
+    for (unsigned absent=0;absent<2;++absent) for (unsigned operation=0;operation<4;++operation) {
         /* Exact consumed ownership even when Begin never installs a scope.
          * The later genuine finalizer error must not replace Memory/NULL. */
         unsigned drops=0; void* raw=&drops;
         xvalue* seed=xrtValueHandleTake(&raw,&finalizerOps,NULL); assert(seed);
         xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
         entryFailure=absent ? -1 : 1;
-        xvalue* result=operation ? xl6ListImportTakeV1(seed,xrtValueNull()) :
+        xvalue* result=operation==3 ? xl6SequenceListCreateTakeV1(1,900,901,seed,false) :
+            operation==2 ? xl6ListCreateTakeV1(&tuple,seed) :
+            operation==1 ? xl6ListImportTakeV1(seed,xrtValueNull()) :
             xl6ListProjectionTakeV1(seed,&tuple,xl6StringConverterV1());
         assert(!result && !entryFailure && drops==1);
         xl6_error_result outcome=xl6ErrorScopeEnd(&scope); assert(!outcome.ok);
@@ -819,8 +832,26 @@ static void projectionEntryErrors(void)
         xrtErrorFree(outcome.error);
     }
 }
+static void schemaCleanupErrors(void)
+{
+    XL6_ListLayoutV1 tuple=layout(3,xrtTypeValue());
+    /* Capturing only metadata must not hide a real destructor failure while
+     * the consumed populated child loses its last Value reference. */
+    unsigned drops=0; void* raw=&drops;
+    xvalue* item=xrtValueHandleTake(&raw,&finalizerOps,NULL),*child=create(&tuple,XL6_VALUE_ADMIT_ANY);
+    assert(item && child && xl6ListSetV1(child,&tuple,0,&item)); xrtValueRelease(item);
+    xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
+    assert(!xl6SequenceListCreateTakeV1(1,900,LIST_ID,child,false) && drops==1);
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    assert(!outcome.ok && outcome.error && xrtErrorKind(outcome.error)==XERR_VALUE); xrtErrorFree(outcome.error);
+    /* The upstream factory's failed bit is independent of an error object. */
+    assert(xl6ErrorScopeBegin(&scope)); xl6ErrorScopeCaptureFailure(&scope);
+    assert(!xl6SequenceListCreateTakeV1(1,900,LIST_ID,NULL,false));
+    outcome=xl6ErrorScopeEnd(&scope); assert(!outcome.ok && !outcome.error);
+}
 static void fault(const char* operation,size_t point)
 {
+    if (xl6TestListSchemaFaultV1(operation,point)) return;
     if (projectionFault(operation,point)) return;
     if (!strcmp(operation,"ref-equal")) { equalityFault(point); return; }
     XL6_ListLayoutV1 tuple=layout(2,xl6StringTypeV1());
@@ -909,6 +940,8 @@ int main(int argc,char** argv)
     else if (!strcmp(argv[1],"imports")) imports();
     else if (!strcmp(argv[1],"codec-errors")) codecErrors();
     else if (!strcmp(argv[1],"projection-entry-errors")) projectionEntryErrors();
+    else if (!strcmp(argv[1],"schema-cleanup-errors")) schemaCleanupErrors();
+    else if (!strncmp(argv[1],"schema-",7)) xl6TestListSchemaVectorsV1(argv[1]);
     else assert(0);
     assert(!xrtGetError() && !xl6ProductMemoryEnd()); xl6ProductMemoryVerify();
     if (argc==2) printf("native List %s vectors balanced\n",argv[1]);
