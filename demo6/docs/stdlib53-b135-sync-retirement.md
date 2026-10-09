@@ -3,8 +3,9 @@
 This native slice implements the two human decisions of 2026-10-09: locks
 stay manually unlocked, refused cleanup is checked instead of aborting, and
 recovery is a host API. It does not complete the language/IR migration or
-certify a rebuilt shipping DLL. The SDK declarations are new source APIs;
-existing release products do not yet contain their exports.
+certify a rebuilt shipping DLL. The SDK declarations are new source APIs; the
+main release-directory products remain old. Fresh independent Windows candidates
+below contain and exercise their real exports without replacing those products.
 
 The language/IR integration has subsequently passed on Windows and Linux,
 including an isolated snapshot of the exact staged commit candidate. It removes
@@ -191,12 +192,29 @@ Linux does **not** claim standalone ELF execution from object-table checks.
 This is fixture-scoped kernel selection, not complete 53-module/function-level
 pruning or acceptance of a rebuilt shipping library.
 
-Rebuilt Win/Linux shipping DLLs and embedded VFS, standalone ELF execution,
+The b138 Windows candidate was rebuilt with the actual `build_dll.bat` from an
+index export at `ecf184026`, not the mixed worktree. Bootstrap TCC, the XRT object
+and both embedded VFS products were freshly rebuilt, not reused. Snapshot and
+VFS gates passed, as did compilation of the existing DLL fixture hosts. Candidate
+xl.dll SHA256 is `98028caadca0e822a2436c7f2ab882bd1f644770742941d853d3116d40d1f034`;
+xlc.dll is `810bf0ef8c463a31efd423356c5000ed3c332873d4e276105d3883da13df59b3`.
+
+`stdlib53-b138-shipping-proof-win-dev1/sync.shipping.json` passes 26 phases with
+unchanged hashed inputs: both actual candidate DLLs, O0/O2 SDK hosts, held
+mutex/read/write locks, original-assertion cleanup and checked global deactivation
+retry. Each host loads TCC from the same DLL supplying the recovery API. Execution
+runs in a separate directory containing no source tree, private/public headers
+or TCC distribution; no JIT include path or external TCC library path is provided.
+Real JIT pages are freed before local-scope host recovery. Allocations, errors and
+owner lifetimes balance. `SyncShippingApiVfsAcceptance=true` is deliberately a
+synchronization-only gate; overall shipping and full53 flags remain false.
+
+Linux shipping libraries and embedded VFS, standalone ELF execution,
 the remaining resource domains and full 53-module acceptance are still required.
 Family absence in a DLL export table is **not** pruning proof; the accepted
 family proof above comes from actual TCC object tables. Some older diagnostic
 tools use a narrow `SourceProductAcceptance` flag for their specific provider
 proof; it does not imply shipping, full runtime instrumentation or full53
-acceptance. Old release binaries have not been replaced and still use the legacy
-generated sync Drop. The new SDK recovery exports must be tested in genuinely
-rebuilt shipping products before those products are accepted.
+acceptance. Main-directory release binaries have not been replaced and still
+use legacy generated sync Drop. Candidate acceptance for the remaining domains
+and broad product regression must precede promoting new release binaries.
