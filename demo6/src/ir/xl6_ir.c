@@ -24551,10 +24551,10 @@ static int xl6IrReachabilityMarkSymbol(
     return changed;
 }
 
-/* Restore's only implicit executable edge is the verified declaration-default
- * factory used for a class inside a nullable/collection carrier. Direct class
- * fields are restored in place. Follow typed contracts, never source names or
- * generated C, and retain exactly the factories demanded by reachable reads. */
+/* Reachable reads own both declaration-default factories and conditional
+ * shared-default isolation calls. Follow the typed contracts, never source
+ * names or generated C. Promote before the cycle guard: a type first seen in
+ * place may later also need construction through a nullable/collection edge. */
 static int xl6IrReachabilityRestoreDefaults(
     const XL6_IrModule* module, XL6_IrReachabilityFacts* facts,
     XL6_IrTypeId typeId, uint32 format, int construct, uint8* visited)
@@ -24565,6 +24565,15 @@ static int xl6IrReachabilityRestoreDefaults(
     uint8 bit = format == XL6_IR_PERSIST_FORMAT_JSON ? 1u : 2u;
     size_t field;
     if (type == NULL || visited == NULL) return -1;
+    if (type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_CLASS_SCHEMA) {
+        XL6_IrPersistenceRestoreNode contract;
+        layout = xl6IrBuildClassLayoutByType(module, typeId);
+        if (layout == NULL) return -1;
+        memset(&contract, 0, sizeof(contract)); contract.payloadType = typeId;
+        if (!xl6IrRestoreGraphIsolation(module, layout, &contract)) return -1;
+        if (contract.cloneSymbol) changed |= xl6IrReachabilityMarkSymbol(module, facts,
+            contract.cloneSymbol, XL6_IR_REACHABILITY_TRANSITIVE);
+    }
     if (type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_CLASS_SCHEMA && construct) {
         layout = xl6IrBuildClassLayoutByType(module, typeId);
         if (layout == NULL || layout->persistenceDefaultFunction == 0 ||
@@ -48550,12 +48559,13 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     for (i = 0; i < module->persistenceRestoreNodeCount; ++i) {
         const XL6_IrPersistenceRestoreNode* row=&module->persistenceRestoreNodes[i];
         xl6OutputPrintf(out,
-            "    {\"type\":%u,\"payloadType\":%u,\"abi\":%u,\"flags\":%u,\"identity\":%llu,\"contextField\":%llu,\"scalarRule\":%u,\"carrierAbi\":%u,\"seed\":%llu,\"element\":%llu,\"schema\":%llu,\"firstEdge\":%llu,\"edgeCount\":%llu,\"defaultFunction\":%u,\"defaultSymbol\":%u,\"defaultErrorAbi\":%u}%s\n",
+            "    {\"type\":%u,\"payloadType\":%u,\"abi\":%u,\"flags\":%u,\"identity\":%llu,\"contextField\":%llu,\"scalarRule\":%u,\"carrierAbi\":%u,\"seed\":%llu,\"element\":%llu,\"schema\":%llu,\"firstEdge\":%llu,\"edgeCount\":%llu,\"defaultFunction\":%u,\"defaultSymbol\":%u,\"defaultErrorAbi\":%u,\"isolationAbi\":%u,\"cloneFunction\":%u,\"cloneSymbol\":%u,\"cloneErrorAbi\":%u}%s\n",
             (unsigned)row->type,(unsigned)row->payloadType,(unsigned)row->abi,(unsigned)row->flags,
             (unsigned long long)row->identity,(unsigned long long)row->contextField,(unsigned)row->scalarRule,
             (unsigned)row->carrierAbi,(unsigned long long)row->seed,(unsigned long long)row->element,
             (unsigned long long)row->schema,(unsigned long long)row->firstEdge,(unsigned long long)row->edgeCount,
             (unsigned)row->defaultFunction,(unsigned)row->defaultSymbol,(unsigned)row->defaultErrorAbi,
+            (unsigned)row->isolationAbi,(unsigned)row->cloneFunction,(unsigned)row->cloneSymbol,(unsigned)row->cloneErrorAbi,
             i+1<module->persistenceRestoreNodeCount ? "," : "");
     }
     xl6OutputPuts("  ],\n  \"persistenceRestoreEdges\": [\n", out);
