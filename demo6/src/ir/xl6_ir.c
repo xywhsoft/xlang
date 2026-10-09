@@ -7030,6 +7030,8 @@ int xl6IrBuildPersistenceRestorePlans(XL6_IrModule* module)
     XL6_IR_RESTORE_COMMIT(persistenceRestoreNode);
     XL6_IR_RESTORE_COMMIT(persistenceRestoreEdge);
 #undef XL6_IR_RESTORE_COMMIT
+    module->abi.readBoundaryAbi = module->persistenceRestoreRootCount
+        ? XL6_IR_MODULE_READ_BOUNDARY_RESIDENT_HOST_BIND_V1 : XL6_IR_MODULE_READ_BOUNDARY_NONE;
     return 1;
 }
 
@@ -19007,7 +19009,27 @@ static int xl6IrModuleOwnershipSymbolReserved(const char* name)
         !strcmp(name, "xl_script_module_ownership_trace") || !strcmp(name, "xl_script_module_retirement_v1") ||
         !strcmp(name, "xl_script_module_retirement_v2") || !strcmp(name, "xl_script_module_retirement_v3") ||
         !strcmp(name, "xl_script_module_retirement_v4") || !strcmp(name, "xl_script_module_retire_step") ||
-        !strcmp(name, "xl_script_module_ownership_read_v1"));
+        !strcmp(name, "xl_script_module_ownership_read_v1") ||
+        !strcmp(name, "xl_script_bind_ownership_read_v1"));
+}
+
+/* Recompute from reachable lowered operations, not the cached root table or
+ * a requested host ABI. The independent restore-graph verifier still closes
+ * every node/edge/capability; a read boundary never makes pending families safe. */
+static XL6_IrModuleReadBoundaryAbi xl6IrModuleReadBoundaryRequirement(const XL6_IrModule* module)
+{
+    size_t f, i;
+    if (module->stage == XL6_IR_STAGE_TYPED) return XL6_IR_MODULE_READ_BOUNDARY_NONE;
+    for (f = 0; f < module->functionCount; ++f) {
+        const XL6_IrFunction* function = &module->functions[f];
+        if (!xl6IrPersistenceProjectFunctionUsed(module, function) ||
+            function->firstInstruction > module->instructionCount ||
+            function->instructionCount > module->instructionCount - function->firstInstruction) continue;
+        for (i = 0; i < function->instructionCount; ++i)
+            if (xl6IrPersistenceRestoreOperationFormat(&module->instructions[function->firstInstruction + i]))
+                return XL6_IR_MODULE_READ_BOUNDARY_RESIDENT_HOST_BIND_V1;
+    }
+    return XL6_IR_MODULE_READ_BOUNDARY_NONE;
 }
 
 static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* diags)
@@ -19077,6 +19099,10 @@ static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* 
     if (module->abi.readExecutionAbi != (module->stage != XL6_IR_STAGE_TYPED && initializers != 0
             ? XL6_IR_MODULE_READ_EXECUTION_TRACKED_SLOTS_V1 : XL6_IR_MODULE_READ_EXECUTION_NONE))
         return xl6IrDiag(diags, NULL, "XLIR module read execution ABI is unresolved");
+    if (module->abi.readBoundaryAbi != xl6IrModuleReadBoundaryRequirement(module) ||
+        (module->abi.readBoundaryAbi != XL6_IR_MODULE_READ_BOUNDARY_NONE &&
+         (initializers == 0 || module->abi.readExecutionAbi != XL6_IR_MODULE_READ_EXECUTION_TRACKED_SLOTS_V1)))
+        return xl6IrDiag(diags, NULL, "XLIR module resident read boundary binding ABI is unresolved");
     if (module->abi.executorOwnershipAbi != (module->stage == XL6_IR_STAGE_TYPED
             ? XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE : xl6IrModuleExecutorOwnershipRequirement(module)) ||
         (module->abi.executorOwnershipAbi != XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE &&
@@ -48244,6 +48270,7 @@ void xl6IrDumpModuleText(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPrintf(out, "module-code-owner: %s\n", xl6IrModuleCodeOwnerAbiName(module->abi.codeOwnerAbi));
     xl6OutputPrintf(out, "module-host-execution: %d\n", (int)module->abi.hostExecutionAbi);
     xl6OutputPrintf(out, "module-read-execution: %d\n", (int)module->abi.readExecutionAbi);
+    xl6OutputPrintf(out, "module-read-boundary: %d\n", (int)module->abi.readBoundaryAbi);
     xl6OutputPrintf(out,"module-entry: %d symbol=%u argument=t%u carrier=%d element=0x%016llX\n",
         (int)module->abi.entryKind,(unsigned)module->abi.entrySymbol,
         (unsigned)module->abi.entryArgumentType,(int)module->abi.entryArgumentCarrierAbi,
@@ -48341,6 +48368,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         xl6IrModuleCodeOwnerAbiName(module->abi.codeOwnerAbi));
     xl6OutputPrintf(out, "  \"moduleHostExecutionAbi\": %d,\n", (int)module->abi.hostExecutionAbi);
     xl6OutputPrintf(out, "  \"moduleReadExecutionAbi\": %d,\n", (int)module->abi.readExecutionAbi);
+    xl6OutputPrintf(out, "  \"moduleReadBoundaryAbi\": %d,\n", (int)module->abi.readBoundaryAbi);
     xl6OutputPrintf(out, "  \"moduleContinuationAbi\": %d,\n", (int)module->abi.continuationAbi);
     xl6OutputPrintf(out,"  \"moduleEntry\": {\"kind\": %d, \"symbol\": %u, \"argumentType\": %u, \"carrierAbi\": %d, \"elementIdentity\": \"0x%016llX\"},\n",
         (int)module->abi.entryKind,(unsigned)module->abi.entrySymbol,

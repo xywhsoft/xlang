@@ -1,0 +1,10 @@
+class ReadBindingPruned
+    derive value
+    int n = 23
+end
+func unusedRestore() as ReadBindingPruned
+    return json.parse::<ReadBindingPruned>("{}")
+end
+export "read_binding_pruned" func readBindingPruned() as int
+    return 23
+end

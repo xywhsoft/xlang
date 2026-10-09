@@ -16,18 +16,6 @@
  * caller's zero-initialized scope empty. End follows Freeze end, before any
  * cleanup, clone or generated code. A live scope is same-thread, uncopyable.
  * This is NOT the lifecycle/retirement adapter or a public language facility. */
-typedef struct XL6_OwnershipReadScopeV1 {
-    const void* self;
-    unsigned long long thread;
-} XL6_OwnershipReadScopeV1;
-enum { XL6_OWNERSHIP_READ_ERROR_V1=-1, XL6_OWNERSHIP_READ_BUSY_V1=0,
-    XL6_OWNERSHIP_READ_READY_V1=1 };
-typedef struct XL6_OwnershipReadBoundaryV1 {
-    size_t size;
-    int (*Begin)(XL6_OwnershipReadScopeV1*);
-    bool (*Admits)(const XL6_OwnershipReadScopeV1*,xrtownershipref);
-    void (*End)(XL6_OwnershipReadScopeV1*);
-} XL6_OwnershipReadBoundaryV1;
 /* Actual resident API implementation; generated programs receive this
  * independent capability through a host binding, not a native source lookup. */
 const XL6_OwnershipReadBoundaryV1* xlModuleOwnershipReadBoundaryV1(void);

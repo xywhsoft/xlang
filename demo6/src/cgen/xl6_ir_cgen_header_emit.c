@@ -226,6 +226,10 @@ int xl6IrCgenEmitHeader(
             "XLIR_C_API int xl_script_bind_code_owner(const XL6_CodeOwner*);\n\n", out);
         xl6OutputPuts("/* Read-only global owning slots; caller guarantees code residency and whole-graph quiescence. */\n"
             "XLIR_C_API bool xl_script_module_ownership_trace(XL6_ModuleOwnershipVisit, void*);\n\n", out);
+        if (module->abi.readBoundaryAbi == XL6_IR_MODULE_READ_BOUNDARY_RESIDENT_HOST_BIND_V1)
+            xl6OutputPuts("#include <__xl_runtime/xl6_ownership_read_abi.h>\n"
+                "/* Optional resident boundary, copied once before entry; no callbacks during binding. */\n"
+                "XLIR_C_API int xl_script_bind_ownership_read_v1(const XL6_OwnershipReadBoundaryV1*);\n\n", out);
     }
     if ( !xl6IrCgenEmitUnionTypes(out, module, publicTypes, diags) ) {
         xrtFree(publicTypes);

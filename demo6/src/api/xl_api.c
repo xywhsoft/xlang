@@ -2472,11 +2472,26 @@ static XL_Module* xlCreateModuleFromState(XL_Context* ctx, TCCState* s)
         0x584C36434F574E31ULL, &xlModuleOwnershipOps};
     {
         XL6_BindCodeOwnerProc bind = (XL6_BindCodeOwnerProc)xl__tcc.tcc_get_symbol(s, "xl_script_bind_code_owner");
+        XL6_BindOwnershipReadV1 bindRead = (XL6_BindOwnershipReadV1)
+            xl__tcc.tcc_get_symbol(s, "xl_script_bind_ownership_read_v1");
+        if (bindRead && (!bind || !module->ownershipReadContract || !module->retirementContract)) {
+            xlModuleLoadedLibrariesFree(module); xrtFree(module);
+            xlRuntimeReleaseManualUnlocked(); xlSetError(ctx, "module read binding requires certified owning slots and lifecycle");
+            return NULL;
+        }
         if (bind != NULL && !bind(&module->codeOwnerGraph.base)) {
             /* Binding only stores the capability. No acquisition is accepted
              * until it succeeds; the caller still owns TCC state on failure. */
             xlModuleLoadedLibrariesFree(module); xrtFree(module);
             xlRuntimeReleaseManualUnlocked(); xlSetError(ctx, "module code-owner binding failed");
+            return NULL;
+        }
+        if (bindRead && !bindRead(xlModuleOwnershipReadBoundaryV1())) {
+            /* Only the resident API supplies this independent capability.
+             * No execution/acquisition has been admitted before both binds.
+             * Failed binding leaves the caller owning the TCC state. */
+            xlModuleLoadedLibrariesFree(module); xrtFree(module);
+            xlRuntimeReleaseManualUnlocked(); xlSetError(ctx, "module ownership read binding failed");
             return NULL;
         }
     }
