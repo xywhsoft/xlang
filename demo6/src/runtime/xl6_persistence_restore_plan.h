@@ -2,6 +2,7 @@
 #define XL6_PERSISTENCE_RESTORE_PLAN_H
 #include "xl6_collection_import_chain.h"
 #include "xl6_value_admission_abi.h"
+#include "xl6_ownership_read.h"
 
 enum { XL6_RESTORE_SCALAR_V1=1, XL6_RESTORE_SEQUENCE_V1, XL6_RESTORE_OBJECT_V1 };
 enum { XL6_RESTORE_NULLABLE_V1=1u, XL6_RESTORE_FIELD_INSTANCE_V1=2u };
@@ -50,6 +51,10 @@ typedef struct XL6_RestorePlanV1 {
     const XL6_RestoreNodeV1* nodes;
     const XL6_RestoreFieldV1* fields;
     bool json;
+    /* Optional separately bound RESIDENT host capability. Only surrounds
+     * atomic field commit, never constructors, clone or cleanup callbacks.
+     * NULL preserves closed resident-family admission; unknown owners refuse. */
+    const XL6_OwnershipReadBoundaryV1* readBoundary;
 } XL6_RestorePlanV1;
 
 /* One transaction/memo for all object fields and collection elements. The

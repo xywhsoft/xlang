@@ -19006,7 +19006,8 @@ static int xl6IrModuleOwnershipSymbolReserved(const char* name)
     return name != NULL && (!strcmp(name, "xl_script_bind_code_owner") ||
         !strcmp(name, "xl_script_module_ownership_trace") || !strcmp(name, "xl_script_module_retirement_v1") ||
         !strcmp(name, "xl_script_module_retirement_v2") || !strcmp(name, "xl_script_module_retirement_v3") ||
-        !strcmp(name, "xl_script_module_retirement_v4") || !strcmp(name, "xl_script_module_retire_step"));
+        !strcmp(name, "xl_script_module_retirement_v4") || !strcmp(name, "xl_script_module_retire_step") ||
+        !strcmp(name, "xl_script_module_ownership_read_v1"));
 }
 
 static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* diags)

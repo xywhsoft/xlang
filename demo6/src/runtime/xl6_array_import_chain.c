@@ -367,6 +367,8 @@ static bool graphPlanValid(const XL6_RestorePlanV1* plan,size_t count)
     if (!plan || plan->size!=sizeof(*plan) || !plan->nodeCount || !plan->nodes ||
         plan->root>=plan->nodeCount || plan->nodeCount>SIZE_MAX/sizeof(*plan->nodes) ||
         plan->fieldCount>SIZE_MAX/sizeof(*plan->fields) || (plan->fieldCount && !plan->fields)) return false;
+    if (plan->readBoundary && (plan->readBoundary->size!=sizeof(*plan->readBoundary) ||
+        !plan->readBoundary->Begin || !plan->readBoundary->Admits || !plan->readBoundary->End)) return false;
     for (size_t i=0;i<plan->nodeCount;++i) {
         const XL6_RestoreNodeV1* node=&plan->nodes[i];
         if (node->flags&~(XL6_RESTORE_NULLABLE_V1|XL6_RESTORE_FIELD_INSTANCE_V1)) return false;
@@ -445,12 +447,17 @@ static void closeTemplates(Import* ctx)
         if (xrtGetError()) xl6ErrorScopeCaptureFailure(ctx->operation);
     }
 }
+typedef struct RestoreAdmission {
+    const XL6_RestorePlanV1* plan;
+    const XL6_OwnershipReadScopeV1* read;
+} RestoreAdmission;
 static bool restoreOwnershipAdmits(xrtownershipref ref,ptr opaque)
 {
-    const XL6_RestorePlanV1* plan=opaque;
+    const RestoreAdmission* admission=opaque;
+    const XL6_RestorePlanV1* plan=admission->plan;
     for (size_t i=0;i<plan->nodeCount;++i) if (plan->nodes[i].kind==XL6_RESTORE_OBJECT_V1 &&
         plan->nodes[i].as.object.provider->OwnershipAdmits(ref)) return true;
-    return false;
+    return admission->read && plan->readBoundary->Admits(admission->read,ref);
 }
 static xvalueobjectfieldsresultv1 commitFields(Import* ctx,const XL6_RestorePlanV1* plan,
     xvalue* result,const xvalue* observed,size_t* shared)
@@ -488,8 +495,22 @@ static xvalueobjectfieldsresultv1 commitFields(Import* ctx,const XL6_RestorePlan
         slots[used++]=xrtValueOwnership(ctx->wire[i].snapshot);
     }
     for (size_t i=0;i<ctx->stagedCount;++i) fields[i]=ctx->staged[i].fields;
-    xvalueobjectfieldsresultv1 outcome=xrtValueObjectFieldsCommitV2(fields,ctx->stagedCount,
-        slots,used,restoreOwnershipAdmits,(ptr)plan,shared);
+    XL6_OwnershipReadScopeV1 read={0};
+    RestoreAdmission admission={plan,NULL};
+    xvalueobjectfieldsresultv1 outcome=XVALUE_OBJECT_FIELDS_ERROR_V1;
+    if (plan->readBoundary) {
+        int status=plan->readBoundary->Begin(&read);
+        if (status!=XL6_OWNERSHIP_READ_READY_V1) {
+            if (status==XL6_OWNERSHIP_READ_BUSY_V1) outcome=XVALUE_OBJECT_FIELDS_BUSY_V1;
+            else if (!xrtGetError()) xrtSetErrorKind(XERR_STATE);
+            goto done;
+        }
+        admission.read=&read;
+    }
+    outcome=xrtValueObjectFieldsCommitV2(fields,ctx->stagedCount,
+        slots,used,restoreOwnershipAdmits,&admission,shared);
+    if (admission.read) plan->readBoundary->End(&read);
+done:
     xrtFree(fields); xrtFree(slots);
     return outcome;
 }
