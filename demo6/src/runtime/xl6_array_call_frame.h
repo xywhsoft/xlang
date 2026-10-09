@@ -1,6 +1,6 @@
 #ifndef XL6_ARRAY_CALL_FRAME_H
 #define XL6_ARRAY_CALL_FRAME_H
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_text_value.h"
 
 /* Compiler-private producer contract: an independent native ARRAY of var
  * references, with exact container/element identities and resident projection.

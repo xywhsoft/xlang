@@ -1,6 +1,6 @@
 #ifndef XL6_TIME_TEXT_INTERNAL_H
 #define XL6_TIME_TEXT_INTERNAL_H
-#include "src/runtime/xl6_text_internal.h"
+#include "xl6_text_internal.h"
 
 /* XRT owns all calendar, pattern and protocol rules. Its writer reports the
  * exact required byte count, so no C-string scan or fixed-size buffer is used. */

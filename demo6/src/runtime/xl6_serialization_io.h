@@ -1,8 +1,8 @@
 #ifndef XL6_SERIALIZATION_IO_H
 #define XL6_SERIALIZATION_IO_H
-#include "src/runtime/xl6_text_value.h"
-#include "src/runtime/xl6_serialization_options.h"
-#include "src/runtime/xl6_closure.h"
+#include "xl6_text_value.h"
+#include "xl6_serialization_options.h"
+#include "xl6_closure.h"
 
 /* The status is independent of both the bool result and diagnostic allocation.
  * Ordinary native write failures are successful false; OOM, invalid options

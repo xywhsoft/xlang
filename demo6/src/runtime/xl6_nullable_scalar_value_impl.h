@@ -2,7 +2,7 @@
  * out of the storage-only descriptor TU: typed Stack does not need Value
  * projection code. XRT owns numeric range/lossless conversion and xvalue
  * allocation; the adapter owns only nullable presence and char's exact kind. */
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_text_value.h"
 
 static bool toTyped(const xvalue* source, const xrttype* type, ptr target, ptr context)
 {

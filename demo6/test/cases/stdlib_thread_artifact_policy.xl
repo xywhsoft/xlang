@@ -1,0 +1,17 @@
+export func threadProbe() as int
+    auto worker = thread(func() as int => 42)
+    auto stack = Stack::<thread?>()
+    assert(stack.push(null) and stack.pop() == null and stack.push(worker))
+    auto extracted = stack.pop()
+    assert(extracted != null)
+    if extracted != null then
+        assert(extracted.wait() and extracted.exitCode() == 42)
+    end
+    auto tree = AvlTree::<int, thread>()
+    assert(tree.set(1, worker))
+    auto copy = tree.clone()
+    auto values = copy.values()
+    auto projected = values.pop()
+    assert(projected.wait() and projected.exitCode() == 42)
+    return projected.exitCode()
+end

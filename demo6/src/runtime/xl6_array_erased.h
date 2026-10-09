@@ -1,6 +1,6 @@
 #ifndef XL6_ARRAY_ERASED_H
 #define XL6_ARRAY_ERASED_H
-#include "src/runtime/xl6_sequence.h"
+#include "xl6_sequence.h"
 #include "xl6_array_value_write.h"
 
 /* Explicit immutable resident projection policy. Retains the SAME shell and

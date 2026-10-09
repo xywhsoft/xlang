@@ -1,6 +1,6 @@
 #ifndef XL6_THREAD_H
 #define XL6_THREAD_H
-#include "src/runtime/xl6_closure.h"
+#include "xl6_closure.h"
 struct xvalue;
 struct xrtownershipref;
 struct xrtownershipadapterv1;

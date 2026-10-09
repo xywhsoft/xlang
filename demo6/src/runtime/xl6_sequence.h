@@ -1,6 +1,6 @@
 #ifndef XL6_SEQUENCE_H
 #define XL6_SEQUENCE_H
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_text_value.h"
 
 /* Native-only shared owner for contiguous typed storage. The opaque token
  * pins one wrapper and closes its graph while an operation runs. No raw

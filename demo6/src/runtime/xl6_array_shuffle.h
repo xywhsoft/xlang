@@ -1,6 +1,6 @@
 #ifndef XL6_ARRAY_SHUFFLE_H
 #define XL6_ARRAY_SHUFFLE_H
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_text_value.h"
 
 /* Synchronous mutable Array consumer, not an Array snapshot/conversion.
  * Native storage is pinned and shuffled directly by XRT, without boxing,

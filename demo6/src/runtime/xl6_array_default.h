@@ -1,7 +1,7 @@
 #ifndef XL6_ARRAY_DEFAULT_H
 #define XL6_ARRAY_DEFAULT_H
-#include "src/runtime/xl6_value_default_abi.h"
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_value_default_abi.h"
+#include "xl6_text_value.h"
 /* Borrowed receiver. An admitted/bound native ARRAY uses its sealed resident
  * default policy and XRT's typed resize transaction; abi is only the wire
  * carrier's verified language-default hint, never a native slot constructor.

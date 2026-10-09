@@ -1,6 +1,6 @@
 #ifndef XL6_STACK_BATCH_H
 #define XL6_STACK_BATCH_H
-#include "src/runtime/xl6_sequence.h"
+#include "xl6_sequence.h"
 
 /* Private native Array boundary, NOT a legacy boxed-array adapter. Both
  * identities are verified separately; only element/physical layout is shared.

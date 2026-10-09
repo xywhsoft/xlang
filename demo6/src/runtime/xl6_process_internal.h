@@ -1,7 +1,7 @@
 #ifndef XL6_PROCESS_INTERNAL_H
 #define XL6_PROCESS_INTERNAL_H
-#include "src/runtime/xl6_text_thread.h"
-#include "src/runtime/xl6_process_text.h"
+#include "xl6_text_thread.h"
+#include "xl6_process_text.h"
 #if defined(_WIN32)
 #include <windows.h>
 #else

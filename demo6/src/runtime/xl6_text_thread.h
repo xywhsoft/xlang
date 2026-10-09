@@ -1,6 +1,6 @@
 #ifndef XL6_TEXT_THREAD_H
 #define XL6_TEXT_THREAD_H
-#include "src/runtime/xl6_text_internal.h"
+#include "xl6_text_internal.h"
 
 #if !defined(XRT_SINGLE_HEADER) || defined(XRT_FEATURE_THREAD)
 /* Keep managed creator identity alive rather than trusting recyclable OS IDs.

@@ -1,6 +1,6 @@
 #ifndef XL6_ARRAY_EXTRACT_H
 #define XL6_ARRAY_EXTRACT_H
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_text_value.h"
 
 /* Borrow receiver. Array Take uses a nonnegative element index; Pop selects
  * the last element and requires index=0. Missing/invalid Array items raise.

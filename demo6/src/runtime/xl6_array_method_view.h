@@ -1,7 +1,7 @@
 #ifndef XL6_ARRAY_METHOD_VIEW_H
 #define XL6_ARRAY_METHOD_VIEW_H
-#include "src/runtime/xl6_array_methods.h"
-#include "src/runtime/xl6_sequence.h"
+#include "xl6_array_methods.h"
+#include "xl6_sequence.h"
 #include <limits.h>
 
 typedef struct ArrayView {

@@ -1,6 +1,6 @@
 #ifndef XL6_BUFFER_INTERNAL_H
 #define XL6_BUFFER_INTERNAL_H
-#include "src/runtime/xl6_text_internal.h"
+#include "xl6_text_internal.h"
 #include <stdlib.h>
 #include <string.h>
 

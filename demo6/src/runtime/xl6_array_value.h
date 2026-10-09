@@ -1,6 +1,6 @@
 #ifndef XL6_ARRAY_VALUE_H
 #define XL6_ARRAY_VALUE_H
-#include "src/runtime/xl6_array.h"
+#include "xl6_array.h"
 
 /* Explicit snapshots, NOT ordinary language assignment or implicit var
  * conversion. The resulting container is independent; managed elements keep

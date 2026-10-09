@@ -1,6 +1,6 @@
 #ifndef XL6_LOG_RECORD_H
 #define XL6_LOG_RECORD_H
-#include "src/runtime/xl6_log.h"
+#include "xl6_log.h"
 
 /* Private resident representation. Never projected from a language object or
  * exposed in generated C. All views below have independent owned backing. */

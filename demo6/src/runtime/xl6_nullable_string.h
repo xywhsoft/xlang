@@ -1,6 +1,6 @@
 #ifndef XL6_NULLABLE_STRING_H
 #define XL6_NULLABLE_STRING_H
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_text_value.h"
 #include <string.h>
 
 /* Stable physical ABI, not a source type name or a nominal language TypeId.

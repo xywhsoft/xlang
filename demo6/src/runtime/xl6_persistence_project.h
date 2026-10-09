@@ -1,6 +1,6 @@
 #ifndef XL6_PERSISTENCE_PROJECT_H
 #define XL6_PERSISTENCE_PROJECT_H
-#include "src/runtime/xl6_array_graph.h"
+#include "xl6_array_graph.h"
 
 /* Verified XLIR emits immutable data, not a recursive C implementation.
  * Keys are byte views: renamed keys may contain NUL. Field order is the

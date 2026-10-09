@@ -1,6 +1,6 @@
 #ifndef XL6_VALUE_DOMAIN_H
 #define XL6_VALUE_DOMAIN_H
-#include "src/runtime/xl6_value_admission_abi.h"
+#include "xl6_value_admission_abi.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <float.h>

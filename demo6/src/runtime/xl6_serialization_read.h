@@ -1,6 +1,6 @@
 #ifndef XL6_SERIALIZATION_READ_H
 #define XL6_SERIALIZATION_READ_H
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_text_value.h"
 
 /* Nullable readers report malformed input/ordinary I/O as a null value, but
  * exhaustion is a checked language failure. The reader owns `prior` after

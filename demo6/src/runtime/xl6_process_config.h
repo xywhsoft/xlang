@@ -1,6 +1,6 @@
 #ifndef XL6_PROCESS_CONFIG_H
 #define XL6_PROCESS_CONFIG_H
-#include "src/runtime/xl6_process_internal.h"
+#include "xl6_process_internal.h"
 
 /* Private owned OS configuration, never a view into a language object. */
 static inline void xl6ProcessConfigUnit(xprocessconfig* config)

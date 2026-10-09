@@ -1,6 +1,6 @@
 #ifndef XL6_SEMAPHORE_H
 #define XL6_SEMAPHORE_H
-#include "src/runtime/xl6_code_lease.h"
+#include "xl6_code_lease.h"
 struct xvalue;
 struct xrtownershipadapterv1;
 struct xrtownershipref;

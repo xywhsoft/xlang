@@ -1,7 +1,7 @@
 #ifndef XL6_ARRAY_SHUFFLE_INTERNAL_H
 #define XL6_ARRAY_SHUFFLE_INTERNAL_H
-#include "src/runtime/xl6_array_shuffle.h"
-#include "src/runtime/xl6_sequence.h"
+#include "xl6_array_shuffle.h"
+#include "xl6_sequence.h"
 #include <limits.h>
 
 /* Shared carrier admission/cleanup, independent of random-source selection.

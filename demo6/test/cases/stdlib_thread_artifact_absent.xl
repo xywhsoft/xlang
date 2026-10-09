@@ -1,0 +1,4 @@
+// Static provider-pruning control, not an assertion about all dead functions.
+export func threadProbe() as int
+    return 42
+end

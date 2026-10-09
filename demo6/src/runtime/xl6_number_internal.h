@@ -1,6 +1,6 @@
 #ifndef XL6_NUMBER_INTERNAL_H
 #define XL6_NUMBER_INTERNAL_H
-#include "src/runtime/xl6_text_internal.h"
+#include "xl6_text_internal.h"
 #include <string.h>
 
 static inline void xl6NumberError(xerrkind kind, int32_t code, const char* operation, const char* message)

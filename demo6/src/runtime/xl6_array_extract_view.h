@@ -1,8 +1,8 @@
 #ifndef XL6_ARRAY_EXTRACT_VIEW_H
 #define XL6_ARRAY_EXTRACT_VIEW_H
-#include "src/runtime/xl6_array_extract.h"
-#include "src/runtime/xl6_extract_error.h"
-#include "src/runtime/xl6_sequence.h"
+#include "xl6_array_extract.h"
+#include "xl6_extract_error.h"
+#include "xl6_sequence.h"
 
 typedef struct XL6_ArrayExtractView {
     XL6_Sequence* owner;

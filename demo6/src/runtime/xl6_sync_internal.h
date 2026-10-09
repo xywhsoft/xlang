@@ -4,7 +4,7 @@
  * API. Only the three compiled native providers construct this prefix. Their
  * physical Unit/Unlock functions and ops are resident, with no source-module
  * semantic callback, owner data or extensible admission registration. */
-#include "src/runtime/xl6_sync.h"
+#include "xl6_sync.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdatomic.h>
 #include <stdlib.h>

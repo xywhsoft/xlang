@@ -1,6 +1,6 @@
 #ifndef XL6_LOG_FILE_OPTIONS_H
 #define XL6_LOG_FILE_OPTIONS_H
-#include "src/runtime/xl6_log_record.h"
+#include "xl6_log_record.h"
 #include <limits.h>
 #include <string.h>
 static bool log_file_options(xlogfileoptions* options,xstrview path,char** owned,

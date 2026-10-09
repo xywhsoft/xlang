@@ -1,6 +1,6 @@
 #ifndef XL6_ARRAY_PRODUCER_H
 #define XL6_ARRAY_PRODUCER_H
-#include "src/runtime/xl6_array_admission.h"
+#include "xl6_array_admission.h"
 #include "src/api/xl_foreign_error.h"
 
 /* A private construction transaction, never a published/reference alias.

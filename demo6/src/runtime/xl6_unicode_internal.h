@@ -1,6 +1,6 @@
 #ifndef XL6_UNICODE_INTERNAL_H
 #define XL6_UNICODE_INTERNAL_H
-#include "src/runtime/xl6_text_internal.h"
+#include "xl6_text_internal.h"
 
 /* Byte values borrow their backing allocation only for the native call. The
  * cap is measured in bytes, including NUL; invalid caps never read the input. */

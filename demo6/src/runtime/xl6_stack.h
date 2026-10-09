@@ -1,6 +1,6 @@
 #ifndef XL6_STACK_H
 #define XL6_STACK_H
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_text_value.h"
 
 /* Compiler-private physical ABI. The immutable tuple and type descriptor
  * come from verified XLIR, not caller-controlled language pointers. Output
