@@ -3,8 +3,8 @@
 Native OS-thread/real API hosts compile strictly. Generated C and compiler
 fixtures retain explicit legacy unused-code warning allowances. Actual TCC is
 a released tool input, not a rebuilt shipping product. O0/O2 lanes optimize
-host/generated units, not the linked compiler/runtime O0 population. No read
-certificate, native restore cutover, sanitizers or full53 acceptance claim.
+host/generated units, not the linked compiler/runtime O0 population. The read
+certificate is emitted; no native restore cutover or full53 acceptance claim.
 """
 import argparse, hashlib, json, os, shutil, subprocess, sys
 from pathlib import Path
@@ -45,7 +45,7 @@ def main():
     inputs = [{'Path': str(path), 'Sha256': sha(path)} for path in sorted(files)]
     rows, products, errors = [], [], []
     report = {'Complete': False, 'InputsUnchanged': False, 'Inputs': inputs, 'Rows': rows, 'Products': products,
-              'Errors': errors, 'Scope': __doc__, 'GeneratedReadCertificate': False, 'NativeRestoreCgenCutover': False,
+              'Errors': errors, 'Scope': __doc__, 'GeneratedReadCertificate': True, 'NativeRestoreCgenCutover': False,
               'ShippingLibraryAcceptance': False, 'Full53Acceptance': False, 'Sanitized': False,
               'SanitizedNativeClosure': False,
               'LinkedCompilerRuntimeOptimization': 'O0', 'NativeHostWarnings': 'C11 Wall Wextra Werror without exemptions',
@@ -96,7 +96,7 @@ def main():
                 # The exact verified IR fixture emits explicit script options.
                 assert lowered['moduleEntry']['kind'] == 0
             generated = (out/(name+'.script.c')).read_text(encoding='utf-8-sig')
-            assert 'xl_script_module_ownership_read_v1' not in generated
+            assert 'xl_script_module_ownership_read_v1' in generated
             assert 'xl6CodeActivityEnterV1(&execution' in generated
             repeat = out/(name+'.repeat.c'); run(name+'.repeat', [driver, source, 'cgen-default', repeat]); product(repeat)
             assert sha(repeat) == sha(out/(name+'.c'))

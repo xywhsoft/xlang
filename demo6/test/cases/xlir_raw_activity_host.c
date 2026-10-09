@@ -1,11 +1,15 @@
 #include "xl.h"
 #include "src/api/xl_module_state.h"
+/* B163 baseline already implements this entry but lacks its declaration. */
+extern const XL6_OwnershipReadBoundaryV1* xlModuleOwnershipReadBoundaryV1(void);
 #include "xlir_raw_activity_vectors.h"
 #ifndef XL6_RAW_ACTIVITY_SOURCE
 #define XL6_RAW_ACTIVITY_SOURCE "test/cases/xlir_raw_activity.xl"
 #endif
 
 static XL_Module* executing;
+static XL6_ModuleReadContractGetV1 getReadContract;
+static unsigned readChecks;
 static void* toolAddress;
 static size_t toolSize;
 static bool captureTool;
@@ -26,6 +30,8 @@ static bool live(const xmemdebugallocation* allocation, void* unused)
     else assert(allocation->Address == toolAddress && allocation->Size == toolSize);
     return true;
 }
+static bool visitModule(xrtownershipref ref, void* data)
+{ if (ref.Data) ++*(size_t*)data; return true; }
 static void inspectActivity(bool active, bool foreign)
 {
     xrtownershipscope freeze = {0}; assert(xrtOwnershipFreezeTryBegin(&freeze));
@@ -33,6 +39,35 @@ static void inspectActivity(bool active, bool foreign)
     assert(executing->activeCalls == 0);
     if (active) { size_t count; assert(!executing->codeOwnerGraph.ops->Count(executing, &count)); }
     assert(xrtOwnershipScopeEnd(&freeze));
+    if (!executing->destroyRequested) {
+        const XL6_OwnershipReadBoundaryV1* boundary = xlModuleOwnershipReadBoundaryV1();
+        XL6_OwnershipReadScopeV1 read = {0}; size_t count = 0, edges = 0;
+        assert(boundary->Begin(&read) == XL6_OWNERSHIP_READ_READY_V1);
+        assert(xrtOwnershipFreezeTryBegin(&freeze));
+        /* Getter is actually called under Freeze. A semantic/mutation wrapper
+         * would deadlock; the immutable descriptor must match the host trace. */
+        assert(getReadContract() == executing->ownershipReadContract);
+        xrtownershipref module = {executing, executing->codeOwnerGraph.ops};
+        assert(boundary->Admits(&read, module) == !foreign);
+        if (!foreign) {
+            assert(module.Ops->Count(module.Data, &count));
+            assert(count == 1u + executing->activeCalls + executing->codeLeases +
+                executing->preparationRefs + executing->snapshotRefs);
+            assert(module.Ops->Trace(module.Data, visitModule, &edges) && edges == 1);
+            XL6_OwnershipReadScopeV1 copy = read;
+            assert(!boundary->Admits(&copy, module));
+            const XL6_ModuleReadContractV1* actual = executing->ownershipReadContract;
+            XL6_ModuleReadContractV1 bad = *actual; executing->ownershipReadContract = &bad;
+            --bad.size; assert(!boundary->Admits(&read, module)); bad = *actual;
+            bad.abiTag ^= 1; assert(!boundary->Admits(&read, module)); bad = *actual;
+            bad.trace = NULL; assert(!boundary->Admits(&read, module));
+            executing->ownershipReadContract = NULL; assert(!boundary->Admits(&read, module));
+            executing->ownershipReadContract = actual;
+            assert(boundary->Admits(&read, module));
+        } else assert(!module.Ops->Count(module.Data, &count));
+        assert(xrtOwnershipScopeEnd(&freeze)); boundary->End(&read);
+        assert(!read.self && !read.thread); ++readChecks;
+    }
 }
 int main(int argc, char** argv)
 {
@@ -50,8 +85,11 @@ int main(int argc, char** argv)
     assert(xlRegisterCFunction(context, "raw_activity_save", (void*)raw_activity_save));
     executing = xlCompileScriptFileToModule(context, XL6_RAW_ACTIVITY_SOURCE);
     if (!executing) fprintf(stderr, "%s\n", xlGetLastError(context) ? xlGetLastError(context) : "no diagnostic");
-    assert(executing && !executing->ownershipReadContract);
+    assert(executing && executing->ownershipReadContract);
+    assert(executing->ownershipReadContract->trace == executing->ownershipTrace);
     trackedOwner = &executing->codeOwnerGraph.base;
+    getReadContract = (XL6_ModuleReadContractGetV1)xlModuleGetSymbol(executing, "xl_script_module_ownership_read_v1");
+    assert(getReadContract && getReadContract() == executing->ownershipReadContract);
     void (*save)(void) = (void (*)(void))xlModuleGetSymbol(executing, "capture_raw_activity"); assert(save);
     xl6_foreign_error_scope call = {0}; assert(xl6ForeignCallBegin(&call)); save();
     xl6_foreign_error_result result = xl6ForeignCallEnd(&call); assert(result.ok && !result.error && !depth);
@@ -79,6 +117,7 @@ int main(int argc, char** argv)
     assert(!after.DoubleFreeCount && !after.InvalidFreeCount && !after.UseAfterFreeCount);
     assert(xrtMemDebugVisitLive(live, NULL));
     assert(xrtAtomic64Load(&enters, XMEMORY_RELAXED) == xrtAtomic64Load(&leaves, XMEMORY_RELAXED));
+    assert(readChecks > 100);
     printf("actual TCC raw activity: %u saved-callback vectors, %zu closed OOM attempts, foreign callback, closed no-raise zero-allocation calls, nine original first-error vectors, exact tool-only heap baseline\n", vectors, attempts);
     return 0;
 }

@@ -92,6 +92,11 @@ typedef struct XL6_ClosureRuntimeV2 {
     XL6_Closure* (*CreateValue)(const XL6_CodeOwner*, void (*)(void), const struct xvalue*);
 } XL6_ClosureRuntimeV2;
 XL6_CODE_LEASE_API const XL6_ClosureRuntimeV2* xl6ClosureRuntimeV2Get(void);
+/* Compiler-private erased callable transport: the same resident box lifetime
+ * and execution protocol as V1 Box, without nominal callable identity. V1 Box
+ * still requires a nonzero identity. Borrows closure; failure consumes none. */
+XL6_CODE_LEASE_API struct xvalue* xl6ClosureBoxErasedV1(
+    const XL6_CodeOwner*, XL6_Closure*, XL6_ClosureBoxEntry);
 struct xrtownershipadapterv1;
 /* Identity checked before payload access. V1 arbitrary callbacks are refused;
  * callers must still admit every child before inspecting its graph. */

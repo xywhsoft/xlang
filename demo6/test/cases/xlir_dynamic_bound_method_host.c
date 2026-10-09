@@ -1,7 +1,13 @@
 #define xrtCallResultSetTake bound_result_set_take
-#include "../../build/test/xlir_dynamic_bound_method.c"
+#ifndef XL6_BOUND_GENERATED_C
+#define XL6_BOUND_GENERATED_C "../../build/test/xlir_dynamic_bound_method.c"
+#endif
+#include XL6_BOUND_GENERATED_C
 #undef xrtCallResultSetTake
-#include "../../build/test/xlir_dynamic_bound_method.bind.h"
+#ifndef XL6_BOUND_GENERATED_BIND
+#define XL6_BOUND_GENERATED_BIND "../../build/test/xlir_dynamic_bound_method.bind.h"
+#endif
+#include XL6_BOUND_GENERATED_BIND
 #include <assert.h>
 #include <stdio.h>
 static xpromise* pendingPromise;

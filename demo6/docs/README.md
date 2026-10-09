@@ -41,6 +41,7 @@
 - [C 导出函数的运行时执行跟踪](stdlib53-b161-generated-export-execution.md)：明确 XLIR 执行 ABI 和 resident CodeScope；真实 TCC 调用/关闭/卸载通过，完整读取证书及恢复入口继续。
 - [宿主入口和退役回调的无分配执行登记](stdlib53-b162-host-execution-activity.md)：执行活动与真实代码引用分离，关闭和 OOM 下保留清理；双端真实 TCC 与所选原生 Linux ASan/UBSan 通过，读取证书及恢复切换继续。
 - [原生 C 回调的无分配执行登记](stdlib53-b163-raw-callback-execution.md)：保存回调与外线程执行使用明确 XLIR 合同，前后对照检出旧漏登记；双端真实 TCC、关闭/OOM 和相邻回归通过，代码生命仍由调用者保留。
+- [动态绑定方法保活与模块读取证书](stdlib53-b164-bound-method-read-certificate.md)：绑定方法统一使用 resident closure/box；跨模块代码保活、外线程读取拒绝、双端前后对照及真实宿主证书通过，JSON/XLON 切换和打包 AOT 仍待验收。
 - [XLIR数据恢复构造图](stdlib53-b154-ir-restore-graph.md)：可达根、节点、字段上下文、默认工厂和迁移边界；与旧恢复六表共享失败原子构建，不等同于 Cgen 或语言载体切换完成。
 - `文本标准库接入.md`：精确 string/char/bytes、UTF-8/16/32、BOM、数字与流式文本的公开合同。
 - `XRT扩展标准库API.md`：当前已公开的扩展标准库对象、函数、常量、异步语义和 C/XRT 对照接口。

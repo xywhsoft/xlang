@@ -14566,6 +14566,7 @@ static int xl6IrLowerBuildModuleAbi(XL6_IrLowerContext* ctx)
         return xl6IrLowerDiag(ctx, ctx->module->root, "XLIR module ABI has no canonical declaration scope");
     ctx->module->abi.codeOwnerAbi = XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT;
     ctx->module->abi.hostExecutionAbi = XL6_IR_MODULE_HOST_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1;
+    ctx->module->abi.readExecutionAbi = XL6_IR_MODULE_READ_EXECUTION_TRACKED_SLOTS_V1;
     for ( i = 0; i < root->childCount; ++i ) {
         XL6_IrNodeId child = ctx->module->children[root->firstChild + i];
         const XL6_IrNode* node = xl6IrNodeGet(ctx->module, child);
@@ -32651,6 +32652,7 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
     }
     module->valueCount = ctx.nextValue - 1;
     module->abi.closureStorageAbi = XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V2;
+    module->abi.boundMethodStorageAbi = XL6_IR_BOUND_METHOD_STORAGE_RESIDENT_CLOSURE_LAYOUT_V1;
     module->abi.retirementAbi = module->abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT
         ? (module->abi.executorOwnershipAbi == XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN_V1 ||
            module->abi.taskPoolOwnershipAbi == XL6_IR_MODULE_TASK_POOL_OWNERSHIP_RESIDENT_NATIVE_JOBS_JOIN_V1

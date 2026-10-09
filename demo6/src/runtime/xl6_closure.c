@@ -284,11 +284,11 @@ static void box_drop(void* data)
 static const xrtcallableownershipv1 box_ownership_policy = {
     sizeof(xrtcallableownershipv1), box_trace, box_drop
 };
-static xvalue* xl6OwnershipBody_closure_box(const XL6_CodeOwner* owner, XL6_Closure* closure, XL6_ClosureBoxEntry entry, uint64_t typeId)
+static xvalue* xl6OwnershipBody_closure_box(const XL6_CodeOwner* owner, XL6_Closure* closure, XL6_ClosureBoxEntry entry, uint64_t typeId, bool erased)
 {
     XL6_CodeLease* lease = NULL; XL6_CodeLeaseAdmission admission;
     ClosureBox* box; xrtcallable* callable; xvalue* value = NULL; xerror* prior = xrtTakeError();
-    if (closure == NULL || entry == NULL || typeId == 0) { xrtSetErrorKind(XERR_ARGUMENT); goto done; }
+    if (closure == NULL || entry == NULL || (!erased && typeId == 0)) { xrtSetErrorKind(XERR_ARGUMENT); goto done; }
     admission = xl6CodeLeaseAcquireScoped(owner, &lease);
     if (admission != XL6_CODE_LEASE_ACQUIRED) {
         if (xrtGetError() == NULL) xrtSetErrorKind(admission == XL6_CODE_LEASE_CLOSED ? XERR_CLOSED :
@@ -305,7 +305,7 @@ static xvalue* xl6OwnershipBody_closure_box(const XL6_CodeOwner* owner, XL6_Clos
     }
     value = xrtValueCallableTake(&callable);
     if (callable != NULL) { xerror* failure = xrtTakeError(); xrtCallableUnref(callable); xrtClearError(); xrtSetErrorTake(failure); }
-    if (value != NULL && !xrtValueTypeIdBind(value, typeId)) {
+    if (value != NULL && !erased && !xrtValueTypeIdBind(value, typeId)) {
         xerror* failure = xrtTakeError(); xrtValueRelease(value); value = NULL; xrtClearError(); xrtSetErrorTake(failure);
     }
 done:
@@ -314,7 +314,11 @@ done:
 }
 static xvalue* closure_box(const XL6_CodeOwner* owner, XL6_Closure* closure, XL6_ClosureBoxEntry entry, uint64_t typeId)
 {
-    XL6_OWNERSHIP_RETURN(xvalue*, xl6OwnershipBody_closure_box(owner, closure, entry, typeId));
+    XL6_OWNERSHIP_RETURN(xvalue*, xl6OwnershipBody_closure_box(owner, closure, entry, typeId, false));
+}
+xvalue* xl6ClosureBoxErasedV1(const XL6_CodeOwner* owner, XL6_Closure* closure, XL6_ClosureBoxEntry entry)
+{
+    XL6_OWNERSHIP_RETURN(xvalue*, xl6OwnershipBody_closure_box(owner, closure, entry, 0, true));
 }
 const XL6_ClosureRuntimeV1* xl6ClosureRuntimeV1Get(void)
 {

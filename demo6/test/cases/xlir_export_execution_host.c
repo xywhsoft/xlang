@@ -122,7 +122,8 @@ int main(int argc, char** argv)
     executing = xlCompileScriptFileToModule(context, "test/cases/xlir_export_execution.xl");
     if (!executing) fprintf(stderr, "%s\n", xlGetLastError(context) ? xlGetLastError(context) : "no diagnostic");
     assert(executing && xlActivateModule(context, executing, NULL));
-    assert(!executing->ownershipReadContract); /* No premature certificate. */
+    assert(executing->ownershipReadContract);
+    assert(executing->ownershipReadContract->trace == executing->ownershipTrace);
     callProbe = (int64_t (*)(int64_t))xlModuleGetSymbol(executing, "scope_probe");
     callPure = (int64_t (*)(int64_t))xlModuleGetSymbol(executing, "scope_pure");
     callReenter = (int64_t (*)(int64_t (*)(void)))xlModuleGetSymbol(executing, "scope_reenter");
