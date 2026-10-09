@@ -4,7 +4,7 @@
 #include "xl6_value_admission_abi.h"
 
 enum { XL6_RESTORE_SCALAR_V1=1, XL6_RESTORE_SEQUENCE_V1, XL6_RESTORE_OBJECT_V1 };
-enum { XL6_RESTORE_NULLABLE_V1=1u };
+enum { XL6_RESTORE_NULLABLE_V1=1u, XL6_RESTORE_FIELD_INSTANCE_V1=2u };
 enum { XL6_RESTORE_REQUIRED_V1=1u, XL6_RESTORE_IN_PLACE_V1=2u };
 /* Exact resident family predicate; never a generated/source callback. */
 typedef struct XL6_RestoreObjectProviderV1 {
@@ -13,9 +13,11 @@ typedef struct XL6_RestoreObjectProviderV1 {
 } XL6_RestoreObjectProviderV1;
 
 /* Closed compiler-private construction domains, not a type-name registry.
- * Reusing a node explicitly selects the same restoration/default domain.
- * Distinct field-initializer defaults require distinct nodes even when their
- * nominal type is the same. Tables and factories are borrowed synchronously.
+ * Reusing a declaration node selects the same restoration/default domain.
+ * FIELD_INSTANCE nodes require an actual initialized private child and cannot
+ * have a factory or be nullable. Each distinct actual child is a distinct
+ * instance domain, even for the same static field recipe. Distinct field
+ * recipes still require distinct nodes. Tables/factories are borrowed synchronously.
  * A factory is the actual lowered declaration initializer, not a recursive
  * generated restore function. It returns an independent owned, committed
  * language object; the plan is never retained by the result. */
@@ -42,11 +44,16 @@ typedef struct XL6_RestorePlanV1 {
 } XL6_RestorePlanV1;
 
 /* One transaction/memo for all object fields and collection elements. The
- * key is (source Value, explicit node), not recursion depth or nominal ID.
+ * key is (source Value, explicit node, actual FIELD_INSTANCE child), not
+ * recursion depth, nominal ID or a static field recipe alone. The actual child
+ * is pinned by its memo result, so pointer reuse cannot manufacture identity.
  * Collection templates are genuine empty projected resident Array/List
  * objects. They are consumed on both paths for a valid pointer/count pair.
  * target is an optional owned, PRIVATE declaration-default root and is
- * consumed on both paths; only an OBJECT root permits it. IN_PLACE selects
+ * consumed on both paths; only a declaration OBJECT root permits it. IN_PLACE
+ * edges must select FIELD_INSTANCE nodes; replacement/sequence edges cannot.
+ * The supplied capability is validated before wire rejection or memo reuse.
+ * IN_PLACE selects
  * the actual initialized private child, without running its initializer a
  * second time. These are construction capabilities, not mutation of an
  * arbitrary externally shared object. All object outputs must match their
@@ -58,7 +65,7 @@ typedef struct XL6_RestorePlanV1 {
  * language initializer/destructor side effects. No public language ABI yet. */
 XL6_TEXT_API xvalue* xl6PersistenceRestorePlanTakeV1(xvalue**,size_t,xvalue*,
     const xvalue*,const XL6_RestorePlanV1*);
-/* Nullable read shares the SAME transaction and source/node memo. A proven
+/* Nullable read shares the SAME transaction and construction-instance memo. A proven
  * wire shape/range/missing-required-field/cycle rejection returns true with
  * an owned canonical null, after checked retirement of every partial result.
  * Constructors, providers, codecs, OOM, recursion budget and cleanup failures

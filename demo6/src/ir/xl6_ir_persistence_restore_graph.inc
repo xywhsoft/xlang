@@ -135,7 +135,8 @@ static int xl6IrRestoreGraphCompleteNode(XL6_IrRestoreGraphWalk* walk, size_t at
             schema->fieldCount > walk->recipes->persistenceRestoreFieldCount - schema->firstField) return 0;
         if (schema->dynamicField != XL6_IR_CLASS_FIELD_INDEX_INVALID)
             walk->root.pending |= XL6_IR_RESTORE_PENDING_OPEN;
-        if (row.contextField == SIZE_MAX) {
+        if (row.contextField != SIZE_MAX) row.flags |= XL6_IR_RESTORE_NODE_FIELD_INSTANCE;
+        else {
             if (layout->persistenceConstructionAbi != XL6_IR_PERSISTENCE_CONSTRUCTION_DECLARATION_DEFAULT)
                 walk->root.pending |= XL6_IR_RESTORE_PENDING_FACTORY;
             else {

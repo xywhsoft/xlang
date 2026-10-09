@@ -229,6 +229,7 @@ int main(int argc, char** argv)
             XL6_IrPersistenceRestoreNode* row = &ir.persistenceRestoreNodes[i];
             ALTER_GRAPH(row, type, XL6_IR_TYPE_INVALID); ALTER_GRAPH(row, payloadType, XL6_IR_TYPE_INVALID);
             ALTER_GRAPH(row, abi, 0); ALTER_GRAPH(row, flags, row->flags ^ XL6_IR_RESTORE_NODE_NULLABLE);
+            ALTER_GRAPH(row, flags, row->flags ^ XL6_IR_RESTORE_NODE_FIELD_INSTANCE);
             ALTER_GRAPH(row, identity, row->identity ^ UINT64_C(1));
             ALTER_GRAPH(row, contextField, row->contextField == SIZE_MAX ? 0 : SIZE_MAX);
             ALTER_GRAPH(row, scalarRule, row->scalarRule == XL6_VALUE_ADMIT_NONE ? XL6_VALUE_ADMIT_ANY : XL6_VALUE_ADMIT_NONE);

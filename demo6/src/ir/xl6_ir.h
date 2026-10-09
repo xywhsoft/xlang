@@ -5795,6 +5795,7 @@ typedef enum XL6_IrPersistenceRestoreNodeAbi {
 } XL6_IrPersistenceRestoreNodeAbi;
 enum {
     XL6_IR_RESTORE_NODE_NULLABLE = 1u,
+    XL6_IR_RESTORE_NODE_FIELD_INSTANCE = 2u,
     XL6_IR_RESTORE_PENDING_OPEN = 1u,
     XL6_IR_RESTORE_PENDING_ARRAY_VALUE = 2u,
     XL6_IR_RESTORE_PENDING_LIST = 4u,
