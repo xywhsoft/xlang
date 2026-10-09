@@ -22,6 +22,9 @@
 #include "src/runtime/xl6_value_iterator.h"
 #include "src/runtime/xl6_generator.h"
 #include "src/runtime/xl6_ownership_plan.h"
+#include "src/runtime/xl6_ownership_read.h"
+#include "src/api/xl_module_state.h"
+#include "src/api/xl_api_lock.h"
 #include "src/runtime/xl6_native_handle.h"
 #include "src/runtime/xl6_error_value.h"
 #include "src/runtime/xl6_future_payload.h"
@@ -133,46 +136,7 @@ struct XL_Context {
     int destroyRequested;
 };
 
-typedef enum XL_ModuleActivation {
-    XL_MODULE_INACTIVE = 0,
-    XL_MODULE_ACTIVE,
-    XL_MODULE_DEACTIVATING,
-    /* A failed checked finalizer may be busy, or may have retired resources
-     * while reporting a cleanup error. Only a successful retry acknowledges
-     * completion; neither case permits a fresh activation in between. */
-    XL_MODULE_DEACTIVATION_PENDING
-} XL_ModuleActivation;
 
-struct XL_Module {
-    TCCState* state;
-    int ownsRuntimeRef;
-    XL_ModuleActivation activation;
-    XL_LoadedLibrary* loadedLibraries;
-    size_t loadedLibraryCount;
-    unsigned int activeCalls;
-    int destroyRequested;
-    XL6_CodeOwnerGraph codeOwnerGraph;
-    XL6_ModuleOwnershipTrace ownershipTrace;
-    const XL6_ModuleRetirementV1* retirementContract;
-    const XL6_ModuleRetirementV2* retirementPreparation;
-    const XL6_ModuleRetirementV3* retirementPreflight;
-    const XL6_ModuleRetirementV4* retirementStep;
-    size_t preparationRefs;
-    int retirementPrepared;
-    XL6_OwnershipPlan* ownershipPlan;
-    const void* ownershipClaim;
-    size_t snapshotRefs;
-    int ownershipPhase;
-    int ownershipCleared;
-    size_t codeLeases;
-    int codeOwnerReady;
-    int retirementRunning;
-    int retirementQueued;
-    size_t retirementPass;
-    XL_Module* retirementNext;
-    xerror* retirementError;
-    int retirementFailed; /* Failure is independent of diagnostic allocation. */
-};
 
 #if XL_ENABLE_EXE_COMPILER
 typedef enum XLC_SourceKind {
@@ -260,34 +224,6 @@ static int xl__runtimeContextCount = 0;
 
 /* DLL API 会修改全局 TCC 状态和进程 cwd，公开入口必须串行化。 */
 #ifdef _WIN32
-static CRITICAL_SECTION xl__apiLock;
-static volatile LONG xl__apiLockState = 0;
-
-static void xlApiEnsureLock(void)
-{
-    LONG state;
-
-    state = InterlockedCompareExchange(&xl__apiLockState, 1, 0);
-    if ( state == 0 ) {
-        InitializeCriticalSection(&xl__apiLock);
-        InterlockedCompareExchange(&xl__apiLockState, 2, 1);
-        return;
-    }
-    while ( xl__apiLockState != 2 ) {
-        Sleep(0);
-    }
-}
-
-static void xlApiLock(void)
-{
-    xlApiEnsureLock();
-    EnterCriticalSection(&xl__apiLock);
-}
-
-static void xlApiUnlock(void)
-{
-    LeaveCriticalSection(&xl__apiLock);
-}
 
 static CRITICAL_SECTION xl__cwdLock;
 static volatile LONG xl__cwdLockState = 0;
@@ -318,29 +254,6 @@ static void xlCwdUnlock(void)
     LeaveCriticalSection(&xl__cwdLock);
 }
 #else
-static pthread_mutex_t xl__apiLock;
-static pthread_once_t xl__apiLockOnce = PTHREAD_ONCE_INIT;
-
-static void xlApiInitLock(void)
-{
-    pthread_mutexattr_t attr;
-
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&xl__apiLock, &attr);
-    pthread_mutexattr_destroy(&attr);
-}
-
-static void xlApiLock(void)
-{
-    pthread_once(&xl__apiLockOnce, xlApiInitLock);
-    pthread_mutex_lock(&xl__apiLock);
-}
-
-static void xlApiUnlock(void)
-{
-    pthread_mutex_unlock(&xl__apiLock);
-}
 
 static pthread_mutex_t xl__cwdLock;
 static pthread_once_t xl__cwdLockOnce = PTHREAD_ONCE_INIT;
@@ -1669,8 +1582,6 @@ cleanup:
 #if XL_ENABLE_EXE_COMPILER
 static int xlAddResourceFilesToTcc(XL_Context* ctx, TCCState* s)
 {
-    size_t i;
-
     if ( ctx == NULL || ctx->resourceFiles.count == 0 ) {
         return 1;
     }
@@ -1679,6 +1590,7 @@ static int xlAddResourceFilesToTcc(XL_Context* ctx, TCCState* s)
         return 0;
     }
 #if defined(_WIN32)
+    size_t i;
     if ( ctx->resourceFiles.count > XLC_MAX_RESOURCE_FILES ) {
         xlSetError(ctx, "too many resource config files");
         return 0;
@@ -2471,40 +2383,8 @@ int xlRuntimeInit(void)
 static void xlCollectRetiringModulesUnlocked(void);
 static int xlModuleAcquireCode(void*);
 static void xlModuleReleaseCode(void*);
+#include "src/api/xl_module_read.inc"
 
-/* Physical host module identity: the caller handle and each actual code
- * acquisition are references. The retirement registry is a discovery anchor,
- * not another owner. Entry/cleanup transactions are deliberately uninspectable.
- * Caller must hold the API lifecycle boundary AND whole-graph quiescence;
- * taking this view does not pause workers or authorize reclaiming code. */
-static bool xlModuleOwnershipCount(const void* data, size_t* count)
-{
-    const XL_Module* module = (const XL_Module*)data;
-    size_t handle;
-    if (module == NULL || count == NULL || module->state == NULL ||
-        !module->codeOwnerReady || module->ownershipTrace == NULL ||
-        module->activeCalls != 0 || module->retirementRunning || module->ownershipCleared ||
-        xl6CodeOwnerScopeActive(&module->codeOwnerGraph.base) ||
-        module->activation == XL_MODULE_DEACTIVATING ||
-        (module->activation == XL_MODULE_DEACTIVATION_PENDING &&
-            !module->retirementPrepared)) return false;
-    handle = module->destroyRequested ? 0u : 1u;
-    if (module->codeLeases > SIZE_MAX - handle) return false;
-    handle += module->codeLeases;
-    if (module->preparationRefs > SIZE_MAX - handle) return false;
-    handle += module->preparationRefs;
-    if (module->snapshotRefs > SIZE_MAX - handle) return false;
-    *count = handle + module->snapshotRefs; return true;
-}
-static bool xlModuleOwnershipTrace(const void* data, xrtownershipvisitor visit, void* context)
-{
-    const XL_Module* module = (const XL_Module*)data;
-    size_t count;
-    if (visit == NULL || !xlModuleOwnershipCount(data, &count)) return false;
-    if (!visit(xrtErrorOwnership(module->retirementError), context)) return false;
-    return module->ownershipTrace(visit, context);
-}
-static const xrtownershipops xlModuleOwnershipOps = {xlModuleOwnershipCount, xlModuleOwnershipTrace};
 
 void xlRuntimeUnit(void)
 {
@@ -2539,6 +2419,20 @@ static XL_Module* xlCreateModuleFromState(XL_Context* ctx, TCCState* s)
     module->state = s;
     module->ownsRuntimeRef = 1;
     module->ownershipTrace = (XL6_ModuleOwnershipTrace)xl__tcc.tcc_get_symbol(s, "xl_script_module_ownership_trace");
+    {
+        XL6_ModuleReadContractGetV1 getRead = (XL6_ModuleReadContractGetV1)
+            xl__tcc.tcc_get_symbol(s, "xl_script_module_ownership_read_v1");
+        const XL6_ModuleReadContractV1* read = getRead ? getRead() : NULL;
+        if (getRead) {
+            if (!read || read->size != sizeof(*read) || read->abiTag != 0x584C364D524431ULL ||
+                !read->trace || read->trace != module->ownershipTrace) {
+                xlModuleLoadedLibrariesFree(module); xrtFree(module);
+                xlRuntimeReleaseManualUnlocked(); xlSetError(ctx, "invalid module ownership read V1 contract");
+                return NULL;
+            }
+            module->ownershipReadContract = read;
+        }
+    }
     {
         XL6_ModuleRetirementGet get = (XL6_ModuleRetirementGet)xl__tcc.tcc_get_symbol(s, "xl_script_module_retirement_v1");
         XL6_ModuleRetirementGetV2 getV2 = (XL6_ModuleRetirementGetV2)xl__tcc.tcc_get_symbol(s, "xl_script_module_retirement_v2");
@@ -3049,20 +2943,9 @@ static void xlModuleReleaseCode(void* data)
     xrtClearError(); xrtSetErrorTake(saved);
 }
 
-static int xlModuleBeginCallUnlocked(XL_Module* module)
-{
-    if ( module == NULL || module->destroyRequested || module->activation == XL_MODULE_DEACTIVATING ) {
-        return 0;
-    }
-    module->activeCalls += 1;
-    return 1;
-}
-
 static void xlModuleEndCallUnlocked(XL_Module* module)
 {
-    if ( module == NULL || module->activeCalls == 0 ) {
-        return;
-    }
+    if (module == NULL || module->activeCalls == 0) return;
     module->activeCalls -= 1;
     if ( module->activeCalls == 0 && module->destroyRequested ) {
         xlDestroyModuleUnlocked(module);
@@ -3336,12 +3219,15 @@ static int xlRunModuleMainUnlocked(
 static int xlRunAndRetireModuleUnlocked(XL_Context* ctx, XL_Module* module, xvalue* arg)
 {
     int ok;
+    XL6_ModuleCall call = {0};
     if (!xlModuleBeginCallUnlocked(module)) {
         xlDestroyModuleUnlocked(module);
         return 0;
     }
+    xlModuleCallAttachUnlocked(module,&call);
     ok = xlRunModuleMainUnlocked(ctx, module, arg);
     xlDestroyModuleUnlocked(module);
+    xlModuleCallDetachUnlocked(module,&call);
     xlModuleEndCallUnlocked(module);
     return ok;
 }
@@ -4293,6 +4179,7 @@ int xlRunModuleMain(XL_Context* ctx, XL_Module* module, xvalue* pArg)
 {
     int ok;
     int hasContextLease;
+    XL6_ModuleCall call = {0};
 
     if ( ctx == NULL ) {
         return 0;
@@ -4307,7 +4194,9 @@ int xlRunModuleMain(XL_Context* ctx, XL_Module* module, xvalue* pArg)
         return 0;
     }
     xlClearLastErrorUnlocked(ctx);
+    xlModuleCallAttachUnlocked(module,&call);
     ok = xlRunModuleMainUnlocked(ctx, module, pArg);
+    xlModuleCallDetachUnlocked(module,&call);
     xlModuleEndCallUnlocked(module);
     xlContextEndCallUnlocked(ctx);
     xlApiUnlock();
@@ -4318,6 +4207,7 @@ int xlActivateModule(XL_Context* ctx, XL_Module* module, xvalue* pArg)
 {
     int ok;
     int hasContextLease;
+    XL6_ModuleCall call = {0};
 
     if ( ctx == NULL ) {
         return 0;
@@ -4332,7 +4222,9 @@ int xlActivateModule(XL_Context* ctx, XL_Module* module, xvalue* pArg)
         return 0;
     }
     xlClearLastErrorUnlocked(ctx);
+    xlModuleCallAttachUnlocked(module,&call);
     ok = xlActivateModuleUnlocked(ctx, module, pArg);
+    xlModuleCallDetachUnlocked(module,&call);
     xlModuleEndCallUnlocked(module);
     xlContextEndCallUnlocked(ctx);
     xlApiUnlock();
@@ -4343,6 +4235,7 @@ int xlDeactivateModule(XL_Context* ctx, XL_Module* module)
 {
     int ok;
     int hasContextLease;
+    XL6_ModuleCall call = {0};
 
     if ( ctx == NULL ) {
         return 0;
@@ -4357,7 +4250,9 @@ int xlDeactivateModule(XL_Context* ctx, XL_Module* module)
         return 0;
     }
     xlClearLastErrorUnlocked(ctx);
+    xlModuleCallAttachUnlocked(module,&call);
     ok = xlDeactivateModuleUnlocked(ctx, module);
+    xlModuleCallDetachUnlocked(module,&call);
     xlModuleEndCallUnlocked(module);
     xlContextEndCallUnlocked(ctx);
     xlApiUnlock();

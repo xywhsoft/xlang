@@ -58,6 +58,12 @@ XL6_CODE_LEASE_API void xl6CodeScopeLeave(XL6_CodeScope*);
  * A live generated invocation must be excluded BEFORE its module globals are
  * traced, not discovered as a root after reading concurrently written fields. */
 XL6_CODE_LEASE_API bool xl6CodeOwnerScopeActive(const XL6_CodeOwner*);
+/* Same read boundary as ScopeActive. An exact current native thread may
+ * synchronously inspect while its generated callers are paused; their real
+ * retained lease slots remain activity roots. True means a foreign-thread
+ * invocation exists and MUST refuse reading module globals. No callbacks,
+ * reference transitions, allocation, lock or implicit pause of other threads. */
+XL6_CODE_LEASE_API bool xl6CodeOwnerScopeForeign(const XL6_CodeOwner*);
 /* Reuse an accepted capability only from this thread's active callback stack
  * and the exact same copied host identity. This remains valid after Close.
  * Otherwise perform ordinary (fallible) admission. This does not reopen a

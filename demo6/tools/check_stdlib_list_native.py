@@ -18,10 +18,12 @@ def main():
     parser.add_argument('--graph',action='store_true',help='Optional single-memo List/Array/object graph provider and exact format plans')
     parser.add_argument('--restore',action='store_true',help='Mixed-family shared import memo and explicit JSON/XLON leaf restoration')
     parser.add_argument('--restore-plan',action='store_true',help='Closed class-field/collection nodes in one shared restore transaction; implies --restore')
+    parser.add_argument('--module-read',action='store_true',help='Actual host Module/entry/read white-box gate; implies --restore-plan, no generated binding/TCC/product claim')
     parser.add_argument('--modes',help='Comma-separated subset of declared vectors; empty selects none. Recorded as focused validation, never the full native gate')
     parser.add_argument('--operations',help='Comma-separated subset of declared complete OOM prefixes; empty selects none. Recorded as focused validation')
     parser.add_argument('--batch-plan-prefixes',action='store_true',help='Run each plan OOM prefix in one process, with a separate verified ledger per attempt')
     args=parser.parse_args(); root=args.root.resolve(); out=args.out.resolve()
+    if args.module_read: args.restore_plan=True
     if args.restore_plan: args.restore=True
     cc,nm=shutil.which('gcc'),shutil.which('nm')
     assert cc and nm and not out.exists() and (not args.sanitize or sys.platform=='linux')
@@ -50,15 +52,22 @@ def main():
     if args.restore_plan:
         sources+=['test/cases/stdlib_restore_plan_native_host.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_code_lease.c',
             'src/runtime/xl6_restore_class.c']
+    if args.module_read: sources+=['test/cases/stdlib_restore_module_read_host.c']
     files={Path(__file__).resolve(),Path(cc),Path(nm),Path(sys.executable)}
     files.update(root/name for name in sources)
     for folder in ('src/runtime','src/api','release/include','lib/xrt','lib/xruntime','test/support'):
         files.update((root/folder).rglob('*.h'))
+    if args.module_read:
+        files.add(root/'src/api/xl_api.c')
+        files.add(root/'src/api/xl_module_read.inc')
+        for folder in ('src','include','lib/tcc'):
+            files.update((root/folder).rglob('*.h'))
     inputs=[{'Path':str(path),'Sha256':sha(path)} for path in sorted(files)]
     rows=[]; prefixes=[]; failures=[]
     report={'Complete':False,'InputsUnchanged':False,'Inputs':inputs,'Rows':rows,'Prefixes':prefixes,
         'Failures':failures,'Platform':sys.platform,'Sanitized':args.sanitize,
         'Graph':args.graph,'Restore':args.restore,'RestorePlan':args.restore_plan,
+        'HostModuleReadWhiteBox':args.module_read,'ActualTccModuleRead':False,
         'FocusedValidation':args.modes is not None or args.operations is not None,
         'BatchedPlanPrefixes':args.batch_plan_prefixes,
         'SelectedNativeClosureInstrumented':args.sanitize,'WholeRuntimeInstrumented':False,
@@ -87,6 +96,8 @@ def main():
     if args.graph: flags+=['-DXL6_TEST_LIST_GRAPH']
     if args.restore: flags+=['-DXL6_TEST_LIST_RESTORE']
     if args.restore_plan: flags+=['-DXL6_TEST_RESTORE_PLAN']
+    if args.module_read:
+        flags+=['-DXL6_TEST_MODULE_READ','-Ilib/tcc']
     links=['-Wl,--wrap=xl6ErrorScopeBeginCleanup','-Wl,--wrap=xl6ErrorScopeBegin']+([] if os.name=='nt' else ['-pthread','-lm'])
     if os.name!='nt': flags+=['-D_GNU_SOURCE']
     if args.sanitize: flags+=['-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie']
@@ -113,6 +124,9 @@ def main():
             'plan-instance-distinct','plan-instance-shared','plan-instance-rejected','plan-instance-wide',
             'plan-transaction-private','plan-transaction-shared','plan-transaction-rejected',
             'plan-clone-child','plan-clone-root','plan-clone-deep','plan-clone-rejected','plan-clone-collections')
+    if args.module_read:
+        modes+=('plan-module-read',)
+        operations+=('plan-module-read','plan-module-clone')
     def select(argument,available):
         if argument is None: return available
         requested=tuple(filter(None,argument.split(',')))

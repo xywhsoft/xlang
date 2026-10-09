@@ -180,6 +180,18 @@ bool xl6CodeOwnerScopeActive(const XL6_CodeOwner* owner)
     }
     return false;
 }
+bool xl6CodeOwnerScopeForeign(const XL6_CodeOwner* owner)
+{
+    const XL6_CodeScope* scope;
+    uint64 thread = xrtThreadCurrentId();
+    if (!owner) return false;
+    for (scope = code_scopes; scope; scope = scope->next) {
+        const XL6_CodeLease* lease = scope->lease;
+        if (scope->threadId != thread && lease && lease->context == owner->context &&
+            lease->acquire == owner->acquire && lease->release == owner->release) return true;
+    }
+    return false;
+}
 static void code_scope_lock_enter(void)
 {
     uint64 expected;
