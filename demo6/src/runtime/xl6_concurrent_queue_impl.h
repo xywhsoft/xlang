@@ -1,8 +1,8 @@
 /* Intentionally instantiated in three independent resident TUs. The macro
  * backend selects a direct typed XRT implementation at compile time, not a
  * runtime kind switch/function table that pulls every queue into an artifact. */
-#include "src/runtime/xl6_concurrent_queue.h"
-#include "src/runtime/xl6_array_reference_value.h"
+#include "xl6_concurrent_queue.h"
+#include "xl6_array_reference_value.h"
 #include "src/api/xl_foreign_error.h"
 #include <limits.h>
 #include <stdlib.h>

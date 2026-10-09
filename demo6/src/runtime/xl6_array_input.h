@@ -1,6 +1,6 @@
 #ifndef XL6_ARRAY_INPUT_H
 #define XL6_ARRAY_INPUT_H
-#include "src/runtime/xl6_sequence.h"
+#include "xl6_sequence.h"
 
 /* Synchronous standard-library input, NOT a language Array/var conversion.
  * Owns one reference per item (including duplicates). It releases the native

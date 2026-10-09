@@ -1,6 +1,6 @@
 #ifndef XL6_TREE_H
 #define XL6_TREE_H
-#include "src/runtime/xl6_sequence.h"
+#include "xl6_sequence.h"
 
 /* Closed XLIR tuple. Array identities describe the two independently owned
  * admission domains, not Array storage kept inside the tree. The key order

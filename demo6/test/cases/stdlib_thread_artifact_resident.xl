@@ -1,0 +1,12 @@
+func makeArtifactThread(string text, bytes binary, char letter) as func() as int
+    return func() as int
+        assert(text == "a\0你" and binary == b"a\0b" and letter == '你')
+        return 42
+    end
+end
+export func threadProbe() as int
+    auto worker = thread(makeArtifactThread("a\0你", b"a\0b", '你'))
+    assert(worker.waitTimeout(30000) and worker.wait())
+    assert(worker.exitCode() == 42 and worker.state() == 1)
+    return worker.exitCode()
+end

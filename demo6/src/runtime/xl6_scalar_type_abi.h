@@ -1,7 +1,7 @@
 #ifndef XL6_SCALAR_TYPE_ABI_H
 #define XL6_SCALAR_TYPE_ABI_H
-#include "src/runtime/xl6_text_value.h"
-#include "src/runtime/xl6_value_admission_abi.h"
+#include "xl6_text_value.h"
+#include "xl6_value_admission_abi.h"
 #include <string.h>
 
 /* Closed physical metadata, NOT nominal language identities. Inline checks

@@ -1,6 +1,6 @@
 #ifndef XL6_TEXT_PIECES_H
 #define XL6_TEXT_PIECES_H
-#include "src/runtime/xl6_text_internal.h"
+#include "xl6_text_internal.h"
 /* A checkpointable XRT cursor. No delimiter algorithms live in the adapter. */
 typedef union XL6_TextPieces {
     xstrsplit split;

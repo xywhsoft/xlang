@@ -1,6 +1,6 @@
 #ifndef XL6_PROCESS_PIPELINE_INTERNAL_H
 #define XL6_PROCESS_PIPELINE_INTERNAL_H
-#include "src/runtime/xl6_process_config.h"
+#include "xl6_process_config.h"
 
 typedef struct XL6_ProcessPipeline {
     XL6_TextThreadOwner owner;

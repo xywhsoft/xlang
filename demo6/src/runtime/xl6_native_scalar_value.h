@@ -1,7 +1,7 @@
 #ifndef XL6_NATIVE_SCALAR_VALUE_H
 #define XL6_NATIVE_SCALAR_VALUE_H
-#include "src/runtime/xl6_native_scalar_abi.h"
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_native_scalar_abi.h"
+#include "xl6_text_value.h"
 /* Exact domain, no numeric coercion. Read commits native bytes only after a
  * successful conversion, including unaligned output slots. Box binds identity
  * only on an independently owned primitive, never the canonical bool singleton.

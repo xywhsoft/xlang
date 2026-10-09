@@ -1,6 +1,6 @@
 #ifndef XL6_CONCURRENT_QUEUE_H
 #define XL6_CONCURRENT_QUEUE_H
-#include "src/runtime/xl6_sequence.h"
+#include "xl6_sequence.h"
 #include "xl6_concurrent_queue_abi.h"
 
 /* Items is a new owned ARRAY, never a supplied/mutated output container.

@@ -1,6 +1,6 @@
 #ifndef XL6_PROCESS_TEXT_H
 #define XL6_PROCESS_TEXT_H
-#include "src/runtime/xl6_text_internal.h"
+#include "xl6_text_internal.h"
 #include <string.h>
 
 /* Exact language view -> owned OS text. Selection is allowed to exclude a NUL

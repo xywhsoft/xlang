@@ -1,6 +1,6 @@
 #ifndef XL6_ARRAY_ITERATOR_H
 #define XL6_ARRAY_ITERATOR_H
-#include "src/runtime/xl6_sequence.h"
+#include "xl6_sequence.h"
 
 /* Compiler-private typed snapshot cursor. Create borrows the source and owns
  * an independent container snapshot; managed elements retain their reference

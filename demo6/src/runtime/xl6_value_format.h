@@ -1,6 +1,6 @@
 #ifndef XL6_VALUE_FORMAT_H
 #define XL6_VALUE_FORMAT_H
-#include "src/runtime/xl6_error_value.h"
+#include "xl6_error_value.h"
 /* Same display contract as xl6ValueTextV1, but writes directly into a buffer:
  * borrowed strings and stack-formatted scalars have no intermediate copies. */
 XL6_TEXT_API bool xl6ValueTextAppendV1(xstrbuf*, const xvalue*);

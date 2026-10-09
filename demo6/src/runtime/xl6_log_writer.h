@@ -1,7 +1,7 @@
 #ifndef XL6_LOG_WRITER_H
 #define XL6_LOG_WRITER_H
-#include "src/runtime/xl6_log_record.h"
-#include "src/runtime/xl6_io_handle.h"
+#include "xl6_log_record.h"
+#include "xl6_io_handle.h"
 #include <limits.h>
 static bool log_writer_write(xbytesview data,void* context)
 {

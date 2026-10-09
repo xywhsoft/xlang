@@ -1,6 +1,6 @@
 #ifndef XL6_ARRAY_ENTRY_H
 #define XL6_ARRAY_ENTRY_H
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_text_value.h"
 /* Borrowed host Array data -> owned canonical ANY Array. NULL denotes no
  * arguments. Exact native policies are retained without copying storage;
  * wire/other admitted Array data is explicitly imported, never retagged. */

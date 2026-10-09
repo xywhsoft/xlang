@@ -1,6 +1,6 @@
 #ifndef XL6_VALUE_ADMISSION_INTERNAL_H
 #define XL6_VALUE_ADMISSION_INTERNAL_H
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_text_value.h"
 
 /* Private resident-only walk. The predicate/context are synchronous stack
  * borrows, never retained or generated-module callbacks. Keep one source for

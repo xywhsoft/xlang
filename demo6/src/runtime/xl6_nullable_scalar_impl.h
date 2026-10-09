@@ -3,7 +3,7 @@
  * scalar algorithm is mirrored here. Init/copy/move/drop remain xrttype's
  * trivial operations. The absent payload and padding never affect equality
  * or hashing, and no descriptor points into unloadable generated code. */
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_text_value.h"
 #include <stdlib.h>
 
 static int XL6_NULLABLE_COMPARE(const void* left, const void* right, const xrttype* type)

@@ -1,6 +1,6 @@
 #ifndef XL6_TIME_INTERNAL_H
 #define XL6_TIME_INTERNAL_H
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_text_value.h"
 #include <limits.h>
 
 /* An immutable native leaf: no language references, borrowed buffers, host

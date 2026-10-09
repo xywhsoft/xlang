@@ -1,6 +1,6 @@
 #ifndef XL6_XLON_WRITER_H
 #define XL6_XLON_WRITER_H
-#include "src/runtime/xl6_serialization_writer.h"
+#include "xl6_serialization_writer.h"
 
 /* Physical adapters for the declared Writer class. Primitive values use
  * explicit checked carriers; finish transfers exact native byte length. */

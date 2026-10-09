@@ -1,6 +1,6 @@
 #ifndef XL6_PROCESS_LIVE_H
 #define XL6_PROCESS_LIVE_H
-#include "src/runtime/xl6_process_internal.h"
+#include "xl6_process_internal.h"
 #include <stdlib.h>
 
 /* One native process reference, shared by the language Process and its IO

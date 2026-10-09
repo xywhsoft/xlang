@@ -2,8 +2,8 @@
  * this recursive-admission component (or other queue families) into artifacts.
  * Schema construction copies only owned immutable metadata, never a queue,
  * capacity, element storage, source callback or module-owned identity span. */
-#include "src/runtime/xl6_concurrent_queue.h"
-#include "src/runtime/xl6_resident_reference_schema.h"
+#include "xl6_concurrent_queue.h"
+#include "xl6_resident_reference_schema.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdlib.h>
 #define XL6_QA_JOIN_(A,B) A##B

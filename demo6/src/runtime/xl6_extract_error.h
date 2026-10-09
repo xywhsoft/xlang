@@ -1,6 +1,6 @@
 #ifndef XL6_EXTRACT_ERROR_H
 #define XL6_EXTRACT_ERROR_H
-#include "src/runtime/xl6_array_extract.h"
+#include "xl6_array_extract.h"
 static inline void xl6ExtractKeepFirst(xerror** first)
 {
     xerror* next=xrtTakeError();

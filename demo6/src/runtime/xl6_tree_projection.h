@@ -1,6 +1,6 @@
 #ifndef XL6_TREE_PROJECTION_H
 #define XL6_TREE_PROJECTION_H
-#include "src/runtime/xl6_sequence.h"
+#include "xl6_sequence.h"
 
 /* Source storage is borrowed only for this synchronous call. The caller
  * proves its live typed-tree owner and key/value descriptor contract. The

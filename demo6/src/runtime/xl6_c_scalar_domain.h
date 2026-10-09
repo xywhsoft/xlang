@@ -1,6 +1,6 @@
 #ifndef XL6_C_SCALAR_DOMAIN_H
 #define XL6_C_SCALAR_DOMAIN_H
-#include "src/runtime/xl6_value_domain.h"
+#include "xl6_value_domain.h"
 #include <string.h>
 /* Closed builtin native scalars; never dereference an unrecognized pointer. */
 static inline bool xl6CScalarTypeV1(const xrttype* type)

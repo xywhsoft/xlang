@@ -1,5 +1,5 @@
 """Export a fresh selected Git index snapshot; do not consume unrelated edits.
-Build products are copied only from an explicit candidate for vendor TCC use.
+Build products, when requested, come only from an explicit vendor-TCC candidate.
 This creates evidence, not a commit or any source/shipping acceptance claim.
 """
 from pathlib import Path
@@ -10,12 +10,16 @@ def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out',type=Path,required=True)
-    parser.add_argument('--runtime-root',type=Path,required=True)
+    parser.add_argument('--runtime-root',type=Path)
     args=parser.parse_args(); project=Path(__file__).resolve().parents[2]
-    out,runtime=args.out.resolve(),args.runtime_root.resolve()
-    assert not out.exists() and (runtime/'release/xl.dll').is_file()
-    paths=['demo6/'+name for name in ('src','lib','tools','docs','test/cases','test/support',
-        'res','release/include','include','build_dll.bat','build_linux.sh','.gitattributes','.gitignore')]
+    out=args.out.resolve(); runtime=args.runtime_root.resolve() if args.runtime_root else None
+    assert not out.exists()
+    assert runtime is None or (runtime/'release/xl.dll').is_file()
+    paths=['demo6/'+name for name in ('src','lib','tools','docs','test/cases','test/support','test/suites',
+        'res','release/include','include','build.bat','build_dll.bat','build_linux.sh','.gitattributes','.gitignore')]
+    # The ordinary Windows build compiles its committed host examples too.
+    # Export source fixtures, never old binaries or extension packages.
+    paths.append('demo6/release/examples/*.c')
     files=subprocess.check_output(['git','ls-files','-z','--',*paths],cwd=project)
     names=[path.decode('utf-8') for path in files.split(b'\0') if path]; assert names
     index=subprocess.check_output(['git','write-tree'],cwd=project,text=True).strip()
@@ -41,7 +45,7 @@ def main():
             'FrozenSha256':sha(frozen/name)})
     assert offset==len(objects)
     products=[]
-    for name in ('xl.dll','xlc.dll'):
+    for name in (('xl.dll','xlc.dll') if runtime else ()):
         source=runtime/'release'/name; assert source.is_file()
         target=frozen/'demo6/release'/name; assert not target.exists()
         shutil.copy2(source,target); assert sha(source)==sha(target)

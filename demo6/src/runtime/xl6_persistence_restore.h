@@ -1,7 +1,7 @@
 #ifndef XL6_PERSISTENCE_RESTORE_H
 #define XL6_PERSISTENCE_RESTORE_H
-#include "src/runtime/xl6_text_value.h"
-#include "src/runtime/xl6_value_domain.h"
+#include "xl6_text_value.h"
+#include "xl6_value_domain.h"
 
 /* Wire restoration is NOT erased-value admission. JSON loses numeric widths
  * (and encodes char as an integer); restore must normalize to the declared

@@ -1,6 +1,6 @@
 #ifndef XL6_RESIDENT_REFERENCE_SCHEMA_H
 #define XL6_RESIDENT_REFERENCE_SCHEMA_H
-#include "src/runtime/xl6_sequence.h"
+#include "xl6_sequence.h"
 
 /* Native provider-to-provider interface, never a generated descriptor. These
  * callbacks belong to resident components; Data owns only immutable metadata,

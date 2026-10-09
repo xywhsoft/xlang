@@ -1,6 +1,6 @@
 #ifndef XL6_SERIALIZATION_WRITER_H
 #define XL6_SERIALIZATION_WRITER_H
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_text_value.h"
 
 /* Stateful Writer failures and allocation failures are different outcomes.
  * The bool out parameter is the language value; status never depends on

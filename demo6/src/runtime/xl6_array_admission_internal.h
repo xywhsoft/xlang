@@ -1,6 +1,6 @@
 #ifndef XL6_ARRAY_ADMISSION_INTERNAL_H
 #define XL6_ARRAY_ADMISSION_INTERNAL_H
-#include "src/runtime/xl6_array_admission.h"
+#include "xl6_array_admission.h"
 #include <string.h>
 #include <stdlib.h>
 

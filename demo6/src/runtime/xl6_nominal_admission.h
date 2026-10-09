@@ -1,7 +1,7 @@
 #ifndef XL6_NOMINAL_ADMISSION_H
 #define XL6_NOMINAL_ADMISSION_H
-#include "src/runtime/xl6_nominal_admission_abi.h"
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_nominal_admission_abi.h"
+#include "xl6_text_value.h"
 
 /* Allocation-free/error-transparent even on mismatch or invalid arguments.
  * Schema lifetimes are limited to this call; no module callbacks are stored. */

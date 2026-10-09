@@ -1,6 +1,6 @@
 #ifndef XL6_PROCESS_RUN_INTERNAL_H
 #define XL6_PROCESS_RUN_INTERNAL_H
-#include "src/runtime/xl6_process_internal.h"
+#include "xl6_process_internal.h"
 /* Collector options belong to process_run, not the basic spawn/wait facade. */
 typedef struct XL6_ProcessRunOptions {
     xprocessrunoptions options;

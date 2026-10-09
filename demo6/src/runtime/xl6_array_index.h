@@ -1,6 +1,6 @@
 #ifndef XL6_ARRAY_INDEX_H
 #define XL6_ARRAY_INDEX_H
-#include "src/runtime/xl6_sequence.h"
+#include "xl6_sequence.h"
 /* Resolve against a pinned count. Never negate INT64_MIN or add signed
  * indices to unsigned counts. Failure leaves the caller's output unchanged. */
 static inline bool xl6ArrayIndexTryV1(int64_t index, size_t count, bool allowEnd, size_t* result)

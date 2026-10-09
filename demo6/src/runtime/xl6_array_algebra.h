@@ -1,6 +1,6 @@
 #ifndef XL6_ARRAY_ALGEBRA_H
 #define XL6_ARRAY_ALGEBRA_H
-#include "src/runtime/xl6_sequence.h"
+#include "xl6_sequence.h"
 
 /* Borrow both arrays and return a new owning array. Wire/wire keeps the Value
  * data ABI; native/native requires identical complete schemas and keeps the

@@ -1,6 +1,6 @@
 #ifndef XL6_ARRAY_VALUE_ITERATOR_H
 #define XL6_ARRAY_VALUE_ITERATOR_H
-#include "src/runtime/xl6_array_iterator.h"
+#include "xl6_array_iterator.h"
 /* Sealed erasure probe: 0 is another carrier (no error/output writes), -1 is
  * failure, 1 publishes an owned native snapshot and immutable resident codec.
  * No whole-storage wire conversion. The private CURSOR role separates this

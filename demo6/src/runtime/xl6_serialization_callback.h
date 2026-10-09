@@ -1,6 +1,6 @@
 #ifndef XL6_SERIALIZATION_CALLBACK_H
 #define XL6_SERIALIZATION_CALLBACK_H
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_text_value.h"
 
 /* The verified callable bridge supplies XL6_Function before this header.
  * Each invocation owns its callback failure independently of native parser

@@ -1,8 +1,8 @@
 #ifndef XL6_ARRAY_ADMISSION_H
 #define XL6_ARRAY_ADMISSION_H
-#include "src/runtime/xl6_sequence.h"
-#include "src/runtime/xl6_value_admission_abi.h"
-#include "src/runtime/xl6_nominal_admission_abi.h"
+#include "xl6_sequence.h"
+#include "xl6_value_admission_abi.h"
+#include "xl6_nominal_admission_abi.h"
 /* Shared ARRAY/STACK factories; the first argument is the exact native role.
  * Profiled native reference storage. Metadata is copied/owned, not borrowed
  * from generated code. Only ANY/bytes use the primitive reference carrier;

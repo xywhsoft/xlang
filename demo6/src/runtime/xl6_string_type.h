@@ -1,6 +1,6 @@
 #ifndef XL6_STRING_TYPE_H
 #define XL6_STRING_TYPE_H
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_text_value.h"
 #include <string.h>
 
 /* Physical owned string slot. Unlike XRT's optional empty view, its default

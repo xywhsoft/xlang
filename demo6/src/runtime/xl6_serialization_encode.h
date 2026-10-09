@@ -1,7 +1,7 @@
 #ifndef XL6_SERIALIZATION_ENCODE_H
 #define XL6_SERIALIZATION_ENCODE_H
-#include "src/runtime/xl6_text_value.h"
-#include "src/runtime/xl6_serialization_options.h"
+#include "xl6_text_value.h"
+#include "xl6_serialization_options.h"
 
 /* Borrowed wire/options; exact owned UTF-8 view or checked NULL. Buffer.Size
  * is authoritative, including empty output. The terminator is not a part of

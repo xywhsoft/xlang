@@ -1,6 +1,6 @@
 #ifndef XL6_PATTERN_INTERNAL_H
 #define XL6_PATTERN_INTERNAL_H
-#include "src/runtime/xl6_text_internal.h"
+#include "xl6_text_internal.h"
 
 /* XRT Value metadata is always NULL. User tags live in managed language fields,
  * never hidden strong references under an opaque native resource. */

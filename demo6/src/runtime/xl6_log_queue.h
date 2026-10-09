@@ -1,6 +1,6 @@
 #ifndef XL6_LOG_QUEUE_H
 #define XL6_LOG_QUEUE_H
-#include "src/runtime/xl6_log.h"
+#include "xl6_log.h"
 #include <limits.h>
 #include <string.h>
 typedef struct xl6_log_queue_stats { uint64_t values[18]; } xl6_log_queue_stats;

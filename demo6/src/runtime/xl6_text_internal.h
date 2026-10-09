@@ -1,6 +1,6 @@
 #ifndef XL6_TEXT_INTERNAL_H
 #define XL6_TEXT_INTERNAL_H
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_text_value.h"
 #include <limits.h>
 
 /* Byte operations may select a prefix within a UTF-8 scalar. String

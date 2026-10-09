@@ -1,7 +1,7 @@
 #ifndef XL6_PERSISTENCE_RESTORE_ARRAY_H
 #define XL6_PERSISTENCE_RESTORE_ARRAY_H
-#include "src/runtime/xl6_text_value.h"
-#include "src/runtime/xl6_array_import.h"
+#include "xl6_text_value.h"
+#include "xl6_array_import.h"
 
 /* Both owners are consumed. The seed was constructed from verified IR with
  * its full resident admission/projection, not fabricated by binding a TypeId

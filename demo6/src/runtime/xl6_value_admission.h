@@ -1,7 +1,7 @@
 #ifndef XL6_VALUE_ADMISSION_H
 #define XL6_VALUE_ADMISSION_H
-#include "src/runtime/xl6_value_admission_abi.h"
-#include "src/runtime/xl6_text_value.h"
+#include "xl6_value_admission_abi.h"
+#include "xl6_text_value.h"
 
 /* Allocation-free exact-domain predicate. No coercion, no mutation and no
  * error-context changes, including mismatch/invalid arguments. */

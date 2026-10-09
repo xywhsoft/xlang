@@ -1,6 +1,6 @@
 #ifndef XL6_SEQUENCE_PROJECTION_H
 #define XL6_SEQUENCE_PROJECTION_H
-#include "src/runtime/xl6_sequence.h"
+#include "xl6_sequence.h"
 
 /* Consumes an independently owned encoded primitive on both paths. Reference
  * policies leave its actual identity intact. Scalar identities are bound and

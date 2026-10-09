@@ -1,6 +1,6 @@
 #ifndef XL6_ARRAY_H
 #define XL6_ARRAY_H
-#include "src/runtime/xl6_sequence.h"
+#include "xl6_sequence.h"
 
 /* Compiler-private typed Array ABI. Empty result slots belong to the callee
  * expression, never to a language byref parameter. The verified tuple names

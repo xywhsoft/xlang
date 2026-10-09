@@ -1,7 +1,7 @@
 #ifndef XL6_REGEX_INTERNAL_H
 #define XL6_REGEX_INTERNAL_H
-#include "src/runtime/xl6_text_internal.h"
-#include "src/runtime/xl6_text_thread.h"
+#include "xl6_text_internal.h"
+#include "xl6_text_thread.h"
 
 static inline bool xl6RegexConfig(int64_t flags, int64_t bytes, int64_t captures, xregexconfig* out)
 {
