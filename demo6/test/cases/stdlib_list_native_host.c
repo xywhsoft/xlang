@@ -19,6 +19,7 @@ extern bool xl6TestListSchemaFaultV1(const char*,size_t);
 #ifdef XL6_TEST_RESTORE_PLAN
 extern void xl6TestRestorePlanVectorsV1(const char*);
 extern bool xl6TestRestorePlanFaultV1(const char*,size_t);
+extern bool xl6TestRestorePlanFaultLastHitV1(void);
 #endif
 #ifdef XL6_TEST_LIST_RESTORE
 extern void xl6TestListRestoreVectorsV1(const char*);
@@ -944,6 +945,23 @@ static void fault(const char* operation,size_t point)
 int main(int argc,char** argv)
 {
     assert(argc==2 || argc==3); xl6ProductMemoryBegin(SIZE_MAX);
+#ifdef XL6_TEST_RESTORE_PLAN
+    if (argc==3 && !strcmp(argv[2],"batch")) {
+        for (size_t point=0;point<4097;++point) {
+            assert(xl6TestRestorePlanFaultV1(argv[1],point));
+            bool hit=xl6TestRestorePlanFaultLastHitV1();
+            /* Per-prefix ledger closure, not just a net sum across attempts.
+             * One process changes launch cost, not the continuous fail rule. */
+            assert(!xrtGetError() && !xl6ProductMemoryEnd()); xl6ProductMemoryVerify();
+            if (!hit) {
+                printf("native plan %s closed-batch runs=%zu first-no-hit=%zu\n",argv[1],point+1,point);
+                return 0;
+            }
+            xl6ProductMemoryBegin(SIZE_MAX);
+        }
+        assert(!"unclosed native plan allocation prefix");
+    }
+#endif
     if (argc==3) fault(argv[1],(size_t)strtoull(argv[2],NULL,10));
 #ifdef XL6_TEST_RESTORE_PLAN
     else if (!strncmp(argv[1],"plan-",5)) xl6TestRestorePlanVectorsV1(argv[1]);
