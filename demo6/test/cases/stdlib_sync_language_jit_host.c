@@ -14,6 +14,9 @@
 #define SYNC_JIT_TCC_DLL_NAME "xl.dll"
 #endif
 #endif
+#ifndef SYNC_JIT_TCC_SO_NAME
+#define SYNC_JIT_TCC_SO_NAME "libxl.so"
+#endif
 static void repair(unsigned mode)
 {
     XL_SyncRetirementV1 row; size_t count=0;
@@ -34,8 +37,12 @@ static XL_Context* create(const char* root,const char* headers,const char* tempo
     int n=snprintf(runtime,sizeof(runtime),"%s/release/" SYNC_JIT_TCC_DLL_NAME,root);
     int m=snprintf(libraries,sizeof(libraries),"%s/res/tcc/win64/x86_64",root);
 #else
+#ifdef SYNC_JIT_EMBEDDED_VFS
+    const char* native=root;
+#else
     const char* native=getenv("XL6_SOURCE_NATIVE_ROOT"); assert(native && *native);
-    int n=snprintf(runtime,sizeof(runtime),"%s/release/libxl.so",native);
+#endif
+    int n=snprintf(runtime,sizeof(runtime),"%s/release/" SYNC_JIT_TCC_SO_NAME,native);
     int m=snprintf(libraries,sizeof(libraries),"%s/build/linux/tcc-dist",native);
 #endif
     assert(n>0 && (size_t)n<sizeof(runtime) && m>0 && (size_t)m<sizeof(libraries));

@@ -8,7 +8,7 @@
 - xruntime 产品公共函数：3642，其中扩展自有 459。
 - 低层能力：3642 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
-- 语言内核或标准库已直接使用：1791 个函数。其余 1851 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：1783 个函数。其余 1859 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -20,7 +20,7 @@
 | xrt | `include/xrt/array.h` | 50 | 0 | 50 |
 | xrt | `include/xrt/asn1.h` | 27 | 0 | 27 |
 | xrt | `include/xrt/atomic.h` | 29 | 17 | 12 |
-| xrt | `include/xrt/avl.h` | 43 | 0 | 43 |
+| xrt | `include/xrt/avl.h` | 43 | 1 | 42 |
 | xrt | `include/xrt/buffer.h` | 23 | 20 | 3 |
 | xrt | `include/xrt/cancel.h` | 15 | 12 | 3 |
 | xrt | `include/xrt/channel.h` | 42 | 14 | 28 |
@@ -82,7 +82,7 @@
 | xrt | `include/xrt/spin.h` | 7 | 0 | 7 |
 | xrt | `include/xrt/stack.h` | 74 | 0 | 74 |
 | xrt | `include/xrt/string.h` | 85 | 53 | 32 |
-| xrt | `include/xrt/sync.h` | 48 | 34 | 14 |
+| xrt | `include/xrt/sync.h` | 48 | 25 | 23 |
 | xrt | `include/xrt/task.h` | 43 | 23 | 20 |
 | xrt | `include/xrt/task_net.h` | 6 | 0 | 6 |
 | xrt | `include/xrt/tcp.h` | 63 | 39 | 24 |
@@ -149,7 +149,7 @@
 | `extlibs/xruntime/include/xrt/typed_queue.h` | typed SPSC/MPSC/MPMC queues | language-type | direct | 54 | 0 | `test/cases/stdlib_special_collections.xl` |
 | `extlibs/xruntime/include/xrt/typed_set.h` | set<T> | language-type | direct | 33 | 20 | `test/cases/cgen_typed_container_functions.xl` |
 | `extlibs/xruntime/include/xrt/typed_stack.h` | Stack<T> | language-type | direct | 21 | 11 | `test/cases/stdlib_special_collections.xl` |
-| `extlibs/xruntime/include/xrt/typed_tree.h` | AvlTree<K,V> | language-type | direct | 33 | 22 | `test/cases/stdlib_special_collections.xl` |
+| `extlibs/xruntime/include/xrt/typed_tree.h` | AvlTree<K,V> | language-type | direct | 33 | 21 | `test/cases/stdlib_special_collections.xl` |
 | `extlibs/xruntime/include/xrt/typed_value.h` | typed values used by generic containers | kernel | direct | 32 | 27 | `test/cases/cgen_typed_container_functions.xl` |
 
 ## 扩展延期边界

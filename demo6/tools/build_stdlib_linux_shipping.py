@@ -1,0 +1,49 @@
+"""Rebuild a fresh native Linux candidate, including TCC/XRT and both VFS images.
+This records build provenance; it is not runtime or full53 acceptance.
+"""
+from pathlib import Path
+import argparse, hashlib, json, os, shutil, subprocess
+
+def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    for name in ('root','out'): parser.add_argument('--'+name,type=Path,required=True)
+    args=parser.parse_args(); root,out=args.root.resolve(),args.out.resolve()
+    assert os.name!='nt' and not out.exists() and root!=Path('/')
+    build=(root/'build/linux').resolve()
+    assert build.is_relative_to(root) and not build.exists()
+    assert (root/'build_linux.sh').is_file() and (root/'lib/tcc/libtcc.c').is_file()
+    products=[root/'release'/name for name in ('libxl.so','libxlc.so','xl')]
+    assert not any(path.exists() for path in products),'Do not overwrite old products'
+    files={Path(__file__).resolve(),root/'build_linux.sh'}
+    for name in ('gcc','make','python3','bash'):
+        selected=shutil.which(name); assert selected; files.add(Path(selected).resolve())
+    for folder in ('src','lib','tools','res','docs','release/include','include'):
+        files.update(path for path in (root/folder).rglob('*') if path.is_file())
+    inputs=[{'Path':str(path),'Sha256':sha(path)} for path in sorted(files)]
+    out.mkdir(); tmp=out/'tmp'; tmp.mkdir()
+    env=dict(os.environ,XL6_LINUX_BUILD_DIR=str(build),TMPDIR=str(tmp),TEMP=str(tmp),TMP=str(tmp),
+        CC=shutil.which('gcc'),MAKE=shutil.which('make'),PYTHON=shutil.which('python3'),JOBS='4')
+    command=['bash',str(root/'build_linux.sh')]
+    report={'Scope':__doc__,'Complete':False,'InputsUnchanged':False,'Inputs':inputs,
+        'Command':command,'BuildDirectory':str(build),'Products':[],
+        'ShippingLibraryAcceptance':False,'Full53Acceptance':False}
+    def save(): (out/'build.shipping.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+    save()
+    try:
+        with (out/'build.log').open('wb') as log:
+            process=subprocess.run(command,cwd=root,env=env,stdout=log,stderr=subprocess.STDOUT,timeout=1800)
+        report['Exit']=process.returncode; assert process.returncode==0
+        assert all(path.is_file() for path in products)
+        for name in ('tcc','xrt.o','tcc_builtin_resources.c','tcc_builtin_resources_runtime.c'):
+            assert (build/name).is_file()
+        report['Products']=[{'Path':str(path),'Sha256':sha(path)} for path in products+
+            [build/name for name in ('tcc','xrt.o','tcc_builtin_resources.c','tcc_builtin_resources_runtime.c')]]
+        report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
+        assert report['InputsUnchanged'],'Build inputs changed, inspect rather than accepting a stale candidate'
+        report['Complete']=True
+    except Exception as error: report['Error']=repr(error); raise
+    finally: save()
+    print('Fresh Linux shipping candidate rebuilt with source TCC/XRT and VFS',flush=True)
+if __name__=='__main__': main()
