@@ -34,6 +34,11 @@ typedef struct XL6_RestoreNodeV1 {
         struct { xvalue* (*factory)(void); int64_t runtimeTag; size_t first,count;
             const XL6_RestoreObjectProviderV1* provider; } object;
     } as;
+    /* Compiler-selected declared clone/copy capability, not structural
+     * inference or a second initializer. Borrows the committed receiver and
+     * returns one owned result; runs outside all ownership fences. NULL means
+     * checked rejection when the actual receiver is externally shared. */
+    xvalue* (*clone)(const xvalue*);
 } XL6_RestoreNodeV1;
 typedef struct XL6_RestoreFieldV1 {
     xstrview source,target;
@@ -64,7 +69,9 @@ typedef struct XL6_RestorePlanV1 {
  * exact nominal identity and language runtime tag before any field write.
  * Fields are prepared without receiver writes and published as ONE checked
  * batch only after resident whole-graph admission and actual slot privacy.
- * A shared receiver is a checked failure, never a benign nullable rejection.
+ * A shared receiver uses only its declared clone capability, then the entire
+ * prepared graph is rebuilt and reauthenticated. Initializers run once;
+ * returned self or a still-shared cloned receiver is a checked failure.
  * Missing optional fields preserve defaults; explicit null is distinct.
  * Source is borrowed wire ARRAY/OBJECT/scalar, never retagged or mutated.
  * Traversed cycles and more than 65 object/collection levels fail closed.

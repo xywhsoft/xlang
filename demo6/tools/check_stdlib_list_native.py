@@ -107,11 +107,12 @@ def main():
         operations+=('restore-native','restore-json','restore-xlon','restore-wide','restore-source-take')
     if args.restore_plan:
         modes+=('plan-shared','plan-format','plan-nested','plan-instances','plan-instance-failures','plan-instance-wide-vector','plan-rejected','plan-boundaries','plan-depth','plan-wide-domains','plan-objects','plan-mixed',
-            'plan-read-profiles','plan-read-failures','plan-read-boundaries','plan-read-scalars','plan-read-format','plan-transactions')
+            'plan-read-profiles','plan-read-failures','plan-read-boundaries','plan-read-scalars','plan-read-format','plan-transactions','plan-clones')
         operations+=('plan-restore','plan-target','plan-nested-restore','plan-wide','plan-mixed-restore',
             'plan-read-valid','plan-read-rejected','plan-read-shape','plan-read-scalar',
             'plan-instance-distinct','plan-instance-shared','plan-instance-rejected','plan-instance-wide',
-            'plan-transaction-private','plan-transaction-shared','plan-transaction-rejected')
+            'plan-transaction-private','plan-transaction-shared','plan-transaction-rejected',
+            'plan-clone-child','plan-clone-root','plan-clone-deep','plan-clone-rejected','plan-clone-collections')
     def select(argument,available):
         if argument is None: return available
         requested=tuple(filter(None,argument.split(',')))
