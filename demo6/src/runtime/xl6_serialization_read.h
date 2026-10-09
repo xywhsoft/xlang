@@ -55,4 +55,10 @@ static inline bool xl6SerializeRestoreReadFinishV1(xvalue* source, xvalue* targe
     *output = result;
     return true;
 }
+
+/* Transitional pending-family adapter only. The new language RuntimeOp owns
+ * its construction target even while a family still uses legacy assignment.
+ * Do not retain a second language owner or omit target retirement on refusal. */
+XL6_TEXT_API bool xl6SerializeRestoreReadFinishTakeV1(xvalue*,xvalue*,
+    bool (*)(xvalue*,const xvalue*),xerror*,xvalue**);
 #endif

@@ -326,6 +326,20 @@ static int xl6IrCgenPersistenceTypeReferencesDepth(
 }
 
 
+static int xl6IrCgenPersistenceLegacySchemaUsed(const XL6_IrModule* module,
+    XL6_IrTypeId type,uint32 format)
+{
+    for (size_t r=0;r<module->persistenceRestoreRootCount;++r) {
+        const XL6_IrPersistenceRestoreRoot* root=&module->persistenceRestoreRoots[r];
+        if (!root->pending || root->format!=format) continue;
+        for (size_t n=0;n<root->nodeCount;++n) {
+            const XL6_IrPersistenceRestoreNode* node=&module->persistenceRestoreNodes[root->firstNode+n];
+            if (node->abi==XL6_IR_RESTORE_NODE_CLASS && node->payloadType==type) return 1;
+        }
+    }
+    return 0;
+}
+
 static int xl6IrCgenPersistenceTypeUsed(
     const XL6_IrModule* module, XL6_IrTypeId wanted,
     uint32 format, int restore)
@@ -336,6 +350,7 @@ static int xl6IrCgenPersistenceTypeUsed(
           ++layoutIndex ) {
         const XL6_IrClassLayout* layout =
             &module->classLayouts[layoutIndex];
+        if (!xl6IrCgenPersistenceLegacySchemaUsed(module,layout->type,format)) continue;
         const XL6_IrPersistenceRestoreSchema* schema =
             xl6IrPersistenceRestoreSchemaGet(module, layout->type, format);
         size_t fieldIndex;
@@ -393,6 +408,8 @@ static int xl6IrCgenEmitPersistenceClassDefault(
         xl6IrCgenErrorResultType(module, layout->type), (unsigned int)factory->symbol);
     return !xl6OutputHasFailed(out);
 }
+
+#include "src/cgen/xl6_ir_cgen_persistence_restore.c"
 
 static int xl6IrCgenEmitPersistenceTypeHelpers(
     XL6_Output* out, const XL6_IrModule* module, XL6_IrTypeId typeId,
@@ -498,11 +515,16 @@ static int xl6IrCgenEmitPersistenceHelpers(
         return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
             "XLIR C emitter persistence helper has no exact format ABI");
     }
+    if (!xl6IrCgenEmitNativeRestoreHelpers(out,module,format,readUsed,diags)) return 0;
+    int legacy=0;
+    for (layoutIndex=0;layoutIndex<module->classLayoutCount;++layoutIndex)
+        if (xl6IrCgenPersistenceLegacySchemaUsed(module,module->classLayouts[layoutIndex].type,format)) { legacy=1; break; }
+    if (!legacy) return 1;
     for ( layoutIndex = 0; layoutIndex < module->classLayoutCount;
           ++layoutIndex ) {
         const XL6_IrClassLayout* layout =
             &module->classLayouts[layoutIndex];
-        if ( !xl6IrCgenPersistenceLayoutSupported(
+        if (!xl6IrCgenPersistenceLegacySchemaUsed(module,layout->type,format) || !xl6IrCgenPersistenceLayoutSupported(
                  module, layout->type, format) ||
              layout->persistenceObjectAbi !=
                  XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA ) continue;
@@ -586,7 +608,7 @@ static int xl6IrCgenEmitPersistenceHelpers(
           ++layoutIndex ) {
         const XL6_IrClassLayout* layout =
             &module->classLayouts[layoutIndex];
-        if ( !xl6IrCgenPersistenceLayoutSupported(
+        if (!xl6IrCgenPersistenceLegacySchemaUsed(module,layout->type,format) || !xl6IrCgenPersistenceLayoutSupported(
                  module, layout->type, format) ) continue;
         xl6OutputPrintf(out,
             "static bool xlir_persist_%s_assign_t%u(xvalue*, const xvalue*);\n"
@@ -611,7 +633,7 @@ static int xl6IrCgenEmitPersistenceHelpers(
         const XL6_IrPersistenceRestoreSchema* schema =
             xl6IrPersistenceRestoreSchemaGet(module, layout->type, format);
         size_t fieldIndex;
-        if (schema == NULL) continue;
+        if (schema == NULL || !xl6IrCgenPersistenceLegacySchemaUsed(module,layout->type,format)) continue;
         if ( layout->persistenceConstructionAbi ==
                  XL6_IR_PERSISTENCE_CONSTRUCTION_DECLARATION_DEFAULT &&
              xl6IrCgenPersistenceTypeUsed(module, layout->type, format, 1) &&
@@ -672,14 +694,15 @@ static int xl6IrCgenEmitPersistenceHelpers(
                 xl6OutputPuts(" else { return false; }", out);
             xl6OutputPuts("\n", out);
         }
+        xl6OutputPuts("    return true;\n}\n",out);
+        const XL6_IrPersistenceRestoreRoot* restoreRoot=xl6IrPersistenceRestoreRootGet(module,layout->type,format);
+        if (restoreRoot && restoreRoot->pending) {
         xl6OutputPrintf(out,
-            "    return true;\n"
-            "}\n"
             "static bool xlir_persist_%s_parse_t%u(xlir_string text, xvalue* target, xvalue** result)\n"
             "{\n"
             "    xerror* prior = xrtTakeError();\n"
             "    xvalue* source = text.Data != NULL && target != NULL ? %s(text) : NULL;\n"
-            "    return xl6SerializeRestoreReadFinishV1(source, target, xlir_persist_%s_assign_t%u, prior, result);\n"
+            "    return xl6SerializeRestoreReadFinishTakeV1(source, target, xlir_persist_%s_assign_t%u, prior, result);\n"
             "}\n",
             formatName, (unsigned int)layout->type, parseName,
             formatName, (unsigned int)layout->type);
@@ -689,10 +712,11 @@ static int xl6IrCgenEmitPersistenceHelpers(
             "    xerror* prior = xrtTakeError();\n"
             "    const char* cpath = xlir_string_cstr(path);\n"
             "    xvalue* source = cpath != NULL && target != NULL ? %s(cpath) : NULL;\n"
-            "    return xl6SerializeRestoreReadFinishV1(source, target, xlir_persist_%s_assign_t%u, prior, result);\n"
+            "    return xl6SerializeRestoreReadFinishTakeV1(source, target, xlir_persist_%s_assign_t%u, prior, result);\n"
             "}\n\n",
             formatName, (unsigned int)layout->type, readName,
             formatName, (unsigned int)layout->type);
+        }
     }
     for ( typeIndex = 0; typeIndex < module->types.count; ++typeIndex )
         if ( !xl6IrCgenEmitPersistenceTypeHelpers(

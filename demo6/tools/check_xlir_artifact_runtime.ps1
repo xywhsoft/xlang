@@ -1,9 +1,10 @@
 param([Parameter(Mandatory=$true)][string]$PublicDirectory,
     [Parameter(Mandatory=$true)][string]$Directory,
     [string[]]$Cases = @(),
-    [string]$ProcessChild = '')
+    [string]$ProcessChild = '',
+    [string]$Root = '')
 $ErrorActionPreference='Stop'
-$rootPath=Split-Path -Parent $PSScriptRoot
+$rootPath=if($Root){[IO.Path]::GetFullPath($Root)}else{Split-Path -Parent $PSScriptRoot}
 Push-Location $rootPath
 $priorProcessChild=$env:XL6_PROCESS_CHILD
 $processChildConfigured=$false
@@ -34,7 +35,8 @@ try {
         'release/xl.dll',
         'tools/stage_xlir_artifact_runtime_sources.ps1','src/compile/xl6_artifact_runtime_symbols.inc',
         'src/runtime/xl6_log_symbols.inc','src/runtime/xl6_text_symbols.inc',(Get-Command gcc).Source,(Get-Command nm).Source)+$fixtures+$processInputs)
-    $inputs=@($public.Inputs)+@($public.Headers)+@($public.Objects)+@($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
+    $inputs=@($public.Inputs)+@($public.Headers)+@($public.Objects)+@($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})+
+        @([pscustomobject]@{Path=$PSCommandPath;Sha256=(Get-FileHash -LiteralPath $PSCommandPath).Hash})
     foreach($row in $inputs){if((Get-FileHash -LiteralPath $row.Path).Hash-ne$row.Sha256){throw "Stale artifact input: $($row.Path)"}}
     New-Item -ItemType Directory -Path $outputPath|Out-Null
     Copy-Item -LiteralPath release/xl.dll -Destination "$outputPath/xl.dll"
@@ -115,7 +117,7 @@ try {
     if($cliBuild-eq0-and$contractBuild-eq0){
         $identity=[pscustomobject]@{Driver="$outputPath/xl.exe";DriverSha256=(Get-FileHash -LiteralPath "$outputPath/xl.exe").Hash}
         [IO.File]::WriteAllText("$outputPath/build.json",($identity|ConvertTo-Json),[Text.UTF8Encoding]::new($false))
-        & "$PSScriptRoot/stage_xlir_artifact_runtime_sources.ps1" -Directory $outputPath *> "$outputPath/stage.log"
+        & "$rootPath/tools/stage_xlir_artifact_runtime_sources.ps1" -Directory $outputPath *> "$outputPath/stage.log"
         # PowerShell location and the process/.NET current directory can differ.
         # Resolve provider paths against this frozen test root explicitly.
         $env:XL6_TCC_DLL=Join-Path $rootPath 'release/xl.dll'
@@ -319,14 +321,21 @@ $process=Start-Process @start
                     $selectionMatches=('XRT_MODULE_'+$format+'_READ')-in$plan.NativeModules-and
                         ('XRT_MODULE_'+$other+'_READ')-notin$plan.NativeModules-and
                         !@($plan.NativeModules|Where-Object {$_-match '^XRT_MODULE_(?:JSONL|XLONL)|^XRT_MODULE_(?:JSON|XLON)_FILE$'}).Count-and
-                        $generatedText.Contains('xl6_serialization_read.h')-and
-                        $generatedText.Contains('xl6SerializeRestoreReadFinishV1(')-and
+                        $generatedText.Contains('xl6_restore_class.h')-and
+                        $generatedText.Contains('xl6PersistenceRestoreParsedTakeV1(')-and
+                        !$generatedText.Contains('xl6SerializeRestoreReadFinish')-and
+                        !$generatedText.Contains('xlir_persist_json_assign_')-and
+                        !$generatedText.Contains('xlir_persist_xlon_assign_')-and
+                        'src/runtime/xl6_restore_class_closed.c'-in$selectedSources-and
+                        'src/runtime/xl6_list.c'-notin$selectedSources-and
+                        'src/runtime/xl6_array_future_admission.c'-notin$selectedSources-and
+                        'src/runtime/xl6_array_import_chain.c'-in$selectedSources-and
                         $generatedText.Contains($entry)-and!$generatedText.Contains($otherEntry)-and
                         !$generatedText.Contains('_read_t')-and!$generatedText.Contains('xl6PersistenceProjectV1(')
                     if($case-eq'stdlib_persistence_restore_array_json_prune'){
                         $selectionMatches=$selectionMatches-and
-                            $generatedText.Contains('xl6PersistenceRestoreArrayTakeV1(')-and
-                            'src/runtime/xl6_array_import.c'-in$selectedSources
+                            $generatedText.Contains('xl6SequencePrimitiveCreateV1(')-and
+                            'src/runtime/xl6_array_import_chain.c'-in$selectedSources
                     }
                 }
                 if($case-in@('stdlib_persistence_configured_json_prune','stdlib_persistence_sink_json_prune','stdlib_persistence_file_json_prune','stdlib_persistence_writer_json_prune')){

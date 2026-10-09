@@ -51,7 +51,7 @@ def main():
         if not args.graph: sources+=['src/runtime/xl6_array_erased.c']
     if args.restore_plan:
         sources+=['test/cases/stdlib_restore_plan_native_host.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_code_lease.c',
-            'src/runtime/xl6_restore_class.c']
+            'src/runtime/xl6_restore_class.c','src/runtime/xl6_restore_class_closed.c']
     if args.module_read: sources+=['test/cases/stdlib_restore_module_read_host.c']
     files={Path(__file__).resolve(),Path(cc),Path(nm),Path(sys.executable)}
     files.update(root/name for name in sources)

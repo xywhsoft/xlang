@@ -1,0 +1,130 @@
+int cloneCalls = 0
+class RestoreNativeCustom
+    derive value
+    int n = 11
+    string text = "a\0你"
+    func __clone__() as RestoreNativeCustom
+        cloneCalls += 1
+        auto copy = RestoreNativeCustom()
+        copy.n = self.n
+        copy.text = self.text
+        return copy
+    end
+end
+RestoreNativeCustom sharedCustom = RestoreNativeCustom()
+class RestoreNativeEnvelope
+    derive value
+    RestoreNativeCustom child = sharedCustom
+    array<array<int8>> numbers = []
+    RestoreNativeCustom? optional = null
+end
+RestoreNativeEnvelope first = json.parse::<RestoreNativeEnvelope>("{\"child\":{\"n\":31,\"text\":\"b\\u0000好\"},\"numbers\":[[1,2],[3]],\"optional\":{\"n\":7}}")
+assert first.child.n == 31 and first.child.text == "b\0好"
+assert sharedCustom.n == 11 and sharedCustom.text == "a\0你" and cloneCalls == 1
+assert first.numbers[0][1] == 2 and first.numbers[1][0] == 3
+RestoreNativeCustom optional = first.optional ?? sharedCustom
+assert optional.n == 7
+RestoreNativeEnvelope second = xlon.parse::<RestoreNativeEnvelope>("{\"child\":{\"n\":41},\"numbers\":[[4,5]]}")
+assert second.child.n == 41 and sharedCustom.n == 11 and cloneCalls == 2
+assert first.child.n == 31 and second.numbers[0][1] == 5
+RestoreNativeEnvelope defaults = json.parse::<RestoreNativeEnvelope>("{}")
+assert defaults.child.n == 11 and cloneCalls == 2
+assert json.parse::<RestoreNativeEnvelope>("{bad") == null
+assert xlon.parse::<RestoreNativeEnvelope>("[1]") == null
+assert json.parse::<RestoreNativeEnvelope>("{\"numbers\":[[128]]}") == null
+assert sharedCustom.n == 11
+
+class RestoreNativeShallow
+    derive value
+    derive copy
+    int n = 23
+end
+class RestoreNativeDeep
+    derive value
+    derive clone
+    int n = 29
+end
+RestoreNativeShallow sharedShallow = RestoreNativeShallow()
+RestoreNativeDeep sharedDeep = RestoreNativeDeep()
+class RestoreNativeCopies
+    derive value
+    RestoreNativeShallow shallow = sharedShallow
+    RestoreNativeDeep deep = sharedDeep
+end
+RestoreNativeCopies copies = json.parse::<RestoreNativeCopies>("{\"shallow\":{\"n\":61},\"deep\":{\"n\":67}}")
+assert copies.shallow.n == 61 and copies.deep.n == 67 and sharedShallow.n == 23 and sharedDeep.n == 29
+
+class RestoreNativeRefused
+    derive value
+    int n = 13
+end
+RestoreNativeRefused sharedRefused = RestoreNativeRefused()
+class RestoreNativeRefusal
+    derive value
+    RestoreNativeRefused child = sharedRefused
+end
+class RestoreNativeAlias
+    derive value
+    int n = 17
+    func __clone__() as RestoreNativeAlias
+        return self
+    end
+end
+RestoreNativeAlias sharedAlias = RestoreNativeAlias()
+class RestoreNativeAliasEnvelope
+    derive value
+    RestoreNativeAlias child = sharedAlias
+end
+class RestoreNativeThrow
+    derive value
+    int n = 19
+    func __clone__() as RestoreNativeThrow
+        throw ValueError("restore-native-clone-original")
+    end
+end
+RestoreNativeThrow sharedThrow = RestoreNativeThrow()
+class RestoreNativeThrowEnvelope
+    derive value
+    RestoreNativeThrow child = sharedThrow
+end
+int caught = 0
+try
+    auto rejected = json.parse::<RestoreNativeRefusal>("{\"child\":{\"n\":99}}")
+catch e
+    caught += 1
+end
+try
+    auto rejected = xlon.parse::<RestoreNativeAliasEnvelope>("{\"child\":{\"n\":99}}")
+catch e
+    caught += 1
+end
+try
+    auto rejected = json.parse::<RestoreNativeThrowEnvelope>("{\"child\":{\"n\":99}}")
+catch e
+    assert e.message == "restore-native-clone-original"
+    caught += 1
+end
+assert caught == 3 and sharedRefused.n == 13 and sharedAlias.n == 17 and sharedThrow.n == 19
+RestoreNativeEnvelope recovered = json.parse::<RestoreNativeEnvelope>("{\"child\":{\"n\":51}}")
+assert recovered.child.n == 51 and first.child.n == 31 and sharedCustom.n == 11
+string files = env.get("XL6_PERSIST_FILE_ROOT") ?? ""
+assert files != ""
+assert json.write(files + "/native.json", first) and xlon.write(files + "/native.xlon", second)
+RestoreNativeEnvelope jsonFile = json.read::<RestoreNativeEnvelope>(files + "/native.json")
+RestoreNativeEnvelope xlonFile = xlon.read::<RestoreNativeEnvelope>(files + "/native.xlon")
+assert jsonFile.child.n == 31 and xlonFile.child.n == 41 and sharedCustom.n == 11
+assert json.read::<RestoreNativeEnvelope>(files + "/missing.json") == null
+assert xlon.read::<RestoreNativeEnvelope>(files + "/missing.xlon") == null
+
+class RestoreNativeBase
+    derive value
+    int inherited = 71
+end
+class RestoreNativeDerived extends RestoreNativeBase
+    derive value
+    int own = 73
+end
+RestoreNativeDerived inheritedJson = json.parse::<RestoreNativeDerived>("{\"own\":79}")
+RestoreNativeDerived inheritedXlon = xlon.parse::<RestoreNativeDerived>("{\"inherited\":83}")
+assert inheritedJson.inherited == 71 and inheritedJson.own == 79
+assert inheritedXlon.inherited == 83 and inheritedXlon.own == 73

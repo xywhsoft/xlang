@@ -339,6 +339,25 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             (xl6IrCgenPersistenceTypeUsed(module, (XL6_IrTypeId)(i + 1), XL6_IR_PERSIST_FORMAT_JSON, 1) ||
              xl6IrCgenPersistenceTypeUsed(module, (XL6_IrTypeId)(i + 1), XL6_IR_PERSIST_FORMAT_XLON, 1)) &&
             (!visitor(context,"xl6ArrayProjectionTakeV1") || !visitor(context,"xl6ArrayImportTakeV1"))) return 0;
+    for (size_t r=0;r<module->persistenceRestoreRootCount;++r) {
+        const XL6_IrPersistenceRestoreRoot* root=&module->persistenceRestoreRoots[r];
+        if (root->pending) {
+            if (!visitor(context,"xl6SerializeRestoreReadFinishTakeV1")) return 0;
+            continue;
+        }
+        if (!visitor(context,"xl6PersistenceRestoreParsedTakeV1") ||
+            !visitor(context,"xl6RestoreClassClosedProviderV1")) return 0;
+        for (size_t n=0;n<root->nodeCount;++n) {
+            const XL6_IrPersistenceRestoreNode* node=&module->persistenceRestoreNodes[root->firstNode+n];
+            if (node->abi==XL6_IR_RESTORE_NODE_ARRAY &&
+                (!visitor(context,"xl6ArrayProjectionTakeV1") ||
+                 !xl6IrCgenVisitSequenceFactorySymbols(module,node->payloadType,visitor,context,0))) return 0;
+            if (node->isolationAbi==XL6_IR_PERSIST_ISOLATION_RUNTIME_SHALLOW &&
+                !visitor(context,"xl6ValueCloneV1")) return 0;
+            if (node->isolationAbi==XL6_IR_PERSIST_ISOLATION_RUNTIME_DEEP &&
+                !visitor(context,"xl6ValueDeepCloneV1")) return 0;
+        }
+    }
     for (size_t i=0;i<module->instructionCount;++i) {
         const XL6_IrInstruction* instruction=&module->instructions[i];
         XL6_IrTypeId queueId=xl6IrConcurrentQueueInstructionType(module,instruction);

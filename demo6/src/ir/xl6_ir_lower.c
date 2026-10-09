@@ -8804,10 +8804,10 @@ static int xl6IrLowerIntrinsicPersistenceInvocation(
 }
 
 
-/* persistence parse<T> borrows its text and overlays parsed fields onto an explicitly
- * lowered default T instance.  The RuntimeOp therefore has no hidden
- * constructor/default-value semantics: it only consumes the verified
- * persistence schema and retains the completed instance as its result. */
+/* The declaration factory returns one owned construction capability. Transfer
+ * it directly to the restore transaction, on BOTH outcomes. A borrowed LOAD
+ * plus a retained result would invent an externally shared receiver during
+ * restoration. Text alone remains borrowed across the checked constructor. */
 static int xl6IrLowerIntrinsicPersistenceParse(
     XL6_IrLowerContext* ctx, XL6_IrNodeId id, const XL6_IrNode* call,
     const XL6_IrIntrinsicCall* intrinsic, XL6_IrValueId* result)
@@ -8819,10 +8819,8 @@ static int xl6IrLowerIntrinsicPersistenceParse(
     XL6_IrValueId text;
     XL6_IrValueId borrowedText;
     XL6_IrValueId target;
-    XL6_IrValueId borrowedTarget;
     XL6_IrValueId operands[2];
     XL6_SymbolId textTemporary = 0;
-    XL6_SymbolId targetTemporary = 0;
     size_t evaluationFirst;
 
     if ( result != NULL ) *result = XL6_IR_VALUE_INVALID;
@@ -8870,13 +8868,8 @@ static int xl6IrLowerIntrinsicPersistenceParse(
     target = xl6IrLowerEmitRuntimeCallPayload(ctx, id, id, intrinsic->payloadType,
         XL6_IR_RUNTIME_CLASS_DEFAULT_INVOKE, NULL, intrinsic->payloadType, NULL, 0);
     if ( target == XL6_IR_VALUE_INVALID ) return 1;
-    borrowedTarget = xl6IrLowerBorrowRuntimeXValueOperand(
-        ctx, id, call, target, &targetTemporary);
-    if ( borrowedTarget == XL6_IR_VALUE_INVALID ) return 1;
-    if (targetTemporary != 0 && !xl6IrLowerProtectEvaluationStorage(
-            ctx, id, targetTemporary, borrowedTarget, 0, 0)) return 1;
     operands[0] = borrowedText;
-    operands[1] = borrowedTarget;
+    operands[1] = target;
     *result = xl6IrLowerEmitRuntimeCallPayload(
         ctx, id, id, call->storageType,
         intrinsic->kind == XL6_IR_INTRINSIC_PERSISTENCE_JSON_PARSE

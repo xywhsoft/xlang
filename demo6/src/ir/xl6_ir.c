@@ -38615,6 +38615,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              left == NULL || right == NULL ||
                              textType == NULL || targetType == NULL ||
                              resultType == NULL ||
+                             right->kind != XL6_IR_INSTR_RUNTIME_CALL ||
+                             right->runtimeOp != XL6_IR_RUNTIME_CLASS_DEFAULT_INVOKE ||
+                             right->payloadType != instruction->payloadType ||
                              right->type != instruction->payloadType ||
                              instruction->type != instruction->payloadType ||
                              textType->kind == XL6_IR_TYPE_NULLABLE ||

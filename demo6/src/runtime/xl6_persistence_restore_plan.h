@@ -2,7 +2,7 @@
 #define XL6_PERSISTENCE_RESTORE_PLAN_H
 #include "xl6_collection_import_chain.h"
 #include "xl6_value_admission_abi.h"
-#include "xl6_ownership_read.h"
+#include "xl6_ownership_read_abi.h"
 
 enum { XL6_RESTORE_SCALAR_V1=1, XL6_RESTORE_SEQUENCE_V1, XL6_RESTORE_OBJECT_V1 };
 enum { XL6_RESTORE_NULLABLE_V1=1u, XL6_RESTORE_FIELD_INSTANCE_V1=2u };
@@ -14,7 +14,7 @@ typedef struct XL6_RestoreObjectProviderV1 {
     /* Read-only resident policy admission BEFORE physical Count/Trace. Every
      * graph participant, including native children/code owners, must pass.
      * TypeId/field markers and ordinary generated callbacks are not proof. */
-    bool (*OwnershipAdmits)(xrtownershipref);
+    bool (*OwnershipAdmits)(struct xrtownershipref);
 } XL6_RestoreObjectProviderV1;
 
 /* Closed compiler-private construction domains, not a type-name registry.
@@ -95,4 +95,10 @@ XL6_TEXT_API xvalue* xl6PersistenceRestorePlanTakeV1(xvalue**,size_t,xvalue*,
  * NULL source is an upstream failure, not a benign parser rejection. */
 XL6_TEXT_API bool xl6PersistenceRestorePlanReadTakeV1(xvalue**,size_t,xvalue*,
     const xvalue*,const XL6_RestorePlanV1*,xvalue**);
+/* Consumes the parser's owned source/error and the same construction inputs.
+ * Only authenticated syntax/number or ordinary file-access rejection becomes
+ * nullable wire rejection. A failed parser without a diagnostic stays failed.
+ * Source retirement participates in the checked first-error transaction. */
+XL6_TEXT_API bool xl6PersistenceRestoreParsedTakeV1(xvalue**,size_t,xvalue*,
+    xvalue*,bool,xerror*,bool,xerror*,bool,const XL6_RestorePlanV1*,xvalue**);
 #endif

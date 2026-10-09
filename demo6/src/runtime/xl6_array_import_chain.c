@@ -4,6 +4,8 @@
 #include "src/runtime/xl6_array_input.h"
 #include "src/runtime/xl6_persistence_restore.h"
 #include "src/runtime/xl6_persistence_restore_plan.h"
+#include "src/runtime/xl6_serialization_read.h"
+#include "src/runtime/xl6_ownership_read.h"
 #include "src/api/xl_foreign_error.h"
 #include <limits.h>
 #include <stdlib.h>
@@ -879,4 +881,60 @@ bool xl6PersistenceRestorePlanReadTakeV1(xvalue** seeds,size_t count,xvalue* tar
     xvalue* value=restorePlan(seeds,count,target,source,plan,true,output);
     if (!value) return false;
     *output=value; return true;
+}
+
+static bool parserWireRejected(const xerror* error,bool file,bool json)
+{
+    if (!error) return false;
+    const char* domain=xrtErrorDomain(error);
+    int code=xrtErrorCode(error); xerrkind kind=xrtErrorKind(error);
+    if (!domain) return false;
+    bool codec=!strcmp(domain,json ? "xrt.json" : "xrt.xlon");
+    if (codec && (kind==XERR_PROTOCOL || kind==XERR_VALUE || kind==XERR_RANGE))
+        return json ? code==XJSON_ERROR_SYNTAX || code==XJSON_ERROR_NUMBER :
+            code==XXLON_ERROR_SYNTAX || code==XXLON_ERROR_NUMBER || code==XXLON_ERROR_TAG;
+    if (!file || (kind!=XERR_IO && kind!=XERR_NOT_FOUND && kind!=XERR_PERMISSION)) return false;
+    return !strcmp(domain,"xrt.file") || !strcmp(domain,"xrt.path") || !strcmp(domain,"xrt.io") ||
+        (codec && code==(json ? XJSON_ERROR_IO : XXLON_ERROR_IO));
+}
+
+bool xl6SerializeRestoreReadFinishTakeV1(xvalue* source,xvalue* target,
+    bool (*assign)(xvalue*,const xvalue*),xerror* prior,xvalue** output)
+{
+    bool ok=xl6SerializeRestoreReadFinishV1(source,target,assign,prior,output);
+    xl6_error_scope cleanup={0};
+    if (!(ok ? xl6ErrorScopeBegin(&cleanup) : xl6ErrorScopeBeginCleanup(&cleanup,true))) abort();
+    releasePreservingError(target);
+    if (xrtGetError()) xl6ErrorScopeCaptureFailure(&cleanup);
+    if (ok && cleanup.failed) { releasePreservingError(*output); *output=NULL; ok=false; }
+    xl6_error_result outcome=xl6ErrorScopeEnd(&cleanup);
+    if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
+    return ok && outcome.ok;
+}
+
+bool xl6PersistenceRestoreParsedTakeV1(xvalue** seeds,size_t count,xvalue* target,
+    xvalue* source,bool parserOk,xerror* parserError,bool preparationOk,xerror* preparationError,
+    bool file,const XL6_RestorePlanV1* plan,xvalue** output)
+{
+    xl6_error_scope operation={0};
+    if (!xl6ErrorScopeBegin(&operation)) abort();
+    bool rejected=!parserOk && !source && plan && parserWireRejected(parserError,file,plan->json);
+    if (rejected) { xrtErrorFree(parserError); parserError=NULL; }
+    else if (!parserOk || parserError) {
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,parserError}); parserError=NULL;
+    }
+    if (!preparationOk || preparationError)
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,preparationError});
+    /* Canonical null is a proven wire rejection, not a fabricated upstream
+     * success. The SAME controller still validates the plan/target/seeds and
+     * performs all checked retirement, even for rejected parser input. */
+    bool ok=xl6PersistenceRestorePlanReadTakeV1(seeds,count,target,
+        operation.failed ? NULL : rejected ? xrtValueNull() : source,plan,output);
+    if (!ok) xl6ErrorScopeCaptureFailure(&operation);
+    releasePreservingError(source);
+    if (xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
+    if (ok && operation.failed) { releasePreservingError(*output); *output=NULL; ok=false; }
+    xl6_error_result outcome=xl6ErrorScopeEnd(&operation);
+    if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
+    return ok && outcome.ok;
 }
