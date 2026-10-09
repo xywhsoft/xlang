@@ -12,6 +12,7 @@
 #define ARRAY_ID UINT64_C(0xD611)
 #define ELEMENT_ID UINT64_C(0xD612)
 #define CURSOR_ID UINT64_C(0xD613)
+static void equalLists(const xvalue*,const xvalue*,const XL6_ListLayoutV1*,bool);
 /* Linker call-boundary fault injection, not a replacement List/provider.
  * Negative budget models explicit failure without an allocated diagnostic. */
 static int cleanupFailure;
@@ -101,6 +102,7 @@ static void profiles(void)
     item=0x110000; assert(!xl6ListSetV1(list,&tuple,2,&item)); xrtClearError();
     bool found=false;
     assert(xl6ListGetV1(list,&tuple,1,&out,false,&found) && found && out==0x4F60 && xl6ListCountV1(list,&tuple)==1);
+    xvalue* copy=xl6ListCloneV1(list,&tuple); assert(copy); equalLists(list,copy,&tuple,true); xrtValueRelease(copy);
     xrtValueRelease(list);
     tuple=layout(2,xl6NullableStringTypeV1()); tuple.value.elementIdentity=ELEMENT_ID+1;
     xvalue* witness=xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,ARRAY_ID,ELEMENT_ID+1,
@@ -108,6 +110,7 @@ static void profiles(void)
     assert(witness); list=xl6ListCreateTakeV1(&tuple,witness); assert(list);
     xstrview absent={0},present={"a\0b",3},read={0};
     assert(xl6ListSetV1(list,&tuple,-1,&absent) && xl6ListSetV1(list,&tuple,2,&present));
+    copy=xl6ListCloneV1(list,&tuple); assert(copy); equalLists(list,copy,&tuple,true); xrtValueRelease(copy);
     assert(xl6ListGetV1(list,&tuple,2,&read,false,&found) && found && read.Size==3 && !memcmp(read.Data,present.Data,3));
     assert(xl6ListGetV1(list,&tuple,-1,&read,false,&found) && found && !read.Data && !read.Size);
     absent.Size=1; assert(!xl6ListSetV1(list,&tuple,3,&absent)); xrtClearError();
@@ -117,6 +120,8 @@ static void profiles(void)
     assert(xl6ListCursorAdvanceV1(cursor,&tuple,CURSOR_ID,&found) && found);
     assert(xl6ListCursorReadV1(cursor,&tuple,CURSOR_ID,&key,&read) && key==-1 && !read.Data && !read.Size);
     xrtTypeDropValue(tuple.value.type,&read); xrtValueRelease(cursor);
+    list=create(&tuple,XL6_VALUE_ADMIT_STRING); /* Reject optional physical storage with a nonnullable policy. */
+    assert(!list); xrtClearError();
 }
 static void cursors(void)
 {
@@ -243,6 +248,9 @@ static void references(void)
     assert(active.Ops->Trace(active.Data,edge,&activeSlots) && activeSlots.count==2 && activeSlots.same);
     xvalue* out=NULL; bool found=false;
     assert(xl6ListGetV1(copy,&tuple,5,&out,false,&found) && found && out==item); xrtValueRelease(out);
+    bool same=false; assert(xl6ListEqualsV1(list,copy,&tuple,&same) && same && xrtValueEqual(list,copy));
+    uint64_t hash=23; assert(!xl6ListHashV1(list,&tuple,&hash) && hash==23);
+    assert(xrtErrorKind(xrtGetError())==XERR_TYPE); xrtClearError();
     xrtValueRelease(shell); xrtValueRelease(copy); xrtValueRelease(cursor); xrtValueRelease(list); xrtValueRelease(item);
 }
 static void futures(void)
@@ -263,6 +271,7 @@ static void futures(void)
     xfuture* out=NULL; bool found=false;
     assert(xl6ListGetV1(list,&tuple,1,&out,false,&found) && found && out==item); xrtFutureDestroy(out);
     xvalue* copy=xl6ListCloneV1(list,&tuple); assert(copy);
+    equalLists(list,copy,&tuple,true);
     xvalue* cursor=xl6ListCursorCreateV1(list,&tuple,CURSOR_ID,false,false,0); assert(cursor);
     xrtValueRelease(list); xrtValueRelease(copy); xrtPromiseDestroy(promise); xrtFutureDestroy(item);
     assert(xl6ListCursorAdvanceV1(cursor,&tuple,CURSOR_ID,&found) && found);
@@ -275,6 +284,7 @@ static void futures(void)
     item=NULL; assert(xl6ListSetV1(list,&tuple,-1,&item));
     owner=ownerOf(list); slots=(Edges){0};
     assert(xl6ListOwnershipAdapterV2(owner,allowed,1) && owner.Ops->Trace(owner.Data,edge,&slots) && !slots.count);
+    copy=xl6ListCloneV1(list,&tuple); assert(copy); equalLists(list,copy,&tuple,true); xrtValueRelease(copy);
     xrtValueRelease(list);
 }
 static void phased(void)
@@ -376,15 +386,199 @@ static void boundaries(void)
     assert(!outcome.ok && outcome.error && xrtErrorKind(outcome.error)==XERR_MEMORY); xrtErrorFree(outcome.error);
     adapter->Drop(owner.Data); xrtValueRelease(list);
 }
+static void equalLists(const xvalue* a,const xvalue* b,const XL6_ListLayoutV1* tuple,bool expected)
+{
+    bool result=!expected;
+    assert(xl6ListEqualsV1(a,b,tuple,&result) && result==expected);
+    assert(xrtValueEqual(a,b)==expected && !xrtGetError());
+    if (expected) {
+        uint64_t first=0,second=1,dynamic=2,dynamicPeer=3;
+        assert(xl6ListHashV1(a,tuple,&first) && xl6ListHashV1(b,tuple,&second) && first==second);
+        assert(xrtValueHash(a,&dynamic) && xrtValueHash(b,&dynamicPeer) && dynamic==dynamicPeer);
+    }
+}
+static void identity(void)
+{
+    XL6_ListLayoutV1 tuple=layout(1,xrtTypeInt64());
+    xvalue* a=create(&tuple,XL6_VALUE_ADMIT_I64),*b=create(&tuple,XL6_VALUE_ADMIT_I64); assert(a && b);
+    const int64_t keys[]={INT64_MIN,-900,0,42,INT64_MAX};
+    for (unsigned i=0;i<5;++i) { int64_t value=i; assert(xl6ListSetV1(a,&tuple,keys[i],&value)); }
+    for (unsigned i=5;i-->0;) { int64_t value=i; assert(xl6ListSetV1(b,&tuple,keys[i],&value)); }
+    equalLists(a,b,&tuple,true);
+    int64_t value=17; assert(xl6ListSetV1(b,&tuple,42,&value)); equalLists(a,b,&tuple,false);
+    bool found=false; assert(xl6ListContainsV1(b,&tuple,&value,&found) && found);
+    value=99; assert(xl6ListContainsV1(b,&tuple,&value,&found) && !found);
+    xvalue* copy=xl6ListCloneV1(a,&tuple); assert(copy); equalLists(a,copy,&tuple,true);
+    assert(xl6ListKeyV1(copy,&tuple,INT64_MIN,true,&found) && found);
+    assert(xl6ListSetV1(copy,&tuple,INT64_MIN+1,&(int64_t){0})); equalLists(a,copy,&tuple,false);
+    xvalue* cursor=xl6ListCursorCreateV1(a,&tuple,CURSOR_ID,false,false,0); assert(cursor);
+    uint64 hash=23; assert(!xrtValueHash(cursor,&hash) && hash==23);
+    assert(xrtErrorKind(xrtGetError())==XERR_UNSUPPORTED); xrtClearError(); xrtValueRelease(cursor);
+    xrtSetErrorKind(XERR_ARGUMENT); const xerror* prior=xrtGetError(); assert(prior);
+    assert(xl6ListHashV1(a,&tuple,&hash) && xrtGetError()==prior);
+    assert(xl6ListEqualsV1(a,b,&tuple,&found) && !found && xrtGetError()==prior); xrtClearError();
+    /* Keep structural keys stable while stored; identity is not a freeze API. */
+    xvalue* set=xrtValueSet(); assert(set && xrtValueSetAdd(set,a));
+    xvalue* same=xl6ListCloneV1(a,&tuple); assert(same && xrtValueSetAdd(set,same));
+    assert(xrtValueCount(set)==1 && xrtValueSetHas(set,a)); xrtValueRelease(set); xrtValueRelease(same);
+    xrtValueRelease(copy); xrtValueRelease(b); xrtValueRelease(a);
+    tuple=layout(2,xl6StringTypeV1()); a=create(&tuple,XL6_VALUE_ADMIT_STRING); b=create(&tuple,XL6_VALUE_ADMIT_STRING); assert(a && b);
+    xstrview full={"a\0b",3},shorter=XRT_STR_INIT("a");
+    assert(xl6ListSetV1(a,&tuple,-7,&full) && xl6ListSetV1(b,&tuple,-7,&shorter)); equalLists(a,b,&tuple,false);
+    assert(xl6ListSetV1(b,&tuple,-7,&full)); equalLists(a,b,&tuple,true);
+    assert(xl6ListContainsV1(a,&tuple,&full,&found) && found);
+    assert(xl6ListContainsV1(a,&tuple,&shorter,&found) && !found);
+    xrtValueRelease(b); xrtValueRelease(a);
+    tuple=layout(3,xrtTypeValue()); a=create(&tuple,XL6_VALUE_ADMIT_ANY); b=create(&tuple,XL6_VALUE_ADMIT_ANY); assert(a && b);
+    xvalue* absent=NULL,*canonical=xrtValueNull();
+    assert(xl6ListSetV1(a,&tuple,-1,&absent) && xl6ListSetV1(b,&tuple,-1,&canonical));
+    xvalue* x=xrtValueBytes((xbytesview){(const uint8_t*)"a\0b",3});
+    xvalue* y=xrtValueBytes((xbytesview){(const uint8_t*)"a\0b",3}); assert(x && y && x!=y);
+    assert(xl6ListSetV1(a,&tuple,INT64_MAX,&x) && xl6ListSetV1(b,&tuple,INT64_MAX,&y)); equalLists(a,b,&tuple,true);
+    assert(xl6ListContainsV1(a,&tuple,&y,&found) && found);
+    xrtValueRelease(y); xrtValueRelease(x); xrtValueRelease(b); xrtValueRelease(a);
+}
+static void merges(void)
+{
+    XL6_ListLayoutV1 tuple=layout(1,xrtTypeInt64());
+    xvalue* target=create(&tuple,XL6_VALUE_ADMIT_I64),*source=create(&tuple,XL6_VALUE_ADMIT_I64); assert(target && source);
+    assert(xl6ListSetV1(target,&tuple,-9,&(int64_t){7}) && xl6ListSetV1(source,&tuple,-9,&(int64_t){8}));
+    assert(xl6ListSetV1(source,&tuple,INT64_MAX,&(int64_t){12}));
+    assert(xl6ListMergeV1(target,source,&tuple,false) && xl6ListCountV1(target,&tuple)==2);
+    int64_t out=0; bool found=false;
+    assert(xl6ListGetV1(target,&tuple,-9,&out,false,&found) && found && out==7);
+    assert(xl6ListMergeV1(target,source,&tuple,true)); equalLists(target,source,&tuple,true);
+    assert(xl6ListMergeV1(target,target,&tuple,false) && xl6ListMergeV1(target,target,&tuple,true));
+    xvalue* narrow=create(&tuple,XL6_VALUE_ADMIT_U8); assert(narrow);
+    bool equal=true; assert(!xl6ListEqualsV1(target,narrow,&tuple,&equal) && equal); xrtClearError();
+    assert(!xl6ListMergeV1(target,narrow,&tuple,true)); xrtClearError();
+    assert(!xrtValueEqual(target,narrow) && !xrtGetError());
+    xrtValueRelease(narrow); xrtValueRelease(source); xrtValueRelease(target);
+}
+typedef struct IdentityFailure { unsigned hashes,equals; bool noDiagnostic; } IdentityFailure;
+static uint64 failingHash(void* data,void* context)
+{
+    (void)context; IdentityFailure* state=data; ++state->hashes;
+    if (state->noDiagnostic) xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL});
+    else xrtSetErrorKind(XERR_VALUE);
+    return 17; /* A returned payload is not proof of success. */
+}
+static bool failingEqual(void* left,void* right,void* context)
+{
+    (void)right; (void)context; IdentityFailure* state=left; ++state->equals;
+    if (state->noDiagnostic) xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL});
+    else xrtSetErrorKind(XERR_VALUE);
+    return true;
+}
+static const xvaluehandleops failingOps={foreignRetain,foreignDrop,failingHash,failingEqual};
+static void identityErrors(void)
+{
+    XL6_ListLayoutV1 tuple=layout(3,xrtTypeValue());
+    for (unsigned absent=0;absent<2;++absent) {
+        IdentityFailure state={.noDiagnostic=absent};
+        void* raw=&state; xvalue* x=xrtValueHandleTake(&raw,&failingOps,NULL); assert(x);
+        raw=&state; xvalue* y=xrtValueHandleTake(&raw,&failingOps,NULL); assert(y && x!=y);
+        xvalue* a=create(&tuple,XL6_VALUE_ADMIT_ANY),*b=create(&tuple,XL6_VALUE_ADMIT_ANY); assert(a && b);
+        for (int64_t key=0;key<2;++key) assert(xl6ListSetV1(a,&tuple,key,&x) && xl6ListSetV1(b,&tuple,key,&y));
+        for (unsigned operation=0;operation<5;++operation) {
+            state.hashes=state.equals=0;
+            xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
+            uint64_t hash=23; bool output=false,success=false;
+            if (operation==0) success=xl6ListHashV1(a,&tuple,&hash);
+            if (operation==1) success=xrtValueHash(a,&hash);
+            if (operation==2) success=xl6ListEqualsV1(a,b,&tuple,&output);
+            if (operation==3) success=xrtValueEqual(a,b);
+            if (operation==4) success=xl6ListContainsV1(a,&tuple,&y,&output);
+            assert(!success && !output && hash==23);
+            xl6_error_result outcome=xl6ErrorScopeEnd(&scope); assert(!outcome.ok);
+            assert(absent ? !outcome.error : outcome.error && xrtErrorKind(outcome.error)==XERR_VALUE);
+            assert(operation<2 ? state.hashes==1 && !state.equals : state.equals==1 && !state.hashes);
+            xrtErrorFree(outcome.error);
+        }
+        xrtValueRelease(b); xrtValueRelease(a); xrtValueRelease(y); xrtValueRelease(x);
+    }
+}
+static xvalue* nativeArray(int64_t item)
+{
+    xvalue* value=xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,ARRAY_ID,ELEMENT_ID,1,sizeof(item),
+        xrtTypeInt64(),XL6_VALUE_ADMIT_I64,false,ELEMENT_ID); assert(value);
+    XL6_Sequence* pin=xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,ARRAY_ID,ELEMENT_ID,1,sizeof(item),xrtTypeInt64());
+    assert(pin && xrtTypedArrayPush(xl6SequenceStorageV1(pin),&item)); xl6SequenceEndV1(pin); return value;
+}
+static void sharedDepth(void)
+{
+    XL6_ListLayoutV1 tuple=layout(3,xrtTypeValue());
+    xvalue* x=nativeArray(7),*y=nativeArray(7);
+    xvalue* a=create(&tuple,XL6_VALUE_ADMIT_ANY),*b=create(&tuple,XL6_VALUE_ADMIT_ANY); assert(a && b);
+    assert(xl6ListSetV1(a,&tuple,1,&x) && xl6ListSetV1(b,&tuple,1,&y)); equalLists(a,b,&tuple,true);
+    XL6_CollectionIdentityFrameV1 frames[XL6_SEQUENCE_IDENTITY_DEPTH_MAX_V1]={0};
+    for (unsigned i=0;i<XL6_SEQUENCE_IDENTITY_DEPTH_MAX_V1-1;++i) assert(xl6CollectionIdentityEnterV1(&frames[i]));
+    for (unsigned operation=0;operation<3;++operation) {
+        bool output=true,success=false; uint64_t hash=23;
+        if (operation==0) success=xl6ListHashV1(a,&tuple,&hash);
+        if (operation==1) success=xl6ListEqualsV1(a,b,&tuple,&output);
+        if (operation==2) success=xl6ListContainsV1(a,&tuple,&y,&output);
+        assert(!success && output && hash==23 && xrtErrorKind(xrtGetError())==XERR_RANGE); xrtClearError();
+    }
+    for (unsigned i=XL6_SEQUENCE_IDENTITY_DEPTH_MAX_V1-1;i-->0;) xl6CollectionIdentityLeaveV1(&frames[i]);
+    equalLists(a,b,&tuple,true);
+    xrtValueRelease(b); xrtValueRelease(a); xrtValueRelease(y); xrtValueRelease(x);
+}
+static void guardProtocol(void)
+{
+    assert(!xl6CollectionIdentityEnterV1(NULL) && xrtErrorKind(xrtGetError())==XERR_ARGUMENT); xrtClearError();
+    XL6_CollectionIdentityFrameV1 first={0},second={0};
+    assert(xl6CollectionIdentityEnterV1(&first));
+    assert(!xl6CollectionIdentityEnterV1(&first) && xrtErrorKind(xrtGetError())==XERR_STATE); xrtClearError();
+    assert(xl6CollectionIdentityEnterV1(&second));
+    assert(!xl6CollectionIdentityEnterV1(&first) && xrtErrorKind(xrtGetError())==XERR_STATE); xrtClearError();
+    xl6CollectionIdentityLeaveV1(&second); xl6CollectionIdentityLeaveV1(&first);
+    assert(!first.next && !first.thread && !first.depth && !second.next && !second.thread && !second.depth);
+    assert(xl6CollectionIdentityEnterV1(&first)); xl6CollectionIdentityLeaveV1(&first);
+}
+static xvalue* deepValue(void)
+{
+    xvalue* value=xrtValueInt(7); assert(value);
+    for (unsigned i=0;i<48;++i) {
+        xvalue* parent=xrtValueObject(); assert(parent);
+        assert(xrtValueObjectSetNew(parent,(xstrview)XRT_STR_INIT("child"),value)); value=parent;
+    }
+    return value;
+}
+static void equalityFault(size_t point)
+{
+    XL6_ListLayoutV1 tuple=layout(3,xrtTypeValue());
+    xvalue* a=create(&tuple,XL6_VALUE_ADMIT_ANY),*b=create(&tuple,XL6_VALUE_ADMIT_ANY); assert(a && b);
+    xvalue* x=deepValue(),*y=deepValue();
+    assert(xl6ListSetV1(a,&tuple,INT64_MIN,&x) && xl6ListSetV1(b,&tuple,INT64_MIN,&y));
+    xrtValueRelease(y); xrtValueRelease(x);
+    xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
+    assert(xrtMemDebugFailAfter(point)); bool output=false;
+    bool success=xl6ListEqualsV1(a,b,&tuple,&output);
+    bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    assert(hit ? !success && !outcome.ok && !output : success && outcome.ok && output);
+    if (hit) assert(outcome.error && xrtErrorKind(outcome.error)==XERR_MEMORY);
+    assert(xl6ListCountV1(a,&tuple)==1 && xl6ListCountV1(b,&tuple)==1);
+    assert(xl6ListEqualsV1(a,b,&tuple,&output) && output && xrtValueEqual(a,b));
+    xrtErrorFree(outcome.error); xrtValueRelease(b); xrtValueRelease(a);
+    printf("native List ref-equal point=%zu hit=%d complete-prefix balanced\n",point,hit);
+}
 static void fault(const char* operation,size_t point)
 {
+    if (!strcmp(operation,"ref-equal")) { equalityFault(point); return; }
     XL6_ListLayoutV1 tuple=layout(2,xl6StringTypeV1());
-    xvalue* list=NULL,*result=NULL,*cursor=NULL;
+    xvalue* list=NULL,*result=NULL,*cursor=NULL,*peer=NULL;
     xstrview item={"a\0\xE4\xBD\xA0",5},changed=XRT_STR_INIT("replacement"),output={0};
     xstrview original=XRT_STR_INIT("keep");
     assert(xrtTypeCopyValue(tuple.value.type,&output,&original));
     if (strcmp(operation,"create")) {
         list=create(&tuple,XL6_VALUE_ADMIT_STRING); assert(list && xl6ListSetV1(list,&tuple,7,&item));
+    }
+    bool merge=!strcmp(operation,"merge-keep") || !strcmp(operation,"merge-replace");
+    if (merge) {
+        peer=create(&tuple,XL6_VALUE_ADMIT_STRING); assert(peer);
+        assert(xl6ListSetV1(peer,&tuple,7,&changed) && xl6ListSetV1(peer,&tuple,42,&changed));
     }
     if (!strcmp(operation,"cursor-read") || !strcmp(operation,"cursor-advance")) {
         cursor=xl6ListCursorCreateV1(list,&tuple,CURSOR_ID,false,false,0); assert(cursor);
@@ -404,6 +598,7 @@ static void fault(const char* operation,size_t point)
     else if (!strcmp(operation,"cursor-advance")) success=xl6ListCursorAdvanceV1(cursor,&tuple,CURSOR_ID,&found);
     else if (!strcmp(operation,"clear")) success=xl6ListClearV1(list,&tuple);
     else if (!strcmp(operation,"trim")) success=xl6ListTrimV1(list,&tuple,0)>=0;
+    else if (merge) success=xl6ListMergeV1(list,peer,&tuple,!strcmp(operation,"merge-replace"));
     else assert(0);
     bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
@@ -414,19 +609,24 @@ static void fault(const char* operation,size_t point)
     if (!strcmp(operation,"append")) assert(hit ? key==99 : key==8);
     if (!strcmp(operation,"cursor-read")) assert(hit ? key==99 : key==7);
     if (list) {
-        int64_t count=hit ? 1 : (!strcmp(operation,"insert") || !strcmp(operation,"append")) ? 2 :
+        int64_t count=hit ? 1 : (merge || !strcmp(operation,"insert") || !strcmp(operation,"append")) ? 2 :
             (!strcmp(operation,"take") || !strcmp(operation,"clear")) ? 0 : 1;
         assert(xl6ListCountV1(list,&tuple)==count);
         if (count) {
             xstrview actual={0}; bool exists=false;
-            const xstrview* expected=!hit && !strcmp(operation,"replace") ? &changed : &item;
+            const xstrview* expected=!hit && (!strcmp(operation,"replace") || !strcmp(operation,"merge-replace")) ? &changed : &item;
             assert(xl6ListGetV1(list,&tuple,7,&actual,false,&exists) && exists);
             assert(actual.Size==expected->Size && !memcmp(actual.Data,expected->Data,expected->Size));
             xrtTypeDropValue(tuple.value.type,&actual);
         }
     }
+    if (peer) {
+        xstrview actual={0}; bool exists=false;
+        assert(xl6ListCountV1(peer,&tuple)==2 && xl6ListGetV1(peer,&tuple,7,&actual,false,&exists) && exists);
+        assert(actual.Size==changed.Size && !memcmp(actual.Data,changed.Data,changed.Size)); xrtTypeDropValue(tuple.value.type,&actual);
+    }
     xrtTypeDropValue(tuple.value.type,&output); xrtErrorFree(outcome.error);
-    xrtValueRelease(result); xrtValueRelease(cursor); xrtValueRelease(list); xrtClearError();
+    xrtValueRelease(result); xrtValueRelease(cursor); xrtValueRelease(peer); xrtValueRelease(list); xrtClearError();
     printf("native List %s point=%zu hit=%d complete-prefix balanced\n",operation,point,hit);
 }
 int main(int argc,char** argv)
@@ -443,6 +643,11 @@ int main(int argc,char** argv)
     else if (!strcmp(argv[1],"phased")) phased();
     else if (!strcmp(argv[1],"reentrant")) reentrant();
     else if (!strcmp(argv[1],"boundaries")) boundaries();
+    else if (!strcmp(argv[1],"identity")) identity();
+    else if (!strcmp(argv[1],"merges")) merges();
+    else if (!strcmp(argv[1],"identity-errors")) identityErrors();
+    else if (!strcmp(argv[1],"shared-depth")) sharedDepth();
+    else if (!strcmp(argv[1],"guard-protocol")) guardProtocol();
     else assert(0);
     assert(!xrtGetError() && !xl6ProductMemoryEnd()); xl6ProductMemoryVerify();
     if (argc==2) printf("native List %s vectors balanced\n",argv[1]);
