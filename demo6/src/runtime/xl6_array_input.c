@@ -9,7 +9,14 @@ void xl6ArrayInputReleaseV1(XL6_ArrayInputV1* input)
     if (!input) return;
     XL6_ArrayInputV1 owned=*input; *input=(XL6_ArrayInputV1){0};
     xl6_error_scope cleanup={0};
-    if(!xl6ErrorScopeBeginCleanup(&cleanup,false)) abort();
+    xerror* incoming=xrtErrorRef(xrtGetError());
+    if(!xl6ErrorScopeBeginCleanup(&cleanup,false)) {
+        xerror* first=incoming ? incoming : xrtTakeError();
+        xrtClearError(); xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtErrorRef(first)});
+        for(size_t i=0;i<owned.count;++i) { xrtClearError(); xrtValueRelease(owned.items[i]); }
+        xrtFree(owned.items); xrtClearError(); xrtSetErrorTake(first); return;
+    }
+    xrtErrorFree(incoming);
     for (size_t i=0;i<owned.count;++i) {
         xrtValueRelease(owned.items[i]);
         if(xrtGetError()) xl6ErrorScopeCaptureFailure(&cleanup);
