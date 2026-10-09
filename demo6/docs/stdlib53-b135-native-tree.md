@@ -1,5 +1,12 @@
 # B135: resident Tree migration (not sealed yet)
 
+Historical checkpoint: rebuilt products/VFS and held-sync recovery subsequently
+advanced in B143/B144. [B145](stdlib53-b145-container-graph-shipping.md) closes
+the actual shipping Tree/Queue cyclic-graph and Queue continuation evidence
+with both DLL/SO products, without provider overrides. The pending independent
+AOT graph, public-surface cleanup and full53 boundaries remain explicit there;
+the development-only reports and requirements below are not current release proof.
+
 This is a development checkpoint, not full 53-module or shipping-DLL acceptance.
 The migration remains uncommitted until its complete
 language surface and retirement contracts are closed. Independently completed

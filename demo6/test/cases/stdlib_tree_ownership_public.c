@@ -1,7 +1,7 @@
 /* Real public compilation and module retirement. No generated destructor or
  * ownership resolver is replaced; all owning graph edges originate in xlang. */
-#include "include/xlc.h"
-#include "release/include/xrt_decl.h"
+#include "xlc.h"
+#include "xrt_decl.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,6 +51,18 @@ static void dropped(int64_t id,int64_t values,int64_t arrays,int64_t second)
 static void transaction(const char* headers,const char* temporary,const char* runtime,
     const char* libraries,const char* fixture)
 {
+#ifdef XLIR_GRAPH_EMBEDDED_VFS
+    (void)headers; (void)libraries;
+    assert(xlRuntimeInit());
+    XL_ContextOptions options=xlDefaultContextOptions();
+    options.workDir="."; options.tempDir=temporary;
+    options.tccDllPath=runtime; options.tccLibPath=NULL;
+    XL_Context* context=xlCreateContext(&options); assert(context);
+    assert(xlRegisterCFunction(context,"tree_graph_capture",(void*)capture));
+    assert(xlRegisterCFunction(context,"tree_graph_dropped",(void*)dropped));
+    XL_Module* module=xlCompileScriptFileToModule(context,fixture);
+    if (!module) { fprintf(stderr,"%s\n",xlGetLastError(context)); abort(); }
+#else
     XLC_ContextOptions options=xlcDefaultContextOptions();
     options.workDir="."; options.tempDir=temporary;
     options.tccDllPath=runtime; options.tccLibPath=libraries;
@@ -61,7 +73,9 @@ static void transaction(const char* headers,const char* temporary,const char* ru
     assert(xlcAddSourceFile(compiler,fixture));
     if (!xlcCompile(compiler)) { fprintf(stderr,"%s\n",xlcGetLastError(compiler)); abort(); }
     XL_Module* module=xlcRelocateModule(compiler); assert(module);
-    XL_Context* context=xlcRuntimeContext(compiler); assert(xlActivateModule(context,module,NULL));
+    XL_Context* context=xlcRuntimeContext(compiler);
+#endif
+    assert(xlActivateModule(context,module,NULL));
     typedef int64_t (*Setup)(int64_t,int64_t);
     Setup setup; void* symbol=xlModuleGetSymbol(module,"tree_graph_setup");
     memcpy(&setup,&symbol,sizeof(setup)); assert(setup);
@@ -73,7 +87,12 @@ static void transaction(const char* headers,const char* temporary,const char* ru
         assert(!atomic_load_explicit(&droppedMask,memory_order_acquire));
         xrtValueRelease(escaped); escaped=NULL;
     }
-    xlcDestroyContext(compiler); xlRuntimeUnit();
+#ifdef XLIR_GRAPH_EMBEDDED_VFS
+    xlDestroyContext(context);
+#else
+    xlcDestroyContext(compiler);
+#endif
+    xlRuntimeUnit();
     unsigned actual=atomic_load_explicit(&droppedMask,memory_order_acquire),expected=selected ? 127u : 31u;
     if (actual!=expected || xrtGetError()) fprintf(stderr,"tree retirement mode=%u family=%u mask=%u expected=%u kind=%d error=%s\n",
         selected,family,actual,expected,(int)xrtErrorKind(xrtGetError()),
