@@ -16,10 +16,18 @@
 static void equalLists(const xvalue*,const xvalue*,const XL6_ListLayoutV1*,bool);
 extern void xl6TestListSchemaVectorsV1(const char*);
 extern bool xl6TestListSchemaFaultV1(const char*,size_t);
+#ifdef XL6_TEST_LIST_GRAPH
+extern void xl6TestListGraphVectorsV1(const char*);
+extern bool xl6TestListGraphFaultV1(const char*,size_t);
+#endif
 /* Linker call-boundary fault injection, not a replacement List/provider.
  * Negative budget models explicit failure without an allocated diagnostic. */
 static int cleanupFailure;
 static int entryFailure;
+#ifdef XL6_TEST_LIST_GRAPH
+void xl6TestListGraphBoundaryFailureV1(int entry,int cleanup)
+{ entryFailure=entry; cleanupFailure=cleanup; }
+#endif
 extern bool __real_xl6ErrorScopeBegin(xl6_error_scope*);
 bool __wrap_xl6ErrorScopeBegin(xl6_error_scope* scope)
 {
@@ -851,6 +859,9 @@ static void schemaCleanupErrors(void)
 }
 static void fault(const char* operation,size_t point)
 {
+#ifdef XL6_TEST_LIST_GRAPH
+    if (xl6TestListGraphFaultV1(operation,point)) return;
+#endif
     if (xl6TestListSchemaFaultV1(operation,point)) return;
     if (projectionFault(operation,point)) return;
     if (!strcmp(operation,"ref-equal")) { equalityFault(point); return; }
@@ -920,6 +931,9 @@ int main(int argc,char** argv)
 {
     assert(argc==2 || argc==3); xl6ProductMemoryBegin(SIZE_MAX);
     if (argc==3) fault(argv[1],(size_t)strtoull(argv[2],NULL,10));
+#ifdef XL6_TEST_LIST_GRAPH
+    else if (!strncmp(argv[1],"graph-",6)) xl6TestListGraphVectorsV1(argv[1]);
+#endif
     else if (!strcmp(argv[1],"integers")) integers();
     else if (!strcmp(argv[1],"text")) text();
     else if (!strcmp(argv[1],"profiles")) profiles();

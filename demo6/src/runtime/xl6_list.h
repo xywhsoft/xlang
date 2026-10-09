@@ -96,8 +96,8 @@ XL6_TEXT_API bool xl6ListCursorEndV1(const xvalue*,const XL6_ListLayoutV1*,uint6
 /* Phased graph retirement traces physical slots once (duplicates stay
  * duplicates). Future control-block tracing additionally requires an exact
  * resident admission-ops allowlist; V1 does not silently ignore those edges.
- * Recursive graph projection/schema and language cutover remain pending: this
- * private handle is not yet the source list carrier. */
+ * Nested metadata and graph projection use optional resident components;
+ * language cutover remains pending: this is not yet the source list carrier. */
 XL6_TEXT_API const xrtownershipadapterv1* xl6ListOwnershipAdapterV1(xrtownershipref);
 XL6_TEXT_API const xrtownershipadapterv1* xl6ListOwnershipAdapterV2(xrtownershipref,
     const XL6_SequenceAdmissionOpsV2* const*,size_t);

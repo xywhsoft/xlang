@@ -10,22 +10,33 @@ typedef struct GraphContext {
     ptr user;
     const xvaluegraphsequencev1* sequences;
     size_t sequenceCount;
+    const XL6_ValueGraphPlanV1* native;
 } GraphContext;
+static const XL6_ValueGraphProviderV1* sequenceProvider(const GraphContext* graph,uint64_t identity)
+{
+    for (size_t i=0;graph->data && graph->native && i<graph->native->sequenceCount;++i)
+        if (graph->native->sequences[i].identity==identity) return graph->native->sequences[i].provider;
+    return NULL;
+}
 
 static int copyObject(uint64_t identity, xvaluegraphnextv1* next,
     xvalue** output, ptr context)
 {
     const GraphContext* graph=context;
-    return graph->object(identity,next,output,graph->user);
+    if (sequenceProvider(graph,identity)) { xrtSetErrorKind(XERR_TYPE); return -1; }
+    return graph->object ? graph->object(identity,next,output,graph->user) : 0;
 }
 
 static void releaseKeepingFailure(xvalue* value)
 {
     if (!value) return;
-    xerror* failure=xrtTakeError();
+    xerror* failure=xrtErrorRef(xrtGetError());
     xl6_error_scope cleanup={0};
-    if (!xl6ErrorScopeBegin(&cleanup)) abort();
-    xrtSetErrorTake(failure); xl6ErrorScopeCaptureFailure(&cleanup);
+    if (!xl6ErrorScopeBeginCleanup(&cleanup,true)) {
+        xrtClearError(); xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtErrorRef(failure)});
+        xrtClearError(); xrtValueRelease(value); xrtClearError(); xrtSetErrorTake(failure); return;
+    }
+    xrtErrorFree(failure);
     xrtValueRelease(value);
     xl6_error_result outcome=xl6ErrorScopeEnd(&cleanup);
     if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
@@ -84,14 +95,74 @@ done:
     return *output ? 1 : -1;
 }
 
+static bool planValid(const GraphContext* graph)
+{
+    const XL6_ValueGraphPlanV1* plan=graph->native;
+    if (!plan) return true;
+    if (plan->size!=sizeof(*plan) || plan->providerCount>SIZE_MAX/sizeof(*plan->providers) ||
+        plan->sequenceCount>SIZE_MAX/sizeof(*plan->sequences) ||
+        (plan->providerCount && !plan->providers) || (plan->sequenceCount && !plan->sequences) ||
+        graph->sequenceCount>SIZE_MAX/sizeof(*graph->sequences) || (graph->sequenceCount && !graph->sequences)) return false;
+    for (size_t i=0;i<plan->providerCount;++i) {
+        const XL6_ValueGraphProviderV1* provider=plan->providers[i];
+        if (!provider || !provider->Copy) return false;
+        for (size_t j=0;j<i;++j) if (plan->providers[j]==provider) return false;
+    }
+    for (size_t i=0;i<plan->sequenceCount;++i) {
+        const XL6_ValueGraphSequenceV1* sequence=&plan->sequences[i]; bool found=false;
+        if (!sequence->identity || !sequence->provider) return false;
+        for (size_t j=0;j<plan->providerCount;++j) found=found || plan->providers[j]==sequence->provider;
+        if (!found) return false;
+        for (size_t j=0;j<i;++j) if (plan->sequences[j].identity==sequence->identity) return false;
+        for (size_t j=0;j<graph->sequenceCount;++j) if (graph->sequences[j].TypeId==sequence->identity) return false;
+    }
+    return true;
+}
+static int invoke(const XL6_ValueGraphProviderV1* provider,const xvaluehandleops* ops,ptr raw,ptr user,
+    uint64_t identity,xvaluegraphnextv1* next,xvalue** output,GraphContext* graph,bool sequence)
+{
+    xl6_error_scope scope={0};
+    if (!xl6ErrorScopeBegin(&scope)) {
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtErrorRef(xrtGetError())}); return -1;
+    }
+    int status=provider ? provider->Copy(ops,raw,user,identity,next,output,graph->data,sequence) :
+        copyArray(ops,raw,user,identity,next,output,graph);
+    bool valid=(status==0 && !*output) || (status==1 && *output);
+    if (!valid && status!=-1 && !xrtGetError() && !scope.failed) xrtSetErrorKind(XERR_STATE);
+    if (valid && sequence && (status!=1 || xrtValueType(*output)!=XVALUE_ARRAY)) {
+        xrtSetErrorKind(XERR_TYPE); valid=false;
+    }
+    if (!valid || xrtGetError() || scope.failed) xl6ErrorScopeCaptureFailure(&scope);
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return -1; }
+    return status;
+}
+static int copyHandle(const xvaluehandleops* ops,ptr raw,ptr user,uint64_t identity,
+    xvaluegraphnextv1* next,xvalue** output,ptr context)
+{
+    GraphContext* graph=context;
+    const XL6_ValueGraphProviderV1* selected=sequenceProvider(graph,identity);
+    if (selected) return invoke(selected,ops,raw,user,identity,next,output,graph,true);
+    int status=invoke(NULL,ops,raw,user,identity,next,output,graph,false);
+    for (size_t i=0;status==0 && graph->native && i<graph->native->providerCount;++i)
+        status=invoke(graph->native->providers[i],ops,raw,user,identity,next,output,graph,false);
+    return status;
+}
 static xvalue* copyGraph(const xvalue* source, GraphContext* graph)
 {
+    if (!planValid(graph)) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
+    if (source && sequenceProvider(graph,xrtValueTypeId(source)) && xrtValueType(source)!=XVALUE_HANDLE) {
+        xrtSetErrorKind(XERR_TYPE); return NULL;
+    }
     xerror* incoming=xrtTakeError();
     xl6_error_scope operation={0};
-    if (!xl6ErrorScopeBegin(&operation)) abort();
+    if (!xl6ErrorScopeBegin(&operation)) {
+        xrtErrorFree(incoming);
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtErrorRef(xrtGetError())}); return NULL;
+    }
     const xvaluegraphcopyv1 config={.Size=sizeof(config),
         .Flags=graph->data ? XVALUE_GRAPH_COPY_DATA_V1 : 0,
-        .CopyHandle=copyArray,.UserData=graph,.CopyObject=graph->object ? copyObject : NULL,
+        .CopyHandle=copyHandle,.UserData=graph,.CopyObject=graph->object || graph->native ? copyObject : NULL,
         .Sequences=graph->sequences,.SequenceCount=graph->sequenceCount};
     xvalue* result=xrtValueGraphCopyV1(source,&config);
     if (!result || xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
@@ -110,5 +181,15 @@ xvalue* xl6ValueDataProjectV1(const xvalue* source, xvaluegraphobjectcopyv1 obje
 {
     GraphContext graph={.data=true,.object=object,.user=user,
         .sequences=sequences,.sequenceCount=sequenceCount};
+    return copyGraph(source,&graph);
+}
+xvalue* xl6ValueDeepCloneNativeV1(const xvalue* source,const XL6_ValueGraphPlanV1* native)
+{ GraphContext graph={.data=false,.native=native}; return copyGraph(source,&graph); }
+xvalue* xl6ValueDataSnapshotNativeV1(const xvalue* source,const XL6_ValueGraphPlanV1* native)
+{ GraphContext graph={.data=true,.native=native}; return copyGraph(source,&graph); }
+xvalue* xl6ValueDataProjectNativeV1(const xvalue* source,xvaluegraphobjectcopyv1 object,ptr user,
+    const xvaluegraphsequencev1* sequences,size_t count,const XL6_ValueGraphPlanV1* native)
+{
+    GraphContext graph={.data=true,.object=object,.user=user,.sequences=sequences,.sequenceCount=count,.native=native};
     return copyGraph(source,&graph);
 }
