@@ -5,6 +5,7 @@
 #include "src/runtime/xl6_array_erased.h"
 #include "src/runtime/xl6_code_lease.h"
 #include "src/runtime/xl6_restore_class.h"
+#include "src/runtime/xl6_persistence_restore.h"
 #include "src/api/xl_foreign_error.h"
 #include <assert.h>
 #include <stdio.h>
@@ -17,17 +18,20 @@
 #define TAG INT64_C(119)
 extern void xl6TestListGraphBoundaryFailureV1(int,int);
 static unsigned factories,drops,factoryFailure,finalizerFailure,admissionFailure;
+static unsigned appendFailure;
 static bool checkedAdmission(const xvalue* value,uint64_t identity,int64_t tag)
 {
     bool ok=xl6RestoreClassProviderV1()->Admits(value,identity,tag);
     if (ok && admissionFailure==1) xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL});
     if (ok && admissionFailure==2) { xrtSetErrorKind(XERR_MEMORY); return false; }
+    if (ok && admissionFailure==3) { xrtSetErrorKind(XERR_TYPE); return false; }
     return ok;
 }
 static bool finalize(xvalue* value,void* unused)
 {
     (void)value; (void)unused; ++drops;
     if (finalizerFailure==2) xrtSetErrorKind(XERR_VALUE);
+    if (finalizerFailure==3) xrtSetErrorKind(XERR_TYPE);
     return !finalizerFailure;
 }
 static xvalue* objectDefault(void)
@@ -41,7 +45,9 @@ static xvalue* objectDefault(void)
         xerror* error=xrtTakeError(); xrtValueRelease(value); xrtClearError(); xrtSetErrorTake(error); return NULL;
     }
     value=xl6ClassRuntimeV2Get()->CommitTake(value);
-    if (value && factoryFailure) xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL});
+    if (value && factoryFailure==1) xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL});
+    if (value && factoryFailure==2) xrtSetErrorKind(XERR_TYPE);
+    if (value && factoryFailure==3) { xrtValueRelease(value); return NULL; }
     return value;
 }
 static xvalue* rootDefault(void)
@@ -106,7 +112,7 @@ static void shared(void)
     result=xl6PersistenceRestorePlanTakeV1(seeds,2,NULL,source,&p); assert(result && !seeds[0] && !seeds[1]);
     observed(result,false); xrtValueRelease(result); xrtValueRelease(source);
 }
-static void format(void)
+static void format(bool reader)
 {
     for (unsigned json=0;json<2;++json) {
         XL6_RestoreNodeV1 nodes[3]; XL6_RestoreFieldV1 fields[3]; XL6_RestorePlanV1 p=plan(nodes,fields,json);
@@ -114,7 +120,10 @@ static void format(void)
         char* text=json ? xrtJsonStringify(source,false,&size) : xrtXlonStringify(source,false,&size); assert(text && size);
         xvalue* parsed=json ? xrtJsonParse((xstrview){text,size}) : xrtXlonParse((xstrview){text,size}); assert(parsed);
         xrtFree(text); xvalue* seeds[]={seed()}; assert(seeds[0]);
-        xvalue* result=xl6PersistenceRestorePlanTakeV1(seeds,1,NULL,parsed,&p); assert(result);
+        xvalue* result=NULL;
+        if (reader) assert(xl6PersistenceRestorePlanReadTakeV1(seeds,1,NULL,parsed,&p,&result));
+        else result=xl6PersistenceRestorePlanTakeV1(seeds,1,NULL,parsed,&p);
+        assert(result);
         observed(result,false); xrtValueRelease(result); xrtValueRelease(parsed); xrtValueRelease(source);
     }
 }
@@ -326,10 +335,178 @@ static void boundaries(void)
     xstrview text={0}; assert(xrtValueGetString(xrtValueObjectGet(result,XRT_STR_LITERAL("left")),&text) && text.Size==4);
     xrtValueRelease(result); xrtValueRelease(source);
 }
+/* Same XERR_TYPE as wire rejection, but produced by a real native operation
+ * followed by an explicitly armed callback boundary. Never a fake storage. */
+static bool checkedAppend(xvalue* value,int64_t key,const xvalue* item)
+{
+    bool ok=xl6ListImportProviderV1()->Append(value,key,item);
+    if (ok && appendFailure==1) xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL});
+    if (ok && appendFailure==2) { xrtSetErrorKind(XERR_TYPE); return false; }
+    return ok;
+}
+static void readerProfiles(void)
+{
+    for (unsigned test=0;test<7;++test) for (unsigned supplied=0;supplied<2;++supplied) {
+        XL6_RestoreNodeV1 nodes[3]; XL6_RestoreFieldV1 fields[3]; XL6_RestorePlanV1 p=plan(nodes,fields,false);
+        xvalue* source=wire(),*seeds[]={seed()},*target=supplied ? objectDefault() : NULL,*result=NULL; assert(seeds[0]);
+        if (test==1) fields[2].flags=XL6_RESTORE_REQUIRED_V1; /* After both shared child fields succeeded. */
+        else if (test==2) assert(xrtValueObjectSetNew(source,XRT_STR_LITERAL("b"),xrtValueNull()));
+        else if (test==3) assert(xrtValueObjectSetNew(source,XRT_STR_LITERAL("b"),xrtValueInt(3)));
+        else if (test==4) assert(xrtValueTypeIdBind(source,OBJECT_ID+1));
+        else if (test==5) {
+            xvalue* array=xrtValueArray(); assert(array && xrtValueArrayAppendNew(array,xrtValueInt(3)));
+            assert(xrtValueObjectSetNew(source,XRT_STR_LITERAL("b"),array));
+        } else if (test==6) {
+            xrtValueRelease(source); source=xrtValueArray(); assert(source);
+        }
+        unsigned before=drops; xrtSetErrorKind(XERR_TYPE); const xerror* incoming=xrtGetError();
+        assert(xl6PersistenceRestorePlanReadTakeV1(seeds,1,target,source,&p,&result) && result &&
+            !seeds[0] && xrtGetError()==incoming);
+        xrtClearError();
+        if (!test) observed(result,true);
+        else assert(result==xrtValueNull() && drops>=before+((supplied || test<4 || test==5) ? 1u : 0u));
+        assert(xrtValueTypeId(source)==(test==4 ? OBJECT_ID+1 : 0));
+        xrtValueRelease(result); xrtValueRelease(source);
+    }
+    /* Required missing vs present null are distinct; declared nullable input
+     * works without running the factory, while optional fields keep defaults. */
+    XL6_RestoreNodeV1 node={.kind=XL6_RESTORE_OBJECT_V1,.flags=XL6_RESTORE_NULLABLE_V1,.identity=OBJECT_ID,
+        .as.object={objectDefault,TAG,0,0,xl6RestoreClassProviderV1()}};
+    XL6_RestorePlanV1 p={sizeof(p),1,0,0,&node,NULL,false}; xvalue* result=NULL; unsigned before=factories;
+    assert(xl6PersistenceRestorePlanReadTakeV1(NULL,0,NULL,xrtValueNull(),&p,&result) && result==xrtValueNull() && factories==before);
+    xrtValueRelease(result);
+}
+static void readerFailures(void)
+{
+    for (unsigned test=0;test<16;++test) {
+        XL6_RestoreNodeV1 nodes[3]; XL6_RestoreFieldV1 fields[3]; XL6_RestorePlanV1 p=plan(nodes,fields,false);
+        const XL6_RestoreObjectProviderV1 objectsProvider={xl6RestoreClassProviderV1()->IsNative,checkedAdmission};
+        XL6_CollectionImportProviderV1 sequenceProvider=*xl6ListImportProviderV1(); sequenceProvider.Append=checkedAppend;
+        xvalue* source=wire(),*seeds[]={seed()},*result=NULL; assert(seeds[0]);
+        if (test<3) factoryFailure=test+1;
+        else if (test<6) { nodes[0].as.object.provider=&objectsProvider; admissionFailure=test-2; }
+        else if (test<8) { nodes[1].as.sequence.provider=&sequenceProvider; appendFailure=test-5; }
+        else if (test<11) { fields[2].flags=XL6_RESTORE_REQUIRED_V1; finalizerFailure=test-7; }
+        else if (test==11) p.size--;
+        else if (test==12) { p.json=true; nodes[2].as.scalar=XL6_VALUE_ADMIT_BYTES; }
+        else if (test==13) nodes[0].as.object.runtimeTag++;
+        else { factoryFailure=1; finalizerFailure=test-12; }
+        xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
+        assert(!xl6PersistenceRestorePlanReadTakeV1(seeds,1,NULL,source,&p,&result) && !result && !seeds[0]);
+        xl6_error_result outcome=xl6ErrorScopeEnd(&scope); assert(!outcome.ok);
+        if (test==0 || test==3 || test==6 || test==8 || test>=14) assert(!outcome.error);
+        else if (test==1 || test==5 || test==7 || test==10 || test==12 || test==13)
+            assert(outcome.error && xrtErrorKind(outcome.error)==XERR_TYPE);
+        else if (test==4) assert(outcome.error && xrtErrorKind(outcome.error)==XERR_MEMORY);
+        else if (test==9) assert(outcome.error && xrtErrorKind(outcome.error)==XERR_VALUE);
+        xrtErrorFree(outcome.error);
+        factoryFailure=finalizerFailure=admissionFailure=appendFailure=0;
+        xrtClearError(); xrtValueRelease(source);
+    }
+    /* NULL/occupied outputs are invalid before construction, but consume the
+     * valid owned inputs. An existing unrelated output must not be overwritten. */
+    for (unsigned test=0;test<3;++test) {
+        XL6_RestoreNodeV1 nodes[3]; XL6_RestoreFieldV1 fields[3]; XL6_RestorePlanV1 p=plan(nodes,fields,false);
+        xvalue* source=wire(),*seeds[]={seed()},*target=objectDefault(),*result=test==1 ? xrtValueString(XRT_STR_LITERAL("held")) : NULL;
+        assert(seeds[0] && target); xvalue* incoming=result; unsigned before=factories;
+        xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
+        assert(!xl6PersistenceRestorePlanReadTakeV1(seeds,1,target,test==2 ? NULL : source,&p,test==0 ? NULL : &result));
+        assert(!seeds[0] && result==incoming && factories==before);
+        xl6_error_result outcome=xl6ErrorScopeEnd(&scope); assert(!outcome.ok); xrtErrorFree(outcome.error);
+        xrtClearError(); xrtValueRelease(result); xrtValueRelease(source);
+    }
+    /* Bad target metadata is not bad wire data, even when BOTH are wrong. */
+    {
+        XL6_RestoreNodeV1 nodes[3]; XL6_RestoreFieldV1 fields[3]; XL6_RestorePlanV1 p=plan(nodes,fields,false);
+        xvalue* source=xrtValueInt(1),*seeds[]={seed()},*target=objectDefault(),*result=NULL; assert(seeds[0] && target && source);
+        nodes[0].as.object.runtimeTag++;
+        assert(!xl6PersistenceRestorePlanReadTakeV1(seeds,1,target,source,&p,&result) && !result && !seeds[0] &&
+            xrtGetError() && xrtErrorKind(xrtGetError())==XERR_TYPE);
+        xrtClearError(); xrtValueRelease(source);
+    }
+    /* A budget limit is an operational refusal, not nullable bad input. */
+    XL6_RestoreNodeV1 node={.kind=XL6_RESTORE_OBJECT_V1,.identity=OBJECT_ID,
+        .as.object={objectDefault,TAG,0,1,xl6RestoreClassProviderV1()}};
+    XL6_RestoreFieldV1 field={XRT_STR_INIT("next"),XRT_STR_INIT("next"),0,0};
+    XL6_RestorePlanV1 p={sizeof(p),1,1,0,&node,&field,false}; xvalue* source=xrtValueObject(),*result=NULL; assert(source);
+    for (size_t i=1;i<66;++i) { xvalue* parent=xrtValueObject(); assert(parent && xrtValueObjectSetNew(parent,field.source,source)); source=parent; }
+    assert(!xl6PersistenceRestorePlanReadTakeV1(NULL,0,NULL,source,&p,&result) && !result && xrtGetError() && xrtErrorKind(xrtGetError())==XERR_RANGE);
+    xrtClearError(); xrtValueRelease(source);
+}
+static void readerBoundaries(void)
+{
+    /* Retirement after a benign rejection may itself fail: even a missing
+     * diagnostic must turn the reader into a checked refusal, never null. */
+    for (int entry=-1;entry<=1;++entry) for (int cleanup=-1;cleanup<=1;++cleanup) {
+        if (!entry && !cleanup) continue;
+        XL6_RestoreNodeV1 nodes[3]; XL6_RestoreFieldV1 fields[3]; XL6_RestorePlanV1 p=plan(nodes,fields,false);
+        xvalue* source=wire(),*seeds[]={seed()},*target=objectDefault(),*result=NULL; assert(seeds[0] && target);
+        fields[2].flags=XL6_RESTORE_REQUIRED_V1;
+        xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope)); unsigned before=drops;
+        xl6TestListGraphBoundaryFailureV1(entry,cleanup);
+        assert(!xl6PersistenceRestorePlanReadTakeV1(seeds,1,target,source,&p,&result) && !result && !seeds[0] && drops==before+1);
+        xl6_error_result outcome=xl6ErrorScopeEnd(&scope); assert(!outcome.ok);
+        int first=entry ? entry : cleanup;
+        assert(first<0 ? !outcome.error : outcome.error && xrtErrorKind(outcome.error)==XERR_MEMORY);
+        xrtErrorFree(outcome.error); xrtClearError(); xrtValueRelease(source); xl6TestListGraphBoundaryFailureV1(0,0);
+    }
+}
+static void readerScalars(void)
+{
+    /* Every primitive rule rejects a wrong tag by provenance without setting
+     * an error. ANY is deliberately unrestricted, and NONE is invalid metadata. */
+    for (unsigned rule=XL6_VALUE_ADMIT_I8;rule<=XL6_VALUE_ADMIT_TIME;++rule) {
+        xvalue* source=(rule==XL6_VALUE_ADMIT_STRING) ? xrtValueInt(1) : xrtValueString(XRT_STR_LITERAL("not a number")); assert(source);
+        bool rejected=false; assert(!xl6PersistenceRestoreScalarCheckedV1(source,rule,false,&rejected) && rejected && !xrtGetError());
+        XL6_RestoreNodeV1 node={.kind=XL6_RESTORE_SCALAR_V1,.identity=LEAF_ID,.as.scalar=rule};
+        XL6_RestorePlanV1 p={sizeof(p),1,0,0,&node,NULL,false}; xvalue* result=NULL;
+        assert(xl6PersistenceRestorePlanReadTakeV1(NULL,0,NULL,source,&p,&result) && result==xrtValueNull() && !xrtGetError());
+        xrtValueRelease(result); xrtValueRelease(source);
+    }
+    const unsigned rules[]={XL6_VALUE_ADMIT_I8,XL6_VALUE_ADMIT_U32,XL6_VALUE_ADMIT_U64,XL6_VALUE_ADMIT_F32,
+        XL6_VALUE_ADMIT_CHAR,XL6_VALUE_ADMIT_CHAR,XL6_VALUE_ADMIT_CHAR,XL6_VALUE_ADMIT_CHAR};
+    xvalue* values[]={xrtValueInt(128),xrtValueUInt(UINT64_MAX),xrtValueInt(-1),xrtValueFloat(DBL_MAX),
+        xrtValueInt(-1),xrtValueInt(0xD800),xrtValueUInt(UINT64_MAX),xrtValueInt(0x110000)};
+    for (size_t i=0;i<sizeof(rules)/sizeof(*rules);++i) {
+        bool rejected=false; assert(values[i] && !xl6PersistenceRestoreScalarCheckedV1(values[i],rules[i],true,&rejected) && rejected && !xrtGetError());
+        XL6_RestoreNodeV1 node={.kind=XL6_RESTORE_SCALAR_V1,.identity=LEAF_ID,.as.scalar=rules[i]};
+        XL6_RestorePlanV1 p={sizeof(p),1,0,0,&node,NULL,true}; xvalue* result=NULL;
+        assert(xl6PersistenceRestorePlanReadTakeV1(NULL,0,NULL,values[i],&p,&result) && result==xrtValueNull() && !xrtGetError());
+        xrtValueRelease(result); xrtValueRelease(values[i]);
+    }
+    bool rejected=true;
+    assert(!xl6PersistenceRestoreScalarCheckedV1(NULL,XL6_VALUE_ADMIT_I64,false,&rejected) && !rejected);
+    assert(!xl6PersistenceRestoreScalarCheckedV1(xrtValueNull(),XL6_VALUE_ADMIT_NONE,false,&rejected) && !rejected);
+}
+static void readerFault(const char* name,size_t point)
+{
+    XL6_RestoreNodeV1 nodes[3]; XL6_RestoreFieldV1 fields[3]; XL6_RestorePlanV1 p=plan(nodes,fields,false);
+    xvalue* source=wire(),*seeds[]={seed()},*result=NULL; assert(seeds[0]);
+    bool rejected=!strcmp(name,"plan-read-rejected"),scalar=!strcmp(name,"plan-read-scalar"),shape=!strcmp(name,"plan-read-shape");
+    if (rejected) fields[2].flags=XL6_RESTORE_REQUIRED_V1;
+    if (shape) { xrtValueRelease(source); source=xrtValueInt(1); assert(source); }
+    if (scalar) {
+        xrtValueRelease(source); source=xrtValueInt(7); assert(source); xrtValueRelease(seeds[0]); seeds[0]=NULL;
+        nodes[0]=(XL6_RestoreNodeV1){.kind=XL6_RESTORE_SCALAR_V1,.identity=LEAF_ID,.as.scalar=XL6_VALUE_ADMIT_I8};
+        p.nodeCount=1; p.fieldCount=0;
+    }
+    xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope)); assert(xrtMemDebugFailAfter(point));
+    bool ok=xl6PersistenceRestorePlanReadTakeV1(scalar ? NULL : seeds,scalar ? 0 : 1,NULL,source,&p,&result);
+    bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    assert(hit ? !ok && !result && !outcome.ok : ok && result && outcome.ok); assert(!seeds[0]);
+    if (!hit) {
+        if (rejected || shape) assert(result==xrtValueNull());
+        else if (scalar) { int64_t n; assert(xrtValueTypeId(result)==LEAF_ID && xrtValueGetInt(result,&n) && n==7); }
+        else observed(result,true);
+    }
+    assert(!xrtValueTypeId(source));
+    xrtErrorFree(outcome.error); xrtValueRelease(result); xrtValueRelease(source); xrtClearError();
+    printf("native plan %s point=%zu hit=%d complete-prefix balanced\n",name,point,hit);
+}
 void xl6TestRestorePlanVectorsV1(const char* name)
 {
     if (!strcmp(name,"plan-shared")) shared();
-    else if (!strcmp(name,"plan-format")) format();
+    else if (!strcmp(name,"plan-format")) format(false);
     else if (!strcmp(name,"plan-nested")) nested();
     else if (!strcmp(name,"plan-rejected")) rejected();
     else if (!strcmp(name,"plan-boundaries")) boundaries();
@@ -337,11 +514,17 @@ void xl6TestRestorePlanVectorsV1(const char* name)
     else if (!strcmp(name,"plan-wide-domains")) wide(0,false);
     else if (!strcmp(name,"plan-objects")) objects();
     else if (!strcmp(name,"plan-mixed")) mixed(0,false);
+    else if (!strcmp(name,"plan-read-profiles")) readerProfiles();
+    else if (!strcmp(name,"plan-read-failures")) readerFailures();
+    else if (!strcmp(name,"plan-read-boundaries")) readerBoundaries();
+    else if (!strcmp(name,"plan-read-scalars")) readerScalars();
+    else if (!strcmp(name,"plan-read-format")) format(true);
     else assert(0);
 }
 bool xl6TestRestorePlanFaultV1(const char* name,size_t point)
 {
     if (strncmp(name,"plan-",5)) return false;
+    if (!strncmp(name,"plan-read-",10)) { readerFault(name,point); return true; }
     if (!strcmp(name,"plan-wide")) { wide(point,true); return true; }
     if (!strcmp(name,"plan-mixed-restore")) { mixed(point,true); return true; }
     bool target=!strcmp(name,"plan-target"),nested=!strcmp(name,"plan-nested-restore");

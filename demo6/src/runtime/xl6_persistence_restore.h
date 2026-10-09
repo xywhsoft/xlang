@@ -11,14 +11,20 @@
  * allocation failure. The nullable reader finish distinguishes those cases.
  * Pure metadata from verified IR selects the rule; this code never examines
  * source type spellings, class layouts, or a generated-code registry. */
-static inline xvalue* xl6PersistenceRestoreScalarV1(
-    const xvalue* source, unsigned int rule, bool json)
+/* Rejection is a fact established by tag/range checks, NOT inferred from an
+ * error kind. Getter, allocation, clone and callback failures never set it.
+ * The old strict callers may omit this status without changing their ABI. */
+static inline xvalue* xl6PersistenceRejectScalarV1(bool* rejected)
+{ if (rejected) *rejected=true; return NULL; }
+static inline xvalue* xl6PersistenceRestoreScalarCheckedV1(
+    const xvalue* source, unsigned int rule, bool json, bool* rejected)
 {
     xvaluetype tag;
     int64_t signedNumber;
     uint64_t unsignedNumber;
     double number;
     uint32_t scalar;
+    if (rejected) *rejected=false;
     if (source == NULL) return NULL;
     tag = xrtValueType(source);
     if (rule == XL6_VALUE_ADMIT_ANY) return xrtValueClone(source);
@@ -26,19 +32,22 @@ static inline xvalue* xl6PersistenceRestoreScalarV1(
         if (tag == XVALUE_INT) {
             if (!xrtValueGetInt(source, &signedNumber)) return NULL;
         } else if (tag == XVALUE_UINT) {
-            if (!xrtValueGetUInt(source, &unsignedNumber) || unsignedNumber > INT64_MAX) return NULL;
+            if (!xrtValueGetUInt(source, &unsignedNumber)) return NULL;
+            if (unsignedNumber > INT64_MAX) return xl6PersistenceRejectScalarV1(rejected);
             signedNumber = (int64_t)unsignedNumber;
-        } else return NULL;
-        return xl6IntegerDomainV1(signedNumber, rule) ? xrtValueInt(signedNumber) : NULL;
+        } else return xl6PersistenceRejectScalarV1(rejected);
+        return xl6IntegerDomainV1(signedNumber, rule) ? xrtValueInt(signedNumber) :
+            xl6PersistenceRejectScalarV1(rejected);
     }
     switch (rule) {
     case XL6_VALUE_ADMIT_U64:
         if (tag == XVALUE_UINT) {
             if (!xrtValueGetUInt(source, &unsignedNumber)) return NULL;
         } else if (tag == XVALUE_INT) {
-            if (!xrtValueGetInt(source, &signedNumber) || signedNumber < 0) return NULL;
+            if (!xrtValueGetInt(source, &signedNumber)) return NULL;
+            if (signedNumber < 0) return xl6PersistenceRejectScalarV1(rejected);
             unsignedNumber = (uint64_t)signedNumber;
-        } else return NULL;
+        } else return xl6PersistenceRejectScalarV1(rejected);
         return xrtValueUInt(unsignedNumber);
     case XL6_VALUE_ADMIT_F32:
     case XL6_VALUE_ADMIT_F64:
@@ -50,11 +59,12 @@ static inline xvalue* xl6PersistenceRestoreScalarV1(
         } else if (tag == XVALUE_UINT) {
             if (!xrtValueGetUInt(source, &unsignedNumber)) return NULL;
             number = (double)unsignedNumber;
-        } else return NULL;
+        } else return xl6PersistenceRejectScalarV1(rejected);
         if (rule == XL6_VALUE_ADMIT_F32) {
             /* XLON admits NaN/Inf. A finite overflow is not an infinity, and
              * the range check must precede the potentially undefined cast. */
-            if (isfinite(number) && (number < -FLT_MAX || number > FLT_MAX)) return NULL;
+            if (isfinite(number) && (number < -FLT_MAX || number > FLT_MAX))
+                return xl6PersistenceRejectScalarV1(rejected);
             number = (double)(float)number;
         }
         return xrtValueFloat(number);
@@ -62,29 +72,33 @@ static inline xvalue* xl6PersistenceRestoreScalarV1(
         if (tag == XVALUE_CHAR) {
             if (!xrtValueGetChar(source, &scalar)) return NULL;
         } else if (json && tag == XVALUE_INT) {
-            if (!xrtValueGetInt(source, &signedNumber) || signedNumber < 0 || signedNumber > UINT32_MAX) return NULL;
+            if (!xrtValueGetInt(source, &signedNumber)) return NULL;
+            if (signedNumber < 0 || signedNumber > UINT32_MAX) return xl6PersistenceRejectScalarV1(rejected);
             scalar = (uint32_t)signedNumber;
         } else if (json && tag == XVALUE_UINT) {
-            if (!xrtValueGetUInt(source, &unsignedNumber) || unsignedNumber > UINT32_MAX) return NULL;
+            if (!xrtValueGetUInt(source, &unsignedNumber)) return NULL;
+            if (unsignedNumber > UINT32_MAX) return xl6PersistenceRejectScalarV1(rejected);
             scalar = (uint32_t)unsignedNumber;
-        } else return NULL;
-        return xl6CharDomainV1(scalar) ? xrtValueChar(scalar) : NULL;
+        } else return xl6PersistenceRejectScalarV1(rejected);
+        return xl6CharDomainV1(scalar) ? xrtValueChar(scalar) : xl6PersistenceRejectScalarV1(rejected);
     case XL6_VALUE_ADMIT_BOOL:
-        if (tag != XVALUE_BOOL) return NULL;
+        if (tag != XVALUE_BOOL) return xl6PersistenceRejectScalarV1(rejected);
         break;
     case XL6_VALUE_ADMIT_STRING:
-        if (tag != XVALUE_STRING) return NULL;
+        if (tag != XVALUE_STRING) return xl6PersistenceRejectScalarV1(rejected);
         break;
     case XL6_VALUE_ADMIT_BYTES:
-        if (json || tag != XVALUE_BYTES) return NULL;
+        if (json || tag != XVALUE_BYTES) return xl6PersistenceRejectScalarV1(rejected);
         break;
     case XL6_VALUE_ADMIT_TIME:
-        if (json || tag != XVALUE_TIME) return NULL;
+        if (json || tag != XVALUE_TIME) return xl6PersistenceRejectScalarV1(rejected);
         break;
     default: return NULL;
     }
     return xrtValueClone(source);
 }
+static inline xvalue* xl6PersistenceRestoreScalarV1(const xvalue* source, unsigned int rule, bool json)
+{ return xl6PersistenceRestoreScalarCheckedV1(source,rule,json,NULL); }
 
 typedef enum XL6_PersistenceRestoreCollectionV1 {
     XL6_PERSIST_RESTORE_ARRAY_V1 = 1,
