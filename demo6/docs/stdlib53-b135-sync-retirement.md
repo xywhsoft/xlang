@@ -209,12 +209,84 @@ Real JIT pages are freed before local-scope host recovery. Allocations, errors a
 owner lifetimes balance. `SyncShippingApiVfsAcceptance=true` is deliberately a
 synchronization-only gate; overall shipping and full53 flags remain false.
 
-Linux shipping libraries and embedded VFS, standalone ELF execution,
-the remaining resource domains and full 53-module acceptance are still required.
+### Linux shipping recovery and actual ELF execution (b139/b140)
+
+The Linux source freeze is exported from the Git index with
+`core.autocrlf=false`, including the docs required by the snapshot gate. The
+b140 freeze starts at `bbcbb9bdb` with index tree
+`190f391959dd3f58d96030ac8f0e3faef6cd0ba3`. Its source snapshot is
+`stdlib53-b140-shipping-source-dev1/frozen/demo6`, copied to the fresh native
+filesystem root `/var/tmp/xlang-stdlib53-b140-shipping-dev1/demo6`. Unrelated
+IDE/header-binding/extension and response-file edits are not compiled.
+The final verifier environment-isolation edit is separate from this immutable
+source freeze; it does not alter the candidate compiler or providers.
+
+`stdlib53-b140-shipping-build-linux-dev1/build.shipping.json` records a complete
+unchanged-input build through the real `build_linux.sh`. TCC, the XRT object,
+both embedded VFS images, libxl.so, libxlc.so and the CLI are rebuilt from
+source, without reusing old provider/compiler objects. libxl.so SHA256 is
+`295d395783d8b6d3a7615cb57d59274ea900279c23e1716dd356a972543cae1a`;
+libxlc.so is
+`cbafd42795926e84e85a8a015f4b690ee3f6f247dcc7469e55d6b1a0f47e5dea`.
+Existing vendor `fread` warnings remain visible: this normal product build is
+not advertised as an exclusion-free strict-warning build of all vendor code.
+
+Both `stdlib53-b140-shipping-proof-linux-dev2/sync.shipping.json` and
+`stdlib53-b140-shipping-proof-win-dev2/sync.shipping.json` pass 26 phases with
+unchanged inputs. Each library supplies its own TCC and checked recovery API,
+without external xlang JIT headers, a TCC distribution or native/source/loader
+environment injection. Linux's libc headers, CRT objects and dynamic linker
+remain target-system inputs, as explicitly required by the Linux VFS manifests;
+these are not claimed to be embedded or excluded by the isolation test.
+The five held-lock/error/global scenarios run on real O0/O2 SDK
+hosts and balance measured allocations/owner/error lifetimes. Linux does not
+claim the Windows MEM_FREE page-unmap observation.
+
+The first isolated ELF batch exposed a genuine producer failure: TCC omitted
+PT_GNU_STACK, and the current loader refused all four generated shared objects.
+The producer now emits RW GNU_STACK for ordinary C output and preserves an
+explicit executable-stack request from foreign `.note.GNU-stack` objects in
+either merge order. No loader security setting, output-file patch or
+executable-stack consumer workaround is used.
+
+`stdlib53-b140-tcc-stack-linux-dev1/tcc.elf.stack.json` passes 12 phases:
+fresh actual TCC executables and shared objects declare RW stack and execute;
+foreign RWE controls are inspected only. The Windows source freeze also
+successfully rebuilds its bootstrap TCC. The ported consumer is checked at
+O0/O2 against eight existing independently generated DLLs: 16 actual
+export/init/Unit/terminal-retire/unload executions in
+`stdlib53-b139-artifact-host-win-dev1/host.port.json`.
+
+`stdlib53-b140-shipping-elf-linux-dev2/sync.shipping.elf.json` passes 28 phases
+with unchanged inputs. A copied real CLI and candidate libraries compile four
+fixture texts using embedded xlang/TCC VFS, with no xlang source/include/TCC
+distribution in the compiler directory; platform C dependencies remain on the
+host. Real readelf tables confirm RW GNU_STACK, the actual
+checked module exports and no xlang shared-library dependency. O0/O2 independent
+consumers execute all four exported probes and checked module Unit successfully.
+This is actual ELF execution, not private-provider pruning inferred from exports.
+
+Terminal internal TLS retirement is explicitly Windows-only in the current XRT
+contract. Linux consumers therefore keep the ELF image resident until process
+exit. `SafeElfUnloadAcceptance` and `TerminalRuntimeRetirementAcceptance` remain
+false; passing this batch does not justify calling dlclose on a runtime with
+internal pthread-key callbacks. Failed b139 snapshots/ELF reports are retained
+and are not promoted to acceptance.
+
+The generated capability matrix is refreshed from the owned source snapshot:
+the four changed rows reflect removal of old generated Tree/sync bodies and
+their direct calls, not removal of language functionality. Deferred APIs are
+unchanged; snapshot gates and all three matrix-reference unit tests pass.
+
+### Remaining release boundaries
+
+Linux terminal TLS/safe-unload support, the remaining resource domains and full
+53-module acceptance are still required. The narrow synchronization API/VFS,
+actual-ELF and stack gates do not certify these remaining contracts.
 Family absence in a DLL export table is **not** pruning proof; the accepted
 family proof above comes from actual TCC object tables. Some older diagnostic
 tools use a narrow `SourceProductAcceptance` flag for their specific provider
 proof; it does not imply shipping, full runtime instrumentation or full53
-acceptance. Main-directory release binaries have not been replaced and still
-use legacy generated sync Drop. Candidate acceptance for the remaining domains
+acceptance. Main-directory release binaries have not been promoted by this
+batch. Candidate acceptance for the remaining domains
 and broad product regression must precede promoting new release binaries.

@@ -2355,6 +2355,9 @@ static int layout_sections(TCCState *s1, int *sec_order, struct dyn_inf *d)
         ++phnum;
     if (d->roinf)
         ++phnum;
+    /* C does not need executable stack trampolines. An explicit GNU_STACK
+       header avoids the legacy loader default for an absent stack contract. */
+    ++phnum;
     {
         int has_tls = 0;
         for (i = 1; i < s1->nb_sections; i++) {
@@ -2514,6 +2517,14 @@ static int layout_sections(TCCState *s1, int *sec_order, struct dyn_inf *d)
             ph->p_memsz = ph->p_filesz;
             ph->p_align = tls_start_sec->sh_addralign;
         }
+    }
+    ph = fill_phdr(++ph, PT_GNU_STACK, NULL);
+    ph->p_flags |= PF_W;
+    ph->p_align = PTR_SIZE;
+    for (i = 1; i < s1->nb_sections; i++) {
+        s = s1->sections[i];
+        if (!strcmp(s->name, ".note.GNU-stack") && (s->sh_flags & SHF_EXECINSTR))
+            ph->p_flags |= PF_X;
     }
     if (d->interp)
         fill_phdr(&d->phdr[1], PT_INTERP, d->interp);
@@ -3401,6 +3412,10 @@ invalid:
         s->sh_entsize = sh->sh_entsize;
         sm_table[i].new_section = 1;
     found:
+        /* Preserve explicit stack-execution requests from every input,
+           including a later note merged into a non-executable first note. */
+        if (!strcmp(s->name, ".note.GNU-stack"))
+            s->sh_flags |= sh->sh_flags & SHF_EXECINSTR;
         size = sh->sh_size;
         /* align start of section */
         offset = section_add(s, size, sh->sh_addralign);
