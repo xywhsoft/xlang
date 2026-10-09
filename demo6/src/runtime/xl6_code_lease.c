@@ -169,20 +169,27 @@ void xl6CodeLeaseRelease(XL6_CodeLease* lease)
  * distinct logical stacks even though the intrusive list is shared. */
 static xatomic64 code_scope_lock = {0};
 static XL6_CodeScope* code_scopes;
+static XL6_CodeActivityV1* code_activities;
 bool xl6CodeOwnerScopeActive(const XL6_CodeOwner* owner)
 {
     const XL6_CodeScope* scope;
+    const XL6_CodeActivityV1* activity;
     if (!owner) return false;
     for (scope = code_scopes; scope; scope = scope->next) {
         const XL6_CodeLease* lease = scope->lease;
         if (lease && lease->context == owner->context && lease->acquire == owner->acquire &&
             lease->release == owner->release) return true;
     }
+    for (activity = code_activities; activity; activity = activity->next)
+        if (activity->identity.context == owner->context &&
+            activity->identity.acquire == owner->acquire && activity->identity.release == owner->release)
+            return true;
     return false;
 }
 bool xl6CodeOwnerScopeForeign(const XL6_CodeOwner* owner)
 {
     const XL6_CodeScope* scope;
+    const XL6_CodeActivityV1* activity;
     uint64 thread = xrtThreadCurrentId();
     if (!owner) return false;
     for (scope = code_scopes; scope; scope = scope->next) {
@@ -190,6 +197,10 @@ bool xl6CodeOwnerScopeForeign(const XL6_CodeOwner* owner)
         if (scope->threadId != thread && lease && lease->context == owner->context &&
             lease->acquire == owner->acquire && lease->release == owner->release) return true;
     }
+    for (activity = code_activities; activity; activity = activity->next)
+        if (activity->threadId != thread && activity->identity.context == owner->context &&
+            activity->identity.acquire == owner->acquire && activity->identity.release == owner->release)
+            return true;
     return false;
 }
 static void code_scope_lock_enter(void)
@@ -204,6 +215,49 @@ static void code_scope_lock_enter(void)
 }
 static void code_scope_lock_leave(void)
 { xrtAtomic64Store(&code_scope_lock, 0, XMEMORY_RELEASE); }
+
+static void xl6OwnershipBody_xl6CodeActivityEnterV1(XL6_CodeActivityV1* scope, const XL6_CodeOwner* owner)
+{
+    if (!scope || scope->self || scope->identity.size || scope->previous || scope->next || scope->threadId)
+        abort();
+    if (!owner) return;
+    if (owner->size < sizeof(*owner) || !owner->acquire || !owner->release ||
+        (xl6CodeOwnerGraphOps(owner) && !owner->context)) abort();
+    scope->self = scope;
+    scope->identity = (XL6_CodeOwner){sizeof(XL6_CodeOwner), owner->context, owner->acquire, owner->release};
+    scope->threadId = xrtThreadCurrentId();
+    code_scope_lock_enter();
+    scope->next = code_activities;
+    if (code_activities) code_activities->previous = scope;
+    code_activities = scope;
+    code_scope_lock_leave();
+}
+void xl6CodeActivityEnterV1(XL6_CodeActivityV1* scope, const XL6_CodeOwner* owner)
+{
+    XL6_OWNERSHIP_RETURN_VOID(xl6OwnershipBody_xl6CodeActivityEnterV1(scope, owner));
+}
+static void xl6OwnershipBody_xl6CodeActivityLeaveV1(XL6_CodeActivityV1* scope)
+{
+    XL6_CodeActivityV1* top;
+    if (!scope) abort();
+    if (!scope->self) {
+        if (scope->identity.size || scope->previous || scope->next || scope->threadId) abort();
+        return;
+    }
+    if (scope->self != scope || scope->threadId != xrtThreadCurrentId()) abort();
+    code_scope_lock_enter();
+    for (top = code_activities; top && top->threadId != scope->threadId; top = top->next) {}
+    if (top != scope) abort();
+    if (scope->previous) scope->previous->next = scope->next;
+    else code_activities = scope->next;
+    if (scope->next) scope->next->previous = scope->previous;
+    *scope = (XL6_CodeActivityV1){0};
+    code_scope_lock_leave();
+}
+void xl6CodeActivityLeaveV1(XL6_CodeActivityV1* scope)
+{
+    XL6_OWNERSHIP_RETURN_VOID(xl6OwnershipBody_xl6CodeActivityLeaveV1(scope));
+}
 
 static void xl6OwnershipBody_xl6CodeScopeEnter(XL6_CodeScope* scope, XL6_CodeLease* lease)
 {

@@ -19064,6 +19064,9 @@ static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* 
     if (module->abi.codeOwnerAbi != (module->stage != XL6_IR_STAGE_TYPED && initializers != 0
             ? XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT : XL6_IR_MODULE_CODE_OWNER_NONE))
         return xl6IrDiag(diags, NULL, "XLIR module code owner binding ABI is unresolved");
+    if (module->abi.hostExecutionAbi != (module->stage != XL6_IR_STAGE_TYPED && initializers != 0
+            ? XL6_IR_MODULE_HOST_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1 : XL6_IR_MODULE_HOST_EXECUTION_NONE))
+        return xl6IrDiag(diags, NULL, "XLIR module host execution ABI is unresolved");
     if (module->abi.executorOwnershipAbi != (module->stage == XL6_IR_STAGE_TYPED
             ? XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE : xl6IrModuleExecutorOwnershipRequirement(module)) ||
         (module->abi.executorOwnershipAbi != XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE &&
@@ -48221,6 +48224,7 @@ void xl6IrDumpModuleText(XL6_Output* out, const XL6_IrModule* module)
     }
     xl6IrDumpText(module, out);
     xl6OutputPrintf(out, "module-code-owner: %s\n", xl6IrModuleCodeOwnerAbiName(module->abi.codeOwnerAbi));
+    xl6OutputPrintf(out, "module-host-execution: %d\n", (int)module->abi.hostExecutionAbi);
     xl6OutputPrintf(out,"module-entry: %d symbol=%u argument=t%u carrier=%d element=0x%016llX\n",
         (int)module->abi.entryKind,(unsigned)module->abi.entrySymbol,
         (unsigned)module->abi.entryArgumentType,(int)module->abi.entryArgumentCarrierAbi,
@@ -48315,6 +48319,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             ? "xrt-guarded-quiesce-before-globals" : "none");
     xl6OutputPrintf(out, "  \"moduleCodeOwnerAbi\": \"%s\",\n",
         xl6IrModuleCodeOwnerAbiName(module->abi.codeOwnerAbi));
+    xl6OutputPrintf(out, "  \"moduleHostExecutionAbi\": %d,\n", (int)module->abi.hostExecutionAbi);
     xl6OutputPrintf(out, "  \"moduleContinuationAbi\": %d,\n", (int)module->abi.continuationAbi);
     xl6OutputPrintf(out,"  \"moduleEntry\": {\"kind\": %d, \"symbol\": %u, \"argumentType\": %u, \"carrierAbi\": %d, \"elementIdentity\": \"0x%016llX\"},\n",
         (int)module->abi.entryKind,(unsigned)module->abi.entrySymbol,

@@ -1,3 +1,20 @@
+/* Fixed artifact ABI adapters, not language bodies. Existing verified CFGs
+ * retain all semantic cleanup; these thin wrappers only register activity.
+ * Residency belongs to the native caller, so Close/OOM cannot skip finalizers. */
+static void xl6IrCgenEmitHostActivityWrapper(XL6_Output* out, const XL6_IrModule* module,
+    const char* linkage, const char* resultType, const char* name,
+    const char* parameters, const char* invocation)
+{
+    xl6OutputPrintf(out, "%s%s %s(%s)\n{\n", linkage, resultType, name, parameters);
+    if (module->abi.hostExecutionAbi == XL6_IR_MODULE_HOST_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1) {
+        xl6OutputPuts("    XL6_CodeActivityV1 execution = {0};\n"
+            "    xl6CodeActivityEnterV1(&execution, xlir_code_owner.size ? &xlir_code_owner : NULL);\n", out);
+        xl6OutputPrintf(out, "    %s result = %s;\n", resultType, invocation);
+        xl6OutputPuts("    xl6CodeActivityLeaveV1(&execution);\n    return result;\n", out);
+    } else xl6OutputPrintf(out, "    return %s;\n", invocation);
+    xl6OutputPuts("}\n\n", out);
+}
+
 static int xl6IrCgenEmitModuleEntry(XL6_Output* out, const XL6_IrModule* module, XL6_DiagList* diags)
 {
     const XL6_IrCallTarget* target;
@@ -16,7 +33,7 @@ static int xl6IrCgenEmitModuleEntry(XL6_Output* out, const XL6_IrModule* module,
     if(!argument) return xl6IrCgenDiag(diags,module,target->declaration,
         "XLIR C emitter module entry has no canonical argument TypeId");
     xl6OutputPuts("extern xvalue* xl6ArrayEntryAcquireV1(uint64_t, uint64_t, const xvalue*);\n",out);
-    xl6OutputPuts("XLIR_C_API int xl_script_main_checked(xvalue* arg, int* exit_code)\n{\n", out);
+    xl6OutputPuts("static int xlir_script_main_checked(xvalue* arg, int* exit_code)\n{\n", out);
     xl6OutputPuts("    xl6_error_scope cleanup = {0}; xl6_error_result outcome;\n"
         "    int code = 0, ok;\n    *exit_code = 1;\n",out);
     xl6OutputPrintf(out,"    xvalue* owned_arg = xl6ArrayEntryAcquireV1(0x%016llXULL, 0x%016llXULL, arg);\n",
@@ -46,7 +63,10 @@ static int xl6IrCgenEmitModuleEntry(XL6_Output* out, const XL6_IrModule* module,
         "    outcome = xl6ErrorScopeEnd(&cleanup); xrtSetErrorTake(outcome.error);\n"
         "    if (!outcome.ok) return 0;\n"
         "    *exit_code = code;\n    return 1;\n",out);
-    xl6OutputPuts("}\n\n"
+    xl6OutputPuts("}\n\n", out);
+    xl6IrCgenEmitHostActivityWrapper(out, module, "XLIR_C_API ", "int", "xl_script_main_checked",
+        "xvalue* arg, int* exit_code", "xlir_script_main_checked(arg, exit_code)");
+    xl6OutputPuts(
         "XLIR_C_API int xlang_main(xvalue* arg)\n{\n"
         "    int code;\n"
         "    return xl_script_main_checked(arg, &code) ? code : 1;\n"
@@ -61,13 +81,16 @@ static int xl6IrCgenEmitSyntheticScriptEntry(
          module->abi.entryKind != XL6_IR_MODULE_ENTRY_NONE ) return 1;
     xl6OutputPuts(
         "extern void xrtClearError(void);\n"
-        "XLIR_C_API int xl_script_main_checked(xvalue* arg, int* exit_code)\n"
+        "static int xlir_script_main_checked(xvalue* arg, int* exit_code)\n"
         "{\n"
         "    (void)arg; *exit_code = 1;\n"
         "    if (!xlir_module_init()) return 0;\n"
         "    xrtClearError();\n"
         "    *exit_code = 0;\n    return 1;\n"
-        "}\n\n"
+        "}\n\n", out);
+    xl6IrCgenEmitHostActivityWrapper(out, module, "XLIR_C_API ", "int", "xl_script_main_checked",
+        "xvalue* arg, int* exit_code", "xlir_script_main_checked(arg, exit_code)");
+    xl6OutputPuts(
         "XLIR_C_API int xlang_main(xvalue* arg)\n{\n"
         "    int code;\n"
         "    return xl_script_main_checked(arg, &code) ? code : 1;\n"
@@ -94,10 +117,12 @@ static void xl6IrCgenEmitRetireSteps(XL6_Output* out, const XL6_IrModule* module
         "    if (retired == XL6_MODULE_RETIRE_FAILED) xl6ErrorScopeCaptureFailure(&cleanup);\n"
         "    outcome = xl6ErrorScopeEnd(&cleanup); xrtSetErrorTake(outcome.error);\n"
         "    return outcome.ok ? retired : XL6_MODULE_RETIRE_FAILED;\n}\n"
-        "XLIR_C_API XL6_ModuleRetireResult xl_script_module_retire_step(void)\n"
+        "static XL6_ModuleRetireResult xlir_script_module_retire_step(void)\n"
         "{ return xlir_module_retire(false); }\n\n"
-        "XLIR_C_API int xl_script_module_unit_checked(void)\n"
+        "static int xlir_script_module_unit_checked(void)\n"
         "{ return xlir_module_retire(true) == XL6_MODULE_RETIRE_READY; }\n\n", out);
+    xl6IrCgenEmitHostActivityWrapper(out, module, "XLIR_C_API ", "XL6_ModuleRetireResult",
+        "xl_script_module_retire_step", "void", "xlir_script_module_retire_step()");
 }
 
 /* These host adapters invoke the verified module entry/finalization program.
@@ -148,17 +173,19 @@ static int xl6IrCgenEmitHostBindings(
         "{ xrtClearError(); }\n\n"
         "XLIR_C_API void xl_script_error_unit(void)\n"
         "{ xrtClearError(); }\n\n"
-        "XLIR_C_API int xl_script_module_init(xvalue* arg)\n"
+        "static int xlir_script_module_init(xvalue* arg)\n"
         "{\n"
         "    int ok; (void)arg; ok = xlir_module_init();\n"
         "    if (ok) xrtClearError();\n"
         "    return ok;\n"
         "}\n\n",
         out);
+    xl6IrCgenEmitHostActivityWrapper(out, module, "XLIR_C_API ", "int", "xl_script_module_init",
+        "xvalue* arg", "xlir_script_module_init(arg)");
     if (module->abi.retirementAbi == XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4) {
         xl6IrCgenEmitRetireSteps(out, module);
     } else {
-    xl6OutputPuts("XLIR_C_API int xl_script_module_unit_checked(void)\n{\n", out);
+    xl6OutputPuts("static int xlir_script_module_unit_checked(void)\n{\n", out);
     if (xl6IrModuleHasFinalizerWork(module) || unitNet)
         xl6OutputPuts("    xl6_error_scope cleanup = {0}; xl6_error_result outcome;\n", out);
     if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE)
@@ -178,12 +205,19 @@ static int xl6IrCgenEmitHostBindings(
     else xl6OutputPuts("    return 1;\n", out);
     xl6OutputPuts("}\n\n", out);
     }
+    xl6IrCgenEmitHostActivityWrapper(out, module, "XLIR_C_API ", "int", "xl_script_module_unit_checked",
+        "void", "xlir_script_module_unit_checked()");
     xl6OutputPuts("XLIR_C_API void xl_script_module_unit(void)\n{\n", out);
     if (xl6IrModuleHasFinalizerWork(module) || unitNet)
         xl6OutputPuts("    if (!xl_script_module_unit_checked())\n"
             "        xl6ErrorScopePropagateFailure((xl6_error_result){ false, xrtTakeError() });\n", out);
     else xl6OutputPuts("    (void)xl_script_module_unit_checked();\n", out);
     xl6OutputPuts("}\n\n", out);
+    if (module->abi.retirementAbi == XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2 ||
+        module->abi.retirementAbi == XL6_IR_MODULE_RETIREMENT_OWNED_SERVICES_GRAPH_V3 ||
+        module->abi.retirementAbi == XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4)
+        xl6IrCgenEmitHostActivityWrapper(out, module, "static ", "XL6_ModulePrepareResult",
+            "xlir_host_prepare_retirement", "void", "xlir_module_prepare_retirement()");
     if (module->abi.retirementAbi == XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2 ||
         module->abi.retirementAbi == XL6_IR_MODULE_RETIREMENT_OWNED_SERVICES_GRAPH_V3 ||
         module->abi.retirementAbi == XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4)
@@ -195,17 +229,17 @@ static int xl6IrCgenEmitHostBindings(
     if (module->abi.retirementAbi == XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2)
         xl6OutputPuts("XLIR_C_API const XL6_ModuleRetirementV2* xl_script_module_retirement_v2(void)\n"
             "{\n    static const XL6_ModuleRetirementV2 api = {sizeof(api), 0x584C364D525432ULL,\n"
-            "        &xlir_module_retirement_graph, xlir_module_prepare_retirement};\n"
+            "        &xlir_module_retirement_graph, xlir_host_prepare_retirement};\n"
             "    return &api;\n}\n\n", out);
     if (module->abi.retirementAbi == XL6_IR_MODULE_RETIREMENT_OWNED_SERVICES_GRAPH_V3)
         xl6OutputPuts("XLIR_C_API const XL6_ModuleRetirementV3* xl_script_module_retirement_v3(void)\n"
             "{\n    static const XL6_ModuleRetirementV3 api = {sizeof(api), 0x584C364D525433ULL,\n"
-            "        &xlir_module_retirement_graph, xlir_module_prepare_retirement};\n"
+            "        &xlir_module_retirement_graph, xlir_host_prepare_retirement};\n"
             "    return &api;\n}\n\n", out);
     if (module->abi.retirementAbi == XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4)
         xl6OutputPuts("XLIR_C_API const XL6_ModuleRetirementV4* xl_script_module_retirement_v4(void)\n"
             "{\n    static const XL6_ModuleRetirementV4 api = {sizeof(api), 0x584C364D525434ULL,\n"
-            "        &xlir_module_retirement_graph, xlir_module_prepare_retirement, xl_script_module_retire_step};\n"
+            "        &xlir_module_retirement_graph, xlir_host_prepare_retirement, xl_script_module_retire_step};\n"
             "    return &api;\n}\n\n", out);
     xl6OutputPuts("#if defined(_WIN32) && defined(XL6_BUILD_SHARED)\n"
         "extern bool xrtRuntimeRetireThreadStorage(void);\n"

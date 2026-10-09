@@ -54,6 +54,23 @@ typedef struct XL6_CodeScope {
 } XL6_CodeScope;
 XL6_CODE_LEASE_API void xl6CodeScopeEnter(XL6_CodeScope*, XL6_CodeLease*);
 XL6_CODE_LEASE_API void xl6CodeScopeLeave(XL6_CodeScope*);
+/* Execution-only registration for synchronous host/retirement adapters. The
+ * caller already owns code residency through a handle, host entry or lease;
+ * this scope neither acquires a reference nor reopens closed admission. In
+ * particular cleanup must remain allocation-free after Close and under OOM.
+ * Enter/Leave are brief mutations, contain no host/generated callbacks and
+ * preserve diagnostics. Caller-owned zero storage, same-thread and LIFO;
+ * never copy a live scope. NULL owner means externally resident code.
+ * Prefix identity is copied; it is NOT a graph or a lifetime capability. */
+typedef struct XL6_CodeActivityV1 {
+    struct XL6_CodeActivityV1* self;
+    XL6_CodeOwner identity;
+    struct XL6_CodeActivityV1* previous;
+    struct XL6_CodeActivityV1* next;
+    unsigned long long threadId;
+} XL6_CodeActivityV1;
+XL6_CODE_LEASE_API void xl6CodeActivityEnterV1(XL6_CodeActivityV1*, const XL6_CodeOwner*);
+XL6_CODE_LEASE_API void xl6CodeActivityLeaveV1(XL6_CodeActivityV1*);
 /* Read only under whole-domain Freeze (or equivalent external quiescence).
  * A live generated invocation must be excluded BEFORE its module globals are
  * traced, not discovered as a root after reading concurrently written fields. */

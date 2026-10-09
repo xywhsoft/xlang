@@ -282,6 +282,8 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6ClassRuntimeV2Get", (const void*)xl6ClassRuntimeV2Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClassRuntimeV3Get", (const void*)xl6ClassRuntimeV3Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6CodeLeaseAcquire", (const void*)xl6CodeLeaseAcquire) ||
+        !xlApiAddTccSymbol(s, "xl6CodeActivityEnterV1", (const void*)xl6CodeActivityEnterV1) ||
+        !xlApiAddTccSymbol(s, "xl6CodeActivityLeaveV1", (const void*)xl6CodeActivityLeaveV1) ||
         !xlApiAddTccSymbol(s, "xl6CodeLeaseAcquireScoped", (const void*)xl6CodeLeaseAcquireScoped) ||
         !xlApiAddTccSymbol(s, "xl6CodeScopeEnter", (const void*)xl6CodeScopeEnter) ||
         !xlApiAddTccSymbol(s, "xl6CodeScopeLeave", (const void*)xl6CodeScopeLeave) ||

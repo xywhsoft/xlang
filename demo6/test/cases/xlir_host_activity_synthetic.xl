@@ -1,0 +1,12 @@
+extern "activity_probe" func probe(int phase) as int
+
+class ActivityLifetime
+    create()
+        probe(1)
+    end
+    destroy()
+        probe(3)
+    end
+end
+ActivityLifetime lifetime = ActivityLifetime()
+probe(2)

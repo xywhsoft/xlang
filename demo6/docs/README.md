@@ -39,6 +39,7 @@
 - [共享默认对象的声明克隆恢复](stdlib53-b159-declared-clone-restore.md)：在私有原生控制器执行声明 clone、重认证结果和整图提交；活动模块及 Cgen 实际入口继续。
 - [数据恢复的宿主模块读取边界](stdlib53-b160-host-restore-read-boundary.md)：完整跟踪证书、真实入口引用和非阻塞读取能力；白盒及严格 API 语法验证通过，实际 Cgen/TCC 入口继续。
 - [C 导出函数的运行时执行跟踪](stdlib53-b161-generated-export-execution.md)：明确 XLIR 执行 ABI 和 resident CodeScope；真实 TCC 调用/关闭/卸载通过，完整读取证书及恢复入口继续。
+- [宿主入口和退役回调的无分配执行登记](stdlib53-b162-host-execution-activity.md)：执行活动与真实代码引用分离，关闭和 OOM 下保留清理；双端真实 TCC 与所选原生 Linux ASan/UBSan 通过，读取证书及恢复切换继续。
 - [XLIR数据恢复构造图](stdlib53-b154-ir-restore-graph.md)：可达根、节点、字段上下文、默认工厂和迁移边界；与旧恢复六表共享失败原子构建，不等同于 Cgen 或语言载体切换完成。
 - `文本标准库接入.md`：精确 string/char/bytes、UTF-8/16/32、BOM、数字与流式文本的公开合同。
 - `XRT扩展标准库API.md`：当前已公开的扩展标准库对象、函数、常量、异步语义和 C/XRT 对照接口。
