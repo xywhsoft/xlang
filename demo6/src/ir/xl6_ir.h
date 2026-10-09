@@ -5236,6 +5236,14 @@ typedef enum XL6_IrModuleReadExecutionAbi {
     XL6_IR_MODULE_READ_EXECUTION_NONE = 0,
     XL6_IR_MODULE_READ_EXECUTION_TRACKED_SLOTS_V1
 } XL6_IrModuleReadExecutionAbi;
+
+/* Separate from the artifact's immutable read certificate. A reachable
+ * persistence restore operation needs a once-bound resident host boundary;
+ * no restore, Typed IR and lifecycle-free fragments emit no binding. */
+typedef enum XL6_IrModuleReadBoundaryAbi {
+    XL6_IR_MODULE_READ_BOUNDARY_NONE = 0,
+    XL6_IR_MODULE_READ_BOUNDARY_RESIDENT_HOST_BIND_V1
+} XL6_IrModuleReadBoundaryAbi;
 /* Explicit opt-in to checked, phased retirement. This describes the artifact
  * boundary; runtime admission still rejects unmodelled transitive ownership. */
 typedef enum XL6_IrModuleRetirementAbi {
@@ -5394,6 +5402,7 @@ typedef struct XL6_IrModuleAbi {
     XL6_IrModuleCodeOwnerAbi codeOwnerAbi;
     XL6_IrModuleHostExecutionAbi hostExecutionAbi;
     XL6_IrModuleReadExecutionAbi readExecutionAbi;
+    XL6_IrModuleReadBoundaryAbi readBoundaryAbi;
     XL6_IrClosureStorageAbi closureStorageAbi;
     XL6_IrBoundMethodStorageAbi boundMethodStorageAbi;
     XL6_IrModuleRetirementAbi retirementAbi;

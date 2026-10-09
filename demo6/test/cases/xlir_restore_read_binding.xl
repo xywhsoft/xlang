@@ -1,0 +1,15 @@
+extern "read_binding_probe" func readBindingProbe()
+class ReadBindingPayload
+    derive value
+    int n = 17
+end
+ReadBindingPayload readBindingGlobal
+// A reachable restore needs the capability even if this gate never invokes
+// the OLD language restore implementation. Native-plan cutover is separate.
+export "read_binding_restore" func readBindingRestore() as ReadBindingPayload
+    return json.parse::<ReadBindingPayload>("{}")
+end
+export "read_binding_entry" func readBindingEntry() as int
+    readBindingProbe()
+    return readBindingGlobal.n
+end

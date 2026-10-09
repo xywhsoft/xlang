@@ -56,4 +56,16 @@ static void xl6IrCgenEmitCodeOwnerBinding(XL6_Output* out, const XL6_IrModule* m
         "    xlir_code_owner.release = owner->release;\n"
         "    return 1;\n"
         "}\n\n", out);
+    if (module->abi.readBoundaryAbi == XL6_IR_MODULE_READ_BOUNDARY_RESIDENT_HOST_BIND_V1)
+        xl6OutputPuts("#include <__xl_runtime/xl6_ownership_read_abi.h>\n"
+            "static XL6_OwnershipReadBoundaryV1 xlir_ownership_read_boundary = {0};\n"
+            "/* Independent resident capability; copy, never execute or replace. */\n"
+            "XLIR_C_API int xl_script_bind_ownership_read_v1(const XL6_OwnershipReadBoundaryV1* boundary)\n"
+            "{\n"
+            "    if (xlir_code_owner_sealed || xlir_ownership_read_boundary.size != 0 || boundary == NULL ||\n"
+            "        boundary->size != sizeof(*boundary) || boundary->Begin == NULL ||\n"
+            "        boundary->Admits == NULL || boundary->End == NULL) return 0;\n"
+            "    xlir_ownership_read_boundary = *boundary;\n"
+            "    return 1;\n"
+            "}\n\n", out);
 }
