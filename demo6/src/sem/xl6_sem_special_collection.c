@@ -339,6 +339,20 @@ static int xl6SemCheckSpecialCollectionMethodCall(XL6_SemContext* ctx, XL6_AstNo
                  xl6SemCheckSpecialCollectionIntArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 0),
                     "Stack.peekAt 深度必须是整数");
+        } else if (xl6TextEquals(method,"pushBatch")) {
+            ok=xl6SemCheckSpecialCollectionArgCount(ctx,member,count,1u) &&
+                xl6SemCheckSpecialCollectionArrayArg(ctx,xl6SemSpecialCollectionArgExpr(args,0),itemType,
+                    "Stack.pushBatch 参数必须是相同元素类型的 array");
+        } else if (xl6TextEquals(method,"popBatch") || xl6TextEquals(method,"peekBatch")) {
+            ok=xl6SemCheckSpecialCollectionArgCount(ctx,member,count,1u) &&
+                xl6SemCheckSpecialCollectionIntArg(ctx,xl6SemSpecialCollectionArgExpr(args,0),
+                    "Stack 批量数量必须是整数");
+        } else if (xl6TextEquals(method,"peekBatchAt")) {
+            ok=xl6SemCheckSpecialCollectionArgCount(ctx,member,count,2u) &&
+                xl6SemCheckSpecialCollectionIntArg(ctx,xl6SemSpecialCollectionArgExpr(args,0),
+                    "Stack.peekBatchAt 深度必须是整数") &&
+                xl6SemCheckSpecialCollectionIntArg(ctx,xl6SemSpecialCollectionArgExpr(args,1),
+                    "Stack.peekBatchAt 数量必须是整数");
         } else if ( xl6TextEquals(method, "reserve") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 1u) &&
                  xl6SemCheckSpecialCollectionIntArg(
@@ -526,6 +540,9 @@ static const char* xl6SemSpecialCollectionCallResultTypeName(XL6_SemContext* ctx
     } else if (xl6SemIsSpecialQueueTypeName(concreteType->text) &&
         !xl6TextEquals(concreteType->text,"WaitQueue") && xl6TextEquals(method,"pushBatch")) {
         result=NULL;
+    } else if (concreteType && xl6TextEquals(concreteType->text,"Stack") &&
+        xl6TextEquals(method,"pushBatch")) {
+        result="bool";
     } else if ( xl6TextEquals(method, "push") ||
          xl6TextEquals(method, "reserve") || xl6TextEquals(method, "set") ||
          xl6TextEquals(method, "getInto") || xl6TextEquals(method, "takeInto") ||
@@ -583,6 +600,15 @@ static XL6_AstNode* xl6SemCloneSpecialCollectionCallType(XL6_SemContext* ctx, XL
         return NULL;
     }
     member = node->children[0];
+    if (xl6TextEquals(member->text,"popBatch") || xl6TextEquals(member->text,"peekBatch") ||
+        xl6TextEquals(member->text,"peekBatchAt")) {
+        receiverType=xl6SemCloneSpecialCollectionReceiverType(ctx,member);
+        concreteType=xl6SemResolveAliasType(ctx,receiverType);
+        XL6_AstNode* result=concreteType && xl6TextEquals(concreteType->text,"Stack")
+            ? xl6SemNewGenericContainerType("array",
+                xl6SemCloneTypeNode(xl6SemSpecialCollectionTypeArg(ctx,receiverType,0u)),member) : NULL;
+        xl6AstFree(receiverType); return result;
+    }
     if ( xl6TextEquals(member->text, "pop") || xl6TextEquals(member->text, "peek") ||
          xl6TextEquals(member->text, "peekAt") ) {
         receiverType = xl6SemCloneSpecialCollectionReceiverType(ctx, member);

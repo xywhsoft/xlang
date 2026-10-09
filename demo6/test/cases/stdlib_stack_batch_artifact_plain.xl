@@ -1,0 +1,5 @@
+export func stackBatchProbe() as int
+    auto stack = Stack::<string>()
+    assert(stack.push("a\0b") and stack.pop() == "a\0b")
+    return 42
+end

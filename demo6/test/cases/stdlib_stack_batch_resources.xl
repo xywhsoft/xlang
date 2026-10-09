@@ -1,0 +1,43 @@
+func stackBatchWorker() as int
+    return 42
+end
+func main(...) as int
+    auto worker = thread(stackBatchWorker)
+    assert(worker.wait())
+    auto threads = Stack::<thread?>()
+    auto threadSource = AvlTree::<int, thread?>()
+    assert(threadSource.set(1, null) and threadSource.set(2, worker))
+    assert(threads.pushBatch(threadSource.values()))
+    auto snapshot = threads.peekBatch(9)
+    auto result = threads.popBatch(9)
+    assert(result.length == 2 and result[1] == null and snapshot[1] == null)
+    auto output = result.pop()
+    assert(output == null)
+    auto threadValue = result.pop()
+    assert(threadValue != null)
+    if threadValue != null then assert(threadValue.wait() and threadValue.exitCode() == 42) end
+    auto trees = Stack::<AvlTree<int, string>>()
+    auto tree = AvlTree::<int, string>()
+    assert(tree.set(1, "a\0b") and trees.pushBatch(array[tree]))
+    auto values = trees.popBatch(2)
+    assert(values.length == 1)
+    auto projectedTree = values.pop()
+    assert(projectedTree.values()[0] == "a\0b")
+    auto queues = Stack::<SpscQueue<string>>()
+    auto queue = SpscQueue::<string>(2)
+    assert(queues.pushBatch(array[queue]))
+    auto transport = queues.popBatch(2)
+    assert(transport.length == 1)
+    auto projectedQueue = transport.pop()
+    assert(projectedQueue.tryPush("a\0b") == queueStatus.ok)
+    auto status, text = queue.tryPop()
+    string? expected = "a\0b"
+    assert(status == queueStatus.ok and text == expected)
+    auto stacks = Stack::<Stack<string>>()
+    auto child = Stack::<string>()
+    assert(child.push("a\0b") and stacks.pushBatch(array[child]))
+    auto nested = stacks.popBatch(2)
+    auto projectedStack = nested.pop()
+    assert(projectedStack.pop() == "a\0b")
+    return 0
+end

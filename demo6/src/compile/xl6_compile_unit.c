@@ -159,7 +159,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
         {"XRT_MODULE_VALUE_COLLECTION", "XRUNTIME_MODULE_TYPED_ARRAY"}},
     {"src/runtime/xl6_array_primitive_admission.c", D(R(SEQUENCE),R(VALUE_ADMISSION)), {NULL}},
     {"src/runtime/xl6_array_c_scalar_admission.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
-    {"src/runtime/xl6_stack_batch.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_TYPED_STACK"}},
+    {"src/runtime/xl6_stack_batch.c", D(R(SEQUENCE),R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_TYPED_STACK"}},
     {"src/runtime/xl6_array_sequence_admission.c", D(R(SEQUENCE)), {NULL}},
     {"src/runtime/xl6_array_nullable_c_scalar_admission.c", D(R(SEQUENCE)), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_nullable_native_i8.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
@@ -509,7 +509,9 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                 recipe=xl6IrTypeGet(&module->types,recipe->sequenceLayout.baseElementType);
                 if (!recipe || depth==64) { xrtFree(work.seen); xrtFree(work.queue); return 0; }
             }
-        } else if (instruction->runtimeOp > XL6_IR_RUNTIME_STACK_CREATE &&
+        } else if (instruction->runtimeOp>=XL6_IR_RUNTIME_STACK_PUSH_BATCH &&
+            instruction->runtimeOp<=XL6_IR_RUNTIME_STACK_PEEK_BATCH_AT) REQUIRE(R(STACK_BATCH));
+        else if (instruction->runtimeOp > XL6_IR_RUNTIME_STACK_CREATE &&
             instruction->runtimeOp <= XL6_IR_RUNTIME_STACK_CAPACITY) REQUIRE(R(STACK));
         if (instruction->runtimeOp == XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL) REQUIRE(R(NULLABLE_STRING));
         /* Only operations which physically consume an xrttype descriptor

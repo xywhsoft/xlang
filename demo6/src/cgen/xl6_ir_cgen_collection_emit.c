@@ -357,6 +357,9 @@ static int xl6IrCgenRuntimeStackAbi(
     const XL6_IrType* resultType;
     XL6_IrTypeId stackTypeId;
     int creates;
+    if (instruction && instruction->runtimeOp>=XL6_IR_RUNTIME_STACK_PUSH_BATCH &&
+        instruction->runtimeOp<=XL6_IR_RUNTIME_STACK_PEEK_BATCH_AT)
+        return xl6IrStackBatchInstructionCompatible(module,instruction);
     if ( module == NULL || instruction == NULL ||
          instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
          !xl6IrCgenStackRuntimeOpIs(instruction->runtimeOp) ||
@@ -801,6 +804,33 @@ static int xl6IrCgenEmitStackRuntime(
 #define XL6_IR_CGEN_STACK_COMMON_ARGS                                      \
     (unsigned long long)stack->typeValueId,                                \
     (unsigned long long)payload->typeValueId, payloadAbi, payloadType, runtimeType
+    if (instruction->runtimeOp>=XL6_IR_RUNTIME_STACK_PUSH_BATCH &&
+        instruction->runtimeOp<=XL6_IR_RUNTIME_STACK_PEEK_BATCH_AT) {
+        XL6_IrValueId second=module->operands[instruction->firstOperand+1];
+        if (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PUSH_BATCH) {
+            const XL6_IrInstruction* array=xl6IrCgenValueDefinition(module,second,NULL);
+            xl6OutputPrintf(out,
+                "    v%u = xl6StackPushBatchV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, v%u, 0x%016llXULL);\n",
+                (unsigned)instruction->result,(unsigned)first,XL6_IR_CGEN_STACK_COMMON_ARGS,
+                (unsigned)second,(unsigned long long)xl6IrTypeGet(&module->types,array->type)->typeValueId);
+        } else {
+            const XL6_IrType* array=xl6IrTypeGet(&module->types,instruction->type);
+            const char* projection=array->sequenceLayout.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN
+                ? "xl6ArrayReferenceConverterV1()" : xl6IrCgenNativeValueConverterExpr(module,instruction->payloadType);
+            if (!projection) return -1;
+            xl6OutputPrintf(out,
+                "    v%u = xl6StackExtractArrayV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, 0x%016llXULL, ",
+                (unsigned)instruction->result,(unsigned)first,XL6_IR_CGEN_STACK_COMMON_ARGS,
+                (unsigned long long)array->typeValueId);
+            if (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK_BATCH_AT)
+                xl6OutputPrintf(out,"v%u, v%u",(unsigned)second,
+                    (unsigned)module->operands[instruction->firstOperand+2]);
+            else xl6OutputPrintf(out,"0, v%u",(unsigned)second);
+            xl6OutputPrintf(out,", %s, %s);\n",
+                instruction->runtimeOp==XL6_IR_RUNTIME_STACK_POP_BATCH ? "true" : "false",projection);
+        }
+        return xl6OutputHasFailed(out) ? -1 : 1;
+    }
     switch ( instruction->runtimeOp ) {
     case XL6_IR_RUNTIME_STACK_CREATE:
         if (xl6IrCgenEmitSequenceCreate(out,module,instruction->type,instruction->result,

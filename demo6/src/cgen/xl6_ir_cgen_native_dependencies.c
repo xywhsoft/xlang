@@ -332,6 +332,19 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         }
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL) {
         if (xl6IrCgenInstructionIsReachable(module,i) &&
+            instruction->runtimeOp>=XL6_IR_RUNTIME_STACK_PUSH_BATCH &&
+            instruction->runtimeOp<=XL6_IR_RUNTIME_STACK_PEEK_BATCH_AT) {
+            bool push=instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PUSH_BATCH;
+            if (!xl6IrStackBatchInstructionCompatible(module,instruction) ||
+                !visitor(context,push ? "xl6StackPushBatchV1" : "xl6StackExtractArrayV1")) return 0;
+            if (!push) {
+                const XL6_IrType* array=xl6IrTypeGet(&module->types,instruction->type);
+                if (!xl6IrCgenVisitSlotProviders(array->sequenceLayout.slotAbi,1,visitor,context) ||
+                    (array->sequenceLayout.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
+                     !visitor(context,"xl6ArrayReferenceConverterV1"))) return 0;
+            }
+        }
+        if (xl6IrCgenInstructionIsReachable(module,i) &&
             xl6IrCgenThreadRuntimeOpIs(instruction->runtimeOp) &&
             (!xl6IrCgenRuntimeThreadAbi(module,instruction) ||
              !visitor(context,xl6IrCgenThreadHelper(instruction->runtimeOp)))) return 0;

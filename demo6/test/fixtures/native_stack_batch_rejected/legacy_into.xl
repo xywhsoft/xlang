@@ -1,0 +1,3 @@
+auto stack = Stack::<int>()
+array<int> result
+stack.popBatchInto(result)

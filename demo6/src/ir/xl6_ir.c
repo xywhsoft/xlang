@@ -8196,6 +8196,8 @@ int xl6IrStackConstructionContract(const XL6_IrModule* module,XL6_IrTypeId typeI
     XL6_IrNominalIdentitySetId* setOut)
 { return xl6IrStackConstructionContractDepth(module,typeId,setOut,0); }
 
+#include "xl6_ir_stack_batch.c"
+
 XL6_IrNodeId xl6IrCallParameterListGet(
     const XL6_IrModule* module, XL6_IrNodeId declaration)
 {
@@ -10463,6 +10465,9 @@ static int xl6IrRuntimeResourceOpReturnsOwned(
              operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK_AT) &&
             result != NULL && result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLONE ||
+           operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP_BATCH ||
+           operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_BATCH ||
+           operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_BATCH_AT ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLONE ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_KEYS ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_VALUES;
@@ -10910,6 +10915,14 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
                     module, receiverValueType) != XL6_IR_TYPE_INVALID ) {
         if ( strcmp(callee->text, "push") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH;
+        if ( strcmp(callee->text,"pushBatch") == 0 )
+            return XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH_BATCH;
+        if ( strcmp(callee->text,"popBatch") == 0 )
+            return XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP_BATCH;
+        if ( strcmp(callee->text,"peekBatch") == 0 )
+            return XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_BATCH;
+        if ( strcmp(callee->text,"peekBatchAt") == 0 )
+            return XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_BATCH_AT;
         if ( strcmp(callee->text, "pop") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP;
         if ( strcmp(callee->text, "peek") == 0 )
@@ -11121,7 +11134,7 @@ static int xl6IrGenericStackSignatureCompatible(const XL6_IrModule* module,
     XL6_IrTypeId receiverType, XL6_IrTypeId resultType,
     const XL6_IrTypeId* operands, size_t count)
 {
-    if (!module || !xl6IrRuntimeResourceOpIsStack(operation) || count > 2) return 0;
+    if (!module || !xl6IrRuntimeResourceOpIsStack(operation) || count > 3) return 0;
     int creates = operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE;
     XL6_IrTypeId resourceType = creates ? resultType : receiverType;
     XL6_IrTypeId payload = xl6IrRuntimeStackPayloadType(module, resourceType);
@@ -11134,6 +11147,8 @@ static int xl6IrGenericStackSignatureCompatible(const XL6_IrModule* module,
         !xl6IrBuildTypeContainsTypeParam(module, owner->storageType, 0))) return 0;
     if (creates) return receiverType == XL6_IR_TYPE_INVALID && count == 0;
     if (!count || !operands || operands[0] != receiverType) return 0;
+    if (xl6IrStackBatchResourceOpIs(operation))
+        return xl6IrStackBatchLogicalSignature(module,operation,receiverType,resultType,operands,count);
     const XL6_IrType* result = xl6IrTypeGet(&module->types, resultType);
     const XL6_IrType* argument = count == 2 ? xl6IrTypeGet(&module->types, operands[1]) : NULL;
     switch (operation) {
@@ -11189,6 +11204,8 @@ static int xl6IrRuntimeResourceSignatureCompatible(
     XL6_IrTypeId payloadType;
     XL6_IrTypeId keyType;
     if ( module == NULL ) return 0;
+    if (xl6IrStackBatchResourceOpIs(operation))
+        return xl6IrStackBatchSignatureCompatible(module,operation,receiverType,resultType,operandTypes,operandCount);
     result = xl6IrTypeGet(&module->types, resultType);
     first = operandCount > 0 && operandTypes != NULL
         ? xl6IrTypeGet(&module->types, operandTypes[0]) : NULL;
@@ -20175,6 +20192,12 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
             ? XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT : XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
     }
     switch (instruction->runtimeOp) {
+    case XL6_IR_RUNTIME_STACK_PUSH_BATCH:
+        return XL6_IR_CALL_ERROR_PHYSICAL_FALSE_RESULT;
+    case XL6_IR_RUNTIME_STACK_POP_BATCH:
+    case XL6_IR_RUNTIME_STACK_PEEK_BATCH:
+    case XL6_IR_RUNTIME_STACK_PEEK_BATCH_AT:
+        return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
     case XL6_IR_RUNTIME_STRING_SCALAR_AT:
     case XL6_IR_RUNTIME_BYTES_AT:
     case XL6_IR_RUNTIME_STACK_POP:
@@ -41701,7 +41724,12 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             if ( left == NULL || left->type != stackTypeId )
                                 return xl6IrDiag(diags, NULL,
                                     "XLIR runtime Stack member has no exact borrowed receiver ABI");
-                            if ( instruction->runtimeOp ==
+                            if (xl6IrStackBatchResourceOpIs(xl6IrStackBatchResourceOp(instruction->runtimeOp))) {
+                                if (!xl6IrStackBatchInstructionCompatible(module,instruction) ||
+                                    !xl6IrNodeRequiresThrowExitPlan(module,instruction->origin))
+                                    return xl6IrDiag(diags,NULL,
+                                        "XLIR Stack batch has no exact native Array, owned result or failure ABI");
+                            } else if ( instruction->runtimeOp ==
                                      XL6_IR_RUNTIME_STACK_PUSH ) {
                                 if ( instruction->operandCount != 2 ||
                                      right == NULL ||
@@ -44992,6 +45020,10 @@ static const char* xl6IrRuntimeResourceOpName(
         return "special-queue-pop-batch-into";
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE: return "stack-create";
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH: return "stack-push";
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH_BATCH: return "stack-push-batch";
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP_BATCH: return "stack-pop-batch";
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_BATCH: return "stack-peek-batch";
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_BATCH_AT: return "stack-peek-batch-at";
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_RESERVE: return "stack-reserve";
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLONE: return "stack-clone";
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_EQUALS: return "stack-equals";
@@ -46696,6 +46728,10 @@ case XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_OR_NULL: return "xvalue-int-map-at-i64
         return "special-queue-pop-batch-into";
     case XL6_IR_RUNTIME_STACK_CREATE: return "stack-create";
     case XL6_IR_RUNTIME_STACK_PUSH: return "stack-push";
+    case XL6_IR_RUNTIME_STACK_PUSH_BATCH: return "stack-push-batch";
+    case XL6_IR_RUNTIME_STACK_POP_BATCH: return "stack-pop-batch";
+    case XL6_IR_RUNTIME_STACK_PEEK_BATCH: return "stack-peek-batch";
+    case XL6_IR_RUNTIME_STACK_PEEK_BATCH_AT: return "stack-peek-batch-at";
     case XL6_IR_RUNTIME_STACK_RESERVE: return "stack-reserve";
     case XL6_IR_RUNTIME_STACK_CLONE: return "stack-clone";
     case XL6_IR_RUNTIME_STACK_EQUALS: return "stack-equals";
