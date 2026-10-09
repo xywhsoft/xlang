@@ -279,6 +279,9 @@ static int xl6IrCgenPersistenceParseAbi(
     resultType = xl6IrTypeGet(&module->types, instruction->type);
     return text != NULL && target != NULL && textType != NULL &&
         targetType != NULL && resultType != NULL &&
+        target->kind == XL6_IR_INSTR_RUNTIME_CALL &&
+        target->runtimeOp == XL6_IR_RUNTIME_CLASS_DEFAULT_INVOKE &&
+        target->payloadType == instruction->payloadType &&
         textType->kind != XL6_IR_TYPE_NULLABLE &&
         textType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
         textType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&

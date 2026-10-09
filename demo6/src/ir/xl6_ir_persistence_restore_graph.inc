@@ -233,12 +233,41 @@ static int xl6IrRestoreGraphCompleteNode(XL6_IrRestoreGraphWalk* walk, size_t at
     output->persistenceRestoreNodes[at] = row; return 1;
 }
 
+/* Whole-module admission is not a property of the wire target alone. A class
+ * lease traces its module's actual globals, including unrelated Open/native
+ * objects. An opaque generated handle cannot safely expose those edges under
+ * Freeze. Derive this conservative cutover barrier from reachable physical
+ * ownership operations, and independently recompute it during verification.
+ * This does not certify every resident family: runtime admission must still
+ * reject any unknown transitive policy before invoking Count/Trace. */
+static int xl6IrRestoreModuleOwnerPending(const XL6_IrModule* source,uint32* pending)
+{
+    *pending = 0;
+    for (size_t f=0;f<source->functionCount;++f) {
+        const XL6_IrFunction* function=&source->functions[f];
+        if (function->firstInstruction>source->instructionCount ||
+            function->instructionCount>source->instructionCount-function->firstInstruction) return 0;
+        if (!xl6IrPersistenceProjectFunctionUsed(source,function)) continue;
+        for (size_t i=0;i<function->instructionCount;++i) {
+            const XL6_IrInstruction* instruction=&source->instructions[function->firstInstruction+i];
+            if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+                instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_TAKE) continue;
+            const XL6_IrCallTarget* destroy=xl6IrCallTargetGet(source,instruction->targetSymbol);
+            if (!destroy || destroy->kind!=XL6_IR_CALL_TARGET_EXTERN_C) return 0;
+            if (destroy->nativeHandlePolicyAbi==XL6_IR_NATIVE_HANDLE_POLICY_NONE)
+                *pending |= XL6_IR_RESTORE_PENDING_OPAQUE_MODULE_OWNER;
+        }
+    }
+    return 1;
+}
+
 static int xl6IrBuildPersistenceRestoreGraphs(const XL6_IrModule* source,
     const XL6_IrModule* recipes, XL6_IrModule* output)
 {
-    uint32 format;
+    uint32 format, modulePending;
     size_t f, i, r;
     if (!output || !xl6IrRestoreGraphTablesValid(source, recipes)) return 0;
+    if (!xl6IrRestoreModuleOwnerPending(source,&modulePending)) return 0;
     for (format = XL6_IR_PERSIST_FORMAT_JSON; format <= XL6_IR_PERSIST_FORMAT_XLON; format <<= 1) {
         for (f = 0; f < source->functionCount; ++f) {
             const XL6_IrFunction* function = &source->functions[f];
@@ -255,6 +284,7 @@ static int xl6IrBuildPersistenceRestoreGraphs(const XL6_IrModule* source,
                         output->persistenceRestoreRoots[r].format == format) break;
                 if (r < output->persistenceRestoreRootCount) continue;
                 memset(&walk, 0, sizeof(walk)); walk.source = source; walk.recipes = recipes; walk.output = output;
+                walk.root.pending = modulePending;
                 walk.root.type = instruction->payloadType; walk.root.format = format;
                 walk.root.firstNode = output->persistenceRestoreNodeCount;
                 walk.root.firstEdge = output->persistenceRestoreEdgeCount;

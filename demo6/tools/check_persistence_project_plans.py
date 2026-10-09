@@ -30,6 +30,7 @@ def main() -> int:
     parser.add_argument('--public-directory', type=Path)
     parser.add_argument('--pending-carriers-only', action='store_true',
                         help='Supplemental actual-source List/Set/Dict pending-ABI test, not the full matrix')
+    parser.add_argument('--cases', help='Comma-separated declared fixture subset; explicitly recorded as focused validation')
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--recheck-evidence', type=Path,
                         help='Revalidate recorded successful commands/logs/IR after a checker-only fix; no new host execution')
@@ -61,6 +62,11 @@ def main() -> int:
     cases.append(('restore_isolation', test_root / 'test/cases/xlir_persistence_restore_isolation.xl'))
     if args.pending_carriers_only:
         cases = [('pending_carriers', test_root / 'test/cases/xlir_persistence_restore_pending_carriers.xl')]
+    if args.cases:
+        assert not args.pending_carriers_only
+        selected=args.cases.split(',')
+        assert len(selected)==len(set(selected)) and set(selected)<={name for name,_ in cases}
+        cases=[row for row in cases if row[0] in selected]
     refusals = [test_root / ('test/cases/' + name + '.xl') for name in
                 ('xlir_persistence_project_included_reject', 'xlir_persistence_project_format_skip_reject')]
     files = {Path(__file__).resolve(), Path(sys.executable), Path(cc), source, semantic,
@@ -133,7 +139,7 @@ def main() -> int:
     report['RecordedExecutionReport'] = str(evidence / 'results.json') if evidence else None
     report['NewHostExecution'] = not bool(evidence)
     report['SelectedCases'] = [name for name, _ in cases]
-    report['FullFixtureMatrix'] = not args.pending_carriers_only
+    report['FullFixtureMatrix'] = not args.pending_carriers_only and not args.cases
     out.mkdir(parents=True)
     if os.name == 'nt': shutil.copy2(product, out / 'xl.dll')
     def run(name: str, command: list[str]) -> str:

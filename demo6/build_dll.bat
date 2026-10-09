@@ -205,6 +205,9 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_array_value_read.c ^
     src\runtime\xl6_array_import.c ^
     src\runtime\xl6_array_import_chain.c ^
+    src\runtime\xl6_restore_class.c ^
+    src\runtime\xl6_restore_class_closed.c ^
+    src\runtime\xl6_list.c ^
     src\runtime\xl6_array_algebra.c ^
     src\runtime\xl6_array_graph.c ^
     src\runtime\xl6_persistence_project.c ^
@@ -416,6 +419,9 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_dynamic_collection.c ^
     src\runtime\xl6_array_import.c ^
     src\runtime\xl6_array_import_chain.c ^
+    src\runtime\xl6_restore_class.c ^
+    src\runtime\xl6_restore_class_closed.c ^
+    src\runtime\xl6_list.c ^
     src\runtime\xl6_array_algebra.c ^
     src\runtime\xl6_array_graph.c ^
     src\runtime\xl6_persistence_project.c ^

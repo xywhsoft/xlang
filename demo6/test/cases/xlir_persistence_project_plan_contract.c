@@ -59,7 +59,8 @@ static size_t restoreAllocationPrefixes(XL6_IrModule* ir)
 }
 static int restoreResidentSymbol(void* context, const char* symbol)
 {
-    if (!strcmp(symbol, "xl6ArrayImportTakeV1")) ++*(size_t*)context;
+    if (!strcmp(symbol, "xl6ArrayImportTakeV1") ||
+        !strcmp(symbol, "xl6PersistenceRestoreParsedTakeV1")) ++*(size_t*)context;
     return 1;
 }
 static const XL6_IrInstruction* definition(const XL6_IrModule* ir, XL6_IrValueId value)

@@ -5870,7 +5870,12 @@ enum {
     XL6_IR_RESTORE_PENDING_SET = 8u,
     XL6_IR_RESTORE_PENDING_DICT = 16u,
     XL6_IR_RESTORE_PENDING_FACTORY = 32u,
-    XL6_IR_RESTORE_PENDING_JSON_DOMAIN = 64u
+    XL6_IR_RESTORE_PENDING_JSON_DOMAIN = 64u,
+    /* A reachable owned native handle still has a module-local opaque policy.
+     * Even a closed target can reach it through its code owner and globals.
+     * Defer the MODULE's restore cutover until those physical edges have an
+     * independently audited resident read capability. Never infer a leaf. */
+    XL6_IR_RESTORE_PENDING_OPAQUE_MODULE_OWNER = 128u
 };
 typedef struct XL6_IrPersistenceRestoreNode {
     XL6_IrTypeId type, payloadType;

@@ -1,0 +1,19 @@
+class RestoreOomChild
+    derive value
+    int n = 3
+    func __clone__() as RestoreOomChild
+        auto result = RestoreOomChild()
+        result.n = self.n
+        return result
+    end
+end
+RestoreOomChild shared = RestoreOomChild()
+class RestoreOomRoot
+    derive value
+    RestoreOomChild child = shared
+    array<int8> numbers = []
+end
+RestoreOomRoot first = json.parse::<RestoreOomRoot>("{\"child\":{\"n\":7},\"numbers\":[1,2]}")
+assert first.child.n == 7 and first.numbers[1] == 2 and shared.n == 3
+RestoreOomRoot second = xlon.parse::<RestoreOomRoot>("{\"child\":{\"n\":9},\"numbers\":[3]}")
+assert second.child.n == 9 and second.numbers[0] == 3 and first.child.n == 7 and shared.n == 3

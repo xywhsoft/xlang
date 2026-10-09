@@ -1,8 +1,9 @@
 """Current-source restore graph lowering and existing language-path regression.
 
 Checks actual public compiler output, deterministic C, O0/O2 generated-C
-execution with a balanced allocation ledger, and genuine TCC JIT. This is not
-a native-plan Cgen cutover, AOT/shipping-product test, or language OOM sweep.
+execution with a balanced allocation ledger, and genuine TCC JIT. Optional
+closed-native cutover and complete language OOM prefixes are explicit flags.
+Pending Open/Set/List/Dict families remain legacy; no shipping/AOT claim.
 """
 from pathlib import Path
 import argparse, hashlib, json, os, shutil, subprocess, sys
@@ -15,8 +16,12 @@ def main():
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--public-directory', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--test-root', type=Path)
+    parser.add_argument('--native-cutover', action='store_true')
+    parser.add_argument('--oom', action='store_true')
     args = parser.parse_args()
     root, public_dir, out = args.root.resolve(), args.public_directory.resolve(), args.out.resolve()
+    test_root=args.test_root.resolve() if args.test_root else root
     assert not out.exists()
     manifest = public_dir / 'build.json'
     public = json.loads(manifest.read_text(encoding='utf-8-sig'))
@@ -31,18 +36,25 @@ def main():
     assert sha(driver).lower() == public['DriverSha256'].lower()
     product = root / 'release/xl.dll' if os.name == 'nt' else Path(public['NativeRoot']) / 'release/libxl.so'
     files.update((Path(cc), driver, product))
-    cases = [('wide', root / 'test/cases/xlir_persistence_restore_graph.xl'),
-             ('construction', root / 'test/cases/stdlib_persistence_restore_construction.xl'),
+    cases = [('wide', test_root / 'test/cases/xlir_persistence_restore_graph.xl'),
+             ('construction', test_root / 'test/cases/stdlib_persistence_restore_construction.xl'),
              # Empty wire preserves defaults on the OLD path. This exercises
              # emission/reachability/cleanup, NOT shared-default isolation.
-             ('isolation_metadata', root / 'test/cases/xlir_persistence_restore_isolation.xl')]
+             ('isolation_metadata', test_root / 'test/cases/xlir_persistence_restore_isolation.xl')]
+    if args.native_cutover:
+        cases += [('native',test_root / 'test/cases/xlir_persistence_restore_native.xl'),
+                  ('native_oom',test_root / 'test/cases/xlir_persistence_restore_native_oom.xl')]
     host = root / 'test/cases/xlir_module_product_oom_host.c'
+    contract=test_root / 'test/cases/xlir_persistence_restore_take_contract.c'
     memory = root / 'test/support/module_product_memory.c'
     files.update((host, memory, root / 'test/support/module_product_memory.h', *(path for _, path in cases)))
+    if args.native_cutover: files.add(contract)
     inputs = [{'Path': str(path), 'Sha256': sha(path)} for path in sorted(files)]
     out.mkdir(parents=True)
+    (out / 'files').mkdir()
     if os.name == 'nt': shutil.copy2(product, out / 'xl.dll')
     environment = os.environ.copy()
+    environment['XL6_PERSIST_FILE_ROOT']=str(out / 'files')
     if os.name != 'nt': environment['XL6_SOURCE_NATIVE_ROOT'] = public['NativeRoot']
     flags = ['-std=c11', '-Wall', '-Wextra', '-Werror', '-DXL_STATIC_EMBED',
              '-I' + str(root), '-I' + str(root / 'release'), '-I' + str(root / 'release/include'),
@@ -59,9 +71,9 @@ def main():
         links += [str(product), '-Wl,-rpath,' + str(product.parent), '-pthread', '-ldl', '-lm']
     rows, results, errors = [], [], []
     report = {'Complete': False, 'InputsUnchanged': False, 'Inputs': inputs, 'Rows': rows,
-              'Results': results, 'Scope': __doc__, 'NativePlanCgenCutover': False,
+              'Results': results, 'Scope': __doc__, 'NativePlanCgenCutover': args.native_cutover,
               'Aot': False, 'ShippingProductAcceptance': False, 'Sanitized': False,
-              'LanguageOomSweep': False, 'LinkedSourceCompilerOptimization': 'O0'}
+              'LanguageOomSweep': args.oom, 'LinkedSourceCompilerOptimization': 'O0'}
     def run(name, command):
         process = subprocess.run(list(map(str, command)), cwd=root, env=environment,
                                  capture_output=True, timeout=360)
@@ -72,6 +84,11 @@ def main():
         assert process.returncode == 0, data[-6000:].decode(errors='replace')
         return data.decode(errors='replace')
     try:
+        if args.native_cutover:
+            for optimization in ('O0','O2'):
+                binary=out / ('contract.'+optimization+('.exe' if os.name=='nt' else ''))
+                run('contract.'+optimization+'.compile',[cc,*flags,'-'+optimization,contract,*links,'-o',binary])
+                assert '6 corrupt ownership/plan mutations refused' in run('contract.'+optimization+'.run',[binary,cases[-1][1],cases[1][1]])
         for name, source in cases:
             try:
                 typed, lowered = out / (name + '.typed.json'), out / (name + '.lowered.json')
@@ -85,6 +102,17 @@ def main():
                 run(name + '.cgen', [driver, source, 'cgen-default', generated])
                 run(name + '.repeat', [driver, source, 'cgen-default', repeat])
                 assert sha(generated) == sha(repeat)
+                if args.native_cutover and name in ('wide','native','native_oom','isolation_metadata'):
+                    text=generated.read_text(encoding='utf-8-sig')
+                    assert all(not r['pending'] for r in ir['persistenceRestoreRoots'])
+                    assert 'xl6PersistenceRestoreParsedTakeV1(' in text
+                    assert 'xlir_persist_json_assign_' not in text and 'xlir_persist_xlon_assign_' not in text
+                    assert 'xl6SerializeRestoreReadFinish' not in text
+                if args.native_cutover and name=='construction':
+                    assert all(r['pending'] & 128 for r in ir['persistenceRestoreRoots'])
+                    text=generated.read_text(encoding='utf-8-sig')
+                    assert 'xl6PersistenceRestoreParsedTakeV1(' not in text
+                    assert 'xl6SerializeRestoreReadFinishTakeV1(' in text
                 for optimization in ('O0', 'O2'):
                     memory_object = out / (name + '.' + optimization + '.memory.o')
                     binary = out / (name + '.' + optimization + ('.exe' if os.name == 'nt' else ''))
@@ -93,6 +121,15 @@ def main():
                     run(name + '.' + optimization + '.compile', [cc, *flags, '-' + optimization,
                         '-include', generated, host, memory_object, *links, '-o', binary])
                     assert 'balanced' in run(name + '.' + optimization + '.run', [binary])
+                    if args.oom and name=='native_oom':
+                        point=0
+                        while point<10000:
+                            message=run(name+'.'+optimization+'.prefix'+str(point),[binary,str(point)])
+                            if 'hit=0 balanced' in message: break
+                            assert 'hit=1 balanced' in message
+                            point+=1
+                        assert point<10000
+                        print('Closed native restore '+optimization+' prefixes: '+str(point+1),flush=True)
                 run(name + '.jit', [driver, source, 'run', out / (name + '.jit')])
                 results.append({'Case': name, 'RestoreRoots': len(ir['persistenceRestoreRoots']),
                     'RestoreNodes': len(ir['persistenceRestoreNodes']), 'RestoreEdges': len(ir['persistenceRestoreEdges']),
