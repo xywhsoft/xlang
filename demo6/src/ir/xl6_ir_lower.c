@@ -14560,6 +14560,7 @@ static int xl6IrLowerBuildModuleAbi(XL6_IrLowerContext* ctx)
     if ( root == NULL || root->kind != XL6_IR_NODE_MODULE )
         return xl6IrLowerDiag(ctx, ctx->module->root, "XLIR module ABI has no canonical declaration scope");
     ctx->module->abi.codeOwnerAbi = XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT;
+    ctx->module->abi.hostExecutionAbi = XL6_IR_MODULE_HOST_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1;
     for ( i = 0; i < root->childCount; ++i ) {
         XL6_IrNodeId child = ctx->module->children[root->firstChild + i];
         const XL6_IrNode* node = xl6IrNodeGet(ctx->module, child);

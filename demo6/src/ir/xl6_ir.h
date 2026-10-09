@@ -5211,6 +5211,13 @@ typedef enum XL6_IrModuleCodeOwnerAbi {
     XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT
 } XL6_IrModuleCodeOwnerAbi;
 const char* xl6IrModuleCodeOwnerAbiName(XL6_IrModuleCodeOwnerAbi);
+/* Synchronous host adapters and retirement callbacks are execution activity,
+ * not new lifetime acquisitions. Their native caller retains independent
+ * residency; registration cannot allocate or refuse cleanup after Close. */
+typedef enum XL6_IrModuleHostExecutionAbi {
+    XL6_IR_MODULE_HOST_EXECUTION_NONE = 0,
+    XL6_IR_MODULE_HOST_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1
+} XL6_IrModuleHostExecutionAbi;
 /* Explicit opt-in to checked, phased retirement. This describes the artifact
  * boundary; runtime admission still rejects unmodelled transitive ownership. */
 typedef enum XL6_IrModuleRetirementAbi {
@@ -5359,6 +5366,7 @@ typedef struct XL6_IrModuleAbi {
     size_t finalizerCleanupCount;
     XL6_IrModuleTaskPoolAbi taskPoolAbi;
     XL6_IrModuleCodeOwnerAbi codeOwnerAbi;
+    XL6_IrModuleHostExecutionAbi hostExecutionAbi;
     XL6_IrClosureStorageAbi closureStorageAbi;
     XL6_IrModuleRetirementAbi retirementAbi;
     XL6_IrCellStorageAbi cellStorageAbi;

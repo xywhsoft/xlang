@@ -36,7 +36,8 @@ static int xl6IrCgenEmitRuntimePrelude(
     if (module->abi.slotTransferAbi != XL6_IR_SLOT_TRANSFER_RESIDENT_ORDERED_WRITES_V1)
         return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR physical slot transfer ABI is unresolved");
     xl6OutputPuts("#include <__xl_runtime/xl6_slot.h>\n",out);
-    if (module->exportCount != 0)
+    if (module->exportCount != 0 ||
+        module->abi.hostExecutionAbi == XL6_IR_MODULE_HOST_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1)
         xl6OutputPuts("#include <__xl_runtime/xl6_code_lease.h>\n",out);
     if (needs->needsAsyncMachineRuntime || needs->needsGeneratorRuntime)
         xl6OutputPuts("#include <__xl_runtime/xl6_capture.h>\n",out);
