@@ -108,10 +108,21 @@ static bool retain(void* opaque,void** result,void* context)
     if (success) *result=owner; else xrtSetErrorKind(XERR_STATE);
     mutationEnd(&mutation); return success;
 }
-/* This unpublished language carrier deliberately has no fabricated structural
- * Hash/Equal callback. Those checked contracts must be completed before the
- * source interner can use this owner or admit it as a typed Set/Dict key. */
-static const xvaluehandleops handleOps={retain,drop,NULL,NULL};
+static uint64 identityHash(ptr,ptr);
+static bool identityEqual(ptr,ptr,ptr);
+static const xvaluehandleops handleOps={retain,drop,identityHash,identityEqual};
+/* Called inside graph mutation exclusion. Metadata is immutable; an operation
+ * owns a separate wrapper pin and releases exclusion before any slot callback. */
+static bool pin(ListOwner* owner,uint64_t cursor)
+{
+    uint32 available=0;
+    if (owner && !owner->cleared && owner->storage && owner->cursorIdentity==cursor &&
+        xrtAtomic32CompareExchange(&owner->busy,&available,1,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE)) {
+        if (xrtRefRetain(&owner->refs)>0) return true;
+        xrtAtomic32Store(&owner->busy,0,XMEMORY_RELEASE);
+    }
+    xrtSetErrorKind(XERR_STATE); return false;
+}
 static ListOwner* begin(const xvalue* value,const XL6_ListLayoutV1* expected,uint64_t cursor)
 {
     ListOwner* owner=NULL;
@@ -120,13 +131,8 @@ static ListOwner* begin(const xvalue* value,const XL6_ListLayoutV1* expected,uin
     uint64_t identity=cursor ? cursor : expected ? expected->identity : 0;
     if (value && expected && identity && xrtValueTypeId(value)==identity &&
         xrtValueGetHandle(value,&raw,&actual,&user) && actual==&handleOps && raw && !user) {
-        ListOwner* candidate=raw; uint32 available=0;
-        if (!candidate->cleared && candidate->storage && candidate->cursorIdentity==cursor &&
-            sameLayout(&candidate->layout,expected) &&
-            xrtAtomic32CompareExchange(&candidate->busy,&available,1,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE)) {
-            if (xrtRefRetain(&candidate->refs)>0) owner=candidate;
-            else xrtAtomic32Store(&candidate->busy,0,XMEMORY_RELEASE);
-        }
+        ListOwner* candidate=raw;
+        if (sameLayout(&candidate->layout,expected) && pin(candidate,cursor)) owner=candidate;
     }
     if (!owner) xrtSetErrorKind(XERR_STATE);
     mutationEnd(&mutation); return owner;
@@ -149,6 +155,201 @@ static bool slotAdmits(const ListOwner* owner,const void* item)
     if (item && owner->policy.ops->Slot(owner->policy.data,item)) return true;
     if (!xrtGetError()) xrtSetErrorKind(item ? XERR_TYPE : XERR_ARGUMENT);
     return false;
+}
+static bool sameDomain(const ListOwner* a,const ListOwner* b)
+{ return sameLayout(&a->layout,&b->layout) && samePolicy(&a->policy,&b->policy); }
+static bool compatible(const ListOwner* a,const ListOwner* b)
+{
+    if (a && b && sameDomain(a,b)) return true;
+    xrtSetErrorKind(XERR_TYPE); return false;
+}
+static ListOwner* beginOther(const xvalue* value,const XL6_ListLayoutV1* layout,ListOwner* first)
+{
+    void* raw=NULL; void* user=NULL; const xvaluehandleops* actual=NULL;
+    if (first && value && xrtValueTypeId(value)==layout->identity &&
+        xrtValueGetHandle(value,&raw,&actual,&user) && actual==&handleOps && !user && raw==first) return first;
+    return begin(value,layout,0);
+}
+static bool finishPair(xl6_error_scope* scope,ListOwner* a,ListOwner* b,bool success)
+{
+    if (!success || xrtGetError()) xl6ErrorScopeCaptureFailure(scope);
+    if (b && b!=a) end(b);
+    return finish(scope,a,true);
+}
+static bool equalSlot(const ListOwner* owner,const void* left,const void* right,bool* output)
+{
+    if (owner->layout.value.transfer==3) {
+        /* Raw Value equality's false means inequality OR failure. Observe one
+         * complete callback boundary, including its independent NULL failure
+         * bit, before accepting a result or comparing a subsequent slot. */
+        xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+        bool equal=xl6SequenceReferenceEqualV1(*(xvalue* const*)left,*(xvalue* const*)right);
+        if (!scopeFinish(&scope,true)) return false;
+        *output=equal;
+    }
+    else if (owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1)
+        *output=*(xfuture* const*)left==*(xfuture* const*)right;
+    else {
+        int order=0;
+        if (!xrtTypeCompareValue(owner->layout.value.type,left,right,&order)) return false;
+        *output=order==0;
+    }
+    return !xrtGetError();
+}
+static bool hashSlot(const ListOwner* owner,const void* slot,uint64* output)
+{
+    if (owner->layout.value.transfer==3) {
+        xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+        const xvalue* value=*(xvalue* const*)slot;
+        uint64 hash=0; bool success=xrtValueHash(value ? value : xrtValueNull(),&hash);
+        if (!scopeFinish(&scope,success)) return false;
+        *output=hash; return true;
+    }
+    if (owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
+        *output=(uint64)(uintptr_t)*(xfuture* const*)slot; return true;
+    }
+    return xrtTypeHashValue(owner->layout.value.type,slot,output);
+}
+/* Pairing sorted iterators is O(n), including sparse/negative/INT64_MIN keys;
+ * no ordinal search or boxed temporary is used for either typed slot. */
+static bool equalPinned(const ListOwner* a,const ListOwner* b,bool* output)
+{
+    *output=false;
+    if (!sameDomain(a,b)) return true;
+    if (a==b) { *output=true; return true; }
+    if (xrtTypedListCount(a->storage)!=xrtTypedListCount(b->storage)) return true;
+    XL6_CollectionIdentityFrameV1 frame={0};
+    if (!xl6CollectionIdentityEnterV1(&frame)) return false;
+    xtypedlistiter left={0},right={0}; bool leftStarted=false,rightStarted=false,success=false;
+    if (!xrtTypedListIterBegin(a->storage,&left)) goto done;
+    leftStarted=true;
+    if (!xrtTypedListIterBegin(b->storage,&right)) goto done;
+    rightStarted=true; success=true; *output=true;
+    for (;;) {
+        int64 keyA=0,keyB=0;
+        const void* valueA=xrtTypedListIterNext(&left,&keyA);
+        const void* valueB=xrtTypedListIterNext(&right,&keyB);
+        if (xrtGetError()) { success=false; break; }
+        if (!valueA || !valueB) { *output=valueA==valueB; break; }
+        if (keyA!=keyB) { *output=false; break; }
+        if (!equalSlot(a,valueA,valueB,output)) { success=false; break; }
+        if (!*output) break;
+    }
+done:
+    if (rightStarted) xrtTypedListIterEnd(&right);
+    if (leftStarted) xrtTypedListIterEnd(&left);
+    xl6CollectionIdentityLeaveV1(&frame); return success;
+}
+static uint64 mix(uint64 hash,uint64 item)
+{ return hash ^ (item+UINT64_C(0x9E3779B97F4A7C15)+(hash<<6)+(hash>>2)); }
+static bool hashPinned(const ListOwner* owner,uint64_t* output)
+{
+    XL6_CollectionIdentityFrameV1 frame={0};
+    if (!xl6CollectionIdentityEnterV1(&frame)) return false;
+    xtypedlistiter iterator={0}; bool started=false,success=false;
+    uint64 hash=mix(owner->layout.identity,owner->layout.value.elementIdentity);
+    hash=mix(hash,(uint64)xrtTypedListCount(owner->storage));
+    if (!xrtTypedListIterBegin(owner->storage,&iterator)) goto done;
+    started=true; success=true;
+    for (;;) {
+        int64 key=0; const void* slot=xrtTypedListIterNext(&iterator,&key);
+        if (xrtGetError()) { success=false; break; }
+        if (!slot) break;
+        uint64 item=0;
+        if (!hashSlot(owner,slot,&item)) { success=false; break; }
+        if (xrtGetError()) { success=false; break; }
+        hash=mix(mix(hash,(uint64)key),item);
+    }
+done:
+    if (started) xrtTypedListIterEnd(&iterator);
+    xl6CollectionIdentityLeaveV1(&frame);
+    if (success) *output=hash;
+    return success;
+}
+/* XRT invokes these with captured private Handle fields while its Value shell
+ * is BUSY. Querying GetHandle there would fail. Pin the genuine owner instead.
+ * XRT's payload-only Hash/Equal callback ABI needs a diagnostic on failure;
+ * retain the checked first failure in the language boundary, then publish an
+ * allocation-free secondary diagnostic only if the primary has no object. */
+static ListOwner* beginCaptured(ListOwner* owner)
+{
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    if (owner && owner->cursorIdentity) { xrtSetErrorKind(XERR_UNSUPPORTED); owner=NULL; }
+    else if (!pin(owner,0)) owner=NULL;
+    mutationEnd(&mutation); return owner;
+}
+static void callbackFailure(void)
+{ if (!xrtGetError()) xrtSetErrorKind(XERR_STATE); }
+static uint64 identityHash(ptr opaque,ptr user)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) { callbackFailure(); return 0; }
+    ListOwner* owner=user ? NULL : beginCaptured(opaque); uint64_t hash=0;
+    if (user) xrtSetErrorKind(XERR_ARGUMENT);
+    bool success=owner && hashPinned(owner,&hash);
+    if (!finish(&scope,owner,success)) { callbackFailure(); return 0; }
+    return hash;
+}
+static bool identityEqual(ptr left,ptr right,ptr user)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) { callbackFailure(); return false; }
+    ListOwner* a=user ? NULL : beginCaptured(left);
+    ListOwner* b=a ? (left==right ? a : beginCaptured(right)) : NULL;
+    bool equal=false,success=a && b && equalPinned(a,b,&equal);
+    if (user) xrtSetErrorKind(XERR_ARGUMENT);
+    if (!finishPair(&scope,a,b,success)) { callbackFailure(); return false; }
+    return equal;
+}
+bool xl6ListEqualsV1(const xvalue* left,const xvalue* right,const XL6_ListLayoutV1* layout,bool* output)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    ListOwner* a=begin(left,layout,0); ListOwner* b=a ? beginOther(right,layout,a) : NULL;
+    if (!output) xrtSetErrorKind(XERR_ARGUMENT);
+    bool equal=false,success=output && a && b && compatible(a,b) && equalPinned(a,b,&equal);
+    success=finishPair(&scope,a,b,success);
+    if (success) *output=equal;
+    return success;
+}
+bool xl6ListHashV1(const xvalue* value,const XL6_ListLayoutV1* layout,uint64_t* output)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    ListOwner* owner=begin(value,layout,0); uint64_t hash=0;
+    if (!output) xrtSetErrorKind(XERR_ARGUMENT);
+    bool success=output && owner && hashPinned(owner,&hash);
+    success=finish(&scope,owner,success);
+    if (success) *output=hash;
+    return success;
+}
+bool xl6ListContainsV1(const xvalue* value,const XL6_ListLayoutV1* layout,const void* item,bool* output)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    ListOwner* owner=begin(value,layout,0); bool success=false,found=false,started=false,entered=false;
+    xtypedlistiter iterator={0}; XL6_CollectionIdentityFrameV1 frame={0};
+    if (!output) xrtSetErrorKind(XERR_ARGUMENT);
+    if (!output || !owner || !slotAdmits(owner,item)) goto done;
+    if (!xl6CollectionIdentityEnterV1(&frame)) goto done;
+    entered=true;
+    if (!xrtTypedListIterBegin(owner->storage,&iterator)) goto done;
+    started=true; success=true;
+    for (;;) {
+        const void* slot=xrtTypedListIterNext(&iterator,NULL);
+        if (xrtGetError()) { success=false; break; }
+        if (!slot) break;
+        if (!equalSlot(owner,slot,item,&found)) { success=false; break; }
+        if (found) break;
+    }
+done:
+    if (started) xrtTypedListIterEnd(&iterator);
+    if (entered) xl6CollectionIdentityLeaveV1(&frame);
+    success=finish(&scope,owner,success);
+    if (success) *output=found;
+    return success;
+}
+bool xl6ListMergeV1(const xvalue* target,const xvalue* source,const XL6_ListLayoutV1* layout,bool replace)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    ListOwner* a=begin(target,layout,0); ListOwner* b=a ? beginOther(source,layout,a) : NULL;
+    bool success=a && b && compatible(a,b) && xrtTypedListMerge(a->storage,b->storage,replace);
+    return finishPair(&scope,a,b,success);
 }
 
 static bool ownershipCount(const void* opaque,size_t* result)

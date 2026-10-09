@@ -32,6 +32,22 @@ XL6_TEXT_API bool xl6ListClearV1(const xvalue*,const XL6_ListLayoutV1*);
 XL6_TEXT_API int64_t xl6ListCountV1(const xvalue*,const XL6_ListLayoutV1*);
 XL6_TEXT_API int64_t xl6ListTrimV1(const xvalue*,const XL6_ListLayoutV1*,int64_t);
 XL6_TEXT_API xvalue* xl6ListCloneV1(const xvalue*,const XL6_ListLayoutV1*);
+/* Checked success is distinct from equality/presence. Logical policy, full
+ * tuple, count, complete sparse keys and value semantics define identity;
+ * pool pages, insertion order and wrapper/storage addresses do not. Scalars
+ * use their typed descriptor, references use Value equality/hash (no invented
+ * total-order comparator), Futures use control-block reference identity.
+ * All outputs are unchanged on failure. A Cursor is not a collection key.
+ * Hash is the native payload domain; XRT ValueHash additionally mixes its
+ * HANDLE tag. Do not compare the numeric hashes of different boundaries or
+ * treat either as a stable wire format. Hashing is not a freeze API: callers
+ * must keep keys stable while stored. */
+XL6_TEXT_API bool xl6ListEqualsV1(const xvalue*,const xvalue*,const XL6_ListLayoutV1*,bool*);
+XL6_TEXT_API bool xl6ListContainsV1(const xvalue*,const XL6_ListLayoutV1*,const void*,bool*);
+XL6_TEXT_API bool xl6ListHashV1(const xvalue*,const XL6_ListLayoutV1*,uint64_t*);
+/* XRT performs failure-atomic same-domain merge. false preserves target values
+ * at duplicate keys; true replaces them. Self merge is a normal no-op. */
+XL6_TEXT_API bool xl6ListMergeV1(const xvalue*,const xvalue*,const XL6_ListLayoutV1*,bool);
 
 /* Cursor owns a full typed-list snapshot and immutable admission metadata,
  * independently of the source. It iterates stable private slots in O(n),
@@ -46,8 +62,8 @@ XL6_TEXT_API bool xl6ListCursorEndV1(const xvalue*,const XL6_ListLayoutV1*,uint6
 /* Phased graph retirement traces physical slots once (duplicates stay
  * duplicates). Future control-block tracing additionally requires an exact
  * resident admission-ops allowlist; V1 does not silently ignore those edges.
- * Structural identity/Equals, erased wire bridges and language cutover are
- * separate pending contracts: this private handle is not a source list yet. */
+ * Erased wire bridges and language cutover remain pending: this private handle
+ * is not yet the source list carrier, despite its completed identity hooks. */
 XL6_TEXT_API const xrtownershipadapterv1* xl6ListOwnershipAdapterV1(xrtownershipref);
 XL6_TEXT_API const xrtownershipadapterv1* xl6ListOwnershipAdapterV2(xrtownershipref,
     const XL6_SequenceAdmissionOpsV2* const*,size_t);

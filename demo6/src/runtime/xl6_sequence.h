@@ -72,6 +72,20 @@ enum { XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 = 4 };
  * independently of their schema depth. Refusal is a normal XERR_RANGE, not C
  * stack exhaustion; this does not impose a limit on container element count. */
 enum { XL6_SEQUENCE_IDENTITY_DEPTH_MAX_V1 = 64 };
+/* Shared resident call path for Array/Stack/List identity callbacks. The
+ * frame lives on the native caller stack, initially zeroed; no C TLS
+ * relocation or heap key. Enter refuses NULL/active frames without corrupting
+ * their links. Each successful Enter requires Leave on the same synchronous
+ * execution path; a live frame must not be copied, suspended or reused. Leave
+ * resets it for reuse. This
+ * bounds recursion across container families, not independently per family. */
+typedef struct XL6_CollectionIdentityFrameV1 {
+    struct XL6_CollectionIdentityFrameV1* next;
+    uint64_t thread;
+    unsigned int depth;
+} XL6_CollectionIdentityFrameV1;
+XL6_TEXT_API bool xl6CollectionIdentityEnterV1(XL6_CollectionIdentityFrameV1*);
+XL6_TEXT_API void xl6CollectionIdentityLeaveV1(XL6_CollectionIdentityFrameV1*);
 typedef struct XL6_SequenceLayoutV1 {
     uint64_t identity, elementIdentity;
     unsigned int transfer;

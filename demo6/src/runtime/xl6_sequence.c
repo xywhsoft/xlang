@@ -744,11 +744,7 @@ static bool identityDomain(const XL6_Sequence* a, const XL6_Sequence* b)
  * The short lane lock protects only links/counters: no user callback, XRT
  * error construction, allocator or ownership transition runs while held.
  * Frames own no Value edges and require no per-thread heap/key retirement. */
-typedef struct IdentityFrame {
-    struct IdentityFrame* next;
-    uint64 thread;
-    unsigned depth;
-} IdentityFrame;
+typedef XL6_CollectionIdentityFrameV1 IdentityFrame;
 typedef struct IdentityLane { xatomic32 lock; IdentityFrame* active; } IdentityLane;
 static IdentityLane identityLanes[64];
 static IdentityLane* identityLane(uint64 thread)
@@ -761,8 +757,10 @@ static void identityLock(IdentityLane* lane)
 }
 static void identityUnlock(IdentityLane* lane)
 { xrtAtomic32Store(&lane->lock,0,XMEMORY_RELEASE); }
-static bool identityEnter(IdentityFrame* frame)
+bool xl6CollectionIdentityEnterV1(IdentityFrame* frame)
 {
+    if (!frame) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    if (frame->depth) { xrtSetErrorKind(XERR_STATE); return false; }
     xrtownershipscope observation = {0};
     mutationBegin(&observation); frame->thread = observation.Thread; mutationEnd(&observation);
     IdentityLane* lane = identityLane(frame->thread);
@@ -778,14 +776,16 @@ static bool identityEnter(IdentityFrame* frame)
     if (!ready) xrtSetErrorKind(XERR_RANGE);
     return ready;
 }
-static void identityLeave(IdentityFrame* frame)
+void xl6CollectionIdentityLeaveV1(IdentityFrame* frame)
 {
+    if (!frame || !frame->depth) abort(); /* Leave pairs only a successful Enter. */
     IdentityLane* lane = identityLane(frame->thread);
     identityLock(lane);
     IdentityFrame** link = &lane->active;
     while (*link && (*link)->thread != frame->thread) link = &(*link)->next;
     if (*link != frame) abort(); /* Internal per-thread call paths are LIFO. */
-    *link = frame->next; identityUnlock(lane);
+    *link = frame->next;
+    *frame = (IdentityFrame){0}; identityUnlock(lane);
 }
 static bool equalPinnedBody(XL6_Sequence* a, XL6_Sequence* b)
 {
@@ -814,9 +814,9 @@ static bool equalPinnedBody(XL6_Sequence* a, XL6_Sequence* b)
 static bool equalPinned(XL6_Sequence* a, XL6_Sequence* b)
 {
     IdentityFrame frame = {0};
-    if (!identityEnter(&frame)) return false;
+    if (!xl6CollectionIdentityEnterV1(&frame)) return false;
     bool equal = equalPinnedBody(a,b);
-    identityLeave(&frame); return equal;
+    xl6CollectionIdentityLeaveV1(&frame); return equal;
 }
 
 static uint64 mixIdentity(uint64 hash, uint64 item)
@@ -828,7 +828,7 @@ static uint64 identityHash(ptr opaque, ptr user)
     if (user) { xrtSetErrorKind(XERR_ARGUMENT); return 0; }
     if (!identityBegin(owner)) return 0;
     IdentityFrame frame = {0};
-    if (!identityEnter(&frame)) { xl6SequenceEndV1(owner); return 0; }
+    if (!xl6CollectionIdentityEnterV1(&frame)) { xl6SequenceEndV1(owner); return 0; }
     size_t count = xrtTypedArrayCount(owner->storage);
     uint64 hash = mixIdentity(owner->identity,(uint64)owner->role);
     hash = mixIdentity(hash,owner->elementIdentity);
@@ -852,7 +852,7 @@ static uint64 identityHash(ptr opaque, ptr user)
         if (ready) hash = mixIdentity(hash,item);
     }
     xl6SequenceEndV1(owner);
-    identityLeave(&frame);
+    xl6CollectionIdentityLeaveV1(&frame);
     return ready ? hash : 0;
 }
 

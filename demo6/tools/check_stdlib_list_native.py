@@ -57,8 +57,10 @@ def main():
     links=['-Wl,--wrap=xl6ErrorScopeBeginCleanup']+([] if os.name=='nt' else ['-pthread','-lm'])
     if os.name!='nt': flags+=['-D_GNU_SOURCE']
     if args.sanitize: flags+=['-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie']
-    modes=('integers','text','profiles','cursors','rejected','references','futures','phased','reentrant','boundaries')
-    operations=('create','insert','replace','append','clone','cursor','get','take','cursor-read','cursor-advance','clear','trim')
+    modes=('integers','text','profiles','cursors','rejected','references','futures','phased','reentrant','boundaries',
+        'identity','merges','identity-errors','shared-depth','guard-protocol')
+    operations=('create','insert','replace','append','clone','cursor','get','take','cursor-read','cursor-advance','clear','trim',
+        'merge-keep','merge-replace','ref-equal')
     try:
         for level in (0,2):
             lane='O'+str(level); binary=out/('list-'+lane+('.exe' if os.name=='nt' else ''))
