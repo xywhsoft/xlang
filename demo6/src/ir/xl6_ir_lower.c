@@ -11756,10 +11756,15 @@ static void xl6IrLowerRefreshRawCallbackAbis(XL6_IrModule* module)
 {
     size_t i;
     if ( module == NULL ) return;
-    for ( i = 0; i < module->closureTargetCount; ++i )
+    for ( i = 0; i < module->closureTargetCount; ++i ) {
         module->closureTargets[i].rawCallbackAbi =
             xl6IrLowerClosureRawCallbackAbi(
                 module, &module->closureTargets[i]);
+        module->closureTargets[i].rawExecutionAbi =
+            xl6IrClosureRawCallbackAbiHasEntry(module->closureTargets[i].rawCallbackAbi)
+                ? XL6_IR_CLOSURE_RAW_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1
+                : XL6_IR_CLOSURE_RAW_EXECUTION_NONE;
+    }
 }
 
 
@@ -27090,6 +27095,9 @@ static XL6_IrClosureTarget* xl6IrLowerRegisterNamedAdapter(
     }
     closure->rawCallbackAbi =
         xl6IrLowerClosureRawCallbackAbi(ctx->module, closure);
+    closure->rawExecutionAbi = xl6IrClosureRawCallbackAbiHasEntry(closure->rawCallbackAbi)
+        ? XL6_IR_CLOSURE_RAW_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1
+        : XL6_IR_CLOSURE_RAW_EXECUTION_NONE;
     return closure;
 }
 

@@ -1,0 +1,52 @@
+extern "raw_activity_probe" func probe(int shape)
+extern "raw_activity_save" func save(c_callback func() as c_int a, c_callback func() as c_bool b, c_callback func() as c_double c, c_callback func() as point d, c_callback func() e, c_callback func(string) as c_int f, c_callback func() as c_int g, c_callback func() as c_bool h, c_callback func() as c_double i, c_callback func() as point j, c_callback func() k, c_callback func(string) as c_int l)
+
+class RawActivityState
+    int n = 7
+end
+RawActivityState state = RawActivityState()
+
+func directInt() as c_int
+    return 42
+end
+func directBool() as c_bool
+    return true
+end
+func directDouble() as c_double
+    return 4.25
+end
+func directPointer() as point
+    return null
+end
+func directVoid()
+end
+func directText(string text) as c_int
+    return 17
+end
+func checkedInt() as c_int
+    probe(1)
+    return 42
+end
+func checkedBool() as c_bool
+    probe(2)
+    return true
+end
+func checkedDouble() as c_double
+    probe(3)
+    return 4.25
+end
+func checkedPointer() as point
+    probe(4)
+    return null
+end
+func checkedVoid()
+    probe(5)
+end
+func checkedText(string text) as c_int
+    probe(6)
+    return 17
+end
+
+export "capture_raw_activity" func capture()
+    save(directInt, directBool, directDouble, directPointer, directVoid, directText, checkedInt, checkedBool, checkedDouble, checkedPointer, checkedVoid, checkedText)
+end

@@ -494,6 +494,7 @@ static int xl6IrCgenEmitRawCallbackEntry(
     size_t parameter;
     if ( closure == NULL ||
          !xl6IrClosureRawCallbackAbiHasEntry(closure->rawCallbackAbi) ||
+         closure->rawExecutionAbi != XL6_IR_CLOSURE_RAW_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1 ||
          closure->captureCount != 0 ||
          !xl6IrRawCCallbackSignatureSupported(
              module, closure->signatureType) || signature == NULL )
@@ -519,6 +520,8 @@ static int xl6IrCgenEmitRawCallbackEntry(
             (unsigned long)parameter);
     }
     xl6OutputPuts(")\n{\n", out);
+    xl6OutputPuts("    XL6_CodeActivityV1 execution = {0};\n"
+        "    xl6CodeActivityEnterV1(&execution, xlir_closure_owner);\n", out);
     if ( signature->callableResultType != XL6_IR_TYPE_INVALID )
         xl6OutputPrintf(out, "    %s result;\n    if (!xlir_closure_invoke_%u(NULL, &result",
             resultType, (unsigned int)closure->targetSymbol);
@@ -537,7 +540,8 @@ static int xl6IrCgenEmitRawCallbackEntry(
             xl6OutputPrintf(out, ", a%lu", (unsigned long)parameter);
     }
     if ( closure->rawCallbackAbi == XL6_IR_CLOSURE_RAW_CALLBACK_FOREIGN_SCOPE_THUNK ) {
-        xl6OutputPuts(")) {\n        xl6ForeignCallbackFail();\n", out);
+        xl6OutputPuts(")) {\n        xl6ForeignCallbackFail();\n"
+            "        xl6CodeActivityLeaveV1(&execution);\n", out);
         if ( signature->callableResultType != XL6_IR_TYPE_INVALID )
             xl6OutputPrintf(out, "        return (%s)0;\n", resultType);
         else
@@ -545,6 +549,7 @@ static int xl6IrCgenEmitRawCallbackEntry(
         xl6OutputPuts("    }\n", out);
     } else
         xl6OutputPuts(")) abort();\n", out);
+    xl6OutputPuts("    xl6CodeActivityLeaveV1(&execution);\n", out);
     if ( signature->callableResultType != XL6_IR_TYPE_INVALID )
         xl6OutputPuts("    return result;\n", out);
     xl6OutputPuts("}\n\n", out);

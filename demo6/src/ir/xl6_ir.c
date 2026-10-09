@@ -37197,6 +37197,13 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         if ( closure->rawCallbackAbi != expectedRawCallbackAbi )
             return xl6IrDiag(diags, declaration,
                 "XLIR closure raw C callback thunk ABI is inconsistent");
+        if (closure->rawExecutionAbi != (xl6IrClosureRawCallbackAbiHasEntry(expectedRawCallbackAbi)
+                ? XL6_IR_CLOSURE_RAW_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1
+                : XL6_IR_CLOSURE_RAW_EXECUTION_NONE) ||
+            (closure->rawExecutionAbi != XL6_IR_CLOSURE_RAW_EXECUTION_NONE &&
+             module->abi.codeOwnerAbi != XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT))
+            return xl6IrDiag(diags, declaration,
+                "XLIR closure raw C callback execution ABI is inconsistent");
         if ( closure->kind == XL6_IR_CLOSURE_TARGET_ANONYMOUS ) {
             if ( declaration->kind != XL6_IR_NODE_FUNC_DECL ||
                  declaration->sourceKind != XL6_AST_ANON_FUNC ||
@@ -47552,12 +47559,13 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
         const XL6_IrClosureTarget* target = &module->closureTargets[i];
         size_t parameter;
         xl6OutputPrintf(out,
-            "  closure-target k%lu kind=%d reach=%s symbol=%u adapted=%u declaration=n%u signature=t%u raw-callback=%s captures=%lu..%lu call-parameters=[",
+            "  closure-target k%lu kind=%d reach=%s symbol=%u adapted=%u declaration=n%u signature=t%u raw-callback=%s raw-execution=%d captures=%lu..%lu call-parameters=[",
             (unsigned long)i, (int)target->kind, xl6IrReachabilityName(target->reachability),
             (unsigned int)target->targetSymbol, (unsigned int)target->adaptedTargetSymbol,
             (unsigned int)target->declaration,
             (unsigned int)target->signatureType,
             xl6IrClosureRawCallbackAbiName(target->rawCallbackAbi),
+            (int)target->rawExecutionAbi,
             (unsigned long)target->firstCapture,
             (unsigned long)(target->firstCapture + target->captureCount));
         for ( parameter = 0; parameter < target->callParameterCount; ++parameter ) {
@@ -49107,12 +49115,13 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         const XL6_IrClosureTarget* target = &module->closureTargets[i];
         size_t parameter;
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"kind\":%d,\"reachability\":\"%s\",\"symbol\":%u,\"adaptedTargetSymbol\":%u,\"declaration\":%u,\"signatureType\":%u,\"rawCallbackAbi\":%d,\"rawCallbackAbiName\":\"%s\",\"firstCapture\":%lu,\"captureCount\":%lu,\"callParameterNames\":[",
+            "    {\"id\":%lu,\"kind\":%d,\"reachability\":\"%s\",\"symbol\":%u,\"adaptedTargetSymbol\":%u,\"declaration\":%u,\"signatureType\":%u,\"rawCallbackAbi\":%d,\"rawCallbackAbiName\":\"%s\",\"rawExecutionAbi\":%d,\"firstCapture\":%lu,\"captureCount\":%lu,\"callParameterNames\":[",
             (unsigned long)i, (int)target->kind, xl6IrReachabilityName(target->reachability),
             (unsigned int)target->targetSymbol, (unsigned int)target->adaptedTargetSymbol,
             (unsigned int)target->declaration,
             (unsigned int)target->signatureType, (int)target->rawCallbackAbi,
             xl6IrClosureRawCallbackAbiName(target->rawCallbackAbi),
+            (int)target->rawExecutionAbi,
             (unsigned long)target->firstCapture,
             (unsigned long)target->captureCount);
         for ( parameter = 0; parameter < target->callParameterCount; ++parameter )

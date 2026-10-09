@@ -1,4 +1,4 @@
-#include "../../build/test/__xl_runtime/xruntime_decl.h"
+#include "release/include/xrt_decl.h"
 #include <assert.h>
 #include <string.h>
 
