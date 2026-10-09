@@ -3,6 +3,7 @@
 #include "src/runtime/xl6_array_admission.h"
 #include "src/runtime/xl6_array_input.h"
 #include "src/runtime/xl6_persistence_restore.h"
+#include "src/runtime/xl6_persistence_restore_plan.h"
 #include "src/api/xl_foreign_error.h"
 #include <limits.h>
 #include <stdlib.h>
@@ -24,7 +25,7 @@ typedef struct Memo {
 typedef struct Import {
     xvalue** seeds;
     size_t count;
-    Template templates[MAX_CHAIN];
+    Template* templates;
     Memo* memo;
     size_t used,capacity;
     const xvalue* active[MAX_CHAIN];
@@ -231,7 +232,8 @@ static xvalue* importChain(xvalue** seeds,size_t count,const xvalue* source,bool
         return NULL;
     }
     xrtErrorFree(incoming);
-    Import ctx={.seeds=seeds,.count=count,.plan=plan,.operation=&operation}; bool ok=false;
+    Template templates[MAX_CHAIN]={0};
+    Import ctx={.seeds=seeds,.count=count,.templates=templates,.plan=plan,.operation=&operation}; bool ok=false;
     xvalue* result=NULL; xvalue* observed=NULL;
     if (operation.failed) goto done;
     if (!legacy && !validPlan(plan,count)) { xrtSetErrorKind(XERR_ARGUMENT); goto done; }
@@ -310,3 +312,245 @@ xvalue* xl6CollectionImportChainTakeV1(xvalue** seeds,size_t count,const xvalue*
 { return importChain(seeds,count,source,false,plan,false); }
 xvalue* xl6CollectionImportChainSourceTakeV1(xvalue** seeds,size_t count,xvalue* source,const XL6_CollectionImportPlanV1* plan)
 { return importChain(seeds,count,source,true,plan,false); }
+
+/* Object/field and collection nodes deliberately reuse the above memo,
+ * template construction and first-error retirement. No nested import call or
+ * second graph copier can split the caller's explicit restoration domain. */
+static bool viewValid(xstrview key) { return key.Data || !key.Size; }
+static bool keyEqual(xstrview a,xstrview b)
+{ return a.Size==b.Size && (!a.Size || !memcmp(a.Data,b.Data,a.Size)); }
+static bool graphPlanValid(const XL6_RestorePlanV1* plan,size_t count)
+{
+    if (!plan || plan->size!=sizeof(*plan) || !plan->nodeCount || !plan->nodes ||
+        plan->root>=plan->nodeCount || plan->nodeCount>SIZE_MAX/sizeof(*plan->nodes) ||
+        plan->fieldCount>SIZE_MAX/sizeof(*plan->fields) || (plan->fieldCount && !plan->fields)) return false;
+    for (size_t i=0;i<plan->nodeCount;++i) {
+        const XL6_RestoreNodeV1* node=&plan->nodes[i];
+        if (node->flags&~XL6_RESTORE_NULLABLE_V1) return false;
+        if (node->kind==XL6_RESTORE_SCALAR_V1) {
+            if (node->as.scalar<XL6_VALUE_ADMIT_ANY || node->as.scalar>XL6_VALUE_ADMIT_TIME ||
+                (node->as.scalar==XL6_VALUE_ADMIT_ANY ? node->identity!=0 : !node->identity)) return false;
+        } else if (node->kind==XL6_RESTORE_SEQUENCE_V1) {
+            const XL6_CollectionImportProviderV1* p=node->as.sequence.provider;
+            if (!node->identity || node->as.sequence.seed>=count || node->as.sequence.element>=plan->nodeCount ||
+                (p && (!p->Begin || !p->End || !p->Empty || !p->Admits || !p->Append))) return false;
+            for (size_t j=0;j<i;++j) if (plan->nodes[j].kind==XL6_RESTORE_SEQUENCE_V1 &&
+                plan->nodes[j].as.sequence.seed==node->as.sequence.seed) return false;
+        } else if (node->kind==XL6_RESTORE_OBJECT_V1) {
+            if (!node->identity || node->as.object.runtimeTag<=0 || node->as.object.first>plan->fieldCount ||
+                node->as.object.count>plan->fieldCount-node->as.object.first || !node->as.object.provider ||
+                !node->as.object.provider->IsNative || !node->as.object.provider->Admits) return false;
+            for (size_t j=0;j<node->as.object.count;++j) {
+                const XL6_RestoreFieldV1* field=&plan->fields[node->as.object.first+j];
+                if (!viewValid(field->source) || !viewValid(field->target) || field->node>=plan->nodeCount ||
+                    (field->flags&~(XL6_RESTORE_REQUIRED_V1|XL6_RESTORE_IN_PLACE_V1)) ||
+                    keyEqual(field->target,XRT_STR_LITERAL("$xlir.class.runtime-type"))) return false;
+                if ((field->flags&XL6_RESTORE_IN_PLACE_V1) &&
+                    (plan->nodes[field->node].kind!=XL6_RESTORE_OBJECT_V1 ||
+                     (plan->nodes[field->node].flags&XL6_RESTORE_NULLABLE_V1))) return false;
+                for (size_t k=0;k<j;++k) if (keyEqual(field->target,
+                    plan->fields[node->as.object.first+k].target)) return false;
+            }
+        } else return false;
+    }
+    for (size_t i=0;i<count;++i) {
+        bool used=false;
+        for (size_t j=0;j<plan->nodeCount;++j) if (plan->nodes[j].kind==XL6_RESTORE_SEQUENCE_V1 &&
+            plan->nodes[j].as.sequence.seed==i) used=true;
+        if (!used) return false;
+    }
+    return true;
+}
+static bool objectMatches(const xvalue* value,const XL6_RestoreNodeV1* node)
+{
+    return node->as.object.provider->Admits(value,node->identity,node->as.object.runtimeTag);
+}
+static xvalue* restoreNode(Import*,const XL6_RestorePlanV1*,size_t,size_t,const xvalue*,xvalue*);
+static bool restoreObject(Import* ctx,const XL6_RestorePlanV1* plan,const XL6_RestoreNodeV1* node,
+    size_t depth,xvalue* value,const xvalue* source)
+{
+    /* Ordinary wire Object Clone pins an independent COW backing snapshot.
+     * Factory/allocation hooks may detach the original; no borrowed slot is
+     * kept across a callback. Language/native objects are not wire input. */
+    xvalue* snapshot=xrtValueClone(source);
+    if (!snapshot || !successful(ctx)) { releasePreservingError(snapshot); return false; }
+    bool ok=true;
+    for (size_t i=0;ok && i<node->as.object.count;++i) {
+        const XL6_RestoreFieldV1* field=&plan->fields[node->as.object.first+i];
+        const xvalue* borrowed=xrtValueObjectGet(snapshot,field->source);
+        if (!borrowed) { ok=!(field->flags&XL6_RESTORE_REQUIRED_V1) && successful(ctx); continue; }
+        xvalue* input=xrtValueRetain(borrowed),*prepared=NULL;
+        if (field->flags&XL6_RESTORE_IN_PLACE_V1) {
+            const xvalue* child=xrtValueObjectGet(value,field->target);
+            prepared=child ? xrtValueRetain(child) : NULL;
+            if (!prepared && !xrtGetError()) xrtSetErrorKind(XERR_STATE);
+        }
+        xvalue* item=NULL;
+        if (input && successful(ctx) && (!(field->flags&XL6_RESTORE_IN_PLACE_V1) || prepared)) {
+            item=restoreNode(ctx,plan,field->node,depth+1,input,prepared); prepared=NULL;
+        }
+        releasePreservingError(prepared);
+        ok=item && successful(ctx);
+        if (ok) ok=xrtValueObjectSetTake(value,field->target,&item) && successful(ctx);
+        releasePreservingError(item); releasePreservingError(input);
+    }
+    if (!ok && !xrtGetError() && !ctx->operation->failed) xrtSetErrorKind(XERR_TYPE);
+    releasePreservingError(snapshot); return ok && successful(ctx);
+}
+static xvalue* restoreNode(Import* ctx,const XL6_RestorePlanV1* plan,size_t domain,size_t depth,
+    const xvalue* source,xvalue* prepared)
+{
+    const XL6_RestoreNodeV1* node=&plan->nodes[domain]; xvalue* value=NULL;
+    if (!successful(ctx)) goto rejected;
+    if (!source || privateSeed(ctx,source)) { xrtSetErrorKind(XERR_ARGUMENT); goto rejected; }
+    uint64_t identity=xrtValueTypeId(source);
+    if (identity && identity!=node->identity && !(node->kind==XL6_RESTORE_SCALAR_V1 &&
+        node->as.scalar==XL6_VALUE_ADMIT_ANY)) { xrtSetErrorKind(XERR_TYPE); goto rejected; }
+    if (xrtValueType(source)==XVALUE_NULL) {
+        if ((node->flags&XL6_RESTORE_NULLABLE_V1) || (node->kind==XL6_RESTORE_SCALAR_V1 &&
+            node->as.scalar==XL6_VALUE_ADMIT_ANY)) value=xrtValueRetain(source);
+        else xrtSetErrorKind(XERR_TYPE);
+        goto rejected;
+    }
+    if (node->kind==XL6_RESTORE_SCALAR_V1) {
+        XL6_CollectionImportPlanV1 scalar={.flags=XL6_COLLECTION_IMPORT_RESTORE_V1|
+            (plan->json ? XL6_COLLECTION_IMPORT_JSON_V1 : 0),.leafRule=node->as.scalar,.leafIdentity=node->identity};
+        value=restoreLeaf(&scalar,source); goto rejected;
+    }
+    if (depth>=MAX_CHAIN) { xrtSetErrorKind(XERR_RANGE); goto rejected; }
+    for (size_t i=0;i<depth;++i) if (ctx->active[i]==source) { xrtSetErrorKind(XERR_VALUE); goto rejected; }
+    Memo* prior=lookup(ctx,source,domain);
+    if (prior) { value=xrtValueRetain(prior->result); goto rejected; }
+    ctx->active[depth]=source;
+    if (node->kind==XL6_RESTORE_SEQUENCE_V1) {
+        if (xrtValueType(source)!=XVALUE_ARRAY) { xrtSetErrorKind(XERR_TYPE); goto done; }
+        const Template* schema=&ctx->templates[node->as.sequence.seed]; XL6_ArrayInputV1 input={0};
+        XL6_Sequence* owner=NULL;
+        if (!xl6ArrayInputAcquireV1(source,&input) || !successful(ctx)) goto sequenceDone;
+        value=childSeed(schema);
+        if (!value || !successful(ctx)) goto sequenceDone;
+        if (!schema->provider) owner=xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,schema->layout.identity,
+            schema->layout.elementIdentity,schema->layout.transfer,schema->layout.size,schema->layout.type);
+        bool ok=successful(ctx) && (schema->provider || owner);
+        xtypedarray* storage=owner ? xl6SequenceStorageV1(owner) : NULL;
+        if (ok && storage) ok=xrtTypedArrayReserve(storage,input.count);
+        for (size_t i=0;ok && i<input.count;++i) {
+            xvalue* item=restoreNode(ctx,plan,node->as.sequence.element,depth+1,input.items[i],NULL);
+            ok=item && successful(ctx);
+            if (ok) ok=schema->provider ? schema->provider->Append(value,(int64_t)i,item) :
+                xl6SequenceAdmitValueV1(owner,item) && xrtTypedArrayPushValue(storage,item,schema->converter);
+            releasePreservingError(item); ok=ok && successful(ctx);
+        }
+        if (!ok && !xrtGetError() && !ctx->operation->failed) xrtSetErrorKind(XERR_TYPE);
+sequenceDone:
+        if (owner) xl6SequenceEndV1(owner);
+        xl6ArrayInputReleaseV1(&input);
+    } else {
+        if (xrtValueType(source)!=XVALUE_OBJECT || node->as.object.provider->IsNative(source)) {
+            xrtSetErrorKind(XERR_TYPE); goto done;
+        }
+        if (!successful(ctx)) goto done;
+        value=prepared; prepared=NULL;
+        if (!value && node->as.object.factory) value=node->as.object.factory();
+        if (!value || !successful(ctx)) goto done;
+        if (value==source || privateSeed(ctx,value)) {
+            xrtSetErrorKind(XERR_TYPE); goto done;
+        }
+        bool accepted=objectMatches(value,node);
+        if (!accepted || !successful(ctx)) {
+            if (!xrtGetError() && !ctx->operation->failed) xrtSetErrorKind(XERR_TYPE);
+            goto done;
+        }
+        for (size_t i=0;i<depth;++i) if (ctx->active[i]==value) { xrtSetErrorKind(XERR_ARGUMENT); goto done; }
+        for (size_t i=0;i<ctx->capacity;++i) if (ctx->memo[i].source &&
+            (ctx->memo[i].source==value || ctx->memo[i].result==value)) { xrtSetErrorKind(XERR_ARGUMENT); goto done; }
+        if (!restoreObject(ctx,plan,node,depth,value,source)) goto done;
+    }
+    if (value && successful(ctx)) {
+        if (!remember(ctx,source,domain,value)) xl6ErrorScopeCaptureFailure(ctx->operation);
+    } else if (!ctx->operation->failed) xl6ErrorScopeCaptureFailure(ctx->operation);
+done:
+    ctx->active[depth]=NULL;
+rejected:
+    releasePreservingError(prepared);
+    if (!value || !successful(ctx)) { releasePreservingError(value); return NULL; }
+    return value;
+}
+xvalue* xl6PersistenceRestorePlanTakeV1(xvalue** seeds,size_t count,xvalue* target,const xvalue* source,
+    const XL6_RestorePlanV1* plan)
+{
+    if ((count && !seeds) || count>SIZE_MAX/sizeof(Template)) {
+        xrtSetErrorKind(XERR_ARGUMENT); releasePreservingError(target); return NULL;
+    }
+    bool upstream=!source;
+    for (size_t i=0;i<count;++i) upstream=upstream || !seeds[i];
+    xerror* incoming=xrtErrorRef(xrtGetError()); xl6_error_scope operation={0};
+    if (!(upstream ? xl6ErrorScopeBeginCleanup(&operation,true) : xl6ErrorScopeBegin(&operation))) {
+        xerror* failure=upstream ? incoming : xrtErrorRef(xrtGetError());
+        if (!upstream) xrtErrorFree(incoming);
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,failure});
+        for (size_t i=0;i<count;++i) { xvalue* owned=seeds[i]; seeds[i]=NULL; releasePreservingError(owned); }
+        releasePreservingError(target); return NULL;
+    }
+    xrtErrorFree(incoming);
+    Import ctx={.seeds=seeds,.count=count,.operation=&operation}; xvalue* result=NULL,*observed=NULL;
+    if (operation.failed) goto finish;
+    if (!graphPlanValid(plan,count) || (target && (plan->nodes[plan->root].kind!=XL6_RESTORE_OBJECT_V1 || target==source))) {
+        xrtSetErrorKind(XERR_ARGUMENT); goto finish;
+    }
+    for (size_t i=0;plan->json && i<plan->nodeCount;++i) if (plan->nodes[i].kind==XL6_RESTORE_SCALAR_V1 &&
+        (plan->nodes[i].as.scalar==XL6_VALUE_ADMIT_BYTES || plan->nodes[i].as.scalar==XL6_VALUE_ADMIT_TIME)) {
+        xrtSetErrorKind(XERR_TYPE); goto finish;
+    }
+    observed=xrtValueRetain(source); if (!observed || !successful(&ctx)) goto finish;
+    ctx.templates=count ? xrtMalloc(count*sizeof(*ctx.templates)) : NULL;
+    if (count && !ctx.templates) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); goto finish; }
+    if (count) memset(ctx.templates,0,count*sizeof(*ctx.templates));
+    for (size_t i=0;i<plan->nodeCount;++i) if (plan->nodes[i].kind==XL6_RESTORE_SEQUENCE_V1) {
+        const XL6_RestoreNodeV1* node=&plan->nodes[i]; size_t at=node->as.sequence.seed;
+        Template* schema=&ctx.templates[at]; schema->provider=node->as.sequence.provider;
+        if (seeds[at]==source || seeds[at]==target || xrtValueTypeId(seeds[at])!=node->identity) {
+            xrtSetErrorKind(XERR_ARGUMENT); goto finish;
+        }
+        for (size_t j=0;j<at;++j) if (seeds[j]==seeds[at]) { xrtSetErrorKind(XERR_ARGUMENT); goto finish; }
+        if (schema->provider) {
+            if (!schema->provider->Begin(seeds[at],&schema->context) || !schema->context || !successful(&ctx)) goto finish;
+        } else {
+            int status=xl6SequenceBeginErasedArrayV1(seeds[at],&schema->owner,&schema->layout,&schema->converter);
+            if (status<=0) { if (!status) xrtSetErrorKind(XERR_TYPE); goto finish; }
+            XL6_SequenceAdmissionV3 admission={0};
+            if (!xl6SequenceAdmissionCopyV3(schema->owner,&admission)) goto finish;
+            bool admitted=admission.ops!=NULL; xl6SequenceAdmissionDropV3(&admission);
+            if (!admitted || xrtTypedArrayCount(xl6SequenceStorageV1(schema->owner))) { xrtSetErrorKind(XERR_STATE); goto finish; }
+        }
+        if (!successful(&ctx)) goto finish;
+    }
+    for (size_t i=0;i<plan->nodeCount;++i) if (plan->nodes[i].kind==XL6_RESTORE_SEQUENCE_V1) {
+        const XL6_RestoreNodeV1* node=&plan->nodes[i],*child=&plan->nodes[node->as.sequence.element];
+        if (child->kind==XL6_RESTORE_SEQUENCE_V1 &&
+            !admits(&ctx.templates[node->as.sequence.seed],seeds[child->as.sequence.seed])) {
+            if (!xrtGetError()) xrtSetErrorKind(XERR_TYPE);
+            goto finish;
+        }
+        if (!successful(&ctx)) goto finish;
+    }
+    result=restoreNode(&ctx,plan,plan->root,0,observed,target); target=NULL;
+finish:
+    if (!result || !successful(&ctx)) xl6ErrorScopeCaptureFailure(&operation);
+    for (size_t i=count;ctx.templates && i>0;--i) {
+        Template* schema=&ctx.templates[i-1];
+        if (schema->provider && schema->context) schema->provider->End(schema->context);
+        if (schema->owner) xl6SequenceEndV1(schema->owner);
+        if (xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
+    }
+    for (size_t i=0;i<count;++i) { xvalue* owned=seeds[i]; seeds[i]=NULL; releasePreservingError(owned); }
+    for (size_t i=0;i<ctx.capacity;++i) if (ctx.memo[i].source) {
+        releasePreservingError(ctx.memo[i].result); releasePreservingError((xvalue*)ctx.memo[i].source);
+    }
+    xrtFree(ctx.templates); xrtFree(ctx.memo); releasePreservingError(target); releasePreservingError(observed);
+    if (xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
+    if (operation.failed) { releasePreservingError(result); result=NULL; }
+    xl6_error_result outcome=xl6ErrorScopeEnd(&operation);
+    if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
+    return result;
+}
