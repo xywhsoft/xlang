@@ -27,6 +27,18 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
     return 1;
 }
 
+/* Only canonical reachable raw entries emitted by definitions need these
+ * resident symbols. Ordinary closure values and erased callback parameters
+ * do not imply a raw entry; no generated-text or source-name inference. */
+static int xl6IrCgenHasRawExecutionActivity(const XL6_IrModule* module)
+{
+    for (size_t i = 0; i < module->closureTargetCount; ++i)
+        if (module->closureTargets[i].reachability != XL6_IR_REACHABILITY_UNREACHABLE &&
+            module->closureTargets[i].rawExecutionAbi ==
+                XL6_IR_CLOSURE_RAW_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1) return 1;
+    return 0;
+}
+
 typedef enum XL6_IrCgenNativeGroup {
 #define XL6_IR_CGEN_NATIVE_GROUP(Name, ...) XL6_IR_CGEN_NATIVE_##Name,
 #include "src/cgen/xl6_ir_cgen_native_groups.inc"
@@ -200,7 +212,7 @@ int xl6IrCgenVisitNativeModules(const XL6_IrModule* module, XL6_DiagList* diags,
     XL6_IrCgenNeeds needs;
     if (!visitor) return 0;
     if (!xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
-    if ((module->exportCount != 0 ||
+    if ((module->exportCount != 0 || xl6IrCgenHasRawExecutionActivity(module) ||
          (module->abi.hostExecutionAbi == XL6_IR_MODULE_HOST_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1 &&
           (module->abi.entryKind != XL6_IR_MODULE_ENTRY_NONE || (options && options->emitScriptEntry)))) &&
         (!visitor(context,"XRT_MODULE_MEMORY") || !visitor(context,"XRT_MODULE_ATOMIC") ||
@@ -298,8 +310,9 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
 {
     XL6_IrCgenNeeds needs;
     if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
-    if (module->abi.hostExecutionAbi == XL6_IR_MODULE_HOST_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1 &&
-        (module->abi.entryKind != XL6_IR_MODULE_ENTRY_NONE || (options && options->emitScriptEntry)) &&
+    if ((xl6IrCgenHasRawExecutionActivity(module) ||
+         (module->abi.hostExecutionAbi == XL6_IR_MODULE_HOST_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1 &&
+          (module->abi.entryKind != XL6_IR_MODULE_ENTRY_NONE || (options && options->emitScriptEntry)))) &&
         (!visitor(context,"xl6CodeActivityEnterV1") || !visitor(context,"xl6CodeActivityLeaveV1"))) return 0;
     if (module->exportCount != 0 &&
         (!visitor(context,"xl6CodeLeaseAcquireScoped") || !visitor(context,"xl6CodeLeaseRelease") ||

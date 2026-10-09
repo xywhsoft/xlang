@@ -4268,6 +4268,14 @@ typedef enum XL6_IrClosureRawCallbackAbi {
     XL6_IR_CLOSURE_RAW_CALLBACK_FOREIGN_SCOPE_THUNK
 } XL6_IrClosureRawCallbackAbi;
 
+/* A raw C callback has no userdata carrying a lease. Its native caller must
+ * keep code resident independently; execution registration must not acquire,
+ * allocate or reopen admission, including for a no-raise signature. */
+typedef enum XL6_IrClosureRawExecutionAbi {
+    XL6_IR_CLOSURE_RAW_EXECUTION_NONE = 0,
+    XL6_IR_CLOSURE_RAW_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1
+} XL6_IrClosureRawExecutionAbi;
+
 /* A closure target names the independently lowered body plus the complete
  * function signature and capture slice needed to construct its environment.
  * This is deliberately not a C function pointer: it is verified XLIR that a
@@ -4283,6 +4291,7 @@ typedef struct XL6_IrClosureTarget {
     XL6_IrReachability reachability;
     XL6_IrTypeId signatureType;
     XL6_IrClosureRawCallbackAbi rawCallbackAbi;
+    XL6_IrClosureRawExecutionAbi rawExecutionAbi;
     /* Runtime keyword binding belongs to the closure value, not to its
      * structural function TypeId.  Names are copied from the exact anonymous
      * declaration or named-adapter target during lowering.  Defaults have the
