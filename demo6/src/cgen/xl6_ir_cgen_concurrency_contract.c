@@ -44,6 +44,18 @@ static int xl6IrCgenThreadRuntimeOpIs(XL6_IrRuntimeOp operation)
            operation <= XL6_IR_RUNTIME_THREAD_STOP;
 }
 
+static const char* xl6IrCgenThreadHelper(XL6_IrRuntimeOp operation)
+{
+    switch (operation) {
+    case XL6_IR_RUNTIME_THREAD_CREATE: return "xl6ThreadCreateV1";
+    case XL6_IR_RUNTIME_THREAD_WAIT: return "xl6ThreadWaitV1";
+    case XL6_IR_RUNTIME_THREAD_WAIT_TIMEOUT: return "xl6ThreadWaitTimeoutV1";
+    case XL6_IR_RUNTIME_THREAD_EXIT_CODE: return "xl6ThreadExitCodeV1";
+    case XL6_IR_RUNTIME_THREAD_STATE: return "xl6ThreadStateV1";
+    case XL6_IR_RUNTIME_THREAD_STOP: return "xl6ThreadStopV1";
+    default: return NULL;
+    }
+}
 static int xl6IrCgenRuntimeThreadAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
 {
@@ -128,38 +140,38 @@ static int xl6IrCgenEmitThreadRuntime(
     switch ( instruction->runtimeOp ) {
     case XL6_IR_RUNTIME_THREAD_CREATE:
         xl6OutputPrintf(out,
-            "    v%u = xlir_thread_create(v%u, 0x%016llXULL);\n",
+            "    v%u = xl6ThreadCreateV1(v%u, 0x%016llXULL);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             (unsigned long long)threadType->typeValueId);
         break;
     case XL6_IR_RUNTIME_THREAD_WAIT:
         xl6OutputPrintf(out,
-            "    v%u = xlir_thread_wait(v%u, 0x%016llXULL);\n",
+            "    v%u = xl6ThreadWaitV1(v%u, 0x%016llXULL);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             (unsigned long long)threadType->typeValueId);
         break;
     case XL6_IR_RUNTIME_THREAD_WAIT_TIMEOUT:
         xl6OutputPrintf(out,
-            "    v%u = xlir_thread_wait_timeout(v%u, 0x%016llXULL, v%u);\n",
+            "    v%u = xl6ThreadWaitTimeoutV1(v%u, 0x%016llXULL, v%u);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             (unsigned long long)threadType->typeValueId,
             (unsigned int)module->operands[instruction->firstOperand + 1]);
         break;
     case XL6_IR_RUNTIME_THREAD_EXIT_CODE:
         xl6OutputPrintf(out,
-            "    v%u = xlir_thread_exit_code(v%u, 0x%016llXULL);\n",
+            "    v%u = xl6ThreadExitCodeV1(v%u, 0x%016llXULL);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             (unsigned long long)threadType->typeValueId);
         break;
     case XL6_IR_RUNTIME_THREAD_STATE:
         xl6OutputPrintf(out,
-            "    v%u = xlir_thread_state(v%u, 0x%016llXULL);\n",
+            "    v%u = xl6ThreadStateV1(v%u, 0x%016llXULL);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             (unsigned long long)threadType->typeValueId);
         break;
     case XL6_IR_RUNTIME_THREAD_STOP:
         xl6OutputPrintf(out,
-            "    v%u = xlir_thread_stop(v%u, 0x%016llXULL);\n",
+            "    v%u = xl6ThreadStopV1(v%u, 0x%016llXULL);\n",
             (unsigned int)instruction->result, (unsigned int)first,
             (unsigned long long)threadType->typeValueId);
         break;

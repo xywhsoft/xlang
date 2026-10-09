@@ -1,0 +1,11 @@
+func worker() as int
+    return 0
+end
+func main(...) as int
+    auto running = thread(worker)
+    auto tree = AvlTree::<int, thread>()
+    assert(tree.set(1, running))
+    auto values = tree.values()
+    auto illegal = values[0]
+    return 0
+end

@@ -678,12 +678,15 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
     case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1:
         xl6OutputPrintf(out,
             "    %s = %s(%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s);\n",
             result,plan->abi==XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1 ?
                 "xl6SequenceCallableCreateV1" :
                 plan->abi==XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1 ?
-                "xl6SequenceSemCreateV1" : "xl6SequenceFutureCreateV1",
+                "xl6SequenceSemCreateV1" :
+                plan->abi==XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1 ?
+                "xl6SequenceThreadCreateV1" : "xl6SequenceFutureCreateV1",
             (unsigned)plan->role,(unsigned long long)sequence->typeValueId,
             (unsigned long long)payload->typeValueId,(unsigned long long)base->typeValueId,
             plan->nullable ? "true" : "false");

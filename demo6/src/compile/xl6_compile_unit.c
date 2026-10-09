@@ -263,7 +263,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_mutex.c", D(R(SYNC_CORE)), {"XRT_MODULE_MUTEX", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
     {"src/runtime/xl6_cond.c", D(R(SYNC_CORE)), {"XRT_MODULE_COND", "XRT_MODULE_MUTEX", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
     {"src/runtime/xl6_rwlock.c", D(R(SYNC_CORE)), {"XRT_MODULE_RWLOCK", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
-    {"src/runtime/xl6_array_sync_admission.c", D(R(SEQUENCE),R(SYNC_CORE)), {NULL}}
+    {"src/runtime/xl6_array_sync_admission.c", D(R(SEQUENCE),R(SYNC_CORE)), {NULL}},
+    {"src/runtime/xl6_thread.c", D(R(CLOSURE),R(FOREIGN_ERROR)), {"XRT_MODULE_THREAD", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_array_thread_admission.c", D(R(SEQUENCE),R(THREAD)), {NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -496,6 +498,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                 case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1: REQUIRE(R(ARRAY_CALLABLE_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1: REQUIRE(R(ARRAY_FUTURE_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1: REQUIRE(R(ARRAY_SEMAPHORE_ADMISSION)); break;
+                case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1: REQUIRE(R(ARRAY_THREAD_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1:
                 case XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1:
                 case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1: REQUIRE(R(ARRAY_SYNC_ADMISSION)); break;

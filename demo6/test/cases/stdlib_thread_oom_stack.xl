@@ -1,0 +1,8 @@
+func main(...) as int
+    auto worker = thread(func() as int => 42)
+    auto workers = Stack::<thread>()
+    assert(workers.push(worker))
+    auto returned = workers.pop()
+    assert(returned.wait() and returned.exitCode() == 42)
+    return 0
+end

@@ -549,6 +549,23 @@ static const char* xl6SemSpecialCollectionCallResultTypeName(XL6_SemContext* ctx
     return result;
 }
 
+/* A resolved typed Array extraction transfers an owned result. Reuse this
+ * full element-type contract for inference and fresh-owner checking; a class
+ * method merely named pop/take and an indexed borrow never reach this path. */
+static XL6_AstNode* xl6SemCloneContainerItemType(XL6_SemContext*,const XL6_AstNode*);
+static XL6_AstNode* xl6SemCloneArrayExtractionCallType(XL6_SemContext* ctx, XL6_AstNode* node)
+{
+    XL6_AstNode* member=node && node->kind==XL6_AST_CALL && node->childCount
+        ? node->children[0] : NULL;
+    if (!member || member->kind!=XL6_AST_MEMBER || !member->childCount ||
+        (!xl6TextEquals(member->text,"pop") && !xl6TextEquals(member->text,"take"))) return NULL;
+    XL6_AstNode* receiver=xl6SemInferAutoTypeNode(ctx,member->children[0]); int typed=0;
+    XL6_SemContainerKind kind=xl6SemContainerKindFromType(ctx,receiver,&typed);
+    XL6_AstNode* element=typed && kind==XL6_SEM_CONTAINER_ARRAY
+        ? xl6SemCloneContainerItemType(ctx,receiver) : NULL;
+    xl6AstFree(receiver); return element;
+}
+
 static XL6_AstNode* xl6SemCloneSpecialCollectionCallType(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     XL6_AstNode* member;

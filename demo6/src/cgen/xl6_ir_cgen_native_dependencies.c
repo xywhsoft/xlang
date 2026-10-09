@@ -259,6 +259,7 @@ static int xl6IrCgenVisitSequenceFactorySymbols(const XL6_IrModule* module,XL6_I
     case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1: factory="xl6SequenceCallableCreateV1"; break;
     case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1: factory="xl6SequenceFutureCreateV1"; break;
     case XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1: factory="xl6SequenceSemCreateV1"; break;
+    case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1: factory="xl6SequenceThreadCreateV1"; break;
     case XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1: factory="xl6SequenceSyncCreateV1"; break;
@@ -330,6 +331,10 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
                 !xl6IrCgenVisitSequenceFactorySymbols(module,type->concurrentQueueSchemaType,visitor,context,0)) return 0;
         }
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL) {
+        if (xl6IrCgenInstructionIsReachable(module,i) &&
+            xl6IrCgenThreadRuntimeOpIs(instruction->runtimeOp) &&
+            (!xl6IrCgenRuntimeThreadAbi(module,instruction) ||
+             !visitor(context,xl6IrCgenThreadHelper(instruction->runtimeOp)))) return 0;
         if (xl6IrCgenInstructionIsReachable(module,i) &&
             xl6IrCgenSyncRuntimeOpIs(instruction->runtimeOp) &&
             (!xl6IrCgenRuntimeSyncAbi(module,instruction) ||

@@ -244,6 +244,8 @@ RUNTIME_SOURCES=(
     "$ROOT/src/runtime/xl6_cond.c"
     "$ROOT/src/runtime/xl6_rwlock.c"
     "$ROOT/src/runtime/xl6_array_sync_admission.c"
+    "$ROOT/src/runtime/xl6_thread.c"
+    "$ROOT/src/runtime/xl6_array_thread_admission.c"
     "$ROOT/src/runtime/xl6_tree_admission.c"
     "$ROOT/src/runtime/xl6_queue_spsc_admission.c"
     "$ROOT/src/runtime/xl6_queue_mpsc_admission.c"

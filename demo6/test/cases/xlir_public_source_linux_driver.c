@@ -27,6 +27,7 @@ int main(int argc,char** argv)
     int ok=xlcAddIncludePath(compiler,headers) && xlcAddSourceFile(compiler,argv[1]) && xlcCompile(compiler);
     if(ok) {
         if(!strcmp(argv[2],"cgen-default")) ok=xlcEmitC(compiler,argv[3]);
+        else if(!strcmp(argv[2],"ir-typed")) ok=xlcEmitIr(compiler,argv[3],1);
         else if(!strcmp(argv[2],"ir-lowered")) ok=xlcEmitLoweredIr(compiler,argv[3],1);
         else if(!strcmp(argv[2],"run")) ok=xlcRun(compiler,0,NULL);
         else ok=0;

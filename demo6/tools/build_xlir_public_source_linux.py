@@ -26,7 +26,7 @@ def main():
         'xl6_ir_cgen','xl6_compile_unit','xl6_tree','xl6_tree_admission','xl6_semaphore',
         'xl6_array_semaphore_admission','xl6_sync','xl6_mutex','xl6_cond','xl6_rwlock',
         'xl6_array_sync_admission','xl6_queue_spsc_admission','xl6_queue_mpsc_admission',
-        'xl6_queue_mpmc_admission'}
+        'xl6_queue_mpmc_admission','xl6_thread','xl6_array_thread_admission'}
     assert required.issubset({path.stem for path in sources})
     runtime=native/'release/libxl.so'; assert runtime.is_file()
     files={Path(__file__).resolve(),source_list,Path(cc),runtime,*sources}
@@ -64,7 +64,8 @@ def main():
     compat=['-Wno-unused-function','-Wno-unused-parameter','-Wno-unused-variable','-Wno-unused-label',
         '-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
         '-Wno-pointer-sign','-Wno-format-truncation']
-    strict={'xl6_sync','xl6_mutex','xl6_cond','xl6_rwlock','xl6_array_sync_admission','xlir_public_source_linux_driver'}
+    strict={'xl6_sync','xl6_mutex','xl6_cond','xl6_rwlock','xl6_array_sync_admission',
+        'xl6_thread','xl6_array_thread_admission','xlir_public_source_linux_driver'}
     try:
         for index,source in enumerate(sources,1):
             obj=out/(source.stem+'.o')

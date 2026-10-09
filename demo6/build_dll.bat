@@ -192,6 +192,8 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_cond.c ^
     src\runtime\xl6_rwlock.c ^
     src\runtime\xl6_array_sync_admission.c ^
+    src\runtime\xl6_thread.c ^
+    src\runtime\xl6_array_thread_admission.c ^
     src\runtime\xl6_queue_spsc_admission.c ^
     src\runtime\xl6_queue_mpsc_admission.c ^
     src\runtime\xl6_queue_mpmc_admission.c ^
@@ -402,6 +404,8 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_cond.c ^
     src\runtime\xl6_rwlock.c ^
     src\runtime\xl6_array_sync_admission.c ^
+    src\runtime\xl6_thread.c ^
+    src\runtime\xl6_array_thread_admission.c ^
     src\runtime\xl6_queue_spsc_admission.c ^
     src\runtime\xl6_queue_mpsc_admission.c ^
     src\runtime\xl6_queue_mpmc_admission.c ^

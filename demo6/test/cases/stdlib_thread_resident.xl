@@ -1,0 +1,29 @@
+func makeResidentThreadEntry(string text, bytes binary, char letter) as func() as int
+    return func() as int
+        assert(text == "a\0你" and binary == b"a\0b" and letter == '你')
+        return 77
+    end
+end
+func failedThreadEntry() as int
+    throw ValueError("worker failure")
+end
+func() as int missing
+func main(...) as int
+    thread empty
+    assert(not empty.wait() and not empty.waitTimeout(0) and not empty.stop())
+    assert(empty.exitCode() == 0)
+    int caught = 0
+    try
+        auto invalid = thread(missing)
+        assert(false)
+    catch ValueError failure
+        caught += 1
+    end
+    assert(caught == 1)
+    auto worker = thread(makeResidentThreadEntry("a\0你", b"a\0b", '你'))
+    assert(worker.waitTimeout(30000) and worker.wait())
+    assert(worker.exitCode() == 77 and worker.state() == 1)
+    auto failed = thread(failedThreadEntry)
+    assert(failed.wait() and failed.exitCode() == 1)
+    return 0
+end

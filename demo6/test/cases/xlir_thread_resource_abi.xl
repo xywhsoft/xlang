@@ -50,7 +50,7 @@ try
     thread invalid = thread(missingWorker)
     missingThreadState = 2
 catch e
-    if e.message == "thread requires a callable func value" then
+    if e.kind == "ValueError" then
         missingThreadState = 1
     end
 end

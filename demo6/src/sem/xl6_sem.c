@@ -9791,21 +9791,12 @@ static XL6_AstNode* xl6SemNewThreadEntryType(const XL6_AstNode* at)
 
 static XL6_AstNode* xl6SemCloneThreadReceiverType(XL6_SemContext* ctx, XL6_AstNode* member)
 {
-    XL6_AstNode* receiver;
-    XL6_Symbol* sym;
-
     if ( member == NULL || member->kind != XL6_AST_MEMBER || member->childCount == 0 ) {
         return NULL;
     }
-    receiver = member->children[0];
-    if ( receiver == NULL || receiver->kind != XL6_AST_NAME ) {
-        return xl6SemInferAutoTypeNode(ctx, receiver);
-    }
-    sym = xl6ScopeFind(ctx->scope, receiver->text);
-    if ( sym == NULL || sym->type == NULL ) {
-        return NULL;
-    }
-    return xl6SemCloneTypeNode(sym->type);
+    /* Consume the proven flow type, not nullable binding storage. Keep the
+     * named-receiver rule in method checking and leave unproven nulls closed. */
+    return xl6SemInferAutoTypeNode(ctx, member->children[0]);
 }
 
 static int xl6SemCheckThreadCtorCall(XL6_SemContext* ctx, XL6_AstNode* node)
@@ -12001,6 +11992,9 @@ static int xl6SemTypeHasImplicitDefaultInitialization(
          xl6TextEquals(concreteType->text, "error") ||
          xl6TextEquals(concreteType->text, "string") ||
          xl6TextEquals(concreteType->text, "bytes") ||
+         /* Thread has the same explicit empty-handle default as its global
+          * storage and native status contract, not an uninitialized payload. */
+         xl6TextEquals(concreteType->text, "thread") ||
          xl6SemIsContainerBaseTypeName(concreteType->text) ||
          xl6SemIsSpecialCollectionTypeName(concreteType->text) ||
          xl6SemIsSyncHandleTypeName(concreteType->text) ) {
@@ -14097,17 +14091,8 @@ static XL6_AstNode* xl6SemInferAutoTypeNodeRaw(XL6_SemContext* ctx, XL6_AstNode*
             /* Extraction from a statically typed Array returns its complete
              * element type, including nullable/bytes/nested identities. A
              * type-name fallback would silently erase these results to var. */
-            if ( callee->childCount > 0 &&
-                 (xl6TextEquals(callee->text, "pop") ||
-                  xl6TextEquals(callee->text, "take")) ) {
-                XL6_AstNode* receiverType = xl6SemInferAutoTypeNode(ctx, callee->children[0]);
-                int typed = 0;
-                XL6_SemContainerKind kind = xl6SemContainerKindFromType(ctx, receiverType, &typed);
-                XL6_AstNode* element = typed && kind == XL6_SEM_CONTAINER_ARRAY
-                    ? xl6SemCloneContainerItemType(ctx, receiverType) : NULL;
-                xl6AstFree(receiverType);
-                if ( element != NULL ) return element;
-            }
+            XL6_AstNode* extractedType=xl6SemCloneArrayExtractionCallType(ctx,expr);
+            if (extractedType != NULL) return extractedType;
             XL6_AstNode* ownedReturnType = NULL;
             XL6_AstNode* memberReturns = xl6SemCallReturnTypesEx(ctx, expr, &ownedReturnType);
             XL6_AstNode* result = NULL;
@@ -14427,6 +14412,8 @@ static int xl6SemExprIsFreshTypeValue(XL6_SemContext* ctx, const XL6_AstNode* ex
          * must still verify the exact projection and ownership transfer. */
         XL6_AstNode* nativeResult = xl6SemCloneSpecialCollectionCallType(
             ctx, (XL6_AstNode*)expr);
+        if (nativeResult == NULL)
+            nativeResult=xl6SemCloneArrayExtractionCallType(ctx,(XL6_AstNode*)expr);
         int freshNativeResult = nativeResult != NULL &&
             !xl6SemTypeCanCopy(ctx, nativeResult);
         xl6AstFree(nativeResult);

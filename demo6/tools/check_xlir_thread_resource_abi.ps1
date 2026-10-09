@@ -185,15 +185,9 @@ if ( $c -cne $second ) {
     throw "XLIR thread resource generated C is not byte-for-byte deterministic"
 }
 foreach ( $required in @(
-    "volatile int32_t refs", "xrtRefRetain(&closure->refs)",
-    "xrtRefRelease(&closure->refs)",
-    "static const xvaluehandleops xlir_thread_handle_ops",
-    "xrtValueHandleTake((void**)&thread, &xlir_thread_handle_ops, NULL)",
-    "xrtValueTypeIdBind(value, typeId)", "xrtValueGetHandle(value",
-    "ops != &xlir_thread_handle_ops", "xlir_closure_retain(callable)",
-    "thread requires a callable func value",
-    "xlir_thread_wait(", "xlir_thread_wait_timeout(",
-    "xlir_thread_exit_code(", "xlir_thread_state(", "xlir_thread_stop("
+    "xl6ClosureRuntimeV1Get", "xl6ClosureRuntimeV2Get", "xlir_closure_retain(",
+    "xl6ThreadCreateV1(", "xl6ThreadWaitV1(", "xl6ThreadWaitTimeoutV1(",
+    "xl6ThreadExitCodeV1(", "xl6ThreadStateV1(", "xl6ThreadStopV1("
 ) ) {
     if ( ! $c.Contains($required) ) {
         throw "XLIR thread mechanical C ABI emission is missing: $required"
@@ -205,14 +199,22 @@ if ( ([regex]::Matches($c, [regex]::Escape($typeIdLiteral))).Count -ne
     throw "XLIR thread C emission does not use the verified TypeValueId at every RuntimeOp"
 }
 foreach ( $entry in $expectedCounts.GetEnumerator() ) {
-    $helper = $entry.Key.Replace('-', '_')
-    $pattern = 'v[0-9]+ = xlir_' + $helper + '\('
+    $helper = @{
+        'thread-create' = 'xl6ThreadCreateV1'
+        'thread-wait' = 'xl6ThreadWaitV1'
+        'thread-wait-timeout' = 'xl6ThreadWaitTimeoutV1'
+        'thread-exit-code' = 'xl6ThreadExitCodeV1'
+        'thread-state' = 'xl6ThreadStateV1'
+        'thread-stop' = 'xl6ThreadStopV1'
+    }[$entry.Key]
+    $pattern = 'v[0-9]+ = ' + $helper + '\('
     if ( ([regex]::Matches($c, $pattern)).Count -ne $entry.Value ) {
         throw "XLIR thread C emission count changed for $($entry.Key)"
     }
 }
 foreach ( $forbidden in @(
-    "XL6_AST_", "xl6IrNodeGet", "xl6IrCgenLegacy", "__xl6_thread_dispatch"
+    "XL6_AST_", "xl6IrNodeGet", "xl6IrCgenLegacy", "__xl6_thread_dispatch",
+    "xlir_thread_", "xrtThreadCreate("
 ) ) {
     if ( $c.Contains($forbidden) ) {
         throw "XLIR thread Cgen leaked source/legacy dispatch machinery: $forbidden"
