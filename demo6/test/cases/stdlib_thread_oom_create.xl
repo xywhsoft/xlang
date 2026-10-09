@@ -1,0 +1,5 @@
+func main(...) as int
+    auto worker = thread(func() as int => 42)
+    assert(worker.wait() and worker.exitCode() == 42)
+    return 0
+end

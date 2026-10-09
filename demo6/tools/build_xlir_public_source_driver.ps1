@@ -39,6 +39,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_semaphore.c','src/runtime/xl6_array_semaphore_admission.c',
     'src/runtime/xl6_sync.c','src/runtime/xl6_mutex.c','src/runtime/xl6_cond.c','src/runtime/xl6_rwlock.c',
     'src/runtime/xl6_array_sync_admission.c',
+    'src/runtime/xl6_thread.c','src/runtime/xl6_array_thread_admission.c',
     'src/runtime/xl6_queue_spsc_admission.c',
     'src/runtime/xl6_queue_mpsc_admission.c',
     'src/runtime/xl6_queue_mpmc_admission.c',
@@ -157,7 +158,7 @@ $objectRecords = @()
 for ($index = 0; $index -lt $sources.Count; ++$index) {
     $source = $sources[$index]
     $sourceFlags = $flags
-    if ($source -match '^src/runtime/xl6_(sync|mutex|cond|rwlock|array_sync_admission)\.c$') {
+    if ($source -match '^src/runtime/xl6_(sync|mutex|cond|rwlock|array_sync_admission|thread|array_thread_admission)\.c$') {
         $sourceFlags = @($flags | Where-Object { !$_.StartsWith('-Wno-') }) + '-Wshadow'
     }
     if ($source -match '^lib/tcc/') { $sourceFlags += '-Wno-error' }

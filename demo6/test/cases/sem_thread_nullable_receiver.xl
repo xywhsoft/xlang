@@ -1,0 +1,5 @@
+func main(...) as int
+    thread? missing = null
+    bool illegal = missing.wait()
+    return 0
+end

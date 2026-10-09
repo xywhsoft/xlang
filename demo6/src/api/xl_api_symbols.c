@@ -34,6 +34,8 @@
 #include "src/runtime/xl6_semaphore_admission.h"
 #include "src/runtime/xl6_sync.h"
 #include "src/runtime/xl6_sync_admission.h"
+#include "src/runtime/xl6_thread.h"
+#include "src/runtime/xl6_thread_admission.h"
 #include "src/runtime/xl6_concurrent_queue.h"
 #include "src/runtime/xl6_array_os_argv.h"
 #include "src/runtime/xl6_dynamic_collection.h"

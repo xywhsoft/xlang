@@ -817,7 +817,8 @@ static int xl6IrSequenceLayoutComplete(XL6_IrSequenceLayoutAbi abi)
         abi==XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1 ||
         abi==XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 ||
         abi==XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 ||
-        abi==XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1;
+        abi==XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1 ||
+        abi==XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1;
 }
 static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool* pool,
     const XL6_IrType* type,size_t depth)
@@ -964,16 +965,19 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
                (base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SEM ||
                 base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_MUTEX ||
                 base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_COND ||
-                base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_RWLOCK) &&
+                base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_RWLOCK ||
+                base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_THREAD) &&
                base->kind==XL6_IR_TYPE_BUILTIN && !base->paramCount && !base->returnCount &&
                base->collectionAbi==XL6_IR_COLLECTION_NONE && base->typeValueId &&
                base->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
                base->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
                base->nullAbi==XL6_IR_NULL_ABI_XVALUE_SENTINEL) {
-        /* Closed leaf capability: the resident policy verifies private native
-         * synchronization provenance, not merely this nominal identity. No generic
-         * child, module callback, capacity or live owner is part of its schema. */
-        result.abi=base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SEM ? XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1 :
+        /* Closed type schema: resident admission verifies private native
+         * provenance, not merely this nominal identity. No generic child,
+         * callback, capacity or live owner belongs to the schema. The actual
+         * owning graph (including Thread's closure) is admitted separately. */
+        result.abi=base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_THREAD ? XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1 :
+            base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SEM ? XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1 :
             base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_MUTEX ? XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 :
             base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_COND ? XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 :
             XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1;
@@ -992,7 +996,8 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         result.abi == XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 ||
-        result.abi == XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1) {
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1) {
         if (!result.codecAbi) result.codecAbi=XL6_IR_SEQUENCE_CODEC_DIRECT;
         result.defaultAbi=result.nullable ? XL6_IR_SEQUENCE_DEFAULT_ABSENT :
             result.admissionAbi == XL6_VALUE_ADMIT_ANY ? XL6_IR_SEQUENCE_DEFAULT_DYNAMIC_NULL :
@@ -1007,7 +1012,8 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
             result.abi == XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1 ||
             result.abi == XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 ||
             result.abi == XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 ||
-            result.abi == XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1 ? XL6_IR_SEQUENCE_DEFAULT_FORBIDDEN :
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1 ||
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1 ? XL6_IR_SEQUENCE_DEFAULT_FORBIDDEN :
             XL6_IR_SEQUENCE_DEFAULT_ZERO;
     }
     return result;
@@ -1074,6 +1080,7 @@ const char* xl6IrSequenceLayoutAbiName(XL6_IrSequenceLayoutAbi abi)
     case XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1: return "mutex-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1: return "cond-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1: return "rwlock-reference-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1: return "thread-reference-v1";
     default: return "invalid";
     }
 }
@@ -8082,7 +8089,8 @@ static int xl6IrSequenceConstructionRecipeDepth(const XL6_IrModule* module,
     case XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1:
-    case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1: return 1;
+    case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1: return 1;
     case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2:
         return xl6IrNominalIdentitySetGet(module,plan->baseElementType,setOut)!=NULL;
     case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1:
@@ -8167,7 +8175,8 @@ static int xl6IrStackConstructionContractDepth(const XL6_IrModule* module,
     case XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1:
-    case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1: return 1;
+    case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1: return 1;
     case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2:
         return xl6IrNominalIdentitySetGet(module,plan->baseElementType,setOut)!=NULL;
     case XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1:

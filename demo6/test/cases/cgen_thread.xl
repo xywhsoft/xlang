@@ -34,7 +34,7 @@ try
     thread missingThread = thread(missingWorker)
     missingThreadState = missingThread.exitCode()
 catch e
-    if e.message == "thread requires a callable func value" then
+    if e.kind == "ValueError" then
         missingThreadState = 42
     end
 end

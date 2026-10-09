@@ -9,6 +9,10 @@ static int xl6IrCgenAnalyzeSequenceRecipeNeeds(const XL6_IrModule* module,XL6_Ir
         needs->needsSemaphoreResourceRuntime=1;
         needs->needsForeignErrorRuntime=1;
     }
+    if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1) {
+        needs->needsThreadResourceRuntime=1;
+        needs->needsForeignErrorRuntime=1;
+    }
     if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 ||
         type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 ||
         type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1) {
