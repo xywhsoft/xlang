@@ -49,6 +49,35 @@ XL6_TEXT_API bool xl6ListHashV1(const xvalue*,const XL6_ListLayoutV1*,uint64_t*)
  * at duplicate keys; true replaces them. Self merge is a normal no-op. */
 XL6_TEXT_API bool xl6ListMergeV1(const xvalue*,const xvalue*,const XL6_ListLayoutV1*,bool);
 
+/* Explicit immutable resident projection; NULL Context and complete codec.
+ * Transfer 3 uses the canonical retained-reference codec, not a foreign one.
+ * The codec's code/record must be resident, never generated module callbacks.
+ * Erase retains the SAME shell and storage without copying/retagging. Take
+ * consumes the factory result on both paths. A bound codec cannot be changed.
+ * Clone preserves the binding; Cursor cannot serve as an erased List. */
+XL6_TEXT_API xvalue* xl6ListEraseV1(const xvalue*,const XL6_ListLayoutV1*,const xvalueconverter*);
+XL6_TEXT_API xvalue* xl6ListProjectionTakeV1(xvalue*,const XL6_ListLayoutV1*,const xvalueconverter*);
+/* Private owned read outputs must initially be NULL; found is distinct from
+ * checked success. Missing is normal, failure leaves both outputs unchanged.
+ * Take removes only after successful encoding, identity binding and admission.
+ * Dynamic writes validate the full resident Value domain before decoding. */
+XL6_TEXT_API bool xl6ListErasedReadV1(const xvalue*,int64_t,bool,xvalue**,bool*);
+XL6_TEXT_API bool xl6ListErasedSetV1(const xvalue*,int64_t,const xvalue*);
+XL6_TEXT_API bool xl6ListErasedAppendV1(const xvalue*,const xvalue*,int64_t*);
+/* Explicit one-level sparse wire snapshot, not var erasure or a recursive
+ * persistence implementation. Complete int64 keys and owned projected values
+ * are retained. Nested native children require the compiler's closed graph
+ * plan; this layer does not guess child schemas or flatten them into ANY. */
+XL6_TEXT_API xvalue* xl6ListToWireV1(const xvalue*);
+/* Consumes a private empty projected seed on BOTH paths. Same-domain native
+ * source + identical resident codec copies typed storage without boxing.
+ * Otherwise explicit conversion observes a stable IntMap snapshot. Native
+ * mismatches use an independent one-level wire projection before conversion.
+ * Every Value is admitted by the final destination policy; source identity,
+ * slots and keys are never rebound or mutated. Same-owner source aliases and
+ * nonempty/unprojected seeds fail closed. No published replacement semantics. */
+XL6_TEXT_API xvalue* xl6ListImportTakeV1(xvalue*,const xvalue*);
+
 /* Cursor owns a full typed-list snapshot and immutable admission metadata,
  * independently of the source. It iterates stable private slots in O(n),
  * never by repeated ordinal lookup. Full/bounded forward/reverse traversal
@@ -62,8 +91,8 @@ XL6_TEXT_API bool xl6ListCursorEndV1(const xvalue*,const XL6_ListLayoutV1*,uint6
 /* Phased graph retirement traces physical slots once (duplicates stay
  * duplicates). Future control-block tracing additionally requires an exact
  * resident admission-ops allowlist; V1 does not silently ignore those edges.
- * Erased wire bridges and language cutover remain pending: this private handle
- * is not yet the source list carrier, despite its completed identity hooks. */
+ * Recursive graph projection/schema and language cutover remain pending: this
+ * private handle is not yet the source list carrier. */
 XL6_TEXT_API const xrtownershipadapterv1* xl6ListOwnershipAdapterV1(xrtownershipref);
 XL6_TEXT_API const xrtownershipadapterv1* xl6ListOwnershipAdapterV2(xrtownershipref,
     const XL6_SequenceAdmissionOpsV2* const*,size_t);
