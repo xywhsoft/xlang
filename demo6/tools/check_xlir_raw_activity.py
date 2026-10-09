@@ -4,7 +4,7 @@ Actual public API/TCC and static generated C share saved-pointer, status/error,
 closed/OOM and foreign-thread vectors. Native hosts are strict C11; generated
 C/compiler fixtures retain recorded legacy warning allowances. Every linked
 compiler/runtime object is current frozen source O0; host units are O0/O2.
-No module read certificate, restore cutover, sanitizer or full53 claim.
+Module read certificate emitted; no restore cutover, sanitizer or full53 claim.
 """
 import argparse, hashlib, json, os, shutil, subprocess, sys
 from pathlib import Path
@@ -33,6 +33,7 @@ def main():
                  'xlir_foreign_raw_callback_error.xl', 'xlir_foreign_raw_callback_error_host.c'):
         files.add(root/'test/cases'/name)
     files.update((root/'test/support/module_product_memory.c', root/'test/support/module_product_memory.h'))
+    files.add(root/'test/cases/xlir_module_read_ir_contract.c')
     host = args.host_source.resolve() if args.host_source else root/'test/cases/xlir_raw_activity_host.c'
     generated_host = args.generated_host_source.resolve() if args.generated_host_source else root/'test/cases/xlir_raw_activity_generated_host.c'
     vectors = args.vectors_source.resolve() if args.vectors_source else root/'test/cases/xlir_raw_activity_vectors.h'
@@ -40,7 +41,7 @@ def main():
     inputs = [{'Path': str(path), 'Sha256': sha(path)} for path in sorted(files)]
     rows, products, errors = [], [], []
     report = {'Complete': False, 'InputsUnchanged': False, 'Inputs': inputs, 'Rows': rows, 'Products': products,
-              'Errors': errors, 'Scope': __doc__, 'GeneratedReadCertificate': False, 'NativeRestoreCgenCutover': False,
+              'Errors': errors, 'Scope': __doc__, 'GeneratedReadCertificate': True, 'NativeRestoreCgenCutover': False,
               'ShippingLibraryAcceptance': False, 'Full53Acceptance': False, 'Sanitized': False,
               'LinkedCompilerRuntimeOptimization': 'O0', 'NativeHostWarnings': 'C11 Wall Wextra Werror without exemptions',
               'Observer': 'ld wrap activity calls, always delegates to actual registry; no mirrored state machine'}
@@ -67,18 +68,29 @@ def main():
         return data.decode(errors='replace')
     def product(path): products.append({'Path': str(path), 'Sha256': sha(path)})
     try:
+        # The artifact certificate declaration has no full XRT/source-tree
+        # include dependency. Compile the staged package header by itself.
+        header = public/'include/__xl_runtime/xl6_ownership_read_abi.h'
+        for language, standard in (('c', 'c11'), ('c++', 'c++17')):
+            run('read-abi.'+language, [cc, '-std='+standard, '-Wall', '-Wextra', '-Werror',
+                '-pedantic', '-x', language, '-fsyntax-only', header])
         contract = out/('ir-contract'+('.exe' if os.name == 'nt' else ''))
         run('ir-contract.compile', [cc, *flags, *legacy, '-Wno-pointer-sign', '-Wno-format-truncation',
             root/'test/cases/xlir_raw_activity_ir_contract.c', *links, '-o', contract]); product(contract)
         assert '24 missing/unknown mutations' in run('ir-contract.run', [contract])
+        read_contract = out/('read-contract'+('.exe' if os.name == 'nt' else ''))
+        run('read-contract.compile', [cc, *flags, *legacy, '-Wno-pointer-sign', '-Wno-format-truncation',
+            root/'test/cases/xlir_module_read_ir_contract.c', *links, '-o', read_contract]); product(read_contract)
+        assert '49 typed/module/export/raw/storage' in run('read-contract.run', [read_contract])
         for mode in ('ir-typed', 'ir-lowered', 'cgen-default'):
             target = out/('raw'+('.c' if mode == 'cgen-default' else '.'+mode+'.json'))
             run(mode, [driver, root/'test/cases/xlir_raw_activity.xl', mode, target]); product(target)
         typed = json.loads((out/'raw.ir-typed.json').read_text(encoding='utf-8-sig'))
         lowered = json.loads((out/'raw.ir-lowered.json').read_text(encoding='utf-8-sig'))
         assert all(row['rawExecutionAbi'] == 0 for row in typed['closureTargets'])
+        assert typed['moduleReadExecutionAbi'] == 0 and lowered['moduleReadExecutionAbi'] == 1
         assert len(lowered['closureTargets']) == 12 and all(row['rawExecutionAbi'] == 1 for row in lowered['closureTargets'])
-        assert 'xl_script_module_ownership_read_v1' not in (out/'raw.c').read_text(encoding='utf-8-sig')
+        assert 'xl_script_module_ownership_read_v1' in (out/'raw.c').read_text(encoding='utf-8-sig')
         run('repeat', [driver, root/'test/cases/xlir_raw_activity.xl', 'cgen-default', out/'raw.repeat.c']); product(out/'raw.repeat.c')
         assert sha(out/'raw.c') == sha(out/'raw.repeat.c')
         for optimization in ('O0', 'O2'):

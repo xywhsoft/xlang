@@ -3,7 +3,7 @@
 Build manifests must bind the full compiler/API/runtime source population.
 Released TCC is a tool input only. Native hosts compile strictly; generated C
 and old compiler contract fixtures retain recorded legacy unused-code warning
-allowances. This is not a module-read certificate, restore cutover, shipping
+allowances. The module-read certificate is emitted; this is not restore cutover, shipping
 library or full53 acceptance. Host fixture O0/O2 is not compiler/runtime O2.
 """
 import argparse, hashlib, json, os, shutil, subprocess, sys
@@ -50,7 +50,7 @@ def main():
     report = {'Complete': False, 'InputsUnchanged': False, 'Inputs': inputs, 'Rows': rows,
               'Products': products, 'Failures': failures, 'Scope': __doc__,
               'GeneratedExportTracking': True, 'ActualTccExecution': True,
-              'GeneratedReadCertificate': False, 'NativeRestoreCgenCutover': False,
+              'GeneratedReadCertificate': True, 'NativeRestoreCgenCutover': False,
               'ShippingLibraryAcceptance': False, 'Full53Acceptance': False,
               'LinkedCompilerRuntimeOptimization': 'O0', 'Sanitized': False}
     report['TestOnlyHostSource'] = str(host_source)
@@ -95,7 +95,7 @@ def main():
         generated = (out/'execution.c').read_text(encoding='utf-8-sig')
         assert generated.count('xl6CodeScopeEnter(&execution, code)') == 5
         assert generated.count('xl6CodeScopeLeave(&execution)') == 10
-        assert 'xl_script_module_ownership_read_v1' not in generated
+        assert 'xl_script_module_ownership_read_v1' in generated
         for optimization in ('O0', 'O2'):
             suffix = '.exe' if os.name == 'nt' else ''
             memory = out/('memory-'+optimization+'.o')

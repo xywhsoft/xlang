@@ -463,26 +463,27 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
     return !xl6OutputHasFailed(out);
 }
 
-static void xl6IrCgenEmitBoundMethodRuntime(XL6_Output* out)
+static int xl6IrCgenEmitBoundMethodRuntime(XL6_Output* out, const XL6_IrModule* module, XL6_DiagList* diags)
 {
+    if (module->abi.boundMethodStorageAbi != XL6_IR_BOUND_METHOD_STORAGE_RESIDENT_CLOSURE_LAYOUT_V1)
+        return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID, "XLIR bound method storage ABI is unresolved");
     xl6OutputPuts(
         "typedef xvalue* (*xlir_dynamic_method_dispatch)(xvalue*, size_t, xvalue**, size_t, const xlir_string_view*, xvalue**);\n"
         "typedef struct xlir_bound_method {\n"
         "    xvalue* receiver;\n"
         "    xlir_dynamic_method_dispatch invoke;\n"
         "} xlir_bound_method;\n"
-        "static bool xlir_bound_method_trace(const void* environment, xrtownershipvisitor visit, void* context)\n"
-        "{ const xlir_bound_method* bound = (const xlir_bound_method*)environment; return bound != NULL && visit != NULL && visit(xrtValueOwnership(bound->receiver), context); }\n"
-        "extern void* xrtMalloc(size_t);\n"
-        "extern void xrtFree(void*);\n"
-        "static void xlir_bound_method_drop(void* environment)\n"
+        "static const XL6_ClosureCaptureSlot xlir_bound_method_slots[] = {\n"
+        "    {XL6_CLOSURE_CAPTURE_XVALUE, offsetof(xlir_bound_method, receiver), sizeof(xvalue*)},\n"
+        "    {XL6_CLOSURE_CAPTURE_TRIVIAL, offsetof(xlir_bound_method, invoke), sizeof(xlir_dynamic_method_dispatch)}\n"
+        "};\n"
+        "static const XL6_ClosureEnvironmentV1 xlir_bound_method_layout = {\n"
+        "    sizeof(XL6_ClosureEnvironmentV1), sizeof(xlir_bound_method), 2, xlir_bound_method_slots\n"
+        "};\n"
+        "static bool xlir_bound_method_entry(void* data, const xrtcallframe* frame, xrtcallresult* callResult)\n"
         "{\n"
-        "    xlir_bound_method* bound = (xlir_bound_method*)environment;\n"
-        "    if (bound != NULL) { xvalue* receiver = bound->receiver; bound->receiver = NULL; xrtFree(bound); xrtValueRelease(receiver); }\n"
-        "}\n"
-        "static bool xlir_bound_method_entry(void* environment, const xrtcallframe* frame, xrtcallresult* callResult)\n"
-        "{\n"
-        "    xlir_bound_method* bound = (xlir_bound_method*)environment;\n"
+        "    XL6_Closure* closure = (XL6_Closure*)data;\n"
+        "    xlir_bound_method* bound = closure != NULL ? (xlir_bound_method*)closure->environment : NULL;\n"
         "    xvalue** owned = NULL; xvalue* result = NULL; size_t total = 0, retained = 0, i;\n"
         "    if (bound == NULL || bound->receiver == NULL || bound->invoke == NULL || callResult == NULL ||\n"
         "        frame == NULL || (frame->ArgumentCount && frame->Arguments == NULL) ||\n"
@@ -522,28 +523,31 @@ static void xl6IrCgenEmitBoundMethodRuntime(XL6_Output* out)
         "}\n"
         "static xvalue* xlir_bound_method_create(xvalue* receiver, xlir_dynamic_method_dispatch invoke)\n"
         "{\n"
-        "    xlir_bound_method* bound = NULL; xrtcallable* callable = NULL; xvalue* result = NULL;\n"
+        "    xlir_bound_method* bound = NULL; XL6_Closure* closure = NULL; xvalue* result = NULL;\n"
         "    if (receiver == NULL || invoke == NULL) {\n"
         "        xrtSetErrorTake(xlir_error_create(\"TypeError\", \"bound method receiver or dispatch is missing\")); return NULL;\n"
         "    }\n"
         "    bound = (xlir_bound_method*)xrtMalloc(sizeof(*bound));\n"
         "    if (bound == NULL) goto fail;\n"
+        "    *bound = (xlir_bound_method){0};\n"
         "    bound->receiver = xrtValueRetain(receiver); bound->invoke = invoke;\n"
         "    if (bound->receiver == NULL) goto fail;\n"
-        "    callable = xrtCallableCreate(NULL, xlir_bound_method_entry, bound, xlir_bound_method_drop);\n"
-        "    if (callable == NULL) goto fail;\n"
-        "    bound = NULL; /* Callable now owns the receiver environment. */\n"
-        "    if (!xrtCallableOwnershipTraceBind(callable, xlir_bound_method_trace)) goto fail;\n"
-        "    result = xrtValueCallableTake(&callable);\n"
+        "    closure = xlir_closure_new((void (*)(void))xlir_bound_method_entry, NULL, bound, &xlir_bound_method_layout, NULL, NULL, 0);\n"
+        "    if (closure == NULL) goto fail;\n"
+        "    bound = NULL; /* Resident closure now owns the immutable receiver slot. */\n"
+        "    result = xl6ClosureBoxErasedV1(xlir_closure_owner, closure, xlir_bound_method_entry);\n"
         "    if (result == NULL) goto fail;\n"
+        "    xlir_closure_release(closure);\n"
         "    return result;\n"
         "fail: {\n"
         "    xerror* pendingError = xrtTakeError();\n"
         "    if (pendingError == NULL) pendingError = xlir_error_create(\"MemoryError\", \"bound method allocation failed\");\n"
-        "    if (callable != NULL) xrtCallableUnref(callable);\n"
-        "    xlir_bound_method_drop(bound); xrtSetErrorTake(pendingError); return NULL;\n"
+        "    xlir_closure_release(closure);\n"
+        "    if (bound != NULL) xlir_closure_env_drop(&xlir_bound_method_layout, bound);\n"
+        "    xrtSetErrorTake(pendingError); return NULL;\n"
         "}\n"
         "}\n", out);
+    return !xl6OutputHasFailed(out);
 }
 
 /* Both immediate invocation and retained method values share the same
@@ -782,7 +786,8 @@ static int xl6IrCgenEmitDynamicMethodRuntime(
         if ( !needed ) continue;
         if (site->memberBindingAbi == XL6_IR_DYNAMIC_MEMBER_BINDING_RETAIN_RECEIVER) {
             if (!bindingRuntimeEmitted) {
-                xl6IrCgenEmitBoundMethodRuntime(out); bindingRuntimeEmitted = 1;
+                if (!xl6IrCgenEmitBoundMethodRuntime(out, module, diags)) return 0;
+                bindingRuntimeEmitted = 1;
             }
             if (!xl6IrCgenEmitDynamicMethodDispatcher(out, module, siteIndex, XL6_IR_DYNAMIC_CALL_METHOD)) return 0;
         }

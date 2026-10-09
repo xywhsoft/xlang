@@ -5227,6 +5227,15 @@ typedef enum XL6_IrModuleHostExecutionAbi {
     XL6_IR_MODULE_HOST_EXECUTION_NONE = 0,
     XL6_IR_MODULE_HOST_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1
 } XL6_IrModuleHostExecutionAbi;
+
+/* Whole generated execution coverage, separate from ownership/lifecycle
+ * storage. Canonical host/export/raw entries and resident leased semantic
+ * callbacks are required; transitive native graph admission stays closed.
+ * Cgen renders this proof, never infers it from emitted code or source names. */
+typedef enum XL6_IrModuleReadExecutionAbi {
+    XL6_IR_MODULE_READ_EXECUTION_NONE = 0,
+    XL6_IR_MODULE_READ_EXECUTION_TRACKED_SLOTS_V1
+} XL6_IrModuleReadExecutionAbi;
 /* Explicit opt-in to checked, phased retirement. This describes the artifact
  * boundary; runtime admission still rejects unmodelled transitive ownership. */
 typedef enum XL6_IrModuleRetirementAbi {
@@ -5256,6 +5265,14 @@ typedef enum XL6_IrClosureStorageAbi {
      * environment callbacks. V1 remains a rejected legacy lowered value. */
     XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V2
 } XL6_IrClosureStorageAbi;
+
+/* Dynamic member values are erased callables, but their immutable receiver
+ * slots and generated dispatcher code use the same resident closure lifetime.
+ * This physical contract is separate from semantic member binding. */
+typedef enum XL6_IrBoundMethodStorageAbi {
+    XL6_IR_BOUND_METHOD_STORAGE_NONE = 0,
+    XL6_IR_BOUND_METHOD_STORAGE_RESIDENT_CLOSURE_LAYOUT_V1
+} XL6_IrBoundMethodStorageAbi;
 
 /* Cell lifetime and payload transitions are resident operations. In
  * particular CELL_EXCHANGE is one transfer, never a borrowed load plus store.
@@ -5376,7 +5393,9 @@ typedef struct XL6_IrModuleAbi {
     XL6_IrModuleTaskPoolAbi taskPoolAbi;
     XL6_IrModuleCodeOwnerAbi codeOwnerAbi;
     XL6_IrModuleHostExecutionAbi hostExecutionAbi;
+    XL6_IrModuleReadExecutionAbi readExecutionAbi;
     XL6_IrClosureStorageAbi closureStorageAbi;
+    XL6_IrBoundMethodStorageAbi boundMethodStorageAbi;
     XL6_IrModuleRetirementAbi retirementAbi;
     XL6_IrCellStorageAbi cellStorageAbi;
     XL6_IrValueIteratorStorageAbi valueIteratorStorageAbi;

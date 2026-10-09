@@ -2,7 +2,7 @@
 
 Only the actual public API/TCC host is linked; no private IR layouts cross the
 two compiler versions. The unchanged observer must detect a missing generated
-Enter/Leave in the baseline and accept the fixed compiler. TCC is a released
+execution contract in the baseline and accept the fixed compiler. TCC is a released
 tool input, not a rebuilt shipping product. No sanitizer/full53 claim.
 """
 import argparse, hashlib, json, os, shutil, subprocess, sys
@@ -50,7 +50,7 @@ def main():
         products.append({'Path': str(log), 'Sha256': sha(log)})
         rows.append({'Name': name, 'Command': command, 'Exit': result.returncode, 'ExpectedAssertion': expected_assertion})
         print(name+': '+str(result.returncode), flush=True)
-        if expected_assertion: assert result.returncode != 0 and b'xrtAtomic64Load(&enters' in data, data[-6000:]
+        if expected_assertion: assert result.returncode != 0 and b'ownershipReadContract' in data, data[-6000:]
         else: assert result.returncode == 0, data[-6000:]
         return data
     try:

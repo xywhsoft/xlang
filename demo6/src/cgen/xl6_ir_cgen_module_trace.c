@@ -43,5 +43,15 @@ static int xl6IrCgenEmitModuleOwnershipTrace(XL6_Output* out,
         xl6OutputPuts("), context)) return false;\n", out);
     }
     xl6OutputPuts("    return true;\n}\n\n", out);
+    if (module->abi.readExecutionAbi != XL6_IR_MODULE_READ_EXECUTION_TRACKED_SLOTS_V1) return 0;
+    /* Pure descriptor getter. The host invokes trace while holding Freeze;
+     * entering a mutation/semantic wrapper here would deadlock that reader. */
+    xl6OutputPuts("#include <__xl_runtime/xl6_ownership_read_abi.h>\n"
+        "XLIR_C_API const XL6_ModuleReadContractV1* xl_script_module_ownership_read_v1(void)\n"
+        "{\n"
+        "    static const XL6_ModuleReadContractV1 api = {sizeof(api), 0x584C364D524431ULL,\n"
+        "        xl_script_module_ownership_trace};\n"
+        "    return &api;\n"
+        "}\n\n", out);
     return !xl6OutputHasFailed(out);
 }

@@ -19035,6 +19035,9 @@ static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* 
     if (module->abi.closureStorageAbi != (module->stage == XL6_IR_STAGE_TYPED
             ? XL6_IR_CLOSURE_STORAGE_NONE : XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V2))
         return xl6IrDiag(diags, NULL, "XLIR closure storage/code ownership ABI is unresolved");
+    if (module->abi.boundMethodStorageAbi != (module->stage == XL6_IR_STAGE_TYPED
+            ? XL6_IR_BOUND_METHOD_STORAGE_NONE : XL6_IR_BOUND_METHOD_STORAGE_RESIDENT_CLOSURE_LAYOUT_V1))
+        return xl6IrDiag(diags, NULL, "XLIR bound method storage/code ownership ABI is unresolved");
     if (module->abi.cellStorageAbi != (module->stage == XL6_IR_STAGE_TYPED
             ? XL6_IR_CELL_STORAGE_NONE : XL6_IR_CELL_STORAGE_RESIDENT_TRANSFER_V1))
         return xl6IrDiag(diags, NULL, "XLIR cell storage/resident transfer ABI is unresolved");
@@ -19067,6 +19070,13 @@ static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* 
     if (module->abi.hostExecutionAbi != (module->stage != XL6_IR_STAGE_TYPED && initializers != 0
             ? XL6_IR_MODULE_HOST_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1 : XL6_IR_MODULE_HOST_EXECUTION_NONE))
         return xl6IrDiag(diags, NULL, "XLIR module host execution ABI is unresolved");
+    /* The canonical per-entry/callback/frame ABI verifiers close the complete
+     * generated execution surface. This independently recomputes the module
+     * certificate from lifecycle presence; an ABI flag never bypasses those
+     * verifiers or changes closed transitive native-family admission. */
+    if (module->abi.readExecutionAbi != (module->stage != XL6_IR_STAGE_TYPED && initializers != 0
+            ? XL6_IR_MODULE_READ_EXECUTION_TRACKED_SLOTS_V1 : XL6_IR_MODULE_READ_EXECUTION_NONE))
+        return xl6IrDiag(diags, NULL, "XLIR module read execution ABI is unresolved");
     if (module->abi.executorOwnershipAbi != (module->stage == XL6_IR_STAGE_TYPED
             ? XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE : xl6IrModuleExecutorOwnershipRequirement(module)) ||
         (module->abi.executorOwnershipAbi != XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE &&
@@ -48233,11 +48243,13 @@ void xl6IrDumpModuleText(XL6_Output* out, const XL6_IrModule* module)
     xl6IrDumpText(module, out);
     xl6OutputPrintf(out, "module-code-owner: %s\n", xl6IrModuleCodeOwnerAbiName(module->abi.codeOwnerAbi));
     xl6OutputPrintf(out, "module-host-execution: %d\n", (int)module->abi.hostExecutionAbi);
+    xl6OutputPrintf(out, "module-read-execution: %d\n", (int)module->abi.readExecutionAbi);
     xl6OutputPrintf(out,"module-entry: %d symbol=%u argument=t%u carrier=%d element=0x%016llX\n",
         (int)module->abi.entryKind,(unsigned)module->abi.entrySymbol,
         (unsigned)module->abi.entryArgumentType,(int)module->abi.entryArgumentCarrierAbi,
         (unsigned long long)module->abi.entryArgumentElementIdentity);
     xl6OutputPrintf(out, "closure-storage: %d\n", (int)module->abi.closureStorageAbi);
+    xl6OutputPrintf(out, "bound-method-storage: %d\n", (int)module->abi.boundMethodStorageAbi);
     xl6OutputPrintf(out, "module-retirement: %d\n", (int)module->abi.retirementAbi);
     xl6OutputPrintf(out, "cell-storage: %d\n", (int)module->abi.cellStorageAbi);
     xl6OutputPrintf(out, "value-iterator-storage: %d\n", (int)module->abi.valueIteratorStorageAbi);
@@ -48328,6 +48340,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPrintf(out, "  \"moduleCodeOwnerAbi\": \"%s\",\n",
         xl6IrModuleCodeOwnerAbiName(module->abi.codeOwnerAbi));
     xl6OutputPrintf(out, "  \"moduleHostExecutionAbi\": %d,\n", (int)module->abi.hostExecutionAbi);
+    xl6OutputPrintf(out, "  \"moduleReadExecutionAbi\": %d,\n", (int)module->abi.readExecutionAbi);
     xl6OutputPrintf(out, "  \"moduleContinuationAbi\": %d,\n", (int)module->abi.continuationAbi);
     xl6OutputPrintf(out,"  \"moduleEntry\": {\"kind\": %d, \"symbol\": %u, \"argumentType\": %u, \"carrierAbi\": %d, \"elementIdentity\": \"0x%016llX\"},\n",
         (int)module->abi.entryKind,(unsigned)module->abi.entrySymbol,
@@ -48339,6 +48352,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPrintf(out, "  \"nativeFutureMapAbi\": %d,\n", (int)module->abi.nativeFutureMapAbi);
     xl6OutputPrintf(out, "  \"moduleNetworkServiceAbi\": %d,\n", (int)module->abi.networkServiceAbi);
     xl6OutputPrintf(out, "  \"closureStorageAbi\": %d,\n", (int)module->abi.closureStorageAbi);
+    xl6OutputPrintf(out, "  \"boundMethodStorageAbi\": %d,\n", (int)module->abi.boundMethodStorageAbi);
     xl6OutputPrintf(out, "  \"retirementAbi\": %d,\n", (int)module->abi.retirementAbi);
     xl6OutputPrintf(out, "  \"cellStorageAbi\": %d,\n", (int)module->abi.cellStorageAbi);
     xl6OutputPrintf(out, "  \"valueIteratorStorageAbi\": %d,\n", (int)module->abi.valueIteratorStorageAbi);

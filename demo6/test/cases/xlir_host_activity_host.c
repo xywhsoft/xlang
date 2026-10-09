@@ -91,7 +91,8 @@ int main(int argc, char** argv)
         executing = xlCompileScriptFileToModule(context, synthetic ? "test/cases/xlir_host_activity_synthetic.xl"
             : "test/cases/xlir_host_activity_main.xl");
         if (!executing) fprintf(stderr, "%s\n", xlGetLastError(context) ? xlGetLastError(context) : "no diagnostic");
-        assert(executing && !executing->ownershipReadContract);
+        assert(executing && executing->ownershipReadContract);
+        assert(executing->ownershipReadContract->trace == executing->ownershipTrace);
         int (*init)(xvalue*) = (int (*)(xvalue*))xlModuleGetSymbol(executing, "xl_script_module_init");
         int (*unit)(void) = (int (*)(void))xlModuleGetSymbol(executing, "xl_script_module_unit_checked");
         callMain = (int (*)(xvalue*, int*))xlModuleGetSymbol(executing, "xl_script_main_checked");

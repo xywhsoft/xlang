@@ -1,0 +1,24 @@
+extern "bound_activity_probe" func boundProbe(int phase)
+extern "bound_activity_save_receiver" func saveReceiver(var receiver)
+extern "bound_activity_save_reader" func saveReader(var reader)
+extern "bound_activity_load_receiver" func loadReceiver() as var
+class BoundActivityReceiver
+    int stored
+    create(int value)
+        self.stored = value
+    end
+    destroy()
+        boundProbe(2)
+    end
+    func read(int offset = 0) as int
+        boundProbe(1)
+        return self.stored + offset
+    end
+end
+export "bound_activity_receiver" func boundReceiver()
+    saveReceiver(BoundActivityReceiver(42))
+end
+export "bound_activity_reader" func boundReader()
+    var receiver = loadReceiver()
+    saveReader(receiver.read)
+end
