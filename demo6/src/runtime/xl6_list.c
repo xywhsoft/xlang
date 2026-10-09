@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_list.h"
+#include "src/runtime/xl6_list_graph_access.h"
 #include "src/runtime/xl6_array_reference_value.h"
 #include "src/runtime/xl6_array_admission.h"
 #include "src/api/xl_foreign_error.h"
@@ -846,6 +847,56 @@ static xvalue* projectedSlot(ListOwner* owner,const void* slot)
         xl6ErrorScopeCaptureFailure(&scope); xrtValueRelease(result); result=NULL;
     }
     (void)scopeFinish(&scope,result!=NULL); return result;
+}
+int xl6ListGraphBeginV1(const xvaluehandleops* ops,ptr raw,ptr user,uint64_t identity,XL6_ListGraphViewV1* view)
+{
+    if (!view || view->owner) { xrtSetErrorKind(XERR_ARGUMENT); return -1; }
+    if (ops!=&handleOps) return 0;
+    if (!raw || user) { xrtSetErrorKind(XERR_STATE); return -1; }
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    ListOwner* owner=raw; bool success=false,rejected=false;
+    if (owner->cursorIdentity || identity!=owner->layout.identity) xrtSetErrorKind(XERR_STATE);
+    else if (pin(owner,0)) {
+        if (!owner->projected) rejected=true;
+        else { *view=(XL6_ListGraphViewV1){owner,owner->layout,owner->storage}; success=true; }
+    }
+    mutationEnd(&mutation);
+    if (rejected) { end(owner); xrtSetErrorKind(XERR_STATE); }
+    return success ? 1 : -1;
+}
+void xl6ListGraphEndV1(XL6_ListGraphViewV1* view)
+{
+    if (!view || !view->owner) abort();
+    ListOwner* owner=view->owner; *view=(XL6_ListGraphViewV1){0}; end(owner);
+}
+static ListOwner* graphOwner(const XL6_ListGraphViewV1* view)
+{
+    ListOwner* owner=view ? view->owner : NULL;
+    if (!owner || !xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE) || owner->cleared ||
+        !owner->projected || owner->storage!=view->storage || !sameLayout(&owner->layout,&view->layout)) {
+        xrtSetErrorKind(XERR_STATE); return NULL;
+    }
+    return owner;
+}
+xvalue* xl6ListGraphEmptyV1(const XL6_ListGraphViewV1* view)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return NULL;
+    ListOwner* owner=graphOwner(view); XL6_SequenceAdmissionV3 policy={0}; xvalue* result=NULL;
+    if (owner && owner->policy.ops->Retain(owner->policy.data)) {
+        policy=owner->policy;
+        xtypedlist* storage=xrtTypedListCreate(xl6SequenceStorageTypeV1(owner->layout.value.transfer,owner->layout.value.type));
+        if (storage) result=wrap(storage,&owner->layout,&policy,0,false,false,0,owner->projection,true);
+    }
+    xl6SequenceAdmissionDropV3(&policy);
+    if (!scopeFinish(&scope,result!=NULL)) { discard(result); return NULL; }
+    return result;
+}
+xvalue* xl6ListGraphProjectSlotV1(const XL6_ListGraphViewV1* view,const void* slot)
+{
+    ListOwner* owner=graphOwner(view);
+    if (!owner) return NULL;
+    if (owner->layout.value.transfer==3 || !slot) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
+    return projectedSlot(owner,slot);
 }
 bool xl6ListErasedReadV1(const xvalue* value,int64_t key,bool take,xvalue** output,bool* found)
 {

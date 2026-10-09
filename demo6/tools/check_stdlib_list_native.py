@@ -15,6 +15,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('root','out'): parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--sanitize',action='store_true')
+    parser.add_argument('--graph',action='store_true',help='Optional single-memo List/Array/object graph provider and exact format plans')
     args=parser.parse_args(); root=args.root.resolve(); out=args.out.resolve()
     cc,nm=shutil.which('gcc'),shutil.which('nm')
     assert cc and nm and not out.exists() and (not args.sanitize or sys.platform=='linux')
@@ -29,6 +30,11 @@ def main():
         'src/runtime/xl6_ownership_plan.c','src/runtime/xl6_array_future_admission.c','src/runtime/xl6_char_type.c',
         'src/runtime/xl6_char_value.c','src/runtime/xl6_list_schema.c','src/runtime/xl6_array_sequence_admission.c',
         'src/runtime/xl6_array.c','src/runtime/xl6_stack.c']
+    if args.graph:
+        sources.remove('test/support/list_native.c')
+        sources+=['test/support/list_graph_native.c','test/cases/stdlib_list_graph_native_host.c',
+            'src/runtime/xl6_list_graph.c','src/runtime/xl6_array_graph.c','src/runtime/xl6_array_erased.c',
+            'src/runtime/xl6_persistence_project.c']
     files={Path(__file__).resolve(),Path(cc),Path(nm),Path(sys.executable)}
     files.update(root/name for name in sources)
     for folder in ('src/runtime','src/api','release/include','lib/xrt','lib/xruntime','test/support'):
@@ -37,11 +43,12 @@ def main():
     rows=[]; prefixes=[]; failures=[]
     report={'Complete':False,'InputsUnchanged':False,'Inputs':inputs,'Rows':rows,'Prefixes':prefixes,
         'Failures':failures,'Platform':sys.platform,'Sanitized':args.sanitize,
+        'Graph':args.graph,
         'SelectedNativeClosureInstrumented':args.sanitize,'WholeRuntimeInstrumented':False,
         'ShippingLibraryAcceptance':False,'SourceLanguageListCutover':False,'Full53Acceptance':False,
         'CleanupBoundaryFailureInjection':'GNU ld --wrap; real cleanup delegates except explicitly armed vectors; not actual OS exhaustion',
         'EntryBoundaryFailureInjection':'GNU ld --wrap=xl6ErrorScopeBegin; delegates unless explicitly armed; not actual OS exhaustion',
-        'Scope':__doc__}
+        'Scope':'Private List/Array/object single XRT graph memo, resident provider/format plans, native deep copy and data projection; not recursive restore, source carrier or shipping/full53 acceptance' if args.graph else __doc__}
     out.mkdir(parents=True)
     env=dict(os.environ)
     if args.sanitize: env.update(ASAN_OPTIONS='detect_leaks=1:detect_stack_use_after_return=1:halt_on_error=1',
@@ -60,6 +67,7 @@ def main():
             return None
         return data.decode(errors='replace')
     flags=['-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease','-Irelease/include']
+    if args.graph: flags+=['-DXL6_TEST_LIST_GRAPH']
     links=['-Wl,--wrap=xl6ErrorScopeBeginCleanup','-Wl,--wrap=xl6ErrorScopeBegin']+([] if os.name=='nt' else ['-pthread','-lm'])
     if os.name!='nt': flags+=['-D_GNU_SOURCE']
     if args.sanitize: flags+=['-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie']
@@ -71,6 +79,9 @@ def main():
         'merge-keep','merge-replace','ref-equal','value-get','value-take','value-set','value-append',
         'wire','import-wire','import-native','import-convert','projection-take',
         'schema-create','schema-list-create','schema-deep-create')
+    if args.graph:
+        modes+=('graph-profiles','graph-mixed','graph-cycles','graph-plans','graph-codec-errors','graph-entry-errors','graph-provider-errors')
+        operations+=('graph-deep','graph-data','graph-sequence','graph-project','graph-mixed-deep','graph-mixed-data')
     try:
         for level in (0,2):
             lane='O'+str(level); binary=out/('list-'+lane+('.exe' if os.name=='nt' else ''))
@@ -81,7 +92,11 @@ def main():
             assert {'xl6ListCreateTakeV1','xl6ListCursorAdvanceV1','xrtTypedListClone',
                 'xl6ListToWireV1','xl6ListImportTakeV1','xrtTypedListSetValue',
                 'xl6SequenceListCreateTakeV1','xl6ListSchemaCopyV1'}<=names
-            assert not {'xl6ArrayFromValueV1','xl6ArrayToValueV1','xl6ArrayErasedReadV1'}&names
+            assert not {'xl6ArrayFromValueV1','xl6ArrayToValueV1'}&names
+            if args.graph:
+                assert {'xl6ListGraphProviderV1','xl6ValueDeepCloneNativeV1','xl6PersistenceProjectNativeV1',
+                    'xrtValueGraphCopyV1','xrtValueGraphNextV1'}<=names
+            else: assert not {'xl6ArrayErasedReadV1','xl6ListGraphProviderV1','xl6ValueDeepCloneNativeV1'}&names
             for mode in modes: run(lane+'.'+mode,[binary,mode])
             for operation in operations:
                 for point in range(4097):

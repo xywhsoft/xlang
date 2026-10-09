@@ -46,6 +46,9 @@ typedef struct XL6_PersistencePlanV1 {
  * in the result. Unknown objects bearing a language class marker fail closed
  * instead of silently serializing private/internal storage. */
 XL6_TEXT_API xvalue* xl6PersistenceProjectV1(const xvalue*, const XL6_PersistencePlanV1*);
+/* Native provider/format rules join the SAME object/wire graph memo. The
+ * synchronous closed plan is never retained; V1 object/field ABI is unchanged. */
+XL6_TEXT_API xvalue* xl6PersistenceProjectNativeV1(const xvalue*,const XL6_PersistencePlanV1*,const XL6_ValueGraphPlanV1*);
 XL6_TEXT_API bool xl6PersistenceProjectOpenV1(const XL6_PersistenceOpenV1*,
     xvaluegraphnextv1*, xvalue*);
 #endif

@@ -92,3 +92,12 @@ xvalue* xl6PersistenceProjectV1(const xvalue* source, const XL6_PersistencePlanV
     if (!planValid(plan)) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
     return xl6ValueDataProjectV1(source,projectObject,(ptr)plan,plan->sequences,plan->sequenceCount);
 }
+xvalue* xl6PersistenceProjectNativeV1(const xvalue* source,const XL6_PersistencePlanV1* plan,
+    const XL6_ValueGraphPlanV1* native)
+{
+    if (!planValid(plan)) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
+    /* The graph entry validates native table size/count/pointers before any
+     * access. An object/native ID collision also fails closed during its
+     * selected provider dispatch, not by interpreting object storage as List. */
+    return xl6ValueDataProjectNativeV1(source,projectObject,(ptr)plan,plan->sequences,plan->sequenceCount,native);
+}
