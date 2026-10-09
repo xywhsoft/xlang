@@ -1,0 +1,3 @@
+export func stackBatchProbe() as int
+    return 42
+end

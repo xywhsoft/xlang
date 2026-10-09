@@ -1,0 +1,2 @@
+auto stack = Stack::<int>()
+stack.pushBatch(Stack::<int>())

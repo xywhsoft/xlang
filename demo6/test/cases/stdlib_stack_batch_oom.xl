@@ -1,0 +1,26 @@
+func main(...) as int
+    auto source = Stack::<string>()
+    assert(source.pushBatch(array["a\0b", "你\0好", ""]))
+    auto snapshot = source.peekBatch(2)
+    auto below = source.peekBatchAt(1, 9)
+    auto empty = source.popBatch(0)
+    auto output = source.popBatch(9)
+    assert(source.count() == 0 and empty.length == 0)
+    assert(snapshot.length == 2 and below.length == 2 and output.length == 3)
+    assert(snapshot[0] == "" and below[1] == "a\0b")
+    assert(source.pushBatch(output))
+    auto reversed = source.popBatch(9)
+    assert(reversed[0] == "a\0b" and string.byteLen(reversed[0]) == 3)
+    auto optional = Stack::<int8?>()
+    assert(optional.pushBatch(array[int8(-128), null, int8(127)]))
+    auto numbers = optional.popBatch(9)
+    assert(numbers.length == 3 and numbers[1] == null)
+    int round = 0
+    while round < 20
+        assert(source.pushBatch(array["a\0b"]))
+        round += 1
+    end
+    auto wide = source.popBatch(100)
+    assert(wide.length == 20 and wide[19] == "a\0b")
+    return 0
+end

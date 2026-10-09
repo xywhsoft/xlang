@@ -2,6 +2,7 @@
 #include "src/runtime/xl6_stack_batch.h"
 #include "src/runtime/xl6_array.h"
 #include "src/runtime/xl6_array_admission.h"
+#include "src/runtime/xl6_array_reference_value.h"
 #include "src/runtime/xl6_string_type.h"
 #include "src/runtime/xl6_nullable_string.h"
 #include "src/runtime/xl6_scalar_type_abi.h"
@@ -25,19 +26,29 @@ static Spec spec(unsigned profile)
     return (Spec){profile,profile==1 || profile==2 ? 2u : profile>=3 && profile<=5 ? 3u : 1u,
         types[profile],UINT64_C(100)+profile,UINT64_C(200)+profile,UINT64_C(300)+profile};
 }
-static xvalue* create(const Spec* s)
+static xvalue* createRole(const Spec* s,XL6_SequenceRoleV1 role)
 {
-    if (s->profile==7) return xl6SequenceCScalarCreateV1(XL6_SEQUENCE_ARRAY_V1,s->array,s->element,s->type,s->element);
+    uint64_t identity=role==XL6_SEQUENCE_ARRAY_V1 ? s->array : s->stack;
+    if (s->profile==7) return xl6SequenceCScalarCreateV1(role,identity,s->element,s->type,s->element);
     if (s->profile==5) {
         const uint64_t identities[]={777};
         XL6_NominalAdmissionV1 schema={.kind=XL6_NOMINAL_ADMIT_EXACT_ID,.identities=identities,.count=1};
-        return xl6SequenceNominalCreateV1(XL6_SEQUENCE_ARRAY_V1,s->array,s->element,&schema,true,777);
+        return xl6SequenceNominalCreateV1(role,identity,s->element,&schema,true,777);
     }
-    if (s->transfer==3) return xl6SequenceReferenceCreateV1(XL6_SEQUENCE_ARRAY_V1,s->array,s->element,
+    if (s->transfer==3) return xl6SequenceReferenceCreateV1(role,identity,s->element,
         s->profile==4 ? XL6_VALUE_ADMIT_BYTES : XL6_VALUE_ADMIT_ANY,false,s->profile==4 ? s->element : 0);
     unsigned rule=s->profile==1 || s->profile==2 ? XL6_VALUE_ADMIT_STRING : XL6_VALUE_ADMIT_I8;
-    return xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,s->array,s->element,s->transfer,s->type->Size,s->type,rule,
+    return xl6SequencePrimitiveCreateV1(role,identity,s->element,s->transfer,s->type->Size,s->type,rule,
         s->profile==2 || s->profile==6,s->profile==2 || s->profile==6 ? s->element+1000 : s->element);
+}
+static xvalue* create(const Spec* s) { return createRole(s,XL6_SEQUENCE_ARRAY_V1); }
+static const xvalueconverter* projection(const Spec* s)
+{
+    if (s->profile==1) return xl6StringConverterV1();
+    if (s->profile==2) return xl6NullableStringConverterV1();
+    if (s->transfer==3) return xl6ArrayReferenceConverterV1();
+    if (s->profile==6) return xl6NullableI64ConverterV1();
+    return NULL;
 }
 static Slot item(const Spec* s,int64_t number)
 {
@@ -183,6 +194,44 @@ static void graphs(void)
         retire(cycle); assert(xrtValueWeakRefExpired(weak)); xrtValueRelease(weak); ++Checks;
     }
 }
+static void ownedVectors(const Spec* s)
+{
+    xvalue* stack=createRole(s,XL6_SEQUENCE_STACK_V1),*source=create(s); assert(stack && source);
+    fill(s,NULL,source); assert(xl6StackPushBatchV1(stack,STACK(s),source,s->array));
+    xarray saved=storage(s,stack,true);
+    xvalue* snapshot=xl6StackExtractArrayV1(stack,STACK(s),s->array,1,INT64_MAX,false,projection(s));
+    assert(snapshot); values(s,snapshot,2,2); unchanged(s,stack,true,saved);
+    xrtSetErrorKind(XERR_STATE); const xerror* pending=xrtGetError(); assert(pending);
+    xvalue* moved=xl6StackExtractArrayV1(stack,STACK(s),s->array,0,INT64_MAX,true,projection(s));
+    assert(moved && xrtGetError()==pending); xrtClearError(); values(s,moved,3,3);
+    xvalue* zero=xl6StackExtractArrayV1(stack,STACK(s),s->array,0,0,true,projection(s));
+    assert(zero && zero!=moved && zero!=snapshot); values(s,zero,0,0);
+    assert(!xl6StackExtractArrayV1(stack,STACK(s),s->array,-1,0,false,projection(s))); error(XERR_RANGE);
+    assert(!xl6StackExtractArrayV1(stack,STACK(s),s->array,0,-1,true,projection(s))); error(XERR_RANGE);
+    assert(!xl6StackExtractArrayV1(stack,STACK(s),s->array,1,0,false,projection(s))); error(XERR_RANGE);
+    assert(!xl6StackExtractArrayV1(stack,STACK(s),0,0,0,false,projection(s))); error(XERR_ARGUMENT);
+    xrtValueRelease(stack); xrtValueRelease(source);
+    values(s,moved,3,3); values(s,snapshot,2,2);
+    xrtValueRelease(zero); xrtValueRelease(moved); xrtValueRelease(snapshot);
+}
+static void ownedFault(const Spec* s,const char* operation,size_t point)
+{
+    xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
+    xvalue* stack=createRole(s,XL6_SEQUENCE_STACK_V1),*source=create(s); assert(stack && source);
+    fill(s,NULL,source); assert(xl6StackPushBatchV1(stack,STACK(s),source,s->array));
+    xarray saved=storage(s,stack,true); bool take=strstr(operation,"pop")!=NULL;
+    int64_t count=strstr(operation,"zero") ? 0 : 3;
+    assert(xrtMemDebugFailAfter(point));
+    xvalue* result=xl6StackExtractArrayV1(stack,STACK(s),s->array,0,count,take,projection(s));
+    bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
+    if (hit) { assert(!result); error(XERR_MEMORY); unchanged(s,stack,true,saved); }
+    else {
+        assert(result && !xrtGetError()); values(s,result,3,count);
+        assert(xl6StackSizeV1(stack,STACK(s),false)==(take ? 3-count : 3));
+    }
+    xrtValueRelease(stack); xrtValueRelease(source); xrtValueRelease(result);
+    balanced(&before); printf("profile=%u operation=%s point=%zu hit=%d balanced\n",s->profile,operation,point,(int)hit);
+}
 static void fault(const Spec* s,const char* operation,size_t point)
 {
     xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
@@ -214,8 +263,12 @@ static void fault(const Spec* s,const char* operation,size_t point)
 int main(int argc,char** argv)
 {
     assert(xrtMemDebugEnable(true));
-    if (argc==4) { Spec s=spec((unsigned)strtoul(argv[1],NULL,10)); fault(&s,argv[2],(size_t)strtoull(argv[3],NULL,10)); return 0; }
+    if (argc==4) {
+        Spec s=spec((unsigned)strtoul(argv[1],NULL,10)); size_t point=(size_t)strtoull(argv[3],NULL,10);
+        if (!strncmp(argv[2],"owned-",6)) ownedFault(&s,argv[2],point); else fault(&s,argv[2],point);
+        return 0;
+    }
     assert(argc==1); xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
-    for (unsigned i=0;i<8;++i) { Spec s=spec(i); vectors(&s); }
+    for (unsigned i=0;i<8;++i) { Spec s=spec(i); vectors(&s); ownedVectors(&s); }
     domain(); graphs(); balanced(&before); printf("native Stack batch: 8 profiles, %u vectors balanced\n",Checks); return 0;
 }

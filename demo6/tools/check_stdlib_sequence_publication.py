@@ -16,11 +16,13 @@ def digest(path: Path) -> str:
 
 def main() -> int:
     parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--root',type=Path,help='Frozen production source/product root; tests come from this tool project')
     parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--sanitize',action='store_true')
     parser.add_argument('--shared',action='store_true',help='Actual product ABI; sanitizer instruments host only')
     args=parser.parse_args()
-    root=Path(__file__).resolve().parents[1]; out=args.out.resolve()
+    project=Path(__file__).resolve().parents[1]
+    root=args.root.resolve() if args.root else project; out=args.out.resolve()
     cc,nm=shutil.which('gcc'),shutil.which('nm')
     objdump=shutil.which('objdump') if args.shared and os.name=='nt' else None
     if out.exists() or not cc or not nm or (args.sanitize and os.name=='nt') or (args.shared and os.name=='nt' and not objdump):
@@ -30,10 +32,11 @@ def main() -> int:
         'src/runtime/xl6_stack.c','src/runtime/xl6_stack_batch.c','src/runtime/xl6_array_primitive_admission.c',
         'src/runtime/xl6_array_reference_admission.c','src/runtime/xl6_value_admission.c',
         'src/runtime/xl6_string_type.c','src/runtime/xl6_nullable_string.c',
-        'src/runtime/xl6_nullable_i64.c','src/runtime/xl6_ownership_plan.c']
+        'src/runtime/xl6_nullable_i64.c','src/runtime/xl6_ownership_plan.c','src/api/xl_foreign_error.c']
     product=root/('release/xl.dll' if os.name=='nt' else 'release/libxl.so')
+    source_paths=[project/name if name.startswith('test/') else root/name for name in sources]
     files={Path(__file__),Path(cc),Path(nm),Path(sys.executable),root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h'}
-    files.update(root/name for name in sources)
+    files.update(source_paths)
     for directory in ['src/runtime','release/include']: files.update((root/directory).rglob('*.h'))
     if args.shared:
         files.add(product)
@@ -62,9 +65,9 @@ def main() -> int:
     try:
         for level in [0,2]:
             lane=f'O{level}'; binary=out/(lane+('.exe' if os.name=='nt' else ''))
-            selected,linked=sources,links
+            selected,linked=list(map(str,source_paths)),links
             if args.shared:
-                selected=[host]
+                selected=[str(project/host)]
                 linked=[str(product)] if os.name=='nt' else ['-Lrelease','-lxl','-Wl,-rpath,'+str(root/'release'),*links]
             run(lane+'.build',[cc,*flags,f'-O{level}',*selected,*linked,'-o',str(binary)],timeout=180)
             symbols=run(lane+'.symbols',([objdump,'-p',str(product)] if objdump else

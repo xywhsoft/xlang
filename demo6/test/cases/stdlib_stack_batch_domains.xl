@@ -1,0 +1,55 @@
+class StackBatchBox
+    int value = 7
+end
+enum StackBatchEnum as int8
+    low = -128
+    high = 127
+end
+func main(...) as int
+    auto optional = Stack::<string?>()
+    string? empty = ""
+    string? text = "a\0b"
+    assert(optional.pushBatch(array<string?>[null, empty, text]))
+    auto texts = optional.popBatch(9)
+    assert(texts.length == 3 and texts[0] == text and texts[1] == empty and texts[2] == null)
+    assert(texts[1] != null)
+    auto data = Stack::<bytes>()
+    assert(data.pushBatch(array[b"a\0\xff", b""]))
+    auto original = data.peekBatch(2)
+    auto moved = data.popBatch(2)
+    bytes edited = moved[1]
+    edited[0] = 90
+    assert(original[1] == b"a\0\xff" and moved[1] == b"a\0\xff")
+    auto numbers = Stack::<int8?>()
+    int8? minimum = int8(-128)
+    assert(numbers.pushBatch(array<int8?>[null, minimum]))
+    auto values = numbers.popBatch(9)
+    assert(values[0] == minimum and values[1] == null)
+    auto chars = Stack::<char?>()
+    char? glyph = '你'
+    assert(chars.pushBatch(array<char?>[null, glyph]))
+    auto characters = chars.peekBatchAt(0, 9)
+    assert(characters[0] == glyph and characters[1] == null)
+    auto native = Stack::<c_int?>()
+    c_int? number = c_int(-7)
+    assert(native.pushBatch(array<c_int?>[null, number]))
+    auto nativeValues = native.popBatch(3)
+    assert(nativeValues[0] == number and nativeValues[1] == null)
+    auto enumerated = Stack::<StackBatchEnum>()
+    assert(enumerated.pushBatch(array[StackBatchEnum.low, StackBatchEnum.high]))
+    auto enums = enumerated.popBatch(3)
+    assert(enums[0] == StackBatchEnum.high and enums[1] == StackBatchEnum.low)
+    auto objects = Stack::<StackBatchBox?>()
+    auto box = StackBatchBox()
+    assert(objects.pushBatch(array<StackBatchBox?>[null, box]))
+    auto references = objects.popBatch(3)
+    box.value = 23
+    auto reference = references[0]
+    assert(reference != null and references[1] == null)
+    if reference != null then assert(reference.value == 23) end
+    auto dynamic = Stack::<var>()
+    assert(dynamic.pushBatch(array<var>[42, "a\0b", b"\0\xff"]))
+    auto dynamicResult = dynamic.popBatch(3)
+    assert(dynamicResult[0] == b"\0\xff" and dynamicResult[1] == "a\0b" and dynamicResult[2] == 42)
+    return 0
+end

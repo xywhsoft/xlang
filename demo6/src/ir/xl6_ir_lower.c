@@ -15806,6 +15806,9 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
          result != NULL && result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) ||
         intrinsic->runtimeResourceOp ==
             XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLONE ||
+        intrinsic->runtimeResourceOp == XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP_BATCH ||
+        intrinsic->runtimeResourceOp == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_BATCH ||
+        intrinsic->runtimeResourceOp == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_BATCH_AT ||
         intrinsic->runtimeResourceOp ==
             XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLONE ||
         intrinsic->runtimeResourceOp ==
@@ -16068,6 +16071,19 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
                      module, payloadType) ||
              intrinsic->runtimeResourcePayloadAbi ==
                  XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID ) return 0;
+        if (xl6IrStackBatchResourceOpIs(intrinsic->runtimeResourceOp)) {
+            XL6_IrTypeId types[3]={0};
+            if (intrinsic->operandCount>3) return 0;
+            for (size_t i=0;i<intrinsic->operandCount;++i) {
+                types[i]=operands[i].type;
+                const XL6_IrType* type=xl6IrTypeGet(&module->types,types[i]);
+                XL6_IrIntrinsicOperandAbi abi=type && type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED
+                    ? XL6_IR_INTRINSIC_OPERAND_BORROW : XL6_IR_INTRINSIC_OPERAND_VALUE;
+                if (!type || operands[i].abi!=abi) return 0;
+            }
+            return xl6IrStackBatchSignatureCompatible(module,intrinsic->runtimeResourceOp,
+                intrinsic->receiverType,intrinsic->resultType,types,intrinsic->operandCount);
+        }
         switch ( intrinsic->runtimeResourceOp ) {
         case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH:
             return intrinsic->operandCount == 2 && result != NULL &&
@@ -24066,6 +24082,14 @@ static XL6_IrRuntimeOp xl6IrLowerRuntimeResourceOp(
         return XL6_IR_RUNTIME_STACK_CREATE;
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH:
         return XL6_IR_RUNTIME_STACK_PUSH;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH_BATCH:
+        return XL6_IR_RUNTIME_STACK_PUSH_BATCH;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP_BATCH:
+        return XL6_IR_RUNTIME_STACK_POP_BATCH;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_BATCH:
+        return XL6_IR_RUNTIME_STACK_PEEK_BATCH;
+    case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_BATCH_AT:
+        return XL6_IR_RUNTIME_STACK_PEEK_BATCH_AT;
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_RESERVE:
         return XL6_IR_RUNTIME_STACK_RESERVE;
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_CLONE:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Native Stack batch and atomic pre-owned Array publication; not source Array cutover."""
+"""Native Stack batch and independently owned Array publication; not full53 acceptance."""
 from __future__ import annotations
 import argparse
 import hashlib
@@ -16,11 +16,14 @@ def digest(path: Path) -> str:
 
 def main() -> int:
     parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--root',type=Path,help='Frozen production source/product root; tests come from this tool project')
+    parser.add_argument('--library',choices=('runtime','compiler'),default='runtime')
     parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--sanitize',action='store_true')
     parser.add_argument('--shared',action='store_true',help='Real product ABI; sanitizer instruments host only')
     args=parser.parse_args()
-    root=Path(__file__).resolve().parents[1]; out=args.out.resolve()
+    project=Path(__file__).resolve().parents[1]
+    root=args.root.resolve() if args.root else project; out=args.out.resolve()
     cc,nm=shutil.which('gcc'),shutil.which('nm')
     objdump=shutil.which('objdump') if args.shared and os.name=='nt' else None
     if out.exists() or not cc or not nm or (args.sanitize and os.name=='nt') or (args.shared and os.name=='nt' and not objdump):
@@ -28,13 +31,17 @@ def main() -> int:
     host='test/cases/stdlib_stack_batch_native_host.c'
     sources=[host,'test/support/stack_native.c','src/runtime/xl6_sequence.c','src/runtime/xl6_array.c',
         'src/runtime/xl6_stack.c','src/runtime/xl6_stack_batch.c','src/runtime/xl6_array_reference_admission.c',
+        'src/runtime/xl6_array_reference_value.c','src/runtime/xl6_string_value.c','src/runtime/xl6_nullable_i64_value.c',
+        'src/api/xl_foreign_error.c',
         'src/runtime/xl6_array_nominal_admission.c','src/runtime/xl6_array_primitive_admission.c',
         'src/runtime/xl6_array_c_scalar_admission.c','src/runtime/xl6_value_admission.c',
         'src/runtime/xl6_nominal_admission.c','src/runtime/xl6_string_type.c','src/runtime/xl6_nullable_string.c',
         'src/runtime/xl6_nullable_i64.c','src/runtime/xl6_ownership_plan.c']
-    product=root/('release/xl.dll' if os.name=='nt' else 'release/libxl.so')
+    product=root/('release/'+(('xl.dll' if args.library=='runtime' else 'xlc.dll') if os.name=='nt'
+        else ('libxl.so' if args.library=='runtime' else 'libxlc.so')))
+    source_paths=[project/name if name.startswith('test/') else root/name for name in sources]
     files={Path(__file__),Path(cc),Path(nm),Path(sys.executable),root/'lib/xrt/xrt.h',root/'lib/xruntime/xruntime.h'}
-    files.update(root/name for name in sources)
+    files.update(source_paths)
     for directory in ['src/runtime','release/include']: files.update((root/directory).rglob('*.h'))
     if args.shared:
         files.add(product)
@@ -42,10 +49,10 @@ def main() -> int:
     inputs=[{'Path':str(path.resolve()),'Sha256':digest(path)} for path in sorted(files)]
     rows=[]; sweeps=[]
     report={'Complete':False,'InputsUnchanged':False,'Inputs':inputs,'Rows':rows,'Sweeps':sweeps,
-        'Profiles':8,'SharedRuntime':args.shared,'Sanitized':args.sanitize,
+        'Profiles':8,'SharedRuntime':args.shared,'SharedLibrary':args.library if args.shared else None,'Sanitized':args.sanitize,
         'RuntimeInstrumented':args.sanitize and not args.shared,'Scope':__doc__}
     out.mkdir(parents=True)
-    if args.shared and os.name=='nt': shutil.copy2(product,out/'xl.dll')
+    if args.shared and os.name=='nt': shutil.copy2(product,out/product.name)
     env=dict(os.environ)
     flags=['-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease','-Irelease/include']
     links=[] if os.name=='nt' else ['-pthread','-lm']
@@ -63,21 +70,21 @@ def main() -> int:
     try:
         for level in [0,2]:
             lane=f'O{level}'; binary=out/(lane+('.exe' if os.name=='nt' else ''))
-            selected=sources; linked=links
+            selected=list(map(str,source_paths)); linked=links
             if args.shared:
-                selected=[host]
-                linked=[str(product)] if os.name=='nt' else ['-Lrelease','-lxl','-Wl,-rpath,'+str(root/'release'),*links]
+                selected=[str(project/host)]
+                linked=[str(product)] if os.name=='nt' else [str(product),'-Wl,-rpath,'+str(root/'release'),*links]
             run(lane+'.build',[cc,*flags,f'-O{level}',*selected,*linked,'-o',str(binary)],timeout=180)
             symbols=run(lane+'.symbols',([objdump,'-p',str(product)] if objdump else
                 [nm,*(['-D'] if args.shared else []),'--defined-only',str(product if args.shared else binary)]))
             names={line.split()[-1].lstrip('_') for line in symbols.splitlines() if line.split()}
-            assert {'xl6StackPushBatchV1','xl6StackExtractBatchV1','xl6SequenceExtractTailV1'}<=names
+            assert {'xl6StackPushBatchV1','xl6StackExtractBatchV1','xl6StackExtractArrayV1','xl6SequenceExtractTailV1'}<=names
             if not args.shared:
                 assert not {'xl6ArrayFromValueV1','xl6ArrayToValueV1','xl6ArrayErasedReadV1'}&names
             vectors=run(lane+'.vectors',[str(binary)])
             assert 'native Stack batch: 8 profiles,' in vectors and 'vectors balanced' in vectors
             for profile in range(8):
-                for operation in ['push','pop','peek','prepare-pop']:
+                for operation in ['push','pop','peek','prepare-pop','owned-pop','owned-peek','owned-zero-pop','owned-zero-peek']:
                     for point in range(513):
                         text=run(f'{lane}.p{profile}.{operation}.{point}',[str(binary),str(profile),operation,str(point)])
                         match=re.search(r'hit=([01]) balanced',text); assert match,'Missing ownership outcome'

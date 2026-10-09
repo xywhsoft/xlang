@@ -1,0 +1,72 @@
+func batchGeneric<T>(Stack<T> stack, array<T> input) as array<T>
+    assert(stack.pushBatch(input))
+    assert(stack.peekBatchAt(0, 1).length == 1)
+    return stack.popBatch(9223372036854775807)
+end
+func textBatch() as array<string>
+    auto stack = Stack::<string>()
+    assert(stack.pushBatch(array["a\0b", "你\0好", ""]))
+    auto snapshot = stack.peekBatch(9223372036854775807)
+    assert(snapshot.length == 3 and snapshot[0] == "" and snapshot[1] == "你\0好")
+    auto below = stack.peekBatchAt(1, 9223372036854775807)
+    assert(below.length == 2 and below[0] == "你\0好" and below[1] == "a\0b")
+    assert(stack.count() == 3)
+    auto moved = stack.popBatch(9223372036854775807)
+    assert(stack.count() == 0 and moved == snapshot)
+    assert(stack.pushBatch(moved))
+    return stack.popBatch(3)
+end
+
+func main(...) as int
+    auto stack = Stack::<int>()
+    println("Stack batch: generic")
+    assert(batchGeneric::<int>(stack, array[7, 8]) == array<int>[8, 7])
+    assert(stack.pushBatch(array[1, 2, 3]))
+    println("Stack batch: peek")
+    auto snapshot = stack.peekBatch(2)
+    assert(snapshot == array<int>[3, 2] and stack.count() == 3)
+    assert(stack.peekBatchAt(3, 1).length == 0)
+    assert(stack.peekBatch(0).length == 0 and stack.popBatch(0).length == 0)
+    assert(stack.count() == 3)
+    int refused = 0
+    println("Stack batch: ranges")
+    try
+        stack.popBatch(-1)
+    catch RangeError failure
+        refused += 1
+    end
+    try
+        stack.peekBatchAt(-1, 1)
+    catch RangeError failure
+        refused += 1
+    end
+    try
+        stack.peekBatchAt(4, 0)
+    catch RangeError failure
+        refused += 1
+    end
+    try
+        stack.peekBatchAt(0, -1)
+    catch RangeError failure
+        refused += 1
+    end
+    assert(refused == 4 and stack.count() == 3)
+    println("Stack batch: pop")
+    assert(stack.pushBatch(snapshot) and stack.count() == 5)
+    auto result = stack.popBatch(100)
+    assert(result == array<int>[2, 3, 3, 2, 1] and stack.count() == 0)
+    assert(stack.popBatch(1).length == 0 and snapshot == array<int>[3, 2])
+    snapshot.push(9)
+    assert(result.length == 5 and stack.count() == 0)
+    auto text = textBatch()
+    println("Stack batch: text")
+    assert(text == array<string>["a\0b", "你\0好", ""] and string.byteLen(text[0]) == 3)
+    int round = 0
+    while round < 4
+        assert(stack.pushBatch(array[round]))
+        auto loopResult = stack.popBatch(1)
+        assert(loopResult[0] == round)
+        round += 1
+    end
+    return 0
+end

@@ -10,5 +10,10 @@
 XL6_TEXT_API bool xl6StackPushBatchV1(const xvalue*, XL6_STACK_BATCH_LAYOUT, const xvalue*, uint64_t);
 XL6_TEXT_API bool xl6StackExtractBatchV1(const xvalue*, XL6_STACK_BATCH_LAYOUT, const xvalue*, uint64_t,
     int64_t, int64_t, bool);
+/* Owned language result: share immutable resident admission metadata, prepare
+ * its empty Array/projection before moving anything, then publish without any
+ * post-move allocation. No source owner or generated callback is retained. */
+XL6_TEXT_API xvalue* xl6StackExtractArrayV1(const xvalue*, XL6_STACK_BATCH_LAYOUT, uint64_t,
+    int64_t, int64_t, bool, const xvalueconverter*);
 #undef XL6_STACK_BATCH_LAYOUT
 #endif

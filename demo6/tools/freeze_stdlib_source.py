@@ -16,6 +16,7 @@ def main():
     assert not out.exists()
     assert runtime is None or (runtime/'release/xl.dll').is_file()
     paths=['demo6/'+name for name in ('src','lib','tools','docs','test/cases','test/support','test/suites',
+        'test/fixtures/native_stack_batch_rejected',
         'res','release/include','include','build.bat','build_dll.bat','build_linux.sh','.gitattributes','.gitignore')]
     # The ordinary Windows build compiles its committed host examples too.
     # Export source fixtures, never old binaries or extension packages.

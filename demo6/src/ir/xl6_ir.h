@@ -185,6 +185,10 @@ typedef enum XL6_IrRuntimeResourceOp {
     XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_POP,
     XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK,
     XL6_IR_RUNTIME_RESOURCE_OP_STACK_TRY_PEEK_AT,
+    XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH_BATCH,
+    XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP_BATCH,
+    XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_BATCH,
+    XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_BATCH_AT,
     XL6_IR_RUNTIME_RESOURCE_OP_STACK_CAPACITY,
     /* AvlTree<K,V> is deliberately not encoded as a one-payload resource.
      * Every operation carries independent key/value transfer contracts plus
@@ -1857,6 +1861,10 @@ typedef enum XL6_IrRuntimeOp {
        XL6_IR_RUNTIME_STACK_TRY_POP,
        XL6_IR_RUNTIME_STACK_TRY_PEEK,
        XL6_IR_RUNTIME_STACK_TRY_PEEK_AT,
+       XL6_IR_RUNTIME_STACK_PUSH_BATCH,
+       XL6_IR_RUNTIME_STACK_POP_BATCH,
+       XL6_IR_RUNTIME_STACK_PEEK_BATCH,
+       XL6_IR_RUNTIME_STACK_PEEK_BATCH_AT,
        XL6_IR_RUNTIME_STACK_CAPACITY,
        XL6_IR_RUNTIME_AVL_TREE_CREATE,
        XL6_IR_RUNTIME_AVL_TREE_SET,
@@ -6485,6 +6493,10 @@ const XL6_IrNominalIdentitySet* xl6IrNominalIdentitySetGet(
  * No wire Array or unsupported slot codec is silently accepted. */
 int xl6IrStackConstructionContract(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrNominalIdentitySetId*);
+int xl6IrStackBatchResourceOpIs(XL6_IrRuntimeResourceOp);
+int xl6IrStackBatchSignatureCompatible(const XL6_IrModule*, XL6_IrRuntimeResourceOp,
+    XL6_IrTypeId, XL6_IrTypeId, const XL6_IrTypeId*, size_t);
+int xl6IrStackBatchInstructionCompatible(const XL6_IrModule*, const XL6_IrInstruction*);
 /* Complete native ARRAY/STACK target recipe, not source-carrier authority.
  * Re-derives physical fields and precomputed nominal sets; nested recipes
  * are bounded. Source producer authorization remains a separate contract. */

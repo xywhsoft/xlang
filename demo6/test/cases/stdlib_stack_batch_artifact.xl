@@ -1,0 +1,8 @@
+export func stackBatchProbe() as int
+    auto stack = Stack::<string>()
+    assert(stack.pushBatch(array["a\0b", "你"]))
+    auto values = stack.popBatch(9)
+    assert(values.length == 2 and values[0] == "你" and values[1] == "a\0b")
+    assert(stack.count() == 0)
+    return 42
+end

@@ -261,6 +261,8 @@ static int xl6IrCgenEmitResourceRuntime(
         xl6OutputPuts("extern xvalue* xl6ArrayProjectionTakeV1(xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const xvalueconverter*);\n",out);
     if (needs->needsStackResourceRuntime)
         xl6OutputPuts(
+            "extern bool xl6StackPushBatchV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const xvalue*, uint64_t);\n"
+            "extern xvalue* xl6StackExtractArrayV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, uint64_t, int64_t, int64_t, bool, const xvalueconverter*);\n"
             "extern bool xl6StackPushV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const void*);\n"
         "extern bool xl6StackTakeV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, int64_t, void*, bool);\n"
         "extern bool xl6StackTryTakeV2(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, int64_t, void*, bool, bool*);\n"
