@@ -10,6 +10,9 @@
 #include <string.h>
 #ifdef _WIN32
 #include <windows.h>
+#ifndef SYNC_JIT_TCC_DLL_NAME
+#define SYNC_JIT_TCC_DLL_NAME "xl.dll"
+#endif
 #endif
 static void repair(unsigned mode)
 {
@@ -28,7 +31,7 @@ static XL_Context* create(const char* root,const char* headers,const char* tempo
     XL_ContextOptions options=xlDefaultContextOptions();
     char runtime[4096],libraries[4096];
 #ifdef _WIN32
-    int n=snprintf(runtime,sizeof(runtime),"%s/release/xl.dll",root);
+    int n=snprintf(runtime,sizeof(runtime),"%s/release/" SYNC_JIT_TCC_DLL_NAME,root);
     int m=snprintf(libraries,sizeof(libraries),"%s/res/tcc/win64/x86_64",root);
 #else
     const char* native=getenv("XL6_SOURCE_NATIVE_ROOT"); assert(native && *native);
@@ -37,8 +40,15 @@ static XL_Context* create(const char* root,const char* headers,const char* tempo
 #endif
     assert(n>0 && (size_t)n<sizeof(runtime) && m>0 && (size_t)m<sizeof(libraries));
     options.workDir=root; options.tempDir=temporary; options.tccDllPath=runtime; options.tccLibPath=libraries;
+#ifdef SYNC_JIT_EMBEDDED_VFS
+    /* A shipping test isolates DLLs from the source tree and TCC distribution.
+     * Let the product select its own embedded headers/libraries; an explicit
+     * external include path would turn that into another source-only proof. */
+    options.tccLibPath=NULL;
+#endif
     XL_Context* context=xlCreateContext(&options); assert(context);
-    assert(xlAddIncludePath(context,headers)); return context;
+    if(strcmp(headers,"-")) assert(xlAddIncludePath(context,headers));
+    return context;
 }
 int main(int argc,char** argv)
 {
