@@ -1,0 +1,67 @@
+// Only persistence needs these clone protocols; no ordinary clone invocation.
+class IsolationRefused
+    derive value
+    int n = 3
+end
+class IsolationShallow
+    derive value
+    derive copy
+    int n = 5
+end
+class IsolationDeep
+    derive value
+    derive clone
+    int n = 7
+end
+class IsolationCustom
+    derive value
+    int n = 11
+    func __clone__() as IsolationCustom
+        auto result = IsolationCustom()
+        result.n = self.n + 20
+        return result
+    end
+end
+class IsolationFallback
+    derive value
+    int n = 13
+    func __copy__() as IsolationFallback
+        auto result = IsolationFallback()
+        result.n = self.n
+        return result
+    end
+end
+// A declared clone may still return the original. IR records the operation;
+// only the runtime can authenticate the returned construction capability.
+class IsolationAlias
+    derive value
+    int n = 19
+    func __clone__() as IsolationAlias
+        return self
+    end
+end
+class IsolationUnused
+    derive value
+    int n = 17
+    func __clone__() as IsolationUnused
+        return self
+    end
+end
+// Distinct default instances can refer to one external shared template. The
+// runtime must isolate this exact initialized value, not use a new default.
+IsolationCustom sharedDefault = IsolationCustom()
+class IsolationEnvelope
+    derive value
+    IsolationRefused refused
+    IsolationShallow shallow
+    IsolationDeep deep
+    IsolationCustom custom = sharedDefault
+    IsolationFallback fallback
+    IsolationAlias alias
+    IsolationCustom? optional = null
+    array<IsolationCustom> items = []
+end
+IsolationUnused unused = IsolationUnused()
+IsolationEnvelope first = json.parse::<IsolationEnvelope>("{}")
+IsolationEnvelope second = xlon.parse::<IsolationEnvelope>("{}")
+assert json.stringify(first) != "" and xlon.stringify(second) != "", "isolation IR roots"

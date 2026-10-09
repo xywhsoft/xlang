@@ -21,11 +21,66 @@ static int xl6IrRestoreGraphTablesValid(const XL6_IrModule* source,
     XL6_RESTORE_TABLE(source, instruction);
     XL6_RESTORE_TABLE(source, classLayout);
     XL6_RESTORE_TABLE(source, classField);
+    XL6_RESTORE_TABLE(source, callTarget);
     XL6_RESTORE_TABLE(recipes, persistenceRestorePlan);
     XL6_RESTORE_TABLE(recipes, persistenceRestoreSchema);
     XL6_RESTORE_TABLE(recipes, persistenceRestoreField);
 #undef XL6_RESTORE_TABLE
     return 1;
+}
+
+/* Select an existing language contract, never infer cloneability from fields.
+ * Shared defaults cannot use NONCOPYABLE_NULL as a successful isolation. The
+ * ordinary language fallback from clone to an explicitly declared copy stays
+ * part of ClassLayout; a shallow result may require further child isolation. */
+static int xl6IrRestoreGraphIsolation(const XL6_IrModule* source,
+    const XL6_IrClassLayout* layout, XL6_IrPersistenceRestoreNode* row)
+{
+    const XL6_IrCallTarget* target;
+    const XL6_IrFunction* function = NULL;
+    size_t i;
+    row->cloneErrorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
+    switch (layout->cloneAbi) {
+    case XL6_IR_CLASS_COPY_ABI_NONE:
+    case XL6_IR_CLASS_COPY_ABI_NONCOPYABLE_NULL:
+        if (layout->cloneTarget) return 0;
+        row->isolationAbi = XL6_IR_PERSIST_ISOLATION_CHECKED_REJECT; return 1;
+    case XL6_IR_CLASS_COPY_ABI_RUNTIME_SHALLOW:
+    case XL6_IR_CLASS_COPY_ABI_RUNTIME_DEEP:
+        if (layout->cloneTarget) return 0;
+        row->isolationAbi = layout->cloneAbi == XL6_IR_CLASS_COPY_ABI_RUNTIME_SHALLOW
+            ? XL6_IR_PERSIST_ISOLATION_RUNTIME_SHALLOW : XL6_IR_PERSIST_ISOLATION_RUNTIME_DEEP;
+        return 1;
+    case XL6_IR_CLASS_COPY_ABI_INTERNAL_CALL:
+        target = xl6IrCallTargetGet(source, layout->cloneTarget);
+        if (!target || target->kind != XL6_IR_CALL_TARGET_INTERNAL || !target->symbol ||
+            target->returnType != row->payloadType || target->parameterCount != 1 ||
+            !target->parameterTypes || !target->parameterAbis ||
+            !target->parameterPhysicalAbis ||
+            target->parameterTypes[0] != row->payloadType ||
+            target->parameterAbis[0] != XL6_IR_PARAMETER_ABI_BORROW ||
+            target->parameterPhysicalAbis[0] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
+            target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
+            target->resultConversionAbi != XL6_IR_CALL_RESULT_CONVERSION_DIRECT ||
+            target->resultCAbi != XL6_IR_CALL_RESULT_C_ABI_STORAGE ||
+            target->errorPhysicalAbi != (target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE
+                ? XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER : XL6_IR_CALL_ERROR_PHYSICAL_NONE) ||
+            (target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
+             target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE)) return 0;
+        for (i = 0; i < source->functionCount; ++i) {
+            const XL6_IrFunction* candidate = &source->functions[i];
+            if (candidate->symbol != target->symbol) continue;
+            if (function || i >= UINT32_MAX || candidate->kind != XL6_IR_FUNCTION_USER ||
+                candidate->declaration != target->declaration ||
+                candidate->returnType != row->payloadType || candidate->parameterCount != 1 ||
+                candidate->errorAbi != target->errorAbi) return 0;
+            function = candidate; row->cloneFunction = (uint32)(i + 1);
+        }
+        if (!function) return 0;
+        row->isolationAbi = XL6_IR_PERSIST_ISOLATION_INTERNAL_CALL;
+        row->cloneSymbol = target->symbol; row->cloneErrorAbi = target->errorAbi; return 1;
+    default: return 0;
+    }
 }
 
 static int xl6IrRestoreGraphIntern(XL6_IrRestoreGraphWalk* walk,
@@ -48,6 +103,7 @@ static int xl6IrRestoreGraphIntern(XL6_IrRestoreGraphWalk* walk,
     memset(&row, 0, sizeof(row)); row.type = type; row.contextField = contextField;
     row.seed = row.element = row.schema = row.firstEdge = SIZE_MAX;
     row.defaultErrorAbi = XL6_IR_ERROR_ABI_NO_RAISE;
+    row.cloneErrorAbi = XL6_IR_ERROR_ABI_NO_RAISE;
     output->persistenceRestoreNodes[i] = row;
     output->persistenceRestoreNodeCount = i + 1;
     *local = i - walk->root.firstNode; return 1;
@@ -131,6 +187,7 @@ static int xl6IrRestoreGraphCompleteNode(XL6_IrRestoreGraphWalk* walk, size_t at
         if (!xl6IrRestoreGraphSchema(walk, payload, &row.schema)) return 0;
         schema = &walk->recipes->persistenceRestoreSchemas[row.schema];
         layout = &source->classLayouts[schema->classLayout];
+        if (!xl6IrRestoreGraphIsolation(source, layout, &row)) return 0;
         if (schema->firstField > walk->recipes->persistenceRestoreFieldCount ||
             schema->fieldCount > walk->recipes->persistenceRestoreFieldCount - schema->firstField) return 0;
         if (schema->dynamicField != XL6_IR_CLASS_FIELD_INDEX_INVALID)
@@ -276,6 +333,8 @@ int xl6IrVerifyPersistenceRestoreGraphs(const XL6_IrModule* module)
         XL6_RESTORE_EQUAL(carrierAbi); XL6_RESTORE_EQUAL(seed); XL6_RESTORE_EQUAL(element);
         XL6_RESTORE_EQUAL(schema); XL6_RESTORE_EQUAL(firstEdge); XL6_RESTORE_EQUAL(edgeCount);
         XL6_RESTORE_EQUAL(defaultFunction); XL6_RESTORE_EQUAL(defaultSymbol); XL6_RESTORE_EQUAL(defaultErrorAbi);
+        XL6_RESTORE_EQUAL(isolationAbi); XL6_RESTORE_EQUAL(cloneFunction);
+        XL6_RESTORE_EQUAL(cloneSymbol); XL6_RESTORE_EQUAL(cloneErrorAbi);
     }
     for (i = 0; ok && i < arena.persistenceRestoreEdgeCount; ++i) {
         const XL6_IrPersistenceRestoreEdge *a = &arena.persistenceRestoreEdges[i], *b = &module->persistenceRestoreEdges[i];

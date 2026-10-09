@@ -243,6 +243,38 @@ int main(int argc, char** argv)
             ALTER_GRAPH(row, defaultSymbol, row->defaultSymbol ^ UINT32_C(1));
             ALTER_GRAPH(row, defaultErrorAbi, row->defaultErrorAbi == XL6_IR_ERROR_ABI_NO_RAISE
                 ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE);
+            ALTER_GRAPH(row, isolationAbi, row->isolationAbi == XL6_IR_PERSIST_ISOLATION_NONE
+                ? XL6_IR_PERSIST_ISOLATION_CHECKED_REJECT : XL6_IR_PERSIST_ISOLATION_NONE);
+            ALTER_GRAPH(row, cloneFunction, UINT32_MAX);
+            ALTER_GRAPH(row, cloneSymbol, row->cloneSymbol ^ UINT32_C(1));
+            ALTER_GRAPH(row, cloneErrorAbi, row->cloneErrorAbi == XL6_IR_ERROR_ABI_NO_RAISE
+                ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE);
+            if (row->cloneFunction) {
+                XL6_IrFunction* clone = &ir.functions[row->cloneFunction - 1];
+                XL6_IrCallTarget* target = (XL6_IrCallTarget*)xl6IrCallTargetGet(&ir, row->cloneSymbol);
+                assert(target && clone->symbol == target->symbol && clone->parameterCount == 1);
+                ALTER_GRAPH(clone, kind, XL6_IR_FUNCTION_CLASS_DEFAULT);
+                ALTER_GRAPH(clone, declaration, XL6_IR_NODE_INVALID);
+                ALTER_GRAPH(clone, returnType, XL6_IR_TYPE_INVALID);
+                ALTER_GRAPH(clone, parameterCount, 0);
+                ALTER_GRAPH(clone, errorAbi, XL6_IR_ERROR_ABI_INVALID);
+                ALTER_OP(clone, reachability, XL6_IR_REACHABILITY_UNREACHABLE);
+                ALTER_GRAPH(target, kind, XL6_IR_CALL_TARGET_INTERNAL_ASYNC);
+                ALTER_GRAPH(target, returnType, XL6_IR_TYPE_INVALID);
+                ALTER_GRAPH(target, parameterCount, 0);
+                ALTER_GRAPH(target, parameterTypes, NULL);
+                ALTER_GRAPH(target, parameterAbis, NULL);
+                ALTER_GRAPH(target, parameterPhysicalAbis, NULL);
+                ALTER_GRAPH(target, parameterTypes[0], XL6_IR_TYPE_INVALID);
+                ALTER_GRAPH(target, parameterAbis[0], XL6_IR_PARAMETER_ABI_INVALID);
+                ALTER_GRAPH(target, parameterPhysicalAbis[0], XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW);
+                ALTER_GRAPH(target, resultPhysicalAbi, XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE);
+                ALTER_GRAPH(target, resultConversionAbi, XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY);
+                ALTER_GRAPH(target, resultCAbi, XL6_IR_CALL_RESULT_C_ABI_CHAR_POINTER);
+                ALTER_GRAPH(target, errorAbi, XL6_IR_ERROR_ABI_INVALID);
+                ALTER_GRAPH(target, errorPhysicalAbi, XL6_IR_CALL_ERROR_PHYSICAL_INVALID);
+                ALTER_OP(target, reachability, XL6_IR_REACHABILITY_UNREACHABLE);
+            }
         }
         for (size_t i = 0; i < ir.persistenceRestoreEdgeCount; ++i) {
             XL6_IrPersistenceRestoreEdge* row = &ir.persistenceRestoreEdges[i];

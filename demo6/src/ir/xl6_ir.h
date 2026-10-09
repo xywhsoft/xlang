@@ -5793,6 +5793,18 @@ typedef enum XL6_IrPersistenceRestoreNodeAbi {
     XL6_IR_RESTORE_NODE_SET,
     XL6_IR_RESTORE_NODE_DICT
 } XL6_IrPersistenceRestoreNodeAbi;
+
+/* Conditional isolation of an externally shared default, NOT its factory.
+ * This is the already declared language clone capability. REJECT is checked
+ * failure, never the ordinary noncopyable `clone` null result. A clone still
+ * needs exact runtime admission and a fresh ownership proof before mutation. */
+typedef enum XL6_IrPersistenceIsolationAbi {
+    XL6_IR_PERSIST_ISOLATION_NONE = 0,
+    XL6_IR_PERSIST_ISOLATION_CHECKED_REJECT,
+    XL6_IR_PERSIST_ISOLATION_RUNTIME_SHALLOW,
+    XL6_IR_PERSIST_ISOLATION_RUNTIME_DEEP,
+    XL6_IR_PERSIST_ISOLATION_INTERNAL_CALL
+} XL6_IrPersistenceIsolationAbi;
 enum {
     XL6_IR_RESTORE_NODE_NULLABLE = 1u,
     XL6_IR_RESTORE_NODE_FIELD_INSTANCE = 2u,
@@ -5819,6 +5831,13 @@ typedef struct XL6_IrPersistenceRestoreNode {
     uint32 defaultFunction;
     XL6_SymbolId defaultSymbol;
     XL6_IrErrorAbi defaultErrorAbi;
+    /* Only CLASS nodes carry isolation. The exact synchronous callable is
+     * one borrowed receiver -> one owned result of payloadType. No source
+     * name lookup, invented structural clone or second initializer is allowed. */
+    XL6_IrPersistenceIsolationAbi isolationAbi;
+    uint32 cloneFunction;
+    XL6_SymbolId cloneSymbol;
+    XL6_IrErrorAbi cloneErrorAbi;
 } XL6_IrPersistenceRestoreNode;
 typedef struct XL6_IrPersistenceRestoreEdge {
     size_t field; /* Exact canonical RestoreField, including keys/assignment. */

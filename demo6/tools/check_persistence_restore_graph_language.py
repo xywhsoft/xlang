@@ -32,7 +32,10 @@ def main():
     product = root / 'release/xl.dll' if os.name == 'nt' else Path(public['NativeRoot']) / 'release/libxl.so'
     files.update((Path(cc), driver, product))
     cases = [('wide', root / 'test/cases/xlir_persistence_restore_graph.xl'),
-             ('construction', root / 'test/cases/stdlib_persistence_restore_construction.xl')]
+             ('construction', root / 'test/cases/stdlib_persistence_restore_construction.xl'),
+             # Empty wire preserves defaults on the OLD path. This exercises
+             # emission/reachability/cleanup, NOT shared-default isolation.
+             ('isolation_metadata', root / 'test/cases/xlir_persistence_restore_isolation.xl')]
     host = root / 'test/cases/xlir_module_product_oom_host.c'
     memory = root / 'test/support/module_product_memory.c'
     files.update((host, memory, root / 'test/support/module_product_memory.h', *(path for _, path in cases)))
