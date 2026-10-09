@@ -138,10 +138,25 @@ Copy-Item -LiteralPath release/xl.dll -Destination (Join-Path $batchPath 'xl.dll
 $headers = @()
 # Stage the declared package layout, not a generated VFS or a release update.
 foreach ($entry in (Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.txt -Encoding UTF8)) {
+    if ($entry.StartsWith('dir|include/__xl_runtime|')) {
+        $parts = $entry.Split('|'); $directory = $parts[2].Replace('%XL6_ROOT%', $rootPath)
+        if ($parts.Count -ne 4 -or $parts[3] -ne '*.h') { throw 'Unsupported private runtime header directory mapping' }
+        foreach ($source in (Get-ChildItem -LiteralPath $directory -File -Filter '*.h' | Sort-Object Name)) {
+            $target = Join-Path $batchPath ('include/__xl_runtime/' + $source.Name)
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
+            if (Test-Path -LiteralPath $target) { throw "Duplicate header staging target: $target" }
+            Copy-Item -LiteralPath $source.FullName -Destination $target
+            $hash = (Get-FileHash -LiteralPath $source.FullName).Hash
+            if ((Get-FileHash -LiteralPath $target).Hash -ne $hash) { throw "Header staging mismatch: $source" }
+            $headers += [pscustomobject]@{Path=$target;Sha256=$hash;Source=$source.FullName}
+        }
+        continue
+    }
     if (!$entry.StartsWith('file|include/__xl_runtime/')) { continue }
     $parts = $entry.Split('|'); $source = $parts[2].Replace('%XL6_ROOT%', $rootPath)
     $target = Join-Path $batchPath $parts[1]
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
+    if (Test-Path -LiteralPath $target) { throw "Duplicate header staging target: $target" }
     Copy-Item -LiteralPath $source -Destination $target -Force
     $hash = (Get-FileHash -LiteralPath $source).Hash
     if ((Get-FileHash -LiteralPath $target).Hash -ne $hash) { throw "Header staging mismatch: $source" }

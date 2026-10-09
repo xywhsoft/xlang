@@ -4,9 +4,59 @@
 #include "src/stdlib/xl6_stdlib.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static unsigned mutations;
+static size_t allocationCalls, allocationFailure = SIZE_MAX, liveAllocations;
+static int allocationArmed, allocationHit;
+static void* faultAllocate(void* unused, size_t size)
+{
+    void* value; (void)unused;
+    if (allocationArmed && ++allocationCalls >= allocationFailure) { allocationHit = 1; return NULL; }
+    value = malloc(size); if (value) ++liveAllocations; return value;
+}
+static void* faultResize(void* unused, void* pointer, size_t size)
+{
+    void* value; int existing = pointer != NULL; (void)unused;
+    if (allocationArmed && ++allocationCalls >= allocationFailure) { allocationHit = 1; return NULL; }
+    assert(size); value = realloc(pointer, size); if (value && !existing) ++liveAllocations; return value;
+}
+static void faultRelease(void* unused, void* pointer)
+{ (void)unused; if (pointer) { assert(liveAllocations); --liveAllocations; free(pointer); } }
+static size_t restoreAllocationPrefixes(XL6_IrModule* ir)
+{
+    size_t calls, before, point;
+    allocationCalls = 0; allocationFailure = SIZE_MAX; allocationArmed = 1;
+    assert(xl6IrBuildPersistenceRestorePlans(ir)); allocationArmed = 0; calls = allocationCalls;
+    assert(xl6IrVerifyModule(ir, NULL));
+    for (point = 1; point <= calls; ++point) {
+        XL6_IrModule prior = *ir;
+        void *plans, *schemas, *fields, *roots, *nodes, *edges;
+#define COPY_TABLE(Var, Name) \
+        Var = malloc(ir->Name##Count * sizeof(*ir->Name##s) + 1); assert(Var); \
+        if (ir->Name##Count) memcpy(Var, ir->Name##s, ir->Name##Count * sizeof(*ir->Name##s))
+        COPY_TABLE(plans, persistenceRestorePlan); COPY_TABLE(schemas, persistenceRestoreSchema);
+        COPY_TABLE(fields, persistenceRestoreField); COPY_TABLE(roots, persistenceRestoreRoot);
+        COPY_TABLE(nodes, persistenceRestoreNode); COPY_TABLE(edges, persistenceRestoreEdge);
+#undef COPY_TABLE
+        xrtClearError(); before = liveAllocations;
+        allocationCalls = 0; allocationHit = 0; allocationFailure = point; allocationArmed = 1;
+        assert(!xl6IrBuildPersistenceRestorePlans(ir)); allocationArmed = 0;
+        assert(allocationHit); xrtClearError(); assert(liveAllocations == before);
+#define SAME_TABLE(Var, Name) \
+        assert(ir->Name##s == prior.Name##s && ir->Name##Count == prior.Name##Count && \
+            ir->Name##Capacity == prior.Name##Capacity); \
+        assert(!ir->Name##Count || !memcmp(Var, ir->Name##s, ir->Name##Count * sizeof(*ir->Name##s))); free(Var)
+        SAME_TABLE(plans, persistenceRestorePlan); SAME_TABLE(schemas, persistenceRestoreSchema);
+        SAME_TABLE(fields, persistenceRestoreField); SAME_TABLE(roots, persistenceRestoreRoot);
+        SAME_TABLE(nodes, persistenceRestoreNode); SAME_TABLE(edges, persistenceRestoreEdge);
+#undef SAME_TABLE
+        assert(xl6IrVerifyModule(ir, NULL));
+    }
+    allocationFailure = SIZE_MAX;
+    return calls;
+}
 static int restoreResidentSymbol(void* context, const char* symbol)
 {
     if (!strcmp(symbol, "xl6ArrayImportTakeV1")) ++*(size_t*)context;
@@ -123,10 +173,18 @@ static void inspect(const XL6_IrModule* ir)
     (Row)->Member = (Value); assert(!xl6IrVerifyPersistenceRestorePlans(&ir)); \
     rejectedOutputAt(&ir, __LINE__, #Member); memcpy(&(Row)->Member, saved, sizeof(saved)); \
 } while (0)
+#define ALTER_GRAPH(Row, Member, Value) do { \
+    unsigned char saved[sizeof((Row)->Member)]; \
+    memcpy(saved, &(Row)->Member, sizeof(saved)); \
+    (Row)->Member = (Value); assert(!xl6IrVerifyPersistenceRestoreGraphs(&ir)); \
+    rejectedOutputAt(&ir, __LINE__, #Member); memcpy(&(Row)->Member, saved, sizeof(saved)); \
+} while (0)
 
 int main(int argc, char** argv)
 {
     assert(argc == 4); XL6_ParseResult parse; XL6_IrModule ir; XL6_Output output; int ok = 0;
+    xallocator allocator = {NULL, faultAllocate, faultResize, faultRelease};
+    assert(xrtSetAllocator(&allocator));
     literals();
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     if (!xl6ParseFile(argv[1], &parse) || !xl6StdlibExpandModule(parse.root, &parse.diags)) goto done;
@@ -139,6 +197,59 @@ int main(int argc, char** argv)
         !xl6IrLowerModule(&ir, &parse.diags)) goto done;
     assert(xl6IrVerifyPersistenceProjectPlans(&ir) && xl6IrVerifyPersistenceRestorePlans(&ir) &&
         xl6IrVerifyModule(&ir, NULL));
+    unsigned graphStart = mutations;
+    if (!ir.persistenceRestoreRootCount) {
+        assert(!ir.persistenceRestoreNodeCount && !ir.persistenceRestoreEdgeCount);
+        ALTER_GRAPH(&ir, persistenceRestoreRootCount, 1);
+        ALTER_GRAPH(&ir, persistenceRestoreNodeCount, 1);
+        ALTER_GRAPH(&ir, persistenceRestoreEdgeCount, 1);
+    } else {
+        ALTER_GRAPH(&ir, persistenceRestoreRootCount, 0);
+        ALTER_GRAPH(&ir, persistenceRestoreRootCount, SIZE_MAX);
+        ALTER_GRAPH(&ir, persistenceRestoreRootCapacity, 0);
+        ALTER_GRAPH(&ir, persistenceRestoreRoots, NULL);
+        ALTER_GRAPH(&ir, persistenceRestoreNodeCount, 0);
+        ALTER_GRAPH(&ir, persistenceRestoreNodeCapacity, 0);
+        ALTER_GRAPH(&ir, persistenceRestoreNodes, NULL);
+        if (ir.persistenceRestoreEdgeCount) {
+            ALTER_GRAPH(&ir, persistenceRestoreEdgeCount, 0);
+            ALTER_GRAPH(&ir, persistenceRestoreEdgeCapacity, 0);
+            ALTER_GRAPH(&ir, persistenceRestoreEdges, NULL);
+        }
+        for (size_t i = 0; i < ir.persistenceRestoreRootCount; ++i) {
+            XL6_IrPersistenceRestoreRoot* row = &ir.persistenceRestoreRoots[i];
+            assert(xl6IrPersistenceRestoreRootGet(&ir, row->type, row->format) == row);
+            ALTER_GRAPH(row, type, XL6_IR_TYPE_INVALID); ALTER_GRAPH(row, format, 0);
+            ALTER_GRAPH(row, pending, row->pending ^ XL6_IR_RESTORE_PENDING_LIST);
+            ALTER_GRAPH(row, firstNode, SIZE_MAX); ALTER_GRAPH(row, nodeCount, SIZE_MAX);
+            ALTER_GRAPH(row, root, SIZE_MAX); ALTER_GRAPH(row, firstEdge, SIZE_MAX);
+            ALTER_GRAPH(row, edgeCount, SIZE_MAX); ALTER_GRAPH(row, seedCount, SIZE_MAX);
+        }
+        for (size_t i = 0; i < ir.persistenceRestoreNodeCount; ++i) {
+            XL6_IrPersistenceRestoreNode* row = &ir.persistenceRestoreNodes[i];
+            ALTER_GRAPH(row, type, XL6_IR_TYPE_INVALID); ALTER_GRAPH(row, payloadType, XL6_IR_TYPE_INVALID);
+            ALTER_GRAPH(row, abi, 0); ALTER_GRAPH(row, flags, row->flags ^ XL6_IR_RESTORE_NODE_NULLABLE);
+            ALTER_GRAPH(row, identity, row->identity ^ UINT64_C(1));
+            ALTER_GRAPH(row, contextField, row->contextField == SIZE_MAX ? 0 : SIZE_MAX);
+            ALTER_GRAPH(row, scalarRule, row->scalarRule == XL6_VALUE_ADMIT_NONE ? XL6_VALUE_ADMIT_ANY : XL6_VALUE_ADMIT_NONE);
+            ALTER_GRAPH(row, carrierAbi, row->carrierAbi == XL6_IR_COLLECTION_CARRIER_NONE
+                ? XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1 : XL6_IR_COLLECTION_CARRIER_NONE);
+            ALTER_GRAPH(row, seed, row->seed == SIZE_MAX ? 0 : SIZE_MAX);
+            ALTER_GRAPH(row, element, row->element == SIZE_MAX ? 0 : SIZE_MAX);
+            ALTER_GRAPH(row, schema, row->schema == SIZE_MAX ? 0 : SIZE_MAX);
+            ALTER_GRAPH(row, firstEdge, row->firstEdge == SIZE_MAX ? 0 : SIZE_MAX);
+            ALTER_GRAPH(row, edgeCount, SIZE_MAX); ALTER_GRAPH(row, defaultFunction, UINT32_MAX);
+            ALTER_GRAPH(row, defaultSymbol, row->defaultSymbol ^ UINT32_C(1));
+            ALTER_GRAPH(row, defaultErrorAbi, row->defaultErrorAbi == XL6_IR_ERROR_ABI_NO_RAISE
+                ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE);
+        }
+        for (size_t i = 0; i < ir.persistenceRestoreEdgeCount; ++i) {
+            XL6_IrPersistenceRestoreEdge* row = &ir.persistenceRestoreEdges[i];
+            ALTER_GRAPH(row, field, SIZE_MAX); ALTER_GRAPH(row, node, SIZE_MAX);
+        }
+    }
+    unsigned graphMutations = mutations - graphStart;
+    size_t allocationPrefixes = restoreAllocationPrefixes(&ir);
     for (size_t i = 0; i < ir.classLayoutCount; ++i) {
         XL6_IrClassLayout* layout = &ir.classLayouts[i];
         if (!layout->persistenceDefaultFunction) {
@@ -235,11 +346,15 @@ int main(int argc, char** argv)
         XL6_IrPersistenceRestorePlan* plans = ir.persistenceRestorePlans;
         XL6_IrPersistenceRestoreSchema* schemas = ir.persistenceRestoreSchemas;
         XL6_IrPersistenceRestoreField* fields = ir.persistenceRestoreFields;
+        XL6_IrPersistenceRestoreRoot* roots = ir.persistenceRestoreRoots;
+        XL6_IrPersistenceRestoreNode* nodes = ir.persistenceRestoreNodes;
+        XL6_IrPersistenceRestoreEdge* edges = ir.persistenceRestoreEdges;
         size_t first = ir.functions[0].firstInstruction;
         ir.functions[0].firstInstruction = SIZE_MAX;
         assert(!xl6IrBuildPersistenceRestorePlans(&ir));
         assert(ir.persistenceRestorePlans == plans && ir.persistenceRestoreSchemas == schemas &&
-            ir.persistenceRestoreFields == fields);
+            ir.persistenceRestoreFields == fields && ir.persistenceRestoreRoots == roots &&
+            ir.persistenceRestoreNodes == nodes && ir.persistenceRestoreEdges == edges);
         ir.functions[0].firstInstruction = first;
         assert(xl6IrBuildPersistenceRestorePlans(&ir) && xl6IrVerifyModule(&ir, NULL));
     }
@@ -462,6 +577,9 @@ int main(int argc, char** argv)
         ir.persistenceProjectPlanCount, ir.persistenceProjectSchemaCount, ir.persistenceProjectFieldCount, mutations);
     printf("Restore plans: %zu plans, %zu schemas, %zu fields\n",
         ir.persistenceRestorePlanCount, ir.persistenceRestoreSchemaCount, ir.persistenceRestoreFieldCount);
+    printf("Restore graphs: %zu roots, %zu nodes, %zu edges; %u graph mutations refused before C/header\n",
+        ir.persistenceRestoreRootCount, ir.persistenceRestoreNodeCount, ir.persistenceRestoreEdgeCount, graphMutations);
+    printf("Restore rebuild: %zu exhaustive allocation-failure prefixes preserved all six tables\n", allocationPrefixes);
     ok = 1;
 done:
     for (size_t i = 0; i < parse.diags.count; ++i) fprintf(stderr, "%d:%d: %s\n",

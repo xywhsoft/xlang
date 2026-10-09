@@ -1,0 +1,10 @@
+class GraphPendingCarriers
+    derive value
+    list<int> sparse
+    set<int> unique
+    dict<int> keyed
+end
+GraphPendingCarriers a = json.parse::<GraphPendingCarriers>("{}")
+GraphPendingCarriers b = xlon.parse::<GraphPendingCarriers>("{}")
+string jsonText = json.stringify(a)
+string xlonText = xlon.stringify(b)
