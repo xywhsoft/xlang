@@ -58,4 +58,15 @@ typedef struct XL6_RestorePlanV1 {
  * language initializer/destructor side effects. No public language ABI yet. */
 XL6_TEXT_API xvalue* xl6PersistenceRestorePlanTakeV1(xvalue**,size_t,xvalue*,
     const xvalue*,const XL6_RestorePlanV1*);
+/* Nullable read shares the SAME transaction and source/node memo. A proven
+ * wire shape/range/missing-required-field/cycle rejection returns true with
+ * an owned canonical null, after checked retirement of every partial result.
+ * Constructors, providers, codecs, OOM, recursion budget and cleanup failures
+ * return false even without an allocated diagnostic; error KIND never selects
+ * benign rejection. Invalid plans/JSON capabilities are checked failures too.
+ * output must be empty and must not alias the consumed seed table. A nonalias
+ * occupied output is preserved on refusal; valid owned inputs are consumed.
+ * NULL source is an upstream failure, not a benign parser rejection. */
+XL6_TEXT_API bool xl6PersistenceRestorePlanReadTakeV1(xvalue**,size_t,xvalue*,
+    const xvalue*,const XL6_RestorePlanV1*,xvalue**);
 #endif

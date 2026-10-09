@@ -101,8 +101,10 @@ def main():
             'restore-format-roundtrip','restore-cleanup-errors')
         operations+=('restore-native','restore-json','restore-xlon','restore-wide','restore-source-take')
     if args.restore_plan:
-        modes+=('plan-shared','plan-format','plan-nested','plan-rejected','plan-boundaries','plan-depth','plan-wide-domains','plan-objects','plan-mixed')
-        operations+=('plan-restore','plan-target','plan-nested-restore','plan-wide','plan-mixed-restore')
+        modes+=('plan-shared','plan-format','plan-nested','plan-rejected','plan-boundaries','plan-depth','plan-wide-domains','plan-objects','plan-mixed',
+            'plan-read-profiles','plan-read-failures','plan-read-boundaries','plan-read-scalars','plan-read-format')
+        operations+=('plan-restore','plan-target','plan-nested-restore','plan-wide','plan-mixed-restore',
+            'plan-read-valid','plan-read-rejected','plan-read-shape','plan-read-scalar')
     try:
         for level in (0,2):
             lane='O'+str(level); binary=out/('list-'+lane+('.exe' if os.name=='nt' else ''))
