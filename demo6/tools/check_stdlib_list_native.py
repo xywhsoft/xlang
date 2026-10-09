@@ -1,5 +1,7 @@
 """Private resident typed List foundation: sparse keys, metadata, cursors,
 physical ownership, explicit failures and whole allocation-failure prefixes.
+Includes immutable same-owner erasure, one-level sparse wire projection and
+explicit admitted imports; no recursive List graph/schema conversion claim.
 Not shipping-library, source-language List cutover or full53 acceptance.
 """
 from __future__ import annotations
@@ -23,7 +25,8 @@ def main():
         'src/runtime/xl6_array_c_scalar_admission.c','src/runtime/xl6_value_admission.c',
         'src/runtime/xl6_nominal_admission.c','src/runtime/xl6_string_type.c',
         'src/runtime/xl6_nullable_string.c','src/runtime/xl6_nullable_i64.c',
-        'src/runtime/xl6_ownership_plan.c','src/runtime/xl6_array_future_admission.c','src/runtime/xl6_char_type.c']
+        'src/runtime/xl6_ownership_plan.c','src/runtime/xl6_array_future_admission.c','src/runtime/xl6_char_type.c',
+        'src/runtime/xl6_char_value.c']
     files={Path(__file__).resolve(),Path(cc),Path(nm),Path(sys.executable)}
     files.update(root/name for name in sources)
     for folder in ('src/runtime','src/api','release/include','lib/xrt','lib/xruntime','test/support'):
@@ -35,6 +38,7 @@ def main():
         'SelectedNativeClosureInstrumented':args.sanitize,'WholeRuntimeInstrumented':False,
         'ShippingLibraryAcceptance':False,'SourceLanguageListCutover':False,'Full53Acceptance':False,
         'CleanupBoundaryFailureInjection':'GNU ld --wrap; real cleanup delegates except explicitly armed vectors; not actual OS exhaustion',
+        'EntryBoundaryFailureInjection':'GNU ld --wrap=xl6ErrorScopeBegin; delegates unless explicitly armed; not actual OS exhaustion',
         'Scope':__doc__}
     out.mkdir(parents=True)
     env=dict(os.environ)
@@ -54,13 +58,15 @@ def main():
             return None
         return data.decode(errors='replace')
     flags=['-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease','-Irelease/include']
-    links=['-Wl,--wrap=xl6ErrorScopeBeginCleanup']+([] if os.name=='nt' else ['-pthread','-lm'])
+    links=['-Wl,--wrap=xl6ErrorScopeBeginCleanup','-Wl,--wrap=xl6ErrorScopeBegin']+([] if os.name=='nt' else ['-pthread','-lm'])
     if os.name!='nt': flags+=['-D_GNU_SOURCE']
     if args.sanitize: flags+=['-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie']
     modes=('integers','text','profiles','cursors','rejected','references','futures','phased','reentrant','boundaries',
-        'identity','merges','identity-errors','shared-depth','guard-protocol')
+        'identity','merges','identity-errors','shared-depth','guard-protocol',
+        'projection','projection-profiles','imports','codec-errors','projection-entry-errors')
     operations=('create','insert','replace','append','clone','cursor','get','take','cursor-read','cursor-advance','clear','trim',
-        'merge-keep','merge-replace','ref-equal')
+        'merge-keep','merge-replace','ref-equal','value-get','value-take','value-set','value-append',
+        'wire','import-wire','import-native','import-convert','projection-take')
     try:
         for level in (0,2):
             lane='O'+str(level); binary=out/('list-'+lane+('.exe' if os.name=='nt' else ''))
@@ -68,7 +74,8 @@ def main():
             symbols=run(lane+'.symbols',[nm,'--defined-only',binary])
             if symbols is None: continue
             names={line.split()[-1].lstrip('_') for line in symbols.splitlines() if line.split()}
-            assert {'xl6ListCreateTakeV1','xl6ListCursorAdvanceV1','xrtTypedListClone'}<=names
+            assert {'xl6ListCreateTakeV1','xl6ListCursorAdvanceV1','xrtTypedListClone',
+                'xl6ListToWireV1','xl6ListImportTakeV1','xrtTypedListSetValue'}<=names
             assert not {'xl6ArrayFromValueV1','xl6ArrayToValueV1','xl6ArrayErasedReadV1'}&names
             for mode in modes: run(lane+'.'+mode,[binary,mode])
             for operation in operations:

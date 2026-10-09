@@ -16,6 +16,17 @@ static void equalLists(const xvalue*,const xvalue*,const XL6_ListLayoutV1*,bool)
 /* Linker call-boundary fault injection, not a replacement List/provider.
  * Negative budget models explicit failure without an allocated diagnostic. */
 static int cleanupFailure;
+static int entryFailure;
+extern bool __real_xl6ErrorScopeBegin(xl6_error_scope*);
+bool __wrap_xl6ErrorScopeBegin(xl6_error_scope* scope)
+{
+    if (entryFailure) {
+        int selected=entryFailure; entryFailure=0;
+        if (selected>0) xrtSetErrorKind(XERR_MEMORY); else xrtClearError();
+        return false;
+    }
+    return __real_xl6ErrorScopeBegin(scope);
+}
 extern bool __real_xl6ErrorScopeBeginCleanup(xl6_error_scope*,bool);
 bool __wrap_xl6ErrorScopeBeginCleanup(xl6_error_scope* scope,bool failure)
 {
@@ -564,8 +575,253 @@ static void equalityFault(size_t point)
     xrtErrorFree(outcome.error); xrtValueRelease(b); xrtValueRelease(a);
     printf("native List ref-equal point=%zu hit=%d complete-prefix balanced\n",point,hit);
 }
+static xvalue* projected(const XL6_ListLayoutV1* tuple,unsigned rule,const xvalueconverter* codec)
+{ return xl6ListProjectionTakeV1(create(tuple,rule),tuple,codec); }
+static void readText(const xvalue* list,int64_t key,xstrview expected)
+{
+    bool found=false; xvalue* item=NULL; xstrview actual={0};
+    assert(xl6ListErasedReadV1(list,key,false,&item,&found) && found && item);
+    assert(xrtValueTypeId(item)==ELEMENT_ID && xrtValueGetString(item,&actual));
+    assert(actual.Size==expected.Size && !memcmp(actual.Data,expected.Data,actual.Size)); xrtValueRelease(item);
+}
+static void projection(void)
+{
+    XL6_ListLayoutV1 tuple=layout(2,xl6StringTypeV1());
+    xvalue* list=create(&tuple,XL6_VALUE_ADMIT_STRING); assert(list);
+    xstrview text={"a\0\xE4\xBD\xA0",5}; assert(xl6ListSetV1(list,&tuple,INT64_MIN,&text));
+    bool found=true; xvalue* item=NULL;
+    assert(!xl6ListErasedReadV1(list,INT64_MIN,false,&item,&found) && !item && found); xrtClearError();
+    const xvalueconverter* codec=xl6StringConverterV1();
+    xvalueconverter wrong=*codec; wrong.Context=&found;
+    assert(!xl6ListEraseV1(list,&tuple,&wrong)); xrtClearError();
+    wrong=*codec; wrong.FromTyped=NULL; assert(!xl6ListEraseV1(list,&tuple,&wrong)); xrtClearError();
+    xvalue* alias=xl6ListEraseV1(list,&tuple,codec); assert(alias==list);
+    xvalue* repeated=xl6ListEraseV1(list,&tuple,codec); assert(repeated==list); xrtValueRelease(repeated);
+    assert(!xl6ListEraseV1(list,&tuple,NULL)); xrtClearError(); readText(alias,INT64_MIN,text);
+    xvalue* replacement=xrtValueString((xstrview)XRT_STR_INIT("new")); assert(replacement);
+    assert(xl6ListErasedSetV1(alias,INT64_MIN,replacement)); readText(list,INT64_MIN,(xstrview)XRT_STR_INIT("new"));
+    assert(xl6ListErasedSetV1(list,INT64_MIN,xrtValueNull())==false); xrtClearError();
+    int64_t key=99; assert(xl6ListErasedAppendV1(alias,replacement,&key) && key==INT64_MIN+1);
+    assert(xl6ListSetV1(list,&tuple,INT64_MAX,&text)); key=99;
+    assert(!xl6ListErasedAppendV1(list,replacement,&key) && key==99 && xrtErrorKind(xrtGetError())==XERR_RANGE); xrtClearError();
+    xvalue* copy=xl6ListCloneV1(list,&tuple); assert(copy); readText(copy,INT64_MAX,text);
+    assert(xl6ListClearV1(copy,&tuple)); readText(list,INT64_MAX,text);
+    assert(xl6ListErasedReadV1(alias,17,false,&item,&found) && !item && !found);
+    found=false; assert(xl6ListErasedReadV1(alias,INT64_MAX,true,&item,&found) && item && found);
+    assert(xrtValueTypeId(item)==ELEMENT_ID); xrtValueRelease(item); item=NULL;
+    assert(xl6ListErasedReadV1(alias,INT64_MAX,false,&item,&found) && !item && !found);
+    xvalue* cursor=xl6ListCursorCreateV1(list,&tuple,CURSOR_ID,false,false,0); assert(cursor);
+    assert(!xl6ListToWireV1(cursor)); xrtClearError(); xrtValueRelease(cursor);
+    void* raw=(void*)(uintptr_t)1; xvalue* foreign=xrtValueHandleTake(&raw,&foreignOps,NULL); assert(foreign);
+    assert(!xl6ListToWireV1(foreign)); xrtClearError(); xrtValueRelease(foreign);
+    xrtSetErrorKind(XERR_ARGUMENT); const xerror* prior=xrtGetError();
+    readText(list,INT64_MIN,(xstrview)XRT_STR_INIT("new")); assert(xrtGetError()==prior); xrtClearError();
+    xrtValueRelease(replacement); xrtValueRelease(copy); xrtValueRelease(alias); xrtValueRelease(list);
+}
+static void projectionProfiles(void)
+{
+    XL6_ListLayoutV1 tuple=layout(1,xl6CharTypeV1());
+    xvalue* list=projected(&tuple,XL6_VALUE_ADMIT_CHAR,xl6CharConverterV1()); assert(list);
+    uint32_t character=0x4F60; assert(xl6ListSetV1(list,&tuple,-1,&character));
+    xvalue* item=NULL; bool found=false;
+    assert(xl6ListErasedReadV1(list,-1,false,&item,&found) && found && xrtValueType(item)==XVALUE_CHAR);
+    assert(xrtValueTypeId(item)==ELEMENT_ID); xrtValueRelease(item);
+    item=xrtValueInt(character); assert(item && !xl6ListErasedSetV1(list,-1,item)); xrtClearError(); xrtValueRelease(item); xrtValueRelease(list);
+    tuple=layout(2,xl6NullableStringTypeV1()); tuple.value.elementIdentity=ELEMENT_ID+1;
+    xvalue* witness=xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,ARRAY_ID,ELEMENT_ID+1,2,sizeof(xstrview),
+        tuple.value.type,XL6_VALUE_ADMIT_STRING,true,ELEMENT_ID); assert(witness);
+    list=xl6ListProjectionTakeV1(xl6ListCreateTakeV1(&tuple,witness),&tuple,xl6NullableStringConverterV1()); assert(list);
+    assert(xl6ListErasedSetV1(list,-1,xrtValueNull())); item=NULL;
+    assert(xl6ListErasedReadV1(list,-1,false,&item,&found) && found && item==xrtValueNull()); xrtValueRelease(item);
+    item=xrtValueString((xstrview){"\0",1}); assert(item && xl6ListErasedSetV1(list,-1,item)); xrtValueRelease(item); item=NULL;
+    assert(xl6ListErasedReadV1(list,-1,false,&item,&found) && found && xrtValueTypeId(item)==ELEMENT_ID);
+    xstrview text={0}; assert(xrtValueGetString(item,&text) && text.Size==1 && !text.Data[0]); xrtValueRelease(item); xrtValueRelease(list);
+    tuple=layout(3,xrtTypeValue()); list=projected(&tuple,XL6_VALUE_ADMIT_BYTES,NULL); assert(list);
+    item=xrtValueBytes((xbytesview){(const uint8_t*)"a\0b",3}); assert(item && xl6ListErasedSetV1(list,-7,item));
+    xvalue* out=NULL; assert(xl6ListErasedReadV1(list,-7,false,&out,&found) && found && out==item);
+    assert(!xl6ListEraseV1(list,&tuple,xl6StringConverterV1())); xrtClearError();
+    xrtValueRelease(out); xrtValueRelease(item); xrtValueRelease(list);
+    tuple=layout(XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1,xrtTypeFuture()); list=projected(&tuple,0,NULL); assert(list);
+    xfuture* future=NULL; xpromise* promise=xrtPromiseCreate(&future,NULL); assert(promise && future);
+    assert(xl6ListSetV1(list,&tuple,1,&future)); out=NULL;
+    assert(xl6ListErasedReadV1(list,1,false,&out,&found) && found && out && xrtValueIsFuture(out));
+    assert(xrtValueTypeId(out)==ELEMENT_ID && xl6ListErasedSetV1(list,2,out));
+    xrtValueRelease(out); xrtValueRelease(list); xrtFutureDestroy(future); xrtPromiseDestroy(promise);
+}
+static bool alternateDecode(const xvalue* value,const xrttype* type,ptr output,ptr context)
+{ return xl6StringConverterV1()->ToTyped(value,type,output,context); }
+static xvalue* alternateEncode(const xrttype* type,const void* slot,ptr context)
+{ return xl6StringConverterV1()->FromTyped(type,slot,context); }
+static const xvalueconverter alternateCodec={.ToTyped=alternateDecode,.FromTyped=alternateEncode};
+static void imports(void)
+{
+    XL6_ListLayoutV1 tuple=layout(2,xl6StringTypeV1()); xstrview text={"a\0b",3};
+    xvalue* source=projected(&tuple,XL6_VALUE_ADMIT_STRING,xl6StringConverterV1()); assert(source);
+    assert(xl6ListSetV1(source,&tuple,INT64_MIN,&text) && xl6ListSetV1(source,&tuple,INT64_MAX,&text));
+    xvalue* wire=xl6ListToWireV1(source); assert(wire && xrtValueType(wire)==XVALUE_INT_MAP && xrtValueCount(wire)==2);
+    const xvalue* boxed=xrtValueIntMapGet(wire,INT64_MIN); assert(boxed && xrtValueTypeId(boxed)==ELEMENT_ID);
+    for (unsigned path=0;path<3;++path) {
+        xvalue* target=projected(&tuple,XL6_VALUE_ADMIT_STRING,path==2 ? &alternateCodec : xl6StringConverterV1()); assert(target);
+        xvalue* original=target;
+        target=xl6ListImportTakeV1(target,path==0 ? wire : source); assert(target==original);
+        equalLists(target,source,&tuple,true); readText(target,INT64_MIN,text); readText(target,INT64_MAX,text);
+        assert(xl6ListClearV1(target,&tuple)); readText(source,INT64_MIN,text); xrtValueRelease(target);
+    }
+    xvalue* target=projected(&tuple,XL6_VALUE_ADMIT_STRING,xl6StringConverterV1()); assert(target);
+    xvalue* alias=xrtValueClone(target); assert(alias==target);
+    assert(!xl6ListImportTakeV1(target,alias)); xrtClearError(); assert(xl6ListCountV1(alias,&tuple)==0); xrtValueRelease(alias);
+    target=projected(&tuple,XL6_VALUE_ADMIT_STRING,xl6StringConverterV1()); assert(target);
+    /* A low-level host can hold two shells for the same genuine owner. This
+     * is not a second storage/provider and must not bypass seed alias refusal. */
+    void* raw=NULL; void* user=NULL; void* held=NULL; const xvaluehandleops* ops=NULL;
+    assert(xrtValueGetHandle(target,&raw,&ops,&user) && raw && ops && !user && ops->Clone(raw,&held,user));
+    alias=xrtValueHandleTake(&held,ops,user); assert(alias && alias!=target && !held);
+    assert(xrtValueTypeIdBind(alias,LIST_ID));
+    assert(!xl6ListImportTakeV1(target,alias)); xrtClearError(); assert(xl6ListCountV1(alias,&tuple)==0); xrtValueRelease(alias);
+    target=projected(&tuple,XL6_VALUE_ADMIT_STRING,xl6StringConverterV1()); assert(target);
+    assert(xl6ListSetV1(target,&tuple,0,&text) && !xl6ListImportTakeV1(target,wire)); xrtClearError();
+    target=create(&tuple,XL6_VALUE_ADMIT_STRING); assert(target && !xl6ListImportTakeV1(target,wire)); xrtClearError();
+    xvalue* wrong=xrtValueArray(); assert(wrong);
+    target=projected(&tuple,XL6_VALUE_ADMIT_STRING,xl6StringConverterV1()); assert(target && !xl6ListImportTakeV1(target,wrong));
+    xrtClearError(); xrtValueRelease(wrong);
+    wrong=xrtValueIntMap(); assert(wrong);
+    assert(xrtValueIntMapSetNew(wrong,-1,xrtValueInt(7)));
+    target=projected(&tuple,XL6_VALUE_ADMIT_STRING,xl6StringConverterV1()); assert(target && !xl6ListImportTakeV1(target,wrong));
+    xrtClearError(); assert(xrtValueCount(wrong)==1); xrtValueRelease(wrong);
+    readText(source,INT64_MIN,text); readText(source,INT64_MAX,text); xrtValueRelease(wire); xrtValueRelease(source);
+}
+static unsigned codecFaultMode,codecCalls;
+static bool codecFaultNull;
+static xvalue* codecSource;
+static void failCodec(void)
+{
+    if (codecFaultNull) xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL}); else xrtSetErrorKind(XERR_VALUE);
+}
+static bool faultDecode(const xvalue* value,const xrttype* type,ptr output,ptr context)
+{
+    ++codecCalls; bool result=alternateDecode(value,type,output,context);
+    if (codecFaultMode==1) failCodec();
+    if (codecFaultMode==3 && result) {
+        xrtTypeDropValue(type,output); *(xstrview*)output=(xstrview){NULL,1};
+    }
+    return result;
+}
+static xvalue* faultEncode(const xrttype* type,const void* slot,ptr context)
+{
+    ++codecCalls; xvalue* result=alternateEncode(type,slot,context);
+    if (codecFaultMode==2) failCodec();
+    if (codecFaultMode==4 && codecSource) {
+        xvalue* source=codecSource; codecSource=NULL; xrtValueRelease(source);
+    }
+    if (codecFaultMode==5) {
+        xvalue* out=NULL; bool found=true;
+        assert(codecSource && !xl6ListErasedReadV1(codecSource,-1,false,&out,&found) && !out && found);
+        xrtClearError(); /* Clearing diagnostics cannot clear the failed bit. */
+    }
+    return result;
+}
+static const xvalueconverter faultCodec={.ToTyped=faultDecode,.FromTyped=faultEncode};
+static void codecErrors(void)
+{
+    XL6_ListLayoutV1 tuple=layout(2,xl6StringTypeV1()); xstrview text=XRT_STR_INIT("original"),replacement=XRT_STR_INIT("replacement");
+    for (unsigned absent=0;absent<2;++absent) for (unsigned operation=0;operation<5;++operation) {
+        codecFaultMode=0; codecFaultNull=absent;
+        xvalue* list=projected(&tuple,XL6_VALUE_ADMIT_STRING,&faultCodec); assert(list);
+        assert(xl6ListSetV1(list,&tuple,-1,&text) && xl6ListSetV1(list,&tuple,2,&text));
+        xvalue* item=xrtValueString(replacement),*out=NULL; assert(item);
+        bool found=true,success=false; int64_t key=99;
+        codecCalls=0; codecFaultMode=operation<2 ? 1 : 2;
+        xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
+        if (operation==0) success=xl6ListErasedSetV1(list,-1,item);
+        if (operation==1) success=xl6ListErasedAppendV1(list,item,&key);
+        if (operation==2) success=xl6ListErasedReadV1(list,-1,true,&out,&found);
+        if (operation==3) { out=xl6ListToWireV1(list); success=out!=NULL; }
+        if (operation==4) {
+            xvalue* destination=projected(&tuple,XL6_VALUE_ADMIT_STRING,xl6StringConverterV1()); assert(destination);
+            out=xl6ListImportTakeV1(destination,list); success=out!=NULL;
+        }
+        assert(!success && !out && found && key==99 && codecCalls==1);
+        xl6_error_result outcome=xl6ErrorScopeEnd(&scope); assert(!outcome.ok);
+        assert(absent ? !outcome.error : outcome.error && xrtErrorKind(outcome.error)==XERR_VALUE);
+        xrtErrorFree(outcome.error); codecFaultMode=0;
+        assert(xl6ListCountV1(list,&tuple)==2); readText(list,-1,text); readText(list,2,text);
+        xrtValueRelease(item); xrtValueRelease(list);
+    }
+    codecFaultMode=0;
+    xvalue* list=projected(&tuple,XL6_VALUE_ADMIT_STRING,&faultCodec); assert(list);
+    assert(xl6ListSetV1(list,&tuple,-1,&text) && xl6ListSetV1(list,&tuple,2,&text));
+    xvalue* item=xrtValueString(replacement); assert(item); codecFaultMode=3;
+    assert(!xl6ListErasedSetV1(list,-1,item) && xrtErrorKind(xrtGetError())==XERR_TYPE); xrtClearError();
+    codecFaultMode=0; readText(list,-1,text); xrtValueRelease(item);
+    codecFaultMode=5; codecSource=list; codecCalls=0;
+    assert(!xl6ListToWireV1(list) && codecCalls==1 && xrtErrorKind(xrtGetError())==XERR_STATE); xrtClearError();
+    codecFaultMode=0; readText(list,-1,text); readText(list,2,text);
+    codecFaultMode=4; codecSource=list;
+    xvalue* wire=xl6ListToWireV1(list); assert(wire && !codecSource && xrtValueCount(wire)==2);
+    xrtValueRelease(wire); codecFaultMode=0;
+}
+static bool projectionFault(const char* operation,size_t point)
+{
+    const char* names[]={"value-get","value-take","value-set","value-append","wire","import-wire","import-native","import-convert","projection-take"};
+    bool recognized=false;
+    for (unsigned i=0;i<sizeof(names)/sizeof(*names);++i) recognized=recognized || !strcmp(operation,names[i]);
+    if (!recognized) return false;
+    XL6_ListLayoutV1 tuple=layout(2,xl6StringTypeV1()); xstrview text={"a\0b",3},replacement=XRT_STR_INIT("changed");
+    xvalue* source=projected(&tuple,XL6_VALUE_ADMIT_STRING,xl6StringConverterV1()); assert(source);
+    assert(xl6ListSetV1(source,&tuple,-7,&text) && xl6ListSetV1(source,&tuple,42,&text));
+    bool import=!strncmp(operation,"import-",7),consume=!strcmp(operation,"projection-take");
+    xvalue* target=import ? projected(&tuple,XL6_VALUE_ADMIT_STRING,!strcmp(operation,"import-convert") ? &alternateCodec : xl6StringConverterV1()) :
+        consume ? create(&tuple,XL6_VALUE_ADMIT_STRING) : NULL;
+    assert(!import && !consume ? !target : target!=NULL);
+    xvalue* wire=!strcmp(operation,"import-wire") ? xl6ListToWireV1(source) : NULL;
+    assert(strcmp(operation,"import-wire") || wire);
+    xvalue* item=xrtValueString(replacement); assert(item); xvalue* result=NULL;
+    bool found=true,success=false; int64_t key=99;
+    xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope)); assert(xrtMemDebugFailAfter(point));
+    if (!strcmp(operation,"value-get") || !strcmp(operation,"value-take"))
+        success=xl6ListErasedReadV1(source,-7,!strcmp(operation,"value-take"),&result,&found);
+    else if (!strcmp(operation,"value-set")) success=xl6ListErasedSetV1(source,-7,item);
+    else if (!strcmp(operation,"value-append")) success=xl6ListErasedAppendV1(source,item,&key);
+    else if (!strcmp(operation,"wire")) { result=xl6ListToWireV1(source); success=result!=NULL; }
+    else if (import) { result=xl6ListImportTakeV1(target,wire ? wire : source); target=NULL; success=result!=NULL; }
+    else { result=xl6ListProjectionTakeV1(target,&tuple,xl6StringConverterV1()); target=NULL; success=result!=NULL; }
+    bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    assert(hit ? !success && !outcome.ok && !result : success && outcome.ok);
+    if (hit) assert(outcome.error && xrtErrorKind(outcome.error)==XERR_MEMORY);
+    int64_t count=2;
+    if (!hit && !strcmp(operation,"value-take")) count=1;
+    if (!hit && !strcmp(operation,"value-append")) count=3;
+    assert(found && xl6ListCountV1(source,&tuple)==count);
+    if (strcmp(operation,"value-take") || hit) readText(source,-7,!hit && !strcmp(operation,"value-set") ? replacement : text);
+    readText(source,42,text);
+    if (!strcmp(operation,"value-append")) assert(hit ? key==99 : key==43);
+    if (import && !hit) { readText(result,-7,text); readText(result,42,text); }
+    if (!strcmp(operation,"wire") && !hit) assert(xrtValueType(result)==XVALUE_INT_MAP && xrtValueCount(result)==2);
+    if (wire) assert(xrtValueCount(wire)==2);
+    xrtErrorFree(outcome.error); xrtValueRelease(result); xrtValueRelease(target); xrtValueRelease(wire); xrtValueRelease(item); xrtValueRelease(source);
+    printf("native List %s point=%zu hit=%d complete-prefix balanced\n",operation,point,hit); return true;
+}
+static void projectionEntryErrors(void)
+{
+    XL6_ListLayoutV1 tuple=layout(2,xl6StringTypeV1());
+    for (unsigned absent=0;absent<2;++absent) for (unsigned operation=0;operation<2;++operation) {
+        /* Exact consumed ownership even when Begin never installs a scope.
+         * The later genuine finalizer error must not replace Memory/NULL. */
+        unsigned drops=0; void* raw=&drops;
+        xvalue* seed=xrtValueHandleTake(&raw,&finalizerOps,NULL); assert(seed);
+        xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
+        entryFailure=absent ? -1 : 1;
+        xvalue* result=operation ? xl6ListImportTakeV1(seed,xrtValueNull()) :
+            xl6ListProjectionTakeV1(seed,&tuple,xl6StringConverterV1());
+        assert(!result && !entryFailure && drops==1);
+        xl6_error_result outcome=xl6ErrorScopeEnd(&scope); assert(!outcome.ok);
+        assert(absent ? !outcome.error : outcome.error && xrtErrorKind(outcome.error)==XERR_MEMORY);
+        xrtErrorFree(outcome.error);
+    }
+}
 static void fault(const char* operation,size_t point)
 {
+    if (projectionFault(operation,point)) return;
     if (!strcmp(operation,"ref-equal")) { equalityFault(point); return; }
     XL6_ListLayoutV1 tuple=layout(2,xl6StringTypeV1());
     xvalue* list=NULL,*result=NULL,*cursor=NULL,*peer=NULL;
@@ -648,6 +904,11 @@ int main(int argc,char** argv)
     else if (!strcmp(argv[1],"identity-errors")) identityErrors();
     else if (!strcmp(argv[1],"shared-depth")) sharedDepth();
     else if (!strcmp(argv[1],"guard-protocol")) guardProtocol();
+    else if (!strcmp(argv[1],"projection")) projection();
+    else if (!strcmp(argv[1],"projection-profiles")) projectionProfiles();
+    else if (!strcmp(argv[1],"imports")) imports();
+    else if (!strcmp(argv[1],"codec-errors")) codecErrors();
+    else if (!strcmp(argv[1],"projection-entry-errors")) projectionEntryErrors();
     else assert(0);
     assert(!xrtGetError() && !xl6ProductMemoryEnd()); xl6ProductMemoryVerify();
     if (argc==2) printf("native List %s vectors balanced\n",argv[1]);
