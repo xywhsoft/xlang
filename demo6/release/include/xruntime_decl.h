@@ -16840,6 +16840,46 @@ XRT_API bool xrtValueObjectSetNewPostCommit(
 	xvalue* pItem
 );
 
+/* Compiler/host-private field transaction. Preparation pins the actual
+ * receiver and a COW observation, copies its field storage (NOT a language
+ * object/clone/finalization duty), and leaves the receiver unchanged. SetTake
+ * changes only prepared storage, consuming the item only on success.
+ * Records and receiver access are caller-serialized; tables remain borrowed.
+ * Call Free outside freeze/mutation: it may run retired-field cleanup.
+ * Failed preparation only releases temporary pins while the borrowed receiver
+ * still protects its original fields and lifetime; no producer cleanup runs.
+ * No record or snapshot is a proof that a default object is private. */
+typedef struct xvalueobjectfieldsv1 xvalueobjectfieldsv1;
+typedef enum xvalueobjectfieldsresultv1 {
+	XVALUE_OBJECT_FIELDS_ERROR_V1 = -1,
+	XVALUE_OBJECT_FIELDS_BUSY_V1 = 0,
+	XVALUE_OBJECT_FIELDS_COMMITTED_V1 = 1,
+	XVALUE_OBJECT_FIELDS_SHARED_V1 = 2
+} xvalueobjectfieldsresultv1;
+XRT_API xvalueobjectfieldsv1* xrtValueObjectFieldsPrepareV1(xvalue* pObject);
+XRT_API bool xrtValueObjectFieldsSetTakeV1(xvalueobjectfieldsv1* pFields,
+	xstrview Key, xvalue** ppItem);
+/* A real unique record with exactly three owned Value slots. Borrowed under
+ * caller-owned freeze; this is not a synthetic root or extra owning slot. */
+XRT_API xrtownershipref xrtValueObjectFieldsOwnershipV1(const xvalueobjectfieldsv1* pFields);
+/* Nonblocking ONE freeze: admit the complete physical graph before Count/
+ * Trace, verify receiver privacy and unchanged observations, and preflight
+ * combined planned Value-container cycles. Only then swap all prepared field stores without
+ * allocation, release, producer callbacks or failure. Preserve the original
+ * class lifetime/identity and its one finalization duty. Free later retires
+ * old fields outside freeze. Ordinary COW aliases keep their old backing.
+ * Every supplied internal slot MUST be a real independently owned reference;
+ * each record's own unique owner is supplied automatically, once. An anchor
+ * is not an internal slot. Admission is mandatory, read-only and resident.
+ * SHARED/BUSY leave every receiver unchanged and do not set an error. Unknown
+ * participants, changed receivers, misuse/cycles/OOM return ERROR, also before
+ * any receiver write. This does not perform or infer a language clone. */
+XRT_API xvalueobjectfieldsresultv1 xrtValueObjectFieldsCommitV1(
+	xvalueobjectfieldsv1* const* ppFields, size_t iCount,
+	const xrtownershipref* pInternalSlots, size_t iInternalSlotCount,
+	xrtownershipadmitproc pAdmit, ptr pContext);
+XRT_API void xrtValueObjectFieldsFreeV1(xvalueobjectfieldsv1* pFields);
+
 
 
 /* 判断对象键是否存在。 */

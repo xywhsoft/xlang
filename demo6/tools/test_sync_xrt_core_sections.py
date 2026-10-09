@@ -44,6 +44,24 @@ class SnapshotSectionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.apply(self.old + self.old)
 
+    def test_nearby_changes_share_one_exact_guard(self):
+        lines = list(self.lines)
+        lines[5] = "first edit\n"
+        lines[8] = "second edit\n"
+        new = block(lines)
+        self.assertEqual(replace(self.old, self.old, new, "public", "include/xrt/value.h"), new)
+        self.assertEqual(replace(new, self.old, new, "public", "include/xrt/value.h"), new)
+        with self.assertRaises(ValueError):
+            replace(self.old.replace("old line 7", "local conflict"), self.old, new, "public", "include/xrt/value.h")
+
+    def test_separated_groups_preserve_unselected_content(self):
+        lines = list(self.lines)
+        lines[2] = "first edit\n"
+        lines[20] = "second edit\n"
+        current = self.old.replace("old line 11", "existing snapshot content")
+        expected = block(lines).replace("old line 11", "existing snapshot content")
+        self.assertEqual(replace(current, self.old, block(lines), "public", "include/xrt/value.h"), expected)
+
 
 if __name__ == "__main__":
     unittest.main()

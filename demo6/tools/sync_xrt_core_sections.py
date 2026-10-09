@@ -40,14 +40,15 @@ def replace(text: str, old: str, new: str, kind: str, name: str) -> str:
     old_lines = old[old_start:old_end].splitlines(keepends=True)
     new_lines = new[new_start:new_end].splitlines(keepends=True)
     current = text[start:end]
-    changes = difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False).get_opcodes()
-    for action, a, b, c, d in reversed(changes):
-        if action == "equal":
-            continue
-        before = "".join(old_lines[max(0, a - 4):a])
-        after = "".join(old_lines[b:b + 4])
-        needle = before + "".join(old_lines[a:b]) + after
-        replacement = before + "".join(new_lines[c:d]) + after
+    # Nearby edits share guard lines. Applying them independently would change
+    # the next edit's OLD guard and falsely refuse an exact source delta. Merge
+    # overlapping contexts before validation, never weaken the context match.
+    changes = list(difflib.SequenceMatcher(None, old_lines, new_lines, autojunk=False).get_grouped_opcodes(4))
+    for group in reversed(changes):
+        a, b = group[0][1], group[-1][2]
+        c, d = group[0][3], group[-1][4]
+        needle = "".join(old_lines[a:b])
+        replacement = "".join(new_lines[c:d])
         if current.count(needle) == 0 and current.count(replacement) == 1:
             continue  # Exact already-applied span; never append it twice.
         if current.count(needle) != 1:

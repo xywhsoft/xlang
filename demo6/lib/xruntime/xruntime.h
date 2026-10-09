@@ -14315,6 +14315,46 @@ XRT_API bool xrtValueObjectSetNewPostCommit(
 	xvalue* pItem
 );
 
+/* Compiler/host-private field transaction. Preparation pins the actual
+ * receiver and a COW observation, copies its field storage (NOT a language
+ * object/clone/finalization duty), and leaves the receiver unchanged. SetTake
+ * changes only prepared storage, consuming the item only on success.
+ * Records and receiver access are caller-serialized; tables remain borrowed.
+ * Call Free outside freeze/mutation: it may run retired-field cleanup.
+ * Failed preparation only releases temporary pins while the borrowed receiver
+ * still protects its original fields and lifetime; no producer cleanup runs.
+ * No record or snapshot is a proof that a default object is private. */
+typedef struct xvalueobjectfieldsv1 xvalueobjectfieldsv1;
+typedef enum xvalueobjectfieldsresultv1 {
+	XVALUE_OBJECT_FIELDS_ERROR_V1 = -1,
+	XVALUE_OBJECT_FIELDS_BUSY_V1 = 0,
+	XVALUE_OBJECT_FIELDS_COMMITTED_V1 = 1,
+	XVALUE_OBJECT_FIELDS_SHARED_V1 = 2
+} xvalueobjectfieldsresultv1;
+XRT_API xvalueobjectfieldsv1* xrtValueObjectFieldsPrepareV1(xvalue* pObject);
+XRT_API bool xrtValueObjectFieldsSetTakeV1(xvalueobjectfieldsv1* pFields,
+	xstrview Key, xvalue** ppItem);
+/* A real unique record with exactly three owned Value slots. Borrowed under
+ * caller-owned freeze; this is not a synthetic root or extra owning slot. */
+XRT_API xrtownershipref xrtValueObjectFieldsOwnershipV1(const xvalueobjectfieldsv1* pFields);
+/* Nonblocking ONE freeze: admit the complete physical graph before Count/
+ * Trace, verify receiver privacy and unchanged observations, and preflight
+ * combined planned Value-container cycles. Only then swap all prepared field stores without
+ * allocation, release, producer callbacks or failure. Preserve the original
+ * class lifetime/identity and its one finalization duty. Free later retires
+ * old fields outside freeze. Ordinary COW aliases keep their old backing.
+ * Every supplied internal slot MUST be a real independently owned reference;
+ * each record's own unique owner is supplied automatically, once. An anchor
+ * is not an internal slot. Admission is mandatory, read-only and resident.
+ * SHARED/BUSY leave every receiver unchanged and do not set an error. Unknown
+ * participants, changed receivers, misuse/cycles/OOM return ERROR, also before
+ * any receiver write. This does not perform or infer a language clone. */
+XRT_API xvalueobjectfieldsresultv1 xrtValueObjectFieldsCommitV1(
+	xvalueobjectfieldsv1* const* ppFields, size_t iCount,
+	const xrtownershipref* pInternalSlots, size_t iInternalSlotCount,
+	xrtownershipadmitproc pAdmit, ptr pContext);
+XRT_API void xrtValueObjectFieldsFreeV1(xvalueobjectfieldsv1* pFields);
+
 
 
 /* 判断对象键是否存在。 */
@@ -111292,9 +111332,14 @@ XRT_API bool xrtSetEqual(const xset* pLeft, const xset* pRight)
 
 #if defined(XRT_FEATURE_VALUE_CONTAINER)
 
-
-
 #if defined(XRT_FEATURE_VALUE_CONTAINER)
+
+struct xvalueobjectfieldsv1 {
+	xvalue* Receiver;
+	xvalue* Observation;
+	xvalue* Prepared;
+	bool Committed;
+};
 
 #define XRT_VALUE_BACKING_FINALIZING 0x0001u
 #define XRT_VALUE_BACKING_OWNERSHIP_CLEARED 0x0002u
@@ -111541,6 +111586,8 @@ typedef enum xvaluecontainsresult {
 typedef struct xvaluecontainscontext {
 	const xvaluebacking* TargetBacking;
 	const xvalue* TargetValue;
+	xvalueobjectfieldsv1* const* Fields;
+	size_t FieldCount;
 	const xvaluebacking* Active[XRT_VALUE_DEPTH_MAX];
 	const xvaluebacking* Inline[XRT_VALUE_VISITED_INLINE];
 	size_t InlineCount;
@@ -112486,6 +112533,20 @@ static xvaluecontainsresult __xrtValueContains(
 	}
 	if ( !__xrtValueContainerType((xvaluetype)pValue->Type) ) {
 		return XVALUE_CONTAINS_NO;
+	}
+	/* Follow the combined prospective graph, not only the old receivers.
+	 * A bound finalizer is one physical reference-identity backing, including
+	 * its DIFFERENT alias shells. Test that backing before substitution, then
+	 * follow every alias through the planned fields of that same identity. */
+	if (pContext->FieldCount && pContext->TargetBacking && pValue->Data.Backing == pContext->TargetBacking)
+		return XVALUE_CONTAINS_YES;
+	for (size_t i = 0; i < pContext->FieldCount; ++i) {
+		const xvalue* pReceiver = pContext->Fields[i]->Receiver;
+		if (pReceiver == pValue || (pReceiver->Type == XVALUE_OBJECT &&
+			((const xvalueobjectbacking*)pReceiver->Data.Backing)->FinalizerBound &&
+			pReceiver->Data.Backing == pValue->Data.Backing)) {
+			pValue = pContext->Fields[i]->Prepared; break;
+		}
 	}
 	if ( iDepth >= XRT_VALUE_DEPTH_MAX ) {
 		__xrtErrorSetValue();
@@ -114818,6 +114879,210 @@ XRT_API bool xrtValueObjectSetNewPostCommit(xvalue* pObject, xstrview Key, xvalu
 	xrtValueRelease(pPin);
 	if (pFailure != NULL) { xrtClearError(); xrtSetErrorTake(pFailure); }
 	return bResult;
+}
+
+static bool __xrtValueFieldsCount(const void* pData, size_t* pCount)
+{
+	const xvalueobjectfieldsv1* pFields = (const xvalueobjectfieldsv1*)pData;
+	if (pFields == NULL || pFields->Receiver == NULL ||
+		pFields->Observation == NULL || pFields->Prepared == NULL) return false;
+	/* A live record has one unique owning handle, not a sampled Value count.
+	 * There is intentionally no public Retain/aliasing operation for records. */
+	*pCount = 1; return true;
+}
+static bool __xrtValueFieldsTrace(const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{
+	const xvalueobjectfieldsv1* pFields = (const xvalueobjectfieldsv1*)pData;
+	size_t iCount;
+	return __xrtValueFieldsCount(pData, &iCount) &&
+		pVisit(xrtValueOwnership(pFields->Receiver), pContext) &&
+		pVisit(xrtValueOwnership(pFields->Observation), pContext) &&
+		pVisit(xrtValueOwnership(pFields->Prepared), pContext);
+}
+static const xrtownershipops __xrtValueFieldsOps = {
+	__xrtValueFieldsCount, __xrtValueFieldsTrace
+};
+XRT_API xrtownershipref xrtValueObjectFieldsOwnershipV1(const xvalueobjectfieldsv1* pFields)
+{ return (xrtownershipref){pFields, &__xrtValueFieldsOps}; }
+
+XRT_API void xrtValueObjectFieldsFreeV1(xvalueobjectfieldsv1* pFields)
+{
+	if (pFields == NULL) return;
+	xerror* pPrimary = xrtTakeError();
+	/* Retired fields first, then the observation, then the ACTUAL receiver.
+	 * A COW observation must never become the last class-finalizer receiver. */
+	xvalue* pValues[3] = {pFields->Prepared, pFields->Observation, pFields->Receiver};
+	xrtFree(pFields);
+	for (size_t i = 0; i < 3; ++i) {
+		xrtValueRelease(pValues[i]);
+		if (pPrimary == NULL) pPrimary = xrtTakeError();
+		else xrtClearError();
+	}
+	xrtSetErrorTake(pPrimary);
+}
+static xvalueobjectfieldsv1* __xrtValueFieldsPrepare(xvalue* pObject)
+{
+	xvalueobjectbacking* pBacking = (xvalueobjectbacking*)__xrtValueBacking(pObject, XVALUE_OBJECT);
+	if (pBacking == NULL) return NULL;
+	if ((pObject->Flags & (XRT_VALUE_FLAG_FINALIZING | XRT_VALUE_FLAG_OWNERSHIP_CLEARED)) != 0 ||
+		pObject->OwnershipClaim != NULL || pBacking->Base.OwnershipClaim != NULL ||
+		(pBacking->Base.Flags & (XRT_VALUE_BACKING_FINALIZING | XRT_VALUE_BACKING_OWNERSHIP_CLEARED)) != 0 ||
+		pBacking->FinalizerPrepared) {
+		__xrtErrorSetInvalidState(); return NULL;
+	}
+	xvalueobjectfieldsv1* pFields = (xvalueobjectfieldsv1*)xrtCalloc(1, sizeof(*pFields));
+	if (pFields == NULL) return NULL;
+	pFields->Receiver = xrtValueRetain(pObject);
+	if (pFields->Receiver != NULL) pFields->Observation = xrtValueClone(pObject);
+	if (pFields->Observation != NULL) pFields->Prepared = __xrtValueCreate(XVALUE_OBJECT);
+	if (pFields->Prepared != NULL) {
+		pObject->Flags |= XRT_VALUE_FLAG_BUSY;
+		pFields->Prepared->Data.Backing = __xrtValueBackingCopy(pFields->Observation->Data.Backing);
+		pObject->Flags &= (uint16)(UINT16_MAX ^ XRT_VALUE_FLAG_BUSY);
+		if (pFields->Prepared->Data.Backing != NULL) {
+			pFields->Prepared->TypeId = pObject->TypeId;
+			pFields->Prepared->IdentityHash = pObject->IdentityHash;
+			pFields->Prepared->IdentityEqual = pObject->IdentityEqual;
+			pFields->Prepared->IdentityUserData = pObject->IdentityUserData;
+			return pFields;
+		}
+	}
+	/* No producer destructor is copied to the temporary backing. Every
+	 * original field is still owned by the independently pinned observation. */
+	xrtValueObjectFieldsFreeV1(pFields); return NULL;
+}
+XRT_API xvalueobjectfieldsv1* xrtValueObjectFieldsPrepareV1(xvalue* pObject)
+{ XRT_VALUE_MUTATION_RETURN(xvalueobjectfieldsv1*, __xrtValueFieldsPrepare(pObject)); }
+XRT_API bool xrtValueObjectFieldsSetTakeV1(xvalueobjectfieldsv1* pFields, xstrview Key, xvalue** ppItem)
+{
+	if (pFields == NULL || pFields->Committed) { __xrtErrorSetInvalidState(); return false; }
+	return xrtValueObjectSetTake(pFields->Prepared, Key, ppItem);
+}
+
+typedef struct xrt_value_fields_admission {
+	xvalueobjectfieldsv1* const* Fields;
+	size_t Count;
+	xrtownershipadmitproc Admit;
+	ptr Context;
+} xrt_value_fields_admission;
+static bool __xrtValueFieldsAdmit(xrtownershipref Reference, ptr pContext)
+{
+	const xrt_value_fields_admission* pAdmission = (const xrt_value_fields_admission*)pContext;
+	if (Reference.Ops == &__xrtValueFieldsOps) {
+		for (size_t i = 0; i < pAdmission->Count; ++i)
+			if (Reference.Data == pAdmission->Fields[i]) return true;
+		return false;
+	}
+	return pAdmission->Admit(Reference, pAdmission->Context);
+}
+static bool __xrtValueFieldsObserved(const xvalueobjectfieldsv1* pFields)
+{
+	const xvalue* pValue = pFields->Receiver;
+	const xvalue* pObservation = pFields->Observation;
+	const xvalueobjectbacking* pBacking;
+	if (pFields->Committed || pValue == NULL || pObservation == NULL || pFields->Prepared == NULL ||
+		pValue->Type != XVALUE_OBJECT || pValue->Data.Backing != pObservation->Data.Backing ||
+		pValue->TypeId != pObservation->TypeId || pValue->IdentityHash != pObservation->IdentityHash ||
+		pValue->IdentityEqual != pObservation->IdentityEqual || pValue->IdentityUserData != pObservation->IdentityUserData ||
+		pValue->OwnershipClaim != NULL || (pValue->Flags &
+		(XRT_VALUE_FLAG_BUSY | XRT_VALUE_FLAG_FINALIZING | XRT_VALUE_FLAG_OWNERSHIP_CLEARED)) != 0) return false;
+	pBacking = (const xvalueobjectbacking*)pValue->Data.Backing;
+	return pBacking != NULL && pBacking->Base.OwnershipClaim == NULL &&
+		(pBacking->Base.Flags & (XRT_VALUE_BACKING_FINALIZING | XRT_VALUE_BACKING_OWNERSHIP_CLEARED)) == 0 &&
+		!pBacking->FinalizerPrepared;
+}
+static bool __xrtValueFieldsReachable(const xrtownershipsnapshot* pSnapshot,
+	xrtownershipref Reference, bool* pReachable)
+{
+	for (size_t i = 0; i < xrtOwnershipSnapshotNodeCount(pSnapshot); ++i) {
+		xrtownershipnode Node;
+		if (!xrtOwnershipSnapshotNode(pSnapshot, i, &Node)) return false;
+		if (Node.Reference.Data == Reference.Data && Node.Reference.Ops == Reference.Ops) {
+			*pReachable = Node.Reachable; return true;
+		}
+	}
+	return false;
+}
+XRT_API xvalueobjectfieldsresultv1 xrtValueObjectFieldsCommitV1(
+	xvalueobjectfieldsv1* const* ppFields, size_t iCount,
+	const xrtownershipref* pInternalSlots, size_t iInternalSlotCount,
+	xrtownershipadmitproc pAdmit, ptr pContext)
+{
+	xrtownershipscope Freeze = {0};
+	xrtownershipsnapshot* pSnapshot = NULL;
+	xrtownershipref* pSlots = NULL;
+	xvalueobjectfieldsresultv1 Result = XVALUE_OBJECT_FIELDS_ERROR_V1;
+	if ((iCount != 0 && ppFields == NULL) || pAdmit == NULL ||
+		(iInternalSlotCount != 0 && pInternalSlots == NULL) ||
+		iCount > SIZE_MAX - iInternalSlotCount ||
+		iCount + iInternalSlotCount > SIZE_MAX / sizeof(*pSlots)) {
+		__xrtErrorSetInvalidArgument(); return Result;
+	}
+	if (!xrtOwnershipFreezeTryBegin(&Freeze)) return XVALUE_OBJECT_FIELDS_BUSY_V1;
+	for (size_t i = 0; i < iCount; ++i) {
+		if (ppFields[i] == NULL || !__xrtValueFieldsObserved(ppFields[i])) {
+			__xrtErrorSetInvalidState(); goto done;
+		}
+		for (size_t j = 0; j < i; ++j) {
+			if (ppFields[i]->Receiver == ppFields[j]->Receiver ||
+				(((xvalueobjectbacking*)ppFields[i]->Receiver->Data.Backing)->FinalizerBound &&
+				ppFields[i]->Receiver->Data.Backing == ppFields[j]->Receiver->Data.Backing)) {
+				__xrtErrorSetInvalidState(); goto done;
+			}
+		}
+	}
+	size_t iSlotCount = iCount + iInternalSlotCount;
+	pSlots = iSlotCount ? (xrtownershipref*)xrtMalloc(iSlotCount * sizeof(*pSlots)) : NULL;
+	if (iSlotCount && pSlots == NULL) goto done;
+	for (size_t i = 0; i < iCount; ++i) pSlots[i] = xrtValueObjectFieldsOwnershipV1(ppFields[i]);
+	if (iInternalSlotCount) memcpy(pSlots + iCount, pInternalSlots, iInternalSlotCount * sizeof(*pSlots));
+	xrt_value_fields_admission Admission = {ppFields, iCount, pAdmit, pContext};
+	if (!xrtOwnershipSnapshotCreate(pSlots, iCount, pSlots, iSlotCount,
+		__xrtValueFieldsAdmit, &Admission, &pSnapshot)) goto done;
+	for (size_t i = 0; i < iCount; ++i) {
+		bool bShared;
+		xvalueobjectbacking* pBacking = (xvalueobjectbacking*)ppFields[i]->Receiver->Data.Backing;
+		if (!__xrtValueFieldsReachable(pSnapshot, xrtValueOwnership(ppFields[i]->Receiver), &bShared)) {
+			__xrtErrorSetInvalidState(); goto done;
+		}
+		if (!bShared && pBacking->FinalizerBound) {
+			if (!__xrtValueFieldsReachable(pSnapshot, __xrtValueBackingOwnership(ppFields[i]->Receiver), &bShared)) {
+				__xrtErrorSetInvalidState(); goto done;
+			}
+		}
+		if (bShared) { Result = XVALUE_OBJECT_FIELDS_SHARED_V1; goto done; }
+		xvaluecontainscontext Contains = {0};
+		Contains.TargetValue = ppFields[i]->Receiver;
+		if (pBacking->FinalizerBound) Contains.TargetBacking = &pBacking->Base;
+		Contains.Fields = ppFields; Contains.FieldCount = iCount;
+		xvaluecontainsresult Cycle = __xrtValueContains(ppFields[i]->Prepared, &Contains, 0);
+		if (Contains.OverflowReady) xrtSetUnit(&Contains.Overflow);
+		if (Cycle != XVALUE_CONTAINS_NO) {
+			if (Cycle == XVALUE_CONTAINS_YES) __xrtErrorSetValue();
+			goto done;
+		}
+	}
+	/* ALL fallible work is complete. No destructor, allocation, descriptor
+	 * callback or graph access occurs during publication of this whole batch. */
+	for (size_t i = 0; i < iCount; ++i) {
+		xvalueobjectfieldsv1* pFields = ppFields[i];
+		xvalueobjectbacking* pBacking = (xvalueobjectbacking*)pFields->Receiver->Data.Backing;
+		if (pBacking->FinalizerBound) {
+			xmap Old = pBacking->Items;
+			pBacking->Items = ((xvalueobjectbacking*)pFields->Prepared->Data.Backing)->Items;
+			((xvalueobjectbacking*)pFields->Prepared->Data.Backing)->Items = Old;
+		} else {
+			xvaluebacking* pOld = pFields->Receiver->Data.Backing;
+			pFields->Receiver->Data.Backing = pFields->Prepared->Data.Backing;
+			pFields->Prepared->Data.Backing = pOld;
+		}
+		pFields->Committed = true;
+	}
+	Result = XVALUE_OBJECT_FIELDS_COMMITTED_V1;
+done:
+	xrtOwnershipSnapshotDestroy(pSnapshot); xrtFree(pSlots);
+	if (!xrtOwnershipScopeEnd(&Freeze)) abort();
+	return Result;
 }
 
 
