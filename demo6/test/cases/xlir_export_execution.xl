@@ -1,0 +1,24 @@
+extern "export_execution_probe" func probe(int mode) as int
+
+int state = 7
+
+export "scope_probe" func scoped(int mode) as int
+    return probe(mode) + state
+end
+
+export func scope_value(int mode) as var
+    probe(mode)
+    return state
+end
+
+export "scope_void" func noValue(int mode)
+    probe(mode)
+end
+
+export "scope_pure" func pure(int value) as int
+    return value
+end
+
+export "scope_reenter" func reenter(func() as int callback) as int
+    return callback()
+end

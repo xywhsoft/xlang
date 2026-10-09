@@ -12952,6 +12952,7 @@ static int xl6IrLowerRegisterExport(XL6_IrLowerContext* ctx, XL6_IrNodeId declar
     exported->returnType = target->returnType;
     exported->returnAbi = returnAbi;
     exported->errorAbi = XL6_IR_EXPORT_ERROR_SHARED_SCOPE_TRANSACTION;
+    exported->executionAbi = XL6_IR_EXPORT_EXECUTION_RESIDENT_CODE_SCOPE_V1;
     exported->bodyErrorAbi = target->errorAbi;
     exported->returnValueAbi = target->returnType == XL6_IR_TYPE_INVALID
         ? XL6_IR_EXPORT_VALUE_INVALID

@@ -303,7 +303,8 @@ static int xl6IrCgenEmitExport(
     int hasCallback = 0;
     size_t i;
     if ( exported == NULL || exported->cName == NULL || target == NULL ||
-         target->kind != XL6_IR_CALL_TARGET_INTERNAL )
+         target->kind != XL6_IR_CALL_TARGET_INTERNAL ||
+         exported->executionAbi != XL6_IR_EXPORT_EXECUTION_RESIDENT_CODE_SCOPE_V1 )
         return xl6IrCgenDiag(diags, module, exported != NULL ? exported->declaration : XL6_IR_NODE_INVALID,
                              "XLIR C emitter export linkage ABI is unresolved");
     returnType = exported->returnAbi == XL6_IR_EXPORT_RETURN_VOID
@@ -327,7 +328,8 @@ static int xl6IrCgenEmitExport(
     }
     xl6OutputPuts(")\n{\n", out);
     xl6OutputPuts(
-        "    xl6_foreign_error_scope entry = {0}; xl6_foreign_error_result outcome;\n", out);
+        "    xl6_foreign_error_scope entry = {0}; xl6_foreign_error_result outcome;\n"
+        "    XL6_CodeScope execution = {0}; XL6_CodeLease* code = NULL;\n", out);
     if (exported->returnAbi != XL6_IR_EXPORT_RETURN_VOID)
         xl6OutputPrintf(out, "    %s pending_result = {0};\n",
             xl6IrCgenType(module, exported->returnType));
@@ -341,6 +343,10 @@ static int xl6IrCgenEmitExport(
     xl6IrCgenEmitExportFailureReturn(out, exported, returnType);
     xl6OutputPuts(
         "    }\n"
+        "    if (xl6CodeLeaseAcquireScoped(xlir_code_owner.size ? &xlir_code_owner : NULL, &code) != XL6_CODE_LEASE_ACQUIRED) {\n"
+        "        xl6ErrorScopeCaptureFailure(&entry); goto xlir_export_finish;\n"
+        "    }\n"
+        "    xl6CodeScopeEnter(&execution, code); xl6CodeLeaseRelease(code);\n"
         "    if (!xlir_module_init()) { xl6ErrorScopeCaptureFailure(&entry); goto xlir_export_finish; }\n", out);
     for ( i = 0; i < exported->parameterCount; ++i )
         if ( xl6IrExportValueAbiIsCallback(exported->parameterValueAbis[i]) )
@@ -381,9 +387,11 @@ static int xl6IrCgenEmitExport(
     if (!xl6IrCgenEmitExportResultRollback(out, module, exported))
         return xl6IrCgenDiag(diags, module, exported->declaration,
             "XLIR export pending result has no verified release ABI");
-    xl6OutputPuts("        xl6ErrorScopePropagateFailure(outcome);\n", out);
+    xl6OutputPuts("        xl6CodeScopeLeave(&execution);\n"
+        "        xl6ErrorScopePropagateFailure(outcome);\n", out);
     xl6IrCgenEmitExportFailureReturn(out, exported, returnType);
     xl6OutputPuts("    }\n", out);
+    xl6OutputPuts("    xl6CodeScopeLeave(&execution);\n", out);
     if ( exported->returnAbi != XL6_IR_EXPORT_RETURN_VOID ) {
         xl6OutputPuts("    return ", out);
         if ( exported->returnValueAbi != XL6_IR_EXPORT_VALUE_TYPE_REPRESENTATION )

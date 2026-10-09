@@ -200,6 +200,9 @@ int xl6IrCgenVisitNativeModules(const XL6_IrModule* module, XL6_DiagList* diags,
     XL6_IrCgenNeeds needs;
     if (!visitor) return 0;
     if (!xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
+    if (module->exportCount != 0 &&
+        (!visitor(context,"XRT_MODULE_MEMORY") || !visitor(context,"XRT_MODULE_ATOMIC") ||
+         !visitor(context,"XRT_MODULE_THREAD"))) return 0;
     if ((module->abi.entryKind!=XL6_IR_MODULE_ENTRY_NONE || (options && options->emitScriptEntry)) &&
         !visitor(context,"XRT_MODULE_CONSOLE")) return 0;
 #define XL6_IR_CGEN_NEED(Type, Field, Group) \
@@ -293,6 +296,9 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
 {
     XL6_IrCgenNeeds needs;
     if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
+    if (module->exportCount != 0 &&
+        (!visitor(context,"xl6CodeLeaseAcquireScoped") || !visitor(context,"xl6CodeLeaseRelease") ||
+         !visitor(context,"xl6CodeScopeEnter") || !visitor(context,"xl6CodeScopeLeave"))) return 0;
     if(module->abi.entryKind==XL6_IR_MODULE_ENTRY_XLANG_MAIN &&
         (!visitor(context,"xl6ArrayEntryAcquireV1") ||
          (options && options->emitMainWrapper && !visitor(context,"xl6ArrayOsArgvCreateV1")))) return 0;

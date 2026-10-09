@@ -2,19 +2,28 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "../../build/test/xlir_export_transaction_bind.h"
+#ifndef XL6_TX_BINDING_INCLUDE
+#define XL6_TX_BINDING_INCLUDE "../../build/test/xlir_export_transaction_bind.h"
+#endif
+#ifndef XL6_TX_GENERATED_INCLUDE
+#define XL6_TX_GENERATED_INCLUDE "../../build/test/xlir_export_transaction.c"
+#endif
+#include XL6_TX_BINDING_INCLUDE
 /* Inject at the generated adapter's allocator/releaser boundary, never by
  * changing generated control flow. Runtime internals continue to use XRT. */
 #define xrtMalloc tx_malloc
 #define xrtFree tx_free
 #define xrtValueRelease tx_value_release
-#include "../../build/test/xlir_export_transaction.c"
+#include XL6_TX_GENERATED_INCLUDE
 #undef xrtMalloc
 #undef xrtFree
 #undef xrtValueRelease
 extern void* xrtMalloc(size_t);
 extern void xrtFree(void*);
 extern void xrtValueRelease(xvalue*);
+#ifdef XL6_TX_RESIDENT_FREE_WRAP
+extern void __real_xrtFree(void*);
+#endif
 void tx_error_oom(void);
 
 static int mode, body_calls, inject_malloc = -1, track_bridges, bridge_count;
@@ -52,7 +61,11 @@ void tx_free(void* pointer)
     int i, bridge = 0;
     for (i = 0; i < bridge_count; ++i)
         if (bridges[i] == pointer && pointer != NULL) { bridges[i] = NULL; bridge = 1; }
+#ifdef XL6_TX_RESIDENT_FREE_WRAP
+    __real_xrtFree(pointer);
+#else
     xrtFree(pointer);
+#endif
     if (pointer != NULL && pointer == secondary_string) {
         secondary_string = NULL; ++secondary_frees; publish(1, 202);
     }
@@ -62,6 +75,13 @@ void tx_free(void* pointer)
             secondary_frees == 1 ? 303 : 404);
     }
 }
+
+#ifdef XL6_TX_RESIDENT_FREE_WRAP
+/* Bridge contexts are now retired by the resident closure provider. Observe
+ * the SAME real free there as well as in generated code, armed only for the
+ * exact tracked bridge addresses; delegate every real allocation release. */
+void __wrap_xrtFree(void* pointer) { tx_free(pointer); }
+#endif
 
 void tx_value_release(xvalue* value)
 {
