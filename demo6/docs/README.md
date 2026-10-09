@@ -36,6 +36,7 @@
 - [共享默认对象的隔离合同](stdlib53-b156-restore-isolation-contracts.md)：声明 clone 能力、精确调用和错误 ABI；运行时私有性认证与 Cgen 切换仍须完成。
 - [对象字段恢复事务](stdlib53-b157-restore-field-transactions.md)：真实拥有图认证后整批发布，失败保持原字段；这是声明 clone 执行与 Cgen 切换的前置能力。
 - [数据恢复控制器的整图字段事务](stdlib53-b158-restore-controller-transactions.md)：整图暂存、实际源实例 pin 和共享对象 checked 拒绝；声明 clone 执行与语言入口切换仍须完成。
+- [共享默认对象的声明克隆恢复](stdlib53-b159-declared-clone-restore.md)：在私有原生控制器执行声明 clone、重认证结果和整图提交；活动模块及 Cgen 实际入口继续。
 - [XLIR数据恢复构造图](stdlib53-b154-ir-restore-graph.md)：可达根、节点、字段上下文、默认工厂和迁移边界；与旧恢复六表共享失败原子构建，不等同于 Cgen 或语言载体切换完成。
 - `文本标准库接入.md`：精确 string/char/bytes、UTF-8/16/32、BOM、数字与流式文本的公开合同。
 - `XRT扩展标准库API.md`：当前已公开的扩展标准库对象、函数、常量、异步语义和 C/XRT 对照接口。

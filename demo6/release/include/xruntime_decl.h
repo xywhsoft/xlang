@@ -16878,6 +16878,14 @@ XRT_API xvalueobjectfieldsresultv1 xrtValueObjectFieldsCommitV1(
 	xvalueobjectfieldsv1* const* ppFields, size_t iCount,
 	const xrtownershipref* pInternalSlots, size_t iInternalSlotCount,
 	xrtownershipadmitproc pAdmit, ptr pContext);
+/* Same single-freeze transaction. On SHARED only, return the first shared
+ * receiver's record index in caller order. The entire batch remains unchanged.
+ * Other outcomes leave the output untouched. The index is an observation,
+ * not a retained reference, mutation authority or inferred clone capability. */
+XRT_API xvalueobjectfieldsresultv1 xrtValueObjectFieldsCommitV2(
+	xvalueobjectfieldsv1* const* ppFields, size_t iCount,
+	const xrtownershipref* pInternalSlots, size_t iInternalSlotCount,
+	xrtownershipadmitproc pAdmit, ptr pContext, size_t* piSharedIndex);
 XRT_API void xrtValueObjectFieldsFreeV1(xvalueobjectfieldsv1* pFields);
 
 

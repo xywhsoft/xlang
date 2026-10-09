@@ -777,6 +777,147 @@ static void readerFault(const char* name,size_t point)
     xrtErrorFree(outcome.error); xrtValueRelease(result); xrtValueRelease(source); xrtClearError();
     printf("native plan %s point=%zu hit=%d complete-prefix balanced\n",name,point,hit);
 }
+static unsigned cloneMode,cloneCalls;
+static xvalue* cloneOther,*cloneWire;
+static xvalue* cloneCopy(const xvalue* source)
+{
+    xvalue* value=xl6ClassRuntimeV2Get()->Create(NULL,finalize);
+    if (!value) return NULL;
+    bool ok=xrtValueTypeIdBind(value,OBJECT_ID);
+    for (size_t i=0;ok && i<xrtValueCount(source);++i) {
+        xstrview key={0}; xvalue* item=xrtValueObjectAt(source,i,&key);
+        ok=item && xrtValueObjectSet(value,key,item);
+    }
+    if (!ok) {
+        xerror* error=xrtTakeError(); xrtValueRelease(value); xrtClearError(); xrtSetErrorTake(error); return NULL;
+    }
+    return xl6ClassRuntimeV2Get()->CommitTake(value);
+}
+static xvalue* declaredClone(const xvalue* source)
+{
+    ++cloneCalls; xrtownershipscope freeze={0};
+    assert(xrtOwnershipFreezeTryBegin(&freeze) && xrtOwnershipScopeEnd(&freeze));
+    if (cloneMode==1) return xrtValueRetain(source);
+    if (cloneMode==2) return xrtValueRetain(cloneOther);
+    if (cloneMode==3) return xrtValueObject();
+    if (cloneMode==6) return NULL;
+    if (cloneMode==7) { xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL}); return NULL; }
+    if (cloneMode==8) { xrtSetErrorKind(XERR_PROTOCOL); return NULL; }
+    if (cloneMode==9) return xrtValueClone(source);
+    if (cloneMode==12 && !xrtValueObjectSetNewPostCommit((xvalue*)source,XRT_STR_LITERAL("n"),xrtValueInt(8))) return NULL;
+    xvalue* value=cloneCopy(source); if (!value) return NULL;
+    bool ok=true;
+    if (cloneMode==4) ok=xrtValueObjectSetNew(value,XRT_STR_LITERAL("$xlir.class.runtime-type"),xrtValueInt(TAG+1));
+    if (cloneMode==5) {
+        /* A real native class of the WRONG exact identity, not a marker-only
+         * fake. Reconstruct before first TypeId bind, which is immutable. */
+        xrtValueRelease(value); value=xl6ClassRuntimeV2Get()->Create(NULL,finalize);
+        ok=value && xrtValueTypeIdBind(value,OBJECT_ID+1) &&
+            xrtValueObjectSetNew(value,XRT_STR_LITERAL("$xlir.class.runtime-type"),xrtValueInt(TAG));
+        if (ok) value=xl6ClassRuntimeV2Get()->CommitTake(value);
+    }
+    if (cloneMode==10) {
+        static const xvaluehandleops ops={NULL,foreignDrop,NULL,NULL}; ptr handle=&foreignTraces;
+        xvalue* opaque=xrtValueHandleTake(&handle,&ops,NULL);
+        ok=opaque && xrtValueHandleOwnershipBind(opaque,foreignTrace) &&
+            xrtValueObjectSetTake(value,XRT_STR_LITERAL("opaque"),&opaque);
+        xrtValueRelease(opaque);
+    }
+    if (cloneMode==11) ok=xrtValueObjectSetNew(cloneWire,XRT_STR_LITERAL("n"),xrtValueInt(999));
+    if (cloneMode==13) {
+        const xvalue* child=xrtValueObjectGet(source,XRT_STR_LITERAL("child"));
+        if (child) ok=xrtValueObjectSetNew(value,XRT_STR_LITERAL("child"),cloneCopy(child));
+    }
+    if (!ok) { xerror* error=xrtTakeError(); xrtValueRelease(value); xrtClearError(); xrtSetErrorTake(error); return NULL; }
+    return value;
+}
+static void cloneRun(unsigned mode,bool rootShared,bool childCapability,bool rejected,size_t point,bool fault)
+{
+    XL6_RestoreNodeV1 nodes[3]={
+        {.kind=XL6_RESTORE_OBJECT_V1,.identity=OBJECT_ID,
+         .as.object={objectDefault,TAG,0,3,xl6RestoreClassProviderV1()},.clone=declaredClone},
+        {.kind=XL6_RESTORE_OBJECT_V1,.flags=XL6_RESTORE_FIELD_INSTANCE_V1,.identity=OBJECT_ID,
+         .as.object={NULL,TAG,3,1,xl6RestoreClassProviderV1()},.clone=childCapability ? declaredClone : NULL},
+        {.kind=XL6_RESTORE_SCALAR_V1,.identity=LEAF_ID,.as.scalar=XL6_VALUE_ADMIT_I64}
+    };
+    XL6_RestoreFieldV1 fields[]={
+        {XRT_STR_INIT("n"),XRT_STR_INIT("n"),2,XL6_RESTORE_REQUIRED_V1},
+        {XRT_STR_INIT("child"),XRT_STR_INIT("child"),1,XL6_RESTORE_IN_PLACE_V1},
+        {XRT_STR_INIT("absent"),XRT_STR_INIT("keep"),2,rejected ? XL6_RESTORE_REQUIRED_V1 : 0},
+        {XRT_STR_INIT("n"),XRT_STR_INIT("n"),2,XL6_RESTORE_REQUIRED_V1}
+    };
+    XL6_RestorePlanV1 p={sizeof(p),3,4,0,nodes,fields,false};
+    xvalue* source=xrtValueObject(),*wireChild=xrtValueObject(),*owned=objectDefault(),*outside=objectDefault();
+    assert(source && wireChild && owned && outside && xrtValueObjectSetNew(source,XRT_STR_LITERAL("n"),xrtValueInt(41)) &&
+        xrtValueObjectSetNew(wireChild,XRT_STR_LITERAL("n"),xrtValueInt(42)) &&
+        xrtValueObjectSetNew(source,XRT_STR_LITERAL("child"),wireChild) &&
+        xrtValueObjectSetNew(owned,XRT_STR_LITERAL("n"),xrtValueInt(1)) &&
+        xrtValueObjectSetNew(outside,XRT_STR_LITERAL("n"),xrtValueInt(7)) &&
+        xrtValueObjectSet(owned,XRT_STR_LITERAL("child"),outside));
+    xvalue* witness=rootShared ? xrtValueRetain(owned) : NULL;
+    cloneOther=objectDefault(); assert(cloneOther && xrtValueObjectSetNew(cloneOther,XRT_STR_LITERAL("n"),xrtValueInt(9)));
+    if (mode==14) {
+        static const xvaluehandleops ops={NULL,foreignDrop,NULL,NULL}; ptr handle=&foreignTraces;
+        xvalue* opaque=xrtValueHandleTake(&handle,&ops,NULL);
+        assert(opaque && xrtValueHandleOwnershipBind(opaque,foreignTrace) &&
+            xrtValueObjectSetNew(owned,XRT_STR_LITERAL("opaque"),opaque));
+    }
+    cloneWire=source; cloneMode=mode; unsigned calls=cloneCalls,before=factories,traces=foreignTraces;
+    xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope)); if (fault) assert(xrtMemDebugFailAfter(point));
+    xvalue* result=NULL; bool ok=xl6PersistenceRestorePlanReadTakeV1(NULL,0,owned,source,&p,&result);
+    bool hit=fault ? faultTriggered() : false; if (fault) xrtMemDebugFailClear();
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    bool accepted=(mode==0 || mode==11 || mode==12 || mode==13) &&
+        (childCapability || (rootShared && mode==13));
+    assert(factories==before && foreignTraces==traces);
+    if (hit) assert(!ok && !result && !outcome.ok);
+    else if (rejected) assert(ok && result==xrtValueNull() && outcome.ok && cloneCalls==calls);
+    else if (accepted) {
+        assert(ok && result && outcome.ok && result!=witness && integerField(result,"n")==41);
+        const xvalue* child=xrtValueObjectGet(result,XRT_STR_LITERAL("child"));
+        assert(child!=outside && integerField(child,"n")==42);
+        assert(cloneCalls==calls+(rootShared && mode!=13 ? 2 : 1));
+    } else assert(!ok && !result && !outcome.ok && cloneCalls<=calls+1);
+    if (mode==14) assert(cloneCalls==calls);
+    assert(integerField(outside,"n")==((mode==12 && cloneCalls>calls+(rootShared ? 1u : 0u)) ? 8 : 7));
+    if (witness) assert(integerField(witness,"n")==((mode==12 && cloneCalls>calls) ? 8 : 1));
+    assert(integerField(cloneOther,"n")==9);
+    xrtErrorFree(outcome.error); xrtValueRelease(result); xrtValueRelease(witness); xrtValueRelease(outside);
+    xrtValueRelease(cloneOther); cloneOther=NULL; cloneWire=NULL; xrtValueRelease(source); xrtClearError();
+    if (fault) printf("native plan plan-clone-%s point=%zu hit=%d complete-prefix balanced\n",
+        rejected ? "rejected" : !childCapability ? "deep" : rootShared ? "root" : "child",point,hit);
+}
+static xvalue* cloneDefaultChild;
+static xvalue* cloneRootDefault(void)
+{
+    xvalue* value=objectDefault();
+    if (value && !xrtValueObjectSet(value,XRT_STR_LITERAL("child"),cloneDefaultChild)) {
+        xerror* error=xrtTakeError(); xrtValueRelease(value); xrtClearError(); xrtSetErrorTake(error); return NULL;
+    }
+    return value;
+}
+static void cloneCollections(size_t point,bool fault)
+{
+    XL6_RestoreNodeV1 nodes[5]; XL6_RestoreFieldV1 fields[5]; XL6_RestorePlanV1 p;
+    xvalue* source=nestedFixture(nodes,fields,&p),*seeds[]={seed()}; assert(seeds[0]);
+    nodes[0].as.object.factory=cloneRootDefault; nodes[3].clone=declaredClone;
+    cloneDefaultChild=objectDefault(); assert(cloneDefaultChild); cloneMode=0;
+    unsigned before=factories,calls=cloneCalls; xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
+    if (fault) assert(xrtMemDebugFailAfter(point));
+    xvalue* result=xl6PersistenceRestorePlanTakeV1(seeds,1,NULL,source,&p);
+    bool hit=fault ? faultTriggered() : false; if (fault) xrtMemDebugFailClear();
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    assert(!seeds[0] && !xrtValueObjectHas(cloneDefaultChild,XRT_STR_LITERAL("left")));
+    if (hit) assert(!result && !outcome.ok);
+    else {
+        assert(result && outcome.ok && factories==before+2 && cloneCalls==calls+1);
+        observed(xrtValueObjectGet(result,XRT_STR_LITERAL("child")),true);
+        observed(xrtValueObjectGet(result,XRT_STR_LITERAL("alias")),true);
+    }
+    xrtErrorFree(outcome.error); xrtValueRelease(result); xrtValueRelease(cloneDefaultChild); cloneDefaultChild=NULL;
+    xrtValueRelease(source); xrtClearError();
+    if (fault) printf("native plan plan-clone-collections point=%zu hit=%d complete-prefix balanced\n",point,hit);
+}
 void xl6TestRestorePlanVectorsV1(const char* name)
 {
     if (!strcmp(name,"plan-shared")) shared();
@@ -804,11 +945,25 @@ void xl6TestRestorePlanVectorsV1(const char* name)
         for (unsigned mode=0;mode<8;++mode) for (unsigned rejected=0;rejected<2;++rejected)
             transactionRun(mode,rejected,0,false);
     }
+    else if (!strcmp(name,"plan-clones")) {
+        for (unsigned mode=0;mode<15;++mode) {
+            cloneRun(mode,false,true,false,0,false);
+            cloneRun(mode,true,true,false,0,false);
+        }
+        cloneRun(0,true,false,false,0,false); cloneRun(13,true,false,false,0,false);
+        cloneRun(0,false,true,true,0,false); cloneCollections(0,false);
+    }
     else assert(0);
 }
 bool xl6TestRestorePlanFaultV1(const char* name,size_t point)
 {
     if (strncmp(name,"plan-",5)) return false;
+    if (!strncmp(name,"plan-clone-",11)) {
+        if (!strcmp(name,"plan-clone-collections")) { cloneCollections(point,true); return true; }
+        bool root=!strcmp(name,"plan-clone-root"),deep=!strcmp(name,"plan-clone-deep"),rejected=!strcmp(name,"plan-clone-rejected");
+        assert(root || deep || rejected || !strcmp(name,"plan-clone-child"));
+        cloneRun(deep ? 13 : 0,root || deep,!deep,rejected,point,true); return true;
+    }
     if (!strncmp(name,"plan-transaction-",17)) {
         bool rejected=!strcmp(name,"plan-transaction-rejected"),shared=!strcmp(name,"plan-transaction-shared");
         assert(rejected || shared || !strcmp(name,"plan-transaction-private"));

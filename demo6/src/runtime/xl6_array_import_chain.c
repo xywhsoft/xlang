@@ -22,7 +22,14 @@ typedef struct Memo {
     xvalue* result;
     size_t depth;
     const xvalue* instance; /* Independent owned pin, including when == result. */
+    xvalue* base; /* Actual first initialized object; never rerun its factory. */
+    size_t pass;
+    bool isolated;
 } Memo;
+typedef struct WireMemo {
+    xvalue* source;
+    xvalue* snapshot;
+} WireMemo;
 typedef struct StagedFields {
     const xvalue* receiver; /* Borrowed from the independently owned record. */
     xvalueobjectfieldsv1* fields;
@@ -39,6 +46,8 @@ typedef struct Import {
     bool nullableRead,wireRejected;
     StagedFields* staged;
     size_t stagedCount,stagedCapacity;
+    WireMemo* wire;
+    size_t wireUsed,wireCapacity,pass;
 } Import;
 static void releasePreservingError(xvalue* value)
 {
@@ -115,7 +124,7 @@ static bool remember(Import* ctx,const xvalue* source,size_t depth,xvalue* resul
     }
     size_t at=hash(source,depth,instance)&(ctx->capacity-1);
     while (ctx->memo[at].source) at=(at+1)&(ctx->capacity-1);
-    ctx->memo[at]=(Memo){ownedSource,ownedResult,depth,ownedInstance}; ++ctx->used;
+    ctx->memo[at]=(Memo){.source=ownedSource,.result=ownedResult,.depth=depth,.instance=ownedInstance}; ++ctx->used;
     return true;
 }
 static bool privateSeed(const Import* ctx,const xvalue* value)
@@ -327,6 +336,7 @@ done:
     for (size_t i=0;i<ctx.capacity;++i) if (ctx.memo[i].source) {
         releasePreservingError(ctx.memo[i].result);
         releasePreservingError((xvalue*)ctx.memo[i].instance);
+        releasePreservingError(ctx.memo[i].base);
         releasePreservingError((xvalue*)ctx.memo[i].source);
     }
     xrtFree(ctx.memo); releasePreservingError(observed);
@@ -360,6 +370,7 @@ static bool graphPlanValid(const XL6_RestorePlanV1* plan,size_t count)
     for (size_t i=0;i<plan->nodeCount;++i) {
         const XL6_RestoreNodeV1* node=&plan->nodes[i];
         if (node->flags&~(XL6_RESTORE_NULLABLE_V1|XL6_RESTORE_FIELD_INSTANCE_V1)) return false;
+        if (node->clone && node->kind!=XL6_RESTORE_OBJECT_V1) return false;
         bool instance=(node->flags&XL6_RESTORE_FIELD_INSTANCE_V1)!=0;
         if (instance && (node->kind!=XL6_RESTORE_OBJECT_V1 ||
             (node->flags&XL6_RESTORE_NULLABLE_V1) || i==plan->root || node->as.object.factory)) return false;
@@ -441,17 +452,24 @@ static bool restoreOwnershipAdmits(xrtownershipref ref,ptr opaque)
         plan->nodes[i].as.object.provider->OwnershipAdmits(ref)) return true;
     return false;
 }
-static bool commitFields(Import* ctx,const XL6_RestorePlanV1* plan,xvalue* result,const xvalue* observed)
+static xvalueobjectfieldsresultv1 commitFields(Import* ctx,const XL6_RestorePlanV1* plan,
+    xvalue* result,const xvalue* observed,size_t* shared)
 {
-    if (!ctx->stagedCount) return true;
-    if (ctx->used>(SIZE_MAX-2-ctx->count)/3 ||
-        ctx->stagedCount>SIZE_MAX/sizeof(xvalueobjectfieldsv1*)) { xrtSetErrorKind(XERR_RANGE); return false; }
-    size_t count=ctx->count+3*ctx->used+2;
-    if (count>SIZE_MAX/sizeof(xrtownershipref)) { xrtSetErrorKind(XERR_RANGE); return false; }
+    if (!ctx->stagedCount) return XVALUE_OBJECT_FIELDS_COMMITTED_V1;
+    if (ctx->used>(SIZE_MAX-2-ctx->count)/4 ||
+        ctx->stagedCount>SIZE_MAX/sizeof(xvalueobjectfieldsv1*)) {
+        xrtSetErrorKind(XERR_RANGE); return XVALUE_OBJECT_FIELDS_ERROR_V1;
+    }
+    size_t count=ctx->count+4*ctx->used+2;
+    if (ctx->wireUsed>(SIZE_MAX-count)/2 || count+2*ctx->wireUsed>SIZE_MAX/sizeof(xrtownershipref)) {
+        xrtSetErrorKind(XERR_RANGE); return XVALUE_OBJECT_FIELDS_ERROR_V1;
+    }
+    count+=2*ctx->wireUsed;
     xrtownershipref* slots=xrtMalloc(count*sizeof(*slots));
     xvalueobjectfieldsv1** fields=xrtMalloc(ctx->stagedCount*sizeof(*fields));
     if (!slots || !fields) {
-        xrtFree(slots); xrtFree(fields); if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return false;
+        xrtFree(slots); xrtFree(fields); if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY);
+        return XVALUE_OBJECT_FIELDS_ERROR_V1;
     }
     size_t used=0;
     /* Each entry is an ACTUAL owned reference, even if pointers coincide.
@@ -463,16 +481,17 @@ static bool commitFields(Import* ctx,const XL6_RestorePlanV1* plan,xvalue* resul
         slots[used++]=xrtValueOwnership(ctx->memo[i].source);
         slots[used++]=xrtValueOwnership(ctx->memo[i].result);
         if (ctx->memo[i].instance) slots[used++]=xrtValueOwnership(ctx->memo[i].instance);
+        if (ctx->memo[i].base) slots[used++]=xrtValueOwnership(ctx->memo[i].base);
+    }
+    for (size_t i=0;i<ctx->wireCapacity;++i) if (ctx->wire[i].source) {
+        slots[used++]=xrtValueOwnership(ctx->wire[i].source);
+        slots[used++]=xrtValueOwnership(ctx->wire[i].snapshot);
     }
     for (size_t i=0;i<ctx->stagedCount;++i) fields[i]=ctx->staged[i].fields;
-    xvalueobjectfieldsresultv1 outcome=xrtValueObjectFieldsCommitV1(fields,ctx->stagedCount,
-        slots,used,restoreOwnershipAdmits,(ptr)plan);
+    xvalueobjectfieldsresultv1 outcome=xrtValueObjectFieldsCommitV2(fields,ctx->stagedCount,
+        slots,used,restoreOwnershipAdmits,(ptr)plan,shared);
     xrtFree(fields); xrtFree(slots);
-    if (outcome!=XVALUE_OBJECT_FIELDS_COMMITTED_V1) {
-        if (!xrtGetError()) xrtSetErrorKind(XERR_STATE);
-        return false;
-    }
-    return restoring(ctx);
+    return outcome;
 }
 static void retireFields(xvalueobjectfieldsv1* fields)
 {
@@ -489,16 +508,49 @@ static void retireFields(xvalueobjectfieldsv1* fields)
         xrtClearError(); xrtValueObjectFieldsFreeV1(fields); xrtClearError(); xrtSetErrorTake(prior);
     }
 }
-static bool restoreObject(Import* ctx,const XL6_RestorePlanV1* plan,const XL6_RestoreNodeV1* node,
-    size_t depth,xvalue* value,const xvalue* source)
+static void retireStaged(Import* ctx)
 {
-    /* Ordinary wire Object Clone pins an independent COW backing snapshot.
-     * Factory/allocation hooks may detach the original; no borrowed slot is
-     * kept across a callback. Language/native objects are not wire input. */
-    xvalue* snapshot=xrtValueClone(source);
-    if (!snapshot || !restoring(ctx)) { releasePreservingError(snapshot); return false; }
+    size_t count=ctx->stagedCount; ctx->stagedCount=0;
+    for (size_t i=count;i>0;--i) retireFields(ctx->staged[i-1].fields);
+}
+static const xvalue* wireSnapshot(Import* ctx,const xvalue* source)
+{
+    if (ctx->wireCapacity) {
+        size_t at=hash(source,0,NULL)&(ctx->wireCapacity-1);
+        while (ctx->wire[at].source) {
+            if (ctx->wire[at].source==source) return ctx->wire[at].snapshot;
+            at=(at+1)&(ctx->wireCapacity-1);
+        }
+    }
+    if (ctx->wireUsed>=ctx->wireCapacity/2) {
+        if (ctx->wireCapacity>SIZE_MAX/2/sizeof(*ctx->wire)) { xrtSetErrorKind(XERR_RANGE); return NULL; }
+        size_t capacity=ctx->wireCapacity ? ctx->wireCapacity*2 : 16;
+        WireMemo* grown=xrtMalloc(capacity*sizeof(*grown));
+        if (!grown) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }
+        memset(grown,0,capacity*sizeof(*grown));
+        for (size_t i=0;i<ctx->wireCapacity;++i) if (ctx->wire[i].source) {
+            size_t at=hash(ctx->wire[i].source,0,NULL)&(capacity-1);
+            while (grown[at].source) at=(at+1)&(capacity-1);
+            grown[at]=ctx->wire[i];
+        }
+        xrtFree(ctx->wire); ctx->wire=grown; ctx->wireCapacity=capacity;
+    }
+    xvalue* input=xrtValueRetain(source),*snapshot=input ? xrtValueClone(source) : NULL;
+    if (!snapshot || !restoring(ctx)) {
+        releasePreservingError(snapshot); releasePreservingError(input); return NULL;
+    }
+    size_t at=hash(source,0,NULL)&(ctx->wireCapacity-1);
+    while (ctx->wire[at].source) at=(at+1)&(ctx->wireCapacity-1);
+    ctx->wire[at]=(WireMemo){input,snapshot}; ++ctx->wireUsed; return snapshot;
+}
+static bool restoreObject(Import* ctx,const XL6_RestorePlanV1* plan,const XL6_RestoreNodeV1* node,
+    size_t depth,xvalue* value,const xvalue* snapshot)
+{
+    /* The first observed wire store survives semantic clone calls and every
+     * restaging pass. Neither a borrowed field nor a new observation of a
+     * callback-modified wire object replaces that restoration domain. */
     xvalueobjectfieldsv1* fields=stageFields(ctx,value);
-    if (!fields || !restoring(ctx)) { releasePreservingError(snapshot); return false; }
+    if (!fields || !restoring(ctx)) return false;
     bool ok=true;
     for (size_t i=0;ok && i<node->as.object.count;++i) {
         const XL6_RestoreFieldV1* field=&plan->fields[node->as.object.first+i];
@@ -523,7 +575,7 @@ static bool restoreObject(Import* ctx,const XL6_RestorePlanV1* plan,const XL6_Re
         releasePreservingError(item); releasePreservingError(input);
     }
     if (!ok && restoring(ctx)) xrtSetErrorKind(XERR_TYPE);
-    releasePreservingError(snapshot); return ok && restoring(ctx);
+    return ok && restoring(ctx);
 }
 static xvalue* restoreNode(Import* ctx,const XL6_RestorePlanV1* plan,size_t domain,size_t depth,
     const xvalue* source,xvalue* prepared)
@@ -564,13 +616,16 @@ static xvalue* restoreNode(Import* ctx,const XL6_RestorePlanV1* plan,size_t doma
     if (depth>=MAX_CHAIN) { xrtSetErrorKind(XERR_RANGE); goto rejected; }
     for (size_t i=0;i<depth;++i) if (ctx->active[i]==source) { rejectWire(ctx,XERR_VALUE); goto rejected; }
     Memo* prior=lookup(ctx,source,domain,instance);
-    if (prior) { value=xrtValueRetain(prior->result); goto rejected; }
+    if (prior && (!prior->base || prior->pass==ctx->pass)) {
+        value=xrtValueRetain(prior->result); goto rejected;
+    }
     ctx->active[depth]=source;
     if (node->kind==XL6_RESTORE_SEQUENCE_V1) {
         if (xrtValueType(source)!=XVALUE_ARRAY) { rejectWire(ctx,XERR_TYPE); goto done; }
         const Template* schema=&ctx->templates[node->as.sequence.seed]; XL6_ArrayInputV1 input={0};
         XL6_Sequence* owner=NULL;
-        if (!xl6ArrayInputAcquireV1(source,&input) || !restoring(ctx)) goto sequenceDone;
+        const xvalue* snapshot=wireSnapshot(ctx,source);
+        if (!snapshot || !xl6ArrayInputAcquireV1(snapshot,&input) || !restoring(ctx)) goto sequenceDone;
         value=childSeed(schema);
         if (!value || !restoring(ctx)) goto sequenceDone;
         if (!schema->provider) owner=xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,schema->layout.identity,
@@ -594,24 +649,36 @@ sequenceDone:
             rejectWire(ctx,XERR_TYPE); goto done;
         }
         if (!successful(ctx)) goto done;
-        value=prepared; prepared=NULL;
-        if (!value && node->as.object.factory) value=node->as.object.factory();
+        const xvalue* snapshot=wireSnapshot(ctx,source);
+        if (!snapshot || !restoring(ctx)) goto done;
+        bool cached=prior!=NULL;
+        if (cached) value=xrtValueRetain(prior->result);
+        else { value=prepared; prepared=NULL;
+            if (!value && node->as.object.factory) value=node->as.object.factory(); }
         if (!value || !successful(ctx)) goto done;
         if (value==source || privateSeed(ctx,value)) {
             xrtSetErrorKind(XERR_TYPE); goto done;
         }
-        bool accepted=instance || objectMatches(value,node);
+        bool accepted=(!cached && instance) || objectMatches(value,node);
         if (!accepted || !successful(ctx)) {
             if (!xrtGetError() && !ctx->operation->failed) xrtSetErrorKind(XERR_TYPE);
             goto done;
         }
         for (size_t i=0;i<depth;++i) if (ctx->active[i]==value) { xrtSetErrorKind(XERR_ARGUMENT); goto done; }
-        for (size_t i=0;i<ctx->capacity;++i) if (ctx->memo[i].source &&
-            (ctx->memo[i].source==value || ctx->memo[i].result==value)) { xrtSetErrorKind(XERR_ARGUMENT); goto done; }
-        if (!restoreObject(ctx,plan,node,depth,value,source)) goto done;
+        if (!cached) {
+            for (size_t i=0;i<ctx->capacity;++i) if (ctx->memo[i].source &&
+                (ctx->memo[i].source==value || ctx->memo[i].result==value)) { xrtSetErrorKind(XERR_ARGUMENT); goto done; }
+            if (!remember(ctx,source,domain,value,instance)) goto done;
+            Memo* memo=lookup(ctx,source,domain,instance);
+            memo->base=xrtValueRetain(value); if (!memo->base) goto done;
+        }
+        if (!restoreObject(ctx,plan,node,depth,value,snapshot)) goto done;
+        /* Recursion can rehash the memo table; never keep its old slot address. */
+        lookup(ctx,source,domain,instance)->pass=ctx->pass;
     }
     if (value && restoring(ctx)) {
-        if (!remember(ctx,source,domain,value,instance)) xl6ErrorScopeCaptureFailure(ctx->operation);
+        if (node->kind==XL6_RESTORE_SEQUENCE_V1 && !remember(ctx,source,domain,value,instance))
+            xl6ErrorScopeCaptureFailure(ctx->operation);
     } else if (!ctx->wireRejected && !ctx->operation->failed) xl6ErrorScopeCaptureFailure(ctx->operation);
 done:
     ctx->active[depth]=NULL;
@@ -619,6 +686,80 @@ rejected:
     releasePreservingError(prepared);
     if (!value || !restoring(ctx)) { releasePreservingError(value); return NULL; }
     return value;
+}
+static bool openTemplates(Import* ctx,const XL6_RestorePlanV1* plan,const xvalue* source,const xvalue* target)
+{
+    if (ctx->count) memset(ctx->templates,0,ctx->count*sizeof(*ctx->templates));
+    for (size_t i=0;i<plan->nodeCount;++i) if (plan->nodes[i].kind==XL6_RESTORE_SEQUENCE_V1) {
+        const XL6_RestoreNodeV1* node=&plan->nodes[i]; size_t at=node->as.sequence.seed;
+        Template* schema=&ctx->templates[at]; schema->provider=node->as.sequence.provider;
+        if (ctx->seeds[at]==source || ctx->seeds[at]==target || xrtValueTypeId(ctx->seeds[at])!=node->identity) {
+            xrtSetErrorKind(XERR_ARGUMENT); return false;
+        }
+        for (size_t j=0;j<at;++j) if (ctx->seeds[j]==ctx->seeds[at]) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+        if (schema->provider) {
+            if (!schema->provider->Begin(ctx->seeds[at],&schema->context) || !schema->context || !successful(ctx)) return false;
+        } else {
+            int status=xl6SequenceBeginErasedArrayV1(ctx->seeds[at],&schema->owner,&schema->layout,&schema->converter);
+            if (status<=0) { if (!status) xrtSetErrorKind(XERR_TYPE); return false; }
+            XL6_SequenceAdmissionV3 admission={0};
+            if (!xl6SequenceAdmissionCopyV3(schema->owner,&admission)) return false;
+            bool admitted=admission.ops!=NULL; xl6SequenceAdmissionDropV3(&admission);
+            if (!admitted || xrtTypedArrayCount(xl6SequenceStorageV1(schema->owner))) { xrtSetErrorKind(XERR_STATE); return false; }
+        }
+        if (!successful(ctx)) return false;
+    }
+    for (size_t i=0;i<plan->nodeCount;++i) if (plan->nodes[i].kind==XL6_RESTORE_SEQUENCE_V1) {
+        const XL6_RestoreNodeV1* node=&plan->nodes[i],*child=&plan->nodes[node->as.sequence.element];
+        if (child->kind==XL6_RESTORE_SEQUENCE_V1 &&
+            !admits(&ctx->templates[node->as.sequence.seed],ctx->seeds[child->as.sequence.seed])) {
+            if (!xrtGetError()) xrtSetErrorKind(XERR_TYPE);
+            return false;
+        }
+        if (!successful(ctx)) return false;
+    }
+    return true;
+}
+static bool discardSequences(Import* ctx)
+{
+    Memo* kept=ctx->capacity ? xrtMalloc(ctx->capacity*sizeof(*kept)) : NULL;
+    if (ctx->capacity && !kept) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return false; }
+    if (ctx->capacity) memset(kept,0,ctx->capacity*sizeof(*kept));
+    size_t count=0;
+    for (size_t i=0;i<ctx->capacity;++i) if (ctx->memo[i].source && ctx->memo[i].base) {
+        size_t at=hash(ctx->memo[i].source,ctx->memo[i].depth,ctx->memo[i].instance)&(ctx->capacity-1);
+        while (kept[at].source) at=(at+1)&(ctx->capacity-1);
+        kept[at]=ctx->memo[i]; ++count;
+    }
+    Memo* old=ctx->memo; ctx->memo=kept; ctx->used=count;
+    for (size_t i=0;i<ctx->capacity;++i) if (old[i].source && !old[i].base) {
+        releasePreservingError(old[i].result); releasePreservingError((xvalue*)old[i].source);
+        releasePreservingError((xvalue*)old[i].instance);
+    }
+    xrtFree(old); return restoring(ctx);
+}
+static bool isolateShared(Import* ctx,const XL6_RestorePlanV1* plan,const xvalue* receiver)
+{
+    Memo* memo=NULL;
+    for (size_t i=0;i<ctx->capacity;++i) if (ctx->memo[i].base && ctx->memo[i].result==receiver) {
+        if (memo) { xrtSetErrorKind(XERR_STATE); return false; }
+        memo=&ctx->memo[i];
+    }
+    if (!memo || memo->isolated || !plan->nodes[memo->depth].clone) { xrtSetErrorKind(XERR_STATE); return false; }
+    const XL6_RestoreNodeV1* node=&plan->nodes[memo->depth];
+    /* No field record/COW observation, template BUSY scope or freeze remains
+     * across arbitrary declared language code. The original default has its
+     * independent memo base pin; the callback is not a structural clone. */
+    xvalue* result=node->clone(receiver);
+    bool valid=result && restoring(ctx) && result!=receiver && result!=memo->base &&
+        !privateSeed(ctx,result) && result!=memo->source;
+    if (valid) valid=objectMatches(result,node) && restoring(ctx);
+    if (!valid) {
+        if (restoring(ctx)) xrtSetErrorKind(XERR_STATE);
+        releasePreservingError(result); return false;
+    }
+    xvalue* old=memo->result; memo->result=result; memo->isolated=true;
+    releasePreservingError(old); return restoring(ctx);
 }
 static xvalue* restorePlan(xvalue** seeds,size_t count,xvalue* target,const xvalue* source,
     const XL6_RestorePlanV1* plan,bool nullableRead,xvalue** output)
@@ -637,7 +778,7 @@ static xvalue* restorePlan(xvalue** seeds,size_t count,xvalue* target,const xval
         releasePreservingError(target); return NULL;
     }
     xrtErrorFree(incoming);
-    Import ctx={.seeds=seeds,.count=count,.operation=&operation,.nullableRead=nullableRead};
+    Import ctx={.seeds=seeds,.count=count,.operation=&operation,.nullableRead=nullableRead,.pass=1};
     xvalue* result=NULL,*observed=NULL;
     if (operation.failed) goto finish;
     if (nullableRead) {
@@ -661,51 +802,40 @@ static xvalue* restorePlan(xvalue** seeds,size_t count,xvalue* target,const xval
     observed=xrtValueRetain(source); if (!observed || !successful(&ctx)) goto finish;
     ctx.templates=count ? xrtMalloc(count*sizeof(*ctx.templates)) : NULL;
     if (count && !ctx.templates) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); goto finish; }
+    /* Zero even before an early refusal, so common cleanup sees only real pins. */
     if (count) memset(ctx.templates,0,count*sizeof(*ctx.templates));
-    for (size_t i=0;i<plan->nodeCount;++i) if (plan->nodes[i].kind==XL6_RESTORE_SEQUENCE_V1) {
-        const XL6_RestoreNodeV1* node=&plan->nodes[i]; size_t at=node->as.sequence.seed;
-        Template* schema=&ctx.templates[at]; schema->provider=node->as.sequence.provider;
-        if (seeds[at]==source || seeds[at]==target || xrtValueTypeId(seeds[at])!=node->identity) {
-            xrtSetErrorKind(XERR_ARGUMENT); goto finish;
+    while (restoring(&ctx)) {
+        if (!openTemplates(&ctx,plan,source,target)) break;
+        result=restoreNode(&ctx,plan,plan->root,0,observed,target); target=NULL;
+        closeTemplates(&ctx);
+        if (!result || !restoring(&ctx)) break;
+        size_t shared=SIZE_MAX;
+        xvalueobjectfieldsresultv1 outcome=commitFields(&ctx,plan,result,observed,&shared);
+        if (outcome==XVALUE_OBJECT_FIELDS_COMMITTED_V1) break;
+        if (outcome!=XVALUE_OBJECT_FIELDS_SHARED_V1 || shared>=ctx.stagedCount || !restoring(&ctx)) {
+            if (restoring(&ctx)) xrtSetErrorKind(XERR_STATE);
+            break;
         }
-        for (size_t j=0;j<at;++j) if (seeds[j]==seeds[at]) { xrtSetErrorKind(XERR_ARGUMENT); goto finish; }
-        if (schema->provider) {
-            if (!schema->provider->Begin(seeds[at],&schema->context) || !schema->context || !successful(&ctx)) goto finish;
-        } else {
-            int status=xl6SequenceBeginErasedArrayV1(seeds[at],&schema->owner,&schema->layout,&schema->converter);
-            if (status<=0) { if (!status) xrtSetErrorKind(XERR_TYPE); goto finish; }
-            XL6_SequenceAdmissionV3 admission={0};
-            if (!xl6SequenceAdmissionCopyV3(schema->owner,&admission)) goto finish;
-            bool admitted=admission.ops!=NULL; xl6SequenceAdmissionDropV3(&admission);
-            if (!admitted || xrtTypedArrayCount(xl6SequenceStorageV1(schema->owner))) { xrtSetErrorKind(XERR_STATE); goto finish; }
-        }
-        if (!successful(&ctx)) goto finish;
+        const xvalue* receiver=ctx.staged[shared].receiver;
+        retireStaged(&ctx); releasePreservingError(result); result=NULL;
+        if (!restoring(&ctx) || !discardSequences(&ctx) || !isolateShared(&ctx,plan,receiver)) break;
+        if (ctx.pass==SIZE_MAX) { xrtSetErrorKind(XERR_RANGE); break; }
+        ++ctx.pass;
     }
-    for (size_t i=0;i<plan->nodeCount;++i) if (plan->nodes[i].kind==XL6_RESTORE_SEQUENCE_V1) {
-        const XL6_RestoreNodeV1* node=&plan->nodes[i],*child=&plan->nodes[node->as.sequence.element];
-        if (child->kind==XL6_RESTORE_SEQUENCE_V1 &&
-            !admits(&ctx.templates[node->as.sequence.seed],seeds[child->as.sequence.seed])) {
-            if (!xrtGetError()) xrtSetErrorKind(XERR_TYPE);
-            goto finish;
-        }
-        if (!successful(&ctx)) goto finish;
-    }
-    result=restoreNode(&ctx,plan,plan->root,0,observed,target); target=NULL;
-    /* Template scopes own real BUSY pins and admission metadata. End ALL of
-     * them before the graph privacy check; an End failure prevents publication. */
-    closeTemplates(&ctx);
-    if (result && restoring(&ctx) && !commitFields(&ctx,plan,result,observed))
-        xl6ErrorScopeCaptureFailure(&operation);
 finish:
     if ((!result && !ctx.wireRejected) || !successful(&ctx)) xl6ErrorScopeCaptureFailure(&operation);
     closeTemplates(&ctx);
-    for (size_t i=ctx.stagedCount;i>0;--i) retireFields(ctx.staged[i-1].fields);
+    retireStaged(&ctx);
     for (size_t i=0;i<count;++i) { xvalue* owned=seeds[i]; seeds[i]=NULL; releasePreservingError(owned); }
     for (size_t i=0;i<ctx.capacity;++i) if (ctx.memo[i].source) {
         releasePreservingError(ctx.memo[i].result); releasePreservingError((xvalue*)ctx.memo[i].source);
         releasePreservingError((xvalue*)ctx.memo[i].instance);
+        releasePreservingError(ctx.memo[i].base);
     }
-    xrtFree(ctx.staged); xrtFree(ctx.templates); xrtFree(ctx.memo);
+    for (size_t i=0;i<ctx.wireCapacity;++i) if (ctx.wire[i].source) {
+        releasePreservingError(ctx.wire[i].snapshot); releasePreservingError(ctx.wire[i].source);
+    }
+    xrtFree(ctx.wire); xrtFree(ctx.staged); xrtFree(ctx.templates); xrtFree(ctx.memo);
     releasePreservingError(target); releasePreservingError(observed);
     if (xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
     if (operation.failed) { releasePreservingError(result); result=NULL; }

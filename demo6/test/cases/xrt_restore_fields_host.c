@@ -136,6 +136,26 @@ static void retirement(void)
 		xrtClearError(); xrtValueRelease(Values[0]); xrtValueRelease(Values[1]);
 	}
 }
+static void sharedIndex(void)
+{
+	xvalue* Values[2] = {receiver(false), receiver(false)};
+	xvalue* pOutside = xrtValueRetain(Values[1]);
+	xvalueobjectfieldsv1* Fields[2] = {xrtValueObjectFieldsPrepareV1(Values[0]), xrtValueObjectFieldsPrepareV1(Values[1])};
+	testRequire(pOutside && Fields[0] && Fields[1], "shared index setup"); stage(Fields[0], 42); stage(Fields[1], 42);
+	xrtownershipref Slots[2] = {xrtValueOwnership(Values[0]), xrtValueOwnership(Values[1])};
+	size_t iShared = 77;
+	testRequire(xrtValueObjectFieldsCommitV2(Fields, 2, Slots, 2, admit, NULL, &iShared) == XVALUE_OBJECT_FIELDS_SHARED_V1 &&
+		iShared == 1 && number(Values[0]) == 7 && number(Values[1]) == 7, "first shared receiver, never partial commit");
+	xrtValueRelease(pOutside); iShared = 77;
+	xrtownershipscope Mutation = {0}; testRequire(xrtOwnershipMutationBegin(&Mutation), "index busy scope");
+	testRequire(xrtValueObjectFieldsCommitV2(Fields, 2, Slots, 2, admit, NULL, &iShared) == XVALUE_OBJECT_FIELDS_BUSY_V1 &&
+		iShared == 77, "busy keeps index output"); testRequire(xrtOwnershipScopeEnd(&Mutation), "index end scope");
+	testRequire(xrtValueObjectFieldsCommitV2(Fields, 2, Slots, 2, admit, NULL, &iShared) == XVALUE_OBJECT_FIELDS_COMMITTED_V1 &&
+		iShared == 77 && number(Values[0]) == 42 && number(Values[1]) == 42, "commit keeps index output");
+	testRequire(xrtValueObjectFieldsCommitV2(Fields, 2, Slots, 2, admit, NULL, &iShared) == XVALUE_OBJECT_FIELDS_ERROR_V1 &&
+		iShared == 77, "error keeps index output"); xrtClearError();
+	for (unsigned i = 0; i < 2; ++i) { xrtValueObjectFieldsFreeV1(Fields[i]); xrtValueRelease(Values[i]); }
+}
 static xvalue* receiver(bool bResource)
 {
 	xvalue* pValue = xrtValueObject();
@@ -322,7 +342,7 @@ int main(void)
 	testRequire(xrtMemDebugEnable(true), "actual allocator ledger");
 	xmemdebugsnapshot Before = {0}, After = {0}; xrtMemDebugSnapshot(&Before);
 #endif
-	vectors(); boundaries(); retirement(); cycles(); unknown(); testRequire(!xrtGetError(), "no residual diagnostics");
+	vectors(); boundaries(); retirement(); sharedIndex(); cycles(); unknown(); testRequire(!xrtGetError(), "no residual diagnostics");
 #if defined(XRT_FEATURE_MEMORY_DEBUG)
 	unsigned iPrefixes = faults(); xrtMemDebugSnapshot(&After);
 	testRequire(Before.LiveCount == After.LiveCount && Before.LiveBytes == After.LiveBytes &&
