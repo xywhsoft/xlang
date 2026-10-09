@@ -16,6 +16,10 @@
 static void equalLists(const xvalue*,const xvalue*,const XL6_ListLayoutV1*,bool);
 extern void xl6TestListSchemaVectorsV1(const char*);
 extern bool xl6TestListSchemaFaultV1(const char*,size_t);
+#ifdef XL6_TEST_LIST_RESTORE
+extern void xl6TestListRestoreVectorsV1(const char*);
+extern bool xl6TestListRestoreFaultV1(const char*,size_t);
+#endif
 #ifdef XL6_TEST_LIST_GRAPH
 extern void xl6TestListGraphVectorsV1(const char*);
 extern bool xl6TestListGraphFaultV1(const char*,size_t);
@@ -24,7 +28,7 @@ extern bool xl6TestListGraphFaultV1(const char*,size_t);
  * Negative budget models explicit failure without an allocated diagnostic. */
 static int cleanupFailure;
 static int entryFailure;
-#ifdef XL6_TEST_LIST_GRAPH
+#if defined(XL6_TEST_LIST_GRAPH) || defined(XL6_TEST_LIST_RESTORE)
 void xl6TestListGraphBoundaryFailureV1(int entry,int cleanup)
 { entryFailure=entry; cleanupFailure=cleanup; }
 #endif
@@ -859,6 +863,9 @@ static void schemaCleanupErrors(void)
 }
 static void fault(const char* operation,size_t point)
 {
+#ifdef XL6_TEST_LIST_RESTORE
+    if (xl6TestListRestoreFaultV1(operation,point)) return;
+#endif
 #ifdef XL6_TEST_LIST_GRAPH
     if (xl6TestListGraphFaultV1(operation,point)) return;
 #endif
@@ -931,6 +938,9 @@ int main(int argc,char** argv)
 {
     assert(argc==2 || argc==3); xl6ProductMemoryBegin(SIZE_MAX);
     if (argc==3) fault(argv[1],(size_t)strtoull(argv[2],NULL,10));
+#ifdef XL6_TEST_LIST_RESTORE
+    else if (!strncmp(argv[1],"restore-",8)) xl6TestListRestoreVectorsV1(argv[1]);
+#endif
 #ifdef XL6_TEST_LIST_GRAPH
     else if (!strncmp(argv[1],"graph-",6)) xl6TestListGraphVectorsV1(argv[1]);
 #endif
