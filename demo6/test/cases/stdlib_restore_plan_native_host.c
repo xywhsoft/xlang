@@ -131,24 +131,210 @@ static xvalue* nestedFixture(XL6_RestoreNodeV1* nodes,XL6_RestoreFieldV1* fields
 {
     XL6_RestorePlanV1 p=plan(nodes,fields,false);
     nodes[0].as.object.factory=rootDefault; nodes[0].as.object.count=2;
-    nodes[3]=nodes[0]; nodes[3].as.object.factory=objectDefault; nodes[3].as.object.first=2; nodes[3].as.object.count=3;
+    nodes[3]=nodes[0]; nodes[3].flags=XL6_RESTORE_FIELD_INSTANCE_V1;
+    nodes[3].as.object.factory=NULL; nodes[3].as.object.first=2; nodes[3].as.object.count=3;
+    nodes[4]=nodes[3]; nodes[4].flags=0; nodes[4].as.object.factory=objectDefault;
     fields[2]=fields[0]; fields[3]=fields[1]; fields[4]=fields[2]; fields[4].source=XRT_STR_LITERAL("missing");
     fields[4].target=XRT_STR_LITERAL("keep"); fields[4].node=2; fields[4].flags=0;
     fields[0]=(XL6_RestoreFieldV1){XRT_STR_INIT("child"),XRT_STR_INIT("child"),3,XL6_RESTORE_IN_PLACE_V1};
-    fields[1]=(XL6_RestoreFieldV1){XRT_STR_INIT("child"),XRT_STR_INIT("alias"),3,XL6_RESTORE_REQUIRED_V1};
-    p.nodeCount=4; p.fieldCount=5; *output=p;
+    fields[1]=(XL6_RestoreFieldV1){XRT_STR_INIT("child"),XRT_STR_INIT("alias"),4,XL6_RESTORE_REQUIRED_V1};
+    p.nodeCount=5; p.fieldCount=5; *output=p;
     xvalue* child=wire(),*source=xrtValueObject(); assert(source && xrtValueObjectSetNew(source,XRT_STR_LITERAL("child"),child));
     return source;
 }
 static void nested(void)
 {
-    XL6_RestoreNodeV1 nodes[4]; XL6_RestoreFieldV1 fields[5]; XL6_RestorePlanV1 p;
+    XL6_RestoreNodeV1 nodes[5]; XL6_RestoreFieldV1 fields[5]; XL6_RestorePlanV1 p;
     xvalue* source=nestedFixture(nodes,fields,&p),*child;
     xvalue* seeds[]={seed()}; assert(seeds[0]); unsigned before=factories;
     xvalue* result=xl6PersistenceRestorePlanTakeV1(seeds,1,NULL,source,&p);
-    assert(result && factories==before+2);
-    child=xrtValueObjectGet(result,XRT_STR_LITERAL("child")); assert(child==xrtValueObjectGet(result,XRT_STR_LITERAL("alias")));
+    assert(result && factories==before+3);
+    /* Field-instance and declaration construction are different domains.
+     * The private child initializes once; replacement runs its own factory. */
+    child=xrtValueObjectGet(result,XRT_STR_LITERAL("child")); assert(child!=xrtValueObjectGet(result,XRT_STR_LITERAL("alias")));
     observed(child,true); xrtValueRelease(result); xrtValueRelease(source);
+}
+
+static xvalue* instanceDefault(bool shared,unsigned bad)
+{
+    xvalue* value=objectDefault(),*parent=NULL,*child=NULL;
+    const xvalue* first=NULL;
+    if (!value) return NULL;
+    for (unsigned i=0;i<2;++i) {
+        parent=objectDefault(); child=shared && i ? xrtValueRetain(first) : objectDefault();
+        if (!parent || !child) goto failed;
+        if (!(shared && i) && !xrtValueObjectSetNew(child,XRT_STR_LITERAL("keep"),
+            xrtValueString(i ? XRT_STR_LITERAL("b") : XRT_STR_LITERAL("a")))) goto failed;
+        if (i && bad==1 && !xrtValueObjectSetNew(child,XRT_STR_LITERAL("$xlir.class.runtime-type"),xrtValueInt(TAG+1))) goto failed;
+        if (i && bad==2) { xrtValueRelease(child); child=xrtValueRetain(xrtValueNull()); }
+        bool ok=xrtValueObjectSetNew(parent,XRT_STR_LITERAL("k"),child); child=NULL;
+        if (!ok) goto failed;
+        if (!i) first=xrtValueObjectGet(parent,XRT_STR_LITERAL("k"));
+        ok=xrtValueObjectSetNew(value,i ? XRT_STR_LITERAL("b") : XRT_STR_LITERAL("a"),parent); parent=NULL;
+        if (!ok) goto failed;
+    }
+    return value;
+failed: {
+        xerror* primary=xrtTakeError(); xrtValueRelease(child); xrtValueRelease(parent); xrtValueRelease(value);
+        xrtClearError(); xrtSetErrorTake(primary); return NULL;
+    }
+}
+static xvalue* instanceDistinctDefault(void) { return instanceDefault(false,0); }
+static xvalue* instanceSharedDefault(void) { return instanceDefault(true,0); }
+static xvalue* instanceBadTagDefault(void) { return instanceDefault(false,1); }
+static xvalue* instanceBadNullDefault(void) { return instanceDefault(false,2); }
+static XL6_RestorePlanV1 instancePlan(XL6_RestoreNodeV1* nodes,XL6_RestoreFieldV1* fields,bool shared)
+{
+    nodes[0]=(XL6_RestoreNodeV1){.kind=XL6_RESTORE_OBJECT_V1,.identity=OBJECT_ID,
+        .as.object={shared ? instanceSharedDefault : instanceDistinctDefault,TAG,0,3,xl6RestoreClassProviderV1()}};
+    nodes[1]=nodes[0]; nodes[1].flags=XL6_RESTORE_FIELD_INSTANCE_V1;
+    nodes[1].as.object.factory=NULL; nodes[1].as.object.first=3; nodes[1].as.object.count=1;
+    nodes[2]=nodes[1];
+    nodes[3]=nodes[1]; nodes[3].as.object.first=4; nodes[3].as.object.count=2;
+    nodes[4]=(XL6_RestoreNodeV1){.kind=XL6_RESTORE_SCALAR_V1,.identity=LEAF_ID,.as.scalar=XL6_VALUE_ADMIT_I64};
+    nodes[5]=(XL6_RestoreNodeV1){.kind=XL6_RESTORE_SCALAR_V1,.identity=LEAF_ID,.as.scalar=XL6_VALUE_ADMIT_STRING};
+    fields[0]=(XL6_RestoreFieldV1){XRT_STR_INIT("a"),XRT_STR_INIT("a"),1,XL6_RESTORE_IN_PLACE_V1};
+    fields[1]=(XL6_RestoreFieldV1){XRT_STR_INIT("b"),XRT_STR_INIT("b"),2,XL6_RESTORE_IN_PLACE_V1};
+    fields[2]=(XL6_RestoreFieldV1){XRT_STR_INIT("absent"),XRT_STR_INIT("unused"),5,0};
+    fields[3]=(XL6_RestoreFieldV1){XRT_STR_INIT("k"),XRT_STR_INIT("k"),3,XL6_RESTORE_IN_PLACE_V1};
+    fields[4]=(XL6_RestoreFieldV1){XRT_STR_INIT("n"),XRT_STR_INIT("n"),4,XL6_RESTORE_REQUIRED_V1};
+    fields[5]=(XL6_RestoreFieldV1){XRT_STR_INIT("absent"),XRT_STR_INIT("keep"),5,0};
+    return (XL6_RestorePlanV1){sizeof(XL6_RestorePlanV1),6,6,0,nodes,fields,false};
+}
+static xvalue* instanceWire(void)
+{
+    xvalue *value=xrtValueObject(),*a=xrtValueObject(),*b=xrtValueObject(),*child=xrtValueObject();
+    assert(value && a && b && child && xrtValueObjectSetNew(child,XRT_STR_LITERAL("n"),xrtValueInt(42)));
+    assert(xrtValueObjectSet(a,XRT_STR_LITERAL("k"),child) && xrtValueObjectSet(b,XRT_STR_LITERAL("k"),child));
+    xrtValueRelease(child);
+    assert(xrtValueObjectSetNew(value,XRT_STR_LITERAL("a"),a) && xrtValueObjectSetNew(value,XRT_STR_LITERAL("b"),b));
+    return value;
+}
+static void instanceObserved(const xvalue* value,bool shared)
+{
+    const xvalue* a=xrtValueObjectGet(xrtValueObjectGet(value,XRT_STR_LITERAL("a")),XRT_STR_LITERAL("k"));
+    const xvalue* b=xrtValueObjectGet(xrtValueObjectGet(value,XRT_STR_LITERAL("b")),XRT_STR_LITERAL("k"));
+    assert(a && b && (shared ? a==b : a!=b));
+    xstrview keep={0}; int64_t n=0;
+    assert(xrtValueGetString(xrtValueObjectGet(a,XRT_STR_LITERAL("keep")),&keep) && keep.Size==1 && keep.Data[0]=='a');
+    assert(xrtValueGetString(xrtValueObjectGet(b,XRT_STR_LITERAL("keep")),&keep) && keep.Size==1 && keep.Data[0]==(shared ? 'a' : 'b'));
+    assert(xrtValueGetInt(xrtValueObjectGet(a,XRT_STR_LITERAL("n")),&n) && n==42);
+    assert(xrtValueGetInt(xrtValueObjectGet(b,XRT_STR_LITERAL("n")),&n) && n==42);
+}
+static void instanceRun(size_t point,bool fault,bool shared,bool reader,bool rejected)
+{
+    XL6_RestoreNodeV1 nodes[6]; XL6_RestoreFieldV1 fields[6]; XL6_RestorePlanV1 p=instancePlan(nodes,fields,shared);
+    xvalue* source=instanceWire(),*result=NULL; bool ok; unsigned before=factories;
+    if (rejected) fields[2].flags=XL6_RESTORE_REQUIRED_V1;
+    xl6_error_scope scope={0};
+    if (fault) { assert(xl6ErrorScopeBegin(&scope)); assert(xrtMemDebugFailAfter(point)); }
+    if (reader) ok=xl6PersistenceRestorePlanReadTakeV1(NULL,0,NULL,source,&p,&result);
+    else { result=xl6PersistenceRestorePlanTakeV1(NULL,0,NULL,source,&p); ok=result!=NULL; }
+    bool hit=false;
+    if (fault) {
+        hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+        assert(hit ? !ok && !result && !outcome.ok : ok && result && outcome.ok); xrtErrorFree(outcome.error);
+    } else assert(ok && result && !xrtGetError());
+    if (ok) {
+        assert(factories==before+(shared ? 4u : 5u));
+        if (rejected) assert(result==xrtValueNull()); else instanceObserved(result,shared);
+    }
+    const xvalue* wireChild=xrtValueObjectGet(xrtValueObjectGet(source,XRT_STR_LITERAL("a")),XRT_STR_LITERAL("k"));
+    assert(!xrtValueTypeId(source) && !xrtValueTypeId(wireChild) && xrtValueCount(wireChild)==1);
+    xrtValueRelease(result); xrtValueRelease(source); xrtClearError();
+    if (fault) printf("native plan plan-instance-%s point=%zu hit=%d complete-prefix balanced\n",
+        rejected ? "rejected" : shared ? "shared" : "distinct",point,hit);
+}
+static void instanceFailures(void)
+{
+    for (unsigned test=0;test<7;++test) {
+        XL6_RestoreNodeV1 nodes[6]; XL6_RestoreFieldV1 fields[6]; XL6_RestorePlanV1 p=instancePlan(nodes,fields,false);
+        xvalue* source=instanceWire(),*result=NULL; unsigned before=factories;
+        if (test==0) nodes[3].flags=0;
+        else if (test==1) nodes[3].as.object.factory=objectDefault;
+        else if (test==2) nodes[3].flags|=XL6_RESTORE_NULLABLE_V1;
+        else if (test==3) nodes[4].flags=XL6_RESTORE_FIELD_INSTANCE_V1;
+        else if (test==4) fields[3].flags=0;
+        else if (test==5) nodes[0].flags=XL6_RESTORE_FIELD_INSTANCE_V1;
+        else { nodes[5].kind=XL6_RESTORE_SEQUENCE_V1; nodes[5].as.sequence.seed=0; nodes[5].as.sequence.element=3; }
+        assert(!xl6PersistenceRestorePlanReadTakeV1(NULL,0,NULL,source,&p,&result) && !result && factories==before &&
+            xrtGetError() && xrtErrorKind(xrtGetError())==XERR_ARGUMENT);
+        xrtClearError(); xrtValueRelease(source);
+    }
+    /* The second parent uses the same field node/source as the first. A bad
+     * actual child must not be hidden by that first child's successful memo. */
+    for (unsigned test=0;test<4;++test) {
+        XL6_RestoreNodeV1 nodes[6]; XL6_RestoreFieldV1 fields[6]; XL6_RestorePlanV1 p=instancePlan(nodes,fields,false);
+        nodes[0].as.object.factory=test<2 ? instanceBadTagDefault : instanceBadNullDefault;
+        xvalue* source=instanceWire(),*result=NULL;
+        if (test&1) assert(xrtValueObjectSetNew(xrtValueObjectGet(source,XRT_STR_LITERAL("b")),XRT_STR_LITERAL("k"),xrtValueInt(9)));
+        assert(!xl6PersistenceRestorePlanReadTakeV1(NULL,0,NULL,source,&p,&result) && !result &&
+            xrtGetError() && xrtErrorKind(xrtGetError())==XERR_TYPE);
+        xrtClearError(); xrtValueRelease(source);
+    }
+    /* One actual child cannot be written twice from conflicting wire nodes. */
+    XL6_RestoreNodeV1 nodes[6]; XL6_RestoreFieldV1 fields[6]; XL6_RestorePlanV1 p=instancePlan(nodes,fields,true);
+    xvalue* source=instanceWire(),*result=NULL;
+    xvalue* peer=xrtValueClone(xrtValueObjectGet(xrtValueObjectGet(source,XRT_STR_LITERAL("a")),XRT_STR_LITERAL("k"))); assert(peer);
+    assert(xrtValueObjectSetNew(peer,XRT_STR_LITERAL("n"),xrtValueInt(43)) &&
+        xrtValueObjectSetNew(xrtValueObjectGet(source,XRT_STR_LITERAL("b")),XRT_STR_LITERAL("k"),peer));
+    assert(!xl6PersistenceRestorePlanReadTakeV1(NULL,0,NULL,source,&p,&result) && !result &&
+        xrtGetError() && xrtErrorKind(xrtGetError())==XERR_ARGUMENT);
+    xrtClearError(); xrtValueRelease(source);
+}
+static unsigned instanceOrdinal;
+static xvalue* numberedParentDefault(void)
+{
+    xvalue* parent=objectDefault(),*child=objectDefault();
+    if (parent && child && xrtValueObjectSetNew(child,XRT_STR_LITERAL("id"),xrtValueInt(++instanceOrdinal))) {
+        bool ok=xrtValueObjectSetNew(parent,XRT_STR_LITERAL("k"),child); child=NULL;
+        if (ok) return parent;
+    }
+    xerror* primary=xrtTakeError(); xrtValueRelease(child); xrtValueRelease(parent);
+    xrtClearError(); xrtSetErrorTake(primary); return NULL;
+}
+static void instanceWide(size_t point,bool fault)
+{
+    enum { COUNT=20 };
+    XL6_RestoreNodeV1 nodes[4]; XL6_RestoreFieldV1 fields[COUNT+3]; char keys[COUNT][16];
+    nodes[0]=(XL6_RestoreNodeV1){.kind=XL6_RESTORE_OBJECT_V1,.identity=OBJECT_ID,
+        .as.object={objectDefault,TAG,0,COUNT,xl6RestoreClassProviderV1()}};
+    nodes[1]=nodes[0]; nodes[1].as.object.factory=numberedParentDefault;
+    nodes[1].as.object.first=COUNT; nodes[1].as.object.count=1;
+    nodes[2]=nodes[1]; nodes[2].flags=XL6_RESTORE_FIELD_INSTANCE_V1; nodes[2].as.object.factory=NULL;
+    nodes[2].as.object.first=COUNT+1; nodes[2].as.object.count=2;
+    nodes[3]=(XL6_RestoreNodeV1){.kind=XL6_RESTORE_SCALAR_V1,.identity=LEAF_ID,.as.scalar=XL6_VALUE_ADMIT_I64};
+    fields[COUNT]=(XL6_RestoreFieldV1){XRT_STR_INIT("k"),XRT_STR_INIT("k"),2,XL6_RESTORE_IN_PLACE_V1};
+    fields[COUNT+1]=(XL6_RestoreFieldV1){XRT_STR_INIT("n"),XRT_STR_INIT("n"),3,XL6_RESTORE_REQUIRED_V1};
+    fields[COUNT+2]=(XL6_RestoreFieldV1){XRT_STR_INIT("absent"),XRT_STR_INIT("id"),3,0};
+    XL6_RestorePlanV1 p={sizeof(p),4,COUNT+3,0,nodes,fields,false};
+    xvalue* source=xrtValueObject(),*wireChild=xrtValueObject(); assert(source && wireChild);
+    assert(xrtValueObjectSetNew(wireChild,XRT_STR_LITERAL("n"),xrtValueInt(42)));
+    for (size_t i=0;i<COUNT;++i) {
+        int size=snprintf(keys[i],sizeof(keys[i]),"p%zu",i); assert(size>0 && (size_t)size<sizeof(keys[i]));
+        fields[i]=(XL6_RestoreFieldV1){{keys[i],(size_t)size},{keys[i],(size_t)size},1,XL6_RESTORE_REQUIRED_V1};
+        xvalue* parent=xrtValueObject(); assert(parent && xrtValueObjectSet(parent,XRT_STR_LITERAL("k"),wireChild) &&
+            xrtValueObjectSetNew(source,fields[i].source,parent));
+    }
+    instanceOrdinal=0; xl6_error_scope scope={0};
+    if (fault) { assert(xl6ErrorScopeBegin(&scope)); assert(xrtMemDebugFailAfter(point)); }
+    xvalue* result=xl6PersistenceRestorePlanTakeV1(NULL,0,NULL,source,&p); bool hit=false;
+    if (fault) {
+        hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+        assert(hit ? !result && !outcome.ok : result && outcome.ok); xrtErrorFree(outcome.error);
+    } else assert(result && !xrtGetError());
+    if (result) {
+        const xvalue* children[COUNT]; assert(instanceOrdinal==COUNT);
+        for (size_t i=0;i<COUNT;++i) {
+            children[i]=xrtValueObjectGet(xrtValueObjectGet(result,fields[i].target),XRT_STR_LITERAL("k")); int64_t n=0;
+            assert(children[i] && xrtValueGetInt(xrtValueObjectGet(children[i],XRT_STR_LITERAL("id")),&n) && n==(int64_t)i+1);
+            assert(xrtValueGetInt(xrtValueObjectGet(children[i],XRT_STR_LITERAL("n")),&n) && n==42);
+            for (size_t j=0;j<i;++j) assert(children[j]!=children[i]);
+        }
+    }
+    assert(!xrtValueTypeId(wireChild) && xrtValueCount(wireChild)==1 && !xrtValueTypeId(source));
+    xrtValueRelease(result); xrtValueRelease(source); xrtValueRelease(wireChild); xrtClearError();
+    if (fault) printf("native plan plan-instance-wide point=%zu hit=%d complete-prefix balanced\n",point,hit);
 }
 static void rejected(void)
 {
@@ -508,6 +694,13 @@ void xl6TestRestorePlanVectorsV1(const char* name)
     if (!strcmp(name,"plan-shared")) shared();
     else if (!strcmp(name,"plan-format")) format(false);
     else if (!strcmp(name,"plan-nested")) nested();
+    else if (!strcmp(name,"plan-instances")) {
+        for (unsigned shared=0;shared<2;++shared) for (unsigned reader=0;reader<2;++reader)
+            instanceRun(0,false,shared,reader,false);
+        instanceRun(0,false,false,true,true);
+    }
+    else if (!strcmp(name,"plan-instance-failures")) instanceFailures();
+    else if (!strcmp(name,"plan-instance-wide-vector")) instanceWide(0,false);
     else if (!strcmp(name,"plan-rejected")) rejected();
     else if (!strcmp(name,"plan-boundaries")) boundaries();
     else if (!strcmp(name,"plan-depth")) depth();
@@ -524,12 +717,18 @@ void xl6TestRestorePlanVectorsV1(const char* name)
 bool xl6TestRestorePlanFaultV1(const char* name,size_t point)
 {
     if (strncmp(name,"plan-",5)) return false;
+    if (!strcmp(name,"plan-instance-wide")) { instanceWide(point,true); return true; }
+    if (!strncmp(name,"plan-instance-",14)) {
+        bool shared=!strcmp(name,"plan-instance-shared"),rejected=!strcmp(name,"plan-instance-rejected");
+        assert(shared || rejected || !strcmp(name,"plan-instance-distinct"));
+        instanceRun(point,true,shared,rejected,rejected); return true;
+    }
     if (!strncmp(name,"plan-read-",10)) { readerFault(name,point); return true; }
     if (!strcmp(name,"plan-wide")) { wide(point,true); return true; }
     if (!strcmp(name,"plan-mixed-restore")) { mixed(point,true); return true; }
     bool target=!strcmp(name,"plan-target"),nested=!strcmp(name,"plan-nested-restore");
     assert(target || nested || !strcmp(name,"plan-restore"));
-    XL6_RestoreNodeV1 nodes[4]; XL6_RestoreFieldV1 fields[5]; XL6_RestorePlanV1 p=plan(nodes,fields,false);
+    XL6_RestoreNodeV1 nodes[5]; XL6_RestoreFieldV1 fields[5]; XL6_RestorePlanV1 p=plan(nodes,fields,false);
     xvalue* source=nested ? nestedFixture(nodes,fields,&p) : wire(),*seeds[]={seed()},*owned=target ? objectDefault() : NULL;
     assert(seeds[0] && (!target || owned));
     xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope)); assert(xrtMemDebugFailAfter(point));

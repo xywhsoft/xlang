@@ -166,6 +166,8 @@ def main() -> int:
                         assert sorted(n['seed'] for n in ns if n['abi'] == 2 and n['carrierAbi'] == 2) == list(range(row['seedCount']))
                         assert all(e['field'] < len(ir['persistenceRestoreFields']) and e['node'] < len(ns) for e in es)
                         for n in ns:
+                            assert bool(n['flags'] & 2) == (n['contextField'] < len(ir['classFields']))
+                            if n['flags'] & 2: assert n['abi'] == 3 and not n['flags'] & 1 and not n['defaultFunction']
                             if n['abi'] in (2, 4, 5, 6): assert n['element'] < len(ns)
                             if n['abi'] == 3:
                                 assert n['schema'] < len(ir['persistenceRestoreSchemas'])
@@ -178,7 +180,8 @@ def main() -> int:
                                     child = ns[edge['node']]
                                     assert child['type'] == field['payloadType']
                                     if field['assignAbi'] == 2:
-                                        assert child['contextField'] == field['classField'] and child['defaultFunction'] == 0
+                                        assert child['contextField'] == field['classField'] and child['flags'] & 2 and child['defaultFunction'] == 0
+                                    else: assert not child['flags'] & 2
                             if n['abi'] == 4: assert row['pending'] & 4
                             if n['abi'] == 5: assert row['pending'] & 8
                             if n['abi'] == 6: assert row['pending'] & 16

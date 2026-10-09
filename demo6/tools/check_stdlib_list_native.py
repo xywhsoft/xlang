@@ -60,7 +60,7 @@ def main():
         'ShippingLibraryAcceptance':False,'SourceLanguageListCutover':False,'Full53Acceptance':False,
         'CleanupBoundaryFailureInjection':'GNU ld --wrap; real cleanup delegates except explicitly armed vectors; not actual OS exhaustion',
         'EntryBoundaryFailureInjection':'GNU ld --wrap=xl6ErrorScopeBegin; delegates unless explicitly armed; not actual OS exhaustion',
-        'Scope':'Private closed object-field/collection restoration in one source/node memo using actual resident class lifetime and native containers; not generated IR registration, language carrier cutover, open-object restore or shipping/full53 acceptance' if args.restore_plan else 'Private mixed List/Array recursive import and explicit scalar restoration in the existing type-depth memo; not class-field restore, source carrier, shipping or full53 acceptance' if args.restore else 'Private List/Array/object single XRT graph memo, resident provider/format plans, native deep copy and data projection; not recursive restore, source carrier or shipping/full53 acceptance' if args.graph else __doc__}
+        'Scope':'Private closed object-field/collection restoration in one source/node/actual-field-instance memo using actual resident class lifetime and native containers; not generated IR registration, language carrier cutover, open-object restore or shipping/full53 acceptance' if args.restore_plan else 'Private mixed List/Array recursive import and explicit scalar restoration in the existing type-depth memo; not class-field restore, source carrier, shipping or full53 acceptance' if args.restore else 'Private List/Array/object single XRT graph memo, resident provider/format plans, native deep copy and data projection; not recursive restore, source carrier or shipping/full53 acceptance' if args.graph else __doc__}
     out.mkdir(parents=True)
     env=dict(os.environ)
     if args.sanitize: env.update(ASAN_OPTIONS='detect_leaks=1:detect_stack_use_after_return=1:halt_on_error=1',
@@ -101,10 +101,11 @@ def main():
             'restore-format-roundtrip','restore-cleanup-errors')
         operations+=('restore-native','restore-json','restore-xlon','restore-wide','restore-source-take')
     if args.restore_plan:
-        modes+=('plan-shared','plan-format','plan-nested','plan-rejected','plan-boundaries','plan-depth','plan-wide-domains','plan-objects','plan-mixed',
+        modes+=('plan-shared','plan-format','plan-nested','plan-instances','plan-instance-failures','plan-instance-wide-vector','plan-rejected','plan-boundaries','plan-depth','plan-wide-domains','plan-objects','plan-mixed',
             'plan-read-profiles','plan-read-failures','plan-read-boundaries','plan-read-scalars','plan-read-format')
         operations+=('plan-restore','plan-target','plan-nested-restore','plan-wide','plan-mixed-restore',
-            'plan-read-valid','plan-read-rejected','plan-read-shape','plan-read-scalar')
+            'plan-read-valid','plan-read-rejected','plan-read-shape','plan-read-scalar',
+            'plan-instance-distinct','plan-instance-shared','plan-instance-rejected','plan-instance-wide')
     try:
         for level in (0,2):
             lane='O'+str(level); binary=out/('list-'+lane+('.exe' if os.name=='nt' else ''))

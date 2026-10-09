@@ -21,6 +21,7 @@ typedef struct Memo {
     const xvalue* source;
     xvalue* result;
     size_t depth;
+    const xvalue* instance; /* NULL for declaration/chain domains; otherwise == result. */
 } Memo;
 typedef struct Import {
     xvalue** seeds;
@@ -61,25 +62,29 @@ static void rejectWire(Import* ctx,xerrkind kind)
 }
 static bool admits(const Template* schema,const xvalue* value)
 { return schema->provider ? schema->provider->Admits(schema->context,value) : xl6SequenceAdmitValueV1(schema->owner,value); }
-static size_t hash(const xvalue* source,size_t depth)
+static size_t hash(const xvalue* source,size_t depth,const xvalue* instance)
 {
     /* Unsigned wrap is intentional. Pointer equality, not the hash, decides
      * identity; uintptr_t is never cast back into or dereferenced as a pointer. */
     size_t value=(size_t)(uintptr_t)source;
     value^=value>>4;
-    return value*(size_t)UINT32_C(2654435761)+depth*(size_t)UINT32_C(2246822519);
+    size_t witness=(size_t)(uintptr_t)instance;
+    witness^=witness>>4;
+    return value*(size_t)UINT32_C(2654435761)+depth*(size_t)UINT32_C(2246822519)+
+        witness*(size_t)UINT32_C(3266489917);
 }
-static Memo* lookup(Import* ctx,const xvalue* source,size_t depth)
+static Memo* lookup(Import* ctx,const xvalue* source,size_t depth,const xvalue* instance)
 {
     if (!ctx->capacity) return NULL;
-    size_t at=hash(source,depth)&(ctx->capacity-1);
+    size_t at=hash(source,depth,instance)&(ctx->capacity-1);
     while (ctx->memo[at].source) {
-        if (ctx->memo[at].source==source && ctx->memo[at].depth==depth) return &ctx->memo[at];
+        if (ctx->memo[at].source==source && ctx->memo[at].depth==depth &&
+            ctx->memo[at].instance==instance) return &ctx->memo[at];
         at=(at+1)&(ctx->capacity-1);
     }
     return NULL;
 }
-static bool remember(Import* ctx,const xvalue* source,size_t depth,xvalue* result)
+static bool remember(Import* ctx,const xvalue* source,size_t depth,xvalue* result,const xvalue* instance)
 {
     if (ctx->used>=ctx->capacity/2) {
         if (ctx->capacity>SIZE_MAX/2/sizeof(Memo)) { xrtSetErrorKind(XERR_RANGE); return false; }
@@ -88,7 +93,7 @@ static bool remember(Import* ctx,const xvalue* source,size_t depth,xvalue* resul
         if (!prepared) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return false; }
         memset(prepared,0,capacity*sizeof(*prepared));
         for (size_t i=0;i<ctx->capacity;++i) if (ctx->memo[i].source) {
-            size_t at=hash(ctx->memo[i].source,ctx->memo[i].depth)&(capacity-1);
+            size_t at=hash(ctx->memo[i].source,ctx->memo[i].depth,ctx->memo[i].instance)&(capacity-1);
             while (prepared[at].source) at=(at+1)&(capacity-1);
             prepared[at]=ctx->memo[i];
         }
@@ -98,9 +103,9 @@ static bool remember(Import* ctx,const xvalue* source,size_t depth,xvalue* resul
     if (!ownedSource) return false;
     xvalue* ownedResult=xrtValueRetain(result);
     if (!ownedResult) { releasePreservingError(ownedSource); return false; }
-    size_t at=hash(source,depth)&(ctx->capacity-1);
+    size_t at=hash(source,depth,instance)&(ctx->capacity-1);
     while (ctx->memo[at].source) at=(at+1)&(ctx->capacity-1);
-    ctx->memo[at]=(Memo){ownedSource,ownedResult,depth}; ++ctx->used;
+    ctx->memo[at]=(Memo){ownedSource,ownedResult,depth,instance}; ++ctx->used;
     return true;
 }
 static bool privateSeed(const Import* ctx,const xvalue* value)
@@ -125,7 +130,7 @@ static xvalue* childSeed(const Template* schema)
 static bool fill(Import* ctx,size_t depth,xvalue* value,XL6_Sequence* target,const xvalue* source);
 static xvalue* convert(Import* ctx,size_t depth,const xvalue* source)
 {
-    Memo* prior=lookup(ctx,source,depth);
+    Memo* prior=lookup(ctx,source,depth,NULL);
     if (prior) return xrtValueRetain(prior->result);
     const Template* schema=&ctx->templates[depth];
     xvalue* value=childSeed(schema);
@@ -134,7 +139,7 @@ static xvalue* convert(Import* ctx,size_t depth,const xvalue* source)
         schema->layout.elementIdentity,schema->layout.transfer,schema->layout.size,schema->layout.type);
     bool ok=successful(ctx) && (schema->provider || owner) && fill(ctx,depth,value,owner,source);
     if (owner) xl6SequenceEndV1(owner);
-    if (ok) ok=remember(ctx,source,depth,value) && successful(ctx);
+    if (ok) ok=remember(ctx,source,depth,value,NULL) && successful(ctx);
     if (!ok) { releasePreservingError(value); return NULL; }
     return value;
 }
@@ -343,7 +348,10 @@ static bool graphPlanValid(const XL6_RestorePlanV1* plan,size_t count)
         plan->fieldCount>SIZE_MAX/sizeof(*plan->fields) || (plan->fieldCount && !plan->fields)) return false;
     for (size_t i=0;i<plan->nodeCount;++i) {
         const XL6_RestoreNodeV1* node=&plan->nodes[i];
-        if (node->flags&~XL6_RESTORE_NULLABLE_V1) return false;
+        if (node->flags&~(XL6_RESTORE_NULLABLE_V1|XL6_RESTORE_FIELD_INSTANCE_V1)) return false;
+        bool instance=(node->flags&XL6_RESTORE_FIELD_INSTANCE_V1)!=0;
+        if (instance && (node->kind!=XL6_RESTORE_OBJECT_V1 ||
+            (node->flags&XL6_RESTORE_NULLABLE_V1) || i==plan->root || node->as.object.factory)) return false;
         if (node->kind==XL6_RESTORE_SCALAR_V1) {
             if (node->as.scalar<XL6_VALUE_ADMIT_ANY || node->as.scalar>XL6_VALUE_ADMIT_TIME ||
                 (node->as.scalar==XL6_VALUE_ADMIT_ANY ? node->identity!=0 : !node->identity)) return false;
@@ -351,6 +359,7 @@ static bool graphPlanValid(const XL6_RestorePlanV1* plan,size_t count)
             const XL6_CollectionImportProviderV1* p=node->as.sequence.provider;
             if (!node->identity || node->as.sequence.seed>=count || node->as.sequence.element>=plan->nodeCount ||
                 (p && (!p->Begin || !p->End || !p->Empty || !p->Admits || !p->Append))) return false;
+            if (plan->nodes[node->as.sequence.element].flags&XL6_RESTORE_FIELD_INSTANCE_V1) return false;
             for (size_t j=0;j<i;++j) if (plan->nodes[j].kind==XL6_RESTORE_SEQUENCE_V1 &&
                 plan->nodes[j].as.sequence.seed==node->as.sequence.seed) return false;
         } else if (node->kind==XL6_RESTORE_OBJECT_V1) {
@@ -362,9 +371,8 @@ static bool graphPlanValid(const XL6_RestorePlanV1* plan,size_t count)
                 if (!viewValid(field->source) || !viewValid(field->target) || field->node>=plan->nodeCount ||
                     (field->flags&~(XL6_RESTORE_REQUIRED_V1|XL6_RESTORE_IN_PLACE_V1)) ||
                     keyEqual(field->target,XRT_STR_LITERAL("$xlir.class.runtime-type"))) return false;
-                if ((field->flags&XL6_RESTORE_IN_PLACE_V1) &&
-                    (plan->nodes[field->node].kind!=XL6_RESTORE_OBJECT_V1 ||
-                     (plan->nodes[field->node].flags&XL6_RESTORE_NULLABLE_V1))) return false;
+                if (((field->flags&XL6_RESTORE_IN_PLACE_V1)!=0) !=
+                    ((plan->nodes[field->node].flags&XL6_RESTORE_FIELD_INSTANCE_V1)!=0)) return false;
                 for (size_t k=0;k<j;++k) if (keyEqual(field->target,
                     plan->fields[node->as.object.first+k].target)) return false;
             }
@@ -423,6 +431,19 @@ static xvalue* restoreNode(Import* ctx,const XL6_RestorePlanV1* plan,size_t doma
     const XL6_RestoreNodeV1* node=&plan->nodes[domain]; xvalue* value=NULL;
     if (!restoring(ctx)) goto rejected;
     if (!source || privateSeed(ctx,source)) { xrtSetErrorKind(XERR_ARGUMENT); goto rejected; }
+    const xvalue* instance=NULL;
+    if (node->flags&XL6_RESTORE_FIELD_INSTANCE_V1) {
+        /* The recipe is not the instance. Authenticate every supplied child
+         * before looking up a prior conversion or accepting nullable bad wire. */
+        if (!prepared || privateSeed(ctx,prepared) || prepared==source) {
+            xrtSetErrorKind(XERR_ARGUMENT); goto rejected;
+        }
+        if (!objectMatches(prepared,node) || !successful(ctx)) {
+            if (successful(ctx)) xrtSetErrorKind(XERR_TYPE);
+            goto rejected;
+        }
+        instance=prepared;
+    }
     uint64_t identity=xrtValueTypeId(source);
     if (identity && identity!=node->identity && !(node->kind==XL6_RESTORE_SCALAR_V1 &&
         node->as.scalar==XL6_VALUE_ADMIT_ANY)) { rejectWire(ctx,XERR_TYPE); goto rejected; }
@@ -442,7 +463,7 @@ static xvalue* restoreNode(Import* ctx,const XL6_RestorePlanV1* plan,size_t doma
     }
     if (depth>=MAX_CHAIN) { xrtSetErrorKind(XERR_RANGE); goto rejected; }
     for (size_t i=0;i<depth;++i) if (ctx->active[i]==source) { rejectWire(ctx,XERR_VALUE); goto rejected; }
-    Memo* prior=lookup(ctx,source,domain);
+    Memo* prior=lookup(ctx,source,domain,instance);
     if (prior) { value=xrtValueRetain(prior->result); goto rejected; }
     ctx->active[depth]=source;
     if (node->kind==XL6_RESTORE_SEQUENCE_V1) {
@@ -479,7 +500,7 @@ sequenceDone:
         if (value==source || privateSeed(ctx,value)) {
             xrtSetErrorKind(XERR_TYPE); goto done;
         }
-        bool accepted=objectMatches(value,node);
+        bool accepted=instance || objectMatches(value,node);
         if (!accepted || !successful(ctx)) {
             if (!xrtGetError() && !ctx->operation->failed) xrtSetErrorKind(XERR_TYPE);
             goto done;
@@ -490,7 +511,7 @@ sequenceDone:
         if (!restoreObject(ctx,plan,node,depth,value,source)) goto done;
     }
     if (value && restoring(ctx)) {
-        if (!remember(ctx,source,domain,value)) xl6ErrorScopeCaptureFailure(ctx->operation);
+        if (!remember(ctx,source,domain,value,instance)) xl6ErrorScopeCaptureFailure(ctx->operation);
     } else if (!ctx->wireRejected && !ctx->operation->failed) xl6ErrorScopeCaptureFailure(ctx->operation);
 done:
     ctx->active[depth]=NULL;
