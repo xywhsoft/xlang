@@ -16,6 +16,10 @@
 static void equalLists(const xvalue*,const xvalue*,const XL6_ListLayoutV1*,bool);
 extern void xl6TestListSchemaVectorsV1(const char*);
 extern bool xl6TestListSchemaFaultV1(const char*,size_t);
+#ifdef XL6_TEST_RESTORE_PLAN
+extern void xl6TestRestorePlanVectorsV1(const char*);
+extern bool xl6TestRestorePlanFaultV1(const char*,size_t);
+#endif
 #ifdef XL6_TEST_LIST_RESTORE
 extern void xl6TestListRestoreVectorsV1(const char*);
 extern bool xl6TestListRestoreFaultV1(const char*,size_t);
@@ -863,6 +867,9 @@ static void schemaCleanupErrors(void)
 }
 static void fault(const char* operation,size_t point)
 {
+#ifdef XL6_TEST_RESTORE_PLAN
+    if (xl6TestRestorePlanFaultV1(operation,point)) return;
+#endif
 #ifdef XL6_TEST_LIST_RESTORE
     if (xl6TestListRestoreFaultV1(operation,point)) return;
 #endif
@@ -938,6 +945,9 @@ int main(int argc,char** argv)
 {
     assert(argc==2 || argc==3); xl6ProductMemoryBegin(SIZE_MAX);
     if (argc==3) fault(argv[1],(size_t)strtoull(argv[2],NULL,10));
+#ifdef XL6_TEST_RESTORE_PLAN
+    else if (!strncmp(argv[1],"plan-",5)) xl6TestRestorePlanVectorsV1(argv[1]);
+#endif
 #ifdef XL6_TEST_LIST_RESTORE
     else if (!strncmp(argv[1],"restore-",8)) xl6TestListRestoreVectorsV1(argv[1]);
 #endif

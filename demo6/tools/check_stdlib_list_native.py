@@ -17,7 +17,9 @@ def main():
     parser.add_argument('--sanitize',action='store_true')
     parser.add_argument('--graph',action='store_true',help='Optional single-memo List/Array/object graph provider and exact format plans')
     parser.add_argument('--restore',action='store_true',help='Mixed-family shared import memo and explicit JSON/XLON leaf restoration')
+    parser.add_argument('--restore-plan',action='store_true',help='Closed class-field/collection nodes in one shared restore transaction; implies --restore')
     args=parser.parse_args(); root=args.root.resolve(); out=args.out.resolve()
+    if args.restore_plan: args.restore=True
     cc,nm=shutil.which('gcc'),shutil.which('nm')
     assert cc and nm and not out.exists() and (not args.sanitize or sys.platform=='linux')
     sources=['test/cases/stdlib_list_native_host.c','test/cases/stdlib_list_schema_native_host.c','test/support/list_native.c',
@@ -42,6 +44,9 @@ def main():
         sources+=['test/cases/stdlib_list_restore_native_host.c','src/runtime/xl6_list_import_chain.c',
             'src/runtime/xl6_array_import_chain.c','src/runtime/xl6_array_input.c']
         if not args.graph: sources+=['src/runtime/xl6_array_erased.c']
+    if args.restore_plan:
+        sources+=['test/cases/stdlib_restore_plan_native_host.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_code_lease.c',
+            'src/runtime/xl6_restore_class.c']
     files={Path(__file__).resolve(),Path(cc),Path(nm),Path(sys.executable)}
     files.update(root/name for name in sources)
     for folder in ('src/runtime','src/api','release/include','lib/xrt','lib/xruntime','test/support'):
@@ -50,12 +55,12 @@ def main():
     rows=[]; prefixes=[]; failures=[]
     report={'Complete':False,'InputsUnchanged':False,'Inputs':inputs,'Rows':rows,'Prefixes':prefixes,
         'Failures':failures,'Platform':sys.platform,'Sanitized':args.sanitize,
-        'Graph':args.graph,'Restore':args.restore,
+        'Graph':args.graph,'Restore':args.restore,'RestorePlan':args.restore_plan,
         'SelectedNativeClosureInstrumented':args.sanitize,'WholeRuntimeInstrumented':False,
         'ShippingLibraryAcceptance':False,'SourceLanguageListCutover':False,'Full53Acceptance':False,
         'CleanupBoundaryFailureInjection':'GNU ld --wrap; real cleanup delegates except explicitly armed vectors; not actual OS exhaustion',
         'EntryBoundaryFailureInjection':'GNU ld --wrap=xl6ErrorScopeBegin; delegates unless explicitly armed; not actual OS exhaustion',
-        'Scope':'Private mixed List/Array recursive import and explicit scalar restoration in the existing type-depth memo; not class-field restore, source carrier, shipping or full53 acceptance' if args.restore else 'Private List/Array/object single XRT graph memo, resident provider/format plans, native deep copy and data projection; not recursive restore, source carrier or shipping/full53 acceptance' if args.graph else __doc__}
+        'Scope':'Private closed object-field/collection restoration in one source/node memo using actual resident class lifetime and native containers; not generated IR registration, language carrier cutover, open-object restore or shipping/full53 acceptance' if args.restore_plan else 'Private mixed List/Array recursive import and explicit scalar restoration in the existing type-depth memo; not class-field restore, source carrier, shipping or full53 acceptance' if args.restore else 'Private List/Array/object single XRT graph memo, resident provider/format plans, native deep copy and data projection; not recursive restore, source carrier or shipping/full53 acceptance' if args.graph else __doc__}
     out.mkdir(parents=True)
     env=dict(os.environ)
     if args.sanitize: env.update(ASAN_OPTIONS='detect_leaks=1:detect_stack_use_after_return=1:halt_on_error=1',
@@ -76,6 +81,7 @@ def main():
     flags=['-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease','-Irelease/include']
     if args.graph: flags+=['-DXL6_TEST_LIST_GRAPH']
     if args.restore: flags+=['-DXL6_TEST_LIST_RESTORE']
+    if args.restore_plan: flags+=['-DXL6_TEST_RESTORE_PLAN']
     links=['-Wl,--wrap=xl6ErrorScopeBeginCleanup','-Wl,--wrap=xl6ErrorScopeBegin']+([] if os.name=='nt' else ['-pthread','-lm'])
     if os.name!='nt': flags+=['-D_GNU_SOURCE']
     if args.sanitize: flags+=['-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie']
@@ -94,6 +100,9 @@ def main():
         modes+=('restore-profiles','restore-mixed','restore-domains','restore-rejected','restore-depth','restore-entry-errors','restore-provider-errors',
             'restore-format-roundtrip','restore-cleanup-errors')
         operations+=('restore-native','restore-json','restore-xlon','restore-wide','restore-source-take')
+    if args.restore_plan:
+        modes+=('plan-shared','plan-format','plan-nested','plan-rejected','plan-boundaries','plan-depth','plan-wide-domains','plan-objects','plan-mixed')
+        operations+=('plan-restore','plan-target','plan-nested-restore','plan-wide','plan-mixed-restore')
     try:
         for level in (0,2):
             lane='O'+str(level); binary=out/('list-'+lane+('.exe' if os.name=='nt' else ''))
