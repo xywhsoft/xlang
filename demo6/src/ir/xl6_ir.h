@@ -5079,6 +5079,16 @@ typedef enum XL6_IrExportErrorAbi {
     XL6_IR_EXPORT_ERROR_SHARED_SCOPE_TRANSACTION
 } XL6_IrExportErrorAbi;
 
+/* A foreign export may execute outside a tracked public host call. Its
+ * complete entry, rollback and argument cleanup must use the same resident
+ * execution registry as closures/tasks, before touching module owning slots.
+ * This tracks execution, not automatic lifetime for borrowed GetSymbol code:
+ * the native caller still holds its independent entry/residency capability. */
+typedef enum XL6_IrExportExecutionAbi {
+    XL6_IR_EXPORT_EXECUTION_INVALID = 0,
+    XL6_IR_EXPORT_EXECUTION_RESIDENT_CODE_SCOPE_V1
+} XL6_IrExportExecutionAbi;
+
 /* Exact public representation at an exported C boundary.  Most values use
  * their already-fixed Type CAbi; bounded language integers are the deliberate
  * exception because XLIR executes them in an i64 carrier while the public API
@@ -5119,6 +5129,7 @@ typedef struct XL6_IrExport {
     XL6_IrExportReturnAbi returnAbi;
     XL6_IrExportValueAbi returnValueAbi;
     XL6_IrExportErrorAbi errorAbi;
+    XL6_IrExportExecutionAbi executionAbi;
     /* Exact private body carrier, independent of the always-fallible public
      * entry transaction. Verified against the resolved CallTarget. */
     XL6_IrErrorAbi bodyErrorAbi;

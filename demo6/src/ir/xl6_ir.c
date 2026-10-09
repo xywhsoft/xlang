@@ -36262,6 +36262,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              xl6IrFunctionBySymbol(module, exported->symbol) == NULL ||
              exported->returnType != target->returnType ||
              exported->errorAbi != XL6_IR_EXPORT_ERROR_SHARED_SCOPE_TRANSACTION ||
+             exported->executionAbi != XL6_IR_EXPORT_EXECUTION_RESIDENT_CODE_SCOPE_V1 ||
+             module->abi.codeOwnerAbi != XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT ||
              exported->bodyErrorAbi != target->errorAbi ||
              exported->returnAbi != xl6IrExportReturnAbiForType(module, exported->returnType) ||
              (exported->returnAbi == XL6_IR_EXPORT_RETURN_OWNED &&
@@ -47985,13 +47987,13 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
         const XL6_IrExport* exported = &module->exports[i];
         size_t parameter;
         xl6OutputPrintf(out,
-                        "  export e%lu symbol=%u declaration=n%u cname=%s return=t%u/%s/%s error-abi=%d body-error-abi=%d params=[",
+                        "  export e%lu symbol=%u declaration=n%u cname=%s return=t%u/%s/%s error-abi=%d body-error-abi=%d execution-abi=%d params=[",
                         (unsigned long)i, (unsigned int)exported->symbol,
                         (unsigned int)exported->declaration, exported->cName,
                         (unsigned int)exported->returnType,
                         xl6IrExportReturnAbiName(exported->returnAbi),
                         xl6IrExportValueAbiName(exported->returnValueAbi),
-                        (int)exported->errorAbi, (int)exported->bodyErrorAbi);
+                        (int)exported->errorAbi, (int)exported->bodyErrorAbi, (int)exported->executionAbi);
         for ( parameter = 0; parameter < exported->parameterCount; ++parameter ) {
             if ( parameter != 0 ) xl6OutputPuts(",", out);
             xl6OutputPrintf(out, "%s:t%u/%s/%s",
@@ -49584,13 +49586,13 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         const XL6_IrExport* exported = &module->exports[i];
         size_t parameter;
         xl6OutputPrintf(out,
-                        "    {\"id\":%lu,\"symbol\":%u,\"declaration\":%u,\"cName\":\"%s\",\"returnType\":%u,\"returnAbi\":%d,\"returnAbiName\":\"%s\",\"returnValueAbi\":\"%s\",\"errorAbi\":%d,\"bodyErrorAbi\":%d,\"parameterTypes\":[",
+                        "    {\"id\":%lu,\"symbol\":%u,\"declaration\":%u,\"cName\":\"%s\",\"returnType\":%u,\"returnAbi\":%d,\"returnAbiName\":\"%s\",\"returnValueAbi\":\"%s\",\"errorAbi\":%d,\"bodyErrorAbi\":%d,\"executionAbi\":%d,\"parameterTypes\":[",
                         (unsigned long)i, (unsigned int)exported->symbol,
                         (unsigned int)exported->declaration, exported->cName,
                         (unsigned int)exported->returnType, (int)exported->returnAbi,
                         xl6IrExportReturnAbiName(exported->returnAbi),
                         xl6IrExportValueAbiName(exported->returnValueAbi),
-                        (int)exported->errorAbi, (int)exported->bodyErrorAbi);
+                        (int)exported->errorAbi, (int)exported->bodyErrorAbi, (int)exported->executionAbi);
         for ( parameter = 0; parameter < exported->parameterCount; ++parameter ) {
             if ( parameter != 0 ) xl6OutputPuts(",", out);
             xl6OutputPrintf(out, "%u", (unsigned int)exported->parameterTypes[parameter]);

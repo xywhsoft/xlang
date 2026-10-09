@@ -56,6 +56,10 @@ int main(int argc, char** argv)
     for (i = 0; i < ir.exportCount; ++i) {
         XL6_IrExport* entry = &ir.exports[i];
         XL6_IrErrorAbi body = entry->bodyErrorAbi;
+        assert(entry->executionAbi == XL6_IR_EXPORT_EXECUTION_RESIDENT_CODE_SCOPE_V1);
+        entry->executionAbi = XL6_IR_EXPORT_EXECUTION_INVALID; reject(&ir); ++mutations;
+        entry->executionAbi = (XL6_IrExportExecutionAbi)2; reject(&ir); ++mutations;
+        entry->executionAbi = XL6_IR_EXPORT_EXECUTION_RESIDENT_CODE_SCOPE_V1;
         assert(entry->errorAbi == XL6_IR_EXPORT_ERROR_SHARED_SCOPE_TRANSACTION);
         entry->errorAbi = XL6_IR_EXPORT_ERROR_INVALID; reject(&ir); ++mutations;
         entry->errorAbi = XL6_IR_EXPORT_ERROR_SHARED_SCOPE_TRANSACTION;
