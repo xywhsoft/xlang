@@ -26,6 +26,7 @@ def main():
  sources[sources.index('test/support/value_copy_native.c')]='test/support/set_consumers_native.c'
  sources+=['test/cases/stdlib_set_consumers_native_host.c',
   'src/runtime/xl6_set_graph.c','src/runtime/xl6_value_copy_collections.c',
+  'src/runtime/xl6_dict_graph.c','src/runtime/xl6_dict_value_iterator.c',
   'src/runtime/xl6_persistence_project_collections.c','src/runtime/xl6_set_value_iterator.c',
   'src/runtime/xl6_list_value_iterator.c','src/runtime/xl6_collection_value_iterator.c',
   'src/runtime/xl6_value_iterator.c','src/runtime/xl6_array_iterator.c',
@@ -82,7 +83,7 @@ def main():
    products.append(dict(Path=str(binary),Sha256=sha(binary)))
   for name,source,before,after in (
    ('aliased-set-copy','src/runtime/xl6_value_copy.c','set ? xl6SetErasedCloneV1(source)','set ? xrtValueRetain(source)'),
-   ('set-provider-omitted','src/runtime/xl6_value_copy_collections.c','sizeof(plan),providers,2,NULL,0','sizeof(plan),providers,1,NULL,0'),
+   ('set-provider-omitted','src/runtime/xl6_value_copy_collections.c','sizeof(plan),providers,3,NULL,0','sizeof(plan),providers,2,NULL,0'),
    ('generic-set-snapshot-omitted','src/runtime/xl6_collection_value_iterator.c',
     'xl6SetValueIteratorNativeOpsV1Get()->Create(source,output)','0'),
    ('set-deep-clone-content-keys','src/runtime/xl6_set.c',

@@ -16,7 +16,7 @@ typedef struct XL6_ValueIteratorNativeSnapshotV1 {
     unsigned family;
 } XL6_ValueIteratorNativeSnapshotV1;
 
-enum { XL6_VALUE_ITERATOR_LIST_V1=1, XL6_VALUE_ITERATOR_SET_V1=2 };
+enum { XL6_VALUE_ITERATOR_LIST_V1=1, XL6_VALUE_ITERATOR_SET_V1=2, XL6_VALUE_ITERATOR_DICT_V1=3 };
 typedef struct XL6_ValueIteratorNativeOpsV1 {
     /* 0 unrelated, -1 checked failure, 1 owned snapshot. No partial output. */
     int (*Create)(const xvalue*, XL6_ValueIteratorNativeSnapshotV1*);

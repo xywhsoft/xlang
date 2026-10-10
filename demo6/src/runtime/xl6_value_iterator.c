@@ -75,15 +75,6 @@ XL6_ValueIterator* xl6ValueIteratorCreateResidentV1(const xvalue* source,
 { return create_resident(source,extension,XVALUE_NULL); }
 XL6_ValueIterator* xl6ArrayValueIteratorCreateCheckedV1(const xvalue* source)
 { return create_resident(source,NULL,XVALUE_ARRAY); }
-static XL6_ValueIterator* create_wire_family(const xvalue* source,xvaluetype expected)
-{
-    if (!source || xrtValueType(source)!=expected) {
-        xrtSetErrorInfo(XERR_TYPE,"xlang",0,"for in value must be array, list, set or dict"); return NULL;
-    }
-    return create_resident(source,NULL,expected);
-}
-XL6_ValueIterator* xl6DictValueIteratorCreateCheckedV1(const xvalue* source)
-{ return create_wire_family(source,XVALUE_OBJECT); }
 static XL6_ValueIterator* iterator_create(const xvalue* source)
 { return xl6ValueIteratorCreateResidentV1(source,NULL); }
 static bool iterator_advance(XL6_ValueIterator* state, bool* found)

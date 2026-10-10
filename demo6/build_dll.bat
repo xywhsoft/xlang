@@ -240,6 +240,8 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_restore_class_set.c ^
     src\runtime\xl6_restore_class_collections.c ^
     src\runtime\xl6_dict.c ^
+    src\runtime\xl6_dict_graph.c ^
+    src\runtime\xl6_dict_value_iterator.c ^
     src\runtime\xl6_value_index_read.c ^
     src\runtime\xl6_value_index_write.c ^
     src\runtime\xl6_value_wire_contains.c ^
@@ -489,6 +491,8 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_restore_class_set.c ^
     src\runtime\xl6_restore_class_collections.c ^
     src\runtime\xl6_dict.c ^
+    src\runtime\xl6_dict_graph.c ^
+    src\runtime\xl6_dict_value_iterator.c ^
     src\runtime\xl6_value_index_read.c ^
     src\runtime\xl6_value_index_write.c ^
     src\runtime\xl6_value_wire_contains.c ^

@@ -1,5 +1,6 @@
 #include "xl6_list_value_iterator.h"
 #include "xl6_set_value_iterator.h"
+#include "xl6_dict_value_iterator.h"
 #include "xl6_value_iterator_internal.h"
 
 /* Erased dispatch is its own component. Static List/Array/Set iteration
@@ -8,7 +9,9 @@
 static int create(const xvalue* source,XL6_ValueIteratorNativeSnapshotV1* output)
 {
     int result=xl6ListValueIteratorNativeOpsV1Get()->Create(source,output);
-    return result ? result : xl6SetValueIteratorNativeOpsV1Get()->Create(source,output);
+    if (result) return result;
+    result=xl6SetValueIteratorNativeOpsV1Get()->Create(source,output);
+    return result ? result : xl6DictValueIteratorNativeOpsV1Get()->Create(source,output);
 }
 static bool advance(const XL6_ValueIteratorNativeSnapshotV1* snapshot,
     bool* found,xvalue** item,xvaluekey* key)
@@ -18,6 +21,8 @@ static bool advance(const XL6_ValueIteratorNativeSnapshotV1* snapshot,
         return xl6ListValueIteratorNativeOpsV1Get()->Advance(snapshot,found,item,key);
     case XL6_VALUE_ITERATOR_SET_V1:
         return xl6SetValueIteratorNativeOpsV1Get()->Advance(snapshot,found,item,key);
+    case XL6_VALUE_ITERATOR_DICT_V1:
+        return xl6DictValueIteratorNativeOpsV1Get()->Advance(snapshot,found,item,key);
     default: xrtSetErrorKind(XERR_STATE); return false;
     }
 }

@@ -2,6 +2,7 @@
 #include "xl6_collection_count.h"
 #include "xl6_list.h"
 #include "xl6_set.h"
+#include "xl6_dict.h"
 #include "src/api/xl_foreign_error.h"
 static bool count(const xvalue* source,int64_t* output)
 {
@@ -11,6 +12,9 @@ static bool count(const xvalue* source,int64_t* output)
     status=xl6SetErasedProbeV1(source);
     if (status<0) return false;
     if (status) return xl6SetErasedCountV1(source,false,output);
+    status=xl6DictErasedProbeV1(source);
+    if (status<0) return false;
+    if (status) return xl6DictErasedCountV1(source,false,output);
     *output=xl6CollectionCountV1(source); return !xrtGetError();
 }
 static bool enter(xl6_error_scope* scope)

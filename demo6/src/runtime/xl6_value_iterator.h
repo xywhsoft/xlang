@@ -36,8 +36,8 @@ XL6_CODE_LEASE_API const XL6_ValueIteratorRuntimeV2* xl6ValueIteratorRuntimeV2Ge
  * snapshot or wire ARRAY only, never another native role or wire family.
  * Uses the same V2 carrier and introduces no optional List dependency. */
 XL6_CODE_LEASE_API XL6_ValueIterator* xl6ArrayValueIteratorCreateCheckedV1(const struct xvalue*);
-/* Set accepts its genuine native snapshot and real wire Set. Dict remains
- * wire-only; both reject every unrelated family. Set is a separate component. */
+/* Set/Dict accept genuine native snapshots and their real wire families;
+ * unrelated handles are refused. Each family is a separate component. */
 XL6_CODE_LEASE_API XL6_ValueIterator* xl6SetValueIteratorCreateCheckedV1(const struct xvalue*);
 XL6_CODE_LEASE_API XL6_ValueIterator* xl6DictValueIteratorCreateCheckedV1(const struct xvalue*);
 /* Certifies only this resident carrier. The resolver must also admit the real
