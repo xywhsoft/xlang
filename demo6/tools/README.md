@@ -22,6 +22,16 @@ this is not all-language OOM, shipping or full53 acceptance. See
 
 ## Toolchain
 
+`check_stdlib_list_refined.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
+checks refined Array/List/Dict key contracts, exact signed/NUL keys, actual native
+List inputs to generated var methods, O0/O2 ledgers and closed OOM/diagnosticless
+prefixes. Same-physical-family IR forgeries and a compiled resident mutation must
+fail. Pure refined Array plans exclude List components. Source factories, indices,
+casts/algebra/restore and shipping/full53 remain pending; see
+[Refined List consumers](../docs/stdlib53-b176-refined-list-consumers.md).
+`--native-host <current-test>` is an explicit hashed test-only override; it does
+not replace compiled runtime providers or hide a frozen-source difference.
+
 `check_stdlib_list_iterator.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
 checks actual native List snapshots in generated foreach functions, complete
 integer keys, exact text, independent snapshots, owned projections and failure

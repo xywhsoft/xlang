@@ -2,7 +2,7 @@
 Fresh full source compiler on both platforms. Real typed storage, exact keys,
 owned projection/trace, checked failure != EOF, native generated-function inputs
 and selective artifact plans. Not source factory/cast/restore cutover, shipping
-DLL/SO/VFS, packaged AOT or full53 acceptance. Refined List pair gap is retained.
+DLL/SO/VFS, packaged AOT or full53 acceptance. Refined keys have a separate gate.
 """
 from pathlib import Path
 import argparse,hashlib,json,os,re,shutil,subprocess,sys,time

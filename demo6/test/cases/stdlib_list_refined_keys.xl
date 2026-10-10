@@ -1,0 +1,69 @@
+int refinedCleanups = 0
+func refinedListPair(var values) as int
+    int count = 0
+    try
+        if values is list
+            for key, value in values
+                assert(key == -9223372036854775808 or key == 0 or key == 9223372036854775807)
+                assert(string(value) == "a\0你")
+                count += 1
+            end
+        end
+        return count
+    finally
+        refinedCleanups += 1
+    end
+end
+func dynamicListMethods(var values) as int
+    try
+        assert(bool(values.contains("a\0你")))
+        assert(not bool(values.remove(-7)))
+        assert(string(values.take(9223372036854775807)) == "a\0你")
+        assert(bool(values.remove(-9223372036854775808)))
+        assert(bool(values.clear()))
+        assert(values.take(0) == null)
+        assert(not bool(values.contains("a\0你")))
+        return 1
+    finally
+        refinedCleanups += 1
+    end
+end
+func refinedArrayPair(var values) as int
+    int count = 0
+    if values is array
+        for key, value in values
+            assert(key == count)
+            assert(int(value) == count + 10)
+            count += 1
+        end
+    end
+    return count
+end
+func refinedDictPair(var values) as int
+    int count = 0
+    if values is dict
+        for key, value in values
+            assert(key == "a\0你" or key == "tail")
+            assert(int(value) == 3 or int(value) == 4)
+            count += 1
+        end
+    end
+    return count
+end
+func refinedDictKeys(var values) as int
+    int count = 0
+    if values is dict
+        for key in values
+            assert(key == "a\0你" or key == "tail")
+            count += 1
+        end
+    end
+    return count
+end
+var values = list[-9223372036854775808: "a\0你", 0: "a\0你", 9223372036854775807: "a\0你"]
+assert(refinedListPair(values) == 3)
+assert(dynamicListMethods(values) == 1)
+assert(refinedCleanups == 2)
+assert(refinedArrayPair([10, 11]) == 2)
+assert(refinedDictPair(dict{"a\0你": 3, "tail": 4}) == 2)
+assert(refinedDictKeys(dict{"a\0你": 3, "tail": 4}) == 2)

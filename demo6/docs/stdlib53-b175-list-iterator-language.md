@@ -60,11 +60,11 @@ int64_t 形式的原有 extern 断言 ABI，避免 Linux long 与 long long
 
 ## 仍待完成
 
-`var` 判断为 List 后的双变量遍历目前仍被 XLIR 拒绝：语义键为 i64，
-动态循环合同却要求 var 键。真实夹具保留在
-`test/fixtures/native_stack_batch_rejected/list_refined_pair_pending.xl`，
-回归按明确失败检查，不把它算为受支持用例。后续联动修正其 IR
-形状、原生类型准入和载体切换，而不是在 Cgen 猜测或强制转换。
+本批验收时，`var` 判断为 List 后的双变量遍历仍被 XLIR 拒绝：语义
+键为 i64，动态循环合同却要求 var 键。后续的
+[细化键与 List 动态调用](stdlib53-b176-refined-list-consumers.md) 已关闭
+这一缺口，原待修夹具由实际运行的正向及损坏 IR 用例替代。这里的
+65 阶段是历史批次结果，不代表后续回归仍应拒绝该语言形状。
 
 接下来完成 List 工厂、索引、类型与动态分发、恢复，再继续 Set/Dict
 及三组发布总验收。共享默认对象仍按声明 clone 隔离，否则 checked
