@@ -1,0 +1,40 @@
+DynamicFields fields = DynamicFields()
+assert fields.reserve(8)
+assert fields.capacity >= 8
+var shared = [1]
+assert fields.set("a\0你", shared)
+assert fields.set("a", 42)
+assert fields.length == 2
+assert fields.has("a\0你")
+assert fields.get("missing") == null
+assert fields.copy("missing") == null
+assert fields.take("missing") == null
+fields.get("a\0你").push(2)
+assert shared.length == 2
+var isolated = fields.copy("a\0你")
+isolated.push(3)
+assert shared.length == 2
+assert fields.keys().length == 2
+assert fields.values().length == 2
+assert fields.items().length == 2
+assert fields.nativeHandle() != null
+DynamicFields snapshot = DynamicFields(fields.toValue())
+snapshot.get("a\0你").push(4)
+assert shared.length == 2
+DynamicFields copy = fields.clone()
+copy.get("a\0你").push(5)
+assert shared.length == 2
+DynamicFields other = DynamicFields()
+other["a"] = 99
+other["new\0key"] = "v\0你"
+assert fields.merge(other, false)
+assert int(fields.get("a")) == 42
+assert fields.merge(other)
+assert int(fields.get("a")) == 99
+assert string(fields.take("new\0key")) == "v\0你"
+assert fields.remove("a")
+assert not fields.remove("missing")
+assert fields.trim()
+assert fields.clear()
+assert fields.length == 0
+println("resident DynamicFields API ok")

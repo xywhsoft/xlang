@@ -210,7 +210,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
         {"XRT_MODULE_VALUE_GRAPH", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
     {"src/runtime/xl6_persistence_project.c", D(R(ARRAY_GRAPH),R(FOREIGN_ERROR)),
         {"XRT_MODULE_VALUE_CONTAINER"}},
-    {"src/runtime/xl6_persistence_project_open.c", D(R(FOREIGN_ERROR)),
+    {"src/runtime/xl6_persistence_project_open.c", D(R(FOREIGN_ERROR),R(DYNAMIC_FIELDS)),
         {"XRT_MODULE_VALUE_GRAPH", "XRUNTIME_MODULE_RUNTIME_DYNAMIC_FIELD"}},
     {"src/runtime/xl6_array_methods.c", D(R(SEQUENCE)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY"}},
@@ -270,7 +270,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_rwlock.c", D(R(SYNC_CORE)), {"XRT_MODULE_RWLOCK", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
     {"src/runtime/xl6_array_sync_admission.c", D(R(SEQUENCE),R(SYNC_CORE)), {NULL}},
     {"src/runtime/xl6_thread.c", D(R(CLOSURE),R(FOREIGN_ERROR)), {"XRT_MODULE_THREAD", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
-    {"src/runtime/xl6_array_thread_admission.c", D(R(SEQUENCE),R(THREAD)), {NULL}}
+    {"src/runtime/xl6_array_thread_admission.c", D(R(SEQUENCE),R(THREAD)), {NULL}},
+    {"src/runtime/xl6_dynamic_fields.c", D(R(FOREIGN_ERROR)),
+        {"XRUNTIME_MODULE_RUNTIME_DYNAMIC_FIELD"}},
+    {"src/runtime/xl6_dynamic_fields_copy.c", D(R(DYNAMIC_FIELDS),R(ARRAY_GRAPH)), {NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

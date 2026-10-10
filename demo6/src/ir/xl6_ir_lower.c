@@ -11817,17 +11817,6 @@ static int xl6IrLowerResolveRuntimeBridge(
                 "XLIR xlang compiler-embedding bridge has no exact class-handle/string/value ABI");
         return 1;
     }
-    if ( strcmp(target->cName, "xl6_xrt_dynamic_fields_create") == 0 ||
-         strcmp(target->cName, "xl6_xrt_dynamic_fields_destroy") == 0 ||
-         strcmp(target->cName, "xl6_xrt_dynamic_fields_get") == 0 ||
-         strcmp(target->cName, "xl6_xrt_dynamic_fields_set") == 0 ) {
-        target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_DYNAMIC_FIELDS;
-        target->errorAbi = xl6IrDynamicFieldsRuntimeBridgeErrorAbi(target->cName);
-        if ( !xl6IrDynamicFieldsRuntimeBridgeTargetMatches(ctx->module, target) )
-            return xl6IrLowerDiag(ctx, target->declaration,
-                "XLIR DynamicFields runtime bridge has no exact private helper ABI");
-        return 1;
-    }
     target->runtimeBridgeOperation =
         xl6IrRuntimeBridgeOperationForName(target->cName);
     target->runtimeBridge = xl6IrRuntimeDirectBridgeKind(target->cName);
@@ -14284,6 +14273,7 @@ static int xl6IrLowerPrecomputeCallTargetErrorAbis(XL6_IrLowerContext* ctx)
         } else if ( (target->kind == XL6_IR_CALL_TARGET_EXTERN_C ||
                      target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
                     target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_NONE &&
+                    xl6IrRuntimeDirectBridgeErrorPhysicalAbi(target->cName) != XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE &&
                     !xl6IrRuntimeLogBridgeForeignScope(target->cName) &&
                     !xl6IrRuntimeNetDatagramBridgeKindIs(target->runtimeBridge) ) {
             target->errorPhysicalAbi =
@@ -32702,13 +32692,19 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
         xrtFree(ctx.promotedParameters);
         return 0;
     }
-    if ( !xl6IrBuildGeneratorMachines(module, diags) ||
-         !xl6IrBuildCallableBridges(module, diags) ||
-         !xl6IrBuildPersistenceProjectPlans(module) ||
-         !xl6IrBuildPersistenceRestorePlans(module) ) {
+    const char* schemaFailure = NULL;
+    if ( !xl6IrBuildGeneratorMachines(module, diags) )
+        schemaFailure = "XLIR lowering could not derive generator facts";
+    else if ( !xl6IrBuildCallableBridges(module, diags) )
+        schemaFailure = "XLIR lowering could not derive callable bridge facts";
+    else if ( !xl6IrBuildPersistenceProjectPlans(module) )
+        schemaFailure = "XLIR lowering could not derive persistence projection facts";
+    else if ( !xl6IrBuildPersistenceRestorePlans(module) )
+        schemaFailure = "XLIR lowering could not derive persistence restore facts";
+    if ( schemaFailure != NULL ) {
         if ( diags == NULL || diags->count == 0 )
             (void)xl6IrLowerDiag(&ctx, module->root,
-                "XLIR lowering could not derive generator, callable or persistence schema facts");
+                schemaFailure);
         xrtFree(ctx.loops);
         xrtFree(ctx.loopResources);
         xrtFree(ctx.exceptions);

@@ -63,24 +63,31 @@ int main(int argc,char** argv)
     assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_FUTURE_ADMISSION));
     assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_IMPORT_CHAIN));
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse);
-    /* Mixed Open/native modules must not silently migrate their closed root:
-     * the actual code owner reaches a generated opaque DynamicFields handle.
-     * This barrier lives in verified IR, not a Cgen name/fixture workaround. */
+    /* Resident DynamicFields no longer makes an otherwise closed root
+     * opaque. Open and Set roots retain their actual unsupported recipes;
+     * stripping either barrier must fail independent reconstruction. */
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     assert(xl6ParseFile(argv[2],&parse) && xl6StdlibExpandModule(parse.root,&parse.diags));
     assert(xl6SemCheckModule(parse.root,&parse.diags,"restore_mixed"));
     assert(xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags));
     assert(xl6IrLowerModule(&ir,&parse.diags) && xl6IrVerifyModule(&ir,&parse.diags));
     assert(ir.persistenceRestoreRootCount);
-    for (size_t i=0;i<ir.persistenceRestoreRootCount;++i)
-        assert(ir.persistenceRestoreRoots[i].pending & XL6_IR_RESTORE_PENDING_OPAQUE_MODULE_OWNER);
-    uint32 pending=ir.persistenceRestoreRoots[0].pending;
-    ir.persistenceRestoreRoots[0].pending &= ~XL6_IR_RESTORE_PENDING_OPAQUE_MODULE_OWNER;
-    rejected(&ir); ir.persistenceRestoreRoots[0].pending=pending;
+    bool opened=false, set=false, closed=false;
+    for (size_t i=0;i<ir.persistenceRestoreRootCount;++i) {
+        uint32 pending=ir.persistenceRestoreRoots[i].pending;
+        assert(!(pending & XL6_IR_RESTORE_PENDING_OPAQUE_MODULE_OWNER));
+        closed = closed || !pending;
+        if (!(pending & (XL6_IR_RESTORE_PENDING_OPEN|XL6_IR_RESTORE_PENDING_SET))) continue;
+        opened = opened || (pending & XL6_IR_RESTORE_PENDING_OPEN);
+        set = set || (pending & XL6_IR_RESTORE_PENDING_SET);
+        ir.persistenceRestoreRoots[i].pending=0;
+        rejected(&ir); ir.persistenceRestoreRoots[i].pending=pending;
+    }
+    assert(opened && set && closed);
     assert(xl6IrVerifyModule(&ir,&parse.diags));
     memset(&plan,0,sizeof(plan));
     assert(xl6ArtifactRuntimePlanBuild(&ir,XL6_ARTIFACT_ENTRY_FRAGMENT,&plan,&parse.diags));
-    assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_RESTORE_CLASS));
+    assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_RESTORE_CLASS));
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse);
     printf("restore take: %zu corrupt ownership/plan mutations refused before output\n",mutations); return 0;
 }

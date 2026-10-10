@@ -33,7 +33,7 @@ static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
           * traces. Consume the canonical DECLARATION header, not a second
           * handwritten ownership ABI or an implementation amalgamation. */
          needs->needsAsyncMachineRuntime || needs->needsAsyncTaskRuntime || needs->needsFutureContinuationRuntime || needs->needsGeneratorRuntime || needs->needsXValueIteratorRuntime ||
-         needs->needsDynamicFieldsBridgeRuntime || needs->needsPersistenceDynamicFields ||
+         needs->needsPersistenceDynamicFields ||
          needs->needsPrintRuntime || needs->needsDebugConsoleRuntime ||
          needs->textOutputBridgeOperations != 0 ||
          needs->needsXlangRuntime ||

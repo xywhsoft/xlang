@@ -26,6 +26,7 @@
 #include "src/api/xl_module_state.h"
 #include "src/api/xl_api_lock.h"
 #include "src/runtime/xl6_native_handle.h"
+#include "src/runtime/xl6_dynamic_fields.h"
 #include "src/runtime/xl6_error_value.h"
 #include "src/runtime/xl6_future_payload.h"
 #include "src/runtime/xl6_future_callback.h"
@@ -2619,10 +2620,12 @@ static const XL6_OwnershipAdapterV1* xlModuleResolveOwnership(xrtownershipref re
     if ((adapter = xrtErrorOwnershipAdapterV1(ref)) != NULL) return adapter;
     if ((adapter = xl6ErrorValueOwnershipAdapterV1(ref)) != NULL) return adapter;
     if ((adapter = xrtNetAddrListOwnershipAdapterV1(ref)) != NULL) return adapter;
+    if ((adapter = xrtDynamicFieldsOwnershipAdapterV1(ref)) != NULL) return adapter;
     {
         const XL6_NativeHandlePolicyV1* policies[] = {
             xl6ProcessCommandHandlePolicyV1Get(), xl6ProcessHandlePolicyV1Get(),
-            xl6ProcessStatusHandlePolicyV1Get(), xl6BufferIteratorHandlePolicyV1Get()
+            xl6ProcessStatusHandlePolicyV1Get(), xl6BufferIteratorHandlePolicyV1Get(),
+            xl6DynamicFieldsHandlePolicyV1Get()
         };
         for (size_t i = 0; i < sizeof(policies)/sizeof(*policies); ++i)
             if ((adapter = xrtValueHandleOwnershipAdapterV1(ref,

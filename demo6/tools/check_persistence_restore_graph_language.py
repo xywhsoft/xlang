@@ -88,7 +88,7 @@ def main():
             for optimization in ('O0','O2'):
                 binary=out / ('contract.'+optimization+('.exe' if os.name=='nt' else ''))
                 run('contract.'+optimization+'.compile',[cc,*flags,'-'+optimization,contract,*links,'-o',binary])
-                assert '6 corrupt ownership/plan mutations refused' in run('contract.'+optimization+'.run',[binary,cases[-1][1],cases[1][1]])
+                assert '9 corrupt ownership/plan mutations refused' in run('contract.'+optimization+'.run',[binary,cases[-1][1],cases[1][1]])
         for name, source in cases:
             try:
                 typed, lowered = out / (name + '.typed.json'), out / (name + '.lowered.json')
@@ -109,9 +109,12 @@ def main():
                     assert 'xlir_persist_json_assign_' not in text and 'xlir_persist_xlon_assign_' not in text
                     assert 'xl6SerializeRestoreReadFinish' not in text
                 if args.native_cutover and name=='construction':
-                    assert all(r['pending'] & 128 for r in ir['persistenceRestoreRoots'])
+                    roots=ir['persistenceRestoreRoots']
+                    assert all(not (r['pending'] & 128) for r in roots)
+                    assert any(r['pending'] & 1 for r in roots) and any(r['pending'] & 8 for r in roots)
+                    assert any(not r['pending'] for r in roots)
                     text=generated.read_text(encoding='utf-8-sig')
-                    assert 'xl6PersistenceRestoreParsedTakeV1(' not in text
+                    assert 'xl6PersistenceRestoreParsedTakeV1(' in text
                     assert 'xl6SerializeRestoreReadFinishTakeV1(' in text
                 for optimization in ('O0', 'O2'):
                     memory_object = out / (name + '.' + optimization + '.memory.o')

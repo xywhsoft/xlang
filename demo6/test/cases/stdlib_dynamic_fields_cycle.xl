@@ -1,0 +1,12 @@
+class DynamicHolder
+    int number = 7
+    DynamicFields fields = DynamicFields()
+end
+func makeCycle()
+    DynamicHolder owner = DynamicHolder()
+    owner.fields.set("self", owner)
+    owner.fields.set("also\0self", owner)
+    assert int(owner.fields.get("self").number) == 7
+end
+makeCycle()
+println("resident DynamicFields class cycle ok")

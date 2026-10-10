@@ -34,7 +34,7 @@ static bool planValid(const XL6_PersistencePlanV1* plan)
             (schema->fieldCount && !schema->fields)) return false;
         for (size_t j=0;j<i;++j) if (plan->schemas[j].identity==schema->identity) return false;
         if (schema->flags && (schema->fieldCount || schema->open)) return false;
-        if (schema->open && (!plan->projectExtras || !schema->open->ops ||
+        if (schema->open && (!plan->projectExtras ||
             !viewValid(schema->open->storage) || !viewValid(schema->open->handle))) return false;
         for (size_t j=0;j<schema->fieldCount;++j) {
             const XL6_PersistenceFieldV1* field=&schema->fields[j];

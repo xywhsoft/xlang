@@ -57,11 +57,16 @@ static int xl6IrCgenEmitPersistenceProjectPlans(
             }
             if (schema->dynamicDestroySymbol != 0) {
                 open = 1;
+                const XL6_IrCallTarget* destroy = xl6IrCallTargetGet(module, schema->dynamicDestroySymbol);
+                if (!destroy || destroy->nativeHandlePolicyAbi != XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1 ||
+                    !destroy->nativeHandlePolicyCName)
+                    return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
+                        "XLIR Open projection requires an explicit resident handle policy");
                 xl6OutputPrintf(out, "static const XL6_PersistenceOpenV1 xlir_persist_open_%lu = {", (unsigned long)index);
                 xl6IrCgenEmitPersistenceByteView(out, module->classFields[schema->dynamicField].name, 0);
                 xl6OutputPuts(", ", out);
                 xl6IrCgenEmitPersistenceByteView(out, module->classFields[schema->dynamicHandleField].name, 0);
-                xl6OutputPrintf(out, ", &xlir_native_handle_ops_s%u};\n", (unsigned int)schema->dynamicDestroySymbol);
+                xl6OutputPuts("};\n", out);
             }
         }
         if (plan->schemaCount != 0) {

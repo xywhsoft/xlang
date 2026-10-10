@@ -5789,7 +5789,7 @@ typedef struct XL6_IrPersistenceProjectSchema {
     size_t fieldCount;
     size_t dynamicField;
     size_t dynamicHandleField;
-    XL6_SymbolId dynamicDestroySymbol; /* Exact generated native Ops identity. */
+    XL6_SymbolId dynamicDestroySymbol; /* Exact resident native handle policy. */
 } XL6_IrPersistenceProjectSchema;
 
 typedef struct XL6_IrPersistenceProjectPlan {
@@ -6410,6 +6410,7 @@ XL6_IrRuntimeBridgeKind xl6IrRuntimeDirectBridgeKind(const char* name);
 const char* xl6IrRuntimeNativeHandlePolicyForName(const char* name);
 int xl6IrRuntimeDirectBridgeFactory(const char* name);
 XL6_IrErrorAbi xl6IrRuntimeDirectBridgeErrorAbi(const char* name);
+XL6_IrCallErrorPhysicalAbi xl6IrRuntimeDirectBridgeErrorPhysicalAbi(const char* name);
 const char* xl6IrRuntimeDirectBridgeParameterOwner(const char* name, size_t parameter);
 /* Borrow the exact checked compiler closure instead of erasing it to the
  * general XL6_Function foreign ABI. Signature still needs full verification. */
@@ -6817,9 +6818,6 @@ typedef struct XL6_IrDeclarationBinding {
     XL6_IrTypeId type;
 } XL6_IrDeclarationBinding;
 
-XL6_IrErrorAbi xl6IrDynamicFieldsRuntimeBridgeErrorAbi(const char* name);
-int xl6IrDynamicFieldsRuntimeBridgeTargetMatches(
-    const XL6_IrModule* module, const XL6_IrCallTarget* target);
 int xl6IrNodeIsPropertyUpdate(const XL6_IrNode* node);
 int xl6IrGetPropertyAccessorSignature(const XL6_IrModule* module,
     const XL6_IrCallSite* site, XL6_IrPropertyAccessorSignature* signature);

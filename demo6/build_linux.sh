@@ -154,6 +154,8 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_text_binary.c"
 	"$ROOT/src/runtime/xl6_buffer_value.c"
 	"$ROOT/src/runtime/xl6_buffer_iterator.c"
+  "$ROOT/src/runtime/xl6_dynamic_fields.c"
+  "$ROOT/src/runtime/xl6_dynamic_fields_copy.c"
 	"$ROOT/src/runtime/xl6_buffer_hex.c"
 	"$ROOT/src/runtime/xl6_buffer_base64.c"
 	"$ROOT/src/runtime/xl6_buffer_core.c"

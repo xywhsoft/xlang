@@ -6667,7 +6667,9 @@ static int xl6IrPersistenceProjectWalkArena(XL6_IrPersistenceProjectWalk* walk)
                     handle = &source->classFields[item->persistenceDynamicHandleField];
                     destroy = xl6IrCallTargetGet(source, handle->nativeDestroySymbol);
                     if (destroy == NULL || destroy->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
-                        destroy->nativeHandlePolicyAbi == XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1) return 0;
+                        destroy->nativeHandlePolicyAbi != XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1 ||
+                        destroy->nativeHandlePolicyCName == NULL ||
+                        strcmp(destroy->nativeHandlePolicyCName, "xl6DynamicFieldsHandlePolicyV1Get") != 0) return 0;
                     schema.dynamicField = item->persistenceDynamicField;
                     schema.dynamicHandleField = item->persistenceDynamicHandleField;
                     schema.dynamicDestroySymbol = handle->nativeDestroySymbol;
@@ -29753,73 +29755,6 @@ int xl6IrRuntimeSerializationBridgeTargetMatches(
 #include "src/ir/xl6_ir_net_datagram_bridge.c"
 #include "src/ir/xl6_ir_xlang_bridge.c"
 
-/* Only allocation/mutation can exhaust memory. Observe their native thread
- * error before publishing a language handle; null is not a usable factory
- * product. The borrowed lookup and retirement adapters remain no-raise. */
-XL6_IrErrorAbi xl6IrDynamicFieldsRuntimeBridgeErrorAbi(const char* name)
-{
-    if (name == NULL) return XL6_IR_ERROR_ABI_INVALID;
-    if (strcmp(name, "xl6_xrt_dynamic_fields_create") == 0 ||
-        strcmp(name, "xl6_xrt_dynamic_fields_set") == 0)
-        return XL6_IR_ERROR_ABI_MAY_RAISE;
-    if (strcmp(name, "xl6_xrt_dynamic_fields_destroy") == 0 ||
-        strcmp(name, "xl6_xrt_dynamic_fields_get") == 0)
-        return XL6_IR_ERROR_ABI_NO_RAISE;
-    return XL6_IR_ERROR_ABI_INVALID;
-}
-
-int xl6IrDynamicFieldsRuntimeBridgeTargetMatches(
-    const XL6_IrModule* module, const XL6_IrCallTarget* target)
-{
-    const XL6_IrType* result;
-    const XL6_IrType* receiver;
-    int create, destroy, get, set;
-    if ( module == NULL || target == NULL || target->cName == NULL ||
-         target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_DYNAMIC_FIELDS ||
-         target->runtimeBridgeOperation != XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE ||
-         target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-         target->errorAbi == XL6_IR_ERROR_ABI_INVALID ||
-         target->errorAbi != xl6IrDynamicFieldsRuntimeBridgeErrorAbi(target->cName) ) return 0;
-    create = strcmp(target->cName, "xl6_xrt_dynamic_fields_create") == 0;
-    destroy = strcmp(target->cName, "xl6_xrt_dynamic_fields_destroy") == 0;
-    get = strcmp(target->cName, "xl6_xrt_dynamic_fields_get") == 0;
-    set = strcmp(target->cName, "xl6_xrt_dynamic_fields_set") == 0;
-    result = xl6IrTypeGet(&module->types, target->returnType);
-    if ( create )
-        return target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY &&
-            target->parameterCount == 0 && result != NULL &&
-            result->kind == XL6_IR_TYPE_CLASS &&
-            result->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-            result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-            result->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
-            target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE &&
-            target->resultPhysicalFieldDeclaration != XL6_IR_NODE_INVALID &&
-            target->resultPhysicalDestroySymbol != 0;
-    if ( !(destroy || get || set) || target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
-         target->parameterCount != (destroy ? 1u : get ? 2u : 3u) ||
-         target->parameterTypes == NULL || target->parameterAbis == NULL ||
-         target->parameterPhysicalAbis == NULL ||
-         target->parameterPhysicalFieldDeclarations == NULL ||
-         target->parameterPhysicalFieldDeclarations[0] == XL6_IR_NODE_INVALID ||
-         target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
-         !xl6IrBufferRuntimeBridgeParameterMatches(module, target, 0,
-             XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_PARAMETER_ABI_BORROW,
-             XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW) ) return 0;
-    receiver = xl6IrTypeGet(&module->types, target->parameterTypes[0]);
-    if ( receiver == NULL || receiver->kind != XL6_IR_TYPE_CLASS ) return 0;
-    if ( destroy ) return target->returnType == XL6_IR_TYPE_INVALID;
-    if ( !xl6IrBufferRuntimeBridgeParameterMatches(module, target, 1,
-             XL6_IR_C_ABI_MANAGED_STRING, XL6_IR_PARAMETER_ABI_BORROW,
-             XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ) return 0;
-    if ( get ) return result != NULL && result->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-        result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-        result->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL;
-    return xl6IrBufferRuntimeBridgeResultMatches(result, XL6_IR_C_ABI_BOOL) &&
-        xl6IrBufferRuntimeBridgeParameterMatches(module, target, 2,
-            XL6_IR_C_ABI_RUNTIME_XVALUE_PTR, XL6_IR_PARAMETER_ABI_BORROW,
-            XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT);
-}
-
 static int xl6IrRuntimeBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target)
 {
@@ -29841,13 +29776,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
                    target->nativeHandlePolicyCName != NULL) return 0;
     }
     if ( !xl6IrRuntimeBridgeOperationTargetMatches(module, target) ) return 0;
-    /* The private factory adapter and receiver adapters share one contract;
-     * the native XRT symbol has a distinct opaque-pointer C result type. */
-    if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_DYNAMIC_FIELDS )
-        return xl6IrDynamicFieldsRuntimeBridgeTargetMatches(module, target);
-    if ( target->cName != NULL &&
-         strcmp(target->cName, "xl6_xrt_dynamic_fields_create") == 0 &&
-         target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY ) return 0;
     reserved = target->kind == XL6_IR_CALL_TARGET_EXTERN_C && target->cName != NULL &&
         (strcmp(target->cName, "xl6_xrt_print") == 0 ||
          strcmp(target->cName, "xl6_xrt_string_contains") == 0 ||
@@ -35943,6 +35871,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 ((target->kind == XL6_IR_CALL_TARGET_EXTERN_C ||
                   target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
                  ((target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ||
+                   xl6IrRuntimeDirectBridgeErrorPhysicalAbi(target->cName) == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ||
                    xl6IrRuntimeLogBridgeForeignScope(target->cName) ||
                    xl6IrRuntimeNetDatagramBridgeKindIs(target->runtimeBridge))
                     ? target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE
