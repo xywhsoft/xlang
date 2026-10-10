@@ -45,9 +45,9 @@ static int xl6IrCgenEmitTreeReferenceCreateDepth(XL6_Output* out,const XL6_IrMod
     if (xl6IrCgenEmitTreeLayout(out,module,plan->baseElementType,layout)<0) return -1;
     xl6OutputPrintf(out,"      xl6_error_scope %s = {0};\n"
         "      if (!xl6ErrorScopeBegin(&%s)) abort();\n",scope,scope);
-    if (xl6IrCgenEmitSequenceCreateDepth(out,module,keyId,keys,keySet,depth+1,NULL,0,false)<0) return -1;
+    if (xl6IrCgenEmitSequenceCreateDepth(out,module,keyId,keys,keySet,depth+1,NULL,0,false,true)<0) return -1;
     xl6OutputPrintf(out,"      if (!%s) xl6ErrorScopeCaptureFailure(&%s);\n",keys,scope);
-    if (xl6IrCgenEmitSequenceCreateDepth(out,module,valueId,values,valueSet,depth+1,NULL,0,false)<0) return -1;
+    if (xl6IrCgenEmitSequenceCreateDepth(out,module,valueId,values,valueSet,depth+1,NULL,0,false,true)<0) return -1;
     xl6OutputPrintf(out,
         "      if (!%s) xl6ErrorScopeCaptureFailure(&%s);\n"
         "      %s = xl6SequenceTreeCreateTakeV1(%u, 0x%016llXULL, 0x%016llXULL, &%s, %s, %s, %s);\n"
@@ -114,9 +114,9 @@ static int xl6IrCgenEmitAvlRuntime(XL6_Output* out,const XL6_IrModule* module,
         xl6OutputPuts("      xvalue* tree_keys = NULL; xvalue* tree_values = NULL;\n"
             "      xl6_error_scope tree_scope = {0};\n"
             "      if (!xl6ErrorScopeBegin(&tree_scope)) abort();\n",out);
-        if (xl6IrCgenEmitSequenceCreateDepth(out,module,keyId,"tree_keys",keySet,1,NULL,0,false)<0) return -1;
+        if (xl6IrCgenEmitSequenceCreateDepth(out,module,keyId,"tree_keys",keySet,1,NULL,0,false,true)<0) return -1;
         xl6OutputPuts("      if (!tree_keys) xl6ErrorScopeCaptureFailure(&tree_scope);\n",out);
-        if (xl6IrCgenEmitSequenceCreateDepth(out,module,valueId,"tree_values",valueSet,1,NULL,0,false)<0) return -1;
+        if (xl6IrCgenEmitSequenceCreateDepth(out,module,valueId,"tree_values",valueSet,1,NULL,0,false,true)<0) return -1;
         xl6OutputPrintf(out,"      if (!tree_values) xl6ErrorScopeCaptureFailure(&tree_scope);\n"
             "      v%u = %s(&tree_layout, tree_keys, tree_values);\n"
             "      if (!v%u) xl6ErrorScopeCaptureFailure(&tree_scope);\n"
@@ -167,7 +167,7 @@ static int xl6IrCgenEmitAvlRuntime(XL6_Output* out,const XL6_IrModule* module,
         const XL6_IrSequenceLayout* plan=keys ? k : v;
         if (instruction->type!=arrayId || instruction->sequenceAdmissionIdentitySet!=(keys ? keySet : valueSet)) return -1;
         xl6OutputPuts("      xvalue* tree_array = NULL;\n",out);
-        if (xl6IrCgenEmitSequenceCreateDepth(out,module,arrayId,"tree_array",keys ? keySet : valueSet,0,NULL,0,false)<0) return -1;
+        if (xl6IrCgenEmitSequenceCreateDepth(out,module,arrayId,"tree_array",keys ? keySet : valueSet,0,NULL,0,false,true)<0) return -1;
         xl6OutputPrintf(out,"      v%u = %s(v%u, &tree_layout, %s, tree_array, %s);\n",
             output,method,args[0],keys ? "true" : "false",
             plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN ?

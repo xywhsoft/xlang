@@ -372,7 +372,7 @@ static int xl6IrCgenEmitPersistenceSequenceSeed(XL6_Output* out,
 {
     XL6_IrNominalIdentitySetId set = XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
     if (!xl6IrSequenceConstructionRecipe(module, type, XL6_IR_SEQUENCE_ROLE_ARRAY, &set) ||
-        xl6IrCgenEmitSequenceCreateDepth(out, module, type, result, set, 0, NULL, 0, true) < 0)
+        xl6IrCgenEmitSequenceCreateDepth(out, module, type, result, set, 0, NULL, 0, true, true) < 0)
         return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
             "XLIR persistence Array restore has no exact resident construction recipe");
     return 1;

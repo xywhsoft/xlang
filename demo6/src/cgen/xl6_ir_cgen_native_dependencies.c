@@ -289,6 +289,15 @@ static int xl6IrCgenVisitSequenceFactorySymbols(const XL6_IrModule* module,XL6_I
         factory="xl6SequenceNestedCreateTakeV2";
         if (!xl6IrCgenVisitSequenceFactorySymbols(module,type->sequenceLayout.baseElementType,visitor,context,depth+1,projectArrays)) return 0;
         break;
+    case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1: {
+        XL6_IrTypeId schema=XL6_IR_TYPE_INVALID;
+        factory="xl6SequenceListCreateTakeV1";
+        if (!xl6IrListConstructionRecipe(module,type->sequenceLayout.baseElementType,&schema,NULL) ||
+            !visitor(context,"xl6ListCreateTakeV1") || !visitor(context,"xl6ListProjectionTakeV1") ||
+            !visitor(context,"xl6ArrayProjectionTakeV1") ||
+            !xl6IrCgenVisitSequenceFactorySymbols(module,schema,visitor,context,depth+1,true)) return 0;
+        break;
+    }
     case XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1: {
         XL6_IrTypeId key=0,value=0;
         factory="xl6SequenceTreeCreateTakeV1";
@@ -442,6 +451,14 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_CREATE || instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE ||
              instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) &&
             !xl6IrCgenVisitSequenceFactorySymbols(module,instruction->type,visitor,context,0,false)) return 0;
+        if (xl6IrCgenInstructionIsReachable(module,i) && instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) {
+            XL6_IrTypeId chain[65]; size_t count=0; bool mixed=false;
+            if (!xl6IrArrayImportChainRecipe(module,instruction->type,chain,65,&count)) return 0;
+            for (size_t d=0;d<count;++d)
+                if (xl6IrTypeGet(&module->types,chain[d])->collectionAbi==XL6_IR_COLLECTION_LIST) mixed=true;
+            if (mixed && (!visitor(context,"xl6ListImportProviderV1") ||
+                !visitor(context,"xl6CollectionImportChainSourceTakeV1"))) return 0;
+        }
         if (xl6IrCgenInstructionIsReachable(module,i) && xl6IrCgenAvlRuntimeOpIs(instruction->runtimeOp)) {
             const XL6_IrInstruction* receiver=instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_CREATE ? NULL :
                 xl6IrCgenValueDefinition(module,module->operands[instruction->firstOperand],NULL);

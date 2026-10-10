@@ -25,6 +25,11 @@ typedef struct XL6_CollectionImportProviderV1 {
      * item pins outlive callbacks; no mutable slot or template pin escapes. */
     bool (*InputBegin)(const xvalue*,XL6_CollectionImportInputV1*);
     void (*InputEnd)(XL6_CollectionImportInputV1*);
+    /* Optional exact nested language-erasure probe, template context borrowed.
+     * Publish required only on checked success. Matching native children keep
+     * reference semantics (including BUSY); wrong typed/foreign owners do not
+     * gain conversion authority by inspecting their contents. Resident only. */
+    bool (*InputConversion)(ptr,const xvalue*,bool*);
 } XL6_CollectionImportProviderV1;
 
 enum { XL6_COLLECTION_IMPORT_RESTORE_V1=1u, XL6_COLLECTION_IMPORT_JSON_V1=2u,

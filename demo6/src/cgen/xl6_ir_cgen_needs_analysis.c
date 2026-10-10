@@ -21,6 +21,14 @@ static int xl6IrCgenAnalyzeSequenceRecipeNeeds(const XL6_IrModule* module,XL6_Ir
     }
     if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1)
         return xl6IrCgenAnalyzeSequenceRecipeNeeds(module,type->sequenceLayout.baseElementType,needs,depth+1);
+    if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1) {
+        XL6_IrTypeId schema=XL6_IR_TYPE_INVALID;
+        needs->needsListCreateRuntime=1;
+        needs->needsArrayCreateRuntime=1;
+        if (needs->needsArrayImportRuntime) needs->needsListImportRuntime=1;
+        return xl6IrListConstructionRecipe(module,type->sequenceLayout.baseElementType,&schema,NULL) &&
+            xl6IrCgenAnalyzeSequenceRecipeNeeds(module,schema,needs,depth+1);
+    }
     if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1) {
         XL6_IrTypeId key=0,value=0;
         needs->needsAvlTreeResourceRuntime=1;

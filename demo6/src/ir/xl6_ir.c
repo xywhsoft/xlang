@@ -117,6 +117,8 @@ static int xl6IrConcurrentQueueConstructionRecipeDepth(const XL6_IrModule*,XL6_I
     XL6_IrRuntimeResourceAbi*,XL6_IrTypeId*,XL6_IrNominalIdentitySetId*,size_t);
 static int xl6IrAvlConstructionRecipeDepth(const XL6_IrModule*,XL6_IrTypeId,
     XL6_IrTypeId*,XL6_IrTypeId*,XL6_IrNominalIdentitySetId*,XL6_IrNominalIdentitySetId*,size_t);
+static int xl6IrListConstructionRecipeDepth(const XL6_IrModule*,XL6_IrTypeId,
+    XL6_IrTypeId*,XL6_IrNominalIdentitySetId*,size_t);
 
 static int xl6IrDiag(XL6_DiagList* diags, const XL6_IrNode* node, const char* message)
 {
@@ -822,7 +824,8 @@ static int xl6IrSequenceLayoutComplete(XL6_IrSequenceLayoutAbi abi)
         abi==XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 ||
         abi==XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 ||
         abi==XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1 ||
-        abi==XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1;
+        abi==XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1 ||
+        abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1;
 }
 static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool* pool,
     const XL6_IrType* type,size_t depth)
@@ -934,6 +937,16 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         }
     } else if (result.slotAbi==XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
                result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
+               base->collectionAbi==XL6_IR_COLLECTION_LIST) {
+        /* The canonical Array is a value-domain witness, not the List owner.
+         * Derive its full policy without reading cached List/Sequence plans.
+         * A List edge spends one shared mixed-family recursion level. */
+        XL6_IrSequenceLayout child=xl6IrSequenceLayoutForTypeDepth(pool,
+            xl6IrTypeGet(pool,xl6IrListSchemaTypeForType(pool,base)),depth+1);
+        result.abi=xl6IrSequenceLayoutComplete(child.abi)
+            ? XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 : XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN;
+    } else if (result.slotAbi==XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
+               result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
                base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE &&
                base->kind==XL6_IR_TYPE_GENERIC_INSTANCE && base->paramCount==2 && base->params) {
         const XL6_IrType* key=xl6IrTypeGet(pool,base->params[0]);
@@ -1001,7 +1014,8 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         result.abi == XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1 ||
-        result.abi == XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1) {
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1) {
         if (!result.codecAbi) result.codecAbi=XL6_IR_SEQUENCE_CODEC_DIRECT;
         result.defaultAbi=result.nullable ? XL6_IR_SEQUENCE_DEFAULT_ABSENT :
             result.admissionAbi == XL6_VALUE_ADMIT_ANY ? XL6_IR_SEQUENCE_DEFAULT_DYNAMIC_NULL :
@@ -1017,7 +1031,8 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
             result.abi == XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 ||
             result.abi == XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 ||
             result.abi == XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1 ||
-            result.abi == XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1 ? XL6_IR_SEQUENCE_DEFAULT_FORBIDDEN :
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1 ||
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 ? XL6_IR_SEQUENCE_DEFAULT_FORBIDDEN :
             XL6_IR_SEQUENCE_DEFAULT_ZERO;
     }
     return result;
@@ -1085,6 +1100,7 @@ const char* xl6IrSequenceLayoutAbiName(XL6_IrSequenceLayoutAbi abi)
     case XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1: return "cond-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1: return "rwlock-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1: return "thread-reference-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1: return "list-reference-v1";
     default: return "invalid";
     }
 }
@@ -8186,29 +8202,34 @@ static int xl6IrSequenceConstructionRecipeDepth(const XL6_IrModule* module,
         return xl6IrAvlConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,NULL,NULL,depth+1);
     case XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1:
         return xl6IrConcurrentQueueConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,NULL,depth+1);
+    case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1:
+        return xl6IrListConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,depth+1);
     default: return 0;
     }
 }
 int xl6IrSequenceConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
     XL6_IrSequenceRoleAbi role,XL6_IrNominalIdentitySetId* setOut)
 { return xl6IrSequenceConstructionRecipeDepth(module,typeId,role,setOut,0); }
-int xl6IrListConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId id,
-    XL6_IrTypeId* schemaOut,XL6_IrNominalIdentitySetId* setOut)
+static int xl6IrListConstructionRecipeDepth(const XL6_IrModule* module,XL6_IrTypeId id,
+    XL6_IrTypeId* schemaOut,XL6_IrNominalIdentitySetId* setOut,size_t depth)
 {
     const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,id) : NULL;
     XL6_IrNominalIdentitySetId set=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
-    if (!type || type->collectionAbi!=XL6_IR_COLLECTION_LIST ||
+    if (!type || depth>64 || type->collectionAbi!=XL6_IR_COLLECTION_LIST ||
         type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
         type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
         type->nullAbi!=XL6_IR_NULL_ABI_XVALUE_SENTINEL || !type->typeValueId ||
         !type->listValueSchemaType || type->listValueSchemaType!=xl6IrListSchemaTypeForType(&module->types,type) ||
-        !xl6IrSequenceConstructionRecipeDepth(module,type->listValueSchemaType,XL6_IR_SEQUENCE_ROLE_ARRAY,&set,1)) return 0;
+        !xl6IrSequenceConstructionRecipeDepth(module,type->listValueSchemaType,XL6_IR_SEQUENCE_ROLE_ARRAY,&set,depth)) return 0;
     const XL6_IrType* schema=xl6IrTypeGet(&module->types,type->listValueSchemaType);
     if (!schema || schema->typeValueId==type->typeValueId) return 0;
     if (schemaOut) *schemaOut=type->listValueSchemaType;
     if (setOut) *setOut=set;
     return 1;
 }
+int xl6IrListConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId id,
+    XL6_IrTypeId* schemaOut,XL6_IrNominalIdentitySetId* setOut)
+{ return xl6IrListConstructionRecipeDepth(module,id,schemaOut,setOut,0); }
 
 static int xl6IrConcurrentQueueConstructionRecipeDepth(const XL6_IrModule* module, XL6_IrTypeId typeId,
     XL6_IrRuntimeResourceAbi* familyOut, XL6_IrTypeId* schemaOut,
@@ -8235,19 +8256,24 @@ int xl6IrConcurrentQueueConstructionRecipe(const XL6_IrModule* module,XL6_IrType
     XL6_IrRuntimeResourceAbi* familyOut,XL6_IrTypeId* schemaOut,XL6_IrNominalIdentitySetId* setOut)
 { return xl6IrConcurrentQueueConstructionRecipeDepth(module,typeId,familyOut,schemaOut,setOut,0); }
 
-int xl6IrArrayImportChainRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
+static int xl6IrCollectionImportChainRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
     XL6_IrTypeId* output,size_t capacity,size_t* count)
 {
     XL6_IrTypeId prepared[65]; size_t used=0;
-    if (!count || (!output && capacity) ||
-        !xl6IrSequenceConstructionRecipe(module,typeId,XL6_IR_SEQUENCE_ROLE_ARRAY,NULL)) return 0;
+    if (!count || (!output && capacity)) return 0;
     for (;;) {
         const XL6_IrType* type=xl6IrTypeGet(&module->types,typeId);
         if (!type || used>=65) return 0;
         prepared[used++]=typeId;
+        if (type->collectionAbi==XL6_IR_COLLECTION_LIST) {
+            XL6_IrTypeId schema=XL6_IR_TYPE_INVALID;
+            if (!xl6IrListConstructionRecipe(module,typeId,&schema,NULL)) return 0;
+            type=xl6IrTypeGet(&module->types,schema);
+        } else if (!xl6IrSequenceConstructionRecipe(module,typeId,XL6_IR_SEQUENCE_ROLE_ARRAY,NULL)) return 0;
         const XL6_IrSequenceLayout* plan=&type->sequenceLayout;
-        if (plan->abi!=XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 ||
-            plan->childRole!=XL6_IR_SEQUENCE_ROLE_ARRAY) break;
+        if (plan->abi!=XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 &&
+            (plan->abi!=XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 ||
+             plan->childRole!=XL6_IR_SEQUENCE_ROLE_ARRAY)) break;
         typeId=plan->baseElementType;
     }
     if (output) {
@@ -8256,21 +8282,19 @@ int xl6IrArrayImportChainRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
     }
     *count=used; return 1;
 }
+int xl6IrArrayImportChainRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
+    XL6_IrTypeId* output,size_t capacity,size_t* count)
+{
+    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,typeId) : NULL;
+    return type && type->collectionAbi==XL6_IR_COLLECTION_ARRAY &&
+        xl6IrCollectionImportChainRecipe(module,typeId,output,capacity,count);
+}
 int xl6IrListImportChainRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
     XL6_IrTypeId* output,size_t capacity,size_t* count)
 {
-    XL6_IrTypeId schema=XL6_IR_TYPE_INVALID,prepared[65]; size_t used=0;
-    if (!count || (!output && capacity) ||
-        !xl6IrListConstructionRecipe(module,typeId,&schema,NULL) ||
-        !xl6IrArrayImportChainRecipe(module,schema,prepared,65,&used)) return 0;
-    /* The canonical Array witness describes the List's values, not its
-     * physical owner. Descendant Array schemas remain actual Array seeds. */
-    prepared[0]=typeId;
-    if (output) {
-        if (capacity<used) return 0;
-        memcpy(output,prepared,used*sizeof(*prepared));
-    }
-    *count=used; return 1;
+    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,typeId) : NULL;
+    return type && type->collectionAbi==XL6_IR_COLLECTION_LIST &&
+        xl6IrCollectionImportChainRecipe(module,typeId,output,capacity,count);
 }
 
 static int xl6IrStackConstructionContractDepth(const XL6_IrModule* module,

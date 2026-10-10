@@ -198,6 +198,7 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_value_copy_graph.c"
   "$ROOT/src/runtime/xl6_persistence_project_list.c"
   "$ROOT/src/runtime/xl6_list_import_chain.c"
+  "$ROOT/src/runtime/xl6_list_schema.c"
   "$ROOT/src/runtime/xl6_value_index_read.c"
   "$ROOT/src/runtime/xl6_value_index_write.c"
   "$ROOT/src/runtime/xl6_value_wire_contains.c"

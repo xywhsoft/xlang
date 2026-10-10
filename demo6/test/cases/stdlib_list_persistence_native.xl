@@ -9,6 +9,9 @@ class ListPersistRoot
     list<string?> words
     list<ListPersistLeaf> items
     list<array<char>> nested
+    list<list<char>> listList
+    array<list<string>> arrayList
+    list<array<list<int8>>> mixed
 end
 func main(...) as int
     ListPersistRoot first = json.parse::<ListPersistRoot>("{\"narrow\":[-128,127],\"words\":[\"a\\u0000你\",null],\"items\":[{\"number\":31}],\"nested\":[[65,20320]]}")
@@ -16,6 +19,16 @@ func main(...) as int
     assert (first.words[0] ?? "") == "a\0你" and first.words[1] == null
     assert first.items[0].number == 31 and first.items[0].text == "default\0text"
     assert first.nested[0][1] == '你'
+    ListPersistRoot nested = json.parse::<ListPersistRoot>("{\"listList\":[[65,20320]],\"arrayList\":[[\"a\\u0000你\"]],\"mixed\":[[[-128,127]]]}")
+    assert nested.listList[0][1] == '你'
+    assert nested.arrayList[0][0] == "a\0你"
+    assert nested.mixed[0][0][0] == -128 and nested.mixed[0][0][1] == 127
+    ListPersistRoot nestedJson = json.parse::<ListPersistRoot>(json.stringify(nested))
+    ListPersistRoot nestedXlon = xlon.parse::<ListPersistRoot>(xlon.stringify(nested))
+    assert nestedJson.arrayList[0][0] == "a\0你" and nestedXlon.listList[0][1] == '你'
+    assert nestedXlon.mixed[0][0][1] == 127
+    assert json.parse::<ListPersistRoot>("{\"listList\":[[55296]]}") == null
+    assert json.parse::<ListPersistRoot>("{\"mixed\":[[[128]]]}") == null
     var erased = first.words
     assert erased[0] == "a\0你"
     first.narrow[-9223372036854775808] = int8(3)

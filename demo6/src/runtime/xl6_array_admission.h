@@ -14,6 +14,9 @@ XL6_TEXT_API xvalue* xl6SequenceReferenceCreateV1(unsigned int, uint64_t, uint64
  * allocation or storage reads. The caller must independently verify role,
  * owner identity and the published resident reference projection. */
 XL6_TEXT_API bool xl6SequenceReferenceAnyPolicyV1(XL6_Sequence*, uint64_t);
+/* Immutable resident-policy probe shared by distinct Array/List owners.
+ * No allocation, slot access, borrowed policy retention or error changes. */
+XL6_TEXT_API bool xl6ReferenceAnyAdmissionV1(const XL6_SequenceAdmissionV3*,uint64_t);
 XL6_TEXT_API xvalue* xl6SequenceNominalCreateV1(unsigned int, uint64_t, uint64_t, const XL6_NominalAdmissionV1*, bool, uint64_t);
 /* Exact logical scalar/text policy on the selected physical slot descriptor.
  * Integer widths use int64 storage (including u8/u16/u32), not coercion rules.

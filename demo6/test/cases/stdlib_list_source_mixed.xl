@@ -1,0 +1,64 @@
+var child = [4, 5]
+// Every mixed chain consists of actual native owners, never List's Array
+// witness. Explicit ANY-erased child imports share one source/depth memo.
+list<list<int>> emptyListList
+array<list<int>> emptyArrayList
+list<array<list<int>>> emptyListArrayList
+array<list<array<int>>> emptyArrayListArray
+assert emptyListList.length == 0 and emptyArrayList.length == 0
+assert emptyListArrayList.length == 0 and emptyArrayListArray.length == 0
+var rawChildList = [-9223372036854775808: 4, 9223372036854775807: 5]
+var rawListList = [-7: rawChildList, 9: rawChildList]
+list<list<int>> listList = rawListList
+listList[-7][-9223372036854775808] = 40
+assert listList[9][-9223372036854775808] == 40
+assert rawChildList[-9223372036854775808] == 4
+var rawArrayList = [rawChildList, rawChildList]
+array<list<int>> arrayList = rawArrayList
+arrayList[0][9223372036854775807] = 50
+assert arrayList[1][9223372036854775807] == 50
+assert rawChildList[9223372036854775807] == 5
+var rawListArrayList = [-7: rawArrayList, 9: rawArrayList]
+list<array<list<int>>> listArrayList = rawListArrayList
+listArrayList[-7][0][-9223372036854775808] = 70
+assert listArrayList[9][1][-9223372036854775808] == 70
+assert rawChildList[-9223372036854775808] == 4
+var rawListArray = [-7: child, 9: child]
+var rawArrayListArray = [rawListArray, rawListArray]
+array<list<array<int>>> arrayListArray = rawArrayListArray
+arrayListArray[0][-7][0] = 80
+assert arrayListArray[1][9][0] == 80 and child[0] == 4
+// Already matching typed children preserve references instead of copying.
+list<int> typedChild = [-7: 1]
+var typedChildSource = [-7: typedChild, 9: typedChild]
+list<list<int>> typedChildren = typedChildSource
+typedChildren[-7][-7] = 91
+assert typedChildren[9][-7] == 91 and typedChild[-7] == 91
+var mixedStrings = [-7: [-9: "a\0你"]]
+list<list<string>> listStrings = mixedStrings
+assert listStrings[-7][-9] == "a\0你" and string.byteLen(listStrings[-7][-9]) == 5
+var mixedChars = [[-9: '你', 7: '\0']]
+array<list<char>> arrayChars = mixedChars
+assert arrayChars[0][-9] == '你' and arrayChars[0][7] == '\0'
+var mixedNullable = [-7: null, 9: [-9: 8]]
+list<list<int>?> nullableChildren = mixedNullable
+assert nullableChildren[-7] == null
+auto presentChild = nullableChildren[9]
+if presentChild != null then
+    assert presentChild[-9] == 8
+end
+var mixedBinary = [-7: [-9: b"a\0b"]]
+list<list<bytes>> listBinary = mixedBinary
+assert listBinary[-7][-9] == b"a\0b"
+var mixedBad = [-7: [-9: "bad"]]
+bool mixedCaught = false
+try
+    listList = mixedBad
+catch e
+    if e.kind != "TypeError" then
+        throw
+    end
+    mixedCaught = true
+end
+assert mixedCaught and listList[-7][-9223372036854775808] == 40
+assert mixedBad[-7][-9] == "bad"

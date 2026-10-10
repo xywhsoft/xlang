@@ -605,7 +605,9 @@ typedef enum XL6_IrSequenceLayoutAbi {
     XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1,
     XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1,
     XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1,
-    XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1
+    XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1,
+    /* Distinct resident sparse owner, never a Sequence role or ANY domain. */
+    XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1
 } XL6_IrSequenceLayoutAbi;
 
 /* A recipe's physical slot need not equal its element's invocation ABI.
