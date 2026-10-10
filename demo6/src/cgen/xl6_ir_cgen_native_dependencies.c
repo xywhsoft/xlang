@@ -440,6 +440,17 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         }
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE &&
             instruction->collectionAbi==XL6_IR_COLLECTION_ARRAY && !visitor(context,"xl6ArrayMethodRemoveV1")) return 0;
+        if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE &&
+            instruction->collectionAbi==XL6_IR_COLLECTION_LIST && !visitor(context,"xl6ListValueRemoveV1")) return 0;
+        if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_CONTAINS &&
+            xl6IrCgenCollectionReceiverIsList(module,instruction) && !visitor(context,"xl6ListValueContainsV1")) return 0;
+        if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
+            instruction->collectionAbi==XL6_IR_COLLECTION_LIST) {
+            const char* listMethod=instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_CLEAR ? "xl6ListValueClearV1" :
+                instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_TRIM ||
+                instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_TRIM_TO ? "xl6ListValueTrimV1" : NULL;
+            if (listMethod && !visitor(context,listMethod)) return 0;
+        }
         if ((instruction->runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
              instruction->runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT) &&
             (!xl6IrPersistenceProjectInstructionAbi(module,instruction) ||
@@ -466,7 +477,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
                 (instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_POP || instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_TAKE)) {
                 const char* extract=instruction->collectionAbi==XL6_IR_COLLECTION_ARRAY ?
-                    xl6IrCgenArrayExtractSymbol(xl6IrTypeGet(&module->types,instruction->type)) : "xl6CollectionExtractValueV1";
+                    xl6IrCgenArrayExtractSymbol(xl6IrTypeGet(&module->types,instruction->type)) :
+                    instruction->collectionAbi==XL6_IR_COLLECTION_LIST ? "xl6ListValueTakeV1" : "xl6CollectionExtractValueV1";
                 if (!extract || !visitor(context,extract)) return 0;
             }
             if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
@@ -499,9 +511,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
             !xl6IrCollectionCountRuntimeOpIs(instruction->runtimeOp)) continue;
         if (!xl6IrCollectionCountRuntimeInstructionCompatible(module,instruction)) return 0;
-        const char* symbol=instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COUNT ? "xl6CollectionCountV1" :
-            instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE ?
-                "xl6CollectionCountIfPresentV1" : "xl6CollectionCountOrNullV1";
+        const char* symbol=xl6IrCgenCollectionCountSymbol(module,instruction);
         if (!visitor(context,symbol)) return 0;
     }
     if ((needs.randomBridgeOperations & XL6_CGEN_RNG_SHUFFLE_ARRAY) &&

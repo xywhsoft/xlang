@@ -1,0 +1,12 @@
+array<int> values = [1, 2]
+assert(values.length == 2)
+assert(values.contains(1))
+int caught = 0
+try
+    values.remove(-1)
+catch RangeError failure
+    caught += 1
+end
+assert(caught == 1 and values.length == 2)
+assert(values.clear())
+assert(values.length == 0)

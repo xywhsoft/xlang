@@ -10,6 +10,8 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             needs->needsCallableArrayFrameProducer=1;
     for ( i = 0; i < module->instructionCount; ++i ) {
         if ( !xl6IrCgenInstructionIsReachable(module, i) ) continue;
+        if (xl6IrCgenInstructionUsesListMethods(module,&module->instructions[i]))
+            needs->needsListMethodsRuntime=1;
         if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
             module->instructions[i].runtimeOp==XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR) {
             needs->needsCallableNativeScalarCodec=1;
@@ -264,7 +266,8 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
         }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_CONTAINS ) {
-            needs->needsXValueContainsRuntime = 1;
+            if (!xl6IrCgenCollectionReceiverIsList(module,&module->instructions[i]))
+                needs->needsXValueContainsRuntime = 1;
             needs->needsStringViews = 1;
         }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&

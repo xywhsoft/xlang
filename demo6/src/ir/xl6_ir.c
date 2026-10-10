@@ -618,6 +618,7 @@ XL6_IrErrorAbi xl6IrTypedCollectionErrorAbi(XL6_IrTypedCollectionOp operation)
     case XL6_IR_TYPED_COLLECTION_RESERVE:
     case XL6_IR_TYPED_COLLECTION_RESIZE:
     case XL6_IR_TYPED_COLLECTION_TRIM:
+    case XL6_IR_TYPED_COLLECTION_TRIM_TO:
     case XL6_IR_TYPED_COLLECTION_SWAP:
     case XL6_IR_TYPED_COLLECTION_INSERT:
     case XL6_IR_TYPED_COLLECTION_INDEX_OF:
@@ -14096,6 +14097,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         }
         break;
     case XL6_IR_INTRINSIC_COLLECTION_CONTAINS:
+        intrinsic.errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
         if ( operandCount == 1 && result != NULL && result->cAbi == XL6_IR_C_ABI_BOOL &&
              intrinsic.receiver != XL6_IR_NODE_INVALID &&
              intrinsic.receiverType != XL6_IR_TYPE_INVALID &&
@@ -14146,6 +14148,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         }
         break;
     case XL6_IR_INTRINSIC_COLLECTION_REMOVE:
+        intrinsic.errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
         if ( operandCount == 1 && result != NULL && result->cAbi == XL6_IR_C_ABI_BOOL &&
              intrinsic.receiver != XL6_IR_NODE_INVALID &&
              intrinsic.receiverType != XL6_IR_TYPE_INVALID &&
@@ -20292,7 +20295,10 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     if(stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     stringAbi=xl6IrRuntimeArrayScalarReadErrorPhysicalAbi(instruction->runtimeOp);
     if(stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
-    if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_REMOVE_VALUE)
+    if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_REMOVE_VALUE ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_CONTAINS ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_SET_HAS ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE)
         return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
     if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
         xl6IrTypedCollectionErrorAbi(instruction->typedCollectionOp) == XL6_IR_ERROR_ABI_MAY_RAISE)
@@ -33874,6 +33880,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                               intrinsic->kind == XL6_IR_INTRINSIC_ARRAY_REMOVE_VALUE ||
                               intrinsic->kind == XL6_IR_INTRINSIC_DYNAMIC_COLLECTION_MEMBER ||
                               intrinsic->kind == XL6_IR_INTRINSIC_SET_ADD
+                              || intrinsic->kind == XL6_IR_INTRINSIC_COLLECTION_CONTAINS
+                              || intrinsic->kind == XL6_IR_INTRINSIC_COLLECTION_REMOVE
                                  ? XL6_IR_ERROR_ABI_MAY_RAISE
                                  : intrinsic->kind == XL6_IR_INTRINSIC_TYPED_COLLECTION_MEMBER
                                      ? xl6IrTypedCollectionErrorAbi(intrinsic->typedCollectionOp)
@@ -34343,7 +34351,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      intrinsic->collectionAbi > XL6_IR_COLLECTION_DICT ||
                      result->cAbi != XL6_IR_C_ABI_BOOL ||
                      intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_VALUE ||
-                     intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
+                     intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
                      intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID )
                     return xl6IrDiag(diags, call,
                         "XLIR collection contains intrinsic has no exact borrowed receiver, item or boolean result ABI");
@@ -34370,7 +34378,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      intrinsic->collectionAbi > XL6_IR_COLLECTION_DICT ||
                      result->cAbi != XL6_IR_C_ABI_BOOL ||
                      intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_VALUE ||
-                     intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
+                     intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
                      intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID )
                     return xl6IrDiag(diags, call,
                         "XLIR collection remove intrinsic has no exact borrowed receiver, operand or boolean result ABI");

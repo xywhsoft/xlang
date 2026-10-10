@@ -1,0 +1,42 @@
+int sparseCleanup = 0
+async func sparseReady() as int
+    return 1
+end
+async func sparseLater(list<string> values, bool fail) as int
+    try
+        int ignored = await sparseReady()
+        assert(values.contains("a\0你"))
+        if fail then
+            values.trimTo(-1)
+        end
+        return values.length
+    finally
+        sparseCleanup += 1
+    end
+end
+func sparseItems(list<string> values) as generator<int>
+    try
+        yield values.length
+        assert(values.remove(7))
+        yield values.length
+        assert(values.take(9) == "z")
+        assert(values.clear())
+        assert(values.trim() >= 0)
+    finally
+        sparseCleanup += 1
+    end
+end
+list<string> values = [7: "a\0你", 9: "z"]
+assert(await sparseLater(values, false) == 2)
+int caught = 0
+try
+    int unused = await sparseLater(values, true)
+catch RangeError failure
+    caught += 1
+end
+assert(caught == 1 and sparseCleanup == 2)
+int total = 0
+for item in sparseItems(values)
+    total += item
+end
+assert(total == 3 and values.length == 0 and sparseCleanup == 3)

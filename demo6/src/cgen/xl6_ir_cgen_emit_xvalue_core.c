@@ -562,6 +562,8 @@ static int xl6IrCgenEmitXValueCoreRuntime(
         if ( needs->needsXValueCountRuntime )
             xl6OutputPuts("extern size_t xrtValueCount(const xvalue*);\n"
                 "#include <__xl_runtime/xl6_collection_count.h>\n", out);
+        if (needs->needsListMethodsRuntime)
+            xl6OutputPuts("#include <__xl_runtime/xl6_list_methods.h>\n",out);
         if ( needs->needsXValueSafeCountRuntime )
             xl6OutputPuts("#ifndef XLIR_XRT_DECLARATIONS\nextern int xrtValueType(const xvalue*);\n#endif\n"
                           "extern xvalue* xrtValueNull(void);\n"

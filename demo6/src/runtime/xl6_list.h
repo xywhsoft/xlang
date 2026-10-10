@@ -75,6 +75,17 @@ XL6_TEXT_API bool xl6ListErasedAppendV1(const xvalue*,const xvalue*,int64_t*);
 XL6_TEXT_API bool xl6ListErasedCountV1(const xvalue*,int64_t*);
 XL6_TEXT_API bool xl6ListErasedKeyV1(const xvalue*,int64_t,bool,bool*);
 XL6_TEXT_API bool xl6ListErasedClearV1(const xvalue*);
+/* Resident family dispatch only: 0 unrelated, -1 getter failure, 1 exact
+ * private handle ops (including invalid/retired/cursor owners). Never reads a
+ * foreign payload or admits a collection; the selected operation must still
+ * authenticate layout, projection and the actual owner pin. */
+XL6_TEXT_API int xl6ListErasedProbeV1(const xvalue*);
+/* Value equality matches erased Array search: unlike writes, a query need not
+ * belong to the element domain. Every stored slot is admitted/projected while
+ * pinned, then compared as a Value. No whole-list boxing or wire conversion.
+ * Checked failure (also without a diagnostic) leaves the output unchanged. */
+XL6_TEXT_API bool xl6ListErasedContainsV1(const xvalue*,const xvalue*,bool*);
+XL6_TEXT_API bool xl6ListErasedTrimV1(const xvalue*,int64_t,int64_t*);
 /* 0 unrelated (no output writes), -1 checked failure, 1 publishes a full typed
  * snapshot plus its immutable layout. The explicit private cursor identity must
  * differ from both List and witness identities. The owned target starts NULL.

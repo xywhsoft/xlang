@@ -27551,7 +27551,6 @@ static XL6_IrValueId xl6IrLowerXValueContains(
                 : XL6_IR_RUNTIME_XVALUE_CONTAINS,
         operands, 2);
     if ( result != XL6_IR_VALUE_INVALID &&
-         requestedOperation == XL6_IR_RUNTIME_XVALUE_ARRAY_REMOVE_VALUE &&
          !xl6IrLowerEmitRuntimeErrorEdge(ctx, origin, expression, result) )
         result = XL6_IR_VALUE_INVALID;
     if ( result != XL6_IR_VALUE_INVALID &&
@@ -27578,7 +27577,7 @@ static int xl6IrLowerIntrinsicCollectionContains(
          intrinsic->receiverType == XL6_IR_TYPE_INVALID ||
          intrinsic->resultType != call->storageType ||
          intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_VALUE ||
-         intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ) return 0;
+         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ) return 0;
     itemId = ctx->module->intrinsicOperands[intrinsic->firstOperand].expression;
     item = xl6IrNodeGet(ctx->module, itemId);
     receiver = xl6IrNodeGet(ctx->module, intrinsic->receiver);
@@ -27794,7 +27793,7 @@ static int xl6IrLowerIntrinsicCollectionRemove(
          intrinsic->collectionAbi > XL6_IR_COLLECTION_DICT ||
          intrinsic->resultType != call->storageType ||
          intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_VALUE ||
-         intrinsic->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ) return 0;
+         intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ) return 0;
     operandId = ctx->module->intrinsicOperands[intrinsic->firstOperand].expression;
     receiver = xl6IrNodeGet(ctx->module, intrinsic->receiver);
     operandNode = xl6IrNodeGet(ctx->module, operandId);
@@ -27855,6 +27854,7 @@ static int xl6IrLowerIntrinsicCollectionRemove(
     if ( *result == XL6_IR_VALUE_INVALID ) goto done;
     ctx->module->instructions[ctx->module->instructionCount - 1].collectionAbi =
         intrinsic->collectionAbi;
+    if (!xl6IrLowerEmitRuntimeErrorEdge(ctx, origin, call, *result)) goto done;
     if (!xl6IrLowerCompleteEvaluationBorrows(ctx, origin, evaluationOwnerFirst, result)) goto done;
     status = 1;
 done:

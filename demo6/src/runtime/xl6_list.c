@@ -806,6 +806,17 @@ static ListOwner* erased(const xvalue* value)
     if (!erasedBegin(value,&owner,NULL)) xrtSetErrorKind(XERR_TYPE);
     return owner;
 }
+int xl6ListErasedProbeV1(const xvalue* value)
+{
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    int status=0;
+    if (value && xrtValueType(value)==XVALUE_HANDLE) {
+        void* raw=NULL; void* user=NULL; const xvaluehandleops* actual=NULL;
+        status=!xrtValueGetHandle(value,&raw,&actual,&user) ? -1 : actual==&handleOps ? 1 : 0;
+    }
+    mutationEnd(&mutation);
+    return status;
+}
 /* These transient adapters protect XRT's payload-only codec boundary. A
  * callback may publish only a failed bit, even while returning true/a Value.
  * Return refusal to XRT BEFORE it commits a decoded slot or exposes a result.
@@ -979,6 +990,45 @@ bool xl6ListErasedClearV1(const xvalue* value)
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
     ListOwner* owner=erased(value);
     return finish(&scope,owner,owner && xrtTypedListClear(owner->storage));
+}
+bool xl6ListErasedTrimV1(const xvalue* value,int64_t retainEmpty,int64_t* output)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    ListOwner* owner=erased(value); size_t released=0;
+    bool success=owner && output && retainEmpty>=0 && (uint64_t)retainEmpty<=SIZE_MAX;
+    if (!output) xrtSetErrorKind(XERR_ARGUMENT);
+    else if (owner && !success) xrtSetErrorKind(XERR_RANGE);
+    if (success) released=xrtTypedListTrim(owner->storage,(size_t)retainEmpty);
+    if (released>INT64_MAX) { xrtSetErrorKind(XERR_RANGE); success=false; }
+    success=finish(&scope,owner,success);
+    if (success) *output=(int64_t)released;
+    return success;
+}
+bool xl6ListErasedContainsV1(const xvalue* value,const xvalue* item,bool* output)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    ListOwner* owner=erased(value); bool success=false,found=false,started=false;
+    xtypedlistiter iterator={0};
+    if (!item || !output) xrtSetErrorKind(XERR_ARGUMENT);
+    if (!owner || !item || !output || !xrtTypedListIterBegin(owner->storage,&iterator)) goto done;
+    started=true; success=true;
+    while (!found) {
+        const void* slot=xrtTypedListIterNext(&iterator,NULL);
+        if (xrtGetError() || scope.failed) { success=false; break; }
+        if (!slot) break;
+        xvalue* current=projectedSlot(owner,slot);
+        if (!current || xrtGetError() || scope.failed) xl6ErrorScopeCaptureFailure(&scope);
+        if (!scope.failed) found=xrtValueEqual(current,item);
+        if (xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
+        xrtValueRelease(current);
+        if (xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
+        if (scope.failed) { success=false; break; }
+    }
+done:
+    if (started) xrtTypedListIterEnd(&iterator);
+    success=finish(&scope,owner,success);
+    if (success) *output=found;
+    return success;
 }
 int xl6ListIteratorCreateErasedV1(const xvalue* value,uint64_t identity,
     xvalue** output,XL6_ListLayoutV1* outputLayout)
