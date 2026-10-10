@@ -293,7 +293,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_list_schema.c", D(R(LIST_NATIVE),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)), {NULL}},
     {"src/runtime/xl6_set_key_policy.c", D(R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_TYPED_SET","XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_set.c", D(R(SEQUENCE),R(SET_KEYS),R(ARRAY_REFERENCE_VALUE),R(ARRAY_FUTURE_ADMISSION),R(FOREIGN_ERROR)),
-        {"XRUNTIME_MODULE_TYPED_SET_VALUE"}}
+        {"XRUNTIME_MODULE_TYPED_SET_VALUE"}},
+    {"src/runtime/xl6_set_schema.c", D(R(SET_NATIVE),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)), {NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -523,6 +524,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                 case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1: REQUIRE(R(ARRAY_NUMERIC_ENUM_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1: REQUIRE(R(ARRAY_SEQUENCE_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1: REQUIRE(R(LIST_SCHEMA)); break;
+                case XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1: REQUIRE(R(SET_SCHEMA)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1: REQUIRE(R(TREE_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1:
                     /* The shared resident-symbol visitor selects the exact
@@ -539,9 +541,10 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                     xrtFree(work.seen); xrtFree(work.queue); return 0;
                 }
                 if (recipe->sequenceLayout.abi!=XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 &&
-                    recipe->sequenceLayout.abi!=XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1) break;
+                    recipe->sequenceLayout.abi!=XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 &&
+                    recipe->sequenceLayout.abi!=XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1) break;
                 recipe=xl6IrTypeGet(&module->types,recipe->sequenceLayout.baseElementType);
-                if (recipe && recipe->collectionAbi==XL6_IR_COLLECTION_LIST)
+                if (recipe && (recipe->collectionAbi==XL6_IR_COLLECTION_LIST || recipe->collectionAbi==XL6_IR_COLLECTION_SET))
                     recipe=xl6IrTypeGet(&module->types,recipe->collectionValueSchemaType);
                 if (!recipe || depth==64) { xrtFree(work.seen); xrtFree(work.queue); return 0; }
             }
@@ -587,12 +590,13 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                 physicalIds[physicalCount++]=instruction->runtimeResourceKeyType;
                 for (const XL6_IrType* recipe=created;recipe &&
                     (recipe->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 ||
-                     recipe->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1);) {
+                     recipe->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 ||
+                     recipe->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1);) {
                     if (physicalCount>=sizeof(physicalIds)/sizeof(*physicalIds)) {
                         xrtFree(work.seen); xrtFree(work.queue); return 0;
                     }
                     recipe=xl6IrTypeGet(&module->types,recipe->sequenceLayout.baseElementType);
-                    if (recipe && recipe->collectionAbi==XL6_IR_COLLECTION_LIST)
+                    if (recipe && (recipe->collectionAbi==XL6_IR_COLLECTION_LIST || recipe->collectionAbi==XL6_IR_COLLECTION_SET))
                         recipe=xl6IrTypeGet(&module->types,recipe->collectionValueSchemaType);
                     physicalIds[physicalCount++]=recipe ? recipe->sequenceLayout.elementType : XL6_IR_TYPE_INVALID;
                 }

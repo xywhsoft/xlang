@@ -60,7 +60,7 @@ static unsigned setFactories(const XL6_IrModule* ir,XL6_IrTypeId id,unsigned dep
     }
     const XL6_IrSequenceLayout* p=&type->sequenceLayout;
     if (p->abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 ||
-        p->abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1)
+        p->abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 || p->abi==XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1)
         return setFactories(ir,p->baseElementType,depth+1);
     if (p->abi==XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1) {
         XL6_IrTypeId key=0,value=0;
@@ -146,17 +146,27 @@ int main(int argc,char** argv)
             child->sequenceLayout.codecAbi=(XL6_IrSequenceCodecAbi)UINT32_MAX;
             refused(&ir,id); assert(!xl6IrVerifyModule(&ir,NULL)); ++descendants; child->sequenceLayout=childSaved;
         }
+        if (saved.abi==XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1) {
+            XL6_IrType* child=&ir.types.items[saved.baseElementType-1];
+            XL6_IrSetKeyAbi keySaved=child->setKeyAbi; child->setKeyAbi=XL6_IR_SET_KEY_NONE;
+            refused(&ir,id); assert(!xl6IrVerifyModule(&ir,NULL)); ++descendants; child->setKeyAbi=keySaved;
+            /* Hostile self-recursion must terminate within the mixed budget. */
+            XL6_IrTypeId parameter=child->params[0]; child->params[0]=saved.baseElementType;
+            refused(&ir,id); assert(!xl6IrVerifyModule(&ir,NULL)); ++descendants; child->params[0]=parameter;
+        }
         XL6_Output badSet; assert(xl6OutputOpenMemory(&badSet));
         assert(xl6IrCgenEmitSetTargetCreate(&badSet,&ir,id,"target",UINT32_MAX)<0 && badSet.buffer.Size==0);
         xl6OutputDiscard(&badSet); assert(xl6IrVerifyModule(&ir,NULL));
     }
-    assert(recipes>=40 && pending>=4 && erased && sameSlot && descendants);
+    assert(recipes>=40 && pending>=3 && erased && sameSlot && descendants);
     assert(xl6OutputOpenFile(&out,argv[2]));
     xl6OutputPuts("#include <__xl_runtime/xruntime_decl.h>\n"
         "#include <__xl_runtime/xl6_array_admission.h>\n"
         "#include <__xl_runtime/xl6_array_erased.h>\n"
         "#include <__xl_runtime/xl6_set.h>\n"
         "#include <__xl_runtime/xl6_list_schema.h>\n"
+        "#include <__xl_runtime/xl6_set_schema.h>\n"
+        "#include <__xl_runtime/xl6_tree.h>\n"
         "#include <__xl_runtime/xl6_nullable_string.h>\n"
         "#include <__xl_runtime/xl6_product_abi.h>\n"
         "#include <__xl_runtime/xl6_concurrent_queue.h>\n"

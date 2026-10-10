@@ -606,6 +606,8 @@ static int xl6IrCgenEmitQueueReferenceCreateDepth(XL6_Output*,const XL6_IrModule
     XL6_IrTypeId,const char*,size_t);
 static int xl6IrCgenEmitListTargetCreateDepth(XL6_Output*,const XL6_IrModule*,
     XL6_IrTypeId,const char*,XL6_IrNominalIdentitySetId,size_t,const char*,size_t);
+static int xl6IrCgenEmitValueCollectionTargetCreateDepth(XL6_Output*,const XL6_IrModule*,
+    XL6_IrTypeId,XL6_IrCollectionAbi,const char*,XL6_IrNominalIdentitySetId,size_t,const char*,size_t);
 static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* module,
     XL6_IrTypeId typeId,const char* result,XL6_IrNominalIdentitySetId admissionSet,size_t depth,
     const char* importChain,size_t importCount,bool projectArrays,bool captureSeed)
@@ -714,17 +716,22 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
         }
         break;
     case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1:
         {
-            XL6_IrNominalIdentitySetId childSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+            XL6_IrValueCollectionRecipe child={0};
+            XL6_IrCollectionAbi family=plan->abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 ?
+                XL6_IR_COLLECTION_LIST : XL6_IR_COLLECTION_SET;
             char childResult[48];
-            if (!xl6IrListConstructionRecipe(module,plan->baseElementType,NULL,&childSet)) return -1;
-            snprintf(childResult,sizeof(childResult),"xlir_list_schema_%u",(unsigned)(depth+1));
+            if (!xl6IrValueCollectionConstructionRecipe(module,plan->baseElementType,&child) || child.family!=family) return -1;
+            snprintf(childResult,sizeof(childResult),"xlir_collection_schema_%u",(unsigned)(depth+1));
             xl6OutputPrintf(out,"    { xvalue* %s = NULL;\n",childResult);
-            if (xl6IrCgenEmitListTargetCreateDepth(out,module,plan->baseElementType,
-                childResult,childSet,depth+1,importChain,importCount)<0) return -1;
+            if (xl6IrCgenEmitValueCollectionTargetCreateDepth(out,module,plan->baseElementType,
+                family,childResult,child.admissionIdentitySet,depth+1,importChain,importCount)<0) return -1;
             xl6OutputPrintf(out,
-                "    %s = xl6SequenceListCreateTakeV1(%u, 0x%016llXULL, 0x%016llXULL, %s, %s); }\n",
-                XL6_SEQUENCE_CREATE_IDS,childResult,plan->nullable ? "true" : "false");
+                "    %s = %s(%u, 0x%016llXULL, 0x%016llXULL, %s, %s); }\n",
+                result,family==XL6_IR_COLLECTION_LIST ? "xl6SequenceListCreateTakeV1" : "xl6SequenceSetCreateTakeV1",
+                (unsigned)plan->role,(unsigned long long)sequence->typeValueId,
+                (unsigned long long)payload->typeValueId,childResult,plan->nullable ? "true" : "false");
         }
         break;
     case XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1:
