@@ -349,11 +349,241 @@ static bool fault(const char* operation,size_t point)
     xrtValueRelease(result); xrtValueRelease(cursor); xrtValueRelease(peer); xrtValueRelease(dict); xrtClearError();
     assert(!xl6ProductMemoryEnd()); xl6ProductMemoryVerify(); return hit;
 }
+static int codecMode,decodeCalls,encodeCalls;
+static xvalue* codecOwner;
+static bool toScalar(const xvalue* value,const xrttype* type,ptr output,ptr context)
+{
+    assert(!context); ++decodeCalls;
+    bool ok=xrtValueToTyped(value,type,output,NULL);
+    if (codecMode==1) *(int64_t*)output=256;
+    if (codecMode==2) xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL});
+    if (codecMode==5) { int64_t count=99; assert(!xl6DictErasedCountV1(codecOwner,false,&count) && count==99); }
+    return ok;
+}
+static xvalue* fromScalar(const xrttype* type,const void* slot,ptr context)
+{
+    assert(!context); ++encodeCalls;
+    if (codecMode==3) return xrtValueString(XRT_STR_LITERAL("wrong-domain"));
+    if (codecMode==4) xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL});
+    return xrtValueFromTyped(type,slot,NULL);
+}
+static const xvalueconverter scalarCodec={.ToTyped=toScalar,.FromTyped=fromScalar};
+static bool toText(const xvalue* value,const xrttype* type,ptr output,ptr context)
+{
+    assert(!context && type==xl6StringTypeV1()); xstrview text={0};
+    return xrtValueGetString(value,&text) && xrtTypeCopyValue(type,output,&text);
+}
+static xvalue* fromText(const xrttype* type,const void* slot,ptr context)
+{ assert(!context && type==xl6StringTypeV1()); return xrtValueString(*(const xstrview*)slot); }
+static const xvalueconverter textCodec={.ToTyped=toText,.FromTyped=fromText};
+static xvalue* projected(const XL6_DictLayoutV1* tuple,unsigned rule,const xvalueconverter* codec)
+{
+    if (!codec && tuple->value.type==xl6StringTypeV1()) codec=&textCodec;
+    return xl6DictProjectionTakeV1(create(tuple,rule),tuple,codec);
+}
+static void projectedRead(const xvalue* dict,xstrview key,int64_t expected)
+{
+    xvalue* item=NULL; bool found=false; int64_t number=0;
+    assert(xl6DictErasedReadV1(dict,key,false,&item,&found) && found && item);
+    assert(xrtValueGetInt(item,&number) && number==expected); xrtValueRelease(item);
+}
+static void projections(void)
+{
+    XL6_DictLayoutV1 tuple=layout(1,xrtTypeInt64()); const xstrview key={"a\0b",3};
+    xvalue* dict=create(&tuple,XL6_VALUE_ADMIT_U8),*item=xrtValueInt(1),*out=NULL;
+    assert(dict && item && xl6DictErasedProbeV1(dict)==1); int64_t count=99; bool found=true;
+    assert(!xl6DictErasedCountV1(dict,false,&count) && count==99); xrtClearError();
+    dict=xl6DictProjectionTakeV1(dict,&tuple,&scalarCodec); assert(dict);
+    xvalue* alias=xrtValueRetain(dict); assert(alias);
+    xvalueconverter invalid=scalarCodec; invalid.Context=(ptr)(uintptr_t)1;
+    assert(!xl6DictProjectionTakeV1(alias,&tuple,&invalid)); xrtClearError();
+    alias=xrtValueRetain(dict); assert(!xl6DictProjectionTakeV1(alias,&tuple,NULL)); xrtClearError();
+    alias=xrtValueRetain(dict); alias=xl6DictProjectionTakeV1(alias,&tuple,&scalarCodec); assert(alias); xrtValueRelease(alias);
+    assert(xl6DictErasedSetV1(dict,key,item));
+    xvalue* wrong=xrtValueInt(256); assert(wrong);
+    assert(!xl6DictErasedSetV1(dict,key,wrong)); xrtClearError(); xrtValueRelease(wrong);
+    wrong=xrtValueInt(2); assert(wrong && xrtValueTypeIdBind(wrong,ELEMENT_ID+1));
+    assert(!xl6DictErasedSetV1(dict,key,wrong)); xrtClearError(); xrtValueRelease(wrong);
+    for (int mode=1;mode<=5;++mode) {
+        if (mode==3 || mode==4) continue;
+        xvalue* attempt=xrtValueInt(2); assert(attempt);
+        xl6_error_scope parent={0}; assert(xl6ErrorScopeBegin(&parent)); codecMode=mode; codecOwner=dict;
+        assert(!xl6DictErasedSetV1(dict,key,attempt)); codecMode=0; codecOwner=NULL;
+        xl6_error_result outcome=xl6ErrorScopeEnd(&parent); assert(!outcome.ok);
+        assert(mode==2 ? !outcome.error : outcome.error!=NULL); xrtErrorFree(outcome.error);
+        xrtValueRelease(attempt);
+        projectedRead(dict,key,1);
+    }
+    for (int mode=3;mode<=4;++mode) {
+        xl6_error_scope parent={0}; assert(xl6ErrorScopeBegin(&parent)); codecMode=mode;
+        assert(!xl6DictErasedReadV1(dict,key,true,&out,&found) && !out && found); codecMode=0;
+        xl6_error_result outcome=xl6ErrorScopeEnd(&parent); assert(!outcome.ok);
+        assert(mode==4 ? !outcome.error : outcome.error!=NULL); xrtErrorFree(outcome.error);
+        projectedRead(dict,key,1);
+    }
+    assert(xl6DictErasedCountV1(dict,false,&count) && count==1);
+    assert(xl6DictErasedReserveV1(dict,32) && xl6DictErasedCountV1(dict,true,&count) && count>=32);
+    assert(xl6DictErasedTrimV1(dict));
+    assert(!xl6DictErasedReserveV1(dict,-1)); xrtClearError();
+    assert(xl6DictErasedReadV1(dict,XRT_STR_LITERAL("absent"),false,&out,&found) && !out && !found);
+    assert(xl6DictErasedKeyV1(dict,key,false,&found) && found);
+    xvalue* copy=xl6DictErasedCloneV1(dict); assert(copy); projectedRead(copy,key,1); xrtValueRelease(copy);
+    assert(xl6DictErasedReadV1(dict,key,true,&out,&found) && found && out); xrtValueRelease(out); out=NULL;
+    assert(xl6DictErasedCountV1(dict,false,&count) && count==0);
+    assert(xl6DictErasedSetV1(dict,key,item) && xl6DictErasedKeyV1(dict,key,true,&found) && found);
+    assert(xl6DictErasedClearV1(dict)); xrtValueRelease(dict); xrtValueRelease(item);
+    ptr opaque=(ptr)(uintptr_t)1; xvalue* foreign=xrtValueHandleTake(&opaque,&foreignOps,NULL); assert(foreign);
+    assert(xrtValueTypeIdBind(foreign,DICT_ID) && xl6DictErasedProbeV1(foreign)==0);
+    assert(!xl6DictErasedCountV1(foreign,false,&count)); xrtClearError(); xrtValueRelease(foreign);
+
+    tuple=layout(3,xrtTypeValue()); dict=projected(&tuple,XL6_VALUE_ADMIT_ANY,NULL); item=xrtValueObject(); assert(dict && item);
+    assert(xrtValueTypeIdBind(item,ELEMENT_ID+10));
+    assert(xl6DictErasedSetV1(dict,key,item) && xl6DictErasedSetV1(dict,XRT_STR_LITERAL("self"),dict));
+    assert(xl6DictErasedReadV1(dict,key,false,&out,&found) && found && out==item);
+    assert(xrtValueTypeId(out)==ELEMENT_ID+10); xrtValueRelease(out); out=NULL;
+    xvalue* wire=xl6DictToWireV1(dict); assert(wire && xrtValueObjectGet(wire,key)==item);
+    assert(xrtValueObjectGet(wire,XRT_STR_LITERAL("self"))==dict);
+    copy=xl6DictImportTakeV1(projected(&tuple,XL6_VALUE_ADMIT_ANY,NULL),wire); assert(copy);
+    assert(xl6DictErasedReadV1(copy,key,false,&out,&found) && found && out==item); xrtValueRelease(out); out=NULL;
+    assert(xrtValueTypeId(item)==ELEMENT_ID+10); xrtValueRelease(copy); xrtValueRelease(wire);
+    assert(xl6DictErasedClearV1(dict)); xrtValueRelease(item); xrtValueRelease(dict);
+    puts("[PASS] checked resident Dict projection and erased methods");
+}
+static void projectedSnapshots(void)
+{
+    XL6_DictLayoutV1 tuple=layout(2,xl6StringTypeV1());
+    const xstrview keys[]={XRT_STR_LITERAL(""),{"a\0b",3},{"\xE4\xBD\xA0",3}};
+    for (unsigned reverse=0;reverse<2;++reverse) {
+        xvalue* dict=projected(&tuple,XL6_VALUE_ADMIT_STRING,NULL); assert(dict);
+        for (unsigned i=0;i<3;++i) assert(xl6DictSetV1(dict,&tuple,keys[i],&keys[i]));
+        xvalue* cursor=NULL; XL6_DictLayoutV1 actual={0}; uint64_t identity=0;
+        assert(xl6DictIteratorSnapshotErasedV1(dict,reverse,&cursor,&actual,&identity)==1);
+        assert(identity && identity!=DICT_ID && identity!=ARRAY_ID); xrtValueRelease(dict);
+        for (unsigned i=0;i<3;++i) {
+            unsigned index=reverse ? 2-i : i; xvalue* item=NULL; bool found=false; xstrview key={0},text={0};
+            assert(xl6DictIteratorAdvanceValueV1(cursor,&actual,identity,&found,&item,&key) && found);
+            assert(key.Data && key.Size==keys[index].Size && !memcmp(key.Data,keys[index].Data,key.Size));
+            assert(xrtValueGetString(item,&text) && text.Size==key.Size && !memcmp(text.Data,key.Data,key.Size));
+            xrtFree((ptr)key.Data); xrtValueRelease(item);
+        }
+        for (unsigned i=0;i<2;++i) {
+            xvalue* item=NULL; bool found=true; xstrview key={0};
+            assert(xl6DictIteratorAdvanceValueV1(cursor,&actual,identity,&found,&item,&key) && !found && !item && !key.Data);
+        }
+        xrtValueRelease(cursor);
+    }
+    tuple=layout(1,xrtTypeInt64()); xvalue* dict=projected(&tuple,XL6_VALUE_ADMIT_I64,&scalarCodec); assert(dict);
+    assert(xl6DictSetV1(dict,&tuple,XRT_STR_LITERAL("key"),&(int64_t){8}));
+    xvalue* cursor=NULL,*item=NULL; XL6_DictLayoutV1 actual={0}; uint64_t identity=0;
+    assert(xl6DictIteratorSnapshotErasedV1(dict,false,&cursor,&actual,&identity)==1); xrtValueRelease(dict);
+    xstrview key={0}; bool found=true;
+    assert(!xl6DictIteratorAdvanceValueV1(cursor,&actual,identity,&found,(xvalue**)&key,&key)); xrtClearError();
+    xl6_error_scope parent={0}; assert(xl6ErrorScopeBegin(&parent)); codecMode=4;
+    assert(!xl6DictIteratorAdvanceValueV1(cursor,&actual,identity,&found,&item,&key) && found && !item && !key.Data);
+    codecMode=0; xl6_error_result outcome=xl6ErrorScopeEnd(&parent); assert(!outcome.ok && !outcome.error);
+    assert(!xl6DictIteratorAdvanceValueV1(cursor,&actual,identity,&found,&item,&key)); xrtClearError(); xrtValueRelease(cursor);
+    puts("[PASS] owned exact Dict snapshot keys and sticky projection failure");
+}
+static void imports(void)
+{
+    XL6_DictLayoutV1 tuple=layout(1,xrtTypeInt64()); const xstrview key={"a\0b",3};
+    xvalue* source=projected(&tuple,XL6_VALUE_ADMIT_I64,&scalarCodec); assert(source);
+    assert(xl6DictSetV1(source,&tuple,key,&(int64_t){255}));
+    int decodes=decodeCalls,encodes=encodeCalls;
+    xvalue* copy=xl6DictImportTakeV1(projected(&tuple,XL6_VALUE_ADMIT_I64,&scalarCodec),source); assert(copy);
+    assert(decodeCalls==decodes && encodeCalls==encodes); projectedRead(copy,key,255); xrtValueRelease(copy);
+    copy=xl6DictImportTakeV1(projected(&tuple,XL6_VALUE_ADMIT_U8,&scalarCodec),source); assert(copy);
+    assert(decodeCalls>decodes && encodeCalls>encodes); projectedRead(copy,key,255); xrtValueRelease(copy);
+    xvalue* wire=xl6DictToWireV1(source); assert(wire && xrtValueType(wire)==XVALUE_OBJECT && xrtValueCount(wire)==1);
+    copy=xl6DictImportTakeV1(projected(&tuple,XL6_VALUE_ADMIT_U8,NULL),wire); assert(copy); projectedRead(copy,key,255);
+    xrtValueRelease(copy); xrtValueRelease(wire);
+    assert(xl6DictSetV1(source,&tuple,XRT_STR_LITERAL("bad"),&(int64_t){256}));
+    assert(!xl6DictImportTakeV1(projected(&tuple,XL6_VALUE_ADMIT_U8,NULL),source)); xrtClearError();
+    int64_t count=0; assert(xl6DictErasedCountV1(source,false,&count) && count==2); projectedRead(source,key,255);
+    copy=xrtValueRetain(source); assert(!xl6DictImportTakeV1(copy,source)); xrtClearError();
+    copy=projected(&tuple,XL6_VALUE_ADMIT_I64,NULL); assert(copy);
+    assert(xl6DictSetV1(copy,&tuple,key,&(int64_t){2})); assert(!xl6DictImportTakeV1(copy,source)); xrtClearError();
+    copy=create(&tuple,XL6_VALUE_ADMIT_I64); assert(copy);
+    assert(!xl6DictImportTakeV1(projected(&tuple,XL6_VALUE_ADMIT_I64,NULL),copy)); xrtClearError(); xrtValueRelease(copy);
+    wire=xrtValueArray(); assert(wire);
+    assert(!xl6DictImportTakeV1(projected(&tuple,XL6_VALUE_ADMIT_I64,NULL),wire)); xrtClearError(); xrtValueRelease(wire);
+    xrtValueRelease(source);
+    puts("[PASS] explicit one-level Dict wire conversion and checked consuming import");
+}
+static void projectedDomains(void)
+{
+    XL6_DictLayoutV1 tuple=layout(1,xrtTypeUInt64()); xvalue* item=xrtValueUInt(UINT64_MAX),*out=NULL;
+    xvalue* dict=projected(&tuple,XL6_VALUE_ADMIT_U64,NULL); bool found=false; uint64_t number=0;
+    assert(dict && item && xl6DictErasedSetV1(dict,XRT_STR_LITERAL("max"),item));
+    assert(xl6DictErasedReadV1(dict,XRT_STR_LITERAL("max"),false,&out,&found) && found);
+    assert(xrtValueGetUInt(out,&number) && number==UINT64_MAX && xrtValueTypeId(out)==ELEMENT_ID);
+    xrtValueRelease(item); xrtValueRelease(out); xrtValueRelease(dict); out=NULL;
+    tuple=layout(1,xl6CharTypeV1()); dict=projected(&tuple,XL6_VALUE_ADMIT_CHAR,xl6CharConverterV1());
+    item=xrtValueChar(0x4F60); assert(dict && item && xl6DictErasedSetV1(dict,XRT_STR_LITERAL("char"),item));
+    assert(xl6DictErasedReadV1(dict,XRT_STR_LITERAL("char"),false,&out,&found) && found && xrtValueType(out)==XVALUE_CHAR);
+    xrtValueRelease(item); xrtValueRelease(out); xrtValueRelease(dict); out=NULL;
+    tuple=layout(2,xl6NullableStringTypeV1()); tuple.value.elementIdentity=ELEMENT_ID+1;
+    xvalue* witness=xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,ARRAY_ID,ELEMENT_ID+1,
+        2,sizeof(xstrview),tuple.value.type,XL6_VALUE_ADMIT_STRING,true,ELEMENT_ID); assert(witness);
+    dict=xl6DictProjectionTakeV1(xl6DictCreateTakeV1(&tuple,witness),&tuple,xl6NullableStringConverterV1());
+    assert(dict && xl6DictErasedSetV1(dict,XRT_STR_LITERAL("absent"),xrtValueNull()));
+    assert(xl6DictErasedReadV1(dict,XRT_STR_LITERAL("absent"),false,&out,&found) && found && xrtValueType(out)==XVALUE_NULL);
+    xrtValueRelease(out); out=NULL; item=xrtValueString((xstrview){"a\0b",3}); assert(item);
+    assert(xl6DictErasedSetV1(dict,XRT_STR_LITERAL("text"),item));
+    xvalue* wire=xl6DictToWireV1(dict); assert(wire && xrtValueCount(wire)==2);
+    xstrview text={0}; assert(xrtValueGetString(xrtValueObjectGet(wire,XRT_STR_LITERAL("text")),&text) && text.Size==3);
+    xrtValueRelease(item); xrtValueRelease(wire); xrtValueRelease(dict);
+    tuple=layout(3,xrtTypeValue()); dict=projected(&tuple,XL6_VALUE_ADMIT_BYTES,NULL);
+    item=xrtValueBytes((xbytesview){(const uint8*)"a\0b",3}); assert(dict && item);
+    assert(xl6DictErasedSetV1(dict,XRT_STR_LITERAL("bytes"),item));
+    assert(xl6DictErasedReadV1(dict,XRT_STR_LITERAL("bytes"),true,&out,&found) && found && out==item);
+    /* Unbound incoming primitives remain unbound: read never retags a reference. */
+    assert(!xrtValueTypeId(item)); xrtValueRelease(out); xrtValueRelease(item); xrtValueRelease(dict);
+    puts("[PASS] Dict uint64 char nullable-string and bytes projection domains");
+}
+static bool projectionFault(const char* operation,size_t point)
+{
+    xl6ProductMemoryBegin(SIZE_MAX); XL6_DictLayoutV1 tuple=layout(2,xl6StringTypeV1());
+    const xstrview key={"a\0b",3},text={"v\0\xE4\xBD\xA0",5};
+    xvalue* dict=projected(&tuple,XL6_VALUE_ADMIT_STRING,NULL),*input=xrtValueString(text),*result=NULL;
+    xvalue* cursor=NULL,*wire=NULL,*target=NULL; bool found=false,success=false; xstrview outputKey={0};
+    assert(dict && input && xl6DictSetV1(dict,&tuple,key,&text));
+    if (!strcmp(operation,"project")) target=create(&tuple,XL6_VALUE_ADMIT_STRING);
+    if (!strcmp(operation,"step")) cursor=xl6DictCursorCreateV1(dict,&tuple,CURSOR_ID,false);
+    if (!strcmp(operation,"import-native") || !strcmp(operation,"import-wire")) target=projected(&tuple,XL6_VALUE_ADMIT_STRING,NULL);
+    if (!strcmp(operation,"import-wire")) wire=xl6DictToWireV1(dict);
+    xl6_error_scope parent={0}; assert(xl6ErrorScopeBegin(&parent)); assert(xrtMemDebugFailAfter(point));
+    if (!strcmp(operation,"project")) { result=xl6DictProjectionTakeV1(target,&tuple,&textCodec); target=NULL; success=result!=NULL; }
+    else if (!strcmp(operation,"set")) success=xl6DictErasedSetV1(dict,XRT_STR_LITERAL("new"),input);
+    else if (!strcmp(operation,"read") || !strcmp(operation,"take"))
+        success=xl6DictErasedReadV1(dict,key,!strcmp(operation,"take"),&result,&found);
+    else if (!strcmp(operation,"snapshot")) { XL6_DictLayoutV1 actual={0}; uint64_t id=0;
+        success=xl6DictIteratorSnapshotErasedV1(dict,false,&result,&actual,&id)==1;
+        if (!success) assert(!actual.identity && !id);
+    }
+    else if (!strcmp(operation,"step")) success=xl6DictIteratorAdvanceValueV1(cursor,&tuple,CURSOR_ID,&found,&result,&outputKey);
+    else if (!strcmp(operation,"wire")) { result=xl6DictToWireV1(dict); success=result!=NULL; }
+    else if (!strcmp(operation,"import-native") || !strcmp(operation,"import-wire")) {
+        result=xl6DictImportTakeV1(target,wire ? wire : dict); target=NULL; success=result!=NULL;
+    } else assert(0);
+    bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&parent);
+    assert(hit ? !success && !outcome.ok : success && outcome.ok);
+    if (hit) assert(!result && !found && !outputKey.Data);
+    if (!strcmp(operation,"step") && hit) {
+        assert(!xl6DictIteratorAdvanceValueV1(cursor,&tuple,CURSOR_ID,&found,&result,&outputKey)); xrtClearError();
+    }
+    int64_t count=0; assert(xl6DictErasedCountV1(dict,false,&count));
+    assert(count==(hit ? 1 : !strcmp(operation,"take") ? 0 : !strcmp(operation,"set") ? 2 : 1));
+    xrtFree((ptr)outputKey.Data); xrtErrorFree(outcome.error); xrtValueRelease(result); xrtValueRelease(target);
+    xrtValueRelease(wire); xrtValueRelease(cursor); xrtValueRelease(input); xrtValueRelease(dict); xrtClearError();
+    assert(!xl6ProductMemoryEnd()); xl6ProductMemoryVerify(); return hit;
+}
 int main(int argc,char** argv)
 {
     assert(argc==2); xl6ProductMemoryBegin(SIZE_MAX);
     if (!strcmp(argv[1],"vectors")) {
         keys(); domains(); snapshots(); references(); phased(); boundaries();
+        projections(); projectedSnapshots(); imports(); projectedDomains();
         assert(!xrtGetError() && !xl6ProductMemoryEnd()); xl6ProductMemoryVerify();
         puts("[PASS] genuine resident typed Dict vectors"); return 0;
     }
@@ -366,6 +596,17 @@ int main(int argc,char** argv)
         for (size_t point=0;point<4097;++point) {
             ++attempts;
             if (!fault(operations[i],point)) { printf("native Dict %s first-no-hit=%zu\n",operations[i],point); complete=true; break; }
+        }
+        assert(complete);
+    }
+    const char* projections[]={"project","set","read","take","snapshot","step","wire","import-native","import-wire"};
+    for (size_t i=0;i<sizeof(projections)/sizeof(projections[0]);++i) {
+        bool complete=false;
+        for (size_t point=0;point<4097;++point) {
+            ++attempts;
+            if (!projectionFault(projections[i],point)) {
+                printf("native Dict projection-%s first-no-hit=%zu\n",projections[i],point); complete=true; break;
+            }
         }
         assert(complete);
     }

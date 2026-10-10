@@ -2,6 +2,8 @@
 
 Exact byte-span keys, full owned value domains, stable independent snapshots,
 real reference/Future edges, phased retirement and checked error boundaries.
+Resident scalar/string/reference projection, checked erased methods and explicit
+one-level wire imports; this does not attest source-language Dict cutover.
 O0/O2 whole logical allocation prefixes and compiled broken implementation
 controls. Optional ASan/UBSan instruments this selected closure, not products.
 """
@@ -22,8 +24,10 @@ def main():
         'src/runtime/xl6_array_reference_admission.c','src/runtime/xl6_array_nominal_admission.c',
         'src/runtime/xl6_array_primitive_admission.c','src/runtime/xl6_array_c_scalar_admission.c',
         'src/runtime/xl6_array_future_admission.c','src/runtime/xl6_value_admission.c',
+        'src/runtime/xl6_array_reference_value.c',
         'src/runtime/xl6_nominal_admission.c','src/runtime/xl6_string_type.c',
         'src/runtime/xl6_nullable_string.c','src/runtime/xl6_nullable_i64.c','src/runtime/xl6_char_type.c',
+        'src/runtime/xl6_char_value.c',
         'src/api/xl_foreign_error.c']
     files={Path(__file__).resolve(),Path(cc),Path(nm),Path(sys.executable),*[root/p for p in sources]}
     for folder in ('src/runtime','src/api','release/include','lib/xrt','lib/xruntime','test/support'):
@@ -65,16 +69,18 @@ def main():
             symbols=run('symbols-'+opt,[nm,'--defined-only',binary])
             names={line.split()[-1].lstrip('_') for line in symbols.splitlines() if line.split()}
             assert {'xrtTypedDictSet','xrtTypedDictMerge','xrtMapVisit','xl6DictCreateTakeV1',
-                'xl6DictOwnershipAdapterV2','xl6DictCursorReadV1'}<=names
-            assert not {'xl6ListCreateTakeV1','xl6SetCreateTakeV1','xl6ArrayToValueV1','xl6ArrayFromValueV1'}&names
+                'xl6DictOwnershipAdapterV2','xl6DictCursorReadV1','xl6DictImportTakeV1',
+                'xl6DictProjectionTakeV1','xl6DictIteratorAdvanceValueV1'}<=names
+            assert not {'xl6ListCreateTakeV1','xl6SetCreateTakeV1','xl6ArrayToValueV1','xl6ArrayFromValueV1',
+                'xrtTypedDictSetValue','xrtTypedDictToValue','xrtTypedDictFromValue'}&names
             assert '[PASS] genuine resident typed Dict vectors' in run('vectors-'+opt,[binary,'vectors'])
             data=run('prefixes-'+opt,[binary,'prefixes'])
-            found=re.findall(r'native Dict (\S+) first-no-hit=(\d+)',data); assert len(found)==14
+            found=re.findall(r'native Dict (\S+) first-no-hit=(\d+)',data); assert len(found)==23
             prefixes.extend(dict(Optimization=opt,Operation=name,FirstNoHit=int(point),Attempts=int(point)+1)
                 for name,point in found)
             attempts=int(data.split('native-dict full-prefix-attempts=')[1].splitlines()[0])
             assert attempts==sum(int(point)+1 for _,point in found)
-            products.append(dict(Path=str(binary),Sha256=sha(binary),AllocationAttempts=attempts,PrefixLanes=14))
+            products.append(dict(Path=str(binary),Sha256=sha(binary),AllocationAttempts=attempts,PrefixLanes=23))
         body=(root/'src/runtime/xl6_dict.c').read_text(encoding='utf-8')
         for name,before,after in (
             ('nul-key-truncated','xrtTypedDictSet(owner->storage,key,item)',
@@ -82,7 +88,14 @@ def main():
             ('admission-skipped','item && owner->policy.ops->Slot(owner->policy.data,item)','item && owner'),
             ('policy-equivalence-lost','a->ops->Equivalent(a->data,b->data)','true'),
             ('ownership-edges-omitted','if (owner->layout.value.transfer<3) return true;',
-             'if (owner->layout.value.transfer>=1) return true;')):
+             'if (owner->layout.value.transfer>=1) return true;'),
+            ('logical-write-admission-lost','if (!admitsValue(owner,item) || xrtGetError() || scope->failed)',
+             'if (xrtGetError() || scope->failed)'),
+            ('physical-decode-admission-lost','ok=ok && slotAdmits(owner,output);','ok=ok && output;'),
+            ('logical-projection-admission-lost','|| !admitsValue(owner,result))','|| false)'),
+            ('absent-decoder-failure-commits',
+             'if (!scopeFinish(&scope,ok)) { callbackFailure(); return false; }',
+             'bool checked=scopeFinish(&scope,ok); if (!ok) { if (!checked) callbackFailure(); return false; }')):
             assert body.count(before)==1
             source=out/(name+'.mutant.c')
             source.write_text('#include <string.h>\n'+body.replace(before,after),encoding='utf-8')
@@ -93,9 +106,9 @@ def main():
             controls.append(dict(Name=name,Rejected=True,Source=str(source),SourceSha256=sha(source),
                 Path=str(binary),Sha256=sha(binary)))
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs+objects+products)
-        report['Complete']=report['InputsUnchanged'] and len(controls)==4
+        report['Complete']=report['InputsUnchanged'] and len(controls)==8
         assert report['Complete']
     finally:
         (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
-    print('Native Dict accepted: '+str(len(rows))+' phases, 28 complete prefix lanes, 4 broken implementations rejected',flush=True)
+    print('Native Dict accepted: '+str(len(rows))+' phases, 46 complete prefix lanes, 8 broken implementations rejected',flush=True)
 if __name__=='__main__': main()
