@@ -149,6 +149,31 @@ static xvalue* childSeed(const Template* schema)
     return value;
 }
 static bool fill(Import* ctx,size_t depth,xvalue* value,XL6_Sequence* target,const xvalue* source);
+/* Only a genuine projected Array with the resident ANY policy can cross a
+ * nested language erasure boundary. Typed native children retain their full
+ * schema and ordinary reference semantics; a foreign/wrong typed handle is
+ * never converted merely because its contents happen to fit. */
+static bool languageArrayConversion(const Template* schema,const xvalue* source,bool* required)
+{
+    *required=false;
+    XL6_SequenceAdmissionV3 policy={0};
+    if (!xl6SequenceAdmissionCopyV3(schema->owner,&policy)) return false;
+    bool matches=xl6SequenceAdmitsSchemaV1(source,XL6_SEQUENCE_ARRAY_V1,&schema->layout,&policy);
+    xl6SequenceAdmissionDropV3(&policy);
+    if (xrtGetError()) return false;
+    if (matches) return true; /* Matching BUSY children need no slot reads. */
+    XL6_Sequence* owner=NULL; XL6_SequenceLayoutV1 layout={0};
+    const xvalueconverter* converter=NULL;
+    int status=xl6SequenceBeginErasedArrayV1(source,&owner,&layout,&converter);
+    if (status<0) return false;
+    if (!status) return true;
+    bool erased=xl6SequenceReferenceAnyPolicyV1(owner,layout.elementIdentity);
+    xl6SequenceEndV1(owner);
+    if (xrtGetError()) return false;
+    if (!erased) return true;
+    *required=true;
+    return !xrtGetError();
+}
 static xvalue* convert(Import* ctx,size_t depth,const xvalue* source)
 {
     Memo* prior=lookup(ctx,source,depth,NULL);
@@ -223,13 +248,17 @@ static bool fill(Import* ctx,size_t depth,xvalue* value,XL6_Sequence* target,con
     for (size_t i=0;i<count;++i) {
         const xvalue* item=custom ? family.items[i] : input.items[i]; xvalue* converted=NULL;
         if (privateSeed(ctx,item)) { xrtSetErrorKind(XERR_ARGUMENT); goto done; }
-        /* Only an explicit next family/template authorizes wire conversion.
-         * A native child keeps its actual identity and full owned metadata. */
+        /* The next closed schema authorizes wire or exact ANY-erased input,
+         * not arbitrary native retagging or an unchecked handle conversion. */
+        bool erasedArray=false;
+        if (depth+1<ctx->count && !ctx->templates[depth+1].provider &&
+            (!ctx->plan || (ctx->plan->flags&XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1)) &&
+            !languageArrayConversion(&ctx->templates[depth+1],item,&erasedArray)) goto done;
         bool wireList=depth+1<ctx->count && ctx->plan &&
             (ctx->plan->flags&XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1) &&
             ctx->templates[depth+1].provider && ctx->templates[depth+1].provider->InputBegin &&
             xrtValueType(item)==XVALUE_INT_MAP;
-        if (depth+1<ctx->count && (xrtValueType(item)==XVALUE_ARRAY || wireList)) {
+        if (depth+1<ctx->count && (xrtValueType(item)==XVALUE_ARRAY || wireList || erasedArray)) {
             converted=convert(ctx,depth+1,item);
             if (!converted) goto done;
             item=converted;

@@ -1,4 +1,4 @@
-/* Private resident input contract, not the source-language carrier cutover. */
+/* Resident input contract shared by real language producers and native C. */
 static xvalue* languageLeaf(unsigned profile)
 {
     if (profile!=6) return leaf(profile,false,true);
@@ -90,8 +90,16 @@ static void languageMixed(void)
     for (size_t count=2;count<=4;++count) for (unsigned native=0;native<2;++native) {
         xvalue* values[MAX]={0}; const XL6_CollectionImportProviderV1* providers[MAX]={0};
         seeds(values,providers,count,1); xvalue* source=languageSource(count,1,native,1);
+        XL6_Sequence* busy=NULL; xvalue* pinned=NULL;
+        if (native && count==2) {
+            XL6_SequenceLayoutV1 layout={0}; const xvalueconverter* converter=NULL;
+            pinned=item(source,0,INT64_MIN);
+            assert(xl6SequenceBeginErasedArrayV1(pinned,&busy,&layout,&converter)==1);
+        }
         XL6_CollectionImportPlanV1 p=languagePlan(providers);
         xvalue* result=xl6CollectionImportChainTakeV1(values,count,source,&p); assert(result && result!=source);
+        if (busy) xl6SequenceEndV1(busy);
+        xrtValueRelease(pinned);
         languageObserved(result,count,1);
         if (native) {
             xvalue* a=item(result,0,INT64_MIN),*b=item(source,0,INT64_MIN); assert(a==b);
@@ -110,6 +118,25 @@ static void languageMixed(void)
         xrtValueRelease(prior); xrtValueRelease(b); prior=a;
     }
     xrtValueRelease(prior); xrtValueRelease(result); xrtValueRelease(source);
+    /* Authentic projected ANY Arrays are language erasure boundaries, not
+     * wrong typed children. All leaf profiles import one independent shared
+     * child through the SAME memo; ordinary typed children above stay aliases. */
+    for (unsigned profile=0;profile<9;++profile) {
+        xvalue* targets[MAX]={0}; const XL6_CollectionImportProviderV1* adapters[MAX]={0};
+        seeds(targets,adapters,2,profile);
+        uint64_t anyOwner=UINT64_C(0xF991),anyElement=UINT64_C(0xF992);
+        xvalue* any=xl6SequenceReferenceCreateV1(1,anyOwner,anyElement,XL6_VALUE_ADMIT_ANY,false,anyElement);
+        any=xl6ArrayProjectionTakeV1(any,anyOwner,anyElement,3,sizeof(xvalue*),xrtTypeValue(),NULL);
+        xvalue* value=languageLeaf(profile); assert(any && value && xl6ArrayErasedPushV1(any,value));
+        xrtValueRelease(value);
+        if (nullable(profile)) assert(xl6ArrayErasedPushV1(any,xrtValueNull()));
+        xvalue* raw=xrtValueIntMap(); assert(raw && xrtValueIntMapSet(raw,INT64_MIN,any) && xrtValueIntMapSet(raw,INT64_MAX,any));
+        XL6_CollectionImportPlanV1 policy=languagePlan(adapters);
+        xvalue* imported=xl6CollectionImportChainTakeV1(targets,2,raw,&policy); assert(imported);
+        xvalue* a=item(imported,0,INT64_MIN),*b=item(imported,0,INT64_MAX);
+        assert(a && a==b && a!=any); languageObserved(imported,2,profile);
+        xrtValueRelease(a); xrtValueRelease(b); xrtValueRelease(imported); xrtValueRelease(raw); xrtValueRelease(any);
+    }
 }
 static void languageRejected(void)
 {

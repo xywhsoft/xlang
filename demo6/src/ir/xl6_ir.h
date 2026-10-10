@@ -2007,7 +2007,11 @@ typedef enum XL6_IrRuntimeOp {
        XL6_IR_RUNTIME_LIST_READ_F64,
        XL6_IR_RUNTIME_LIST_READ_STRING,
        XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE,
-       XL6_IR_RUNTIME_LIST_READ_VALUE_REQUIRED_COPY
+       XL6_IR_RUNTIME_LIST_READ_VALUE_REQUIRED_COPY,
+       /* Native language producers. Never a wire allocation plus retag. */
+       XL6_IR_RUNTIME_LIST_CREATE,
+    XL6_IR_RUNTIME_LIST_IMPORT_CHAIN,
+    XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
 /* Canonical language identities for every stable XRT xvalue tag.  This table
@@ -6690,6 +6694,7 @@ XL6_IrTypeId xl6IrArrayAnyElementType(const XL6_IrModule*, XL6_IrTypeId);
 /* Canonical carrier for implicit heterogeneous literals and language entry
  * parameters; lookup never reconstructs a diagnostic/source spelling. */
 XL6_IrTypeId xl6IrArrayAnyType(const XL6_IrModule*);
+XL6_IrTypeId xl6IrListAnyType(const XL6_IrModule*);
 /* Complete explicit data-import chain, outer Array first. Recurses only into
  * Array children; Stack children retain their native identity. No source
  * carrier cutover authority. All descendant recipes/codecs are verified before
@@ -6698,8 +6703,12 @@ int xl6IrArrayImportChainRecipe(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrTypeId*, size_t, size_t*);
 int xl6IrArrayImportRuntimeInstructionCompatible(const XL6_IrModule*, const XL6_IrInstruction*);
 int xl6IrArrayCreateRuntimeInstructionCompatible(const XL6_IrModule*, const XL6_IrInstruction*);
+int xl6IrListImportChainRecipe(const XL6_IrModule*, XL6_IrTypeId,
+    XL6_IrTypeId*, size_t, size_t*);
+int xl6IrListImportRuntimeInstructionCompatible(const XL6_IrModule*, const XL6_IrInstruction*);
+int xl6IrListCreateRuntimeInstructionCompatible(const XL6_IrModule*, const XL6_IrInstruction*);
 XL6_IrRuntimeOp xl6IrArrayConstructionRuntimeOp(const XL6_IrModule*, XL6_IrTypeId);
-int xl6IrContextualArrayImportRequired(const XL6_IrModule*, XL6_IrTypeId, XL6_IrTypeId);
+XL6_IrRuntimeOp xl6IrNativeCollectionImportRuntimeOp(const XL6_IrModule*, XL6_IrTypeId, XL6_IrTypeId);
 /* One canonical predicate owns all synthetic THROW-plan admission.  It keeps
  * Typed construction, lowering, verification and statistics from developing
  * separate lists of operations which can fail without source throw syntax. */

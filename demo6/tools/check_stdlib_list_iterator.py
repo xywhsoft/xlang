@@ -1,7 +1,7 @@
 """Native List snapshots in the shared language foreach carrier.
 Fresh full source compiler on both platforms. Real typed storage, exact keys,
 owned projection/trace, checked failure != EOF, native generated-function inputs
-and selective artifact plans. Not source factory/cast/restore cutover, shipping
+and selective artifact plans. This gate alone does not certify producer/import/restore cutover, shipping
 DLL/SO/VFS, packaged AOT or full53 acceptance. Refined keys have a separate gate.
 """
 from pathlib import Path
@@ -119,7 +119,7 @@ def main():
                 run(tag+'.cgen',[driver,fixture,'cgen-default',generated]); run(tag+'.repeat',[driver,fixture,'cgen-default',repeat])
                 assert sha(generated)==sha(repeat); text=generated.read_text(encoding='utf-8-sig')
                 assert 'xlir_xvalue_iterator_create_checked(' not in text
-                if index in (0,2): assert 'xl6ListValueIteratorCreateV1(' in text and 'xl6ListCreateTakeV1(' not in text
+                if index in (0,2): assert 'xl6ListValueIteratorCreateV1(' in text and 'xl6ListCreateTakeV1(' in text
                 else: assert 'xl6_list_value_iterator.h' not in text and 'xl6ListValueIteratorCreateV1(' not in text
                 if index==1: assert 'xl6ArrayValueIteratorCreateCheckedV1(' in text
                 if index==3: assert 'xl6SetValueIteratorCreateCheckedV1(' in text and 'xl6DictValueIteratorCreateCheckedV1(' in text

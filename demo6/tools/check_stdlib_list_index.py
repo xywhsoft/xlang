@@ -1,7 +1,7 @@
 """Authentic native List open index/contains and precise Array-only pruning.
 
-Requires a fresh full-source compiler. Existing language List factories remain
-wire IntMap; generated checked functions also consume real native List inputs.
+Requires a fresh full-source compiler. Language List factories use native
+storage; generated checked functions also consume authenticated native inputs.
 No shipping-library/VFS, full List carrier or full53 completion claim.
 """
 from __future__ import annotations
@@ -140,7 +140,7 @@ def main():
                 assert 'xl6ValueContainsV1(' not in body and 'xl6ValueIndexReadCopyV1(' not in body and 'xl6ValueIndexSetTakeV1(' not in body
             elif not index:
                 assert all(n+'(' in body for n in ('xl6ValueContainsV1','xl6ValueIndexReadCopyV1','xl6ValueIndexSetTakeV1'))
-                assert 'xl6ListCreateTakeV1(' not in body
+                assert 'xl6ListCreateTakeV1(' in body and 'xrtValueIntMap()' not in body
             else:
                 assert 'xl6ValueWireContainsV1(' in body and 'xl6ValueContainsV1(' not in body
             for level in (0,2):

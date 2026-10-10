@@ -413,6 +413,24 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             }
         }
         if (xl6IrCgenInstructionIsReachable(module,i) &&
+            (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ||
+             instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN)) {
+            XL6_IrTypeId schema=XL6_IR_TYPE_INVALID;
+            size_t count=0;
+            if (!(instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ?
+                  xl6IrListCreateRuntimeInstructionCompatible(module,instruction) :
+                  xl6IrListImportRuntimeInstructionCompatible(module,instruction)) ||
+                !xl6IrListConstructionRecipe(module,instruction->type,&schema,NULL) ||
+                !xl6IrListImportChainRecipe(module,instruction->type,NULL,0,&count) ||
+                !xl6IrCgenVisitSequenceFactorySymbols(module,schema,visitor,context,0,true) ||
+                !visitor(context,"xl6ArrayProjectionTakeV1") ||
+                !visitor(context,"xl6ListCreateTakeV1") || !visitor(context,"xl6ListProjectionTakeV1")) return 0;
+            if (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN &&
+                (!visitor(context,"xl6ListImportProviderV1") ||
+                 !visitor(context,"xl6CollectionImportChainSourceTakeV1") ||
+                 (count>1 && !visitor(context,"xl6ArrayEraseV1")))) return 0;
+        }
+        if (xl6IrCgenInstructionIsReachable(module,i) &&
             xl6IrCgenThreadRuntimeOpIs(instruction->runtimeOp) &&
             (!xl6IrCgenRuntimeThreadAbi(module,instruction) ||
              !visitor(context,xl6IrCgenThreadHelper(instruction->runtimeOp)))) return 0;

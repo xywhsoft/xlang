@@ -1,8 +1,8 @@
 """Actual source XLIR List target schemas and checked native Cgen factory.
 
 Uses all freshly built compiler/runtime objects on BOTH platforms. Source
-List remains legacy until its producers, index, iteration and persistence are
-cut over together. This gate is not public native-List/shipping acceptance.
+List source producers use these native recipes. This gate alone is not full
+native-List/shipping acceptance; unsupported nested domains remain closed.
 """
 from __future__ import annotations
 import argparse
@@ -136,13 +136,13 @@ def main():
             assert points == [(str(i), str(int(i < int(prefix[2])))) for i in range(int(prefix[1]))]
             report['ScopeEntrySweeps'].append(dict(Optimization=lane, Runs=int(prefix[1]),
                                                   FirstNoHit=int(prefix[2])))
-        # Existing source semantics are intentionally unchanged. Verify real
+        # Verify actual native source producers as well as real
         # generic specialization and erased List use through C AND actual JIT.
         source_c, repeat = out / 'language.c', out / 'language.repeat.c'
         run('language.cgen', [driver, fixture, 'cgen-default', source_c])
         run('language.repeat', [driver, fixture, 'cgen-default', repeat])
         assert sha(source_c) == sha(repeat)
-        assert 'xl6ListCreateTakeV1(' not in source_c.read_text(encoding='utf-8-sig')
+        assert 'xl6ListCreateTakeV1(' in source_c.read_text(encoding='utf-8-sig')
         for level in (0, 2):
             lane = f'language.O{level}'
             native = out / (lane + suffix)

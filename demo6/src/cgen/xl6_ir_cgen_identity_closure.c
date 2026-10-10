@@ -59,11 +59,15 @@ static int xl6IrCgenNominalIdentitySetUsed(
             instruction->sequenceAdmissionIdentitySet==(size_t)(set-module->nominalIdentitySets)+1) return 1;
         if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||
             instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE ||
+            instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ||
+            instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
             instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_KEYS ||
             instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_VALUES ||
             (instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&
              xl6IrConcurrentQueueInstructionType(module,instruction))) {
             const XL6_IrType* recipe=xl6IrTypeGet(&module->types,instruction->type);
+            if (recipe && recipe->collectionAbi==XL6_IR_COLLECTION_LIST)
+                recipe=xl6IrTypeGet(&module->types,recipe->listValueSchemaType);
             if (instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE && recipe)
                 recipe=xl6IrTypeGet(&module->types,recipe->concurrentQueueSchemaType);
             for (size_t depth=0;recipe && depth<=64;++depth) {

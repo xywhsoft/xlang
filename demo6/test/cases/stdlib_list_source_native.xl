@@ -1,0 +1,123 @@
+class ListSourceItem
+    int value = 7
+end
+enum ListSourceSmall as int8
+    low = -128
+    high = 127
+end
+func rawSparse() as list
+    return [-9223372036854775808: 1, 9223372036854775807: 3]
+end
+func importedSparseReturn() as list<int>
+    return rawSparse()
+end
+func readSparse(list<int> values) as int
+    return values[-9223372036854775808] + values[9223372036854775807]
+end
+list<int> empty
+assert empty.length == 0
+var raw = [-9223372036854775808: 1, 9223372036854775807: 3]
+list<int> values = raw
+assert values.length == 2 and values[9223372036854775807] == 3
+values[-9223372036854775808] = 9
+assert raw[-9223372036854775808] == 1 and values[-9223372036854775808] == 9
+assert readSparse(rawSparse()) == 4 and importedSparseReturn()[9223372036854775807] == 3
+var textSource = [-7: "a\0你", 9: "b"]
+list<string> text = textSource
+assert text[-7] == "a\0你" and string.byteLen(text[-7]) == 5
+var charSource = [-7: 'A', 9: '你', 17: '\0']
+list<char> chars = charSource
+assert chars[9] == '你' and chars[17] == '\0'
+var narrowSource = [-7: int8(-128), 9: int8(127)]
+list<int8> narrow = narrowSource
+assert narrow[-7] == int8(-128) and narrow[9] == int8(127)
+var optionalSource = [-7: null, 9: 8]
+list<int?> optional = optionalSource
+int? eight = 8
+assert optional[-7] == null and optional[9] == eight
+var binarySource = [-7: b"a\0b", 9: b"\xff"]
+list<bytes> binary = binarySource
+assert binary[-7] == b"a\0b" and binary[9] == b"\xff"
+ListSourceItem object = ListSourceItem()
+var objectsSource = [-7: object, 9: null]
+list<ListSourceItem?> objects = objectsSource
+assert objects[-7] != null and objects[9] == null
+auto savedObject = objects[-7]
+if savedObject != null then
+    savedObject.value = 11
+end
+assert object.value == 11
+var cSource = [-7: c_int(-7)]
+list<c_int> cValues = cSource
+assert cValues[-7] == c_int(-7)
+var cOptionalSource = [-7: null, 9: c_int(-7)]
+list<c_int?> cOptional = cOptionalSource
+c_int? expectedC = c_int(-7)
+assert cOptional[-7] == null and cOptional[9] == expectedC
+var cFloatSource = [-7: c_float(1.25)]
+list<c_float> cFloats = cFloatSource
+assert cFloats[-7] == c_float(1.25)
+var enumSource = [-7: ListSourceSmall.low, 9: ListSourceSmall.high]
+list<ListSourceSmall> enums = enumSource
+assert enums[-7] == ListSourceSmall.low and enums[9] == ListSourceSmall.high
+var child = [4, 5]
+var nestedSource = [-7: child, 9: child]
+list<array<int>> nested = nestedSource
+nested[-7][0] = 12
+assert nested[9][0] == 12 and child[0] == 4
+var deepSource = [-7: [child, child]]
+list<array<array<int>>> deep = deepSource
+assert deep[-7][1][1] == 5
+func(int) as int callback = func(int value) as int
+    return value + 1
+end
+var callableSource = [-7: callback, 9: null]
+list<(func(int) as int)?> functions = callableSource
+auto observed = functions[-7]
+assert observed != null and functions[9] == null
+if observed != null then
+    assert observed(7) == 8
+end
+async func listSourceCompleted() as int
+    return 77
+end
+future<int> pending = listSourceCompleted()
+var futureSource = [-7: pending, 9: null]
+list<future<int>?> futures = futureSource
+auto observedFuture = futures[-7]
+assert observedFuture != null and futures[9] == null
+if observedFuture != null then
+    assert await observedFuture == 77
+end
+var invalid = [-7: "not an integer"]
+bool caught = false
+try
+    values = invalid
+catch e
+    if e.kind != "TypeError" then
+        throw
+    end
+    caught = e.kind == "TypeError"
+end
+assert caught and values[-9223372036854775808] == 9 and invalid[-7] == "not an integer"
+var wrongFamily = [1, 2]
+bool wrongCaught = false
+try
+    values = wrongFamily
+catch e
+    if e.kind != "TypeError" then
+        throw
+    end
+    wrongCaught = true
+end
+assert wrongCaught and values.length == 2 and wrongFamily[1] == 2
+int finalized = 0
+func checkedSparseReturn() as list<int>
+    try
+        return rawSparse()
+    finally
+        finalized += 1
+    end
+end
+auto guarded = checkedSparseReturn()
+assert guarded[9223372036854775807] == 3 and finalized == 1

@@ -776,6 +776,34 @@ static int xl6IrCgenEmitArrayImportChain(XL6_Output* out,const XL6_IrModule* mod
     return xl6OutputHasFailed(out) ? -1 : 1;
 }
 
+static int xl6IrCgenEmitListImportChain(XL6_Output* out,const XL6_IrModule* module,
+    XL6_IrTypeId typeId,XL6_IrValueId result,const char* source)
+{
+    XL6_IrTypeId types[65],schema=XL6_IR_TYPE_INVALID;
+    XL6_IrNominalIdentitySetId set=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+    size_t count=0;
+    if (!source || !xl6IrListImportChainRecipe(module,typeId,types,65,&count) ||
+        !xl6IrListConstructionRecipe(module,typeId,&schema,&set)) return -1;
+    char target[24]; snprintf(target,sizeof(target),"v%u",(unsigned)result);
+    xl6OutputPrintf(out,"    { xvalue* xlir_list_import_seeds[%u] = {0};\n",(unsigned)count);
+    if (xl6IrCgenEmitListTargetCreate(out,module,typeId,target,set)<0) return -1;
+    xl6OutputPrintf(out,"    xlir_list_import_seeds[0] = %s;\n",target);
+    if (count>1) {
+        XL6_IrNominalIdentitySetId childSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+        if (!xl6IrSequenceConstructionRecipe(module,types[1],XL6_IR_SEQUENCE_ROLE_ARRAY,&childSet)) return -1;
+        xl6OutputPuts("    { xvalue* xlir_list_import_child = NULL;\n",out);
+        if (xl6IrCgenEmitSequenceCreateDepth(out,module,types[1],"xlir_list_import_child",
+            childSet,1,"xlir_list_import_seeds",count,false)<0) return -1;
+        xl6OutputPuts("    xrtValueRelease(xlir_list_import_child); }\n",out);
+    }
+    xl6OutputPrintf(out,"    const XL6_CollectionImportProviderV1* xlir_list_import_providers[%u] = {xl6ListImportProviderV1()};\n"
+        "    const XL6_CollectionImportPlanV1 xlir_list_import_plan = {sizeof(XL6_CollectionImportPlanV1),"
+        "xlir_list_import_providers,XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1,0,0,false};\n"
+        "    %s = xl6CollectionImportChainSourceTakeV1(xlir_list_import_seeds,%u,%s,&xlir_list_import_plan); }\n",
+        (unsigned)count,target,(unsigned)count,source);
+    return xl6OutputHasFailed(out) ? -1 : 1;
+}
+
 static int xl6IrCgenEmitStackRuntime(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)

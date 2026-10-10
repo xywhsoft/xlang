@@ -41,6 +41,19 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                         (unsigned)module->functions[factory - 1].symbol);
                 } else if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE) {
                     return xl6IrCgenEmitArrayCreate(out,module,instruction)>0;
+                } else if (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE) {
+                    char target[24];
+                    if (!xl6IrListCreateRuntimeInstructionCompatible(module,instruction))
+                        return xl6IrCgenRuntimeEmitDiag(diags,module,instruction->origin,"XLIR List factory contract is unresolved");
+                    snprintf(target,sizeof(target),"v%u",(unsigned)instruction->result);
+                    return xl6IrCgenEmitListTargetCreate(out,module,instruction->type,target,
+                        instruction->sequenceAdmissionIdentitySet)>0;
+                } else if (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN) {
+                    char source[24];
+                    if (!xl6IrListImportRuntimeInstructionCompatible(module,instruction))
+                        return xl6IrCgenRuntimeEmitDiag(diags,module,instruction->origin,"XLIR List import contract is unresolved");
+                    snprintf(source,sizeof(source),"v%u",(unsigned)module->operands[instruction->firstOperand]);
+                    return xl6IrCgenEmitListImportChain(out,module,instruction->type,instruction->result,source)>0;
                 } else if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) {
                     char source[24];
                     if (!xl6IrArrayImportRuntimeInstructionCompatible(module,instruction))

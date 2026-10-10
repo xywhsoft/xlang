@@ -286,6 +286,10 @@ static int xl6IrCgenVerifyInstructions(
                     !xl6IrArrayImportRuntimeInstructionCompatible(module,instruction)) ||
                    (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE &&
                     !xl6IrArrayCreateRuntimeInstructionCompatible(module,instruction)) ||
+                   (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE &&
+                    !xl6IrListCreateRuntimeInstructionCompatible(module,instruction)) ||
+                   (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN &&
+                    !xl6IrListImportRuntimeInstructionCompatible(module,instruction)) ||
                    (instruction->runtimeOp==XL6_IR_RUNTIME_CLASS_DEFAULT_INVOKE &&
                     !xl6IrClassDefaultInvocationFunction(module,instruction)) ||
                    (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_COUNT &&
@@ -620,6 +624,8 @@ static int xl6IrCgenVerifyInstructions(
                         XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND &&
                     instruction->runtimeOp != XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN &&
                     instruction->runtimeOp != XL6_IR_RUNTIME_ARRAY_CREATE &&
+                    instruction->runtimeOp != XL6_IR_RUNTIME_LIST_CREATE &&
+                    instruction->runtimeOp != XL6_IR_RUNTIME_LIST_IMPORT_CHAIN &&
                     instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_COUNT &&
                     instruction->runtimeOp !=
                         XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE &&
