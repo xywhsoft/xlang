@@ -44,6 +44,7 @@
 - [动态绑定方法保活与模块读取证书](stdlib53-b164-bound-method-read-certificate.md)：绑定方法统一使用 resident closure/box；跨模块代码保活、外线程读取拒绝、双端前后对照及真实宿主证书通过，JSON/XLON 切换和打包 AOT 仍待验收。
 - [数据恢复的宿主只读能力绑定](stdlib53-b165-restore-read-binding.md)：可达恢复调用按 XLIR 合同选择独立 resident 能力，真实 API 一次性绑定并封闭；双端前后对照、原生读取与所选 sanitizer 通过，目标所有权转移和实际恢复切换继续。
 - [封闭类 JSON/XLON 恢复切换](stdlib53-b166-native-restore-cutover.md)：独立目标拥有值消费、声明 clone 隔离与整图提交；旧 opaque 模块明确待迁移，三个裁剪产物执行通过但完整导出审计仍失败。
+- [驻留组件导出与依赖验收](stdlib53-b167-resident-catalog.md)：修复 B166 的 60 项审计差异；双端完整符号目录与负控、Windows 裁剪 JIT/AOT 通过，生成 C 不变，不代表发布总门完成。
 - [XLIR数据恢复构造图](stdlib53-b154-ir-restore-graph.md)：可达根、节点、字段上下文、默认工厂和迁移边界；与旧恢复六表共享失败原子构建，不等同于 Cgen 或语言载体切换完成。
 - `文本标准库接入.md`：精确 string/char/bytes、UTF-8/16/32、BOM、数字与流式文本的公开合同。
 - `XRT扩展标准库API.md`：当前已公开的扩展标准库对象、函数、常量、异步语义和 C/XRT 对照接口。
@@ -179,3 +180,30 @@ B43 Stack 原生存储前置批次见 `标准库设计.md` 与
 `../tools/check_stdlib_stack_native.ps1`/`.sh`。
 仅移除旧生成 vector 并复用 typed stack；公开 owned-return、char/bytes、
 batch 和强引用拥有图仍待完成，不能视为 Stack 或全部 53 模块已封板。
+
+## 标准库驻留迁移专项记录
+
+以下是限定验收和历史检查点。当前状态以三组长期任务账本及最新专项为准，
+不能将各批局部通过合并为完整标准库或现有发布库的通过结论。
+逐项决策和未决策状态见 [标准库决策清单](标准库决策清单.md)。
+
+- [生成 C 原生声明门](generated-c-declaration-gate.md)：准确函数原型和隐式声明拒绝。
+- [字段发布后退休](stdlib53-b133-post-commit.md)：真实语言对象图与字段替换清理。
+- [Queue continuation](stdlib53-b134-queue-continuations.md)：拥有值跨 await 的限定验证。
+- [原生 Tree 检查点](stdlib53-b135-native-tree.md)：驻留迁移与后续真实产品入口。
+- [Queue 域认证](stdlib53-b135-queue-domain-probes.md)：物理族与完整准入域探测。
+- [原生 Semaphore](stdlib53-b135-semaphore.md)：私有生命周期前置能力。
+- [同步资源 checked 退休](stdlib53-b135-sync-retirement.md)：手动解锁与宿主恢复检查点。
+- [原生 Thread](stdlib53-b141-thread-native.md)：驻留拥有者前置能力。
+- [Thread 语言迁移](stdlib53-b142-thread-language.md)：语言入口与生命周期专项。
+- [Thread 真实产品](stdlib53-b143-thread-shipping.md)：产品及持锁恢复限定回归。
+- [Stack 批量接口](stdlib53-b144-stack-batch.md)：独立 Array 发布与产品专项。
+- [Tree 与 Queue 真实产品图](stdlib53-b145-container-graph-shipping.md)：循环图与 continuation 的产品证据。
+- [私有 List 底座](stdlib53-b146-list-native-foundation.md)：稀疏原生存储，非语言载体切换。
+- [List 身份与合并](stdlib53-b147-list-identity-merge.md)：完整域查询与事务合并。
+- [List 动态边界](stdlib53-b148-list-value-boundaries.md)：私有投影与显式稀疏导入。
+- [List 嵌套类型](stdlib53-b149-list-nested-schema.md)：跨容器不可变元数据链。
+- [List 共享图](stdlib53-b150-list-shared-graph.md)：私有共享深复制与数据投影。
+- [List 与 Array 恢复](stdlib53-b151-list-recursive-restore.md)：私有混合类型链事务。
+- [类字段共享恢复](stdlib53-b152-class-shared-restore.md)：类字段与容器复用恢复事务。
+- [Nullable 恢复错误](stdlib53-b153-nullable-restore.md)：数据拒绝和运行失败的分离。

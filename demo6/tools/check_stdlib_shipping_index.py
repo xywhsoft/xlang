@@ -53,8 +53,10 @@ def main():
         report_path=report_path.resolve(); report=json.loads(report_path.read_text(encoding='utf-8-sig'))
         assert report['Complete'] and report['InputsUnchanged'],report_path
         assert not report.get('Errors',[]) and not report.get('Failures',[]),report_path
-        for row in report['Inputs']+report.get('Products',[]):
-            path=Path(row['Path']); assert sha(path)==row['Sha256'],path; rechecked+=1
+        for row in report['Inputs']+report.get('Products',[])+report.get('Objects',[]):
+            # PowerShell emits uppercase hexadecimal and Python lowercase.
+            # They encode the same digest; never normalize file contents here.
+            path=Path(row['Path']); assert sha(path)==row['Sha256'].lower(),path; rechecked+=1
             if path.is_relative_to(project):
                 name=path.relative_to(project).as_posix()
                 if name in blobs: assert normal(path.read_bytes())==normal(blobs[name]),name; current.add(name)
