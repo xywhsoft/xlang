@@ -21040,16 +21040,19 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
             "XLIR xvalue collection loop item TypeId is unresolved");
         return 0;
     }
-    managedKey = materializesKey && (dynamicSource ||
-        collectionType->collectionAbi == XL6_IR_COLLECTION_DICT);
+    const XL6_IrType* logicalCollection = dynamicSource
+        ? xl6IrTypeGet(&ctx->module->types,iterator->type) : collectionType;
+    XL6_IrCollectionAbi keyFamily = logicalCollection ? logicalCollection->collectionAbi : XL6_IR_COLLECTION_NONE;
+    managedKey = materializesKey && (node->loopKeyAbi == XL6_IR_LOOP_KEY_DYNAMIC_XVALUE ||
+        node->loopKeyAbi == XL6_IR_LOOP_KEY_STRING_COPY);
     if ( hasKey &&
          (node->loopKeyAbi != (!materializesKey
               ? XL6_IR_LOOP_KEY_DISCARD
-              : dynamicSource
+              : dynamicSource && keyFamily == XL6_IR_COLLECTION_NONE
                 ? XL6_IR_LOOP_KEY_DYNAMIC_XVALUE
-                : managedKey
+                : keyFamily == XL6_IR_COLLECTION_DICT
                   ? XL6_IR_LOOP_KEY_STRING_COPY
-                : collectionType->collectionAbi == XL6_IR_COLLECTION_ARRAY
+                : keyFamily == XL6_IR_COLLECTION_ARRAY
                     ? XL6_IR_LOOP_KEY_ORDINAL_I64
                     : XL6_IR_LOOP_KEY_INTEGER_I64) ||
           node->loopKeyLifetimeAbi != (!materializesKey
@@ -21061,13 +21064,13 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
             "XLIR container loop key projection/lifetime does not match its collection ABI");
         return 0;
     }
-    if ( materializesKey ) keyOp = dynamicSource
-        ? XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_DYNAMIC_XVALUE
-        : managedKey
-          ? XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_STRING_COPY
-          : collectionType->collectionAbi == XL6_IR_COLLECTION_ARRAY
-              ? XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_ORDINAL_I64
-              : XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_I64;
+    if ( materializesKey ) switch (node->loopKeyAbi) {
+    case XL6_IR_LOOP_KEY_DYNAMIC_XVALUE: keyOp=XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_DYNAMIC_XVALUE; break;
+    case XL6_IR_LOOP_KEY_STRING_COPY: keyOp=XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_STRING_COPY; break;
+    case XL6_IR_LOOP_KEY_ORDINAL_I64: keyOp=XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_ORDINAL_I64; break;
+    case XL6_IR_LOOP_KEY_INTEGER_I64: keyOp=XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_I64; break;
+    default: return 0;
+    }
     if ( materializesItem ) switch ( node->loopItemAbi ) {
     case XL6_IR_LOOP_ITEM_CHAR:
         scalarItemProjection = 1;
@@ -21234,7 +21237,7 @@ invalidItemProjection:
                    keyTarget->text == NULL || strcmp(keyTarget->text, "_") != 0)
                 : keyTarget->symbol == 0) ||
             xl6IrTypeGet(&ctx->module->types, keyTarget->storageType) == NULL ||
-            (materializesKey && (dynamicSource
+            (materializesKey && (node->loopKeyAbi == XL6_IR_LOOP_KEY_DYNAMIC_XVALUE
                 ? !xl6IrLowerTypeIsDynamicXValueBuiltin(
                       ctx->module, keyTarget->storageType)
                 : managedKey
@@ -21350,7 +21353,11 @@ invalidItemProjection:
                           node->loopResourceType, iteratorStateSymbol,
                           NULL, 0, &loadedState) ) return 0;
     if (materializesKey) {
-        key = xl6IrLowerEmitRuntimeCall(ctx, keyTargetId, keyTarget->storageType, keyOp, &loadedState, 1);
+        /* Typed keys on a physical var cursor carry the same independently
+         * verified family as acquisition. Never retag the cursor's storage. */
+        key = xl6IrLowerEmitRuntimeCallPayload(ctx,keyTargetId,keyTargetId,keyTarget->storageType,
+            keyOp,NULL,dynamicSource && node->loopKeyAbi != XL6_IR_LOOP_KEY_DYNAMIC_XVALUE
+                ? iterator->type : XL6_IR_TYPE_INVALID,&loadedState,1);
         if (key == XL6_IR_VALUE_INVALID || !xl6IrLowerInitializeIterationTarget(
                 ctx, id, node, keyTargetId, key, node->loopKeyLifetimeAbi)) return 0;
     }

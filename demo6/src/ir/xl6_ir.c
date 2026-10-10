@@ -17890,6 +17890,15 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
                (logicalIteratorType->paramCount == 1 &&
                 logicalIteratorType->params == NULL))) )
             return XL6_IR_LOOP_ABI_NONE;
+        XL6_IrCollectionAbi logicalFamily = iterator->type != iterator->storageType
+            ? logicalIteratorType->collectionAbi : XL6_IR_COLLECTION_NONE;
+        bool keyOnly = logicalFamily == XL6_IR_COLLECTION_DICT && targets->childCount == 1;
+        XL6_IrLoopKeyAbi resolvedKey = logicalFamily == XL6_IR_COLLECTION_ARRAY
+            ? XL6_IR_LOOP_KEY_ORDINAL_I64 : logicalFamily == XL6_IR_COLLECTION_LIST
+            ? XL6_IR_LOOP_KEY_INTEGER_I64 : logicalFamily == XL6_IR_COLLECTION_DICT
+            ? XL6_IR_LOOP_KEY_STRING_COPY : XL6_IR_LOOP_KEY_DYNAMIC_XVALUE;
+        if (logicalFamily == XL6_IR_COLLECTION_SET && targets->childCount != 1)
+            return XL6_IR_LOOP_ABI_NONE;
         if ( targets->childCount == 1 ) {
             const XL6_IrNode* onlyTarget = xl6IrNodeGet(
                 module, module->children[targets->firstChild]);
@@ -17904,11 +17913,17 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
             int discardedTarget = targets->childCount == 2
                 ? (i == 0 ? discardKey : discardItem)
                 : discardItem;
+            bool key = i == 0 && (keyOnly || targets->childCount == 2);
+            const XL6_IrType* binding = target ? xl6IrTypeGet(&module->types,target->storageType) : NULL;
+            bool admitted = key && resolvedKey == XL6_IR_LOOP_KEY_STRING_COPY
+                ? binding && binding->kind == XL6_IR_TYPE_BUILTIN && binding->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+                    binding->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
+                : key && (resolvedKey == XL6_IR_LOOP_KEY_INTEGER_I64 || resolvedKey == XL6_IR_LOOP_KEY_ORDINAL_I64)
+                ? binding && binding->cAbi == XL6_IR_C_ABI_I64 && binding->nullAbi == XL6_IR_NULL_ABI_NONE &&
+                    binding->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL
+                : target && xl6IrTypeIsDynamicXValueBuiltin(module,target->storageType);
             if ( target == NULL || target->kind != XL6_IR_NODE_NAME ||
-                 (!discardedTarget &&
-                  (target->symbol == 0 ||
-                   !xl6IrTypeIsDynamicXValueBuiltin(
-                       module, target->storageType))) )
+                 (!discardedTarget && (target->symbol == 0 || !admitted)) )
                 return XL6_IR_LOOP_ABI_NONE;
         }
         for ( i = 0; i < module->types.count; ++i ) {
@@ -17924,12 +17939,12 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
         if ( iteratorStateType == XL6_IR_TYPE_INVALID )
             return XL6_IR_LOOP_ABI_NONE;
         if ( errorAbi != NULL ) *errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
-        if ( keyAbi != NULL ) *keyAbi = targets->childCount == 2
-            ? (discardKey
+        if ( keyAbi != NULL ) *keyAbi = keyOnly || targets->childCount == 2
+            ? ((keyOnly ? discardItem : discardKey)
                 ? XL6_IR_LOOP_KEY_DISCARD
-                : XL6_IR_LOOP_KEY_DYNAMIC_XVALUE)
+                : resolvedKey)
             : XL6_IR_LOOP_KEY_NONE;
-        if ( itemAbi != NULL ) *itemAbi = discardItem
+        if ( itemAbi != NULL ) *itemAbi = keyOnly ? XL6_IR_LOOP_ITEM_NONE : discardItem
             ? XL6_IR_LOOP_ITEM_DISCARD
             : targets->childCount == 1
                 ? XL6_IR_LOOP_ITEM_DYNAMIC_LOGICAL_XVALUE
@@ -17937,7 +17952,7 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
         if ( resourceAbi != NULL )
             *resourceAbi = XL6_IR_LOOP_RESOURCE_XVALUE_ITERATOR_DESTROY;
         if ( resourceType != NULL ) *resourceType = iteratorStateType;
-        return targets->childCount == 1
+        return keyOnly ? XL6_IR_LOOP_ABI_XVALUE_ITERATOR_KEY : targets->childCount == 1
             ? XL6_IR_LOOP_ABI_XVALUE_ITERATOR_VALUE
             : XL6_IR_LOOP_ABI_XVALUE_ITERATOR_KEY_VALUE;
     }
@@ -22217,6 +22232,46 @@ int xl6IrValueIteratorAdvanceRuntimeInstructionCompatible(
         iterator->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL &&
         iterator->paramCount==1 && iterator->params &&
         xl6IrTypeGet(&module->types,iterator->params[0])!=NULL;
+}
+
+/* A scalar/string key on a physical var cursor must prove the family of its
+ * actual acquisition, not just assert a second TypeId. The hidden local has
+ * one immutable initialization from CHECKED_CREATE; there is no cursor cast,
+ * shared source carrier retag, or backend reconstruction of this proof. */
+static const XL6_IrType* xl6IrCheckedIteratorKeyLogicalType(
+    const XL6_IrModule* module,const XL6_IrInstruction* instruction)
+{
+    if (!module || !instruction || instruction->operandCount!=1 || !module->operands ||
+        instruction->firstOperand>=module->operandCount || !instruction->payloadType) return NULL;
+    const XL6_IrInstruction* source=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+    const XL6_IrType* cursor=source ? xl6IrTypeGet(&module->types,source->type) : NULL;
+    const XL6_IrType* logical=xl6IrTypeGet(&module->types,instruction->payloadType);
+    const XL6_IrStorage* storage=source ? xl6IrStorageGet(module,source->targetSymbol) : NULL;
+    if (!source || source->kind!=XL6_IR_INSTR_LOAD || source->operandCount ||
+        !storage || storage->kind!=XL6_IR_STORAGE_LOCAL || storage->type!=source->type || storage->cellType ||
+        !cursor || cursor->kind!=XL6_IR_TYPE_VALUE_ITERATOR || cursor->paramCount!=1 || !cursor->params ||
+        !xl6IrTypeIsDynamicXValueBuiltin(module,cursor->params[0]) ||
+        !logical || !logical->typeValueId || logical->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+        logical->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
+        (logical->kind!=XL6_IR_TYPE_BUILTIN && logical->kind!=XL6_IR_TYPE_GENERIC_INSTANCE) ||
+        logical->paramCount>1 || (logical->paramCount && !logical->params)) return NULL;
+    XL6_IrRuntimeOp expected=logical->collectionAbi==XL6_IR_COLLECTION_ARRAY
+        ? XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_ORDINAL_I64 : logical->collectionAbi==XL6_IR_COLLECTION_LIST
+        ? XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_I64 : logical->collectionAbi==XL6_IR_COLLECTION_DICT
+        ? XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_STRING_COPY : XL6_IR_RUNTIME_NONE;
+    if (instruction->runtimeOp!=expected || expected==XL6_IR_RUNTIME_NONE) return NULL;
+    const XL6_IrInstruction* initialize=NULL;
+    for (size_t i=0;i<module->instructionCount;++i) {
+        const XL6_IrInstruction* item=&module->instructions[i];
+        if (item->kind!=XL6_IR_INSTR_STORE || item->targetSymbol!=source->targetSymbol) continue;
+        if (initialize || item->type!=source->type || item->operandCount!=1 ||
+            item->firstOperand>=module->operandCount) return NULL;
+        initialize=xl6IrValueDefinition(module,module->operands[item->firstOperand],NULL);
+        if (!initialize || initialize->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+            initialize->runtimeOp!=XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED ||
+            initialize->type!=source->type || initialize->payloadType!=instruction->payloadType) return NULL;
+    }
+    return initialize ? logical : NULL;
 }
 
 int xl6IrCollectionCountRuntimeOpIs(XL6_IrRuntimeOp operation)
@@ -37716,6 +37771,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                           instruction->runtimeOp == XL6_IR_RUNTIME_ARRAY_CREATE ||
                           instruction->runtimeOp ==
                               XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED ||
+                          xl6IrCheckedIteratorKeyLogicalType(module,instruction) != NULL ||
                           instruction->runtimeOp ==
                               XL6_IR_RUNTIME_XVALUE_PROJECT_TAGGED_NULLABLE_COPY ||
                           instruction->runtimeOp ==
@@ -39089,6 +39145,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_DYNAMIC_XVALUE;
                         int rawItemProjection = instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_ITERATOR_ITEM_BORROW;
+                        const XL6_IrType* checkedKey = !itemProjection && instruction->payloadType
+                            ? xl6IrCheckedIteratorKeyLogicalType(module,instruction) : NULL;
+                        if (checkedKey) collectionType=checkedKey;
                         XL6_IrCAbi expectedCAbi =
                             instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ITERATOR_ITEM_U64
                                 ? XL6_IR_C_ABI_U64
@@ -39114,7 +39173,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                               instruction->targetSymbol != 0 ||
                               instruction->targetValue != XL6_IR_VALUE_INVALID ||
                               instruction->calleeType != XL6_IR_TYPE_INVALID ||
-                              instruction->payloadType != XL6_IR_TYPE_INVALID ||
+                              (instruction->payloadType != XL6_IR_TYPE_INVALID && !checkedKey) ||
                              instruction->opcode != XL6_IR_OPCODE_INVALID ||
                              instruction->immediateText != NULL ||
                              iteratorType == NULL ||

@@ -1,0 +1,12 @@
+func refinedArrayOnly(var values) as int
+    int count = 0
+    if values is array
+        for key, value in values
+            assert(key == count)
+            assert(int(value) == count + 10)
+            count += 1
+        end
+    end
+    return count
+end
+assert(refinedArrayOnly([10, 11]) == 2)

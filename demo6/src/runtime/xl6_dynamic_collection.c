@@ -2,6 +2,8 @@
 #include "src/runtime/xl6_text_value.h"
 #include "src/runtime/xl6_array_erased.h"
 #include "src/runtime/xl6_array_methods.h"
+#include "src/runtime/xl6_list.h"
+#include "src/runtime/xl6_list_methods.h"
 #include "src/runtime/xl6_value_contains.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdint.h>
@@ -46,8 +48,22 @@ xvalue* xl6DynamicCollectionCallTakeV1(xvalue* source,unsigned operation,xvalue*
     }
     if (!source || (arg1 && !arg0) || !xl6DynamicCollectionArityV1(operation,!!arg0+!!arg1)) xrtSetErrorKind(XERR_ARGUMENT);
     else {
-        xvaluetype type=xrtValueType(source); bool array=type==XVALUE_ARRAY || type==XVALUE_HANDLE;
-        switch (operation) {
+        xvaluetype type=xrtValueType(source);
+        int list=xl6ListErasedProbeV1(source);
+        bool array=type==XVALUE_ARRAY;
+        /* HANDLE is a physical carrier, never a collection family. Authenticate
+         * the resident Array role before dispatch, without touching foreign raw
+         * pointers or treating List/Stack/iterator handles as contiguous arrays. */
+        if (!list && type==XVALUE_HANDLE) {
+            XL6_Sequence* owner=NULL; XL6_SequenceLayoutV1 layout;
+            const xvalueconverter* converter=NULL;
+            int status=xl6SequenceBeginErasedArrayV1(source,&owner,&layout,&converter);
+            if (owner) xl6SequenceEndV1(owner);
+            if (status<0) xl6ErrorScopeCaptureFailure(&transaction);
+            array=status==1;
+        }
+        if (list<0) xl6ErrorScopeCaptureFailure(&transaction);
+        if (!transaction.failed) switch (operation) {
         case XL6_DYNAMIC_COLLECTION_PUSH:
             if (array) { ok=xl6ArrayValueAppendTakeV1(source,arg0); arg0=NULL; }
             else xrtSetErrorKind(XERR_TYPE);
@@ -57,12 +73,14 @@ xvalue* xl6DynamicCollectionCallTakeV1(xvalue* source,unsigned operation,xvalue*
             else if (!xrtGetError()) xrtSetErrorKind(XERR_TYPE);
             break;
         case XL6_DYNAMIC_COLLECTION_REMOVE:
-            required=array;
             if (array && integer(arg0,&first) && (!arg1 || integer(arg1,&second)))
                 ok=xl6ArrayMethodRemoveV1(source,first,second);
-            else if (!arg1 && type==XVALUE_INT_MAP && integer(arg0,&first)) ok=xrtValueIntMapRemove(source,first);
-            else if (!arg1 && type==XVALUE_SET) ok=xrtValueSetRemove(source,arg0);
-            else if (!arg1 && type==XVALUE_OBJECT && string(arg0,&text)) ok=xrtValueObjectRemove(source,text);
+            else if (!arg1 && (list || type==XVALUE_INT_MAP) && integer(arg0,&first)) {
+                required=false; ok=xl6ListValueRemoveV1(source,first);
+            } else if (!arg1 && type==XVALUE_SET) { required=false; ok=xrtValueSetRemove(source,arg0); }
+            else if (!arg1 && type==XVALUE_OBJECT && string(arg0,&text)) {
+                required=false; ok=xrtValueObjectRemove(source,text);
+            }
             else if (!xrtGetError()) xrtSetErrorKind(XERR_TYPE);
             break;
         case XL6_DYNAMIC_COLLECTION_REMOVE_VALUE:
@@ -76,17 +94,16 @@ xvalue* xl6DynamicCollectionCallTakeV1(xvalue* source,unsigned operation,xvalue*
             ok=result!=NULL; break;
         case XL6_DYNAMIC_COLLECTION_TAKE:
             if (array && integer(arg0,&first)) result=xl6ArrayMethodTakeV1(source,first,false);
-            else if (type==XVALUE_INT_MAP && integer(arg0,&first)) {
-                result=xrtValueIntMapTake(source,first);
-                if (!result && !xrtGetError() && !transaction.failed) result=xrtValueRetain(xrtValueNull());
-            } else if (type==XVALUE_OBJECT && string(arg0,&text)) {
+            else if ((list || type==XVALUE_INT_MAP) && integer(arg0,&first)) result=xl6ListValueTakeV1(source,first);
+            else if (type==XVALUE_OBJECT && string(arg0,&text)) {
                 result=xrtValueObjectTake(source,text);
                 if (!result && !xrtGetError() && !transaction.failed) result=xrtValueRetain(xrtValueNull());
             } else if (!xrtGetError()) xrtSetErrorKind(XERR_TYPE);
             ok=result!=NULL; break;
         case XL6_DYNAMIC_COLLECTION_CLEAR:
             if (array) ok=xl6ArrayMethodClearV1(source);
-            else if (type==XVALUE_INT_MAP || type==XVALUE_SET || type==XVALUE_OBJECT) ok=xrtValueClear(source);
+            else if (list || type==XVALUE_INT_MAP) ok=xl6ListValueClearV1(source);
+            else if (type==XVALUE_SET || type==XVALUE_OBJECT) ok=xrtValueClear(source);
             else xrtSetErrorKind(XERR_TYPE);
             break;
         case XL6_DYNAMIC_COLLECTION_RESERVE:
@@ -102,7 +119,7 @@ xvalue* xl6DynamicCollectionCallTakeV1(xvalue* source,unsigned operation,xvalue*
             else xrtSetErrorKind(XERR_TYPE);
             break;
         case XL6_DYNAMIC_COLLECTION_CONTAINS:
-            required=false; ok=xl6ValueContainsV1(source,arg0); break;
+            required=false; ok=list ? xl6ListValueContainsV1(source,arg0) : xl6ValueContainsV1(source,arg0); break;
         case XL6_DYNAMIC_COLLECTION_INDEX_OF:
             if (array) index=xl6ArrayMethodIndexOfV1(source,arg0);
             else xrtSetErrorKind(XERR_TYPE);

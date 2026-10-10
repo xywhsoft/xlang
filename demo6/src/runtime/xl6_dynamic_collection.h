@@ -25,7 +25,9 @@ typedef enum XL6_DynamicCollectionOpV1 {
 #endif
 /* Borrowed receiver, BOTH arguments consumed on every path (including invalid
  * arity/opcode/receiver). Owned result; NULL is failure, never null data.
- * Native Array dispatch uses the sealed Sequence protocol, not payload casts.
+ * Native Array/List dispatch authenticates the resident family, not HANDLE
+ * payload casts. List exposes only remove(key), take(key), clear and contains;
+ * Array-only methods and two-argument range removal cannot mutate a List.
  * Missing map keys return null/false, empty Array pop and bad bounds raise.
  * Destructive operations may commit before a destructor reports failure. */
 XL6_DYNAMIC_COLLECTION_API xvalue* xl6DynamicCollectionCallTakeV1(xvalue*,unsigned,xvalue*,xvalue*);

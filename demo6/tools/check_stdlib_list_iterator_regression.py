@@ -26,15 +26,14 @@ def main():
     host=root/'test/cases/xlir_module_product_oom_host.c'
     support=a.expect_support.resolve() if a.expect_support else root/'test/cases/stdlib_list_iterator_expect.c'
     memory=root/'test/support/module_product_memory.c'
-    pending=root/'test/fixtures/native_stack_batch_rejected/list_refined_pair_pending.xl'
-    files={Path(__file__).resolve(),Path(sys.executable),manifest,cc,driver,product,host,support,memory,pending}
+    files={Path(__file__).resolve(),Path(sys.executable),manifest,cc,driver,product,host,support,memory}
     files.update(root/'test/cases'/(name+'.xl') for name,*_ in fixtures)
     files.update(root/'tools'/name for name in scripts)
     for row in build['Inputs']+build['Headers']+build['Objects']:
         assert sha(row['Path'])==row['Sha256'].lower(),row['Path']; files.add(Path(row['Path']))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(files)]
     out.mkdir(); rows=[]; report=dict(Complete=False,InputsUnchanged=False,Scope=__doc__,Inputs=inputs,Rows=rows,
-        ShippingProductAcceptance=False,Full53Complete=False,PendingRefinedListPair=True)
+        ShippingProductAcceptance=False,Full53Complete=False)
     env=dict(os.environ); suffix='.exe' if os.name=='nt' else ''
     if os.name=='nt': shutil.copy2(product,out/'xl.dll')
     else: env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
@@ -73,9 +72,6 @@ def main():
                 run(tag+'.build',[cc,*flags,'-O'+str(level),'-include',generated,'-include',support,
                     host,obj,*objects,*links,'-o',binary])
                 assert 'balanced' in run(tag+'.run',[binary])
-        message=run('pending.refined-pair',[driver,pending,'cgen-default',out/'pending.c'],reject=True)
-        assert 'XLIR for loop has no admitted canonical iterator ABI' in message
-        assert not (out/'pending.c').exists()
         report['InputsUnchanged']=all(sha(r['Path'])==r['Sha256'] for r in inputs)
         assert report['InputsUnchanged']; report['Complete']=True
     except Exception as error: report['Error']=repr(error); print(error,file=sys.stderr)
