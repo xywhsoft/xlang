@@ -154,7 +154,9 @@ foreach ( $projection in @(
     }
 }
 if ( ([regex]::Matches($generated,
-        "=\s*xlir_xvalue_iterator_create\(v\d+\);")).Count -ne 5 -or
+        "=\s*xl6ListValueIteratorCreateV1\(v\d+\);")).Count -ne 3 -or
+     ([regex]::Matches($generated,
+        "=\s*xlir_xvalue_iterator_create\(v\d+\);")).Count -ne 2 -or
      ([regex]::Matches($generated,
         "=\s*xlir_xvalue_iterator_advance\(v\d+, &v\d+\);")).Count -ne 5 -or
      ([regex]::Matches($generated,

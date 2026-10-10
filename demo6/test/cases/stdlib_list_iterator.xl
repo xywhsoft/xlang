@@ -1,0 +1,48 @@
+int iteratorCleanups = 0
+func visitList(list<string> values) as int
+    int visits = 0
+    try
+        for key, value in values
+            assert(key == -9223372036854775808 or key == 0 or key == 9223372036854775807)
+            assert(value == "a\0你")
+            visits += 1
+            if visits == 1
+                values.clear()
+            end
+        end
+        return visits
+    finally
+        iteratorCleanups += 1
+    end
+end
+func visitErased(var values) as int
+    int visits = 0
+    try
+        for key, value in values
+            assert(int(key) == -9223372036854775808 or int(key) == 0 or int(key) == 9223372036854775807)
+            assert(string(value) == "a\0你")
+            visits += 1
+        end
+        return visits
+    finally
+        iteratorCleanups += 1
+    end
+end
+func visitBreak(list<string> values) as int
+    try
+        for key, value in values
+            assert(key == -9223372036854775808 or key == 0 or key == 9223372036854775807)
+            assert(value == "a\0你")
+            return 1
+        end
+        return 0
+    finally
+        iteratorCleanups += 1
+    end
+end
+list<string> initial = [-9223372036854775808: "a\0你", 0: "a\0你", 9223372036854775807: "a\0你"]
+assert(visitErased(initial) == 3)
+assert(visitBreak(initial) == 1)
+assert(visitList(initial) == 3)
+assert(initial.length == 0)
+assert(iteratorCleanups == 3)

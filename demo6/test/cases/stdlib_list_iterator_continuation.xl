@@ -1,0 +1,26 @@
+async func iteratorReady() as int
+    return 1
+end
+async func listLater(list<string> values) as int
+    int ready = await iteratorReady()
+    int count = 0
+    for key, value in values
+        assert(key == -9223372036854775808 or key == 9223372036854775807)
+        assert(value == "a\0你")
+        count += 1
+    end
+    return count
+end
+func listItems(list<string> values) as generator<string>
+    for key, value in values
+        yield value
+    end
+end
+list<string> values = [-9223372036854775808: "a\0你", 9223372036854775807: "a\0你"]
+assert(await listLater(values) == 2)
+int count = 0
+for value in listItems(values)
+    assert(value == "a\0你")
+    count += 1
+end
+assert(count == 2)

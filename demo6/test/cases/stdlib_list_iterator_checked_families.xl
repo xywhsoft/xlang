@@ -1,0 +1,20 @@
+func countSet(var values) as int
+    int count = 0
+    if values is set
+        for value in values
+            count += int(value)
+        end
+    end
+    return count
+end
+func countDict(var values) as int
+    int count = 0
+    if values is dict
+        for _, _ in values
+            count += 1
+        end
+    end
+    return count
+end
+assert(countSet(set{2, 3}) == 5)
+assert(countDict(dict{"a\0b": 3, "tail": 4}) == 2)

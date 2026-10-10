@@ -1062,6 +1062,22 @@ bool xl6ListIteratorAdvanceValueV1(const xvalue* value,const XL6_ListLayoutV1* l
     if (!finish(&scope,owner,success)) { discard(result); return false; }
     *output=result; *outputFound=found; *outputKey=key; return true;
 }
+int xl6ListIteratorSnapshotErasedV1(const xvalue* value,xvalue** output,
+    XL6_ListLayoutV1* outputLayout,uint64_t* outputIdentity)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return -1;
+    ListOwner* owner=NULL; int status=erasedBegin(value,&owner,NULL);
+    if (status!=1) return finish(&scope,NULL,status==0) && status==0 ? 0 : -1;
+    xvalue* result=NULL; XL6_ListLayoutV1 layout=owner->layout;
+    uint64_t identity=layout.identity;
+    /* At most three exclusions; unsigned wrap is defined. Cursor identity is
+     * private metadata, not a language type or a new nominal collection. */
+    do { ++identity; } while (!identity || identity==layout.identity || identity==layout.value.identity);
+    if (!output || *output || !outputLayout || !outputIdentity) xrtSetErrorKind(XERR_ARGUMENT);
+    else result=clonePinned(owner,identity,false,false,0,&scope);
+    if (!finish(&scope,owner,result!=NULL)) { discard(result); return -1; }
+    *output=result; *outputLayout=layout; *outputIdentity=identity; return 1;
+}
 /* One-level explicit data projection. Resident reference children retain
  * their exact identities; a closed graph plan, not this storage boundary,
  * owns recursive persistence/restore. Sorted native iteration is O(n). */

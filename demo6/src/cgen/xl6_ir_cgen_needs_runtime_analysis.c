@@ -12,6 +12,8 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
         if ( !xl6IrCgenInstructionIsReachable(module, i) ) continue;
         if (xl6IrCgenInstructionUsesListMethods(module,&module->instructions[i]))
             needs->needsListMethodsRuntime=1;
+        if (xl6IrCgenListIteratorCreateSymbol(module,&module->instructions[i]))
+            needs->needsListValueIteratorRuntime=1;
         if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
             module->instructions[i].runtimeOp==XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR) {
             needs->needsCallableNativeScalarCodec=1;

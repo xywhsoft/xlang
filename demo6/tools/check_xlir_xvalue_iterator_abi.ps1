@@ -121,7 +121,7 @@ if ( $releaseTotal -ne 27 -or @($cursorSymbols | Select-Object -Unique).Count -n
 if ( $LASTEXITCODE -ne 0 ) { throw "XLIR xvalue iterator Cgen failed" }
 $generated = [System.IO.File]::ReadAllText($cPath, [System.Text.Encoding]::UTF8)
 if ( ([regex]::Matches($generated,
-        "=\s*xlir_xvalue_iterator_create\(v\d+\);")).Count -ne 9 -or
+        "=\s*xl6ListValueIteratorCreateV1\(v\d+\);")).Count -ne 9 -or
      ([regex]::Matches($generated,
         "=\s*xlir_xvalue_iterator_advance\(v\d+, &v\d+\);")).Count -ne 9 -or
      ([regex]::Matches($generated,

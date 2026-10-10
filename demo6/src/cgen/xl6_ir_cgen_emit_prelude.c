@@ -74,6 +74,8 @@ static int xl6IrCgenEmitRuntimePrelude(
         xl6OutputPuts("#include <string.h>\n", out);
     xl6OutputPuts("\n", out);
     if (needs->needsXValueIteratorRuntime) {
+        if (needs->needsListValueIteratorRuntime)
+            xl6OutputPuts("#include <__xl_runtime/xl6_list_value_iterator.h>\n",out);
         if (module->abi.valueIteratorStorageAbi != XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_CHECKED_SNAPSHOT_V2)
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID, "XLIR value iterator storage ABI is unresolved");
         xl6OutputPuts(

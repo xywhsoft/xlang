@@ -368,6 +368,12 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     for (size_t i=0;i<module->instructionCount;++i) {
         const XL6_IrInstruction* instruction=&module->instructions[i];
         XL6_IrTypeId queueId=xl6IrConcurrentQueueInstructionType(module,instruction);
+        const char* listIterator=xl6IrCgenListIteratorCreateSymbol(module,instruction);
+        if (listIterator && xl6IrCgenInstructionIsReachable(module,i) &&
+            !visitor(context,listIterator)) return 0;
+        const char* arrayIterator=xl6IrCgenWireCheckedIteratorCreateSymbol(module,instruction);
+        if (arrayIterator && xl6IrCgenInstructionIsReachable(module,i) &&
+            !visitor(context,arrayIterator)) return 0;
         if (queueId) {
             if (!xl6IrCgenInstructionIsReachable(module,i)) continue;
             if (!xl6IrConcurrentQueueInstructionCompatible(module,instruction)) return 0;

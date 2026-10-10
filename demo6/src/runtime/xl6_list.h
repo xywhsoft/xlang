@@ -91,6 +91,10 @@ XL6_TEXT_API bool xl6ListErasedTrimV1(const xvalue*,int64_t,int64_t*);
  * differ from both List and witness identities. The owned target starts NULL.
  * No wire conversion or source callback is retained. */
 XL6_TEXT_API int xl6ListIteratorCreateErasedV1(const xvalue*,uint64_t,xvalue**,XL6_ListLayoutV1*);
+/* Same checked snapshot, with an internally chosen private cursor identity.
+ * It cannot equal the owner/witness identity or zero. All outputs are private,
+ * start empty, and are published together on success; 0 is unrelated only. */
+XL6_TEXT_API int xl6ListIteratorSnapshotErasedV1(const xvalue*,xvalue**,XL6_ListLayoutV1*,uint64_t*);
 /* Each successful step publishes one owned projection and the complete int64
  * key; EOF publishes found=false, item=NULL, key=0. Private item starts NULL.
  * Failure leaves outputs unchanged and invalidates the snapshot when advancement
