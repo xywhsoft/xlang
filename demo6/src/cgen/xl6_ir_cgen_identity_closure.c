@@ -67,7 +67,7 @@ static int xl6IrCgenNominalIdentitySetUsed(
              xl6IrConcurrentQueueInstructionType(module,instruction))) {
             const XL6_IrType* recipe=xl6IrTypeGet(&module->types,instruction->type);
             if (recipe && recipe->collectionAbi==XL6_IR_COLLECTION_LIST)
-                recipe=xl6IrTypeGet(&module->types,recipe->listValueSchemaType);
+                recipe=xl6IrTypeGet(&module->types,recipe->collectionValueSchemaType);
             if (instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE && recipe)
                 recipe=xl6IrTypeGet(&module->types,recipe->concurrentQueueSchemaType);
             for (size_t depth=0;recipe && depth<=64;++depth) {
@@ -77,7 +77,7 @@ static int xl6IrCgenNominalIdentitySetUsed(
                     recipe->sequenceLayout.abi!=XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1) break;
                 recipe=xl6IrTypeGet(&module->types,recipe->sequenceLayout.baseElementType);
                 if (recipe && recipe->collectionAbi==XL6_IR_COLLECTION_LIST)
-                    recipe=xl6IrTypeGet(&module->types,recipe->listValueSchemaType);
+                    recipe=xl6IrTypeGet(&module->types,recipe->collectionValueSchemaType);
             }
         }
         if (instruction->payloadType != set->targetType) continue;

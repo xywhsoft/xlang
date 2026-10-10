@@ -63,7 +63,7 @@ int main(int argc,char** argv)
         if (!strcmp(f->debugName,"cloneList")) {
             const XL6_IrStorage* p=xl6IrStorageGet(&unit.ir,unit.ir.functionParameters[f->firstParameter]);
             const XL6_IrType* owner=p ? xl6IrTypeGet(&unit.ir.types,p->type) : NULL;
-            const XL6_IrType* schema=owner ? xl6IrTypeGet(&unit.ir.types,owner->listValueSchemaType) : NULL;
+            const XL6_IrType* schema=owner ? xl6IrTypeGet(&unit.ir.types,owner->collectionValueSchemaType) : NULL;
             const XL6_IrType* element=owner ? xl6IrTypeGet(&unit.ir.types,owner->params[0]) : NULL; assert(schema && element);
             xl6OutputPrintf(&out,"#define XL6_COPY_OWNER UINT64_C(0x%016llX)\n"
                 "#define XL6_COPY_SCHEMA UINT64_C(0x%016llX)\n#define XL6_COPY_ELEMENT UINT64_C(0x%016llX)\n",

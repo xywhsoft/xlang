@@ -1,0 +1,46 @@
+class SetRecipeItem
+    int value = 7
+end
+enum SetRecipeEnum as int32
+    low = -2147483648
+    high = 2147483647
+end
+// Signatures must close native TARGET schemas without Array<T> expressions.
+// Native target authority is independent of the legacy language producers.
+func scalarSets(set<bool> a, set<int8> b, set<uint8> c, set<int16> d,
+    set<uint16> e, set<int32> f, set<uint32> g, set<int64> h, set<uint64> i,
+    set<float32> j, set<float64> k, set<char> l, set<string> m, set<bytes> n,
+    set<var> o, set<type> p) as int
+    return 0
+end
+func nullableSets(set<bool?> a, set<int?> b, set<uint64?> c, set<float32?> d,
+    set<float64?> e, set<char?> f, set<string?> g, set<bytes?> h, set<type?> i) as int
+    return 0
+end
+func nativeSets(set<c_char> a, set<c_schar> b, set<c_uchar> c, set<c_short> d,
+    set<c_ushort> e, set<c_int> f, set<c_uint> g, set<c_long> h,
+    set<c_ulong> i, set<c_longlong> j, set<c_ulonglong> k, set<c_size> l,
+    set<c_ssize> m, set<c_ptrdiff> n, set<c_intptr> o, set<c_uintptr> p,
+    set<c_bool> q, set<c_float> r, set<c_double> s, set<c_wchar> t,
+    set<c_int?> u, set<c_float?> v) as int
+    return 0
+end
+func referenceSets(set<SetRecipeItem> a, set<SetRecipeItem?> b,
+    set<SetRecipeEnum> c, set<SetRecipeEnum?> d, set<func(int) as int> e,
+    set<future<int>> f, set<future<int>?> g, set<array<int>> h,
+    set<Stack<string>> i, set<array<array<bytes?>>> j, set<SpscQueue<int>> k) as int
+    return 0
+end
+func erasedSet(set values) as int
+    return values.length
+end
+func pendingSets(set<function> a, set<point> b, set<set<int>> c,
+    set<list<int>> d, set<int>? e) as int
+    return 0
+end
+func genericSet<T>(set<T> values) as int
+    return values.length
+end
+func main(...) as int
+    return 0
+end

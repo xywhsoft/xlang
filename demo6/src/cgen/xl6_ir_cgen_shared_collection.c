@@ -173,7 +173,7 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
             (unsigned)module->operands[instruction->firstOperand+1]);
     } else if (xl6IrListTypedReadRuntimeOpIs(instruction->runtimeOp)) {
         const XL6_IrType* receiver=xl6IrListIndexReceiverType(module,instruction);
-        const XL6_IrType* schema=xl6IrTypeGet(&module->types,receiver->listValueSchemaType);
+        const XL6_IrType* schema=xl6IrTypeGet(&module->types,receiver->collectionValueSchemaType);
         const XL6_IrType* element=xl6IrTypeGet(&module->types,instruction->type);
         xl6OutputPrintf(out,"    v%u = %s(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, v%u);\n",
             (unsigned)instruction->result,xl6IrCgenListTypedReadSymbol(instruction->runtimeOp),

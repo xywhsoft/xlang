@@ -50,7 +50,7 @@ int main(int argc,char** argv)
                 if (type->collectionAbi!=XL6_IR_COLLECTION_LIST || type->paramCount!=1 || !type->params) continue;
                 const XL6_IrType* element=xl6IrTypeGet(&unit.ir.types,type->params[0]);
                 if (!element || element->cAbi!=XL6_IR_C_ABI_MANAGED_STRING || element->kind==XL6_IR_TYPE_NULLABLE) continue;
-                const XL6_IrType* schema=xl6IrTypeGet(&unit.ir.types,type->listValueSchemaType); assert(schema);
+                const XL6_IrType* schema=xl6IrTypeGet(&unit.ir.types,type->collectionValueSchemaType); assert(schema);
                 xl6OutputPrintf(&out,"#define XL6_ITERATE_OWNER 0x%016llXULL\n#define XL6_ITERATE_WITNESS 0x%016llXULL\n#define XL6_ITERATE_ELEMENT 0x%016llXULL\n",
                     (unsigned long long)type->typeValueId,(unsigned long long)schema->typeValueId,
                     (unsigned long long)element->typeValueId); ++bindings;

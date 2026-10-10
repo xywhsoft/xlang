@@ -824,3 +824,5 @@ This boundary batch does not complete Array carrier migration or the 53-module g
 - `sync_xruntime_typed_set.py`：仅同步精确供应方基线的 typed_set 公共和实现段，并重建快照元数据、符号与能力矩阵；不迁移 Core 时间 ABI。
 
 - `check_stdlib_set_native.py`：真实 typed Set owner 与驻留完整域投影，严格 C O0/O2、精确基本／nullable／原生宽度、集合代数、boxed 方法、快照、循环拥有图、Future、首错和清理边界、11 条 raw-slot 与 17 条 boxed 完整 OOM 前缀及八个已编译实现变异；可选 Linux ASan/UBSan。不是语言 carrier 或发布总验收。
+
+- `check_stdlib_set_recipes.py`：真实源码的统一 List/Set 值域与独立键合同，21 项每配方变异、零部分输出/依赖计划拒绝、严格 C O0/O2、完整 OOM 与作用域进入失败前缀；独立目标工厂不启用语言 Set 入口。

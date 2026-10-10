@@ -89,7 +89,7 @@ int main(int argc,char** argv)
     for (size_t i=0;i<unit.ir.types.count;++i) {
         const XL6_IrType* type=&unit.ir.types.items[i];
         if (type->kind!=XL6_IR_TYPE_BUILTIN || type->collectionAbi!=XL6_IR_COLLECTION_LIST) continue;
-        const XL6_IrType* schema=xl6IrTypeGet(&unit.ir.types,type->listValueSchemaType); assert(schema);
+        const XL6_IrType* schema=xl6IrTypeGet(&unit.ir.types,type->collectionValueSchemaType); assert(schema);
         const XL6_IrType* element=xl6IrTypeGet(&unit.ir.types,schema->sequenceLayout.elementType); assert(element);
         xl6OutputPrintf(&out,"#define XL6_REFINED_OWNER 0x%016llXULL\n#define XL6_REFINED_WITNESS 0x%016llXULL\n#define XL6_REFINED_ELEMENT 0x%016llXULL\n",
             (unsigned long long)type->typeValueId,(unsigned long long)schema->typeValueId,

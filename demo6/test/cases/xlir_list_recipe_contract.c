@@ -69,16 +69,19 @@ int main(int argc,char** argv)
         XL6_IrType* type=&ir.types.items[i]; XL6_IrTypeId id=(XL6_IrTypeId)(i+1),schemaId=0;
         XL6_IrNominalIdentitySetId set=0;
         if (!xl6IrListConstructionRecipe(&ir,id,&schemaId,&set)) {
-            refused(&ir,id); if (type->listValueSchemaType) ++pending; continue;
+            refused(&ir,id); if (type->collectionValueSchemaType) ++pending; continue;
         }
         ++recipes; factories+=listFactories(&ir,id,0); if (!type->paramCount) ++erased;
-        XL6_IrType* schema=&ir.types.items[schemaId-1]; XL6_IrTypeId savedId=type->listValueSchemaType;
+        assert(type->setKeyAbi==XL6_IR_SET_KEY_NONE);
+        type->setKeyAbi=XL6_IR_SET_KEY_FUTURE_IDENTITY_V1;
+        refused(&ir,id); assert(!xl6IrVerifyModule(&ir,NULL)); type->setKeyAbi=XL6_IR_SET_KEY_NONE;
+        XL6_IrType* schema=&ir.types.items[schemaId-1]; XL6_IrTypeId savedId=type->collectionValueSchemaType;
         assert(schemaId==savedId && schema->collectionAbi==XL6_IR_COLLECTION_ARRAY && schema->paramCount==1);
         layouts|=1u<<(unsigned)schema->sequenceLayout.abi;
         size_t before=ir.types.count;
         assert(xl6IrTypeInternArray(&ir.types,schema->params[0])==schemaId && ir.types.count==before);
-        type->listValueSchemaType=0; refused(&ir,id); assert(!xl6IrVerifyModule(&ir,NULL)); ++mutations;
-        type->listValueSchemaType=savedId;
+        type->collectionValueSchemaType=0; refused(&ir,id); assert(!xl6IrVerifyModule(&ir,NULL)); ++mutations;
+        type->collectionValueSchemaType=savedId;
         XL6_IrTypeId other=0;
         for (size_t j=0;j<ir.types.count;++j) {
             const XL6_IrType* candidate=&ir.types.items[j];
@@ -87,8 +90,8 @@ int main(int argc,char** argv)
             if (candidate->sequenceLayout.slotAbi==schema->sequenceLayout.slotAbi &&
                 candidate->sequenceLayout.transferAbi==schema->sequenceLayout.transferAbi) { other=(XL6_IrTypeId)(j+1); ++sameSlot; break; }
         }
-        assert(other); type->listValueSchemaType=other; refused(&ir,id); assert(!xl6IrVerifyModule(&ir,NULL)); ++mutations;
-        type->listValueSchemaType=savedId; XL6_IrSequenceLayout saved=schema->sequenceLayout;
+        assert(other); type->collectionValueSchemaType=other; refused(&ir,id); assert(!xl6IrVerifyModule(&ir,NULL)); ++mutations;
+        type->collectionValueSchemaType=savedId; XL6_IrSequenceLayout saved=schema->sequenceLayout;
 #define BAD(FIELD,VALUE) do { schema->sequenceLayout.FIELD=(VALUE); refused(&ir,id); \
     assert(!xl6IrVerifyModule(&ir,NULL)); schema->sequenceLayout=saved; ++mutations; } while(0)
         BAD(abi,(XL6_IrSequenceLayoutAbi)UINT32_MAX); BAD(role,XL6_IR_SEQUENCE_ROLE_STACK);
