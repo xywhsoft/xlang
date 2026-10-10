@@ -66,6 +66,7 @@
 - [Set 语言入口与原生载体迁移](stdlib53-b192-set-source.md)：原生工厂、静态方法、代数与独立错误合同、checked 导入和受支持恢复；不关闭 Dict 或发布总验收。
 - [Dict 原生存储与生命周期底座](stdlib53-b193-native-dict.md)：精确字符串键、完整值域、独立 typed 快照、真实拥有边与 checked 退役；语言 Dict 工厂、方法、导入和恢复仍待迁移。
 - [Dict 驻留投影与动态值边界](stdlib53-b194-dict-projection.md)：不可变驻留转换、动态方法、拥有键快照和显式单层导入导出；语言配方、图消费者和恢复仍待迁移。
+- [Dict 通用消费者与宿主拥有图接入](stdlib53-b195-dict-consumers.md)：原生遍历、共享图复制与投影、通用动态方法及实际宿主解析器；语言 Dict 工厂与恢复继续迁移。
 - [List 方法接入与集合异常合同](stdlib53-b174-list-methods-language.md)：checked 驻留方法、may-raise 和真实 C/JIT/continuation 验证；工厂、动态分发及恢复仍待切换。
 - [List 元素准入与目标构造合同](stdlib53-b173-list-target-recipes.md)：XLIR 精确元素 witness、泛型闭包和目标工厂；错误元数据与分配/作用域失败批处理验证，源载体尚未切换。
 - [List 原生动态方法与快照迭代](stdlib53-b172-list-erased-native.md)：复用 typed List 存储与游标，checked 动态方法、完整稀疏键和单步拥有投影；语言载体切换仍待完成。

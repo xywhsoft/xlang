@@ -84,6 +84,13 @@ XL6_TEXT_API int xl6DictIteratorSnapshotErasedV1(const xvalue*,bool,xvalue**,XL6
  * the borrowed-key ValueIterator extension ABI; that integration is separate. */
 XL6_TEXT_API bool xl6DictIteratorAdvanceValueV1(const xvalue*,const XL6_DictLayoutV1*,uint64_t,
     bool*,xvalue**,xstrview*);
+/* Resident ValueIterator bridge only: identical checked step with a key view
+ * owned by the immutable snapshot's storage. No per-step key allocation. The
+ * private view cannot outlive its cursor and is invalidated by the carrier's
+ * next advance/clear/destroy. Language string results are independent copies,
+ * not a borrow facility. Never xrtFree the returned key.Data. */
+XL6_TEXT_API bool xl6DictIteratorAdvanceViewV1(const xvalue*,const XL6_DictLayoutV1*,uint64_t,
+    bool*,xvalue**,xstrview*);
 /* Explicit ONE-level XVALUE_OBJECT snapshot, not var erasure or recursive
  * persistence. References remain actual references, keys preserve empty/NUL.
  * Nested native children require a closed graph/persistence provider. */

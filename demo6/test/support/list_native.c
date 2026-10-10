@@ -1,5 +1,6 @@
 /* Selected real XRT/xruntime bodies, no mirrored ABI or test container. */
 #define XRUNTIME_MODULE_TYPED_LIST
+#define XRUNTIME_MODULE_TYPED_DICT
 #define XRUNTIME_MODULE_TYPED_LIST_VALUE
 #define XRUNTIME_MODULE_TYPED_SET
 #define XRUNTIME_MODULE_TYPED_SET_VALUE

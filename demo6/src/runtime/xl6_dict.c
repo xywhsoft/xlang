@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_dict.h"
+#include "src/runtime/xl6_dict_graph_access.h"
 #include "src/runtime/xl6_array_admission.h"
 #include "src/runtime/xl6_array_reference_value.h"
 #include "src/api/xl_foreign_error.h"
@@ -760,8 +761,8 @@ int xl6DictIteratorSnapshotErasedV1(const xvalue* value,bool reverse,xvalue** ou
     if (!finish(&scope,owner,result!=NULL)) { discard(result); return -1; }
     *output=result; *outputLayout=layout; *outputIdentity=identity; return 1;
 }
-bool xl6DictIteratorAdvanceValueV1(const xvalue* value,const XL6_DictLayoutV1* layout,
-    uint64_t identity,bool* outputFound,xvalue** output,xstrview* outputKey)
+static bool advanceValue(const xvalue* value,const XL6_DictLayoutV1* layout,
+    uint64_t identity,bool* outputFound,xvalue** output,xstrview* outputKey,bool ownedKey)
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
     DictOwner* owner=identity ? begin(value,layout,identity) : NULL;
@@ -776,12 +777,73 @@ bool xl6DictIteratorAdvanceValueV1(const xvalue* value,const XL6_DictLayoutV1* l
         advanced=true; ok=cursorAdvancePinned(owner,&found,&scope);
         if (ok && found) {
             result=projectedSlot(owner,owner->current); ok=result!=NULL;
-            if (ok) { key.Size=owner->currentKey.Size; key.Data=xrtStrDupView(owner->currentKey); ok=key.Data!=NULL; }
+            if (ok) {
+                key=owner->currentKey;
+                if (ownedKey) { key.Data=xrtStrDupView(key); ok=key.Data!=NULL; }
+            }
         }
     }
     if (owner && advanced && (!ok || xrtGetError() || scope.failed)) { owner->failed=true; cursorEnd(owner); }
-    if (!finish(&scope,owner,ok)) { discard(result); xrtFree((ptr)key.Data); return false; }
+    if (!finish(&scope,owner,ok)) { discard(result); if (ownedKey) xrtFree((ptr)key.Data); return false; }
     *output=result; *outputFound=found; *outputKey=key; return true;
+}
+bool xl6DictIteratorAdvanceValueV1(const xvalue* value,const XL6_DictLayoutV1* layout,
+    uint64_t identity,bool* found,xvalue** item,xstrview* key)
+{ return advanceValue(value,layout,identity,found,item,key,true); }
+bool xl6DictIteratorAdvanceViewV1(const xvalue* value,const XL6_DictLayoutV1* layout,
+    uint64_t identity,bool* found,xvalue** item,xstrview* key)
+{ return advanceValue(value,layout,identity,found,item,key,false); }
+
+int xl6DictGraphBeginV1(const xvaluehandleops* ops,ptr raw,ptr user,uint64_t identity,XL6_DictGraphViewV1* view)
+{
+    if (!view || view->owner) { xrtSetErrorKind(XERR_ARGUMENT); return -1; }
+    if (ops!=&handleOps) return 0;
+    if (!raw || user) { xrtSetErrorKind(XERR_STATE); return -1; }
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    DictOwner* owner=raw; bool success=false,rejected=false;
+    if (owner->cursorIdentity || identity!=owner->layout.identity) xrtSetErrorKind(XERR_STATE);
+    else if (pin(owner,0)) {
+        if (!owner->projected) rejected=true;
+        else { *view=(XL6_DictGraphViewV1){owner,owner->layout,owner->storage}; success=true; }
+    }
+    mutationEnd(&mutation);
+    if (rejected) { end(owner); xrtSetErrorKind(XERR_STATE); }
+    return success ? 1 : -1;
+}
+void xl6DictGraphEndV1(XL6_DictGraphViewV1* view)
+{
+    if (!view || !view->owner) abort();
+    DictOwner* owner=view->owner; *view=(XL6_DictGraphViewV1){0}; end(owner);
+}
+static DictOwner* graphOwner(const XL6_DictGraphViewV1* view)
+{
+    DictOwner* owner=view ? view->owner : NULL;
+    if (!owner || !xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE) || owner->cleared ||
+        !owner->projected || owner->storage!=view->storage || !sameLayout(&owner->layout,&view->layout)) {
+        xrtSetErrorKind(XERR_STATE); return NULL;
+    }
+    return owner;
+}
+xvalue* xl6DictGraphEmptyV1(const XL6_DictGraphViewV1* view)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) {
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return NULL;
+    }
+    DictOwner* owner=graphOwner(view); XL6_SequenceAdmissionV3 policy={0}; xvalue* result=NULL;
+    if (owner && owner->policy.ops->Retain(owner->policy.data)) {
+        policy=owner->policy;
+        xtypeddict* storage=xrtTypedDictCreate(owner->storage->ItemType);
+        if (storage) result=wrap(storage,&owner->layout,&policy,0,false,owner->projection,true);
+    }
+    xl6SequenceAdmissionDropV3(&policy);
+    if (!scopeFinish(&scope,result!=NULL)) { discard(result); return NULL; }
+    return result;
+}
+xvalue* xl6DictGraphProjectSlotV1(const XL6_DictGraphViewV1* view,const void* slot)
+{
+    DictOwner* owner=graphOwner(view); if (!owner) return NULL;
+    if (owner->layout.value.transfer==3 || !slot) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
+    return projectedSlot(owner,slot);
 }
 static xvalue* wirePinned(DictOwner* owner)
 {
