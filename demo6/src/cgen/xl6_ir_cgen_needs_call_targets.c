@@ -227,11 +227,6 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             needs->needsXValueRuntime = 1;
             needs->needsXValueArrayRuntime = 1;
         } else if ( target->runtimeBridge ==
-                        XL6_IR_RUNTIME_BRIDGE_DYNAMIC_FIELDS ) {
-            needs->needsDynamicFieldsBridgeRuntime = 1;
-            needs->needsStringViews = 1;
-            needs->needsXValueRuntime = 1;
-        } else if ( target->runtimeBridge ==
                         XL6_IR_RUNTIME_BRIDGE_XVALUE_TABLE_REMOVE ) {
             needs->needsXValueTableRemoveBridgeRuntime = 1;
             needs->needsStringViews = 1;

@@ -1,6 +1,7 @@
 #define XL6_GRAPH_FIXTURE_MAIN xl6PersistenceGraphFixtureMain
 #include "test/cases/stdlib_array_graph_native_host.c"
 #include "src/runtime/xl6_persistence_project.h"
+#include "src/runtime/xl6_dynamic_fields.h"
 
 static const XL6_PersistenceFieldV1 projectedFields[]={
     {XRT_STR_LITERAL("native"),XRT_STR_LITERAL("n\0ative"),0},
@@ -12,11 +13,8 @@ static const XL6_PersistenceFieldV1 projectedFields[]={
     {XRT_STR_LITERAL("zero"),XRT_STR_LITERAL("skipZero"),XL6_PERSIST_OMIT_EMPTY_V1}
 };
 #if XL6_PROJECT_OPEN
-static void dropFields(ptr raw,ptr user)
-{ assert(!user); xrtDynamicFieldsUnref(raw); }
-static const xvaluehandleops fieldsOps={NULL,dropFields,NULL,NULL};
-static const XL6_PersistenceOpenV1 openFields={XRT_STR_LITERAL("storage"),XRT_STR_LITERAL("handle"),&fieldsOps};
-static const XL6_PersistenceOpenV1 mutateOpen={XRT_STR_LITERAL("unused"),XRT_STR_LITERAL("unused"),&fieldsOps};
+static const XL6_PersistenceOpenV1 openFields={XRT_STR_LITERAL("storage"),XRT_STR_LITERAL("handle")};
+static const XL6_PersistenceOpenV1 mutateOpen={XRT_STR_LITERAL("unused"),XRT_STR_LITERAL("unused")};
 static xrtdynamicfields* mutationFields;
 static bool projectMutating(const XL6_PersistenceOpenV1* open,xvaluegraphnextv1* next,xvalue* result)
 {
@@ -68,7 +66,7 @@ static xvalue* projectSource(xvalue* native, bool open)
         /* Declared fields win after extras, including renamed target keys. */
         assert(xrtDynamicFieldsSetRefNew(fields,XRT_STR_LITERAL("text"),xrtValueInt(99)));
         assert(xrtDynamicFieldsSetRefNew(fields,XRT_STR_LITERAL("e\0xtra"),xrtValueString(XRT_STR_LITERAL("\0你"))));
-        ptr raw=fields; xvalue* handle=xrtValueHandleTake(&raw,&fieldsOps,NULL),*storage=xrtValueObject();
+        ptr raw=fields; xvalue* handle=xl6NativeHandleTakeV1(&raw,xl6DynamicFieldsHandlePolicyV1Get()),*storage=xrtValueObject();
         assert(handle && !raw && storage);
         assert(xrtValueObjectSetTake(storage,XRT_STR_LITERAL("handle"),&handle));
         assert(xrtValueObjectSetTake(result,XRT_STR_LITERAL("storage"),&storage));

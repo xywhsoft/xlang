@@ -29,6 +29,7 @@ typedef struct XL6_IrDirectBridgeContract {
     XL6_IrCAbi resultFutureElementAbi;
     const char* nativeHandlePolicy;
     XL6_IrCallNativeArrayResultAbi nativeArrayResultAbi;
+    XL6_IrCallErrorPhysicalAbi errorPhysicalAbi;
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -46,6 +47,28 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
      * Checked calls propagate the original thread error before the language
      * wrapper considers its boolean-only I/O fallback. */
     {"xl6_xrt_print",XL6_IR_RUNTIME_BRIDGE_PRINT,B,2,{V,B},.parameterDynamicBorrows={1,0}},
+    {"xl6_xrt_dynamic_fields_create",T,V,0,{0},.resultOwner="xl6_xrt_dynamic_fields_destroy"},
+    {"xl6_xrt_dynamic_fields_wrap",T,V,1,{XL6_IR_C_ABI_RAW_POINTER},.resultOwner="xl6_xrt_dynamic_fields_destroy"},
+    {"xl6_xrt_dynamic_fields_from_value",T,V,1,{V},.resultOwner="xl6_xrt_dynamic_fields_destroy",.parameterDynamicBorrows={1},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+    {"xl6_xrt_dynamic_fields_destroy",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.nativeHandlePolicy="xl6DynamicFieldsHandlePolicyV1Get",.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+    {"xl6_xrt_dynamic_fields_native_handle",T,XL6_IR_C_ABI_RAW_POINTER,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
+    {"xl6_xrt_dynamic_fields_count",T,I,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
+    {"xl6_xrt_dynamic_fields_capacity",T,I,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
+    {"xl6_xrt_dynamic_fields_reserve",T,B,2,{V,I},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
+    {"xl6_xrt_dynamic_fields_trim",T,B,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
+    {"xl6_xrt_dynamic_fields_clear",T,B,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+    {"xl6_xrt_dynamic_fields_has",T,B,2,{V,S},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
+    {"xl6_xrt_dynamic_fields_get",T,V,2,{V,S},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
+    {"xl6_xrt_dynamic_fields_copy",T,V,2,{V,S},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+    {"xl6_xrt_dynamic_fields_set",T,B,3,{V,S,V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.parameterDynamicBorrows={0,0,1},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+    {"xl6_xrt_dynamic_fields_remove",T,B,2,{V,S},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+    {"xl6_xrt_dynamic_fields_take",T,V,2,{V,S},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
+    {"xl6_xrt_dynamic_fields_keys",T,V,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"}},
+    {"xl6_xrt_dynamic_fields_values",T,V,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+    {"xl6_xrt_dynamic_fields_items",T,V,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+    {"xl6_xrt_dynamic_fields_to_value",T,V,1,{V},.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+    {"xl6_xrt_dynamic_fields_merge",T,B,3,{V,V,B},.parameterOwners={"xl6_xrt_dynamic_fields_destroy","xl6_xrt_dynamic_fields_destroy"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+    {"xl6_xrt_dynamic_fields_clone",T,V,1,{V},.resultOwner="xl6_xrt_dynamic_fields_destroy",.parameterOwners={"xl6_xrt_dynamic_fields_destroy"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
     {"xl6BufferCreateV1",T,V,0,{0},.resultOwner="xl6BufferDestroyV1"},
     {"xl6BufferCreateReserveV1",T,V,1,{I},.resultOwner="xl6BufferDestroyV1"},
     {"xl6BufferAdoptV1",T,V,1,{XL6_IR_C_ABI_RAW_POINTER},.resultOwner="xl6BufferDestroyV1"},
@@ -610,6 +633,15 @@ XL6_IrErrorAbi xl6IrRuntimeDirectBridgeErrorAbi(const char* name)
     return c && !c->noRaise
         ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
 }
+XL6_IrCallErrorPhysicalAbi xl6IrRuntimeDirectBridgeErrorPhysicalAbi(const char* name)
+{
+    const XL6_IrDirectBridgeContract* c = xl6IrDirectBridgeContract(name);
+    if (!c) return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
+    if (c->noRaise) return XL6_IR_CALL_ERROR_PHYSICAL_NONE;
+    if (c->errorPhysicalAbi) return c->errorPhysicalAbi;
+    return c->nativeArrayResultAbi ? XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT
+        : XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR;
+}
 const char* xl6IrRuntimeDirectBridgeParameterOwner(const char* name, size_t index)
 {
     const XL6_IrDirectBridgeContract* c = xl6IrDirectBridgeContract(name);
@@ -675,9 +707,7 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
             xl6IrRuntimeDirectBridgeErrorAbi(contract->name) ||
         target->nativeArrayResultAbi != contract->nativeArrayResultAbi ||
         (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
-         target->errorPhysicalAbi != (target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE
-            ? (contract->nativeArrayResultAbi ? XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT
-                : XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR) : XL6_IR_CALL_ERROR_PHYSICAL_NONE)) ||
+         target->errorPhysicalAbi != xl6IrRuntimeDirectBridgeErrorPhysicalAbi(contract->name)) ||
         (contract->resultOwner
             ? (target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE ||
                !target->resultPhysicalDestroySymbol ||

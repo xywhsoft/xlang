@@ -37,16 +37,17 @@ foreach ($name in $cases) {
     }
     if ($name -in @("cgen_runtime_type_baseline", "xlir_open_object_field_lifetime")) {
         $factory = @($module.callTargets | Where-Object { $_.cName -eq "xl6_xrt_dynamic_fields_create" })
-        if ($factory.Count -ne 1 -or $factory[0].runtimeBridgeName -ne "dynamic-fields" -or
+        if ($factory.Count -ne 1 -or $factory[0].runtimeBridgeName -ne "text-value" -or
             $factory[0].resultPhysicalAbiName -ne "native-class-field-take" -or
             $factory[0].parameterCount -ne 0 -or $factory[0].resultPhysicalDestroySymbol -eq 0 -or
             $factory[0].resultPhysicalFieldDeclaration -eq 0 -or
             $types[$factory[0].returnType].ownershipAbi -ne 2 -or
-            $factory[0].errorAbiName -ne "no-raise") {
+            $factory[0].errorAbiName -ne "may-raise") {
             throw "Dynamic fields factory lacks verified owned native-result adapter"
         }
         if (!$c.Contains('#include <__xl_runtime/xruntime_decl.h>') -or
-            !$c.Contains('static void* xl6_xrt_dynamic_fields_create(void)') -or
+            $c.Contains('static void* xl6_xrt_dynamic_fields_create(void)') -or
+            !$c.Contains('xl6DynamicFieldsHandlePolicyV1Get') -or
             $c -match 'extern\s+void\*\s+xrtDynamicFieldsCreate' -or
             @($module.callTargets | Where-Object { $_.cName -eq "xrtDynamicFieldsCreate" }).Count -ne 0) {
             throw "Dynamic fields bypasses the exact public opaque-pointer ABI"

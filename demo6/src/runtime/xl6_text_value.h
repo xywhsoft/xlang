@@ -13,6 +13,32 @@
 
 struct xlir_closure;
 struct xfuture;
+struct XL6_NativeHandlePolicyV1;
+/* Existing DynamicFields class: resident private C linkage. Names are exact
+ * byte spans; adoption of a raw point transfers one native strong owner. */
+XL6_TEXT_API void* xl6_xrt_dynamic_fields_create(void);
+XL6_TEXT_API void* xl6_xrt_dynamic_fields_wrap(void*);
+XL6_TEXT_API void* xl6_xrt_dynamic_fields_from_value(const xvalue*);
+XL6_TEXT_API void xl6_xrt_dynamic_fields_destroy(void*);
+XL6_TEXT_API void* xl6_xrt_dynamic_fields_native_handle(void*);
+XL6_TEXT_API int64_t xl6_xrt_dynamic_fields_count(void*);
+XL6_TEXT_API int64_t xl6_xrt_dynamic_fields_capacity(void*);
+XL6_TEXT_API bool xl6_xrt_dynamic_fields_reserve(void*, int64_t);
+XL6_TEXT_API bool xl6_xrt_dynamic_fields_trim(void*);
+XL6_TEXT_API bool xl6_xrt_dynamic_fields_clear(void*);
+XL6_TEXT_API bool xl6_xrt_dynamic_fields_has(void*, xstrview);
+XL6_TEXT_API xvalue* xl6_xrt_dynamic_fields_get(void*, xstrview);
+XL6_TEXT_API xvalue* xl6_xrt_dynamic_fields_copy(void*, xstrview);
+XL6_TEXT_API bool xl6_xrt_dynamic_fields_set(void*, xstrview, const xvalue*);
+XL6_TEXT_API bool xl6_xrt_dynamic_fields_remove(void*, xstrview);
+XL6_TEXT_API xvalue* xl6_xrt_dynamic_fields_take(void*, xstrview);
+XL6_TEXT_API xvalue* xl6_xrt_dynamic_fields_keys(void*);
+XL6_TEXT_API xvalue* xl6_xrt_dynamic_fields_values(void*);
+XL6_TEXT_API xvalue* xl6_xrt_dynamic_fields_items(void*);
+XL6_TEXT_API xvalue* xl6_xrt_dynamic_fields_to_value(void*);
+XL6_TEXT_API bool xl6_xrt_dynamic_fields_merge(void*, void*, bool);
+XL6_TEXT_API void* xl6_xrt_dynamic_fields_clone(void*);
+XL6_TEXT_API const struct XL6_NativeHandlePolicyV1* xl6DynamicFieldsHandlePolicyV1Get(void);
 /* Immutable, allocation-free physical descriptors, selected independently.
  * They encode null presence, not raw padding or source-language TypeIds. */
 XL6_TEXT_API const xrttype* xl6NullableBoolTypeV1(void);

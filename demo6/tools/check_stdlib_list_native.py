@@ -19,6 +19,7 @@ def main():
     parser.add_argument('--restore',action='store_true',help='Mixed-family shared import memo and explicit JSON/XLON leaf restoration')
     parser.add_argument('--restore-plan',action='store_true',help='Closed class-field/collection nodes in one shared restore transaction; implies --restore')
     parser.add_argument('--module-read',action='store_true',help='Actual host Module/entry/read white-box gate; implies --restore-plan, no generated binding/TCC/product claim')
+    parser.add_argument('--module-read-host',type=Path,help='Explicit test-only host override; compiled providers still come from root')
     parser.add_argument('--modes',help='Comma-separated subset of declared vectors; empty selects none. Recorded as focused validation, never the full native gate')
     parser.add_argument('--operations',help='Comma-separated subset of declared complete OOM prefixes; empty selects none. Recorded as focused validation')
     parser.add_argument('--batch-plan-prefixes',action='store_true',help='Run each plan OOM prefix in one process, with a separate verified ledger per attempt')
@@ -52,7 +53,11 @@ def main():
     if args.restore_plan:
         sources+=['test/cases/stdlib_restore_plan_native_host.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_code_lease.c',
             'src/runtime/xl6_restore_class.c','src/runtime/xl6_restore_class_closed.c']
-    if args.module_read: sources+=['test/cases/stdlib_restore_module_read_host.c']
+    if args.module_read: sources+=['test/cases/stdlib_restore_module_read_host.c',
+        'src/runtime/xl6_dynamic_fields.c','src/runtime/xl6_native_handle.c']
+    if args.module_read_host:
+        assert args.module_read
+        sources[sources.index('test/cases/stdlib_restore_module_read_host.c')]=args.module_read_host.resolve()
     files={Path(__file__).resolve(),Path(cc),Path(nm),Path(sys.executable)}
     files.update(root/name for name in sources)
     for folder in ('src/runtime','src/api','release/include','lib/xrt','lib/xruntime','test/support'):

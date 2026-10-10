@@ -15,13 +15,12 @@ typedef struct XL6_PersistenceFieldV1 {
     uint32_t flags;
 } XL6_PersistenceFieldV1;
 
-/* Open-object storage is admitted by an exact native ops identity before
+/* Open-object storage is admitted by an exact resident policy identity before
  * dereferencing its payload. This does not certify arbitrary opaque handles.
  * ProjectExtras is a resident provider; closed plans do not link its module. */
 typedef struct XL6_PersistenceOpenV1 {
     xstrview storage;
     xstrview handle;
-    const xvaluehandleops* ops;
 } XL6_PersistenceOpenV1;
 typedef struct XL6_PersistenceSchemaV1 {
     uint64_t identity;

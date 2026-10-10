@@ -3,6 +3,7 @@
  * Module destruction and unmapping remain the host EndCall tail, not here. */
 #include "src/api/xl_module_state.h"
 #include "src/runtime/xl6_code_lease.h"
+#include "src/runtime/xl6_dynamic_fields.h"
 #include <limits.h>
 #include <stdlib.h>
 /* Actual host entry references, not a synthetic pause/root list. Storage
@@ -90,7 +91,16 @@ static bool xlModuleReadAdmits(const XL6_OwnershipReadScopeV1* scope,xrtownershi
     const XL_Module* module;
     size_t count;
     if (scope != xl__moduleRead || !scope || scope->self != scope ||
-        scope->thread != xrtThreadCurrentId() || ref.Ops != &xlModuleOwnershipOps || !ref.Data) return false;
+        scope->thread != xrtThreadCurrentId() || !ref.Data) return false;
+    /* A module lease reaches its complete globals, not just the wire target.
+     * Certify the newly resident field family BEFORE Count/Trace. Keep these
+     * two exact adapters explicit: no generic lifetime resolver, arbitrary
+     * policy getter, inferred leaf or authorization of other resources. */
+    if (ref.Ops != &xlModuleOwnershipOps) {
+        const XL6_NativeHandlePolicyV1* policy=xl6DynamicFieldsHandlePolicyV1Get();
+        return xrtDynamicFieldsOwnershipAdapterV1(ref) ||
+            xrtValueHandleOwnershipAdapterV1(ref,policy->Ops,policy->Trace);
+    }
     module = ref.Data;
     return module->retirementContract && xlModuleReadQuiescent(module) &&
         xlModuleOwnershipCount(module,&count);

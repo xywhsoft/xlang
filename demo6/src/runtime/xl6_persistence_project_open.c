@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_persistence_project.h"
+#include "src/runtime/xl6_dynamic_fields.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdlib.h>
 
@@ -26,14 +27,14 @@ static bool projectField(xstrview key,const xvalue* borrowed,ptr user)
 bool xl6PersistenceProjectOpenV1(const XL6_PersistenceOpenV1* open,
     xvaluegraphnextv1* next, xvalue* result)
 {
-    if (!open || !open->ops || !next || !result) {
+    if (!open || !next || !result) {
         xrtSetErrorKind(XERR_ARGUMENT); return false;
     }
     const xvalue* storage=xrtValueGraphObjectGetV1(next,open->storage);
     const xvalue* boxed=storage ? xrtValueObjectGet(storage,open->handle) : NULL;
     ptr raw=NULL; const xvaluehandleops* ops=NULL; ptr user=NULL;
     if (!boxed || !xrtValueGetHandle(boxed,&raw,&ops,&user) ||
-        ops!=open->ops || !raw || user) {
+        ops!=xl6DynamicFieldsHandlePolicyV1Get()->Ops || !raw || user) {
         if (!xrtGetError()) xrtSetErrorKind(XERR_TYPE);
         return false;
     }

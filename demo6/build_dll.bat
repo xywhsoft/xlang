@@ -161,6 +161,8 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_text_binary.c ^
     src\runtime\xl6_buffer_value.c ^
     src\runtime\xl6_buffer_iterator.c ^
+    src\runtime\xl6_dynamic_fields.c ^
+    src\runtime\xl6_dynamic_fields_copy.c ^
     src\runtime\xl6_buffer_hex.c ^
     src\runtime\xl6_buffer_base64.c ^
     src\runtime\xl6_buffer_core.c ^
@@ -375,6 +377,8 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_text_binary.c ^
     src\runtime\xl6_buffer_value.c ^
     src\runtime\xl6_buffer_iterator.c ^
+    src\runtime\xl6_dynamic_fields.c ^
+    src\runtime\xl6_dynamic_fields_copy.c ^
     src\runtime\xl6_buffer_hex.c ^
     src\runtime\xl6_buffer_base64.c ^
     src\runtime\xl6_buffer_core.c ^

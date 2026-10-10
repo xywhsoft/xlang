@@ -385,21 +385,6 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
             "}\n\n",
             out);
     }
-    if ( needs->needsDynamicFieldsBridgeRuntime ) {
-        xl6OutputPuts(
-            "static void* xl6_xrt_dynamic_fields_create(void)\n"
-            "{ return xrtDynamicFieldsCreate(); }\n"
-            "static void xl6_xrt_dynamic_fields_destroy(void* handle)\n"
-            "{ xrtDynamicFieldsUnref((xrtdynamicfields*)handle); }\n"
-            "static xvalue* xl6_xrt_dynamic_fields_get(void* handle, xlir_string name)\n"
-            "{\n"
-            "    xvalue* value = xrtDynamicFieldsGetRef((const xrtdynamicfields*)handle, name);\n"
-            "    return value != NULL ? value : xrtValueNull();\n"
-            "}\n"
-            "static bool xl6_xrt_dynamic_fields_set(void* handle, xlir_string name, xvalue* value)\n"
-            "{ return xrtDynamicFieldsSetRef((xrtdynamicfields*)handle, name, value); }\n\n",
-            out);
-    }
     if ( needs->needsPrintRuntime ) {
         xl6OutputPuts("extern bool xl6_xrt_print(xvalue*, bool);\n", out);
     }

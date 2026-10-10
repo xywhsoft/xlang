@@ -151,9 +151,15 @@ static void readThreads(unsigned mode)
     xl6CodeLeaseRelease(w.lease); readLeave(&call);
     assert(!readModule.codeLeases && !readModule.activeCalls);
 }
+static void foreignFieldsDrop(ptr raw,ptr user) { (void)raw; (void)user; }
 static void readRefusals(void)
 {
     readInit(); XL6_ModuleCall outer={0},inner={0}; readEnter(&outer); readEnter(&inner);
+    void* raw=xl6_xrt_dynamic_fields_create(); assert(raw);
+    void* fields=raw;
+    xvalue* boxed=xl6NativeHandleTakeV1(&raw,xl6DynamicFieldsHandlePolicyV1Get()); assert(boxed && !raw);
+    static const xvaluehandleops foreignFields={.Drop=foreignFieldsDrop}; raw=(void*)1;
+    xvalue* foreign=xrtValueHandleTake(&raw,&foreignFields,NULL); assert(foreign);
     XL6_OwnershipReadScopeV1 read={0},nested={0}; xrtownershipscope freeze={0}; size_t count=0;
     assert(xlModuleReadBegin(&read)==XL6_OWNERSHIP_READ_READY_V1);
     assert(xlModuleReadBegin(&nested)==XL6_OWNERSHIP_READ_BUSY_V1 && !nested.self && !nested.thread);
@@ -161,6 +167,10 @@ static void readRefusals(void)
     assert(xlModuleReadAdmits(&read,(xrtownershipref){&readModule,&xlModuleOwnershipOps}));
     assert(xlModuleOwnershipCount(&readModule,&count) && count==3); /* handle + TWO real entries */
     XL6_OwnershipReadScopeV1 copied=read;
+    assert(xlModuleReadAdmits(&read,xrtDynamicFieldsOwnership(fields)));
+    assert(xlModuleReadAdmits(&read,xrtValueOwnership(boxed)));
+    assert(!xlModuleReadAdmits(&copied,xrtDynamicFieldsOwnership(fields)));
+    assert(!xlModuleReadAdmits(&read,xrtValueOwnership(foreign)) && !unknownReads);
     assert(!xlModuleReadAdmits(&copied,(xrtownershipref){&readModule,&xlModuleOwnershipOps}));
     assert(!xlModuleReadAdmits(&read,(xrtownershipref){&readModule,&unknownOps}) && !unknownReads);
     readModule.ownershipReadContract=NULL;
@@ -172,6 +182,7 @@ static void readRefusals(void)
     assert(!xlModuleReadAdmits(&read,(xrtownershipref){&readModule,&xlModuleOwnershipOps})); readModule.retirementRunning=0;
     assert(xrtOwnershipScopeEnd(&freeze)); xlModuleReadEnd(&read);
     assert(!read.self && !read.thread && !xl__moduleRead && !xlModuleOwnershipCount(&readModule,&count));
+    xrtValueRelease(boxed); xrtValueRelease(foreign);
     readLeave(&inner); readLeave(&outer);
     readOwner.ops=&unknownOps; XL6_ModuleCall call={0}; readEnter(&call);
     XL6_RestoreNodeV1 nodes[2]; XL6_RestoreFieldV1 field; XL6_RestorePlanV1 plan=readPlan(nodes,&field,true,false);
