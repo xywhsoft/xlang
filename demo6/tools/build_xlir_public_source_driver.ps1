@@ -66,6 +66,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_restore_class_closed.c',
     'src/runtime/xl6_restore_open.c',
     'src/runtime/xl6_list.c',
+    'src/runtime/xl6_dict.c',
     'src/runtime/xl6_list_methods.c',
     'src/runtime/xl6_list_value_iterator.c',
     'src/runtime/xl6_list_value_read.c','src/runtime/xl6_value_index_read.c','src/runtime/xl6_value_index_write.c',
