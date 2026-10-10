@@ -254,11 +254,18 @@ static bool fill(Import* ctx,size_t depth,xvalue* value,XL6_Sequence* target,con
         if (depth+1<ctx->count && !ctx->templates[depth+1].provider &&
             (!ctx->plan || (ctx->plan->flags&XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1)) &&
             !languageArrayConversion(&ctx->templates[depth+1],item,&erasedArray)) goto done;
+        bool erasedFamily=false;
+        if (depth+1<ctx->count && ctx->plan &&
+            (ctx->plan->flags&XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1)) {
+            const Template* child=&ctx->templates[depth+1];
+            if (child->provider && child->provider->InputConversion &&
+                !child->provider->InputConversion(child->context,item,&erasedFamily)) goto done;
+        }
         bool wireList=depth+1<ctx->count && ctx->plan &&
             (ctx->plan->flags&XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1) &&
             ctx->templates[depth+1].provider && ctx->templates[depth+1].provider->InputBegin &&
             xrtValueType(item)==XVALUE_INT_MAP;
-        if (depth+1<ctx->count && (xrtValueType(item)==XVALUE_ARRAY || wireList || erasedArray)) {
+        if (depth+1<ctx->count && (xrtValueType(item)==XVALUE_ARRAY || wireList || erasedArray || erasedFamily)) {
             converted=convert(ctx,depth+1,item);
             if (!converted) goto done;
             item=converted;

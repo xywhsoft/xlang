@@ -137,6 +137,43 @@ static void languageMixed(void)
         assert(a && a==b && a!=any); languageObserved(imported,2,profile);
         xrtValueRelease(a); xrtValueRelease(b); xrtValueRelease(imported); xrtValueRelease(raw); xrtValueRelease(any);
     }
+    /* Native ANY List is the corresponding sparse erasure boundary. Mixed
+     * Array/List ancestors must use the same memo, preserving full keys and
+     * aliases while leaving the source child independent. */
+    for (unsigned profile=0;profile<9;++profile) {
+        xvalue* targets[MAX]={0}; const XL6_CollectionImportProviderV1* adapters[MAX]={0};
+        seeds(targets,adapters,3,profile);
+        XL6_ListLayoutV1 layout={UINT64_C(0xFA01),
+            {UINT64_C(0xFA02),UINT64_C(0xFA03),3,sizeof(xvalue*),xrtTypeValue()}};
+        xvalue* domain=xl6SequenceReferenceCreateV1(1,layout.value.identity,
+            layout.value.elementIdentity,XL6_VALUE_ADMIT_ANY,false,layout.value.elementIdentity);
+        xvalue* any=xl6ListProjectionTakeV1(xl6ListCreateTakeV1(&layout,domain),&layout,NULL);
+        xvalue* value=languageLeaf(profile); assert(any && value);
+        assert(xl6ListErasedSetV1(any,INT64_MIN,value)); xrtValueRelease(value);
+        if (nullable(profile)) assert(xl6ListErasedSetV1(any,INT64_MAX,xrtValueNull()));
+        xvalue* middle=xrtValueArray(),*raw=xrtValueIntMap();
+        assert(middle && raw && xrtValueArrayAppend(middle,any) && xrtValueArrayAppend(middle,any));
+        assert(xrtValueIntMapSet(raw,INT64_MIN,middle) && xrtValueIntMapSet(raw,INT64_MAX,middle));
+        XL6_CollectionImportPlanV1 policy=languagePlan(adapters);
+        xvalue* imported=xl6CollectionImportChainTakeV1(targets,3,raw,&policy); assert(imported);
+        languageObserved(imported,3,profile);
+        xvalue* next=item(imported,0,INT64_MIN),*a=item(next,1,0),*b=item(next,1,1);
+        assert(a && a==b && a!=any);
+        xrtValueRelease(a); xrtValueRelease(b); xrtValueRelease(next);
+        xrtValueRelease(imported); xrtValueRelease(raw); xrtValueRelease(middle); xrtValueRelease(any);
+        /* Exact typed List child can be BUSY without forcing a snapshot read. */
+        seeds(targets,adapters,3,profile); xrtValueRelease(targets[0]); targets[0]=NULL;
+        xvalue* source=languageSource(3,profile,true,1);
+        middle=item(source,0,INT64_MIN); any=item(middle,1,0);
+        void* payload=NULL; void* user=NULL; const xvaluehandleops* ops=NULL;
+        XL6_ListGraphViewV1 pin={0}; assert(xrtValueGetHandle(any,&payload,&ops,&user));
+        assert(xl6ListGraphBeginV1(ops,payload,user,xrtValueTypeId(any),&pin)==1);
+        policy=languagePlan(adapters+1);
+        imported=xl6CollectionImportChainTakeV1(targets+1,2,middle,&policy); assert(imported);
+        a=item(imported,1,0); assert(a==any); xrtValueRelease(a);
+        xl6ListGraphEndV1(&pin); xrtValueRelease(imported); xrtValueRelease(any);
+        xrtValueRelease(middle); xrtValueRelease(source);
+    }
 }
 static void languageRejected(void)
 {

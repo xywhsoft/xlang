@@ -3,7 +3,8 @@
 Fresh complete source compiler; strict deterministic C, corrupt-IR refusal,
 real pruned O0/O2 execution, whole module allocation prefixes and public JIT.
 No compiler hooks, test factories, runtime overrides or shipping/full53 claim.
-Unsupported Array<List>/List<List> recipes are not opened by this gate.
+Includes closed Array/List mixed factories and shared nested language imports;
+does not claim complete container, shipping-product or full53 acceptance.
 """
 import argparse,hashlib,json,os,re,shutil,subprocess,sys,time
 from pathlib import Path
@@ -21,7 +22,8 @@ def main():
     driver=Path(build['Driver']); assert sha(driver).lower()==build['DriverSha256'].lower()
     product=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     cases=root/'test/cases'
-    fixtures=[cases/(name+'.xl') for name in ('stdlib_list_source_native','stdlib_list_source_factory_only','stdlib_list_methods_array_prune')]
+    fixtures=[cases/(name+'.xl') for name in ('stdlib_list_source_native','stdlib_list_source_factory_only',
+        'stdlib_list_methods_array_prune','stdlib_list_source_mixed')]
     contract=cases/'xlir_list_source_contract.c'; host=cases/'xlir_module_product_oom_host.c'
     memory=root/'test/support/module_product_memory.c'
     files={Path(__file__).resolve(),Path(sys.executable),Path(cc),manifest,driver,product,
@@ -64,20 +66,20 @@ def main():
         log=run('contract.run',[binary,*[f.as_posix() for f in fixtures]])
         match=re.search(r'creates=(\d+) imports=(\d+) mutations=(\d+)',log); assert match
         report['Producers'],report['Imports'],report['CorruptContractsRefused']=map(int,match.groups())
-        plans=[json.loads(line) for line in log.splitlines() if line.startswith('{"Fixture":')]; assert len(plans)==3
+        plans=[json.loads(line) for line in log.splitlines() if line.startswith('{"Fixture":')]; assert len(plans)==4
         for index,(fixture,plan) in enumerate(zip(fixtures,plans)):
-            tag=('source','factory','array')[index]; generated=out/(tag+'.c'); repeat=out/(tag+'.repeat.c')
+            tag=('source','factory','array','mixed')[index]; generated=out/(tag+'.c'); repeat=out/(tag+'.repeat.c')
             lowered=out/(tag+'.lowered.json')
             run(tag+'.lowered',[driver,fixture,'ir-lowered',lowered])
             run(tag+'.cgen',[driver,fixture,'cgen-default',generated]); run(tag+'.repeat',[driver,fixture,'cgen-default',repeat])
             assert sha(generated)==sha(repeat)
             text=generated.read_text(encoding='utf-8-sig')
-            if index<2:
+            if index!=2:
                 assert 'xl6ListCreateTakeV1(' in text and 'xrtValueIntMap()' not in text
                 assert not re.search(r'=\s*xlir_xvalue_type_rebind_owned\(',text)
             else: assert 'xl6ListCreateTakeV1(' not in text and 'xl6ListImportProviderV1(' not in text
-            assert ('xl6CollectionImportChainSourceTakeV1(' in text)==(index==0)
-            if index==0: assert 'XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1' in text
+            assert ('xl6CollectionImportChainSourceTakeV1(' in text)==(index in (0,3))
+            if index in (0,3): assert 'XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1' in text
             for level in (0,2):
                 lane=tag+'.O'+str(level); impl=out/(lane+'.runtime.c'); selected=[]
                 impl.write_text(''.join('#define '+s+'\n' for s in plan['NativeModules'])+

@@ -1,6 +1,7 @@
 #include "src/runtime/xl6_list_import_chain.h"
 #include "src/runtime/xl6_list_graph_access.h"
 #include "src/runtime/xl6_array_input.h"
+#include "src/runtime/xl6_array_admission.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdlib.h>
 
@@ -128,5 +129,23 @@ static void inputEnd(XL6_CollectionImportInputV1* source)
     if (!input) return;
     xl6ArrayInputReleaseV1(&input->owned); xrtFree(input->keys); xrtFree(input);
 }
+static bool inputConversion(ptr opaque,const xvalue* source,bool* output)
+{
+    const ListTemplate* target=opaque;
+    /* Authenticate the full destination schema without pinning/reading child
+     * storage. A matching BUSY child therefore remains a normal reference. */
+    if (xl6ListAdmitsSchemaV1(source,&target->view.layout,&target->policy)) {
+        *output=false; return true;
+    }
+    int status=xl6ListErasedProbeV1(source);
+    if (status<0) return false;
+    if (!status) { *output=false; return true; }
+    XL6_ListLayoutV1 layout={0}; XL6_SequenceAdmissionV3 policy={0};
+    if (!xl6ListSchemaCopyV1(source,&layout,&policy)) return false;
+    bool erased=xl6ReferenceAnyAdmissionV1(&policy,layout.value.elementIdentity);
+    xl6SequenceAdmissionDropV3(&policy);
+    if (xrtGetError()) return false;
+    *output=erased; return true;
+}
 const XL6_CollectionImportProviderV1* xl6ListImportProviderV1(void)
-{ static const XL6_CollectionImportProviderV1 provider={begin,end,empty,admits,append,inputBegin,inputEnd}; return &provider; }
+{ static const XL6_CollectionImportProviderV1 provider={begin,end,empty,admits,append,inputBegin,inputEnd,inputConversion}; return &provider; }

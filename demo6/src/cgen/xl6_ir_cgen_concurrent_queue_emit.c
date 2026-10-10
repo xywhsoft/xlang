@@ -55,7 +55,7 @@ static int xl6IrCgenEmitQueueReferenceCreateDepth(XL6_Output* out,const XL6_IrMo
     snprintf(outcome,sizeof(outcome),"xlir_queue_schema_outcome_%u",(unsigned)depth);
     xl6OutputPrintf(out,"    { xvalue* %s = NULL; xl6_error_scope %s = {0};\n"
         "      if (xl6ErrorScopeBegin(&%s)) {\n",seed,scope,scope);
-    if (xl6IrCgenEmitSequenceCreateDepth(out,module,schemaId,seed,set,depth+1,NULL,0,false)<0) return -1;
+    if (xl6IrCgenEmitSequenceCreateDepth(out,module,schemaId,seed,set,depth+1,NULL,0,false,true)<0) return -1;
     xl6OutputPrintf(out,"      if (!%s) xl6ErrorScopeCaptureFailure(&%s);\n"
         "      %s = %s(%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %s);\n"
         "      if (!%s) xl6ErrorScopeCaptureFailure(&%s);\n"
@@ -106,7 +106,7 @@ static int xl6IrCgenEmitConcurrentQueueRuntime(XL6_Output* out,const XL6_IrModul
     switch (instruction->runtimeOp) {
     case XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE:
         xl6OutputPuts("      xvalue* queue_schema = NULL;\n",out);
-        if (xl6IrCgenEmitSequenceCreateDepth(out,module,schemaId,"queue_schema",set,0,NULL,0,false)<0) return -1;
+        if (xl6IrCgenEmitSequenceCreateDepth(out,module,schemaId,"queue_schema",set,0,NULL,0,false,true)<0) return -1;
         xl6OutputPrintf(out,
             "      v%u = %s%s(0x%016llXULL, queue_schema, v%u);\n"
             "      if (v%u == NULL) xl6ErrorScopeCaptureFailure(&queue_scope);\n",

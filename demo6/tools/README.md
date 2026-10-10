@@ -24,20 +24,22 @@ this is not all-language OOM, shipping or full53 acceptance. See
 
 `check_stdlib_list_source.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
 checks actual native List literals, default values and expected-type imports,
-complete sparse keys, alias-preserving native ANY Array conversion, pre-output
+complete sparse keys, alias-preserving native ANY Array/List conversion, pre-output
 IR refusal, deterministic C, public JIT and real pruned O0/O2 artifact plans.
 Every allocation prefix reinitializes/finalizes the module and checks its ledger.
 Linux `--sanitize` instruments the pruned generated program and selected runtime,
-not the whole compiler. Nested List recipes, shipping and full53 remain separate;
-see [Native List language producers](../docs/stdlib53-b184-list-source-native.md).
+not the whole compiler. Closed mixed List/Array recipes are covered; shipping,
+other containers and full53 remain separate. See
+[List and Array mixed recipes](../docs/stdlib53-b185-list-mixed-recipes.md).
 
 `check_stdlib_list_native.py --root <frozen-demo6> --out <fresh-output> --restore --batch-import-prefixes --batch-erased-prefixes --import-mutants`
 checks resident List language inputs separately from compact persistence arrays,
 full int64 sparse keys, exact primitive/reference snapshots, mixed-family memo,
 snapshot retirement and first checked failure preservation. Batched import
-prefixes independently close every allocation ledger. Three real implementation
+prefixes independently close every allocation ledger. Four real implementation
 controls compile before the same vectors reject narrowed keys, lost failure
-latching and invented Append diagnostics. Linux `--sanitize` instruments only the selected native closure.
+latching, invented Append diagnostics and disabled native List erasure.
+Linux `--sanitize` instruments only the selected native closure.
 This is not the List source-factory/cast cutover or shipping/full53 acceptance;
 see [List language inputs](../docs/stdlib53-b183-list-language-input.md).
 

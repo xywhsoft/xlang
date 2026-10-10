@@ -165,7 +165,9 @@ def main():
                  '(void)ok;','restore-language-input-errors'),
                 ('append-failure-invented','src/runtime/xl6_array_import_chain.c',
                  'if (!pushed || !successful(ctx)) xl6ErrorScopeCaptureFailure(ctx->operation);',
-                 'if (!pushed && !xrtGetError()) xrtSetErrorKind(XERR_MEMORY);','restore-language-input-errors')):
+                 'if (!pushed && !xrtGetError()) xrtSetErrorKind(XERR_MEMORY);','restore-language-input-errors'),
+                ('native-list-erasure-disabled','src/runtime/xl6_list_import_chain.c',
+                 '*output=erased; return true;', '*output=erased && false; return true;', 'restore-language-mixed')):
                 body=(root/path).read_text(encoding='utf-8'); assert body.count(before)==1
                 source=out/(name+'.mutant.c'); source.write_text(body.replace(before,after),encoding='utf-8')
                 binary=out/(name+'.mutant'+('.exe' if os.name=='nt' else ''))
@@ -237,7 +239,7 @@ def main():
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
         report['Complete']=not failures and report['InputsUnchanged'] and len(prefixes)==2*len(operations) and (
             not args.erased_mutants or len(report['ErasedImplementationNegativeControls'])==4) and (
-            not args.import_mutants or len(report['ImportImplementationNegativeControls'])==3)
+            not args.import_mutants or len(report['ImportImplementationNegativeControls'])==4)
     except Exception as error:
         report['Error']=repr(error); print(error,file=sys.stderr)
     finally:

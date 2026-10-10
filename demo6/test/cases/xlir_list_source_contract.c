@@ -17,9 +17,9 @@ static void refuse(const XL6_IrModule* ir)
 }
 int main(int argc,char** argv)
 {
-    assert(argc==4);
+    assert(argc==5);
     unsigned creates=0,imports=0;
-    for (unsigned lane=1;lane<4;++lane) {
+    for (unsigned lane=1;lane<5;++lane) {
         XL6_CompileUnit unit; xl6CompileUnitInit(&unit);
         assert(xl6CompileUnitLoadFile(&unit,argv[lane],1));
         /* Erased List vocabulary exists even without an explicit source type;
@@ -36,12 +36,38 @@ int main(int argc,char** argv)
         XL6_IrModule* ir=&unit.ir; XL6_ArtifactRuntimePlan plan={0};
         assert(xl6ArtifactRuntimePlanBuild(ir,XL6_ARTIFACT_ENTRY_CHECKED_MODULE_V1,&plan,&unit.parse.diags));
         assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_LIST_NATIVE)==(lane!=3));
-        assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_LIST_IMPORT_CHAIN)==(lane==1));
+        assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_LIST_IMPORT_CHAIN)==(lane==1 || lane==4));
+        assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_LIST_SCHEMA)==(lane==4));
         if (lane==2) {
             assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_CHAR_VALUE));
             assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_IMPORT_CHAIN));
         }
-        print_plan(lane==1 ? "ListSource" : lane==2 ? "ListFactory" : "ArrayWithoutList",&plan);
+        print_plan(lane==1 ? "ListSource" : lane==2 ? "ListFactory" : lane==3 ? "ArrayWithoutList" : "ListMixed",&plan);
+        unsigned listEdges=0;
+        for (size_t t=0;t<ir->types.count;++t) {
+            XL6_IrType* owner=&ir->types.items[t];
+            if (owner->sequenceLayout.abi!=XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1) continue;
+            ++listEdges;
+            XL6_IrSequenceLayout old=owner->sequenceLayout;
+            owner->sequenceLayout.abi=XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1;
+            refuse(ir); owner->sequenceLayout=old;
+            owner->sequenceLayout.childRole=XL6_IR_SEQUENCE_ROLE_ARRAY;
+            refuse(ir); owner->sequenceLayout=old;
+            XL6_IrType* child=&ir->types.items[old.baseElementType-1];
+            XL6_IrType* schema=&ir->types.items[child->listValueSchemaType-1];
+            owner->sequenceLayout.baseElementType=child->listValueSchemaType;
+            refuse(ir); owner->sequenceLayout=old;
+            /* A hostile cyclic List/value-witness graph must spend the same
+             * finite depth budget, not restart recursion at every family. */
+            XL6_IrTypeId value=child->params[0],witness=schema->params[0];
+            child->params[0]=schema->params[0]=old.baseElementType;
+            assert(xl6IrSequenceLayoutForType(&ir->types,owner).abi==XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN);
+            size_t untouched=99; XL6_IrTypeId entry=777;
+            assert(!xl6IrListImportChainRecipe(ir,old.baseElementType,&entry,1,&untouched));
+            assert(untouched==99 && entry==777); refuse(ir);
+            child->params[0]=value; schema->params[0]=witness;
+        }
+        assert((listEdges>0)==(lane==4));
         for (size_t i=0;i<ir->instructionCount;++i) {
             XL6_IrInstruction* ins=&ir->instructions[i];
             bool importing=ins->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN;

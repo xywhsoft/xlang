@@ -29,10 +29,10 @@ xvalue* xl6SequenceReferenceCreateV1(unsigned int role,uint64_t identity,uint64_
     *data=(XL6_ArrayAdmissionData){.refs=1,.nullable=nullable,.rule=rule,.identity=valueIdentity};
     return create(role,identity,element,data,rule==XL6_VALUE_ADMIT_BYTES && !nullable ? &bytesOps : &policyOps);
 }
-bool xl6SequenceReferenceAnyPolicyV1(XL6_Sequence* owner,uint64_t element)
+bool xl6ReferenceAnyAdmissionV1(const XL6_SequenceAdmissionV3* policy,uint64_t element)
 {
-    XL6_SequenceAdmissionV3 admission={0};
-    if(!xl6SequenceAdmissionCopyV3(owner,&admission)) return false;
+    if (!policy) return false;
+    XL6_SequenceAdmissionV3 admission=*policy;
     bool matches=element && admission.elementIdentity==element && admission.transfer==3 &&
         admission.size==sizeof(xvalue*) && admission.type==xrtTypeValue() &&
         admission.ops==&policyOps && admission.data && !admission.boxedIdentity;
@@ -41,6 +41,12 @@ bool xl6SequenceReferenceAnyPolicyV1(XL6_Sequence* owner,uint64_t element)
         matches=data->rule==XL6_VALUE_ADMIT_ANY && !data->nullable &&
             data->identity==element && !data->childRole && !data->nominal.kind;
     }
-    xl6SequenceAdmissionDropV3(&admission);
     return matches;
+}
+bool xl6SequenceReferenceAnyPolicyV1(XL6_Sequence* owner,uint64_t element)
+{
+    XL6_SequenceAdmissionV3 admission={0};
+    if (!xl6SequenceAdmissionCopyV3(owner,&admission)) return false;
+    bool matches=xl6ReferenceAnyAdmissionV1(&admission,element);
+    xl6SequenceAdmissionDropV3(&admission); return matches;
 }

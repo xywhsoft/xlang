@@ -1,5 +1,5 @@
 /* Real source builder and actual Cgen unity TU, never a synthetic type pool.
- * Proves native target contracts while source List remains on the old carrier. */
+ * Proves complete native target contracts independently of language producers. */
 #include "src/cgen/xl6_ir_cgen.c"
 #include "src/parser/xl6_parser_api.h"
 #include "src/sem/xl6_sem.h"
@@ -31,11 +31,36 @@ static void nominalSets(XL6_Output* out,const XL6_IrModule* ir)
         xl6OutputPrintf(out,"%lu};\n",(unsigned long)set->identityCount);
     }
 }
+/* Independent structural oracle: count actual List owners, not virtual Array
+ * witnesses. Recursive child families spend the same finite depth budget. */
+static unsigned listFactories(const XL6_IrModule* ir,XL6_IrTypeId id,unsigned depth)
+{
+    assert(depth<=64); const XL6_IrType* type=xl6IrTypeGet(&ir->types,id); assert(type);
+    if (type->collectionAbi==XL6_IR_COLLECTION_LIST) {
+        XL6_IrTypeId schema=0; assert(xl6IrListConstructionRecipe(ir,id,&schema,NULL));
+        return 1+listFactories(ir,schema,depth);
+    }
+    const XL6_IrSequenceLayout* p=&type->sequenceLayout;
+    if (p->abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 ||
+        p->abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1)
+        return listFactories(ir,p->baseElementType,depth+1);
+    if (p->abi==XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1) {
+        XL6_IrTypeId key=0,value=0;
+        assert(xl6IrAvlConstructionRecipe(ir,p->baseElementType,&key,&value,NULL,NULL));
+        return listFactories(ir,key,depth+1)+listFactories(ir,value,depth+1);
+    }
+    if (p->abi==XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1) {
+        XL6_IrTypeId schema=0;
+        assert(xl6IrConcurrentQueueConstructionRecipe(ir,p->baseElementType,NULL,&schema,NULL));
+        return listFactories(ir,schema,depth+1);
+    }
+    return 0;
+}
 int main(int argc,char** argv)
 {
     assert(argc==3); XL6_ParseResult parse; XL6_IrModule ir; XL6_Output out;
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
-    int ok=0; unsigned recipes=0,pending=0,mutations=0,descendants=0,sameSlot=0,erased=0,layouts=0;
+    int ok=0; unsigned recipes=0,pending=0,mutations=0,descendants=0,sameSlot=0,erased=0,layouts=0,factories=0;
     if (!xl6ParseFile(argv[1],&parse) || !xl6StdlibExpandModule(parse.root,&parse.diags) ||
         !xl6SemCheckModule(parse.root,&parse.diags,"list_recipe_probe") ||
         !xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags) || !xl6IrLowerModule(&ir,&parse.diags)) goto done;
@@ -46,7 +71,7 @@ int main(int argc,char** argv)
         if (!xl6IrListConstructionRecipe(&ir,id,&schemaId,&set)) {
             refused(&ir,id); if (type->listValueSchemaType) ++pending; continue;
         }
-        ++recipes; if (!type->paramCount) ++erased;
+        ++recipes; factories+=listFactories(&ir,id,0); if (!type->paramCount) ++erased;
         XL6_IrType* schema=&ir.types.items[schemaId-1]; XL6_IrTypeId savedId=type->listValueSchemaType;
         assert(schemaId==savedId && schema->collectionAbi==XL6_IR_COLLECTION_ARRAY && schema->paramCount==1);
         layouts|=1u<<(unsigned)schema->sequenceLayout.abi;
@@ -90,6 +115,7 @@ int main(int argc,char** argv)
         "#include <__xl_runtime/xl6_array_admission.h>\n"
         "#include <__xl_runtime/xl6_array_erased.h>\n"
         "#include <__xl_runtime/xl6_list.h>\n"
+        "#include <__xl_runtime/xl6_list_schema.h>\n"
         "#include <__xl_runtime/xl6_nullable_string.h>\n"
         "#include <__xl_runtime/xl6_product_abi.h>\n"
         "#include <__xl_runtime/xl6_concurrent_queue.h>\n"
@@ -133,8 +159,8 @@ int main(int argc,char** argv)
         "    if (!result.ok) xl6ErrorScopePropagateFailure(result);\n"
         "    return result.ok;\n}\n",&out);
     ok=!xl6OutputHasFailed(&out); xl6OutputClose(&out);
-    printf("List targets: %u complete, %u rejected mutations, %u pending, %u descendants, %u same-slot, %u erased, layouts=%u\n",
-        recipes,mutations,pending,descendants,sameSlot,erased,layouts);
+    printf("List targets: %u complete, %u rejected mutations, %u pending, %u descendants, %u same-slot, %u erased, layouts=%u factories=%u\n",
+        recipes,mutations,pending,descendants,sameSlot,erased,layouts,factories);
 done:
     for (size_t i=0;i<parse.diags.count;++i)
         fprintf(stderr,"%d:%d %s\n",parse.diags.items[i].line,parse.diags.items[i].column,parse.diags.items[i].message);

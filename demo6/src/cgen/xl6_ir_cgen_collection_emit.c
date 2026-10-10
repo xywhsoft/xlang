@@ -604,9 +604,11 @@ static int xl6IrCgenEmitTreeReferenceCreateDepth(XL6_Output*,const XL6_IrModule*
     XL6_IrTypeId,const char*,size_t);
 static int xl6IrCgenEmitQueueReferenceCreateDepth(XL6_Output*,const XL6_IrModule*,
     XL6_IrTypeId,const char*,size_t);
+static int xl6IrCgenEmitListTargetCreateDepth(XL6_Output*,const XL6_IrModule*,
+    XL6_IrTypeId,const char*,XL6_IrNominalIdentitySetId,size_t,const char*,size_t);
 static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* module,
     XL6_IrTypeId typeId,const char* result,XL6_IrNominalIdentitySetId admissionSet,size_t depth,
-    const char* importChain,size_t importCount,bool projectArrays)
+    const char* importChain,size_t importCount,bool projectArrays,bool captureSeed)
 {
     const XL6_IrType* sequence=xl6IrTypeGet(&module->types,typeId);
     XL6_IrNominalIdentitySetId expectedSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
@@ -705,9 +707,23 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
              * on either path and retains only its immutable owned schema. */
             xl6OutputPrintf(out,"    { xvalue* %s = NULL;\n",childResult);
             if (xl6IrCgenEmitSequenceCreateDepth(out,module,plan->baseElementType,
-                childResult,childSet,depth+1,importChain,importCount,projectArrays)<0) return -1;
+                childResult,childSet,depth+1,importChain,importCount,projectArrays,true)<0) return -1;
             xl6OutputPrintf(out,
                 "    %s = xl6SequenceNestedCreateTakeV2(%u, 0x%016llXULL, 0x%016llXULL, %s, %s); }\n",
+                XL6_SEQUENCE_CREATE_IDS,childResult,plan->nullable ? "true" : "false");
+        }
+        break;
+    case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1:
+        {
+            XL6_IrNominalIdentitySetId childSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+            char childResult[48];
+            if (!xl6IrListConstructionRecipe(module,plan->baseElementType,NULL,&childSet)) return -1;
+            snprintf(childResult,sizeof(childResult),"xlir_list_schema_%u",(unsigned)(depth+1));
+            xl6OutputPrintf(out,"    { xvalue* %s = NULL;\n",childResult);
+            if (xl6IrCgenEmitListTargetCreateDepth(out,module,plan->baseElementType,
+                childResult,childSet,depth+1,importChain,importCount)<0) return -1;
+            xl6OutputPrintf(out,
+                "    %s = xl6SequenceListCreateTakeV1(%u, 0x%016llXULL, 0x%016llXULL, %s, %s); }\n",
                 XL6_SEQUENCE_CREATE_IDS,childResult,plan->nullable ? "true" : "false");
         }
         break;
@@ -728,7 +744,7 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
             any || plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN ? "NULL" :
                 xl6IrCgenNativeValueConverterExpr(module,plan->elementType));
     }
-    if (importChain && depth<importCount) {
+    if (captureSeed && importChain && depth<importCount) {
         xl6OutputPrintf(out,
             "    %s[%u] = %s ? xl6ArrayEraseV1(%s, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, %s) : NULL;\n",
             importChain,(unsigned)depth,result,result,(unsigned long long)sequence->typeValueId,
@@ -744,7 +760,7 @@ static int xl6IrCgenEmitSequenceCreate(XL6_Output* out,const XL6_IrModule* modul
     XL6_IrTypeId typeId,XL6_IrValueId result,XL6_IrNominalIdentitySetId admissionSet)
 {
     char target[24]; snprintf(target,sizeof(target),"v%u",(unsigned)result);
-    return xl6IrCgenEmitSequenceCreateDepth(out,module,typeId,target,admissionSet,0,NULL,0,false);
+    return xl6IrCgenEmitSequenceCreateDepth(out,module,typeId,target,admissionSet,0,NULL,0,false,true);
 }
 static int xl6IrCgenEmitArrayCreate(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
@@ -752,7 +768,7 @@ static int xl6IrCgenEmitArrayCreate(XL6_Output* out,const XL6_IrModule* module,
     if (!xl6IrArrayCreateRuntimeInstructionCompatible(module,instruction)) return -1;
     char target[24]; snprintf(target,sizeof(target),"v%u",(unsigned)instruction->result);
     return xl6IrCgenEmitSequenceCreateDepth(out,module,instruction->type,target,
-        instruction->sequenceAdmissionIdentitySet,0,NULL,0,true);
+        instruction->sequenceAdmissionIdentitySet,0,NULL,0,true,true);
 }
 
 /* Explicit data boundary renderer. IR owns the complete chain and physical
@@ -763,12 +779,26 @@ static int xl6IrCgenEmitArrayCreate(XL6_Output* out,const XL6_IrModule* module,
 static int xl6IrCgenEmitArrayImportChain(XL6_Output* out,const XL6_IrModule* module,
     XL6_IrTypeId typeId,XL6_IrValueId result,const char* source,bool sourceOwned)
 {
-    size_t count=0; XL6_IrNominalIdentitySetId set=0;
-    if (!source || !xl6IrArrayImportChainRecipe(module,typeId,NULL,0,&count) ||
+    size_t count=0; XL6_IrTypeId types[65]; XL6_IrNominalIdentitySetId set=0;
+    if (!source || !xl6IrArrayImportChainRecipe(module,typeId,types,65,&count) ||
         !xl6IrSequenceConstructionRecipe(module,typeId,XL6_IR_SEQUENCE_ROLE_ARRAY,&set)) return -1;
+    bool mixed=false;
+    for (size_t i=0;i<count;++i)
+        if (xl6IrTypeGet(&module->types,types[i])->collectionAbi==XL6_IR_COLLECTION_LIST) mixed=true;
     char target[24]; snprintf(target,sizeof(target),"v%u",(unsigned)result);
     xl6OutputPrintf(out,"    { xvalue* xlir_array_import_seeds[%u] = {0};\n",(unsigned)count);
-    if (xl6IrCgenEmitSequenceCreateDepth(out,module,typeId,target,set,0,"xlir_array_import_seeds",count,false)<0) return -1;
+    if (xl6IrCgenEmitSequenceCreateDepth(out,module,typeId,target,set,0,"xlir_array_import_seeds",count,false,true)<0) return -1;
+    if (mixed) {
+        xl6OutputPrintf(out,"    const XL6_CollectionImportProviderV1* xlir_array_import_providers[%u] = {",(unsigned)count);
+        for (size_t i=0;i<count;++i) xl6OutputPrintf(out,"%s%s",i ? "," : "",
+            xl6IrTypeGet(&module->types,types[i])->collectionAbi==XL6_IR_COLLECTION_LIST ? "xl6ListImportProviderV1()" : "NULL");
+        xl6OutputPrintf(out,"};\n    const XL6_CollectionImportPlanV1 xlir_array_import_plan = {sizeof(XL6_CollectionImportPlanV1),"
+            "xlir_array_import_providers,XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1,0,0,false};\n"
+            "    xrtValueRelease(%s);\n    %s = %s(xlir_array_import_seeds,%u,%s,&xlir_array_import_plan); }\n",
+            target,target,sourceOwned ? "xl6CollectionImportChainSourceTakeV1" : "xl6CollectionImportChainTakeV1",
+            (unsigned)count,source);
+        return xl6OutputHasFailed(out) ? -1 : 1;
+    }
     xl6OutputPrintf(out,"    xrtValueRelease(%s);\n"
         "    %s = %s(xlir_array_import_seeds, %u, %s); }\n",
         target,target,sourceOwned ? "xl6ArrayImportChainSourceTakeV1" : "xl6ArrayImportChainTakeV1",
@@ -786,21 +816,16 @@ static int xl6IrCgenEmitListImportChain(XL6_Output* out,const XL6_IrModule* modu
         !xl6IrListConstructionRecipe(module,typeId,&schema,&set)) return -1;
     char target[24]; snprintf(target,sizeof(target),"v%u",(unsigned)result);
     xl6OutputPrintf(out,"    { xvalue* xlir_list_import_seeds[%u] = {0};\n",(unsigned)count);
-    if (xl6IrCgenEmitListTargetCreate(out,module,typeId,target,set)<0) return -1;
-    xl6OutputPrintf(out,"    xlir_list_import_seeds[0] = %s;\n",target);
-    if (count>1) {
-        XL6_IrNominalIdentitySetId childSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
-        if (!xl6IrSequenceConstructionRecipe(module,types[1],XL6_IR_SEQUENCE_ROLE_ARRAY,&childSet)) return -1;
-        xl6OutputPuts("    { xvalue* xlir_list_import_child = NULL;\n",out);
-        if (xl6IrCgenEmitSequenceCreateDepth(out,module,types[1],"xlir_list_import_child",
-            childSet,1,"xlir_list_import_seeds",count,false)<0) return -1;
-        xl6OutputPuts("    xrtValueRelease(xlir_list_import_child); }\n",out);
-    }
-    xl6OutputPrintf(out,"    const XL6_CollectionImportProviderV1* xlir_list_import_providers[%u] = {xl6ListImportProviderV1()};\n"
+    if (xl6IrCgenEmitListTargetCreateDepth(out,module,typeId,target,set,0,"xlir_list_import_seeds",count)<0) return -1;
+    xl6OutputPrintf(out,"    xrtValueRelease(%s);\n"
+        "    const XL6_CollectionImportProviderV1* xlir_list_import_providers[%u] = {",target,(unsigned)count);
+    for (size_t i=0;i<count;++i) xl6OutputPrintf(out,"%s%s",i ? "," : "",
+        xl6IrTypeGet(&module->types,types[i])->collectionAbi==XL6_IR_COLLECTION_LIST ? "xl6ListImportProviderV1()" : "NULL");
+    xl6OutputPrintf(out,"};\n"
         "    const XL6_CollectionImportPlanV1 xlir_list_import_plan = {sizeof(XL6_CollectionImportPlanV1),"
         "xlir_list_import_providers,XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1,0,0,false};\n"
         "    %s = xl6CollectionImportChainSourceTakeV1(xlir_list_import_seeds,%u,%s,&xlir_list_import_plan); }\n",
-        (unsigned)count,target,(unsigned)count,source);
+        target,(unsigned)count,source);
     return xl6OutputHasFailed(out) ? -1 : 1;
 }
 

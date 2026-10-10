@@ -107,8 +107,11 @@ def main():
                               Erased=erased, LayoutMask=mask)
         text = generated.read_text(encoding='utf-8')
         probe = text.split('/* CLOSED_LIST_TARGET_NATIVE_PROOF */', 1)[1]
-        assert probe.count('xl6ListCreateTakeV1(') == recipes
-        assert probe.count('xl6ListProjectionTakeV1(') == recipes
+        factory_match = re.search(r'factories=(\d+)', log); assert factory_match
+        factories = int(factory_match[1]); assert factories >= recipes
+        report['Proof']['ExpectedFactories'] = factories
+        assert probe.count('xl6ListCreateTakeV1(') == factories
+        assert probe.count('xl6ListProjectionTakeV1(') == factories
         assert 'abort(' not in probe and 'for (' not in probe and 'while (' not in probe
         assert not any(name in probe for name in ('xrtValueIntMap', 'xrtTypedList', 'xrtValueArray('))
         for level in (0, 2):
