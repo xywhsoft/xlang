@@ -46611,6 +46611,18 @@ XRT_API bool xrtDynamicFieldsMerge(
 	const xrtdynamicfields* pSource,
 	bool bReplace
 );
+/* Transactional reference merge for an already isolated owning graph.
+ * Retains the actual Value identities, including repeated/cyclic edges;
+ * does not clone, consume or modify source. A false return means publication
+ * failed and target is unchanged. True means committed; a diagnostic from
+ * releasing replaced values remains observable after that commit.
+ * Same insertion/replacement order, visit guard and caller synchronization
+ * requirements as Merge. This is not a deep-copy operation. */
+XRT_API bool xrtDynamicFieldsMergeRefV1(
+	xrtdynamicfields* pTarget,
+	const xrtdynamicfields* pSource,
+	bool bReplace
+);
 XRT_API xrtdynamicfields* xrtDynamicFieldsClone(
 	const xrtdynamicfields* pFields
 );
@@ -356795,6 +356807,7 @@ static const xrtinstanceops __xrtDynamicFieldInstanceOperations = {
 #define xrtDynamicFieldsIterNext __xrtDynamicBodyIterNext
 #define xrtDynamicFieldsVisitV1 __xrtDynamicBodyVisitV1
 #define xrtDynamicFieldsMerge __xrtDynamicBodyMerge
+#define xrtDynamicFieldsMergeRefV1 __xrtDynamicBodyMergeRefV1
 #define xrtDynamicFieldsClone __xrtDynamicBodyClone
 #define xrtDynamicFieldsKeys __xrtDynamicBodyKeys
 #define xrtDynamicFieldsValues __xrtDynamicBodyValues
@@ -357646,7 +357659,6 @@ done:
 	xrtSetErrorTake(pPrevious); return true;
 }
 
-
 /* 返回递增且跳过外置迭代器保留零值的结构版本。 */
 static uint64 __xrtDynamicFieldNextVersion(uint64 iVersion)
 {
@@ -357693,7 +357705,12 @@ static bool __xrtDynamicFieldMergeEntries(
 				"a cloned dynamic field value could not be committed"
 			);
 		} else {
-			bStored = xrtTypedDictSet(pTarget, Name, ppValue);
+			/* Snapshot actual owning edges, not independently copied Value
+			 * shells. Set(Value) invokes the element Copy policy and can split
+			 * shared container backing when one result is later edited. */
+			xvalue* pOwned = xrtValueRetain(*ppValue);
+			bStored = pOwned != NULL && xrtTypedDictSetTake(pTarget, Name, &pOwned);
+			xrtValueRelease(pOwned);
 		}
 		if ( !bStored ) {
 			if ( !bDeepClone ) {
@@ -357719,10 +357736,11 @@ static bool __xrtDynamicFieldMergeEntries(
 
 
 /* 事务合并两个动态字段对象。 */
-static bool xrtDynamicFieldsMerge(
+static bool __xrtDynamicFieldMerge(
 	xrtdynamicfields* pTarget,
 	const xrtdynamicfields* pSource,
-	bool bReplace
+	bool bReplace,
+	bool bDeepClone
 )
 {
 	xtypeddict* pTargetDict = __xrtDynamicFieldDict(pTarget, "merge");
@@ -357733,6 +357751,7 @@ static bool xrtDynamicFieldsMerge(
 	xmap Previous;
 	xerror* pPreviousError;
 	xerror* pDiscard;
+	xerror* pPrimary;
 	size_t iCapacity;
 	bool bReady = false;
 	bool bSuccess = false;
@@ -357773,7 +357792,7 @@ static bool xrtDynamicFieldsMerge(
 	if ( !__xrtDynamicFieldMergeEntries(
 		&Work, pTargetDict, true, false
 	) || !__xrtDynamicFieldMergeEntries(
-		&Work, pSourceDict, bReplace, true
+		&Work, pSourceDict, bReplace, bDeepClone
 	) ) {
 		goto cleanup;
 	}
@@ -357786,14 +357805,18 @@ static bool xrtDynamicFieldsMerge(
 	bSuccess = true;
 
 cleanup:
+	pPrimary = xrtTakeError();
 	if ( bReady ) {
 		xrtTypedDictUnit(&Work);
 	}
-	if ( bSuccess ) {
-		pDiscard = __xrtErrorSwapOwned(pPreviousError);
-		xrtErrorFree(pDiscard);
+	pDiscard = xrtTakeError();
+	if ( pPrimary == NULL ) { pPrimary = pDiscard; pDiscard = NULL; }
+	xrtErrorFree(pDiscard);
+	if ( bSuccess && pPrimary == NULL ) {
+		xrtSetErrorTake(pPreviousError);
 	} else {
 		xrtErrorFree(pPreviousError);
+		xrtSetErrorTake(pPrimary);
 		if ( xrtGetError() == NULL ) {
 			__xrtDynamicFieldError(XERR_STATE,
 				XDYNAMIC_FIELD_ERROR_OPERATION, "merge",
@@ -357803,6 +357826,13 @@ cleanup:
 	return bSuccess;
 }
 
+static bool xrtDynamicFieldsMerge(xrtdynamicfields* pTarget,
+	const xrtdynamicfields* pSource, bool bReplace)
+{ return __xrtDynamicFieldMerge(pTarget, pSource, bReplace, true); }
+
+static bool xrtDynamicFieldsMergeRefV1(xrtdynamicfields* pTarget,
+	const xrtdynamicfields* pSource, bool bReplace)
+{ return __xrtDynamicFieldMerge(pTarget, pSource, bReplace, false); }
 
 
 /* 深复制一个动态字段对象和它拥有的 Value 图。 */
@@ -358086,6 +358116,7 @@ static xrtdynamicfields* xrtDynamicFieldsFromValue(const xvalue* pValue)
 #undef xrtDynamicFieldsIterNext
 #undef xrtDynamicFieldsVisitV1
 #undef xrtDynamicFieldsMerge
+#undef xrtDynamicFieldsMergeRefV1
 #undef xrtDynamicFieldsClone
 #undef xrtDynamicFieldsKeys
 #undef xrtDynamicFieldsValues
@@ -358126,6 +358157,7 @@ XRUNTIME_DYNAMIC_WRAP(bool, IterRBegin, (xrtdynamicfields* f, xrtdynamicfieldite
 XRUNTIME_DYNAMIC_WRAP(const xvalue*, IterNext, (xrtdynamicfielditer* i, xstrview* n), (i,n))
 XRUNTIME_DYNAMIC_WRAP(bool, VisitV1, (xrtdynamicfields* f, xdynamicfieldvisitv1 v, ptr d), (f,v,d))
 XRUNTIME_DYNAMIC_WRAP(bool, Merge, (xrtdynamicfields* f, const xrtdynamicfields* s, bool r), (f,s,r))
+XRUNTIME_DYNAMIC_WRAP(bool, MergeRefV1, (xrtdynamicfields* f, const xrtdynamicfields* s, bool r), (f,s,r))
 XRUNTIME_DYNAMIC_WRAP(xrtdynamicfields*, Clone, (const xrtdynamicfields* f), (f))
 XRUNTIME_DYNAMIC_WRAP(xvalue*, Keys, (const xrtdynamicfields* f), (f))
 XRUNTIME_DYNAMIC_WRAP(xvalue*, Values, (const xrtdynamicfields* f), (f))

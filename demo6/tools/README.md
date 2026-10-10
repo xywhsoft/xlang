@@ -22,6 +22,17 @@ this is not all-language OOM, shipping or full53 acceptance. See
 
 ## Toolchain
 
+`check_stdlib_dynamic_fields_list.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
+checks seven internal DynamicFields copy consumers, one native/wire graph memo,
+bounded XLIR type closure, leaf-class pruning and declared-clone restoration of
+real native List defaults. O0/O2 closed failure prefixes include post-commit
+cleanup errors. Linux `--sanitize` covers selected native providers only.
+`check_persistence_restore_graph_language.py --contract-source <contract.c>`
+permits a hashed test-only contract override without replacing production source.
+`sync_xruntime_dynamic_fields.py --xrt-root <supplier> --baseline <reviewed-commit>`
+updates only the two exact-baseline DynamicFields module sections; it does not
+migrate Core's time ABI. See [DynamicFields copy and restore isolation](../docs/stdlib53-b181-dynamic-fields-list-copy.md).
+
 `check_stdlib_value_copy.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
 checks open copy and native List recursive clone, one mixed graph memo,
 20 pre-output IR mutations, O0/O2 failure prefixes, real JIT and continuation

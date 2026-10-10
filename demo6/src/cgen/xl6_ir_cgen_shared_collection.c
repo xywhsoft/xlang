@@ -25,25 +25,34 @@ static const char* xl6IrCgenCollectionCountSymbol(const XL6_IrModule* module,
     default: return NULL;
     }
 }
-static const char* xl6IrCgenValueCloneSymbol(const XL6_IrModule* module,
-    const XL6_IrInstruction* instruction)
+static const char* xl6IrCgenValueCopyProviderSymbol(XL6_IrValueCopyProviderAbi abi,int deep)
 {
-    switch (xl6IrValueCopyProviderAbi(module,instruction)) {
-    case XL6_IR_VALUE_COPY_LIST_V1: return "xl6ListValueCloneV1";
-    case XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1: return "xl6ValueCopyV1";
-    case XL6_IR_VALUE_COPY_ARRAY_WIRE_V1: return "xl6ValueCloneV1";
+    switch (abi) {
+    case XL6_IR_VALUE_COPY_LIST_V1: return deep ? "xl6ValueCloneGraphV1" : "xl6ListValueCloneV1";
+    case XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1: return deep ? "xl6ValueCloneGraphV1" : "xl6ValueCopyV1";
+    case XL6_IR_VALUE_COPY_ARRAY_WIRE_V1: return deep ? "xl6ValueDeepCloneV1" : "xl6ValueCloneV1";
     default: return NULL;
     }
 }
+static const char* xl6IrCgenValueCloneSymbol(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{ return xl6IrCgenValueCopyProviderSymbol(xl6IrValueCopyProviderAbi(module,instruction),0); }
 static const char* xl6IrCgenValueDeepCloneSymbol(const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
+{ return xl6IrCgenValueCopyProviderSymbol(xl6IrValueCopyProviderAbi(module,instruction),1); }
+static const char* xl6IrCgenRestoreIsolationSymbol(const XL6_IrModule* module,
+    XL6_IrTypeId type,XL6_IrPersistenceIsolationAbi abi)
 {
-    switch (xl6IrValueCopyProviderAbi(module,instruction)) {
-    case XL6_IR_VALUE_COPY_LIST_V1:
-    case XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1: return "xl6ValueCloneGraphV1";
-    case XL6_IR_VALUE_COPY_ARRAY_WIRE_V1: return "xl6ValueDeepCloneV1";
-    default: return NULL;
-    }
+    if (abi!=XL6_IR_PERSIST_ISOLATION_RUNTIME_SHALLOW && abi!=XL6_IR_PERSIST_ISOLATION_RUNTIME_DEEP) return NULL;
+    int deep=abi==XL6_IR_PERSIST_ISOLATION_RUNTIME_DEEP;
+    return xl6IrCgenValueCopyProviderSymbol(xl6IrValueCopyProviderAbiForType(module,type,deep),deep);
+}
+static const char* xl6IrCgenRestoreObjectProviderSymbol(const XL6_IrModule* module,
+    const XL6_IrPersistenceRestoreRoot* root)
+{
+    XL6_IrValueCopyProviderAbi abi=xl6IrValueCopyProviderAbiForType(module,root->type,1);
+    return abi==XL6_IR_VALUE_COPY_LIST_V1 || abi==XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1 ?
+        "xl6RestoreClassProviderV1" : "xl6RestoreClassClosedProviderV1";
 }
 static const char* xl6IrCgenCollectionContainsSymbol(const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)

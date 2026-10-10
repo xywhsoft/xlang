@@ -22358,20 +22358,61 @@ static const XL6_IrType* xl6IrCheckedIteratorKeyLogicalType(
     return initialize ? logical : NULL;
 }
 
-static int xl6IrCopyGraphMayContainList(const XL6_IrTypePool* pool,XL6_IrTypeId id,unsigned depth)
+static int xl6IrCopyGraphMayContainList(const XL6_IrModule* module,XL6_IrTypeId id,
+    unsigned depth,size_t* remaining)
 {
-    const XL6_IrType* type=xl6IrTypeGet(pool,id);
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
     /* Recursive/opaque domains cannot be proven leaf-only. Conservatively
      * select the resident provider; never inspect an AST or diagnostic name. */
-    if (!type || depth>=64 || type->kind==XL6_IR_TYPE_CLASS ||
+    if (!type || depth>=64 || !*remaining) return 1;
+    --*remaining;
+    if (
         type->kind==XL6_IR_TYPE_PROTOCOL || type->kind==XL6_IR_TYPE_TYPE_PARAM ||
         type->kind==XL6_IR_TYPE_TAGGED_ENUM || type->collectionAbi==XL6_IR_COLLECTION_LIST ||
         (type->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && type->xvalueAdmissionAbi==XL6_VALUE_ADMIT_ANY &&
          type->collectionAbi==XL6_IR_COLLECTION_NONE && type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NONE)) return 1;
+    if (type->kind==XL6_IR_TYPE_CLASS ||
+        (type->nominalSymbol && type->collectionAbi==XL6_IR_COLLECTION_NONE &&
+         type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NONE)) {
+        if (module->classLayoutCount && !module->classLayouts) return 1;
+        const XL6_IrClassLayout* layout=NULL;
+        for (size_t i=0;i<module->classLayoutCount;++i)
+            if (module->classLayouts[i].type==id) { layout=&module->classLayouts[i]; break; }
+        if (!layout || layout->persistenceObjectAbi==XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_ROOT ||
+            layout->persistenceObjectAbi==XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA ||
+            layout->firstField>module->classFieldCount ||
+            layout->fieldCount>module->classFieldCount-layout->firstField ||
+            (layout->fieldCount && !module->classFields)) return 1;
+        for (size_t i=0;i<layout->fieldCount;++i) {
+            const XL6_IrClassField* field=&module->classFields[layout->firstField+i];
+            /* Native owned fields are opaque graph domains, even when the
+             * public schema skips them. Copy traverses storage, not wire. */
+            if (field->nativeHandlePolicyAbi ||
+                xl6IrCopyGraphMayContainList(module,field->type,depth+1,remaining)) return 1;
+        }
+        /* A nominal slot can hold a derived layout. Include its storage too;
+         * no spelling, source declaration or serialized-field filter. */
+        for (size_t i=0;i<module->classLayoutCount;++i)
+            if (module->classLayouts[i].baseType==id &&
+                xl6IrCopyGraphMayContainList(module,module->classLayouts[i].type,depth+1,remaining)) return 1;
+    }
     if (type->paramCount && !type->params) return 1;
     for (size_t i=0;i<type->paramCount;++i)
-        if (xl6IrCopyGraphMayContainList(pool,type->params[i],depth+1)) return 1;
+        if (xl6IrCopyGraphMayContainList(module,type->params[i],depth+1,remaining)) return 1;
     return 0;
+}
+XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbiForType(
+    const XL6_IrModule* module,XL6_IrTypeId id,int deep)
+{
+    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,id) : NULL;
+    if (!type || type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) return XL6_IR_VALUE_COPY_INVALID;
+    if (type->collectionAbi==XL6_IR_COLLECTION_LIST) return XL6_IR_VALUE_COPY_LIST_V1;
+    size_t remaining=4096;
+    if (deep) return xl6IrCopyGraphMayContainList(module,id,0,&remaining) ?
+        XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1 : XL6_IR_VALUE_COPY_ARRAY_WIRE_V1;
+    return type->collectionAbi==XL6_IR_COLLECTION_NONE && type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NONE &&
+        type->xvalueAdmissionAbi==XL6_VALUE_ADMIT_ANY ?
+        XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1 : XL6_IR_VALUE_COPY_ARRAY_WIRE_V1;
 }
 XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbi(
     const XL6_IrModule* module,const XL6_IrInstruction* instruction)
@@ -22385,13 +22426,8 @@ XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbi(
     const XL6_IrType* type=source ? xl6IrTypeGet(&module->types,source->type) : NULL;
     if (!type || type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR || source->type!=instruction->type)
         return XL6_IR_VALUE_COPY_INVALID;
-    if (type->collectionAbi==XL6_IR_COLLECTION_LIST) return XL6_IR_VALUE_COPY_LIST_V1;
-    if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DEEP_CLONE)
-        return xl6IrCopyGraphMayContainList(&module->types,source->type,0) ?
-            XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1 : XL6_IR_VALUE_COPY_ARRAY_WIRE_V1;
-    return type->collectionAbi==XL6_IR_COLLECTION_NONE && type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NONE &&
-        type->xvalueAdmissionAbi==XL6_VALUE_ADMIT_ANY ?
-        XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1 : XL6_IR_VALUE_COPY_ARRAY_WIRE_V1;
+    return xl6IrValueCopyProviderAbiForType(module,source->type,
+        instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DEEP_CLONE);
 }
 int xl6IrCollectionCountRuntimeOpIs(XL6_IrRuntimeOp operation)
 {

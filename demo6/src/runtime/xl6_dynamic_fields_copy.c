@@ -1,9 +1,9 @@
 #include "xl6_dynamic_fields.h"
-#include "xl6_array_graph.h"
+#include "xl6_value_copy.h"
 #include "src/api/xl_foreign_error.h"
 
 /* XRT's ordinary handle Clone may retain a reference-class carrier. The
- * existing language graph copier knows native Array admission and layout.
+ * language graph copier knows native Array and List admission and layout.
  * Collect only borrowed references first, then copy through ONE XRT memo.
  * This optional provider is not linked for core-only field operations. */
 static xvalue* finishValue(xl6_error_scope* scope, xvalue* result)
@@ -32,7 +32,7 @@ xvalue* xl6_xrt_dynamic_fields_to_value(void* payload)
     if (!xl6ErrorScopeBegin(&operation)) return NULL;
     xvalue* borrowed = xrtValueObject();
     xvalue* result = borrowed && xrtDynamicFieldsVisitV1(payload, collectRef, borrowed)
-        ? xl6ValueDeepCloneV1(borrowed) : NULL;
+        ? xl6ValueCloneGraphV1(borrowed) : NULL;
     if (!result) xl6ErrorScopeCaptureFailure(&operation);
     xrtValueRelease(borrowed);
     return finishValue(&operation, result);
@@ -42,7 +42,7 @@ xvalue* xl6_xrt_dynamic_fields_copy(void* payload, xstrview name)
     xl6_error_scope operation = {0};
     if (!xl6ErrorScopeBegin(&operation)) return NULL;
     xvalue* borrowed = xrtDynamicFieldsGetRef(payload, name);
-    xvalue* result = borrowed ? xl6ValueDeepCloneV1(borrowed)
+    xvalue* result = borrowed ? xl6ValueCloneGraphV1(borrowed)
         : xrtGetError() ? NULL : xrtValueNull();
     if (!result) xl6ErrorScopeCaptureFailure(&operation);
     xrtValueRelease(borrowed);
@@ -77,7 +77,7 @@ void* xl6_xrt_dynamic_fields_from_value(const xvalue* source)
     xl6_error_scope operation = {0};
     if (!xl6ErrorScopeBegin(&operation)) return NULL;
     if (xrtValueType(source) != XVALUE_OBJECT) xrtSetErrorKind(XERR_TYPE);
-    xvalue* copy = xrtGetError() ? NULL : xl6ValueDeepCloneV1(source);
+    xvalue* copy = xrtGetError() ? NULL : xl6ValueCloneGraphV1(source);
     void* result = copy ? fromCopiedObject(copy) : NULL;
     if (!result) xl6ErrorScopeCaptureFailure(&operation);
     xrtValueRelease(copy);
@@ -124,10 +124,9 @@ bool xl6_xrt_dynamic_fields_merge(void* target, void* source, bool replace)
     if (!xl6ErrorScopeBegin(&operation)) return false;
     xvalue* copy = xl6_xrt_dynamic_fields_to_value(source);
     void* fields = copy ? fromCopiedObject(copy) : NULL;
-    /* Preserve XRT's transactional merge, including replacement order and
-     * rollback. Its downstream handle clone retains the isolated carriers,
-     * not the original language collections. */
-    bool ok = fields && xrtDynamicFieldsMerge(target, fields, replace);
+    /* Publish already isolated owning edges transactionally. A second
+     * per-field clone would split the one-memo graph's repeated wire edges. */
+    bool ok = fields && xrtDynamicFieldsMergeRefV1(target, fields, replace);
     if (!ok) xl6ErrorScopeCaptureFailure(&operation);
     xl6_xrt_dynamic_fields_destroy(fields); xrtValueRelease(copy);
     xl6_error_result outcome = xl6ErrorScopeEnd(&operation);

@@ -1,0 +1,8 @@
+class RestoreCopyLeaf
+    derive value
+    derive clone
+    int n = 7
+end
+RestoreCopyLeaf first = json.parse::<RestoreCopyLeaf>("{}")
+RestoreCopyLeaf second = xlon.parse::<RestoreCopyLeaf>("{}")
+assert first.n == 7 and second.n == 7, "leaf restore provider pruning"

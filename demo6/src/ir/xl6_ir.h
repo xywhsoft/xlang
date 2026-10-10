@@ -6888,6 +6888,11 @@ typedef enum XL6_IrValueCopyProviderAbi {
 } XL6_IrValueCopyProviderAbi;
 XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbi(
     const XL6_IrModule*,const XL6_IrInstruction*);
+/* The same typed closure also serves compiler-derived restore isolation.
+ * Open/opaque/recursive domains retain all providers; closed leaf layouts
+ * remain prunable. The walk has a fixed work bound, not just a depth bound. */
+XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbiForType(
+    const XL6_IrModule*,XL6_IrTypeId,int deep);
 int xl6IrCollectionCountRuntimeOpIs(XL6_IrRuntimeOp operation);
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeCollectionCountErrorPhysicalAbi(XL6_IrRuntimeOp operation);
 /* Exact normal/tagged-nullable/open-var count contract, shared by verification
