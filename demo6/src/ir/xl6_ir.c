@@ -20009,6 +20009,7 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeStringAllocationErrorPhysicalAbi(XL6_IrRu
     case XL6_IR_RUNTIME_STRING_UTF8_AT:
     case XL6_IR_RUNTIME_XVALUE_ITERATOR_ITEM_STRING_COPY:
     case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY:
+    case XL6_IR_RUNTIME_LIST_READ_STRING:
     case XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_STRING_COPY:
     case XL6_IR_RUNTIME_BOOL_TO_STRING:
     case XL6_IR_RUNTIME_I64_TO_STRING:
@@ -20129,6 +20130,9 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeContainerAllocationErrorPhysicalAbi(XL6_I
     case XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY:
     case XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY:
     case XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY:
+    case XL6_IR_RUNTIME_LIST_READ_VALUE_COPY:
+    case XL6_IR_RUNTIME_LIST_READ_VALUE_OR_NULL_COPY:
+    case XL6_IR_RUNTIME_LIST_READ_VALUE_REQUIRED_COPY:
     case XL6_IR_RUNTIME_XVALUE_INT_MAP_NEW:
     case XL6_IR_RUNTIME_XVALUE_SET_NEW:
     case XL6_IR_RUNTIME_XVALUE_OBJECT_NEW:
@@ -20309,6 +20313,10 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     stringAbi=xl6IrRuntimeCollectionCountErrorPhysicalAbi(instruction->runtimeOp);
     if(stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     stringAbi=xl6IrRuntimeArrayScalarReadErrorPhysicalAbi(instruction->runtimeOp);
+    if ((xl6IrListTypedReadRuntimeOpIs(instruction->runtimeOp) &&
+         instruction->runtimeOp!=XL6_IR_RUNTIME_LIST_READ_STRING) ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE)
+        return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
     if(stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_REMOVE_VALUE ||
         instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_CONTAINS ||
@@ -22094,7 +22102,7 @@ int xl6IrCollectionMemberRuntimeOpIs(XL6_IrRuntimeOp operation)
  * carriers and borrowed receiver/key operands that lowering materialized. */
 int xl6IrCollectionReadRuntimeOpIs(XL6_IrRuntimeOp operation)
 {
-    return xl6IrOwnedIndexReadRuntimeOpIs(operation) || xl6IrCollectionCountRuntimeOpIs(operation) || xl6IrArrayScalarReadRuntimeOpIs(operation) ||
+    return xl6IrListTypedReadRuntimeOpIs(operation) || xl6IrOwnedIndexReadRuntimeOpIs(operation) || xl6IrCollectionCountRuntimeOpIs(operation) || xl6IrArrayScalarReadRuntimeOpIs(operation) ||
            operation == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64 ||
            operation == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY;
 }
@@ -22103,6 +22111,9 @@ int xl6IrOwnedIndexReadRuntimeOpIs(XL6_IrRuntimeOp operation)
 {
     return operation==XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY ||
         operation==XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY ||
+        operation==XL6_IR_RUNTIME_LIST_READ_VALUE_COPY ||
+        operation==XL6_IR_RUNTIME_LIST_READ_VALUE_OR_NULL_COPY ||
+        operation==XL6_IR_RUNTIME_LIST_READ_VALUE_REQUIRED_COPY ||
         operation==XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY;
 }
 int xl6IrOwnedIndexReadRuntimeInstructionCompatible(
@@ -22127,6 +22138,13 @@ int xl6IrOwnedIndexReadRuntimeInstructionCompatible(
     const XL6_IrType* receiver=source ? xl6IrCollectionCountReceiverBase(module,source->type) : NULL;
     const XL6_IrType* index=key ? xl6IrTypeGet(&module->types,key->type) : NULL;
     if (!source || !receiver || !index) return 0;
+    if (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_READ_VALUE_COPY ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_LIST_READ_VALUE_OR_NULL_COPY ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_LIST_READ_VALUE_REQUIRED_COPY)
+        return index->cAbi==XL6_IR_C_ABI_I64 && index->nullAbi==XL6_IR_NULL_ABI_NONE &&
+            xl6IrTypeIsRuntimeXValue(module,source->type) && receiver->collectionAbi==XL6_IR_COLLECTION_LIST &&
+            (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_READ_VALUE_OR_NULL_COPY ||
+             xl6IrTypeGet(&module->types,source->type)->kind!=XL6_IR_TYPE_NULLABLE);
     if (instruction->runtimeOp==XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY)
         return xl6IrTypeIsRuntimeXValue(module,source->type) &&
             xl6IrTypeIsDynamicXValueBuiltin(module,key->type) &&
@@ -22139,6 +22157,70 @@ int xl6IrOwnedIndexReadRuntimeInstructionCompatible(
          xl6IrTypeGet(&module->types,source->type)->kind!=XL6_IR_TYPE_NULLABLE);
 }
 
+int xl6IrListTypedReadRuntimeOpIs(XL6_IrRuntimeOp operation)
+{
+    return operation==XL6_IR_RUNTIME_LIST_READ_I64 || operation==XL6_IR_RUNTIME_LIST_READ_U64 ||
+        operation==XL6_IR_RUNTIME_LIST_READ_BOOL || operation==XL6_IR_RUNTIME_LIST_READ_F64 ||
+        operation==XL6_IR_RUNTIME_LIST_READ_STRING;
+}
+const XL6_IrType* xl6IrListIndexReceiverType(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{
+    if (!module || !instruction || !instruction->operandCount || !module->operands ||
+        instruction->firstOperand>=module->operandCount) return NULL;
+    const XL6_IrInstruction* source=xl6IrValueDefinition(module,
+        module->operands[instruction->firstOperand],NULL);
+    const XL6_IrType* receiver=source ? xl6IrTypeGet(&module->types,source->type) : NULL;
+    return receiver && receiver->collectionAbi==XL6_IR_COLLECTION_LIST &&
+        receiver->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+        receiver->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED ? receiver : NULL;
+}
+int xl6IrListIndexRuntimeInstructionCompatible(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{
+    bool write=instruction && instruction->runtimeOp==XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE;
+    if (!module || !instruction || instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+        (!write && !xl6IrListTypedReadRuntimeOpIs(instruction->runtimeOp)) ||
+        instruction->result==XL6_IR_VALUE_INVALID || instruction->operandCount!=(write ? 3u : 2u) ||
+        !module->operands || instruction->firstOperand>module->operandCount ||
+        module->operandCount-instruction->firstOperand<instruction->operandCount ||
+        instruction->immediateText || instruction->immediateData || instruction->immediateSize ||
+        instruction->targetSymbol || instruction->targetValue!=XL6_IR_VALUE_INVALID ||
+        instruction->calleeType!=XL6_IR_TYPE_INVALID || instruction->payloadType!=XL6_IR_TYPE_INVALID ||
+        instruction->runtimeIdentityType!=XL6_IR_TYPE_INVALID || instruction->opcode!=XL6_IR_OPCODE_INVALID ||
+        instruction->collectionAbi!=XL6_IR_COLLECTION_NONE ||
+        instruction->typedCollectionOp!=XL6_IR_TYPED_COLLECTION_INVALID ||
+        instruction->dynamicCollectionOp!=XL6_IR_DYNAMIC_COLLECTION_INVALID ||
+        instruction->sequenceAdmissionIdentitySet!=XL6_IR_NOMINAL_IDENTITY_SET_INVALID) return 0;
+    const XL6_IrType* receiver=xl6IrListIndexReceiverType(module,instruction);
+    const XL6_IrType* result=xl6IrTypeGet(&module->types,instruction->type);
+    const XL6_IrInstruction* key=xl6IrValueDefinition(module,
+        module->operands[instruction->firstOperand+1],NULL);
+    const XL6_IrType* index=key ? xl6IrTypeGet(&module->types,key->type) : NULL;
+    if (!receiver || !result || !index || index->cAbi!=XL6_IR_C_ABI_I64 ||
+        index->nullAbi!=XL6_IR_NULL_ABI_NONE) return 0;
+    if (write) {
+        const XL6_IrInstruction* item=xl6IrValueDefinition(module,
+            module->operands[instruction->firstOperand+2],NULL);
+        return xl6IrTypeIsBool(module,instruction->type) && item &&
+            xl6IrTypeIsDynamicXValueBuiltin(module,item->type);
+    }
+    const XL6_IrInstruction* source=xl6IrValueDefinition(module,
+        module->operands[instruction->firstOperand],NULL);
+    XL6_IrTypeId schemaId=XL6_IR_TYPE_INVALID;
+    if (!source || !xl6IrListConstructionRecipe(module,source->type,&schemaId,NULL) ||
+        receiver->paramCount!=1 || !receiver->params || receiver->params[0]!=instruction->type ||
+        !result->typeValueId) return 0;
+    if (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_READ_STRING)
+        return result->kind!=XL6_IR_TYPE_NULLABLE && result->cAbi==XL6_IR_C_ABI_MANAGED_STRING &&
+            result->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
+            result->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL;
+    XL6_IrCAbi expected=instruction->runtimeOp==XL6_IR_RUNTIME_LIST_READ_I64 ? XL6_IR_C_ABI_I64 :
+        instruction->runtimeOp==XL6_IR_RUNTIME_LIST_READ_U64 ? XL6_IR_C_ABI_U64 :
+        instruction->runtimeOp==XL6_IR_RUNTIME_LIST_READ_BOOL ? XL6_IR_C_ABI_BOOL : XL6_IR_C_ABI_F64;
+    return result->cAbi==expected && result->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+        result->nullAbi==XL6_IR_NULL_ABI_NONE;
+}
 int xl6IrArrayScalarReadRuntimeOpIs(XL6_IrRuntimeOp operation)
 {
     return operation == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_INTEGER ||
@@ -22339,6 +22421,8 @@ int xl6IrCollectionReadRuntimeInstructionCompatible(
         return xl6IrCollectionCountRuntimeInstructionCompatible(module,instruction);
     if (instruction && xl6IrOwnedIndexReadRuntimeOpIs(instruction->runtimeOp))
         return xl6IrOwnedIndexReadRuntimeInstructionCompatible(module,instruction);
+    if (instruction && xl6IrListTypedReadRuntimeOpIs(instruction->runtimeOp))
+        return xl6IrListIndexRuntimeInstructionCompatible(module,instruction);
     if (instruction && xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp))
         return xl6IrArrayScalarReadRuntimeInstructionCompatible(module,instruction);
     if (instruction && instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY)
@@ -40715,6 +40799,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             return xl6IrDiag(diags,
                                 xl6IrNodeGet(module, instruction->origin),
                                 "XLIR runtime safe array integer access has no exact canonical-null ABI");
+                    } else if (xl6IrListTypedReadRuntimeOpIs(instruction->runtimeOp) ||
+                        instruction->runtimeOp==XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE) {
+                        if (!xl6IrListIndexRuntimeInstructionCompatible(module,instruction))
+                            return xl6IrDiag(diags,NULL,"XLIR List index has no exact receiver, element or key ABI");
                     } else if (xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp)) {
                         if (!xl6IrArrayScalarReadRuntimeInstructionCompatible(module, instruction))
                             return xl6IrDiag(diags, NULL, "XLIR scalar Array read has no exact receiver, element or index ABI");
@@ -46694,6 +46782,15 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_XVALUE_COUNT: return "xvalue-count";
     case XL6_IR_RUNTIME_XVALUE_ARRAY_NEW: return "xvalue-array-new";
 case XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY: return "array-read-value-copy";
+case XL6_IR_RUNTIME_LIST_READ_VALUE_COPY: return "list-read-value-copy";
+case XL6_IR_RUNTIME_LIST_READ_VALUE_OR_NULL_COPY: return "list-read-value-or-null-copy";
+case XL6_IR_RUNTIME_LIST_READ_VALUE_REQUIRED_COPY: return "list-read-value-required-copy";
+case XL6_IR_RUNTIME_LIST_READ_I64: return "list-read-i64";
+case XL6_IR_RUNTIME_LIST_READ_U64: return "list-read-u64";
+case XL6_IR_RUNTIME_LIST_READ_BOOL: return "list-read-bool";
+case XL6_IR_RUNTIME_LIST_READ_F64: return "list-read-f64";
+case XL6_IR_RUNTIME_LIST_READ_STRING: return "list-read-string";
+case XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE: return "list-set-value-take";
 case XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY: return "array-read-value-or-null-copy";
 case XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY: return "index-read-value-copy";
 case XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64: return "xvalue-array-at-i64";

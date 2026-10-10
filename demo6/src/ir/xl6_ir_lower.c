@@ -1875,6 +1875,7 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
          xl6IrRuntimeBoxingErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeCollectionCountErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeArrayScalarReadErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
+         xl6IrListTypedReadRuntimeOpIs(runtimeOp) ||
          xl6IrRuntimeFutureMetadataErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) &&
         !xl6IrLowerEmitRuntimeErrorEdge(ctx, failureOrigin, xl6IrNodeGet(ctx->module, failureOrigin), result))
         return XL6_IR_VALUE_INVALID;
@@ -4900,8 +4901,8 @@ static int xl6IrLowerResolveElementTargetOperations(
         plan->writeOperation = XL6_IR_RUNTIME_XVALUE_ARRAY_SET_I64_NEW;
         break;
     case XL6_IR_INDEX_WRITE_XVALUE_LIST_I64_SET_NEW:
-        plan->borrowOperation = XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64;
-        plan->writeOperation = XL6_IR_RUNTIME_XVALUE_INT_MAP_SET_I64_NEW;
+        plan->borrowOperation = XL6_IR_RUNTIME_LIST_READ_VALUE_COPY;
+        plan->writeOperation = XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE;
         break;
     case XL6_IR_INDEX_WRITE_XVALUE_OBJECT_LITERAL_SET_NEW:
         plan->borrowOperation = dynamicField ? XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_GET_LITERAL
@@ -5093,19 +5094,19 @@ static XL6_IrRuntimeOp xl6IrLowerElementTargetReadOp(
             XL6_IR_INDEX_WRITE_XVALUE_LIST_I64_SET_NEW;
         switch ( item->cAbi ) {
         case XL6_IR_C_ABI_I64:
-            return list ? XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_INTEGER
+            return list ? XL6_IR_RUNTIME_LIST_READ_I64
                         : XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_INTEGER;
         case XL6_IR_C_ABI_U64:
-            return list ? XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_U64
+            return list ? XL6_IR_RUNTIME_LIST_READ_U64
                         : XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_U64;
         case XL6_IR_C_ABI_BOOL:
-            return list ? XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_BOOL
+            return list ? XL6_IR_RUNTIME_LIST_READ_BOOL
                         : XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_BOOL;
         case XL6_IR_C_ABI_F64:
-            return list ? XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_F64
+            return list ? XL6_IR_RUNTIME_LIST_READ_F64
                         : XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_F64;
         case XL6_IR_C_ABI_MANAGED_STRING:
-            return list ? XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64
+            return list ? XL6_IR_RUNTIME_LIST_READ_STRING
                         : XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY;
         default:
             return XL6_IR_RUNTIME_NONE;
@@ -5202,7 +5203,8 @@ static XL6_IrValueId xl6IrLowerReadElementTargetPlan(
     operands[0] = plan->receiverValue;
     operands[1] = plan->keyValue;
     if ( itemType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ) {
-        if (operation==XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY)
+        if (operation==XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY ||
+            operation==XL6_IR_RUNTIME_LIST_READ_STRING)
             return xl6IrLowerEmitRuntimeCall(ctx,origin,plan->lhs->storageType,operation,operands,2);
         XL6_IrTypeId dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
         XL6_IrValueId borrowed = dynamicType == XL6_IR_TYPE_INVALID ? XL6_IR_VALUE_INVALID
@@ -5448,12 +5450,30 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeXValueIndexI64(
             ? result : XL6_IR_VALUE_INVALID;
     }
     if ( receiverType->collectionAbi == XL6_IR_COLLECTION_LIST ) {
-        dynamicOp = XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64;
-        safeDynamicOp = XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_OR_NULL;
-        integerOp = XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_INTEGER;
-        unsignedOp = XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_U64;
-        boolOp = XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_BOOL;
-        floatOp = XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_F64;
+        /* Sparse keys have no Array ordinal/negative-index normalization.
+         * All nontrivial/safe reads are explicitly owned, including char,
+         * bytes, nullable text, nested containers and managed references. */
+        operands[0]=receiverValue; operands[1]=indexValue;
+        XL6_IrRuntimeOp operation=XL6_IR_RUNTIME_NONE;
+        if (node->sourceKind!=XL6_AST_SAFE_INDEX && resultType->kind!=XL6_IR_TYPE_NULLABLE &&
+            receiverType->paramCount==1 && receiverType->params &&
+            receiverType->params[0]==node->storageType) {
+            switch (resultType->cAbi) {
+            case XL6_IR_C_ABI_I64: operation=XL6_IR_RUNTIME_LIST_READ_I64; break;
+            case XL6_IR_C_ABI_U64: operation=XL6_IR_RUNTIME_LIST_READ_U64; break;
+            case XL6_IR_C_ABI_BOOL: operation=XL6_IR_RUNTIME_LIST_READ_BOOL; break;
+            case XL6_IR_C_ABI_F64: operation=XL6_IR_RUNTIME_LIST_READ_F64; break;
+            case XL6_IR_C_ABI_MANAGED_STRING: operation=XL6_IR_RUNTIME_LIST_READ_STRING; break;
+            default: break;
+            }
+        }
+        if (operation!=XL6_IR_RUNTIME_NONE)
+            return xl6IrLowerEmitRuntimeCall(ctx,origin,node->storageType,operation,operands,2);
+        return xl6IrLowerOwnedIndexRead(ctx,origin,node->sourceKind==XL6_AST_SAFE_INDEX ?
+            XL6_IR_RUNTIME_LIST_READ_VALUE_OR_NULL_COPY : resultType->kind==XL6_IR_TYPE_NULLABLE ||
+            xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module,node->storageType) ?
+            XL6_IR_RUNTIME_LIST_READ_VALUE_COPY : XL6_IR_RUNTIME_LIST_READ_VALUE_REQUIRED_COPY,
+            operands,node->storageType);
     } else if ( receiverType->collectionAbi == XL6_IR_COLLECTION_ARRAY ||
                 receiverType->collectionAbi == XL6_IR_COLLECTION_NONE ) {
         dynamicOp = XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64;

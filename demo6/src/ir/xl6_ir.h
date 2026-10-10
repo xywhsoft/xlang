@@ -1993,7 +1993,19 @@ typedef enum XL6_IrRuntimeOp {
         * Uses the same RESULT_CARRIER ABI as internal language calls. */
        XL6_IR_RUNTIME_CLASS_DEFAULT_INVOKE,
        XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP,
-       XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH
+       XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH,
+       /* List semantics, independent of the migration input carrier. General
+        * reads own their Value; direct typed reads carry a closed List recipe
+        * in the receiver TypeId and never borrow a newly boxed native item. */
+       XL6_IR_RUNTIME_LIST_READ_VALUE_COPY,
+       XL6_IR_RUNTIME_LIST_READ_VALUE_OR_NULL_COPY,
+       XL6_IR_RUNTIME_LIST_READ_I64,
+       XL6_IR_RUNTIME_LIST_READ_U64,
+       XL6_IR_RUNTIME_LIST_READ_BOOL,
+       XL6_IR_RUNTIME_LIST_READ_F64,
+       XL6_IR_RUNTIME_LIST_READ_STRING,
+       XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE,
+       XL6_IR_RUNTIME_LIST_READ_VALUE_REQUIRED_COPY
 } XL6_IrRuntimeOp;
 
 /* Canonical language identities for every stable XRT xvalue tag.  This table
@@ -6860,6 +6872,9 @@ int xl6IrDynamicCompareRuntimeInstructionCompatible(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 int xl6IrCollectionReadRuntimeOpIs(XL6_IrRuntimeOp operation);
 int xl6IrOwnedIndexReadRuntimeOpIs(XL6_IrRuntimeOp operation);
+int xl6IrListTypedReadRuntimeOpIs(XL6_IrRuntimeOp);
+const XL6_IrType* xl6IrListIndexReceiverType(const XL6_IrModule*,const XL6_IrInstruction*);
+int xl6IrListIndexRuntimeInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 int xl6IrOwnedIndexReadRuntimeInstructionCompatible(
     const XL6_IrModule* module,const XL6_IrInstruction* instruction);
 int xl6IrCollectionCountRuntimeOpIs(XL6_IrRuntimeOp operation);

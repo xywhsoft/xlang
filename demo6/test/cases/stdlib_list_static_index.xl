@@ -1,0 +1,103 @@
+int staticListCleanups = 0
+func readInt(list<int> source, int key) as int
+    try
+        return source[key]
+    finally
+        staticListCleanups += 1
+    end
+end
+func readUInt(list<uint64> source, int key) as uint64
+    return source[key]
+end
+func readBool(list<bool> source, int key) as bool
+    return source[key]
+end
+func readFloat(list<float> source, int key) as float
+    return source[key]
+end
+func readText(list<string> source, int key) as string
+    try
+        return source[key]
+    finally
+        staticListCleanups += 1
+    end
+end
+func readChar(list<char> source, int key) as char
+    return source[key]
+end
+func readBytes(list<bytes> source, int key) as bytes
+    return source[key]
+end
+func readOptional(list<string?> source, int key) as string?
+    return source[key]
+end
+func readSafe(list<int>? source, int key) as int?
+    return source?[key]
+end
+func update(list<int> source, int key, int value) as int
+    try
+        source[key] = value
+        source[key] += 3
+        source[key] += 1
+        return source[key]
+    finally
+        staticListCleanups += 1
+    end
+end
+func replaceText(list<string> source, int key, string value) as string
+    try
+        source[key] = value
+        source[key] += "\0z"
+        return source[key]
+    finally
+        staticListCleanups += 1
+    end
+end
+func replaceOptional(list<string?> source, int key, string value) as string?
+    source[key] ?= value
+    return source[key]
+end
+func main(...) as int
+    list<int> integers = [-9223372036854775808: 0, 9223372036854775807: 9]
+    assert(readInt(integers, -9223372036854775808) == 0)
+    assert(update(integers, 9223372036854775807, 10) == 14)
+    assert(readInt(integers, 9223372036854775807) == 14)
+    list<uint64> unsignedValues = [-1: uint64(18446744073709551615)]
+    assert(readUInt(unsignedValues, -1) == uint64(18446744073709551615))
+    list<bool> booleans = [0: false]
+    assert(not readBool(booleans, 0))
+    list<float> floats = [0: 0.0]
+    assert(readFloat(floats, 0) == 0.0)
+    list<string> texts = [-2: "a\0你"]
+    assert(readText(texts, -2) == "a\0你")
+    assert(replaceText(texts, -2, "b\0c") == "b\0c\0z")
+    list<char> chars = [0: '你']
+    assert(readChar(chars, 0) == '你')
+    list<bytes> binary = [0: b"a\0b"]
+    assert(readBytes(binary, 0) == b"a\0b")
+    list<string?> optional = [0: null, 1: ""]
+    string? emptyText = ""
+    string? optionalText = "a\0b"
+    assert(readOptional(optional, 0) == null)
+    assert(readOptional(optional, 1) == emptyText)
+    assert(readOptional(optional, 19) == null)
+    assert(replaceOptional(optional, 0, "a\0b") == optionalText)
+    assert(replaceOptional(optional, 1, "replace") == emptyText)
+    assert(readSafe(null, 0) == null)
+    assert(readSafe(integers, 19) == null)
+    int? zero = 0
+    assert(readSafe(integers, -9223372036854775808) == zero)
+    int caught = 0
+    try
+        readInt(integers, 19)
+    catch RangeError failure
+        caught += 1
+    end
+    try
+        readChar(chars, 19)
+    catch RangeError failure
+        caught += 1
+    end
+    assert(caught == 2)
+    return 0
+end

@@ -22,6 +22,17 @@ this is not all-language OOM, shipping or full53 acceptance. See
 
 ## Toolchain
 
+`check_stdlib_list_static_index.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
+checks all nine static List index operations, 50 pre-output malformed IR
+rejections, direct scalar/string native reads, owned char/bytes/nullable
+projections, consuming writes, compound assignment and `?=`. O0/O2 real native
+language inputs, diagnosticless failures, closed allocation/provider prefixes,
+three compiled resident mutants and independently linked artifact closures
+are checked with ownership ledgers. Linux `--sanitize` instruments only the
+selected native closure; `--test-root` is an explicit hashed test-only input.
+Source factories, casts/clone/algebra/restore and shipping/full53 remain pending.
+See [List static indexing](../docs/stdlib53-b178-list-static-index.md).
+
 `check_stdlib_list_index.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
 checks real native List input to generated open index/contains functions, full
 signed keys, exact text and scalar/bytes domains, checked failures, retirement

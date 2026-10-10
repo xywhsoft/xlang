@@ -306,6 +306,9 @@ static int xl6IrCgenVerifyInstructions(
                        XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_OR_NULL &&
                    !xl6IrCgenRuntimeSafeIntegerIndexReadAbi(
                        module, instruction, XL6_IR_COLLECTION_ARRAY)) ||
+                 ((xl6IrListTypedReadRuntimeOpIs(instruction->runtimeOp) ||
+                   instruction->runtimeOp==XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE) &&
+                  !xl6IrListIndexRuntimeInstructionCompatible(module,instruction)) ||
                  (xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp) &&
                   !xl6IrArrayScalarReadRuntimeInstructionCompatible(module, instruction)) ||
                  (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY &&
@@ -626,6 +629,11 @@ static int xl6IrCgenVerifyInstructions(
                    instruction->runtimeOp != XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY &&
+                   instruction->runtimeOp != XL6_IR_RUNTIME_LIST_READ_VALUE_COPY &&
+                   instruction->runtimeOp != XL6_IR_RUNTIME_LIST_READ_VALUE_OR_NULL_COPY &&
+                   instruction->runtimeOp != XL6_IR_RUNTIME_LIST_READ_VALUE_REQUIRED_COPY &&
+                   !xl6IrListTypedReadRuntimeOpIs(instruction->runtimeOp) &&
+                   instruction->runtimeOp != XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64 &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_OR_NULL &&
                   instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_INTEGER &&

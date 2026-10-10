@@ -491,10 +491,16 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
                 !visitor(context,"xl6ArrayResizeDefaultV1")) return 0;
         }
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL && xl6IrOwnedIndexReadRuntimeOpIs(instruction->runtimeOp)) {
-            const char* symbol=instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY ?
-                "xl6ArrayValueReadCopyV1" : instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY ?
-                "xl6ArrayValueReadOrNullCopyV1" : "xl6ValueIndexReadCopyV1";
+            const char* symbol=xl6IrCgenOwnedIndexReadSymbol(instruction->runtimeOp);
             if (!xl6IrOwnedIndexReadRuntimeInstructionCompatible(module,instruction) || !visitor(context,symbol)) return 0;
+            continue;
+        }
+        if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            (xl6IrListTypedReadRuntimeOpIs(instruction->runtimeOp) ||
+             instruction->runtimeOp==XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE)) {
+            if (!xl6IrListIndexRuntimeInstructionCompatible(module,instruction) ||
+                !visitor(context,instruction->runtimeOp==XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE ?
+                    "xl6ListValueSetTakeV1" : xl6IrCgenListTypedReadSymbol(instruction->runtimeOp))) return 0;
             continue;
         }
         if (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&

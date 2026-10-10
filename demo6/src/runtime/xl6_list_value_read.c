@@ -2,14 +2,15 @@
 #include "src/runtime/xl6_list.h"
 #include "src/api/xl_foreign_error.h"
 
-xvalue* xl6ListValueReadCopyV1(const xvalue* source,int64_t key)
+static xvalue* read(const xvalue* source,int64_t key,bool safe,bool required)
 {
     xl6_error_scope scope={0};
     if (!xl6ErrorScopeBegin(&scope)) {
         xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return NULL;
     }
     xvalue* result=NULL; bool found=false,success=false;
-    if (!source) xrtSetErrorKind(XERR_ARGUMENT);
+    if (safe && (!source || xrtValueType(source)==XVALUE_NULL)) success=true;
+    else if (!source) xrtSetErrorKind(XERR_ARGUMENT);
     else {
         int native=xl6ListErasedProbeV1(source);
         if (native>0) success=xl6ListErasedReadV1(source,key,false,&result,&found);
@@ -19,7 +20,10 @@ xvalue* xl6ListValueReadCopyV1(const xvalue* source,int64_t key)
             success=!found || result!=NULL;
         } else if (!native) xrtSetErrorKind(XERR_TYPE);
     }
-    if (success && !found && !scope.failed && !xrtGetError()) result=xrtValueRetain(xrtValueNull());
+    if (success && !found && !scope.failed && !xrtGetError()) {
+        if (required) { xrtSetErrorKind(XERR_RANGE); success=false; }
+        else result=xrtValueRetain(xrtValueNull());
+    }
     if (!success || !result || scope.failed || xrtGetError()) {
         xl6ErrorScopeCaptureFailure(&scope); xrtValueRelease(result); result=NULL;
     }
@@ -27,3 +31,9 @@ xvalue* xl6ListValueReadCopyV1(const xvalue* source,int64_t key)
     if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
     return result;
 }
+xvalue* xl6ListValueReadCopyV1(const xvalue* source,int64_t key)
+{ return read(source,key,false,false); }
+xvalue* xl6ListValueReadOrNullCopyV1(const xvalue* source,int64_t key)
+{ return read(source,key,true,false); }
+xvalue* xl6ListValueReadRequiredCopyV1(const xvalue* source,int64_t key)
+{ return read(source,key,false,true); }

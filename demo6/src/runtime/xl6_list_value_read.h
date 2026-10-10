@@ -13,4 +13,10 @@ typedef struct xvalue xvalue;
  * returns NULL and latches the enclosing checked boundary. Legacy IntMap is an
  * explicit migration input, not a native handle or a schema fallback. */
 XL6_LIST_VALUE_READ_API xvalue* xl6ListValueReadCopyV1(const xvalue*,int64_t);
+/* Safe nullable receiver: C NULL / canonical null is a normal owned miss;
+ * invalid present owners and projection failures still fail checked. */
+XL6_LIST_VALUE_READ_API xvalue* xl6ListValueReadOrNullCopyV1(const xvalue*,int64_t);
+/* Ordinary nonnullable typed element: a missing sparse key is RANGE, not an
+ * unrelated projection TYPE failure. A present canonical null stays a value. */
+XL6_LIST_VALUE_READ_API xvalue* xl6ListValueReadRequiredCopyV1(const xvalue*,int64_t);
 #endif
