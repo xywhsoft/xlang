@@ -22,6 +22,15 @@ this is not all-language OOM, shipping or full53 acceptance. See
 
 ## Toolchain
 
+`check_stdlib_value_copy.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
+checks open copy and native List recursive clone, one mixed graph memo,
+20 pre-output IR mutations, O0/O2 failure prefixes, real JIT and continuation
+execution. Pruned native inputs use the actual module plan plus an explicitly
+reported caller string projection provider. `--test-root` selects only hashed
+test inputs. Linux `--sanitize` covers selected native providers, not the whole
+compiler. Factories, casts, persistence and full53 shipping remain pending; see
+[Open copy and List clone](../docs/stdlib53-b180-open-copy-list-clone.md).
+
 `check_stdlib_list_algebra.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
 checks known List shallow copy, right-biased merge, without and compound
 assignment using resident native providers. O0/O2 genuine native language

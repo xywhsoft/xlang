@@ -1,0 +1,45 @@
+int valueCopyCleanups = 0
+func copyOpen(var source) as var
+    try
+        return copy(source)
+    finally
+        valueCopyCleanups += 1
+    end
+end
+func cloneOpen(var source) as var
+    try
+        return clone(source)
+    finally
+        valueCopyCleanups += 1
+    end
+end
+func cloneList(list<string> source) as list<string>
+    try
+        return clone(source)
+    finally
+        valueCopyCleanups += 1
+    end
+end
+func cloneLeaf(array<int> source) as array<int>
+    return clone(source)
+end
+func cloneNested(array<var> source) as array<var>
+    return clone(source)
+end
+list<string> source = [-9223372036854775808: "a\0你", 9223372036854775807: "z"]
+var copied = copyOpen(source)
+copied[9223372036854775807] = "changed"
+assert(source[9223372036854775807] == "z")
+var deep = cloneOpen(source)
+deep[-9223372036854775808] = "changed"
+assert(source[-9223372036854775808] == "a\0你")
+auto listDeep = cloneList(source)
+listDeep[9223372036854775807] = "changed"
+assert(source[9223372036854775807] == "z")
+auto leaf = cloneLeaf(array<int>[1, 2])
+assert(leaf[0] == 1)
+array<var> nestedSource = [source, source]
+auto nested = cloneNested(nestedSource)
+nested[0][-9223372036854775808] = "nested"
+assert(string(nested[1][-9223372036854775808]) == "nested")
+assert(source[-9223372036854775808] == "a\0你" and valueCopyCleanups == 3)

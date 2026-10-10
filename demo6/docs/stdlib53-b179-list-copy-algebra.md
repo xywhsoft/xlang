@@ -80,8 +80,10 @@ Linux ASan/UBSan 仅覆盖选定原生闭包，不认证整个编译器。
 
 ## 剩余语言与发布工作
 
-List 源工厂、准入/cast、开放 var 的浅复制、递归 clone 与恢复仍需
-联动切换。Set/Dict 迁移、发布 DLL/SO、VFS、打包 AOT 和三组总验收
+开放 var 的浅复制与公开递归 clone 消费端已由
+[开放复制与 List 递归克隆](stdlib53-b180-open-copy-list-clone.md)接通。
+List 源工厂、准入/cast、内部复制与持久化恢复仍需联动切换。
+Set/Dict 迁移、发布 DLL/SO、VFS、打包 AOT 和三组总验收
 仍未完成，本批不关闭长期任务或宣称发布级通过。
 
 JSON/XLON 的共享默认子对象仅按声明 clone 能力隔离，否则 checked

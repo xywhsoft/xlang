@@ -22358,6 +22358,41 @@ static const XL6_IrType* xl6IrCheckedIteratorKeyLogicalType(
     return initialize ? logical : NULL;
 }
 
+static int xl6IrCopyGraphMayContainList(const XL6_IrTypePool* pool,XL6_IrTypeId id,unsigned depth)
+{
+    const XL6_IrType* type=xl6IrTypeGet(pool,id);
+    /* Recursive/opaque domains cannot be proven leaf-only. Conservatively
+     * select the resident provider; never inspect an AST or diagnostic name. */
+    if (!type || depth>=64 || type->kind==XL6_IR_TYPE_CLASS ||
+        type->kind==XL6_IR_TYPE_PROTOCOL || type->kind==XL6_IR_TYPE_TYPE_PARAM ||
+        type->kind==XL6_IR_TYPE_TAGGED_ENUM || type->collectionAbi==XL6_IR_COLLECTION_LIST ||
+        (type->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && type->xvalueAdmissionAbi==XL6_VALUE_ADMIT_ANY &&
+         type->collectionAbi==XL6_IR_COLLECTION_NONE && type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NONE)) return 1;
+    if (type->paramCount && !type->params) return 1;
+    for (size_t i=0;i<type->paramCount;++i)
+        if (xl6IrCopyGraphMayContainList(pool,type->params[i],depth+1)) return 1;
+    return 0;
+}
+XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbi(
+    const XL6_IrModule* module,const XL6_IrInstruction* instruction)
+{
+    if (!module || !instruction || instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+        (instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_CLONE &&
+         instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_DEEP_CLONE) ||
+        instruction->operandCount!=1 || !module->operands || instruction->firstOperand>=module->operandCount)
+        return XL6_IR_VALUE_COPY_INVALID;
+    const XL6_IrInstruction* source=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+    const XL6_IrType* type=source ? xl6IrTypeGet(&module->types,source->type) : NULL;
+    if (!type || type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR || source->type!=instruction->type)
+        return XL6_IR_VALUE_COPY_INVALID;
+    if (type->collectionAbi==XL6_IR_COLLECTION_LIST) return XL6_IR_VALUE_COPY_LIST_V1;
+    if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DEEP_CLONE)
+        return xl6IrCopyGraphMayContainList(&module->types,source->type,0) ?
+            XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1 : XL6_IR_VALUE_COPY_ARRAY_WIRE_V1;
+    return type->collectionAbi==XL6_IR_COLLECTION_NONE && type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NONE &&
+        type->xvalueAdmissionAbi==XL6_VALUE_ADMIT_ANY ?
+        XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1 : XL6_IR_VALUE_COPY_ARRAY_WIRE_V1;
+}
 int xl6IrCollectionCountRuntimeOpIs(XL6_IrRuntimeOp operation)
 {
     return operation==XL6_IR_RUNTIME_XVALUE_COUNT ||
@@ -40716,7 +40751,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_DEEP_CLONE ) {
                         if ( instruction->operandCount != 1 || instruction->immediateText != NULL ||
                              !xl6IrTypeIsRuntimeXValue(module, instruction->type) || left == NULL ||
-                             left->type != instruction->type )
+                             left->type != instruction->type ||
+                             xl6IrValueCopyProviderAbi(module,instruction)==XL6_IR_VALUE_COPY_INVALID )
                             return xl6IrDiag(diags, NULL,
                                              "XLIR runtime dynamic clone has no exact borrowed-to-owned type ABI");
                     } else if ( instruction->runtimeOp ==
