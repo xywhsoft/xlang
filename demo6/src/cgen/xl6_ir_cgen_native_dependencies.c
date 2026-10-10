@@ -349,6 +349,13 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             !visitor(context,"xl6RestoreClassClosedProviderV1")) return 0;
         for (size_t n=0;n<root->nodeCount;++n) {
             const XL6_IrPersistenceRestoreNode* node=&module->persistenceRestoreNodes[root->firstNode+n];
+            if (node->openClassLayout!=SIZE_MAX) {
+                if (!visitor(context,"xl6RestoreOpenProviderV1")) return 0;
+                if (node->openIsolationAbi==XL6_IR_PERSIST_ISOLATION_RUNTIME_SHALLOW &&
+                    !visitor(context,"xl6ValueCloneV1")) return 0;
+                if (node->openIsolationAbi==XL6_IR_PERSIST_ISOLATION_RUNTIME_DEEP &&
+                    !visitor(context,"xl6ValueDeepCloneV1")) return 0;
+            }
             if (node->abi==XL6_IR_RESTORE_NODE_ARRAY &&
                 (!visitor(context,"xl6ArrayProjectionTakeV1") ||
                  !xl6IrCgenVisitSequenceFactorySymbols(module,node->payloadType,visitor,context,0))) return 0;

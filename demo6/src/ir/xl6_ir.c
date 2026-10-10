@@ -2055,6 +2055,7 @@ void xl6IrModuleFree(XL6_IrModule* module)
     xrtFree(module->persistenceRestorePlans);
     xrtFree(module->persistenceRestoreSchemas);
     xrtFree(module->persistenceRestoreFields);
+    xrtFree(module->persistenceRestoreClaims);
     xrtFree(module->persistenceRestoreRoots);
     xrtFree(module->persistenceRestoreNodes);
     xrtFree(module->persistenceRestoreEdges);
@@ -6806,9 +6807,10 @@ typedef struct XL6_IrPersistenceRestoreWalk {
     XL6_IrModule* output;
     unsigned char* marked;
     uint32 format;
-    size_t plans, schemas, fields;
+    size_t plans, schemas, fields, claims;
     int verify;
 } XL6_IrPersistenceRestoreWalk;
+#include "xl6_ir_persistence_restore_claims.inc"
 
 static uint32 xl6IrPersistenceRestoreOperationFormat(const XL6_IrInstruction* instruction)
 {
@@ -6957,6 +6959,7 @@ static int xl6IrPersistenceRestoreWalkArena(XL6_IrPersistenceRestoreWalk* walk)
             memset(&row, 0, sizeof(row));
             row.classLayout = layout; row.firstField = walk->fields;
             row.dynamicField = row.dynamicHandleField = XL6_IR_CLASS_FIELD_INDEX_INVALID;
+            row.firstClaim=walk->claims;
             if (!xl6IrPersistenceRestoreWalkFields(walk, layout, 0, 1)) return 0;
             row.fieldCount = walk->fields - row.firstField;
             if (item->persistenceObjectAbi == XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA) {
@@ -6966,7 +6969,9 @@ static int xl6IrPersistenceRestoreWalkArena(XL6_IrPersistenceRestoreWalk* walk)
                 row.dynamicHandleField = item->persistenceDynamicHandleField;
                 row.dynamicDestroySymbol = source->classFields[row.dynamicHandleField].nativeDestroySymbol;
                 if (row.dynamicDestroySymbol == 0 || xl6IrCallTargetGet(source, row.dynamicDestroySymbol) == NULL) return 0;
+                if (!xl6IrRestoreClaims(walk,layout,0)) return 0;
             }
+            row.claimCount=walk->claims-row.firstClaim;
             if (walk->verify) {
                 const XL6_IrPersistenceRestoreSchema* actual;
                 if (walk->schemas >= source->persistenceRestoreSchemaCount) return 0;
@@ -6974,7 +6979,8 @@ static int xl6IrPersistenceRestoreWalkArena(XL6_IrPersistenceRestoreWalk* walk)
                 if (actual->classLayout != row.classLayout || actual->firstField != row.firstField ||
                     actual->fieldCount != row.fieldCount || actual->dynamicField != row.dynamicField ||
                     actual->dynamicHandleField != row.dynamicHandleField ||
-                    actual->dynamicDestroySymbol != row.dynamicDestroySymbol) return 0;
+                    actual->dynamicDestroySymbol != row.dynamicDestroySymbol ||
+                    actual->firstClaim!=row.firstClaim || actual->claimCount!=row.claimCount) return 0;
             } else {
                 if (!xl6IrGrow((void**)&walk->output->persistenceRestoreSchemas,
                     &walk->output->persistenceRestoreSchemaCapacity, walk->schemas, sizeof(row))) return 0;
@@ -7016,11 +7022,13 @@ int xl6IrBuildPersistenceRestorePlans(XL6_IrModule* module)
     if (!ok) {
         xrtFree(arena.persistenceRestorePlans); xrtFree(arena.persistenceRestoreSchemas);
         xrtFree(arena.persistenceRestoreFields);
+        xrtFree(arena.persistenceRestoreClaims);
         xrtFree(arena.persistenceRestoreRoots); xrtFree(arena.persistenceRestoreNodes);
         xrtFree(arena.persistenceRestoreEdges); return 0;
     }
     xrtFree(module->persistenceRestorePlans); xrtFree(module->persistenceRestoreSchemas);
     xrtFree(module->persistenceRestoreFields);
+    xrtFree(module->persistenceRestoreClaims);
     xrtFree(module->persistenceRestoreRoots); xrtFree(module->persistenceRestoreNodes);
     xrtFree(module->persistenceRestoreEdges);
 #define XL6_IR_RESTORE_COMMIT(Name) \
@@ -7028,6 +7036,7 @@ int xl6IrBuildPersistenceRestorePlans(XL6_IrModule* module)
     XL6_IR_RESTORE_COMMIT(persistenceRestorePlan);
     XL6_IR_RESTORE_COMMIT(persistenceRestoreSchema);
     XL6_IR_RESTORE_COMMIT(persistenceRestoreField);
+    XL6_IR_RESTORE_COMMIT(persistenceRestoreClaim);
     XL6_IR_RESTORE_COMMIT(persistenceRestoreRoot);
     XL6_IR_RESTORE_COMMIT(persistenceRestoreNode);
     XL6_IR_RESTORE_COMMIT(persistenceRestoreEdge);
@@ -7047,13 +7056,16 @@ int xl6IrVerifyPersistenceRestorePlans(const XL6_IrModule* module)
     XL6_IR_RESTORE_CHECK(persistenceRestorePlan);
     XL6_IR_RESTORE_CHECK(persistenceRestoreSchema);
     XL6_IR_RESTORE_CHECK(persistenceRestoreField);
+    XL6_IR_RESTORE_CHECK(persistenceRestoreClaim);
 #undef XL6_IR_RESTORE_CHECK
     if (module->stage != XL6_IR_STAGE_LOWERED)
         return module->persistenceRestorePlanCount == 0 && module->persistenceRestoreSchemaCount == 0 &&
-            module->persistenceRestoreFieldCount == 0 && xl6IrVerifyPersistenceRestoreGraphs(module);
+            module->persistenceRestoreFieldCount == 0 && module->persistenceRestoreClaimCount==0 &&
+            xl6IrVerifyPersistenceRestoreGraphs(module);
     memset(&walk, 0, sizeof(walk)); walk.source = module; walk.verify = 1;
     ok = xl6IrPersistenceRestoreWalkArena(&walk) && walk.plans == module->persistenceRestorePlanCount &&
-        walk.schemas == module->persistenceRestoreSchemaCount && walk.fields == module->persistenceRestoreFieldCount;
+        walk.schemas == module->persistenceRestoreSchemaCount && walk.fields == module->persistenceRestoreFieldCount &&
+        walk.claims == module->persistenceRestoreClaimCount;
     xrtFree(walk.marked);
     return ok && xl6IrVerifyPersistenceRestoreGraphs(module);
 }
@@ -24615,6 +24627,15 @@ static int xl6IrReachabilityRestoreDefaults(
         if (!xl6IrRestoreGraphIsolation(module, layout, &contract)) return -1;
         if (contract.cloneSymbol) changed |= xl6IrReachabilityMarkSymbol(module, facts,
             contract.cloneSymbol, XL6_IR_REACHABILITY_TRANSITIVE);
+        if (layout->persistenceObjectAbi==XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA) {
+            if (layout->persistenceDynamicField>=module->classFieldCount) return -1;
+            XL6_IrTypeId storage=module->classFields[layout->persistenceDynamicField].type;
+            const XL6_IrClassLayout* open=xl6IrBuildClassLayoutByType(module,storage);
+            XL6_IrPersistenceRestoreNode isolation={0}; isolation.payloadType=storage;
+            if (!open || !xl6IrRestoreGraphIsolation(module,open,&isolation)) return -1;
+            if (isolation.cloneSymbol) changed |= xl6IrReachabilityMarkSymbol(module,facts,
+                isolation.cloneSymbol,XL6_IR_REACHABILITY_TRANSITIVE);
+        }
     }
     if (type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_CLASS_SCHEMA && construct) {
         layout = xl6IrBuildClassLayoutByType(module, typeId);
@@ -48521,10 +48542,18 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     for (i = 0; i < module->persistenceRestoreSchemaCount; ++i) {
         const XL6_IrPersistenceRestoreSchema* row = &module->persistenceRestoreSchemas[i];
         xl6OutputPrintf(out,
-            "    {\"classLayout\":%lu,\"firstField\":%lu,\"fieldCount\":%lu,\"dynamicField\":%lu,\"dynamicHandleField\":%lu,\"dynamicDestroySymbol\":%u}%s\n",
+            "    {\"classLayout\":%lu,\"firstField\":%lu,\"fieldCount\":%lu,\"dynamicField\":%lu,\"dynamicHandleField\":%lu,\"dynamicDestroySymbol\":%u,\"firstClaim\":%lu,\"claimCount\":%lu}%s\n",
             (unsigned long)row->classLayout, (unsigned long)row->firstField, (unsigned long)row->fieldCount,
             (unsigned long)row->dynamicField, (unsigned long)row->dynamicHandleField,
-            (unsigned)row->dynamicDestroySymbol, i + 1 < module->persistenceRestoreSchemaCount ? "," : "");
+            (unsigned)row->dynamicDestroySymbol,(unsigned long)row->firstClaim,(unsigned long)row->claimCount,
+            i + 1 < module->persistenceRestoreSchemaCount ? "," : "");
+    }
+    xl6OutputPuts("  ],\n  \"persistenceRestoreClaims\": [\n",out);
+    for (i=0;i<module->persistenceRestoreClaimCount;++i) {
+        const XL6_IrPersistenceRestoreClaim* row=&module->persistenceRestoreClaims[i];
+        xl6OutputPrintf(out,"    {\"classField\":%lu,\"keyAbi\":%u}%s\n",
+            (unsigned long)row->classField,(unsigned)row->keyAbi,
+            i+1<module->persistenceRestoreClaimCount ? "," : "");
     }
     xl6OutputPuts("  ],\n  \"persistenceRestoreFields\": [\n", out);
     for (i = 0; i < module->persistenceRestoreFieldCount; ++i) {
@@ -48549,13 +48578,15 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     for (i = 0; i < module->persistenceRestoreNodeCount; ++i) {
         const XL6_IrPersistenceRestoreNode* row=&module->persistenceRestoreNodes[i];
         xl6OutputPrintf(out,
-            "    {\"type\":%u,\"payloadType\":%u,\"abi\":%u,\"flags\":%u,\"identity\":%llu,\"contextField\":%llu,\"scalarRule\":%u,\"carrierAbi\":%u,\"seed\":%llu,\"element\":%llu,\"schema\":%llu,\"firstEdge\":%llu,\"edgeCount\":%llu,\"defaultFunction\":%u,\"defaultSymbol\":%u,\"defaultErrorAbi\":%u,\"isolationAbi\":%u,\"cloneFunction\":%u,\"cloneSymbol\":%u,\"cloneErrorAbi\":%u}%s\n",
+            "    {\"type\":%u,\"payloadType\":%u,\"abi\":%u,\"flags\":%u,\"identity\":%llu,\"contextField\":%llu,\"scalarRule\":%u,\"carrierAbi\":%u,\"seed\":%llu,\"element\":%llu,\"schema\":%llu,\"firstEdge\":%llu,\"edgeCount\":%llu,\"defaultFunction\":%u,\"defaultSymbol\":%u,\"defaultErrorAbi\":%u,\"isolationAbi\":%u,\"cloneFunction\":%u,\"cloneSymbol\":%u,\"cloneErrorAbi\":%u,\"openClassLayout\":%llu,\"openIsolationAbi\":%u,\"openCloneFunction\":%u,\"openCloneSymbol\":%u,\"openCloneErrorAbi\":%u}%s\n",
             (unsigned)row->type,(unsigned)row->payloadType,(unsigned)row->abi,(unsigned)row->flags,
             (unsigned long long)row->identity,(unsigned long long)row->contextField,(unsigned)row->scalarRule,
             (unsigned)row->carrierAbi,(unsigned long long)row->seed,(unsigned long long)row->element,
             (unsigned long long)row->schema,(unsigned long long)row->firstEdge,(unsigned long long)row->edgeCount,
             (unsigned)row->defaultFunction,(unsigned)row->defaultSymbol,(unsigned)row->defaultErrorAbi,
             (unsigned)row->isolationAbi,(unsigned)row->cloneFunction,(unsigned)row->cloneSymbol,(unsigned)row->cloneErrorAbi,
+            (unsigned long long)row->openClassLayout,(unsigned)row->openIsolationAbi,(unsigned)row->openCloneFunction,
+            (unsigned)row->openCloneSymbol,(unsigned)row->openCloneErrorAbi,
             i+1<module->persistenceRestoreNodeCount ? "," : "");
     }
     xl6OutputPuts("  ],\n  \"persistenceRestoreEdges\": [\n", out);

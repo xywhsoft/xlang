@@ -1,0 +1,60 @@
+int openDefaults = 0
+int openCloneCalls = 0
+func openDefault() as int
+    openDefaults += 1
+    return 11
+end
+class RestoreOpenBase extends object
+    derive value
+    int base = 7
+    string ignored @persist(skip) @json("ignored\0wire") @xlon("ignored\0wire") = "unchanged"
+end
+class RestoreOpenChild extends RestoreOpenBase
+    derive value
+    int id @json("wire\0id") @xlon("wire\0id") = openDefault()
+    func __clone__() as RestoreOpenChild
+        openCloneCalls += 1
+        auto result = RestoreOpenChild()
+        result.id = self.id
+        result.base = self.base
+        result.ignored = self.ignored
+        result.__fields = self.__fields
+        return result
+    end
+end
+RestoreOpenChild openShared = RestoreOpenChild()
+openShared.keep = "default\0你"
+class RestoreOpenEnvelope
+    derive value
+    RestoreOpenChild child = openShared
+    array<RestoreOpenChild> values = []
+end
+openDefaults = 0
+auto first = json.parse::<RestoreOpenEnvelope>("{\"child\":{\"wire\\u0000id\":29,\"id\":99,\"base\":31,\"ignored\":\"bad\",\"ignored\\u0000wire\":\"bad\",\"extra\\u0000你\":\"a\\u0000b\"},\"values\":[{\"wire\\u0000id\":37,\"other\":true}]}")
+assert first != null and first.child.id == 29 and first.child.base == 31
+assert first.child.ignored == "unchanged" and first.child.keep == "default\0你"
+assert first.child["ignored\0wire"] == null
+assert first.child["extra\0你"] == "a\0b" and first.values[0].other == true
+assert first.values[0].id == 37 and openShared.id == 11 and openShared.base == 7
+assert openShared["extra\0你"] == null and openCloneCalls == 1
+assert openDefaults == 2
+auto second = xlon.parse::<RestoreOpenEnvelope>(xlon.stringify(first))
+assert second != null and second.child.id == 29 and second.child["extra\0你"] == "a\0b"
+assert second.child != first.child and second.values[0] != first.values[0]
+assert openShared.id == 11 and openShared["extra\0你"] == null and openCloneCalls == 2
+auto jsonAgain = json.parse::<RestoreOpenEnvelope>(json.stringify(second))
+assert jsonAgain != null and jsonAgain.child.keep == "default\0你"
+assert jsonAgain.child["extra\0你"] == "a\0b" and openCloneCalls == 3
+int before = openCloneCalls
+auto unchanged = json.parse::<RestoreOpenEnvelope>("{}")
+assert unchanged.child == openShared and openCloneCalls == before
+assert json.parse::<RestoreOpenEnvelope>("{\"child\":{\"wire\\u0000id\":\"bad\"}}") == null
+assert openShared.id == 11 and openShared.ignored == "unchanged"
+string files = env.get("XL6_PERSIST_FILE_ROOT") ?? ""
+assert files != ""
+assert json.write(files + "/open.json", first) and xlon.write(files + "/open.xlon", second)
+auto jsonFile = json.read::<RestoreOpenEnvelope>(files + "/open.json")
+auto xlonFile = xlon.read::<RestoreOpenEnvelope>(files + "/open.xlon")
+assert jsonFile != null and xlonFile != null
+assert jsonFile.child["extra\0你"] == "a\0b" and xlonFile.child.keep == "default\0你"
+assert openShared["extra\0你"] == null and openShared.id == 11

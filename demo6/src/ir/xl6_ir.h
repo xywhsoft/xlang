@@ -5823,6 +5823,14 @@ typedef struct XL6_IrPersistenceRestoreField {
     int acceptNull;
     int required;
 } XL6_IrPersistenceRestoreField;
+/* All statically claimed wire/runtime keys, including ignored fields. The
+ * source field and literal ABI are retained for independent reconstruction;
+ * Cgen only emits exact counted spans, never discovers member names. */
+typedef struct XL6_IrPersistenceRestoreClaim {
+    size_t classField;
+    XL6_IrPersistenceProjectKeyAbi keyAbi;
+    const char* key;
+} XL6_IrPersistenceRestoreClaim;
 typedef struct XL6_IrPersistenceRestoreSchema {
     size_t classLayout;
     size_t firstField;
@@ -5830,6 +5838,7 @@ typedef struct XL6_IrPersistenceRestoreSchema {
     size_t dynamicField;
     size_t dynamicHandleField;
     XL6_SymbolId dynamicDestroySymbol;
+    size_t firstClaim,claimCount;
 } XL6_IrPersistenceRestoreSchema;
 typedef struct XL6_IrPersistenceRestorePlan {
     uint32 format;
@@ -5899,6 +5908,13 @@ typedef struct XL6_IrPersistenceRestoreNode {
     uint32 cloneFunction;
     XL6_SymbolId cloneSymbol;
     XL6_IrErrorAbi cloneErrorAbi;
+    /* Optional Open storage's exact declared class clone domain. This is
+     * distinct from cloning the containing class or constructing it again. */
+    size_t openClassLayout;
+    XL6_IrPersistenceIsolationAbi openIsolationAbi;
+    uint32 openCloneFunction;
+    XL6_SymbolId openCloneSymbol;
+    XL6_IrErrorAbi openCloneErrorAbi;
 } XL6_IrPersistenceRestoreNode;
 typedef struct XL6_IrPersistenceRestoreEdge {
     size_t field; /* Exact canonical RestoreField, including keys/assignment. */
@@ -6308,6 +6324,8 @@ typedef struct XL6_IrModule {
     XL6_IrPersistenceRestoreField* persistenceRestoreFields;
     size_t persistenceRestoreFieldCount;
     size_t persistenceRestoreFieldCapacity;
+    XL6_IrPersistenceRestoreClaim* persistenceRestoreClaims;
+    size_t persistenceRestoreClaimCount,persistenceRestoreClaimCapacity;
     XL6_IrPersistenceRestoreRoot* persistenceRestoreRoots;
     size_t persistenceRestoreRootCount, persistenceRestoreRootCapacity;
     XL6_IrPersistenceRestoreNode* persistenceRestoreNodes;

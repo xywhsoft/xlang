@@ -27,7 +27,7 @@ static void rejected(const XL6_IrModule* ir)
 }
 int main(int argc,char** argv)
 {
-    assert(argc==3);
+    assert(argc==4);
     XL6_ParseResult parse; XL6_IrModule ir;
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     assert(xl6ParseFile(argv[1],&parse)); assert(xl6StdlibExpandModule(parse.root,&parse.diags));
@@ -64,30 +64,81 @@ int main(int argc,char** argv)
     assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_IMPORT_CHAIN));
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse);
     /* Resident DynamicFields no longer makes an otherwise closed root
-     * opaque. Open and Set roots retain their actual unsupported recipes;
-     * stripping either barrier must fail independent reconstruction. */
+     * opaque. Open now has a native recipe; Set still has an unsupported
+     * recipe whose barrier cannot be stripped by an emitter. */
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     assert(xl6ParseFile(argv[2],&parse) && xl6StdlibExpandModule(parse.root,&parse.diags));
     assert(xl6SemCheckModule(parse.root,&parse.diags,"restore_mixed"));
     assert(xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags));
     assert(xl6IrLowerModule(&ir,&parse.diags) && xl6IrVerifyModule(&ir,&parse.diags));
     assert(ir.persistenceRestoreRootCount);
-    bool opened=false, set=false, closed=false;
+    bool set=false, closed=false; size_t setBarriers=0;
     for (size_t i=0;i<ir.persistenceRestoreRootCount;++i) {
         uint32 pending=ir.persistenceRestoreRoots[i].pending;
         assert(!(pending & XL6_IR_RESTORE_PENDING_OPAQUE_MODULE_OWNER));
+        assert(!(pending & XL6_IR_RESTORE_PENDING_OPEN));
         closed = closed || !pending;
-        if (!(pending & (XL6_IR_RESTORE_PENDING_OPEN|XL6_IR_RESTORE_PENDING_SET))) continue;
-        opened = opened || (pending & XL6_IR_RESTORE_PENDING_OPEN);
+        if (!(pending & XL6_IR_RESTORE_PENDING_SET)) continue;
         set = set || (pending & XL6_IR_RESTORE_PENDING_SET);
         ir.persistenceRestoreRoots[i].pending=0;
         rejected(&ir); ir.persistenceRestoreRoots[i].pending=pending;
+        ++setBarriers;
     }
-    assert(opened && set && closed);
+    assert(set && closed && setBarriers==2);
     assert(xl6IrVerifyModule(&ir,&parse.diags));
     memset(&plan,0,sizeof(plan));
     assert(xl6ArtifactRuntimePlanBuild(&ir,XL6_ARTIFACT_ENTRY_FRAGMENT,&plan,&parse.diags));
     assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_RESTORE_CLASS));
+    xl6IrModuleFree(&ir); xl6ParseResultFree(&parse);
+    /* These facts are independently reconstructed before any C/header or
+     * selective-artifact bytes. No backend may repair corrupted Open IR. */
+    xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
+    assert(xl6ParseFile(argv[3],&parse) && xl6StdlibExpandModule(parse.root,&parse.diags));
+    assert(xl6SemCheckModule(parse.root,&parse.diags,"restore_open_contract"));
+    assert(xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags));
+    assert(xl6IrLowerModule(&ir,&parse.diags) && xl6IrVerifyModule(&ir,&parse.diags));
+    XL6_IrPersistenceRestoreNode* open=NULL;
+    for (size_t i=0;i<ir.persistenceRestoreRootCount;++i) assert(!ir.persistenceRestoreRoots[i].pending);
+    for (size_t i=0;i<ir.persistenceRestoreNodeCount;++i)
+        if (ir.persistenceRestoreNodes[i].openClassLayout!=SIZE_MAX) { open=&ir.persistenceRestoreNodes[i]; break; }
+    assert(open && open->openCloneFunction && open->openCloneSymbol);
+    XL6_IrPersistenceRestoreSchema* schema=&ir.persistenceRestoreSchemas[open->schema];
+    assert(schema->claimCount && ir.persistenceRestoreClaimCount);
+#define CORRUPT(Object, Member, Value) do { \
+    __typeof__((Object)->Member) original=(Object)->Member; \
+    (Object)->Member=(Value); rejected(&ir); (Object)->Member=original; \
+} while (0)
+    CORRUPT(open,openClassLayout,SIZE_MAX);
+    CORRUPT(open,openIsolationAbi,XL6_IR_PERSIST_ISOLATION_CHECKED_REJECT);
+    CORRUPT(open,openCloneFunction,0);
+    CORRUPT(open,openCloneSymbol,0);
+    CORRUPT(open,openCloneErrorAbi,open->openCloneErrorAbi==XL6_IR_ERROR_ABI_NO_RAISE ?
+        XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE);
+    CORRUPT(schema,firstClaim,SIZE_MAX);
+    CORRUPT(schema,claimCount,schema->claimCount-1);
+    XL6_IrPersistenceRestoreClaim* claim=&ir.persistenceRestoreClaims[schema->firstClaim];
+    CORRUPT(claim,classField,SIZE_MAX);
+    CORRUPT(claim,keyAbi,XL6_IR_PERSIST_PROJECT_KEY_C_LITERAL);
+    CORRUPT(claim,key,NULL);
+    CORRUPT(&ir,persistenceRestoreClaimCount,ir.persistenceRestoreClaimCount-1);
+    XL6_IrFunction* clone=&ir.functions[open->openCloneFunction-1];
+    CORRUPT(clone,reachability,XL6_IR_REACHABILITY_UNREACHABLE);
+    XL6_IrCallTarget* target=NULL;
+    for (size_t i=0;i<ir.callTargetCount;++i)
+        if (ir.callTargets[i].symbol==open->openCloneSymbol) { target=&ir.callTargets[i]; break; }
+    assert(target); CORRUPT(target,reachability,XL6_IR_REACHABILITY_UNREACHABLE);
+    XL6_IrCallTarget* destroy=(XL6_IrCallTarget*)xl6IrCallTargetGet(&ir,schema->dynamicDestroySymbol);
+    assert(destroy);
+    CORRUPT(destroy,nativeHandlePolicyCName,"invalid_open_policy");
+    CORRUPT(destroy,nativeHandlePolicyAbi,0);
+#undef CORRUPT
+    assert(mutations==22 && xl6IrVerifyModule(&ir,&parse.diags));
+    memset(&plan,0,sizeof(plan));
+    assert(xl6ArtifactRuntimePlanBuild(&ir,XL6_ARTIFACT_ENTRY_FRAGMENT,&plan,&parse.diags));
+    assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_RESTORE_OPEN));
+    assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_DYNAMIC_FIELDS));
+    assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_LIST_NATIVE));
+    assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_FUTURE_ADMISSION));
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse);
     printf("restore take: %zu corrupt ownership/plan mutations refused before output\n",mutations); return 0;
 }

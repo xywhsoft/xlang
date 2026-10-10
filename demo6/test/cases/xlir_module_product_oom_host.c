@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "test/support/module_product_memory.h"
 extern int32_t xrtErrorLine(const xerror*);
 extern int32_t xrtErrorColumn(const xerror*);
@@ -12,10 +13,8 @@ extern int32_t xrtErrorColumn(const xerror*);
  * independent host argument factory. */
 extern xvalue* xrtValueArray(void);
 #endif
-int main(int argc, char** argv)
+static bool runPoint(size_t point)
 {
-    assert(argc == 1 || argc == 2);
-    size_t point = argc == 2 ? (size_t)strtoull(argv[1], NULL, 10) : SIZE_MAX;
     xl6ProductMemoryBegin(point);
     int initialized = xlir_module_init();
 #if defined(XL6_PRODUCT_USER_ENTRY)
@@ -40,6 +39,23 @@ int main(int argc, char** argv)
     xlir_module_fini(); assert(!xrtGetError());
     xrtErrorFree(failure); xrtClearError();
     xl6ProductMemoryVerify();
-    printf("module product point=%zu hit=%d balanced\n", point, hit);
+    return hit;
+}
+int main(int argc, char** argv)
+{
+    assert(argc == 1 || argc == 2);
+    if (argc==2 && !strcmp(argv[1],"--all")) {
+        /* Reinitialize/finalize the real generated module for each logical
+         * allocation point. Verify every ledger, including the first no-hit;
+         * report one batch, without thousands of process/link startups. */
+        size_t point=0;
+        while (point<10000 && runPoint(point)) ++point;
+        assert(point<10000);
+        printf("module product full prefixes=%zu first-no-hit=%zu balanced\n",point+1,point);
+    } else {
+        size_t point = argc == 2 ? (size_t)strtoull(argv[1], NULL, 10) : SIZE_MAX;
+        bool hit=runPoint(point);
+        printf("module product point=%zu hit=%d balanced\n", point, hit);
+    }
     return 0;
 }

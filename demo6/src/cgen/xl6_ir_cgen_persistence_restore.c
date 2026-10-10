@@ -1,5 +1,34 @@
 /* Physical adapters for the verified LOCAL restore graph. No field traversal,
  * semantic assignment, inferred clone, nominal registry or source lookup. */
+static int xl6IrCgenEmitRestoreCloneAdapter(XL6_Output* out,const XL6_IrModule* module,
+    size_t root,size_t node,XL6_IrTypeId type,XL6_IrErrorAbi error,XL6_SymbolId symbol,
+    const char* suffix,XL6_DiagList* diags)
+{
+    if (error==XL6_IR_ERROR_ABI_MAY_RAISE)
+        xl6OutputPrintf(out,"static xvalue* xlir_restore_r%lu_n%lu_%s(const xvalue* value)\n{\n"
+            "    %s outcome = xlir_fn_%u((xvalue*)value);\n"
+            "    if (!outcome.ok) { xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return NULL; }\n"
+            "    return outcome.value;\n}\n",(unsigned long)root,(unsigned long)node,suffix,
+            xl6IrCgenErrorResultType(module,type),(unsigned)symbol);
+    else if (error==XL6_IR_ERROR_ABI_NO_RAISE)
+        xl6OutputPrintf(out,"static xvalue* xlir_restore_r%lu_n%lu_%s(const xvalue* value)\n"
+            "{ return xlir_fn_%u((xvalue*)value); }\n",(unsigned long)root,(unsigned long)node,suffix,(unsigned)symbol);
+    else return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR restore clone has no physical outcome ABI");
+    return !xl6OutputHasFailed(out);
+}
+static int xl6IrCgenEmitRestoreIsolation(XL6_Output* out,const XL6_IrModule* module,
+    size_t root,size_t node,XL6_IrPersistenceIsolationAbi abi,const char* suffix,XL6_DiagList* diags)
+{
+    switch (abi) {
+    case XL6_IR_PERSIST_ISOLATION_CHECKED_REJECT: xl6OutputPuts("NULL",out); break;
+    case XL6_IR_PERSIST_ISOLATION_RUNTIME_SHALLOW: xl6OutputPuts("xl6ValueCloneV1",out); break;
+    case XL6_IR_PERSIST_ISOLATION_RUNTIME_DEEP: xl6OutputPuts("xl6ValueDeepCloneV1",out); break;
+    case XL6_IR_PERSIST_ISOLATION_INTERNAL_CALL:
+        xl6OutputPrintf(out,"xlir_restore_r%lu_n%lu_%s",(unsigned long)root,(unsigned long)node,suffix); break;
+    default: return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR restore isolation ABI is unresolved");
+    }
+    return !xl6OutputHasFailed(out);
+}
 static int xl6IrCgenEmitRestoreGraphCallbacks(XL6_Output* out,
     const XL6_IrModule* module,size_t rootIndex,XL6_DiagList* diags)
 {
@@ -7,6 +36,26 @@ static int xl6IrCgenEmitRestoreGraphCallbacks(XL6_Output* out,
     for (size_t i=0;i<root->nodeCount;++i) {
         const XL6_IrPersistenceRestoreNode* node=&module->persistenceRestoreNodes[root->firstNode+i];
         if (node->abi!=XL6_IR_RESTORE_NODE_CLASS) continue;
+        if (node->openClassLayout!=SIZE_MAX) {
+            const XL6_IrPersistenceRestoreSchema* schema=&module->persistenceRestoreSchemas[node->schema];
+            int first=1;
+            for (size_t j=0;j<i;++j)
+                if (module->persistenceRestoreNodes[root->firstNode+j].schema==node->schema) first=0;
+            if (first && schema->claimCount) {
+                xl6OutputPrintf(out,"static const xstrview xlir_restore_r%lu_s%lu_claims[] = {\n",
+                    (unsigned long)rootIndex,(unsigned long)node->schema);
+                for (size_t j=0;j<schema->claimCount;++j) {
+                    const XL6_IrPersistenceRestoreClaim* claim=&module->persistenceRestoreClaims[schema->firstClaim+j];
+                    xl6OutputPuts("    ",out);
+                    xl6IrCgenEmitPersistenceByteView(out,claim->key,claim->keyAbi==XL6_IR_PERSIST_PROJECT_KEY_C_LITERAL);
+                    xl6OutputPuts(",\n",out);
+                }
+                xl6OutputPuts("};\n",out);
+            }
+            if (node->openIsolationAbi==XL6_IR_PERSIST_ISOLATION_INTERNAL_CALL &&
+                !xl6IrCgenEmitRestoreCloneAdapter(out,module,rootIndex,i,module->classLayouts[node->openClassLayout].type,
+                    node->openCloneErrorAbi,node->openCloneSymbol,"open_clone",diags)) return 0;
+        }
         if (node->defaultFunction) {
             xl6OutputPrintf(out,"static xvalue* xlir_restore_r%lu_n%lu_default(void)\n{\n"
                 "    %s outcome = xlir_fn_%u();\n"
@@ -14,18 +63,9 @@ static int xl6IrCgenEmitRestoreGraphCallbacks(XL6_Output* out,
                 "    return outcome.value;\n}\n",(unsigned long)rootIndex,(unsigned long)i,
                 xl6IrCgenErrorResultType(module,node->payloadType),(unsigned)node->defaultSymbol);
         }
-        if (node->isolationAbi==XL6_IR_PERSIST_ISOLATION_INTERNAL_CALL) {
-            if (node->cloneErrorAbi==XL6_IR_ERROR_ABI_MAY_RAISE)
-                xl6OutputPrintf(out,"static xvalue* xlir_restore_r%lu_n%lu_clone(const xvalue* value)\n{\n"
-                    "    %s outcome = xlir_fn_%u((xvalue*)value);\n"
-                    "    if (!outcome.ok) { xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return NULL; }\n"
-                    "    return outcome.value;\n}\n",(unsigned long)rootIndex,(unsigned long)i,
-                    xl6IrCgenErrorResultType(module,node->payloadType),(unsigned)node->cloneSymbol);
-            else if (node->cloneErrorAbi==XL6_IR_ERROR_ABI_NO_RAISE)
-                xl6OutputPrintf(out,"static xvalue* xlir_restore_r%lu_n%lu_clone(const xvalue* value)\n"
-                    "{ return xlir_fn_%u((xvalue*)value); }\n",(unsigned long)rootIndex,(unsigned long)i,(unsigned)node->cloneSymbol);
-            else return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR restore clone has no physical outcome ABI");
-        }
+        if (node->isolationAbi==XL6_IR_PERSIST_ISOLATION_INTERNAL_CALL &&
+            !xl6IrCgenEmitRestoreCloneAdapter(out,module,rootIndex,i,node->payloadType,
+                node->cloneErrorAbi,node->cloneSymbol,"clone",diags)) return 0;
     }
     return !xl6OutputHasFailed(out);
 }
@@ -34,6 +74,23 @@ static int xl6IrCgenEmitRestoreGraphPlan(XL6_Output* out,const XL6_IrModule* mod
     size_t rootIndex,XL6_DiagList* diags)
 {
     const XL6_IrPersistenceRestoreRoot* root=&module->persistenceRestoreRoots[rootIndex];
+    for (size_t i=0;i<root->nodeCount;++i) {
+        const XL6_IrPersistenceRestoreNode* node=&module->persistenceRestoreNodes[root->firstNode+i];
+        if (node->openClassLayout==SIZE_MAX) continue;
+        const XL6_IrPersistenceRestoreSchema* schema=&module->persistenceRestoreSchemas[node->schema];
+        const XL6_IrClassLayout* storage=&module->classLayouts[node->openClassLayout];
+        const XL6_IrType* type=xl6IrTypeGet(&module->types,storage->type);
+        xl6OutputPrintf(out,"    const XL6_RestoreOpenV1 open_%lu = {UINT64_C(0x%016llX),%u,",
+            (unsigned long)i,(unsigned long long)type->typeValueId,(unsigned)storage->runtimeTypeTag);
+        xl6IrCgenEmitPersistenceByteView(out,module->classFields[schema->dynamicField].name,0); xl6OutputPuts(",",out);
+        xl6IrCgenEmitPersistenceByteView(out,module->classFields[schema->dynamicHandleField].name,0);
+        xl6OutputPrintf(out,",%lu,",(unsigned long)schema->claimCount);
+        if (schema->claimCount) xl6OutputPrintf(out,"xlir_restore_r%lu_s%lu_claims",(unsigned long)rootIndex,(unsigned long)node->schema);
+        else xl6OutputPuts("NULL",out);
+        xl6OutputPuts(",",out);
+        if (!xl6IrCgenEmitRestoreIsolation(out,module,rootIndex,i,node->openIsolationAbi,"open_clone",diags)) return 0;
+        xl6OutputPuts("};\n",out);
+    }
     xl6OutputPrintf(out,"    const XL6_RestoreObjectProviderV1* objects = xl6RestoreClassClosedProviderV1();\n"
         "    const XL6_RestoreNodeV1 nodes[%lu] = {\n",(unsigned long)root->nodeCount);
     for (size_t i=0;i<root->nodeCount;++i) {
@@ -51,16 +108,12 @@ static int xl6IrCgenEmitRestoreGraphPlan(XL6_Output* out,const XL6_IrModule* mod
             xl6OutputPuts(".as.object={",out);
             if (node->defaultFunction) xl6OutputPrintf(out,"xlir_restore_r%lu_n%lu_default",(unsigned long)rootIndex,(unsigned long)i);
             else xl6OutputPuts("NULL",out);
-            xl6OutputPrintf(out,",%u,%lu,%lu,objects}",(unsigned)layout->runtimeTypeTag,
-                (unsigned long)node->firstEdge,(unsigned long)node->edgeCount);
-            switch (node->isolationAbi) {
-            case XL6_IR_PERSIST_ISOLATION_CHECKED_REJECT: break;
-            case XL6_IR_PERSIST_ISOLATION_RUNTIME_SHALLOW: xl6OutputPuts(",.clone=xl6ValueCloneV1",out); break;
-            case XL6_IR_PERSIST_ISOLATION_RUNTIME_DEEP: xl6OutputPuts(",.clone=xl6ValueDeepCloneV1",out); break;
-            case XL6_IR_PERSIST_ISOLATION_INTERNAL_CALL:
-                xl6OutputPrintf(out,",.clone=xlir_restore_r%lu_n%lu_clone",(unsigned long)rootIndex,(unsigned long)i); break;
-            default: return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR closed restore isolation ABI is unresolved");
-            }
+            xl6OutputPrintf(out,",%u,%lu,%lu,%s}",(unsigned)layout->runtimeTypeTag,
+                (unsigned long)node->firstEdge,(unsigned long)node->edgeCount,
+                node->openClassLayout==SIZE_MAX ? "objects" : "xl6RestoreOpenProviderV1()");
+            xl6OutputPuts(",.clone=",out);
+            if (!xl6IrCgenEmitRestoreIsolation(out,module,rootIndex,i,node->isolationAbi,"clone",diags)) return 0;
+            if (node->openClassLayout!=SIZE_MAX) xl6OutputPrintf(out,",.open=&open_%lu",(unsigned long)i);
         } else return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR closed restore node is unresolved");
         xl6OutputPuts("},\n",out);
     }
@@ -99,6 +152,10 @@ static int xl6IrCgenEmitNativeRestoreHelpers(XL6_Output* out,const XL6_IrModule*
         if (!header++) xl6OutputPuts("#include <__xl_runtime/xl6_restore_class.h>\n"
             "extern xvalue* xl6ValueCloneV1(const xvalue*);\n"
             "extern xvalue* xl6ValueDeepCloneV1(const xvalue*);\n",out);
+        for (size_t i=0;i<root->nodeCount;++i)
+            if (module->persistenceRestoreNodes[root->firstNode+i].openClassLayout!=SIZE_MAX) {
+                xl6OutputPuts("#include <__xl_runtime/xl6_restore_open.h>\n",out); break;
+            }
         if (!xl6IrCgenEmitRestoreGraphCallbacks(out,module,r,diags)) return 0;
         xl6OutputPrintf(out,"static bool xlir_restore_r%lu_take(xvalue* source, xl6_error_result parsed, bool file, xvalue* target, xvalue** result)\n{\n",
             (unsigned long)r);
