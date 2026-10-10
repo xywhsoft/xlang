@@ -1,0 +1,42 @@
+{
+  "Schema": 1,
+  "Baseline": "89d17a71d173bfbcc1597aeca5da8de4ed55da9e",
+  "Module": "value_graph",
+  "Sources": [
+    {
+      "Path": "include/xrt/value.h",
+      "BaselineSha256": "85273EB932C42EBFBF528511A41BAFA975C42BC6117484F2DD5F0E35EFB8A034",
+      "Sha256": "D48AE82C5768A3CBF70BAE8C30A01C7DD5DF63D1555E4DB2621FCED0C97FD8D5"
+    },
+    {
+      "Path": "src/value/value_graph.c",
+      "BaselineSha256": "384DA5114AAAFDC2DA47562FB3ABDFCE51B401FBED3AE47C143D88932DED9075",
+      "Sha256": "AB934A4F0C01C99FF31B05D3EDD128EB90492D41FFB87F6EA595E51E592D018E"
+    }
+  ],
+  "Targets": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "Before": "F5A7A4C14A066D3B5F1A8AF443FB2AE66DBE3FC0D4B9766D0F49FA49C7420880",
+      "After": "BA620567A03B82F41C9E22308AB69AEE59DB0914A36CB95806E28FAF8FFD7D19"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "Before": "C99B7A9DD7EC11BD402A42BC5411B1BF10C20C956F9F4CC1579B686FFCA4FA6B",
+      "After": "01CCCD4A3AB5AEAB2C34798F43CCF295FF7812D638309FB4001341F8F39B4244"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "Before": "17FA31ECBC24EA3488538032EF7B41942AAC5412947C7A4E082DEAF5DB7792E6",
+      "After": "3EA9567AEA49643E4048E931D730C2C60AD35AE0BA353EB011C133B47B925B5A"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "Before": "4B555EDF70F0139B05EEC64BE6922E5EED487EFF19C48809B6DA0F0370CBD2C5",
+      "After": "907FCE17570B621DCBE76BD9D1C3BFA8355EC9B613096E8A55E3915DC13912B8"
+    }
+  ],
+  "PublicMatchScope": "Exact complete xvaluegraphsequencev1 documentation and declaration block",
+  "OtherModuleBodiesUnchanged": true,
+  "PublicApiUnchanged": true
+}

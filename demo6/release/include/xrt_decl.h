@@ -16486,8 +16486,11 @@ typedef int (*xvaluegraphobjectcopyv1)(uint64 iTypeId,
 /* Exact nominal sequence policies for data projection. Only the matching
  * IntMap/Set identity is written as an Array, in its ordinary iteration order.
  * Untyped/unlisted containers retain their representation. A listed identity
- * on the wrong physical type fails closed. The immutable table is borrowed
- * only for the synchronous copy; no registry or application callback is used. */
+ * on the wrong physical type fails closed. A HANDLE with a listed identity
+ * must be authenticated by CopyHandle and projected to an Array: refusal,
+ * missing adaptation, or another output type fails closed, never retains the
+ * opaque source. The wire rule itself uses no registry or item callback.
+ * The immutable table is borrowed only for the synchronous copy. */
 typedef struct xvaluegraphsequencev1 {
 	uint64 TypeId;
 	xvaluetype Type; /* XVALUE_INT_MAP or XVALUE_SET */

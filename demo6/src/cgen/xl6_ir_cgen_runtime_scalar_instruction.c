@@ -213,8 +213,9 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                     if (!xl6IrPersistenceProjectInstructionAbi(module, instruction))
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                             "XLIR C emitter persistence projection ABI is unresolved");
-                    xl6OutputPrintf(out, "    v%u = xl6PersistenceProjectV1(v%u, &xlir_persist_plan_%u);\n",
+                    xl6OutputPrintf(out, "    v%u = %s(v%u, &xlir_persist_plan_%u);\n",
                         (unsigned int)instruction->result,
+                        xl6IrCgenPersistenceProjectSymbol(module,instruction),
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)xl6IrCgenPersistenceRuntimeFormat(instruction->runtimeOp));
                 } else if (xl6IrPersistenceInvocationRuntime(instruction->runtimeOp) != NULL) {

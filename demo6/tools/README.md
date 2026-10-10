@@ -22,6 +22,17 @@ this is not all-language OOM, shipping or full53 acceptance. See
 
 ## Toolchain
 
+`check_stdlib_list_persistence.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
+checks compact native List projection, JSON/XLON text/file restoration, one
+native/wire graph memo, 44 pre-output IR mutations and O0/O2 closed failure
+prefixes. Both full and restore-only modules execute their actual pruned
+artifact plans and JIT; no caller-supplied provider hides a missing dependency.
+Linux `--sanitize` covers only selected projection providers.
+`sync_xruntime_value_graph.py --xrt-root <supplier> --baseline <reviewed-commit>`
+preflights exact baseline graph sections in Core/runtime implementation and
+declaration headers. It preserves the API symbol table, Core time ABI and other
+module bodies. See [List persistence](../docs/stdlib53-b182-list-persistence-native.md).
+
 `check_stdlib_dynamic_fields_list.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
 checks seven internal DynamicFields copy consumers, one native/wire graph memo,
 bounded XLIR type closure, leaf-class pruning and declared-clone restoration of

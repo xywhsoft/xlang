@@ -1,0 +1,48 @@
+class ListPersistLeaf
+    derive value
+    string text = "default\0text"
+    int number = 11
+end
+class ListPersistRoot
+    derive value
+    list<int8> narrow
+    list<string?> words
+    list<ListPersistLeaf> items
+    list<array<char>> nested
+end
+func main(...) as int
+    ListPersistRoot first = json.parse::<ListPersistRoot>("{\"narrow\":[-128,127],\"words\":[\"a\\u0000你\",null],\"items\":[{\"number\":31}],\"nested\":[[65,20320]]}")
+    assert first.narrow[0] == -128 and first.narrow[1] == 127
+    assert (first.words[0] ?? "") == "a\0你" and first.words[1] == null
+    assert first.items[0].number == 31 and first.items[0].text == "default\0text"
+    assert first.nested[0][1] == '你'
+    var erased = first.words
+    assert erased[0] == "a\0你"
+    first.narrow[-9223372036854775808] = int8(3)
+    first.narrow[9223372036854775807] = int8(4)
+    assert first.narrow.length == 4
+    int count = 0
+    list<string?> iteration = first.words
+    for key, value in iteration
+        count += 1
+    end
+    assert count == 2
+    ListPersistRoot viaXlon = xlon.parse::<ListPersistRoot>(xlon.stringify(first))
+    ListPersistRoot viaJson = json.parse::<ListPersistRoot>(json.stringify(first))
+    // Persistence is a compact value sequence, not a sparse-key archive.
+    assert viaXlon.narrow.length == 4 and viaXlon.narrow[0] == 3 and viaXlon.narrow[3] == 4
+    assert viaJson.narrow.length == 4 and viaJson.items[0].number == 31
+    assert (viaXlon.words[0] ?? "") == "a\0你" and viaJson.words[1] == null
+    assert json.parse::<ListPersistRoot>("{\"narrow\":[128]}") == null
+    assert json.parse::<ListPersistRoot>("{\"narrow\":{}}") == null
+    assert json.parse::<ListPersistRoot>("{\"nested\":[[55296]]}") == null
+    string files = env.get("XL6_PERSIST_FILE_ROOT") ?? ""
+    assert files != ""
+    assert json.write(files + "/list.json", first) and xlon.write(files + "/list.xlon", first)
+    ListPersistRoot jsonFile = json.read::<ListPersistRoot>(files + "/list.json")
+    ListPersistRoot xlonFile = xlon.read::<ListPersistRoot>(files + "/list.xlon")
+    assert jsonFile.narrow[0] == 3 and xlonFile.items[0].number == 31
+    assert json.read::<ListPersistRoot>(files + "/missing.json") == null
+    assert xlon.read::<ListPersistRoot>(files + "/missing.xlon") == null
+    return 0
+end

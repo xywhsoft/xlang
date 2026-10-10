@@ -939,8 +939,20 @@ bool xl6PersistenceRestoreParsedTakeV1(xvalue** seeds,size_t count,xvalue* targe
     bool file,const XL6_RestorePlanV1* plan,xvalue** output)
 {
     xl6_error_scope operation={0};
-    if (!xl6ErrorScopeBegin(&operation)) abort();
     bool rejected=!parserOk && !source && plan && parserWireRejected(parserError,file,plan->json);
+    if (!xl6ErrorScopeBegin(&operation)) {
+        xerror* opening=xrtTakeError(); xerror* first;
+        if ((!parserOk || parserError) && !rejected) { first=parserError; parserError=NULL; }
+        else if (!preparationOk || preparationError) { first=preparationError; preparationError=NULL; }
+        else { first=opening; opening=NULL; }
+        xrtErrorFree(opening); xrtErrorFree(parserError); xrtErrorFree(preparationError);
+        /* Latch even a diagnosticless failure BEFORE retirement. The common
+         * controller consumes every transferred seed/target; no second memo,
+         * alternate traversal, leaked source, or cleanup abort is permitted. */
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,first});
+        (void)xl6PersistenceRestorePlanReadTakeV1(seeds,count,target,NULL,plan,output);
+        releasePreservingError(source); return false;
+    }
     if (rejected) { xrtErrorFree(parserError); parserError=NULL; }
     else if (!parserOk || parserError) {
         xl6ErrorScopePropagateFailure((xl6_error_result){false,parserError}); parserError=NULL;
