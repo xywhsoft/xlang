@@ -67,6 +67,29 @@ static const char* xl6IrCgenArrayMethodSymbol(XL6_IrTypedCollectionOp operation)
     default: return NULL;
     }
 }
+static const char* xl6IrCgenOwnedIndexReadSymbol(XL6_IrRuntimeOp operation)
+{
+    switch (operation) {
+    case XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY: return "xl6ArrayValueReadCopyV1";
+    case XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY: return "xl6ArrayValueReadOrNullCopyV1";
+    case XL6_IR_RUNTIME_LIST_READ_VALUE_COPY: return "xl6ListValueReadCopyV1";
+    case XL6_IR_RUNTIME_LIST_READ_VALUE_OR_NULL_COPY: return "xl6ListValueReadOrNullCopyV1";
+    case XL6_IR_RUNTIME_LIST_READ_VALUE_REQUIRED_COPY: return "xl6ListValueReadRequiredCopyV1";
+    case XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY: return "xl6ValueIndexReadCopyV1";
+    default: return NULL;
+    }
+}
+static const char* xl6IrCgenListTypedReadSymbol(XL6_IrRuntimeOp operation)
+{
+    switch (operation) {
+    case XL6_IR_RUNTIME_LIST_READ_I64: return "xl6ListReadI64V1";
+    case XL6_IR_RUNTIME_LIST_READ_U64: return "xl6ListReadU64V1";
+    case XL6_IR_RUNTIME_LIST_READ_BOOL: return "xl6ListReadBoolV1";
+    case XL6_IR_RUNTIME_LIST_READ_F64: return "xl6ListReadF64V1";
+    case XL6_IR_RUNTIME_LIST_READ_STRING: return "xl6ListReadStringV1";
+    default: return NULL;
+    }
+}
 static const char* xl6IrCgenArrayScalarReadSymbol(XL6_IrRuntimeOp operation)
 {
     switch (operation) {
@@ -107,12 +130,19 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
     if ( !(read ? xl6IrCollectionReadRuntimeInstructionCompatible(module, instruction)
                 : xl6IrCollectionMemberRuntimeInstructionCompatible(module, instruction)) ) return -1;
     if (xl6IrOwnedIndexReadRuntimeOpIs(instruction->runtimeOp)) {
-        const char* symbol=instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY ?
-            "xl6ArrayValueReadCopyV1" : instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY ?
-            "xl6ArrayValueReadOrNullCopyV1" : "xl6ValueIndexReadCopyV1";
+        const char* symbol=xl6IrCgenOwnedIndexReadSymbol(instruction->runtimeOp);
         xl6OutputPrintf(out,"    v%u = %s(v%u, v%u);\n",(unsigned)instruction->result,symbol,
             (unsigned)module->operands[instruction->firstOperand],
             (unsigned)module->operands[instruction->firstOperand+1]);
+    } else if (xl6IrListTypedReadRuntimeOpIs(instruction->runtimeOp)) {
+        const XL6_IrType* receiver=xl6IrListIndexReceiverType(module,instruction);
+        const XL6_IrType* schema=xl6IrTypeGet(&module->types,receiver->listValueSchemaType);
+        const XL6_IrType* element=xl6IrTypeGet(&module->types,instruction->type);
+        xl6OutputPrintf(out,"    v%u = %s(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, v%u);\n",
+            (unsigned)instruction->result,xl6IrCgenListTypedReadSymbol(instruction->runtimeOp),
+            (unsigned)module->operands[instruction->firstOperand],
+            (unsigned long long)receiver->typeValueId,(unsigned long long)schema->typeValueId,
+            (unsigned long long)element->typeValueId,(unsigned)module->operands[instruction->firstOperand+1]);
     } else if (xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp) ||
         instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY) {
         const XL6_IrType* receiver = xl6IrArrayScalarReadReceiverType(module, instruction);

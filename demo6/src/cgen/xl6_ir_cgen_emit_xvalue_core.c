@@ -571,6 +571,12 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                            "extern bool xrtValueArrayAppend(xvalue*, const xvalue*);\n", out);
         if (needs->needsXValueArrayOwnedReadRuntime)
             xl6OutputPuts("#include <__xl_runtime/xl6_array_value_read.h>\n",out);
+        if (needs->needsListOwnedReadRuntime)
+            xl6OutputPuts("#include <__xl_runtime/xl6_list_value_read.h>\n",out);
+        if (needs->needsListTypedReadRuntime)
+            xl6OutputPuts("#include <__xl_runtime/xl6_list_typed_read.h>\n",out);
+        if (needs->needsListWriteRuntime)
+            xl6OutputPuts("#include <__xl_runtime/xl6_list_value_write.h>\n",out);
         if ( needs->needsXValueArrayReadRuntime )
             xl6OutputPuts("extern size_t xrtValueCount(const xvalue*);\n"
                           "extern xvalue* xrtValueArrayAt(const xvalue*, int64_t);\n"

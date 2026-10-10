@@ -280,7 +280,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_list_value_read.c", D(R(LIST_NATIVE),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_value_index_read.c", D(R(ARRAY_VALUE_READ),R(LIST_VALUE_READ),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_value_index_write.c", D(R(ARRAY_ERASED),R(LIST_NATIVE),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER"}},
-    {"src/runtime/xl6_value_wire_contains.c", D(R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER","XRT_MODULE_STRING"}}
+    {"src/runtime/xl6_value_wire_contains.c", D(R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER","XRT_MODULE_STRING"}},
+    {"src/runtime/xl6_list_scalar_read.c", D(R(LIST_NATIVE),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_list_string_read.c", D(R(LIST_NATIVE),R(FOREIGN_ERROR),R(STRING_TYPE)), {"XRT_MODULE_VALUE_CONTAINER","XRT_MODULE_STRING"}},
+    {"src/runtime/xl6_list_value_write.c", D(R(LIST_NATIVE),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

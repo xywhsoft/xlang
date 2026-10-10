@@ -70,6 +70,7 @@ static int xl6IrCgenSharedXValueRuntimeOpIs(XL6_IrRuntimeOp operation)
            operation == XL6_IR_RUNTIME_XVALUE_ARRAY_APPEND_NEW ||
            operation == XL6_IR_RUNTIME_XVALUE_INT_MAP_NEW ||
            operation == XL6_IR_RUNTIME_XVALUE_INT_MAP_SET_I64_NEW ||
+           operation == XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE ||
            operation == XL6_IR_RUNTIME_XVALUE_OBJECT_NEW ||
            operation == XL6_IR_RUNTIME_XVALUE_CLASS_NEW ||
            operation == XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND ||
@@ -287,7 +288,10 @@ static int xl6IrCgenSharedXValueRuntimeAbi(
         return instruction->immediateText == NULL &&
                instruction->operandCount == 2;
     case XL6_IR_RUNTIME_XVALUE_INT_MAP_SET_I64_NEW:
+    case XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE:
         {
+            if (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE)
+                return xl6IrListIndexRuntimeInstructionCompatible(module,instruction);
             const XL6_IrInstruction* map = instruction->operandCount == 3
                 ? xl6IrCgenValueDefinition(
                     module, module->operands[instruction->firstOperand], NULL)
@@ -565,6 +569,12 @@ static int xl6IrCgenEmitSharedXValueRuntime(
             "    v%u = xl6ClassRuntimeV3Get()->CommitTake(v%u);\n",
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand]);
+        break;
+    case XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE:
+        xl6OutputPrintf(out,"    v%u = xl6ListValueSetTakeV1(v%u, v%u, v%u);\n",
+            (unsigned)instruction->result,(unsigned)module->operands[instruction->firstOperand],
+            (unsigned)module->operands[instruction->firstOperand+1],
+            (unsigned)module->operands[instruction->firstOperand+2]);
         break;
     case XL6_IR_RUNTIME_CLASS_FIELD_INIT_NEW:
     case XL6_IR_RUNTIME_XVALUE_OBJECT_SET_LITERAL_NEW:

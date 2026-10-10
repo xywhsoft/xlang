@@ -2,8 +2,9 @@
 
 原生 List 现在可供开放 `var` 的索引读取、索引写入和 `in` 查询使用。
 这些入口复用真实 typed List，保留完整 int64 键和精确文本长度，不将
-任意 HANDLE 当成 Array。语言 List 工厂及静态索引仍采用旧 IntMap
-载体，不能据此宣布整个 List 迁移完成。
+任意 HANDLE 当成 Array。静态索引已由后续
+[List 静态索引合同](stdlib53-b178-list-static-index.md) 迁移；源 List
+工厂仍采用旧 IntMap 载体，不能据此宣布整个 List 迁移完成。
 
 ## 索引与错误合同
 
@@ -78,7 +79,7 @@ Linux ASan/UBSan 覆盖选定 List 及 Array 原生闭包；不扩展为整个
 
 ## 后续工作
 
-List 源工厂、静态索引、类型准入及转换、合并和恢复仍需按统一载体
+List 源工厂、类型准入及转换、clone、合并和恢复仍需按统一载体
 合同联动切换。Set/Dict 迁移、发布 DLL/SO、VFS、打包 AOT 和三组
 总验收也未完成。以上专项不关闭整个长期任务。
 
