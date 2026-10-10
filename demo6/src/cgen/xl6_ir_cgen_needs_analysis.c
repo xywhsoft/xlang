@@ -22,15 +22,19 @@ static int xl6IrCgenAnalyzeSequenceRecipeNeeds(const XL6_IrModule* module,XL6_Ir
     if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1)
         return xl6IrCgenAnalyzeSequenceRecipeNeeds(module,type->sequenceLayout.baseElementType,needs,depth+1);
     if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 ||
-        type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1) {
+        type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1 ||
+        type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1) {
         XL6_IrValueCollectionRecipe child={0};
-        bool list=type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1;
-        if (list) needs->needsListCreateRuntime=1; else needs->needsSetCreateRuntime=1;
+        XL6_IrCollectionAbi family=xl6IrCgenValueCollectionFamily(type->sequenceLayout.abi);
+        if (family==XL6_IR_COLLECTION_LIST) needs->needsListCreateRuntime=1;
+        else if (family==XL6_IR_COLLECTION_SET) needs->needsSetCreateRuntime=1;
+        else if (family==XL6_IR_COLLECTION_DICT) needs->needsDictCreateRuntime=1;
+        else return 0;
         needs->needsArrayCreateRuntime=1;
-        if (list && needs->needsArrayImportRuntime) needs->needsListImportRuntime=1;
-        if (!list && needs->needsArrayImportRuntime) needs->needsSetImportRuntime=1;
+        if (family==XL6_IR_COLLECTION_LIST && needs->needsArrayImportRuntime) needs->needsListImportRuntime=1;
+        if (family==XL6_IR_COLLECTION_SET && needs->needsArrayImportRuntime) needs->needsSetImportRuntime=1;
         return xl6IrValueCollectionConstructionRecipe(module,type->sequenceLayout.baseElementType,&child) &&
-            child.family==(list ? XL6_IR_COLLECTION_LIST : XL6_IR_COLLECTION_SET) &&
+            child.family==family &&
             xl6IrCgenAnalyzeSequenceRecipeNeeds(module,child.valueSchemaType,needs,depth+1);
     }
     if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1) {

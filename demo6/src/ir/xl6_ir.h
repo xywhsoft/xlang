@@ -80,6 +80,13 @@ typedef enum XL6_IrSetKeyAbi {
     XL6_IR_SET_KEY_FUTURE_IDENTITY_V1
 } XL6_IrSetKeyAbi;
 
+/* Dict keys are exact copied string byte spans. Data+Size is authoritative:
+ * empty/embedded-NUL keys are valid, with no C-string or locale fallback. */
+typedef enum XL6_IrDictKeyAbi {
+    XL6_IR_DICT_KEY_NONE = 0,
+    XL6_IR_DICT_KEY_EXACT_STRING_VIEW_V1
+} XL6_IrDictKeyAbi;
+
 /* Logical collection identity does not identify its physical owner. A Value
  * array and a resident Sequence both use xvalue*, but are not interchangeable.
  * SEQUENCE is deliberately refused by the current source type interner and
@@ -620,7 +627,8 @@ typedef enum XL6_IrSequenceLayoutAbi {
     XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1,
     /* Distinct resident sparse owner, never a Sequence role or ANY domain. */
     XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1,
-    XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1
+    XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1,
+    XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1
 } XL6_IrSequenceLayoutAbi;
 
 /* A recipe's physical slot need not equal its element's invocation ABI.
@@ -705,11 +713,12 @@ typedef struct XL6_IrType {
      * even when source never projects keys()/values(). No Array storage is
      * part of the Tree owner; these are immutable construction recipes. */
     XL6_IrTypeId treeKeySchemaType, treeValueSchemaType;
-    /* List/Set targets share one independently sealed canonical Array<T>
+    /* List/Set/Dict targets share one independently sealed canonical Array<T>
      * value-admission domain, never Array storage. The complete recipe is
      * separate from source-producer authority and wire-import permission. */
     XL6_IrTypeId collectionValueSchemaType;
     XL6_IrSetKeyAbi setKeyAbi;
+    XL6_IrDictKeyAbi dictKeyAbi;
     /* Logical boxed domain, independent of physical carrier/transfer. */
     XL6_ValueAdmissionV1 xvalueAdmissionAbi;
     bool xvalueAdmissionNullable;
@@ -6705,7 +6714,7 @@ int xl6IrSequenceConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
  * producer authority remain separate from this native construction plan. */
 int xl6IrListConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrTypeId*, XL6_IrNominalIdentitySetId*);
-/* One closed value-domain abstraction for distinct native List/Set owners.
+/* One closed value-domain abstraction for distinct native List/Set/Dict owners.
  * Outputs publish only after whole-domain verification; key semantics and
  * physical transfer are independent, derived and verifier-checked facts.
  * This target capability never authorizes a legacy language producer. */
@@ -6717,11 +6726,14 @@ typedef struct XL6_IrValueCollectionRecipe {
     XL6_IrSequenceCodecAbi codecAbi;
     XL6_IrRuntimeResourcePayloadAbi transferAbi;
     XL6_IrSetKeyAbi setKeyAbi;
+    XL6_IrDictKeyAbi dictKeyAbi;
 } XL6_IrValueCollectionRecipe;
 int xl6IrValueCollectionConstructionRecipe(const XL6_IrModule*,XL6_IrTypeId,
     XL6_IrValueCollectionRecipe*);
 int xl6IrSetConstructionRecipe(const XL6_IrModule*,XL6_IrTypeId,
     XL6_IrTypeId*,XL6_IrNominalIdentitySetId*,XL6_IrSetKeyAbi*);
+int xl6IrDictConstructionRecipe(const XL6_IrModule*,XL6_IrTypeId,
+    XL6_IrTypeId*,XL6_IrNominalIdentitySetId*,XL6_IrDictKeyAbi*);
 /* Exact erased Array<var> shape and canonical dynamic element identity. */
 XL6_IrTypeId xl6IrArrayAnyElementType(const XL6_IrModule*, XL6_IrTypeId);
 /* Canonical carrier for implicit heterogeneous literals and language entry

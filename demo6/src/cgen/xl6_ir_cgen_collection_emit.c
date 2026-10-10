@@ -600,6 +600,37 @@ static const char* xl6IrCgenSequenceTransferAbiToken(XL6_IrRuntimeResourcePayloa
     default: return NULL;
     }
 }
+typedef struct XL6_IrCgenValueCollectionTarget {
+    const char* layout;
+    const char* create;
+    const char* project;
+    const char* schema;
+} XL6_IrCgenValueCollectionTarget;
+/* Closed declarative target table; an unknown family never means Set. */
+static const XL6_IrCgenValueCollectionTarget* xl6IrCgenValueCollectionTarget(XL6_IrCollectionAbi family)
+{
+    static const XL6_IrCgenValueCollectionTarget list={"XL6_ListLayoutV1","xl6ListCreateTakeV1",
+        "xl6ListProjectionTakeV1","xl6SequenceListCreateTakeV1"};
+    static const XL6_IrCgenValueCollectionTarget set={"XL6_SetLayoutV1","xl6SetCreateTakeV1",
+        "xl6SetProjectionTakeV1","xl6SequenceSetCreateTakeV1"};
+    static const XL6_IrCgenValueCollectionTarget dict={"XL6_DictLayoutV1","xl6DictCreateTakeV1",
+        "xl6DictProjectionTakeV1","xl6SequenceDictCreateTakeV1"};
+    switch (family) {
+    case XL6_IR_COLLECTION_LIST: return &list;
+    case XL6_IR_COLLECTION_SET: return &set;
+    case XL6_IR_COLLECTION_DICT: return &dict;
+    default: return NULL;
+    }
+}
+static XL6_IrCollectionAbi xl6IrCgenValueCollectionFamily(XL6_IrSequenceLayoutAbi abi)
+{
+    switch (abi) {
+    case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1: return XL6_IR_COLLECTION_LIST;
+    case XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1: return XL6_IR_COLLECTION_SET;
+    case XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1: return XL6_IR_COLLECTION_DICT;
+    default: return XL6_IR_COLLECTION_NONE;
+    }
+}
 static int xl6IrCgenEmitTreeReferenceCreateDepth(XL6_Output*,const XL6_IrModule*,
     XL6_IrTypeId,const char*,size_t);
 static int xl6IrCgenEmitQueueReferenceCreateDepth(XL6_Output*,const XL6_IrModule*,
@@ -717,19 +748,20 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
         break;
     case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1:
         {
             XL6_IrValueCollectionRecipe child={0};
-            XL6_IrCollectionAbi family=plan->abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 ?
-                XL6_IR_COLLECTION_LIST : XL6_IR_COLLECTION_SET;
+            XL6_IrCollectionAbi family=xl6IrCgenValueCollectionFamily(plan->abi);
+            const XL6_IrCgenValueCollectionTarget* target=xl6IrCgenValueCollectionTarget(family);
             char childResult[48];
-            if (!xl6IrValueCollectionConstructionRecipe(module,plan->baseElementType,&child) || child.family!=family) return -1;
+            if (!target || !xl6IrValueCollectionConstructionRecipe(module,plan->baseElementType,&child) || child.family!=family) return -1;
             snprintf(childResult,sizeof(childResult),"xlir_collection_schema_%u",(unsigned)(depth+1));
             xl6OutputPrintf(out,"    { xvalue* %s = NULL;\n",childResult);
             if (xl6IrCgenEmitValueCollectionTargetCreateDepth(out,module,plan->baseElementType,
                 family,childResult,child.admissionIdentitySet,depth+1,importChain,importCount)<0) return -1;
             xl6OutputPrintf(out,
                 "    %s = %s(%u, 0x%016llXULL, 0x%016llXULL, %s, %s); }\n",
-                result,family==XL6_IR_COLLECTION_LIST ? "xl6SequenceListCreateTakeV1" : "xl6SequenceSetCreateTakeV1",
+                result,target->schema,
                 (unsigned)plan->role,(unsigned long long)sequence->typeValueId,
                 (unsigned long long)payload->typeValueId,childResult,plan->nullable ? "true" : "false");
         }

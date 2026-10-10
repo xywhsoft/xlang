@@ -1,0 +1,52 @@
+class DictRecipeItem
+    int value = 7
+end
+enum DictRecipeEnum as int32
+    low = -2147483648
+    high = 2147483647
+end
+// Signatures must close native TARGET schemas without Array<T> expressions.
+// Native target authority is independent of the legacy language producers.
+func scalarDicts(dict<bool> a, dict<int8> b, dict<uint8> c, dict<int16> d,
+    dict<uint16> e, dict<int32> f, dict<uint32> g, dict<int64> h, dict<uint64> i,
+    dict<float32> j, dict<float64> k, dict<char> l, dict<string> m, dict<bytes> n,
+    dict<var> o, dict<type> p) as int
+    return 0
+end
+func nullableDicts(dict<bool?> a, dict<int?> b, dict<uint64?> c, dict<float32?> d,
+    dict<float64?> e, dict<char?> f, dict<string?> g, dict<bytes?> h, dict<type?> i) as int
+    return 0
+end
+func nativeDicts(dict<c_char> a, dict<c_schar> b, dict<c_uchar> c, dict<c_short> d,
+    dict<c_ushort> e, dict<c_int> f, dict<c_uint> g, dict<c_long> h,
+    dict<c_ulong> i, dict<c_longlong> j, dict<c_ulonglong> k, dict<c_size> l,
+    dict<c_ssize> m, dict<c_ptrdiff> n, dict<c_intptr> o, dict<c_uintptr> p,
+    dict<c_bool> q, dict<c_float> r, dict<c_double> s, dict<c_wchar> t,
+    dict<c_int?> u, dict<c_float?> v) as int
+    return 0
+end
+func referenceDicts(dict<DictRecipeItem> a, dict<DictRecipeItem?> b,
+    dict<DictRecipeEnum> c, dict<DictRecipeEnum?> d, dict<func(int) as int> e,
+    dict<future<int>> f, dict<future<int>?> g, dict<array<int>> h,
+    dict<Stack<string>> i, dict<array<array<bytes?>>> j, dict<SpscQueue<int>> k) as int
+    return 0
+end
+func erasedDict(dict values) as int
+    return values.length
+end
+func mixedDicts(dict<set<int>> z, dict<dict<int>> a, dict<dict<int>?> b,
+    dict<array<dict<DictRecipeItem?>>> c, dict<list<dict<char>>> d,
+    dict<AvlTree<string, dict<bytes>>> e, dict<SpscQueue<dict<int>>> f,
+    dict<dict<dict<string?>>> g) as int
+    return 0
+end
+func pendingDicts(dict<function> a, dict<point> b, dict<dict<int>> c,
+    dict<list<int>> d, dict<int>? e) as int
+    return 0
+end
+func genericDict<T>(dict<T> values) as int
+    return values.length
+end
+func main(...) as int
+    return 0
+end

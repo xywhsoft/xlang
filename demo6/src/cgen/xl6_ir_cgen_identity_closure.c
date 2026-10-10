@@ -68,7 +68,7 @@ static int xl6IrCgenNominalIdentitySetUsed(
             (instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&
              xl6IrConcurrentQueueInstructionType(module,instruction))) {
             const XL6_IrType* recipe=xl6IrTypeGet(&module->types,instruction->type);
-            if (recipe && (recipe->collectionAbi==XL6_IR_COLLECTION_LIST || recipe->collectionAbi==XL6_IR_COLLECTION_SET))
+            if (recipe && (recipe->collectionAbi==XL6_IR_COLLECTION_LIST || recipe->collectionAbi==XL6_IR_COLLECTION_SET || recipe->collectionAbi==XL6_IR_COLLECTION_DICT))
                 recipe=xl6IrTypeGet(&module->types,recipe->collectionValueSchemaType);
             if (instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE && recipe)
                 recipe=xl6IrTypeGet(&module->types,recipe->concurrentQueueSchemaType);
@@ -77,9 +77,10 @@ static int xl6IrCgenNominalIdentitySetUsed(
                     recipe->sequenceLayout.baseElementType==set->targetType) return 1;
                 if (recipe->sequenceLayout.abi!=XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 &&
                     recipe->sequenceLayout.abi!=XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 &&
-                    recipe->sequenceLayout.abi!=XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1) break;
+                    recipe->sequenceLayout.abi!=XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1 &&
+                    recipe->sequenceLayout.abi!=XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1) break;
                 recipe=xl6IrTypeGet(&module->types,recipe->sequenceLayout.baseElementType);
-                if (recipe && (recipe->collectionAbi==XL6_IR_COLLECTION_LIST || recipe->collectionAbi==XL6_IR_COLLECTION_SET))
+                if (recipe && (recipe->collectionAbi==XL6_IR_COLLECTION_LIST || recipe->collectionAbi==XL6_IR_COLLECTION_SET || recipe->collectionAbi==XL6_IR_COLLECTION_DICT))
                     recipe=xl6IrTypeGet(&module->types,recipe->collectionValueSchemaType);
             }
         }
