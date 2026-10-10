@@ -22,6 +22,18 @@ this is not all-language OOM, shipping or full53 acceptance. See
 
 ## Toolchain
 
+`check_stdlib_list_iterator.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
+checks actual native List snapshots in generated foreach functions, complete
+integer keys, exact text, independent snapshots, owned projections and failure
+versus EOF. Strict O0/O2, real JIT, closed allocation/diagnosticless batches and
+compiled implementation controls use the real typed/runtime closure. Linux
+`--sanitize` covers only that selected closure. Omitting public-directory is
+native-only, not language acceptance. `check_stdlib_list_iterator_regression.py`
+checks eight existing fixtures with the same required parameters; an explicit
+`--expect-support` is a hashed test-only override, never a compiler override.
+Factories, type admission, remaining dynamic dispatch, indices and restoration
+remain pending; see [List iteration](../docs/stdlib53-b175-list-iterator-language.md).
+
 `check_stdlib_list_methods.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
 checks actual List method Cgen selection, Array/Dict pruning, malformed error
 contracts, real C/JIT, and separately optimized resident native operations.

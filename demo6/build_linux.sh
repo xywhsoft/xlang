@@ -187,6 +187,7 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_restore_open.c"
   "$ROOT/src/runtime/xl6_list.c"
   "$ROOT/src/runtime/xl6_list_methods.c"
+  "$ROOT/src/runtime/xl6_list_value_iterator.c"
   "$ROOT/src/runtime/xl6_array_algebra.c"
   "$ROOT/src/runtime/xl6_array_graph.c"
   "$ROOT/src/runtime/xl6_persistence_project.c"

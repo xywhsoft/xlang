@@ -32,6 +32,13 @@ typedef struct XL6_ValueIteratorRuntimeV2 {
     struct xrtownershipref (*Ownership)(const XL6_ValueIterator*);
 } XL6_ValueIteratorRuntimeV2;
 XL6_CODE_LEASE_API const XL6_ValueIteratorRuntimeV2* xl6ValueIteratorRuntimeV2Get(void);
+/* Logical Array with erased physical storage. Admit a sealed native ARRAY
+ * snapshot or wire ARRAY only, never another native role or wire family.
+ * Uses the same V2 carrier and introduces no optional List dependency. */
+XL6_CODE_LEASE_API XL6_ValueIterator* xl6ArrayValueIteratorCreateCheckedV1(const struct xvalue*);
+/* Set/Dict retain their current wire carriers and reject every other family. */
+XL6_CODE_LEASE_API XL6_ValueIterator* xl6SetValueIteratorCreateCheckedV1(const struct xvalue*);
+XL6_CODE_LEASE_API XL6_ValueIterator* xl6DictValueIteratorCreateCheckedV1(const struct xvalue*);
 /* Certifies only this resident carrier. The resolver must also admit the real
  * wire ValueCursor or native Sequence snapshot shell, its owned current value
  * projection, and all storage/finalizer children. No native handle is a leaf. */

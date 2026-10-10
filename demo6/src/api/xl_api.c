@@ -1,6 +1,7 @@
 #include "include/xl.h"
 
 #include "src/common/xl6_xrt.h"
+#include "src/runtime/xl6_list.h"
 #include "libtcc.h"
 #include "src/api/xl_api_internal.h"
 #include "src/api/xl_api_path.h"
@@ -2603,6 +2604,7 @@ static const XL6_OwnershipAdapterV1* xlModuleResolveOwnership(xrtownershipref re
         if ((adapter=xl6MpscQueueOwnershipAdapterV1(ref,policies,policyCount)) != NULL) return adapter;
         if ((adapter=xl6MpmcQueueOwnershipAdapterV1(ref,policies,policyCount)) != NULL) return adapter;
         if ((adapter=xl6SequenceOwnershipAdapterV2(ref,policies,policyCount)) != NULL) return adapter;
+        if ((adapter=xl6ListOwnershipAdapterV2(ref,policies,policyCount)) != NULL) return adapter;
     }
     if ((adapter=xl6TreeOwnershipAdapterV1(ref)) != NULL) return adapter;
     if ((adapter=xl6SemOwnershipAdapterV1(ref)) != NULL) return adapter;

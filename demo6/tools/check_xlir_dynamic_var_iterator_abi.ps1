@@ -289,8 +289,8 @@ if ( @($cursorSymbols | Select-Object -Unique).Count -ne $loops.Count -or
 
 $generated = Read-Utf8 $cPath
 $renderedCounts = @{
-    "=\s*xlir_xvalue_iterator_create_checked\(v\d+,\s*0\);" = 13
-    "=\s*xlir_xvalue_iterator_create_checked\(v\d+,\s*9\);" = 1
+    "=\s*xl6CollectionValueIteratorCreateV1\(v\d+\);" = 13
+    "=\s*xl6ArrayValueIteratorCreateCheckedV1\(v\d+\);" = 1
     "=\s*xlir_xvalue_iterator_advance\(v\d+, &v\d+\);" = 14
     "=\s*xlir_xvalue_iterator_dynamic_logical_xvalue\(v\d+\);" = 7
     "=\s*xlir_xvalue_iterator_item_xvalue_retain\(v\d+\);" = 5
@@ -302,10 +302,7 @@ foreach ( $entry in $renderedCounts.GetEnumerator() ) {
     }
 }
 foreach ( $required in @(
-    "static xlir_xvalue_iterator* xlir_xvalue_iterator_create_checked(const xvalue* source, int expectedCollectionTag)",
-    "if (expectedCollectionTag < 9 || expectedCollectionTag > 12 || type != expectedCollectionTag) goto incompatible;",
-    "} else if (type < 9 || type > 12) goto incompatible;",
-    "for in value must be array, list, set or dict",
+    "#include <__xl_runtime/xl6_list_value_iterator.h>",
     "static xvalue* xlir_xvalue_iterator_key_dynamic_xvalue(",
     "if (state->key.Type == 0)",
     "else if (state->key.Type == 1)",
@@ -338,8 +335,8 @@ foreach ( $cursorSymbol in $cursorSymbols ) {
     }
 }
 $invalidGenerated = Read-Utf8 $invalidCPath
-if ( ! $invalidGenerated.Contains("xlir_xvalue_iterator_create_checked") -or
-     ! $invalidGenerated.Contains("for in value must be array, list, set or dict") ) {
+if ( ! $invalidGenerated.Contains("xl6CollectionValueIteratorCreateV1") -or
+     ! $invalidGenerated.Contains("xl6_list_value_iterator.h") ) {
     throw "Established dynamic non-container path does not use the checked iterator TypeError ABI"
 }
 

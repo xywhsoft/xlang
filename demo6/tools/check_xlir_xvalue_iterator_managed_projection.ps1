@@ -161,7 +161,9 @@ if ( $LASTEXITCODE -ne 0 ) {
 }
 $generated = [System.IO.File]::ReadAllText($cPath, [System.Text.Encoding]::UTF8)
 if ( ([regex]::Matches($generated,
-        "=\s*xlir_xvalue_iterator_create\(v\d+\);")).Count -ne 11 -or
+        "=\s*xl6ListValueIteratorCreateV1\(v\d+\);")).Count -ne 10 -or
+     ([regex]::Matches($generated,
+        "=\s*xlir_xvalue_iterator_create\(v\d+\);")).Count -ne 1 -or
      ([regex]::Matches($generated,
         "=\s*xlir_xvalue_iterator_advance\(v\d+, &v\d+\);")).Count -ne 11 -or
      ([regex]::Matches($generated,

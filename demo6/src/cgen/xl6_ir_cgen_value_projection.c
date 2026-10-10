@@ -102,6 +102,35 @@ static int xl6IrCgenXValueIteratorRuntimeOpIs(XL6_IrRuntimeOp operation)
     }
 }
 
+/* Consume verified source/logical TypeIds, never origin AST or spelling. */
+static const char* xl6IrCgenListIteratorCreateSymbol(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{
+    if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL) return NULL;
+    if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE)
+        return xl6IrCgenCollectionReceiverIsList(module,instruction) ? "xl6ListValueIteratorCreateV1" : NULL;
+    if (instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED) return NULL;
+    const XL6_IrType* logical=xl6IrTypeGet(&module->types,instruction->payloadType);
+    if (!logical) return NULL;
+    return logical->collectionAbi==XL6_IR_COLLECTION_LIST ? "xl6ListValueIteratorCreateV1" :
+        logical->collectionAbi==XL6_IR_COLLECTION_NONE ? "xl6CollectionValueIteratorCreateV1" : NULL;
+}
+
+static const char* xl6IrCgenWireCheckedIteratorCreateSymbol(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{
+    if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+        instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED) return NULL;
+    const XL6_IrType* logical=xl6IrTypeGet(&module->types,instruction->payloadType);
+    if (!logical) return NULL;
+    switch (logical->collectionAbi) {
+    case XL6_IR_COLLECTION_ARRAY: return "xl6ArrayValueIteratorCreateCheckedV1";
+    case XL6_IR_COLLECTION_SET: return "xl6SetValueIteratorCreateCheckedV1";
+    case XL6_IR_COLLECTION_DICT: return "xl6DictValueIteratorCreateCheckedV1";
+    default: return NULL;
+    }
+}
+
 static int xl6IrCgenRuntimeCheckedIteratorCreateAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
 {
@@ -154,20 +183,21 @@ static int xl6IrCgenEmitXValueIteratorInstruction(
          instruction->operandCount != 1 || instruction->immediateText != NULL ||
          instruction->firstOperand >= module->operandCount ) return 0;
     operand = module->operands[instruction->firstOperand];
+    const char* resident=xl6IrCgenListIteratorCreateSymbol(module,instruction);
+    if (!resident) resident=xl6IrCgenWireCheckedIteratorCreateSymbol(module,instruction);
+    if (resident) {
+        if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED &&
+            !xl6IrCgenRuntimeCheckedIteratorCreateAbi(module,instruction)) return 0;
+        xl6OutputPrintf(out,"    v%u = %s(v%u);\n",
+            (unsigned)instruction->result,resident,(unsigned)operand);
+        return !xl6OutputHasFailed(out);
+    }
     switch ( instruction->runtimeOp ) {
     case XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE:
         helper = "xlir_xvalue_iterator_create";
         break;
     case XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED:
-        if ( !xl6IrCgenRuntimeCheckedIteratorCreateAbi(
-                 module, instruction) ) return 0;
-        xl6OutputPrintf(out,
-            "    v%u = xlir_xvalue_iterator_create_checked(v%u, %d);\n",
-            (unsigned int)instruction->result, (unsigned int)operand,
-            xl6IrCgenCollectionXValueTag(
-                xl6IrTypeGet(&module->types,
-                    instruction->payloadType)->collectionAbi));
-        return !xl6OutputHasFailed(out);
+        return 0; /* Every admitted logical family has an exact resident entry. */
     case XL6_IR_RUNTIME_XVALUE_ITERATOR_ADVANCE:
         if (!xl6IrValueIteratorAdvanceRuntimeInstructionCompatible(module,instruction)) return 0;
         xl6OutputPrintf(out,

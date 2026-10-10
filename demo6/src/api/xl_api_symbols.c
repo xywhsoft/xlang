@@ -12,6 +12,8 @@
 #include "src/runtime/xl6_slot.h"
 #include "src/runtime/xl6_generator.h"
 #include "src/runtime/xl6_value_iterator.h"
+#include "src/runtime/xl6_value_iterator_internal.h"
+#include "src/runtime/xl6_list_value_iterator.h"
 #include "src/runtime/xl6_frame_storage.h"
 #include "src/runtime/xl6_task.h"
 #include "src/runtime/xl6_network_service.h"

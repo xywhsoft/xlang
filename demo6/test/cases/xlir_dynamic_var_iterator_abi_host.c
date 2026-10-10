@@ -33,7 +33,7 @@ int main(void)
     xlir_xvalue_iterator* state;
     const xerror* error;
     if ( wrong == NULL ) return 1;
-    state = xlir_xvalue_iterator_create_checked(wrong, 9);
+    state = xl6ArrayValueIteratorCreateCheckedV1(wrong);
     error = xrtGetError();
     if ( state != NULL || error == NULL ||
          strcmp(xrtErrorMessage(error),

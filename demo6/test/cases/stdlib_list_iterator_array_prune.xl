@@ -1,0 +1,14 @@
+array<int> values = [1, 2, 3]
+int sum = 0
+for key, value in values
+    sum += key + value
+end
+assert(sum == 9)
+var dynamic = array[2, 3, 4]
+sum = 0
+if dynamic is array
+    for item in dynamic
+        sum += int(item)
+    end
+end
+assert(sum == 9)
