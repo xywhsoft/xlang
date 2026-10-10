@@ -1,8 +1,9 @@
-"""Private genuine typed Set storage/lifetime/graph, not language carrier cutover.
+"""Private genuine typed Set storage, checked Value methods and snapshot projection.
 
-Strict actual supplier and resident providers, O0/O2, eleven whole allocation
-prefixes, exact domains, snapshot/sticky cursors, real cyclic/Future references,
-checked entry/cleanup refusal, plus compiled broken implementation controls.
+Strict actual supplier and resident providers, O0/O2, 11 raw-slot and 17 boxed
+whole allocation prefixes, exact domains, snapshot/sticky cursors, real cyclic/
+Future references, checked entry/cleanup and absent conversion failure, plus
+compiled broken implementation controls. This is not language carrier cutover.
 Optional ASan/UBSan instruments this whole selected native closure, not DLLs.
 """
 from pathlib import Path
@@ -33,9 +34,10 @@ def main():
     for folder in ('src/runtime','src/api','release/include','lib/xrt','lib/xruntime','test/support'):
         files.update((root/folder).rglob('*.h'))
     inputs=[dict(Path=str(p),Sha256=sha(p)) for p in sorted(files)]
-    rows=[]; controls=[]; products=[]; out.mkdir(parents=True)
+    rows=[]; controls=[]; products=[]; compiled=[]; out.mkdir(parents=True)
     report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Rows=rows,NegativeControls=controls,
-        Products=products,Platform=sys.platform,Sanitized=args.sanitize,PrivateNativeSet=True,
+        Products=products,Objects=compiled,Platform=sys.platform,Sanitized=args.sanitize,PrivateNativeSet=True,
+        PrivateErasedSetMethods=True,LanguageFactoryCutover=False,
         LanguageSetCutover=False,LanguageDictCutover=False,ShippingLibraryAcceptance=False,Full53Acceptance=False,
         Scope=__doc__,BoundaryInjection='GNU ld --wrap, not actual OS error-context exhaustion')
     flags=['-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease','-Irelease/include']
@@ -61,26 +63,37 @@ def main():
                 i,path=pair; run('build-'+opt+'-'+str(i),[cc,*flags,'-'+opt,'-c',path,'-o',objects[i]])
             with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool: list(pool.map(compile_one,enumerate(sources)))
             cached[opt]=objects
+            compiled.extend(dict(Path=str(p),Sha256=sha(p)) for p in objects)
             binary=out/('set-'+opt+('.exe' if os.name=='nt' else ''))
             run('link-'+opt,[cc,*objects,*links,'-o',binary]); data=run('run-'+opt,[binary])
-            assert '[PASS] genuine resident typed Set' in data and data.count(' first-no-hit=')==11
-            products.append(dict(Path=str(binary),Sha256=sha(binary),FullPrefixLanes=11,
-                AllocationAttempts=int(data.split('native-set full-prefix-attempts=')[1].splitlines()[0])))
+            assert '[PASS] genuine resident typed Set' in data and data.count(' first-no-hit=')==28
+            raw=int(data.split('native-set full-prefix-attempts=')[1].splitlines()[0])
+            boxed=int(data.split('erased-set full-prefix-attempts=')[1].splitlines()[0])
+            products.append(dict(Path=str(binary),Sha256=sha(binary),FullPrefixLanes=28,
+                RawPrefixLanes=11,BoxedPrefixLanes=17,RawAllocationAttempts=raw,
+                BoxedAllocationAttempts=boxed,AllocationAttempts=raw+boxed))
         body=(root/'src/runtime/xl6_set.c').read_text(encoding='utf-8')
         for name,old,new in (
             ('order-sensitive-hash','aggregate+=hash;','aggregate=aggregate*UINT64_C(131)+hash;'),
             ('cursor-failure-not-sticky','owner->failed=true;','owner->failed=false;'),
             ('ownership-edges-omitted','if (owner->layout.value.transfer<3) return true;','if (owner->layout.value.transfer>=1) return true;'),
-            ('logical-policy-equivalence-lost','a->ops->Equivalent(a->data,b->data)','true')):
+            ('logical-policy-equivalence-lost','a->ops->Equivalent(a->data,b->data)','true'),
+            ('projection-before-take-omitted','result=admitProjection(owner,result,&scope);\n    if (!scopeFinish(&scope,result!=NULL))',
+                'if (!result) xl6ErrorScopeCaptureFailure(&scope);\n    if (!scopeFinish(&scope,result!=NULL))'),
+            ('decoder-absent-failure-ignored','if (!scopeFinish(&scope,ok)) { callbackFailure(); return false; }',
+                'if (!scopeFinish(&scope,ok)) { xrtClearError(); return ok; }'),
+            ('clone-projection-lost','owner->projection,owner->projected);','NULL,false);'),
+            ('foreign-family-probe-lies','ops==&handleOps ? 1 : 0;','ops ? 1 : 0;')):
             assert old in body,name
             altered=out/(name+'.c'); altered.write_text(body.replace(old,new),encoding='utf-8')
             obj=out/(name+'.o'); run(name+'-compile',[cc,*flags,'-O0','-c',altered,'-o',obj])
+            compiled.append(dict(Path=str(obj),Sha256=sha(obj)))
             binary=out/(name+('.exe' if os.name=='nt' else '')); objects=list(cached['O0']); objects[sources.index('src/runtime/xl6_set.c')]=obj
             run(name+'-link',[cc,*objects,*links,'-o',binary]); run(name+'-reject',[binary],True)
             controls.append(dict(Name=name,Source=str(altered),SourceSha256=sha(altered),Product=str(binary),ProductSha256=sha(binary),Compiled=True,Rejected=True))
         report['InputsUnchanged']=all(sha(r['Path'])==r['Sha256'] for r in inputs)
-        report['Complete']=report['InputsUnchanged'] and len(controls)==4; assert report['Complete']
+        report['Complete']=report['InputsUnchanged'] and len(controls)==8; assert report['Complete']
     finally: (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
-    print('Native Set: strict O0/O2, eleven complete allocation prefixes, four real mutants rejected',flush=True)
+    print('Native Set: strict O0/O2, 28 complete allocation prefixes, eight real mutants rejected',flush=True)
 
 if __name__=='__main__': main()
