@@ -46,7 +46,12 @@ def main():
             assert name in optional or name.startswith(('demo6/test/','demo6/tools/check_')),name
             differences.append(name+': absent test-only input'); continue
         if normal(path.read_bytes())!=normal(blob):
-            assert name in optional or name in test_only,name; differences.append(name)
+            # The tool index is prose, not a compiler source/build input. Keep
+            # its late documentation edit visible just like docs/ (which is
+            # outside the compiled-input population), never exempt scripts.
+            documentation=name=='demo6/tools/README.md'
+            assert documentation or name in optional or name in test_only,name
+            differences.append(name+(': documentation-only' if documentation else ''))
         comparisons.append({'Path':name,'Sha256':sha(path)})
     reports=[]; rechecked=0; current=set()
     for report_path in args.report:

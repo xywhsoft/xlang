@@ -50,6 +50,7 @@
 #include "src/runtime/xl6_array_import.h"
 #include "src/runtime/xl6_array_import_chain.h"
 #include "src/runtime/xl6_restore_class.h"
+#include "src/runtime/xl6_restore_open.h"
 #include "src/runtime/xl6_serialization_read.h"
 #include "src/runtime/xl6_list.h"
 #include "src/runtime/xl6_array_algebra.h"

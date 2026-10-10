@@ -2,6 +2,15 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_restore_open_native.py --root <frozen-demo6> --out <fresh-output>`
+checks the resident Open restoration foundation: declared clone isolation, fresh
+DynamicFields, atomic slot publication, exact keys, physical policy rejection,
+diagnosticless failures and complete allocation prefixes at O0/O2. Three actual
+provider mutants must compile before failing the real contracts. Linux
+`--sanitize` instruments the selected native closure. This gate does not claim
+language Open IR/Cgen cutover, shipping products or full53 acceptance; see
+[Open restoration](../docs/stdlib53-b170-open-restore-native.md).
+
 ## Toolchain
 
 - `xl6_toolchain_env.bat`: centralizes TCC, optional Flex/Lemon regeneration tools, XRT, include, lib, and default link settings.
