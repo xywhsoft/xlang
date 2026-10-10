@@ -83,6 +83,10 @@ List 源工厂、cast/准入和持久化/恢复仍待联动切换。封闭
 DynamicFields 和恢复隔离等内部消费端仍需逐项迁移，不能由
 公开 `copy`/`clone` 的通过推定完成。
 
+后续 [动态字段复制与恢复隔离的 List 接入](stdlib53-b181-dynamic-fields-list-copy.md)
+已完成这两个内部消费端的共享 memo 与原生 List 所有权接入。
+List 源工厂、cast/准入和持久化 wire codec 仍未完成。
+
 Set/Dict 迁移、发布 DLL/SO、VFS、打包 AOT 和三组总验收仍需
 继续。JSON/XLON 共享默认子对象只按声明 clone 能力隔离，
 否则 checked 拒绝，不修改外部对象；不新增隐式 clone 推断。

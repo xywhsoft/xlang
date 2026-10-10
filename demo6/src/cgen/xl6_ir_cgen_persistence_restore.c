@@ -17,12 +17,16 @@ static int xl6IrCgenEmitRestoreCloneAdapter(XL6_Output* out,const XL6_IrModule* 
     return !xl6OutputHasFailed(out);
 }
 static int xl6IrCgenEmitRestoreIsolation(XL6_Output* out,const XL6_IrModule* module,
-    size_t root,size_t node,XL6_IrPersistenceIsolationAbi abi,const char* suffix,XL6_DiagList* diags)
+    size_t root,size_t node,XL6_IrTypeId type,XL6_IrPersistenceIsolationAbi abi,const char* suffix,XL6_DiagList* diags)
 {
     switch (abi) {
     case XL6_IR_PERSIST_ISOLATION_CHECKED_REJECT: xl6OutputPuts("NULL",out); break;
-    case XL6_IR_PERSIST_ISOLATION_RUNTIME_SHALLOW: xl6OutputPuts("xl6ValueCloneV1",out); break;
-    case XL6_IR_PERSIST_ISOLATION_RUNTIME_DEEP: xl6OutputPuts("xl6ValueDeepCloneV1",out); break;
+    case XL6_IR_PERSIST_ISOLATION_RUNTIME_SHALLOW:
+    case XL6_IR_PERSIST_ISOLATION_RUNTIME_DEEP: {
+        const char* symbol=xl6IrCgenRestoreIsolationSymbol(module,type,abi);
+        if (!symbol) return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR restore copy provider is unresolved");
+        xl6OutputPuts(symbol,out); break;
+    }
     case XL6_IR_PERSIST_ISOLATION_INTERNAL_CALL:
         xl6OutputPrintf(out,"xlir_restore_r%lu_n%lu_%s",(unsigned long)root,(unsigned long)node,suffix); break;
     default: return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR restore isolation ABI is unresolved");
@@ -88,11 +92,12 @@ static int xl6IrCgenEmitRestoreGraphPlan(XL6_Output* out,const XL6_IrModule* mod
         if (schema->claimCount) xl6OutputPrintf(out,"xlir_restore_r%lu_s%lu_claims",(unsigned long)rootIndex,(unsigned long)node->schema);
         else xl6OutputPuts("NULL",out);
         xl6OutputPuts(",",out);
-        if (!xl6IrCgenEmitRestoreIsolation(out,module,rootIndex,i,node->openIsolationAbi,"open_clone",diags)) return 0;
+        if (!xl6IrCgenEmitRestoreIsolation(out,module,rootIndex,i,storage->type,node->openIsolationAbi,"open_clone",diags)) return 0;
         xl6OutputPuts("};\n",out);
     }
-    xl6OutputPrintf(out,"    const XL6_RestoreObjectProviderV1* objects = xl6RestoreClassClosedProviderV1();\n"
-        "    const XL6_RestoreNodeV1 nodes[%lu] = {\n",(unsigned long)root->nodeCount);
+    xl6OutputPrintf(out,"    const XL6_RestoreObjectProviderV1* objects = %s();\n"
+        "    const XL6_RestoreNodeV1 nodes[%lu] = {\n",xl6IrCgenRestoreObjectProviderSymbol(module,root),
+        (unsigned long)root->nodeCount);
     for (size_t i=0;i<root->nodeCount;++i) {
         const XL6_IrPersistenceRestoreNode* node=&module->persistenceRestoreNodes[root->firstNode+i];
         xl6OutputPrintf(out,"        {.kind=%u,.flags=%u,.identity=0x%016llXULL,",
@@ -112,7 +117,7 @@ static int xl6IrCgenEmitRestoreGraphPlan(XL6_Output* out,const XL6_IrModule* mod
                 (unsigned long)node->firstEdge,(unsigned long)node->edgeCount,
                 node->openClassLayout==SIZE_MAX ? "objects" : "xl6RestoreOpenProviderV1()");
             xl6OutputPuts(",.clone=",out);
-            if (!xl6IrCgenEmitRestoreIsolation(out,module,rootIndex,i,node->isolationAbi,"clone",diags)) return 0;
+            if (!xl6IrCgenEmitRestoreIsolation(out,module,rootIndex,i,node->payloadType,node->isolationAbi,"clone",diags)) return 0;
             if (node->openClassLayout!=SIZE_MAX) xl6OutputPrintf(out,",.open=&open_%lu",(unsigned long)i);
         } else return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR closed restore node is unresolved");
         xl6OutputPuts("},\n",out);

@@ -17,6 +17,8 @@ def main():
     parser.add_argument('--public-directory', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--test-root', type=Path)
+    parser.add_argument('--contract-source', type=Path,
+                        help='Test-only contract override; production source remains pinned to --root.')
     parser.add_argument('--native-cutover', action='store_true')
     parser.add_argument('--oom', action='store_true')
     args = parser.parse_args()
@@ -48,7 +50,8 @@ def main():
                   ('open_reject',test_root / 'test/cases/xlir_persistence_restore_open_reject.xl'),
                   ('open_oom',test_root / 'test/cases/xlir_persistence_restore_open_oom.xl')]
     host = test_root / 'test/cases/xlir_module_product_oom_host.c'
-    contract=test_root / 'test/cases/xlir_persistence_restore_take_contract.c'
+    contract=(args.contract_source.resolve() if args.contract_source else
+              test_root / 'test/cases/xlir_persistence_restore_take_contract.c')
     memory = test_root / 'test/support/module_product_memory.c'
     files.update((host, memory, test_root / 'test/support/module_product_memory.h', *(path for _, path in cases)))
     if args.native_cutover: files.add(contract)

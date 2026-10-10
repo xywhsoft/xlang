@@ -1,0 +1,17 @@
+class RestoreCopyOpen
+    derive value
+    derive clone
+    var payload @persist(skip) = null
+    int n = 11
+end
+RestoreCopyOpen copyShared = RestoreCopyOpen()
+class RestoreCopyEnvelope
+    derive value
+    RestoreCopyOpen child = copyShared
+end
+func restoreCopy(string text) as RestoreCopyEnvelope
+    return json.parse::<RestoreCopyEnvelope>(text)
+end
+RestoreCopyEnvelope first = restoreCopy("{\"child\":{\"n\":19}}")
+RestoreCopyEnvelope second = xlon.parse::<RestoreCopyEnvelope>("{\"child\":{\"n\":23}}")
+assert first.child.n == 19 and second.child.n == 23 and copyShared.n == 11, "shared clone isolation"

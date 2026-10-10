@@ -137,8 +137,11 @@ int main(int argc,char** argv)
     assert(xl6ArtifactRuntimePlanBuild(&ir,XL6_ARTIFACT_ENTRY_FRAGMENT,&plan,&parse.diags));
     assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_RESTORE_OPEN));
     assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_DYNAMIC_FIELDS));
-    assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_LIST_NATIVE));
-    assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_FUTURE_ADMISSION));
+    /* Open storage admits arbitrary values, including native List graphs.
+     * The closed leaf above must still exclude the List provider. */
+    assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_RESTORE_CLASS_LIST));
+    assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_LIST_NATIVE));
+    assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_FUTURE_ADMISSION));
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse);
     printf("restore take: %zu corrupt ownership/plan mutations refused before output\n",mutations); return 0;
 }

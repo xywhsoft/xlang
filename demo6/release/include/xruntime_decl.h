@@ -49136,6 +49136,18 @@ XRT_API bool xrtDynamicFieldsMerge(
 	const xrtdynamicfields* pSource,
 	bool bReplace
 );
+/* Transactional reference merge for an already isolated owning graph.
+ * Retains the actual Value identities, including repeated/cyclic edges;
+ * does not clone, consume or modify source. A false return means publication
+ * failed and target is unchanged. True means committed; a diagnostic from
+ * releasing replaced values remains observable after that commit.
+ * Same insertion/replacement order, visit guard and caller synchronization
+ * requirements as Merge. This is not a deep-copy operation. */
+XRT_API bool xrtDynamicFieldsMergeRefV1(
+	xrtdynamicfields* pTarget,
+	const xrtdynamicfields* pSource,
+	bool bReplace
+);
 XRT_API xrtdynamicfields* xrtDynamicFieldsClone(
 	const xrtdynamicfields* pFields
 );

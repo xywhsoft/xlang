@@ -10,7 +10,7 @@ static bool admits(const xvalue* value,uint64_t identity,int64_t tag)
 static bool ownership(xrtownershipref ref)
 {
     const XL6_NativeHandlePolicyV1* policy=xl6DynamicFieldsHandlePolicyV1Get();
-    return xl6RestoreClassClosedProviderV1()->OwnershipAdmits(ref) ||
+    return xl6RestoreClassProviderV1()->OwnershipAdmits(ref) ||
         xrtDynamicFieldsOwnershipAdapterV1(ref) ||
         xrtValueHandleOwnershipAdapterV1(ref,policy->Ops,policy->Trace);
 }
