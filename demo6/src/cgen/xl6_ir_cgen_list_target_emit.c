@@ -1,13 +1,17 @@
-/* Closed native List factory. No List algorithm, source/type spelling recovery
- * or wire conversion is emitted: the IR recipe is the complete producer. */
-static int xl6IrCgenEmitListTargetCreateDepth(XL6_Output* out,const XL6_IrModule* module,
-    XL6_IrTypeId id,const char* result,XL6_IrNominalIdentitySetId admissionSet,size_t depth,
+/* One complete value-domain recipe drives distinct native List/Set factories.
+ * No container algorithm, type spelling recovery or wire conversion is emitted. */
+static int xl6IrCgenEmitValueCollectionTargetCreateDepth(XL6_Output* out,const XL6_IrModule* module,
+    XL6_IrTypeId id,XL6_IrCollectionAbi family,const char* result,XL6_IrNominalIdentitySetId admissionSet,size_t depth,
     const char* importChain,size_t importCount)
 {
-    XL6_IrTypeId schemaId=XL6_IR_TYPE_INVALID;
-    XL6_IrNominalIdentitySetId expectedSet=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
-    if (depth>64 || !result || !xl6IrListConstructionRecipe(module,id,&schemaId,&expectedSet) ||
-        admissionSet!=expectedSet) return -1;
+    XL6_IrValueCollectionRecipe recipe={0};
+    if (depth>64 || !result || !xl6IrValueCollectionConstructionRecipe(module,id,&recipe) ||
+        recipe.family!=family || admissionSet!=recipe.admissionIdentitySet) return -1;
+    XL6_IrTypeId schemaId=recipe.valueSchemaType;
+    XL6_IrNominalIdentitySetId expectedSet=recipe.admissionIdentitySet;
+    const char* layout=family==XL6_IR_COLLECTION_LIST ? "XL6_ListLayoutV1" : "XL6_SetLayoutV1";
+    const char* create=family==XL6_IR_COLLECTION_LIST ? "xl6ListCreateTakeV1" : "xl6SetCreateTakeV1";
+    const char* project=family==XL6_IR_COLLECTION_LIST ? "xl6ListProjectionTakeV1" : "xl6SetProjectionTakeV1";
     const XL6_IrType* owner=xl6IrTypeGet(&module->types,id);
     const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
     const XL6_IrSequenceLayout* plan=&schema->sequenceLayout;
@@ -22,32 +26,41 @@ static int xl6IrCgenEmitListTargetCreateDepth(XL6_Output* out,const XL6_IrModule
     if (!payload || !slot || !descriptor || !transfer || !converter) return -1;
     /* Whole recipe preflight precedes the first output write. A refused domain
      * cannot leave a partial target/layout or introduce an ANY fallback. */
-    xl6OutputPuts("    { xvalue* xlir_list_value_schema = NULL;\n"
-        "      xl6_error_scope xlir_list_target_scope = {0};\n"
-        "      if (xl6ErrorScopeBegin(&xlir_list_target_scope)) {\n",out);
-    if (xl6IrCgenEmitSequenceCreateDepth(out,module,schemaId,"xlir_list_value_schema",
+    xl6OutputPuts("    { xvalue* xlir_value_collection_value_schema = NULL;\n"
+        "      xl6_error_scope xlir_value_collection_target_scope = {0};\n"
+        "      if (xl6ErrorScopeBegin(&xlir_value_collection_target_scope)) {\n",out);
+    if (xl6IrCgenEmitSequenceCreateDepth(out,module,schemaId,"xlir_value_collection_value_schema",
         expectedSet,depth,importChain,importCount,true,false)<0) return -1;
     xl6OutputPrintf(out,
-        "      if (!xlir_list_value_schema) xl6ErrorScopeCaptureFailure(&xlir_list_target_scope);\n"
-        "      const XL6_ListLayoutV1 xlir_list_target_layout = {0x%016llXULL,"
+        "      if (!xlir_value_collection_value_schema) xl6ErrorScopeCaptureFailure(&xlir_value_collection_target_scope);\n"
+        "      const %s xlir_value_collection_target_layout = {0x%016llXULL,"
         "{0x%016llXULL,0x%016llXULL,%s,sizeof(%s),%s}};\n"
-        "      %s = xl6ListCreateTakeV1(&xlir_list_target_layout, xlir_list_value_schema);\n"
-        "      %s = xl6ListProjectionTakeV1(%s, &xlir_list_target_layout, %s);\n"
-        "      if (!%s || xrtGetError()) xl6ErrorScopeCaptureFailure(&xlir_list_target_scope);\n"
-        "      if (xlir_list_target_scope.failed) { xrtValueRelease(%s); %s = NULL; }\n"
-        "      xl6_error_result xlir_list_target_outcome = xl6ErrorScopeEnd(&xlir_list_target_scope);\n"
-        "      if (!xlir_list_target_outcome.ok) xl6ErrorScopePropagateFailure(xlir_list_target_outcome);\n"
+        "      %s = %s(&xlir_value_collection_target_layout, xlir_value_collection_value_schema);\n"
+        "      %s = %s(%s, &xlir_value_collection_target_layout, %s);\n"
+        "      if (!%s || xrtGetError()) xl6ErrorScopeCaptureFailure(&xlir_value_collection_target_scope);\n"
+        "      if (xlir_value_collection_target_scope.failed) { xrtValueRelease(%s); %s = NULL; }\n"
+        "      xl6_error_result xlir_value_collection_target_outcome = xl6ErrorScopeEnd(&xlir_value_collection_target_scope);\n"
+        "      if (!xlir_value_collection_target_outcome.ok) xl6ErrorScopePropagateFailure(xlir_value_collection_target_outcome);\n"
         "      } else { %s = NULL; xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); } }\n",
-        (unsigned long long)owner->typeValueId,(unsigned long long)schema->typeValueId,
+        layout,(unsigned long long)owner->typeValueId,(unsigned long long)schema->typeValueId,
         (unsigned long long)payload->typeValueId,transfer,slot,descriptor,
-        result,result,result,converter,result,result,result,result);
+        result,create,result,project,result,converter,result,result,result,result);
     /* The virtual Array witness is not a collection-chain node. Only the
-     * actual projected List is retained as this depth's transaction seed. */
+     * actual projected owner is retained as this depth's transaction seed. */
     if (importChain && depth<importCount)
         xl6OutputPrintf(out,"    %s[%u] = %s ? xrtValueRetain(%s) : NULL;\n",
             importChain,(unsigned)depth,result,result);
     return xl6OutputHasFailed(out) ? -1 : 1;
 }
+static int xl6IrCgenEmitListTargetCreateDepth(XL6_Output* out,const XL6_IrModule* module,
+    XL6_IrTypeId id,const char* result,XL6_IrNominalIdentitySetId admissionSet,size_t depth,
+    const char* importChain,size_t importCount)
+{ return xl6IrCgenEmitValueCollectionTargetCreateDepth(out,module,id,XL6_IR_COLLECTION_LIST,
+    result,admissionSet,depth,importChain,importCount); }
 static int xl6IrCgenEmitListTargetCreate(XL6_Output* out,const XL6_IrModule* module,
     XL6_IrTypeId id,const char* result,XL6_IrNominalIdentitySetId admissionSet)
 { return xl6IrCgenEmitListTargetCreateDepth(out,module,id,result,admissionSet,0,NULL,0); }
+static int xl6IrCgenEmitSetTargetCreate(XL6_Output* out,const XL6_IrModule* module,
+    XL6_IrTypeId id,const char* result,XL6_IrNominalIdentitySetId admissionSet)
+{ return xl6IrCgenEmitValueCollectionTargetCreateDepth(out,module,id,XL6_IR_COLLECTION_SET,
+    result,admissionSet,0,NULL,0); }

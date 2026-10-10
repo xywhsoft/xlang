@@ -66,7 +66,7 @@ int main(int argc,char** argv)
         const XL6_IrStorage* parameter=xl6IrStorageGet(&unit.ir,unit.ir.functionParameters[f->firstParameter]);
         const XL6_IrType* owner=parameter ? xl6IrTypeGet(&unit.ir.types,parameter->type) : NULL;
         if (!owner || owner->collectionAbi!=XL6_IR_COLLECTION_LIST) continue;
-        const XL6_IrType* schema=xl6IrTypeGet(&unit.ir.types,owner->listValueSchemaType);
+        const XL6_IrType* schema=xl6IrTypeGet(&unit.ir.types,owner->collectionValueSchemaType);
         const XL6_IrType* element=xl6IrTypeGet(&unit.ir.types,owner->params[0]);
         assert(result && result->errorResultCName && schema && element);
         xl6OutputPrintf(&out,"#define XL6_ALG_%s xlir_fn_%u\n#define XL6_ALG_%s_RESULT %s\n"

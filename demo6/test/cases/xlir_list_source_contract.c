@@ -54,8 +54,8 @@ int main(int argc,char** argv)
             owner->sequenceLayout.childRole=XL6_IR_SEQUENCE_ROLE_ARRAY;
             refuse(ir); owner->sequenceLayout=old;
             XL6_IrType* child=&ir->types.items[old.baseElementType-1];
-            XL6_IrType* schema=&ir->types.items[child->listValueSchemaType-1];
-            owner->sequenceLayout.baseElementType=child->listValueSchemaType;
+            XL6_IrType* schema=&ir->types.items[child->collectionValueSchemaType-1];
+            owner->sequenceLayout.baseElementType=child->collectionValueSchemaType;
             refuse(ir); owner->sequenceLayout=old;
             /* A hostile cyclic List/value-witness graph must spend the same
              * finite depth budget, not restart recursion at every family. */
@@ -86,8 +86,8 @@ int main(int argc,char** argv)
             CHANGE(collectionAdmissionAbi,XL6_IR_COLLECTION_ADMISSION_PRIMITIVE);
 #undef CHANGE
             XL6_IrType* type=&ir->types.items[ins->type-1];
-            XL6_IrTypeId saved=type->listValueSchemaType;
-            type->listValueSchemaType=ins->type; refuse(ir); type->listValueSchemaType=saved;
+            XL6_IrTypeId saved=type->collectionValueSchemaType;
+            type->collectionValueSchemaType=ins->type; refuse(ir); type->collectionValueSchemaType=saved;
             size_t count=0; XL6_IrTypeId ids[65];
             assert(xl6IrListImportChainRecipe(ir,ins->type,ids,65,&count) && count && ids[0]==ins->type);
             size_t untouched=99; XL6_IrTypeId first=ids[0];

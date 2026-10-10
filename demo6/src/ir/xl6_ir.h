@@ -69,6 +69,17 @@ typedef enum XL6_IrCollectionAbi {
     XL6_IR_COLLECTION_DICT
 } XL6_IrCollectionAbi;
 
+/* Set's explicit key contract is orthogonal to slot ownership. Basic values
+ * compare by content; mutable Value/container instances compare by reference
+ * identity; Future keys use the native control block. No ordering is granted
+ * to reference slots and no source hash/equality member is recovered by Cgen. */
+typedef enum XL6_IrSetKeyAbi {
+    XL6_IR_SET_KEY_NONE = 0,
+    XL6_IR_SET_KEY_TYPED_CONTENT_V1,
+    XL6_IR_SET_KEY_VALUE_CONTENT_OR_REFERENCE_IDENTITY_V1,
+    XL6_IR_SET_KEY_FUTURE_IDENTITY_V1
+} XL6_IrSetKeyAbi;
+
 /* Logical collection identity does not identify its physical owner. A Value
  * array and a resident Sequence both use xvalue*, but are not interchangeable.
  * SEQUENCE is deliberately refused by the current source type interner and
@@ -692,11 +703,11 @@ typedef struct XL6_IrType {
      * even when source never projects keys()/values(). No Array storage is
      * part of the Tree owner; these are immutable construction recipes. */
     XL6_IrTypeId treeKeySchemaType, treeValueSchemaType;
-    /* Sparse List target owns an independently sealed canonical Array<T>
-     * admission domain, not Array storage. This is a native TARGET recipe;
-     * it does not authorize interpreting the still-legacy source carrier as
-     * a native handle or remove its persistence/producer barriers. */
-    XL6_IrTypeId listValueSchemaType;
+    /* List/Set targets share one independently sealed canonical Array<T>
+     * value-admission domain, never Array storage. The complete recipe is
+     * separate from source-producer authority and wire-import permission. */
+    XL6_IrTypeId collectionValueSchemaType;
+    XL6_IrSetKeyAbi setKeyAbi;
     /* Logical boxed domain, independent of physical carrier/transfer. */
     XL6_ValueAdmissionV1 xvalueAdmissionAbi;
     bool xvalueAdmissionNullable;
@@ -6691,6 +6702,23 @@ int xl6IrSequenceConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
  * producer authority remain separate from this native construction plan. */
 int xl6IrListConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrTypeId*, XL6_IrNominalIdentitySetId*);
+/* One closed value-domain abstraction for distinct native List/Set owners.
+ * Outputs publish only after whole-domain verification; key semantics and
+ * physical transfer are independent, derived and verifier-checked facts.
+ * This target capability never authorizes a legacy language producer. */
+typedef struct XL6_IrValueCollectionRecipe {
+    XL6_IrCollectionAbi family;
+    XL6_IrTypeId ownerType,valueSchemaType,elementType;
+    XL6_IrNominalIdentitySetId admissionIdentitySet;
+    XL6_IrNativeSlotAbi slotAbi;
+    XL6_IrSequenceCodecAbi codecAbi;
+    XL6_IrRuntimeResourcePayloadAbi transferAbi;
+    XL6_IrSetKeyAbi setKeyAbi;
+} XL6_IrValueCollectionRecipe;
+int xl6IrValueCollectionConstructionRecipe(const XL6_IrModule*,XL6_IrTypeId,
+    XL6_IrValueCollectionRecipe*);
+int xl6IrSetConstructionRecipe(const XL6_IrModule*,XL6_IrTypeId,
+    XL6_IrTypeId*,XL6_IrNominalIdentitySetId*,XL6_IrSetKeyAbi*);
 /* Exact erased Array<var> shape and canonical dynamic element identity. */
 XL6_IrTypeId xl6IrArrayAnyElementType(const XL6_IrModule*, XL6_IrTypeId);
 /* Canonical carrier for implicit heterogeneous literals and language entry

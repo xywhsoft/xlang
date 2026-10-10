@@ -511,7 +511,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
             instruction->runtimeOp == XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) {
             const XL6_IrType* recipe=xl6IrTypeGet(&module->types,instruction->type);
             if (recipe && recipe->collectionAbi==XL6_IR_COLLECTION_LIST)
-                recipe=xl6IrTypeGet(&module->types,recipe->listValueSchemaType);
+                recipe=xl6IrTypeGet(&module->types,recipe->collectionValueSchemaType);
             for (size_t depth=0;recipe && depth<=64;++depth) {
                 switch (recipe->sequenceLayout.abi) {
                 case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2: REQUIRE(R(ARRAY_PRIMITIVE_ADMISSION)); break;
@@ -542,7 +542,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                     recipe->sequenceLayout.abi!=XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1) break;
                 recipe=xl6IrTypeGet(&module->types,recipe->sequenceLayout.baseElementType);
                 if (recipe && recipe->collectionAbi==XL6_IR_COLLECTION_LIST)
-                    recipe=xl6IrTypeGet(&module->types,recipe->listValueSchemaType);
+                    recipe=xl6IrTypeGet(&module->types,recipe->collectionValueSchemaType);
                 if (!recipe || depth==64) { xrtFree(work.seen); xrtFree(work.queue); return 0; }
             }
         } else if (instruction->runtimeOp>=XL6_IR_RUNTIME_STACK_PUSH_BATCH &&
@@ -574,7 +574,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                 instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN)
                 ? xl6IrTypeGet(&module->types,instruction->type) : NULL;
             if (created && created->collectionAbi==XL6_IR_COLLECTION_LIST)
-                created=xl6IrTypeGet(&module->types,created->listValueSchemaType);
+                created=xl6IrTypeGet(&module->types,created->collectionValueSchemaType);
             const XL6_IrType* extracted=trivialExtract ? xl6IrTypeGet(&module->types,instruction->type) : NULL;
             /* Extraction consumes the result descriptor AND the optional's
              * base descriptor. Only the result consumes a Value converter. */
@@ -593,7 +593,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                     }
                     recipe=xl6IrTypeGet(&module->types,recipe->sequenceLayout.baseElementType);
                     if (recipe && recipe->collectionAbi==XL6_IR_COLLECTION_LIST)
-                        recipe=xl6IrTypeGet(&module->types,recipe->listValueSchemaType);
+                        recipe=xl6IrTypeGet(&module->types,recipe->collectionValueSchemaType);
                     physicalIds[physicalCount++]=recipe ? recipe->sequenceLayout.elementType : XL6_IR_TYPE_INVALID;
                 }
             }
