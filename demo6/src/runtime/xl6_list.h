@@ -69,6 +69,23 @@ XL6_TEXT_API xvalue* xl6ListProjectionTakeV1(xvalue*,const XL6_ListLayoutV1*,con
 XL6_TEXT_API bool xl6ListErasedReadV1(const xvalue*,int64_t,bool,xvalue**,bool*);
 XL6_TEXT_API bool xl6ListErasedSetV1(const xvalue*,int64_t,const xvalue*);
 XL6_TEXT_API bool xl6ListErasedAppendV1(const xvalue*,const xvalue*,int64_t*);
+/* Checked erased methods authenticate the private owner and its bound resident
+ * projection, never just HANDLE/type ID. Missing keys and zero count are normal;
+ * private outputs are published only on success. No schema/layout guessing. */
+XL6_TEXT_API bool xl6ListErasedCountV1(const xvalue*,int64_t*);
+XL6_TEXT_API bool xl6ListErasedKeyV1(const xvalue*,int64_t,bool,bool*);
+XL6_TEXT_API bool xl6ListErasedClearV1(const xvalue*);
+/* 0 unrelated (no output writes), -1 checked failure, 1 publishes a full typed
+ * snapshot plus its immutable layout. The explicit private cursor identity must
+ * differ from both List and witness identities. The owned target starts NULL.
+ * No wire conversion or source callback is retained. */
+XL6_TEXT_API int xl6ListIteratorCreateErasedV1(const xvalue*,uint64_t,xvalue**,XL6_ListLayoutV1*);
+/* Each successful step publishes one owned projection and the complete int64
+ * key; EOF publishes found=false, item=NULL, key=0. Private item starts NULL.
+ * Failure leaves outputs unchanged and invalidates the snapshot when advancement
+ * or projection has begun. Repeated EOF is normal; failure is never EOF. */
+XL6_TEXT_API bool xl6ListIteratorAdvanceValueV1(const xvalue*,const XL6_ListLayoutV1*,uint64_t,
+    bool*,xvalue**,int64_t*);
 /* Explicit one-level sparse wire snapshot, not var erasure or a recursive
  * persistence implementation. Complete int64 keys and owned projected values
  * are retained. Nested native children require the compiler's closed graph

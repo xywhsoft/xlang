@@ -606,15 +606,18 @@ bool xl6ListGetV1(const xvalue* value,const XL6_ListLayoutV1* layout,int64_t key
     if (success) *found=result;
     return success;
 }
+static bool keyPinned(ListOwner* owner,int64_t key,bool remove,bool* found)
+{
+    bool present=xrtTypedListHas(owner->storage,key);
+    if (xrtGetError() || (present && remove && !xrtTypedListRemove(owner->storage,key))) return false;
+    *found=present; return true;
+}
 bool xl6ListKeyV1(const xvalue* value,const XL6_ListLayoutV1* layout,int64_t key,bool remove,bool* found)
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
     ListOwner* owner=begin(value,layout,0); bool success=false,result=false;
     if (!found) xrtSetErrorKind(XERR_ARGUMENT);
-    else if (owner) {
-        result=xrtTypedListHas(owner->storage,key);
-        success=!xrtGetError() && (!result || !remove || xrtTypedListRemove(owner->storage,key));
-    }
+    else if (owner) success=keyPinned(owner,key,remove,&result);
     success=finish(&scope,owner,success);
     if (success) *found=result;
     return success;
@@ -642,18 +645,26 @@ int64_t xl6ListTrimV1(const xvalue* value,const XL6_ListLayoutV1* layout,int64_t
     if (released>INT64_MAX) { xrtSetErrorKind(XERR_RANGE); success=false; }
     return finish(&scope,owner,success) ? (int64_t)released : -1;
 }
+static xvalue* clonePinned(ListOwner* owner,uint64_t cursor,bool reverse,bool bounded,int64_t start,
+    xl6_error_scope* scope)
+{
+    xvalue* result=NULL; XL6_SequenceAdmissionV3 policy={0};
+    if (owner && owner->policy.ops->Retain(owner->policy.data)) {
+        policy=owner->policy; xtypedlist* storage=xrtTypedListClone(owner->storage);
+        if (storage) result=wrap(storage,&owner->layout,&policy,cursor,reverse,bounded,start,
+            owner->projection,owner->projected);
+    }
+    if (!result || xrtGetError()) xl6ErrorScopeCaptureFailure(scope);
+    xl6SequenceAdmissionDropV3(&policy);
+    return result;
+}
 static xvalue* clone(const xvalue* value,const XL6_ListLayoutV1* layout,uint64_t cursor,
     bool reverse,bool bounded,int64_t start)
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return NULL;
-    ListOwner* owner=begin(value,layout,0); xvalue* result=NULL; XL6_SequenceAdmissionV3 policy={0};
-    if (owner && owner->policy.ops->Retain(owner->policy.data)) {
-        policy=owner->policy; xtypedlist* storage=xrtTypedListClone(owner->storage);
-        if (storage) result=wrap(storage,layout,&policy,cursor,reverse,bounded,start,
-            owner->projection,owner->projected);
-    }
+    ListOwner* owner=begin(value,layout,0);
+    xvalue* result=owner ? clonePinned(owner,cursor,reverse,bounded,start,&scope) : NULL;
     if (!result) xl6ErrorScopeCaptureFailure(&scope);
-    xl6SequenceAdmissionDropV3(&policy);
     if (!finish(&scope,owner,true)) { xrtValueRelease(result); return NULL; }
     return result;
 }
@@ -670,31 +681,32 @@ xvalue* xl6ListCursorCreateV1(const xvalue* value,const XL6_ListLayoutV1* layout
     if (!scopeFinish(&scope,result!=NULL)) { xrtValueRelease(result); return NULL; }
     return result;
 }
+static bool cursorAdvancePinned(ListOwner* owner,bool* found)
+{
+    *found=false;
+    if (owner->failed) { xrtSetErrorKind(XERR_STATE); return false; }
+    if (owner->ended) return true;
+    if (!owner->started) {
+        owner->started=owner->bounded ?
+            (owner->reverse ? xrtTypedListIterRFrom(owner->storage,owner->startKey,&owner->iterator) :
+                xrtTypedListIterFrom(owner->storage,owner->startKey,&owner->iterator)) :
+            (owner->reverse ? xrtTypedListIterRBegin(owner->storage,&owner->iterator) :
+                xrtTypedListIterBegin(owner->storage,&owner->iterator));
+        if (!owner->started) { owner->failed=true; cursorEnd(owner); return false; }
+    }
+    owner->current=xrtTypedListIterNext(&owner->iterator,&owner->currentKey);
+    bool success=!xrtGetError(); *found=success && owner->current;
+    if (!success) owner->failed=true;
+    if (!owner->current || !success) cursorEnd(owner);
+    return success;
+}
 bool xl6ListCursorAdvanceV1(const xvalue* value,const XL6_ListLayoutV1* layout,uint64_t identity,bool* found)
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
     ListOwner* owner=identity ? begin(value,layout,identity) : NULL;
     bool success=false,result=false;
     if (!identity || !found) xrtSetErrorKind(XERR_ARGUMENT);
-    else if (owner) {
-        if (owner->failed) xrtSetErrorKind(XERR_STATE);
-        else if (owner->ended) success=true;
-        else {
-            if (!owner->started) {
-                owner->started=owner->bounded ?
-                    (owner->reverse ? xrtTypedListIterRFrom(owner->storage,owner->startKey,&owner->iterator) :
-                        xrtTypedListIterFrom(owner->storage,owner->startKey,&owner->iterator)) :
-                    (owner->reverse ? xrtTypedListIterRBegin(owner->storage,&owner->iterator) :
-                        xrtTypedListIterBegin(owner->storage,&owner->iterator));
-                if (!owner->started) { owner->failed=true; goto done; }
-            }
-            owner->current=xrtTypedListIterNext(&owner->iterator,&owner->currentKey);
-            success=!xrtGetError(); result=success && owner->current;
-            if (!success) owner->failed=true;
-            if (!owner->current || !success) cursorEnd(owner);
-        }
-    }
-done:
+    else if (owner) success=cursorAdvancePinned(owner,&result);
     success=finish(&scope,owner,success);
     if (success) *found=result;
     return success;
@@ -941,6 +953,64 @@ bool xl6ListErasedAppendV1(const xvalue* value,const xvalue* item,int64_t* outpu
     success=finish(&scope,owner,success);
     if (success) *output=key;
     return success;
+}
+bool xl6ListErasedCountV1(const xvalue* value,int64_t* output)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    ListOwner* owner=erased(value); size_t count=owner ? xrtTypedListCount(owner->storage) : 0;
+    if (!output) xrtSetErrorKind(XERR_ARGUMENT);
+    else if (count>INT64_MAX) xrtSetErrorKind(XERR_RANGE);
+    bool success=finish(&scope,owner,owner && output && count<=INT64_MAX);
+    if (success) *output=(int64_t)count;
+    return success;
+}
+bool xl6ListErasedKeyV1(const xvalue* value,int64_t key,bool remove,bool* output)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    ListOwner* owner=erased(value); bool found=false;
+    if (!output) xrtSetErrorKind(XERR_ARGUMENT);
+    bool success=owner && output && keyPinned(owner,key,remove,&found);
+    success=finish(&scope,owner,success);
+    if (success) *output=found;
+    return success;
+}
+bool xl6ListErasedClearV1(const xvalue* value)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    ListOwner* owner=erased(value);
+    return finish(&scope,owner,owner && xrtTypedListClear(owner->storage));
+}
+int xl6ListIteratorCreateErasedV1(const xvalue* value,uint64_t identity,
+    xvalue** output,XL6_ListLayoutV1* outputLayout)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return -1;
+    ListOwner* owner=NULL; int status=erasedBegin(value,&owner,NULL);
+    if (status!=1) return finish(&scope,NULL,status==0) && status==0 ? 0 : -1;
+    xvalue* result=NULL; XL6_ListLayoutV1 layout=owner->layout;
+    if (!output || *output || !outputLayout || !identity ||
+        identity==layout.identity || identity==layout.value.identity) xrtSetErrorKind(XERR_ARGUMENT);
+    else result=clonePinned(owner,identity,false,false,0,&scope);
+    if (!finish(&scope,owner,result!=NULL)) { discard(result); return -1; }
+    *output=result; *outputLayout=layout; return 1;
+}
+bool xl6ListIteratorAdvanceValueV1(const xvalue* value,const XL6_ListLayoutV1* layout,
+    uint64_t identity,bool* outputFound,xvalue** output,int64_t* outputKey)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    ListOwner* owner=identity ? begin(value,layout,identity) : NULL;
+    bool success=false,found=false; xvalue* result=NULL; int64_t key=0;
+    if (!identity || !outputFound || !output || *output || !outputKey) xrtSetErrorKind(XERR_ARGUMENT);
+    else if (owner && !owner->projected) xrtSetErrorKind(XERR_STATE);
+    else if (owner) {
+        success=cursorAdvancePinned(owner,&found);
+        if (success && found) {
+            key=owner->currentKey; result=projectedSlot(owner,owner->current);
+            success=result!=NULL;
+        }
+        if (!success || xrtGetError() || scope.failed) { owner->failed=true; cursorEnd(owner); }
+    }
+    if (!finish(&scope,owner,success)) { discard(result); return false; }
+    *output=result; *outputFound=found; *outputKey=key; return true;
 }
 /* One-level explicit data projection. Resident reference children retain
  * their exact identities; a closed graph plan, not this storage boundary,

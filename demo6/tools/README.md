@@ -22,6 +22,15 @@ this is not all-language OOM, shipping or full53 acceptance. See
 
 ## Toolchain
 
+`check_stdlib_list_native.py --root <frozen-demo6> --out <fresh-output>
+--graph --restore-plan --batch-plan-prefixes --batch-erased-prefixes --erased-mutants`
+checks native sparse List methods and owned, one-step snapshot projections with
+full int64 keys. Each erased-method fault prefix has an independent allocation
+ledger. Four real compiled mutants must fail the same contracts. Linux
+`--sanitize` instruments the selected native closure. Source-language List,
+generic var dispatch, shipping and full53 remain separate gates; see
+[List native methods](../docs/stdlib53-b172-list-erased-native.md).
+
 - `xl6_toolchain_env.bat`: centralizes TCC, optional Flex/Lemon regeneration tools, XRT, include, lib, and default link settings.
 - `bootstrap_tcc.bat`: builds `build\tmp\tcc_bootstrap.exe` from `lib\tcc` with MinGW `gcc` when no `XL6_TCC` override exists.
 - `build_xrt_obj.bat`: builds the default runtime object from `lib\xruntime\xruntime.h`; the product contains its exact XRT dependency closure.
