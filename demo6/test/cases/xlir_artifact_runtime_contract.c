@@ -68,6 +68,17 @@ static int closure_contract(void)
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SequenceOwnershipAdapterV1")==XL6_ARTIFACT_SEQUENCE);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SequenceCreateAdmittedV1")==XL6_ARTIFACT_SEQUENCE);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SequenceCloneRoleV1")==XL6_ARTIFACT_SEQUENCE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6CollectionIdentityEnterV1")==XL6_ARTIFACT_SEQUENCE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6CodeOwnerScopeForeign")==XL6_ARTIFACT_CODE_LEASE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6PersistenceRestorePlanTakeV1")==XL6_ARTIFACT_ARRAY_IMPORT_CHAIN);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6ListCreateTakeV1")==XL6_ARTIFACT_LIST_NATIVE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6ListOwnershipAdapterV2")==XL6_ARTIFACT_LIST_NATIVE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6TreeDomainsCopyV1")==XL6_ARTIFACT_TREE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SpscQueueAdmitsSchemaV1")==XL6_ARTIFACT_TYPED_QUEUE_SPSC);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6ArraySemAdmissionOpsV2Get")==XL6_ARTIFACT_ARRAY_SEMAPHORE_ADMISSION);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SyncOwnerBeginNative")==XL6_ARTIFACT_SYNC_CORE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xlSyncRetirementAcquireCheckedV1")==XL6_ARTIFACT_SYNC_CORE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xlSyncRetirementAcquireCheckedV1Almost")==XL6_ARTIFACT_RUNTIME_COUNT);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6ArrayCreateV1")==XL6_ARTIFACT_ARRAY_TYPED);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6StackCreateV1")==XL6_ARTIFACT_STACK);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6ArrayReadI64V1")==XL6_ARTIFACT_ARRAY_SCALAR_READ);

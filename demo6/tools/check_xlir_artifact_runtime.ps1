@@ -33,7 +33,7 @@ try {
     }
     $files=Get-Item -LiteralPath (@($PSCommandPath,'src/driver/xl6_xlc_shell.c','test/cases/xlir_artifact_runtime_contract.c',
         'release/xl.dll',
-        'tools/stage_xlir_artifact_runtime_sources.ps1','src/compile/xl6_artifact_runtime_symbols.inc',
+        'tools/stage_xlir_artifact_runtime_sources.ps1','tools/check_xlir_resident_catalog.py','src/compile/xl6_artifact_runtime_symbols.inc',
         'src/runtime/xl6_log_symbols.inc','src/runtime/xl6_text_symbols.inc',(Get-Command gcc).Source,(Get-Command nm).Source)+$fixtures+$processInputs)
     $inputs=@($public.Inputs)+@($public.Headers)+@($public.Objects)+@($files|ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})+
         @([pscustomobject]@{Path=$PSCommandPath;Sha256=(Get-FileHash -LiteralPath $PSCommandPath).Hash})
@@ -66,46 +66,24 @@ try {
         & gcc @flags -c $component.Source -o $object *> "$outputPath/component-$($component.Id).log"
         $componentBuild=$LASTEXITCODE;$defined=@();$undefined=@();$nativeUndefined=@()
         if($componentBuild-eq0){
-            $defined=@(& nm -g --defined-only $object|ForEach-Object {if($_-match '\b[TRD] (xl6\w+)$'){$Matches[1]}})
-            $undefined=@(& nm -u $object|ForEach-Object {if($_-match '\bU (xl6\w+)$'){$Matches[1]}})
+            # Test oracle only: include xlSync checked host exports and BSS/
+            # weak definitions too. Production uses exact registered names.
+            $defined=@(& nm -g --defined-only $object|ForEach-Object {if($_-match '\b[A-Za-z] (xl\w+)$'){$Matches[1]}})
+            $undefined=@(& nm -u $object|ForEach-Object {if($_-match '\bU (xl\w+)$'){$Matches[1]}})
             $nativeUndefined=@(& nm -u $object|ForEach-Object {if($_-match '\bU (xrt\w+)$'){$Matches[1]}})
             foreach($symbol in $defined){if($symbolOwners.ContainsKey($symbol)){throw "Duplicate resident export $symbol"};$symbolOwners[$symbol]=$component.Id}
         }
         $componentObjects+=[pscustomobject]@{Component=$component;Build=$componentBuild;Path=$object;Defined=$defined;Undefined=$undefined;NativeUndefined=$nativeUndefined}
     }
-    $declared=@{}
-    $enum=[regex]::Match((Get-Content -LiteralPath src/compile/xl6_artifact_runtime.h -Raw),
-        '(?s)typedef\s+enum\s+XL6_ArtifactRuntimeId\s*\{(?<body>.*?)\}\s*XL6_ArtifactRuntimeId\s*;')
-    if(!$enum.Success){throw 'Missing explicit resident component identities'}
-    # Enum identifiers may contain digits (e.g. BUFFER_BASE64); count the exact
-    # C identities instead of silently omitting valid resident components.
-    $idNames=[regex]::Matches($enum.Groups['body'].Value,'\bXL6_ARTIFACT_(?!RUNTIME_COUNT\b)([A-Z_][A-Z_0-9]*)\b')
-    $nameIds=@{};$componentIndex=0
-    foreach($idName in $idNames){
-        $name=$idName.Groups[1].Value
-        if($nameIds.ContainsKey($name)){throw "Duplicate resident component identity $name"}
-        $nameIds[$name]=$componentIndex;$componentIndex++
-    }
-    $expectedComponents=$nameIds.Count
-    if($expectedComponents-lt24-or!$nameIds.ContainsKey('NETWORK_SERVICE')){throw 'Resident component population regressed'}
-    foreach($entry in [regex]::Matches((Get-Content -LiteralPath src/compile/xl6_artifact_runtime_symbols.inc -Raw),'XL6_ARTIFACT_SYMBOL\("(\w+)", (\w+)\)')){
-        $declared[$entry.Groups[1].Value]=$nameIds[$entry.Groups[2].Value]
-    }
-    # This catalog is also consumed by the resident API registration and the
-    # artifact planner. Expand the same explicit rows, not a second symbol list.
-    foreach($entry in [regex]::Matches((Get-Content -LiteralPath src/runtime/xl6_log_symbols.inc -Raw),'XL6_LOG_EXPORT\((\w+), (\w+)\)')){
-        $symbol=$entry.Groups[1].Value;$owner=$entry.Groups[2].Value
-        if($declared.ContainsKey($symbol)-or!$nameIds.ContainsKey($owner)){throw "Invalid logging resident export $symbol"}
-        $declared[$symbol]=$nameIds[$owner]
-    }
-    $registryErrors=@()
-    foreach($entry in [regex]::Matches((Get-Content -LiteralPath src/runtime/xl6_text_symbols.inc -Raw),'XL6_TEXT_EXPORT\((\w+), (\w+)\)')){
-        $symbol=$entry.Groups[1].Value;$owner=$entry.Groups[2].Value
-        if($declared.ContainsKey($symbol)-or!$nameIds.ContainsKey($owner)){throw "Invalid text resident export $symbol"}
-        $declared[$symbol]=$nameIds[$owner]
-    }
-    foreach($symbol in $symbolOwners.Keys){if(!$declared.ContainsKey($symbol)-or$declared[$symbol]-ne$symbolOwners[$symbol]){$registryErrors+="Unregistered or misowned actual export: $symbol"}}
-    foreach($symbol in $declared.Keys){if(!$symbolOwners.ContainsKey($symbol)){$registryErrors+="Declared export missing: $symbol"}}
+    # One cross-platform physical-symbol oracle. It independently re-reads nm
+    # and declarations, rejects duplicate/unknown owners, and runs corruptions
+    # against this actual complete population. No extra allowlist hides errors.
+    & python tools/check_xlir_resident_catalog.py --root $rootPath --catalog-dir $outputPath --out "$outputPath/catalog-audit.json" *> "$outputPath/catalog-audit.log"
+    $catalogAuditExit=$LASTEXITCODE
+    if(!(Test-Path -LiteralPath "$outputPath/catalog-audit.json")){throw 'Resident catalog audit produced no report'}
+    $catalogAudit=Get-Content -LiteralPath "$outputPath/catalog-audit.json" -Raw|ConvertFrom-Json
+    $expectedComponents=$catalogAudit.ComponentCount
+    $registryErrors=@($catalogAudit.RegistryErrors)
     foreach($componentObject in $componentObjects){
         $missing=@()
         foreach($symbol in $componentObject.Undefined){
@@ -627,11 +605,13 @@ $process=Start-Process @start
     }
     $unchanged=@($inputs|Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash-ne$_.Sha256}).Count-eq0
     $complete=$unchanged-and$cliBuild-eq0-and$contractBuild-eq0-and$contractRun-eq0-and$catalogRun-eq0-and$catalog.Count-eq$expectedComponents-and
-        $rows.Count-eq($cases.Count*4)-and!@($rows|Where-Object {!$_.Complete}).Count-and!$registryErrors.Count-and$declared.Count-eq$symbolOwners.Count-and
+        $rows.Count-eq($cases.Count*4)-and!@($rows|Where-Object {!$_.Complete}).Count-and$catalogAuditExit-eq0-and$catalogAudit.Complete-and
+        !$registryErrors.Count-and$catalogAudit.DeclaredExports-eq$symbolOwners.Count-and
         $linkage.Count-eq$expectedComponents-and!@($linkage|Where-Object {!$_.Complete}).Count-and
         $nativeLinkage.Count-eq$cases.Count-and!@($nativeLinkage|Where-Object {!$_.Complete}).Count
     $report=[pscustomobject]@{Complete=$complete;Inputs=$inputs;InputsUnchanged=$unchanged;CliBuild=$cliBuild;ContractBuild=$contractBuild;
-        ContractRun=$contractRun;CatalogRun=$catalogRun;ComponentCount=$expectedComponents;DependencyPairs=($expectedComponents*$expectedComponents);DeclaredExports=$declared.Count;ActualExports=$symbolOwners.Count;
+        ContractRun=$contractRun;CatalogRun=$catalogRun;ComponentCount=$expectedComponents;DependencyPairs=($expectedComponents*$expectedComponents);DeclaredExports=$catalogAudit.DeclaredExports;ActualExports=$symbolOwners.Count;
+        CatalogAuditExit=$catalogAuditExit;CatalogAuditComplete=$catalogAudit.Complete;CatalogNegativeControls=$catalogAudit.NegativeControls;
         RegistryErrors=$registryErrors;Linkage=$linkage;NativeLinkage=$nativeLinkage;Results=$rows;Fixtures=$cases;
         Scope='Current-source standalone CLI with explicit private declaration/source staging and TCC provider. Covers exactly the listed fixtures, all resident export ownership and dependency pairs, native object closure and actual assembly/plan equality. Not shared release xlc.dll, isolated deployment or whole-platform acceptance.'}
     [IO.File]::WriteAllText("$outputPath/results.json",($report|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
