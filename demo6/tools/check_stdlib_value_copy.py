@@ -27,6 +27,7 @@ def main():
     leaf=cases/'stdlib_value_copy_leaf.xl'; contract=cases/'xlir_value_copy_contract.c'
     host=cases/'stdlib_value_copy_native_host.c'; language_host=cases/'stdlib_value_copy_language_host.c'
     sources=['test/support/value_copy_native.c','test/support/module_product_memory.c',
+        'src/runtime/xl6_set.c','src/runtime/xl6_set_key_policy.c',
         'src/runtime/xl6_list.c','src/runtime/xl6_list_methods.c','src/runtime/xl6_sequence.c',
         'src/runtime/xl6_array_erased.c','src/runtime/xl6_array_graph.c','src/runtime/xl6_list_graph.c',
         'src/runtime/xl6_value_copy.c','src/runtime/xl6_value_copy_graph.c',
@@ -98,7 +99,7 @@ def main():
             for mode in ('oom','scopes','providers'): closed(lane+'.'+mode,binary,mode)
         for name,source,before,after in (
             ('aliased-open-list','src/runtime/xl6_value_copy.c',
-             'list ? xl6ListErasedCloneV1(source) : xl6ValueCloneV1(source)','list ? xrtValueRetain(source) : xl6ValueCloneV1(source)'),
+             'list ? xl6ListErasedCloneV1(source) :', 'list ? xrtValueRetain(source) :'),
             ('missing-list-graph','src/runtime/xl6_value_copy_graph.c',
              'sizeof(plan),providers,1,NULL,0','sizeof(plan),providers,0,NULL,0')):
             body=(root/source).read_text(encoding='utf-8'); assert body.count(before)==1

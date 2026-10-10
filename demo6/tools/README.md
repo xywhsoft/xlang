@@ -828,3 +828,5 @@ This boundary batch does not complete Array carrier migration or the 53-module g
 - `check_stdlib_set_recipes.py`：真实源码的统一 List/Set 值域与独立键合同，21 项每配方变异、零部分输出/依赖计划拒绝、严格 C O0/O2、完整 OOM 与作用域进入失败前缀；独立目标工厂不启用语言 Set 入口。
 
 - `check_stdlib_set_schema.py`：真实驻留 Set 引用域，四种父容器、64/65 层混合深度、精确逻辑域、nullable 默认、消费输入和作用域失败；严格 O0/O2、五条完整分配失败前缀及三个已编译错误实现，可选 Linux ASan/UBSan。
+
+- `check_stdlib_set_consumers.py` 和 `check_stdlib_set_iteration_source.py`：真实 Set 通用消费者与混合图，实际生成的静态及 erased foreach、按需 C 闭包与失败前缀；Set 工厂、导入和恢复仍待迁移。

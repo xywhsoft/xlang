@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_set.h"
+#include "src/runtime/xl6_set_graph_access.h"
 #include "src/runtime/xl6_set_key_policy.h"
 #include "src/runtime/xl6_array_admission.h"
 #include "src/runtime/xl6_array_reference_value.h"
@@ -707,6 +708,61 @@ static xvalue* projectedSlot(SetOwner* owner,const void* slot)
     result=admitProjection(owner,result,&scope);
     if (!scopeFinish(&scope,result!=NULL)) { discard(result); return NULL; }
     return result;
+}
+int xl6SetGraphBeginV1(const xvaluehandleops* ops,ptr raw,ptr user,uint64_t identity,XL6_SetGraphViewV1* view)
+{
+    if (!view || view->owner) { xrtSetErrorKind(XERR_ARGUMENT); return -1; }
+    if (ops!=&handleOps) return 0;
+    if (!raw || user) { xrtSetErrorKind(XERR_STATE); return -1; }
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    SetOwner* owner=raw; bool success=false,rejected=false;
+    if (owner->cursorIdentity || identity!=owner->layout.identity) xrtSetErrorKind(XERR_STATE);
+    else if (pin(owner,0)) {
+        if (!owner->projected) rejected=true;
+        else { *view=(XL6_SetGraphViewV1){owner,owner->layout,owner->storage}; success=true; }
+    }
+    mutationEnd(&mutation);
+    if (rejected) { end(owner); xrtSetErrorKind(XERR_STATE); }
+    return success ? 1 : -1;
+}
+void xl6SetGraphEndV1(XL6_SetGraphViewV1* view)
+{
+    if (!view || !view->owner) abort();
+    SetOwner* owner=view->owner; *view=(XL6_SetGraphViewV1){0}; end(owner);
+}
+static SetOwner* graphOwner(const XL6_SetGraphViewV1* view)
+{
+    SetOwner* owner=view ? view->owner : NULL;
+    if (!owner || !xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE) || owner->cleared ||
+        !owner->projected || owner->storage!=view->storage || !sameLayout(&owner->layout,&view->layout)) {
+        xrtSetErrorKind(XERR_STATE); return NULL;
+    }
+    return owner;
+}
+xvalue* xl6SetGraphEmptyV1(const XL6_SetGraphViewV1* view)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) {
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return NULL;
+    }
+    SetOwner* owner=graphOwner(view); XL6_SequenceAdmissionV3 policy={0}; xvalue* result=NULL;
+    if (owner && owner->policy.ops->Retain(owner->policy.data)) {
+        policy=owner->policy;
+        const xrttype* type=xl6SequenceStorageTypeV1(owner->layout.value.transfer,owner->layout.value.type);
+        const xtypedsetkeypolicy* keys=owner->layout.value.transfer==3 ? xl6SetReferenceKeyPolicyV1() :
+            owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 ? xl6SetFutureKeyPolicyV1() : NULL;
+        xtypedset* storage=keys ? xrtTypedSetCreateWithKeyPolicy(type,keys) : xrtTypedSetCreate(type);
+        if (storage) result=wrap(storage,&owner->layout,&policy,0,false,owner->projection,true);
+    }
+    xl6SequenceAdmissionDropV3(&policy);
+    if (!scopeFinish(&scope,result!=NULL)) { discard(result); return NULL; }
+    return result;
+}
+xvalue* xl6SetGraphProjectSlotV1(const XL6_SetGraphViewV1* view,const void* slot)
+{
+    SetOwner* owner=graphOwner(view);
+    if (!owner) return NULL;
+    if (owner->layout.value.transfer==3 || !slot) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
+    return projectedSlot(owner,slot);
 }
 bool xl6SetErasedKeyV1(const xvalue* value,const xvalue* item,XL6_SetKeyActionV1 action,bool* output)
 {

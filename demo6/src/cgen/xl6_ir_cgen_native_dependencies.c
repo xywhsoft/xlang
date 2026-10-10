@@ -393,7 +393,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         const char* listIterator=xl6IrCgenListIteratorCreateSymbol(module,instruction);
         if (listIterator && xl6IrCgenInstructionIsReachable(module,i) &&
             !visitor(context,listIterator)) return 0;
-        const char* arrayIterator=xl6IrCgenWireCheckedIteratorCreateSymbol(module,instruction);
+        const char* arrayIterator=xl6IrCgenFamilyIteratorCreateSymbol(module,instruction);
         if (arrayIterator && xl6IrCgenInstructionIsReachable(module,i) &&
             !visitor(context,arrayIterator)) return 0;
         if (queueId) {

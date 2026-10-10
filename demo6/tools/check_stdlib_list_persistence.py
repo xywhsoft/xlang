@@ -26,6 +26,7 @@ def main():
     contract=cases/'xlir_list_persistence_contract.c'; restore=cases/'stdlib_list_persistence_restore_host.c'
     project=cases/'stdlib_list_project_native_host.c'
     sources=['test/support/value_copy_native.c','test/support/module_product_memory.c',
+        'src/runtime/xl6_set.c','src/runtime/xl6_set_key_policy.c',
         'src/runtime/xl6_list.c','src/runtime/xl6_list_methods.c','src/runtime/xl6_sequence.c',
         'src/runtime/xl6_array_erased.c','src/runtime/xl6_array_graph.c','src/runtime/xl6_list_graph.c',
         'src/runtime/xl6_value_copy.c','src/runtime/xl6_value_copy_graph.c',

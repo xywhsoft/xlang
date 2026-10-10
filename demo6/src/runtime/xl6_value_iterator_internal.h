@@ -12,7 +12,11 @@ typedef struct XL6_ValueIteratorNativeSnapshotV1 {
     const xvalueconverter* projection;
     uint64_t ownerIdentity;
     uint64_t cursorIdentity;
+    /* Resident extension dispatch only; not a Value tag or admission token. */
+    unsigned family;
 } XL6_ValueIteratorNativeSnapshotV1;
+
+enum { XL6_VALUE_ITERATOR_LIST_V1=1, XL6_VALUE_ITERATOR_SET_V1=2 };
 typedef struct XL6_ValueIteratorNativeOpsV1 {
     /* 0 unrelated, -1 checked failure, 1 owned snapshot. No partial output. */
     int (*Create)(const xvalue*, XL6_ValueIteratorNativeSnapshotV1*);

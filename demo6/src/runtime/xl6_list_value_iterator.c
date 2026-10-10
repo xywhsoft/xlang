@@ -7,7 +7,7 @@ static int create(const xvalue* source,XL6_ValueIteratorNativeSnapshotV1* output
     XL6_ListLayoutV1 layout={0}; xvalue* cursor=NULL; uint64_t identity=0;
     int result=xl6ListIteratorSnapshotErasedV1(source,&cursor,&layout,&identity);
     if (result==1) *output=(XL6_ValueIteratorNativeSnapshotV1){
-        cursor,layout.value,NULL,layout.identity,identity};
+        cursor,layout.value,NULL,layout.identity,identity,XL6_VALUE_ITERATOR_LIST_V1};
     return result;
 }
 static bool advance(const XL6_ValueIteratorNativeSnapshotV1* snapshot,
@@ -29,12 +29,5 @@ XL6_ValueIterator* xl6ListValueIteratorCreateV1(const xvalue* source)
     if (!native && xrtValueType(source)!=XVALUE_INT_MAP) { xrtSetErrorKind(XERR_TYPE); return NULL; }
     return xl6ValueIteratorCreateResidentV1(source,&ops);
 }
-XL6_ValueIterator* xl6CollectionValueIteratorCreateV1(const xvalue* source)
-{
-    xvaluetype type=source ? xrtValueType(source) : XVALUE_NULL;
-    if (type!=XVALUE_HANDLE && type!=XVALUE_ARRAY && type!=XVALUE_INT_MAP &&
-        type!=XVALUE_SET && type!=XVALUE_OBJECT) {
-        xrtSetErrorInfo(XERR_TYPE,"xlang",0,"for in value must be array, list, set or dict"); return NULL;
-    }
-    return xl6ValueIteratorCreateResidentV1(source,&ops);
-}
+const XL6_ValueIteratorNativeOpsV1* xl6ListValueIteratorNativeOpsV1Get(void)
+{ return &ops; }
