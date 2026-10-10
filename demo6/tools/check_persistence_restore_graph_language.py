@@ -2,11 +2,11 @@
 
 Checks actual public compiler output, deterministic C, O0/O2 generated-C
 execution with a balanced allocation ledger, and genuine TCC JIT. Optional
-closed-native cutover and complete language OOM prefixes are explicit flags.
-Pending Open/Set/List/Dict families remain legacy; no shipping/AOT claim.
+closed/Open-native cutover and complete language OOM prefixes are explicit flags.
+Pending Set/List/Dict families remain legacy; no shipping/AOT claim.
 """
 from pathlib import Path
-import argparse, hashlib, json, os, shutil, subprocess, sys
+import argparse, hashlib, json, os, re, shutil, subprocess, sys
 
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -43,11 +43,14 @@ def main():
              ('isolation_metadata', test_root / 'test/cases/xlir_persistence_restore_isolation.xl')]
     if args.native_cutover:
         cases += [('native',test_root / 'test/cases/xlir_persistence_restore_native.xl'),
-                  ('native_oom',test_root / 'test/cases/xlir_persistence_restore_native_oom.xl')]
-    host = root / 'test/cases/xlir_module_product_oom_host.c'
+                  ('native_oom',test_root / 'test/cases/xlir_persistence_restore_native_oom.xl'),
+                  ('open',test_root / 'test/cases/xlir_persistence_restore_open.xl'),
+                  ('open_reject',test_root / 'test/cases/xlir_persistence_restore_open_reject.xl'),
+                  ('open_oom',test_root / 'test/cases/xlir_persistence_restore_open_oom.xl')]
+    host = test_root / 'test/cases/xlir_module_product_oom_host.c'
     contract=test_root / 'test/cases/xlir_persistence_restore_take_contract.c'
-    memory = root / 'test/support/module_product_memory.c'
-    files.update((host, memory, root / 'test/support/module_product_memory.h', *(path for _, path in cases)))
+    memory = test_root / 'test/support/module_product_memory.c'
+    files.update((host, memory, test_root / 'test/support/module_product_memory.h', *(path for _, path in cases)))
     if args.native_cutover: files.add(contract)
     inputs = [{'Path': str(path), 'Sha256': sha(path)} for path in sorted(files)]
     out.mkdir(parents=True)
@@ -88,7 +91,8 @@ def main():
             for optimization in ('O0','O2'):
                 binary=out / ('contract.'+optimization+('.exe' if os.name=='nt' else ''))
                 run('contract.'+optimization+'.compile',[cc,*flags,'-'+optimization,contract,*links,'-o',binary])
-                assert '9 corrupt ownership/plan mutations refused' in run('contract.'+optimization+'.run',[binary,cases[-1][1],cases[1][1]])
+                assert '22 corrupt ownership/plan mutations refused' in run('contract.'+optimization+'.run',
+                    [binary,dict(cases)['native_oom'],dict(cases)['construction'],dict(cases)['open']])
         for name, source in cases:
             try:
                 typed, lowered = out / (name + '.typed.json'), out / (name + '.lowered.json')
@@ -102,16 +106,22 @@ def main():
                 run(name + '.cgen', [driver, source, 'cgen-default', generated])
                 run(name + '.repeat', [driver, source, 'cgen-default', repeat])
                 assert sha(generated) == sha(repeat)
-                if args.native_cutover and name in ('wide','native','native_oom','isolation_metadata'):
+                if args.native_cutover and name!='construction':
                     text=generated.read_text(encoding='utf-8-sig')
                     assert all(not r['pending'] for r in ir['persistenceRestoreRoots'])
                     assert 'xl6PersistenceRestoreParsedTakeV1(' in text
                     assert 'xlir_persist_json_assign_' not in text and 'xlir_persist_xlon_assign_' not in text
                     assert 'xl6SerializeRestoreReadFinish' not in text
+                    if name.startswith('open'):
+                        opened=[n for n in ir['persistenceRestoreNodes'] if n['openClassLayout'] != 2**64-1]
+                        assert opened and all(n['openCloneSymbol'] for n in opened)
+                        assert ir['persistenceRestoreClaims']
+                        assert 'xl6RestoreOpenProviderV1()' in text and '.open=&open_' in text
+                        assert 'xlir_persist_json_assign_' not in text and 'xlir_persist_xlon_assign_' not in text
                 if args.native_cutover and name=='construction':
                     roots=ir['persistenceRestoreRoots']
                     assert all(not (r['pending'] & 128) for r in roots)
-                    assert any(r['pending'] & 1 for r in roots) and any(r['pending'] & 8 for r in roots)
+                    assert all(not (r['pending'] & 1) for r in roots) and any(r['pending'] & 8 for r in roots)
                     assert any(not r['pending'] for r in roots)
                     text=generated.read_text(encoding='utf-8-sig')
                     assert 'xl6PersistenceRestoreParsedTakeV1(' in text
@@ -124,15 +134,12 @@ def main():
                     run(name + '.' + optimization + '.compile', [cc, *flags, '-' + optimization,
                         '-include', generated, host, memory_object, *links, '-o', binary])
                     assert 'balanced' in run(name + '.' + optimization + '.run', [binary])
-                    if args.oom and name=='native_oom':
-                        point=0
-                        while point<10000:
-                            message=run(name+'.'+optimization+'.prefix'+str(point),[binary,str(point)])
-                            if 'hit=0 balanced' in message: break
-                            assert 'hit=1 balanced' in message
-                            point+=1
-                        assert point<10000
-                        print('Closed native restore '+optimization+' prefixes: '+str(point+1),flush=True)
+                    if args.oom and name in ('native_oom','open_oom'):
+                        message=run(name+'.'+optimization+'.prefixes',[binary,'--all'])
+                        batch=re.search(r'full prefixes=(\d+) first-no-hit=(\d+) balanced',message)
+                        assert batch and int(batch[1])==int(batch[2])+1 and int(batch[2])>0
+                        report.setdefault('Prefixes',[]).append({'Case':name,'Optimization':optimization,
+                            'Complete':True,'Count':int(batch[1]),'FirstNoHit':int(batch[2])})
                 run(name + '.jit', [driver, source, 'run', out / (name + '.jit')])
                 results.append({'Case': name, 'RestoreRoots': len(ir['persistenceRestoreRoots']),
                     'RestoreNodes': len(ir['persistenceRestoreNodes']), 'RestoreEdges': len(ir['persistenceRestoreEdges']),

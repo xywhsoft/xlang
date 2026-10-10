@@ -25,6 +25,7 @@ static int xl6IrRestoreGraphTablesValid(const XL6_IrModule* source,
     XL6_RESTORE_TABLE(recipes, persistenceRestorePlan);
     XL6_RESTORE_TABLE(recipes, persistenceRestoreSchema);
     XL6_RESTORE_TABLE(recipes, persistenceRestoreField);
+    XL6_RESTORE_TABLE(recipes, persistenceRestoreClaim);
 #undef XL6_RESTORE_TABLE
     return 1;
 }
@@ -102,6 +103,7 @@ static int xl6IrRestoreGraphIntern(XL6_IrRestoreGraphWalk* walk,
         &output->persistenceRestoreNodeCapacity, i, sizeof(row))) return 0;
     memset(&row, 0, sizeof(row)); row.type = type; row.contextField = contextField;
     row.seed = row.element = row.schema = row.firstEdge = SIZE_MAX;
+    row.openClassLayout=SIZE_MAX;
     row.defaultErrorAbi = XL6_IR_ERROR_ABI_NO_RAISE;
     row.cloneErrorAbi = XL6_IR_ERROR_ABI_NO_RAISE;
     output->persistenceRestoreNodes[i] = row;
@@ -190,8 +192,23 @@ static int xl6IrRestoreGraphCompleteNode(XL6_IrRestoreGraphWalk* walk, size_t at
         if (!xl6IrRestoreGraphIsolation(source, layout, &row)) return 0;
         if (schema->firstField > walk->recipes->persistenceRestoreFieldCount ||
             schema->fieldCount > walk->recipes->persistenceRestoreFieldCount - schema->firstField) return 0;
-        if (schema->dynamicField != XL6_IR_CLASS_FIELD_INDEX_INVALID)
-            walk->root.pending |= XL6_IR_RESTORE_PENDING_OPEN;
+        if (schema->dynamicField != XL6_IR_CLASS_FIELD_INDEX_INVALID) {
+            if (schema->dynamicField>=source->classFieldCount || schema->dynamicHandleField>=source->classFieldCount)
+                return 0;
+            const XL6_IrCallTarget* destroy=xl6IrCallTargetGet(source,schema->dynamicDestroySymbol);
+            if (!destroy || destroy->nativeHandlePolicyAbi!=XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1 ||
+                !destroy->nativeHandlePolicyCName ||
+                strcmp(destroy->nativeHandlePolicyCName,"xl6DynamicFieldsHandlePolicyV1Get")) return 0;
+            XL6_IrTypeId storage=source->classFields[schema->dynamicField].type;
+            size_t open=0;
+            while (open<source->classLayoutCount && source->classLayouts[open].type!=storage) ++open;
+            if (open==source->classLayoutCount) return 0;
+            XL6_IrPersistenceRestoreNode isolation={0}; isolation.payloadType=storage;
+            if (!xl6IrRestoreGraphIsolation(source,&source->classLayouts[open],&isolation)) return 0;
+            row.openClassLayout=open; row.openIsolationAbi=isolation.isolationAbi;
+            row.openCloneFunction=isolation.cloneFunction; row.openCloneSymbol=isolation.cloneSymbol;
+            row.openCloneErrorAbi=isolation.cloneErrorAbi;
+        }
         if (row.contextField != SIZE_MAX) row.flags |= XL6_IR_RESTORE_NODE_FIELD_INSTANCE;
         else {
             if (layout->persistenceConstructionAbi != XL6_IR_PERSISTENCE_CONSTRUCTION_DECLARATION_DEFAULT)
@@ -341,7 +358,8 @@ int xl6IrVerifyPersistenceRestoreGraphs(const XL6_IrModule* module)
             !module->persistenceRestoreEdgeCount;
     memset(&recipes, 0, sizeof(recipes)); recipes.source = module; recipes.verify = 1;
     ok = xl6IrPersistenceRestoreWalkArena(&recipes) && recipes.plans == module->persistenceRestorePlanCount &&
-        recipes.schemas == module->persistenceRestoreSchemaCount && recipes.fields == module->persistenceRestoreFieldCount;
+        recipes.schemas == module->persistenceRestoreSchemaCount && recipes.fields == module->persistenceRestoreFieldCount &&
+        recipes.claims == module->persistenceRestoreClaimCount;
     xrtFree(recipes.marked);
     if (!ok) return 0;
     memset(&arena, 0, sizeof(arena));
@@ -365,6 +383,8 @@ int xl6IrVerifyPersistenceRestoreGraphs(const XL6_IrModule* module)
         XL6_RESTORE_EQUAL(defaultFunction); XL6_RESTORE_EQUAL(defaultSymbol); XL6_RESTORE_EQUAL(defaultErrorAbi);
         XL6_RESTORE_EQUAL(isolationAbi); XL6_RESTORE_EQUAL(cloneFunction);
         XL6_RESTORE_EQUAL(cloneSymbol); XL6_RESTORE_EQUAL(cloneErrorAbi);
+        XL6_RESTORE_EQUAL(openClassLayout); XL6_RESTORE_EQUAL(openIsolationAbi);
+        XL6_RESTORE_EQUAL(openCloneFunction); XL6_RESTORE_EQUAL(openCloneSymbol); XL6_RESTORE_EQUAL(openCloneErrorAbi);
     }
     for (i = 0; ok && i < arena.persistenceRestoreEdgeCount; ++i) {
         const XL6_IrPersistenceRestoreEdge *a = &arena.persistenceRestoreEdges[i], *b = &module->persistenceRestoreEdges[i];

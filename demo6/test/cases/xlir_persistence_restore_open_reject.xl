@@ -1,0 +1,106 @@
+// The language contract, not a structural heuristic, admits isolation.
+class OpenRefused extends object
+    derive value
+    int n = 3
+end
+class OpenAlias extends object
+    derive value
+    int n = 5
+    func __clone__() as OpenAlias
+        return self
+    end
+end
+class OpenThrow extends object
+    derive value
+    int n = 7
+    func __clone__() as OpenThrow
+        throw ValueError("open-clone-original")
+    end
+end
+OpenRefused refused = OpenRefused()
+OpenAlias alias = OpenAlias()
+OpenThrow throwing = OpenThrow()
+refused.keep = "r\0你"
+alias.keep = "a\0你"
+throwing.keep = "t\0你"
+class OpenRefusalEnvelope
+    derive value
+    OpenRefused child = refused
+end
+class OpenAliasEnvelope
+    derive value
+    OpenAlias child = alias
+end
+class OpenThrowEnvelope
+    derive value
+    OpenThrow child = throwing
+end
+OpenLeaked? published = null
+class OpenLeaked extends object
+    derive value
+    int n = 11
+    func __clone__() as OpenLeaked
+        auto result = OpenLeaked()
+        published = result
+        return result
+    end
+end
+OpenLeaked leaking = OpenLeaked()
+leaking.keep = "l\0你"
+class OpenLeakedEnvelope
+    derive value
+    OpenLeaked child = leaking
+end
+int caught = 0
+try
+    auto value = json.parse::<OpenRefusalEnvelope>("{\"child\":{\"extra\":1}}")
+catch e
+    caught += 1
+end
+try
+    auto value = xlon.parse::<OpenAliasEnvelope>("{\"child\":{\"extra\":1}}")
+catch e
+    caught += 1
+end
+try
+    auto value = json.parse::<OpenThrowEnvelope>("{\"child\":{\"extra\":1}}")
+catch e
+    assert e.message == "open-clone-original"
+    caught += 1
+end
+try
+    auto value = xlon.parse::<OpenRefusalEnvelope>("{\"child\":{\"n\":99}}")
+catch e
+    caught += 1
+end
+try
+    auto value = json.parse::<OpenAliasEnvelope>("{\"child\":{\"n\":99,\"extra\":1}}")
+catch e
+    caught += 1
+end
+try
+    auto value = xlon.parse::<OpenThrowEnvelope>("{\"child\":{\"n\":99}}")
+catch e
+    assert e.message == "open-clone-original"
+    caught += 1
+end
+try
+    auto value = json.parse::<OpenLeakedEnvelope>("{\"child\":{\"n\":99,\"extra\":1}}")
+catch e
+    caught += 1
+end
+try
+    auto value = xlon.parse::<OpenLeakedEnvelope>("{\"child\":{\"n\":99,\"extra\":1}}")
+catch e
+    caught += 1
+end
+assert caught == 8
+assert refused.n == 3 and refused.keep == "r\0你" and refused.extra == null
+assert alias.n == 5 and alias.keep == "a\0你" and alias.extra == null
+assert throwing.n == 7 and throwing.keep == "t\0你" and throwing.extra == null
+assert leaking.n == 11 and leaking.keep == "l\0你" and leaking.extra == null
+auto observed = published ?? leaking
+assert observed.n == 11 and observed.extra == null
+// A missing wire field still shares its unchanged default and needs no clone.
+auto unchanged = json.parse::<OpenRefusalEnvelope>("{}")
+assert unchanged.child == refused and unchanged.child.extra == null

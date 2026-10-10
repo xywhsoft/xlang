@@ -11,6 +11,15 @@ provider mutants must compile before failing the real contracts. Linux
 language Open IR/Cgen cutover, shipping products or full53 acceptance; see
 [Open restoration](../docs/stdlib53-b170-open-restore-native.md).
 
+`check_persistence_restore_graph_language.py --root <frozen-demo6>
+--public-directory <source-build> --out <fresh-output> --native-cutover --oom`
+checks Closed/Open native restore graphs, 22 malformed IR mutations rejected
+before output, deterministic C, real JIT and O0/O2 allocation ledgers. The two
+OOM fixtures run every prefix through first no-hit in one process, independently
+reinitializing/finalizing and checking each ledger. Set/List/Dict barriers remain;
+this is not all-language OOM, shipping or full53 acceptance. See
+[Open language restoration](../docs/stdlib53-b171-open-restore-language.md).
+
 ## Toolchain
 
 - `xl6_toolchain_env.bat`: centralizes TCC, optional Flex/Lemon regeneration tools, XRT, include, lib, and default link settings.

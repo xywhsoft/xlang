@@ -46,7 +46,8 @@
 - [封闭类 JSON/XLON 恢复切换](stdlib53-b166-native-restore-cutover.md)：独立目标拥有值消费、声明 clone 隔离与整图提交；旧 opaque 模块明确待迁移，三个裁剪产物执行通过但完整导出审计仍失败。
 - [驻留组件导出与依赖验收](stdlib53-b167-resident-catalog.md)：修复 B166 的 60 项审计差异；双端完整符号目录与负控、Windows 裁剪 JIT/AOT 通过，生成 C 不变，不代表发布总门完成。
 - [DynamicFields 驻留 ABI 与语言拥有图](stdlib53-b169-dynamic-fields-resident.md)：精确字段长度、声明化错误合同、可裁剪复制和宿主准入；双端专项通过，Open 恢复事务继续。
-- [Open 动态字段恢复事务](stdlib53-b170-open-restore-native.md)：声明 clone 隔离、独立新存储及整批原子槽提交；双端原生验收通过，语言 Open IR 和入口尚未切换。
+- [Open 动态字段语言恢复与 clone 隔离](stdlib53-b171-open-restore-language.md)：受支持 JSON/XLON Open 根切换驻留事务；明确 XLIR 数据和可达性、双端语言与完整夹具 OOM 批处理通过，其余载体和发布总门继续。
+- [Open 动态字段恢复事务](stdlib53-b170-open-restore-native.md)：声明 clone 隔离、独立新存储及整批原子槽提交；B170 原生底座验收，语言切换见 B171。
 - [DynamicFields 原生拥有图与退役合同](stdlib53-b168-dynamic-fields-ownership.md)：逐槽拥有边、精确存储准入、弱提升隔离与分阶段清理；双端原生及语言邻接回归通过，Open 语言切换继续。
 - [XLIR数据恢复构造图](stdlib53-b154-ir-restore-graph.md)：可达根、节点、字段上下文、默认工厂和迁移边界；与旧恢复六表共享失败原子构建，不等同于 Cgen 或语言载体切换完成。
 - `文本标准库接入.md`：精确 string/char/bytes、UTF-8/16/32、BOM、数字与流式文本的公开合同。

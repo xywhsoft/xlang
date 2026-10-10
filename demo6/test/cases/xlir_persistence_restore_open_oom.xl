@@ -1,0 +1,24 @@
+class OpenOomChild extends object
+    derive value
+    int n = 3
+    func __clone__() as OpenOomChild
+        auto result = OpenOomChild()
+        result.n = self.n
+        result.__fields = self.__fields
+        return result
+    end
+end
+OpenOomChild shared = OpenOomChild()
+shared.keep = "a\0你"
+class OpenOomRoot
+    derive value
+    OpenOomChild child = shared
+    array<OpenOomChild> items = []
+end
+OpenOomRoot first = json.parse::<OpenOomRoot>("{\"child\":{\"n\":7,\"extra\\u0000好\":\"b\\u0000好\"},\"items\":[{\"n\":9,\"other\":true}]}")
+assert first.child.n == 7 and first.child.keep == "a\0你"
+assert first.child["extra\0好"] == "b\0好" and first.items[0].other == true
+assert shared.n == 3 and shared["extra\0好"] == null
+OpenOomRoot second = xlon.parse::<OpenOomRoot>("{\"child\":{\"n\":11,\"other\":true},\"items\":[]}")
+assert second.child.n == 11 and second.child.other == true
+assert first.child.n == 7 and shared.n == 3 and shared.other == null
