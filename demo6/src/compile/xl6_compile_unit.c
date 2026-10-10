@@ -245,7 +245,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
         {"XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_STRING", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
     {"src/runtime/xl6_array_method_remove.c", D(R(SEQUENCE),R(FOREIGN_ERROR)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
-    {"src/runtime/xl6_value_contains.c", D(R(ARRAY_METHODS_FIND),R(FOREIGN_ERROR)),
+    {"src/runtime/xl6_value_contains.c", D(R(ARRAY_METHODS_FIND),R(LIST_NATIVE),R(VALUE_WIRE_CONTAINS),R(FOREIGN_ERROR)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_STRING"}},
     {"src/runtime/xl6_dynamic_collection.c", D(R(ARRAY_ERASED),R(ARRAY_METHODS_CORE),R(ARRAY_METHODS_INSERT),R(ARRAY_METHODS_FIND),R(ARRAY_METHODS_REMOVE),R(VALUE_CONTAINS),R(LIST_METHODS),R(FOREIGN_ERROR)),
         {"XRT_MODULE_VALUE_CONTAINER"}},
@@ -276,7 +276,11 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_dynamic_fields_copy.c", D(R(DYNAMIC_FIELDS),R(ARRAY_GRAPH)), {NULL}},
     {"src/runtime/xl6_restore_open.c", D(R(RESTORE_CLASS),R(DYNAMIC_FIELDS),R(NATIVE_HANDLE),R(FOREIGN_ERROR)), {NULL}},
     {"src/runtime/xl6_list_methods.c", D(R(LIST_NATIVE),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER"}},
-    {"src/runtime/xl6_list_value_iterator.c", D(R(VALUE_ITERATOR),R(LIST_NATIVE)), {NULL}}
+    {"src/runtime/xl6_list_value_iterator.c", D(R(VALUE_ITERATOR),R(LIST_NATIVE)), {NULL}},
+    {"src/runtime/xl6_list_value_read.c", D(R(LIST_NATIVE),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_value_index_read.c", D(R(ARRAY_VALUE_READ),R(LIST_VALUE_READ),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_value_index_write.c", D(R(ARRAY_ERASED),R(LIST_NATIVE),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_value_wire_contains.c", D(R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER","XRT_MODULE_STRING"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

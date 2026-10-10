@@ -1,0 +1,33 @@
+int indexCleanups = 0
+func indexRead(var source, var key) as var
+    try
+        return source[key]
+    finally
+        indexCleanups += 1
+    end
+end
+func indexWrite(var source, var key, var item) as bool
+    try
+        source[key] = item
+        return true
+    finally
+        indexCleanups += 1
+    end
+end
+func indexContains(var source, var item) as bool
+    try
+        return item in source
+    finally
+        indexCleanups += 1
+    end
+end
+var source = list[-9223372036854775808: "a\0你", 9223372036854775807: "tail"]
+assert(string(indexRead(source, -9223372036854775808)) == "a\0你")
+assert(indexRead(source, 0) == null)
+assert(indexContains(source, "a\0你"))
+assert(not indexContains(source, "absent"))
+assert(indexWrite(source, 0, "b\0c"))
+assert(string(indexRead(source, 0)) == "b\0c")
+assert(indexWrite(source, 9223372036854775807, "a\0你"))
+assert(string(indexRead(source, 9223372036854775807)) == "a\0你")
+assert(indexCleanups == 8)

@@ -56,6 +56,7 @@
 #include "src/runtime/xl6_serialization_read.h"
 #include "src/runtime/xl6_list.h"
 #include "src/runtime/xl6_list_methods.h"
+#include "src/runtime/xl6_list_value_read.h"
 #include "src/runtime/xl6_array_algebra.h"
 #include "src/runtime/xl6_array_graph.h"
 #include "src/runtime/xl6_persistence_project.h"

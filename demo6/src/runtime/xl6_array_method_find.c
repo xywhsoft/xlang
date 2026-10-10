@@ -33,7 +33,9 @@ static int64_t find(ArrayView* view, const xvalue* item,xl6_error_scope* operati
 int64_t xl6ArrayMethodIndexOfV1(const xvalue* source, const xvalue* item)
 {
     xl6_error_scope operation={0}; ArrayView view={0}; int64_t at=-2;
-    if (!xl6ErrorScopeBegin(&operation)) return -1;
+    if (!xl6ErrorScopeBegin(&operation)) {
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return -1;
+    }
     if (!item) xrtSetErrorKind(XERR_ARGUMENT);
     else if (begin(source,&view)) at=find(&view,item,&operation);
     if (at==-2 || xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
@@ -43,6 +45,9 @@ int64_t xl6ArrayMethodIndexOfV1(const xvalue* source, const xvalue* item)
     return outcome.ok && at>=0 ? at : -1;
 }
 
+
+bool xl6ArrayMethodContainsV1(const xvalue* source,const xvalue* item)
+{ return xl6ArrayMethodIndexOfV1(source,item)>=0; }
 
 bool xl6ArrayMethodRemoveValueV1(xvalue* source, const xvalue* item)
 {

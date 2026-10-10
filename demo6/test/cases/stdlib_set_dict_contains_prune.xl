@@ -1,0 +1,7 @@
+dict<int> fields = {"a\0b": 7, "a": 8}
+assert("a\0b" in fields)
+assert("a" in fields)
+assert(not ("missing" in fields))
+set<int> members = set{3, 4}
+assert(3 in members)
+assert(not (5 in members))
