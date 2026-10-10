@@ -11,17 +11,17 @@ if ( $Root -eq "" ) {
 
 $xl = Join-Path $Root "release\xl.exe"
 $source = Join-Path $Root "test\cases\xlir_xvalue_iterator_scalar_projection.xl"
-$rejectSource = Join-Path $Root "test\cases\cgen_xlir_set_u64_iterator_reject.xl"
+$unsignedSource = Join-Path $Root "test\cases\xlir_set_u64_iterator_abi.xl"
 $hostSource = Join-Path $Root "test\cases\xlir_default_class_layout_host.c"
 $outputDir = Join-Path $Root "build\test"
 $typedJsonPath = Join-Path $outputDir "xlir_xvalue_iterator_scalar_projection.typed.json"
 $loweredJsonPath = Join-Path $outputDir "xlir_xvalue_iterator_scalar_projection.lowered.json"
-$rejectTypedJsonPath = Join-Path $outputDir "xlir_set_u64_iterator_reject.typed.json"
-$rejectCPath = Join-Path $outputDir "xlir_set_u64_iterator_reject.c"
+$unsignedTypedJsonPath = Join-Path $outputDir "xlir_set_u64_iterator_abi.typed.json"
+$unsignedCPath = Join-Path $outputDir "xlir_set_u64_iterator_abi.c"
 $cPath = Join-Path $outputDir "xlir_xvalue_iterator_scalar_projection.c"
 $exePath = Join-Path $outputDir "xlir_xvalue_iterator_scalar_projection_host.exe"
 
-foreach ( $path in @($xl, $source, $rejectSource, $hostSource) ) {
+foreach ( $path in @($xl, $source, $unsignedSource, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
         throw "XLIR xvalue iterator scalar projection gate input is missing: $path"
     }
@@ -77,23 +77,23 @@ foreach ( $loop in $loops ) {
     }
 }
 
-& $xl ir $rejectSource --typed --format json --emit $rejectTypedJsonPath
-if ( $LASTEXITCODE -ne 0 ) { throw "XLIR set<u64> iterator rejection typed JSON failed" }
-$rejectedTyped = [System.IO.File]::ReadAllText(
-    $rejectTypedJsonPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-$rejectedLoops = @($rejectedTyped.nodes | Where-Object { $_.kind -eq 19 })
-if ( $rejectedLoops.Count -ne 1 -or @($rejectedLoops | Where-Object {
-        $_.loopAbiName -ne "none" -or $_.loopItemAbiName -ne "none" -or
-        $_.loopResourceAbiName -ne "none" -or $_.loopResourceType -ne 0
+& $xl ir $unsignedSource --typed --format json --emit $unsignedTypedJsonPath
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR set<u64> iterator typed JSON failed" }
+$unsignedTyped = [System.IO.File]::ReadAllText(
+    $unsignedTypedJsonPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+$unsignedLoops = @($unsignedTyped.nodes | Where-Object { $_.kind -eq 19 })
+if ( $unsignedLoops.Count -ne 1 -or @($unsignedLoops | Where-Object {
+        $_.loopAbiName -ne "xvalue-iterator-value" -or $_.loopItemAbiName -ne "u64" -or
+        $_.loopResourceAbiName -ne "xvalue-iterator-destroy" -or $_.loopResourceType -eq 0
     }).Count -ne 0 ) {
-    throw "Typed XLIR admitted set<u64> beyond the current XRT set element ABI"
+    throw "Typed XLIR set<u64> has no exact value-only native iterator ABI"
 }
-$rejectCommand = "`"$xl`" cgen `"$rejectSource`" --backend xlir --emit `"$rejectCPath`" 2>&1"
-$rejectOutput = (& $env:ComSpec /d /c $rejectCommand | Out-String)
-$rejectExit = $LASTEXITCODE
-if ( $rejectExit -eq 0 -or
-     ! $rejectOutput.Contains("XLIR for loop has no admitted canonical iterator ABI") ) {
-    throw "XLIR lowering did not preserve the explicit set<u64> runtime-contract rejection"
+& $xl cgen $unsignedSource --backend xlir --emit $unsignedCPath
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR native set<u64> Cgen failed" }
+$unsignedGenerated = [System.IO.File]::ReadAllText($unsignedCPath, [System.Text.Encoding]::UTF8)
+if ( !$unsignedGenerated.Contains("xl6SetValueIteratorCreateCheckedV1(") -or
+     !$unsignedGenerated.Contains("xlir_xvalue_iterator_item_u64(") ) {
+    throw "XLIR native set<u64> exact iterator/projection provider is missing"
 }
 
 & $xl ir $source --lowered --format json --emit $loweredJsonPath
@@ -156,7 +156,7 @@ foreach ( $projection in @(
 if ( ([regex]::Matches($generated,
         "=\s*xl6ListValueIteratorCreateV1\(v\d+\);")).Count -ne 3 -or
      ([regex]::Matches($generated,
-        "=\s*xlir_xvalue_iterator_create\(v\d+\);")).Count -ne 2 -or
+        "=\s*xl6SetValueIteratorCreateCheckedV1\(v\d+\);")).Count -ne 2 -or
      ([regex]::Matches($generated,
         "=\s*xlir_xvalue_iterator_advance\(v\d+, &v\d+\);")).Count -ne 5 -or
      ([regex]::Matches($generated,
@@ -172,5 +172,5 @@ if ( $LASTEXITCODE -ne 0 ) {
     throw "XLIR xvalue iterator scalar projection strict generated-C runtime failed"
 }
 
-Write-Output "XLIR xvalue iterator scalar projection gate ok: list/set share one cursor CFG, integer list keys remain orthogonal, list u64 plus list/set bool/f64 item RuntimeOps are exact, current XRT set<u64> rejection stays explicit, Cgen is mechanical, strict compile and runtime semantics pass."
+Write-Output "XLIR xvalue iterator scalar projection gate ok: list/set share one cursor CFG, integer list keys remain orthogonal, list u64 plus list/set bool/f64 item RuntimeOps are exact, native set<u64> admission is exact, Cgen is mechanical, strict compile and runtime semantics pass."
 exit 0

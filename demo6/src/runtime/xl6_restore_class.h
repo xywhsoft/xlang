@@ -7,4 +7,6 @@ XL6_TEXT_API const XL6_RestoreObjectProviderV1* xl6RestoreClassProviderV1(void);
 /* Smaller closed class/scalar/Array read domain. Mixed private List graph
  * restoration selects the provider above and its separate native component. */
 XL6_TEXT_API const XL6_RestoreObjectProviderV1* xl6RestoreClassClosedProviderV1(void);
+XL6_TEXT_API const XL6_RestoreObjectProviderV1* xl6RestoreClassSetProviderV1(void);
+XL6_TEXT_API const XL6_RestoreObjectProviderV1* xl6RestoreClassCollectionsProviderV1(void);
 #endif

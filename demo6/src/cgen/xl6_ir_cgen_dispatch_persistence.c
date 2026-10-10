@@ -460,7 +460,25 @@ static int xl6IrCgenEmitPersistenceTypeHelpers(
                 type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_LIST_SEQUENCE ? "XL6_PERSIST_RESTORE_LIST_V1" :
                 type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_SET_SEQUENCE ? "XL6_PERSIST_RESTORE_SET_V1" :
                 "XL6_PERSIST_RESTORE_DICT_V1";
-            if (type->persistenceRestoreCarrierAbi == XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1) {
+            if (type->persistenceRestoreCarrierAbi==XL6_IR_COLLECTION_CARRIER_LIST_V1 ||
+                type->persistenceRestoreCarrierAbi==XL6_IR_COLLECTION_CARRIER_SET_V1) {
+                XL6_IrValueCollectionRecipe recipe={0};
+                if (!xl6IrValueCollectionConstructionRecipe(module,typeId,&recipe)) return 0;
+                /* A pending OTHER family does not authorize a wire List/Set.
+                 * The resident callback restores each child, then one exact
+                 * native import admits already-converted values. */
+                xl6OutputPrintf(out,"    xvalue* wire = xl6PersistenceRestoreCollectionV1(source,"
+                    " XL6_PERSIST_RESTORE_ARRAY_V1, 0x%016llXULL, xlir_persist_%s_restore_t%u);\n"
+                    "    xvalue* result = NULL;\n    if (!wire) return NULL;\n",
+                    (unsigned long long)type->typeValueId,formatName,(unsigned)type->persistencePayloadType);
+                if (xl6IrCgenEmitValueCollectionTargetCreateDepth(out,module,typeId,recipe.family,"result",
+                    recipe.admissionIdentitySet,0,NULL,0)<0) return 0;
+                xl6OutputPrintf(out,"    xvalue* seeds[1] = {result};\n"
+                    "    const XL6_CollectionImportProviderV1* providers[1] = {%s};\n"
+                    "    const XL6_CollectionImportPlanV1 plan = {sizeof(plan),providers,0,0,0,false};\n"
+                    "    return xl6CollectionImportChainSourceTakeV1(seeds,1,wire,&plan);\n",
+                    recipe.family==XL6_IR_COLLECTION_LIST ? "xl6ListImportProviderV1()" : "xl6SetImportProviderV1()");
+            } else if (type->persistenceRestoreCarrierAbi == XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1) {
                 xl6OutputPrintf(out,
                     "    xvalue* wire = xl6PersistenceRestoreCollectionV1(source, %s, 0x%016llXULL, xlir_persist_%s_restore_t%u);\n"
                     "    xvalue* result = NULL;\n"
@@ -578,8 +596,6 @@ static int xl6IrCgenEmitPersistenceHelpers(
         "extern xvalue* xrtValueArrayGet(const xvalue*, size_t);\n"
         "extern xvalue* xrtValueIntMap(void);\n"
         "extern bool xrtValueIntMapSetNew(xvalue*, int64_t, xvalue*);\n"
-        "extern xvalue* xrtValueSet(void);\n"
-        "extern bool xrtValueSetAddNew(xvalue*, xvalue*);\n"
         "extern xvalue* xrtValueObjectAt(const xvalue*, size_t, xlir_string_view*);\n"
         "extern xvalueiter* xrtValueIterCreate(const xvalue*);\n"
         "#ifndef XLIR_XRT_DECLARATIONS\n"
@@ -591,6 +607,14 @@ static int xl6IrCgenEmitPersistenceHelpers(
         "extern bool xrtValueTypeIdBind(xvalue*, uint64_t);\n"
         "extern xvalue* xrtValueString(xlir_string_view);\n\n",
         out);
+    for (typeIndex=0;typeIndex<module->types.count;++typeIndex)
+        if (xl6IrCgenPersistenceTypeUsed(module,(XL6_IrTypeId)(typeIndex+1),format,1)) {
+            XL6_IrCollectionCarrierAbi carrier=module->types.items[typeIndex].persistenceRestoreCarrierAbi;
+            if (carrier==XL6_IR_COLLECTION_CARRIER_LIST_V1)
+                xl6OutputPuts("#include <__xl_runtime/xl6_list_import_chain.h>\n",out);
+            if (carrier==XL6_IR_COLLECTION_CARRIER_SET_V1)
+                xl6OutputPuts("#include <__xl_runtime/xl6_set_import_chain.h>\n",out);
+        }
     for (typeIndex = 0; typeIndex < module->types.count; ++typeIndex)
         if (module->types.items[typeIndex].persistenceRestoreCarrierAbi == XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1 &&
             xl6IrCgenPersistenceTypeUsed(module, (XL6_IrTypeId)(typeIndex + 1), format, 1)) {

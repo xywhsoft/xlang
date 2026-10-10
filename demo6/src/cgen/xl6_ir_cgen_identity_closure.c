@@ -61,12 +61,14 @@ static int xl6IrCgenNominalIdentitySetUsed(
             instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE ||
             instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ||
             instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
+            instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_SET_NEW ||
+            instruction->runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN ||
             instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_KEYS ||
             instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_VALUES ||
             (instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&
              xl6IrConcurrentQueueInstructionType(module,instruction))) {
             const XL6_IrType* recipe=xl6IrTypeGet(&module->types,instruction->type);
-            if (recipe && recipe->collectionAbi==XL6_IR_COLLECTION_LIST)
+            if (recipe && (recipe->collectionAbi==XL6_IR_COLLECTION_LIST || recipe->collectionAbi==XL6_IR_COLLECTION_SET))
                 recipe=xl6IrTypeGet(&module->types,recipe->collectionValueSchemaType);
             if (instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE && recipe)
                 recipe=xl6IrTypeGet(&module->types,recipe->concurrentQueueSchemaType);
@@ -99,6 +101,8 @@ static int xl6IrCgenNominalIdentitySetUsed(
             XL6_IrNominalIdentitySetId admission=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
             int recipe=node->abi==XL6_IR_RESTORE_NODE_LIST ?
                 xl6IrListConstructionRecipe(module,node->payloadType,NULL,&admission) :
+                node->abi==XL6_IR_RESTORE_NODE_SET ?
+                xl6IrSetConstructionRecipe(module,node->payloadType,NULL,&admission,NULL) :
                 node->abi==XL6_IR_RESTORE_NODE_ARRAY ?
                 xl6IrSequenceConstructionRecipe(module,node->payloadType,XL6_IR_SEQUENCE_ROLE_ARRAY,&admission) : 0;
             if(recipe && admission==(size_t)(set-module->nominalIdentitySets)+1) return 1;

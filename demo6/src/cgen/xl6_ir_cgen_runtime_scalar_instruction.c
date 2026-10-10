@@ -48,12 +48,15 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                     snprintf(target,sizeof(target),"v%u",(unsigned)instruction->result);
                     return xl6IrCgenEmitListTargetCreate(out,module,instruction->type,target,
                         instruction->sequenceAdmissionIdentitySet)>0;
-                } else if (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN) {
+                } else if (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
+                    instruction->runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN) {
                     char source[24];
-                    if (!xl6IrListImportRuntimeInstructionCompatible(module,instruction))
+                    if (!(instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ?
+                          xl6IrListImportRuntimeInstructionCompatible(module,instruction) :
+                          xl6IrSetImportRuntimeInstructionCompatible(module,instruction)))
                         return xl6IrCgenRuntimeEmitDiag(diags,module,instruction->origin,"XLIR List import contract is unresolved");
                     snprintf(source,sizeof(source),"v%u",(unsigned)module->operands[instruction->firstOperand]);
-                    return xl6IrCgenEmitListImportChain(out,module,instruction->type,instruction->result,source)>0;
+                    return xl6IrCgenEmitValueCollectionImportChain(out,module,instruction->type,instruction->result,source)>0;
                 } else if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) {
                     char source[24];
                     if (!xl6IrArrayImportRuntimeInstructionCompatible(module,instruction))

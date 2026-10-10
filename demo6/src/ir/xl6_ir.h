@@ -89,7 +89,8 @@ typedef enum XL6_IrCollectionCarrierAbi {
     XL6_IR_COLLECTION_CARRIER_VALUE_V1,
     XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1,
     /* Decode target only until all source List producers are migrated. */
-    XL6_IR_COLLECTION_CARRIER_LIST_V1
+    XL6_IR_COLLECTION_CARRIER_LIST_V1,
+    XL6_IR_COLLECTION_CARRIER_SET_V1
 } XL6_IrCollectionCarrierAbi;
 
 /* Complete element-admission family for checked erased collection rebinds.
@@ -2025,6 +2026,7 @@ typedef enum XL6_IrRuntimeOp {
        /* Native language producers. Never a wire allocation plus retag. */
        XL6_IR_RUNTIME_LIST_CREATE,
     XL6_IR_RUNTIME_LIST_IMPORT_CHAIN,
+    XL6_IR_RUNTIME_SET_IMPORT_CHAIN,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -6726,6 +6728,7 @@ XL6_IrTypeId xl6IrArrayAnyElementType(const XL6_IrModule*, XL6_IrTypeId);
  * parameters; lookup never reconstructs a diagnostic/source spelling. */
 XL6_IrTypeId xl6IrArrayAnyType(const XL6_IrModule*);
 XL6_IrTypeId xl6IrListAnyType(const XL6_IrModule*);
+XL6_IrTypeId xl6IrSetAnyType(const XL6_IrModule*);
 /* Complete explicit data-import chain, outer Array first. Recurses only into
  * Array children; Stack children retain their native identity. No source
  * carrier cutover authority. All descendant recipes/codecs are verified before
@@ -6738,6 +6741,9 @@ int xl6IrListImportChainRecipe(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrTypeId*, size_t, size_t*);
 int xl6IrListImportRuntimeInstructionCompatible(const XL6_IrModule*, const XL6_IrInstruction*);
 int xl6IrListCreateRuntimeInstructionCompatible(const XL6_IrModule*, const XL6_IrInstruction*);
+int xl6IrSetImportChainRecipe(const XL6_IrModule*,XL6_IrTypeId,XL6_IrTypeId*,size_t,size_t*);
+int xl6IrSetImportRuntimeInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
+int xl6IrSetCreateRuntimeInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 XL6_IrRuntimeOp xl6IrArrayConstructionRuntimeOp(const XL6_IrModule*, XL6_IrTypeId);
 XL6_IrRuntimeOp xl6IrNativeCollectionImportRuntimeOp(const XL6_IrModule*, XL6_IrTypeId, XL6_IrTypeId);
 /* One canonical predicate owns all synthetic THROW-plan admission.  It keeps
@@ -6926,7 +6932,10 @@ typedef enum XL6_IrValueCopyProviderAbi {
     XL6_IR_VALUE_COPY_INVALID=0,
     XL6_IR_VALUE_COPY_ARRAY_WIRE_V1,
     XL6_IR_VALUE_COPY_LIST_V1,
-    XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1
+    XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1,
+    XL6_IR_VALUE_COPY_SET_V1,
+    XL6_IR_VALUE_COPY_ARRAY_SET_WIRE_V1,
+    XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1
 } XL6_IrValueCopyProviderAbi;
 XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbi(
     const XL6_IrModule*,const XL6_IrInstruction*);

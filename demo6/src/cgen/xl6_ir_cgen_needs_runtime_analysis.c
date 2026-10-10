@@ -12,6 +12,13 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
         if ( !xl6IrCgenInstructionIsReachable(module, i) ) continue;
         if (xl6IrCgenInstructionUsesListMethods(module,&module->instructions[i]))
             needs->needsListMethodsRuntime=1;
+        if (xl6IrCgenSetMethodSymbol(module,&module->instructions[i])) needs->needsSetMethodsRuntime=1;
+        if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            xl6IrCollectionCountRuntimeOpIs(module->instructions[i].runtimeOp)) {
+            const char* symbol=xl6IrCgenCollectionCountSymbol(module,&module->instructions[i]);
+            if (symbol && !strncmp(symbol,"xl6SetValueCount",16)) needs->needsSetMethodsRuntime=1;
+            if (symbol && !strncmp(symbol,"xl6CollectionCountAll",21)) needs->needsCollectionCountAllRuntime=1;
+        }
         if (xl6IrCgenListIteratorCreateSymbol(module,&module->instructions[i]))
             needs->needsListValueIteratorRuntime=1;
         if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
@@ -415,11 +422,6 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             needs->needsStringViews = 1;
             needs->needsRuntimeTrap = 1;
         }
-        if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
-              (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_SET_NEW ||
-               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_SET_ADD_NEW ||
-               module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_SET_HAS) )
-            needs->needsXValueSetRuntime = 1;
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              module->instructions[i].runtimeOp ==
                  XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE ) {

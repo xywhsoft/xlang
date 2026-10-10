@@ -1,0 +1,91 @@
+class SetSourceItem
+    int number = 7
+end
+class SetSourcePersistItem
+    derive value
+    int number = 7
+end
+class SetSourceData
+    derive value
+    set<int8> small = set{}
+    set<string?> words = set{}
+    set<SetSourcePersistItem> objects = set{}
+    list<set<char>> mixed
+    array<set<set<int>>> nested = []
+end
+class SetSourceLegacyData
+    derive value
+    set<int> values = set{}
+    dict<int> named
+end
+func useErased(var values) as int
+    assert(values.contains("a\0你"))
+    assert(values.add("third"))
+    assert(values.remove("third"))
+    return values.length
+end
+func main(...) as int
+    set<string> words = set{"a\0你", "second", "a\0你"}
+    assert(words.length == 2)
+    assert("a\0你" in words)
+    assert(not ("a" in words))
+    assert(words.add("second"))
+    assert(words.length == 2)
+    assert(useErased(words) == 2)
+    assert(words.reserve(32))
+    assert(words.capacity() >= 32)
+    auto copied = copy(words)
+    auto deep = clone(words)
+    assert(copied.remove("second"))
+    assert(deep.remove("second"))
+    assert(words.length == 2 and copied.length == 1 and deep.length == 1)
+    set<string> other = set{"second", "third"}
+    assert((words | other).length == 3)
+    assert((words & other).length == 1)
+    assert((words - other).length == 1)
+    assert((words ^ other).length == 2)
+    assert(copied <= words and copied < words)
+    assert(words >= copied and words > copied)
+    assert(copied.isDisjoint(other))
+    SetSourceItem first = SetSourceItem()
+    SetSourceItem second = SetSourceItem()
+    set<SetSourceItem> objects = set{first, second, first}
+    assert(objects.length == 2)
+    first.number = 123
+    assert(first in objects)
+    assert(second in objects)
+    assert(not (SetSourceItem() in objects))
+    array<int> a = [1]
+    array<int> b = [1]
+    set<array<int>> arrays = set{a, b, a}
+    assert(arrays.length == 2)
+    assert(a.append(2))
+    assert(a in arrays and b in arrays)
+    var erased = set{1, 2, 2}
+    set<int> imported = erased
+    assert(imported.length == 2 and (1 in imported))
+    assert(imported.add(3))
+    assert(erased.length == 2)
+    SetSourceData data = json.parse::<SetSourceData>("{\"small\":[-128,127,127],\"words\":[\"a\\u0000你\",null],\"objects\":[{\"number\":31}],\"mixed\":[[65,20320]],\"nested\":[[[1,2],[3]]]}")
+    assert(data.small.length == 2 and (int8(127) in data.small))
+    assert(data.words.length == 2 and ("a\0你" in data.words))
+    assert(data.objects.length == 1)
+    assert(data.mixed[0].length == 2)
+    assert(data.nested[0].length == 2)
+    SetSourceData fromJson = json.parse::<SetSourceData>(json.stringify(data))
+    SetSourceData fromXlon = xlon.parse::<SetSourceData>(xlon.stringify(data))
+    assert(fromJson.small.length == 2 and fromXlon.words.length == 2)
+    assert(fromJson.mixed[0].length == 2 and fromXlon.nested[0].length == 2)
+    assert(json.parse::<SetSourceData>("{\"small\":[128]}") == null)
+    assert(json.parse::<SetSourceData>("{\"mixed\":[[55296]]}") == null)
+    SetSourceLegacyData legacy = json.parse::<SetSourceLegacyData>("{\"values\":[1,2,2],\"named\":{\"first\":9}}")
+    assert(legacy.values.length == 2 and (2 in legacy.values))
+    assert(legacy.named["first"] == 9)
+    SetSourceLegacyData legacyRoundTrip = xlon.parse::<SetSourceLegacyData>(xlon.stringify(legacy))
+    assert(legacyRoundTrip.values.length == 2 and (1 in legacyRoundTrip.values))
+    assert(legacyRoundTrip.named["first"] == 9)
+    assert(words.clear())
+    assert(words.trim())
+    assert(words.length == 0)
+    return 0
+end

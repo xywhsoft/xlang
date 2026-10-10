@@ -5,3 +5,6 @@ func consume_unsigned_set(set<uint64> values) as uint64
     end
     return total
 end
+
+uint64 unsignedSetTotal = consume_unsigned_set(set<uint64>{uint64(0), uint64(18446744073709551615)})
+assert(unsignedSetTotal == uint64(18446744073709551615))

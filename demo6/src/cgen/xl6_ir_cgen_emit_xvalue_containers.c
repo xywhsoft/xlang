@@ -5,15 +5,10 @@ static int xl6IrCgenEmitXValueContainerRuntime(
     size_t i;
     size_t parameter;
     if ( needs->needsXValueRuntime || module->abi.entryKind == XL6_IR_MODULE_ENTRY_XLANG_MAIN ) {
-        if ( needs->needsXValueSetRuntime )
-            xl6OutputPuts("extern xvalue* xrtValueSet(void);\n"
-                          "extern bool xrtValueSetAddNew(xvalue*, xvalue*);\n"
-                          "extern bool xrtValueSetHas(const xvalue*, const xvalue*);\n", out);
         if ( needs->needsXValueCollectionRemoveRuntime )
             xl6OutputPuts("#include <__xl_runtime/xl6_array_methods.h>\n"
                 "extern bool xrtValueArrayRemove(xvalue*, size_t, size_t);\n"
                 "extern bool xrtValueIntMapRemove(xvalue*, int64_t);\n"
-                "extern bool xrtValueSetRemove(xvalue*, const xvalue*);\n"
                 "extern bool xrtValueObjectRemove(xvalue*, xlir_string_view);\n",
                 out);
         if ( needs->needsXValueObjectRuntime ) {
@@ -265,8 +260,7 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                 "extern bool xrtValueTrim(xvalue*);\n"
                 "extern size_t xrtValueIntMapTrim(xvalue*, size_t);\n"
                 "extern bool xrtValueArraySwap(xvalue*, size_t, size_t);\n"
-                "extern bool xrtValueArrayInsert(xvalue*, size_t, const xvalue*);\n"
-                "extern bool xrtValueSetIsDisjoint(const xvalue*, const xvalue*);\n",
+                "extern bool xrtValueArrayInsert(xvalue*, size_t, const xvalue*);\n",
                 out);
         if ( needs->needsXValueTypedArrayResizeRuntime )
             xl6OutputPuts("#include <__xl_runtime/xl6_array_default.h>\n",out);

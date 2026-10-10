@@ -264,6 +264,12 @@ static int xl6IrCgenEmitResourceRuntime(
         xl6OutputPuts("#include <__xl_runtime/xl6_list_import_chain.h>\n",out);
     if (needs->needsSetCreateRuntime)
         xl6OutputPuts("#include <__xl_runtime/xl6_set_schema.h>\n",out);
+    if (needs->needsSetImportRuntime)
+        xl6OutputPuts("#include <__xl_runtime/xl6_set_import_chain.h>\n",out);
+    if (needs->needsSetMethodsRuntime)
+        xl6OutputPuts("#include <__xl_runtime/xl6_set_methods.h>\n",out);
+    if (needs->needsCollectionCountAllRuntime)
+        xl6OutputPuts("#include <__xl_runtime/xl6_collection_count_all.h>\n",out);
     if (needs->needsArrayCreateRuntime)
         xl6OutputPuts("extern xvalue* xl6ArrayProjectionTakeV1(xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const xvalueconverter*);\n",out);
     if (needs->needsStackResourceRuntime)

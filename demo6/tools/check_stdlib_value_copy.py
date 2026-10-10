@@ -116,7 +116,7 @@ def main():
         plan=plans[0]; generated=out/'copy.c'; repeat=out/'repeat.c'
         run('cgen',[driver,fixture,'cgen-default',generated]); run('cgen.repeat',[driver,fixture,'cgen-default',repeat])
         assert sha(generated)==sha(repeat); body=generated.read_text(encoding='utf-8-sig')
-        for symbol in ('xl6ValueCopyV1','xl6ValueCloneGraphV1','xl6ValueDeepCloneV1'): assert symbol+'(' in body
+        for symbol in ('xl6ValueCopyV1','xl6ValueCloneGraphV1','xl6ValueCloneCollectionsV1','xl6ValueDeepCloneV1'): assert symbol+'(' in body
         for level in (0,2):
             lane='language.O'+str(level); memory_obj=out/(lane+'.memory.o')
             run(lane+'.memory',[cc,*flags,'-O'+str(level),'-c',root/'test/support/module_product_memory.c','-o',memory_obj])
@@ -149,7 +149,7 @@ def main():
         run('jit',[driver,fixture,'run',out/'jit.result'])
         later=out/'continuation.c'; run('continuation.cgen',[driver,continuation,'cgen-default',later])
         later_body=later.read_text(encoding='utf-8-sig')
-        for symbol in ('xl6ValueCopyV1','xl6ValueCloneGraphV1'): assert symbol+'(' in later_body
+        for symbol in ('xl6ValueCopyV1','xl6ValueCloneCollectionsV1'): assert symbol+'(' in later_body
         for level in (0,2):
             binary=out/('continuation.O'+str(level)+suffix)
             run('continuation.O'+str(level)+'.build',[cc,*full_flags,'-O'+str(level),'-include',later,

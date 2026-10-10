@@ -667,21 +667,19 @@ static int xl6IrCgenEmitCollectionAlgebraInstruction(
         function = "xlir_xvalue_dict_without_string_key";
         break;
     case XL6_IR_RUNTIME_XVALUE_SET_UNION:
-        function = "xrtValueSetUnion";
-        break;
     case XL6_IR_RUNTIME_XVALUE_SET_INTERSECTION:
-        function = "xrtValueSetIntersection";
-        break;
     case XL6_IR_RUNTIME_XVALUE_SET_DIFFERENCE:
-        function = "xrtValueSetDifference";
-        break;
     case XL6_IR_RUNTIME_XVALUE_SET_SYMMETRIC_DIFFERENCE:
-        function = "xrtValueSetSymmetricDifference";
-        break;
+        xl6OutputPrintf(out,"    v%u = xl6SetValueAlgebraV1(v%u, v%u, %s);\n",
+            (unsigned)instruction->result,(unsigned)left,(unsigned)right,
+            instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_SET_UNION ? "XL6_SET_UNION_V1" :
+            instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_SET_INTERSECTION ? "XL6_SET_INTERSECTION_V1" :
+            instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_SET_DIFFERENCE ? "XL6_SET_DIFFERENCE_V1" : "XL6_SET_SYMMETRIC_DIFFERENCE_V1");
+        return 1;
     case XL6_IR_RUNTIME_XVALUE_SET_SUBSET:
     case XL6_IR_RUNTIME_XVALUE_SET_PROPER_SUBSET:
         xl6OutputPrintf(out,
-            "    v%u = xrtValueSetIsSubset(v%u, v%u, %s);\n",
+            "    v%u = xl6SetValueRelationV1(v%u, v%u, XL6_SET_SUBSET_V1, %s);\n",
             (unsigned int)instruction->result, (unsigned int)left,
             (unsigned int)right,
             instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_SET_PROPER_SUBSET
@@ -690,7 +688,7 @@ static int xl6IrCgenEmitCollectionAlgebraInstruction(
     case XL6_IR_RUNTIME_XVALUE_SET_SUPERSET:
     case XL6_IR_RUNTIME_XVALUE_SET_PROPER_SUPERSET:
         xl6OutputPrintf(out,
-            "    v%u = xrtValueSetIsSuperset(v%u, v%u, %s);\n",
+            "    v%u = xl6SetValueRelationV1(v%u, v%u, XL6_SET_SUPERSET_V1, %s);\n",
             (unsigned int)instruction->result, (unsigned int)left,
             (unsigned int)right,
             instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_SET_PROPER_SUPERSET

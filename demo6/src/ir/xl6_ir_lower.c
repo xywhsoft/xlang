@@ -1824,15 +1824,16 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
     instruction->runtimeOp = runtimeOp;
     instruction->payloadType = payloadType;
     instruction->runtimeIdentityType = identityType;
-    if (runtimeOp==XL6_IR_RUNTIME_LIST_CREATE) {
-        XL6_IrTypeId schema=XL6_IR_TYPE_INVALID;
-        if (!xl6IrListConstructionRecipe(ctx->module,type,&schema,
-                &instruction->sequenceAdmissionIdentitySet)) {
-            xl6IrLowerDiag(ctx,origin,"List construction requires a complete native sparse List recipe");
+    if (runtimeOp==XL6_IR_RUNTIME_LIST_CREATE || runtimeOp==XL6_IR_RUNTIME_XVALUE_SET_NEW) {
+        XL6_IrValueCollectionRecipe recipe={0};
+        XL6_IrCollectionAbi family=runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ? XL6_IR_COLLECTION_LIST : XL6_IR_COLLECTION_SET;
+        if (!xl6IrValueCollectionConstructionRecipe(ctx->module,type,&recipe) || recipe.family!=family) {
+            xl6IrLowerDiag(ctx,origin,"Value collection construction requires a complete native family recipe");
             return XL6_IR_VALUE_INVALID;
         }
-        instruction->collectionAbi=XL6_IR_COLLECTION_LIST;
-        instruction->payloadType=xl6IrTypeGet(&ctx->module->types,schema)->sequenceLayout.elementType;
+        instruction->collectionAbi=recipe.family;
+        instruction->payloadType=recipe.elementType;
+        instruction->sequenceAdmissionIdentitySet=recipe.admissionIdentitySet;
     }
     if (runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE) {
         const XL6_IrType* array=xl6IrTypeGet(&ctx->module->types,type);
@@ -2501,7 +2502,9 @@ static XL6_IrValueId xl6IrLowerMaybeBindRuntimeTypeIdentity(
 {
     const XL6_IrInstruction* producer=xl6IrLowerValueDefinition(ctx->module,owned);
     if (resultType==identityType && producer && producer->type==identityType &&
-        xl6IrArrayCreateRuntimeInstructionCompatible(ctx->module,producer)) return owned;
+        (xl6IrArrayCreateRuntimeInstructionCompatible(ctx->module,producer) ||
+         xl6IrListCreateRuntimeInstructionCompatible(ctx->module,producer) ||
+         xl6IrSetCreateRuntimeInstructionCompatible(ctx->module,producer))) return owned;
     if ( xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module, identityType) )
         return owned;
     return xl6IrLowerBindRuntimeTypeIdentity(
@@ -3868,6 +3871,8 @@ static int xl6IrLowerCheckedCollectionProjectionRequired(
                 xl6IrListImportChainRecipe(module,targetType,NULL,0,&chainLength) :
             target->collectionAbi==XL6_IR_COLLECTION_ARRAY ?
                 xl6IrArrayImportChainRecipe(module,targetType,NULL,0,&chainLength) :
+            target->collectionAbi==XL6_IR_COLLECTION_SET ?
+                xl6IrSetImportChainRecipe(module,targetType,NULL,0,&chainLength) :
                 xl6IrLowerCheckedCollectionPayloadSupported(module, target->params[0])) &&
            (xl6IrLowerTypeIsDynamicXValueBuiltin(module, sourceType) ||
             (xl6IrTypeIsStaticallyShapedErasedCollection(
@@ -3897,7 +3902,7 @@ static XL6_IrValueId xl6IrLowerCheckedCollectionRebind(
     XL6_IrInstruction* instruction;
     XL6_IrInstruction* test;
     bool nativeImport=target && (target->collectionAbi==XL6_IR_COLLECTION_ARRAY ||
-        target->collectionAbi==XL6_IR_COLLECTION_LIST);
+        target->collectionAbi==XL6_IR_COLLECTION_LIST || target->collectionAbi==XL6_IR_COLLECTION_SET);
     XL6_IrNodeId failureOrigin=nativeImport ? origin : sourceId;
     const XL6_IrNode* failureNode=nativeImport ? xl6IrNodeGet(ctx->module,origin) : sourceNode;
 
@@ -3922,9 +3927,10 @@ static XL6_IrValueId xl6IrLowerCheckedCollectionRebind(
     instruction = &ctx->module->instructions[ctx->module->instructionCount - 1];
     instruction->collectionAbi = target->collectionAbi;
     instruction->payloadType = target->params[0];
-    if (target->collectionAbi==XL6_IR_COLLECTION_LIST) {
-        if (!xl6IrListConstructionRecipe(ctx->module,targetType,NULL,
-                &instruction->sequenceAdmissionIdentitySet)) return XL6_IR_VALUE_INVALID;
+    if (target->collectionAbi==XL6_IR_COLLECTION_LIST || target->collectionAbi==XL6_IR_COLLECTION_SET) {
+        XL6_IrValueCollectionRecipe recipe={0};
+        if (!xl6IrValueCollectionConstructionRecipe(ctx->module,targetType,&recipe)) return XL6_IR_VALUE_INVALID;
+        instruction->sequenceAdmissionIdentitySet=recipe.admissionIdentitySet;
     } else if (nativeImport) {
         if (!xl6IrSequenceConstructionRecipe(ctx->module,targetType,XL6_IR_SEQUENCE_ROLE_ARRAY,
                 &instruction->sequenceAdmissionIdentitySet)) return XL6_IR_VALUE_INVALID;
@@ -4131,31 +4137,13 @@ static XL6_IrValueId xl6IrLowerListLiteralAsRuntimeXValue(
     return producerType==targetType ? map : xl6IrLowerEmitValueCopy(ctx,origin,targetType,map);
 }
 
-/* Set construction is intentionally separate from arrays and maps: XRT owns
- * uniqueness through its value hash/equality contract, while XLIR owns the
- * consuming item boundary. */
+/* The complete native recipe, not class hash/equality methods, authorizes
+ * Set keys. Basic values compare by content; mutable references use identity. */
 static int xl6IrLowerSetElementHasRuntimeIdentity(
     const XL6_IrModule* module, XL6_IrTypeId setType)
 {
-    const XL6_IrType* container = xl6IrTypeGet(
-        module != NULL ? &module->types : NULL, setType);
-    const XL6_IrType* element;
-    const XL6_IrClassLayout* layout;
-    if ( container == NULL ) return 0;
-    /* A set literal may be erased directly into builtin `var`; its runtime
-     * items retain their ordinary XRT hashability and have no static class
-     * element TypeId to validate here. */
-    if ( container->collectionAbi != XL6_IR_COLLECTION_SET ) return 1;
-    /* Erased `set` keeps XRT's existing scalar/dynamic admission.  Only a
-     * statically named element TypeId can require a class identity policy. */
-    if ( container->paramCount == 0 ) return 1;
-    if ( container->paramCount != 1 || container->params == NULL ) return 0;
-    element = xl6IrTypeGet(&module->types, container->params[0]);
-    if ( element == NULL ) return 0;
-    if ( element->kind != XL6_IR_TYPE_CLASS ||
-         element->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) return 1;
-    layout = xl6IrLowerClassLayoutGet(module, container->params[0]);
-    return xl6IrLowerClassLayoutHasRuntimeIdentity(layout);
+    if (xl6IrLowerTypeIsDynamicXValueBuiltin(module,setType)) setType=xl6IrSetAnyType(module);
+    return xl6IrSetConstructionRecipe(module,setType,NULL,NULL,NULL);
 }
 
 static XL6_IrValueId xl6IrLowerSetLiteralAsRuntimeXValue(
@@ -4163,6 +4151,7 @@ static XL6_IrValueId xl6IrLowerSetLiteralAsRuntimeXValue(
     XL6_IrTypeId targetType)
 {
     XL6_IrValueId set;
+    XL6_IrTypeId producerType=targetType;
     XL6_IrTypeId boolType;
     size_t i, constructionFirst = ctx->evaluationOwnerCount;
     if ( collection == NULL || collection->sourceKind != XL6_AST_SET_LITERAL ||
@@ -4172,19 +4161,17 @@ static XL6_IrValueId xl6IrLowerSetLiteralAsRuntimeXValue(
     }
     if ( !xl6IrLowerSetElementHasRuntimeIdentity(ctx->module, targetType) ) {
         xl6IrLowerDiag(ctx, origin,
-            "XLIR typed set element has no complete runtime hash/equality identity ABI");
+            "XLIR typed Set element has no complete native value-domain recipe");
         return XL6_IR_VALUE_INVALID;
     }
+    if (xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module,targetType)) producerType=xl6IrSetAnyType(ctx->module);
     boolType = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_BOOL);
-    set = xl6IrLowerEmitRuntimeCall(ctx, origin, targetType,
+    set = xl6IrLowerEmitRuntimeCall(ctx, origin, producerType,
                                     XL6_IR_RUNTIME_XVALUE_SET_NEW, NULL, 0);
-    if ( set != XL6_IR_VALUE_INVALID )
-        set = xl6IrLowerMaybeBindRuntimeTypeIdentity(
-            ctx, origin, targetType, targetType, set);
     if ( set == XL6_IR_VALUE_INVALID || boolType == XL6_IR_TYPE_INVALID ) return XL6_IR_VALUE_INVALID;
     /* Keep the partial container on the same unwind stack as call operands.
      * Element evaluation may throw before the final destination STORE exists. */
-    set = xl6IrLowerProtectEvaluationValue(ctx, origin, targetType, set);
+    set = xl6IrLowerProtectEvaluationValue(ctx, origin, producerType, set);
     if (set == XL6_IR_VALUE_INVALID) return XL6_IR_VALUE_INVALID;
     for ( i = 0; i < collection->childCount; ++i ) {
         XL6_IrNodeId itemId = ctx->module->children[collection->firstChild + i];
@@ -4193,7 +4180,7 @@ static XL6_IrValueId xl6IrLowerSetLiteralAsRuntimeXValue(
         XL6_IrValueId added;
         if ( item == NULL ) return XL6_IR_VALUE_INVALID;
         operands[0] = set;
-        operands[1] = xl6IrLowerContextualCollectionItemAsRuntimeXValue(ctx, origin, itemId, item, targetType);
+        operands[1] = xl6IrLowerContextualCollectionItemAsRuntimeXValue(ctx, origin, itemId, item, producerType);
         if ( operands[1] == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
         added = xl6IrLowerEmitRuntimeCall(ctx, origin, boolType,
                                           XL6_IR_RUNTIME_XVALUE_SET_ADD_NEW, operands, 2);
@@ -4201,7 +4188,7 @@ static XL6_IrValueId xl6IrLowerSetLiteralAsRuntimeXValue(
     }
     if (!xl6IrLowerCommitEvaluationOwnerRange(ctx, origin, constructionFirst, constructionFirst + 1))
         return XL6_IR_VALUE_INVALID;
-    return set;
+    return producerType==targetType ? set : xl6IrLowerEmitValueCopy(ctx,origin,targetType,set);
 }
 
 /* Dictionary literal keys are source literals, so lowering owns their C
@@ -4824,7 +4811,7 @@ static int xl6IrLowerIntrinsicCollectionInsert(
          !xl6IrLowerSetElementHasRuntimeIdentity(
              ctx->module, intrinsic->receiverType) ) {
         xl6IrLowerDiag(ctx, origin,
-            "XLIR typed set insertion has no complete runtime hash/equality identity ABI");
+            "XLIR typed Set insertion has no complete native value-domain recipe");
         return -1;
     }
     /* Every append transfers a fresh owned xvalue into XRT.  In particular a
@@ -26435,7 +26422,8 @@ static XL6_IrValueId xl6IrLowerValueInitializer(
                 initializer->type, errorPlan);
         }
         if (initializer->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||
-            initializer->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN) {
+            initializer->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
+            initializer->runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN) {
             if (!expression || initializer->errorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE ||
                 initializer->runtimeOp!=xl6IrNativeCollectionImportRuntimeOp(ctx->module,expression->storageType,initializer->type) ||
                 !xl6IrLowerValueInitializerErrorPlan(ctx,declarationId,initializer)) return XL6_IR_VALUE_INVALID;
@@ -27536,7 +27524,7 @@ static XL6_IrValueId xl6IrLowerXValueContains(
          !xl6IrLowerSetElementHasRuntimeIdentity(
              ctx->module, collectionNode->storageType) ) {
         xl6IrLowerDiag(ctx, origin,
-            "XLIR typed set membership has no complete runtime hash/equality identity ABI");
+            "XLIR typed Set membership has no complete native value-domain recipe");
         return XL6_IR_VALUE_INVALID;
     }
 

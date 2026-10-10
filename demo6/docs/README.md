@@ -63,6 +63,7 @@
 - [List 与 Set 的统一值域配方](stdlib53-b189-value-collection-recipes.md)：共享完整值域、独立 Set 键合同、封闭目标构造与拒绝验证；不启用语言 Set 入口。
 - [Set 的递归引用类型域](stdlib53-b190-set-reference-domains.md)：完整子域、混合深度、可选驻留 schema 与语言 Array/Stack 路径；Set 源工厂和持久化继续。
 - [Set 原生消费者与按需遍历](stdlib53-b191-set-consumers.md)：通用消费者、静态和 erased foreach、混合图复制与序列化输出；Set 工厂、导入和恢复继续。
+- [Set 语言入口与原生载体迁移](stdlib53-b192-set-source.md)：原生工厂、静态方法、代数与独立错误合同、checked 导入和受支持恢复；不关闭 Dict 或发布总验收。
 - [List 方法接入与集合异常合同](stdlib53-b174-list-methods-language.md)：checked 驻留方法、may-raise 和真实 C/JIT/continuation 验证；工厂、动态分发及恢复仍待切换。
 - [List 元素准入与目标构造合同](stdlib53-b173-list-target-recipes.md)：XLIR 精确元素 witness、泛型闭包和目标工厂；错误元数据与分配/作用域失败批处理验证，源载体尚未切换。
 - [List 原生动态方法与快照迭代](stdlib53-b172-list-erased-native.md)：复用 typed List 存储与游标，checked 动态方法、完整稀疏键和单步拥有投影；语言载体切换仍待完成。

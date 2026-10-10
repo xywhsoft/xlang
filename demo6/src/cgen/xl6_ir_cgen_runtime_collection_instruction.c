@@ -71,9 +71,13 @@ static int xl6IrCgenEmitCollectionRuntimeInstruction(
                                     (unsigned int)module->operands[instruction->firstOperand + 1],
                                     (unsigned int)module->operands[instruction->firstOperand + 2]);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_SET_NEW ) {
-                    xl6OutputPrintf(out, "    v%u = xrtValueSet();\n", (unsigned int)instruction->result);
+                    char target[24];
+                    if (!xl6IrSetCreateRuntimeInstructionCompatible(module,instruction)) return -1;
+                    snprintf(target,sizeof(target),"v%u",(unsigned)instruction->result);
+                    return xl6IrCgenEmitSetTargetCreate(out,module,instruction->type,target,
+                        instruction->sequenceAdmissionIdentitySet)>0;
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_SET_ADD_NEW ) {
-                    xl6OutputPrintf(out, "    v%u = xrtValueSetAddNew(v%u, v%u);\n",
+                    xl6OutputPrintf(out, "    v%u = xl6SetValueAddTakeV1(v%u, v%u);\n",
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand],
                                     (unsigned int)module->operands[instruction->firstOperand + 1]);

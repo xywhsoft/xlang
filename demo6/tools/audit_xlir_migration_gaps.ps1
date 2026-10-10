@@ -50,7 +50,6 @@ $expectedXlirRejections = @(
     'bad_xlir_text_output_missing_input',
     'bad_xlir_text_output_extra_input',
     'cgen_xlir_set_i64_key_reject',
-    'cgen_xlir_set_u64_iterator_reject',
     'bad_xlir_borrowed_managed_expression_discard',
     'bad_xlir_base64_text_missing_table',
     'bad_xlir_base64_text_wrong_input',

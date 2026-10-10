@@ -23,7 +23,7 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                            "extern xvalue* xl6ValueCloneV1(const xvalue*);\n"
                            "extern xvalue* xl6ValueDeepCloneV1(const xvalue*);\n"
                            "extern xvalue* xl6ValueCopyV1(const xvalue*);\n"
-                           "extern xvalue* xl6ValueCloneGraphV1(const xvalue*);\n"
+                           "#include <__xl_runtime/xl6_value_copy.h>\n"
                            "extern void xrtValueRelease(xvalue*);\n"
                            "#ifndef XLIR_XRT_DECLARATIONS\nextern int xrtValueType(const xvalue*);\n#endif\n"
                            "extern bool xrtValueTruthy(const xvalue*);\n", out);
@@ -84,13 +84,7 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 out);
         if ( needs->needsCollectionAlgebraRuntime ) {
             xl6OutputPuts(
-                "extern xvalue* xl6ArrayConcatV1(const xvalue*, const xvalue*);\n"
-                "extern xvalue* xrtValueSetUnion(const xvalue*, const xvalue*);\n"
-                "extern xvalue* xrtValueSetIntersection(const xvalue*, const xvalue*);\n"
-                "extern xvalue* xrtValueSetDifference(const xvalue*, const xvalue*);\n"
-                "extern xvalue* xrtValueSetSymmetricDifference(const xvalue*, const xvalue*);\n"
-                "extern bool xrtValueSetIsSubset(const xvalue*, const xvalue*, bool);\n"
-                "extern bool xrtValueSetIsSuperset(const xvalue*, const xvalue*, bool);\n",
+                "extern xvalue* xl6ArrayConcatV1(const xvalue*, const xvalue*);\n",
                 out);
             if ( needs->needsCollectionDictMergeRuntime )
                 xl6OutputPuts(

@@ -16,12 +16,22 @@ static const char* xl6IrCgenCollectionCountSymbol(const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
 {
     int list=xl6IrCgenCollectionReceiverIsList(module,instruction);
+    const XL6_IrInstruction* source=xl6IrCgenValueDefinition(module,
+        module->operands[instruction->firstOperand],NULL);
+    const XL6_IrType* type=source ? xl6IrTypeGet(&module->types,source->type) : NULL;
+    if (type && type->kind==XL6_IR_TYPE_NULLABLE && type->params && type->paramCount==1)
+        type=xl6IrTypeGet(&module->types,type->params[0]);
+    bool set=type && type->collectionAbi==XL6_IR_COLLECTION_SET;
+    bool open=type && type->collectionAbi==XL6_IR_COLLECTION_NONE;
     switch (instruction->runtimeOp) {
-    case XL6_IR_RUNTIME_XVALUE_COUNT: return list ? "xl6ListValueCountV1" : "xl6CollectionCountV1";
+    case XL6_IR_RUNTIME_XVALUE_COUNT: return list ? "xl6ListValueCountV1" :
+        set ? "xl6SetValueCountV1" : open ? "xl6CollectionCountAllV1" : "xl6CollectionCountV1";
     case XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE:
-        return list ? "xl6ListValueCountIfPresentV1" : "xl6CollectionCountIfPresentV1";
+        return list ? "xl6ListValueCountIfPresentV1" : set ? "xl6SetValueCountIfPresentV1" :
+            open ? "xl6CollectionCountAllIfPresentV1" : "xl6CollectionCountIfPresentV1";
     case XL6_IR_RUNTIME_XVALUE_COUNT_OR_NULL:
-        return list ? "xl6ListValueCountOrNullV1" : "xl6CollectionCountOrNullV1";
+        return list ? "xl6ListValueCountOrNullV1" : set ? "xl6SetValueCountOrNullV1" :
+            open ? "xl6CollectionCountAllOrNullV1" : "xl6CollectionCountOrNullV1";
     default: return NULL;
     }
 }
@@ -31,6 +41,9 @@ static const char* xl6IrCgenValueCopyProviderSymbol(XL6_IrValueCopyProviderAbi a
     case XL6_IR_VALUE_COPY_LIST_V1: return deep ? "xl6ValueCloneGraphV1" : "xl6ListValueCloneV1";
     case XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1: return deep ? "xl6ValueCloneGraphV1" : "xl6ValueCopyV1";
     case XL6_IR_VALUE_COPY_ARRAY_WIRE_V1: return deep ? "xl6ValueDeepCloneV1" : "xl6ValueCloneV1";
+    case XL6_IR_VALUE_COPY_SET_V1: return deep ? "xl6ValueCloneSetGraphV1" : "xl6SetValueCloneV1";
+    case XL6_IR_VALUE_COPY_ARRAY_SET_WIRE_V1: return deep ? "xl6ValueCloneSetGraphV1" : "xl6ValueCopyV1";
+    case XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1: return deep ? "xl6ValueCloneCollectionsV1" : "xl6ValueCopyV1";
     default: return NULL;
     }
 }
@@ -51,7 +64,9 @@ static const char* xl6IrCgenRestoreObjectProviderSymbol(const XL6_IrModule* modu
     const XL6_IrPersistenceRestoreRoot* root)
 {
     XL6_IrValueCopyProviderAbi abi=xl6IrValueCopyProviderAbiForType(module,root->type,1);
-    return abi==XL6_IR_VALUE_COPY_LIST_V1 || abi==XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1 ?
+    return abi==XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1 ? "xl6RestoreClassCollectionsProviderV1" :
+        abi==XL6_IR_VALUE_COPY_SET_V1 || abi==XL6_IR_VALUE_COPY_ARRAY_SET_WIRE_V1 ? "xl6RestoreClassSetProviderV1" :
+        abi==XL6_IR_VALUE_COPY_LIST_V1 || abi==XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1 ?
         "xl6RestoreClassProviderV1" : "xl6RestoreClassClosedProviderV1";
 }
 static const char* xl6IrCgenPersistenceProjectSymbol(const XL6_IrModule* module,
@@ -59,7 +74,9 @@ static const char* xl6IrCgenPersistenceProjectSymbol(const XL6_IrModule* module,
 {
     XL6_IrValueCopyProviderAbi abi=instruction ?
         xl6IrValueCopyProviderAbiForType(module,instruction->payloadType,1) : XL6_IR_VALUE_COPY_INVALID;
-    return abi==XL6_IR_VALUE_COPY_LIST_V1 || abi==XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1 ?
+    return abi==XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1 ? "xl6PersistenceProjectCollectionsV1" :
+        abi==XL6_IR_VALUE_COPY_SET_V1 || abi==XL6_IR_VALUE_COPY_ARRAY_SET_WIRE_V1 ? "xl6PersistenceProjectSetV1" :
+        abi==XL6_IR_VALUE_COPY_LIST_V1 || abi==XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1 ?
         "xl6PersistenceProjectListV1" : abi==XL6_IR_VALUE_COPY_ARRAY_WIRE_V1 ? "xl6PersistenceProjectV1" : NULL;
 }
 static const char* xl6IrCgenCollectionContainsSymbol(const XL6_IrModule* module,
@@ -72,8 +89,45 @@ static const char* xl6IrCgenCollectionContainsSymbol(const XL6_IrModule* module,
         type=xl6IrTypeGet(&module->types,type->params[0]);
     return type && type->collectionAbi==XL6_IR_COLLECTION_ARRAY ? "xl6ArrayMethodContainsV1" :
         type && type->collectionAbi==XL6_IR_COLLECTION_LIST ? "xl6ListValueContainsV1" :
-        type && (type->collectionAbi==XL6_IR_COLLECTION_DICT || type->collectionAbi==XL6_IR_COLLECTION_SET)
+        type && type->collectionAbi==XL6_IR_COLLECTION_SET ? "xl6SetValueHasV1" :
+        type && type->collectionAbi==XL6_IR_COLLECTION_DICT
             ? "xl6ValueWireContainsV1" : "xl6ValueContainsV1";
+}
+/* Fixed verified operations, also used by native dependency selection. */
+static const char* xl6IrCgenSetMethodSymbol(const XL6_IrModule* module,const XL6_IrInstruction* instruction)
+{
+    if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL) return NULL;
+    switch (instruction->runtimeOp) {
+    case XL6_IR_RUNTIME_XVALUE_SET_ADD_NEW: return "xl6SetValueAddTakeV1";
+    case XL6_IR_RUNTIME_XVALUE_SET_HAS: return "xl6SetValueHasV1";
+    case XL6_IR_RUNTIME_XVALUE_CONTAINS: {
+        const char* symbol=xl6IrCgenCollectionContainsSymbol(module,instruction);
+        return symbol && !strcmp(symbol,"xl6SetValueHasV1") ? symbol : NULL;
+    }
+    case XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE:
+        return instruction->collectionAbi==XL6_IR_COLLECTION_SET ? "xl6SetValueRemoveV1" : NULL;
+    case XL6_IR_RUNTIME_XVALUE_SET_UNION:
+    case XL6_IR_RUNTIME_XVALUE_SET_INTERSECTION:
+    case XL6_IR_RUNTIME_XVALUE_SET_DIFFERENCE:
+    case XL6_IR_RUNTIME_XVALUE_SET_SYMMETRIC_DIFFERENCE: return "xl6SetValueAlgebraV1";
+    case XL6_IR_RUNTIME_XVALUE_SET_SUBSET:
+    case XL6_IR_RUNTIME_XVALUE_SET_PROPER_SUBSET:
+    case XL6_IR_RUNTIME_XVALUE_SET_SUPERSET:
+    case XL6_IR_RUNTIME_XVALUE_SET_PROPER_SUPERSET: return "xl6SetValueRelationV1";
+    case XL6_IR_RUNTIME_XVALUE_CLONE:
+        return xl6IrValueCopyProviderAbi(module,instruction)==XL6_IR_VALUE_COPY_SET_V1 ? "xl6SetValueCloneV1" : NULL;
+    case XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD:
+        if (instruction->collectionAbi!=XL6_IR_COLLECTION_SET) return NULL;
+        switch (instruction->typedCollectionOp) {
+        case XL6_IR_TYPED_COLLECTION_CLEAR: return "xl6SetValueClearV1";
+        case XL6_IR_TYPED_COLLECTION_CAPACITY: return "xl6SetValueCapacityV1";
+        case XL6_IR_TYPED_COLLECTION_RESERVE: return "xl6SetValueReserveV1";
+        case XL6_IR_TYPED_COLLECTION_TRIM: return "xl6SetValueTrimV1";
+        case XL6_IR_TYPED_COLLECTION_IS_DISJOINT: return "xl6SetValueRelationV1";
+        default: return NULL;
+        }
+    default: return NULL;
+    }
 }
 static int xl6IrCgenInstructionUsesListMethods(const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
@@ -210,7 +264,7 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
             (unsigned)instruction->result, (unsigned)module->operands[instruction->firstOperand],
             (unsigned)module->operands[instruction->firstOperand + 1]);
     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_SET_HAS ) {
-        xl6OutputPrintf(out, "    v%u = xrtValueSetHas(v%u, v%u);\n",
+        xl6OutputPrintf(out, "    v%u = xl6SetValueHasV1(v%u, v%u);\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)module->operands[instruction->firstOperand + 1]);
@@ -233,7 +287,7 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
                 (unsigned int)collection, (unsigned int)operand);
         else if ( instruction->collectionAbi == XL6_IR_COLLECTION_SET )
             xl6OutputPrintf(out,
-                "    v%u = xrtValueSetRemove(v%u, v%u);\n",
+                "    v%u = xl6SetValueRemoveV1(v%u, v%u);\n",
                 (unsigned int)instruction->result,
                 (unsigned int)collection, (unsigned int)operand);
         else
@@ -322,6 +376,8 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
                     ? "    v%u = xl6ArrayMethodClearV1(v%u);\n"
                     : instruction->collectionAbi == XL6_IR_COLLECTION_LIST
                     ? "    v%u = xl6ListValueClearV1(v%u);\n"
+                    : instruction->collectionAbi == XL6_IR_COLLECTION_SET
+                    ? "    v%u = xl6SetValueClearV1(v%u);\n"
                     : "    v%u = xrtValueClear(v%u);\n",
                 (unsigned int)instruction->result,
                 (unsigned int)receiver);
@@ -330,11 +386,18 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
             xl6OutputPrintf(out,
                 instruction->collectionAbi == XL6_IR_COLLECTION_ARRAY
                     ? "    v%u = xl6ArrayMethodCapacityV1(v%u);\n"
+                    : instruction->collectionAbi == XL6_IR_COLLECTION_SET
+                    ? "    v%u = xl6SetValueCapacityV1(v%u);\n"
                     : "    v%u = (int64_t)xrtValueCapacity(v%u);\n",
                 (unsigned int)instruction->result,
                 (unsigned int)receiver);
             break;
         case XL6_IR_TYPED_COLLECTION_RESERVE:
+            if (instruction->collectionAbi == XL6_IR_COLLECTION_SET) {
+                xl6OutputPrintf(out,"    v%u = xl6SetValueReserveV1(v%u, v%u);\n",
+                    (unsigned)instruction->result,(unsigned)receiver,(unsigned)argument0);
+                break;
+            }
             if (instruction->collectionAbi == XL6_IR_COLLECTION_ARRAY) {
                 xl6OutputPrintf(out,"    v%u = xl6ArrayMethodReserveV1(v%u, v%u);\n",
                     (unsigned)instruction->result,(unsigned)receiver,(unsigned)argument0);
@@ -365,6 +428,8 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
                 xl6OutputPrintf(out,
                     instruction->collectionAbi == XL6_IR_COLLECTION_ARRAY
                         ? "    v%u = xl6ArrayMethodTrimV1(v%u);\n"
+                        : instruction->collectionAbi == XL6_IR_COLLECTION_SET
+                        ? "    v%u = xl6SetValueTrimV1(v%u);\n"
                         : "    v%u = xrtValueTrim(v%u);\n",
                     (unsigned int)instruction->result,
                     (unsigned int)receiver);
@@ -407,7 +472,7 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
             break;
         case XL6_IR_TYPED_COLLECTION_IS_DISJOINT:
             xl6OutputPrintf(out,
-                "    v%u = xrtValueSetIsDisjoint(v%u, v%u);\n",
+                "    v%u = xl6SetValueRelationV1(v%u, v%u, XL6_SET_DISJOINT_V1, false);\n",
                 (unsigned int)instruction->result,
                 (unsigned int)receiver,
                 (unsigned int)argument0);
