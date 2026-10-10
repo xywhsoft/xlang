@@ -109,6 +109,8 @@ xl6IrRuntimeResourceKeyOrderAbiForType(
 static XL6_IrRuntimeResourceOp xl6IrDefaultRuntimeResourceOp(
     const XL6_IrModule* module, XL6_IrTypeId typeId);
 static XL6_IrTypeId xl6IrTreeSchemaTypeForType(const XL6_IrTypePool*, const XL6_IrType*, unsigned int);
+static XL6_IrTypeId xl6IrListValueTypeForType(const XL6_IrTypePool*,const XL6_IrType*);
+static XL6_IrTypeId xl6IrListSchemaTypeForType(const XL6_IrTypePool*,const XL6_IrType*);
 static int xl6IrRuntimeResourceAbiIsConcurrentQueue(XL6_IrRuntimeResourceAbi);
 static XL6_IrTypeId xl6IrConcurrentQueueSchemaTypeForType(const XL6_IrTypePool*,const XL6_IrType*);
 static int xl6IrConcurrentQueueConstructionRecipeDepth(const XL6_IrModule*,XL6_IrTypeId,
@@ -1128,6 +1130,42 @@ static XL6_IrTypeId xl6IrTreeSchemaTypeForType(const XL6_IrTypePool* pool,
     }
     return XL6_IR_TYPE_INVALID;
 }
+static XL6_IrTypeId xl6IrListValueTypeForType(const XL6_IrTypePool* pool,const XL6_IrType* type)
+{
+    if (!pool || !type || type->collectionAbi!=XL6_IR_COLLECTION_LIST ||
+        type->abiId!=xl6TypeAbiIdText("xlang.list") ||
+        type->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_NONE || type->returnCount ||
+        type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+        type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED) return XL6_IR_TYPE_INVALID;
+    if (type->kind==XL6_IR_TYPE_GENERIC_INSTANCE && type->paramCount==1 && type->params)
+        return xl6IrTypeGet(pool,type->params[0]) ? type->params[0] : XL6_IR_TYPE_INVALID;
+    if ((type->kind!=XL6_IR_TYPE_BUILTIN && type->kind!=XL6_IR_TYPE_GENERIC_INSTANCE) ||
+        type->paramCount) return XL6_IR_TYPE_INVALID;
+    for (size_t i=0;i<pool->count;++i) {
+        const XL6_IrType* value=&pool->items[i];
+        if (value->kind==XL6_IR_TYPE_BUILTIN && !value->paramCount && !value->returnCount &&
+            value->abiId==xl6TypeAbiIdText("xlang.var") &&
+            value->collectionAbi==XL6_IR_COLLECTION_NONE &&
+            value->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NONE &&
+            xl6IrValueAdmissionAbiForType(pool,value)==XL6_VALUE_ADMIT_ANY)
+            return (XL6_IrTypeId)(i+1);
+    }
+    return XL6_IR_TYPE_INVALID;
+}
+static XL6_IrTypeId xl6IrListSchemaTypeForType(const XL6_IrTypePool* pool,const XL6_IrType* type)
+{
+    XL6_IrTypeId value=xl6IrListValueTypeForType(pool,type);
+    if (!value) return XL6_IR_TYPE_INVALID;
+    for (size_t i=0;i<pool->count;++i) {
+        const XL6_IrType* schema=&pool->items[i];
+        if (schema->kind==XL6_IR_TYPE_GENERIC_INSTANCE && schema->collectionAbi==XL6_IR_COLLECTION_ARRAY &&
+            schema->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NONE &&
+            schema->abiId==xl6TypeAbiIdText("xlang.array") && schema->paramCount==1 &&
+            schema->params && !schema->returnCount && schema->params[0]==value)
+            return (XL6_IrTypeId)(i+1);
+    }
+    return XL6_IR_TYPE_INVALID;
+}
 static int xl6IrTypeFinalizeErrorResultCName(
     XL6_IrTypePool* pool, XL6_IrType* type)
 {
@@ -1143,6 +1181,7 @@ static int xl6IrTypeFinalizeErrorResultCName(
     type->concurrentQueueSchemaType = xl6IrConcurrentQueueSchemaTypeForType(pool,type);
     type->treeKeySchemaType = xl6IrTreeSchemaTypeForType(pool,type,0);
     type->treeValueSchemaType = xl6IrTreeSchemaTypeForType(pool,type,1);
+    type->listValueSchemaType = xl6IrListSchemaTypeForType(pool,type);
     type->xvalueAdmissionAbi = xl6IrValueAdmissionAbiForType(pool,type);
     type->xvalueAdmissionNullable = type->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE &&
         type->kind == XL6_IR_TYPE_NULLABLE;
@@ -1677,6 +1716,13 @@ static int xl6IrTypePoolFinalizeCallableResults(XL6_IrTypePool* pool)
         if ( type->returnCount != 0 &&
              type->callableResultType == XL6_IR_TYPE_INVALID ) return 0;
     }
+    /* A default List closes its dynamic witness after the builtin type map is
+     * complete. Explicit/specialized List<T> normally intern it earlier. Do
+     * not retain a pool pointer across interning, which may grow the pool. */
+    for (i=0;i<pool->count;++i) {
+        XL6_IrTypeId element=xl6IrListValueTypeForType(pool,&pool->items[i]);
+        if (element && !xl6IrTypeInternArray(pool,element)) return 0;
+    }
     /* Sequence codecs depend on closed callable result carriers. Construction
      * may intern a Sequence before these results exist; finalize its derived
      * recipe only after ALL signatures/products in the graph are complete.
@@ -1688,6 +1734,8 @@ static int xl6IrTypePoolFinalizeCallableResults(XL6_IrTypePool* pool)
     for (i=0;i<pool->count;++i)
         pool->items[i].concurrentQueueSchemaType=
             xl6IrConcurrentQueueSchemaTypeForType(pool,&pool->items[i]);
+    for (i=0;i<pool->count;++i)
+        pool->items[i].listValueSchemaType=xl6IrListSchemaTypeForType(pool,&pool->items[i]);
     return 1;
 }
 
@@ -2465,7 +2513,7 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
         ? XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
         : xl6IrCAbiFromFrontend(type->semanticTypeAbiId, name);
     if (kind == XL6_IR_TYPE_GENERIC_INSTANCE && paramCount == 1 &&
-        xl6IrRuntimeResourceAbiIsConcurrentQueue(runtimeResourceAbi) &&
+        (xl6IrRuntimeResourceAbiIsConcurrentQueue(runtimeResourceAbi) || collectionAbi==XL6_IR_COLLECTION_LIST) &&
         xl6IrTypeInternArray(&module->types, params[0]) == XL6_IR_TYPE_INVALID) {
         xrtFree(params); xrtFree(parameterModes); xrtFree(parameterAbis);
         xrtFree(returns); return XL6_IR_TYPE_INVALID;
@@ -4383,7 +4431,7 @@ static XL6_IrTypeId xl6IrBuildInternClassSubstitutedTypeDepth(
             goto failed;
     }
     if (kind == XL6_IR_TYPE_GENERIC_INSTANCE && paramCount == 1 && params &&
-        xl6IrRuntimeResourceAbiIsConcurrentQueue(runtimeResourceAbi) &&
+        (xl6IrRuntimeResourceAbiIsConcurrentQueue(runtimeResourceAbi) || collectionAbi==XL6_IR_COLLECTION_LIST) &&
         xl6IrTypeInternArray(&module->types, params[0]) == XL6_IR_TYPE_INVALID)
         goto failed;
     if (kind == XL6_IR_TYPE_GENERIC_INSTANCE && runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE &&
@@ -8136,6 +8184,23 @@ static int xl6IrSequenceConstructionRecipeDepth(const XL6_IrModule* module,
 int xl6IrSequenceConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
     XL6_IrSequenceRoleAbi role,XL6_IrNominalIdentitySetId* setOut)
 { return xl6IrSequenceConstructionRecipeDepth(module,typeId,role,setOut,0); }
+int xl6IrListConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId id,
+    XL6_IrTypeId* schemaOut,XL6_IrNominalIdentitySetId* setOut)
+{
+    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,id) : NULL;
+    XL6_IrNominalIdentitySetId set=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+    if (!type || type->collectionAbi!=XL6_IR_COLLECTION_LIST ||
+        type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+        type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
+        type->nullAbi!=XL6_IR_NULL_ABI_XVALUE_SENTINEL || !type->typeValueId ||
+        !type->listValueSchemaType || type->listValueSchemaType!=xl6IrListSchemaTypeForType(&module->types,type) ||
+        !xl6IrSequenceConstructionRecipeDepth(module,type->listValueSchemaType,XL6_IR_SEQUENCE_ROLE_ARRAY,&set,1)) return 0;
+    const XL6_IrType* schema=xl6IrTypeGet(&module->types,type->listValueSchemaType);
+    if (!schema || schema->typeValueId==type->typeValueId) return 0;
+    if (schemaOut) *schemaOut=type->listValueSchemaType;
+    if (setOut) *setOut=set;
+    return 1;
+}
 
 static int xl6IrConcurrentQueueConstructionRecipeDepth(const XL6_IrModule* module, XL6_IrTypeId typeId,
     XL6_IrRuntimeResourceAbi* familyOut, XL6_IrTypeId* schemaOut,
@@ -20883,6 +20948,8 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
             (type->kind==XL6_IR_TYPE_GENERIC_INSTANCE &&
              type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE && type->paramCount==2 &&
              (!type->treeKeySchemaType || !type->treeValueSchemaType))) return 0;
+        if (type->listValueSchemaType!=xl6IrListSchemaTypeForType(pool,type) ||
+            (xl6IrListValueTypeForType(pool,type) && !type->listValueSchemaType)) return 0;
         if (type->xvalueAdmissionAbi != xl6IrValueAdmissionAbiForType(pool,type) ||
             type->xvalueAdmissionNullable != (type->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE &&
                 type->kind == XL6_IR_TYPE_NULLABLE)) return 0;
@@ -48431,10 +48498,11 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             if ( item != 0 ) xl6OutputPuts(",", out);
             xl6OutputPrintf(out, "%u", (unsigned int)type->returns[item]);
         }
-        xl6OutputPrintf(out, "],\"concurrentQueueSchemaType\":%u,\"treeKeySchemaType\":%u,\"treeValueSchemaType\":%u,\"callableResultType\":%u,\"releaseEffect\":%d}%s\n",
+        xl6OutputPrintf(out, "],\"concurrentQueueSchemaType\":%u,\"treeKeySchemaType\":%u,\"treeValueSchemaType\":%u,\"listValueSchemaType\":%u,\"callableResultType\":%u,\"releaseEffect\":%d}%s\n",
                         (unsigned int)type->concurrentQueueSchemaType,
                         (unsigned int)type->treeKeySchemaType,
                         (unsigned int)type->treeValueSchemaType,
+                        (unsigned int)type->listValueSchemaType,
                         (unsigned int)type->callableResultType,
                         (int)xl6IrTypeReleaseEffect(module, (XL6_IrTypeId)(i + 1)),
                         i + 1 == module->types.count ? "" : ",");

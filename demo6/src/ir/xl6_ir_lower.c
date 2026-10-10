@@ -14827,7 +14827,8 @@ static XL6_IrTypeId xl6IrLowerSpecializationSubstituteType(
     }
     if ( !changed ) { xrtFree(params); xrtFree(returns); return source; }
     if (original->kind == XL6_IR_TYPE_GENERIC_INSTANCE && original->paramCount == 1 &&
-        (original->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE ||
+        (original->collectionAbi == XL6_IR_COLLECTION_LIST ||
+         original->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE ||
          original->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE ||
          original->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE)) {
         if (xl6IrTypeInternArray(&module->types, params[0]) == XL6_IR_TYPE_INVALID) {

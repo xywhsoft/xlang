@@ -739,6 +739,7 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
     return xl6OutputHasFailed(out) ? -1 : 1;
 }
 #include "src/cgen/xl6_ir_cgen_concurrent_queue_emit.c"
+#include "src/cgen/xl6_ir_cgen_list_target_emit.c"
 static int xl6IrCgenEmitSequenceCreate(XL6_Output* out,const XL6_IrModule* module,
     XL6_IrTypeId typeId,XL6_IrValueId result,XL6_IrNominalIdentitySetId admissionSet)
 {
