@@ -138,25 +138,6 @@ bool xl6ArrayValueAppendTakeV1(xvalue* source, xvalue* item)
 { return writeTake(source,0,item,PUSH); }
 bool xl6ArrayValueSetTakeV1(xvalue* source, int64_t index, xvalue* item)
 { return writeTake(source,index,item,SET); }
-bool xl6ValueIndexSetTakeV1(xvalue* source, const xvalue* key, xvalue* item)
-{
-    if (!source || !key || !item) {
-        xrtSetErrorKind(XERR_ARGUMENT); consume(item); return false;
-    }
-    int64_t index; xstrview text;
-    if (xrtValueType(key)==XVALUE_INT && xrtValueGetInt(key,&index)) {
-        if (xrtValueType(source)==XVALUE_INT_MAP) {
-            bool ok=xrtValueIntMapSetTake(source,index,&item);
-            consume(item); return ok;
-        }
-        return xl6ArrayValueSetTakeV1(source,index,item);
-    }
-    if (xrtValueType(key)==XVALUE_STRING && xrtValueType(source)==XVALUE_OBJECT &&
-        xrtValueGetString(key,&text)) {
-        return xrtValueObjectSetNewPostCommit(source,text,item);
-    }
-    xrtSetErrorKind(XERR_TYPE); consume(item); return false;
-}
 int64_t xl6ArrayErasedSizeV1(const xvalue* source)
 {
     XL6_SequenceLayoutV1 layout; const xvalueconverter* converter;

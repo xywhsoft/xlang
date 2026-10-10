@@ -327,7 +327,6 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
      * This is a verified emission need, not a scan of generated C tokens. */
     if (needs.needsErrorRuntime && !visitor(context,"xl6ErrorCreateV1")) return 0;
     if (needs.needsXValueDynamicCollectionRuntime && !visitor(context,"xl6DynamicCollectionCallTakeV1")) return 0;
-    if (needs.needsXValueContainsRuntime && !visitor(context,"xl6ValueContainsV1")) return 0;
     for (size_t i=0;i<module->persistenceProjectSchemaCount;++i)
         if (module->persistenceProjectSchemas[i].dynamicDestroySymbol &&
             !visitor(context,"xl6PersistenceProjectOpenV1")) return 0;
@@ -449,7 +448,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE &&
             instruction->collectionAbi==XL6_IR_COLLECTION_LIST && !visitor(context,"xl6ListValueRemoveV1")) return 0;
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_CONTAINS &&
-            xl6IrCgenCollectionReceiverIsList(module,instruction) && !visitor(context,"xl6ListValueContainsV1")) return 0;
+            !visitor(context,xl6IrCgenCollectionContainsSymbol(module,instruction))) return 0;
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
             instruction->collectionAbi==XL6_IR_COLLECTION_LIST) {
             const char* listMethod=instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_CLEAR ? "xl6ListValueClearV1" :

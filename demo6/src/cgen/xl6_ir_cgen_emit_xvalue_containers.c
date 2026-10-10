@@ -253,7 +253,8 @@ static int xl6IrCgenEmitXValueContainerRuntime(
         if ( needs->needsXValueDynamicKeyIndexWriteRuntime )
             xl6OutputPuts("#include <__xl_runtime/xl6_array_value_write.h>\n",out);
         if ( needs->needsXValueContainsRuntime )
-            xl6OutputPuts("#include <__xl_runtime/xl6_value_contains.h>\n",out);
+            xl6OutputPuts("#include <__xl_runtime/xl6_value_contains.h>\n"
+                "#include <__xl_runtime/xl6_array_methods.h>\n",out);
         if ( needs->needsXValueArrayMethodsRuntime )
             xl6OutputPuts("#include <__xl_runtime/xl6_array_methods.h>\n",out);
         if ( needs->needsXValueTypedCollectionBaseRuntime )

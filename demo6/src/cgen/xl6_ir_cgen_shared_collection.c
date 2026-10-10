@@ -25,6 +25,19 @@ static const char* xl6IrCgenCollectionCountSymbol(const XL6_IrModule* module,
     default: return NULL;
     }
 }
+static const char* xl6IrCgenCollectionContainsSymbol(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{
+    const XL6_IrInstruction* source=xl6IrCgenValueDefinition(module,
+        module->operands[instruction->firstOperand],NULL);
+    const XL6_IrType* type=source ? xl6IrTypeGet(&module->types,source->type) : NULL;
+    if (type && type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params)
+        type=xl6IrTypeGet(&module->types,type->params[0]);
+    return type && type->collectionAbi==XL6_IR_COLLECTION_ARRAY ? "xl6ArrayMethodContainsV1" :
+        type && type->collectionAbi==XL6_IR_COLLECTION_LIST ? "xl6ListValueContainsV1" :
+        type && (type->collectionAbi==XL6_IR_COLLECTION_DICT || type->collectionAbi==XL6_IR_COLLECTION_SET)
+            ? "xl6ValueWireContainsV1" : "xl6ValueContainsV1";
+}
 static int xl6IrCgenInstructionUsesListMethods(const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
 {
@@ -164,8 +177,7 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_CONTAINS ) {
         xl6OutputPrintf(out, "    v%u = %s(v%u, v%u);\n",
                         (unsigned int)instruction->result,
-                        xl6IrCgenCollectionReceiverIsList(module,instruction) ?
-                            "xl6ListValueContainsV1" : "xl6ValueContainsV1",
+                        xl6IrCgenCollectionContainsSymbol(module,instruction),
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)module->operands[instruction->firstOperand + 1]);
     } else if ( instruction->runtimeOp ==

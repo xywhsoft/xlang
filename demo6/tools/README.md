@@ -22,6 +22,24 @@ this is not all-language OOM, shipping or full53 acceptance. See
 
 ## Toolchain
 
+`check_stdlib_list_index.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
+checks real native List input to generated open index/contains functions, full
+signed keys, exact text and scalar/bytes domains, checked failures, retirement
+reentry, O0/O2 closed prefixes and three separately compiled provider mutants.
+Array and Dict/Set query plans are compiled and run with only their declared
+native/resident closure. Each real native TU is built once per optimization;
+mutants replace only their actual provider object. Linux `--sanitize` covers
+the selected native closure, not the full compiler. `--test-root` and
+`--array-fixture` are explicit hashed test-only inputs. Source factories,
+static List indices, casts/algebra/restore and shipping/full53 remain pending.
+See [List dynamic indexing](../docs/stdlib53-b177-list-index-consumers.md).
+
+`check_stdlib_owned_index_regression.py` takes the same required parameters and
+checks existing owned Array/open reads, pre-output IR rejection, native char
+projection and continuations using the actual fresh compiler objects on both
+platforms. Module allocation prefixes run in one process with independent
+initialization/finalization and ledgers at every point.
+
 `check_stdlib_list_refined.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
 checks refined Array/List/Dict key contracts, exact signed/NUL keys, actual native
 List inputs to generated var methods, O0/O2 ledgers and closed OOM/diagnosticless

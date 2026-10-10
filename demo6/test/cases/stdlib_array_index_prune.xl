@@ -1,0 +1,8 @@
+array<string> values = ["a\0你", "tail"]
+assert(values[-1] == "tail")
+values[0] = "b\0c"
+assert(values[0] == "b\0c")
+assert(values.contains("b\0c"))
+assert(not values.contains("absent"))
+assert("b\0c" in values)
+assert(not ("absent" in values))

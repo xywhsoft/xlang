@@ -34,14 +34,5 @@ xvalue* xl6ArrayValueReadCopyV1(const xvalue* source,int64_t index)
 { return read(source,index,false,false); }
 xvalue* xl6ArrayValueReadOrNullCopyV1(const xvalue* source,int64_t index)
 { return read(source,index,true,false); }
-xvalue* xl6ValueIndexReadCopyV1(const xvalue* source,const xvalue* key)
-{
-    int64_t index; xstrview text; xvalue* item;
-    if (xrtValueType(key)==XVALUE_INT && xrtValueGetInt(key,&index)) {
-        if (xrtValueType(source)!=XVALUE_INT_MAP) return read(source,index,true,true);
-        item=xrtValueIntMapGet(source,index);
-    } else if (xrtValueType(key)==XVALUE_STRING && xrtValueType(source)==XVALUE_OBJECT &&
-        xrtValueGetString(key,&text)) item=xrtValueObjectGet(source,text);
-    else return missing();
-    return item ? xrtValueRetain(item) : missing();
-}
+xvalue* xl6ArrayValueReadIfArrayCopyV1(const xvalue* source,int64_t index)
+{ return read(source,index,true,true); }

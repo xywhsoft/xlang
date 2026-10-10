@@ -11,4 +11,7 @@ typedef struct xvalue xvalue;
  * or exact-length string substring. Absence is false; callback/allocation
  * failure is reported through the shared checked error boundary. */
 XL6_VALUE_CONTAINS_API bool xl6ValueContainsV1(const xvalue*,const xvalue*);
+/* Same checked outcome, restricted to explicit wire Set/Object/text/IntMap.
+ * Declared separately so closed Dict/Set queries retain no sequence family. */
+XL6_VALUE_CONTAINS_API bool xl6ValueWireContainsV1(const xvalue*,const xvalue*);
 #endif
