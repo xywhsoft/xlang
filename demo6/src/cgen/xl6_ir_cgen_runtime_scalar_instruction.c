@@ -601,8 +601,9 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand]);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_CLONE ) {
-                    xl6OutputPrintf(out, "    v%u = xl6ValueCloneV1(v%u);\n",
+                    xl6OutputPrintf(out, "    v%u = %s(v%u);\n",
                                     (unsigned int)instruction->result,
+                                    xl6IrCgenValueCloneSymbol(module,instruction),
                                     (unsigned int)module->operands[instruction->firstOperand]);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_DEEP_CLONE ) {
                     xl6OutputPrintf(out, "    v%u = xl6ValueDeepCloneV1(v%u);\n",

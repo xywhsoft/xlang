@@ -50,6 +50,7 @@
 - [类型细化后的容器键与 List 动态调用](stdlib53-b176-refined-list-consumers.md)：细化 List/Array/Dict 的精确键合同和原生 List 动态方法；源工厂、索引、转换与恢复仍待联动迁移。
 - [List 动态索引与容器查询](stdlib53-b177-list-index-consumers.md)：原生 List 的开放索引和 in 查询、独立驻留组件及纯 Array/Dict/Set 裁剪产物运行；源工厂和静态索引尚未整体迁移。
 - [List 静态索引的原生合同](stdlib53-b178-list-static-index.md)：精确标量/文本及拥有投影读写、checked 输入消费、真实原生语言输入与独立裁剪产物；工厂、转换和恢复继续。
+- [List 浅复制与代数操作](stdlib53-b179-list-copy-algebra.md)：独立 typed 存储、右侧覆盖合并、缺键删减及明确 NULL_RESULT 合同；生成 C 不再实现 List 算法，工厂与深复制仍待切换。
 - [List 方法接入与集合异常合同](stdlib53-b174-list-methods-language.md)：checked 驻留方法、may-raise 和真实 C/JIT/continuation 验证；工厂、动态分发及恢复仍待切换。
 - [List 元素准入与目标构造合同](stdlib53-b173-list-target-recipes.md)：XLIR 精确元素 witness、泛型闭包和目标工厂；错误元数据与分配/作用域失败批处理验证，源载体尚未切换。
 - [List 原生动态方法与快照迭代](stdlib53-b172-list-erased-native.md)：复用 typed List 存储与游标，checked 动态方法、完整稀疏键和单步拥有投影；语言载体切换仍待完成。

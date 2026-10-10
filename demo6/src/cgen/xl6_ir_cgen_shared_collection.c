@@ -25,6 +25,12 @@ static const char* xl6IrCgenCollectionCountSymbol(const XL6_IrModule* module,
     default: return NULL;
     }
 }
+static const char* xl6IrCgenValueCloneSymbol(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{
+    return instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_CLONE &&
+        xl6IrCgenCollectionReceiverIsList(module,instruction) ? "xl6ListValueCloneV1" : "xl6ValueCloneV1";
+}
 static const char* xl6IrCgenCollectionContainsSymbol(const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
 {

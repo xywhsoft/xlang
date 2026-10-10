@@ -22,6 +22,17 @@ this is not all-language OOM, shipping or full53 acceptance. See
 
 ## Toolchain
 
+`check_stdlib_list_algebra.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
+checks known List shallow copy, right-biased merge, without and compound
+assignment using resident native providers. O0/O2 genuine native language
+inputs, exact text/nullable domains, checked allocation/provider failures,
+82 closed prefixes, 16 pre-output IR mutations, three compiled provider
+mutants, deterministic C/JIT, async/generator and declared artifact closures
+are checked. Linux `--sanitize` covers only the selected native closure;
+`--test-root` records explicit hashed test inputs, never provider overrides.
+Source factories, open-var/deep copy, casts/restore and shipping/full53 remain.
+See [List shallow copy and algebra](../docs/stdlib53-b179-list-copy-algebra.md).
+
 `check_stdlib_list_static_index.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
 checks all nine static List index operations, 50 pre-output malformed IR
 rejections, direct scalar/string native reads, owned char/bytes/nullable

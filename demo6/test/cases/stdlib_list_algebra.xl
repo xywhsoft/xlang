@@ -1,0 +1,39 @@
+int listAlgebraCleanups = 0
+func copyList(list<string> source) as list<string>
+    try
+        return copy(source)
+    finally
+        listAlgebraCleanups += 1
+    end
+end
+func mergeList(list<string> left, list<string> right) as list<string>
+    try
+        return left + right
+    finally
+        listAlgebraCleanups += 1
+    end
+end
+func withoutList(list<string> source, int key) as list<string>
+    try
+        return source - key
+    finally
+        listAlgebraCleanups += 1
+    end
+end
+list<string> left = [-9223372036854775808: "a\0你", 9223372036854775807: "z"]
+list<string> right = [-9223372036854775808: "r\0x", 17: "z"]
+auto copied = copyList(left)
+copied[9223372036854775807] = "changed"
+assert(left[9223372036854775807] == "z")
+auto merged = mergeList(left, right)
+assert(merged.length == 3 and merged[-9223372036854775808] == "r\0x")
+assert(left[-9223372036854775808] == "a\0你" and right.length == 2)
+auto removed = withoutList(left, -9223372036854775808)
+assert(removed.length == 1 and removed[9223372036854775807] == "z")
+auto absent = withoutList(left, -17)
+assert(absent.length == 2 and left.length == 2)
+left += right
+assert(left.length == 3 and copied.length == 2 and right.length == 2)
+left -= 17
+assert(left.length == 2 and merged.length == 3)
+assert(listAlgebraCleanups == 4)

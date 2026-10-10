@@ -25,6 +25,9 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                            "extern void xrtValueRelease(xvalue*);\n"
                            "#ifndef XLIR_XRT_DECLARATIONS\nextern int xrtValueType(const xvalue*);\n#endif\n"
                            "extern bool xrtValueTruthy(const xvalue*);\n", out);
+        if (needs->needsListAlgebraRuntime || needs->needsCollectionListMergeRuntime ||
+            needs->needsCollectionListWithoutRuntime)
+            xl6OutputPuts("#include <__xl_runtime/xl6_list_algebra.h>\n",out);
         if ( needs->needsXValueWeakRuntime )
             xl6OutputPuts(
                 "extern xvalue* xrtValueWeakRef(const xvalue*);\n"
@@ -87,27 +90,6 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 "extern bool xrtValueSetIsSubset(const xvalue*, const xvalue*, bool);\n"
                 "extern bool xrtValueSetIsSuperset(const xvalue*, const xvalue*, bool);\n",
                 out);
-            if ( needs->needsCollectionListMergeRuntime )
-                xl6OutputPuts(
-                    "static xvalue* xlir_xvalue_list_merge_right(const xvalue* left, const xvalue* right)\n"
-                    "{\n"
-                    "    xvalue* result = xrtValueClone(left);\n"
-                    "    if (result == NULL || !xrtValueIntMapMerge(result, right, XVALUE_MERGE_REPLACE)) {\n"
-                    "        xrtValueRelease(result); return NULL;\n"
-                    "    }\n"
-                    "    return result;\n"
-                    "}\n",
-                    out);
-            if ( needs->needsCollectionListWithoutRuntime )
-                xl6OutputPuts(
-                    "extern bool xrtValueIntMapRemove(xvalue*, int64_t);\n"
-                    "static xvalue* xlir_xvalue_list_without_i64_key(const xvalue* left, int64_t key)\n"
-                    "{\n"
-                    "    xvalue* result = xrtValueClone(left);\n"
-                    "    if (result != NULL) (void)xrtValueIntMapRemove(result, key);\n"
-                    "    return result;\n"
-                    "}\n",
-                    out);
             if ( needs->needsCollectionDictMergeRuntime )
                 xl6OutputPuts(
                     "static xvalue* xlir_xvalue_dict_merge_right(const xvalue* left, const xvalue* right)\n"

@@ -242,6 +242,10 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             else needs->needsXValueArrayOwnedReadRuntime=1;
         }
         if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            module->instructions[i].runtimeOp==XL6_IR_RUNTIME_XVALUE_CLONE &&
+            xl6IrCgenCollectionReceiverIsList(module,&module->instructions[i]))
+            needs->needsListAlgebraRuntime=1;
+        if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
             xl6IrListTypedReadRuntimeOpIs(module->instructions[i].runtimeOp)) {
             needs->needsXValueRuntime=1; needs->needsListTypedReadRuntime=1;
         }
