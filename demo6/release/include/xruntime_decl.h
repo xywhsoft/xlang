@@ -48046,10 +48046,23 @@ XRT_EXTERN_C_END
 
 #if defined(XRUNTIME_FEATURE_TYPED_SET)
 
-/* 类型集合按类型散列和比较规则保存唯一值，并拥有每一个规范值。 */
+/* 显式键策略只要求相等和散列，不为元素声明排序能力。
+ * 记录、回调代码和 UserData 都由调用方保持不可变，并必须比集合及其
+ * 全部克隆/集合运算结果存活更久；相等键必须具有相同散列。
+ * 回调遵循 xset 的错误边界与不可重入规则。 */
+typedef struct xtypedsetkeypolicy {
+	xsethash Hash;
+	xsetequal Equal;
+	ptr UserData;
+} xtypedsetkeypolicy;
+
+
+
+/* 类型集合拥有规范值；键策略在初始化时确定，不能通过底层存储更换。 */
 typedef struct xtypedset {
 	xset Storage;
 	const xrttype* ItemType;
+	const xtypedsetkeypolicy* KeyPolicy;
 } xtypedset;
 
 
@@ -48083,6 +48096,18 @@ XRT_API bool xrtTypedSetInit(
 	const xrttype* pItemType
 );
 XRT_API xtypedset* xrtTypedSetCreate(const xrttype* pItemType);
+/* 生命周期仍由 ItemType 提供；元素只须有效、非零大小且可复制。
+ * Policy 必须非空，Hash/Equal 必须成对非空。普通 Init/Create 仍使用
+ * 类型 Compare/Hash；此入口不会给类型补入虚假的 Compare/Hash 操作。 */
+XRT_API bool xrtTypedSetInitWithKeyPolicy(
+	xtypedset* pSet,
+	const xrttype* pItemType,
+	const xtypedsetkeypolicy* pPolicy
+);
+XRT_API xtypedset* xrtTypedSetCreateWithKeyPolicy(
+	const xrttype* pItemType,
+	const xtypedsetkeypolicy* pPolicy
+);
 XRT_API void xrtTypedSetUnit(xtypedset* pSet);
 XRT_API void xrtTypedSetDestroy(xtypedset* pSet);
 
