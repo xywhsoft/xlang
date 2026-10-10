@@ -289,13 +289,17 @@ static int xl6IrCgenVisitSequenceFactorySymbols(const XL6_IrModule* module,XL6_I
         factory="xl6SequenceNestedCreateTakeV2";
         if (!xl6IrCgenVisitSequenceFactorySymbols(module,type->sequenceLayout.baseElementType,visitor,context,depth+1,projectArrays)) return 0;
         break;
-    case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1: {
-        XL6_IrTypeId schema=XL6_IR_TYPE_INVALID;
-        factory="xl6SequenceListCreateTakeV1";
-        if (!xl6IrListConstructionRecipe(module,type->sequenceLayout.baseElementType,&schema,NULL) ||
-            !visitor(context,"xl6ListCreateTakeV1") || !visitor(context,"xl6ListProjectionTakeV1") ||
+    case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1: {
+        XL6_IrValueCollectionRecipe child={0};
+        bool list=type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1;
+        factory=list ? "xl6SequenceListCreateTakeV1" : "xl6SequenceSetCreateTakeV1";
+        if (!xl6IrValueCollectionConstructionRecipe(module,type->sequenceLayout.baseElementType,&child) ||
+            child.family!=(list ? XL6_IR_COLLECTION_LIST : XL6_IR_COLLECTION_SET) ||
+            !visitor(context,list ? "xl6ListCreateTakeV1" : "xl6SetCreateTakeV1") ||
+            !visitor(context,list ? "xl6ListProjectionTakeV1" : "xl6SetProjectionTakeV1") ||
             !visitor(context,"xl6ArrayProjectionTakeV1") ||
-            !xl6IrCgenVisitSequenceFactorySymbols(module,schema,visitor,context,depth+1,true)) return 0;
+            !xl6IrCgenVisitSequenceFactorySymbols(module,child.valueSchemaType,visitor,context,depth+1,true)) return 0;
         break;
     }
     case XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1: {

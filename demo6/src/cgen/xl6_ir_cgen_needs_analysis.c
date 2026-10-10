@@ -21,13 +21,16 @@ static int xl6IrCgenAnalyzeSequenceRecipeNeeds(const XL6_IrModule* module,XL6_Ir
     }
     if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1)
         return xl6IrCgenAnalyzeSequenceRecipeNeeds(module,type->sequenceLayout.baseElementType,needs,depth+1);
-    if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1) {
-        XL6_IrTypeId schema=XL6_IR_TYPE_INVALID;
-        needs->needsListCreateRuntime=1;
+    if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 ||
+        type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1) {
+        XL6_IrValueCollectionRecipe child={0};
+        bool list=type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1;
+        if (list) needs->needsListCreateRuntime=1; else needs->needsSetCreateRuntime=1;
         needs->needsArrayCreateRuntime=1;
-        if (needs->needsArrayImportRuntime) needs->needsListImportRuntime=1;
-        return xl6IrListConstructionRecipe(module,type->sequenceLayout.baseElementType,&schema,NULL) &&
-            xl6IrCgenAnalyzeSequenceRecipeNeeds(module,schema,needs,depth+1);
+        if (list && needs->needsArrayImportRuntime) needs->needsListImportRuntime=1;
+        return xl6IrValueCollectionConstructionRecipe(module,type->sequenceLayout.baseElementType,&child) &&
+            child.family==(list ? XL6_IR_COLLECTION_LIST : XL6_IR_COLLECTION_SET) &&
+            xl6IrCgenAnalyzeSequenceRecipeNeeds(module,child.valueSchemaType,needs,depth+1);
     }
     if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1) {
         XL6_IrTypeId key=0,value=0;

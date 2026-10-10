@@ -40,9 +40,13 @@ static unsigned listFactories(const XL6_IrModule* ir,XL6_IrTypeId id,unsigned de
         XL6_IrTypeId schema=0; assert(xl6IrListConstructionRecipe(ir,id,&schema,NULL));
         return 1+listFactories(ir,schema,depth);
     }
+    if (type->collectionAbi==XL6_IR_COLLECTION_SET) {
+        XL6_IrTypeId schema=0; assert(xl6IrSetConstructionRecipe(ir,id,&schema,NULL,NULL));
+        return listFactories(ir,schema,depth);
+    }
     const XL6_IrSequenceLayout* p=&type->sequenceLayout;
     if (p->abi==XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 ||
-        p->abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1)
+        p->abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 || p->abi==XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1)
         return listFactories(ir,p->baseElementType,depth+1);
     if (p->abi==XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1) {
         XL6_IrTypeId key=0,value=0;
@@ -119,6 +123,7 @@ int main(int argc,char** argv)
         "#include <__xl_runtime/xl6_array_erased.h>\n"
         "#include <__xl_runtime/xl6_list.h>\n"
         "#include <__xl_runtime/xl6_list_schema.h>\n"
+        "#include <__xl_runtime/xl6_set_schema.h>\n"
         "#include <__xl_runtime/xl6_nullable_string.h>\n"
         "#include <__xl_runtime/xl6_product_abi.h>\n"
         "#include <__xl_runtime/xl6_concurrent_queue.h>\n"

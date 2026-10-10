@@ -44,11 +44,12 @@ def main():
     assert sha(driver).lower() == public['DriverSha256'].lower()
     product = root / 'release/xl.dll' if os.name == 'nt' else Path(public['NativeRoot']) / 'release/libxl.so'
     fixture = root / 'test/cases/stdlib_set_recipes.xl'
+    nested_fixture = root / 'test/cases/stdlib_set_schema_source.xl'
     contract = root / 'test/cases/xlir_set_recipe_contract.c'
     host = root / 'test/cases/stdlib_set_recipe_host.c'
     language_host = root / 'test/cases/xlir_module_product_oom_host.c'
     memory = root / 'test/support/module_product_memory.c'
-    files.update((driver, product, fixture, contract, host, language_host, memory,
+    files.update((driver, product, fixture, nested_fixture, contract, host, language_host, memory,
                   root / 'test/support/module_product_memory.h'))
     inputs = [{'Path': str(f), 'Sha256': sha(f)} for f in sorted(files)]
     out.mkdir(parents=True)
@@ -102,9 +103,9 @@ def main():
                           r'(\d+) descendants, (\d+) same-slot, (\d+) erased, layouts=(\d+)', log)
         assert match, log
         recipes, mutations, pending, descendants, same_slot, erased, mask = map(int, match.groups())
-        assert recipes >= 40 and mutations == recipes * 21 and pending >= 4
+        assert recipes >= 40 and mutations == recipes * 21 and pending >= 3
         assert descendants and same_slot and erased
-        assert {2, 3, 4, 7, 8, 9, 10, 11, 12, 14} <= {i for i in range(32) if mask & (1 << i)}, mask
+        assert {2, 3, 4, 7, 8, 9, 10, 11, 12, 14, 20, 21} <= {i for i in range(32) if mask & (1 << i)}, mask
         report['Proof'] = dict(Recipes=recipes, Mutations=mutations, Pending=pending,
                               DescendantMutations=descendants, SameSlot=same_slot,
                               Erased=erased, LayoutMask=mask)
@@ -157,6 +158,21 @@ def main():
                 *objects, *links, '-o', native])
             assert 'balanced' in run(lane + '.run', [native])
         run('language.jit', [driver, fixture, 'run', out / 'language.jit.result'])
+        # Actual Array/Stack producers can use a complete Set reference schema.
+        # Set factories below create consumed metadata witnesses, not source Set
+        # instances. The fixture never relies on legacy wire-Set admission.
+        nested_c = out / 'nested.language.c'
+        run('nested.language.cgen', [driver, nested_fixture, 'cgen-default', nested_c])
+        nested_text = nested_c.read_text(encoding='utf-8-sig')
+        assert 'xl6SequenceSetCreateTakeV1(' in nested_text and 'xl6SetCreateTakeV1(' in nested_text
+        assert 'xlir_nominal_set_' in nested_text
+        for level in (0, 2):
+            lane = f'nested.language.O{level}'
+            native = out / (lane + suffix)
+            run(lane + '.compile', [cc, *flags, f'-O{level}', '-DXL6_PRODUCT_USER_ENTRY',
+                '-include', nested_c, language_host, out / f'O{level}.memory.o', *objects, *links, '-o', native])
+            assert 'balanced' in run(lane + '.run', [native])
+        run('nested.language.jit', [driver, nested_fixture, 'run', out / 'nested.language.jit.result'])
         report['Objects'] = [dict(Path=str(p), Sha256=sha(p)) for p in sorted(out.glob('*.o'))]
         report['Products'] = [dict(Path=str(p), Sha256=sha(p)) for p in sorted(out.iterdir())
                               if p.is_file() and p.suffix not in ('.o', '.log', '.json')]

@@ -44,7 +44,7 @@ static int xl6IrCgenEmitTreeReferenceCreateDepth(XL6_Output* out,const XL6_IrMod
     xl6OutputPrintf(out,"    { xvalue* %s = NULL; xvalue* %s = NULL;\n",keys,values);
     if (xl6IrCgenEmitTreeLayout(out,module,plan->baseElementType,layout)<0) return -1;
     xl6OutputPrintf(out,"      xl6_error_scope %s = {0};\n"
-        "      if (!xl6ErrorScopeBegin(&%s)) abort();\n",scope,scope);
+        "      if (xl6ErrorScopeBegin(&%s)) {\n",scope,scope);
     if (xl6IrCgenEmitSequenceCreateDepth(out,module,keyId,keys,keySet,depth+1,NULL,0,false,true)<0) return -1;
     xl6OutputPrintf(out,"      if (!%s) xl6ErrorScopeCaptureFailure(&%s);\n",keys,scope);
     if (xl6IrCgenEmitSequenceCreateDepth(out,module,valueId,values,valueSet,depth+1,NULL,0,false,true)<0) return -1;
@@ -52,11 +52,14 @@ static int xl6IrCgenEmitTreeReferenceCreateDepth(XL6_Output* out,const XL6_IrMod
         "      if (!%s) xl6ErrorScopeCaptureFailure(&%s);\n"
         "      %s = xl6SequenceTreeCreateTakeV1(%u, 0x%016llXULL, 0x%016llXULL, &%s, %s, %s, %s);\n"
         "      if (!%s) xl6ErrorScopeCaptureFailure(&%s);\n"
+        "      if (%s.failed) { xrtValueRelease(%s); %s = NULL; }\n"
         "      xl6_error_result %s = xl6ErrorScopeEnd(&%s);\n"
-        "      if (!%s.ok) xl6ErrorScopePropagateFailure(%s); }\n",values,scope,
+        "      if (!%s.ok) xl6ErrorScopePropagateFailure(%s);\n"
+        "      } else { %s = NULL; xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); } }\n",values,scope,
         result,(unsigned)plan->role,(unsigned long long)sequence->typeValueId,
         (unsigned long long)xl6IrTypeGet(&module->types,plan->elementType)->typeValueId,
-        layout,keys,values,plan->nullable ? "true" : "false",result,scope,outcome,scope,outcome,outcome);
+        layout,keys,values,plan->nullable ? "true" : "false",result,scope,scope,result,result,
+        outcome,scope,outcome,outcome,result);
     return xl6OutputHasFailed(out) ? -1 : 1;
 }
 static const char* xl6IrCgenTreeNativeMethod(XL6_IrRuntimeOp operation)
@@ -113,16 +116,18 @@ static int xl6IrCgenEmitAvlRuntime(XL6_Output* out,const XL6_IrModule* module,
     case XL6_IR_RUNTIME_AVL_TREE_CREATE:
         xl6OutputPuts("      xvalue* tree_keys = NULL; xvalue* tree_values = NULL;\n"
             "      xl6_error_scope tree_scope = {0};\n"
-            "      if (!xl6ErrorScopeBegin(&tree_scope)) abort();\n",out);
+            "      if (xl6ErrorScopeBegin(&tree_scope)) {\n",out);
         if (xl6IrCgenEmitSequenceCreateDepth(out,module,keyId,"tree_keys",keySet,1,NULL,0,false,true)<0) return -1;
         xl6OutputPuts("      if (!tree_keys) xl6ErrorScopeCaptureFailure(&tree_scope);\n",out);
         if (xl6IrCgenEmitSequenceCreateDepth(out,module,valueId,"tree_values",valueSet,1,NULL,0,false,true)<0) return -1;
         xl6OutputPrintf(out,"      if (!tree_values) xl6ErrorScopeCaptureFailure(&tree_scope);\n"
             "      v%u = %s(&tree_layout, tree_keys, tree_values);\n"
             "      if (!v%u) xl6ErrorScopeCaptureFailure(&tree_scope);\n"
+            "      if (tree_scope.failed) { xrtValueRelease(v%u); v%u = NULL; }\n"
             "      xl6_error_result tree_outcome = xl6ErrorScopeEnd(&tree_scope);\n"
-            "      if (!tree_outcome.ok) xl6ErrorScopePropagateFailure(tree_outcome);\n",
-            output,method,output);
+            "      if (!tree_outcome.ok) xl6ErrorScopePropagateFailure(tree_outcome);\n"
+            "      } else { v%u = NULL; xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); }\n",
+            output,method,output,output,output,output);
         break;
     case XL6_IR_RUNTIME_AVL_TREE_SET:
         xl6OutputPrintf(out,"      v%u = %s(v%u, &tree_layout, &v%u, &v%u);\n",
