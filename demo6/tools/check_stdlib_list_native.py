@@ -24,10 +24,13 @@ def main():
     parser.add_argument('--operations',help='Comma-separated subset of declared complete OOM prefixes; empty selects none. Recorded as focused validation')
     parser.add_argument('--batch-plan-prefixes',action='store_true',help='Run each plan OOM prefix in one process, with a separate verified ledger per attempt')
     parser.add_argument('--batch-erased-prefixes',action='store_true',help='Batch native erased List prefixes; each attempt closes its own allocation ledger')
+    parser.add_argument('--batch-import-prefixes',action='store_true',help='Batch resident collection import prefixes; each attempt closes its own allocation ledger')
     parser.add_argument('--erased-mutants',action='store_true',help='Compile four deliberately broken real List implementations and require the same native vectors to reject them')
+    parser.add_argument('--import-mutants',action='store_true',help='Compile narrowed keys, lost first-failure and invented append-diagnostic controls in real implementations')
     args=parser.parse_args(); root=args.root.resolve(); out=args.out.resolve()
     if args.module_read: args.restore_plan=True
     if args.restore_plan: args.restore=True
+    if args.import_mutants: assert args.restore
     cc,nm=shutil.which('gcc'),shutil.which('nm')
     assert cc and nm and not out.exists() and (not args.sanitize or sys.platform=='linux')
     sources=['test/cases/stdlib_list_native_host.c','test/cases/stdlib_list_schema_native_host.c','test/support/list_native.c',
@@ -63,6 +66,7 @@ def main():
     files={Path(__file__).resolve(),Path(cc),Path(nm),Path(sys.executable)}
     files.update(root/name for name in sources)
     files.add(root/'test/cases/stdlib_list_erased_vectors.inc')
+    if args.restore: files.add(root/'test/cases/stdlib_list_language_input_vectors.inc')
     for folder in ('src/runtime','src/api','release/include','lib/xrt','lib/xruntime','test/support'):
         files.update((root/folder).rglob('*.h'))
     if args.module_read:
@@ -79,7 +83,9 @@ def main():
         'FocusedValidation':args.modes is not None or args.operations is not None,
         'BatchedPlanPrefixes':args.batch_plan_prefixes,
         'BatchedErasedPrefixes':args.batch_erased_prefixes,
+        'BatchedImportPrefixes':args.batch_import_prefixes,
         'ErasedImplementationNegativeControls':[],
+        'ImportImplementationNegativeControls':[],
         'SelectedNativeClosureInstrumented':args.sanitize,'WholeRuntimeInstrumented':False,
         'ShippingLibraryAcceptance':False,'SourceLanguageListCutover':False,'Full53Acceptance':False,
         'CleanupBoundaryFailureInjection':'GNU ld --wrap; real cleanup delegates except explicitly armed vectors; not actual OS exhaustion',
@@ -127,8 +133,10 @@ def main():
         operations+=('graph-deep','graph-data','graph-sequence','graph-project','graph-mixed-deep','graph-mixed-data')
     if args.restore:
         modes+=('restore-profiles','restore-mixed','restore-domains','restore-rejected','restore-depth','restore-entry-errors','restore-provider-errors',
-            'restore-format-roundtrip','restore-cleanup-errors')
-        operations+=('restore-native','restore-json','restore-xlon','restore-wide','restore-source-take')
+            'restore-format-roundtrip','restore-cleanup-errors','restore-language-profiles','restore-language-mixed',
+            'restore-language-rejected','restore-language-input-errors','restore-language-snapshot')
+        operations+=('restore-native','restore-json','restore-xlon','restore-wide','restore-source-take',
+            'restore-language-wire','restore-language-native','restore-language-take','restore-language-wide')
     if args.restore_plan:
         modes+=('plan-shared','plan-format','plan-nested','plan-instances','plan-instance-failures','plan-instance-wide-vector','plan-rejected','plan-boundaries','plan-depth','plan-wide-domains','plan-objects','plan-mixed',
             'plan-read-profiles','plan-read-failures','plan-read-boundaries','plan-read-scalars','plan-read-format','plan-transactions','plan-clones')
@@ -148,6 +156,24 @@ def main():
     modes=select(args.modes,modes); operations=select(args.operations,operations)
     report['Modes']=modes; report['Operations']=operations
     try:
+        if args.import_mutants:
+            for name,path,before,after,vector in (
+                ('sparse-key-narrowed','src/runtime/xl6_list_import_chain.c',
+                 'input->keys[i]=key;','input->keys[i]=(int32_t)key;','restore-language-profiles'),
+                ('first-failure-lost','src/runtime/xl6_array_import_chain.c',
+                 'if (!ok || !successful(ctx)) xl6ErrorScopeCaptureFailure(ctx->operation);',
+                 '(void)ok;','restore-language-input-errors'),
+                ('append-failure-invented','src/runtime/xl6_array_import_chain.c',
+                 'if (!pushed || !successful(ctx)) xl6ErrorScopeCaptureFailure(ctx->operation);',
+                 'if (!pushed && !xrtGetError()) xrtSetErrorKind(XERR_MEMORY);','restore-language-input-errors')):
+                body=(root/path).read_text(encoding='utf-8'); assert body.count(before)==1
+                source=out/(name+'.mutant.c'); source.write_text(body.replace(before,after),encoding='utf-8')
+                binary=out/(name+'.mutant'+('.exe' if os.name=='nt' else ''))
+                changed=[source if str(item)==path else item for item in sources]
+                if run(name+'.mutant.build',[cc,*flags,'-O0',*changed,*links,'-o',binary],180) is None: continue
+                if run(name+'.mutant.reject',[binary,vector],rejected=True) is not None:
+                    report['ImportImplementationNegativeControls'].append(dict(Name=name,Rejected=True,Vector=vector,
+                        Source=str(source),SourceSha256=sha(source),Product=str(binary),ProductSha256=sha(binary)))
         if args.erased_mutants:
             body=(root/'src/runtime/xl6_list.c').read_text(encoding='utf-8')
             mutations=(
@@ -189,7 +215,9 @@ def main():
             if not args.graph and not args.restore: assert 'xl6ArrayErasedReadV1' not in names
             for mode in modes: run(lane+'.'+mode,[binary,mode])
             for operation in operations:
-                if (args.batch_plan_prefixes and operation.startswith('plan-')) or (args.batch_erased_prefixes and operation.startswith('erased-')):
+                if ((args.batch_plan_prefixes and operation.startswith('plan-')) or
+                    (args.batch_erased_prefixes and operation.startswith('erased-')) or
+                    (args.batch_import_prefixes and operation.startswith('restore-'))):
                     text=run(lane+'.'+operation+'.batch',[binary,operation,'batch'],180)
                     if text is None: continue
                     closed=re.search(r'closed-batch runs=(\d+) first-no-hit=(\d+)',text)
@@ -208,7 +236,8 @@ def main():
                 else: failures.append(lane+'.'+operation+'.unclosed')
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
         report['Complete']=not failures and report['InputsUnchanged'] and len(prefixes)==2*len(operations) and (
-            not args.erased_mutants or len(report['ErasedImplementationNegativeControls'])==4)
+            not args.erased_mutants or len(report['ErasedImplementationNegativeControls'])==4) and (
+            not args.import_mutants or len(report['ImportImplementationNegativeControls'])==3)
     except Exception as error:
         report['Error']=repr(error); print(error,file=sys.stderr)
     finally:

@@ -1,5 +1,6 @@
 #include "src/runtime/xl6_list_import_chain.h"
 #include "src/runtime/xl6_list_schema.h"
+#include "src/runtime/xl6_list_graph_access.h"
 #include "src/runtime/xl6_array_admission.h"
 #include "src/runtime/xl6_array_erased.h"
 #include "src/runtime/xl6_array_input.h"
@@ -314,7 +315,8 @@ static bool badAppend(xvalue* target,int64_t key,const xvalue* item)
 static void providerErrors(void)
 {
     const XL6_CollectionImportProviderV1* real=xl6ListImportProviderV1();
-    XL6_CollectionImportProviderV1 delegate={badBegin,real->End,badEmpty,real->Admits,badAppend};
+    XL6_CollectionImportProviderV1 delegate={.Begin=badBegin,.End=real->End,.Empty=badEmpty,
+        .Admits=real->Admits,.Append=badAppend};
     for (providerFailure=1;providerFailure<=3;++providerFailure) {
         xvalue* values[MAX]={0}; const XL6_CollectionImportProviderV1* providers[MAX]={0};
         seeds(values,providers,1,1); providers[0]=&delegate; xvalue* source=wire(1,1,false,false,1);
@@ -325,6 +327,9 @@ static void providerErrors(void)
     }
     providerFailure=0;
 }
+static bool restoreFaultLastHit;
+#include "stdlib_list_language_input_vectors.inc"
+bool xl6TestListRestoreFaultLastHitV1(void) { return restoreFaultLastHit; }
 void xl6TestListRestoreVectorsV1(const char* name)
 {
     if (!strcmp(name,"restore-profiles")) profiles();
@@ -336,10 +341,16 @@ void xl6TestListRestoreVectorsV1(const char* name)
     else if (!strcmp(name,"restore-provider-errors")) providerErrors();
     else if (!strcmp(name,"restore-format-roundtrip")) roundtrip();
     else if (!strcmp(name,"restore-cleanup-errors")) cleanupErrors();
+    else if (!strcmp(name,"restore-language-profiles")) languageProfiles();
+    else if (!strcmp(name,"restore-language-mixed")) languageMixed();
+    else if (!strcmp(name,"restore-language-rejected")) languageRejected();
+    else if (!strcmp(name,"restore-language-input-errors")) languageInputErrors();
+    else if (!strcmp(name,"restore-language-snapshot")) languageSnapshot();
     else assert(0);
 }
 bool xl6TestListRestoreFaultV1(const char* name,size_t point)
 {
+    if (languageFault(name,point)) return true;
     if (strncmp(name,"restore-",8)) return false;
     bool native=!strcmp(name,"restore-native"),json=!strcmp(name,"restore-json"),
         wide=!strcmp(name,"restore-wide"),take=!strcmp(name,"restore-source-take");
@@ -351,7 +362,8 @@ bool xl6TestListRestoreFaultV1(const char* name,size_t point)
     xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope)); assert(xrtMemDebugFailAfter(point));
     xvalue* result=take ? xl6CollectionImportChainSourceTakeV1(values,3,owned,&p) :
         xl6CollectionImportChainTakeV1(values,3,source,&p);
-    bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    bool hit=xrtMemDebugFailTriggered(); restoreFaultLastHit=hit;
+    xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
     assert(hit ? !result && !outcome.ok : result && outcome.ok);
     for (size_t i=0;i<3;++i) assert(!values[i]);
     assert(xrtValueCount(source)==(wide ? 140 : 2));

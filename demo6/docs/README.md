@@ -54,6 +54,7 @@
 - [开放复制与 List 递归克隆](stdlib53-b180-open-copy-list-clone.md)：开放 var 存储隔离、共享图 memo、XLIR 提供者闭包及双端裁剪执行；工厂、准入与恢复继续。
 - [动态字段复制与恢复隔离的 List 接入](stdlib53-b181-dynamic-fields-list-copy.md)：七个内部消费端共享图 memo、声明 clone 隔离、发布后清理错误及双端完整故障前缀；源工厂与 wire codec 继续。
 - [List 的 JSON/XLON 投影与恢复](stdlib53-b182-list-persistence-native.md)：紧凑稳定键投影、原生恢复、作用域创建失败和最小产物依赖；普通源工厂及 cast 继续迁移。
+- [List 稀疏输入与共享导入事务](stdlib53-b183-list-language-input.md)：语言输入保留完整键、真实槽位快照与首次失败锁定；普通源工厂及 cast 的前置协议。
 - [List 方法接入与集合异常合同](stdlib53-b174-list-methods-language.md)：checked 驻留方法、may-raise 和真实 C/JIT/continuation 验证；工厂、动态分发及恢复仍待切换。
 - [List 元素准入与目标构造合同](stdlib53-b173-list-target-recipes.md)：XLIR 精确元素 witness、泛型闭包和目标工厂；错误元数据与分配/作用域失败批处理验证，源载体尚未切换。
 - [List 原生动态方法与快照迭代](stdlib53-b172-list-erased-native.md)：复用 typed List 存储与游标，checked 动态方法、完整稀疏键和单步拥有投影；语言载体切换仍待完成。

@@ -8,15 +8,27 @@
  * empty projected native template and owns its full immutable admission.
  * Predicates are allocation/error transparent; Append does checked admission.
  * All contexts and plan tables are synchronous, never stored in a result. */
+typedef struct XL6_CollectionImportInputV1 {
+    const xvalue* const* items;
+    const int64_t* keys; /* NULL means contiguous keys, never a sparse-key cast. */
+    size_t count;
+    ptr context;
+} XL6_CollectionImportInputV1;
 typedef struct XL6_CollectionImportProviderV1 {
     bool (*Begin)(const xvalue*,ptr*);
     void (*End)(ptr);
     xvalue* (*Empty)(ptr);
     bool (*Admits)(ptr,const xvalue*);
     bool (*Append)(xvalue*,int64_t,const xvalue*);
+    /* LANGUAGE_INPUT only: an exact family snapshot, not compact persistence
+     * data. Begin may publish context on failure; End always retires it. Owned
+     * item pins outlive callbacks; no mutable slot or template pin escapes. */
+    bool (*InputBegin)(const xvalue*,XL6_CollectionImportInputV1*);
+    void (*InputEnd)(XL6_CollectionImportInputV1*);
 } XL6_CollectionImportProviderV1;
 
-enum { XL6_COLLECTION_IMPORT_RESTORE_V1=1u, XL6_COLLECTION_IMPORT_JSON_V1=2u };
+enum { XL6_COLLECTION_IMPORT_RESTORE_V1=1u, XL6_COLLECTION_IMPORT_JSON_V1=2u,
+    XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1=4u };
 typedef struct XL6_CollectionImportPlanV1 {
     size_t size;
     /* A non-NULL table has count entries. NULL table/entries use the real resident Array family. Non-NULL entries
@@ -34,6 +46,10 @@ typedef struct XL6_CollectionImportPlanV1 {
  * borrowed, never retagged or mutated; success returns an independent native
  * root (the original Array-only API retains its original root-seed contract).
  * Wire ARRAY input represents both Array and the approved compact List format.
+ * LANGUAGE_INPUT instead selects a provider's exact sparse/native input
+ * snapshot. It cannot be combined with RESTORE/JSON, never falls back to wire
+ * ARRAY after family refusal, and preserves every int64 key. NULL providers
+ * continue to use the resident Array input at descendant schema levels.
  * Same source Value at the same schema depth shares one native result. A source
  * reused under another depth/domain is deliberately a distinct conversion.
  * RESTORE explicitly normalizes leaf wire scalars to the declared domain;
