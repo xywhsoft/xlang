@@ -174,7 +174,13 @@ static int xl6IrRestoreGraphCompleteNode(XL6_IrRestoreGraphWalk* walk, size_t at
                 row.seed = walk->root.seedCount++;
             } else walk->root.pending |= XL6_IR_RESTORE_PENDING_ARRAY_VALUE;
         } else if (type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_LIST_SEQUENCE) {
-            row.abi = XL6_IR_RESTORE_NODE_LIST; walk->root.pending |= XL6_IR_RESTORE_PENDING_LIST;
+            row.abi = XL6_IR_RESTORE_NODE_LIST;
+            row.carrierAbi=type->persistenceRestoreCarrierAbi;
+            if (row.carrierAbi==XL6_IR_COLLECTION_CARRIER_LIST_V1 &&
+                xl6IrListConstructionRecipe(source,payload,NULL,NULL)) {
+                if (walk->root.seedCount==SIZE_MAX) return 0;
+                row.seed=walk->root.seedCount++;
+            } else walk->root.pending |= XL6_IR_RESTORE_PENDING_LIST;
         } else if (type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_SET_SEQUENCE) {
             row.abi = XL6_IR_RESTORE_NODE_SET; walk->root.pending |= XL6_IR_RESTORE_PENDING_SET;
         } else {

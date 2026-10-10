@@ -76,7 +76,9 @@ typedef enum XL6_IrCollectionAbi {
 typedef enum XL6_IrCollectionCarrierAbi {
     XL6_IR_COLLECTION_CARRIER_NONE = 0,
     XL6_IR_COLLECTION_CARRIER_VALUE_V1,
-    XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1
+    XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1,
+    /* Decode target only until all source List producers are migrated. */
+    XL6_IR_COLLECTION_CARRIER_LIST_V1
 } XL6_IrCollectionCarrierAbi;
 
 /* Complete element-admission family for checked erased collection rebinds.

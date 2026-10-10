@@ -14178,8 +14178,11 @@ typedef int (*xvaluegraphobjectcopyv1)(uint64 iTypeId,
 /* Exact nominal sequence policies for data projection. Only the matching
  * IntMap/Set identity is written as an Array, in its ordinary iteration order.
  * Untyped/unlisted containers retain their representation. A listed identity
- * on the wrong physical type fails closed. The immutable table is borrowed
- * only for the synchronous copy; no registry or application callback is used. */
+ * on the wrong physical type fails closed. A HANDLE with a listed identity
+ * must be authenticated by CopyHandle and projected to an Array: refusal,
+ * missing adaptation, or another output type fails closed, never retains the
+ * opaque source. The wire rule itself uses no registry or item callback.
+ * The immutable table is borrowed only for the synchronous copy. */
 typedef struct xvaluegraphsequencev1 {
 	uint64 TypeId;
 	xvaluetype Type; /* XVALUE_INT_MAP or XVALUE_SET */
@@ -111523,7 +111526,13 @@ static xvalue* __xrtValueDeepClone(
 	for (size_t i = 0; i < pContext->Config.SequenceCount; ++i) {
 		const xvaluegraphsequencev1* pSequence = &pContext->Config.Sequences[i];
 		if (pSource->TypeId != pSequence->TypeId) continue;
-		if (Type != pSequence->Type) { __xrtErrorSetType(); return NULL; }
+		/* A logical sequence can have a wire and an authenticated native
+		 * carrier. Only the explicit handle adapter may bridge that boundary;
+		 * every other physical mismatch retains the strict wire rejection. */
+		if (Type != pSequence->Type &&
+			(Type != XVALUE_HANDLE || !pContext->Config.CopyHandle)) {
+			__xrtErrorSetType(); return NULL;
+		}
 		bSequence = true; break;
 	}
 	if (Type == XVALUE_OBJECT && pContext->Config.CopyObject) {
@@ -111536,7 +111545,16 @@ static xvalue* __xrtValueDeepClone(
 		iFound = __xrtValueCloneFind(pContext, pSource, &pTarget);
 		if (iFound != 0) return iFound > 0 ? pTarget : NULL;
 		iFound = __xrtValueCloneAdapt(pContext, pSource, iDepth, false, &pTarget);
-		if (iFound != 0) return iFound > 0 ? pTarget : NULL;
+		if (iFound < 0) return NULL;
+		if (iFound > 0) {
+			if (bSequence && pTarget->Type != XVALUE_ARRAY) {
+				__xrtErrorSetType(); __xrtValueCloneRelease(pContext, pTarget);
+				return NULL;
+			}
+			return pTarget;
+		}
+		/* A listed native sequence has no opaque-handle retention fallback. */
+		if (bSequence) { __xrtErrorSetType(); return NULL; }
 		if (pContext->Config.Flags & XVALUE_GRAPH_COPY_DATA_V1) {
 			pTarget = xrtValueRetain(pSource);
 			if (pTarget && (!__xrtValueCloneStart(pContext, pSource, pTarget) ||

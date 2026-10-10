@@ -1,0 +1,8 @@
+class RestoreOnlyList
+    derive value
+    list<int8> items
+end
+RestoreOnlyList first = json.parse::<RestoreOnlyList>("{\"items\":[-128,127]}")
+RestoreOnlyList second = xlon.parse::<RestoreOnlyList>("{\"items\":[3,7]}")
+assert first.items[0] == -128 and first.items[1] == 127
+assert second.items[0] == 3 and second.items[1] == 7

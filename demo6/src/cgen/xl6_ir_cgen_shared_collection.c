@@ -54,6 +54,14 @@ static const char* xl6IrCgenRestoreObjectProviderSymbol(const XL6_IrModule* modu
     return abi==XL6_IR_VALUE_COPY_LIST_V1 || abi==XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1 ?
         "xl6RestoreClassProviderV1" : "xl6RestoreClassClosedProviderV1";
 }
+static const char* xl6IrCgenPersistenceProjectSymbol(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{
+    XL6_IrValueCopyProviderAbi abi=instruction ?
+        xl6IrValueCopyProviderAbiForType(module,instruction->payloadType,1) : XL6_IR_VALUE_COPY_INVALID;
+    return abi==XL6_IR_VALUE_COPY_LIST_V1 || abi==XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1 ?
+        "xl6PersistenceProjectListV1" : abi==XL6_IR_VALUE_COPY_ARRAY_WIRE_V1 ? "xl6PersistenceProjectV1" : NULL;
+}
 static const char* xl6IrCgenCollectionContainsSymbol(const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
 {

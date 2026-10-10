@@ -805,6 +805,7 @@ const char* xl6IrCollectionCarrierAbiName(XL6_IrCollectionCarrierAbi abi)
     case XL6_IR_COLLECTION_CARRIER_NONE: return "none";
     case XL6_IR_COLLECTION_CARRIER_VALUE_V1: return "value-v1";
     case XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1: return "sequence-v1";
+    case XL6_IR_COLLECTION_CARRIER_LIST_V1: return "list-v1";
     default: return "invalid";
     }
 }
@@ -5723,6 +5724,15 @@ static void xl6IrBuildExpectedPersistenceTypeAbi(
     }
 }
 
+static XL6_IrCollectionCarrierAbi xl6IrPersistenceRestoreCarrierForType(
+    const XL6_IrType* type,XL6_IrPersistenceValueAbi abi)
+{
+    if (abi==XL6_IR_PERSISTENCE_VALUE_ARRAY)
+        return type->sequenceLayout.role==XL6_IR_SEQUENCE_ROLE_ARRAY ?
+            XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1 : XL6_IR_COLLECTION_CARRIER_VALUE_V1;
+    return abi==XL6_IR_PERSISTENCE_VALUE_LIST_SEQUENCE ?
+        XL6_IR_COLLECTION_CARRIER_LIST_V1 : XL6_IR_COLLECTION_CARRIER_NONE;
+}
 int xl6IrRefreshPersistenceTypeAbis(XL6_IrModule* module)
 {
     size_t i;
@@ -5734,10 +5744,7 @@ int xl6IrRefreshPersistenceTypeAbis(XL6_IrModule* module)
             &type->persistenceValueAbi, &type->persistencePayloadType);
         type->persistenceRestoreScalarAbi = type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_XRT_CLONE
             ? xl6IrValueAdmissionAbiForType(&module->types, type) : XL6_VALUE_ADMIT_NONE;
-        type->persistenceRestoreCarrierAbi = type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_ARRAY
-            ? (type->sequenceLayout.role == XL6_IR_SEQUENCE_ROLE_ARRAY
-                ? XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1 : XL6_IR_COLLECTION_CARRIER_VALUE_V1)
-            : XL6_IR_COLLECTION_CARRIER_NONE;
+        type->persistenceRestoreCarrierAbi = xl6IrPersistenceRestoreCarrierForType(type,type->persistenceValueAbi);
     }
     return 1;
 }
@@ -32870,10 +32877,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              type->persistencePayloadType != expectedPayload ||
              type->persistenceRestoreScalarAbi != (expectedAbi == XL6_IR_PERSISTENCE_VALUE_XRT_CLONE
                  ? xl6IrValueAdmissionAbiForType(&module->types, type) : XL6_VALUE_ADMIT_NONE) ||
-             type->persistenceRestoreCarrierAbi != (expectedAbi == XL6_IR_PERSISTENCE_VALUE_ARRAY
-                 ? (type->sequenceLayout.role == XL6_IR_SEQUENCE_ROLE_ARRAY
-                     ? XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1 : XL6_IR_COLLECTION_CARRIER_VALUE_V1)
-                 : XL6_IR_COLLECTION_CARRIER_NONE) )
+             type->persistenceRestoreCarrierAbi != xl6IrPersistenceRestoreCarrierForType(type,expectedAbi) )
             return xl6IrDiag(diags, NULL,
                 "XLIR persistence value ABI is not canonical");
     }

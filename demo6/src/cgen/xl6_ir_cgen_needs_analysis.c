@@ -1129,5 +1129,13 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         needs->needsNominalIdentityRuntime = needs->needsXValueRuntime = 1;
         needs->needsXValueHandleRuntime = needs->needsErrorRuntime = 1;
     }
+    /* The same verified closure selects both the literal declarations and
+     * their outer emission gate, including restore-only seed factories. */
+    for (i = 0; i < module->nominalIdentitySetCount; ++i) {
+        if (xl6IrCgenNominalIdentitySetUsed(module, &module->nominalIdentitySets[i])) {
+            needs->needsNominalIdentityRuntime = needs->needsXValueRuntime = 1;
+            break;
+        }
+    }
     return 1;
 }

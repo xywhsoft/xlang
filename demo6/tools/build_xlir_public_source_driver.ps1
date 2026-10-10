@@ -74,6 +74,8 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_value_copy.c',
     'src/runtime/xl6_list_graph.c',
     'src/runtime/xl6_value_copy_graph.c',
+    'src/runtime/xl6_persistence_project_list.c',
+    'src/runtime/xl6_list_import_chain.c',
     'src/runtime/xl6_value_wire_contains.c',
     'src/runtime/xl6_array_algebra.c',
     'src/runtime/xl6_array_graph.c',

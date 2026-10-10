@@ -258,12 +258,17 @@ static int xl6IrCgenVisitSlotProviders(XL6_IrNativeSlotAbi slot,int projection,
 }
 
 static int xl6IrCgenVisitSequenceFactorySymbols(const XL6_IrModule* module,XL6_IrTypeId id,
-    XL6_IrCgenNativeModuleVisitor visitor,void* context,size_t depth)
+    XL6_IrCgenNativeModuleVisitor visitor,void* context,size_t depth,bool projectArrays)
 {
     const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
     if (!type || depth>64 ||
-        !xl6IrSequenceConstructionRecipe(module,id,type->sequenceLayout.role,NULL) ||
-        !xl6IrCgenVisitSlotProviders(type->sequenceLayout.slotAbi,0,visitor,context)) return 0;
+        !xl6IrSequenceConstructionRecipe(module,id,type->sequenceLayout.role,NULL)) return 0;
+    /* Match the verified seed renderer: projected Array witnesses need their
+     * physical converter, while retained references and ordinary construction
+     * do not. Nested sequences inherit this policy; tree/queue schemas do not. */
+    bool converter=projectArrays && type->sequenceLayout.role==XL6_IR_SEQUENCE_ROLE_ARRAY &&
+        type->sequenceLayout.transferAbi!=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN;
+    if (!xl6IrCgenVisitSlotProviders(type->sequenceLayout.slotAbi,converter,visitor,context)) return 0;
     const char* factory=NULL;
     switch (type->sequenceLayout.abi) {
     case XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE:
@@ -282,20 +287,20 @@ static int xl6IrCgenVisitSequenceFactorySymbols(const XL6_IrModule* module,XL6_I
     case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1: factory="xl6SequenceSyncCreateV1"; break;
     case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1:
         factory="xl6SequenceNestedCreateTakeV2";
-        if (!xl6IrCgenVisitSequenceFactorySymbols(module,type->sequenceLayout.baseElementType,visitor,context,depth+1)) return 0;
+        if (!xl6IrCgenVisitSequenceFactorySymbols(module,type->sequenceLayout.baseElementType,visitor,context,depth+1,projectArrays)) return 0;
         break;
     case XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1: {
         XL6_IrTypeId key=0,value=0;
         factory="xl6SequenceTreeCreateTakeV1";
         if (!xl6IrAvlConstructionRecipe(module,type->sequenceLayout.baseElementType,&key,&value,NULL,NULL) ||
-            !xl6IrCgenVisitSequenceFactorySymbols(module,key,visitor,context,depth+1) ||
-            !xl6IrCgenVisitSequenceFactorySymbols(module,value,visitor,context,depth+1)) return 0;
+            !xl6IrCgenVisitSequenceFactorySymbols(module,key,visitor,context,depth+1,false) ||
+            !xl6IrCgenVisitSequenceFactorySymbols(module,value,visitor,context,depth+1,false)) return 0;
         break;
     }
     case XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1: {
         XL6_IrTypeId schema=0; XL6_IrRuntimeResourceAbi family=XL6_IR_RUNTIME_RESOURCE_NONE;
         if (!xl6IrConcurrentQueueConstructionRecipe(module,type->sequenceLayout.baseElementType,&family,&schema,NULL) ||
-            !xl6IrCgenVisitSequenceFactorySymbols(module,schema,visitor,context,depth+1)) return 0;
+            !xl6IrCgenVisitSequenceFactorySymbols(module,schema,visitor,context,depth+1,false)) return 0;
         factory=xl6IrCgenConcurrentQueueAdmissionFactory(family);
         if (!factory) return 0;
         break;
@@ -356,7 +361,15 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             }
             if (node->abi==XL6_IR_RESTORE_NODE_ARRAY &&
                 (!visitor(context,"xl6ArrayProjectionTakeV1") ||
-                 !xl6IrCgenVisitSequenceFactorySymbols(module,node->payloadType,visitor,context,0))) return 0;
+                 !xl6IrCgenVisitSequenceFactorySymbols(module,node->payloadType,visitor,context,0,true))) return 0;
+            if (node->abi==XL6_IR_RESTORE_NODE_LIST) {
+                XL6_IrTypeId schema=XL6_IR_TYPE_INVALID;
+                if (!xl6IrListConstructionRecipe(module,node->payloadType,&schema,NULL) ||
+                    !visitor(context,"xl6ListCreateTakeV1") || !visitor(context,"xl6ListProjectionTakeV1") ||
+                    !visitor(context,"xl6ArrayProjectionTakeV1") ||
+                    !visitor(context,"xl6ListImportProviderV1") ||
+                    !xl6IrCgenVisitSequenceFactorySymbols(module,schema,visitor,context,0,true)) return 0;
+            }
             const char* isolation=xl6IrCgenRestoreIsolationSymbol(module,node->payloadType,node->isolationAbi);
             if (isolation && !visitor(context,isolation)) return 0;
         }
@@ -383,7 +396,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             if (!prefix || !method || snprintf(symbol,sizeof(symbol),"%s%s",prefix,method)<0 ||
                 !visitor(context,symbol)) return 0;
             if (instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&
-                !xl6IrCgenVisitSequenceFactorySymbols(module,type->concurrentQueueSchemaType,visitor,context,0)) return 0;
+                !xl6IrCgenVisitSequenceFactorySymbols(module,type->concurrentQueueSchemaType,visitor,context,0,false)) return 0;
         }
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL) {
         if (xl6IrCgenInstructionIsReachable(module,i) &&
@@ -410,7 +423,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         if (xl6IrCgenInstructionIsReachable(module,i) &&
             (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_CREATE || instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE ||
              instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) &&
-            !xl6IrCgenVisitSequenceFactorySymbols(module,instruction->type,visitor,context,0)) return 0;
+            !xl6IrCgenVisitSequenceFactorySymbols(module,instruction->type,visitor,context,0,false)) return 0;
         if (xl6IrCgenInstructionIsReachable(module,i) && xl6IrCgenAvlRuntimeOpIs(instruction->runtimeOp)) {
             const XL6_IrInstruction* receiver=instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_CREATE ? NULL :
                 xl6IrCgenValueDefinition(module,module->operands[instruction->firstOperand],NULL);
@@ -423,8 +436,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             if (!xl6IrCgenVisitSlotProviders(key->sequenceLayout.slotAbi,0,visitor,context) ||
                 !xl6IrCgenVisitSlotProviders(value->sequenceLayout.slotAbi,0,visitor,context)) return 0;
             if (instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_CREATE &&
-                (!xl6IrCgenVisitSequenceFactorySymbols(module,keyId,visitor,context,0) ||
-                 !xl6IrCgenVisitSequenceFactorySymbols(module,valueId,visitor,context,0))) return 0;
+                (!xl6IrCgenVisitSequenceFactorySymbols(module,keyId,visitor,context,0,false) ||
+                 !xl6IrCgenVisitSequenceFactorySymbols(module,valueId,visitor,context,0,false))) return 0;
         }
         if (xl6IrCgenInstructionIsReachable(module,i) &&
             xl6IrCgenAvlRuntimeOpIs(instruction->runtimeOp) &&
@@ -435,7 +448,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
              instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_VALUES)) {
             const XL6_IrType* array=xl6IrTypeGet(&module->types,instruction->type);
             if (!array || !visitor(context,"xl6TreeProjectTakeV1") ||
-                !xl6IrCgenVisitSequenceFactorySymbols(module,instruction->type,visitor,context,0) ||
+                !xl6IrCgenVisitSequenceFactorySymbols(module,instruction->type,visitor,context,0,false) ||
                 !xl6IrCgenVisitSlotProviders(array->sequenceLayout.slotAbi,1,visitor,context) ||
                 (array->sequenceLayout.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
                  !visitor(context,"xl6ArrayReferenceConverterV1"))) return 0;
@@ -456,7 +469,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         if ((instruction->runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
              instruction->runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT) &&
             (!xl6IrPersistenceProjectInstructionAbi(module,instruction) ||
-             !visitor(context,"xl6PersistenceProjectV1"))) return 0;
+             !visitor(context,xl6IrCgenPersistenceProjectSymbol(module,instruction)))) return 0;
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_CLONE &&
             !visitor(context,xl6IrCgenValueCloneSymbol(module,instruction))) return 0;
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_LIST_MERGE_RIGHT &&
