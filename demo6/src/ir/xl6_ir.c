@@ -122,6 +122,8 @@ static int xl6IrListConstructionRecipeDepth(const XL6_IrModule*,XL6_IrTypeId,
     XL6_IrTypeId*,XL6_IrNominalIdentitySetId*,size_t);
 static int xl6IrSetConstructionRecipeDepth(const XL6_IrModule*,XL6_IrTypeId,
     XL6_IrTypeId*,XL6_IrNominalIdentitySetId*,XL6_IrSetKeyAbi*,size_t);
+static int xl6IrDictConstructionRecipeDepth(const XL6_IrModule*,XL6_IrTypeId,
+    XL6_IrTypeId*,XL6_IrNominalIdentitySetId*,XL6_IrDictKeyAbi*,size_t);
 
 static int xl6IrDiag(XL6_DiagList* diags, const XL6_IrNode* node, const char* message)
 {
@@ -829,7 +831,8 @@ static int xl6IrSequenceLayoutComplete(XL6_IrSequenceLayoutAbi abi)
         abi==XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 ||
         abi==XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1 ||
         abi==XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1 ||
-        abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1;
+        abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1 ||
+        abi==XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1;
 }
 static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool* pool,
     const XL6_IrType* type,size_t depth)
@@ -941,15 +944,17 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         }
     } else if (result.slotAbi==XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
                result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
-               (base->collectionAbi==XL6_IR_COLLECTION_LIST || base->collectionAbi==XL6_IR_COLLECTION_SET)) {
+               (base->collectionAbi==XL6_IR_COLLECTION_LIST || base->collectionAbi==XL6_IR_COLLECTION_SET ||
+                base->collectionAbi==XL6_IR_COLLECTION_DICT)) {
         /* The canonical Array describes the value domain, not owner storage.
-         * List/Set edges each spend one shared mixed-family recursion level.
+         * List/Set/Dict edges each spend one shared mixed-family recursion level.
          * Re-derive child policy; cached layouts are not source authority. */
         XL6_IrSequenceLayout child=xl6IrSequenceLayoutForTypeDepth(pool,
             xl6IrTypeGet(pool,xl6IrValueCollectionSchemaTypeForType(pool,base)),depth+1);
         result.abi=xl6IrSequenceLayoutComplete(child.abi)
             ? (base->collectionAbi==XL6_IR_COLLECTION_LIST ? XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 :
-                XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1) : XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN;
+                base->collectionAbi==XL6_IR_COLLECTION_SET ? XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1 :
+                XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1) : XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN;
     } else if (result.slotAbi==XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
                result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
                base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE &&
@@ -1021,7 +1026,8 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         result.abi == XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 ||
-        result.abi == XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1) {
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1) {
         if (!result.codecAbi) result.codecAbi=XL6_IR_SEQUENCE_CODEC_DIRECT;
         result.defaultAbi=result.nullable ? XL6_IR_SEQUENCE_DEFAULT_ABSENT :
             result.admissionAbi == XL6_VALUE_ADMIT_ANY ? XL6_IR_SEQUENCE_DEFAULT_DYNAMIC_NULL :
@@ -1039,7 +1045,8 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
             result.abi == XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1 ||
             result.abi == XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1 ||
             result.abi == XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 ||
-            result.abi == XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1 ? XL6_IR_SEQUENCE_DEFAULT_FORBIDDEN :
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1 ||
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1 ? XL6_IR_SEQUENCE_DEFAULT_FORBIDDEN :
             XL6_IR_SEQUENCE_DEFAULT_ZERO;
     }
     return result;
@@ -1109,6 +1116,7 @@ const char* xl6IrSequenceLayoutAbiName(XL6_IrSequenceLayoutAbi abi)
     case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1: return "thread-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1: return "list-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1: return "set-reference-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1: return "dict-reference-v1";
     default: return "invalid";
     }
 }
@@ -1159,8 +1167,10 @@ static XL6_IrTypeId xl6IrTreeSchemaTypeForType(const XL6_IrTypePool* pool,
 static XL6_IrTypeId xl6IrValueCollectionElementTypeForType(const XL6_IrTypePool* pool,const XL6_IrType* type)
 {
     if (!pool || !type ||
-        (type->collectionAbi!=XL6_IR_COLLECTION_LIST && type->collectionAbi!=XL6_IR_COLLECTION_SET) ||
-        type->abiId!=xl6TypeAbiIdText(type->collectionAbi==XL6_IR_COLLECTION_LIST ? "xlang.list" : "xlang.set") ||
+        (type->collectionAbi!=XL6_IR_COLLECTION_LIST && type->collectionAbi!=XL6_IR_COLLECTION_SET &&
+         type->collectionAbi!=XL6_IR_COLLECTION_DICT) ||
+        type->abiId!=xl6TypeAbiIdText(type->collectionAbi==XL6_IR_COLLECTION_LIST ? "xlang.list" :
+            type->collectionAbi==XL6_IR_COLLECTION_SET ? "xlang.set" : "xlang.dict") ||
         type->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_NONE || type->returnCount ||
         type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
         type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED) return XL6_IR_TYPE_INVALID;
@@ -1211,6 +1221,12 @@ static XL6_IrSetKeyAbi xl6IrSetKeyAbiForType(const XL6_IrTypePool* pool,const XL
     default: return XL6_IR_SET_KEY_NONE;
     }
 }
+static XL6_IrDictKeyAbi xl6IrDictKeyAbiForType(const XL6_IrTypePool* pool,const XL6_IrType* type)
+{
+    return type && type->collectionAbi==XL6_IR_COLLECTION_DICT &&
+        xl6IrValueCollectionElementTypeForType(pool,type) ?
+        XL6_IR_DICT_KEY_EXACT_STRING_VIEW_V1 : XL6_IR_DICT_KEY_NONE;
+}
 static int xl6IrTypeFinalizeErrorResultCName(
     XL6_IrTypePool* pool, XL6_IrType* type)
 {
@@ -1228,6 +1244,7 @@ static int xl6IrTypeFinalizeErrorResultCName(
     type->treeValueSchemaType = xl6IrTreeSchemaTypeForType(pool,type,1);
     type->collectionValueSchemaType = xl6IrValueCollectionSchemaTypeForType(pool,type);
     type->setKeyAbi = xl6IrSetKeyAbiForType(pool,type);
+    type->dictKeyAbi = xl6IrDictKeyAbiForType(pool,type);
     type->xvalueAdmissionAbi = xl6IrValueAdmissionAbiForType(pool,type);
     type->xvalueAdmissionNullable = type->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE &&
         type->kind == XL6_IR_TYPE_NULLABLE;
@@ -1762,7 +1779,7 @@ static int xl6IrTypePoolFinalizeCallableResults(XL6_IrTypePool* pool)
         if ( type->returnCount != 0 &&
              type->callableResultType == XL6_IR_TYPE_INVALID ) return 0;
     }
-    /* Default List/Set close their value witnesses after the builtin map is
+    /* Default List/Set/Dict close their value witnesses after the builtin map is
      * complete. Explicit/specialized owners normally intern them earlier. Do
      * not retain a pool pointer across interning, which may grow the pool. */
     for (i=0;i<pool->count;++i) {
@@ -1783,6 +1800,7 @@ static int xl6IrTypePoolFinalizeCallableResults(XL6_IrTypePool* pool)
     for (i=0;i<pool->count;++i) {
         pool->items[i].collectionValueSchemaType=xl6IrValueCollectionSchemaTypeForType(pool,&pool->items[i]);
         pool->items[i].setKeyAbi=xl6IrSetKeyAbiForType(pool,&pool->items[i]);
+        pool->items[i].dictKeyAbi=xl6IrDictKeyAbiForType(pool,&pool->items[i]);
     }
     return 1;
 }
@@ -8237,6 +8255,8 @@ static int xl6IrSequenceConstructionRecipeDepth(const XL6_IrModule* module,
         return xl6IrListConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,depth+1);
     case XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1:
         return xl6IrSetConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,NULL,depth+1);
+    case XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1:
+        return xl6IrDictConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,NULL,depth+1);
     default: return 0;
     }
 }
@@ -8249,13 +8269,16 @@ static int xl6IrValueCollectionConstructionRecipeDepth(const XL6_IrModule* modul
     const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,id) : NULL;
     XL6_IrNominalIdentitySetId set=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
     if (!type || depth>64 ||
-        (type->collectionAbi!=XL6_IR_COLLECTION_LIST && type->collectionAbi!=XL6_IR_COLLECTION_SET) ||
+        (type->collectionAbi!=XL6_IR_COLLECTION_LIST && type->collectionAbi!=XL6_IR_COLLECTION_SET &&
+         type->collectionAbi!=XL6_IR_COLLECTION_DICT) ||
         type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
         type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
         type->nullAbi!=XL6_IR_NULL_ABI_XVALUE_SENTINEL || !type->typeValueId ||
         !type->collectionValueSchemaType || type->collectionValueSchemaType!=xl6IrValueCollectionSchemaTypeForType(&module->types,type) ||
         type->setKeyAbi!=xl6IrSetKeyAbiForType(&module->types,type) ||
+        type->dictKeyAbi!=xl6IrDictKeyAbiForType(&module->types,type) ||
         (type->collectionAbi==XL6_IR_COLLECTION_SET && type->setKeyAbi==XL6_IR_SET_KEY_NONE) ||
+        (type->collectionAbi==XL6_IR_COLLECTION_DICT && type->dictKeyAbi!=XL6_IR_DICT_KEY_EXACT_STRING_VIEW_V1) ||
         !xl6IrSequenceConstructionRecipeDepth(module,type->collectionValueSchemaType,XL6_IR_SEQUENCE_ROLE_ARRAY,&set,depth)) return 0;
     const XL6_IrType* schema=xl6IrTypeGet(&module->types,type->collectionValueSchemaType);
     if (!schema || schema->typeValueId==type->typeValueId) return 0;
@@ -8263,7 +8286,7 @@ static int xl6IrValueCollectionConstructionRecipeDepth(const XL6_IrModule* modul
         .family=type->collectionAbi,.ownerType=id,.valueSchemaType=type->collectionValueSchemaType,
         .elementType=schema->sequenceLayout.elementType,.admissionIdentitySet=set,
         .slotAbi=schema->sequenceLayout.slotAbi,.codecAbi=schema->sequenceLayout.codecAbi,
-        .transferAbi=schema->sequenceLayout.transferAbi,.setKeyAbi=type->setKeyAbi};
+        .transferAbi=schema->sequenceLayout.transferAbi,.setKeyAbi=type->setKeyAbi,.dictKeyAbi=type->dictKeyAbi};
     return 1;
 }
 int xl6IrValueCollectionConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId id,
@@ -8296,6 +8319,21 @@ static int xl6IrSetConstructionRecipeDepth(const XL6_IrModule* module,XL6_IrType
 int xl6IrSetConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId id,
     XL6_IrTypeId* schemaOut,XL6_IrNominalIdentitySetId* setOut,XL6_IrSetKeyAbi* keyOut)
 { return xl6IrSetConstructionRecipeDepth(module,id,schemaOut,setOut,keyOut,0); }
+
+static int xl6IrDictConstructionRecipeDepth(const XL6_IrModule* module,XL6_IrTypeId id,
+    XL6_IrTypeId* schemaOut,XL6_IrNominalIdentitySetId* setOut,XL6_IrDictKeyAbi* keyOut,size_t depth)
+{
+    XL6_IrValueCollectionRecipe recipe={0};
+    if (!xl6IrValueCollectionConstructionRecipeDepth(module,id,&recipe,depth) ||
+        recipe.family!=XL6_IR_COLLECTION_DICT) return 0;
+    if (schemaOut) *schemaOut=recipe.valueSchemaType;
+    if (setOut) *setOut=recipe.admissionIdentitySet;
+    if (keyOut) *keyOut=recipe.dictKeyAbi;
+    return 1;
+}
+int xl6IrDictConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId id,
+    XL6_IrTypeId* schemaOut,XL6_IrNominalIdentitySetId* setOut,XL6_IrDictKeyAbi* keyOut)
+{ return xl6IrDictConstructionRecipeDepth(module,id,schemaOut,setOut,keyOut,0); }
 
 static int xl6IrConcurrentQueueConstructionRecipeDepth(const XL6_IrModule* module, XL6_IrTypeId typeId,
     XL6_IrRuntimeResourceAbi* familyOut, XL6_IrTypeId* schemaOut,
@@ -21177,6 +21215,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
         if (type->collectionValueSchemaType!=xl6IrValueCollectionSchemaTypeForType(pool,type) ||
             (xl6IrValueCollectionElementTypeForType(pool,type) && !type->collectionValueSchemaType)) return 0;
         if (type->setKeyAbi!=xl6IrSetKeyAbiForType(pool,type)) return 0;
+        if (type->dictKeyAbi!=xl6IrDictKeyAbiForType(pool,type)) return 0;
         if (type->xvalueAdmissionAbi != xl6IrValueAdmissionAbiForType(pool,type) ||
             type->xvalueAdmissionNullable != (type->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE &&
                 type->kind == XL6_IR_TYPE_NULLABLE)) return 0;
@@ -49015,12 +49054,13 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             if ( item != 0 ) xl6OutputPuts(",", out);
             xl6OutputPrintf(out, "%u", (unsigned int)type->returns[item]);
         }
-        xl6OutputPrintf(out, "],\"concurrentQueueSchemaType\":%u,\"treeKeySchemaType\":%u,\"treeValueSchemaType\":%u,\"collectionValueSchemaType\":%u,\"setKeyAbi\":%d,\"callableResultType\":%u,\"releaseEffect\":%d}%s\n",
+        xl6OutputPrintf(out, "],\"concurrentQueueSchemaType\":%u,\"treeKeySchemaType\":%u,\"treeValueSchemaType\":%u,\"collectionValueSchemaType\":%u,\"setKeyAbi\":%d,\"dictKeyAbi\":%d,\"callableResultType\":%u,\"releaseEffect\":%d}%s\n",
                         (unsigned int)type->concurrentQueueSchemaType,
                         (unsigned int)type->treeKeySchemaType,
                         (unsigned int)type->treeValueSchemaType,
                         (unsigned int)type->collectionValueSchemaType,
                         (int)type->setKeyAbi,
+                        (int)type->dictKeyAbi,
                         (unsigned int)type->callableResultType,
                         (int)xl6IrTypeReleaseEffect(module, (XL6_IrTypeId)(i + 1)),
                         i + 1 == module->types.count ? "" : ",");

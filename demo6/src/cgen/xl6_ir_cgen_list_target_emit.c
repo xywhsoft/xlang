@@ -1,4 +1,4 @@
-/* One complete value-domain recipe drives distinct native List/Set factories.
+/* One complete value-domain recipe drives distinct native List/Set/Dict factories.
  * No container algorithm, type spelling recovery or wire conversion is emitted. */
 static int xl6IrCgenEmitValueCollectionTargetCreateDepth(XL6_Output* out,const XL6_IrModule* module,
     XL6_IrTypeId id,XL6_IrCollectionAbi family,const char* result,XL6_IrNominalIdentitySetId admissionSet,size_t depth,
@@ -9,9 +9,8 @@ static int xl6IrCgenEmitValueCollectionTargetCreateDepth(XL6_Output* out,const X
         recipe.family!=family || admissionSet!=recipe.admissionIdentitySet) return -1;
     XL6_IrTypeId schemaId=recipe.valueSchemaType;
     XL6_IrNominalIdentitySetId expectedSet=recipe.admissionIdentitySet;
-    const char* layout=family==XL6_IR_COLLECTION_LIST ? "XL6_ListLayoutV1" : "XL6_SetLayoutV1";
-    const char* create=family==XL6_IR_COLLECTION_LIST ? "xl6ListCreateTakeV1" : "xl6SetCreateTakeV1";
-    const char* project=family==XL6_IR_COLLECTION_LIST ? "xl6ListProjectionTakeV1" : "xl6SetProjectionTakeV1";
+    const XL6_IrCgenValueCollectionTarget* target=xl6IrCgenValueCollectionTarget(family);
+    if (!target) return -1;
     const XL6_IrType* owner=xl6IrTypeGet(&module->types,id);
     const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
     const XL6_IrSequenceLayout* plan=&schema->sequenceLayout;
@@ -42,9 +41,9 @@ static int xl6IrCgenEmitValueCollectionTargetCreateDepth(XL6_Output* out,const X
         "      xl6_error_result xlir_value_collection_target_outcome = xl6ErrorScopeEnd(&xlir_value_collection_target_scope);\n"
         "      if (!xlir_value_collection_target_outcome.ok) xl6ErrorScopePropagateFailure(xlir_value_collection_target_outcome);\n"
         "      } else { %s = NULL; xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); } }\n",
-        layout,(unsigned long long)owner->typeValueId,(unsigned long long)schema->typeValueId,
+        target->layout,(unsigned long long)owner->typeValueId,(unsigned long long)schema->typeValueId,
         (unsigned long long)payload->typeValueId,transfer,slot,descriptor,
-        result,create,result,project,result,converter,result,result,result,result);
+        result,target->create,result,target->project,result,converter,result,result,result,result);
     /* The virtual Array witness is not a collection-chain node. Only the
      * actual projected owner is retained as this depth's transaction seed. */
     if (importChain && depth<importCount)
@@ -63,4 +62,8 @@ static int xl6IrCgenEmitListTargetCreate(XL6_Output* out,const XL6_IrModule* mod
 static int xl6IrCgenEmitSetTargetCreate(XL6_Output* out,const XL6_IrModule* module,
     XL6_IrTypeId id,const char* result,XL6_IrNominalIdentitySetId admissionSet)
 { return xl6IrCgenEmitValueCollectionTargetCreateDepth(out,module,id,XL6_IR_COLLECTION_SET,
+    result,admissionSet,0,NULL,0); }
+static int xl6IrCgenEmitDictTargetCreate(XL6_Output* out,const XL6_IrModule* module,
+    XL6_IrTypeId id,const char* result,XL6_IrNominalIdentitySetId admissionSet)
+{ return xl6IrCgenEmitValueCollectionTargetCreateDepth(out,module,id,XL6_IR_COLLECTION_DICT,
     result,admissionSet,0,NULL,0); }

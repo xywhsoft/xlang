@@ -71,6 +71,7 @@
 #include "src/runtime/xl6_set_key_policy.h"
 #include "src/runtime/xl6_set.h"
 #include "src/runtime/xl6_set_schema.h"
+#include "src/runtime/xl6_dict_schema.h"
 #include "src/runtime/xl6_set_value_iterator.h"
 #include "src/runtime/xl6_set_graph_access.h"
 #include "src/runtime/xl6_set_graph.h"
