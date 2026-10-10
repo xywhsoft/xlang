@@ -200,6 +200,7 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_list_import_chain.c"
   "$ROOT/src/runtime/xl6_list_schema.c"
   "$ROOT/src/runtime/xl6_set_key_policy.c"
+  "$ROOT/src/runtime/xl6_set.c"
   "$ROOT/src/runtime/xl6_value_index_read.c"
   "$ROOT/src/runtime/xl6_value_index_write.c"
   "$ROOT/src/runtime/xl6_value_wire_contains.c"
