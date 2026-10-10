@@ -403,7 +403,16 @@ static bool graphPlanValid(const XL6_RestorePlanV1* plan,size_t count)
                 for (size_t k=0;k<j;++k) if (keyEqual(field->target,
                     plan->fields[node->as.object.first+k].target)) return false;
             }
+            if (node->open && (!node->as.object.provider->PrepareOpen ||
+                !xl6RestoreOpenRecipeValidV1(node->open))) return false;
+            for (size_t j=0;node->open && j<node->as.object.count;++j) {
+                const XL6_RestoreFieldV1* field=&plan->fields[node->as.object.first+j];
+                if (!xl6RestoreOpenClaimsKeyV1(node->open,field->source) ||
+                    !xl6RestoreOpenClaimsKeyV1(node->open,field->target) ||
+                    keyEqual(field->target,node->open->storage)) return false;
+            }
         } else return false;
+        if (node->kind!=XL6_RESTORE_OBJECT_V1 && node->open) return false;
     }
     for (size_t i=0;i<count;++i) {
         bool used=false;
@@ -596,6 +605,19 @@ static bool restoreObject(Import* ctx,const XL6_RestorePlanV1* plan,const XL6_Re
         ok=item && restoring(ctx);
         if (ok) ok=xrtValueObjectFieldsSetTakeV1(fields,field->target,&item) && restoring(ctx);
         releasePreservingError(item); releasePreservingError(input);
+    }
+    if (ok && restoring(ctx) && node->open) {
+        xvalue* storage=NULL,*handle=NULL;
+        ok=node->as.object.provider->PrepareOpen(node->open,value,snapshot,&storage,&handle) && restoring(ctx);
+        if (ok && ((storage==NULL)!=(handle==NULL))) { xrtSetErrorKind(XERR_STATE); ok=false; }
+        if (ok && storage) {
+            xvalueobjectfieldsv1* replacement=stageFields(ctx,storage);
+            ok=replacement && restoring(ctx) &&
+                xrtValueObjectFieldsSetTakeV1(replacement,node->open->handle,&handle) && restoring(ctx) &&
+                xrtValueObjectFieldsSetTakeV1(fields,node->open->storage,&storage) && restoring(ctx);
+        }
+        if (!ok && !ctx->wireRejected) xl6ErrorScopeCaptureFailure(ctx->operation);
+        releasePreservingError(handle); releasePreservingError(storage);
     }
     if (!ok && restoring(ctx)) xrtSetErrorKind(XERR_TYPE);
     return ok && restoring(ctx);

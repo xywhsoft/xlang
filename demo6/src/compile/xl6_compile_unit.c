@@ -273,7 +273,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_array_thread_admission.c", D(R(SEQUENCE),R(THREAD)), {NULL}},
     {"src/runtime/xl6_dynamic_fields.c", D(R(FOREIGN_ERROR)),
         {"XRUNTIME_MODULE_RUNTIME_DYNAMIC_FIELD"}},
-    {"src/runtime/xl6_dynamic_fields_copy.c", D(R(DYNAMIC_FIELDS),R(ARRAY_GRAPH)), {NULL}}
+    {"src/runtime/xl6_dynamic_fields_copy.c", D(R(DYNAMIC_FIELDS),R(ARRAY_GRAPH)), {NULL}},
+    {"src/runtime/xl6_restore_open.c", D(R(RESTORE_CLASS),R(DYNAMIC_FIELDS),R(NATIVE_HANDLE),R(FOREIGN_ERROR)), {NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

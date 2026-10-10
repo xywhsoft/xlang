@@ -3,10 +3,44 @@
 #include "xl6_collection_import_chain.h"
 #include "xl6_value_admission_abi.h"
 #include "xl6_ownership_read_abi.h"
+#include <string.h>
 
 enum { XL6_RESTORE_SCALAR_V1=1, XL6_RESTORE_SEQUENCE_V1, XL6_RESTORE_OBJECT_V1 };
 enum { XL6_RESTORE_NULLABLE_V1=1u, XL6_RESTORE_FIELD_INSTANCE_V1=2u };
 enum { XL6_RESTORE_REQUIRED_V1=1u, XL6_RESTORE_IN_PLACE_V1=2u };
+/* Open storage is a separate declared clone domain. Claimed wire/runtime
+ * keys are data, including ignored fields, not generated assignment code.
+ * clone may be NULL: extra-field restoration then fails checked. */
+typedef struct XL6_RestoreOpenV1 {
+    uint64_t identity;
+    int64_t runtimeTag;
+    xstrview storage,handle;
+    size_t claimedCount;
+    const xstrview* claimed;
+    xvalue* (*clone)(const xvalue*);
+} XL6_RestoreOpenV1;
+/* Pure metadata validation, before native/declared callbacks or wire rejection.
+ * Native callers still own the validity of their counted C pointer spans. */
+static inline bool xl6RestoreOpenRecipeValidV1(const XL6_RestoreOpenV1* open)
+{
+    if (!open || !open->identity || open->runtimeTag<=0 || !open->storage.Data ||
+        !open->storage.Size || !open->handle.Data || !open->handle.Size ||
+        open->claimedCount>SIZE_MAX/sizeof(xstrview) || (open->claimedCount && !open->claimed)) return false;
+    xstrview tag=XRT_STR_LITERAL("$xlir.class.runtime-type");
+    if (open->storage.Size==tag.Size && !memcmp(open->storage.Data,tag.Data,tag.Size)) return false;
+    for (size_t i=0;i<open->claimedCount;++i)
+        if (open->claimed[i].Size && !open->claimed[i].Data) return false;
+    return true;
+}
+static inline bool xl6RestoreOpenClaimsKeyV1(const XL6_RestoreOpenV1* open,xstrview key)
+{
+    xstrview reserved[]={open->storage,XRT_STR_LITERAL("$xlir.class.runtime-type")};
+    for (size_t i=0;i<2;++i)
+        if (reserved[i].Size==key.Size && (!key.Size || !memcmp(reserved[i].Data,key.Data,key.Size))) return true;
+    for (size_t i=0;i<open->claimedCount;++i)
+        if (open->claimed[i].Size==key.Size && (!key.Size || !memcmp(open->claimed[i].Data,key.Data,key.Size))) return true;
+    return false;
+}
 /* Exact resident family predicate; never a generated/source callback. */
 typedef struct XL6_RestoreObjectProviderV1 {
     bool (*IsNative)(const xvalue*);
@@ -15,6 +49,10 @@ typedef struct XL6_RestoreObjectProviderV1 {
      * graph participant, including native children/code owners, must pass.
      * TypeId/field markers and ordinary generated callbacks are not proof. */
     bool (*OwnershipAdmits)(struct xrtownershipref);
+    /* Optional RESIDENT preparation. Outputs are independent owned storage
+     * and a fresh handle, or both NULL for no extras. No receiver write. The
+     * importer stages BOTH owning slots in its existing atomic field batch. */
+    bool (*PrepareOpen)(const XL6_RestoreOpenV1*,const xvalue*,const xvalue*,xvalue**,xvalue**);
 } XL6_RestoreObjectProviderV1;
 
 /* Closed compiler-private construction domains, not a type-name registry.
@@ -40,6 +78,7 @@ typedef struct XL6_RestoreNodeV1 {
      * returns one owned result; runs outside all ownership fences. NULL means
      * checked rejection when the actual receiver is externally shared. */
     xvalue* (*clone)(const xvalue*);
+    const XL6_RestoreOpenV1* open;
 } XL6_RestoreNodeV1;
 typedef struct XL6_RestoreFieldV1 {
     xstrview source,target;

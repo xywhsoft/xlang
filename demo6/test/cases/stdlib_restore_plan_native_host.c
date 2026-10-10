@@ -504,7 +504,7 @@ static void boundaries(void)
     }
     finalizerFailure=0;
     const XL6_RestoreObjectProviderV1 delegate={xl6RestoreClassProviderV1()->IsNative,checkedAdmission,
-        xl6RestoreClassProviderV1()->OwnershipAdmits};
+        xl6RestoreClassProviderV1()->OwnershipAdmits,NULL};
     for (admissionFailure=1;admissionFailure<=2;++admissionFailure) {
         XL6_RestoreNodeV1 nodes[3]; XL6_RestoreFieldV1 fields[3]; XL6_RestorePlanV1 p=plan(nodes,fields,false);
         nodes[0].as.object.provider=&delegate;
@@ -572,7 +572,7 @@ static void readerFailures(void)
     for (unsigned test=0;test<16;++test) {
         XL6_RestoreNodeV1 nodes[3]; XL6_RestoreFieldV1 fields[3]; XL6_RestorePlanV1 p=plan(nodes,fields,false);
         const XL6_RestoreObjectProviderV1 objectsProvider={xl6RestoreClassProviderV1()->IsNative,checkedAdmission,
-            xl6RestoreClassProviderV1()->OwnershipAdmits};
+            xl6RestoreClassProviderV1()->OwnershipAdmits,NULL};
         XL6_CollectionImportProviderV1 sequenceProvider=*xl6ListImportProviderV1(); sequenceProvider.Append=checkedAppend;
         xvalue* source=wire(),*seeds[]={seed()},*result=NULL; assert(seeds[0]);
         if (test<3) factoryFailure=test+1;

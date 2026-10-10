@@ -24,4 +24,4 @@ static bool ownershipAdmits(xrtownershipref ref)
         xrtValueCursorOwnershipAdapterV1(ref);
 }
 const XL6_RestoreObjectProviderV1* xl6RestoreClassClosedProviderV1(void)
-{ static const XL6_RestoreObjectProviderV1 provider={native,admits,ownershipAdmits}; return &provider; }
+{ static const XL6_RestoreObjectProviderV1 provider={native,admits,ownershipAdmits,NULL}; return &provider; }

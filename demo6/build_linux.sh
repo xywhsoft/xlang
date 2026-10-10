@@ -184,6 +184,7 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_array_import_chain.c"
   "$ROOT/src/runtime/xl6_restore_class.c"
   "$ROOT/src/runtime/xl6_restore_class_closed.c"
+  "$ROOT/src/runtime/xl6_restore_open.c"
   "$ROOT/src/runtime/xl6_list.c"
   "$ROOT/src/runtime/xl6_array_algebra.c"
   "$ROOT/src/runtime/xl6_array_graph.c"
