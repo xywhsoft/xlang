@@ -1,6 +1,7 @@
 #include "src/runtime/xl6_set.h"
 #include "src/runtime/xl6_set_key_policy.h"
 #include "src/runtime/xl6_array_admission.h"
+#include "src/runtime/xl6_array_reference_value.h"
 #include "src/api/xl_foreign_error.h"
 #include <limits.h>
 #include <stdlib.h>
@@ -10,6 +11,8 @@ typedef struct SetOwner {
     xatomic32 busy;
     XL6_SetLayoutV1 layout;
     XL6_SequenceAdmissionV3 policy;
+    const xvalueconverter* projection;
+    bool projected;
     xtypedset* storage;
     xtypedset* retired;
     const void* claim;
@@ -329,7 +332,7 @@ const xrtownershipadapterv1* xl6SetOwnershipAdapterV1(xrtownershipref ref)
 { return xl6SetOwnershipAdapterV2(ref,NULL,0); }
 
 static xvalue* wrap(xtypedset* storage,const XL6_SetLayoutV1* layout,XL6_SequenceAdmissionV3* policy,
-    uint64_t cursor,bool reverse)
+    uint64_t cursor,bool reverse,const xvalueconverter* projection,bool projected)
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) { destroy(storage,policy,NULL); return NULL; }
     SetOwner* owner=xrtMalloc(sizeof(*owner));
@@ -338,7 +341,8 @@ static xvalue* wrap(xtypedset* storage,const XL6_SetLayoutV1* layout,XL6_Sequenc
         xl6ErrorScopeCaptureFailure(&scope); destroy(storage,policy,NULL);
         (void)scopeFinish(&scope,true); return NULL;
     }
-    *owner=(SetOwner){.refs=1,.layout=*layout,.policy=*policy,.storage=storage,.cursorIdentity=cursor,.reverse=reverse};
+    *owner=(SetOwner){.refs=1,.layout=*layout,.policy=*policy,.storage=storage,.cursorIdentity=cursor,
+        .reverse=reverse,.projection=projection,.projected=projected};
     *policy=(XL6_SequenceAdmissionV3){0}; xrtAtomic32Init(&owner->busy,0);
     xvalue* result=xrtValueHandleTake((ptr*)&owner,&handleOps,NULL);
     if (!result) {
@@ -374,7 +378,7 @@ xvalue* xl6SetCreateTakeV1(const XL6_SetLayoutV1* layout,xvalue* witness)
         const xtypedsetkeypolicy* keys=layout->value.transfer==3 ? xl6SetReferenceKeyPolicyV1() :
             layout->value.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 ? xl6SetFutureKeyPolicyV1() : NULL;
         xtypedset* storage=keys ? xrtTypedSetCreateWithKeyPolicy(type,keys) : xrtTypedSetCreate(type);
-        if (storage) result=wrap(storage,layout,&policy,0,false);
+        if (storage) result=wrap(storage,layout,&policy,0,false,NULL,false);
     }
     if (!result) xl6ErrorScopeCaptureFailure(&scope);
     xl6SequenceAdmissionDropV3(&policy); xrtValueRelease(witness);
@@ -465,16 +469,21 @@ int64_t xl6SetCountV1(const xvalue* value,const XL6_SetLayoutV1* layout,bool cap
     if (count>INT64_MAX) xrtSetErrorKind(XERR_RANGE);
     return finish(&scope,owner,owner && count<=INT64_MAX) ? (int64_t)count : -1;
 }
+static xvalue* clonePinned(SetOwner* owner,uint64_t cursor,bool reverse,xl6_error_scope* scope)
+{
+    XL6_SequenceAdmissionV3 policy={0}; xvalue* result=NULL;
+    if (owner && owner->policy.ops->Retain(owner->policy.data)) {
+        policy=owner->policy; xtypedset* storage=xrtTypedSetClone(owner->storage);
+        if (storage) result=wrap(storage,&owner->layout,&policy,cursor,reverse,owner->projection,owner->projected);
+    }
+    if (!result) xl6ErrorScopeCaptureFailure(scope);
+    xl6SequenceAdmissionDropV3(&policy);
+    return result;
+}
 static xvalue* clone(const xvalue* value,const XL6_SetLayoutV1* layout,uint64_t cursor,bool reverse)
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return NULL;
-    SetOwner* owner=begin(value,layout,0); XL6_SequenceAdmissionV3 policy={0}; xvalue* result=NULL;
-    if (owner && owner->policy.ops->Retain(owner->policy.data)) {
-        policy=owner->policy; xtypedset* storage=xrtTypedSetClone(owner->storage);
-        if (storage) result=wrap(storage,&owner->layout,&policy,cursor,reverse);
-    }
-    if (!result) xl6ErrorScopeCaptureFailure(&scope);
-    xl6SequenceAdmissionDropV3(&policy);
+    SetOwner* owner=begin(value,layout,0); xvalue* result=clonePinned(owner,cursor,reverse,&scope);
     if (!finish(&scope,owner,result!=NULL)) { discard(result); return NULL; }
     return result;
 }
@@ -501,10 +510,8 @@ bool xl6SetMergeV1(const xvalue* target,const xvalue* source,const XL6_SetLayout
     SetOwner* a=begin(target,layout,0),*b=a ? beginOther(source,layout,a) : NULL;
     return finishPair(&scope,a,b,a && b && compatible(a,b) && xrtTypedSetMerge(a->storage,b->storage));
 }
-xvalue* xl6SetAlgebraV1(const xvalue* left,const xvalue* right,const XL6_SetLayoutV1* layout,XL6_SetAlgebraV1 operation)
+static xvalue* algebraPinned(SetOwner* a,SetOwner* b,XL6_SetAlgebraV1 operation,xl6_error_scope* scope)
 {
-    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return NULL;
-    SetOwner* a=begin(left,layout,0),*b=a ? beginOther(right,layout,a) : NULL;
     XL6_SequenceAdmissionV3 policy={0}; xtypedset* storage=NULL; xvalue* result=NULL;
     if (operation<XL6_SET_UNION_V1 || operation>XL6_SET_SYMMETRIC_DIFFERENCE_V1) xrtSetErrorKind(XERR_ARGUMENT);
     else if (a && b && compatible(a,b) && a->policy.ops->Retain(a->policy.data)) {
@@ -515,10 +522,17 @@ xvalue* xl6SetAlgebraV1(const xvalue* left,const xvalue* right,const XL6_SetLayo
         case XL6_SET_DIFFERENCE_V1: storage=xrtTypedSetDifference(a->storage,b->storage); break;
         case XL6_SET_SYMMETRIC_DIFFERENCE_V1: storage=xrtTypedSetSymmetricDifference(a->storage,b->storage); break;
         }
-        if (storage) result=wrap(storage,layout,&policy,0,false);
+        if (storage) result=wrap(storage,&a->layout,&policy,0,false,a->projection,a->projected);
     }
-    if (!result) xl6ErrorScopeCaptureFailure(&scope);
+    if (!result) xl6ErrorScopeCaptureFailure(scope);
     xl6SequenceAdmissionDropV3(&policy);
+    return result;
+}
+xvalue* xl6SetAlgebraV1(const xvalue* left,const xvalue* right,const XL6_SetLayoutV1* layout,XL6_SetAlgebraV1 operation)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return NULL;
+    SetOwner* a=begin(left,layout,0),*b=a ? beginOther(right,layout,a) : NULL;
+    xvalue* result=algebraPinned(a,b,operation,&scope);
     if (!finishPair(&scope,a,b,result!=NULL)) { discard(result); return NULL; }
     return result;
 }
@@ -529,12 +543,10 @@ xvalue* xl6SetCursorCreateV1(const xvalue* value,const XL6_SetLayoutV1* layout,u
     }
     return clone(value,layout,identity,reverse);
 }
-bool xl6SetCursorAdvanceV1(const xvalue* value,const XL6_SetLayoutV1* layout,uint64_t identity,bool* outputFound)
+static bool cursorAdvancePinned(SetOwner* owner,bool* found)
 {
-    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
-    SetOwner* owner=identity ? begin(value,layout,identity) : NULL; bool ok=false,found=false;
-    if (!identity || !outputFound) xrtSetErrorKind(XERR_ARGUMENT);
-    if (owner && outputFound && !owner->failed) {
+    bool ok=false; *found=false;
+    if (!owner->failed) {
         ok=true;
         if (!owner->ended) {
             if (!owner->started) {
@@ -543,12 +555,20 @@ bool xl6SetCursorAdvanceV1(const xvalue* value,const XL6_SetLayoutV1* layout,uin
                 owner->started=ok;
             }
             if (ok) {
-                owner->current=xrtTypedSetIterNext(&owner->iterator); ok=!xrtGetError() && !scope.failed;
-                found=ok && owner->current;
+                owner->current=xrtTypedSetIterNext(&owner->iterator); ok=!xrtGetError();
+                *found=ok && owner->current;
             }
-            if (!found) cursorEnd(owner);
+            if (!*found) cursorEnd(owner);
         }
-    } else if (owner && owner->failed) xrtSetErrorKind(XERR_STATE);
+    } else xrtSetErrorKind(XERR_STATE);
+    return ok;
+}
+bool xl6SetCursorAdvanceV1(const xvalue* value,const XL6_SetLayoutV1* layout,uint64_t identity,bool* outputFound)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    SetOwner* owner=identity ? begin(value,layout,identity) : NULL; bool found=false;
+    if (!identity || !outputFound) xrtSetErrorKind(XERR_ARGUMENT);
+    bool ok=owner && outputFound && cursorAdvancePinned(owner,&found);
     if (owner && (!ok || xrtGetError() || scope.failed)) { owner->failed=true; cursorEnd(owner); }
     ok=finish(&scope,owner,ok); if (ok) *outputFound=found; return ok;
 }
@@ -561,4 +581,261 @@ bool xl6SetCursorReadV1(const xvalue* value,const XL6_SetLayoutV1* layout,uint64
     else if (owner) xrtSetErrorKind(XERR_STATE);
     if (owner && (!ok || xrtGetError() || scope.failed)) { owner->failed=true; cursorEnd(owner); }
     return finish(&scope,owner,ok);
+}
+
+xvalue* xl6SetProjectionTakeV1(xvalue* value,const XL6_SetLayoutV1* layout,const xvalueconverter* codec)
+{
+    xl6_error_scope scope={0};
+    if (!(value ? xl6ErrorScopeBegin(&scope) : xl6ErrorScopeBeginCleanup(&scope,true))) {
+        discard(value); return NULL;
+    }
+    SetOwner* owner=begin(value,layout,0); xvalue* result=NULL;
+    if (owner) {
+        if ((codec && (codec->Context || !codec->ToTyped || !codec->FromTyped)) ||
+            (owner->layout.value.transfer==3 && codec)) xrtSetErrorKind(XERR_ARGUMENT);
+        else {
+            const xvalueconverter* selected=owner->layout.value.transfer==3 ? xl6ArrayReferenceConverterV1() : codec;
+            if (owner->projected && owner->projection!=selected) xrtSetErrorKind(XERR_STATE);
+            else { owner->projection=selected; owner->projected=true; result=xrtValueRetain(value); }
+        }
+    }
+    bool ok=finish(&scope,owner,result!=NULL);
+    /* A refused binding can retire the consumed input's last native owner.
+     * Keep that cleanup inside an explicit first-failure boundary. */
+    xl6_error_scope cleanup={0};
+    if (xl6ErrorScopeBeginCleanup(&cleanup,!ok)) {
+        xrtValueRelease(value); ok=scopeFinish(&cleanup,ok);
+    } else { discard(value); ok=false; }
+    if (!ok) { discard(result); return NULL; }
+    return result;
+}
+
+/* Only a matched resident producer authorizes payload inspection. BUSY and
+ * unbound native owners are failures, never a reason to fall back to wire. */
+static int erasedBegin(const xvalue* value,SetOwner** output,SetOwner* already)
+{
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    int status=0; SetOwner* owner=NULL; bool unbound=false;
+    xvaluetype tag=value ? xrtValueType(value) : XVALUE_NULL;
+    if (value && tag==XVALUE_INVALID) status=-1;
+    else if (tag==XVALUE_HANDLE) {
+        ptr raw=NULL,user=NULL; const xvaluehandleops* ops=NULL;
+        if (!xrtValueGetHandle(value,&raw,&ops,&user)) status=-1;
+        else if (ops==&handleOps) {
+            status=-1;
+            if (!raw || user) xrtSetErrorKind(XERR_STATE);
+            else {
+                SetOwner* candidate=raw;
+                if (candidate->cursorIdentity) xrtSetErrorKind(XERR_TYPE);
+                else if (xrtValueTypeId(value)!=candidate->layout.identity) xrtSetErrorKind(XERR_STATE);
+                else if (candidate==already) { owner=candidate; status=1; }
+                else if (pin(candidate,0)) {
+                    owner=candidate; unbound=!owner->projected; if (!unbound) status=1;
+                }
+            }
+        }
+    }
+    mutationEnd(&mutation);
+    if (unbound) { end(owner); xrtSetErrorKind(XERR_STATE); }
+    if (status==1) *output=owner;
+    return status;
+}
+static SetOwner* erased(const xvalue* value)
+{
+    SetOwner* owner=NULL; if (!erasedBegin(value,&owner,NULL)) xrtSetErrorKind(XERR_TYPE);
+    return owner;
+}
+int xl6SetErasedProbeV1(const xvalue* value)
+{
+    xrtownershipscope mutation={0}; mutationBegin(&mutation); int result=0;
+    xvaluetype tag=value ? xrtValueType(value) : XVALUE_NULL;
+    if (value && tag==XVALUE_INVALID) result=-1;
+    else if (tag==XVALUE_HANDLE) {
+        ptr raw=NULL,user=NULL; const xvaluehandleops* ops=NULL;
+        result=!xrtValueGetHandle(value,&raw,&ops,&user) ? -1 : ops==&handleOps ? 1 : 0;
+    }
+    mutationEnd(&mutation); return result;
+}
+static bool admitsValue(const SetOwner* owner,const xvalue* value)
+{
+    if (value && owner->policy.ops->Value(owner->policy.data,value)) return true;
+    if (!xrtGetError()) xrtSetErrorKind(value ? XERR_TYPE : XERR_ARGUMENT);
+    return false;
+}
+/* One synchronous checked adapter protects XRT's payload-only converter
+ * contract. It may not publish a slot/value after an absent first failure,
+ * even when the underlying callback returns true/a seemingly valid Value. */
+static bool decode(const xvalue* value,const xrttype* type,ptr output,ptr context)
+{
+    const SetOwner* owner=context; xl6_error_scope scope={0};
+    if (!xl6ErrorScopeBegin(&scope)) { callbackBeginFailure(); return false; }
+    bool ok=owner->projection->ToTyped(value,type,output,NULL) && slotAdmits(owner,output);
+    if (!scopeFinish(&scope,ok)) { callbackFailure(); return false; }
+    return true;
+}
+static xvalue* admitProjection(const SetOwner*,xvalue*,xl6_error_scope*);
+static xvalue* encode(const xrttype* type,const void* slot,ptr context)
+{
+    const SetOwner* owner=context; xl6_error_scope scope={0};
+    if (!xl6ErrorScopeBegin(&scope)) { callbackBeginFailure(); return NULL; }
+    xvalue* result=owner->projection->FromTyped(type,slot,NULL);
+    /* TakeValue commits removal only after this callback returns. Reject a
+     * wrong logical projection here, not after XRT has removed the key. */
+    result=admitProjection(owner,result,&scope);
+    if (!scopeFinish(&scope,result!=NULL)) { callbackFailure(); discard(result); return NULL; }
+    return result;
+}
+static const xvalueconverter* adapter(SetOwner* owner,xvalueconverter* codec)
+{
+    if (!owner->projection) return NULL;
+    *codec=(xvalueconverter){.ToTyped=decode,.FromTyped=encode,.Context=owner}; return codec;
+}
+static xvalue* admitProjection(const SetOwner* owner,xvalue* result,xl6_error_scope* scope)
+{
+    if (result) {
+        uint64_t identity=owner->policy.boxedIdentity; xvaluetype tag=xrtValueType(result);
+        if ((identity && tag!=XVALUE_NULL && tag!=XVALUE_BOOL && !xrtValueTypeIdBind(result,identity)) ||
+            !admitsValue(owner,result)) xl6ErrorScopeCaptureFailure(scope);
+    }
+    if (!result || xrtGetError() || scope->failed) { xl6ErrorScopeCaptureFailure(scope); discard(result); return NULL; }
+    return result;
+}
+static xvalue* projectedSlot(SetOwner* owner,const void* slot)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return NULL;
+    xvalueconverter codec={0}; xvalue* result=xrtValueFromTyped(owner->storage->ItemType,slot,adapter(owner,&codec));
+    result=admitProjection(owner,result,&scope);
+    if (!scopeFinish(&scope,result!=NULL)) { discard(result); return NULL; }
+    return result;
+}
+bool xl6SetErasedKeyV1(const xvalue* value,const xvalue* item,XL6_SetKeyActionV1 action,bool* output)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    SetOwner* owner=erased(value); bool ok=false,result=false;
+    if (!output || action<XL6_SET_ADD_V1 || action>XL6_SET_REMOVE_V1) xrtSetErrorKind(XERR_ARGUMENT);
+    else if (owner && admitsValue(owner,item) && !scope.failed && !xrtGetError()) {
+        xvalueconverter codec={0}; const xvalueconverter* selected=adapter(owner,&codec); ok=true;
+        if (action==XL6_SET_ADD_V1) {
+            /* The private operation pin excludes intervening mutation. This
+             * O(1) cardinality delta obtains 'new' without decoding twice;
+             * the XRT AddValue API already reports checked operation success. */
+            size_t before=xrtTypedSetCount(owner->storage);
+            ok=xrtTypedSetAddValue(owner->storage,item,selected);
+            if (ok && !xrtGetError() && !scope.failed) result=xrtTypedSetCount(owner->storage)>before;
+        } else if (action==XL6_SET_HAS_V1) result=xrtTypedSetHasValue(owner->storage,item,selected);
+        else result=xrtTypedSetRemoveValue(owner->storage,item,selected);
+    }
+    ok=finish(&scope,owner,ok); if (ok) *output=result; return ok;
+}
+bool xl6SetErasedReadV1(const xvalue* value,const xvalue* item,bool take,xvalue** output,bool* outputFound)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    SetOwner* owner=erased(value); xvalue* result=NULL; bool ok=false,found=false;
+    if (!output || *output || !outputFound) xrtSetErrorKind(XERR_ARGUMENT);
+    else if (owner && admitsValue(owner,item) && !scope.failed && !xrtGetError()) {
+        xvalueconverter codec={0}; const xvalueconverter* selected=adapter(owner,&codec);
+        result=take ? xrtTypedSetTakeValue(owner->storage,item,selected) : xrtTypedSetGetValue(owner->storage,item,selected);
+        found=result!=NULL; ok=!xrtGetError() && !scope.failed;
+        if (ok && found) { result=admitProjection(owner,result,&scope); ok=result!=NULL; }
+    }
+    if (!ok || xrtGetError() || scope.failed) { xl6ErrorScopeCaptureFailure(&scope); discard(result); result=NULL; }
+    if (!finish(&scope,owner,ok)) { discard(result); return false; }
+    *output=result; *outputFound=found; return true;
+}
+bool xl6SetErasedCountV1(const xvalue* value,bool capacity,int64_t* output)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    SetOwner* owner=erased(value); size_t count=owner ? (capacity ? xrtTypedSetCapacity(owner->storage) : xrtTypedSetCount(owner->storage)) : 0;
+    if (!output) xrtSetErrorKind(XERR_ARGUMENT); else if (count>INT64_MAX) xrtSetErrorKind(XERR_RANGE);
+    bool ok=finish(&scope,owner,owner && output && count<=INT64_MAX); if (ok) *output=(int64_t)count; return ok;
+}
+bool xl6SetErasedClearV1(const xvalue* value)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    SetOwner* owner=erased(value); return finish(&scope,owner,owner && xrtTypedSetClear(owner->storage));
+}
+bool xl6SetErasedReserveV1(const xvalue* value,int64_t count)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    SetOwner* owner=erased(value); bool valid=count>=0 && (uint64_t)count<=SIZE_MAX;
+    if (!valid) xrtSetErrorKind(XERR_RANGE);
+    return finish(&scope,owner,owner && valid && xrtTypedSetReserve(owner->storage,(size_t)count));
+}
+bool xl6SetErasedTrimV1(const xvalue* value)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    SetOwner* owner=erased(value); return finish(&scope,owner,owner && xrtTypedSetTrim(owner->storage));
+}
+xvalue* xl6SetErasedCloneV1(const xvalue* value)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return NULL;
+    SetOwner* owner=erased(value); xvalue* result=clonePinned(owner,0,false,&scope);
+    if (!finish(&scope,owner,result!=NULL)) { discard(result); return NULL; }
+    return result;
+}
+bool xl6SetErasedHashV1(const xvalue* value,uint64_t* output)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    SetOwner* owner=erased(value); uint64_t hash=0;
+    if (!output) xrtSetErrorKind(XERR_ARGUMENT);
+    bool ok=finish(&scope,owner,owner && output && hashPinned(owner,&hash)); if (ok) *output=hash; return ok;
+}
+bool xl6SetErasedRelationV1(const xvalue* left,const xvalue* right,XL6_SetRelationV1 relation,bool proper,bool* output)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    SetOwner* a=erased(left),*b=NULL; bool ok=false,result=false;
+    if (a) (void)erasedBegin(right,&b,a);
+    if (!output || relation<XL6_SET_EQUALS_V1 || relation>XL6_SET_DISJOINT_V1 ||
+        (proper && (relation==XL6_SET_EQUALS_V1 || relation==XL6_SET_DISJOINT_V1))) xrtSetErrorKind(XERR_ARGUMENT);
+    else if (a && b && compatible(a,b)) {
+        ok=true;
+        switch (relation) {
+        case XL6_SET_EQUALS_V1: ok=equalPinned(a,b,&result); break;
+        case XL6_SET_SUBSET_V1: result=xrtTypedSetIsSubset(a->storage,b->storage,proper); break;
+        case XL6_SET_SUPERSET_V1: result=xrtTypedSetIsSuperset(a->storage,b->storage,proper); break;
+        case XL6_SET_DISJOINT_V1: result=xrtTypedSetIsDisjoint(a->storage,b->storage); break;
+        }
+    }
+    ok=finishPair(&scope,a,b,ok); if (ok) *output=result; return ok;
+}
+bool xl6SetErasedMergeV1(const xvalue* target,const xvalue* source)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    SetOwner* a=erased(target),*b=NULL; if (a) (void)erasedBegin(source,&b,a);
+    return finishPair(&scope,a,b,a && b && compatible(a,b) && xrtTypedSetMerge(a->storage,b->storage));
+}
+xvalue* xl6SetErasedAlgebraV1(const xvalue* left,const xvalue* right,XL6_SetAlgebraV1 operation)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return NULL;
+    SetOwner* a=erased(left),*b=NULL; if (a) (void)erasedBegin(right,&b,a);
+    xvalue* result=algebraPinned(a,b,operation,&scope);
+    if (!finishPair(&scope,a,b,result!=NULL)) { discard(result); return NULL; }
+    return result;
+}
+int xl6SetIteratorSnapshotErasedV1(const xvalue* value,bool reverse,xvalue** output,XL6_SetLayoutV1* outputLayout,uint64_t* outputIdentity)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return -1;
+    SetOwner* owner=NULL; int status=erasedBegin(value,&owner,NULL);
+    if (status!=1) return finish(&scope,NULL,status==0) && status==0 ? 0 : -1;
+    XL6_SetLayoutV1 layout=owner->layout; uint64_t identity=layout.identity;
+    do { ++identity; } while (!identity || identity==layout.identity || identity==layout.value.identity);
+    xvalue* result=NULL;
+    if (!output || *output || !outputLayout || !outputIdentity) xrtSetErrorKind(XERR_ARGUMENT);
+    else result=clonePinned(owner,identity,reverse,&scope);
+    if (!finish(&scope,owner,result!=NULL)) { discard(result); return -1; }
+    *output=result; *outputLayout=layout; *outputIdentity=identity; return 1;
+}
+bool xl6SetIteratorAdvanceValueV1(const xvalue* value,const XL6_SetLayoutV1* layout,uint64_t identity,bool* outputFound,xvalue** output)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    SetOwner* owner=identity ? begin(value,layout,identity) : NULL; bool ok=false,found=false; xvalue* result=NULL;
+    if (!identity || !outputFound || !output || *output) xrtSetErrorKind(XERR_ARGUMENT);
+    else if (owner && !owner->projected) xrtSetErrorKind(XERR_STATE);
+    else if (owner) {
+        ok=cursorAdvancePinned(owner,&found);
+        if (ok && found) { result=projectedSlot(owner,owner->current); ok=result!=NULL; }
+    }
+    if (owner && (!ok || xrtGetError() || scope.failed)) { owner->failed=true; cursorEnd(owner); }
+    if (!finish(&scope,owner,ok)) { discard(result); return false; }
+    *outputFound=found; *output=result; return true;
 }

@@ -1,5 +1,6 @@
 /* Genuine supplier storage, value domains and ownership graph. */
 #define XRUNTIME_MODULE_TYPED_SET
+#define XRUNTIME_MODULE_TYPED_SET_VALUE
 #define XRUNTIME_MODULE_TYPED_ARRAY
 #define XRUNTIME_MODULE_TYPED_STACK
 #define XRUNTIME_MODULE_RUNTIME_VALUE_TYPE

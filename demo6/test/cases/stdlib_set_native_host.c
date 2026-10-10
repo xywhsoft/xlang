@@ -9,11 +9,12 @@
 #include <string.h>
 
 enum { SET=0xD710,DOMAIN=0xD711,ELEMENT=0xD712,CURSOR=0xD713 };
-static int entryFailure,cleanupFailure;
+static int entryFailure,cleanupFailure,entrySkip;
 extern bool __real_xl6ErrorScopeBegin(xl6_error_scope*);
 extern bool __real_xl6ErrorScopeBeginCleanup(xl6_error_scope*,bool);
 bool __wrap_xl6ErrorScopeBegin(xl6_error_scope* scope)
 {
+    if (entryFailure && entrySkip>0) { --entrySkip; return __real_xl6ErrorScopeBegin(scope); }
     if (entryFailure) { int fail=entryFailure; entryFailure=0;
         if (fail>0) xrtSetErrorKind(XERR_MEMORY); else xrtClearError(); return false; }
     return __real_xl6ErrorScopeBegin(scope);
@@ -279,6 +280,237 @@ static void cleanup(void)
         assert(fail<0 ? !result.error : result.error && xrtErrorKind(result.error)==XERR_MEMORY); xrtErrorFree(result.error);
     }
 }
+static xvalue* projectedCreate(const XL6_SetLayoutV1* tuple,unsigned rule,const xvalueconverter* codec)
+{
+    xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
+    xvalue* raw=create(tuple,rule); if (!raw) xl6ErrorScopeCaptureFailure(&scope);
+    xvalue* result=xl6SetProjectionTakeV1(raw,tuple,codec);
+    if (!result) xl6ErrorScopeCaptureFailure(&scope);
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope); if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
+    return result;
+}
+static void erasedMethods(void)
+{
+    XL6_SetLayoutV1 tuple=layout(1,xrtTypeInt64()); xvalue* set=projectedCreate(&tuple,XL6_VALUE_ADMIT_I64,NULL); assert(set);
+    xvalue* item=xrtValueInt(INT64_MIN),*other=xrtValueInt(INT64_MAX); assert(item && other);
+    bool result=false; int64_t count=-1;
+    assert(xl6SetErasedKeyV1(set,item,XL6_SET_ADD_V1,&result) && result);
+    assert(xl6SetErasedKeyV1(set,item,XL6_SET_ADD_V1,&result) && !result);
+    assert(xl6SetErasedKeyV1(set,other,XL6_SET_HAS_V1,&result) && !result);
+    assert(xl6SetErasedReserveV1(set,30) && xl6SetErasedCountV1(set,true,&count) && count>=30);
+    xvalue* read=NULL; assert(xl6SetErasedReadV1(set,item,false,&read,&result) && result && read);
+    int64_t number=0; assert(xrtValueGetInt(read,&number) && number==INT64_MIN && xrtValueTypeId(read)==ELEMENT); xrtValueRelease(read); read=NULL;
+    assert(xl6SetErasedReadV1(set,other,false,&read,&result) && !result && !read);
+    xvalue* copy=xl6SetErasedCloneV1(set); assert(copy);
+    assert(xl6SetErasedRelationV1(set,copy,XL6_SET_EQUALS_V1,false,&result) && result);
+    assert(xl6SetErasedRelationV1(set,copy,XL6_SET_SUBSET_V1,true,&result) && !result);
+    assert(xl6SetErasedKeyV1(copy,other,XL6_SET_ADD_V1,&result) && result);
+    assert(xl6SetErasedRelationV1(set,copy,XL6_SET_SUBSET_V1,true,&result) && result);
+    assert(xl6SetErasedRelationV1(copy,set,XL6_SET_SUPERSET_V1,false,&result) && result);
+    assert(xl6SetErasedRelationV1(copy,set,XL6_SET_DISJOINT_V1,false,&result) && !result);
+    uint64_t hash=0; assert(xl6SetErasedHashV1(set,&hash));
+    for (unsigned op=1;op<=4;++op) {
+        xvalue* combined=xl6SetErasedAlgebraV1(copy,set,(XL6_SetAlgebraV1)op); assert(combined);
+        assert(xl6SetErasedCountV1(combined,false,&count) && count==(op==1 ? 2 : 1)); xrtValueRelease(combined);
+    }
+    assert(xl6SetErasedMergeV1(set,copy) && xl6SetErasedMergeV1(set,set));
+    assert(xl6SetErasedReadV1(set,item,true,&read,&result) && result && read); xrtValueRelease(read);
+    assert(xl6SetErasedKeyV1(set,item,XL6_SET_REMOVE_V1,&result) && !result);
+    assert(xl6SetErasedClearV1(set) && xl6SetErasedTrimV1(set));
+    xrtValueRelease(copy); xrtValueRelease(other); xrtValueRelease(item); xrtValueRelease(set);
+    /* Same physical descriptor and owner IDs do not grant another rule. */
+    set=projectedCreate(&tuple,XL6_VALUE_ADMIT_I8,NULL); assert(set); item=xrtValueInt(128); result=true;
+    assert(!xl6SetErasedKeyV1(set,item,XL6_SET_ADD_V1,&result) && result); xrtClearError();
+    xrtValueRelease(item); xrtValueRelease(set);
+}
+static void erasedReferences(void)
+{
+    XL6_SetLayoutV1 tuple=layout(3,xrtTypeValue()); xvalue* set=projectedCreate(&tuple,XL6_VALUE_ADMIT_ANY,NULL); assert(set);
+    xvalue* item=xrtValueArray(),*same=xrtValueBytes((xbytesview){(const uint8*)"a\0b",3}); assert(item && same);
+    bool found=false; assert(xl6SetErasedKeyV1(set,item,XL6_SET_ADD_V1,&found) && found);
+    assert(xrtValueArrayAppend(item,same)); assert(xl6SetErasedKeyV1(set,item,XL6_SET_HAS_V1,&found) && found);
+    xvalue* out=NULL; assert(xl6SetErasedReadV1(set,item,false,&out,&found) && found && out==item); xrtValueRelease(out);
+    assert(xl6SetErasedKeyV1(set,same,XL6_SET_ADD_V1,&found) && found);
+    xvalue* twin=xrtValueBytes((xbytesview){(const uint8*)"a\0b",3}); assert(twin);
+    assert(xl6SetErasedKeyV1(set,twin,XL6_SET_ADD_V1,&found) && !found);
+    xrtValueRelease(twin); xrtValueRelease(same); xrtValueRelease(item); xrtValueRelease(set);
+    tuple=layout(4,xrtTypeFuture()); set=projectedCreate(&tuple,0,NULL); assert(set);
+    xfuture* future=NULL; xpromise* promise=xrtPromiseCreate(&future,NULL); assert(promise);
+    item=xrtValueFuture(future); assert(item && xrtValueTypeIdBind(item,ELEMENT));
+    assert(xl6SetErasedKeyV1(set,item,XL6_SET_ADD_V1,&found) && found);
+    assert(xrtPromiseResolve(promise,NULL) && xl6SetErasedKeyV1(set,item,XL6_SET_HAS_V1,&found) && found);
+    out=NULL; assert(xl6SetErasedReadV1(set,item,false,&out,&found) && found && xrtValueGetFuture(out)==future && xrtValueTypeId(out)==ELEMENT);
+    xrtValueRelease(out); xrtValueRelease(item); xrtValueRelease(set); xrtPromiseDestroy(promise); xrtFutureDestroy(future);
+}
+static xvalue* codecOwner; static unsigned codecMode;
+static bool codecDecode(const xvalue* value,const xrttype* type,ptr output,ptr context)
+{
+    assert(!context); bool ok=xl6StringConverterV1()->ToTyped(value,type,output,NULL);
+    if (codecMode==1) xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL});
+    if (codecMode==3) {
+        xl6_error_scope probe={0}; assert(xl6ErrorScopeBegin(&probe)); int64_t count=99;
+        assert(!xl6SetErasedCountV1(codecOwner,false,&count) && count==99);
+        xl6_error_result rejected=xl6ErrorScopeEnd(&probe);
+        assert(!rejected.ok && rejected.error && xrtErrorKind(rejected.error)==XERR_STATE);
+        xrtErrorFree(rejected.error); /* Consume the deliberately handled probe. */
+    }
+    return ok;
+}
+static xvalue* codecEncode(const xrttype* type,const void* slot,ptr context)
+{
+    assert(!context); xvalue* result=codecMode==4 ? xrtValueInt(0) : xl6StringConverterV1()->FromTyped(type,slot,NULL);
+    if (codecMode==2) xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL});
+    return result;
+}
+static const xvalueconverter faultCodec={.ToTyped=codecDecode,.FromTyped=codecEncode};
+static bool retainForeign(ptr item,ptr* output,ptr context) { (void)context; *output=item; return true; }
+static void dropForeign(ptr item,ptr context) { (void)item; (void)context; }
+static const xvaluehandleops foreignOps={retainForeign,dropForeign,NULL,NULL};
+static void erasedErrors(void)
+{
+    XL6_SetLayoutV1 tuple=layout(2,xl6StringTypeV1()); codecOwner=projectedCreate(&tuple,XL6_VALUE_ADMIT_STRING,&faultCodec); assert(codecOwner);
+    xvalue* item=xrtValueString((xstrview){"a\0b",3}); assert(item); bool changed=true;
+    for (unsigned lane=0;lane<2;++lane) {
+        xl6_error_scope parent={0}; assert(xl6ErrorScopeBegin(&parent));
+        codecMode=lane ? 0 : 1; if (lane) { entrySkip=1; entryFailure=-1; }
+        assert(!xl6SetErasedKeyV1(codecOwner,item,XL6_SET_ADD_V1,&changed) && changed);
+        xl6ErrorScopeCaptureFailure(&parent); xl6_error_result result=xl6ErrorScopeEnd(&parent); assert(!result.ok && !result.error);
+        int64_t count=-1; assert(xl6SetErasedCountV1(codecOwner,false,&count) && count==0); xrtClearError();
+    }
+    codecMode=3; assert(xl6SetErasedKeyV1(codecOwner,item,XL6_SET_ADD_V1,&changed) && changed); codecMode=2;
+    xl6_error_scope parent={0}; assert(xl6ErrorScopeBegin(&parent)); xvalue* out=NULL; bool found=true;
+    assert(!xl6SetErasedReadV1(codecOwner,item,false,&out,&found) && !out && found);
+    xl6ErrorScopeCaptureFailure(&parent); xl6_error_result result=xl6ErrorScopeEnd(&parent); assert(!result.ok && !result.error);
+    codecMode=4; assert(!xl6SetErasedReadV1(codecOwner,item,true,&out,&found) && !out); xrtClearError();
+    int64_t retained=-1; assert(xl6SetErasedCountV1(codecOwner,false,&retained) && retained==1);
+    codecMode=0;
+    xvalue* cursor=NULL; XL6_SetLayoutV1 cursorLayout={0}; uint64_t identity=0;
+    assert(xl6SetIteratorSnapshotErasedV1(codecOwner,false,&cursor,&cursorLayout,&identity)==1);
+    codecMode=2; assert(!xl6SetIteratorAdvanceValueV1(cursor,&cursorLayout,identity,&found,&out) && !out); xrtClearError(); codecMode=0;
+    assert(!xl6SetIteratorAdvanceValueV1(cursor,&cursorLayout,identity,&found,&out)); xrtClearError(); xrtValueRelease(cursor);
+    xrtValueRelease(item); xrtValueRelease(codecOwner); codecOwner=NULL;
+    /* Foreign same-tag/type handles with an invalid payload must never be cast. */
+    ptr raw=(ptr)(uintptr_t)1; xvalue* foreign=xrtValueHandleTake(&raw,&foreignOps,NULL); assert(foreign && xrtValueTypeIdBind(foreign,SET));
+    xrtSetErrorKind(XERR_ARGUMENT); const xerror* prior=xrtGetError(); assert(!xl6SetErasedProbeV1(foreign) && xrtGetError()==prior); xrtClearError();
+    int64_t count=99; assert(!xl6SetErasedCountV1(foreign,false,&count) && count==99); xrtClearError(); xrtValueRelease(foreign);
+    xvalue* unbound=create(&tuple,XL6_VALUE_ADMIT_STRING); assert(unbound && xl6SetErasedProbeV1(unbound)==1);
+    assert(!xl6SetErasedCountV1(unbound,false,&count) && count==99); xrtClearError(); xrtValueRelease(unbound);
+}
+static void erasedIterator(void)
+{
+    XL6_SetLayoutV1 tuple=layout(2,xl6StringTypeV1());
+    for (unsigned reverse=0;reverse<2;++reverse) {
+        xvalue* set=projectedCreate(&tuple,XL6_VALUE_ADMIT_STRING,xl6StringConverterV1()); assert(set);
+        xvalue* a=xrtValueString((xstrview){"a\0b",3}),*b=xrtValueString((xstrview){"z",1}); assert(a && b);
+        bool found=false; assert(xl6SetErasedKeyV1(set,a,XL6_SET_ADD_V1,&found) && xl6SetErasedKeyV1(set,b,XL6_SET_ADD_V1,&found));
+        xvalue* cursor=NULL; XL6_SetLayoutV1 schema={0}; uint64_t identity=0;
+        assert(xl6SetIteratorSnapshotErasedV1(set,reverse,&cursor,&schema,&identity)==1);
+        assert(xl6SetErasedClearV1(set)); xrtValueRelease(set);
+        for (unsigned i=0;i<2;++i) { xvalue* out=NULL; assert(xl6SetIteratorAdvanceValueV1(cursor,&schema,identity,&found,&out) && found && out);
+            assert(xrtValueEqual(out,((i+reverse)%2) ? b : a)); xrtValueRelease(out); }
+        xvalue* out=NULL; assert(xl6SetIteratorAdvanceValueV1(cursor,&schema,identity,&found,&out) && !found && !out);
+        assert(xl6SetIteratorAdvanceValueV1(cursor,&schema,identity,&found,&out) && !found && !out);
+        xrtValueRelease(cursor); xrtValueRelease(b); xrtValueRelease(a);
+    }
+}
+static void projectionContracts(void)
+{
+    XL6_SetLayoutV1 tuple=layout(2,xl6StringTypeV1());
+    xvalue* set=projectedCreate(&tuple,XL6_VALUE_ADMIT_STRING,xl6StringConverterV1()); assert(set);
+    xvalue* same=xl6SetProjectionTakeV1(xrtValueRetain(set),&tuple,xl6StringConverterV1()); assert(same==set); xrtValueRelease(same);
+    assert(!xl6SetProjectionTakeV1(xrtValueRetain(set),&tuple,&faultCodec)); xrtClearError();
+    int64_t count=-1; assert(xl6SetErasedCountV1(set,false,&count) && count==0);
+    xvalueconverter invalid=*xl6StringConverterV1(); invalid.Context=&tuple;
+    assert(!xl6SetProjectionTakeV1(xrtValueRetain(set),&tuple,&invalid)); xrtClearError();
+    invalid.Context=NULL; invalid.FromTyped=NULL;
+    assert(!xl6SetProjectionTakeV1(xrtValueRetain(set),&tuple,&invalid)); xrtClearError();
+    for (int fail=-1;fail<=1;fail+=2) {
+        xl6_error_scope parent={0}; assert(xl6ErrorScopeBegin(&parent)); entryFailure=fail;
+        assert(!xl6SetProjectionTakeV1(xrtValueRetain(set),&tuple,xl6StringConverterV1()));
+        xl6ErrorScopeCaptureFailure(&parent); xl6_error_result r=xl6ErrorScopeEnd(&parent);
+        assert(!r.ok && (fail<0 ? !r.error : r.error && xrtErrorKind(r.error)==XERR_MEMORY)); xrtErrorFree(r.error);
+        assert(xl6SetErasedCountV1(set,false,&count) && count==0);
+        assert(xl6ErrorScopeBegin(&parent)); cleanupFailure=fail;
+        assert(!xl6SetProjectionTakeV1(xrtValueRetain(set),&tuple,xl6StringConverterV1()));
+        xl6ErrorScopeCaptureFailure(&parent); r=xl6ErrorScopeEnd(&parent);
+        assert(!r.ok && (fail<0 ? !r.error : r.error && xrtErrorKind(r.error)==XERR_MEMORY)); xrtErrorFree(r.error);
+        assert(xl6SetErasedCountV1(set,false,&count) && count==0);
+    }
+    bool unchanged=true;
+    assert(!xl6SetErasedRelationV1(set,set,XL6_SET_EQUALS_V1,true,&unchanged) && unchanged); xrtClearError();
+    assert(!xl6SetErasedKeyV1(set,NULL,XL6_SET_ADD_V1,&unchanged) && unchanged); xrtClearError();
+    assert(!xl6SetErasedReserveV1(set,-1)); xrtClearError(); xrtValueRelease(set);
+    tuple=layout(2,xl6NullableStringTypeV1()); tuple.value.elementIdentity=ELEMENT+1;
+    xvalue* witness=xl6SequencePrimitiveCreateV1(1,DOMAIN,ELEMENT+1,2,tuple.value.size,tuple.value.type,XL6_VALUE_ADMIT_STRING,true,ELEMENT);
+    assert(witness); set=xl6SetProjectionTakeV1(xl6SetCreateTakeV1(&tuple,witness),&tuple,xl6NullableStringConverterV1()); assert(set);
+    xvalue* empty=xrtValueString((xstrview){"",0}); assert(empty);
+    assert(xl6SetErasedKeyV1(set,xrtValueNull(),XL6_SET_ADD_V1,&unchanged) && unchanged);
+    assert(xl6SetErasedKeyV1(set,empty,XL6_SET_ADD_V1,&unchanged) && unchanged);
+    xvalue* out=NULL; bool found=false;
+    assert(xl6SetErasedReadV1(set,xrtValueNull(),true,&out,&found) && found && xrtValueType(out)==XVALUE_NULL); xrtValueRelease(out); out=NULL;
+    assert(xl6SetErasedReadV1(set,empty,false,&out,&found) && found && xrtValueType(out)==XVALUE_STRING && xrtValueTypeId(out)==ELEMENT);
+    xrtValueRelease(out); xrtValueRelease(empty); xrtValueRelease(set);
+    tuple=layout(1,xl6CharTypeV1()); set=projectedCreate(&tuple,XL6_VALUE_ADMIT_CHAR,xl6CharConverterV1()); assert(set);
+    xvalue* ch=xrtValueChar(0x4f60); assert(ch && xl6SetErasedKeyV1(set,ch,XL6_SET_ADD_V1,&unchanged));
+    out=NULL; assert(xl6SetErasedReadV1(set,ch,true,&out,&found) && found && xrtValueTypeId(out)==ELEMENT && xrtValueEqual(out,ch));
+    xrtValueRelease(out); xrtValueRelease(ch); xrtValueRelease(set);
+}
+/* The boxed operation lanes cover their own entire allocation prefixes. They
+ * are not inferred from the earlier raw-slot tests or a first-hit sample. */
+static void erasedPrefixes(void)
+{
+    size_t attempts=0;
+    for (unsigned lane=0;lane<17;++lane) {
+        bool complete=false;
+        for (size_t point=0;point<1024;++point) {
+            xl6ProductMemoryBegin(SIZE_MAX);
+            XL6_SetLayoutV1 tuple=layout(2,xl6StringTypeV1());
+            xvalue* a=projectedCreate(&tuple,XL6_VALUE_ADMIT_STRING,xl6StringConverterV1()),*b=projectedCreate(&tuple,XL6_VALUE_ADMIT_STRING,xl6StringConverterV1()); assert(a && b);
+            xvalue* key=xrtValueString((xstrview){"a\0b",3}),*other=xrtValueString((xstrview){"x\0y",3}); assert(key && other);
+            bool changed=false; assert(xl6SetErasedKeyV1(a,key,XL6_SET_ADD_V1,&changed) && changed);
+            assert(xl6SetErasedKeyV1(b,other,XL6_SET_ADD_V1,&changed) && changed);
+            xvalue* cursor=NULL; XL6_SetLayoutV1 schema={0}; uint64_t identity=0;
+            if (lane==12) assert(xl6SetIteratorSnapshotErasedV1(a,false,&cursor,&schema,&identity)==1);
+            xfuture* future=NULL; xpromise* promise=NULL; xvalue* special=NULL,*query=NULL;
+            if (lane>=15) {
+                XL6_SetLayoutV1 specialized=lane==15 ? layout(3,xrtTypeValue()) : layout(4,xrtTypeFuture());
+                special=projectedCreate(&specialized,lane==15 ? XL6_VALUE_ADMIT_ANY : 0,NULL); assert(special);
+                if (lane==15) query=xrtValueArray();
+                else { promise=xrtPromiseCreate(&future,NULL); assert(promise); query=xrtValueFuture(future); assert(query && xrtValueTypeIdBind(query,ELEMENT)); }
+                assert(query && xl6SetErasedKeyV1(special,query,XL6_SET_ADD_V1,&changed) && changed);
+            }
+            xvalue* result=NULL; bool success=false,found=true; assert(xrtMemDebugFailAfter(point));
+            switch (lane) {
+            case 0: result=projectedCreate(&tuple,XL6_VALUE_ADMIT_STRING,xl6StringConverterV1()); success=result!=NULL; break;
+            case 1: success=xl6SetErasedKeyV1(a,other,XL6_SET_ADD_V1,&found); break;
+            case 2: success=xl6SetErasedKeyV1(a,key,XL6_SET_HAS_V1,&found); break;
+            case 3: case 4: success=xl6SetErasedReadV1(a,key,lane==4,&result,&found); break;
+            case 5: success=xl6SetErasedKeyV1(a,key,XL6_SET_REMOVE_V1,&found); break;
+            case 6: result=xl6SetErasedCloneV1(a); success=result!=NULL; break;
+            case 7: case 8: case 9: case 10: result=xl6SetErasedAlgebraV1(a,b,(XL6_SetAlgebraV1)(lane-6)); success=result!=NULL; break;
+            case 11: success=xl6SetIteratorSnapshotErasedV1(a,false,&result,&schema,&identity)==1; break;
+            case 12: success=xl6SetIteratorAdvanceValueV1(cursor,&schema,identity,&found,&result); break;
+            case 13: success=xl6SetErasedReserveV1(a,80); break;
+            case 14: success=xl6SetErasedMergeV1(a,b); break;
+            case 15: case 16: success=xl6SetErasedReadV1(special,query,false,&result,&found); break;
+            }
+            bool hit=xl6ProductMemoryEnd(); ++attempts;
+            assert(hit ? !success : success); xrtClearError();
+            int64_t count=-1; assert(xl6SetErasedCountV1(b,false,&count) && count==1);
+            if (hit) {
+                assert(xl6SetErasedCountV1(a,false,&count) && count==1 && !result && found);
+                if (lane==12) { assert(!xl6SetIteratorAdvanceValueV1(cursor,&schema,identity,&found,&result) && !result); xrtClearError(); }
+            } else if (lane==3 || lane==4 || lane==12) assert(found && result && xrtValueEqual(result,key));
+            if (special) assert(xl6SetErasedCountV1(special,false,&count) && count==1);
+            xrtValueRelease(result); xrtValueRelease(cursor); xrtValueRelease(special); xrtValueRelease(query);
+            xrtPromiseDestroy(promise); xrtFutureDestroy(future);
+            xrtValueRelease(other); xrtValueRelease(key); xrtValueRelease(b); xrtValueRelease(a); xrtClearError(); xl6ProductMemoryVerify();
+            if (!hit) { complete=true; printf("erased-set lane=%u attempts=%zu first-no-hit=%zu\n",lane,point+1,point); break; }
+        }
+        assert(complete);
+    }
+    printf("erased-set full-prefix-attempts=%zu\n",attempts);
+}
 /* Each allocation attempt verifies inputs, cleans every published output,
  * then closes its own real debug allocation ledger. No first-hit shortcut. */
 static void prefixes(void)
@@ -318,5 +550,6 @@ int main(void)
     assert(xrtMemDebugEnable(true)); xl6_error_scope warm={0}; assert(xl6ErrorScopeBegin(&warm) && xl6ErrorScopeEnd(&warm).ok);
     XL6_CollectionIdentityFrameV1 frame={0}; assert(xl6CollectionIdentityEnterV1(&frame)); xl6CollectionIdentityLeaveV1(&frame);
     xl6ProductMemoryBegin(SIZE_MAX); integers(); profiles(); optionalProfiles(); cursors(); references(); graph(); futures(); rejected(); cleanup();
-    assert(!xrtGetError()); xl6ProductMemoryVerify(); prefixes(); puts("[PASS] genuine resident typed Set"); return 0;
+    erasedMethods(); erasedReferences(); erasedIterator(); erasedErrors(); projectionContracts();
+    assert(!xrtGetError()); xl6ProductMemoryVerify(); prefixes(); erasedPrefixes(); puts("[PASS] genuine resident typed Set"); return 0;
 }

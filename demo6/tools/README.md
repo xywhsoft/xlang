@@ -823,4 +823,4 @@ This boundary batch does not complete Array carrier migration or the 53-module g
 - `check_stdlib_set_keys.py`：严格 C O0/O2 的驻留 Set Eq/Hash 能力，精确文本/bytes/null、可变引用身份与 COW 修改、Future 身份、checked 无诊断失败、无内容回调、完整 OOM 前缀与真实实现变异。不是语言 Set/Dict carrier 或发布总验收。
 - `sync_xruntime_typed_set.py`：仅同步精确供应方基线的 typed_set 公共和实现段，并重建快照元数据、符号与能力矩阵；不迁移 Core 时间 ABI。
 
-- `check_stdlib_set_native.py`：真实 typed Set owner 与驻留类型准入，严格 C O0/O2、精确基本／nullable／原生宽度、集合代数、快照、循环拥有图、Future、首错和清理边界、完整 OOM 前缀及四个已编译实现变异；可选 Linux ASan/UBSan。不是语言 carrier 或发布总验收。
+- `check_stdlib_set_native.py`：真实 typed Set owner 与驻留完整域投影，严格 C O0/O2、精确基本／nullable／原生宽度、集合代数、boxed 方法、快照、循环拥有图、Future、首错和清理边界、11 条 raw-slot 与 17 条 boxed 完整 OOM 前缀及八个已编译实现变异；可选 Linux ASan/UBSan。不是语言 carrier 或发布总验收。
