@@ -62,6 +62,24 @@ class SnapshotSectionTests(unittest.TestCase):
         expected = block(lines).replace("old line 11", "existing snapshot content")
         self.assertEqual(replace(current, self.old, block(lines), "public", "include/xrt/value.h"), expected)
 
+    def test_internal_boundary_not_part_of_public_section(self):
+        old=self.old.replace("public: include/xrt/next.h", "internal: src/internal/next.h")
+        new=self.new.replace("public: include/xrt/next.h", "internal: src/internal/next.h")
+        self.assertEqual(replace(old,old,new,"public","include/xrt/value.h"),new)
+
+    def test_terminal_runtime_source_requires_exact_footer_and_opt_in(self):
+        marker=("/* ========================================================================== */\n"
+            "/* source: extlibs/xruntime/src/runtime/runtime_dynamic_field.c */\n"
+            "/* ========================================================================== */\n")
+        name="extlibs/xruntime/src/runtime/runtime_dynamic_field.c"
+        footer="\n#endif\n#endif\n\n#endif\n"
+        old=marker+"old body\n"+footer; new=marker+"new body\n"+footer
+        with self.assertRaises(ValueError): replace(old,old,new,"source",name)
+        self.assertEqual(replace(old,old,new,"source",name,True),new)
+        self.assertEqual(replace(new,old,new,"source",name,True),new)
+        with self.assertRaises(ValueError): replace(old,old,new+"product drift\n","source",name,True)
+        with self.assertRaises(ValueError): replace(old.replace("old body","conflict"),old,new,"source",name,True)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -49004,6 +49004,17 @@ XRT_API xrtdynamicfields* xrtDynamicFieldsCreate(void);
 XRT_API xrtdynamicfields* xrtDynamicFieldsRef(xrtdynamicfields* pFields);
 XRT_API void xrtDynamicFieldsUnref(xrtdynamicfields* pFields);
 
+/* Physical owning node: real object RC, one edge per stored Value slot.
+ * Count/Trace/admission require the caller's ownership freeze or equivalent
+ * complete quiescence. Public APIs participate, but raw payload/typed-dict
+ * access still needs enclosing participation and caller serialization.
+ * No callbacks are retained. The adapter uses core V1 phased retirement;
+ * Finish/drop must run outside any inherited freeze/mutation. Weak promotion
+ * is quarantined by Claim; abort restores it, Clear permanently retires it.
+ * This does not itself collect cycles, unload code or restore Open objects. */
+XRT_API xrtownershipref xrtDynamicFieldsOwnership(const xrtdynamicfields* pFields);
+XRT_API const xrtownershipadapterv1* xrtDynamicFieldsOwnershipAdapterV1(xrtownershipref Reference);
+
 
 
 /* 返回字段数量、容量，并管理字段表存储。 */
