@@ -375,17 +375,32 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             if (node->abi==XL6_IR_RESTORE_NODE_ARRAY &&
                 (!visitor(context,"xl6ArrayProjectionTakeV1") ||
                  !xl6IrCgenVisitSequenceFactorySymbols(module,node->payloadType,visitor,context,0,true))) return 0;
-            if (node->abi==XL6_IR_RESTORE_NODE_LIST) {
-                XL6_IrTypeId schema=XL6_IR_TYPE_INVALID;
-                if (!xl6IrListConstructionRecipe(module,node->payloadType,&schema,NULL) ||
-                    !visitor(context,"xl6ListCreateTakeV1") || !visitor(context,"xl6ListProjectionTakeV1") ||
+            if (node->abi==XL6_IR_RESTORE_NODE_LIST || node->abi==XL6_IR_RESTORE_NODE_SET) {
+                XL6_IrValueCollectionRecipe recipe={0}; bool list=node->abi==XL6_IR_RESTORE_NODE_LIST;
+                if (!xl6IrValueCollectionConstructionRecipe(module,node->payloadType,&recipe) ||
+                    !visitor(context,list ? "xl6ListCreateTakeV1" : "xl6SetCreateTakeV1") ||
+                    !visitor(context,list ? "xl6ListProjectionTakeV1" : "xl6SetProjectionTakeV1") ||
                     !visitor(context,"xl6ArrayProjectionTakeV1") ||
-                    !visitor(context,"xl6ListImportProviderV1") ||
-                    !xl6IrCgenVisitSequenceFactorySymbols(module,schema,visitor,context,0,true)) return 0;
+                    !visitor(context,list ? "xl6ListImportProviderV1" : "xl6SetImportProviderV1") ||
+                    !xl6IrCgenVisitSequenceFactorySymbols(module,recipe.valueSchemaType,visitor,context,0,true)) return 0;
             }
             const char* isolation=xl6IrCgenRestoreIsolationSymbol(module,node->payloadType,node->isolationAbi);
             if (isolation && !visitor(context,isolation)) return 0;
         }
+    }
+    for (size_t i=0;i<module->types.count;++i) {
+        XL6_IrCollectionCarrierAbi carrier=module->types.items[i].persistenceRestoreCarrierAbi;
+        if ((carrier!=XL6_IR_COLLECTION_CARRIER_LIST_V1 && carrier!=XL6_IR_COLLECTION_CARRIER_SET_V1) ||
+            (!xl6IrCgenPersistenceTypeUsed(module,(XL6_IrTypeId)(i+1),XL6_IR_PERSIST_FORMAT_JSON,1) &&
+             !xl6IrCgenPersistenceTypeUsed(module,(XL6_IrTypeId)(i+1),XL6_IR_PERSIST_FORMAT_XLON,1))) continue;
+        XL6_IrValueCollectionRecipe recipe={0}; bool list=carrier==XL6_IR_COLLECTION_CARRIER_LIST_V1;
+        if (!xl6IrValueCollectionConstructionRecipe(module,(XL6_IrTypeId)(i+1),&recipe) ||
+            !visitor(context,list ? "xl6ListImportProviderV1" : "xl6SetImportProviderV1") ||
+            !visitor(context,list ? "xl6ListCreateTakeV1" : "xl6SetCreateTakeV1") ||
+            !visitor(context,list ? "xl6ListProjectionTakeV1" : "xl6SetProjectionTakeV1") ||
+            !visitor(context,"xl6ArrayProjectionTakeV1") ||
+            !visitor(context,"xl6CollectionImportChainSourceTakeV1") ||
+            !xl6IrCgenVisitSequenceFactorySymbols(module,recipe.valueSchemaType,visitor,context,0,true)) return 0;
     }
     for (size_t i=0;i<module->instructionCount;++i) {
         const XL6_IrInstruction* instruction=&module->instructions[i];
@@ -427,21 +442,32 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         }
         if (xl6IrCgenInstructionIsReachable(module,i) &&
             (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ||
-             instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN)) {
-            XL6_IrTypeId schema=XL6_IR_TYPE_INVALID;
-            size_t count=0;
-            if (!(instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ?
-                  xl6IrListCreateRuntimeInstructionCompatible(module,instruction) :
-                  xl6IrListImportRuntimeInstructionCompatible(module,instruction)) ||
-                !xl6IrListConstructionRecipe(module,instruction->type,&schema,NULL) ||
-                !xl6IrListImportChainRecipe(module,instruction->type,NULL,0,&count) ||
-                !xl6IrCgenVisitSequenceFactorySymbols(module,schema,visitor,context,0,true) ||
+             instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
+             instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_SET_NEW ||
+             instruction->runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN)) {
+            XL6_IrValueCollectionRecipe recipe={0}; XL6_IrTypeId chain[65]; size_t count=0;
+            bool list=instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE || instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN;
+            bool importing=instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN || instruction->runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN;
+            if (!(list ? importing ? xl6IrListImportRuntimeInstructionCompatible(module,instruction) :
+                                    xl6IrListCreateRuntimeInstructionCompatible(module,instruction) :
+                         importing ? xl6IrSetImportRuntimeInstructionCompatible(module,instruction) :
+                                    xl6IrSetCreateRuntimeInstructionCompatible(module,instruction)) ||
+                !xl6IrValueCollectionConstructionRecipe(module,instruction->type,&recipe) ||
+                !(list ? xl6IrListImportChainRecipe(module,instruction->type,chain,65,&count) :
+                         xl6IrSetImportChainRecipe(module,instruction->type,chain,65,&count)) ||
+                !xl6IrCgenVisitSequenceFactorySymbols(module,recipe.valueSchemaType,visitor,context,0,true) ||
                 !visitor(context,"xl6ArrayProjectionTakeV1") ||
-                !visitor(context,"xl6ListCreateTakeV1") || !visitor(context,"xl6ListProjectionTakeV1")) return 0;
-            if (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN &&
-                (!visitor(context,"xl6ListImportProviderV1") ||
-                 !visitor(context,"xl6CollectionImportChainSourceTakeV1") ||
-                 (count>1 && !visitor(context,"xl6ArrayEraseV1")))) return 0;
+                !visitor(context,list ? "xl6ListCreateTakeV1" : "xl6SetCreateTakeV1") ||
+                !visitor(context,list ? "xl6ListProjectionTakeV1" : "xl6SetProjectionTakeV1")) return 0;
+            if (importing) {
+                if (!visitor(context,"xl6CollectionImportChainSourceTakeV1") ||
+                    (count>1 && !visitor(context,"xl6ArrayEraseV1"))) return 0;
+                for (size_t j=0;j<count;++j) {
+                    XL6_IrCollectionAbi family=xl6IrTypeGet(&module->types,chain[j])->collectionAbi;
+                    if (family!=XL6_IR_COLLECTION_ARRAY && !visitor(context,
+                        family==XL6_IR_COLLECTION_LIST ? "xl6ListImportProviderV1" : "xl6SetImportProviderV1")) return 0;
+                }
+            }
         }
         if (xl6IrCgenInstructionIsReachable(module,i) &&
             xl6IrCgenThreadRuntimeOpIs(instruction->runtimeOp) &&
@@ -458,10 +484,13 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         if (xl6IrCgenInstructionIsReachable(module,i) && instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) {
             XL6_IrTypeId chain[65]; size_t count=0; bool mixed=false;
             if (!xl6IrArrayImportChainRecipe(module,instruction->type,chain,65,&count)) return 0;
-            for (size_t d=0;d<count;++d)
-                if (xl6IrTypeGet(&module->types,chain[d])->collectionAbi==XL6_IR_COLLECTION_LIST) mixed=true;
-            if (mixed && (!visitor(context,"xl6ListImportProviderV1") ||
-                !visitor(context,"xl6CollectionImportChainSourceTakeV1"))) return 0;
+            for (size_t d=0;d<count;++d) {
+                XL6_IrCollectionAbi family=xl6IrTypeGet(&module->types,chain[d])->collectionAbi;
+                if (family==XL6_IR_COLLECTION_ARRAY) continue;
+                mixed=true;
+                if (!visitor(context,family==XL6_IR_COLLECTION_LIST ? "xl6ListImportProviderV1" : "xl6SetImportProviderV1")) return 0;
+            }
+            if (mixed && !visitor(context,"xl6CollectionImportChainSourceTakeV1")) return 0;
         }
         if (xl6IrCgenInstructionIsReachable(module,i) && xl6IrCgenAvlRuntimeOpIs(instruction->runtimeOp)) {
             const XL6_IrInstruction* receiver=instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_CREATE ? NULL :
@@ -566,6 +595,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             continue;
         }
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL) {
+            const char* setMethod=xl6IrCgenSetMethodSymbol(module,instruction);
+            if (setMethod && !visitor(context,setMethod)) return 0;
             const char* symbol=instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_APPEND_NEW ?
                 "xl6ArrayValueAppendTakeV1" : instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_SET_I64_NEW ?
                 "xl6ArrayValueSetTakeV1" : instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_INDEX_SET_XVALUE_KEY_NEW ?

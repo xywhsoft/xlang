@@ -3978,10 +3978,10 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "xlir_xvalue_iterator_scalar_projection.xl",
-    "cgen_xlir_set_u64_iterator_reject.xl",
+    "xlir_set_u64_iterator_abi.xl",
     "xvalue-iterator-item-u64", "xvalue-iterator-item-bool",
     "xvalue-iterator-item-f64", "integer-i64",
-    "list u64 plus list/set bool/f64", "current XRT set<u64> rejection stays explicit",
+    "list u64 plus list/set bool/f64", "native set<u64> admission is exact",
     "Cgen is mechanical", "-Werror"
 ) ) {
     if ( ! $iteratorScalarProjectionGate.Contains($required) ) {

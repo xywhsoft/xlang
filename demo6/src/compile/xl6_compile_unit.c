@@ -299,7 +299,14 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_collection_value_iterator.c", D(R(LIST_VALUE_ITERATOR),R(SET_VALUE_ITERATOR)), {NULL}},
     {"src/runtime/xl6_set_graph.c", D(R(SET_NATIVE),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_GRAPH"}},
     {"src/runtime/xl6_value_copy_collections.c", D(R(ARRAY_GRAPH),R(LIST_GRAPH),R(SET_GRAPH)), {NULL}},
-    {"src/runtime/xl6_persistence_project_collections.c", D(R(PERSISTENCE_PROJECT),R(LIST_GRAPH),R(SET_GRAPH)), {NULL}}
+    {"src/runtime/xl6_persistence_project_collections.c", D(R(PERSISTENCE_PROJECT),R(LIST_GRAPH),R(SET_GRAPH)), {NULL}},
+    {"src/runtime/xl6_set_methods.c", D(R(SET_NATIVE),R(FOREIGN_ERROR)), {NULL}},
+    {"src/runtime/xl6_set_import_chain.c", D(R(SET_NATIVE),R(ARRAY_INPUT),R(ARRAY_REFERENCE_ADMISSION)), {NULL}},
+    {"src/runtime/xl6_collection_count_all.c", D(R(COLLECTION_COUNT),R(LIST_NATIVE),R(SET_NATIVE),R(FOREIGN_ERROR)), {NULL}},
+    {"src/runtime/xl6_value_copy_set_graph.c", D(R(ARRAY_GRAPH),R(SET_GRAPH)), {NULL}},
+    {"src/runtime/xl6_persistence_project_set.c", D(R(PERSISTENCE_PROJECT),R(SET_GRAPH)), {NULL}},
+    {"src/runtime/xl6_restore_class_set.c", D(R(RESTORE_CLASS),R(SET_NATIVE)), {NULL}},
+    {"src/runtime/xl6_restore_class_collections.c", D(R(RESTORE_CLASS_LIST),R(SET_NATIVE)), {NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

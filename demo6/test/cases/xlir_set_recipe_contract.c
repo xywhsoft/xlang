@@ -85,8 +85,13 @@ int main(int argc,char** argv)
     assert(xl6IrVerifyModule(&ir,NULL));
     XL6_ArtifactRuntimePlan unused={0};
     assert(xl6ArtifactRuntimePlanBuild(&ir,XL6_ARTIFACT_ENTRY_CHECKED_MODULE_V1,&unused,&parse.diags));
-    assert(!xl6ArtifactRuntimeSetHas(&unused.components,XL6_ARTIFACT_SET_NATIVE) &&
-        !xl6ArtifactRuntimeSetHas(&unused.components,XL6_ARTIFACT_SET_KEYS));
+    /* The erasedSet length consumer needs native storage; unused schema rows
+     * must still not introduce a source factory instruction. */
+    assert(xl6ArtifactRuntimeSetHas(&unused.components,XL6_ARTIFACT_SET_NATIVE) &&
+        xl6ArtifactRuntimeSetHas(&unused.components,XL6_ARTIFACT_SET_KEYS) &&
+        xl6ArtifactRuntimeSetHas(&unused.components,XL6_ARTIFACT_SET_METHODS));
+    for (size_t i=0;i<ir.instructionCount;++i)
+        assert(ir.instructions[i].runtimeOp!=XL6_IR_RUNTIME_XVALUE_SET_NEW);
     for (size_t i=0;i<ir.types.count;++i) {
         XL6_IrType* type=&ir.types.items[i]; XL6_IrTypeId id=(XL6_IrTypeId)(i+1),schemaId=0;
         XL6_IrNominalIdentitySetId set=0;

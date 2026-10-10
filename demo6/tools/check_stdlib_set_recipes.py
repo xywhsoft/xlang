@@ -1,7 +1,8 @@
 """Actual source XLIR unified value domains, Set key ABI and native target factory.
 
 Uses all freshly built compiler/runtime objects on BOTH platforms.
-Set language producer/consumer cutover is NOT activated by this target gate.
+This target gate does not prove the full Set language cutover. Its erased
+length consumer selects native storage, but unused schemas select no factory.
 Shared List recipes keep their source authority; unsupported domains remain
 closed. Native targets use actual XRT typed Set, not a wire retagged owner.
 """
@@ -143,8 +144,8 @@ def main():
             assert points == [(str(i), str(int(i < int(prefix[2])))) for i in range(int(prefix[1]))]
             report['ScopeEntrySweeps'].append(dict(Optimization=lane, Runs=int(prefix[1]),
                                                   FirstNoHit=int(prefix[2])))
-        # A source pool containing Set schemas must not, by itself, activate
-        # language native Set or pull a target factory into an unused product.
+        # Schema inventory alone must not pull a target factory into a product.
+        # The erased length consumer legitimately selects native Set storage.
         source_c, repeat = out / 'language.c', out / 'language.repeat.c'
         run('language.cgen', [driver, fixture, 'cgen-default', source_c])
         run('language.repeat', [driver, fixture, 'cgen-default', repeat])

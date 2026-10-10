@@ -1,0 +1,32 @@
+class SetLeafRecord
+    derive value
+    set<int> values = set{}
+end
+func main(...) as int
+    set<string> values = set{"a\0你", "second"}
+    auto copied = copy(values)
+    auto cloned = clone(values)
+    assert(copied.length == 2 and cloned.length == 2)
+    assert(copied.remove("second"))
+    assert(values.length == 2)
+    assert((values | cloned).length == 2)
+    assert(values <= cloned)
+    assert(not (values < copied))
+    set<string> compound = set{"zero"}
+    compound |= values
+    assert(compound.length == 3)
+    compound -= values
+    assert(compound.length == 1 and ("zero" in compound))
+    set<uint64> unsignedValues = set{uint64(0), uint64(18446744073709551615)}
+    int visits = 0
+    for value in unsignedValues
+        assert(value == uint64(0) or value == uint64(18446744073709551615))
+        visits += 1
+    end
+    assert(visits == 2)
+    SetLeafRecord record = json.parse::<SetLeafRecord>("{\"values\":[1,2,2]}")
+    assert(record.values.length == 2 and (2 in record.values))
+    SetLeafRecord restored = xlon.parse::<SetLeafRecord>(xlon.stringify(record))
+    assert(restored.values.length == 2 and (1 in restored.values))
+    return 0
+end

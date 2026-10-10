@@ -28,6 +28,7 @@ static int xl6IrCgenAnalyzeSequenceRecipeNeeds(const XL6_IrModule* module,XL6_Ir
         if (list) needs->needsListCreateRuntime=1; else needs->needsSetCreateRuntime=1;
         needs->needsArrayCreateRuntime=1;
         if (list && needs->needsArrayImportRuntime) needs->needsListImportRuntime=1;
+        if (!list && needs->needsArrayImportRuntime) needs->needsSetImportRuntime=1;
         return xl6IrValueCollectionConstructionRecipe(module,type->sequenceLayout.baseElementType,&child) &&
             child.family==(list ? XL6_IR_COLLECTION_LIST : XL6_IR_COLLECTION_SET) &&
             xl6IrCgenAnalyzeSequenceRecipeNeeds(module,child.valueSchemaType,needs,depth+1);
@@ -572,14 +573,26 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         }
         if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
             (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ||
-             module->instructions[i].runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN)) {
-            XL6_IrTypeId schema=XL6_IR_TYPE_INVALID;
-            if (!xl6IrListConstructionRecipe(module,module->instructions[i].type,&schema,NULL) ||
-                !xl6IrCgenAnalyzeSequenceRecipeNeeds(module,schema,needs,0)) return 0;
-            needs->needsListCreateRuntime=1;
+             module->instructions[i].runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
+             module->instructions[i].runtimeOp==XL6_IR_RUNTIME_XVALUE_SET_NEW ||
+             module->instructions[i].runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN)) {
+            XL6_IrValueCollectionRecipe recipe={0};
+            if (!xl6IrValueCollectionConstructionRecipe(module,module->instructions[i].type,&recipe) ||
+                !xl6IrCgenAnalyzeSequenceRecipeNeeds(module,recipe.valueSchemaType,needs,0)) return 0;
+            if (recipe.family==XL6_IR_COLLECTION_LIST) needs->needsListCreateRuntime=1;
+            else needs->needsSetCreateRuntime=1;
             needs->needsArrayCreateRuntime=1; /* Exact resident value-schema projection. */
-            if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN) {
-                needs->needsListImportRuntime=1;
+            if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
+                module->instructions[i].runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN) {
+                XL6_IrTypeId chain[65]; size_t count=0;
+                if (!(recipe.family==XL6_IR_COLLECTION_LIST ?
+                      xl6IrListImportChainRecipe(module,module->instructions[i].type,chain,65,&count) :
+                      xl6IrSetImportChainRecipe(module,module->instructions[i].type,chain,65,&count))) return 0;
+                for (size_t j=0;j<count;++j) {
+                    XL6_IrCollectionAbi family=xl6IrTypeGet(&module->types,chain[j])->collectionAbi;
+                    if (family==XL6_IR_COLLECTION_LIST) needs->needsListImportRuntime=1;
+                    if (family==XL6_IR_COLLECTION_SET) needs->needsSetImportRuntime=1;
+                }
                 needs->needsArrayImportRuntime=1;
             }
             needs->needsXValueRuntime=1;

@@ -10,4 +10,5 @@ XL6_TEXT_API xvalue* xl6ValueCloneGraphV1(const xvalue*);
 /* Open graphs may contain both List and Set. This separately selected
  * provider component does not enlarge closed Array/List-only programs. */
 XL6_TEXT_API xvalue* xl6ValueCloneCollectionsV1(const xvalue*);
+XL6_TEXT_API xvalue* xl6ValueCloneSetGraphV1(const xvalue*);
 #endif

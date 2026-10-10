@@ -784,7 +784,11 @@ static int xl6IrCgenRuntimeDynamicCallAbi(
                 return 0;
             candidateCount += 1u;
         }
-        if ( site->kind == XL6_IR_DYNAMIC_CALL_METHOD && candidateCount == 0 ) return 0;
+        /* A verified collection fallback is itself a closed dispatch target.
+         * Unsupported class rows do not erase that target; only a method with
+         * neither a verified adapter nor an exact fallback is unresolved. */
+        if ( site->kind == XL6_IR_DYNAMIC_CALL_METHOD && candidateCount == 0 &&
+             site->fallbackCollectionOp == XL6_IR_DYNAMIC_COLLECTION_INVALID ) return 0;
         if ( site->kind == XL6_IR_DYNAMIC_CALL_MEMBER_GET &&
              (site->argumentCount != 0 || site->fallbackCollectionOp != XL6_IR_DYNAMIC_COLLECTION_INVALID)) return 0;
     }

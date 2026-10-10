@@ -102,13 +102,14 @@ static int xl6IrCgenEmitRestoreGraphPlan(XL6_Output* out,const XL6_IrModule* mod
         const XL6_IrPersistenceRestoreNode* node=&module->persistenceRestoreNodes[root->firstNode+i];
         xl6OutputPrintf(out,"        {.kind=%u,.flags=%u,.identity=0x%016llXULL,",
             node->abi==XL6_IR_RESTORE_NODE_SCALAR ? 1u :
-            node->abi==XL6_IR_RESTORE_NODE_ARRAY || node->abi==XL6_IR_RESTORE_NODE_LIST ? 2u : 3u,
+            node->abi==XL6_IR_RESTORE_NODE_ARRAY || node->abi==XL6_IR_RESTORE_NODE_LIST || node->abi==XL6_IR_RESTORE_NODE_SET ? 2u : 3u,
             (unsigned)node->flags,(unsigned long long)node->identity);
         if (node->abi==XL6_IR_RESTORE_NODE_SCALAR)
             xl6OutputPrintf(out,".as.scalar=%u",(unsigned)node->scalarRule);
-        else if (node->abi==XL6_IR_RESTORE_NODE_ARRAY || node->abi==XL6_IR_RESTORE_NODE_LIST)
+        else if (node->abi==XL6_IR_RESTORE_NODE_ARRAY || node->abi==XL6_IR_RESTORE_NODE_LIST || node->abi==XL6_IR_RESTORE_NODE_SET)
             xl6OutputPrintf(out,".as.sequence={%lu,%lu,%s}",(unsigned long)node->seed,(unsigned long)node->element,
-                node->abi==XL6_IR_RESTORE_NODE_LIST ? "xl6ListImportProviderV1()" : "NULL");
+                node->abi==XL6_IR_RESTORE_NODE_LIST ? "xl6ListImportProviderV1()" :
+                node->abi==XL6_IR_RESTORE_NODE_SET ? "xl6SetImportProviderV1()" : "NULL");
         else if (node->abi==XL6_IR_RESTORE_NODE_CLASS) {
             const XL6_IrPersistenceRestoreSchema* schema=&module->persistenceRestoreSchemas[node->schema];
             const XL6_IrClassLayout* layout=&module->classLayouts[schema->classLayout];
@@ -168,6 +169,11 @@ static int xl6IrCgenEmitNativeRestoreHelpers(XL6_Output* out,const XL6_IrModule*
                     "#include <__xl_runtime/xl6_list_import_chain.h>\n",out); break;
             }
         for (size_t i=0;i<root->nodeCount;++i)
+            if (module->persistenceRestoreNodes[root->firstNode+i].abi==XL6_IR_RESTORE_NODE_SET) {
+                xl6OutputPuts("#include <__xl_runtime/xl6_set.h>\n"
+                    "#include <__xl_runtime/xl6_set_import_chain.h>\n",out); break;
+            }
+        for (size_t i=0;i<root->nodeCount;++i)
             if (module->persistenceRestoreNodes[root->firstNode+i].openClassLayout!=SIZE_MAX) {
                 xl6OutputPuts("#include <__xl_runtime/xl6_restore_open.h>\n",out); break;
             }
@@ -182,14 +188,17 @@ static int xl6IrCgenEmitNativeRestoreHelpers(XL6_Output* out,const XL6_IrModule*
                 "    if (xl6ErrorScopeBegin(&preparation)) {\n",(unsigned long)root->seedCount);
             for (size_t i=0;i<root->nodeCount;++i) {
                 const XL6_IrPersistenceRestoreNode* node=&module->persistenceRestoreNodes[root->firstNode+i];
-                if (node->abi!=XL6_IR_RESTORE_NODE_ARRAY && node->abi!=XL6_IR_RESTORE_NODE_LIST) continue;
+                if (node->abi!=XL6_IR_RESTORE_NODE_ARRAY && node->abi!=XL6_IR_RESTORE_NODE_LIST && node->abi!=XL6_IR_RESTORE_NODE_SET) continue;
                 char slot[80]; snprintf(slot,sizeof(slot),"seeds[%lu]",(unsigned long)node->seed);
                 /* The IR recipe selects the genuine full projected native
                  * seed. A NULL allocation reaches the common consuming path. */
-                if (node->abi==XL6_IR_RESTORE_NODE_LIST) {
+                if (node->abi==XL6_IR_RESTORE_NODE_LIST || node->abi==XL6_IR_RESTORE_NODE_SET) {
                     XL6_IrNominalIdentitySetId set=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
-                    if (!xl6IrListConstructionRecipe(module,node->payloadType,NULL,&set) ||
-                        xl6IrCgenEmitListTargetCreate(out,module,node->payloadType,slot,set)<0) return 0;
+                    bool list=node->abi==XL6_IR_RESTORE_NODE_LIST;
+                    if (!(list ? xl6IrListConstructionRecipe(module,node->payloadType,NULL,&set) :
+                                 xl6IrSetConstructionRecipe(module,node->payloadType,NULL,&set,NULL)) ||
+                        xl6IrCgenEmitValueCollectionTargetCreateDepth(out,module,node->payloadType,
+                            list ? XL6_IR_COLLECTION_LIST : XL6_IR_COLLECTION_SET,slot,set,0,NULL,0)<0) return 0;
                 } else if (!xl6IrCgenEmitPersistenceSequenceSeed(out,module,node->payloadType,slot,diags)) return 0;
             }
             xl6OutputPuts("    prepared = xl6ErrorScopeEnd(&preparation);\n"

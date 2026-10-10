@@ -54,6 +54,7 @@ XL6_TEXT_API xvalue* xl6PersistenceProjectNativeV1(const xvalue*,const XL6_Persi
 XL6_TEXT_API xvalue* xl6PersistenceProjectListV1(const xvalue*,const XL6_PersistencePlanV1*);
 /* Open native graphs add Set without enlarging closed List-only closures. */
 XL6_TEXT_API xvalue* xl6PersistenceProjectCollectionsV1(const xvalue*,const XL6_PersistencePlanV1*);
+XL6_TEXT_API xvalue* xl6PersistenceProjectSetV1(const xvalue*,const XL6_PersistencePlanV1*);
 XL6_TEXT_API bool xl6PersistenceProjectOpenV1(const XL6_PersistenceOpenV1*,
     xvaluegraphnextv1*, xvalue*);
 #endif
