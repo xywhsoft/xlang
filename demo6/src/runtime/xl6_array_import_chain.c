@@ -203,22 +203,33 @@ static xvalue* restoreLeaf(const XL6_CollectionImportPlanV1* plan,const xvalue* 
 static bool fill(Import* ctx,size_t depth,xvalue* value,XL6_Sequence* target,const xvalue* source)
 {
     XL6_ArrayInputV1 input={0}; bool ok=false;
+    XL6_CollectionImportInputV1 family={0};
+    const Template* schema=&ctx->templates[depth];
+    bool custom=ctx->plan && (ctx->plan->flags&XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1) &&
+        schema->provider && schema->provider->InputBegin;
     if (privateSeed(ctx,source)) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
     for (size_t i=0;i<depth;++i) if (ctx->active[i]==source) { xrtSetErrorKind(XERR_VALUE); return false; }
     ctx->active[depth]=source;
-    if (!xl6ArrayInputAcquireV1(source,&input)) goto done;
-    const Template* schema=&ctx->templates[depth];
+    if (custom ? !schema->provider->InputBegin(source,&family) : !xl6ArrayInputAcquireV1(source,&input)) goto done;
+    size_t count=custom ? family.count : input.count;
+    if ((count && custom && !family.items) || (!family.keys && count>INT64_MAX)) {
+        xrtSetErrorKind(XERR_RANGE); goto done;
+    }
     xtypedarray* storage=target ? xl6SequenceStorageV1(target) : NULL;
-    if (storage && !xrtTypedArrayReserve(storage,input.count)) {
+    if (storage && !xrtTypedArrayReserve(storage,count)) {
         if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY);
         goto done;
     }
-    for (size_t i=0;i<input.count;++i) {
-        const xvalue* item=input.items[i]; xvalue* converted=NULL;
+    for (size_t i=0;i<count;++i) {
+        const xvalue* item=custom ? family.items[i] : input.items[i]; xvalue* converted=NULL;
         if (privateSeed(ctx,item)) { xrtSetErrorKind(XERR_ARGUMENT); goto done; }
         /* Only an explicit next family/template authorizes wire conversion.
          * A native child keeps its actual identity and full owned metadata. */
-        if (depth+1<ctx->count && xrtValueType(item)==XVALUE_ARRAY) {
+        bool wireList=depth+1<ctx->count && ctx->plan &&
+            (ctx->plan->flags&XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1) &&
+            ctx->templates[depth+1].provider && ctx->templates[depth+1].provider->InputBegin &&
+            xrtValueType(item)==XVALUE_INT_MAP;
+        if (depth+1<ctx->count && (xrtValueType(item)==XVALUE_ARRAY || wireList)) {
             converted=convert(ctx,depth+1,item);
             if (!converted) goto done;
             item=converted;
@@ -228,21 +239,28 @@ static bool fill(Import* ctx,size_t depth,xvalue* value,XL6_Sequence* target,con
             if (!converted || !successful(ctx)) { releasePreservingError(converted); goto done; }
             item=converted;
         }
-        bool pushed=schema->provider ? schema->provider->Append(value,(int64_t)i,item) :
+        int64_t key=custom && family.keys ? family.keys[i] : (int64_t)i;
+        bool pushed=schema->provider ? schema->provider->Append(value,key,item) :
             xl6SequenceAdmitValueV1(target,item) && xrtTypedArrayPushValue(storage,item,schema->converter);
-        if (!pushed && !xrtGetError()) xrtSetErrorKind(XERR_MEMORY);
+        if (!pushed || !successful(ctx)) xl6ErrorScopeCaptureFailure(ctx->operation);
         releasePreservingError(converted);
         if (!pushed || !successful(ctx)) goto done;
     }
     ok=true;
 done:
+    /* A false callback without a diagnostic is still the first checked
+     * failure. Latch it before snapshot retirement can report another error. */
+    if (!ok || !successful(ctx)) xl6ErrorScopeCaptureFailure(ctx->operation);
     ctx->active[depth]=NULL;
+    if (custom) schema->provider->InputEnd(&family);
     xl6ArrayInputReleaseV1(&input); return ok && successful(ctx);
 }
 static bool validPlan(const XL6_CollectionImportPlanV1* plan,size_t count)
 {
     if (!plan || plan->size!=sizeof(*plan) ||
-        (plan->flags&~(XL6_COLLECTION_IMPORT_RESTORE_V1|XL6_COLLECTION_IMPORT_JSON_V1)) ||
+        (plan->flags&~(XL6_COLLECTION_IMPORT_RESTORE_V1|XL6_COLLECTION_IMPORT_JSON_V1|XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1)) ||
+        ((plan->flags&XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1) &&
+         (plan->flags&(XL6_COLLECTION_IMPORT_RESTORE_V1|XL6_COLLECTION_IMPORT_JSON_V1))) ||
         ((plan->flags&XL6_COLLECTION_IMPORT_JSON_V1) && !(plan->flags&XL6_COLLECTION_IMPORT_RESTORE_V1))) return false;
     if (plan->flags&XL6_COLLECTION_IMPORT_RESTORE_V1) {
         if (plan->leafRule<XL6_VALUE_ADMIT_ANY || plan->leafRule>XL6_VALUE_ADMIT_TIME ||
@@ -250,7 +268,9 @@ static bool validPlan(const XL6_CollectionImportPlanV1* plan,size_t count)
     } else if (plan->leafRule || plan->leafIdentity || plan->leafNullable) return false;
     for (size_t i=0;plan->providers && i<count;++i) {
         const XL6_CollectionImportProviderV1* p=plan->providers[i];
-        if (p && (!p->Begin || !p->End || !p->Empty || !p->Admits || !p->Append)) return false;
+        if (p && (!p->Begin || !p->End || !p->Empty || !p->Admits || !p->Append ||
+            (!!p->InputBegin!=!!p->InputEnd) ||
+            ((plan->flags&XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1) && !p->InputBegin))) return false;
     }
     return true;
 }

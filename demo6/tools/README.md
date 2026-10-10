@@ -22,6 +22,16 @@ this is not all-language OOM, shipping or full53 acceptance. See
 
 ## Toolchain
 
+`check_stdlib_list_native.py --root <frozen-demo6> --out <fresh-output> --restore --batch-import-prefixes --batch-erased-prefixes --import-mutants`
+checks resident List language inputs separately from compact persistence arrays,
+full int64 sparse keys, exact primitive/reference snapshots, mixed-family memo,
+snapshot retirement and first checked failure preservation. Batched import
+prefixes independently close every allocation ledger. Three real implementation
+controls compile before the same vectors reject narrowed keys, lost failure
+latching and invented Append diagnostics. Linux `--sanitize` instruments only the selected native closure.
+This is not the List source-factory/cast cutover or shipping/full53 acceptance;
+see [List language inputs](../docs/stdlib53-b183-list-language-input.md).
+
 `check_stdlib_list_persistence.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
 checks compact native List projection, JSON/XLON text/file restoration, one
 native/wire graph memo, 44 pre-output IR mutations and O0/O2 closed failure

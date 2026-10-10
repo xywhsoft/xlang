@@ -947,6 +947,22 @@ static void fault(const char* operation,size_t point)
 int main(int argc,char** argv)
 {
     assert(argc==2 || argc==3); xl6ProductMemoryBegin(SIZE_MAX);
+#ifdef XL6_TEST_LIST_RESTORE
+    if (argc==3 && !strcmp(argv[2],"batch") && !strncmp(argv[1],"restore-",8)) {
+        extern bool xl6TestListRestoreFaultLastHitV1(void);
+        for (size_t point=0;point<4097;++point) {
+            assert(xl6TestListRestoreFaultV1(argv[1],point));
+            bool hit=xl6TestListRestoreFaultLastHitV1();
+            assert(!xrtGetError() && !xl6ProductMemoryEnd()); xl6ProductMemoryVerify();
+            if (!hit) {
+                printf("native List %s closed-batch runs=%zu first-no-hit=%zu\n",argv[1],point+1,point);
+                return 0;
+            }
+            xl6ProductMemoryBegin(SIZE_MAX);
+        }
+        assert(!"unclosed native collection import allocation prefix");
+    }
+#endif
     if (argc==3 && !strcmp(argv[2],"batch") && !strncmp(argv[1],"erased-",7)) {
         for (size_t point=0;point<4097;++point) {
             assert(erasedFault(argv[1],point));
@@ -960,7 +976,7 @@ int main(int argc,char** argv)
         assert(!"unclosed native List erased allocation prefix");
     }
 #ifdef XL6_TEST_RESTORE_PLAN
-    if (argc==3 && !strcmp(argv[2],"batch")) {
+    if (argc==3 && !strcmp(argv[2],"batch") && !strncmp(argv[1],"plan-",5)) {
         for (size_t point=0;point<4097;++point) {
             assert(xl6TestRestorePlanFaultV1(argv[1],point));
             bool hit=xl6TestRestorePlanFaultLastHitV1();
