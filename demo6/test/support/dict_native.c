@@ -1,5 +1,6 @@
 /* Real selected XRT/xruntime implementations, not a mirrored test map. */
 #define XRUNTIME_MODULE_TYPED_DICT
+#define XRUNTIME_MODULE_TYPED_VALUE
 #define XRUNTIME_MODULE_TYPED_ARRAY
 #define XRUNTIME_MODULE_RUNTIME_VALUE_TYPE
 #define XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE

@@ -1,5 +1,6 @@
 #include "src/runtime/xl6_dict.h"
 #include "src/runtime/xl6_array_admission.h"
+#include "src/runtime/xl6_array_reference_value.h"
 #include "src/api/xl_foreign_error.h"
 #include <limits.h>
 #include <stdlib.h>
@@ -9,6 +10,8 @@ typedef struct DictOwner {
     xatomic32 busy;
     XL6_DictLayoutV1 layout;
     XL6_SequenceAdmissionV3 policy;
+    const xvalueconverter* projection;
+    bool projected;
     xtypeddict* storage;
     xtypeddict* retired;
     const void* claim;
@@ -165,6 +168,8 @@ static bool outputEmpty(const DictOwner* owner,const void* output)
     if (!empty) xrtSetErrorKind(XERR_ARGUMENT);
     return empty;
 }
+static bool overlaps(const void* a,size_t as,const void* b,size_t bs)
+{ uintptr_t left=(uintptr_t)a,right=(uintptr_t)b; return left<=right ? right-left<as : left-right<bs; }
 
 static bool ownershipCount(const void* opaque,size_t* output)
 {
@@ -263,7 +268,8 @@ const xrtownershipadapterv1* xl6DictOwnershipAdapterV1(xrtownershipref ref)
 { return xl6DictOwnershipAdapterV2(ref,NULL,0); }
 
 static xvalue* wrap(xtypeddict* storage,const XL6_DictLayoutV1* layout,
-    XL6_SequenceAdmissionV3* policy,uint64_t cursor,bool reverse)
+    XL6_SequenceAdmissionV3* policy,uint64_t cursor,bool reverse,
+    const xvalueconverter* projection,bool projected)
 {
     xl6_error_scope scope={0};
     if (!xl6ErrorScopeBegin(&scope)) { destroy(storage,policy,NULL); return NULL; }
@@ -274,7 +280,7 @@ static xvalue* wrap(xtypeddict* storage,const XL6_DictLayoutV1* layout,
         (void)scopeFinish(&scope,true); return NULL;
     }
     *owner=(DictOwner){.refs=1,.layout=*layout,.policy=*policy,.storage=storage,
-        .cursorIdentity=cursor,.reverse=reverse};
+        .cursorIdentity=cursor,.reverse=reverse,.projection=projection,.projected=projected};
     *policy=(XL6_SequenceAdmissionV3){0}; xrtAtomic32Init(&owner->busy,0);
     xvalue* result=xrtValueHandleTake((ptr*)&owner,&handleOps,NULL);
     if (!result) {
@@ -348,7 +354,7 @@ xvalue* xl6DictCreateTakeV1(const XL6_DictLayoutV1* layout,xvalue* seed)
     XL6_SequenceAdmissionV3 policy={0}; xvalue* result=NULL;
     if (xl6DictDomainCopyV1(layout,seed,&policy)) {
         xtypeddict* storage=xrtTypedDictCreate(xl6SequenceStorageTypeV1(layout->value.transfer,layout->value.type));
-        if (storage) result=wrap(storage,layout,&policy,0,false);
+        if (storage) result=wrap(storage,layout,&policy,0,false,NULL,false);
     }
     if (!result) xl6ErrorScopeCaptureFailure(&scope);
     xl6SequenceAdmissionDropV3(&policy); xrtValueRelease(seed);
@@ -427,7 +433,7 @@ static xvalue* clonePinned(DictOwner* owner,uint64_t cursor,bool reverse)
     xvalue* result=NULL; XL6_SequenceAdmissionV3 policy={0};
     if (owner->policy.ops->Retain(owner->policy.data)) {
         policy=owner->policy; xtypeddict* storage=xrtTypedDictClone(owner->storage);
-        if (storage) result=wrap(storage,&owner->layout,&policy,cursor,reverse);
+        if (storage) result=wrap(storage,&owner->layout,&policy,cursor,reverse,owner->projection,owner->projected);
     }
     xl6SequenceAdmissionDropV3(&policy); return result;
 }
@@ -468,26 +474,31 @@ xvalue* xl6DictCursorCreateV1(const xvalue* value,const XL6_DictLayoutV1* layout
     if (!scopeFinish(&scope,result!=NULL)) { discard(result); return NULL; }
     return result;
 }
+static bool cursorAdvancePinned(DictOwner* owner,bool* found,xl6_error_scope* scope)
+{
+    bool success=false,result=false;
+    if (owner->failed) xrtSetErrorKind(XERR_STATE);
+    else if (owner->ended) success=true;
+    else {
+        if (!owner->started) owner->started=owner->reverse ?
+            xrtTypedDictIterRBegin(owner->storage,&owner->iterator) :
+            xrtTypedDictIterBegin(owner->storage,&owner->iterator);
+        if (owner->started) {
+            owner->current=xrtTypedDictIterNext(&owner->iterator,&owner->currentKey);
+            success=!xrtGetError() && !scope->failed; result=success && owner->current;
+        }
+        if (!success) owner->failed=true;
+        if (!result) cursorEnd(owner);
+    }
+    if (success) *found=result;
+    return success;
+}
 bool xl6DictCursorAdvanceV1(const xvalue* value,const XL6_DictLayoutV1* layout,uint64_t identity,bool* found)
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
     DictOwner* owner=identity ? begin(value,layout,identity) : NULL; bool success=false,result=false;
     if (!identity || !found) xrtSetErrorKind(XERR_ARGUMENT);
-    else if (owner) {
-        if (owner->failed) xrtSetErrorKind(XERR_STATE);
-        else if (owner->ended) success=true;
-        else {
-            if (!owner->started) owner->started=owner->reverse ?
-                xrtTypedDictIterRBegin(owner->storage,&owner->iterator) :
-                xrtTypedDictIterBegin(owner->storage,&owner->iterator);
-            if (owner->started) {
-                owner->current=xrtTypedDictIterNext(&owner->iterator,&owner->currentKey);
-                success=!xrtGetError() && !scope.failed; result=success && owner->current;
-            }
-            if (!success) owner->failed=true;
-            if (!result) cursorEnd(owner);
-        }
-    }
+    else if (owner) success=cursorAdvancePinned(owner,&result,&scope);
     success=finish(&scope,owner,success);
     if (success) *found=result;
     return success;
@@ -518,4 +529,329 @@ bool xl6DictCursorEndV1(const xvalue* value,const XL6_DictLayoutV1* layout,uint6
     if (!identity) xrtSetErrorKind(XERR_ARGUMENT);
     if (owner) cursorEnd(owner);
     return finish(&scope,owner,owner!=NULL);
+}
+
+xvalue* xl6DictProjectionTakeV1(xvalue* value,const XL6_DictLayoutV1* layout,const xvalueconverter* codec)
+{
+    xl6_error_scope scope={0};
+    if (!xl6ErrorScopeBegin(&scope)) { discard(value); return NULL; }
+    DictOwner* owner=begin(value,layout,0); xvalue* result=NULL;
+    if (owner) {
+        if ((codec && (codec->Context || !codec->ToTyped || !codec->FromTyped)) ||
+            (owner->layout.value.transfer==3 && codec)) xrtSetErrorKind(XERR_ARGUMENT);
+        else {
+            const xvalueconverter* selected=owner->layout.value.transfer==3 ? xl6ArrayReferenceConverterV1() : codec;
+            if (owner->projected && owner->projection!=selected) xrtSetErrorKind(XERR_STATE);
+            else { owner->projection=selected; owner->projected=true; result=xrtValueRetain(value); }
+        }
+    }
+    bool ok=finish(&scope,owner,result!=NULL);
+    xl6_error_scope cleanup={0};
+    if (xl6ErrorScopeBeginCleanup(&cleanup,!ok)) {
+        xrtValueRelease(value); ok=scopeFinish(&cleanup,ok);
+    } else { discard(value); ok=false; }
+    if (!ok) { discard(result); return NULL; }
+    return result;
+}
+/* Matching the private producer is mandatory before dereferencing its payload.
+ * A genuine but unbound/busy/cursor/cleared owner must never become wire data. */
+static int erasedBegin(const xvalue* value,DictOwner** output,DictOwner* already)
+{
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    int status=0; DictOwner* owner=NULL; bool unbound=false;
+    xvaluetype tag=value ? xrtValueType(value) : XVALUE_NULL;
+    if (value && tag==XVALUE_INVALID) status=-1;
+    else if (tag==XVALUE_HANDLE) {
+        ptr raw=NULL,user=NULL; const xvaluehandleops* ops=NULL;
+        if (!xrtValueGetHandle(value,&raw,&ops,&user)) status=-1;
+        else if (ops==&handleOps) {
+            status=-1;
+            if (!raw || user) xrtSetErrorKind(XERR_STATE);
+            else {
+                DictOwner* candidate=raw;
+                if (candidate->cursorIdentity) xrtSetErrorKind(XERR_TYPE);
+                else if (xrtValueTypeId(value)!=candidate->layout.identity) xrtSetErrorKind(XERR_STATE);
+                else if (candidate==already) { owner=candidate; status=1; }
+                else if (pin(candidate,0)) {
+                    owner=candidate; unbound=!owner->projected; if (!unbound) status=1;
+                }
+            }
+        }
+    }
+    mutationEnd(&mutation);
+    if (unbound) { end(owner); xrtSetErrorKind(XERR_STATE); }
+    if (status==1) *output=owner;
+    return status;
+}
+static DictOwner* erased(const xvalue* value)
+{
+    DictOwner* owner=NULL; if (!erasedBegin(value,&owner,NULL)) xrtSetErrorKind(XERR_TYPE);
+    return owner;
+}
+int xl6DictErasedProbeV1(const xvalue* value)
+{
+    xrtownershipscope mutation={0}; mutationBegin(&mutation); int result=0;
+    xvaluetype tag=value ? xrtValueType(value) : XVALUE_NULL;
+    if (value && tag==XVALUE_INVALID) result=-1;
+    else if (tag==XVALUE_HANDLE) {
+        ptr raw=NULL,user=NULL; const xvaluehandleops* ops=NULL;
+        result=!xrtValueGetHandle(value,&raw,&ops,&user) ? -1 : ops==&handleOps ? 1 : 0;
+    }
+    mutationEnd(&mutation); return result;
+}
+static bool admitsValue(const DictOwner* owner,const xvalue* value)
+{
+    if (value && owner->policy.ops->Value(owner->policy.data,value)) return true;
+    if (!xrtGetError()) xrtSetErrorKind(value ? XERR_TYPE : XERR_ARGUMENT);
+    return false;
+}
+static void callbackFailure(void) { if (!xrtGetError()) xrtSetErrorKind(XERR_STATE); }
+static void callbackBeginFailure(void)
+{ xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); callbackFailure(); }
+/* Resident converters are invoked synchronously in a checked boundary.
+ * Check BOTH logical admission and the physical slot, including an absent
+ * first failure behind a true callback. No transient adapter is retained. */
+static bool decode(DictOwner* owner,const xvalue* value,const xrttype* type,ptr output,bool* initialized)
+{
+    xl6_error_scope scope={0};
+    if (!xl6ErrorScopeBegin(&scope)) { callbackBeginFailure(); return false; }
+    bool ok;
+    if (owner->projection) {
+        *initialized=xrtTypeInitValue(type,output);
+        ok=*initialized && owner->projection->ToTyped(value,type,output,NULL);
+    } else {
+        ok=xrtValueToTyped(value,type,output,NULL); *initialized=ok;
+        /* XRT retires a failed ordinary conversion itself. */
+    }
+    ok=ok && slotAdmits(owner,output);
+    if (!scopeFinish(&scope,ok)) { callbackFailure(); return false; }
+    return true;
+}
+static xvalue* admitProjection(const DictOwner* owner,xvalue* result,xl6_error_scope* scope)
+{
+    if (result) {
+        uint64_t identity=owner->policy.boxedIdentity; xvaluetype tag=xrtValueType(result);
+        /* Retained reference slots already carry their authentic identity.
+         * Never rebind a borrowed source child while projecting a container. */
+        if ((owner->layout.value.transfer!=3 && identity && tag!=XVALUE_NULL && tag!=XVALUE_BOOL &&
+            !xrtValueTypeIdBind(result,identity)) || !admitsValue(owner,result))
+            xl6ErrorScopeCaptureFailure(scope);
+    }
+    if (!result || xrtGetError() || scope->failed) { xl6ErrorScopeCaptureFailure(scope); discard(result); return NULL; }
+    return result;
+}
+static xvalue* encode(DictOwner* owner,const xrttype* type,const void* slot)
+{
+    xl6_error_scope scope={0};
+    if (!xl6ErrorScopeBegin(&scope)) { callbackBeginFailure(); return NULL; }
+    xvalue* raw=owner->projection ? owner->projection->FromTyped(type,slot,NULL) : xrtValueFromTyped(type,slot,NULL);
+    xvalue* result=admitProjection(owner,raw,&scope);
+    if (!scopeFinish(&scope,result!=NULL)) { callbackFailure(); discard(result); return NULL; }
+    return result;
+}
+static bool writeValue(DictOwner* owner,xstrview key,const xvalue* item,xl6_error_scope* scope)
+{
+    if (!admitsValue(owner,item) || xrtGetError() || scope->failed) return false;
+    /* Public XRT Value converters are fallbacks, not overrides for builtins.
+     * Invoke the declared resident policy explicitly before any storage commit.
+     * Canonical language carriers fit the aligned inline slot. Large/overaligned
+     * resident inline types use the same overflow-checked aligned allocation
+     * rule as XRT's typed-value scratch, never a generated callback/descriptor. */
+    union { max_align_t align; unsigned char bytes[64]; } local={0};
+    const xrttype* type=owner->storage->ItemType; ptr allocation=NULL,slot=local.bytes;
+    if (type->Size>sizeof(local.bytes) || type->Align>_Alignof(max_align_t)) {
+        if (!type->Align || type->Size>SIZE_MAX-(type->Align-1)) { xrtSetErrorKind(XERR_RANGE); return false; }
+        allocation=xrtMalloc(type->Size+type->Align-1);
+        if (!allocation) return false;
+        slot=(ptr)(((uintptr_t)allocation+type->Align-1)&~((uintptr_t)type->Align-1));
+    }
+    bool initialized=false,ok=decode(owner,item,type,slot,&initialized);
+    if (ok) ok=xrtTypedDictSet(owner->storage,key,slot);
+    if (!ok || xrtGetError() || scope->failed) xl6ErrorScopeCaptureFailure(scope);
+    if (initialized) xrtTypeDropValue(type,slot);
+    xrtFree(allocation); return ok;
+}
+static xvalue* projectedSlot(DictOwner* owner,const void* slot)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return NULL;
+    xvalue* result=encode(owner,owner->storage->ItemType,slot);
+    if (!scopeFinish(&scope,result!=NULL)) { discard(result); return NULL; }
+    return result;
+}
+bool xl6DictErasedSetV1(const xvalue* value,xstrview key,const xvalue* item)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    DictOwner* owner=erased(value);
+    return finish(&scope,owner,owner && writeValue(owner,key,item,&scope));
+}
+bool xl6DictErasedReadV1(const xvalue* value,xstrview key,bool take,xvalue** output,bool* outputFound)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    DictOwner* owner=erased(value); xvalue* result=NULL; bool ok=false,found=false;
+    if (!output || *output || !outputFound || overlaps(output,sizeof(*output),outputFound,sizeof(*outputFound)))
+        xrtSetErrorKind(XERR_ARGUMENT);
+    else if (owner) {
+        const void* slot=xrtTypedDictConstGet(owner->storage,key); ok=!xrtGetError() && !scope.failed;
+        if (ok && slot) {
+            result=projectedSlot(owner,slot); found=result!=NULL; ok=found;
+            /* Admission/projection must finish BEFORE a take removes the key. */
+            if (ok && take) ok=xrtTypedDictRemove(owner->storage,key);
+        }
+    }
+    if (!finish(&scope,owner,ok)) { discard(result); return false; }
+    *output=result; *outputFound=found; return true;
+}
+bool xl6DictErasedKeyV1(const xvalue* value,xstrview key,bool remove,bool* output)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    DictOwner* owner=erased(value); bool ok=false,result=false;
+    if (!output) xrtSetErrorKind(XERR_ARGUMENT);
+    else if (owner) {
+        result=xrtTypedDictHas(owner->storage,key);
+        ok=!xrtGetError() && !scope.failed && (!result || !remove || xrtTypedDictRemove(owner->storage,key));
+    }
+    if (!finish(&scope,owner,ok)) return false;
+    *output=result; return true;
+}
+bool xl6DictErasedCountV1(const xvalue* value,bool capacity,int64_t* output)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    DictOwner* owner=erased(value); size_t count=owner ?
+        (capacity ? xrtTypedDictCapacity(owner->storage) : xrtTypedDictCount(owner->storage)) : 0;
+    if (!output) xrtSetErrorKind(XERR_ARGUMENT); else if (count>INT64_MAX) xrtSetErrorKind(XERR_RANGE);
+    if (!finish(&scope,owner,owner && output && count<=INT64_MAX)) return false;
+    *output=(int64_t)count; return true;
+}
+bool xl6DictErasedClearV1(const xvalue* value)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    DictOwner* owner=erased(value); return finish(&scope,owner,owner && xrtTypedDictClear(owner->storage));
+}
+bool xl6DictErasedReserveV1(const xvalue* value,int64_t count)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    DictOwner* owner=erased(value); bool valid=count>=0 && (uint64_t)count<=SIZE_MAX;
+    if (!valid) xrtSetErrorKind(XERR_RANGE);
+    return finish(&scope,owner,owner && valid && xrtTypedDictReserve(owner->storage,(size_t)count));
+}
+bool xl6DictErasedTrimV1(const xvalue* value)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    DictOwner* owner=erased(value); return finish(&scope,owner,owner && xrtTypedDictTrim(owner->storage));
+}
+xvalue* xl6DictErasedCloneV1(const xvalue* value)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return NULL;
+    DictOwner* owner=erased(value); xvalue* result=owner ? clonePinned(owner,0,false) : NULL;
+    if (!finish(&scope,owner,result!=NULL)) { discard(result); return NULL; }
+    return result;
+}
+int xl6DictIteratorSnapshotErasedV1(const xvalue* value,bool reverse,xvalue** output,
+    XL6_DictLayoutV1* outputLayout,uint64_t* outputIdentity)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return -1;
+    DictOwner* owner=NULL; int status=erasedBegin(value,&owner,NULL);
+    if (status!=1) return finish(&scope,NULL,status==0) && status==0 ? 0 : -1;
+    XL6_DictLayoutV1 layout=owner->layout; uint64_t identity=layout.identity;
+    do { ++identity; } while (!identity || identity==layout.identity || identity==layout.value.identity);
+    xvalue* result=NULL;
+    if (!output || *output || !outputLayout || !outputIdentity) xrtSetErrorKind(XERR_ARGUMENT);
+    else result=clonePinned(owner,identity,reverse);
+    if (!finish(&scope,owner,result!=NULL)) { discard(result); return -1; }
+    *output=result; *outputLayout=layout; *outputIdentity=identity; return 1;
+}
+bool xl6DictIteratorAdvanceValueV1(const xvalue* value,const XL6_DictLayoutV1* layout,
+    uint64_t identity,bool* outputFound,xvalue** output,xstrview* outputKey)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    DictOwner* owner=identity ? begin(value,layout,identity) : NULL;
+    bool ok=false,found=false,advanced=false; xvalue* result=NULL; xstrview key={0};
+    if (!identity || !outputFound || !output || *output || !outputKey || outputKey->Data || outputKey->Size)
+        xrtSetErrorKind(XERR_ARGUMENT);
+    else if (overlaps(output,sizeof(*output),outputKey,sizeof(*outputKey)) ||
+        overlaps(output,sizeof(*output),outputFound,sizeof(*outputFound)) ||
+        overlaps(outputKey,sizeof(*outputKey),outputFound,sizeof(*outputFound))) xrtSetErrorKind(XERR_ARGUMENT);
+    else if (owner && !owner->projected) xrtSetErrorKind(XERR_STATE);
+    else if (owner) {
+        advanced=true; ok=cursorAdvancePinned(owner,&found,&scope);
+        if (ok && found) {
+            result=projectedSlot(owner,owner->current); ok=result!=NULL;
+            if (ok) { key.Size=owner->currentKey.Size; key.Data=xrtStrDupView(owner->currentKey); ok=key.Data!=NULL; }
+        }
+    }
+    if (owner && advanced && (!ok || xrtGetError() || scope.failed)) { owner->failed=true; cursorEnd(owner); }
+    if (!finish(&scope,owner,ok)) { discard(result); xrtFree((ptr)key.Data); return false; }
+    *output=result; *outputFound=found; *outputKey=key; return true;
+}
+static xvalue* wirePinned(DictOwner* owner)
+{
+    xvalue* result=NULL; xtypeddictiter iterator={0};
+    bool started=false,ok=false; xl6_error_scope scope={0};
+    if (!xl6ErrorScopeBegin(&scope)) { discard(result); return NULL; }
+    result=xrtValueObject();
+    if (!result || !xrtValueReserve(result,xrtTypedDictCount(owner->storage))) goto done;
+    if (!xrtTypedDictIterBegin(owner->storage,&iterator)) goto done;
+    started=true;
+    for (;;) {
+        xstrview key={0}; const void* slot=xrtTypedDictIterNext(&iterator,&key);
+        if (xrtGetError() || scope.failed) break;
+        if (!slot) { ok=true; break; }
+        xvalue* item=projectedSlot(owner,slot);
+        if (!item || !xrtValueObjectSetTake(result,key,&item)) { discard(item); break; }
+    }
+done:
+    if (!ok || xrtGetError() || scope.failed) xl6ErrorScopeCaptureFailure(&scope);
+    if (started) xrtTypedDictIterEnd(&iterator);
+    if (!scopeFinish(&scope,ok)) { discard(result); return NULL; }
+    return result;
+}
+xvalue* xl6DictToWireV1(const xvalue* value)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return NULL;
+    DictOwner* owner=erased(value); xvalue* result=owner ? wirePinned(owner) : NULL;
+    if (!finish(&scope,owner,result!=NULL)) { discard(result); return NULL; }
+    return result;
+}
+xvalue* xl6DictImportTakeV1(xvalue* seed,const xvalue* source)
+{
+    xl6_error_scope scope={0};
+    if (!(seed ? xl6ErrorScopeBegin(&scope) : xl6ErrorScopeBeginCleanup(&scope,true))) {
+        discard(seed); return NULL;
+    }
+    DictOwner* target=NULL; DictOwner* input=NULL; xvalue* wire=NULL;
+    xvalueiter iterator={0}; bool started=false,success=false;
+    if (!seed || !source || seed==source) { xrtSetErrorKind(XERR_ARGUMENT); goto done; }
+    target=erased(seed); if (!target) goto done;
+    if (xrtTypedDictCount(target->storage)) { xrtSetErrorKind(XERR_STATE); goto done; }
+    int native=erasedBegin(source,&input,target);
+    if (native<0) goto done;
+    if (input==target) { input=NULL; xrtSetErrorKind(XERR_ARGUMENT); goto done; }
+    if (native) {
+        if (sameLayout(&target->layout,&input->layout) && samePolicy(&target->policy,&input->policy) &&
+            target->projection==input->projection) {
+            success=xrtTypedDictMerge(target->storage,input->storage,false); goto done;
+        }
+        wire=wirePinned(input); if (!wire || xrtGetError() || scope.failed) goto done;
+        end(input); input=NULL; source=wire;
+    }
+    if (xrtValueType(source)!=XVALUE_OBJECT) { xrtSetErrorKind(XERR_TYPE); goto done; }
+    if (!xrtValueIterBegin(source,&iterator)) goto done;
+    started=true;
+    for (;;) {
+        xvaluekey key={0}; xvalue* item=NULL;
+        xvalueiterresult status=xrtValueIterAdvance(&iterator,&key,&item);
+        if (status==XVALUE_ITER_END) { success=true; break; }
+        if (status!=XVALUE_ITER_ITEM || xrtGetError() || scope.failed) break;
+        if (key.Type!=XVALUE_KEY_STRING) { xrtSetErrorKind(XERR_STATE); break; }
+        if (!writeValue(target,key.String,item,&scope)) break;
+    }
+done:
+    if (!success || xrtGetError() || scope.failed) xl6ErrorScopeCaptureFailure(&scope);
+    if (started) xrtValueIterEnd(&iterator);
+    discard(wire);
+    if (input) end(input);
+    if (target) end(target);
+    bool ok=scopeFinish(&scope,success);
+    if (!ok) { discard(seed); return NULL; }
+    return seed;
 }
