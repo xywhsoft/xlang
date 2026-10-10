@@ -55,6 +55,7 @@
 #include "src/runtime/xl6_restore_open.h"
 #include "src/runtime/xl6_serialization_read.h"
 #include "src/runtime/xl6_list.h"
+#include "src/runtime/xl6_dict.h"
 #include "src/runtime/xl6_list_methods.h"
 #include "src/runtime/xl6_list_value_read.h"
 #include "src/runtime/xl6_list_typed_read.h"
