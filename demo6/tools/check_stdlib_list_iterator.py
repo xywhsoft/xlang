@@ -16,6 +16,8 @@ def main():
     assert not out.exists() and (not args.sanitize or os.name!='nt')
     cc=shutil.which('gcc'); assert cc
     native_sources=['test/support/list_native.c','test/support/module_product_memory.c',
+        'src/runtime/xl6_set.c','src/runtime/xl6_set_key_policy.c',
+        'src/runtime/xl6_set_value_iterator.c','src/runtime/xl6_collection_value_iterator.c',
         'src/runtime/xl6_list.c','src/runtime/xl6_list_value_iterator.c','src/runtime/xl6_value_iterator.c',
         'src/runtime/xl6_array_iterator.c','src/runtime/xl6_array_value_iterator.c','src/runtime/xl6_array.c',
         'src/runtime/xl6_array_erased.c','src/runtime/xl6_sequence.c',

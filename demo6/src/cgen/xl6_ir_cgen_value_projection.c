@@ -116,11 +116,18 @@ static const char* xl6IrCgenListIteratorCreateSymbol(const XL6_IrModule* module,
         logical->collectionAbi==XL6_IR_COLLECTION_NONE ? "xl6CollectionValueIteratorCreateV1" : NULL;
 }
 
-static const char* xl6IrCgenWireCheckedIteratorCreateSymbol(const XL6_IrModule* module,
+static const char* xl6IrCgenFamilyIteratorCreateSymbol(const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
 {
-    if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
-        instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED) return NULL;
+    if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL) return NULL;
+    if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE) {
+        if (instruction->operandCount!=1 || instruction->firstOperand>=module->operandCount) return NULL;
+        const XL6_IrInstruction* source=xl6IrCgenValueDefinition(module,
+            module->operands[instruction->firstOperand],NULL);
+        const XL6_IrType* type=source ? xl6IrTypeGet(&module->types,source->type) : NULL;
+        return type && type->collectionAbi==XL6_IR_COLLECTION_SET ? "xl6SetValueIteratorCreateCheckedV1" : NULL;
+    }
+    if (instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED) return NULL;
     const XL6_IrType* logical=xl6IrTypeGet(&module->types,instruction->payloadType);
     if (!logical) return NULL;
     switch (logical->collectionAbi) {
@@ -184,7 +191,7 @@ static int xl6IrCgenEmitXValueIteratorInstruction(
          instruction->firstOperand >= module->operandCount ) return 0;
     operand = module->operands[instruction->firstOperand];
     const char* resident=xl6IrCgenListIteratorCreateSymbol(module,instruction);
-    if (!resident) resident=xl6IrCgenWireCheckedIteratorCreateSymbol(module,instruction);
+    if (!resident) resident=xl6IrCgenFamilyIteratorCreateSymbol(module,instruction);
     if (resident) {
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED &&
             !xl6IrCgenRuntimeCheckedIteratorCreateAbi(module,instruction)) return 0;

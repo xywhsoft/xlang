@@ -19,6 +19,7 @@ def main():
     cc=shutil.which('gcc'); assert cc and (not a.sanitize or os.name!='nt')
     native=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     source=['test/support/dynamic_fields_list_native.c','test/support/module_product_memory.c',
+        'src/runtime/xl6_set.c','src/runtime/xl6_set_key_policy.c',
         'src/runtime/xl6_list.c','src/runtime/xl6_list_methods.c','src/runtime/xl6_sequence.c',
         'src/runtime/xl6_array_erased.c','src/runtime/xl6_array_graph.c','src/runtime/xl6_list_graph.c',
         'src/runtime/xl6_value_copy.c','src/runtime/xl6_value_copy_graph.c',

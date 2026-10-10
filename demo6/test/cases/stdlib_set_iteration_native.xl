@@ -1,0 +1,29 @@
+int setIterationCleanups = 0
+func visitNativeSet(set<string> values) as int
+    int visits = 0
+    try
+        for value in values
+            assert(value == "a\0你" or value == "second")
+            visits += 1
+        end
+        return visits
+    finally
+        setIterationCleanups += 1
+    end
+end
+func visitNativeErasedSet(var values) as int
+    int visits = 0
+    try
+        for value in values
+            assert(string(value) == "a\0你" or string(value) == "second")
+            visits += 1
+        end
+        return visits
+    finally
+        setIterationCleanups += 1
+    end
+end
+set<string> ordinary = set{"a\0你", "second"}
+assert(visitNativeSet(ordinary) == 2)
+assert(visitNativeErasedSet(ordinary) == 2)
+assert(setIterationCleanups == 2)

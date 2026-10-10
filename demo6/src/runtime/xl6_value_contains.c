@@ -2,6 +2,7 @@
 #include "src/runtime/xl6_text_value.h"
 #include "src/runtime/xl6_array_methods.h"
 #include "src/runtime/xl6_list.h"
+#include "src/runtime/xl6_set.h"
 #include "src/api/xl_foreign_error.h"
 
 bool xl6ValueContainsV1(const xvalue* values,const xvalue* item)
@@ -14,9 +15,12 @@ bool xl6ValueContainsV1(const xvalue* values,const xvalue* item)
     else {
         xvaluetype type=xrtValueType(values);
         int list=type==XVALUE_HANDLE ? xl6ListErasedProbeV1(values) : 0;
-        if (list<0) xl6ErrorScopeCaptureFailure(&operation);
+        int set=type==XVALUE_HANDLE && !list ? xl6SetErasedProbeV1(values) : 0;
+        if (list<0 || set<0) xl6ErrorScopeCaptureFailure(&operation);
         else if (list) {
             if (!xl6ListErasedContainsV1(values,item,&found)) xl6ErrorScopeCaptureFailure(&operation);
+        } else if (set) {
+            if (!xl6SetErasedKeyV1(values,item,XL6_SET_HAS_V1,&found)) xl6ErrorScopeCaptureFailure(&operation);
         } else if (type==XVALUE_ARRAY || type==XVALUE_HANDLE)
             found=xl6ArrayMethodIndexOfV1(values,item)>=0;
         else found=xl6ValueWireContainsV1(values,item);

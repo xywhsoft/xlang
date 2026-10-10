@@ -82,8 +82,6 @@ static XL6_ValueIterator* create_wire_family(const xvalue* source,xvaluetype exp
     }
     return create_resident(source,NULL,expected);
 }
-XL6_ValueIterator* xl6SetValueIteratorCreateCheckedV1(const xvalue* source)
-{ return create_wire_family(source,XVALUE_SET); }
 XL6_ValueIterator* xl6DictValueIteratorCreateCheckedV1(const xvalue* source)
 { return create_wire_family(source,XVALUE_OBJECT); }
 static XL6_ValueIterator* iterator_create(const xvalue* source)
