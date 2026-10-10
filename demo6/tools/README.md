@@ -22,6 +22,15 @@ this is not all-language OOM, shipping or full53 acceptance. See
 
 ## Toolchain
 
+`check_stdlib_list_source.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
+checks actual native List literals, default values and expected-type imports,
+complete sparse keys, alias-preserving native ANY Array conversion, pre-output
+IR refusal, deterministic C, public JIT and real pruned O0/O2 artifact plans.
+Every allocation prefix reinitializes/finalizes the module and checks its ledger.
+Linux `--sanitize` instruments the pruned generated program and selected runtime,
+not the whole compiler. Nested List recipes, shipping and full53 remain separate;
+see [Native List language producers](../docs/stdlib53-b184-list-source-native.md).
+
 `check_stdlib_list_native.py --root <frozen-demo6> --out <fresh-output> --restore --batch-import-prefixes --batch-erased-prefixes --import-mutants`
 checks resident List language inputs separately from compact persistence arrays,
 full int64 sparse keys, exact primitive/reference snapshots, mixed-family memo,

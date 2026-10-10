@@ -1,7 +1,7 @@
 """Static List index contracts, real native inputs, checked failure and pruning.
 
-Requires a fresh full-source compiler. Source factories remain explicit IntMap
-migration producers; this gate does not claim full List/storage53/shipping
+Requires a fresh full-source compiler. Source factories use native List
+storage; this gate does not claim full List/storage53/shipping
 acceptance. Linux sanitizers instrument only the selected native closure.
 """
 from __future__ import annotations
@@ -126,7 +126,7 @@ def main():
             'xl6ListReadStringV1','xl6ListValueReadCopyV1','xl6ListValueReadOrNullCopyV1',
             'xl6ListValueReadRequiredCopyV1','xl6ListValueSetTakeV1'):
             assert symbol+'(' in body
-        assert 'xlir_xvalue_int_map_at_i64_' not in body and 'xl6ListCreateTakeV1(' not in body
+        assert 'xlir_xvalue_int_map_at_i64_' not in body and 'xl6ListCreateTakeV1(' in body
         for level in (0,2):
             lane='language.O'+str(level); memory_obj=out/(lane+'.memory.o')
             run(lane+'.memory',[cc,*flags,'-O'+str(level),'-c',root/'test/support/module_product_memory.c','-o',memory_obj])

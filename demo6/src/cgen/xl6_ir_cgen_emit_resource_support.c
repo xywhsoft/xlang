@@ -257,6 +257,10 @@ static int xl6IrCgenEmitResourceRuntime(
     if (needs->needsArrayImportRuntime)
         xl6OutputPuts("#include <__xl_runtime/xl6_array_import_chain.h>\n"
             "extern xvalue* xl6ArrayEraseV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const xvalueconverter*);\n",out);
+    if (needs->needsListCreateRuntime)
+        xl6OutputPuts("#include <__xl_runtime/xl6_list.h>\n",out);
+    if (needs->needsListImportRuntime)
+        xl6OutputPuts("#include <__xl_runtime/xl6_list_import_chain.h>\n",out);
     if (needs->needsArrayCreateRuntime)
         xl6OutputPuts("extern xvalue* xl6ArrayProjectionTakeV1(xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const xvalueconverter*);\n",out);
     if (needs->needsStackResourceRuntime)

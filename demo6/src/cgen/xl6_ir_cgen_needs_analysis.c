@@ -560,6 +560,24 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
             needs->needsErrorRuntime = 1;
         }
         if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ||
+             module->instructions[i].runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN)) {
+            XL6_IrTypeId schema=XL6_IR_TYPE_INVALID;
+            if (!xl6IrListConstructionRecipe(module,module->instructions[i].type,&schema,NULL) ||
+                !xl6IrCgenAnalyzeSequenceRecipeNeeds(module,schema,needs,0)) return 0;
+            needs->needsListCreateRuntime=1;
+            needs->needsArrayCreateRuntime=1; /* Exact resident value-schema projection. */
+            if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN) {
+                needs->needsListImportRuntime=1;
+                needs->needsArrayImportRuntime=1;
+            }
+            needs->needsXValueRuntime=1;
+            needs->needsXValueHandleRuntime=1;
+            needs->needsErrorRuntime=1;
+            needs->needsForeignErrorRuntime=1;
+            needs->needsNominalIdentityRuntime=1;
+        }
+        if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
             (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||
              module->instructions[i].runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE)) {
             if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE) needs->needsArrayCreateRuntime=1;

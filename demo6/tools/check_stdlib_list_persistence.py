@@ -2,7 +2,7 @@
 
 One resident graph memo, exact private family authentication, checked parser/
 seed failures, corrupted-IR refusal, real O0/O2 pruned execution and JIT.
-List source factories/casts and unsupported nested recipes are not cut over.
+Language List factories/casts are native; unsupported nested recipes remain closed.
 Sanitizers instrument only the selected native projection closure.
 """
 import argparse,hashlib,json,os,re,shutil,subprocess,sys

@@ -1,6 +1,5 @@
-/* Native TARGET construction only. The source carrier and all source producer
- * operations must be cut over together before selecting this renderer there.
- * No List algorithm, type spelling recovery or wire conversion is emitted. */
+/* Closed native List factory. No List algorithm, source/type spelling recovery
+ * or wire conversion is emitted: the IR recipe is the complete producer. */
 static int xl6IrCgenEmitListTargetCreate(XL6_Output* out,const XL6_IrModule* module,
     XL6_IrTypeId id,const char* result,XL6_IrNominalIdentitySetId admissionSet)
 {

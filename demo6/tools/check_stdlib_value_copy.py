@@ -134,19 +134,17 @@ def main():
                 run(lane+'.pruned.provider.'+str(i),[cc,*full_flags,'-O'+str(level),'-c',source,'-o',obj]); selected.append(obj)
             run(lane+'.pruned.build',[cc,*full_flags,'-O'+str(level),'-include',generated,cases/'xlir_module_product_oom_host.c',
                 memory_obj,*selected,*system_links,'-o',pruned]); assert 'balanced' in run(lane+'.pruned.run',[pruned])
-            # Same pruned closure also executes genuine native inputs, not just
-            # the source fixture's still-legacy List factories. The external
-            # caller owns its string projection callback; its actual resident
-            # provider is explicit, separate from the module's IR plan.
-            caller=out/(lane+'.caller-string.o')
-            run(lane+'.caller-string',[cc,*full_flags,'-O'+str(level),'-c',root/'src/runtime/xl6_string_value.c','-o',caller])
+            # The native List<string> source factory now selects the real
+            # string converter. Execute genuine native caller inputs with that
+            # same artifact closure, without duplicate/extra caller providers.
+            assert 'src/runtime/xl6_string_value.c' in plan['Sources']
             genuine=out/(lane+'.pruned-native'+suffix)
             run(lane+'.pruned-native.build',[cc,*full_flags,'-O'+str(level),'-include',generated,'-include',binding,
-                language_host,memory_obj,*selected,caller,*wraps,*system_links,'-o',genuine])
+                language_host,memory_obj,*selected,*wraps,*system_links,'-o',genuine])
             assert 'balanced' in run(lane+'.pruned-native.vectors',[genuine,'vectors'])
             for mode in ('oom','providers'): closed(lane+'.pruned-native.'+mode,genuine,mode,True)
             report['PrunedExecutions'].append(dict(Optimization=level,Sources=plan['Sources'],NativeModules=plan['NativeModules'],
-                CallerProviderSources=['src/runtime/xl6_string_value.c']))
+                CallerProviderSources=[]))
         run('jit',[driver,fixture,'run',out/'jit.result'])
         later=out/'continuation.c'; run('continuation.cgen',[driver,continuation,'cgen-default',later])
         later_body=later.read_text(encoding='utf-8-sig')

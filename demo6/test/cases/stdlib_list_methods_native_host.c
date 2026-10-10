@@ -63,7 +63,7 @@ static void vectors(void)
     assert(xl6ListValueTrimV1(list,-1)==-1); checkError(XERR_RANGE);
     assert(xl6ListValueClearV1(list) && xl6ListValueTrimV1(list,0)>=0);
     xrtValueRelease(list); xrtValueRelease(needle);
-    /* Real legacy carrier still serves existing source producers this phase. */
+    /* Real wire carrier remains an explicit native/C input boundary. */
     list=xrtValueIntMap(); needle=query(); assert(list && needle);
     assert(xrtValueIntMapSet(list,INT64_MIN,needle));
     assert(xl6ListValueCountV1(list)==1 && xl6ListValueContainsV1(list,needle));

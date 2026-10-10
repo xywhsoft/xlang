@@ -1,0 +1,4 @@
+list<char> nativeChars = [-9223372036854775808: '你', 9223372036854775807: '\0']
+list<int8> nativeEmpty
+assert nativeChars.length == 2 and nativeEmpty.length == 0
+assert nativeChars[-9223372036854775808] == '你' and nativeChars[9223372036854775807] == '\0'

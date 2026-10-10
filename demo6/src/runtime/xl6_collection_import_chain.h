@@ -50,7 +50,11 @@ typedef struct XL6_CollectionImportPlanV1 {
  * snapshot. It cannot be combined with RESTORE/JSON, never falls back to wire
  * ARRAY after family refusal, and preserves every int64 key. NULL providers
  * continue to use the resident Array input at descendant schema levels.
- * Same source Value at the same schema depth shares one native result. A source
+ * Same source Value at the same schema depth shares one native result. A native
+ * Array with the authentic resident ANY policy is an erased language input:
+ * a mismatched descendant Array schema explicitly imports it in that memo.
+ * Already matching or statically typed native children keep reference semantics;
+ * wrong typed/nominal/native families are not content-based coercions.
  * reused under another depth/domain is deliberately a distinct conversion.
  * RESTORE explicitly normalizes leaf wire scalars to the declared domain;
  * without it every input already needs exact native admission. Native nested

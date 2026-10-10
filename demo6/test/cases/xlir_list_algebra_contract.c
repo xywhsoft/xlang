@@ -29,7 +29,11 @@ int main(int argc,char** argv)
     }
     assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_LIST_ALGEBRA));
     assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_LIST_NATIVE));
-    assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_ERASED));
+    /* Native List factories authenticate their projected Array schema through
+     * this provider. They must not pull an import transaction into algebra. */
+    assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_ERASED));
+    assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_IMPORT_CHAIN));
+    assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_LIST_IMPORT_CHAIN));
     const char* symbols[]={"xl6ListValueCloneV1","xl6ListValueMergeRightV1","xl6ListValueWithoutKeyV1"};
     for (size_t i=0;i<3;++i) assert(xl6ArtifactRuntimeSymbolOwner(symbols[i])==XL6_ARTIFACT_LIST_ALGEBRA);
     assert(xl6ArtifactRuntimeSymbolOwner("xl6ListErasedCloneV1")==XL6_ARTIFACT_LIST_NATIVE);

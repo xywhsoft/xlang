@@ -1,7 +1,7 @@
 """Checked List method source dispatch and real resident native operations.
 
-Fresh full source driver required on both platforms. Legacy language factories
-are deliberately unchanged; native operations use real List owners, never a
+Fresh full source driver required on both platforms. Language factories now
+produce native List owners; native operations use real owners, never a
 test container or an injected public factory. Not complete List carrier,
 shipping DLL/SO/VFS, packaged AOT or full53 acceptance.
 """
@@ -128,11 +128,11 @@ def main():
             if not index:
                 assert all(symbol+'(' in text for symbol in ('xl6ListValueCountV1','xl6ListValueCountIfPresentV1',
                     'xl6ListValueRemoveV1','xl6ListValueContainsV1','xl6ListValueTakeV1','xl6ListValueClearV1','xl6ListValueTrimV1'))
-                assert 'xl6ListCreateTakeV1(' not in text,'Factory must not be partially switched'
+                assert 'xl6ListCreateTakeV1(' in text and 'xrtValueIntMap()' not in text
             elif index==3:
                 assert all(symbol+'(' in text for symbol in ('xl6ListValueCountV1','xl6ListValueRemoveV1',
                     'xl6ListValueContainsV1','xl6ListValueTakeV1','xl6ListValueClearV1','xl6ListValueTrimV1'))
-                assert 'xl6ListCreateTakeV1(' not in text
+                assert 'xl6ListCreateTakeV1(' in text and 'xrtValueIntMap()' not in text
             else: assert 'xl6_list_methods.h' not in text and 'xl6ListValue' not in text
             for level in (0,2):
                 lane=tag+'.O'+str(level); memory_obj=out/(lane+'.memory.o'); native=out/(lane+suffix)

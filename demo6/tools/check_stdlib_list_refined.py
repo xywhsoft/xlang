@@ -77,7 +77,7 @@ def main():
             ('xlir_xvalue_iterator_key_ordinal_i64',1),('xlir_xvalue_iterator_key_string_copy',2)]:
             assert len(re.findall(r'=\s*'+symbol+r'\(v\d+\);',text))==count,(symbol,count)
         assert 'xlir_xvalue_iterator_key_dynamic_xvalue(v' not in text
-        assert 'xl6DynamicCollectionCallTakeV1(' in text and 'xl6ListCreateTakeV1(' not in text
+        assert 'xl6DynamicCollectionCallTakeV1(' in text and 'xl6ListCreateTakeV1(' in text
         pruned=out/'array-prune.c'; pruned_repeat=out/'array-prune.repeat.c'
         run('prune.cgen',[driver,prune,'cgen-default',pruned]); run('prune.repeat',[driver,prune,'cgen-default',pruned_repeat])
         assert sha(pruned)==sha(pruned_repeat)

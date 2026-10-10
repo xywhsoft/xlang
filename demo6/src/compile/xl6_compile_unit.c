@@ -197,7 +197,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
     {"src/runtime/xl6_array_import.c", D(R(SEQUENCE),R(ARRAY_INPUT),R(FOREIGN_ERROR)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
-    {"src/runtime/xl6_array_import_chain.c", D(R(SEQUENCE),R(ARRAY_INPUT),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)),
+    {"src/runtime/xl6_array_import_chain.c", D(R(SEQUENCE),R(ARRAY_INPUT),R(ARRAY_SEQUENCE_ADMISSION),R(ARRAY_REFERENCE_ADMISSION),R(FOREIGN_ERROR)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
     {"src/runtime/xl6_list.c", D(R(SEQUENCE),R(ARRAY_REFERENCE_VALUE),R(ARRAY_FUTURE_ADMISSION),R(FOREIGN_ERROR)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_LIST_VALUE"}},
@@ -502,8 +502,12 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL) continue;
         if (instruction->runtimeOp == XL6_IR_RUNTIME_STACK_CREATE ||
             instruction->runtimeOp == XL6_IR_RUNTIME_ARRAY_CREATE ||
+            instruction->runtimeOp == XL6_IR_RUNTIME_LIST_CREATE ||
+            instruction->runtimeOp == XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
             instruction->runtimeOp == XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) {
             const XL6_IrType* recipe=xl6IrTypeGet(&module->types,instruction->type);
+            if (recipe && recipe->collectionAbi==XL6_IR_COLLECTION_LIST)
+                recipe=xl6IrTypeGet(&module->types,recipe->listValueSchemaType);
             for (size_t depth=0;recipe && depth<=64;++depth) {
                 switch (recipe->sequenceLayout.abi) {
                 case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2: REQUIRE(R(ARRAY_PRIMITIVE_ADMISSION)); break;
@@ -547,6 +551,8 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
             xl6IrArrayTrivialExtractResult(xl6IrTypeGet(&module->types,instruction->type));
         if (trivialExtract || instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||
             instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE ||
+            instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ||
+            instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
             (instruction->runtimeOp >= XL6_IR_RUNTIME_STACK_CREATE &&
              instruction->runtimeOp <= XL6_IR_RUNTIME_STACK_CAPACITY) ||
             (instruction->runtimeOp >= XL6_IR_RUNTIME_AVL_TREE_CREATE &&
@@ -555,8 +561,12 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
             instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO) {
             const XL6_IrType* created=(instruction->runtimeOp==XL6_IR_RUNTIME_STACK_CREATE ||
                 instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE ||
+                instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ||
+                instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
                 instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN)
                 ? xl6IrTypeGet(&module->types,instruction->type) : NULL;
+            if (created && created->collectionAbi==XL6_IR_COLLECTION_LIST)
+                created=xl6IrTypeGet(&module->types,created->listValueSchemaType);
             const XL6_IrType* extracted=trivialExtract ? xl6IrTypeGet(&module->types,instruction->type) : NULL;
             /* Extraction consumes the result descriptor AND the optional's
              * base descriptor. Only the result consumes a Value converter. */
@@ -604,6 +614,8 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                  * dependencies. Stack-only storage never pulls a converter. */
                 bool projection=instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||
                     instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE ||
+                    instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ||
+                    instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
                     (trivialExtract ? slot==0 : (slot ? instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_KEYS :
                     instruction->runtimeOp == XL6_IR_RUNTIME_AVL_TREE_VALUES ||
                     instruction->runtimeOp == XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH ||
