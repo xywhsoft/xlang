@@ -688,6 +688,11 @@ typedef struct XL6_IrType {
      * even when source never projects keys()/values(). No Array storage is
      * part of the Tree owner; these are immutable construction recipes. */
     XL6_IrTypeId treeKeySchemaType, treeValueSchemaType;
+    /* Sparse List target owns an independently sealed canonical Array<T>
+     * admission domain, not Array storage. This is a native TARGET recipe;
+     * it does not authorize interpreting the still-legacy source carrier as
+     * a native handle or remove its persistence/producer barriers. */
+    XL6_IrTypeId listValueSchemaType;
     /* Logical boxed domain, independent of physical carrier/transfer. */
     XL6_ValueAdmissionV1 xvalueAdmissionAbi;
     bool xvalueAdmissionNullable;
@@ -6660,6 +6665,12 @@ int xl6IrStackBatchInstructionCompatible(const XL6_IrModule*, const XL6_IrInstru
  * are bounded. Source producer authorization remains a separate contract. */
 int xl6IrSequenceConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrSequenceRoleAbi, XL6_IrNominalIdentitySetId*);
+/* Full List target domain and resident codec. Publishes outputs only after
+ * verifying the canonical witness and every descendant/nominal recipe.
+ * Unsupported domains fail closed, never widen to ANY. Source cutover and
+ * producer authority remain separate from this native construction plan. */
+int xl6IrListConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
+    XL6_IrTypeId*, XL6_IrNominalIdentitySetId*);
 /* Exact erased Array<var> shape and canonical dynamic element identity. */
 XL6_IrTypeId xl6IrArrayAnyElementType(const XL6_IrModule*, XL6_IrTypeId);
 /* Canonical carrier for implicit heterogeneous literals and language entry

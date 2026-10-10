@@ -54,17 +54,20 @@ static int xl6IrCgenEmitQueueReferenceCreateDepth(XL6_Output* out,const XL6_IrMo
     snprintf(scope,sizeof(scope),"xlir_queue_schema_scope_%u",(unsigned)depth);
     snprintf(outcome,sizeof(outcome),"xlir_queue_schema_outcome_%u",(unsigned)depth);
     xl6OutputPrintf(out,"    { xvalue* %s = NULL; xl6_error_scope %s = {0};\n"
-        "      if (!xl6ErrorScopeBegin(&%s)) abort();\n",seed,scope,scope);
+        "      if (xl6ErrorScopeBegin(&%s)) {\n",seed,scope,scope);
     if (xl6IrCgenEmitSequenceCreateDepth(out,module,schemaId,seed,set,depth+1,NULL,0,false)<0) return -1;
     xl6OutputPrintf(out,"      if (!%s) xl6ErrorScopeCaptureFailure(&%s);\n"
         "      %s = %s(%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %s);\n"
         "      if (!%s) xl6ErrorScopeCaptureFailure(&%s);\n"
+        "      if (%s.failed) { xrtValueRelease(%s); %s = NULL; }\n"
         "      xl6_error_result %s = xl6ErrorScopeEnd(&%s);\n"
-        "      if (!%s.ok) xl6ErrorScopePropagateFailure(%s); }\n",seed,scope,result,factory,
+        "      if (!%s.ok) xl6ErrorScopePropagateFailure(%s);\n"
+        "      } else { %s = NULL; xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); } }\n",seed,scope,result,factory,
         (unsigned)plan->role,(unsigned long long)sequence->typeValueId,
         (unsigned long long)xl6IrTypeGet(&module->types,plan->elementType)->typeValueId,
         (unsigned long long)xl6IrTypeGet(&module->types,plan->baseElementType)->typeValueId,
-        seed,plan->nullable ? "true" : "false",result,scope,outcome,scope,outcome,outcome);
+        seed,plan->nullable ? "true" : "false",result,scope,scope,result,result,
+        outcome,scope,outcome,outcome,result);
     return xl6OutputHasFailed(out) ? -1 : 1;
 }
 

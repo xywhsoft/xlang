@@ -1,0 +1,49 @@
+class ListRecipeItem
+    int value = 7
+end
+enum ListRecipeEnum as int32
+    low = -2147483648
+    high = 2147483647
+end
+// Signatures must close native TARGET schemas without Array<T> expressions.
+// This does not switch the language List source carrier yet.
+func scalarLists(list<bool> a, list<int8> b, list<uint8> c, list<int16> d,
+    list<uint16> e, list<int32> f, list<uint32> g, list<int64> h, list<uint64> i,
+    list<float32> j, list<float64> k, list<char> l, list<string> m, list<bytes> n,
+    list<var> o, list<type> p) as int
+    return 0
+end
+func nullableLists(list<bool?> a, list<int?> b, list<uint64?> c, list<float32?> d,
+    list<float64?> e, list<char?> f, list<string?> g, list<bytes?> h, list<type?> i) as int
+    return 0
+end
+func nativeLists(list<c_char> a, list<c_schar> b, list<c_uchar> c, list<c_short> d,
+    list<c_ushort> e, list<c_int> f, list<c_uint> g, list<c_long> h,
+    list<c_ulong> i, list<c_longlong> j, list<c_ulonglong> k, list<c_size> l,
+    list<c_ssize> m, list<c_ptrdiff> n, list<c_intptr> o, list<c_uintptr> p,
+    list<c_bool> q, list<c_float> r, list<c_double> s, list<c_wchar> t,
+    list<c_int?> u, list<c_float?> v) as int
+    return 0
+end
+func referenceLists(list<ListRecipeItem> a, list<ListRecipeItem?> b,
+    list<ListRecipeEnum> c, list<ListRecipeEnum?> d, list<func(int) as int> e,
+    list<future<int>> f, list<future<int>?> g, list<array<int>> h,
+    list<Stack<string>> i, list<array<array<bytes?>>> j, list<SpscQueue<int>> k) as int
+    return 0
+end
+func erasedList(list values) as int
+    return values.length
+end
+func pendingLists(list<function> a, list<point> b, list<set<int>> c,
+    list<list<int>> d, list<int>? e) as int
+    return 0
+end
+func genericList<T>(list<T> values) as int
+    return values.length
+end
+func main(...) as int
+    list<string> values = [0: "a\0b", 42: "你好"]
+    assert(genericList::<string>(values) == 2)
+    assert(erasedList([0: 7]) == 1)
+    return 0
+end

@@ -22,6 +22,13 @@ this is not all-language OOM, shipping or full53 acceptance. See
 
 ## Toolchain
 
+`check_stdlib_list_recipes.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
+links the current source compiler/runtime objects on Windows AND Linux. It checks
+actual List target schemas, pre-output mutation rejection, O0/O2 native factories,
+closed allocation and diagnostic-free scope-entry batches, plus unchanged source
+List C/JIT semantics. This is not source List cutover or shipping acceptance; see
+[List target contracts](../docs/stdlib53-b173-list-target-recipes.md).
+
 `check_stdlib_list_native.py --root <frozen-demo6> --out <fresh-output>
 --graph --restore-plan --batch-plan-prefixes --batch-erased-prefixes --erased-mutants`
 checks native sparse List methods and owned, one-step snapshot projections with
