@@ -16070,12 +16070,12 @@ static XL6_IrErrorAbi xl6IrClassifyOperatorErrorAbi(
          node->opcode == XL6_IR_OPCODE_POS || node->opcode == XL6_IR_OPCODE_NEG ||
          node->opcode == XL6_IR_OPCODE_BIT_NOT))
         return XL6_IR_ERROR_ABI_MAY_RAISE;
-    /* Array concatenation allocates an independent owner. This applies to
-     * both + and +=; the replacement is committed only after its outcome
-     * branch. The resident primitive also rejects invalid native schemas. */
-    if (node->opcode==XL6_IR_OPCODE_ADD && resultType &&
-        resultType->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-        resultType->collectionAbi==XL6_IR_COLLECTION_ARRAY)
+    /* Array concatenation and List algebra allocate independent owners.
+     * Compound replacement commits only after the checked outcome. */
+    if (resultType && resultType->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+        ((node->opcode==XL6_IR_OPCODE_ADD && resultType->collectionAbi==XL6_IR_COLLECTION_ARRAY) ||
+         ((node->opcode==XL6_IR_OPCODE_ADD || node->opcode==XL6_IR_OPCODE_SUB) &&
+          resultType->collectionAbi==XL6_IR_COLLECTION_LIST)))
         return XL6_IR_ERROR_ABI_MAY_RAISE;
     if ( node->sourceKind == XL6_AST_BINARY &&
          node->opcode == XL6_IR_OPCODE_ADD && resultType != NULL &&
@@ -20127,6 +20127,8 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeContainerAllocationErrorPhysicalAbi(XL6_I
     case XL6_IR_RUNTIME_ARRAY_CREATE:
     case XL6_IR_RUNTIME_XVALUE_ARRAY_NEW:
     case XL6_IR_RUNTIME_XVALUE_ARRAY_CONCAT:
+    case XL6_IR_RUNTIME_XVALUE_LIST_MERGE_RIGHT:
+    case XL6_IR_RUNTIME_XVALUE_LIST_WITHOUT_I64_KEY:
     case XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY:
     case XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY:
     case XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY:

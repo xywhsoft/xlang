@@ -217,6 +217,7 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_list_scalar_read.c ^
     src\runtime\xl6_list_string_read.c ^
     src\runtime\xl6_list_value_write.c ^
+    src\runtime\xl6_list_algebra.c ^
     src\runtime\xl6_value_index_read.c ^
     src\runtime\xl6_value_index_write.c ^
     src\runtime\xl6_value_wire_contains.c ^
@@ -443,6 +444,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_list_scalar_read.c ^
     src\runtime\xl6_list_string_read.c ^
     src\runtime\xl6_list_value_write.c ^
+    src\runtime\xl6_list_algebra.c ^
     src\runtime\xl6_value_index_read.c ^
     src\runtime\xl6_value_index_write.c ^
     src\runtime\xl6_value_wire_contains.c ^

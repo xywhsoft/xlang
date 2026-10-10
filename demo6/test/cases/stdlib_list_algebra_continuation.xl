@@ -1,0 +1,30 @@
+int algebraContinuationCleanups = 0
+async func algebraReady() as int
+    return 1
+end
+async func algebraLater(list<string> left, list<string> right) as list<string>
+    try
+        int ignored = await algebraReady()
+        return (copy(left) + right) - 17
+    finally
+        algebraContinuationCleanups += 1
+    end
+end
+func algebraItems(list<string> source) as generator<list<string>>
+    try
+        yield copy(source)
+        yield source - 7
+    finally
+        algebraContinuationCleanups += 1
+    end
+end
+list<string> left = [7: "a\0你", 9: "z"]
+list<string> right = [7: "r\0x", 17: "z"]
+auto result = await algebraLater(left, right)
+assert(result.length == 2 and result[7] == "r\0x")
+assert(left[7] == "a\0你" and right.length == 2 and algebraContinuationCleanups == 1)
+int total = 0
+for item in algebraItems(left)
+    total += item.length
+end
+assert(total == 3 and left.length == 2 and algebraContinuationCleanups == 2)

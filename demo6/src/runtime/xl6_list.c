@@ -806,6 +806,17 @@ static ListOwner* erased(const xvalue* value)
     if (!erasedBegin(value,&owner,NULL)) xrtSetErrorKind(XERR_TYPE);
     return owner;
 }
+xvalue* xl6ListErasedCloneV1(const xvalue* value)
+{
+    xl6_error_scope scope={0};
+    if (!xl6ErrorScopeBegin(&scope)) {
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return NULL;
+    }
+    ListOwner* owner=erased(value);
+    xvalue* result=owner ? clonePinned(owner,0,false,false,0,&scope) : NULL;
+    if (!finish(&scope,owner,result!=NULL)) { discard(result); return NULL; }
+    return result;
+}
 int xl6ListErasedProbeV1(const xvalue* value)
 {
     xrtownershipscope mutation={0}; mutationBegin(&mutation);

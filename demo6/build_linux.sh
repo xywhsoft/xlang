@@ -192,6 +192,7 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_list_scalar_read.c"
   "$ROOT/src/runtime/xl6_list_string_read.c"
   "$ROOT/src/runtime/xl6_list_value_write.c"
+  "$ROOT/src/runtime/xl6_list_algebra.c"
   "$ROOT/src/runtime/xl6_value_index_read.c"
   "$ROOT/src/runtime/xl6_value_index_write.c"
   "$ROOT/src/runtime/xl6_value_wire_contains.c"

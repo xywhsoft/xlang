@@ -80,6 +80,9 @@ XL6_TEXT_API bool xl6ListErasedClearV1(const xvalue*);
  * foreign payload or admits a collection; the selected operation must still
  * authenticate layout, projection and the actual owner pin. */
 XL6_TEXT_API int xl6ListErasedProbeV1(const xvalue*);
+/* Independent typed storage, preserving the authenticated immutable domain
+ * and projection binding. Source borrowed; result owned. */
+XL6_TEXT_API xvalue* xl6ListErasedCloneV1(const xvalue*);
 /* Value equality matches erased Array search: unlike writes, a query need not
  * belong to the element domain. Every stored slot is admitted/projected while
  * pinned, then compared as a Value. No whole-list boxing or wire conversion.

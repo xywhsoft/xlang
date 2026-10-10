@@ -72,7 +72,9 @@ test-root 的宿主、合同及 runner 修正均记录实际哈希；冻结生�
 
 ## 剩余载体与发布工作
 
-List 源工厂、类型准入、cast、clone、代数和恢复还需联动切换；
+静态索引批次之后，已知 List 的浅复制与代数已由
+[List 浅复制与代数操作](stdlib53-b179-list-copy-algebra.md) 关闭。
+List 源工厂、类型准入、cast、开放复制、递归 clone 和恢复还需联动切换；
 Set/Dict 迁移、发布 DLL/SO、VFS、打包 AOT 和三组总验收仍未完成。
 本批不关闭长期任务，也不宣称发布级验收通过。
 

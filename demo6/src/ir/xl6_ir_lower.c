@@ -28252,7 +28252,8 @@ static XL6_IrValueId xl6IrLowerCompoundValue(
             ctx, origin, node, type, previous, rhsId, rhs, XL6_IR_VALUE_INVALID);
     if (operation != XL6_IR_RUNTIME_NONE) {
         XL6_IrValueId operands[2];
-        XL6_IrErrorAbi errorAbi=operation==XL6_IR_RUNTIME_XVALUE_ARRAY_CONCAT
+        XL6_IrErrorAbi errorAbi=xl6IrRuntimeContainerAllocationErrorPhysicalAbi(operation)!=
+            XL6_IR_CALL_ERROR_PHYSICAL_INVALID
             ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
         if (node->operatorErrorAbi != errorAbi ||
             !xl6IrCollectionAlgebraRuntimeSignatureValid(
