@@ -1,0 +1,31 @@
+int valueCopyContinuationCleanups = 0
+async func valueCopyReady() as int
+    return 1
+end
+async func valueCopyLater(var source) as var
+    try
+        int ignored = await valueCopyReady()
+        return clone(copy(source))
+    finally
+        valueCopyContinuationCleanups += 1
+    end
+end
+func valueCopyItems(var source) as generator<var>
+    try
+        yield copy(source)
+        yield clone(source)
+    finally
+        valueCopyContinuationCleanups += 1
+    end
+end
+list<string> source = [7: "a\0你", 9: "z"]
+var result = await valueCopyLater(source)
+result[7] = "changed"
+assert(source[7] == "a\0你" and valueCopyContinuationCleanups == 1)
+int count = 0
+for item in valueCopyItems(source)
+    item[7] = "changed"
+    assert(source[7] == "a\0你")
+    count += 1
+end
+assert(count == 2 and valueCopyContinuationCleanups == 2)

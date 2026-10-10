@@ -28,8 +28,22 @@ static const char* xl6IrCgenCollectionCountSymbol(const XL6_IrModule* module,
 static const char* xl6IrCgenValueCloneSymbol(const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
 {
-    return instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_CLONE &&
-        xl6IrCgenCollectionReceiverIsList(module,instruction) ? "xl6ListValueCloneV1" : "xl6ValueCloneV1";
+    switch (xl6IrValueCopyProviderAbi(module,instruction)) {
+    case XL6_IR_VALUE_COPY_LIST_V1: return "xl6ListValueCloneV1";
+    case XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1: return "xl6ValueCopyV1";
+    case XL6_IR_VALUE_COPY_ARRAY_WIRE_V1: return "xl6ValueCloneV1";
+    default: return NULL;
+    }
+}
+static const char* xl6IrCgenValueDeepCloneSymbol(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{
+    switch (xl6IrValueCopyProviderAbi(module,instruction)) {
+    case XL6_IR_VALUE_COPY_LIST_V1:
+    case XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1: return "xl6ValueCloneGraphV1";
+    case XL6_IR_VALUE_COPY_ARRAY_WIRE_V1: return "xl6ValueDeepCloneV1";
+    default: return NULL;
+    }
 }
 static const char* xl6IrCgenCollectionContainsSymbol(const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)

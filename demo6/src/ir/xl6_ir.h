@@ -6877,6 +6877,17 @@ const XL6_IrType* xl6IrListIndexReceiverType(const XL6_IrModule*,const XL6_IrIns
 int xl6IrListIndexRuntimeInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 int xl6IrOwnedIndexReadRuntimeInstructionCompatible(
     const XL6_IrModule* module,const XL6_IrInstruction* instruction);
+/* Verified representation-only provider closure for copy/clone. Open value
+ * graphs may contain native List at any depth; closed leaf Arrays do not
+ * require that resident provider. No backend source/type-name inference. */
+typedef enum XL6_IrValueCopyProviderAbi {
+    XL6_IR_VALUE_COPY_INVALID=0,
+    XL6_IR_VALUE_COPY_ARRAY_WIRE_V1,
+    XL6_IR_VALUE_COPY_LIST_V1,
+    XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1
+} XL6_IrValueCopyProviderAbi;
+XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbi(
+    const XL6_IrModule*,const XL6_IrInstruction*);
 int xl6IrCollectionCountRuntimeOpIs(XL6_IrRuntimeOp operation);
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeCollectionCountErrorPhysicalAbi(XL6_IrRuntimeOp operation);
 /* Exact normal/tagged-nullable/open-var count contract, shared by verification

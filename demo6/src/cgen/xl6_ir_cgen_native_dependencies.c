@@ -467,7 +467,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_LIST_WITHOUT_I64_KEY &&
             !visitor(context,"xl6ListValueWithoutKeyV1")) return 0;
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DEEP_CLONE &&
-            !visitor(context,"xl6ValueDeepCloneV1")) return 0;
+            !visitor(context,xl6IrCgenValueDeepCloneSymbol(module,instruction))) return 0;
         if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE &&
             (!xl6IrArrayCreateRuntimeInstructionCompatible(module,instruction) ||
              !visitor(context,"xl6ArrayProjectionTakeV1"))) return 0;

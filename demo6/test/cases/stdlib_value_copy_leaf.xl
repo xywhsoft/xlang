@@ -1,0 +1,5 @@
+array<int> source = array<int>[1, 2]
+auto shallow = copy(source)
+auto deep = clone(source)
+source[0] = 9
+assert(shallow[0] == 1 and deep[0] == 1)

@@ -177,7 +177,10 @@ xvalue* xl6ValueCloneV1(const xvalue* source)
 {
     xerror* incoming=xrtTakeError();
     xl6_error_scope operation={0};
-    if (!xl6ErrorScopeBegin(&operation)) abort();
+    if (!xl6ErrorScopeBegin(&operation)) {
+        xrtErrorFree(incoming);
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return NULL;
+    }
     XL6_Sequence* owner=NULL; XL6_SequenceLayoutV1 layout;
     const xvalueconverter* converter=NULL;
     int status=xl6SequenceBeginErasedArrayV1(source,&owner,&layout,&converter);
