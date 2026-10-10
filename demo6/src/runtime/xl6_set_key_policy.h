@@ -6,9 +6,13 @@
  * storage and every clone/algebra result; no generated callback, source
  * module lease, context, or owning Value edge is stored in the policy.
  * Lifecycle/admission still belongs to the exact item type/owner schema.
- * Reference keys use XRT Value equality/hash (C NULL is the canonical null).
+ * Boxed basic values use content equality/hash (C NULL is canonical null).
+ * Mutable container shells use their instance identity; native handles use
+ * the owner/producer/context/type domain, never semantic hash/equal callbacks.
+ * Ordinary mutation cannot change a retained key's identity. Destructive
+ * native handle extraction/reinterpretation is outside the language contract.
  * Future keys use control-block identity, never their eventual result.
- * Keys must remain hash/equality stable while stored. No ordering capability
+ * No recursive content walk or key freezing is needed. No ordering capability
  * is added to the retained-reference descriptor. */
 XL6_TEXT_API const xtypedsetkeypolicy* xl6SetReferenceKeyPolicyV1(void);
 XL6_TEXT_API const xtypedsetkeypolicy* xl6SetFutureKeyPolicyV1(void);

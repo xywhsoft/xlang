@@ -58,6 +58,7 @@
 - [List 原生语言构造与稀疏导入](stdlib53-b184-list-source-native.md)：普通字面量、空默认值及目标类型边界直接使用原生 List，完整 IR 合同与嵌套 ANY Array 转换；嵌套 List recipe 和发布总验收继续。
 - [List 与 Array 混合配方](stdlib53-b185-list-mixed-recipes.md)：闭合嵌套 List、Array/List 交错链、原生 ANY List 隔离及 JSON/XLON 恢复；Cgen 只消费统一配方，Set/Dict 和发布总验收继续。
 - [Set 显式键策略底座](stdlib53-b186-set-key-policies.md)：相等与哈希独立于排序，驻留引用/Future 策略、失败边界和精确 typed_set 快照同步；语言 Set/Dict 与发布总验收继续。
+- [Set 原生存储与稳定引用键](stdlib53-b187-native-set.md)：真实 typed Set owner、完整逻辑域、集合运算、快照与分阶段退役；可变引用按身份作为键，语言 Set/Dict 和发布总验收继续。
 - [List 方法接入与集合异常合同](stdlib53-b174-list-methods-language.md)：checked 驻留方法、may-raise 和真实 C/JIT/continuation 验证；工厂、动态分发及恢复仍待切换。
 - [List 元素准入与目标构造合同](stdlib53-b173-list-target-recipes.md)：XLIR 精确元素 witness、泛型闭包和目标工厂；错误元数据与分配/作用域失败批处理验证，源载体尚未切换。
 - [List 原生动态方法与快照迭代](stdlib53-b172-list-erased-native.md)：复用 typed List 存储与游标，checked 动态方法、完整稀疏键和单步拥有投影；语言载体切换仍待完成。

@@ -51,53 +51,43 @@ static void keys(void)
     xrtValueRelease(shortText); xrtValueRelease(same); xrtValueRelease(one);
     assert(!type->Ops->Compare && !type->Ops->Hash && !xrtGetError());
 }
-typedef struct CallbackState { bool noDiagnostic,hashFailure,equalFailure,reenter; xtypedset* target; } CallbackState;
+typedef struct CallbackState { unsigned calls; } CallbackState;
 static bool cloneHandle(ptr item,ptr* output,ptr context)
 { (void)context; *output=item; return true; }
 static void drop(ptr item,ptr context) { (void)item; (void)context; }
-static void fail(CallbackState* state)
-{
-    if (state->noDiagnostic) xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL});
-    else xrtSetErrorKind(XERR_VALUE);
-}
 static uint64 handleHash(ptr item,ptr context)
 {
     (void)context; CallbackState* state=item;
-    if (state->reenter) {
-        assert(xrtTypedSetCount(state->target)==0); clearError(XERR_STATE);
-    }
-    if (state->hashFailure) fail(state);
-    return 0; /* A valid zero payload, including when the checked path fails. */
+    ++state->calls; xrtSetErrorKind(XERR_VALUE); return 0;
 }
 static bool handleEqual(ptr left,ptr right,ptr context)
 {
     (void)right; (void)context; CallbackState* state=left;
-    if (state->equalFailure) fail(state);
-    return true;
+    ++state->calls; xrtSetErrorKind(XERR_VALUE); return true;
 }
 static const xvaluehandleops handleOps={cloneHandle,drop,handleHash,handleEqual};
 static void errors(void)
 {
     const xtypedsetkeypolicy* policy=xl6SetReferenceKeyPolicyV1();
-    for (unsigned absent=0;absent<2;++absent) {
-        CallbackState state={.noDiagnostic=absent}; ptr raw=&state;
+    {
+        CallbackState state={0},other={0}; ptr raw=&state;
         xvalue* a=xrtValueHandleTake(&raw,&handleOps,NULL); raw=&state;
         xvalue* b=xrtValueHandleTake(&raw,&handleOps,NULL); assert(a && b && a!=b);
-        xtypedset set; assert(xrtTypedSetInitWithKeyPolicy(&set,references(),policy)); state.target=&set;
-        assert(xrtTypedSetAdd(&set,&a)); state.reenter=true;
-        assert(xrtTypedSetHas(&set,&b)); state.reenter=false;
-        for (unsigned lane=0;lane<3;++lane) {
-            state.hashFailure=lane==0; state.equalFailure=lane==1;
+        raw=&other; xvalue* c=xrtValueHandleTake(&raw,&handleOps,NULL); assert(c);
+        xtypedset set; assert(xrtTypedSetInitWithKeyPolicy(&set,references(),policy));
+        assert(xrtTypedSetAdd(&set,&a) && xrtTypedSetHas(&set,&b));
+        assert(xrtTypedSetAdd(&set,&c) && xrtTypedSetCount(&set)==2);
+        assert(!state.calls && !other.calls && !xrtGetError());
+        for (unsigned lane=0;lane<2;++lane) {
             xl6_error_scope parent={0}; assert(xl6ErrorScopeBegin(&parent));
-            if (lane==2) refuseEntry=true;
-            assert(!xrtTypedSetAdd(&set,&b) && xrtTypedSetCount(&set)==1);
+            refuseEntry=true;
+            assert(!xrtTypedSetAdd(&set,lane ? &c : &b) && xrtTypedSetCount(&set)==2);
             xl6_error_result result=xl6ErrorScopeEnd(&parent); assert(!result.ok);
-            assert((absent || lane==2) ? !result.error : result.error && xrtErrorKind(result.error)==XERR_VALUE);
+            assert(!result.error);
             xrtErrorFree(result.error); xrtClearError();
         }
-        state.hashFailure=state.equalFailure=false;
         assert(xrtTypedSetHas(&set,&b) && !xrtGetError());
-        xrtTypedSetUnit(&set); xrtValueRelease(b); xrtValueRelease(a);
+        xrtTypedSetUnit(&set); xrtValueRelease(c); xrtValueRelease(b); xrtValueRelease(a);
     }
     (void)policy->Hash(NULL,NULL); clearError(XERR_ARGUMENT);
     assert(!policy->Equal(NULL,NULL,NULL)); clearError(XERR_ARGUMENT);
@@ -108,10 +98,29 @@ static void depth(void)
     XL6_CollectionIdentityFrameV1 frames[XL6_SEQUENCE_IDENTITY_DEPTH_MAX_V1]={0};
     const xtypedsetkeypolicy* policy=xl6SetReferenceKeyPolicyV1(); xvalue* item=xrtValueInt(7); assert(item);
     for (unsigned i=0;i<XL6_SEQUENCE_IDENTITY_DEPTH_MAX_V1;++i) assert(xl6CollectionIdentityEnterV1(&frames[i]));
-    (void)policy->Hash(&item,NULL); clearError(XERR_RANGE);
-    assert(!policy->Equal(&item,&item,NULL)); clearError(XERR_RANGE);
+    /* Stable keys never walk container contents or consume shared depth. */
+    (void)policy->Hash(&item,NULL); assert(!xrtGetError());
+    assert(policy->Equal(&item,&item,NULL) && !xrtGetError());
     for (unsigned i=XL6_SEQUENCE_IDENTITY_DEPTH_MAX_V1;i-->0;) xl6CollectionIdentityLeaveV1(&frames[i]);
     assert(policy->Equal(&item,&item,NULL) && !xrtGetError()); xrtValueRelease(item);
+}
+static void mutableKeys(void)
+{
+    const xtypedsetkeypolicy* policy=xl6SetReferenceKeyPolicyV1(); xtypedset set;
+    xvalue* a=xrtValueArray(),*b=xrtValueArray(),*one=xrtValueInt(1),*two=xrtValueInt(2);
+    assert(a && b && one && two);
+    assert(xrtValueArrayAppend(a,one) && xrtValueArrayAppend(b,one));
+    assert(xrtTypedSetInitWithKeyPolicy(&set,references(),policy));
+    assert(xrtTypedSetAdd(&set,&a) && xrtTypedSetAdd(&set,&b) && xrtTypedSetCount(&set)==2);
+    uint64 before=policy->Hash(&a,NULL);
+    xvalue* copy=xrtValueClone(a); assert(copy && copy!=a);
+    assert(xrtTypedSetAdd(&set,&copy) && xrtTypedSetCount(&set)==3);
+    assert(xrtValueArraySet(a,0,two)); /* Detaches shared COW backing. */
+    assert(before==policy->Hash(&a,NULL) && xrtTypedSetHas(&set,&a));
+    assert(!policy->Equal(&a,&b,NULL) && !policy->Equal(&a,&copy,NULL));
+    assert(xrtTypedSetRemove(&set,&a) && xrtTypedSetCount(&set)==2);
+    xrtTypedSetUnit(&set); xrtValueRelease(copy); xrtValueRelease(two); xrtValueRelease(one);
+    xrtValueRelease(b); xrtValueRelease(a); assert(!xrtGetError());
 }
 static void futures(void)
 {
@@ -165,6 +174,6 @@ int main(void)
     assert(xrtMemDebugEnable(true)); xl6_error_scope warm={0}; assert(xl6ErrorScopeBegin(&warm));
     assert(xl6ErrorScopeEnd(&warm).ok); XL6_CollectionIdentityFrameV1 frame={0};
     assert(xl6CollectionIdentityEnterV1(&frame)); xl6CollectionIdentityLeaveV1(&frame);
-    xl6ProductMemoryBegin(SIZE_MAX); keys(); errors(); depth(); futures(); xl6ProductMemoryVerify();
+    xl6ProductMemoryBegin(SIZE_MAX); keys(); errors(); depth(); futures(); mutableKeys(); xl6ProductMemoryVerify();
     prefixes(); puts("[PASS] resident typed Set key policies"); return 0;
 }

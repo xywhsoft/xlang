@@ -2,7 +2,7 @@
 
 Build actual consumer supplier bodies and resident providers under strict C,
 exercise exact NUL/UTF-8/bytes/null and retained/Future reference semantics,
-checked failure without a diagnostic, reentry and shared recursion limits,
+checked failure without a diagnostic, stable mutable identities without callbacks,
 and close four whole allocation-failure prefixes. Compile broken real
 providers and require these same vectors to reject each implementation.
 """
@@ -59,7 +59,8 @@ def main():
         for name,old,new in (
             ('equality-payload-lost','return finish(&scope) && equal;','return finish(&scope) && equal && false;'),
             ('no-diagnostic-first-failure-lost','xl6ErrorScopePropagateFailure(result);','xrtSetErrorTake(result.error);'),
-            ('canonical-null-omitted','value ? value : xrtValueNull(),&hash','value,&hash')):
+            ('canonical-null-omitted','value=value ? value : xrtValueNull();','value=value;'),
+            ('mutable-owner-identity-lost','output->object=object;','output->object=NULL;')):
             assert body.count(old)==1,name
             altered=out/(name+'.c'); altered.write_text(body.replace(old,new),encoding='utf-8')
             binary=out/(name+('.exe' if os.name=='nt' else ''))
@@ -69,10 +70,10 @@ def main():
             controls.append(dict(Name=name,Source=str(altered),SourceSha256=sha(altered),
                 Product=str(binary),ProductSha256=sha(binary),Compiled=True,Rejected=True))
         report['InputsUnchanged']=all(sha(r['Path'])==r['Sha256'] for r in inputs)
-        report['Complete']=report['InputsUnchanged'] and len(controls)==3
+        report['Complete']=report['InputsUnchanged'] and len(controls)==4
         assert report['Complete']
     finally: (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
-    print('Resident Set keys: strict O0/O2, four full prefixes/15 attempts each, three real mutants rejected',flush=True)
+    print('Resident Set keys: strict O0/O2, four full prefixes/15 attempts each, four real mutants rejected',flush=True)
 
 
 if __name__=='__main__': main()
