@@ -18,10 +18,11 @@ from sync_xrt_snapshot import render_symbol_table, sync_capability_matrix
 import json
 
 
-SECTION = re.compile(r"^/\* =+ \*/\n/\* (public|source): ([^\n]+) \*/\n/\* =+ \*/\n", re.M)
+SECTION = re.compile(r"^/\* =+ \*/\n/\* (public|internal|source): ([^\n]+) \*/\n/\* =+ \*/\n", re.M)
+TERMINAL_FOOTER = "\n#endif\n#endif\n\n#endif\n"
 
 
-def section(text: str, kind: str, name: str) -> tuple[int, int]:
+def section(text: str, kind: str, name: str, allow_terminal: bool = False) -> tuple[int, int]:
     markers = list(SECTION.finditer(text))
     matches = [(i, marker) for i, marker in enumerate(markers)
                if marker[1] == kind and marker[2] == name]
@@ -29,14 +30,18 @@ def section(text: str, kind: str, name: str) -> tuple[int, int]:
         raise ValueError(f"expected exactly one section {kind}: {name}, got {len(matches)}")
     i, marker = matches[0]
     if i + 1 == len(markers):
-        raise ValueError("terminal section requires a product-level update")
+        # Explicit xruntime source delta only. Preserve the known implementation
+        # and header footer; never import product-wide trailing feature guards.
+        if not allow_terminal or kind != "source" or not text.endswith(TERMINAL_FOOTER):
+            raise ValueError("terminal section requires a product-level update")
+        return marker.end(), len(text)
     return marker.end(), markers[i + 1].start()
 
 
-def replace(text: str, old: str, new: str, kind: str, name: str) -> str:
-    start, end = section(text, kind, name)
-    old_start, old_end = section(old, kind, name)
-    new_start, new_end = section(new, kind, name)
+def replace(text: str, old: str, new: str, kind: str, name: str, allow_terminal: bool = False) -> str:
+    start, end = section(text, kind, name, allow_terminal)
+    old_start, old_end = section(old, kind, name, allow_terminal)
+    new_start, new_end = section(new, kind, name, allow_terminal)
     old_lines = old[old_start:old_end].splitlines(keepends=True)
     new_lines = new[new_start:new_end].splitlines(keepends=True)
     current = text[start:end]
@@ -64,24 +69,37 @@ def main() -> int:
     parser.add_argument("--current", type=Path, required=True, help="frozen current single/ directory")
     parser.add_argument("--public", action="append", default=[])
     parser.add_argument("--source", action="append", default=[])
+    parser.add_argument("--runtime-public", action="append", default=[])
+    parser.add_argument("--runtime-internal", action="append", default=[])
+    parser.add_argument("--runtime-source", action="append", default=[])
     args = parser.parse_args()
-    if not args.public and not args.source:
+    if not any((args.public,args.source,args.runtime_public,args.runtime_internal,args.runtime_source)):
         parser.error("name at least one explicit source or public section")
     root = args.root.resolve()
     replacements: dict[Path, bytes] = {}
     for declarations in (False, True):
-        leaf = "xrt_decl.h" if declarations else "xrt.h"
-        old = (args.previous / leaf).read_text(encoding="utf-8")
-        new = (args.current / leaf).read_text(encoding="utf-8")
-        paths = (root / "release/include/xrt_decl.h", root / "release/include/xruntime_decl.h") if declarations else (
-            root / "lib/xrt/xrt.h", root / "lib/xruntime/xruntime.h")
-        for path in paths:
-            text = path.read_text(encoding="utf-8")
-            for name in args.public:
-                text = replace(text, old, new, "public", name)
+        if args.public or args.source:
+            leaf = "xrt_decl.h" if declarations else "xrt.h"
+            old = (args.previous / leaf).read_text(encoding="utf-8")
+            new = (args.current / leaf).read_text(encoding="utf-8")
+            paths = (root / "release/include/xrt_decl.h", root / "release/include/xruntime_decl.h") if declarations else (
+                root / "lib/xrt/xrt.h", root / "lib/xruntime/xruntime.h")
+            for path in paths:
+                text = path.read_text(encoding="utf-8")
+                for name in args.public: text = replace(text, old, new, "public", name)
+                if not declarations:
+                    for name in args.source: text = replace(text, old, new, "source", name)
+                replacements[path] = text.encode("utf-8")
+        if args.runtime_public or args.runtime_internal or args.runtime_source:
+            leaf = "xruntime_decl.h" if declarations else "xruntime.h"
+            old = (args.previous / "extlibs" / leaf).read_text(encoding="utf-8")
+            new = (args.current / "extlibs" / leaf).read_text(encoding="utf-8")
+            path = root / ("release/include/xruntime_decl.h" if declarations else "lib/xruntime/xruntime.h")
+            text = replacements.get(path, path.read_bytes()).decode("utf-8")
+            for name in args.runtime_public: text = replace(text, old, new, "public", name)
             if not declarations:
-                for name in args.source:
-                    text = replace(text, old, new, "source", name)
+                for name in args.runtime_internal: text = replace(text, old, new, "internal", name)
+                for name in args.runtime_source: text = replace(text, old, new, "source", name, True)
             replacements[path] = text.encode("utf-8")
     # All four previous change spans are checked before any snapshot is written.
     for path, data in replacements.items():

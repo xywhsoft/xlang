@@ -46479,6 +46479,17 @@ XRT_API xrtdynamicfields* xrtDynamicFieldsCreate(void);
 XRT_API xrtdynamicfields* xrtDynamicFieldsRef(xrtdynamicfields* pFields);
 XRT_API void xrtDynamicFieldsUnref(xrtdynamicfields* pFields);
 
+/* Physical owning node: real object RC, one edge per stored Value slot.
+ * Count/Trace/admission require the caller's ownership freeze or equivalent
+ * complete quiescence. Public APIs participate, but raw payload/typed-dict
+ * access still needs enclosing participation and caller serialization.
+ * No callbacks are retained. The adapter uses core V1 phased retirement;
+ * Finish/drop must run outside any inherited freeze/mutation. Weak promotion
+ * is quarantined by Claim; abort restores it, Clear permanently retires it.
+ * This does not itself collect cycles, unload code or restore Open objects. */
+XRT_API xrtownershipref xrtDynamicFieldsOwnership(const xrtdynamicfields* pFields);
+XRT_API const xrtownershipadapterv1* xrtDynamicFieldsOwnershipAdapterV1(xrtownershipref Reference);
+
 
 
 /* 返回字段数量、容量，并管理字段表存储。 */
@@ -67576,6 +67587,11 @@ struct xrtobject {
 	size_t Size;
 	size_t PayloadOffset;
 	xrtownershiptrace OwnershipTrace;
+	/* Resident phased adapters quarantine weak promotion; existing strong
+	 * owners may still resurrect an object before Clear. Protected by the
+	 * ownership domain, not a new object-graph registry or synthetic RC. */
+	const void* OwnershipClaim;
+	bool OwnershipCleared;
 #if defined(XRUNTIME_FEATURE_RUNTIME_OBJECT_GRAPH)
 	volatile int32 State;
 	struct xrtobjectgraph* Graph;
@@ -67995,6 +68011,10 @@ bool __xrtTypedQueueTrace(
 
 /* 内建字典类型描述复用的进程期实例操作表。 */
 extern const xrtinstanceops __xrtTypedDictInstanceOperations;
+
+/* Exact built-in storage/destructor/key policy, not just a TypeId match.
+ * Caller holds complete quiescence; no arbitrary callback is invoked. */
+bool __xrtTypedDictOwnershipStorage(const xtypeddict*, const xrttype*);
 
 #endif
 
@@ -338650,15 +338670,19 @@ void __xrtObjectEndFinalize(xrtobject* pObject)
 /* 释放一个控制块弱引用，最后一个弱引用负责回收整块内存。 */
 static void __xrtObjectWeakRelease(xrtobject* pObject)
 {
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
 	int32 iReferences = xrtRefRelease(&pObject->WeakCount);
 
 	if ( iReferences < 0 ) {
+		if (!xrtOwnershipScopeEnd(&Mutation)) abort();
 		__xrtErrorSetInvalidState();
 		return;
 	}
 	if ( iReferences == 0 ) {
 		xrtFree(pObject);
 	}
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
 }
 
 
@@ -338743,12 +338767,15 @@ XRT_API xrtobject* xrtObjectCreateSized(
 
 
 /* 增加一个已经存活对象的强引用。 */
-XRT_API xrtobject* xrtObjectRef(xrtobject* pObject)
+static xrtobject* __xrtObjectRefBody(xrtobject* pObject)
 {
 	if ( pObject == NULL ) {
 		__xrtRuntimeObjectError(XERR_ARGUMENT, XOBJECT_ERROR_REFERENCE,
 			"ref", "the runtime object is null");
 		return NULL;
+	}
+	if (pObject->OwnershipCleared) {
+		__xrtErrorSetInvalidState(); return NULL;
 	}
 #if defined(XRUNTIME_FEATURE_RUNTIME_OBJECT_GRAPH)
 	if ( __xrtObjectState(pObject) != XRT_OBJECT_STATE_ACTIVE ) {
@@ -338773,6 +338800,15 @@ XRT_API xrtobject* xrtObjectRef(xrtobject* pObject)
 	return pObject;
 }
 
+XRT_API xrtobject* xrtObjectRef(xrtobject* pObject)
+{
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+	xrtobject* pResult = __xrtObjectRefBody(pObject);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	return pResult;
+}
+
 
 
 /* 释放一个对象强引用，并在最后一次释放时销毁负载。 */
@@ -338783,7 +338819,10 @@ XRT_API void xrtObjectUnref(xrtobject* pObject)
 	if ( pObject == NULL ) {
 		return;
 	}
-	iReferences = xrtRefRelease(&pObject->StrongCount);
+	/* Only the counter transition participates here. Instance destruction is
+	 * outside this scope; participating instance adapters detach their own
+	 * fields under mutation before invoking arbitrary payload destructors. */
+	iReferences = xrtOwnershipRefRelease(&pObject->StrongCount);
 	if ( iReferences < 0 ) {
 		__xrtRuntimeObjectError(XERR_STATE, XOBJECT_ERROR_REFERENCE,
 			"unref", "the runtime object reference cannot be released");
@@ -338881,6 +338920,7 @@ XRT_API size_t xrtObjectRefCount(const xrtobject* pObject)
 
 static bool __xrtObjectOwnershipCount(const void* pData, size_t* pCount)
 {
+	if (((const xrtobject*)pData)->OwnershipCleared) return false;
 	#if defined(XRUNTIME_FEATURE_RUNTIME_OBJECT_GRAPH)
 		if (__xrtAtomicRefLoad(&((const xrtobject*)pData)->State) != XRT_OBJECT_STATE_ACTIVE) return false;
 	#endif
@@ -338891,6 +338931,7 @@ static bool __xrtObjectOwnershipCount(const void* pData, size_t* pCount)
 static bool __xrtObjectOwnershipTrace(const void* pData, xrtownershipvisitor pVisit, ptr pContext)
 {
 	const xrtobject* pObject = (const xrtobject*)pData;
+	if (pObject->OwnershipCleared) return false;
 	#if defined(XRUNTIME_FEATURE_RUNTIME_OBJECT_GRAPH)
 		if (__xrtAtomicRefLoad(&pObject->State) != XRT_OBJECT_STATE_ACTIVE) return false;
 	#endif
@@ -339080,7 +339121,7 @@ XRT_API bool xrtWeakExpired(const xrtweak* pWeak)
 
 
 /* 尝试把弱引用提升为新的强引用。 */
-XRT_API xrtobject* xrtWeakLock(const xrtweak* pWeak)
+static xrtobject* __xrtWeakLockBody(const xrtweak* pWeak)
 {
 	xrtobject* pObject;
 
@@ -339093,6 +339134,7 @@ XRT_API xrtobject* xrtWeakLock(const xrtweak* pWeak)
 	if ( pObject == NULL ) {
 		return NULL;
 	}
+	if (pObject->OwnershipClaim != NULL || pObject->OwnershipCleared) return NULL;
 #if defined(XRUNTIME_FEATURE_RUNTIME_OBJECT_GRAPH)
 	if ( __xrtObjectState(pObject) != XRT_OBJECT_STATE_ACTIVE ) {
 		return NULL;
@@ -339108,6 +339150,15 @@ XRT_API xrtobject* xrtWeakLock(const xrtweak* pWeak)
 	}
 #endif
 	return pObject;
+}
+
+XRT_API xrtobject* xrtWeakLock(const xrtweak* pWeak)
+{
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+	xrtobject* pResult = __xrtWeakLockBody(pWeak);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	return pResult;
 }
 
 #endif
@@ -355215,6 +355266,8 @@ XRT_API bool xrtTypedSetTypeValidate(const xrttype* pType)
 /* ========================================================================== */
 
 #if defined(XRUNTIME_FEATURE_TYPED_DICT)
+#if defined(XRUNTIME_FEATURE_RUNTIME_DYNAMIC_FIELD)
+#endif
 
 
 
@@ -355362,6 +355415,16 @@ static void __xrtTypedDictDrop(
 {
 	(void)Key;
 	xrtTypeDropValue((const xrttype*)pUserData, pValue);
+}
+
+bool __xrtTypedDictOwnershipStorage(const xtypeddict* pDict, const xrttype* pType)
+{
+	return pDict != NULL && pType != NULL && pDict->ItemType == pType &&
+		pDict->Storage.ValueSize == pType->Size &&
+		pDict->Storage.Drop == __xrtTypedDictDrop &&
+		pDict->Storage.DropUserData == (ptr)pType &&
+		__xrtMapUsesDefaultKeyPolicy(&pDict->Storage) &&
+		__xrtMapCanMutate((xmap*)&pDict->Storage);
 }
 
 
@@ -356647,6 +356710,11 @@ XRT_API bool xrtTypedDictTypeValidate(const xrttype* pType)
 			"type-validate", "the typed dictionary object type is invalid");
 		return false;
 	}
+#if defined(XRUNTIME_FEATURE_RUNTIME_DYNAMIC_FIELD)
+	/* This exact built-in type retains a typed-dictionary payload prefix and
+	 * adds resident retirement storage. Do not admit structural lookalikes. */
+	if (pType == xrtDynamicFieldsType()) return true;
+#endif
 	if (
 		(pType->Kind != XRT_TYPE_DICT) ||
 		((pType->Flags & XRT_TYPE_FLAG_REFERENCE) == 0u) ||
@@ -356680,6 +356748,60 @@ XRT_API bool xrtTypedDictTypeValidate(const xrttype* pType)
 
 #if defined(XRUNTIME_FEATURE_RUNTIME_DYNAMIC_FIELD)
 
+/* The dictionary remains the complete typed-dictionary payload. Clear makes
+ * its existing owning slots inaccessible/retired, just like core phased
+ * handles; Finish detaches the header before running destructors. No second
+ * header, sidecar allocation, registry or per-field retirement array. */
+typedef struct xrtdynamicfieldpayload {
+	xtypeddict Live;
+} xrtdynamicfieldpayload;
+
+static bool __xrtDynamicFieldInstanceInit(ptr, const xrttype*);
+static void __xrtDynamicFieldInstanceDrop(ptr, const xrttype*);
+static bool __xrtDynamicFieldInstanceTrace(const void*, const xrttype*,
+	xrtobjectvisitor, ptr);
+static const xrtinstanceops __xrtDynamicFieldInstanceOperations = {
+	.Init = __xrtDynamicFieldInstanceInit,
+	.Drop = __xrtDynamicFieldInstanceDrop,
+	.Trace = __xrtDynamicFieldInstanceTrace
+};
+
+/* Complete transitions participate, including nested direct XRT callers.
+ * These wrappers do not make this container concurrently mutable: callers
+ * still serialize access. The freeze excludes every public storage mutation
+ * and real strong retain, not merely the individual Value counter changes. */
+#define xrtDynamicFieldsCreate __xrtDynamicBodyCreate
+#define xrtDynamicFieldsRef __xrtDynamicBodyRef
+#define xrtDynamicFieldsCount __xrtDynamicBodyCount
+#define xrtDynamicFieldsCapacity __xrtDynamicBodyCapacity
+#define xrtDynamicFieldsClear __xrtDynamicBodyClear
+#define xrtDynamicFieldsReserve __xrtDynamicBodyReserve
+#define xrtDynamicFieldsTrim __xrtDynamicBodyTrim
+#define xrtDynamicFieldsHas __xrtDynamicBodyHas
+#define xrtDynamicFieldsGet __xrtDynamicBodyGet
+#define xrtDynamicFieldsGetRef __xrtDynamicBodyGetRef
+#define xrtDynamicFieldsCopy __xrtDynamicBodyCopy
+#define xrtDynamicFieldsStoredName __xrtDynamicBodyStoredName
+#define xrtDynamicFieldsSet __xrtDynamicBodySet
+#define xrtDynamicFieldsSetTake __xrtDynamicBodySetTake
+#define xrtDynamicFieldsSetNew __xrtDynamicBodySetNew
+#define xrtDynamicFieldsSetRef __xrtDynamicBodySetRef
+#define xrtDynamicFieldsSetRefTake __xrtDynamicBodySetRefTake
+#define xrtDynamicFieldsSetRefNew __xrtDynamicBodySetRefNew
+#define xrtDynamicFieldsRemove __xrtDynamicBodyRemove
+#define xrtDynamicFieldsTake __xrtDynamicBodyTake
+#define xrtDynamicFieldsIterBegin __xrtDynamicBodyIterBegin
+#define xrtDynamicFieldsIterRBegin __xrtDynamicBodyIterRBegin
+#define xrtDynamicFieldsIterNext __xrtDynamicBodyIterNext
+#define xrtDynamicFieldsVisitV1 __xrtDynamicBodyVisitV1
+#define xrtDynamicFieldsMerge __xrtDynamicBodyMerge
+#define xrtDynamicFieldsClone __xrtDynamicBodyClone
+#define xrtDynamicFieldsKeys __xrtDynamicBodyKeys
+#define xrtDynamicFieldsValues __xrtDynamicBodyValues
+#define xrtDynamicFieldsItems __xrtDynamicBodyItems
+#define xrtDynamicFieldsToValue __xrtDynamicBodyToValue
+#define xrtDynamicFieldsFromValue __xrtDynamicBodyFromValue
+
 /* 动态字段的唯一泛型实参是拥有 xvalue 指针的运行时 Value 类型。 */
 static const xrttype* const __xrtDynamicFieldArguments[] = {
 	&__xrtTypeValueDescriptor
@@ -356698,13 +356820,44 @@ static const xrttype __xrtDynamicFieldTypeDescriptor = {
 	.AbiName = XRT_STR_INIT("xrt.DynamicFields"),
 	.Size = sizeof(xrtdynamicfields*),
 	.Align = XRT_INTERNAL_ALIGNOF(xrtdynamicfields*),
-	.InstanceSize = sizeof(xtypeddict),
-	.InstanceAlign = XRT_INTERNAL_ALIGNOF(xtypeddict),
+	.InstanceSize = sizeof(xrtdynamicfieldpayload),
+	.InstanceAlign = XRT_INTERNAL_ALIGNOF(xrtdynamicfieldpayload),
 	.Ops = &__xrtObjectValueOperations,
-	.InstanceOps = &__xrtTypedDictInstanceOperations,
+	.InstanceOps = &__xrtDynamicFieldInstanceOperations,
 	.ArgumentCount = 1u,
 	.Arguments = __xrtDynamicFieldArguments
 };
+
+static bool __xrtDynamicFieldInstanceInit(ptr pInstance, const xrttype* pType)
+{
+	if (pType != &__xrtDynamicFieldTypeDescriptor) return false;
+	memset(pInstance, 0, sizeof(xrtdynamicfieldpayload));
+	return xrtTypedDictInit(&((xrtdynamicfieldpayload*)pInstance)->Live,
+		&__xrtTypeValueDescriptor);
+}
+
+static void __xrtDynamicFieldInstanceDrop(ptr pInstance, const xrttype* pType)
+{
+	xrtdynamicfieldpayload* pPayload = pInstance;
+	xrtownershipscope Mutation = {0};
+	xtypeddict Live;
+	(void)pType;
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+	Live = pPayload->Live;
+	memset(pPayload, 0, sizeof(*pPayload));
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	/* Never call an arbitrary Value/handle destructor under graph freeze. */
+	if (Live.ItemType != NULL) xrtTypedDictUnit(&Live);
+}
+
+static bool __xrtDynamicFieldInstanceTrace(const void* pInstance,
+	const xrttype* pType, xrtobjectvisitor pVisit, ptr pContext)
+{
+	const xrtdynamicfieldpayload* pPayload = pInstance;
+	if (pPayload->Live.ItemType == NULL) return true;
+	return __xrtTypedDictInstanceOperations.Trace(&pPayload->Live, pType,
+		pVisit, pContext);
+}
 
 
 
@@ -356781,6 +356934,9 @@ static xtypeddict* __xrtDynamicFieldDict(
 			"the object is not an xrt.DynamicFields instance");
 		return NULL;
 	}
+	if (pFields->OwnershipCleared) {
+		__xrtErrorSetInvalidState(); return NULL;
+	}
 	return (xtypeddict*)xrtObjectData(pFields);
 }
 
@@ -356803,6 +356959,9 @@ static const xtypeddict* __xrtDynamicFieldConstDict(
 			XDYNAMIC_FIELD_ERROR_TYPE, sOperation,
 			"the object is not an xrt.DynamicFields instance");
 		return NULL;
+	}
+	if (pFields->OwnershipCleared) {
+		__xrtErrorSetInvalidState(); return NULL;
 	}
 	return (const xtypeddict*)xrtObjectConstData(pFields);
 }
@@ -356880,7 +357039,7 @@ XRT_API const xrttype* xrtDynamicFieldsType(void)
 
 
 /* 创建一个空动态字段对象。 */
-XRT_API xrtdynamicfields* xrtDynamicFieldsCreate(void)
+static xrtdynamicfields* xrtDynamicFieldsCreate(void)
 {
 	xrtdynamicfields* pFields = xrtObjectCreate(
 		&__xrtDynamicFieldTypeDescriptor
@@ -356897,7 +357056,7 @@ XRT_API xrtdynamicfields* xrtDynamicFieldsCreate(void)
 
 
 /* 保留一个动态字段对象。 */
-XRT_API xrtdynamicfields* xrtDynamicFieldsRef(xrtdynamicfields* pFields)
+static xrtdynamicfields* xrtDynamicFieldsRef(xrtdynamicfields* pFields)
 {
 	if ( __xrtDynamicFieldDict(pFields, "ref") == NULL ) {
 		return NULL;
@@ -356919,7 +357078,9 @@ XRT_API void xrtDynamicFieldsUnref(xrtdynamicfields* pFields)
 	if ( pFields == NULL ) {
 		return;
 	}
-	if ( __xrtDynamicFieldDict(pFields, "unref") == NULL ) {
+	/* Dropping a real pin remains valid after phased Clear. */
+	if ( xrtObjectType(pFields) != &__xrtDynamicFieldTypeDescriptor ) {
+		__xrtErrorSetInvalidArgument();
 		return;
 	}
 	xrtObjectUnref(pFields);
@@ -356928,7 +357089,7 @@ XRT_API void xrtDynamicFieldsUnref(xrtdynamicfields* pFields)
 
 
 /* 返回当前动态字段数量。 */
-XRT_API size_t xrtDynamicFieldsCount(const xrtdynamicfields* pFields)
+static size_t xrtDynamicFieldsCount(const xrtdynamicfields* pFields)
 {
 	const xtypeddict* pDict = __xrtDynamicFieldConstDict(pFields, "count");
 
@@ -356938,7 +357099,7 @@ XRT_API size_t xrtDynamicFieldsCount(const xrtdynamicfields* pFields)
 
 
 /* 返回动态字段表再次扩容前的容量。 */
-XRT_API size_t xrtDynamicFieldsCapacity(const xrtdynamicfields* pFields)
+static size_t xrtDynamicFieldsCapacity(const xrtdynamicfields* pFields)
 {
 	const xtypeddict* pDict = __xrtDynamicFieldConstDict(pFields, "capacity");
 
@@ -356948,7 +357109,7 @@ XRT_API size_t xrtDynamicFieldsCapacity(const xrtdynamicfields* pFields)
 
 
 /* 清空动态字段并保留存储供后续复用。 */
-XRT_API bool xrtDynamicFieldsClear(xrtdynamicfields* pFields)
+static bool xrtDynamicFieldsClear(xrtdynamicfields* pFields)
 {
 	xtypeddict* pDict = __xrtDynamicFieldDict(pFields, "clear");
 
@@ -356966,7 +357127,7 @@ XRT_API bool xrtDynamicFieldsClear(xrtdynamicfields* pFields)
 
 
 /* 预留指定数量的动态字段。 */
-XRT_API bool xrtDynamicFieldsReserve(
+static bool xrtDynamicFieldsReserve(
 	xrtdynamicfields* pFields,
 	size_t iCapacity
 )
@@ -356987,7 +357148,7 @@ XRT_API bool xrtDynamicFieldsReserve(
 
 
 /* 释放动态字段表的多余容量。 */
-XRT_API bool xrtDynamicFieldsTrim(xrtdynamicfields* pFields)
+static bool xrtDynamicFieldsTrim(xrtdynamicfields* pFields)
 {
 	xtypeddict* pDict = __xrtDynamicFieldDict(pFields, "trim");
 
@@ -357005,7 +357166,7 @@ XRT_API bool xrtDynamicFieldsTrim(xrtdynamicfields* pFields)
 
 
 /* 判断指定名称是否存在。 */
-XRT_API bool xrtDynamicFieldsHas(
+static bool xrtDynamicFieldsHas(
 	const xrtdynamicfields* pFields,
 	xstrview Name
 )
@@ -357020,7 +357181,7 @@ XRT_API bool xrtDynamicFieldsHas(
 
 
 /* 返回字段拥有的只读借用 Value。 */
-XRT_API const xvalue* xrtDynamicFieldsGet(
+static const xvalue* xrtDynamicFieldsGet(
 	const xrtdynamicfields* pFields,
 	xstrview Name
 )
@@ -357041,7 +357202,7 @@ XRT_API const xvalue* xrtDynamicFieldsGet(
 
 
 /* 保留并返回字段当前拥有的同一 Value。 */
-XRT_API xvalue* xrtDynamicFieldsGetRef(
+static xvalue* xrtDynamicFieldsGetRef(
 	const xrtdynamicfields* pFields,
 	xstrview Name
 )
@@ -357054,7 +357215,7 @@ XRT_API xvalue* xrtDynamicFieldsGetRef(
 
 
 /* 深复制字段值，使调用方拥有独立的可变值图。 */
-XRT_API xvalue* xrtDynamicFieldsCopy(
+static xvalue* xrtDynamicFieldsCopy(
 	const xrtdynamicfields* pFields,
 	xstrview Name
 )
@@ -357077,7 +357238,7 @@ XRT_API xvalue* xrtDynamicFieldsCopy(
 
 
 /* 返回与查询等价的内部规范字段名视图。 */
-XRT_API bool xrtDynamicFieldsStoredName(
+static bool xrtDynamicFieldsStoredName(
 	const xrtdynamicfields* pFields,
 	xstrview Name,
 	xstrview* pStoredName
@@ -357104,7 +357265,7 @@ XRT_API bool xrtDynamicFieldsStoredName(
 
 
 /* 深复制来源并失败原子地设置字段。 */
-XRT_API bool xrtDynamicFieldsSet(
+static bool xrtDynamicFieldsSet(
 	xrtdynamicfields* pFields,
 	xstrview Name,
 	const xvalue* pValue
@@ -357135,7 +357296,7 @@ XRT_API bool xrtDynamicFieldsSet(
 
 
 /* 成功时把来源 Value 移交给字段表并清空调用方槽位。 */
-XRT_API bool xrtDynamicFieldsSetTake(
+static bool xrtDynamicFieldsSetTake(
 	xrtdynamicfields* pFields,
 	xstrview Name,
 	xvalue** ppValue
@@ -357173,7 +357334,7 @@ XRT_API bool xrtDynamicFieldsSetTake(
 
 
 /* 设置并无条件消费适合单行构造的临时 Value。 */
-XRT_API bool xrtDynamicFieldsSetNew(
+static bool xrtDynamicFieldsSetNew(
 	xrtdynamicfields* pFields,
 	xstrview Name,
 	xvalue* pValue
@@ -357212,7 +357373,7 @@ static bool __xrtDynamicFieldsSetRefOwned(
 
 
 /* 保留同一 Value 身份并失败原子地设置字段。 */
-XRT_API bool xrtDynamicFieldsSetRef(
+static bool xrtDynamicFieldsSetRef(
 	xrtdynamicfields* pFields,
 	xstrview Name,
 	const xvalue* pValue
@@ -357253,7 +357414,7 @@ XRT_API bool xrtDynamicFieldsSetRef(
 
 
 /* 成功时把来源 Value 的同一身份移交给字段表。 */
-XRT_API bool xrtDynamicFieldsSetRefTake(
+static bool xrtDynamicFieldsSetRefTake(
 	xrtdynamicfields* pFields,
 	xstrview Name,
 	xvalue** ppValue
@@ -357279,7 +357440,7 @@ XRT_API bool xrtDynamicFieldsSetRefTake(
 
 
 /* 无论成功失败都消费共享 Value 临时值。 */
-XRT_API bool xrtDynamicFieldsSetRefNew(
+static bool xrtDynamicFieldsSetRefNew(
 	xrtdynamicfields* pFields,
 	xstrview Name,
 	xvalue* pValue
@@ -357294,7 +357455,7 @@ XRT_API bool xrtDynamicFieldsSetRefNew(
 
 
 /* 删除并释放指定字段。 */
-XRT_API bool xrtDynamicFieldsRemove(
+static bool xrtDynamicFieldsRemove(
 	xrtdynamicfields* pFields,
 	xstrview Name
 )
@@ -357309,7 +357470,7 @@ XRT_API bool xrtDynamicFieldsRemove(
 
 
 /* 把指定字段值移交给调用方，字段缺失时返回空指针。 */
-XRT_API xvalue* xrtDynamicFieldsTake(
+static xvalue* xrtDynamicFieldsTake(
 	xrtdynamicfields* pFields,
 	xstrview Name
 )
@@ -357365,7 +357526,7 @@ static bool __xrtDynamicFieldsIterStart(
 
 
 /* 启动按插入顺序的动态字段迭代。 */
-XRT_API bool xrtDynamicFieldsIterBegin(
+static bool xrtDynamicFieldsIterBegin(
 	xrtdynamicfields* pFields,
 	xrtdynamicfielditer* pIterator
 )
@@ -357378,7 +357539,7 @@ XRT_API bool xrtDynamicFieldsIterBegin(
 
 
 /* 启动按插入顺序逆序的动态字段迭代。 */
-XRT_API bool xrtDynamicFieldsIterRBegin(
+static bool xrtDynamicFieldsIterRBegin(
 	xrtdynamicfields* pFields,
 	xrtdynamicfielditer* pIterator
 )
@@ -357391,7 +357552,7 @@ XRT_API bool xrtDynamicFieldsIterRBegin(
 
 
 /* 返回下一字段的借用名称和值。 */
-XRT_API const xvalue* xrtDynamicFieldsIterNext(
+static const xvalue* xrtDynamicFieldsIterNext(
 	xrtdynamicfielditer* pIterator,
 	xstrview* pName
 )
@@ -357407,6 +357568,7 @@ XRT_API const xvalue* xrtDynamicFieldsIterNext(
 			"the dynamic field iterator is not active");
 		return NULL;
 	}
+	if (__xrtDynamicFieldDict(pIterator->Fields, "iter-next") == NULL) return NULL;
 	ppValue = (xvalue**)xrtTypedDictIterNext(
 		&pIterator->Base, pName
 	);
@@ -357433,7 +357595,7 @@ XRT_API void xrtDynamicFieldsIterEnd(xrtdynamicfielditer* pIterator)
 
 /* 同步访问使用类型字典既有门禁保护借用键和值；普通迭代器不锁住它们。
  * 独立字段对象强引用覆盖整个迭代与门禁退出，不保存回调或 context。 */
-XRT_API bool xrtDynamicFieldsVisitV1(xrtdynamicfields* pFields,
+static bool xrtDynamicFieldsVisitV1(xrtdynamicfields* pFields,
 	xdynamicfieldvisitv1 Visit, ptr UserData)
 {
 	xrtdynamicfielditer Iterator;
@@ -357557,7 +357719,7 @@ static bool __xrtDynamicFieldMergeEntries(
 
 
 /* 事务合并两个动态字段对象。 */
-XRT_API bool xrtDynamicFieldsMerge(
+static bool xrtDynamicFieldsMerge(
 	xrtdynamicfields* pTarget,
 	const xrtdynamicfields* pSource,
 	bool bReplace
@@ -357644,7 +357806,7 @@ cleanup:
 
 
 /* 深复制一个动态字段对象和它拥有的 Value 图。 */
-XRT_API xrtdynamicfields* xrtDynamicFieldsClone(
+static xrtdynamicfields* xrtDynamicFieldsClone(
 	const xrtdynamicfields* pFields
 )
 {
@@ -357825,7 +357987,7 @@ failure:
 
 
 /* 返回按插入顺序排列的字段名数组。 */
-XRT_API xvalue* xrtDynamicFieldsKeys(const xrtdynamicfields* pFields)
+static xvalue* xrtDynamicFieldsKeys(const xrtdynamicfields* pFields)
 {
 	return __xrtDynamicFieldsCollect(
 		pFields, XDYNAMIC_FIELD_COLLECT_KEYS, "keys"
@@ -357835,7 +357997,7 @@ XRT_API xvalue* xrtDynamicFieldsKeys(const xrtdynamicfields* pFields)
 
 
 /* 返回按插入顺序排列的独立字段值数组。 */
-XRT_API xvalue* xrtDynamicFieldsValues(const xrtdynamicfields* pFields)
+static xvalue* xrtDynamicFieldsValues(const xrtdynamicfields* pFields)
 {
 	return __xrtDynamicFieldsCollect(
 		pFields, XDYNAMIC_FIELD_COLLECT_VALUES, "values"
@@ -357845,7 +358007,7 @@ XRT_API xvalue* xrtDynamicFieldsValues(const xrtdynamicfields* pFields)
 
 
 /* 返回按插入顺序排列的 [name, value] 二元项数组。 */
-XRT_API xvalue* xrtDynamicFieldsItems(const xrtdynamicfields* pFields)
+static xvalue* xrtDynamicFieldsItems(const xrtdynamicfields* pFields)
 {
 	return __xrtDynamicFieldsCollect(
 		pFields, XDYNAMIC_FIELD_COLLECT_ITEMS, "items"
@@ -357855,7 +358017,7 @@ XRT_API xvalue* xrtDynamicFieldsItems(const xrtdynamicfields* pFields)
 
 
 /* 返回按插入顺序保存字段的独立 Value Object。 */
-XRT_API xvalue* xrtDynamicFieldsToValue(const xrtdynamicfields* pFields)
+static xvalue* xrtDynamicFieldsToValue(const xrtdynamicfields* pFields)
 {
 	return __xrtDynamicFieldsCollect(
 		pFields, XDYNAMIC_FIELD_COLLECT_OBJECT, "to-value"
@@ -357865,7 +358027,7 @@ XRT_API xvalue* xrtDynamicFieldsToValue(const xrtdynamicfields* pFields)
 
 
 /* 从 Value Object 深复制名称和值并创建动态字段对象。 */
-XRT_API xrtdynamicfields* xrtDynamicFieldsFromValue(const xvalue* pValue)
+static xrtdynamicfields* xrtDynamicFieldsFromValue(const xvalue* pValue)
 {
 	xrtdynamicfields* pFields;
 	size_t iCount;
@@ -357897,6 +358059,188 @@ XRT_API xrtdynamicfields* xrtDynamicFieldsFromValue(const xvalue* pValue)
 		}
 	}
 	return pFields;
+}
+
+#undef xrtDynamicFieldsCreate
+#undef xrtDynamicFieldsRef
+#undef xrtDynamicFieldsCount
+#undef xrtDynamicFieldsCapacity
+#undef xrtDynamicFieldsClear
+#undef xrtDynamicFieldsReserve
+#undef xrtDynamicFieldsTrim
+#undef xrtDynamicFieldsHas
+#undef xrtDynamicFieldsGet
+#undef xrtDynamicFieldsGetRef
+#undef xrtDynamicFieldsCopy
+#undef xrtDynamicFieldsStoredName
+#undef xrtDynamicFieldsSet
+#undef xrtDynamicFieldsSetTake
+#undef xrtDynamicFieldsSetNew
+#undef xrtDynamicFieldsSetRef
+#undef xrtDynamicFieldsSetRefTake
+#undef xrtDynamicFieldsSetRefNew
+#undef xrtDynamicFieldsRemove
+#undef xrtDynamicFieldsTake
+#undef xrtDynamicFieldsIterBegin
+#undef xrtDynamicFieldsIterRBegin
+#undef xrtDynamicFieldsIterNext
+#undef xrtDynamicFieldsVisitV1
+#undef xrtDynamicFieldsMerge
+#undef xrtDynamicFieldsClone
+#undef xrtDynamicFieldsKeys
+#undef xrtDynamicFieldsValues
+#undef xrtDynamicFieldsItems
+#undef xrtDynamicFieldsToValue
+#undef xrtDynamicFieldsFromValue
+
+#define XRUNTIME_DYNAMIC_WRAP(Result, Name, Parameters, Arguments) \
+XRT_API Result xrtDynamicFields##Name Parameters { \
+	xrtownershipscope Mutation = {0}; \
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort(); \
+	Result ResultValue = __xrtDynamicBody##Name Arguments; \
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort(); \
+	return ResultValue; \
+}
+XRUNTIME_DYNAMIC_WRAP(xrtdynamicfields*, Create, (void), ())
+XRUNTIME_DYNAMIC_WRAP(xrtdynamicfields*, Ref, (xrtdynamicfields* f), (f))
+XRUNTIME_DYNAMIC_WRAP(size_t, Count, (const xrtdynamicfields* f), (f))
+XRUNTIME_DYNAMIC_WRAP(size_t, Capacity, (const xrtdynamicfields* f), (f))
+XRUNTIME_DYNAMIC_WRAP(bool, Clear, (xrtdynamicfields* f), (f))
+XRUNTIME_DYNAMIC_WRAP(bool, Reserve, (xrtdynamicfields* f, size_t n), (f,n))
+XRUNTIME_DYNAMIC_WRAP(bool, Trim, (xrtdynamicfields* f), (f))
+XRUNTIME_DYNAMIC_WRAP(bool, Has, (const xrtdynamicfields* f, xstrview n), (f,n))
+XRUNTIME_DYNAMIC_WRAP(const xvalue*, Get, (const xrtdynamicfields* f, xstrview n), (f,n))
+XRUNTIME_DYNAMIC_WRAP(xvalue*, GetRef, (const xrtdynamicfields* f, xstrview n), (f,n))
+XRUNTIME_DYNAMIC_WRAP(xvalue*, Copy, (const xrtdynamicfields* f, xstrview n), (f,n))
+XRUNTIME_DYNAMIC_WRAP(bool, StoredName, (const xrtdynamicfields* f, xstrview n, xstrview* s), (f,n,s))
+XRUNTIME_DYNAMIC_WRAP(bool, Set, (xrtdynamicfields* f, xstrview n, const xvalue* v), (f,n,v))
+XRUNTIME_DYNAMIC_WRAP(bool, SetTake, (xrtdynamicfields* f, xstrview n, xvalue** v), (f,n,v))
+XRUNTIME_DYNAMIC_WRAP(bool, SetNew, (xrtdynamicfields* f, xstrview n, xvalue* v), (f,n,v))
+XRUNTIME_DYNAMIC_WRAP(bool, SetRef, (xrtdynamicfields* f, xstrview n, const xvalue* v), (f,n,v))
+XRUNTIME_DYNAMIC_WRAP(bool, SetRefTake, (xrtdynamicfields* f, xstrview n, xvalue** v), (f,n,v))
+XRUNTIME_DYNAMIC_WRAP(bool, SetRefNew, (xrtdynamicfields* f, xstrview n, xvalue* v), (f,n,v))
+XRUNTIME_DYNAMIC_WRAP(bool, Remove, (xrtdynamicfields* f, xstrview n), (f,n))
+XRUNTIME_DYNAMIC_WRAP(xvalue*, Take, (xrtdynamicfields* f, xstrview n), (f,n))
+XRUNTIME_DYNAMIC_WRAP(bool, IterBegin, (xrtdynamicfields* f, xrtdynamicfielditer* i), (f,i))
+XRUNTIME_DYNAMIC_WRAP(bool, IterRBegin, (xrtdynamicfields* f, xrtdynamicfielditer* i), (f,i))
+XRUNTIME_DYNAMIC_WRAP(const xvalue*, IterNext, (xrtdynamicfielditer* i, xstrview* n), (i,n))
+XRUNTIME_DYNAMIC_WRAP(bool, VisitV1, (xrtdynamicfields* f, xdynamicfieldvisitv1 v, ptr d), (f,v,d))
+XRUNTIME_DYNAMIC_WRAP(bool, Merge, (xrtdynamicfields* f, const xrtdynamicfields* s, bool r), (f,s,r))
+XRUNTIME_DYNAMIC_WRAP(xrtdynamicfields*, Clone, (const xrtdynamicfields* f), (f))
+XRUNTIME_DYNAMIC_WRAP(xvalue*, Keys, (const xrtdynamicfields* f), (f))
+XRUNTIME_DYNAMIC_WRAP(xvalue*, Values, (const xrtdynamicfields* f), (f))
+XRUNTIME_DYNAMIC_WRAP(xvalue*, Items, (const xrtdynamicfields* f), (f))
+XRUNTIME_DYNAMIC_WRAP(xvalue*, ToValue, (const xrtdynamicfields* f), (f))
+XRUNTIME_DYNAMIC_WRAP(xrtdynamicfields*, FromValue, (const xvalue* v), (v))
+#undef XRUNTIME_DYNAMIC_WRAP
+
+static bool __xrtDynamicFieldOwnershipValid(const xrtobject* pObject)
+{
+	if (pObject == NULL || pObject->Type != &__xrtDynamicFieldTypeDescriptor ||
+		pObject->OwnershipCleared || xrtObjectRefCount(pObject) == 0u ||
+		__xrtAtomicRefLoad(&pObject->State) != XRT_OBJECT_STATE_ACTIVE || pObject->Graph != NULL) return false;
+	const xrtdynamicfieldpayload* pPayload = xrtObjectConstData(pObject);
+	return __xrtTypedDictOwnershipStorage(&pPayload->Live, &__xrtTypeValueDescriptor);
+}
+
+static bool __xrtDynamicFieldOwnershipCount(const void* pData, size_t* pCount)
+{
+	if (!__xrtDynamicFieldOwnershipValid(pData)) return false;
+	*pCount = xrtObjectRefCount(pData);
+	return true;
+}
+
+static bool __xrtDynamicFieldOwnershipTrace(const void* pData,
+	xrtownershipvisitor pVisit, ptr pContext)
+{
+	if (pVisit == NULL || !__xrtDynamicFieldOwnershipValid(pData)) return false;
+	const xrtdynamicfieldpayload* pPayload = xrtObjectConstData(pData);
+	xmapiter Iterator = {0};
+	xvalue** ppValue;
+	size_t iVisited = 0u;
+	/* Native slot traversal: no retain, allocation, binding, class callback,
+	 * deep copy or Value-backing flattening. Repeated slots stay repeated. */
+	if (!xrtMapIterBegin((xmap*)&pPayload->Live.Storage, &Iterator)) return false;
+	while ((ppValue = xrtMapIterNext(&Iterator, NULL)) != NULL) {
+		iVisited++;
+		if (*ppValue == NULL || !pVisit(xrtValueOwnership(*ppValue), pContext)) {
+			xrtMapIterEnd(&Iterator); return false;
+		}
+	}
+	xrtMapIterEnd(&Iterator);
+	return iVisited == pPayload->Live.Storage.Count;
+}
+
+static const xrtownershipops __xrtDynamicFieldOwnershipOps = {
+	__xrtDynamicFieldOwnershipCount, __xrtDynamicFieldOwnershipTrace
+};
+
+XRT_API xrtownershipref xrtDynamicFieldsOwnership(const xrtdynamicfields* pFields)
+{
+	return (xrtownershipref){pFields, &__xrtDynamicFieldOwnershipOps};
+}
+
+static bool __xrtDynamicFieldHold(const void* pData)
+{ return xrtObjectRef((xrtobject*)pData) != NULL; }
+static void __xrtDynamicFieldDrop(const void* pData)
+{ xrtObjectUnref((xrtobject*)pData); }
+static bool __xrtDynamicFieldClaim(const void* pData, const void* pToken)
+{
+	xrtobject* pObject = (xrtobject*)pData;
+	if (pToken == NULL || !__xrtDynamicFieldOwnershipValid(pObject) ||
+		(pObject->OwnershipClaim != NULL && pObject->OwnershipClaim != pToken)) return false;
+	pObject->OwnershipClaim = pToken; return true;
+}
+static void __xrtDynamicFieldRestore(const void* pData, const void* pToken)
+{
+	xrtobject* pObject = (xrtobject*)pData;
+	if (pToken == NULL || pObject->OwnershipClaim != pToken || pObject->OwnershipCleared) abort();
+	pObject->OwnershipClaim = NULL;
+}
+static void __xrtDynamicFieldClear(const void* pData, const void* pToken)
+{
+	xrtobject* pObject = (xrtobject*)pData;
+	if (pToken == NULL || pObject->OwnershipClaim != pToken || pObject->OwnershipCleared) abort();
+	/* Keep the existing physical owning slots until Finish. All API/native
+	 * admission rejects this receiver; no post-commit graph snapshot can read
+	 * them as live edges. Every actual target remains held by the collector. */
+	pObject->OwnershipCleared = true;
+}
+static bool __xrtDynamicFieldFinish(const void* pData, const void* pToken)
+{
+	xrtobject* pObject = (xrtobject*)pData;
+	xrtdynamicfieldpayload* pPayload = xrtObjectData(pObject);
+	xrtownershipscope Mutation = {0};
+	xtypeddict Retired;
+	if (!xrtOwnershipMutationBegin(&Mutation)) abort();
+	if (pToken == NULL || pObject->OwnershipClaim != pToken || !pObject->OwnershipCleared) abort();
+	Retired = pPayload->Live;
+	memset(&pPayload->Live, 0, sizeof(pPayload->Live));
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	if (Retired.ItemType == NULL) return true;
+	/* Detach before callback: failure/retry never repeats a physical drop.
+	 * Preserve an existing primary diagnostic instead of hiding it in cleanup. */
+	xerror* pPrior = xrtTakeError();
+	xrtTypedDictUnit(&Retired);
+	xerror* pFailure = xrtTakeError();
+	bool bResult = pFailure == NULL;
+	if (pPrior != NULL) { xrtErrorFree(pFailure); xrtSetErrorTake(pPrior); }
+	else xrtSetErrorTake(pFailure);
+	return bResult;
+}
+
+XRT_API const xrtownershipadapterv1* xrtDynamicFieldsOwnershipAdapterV1(xrtownershipref Reference)
+{
+	static const xrtownershipadapterv1 Adapter = {
+		sizeof(Adapter), __xrtDynamicFieldHold, __xrtDynamicFieldDrop,
+		__xrtDynamicFieldClaim, __xrtDynamicFieldRestore, NULL,
+		__xrtDynamicFieldClear, __xrtDynamicFieldFinish
+	};
+	/* Exact resident identity BEFORE any native payload access. An arbitrary
+	 * runtime Object/bound Trace, forged TypeId, or borrowed dict is not enough. */
+	if (Reference.Ops != &__xrtDynamicFieldOwnershipOps || Reference.Data == NULL ||
+		!__xrtDynamicFieldOwnershipValid(Reference.Data)) return NULL;
+	return &Adapter;
 }
 
 #endif
