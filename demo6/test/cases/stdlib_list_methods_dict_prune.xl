@@ -1,0 +1,5 @@
+dict<int> values = {"a": 1}
+assert(values.length == 1)
+assert(values.take("a") == 1)
+assert(values.clear())
+assert(values.length == 0)

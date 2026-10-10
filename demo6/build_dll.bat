@@ -211,6 +211,7 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_restore_class_closed.c ^
     src\runtime\xl6_restore_open.c ^
     src\runtime\xl6_list.c ^
+    src\runtime\xl6_list_methods.c ^
     src\runtime\xl6_array_algebra.c ^
     src\runtime\xl6_array_graph.c ^
     src\runtime\xl6_persistence_project.c ^
@@ -428,6 +429,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_restore_class_closed.c ^
     src\runtime\xl6_restore_open.c ^
     src\runtime\xl6_list.c ^
+    src\runtime\xl6_list_methods.c ^
     src\runtime\xl6_array_algebra.c ^
     src\runtime\xl6_array_graph.c ^
     src\runtime\xl6_persistence_project.c ^

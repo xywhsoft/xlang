@@ -46,6 +46,7 @@
 - [封闭类 JSON/XLON 恢复切换](stdlib53-b166-native-restore-cutover.md)：独立目标拥有值消费、声明 clone 隔离与整图提交；旧 opaque 模块明确待迁移，三个裁剪产物执行通过但完整导出审计仍失败。
 - [驻留组件导出与依赖验收](stdlib53-b167-resident-catalog.md)：修复 B166 的 60 项审计差异；双端完整符号目录与负控、Windows 裁剪 JIT/AOT 通过，生成 C 不变，不代表发布总门完成。
 - [DynamicFields 驻留 ABI 与语言拥有图](stdlib53-b169-dynamic-fields-resident.md)：精确字段长度、声明化错误合同、可裁剪复制和宿主准入；双端专项通过，Open 恢复事务继续。
+- [List 方法接入与集合异常合同](stdlib53-b174-list-methods-language.md)：checked 驻留方法、may-raise 和真实 C/JIT/continuation 验证；工厂、动态分发及恢复仍待切换。
 - [List 元素准入与目标构造合同](stdlib53-b173-list-target-recipes.md)：XLIR 精确元素 witness、泛型闭包和目标工厂；错误元数据与分配/作用域失败批处理验证，源载体尚未切换。
 - [List 原生动态方法与快照迭代](stdlib53-b172-list-erased-native.md)：复用 typed List 存储与游标，checked 动态方法、完整稀疏键和单步拥有投影；语言载体切换仍待完成。
 - [Open 动态字段语言恢复与 clone 隔离](stdlib53-b171-open-restore-language.md)：受支持 JSON/XLON Open 根切换驻留事务；明确 XLIR 数据和可达性、双端语言与完整夹具 OOM 批处理通过，其余载体和发布总门继续。

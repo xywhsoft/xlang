@@ -1,5 +1,45 @@
 /* One physical collection emitter is shared by sync functions and both
  * continuation machines.  No backend path resolves source member spellings. */
+static int xl6IrCgenCollectionReceiverIsList(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{
+    if (!module || !instruction || !instruction->operandCount ||
+        instruction->firstOperand>=module->operandCount) return 0;
+    const XL6_IrInstruction* source=xl6IrCgenValueDefinition(module,
+        module->operands[instruction->firstOperand],NULL);
+    const XL6_IrType* type=source ? xl6IrTypeGet(&module->types,source->type) : NULL;
+    if (type && type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params)
+        type=xl6IrTypeGet(&module->types,type->params[0]);
+    return type && type->collectionAbi==XL6_IR_COLLECTION_LIST;
+}
+static const char* xl6IrCgenCollectionCountSymbol(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{
+    int list=xl6IrCgenCollectionReceiverIsList(module,instruction);
+    switch (instruction->runtimeOp) {
+    case XL6_IR_RUNTIME_XVALUE_COUNT: return list ? "xl6ListValueCountV1" : "xl6CollectionCountV1";
+    case XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE:
+        return list ? "xl6ListValueCountIfPresentV1" : "xl6CollectionCountIfPresentV1";
+    case XL6_IR_RUNTIME_XVALUE_COUNT_OR_NULL:
+        return list ? "xl6ListValueCountOrNullV1" : "xl6CollectionCountOrNullV1";
+    default: return NULL;
+    }
+}
+static int xl6IrCgenInstructionUsesListMethods(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{
+    if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL) return 0;
+    if (xl6IrCollectionCountRuntimeOpIs(instruction->runtimeOp) ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_CONTAINS)
+        return xl6IrCgenCollectionReceiverIsList(module,instruction);
+    if (instruction->collectionAbi!=XL6_IR_COLLECTION_LIST) return 0;
+    if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE) return 1;
+    if (instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD) return 0;
+    return instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_CLEAR ||
+        instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_TAKE ||
+        instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_TRIM ||
+        instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_TRIM_TO;
+}
 static const char* xl6IrCgenArrayMethodSymbol(XL6_IrTypedCollectionOp operation)
 {
     switch (operation) {
@@ -70,18 +110,21 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
             (unsigned long long)receiver->typeValueId, (unsigned long long)result->typeValueId,
             (unsigned)module->operands[instruction->firstOperand + 1]);
     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_COUNT ) {
-        xl6OutputPrintf(out, "    v%u = xl6CollectionCountV1(v%u);\n",
-            (unsigned)instruction->result, (unsigned)module->operands[instruction->firstOperand]);
+        xl6OutputPrintf(out, "    v%u = %s(v%u);\n",
+            (unsigned)instruction->result, xl6IrCgenCollectionCountSymbol(module,instruction),
+            (unsigned)module->operands[instruction->firstOperand]);
     } else if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COUNT_TAGGED_NULLABLE) {
         xl6OutputPrintf(out,
             "    v%u = (%s){0};\n"
-            "    v%u.hasValue = xl6CollectionCountIfPresentV1(v%u, &v%u.value);\n",
+            "    v%u.hasValue = %s(v%u, &v%u.value);\n",
             (unsigned)instruction->result, xl6IrCgenType(module,instruction->type),
-            (unsigned)instruction->result, (unsigned)module->operands[instruction->firstOperand],
+            (unsigned)instruction->result, xl6IrCgenCollectionCountSymbol(module,instruction),
+            (unsigned)module->operands[instruction->firstOperand],
             (unsigned)instruction->result);
     } else if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COUNT_OR_NULL) {
-        xl6OutputPrintf(out, "    v%u = xl6CollectionCountOrNullV1(v%u);\n",
-            (unsigned)instruction->result, (unsigned)module->operands[instruction->firstOperand]);
+        xl6OutputPrintf(out, "    v%u = %s(v%u);\n",
+            (unsigned)instruction->result, xl6IrCgenCollectionCountSymbol(module,instruction),
+            (unsigned)module->operands[instruction->firstOperand]);
     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64 ) {
         xl6OutputPrintf(out, "    v%u = xrtValueArrayAt(v%u, v%u);\n",
             (unsigned)instruction->result, (unsigned)module->operands[instruction->firstOperand],
@@ -105,7 +148,7 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
                 (unsigned int)operand);
         else if ( instruction->collectionAbi == XL6_IR_COLLECTION_LIST )
             xl6OutputPrintf(out,
-                "    v%u = xrtValueIntMapRemove(v%u, v%u);\n",
+                "    v%u = xl6ListValueRemoveV1(v%u, v%u);\n",
                 (unsigned int)instruction->result,
                 (unsigned int)collection, (unsigned int)operand);
         else if ( instruction->collectionAbi == XL6_IR_COLLECTION_SET )
@@ -119,8 +162,10 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
                 (unsigned int)instruction->result,
                 (unsigned int)collection, (unsigned int)operand);
     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_CONTAINS ) {
-        xl6OutputPrintf(out, "    v%u = xl6ValueContainsV1(v%u, v%u);\n",
+        xl6OutputPrintf(out, "    v%u = %s(v%u, v%u);\n",
                         (unsigned int)instruction->result,
+                        xl6IrCgenCollectionReceiverIsList(module,instruction) ?
+                            "xl6ListValueContainsV1" : "xl6ValueContainsV1",
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)module->operands[instruction->firstOperand + 1]);
     } else if ( instruction->runtimeOp ==
@@ -185,7 +230,7 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
                 if (instruction->collectionAbi==XL6_IR_COLLECTION_DICT)
                     xl6OutputPrintf(out,"    v%u = xl6CollectionExtractValueV1(v%u, XL6_COLLECTION_EXTRACT_DICT_V1, 0, v%u);\n",
                         (unsigned)instruction->result,(unsigned)receiver,(unsigned)argument0);
-                else xl6OutputPrintf(out,"    v%u = xl6CollectionExtractValueV1(v%u, XL6_COLLECTION_EXTRACT_LIST_V1, v%u, (xlir_string){0});\n",
+                else xl6OutputPrintf(out,"    v%u = xl6ListValueTakeV1(v%u, v%u);\n",
                     (unsigned)instruction->result,(unsigned)receiver,(unsigned)argument0);
             } else return -1;
             return xl6OutputHasFailed(out) ? -1 : 1;
@@ -196,6 +241,8 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
             xl6OutputPrintf(out,
                 instruction->collectionAbi == XL6_IR_COLLECTION_ARRAY
                     ? "    v%u = xl6ArrayMethodClearV1(v%u);\n"
+                    : instruction->collectionAbi == XL6_IR_COLLECTION_LIST
+                    ? "    v%u = xl6ListValueClearV1(v%u);\n"
                     : "    v%u = xrtValueClear(v%u);\n",
                 (unsigned int)instruction->result,
                 (unsigned int)receiver);
@@ -232,7 +279,7 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
         case XL6_IR_TYPED_COLLECTION_TRIM:
             if ( instruction->collectionAbi == XL6_IR_COLLECTION_LIST )
                 xl6OutputPrintf(out,
-                    "    v%u = (int64_t)xrtValueIntMapTrim(v%u, 0u);\n",
+                    "    v%u = xl6ListValueTrimV1(v%u, 0);\n",
                     (unsigned int)instruction->result,
                     (unsigned int)receiver);
             else
@@ -245,9 +292,8 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
             break;
         case XL6_IR_TYPED_COLLECTION_TRIM_TO:
             xl6OutputPrintf(out,
-                "    v%u = v%u >= 0 ? (int64_t)xrtValueIntMapTrim(v%u, (size_t)v%u) : 0;\n",
+                "    v%u = xl6ListValueTrimV1(v%u, v%u);\n",
                 (unsigned int)instruction->result,
-                (unsigned int)argument0,
                 (unsigned int)receiver,
                 (unsigned int)argument0);
             break;

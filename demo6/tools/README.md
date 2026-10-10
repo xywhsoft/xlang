@@ -22,6 +22,16 @@ this is not all-language OOM, shipping or full53 acceptance. See
 
 ## Toolchain
 
+`check_stdlib_list_methods.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
+checks actual List method Cgen selection, Array/Dict pruning, malformed error
+contracts, real C/JIT, and separately optimized resident native operations.
+Allocation and diagnosticless scope-entry batches close each ledger; three
+compiled real provider mutants must fail. Linux `--sanitize` instruments only
+the selected native closure. `--continuation-fixture <current-test>
+--continuation-only` is an explicit test-only supplement, not a compiler or
+provider override. Factories, index, var dispatch and restoration remain
+pending; see [List methods](../docs/stdlib53-b174-list-methods-language.md).
+
 `check_stdlib_list_recipes.py --root <frozen-demo6> --public-directory <fresh-build> --out <fresh-output>`
 links the current source compiler/runtime objects on Windows AND Linux. It checks
 actual List target schemas, pre-output mutation rejection, O0/O2 native factories,
