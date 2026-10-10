@@ -819,3 +819,6 @@ profiles with native/wire ownership, reentry, converter refusal, precise keys
 and complete OOM prefixes. Standalone Linux sanitizes the native closure;
 shared tests instrument hosts only. Array/Stack parents include these gates.
 This boundary batch does not complete Array carrier migration or the 53-module goal.
+
+- `check_stdlib_set_keys.py`：严格 C O0/O2 的驻留 Set Eq/Hash 能力，精确文本/bytes/null、保留引用、Future 身份、checked 无诊断失败、重入、共享递归预算、完整 OOM 前缀与真实实现变异。不是语言 Set/Dict carrier 或发布总验收。
+- `sync_xruntime_typed_set.py`：仅同步精确供应方基线的 typed_set 公共和实现段，并重建快照元数据、符号与能力矩阵；不迁移 Core 时间 ABI。

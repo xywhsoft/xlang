@@ -64,6 +64,7 @@
 #include "src/runtime/xl6_list_graph.h"
 #include "src/runtime/xl6_list_import_chain.h"
 #include "src/runtime/xl6_list_schema.h"
+#include "src/runtime/xl6_set_key_policy.h"
 #include "src/runtime/xl6_array_algebra.h"
 #include "src/runtime/xl6_array_graph.h"
 #include "src/runtime/xl6_persistence_project.h"
