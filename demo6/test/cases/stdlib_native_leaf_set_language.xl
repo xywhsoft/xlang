@@ -1,0 +1,23 @@
+func main(...) as int
+    if arg.length == 3 then
+        set<var> keys = set{arg[0], arg[1], arg[2]}
+        assert(keys.length == 2 and keys.contains(arg[1]))
+        auto independent = copy(keys)
+        assert(keys.remove(arg[1]))
+        assert(keys.length == 1 and independent.length == 2)
+        assert(independent.contains(arg[0]) and independent.contains(arg[2]))
+    else
+        assert(arg.length == 0)
+    end
+    set<var> content = set{"a\0你", "a\0你", b"\0\xff", b"\0\xff"}
+    assert(content.length == 2)
+    array<int> first = [1]
+    array<int> second = [1]
+    var firstReference = first
+    var secondReference = second
+    set<var> references = set{firstReference, secondReference, firstReference}
+    assert(references.length == 2)
+    assert(first.append(2))
+    assert(references.contains(first) and references.contains(second))
+    return 0
+end

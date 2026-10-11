@@ -17,6 +17,7 @@ def main():
     cc=shutil.which('gcc'); assert cc
     native_sources=['test/support/list_native.c','test/support/module_product_memory.c',
         'src/runtime/xl6_set.c','src/runtime/xl6_set_key_policy.c',
+        'src/runtime/xl6_native_leaf_value.c',
         'src/runtime/xl6_dict.c','src/runtime/xl6_dict_value_iterator.c',
         'src/runtime/xl6_set_value_iterator.c','src/runtime/xl6_collection_value_iterator.c',
         'src/runtime/xl6_list.c','src/runtime/xl6_list_value_iterator.c','src/runtime/xl6_value_iterator.c',

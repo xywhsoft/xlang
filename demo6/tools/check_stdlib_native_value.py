@@ -19,7 +19,7 @@ def main():
     sources[0]='test/cases/stdlib_native_value_host.c'; sources[1]='test/support/native_value_native.c'
     sources+=['src/runtime/xl6_slot_map.c','src/runtime/xl6_slot_map_key.c','src/runtime/xl6_slot_map_key_value.c',
         'src/runtime/xl6_array_native_value_admission.c','src/runtime/xl6_array.c',
-        'src/runtime/xl6_list.c','src/runtime/xl6_set.c','src/runtime/xl6_set_key_policy.c']
+        'src/runtime/xl6_list.c','src/runtime/xl6_set.c','src/runtime/xl6_set_key_policy.c','src/runtime/xl6_native_leaf_value.c']
     files={Path(__file__).resolve(),population,Path(cc),Path(sys.executable),*[root/s for s in sources],
         root/'test/support/slot_map_key_value_native.c',root/'src/ir/xl6_ir.h'}
     for folder in ('src/runtime','src/api','release/include','lib/xrt','lib/xruntime','test/support','src/type','src/common','src/ast','src/diag'):

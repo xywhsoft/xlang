@@ -19,6 +19,7 @@ def main():
     cc=shutil.which('gcc'); assert cc and not out.exists() and (not args.sanitize or os.name!='nt')
     sources=['test/cases/stdlib_set_native_host.c','test/support/set_native.c','test/support/module_product_memory.c',
         'src/runtime/xl6_set.c','src/runtime/xl6_set_key_policy.c','src/runtime/xl6_sequence.c',
+        'src/runtime/xl6_native_leaf_value.c',
         'src/runtime/xl6_array_reference_admission.c','src/runtime/xl6_array_reference_value.c',
         'src/runtime/xl6_array_nominal_admission.c','src/runtime/xl6_array_primitive_admission.c',
         'src/runtime/xl6_array_c_scalar_admission.c','src/runtime/xl6_array_future_admission.c',

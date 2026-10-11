@@ -291,7 +291,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_persistence_project_list.c", D(R(PERSISTENCE_PROJECT),R(LIST_GRAPH)), {NULL}},
     {"src/runtime/xl6_list_import_chain.c", D(R(LIST_NATIVE),R(ARRAY_INPUT),R(ARRAY_REFERENCE_ADMISSION)), {NULL}},
     {"src/runtime/xl6_list_schema.c", D(R(LIST_NATIVE),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)), {NULL}},
-    {"src/runtime/xl6_set_key_policy.c", D(R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_TYPED_SET","XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_set_key_policy.c", D(R(FOREIGN_ERROR),R(NATIVE_LEAF_VALUE)), {"XRUNTIME_MODULE_TYPED_SET","XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_set.c", D(R(SEQUENCE),R(SET_KEYS),R(ARRAY_REFERENCE_VALUE),R(ARRAY_FUTURE_ADMISSION),R(FOREIGN_ERROR)),
         {"XRUNTIME_MODULE_TYPED_SET_VALUE"}},
     {"src/runtime/xl6_set_schema.c", D(R(SET_NATIVE),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)), {NULL}},
@@ -318,10 +318,12 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_slot_map.c", D(R(SEQUENCE),R(ARRAY_FUTURE_ADMISSION),R(FOREIGN_ERROR),R(SLOT_MAP_KEY_NATIVE)),
         {"XRT_MODULE_SLOT_MAP"}},
     {"src/runtime/xl6_slot_map_key.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE","XRT_MODULE_ATOMIC"}},
-    {"src/runtime/xl6_slot_map_key_value.c", D(R(SLOT_MAP_KEY_NATIVE),R(FOREIGN_ERROR)),
+    {"src/runtime/xl6_slot_map_key_value.c", D(R(SLOT_MAP_KEY_NATIVE),R(NATIVE_LEAF_VALUE)),
         {"XRT_MODULE_VALUE","XRT_MODULE_HASH64"}},
     {"src/runtime/xl6_array_native_value_admission.c", D(R(SEQUENCE),R(SLOT_MAP_KEY_VALUE),R(FOREIGN_ERROR)),
-        {"XRT_MODULE_ATOMIC"}}
+        {"XRT_MODULE_ATOMIC"}},
+    {"src/runtime/xl6_native_leaf_value.c", D(R(FOREIGN_ERROR)),
+        {"XRT_MODULE_VALUE","XRUNTIME_MODULE_RUNTIME_TYPE","XRT_MODULE_ATOMIC"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

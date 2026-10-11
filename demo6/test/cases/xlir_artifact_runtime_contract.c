@@ -218,6 +218,16 @@ static int slot_key_component_contract(void)
         !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SLOT_MAP_KEY_VALUE));
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SlotMapKeyTypeV1")==XL6_ARTIFACT_SLOT_MAP_KEY_NATIVE &&
         xl6ArtifactRuntimeSymbolOwner("xl6SlotMapKeyBoxV1")==XL6_ARTIFACT_SLOT_MAP_KEY_VALUE);
+    root=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_SET_KEYS);
+    CHECK(xl6ArtifactRuntimeClosePlan(&root,&plan));
+    CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_NATIVE_LEAF_VALUE) &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SLOT_MAP_NATIVE) &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SLOT_MAP_KEY_NATIVE) &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SLOT_MAP_KEY_VALUE) &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_NATIVE_VALUE_ADMISSION));
+    CHECK(!has_native_module(&plan,"XRT_MODULE_SLOT_MAP") && !has_native_module(&plan,"XRT_MODULE_HASH64"));
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6NativeLeafValueIsV1")==XL6_ARTIFACT_NATIVE_LEAF_VALUE);
+    puts("{\"NativeValueSetIsolatedPlans\":1,\"KeyImplementationNotSelected\":true}");
     puts("{\"SlotKeyIsolatedPlans\":3,\"StorageAndProjectionSeparated\":true}");
     return 1;
 }

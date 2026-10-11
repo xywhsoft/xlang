@@ -3,7 +3,8 @@
 Strict O0/O2, genuine key ownership, semantic boxed equality, authenticated
 unbox, checked/no-diagnostic partial-copy rollback, native typed content policy
 and complete allocation prefixes. Native foundation only: language SlotMapKey,
-erased Set/IR/frames and shipping/full53 acceptance are NOT claimed.
+direct language SlotMapKey/IR/frames and shipping/full53 acceptance are NOT
+claimed. The generic erased native Set key policy is exercised explicitly.
 """
 from pathlib import Path
 import argparse,ast,hashlib,json,os,re,shutil,subprocess,sys
@@ -20,7 +21,8 @@ def main():
     replacements={'test/cases/stdlib_dict_native_host.c':'test/cases/stdlib_slot_map_key_value_host.c',
         'test/support/dict_native.c':'test/support/slot_map_key_value_native.c','src/runtime/xl6_dict.c':'src/runtime/xl6_slot_map.c'}
     sources=[replacements.get(source,source) for source in sources]
-    sources+=['src/runtime/xl6_slot_map_key.c','src/runtime/xl6_slot_map_key_value.c']
+    sources+=['src/runtime/xl6_slot_map_key.c','src/runtime/xl6_slot_map_key_value.c',
+        'src/runtime/xl6_native_leaf_value.c','src/runtime/xl6_set_key_policy.c']
     files={Path(__file__).resolve(),population,Path(cc),Path(sys.executable),*[root/source for source in sources]}
     for folder in ('src/runtime','src/api','release/include','lib/xrt','lib/xruntime','test/support'):
         files.update((root/folder).rglob('*.h'))
@@ -28,7 +30,7 @@ def main():
     out.mkdir(parents=True); rows=[]; products=[]; objects=[]; prefixes=[]; controls=[]
     report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Rows=rows,Products=products,Objects=objects,
         Prefixes=prefixes,NegativeControls=controls,Platform=sys.platform,SelectedNativeClosureSanitized=args.sanitize,
-        LanguageSlotMapKeyCutover=False,ErasedSetKeyCutover=False,ShippingLibraryAcceptance=False,Full53Acceptance=False,Scope=__doc__)
+        LanguageSlotMapKeyCutover=False,ErasedSetKeyCutover=True,ShippingLibraryAcceptance=False,Full53Acceptance=False,Scope=__doc__)
     flags=['-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease','-Irelease/include']
     links=['-Wl,--wrap='+name for name in ('xl6ErrorScopeBegin','xrtTypeCopyValue','xrtValueTypeIdBind')]
     env=dict(os.environ); suffix='.exe' if os.name=='nt' else ''
@@ -58,12 +60,21 @@ def main():
             for operation,runs,last in found:
                 assert int(runs)==int(last)+1
                 prefixes.append(dict(Optimization=opt,Operation=operation,Runs=int(runs),FirstNoHit=int(last)))
-        source='src/runtime/xl6_slot_map_key_value.c'; body=(root/source).read_text(encoding='utf-8')
-        mutations=[('producer-authentication-omitted',' || actual!=&operations',''),
-            ('box-address-equality','return xl6SlotMapKeyEqualV1(((const KeyBox*)left)->key,((const KeyBox*)right)->key);','return left==right;'),
-            ('unbox-copy-omitted','else success=xrtTypeCopyValue(xl6SlotMapKeyTypeV1(),&result,&box->key);','else success=true;'),
-            ('failed-copy-owner-leaked','else xrtTypeDropValue(xl6SlotMapKeyTypeV1(),&result);','else (void)result;')]
-        for name,before,after in mutations:
+        native='src/runtime/xl6_native_leaf_value.c'
+        mutations=[('producer-authentication-omitted',native,
+            'return box && box->profile==profile;','(void)box; return profile && xrtValueTypeId(value)==profile->identity;'),
+            ('box-address-equality',native,
+            'return a->profile==b->profile && a->profile->content->Equal(a->value,b->value,a->profile->content->UserData);',
+            '(void)a; (void)b; return left==right;'),
+            ('unbox-copy-omitted',native,
+            'copied=xrtTypeCopyValue(profile->Type(),output,box->value);','copied=true;'),
+            ('failed-copy-owner-leaked',native,
+            'xl6ErrorScopeCaptureFailure(&scope); xrtTypeDropValue(profile->Type(),output);',
+            'xl6ErrorScopeCaptureFailure(&scope);'),
+            ('erased-value-treated-as-reference','src/runtime/xl6_set_key_policy.c',
+            'if (xl6NativeLeafValueIsV1(value)) return true;','if (false && xl6NativeLeafValueIsV1(value)) return true;')]
+        for name,source,before,after in mutations:
+            body=(root/source).read_text(encoding='utf-8')
             assert body.count(before)==1,name
             bad=out/(name+'.c'); bad.write_text(body.replace(before,after),encoding='utf-8')
             obj=out/(name+'.o'); product=out/(name+suffix)
