@@ -1,5 +1,6 @@
 #include "xl6_slot_map.h"
 #include "xl6_slot_map_key.h"
+#include "src/type/xl6_native_value_ids.h"
 #include "xl6_array_admission.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdlib.h>
@@ -389,3 +390,64 @@ static int64_t measure(const xvalue* value,const XL6_SlotMapLayoutV1* layout,boo
 }
 int64_t xl6SlotMapCountV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout) { return measure(value,layout,false); }
 int64_t xl6SlotMapCapacityV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout) { return measure(value,layout,true); }
+
+static xvalue* snapshot(SlotMapOwner* owner,bool keys,XL6_SequenceLayoutV1 target,
+    XL6_SequenceAdmissionV3* policy,const xvalueconverter* converter)
+{
+    xvalue* result=xl6SequenceCreateAdmittedV1(XL6_SEQUENCE_ARRAY_V1,target.identity,policy);
+    XL6_Sequence* output=NULL; xslotmapiter iterator={0}; bool success=false;
+    if (result) output=xl6SequenceBeginRoleV1(result,XL6_SEQUENCE_ARRAY_V1,target.identity,
+        target.elementIdentity,target.transfer,target.size,target.type);
+    if (output && xl6SequenceBindProjectionV1(output,converter) &&
+        xrtTypedArrayReserve(xl6SequenceStorageV1(output),owner->storage.Count) &&
+        xrtSlotMapIterBegin(&owner->storage,&iterator)) {
+        success=true; ptr item; xslot slot; size_t copied=0;
+        while ((item=xrtSlotMapIterNext(&iterator,&slot))) {
+            const XL6_SlotMapKeyV1 key={owner->instance,slot}; /* borrowed only under this pin */
+            const void* input=keys ? &key : item;
+            if (!xl6SequenceAdmitSlotV1(output,input) ||
+                !xrtTypedArrayPush(xl6SequenceStorageV1(output),input)) { success=false; break; }
+            ++copied;
+        }
+        success=success && copied==owner->storage.Count && !xrtGetError();
+    }
+    xrtSlotMapIterEnd(&iterator);
+    if (output) xl6SequenceEndV1(output);
+    if (!success || xrtGetError()) { discard(result); result=NULL; }
+    return result;
+}
+xvalue* xl6SlotMapSnapshotTakeV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout,
+    bool keys,xvalue* witness,const xvalueconverter* converter)
+{
+    xl6_error_scope scope={0}; if (!scopeBegin(&scope)) { discard(witness); return NULL; }
+    SlotMapOwner* owner=begin(value,layout); XL6_SequenceAdmissionV3 policy={0};
+    XL6_SequenceLayoutV1 target={0}; xvalue* result=NULL;
+    if (!keys && witness) xrtSetErrorKind(XERR_ARGUMENT);
+    else if (owner && keys) {
+        XL6_SequenceRoleV1 role=0;
+        if (xl6SequenceSchemaCopyV1(witness,&role,&target,&policy)) {
+            if (role!=XL6_SEQUENCE_ARRAY_V1 || target.elementIdentity!=XL6_SLOT_MAP_KEY_LANGUAGE_VALUE_ID ||
+                policy.boxedIdentity!=XL6_SLOT_MAP_KEY_LANGUAGE_VALUE_ID || target.identity==owner->layout.identity ||
+                target.transfer!=XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 ||
+                target.size!=sizeof(XL6_SlotMapKeyV1) || target.type!=xl6SlotMapKeyTypeV1()) xrtSetErrorKind(XERR_TYPE);
+            else {
+                XL6_Sequence* schema=xl6SequenceBeginRoleV1(witness,role,target.identity,target.elementIdentity,
+                    target.transfer,target.size,target.type);
+                bool empty=schema && xrtTypedArrayCount(xl6SequenceStorageV1(schema))==0;
+                if (schema) xl6SequenceEndV1(schema);
+                if (!empty) { if (!xrtGetError()) xrtSetErrorKind(XERR_ARGUMENT); }
+                else result=snapshot(owner,true,target,&policy,converter);
+            }
+        }
+    } else if (owner) {
+        target=owner->layout.value; policy=owner->policy;
+        if (!policy.ops->Retain(policy.data)) {
+            policy=(XL6_SequenceAdmissionV3){0}; if (!xrtGetError()) xrtSetErrorKind(XERR_STATE);
+        } else result=snapshot(owner,false,target,&policy,converter);
+    }
+    xl6SequenceAdmissionDropV3(&policy); discard(witness);
+    if (!finish(&scope,owner,result!=NULL)) { discard(result); return NULL; }
+    return result;
+}
+xvalue* xl6SlotMapValuesV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout,const xvalueconverter* converter)
+{ return xl6SlotMapSnapshotTakeV1(value,layout,false,NULL,converter); }

@@ -36,6 +36,18 @@ XL6_TEXT_API bool xl6SlotMapClearV1(const xvalue*,const XL6_SlotMapLayoutV1*);
 XL6_TEXT_API bool xl6SlotMapReserveV1(const xvalue*,const XL6_SlotMapLayoutV1*,int64_t);
 XL6_TEXT_API int64_t xl6SlotMapCountV1(const xvalue*,const XL6_SlotMapLayoutV1*);
 XL6_TEXT_API int64_t xl6SlotMapCapacityV1(const xvalue*,const XL6_SlotMapLayoutV1*);
+/* Independent native ARRAY snapshots. Values keep the exact captured domain;
+ * keys own instance records, not the source map. Converter is immutable
+ * resident metadata, validated by the shared Sequence projection boundary.
+ * Sparse slots are traversed in supplier slot order, not insertion order. */
+XL6_TEXT_API xvalue* xl6SlotMapValuesV1(const xvalue*,const XL6_SlotMapLayoutV1*,const xvalueconverter*);
+XL6_TEXT_API xvalue* xl6SlotMapKeysV1(const xvalue*,const XL6_SlotMapLayoutV1*,uint64_t);
+/* Resident-only shared snapshot transaction. A key schema witness is consumed
+ * on BOTH paths, but never mutated: its aliases cannot observe partial output.
+ * The value lane needs no witness and uses the map's captured immutable policy.
+ * No raw slot address, generated callback or mutable source borrow escapes. */
+XL6_TEXT_API xvalue* xl6SlotMapSnapshotTakeV1(const xvalue*,const XL6_SlotMapLayoutV1*,
+    bool,xvalue*,const xvalueconverter*);
 /* Clear/remove/replace commit before old-element cleanup; a cleanup failure
  * is checked and must not be blindly retried as an uncommitted operation.
  * Full real edges and phased retirement, including duplicate/self edges.
