@@ -12,7 +12,8 @@ XL6_TEXT_API const xvalueconverter* xl6SlotMapKeyConverterV1(void);
 XL6_TEXT_API uint64 xl6SlotMapKeyHashV1(XL6_SlotMapKeyV1);
 /* Exact typed-key content equality, not ordering or mutable-reference
  * identity. Source/erased Set recipes must explicitly select this capability
- * before enabling the language key API. No generic Set policy is changed. */
+ * before enabling the language key API. Open Value Sets consume the sealed
+ * generic immutable-native-value producer, not a key-specific dependency. */
 XL6_TEXT_API const xtypedsetkeypolicy* xl6SlotMapKeyContentPolicyV1(void);
 XL6_TEXT_API const xrtownershipadapterv1* xl6SlotMapKeyValueOwnershipAdapterV1(xrtownershipref);
 #endif

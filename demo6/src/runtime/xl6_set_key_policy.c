@@ -1,5 +1,6 @@
 #include "src/runtime/xl6_set_key_policy.h"
 #include "src/api/xl_foreign_error.h"
+#include "xl6_native_leaf_value.h"
 
 /* xset's payload-only callback ABI observes the native diagnostic slot. A
  * failed checked callback can have no allocated diagnostic: first propagate
@@ -23,6 +24,7 @@ typedef struct ReferenceKey {
     const void* object;
     const xvaluehandleops* ops;
     const void* context;
+    bool reference;
 } ReferenceKey;
 /* Container shells are the stable mutable instance, not their COW backing.
  * Native handles may have several shells around one owner: use the exact
@@ -36,17 +38,19 @@ static bool referenceKey(const xvalue* value,ReferenceKey* output)
     *output=(ReferenceKey){.tag=tag,.type=xrtValueTypeId(value)};
     switch (tag) {
     case XVALUE_ARRAY: case XVALUE_INT_MAP: case XVALUE_SET: case XVALUE_OBJECT:
-        output->object=value; return true;
+        output->reference=true; output->object=value; return true;
     case XVALUE_HANDLE: {
+        /* Only the authenticated immutable native-value producer grants
+         * content semantics. A matching type ID or foreign hash callback does
+         * not grant it. No key-specific library is linked by this policy. */
+        if (xl6NativeLeafValueIsV1(value)) return true;
         ptr object=NULL,context=NULL; const xvaluehandleops* ops=NULL;
         if (!xrtValueGetHandle(value,&object,&ops,&context)) return false;
-        output->object=object; output->ops=ops; output->context=context; return true;
+        output->reference=true; output->object=object; output->ops=ops; output->context=context; return true;
     }
     default: return true;
     }
 }
-static bool referenceTag(xvaluetype tag)
-{ return tag==XVALUE_HANDLE || tag==XVALUE_ARRAY || tag==XVALUE_INT_MAP || tag==XVALUE_SET || tag==XVALUE_OBJECT; }
 static uint64 keyHash(const ReferenceKey* key)
 {
     /* An explicit scalar array avoids struct padding and function-pointer
@@ -67,7 +71,7 @@ static uint64 referenceHash(const void* slot,ptr context)
         const xvalue* value=*(xvalue* const*)slot;
         value=value ? value : xrtValueNull(); ReferenceKey key={0};
         if (!referenceKey(value,&key)) xl6ErrorScopeCaptureFailure(&scope);
-        else if (referenceTag(key.tag)) hash=keyHash(&key);
+        else if (key.reference) hash=keyHash(&key);
         else if (!xrtValueHash(value,&hash)) xl6ErrorScopeCaptureFailure(&scope);
     }
     return finish(&scope) ? hash : 0;
@@ -84,8 +88,8 @@ static bool referenceEqual(const void* left,const void* right,ptr context)
         const xvalue* a=*(xvalue* const*)left,*b=*(xvalue* const*)right;
         a=a ? a : xrtValueNull(); b=b ? b : xrtValueNull(); ReferenceKey ka={0},kb={0};
         if (!referenceKey(a,&ka) || !referenceKey(b,&kb)) xl6ErrorScopeCaptureFailure(&scope);
-        else if (referenceTag(ka.tag) || referenceTag(kb.tag))
-            equal=ka.tag==kb.tag && ka.type==kb.type && ka.object==kb.object && ka.ops==kb.ops && ka.context==kb.context;
+        else if (ka.reference || kb.reference)
+            equal=ka.reference==kb.reference && ka.tag==kb.tag && ka.type==kb.type && ka.object==kb.object && ka.ops==kb.ops && ka.context==kb.context;
         else equal=xrtValueEqual(a,b);
     }
     return finish(&scope) && equal;

@@ -9,6 +9,8 @@
  * Boxed basic values use content equality/hash (C NULL is canonical null).
  * Mutable container shells use their instance identity; native handles use
  * the owner/producer/context/type domain, never semantic hash/equal callbacks.
+ * Authenticated immutable native leaf values use their explicit content
+ * capability; a foreign handle/type ID does not grant that capability.
  * Ordinary mutation cannot change a retained key's identity. Destructive
  * native handle extraction/reinterpretation is outside the language contract.
  * Future keys use control-block identity, never their eventual result.

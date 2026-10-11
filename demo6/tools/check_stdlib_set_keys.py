@@ -21,6 +21,7 @@ def main():
     cc=shutil.which('gcc'); assert cc and not out.exists() and (not args.sanitize or os.name!='nt')
     sources=['test/cases/stdlib_set_keys_native_host.c','test/support/set_keys_native.c',
         'test/support/module_product_memory.c','src/runtime/xl6_set_key_policy.c',
+        'src/runtime/xl6_native_leaf_value.c',
         'src/runtime/xl6_sequence.c','src/runtime/xl6_string_type.c',
         'src/runtime/xl6_nullable_string.c','src/runtime/xl6_ownership_plan.c','src/api/xl_foreign_error.c']
     files={Path(__file__).resolve(),Path(cc),Path(sys.executable),*[root/p for p in sources]}
@@ -32,7 +33,7 @@ def main():
         NegativeControls=controls,Products=products,Platform=sys.platform,Sanitized=args.sanitize,
         PrivateKeyFoundation=True,LanguageSetCutover=False,LanguageDictCutover=False,
         ShippingLibraryAcceptance=False,Full53Acceptance=False,Scope=__doc__)
-    flags=['-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease','-Irelease/include']
+    flags=['-std=c11','-Wall','-Wextra','-Werror','-I.','-Isrc/runtime','-Irelease','-Irelease/include']
     links=['-Wl,--wrap=xl6ErrorScopeBegin']
     env=dict(os.environ)
     if os.name!='nt': flags+=['-D_GNU_SOURCE']; links+=['-pthread','-lm']

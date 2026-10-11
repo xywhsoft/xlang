@@ -75,6 +75,7 @@
 #include "src/runtime/xl6_list_import_chain.h"
 #include "src/runtime/xl6_list_schema.h"
 #include "src/runtime/xl6_set_key_policy.h"
+#include "src/runtime/xl6_native_leaf_value.h"
 #include "src/runtime/xl6_set.h"
 #include "src/runtime/xl6_set_schema.h"
 #include "src/runtime/xl6_dict_schema.h"

@@ -1,5 +1,7 @@
 #include "src/runtime/xl6_slot_map_key_value.h"
 #include "src/runtime/xl6_array_admission.h"
+#include "src/runtime/xl6_set_key_policy.h"
+#include "src/runtime/xl6_native_leaf_value.h"
 #include "src/api/xl_foreign_error.h"
 #include "test/support/module_product_memory.h"
 #include <assert.h>
@@ -48,6 +50,15 @@ static void foreignDrop(ptr raw,ptr user) { (void)raw; (void)user; }
 static uint64 forbiddenHash(ptr raw,ptr user) { (void)raw; (void)user; assert(0); return 0; }
 static bool forbiddenEqual(ptr a,ptr b,ptr user) { (void)a; (void)b; (void)user; assert(0); return false; }
 static const xvaluehandleops foreignOps={foreignRetain,foreignDrop,forbiddenHash,forbiddenEqual};
+static uint64 aliasHash(const void* raw,ptr user)
+{ (void)user; return xl6SlotMapKeyHashV1(*(const XL6_SlotMapKeyV1*)raw); }
+static bool aliasEqual(const void* a,const void* b,ptr user)
+{ (void)user; return xl6SlotMapKeyEqualV1(*(const XL6_SlotMapKeyV1*)a,*(const XL6_SlotMapKeyV1*)b); }
+static bool aliasEmpty(const void* raw)
+{ const XL6_SlotMapKeyV1* key=raw; return !key->instance && !key->slot; }
+static const xtypedsetkeypolicy aliasContent={aliasHash,aliasEqual,NULL};
+static const XL6_NativeLeafValueProfileV1 aliasProfile={
+    xl6SlotMapKeyTypeV1,UINT64_C(0x5BF65A92DC10A954),&aliasContent,aliasEmpty};
 static bool edge(xrtownershipref ref,ptr count) { (void)ref; ++*(size_t*)count; return true; }
 static void vectors(void)
 {
@@ -57,6 +68,20 @@ static void vectors(void)
     assert(xl6SlotMapKeyValueAdmitsV1(a) && xl6SlotMapKeyValueAdmitsV1(b));
     assert(xrtValueEqual(a,b) && !xrtValueEqual(a,c)); uint64 ah=0,bh=0;
     assert(xrtValueHash(a,&ah) && xrtValueHash(b,&bh) && ah==bh);
+    assert(xl6NativeLeafValueIsV1(a));
+    const xtypedsetkeypolicy* erasedPolicy=xl6SetReferenceKeyPolicyV1();
+    xtypedset* erased=xrtTypedSetCreateWithKeyPolicy(xl6SequenceStorageTypeV1(3,xrtTypeValue()),erasedPolicy);
+    assert(erased && xrtTypedSetAdd(erased,&a) && xrtTypedSetAdd(erased,&b) && xrtTypedSetCount(erased)==1);
+    assert(xrtTypedSetAdd(erased,&c) && xrtTypedSetCount(erased)==2);
+    assert(erasedPolicy->Hash(&a,NULL)==erasedPolicy->Hash(&b,NULL) && erasedPolicy->Equal(&a,&b,NULL));
+    assert(xrtMemDebugFailAfter(0));
+    assert(xrtTypedSetHas(erased,&b) && !xrtMemDebugFailTriggered()); xrtMemDebugFailClear();
+    xvalue* alias=xl6NativeLeafValueBoxV1(&aliasProfile,&key); assert(alias && xl6NativeLeafValueIsV1(alias));
+    assert(!xl6SlotMapKeyValueAdmitsV1(alias) && !xrtValueEqual(a,alias));
+    assert(!xl6SlotMapKeyUnboxV1(alias,&output) && !output.instance); xrtClearError();
+    assert(!xl6SlotMapKeyValueOwnershipAdapterV1(xrtValueOwnership(alias)));
+    assert(xrtTypedSetAdd(erased,&alias) && xrtTypedSetCount(erased)==3);
+    assert(!xl6NativeLeafValueBoxV1(NULL,&key)); xrtClearError();
     /* XRT includes the Value tag in the boxed hash. The typed
      * key policy deliberately hashes the native key, not that outer shell. */
     const xtypedsetkeypolicy* policy=xl6SlotMapKeyContentPolicyV1();
@@ -75,6 +100,8 @@ static void vectors(void)
     assert(xrtTypedSetCount(set)==2 && xrtTypedSetHas(set,&key));
     ptr raw=(ptr)(uintptr_t)17; xvalue* forged=xrtValueHandleTake(&raw,&foreignOps,NULL); assert(forged);
     assert(xrtValueTypeIdBind(forged,xrtValueTypeId(a)));
+    assert(!xl6NativeLeafValueIsV1(forged) && !erasedPolicy->Equal(&a,&forged,NULL));
+    assert(xrtTypedSetAdd(erased,&forged) && xrtTypedSetHas(erased,&forged) && xrtTypedSetCount(erased)==4);
     assert(!xl6SlotMapKeyValueAdmitsV1(forged) && !xl6SlotMapKeyValueAdmitsV1(xrtValueNull()));
     assert(!xl6SlotMapKeyUnboxV1(forged,&output) && !output.instance && !output.slot); xrtClearError();
     assert(!xl6SlotMapKeyValueOwnershipAdapterV1(xrtValueOwnership(forged)));
@@ -111,11 +138,11 @@ static void vectors(void)
     assert(xl6SlotMapKeyValueAdmitsV1(a) && !xl6SlotMapKeyValueAdmitsV1(forged) && xrtGetError()==incoming);
     assert(xl6SlotMapKeyUnboxV1(a,&output) && xrtGetError()==incoming); keyDrop(&output); xrtClearError();
     xrtValueRelease(map); xrtValueRelease(other); keyDrop(&key); keyDrop(&otherKey);
-    assert(xl6SlotMapKeyUnboxV1(a,&output) && xrtTypedSetHas(set,&output)); keyDrop(&output);
+    assert(xl6SlotMapKeyUnboxV1(a,&output) && xrtTypedSetHas(set,&output) && xrtTypedSetHas(erased,&b)); keyDrop(&output);
     xvalue* empty=xl6SlotMapKeyBoxV1((XL6_SlotMapKeyV1){0}); assert(empty);
     assert(xl6SlotMapKeyUnboxV1(empty,&output) && !output.instance && !output.slot);
     assert(!xrtValueEqual(a,empty)); xrtValueRelease(empty);
-    xrtTypedSetDestroy(set); xrtValueRelease(forged); xrtValueRelease(converted); xrtValueRelease(clone);
+    xrtTypedSetDestroy(erased); xrtValueRelease(alias); xrtTypedSetDestroy(set); xrtValueRelease(forged); xrtValueRelease(converted); xrtValueRelease(clone);
     xrtValueRelease(c); xrtValueRelease(b); xrtValueRelease(a);
 }
 static bool fault(const char* operation,size_t point)
