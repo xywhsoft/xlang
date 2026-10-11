@@ -1881,6 +1881,7 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
      * not necessarily to the original producer. Diagnostic location and
      * evaluation failure boundary are explicit independent inputs. */
     if ((xl6IrPersistenceInvocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
+         xl6IrSlotMapErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeStringAllocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          (runtimeOp != XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED &&
           xl6IrRuntimeNativeValueErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) ||
@@ -15590,7 +15591,7 @@ static int xl6IrLowerRuntimeResourceOpIsAvlTree(
 static int xl6IrLowerRuntimeResourceOpCreates(
     XL6_IrRuntimeResourceOp operation)
 {
-    return operation == XL6_IR_RUNTIME_RESOURCE_OP_THREAD_CREATE ||
+    return operation == XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_CREATE || operation == XL6_IR_RUNTIME_RESOURCE_OP_THREAD_CREATE ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CREATE ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_MUTEX_CREATE ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_SEM_CREATE ||
@@ -15723,6 +15724,8 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
     if ( module == NULL || intrinsic == NULL ||
          intrinsic->operandCount > 4 ||
          (intrinsic->operandCount != 0 && operands == NULL) ) return 0;
+    if(xl6IrSlotMapResourceOpIs(intrinsic->runtimeResourceOp))
+        return xl6IrSlotMapIntrinsicCompatible(module,intrinsic,operands);
     result = xl6IrTypeGet(&module->types, intrinsic->resultType);
     if ( intrinsic->operandCount > 0 )
         first = xl6IrTypeGet(&module->types, operands[0].type);
@@ -23951,6 +23954,7 @@ static int xl6IrLowerIntrinsicErasedCollectionConvert(
 static XL6_IrRuntimeOp xl6IrLowerRuntimeResourceOp(
     XL6_IrRuntimeResourceOp operation)
 {
+    if(xl6IrSlotMapResourceOpIs(operation)) return xl6IrSlotMapRuntimeOp(operation);
     switch ( operation ) {
     case XL6_IR_RUNTIME_RESOURCE_OP_THREAD_CREATE:
         return XL6_IR_RUNTIME_THREAD_CREATE;
@@ -24499,6 +24503,11 @@ static int xl6IrLowerIntrinsicRuntimeResource(
         intrinsic->runtimeResourceKeyPayloadAbi;
     runtimeInstruction->runtimeResourceKeyOrderAbi =
         intrinsic->runtimeResourceKeyOrderAbi;
+    if(runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_CREATE) {
+        XL6_IrValueCollectionRecipe recipe={0};
+        if(!xl6IrSlotMapConstructionRecipe(ctx->module,runtimeInstruction->type,&recipe)) { ok=0; goto done; }
+        runtimeInstruction->sequenceAdmissionIdentitySet=recipe.admissionIdentitySet;
+    }
     if (runtimeOp==XL6_IR_RUNTIME_AVL_TREE_CREATE &&
         !xl6IrAvlConstructionRecipe(ctx->module,runtimeInstruction->type,NULL,NULL,NULL,
             &runtimeInstruction->sequenceAdmissionIdentitySet)) {

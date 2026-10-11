@@ -260,6 +260,7 @@ static int xl6IrCgenSharedRuntimeOpIs(XL6_IrRuntimeOp operation)
            xl6IrCgenChannelRuntimeOpIs(operation) ||
            xl6IrCgenSpecialQueueRuntimeOpIs(operation) ||
            xl6IrCgenStackRuntimeOpIs(operation) ||
+           xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(operation)) ||
            xl6IrCgenAvlRuntimeOpIs(operation) ||
            xl6IrCgenSyncRuntimeOpIs(operation) ||
            xl6IrCgenFutureMemberHelper(operation) != NULL;
@@ -297,6 +298,8 @@ static int xl6IrCgenSharedRuntimeAbi(
         return xl6IrCgenRuntimeSpecialQueueAbi(module, instruction);
     if ( xl6IrCgenStackRuntimeOpIs(instruction->runtimeOp) )
         return xl6IrCgenRuntimeStackAbi(module, instruction);
+    if(xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp)))
+        return xl6IrSlotMapInstructionCompatible(module,instruction);
     if ( xl6IrCgenAvlRuntimeOpIs(instruction->runtimeOp) )
         return xl6IrCgenRuntimeAvlAbi(module, instruction);
     if ( xl6IrCgenSyncRuntimeOpIs(instruction->runtimeOp) )
@@ -336,6 +339,11 @@ static int xl6IrCgenEmitSharedRuntime(
         emitted = xl6IrCgenEmitSpecialQueueRuntime(out, module, instruction);
     if ( emitted == 0 )
         emitted = xl6IrCgenEmitStackRuntime(out, module, instruction);
+    if(emitted==0) {
+        if(xl6IrSlotMapErrorPhysicalAbi(instruction->runtimeOp)==XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT)
+            xl6OutputPrintf(out,"    bool projection_ok_%u = false;\n",(unsigned)instruction->result);
+        emitted=xl6IrCgenEmitSlotMap(out,module,instruction);
+    }
     if ( emitted == 0 )
         emitted = xl6IrCgenEmitAvlRuntime(out, module, instruction);
     if ( emitted == 0 )

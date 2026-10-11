@@ -1,0 +1,70 @@
+class SlotMapEntry
+    int value
+end
+func detached() as SlotMapKey
+    auto map = SlotMap::<int>()
+    return map.insert(99)
+end
+func main(...) as int
+    auto map = SlotMap::<int>()
+    auto first = map.insert(41)
+    auto copied = first
+    auto independent = detached()
+    assert(independent != first)
+    assert(map.count() == 1)
+    assert(map.contains(copied))
+    assert(map.get(copied) == 41)
+    assert(map.set(first, 42))
+    assert(map.get(first) == 42)
+    assert(map.remove(first))
+    assert(!map.contains(copied))
+    assert(!map.remove(copied))
+    auto next = map.insert(73)
+    assert(next != first)
+    assert(!map.contains(first))
+    auto other = SlotMap::<int>()
+    assert(!other.contains(next))
+    assert(!other.set(next, 1))
+    assert(map.reserve(32))
+    assert(map.capacity() >= 32)
+    assert(map.clear())
+    assert(map.count() == 0)
+    auto text = SlotMap::<string>()
+    auto textKey = text.insert("a\0b")
+    auto stored = text.get(textKey)
+    assert(stored.length == 3)
+    assert(text.set(textKey, "你\0好"))
+    assert(text.get(textKey) == "你\0好")
+    auto narrow = SlotMap::<int32>()
+    auto narrowKey = narrow.insert(17)
+    assert(narrow.get(narrowKey) == 17)
+    auto records = SlotMap::<SlotMapKey>()
+    auto recordKey = records.insert(next)
+    assert(records.get(recordKey) == next)
+    auto binary = SlotMap::<bytes>()
+    bytes data = b"a\0b"
+    auto binaryKey = binary.insert(data)
+    data[0] = 99
+    bytes binaryRead = binary.get(binaryKey)
+    assert(binaryRead == b"a\0b")
+    auto optional = SlotMap::<int?>()
+    auto optionalKey = optional.insert(null)
+    assert(optional.get(optionalKey) == null)
+    assert(optional.set(optionalKey, 19))
+    int? expected = 19
+    assert(optional.get(optionalKey) == expected)
+    auto objects = SlotMap::<SlotMapEntry>()
+    SlotMapEntry item = SlotMapEntry()
+    item.value = 81
+    auto objectKey = objects.insert(item)
+    item.value = 82
+    auto same = objects.get(objectKey)
+    assert(same.value == 82)
+    auto nested = SlotMap::<array<int>>()
+    array<int> values = [1]
+    auto nestedKey = nested.insert(values)
+    values[0] = 2
+    auto shared = nested.get(nestedKey)
+    assert(shared[0] == 2)
+    return 0
+end

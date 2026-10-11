@@ -54,10 +54,10 @@ static int xl6IrCgenNominalIdentitySetUsed(
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND &&
             instruction->collectionAdmissionAbi==XL6_IR_COLLECTION_ADMISSION_NOMINAL &&
             instruction->collectionAdmissionIdentitySet==(size_t)(set-module->nominalIdentitySets)+1) return 1;
-        if ((instruction->runtimeOp==XL6_IR_RUNTIME_STACK_CREATE ||
+        if ((instruction->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_CREATE || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_CREATE ||
              instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE) &&
             instruction->sequenceAdmissionIdentitySet==(size_t)(set-module->nominalIdentitySets)+1) return 1;
-        if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||
+        if (instruction->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_CREATE || instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||
             instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE ||
             instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ||
             instruction->runtimeOp==XL6_IR_RUNTIME_DICT_CREATE ||
@@ -70,6 +70,8 @@ static int xl6IrCgenNominalIdentitySetUsed(
             (instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&
              xl6IrConcurrentQueueInstructionType(module,instruction))) {
             const XL6_IrType* recipe=xl6IrTypeGet(&module->types,instruction->type);
+            if(instruction->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_CREATE && recipe)
+                recipe=xl6IrTypeGet(&module->types,recipe->collectionValueSchemaType);
             if (recipe && (recipe->collectionAbi==XL6_IR_COLLECTION_LIST || recipe->collectionAbi==XL6_IR_COLLECTION_SET || recipe->collectionAbi==XL6_IR_COLLECTION_DICT))
                 recipe=xl6IrTypeGet(&module->types,recipe->collectionValueSchemaType);
             if (instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE && recipe)

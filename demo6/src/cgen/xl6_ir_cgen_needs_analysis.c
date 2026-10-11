@@ -623,6 +623,16 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
             needs->needsNominalIdentityRuntime=1;
             if (!xl6IrCgenAnalyzeSequenceRecipeNeeds(module,module->instructions[i].type,needs,0)) return 0;
         }
+        if(module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(module->instructions[i].runtimeOp))) {
+            needs->needsArrayCreateRuntime=needs->needsNominalIdentityRuntime=needs->needsXValueRuntime=1;
+            needs->needsXValueHandleRuntime=needs->needsXValueTypeIdentityRuntime=needs->needsErrorRuntime=1;
+            if(module->instructions[i].runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_CREATE) {
+                XL6_IrValueCollectionRecipe plan={0};
+                if(!xl6IrSlotMapConstructionRecipe(module,module->instructions[i].type,&plan) ||
+                    !xl6IrCgenAnalyzeSequenceRecipeNeeds(module,plan.valueSchemaType,needs,0)) return 0;
+            }
+        }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              xl6IrCgenStackRuntimeOpIs(
                  module->instructions[i].runtimeOp) ) {

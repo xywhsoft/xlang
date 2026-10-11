@@ -2,6 +2,15 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_slot_map.py --root <frozen-demo6> --public-directory <fresh-source-build>
+--out <fresh-output>` checks public SlotMap explicit construction and nine core
+methods using the fresh source compiler. It verifies direct typed slots/Key,
+precise string/bytes, nullable and reference elements, deterministic C/JIT,
+strict O0/O2, 1000 lifetimes per optimization, malformed IR refusal and complete
+insert/get/size/no-diagnostic/OOM prefixes with successful retry. This is not
+public snapshots, paired iteration, frame/cell, persistence, a pruned shipping
+artifact or full53 acceptance; see [SlotMap core](../docs/stdlib53-b214-slot-map-core.md).
+
 `check_stdlib_slot_map_snapshot.py --root <frozen-demo6> --out <fresh-output> [--sanitize]`
 checks owning SlotMap key/value snapshots, five transfer domains, schema aliases,
 source destruction, reentrant/no-diagnostic failures and complete allocation

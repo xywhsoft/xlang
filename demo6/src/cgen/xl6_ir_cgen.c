@@ -31,6 +31,7 @@
 #include "src/cgen/xl6_ir_cgen_shared_value.c"
 #include "src/cgen/xl6_ir_cgen_concurrency_contract.c"
 #include "src/cgen/xl6_ir_cgen_collection_emit.c"
+#include "src/cgen/xl6_ir_cgen_slot_map.c"
 #include "src/cgen/xl6_ir_cgen_error_runtime.c"
 #include "src/cgen/xl6_ir_cgen_shared_collection.c"
 #include "src/cgen/xl6_ir_cgen_shared_compare.c"

@@ -30,12 +30,16 @@ XL6_TEXT_API bool xl6SlotMapInsertV1(const xvalue*,const XL6_SlotMapLayoutV1*,co
  * separate from found/updated. Result output is a private initialized EMPTY
  * typed slot; read copies, never lends a source address. */
 XL6_TEXT_API bool xl6SlotMapReadV1(const xvalue*,const XL6_SlotMapLayoutV1*,XL6_SlotMapKeyV1,void*,bool*);
+/* Language get: normal absence is a checked range error, not an empty T. */
+XL6_TEXT_API bool xl6SlotMapReadRequiredV1(const xvalue*,const XL6_SlotMapLayoutV1*,XL6_SlotMapKeyV1,void*);
 XL6_TEXT_API bool xl6SlotMapSetV1(const xvalue*,const XL6_SlotMapLayoutV1*,XL6_SlotMapKeyV1,const void*,bool*);
 XL6_TEXT_API bool xl6SlotMapKeyV1(const xvalue*,const XL6_SlotMapLayoutV1*,XL6_SlotMapKeyV1,bool,bool*);
 XL6_TEXT_API bool xl6SlotMapClearV1(const xvalue*,const XL6_SlotMapLayoutV1*);
 XL6_TEXT_API bool xl6SlotMapReserveV1(const xvalue*,const XL6_SlotMapLayoutV1*,int64_t);
 XL6_TEXT_API int64_t xl6SlotMapCountV1(const xvalue*,const XL6_SlotMapLayoutV1*);
 XL6_TEXT_API int64_t xl6SlotMapCapacityV1(const xvalue*,const XL6_SlotMapLayoutV1*);
+/* Checked language size query: diagnostic allocation failure is still false. */
+XL6_TEXT_API bool xl6SlotMapSizeV1(const xvalue*,const XL6_SlotMapLayoutV1*,bool,int64_t*);
 /* Independent native ARRAY snapshots. Values keep the exact captured domain;
  * keys own instance records, not the source map. Converter is immutable
  * resident metadata, validated by the shared Sequence projection boundary.

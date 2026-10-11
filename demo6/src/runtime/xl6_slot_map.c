@@ -327,6 +327,13 @@ bool xl6SlotMapReadV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout,XL6_
     }
     return success;
 }
+bool xl6SlotMapReadRequiredV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout,XL6_SlotMapKeyV1 key,void* output)
+{
+    bool found=false;
+    if(!xl6SlotMapReadV1(value,layout,key,output,&found)) return false;
+    if(!found) { xrtSetErrorKind(XERR_RANGE); return false; }
+    return true;
+}
 bool xl6SlotMapSetV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout,XL6_SlotMapKeyV1 key,const void* input,bool* updated)
 {
     xl6_error_scope scope={0}; if (!scopeBegin(&scope)) return false;
@@ -380,6 +387,16 @@ bool xl6SlotMapReserveV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout,i
     if (capacity<0 || (uint64_t)capacity>UINT32_MAX) xrtSetErrorKind(XERR_RANGE);
     else if (owner) success=xrtSlotMapReserve(&owner->storage,(size_t)capacity);
     return finish(&scope,owner,success);
+}
+bool xl6SlotMapSizeV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout,bool capacity,int64_t* output)
+{
+    xl6_error_scope scope={0}; if(!scopeBegin(&scope)) return false;
+    SlotMapOwner* owner=begin(value,layout);
+    if(!output) xrtSetErrorKind(XERR_ARGUMENT);
+    size_t result=owner ? (capacity ? owner->storage.Storage.Capacity : owner->storage.Count) : 0;
+    bool success=finish(&scope,owner,owner && output);
+    if(success) *output=(int64_t)result;
+    return success;
 }
 static int64_t measure(const xvalue* value,const XL6_SlotMapLayoutV1* layout,bool capacity)
 {

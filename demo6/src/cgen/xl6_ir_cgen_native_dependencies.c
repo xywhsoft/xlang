@@ -562,6 +562,21 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_CREATE || instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE ||
              instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) &&
             !xl6IrCgenVisitSequenceFactorySymbols(module,instruction->type,visitor,context,0,false)) return 0;
+        if(xl6IrCgenInstructionIsReachable(module,i) &&
+            xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp))) {
+            if(!xl6IrSlotMapInstructionCompatible(module,instruction) ||
+                !visitor(context,xl6IrSlotMapNativeSymbol(instruction->runtimeOp))) return 0;
+            const XL6_IrInstruction* owner=instruction->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_CREATE ? instruction :
+                xl6IrCgenValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+            XL6_IrValueCollectionRecipe domain={0};
+            if(!owner || !xl6IrSlotMapConstructionRecipe(module,owner->type,&domain) ||
+                !xl6IrCgenVisitSlotProviders(domain.slotAbi,0,visitor,context)) return 0;
+            if(instruction->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_CREATE) {
+                XL6_IrValueCollectionRecipe plan={0};
+                if(!xl6IrSlotMapConstructionRecipe(module,instruction->type,&plan) ||
+                    !xl6IrCgenVisitSequenceFactorySymbols(module,plan.valueSchemaType,visitor,context,0,false)) return 0;
+            }
+        }
         if (xl6IrCgenInstructionIsReachable(module,i) && instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) {
             XL6_IrTypeId chain[65]; size_t count=0; bool mixed=false;
             if (!xl6IrArrayImportChainRecipe(module,instruction->type,chain,65,&count)) return 0;

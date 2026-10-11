@@ -15,7 +15,7 @@ static int xl6SemIsSpecialQueueTypeName(const char* name)
 
 static int xl6SemIsSpecialCollectionTypeName(const char* name)
 {
-    return xl6TextEquals(name, "Stack") ||
+    return xl6TextEquals(name, "SlotMap") || xl6TextEquals(name, "Stack") ||
            xl6TextEquals(name, "AvlTree") ||
            xl6SemIsSpecialQueueTypeName(name);
 }
@@ -287,6 +287,42 @@ static int xl6SemCheckSpecialCollectionCtorCall(XL6_SemContext* ctx, XL6_AstNode
     return ok;
 }
 
+typedef enum XL6_SemSlotMapRole {
+    XL6_SEM_SLOT_MAP_NONE, XL6_SEM_SLOT_MAP_KEY, XL6_SEM_SLOT_MAP_ITEM,
+    XL6_SEM_SLOT_MAP_INT, XL6_SEM_SLOT_MAP_BOOL, XL6_SEM_SLOT_MAP_OWNER
+} XL6_SemSlotMapRole;
+typedef struct XL6_SemSlotMapMethod {
+    const char* name; size_t count; XL6_SemSlotMapRole args[2], result;
+} XL6_SemSlotMapMethod;
+static const XL6_SemSlotMapMethod* xl6SemSlotMapMethod(const char* name)
+{
+    static const XL6_SemSlotMapMethod methods[]={
+#define XL6_SLOT_MAP_OP(id, spelling, count, a, b, result, native, failure) \
+        {spelling,count,{XL6_SEM_SLOT_MAP_##a,XL6_SEM_SLOT_MAP_##b},XL6_SEM_SLOT_MAP_##result},
+#include "src/abi/xl6_slot_map_ops.inc"
+#undef XL6_SLOT_MAP_OP
+    };
+    for(size_t i=1;name && i<sizeof(methods)/sizeof(*methods);++i)
+        if (xl6TextEquals(name,methods[i].name)) return &methods[i];
+    return NULL;
+}
+static int xl6SemCheckSlotMapMethod(XL6_SemContext* ctx,XL6_AstNode* member,
+    XL6_AstNode* args,size_t count,const XL6_AstNode* item)
+{
+    const XL6_SemSlotMapMethod* method=xl6SemSlotMapMethod(member->text);
+    if(!method) { xl6SemErrorNode(ctx,member,"unknown SlotMap method"); return 0; }
+    if(!xl6SemCheckSpecialCollectionArgCount(ctx,member,count,method->count)) return 0;
+    XL6_AstNode key={0}; key.kind=XL6_AST_TYPE; key.text="SlotMapKey";
+    int ok=1;
+    for(size_t i=0;i<count;++i) {
+        XL6_AstNode* expr=xl6SemSpecialCollectionArgExpr(args,i);
+        if(method->args[i]==XL6_SEM_SLOT_MAP_INT)
+            ok=xl6SemCheckSpecialCollectionIntArg(ctx,expr,"SlotMap capacity must be int") && ok;
+        else ok=xl6SemCheckSpecialCollectionValueArg(ctx,expr,
+            method->args[i]==XL6_SEM_SLOT_MAP_KEY ? &key : item,"SlotMap argument type mismatch") && ok;
+    }
+    return ok;
+}
 static int xl6SemCheckSpecialCollectionMethodCall(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     XL6_AstNode* member;
@@ -325,7 +361,9 @@ static int xl6SemCheckSpecialCollectionMethodCall(XL6_SemContext* ctx, XL6_AstNo
     itemType = xl6SemSpecialCollectionTypeArg(ctx, receiverType, xl6TextEquals(typeName, "AvlTree") ? 1u : 0u);
     keyType = xl6TextEquals(typeName, "AvlTree") ? xl6SemSpecialCollectionTypeArg(ctx, receiverType, 0u) : NULL;
 
-    if ( xl6TextEquals(typeName, "Stack") ) {
+    if (xl6TextEquals(typeName,"SlotMap")) {
+        ok=xl6SemCheckSlotMapMethod(ctx,member,args,count,itemType);
+    } else if ( xl6TextEquals(typeName, "Stack") ) {
         if ( xl6TextEquals(method, "push") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 1u) &&
                  xl6SemCheckSpecialCollectionValueArg(
@@ -534,6 +572,13 @@ static const char* xl6SemSpecialCollectionCallResultTypeName(XL6_SemContext* ctx
         return NULL;
     }
     method = member->text;
+    if(xl6TextEquals(concreteType->text,"SlotMap")) {
+        const XL6_SemSlotMapMethod* spec=xl6SemSlotMapMethod(method);
+        result=spec ? (spec->result==XL6_SEM_SLOT_MAP_KEY ? "SlotMapKey" :
+            spec->result==XL6_SEM_SLOT_MAP_BOOL ? "bool" :
+            spec->result==XL6_SEM_SLOT_MAP_INT ? "int" : NULL) : NULL;
+        xl6AstFree(receiverType); return result;
+    }
     if (xl6SemIsSpecialQueueTypeName(concreteType->text) &&
         !xl6TextEquals(concreteType->text,"WaitQueue") && xl6TextEquals(method,"tryPush")) {
         result="int";
@@ -600,6 +645,13 @@ static XL6_AstNode* xl6SemCloneSpecialCollectionCallType(XL6_SemContext* ctx, XL
         return NULL;
     }
     member = node->children[0];
+    if(xl6TextEquals(member->text,"get")) {
+        receiverType=xl6SemCloneSpecialCollectionReceiverType(ctx,member);
+        concreteType=xl6SemResolveAliasType(ctx,receiverType);
+        XL6_AstNode* result=concreteType && xl6TextEquals(concreteType->text,"SlotMap")
+            ? xl6SemCloneTypeNode(xl6SemSpecialCollectionTypeArg(ctx,receiverType,0u)) : NULL;
+        xl6AstFree(receiverType); if(result) return result;
+    }
     if (xl6TextEquals(member->text,"popBatch") || xl6TextEquals(member->text,"peekBatch") ||
         xl6TextEquals(member->text,"peekBatchAt")) {
         receiverType=xl6SemCloneSpecialCollectionReceiverType(ctx,member);
