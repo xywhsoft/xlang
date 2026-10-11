@@ -10820,7 +10820,8 @@ static int xl6IrRuntimeResourceOpReturnsOwned(
     XL6_IrRuntimeResourceOp operation, const XL6_IrType* result)
 {
     return xl6IrRuntimeResourceOpCreates(operation) ||
-           ((xl6IrSlotMapResourceOpIs(operation) || xl6IrTreeQuerySpecResource(operation)) &&
+           ((xl6IrSlotMapResourceOpIs(operation) || xl6IrTreeQuerySpecResource(operation) ||
+             xl6IrChannelReceiveSpecResource(operation)) &&
             result && result->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED) ||
            ((operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP ||
              operation == XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_TRY_POP ||
@@ -10858,7 +10859,7 @@ XL6_IrIntrinsicResultAbi xl6IrRuntimeResourceResultAbiForType(
 
 static int xl6IrRuntimeResourceOpMayRaise(XL6_IrRuntimeResourceOp operation)
 {
-    return xl6IrTreeQuerySpecResource(operation) || xl6IrSlotMapResourceOpIs(operation) || xl6IrRuntimeResourceOpCreates(operation) ||
+    return xl6IrChannelReceiveSpecResource(operation) || xl6IrTreeQuerySpecResource(operation) || xl6IrSlotMapResourceOpIs(operation) || xl6IrRuntimeResourceOpCreates(operation) ||
            (operation>=XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE &&
             operation<=XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLONE) ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND ||
@@ -10876,8 +10877,9 @@ static int xl6IrRuntimeResourceOpMayRaise(XL6_IrRuntimeResourceOp operation)
 static int xl6IrRuntimeResourceOpIsChannel(
     XL6_IrRuntimeResourceOp operation)
 {
-    return operation >= XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CREATE &&
-           operation <= XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_COUNT;
+    return xl6IrChannelReceiveSpecResource(operation) ||
+        (operation >= XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CREATE &&
+         operation <= XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_COUNT);
 }
 
 static int xl6IrRuntimeResourceOpIsSync(
@@ -11217,8 +11219,10 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
             return XL6_IR_RUNTIME_RESOURCE_OP_THREAD_STOP;
     } else if ( resource->runtimeResourceAbi ==
                     XL6_IR_RUNTIME_RESOURCE_CHANNEL &&
-                xl6IrRuntimeChannelPayloadType(
-                    module, receiverValueType) != XL6_IR_TYPE_INVALID ) {
+                (xl6IrRuntimeChannelPayloadType(module,receiverValueType) ||
+                 xl6IrChannelReceivePayloadType(module,receiverValueType)) ) {
+        const XL6_IrChannelReceiveSpec* receive=xl6IrChannelReceiveMethod(callee->text);
+        if (receive) return receive->source;
         if ( strcmp(callee->text, "send") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND;
         if ( strcmp(callee->text, "trySend") == 0 )
@@ -11572,6 +11576,9 @@ static int xl6IrRuntimeResourceSignatureCompatible(
     XL6_IrTypeId payloadType;
     XL6_IrTypeId keyType;
     if ( module == NULL ) return 0;
+    const XL6_IrChannelReceiveSpec* receive=xl6IrChannelReceiveSpecResource(operation);
+    if (receive)
+        return xl6IrChannelReceiveSignatureCompatible(module,receive->kind,receiverType,resultType,operandTypes,operandCount);
     if(xl6IrSlotMapResourceOpIs(operation))
         return xl6IrSlotMapSignatureCompatible(module,operation,receiverType,resultType,operandTypes,operandCount);
     if(xl6IrTreeQuerySpecResource(operation))
@@ -13959,6 +13966,8 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
             intrinsic.payloadType = xl6IrRuntimeResourceOpIsAvlTree(
                     runtimeResourceOp)
                 ? xl6IrRuntimeAvlValueType(module, resourceType)
+                : xl6IrChannelReceiveSpecResource(runtimeResourceOp)
+                    ? xl6IrChannelReceivePayloadType(module,resourceType)
                 : xl6IrRuntimeResourceOpIsChannel(runtimeResourceOp)
                     ? xl6IrRuntimeChannelPayloadType(module, resourceType)
                     : xl6IrRuntimeResourceOpIsSpecialQueue(runtimeResourceOp)
@@ -14117,6 +14126,8 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                     operandTypes, operandCount) || xl6IrGenericTreeQuerySignatureCompatible(module,origin,
                     intrinsic.runtimeResourceOp,intrinsic.receiverType,intrinsic.resultType,operandTypes,operandCount) ||
                     xl6IrGenericConcurrentQueueSignatureCompatible(module,origin,
+                    intrinsic.runtimeResourceOp,intrinsic.receiverType,intrinsic.resultType,operandTypes,operandCount) ||
+                    xl6IrChannelReceiveDependentSignatureCompatible(module,origin,
                     intrinsic.runtimeResourceOp,intrinsic.receiverType,intrinsic.resultType,operandTypes,operandCount)))
                     intrinsic.admission = XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT;
             }
@@ -20663,6 +20674,8 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     XL6_IrCallErrorPhysicalAbi stringAbi;
     if (instruction == NULL || instruction->kind != XL6_IR_INSTR_RUNTIME_CALL)
         return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
+    stringAbi=xl6IrChannelReceiveErrorPhysicalAbi(instruction->runtimeOp);
+    if (stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     if (xl6IrConcurrentQueueInstructionType(module,instruction))
         return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     if (instruction->runtimeOp>=XL6_IR_RUNTIME_AVL_TREE_CREATE &&
@@ -34254,8 +34267,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                        ? xl6IrRuntimeAvlValueType(
                                              module, resourceType)
                                        : channel
-                                       ? xl6IrRuntimeChannelPayloadType(
-                                             module, resourceType)
+                                       ? (xl6IrChannelReceiveSpecResource(intrinsic->runtimeResourceOp)
+                                             ? xl6IrChannelReceivePayloadType(module,resourceType)
+                                             : xl6IrRuntimeChannelPayloadType(module,resourceType))
                                        : specialQueue
                                            ? xl6IrRuntimeSpecialQueuePayloadType(
                                                  module, resourceType)
@@ -35279,6 +35293,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             intrinsic->runtimeResourceOp,intrinsic->receiverType,intrinsic->resultType,
                             operandTypes,intrinsic->operandCount) ||
                         xl6IrGenericConcurrentQueueSignatureCompatible(module,intrinsic->origin,
+                            intrinsic->runtimeResourceOp,intrinsic->receiverType,intrinsic->resultType,
+                            operandTypes,intrinsic->operandCount) ||
+                        xl6IrChannelReceiveDependentSignatureCompatible(module,intrinsic->origin,
                             intrinsic->runtimeResourceOp,intrinsic->receiverType,intrinsic->resultType,
                             operandTypes,intrinsic->operandCount);
                     if (intrinsic->admission == XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT ? !dependent :
@@ -38553,6 +38570,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP ||
                             instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH ||
                             xl6IrTreeQuerySpecRuntime(instruction->runtimeOp) ||
+                            xl6IrChannelReceiveSpecRuntime(instruction->runtimeOp) ||
                             xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp)) ||
                            (instruction->runtimeOp >=
                                 XL6_IR_RUNTIME_STACK_CREATE &&
@@ -38581,6 +38599,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP ||
                         instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH ||
                         xl6IrTreeQuerySpecRuntime(instruction->runtimeOp) ||
+                        xl6IrChannelReceiveSpecRuntime(instruction->runtimeOp) ||
                         xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp)) ||
                         (instruction->runtimeOp >=
                              XL6_IR_RUNTIME_STACK_CREATE &&
@@ -42556,6 +42575,15 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                     "XLIR runtime special queue operation is outside the verified member ABI");
                             }
                         }
+                    } else if(xl6IrChannelReceiveSpecRuntime(instruction->runtimeOp)) {
+                        const XL6_IrInstruction* outcome=j+1<block->instructionCount
+                            ? &module->instructions[block->firstInstruction+j+1] : NULL;
+                        if(!xl6IrChannelReceiveInstructionPlan(module,instruction,NULL) ||
+                            !xl6IrNodeRequiresThrowExitPlan(module,instruction->origin) || !outcome ||
+                            outcome->kind!=XL6_IR_INSTR_ERROR_TEST || outcome->operandCount!=1 ||
+                            outcome->firstOperand>=module->operandCount ||
+                            module->operands[outcome->firstOperand]!=instruction->result)
+                            return xl6IrDiag(diags,NULL,"XLIR Channel receive has no exact owned result, status or checked outcome contract");
                     } else if(xl6IrTreeQuerySpecRuntime(instruction->runtimeOp)) {
                         const XL6_IrInstruction* outcome=j+1<block->instructionCount
                             ? &module->instructions[block->firstInstruction+j+1] : NULL;
@@ -45770,6 +45798,9 @@ static const char* xl6IrRuntimeResourceOpName(
     XL6_IrRuntimeResourceOp operation)
 {
     switch ( operation ) {
+#define XL6_CHANNEL_RECEIVE_OP(Id,Name,...) case XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_##Id: return "channel-owned-" Name;
+#include "src/abi/xl6_channel_receive_ops.inc"
+#undef XL6_CHANNEL_RECEIVE_OP
 #define XL6_TREE_QUERY_OP(id,name,search,pair,required,native) case XL6_IR_RUNTIME_RESOURCE_OP_TREE_QUERY_##id: return "tree-query-" name;
 #include "src/abi/xl6_tree_query_ops.inc"
 #undef XL6_TREE_QUERY_OP
@@ -47115,6 +47146,9 @@ static const char* xl6IrClosureRawCallbackAbiName(
 static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
 {
     switch ( runtimeOp ) {
+#define XL6_CHANNEL_RECEIVE_OP(Id,Name,...) case XL6_IR_RUNTIME_CHANNEL_RECEIVE_##Id: return "channel-owned-" Name;
+#include "src/abi/xl6_channel_receive_ops.inc"
+#undef XL6_CHANNEL_RECEIVE_OP
 #define XL6_TREE_QUERY_OP(id,name,search,pair,required,native) case XL6_IR_RUNTIME_TREE_QUERY_##id: return "tree-query-" name;
 #include "src/abi/xl6_tree_query_ops.inc"
 #undef XL6_TREE_QUERY_OP

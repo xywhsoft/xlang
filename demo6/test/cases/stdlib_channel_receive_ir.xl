@@ -1,0 +1,33 @@
+// The C test retargets these verified typed calls to the owned receive IR.
+// This is intentionally not acceptance of recv source syntax or a C backend.
+class ChannelReceiveIRItem
+    int value = 7
+end
+export func intWait(channel<int> c, int value) as (int, int?)
+    c.trySend(value)
+    return 0, null
+end
+export func intTry(channel<int> c, int value) as (int, int?)
+    c.trySend(value)
+    return 0, null
+end
+export func intFor(channel<int> c, int value) as (int, int?)
+    c.trySend(value)
+    return 0, null
+end
+export func textWait(channel<string> c, string value) as (int, string?)
+    c.trySend(value)
+    return 0, null
+end
+export func textTry(channel<string> c, string value) as (int, string?)
+    c.trySend(value)
+    return 0, null
+end
+export func bytesTry(channel<bytes> c, bytes value) as (int, bytes?)
+    c.trySend(value)
+    return 0, null
+end
+export func classTry(channel<ChannelReceiveIRItem> c, ChannelReceiveIRItem value) as (int, ChannelReceiveIRItem?)
+    c.trySend(value)
+    return 0, null
+end

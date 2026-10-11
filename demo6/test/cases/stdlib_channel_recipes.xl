@@ -45,6 +45,13 @@ end
 func pendingChannel<T>(channel<T> c) as int
     return 0
 end
+// Logical templates have an exact optional carrier, never an executable slot.
+func pendingReceive<T>(channel<T> c) as (int, T?)
+    return 0, null
+end
+func pendingNullableReceive<T>(channel<T?> c) as (int, T?)
+    return 0, null
+end
 func unsupportedFuture(channel<future<int>> c) as int
     return 0
 end

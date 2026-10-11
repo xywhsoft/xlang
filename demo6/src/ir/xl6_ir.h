@@ -245,6 +245,9 @@ typedef enum XL6_IrRuntimeResourceOp {
 #define XL6_TREE_QUERY_OP(id,name,search,pair,required,native) XL6_IR_RUNTIME_RESOURCE_OP_TREE_QUERY_##id,
 #include "../abi/xl6_tree_query_ops.inc"
 #undef XL6_TREE_QUERY_OP
+#define XL6_CHANNEL_RECEIVE_OP(Id,...) XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_##Id,
+#include "../abi/xl6_channel_receive_ops.inc"
+#undef XL6_CHANNEL_RECEIVE_OP
 } XL6_IrRuntimeResourceOp;
 
 /* Runtime resources with generic payloads carry an explicit transfer ABI in
@@ -2076,6 +2079,9 @@ typedef enum XL6_IrRuntimeOp {
 #define XL6_TREE_QUERY_OP(id,name,search,pair,required,native) XL6_IR_RUNTIME_TREE_QUERY_##id,
 #include "../abi/xl6_tree_query_ops.inc"
 #undef XL6_TREE_QUERY_OP
+#define XL6_CHANNEL_RECEIVE_OP(Id,...) XL6_IR_RUNTIME_CHANNEL_RECEIVE_##Id,
+#include "../abi/xl6_channel_receive_ops.inc"
+#undef XL6_CHANNEL_RECEIVE_OP
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -6960,6 +6966,8 @@ typedef enum XL6_IrChannelReceiveKind {
 } XL6_IrChannelReceiveKind;
 typedef struct XL6_IrChannelReceiveSpec {
     XL6_IrChannelReceiveKind kind;
+    XL6_IrRuntimeResourceOp source;
+    XL6_IrRuntimeOp runtime;
     const char* name;
     unsigned int waitMode;
     bool timed;
@@ -6976,12 +6984,24 @@ typedef struct XL6_IrChannelReceivePlan {
 } XL6_IrChannelReceivePlan;
 const XL6_IrChannelReceiveSpec* xl6IrChannelReceiveSpec(XL6_IrChannelReceiveKind);
 const XL6_IrChannelReceiveSpec* xl6IrChannelReceiveMethod(const char*);
+const XL6_IrChannelReceiveSpec* xl6IrChannelReceiveSpecResource(XL6_IrRuntimeResourceOp);
+const XL6_IrChannelReceiveSpec* xl6IrChannelReceiveSpecRuntime(XL6_IrRuntimeOp);
+XL6_IrCallErrorPhysicalAbi xl6IrChannelReceiveErrorPhysicalAbi(XL6_IrRuntimeOp);
+/* Logical payload identity may be dependent. It is never a physical slot or
+ * permission to emit native code before specialization closes the recipe. */
+XL6_IrTypeId xl6IrChannelReceivePayloadType(const XL6_IrModule*,XL6_IrTypeId);
 /* One owning optional carrier. When T already admits null, reuse T unchanged;
  * status, not nested optional tags or NULL, distinguishes successful null. */
 int xl6IrChannelReceivePlanBuild(const XL6_IrModule*,XL6_IrChannelReceiveKind,
     XL6_IrTypeId owner,XL6_IrTypeId result,XL6_IrChannelReceivePlan*);
 int xl6IrChannelReceiveSignatureCompatible(const XL6_IrModule*,XL6_IrChannelReceiveKind,
     XL6_IrTypeId owner,XL6_IrTypeId result,const XL6_IrTypeId*,size_t);
+int xl6IrChannelReceiveDependentSignatureCompatible(const XL6_IrModule*,XL6_IrNodeId,
+    XL6_IrRuntimeResourceOp,XL6_IrTypeId,XL6_IrTypeId,const XL6_IrTypeId*,size_t);
+int xl6IrChannelReceiveIntrinsicCompatible(const XL6_IrModule*,const XL6_IrIntrinsicCall*,
+    const XL6_IrIntrinsicOperand*);
+int xl6IrChannelReceiveInstructionPlan(const XL6_IrModule*,const XL6_IrInstruction*,
+    XL6_IrChannelReceivePlan*);
 int xl6IrConcurrentQueueSignatureCompatible(const XL6_IrModule*,XL6_IrRuntimeResourceOp,
     XL6_IrTypeId receiver,XL6_IrTypeId result,const XL6_IrTypeId*,size_t count);
 XL6_IrTypeId xl6IrConcurrentQueueInstructionType(const XL6_IrModule*,const XL6_IrInstruction*);

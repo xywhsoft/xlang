@@ -388,6 +388,9 @@ XL6_IrOperandOwnership xl6IrRuntimeOperandOwnership(
 #define XL6_TREE_QUERY_OP(id,name,search,pair,required,native) case XL6_IR_RUNTIME_TREE_QUERY_##id:
 #include "src/abi/xl6_tree_query_ops.inc"
 #undef XL6_TREE_QUERY_OP
+#define XL6_CHANNEL_RECEIVE_OP(Id,...) case XL6_IR_RUNTIME_CHANNEL_RECEIVE_##Id:
+#include "src/abi/xl6_channel_receive_ops.inc"
+#undef XL6_CHANNEL_RECEIVE_OP
     case XL6_IR_RUNTIME_AVL_TREE_CREATE:
     case XL6_IR_RUNTIME_AVL_TREE_SET:
     case XL6_IR_RUNTIME_AVL_TREE_CONTAINS:

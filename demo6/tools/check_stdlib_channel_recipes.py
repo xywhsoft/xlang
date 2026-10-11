@@ -1,6 +1,7 @@
 """Closed Channel source schema and owning receive IR plan prerequisite.
 Real source type graph, schema factories and resident private result slots.
-This does not certify public recv/WaitQueue cutover or a shipping SDK.
+Includes owned receive typed-to-lowered IR, not public recv/WaitQueue cutover
+or a shipping SDK.
 """
 from pathlib import Path
 import argparse,hashlib,json,os,re,shutil,subprocess
@@ -16,6 +17,8 @@ def main():
     runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     files={Path(__file__).resolve(),public/'build.json',Path(cc),runtime,
         root/'test/cases/xlir_channel_recipe_contract.c',root/'test/cases/stdlib_channel_recipes.xl'}
+    files.update(root/'test/cases'/name for name in
+        ('xlir_channel_receive_ir_contract.c','stdlib_channel_receive_ir.xl'))
     for name in ('cgen_channel','cgen_channel_string','xlir_channel_resource_abi','sem_channel_class_element'):
         files.add(root/'test/cases'/(name+'.xl'))
     files.update(root/'test/cases'/name for name in
@@ -53,6 +56,16 @@ def main():
     unity=['-Wno-unused-function','-Wno-unused-variable','-Wno-unused-const-variable',
         '-Wno-unused-parameter','-Wno-unused-but-set-variable','-Wno-missing-field-initializers']
     try:
+        for opt in ('O0','O2'):
+            contract=out/('receive-ir-'+opt+ext)
+            run(opt+'-receive-ir-build',[cc,*flags,*unity,'-'+opt,root/'test/cases/xlir_channel_receive_ir_contract.c',
+                *[o for o in objects if Path(o).name!='xl6_ir.o'],*links,'-o',contract]); product(contract)
+            log=run(opt+'-receive-ir-contracts',[contract,root/'test/cases/stdlib_channel_recipes.xl',
+                root/'test/cases/stdlib_channel_receive_ir.xl'])
+            proof=re.search(r'Channel receive IR plans=(\d+) dependent=(\d+) pipelines=(\d+) mutations=(\d+)',log)
+            assert proof,log
+            counts=list(map(int,proof.groups())); assert counts[0]>=39 and counts[1]==6 and counts[2]==7 and counts[3]>=1600
+            report['ReceiveIR']=dict(zip(('Plans','Dependent','Pipelines','Mutations'),counts))
         for opt in ('O0','O2'):
             contract=out/('contract-'+opt+ext); generated=out/('recipes-'+opt+'.c')
             run(opt+'-contract-build',[cc,*flags,*unity,'-'+opt,root/'test/cases/xlir_channel_recipe_contract.c',

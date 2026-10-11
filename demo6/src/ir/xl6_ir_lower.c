@@ -15550,8 +15550,9 @@ xl6IrLowerRuntimeResourceKeyOrderAbiForType(
 static int xl6IrLowerRuntimeResourceOpIsChannel(
     XL6_IrRuntimeResourceOp operation)
 {
-    return operation >= XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CREATE &&
-           operation <= XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_COUNT;
+    return xl6IrChannelReceiveSpecResource(operation) ||
+        (operation >= XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CREATE &&
+         operation <= XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_COUNT);
 }
 
 static int xl6IrLowerRuntimeResourceOpIsSync(
@@ -15730,6 +15731,8 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
         return xl6IrSlotMapIntrinsicCompatible(module,intrinsic,operands);
     if(xl6IrTreeQuerySpecResource(intrinsic->runtimeResourceOp))
         return xl6IrTreeQueryIntrinsicCompatible(module,intrinsic,operands);
+    if(xl6IrChannelReceiveSpecResource(intrinsic->runtimeResourceOp))
+        return xl6IrChannelReceiveIntrinsicCompatible(module,intrinsic,operands);
     result = xl6IrTypeGet(&module->types, intrinsic->resultType);
     if ( intrinsic->operandCount > 0 )
         first = xl6IrTypeGet(&module->types, operands[0].type);
@@ -23947,6 +23950,8 @@ static XL6_IrRuntimeOp xl6IrLowerRuntimeResourceOp(
     XL6_IrRuntimeResourceOp operation)
 {
     if(xl6IrSlotMapResourceOpIs(operation)) return xl6IrSlotMapRuntimeOp(operation);
+    const XL6_IrChannelReceiveSpec* receive=xl6IrChannelReceiveSpecResource(operation);
+    if(receive) return receive->runtime;
     const XL6_IrTreeQuerySpec* query=xl6IrTreeQuerySpecResource(operation);
     if(query) return query->runtime;
     switch ( operation ) {
