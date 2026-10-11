@@ -6151,7 +6151,7 @@ if ( ! $runtimeMatrix.Contains("xlir_stack_resource_abi.xl") ) {
     throw "XLIR Stack resource fixture is missing from the runtime matrix"
 }
 
-# AvlTree<K,V> extends the resource contract with a second generic identity and
+# OrderedMap<K,V> extends the resource contract with a second generic identity and
 # an ordering ABI.  Typed XLIR owns both types, order, effects and storage refs;
 # lowering normalizes optional merge syntax; Cgen renders only verified ops.
 foreach ( $required in @(
@@ -6164,17 +6164,17 @@ foreach ( $required in @(
     "initializerRuntimeResourceKeyOrderAbi"
 ) ) {
     if ( ! $header.Contains($required) ) {
-        throw "XLIR AvlTree resource header contract is incomplete: $required"
+        throw "XLIR OrderedMap resource header contract is incomplete: $required"
     }
 }
 foreach ( $required in @(
     "xl6IrRuntimeResourceOpIsAvlTree", "xl6IrRuntimeAvlKeyType",
     "xl6IrRuntimeAvlValueType", "xl6IrRuntimeAvlOpMayRaise",
-    "XLIR runtime AvlTree operation has no exact key, value, order, ownership or failure ABI",
+    "XLIR runtime OrderedMap operation has no exact key, value, order, ownership or failure ABI",
     "runtimeResourceKeyOrderAbi", "avl-tree-merge"
 ) ) {
     if ( ! $source.Contains($required) ) {
-        throw "XLIR AvlTree Typed/verifier contract is incomplete: $required"
+        throw "XLIR OrderedMap Typed/verifier contract is incomplete: $required"
     }
 }
 foreach ( $required in @(
@@ -6185,7 +6185,7 @@ foreach ( $required in @(
     "runtimeOperandCount = 3"
 ) ) {
     if ( ! $lower.Contains($required) ) {
-        throw "XLIR AvlTree lowering/normalization contract is incomplete: $required"
+        throw "XLIR OrderedMap lowering/normalization contract is incomplete: $required"
     }
 }
 foreach ( $required in @(
@@ -6197,7 +6197,7 @@ foreach ( $required in @(
     "xlir_avl_collect", "xrtTypedTreeCreate"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
-        throw "XLIR AvlTree mechanical C boundary is incomplete: $required"
+        throw "XLIR OrderedMap mechanical C boundary is incomplete: $required"
     }
 }
 foreach ( $required in @(
@@ -6209,15 +6209,15 @@ foreach ( $required in @(
     "strict-C/runtime gate failed"
 ) ) {
     if ( ! $avlResourceGate.Contains($required) ) {
-        throw "XLIR AvlTree resource quality gate is incomplete: $required"
+        throw "XLIR OrderedMap resource quality gate is incomplete: $required"
     }
 }
 if ( ! $languageFrontendSuite.Contains(
         "tools\check_xlir_avl_resource_abi.ps1") ) {
-    throw "XLIR AvlTree resource quality gate is not wired into the language frontend suite"
+    throw "XLIR OrderedMap resource quality gate is not wired into the language frontend suite"
 }
 if ( ! $runtimeMatrix.Contains("xlir_avl_resource_abi.xl") ) {
-    throw "XLIR AvlTree resource fixture is missing from the runtime matrix"
+    throw "XLIR OrderedMap resource fixture is missing from the runtime matrix"
 }
 
 # Future continuations are one closed, verified operation family.  Typed XLIR

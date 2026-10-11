@@ -4,14 +4,14 @@ func main(...) as int
     assert(stack.push(gate))
     auto popped = stack.pop()
     assert(popped.post() and gate.tryWait())
-    auto tree = AvlTree::<int, sem>()
+    auto tree = OrderedMap::<int, sem>()
     assert(tree.set(1, gate))
     auto copy = tree.clone()
     assert(copy.equals(tree))
     sem fromTree
     assert(copy.getInto(1, fromTree))
     assert(fromTree.post() and gate.tryWait())
-    auto optionalTree = AvlTree::<int, sem?>()
+    auto optionalTree = OrderedMap::<int, sem?>()
     assert(optionalTree.set(1, gate))
     assert(optionalTree.set(2, null))
     sem? optional = null
@@ -19,7 +19,7 @@ func main(...) as int
     assert(optional != null)
     if optional != null then assert(optional.post() and gate.tryWait()) end
     assert(optionalTree.getInto(2, optional) and optional == null)
-    auto nested = AvlTree::<int, Stack<sem>>()
+    auto nested = OrderedMap::<int, Stack<sem>>()
     assert(stack.push(gate))
     assert(nested.set(1, stack))
     auto returned = Stack::<sem>()

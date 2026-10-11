@@ -3,14 +3,14 @@ class TreeReferenceBox
 end
 
 class TreeReferenceHolder
-    AvlTree<int, TreeReferenceBox> values
+    OrderedMap<int, TreeReferenceBox> values
 end
 
 func main(...) as int
     auto shared = TreeReferenceBox()
     shared.value = 41
-    AvlTree<int, TreeReferenceBox> left = AvlTree::<int, TreeReferenceBox>()
-    AvlTree<int, TreeReferenceBox> right = AvlTree::<int, TreeReferenceBox>()
+    OrderedMap<int, TreeReferenceBox> left = OrderedMap::<int, TreeReferenceBox>()
+    OrderedMap<int, TreeReferenceBox> right = OrderedMap::<int, TreeReferenceBox>()
     assert(left.set(1, shared) and right.set(1, shared))
     assert(left.equals(right) and right.equals(left) and left.equals(left))
     auto cloned = left.clone()

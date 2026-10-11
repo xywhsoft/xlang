@@ -1,6 +1,6 @@
 func main(...) as int
     char last = char(0x10ffff)
-    AvlTree<int, char> tree = AvlTree::<int, char>()
+    OrderedMap<int, char> tree = OrderedMap::<int, char>()
     assert(tree.set(1, '\0') and tree.set(2, '你') and tree.set(3, last))
     array<char> values = tree.values()
     assert(values.length == 3 and values[0] == '\0' and values[1] == '你' and values[2] == last)

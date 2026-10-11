@@ -13,7 +13,7 @@ func main(...) as int
     auto maybe = optional.pop()
     assert(maybe != null)
     if maybe != null then assert(maybe.wait() and maybe.exitCode() == 42) end
-    auto tree = AvlTree::<int, thread>()
+    auto tree = OrderedMap::<int, thread>()
     assert(tree.set(1, worker))
     auto copy = tree.clone()
     thread returned
@@ -23,7 +23,7 @@ func main(...) as int
     // Extract an owned shell: Thread is still not language-copyable.
     auto projected = values.pop()
     assert(projected.wait() and projected.exitCode() == 42)
-    auto nested = AvlTree::<int, Stack<thread>>()
+    auto nested = OrderedMap::<int, Stack<thread>>()
     assert(stack.push(worker) and nested.set(1, stack))
     auto inner = Stack::<thread>()
     assert(nested.getInto(1, inner))

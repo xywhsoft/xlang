@@ -50,7 +50,7 @@ func main(...) as int
     flag = flags.pop()
     assert(flag)
 
-    AvlTree<string, int> scores = AvlTree::<string, int>()
+    OrderedMap<string, int> scores = OrderedMap::<string, int>()
     assert(scores.set("bob", 70))
     assert(scores.set("alice", 90))
     assert(scores.set("bob", 80))
@@ -58,9 +58,9 @@ func main(...) as int
     assert(scores.contains("alice"))
     assert(scores.getInto("bob", number))
     assert(number == 80)
-    AvlTree<string, int> scoresClone = scores.clone()
+    OrderedMap<string, int> scoresClone = scores.clone()
     assert(scores.equals(scoresClone))
-    AvlTree<string, int> scorePatch = AvlTree::<string, int>()
+    OrderedMap<string, int> scorePatch = OrderedMap::<string, int>()
     assert(scorePatch.set("bob", 81))
     assert(scorePatch.set("carol", 75))
     assert(scoresClone.merge(scorePatch, false))
@@ -94,7 +94,7 @@ func main(...) as int
     assert(scores.trimTo(1) >= 0)
     assert(scores.trim() >= 0)
 
-    AvlTree<int, int> sameTypeTree = AvlTree::<int, int>()
+    OrderedMap<int, int> sameTypeTree = OrderedMap::<int, int>()
     assert(sameTypeTree.set(1, 10))
     int aliasedOutput = 0
     assert(not sameTypeTree.firstInto(aliasedOutput, aliasedOutput))

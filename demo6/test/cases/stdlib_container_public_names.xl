@@ -1,0 +1,32 @@
+func sameQueue(Queue<string> input) as MpmcQueue<string>
+    return input
+end
+func main(...) as int
+    auto general = Queue::<string>(4)
+    MpmcQueue<string> explicit = sameQueue(general)
+    Queue<string> alias = explicit
+    assert(alias.tryPush("你\0好") == queueStatus.ok)
+    auto status, text = general.tryPop()
+    assert(status == queueStatus.ok and text != null and text == "你\0好")
+    auto emptyStatus, empty = explicit.tryPop()
+    assert(emptyStatus == queueStatus.empty and empty == null)
+    array<string> input = ["a\0b", "z"]
+    auto pushStatus, pushed = alias.pushBatch(input)
+    assert(pushStatus == queueStatus.ok and pushed == 2)
+    auto popStatus, output = explicit.popBatch(4)
+    assert(popStatus == queueStatus.ok and output.length == 2 and output[0] == "a\0b")
+    general.close()
+    assert(alias.isClosed() and explicit.isDrained())
+    assert(alias.reset() and !general.isClosed())
+    auto ordered = OrderedMap::<string, int>()
+    assert(ordered.set("z", 3) and ordered.set("a\0b", 2) and ordered.set("a", 1))
+    auto keys = ordered.keys()
+    auto values = ordered.values()
+    assert(keys.length == 3 and keys[0] == "a" and keys[1] == "a\0b" and keys[2] == "z")
+    assert(values[0] == 1 and values[1] == 2 and values[2] == 3)
+    int captured = 0
+    assert(ordered.getInto("a\0b", captured) and captured == 2)
+    auto copy = ordered.clone()
+    assert(ordered.equals(copy) and copy.remove("a") and ordered.count() == 3)
+    return 0
+end

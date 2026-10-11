@@ -21,6 +21,7 @@ def main():
     # The ordinary Windows build compiles its committed host examples too.
     # Export source fixtures, never old binaries or extension packages.
     paths.append('demo6/release/examples/*.c')
+    paths.append('demo6/release/examples/*.xl')
     files=subprocess.check_output(['git','ls-files','-z','--',*paths],cwd=project)
     names=[path.decode('utf-8') for path in files.split(b'\0') if path]; assert names
     index=subprocess.check_output(['git','write-tree'],cwd=project,text=True).strip()

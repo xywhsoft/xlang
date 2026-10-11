@@ -36,7 +36,7 @@ func erasedDict(dict values) as int
 end
 func mixedDicts(dict<set<int>> z, dict<dict<int>> a, dict<dict<int>?> b,
     dict<array<dict<DictRecipeItem?>>> c, dict<list<dict<char>>> d,
-    dict<AvlTree<string, dict<bytes>>> e, dict<SpscQueue<dict<int>>> f,
+    dict<OrderedMap<string, dict<bytes>>> e, dict<SpscQueue<dict<int>>> f,
     dict<dict<dict<string?>>> g) as int
     return 0
 end

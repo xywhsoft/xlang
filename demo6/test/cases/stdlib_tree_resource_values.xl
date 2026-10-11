@@ -1,9 +1,9 @@
 func main(...) as int
-    auto child = AvlTree::<int, string>()
+    auto child = OrderedMap::<int, string>()
     assert(child.set(1, "a\0你"))
-    auto parent = AvlTree::<int, AvlTree<int, string>>()
+    auto parent = OrderedMap::<int, OrderedMap<int, string>>()
     assert(parent.set(7, child))
-    auto output = AvlTree::<int, string>()
+    auto output = OrderedMap::<int, string>()
     assert(parent.getInto(7, output))
     string text = "old"
     assert(output.getInto(1, text) and text == "a\0你")
@@ -15,24 +15,24 @@ func main(...) as int
     assert(child.set(2, "shared"))
     assert(snapshotTree.count() == 2 and output.count() == 2)
 
-    array<AvlTree<int, string>> collection = array[child, output]
-    auto stack = Stack::<AvlTree<int, string>>()
+    array<OrderedMap<int, string>> collection = array[child, output]
+    auto stack = Stack::<OrderedMap<int, string>>()
     assert(stack.push(child))
-    auto stackTree = AvlTree::<int, Stack<AvlTree<int, string>>>()
+    auto stackTree = OrderedMap::<int, Stack<OrderedMap<int, string>>>()
     assert(stackTree.set(1, stack))
-    auto returnedStack = Stack::<AvlTree<int, string>>()
+    auto returnedStack = Stack::<OrderedMap<int, string>>()
     assert(stackTree.getInto(1, returnedStack))
     auto returnedTree = returnedStack.pop()
     assert(returnedTree.count() == 2)
     auto second = collection[1]
     assert(second.count() == 2)
 
-    auto queue = MpmcQueue::<AvlTree<int, string>>(2)
+    auto queue = MpmcQueue::<OrderedMap<int, string>>(2)
     assert(queue.tryPush(child) == queueStatus.ok)
     auto status, popped = queue.tryPop()
     assert(status == queueStatus.ok and popped != null)
     if popped != null then assert(popped.count() == 2) end
-    auto nested = AvlTree::<int, array<AvlTree<int, string>>>()
+    auto nested = OrderedMap::<int, array<OrderedMap<int, string>>>()
     assert(nested.set(1, collection))
     auto arrays = nested.values()
     auto nestedSnapshot = arrays[0][0]

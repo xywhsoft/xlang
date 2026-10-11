@@ -1857,7 +1857,7 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
     if (runtimeOp==XL6_IR_RUNTIME_AVL_TREE_CREATE &&
         !xl6IrAvlConstructionRecipe(ctx->module,type,NULL,NULL,NULL,
             &instruction->sequenceAdmissionIdentitySet)) {
-        xl6IrLowerDiag(ctx,origin,"AvlTree default construction requires two closed resident admission domains");
+        xl6IrLowerDiag(ctx,origin,"OrderedMap default construction requires two closed resident admission domains");
         return XL6_IR_VALUE_INVALID;
     }
     if (immediate != NULL) {
@@ -24519,13 +24519,13 @@ static int xl6IrLowerIntrinsicRuntimeResource(
     if (runtimeOp==XL6_IR_RUNTIME_AVL_TREE_CREATE &&
         !xl6IrAvlConstructionRecipe(ctx->module,runtimeInstruction->type,NULL,NULL,NULL,
             &runtimeInstruction->sequenceAdmissionIdentitySet)) {
-        xl6IrLowerDiag(ctx,id,"AvlTree construction requires two closed resident admission domains");
+        xl6IrLowerDiag(ctx,id,"OrderedMap construction requires two closed resident admission domains");
         ok=0; goto done;
     }
     if ((runtimeOp==XL6_IR_RUNTIME_AVL_TREE_KEYS || runtimeOp==XL6_IR_RUNTIME_AVL_TREE_VALUES) &&
         !xl6IrAvlProjectionContract(ctx->module,intrinsic->receiverType,runtimeInstruction->type,
             runtimeOp==XL6_IR_RUNTIME_AVL_TREE_KEYS,&runtimeInstruction->sequenceAdmissionIdentitySet)) {
-        xl6IrLowerDiag(ctx,id,"AvlTree projection requires an exact native Array schema and physical slot contract");
+        xl6IrLowerDiag(ctx,id,"OrderedMap projection requires an exact native Array schema and physical slot contract");
         ok=0; goto done;
     }
     if ( intrinsic->runtimeResourceOp ==

@@ -1,17 +1,17 @@
 /* Only may-raise operations belong in the MemoryError propagation lane.
  * Queue batch uses a no-raise/prefix-result contract and is tested separately. */
 func main(...) as int
-    AvlTree<int, char> characters = AvlTree::<int, char>()
+    OrderedMap<int, char> characters = OrderedMap::<int, char>()
     assert(characters.set(1, '\0') and characters.set(2, '你') and characters.set(3, char(0x10ffff)))
     array<char> chars = characters.values()
     assert(chars.length == 3 and chars[0] == '\0' and chars[1] == '你' and chars[2] == char(0x10ffff))
     var erased = chars
     assert(type(erased[0]) == char)
-    AvlTree<int, string> texts = AvlTree::<int, string>()
+    OrderedMap<int, string> texts = OrderedMap::<int, string>()
     assert(texts.set(1, "") and texts.set(2, "a\0b") and texts.set(3, "你"))
     array<string> values = texts.values()
     assert(values.length == 3 and values[0] == "" and values[1] == "a\0b" and values[2] == "你")
-    AvlTree<string, int> names = AvlTree::<string, int>()
+    OrderedMap<string, int> names = OrderedMap::<string, int>()
     assert(names.set("a\0b", 1) and names.set("你", 2))
     array<string> keys = names.keys()
     assert(keys.length == 2 and keys[0] == "a\0b" and keys[1] == "你")

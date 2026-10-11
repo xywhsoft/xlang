@@ -1295,7 +1295,7 @@ foreach ( $required in @(
 
 ) ) {
     if ( ! $avlResourceGateText.Contains($required) ) {
-        throw "XLIR migration matrix requires the typed AvlTree resource/class-field ABI gate: $required"
+        throw "XLIR migration matrix requires the typed OrderedMap resource/class-field ABI gate: $required"
     }
 }
 foreach ( $required in @(

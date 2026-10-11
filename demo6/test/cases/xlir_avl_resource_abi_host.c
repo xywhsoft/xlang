@@ -18,7 +18,7 @@ int main(void)
     {
         const xerror* error = xrtGetError();
         fprintf(stderr,
-                "XLIR AvlTree runtime failed: result=%d error=%s data=%s at %s:%d:%d\n",
+                "XLIR OrderedMap runtime failed: result=%d error=%s data=%s at %s:%d:%d\n",
                 result,
                 error != NULL ? xrtErrorMessage(error) : "no runtime error",
                 error != NULL && xrtErrorData(error) != NULL

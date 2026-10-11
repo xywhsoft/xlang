@@ -4,9 +4,9 @@ string treeGraphText = "module\0" + " alive"
 
 class TreeGraphMarker
     int id
-    AvlTree<int, TreeGraphMarker> values
-    AvlTree<int, array<TreeGraphMarker>> arrays
-    AvlTree<int, TreeGraphMarker> second
+    OrderedMap<int, TreeGraphMarker> values
+    OrderedMap<int, array<TreeGraphMarker>> arrays
+    OrderedMap<int, TreeGraphMarker> second
     create(int id)
         self.id = id
     end
@@ -38,7 +38,7 @@ TreeGraphMarker internalDuplicate = makeTreeGraph(8, 1)
 TreeGraphMarker internalArray = makeTreeGraph(9, 2)
 TreeGraphMarker internalAlias = makeTreeGraph(10, 3)
 TreeGraphMarker internalClone = makeTreeGraph(11, 4)
-AvlTree<int, TreeGraphMarker> rootedTreeGraphs = AvlTree::<int, TreeGraphMarker>()
+OrderedMap<int, TreeGraphMarker> rootedTreeGraphs = OrderedMap::<int, TreeGraphMarker>()
 
 export "tree_graph_setup" func setupTreeGraph(int mode, int family) as int
     assert(internalSelf.values.count() == 1 and internalDuplicate.values.count() == 2)

@@ -2,6 +2,16 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_container_names.py --root <frozen-demo6> --public-directory
+<fresh-source-build> --out <fresh-output>` verifies OrderedMap migration and
+the exact Queue/MpmcQueue type identity. It batches all 38 affected sources
+(including the deliberate non-copyable thread rejection), rejects five bad
+source contracts, checks genuine Tree IR mutations, runs JIT, strict O0/O2
+independent programs with 1000 lifetimes, Queue-only symbol pruning and real
+public module/AOT products. It does not modernize Tree result APIs or certify
+concurrent stress, shipping DLL/VFS or full53. See
+[Public container names](../docs/stdlib53-b216-container-public-names.md).
+
 `check_stdlib_slot_map.py --root <frozen-demo6> --public-directory <fresh-source-build>
 --out <fresh-output>` checks public SlotMap explicit construction and nine core
 methods using the fresh source compiler. It verifies direct typed slots/Key,

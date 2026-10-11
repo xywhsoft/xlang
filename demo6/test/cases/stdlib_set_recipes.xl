@@ -36,7 +36,7 @@ func erasedSet(set values) as int
 end
 func nestedSets(set<set<int>> a, set<set<int>?> b,
     set<array<set<SetRecipeItem?>>> c, set<list<set<char>>> d,
-    set<AvlTree<string, set<bytes>>> e, set<SpscQueue<set<int>>> f,
+    set<OrderedMap<string, set<bytes>>> e, set<SpscQueue<set<int>>> f,
     set<set<set<string?>>> g) as int
     return 0
 end

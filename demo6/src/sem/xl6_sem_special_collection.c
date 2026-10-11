@@ -7,6 +7,7 @@
 
 static int xl6SemIsSpecialQueueTypeName(const char* name)
 {
+    name = xl6TypeCanonicalBuiltinName(name);
     return xl6TextEquals(name, "SpscQueue") ||
            xl6TextEquals(name, "MpscQueue") ||
            xl6TextEquals(name, "MpmcQueue") ||
@@ -16,7 +17,7 @@ static int xl6SemIsSpecialQueueTypeName(const char* name)
 static int xl6SemIsSpecialCollectionTypeName(const char* name)
 {
     return xl6TextEquals(name, "SlotMap") || xl6TextEquals(name, "Stack") ||
-           xl6TextEquals(name, "AvlTree") ||
+           xl6TextEquals(name, "OrderedMap") ||
            xl6SemIsSpecialQueueTypeName(name);
 }
 
@@ -35,7 +36,7 @@ static int xl6SemIsSpecialCollectionGenericInstant(const XL6_AstNode* node)
          !xl6SemIsSpecialCollectionTypeName(nameNode->text) || typeArgs == NULL ) {
         return 0;
     }
-    expected = xl6TextEquals(nameNode->text, "AvlTree") ? 2u : 1u;
+    expected = xl6TextEquals(nameNode->text, "OrderedMap") ? 2u : 1u;
     return typeArgs->childCount == expected;
 }
 
@@ -254,10 +255,10 @@ static int xl6SemCheckSpecialCollectionCtorCall(XL6_SemContext* ctx, XL6_AstNode
             ok = 0;
         }
     }
-    if ( nameNode != NULL && xl6TextEquals(nameNode->text, "AvlTree") &&
+    if ( nameNode != NULL && xl6TextEquals(nameNode->text, "OrderedMap") &&
          typeArgs != NULL && typeArgs->childCount > 0 &&
          !xl6SemTypeHasComparableProtocol(ctx, typeArgs->children[0]) ) {
-        xl6SemErrorNode(ctx, typeArgs->children[0], "AvlTree<K, V> 的键类型必须满足 comparable");
+        xl6SemErrorNode(ctx, typeArgs->children[0], "OrderedMap<K, V> 的键类型必须满足 comparable");
         ok = 0;
     }
 
@@ -359,8 +360,8 @@ static int xl6SemCheckSpecialCollectionMethodCall(XL6_SemContext* ctx, XL6_AstNo
     method = member->text;
     args = node->childCount > 1 ? node->children[1] : NULL;
     count = args != NULL ? args->childCount : 0u;
-    itemType = xl6SemSpecialCollectionTypeArg(ctx, receiverType, xl6TextEquals(typeName, "AvlTree") ? 1u : 0u);
-    keyType = xl6TextEquals(typeName, "AvlTree") ? xl6SemSpecialCollectionTypeArg(ctx, receiverType, 0u) : NULL;
+    itemType = xl6SemSpecialCollectionTypeArg(ctx, receiverType, xl6TextEquals(typeName, "OrderedMap") ? 1u : 0u);
+    keyType = xl6TextEquals(typeName, "OrderedMap") ? xl6SemSpecialCollectionTypeArg(ctx, receiverType, 0u) : NULL;
 
     if (xl6TextEquals(typeName,"SlotMap")) {
         ok=xl6SemCheckSlotMapMethod(ctx,member,args,count,itemType);
@@ -410,76 +411,76 @@ static int xl6SemCheckSpecialCollectionMethodCall(XL6_SemContext* ctx, XL6_AstNo
             xl6SemErrorNode(ctx, member, "unknown Stack method");
             ok = 0;
         }
-    } else if ( xl6TextEquals(typeName, "AvlTree") ) {
+    } else if ( xl6TextEquals(typeName, "OrderedMap") ) {
         if ( xl6TextEquals(method, "set") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 2u) &&
                  xl6SemCheckSpecialCollectionValueArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 0), keyType,
-                    "AvlTree.set 键类型不匹配") &&
+                    "OrderedMap.set 键类型不匹配") &&
                  xl6SemCheckSpecialCollectionValueArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 1), itemType,
-                    "AvlTree.set 值类型不匹配");
+                    "OrderedMap.set 值类型不匹配");
         } else if ( xl6TextEquals(method, "getInto") || xl6TextEquals(method, "takeInto") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 2u) &&
                  xl6SemCheckSpecialCollectionValueArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 0), keyType,
-                    "AvlTree 查询键类型不匹配") &&
+                    "OrderedMap 查询键类型不匹配") &&
                  xl6SemCheckSpecialCollectionOutArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 1), itemType,
-                    "AvlTree 输出目标类型不匹配");
+                    "OrderedMap 输出目标类型不匹配");
         } else if ( xl6TextEquals(method, "contains") || xl6TextEquals(method, "remove") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 1u) &&
                  xl6SemCheckSpecialCollectionValueArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 0), keyType,
-                    "AvlTree 键类型不匹配");
+                    "OrderedMap 键类型不匹配");
         } else if ( xl6TextEquals(method, "firstInto") || xl6TextEquals(method, "lastInto") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 2u) &&
                  xl6SemCheckSpecialCollectionOutArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 0), keyType,
-                    "AvlTree 边界键输出类型不匹配") &&
+                    "OrderedMap 边界键输出类型不匹配") &&
                  xl6SemCheckSpecialCollectionOutArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 1), itemType,
-                    "AvlTree 边界值输出类型不匹配");
+                    "OrderedMap 边界值输出类型不匹配");
         } else if ( xl6TextEquals(method, "lowerBoundInto") ||
                     xl6TextEquals(method, "upperBoundInto") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 3u) &&
                  xl6SemCheckSpecialCollectionValueArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 0), keyType,
-                    "AvlTree 边界查询键类型不匹配") &&
+                    "OrderedMap 边界查询键类型不匹配") &&
                  xl6SemCheckSpecialCollectionOutArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 1), keyType,
-                    "AvlTree 边界键输出类型不匹配") &&
+                    "OrderedMap 边界键输出类型不匹配") &&
                  xl6SemCheckSpecialCollectionOutArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 2), itemType,
-                    "AvlTree 边界值输出类型不匹配");
+                    "OrderedMap 边界值输出类型不匹配");
         } else if ( xl6TextEquals(method, "trimTo") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 1u) &&
                  xl6SemCheckSpecialCollectionIntArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 0),
-                    "AvlTree.trimTo 保留数量必须是整数");
+                    "OrderedMap.trimTo 保留数量必须是整数");
         } else if ( xl6TextEquals(method, "equals") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 1u) &&
                  xl6SemCheckSpecialCollectionValueArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 0), receiverType,
-                    "AvlTree.equals 参数必须是相同键值类型的 AvlTree");
+                    "OrderedMap.equals 参数必须是相同键值类型的 OrderedMap");
         } else if ( xl6TextEquals(method, "merge") ) {
             ok = (count == 1u || count == 2u);
             if ( !ok ) {
-                xl6SemErrorNode(ctx, member, "[SC-ARG-COUNT] AvlTree.merge 需要一个或两个参数");
+                xl6SemErrorNode(ctx, member, "[SC-ARG-COUNT] OrderedMap.merge 需要一个或两个参数");
             } else {
                 ok = xl6SemCheckSpecialCollectionValueArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 0), receiverType,
-                    "AvlTree.merge 参数必须是相同键值类型的 AvlTree") &&
+                    "OrderedMap.merge 参数必须是相同键值类型的 OrderedMap") &&
                     (count == 1u || xl6SemCheckSpecialCollectionBoolArg(
                         ctx, xl6SemSpecialCollectionArgExpr(args, 1),
-                        "AvlTree.merge replace 参数必须是 bool"));
+                        "OrderedMap.merge replace 参数必须是 bool"));
             }
         } else if ( xl6TextEquals(method, "clear") || xl6TextEquals(method, "count") ||
                     xl6TextEquals(method, "keys") || xl6TextEquals(method, "values") ||
                     xl6TextEquals(method, "trim") || xl6TextEquals(method, "clone") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 0u);
         } else {
-            xl6SemErrorNode(ctx, member, "unknown AvlTree method");
+            xl6SemErrorNode(ctx, member, "unknown OrderedMap method");
             ok = 0;
         }
     } else {
@@ -684,7 +685,7 @@ static XL6_AstNode* xl6SemCloneSpecialCollectionCallType(XL6_SemContext* ctx, XL
         concreteType = xl6SemResolveAliasType(ctx, receiverType);
         if ( concreteType != NULL &&
              (xl6TextEquals(concreteType->text, "Stack") ||
-              xl6TextEquals(concreteType->text, "AvlTree")) ) {
+              xl6TextEquals(concreteType->text, "OrderedMap")) ) {
             return receiverType;
         }
         xl6AstFree(receiverType);
@@ -695,7 +696,7 @@ static XL6_AstNode* xl6SemCloneSpecialCollectionCallType(XL6_SemContext* ctx, XL
     }
     receiverType = xl6SemCloneSpecialCollectionReceiverType(ctx, member);
     concreteType = xl6SemResolveAliasType(ctx, receiverType);
-    if ( concreteType == NULL || !xl6TextEquals(concreteType->text, "AvlTree") ) {
+    if ( concreteType == NULL || !xl6TextEquals(concreteType->text, "OrderedMap") ) {
         xl6AstFree(receiverType);
         return NULL;
     }

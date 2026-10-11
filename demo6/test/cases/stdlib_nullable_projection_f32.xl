@@ -1,7 +1,7 @@
 func main(...) as int
     float32? first = float32(-1.25)
     float32? second = float32(1.25)
-    AvlTree<int, float32?> tree = AvlTree::<int, float32?>()
+    OrderedMap<int, float32?> tree = OrderedMap::<int, float32?>()
     assert(tree.set(1, null) and tree.set(2, first) and tree.set(3, second))
     array<float32?> values = tree.values()
     assert(values.length == 3 and values[0] == null and values[1] == first and values[2] == second)
