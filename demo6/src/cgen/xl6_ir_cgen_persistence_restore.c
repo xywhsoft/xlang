@@ -161,10 +161,20 @@ static int xl6IrCgenEmitRestoreGraphPlan(XL6_Output* out,const XL6_IrModule* mod
         }
         xl6OutputPuts("    };\n",out);
     }
+    unsigned owners=root->ownershipGraphProviders;
+    size_t ownerCount=(!!(owners&1u))+(!!(owners&2u))+(!!(owners&4u));
+    if (owners) {
+        xl6OutputPuts("    const XL6_RestoreOwnershipAdapterV1 ownership_adapters[] = {",out);
+        if (owners&1u) xl6OutputPuts("xl6ListOwnershipAdapterV1,",out);
+        if (owners&2u) xl6OutputPuts("xl6SetOwnershipAdapterV1,",out);
+        if (owners&4u) xl6OutputPuts("xl6DictOwnershipAdapterV1,",out);
+        xl6OutputPuts("};\n",out);
+    }
     xl6OutputPrintf(out,"    const XL6_RestorePlanV1 plan = {sizeof(plan),%lu,%lu,%lu,nodes,%s,%s,\n"
-        "        xlir_ownership_read_boundary.size ? &xlir_ownership_read_boundary : NULL};\n",
+        "        xlir_ownership_read_boundary.size ? &xlir_ownership_read_boundary : NULL,%lu,%s};\n",
         (unsigned long)root->nodeCount,(unsigned long)root->edgeCount,(unsigned long)root->root,
-        root->edgeCount ? "fields" : "NULL",root->format==XL6_IR_PERSIST_FORMAT_JSON ? "true" : "false");
+        root->edgeCount ? "fields" : "NULL",root->format==XL6_IR_PERSIST_FORMAT_JSON ? "true" : "false",
+        (unsigned long)ownerCount,owners ? "ownership_adapters" : "NULL");
     return !xl6OutputHasFailed(out);
 }
 
@@ -181,6 +191,9 @@ static int xl6IrCgenEmitNativeRestoreHelpers(XL6_Output* out,const XL6_IrModule*
         if (!header++) xl6OutputPuts("#include <__xl_runtime/xl6_restore_class.h>\n"
             "extern xvalue* xl6ValueCloneV1(const xvalue*);\n"
             "extern xvalue* xl6ValueDeepCloneV1(const xvalue*);\n",out);
+        if (root->ownershipGraphProviders&1u) xl6OutputPuts("#include <__xl_runtime/xl6_list.h>\n",out);
+        if (root->ownershipGraphProviders&2u) xl6OutputPuts("#include <__xl_runtime/xl6_set.h>\n",out);
+        if (root->ownershipGraphProviders&4u) xl6OutputPuts("#include <__xl_runtime/xl6_dict.h>\n",out);
         if (root->seedCount)
             xl6OutputPuts("#include <__xl_runtime/xl6_array_admission.h>\n"
                 "#include <__xl_runtime/xl6_array_erased.h>\n",out);

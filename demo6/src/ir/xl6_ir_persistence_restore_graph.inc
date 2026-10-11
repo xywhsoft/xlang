@@ -22,6 +22,7 @@ static int xl6IrRestoreGraphTablesValid(const XL6_IrModule* source,
     XL6_RESTORE_TABLE(source, classLayout);
     XL6_RESTORE_TABLE(source, classField);
     XL6_RESTORE_TABLE(source, callTarget);
+    XL6_RESTORE_TABLE(source, storage);
     XL6_RESTORE_TABLE(recipes, persistenceRestorePlan);
     XL6_RESTORE_TABLE(recipes, persistenceRestoreSchema);
     XL6_RESTORE_TABLE(recipes, persistenceRestoreField);
@@ -301,9 +302,16 @@ static int xl6IrBuildPersistenceRestoreGraphs(const XL6_IrModule* source,
     const XL6_IrModule* recipes, XL6_IrModule* output)
 {
     uint32 format, modulePending;
+    unsigned moduleOwners=0;
     size_t f, i, r;
     if (!output || !xl6IrRestoreGraphTablesValid(source, recipes)) return 0;
     if (!xl6IrRestoreModuleOwnerPending(source,&modulePending)) return 0;
+    for (size_t s=0;s<source->storageCount;++s) {
+        const XL6_IrStorage* storage=&source->storages[s];
+        if (storage->kind!=XL6_IR_STORAGE_GLOBAL) continue;
+        if (!xl6IrTypeGet(&source->types,storage->type)) return 0;
+        moduleOwners|=xl6IrValueGraphProvidersForType(source,storage->type);
+    }
     for (format = XL6_IR_PERSIST_FORMAT_JSON; format <= XL6_IR_PERSIST_FORMAT_XLON; format <<= 1) {
         for (f = 0; f < source->functionCount; ++f) {
             const XL6_IrFunction* function = &source->functions[f];
@@ -322,6 +330,8 @@ static int xl6IrBuildPersistenceRestoreGraphs(const XL6_IrModule* source,
                 memset(&walk, 0, sizeof(walk)); walk.source = source; walk.recipes = recipes; walk.output = output;
                 walk.root.pending = modulePending;
                 walk.root.type = instruction->payloadType; walk.root.format = format;
+                walk.root.ownershipGraphProviders=moduleOwners |
+                    xl6IrValueGraphProvidersForType(source,instruction->payloadType);
                 walk.root.firstNode = output->persistenceRestoreNodeCount;
                 walk.root.firstEdge = output->persistenceRestoreEdgeCount;
                 if (!xl6IrRestoreGraphIntern(&walk, instruction->payloadType, SIZE_MAX, &walk.root.root)) return 0;
@@ -390,6 +400,7 @@ int xl6IrVerifyPersistenceRestoreGraphs(const XL6_IrModule* module)
     for (i = 0; ok && i < arena.persistenceRestoreRootCount; ++i) {
         const XL6_IrPersistenceRestoreRoot *a = &arena.persistenceRestoreRoots[i], *b = &module->persistenceRestoreRoots[i];
         XL6_RESTORE_EQUAL(type); XL6_RESTORE_EQUAL(format); XL6_RESTORE_EQUAL(pending);
+        XL6_RESTORE_EQUAL(ownershipGraphProviders);
         XL6_RESTORE_EQUAL(firstNode); XL6_RESTORE_EQUAL(nodeCount); XL6_RESTORE_EQUAL(root);
         XL6_RESTORE_EQUAL(firstEdge); XL6_RESTORE_EQUAL(edgeCount); XL6_RESTORE_EQUAL(seedCount);
     }

@@ -20860,6 +20860,7 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
     int managedKey = 0;
     int managedItem;
     int ownedSource;
+    XL6_IrLoopSourceAcquisitionAbi sourceAcquisition;
     int dynamicSource;
     int nullableItemProjection = 0;
     int scalarItemProjection = 0;
@@ -20897,11 +20898,10 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
     iteratorId = ctx->module->children[node->firstChild + 1];
     iterator = xl6IrNodeGet(ctx->module, iteratorId);
     ownedSource = xl6IrLowerLoopSourceIsOwnedTemporary(iterator);
+    sourceAcquisition=xl6IrLoopSourceAcquisition(ctx->module,iterator);
     if ( targets == NULL || targets->kind != XL6_IR_NODE_LIST ||
          targets->childCount != (size_t)(hasKey + hasItem) || iterator == NULL ||
-         (!ownedSource &&
-          (iterator->kind != XL6_IR_NODE_NAME || iterator->symbol == 0 ||
-           iterator->targetSymbol != iterator->symbol)) ||
+         sourceAcquisition==XL6_IR_LOOP_SOURCE_NONE ||
          (collectionType = xl6IrTypeGet(
               &ctx->module->types, iterator->storageType)) == NULL ||
          (collectionType->kind != XL6_IR_TYPE_BUILTIN &&
@@ -21195,6 +21195,7 @@ invalidItemProjection:
         return 0;
     }
 
+    size_t sourceOwnerFirst = ctx->evaluationOwnerCount;
     sourceValue = dynamicSource
         ? xl6IrLowerDynamicIteratorPhysicalSource(
             ctx, id, iteratorId, iterator)
@@ -21205,8 +21206,9 @@ invalidItemProjection:
         : xl6IrLowerNode(ctx, iteratorId);
     if ( sourceValue == XL6_IR_VALUE_INVALID ) return 0;
     sourceBorrow = sourceValue;
-    size_t sourceOwnerFirst = ctx->evaluationOwnerCount;
-    if ( ownedSource ) {
+    if (ownedSource || sourceAcquisition==XL6_IR_LOOP_SOURCE_OBSERVED_COLLECTION) {
+        sourceValue=xl6IrLowerAcquireValueOwner(ctx,id,sourceValue);
+        if (sourceValue==XL6_IR_VALUE_INVALID) return 0;
         sourceTemporary = xl6IrLowerNewTempStorage(
             ctx, iterator->storageType, id);
         if ( sourceTemporary == 0 ||

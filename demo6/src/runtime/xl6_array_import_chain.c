@@ -454,6 +454,10 @@ static bool graphPlanValid(const XL6_RestorePlanV1* plan,size_t count)
         plan->fieldCount>SIZE_MAX/sizeof(*plan->fields) || (plan->fieldCount && !plan->fields)) return false;
     if (plan->readBoundary && (plan->readBoundary->size!=sizeof(*plan->readBoundary) ||
         !plan->readBoundary->Begin || !plan->readBoundary->Admits || !plan->readBoundary->End)) return false;
+    if (plan->ownershipAdapterCount>SIZE_MAX/sizeof(*plan->ownershipAdapters) ||
+        (plan->ownershipAdapterCount && !plan->ownershipAdapters)) return false;
+    for (size_t i=0;i<plan->ownershipAdapterCount;++i)
+        if (!plan->ownershipAdapters[i]) return false;
     for (size_t i=0;i<plan->nodeCount;++i) {
         const XL6_RestoreNodeV1* node=&plan->nodes[i];
         if (node->flags&~(XL6_RESTORE_NULLABLE_V1|XL6_RESTORE_FIELD_INSTANCE_V1)) return false;
@@ -555,6 +559,8 @@ static bool restoreOwnershipAdmits(xrtownershipref ref,ptr opaque)
         const XL6_CollectionImportProviderV1* provider=plan->nodes[i].as.sequence.provider;
         if (provider && provider->OwnershipAdapter && provider->OwnershipAdapter(ref)) return true;
     }
+    for (size_t i=0;i<plan->ownershipAdapterCount;++i)
+        if (plan->ownershipAdapters[i](ref)) return true;
     return admission->read && plan->readBoundary->Admits(admission->read,ref);
 }
 static xvalueobjectfieldsresultv1 commitFields(Import* ctx,const XL6_RestorePlanV1* plan,

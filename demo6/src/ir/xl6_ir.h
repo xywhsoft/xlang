@@ -2746,6 +2746,16 @@ typedef enum XL6_IrIndexWriteAbi {
 /* Canonical target layout for a source loop.  A range descriptor does not
  * define how loop targets are bound; that semantic choice belongs to the FOR
  * node and is fixed here before CFG lowering. */
+/* Source acquisition is orthogonal to cursor/item layout. Observed managed
+ * lvalues require an independent temporary owner until snapshot acquisition;
+ * they are not moved out of their receiver and are never exposed as references. */
+typedef enum XL6_IrLoopSourceAcquisitionAbi {
+    XL6_IR_LOOP_SOURCE_NONE = 0,
+    XL6_IR_LOOP_SOURCE_NAMED_BORROW,
+    XL6_IR_LOOP_SOURCE_OWNED_TEMPORARY,
+    XL6_IR_LOOP_SOURCE_OBSERVED_COLLECTION
+} XL6_IrLoopSourceAcquisitionAbi;
+
 typedef enum XL6_IrLoopAbi {
     XL6_IR_LOOP_ABI_NONE = 0,
     XL6_IR_LOOP_ABI_RANGE_I64_VALUE,
@@ -5985,6 +5995,10 @@ typedef struct XL6_IrPersistenceRestoreEdge {
 typedef struct XL6_IrPersistenceRestoreRoot {
     XL6_IrTypeId type;
     uint32 format, pending;
+    /* List/Set/Dict read policies reachable through this root OR module global
+     * storage. Independent of wire nodes and clone capabilities; verified by
+     * reconstructing the complete storage graph before backend emission. */
+    unsigned ownershipGraphProviders;
     size_t firstNode, nodeCount, root;
     size_t firstEdge, edgeCount, seedCount;
 } XL6_IrPersistenceRestoreRoot;
@@ -6577,6 +6591,8 @@ int xl6IrRefreshOperatorAbis(XL6_IrModule* module);
  * replace template method identities with monomorphic call targets.  Rebuild
  * the complete loop execution/resource contract at that lowering boundary. */
 int xl6IrRefreshLoopAbis(XL6_IrModule* module);
+XL6_IrLoopSourceAcquisitionAbi xl6IrLoopSourceAcquisition(
+    const XL6_IrModule* module, const XL6_IrNode* source);
 /* Rebuild declaration initializers and contextual conversion effects from
  * concrete TypeIds after specialization, before rebuilding exit plans. */
 int xl6IrRefreshConversionAbis(XL6_IrModule* module);

@@ -17567,6 +17567,30 @@ static int xl6IrLoopSourceIsOwnedTemporary(const XL6_IrNode* source)
         source->valueCategory == XL6_IR_VALUE_RVALUE;
 }
 
+XL6_IrLoopSourceAcquisitionAbi xl6IrLoopSourceAcquisition(
+    const XL6_IrModule* module,const XL6_IrNode* source)
+{
+    const XL6_IrType* type;
+    if (!source) return XL6_IR_LOOP_SOURCE_NONE;
+    if (source->kind==XL6_IR_NODE_NAME && source->symbol &&
+        source->targetSymbol==source->symbol && source->valueCategory!=XL6_IR_VALUE_RVALUE)
+        return XL6_IR_LOOP_SOURCE_NAMED_BORROW;
+    if (xl6IrLoopSourceIsOwnedTemporary(source)) return XL6_IR_LOOP_SOURCE_OWNED_TEMPORARY;
+    type=module ? xl6IrTypeGet(&module->types,source->storageType) : NULL;
+    /* A verified read expression may be an lvalue without stable named storage.
+     * Its canonical ownership/physical representation, not member spelling,
+     * decides acquisition. Lowering retains the actual SSA result if borrowed,
+     * or consumes an already owned projection (e.g. a temporary receiver). */
+    if (type && type->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+        type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
+        source->ownership==XL6_IR_OWNERSHIP_BORROW &&
+        source->valueCategory==XL6_IR_VALUE_LVALUE &&
+        (xl6IrTypeIsDynamicXValueBuiltin(module,source->storageType) ||
+         (type->collectionAbi>=XL6_IR_COLLECTION_ARRAY && type->collectionAbi<=XL6_IR_COLLECTION_DICT)))
+        return XL6_IR_LOOP_SOURCE_OBSERVED_COLLECTION;
+    return XL6_IR_LOOP_SOURCE_NONE;
+}
+
 /* A protocol method is resolved while nominal declaration structure still
  * belongs to Typed XLIR.  This helper deliberately returns concrete TypeIds
  * and a symbol; callers never retain a source spelling or an AST pointer. */
@@ -17876,6 +17900,7 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
     int rangeDescriptor;
     int stableNamedIterator;
     int ownedTemporaryIterator;
+    int observedCollectionIterator;
     int dynamicIterator;
     int discardKey;
     int discardItem;
@@ -17971,6 +17996,8 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
         iterator->symbol != 0 && iterator->targetSymbol == iterator->symbol &&
         iterator->valueCategory != XL6_IR_VALUE_RVALUE;
     ownedTemporaryIterator = xl6IrLoopSourceIsOwnedTemporary(iterator);
+    observedCollectionIterator=xl6IrLoopSourceAcquisition(module,iterator)==
+        XL6_IR_LOOP_SOURCE_OBSERVED_COLLECTION;
     if ( (stableNamedIterator || ownedTemporaryIterator) && iteratorType != NULL &&
          iteratorType->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR &&
          iteratorType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
@@ -18111,7 +18138,7 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
                 : XL6_IR_LOOP_ABI_PROTOCOL_ITERATOR_INDEX_VALUE;
         }
     }
-    if ( (!stableNamedIterator && !ownedTemporaryIterator) ||
+    if ( (!stableNamedIterator && !ownedTemporaryIterator && !observedCollectionIterator) ||
          iteratorType == NULL ||
          iteratorType->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
          iteratorType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED )
@@ -18374,7 +18401,7 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
     if ( discardItem && iteratorType->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
          resolvedItemAbi == XL6_IR_LOOP_ITEM_I64 )
         return XL6_IR_LOOP_ABI_NONE;
-    if ( (iteratorType->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
+    if ( observedCollectionIterator || (iteratorType->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
           resolvedItemAbi != XL6_IR_LOOP_ITEM_I64) ||
          iteratorType->collectionAbi == XL6_IR_COLLECTION_LIST ||
          iteratorType->collectionAbi == XL6_IR_COLLECTION_SET ||
@@ -18502,10 +18529,11 @@ int xl6IrRefreshLoopAbis(XL6_IrModule* module)
               (collection->paramCount <= 1 &&
                (collection->paramCount == 0 || collection->params != NULL) &&
                ((collection->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
+                 (xl6IrLoopSourceAcquisition(module,iterator)==XL6_IR_LOOP_SOURCE_OBSERVED_COLLECTION ||
                  (collection->paramCount == 0 ||
                   (xl6IrTypeGet(&module->types, collection->params[0]) != NULL &&
                    xl6IrTypeGet(&module->types, collection->params[0])->cAbi !=
-                       XL6_IR_C_ABI_I64))) ||
+                       XL6_IR_C_ABI_I64)))) ||
                 collection->collectionAbi == XL6_IR_COLLECTION_LIST ||
                 collection->collectionAbi == XL6_IR_COLLECTION_SET ||
                 collection->collectionAbi == XL6_IR_COLLECTION_DICT))) &&

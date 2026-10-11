@@ -1,0 +1,45 @@
+class LoopFieldSource
+    set<dict<string>> members = set{}
+    dict<string> words = {"a\0你": "v\0b"}
+    array<int> numbers = [3, 5]
+    list<int> sparse = [-7: 11, 99: 13]
+end
+int receiverCalls = 0
+func makeLoopFieldSource() as LoopFieldSource
+    receiverCalls += 1
+    LoopFieldSource receiver = LoopFieldSource()
+    dict<string> item = {"a\0你": "v\0b"}
+    receiver.members.add(item)
+    return receiver
+end
+LoopFieldSource receiver = makeLoopFieldSource()
+int seen = 0
+for member in receiver.members
+    assert(member["a\0你"] == "v\0b")
+    receiver.members.clear()
+    member["a\0你"] = "changed"
+    seen += 1
+end
+assert(seen == 1 and receiver.members.length == 0)
+for member in makeLoopFieldSource().members
+    assert(member["a\0你"] == "v\0b")
+    seen += 1
+end
+assert(receiverCalls == 2 and seen == 2)
+array<LoopFieldSource> holders = [receiver]
+for number in holders[0].numbers
+    seen += number
+    holders[0].numbers = [77]
+end
+assert(seen == 10 and receiver.numbers[0] == 77)
+for key, value in receiver.words
+    assert(key == "a\0你" and value == "v\0b")
+    receiver.words = {}
+    seen += 1
+end
+for key, value in receiver.sparse
+    assert((key == -7 and value == 11) or (key == 99 and value == 13))
+    receiver.sparse.clear()
+    seen += value
+end
+assert(seen == 35 and receiver.sparse.length == 0)

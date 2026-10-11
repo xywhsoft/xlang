@@ -85,6 +85,11 @@ typedef struct XL6_RestoreFieldV1 {
     size_t node;
     unsigned int flags;
 } XL6_RestoreFieldV1;
+/* Exact resident policy recognition, independent of the wire schema. These
+ * read-only adapters authorize a family, not an object or any of its children.
+ * Every transitive owner must still pass admission before Count/Trace. */
+typedef const xrtownershipadapterv1* (*XL6_RestoreOwnershipAdapterV1)(xrtownershipref);
+
 typedef struct XL6_RestorePlanV1 {
     size_t size,nodeCount,fieldCount,root;
     const XL6_RestoreNodeV1* nodes;
@@ -94,6 +99,11 @@ typedef struct XL6_RestorePlanV1 {
      * atomic field commit, never constructors, clone or cleanup callbacks.
      * NULL preserves closed resident-family admission; unknown owners refuse. */
     const XL6_OwnershipReadBoundaryV1* readBoundary;
+    /* Synchronously borrowed compiler-declared module/root capabilities.
+     * A class code lease can reach unrelated module globals. Never infer this
+     * list from wire nodes, or bypass admission for their outgoing edges. */
+    size_t ownershipAdapterCount;
+    const XL6_RestoreOwnershipAdapterV1* ownershipAdapters;
 } XL6_RestorePlanV1;
 
 /* One transaction/memo for all object fields and collection elements. The

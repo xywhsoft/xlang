@@ -89,9 +89,9 @@ def main():
                 plans.append(dict(Fixture=tag,Optimization=opt,Sanitized=bool(san),Sources=plan['Sources'],NativeModules=plan['NativeModules']))
                 products.append(dict(Path=str(binary),Sha256=sha(binary)))
                 if index==1 and opt=='O0':
-                    # An actual compiled omission must fail a restored class
-                    # with a default native Dict; direct Dict-only graphs did
-                    # not exercise this ownership read boundary.
+                    # Remove both independent native policy routes. Whole-module
+                    # read plans now declare their own resident capabilities;
+                    # removing only the target import adapter is redundant.
                     source=root/'src/runtime/xl6_dict_import_chain.c'
                     body=source.read_text(encoding='utf-8'); before='.OwnershipAdapter=xl6DictOwnershipAdapterV1'
                     assert body.count(before)==1
@@ -99,10 +99,17 @@ def main():
                     obj=out/'dict-ownership-omitted.o'; run('ownership-omitted.compile',[cc,*flags,*san,'-I'+str(root/'src/runtime'),'-O0','-c',changed,'-o',obj])
                     replaced=list(providers); position=plan['Sources'].index('src/runtime/xl6_dict_import_chain.c')+1
                     replaced[position]=obj; broken=out/('dict-ownership-omitted'+suffix)
-                    run('ownership-omitted.build',[cc,*flags,*san,'-O0','-DXL6_PRODUCT_USER_ENTRY','-include',generated,host,*replaced,*systems,'-o',broken])
+                    generated_body=generated.read_text(encoding='utf-8-sig')
+                    admission='xlir_ownership_read_boundary.size ? &xlir_ownership_read_boundary : NULL,1,ownership_adapters};'
+                    assert generated_body.count(admission)==2
+                    omitted=out/'dict-read-plan-omitted.c'
+                    omitted.write_text(generated_body.replace(admission,
+                        'xlir_ownership_read_boundary.size ? &xlir_ownership_read_boundary : NULL,0,NULL};'),encoding='utf-8')
+                    run('ownership-omitted.build',[cc,*flags,*san,'-O0','-DXL6_PRODUCT_USER_ENTRY','-include',omitted,host,*replaced,*systems,'-o',broken])
                     run('ownership-omitted.reject',[broken,'999999'],True)
                     objects.append(dict(Path=str(obj),Sha256=sha(obj)))
                     controls.append(dict(Name='dict-ownership-omitted',Compiled=True,Rejected=True,Source=str(changed),SourceSha256=sha(changed),
+                        GeneratedSource=str(omitted),GeneratedSourceSha256=sha(omitted),
                         Product=str(broken),ProductSha256=sha(broken)))
             run(tag+'.jit',[driver,fixture,'run',out/(tag+'.jit.result')])
         report['InputsUnchanged']=all(sha(r['Path'])==r['Sha256'] for r in inputs); assert report['InputsUnchanged']
