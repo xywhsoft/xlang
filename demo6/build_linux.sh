@@ -188,6 +188,8 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_list.c"
   "$ROOT/src/runtime/xl6_dict.c"
   "$ROOT/src/runtime/xl6_slot_map.c"
+  "$ROOT/src/runtime/xl6_slot_map_key.c"
+  "$ROOT/src/runtime/xl6_slot_map_key_value.c"
   "$ROOT/src/runtime/xl6_dict_schema.c"
   "$ROOT/src/runtime/xl6_dict_value_index.c"
   "$ROOT/src/runtime/xl6_dict_methods.c"

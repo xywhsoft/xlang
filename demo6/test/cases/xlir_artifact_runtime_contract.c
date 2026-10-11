@@ -194,6 +194,34 @@ static int has_native_module(const XL6_ArtifactRuntimePlan* plan, const char* na
     return 0;
 }
 
+static int slot_key_component_contract(void)
+{
+    XL6_ArtifactRuntimePlan plan;
+    XL6_ArtifactRuntimeSet root=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_SLOT_MAP_KEY_NATIVE);
+    CHECK(xl6ArtifactRuntimeClosePlan(&root,&plan) && plan.sourceCount==1);
+    CHECK(!strcmp(plan.sources[0],"src/runtime/xl6_slot_map_key.c"));
+    CHECK(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SLOT_MAP_NATIVE) &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SLOT_MAP_KEY_VALUE));
+    CHECK(!has_native_module(&plan,"XRT_MODULE_SLOT_MAP") && !has_native_module(&plan,"XRT_MODULE_HASH64") &&
+        !has_native_module(&plan,"XRUNTIME_MODULE_TYPED_SET"));
+    root=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_SLOT_MAP_KEY_VALUE);
+    CHECK(xl6ArtifactRuntimeClosePlan(&root,&plan));
+    CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SLOT_MAP_KEY_NATIVE) &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SLOT_MAP_NATIVE) &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SEQUENCE) &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SET_NATIVE));
+    CHECK(has_native_module(&plan,"XRT_MODULE_HASH64") && !has_native_module(&plan,"XRT_MODULE_SLOT_MAP") &&
+        !has_native_module(&plan,"XRUNTIME_MODULE_TYPED_SET"));
+    root=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_SLOT_MAP_NATIVE);
+    CHECK(xl6ArtifactRuntimeClosePlan(&root,&plan));
+    CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SLOT_MAP_KEY_NATIVE) &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SLOT_MAP_KEY_VALUE));
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SlotMapKeyTypeV1")==XL6_ARTIFACT_SLOT_MAP_KEY_NATIVE &&
+        xl6ArtifactRuntimeSymbolOwner("xl6SlotMapKeyBoxV1")==XL6_ARTIFACT_SLOT_MAP_KEY_VALUE);
+    puts("{\"SlotKeyIsolatedPlans\":3,\"StorageAndProjectionSeparated\":true}");
+    return 1;
+}
+
 static int count_native(void* context, const char* module)
 {
     unsigned* count=context;
@@ -485,7 +513,7 @@ int main(int argc,char** argv)
         return 0;
     }
     if (argc<2) return 2;
-    if (!native_catalog_contract()) return 1;
+    if (!native_catalog_contract() || !slot_key_component_contract()) return 1;
     for (int i=1;i<argc;++i) if (!fixture_contract(argv[i])) return 1;
     printf("artifact runtime contract complete: %u dependency pairs; typed/corrupt IR refusal and deterministic plans\n",
         (unsigned)(XL6_ARTIFACT_RUNTIME_COUNT * XL6_ARTIFACT_RUNTIME_COUNT));
