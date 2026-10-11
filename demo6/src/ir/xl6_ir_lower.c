@@ -1881,6 +1881,7 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
      * not necessarily to the original producer. Diagnostic location and
      * evaluation failure boundary are explicit independent inputs. */
     if ((xl6IrPersistenceInvocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
+         xl6IrTreeQuerySpecRuntime(runtimeOp) ||
          xl6IrSlotMapErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeStringAllocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          (runtimeOp != XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED &&
@@ -15584,8 +15585,9 @@ static int xl6IrLowerRuntimeResourceOpIsStack(
 static int xl6IrLowerRuntimeResourceOpIsAvlTree(
     XL6_IrRuntimeResourceOp operation)
 {
-    return operation >= XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE &&
-           operation <= XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLONE;
+    return xl6IrTreeQuerySpecResource(operation) ||
+           (operation >= XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE &&
+            operation <= XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLONE);
 }
 
 static int xl6IrLowerRuntimeResourceOpCreates(
@@ -15726,6 +15728,8 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
          (intrinsic->operandCount != 0 && operands == NULL) ) return 0;
     if(xl6IrSlotMapResourceOpIs(intrinsic->runtimeResourceOp))
         return xl6IrSlotMapIntrinsicCompatible(module,intrinsic,operands);
+    if(xl6IrTreeQuerySpecResource(intrinsic->runtimeResourceOp))
+        return xl6IrTreeQueryIntrinsicCompatible(module,intrinsic,operands);
     result = xl6IrTypeGet(&module->types, intrinsic->resultType);
     if ( intrinsic->operandCount > 0 )
         first = xl6IrTypeGet(&module->types, operands[0].type);
@@ -16150,40 +16154,12 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
                     &operands[2], payloadType,
                     intrinsic->runtimeResourcePayloadAbi) &&
                 result->cAbi == XL6_IR_C_ABI_BOOL;
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_GET_INTO:
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_TAKE_INTO:
-            return intrinsic->operandCount == 3 && result != NULL &&
-                xl6IrLowerRuntimeResourceInputMatches(
-                    &operands[1], keyType,
-                    intrinsic->runtimeResourceKeyPayloadAbi) &&
-                xl6IrLowerRuntimeResourceStorageMatches(
-                    third, &operands[2], payloadType) &&
-                result->cAbi == XL6_IR_C_ABI_BOOL;
         case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CONTAINS:
         case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_REMOVE:
             return intrinsic->operandCount == 2 && result != NULL &&
                 xl6IrLowerRuntimeResourceInputMatches(
                     &operands[1], keyType,
                     intrinsic->runtimeResourceKeyPayloadAbi) &&
-                result->cAbi == XL6_IR_C_ABI_BOOL;
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_FIRST_INTO:
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LAST_INTO:
-            return intrinsic->operandCount == 3 && result != NULL &&
-                xl6IrLowerRuntimeResourceStorageMatches(
-                    second, &operands[1], keyType) &&
-                xl6IrLowerRuntimeResourceStorageMatches(
-                    third, &operands[2], payloadType) &&
-                result->cAbi == XL6_IR_C_ABI_BOOL;
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LOWER_BOUND_INTO:
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_UPPER_BOUND_INTO:
-            return intrinsic->operandCount == 4 && result != NULL &&
-                xl6IrLowerRuntimeResourceInputMatches(
-                    &operands[1], keyType,
-                    intrinsic->runtimeResourceKeyPayloadAbi) &&
-                xl6IrLowerRuntimeResourceStorageMatches(
-                    third, &operands[2], keyType) &&
-                xl6IrLowerRuntimeResourceStorageMatches(
-                    fourth, &operands[3], payloadType) &&
                 result->cAbi == XL6_IR_C_ABI_BOOL;
         case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_TRIM_TO:
             return intrinsic->operandCount == 2 && result != NULL &&
@@ -16944,6 +16920,9 @@ static int xl6IrLowerSpecializationCloneIntrinsicCalls(
         target->payloadType = source.payloadType == XL6_IR_TYPE_INVALID
             ? XL6_IR_TYPE_INVALID
             : xl6IrLowerSpecializationSubstituteType(build, source.payloadType);
+        target->runtimeResourceKeyType = source.runtimeResourceKeyType == XL6_IR_TYPE_INVALID
+            ? XL6_IR_TYPE_INVALID
+            : xl6IrLowerSpecializationSubstituteType(build, source.runtimeResourceKeyType);
         target->typeQueryTarget = source.typeQueryTarget == XL6_IR_TYPE_INVALID
             ? XL6_IR_TYPE_INVALID
             : xl6IrLowerSpecializationSubstituteType(build, source.typeQueryTarget);
@@ -16952,6 +16931,11 @@ static int xl6IrLowerSpecializationCloneIntrinsicCalls(
             XL6_IrTypeId owner=xl6IrLowerRuntimeResourceOpCreates(target->runtimeResourceOp) ?
                 target->resultType : target->receiverType;
             target->runtimeResourcePayloadAbi=xl6IrRuntimeResourcePayloadAbiForOwnerType(module,owner,target->payloadType);
+            if(xl6IrLowerRuntimeResourceOpIsAvlTree(target->runtimeResourceOp)) {
+                target->runtimeResourceKeyPayloadAbi=xl6IrRuntimeResourcePayloadAbiForOwnerType(
+                    module,owner,target->runtimeResourceKeyType);
+                target->runtimeResourceKeyOrderAbi=xl6IrAvlKeyOrderAbi(module,owner);
+            }
             target->errorAbi=xl6IrRuntimeResourceErrorAbiForOwnerType(module,target->runtimeResourceOp,owner);
             target->resultAbi = xl6IrRuntimeResourceResultAbiForType(target->runtimeResourceOp, concrete);
         }
@@ -23963,6 +23947,8 @@ static XL6_IrRuntimeOp xl6IrLowerRuntimeResourceOp(
     XL6_IrRuntimeResourceOp operation)
 {
     if(xl6IrSlotMapResourceOpIs(operation)) return xl6IrSlotMapRuntimeOp(operation);
+    const XL6_IrTreeQuerySpec* query=xl6IrTreeQuerySpecResource(operation);
+    if(query) return query->runtime;
     switch ( operation ) {
     case XL6_IR_RUNTIME_RESOURCE_OP_THREAD_CREATE:
         return XL6_IR_RUNTIME_THREAD_CREATE;
@@ -24116,22 +24102,10 @@ static XL6_IrRuntimeOp xl6IrLowerRuntimeResourceOp(
         return XL6_IR_RUNTIME_AVL_TREE_CREATE;
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET:
         return XL6_IR_RUNTIME_AVL_TREE_SET;
-    case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_GET_INTO:
-        return XL6_IR_RUNTIME_AVL_TREE_GET_INTO;
-    case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_TAKE_INTO:
-        return XL6_IR_RUNTIME_AVL_TREE_TAKE_INTO;
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CONTAINS:
         return XL6_IR_RUNTIME_AVL_TREE_CONTAINS;
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_REMOVE:
         return XL6_IR_RUNTIME_AVL_TREE_REMOVE;
-    case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_FIRST_INTO:
-        return XL6_IR_RUNTIME_AVL_TREE_FIRST_INTO;
-    case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LAST_INTO:
-        return XL6_IR_RUNTIME_AVL_TREE_LAST_INTO;
-    case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LOWER_BOUND_INTO:
-        return XL6_IR_RUNTIME_AVL_TREE_LOWER_BOUND_INTO;
-    case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_UPPER_BOUND_INTO:
-        return XL6_IR_RUNTIME_AVL_TREE_UPPER_BOUND_INTO;
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_TRIM_TO:
         return XL6_IR_RUNTIME_AVL_TREE_TRIM_TO;
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_EQUALS:
@@ -24368,16 +24342,6 @@ static int xl6IrLowerIntrinsicRuntimeResource(
         xl6IrLowerRuntimeResourceOpIsStack(intrinsic->runtimeResourceOp) ||
         intrinsic->runtimeResourceOp ==
             XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_GET_INTO ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_FIRST_INTO ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LAST_INTO ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LOWER_BOUND_INTO ||
-        intrinsic->runtimeResourceOp ==
-            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_UPPER_BOUND_INTO ||
         intrinsic->runtimeResourceOp ==
             XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_MERGE ||
         intrinsic->runtimeResourceOp ==

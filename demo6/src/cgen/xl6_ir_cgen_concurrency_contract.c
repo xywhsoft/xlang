@@ -205,13 +205,15 @@ static int xl6IrCgenStackRuntimeOpIs(XL6_IrRuntimeOp operation)
 
 static int xl6IrCgenAvlRuntimeOpIs(XL6_IrRuntimeOp operation)
 {
-    return operation >= XL6_IR_RUNTIME_AVL_TREE_CREATE &&
-           operation <= XL6_IR_RUNTIME_AVL_TREE_CLONE;
+    return xl6IrTreeQuerySpecRuntime(operation) ||
+           (operation >= XL6_IR_RUNTIME_AVL_TREE_CREATE &&
+            operation <= XL6_IR_RUNTIME_AVL_TREE_CLONE);
 }
 
 static int xl6IrCgenAvlRuntimeOpMayRaise(XL6_IrRuntimeOp operation)
 {
-    return operation>=XL6_IR_RUNTIME_AVL_TREE_CREATE && operation<=XL6_IR_RUNTIME_AVL_TREE_CLONE;
+    return xl6IrTreeQuerySpecRuntime(operation) ||
+        (operation>=XL6_IR_RUNTIME_AVL_TREE_CREATE && operation<=XL6_IR_RUNTIME_AVL_TREE_CLONE);
 }
 
 static int xl6IrCgenSpecialQueueResourceAbiIs(

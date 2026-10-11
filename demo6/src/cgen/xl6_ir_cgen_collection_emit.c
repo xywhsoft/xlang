@@ -473,6 +473,8 @@ static int xl6IrCgenRuntimeAvlAbi(
     XL6_IrTypeId treeTypeId;
     size_t i;
     int creates;
+    if(instruction && xl6IrTreeQuerySpecRuntime(instruction->runtimeOp))
+        return xl6IrTreeQueryInstructionCompatible(module,instruction);
     if ( module == NULL || instruction == NULL ||
          instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
          !xl6IrCgenAvlRuntimeOpIs(instruction->runtimeOp) ||
@@ -519,29 +521,10 @@ static int xl6IrCgenRuntimeAvlAbi(
                operands[1]->type == tree->params[0] && operands[2] != NULL &&
                operands[2]->type == tree->params[1] &&
                resultType->cAbi == XL6_IR_C_ABI_BOOL;
-    case XL6_IR_RUNTIME_AVL_TREE_GET_INTO:
-    case XL6_IR_RUNTIME_AVL_TREE_TAKE_INTO:
-        return instruction->operandCount == 3 && operands[1] != NULL &&
-               operands[1]->type == tree->params[0] &&
-               xl6IrCgenStorageRefTo(module, operands[2], tree->params[1]) &&
-               resultType->cAbi == XL6_IR_C_ABI_BOOL;
     case XL6_IR_RUNTIME_AVL_TREE_CONTAINS:
     case XL6_IR_RUNTIME_AVL_TREE_REMOVE:
         return instruction->operandCount == 2 && operands[1] != NULL &&
                operands[1]->type == tree->params[0] &&
-               resultType->cAbi == XL6_IR_C_ABI_BOOL;
-    case XL6_IR_RUNTIME_AVL_TREE_FIRST_INTO:
-    case XL6_IR_RUNTIME_AVL_TREE_LAST_INTO:
-        return instruction->operandCount == 3 &&
-               xl6IrCgenStorageRefTo(module, operands[1], tree->params[0]) &&
-               xl6IrCgenStorageRefTo(module, operands[2], tree->params[1]) &&
-               resultType->cAbi == XL6_IR_C_ABI_BOOL;
-    case XL6_IR_RUNTIME_AVL_TREE_LOWER_BOUND_INTO:
-    case XL6_IR_RUNTIME_AVL_TREE_UPPER_BOUND_INTO:
-        return instruction->operandCount == 4 && operands[1] != NULL &&
-               operands[1]->type == tree->params[0] &&
-               xl6IrCgenStorageRefTo(module, operands[2], tree->params[0]) &&
-               xl6IrCgenStorageRefTo(module, operands[3], tree->params[1]) &&
                resultType->cAbi == XL6_IR_C_ABI_BOOL;
     case XL6_IR_RUNTIME_AVL_TREE_TRIM_TO:
         return instruction->operandCount == 2 && operands[1] != NULL &&

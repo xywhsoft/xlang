@@ -4,12 +4,14 @@ func main(...) as int
     auto parent = OrderedMap::<int, OrderedMap<int, string>>()
     assert(parent.set(7, child))
     auto output = OrderedMap::<int, string>()
-    assert(parent.getInto(7, output))
+    output = parent.get(7)
     string text = "old"
-    assert(output.getInto(1, text) and text == "a\0你")
+    text = output.get(1)
+    assert(text == "a\0你")
     auto values = parent.values()
     auto snapshotTree = values[0]
-    assert(values.length == 1 and snapshotTree.getInto(1, text) and text == "a\0你")
+    text = snapshotTree.get(1)
+    assert(values.length == 1 and text == "a\0你")
     auto copy = parent.clone()
     assert(copy.equals(parent))
     assert(child.set(2, "shared"))
@@ -21,7 +23,7 @@ func main(...) as int
     auto stackTree = OrderedMap::<int, Stack<OrderedMap<int, string>>>()
     assert(stackTree.set(1, stack))
     auto returnedStack = Stack::<OrderedMap<int, string>>()
-    assert(stackTree.getInto(1, returnedStack))
+    returnedStack = stackTree.get(1)
     auto returnedTree = returnedStack.pop()
     assert(returnedTree.count() == 2)
     auto second = collection[1]
@@ -36,6 +38,7 @@ func main(...) as int
     assert(nested.set(1, collection))
     auto arrays = nested.values()
     auto nestedSnapshot = arrays[0][0]
-    assert(nestedSnapshot.getInto(1, text) and text == "a\0你")
+    text = nestedSnapshot.get(1)
+    assert(text == "a\0你")
     return 0
 end

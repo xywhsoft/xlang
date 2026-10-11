@@ -43,7 +43,8 @@ func main(...) as int
     assert(objectValues.length == 1 and objectValues[0].value == 23)
     auto cloned = objects.clone()
     auto retrieved = TreeProjectionBox()
-    assert(cloned.getInto(1, retrieved) and retrieved.value == 23)
+    retrieved = cloned.get(1)
+    assert(retrieved.value == 23)
     retrieved.value = 29
     assert(box.value == 29 and objectValues[0].value == 29)
     MpmcQueue<TreeProjectionBox> queue = MpmcQueue::<TreeProjectionBox>(4)

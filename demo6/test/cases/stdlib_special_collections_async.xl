@@ -61,7 +61,8 @@ number = conditionalOwned.pop()
 assert number == 10
 
 OrderedMap<string, int> tree = await makeTreeAsync()
-assert tree.getInto("answer", number) and number == 42
+number = tree.get("answer")
+assert number == 42
 
 WaitQueue<string> queue = await makeQueueAsync()
 string text = ""

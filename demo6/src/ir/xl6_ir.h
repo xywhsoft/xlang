@@ -221,14 +221,8 @@ typedef enum XL6_IrRuntimeResourceOp {
      * generic argument or comparison semantics from source/type names. */
     XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE,
     XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET,
-    XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_GET_INTO,
-    XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_TAKE_INTO,
     XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CONTAINS,
     XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_REMOVE,
-    XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_FIRST_INTO,
-    XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LAST_INTO,
-    XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LOWER_BOUND_INTO,
-    XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_UPPER_BOUND_INTO,
     XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_TRIM_TO,
     XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_EQUALS,
     XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_MERGE,
@@ -248,6 +242,9 @@ typedef enum XL6_IrRuntimeResourceOp {
 #define XL6_SLOT_MAP_OP(id, name, count, a, b, result, native, failure) XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_##id,
 #include "../abi/xl6_slot_map_ops.inc"
 #undef XL6_SLOT_MAP_OP
+#define XL6_TREE_QUERY_OP(id,name,search,pair,required,native) XL6_IR_RUNTIME_RESOURCE_OP_TREE_QUERY_##id,
+#include "../abi/xl6_tree_query_ops.inc"
+#undef XL6_TREE_QUERY_OP
 } XL6_IrRuntimeResourceOp;
 
 /* Runtime resources with generic payloads carry an explicit transfer ABI in
@@ -1926,14 +1923,8 @@ typedef enum XL6_IrRuntimeOp {
        XL6_IR_RUNTIME_STACK_CAPACITY,
        XL6_IR_RUNTIME_AVL_TREE_CREATE,
        XL6_IR_RUNTIME_AVL_TREE_SET,
-       XL6_IR_RUNTIME_AVL_TREE_GET_INTO,
-       XL6_IR_RUNTIME_AVL_TREE_TAKE_INTO,
        XL6_IR_RUNTIME_AVL_TREE_CONTAINS,
        XL6_IR_RUNTIME_AVL_TREE_REMOVE,
-       XL6_IR_RUNTIME_AVL_TREE_FIRST_INTO,
-       XL6_IR_RUNTIME_AVL_TREE_LAST_INTO,
-       XL6_IR_RUNTIME_AVL_TREE_LOWER_BOUND_INTO,
-       XL6_IR_RUNTIME_AVL_TREE_UPPER_BOUND_INTO,
        XL6_IR_RUNTIME_AVL_TREE_TRIM_TO,
        XL6_IR_RUNTIME_AVL_TREE_EQUALS,
        XL6_IR_RUNTIME_AVL_TREE_MERGE,
@@ -2081,6 +2072,9 @@ typedef enum XL6_IrRuntimeOp {
 #define XL6_SLOT_MAP_OP(id, name, count, a, b, result, native, failure) XL6_IR_RUNTIME_SLOT_MAP_##id,
 #include "../abi/xl6_slot_map_ops.inc"
 #undef XL6_SLOT_MAP_OP
+#define XL6_TREE_QUERY_OP(id,name,search,pair,required,native) XL6_IR_RUNTIME_TREE_QUERY_##id,
+#include "../abi/xl6_tree_query_ops.inc"
+#undef XL6_TREE_QUERY_OP
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -6832,6 +6826,32 @@ int xl6IrSlotMapSignatureCompatible(const XL6_IrModule*,XL6_IrRuntimeResourceOp,
     XL6_IrTypeId,XL6_IrTypeId,const XL6_IrTypeId*,size_t);
 int xl6IrSlotMapIntrinsicCompatible(const XL6_IrModule*,const XL6_IrIntrinsicCall*,const XL6_IrIntrinsicOperand*);
 int xl6IrSlotMapInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
+/* One shared declaration and checked materialized plan. No writable source
+ * outputs or backend recovery of query, result, optional or ownership rules. */
+typedef struct XL6_IrTreeQuerySpec {
+    XL6_IrRuntimeResourceOp source;
+    XL6_IrRuntimeOp runtime;
+    const char* name;
+    const char* nativeToken;
+    bool search, pair, required;
+} XL6_IrTreeQuerySpec;
+typedef struct XL6_IrTreeQueryPlan {
+    const XL6_IrTreeQuerySpec* spec;
+    XL6_IrTypeId ownerType, keyType, valueType, resultType;
+    XL6_IrTypeId keySchemaType, valueSchemaType, resultKeyType, resultValueType;
+    unsigned keyIndex, valueIndex;
+    bool product, keyTagged, valueTagged;
+} XL6_IrTreeQueryPlan;
+const XL6_IrTreeQuerySpec* xl6IrTreeQuerySpecResource(XL6_IrRuntimeResourceOp);
+const XL6_IrTreeQuerySpec* xl6IrTreeQuerySpecRuntime(XL6_IrRuntimeOp);
+XL6_IrRuntimeResourceOp xl6IrTreeQueryMethod(const char*);
+XL6_IrCallErrorPhysicalAbi xl6IrTreeQueryErrorPhysicalAbi(XL6_IrRuntimeOp);
+int xl6IrTreeQueryPlanBuild(const XL6_IrModule*,XL6_IrRuntimeResourceOp,
+    XL6_IrTypeId,XL6_IrTypeId,XL6_IrTreeQueryPlan*);
+int xl6IrTreeQuerySignatureCompatible(const XL6_IrModule*,XL6_IrRuntimeResourceOp,
+    XL6_IrTypeId,XL6_IrTypeId,const XL6_IrTypeId*,size_t);
+int xl6IrTreeQueryIntrinsicCompatible(const XL6_IrModule*,const XL6_IrIntrinsicCall*,const XL6_IrIntrinsicOperand*);
+int xl6IrTreeQueryInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 int xl6IrValueCollectionConstructionRecipe(const XL6_IrModule*,XL6_IrTypeId,
     XL6_IrValueCollectionRecipe*);
 int xl6IrSetConstructionRecipe(const XL6_IrModule*,XL6_IrTypeId,

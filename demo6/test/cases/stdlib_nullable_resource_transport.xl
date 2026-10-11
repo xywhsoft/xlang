@@ -11,8 +11,10 @@ func main(...) as int
 
     OrderedMap<int, int?> tree = OrderedMap::<int, int?>()
     assert(tree.set(1, null) and tree.set(2, 81))
-    assert(tree.getInto(1, item) and item == null)
-    assert(tree.getInto(2, item) and item != null and item == 81)
+    item = tree.get(1)
+    assert(item == null)
+    item = tree.get(2)
+    assert(item != null and item == 81)
     OrderedMap<int, int?> copied = tree.clone()
     assert(copied.equals(tree))
     return 0

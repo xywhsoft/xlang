@@ -2,12 +2,21 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_tree_owned_queries.py --root <frozen-demo6> --public-directory
+<fresh-source-build> --out <fresh-output>` verifies the twelve owned OrderedMap
+queries, exact nullable presence, generic keys/values, retired Into rejection,
+real IR mutations, JIT/module/AOT, complete allocation and unreported-failure
+prefixes and O0/O2 lifetimes in resident and independently linked artifact-plan
+programs. Linux `--sanitize` instruments the selected closure and generated host,
+not the entire compiler/runtime. This is not shipping DLL/VFS or full53 acceptance.
+See [Owned Tree queries](../docs/stdlib53-b218-tree-owned-queries.md).
+
 `check_stdlib_tree_query.py --root <frozen-demo6> --public-directory
 <fresh-source-build> --out <fresh-output>` compiles the actual new native Tree
 query body at O0/O2 and verifies private result slots, exact absence, nullable
 values, independent ownership and complete allocation-failure prefixes. It
 executes four compiled bad-provider controls, partial owning copy failures,
-legacy native/JIT/IR regressions and 1000 lifetimes per optimization in both
+native and adjacent language/IR regressions and 1000 lifetimes per optimization in both
 resident and independently linked artifact-plan closures. Linux `--sanitize`
 instruments the selected native closure and host, not the entire source compiler.
 This is not the language Into-to-multi-return cutover, Future/owning-record

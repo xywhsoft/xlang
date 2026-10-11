@@ -1,0 +1,59 @@
+async func asyncTreeText(OrderedMap<int, string> values) as string
+    time.sleep(1)
+    try
+        return values.take(1)
+    finally
+        values.clear()
+    end
+end
+
+func tryTreeText(OrderedMap<int, string> values) as (bool, string?)
+    try
+        return values.tryTake(1)
+    finally
+        values.clear()
+    end
+end
+
+func treeByteItems(OrderedMap<int, bytes> values) as generator<bytes>
+    try
+        while values.count() > 0
+            auto key, item = values.first()
+            yield values.take(key)
+        end
+    finally
+        values.clear()
+    end
+end
+
+func closureTreeText(OrderedMap<int, string> values) as string
+    return values.get(1)
+end
+
+auto texts = OrderedMap::<int, string>()
+assert(texts.set(1, "async\0你"))
+future<string> pending = asyncTreeText(texts)
+assert(await pending == "async\0你" and texts.count() == 0)
+assert(await pending == "async\0你")
+assert(texts.set(1, "closure\0你"))
+func(OrderedMap<int, string>) as string readText = closureTreeText
+assert(readText(texts) == "closure\0你")
+auto present, result = tryTreeText(texts)
+assert(present and result != null and result == "closure\0你" and texts.count() == 0)
+
+auto data = OrderedMap::<int, bytes>()
+assert(data.set(1, b"one\0") and data.set(2, b"two\xff"))
+bytes retained = b""
+int seen = 0
+for item in treeByteItems(data)
+    retained = item
+    item[0] = 42
+    seen += 1
+end
+assert(seen == 2 and data.count() == 0 and retained == b"two\xff")
+assert(data.set(1, b"first\0") and data.set(2, b"remaining"))
+for item in treeByteItems(data)
+    retained = item
+    break
+end
+assert(data.count() == 0 and retained == b"first\0")

@@ -10780,7 +10780,8 @@ static int xl6IrRuntimeResourceOpReturnsOwned(
     XL6_IrRuntimeResourceOp operation, const XL6_IrType* result)
 {
     return xl6IrRuntimeResourceOpCreates(operation) ||
-           (xl6IrSlotMapResourceOpIs(operation) && result && result->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED) ||
+           ((xl6IrSlotMapResourceOpIs(operation) || xl6IrTreeQuerySpecResource(operation)) &&
+            result && result->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED) ||
            ((operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP ||
              operation == XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_TRY_POP ||
              operation == XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_POP_BATCH ||
@@ -10817,7 +10818,7 @@ XL6_IrIntrinsicResultAbi xl6IrRuntimeResourceResultAbiForType(
 
 static int xl6IrRuntimeResourceOpMayRaise(XL6_IrRuntimeResourceOp operation)
 {
-    return xl6IrSlotMapResourceOpIs(operation) || xl6IrRuntimeResourceOpCreates(operation) ||
+    return xl6IrTreeQuerySpecResource(operation) || xl6IrSlotMapResourceOpIs(operation) || xl6IrRuntimeResourceOpCreates(operation) ||
            (operation>=XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE &&
             operation<=XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLONE) ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND ||
@@ -10826,11 +10827,6 @@ static int xl6IrRuntimeResourceOpMayRaise(XL6_IrRuntimeResourceOp operation)
            (operation >= XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE &&
             operation <= XL6_IR_RUNTIME_RESOURCE_OP_STACK_CAPACITY) ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET ||
-           operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_GET_INTO ||
-           operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_FIRST_INTO ||
-           operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LAST_INTO ||
-           operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LOWER_BOUND_INTO ||
-           operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_UPPER_BOUND_INTO ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_MERGE ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_KEYS ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_VALUES ||
@@ -10875,8 +10871,9 @@ static int xl6IrRuntimeResourceOpIsStack(
 static int xl6IrRuntimeResourceOpIsAvlTree(
     XL6_IrRuntimeResourceOp operation)
 {
-    return operation >= XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE &&
-           operation <= XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLONE;
+    return xl6IrTreeQuerySpecResource(operation) ||
+           (operation >= XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE &&
+            operation <= XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLONE);
 }
 
 static int xl6IrRuntimeResourceAbiIsSpecialQueue(
@@ -11291,22 +11288,12 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
                     module, receiverValueType) != XL6_IR_TYPE_INVALID ) {
         if ( strcmp(callee->text, "set") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET;
-        if ( strcmp(callee->text, "getInto") == 0 )
-            return XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_GET_INTO;
-        if ( strcmp(callee->text, "takeInto") == 0 )
-            return XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_TAKE_INTO;
+        XL6_IrRuntimeResourceOp query=xl6IrTreeQueryMethod(callee->text);
+        if(query!=XL6_IR_RUNTIME_RESOURCE_OP_INVALID) return query;
         if ( strcmp(callee->text, "contains") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CONTAINS;
         if ( strcmp(callee->text, "remove") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_REMOVE;
-        if ( strcmp(callee->text, "firstInto") == 0 )
-            return XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_FIRST_INTO;
-        if ( strcmp(callee->text, "lastInto") == 0 )
-            return XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LAST_INTO;
-        if ( strcmp(callee->text, "lowerBoundInto") == 0 )
-            return XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LOWER_BOUND_INTO;
-        if ( strcmp(callee->text, "upperBoundInto") == 0 )
-            return XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_UPPER_BOUND_INTO;
         if ( strcmp(callee->text, "trimTo") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_TRIM_TO;
         if ( strcmp(callee->text, "equals") == 0 )
@@ -11374,6 +11361,21 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
     return XL6_IR_RUNTIME_RESOURCE_OP_INVALID;
 }
 
+static int xl6IrOptionalOwnedResultCompatible(const XL6_IrModule* module,
+    XL6_IrTypeId valueId,XL6_IrTypeId payloadId)
+{
+    const XL6_IrType* payload=module ? xl6IrTypeGet(&module->types,payloadId) : NULL;
+    const XL6_IrType* value=module ? xl6IrTypeGet(&module->types,valueId) : NULL;
+    if(!payload || !value) return 0;
+    if(valueId==payloadId)
+        return payload->kind==XL6_IR_TYPE_NULLABLE || xl6IrTypeIsDynamicXValueBuiltin(module,payloadId);
+    return value->kind==XL6_IR_TYPE_NULLABLE && value->paramCount==1 && value->params &&
+        value->params[0]==payloadId && value->ownershipAbi==payload->ownershipAbi &&
+        ((value->cAbi==payload->cAbi && value->nullAbi==payload->nullAbi &&
+          (value->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL || value->nullAbi==XL6_IR_NULL_ABI_XVALUE_SENTINEL)) ||
+         (value->cAbi==XL6_IR_C_ABI_TAGGED_NULLABLE && value->nullAbi==XL6_IR_NULL_ABI_TAGGED_VALUE &&
+          xl6IrNullableScalarElementAbi(module,valueId)==payload->cAbi));
+}
 static int xl6IrOptionalTryResultCompatible(
     const XL6_IrModule* module, XL6_IrTypeId resultId, XL6_IrTypeId payloadId,XL6_IrCAbi statusAbi)
 {
@@ -11387,14 +11389,7 @@ static int xl6IrOptionalTryResultCompatible(
     if ( status == NULL || value == NULL || status->kind != XL6_IR_TYPE_BUILTIN ||
          status->cAbi != statusAbi || status->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
          status->nullAbi != XL6_IR_NULL_ABI_NONE || status->paramCount != 0 ) return 0;
-    if ( result->params[1] == payloadId )
-        return payload->kind == XL6_IR_TYPE_NULLABLE || xl6IrTypeIsDynamicXValueBuiltin(module, payloadId);
-    return value->kind == XL6_IR_TYPE_NULLABLE && value->paramCount == 1 && value->params != NULL &&
-        value->params[0] == payloadId && value->ownershipAbi == payload->ownershipAbi &&
-        ((value->cAbi == payload->cAbi && value->nullAbi == payload->nullAbi &&
-          (value->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL || value->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL)) ||
-         (value->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE && value->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-          xl6IrNullableScalarElementAbi(module,result->params[1])==payload->cAbi));
+    return xl6IrOptionalOwnedResultCompatible(module,result->params[1],payloadId);
 }
 
 int xl6IrStackTryResultCompatible(const XL6_IrModule* module,XL6_IrTypeId result,XL6_IrTypeId payload)
@@ -11458,6 +11453,8 @@ int xl6IrAvlProjectionContract(const XL6_IrModule* module,XL6_IrTypeId treeId,
     return result->sequenceLayout.elementType==result->params[0] &&
         result->sequenceLayout.transferAbi==xl6IrRuntimeResourcePayloadAbiForType(module,result->params[0]);
 }
+
+#include "src/ir/xl6_ir_tree_query.c"
 
 /* Stack algorithms in an open generic body have exact logical types but no
  * physical slot transfer yet. Keep this distinct from both VERIFIED and an
@@ -11540,6 +11537,8 @@ static int xl6IrRuntimeResourceSignatureCompatible(
     if ( module == NULL ) return 0;
     if(xl6IrSlotMapResourceOpIs(operation))
         return xl6IrSlotMapSignatureCompatible(module,operation,receiverType,resultType,operandTypes,operandCount);
+    if(xl6IrTreeQuerySpecResource(operation))
+        return xl6IrTreeQuerySignatureCompatible(module,operation,receiverType,resultType,operandTypes,operandCount);
     if (xl6IrStackBatchResourceOpIs(operation))
         return xl6IrStackBatchSignatureCompatible(module,operation,receiverType,resultType,operandTypes,operandCount);
     result = xl6IrTypeGet(&module->types, resultType);
@@ -11767,43 +11766,10 @@ static int xl6IrRuntimeResourceSignatureCompatible(
             return operandCount == 3 && operandTypes[1] == keyType &&
                 operandTypes[2] == payloadType && result != NULL &&
                 result->cAbi == XL6_IR_C_ABI_BOOL;
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_GET_INTO:
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_TAKE_INTO:
-            return operandCount == 3 && operandTypes[1] == keyType &&
-                third != NULL && third->kind == XL6_IR_TYPE_STORAGE_REF &&
-                third->cAbi == XL6_IR_C_ABI_STORAGE_REF_PTR &&
-                third->paramCount == 1 && third->params != NULL &&
-                third->params[0] == payloadType && result != NULL &&
-                result->cAbi == XL6_IR_C_ABI_BOOL;
         case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CONTAINS:
         case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_REMOVE:
             return operandCount == 2 && operandTypes[1] == keyType &&
                 result != NULL && result->cAbi == XL6_IR_C_ABI_BOOL;
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_FIRST_INTO:
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LAST_INTO:
-            return operandCount == 3 && second != NULL && third != NULL &&
-                second->kind == XL6_IR_TYPE_STORAGE_REF &&
-                second->cAbi == XL6_IR_C_ABI_STORAGE_REF_PTR &&
-                second->paramCount == 1 && second->params != NULL &&
-                second->params[0] == keyType &&
-                third->kind == XL6_IR_TYPE_STORAGE_REF &&
-                third->cAbi == XL6_IR_C_ABI_STORAGE_REF_PTR &&
-                third->paramCount == 1 && third->params != NULL &&
-                third->params[0] == payloadType && result != NULL &&
-                result->cAbi == XL6_IR_C_ABI_BOOL;
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LOWER_BOUND_INTO:
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_UPPER_BOUND_INTO:
-            return operandCount == 4 && operandTypes[1] == keyType &&
-                third != NULL && fourth != NULL &&
-                third->kind == XL6_IR_TYPE_STORAGE_REF &&
-                third->cAbi == XL6_IR_C_ABI_STORAGE_REF_PTR &&
-                third->paramCount == 1 && third->params != NULL &&
-                third->params[0] == keyType &&
-                fourth->kind == XL6_IR_TYPE_STORAGE_REF &&
-                fourth->cAbi == XL6_IR_C_ABI_STORAGE_REF_PTR &&
-                fourth->paramCount == 1 && fourth->params != NULL &&
-                fourth->params[0] == payloadType && result != NULL &&
-                result->cAbi == XL6_IR_C_ABI_BOOL;
         case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_TRIM_TO:
             return operandCount == 2 && second != NULL &&
                 second->cAbi == XL6_IR_C_ABI_I64 && result != NULL &&
@@ -11942,6 +11908,8 @@ static XL6_IrTypeId xl6IrRuntimeResourceInputTargetType(
     XL6_IrRuntimeResourceOp operation, size_t operandIndex,
     XL6_IrTypeId keyType, XL6_IrTypeId payloadType)
 {
+    const XL6_IrTreeQuerySpec* query=xl6IrTreeQuerySpecResource(operation);
+    if(query && query->search && operandIndex==1) return keyType;
     if((operation==XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_INSERT && operandIndex==1) ||
         (operation==XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_SET && operandIndex==2)) return payloadType;
     if ( operandIndex == 1 &&
@@ -11952,14 +11920,8 @@ static XL6_IrTypeId xl6IrRuntimeResourceInputTargetType(
         return payloadType;
     if ( operandIndex == 1 &&
          (operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET ||
-          operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_GET_INTO ||
-          operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_TAKE_INTO ||
           operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CONTAINS ||
-          operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_REMOVE ||
-          operation ==
-              XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LOWER_BOUND_INTO ||
-          operation ==
-              XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_UPPER_BOUND_INTO) )
+          operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_REMOVE) )
         return keyType;
     if ( operandIndex == 2 &&
          operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET )
@@ -11969,7 +11931,7 @@ static XL6_IrTypeId xl6IrRuntimeResourceInputTargetType(
 
 static XL6_IrTypeId xl6IrRuntimeResourceStorageTargetType(
     XL6_IrRuntimeResourceOp operation, size_t operandIndex,
-    XL6_IrTypeId keyType, XL6_IrTypeId payloadType)
+    XL6_IrTypeId payloadType)
 {
     if ( operandIndex == 1 &&
          (operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECV_INTO ||
@@ -11983,22 +11945,6 @@ static XL6_IrTypeId xl6IrRuntimeResourceStorageTargetType(
           operation ==
               XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_POP_TIMEOUT_INTO) )
         return payloadType;
-    if ( operandIndex == 2 &&
-         (operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_GET_INTO ||
-          operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_TAKE_INTO) )
-        return payloadType;
-    if ( (operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_FIRST_INTO ||
-          operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LAST_INTO) ) {
-        if ( operandIndex == 1 ) return keyType;
-        if ( operandIndex == 2 ) return payloadType;
-    }
-    if ( operation ==
-             XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LOWER_BOUND_INTO ||
-         operation ==
-             XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_UPPER_BOUND_INTO ) {
-        if ( operandIndex == 2 ) return keyType;
-        if ( operandIndex == 3 ) return payloadType;
-    }
     return XL6_IR_TYPE_INVALID;
 }
 
@@ -14106,7 +14052,6 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                     XL6_IrTypeId storageTarget =
                         xl6IrRuntimeResourceStorageTargetType(
                             runtimeResourceOp, i,
-                            intrinsic.runtimeResourceKeyType,
                             intrinsic.payloadType);
                     if ( inputTarget != XL6_IR_TYPE_INVALID ) {
                         compatible = xl6IrRuntimeResourceInputCompatible(
@@ -14132,7 +14077,9 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                         XL6_IR_INTRINSIC_ADMISSION_VERIFIED;
                 else if (compatible && (xl6IrGenericStackSignatureCompatible(module, origin,
                     intrinsic.runtimeResourceOp, intrinsic.receiverType, intrinsic.resultType,
-                    operandTypes, operandCount) || xl6IrGenericConcurrentQueueSignatureCompatible(module,origin,
+                    operandTypes, operandCount) || xl6IrGenericTreeQuerySignatureCompatible(module,origin,
+                    intrinsic.runtimeResourceOp,intrinsic.receiverType,intrinsic.resultType,operandTypes,operandCount) ||
+                    xl6IrGenericConcurrentQueueSignatureCompatible(module,origin,
                     intrinsic.runtimeResourceOp,intrinsic.receiverType,intrinsic.resultType,operandTypes,operandCount)))
                     intrinsic.admission = XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT;
             }
@@ -14953,7 +14900,6 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
             intrinsic.kind == XL6_IR_INTRINSIC_RUNTIME_RESOURCE
                 ? xl6IrRuntimeResourceStorageTargetType(
                     intrinsic.runtimeResourceOp, i,
-                    intrinsic.runtimeResourceKeyType,
                     intrinsic.payloadType)
                 : XL6_IR_TYPE_INVALID;
          operand->expression = operandExpressions[i];
@@ -20710,6 +20656,8 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
             return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
         return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
     }
+    stringAbi=xl6IrTreeQueryErrorPhysicalAbi(instruction->runtimeOp);
+    if(stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     stringAbi=xl6IrSlotMapErrorPhysicalAbi(instruction->runtimeOp);
     if(stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     stringAbi=xl6IrRuntimeFutureMetadataErrorPhysicalAbi(instruction->runtimeOp);
@@ -21772,7 +21720,8 @@ static int xl6IrRuntimeSyncOpCreates(XL6_IrRuntimeOp operation)
 
 static int xl6IrRuntimeAvlOpMayRaise(XL6_IrRuntimeOp operation)
 {
-    return operation>=XL6_IR_RUNTIME_AVL_TREE_CREATE && operation<=XL6_IR_RUNTIME_AVL_TREE_CLONE;
+    return xl6IrTreeQuerySpecRuntime(operation) ||
+        (operation>=XL6_IR_RUNTIME_AVL_TREE_CREATE && operation<=XL6_IR_RUNTIME_AVL_TREE_CLONE);
 }
 
 static XL6_IrRuntimeResourceAbi xl6IrRuntimeSyncResourceAbi(
@@ -34295,14 +34244,16 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                    xl6IrRuntimeResourcePayloadAbiForType(
                                        module,
                                        intrinsic->runtimeResourceKeyType) ||
-                               intrinsic->runtimeResourceKeyPayloadAbi ==
-                                   XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID ||
+                               (intrinsic->runtimeResourceKeyPayloadAbi ==
+                                   XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID &&
+                                intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT) ||
                                intrinsic->runtimeResourceKeyOrderAbi !=
                                    xl6IrRuntimeResourceKeyOrderAbiForType(
                                        module,
                                        intrinsic->runtimeResourceKeyType) ||
-                               intrinsic->runtimeResourceKeyOrderAbi ==
-                                   XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID)
+                               (intrinsic->runtimeResourceKeyOrderAbi ==
+                                   XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID &&
+                                intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT))
                             : (intrinsic->runtimeResourceKeyType !=
                                    XL6_IR_TYPE_INVALID ||
                                intrinsic->runtimeResourceKeyPayloadAbi !=
@@ -35287,6 +35238,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     int dependent = xl6IrGenericStackSignatureCompatible(module, intrinsic->origin,
                         intrinsic->runtimeResourceOp, intrinsic->receiverType, intrinsic->resultType,
                         operandTypes, intrinsic->operandCount) ||
+                        xl6IrGenericTreeQuerySignatureCompatible(module,intrinsic->origin,
+                            intrinsic->runtimeResourceOp,intrinsic->receiverType,intrinsic->resultType,
+                            operandTypes,intrinsic->operandCount) ||
                         xl6IrGenericConcurrentQueueSignatureCompatible(module,intrinsic->origin,
                             intrinsic->runtimeResourceOp,intrinsic->receiverType,intrinsic->resultType,
                             operandTypes,intrinsic->operandCount);
@@ -35322,7 +35276,6 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         XL6_IrTypeId storageTarget =
                             xl6IrRuntimeResourceStorageTargetType(
                                 intrinsic->runtimeResourceOp, operandIndex,
-                                intrinsic->runtimeResourceKeyType,
                                 intrinsic->payloadType);
                         XL6_IrRuntimeResourcePayloadAbi transferAbi =
                             inputTarget == intrinsic->runtimeResourceKeyType
@@ -36064,7 +36017,6 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     intrinsic->kind == XL6_IR_INTRINSIC_RUNTIME_RESOURCE
                         ? xl6IrRuntimeResourceStorageTargetType(
                             intrinsic->runtimeResourceOp, operandIndex,
-                            intrinsic->runtimeResourceKeyType,
                             intrinsic->payloadType)
                         : XL6_IR_TYPE_INVALID;
                 XL6_IrIntrinsicOperandAbi expected =
@@ -38563,6 +38515,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO ||
                             instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP ||
                             instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH ||
+                            xl6IrTreeQuerySpecRuntime(instruction->runtimeOp) ||
                             xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp)) ||
                            (instruction->runtimeOp >=
                                 XL6_IR_RUNTIME_STACK_CREATE &&
@@ -38590,6 +38543,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO ||
                         instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP ||
                         instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH ||
+                        xl6IrTreeQuerySpecRuntime(instruction->runtimeOp) ||
                         xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp)) ||
                         (instruction->runtimeOp >=
                              XL6_IR_RUNTIME_STACK_CREATE &&
@@ -38612,24 +38566,24 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     return xl6IrDiag(diags, NULL,
                         "XLIR instruction has an ambiguous runtime resource payload ABI");
                 if ( ((instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
-                       instruction->runtimeOp >=
+                       (xl6IrTreeQuerySpecRuntime(instruction->runtimeOp) || (instruction->runtimeOp >=
                            XL6_IR_RUNTIME_AVL_TREE_CREATE &&
                        instruction->runtimeOp <=
-                           XL6_IR_RUNTIME_AVL_TREE_CLONE) !=
+                           XL6_IR_RUNTIME_AVL_TREE_CLONE))) !=
                       (instruction->runtimeResourceKeyType !=
                            XL6_IR_TYPE_INVALID)) ||
                      ((instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
-                       instruction->runtimeOp >=
+                       (xl6IrTreeQuerySpecRuntime(instruction->runtimeOp) || (instruction->runtimeOp >=
                            XL6_IR_RUNTIME_AVL_TREE_CREATE &&
                        instruction->runtimeOp <=
-                           XL6_IR_RUNTIME_AVL_TREE_CLONE) !=
+                           XL6_IR_RUNTIME_AVL_TREE_CLONE))) !=
                       (instruction->runtimeResourceKeyPayloadAbi !=
                            XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID)) ||
                      ((instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
-                       instruction->runtimeOp >=
+                       (xl6IrTreeQuerySpecRuntime(instruction->runtimeOp) || (instruction->runtimeOp >=
                            XL6_IR_RUNTIME_AVL_TREE_CREATE &&
                        instruction->runtimeOp <=
-                           XL6_IR_RUNTIME_AVL_TREE_CLONE) !=
+                           XL6_IR_RUNTIME_AVL_TREE_CLONE))) !=
                       (instruction->runtimeResourceKeyOrderAbi !=
                            XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID)) ||
                      instruction->runtimeResourceKeyPayloadAbi <
@@ -42565,6 +42519,15 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                     "XLIR runtime special queue operation is outside the verified member ABI");
                             }
                         }
+                    } else if(xl6IrTreeQuerySpecRuntime(instruction->runtimeOp)) {
+                        const XL6_IrInstruction* outcome=j+1<block->instructionCount
+                            ? &module->instructions[block->firstInstruction+j+1] : NULL;
+                        if(!xl6IrTreeQueryInstructionCompatible(module,instruction) ||
+                            !xl6IrNodeRequiresThrowExitPlan(module,instruction->origin) || !outcome ||
+                            outcome->kind!=XL6_IR_INSTR_ERROR_TEST || outcome->operandCount!=1 ||
+                            outcome->firstOperand>=module->operandCount ||
+                            module->operands[outcome->firstOperand]!=instruction->result)
+                            return xl6IrDiag(diags,NULL,"XLIR OrderedMap query has no exact owned result, presence or checked outcome contract");
                     } else if(xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp))) {
                         const XL6_IrInstruction* outcome=j+1<block->instructionCount
                             ? &module->instructions[block->firstInstruction+j+1] : NULL;
@@ -42858,27 +42821,6 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 return xl6IrDiag(diags, NULL,
                                     "XLIR runtime OrderedMap set has no exact key, copied value or boolean result ABI");
                         } else if ( instruction->runtimeOp ==
-                                        XL6_IR_RUNTIME_AVL_TREE_GET_INTO ||
-                                    instruction->runtimeOp ==
-                                        XL6_IR_RUNTIME_AVL_TREE_TAKE_INTO ) {
-                            if ( instruction->operandCount != 3 ||
-                                 right == NULL || right->type != keyTypeId ||
-                                 third == NULL ||
-                                 third->kind !=
-                                     XL6_IR_INSTR_STORAGE_ADDRESS ||
-                                 thirdType == NULL ||
-                                 thirdType->kind !=
-                                     XL6_IR_TYPE_STORAGE_REF ||
-                                 thirdType->cAbi !=
-                                     XL6_IR_C_ABI_STORAGE_REF_PTR ||
-                                 thirdType->paramCount != 1 ||
-                                 thirdType->params == NULL ||
-                                 thirdType->params[0] != valueTypeId ||
-                                 resultType == NULL ||
-                                 resultType->cAbi != XL6_IR_C_ABI_BOOL )
-                                return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime OrderedMap get/take has no exact key, value storage or boolean result ABI");
-                        } else if ( instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_CONTAINS ||
                                     instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_REMOVE ) {
@@ -42888,69 +42830,6 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  resultType->cAbi != XL6_IR_C_ABI_BOOL )
                                 return xl6IrDiag(diags, NULL,
                                     "XLIR runtime OrderedMap key operation has no exact key or boolean result ABI");
-                        } else if ( instruction->runtimeOp ==
-                                        XL6_IR_RUNTIME_AVL_TREE_FIRST_INTO ||
-                                    instruction->runtimeOp ==
-                                        XL6_IR_RUNTIME_AVL_TREE_LAST_INTO ) {
-                            if ( instruction->operandCount != 3 ||
-                                 right == NULL ||
-                                 right->kind !=
-                                     XL6_IR_INSTR_STORAGE_ADDRESS ||
-                                 secondType == NULL ||
-                                 secondType->kind !=
-                                     XL6_IR_TYPE_STORAGE_REF ||
-                                 secondType->cAbi !=
-                                     XL6_IR_C_ABI_STORAGE_REF_PTR ||
-                                 secondType->paramCount != 1 ||
-                                 secondType->params == NULL ||
-                                 secondType->params[0] != keyTypeId ||
-                                 third == NULL ||
-                                 third->kind !=
-                                     XL6_IR_INSTR_STORAGE_ADDRESS ||
-                                 thirdType == NULL ||
-                                 thirdType->kind !=
-                                     XL6_IR_TYPE_STORAGE_REF ||
-                                 thirdType->cAbi !=
-                                     XL6_IR_C_ABI_STORAGE_REF_PTR ||
-                                 thirdType->paramCount != 1 ||
-                                 thirdType->params == NULL ||
-                                 thirdType->params[0] != valueTypeId ||
-                                 resultType == NULL ||
-                                 resultType->cAbi != XL6_IR_C_ABI_BOOL )
-                                return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime OrderedMap endpoint has no exact key/value storage or boolean result ABI");
-                        } else if ( instruction->runtimeOp ==
-                                        XL6_IR_RUNTIME_AVL_TREE_LOWER_BOUND_INTO ||
-                                    instruction->runtimeOp ==
-                                        XL6_IR_RUNTIME_AVL_TREE_UPPER_BOUND_INTO ) {
-                            if ( instruction->operandCount != 4 ||
-                                 right == NULL || right->type != keyTypeId ||
-                                 third == NULL ||
-                                 third->kind !=
-                                     XL6_IR_INSTR_STORAGE_ADDRESS ||
-                                 thirdType == NULL ||
-                                 thirdType->kind !=
-                                     XL6_IR_TYPE_STORAGE_REF ||
-                                 thirdType->cAbi !=
-                                     XL6_IR_C_ABI_STORAGE_REF_PTR ||
-                                 thirdType->paramCount != 1 ||
-                                 thirdType->params == NULL ||
-                                 thirdType->params[0] != keyTypeId ||
-                                 fourth == NULL ||
-                                 fourth->kind !=
-                                     XL6_IR_INSTR_STORAGE_ADDRESS ||
-                                 fourthType == NULL ||
-                                 fourthType->kind !=
-                                     XL6_IR_TYPE_STORAGE_REF ||
-                                 fourthType->cAbi !=
-                                     XL6_IR_C_ABI_STORAGE_REF_PTR ||
-                                 fourthType->paramCount != 1 ||
-                                 fourthType->params == NULL ||
-                                 fourthType->params[0] != valueTypeId ||
-                                 resultType == NULL ||
-                                 resultType->cAbi != XL6_IR_C_ABI_BOOL )
-                                return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime OrderedMap bound has no exact search key, output storage or boolean result ABI");
                         } else if ( instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_TRIM_TO ) {
                             if ( instruction->operandCount != 2 ||
@@ -45854,6 +45733,9 @@ static const char* xl6IrRuntimeResourceOpName(
     XL6_IrRuntimeResourceOp operation)
 {
     switch ( operation ) {
+#define XL6_TREE_QUERY_OP(id,name,search,pair,required,native) case XL6_IR_RUNTIME_RESOURCE_OP_TREE_QUERY_##id: return "tree-query-" name;
+#include "src/abi/xl6_tree_query_ops.inc"
+#undef XL6_TREE_QUERY_OP
 #define XL6_SLOT_MAP_OP(id,name,count,a,b,result,native,failure) case XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_##id: return "slot-map-" #id;
 #include "src/abi/xl6_slot_map_ops.inc"
 #undef XL6_SLOT_MAP_OP
@@ -45968,22 +45850,10 @@ static const char* xl6IrRuntimeResourceOpName(
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE:
         return "avl-tree-create";
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET: return "avl-tree-set";
-    case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_GET_INTO:
-        return "avl-tree-get-into";
-    case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_TAKE_INTO:
-        return "avl-tree-take-into";
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CONTAINS:
         return "avl-tree-contains";
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_REMOVE:
         return "avl-tree-remove";
-    case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_FIRST_INTO:
-        return "avl-tree-first-into";
-    case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LAST_INTO:
-        return "avl-tree-last-into";
-    case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_LOWER_BOUND_INTO:
-        return "avl-tree-lower-bound-into";
-    case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_UPPER_BOUND_INTO:
-        return "avl-tree-upper-bound-into";
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_TRIM_TO:
         return "avl-tree-trim-to";
     case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_EQUALS:
@@ -47208,6 +47078,9 @@ static const char* xl6IrClosureRawCallbackAbiName(
 static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
 {
     switch ( runtimeOp ) {
+#define XL6_TREE_QUERY_OP(id,name,search,pair,required,native) case XL6_IR_RUNTIME_TREE_QUERY_##id: return "tree-query-" name;
+#include "src/abi/xl6_tree_query_ops.inc"
+#undef XL6_TREE_QUERY_OP
 #define XL6_SLOT_MAP_OP(id,name,count,a,b,result,native,failure) case XL6_IR_RUNTIME_SLOT_MAP_##id: return "slot-map-" #id;
 #include "src/abi/xl6_slot_map_ops.inc"
 #undef XL6_SLOT_MAP_OP
@@ -47704,16 +47577,8 @@ case XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_OR_NULL: return "xvalue-int-map-at-i64
     case XL6_IR_RUNTIME_STACK_TRY_PEEK_AT: return "stack-try-peek-at";
     case XL6_IR_RUNTIME_AVL_TREE_CREATE: return "avl-tree-create";
     case XL6_IR_RUNTIME_AVL_TREE_SET: return "avl-tree-set";
-    case XL6_IR_RUNTIME_AVL_TREE_GET_INTO: return "avl-tree-get-into";
-    case XL6_IR_RUNTIME_AVL_TREE_TAKE_INTO: return "avl-tree-take-into";
     case XL6_IR_RUNTIME_AVL_TREE_CONTAINS: return "avl-tree-contains";
     case XL6_IR_RUNTIME_AVL_TREE_REMOVE: return "avl-tree-remove";
-    case XL6_IR_RUNTIME_AVL_TREE_FIRST_INTO: return "avl-tree-first-into";
-    case XL6_IR_RUNTIME_AVL_TREE_LAST_INTO: return "avl-tree-last-into";
-    case XL6_IR_RUNTIME_AVL_TREE_LOWER_BOUND_INTO:
-        return "avl-tree-lower-bound-into";
-    case XL6_IR_RUNTIME_AVL_TREE_UPPER_BOUND_INTO:
-        return "avl-tree-upper-bound-into";
     case XL6_IR_RUNTIME_AVL_TREE_TRIM_TO: return "avl-tree-trim-to";
     case XL6_IR_RUNTIME_AVL_TREE_EQUALS: return "avl-tree-equals";
     case XL6_IR_RUNTIME_AVL_TREE_MERGE: return "avl-tree-merge";

@@ -1,7 +1,8 @@
 """Fresh native OrderedMap results, exact absence, ownership and checked failures.
 Actual fresh source compiler; O0/O2 provider bodies and demand-linked closures.
-The language still uses its previous Into API. Not language query cutover,
-Future/owning-record domains, shipping DLL/VFS or full53 acceptance.
+Native-provider acceptance; the public language query cutover has its separate
+check_stdlib_tree_owned_queries.py gate. Not Future/owning-record domains,
+shipping DLL/VFS or full53 acceptance.
 """
 from pathlib import Path
 import argparse,hashlib,json,os,re,shutil,subprocess
@@ -100,8 +101,8 @@ def main():
         for case in cases:
             run(case.stem+'-jit',[driver,case,'run',out/(case.stem+'-jit')])
             text=run(case.stem+'-contract',[proof,case])
-            match=re.search(r'(\d+) actual factories \((\d+) nominal\), (\d+) operations, (\d+) rejected mutations',text); assert match
-            contracts.append(dict(Source=str(case),**dict(zip(('Factories','Nominal','Operations','RejectedMutations'),map(int,match.groups())))))
+            match=re.search(r'(\d+) actual factories \((\d+) nominal\), (\d+) operations \((\d+) owned queries\), (\d+) rejected mutations',text); assert match
+            contracts.append(dict(Source=str(case),**dict(zip(('Factories','Nominal','Operations','OwnedQueries','RejectedMutations'),map(int,match.groups())))))
         implementation=out/'selected-runtime.c'
         text=run('selected-plan',[planner,'--emit-native',selection.as_posix(),implementation])
         plans=[json.loads(line) for line in text.splitlines() if line.startswith('{"Fixture":')]; assert len(plans)==1

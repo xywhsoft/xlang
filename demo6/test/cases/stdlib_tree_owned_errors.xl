@@ -1,0 +1,57 @@
+func main(...) as int
+    auto tree = OrderedMap::<int, string>()
+    int caught = 0
+    int finalized = 0
+    try
+        tree.get(1)
+    catch RangeError failure
+        caught += 1
+    finally
+        finalized += 1
+    end
+    try
+        tree.take(1)
+    catch RangeError failure
+        caught += 1
+    finally
+        finalized += 1
+    end
+    try
+        tree.first()
+    catch RangeError failure
+        caught += 1
+    end
+    try
+        tree.last()
+    catch RangeError failure
+        caught += 1
+    end
+    try
+        tree.lowerBound(1)
+    catch RangeError failure
+        caught += 1
+    end
+    try
+        tree.upperBound(1)
+    catch RangeError failure
+        caught += 1
+    end
+    auto hasGet, absentGet = tree.tryGet(1)
+    auto hasTake, absentTake = tree.tryTake(1)
+    auto hasFirst, firstKey, firstValue = tree.tryFirst()
+    auto hasLast, lastKey, lastValue = tree.tryLast()
+    auto hasLower, lowerKey, lowerValue = tree.tryLowerBound(1)
+    auto hasUpper, upperKey, upperValue = tree.tryUpperBound(1)
+    assert(not hasGet and not hasTake and not hasFirst and not hasLast and not hasLower and not hasUpper)
+    assert(absentGet == null and absentTake == null and firstKey == null and firstValue == null)
+    assert(lastKey == null and lastValue == null and lowerKey == null and lowerValue == null)
+    assert(upperKey == null and upperValue == null and caught == 6 and finalized == 2 and tree.count() == 0)
+    assert(tree.set(2, "exists"))
+    try
+        tree.upperBound(2)
+    catch RangeError failure
+        caught += 1
+    end
+    assert(caught == 7 and tree.get(2) == "exists")
+    return 0
+end
