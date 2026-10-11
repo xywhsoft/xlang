@@ -88,6 +88,7 @@
 - [SlotMap 独立快照与原生值遍历](stdlib53-b215-slot-map-snapshot-language.md)：公开 keys／values 与通用 checked 原生值 foreach，双端严格 C／JIT、真实 AOT 和按需独立程序通过；成对迭代、其他消费边界及发布总门继续。
 - [OrderedMap 与默认 Queue](stdlib53-b216-container-public-names.md)：有序映射公开名与同身份 MPMC 默认别名；双端批量源码、严格 C／JIT、真实 AOT 和裁剪通过，多返回值清理及发布总门继续。
 - [OrderedMap 拥有结果查询](stdlib53-b218-tree-owned-queries.md)：十二个公开查询、精确缺失与拥有多返回值、泛型实例化、旧 Into 清退及双端专项验收范围。
+- [Channel 常驻拥有值底座](stdlib53-b219-channel-native.md)：精确状态、准入、操作 pin、循环图退役与双端专项；语言接线、WaitQueue 和发布总门继续。
 - [OrderedMap 原生查询与独立结果](stdlib53-b217-tree-query-native.md)：原生结果槽与 checked 事务的底座专项；公开语言切换见拥有结果查询。
 - [SlotMap 的原生键和值快照](stdlib53-b212-slot-map-snapshots.md)：精确拥有快照、失败回滚与独立键组件；双端原生专项及值快照实际裁剪程序通过，公开语言 API 和成对迭代继续。
 - [List 方法接入与集合异常合同](stdlib53-b174-list-methods-language.md)：checked 驻留方法、may-raise 和真实 C/JIT/continuation 验证；工厂、动态分发及恢复仍待切换。

@@ -256,6 +256,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_queue_spsc.c", D(R(SEQUENCE),R(FOREIGN_ERROR),R(ARRAY_REFERENCE_VALUE)), {"XRUNTIME_MODULE_TYPED_QUEUE_SPSC"}},
     {"src/runtime/xl6_queue_mpsc.c", D(R(SEQUENCE),R(FOREIGN_ERROR),R(ARRAY_REFERENCE_VALUE)), {"XRUNTIME_MODULE_TYPED_QUEUE_MPSC"}},
     {"src/runtime/xl6_queue_mpmc.c", D(R(SEQUENCE),R(FOREIGN_ERROR),R(ARRAY_REFERENCE_VALUE)), {"XRUNTIME_MODULE_TYPED_QUEUE_MPMC"}},
+    {"src/runtime/xl6_channel.c", D(R(SEQUENCE),R(FOREIGN_ERROR)), {"XRT_MODULE_CHANNEL", "XRT_MODULE_SPIN"}},
     {"src/runtime/xl6_tree_projection.c", D(R(SEQUENCE),R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_TYPED_TREE"}},
     {"src/runtime/xl6_tree.c", D(R(SEQUENCE),R(TREE_PROJECTION),R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_TYPED_TREE"}},
     {"src/runtime/xl6_tree_admission.c", D(R(TREE),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)), {NULL}},
