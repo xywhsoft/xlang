@@ -183,6 +183,10 @@ channel 别名和旧 `Into` 形参仍待整体退役，不能用本节原生验�
 队列自身不是 Array/Stack，`sequenceLayout` 不被伪造为容器 role。
 Channel 也建立同一规范消息类型字段，由独立 Channel 配方约束实际
 传输能力，见 [Channel 统一 IR 合同](stdlib53-b220-channel-ir.md)。
+拥有接收的资源操作、运行时操作、泛型逻辑合同、lowering、拥有值
+消费和 checked outcome 共用封闭计划，见 [接收 IR 接线](stdlib53-b221-channel-receive-ir.md)。
+这组 IR 接线尚不表示公开语义注册或原生 Cgen 完成；新操作不会
+回退到旧 Into 发射器。
 WaitQueue、可空队列 owner 和无关类型没有这一字段的有效值。
 
 `xl6IrConcurrentQueueConstructionRecipe` 只在 owner、family、规范 schema、
