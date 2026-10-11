@@ -4,6 +4,7 @@
 #include "src/api/xl_foreign_error.h"
 #include <limits.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct TreeOwner {
     volatile int32_t refs;
@@ -388,6 +389,108 @@ static bool overlaps(const void* left,size_t leftSize,const void* right,size_t r
     uintptr_t a=(uintptr_t)left,b=(uintptr_t)right;
     if (a>UINTPTR_MAX-leftSize || b>UINTPTR_MAX-rightSize) return true;
     return a<b+rightSize && b<a+leftSize;
+}
+static bool querySlotShape(XL6_TreeQuerySlotV2 slot,const xrttype* type)
+{
+    return slot.data && type && slot.size==type->Size && type->Align &&
+        (uintptr_t)slot.data%type->Align==0 && (uintptr_t)slot.data<=UINTPTR_MAX-slot.size;
+}
+static bool querySlotEmpty(const XL6_SequenceLayoutV1* layout,const void* slot)
+{
+    /* Only managed slots require an empty-owner check. Do not compare struct
+     * padding or invent a bit-pattern default for trivial nullable records. */
+    if (layout->transfer==3) return *(xvalue* const*)slot==NULL;
+    if (layout->transfer==2) {
+        const xstrview* text=slot;
+        return text->Data==NULL && text->Size==0;
+    }
+    return true;
+}
+static bool querySlotsValid(const XL6_TreeLayoutV1* layout,XL6_TreeQueryV2 operation,
+    const void* search,XL6_TreeQuerySlotV2 key,XL6_TreeQuerySlotV2 value,bool* found)
+{
+    bool pair=operation>=XL6_TREE_QUERY_FIRST_V2;
+    bool searches=operation<=XL6_TREE_QUERY_TAKE_V2 || operation>=XL6_TREE_QUERY_LOWER_V2;
+    const xrttype* item=xl6SequenceStorageTypeV1(layout->value.transfer,layout->value.type);
+    if (operation>XL6_TREE_QUERY_UPPER_V2 || (int)operation<0 || !found ||
+        (searches ? !search : search!=NULL) || !querySlotShape(value,item) ||
+        (pair ? !querySlotShape(key,layout->key.type) : key.data!=NULL || key.size!=0) ||
+        (uintptr_t)found%_Alignof(bool) || (uintptr_t)found>UINTPTR_MAX-sizeof(*found) ||
+        (searches && ((uintptr_t)search%layout->key.type->Align ||
+            (uintptr_t)search>UINTPTR_MAX-layout->key.size))) return false;
+    if (overlaps(value.data,value.size,found,sizeof(*found)) ||
+        overlaps(value.data,value.size,layout,sizeof(*layout)) ||
+        overlaps(found,sizeof(*found),layout,sizeof(*layout)) ||
+        (searches && (overlaps(value.data,value.size,search,layout->key.size) ||
+            overlaps(found,sizeof(*found),search,layout->key.size))) ||
+        (pair && (overlaps(key.data,key.size,value.data,value.size) ||
+            overlaps(key.data,key.size,found,sizeof(*found)) ||
+            overlaps(key.data,key.size,layout,sizeof(*layout)) ||
+            (searches && overlaps(key.data,key.size,search,layout->key.size))))) return false;
+    return querySlotEmpty(&layout->value,value.data) && (!pair || querySlotEmpty(&layout->key,key.data));
+}
+bool xl6TreeQueryV2(const xvalue* object,const XL6_TreeLayoutV1* layout,XL6_TreeQueryV2 operation,
+    const void* search,bool required,XL6_TreeQuerySlotV2 keyOutput,
+    XL6_TreeQuerySlotV2 valueOutput,bool* found)
+{
+    xl6_error_scope scope={0};
+    if (!xl6ErrorScopeBegin(&scope)) return false;
+    TreeOwner* owner=begin(object,layout);
+    bool pair=operation>=XL6_TREE_QUERY_FIRST_V2;
+    bool keyReady=false,valueReady=false,success=false,present=false;
+    const xrttype* keyType=owner ? owner->layout.key.type : NULL;
+    const xrttype* valueType=owner ? xl6SequenceStorageTypeV1(owner->layout.value.transfer,owner->layout.value.type) : NULL;
+    if (!owner) goto done;
+    if (!querySlotsValid(&owner->layout,operation,search,keyOutput,valueOutput,found) ||
+        /* The borrowed caller layout is also an input; it must not be an output. */
+        overlaps(valueOutput.data,valueOutput.size,layout,sizeof(*layout)) ||
+        overlaps(found,sizeof(*found),layout,sizeof(*layout)) ||
+        (pair && overlaps(keyOutput.data,keyOutput.size,layout,sizeof(*layout)))) {
+        xrtSetErrorKind(XERR_ARGUMENT); goto done;
+    }
+    if (search && !slotAdmits(&owner->keyPolicy,search)) goto done;
+    *found=false;
+    if (pair) {
+        memset(keyOutput.data,0,keyOutput.size);
+        keyReady=true;
+    }
+    /* These closed resident slot codecs accept an empty acquisition target.
+     * Init would construct a real default T; string Init allocates and would
+     * incorrectly turn a missing result into an owned empty string. */
+    memset(valueOutput.data,0,valueOutput.size);
+    valueReady=true;
+    const void* key=NULL; const void* value=NULL;
+    switch (operation) {
+    case XL6_TREE_QUERY_GET_V2:
+    case XL6_TREE_QUERY_TAKE_V2: value=xrtTypedTreeConstGet(owner->storage,search); break;
+    case XL6_TREE_QUERY_FIRST_V2: value=xrtTypedTreeFirst(owner->storage,&key); break;
+    case XL6_TREE_QUERY_LAST_V2: value=xrtTypedTreeLast(owner->storage,&key); break;
+    case XL6_TREE_QUERY_LOWER_V2: value=xrtTypedTreeLowerBound(owner->storage,search,&key); break;
+    case XL6_TREE_QUERY_UPPER_V2: value=xrtTypedTreeUpperBound(owner->storage,search,&key); break;
+    }
+    if (!value) {
+        if (!xrtGetError() && required) xrtSetErrorKind(XERR_RANGE);
+        success=!required && !xrtGetError(); goto done;
+    }
+    /* Each private result is its own staging area. A failed second copy drops
+     * the first; unlike caller-variable writeback no heap scratch is needed. */
+    if (pair && !xrtTypeCopyValue(keyType,keyOutput.data,key)) goto done;
+    success=operation==XL6_TREE_QUERY_TAKE_V2 ? xrtTypedTreeTake(owner->storage,search,valueOutput.data) :
+        xrtTypeCopyValue(valueType,valueOutput.data,value);
+    present=success;
+done:
+    if (!success || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
+    if (owner) end(owner);
+    if (scope.failed || xrtGetError()) {
+        xl6ErrorScopeCaptureFailure(&scope);
+        /* Drops may report a second failure. The first outcome is already
+         * latched; detach every initialized result before returning failure. */
+        if (valueReady) { xrtTypeDropValue(valueType,valueOutput.data); memset(valueOutput.data,0,valueOutput.size); }
+        if (keyReady) { xrtTypeDropValue(keyType,keyOutput.data); memset(keyOutput.data,0,keyOutput.size); }
+    }
+    success=scopeFinish(&scope,true);
+    if (success) *found=present;
+    return success;
 }
 static bool copyPair(TreeOwner* owner,const void* key,const void* value,void* keyOut,void* valueOut)
 {
