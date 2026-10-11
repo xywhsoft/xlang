@@ -2,6 +2,14 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_slot_map_snapshot.py --root <frozen-demo6> --out <fresh-output> [--sanitize]`
+checks owning SlotMap key/value snapshots, five transfer domains, schema aliases,
+source destruction, reentrant/no-diagnostic failures and complete allocation
+prefixes. Three compiled bad providers must be rejected. A separately linked
+value-only program executes without the optional key projection/hash/factory.
+Linux sanitizer covers these selected native closures, not public SlotMap,
+VFS or full53 shipping acceptance.
+
 `check_stdlib_native_value_ir.py --fixture stdlib_native_value_collections.xl`
 adds typed Array/List/Set/Dict, nested/erased import and mutable Set identity
 coverage to the genuine-key host contract. Five compiled mutants include

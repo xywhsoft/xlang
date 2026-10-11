@@ -83,6 +83,7 @@
 - [原生值复制与失败原子性](stdlib53-b209-native-leaf-copy.md)：键容器与动态投影共用 checked 复制事务，检查空输出、对齐、重叠与晚期失败；语言键直接 ABI 与 frame 继续。
 - [拥有型原生值的同步 IR 合同](stdlib53-b210-native-value-ir.md)：声明化直接记录、checked 复制与投影、参数和多返回值生命周期；跨挂起与 SlotMap 公开 API 继续。
 - [拥有型原生值的容器接入与键 ABI 校正](stdlib53-b211-native-value-collections.md)：Array／List／Set／Dict 精确值域、原生提取及语言身份／描述符赋值校正；其余消费边界和总验收继续。
+- [SlotMap 的原生键和值快照](stdlib53-b212-slot-map-snapshots.md)：精确拥有快照、失败回滚与独立键组件；双端原生专项及值快照实际裁剪程序通过，公开语言 API 和成对迭代继续。
 - [List 方法接入与集合异常合同](stdlib53-b174-list-methods-language.md)：checked 驻留方法、may-raise 和真实 C/JIT/continuation 验证；工厂、动态分发及恢复仍待切换。
 - [List 元素准入与目标构造合同](stdlib53-b173-list-target-recipes.md)：XLIR 精确元素 witness、泛型闭包和目标工厂；错误元数据与分配/作用域失败批处理验证，源载体尚未切换。
 - [List 原生动态方法与快照迭代](stdlib53-b172-list-erased-native.md)：复用 typed List 存储与游标，checked 动态方法、完整稀疏键和单步拥有投影；语言载体切换仍待完成。
