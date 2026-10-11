@@ -25,11 +25,9 @@ static int xl6IrCgenEmitPersistenceProjectPlans(
         if (xl6IrCgenInstructionIsReachable(module,s) &&
             (module->instructions[s].runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
              module->instructions[s].runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT)) {
-            unsigned providers=xl6IrPersistenceGraphProviders(module,module->instructions[s].payloadType);
-            if (providers&XL6_IR_GRAPH_DICT_V1) graphProviders|=providers;
+            graphProviders|=xl6IrValueGraphProvidersForType(module,module->instructions[s].payloadType);
         }
-    if (graphProviders&XL6_IR_GRAPH_DICT_V1) xl6OutputPuts("#include <__xl_runtime/xl6_dict_graph.h>\n",out);
-    if (graphProviders&XL6_IR_GRAPH_SET_V1) xl6OutputPuts("#include <__xl_runtime/xl6_set_graph.h>\n",out);
+    if (!xl6IrCgenEmitValueGraphHeaders(out,graphProviders,1)) return 0;
     for (s = 0; s < module->instructionCount; ++s)
         if (module->instructions[s].kind == XL6_IR_INSTR_RUNTIME_CALL) {
             const XL6_IrPersistenceInvocationContract* invocation =

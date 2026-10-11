@@ -242,10 +242,10 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                         xl6IrCgenPersistenceProjectSymbol(module,instruction),
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)xl6IrCgenPersistenceRuntimeFormat(instruction->runtimeOp));
-                    unsigned providers=xl6IrPersistenceGraphProviders(module,instruction->payloadType);
-                    if (providers&XL6_IR_GRAPH_DICT_V1) {
+                    unsigned providers=xl6IrValueGraphProvidersForType(module,instruction->payloadType);
+                    if (providers) {
                         xl6OutputPuts(", ",out);
-                        if (!xl6IrCgenEmitPersistenceGraph(out,providers)) return 0;
+                        if (!xl6IrCgenEmitValueGraphPlan(out,providers,1)) return 0;
                     }
                     xl6OutputPuts(");\n",out);
                 } else if (xl6IrPersistenceInvocationRuntime(instruction->runtimeOp) != NULL) {
@@ -637,10 +637,15 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                                     xl6IrCgenValueCloneSymbol(module,instruction),
                                     (unsigned int)module->operands[instruction->firstOperand]);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_DEEP_CLONE ) {
-                    xl6OutputPrintf(out, "    v%u = %s(v%u);\n",
+                    xl6OutputPrintf(out, "    v%u = %s(v%u",
                                     (unsigned int)instruction->result,
                                     xl6IrCgenValueDeepCloneSymbol(module,instruction),
                                     (unsigned int)module->operands[instruction->firstOperand]);
+                    if (instruction->copyGraphProviders) {
+                        xl6OutputPuts(",",out);
+                        if (!xl6IrCgenEmitValueGraphPlan(out,instruction->copyGraphProviders,0)) return 0;
+                    }
+                    xl6OutputPuts(");\n",out);
                 } else if ( instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_CAST ) {
                     int collectionTag;

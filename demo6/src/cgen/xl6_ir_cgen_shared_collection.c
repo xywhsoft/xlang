@@ -48,6 +48,7 @@ static const char* xl6IrCgenValueCopyProviderSymbol(XL6_IrValueCopyProviderAbi a
     case XL6_IR_VALUE_COPY_ARRAY_SET_WIRE_V1: return deep ? "xl6ValueCloneSetGraphV1" : "xl6ValueCopyV1";
     case XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1: return deep ? "xl6ValueCloneCollectionsV1" : "xl6ValueCopyV1";
     case XL6_IR_VALUE_COPY_DICT_V1: return deep ? NULL : "xl6DictValueCloneV1";
+    case XL6_IR_VALUE_COPY_NATIVE_GRAPH_V1: return deep ? "xl6ValueDeepCloneNativeV1" : NULL;
     default: return NULL;
     }
 }
@@ -67,30 +68,37 @@ static const char* xl6IrCgenRestoreIsolationSymbol(const XL6_IrModule* module,
 static const char* xl6IrCgenRestoreObjectProviderSymbol(const XL6_IrModule* module,
     const XL6_IrPersistenceRestoreRoot* root)
 {
-    XL6_IrValueCopyProviderAbi abi=xl6IrValueCopyProviderAbiForType(module,root->type,1);
-    return abi==XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1 ? "xl6RestoreClassCollectionsProviderV1" :
-        abi==XL6_IR_VALUE_COPY_SET_V1 || abi==XL6_IR_VALUE_COPY_ARRAY_SET_WIRE_V1 ? "xl6RestoreClassSetProviderV1" :
-        abi==XL6_IR_VALUE_COPY_LIST_V1 || abi==XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1 ?
+    unsigned providers=xl6IrValueGraphProvidersForType(module,root->type);
+    return (providers&3u)==3u ? "xl6RestoreClassCollectionsProviderV1" :
+        (providers&XL6_IR_GRAPH_SET_V1) ? "xl6RestoreClassSetProviderV1" :
+        (providers&XL6_IR_GRAPH_LIST_V1) ?
         "xl6RestoreClassProviderV1" : "xl6RestoreClassClosedProviderV1";
 }
 static const char* xl6IrCgenPersistenceProjectSymbol(const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
 {
-    if (instruction && (xl6IrPersistenceGraphProviders(module,instruction->payloadType)&XL6_IR_GRAPH_DICT_V1))
+    if (instruction && xl6IrValueGraphProvidersForType(module,instruction->payloadType))
         return "xl6PersistenceProjectNativeV1";
-    XL6_IrValueCopyProviderAbi abi=instruction ?
-        xl6IrValueCopyProviderAbiForType(module,instruction->payloadType,1) : XL6_IR_VALUE_COPY_INVALID;
-    return abi==XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1 ? "xl6PersistenceProjectCollectionsV1" :
-        abi==XL6_IR_VALUE_COPY_SET_V1 || abi==XL6_IR_VALUE_COPY_ARRAY_SET_WIRE_V1 ? "xl6PersistenceProjectSetV1" :
-        abi==XL6_IR_VALUE_COPY_LIST_V1 || abi==XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1 ?
-        "xl6PersistenceProjectListV1" : abi==XL6_IR_VALUE_COPY_ARRAY_WIRE_V1 ? "xl6PersistenceProjectV1" : NULL;
+    return instruction && xl6IrValueCopyProviderAbiForType(module,instruction->payloadType,1)==XL6_IR_VALUE_COPY_ARRAY_WIRE_V1
+        ? "xl6PersistenceProjectV1" : NULL;
 }
-static int xl6IrCgenEmitPersistenceGraph(XL6_Output* out,unsigned providers)
+static int xl6IrCgenEmitValueGraphHeaders(XL6_Output* out,unsigned providers,int projection)
+{
+    if (providers&~7u) return 0;
+    if (providers) xl6OutputPuts("#include <__xl_runtime/xl6_value_graph_plan.h>\n",out);
+    if (providers&XL6_IR_GRAPH_LIST_V1) xl6OutputPuts(projection ?
+        "#include <__xl_runtime/xl6_persistence_project.h>\n" : "#include <__xl_runtime/xl6_list_graph.h>\n",out);
+    if (providers&XL6_IR_GRAPH_SET_V1) xl6OutputPuts("#include <__xl_runtime/xl6_set_graph.h>\n",out);
+    if (providers&XL6_IR_GRAPH_DICT_V1) xl6OutputPuts("#include <__xl_runtime/xl6_dict_graph.h>\n",out);
+    return !xl6OutputHasFailed(out);
+}
+static int xl6IrCgenEmitValueGraphPlan(XL6_Output* out,unsigned providers,int projection)
 {
     unsigned count=0;
     if (!providers || (providers&~7u)) return 0;
     xl6OutputPuts("&(const XL6_ValueGraphPlanV1){sizeof(XL6_ValueGraphPlanV1),(const XL6_ValueGraphProviderV1*[]){",out);
-    if (providers&XL6_IR_GRAPH_LIST_V1) { xl6OutputPuts("xl6PersistenceListGraphProviderV1()",out); ++count; }
+    if (providers&XL6_IR_GRAPH_LIST_V1) { xl6OutputPuts(projection ?
+        "xl6PersistenceListGraphProviderV1()" : "xl6ListGraphProviderV1()",out); ++count; }
     if (providers&XL6_IR_GRAPH_SET_V1) { xl6OutputPrintf(out,"%sxl6SetGraphProviderV1()",count ? "," : ""); ++count; }
     if (providers&XL6_IR_GRAPH_DICT_V1) { xl6OutputPrintf(out,"%sxl6DictGraphProviderV1()",count ? "," : ""); ++count; }
     xl6OutputPrintf(out,"},%u,NULL,0}",count);

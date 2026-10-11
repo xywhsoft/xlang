@@ -30,8 +30,8 @@ int main(int argc,char** argv)
         assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_RESTORE_CLASS_SET)==(lane!=3));
         assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_RESTORE_CLASS_COLLECTIONS)==(lane==1));
         assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_LIST_GRAPH)==(lane==1));
-        assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_PERSISTENCE_PROJECT_COLLECTIONS)==(lane==1));
-        assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_VALUE_COPY_SET_GRAPH)==(lane!=3));
+        assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_PERSISTENCE_PROJECT_COLLECTIONS));
+        assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_VALUE_COPY_SET_GRAPH));
         if (lane==1) {
             assert(ir->persistenceRestoreRootCount);
             unsigned closed=0,legacy=0;

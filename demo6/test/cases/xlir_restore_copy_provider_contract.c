@@ -16,14 +16,14 @@ static void boundedClosure(void)
     assert(xl6IrValueCopyProviderAbiForType(&module,2,1)==XL6_IR_VALUE_COPY_ARRAY_WIRE_V1);
     /* A canonical DAG can revisit the same nodes exponentially. Exhaustion
      * must conservatively keep providers rather than recurse 2^32 times. */
-    assert(xl6IrValueCopyProviderAbiForType(&module,33,1)==XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1);
+    assert(xl6IrValueCopyProviderAbiForType(&module,33,1)==XL6_IR_VALUE_COPY_NATIVE_GRAPH_V1);
     types[1].kind=XL6_IR_TYPE_GENERIC_INSTANCE; types[1].nominalSymbol=1;
-    assert(xl6IrValueCopyProviderAbiForType(&module,2,1)==XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1);
+    assert(xl6IrValueCopyProviderAbiForType(&module,2,1)==XL6_IR_VALUE_COPY_NATIVE_GRAPH_V1);
     XL6_IrClassLayout layout={0}; layout.type=2;
     module.classLayouts=&layout; module.classLayoutCount=1; types[1].paramCount=0;
     assert(xl6IrValueCopyProviderAbiForType(&module,2,1)==XL6_IR_VALUE_COPY_ARRAY_WIRE_V1);
     layout.persistenceObjectAbi=XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA;
-    assert(xl6IrValueCopyProviderAbiForType(&module,2,1)==XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1);
+    assert(xl6IrValueCopyProviderAbiForType(&module,2,1)==XL6_IR_VALUE_COPY_NATIVE_GRAPH_V1);
     layout.persistenceObjectAbi=XL6_IR_PERSISTENCE_OBJECT_CLOSED_SCHEMA;
     XL6_IrClassField field={0}; field.type=1; layout.fieldCount=1;
     module.classFields=&field; module.classFieldCount=1;
@@ -31,10 +31,11 @@ static void boundedClosure(void)
     XL6_IrTypeId listElement=1;
     types[2].collectionAbi=XL6_IR_COLLECTION_LIST; types[2].kind=XL6_IR_TYPE_GENERIC_INSTANCE;
     types[2].nominalSymbol=0; types[2].params=&listElement; types[2].paramCount=1; field.type=3;
-    assert(xl6IrValueCopyProviderAbiForType(&module,2,1)==XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1);
+    assert(xl6IrValueCopyProviderAbiForType(&module,2,1)==XL6_IR_VALUE_COPY_NATIVE_GRAPH_V1);
+    assert(xl6IrValueGraphProvidersForType(&module,2)==XL6_IR_GRAPH_LIST_V1);
     assert(xl6IrValueCopyProviderAbiForType(&module,2,0)==XL6_IR_VALUE_COPY_ARRAY_WIRE_V1);
     layout.firstField=SIZE_MAX;
-    assert(xl6IrValueCopyProviderAbiForType(&module,2,1)==XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1);
+    assert(xl6IrValueCopyProviderAbiForType(&module,2,1)==XL6_IR_VALUE_COPY_NATIVE_GRAPH_V1);
     assert(xl6IrValueCopyProviderAbiForType(&module,0,1)==XL6_IR_VALUE_COPY_INVALID);
 }
 int main(int argc,char** argv)
@@ -51,10 +52,10 @@ int main(int argc,char** argv)
             const XL6_IrPersistenceRestoreNode* node=&unit.ir.persistenceRestoreNodes[j];
             if (node->isolationAbi!=XL6_IR_PERSIST_ISOLATION_RUNTIME_DEEP) continue;
             deep=true; assert(xl6IrValueCopyProviderAbiForType(&unit.ir,node->payloadType,1)==
-                (i==1 ? XL6_IR_VALUE_COPY_ARRAY_WIRE_V1 : XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1));
+                (i==1 ? XL6_IR_VALUE_COPY_ARRAY_WIRE_V1 : XL6_IR_VALUE_COPY_NATIVE_GRAPH_V1));
         }
         assert(deep);
-        assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_VALUE_COPY_COLLECTIONS)==(i==2));
+        assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_VALUE_COPY_COLLECTIONS));
         assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SET_GRAPH)==(i==2));
         assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_LIST_GRAPH)==(i==2));
         assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_RESTORE_CLASS_COLLECTIONS)==(i==2));

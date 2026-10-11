@@ -32660,6 +32660,8 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
         schemaFailure = "XLIR lowering could not derive generator facts";
     else if ( !xl6IrBuildCallableBridges(module, diags) )
         schemaFailure = "XLIR lowering could not derive callable bridge facts";
+    else if ( !xl6IrRefreshValueCopyRecipes(module) )
+        schemaFailure = "XLIR lowering could not derive complete value copy recipes";
     else if ( !xl6IrBuildPersistenceProjectPlans(module) )
         schemaFailure = "XLIR lowering could not derive persistence projection facts";
     else if ( !xl6IrBuildPersistenceRestorePlans(module) )

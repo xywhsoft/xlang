@@ -83,6 +83,8 @@ static xvalue* childAt(const xvalue* source,int64_t key)
     if (xrtValueType(source)==XVALUE_ARRAY) return xrtValueRetain(xrtValueArrayAt(source,(size_t)key));
     assert(xl6ListErasedReadV1(source,key,false,&value,&found) && found && value); return value;
 }
+#ifndef XL6_VALUE_COPY_NO_MAIN
+/* Native facade vectors are not consumers of a generated pruned product. */
 static xvalue* copyInput(unsigned operation)
 {
     xvalue* child=create(true); set(child,INT64_MIN); set(child,INT64_MAX);
@@ -100,6 +102,7 @@ static xvalue* copyInput(unsigned operation)
 }
 static xvalue* copyOperation(unsigned operation,const xvalue* source)
 { return operation==0 || operation==2 ? xl6ValueCopyV1(source) : xl6ValueCloneGraphV1(source); }
+#endif
 static void copyObserved(unsigned operation,xvalue* source,xvalue* result)
 {
     assert(result && result!=source && xrtValueTypeId(result)==xrtValueTypeId(source));
@@ -116,6 +119,7 @@ static void copyObserved(unsigned operation,xvalue* source,xvalue* result)
         xrtValueRelease(b); xrtValueRelease(a); xrtValueRelease(original);
     }
 }
+#ifndef XL6_VALUE_COPY_NO_MAIN
 static bool copyAttempt(unsigned operation,size_t point,unsigned mode)
 {
     xl6ProductMemoryBegin(SIZE_MAX); xvalue* source=copyInput(operation);
@@ -167,7 +171,6 @@ static void extraVectors(void)
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope); assert(!outcome.ok && !outcome.error);
     xrtValueRelease(source); assert(!xl6ProductMemoryEnd()); xl6ProductMemoryVerify();
 }
-#ifndef XL6_VALUE_COPY_NO_MAIN
 int main(int argc,char** argv)
 {
     assert(argc==2); unsigned mode=!strcmp(argv[1],"scopes") ? 1 : !strcmp(argv[1],"providers") ? 2 :

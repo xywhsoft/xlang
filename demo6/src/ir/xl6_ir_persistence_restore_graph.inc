@@ -51,6 +51,8 @@ static int xl6IrRestoreGraphIsolation(const XL6_IrModule* source,
         if (layout->cloneTarget) return 0;
         row->isolationAbi = layout->cloneAbi == XL6_IR_CLASS_COPY_ABI_RUNTIME_SHALLOW
             ? XL6_IR_PERSIST_ISOLATION_RUNTIME_SHALLOW : XL6_IR_PERSIST_ISOLATION_RUNTIME_DEEP;
+        row->isolationGraphProviders=row->isolationAbi==XL6_IR_PERSIST_ISOLATION_RUNTIME_DEEP ?
+            xl6IrValueGraphProvidersForType(source,row->payloadType) : 0;
         return 1;
     case XL6_IR_CLASS_COPY_ABI_INTERNAL_CALL:
         target = xl6IrCallTargetGet(source, layout->cloneTarget);
@@ -222,6 +224,7 @@ static int xl6IrRestoreGraphCompleteNode(XL6_IrRestoreGraphWalk* walk, size_t at
             XL6_IrPersistenceRestoreNode isolation={0}; isolation.payloadType=storage;
             if (!xl6IrRestoreGraphIsolation(source,&source->classLayouts[open],&isolation)) return 0;
             row.openClassLayout=open; row.openIsolationAbi=isolation.isolationAbi;
+            row.openIsolationGraphProviders=isolation.isolationGraphProviders;
             row.openCloneFunction=isolation.cloneFunction; row.openCloneSymbol=isolation.cloneSymbol;
             row.openCloneErrorAbi=isolation.cloneErrorAbi;
         }
@@ -397,9 +400,9 @@ int xl6IrVerifyPersistenceRestoreGraphs(const XL6_IrModule* module)
         XL6_RESTORE_EQUAL(carrierAbi); XL6_RESTORE_EQUAL(seed); XL6_RESTORE_EQUAL(element);
         XL6_RESTORE_EQUAL(schema); XL6_RESTORE_EQUAL(firstEdge); XL6_RESTORE_EQUAL(edgeCount);
         XL6_RESTORE_EQUAL(defaultFunction); XL6_RESTORE_EQUAL(defaultSymbol); XL6_RESTORE_EQUAL(defaultErrorAbi);
-        XL6_RESTORE_EQUAL(isolationAbi); XL6_RESTORE_EQUAL(cloneFunction);
+        XL6_RESTORE_EQUAL(isolationAbi); XL6_RESTORE_EQUAL(isolationGraphProviders); XL6_RESTORE_EQUAL(cloneFunction);
         XL6_RESTORE_EQUAL(cloneSymbol); XL6_RESTORE_EQUAL(cloneErrorAbi);
-        XL6_RESTORE_EQUAL(openClassLayout); XL6_RESTORE_EQUAL(openIsolationAbi);
+        XL6_RESTORE_EQUAL(openClassLayout); XL6_RESTORE_EQUAL(openIsolationAbi); XL6_RESTORE_EQUAL(openIsolationGraphProviders);
         XL6_RESTORE_EQUAL(openCloneFunction); XL6_RESTORE_EQUAL(openCloneSymbol); XL6_RESTORE_EQUAL(openCloneErrorAbi);
     }
     for (i = 0; ok && i < arena.persistenceRestoreEdgeCount; ++i) {

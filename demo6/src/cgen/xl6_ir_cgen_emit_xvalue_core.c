@@ -4,6 +4,10 @@ static int xl6IrCgenEmitXValueCoreRuntime(
 {
     size_t i;
     size_t parameter;
+    unsigned copyProviders=0;
+    for (i=0;i<module->instructionCount;++i)
+        if (xl6IrCgenInstructionIsReachable(module,i)) copyProviders|=module->instructions[i].copyGraphProviders;
+    if (!xl6IrCgenEmitValueGraphHeaders(out,copyProviders,0)) return 0;
     if ( needs->needsXValueRuntime || module->abi.entryKind == XL6_IR_MODULE_ENTRY_XLANG_MAIN ) {
         xl6OutputPuts(
             "#ifndef XLIR_XRT_DECLARATIONS\n"
