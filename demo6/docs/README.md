@@ -78,6 +78,7 @@
 - [Dict 直接槽读写合同](stdlib53-b204-dict-direct-slot.md)：封闭物理槽按统一 IR 直接访问，擦除和不同表示保留转换；双端 checked、故障前缀及裁剪专项通过，发布总门继续。
 - [SlotMap 原生拥有权与实例键](stdlib53-b205-slot-map-native.md)：复用槽表代际，精确 typed 元素、独立键记录与可重试退役；双端原生专项及相邻回归通过，语言接线继续。
 - [SlotMap 键的动态值投影](stdlib53-b206-slot-map-key-value.md)：驻留 converter、相等和内容键能力独立裁剪；双端原生专项通过，语言直接 ABI 与 IR 接线继续。
+- [拥有型原生值的容器传输](stdlib53-b207-native-value.md)：驻留记录传输、失败原子复制与封闭键 Set 内容策略，冻结双端原生及相邻产品验收通过；语言 API 与 frame 继续。
 - [List 方法接入与集合异常合同](stdlib53-b174-list-methods-language.md)：checked 驻留方法、may-raise 和真实 C/JIT/continuation 验证；工厂、动态分发及恢复仍待切换。
 - [List 元素准入与目标构造合同](stdlib53-b173-list-target-recipes.md)：XLIR 精确元素 witness、泛型闭包和目标工厂；错误元数据与分配/作用域失败批处理验证，源载体尚未切换。
 - [List 原生动态方法与快照迭代](stdlib53-b172-list-erased-native.md)：复用 typed List 存储与游标，checked 动态方法、完整稀疏键和单步拥有投影；语言载体切换仍待完成。

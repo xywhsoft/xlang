@@ -207,6 +207,10 @@ static bool equalSlot(const ListOwner* owner,const void* left,const void* right,
     }
     else if (owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1)
         *output=*(xfuture* const*)left==*(xfuture* const*)right;
+    else if (owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1) {
+        const xtypedsetkeypolicy* content=xl6SequenceNativeValuePolicyV1(&owner->policy)->content;
+        *output=content->Equal(left,right,content->UserData);
+    }
     else {
         int order=0;
         if (!xrtTypeCompareValue(owner->layout.value.type,left,right,&order)) return false;
@@ -225,6 +229,10 @@ static bool hashSlot(const ListOwner* owner,const void* slot,uint64* output)
     }
     if (owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
         *output=(uint64)(uintptr_t)*(xfuture* const*)slot; return true;
+    }
+    if (owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1) {
+        const xtypedsetkeypolicy* content=xl6SequenceNativeValuePolicyV1(&owner->policy)->content;
+        *output=content->Hash(slot,content->UserData); return !xrtGetError();
     }
     return xrtTypeHashValue(owner->layout.value.type,slot,output);
 }
@@ -389,7 +397,7 @@ static bool traceEntry(int64 key,ptr slot,ptr opaque)
     bool success=true;
     if (owner->layout.value.transfer==3)
         success=trace->visit(xrtValueOwnership(*(xvalue* const*)slot),trace->context);
-    else if (owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1)
+    else if (owner->layout.value.transfer>=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1)
         success=owner->policy.ops->TraceSlot(owner->policy.data,slot,trace->visit,trace->context);
     if (!success) trace->failed=true;
     return success;
@@ -461,7 +469,7 @@ const xrtownershipadapterv1* xl6ListOwnershipAdapterV2(xrtownershipref ref,
     if (ref.Data && ref.Ops==&ownershipOps) {
         size_t refs; if (!ownershipCount(ref.Data,&refs)) return NULL;
         const ListOwner* owner=ref.Data;
-        if (owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
+        if (owner->layout.value.transfer>=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
             bool found=false;
             for (size_t i=0;allowed && i<count;++i) found=found || allowed[i]==owner->policy.ops;
             if (!found) return NULL;
@@ -596,6 +604,12 @@ bool xl6ListGetV1(const xvalue* value,const XL6_ListLayoutV1* layout,int64_t key
     else if (owner) {
         const void* slot=xrtTypedListConstGet(owner->storage,key);
         if (!slot) success=!xrtGetError();
+        else if (owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1) {
+            const XL6_SequenceNativeValuePolicyV1* record=xl6SequenceNativeValuePolicyV1(&owner->policy);
+            if (!record->Empty(output)) xrtSetErrorKind(XERR_ARGUMENT);
+            else success=take ? xrtTypedListTake(owner->storage,key,output) : record->Copy(slot,output);
+            result=success;
+        }
         else {
             success=take ? xrtTypedListTake(owner->storage,key,output) :
                 xrtTypeCopyValue(xrtTypedListItemType(owner->storage),output,slot);
