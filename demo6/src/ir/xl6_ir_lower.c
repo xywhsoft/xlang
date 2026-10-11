@@ -20923,6 +20923,7 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
     int closureItemProjection = 0;
     int nativeHandleItemProjection = 0;
     int unionItemProjection = 0;
+    int nativeValueItemProjection = 0;
 
     if ( node->sourceKind != XL6_AST_FOR || node->childCount != 3 ||
          node->region == 0 ||
@@ -21155,6 +21156,10 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
              projectedItemType->typeValueId != 0 )
             break;
         goto invalidItemProjection;
+    case XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY:
+        nativeValueItemProjection=1;
+        if(xl6IrNativeValuePlanForType(projectedItemType)) break;
+        goto invalidItemProjection;
     case XL6_IR_LOOP_ITEM_UNION_COPY:
         unionItemProjection = 1;
         if ( projectedItemType->kind == XL6_IR_TYPE_UNION &&
@@ -21189,6 +21194,7 @@ invalidItemProjection:
          node->loopItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_CLOSURE_COPY ||
          node->loopItemAbi == XL6_IR_LOOP_ITEM_CLOSURE_COPY ||
          node->loopItemAbi == XL6_IR_LOOP_ITEM_XVALUE_RETAIN ||
+         node->loopItemAbi == XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY ||
          node->loopItemAbi ==
              XL6_IR_LOOP_ITEM_DYNAMIC_LOGICAL_XVALUE);
     if ( hasItem && node->loopItemLifetimeAbi != (!materializesItem
@@ -21352,7 +21358,7 @@ invalidItemProjection:
     if ( materializesItem ) {
         if ( nullableItemProjection || scalarItemProjection || closureItemProjection ||
              nativeHandleItemProjection ||
-             unionItemProjection ) {
+             unionItemProjection || nativeValueItemProjection ) {
             XL6_IrTypeId dynamicType =
                 xl6IrLowerFindDynamicBuiltinType(ctx->module);
             XL6_IrValueId borrowedItem = dynamicType == XL6_IR_TYPE_INVALID
@@ -21361,7 +21367,9 @@ invalidItemProjection:
                     ctx, itemTargetId, dynamicType,
                     XL6_IR_RUNTIME_XVALUE_ITERATOR_ITEM_BORROW,
                     &loadedState, 1);
-            item = scalarItemProjection
+            item = nativeValueItemProjection
+                ? xl6IrLowerProjectBorrowedXValueAsExactType(ctx,itemTargetId,borrowedItem,itemType)
+                : scalarItemProjection
                 ? xl6IrLowerProjectBorrowedXValueAsScalar(
                     ctx, itemTargetId, borrowedItem, itemType)
                 : nativeHandleItemProjection

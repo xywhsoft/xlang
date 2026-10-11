@@ -2919,7 +2919,10 @@ typedef enum XL6_IrLoopItemAbi {
      * semantic identities distinct prevents lowering or Cgen from treating a
      * Unicode scalar as an integer byte, or vice versa. */
     XL6_IR_LOOP_ITEM_CHAR,
-    XL6_IR_LOOP_ITEM_U8
+    XL6_IR_LOOP_ITEM_U8,
+    /* Independent owned record projected through its sealed native-value
+     * plan. Copy can fail; the binding is released on every loop exit. */
+    XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY
 } XL6_IrLoopItemAbi;
 
 /* Projection representation and target lifetime are distinct contracts.  A

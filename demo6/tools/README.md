@@ -11,6 +11,18 @@ insert/get/size/no-diagnostic/OOM prefixes with successful retry. This is not
 public snapshots, paired iteration, frame/cell, persistence, a pruned shipping
 artifact or full53 acceptance; see [SlotMap core](../docs/stdlib53-b214-slot-map-core.md).
 
+The same tool with `--snapshots --pruned` adds public independent keys/values,
+sealed owning-native-record foreach (including all control-flow cleanup exits),
+snapshot-specific checked and complete allocation prefixes, and O0/O2 independent
+executables linked only from the actual artifact plan. Value-only symbol checks
+exclude key snapshot/boxing/hash/factory providers. It also emits and runs a real
+public-API AOT executable. For the unbundled source driver, tracked private-source
+VFS entries are expanded into a byte-verified physical SDK under the frozen root;
+existing mismatched files are rejected. This does not rebuild shipping VFS blobs,
+stage nested compiler-import resources, or certify `import xlang`, DLL/SO,
+paired snapshots, frame/cell, persistence or full53. See
+[SlotMap language snapshots](../docs/stdlib53-b215-slot-map-snapshot-language.md).
+
 `check_stdlib_slot_map_snapshot.py --root <frozen-demo6> --out <fresh-output> [--sanitize]`
 checks owning SlotMap key/value snapshots, five transfer domains, schema aliases,
 source destruction, reentrant/no-diagnostic failures and complete allocation

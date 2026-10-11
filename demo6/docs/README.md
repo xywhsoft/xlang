@@ -85,6 +85,7 @@
 - [拥有型原生值的容器接入与键 ABI 校正](stdlib53-b211-native-value-collections.md)：Array／List／Set／Dict 精确值域、原生提取及语言身份／描述符赋值校正；其余消费边界和总验收继续。
 - [拥有型原生记录的声明式调用](stdlib53-b213-native-value-foreign.md)：闭合原生值调用登记、借用参数与独立拥有结果；双端实际 C／JIT 和失败清理验证通过，公开 SlotMap 完整接线继续。
 - [SlotMap 核心语言 API](stdlib53-b214-slot-map-core.md)：显式构造与九个 checked 核心方法，共享精确 XLIR／槽位 ABI；双端严格 C／JIT 和失败清理通过，快照、迭代与完整封板继续。
+- [SlotMap 独立快照与原生值遍历](stdlib53-b215-slot-map-snapshot-language.md)：公开 keys／values 与通用 checked 原生值 foreach，双端严格 C／JIT、真实 AOT 和按需独立程序通过；成对迭代、其他消费边界及发布总门继续。
 - [SlotMap 的原生键和值快照](stdlib53-b212-slot-map-snapshots.md)：精确拥有快照、失败回滚与独立键组件；双端原生专项及值快照实际裁剪程序通过，公开语言 API 和成对迭代继续。
 - [List 方法接入与集合异常合同](stdlib53-b174-list-methods-language.md)：checked 驻留方法、may-raise 和真实 C/JIT/continuation 验证；工厂、动态分发及恢复仍待切换。
 - [List 元素准入与目标构造合同](stdlib53-b173-list-target-recipes.md)：XLIR 精确元素 witness、泛型闭包和目标工厂；错误元数据与分配/作用域失败批处理验证，源载体尚未切换。

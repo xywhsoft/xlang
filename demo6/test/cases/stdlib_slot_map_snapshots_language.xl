@@ -1,0 +1,109 @@
+class SnapshotItem
+    int value
+end
+func texts() as array<string>
+    auto map = SlotMap::<string>()
+    map.insert("a\0b")
+    return map.values()
+end
+func detachedKeys() as array<SlotMapKey>
+    auto map = SlotMap::<int>()
+    map.insert(19)
+    return map.keys()
+end
+func firstKey(array<SlotMapKey> keys) as SlotMapKey
+    for key in keys
+        try
+            return key
+        finally
+            assert(key == key)
+        end
+    end
+    return keys[0]
+end
+func main(...) as int
+    auto map = SlotMap::<int>()
+    assert(map.keys().length == 0 and map.values().length == 0)
+    auto first = map.insert(11)
+    auto gone = map.insert(12)
+    assert(map.remove(gone))
+    auto last = map.insert(13)
+    array<SlotMapKey> keys = map.keys()
+    array<int> values = map.values()
+    assert(keys.length == 2 and values.length == 2)
+    int sum = 0
+    for key in keys
+        assert(map.contains(key))
+        sum += map.get(key)
+    end
+    assert(sum == 24)
+    assert(keys[0] == first and keys[1] == last)
+    assert(firstKey(keys) == first)
+    int visited = 0
+    for index, key in keys
+        assert(index >= 0 and key == keys[index])
+        visited += 1
+        if index == 0 then continue end
+        break
+    end
+    assert(visited == 2)
+    for _ in keys
+        visited += 1
+    end
+    assert(visited == 4)
+    assert(map.set(first, 99))
+    assert(map.clear())
+    assert(!map.contains(keys[0]) and !map.contains(keys[1]))
+    sum = 0
+    for value in values
+        sum += value
+    end
+    assert(sum == 24)
+    auto independent = detachedKeys()
+    assert(independent.length == 1 and independent[0] == independent[0])
+    assert(!map.contains(independent[0]))
+    auto detachedText = texts()
+    assert(detachedText[0] == "a\0b" and detachedText[0].length == 3)
+    auto text = SlotMap::<string>()
+    auto textKey = text.insert("你\0好")
+    auto textValues = text.values()
+    assert(text.set(textKey, "new"))
+    assert(textValues[0] == "你\0好")
+    for value in textValues
+        assert(value == "你\0好")
+    end
+    auto binary = SlotMap::<bytes>()
+    binary.insert(b"a\0b")
+    auto binaryValues = binary.values()
+    assert(binary.clear())
+    bytes binaryCopy = binaryValues[0]
+    binaryCopy[0] = 99
+    assert(binaryValues[0] == b"a\0b")
+    auto narrow = SlotMap::<int32>()
+    narrow.insert(17)
+    assert(narrow.values()[0] == 17)
+    auto optional = SlotMap::<int?>()
+    optional.insert(null)
+    optional.insert(31)
+    auto optionalValues = optional.values()
+    int? expected = 31
+    assert(optionalValues[0] == null and optionalValues[1] == expected)
+    auto records = SlotMap::<SlotMapKey>()
+    records.insert(first)
+    auto recordValues = records.values()
+    assert(records.clear() and recordValues[0] == first)
+    auto objects = SlotMap::<SnapshotItem>()
+    SnapshotItem item = SnapshotItem()
+    item.value = 42
+    objects.insert(item)
+    auto objectValues = objects.values()
+    item.value = 43
+    assert(objects.clear() and objectValues[0].value == 43)
+    auto nested = SlotMap::<array<int>>()
+    array<int> child = [1]
+    nested.insert(child)
+    auto nestedValues = nested.values()
+    child[0] = 2
+    assert(nested.clear() and nestedValues[0][0] == 2)
+    return 0
+end

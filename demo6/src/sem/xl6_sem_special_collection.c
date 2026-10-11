@@ -289,7 +289,8 @@ static int xl6SemCheckSpecialCollectionCtorCall(XL6_SemContext* ctx, XL6_AstNode
 
 typedef enum XL6_SemSlotMapRole {
     XL6_SEM_SLOT_MAP_NONE, XL6_SEM_SLOT_MAP_KEY, XL6_SEM_SLOT_MAP_ITEM,
-    XL6_SEM_SLOT_MAP_INT, XL6_SEM_SLOT_MAP_BOOL, XL6_SEM_SLOT_MAP_OWNER
+    XL6_SEM_SLOT_MAP_INT, XL6_SEM_SLOT_MAP_BOOL, XL6_SEM_SLOT_MAP_OWNER,
+    XL6_SEM_SLOT_MAP_ARRAY_KEY, XL6_SEM_SLOT_MAP_ARRAY_ITEM
 } XL6_SemSlotMapRole;
 typedef struct XL6_SemSlotMapMethod {
     const char* name; size_t count; XL6_SemSlotMapRole args[2], result;
@@ -645,13 +646,21 @@ static XL6_AstNode* xl6SemCloneSpecialCollectionCallType(XL6_SemContext* ctx, XL
         return NULL;
     }
     member = node->children[0];
-    if(xl6TextEquals(member->text,"get")) {
-        receiverType=xl6SemCloneSpecialCollectionReceiverType(ctx,member);
-        concreteType=xl6SemResolveAliasType(ctx,receiverType);
-        XL6_AstNode* result=concreteType && xl6TextEquals(concreteType->text,"SlotMap")
-            ? xl6SemCloneTypeNode(xl6SemSpecialCollectionTypeArg(ctx,receiverType,0u)) : NULL;
-        xl6AstFree(receiverType); if(result) return result;
+    receiverType=xl6SemCloneSpecialCollectionReceiverType(ctx,member);
+    concreteType=xl6SemResolveAliasType(ctx,receiverType);
+    if(concreteType && xl6TextEquals(concreteType->text,"SlotMap")) {
+        const XL6_SemSlotMapMethod* spec=xl6SemSlotMapMethod(member->text);
+        XL6_AstNode* result=NULL;
+        if(spec && (spec->result==XL6_SEM_SLOT_MAP_ITEM || spec->result==XL6_SEM_SLOT_MAP_ARRAY_ITEM)) {
+            result=xl6SemCloneTypeNode(xl6SemSpecialCollectionTypeArg(ctx,receiverType,0u));
+            if(spec->result==XL6_SEM_SLOT_MAP_ARRAY_ITEM && result)
+                result=xl6SemNewGenericContainerType("array",result,member);
+        } else if(spec && spec->result==XL6_SEM_SLOT_MAP_ARRAY_KEY)
+            result=xl6SemNewGenericContainerType("array",
+                xl6AstNewText(XL6_AST_TYPE,"SlotMapKey",10,NULL),member);
+        xl6AstFree(receiverType); return result;
     }
+    xl6AstFree(receiverType);
     if (xl6TextEquals(member->text,"popBatch") || xl6TextEquals(member->text,"peekBatch") ||
         xl6TextEquals(member->text,"peekBatchAt")) {
         receiverType=xl6SemCloneSpecialCollectionReceiverType(ctx,member);

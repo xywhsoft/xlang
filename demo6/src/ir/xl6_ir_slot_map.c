@@ -2,7 +2,7 @@
  * reconstructed source syntax. Both lowered validation and Cgen use this plan. */
 typedef enum XL6_IrSlotMapRole {
     XL6_SLOT_MAP_NONE,XL6_SLOT_MAP_KEY,XL6_SLOT_MAP_ITEM,XL6_SLOT_MAP_INT,
-    XL6_SLOT_MAP_BOOL,XL6_SLOT_MAP_OWNER
+    XL6_SLOT_MAP_BOOL,XL6_SLOT_MAP_OWNER,XL6_SLOT_MAP_ARRAY_KEY,XL6_SLOT_MAP_ARRAY_ITEM
 } XL6_IrSlotMapRole;
 typedef struct XL6_IrSlotMapMethod {
     XL6_IrRuntimeResourceOp source; XL6_IrRuntimeOp runtime;
@@ -67,6 +67,18 @@ static int xl6IrSlotMapRoleMatches(const XL6_IrModule* m,XL6_IrSlotMapRole role,
     switch(role) {
     case XL6_SLOT_MAP_OWNER: return id==owner;
     case XL6_SLOT_MAP_ITEM: return id==item;
+    case XL6_SLOT_MAP_ARRAY_ITEM: {
+        XL6_IrValueCollectionRecipe p={0};
+        return xl6IrSlotMapConstructionRecipe(m,owner,&p) && id==p.valueSchemaType;
+    }
+    case XL6_SLOT_MAP_ARRAY_KEY: {
+        const XL6_IrType* source=xl6IrTypeGet(&m->types,owner);
+        if(!source || !xl6IrSequenceConstructionRecipe(m,id,XL6_IR_SEQUENCE_ROLE_ARRAY,NULL) ||
+            t->typeValueId==source->typeValueId || t->sequenceLayout.codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT ||
+            t->sequenceLayout.transferAbi!=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY) return 0;
+        const XL6_IrNativeValuePlan* p=xl6IrNativeValuePlanForType(xl6IrTypeGet(&m->types,t->sequenceLayout.elementType));
+        return p && p->abi==XL6_IR_NATIVE_VALUE_SLOT_MAP_KEY_V1;
+    }
     case XL6_SLOT_MAP_KEY: {
         const XL6_IrNativeValuePlan* p=xl6IrNativeValuePlanForType(t);
         return p && p->abi==XL6_IR_NATIVE_VALUE_SLOT_MAP_KEY_V1;

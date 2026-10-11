@@ -30,6 +30,11 @@ int main(int argc,char** argv)
         else if(!strcmp(argv[2],"ir-typed")) ok=xlcEmitIr(compiler,argv[3],1);
         else if(!strcmp(argv[2],"ir-lowered")) ok=xlcEmitLoweredIr(compiler,argv[3],1);
         else if(!strcmp(argv[2],"run")) ok=xlcRun(compiler,0,NULL);
+        else if(!strcmp(argv[2],"module")) {
+            XL_Module* module=xlcRelocateModule(compiler);
+            ok=module && xlRunModuleMain(xlcRuntimeContext(compiler),module,NULL);
+            xlDestroyModule(module);
+        } else if(!strcmp(argv[2],"exe")) ok=xlcEmitExe(compiler,argv[3]);
         else ok=0;
     }
     int code=ok ? xlcGetLastExitCode(compiler) : 1;
