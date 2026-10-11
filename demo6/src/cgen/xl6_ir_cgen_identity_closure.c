@@ -64,6 +64,7 @@ static int xl6IrCgenNominalIdentitySetUsed(
             instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
             instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_SET_NEW ||
             instruction->runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN ||
+            instruction->runtimeOp==XL6_IR_RUNTIME_DICT_IMPORT_CHAIN ||
             instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_KEYS ||
             instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_VALUES ||
             (instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&

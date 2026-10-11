@@ -20,6 +20,16 @@ static int xl6IrCgenEmitPersistenceProjectPlans(
         return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
             "XLIR persistence projection tables are invalid");
     xl6OutputPuts("#include <__xl_runtime/xl6_persistence_project.h>\n", out);
+    unsigned graphProviders=0;
+    for (s=0;s<module->instructionCount;++s)
+        if (xl6IrCgenInstructionIsReachable(module,s) &&
+            (module->instructions[s].runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
+             module->instructions[s].runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT)) {
+            unsigned providers=xl6IrPersistenceGraphProviders(module,module->instructions[s].payloadType);
+            if (providers&XL6_IR_GRAPH_DICT_V1) graphProviders|=providers;
+        }
+    if (graphProviders&XL6_IR_GRAPH_DICT_V1) xl6OutputPuts("#include <__xl_runtime/xl6_dict_graph.h>\n",out);
+    if (graphProviders&XL6_IR_GRAPH_SET_V1) xl6OutputPuts("#include <__xl_runtime/xl6_set_graph.h>\n",out);
     for (s = 0; s < module->instructionCount; ++s)
         if (module->instructions[s].kind == XL6_IR_INSTR_RUNTIME_CALL) {
             const XL6_IrPersistenceInvocationContract* invocation =

@@ -3876,6 +3876,8 @@ static int xl6IrLowerCheckedCollectionProjectionRequired(
                 xl6IrArrayImportChainRecipe(module,targetType,NULL,0,&chainLength) :
             target->collectionAbi==XL6_IR_COLLECTION_SET ?
                 xl6IrSetImportChainRecipe(module,targetType,NULL,0,&chainLength) :
+            target->collectionAbi==XL6_IR_COLLECTION_DICT ?
+                xl6IrDictImportChainRecipe(module,targetType,NULL,0,&chainLength) :
                 xl6IrLowerCheckedCollectionPayloadSupported(module, target->params[0])) &&
            (xl6IrLowerTypeIsDynamicXValueBuiltin(module, sourceType) ||
             (xl6IrTypeIsStaticallyShapedErasedCollection(
@@ -3905,7 +3907,8 @@ static XL6_IrValueId xl6IrLowerCheckedCollectionRebind(
     XL6_IrInstruction* instruction;
     XL6_IrInstruction* test;
     bool nativeImport=target && (target->collectionAbi==XL6_IR_COLLECTION_ARRAY ||
-        target->collectionAbi==XL6_IR_COLLECTION_LIST || target->collectionAbi==XL6_IR_COLLECTION_SET);
+        target->collectionAbi==XL6_IR_COLLECTION_LIST || target->collectionAbi==XL6_IR_COLLECTION_SET ||
+        target->collectionAbi==XL6_IR_COLLECTION_DICT);
     XL6_IrNodeId failureOrigin=nativeImport ? origin : sourceId;
     const XL6_IrNode* failureNode=nativeImport ? xl6IrNodeGet(ctx->module,origin) : sourceNode;
 
@@ -3930,7 +3933,8 @@ static XL6_IrValueId xl6IrLowerCheckedCollectionRebind(
     instruction = &ctx->module->instructions[ctx->module->instructionCount - 1];
     instruction->collectionAbi = target->collectionAbi;
     instruction->payloadType = target->params[0];
-    if (target->collectionAbi==XL6_IR_COLLECTION_LIST || target->collectionAbi==XL6_IR_COLLECTION_SET) {
+    if (target->collectionAbi==XL6_IR_COLLECTION_LIST || target->collectionAbi==XL6_IR_COLLECTION_SET ||
+        target->collectionAbi==XL6_IR_COLLECTION_DICT) {
         XL6_IrValueCollectionRecipe recipe={0};
         if (!xl6IrValueCollectionConstructionRecipe(ctx->module,targetType,&recipe)) return XL6_IR_VALUE_INVALID;
         instruction->sequenceAdmissionIdentitySet=recipe.admissionIdentitySet;
@@ -26319,7 +26323,8 @@ static XL6_IrValueId xl6IrLowerValueInitializer(
         }
         if (initializer->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||
             initializer->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
-            initializer->runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN) {
+            initializer->runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN ||
+            initializer->runtimeOp==XL6_IR_RUNTIME_DICT_IMPORT_CHAIN) {
             if (!expression || initializer->errorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE ||
                 initializer->runtimeOp!=xl6IrNativeCollectionImportRuntimeOp(ctx->module,expression->storageType,initializer->type) ||
                 !xl6IrLowerValueInitializerErrorPlan(ctx,declarationId,initializer)) return XL6_IR_VALUE_INVALID;

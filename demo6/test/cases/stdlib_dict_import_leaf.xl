@@ -1,0 +1,14 @@
+class DictImportLeafData
+    derive value
+    dict<int> value
+end
+func main(...) as int
+    var raw = {"a\0你": 7, "": 2}
+    dict<int> value = raw
+    assert(value.length == 2 and value["a\0你"] == 7)
+    DictImportLeafData restored = json.parse::<DictImportLeafData>("{\"value\":{\"a\\u0000你\":7,\"\":2}}")
+    assert(restored.value.length == 2 and restored.value[""] == 2)
+    DictImportLeafData roundtrip = xlon.parse::<DictImportLeafData>(xlon.stringify(restored))
+    assert(roundtrip.value["a\0你"] == 7 and roundtrip.value[""] == 2)
+    return 0
+end

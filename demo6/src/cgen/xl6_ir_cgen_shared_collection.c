@@ -76,12 +76,25 @@ static const char* xl6IrCgenRestoreObjectProviderSymbol(const XL6_IrModule* modu
 static const char* xl6IrCgenPersistenceProjectSymbol(const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
 {
+    if (instruction && (xl6IrPersistenceGraphProviders(module,instruction->payloadType)&XL6_IR_GRAPH_DICT_V1))
+        return "xl6PersistenceProjectNativeV1";
     XL6_IrValueCopyProviderAbi abi=instruction ?
         xl6IrValueCopyProviderAbiForType(module,instruction->payloadType,1) : XL6_IR_VALUE_COPY_INVALID;
     return abi==XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1 ? "xl6PersistenceProjectCollectionsV1" :
         abi==XL6_IR_VALUE_COPY_SET_V1 || abi==XL6_IR_VALUE_COPY_ARRAY_SET_WIRE_V1 ? "xl6PersistenceProjectSetV1" :
         abi==XL6_IR_VALUE_COPY_LIST_V1 || abi==XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1 ?
         "xl6PersistenceProjectListV1" : abi==XL6_IR_VALUE_COPY_ARRAY_WIRE_V1 ? "xl6PersistenceProjectV1" : NULL;
+}
+static int xl6IrCgenEmitPersistenceGraph(XL6_Output* out,unsigned providers)
+{
+    unsigned count=0;
+    if (!providers || (providers&~7u)) return 0;
+    xl6OutputPuts("&(const XL6_ValueGraphPlanV1){sizeof(XL6_ValueGraphPlanV1),(const XL6_ValueGraphProviderV1*[]){",out);
+    if (providers&XL6_IR_GRAPH_LIST_V1) { xl6OutputPuts("xl6PersistenceListGraphProviderV1()",out); ++count; }
+    if (providers&XL6_IR_GRAPH_SET_V1) { xl6OutputPrintf(out,"%sxl6SetGraphProviderV1()",count ? "," : ""); ++count; }
+    if (providers&XL6_IR_GRAPH_DICT_V1) { xl6OutputPrintf(out,"%sxl6DictGraphProviderV1()",count ? "," : ""); ++count; }
+    xl6OutputPrintf(out,"},%u,NULL,0}",count);
+    return !xl6OutputHasFailed(out);
 }
 static const char* xl6IrCgenCollectionContainsSymbol(const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)

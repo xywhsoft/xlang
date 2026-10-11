@@ -138,6 +138,7 @@ const XL6_CollectionImportProviderV1* xl6DictImportProviderV1(void)
 {
     static const XL6_CollectionImportProviderV1 provider={
         .Begin=begin,.End=end,.Empty=empty,.Admits=admits,.AppendText=appendText,
-        .InputBegin=inputBegin,.InputEnd=inputEnd,.InputConversion=inputConversion};
+        .InputBegin=inputBegin,.InputEnd=inputEnd,.InputConversion=inputConversion,
+        .OwnershipAdapter=xl6DictOwnershipAdapterV1};
     return &provider;
 }

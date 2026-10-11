@@ -605,22 +605,36 @@ typedef struct XL6_IrCgenValueCollectionTarget {
     const char* create;
     const char* project;
     const char* schema;
+    const char* importProvider;
 } XL6_IrCgenValueCollectionTarget;
 /* Closed declarative target table; an unknown family never means Set. */
 static const XL6_IrCgenValueCollectionTarget* xl6IrCgenValueCollectionTarget(XL6_IrCollectionAbi family)
 {
     static const XL6_IrCgenValueCollectionTarget list={"XL6_ListLayoutV1","xl6ListCreateTakeV1",
-        "xl6ListProjectionTakeV1","xl6SequenceListCreateTakeV1"};
+        "xl6ListProjectionTakeV1","xl6SequenceListCreateTakeV1","xl6ListImportProviderV1"};
     static const XL6_IrCgenValueCollectionTarget set={"XL6_SetLayoutV1","xl6SetCreateTakeV1",
-        "xl6SetProjectionTakeV1","xl6SequenceSetCreateTakeV1"};
+        "xl6SetProjectionTakeV1","xl6SequenceSetCreateTakeV1","xl6SetImportProviderV1"};
     static const XL6_IrCgenValueCollectionTarget dict={"XL6_DictLayoutV1","xl6DictCreateTakeV1",
-        "xl6DictProjectionTakeV1","xl6SequenceDictCreateTakeV1"};
+        "xl6DictProjectionTakeV1","xl6SequenceDictCreateTakeV1","xl6DictImportProviderV1"};
     switch (family) {
     case XL6_IR_COLLECTION_LIST: return &list;
     case XL6_IR_COLLECTION_SET: return &set;
     case XL6_IR_COLLECTION_DICT: return &dict;
     default: return NULL;
     }
+}
+static int xl6IrCgenEmitImportProviders(XL6_Output* out,const XL6_IrModule* module,
+    const XL6_IrTypeId* types,size_t count)
+{
+    for (size_t i=0;i<count;++i) {
+        const XL6_IrType* type=xl6IrTypeGet(&module->types,types[i]);
+        const XL6_IrCgenValueCollectionTarget* target=type ? xl6IrCgenValueCollectionTarget(type->collectionAbi) : NULL;
+        if (!type || (!target && type->collectionAbi!=XL6_IR_COLLECTION_ARRAY)) return 0;
+        if (i) xl6OutputPuts(",",out);
+        if (target) xl6OutputPrintf(out,"%s()",target->importProvider);
+        else xl6OutputPuts("NULL",out);
+    }
+    return !xl6OutputHasFailed(out);
 }
 static XL6_IrCollectionAbi xl6IrCgenValueCollectionFamily(XL6_IrSequenceLayoutAbi abi)
 {
@@ -829,9 +843,7 @@ static int xl6IrCgenEmitArrayImportChain(XL6_Output* out,const XL6_IrModule* mod
     if (xl6IrCgenEmitSequenceCreateDepth(out,module,typeId,target,set,0,"xlir_array_import_seeds",count,false,true)<0) return -1;
     if (mixed) {
         xl6OutputPrintf(out,"    const XL6_CollectionImportProviderV1* xlir_array_import_providers[%u] = {",(unsigned)count);
-        for (size_t i=0;i<count;++i) xl6OutputPrintf(out,"%s%s",i ? "," : "",
-            xl6IrTypeGet(&module->types,types[i])->collectionAbi==XL6_IR_COLLECTION_LIST ? "xl6ListImportProviderV1()" :
-            xl6IrTypeGet(&module->types,types[i])->collectionAbi==XL6_IR_COLLECTION_SET ? "xl6SetImportProviderV1()" : "NULL");
+        if (!xl6IrCgenEmitImportProviders(out,module,types,count)) return -1;
         xl6OutputPrintf(out,"};\n    const XL6_CollectionImportPlanV1 xlir_array_import_plan = {sizeof(XL6_CollectionImportPlanV1),"
             "xlir_array_import_providers,XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1,0,0,false};\n"
             "    xrtValueRelease(%s);\n    %s = %s(xlir_array_import_seeds,%u,%s,&xlir_array_import_plan); }\n",
@@ -852,17 +864,14 @@ static int xl6IrCgenEmitValueCollectionImportChain(XL6_Output* out,const XL6_IrM
     XL6_IrTypeId types[65]; XL6_IrValueCollectionRecipe recipe={0};
     size_t count=0;
     if (!source || !xl6IrValueCollectionConstructionRecipe(module,typeId,&recipe) ||
-        !(recipe.family==XL6_IR_COLLECTION_LIST ? xl6IrListImportChainRecipe(module,typeId,types,65,&count) :
-          xl6IrSetImportChainRecipe(module,typeId,types,65,&count))) return -1;
+        !xl6IrCollectionImportChainRecipe(module,typeId,types,65,&count)) return -1;
     char target[24]; snprintf(target,sizeof(target),"v%u",(unsigned)result);
     xl6OutputPrintf(out,"    { xvalue* xlir_list_import_seeds[%u] = {0};\n",(unsigned)count);
     if (xl6IrCgenEmitValueCollectionTargetCreateDepth(out,module,typeId,recipe.family,target,
         recipe.admissionIdentitySet,0,"xlir_list_import_seeds",count)<0) return -1;
     xl6OutputPrintf(out,"    xrtValueRelease(%s);\n"
         "    const XL6_CollectionImportProviderV1* xlir_list_import_providers[%u] = {",target,(unsigned)count);
-    for (size_t i=0;i<count;++i) xl6OutputPrintf(out,"%s%s",i ? "," : "",
-        xl6IrTypeGet(&module->types,types[i])->collectionAbi==XL6_IR_COLLECTION_LIST ? "xl6ListImportProviderV1()" :
-        xl6IrTypeGet(&module->types,types[i])->collectionAbi==XL6_IR_COLLECTION_SET ? "xl6SetImportProviderV1()" : "NULL");
+    if (!xl6IrCgenEmitImportProviders(out,module,types,count)) return -1;
     xl6OutputPrintf(out,"};\n"
         "    const XL6_CollectionImportPlanV1 xlir_list_import_plan = {sizeof(XL6_CollectionImportPlanV1),"
         "xlir_list_import_providers,XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1,0,0,false};\n"

@@ -551,6 +551,10 @@ static bool restoreOwnershipAdmits(xrtownershipref ref,ptr opaque)
     const XL6_RestorePlanV1* plan=admission->plan;
     for (size_t i=0;i<plan->nodeCount;++i) if (plan->nodes[i].kind==XL6_RESTORE_OBJECT_V1 &&
         plan->nodes[i].as.object.provider->OwnershipAdmits(ref)) return true;
+    for (size_t i=0;i<plan->nodeCount;++i) if (plan->nodes[i].kind==XL6_RESTORE_SEQUENCE_V1) {
+        const XL6_CollectionImportProviderV1* provider=plan->nodes[i].as.sequence.provider;
+        if (provider && provider->OwnershipAdapter && provider->OwnershipAdapter(ref)) return true;
+    }
     return admission->read && plan->readBoundary->Admits(admission->read,ref);
 }
 static xvalueobjectfieldsresultv1 commitFields(Import* ctx,const XL6_RestorePlanV1* plan,

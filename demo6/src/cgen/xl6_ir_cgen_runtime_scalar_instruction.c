@@ -54,12 +54,15 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                         xl6IrCgenEmitListTargetCreate(out,module,instruction->type,target,
                         instruction->sequenceAdmissionIdentitySet))>0;
                 } else if (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
-                    instruction->runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN) {
+                    instruction->runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN ||
+                    instruction->runtimeOp==XL6_IR_RUNTIME_DICT_IMPORT_CHAIN) {
                     char source[24];
                     if (!(instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ?
                           xl6IrListImportRuntimeInstructionCompatible(module,instruction) :
+                          instruction->runtimeOp==XL6_IR_RUNTIME_DICT_IMPORT_CHAIN ?
+                          xl6IrDictImportRuntimeInstructionCompatible(module,instruction) :
                           xl6IrSetImportRuntimeInstructionCompatible(module,instruction)))
-                        return xl6IrCgenRuntimeEmitDiag(diags,module,instruction->origin,"XLIR List import contract is unresolved");
+                        return xl6IrCgenRuntimeEmitDiag(diags,module,instruction->origin,"XLIR collection import contract is unresolved");
                     snprintf(source,sizeof(source),"v%u",(unsigned)module->operands[instruction->firstOperand]);
                     return xl6IrCgenEmitValueCollectionImportChain(out,module,instruction->type,instruction->result,source)>0;
                 } else if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) {
@@ -234,11 +237,17 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                     if (!xl6IrPersistenceProjectInstructionAbi(module, instruction))
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                             "XLIR C emitter persistence projection ABI is unresolved");
-                    xl6OutputPrintf(out, "    v%u = %s(v%u, &xlir_persist_plan_%u);\n",
+                    xl6OutputPrintf(out, "    v%u = %s(v%u, &xlir_persist_plan_%u",
                         (unsigned int)instruction->result,
                         xl6IrCgenPersistenceProjectSymbol(module,instruction),
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)xl6IrCgenPersistenceRuntimeFormat(instruction->runtimeOp));
+                    unsigned providers=xl6IrPersistenceGraphProviders(module,instruction->payloadType);
+                    if (providers&XL6_IR_GRAPH_DICT_V1) {
+                        xl6OutputPuts(", ",out);
+                        if (!xl6IrCgenEmitPersistenceGraph(out,providers)) return 0;
+                    }
+                    xl6OutputPuts(");\n",out);
                 } else if (xl6IrPersistenceInvocationRuntime(instruction->runtimeOp) != NULL) {
                     const XL6_IrPersistenceInvocationContract* configured =
                         xl6IrPersistenceInvocationRuntime(instruction->runtimeOp);
