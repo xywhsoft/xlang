@@ -410,7 +410,7 @@ if ($indexAssignment -notmatch '(?s)xl6IrLowerProtectOwnedBorrow.*xl6IrLowerPrep
     throw 'Ordinary index assignment must protect RHS before the shared receiver/key transaction'
 }
 $indexKeyRead = [regex]::Match($lower,
-    '(?ms)^static XL6_IrValueId xl6IrLowerRuntimeXValueKeyRead\(.*?^\}').Value
+    '(?ms)^static XL6_IrValueId xl6IrLowerRuntimeXValueKeyRead\([^;{]*\)\s*\{.*?^\}').Value
 if ($indexKeyRead -notmatch '(?s)operands\[0\] = xl6IrLowerProtectOwnedBorrow.*operands\[1\] = xl6IrLowerNode.*xl6IrLowerProjectBorrowedIndexResult.*xl6IrLowerCompleteEvaluationBorrows\(ctx, origin, evaluationFirst, &result\)') {
     throw 'Non-literal index reads must protect the receiver before key evaluation and own the result before cleanup'
 }

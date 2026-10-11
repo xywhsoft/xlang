@@ -246,6 +246,10 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
                 module->instructions[i].runtimeOp==XL6_IR_RUNTIME_LIST_READ_VALUE_OR_NULL_COPY ||
                 module->instructions[i].runtimeOp==XL6_IR_RUNTIME_LIST_READ_VALUE_REQUIRED_COPY)
                 needs->needsListOwnedReadRuntime=1;
+            else if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_DICT_READ_VALUE_COPY ||
+                module->instructions[i].runtimeOp==XL6_IR_RUNTIME_DICT_READ_VALUE_OR_NULL_COPY ||
+                module->instructions[i].runtimeOp==XL6_IR_RUNTIME_DICT_READ_VALUE_REQUIRED_COPY)
+                needs->needsDictValueIndexRuntime=1;
             else needs->needsXValueArrayOwnedReadRuntime=1;
         }
         if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
@@ -259,6 +263,10 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
         if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
             module->instructions[i].runtimeOp==XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE) {
             needs->needsXValueRuntime=1; needs->needsListWriteRuntime=1;
+        }
+        if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            module->instructions[i].runtimeOp==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE) {
+            needs->needsXValueRuntime=1; needs->needsDictValueIndexRuntime=1;
         }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64 ||

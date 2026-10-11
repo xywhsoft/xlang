@@ -1,0 +1,51 @@
+int dictIndexCleanups = 0
+func dictIndexRead(dict<var> source, string key) as var
+    try
+        return source[key]
+    finally
+        dictIndexCleanups += 1
+    end
+end
+func dictIndexWrite(dict<var> source, string key, var item) as bool
+    try
+        source[key] = item
+        return true
+    finally
+        dictIndexCleanups += 1
+    end
+end
+dict<var> wire = {"a\0你": "v\0你", "a": "prefix", "": "empty"}
+assert(string(dictIndexRead(wire, "a\0你")) == "v\0你")
+assert(string(dictIndexRead(wire, "a")) == "prefix")
+assert(string(dictIndexRead(wire, "")) == "empty")
+assert(dictIndexRead(wire, "missing") == null)
+assert(dictIndexWrite(wire, "a\0你", "next\0value"))
+assert(string(dictIndexRead(wire, "a\0你")) == "next\0value")
+assert(dictIndexCleanups == 6)
+dict<int> numbers = {"a\0你": 7, "a": 2}
+assert(numbers["a\0你"] == 7)
+numbers["a\0你"] += 5
+assert(numbers["a\0你"] == 12 and numbers["a"] == 2)
+string computed = "a\0你"
+numbers[computed] += 3
+assert(numbers[computed] == 15 and numbers["a"] == 2)
+assert(numbers?["absent"] == null)
+dict<int>? maybe = null
+assert(maybe?["absent"] == null)
+int missingCaught = 0
+try
+    int absent = numbers["absent"]
+catch error
+    missingCaught = 1
+end
+assert(missingCaught == 1)
+dict<int?> nullable = {"null": null, "value": 8}
+assert(nullable["null"] == null and nullable["absent"] == null)
+nullable["null"] ?= 3
+assert((nullable["null"] ?? 0) == 3 and (nullable["value"] ?? 0) == 8)
+dict<char> characters = {"你\0": '你'}
+assert(characters["你\0"] == '你')
+dict<string> texts = {"a\0你": "v\0你"}
+string owned = texts["a\0你"]
+texts["a\0你"] = "new"
+assert(owned == "v\0你" and texts["a\0你"] == "new")

@@ -4905,6 +4905,14 @@ static int xl6IrLowerResolveElementTargetOperations(
     XL6_IrTypeId shape = plan->receiver->type != XL6_IR_TYPE_INVALID
         ? plan->receiver->type : plan->receiver->storageType;
     int dynamicField = xl6IrLowerTypeUsesDynamicFieldStorage(ctx->module, shape);
+    const XL6_IrType* receiverType=xl6IrTypeGet(&ctx->module->types,plan->receiver->storageType);
+    if (receiverType && receiverType->collectionAbi==XL6_IR_COLLECTION_DICT &&
+        (plan->lhs->indexWriteAbi==XL6_IR_INDEX_WRITE_XVALUE_OBJECT_LITERAL_SET_NEW ||
+         plan->lhs->indexWriteAbi==XL6_IR_INDEX_WRITE_XVALUE_OBJECT_STRING_SET_NEW)) {
+        plan->borrowOperation=XL6_IR_RUNTIME_DICT_READ_VALUE_COPY;
+        plan->writeOperation=XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE;
+        return 1;
+    }
     switch (plan->lhs->indexWriteAbi) {
     case XL6_IR_INDEX_WRITE_XVALUE_ARRAY_I64_SET_NEW:
         plan->borrowOperation = XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY;
@@ -5011,6 +5019,16 @@ static int xl6IrLowerPrepareElementTargetPlan(
 
     if (plan->memberAddress) return 1;
     keyType = xl6IrTypeGet(&ctx->module->types, plan->key->storageType);
+    if (plan->writeOperation==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE) {
+        if (!keyType || keyType->cAbi!=XL6_IR_C_ABI_MANAGED_STRING ||
+            keyType->kind==XL6_IR_TYPE_NULLABLE) return 0;
+        plan->keyValue=xl6IrLowerNode(ctx,ctx->module->children[lhs->firstChild+1]);
+        plan->keyValue=xl6IrLowerBorrowManagedStringOperand(ctx,origin,plan->key,plan->keyValue,
+            &plan->keyTemporary);
+        plan->keyTemporaryType=plan->key->storageType;
+        return plan->keyValue!=XL6_IR_VALUE_INVALID && (plan->keyTemporary==0 ||
+            xl6IrLowerProtectEvaluationStorage(ctx,origin,plan->keyTemporary,plan->keyValue,0,0));
+    }
     switch ( lhs->indexWriteAbi ) {
     case XL6_IR_INDEX_WRITE_XVALUE_ARRAY_I64_SET_NEW:
     case XL6_IR_INDEX_WRITE_XVALUE_LIST_I64_SET_NEW:
@@ -5122,23 +5140,6 @@ static XL6_IrRuntimeOp xl6IrLowerElementTargetReadOp(
             return XL6_IR_RUNTIME_NONE;
         }
     }
-    if ( plan->lhs->indexWriteAbi ==
-             XL6_IR_INDEX_WRITE_XVALUE_OBJECT_LITERAL_SET_NEW ) {
-        switch ( item->cAbi ) {
-        case XL6_IR_C_ABI_I64:
-            return XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_I64;
-        case XL6_IR_C_ABI_U64:
-            return XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_U64;
-        case XL6_IR_C_ABI_BOOL:
-            return XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_BOOL;
-        case XL6_IR_C_ABI_F64:
-            return XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_F64;
-        case XL6_IR_C_ABI_MANAGED_STRING:
-            return XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_STRING_COPY;
-        default:
-            return XL6_IR_RUNTIME_NONE;
-        }
-    }
     return XL6_IR_RUNTIME_NONE;
 }
 
@@ -5184,6 +5185,16 @@ static XL6_IrValueId xl6IrLowerReadElementTargetPlan(
             xl6IrLowerTypeIsRuntimeXValue(ctx->module, plan->lhs->storageType))
             result = xl6IrLowerBorrowElementTargetPlan(ctx, origin, plan);
         if (ownedResult != NULL) *ownedResult = xl6IrLowerValueHasOwner(ctx, result);
+        return result;
+    }
+    if (plan && plan->writeOperation==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE) {
+        operands[0]=plan->receiverValue; operands[1]=plan->keyValue;
+        const XL6_IrType* element=xl6IrTypeGet(&ctx->module->types,plan->lhs->storageType);
+        operation=element && (element->kind==XL6_IR_TYPE_NULLABLE ||
+            plan->lhs->storageType==xl6IrLowerFindDynamicBuiltinType(ctx->module))
+            ? XL6_IR_RUNTIME_DICT_READ_VALUE_COPY : XL6_IR_RUNTIME_DICT_READ_VALUE_REQUIRED_COPY;
+        XL6_IrValueId result=xl6IrLowerOwnedIndexRead(ctx,origin,operation,operands,plan->lhs->storageType);
+        if (ownedResult) *ownedResult=xl6IrLowerValueHasOwner(ctx,result);
         return result;
     }
     receiverType = plan != NULL && plan->receiver != NULL
@@ -5719,198 +5730,45 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueIndexI64(
     return result;
 }
 
+static XL6_IrValueId xl6IrLowerRuntimeXValueKeyRead(
+    XL6_IrLowerContext*,XL6_IrNodeId,const XL6_IrNode*,XL6_IrValueId);
+
 static XL6_IrValueId xl6IrLowerRuntimeXValueObjectGetLiteral(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrNode* node)
 {
-    const XL6_IrNode* receiver;
-    const XL6_IrNode* key;
-    const XL6_IrType* receiverType;
-    const XL6_IrType* resultType;
-    XL6_IrRuntimeOp runtimeOp = XL6_IR_RUNTIME_NONE;
-    XL6_IrValueId receiverValue;
-    XL6_SymbolId receiverTemporary = 0;
-    XL6_IrTypeId dynamicType = XL6_IR_TYPE_INVALID;
-    XL6_IrTypeId receiverShapeType = XL6_IR_TYPE_INVALID;
-    int dictionaryReceiver = 0;
-    int exactTypedDict = 0;
-    int nullableProjection = 0;
-    int scalarProjection = 0;
-    int closureProjection = 0;
-    int nativeHandleProjection = 0;
-    int exactProjection = 0;
-    char* keyLiteral;
-    if ( node == NULL || node->kind != XL6_IR_NODE_INDEX || node->childCount != 2 ||
-         (resultType = xl6IrTypeGet(&ctx->module->types, node->storageType)) == NULL ) {
-        xl6IrLowerDiag(ctx, origin, "XLIR dynamic index expression has no resolved object result ABI");
+    if (!node || node->kind!=XL6_IR_NODE_INDEX || node->childCount!=2) return XL6_IR_VALUE_INVALID;
+    const XL6_IrNode* receiver=xl6IrNodeGet(ctx->module,ctx->module->children[node->firstChild]);
+    const XL6_IrNode* key=xl6IrNodeGet(ctx->module,ctx->module->children[node->firstChild+1]);
+    const XL6_IrType* resultType=xl6IrTypeGet(&ctx->module->types,node->storageType);
+    if (!receiver || !key || !resultType || !xl6IrLowerTypeIsRuntimeXValue(ctx->module,receiver->storageType) ||
+        key->sourceKind!=XL6_AST_STRING || !key->text) return XL6_IR_VALUE_INVALID;
+    XL6_IrTypeId shape=receiver->type!=XL6_IR_TYPE_INVALID ? receiver->type : receiver->storageType;
+    const XL6_IrType* receiverType=xl6IrTypeGet(&ctx->module->types,shape);
+    if (receiverType && node->sourceKind==XL6_AST_SAFE_INDEX &&
+        receiverType->kind==XL6_IR_TYPE_NULLABLE && receiverType->paramCount==1 && receiverType->params)
+        receiverType=xl6IrTypeGet(&ctx->module->types,receiverType->params[0]);
+    if (!receiverType) return XL6_IR_VALUE_INVALID;
+    if (receiverType->collectionAbi==XL6_IR_COLLECTION_DICT)
+        return xl6IrLowerRuntimeXValueKeyRead(ctx,origin,node,XL6_IR_VALUE_INVALID);
+    /* Non-Dict open class fields keep their independently declared wire ABI.
+     * They cannot select one of the retired typed Dict literal projections. */
+    if (resultType->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) {
+        xl6IrLowerDiag(ctx,origin,"XLIR open literal index requires a declared dynamic result ABI");
         return XL6_IR_VALUE_INVALID;
     }
-    receiver = xl6IrNodeGet(ctx->module, ctx->module->children[node->firstChild]);
-    key = xl6IrNodeGet(ctx->module, ctx->module->children[node->firstChild + 1]);
-    if ( receiver == NULL || key == NULL ||
-         !xl6IrLowerTypeIsRuntimeXValue(ctx->module, receiver->storageType) ||
-         key->sourceKind != XL6_AST_STRING || key->text == NULL ) {
-        xl6IrLowerDiag(ctx, origin, "XLIR dynamic object index read requires a resolved xvalue receiver and literal string key");
-        return XL6_IR_VALUE_INVALID;
-    }
-    receiverShapeType = receiver->type != XL6_IR_TYPE_INVALID
-        ? receiver->type : receiver->storageType;
-    receiverType = xl6IrTypeGet(
-        &ctx->module->types, receiverShapeType);
-    if ( receiverType != NULL && node->sourceKind == XL6_AST_SAFE_INDEX &&
-         receiverType->kind == XL6_IR_TYPE_NULLABLE &&
-         receiverType->paramCount == 1 && receiverType->params != NULL ) {
-        const XL6_IrType* collection =
-            xl6IrTypeGet(&ctx->module->types, receiverType->params[0]);
-        if ( collection != NULL &&
-             collection->collectionAbi == XL6_IR_COLLECTION_DICT )
-            receiverType = collection;
-    }
-    if ( receiverType == NULL ) {
-        xl6IrLowerDiag(ctx, origin,
-            "XLIR literal-key index receiver has no semantic collection shape");
-        return XL6_IR_VALUE_INVALID;
-    }
-    dictionaryReceiver =
-        receiverType->collectionAbi == XL6_IR_COLLECTION_DICT;
-    exactTypedDict = dictionaryReceiver &&
-        receiverType->kind == XL6_IR_TYPE_GENERIC_INSTANCE &&
-        receiverType->paramCount == 1 && receiverType->params != NULL &&
-        (receiverType->params[0] == node->storageType ||
-         (node->sourceKind == XL6_AST_SAFE_INDEX &&
-          resultType->kind == XL6_IR_TYPE_NULLABLE &&
-          resultType->paramCount == 1 && resultType->params != NULL &&
-          receiverType->params[0] == resultType->params[0]));
-    if ( resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-         exactTypedDict && node->sourceKind == XL6_AST_SAFE_INDEX &&
-         resultType->kind == XL6_IR_TYPE_NULLABLE ) {
-        /* The runtime object lookup always produces a borrowed dynamic
-         * carrier.  A managed nullable element still needs an explicit
-         * TypeId-bearing retain projection; allowing the lookup itself to
-         * masquerade as nullable<T> loses both ownership and type identity. */
-        dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
-        runtimeOp = XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL;
-        nullableProjection = 1;
-    } else if ( resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) {
-        runtimeOp = !dictionaryReceiver &&
-                    xl6IrLowerTypeUsesDynamicFieldStorage(
-                        ctx->module, receiverShapeType)
-            ? XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_GET_LITERAL
-            : XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL;
-    } else {
-        if (exactTypedDict && (resultType->cAbi==XL6_IR_C_ABI_MANAGED_BYTES ||
-            resultType->cAbi==XL6_IR_C_ABI_F32 || resultType->cAbi==XL6_IR_C_ABI_TIME_I64)) {
-            dynamicType=xl6IrLowerFindDynamicBuiltinType(ctx->module);
-            runtimeOp=XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL;
-            exactProjection=1;
-        }
-        else if ( exactTypedDict && resultType->cAbi == XL6_IR_C_ABI_CHAR_U32 ) {
-            dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
-            runtimeOp = XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL;
-            scalarProjection = 1;
-        }
-        else if ( exactTypedDict && resultType->cAbi == XL6_IR_C_ABI_I64 )
-            runtimeOp = XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_I64;
-        else if ( exactTypedDict && resultType->cAbi == XL6_IR_C_ABI_U64 )
-            runtimeOp = XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_U64;
-        else if ( exactTypedDict && resultType->cAbi == XL6_IR_C_ABI_BOOL )
-            runtimeOp = XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_BOOL;
-        else if ( exactTypedDict && resultType->cAbi == XL6_IR_C_ABI_F64 )
-            runtimeOp = XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_F64;
-        else if ( exactTypedDict && resultType->kind == XL6_IR_TYPE_NULLABLE &&
-                  resultType->paramCount == 1 && resultType->params != NULL &&
-                  (resultType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ||
-                   resultType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
-                   resultType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ||
-                   resultType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
-                   resultType->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE) ) {
-            dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
-            runtimeOp = XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL;
-            nullableProjection = 1;
-        }
-        else if ( exactTypedDict && resultType->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
-            runtimeOp = XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_STRING_COPY;
-        else if ( exactTypedDict &&
-                  resultType->kind == XL6_IR_TYPE_FUNCTION &&
-                  resultType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR &&
-                  resultType->ownershipAbi ==
-                      XL6_IR_OWNERSHIP_ABI_MANAGED &&
-                  resultType->nullAbi ==
-                      XL6_IR_NULL_ABI_POINTER_SENTINEL &&
-                  xl6IrLowerRuntimeCallableSignatureSupported(
-                      ctx->module, node->storageType) ) {
-            dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
-            runtimeOp = XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL;
-            closureProjection = 1;
-        }
-        else if (exactTypedDict && xl6IrFutureProjectionPayloadType(ctx->module,
-                     node->storageType, XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY) != XL6_IR_TYPE_INVALID) {
-            dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
-            runtimeOp = XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL;
-            exactProjection = 1;
-        }
-        else if ( exactTypedDict && resultType->kind == XL6_IR_TYPE_CLASS &&
-                  resultType->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE &&
-                  resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL ) {
-            dynamicType = xl6IrLowerFindDynamicBuiltinType(ctx->module);
-            runtimeOp = XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL;
-            nativeHandleProjection = 1;
-        }
-        else {
-            xl6IrLowerDiag(ctx, origin,
-                "XLIR typed dict literal index has no explicit element projection and ownership ABI");
-            return XL6_IR_VALUE_INVALID;
-        }
-    }
-    keyLiteral = xl6IrCanonicalCStringLiteral(key->text);
-    receiverValue = xl6IrLowerNode(ctx, ctx->module->children[node->firstChild]);
-    if ( keyLiteral == NULL || receiverValue == XL6_IR_VALUE_INVALID ) { xrtFree(keyLiteral); return XL6_IR_VALUE_INVALID; }
-    if (runtimeOp == XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_STRING_COPY) {
-        XL6_IrValueId projected = xl6IrLowerBorrowedXValueLiteralRead(
-            ctx, origin, receiver, receiverValue, node->storageType, runtimeOp, keyLiteral);
-        xrtFree(keyLiteral);
-        return projected;
-    }
-    if ( resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) {
-        receiverValue = xl6IrLowerBorrowRuntimeXValueOperand(
-            ctx, origin, receiver, receiverValue, &receiverTemporary);
-        if ( receiverValue == XL6_IR_VALUE_INVALID ) {
-            xrtFree(keyLiteral);
-            return XL6_IR_VALUE_INVALID;
-        }
-    }
-    receiverValue = xl6IrLowerEmitRuntimeLiteralCall(ctx, origin,
-                                                     nullableProjection || scalarProjection ||
-                                                         closureProjection ||
-                                                         nativeHandleProjection || exactProjection
-                                                         ? dynamicType
-                                                         : node->storageType,
-                                                     runtimeOp,
-                                                     keyLiteral, &receiverValue, 1);
-    xrtFree(keyLiteral);
-    if (exactProjection)
-        return xl6IrLowerProjectBorrowedXValueAsExactType(ctx,origin,receiverValue,node->storageType);
-    if ( scalarProjection )
-        return xl6IrLowerProjectBorrowedXValueAsScalar(
-            ctx, origin, receiverValue, node->storageType);
-    if ( nullableProjection ) {
-        XL6_IrTypeId receiverTemporaryType = receiver->storageType;
-        return xl6IrLowerProjectBorrowedIndexResult(
-            ctx, origin, node, receiverValue, &receiverTemporary,
-            &receiverTemporaryType, 1);
-    }
-    if ( closureProjection )
-        return xl6IrLowerProjectBorrowedXValueAsClosure(
-            ctx, origin, receiverValue, node->storageType);
-    if ( nativeHandleProjection )
-        return xl6IrLowerProjectBorrowedXValueAsNativeHandle(
-            ctx, origin, receiverValue, node->storageType);
-    if ( resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) {
-        XL6_IrTypeId receiverTemporaryType = receiver->storageType;
-        return xl6IrLowerOwnBorrowedIndexResult(
-            ctx, origin, node, receiverValue, &receiverTemporary,
-            &receiverTemporaryType, 1);
-    }
-    return receiverValue;
+    XL6_IrRuntimeOp operation=xl6IrLowerTypeUsesDynamicFieldStorage(ctx->module,shape) ?
+        XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_GET_LITERAL : XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL;
+    char* literal=xl6IrCanonicalCStringLiteral(key->text);
+    XL6_IrValueId value=xl6IrLowerNode(ctx,ctx->module->children[node->firstChild]);
+    if (!literal || value==XL6_IR_VALUE_INVALID) { xrtFree(literal); return XL6_IR_VALUE_INVALID; }
+    XL6_SymbolId temporary=0;
+    value=xl6IrLowerBorrowRuntimeXValueOperand(ctx,origin,receiver,value,&temporary);
+    if (value!=XL6_IR_VALUE_INVALID)
+        value=xl6IrLowerEmitRuntimeLiteralCall(ctx,origin,node->storageType,operation,literal,&value,1);
+    xrtFree(literal);
+    XL6_IrTypeId temporaryType=receiver->storageType;
+    return value==XL6_IR_VALUE_INVALID ? value :
+        xl6IrLowerOwnBorrowedIndexResult(ctx,origin,node,value,&temporary,&temporaryType,1);
 }
 
 static XL6_IrValueId xl6IrLowerProjectBorrowedIndexResult(
@@ -6001,7 +5859,10 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueKeyRead(
     operation = keyType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
         ? XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY
         : (receiverType->collectionAbi == XL6_IR_COLLECTION_DICT
-            ? XL6_IR_RUNTIME_XVALUE_OBJECT_GET_STRING
+            ? (node->sourceKind==XL6_AST_SAFE_INDEX ? XL6_IR_RUNTIME_DICT_READ_VALUE_OR_NULL_COPY :
+                (xl6IrTypeGet(&ctx->module->types,node->storageType)->kind==XL6_IR_TYPE_NULLABLE ||
+                 node->storageType==xl6IrLowerFindDynamicBuiltinType(ctx->module))
+                ? XL6_IR_RUNTIME_DICT_READ_VALUE_COPY : XL6_IR_RUNTIME_DICT_READ_VALUE_REQUIRED_COPY)
             : XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_GET_STRING);
     operands[0] = preparedReceiver;
     if (operands[0] == XL6_IR_VALUE_INVALID) {
