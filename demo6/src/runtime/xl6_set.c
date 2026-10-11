@@ -251,7 +251,7 @@ static bool traceEntry(const void* slot,ptr context)
 {
     SetTrace* trace=context; const SetOwner* owner=trace->owner; bool ok=true;
     if (owner->layout.value.transfer==3) ok=trace->visit(xrtValueOwnership(*(xvalue* const*)slot),trace->context);
-    else if (owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1)
+    else if (owner->layout.value.transfer>=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1)
         ok=owner->policy.ops->TraceSlot(owner->policy.data,slot,trace->visit,trace->context);
     if (!ok) trace->failed=true;
     return ok;
@@ -320,7 +320,7 @@ const xrtownershipadapterv1* xl6SetOwnershipAdapterV2(xrtownershipref ref,
     if (ref.Data && ref.Ops==&ownershipOps) {
         size_t refs; if (!ownershipCount(ref.Data,&refs)) return NULL;
         const SetOwner* owner=ref.Data;
-        if (owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
+        if (owner->layout.value.transfer>=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
             bool found=false;
             for (size_t i=0;allowed && i<count;++i) found=found || allowed[i]==owner->policy.ops;
             if (!found) return NULL;
@@ -377,7 +377,8 @@ xvalue* xl6SetCreateTakeV1(const XL6_SetLayoutV1* layout,xvalue* witness)
     if (domainCopy(layout,witness,&policy)) {
         const xrttype* type=xl6SequenceStorageTypeV1(layout->value.transfer,layout->value.type);
         const xtypedsetkeypolicy* keys=layout->value.transfer==3 ? xl6SetReferenceKeyPolicyV1() :
-            layout->value.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 ? xl6SetFutureKeyPolicyV1() : NULL;
+            layout->value.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 ? xl6SetFutureKeyPolicyV1() :
+            layout->value.transfer==XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 ? xl6SequenceNativeValuePolicyV1(&policy)->content : NULL;
         xtypedset* storage=keys ? xrtTypedSetCreateWithKeyPolicy(type,keys) : xrtTypedSetCreate(type);
         if (storage) result=wrap(storage,layout,&policy,0,false,NULL,false);
     }
@@ -749,7 +750,8 @@ xvalue* xl6SetGraphEmptyV1(const XL6_SetGraphViewV1* view)
         policy=owner->policy;
         const xrttype* type=xl6SequenceStorageTypeV1(owner->layout.value.transfer,owner->layout.value.type);
         const xtypedsetkeypolicy* keys=owner->layout.value.transfer==3 ? xl6SetReferenceKeyPolicyV1() :
-            owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 ? xl6SetFutureKeyPolicyV1() : NULL;
+            owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 ? xl6SetFutureKeyPolicyV1() :
+            owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 ? xl6SequenceNativeValuePolicyV1(&policy)->content : NULL;
         xtypedset* storage=keys ? xrtTypedSetCreateWithKeyPolicy(type,keys) : xrtTypedSetCreate(type);
         if (storage) result=wrap(storage,&owner->layout,&policy,0,false,owner->projection,true);
     }

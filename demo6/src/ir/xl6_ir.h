@@ -13,6 +13,7 @@
 #include "src/runtime/xl6_value_admission_abi.h"
 #include "src/runtime/xl6_value_default_abi.h"
 #include "src/runtime/xl6_native_scalar_abi.h"
+#include "src/runtime/xl6_native_value_abi.h"
 
 typedef uint32 XL6_IrNodeId;
 typedef uint32 XL6_IrBlockId;
@@ -255,7 +256,11 @@ typedef enum XL6_IrRuntimeResourcePayloadAbi {
     XL6_IR_RUNTIME_RESOURCE_PAYLOAD_STRING_COPY,
     XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN,
     /* Closed Array/Stack and concurrent Queue recipes; not generic resource admission. */
-    XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF
+    XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF,
+    /* Owning native record transport, not permission to classify an arbitrary
+     * record as POD. Source recipes remain closed until their full value ABI,
+     * admission, frame and erased key contracts are installed. */
+    XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY = XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1
 } XL6_IrRuntimeResourcePayloadAbi;
 
 /* Closed ordering selected for AvlTree keys at the Typed XLIR boundary.

@@ -167,6 +167,8 @@ static bool outputEmpty(const DictOwner* owner,const void* output)
         empty=!((const xstrview*)output)->Data && !((const xstrview*)output)->Size;
     else if (empty && owner->layout.value.transfer==3) empty=!*(xvalue* const*)output;
     else if (empty && owner->layout.value.transfer==4) empty=!*(xfuture* const*)output;
+    else if (empty && owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1)
+        empty=xl6SequenceNativeValuePolicyV1(&owner->policy)->Empty(output);
     if (!empty) xrtSetErrorKind(XERR_ARGUMENT);
     return empty;
 }
@@ -191,7 +193,7 @@ static bool traceEntry(xbytesview key,ptr slot,ptr opaque)
     (void)key; DictTrace* trace=opaque; const DictOwner* owner=trace->owner; bool success=true;
     if (owner->layout.value.transfer==3)
         success=trace->visit(xrtValueOwnership(*(xvalue* const*)slot),trace->context);
-    else if (owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1)
+    else if (owner->layout.value.transfer>=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1)
         success=owner->policy.ops->TraceSlot(owner->policy.data,slot,trace->visit,trace->context);
     if (!success) trace->failed=true;
     return success;
@@ -257,7 +259,7 @@ const xrtownershipadapterv1* xl6DictOwnershipAdapterV2(xrtownershipref ref,
     if (ref.Data && ref.Ops==&ownershipOps) {
         size_t refs; if (!ownershipCount(ref.Data,&refs)) return NULL;
         const DictOwner* owner=ref.Data;
-        if (owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
+        if (owner->layout.value.transfer>=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
             bool found=false;
             for (size_t i=0;allowed && i<count;++i) found=found || allowed[i]==owner->policy.ops;
             if (!found) return NULL;
@@ -379,7 +381,9 @@ bool xl6DictGetV1(const xvalue* value,const XL6_DictLayoutV1* layout,xstrview ke
         if (!slot) success=!xrtGetError();
         else {
             success=take ? xrtTypedDictTake(owner->storage,key,output) :
-                xrtTypeCopyValue(xrtTypedDictItemType(owner->storage),output,slot);
+                owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 ?
+                    xl6SequenceNativeValuePolicyV1(&owner->policy)->Copy(slot,output) :
+                    xrtTypeCopyValue(xrtTypedDictItemType(owner->storage),output,slot);
             result=success;
         }
     }
@@ -401,7 +405,9 @@ bool xl6DictReadSlotV1(const xvalue* value,const XL6_DictLayoutV1* layout,xstrvi
          * It is context-free and remains valid after the operation pin ends. */
         type=xrtTypedDictItemType(owner->storage); size=owner->layout.value.size;
         const void* slot=xrtTypedDictConstGet(owner->storage,key);
-        if (slot) success=copied=xrtTypeCopyValue(type,output,slot);
+        if (slot && owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1)
+            success=copied=xl6SequenceNativeValuePolicyV1(&owner->policy)->Copy(slot,output);
+        else if (slot) success=copied=xrtTypeCopyValue(type,output,slot);
         else if (!xrtGetError()) {
             if (required) xrtSetErrorKind(XERR_RANGE);
             else if (owner->layout.value.transfer==3) {

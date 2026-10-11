@@ -215,7 +215,7 @@ const xrtownershipadapterv1* xl6SlotMapOwnershipAdapterV2(xrtownershipref ref,
     if (ref.Data && ref.Ops==&ownershipOps) {
         size_t refs; if (!ownershipCount(ref.Data,&refs)) return NULL;
         const SlotMapOwner* owner=ref.Data;
-        if (owner->layout.value.transfer==4) {
+        if (owner->layout.value.transfer>=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
             bool found=false; for (size_t i=0;allowed && i<count;++i) found=found || allowed[i]==owner->policy.ops;
             if (!found) return NULL;
         }
@@ -291,6 +291,8 @@ static bool outputEmpty(const SlotMapOwner* owner,const void* output)
     if (empty && owner->layout.value.transfer==2) empty=!((const xstrview*)output)->Data && !((const xstrview*)output)->Size;
     else if (empty && owner->layout.value.transfer==3) empty=!*(xvalue* const*)output;
     else if (empty && owner->layout.value.transfer==4) empty=!*(xfuture* const*)output;
+    else if (empty && owner->layout.value.transfer==XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1)
+        empty=xl6SequenceNativeValuePolicyV1(&owner->policy)->Empty(output);
     if (!empty) xrtSetErrorKind(XERR_ARGUMENT);
     return empty;
 }

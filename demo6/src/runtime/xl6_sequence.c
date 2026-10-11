@@ -151,13 +151,22 @@ XL6_SequenceIteratorStateV1* xl6SequenceIteratorStateV1(XL6_Sequence* owner)
 }
 static bool pinned(const XL6_Sequence* owner)
 { return owner && xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE) && !owner->cleared && owner->storage; }
+const XL6_SequenceNativeValuePolicyV1* xl6SequenceNativeValuePolicyV1(const XL6_SequenceAdmissionV3* policy)
+{
+    if (!policy || policy->transfer!=XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 || !policy->data ||
+        !policy->ops || !policy->ops->TraceSlot || !policy->boxedIdentity) return NULL;
+    const XL6_SequenceNativeValuePolicyV1* value=policy->data;
+    return value->type==policy->type && value->type && value->type->Size==policy->size &&
+        value->content && value->content->Hash && value->content->Equal && value->Empty && value->Copy ? value : NULL;
+}
 static bool policyValid(const XL6_SequenceAdmissionV3* policy)
 {
     return policy && ((!policy->ops && !policy->data && !policy->elementIdentity && !policy->transfer &&
         !policy->size && !policy->type && !policy->boxedIdentity) || (policy->ops && policy->data && policy->elementIdentity &&
-        policy->transfer>=1 && policy->transfer<=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 && policy->size && policy->type &&
+        policy->transfer>=1 && policy->transfer<=XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 && policy->size && policy->type &&
         ((policy->transfer==3)==(!policy->boxedIdentity)) &&
-        ((policy->transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1)==(policy->ops->TraceSlot!=NULL)) &&
+        ((policy->transfer>=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1)==(policy->ops->TraceSlot!=NULL)) &&
+        (policy->transfer!=XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 || xl6SequenceNativeValuePolicyV1(policy)) &&
         policy->ops->Retain && policy->ops->Drop && policy->ops->Slot && policy->ops->Value &&
         policy->ops->Equivalent && policy->ops->Defaultable));
 }
@@ -289,7 +298,7 @@ bool xl6SequenceTupleV1(uint64_t identity, uint64_t elementIdentity, unsigned in
                   size_t size, const xrttype* type)
 {
     if (!identity || !elementIdentity || !size || !type || type->Size != size ||
-        transfer < 1 || transfer > XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 || !xrtTypeIsCopyable(type) ||
+        transfer < 1 || transfer > XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 || !xrtTypeIsCopyable(type) ||
         (transfer == 1 && (type->Flags & (XRT_TYPE_FLAG_TRIVIAL_COPY|XRT_TYPE_FLAG_TRIVIAL_DROP)) !=
                           (XRT_TYPE_FLAG_TRIVIAL_COPY|XRT_TYPE_FLAG_TRIVIAL_DROP)) ||
         (transfer == 2 && type != xrtTypeStringView() && !xl6NullableStringTypeAbiV1(type) &&
@@ -297,7 +306,9 @@ bool xl6SequenceTupleV1(uint64_t identity, uint64_t elementIdentity, unsigned in
         (transfer == 3 && type != xrtTypeValue()) ||
         (transfer == XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 &&
          (type->Kind != XRT_TYPE_FUTURE || size != sizeof(xfuture*) ||
-          !(type->Flags & XRT_TYPE_FLAG_REFERENCE)))) {
+          !(type->Flags & XRT_TYPE_FLAG_REFERENCE))) ||
+        (transfer == XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 &&
+         (type->Kind!=XRT_TYPE_RECORD || (type->Flags & (XRT_TYPE_FLAG_REFERENCE|XRT_TYPE_FLAG_TRIVIAL_DROP))))) {
         xrtSetErrorKind(XERR_ARGUMENT); return false;
     }
     return true;
@@ -329,7 +340,7 @@ bool xl6SequenceAdmitsRoleV1(const xvalue* value,XL6_SequenceRoleV1 role,uint64_
     uint64_t element,unsigned int transfer,size_t size,const xrttype* type)
 {
     return (role==XL6_SEQUENCE_ARRAY_V1 || role==XL6_SEQUENCE_STACK_V1) && element &&
-        transfer>=1 && transfer<=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 && size && type &&
+        transfer>=1 && transfer<=XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 && size && type &&
         admitsRole(value,role,identity,element,transfer,size,type);
 }
 static bool samePolicy(const XL6_SequenceAdmissionV3* left,const XL6_SequenceAdmissionV3* right)
@@ -509,15 +520,15 @@ static bool ownershipTrace(const void* data, xrtownershipvisitor visit, void* co
 {
     const XL6_Sequence* owner = data; size_t refs;
     if (!visit || !ownershipCount(data,&refs) || !owner->storage) return false;
-    if (owner->transfer != 3 && owner->transfer != XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) return true;
+    if (owner->transfer < 3) return true;
     /* A native reference cannot be frozen without its owned resident graph
      * policy. Refuse unprofiled storage instead of hiding owning children. */
-    if (owner->transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 &&
+    if (owner->transfer>=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 &&
         (!owner->admission.ops || !owner->admission.ops->TraceSlot)) return false;
     size_t count = xrtTypedArrayCount(owner->storage);
     for (size_t depth = 0; depth < count; ++depth) {
         const void* slot=xrtTypedArrayConstGet(owner->storage,count-depth-1u);
-        if (owner->transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
+        if (owner->transfer>=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
             if (!owner->admission.ops->TraceSlot(owner->admission.data,slot,visit,context)) return false;
         } else {
             const xvalue* item=*(xvalue* const*)slot;
@@ -576,7 +587,7 @@ const xrtownershipadapterv1* xl6SequenceOwnershipAdapterV2(xrtownershipref ref,
     if (count && !policies) return NULL;
     if (ref.Data && ref.Ops == &ownershipOps) {
         const XL6_Sequence* owner=ref.Data;
-        if (owner->transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
+        if (owner->transfer>=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
             bool admitted=false;
             for (size_t i=0;i<count;++i)
                 if (policies[i] && policies[i]==owner->admission.ops) { admitted=true; break; }
@@ -802,6 +813,11 @@ static bool equalPinnedBody(XL6_Sequence* a, XL6_Sequence* b)
             equal = xl6SequenceReferenceEqualV1(*(xvalue* const*)left,*(xvalue* const*)right);
         } else if (a->transfer == XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
             equal = *(xfuture* const*)left == *(xfuture* const*)right;
+        } else if (a->transfer == XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1) {
+            const XL6_SequenceNativeValuePolicyV1* record=xl6SequenceNativeValuePolicyV1(&a->admission);
+            if (!record) { xrtSetErrorKind(XERR_STATE); return false; }
+            const xtypedsetkeypolicy* content=record->content;
+            equal=content->Equal(left,right,content->UserData);
         } else {
             int order;
             if (!xrtTypeCompareValue(a->type,left,right,&order)) return false;
@@ -843,6 +859,10 @@ static uint64 identityHash(ptr opaque, ptr user)
             ready = xrtValueHash(value ? value : xrtValueNull(),&item);
         } else if (owner->transfer == XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) {
             item = (uint64)(uintptr_t)*(xfuture* const*)slot;
+        } else if (owner->transfer == XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1) {
+            const XL6_SequenceNativeValuePolicyV1* record=xl6SequenceNativeValuePolicyV1(&owner->admission);
+            if (!record) { xrtSetErrorKind(XERR_STATE); ready=false; item=0; }
+            else item=record->content->Hash(slot,record->content->UserData);
         } else {
             ready = xrtTypeHashValue(owner->type,slot,&item);
         }

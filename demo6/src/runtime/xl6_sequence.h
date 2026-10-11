@@ -1,6 +1,7 @@
 #ifndef XL6_SEQUENCE_H
 #define XL6_SEQUENCE_H
 #include "xl6_text_value.h"
+#include "xl6_native_value_abi.h"
 
 /* Native-only shared owner for contiguous typed storage. The opaque token
  * pins one wrapper and closes its graph while an operation runs. No raw
@@ -67,6 +68,21 @@ typedef enum XL6_SequenceRoleV1 {
     XL6_SEQUENCE_ARRAY_V1=1, XL6_SEQUENCE_STACK_V1, XL6_SEQUENCE_CURSOR_V1
 } XL6_SequenceRoleV1;
 enum { XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 = 4 };
+/* Transfer 5's owned resident data starts with this immutable record. No
+ * generated callback or context is permitted. Content grants equality/hash,
+ * NOT ordering. Empty recognizes an inactive private transfer destination.
+ * Existing V2 operations and V3 policy layout remain unchanged; only the new
+ * transfer uses this explicitly versioned data contract. TraceSlot is required
+ * even for leaf records, and graph resolvers must authorize the actual ops. */
+typedef struct XL6_SequenceNativeValuePolicyV1 {
+    const xrttype* type;
+    const xtypedsetkeypolicy* content;
+    bool (*Empty)(const void*);
+    /* Checked, failure-atomic copied read into an Empty destination. The
+     * actual record callback owns temporary/partial-copy rollback. */
+    bool (*Copy)(const void*,void*);
+} XL6_SequenceNativeValuePolicyV1;
+XL6_TEXT_API const XL6_SequenceNativeValuePolicyV1* xl6SequenceNativeValuePolicyV1(const XL6_SequenceAdmissionV3*);
 /* Callbacks re-enter Value identity with fresh XRT graph contexts. Bound the
  * shared per-thread native Hash/Equal call path, including untyped ANY graphs,
  * independently of their schema depth. Refusal is a normal XERR_RANGE, not C

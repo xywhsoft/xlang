@@ -55,7 +55,15 @@ bool xl6ArrayReadV1(const xvalue* value, PARAMS, int64_t index, void* target)
     size_t at;
     const void* item = xl6ArrayIndexV1(index,xrtTypedArrayCount(storage),false,&at) ?
         xrtTypedArrayConstGet(storage,at) : NULL;
-    bool ok = item && allocation(xrtTypeCopyValue(xrtTypedArrayItemType(storage),target,item));
+    XL6_SequenceAdmissionV3 policy={0}; bool ok=false;
+    if (item && transfer==XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1) {
+        if (xl6SequenceAdmissionCopyV3(owner,&policy)) {
+            const XL6_SequenceNativeValuePolicyV1* record=xl6SequenceNativeValuePolicyV1(&policy);
+            if (record) ok=record->Copy(item,target);
+            else xrtSetErrorKind(XERR_STATE);
+        }
+        xl6SequenceAdmissionDropV3(&policy);
+    } else ok=item && allocation(xrtTypeCopyValue(xrtTypedArrayItemType(storage),target,item));
     xl6SequenceEndV1(owner);
     return ok;
 }
@@ -159,7 +167,22 @@ int64_t xl6ArrayFindV1(const xvalue* value, PARAMS, const void* item)
     if (!owner) return -1;
     xtypedarray* storage = xl6SequenceStorageV1(owner);
     size_t found = SIZE_MAX;
-    if (transfer != 3) found = xrtTypedArrayFind(storage,item);
+    if (transfer==XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1) {
+        XL6_SequenceAdmissionV3 policy={0};
+        if (xl6SequenceAdmissionCopyV3(owner,&policy)) {
+            const XL6_SequenceNativeValuePolicyV1* record=xl6SequenceNativeValuePolicyV1(&policy);
+            const xtypedsetkeypolicy* content=record ? record->content : NULL;
+            if (!content) xrtSetErrorKind(XERR_STATE);
+            size_t count=xrtTypedArrayCount(storage);
+            for (size_t i=0;content && i<count;++i) {
+                const void* current=xrtTypedArrayConstGet(storage,i);
+                if (content->Equal(current,item,content->UserData)) { found=i; break; }
+                if (xrtGetError()) break;
+            }
+        }
+        xl6SequenceAdmissionDropV3(&policy);
+    }
+    else if (transfer != 3) found = xrtTypedArrayFind(storage,item);
     else {
         /* Managed references have equality, but no invented Compare op. */
         const xvalue* search = *(xvalue* const*)item;

@@ -319,7 +319,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
         {"XRT_MODULE_SLOT_MAP"}},
     {"src/runtime/xl6_slot_map_key.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE","XRT_MODULE_ATOMIC"}},
     {"src/runtime/xl6_slot_map_key_value.c", D(R(SLOT_MAP_KEY_NATIVE),R(FOREIGN_ERROR)),
-        {"XRT_MODULE_VALUE","XRT_MODULE_HASH64"}}
+        {"XRT_MODULE_VALUE","XRT_MODULE_HASH64"}},
+    {"src/runtime/xl6_array_native_value_admission.c", D(R(SEQUENCE),R(SLOT_MAP_KEY_VALUE),R(FOREIGN_ERROR)),
+        {"XRT_MODULE_ATOMIC"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
