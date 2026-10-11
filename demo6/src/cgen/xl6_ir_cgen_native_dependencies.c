@@ -587,6 +587,11 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
                     "xl6ListValueSetTakeV1" : xl6IrCgenListTypedReadSymbol(instruction->runtimeOp))) return 0;
             continue;
         }
+        if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL && instruction->runtimeOp==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE) {
+            if (!xl6IrDictIndexWriteRuntimeInstructionCompatible(module,instruction) ||
+                !visitor(context,"xl6DictValueSetTakeV1")) return 0;
+            continue;
+        }
         if (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
             (xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp) ||
              instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY)) {

@@ -2036,6 +2036,11 @@ typedef enum XL6_IrRuntimeOp {
        XL6_IR_RUNTIME_LIST_CREATE,
     XL6_IR_RUNTIME_LIST_IMPORT_CHAIN,
     XL6_IR_RUNTIME_SET_IMPORT_CHAIN,
+    /* Exact text keys are managed string SSA operands, never C literals. */
+    XL6_IR_RUNTIME_DICT_READ_VALUE_COPY,
+    XL6_IR_RUNTIME_DICT_READ_VALUE_OR_NULL_COPY,
+    XL6_IR_RUNTIME_DICT_READ_VALUE_REQUIRED_COPY,
+    XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -6935,6 +6940,7 @@ int xl6IrOwnedIndexReadRuntimeOpIs(XL6_IrRuntimeOp operation);
 int xl6IrListTypedReadRuntimeOpIs(XL6_IrRuntimeOp);
 const XL6_IrType* xl6IrListIndexReceiverType(const XL6_IrModule*,const XL6_IrInstruction*);
 int xl6IrListIndexRuntimeInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
+int xl6IrDictIndexWriteRuntimeInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 int xl6IrOwnedIndexReadRuntimeInstructionCompatible(
     const XL6_IrModule* module,const XL6_IrInstruction* instruction);
 /* Verified representation-only provider closure for copy/clone. Open value

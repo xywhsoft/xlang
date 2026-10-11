@@ -161,6 +161,9 @@ static const char* xl6IrCgenArrayMethodSymbol(XL6_IrTypedCollectionOp operation)
 static const char* xl6IrCgenOwnedIndexReadSymbol(XL6_IrRuntimeOp operation)
 {
     switch (operation) {
+    case XL6_IR_RUNTIME_DICT_READ_VALUE_COPY: return "xl6DictValueReadCopyV1";
+    case XL6_IR_RUNTIME_DICT_READ_VALUE_OR_NULL_COPY: return "xl6DictValueReadOrNullCopyV1";
+    case XL6_IR_RUNTIME_DICT_READ_VALUE_REQUIRED_COPY: return "xl6DictValueReadRequiredCopyV1";
     case XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY: return "xl6ArrayValueReadCopyV1";
     case XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY: return "xl6ArrayValueReadOrNullCopyV1";
     case XL6_IR_RUNTIME_LIST_READ_VALUE_COPY: return "xl6ListValueReadCopyV1";

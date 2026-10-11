@@ -551,6 +551,8 @@ static int xl6IrCgenEmitXValueCoreRuntime(
             xl6OutputPuts("#include <__xl_runtime/xl6_array_value_read.h>\n",out);
         if (needs->needsListOwnedReadRuntime)
             xl6OutputPuts("#include <__xl_runtime/xl6_list_value_read.h>\n",out);
+        if (needs->needsDictValueIndexRuntime)
+            xl6OutputPuts("#include <__xl_runtime/xl6_dict_value_index.h>\n",out);
         if (needs->needsListTypedReadRuntime)
             xl6OutputPuts("#include <__xl_runtime/xl6_list_typed_read.h>\n",out);
         if (needs->needsListWriteRuntime)

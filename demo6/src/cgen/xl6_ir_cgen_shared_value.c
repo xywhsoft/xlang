@@ -31,21 +31,16 @@ static const char* xl6IrCgenLiteralScalarProjection(
     const char* helper;
     switch ( operation ) {
     case XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_I64:
-    case XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_I64:
         result = XL6_IR_C_ABI_I64; helper = "xlir_xvalue_object_get_literal_i64"; break;
     case XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_U64:
-    case XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_U64:
         result = XL6_IR_C_ABI_U64; helper = "xlir_xvalue_object_get_literal_u64"; break;
     case XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_BOOL:
-    case XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_BOOL:
         result = XL6_IR_C_ABI_BOOL; helper = "xlir_xvalue_object_get_literal_bool"; break;
     case XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_F64:
-    case XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_F64:
         result = XL6_IR_C_ABI_F64; helper = "xlir_xvalue_object_get_literal_f64"; break;
     case XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_TIME:
         result = XL6_IR_C_ABI_TIME_I64; helper = "xlir_xvalue_object_get_literal_time"; break;
     case XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_STRING_COPY:
-    case XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_STRING_COPY:
         result = XL6_IR_C_ABI_MANAGED_STRING;
         helper = "xlir_xvalue_object_get_literal_string_copy"; break;
     default: return NULL;
@@ -71,6 +66,7 @@ static int xl6IrCgenSharedXValueRuntimeOpIs(XL6_IrRuntimeOp operation)
            operation == XL6_IR_RUNTIME_XVALUE_INT_MAP_NEW ||
            operation == XL6_IR_RUNTIME_XVALUE_INT_MAP_SET_I64_NEW ||
            operation == XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE ||
+           operation == XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE ||
            operation == XL6_IR_RUNTIME_XVALUE_OBJECT_NEW ||
            operation == XL6_IR_RUNTIME_XVALUE_CLASS_NEW ||
            operation == XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND ||
@@ -288,8 +284,11 @@ static int xl6IrCgenSharedXValueRuntimeAbi(
         return instruction->immediateText == NULL &&
                instruction->operandCount == 2;
     case XL6_IR_RUNTIME_XVALUE_INT_MAP_SET_I64_NEW:
+    case XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE:
     case XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE:
         {
+            if (instruction->runtimeOp==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE)
+                return xl6IrDictIndexWriteRuntimeInstructionCompatible(module,instruction);
             if (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE)
                 return xl6IrListIndexRuntimeInstructionCompatible(module,instruction);
             const XL6_IrInstruction* map = instruction->operandCount == 3
@@ -570,9 +569,11 @@ static int xl6IrCgenEmitSharedXValueRuntime(
             (unsigned int)instruction->result,
             (unsigned int)module->operands[instruction->firstOperand]);
         break;
+    case XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE:
     case XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE:
-        xl6OutputPrintf(out,"    v%u = xl6ListValueSetTakeV1(v%u, v%u, v%u);\n",
-            (unsigned)instruction->result,(unsigned)module->operands[instruction->firstOperand],
+        xl6OutputPrintf(out,"    v%u = %s(v%u, v%u, v%u);\n",
+            (unsigned)instruction->result,instruction->runtimeOp==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE ?
+                "xl6DictValueSetTakeV1" : "xl6ListValueSetTakeV1",(unsigned)module->operands[instruction->firstOperand],
             (unsigned)module->operands[instruction->firstOperand+1],
             (unsigned)module->operands[instruction->firstOperand+2]);
         break;

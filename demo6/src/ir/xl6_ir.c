@@ -20361,6 +20361,9 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeContainerAllocationErrorPhysicalAbi(XL6_I
     case XL6_IR_RUNTIME_LIST_READ_VALUE_COPY:
     case XL6_IR_RUNTIME_LIST_READ_VALUE_OR_NULL_COPY:
     case XL6_IR_RUNTIME_LIST_READ_VALUE_REQUIRED_COPY:
+    case XL6_IR_RUNTIME_DICT_READ_VALUE_COPY:
+    case XL6_IR_RUNTIME_DICT_READ_VALUE_OR_NULL_COPY:
+    case XL6_IR_RUNTIME_DICT_READ_VALUE_REQUIRED_COPY:
     case XL6_IR_RUNTIME_XVALUE_INT_MAP_NEW:
     case XL6_IR_RUNTIME_XVALUE_SET_NEW:
     case XL6_IR_RUNTIME_XVALUE_OBJECT_NEW:
@@ -20548,7 +20551,8 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     stringAbi=xl6IrRuntimeArrayScalarReadErrorPhysicalAbi(instruction->runtimeOp);
     if ((xl6IrListTypedReadRuntimeOpIs(instruction->runtimeOp) &&
          instruction->runtimeOp!=XL6_IR_RUNTIME_LIST_READ_STRING) ||
-        instruction->runtimeOp==XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE)
+        instruction->runtimeOp==XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE)
         return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
     if(stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_REMOVE_VALUE ||
@@ -22351,6 +22355,9 @@ int xl6IrOwnedIndexReadRuntimeOpIs(XL6_IrRuntimeOp operation)
         operation==XL6_IR_RUNTIME_LIST_READ_VALUE_COPY ||
         operation==XL6_IR_RUNTIME_LIST_READ_VALUE_OR_NULL_COPY ||
         operation==XL6_IR_RUNTIME_LIST_READ_VALUE_REQUIRED_COPY ||
+        operation==XL6_IR_RUNTIME_DICT_READ_VALUE_COPY ||
+        operation==XL6_IR_RUNTIME_DICT_READ_VALUE_OR_NULL_COPY ||
+        operation==XL6_IR_RUNTIME_DICT_READ_VALUE_REQUIRED_COPY ||
         operation==XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY;
 }
 int xl6IrOwnedIndexReadRuntimeInstructionCompatible(
@@ -22375,6 +22382,14 @@ int xl6IrOwnedIndexReadRuntimeInstructionCompatible(
     const XL6_IrType* receiver=source ? xl6IrCollectionCountReceiverBase(module,source->type) : NULL;
     const XL6_IrType* index=key ? xl6IrTypeGet(&module->types,key->type) : NULL;
     if (!source || !receiver || !index) return 0;
+    if (instruction->runtimeOp==XL6_IR_RUNTIME_DICT_READ_VALUE_COPY ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_DICT_READ_VALUE_OR_NULL_COPY ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_DICT_READ_VALUE_REQUIRED_COPY)
+        return index->cAbi==XL6_IR_C_ABI_MANAGED_STRING && index->kind!=XL6_IR_TYPE_NULLABLE &&
+            index->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
+            xl6IrTypeIsRuntimeXValue(module,source->type) && receiver->collectionAbi==XL6_IR_COLLECTION_DICT &&
+            (instruction->runtimeOp==XL6_IR_RUNTIME_DICT_READ_VALUE_OR_NULL_COPY ||
+             xl6IrTypeGet(&module->types,source->type)->kind!=XL6_IR_TYPE_NULLABLE);
     if (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_READ_VALUE_COPY ||
         instruction->runtimeOp==XL6_IR_RUNTIME_LIST_READ_VALUE_OR_NULL_COPY ||
         instruction->runtimeOp==XL6_IR_RUNTIME_LIST_READ_VALUE_REQUIRED_COPY)
@@ -22392,6 +22407,35 @@ int xl6IrOwnedIndexReadRuntimeInstructionCompatible(
         (xl6IrTypeIsDynamicXValueBuiltin(module,source->type) || receiver->collectionAbi==XL6_IR_COLLECTION_ARRAY) &&
         (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY ||
          xl6IrTypeGet(&module->types,source->type)->kind!=XL6_IR_TYPE_NULLABLE);
+}
+
+int xl6IrDictIndexWriteRuntimeInstructionCompatible(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{
+    if (!module || !instruction || instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+        instruction->runtimeOp!=XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE ||
+        instruction->result==XL6_IR_VALUE_INVALID || instruction->operandCount!=3 ||
+        !module->operands || instruction->firstOperand>module->operandCount ||
+        module->operandCount-instruction->firstOperand<3 ||
+        instruction->immediateText || instruction->immediateData || instruction->immediateSize ||
+        instruction->targetSymbol || instruction->targetValue!=XL6_IR_VALUE_INVALID ||
+        instruction->calleeType!=XL6_IR_TYPE_INVALID || instruction->payloadType!=XL6_IR_TYPE_INVALID ||
+        instruction->runtimeIdentityType!=XL6_IR_TYPE_INVALID || instruction->opcode!=XL6_IR_OPCODE_INVALID ||
+        instruction->collectionAbi!=XL6_IR_COLLECTION_NONE ||
+        instruction->typedCollectionOp!=XL6_IR_TYPED_COLLECTION_INVALID ||
+        instruction->dynamicCollectionOp!=XL6_IR_DYNAMIC_COLLECTION_INVALID ||
+        instruction->sequenceAdmissionIdentitySet!=XL6_IR_NOMINAL_IDENTITY_SET_INVALID ||
+        !xl6IrTypeIsBool(module,instruction->type)) return 0;
+    const XL6_IrInstruction* source=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+    const XL6_IrInstruction* key=xl6IrValueDefinition(module,module->operands[instruction->firstOperand+1],NULL);
+    const XL6_IrInstruction* item=xl6IrValueDefinition(module,module->operands[instruction->firstOperand+2],NULL);
+    const XL6_IrType* receiver=source ? xl6IrTypeGet(&module->types,source->type) : NULL;
+    const XL6_IrType* index=key ? xl6IrTypeGet(&module->types,key->type) : NULL;
+    return receiver && receiver->kind!=XL6_IR_TYPE_NULLABLE &&
+        receiver->collectionAbi==XL6_IR_COLLECTION_DICT && xl6IrTypeIsRuntimeXValue(module,source->type) &&
+        index && index->kind!=XL6_IR_TYPE_NULLABLE && index->cAbi==XL6_IR_C_ABI_MANAGED_STRING &&
+        index->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED && item &&
+        xl6IrTypeIsDynamicXValueBuiltin(module,item->type);
 }
 
 int xl6IrListTypedReadRuntimeOpIs(XL6_IrRuntimeOp operation)
@@ -23128,64 +23172,6 @@ static int xl6IrVerifyRuntimeSafeIntegerIndexRead(
            xl6IrTypeIsDynamicXValueBuiltin(module, instruction->type);
 }
 
-/* Typed dict literal lookup is a closed container projection, not a class
- * field read.  The RuntimeOp fixes the physical result ABI; the receiver's
- * payload TypeId fixes the language result and the origin proves that the
- * operation came from a direct literal-key index rather than member access. */
-static int xl6IrVerifyRuntimeTypedDictLiteralRead(
-    const XL6_IrModule* module, const XL6_IrInstruction* instruction)
-{
-    const XL6_IrInstruction* receiver;
-    const XL6_IrType* receiverType;
-    const XL6_IrType* resultType;
-    const XL6_IrNode* access;
-    XL6_IrCAbi expectedAbi;
-    if ( module == NULL || instruction == NULL ) return 0;
-    switch ( instruction->runtimeOp ) {
-    case XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_I64:
-        expectedAbi = XL6_IR_C_ABI_I64; break;
-    case XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_U64:
-        expectedAbi = XL6_IR_C_ABI_U64; break;
-    case XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_BOOL:
-        expectedAbi = XL6_IR_C_ABI_BOOL; break;
-    case XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_F64:
-        expectedAbi = XL6_IR_C_ABI_F64; break;
-    case XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_STRING_COPY:
-        expectedAbi = XL6_IR_C_ABI_MANAGED_STRING; break;
-    default:
-        return 0;
-    }
-    if ( instruction->operandCount != 1 ||
-         instruction->targetSymbol != 0 ||
-         instruction->targetValue != XL6_IR_VALUE_INVALID ||
-         instruction->calleeType != XL6_IR_TYPE_INVALID ||
-         instruction->payloadType != XL6_IR_TYPE_INVALID ||
-         instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID ||
-         instruction->opcode != XL6_IR_OPCODE_INVALID ||
-         !xl6IrIsCanonicalCStringLiteral(instruction->immediateText) )
-        return 0;
-    receiver = xl6IrValueDefinition(
-        module, module->operands[instruction->firstOperand], NULL);
-    receiverType = receiver != NULL
-        ? xl6IrTypeGet(&module->types, receiver->type) : NULL;
-    resultType = xl6IrTypeGet(&module->types, instruction->type);
-    access = xl6IrNodeGet(module, instruction->origin);
-    return receiverType != NULL && resultType != NULL &&
-           receiverType->kind == XL6_IR_TYPE_GENERIC_INSTANCE &&
-           receiverType->name != NULL &&
-           strcmp(receiverType->name, "dict") == 0 &&
-           receiverType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-           receiverType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-           receiverType->collectionAbi == XL6_IR_COLLECTION_DICT &&
-           receiverType->paramCount == 1 && receiverType->params != NULL &&
-           receiverType->params[0] == instruction->type &&
-           resultType->cAbi == expectedAbi &&
-           (expectedAbi != XL6_IR_C_ABI_MANAGED_STRING ||
-            resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) &&
-           access != NULL && access->kind == XL6_IR_NODE_INDEX &&
-           access->sourceKind == XL6_AST_INDEX &&
-           access->storageType == instruction->type;
-}
 
 /* C operators are only a spelling target.  Their operand/result ABI is
  * validated here so the emitter cannot accidentally inherit C promotions or
@@ -41185,6 +41171,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             return xl6IrDiag(diags,
                                 xl6IrNodeGet(module, instruction->origin),
                                 "XLIR runtime safe array integer access has no exact canonical-null ABI");
+                    } else if (instruction->runtimeOp==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE) {
+                        if (!xl6IrDictIndexWriteRuntimeInstructionCompatible(module,instruction))
+                            return xl6IrDiag(diags,NULL,"XLIR Dict write lacks exact observed string key and consuming Value ABI");
                     } else if (xl6IrListTypedReadRuntimeOpIs(instruction->runtimeOp) ||
                         instruction->runtimeOp==XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE) {
                         if (!xl6IrListIndexRuntimeInstructionCompatible(module,instruction))
@@ -41559,10 +41548,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                     XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_F64 ||
                                 instruction->runtimeOp ==
                                     XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_STRING_COPY ) {
-                        if ( !xl6IrVerifyRuntimeTypedDictLiteralRead(
-                                 module, instruction) )
-                            return xl6IrDiag(diags, NULL,
-                                "XLIR runtime typed dict literal read has no exact receiver, element, key or ownership ABI");
+                        return xl6IrDiag(diags,NULL,
+                            "XLIR retired Dict literal projection must use an exact string SSA and checked owned read");
                     } else if ( instruction->runtimeOp ==
                                     XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_I64 ||
                                 instruction->runtimeOp ==
@@ -47169,6 +47156,10 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN: return "array-import-chain";
     case XL6_IR_RUNTIME_ARRAY_CREATE: return "array-create";
     case XL6_IR_RUNTIME_LIST_CREATE: return "list-create";
+    case XL6_IR_RUNTIME_DICT_READ_VALUE_COPY: return "dict-read-value-copy";
+    case XL6_IR_RUNTIME_DICT_READ_VALUE_OR_NULL_COPY: return "dict-read-value-or-null-copy";
+    case XL6_IR_RUNTIME_DICT_READ_VALUE_REQUIRED_COPY: return "dict-read-value-required-copy";
+    case XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE: return "dict-set-value-take";
     case XL6_IR_RUNTIME_LIST_IMPORT_CHAIN: return "list-import-chain";
     case XL6_IR_RUNTIME_SET_IMPORT_CHAIN: return "set-import-chain";
     case XL6_IR_RUNTIME_XVALUE_COUNT: return "xvalue-count";
