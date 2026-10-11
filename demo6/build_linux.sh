@@ -190,6 +190,7 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_dict_schema.c"
   "$ROOT/src/runtime/xl6_dict_value_index.c"
   "$ROOT/src/runtime/xl6_dict_methods.c"
+  "$ROOT/src/runtime/xl6_dict_import_chain.c"
   "$ROOT/src/runtime/xl6_dict_graph.c"
   "$ROOT/src/runtime/xl6_dict_value_iterator.c"
   "$ROOT/src/runtime/xl6_list_methods.c"

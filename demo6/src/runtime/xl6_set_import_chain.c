@@ -35,7 +35,7 @@ static bool append(xvalue* target,int64_t key,const xvalue* value)
 { (void)key; bool added=false; return xl6SetErasedKeyV1(target,value,XL6_SET_ADD_V1,&added); }
 static bool inputBegin(const xvalue* source,XL6_CollectionImportInputV1* output)
 {
-    if (!output || output->context || output->items || output->keys || output->count) {
+    if (!output || output->context || output->items || output->keys || output->count || output->textKeys) {
         xrtSetErrorKind(XERR_ARGUMENT); return false;
     }
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
@@ -98,4 +98,4 @@ static bool inputConversion(ptr opaque,const xvalue* source,bool* output)
     *output=erased; return true;
 }
 const XL6_CollectionImportProviderV1* xl6SetImportProviderV1(void)
-{ static const XL6_CollectionImportProviderV1 provider={begin,end,empty,admits,append,inputBegin,inputEnd,inputConversion}; return &provider; }
+{ static const XL6_CollectionImportProviderV1 provider={begin,end,empty,admits,append,inputBegin,inputEnd,inputConversion,NULL}; return &provider; }

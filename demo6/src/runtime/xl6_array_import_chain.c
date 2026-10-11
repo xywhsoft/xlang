@@ -79,6 +79,27 @@ static void rejectWire(Import* ctx,xerrkind kind)
 }
 static bool admits(const Template* schema,const xvalue* value)
 { return schema->provider ? schema->provider->Admits(schema->context,value) : xl6SequenceAdmitValueV1(schema->owner,value); }
+static bool textKeys(const Template* schema)
+{ return schema->provider && schema->provider->AppendText; }
+static bool providerValid(const XL6_CollectionImportProviderV1* p)
+{
+    return !p || (p->Begin && p->End && p->Empty && p->Admits &&
+        (!!p->Append != !!p->AppendText) && (!!p->InputBegin == !!p->InputEnd) &&
+        (!p->AppendText || p->InputBegin));
+}
+static bool familyInputValid(const Template* schema,const XL6_CollectionImportInputV1* input)
+{
+    if ((input->count && !input->items) || (textKeys(schema) ?
+        (input->keys || (input->count && !input->textKeys)) :
+        (input->textKeys || (!input->keys && input->count>INT64_MAX)))) {
+        xrtSetErrorKind(XERR_ARGUMENT); return false;
+    }
+    for (size_t i=0;textKeys(schema) && i<input->count;++i)
+        if (input->textKeys[i].Size && !input->textKeys[i].Data) {
+            xrtSetErrorKind(XERR_ARGUMENT); return false;
+        }
+    return true;
+}
 static size_t hash(const xvalue* source,size_t depth,const xvalue* instance)
 {
     /* Unsigned wrap is intentional. Pointer equality, not the hash, decides
@@ -230,16 +251,17 @@ static bool fill(Import* ctx,size_t depth,xvalue* value,XL6_Sequence* target,con
     XL6_ArrayInputV1 input={0}; bool ok=false;
     XL6_CollectionImportInputV1 family={0};
     const Template* schema=&ctx->templates[depth];
-    bool custom=ctx->plan && (ctx->plan->flags&XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1) &&
-        schema->provider && schema->provider->InputBegin;
+    bool language=ctx->plan && (ctx->plan->flags&XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1);
+    bool custom=schema->provider && schema->provider->InputBegin && (language || textKeys(schema));
     if (privateSeed(ctx,source)) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
     for (size_t i=0;i<depth;++i) if (ctx->active[i]==source) { xrtSetErrorKind(XERR_VALUE); return false; }
     ctx->active[depth]=source;
+    if (textKeys(schema) && !language && xrtValueType(source)!=XVALUE_OBJECT) {
+        xrtSetErrorKind(XERR_TYPE); goto done;
+    }
     if (custom ? !schema->provider->InputBegin(source,&family) : !xl6ArrayInputAcquireV1(source,&input)) goto done;
     size_t count=custom ? family.count : input.count;
-    if ((count && custom && !family.items) || (!family.keys && count>INT64_MAX)) {
-        xrtSetErrorKind(XERR_RANGE); goto done;
-    }
+    if (custom && !familyInputValid(schema,&family)) goto done;
     xtypedarray* storage=target ? xl6SequenceStorageV1(target) : NULL;
     if (storage && !xrtTypedArrayReserve(storage,count)) {
         if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY);
@@ -264,8 +286,11 @@ static bool fill(Import* ctx,size_t depth,xvalue* value,XL6_Sequence* target,con
         bool wireList=depth+1<ctx->count && ctx->plan &&
             (ctx->plan->flags&XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1) &&
             ctx->templates[depth+1].provider && ctx->templates[depth+1].provider->InputBegin &&
+            !textKeys(&ctx->templates[depth+1]) &&
             xrtValueType(item)==XVALUE_INT_MAP;
-        if (depth+1<ctx->count && (xrtValueType(item)==XVALUE_ARRAY || wireList || erasedArray || erasedFamily)) {
+        bool wireChild=depth+1<ctx->count && xrtValueType(item)==
+            (textKeys(&ctx->templates[depth+1]) ? XVALUE_OBJECT : XVALUE_ARRAY);
+        if (depth+1<ctx->count && (wireChild || wireList || erasedArray || erasedFamily)) {
             converted=convert(ctx,depth+1,item);
             if (!converted) goto done;
             item=converted;
@@ -275,9 +300,13 @@ static bool fill(Import* ctx,size_t depth,xvalue* value,XL6_Sequence* target,con
             if (!converted || !successful(ctx)) { releasePreservingError(converted); goto done; }
             item=converted;
         }
-        int64_t key=custom && family.keys ? family.keys[i] : (int64_t)i;
-        bool pushed=schema->provider ? schema->provider->Append(value,key,item) :
-            xl6SequenceAdmitValueV1(target,item) && xrtTypedArrayPushValue(storage,item,schema->converter);
+        bool pushed;
+        if (textKeys(schema)) pushed=schema->provider->AppendText(value,family.textKeys[i],item);
+        else {
+            int64_t key=custom && family.keys ? family.keys[i] : (int64_t)i;
+            pushed=schema->provider ? schema->provider->Append(value,key,item) :
+                xl6SequenceAdmitValueV1(target,item) && xrtTypedArrayPushValue(storage,item,schema->converter);
+        }
         if (!pushed || !successful(ctx)) xl6ErrorScopeCaptureFailure(ctx->operation);
         releasePreservingError(converted);
         if (!pushed || !successful(ctx)) goto done;
@@ -304,9 +333,7 @@ static bool validPlan(const XL6_CollectionImportPlanV1* plan,size_t count)
     } else if (plan->leafRule || plan->leafIdentity || plan->leafNullable) return false;
     for (size_t i=0;plan->providers && i<count;++i) {
         const XL6_CollectionImportProviderV1* p=plan->providers[i];
-        if (p && (!p->Begin || !p->End || !p->Empty || !p->Admits || !p->Append ||
-            (!!p->InputBegin!=!!p->InputEnd) ||
-            ((plan->flags&XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1) && !p->InputBegin))) return false;
+        if (!providerValid(p) || (p && (plan->flags&XL6_COLLECTION_IMPORT_LANGUAGE_INPUT_V1) && !p->InputBegin)) return false;
     }
     return true;
 }
@@ -440,7 +467,7 @@ static bool graphPlanValid(const XL6_RestorePlanV1* plan,size_t count)
         } else if (node->kind==XL6_RESTORE_SEQUENCE_V1) {
             const XL6_CollectionImportProviderV1* p=node->as.sequence.provider;
             if (!node->identity || node->as.sequence.seed>=count || node->as.sequence.element>=plan->nodeCount ||
-                (p && (!p->Begin || !p->End || !p->Empty || !p->Admits || !p->Append))) return false;
+                !providerValid(p)) return false;
             if (plan->nodes[node->as.sequence.element].flags&XL6_RESTORE_FIELD_INSTANCE_V1) return false;
             for (size_t j=0;j<i;++j) if (plan->nodes[j].kind==XL6_RESTORE_SEQUENCE_V1 &&
                 plan->nodes[j].as.sequence.seed==node->as.sequence.seed) return false;
@@ -722,28 +749,37 @@ static xvalue* restoreNode(Import* ctx,const XL6_RestorePlanV1* plan,size_t doma
     }
     ctx->active[depth]=source;
     if (node->kind==XL6_RESTORE_SEQUENCE_V1) {
-        if (xrtValueType(source)!=XVALUE_ARRAY) { rejectWire(ctx,XERR_TYPE); goto done; }
         const Template* schema=&ctx->templates[node->as.sequence.seed]; XL6_ArrayInputV1 input={0};
+        XL6_CollectionImportInputV1 family={0}; bool text=textKeys(schema);
+        if (xrtValueType(source)!=(text ? XVALUE_OBJECT : XVALUE_ARRAY)) { rejectWire(ctx,XERR_TYPE); goto done; }
         XL6_Sequence* owner=NULL;
         const xvalue* snapshot=wireSnapshot(ctx,source);
-        if (!snapshot || !xl6ArrayInputAcquireV1(snapshot,&input) || !restoring(ctx)) goto sequenceDone;
+        if (!snapshot || !(text ? schema->provider->InputBegin(snapshot,&family) :
+            xl6ArrayInputAcquireV1(snapshot,&input)) || !restoring(ctx)) goto sequenceDone;
+        if (text && !familyInputValid(schema,&family)) goto sequenceDone;
         value=childSeed(schema);
         if (!value || !restoring(ctx)) goto sequenceDone;
         if (!schema->provider) owner=xl6SequenceBeginRoleV1(value,XL6_SEQUENCE_ARRAY_V1,schema->layout.identity,
             schema->layout.elementIdentity,schema->layout.transfer,schema->layout.size,schema->layout.type);
         bool ok=restoring(ctx) && (schema->provider || owner);
         xtypedarray* storage=owner ? xl6SequenceStorageV1(owner) : NULL;
-        if (ok && storage) ok=xrtTypedArrayReserve(storage,input.count);
-        for (size_t i=0;ok && i<input.count;++i) {
-            xvalue* item=restoreNode(ctx,plan,node->as.sequence.element,depth+1,input.items[i],NULL);
+        size_t count=text ? family.count : input.count;
+        if (ok && storage) ok=xrtTypedArrayReserve(storage,count);
+        for (size_t i=0;ok && i<count;++i) {
+            xvalue* item=restoreNode(ctx,plan,node->as.sequence.element,depth+1,
+                text ? family.items[i] : input.items[i],NULL);
             ok=item && restoring(ctx);
-            if (ok) ok=schema->provider ? schema->provider->Append(value,(int64_t)i,item) :
-                xl6SequenceAdmitValueV1(owner,item) && xrtTypedArrayPushValue(storage,item,schema->converter);
+            if (ok) ok=text ? schema->provider->AppendText(value,family.textKeys[i],item) :
+                schema->provider ? schema->provider->Append(value,(int64_t)i,item) :
+                    xl6SequenceAdmitValueV1(owner,item) && xrtTypedArrayPushValue(storage,item,schema->converter);
+            if (!ok && !ctx->wireRejected) xl6ErrorScopeCaptureFailure(ctx->operation);
             releasePreservingError(item); ok=ok && restoring(ctx);
         }
-        if (!ok && restoring(ctx)) xrtSetErrorKind(XERR_TYPE);
+        if (!ok && !ctx->wireRejected) xl6ErrorScopeCaptureFailure(ctx->operation);
 sequenceDone:
+        if ((!value || !restoring(ctx)) && !ctx->wireRejected) xl6ErrorScopeCaptureFailure(ctx->operation);
         if (owner) xl6SequenceEndV1(owner);
+        if (text) schema->provider->InputEnd(&family);
         xl6ArrayInputReleaseV1(&input);
     } else {
         if (xrtValueType(source)!=XVALUE_OBJECT || node->as.object.provider->IsNative(source)) {

@@ -100,7 +100,7 @@ typedef struct XL6_RestorePlanV1 {
  * key is (source Value, explicit node, actual FIELD_INSTANCE child), not
  * recursion depth, nominal ID or a static field recipe alone. The actual child
  * has its own real memo pin, so pointer reuse cannot manufacture identity.
- * Collection templates are genuine empty projected resident Array/List
+ * Collection templates are genuine empty projected resident Array/List/Set/Dict
  * objects. They are consumed on both paths for a valid pointer/count pair.
  * target is an optional owned, PRIVATE declaration-default root and is
  * consumed on both paths; only a declaration OBJECT root permits it. IN_PLACE
@@ -117,7 +117,9 @@ typedef struct XL6_RestorePlanV1 {
  * prepared graph is rebuilt and reauthenticated. Initializers run once;
  * returned self or a still-shared cloned receiver is a checked failure.
  * Missing optional fields preserve defaults; explicit null is distinct.
- * Source is borrowed wire ARRAY/OBJECT/scalar, never retagged or mutated.
+ * Sequence nodes select their provider's exact wire shape: text-key Dict
+ * requires OBJECT, other collections require ARRAY. Text keys preserve their
+ * complete byte spans. Source is borrowed, never retagged or mutated.
  * Traversed cycles and more than 65 object/collection levels fail closed.
  * Failure withdraws the whole unpublished result, but cannot undo ordinary
  * language initializer/destructor side effects. No public language ABI yet. */

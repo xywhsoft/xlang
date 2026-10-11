@@ -13,6 +13,7 @@ typedef struct XL6_CollectionImportInputV1 {
     const int64_t* keys; /* NULL means contiguous keys, never a sparse-key cast. */
     size_t count;
     ptr context;
+    const xstrview* textKeys; /* Text family only; exact owned spans, including empty/NUL. */
 } XL6_CollectionImportInputV1;
 typedef struct XL6_CollectionImportProviderV1 {
     bool (*Begin)(const xvalue*,ptr*);
@@ -30,6 +31,10 @@ typedef struct XL6_CollectionImportProviderV1 {
      * reference semantics (including BUSY); wrong typed/foreign owners do not
      * gain conversion authority by inspecting their contents. Resident only. */
     bool (*InputConversion)(ptr,const xvalue*,bool*);
+    /* Exactly one Append/AppendText is required. Text families require paired
+     * InputBegin/InputEnd in every mode; wire input is OBJECT, not ARRAY.
+     * The synchronous input owns keys until InputEnd, never source addresses. */
+    bool (*AppendText)(xvalue*,xstrview,const xvalue*);
 } XL6_CollectionImportProviderV1;
 
 enum { XL6_COLLECTION_IMPORT_RESTORE_V1=1u, XL6_COLLECTION_IMPORT_JSON_V1=2u,
@@ -50,10 +55,10 @@ typedef struct XL6_CollectionImportPlanV1 {
  * including a malformed plan or an upstream NULL factory failure. Source is
  * borrowed, never retagged or mutated; success returns an independent native
  * root (the original Array-only API retains its original root-seed contract).
- * Wire ARRAY input represents both Array and the approved compact List format.
+ * Wire ARRAY input represents Array/List/Set; text-key providers use OBJECT.
  * LANGUAGE_INPUT instead selects a provider's exact sparse/native input
- * snapshot. It cannot be combined with RESTORE/JSON, never falls back to wire
- * ARRAY after family refusal, and preserves every int64 key. NULL providers
+ * snapshot. It cannot be combined with RESTORE/JSON, never falls back to another
+ * wire family after refusal, and preserves every int64/text key. NULL providers
  * continue to use the resident Array input at descendant schema levels.
  * Same source Value at the same schema depth shares one native result. A native
  * Array with the authentic resident ANY policy is an erased language input:
