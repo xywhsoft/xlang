@@ -577,6 +577,7 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         }
         if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
             (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ||
+             module->instructions[i].runtimeOp==XL6_IR_RUNTIME_DICT_CREATE ||
              module->instructions[i].runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
              module->instructions[i].runtimeOp==XL6_IR_RUNTIME_XVALUE_SET_NEW ||
              module->instructions[i].runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN)) {
@@ -584,7 +585,9 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
             if (!xl6IrValueCollectionConstructionRecipe(module,module->instructions[i].type,&recipe) ||
                 !xl6IrCgenAnalyzeSequenceRecipeNeeds(module,recipe.valueSchemaType,needs,0)) return 0;
             if (recipe.family==XL6_IR_COLLECTION_LIST) needs->needsListCreateRuntime=1;
-            else needs->needsSetCreateRuntime=1;
+            else if (recipe.family==XL6_IR_COLLECTION_SET) needs->needsSetCreateRuntime=1;
+            else if (recipe.family==XL6_IR_COLLECTION_DICT) needs->needsDictCreateRuntime=1;
+            else return 0;
             needs->needsArrayCreateRuntime=1; /* Exact resident value-schema projection. */
             if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
                 module->instructions[i].runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN) {

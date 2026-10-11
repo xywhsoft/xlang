@@ -270,6 +270,8 @@ static int xl6IrCgenEmitResourceRuntime(
         xl6OutputPuts("#include <__xl_runtime/xl6_set_import_chain.h>\n",out);
     if (needs->needsSetMethodsRuntime)
         xl6OutputPuts("#include <__xl_runtime/xl6_set_methods.h>\n",out);
+    if (needs->needsDictMethodsRuntime)
+        xl6OutputPuts("#include <__xl_runtime/xl6_dict_methods.h>\n",out);
     if (needs->needsCollectionCountAllRuntime)
         xl6OutputPuts("#include <__xl_runtime/xl6_collection_count_all.h>\n",out);
     if (needs->needsArrayCreateRuntime)

@@ -86,27 +86,6 @@ static int xl6IrCgenEmitXValueCoreRuntime(
             xl6OutputPuts(
                 "extern xvalue* xl6ArrayConcatV1(const xvalue*, const xvalue*);\n",
                 out);
-            if ( needs->needsCollectionDictMergeRuntime )
-                xl6OutputPuts(
-                    "static xvalue* xlir_xvalue_dict_merge_right(const xvalue* left, const xvalue* right)\n"
-                    "{\n"
-                    "    xvalue* result = xrtValueClone(left);\n"
-                    "    if (result == NULL || !xrtValueObjectMerge(result, right, XVALUE_MERGE_REPLACE)) {\n"
-                    "        xrtValueRelease(result); return NULL;\n"
-                    "    }\n"
-                    "    return result;\n"
-                    "}\n",
-                    out);
-            if ( needs->needsCollectionDictWithoutRuntime )
-                xl6OutputPuts(
-                    "extern bool xrtValueObjectRemove(xvalue*, xlir_string_view);\n"
-                    "static xvalue* xlir_xvalue_dict_without_string_key(const xvalue* left, xlir_string key)\n"
-                    "{\n"
-                    "    xvalue* result = xrtValueClone(left);\n"
-                    "    if (result != NULL) (void)xrtValueObjectRemove(result, key);\n"
-                    "    return result;\n"
-                    "}\n",
-                    out);
         }
         if ( needs->needsXValueTypeIdentityRuntime ) {
             const XL6_IrRuntimeTypeMap* map = &module->runtimeTypeMap;

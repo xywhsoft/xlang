@@ -35,7 +35,7 @@ static int xl6IrCgenEmitValueCollectionTargetCreateDepth(XL6_Output* out,const X
         "      const %s xlir_value_collection_target_layout = {0x%016llXULL,"
         "{0x%016llXULL,0x%016llXULL,%s,sizeof(%s),%s}};\n"
         "      %s = %s(&xlir_value_collection_target_layout, xlir_value_collection_value_schema);\n"
-        "      %s = %s(%s, &xlir_value_collection_target_layout, %s);\n"
+        "      if (%s) %s = %s(%s, &xlir_value_collection_target_layout, %s);\n"
         "      if (!%s || xrtGetError()) xl6ErrorScopeCaptureFailure(&xlir_value_collection_target_scope);\n"
         "      if (xlir_value_collection_target_scope.failed) { xrtValueRelease(%s); %s = NULL; }\n"
         "      xl6_error_result xlir_value_collection_target_outcome = xl6ErrorScopeEnd(&xlir_value_collection_target_scope);\n"
@@ -43,7 +43,7 @@ static int xl6IrCgenEmitValueCollectionTargetCreateDepth(XL6_Output* out,const X
         "      } else { %s = NULL; xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); } }\n",
         target->layout,(unsigned long long)owner->typeValueId,(unsigned long long)schema->typeValueId,
         (unsigned long long)payload->typeValueId,transfer,slot,descriptor,
-        result,target->create,result,target->project,result,converter,result,result,result,result);
+        result,target->create,result,result,target->project,result,converter,result,result,result,result);
     /* The virtual Array witness is not a collection-chain node. Only the
      * actual projected owner is retained as this depth's transaction seed. */
     if (importChain && depth<importCount)

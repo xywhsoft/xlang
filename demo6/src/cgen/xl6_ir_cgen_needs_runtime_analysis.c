@@ -13,6 +13,7 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
         if (xl6IrCgenInstructionUsesListMethods(module,&module->instructions[i]))
             needs->needsListMethodsRuntime=1;
         if (xl6IrCgenSetMethodSymbol(module,&module->instructions[i])) needs->needsSetMethodsRuntime=1;
+        if (xl6IrCgenDictMethodSymbol(module,&module->instructions[i])) needs->needsDictMethodsRuntime=1;
         if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
             xl6IrCollectionCountRuntimeOpIs(module->instructions[i].runtimeOp)) {
             const char* symbol=xl6IrCgenCollectionCountSymbol(module,&module->instructions[i]);
@@ -321,7 +322,8 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             if ( typedCollectionOp == XL6_IR_TYPED_COLLECTION_RESIZE )
                 needs->needsXValueTypedArrayResizeRuntime = 1;
             if (typedCollectionOp==XL6_IR_TYPED_COLLECTION_POP || typedCollectionOp==XL6_IR_TYPED_COLLECTION_TAKE) {
-                needs->needsArrayExtractRuntime=1;
+                if (module->instructions[i].collectionAbi!=XL6_IR_COLLECTION_DICT)
+                    needs->needsArrayExtractRuntime=1;
                 if (resultType && resultType->cAbi==XL6_IR_C_ABI_MANAGED_STRING) {
                     needs->needsStringRuntime=1; needs->needsStringViews=1;
                 }

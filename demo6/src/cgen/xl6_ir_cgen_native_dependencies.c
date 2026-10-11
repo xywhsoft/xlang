@@ -444,23 +444,26 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         }
         if (xl6IrCgenInstructionIsReachable(module,i) &&
             (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ||
+             instruction->runtimeOp==XL6_IR_RUNTIME_DICT_CREATE ||
              instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
              instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_SET_NEW ||
              instruction->runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN)) {
             XL6_IrValueCollectionRecipe recipe={0}; XL6_IrTypeId chain[65]; size_t count=0;
             bool list=instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE || instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN;
+            bool dict=instruction->runtimeOp==XL6_IR_RUNTIME_DICT_CREATE;
             bool importing=instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN || instruction->runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN;
-            if (!(list ? importing ? xl6IrListImportRuntimeInstructionCompatible(module,instruction) :
+            if (!(dict ? xl6IrDictCreateRuntimeInstructionCompatible(module,instruction) :
+                         list ? importing ? xl6IrListImportRuntimeInstructionCompatible(module,instruction) :
                                     xl6IrListCreateRuntimeInstructionCompatible(module,instruction) :
                          importing ? xl6IrSetImportRuntimeInstructionCompatible(module,instruction) :
                                     xl6IrSetCreateRuntimeInstructionCompatible(module,instruction)) ||
                 !xl6IrValueCollectionConstructionRecipe(module,instruction->type,&recipe) ||
-                !(list ? xl6IrListImportChainRecipe(module,instruction->type,chain,65,&count) :
-                         xl6IrSetImportChainRecipe(module,instruction->type,chain,65,&count)) ||
+                (importing && !(list ? xl6IrListImportChainRecipe(module,instruction->type,chain,65,&count) :
+                         xl6IrSetImportChainRecipe(module,instruction->type,chain,65,&count))) ||
                 !xl6IrCgenVisitSequenceFactorySymbols(module,recipe.valueSchemaType,visitor,context,0,true) ||
                 !visitor(context,"xl6ArrayProjectionTakeV1") ||
-                !visitor(context,list ? "xl6ListCreateTakeV1" : "xl6SetCreateTakeV1") ||
-                !visitor(context,list ? "xl6ListProjectionTakeV1" : "xl6SetProjectionTakeV1")) return 0;
+                !visitor(context,dict ? "xl6DictCreateTakeV1" : list ? "xl6ListCreateTakeV1" : "xl6SetCreateTakeV1") ||
+                !visitor(context,dict ? "xl6DictProjectionTakeV1" : list ? "xl6ListProjectionTakeV1" : "xl6SetProjectionTakeV1")) return 0;
             if (importing) {
                 if (!visitor(context,"xl6CollectionImportChainSourceTakeV1") ||
                     (count>1 && !visitor(context,"xl6ArrayEraseV1"))) return 0;
@@ -567,7 +570,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
                 (instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_POP || instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_TAKE)) {
                 const char* extract=instruction->collectionAbi==XL6_IR_COLLECTION_ARRAY ?
                     xl6IrCgenArrayExtractSymbol(xl6IrTypeGet(&module->types,instruction->type)) :
-                    instruction->collectionAbi==XL6_IR_COLLECTION_LIST ? "xl6ListValueTakeV1" : "xl6CollectionExtractValueV1";
+                    instruction->collectionAbi==XL6_IR_COLLECTION_LIST ? "xl6ListValueTakeV1" :
+                    instruction->collectionAbi==XL6_IR_COLLECTION_DICT ? "xl6DictValueTakeV1" : NULL;
                 if (!extract || !visitor(context,extract)) return 0;
             }
             if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
@@ -604,6 +608,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL) {
             const char* setMethod=xl6IrCgenSetMethodSymbol(module,instruction);
             if (setMethod && !visitor(context,setMethod)) return 0;
+            const char* dictMethod=xl6IrCgenDictMethodSymbol(module,instruction);
+            if (dictMethod && !visitor(context,dictMethod)) return 0;
             const char* symbol=instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_APPEND_NEW ?
                 "xl6ArrayValueAppendTakeV1" : instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_SET_I64_NEW ?
                 "xl6ArrayValueSetTakeV1" : instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_INDEX_SET_XVALUE_KEY_NEW ?

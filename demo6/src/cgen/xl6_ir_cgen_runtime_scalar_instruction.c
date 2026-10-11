@@ -41,13 +41,18 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                         (unsigned)module->functions[factory - 1].symbol);
                 } else if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE) {
                     return xl6IrCgenEmitArrayCreate(out,module,instruction)>0;
-                } else if (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE) {
+                } else if (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ||
+                    instruction->runtimeOp==XL6_IR_RUNTIME_DICT_CREATE) {
                     char target[24];
-                    if (!xl6IrListCreateRuntimeInstructionCompatible(module,instruction))
-                        return xl6IrCgenRuntimeEmitDiag(diags,module,instruction->origin,"XLIR List factory contract is unresolved");
+                    bool dict=instruction->runtimeOp==XL6_IR_RUNTIME_DICT_CREATE;
+                    if (!(dict ? xl6IrDictCreateRuntimeInstructionCompatible(module,instruction) :
+                        xl6IrListCreateRuntimeInstructionCompatible(module,instruction)))
+                        return xl6IrCgenRuntimeEmitDiag(diags,module,instruction->origin,"XLIR collection factory contract is unresolved");
                     snprintf(target,sizeof(target),"v%u",(unsigned)instruction->result);
-                    return xl6IrCgenEmitListTargetCreate(out,module,instruction->type,target,
-                        instruction->sequenceAdmissionIdentitySet)>0;
+                    return (dict ? xl6IrCgenEmitDictTargetCreate(out,module,instruction->type,target,
+                        instruction->sequenceAdmissionIdentitySet) :
+                        xl6IrCgenEmitListTargetCreate(out,module,instruction->type,target,
+                        instruction->sequenceAdmissionIdentitySet))>0;
                 } else if (instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
                     instruction->runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN) {
                     char source[24];

@@ -1,0 +1,82 @@
+// Genuine native producers, exact keys and resident methods; no wire facade.
+dict<int> numbers = {"a\0你": 7, "a": 2, "": 3}
+assert numbers.length == 3 and numbers.contains("a\0你"), "native count and exact key"
+assert not numbers.contains("absent"), "clean missing key"
+assert numbers.reserve(64) and numbers.capacity() >= 64, "reserve and capacity"
+assert numbers.trim() and numbers.capacity() >= numbers.length, "trim and count"
+dict<int> copied = copy(numbers)
+assert copied.remove("a\0你") and not copied.remove("absent"), "copy remove"
+assert numbers["a\0你"] == 7 and copied.length == 2, "independent shallow copy"
+assert (copied.take("a") ?? 0) == 2 and copied.take("absent") == null, "take and missing"
+assert copied.clear() and copied.length == 0, "clear"
+dict<int> merged = numbers + {"a\0你": 9, "new": 4}
+dict<int> reduced = merged - "a\0你"
+assert numbers["a\0你"] == 7 and merged["a\0你"] == 9, "right-biased merge"
+assert reduced.length == 3 and not reduced.contains("a\0你"), "without key"
+dict<int>? absent = null
+assert absent?.length == null, "nullable count"
+dict<int> implicit
+assert implicit.length == 0, "default native Dict"
+class DictHolder
+    dict<int> items
+end
+DictHolder holder = DictHolder()
+holder.items["x\0y"] = 11
+assert holder.items["x\0y"] == 11, "class default Dict"
+
+dict<string> texts = {"n\0": "v\0你"}
+string extracted = string(texts.take("n\0"))
+assert texts.length == 0 and extracted == "v\0你", "owned string take"
+dict<char> characters = {"c": '你'}
+assert characters["c"] == '你', "char Dict"
+dict<bytes> blobs = {"b": b"a\0b"}
+assert blobs["b"].length == 3, "bytes Dict"
+dict<int?> optional = {"empty": null, "value": 7}
+assert optional["empty"] == null and (optional["value"] ?? 0) == 7, "nullable element"
+
+class DictItem
+    int value = 5
+end
+DictItem original = DictItem()
+dict<DictItem> objects = {"item": original}
+dict<DictItem> aliases = copy(objects)
+original.value = 13
+assert objects["item"].value == 13 and aliases["item"].value == 13, "reference identity"
+dict<dict<int>> nested = {"inner": {"a\0b": 12}}
+assert nested["inner"]["a\0b"] == 12, "nested Dict"
+array<dict<int>> arrayNested = [{"v": 3}]
+assert arrayNested[0]["v"] == 3, "Array Dict child"
+list<dict<int>> listNested = [0: {"v": 4}]
+assert listNested[0]["v"] == 4, "List Dict child"
+set<dict<int>> identityKeys = set{numbers}
+numbers["a"] = 22
+assert identityKeys.contains(numbers), "mutable Dict Set key preserves identity"
+assert not identityKeys.contains(copy(numbers)), "copied Dict is distinct Set key"
+var erased = {"k\0": "v\0"}
+assert string(erased["k\0"]) == "v\0", "erased Dict exact key"
+erased["k\0"] = "next\0"
+string computedKey = "k\0"
+assert string(erased[computedKey]) == "next\0", "erased Dict computed key"
+erased[computedKey] = "last\0"
+assert string(erased["k\0"]) == "last\0", "erased Dict string write"
+erased["number\0"] = 2
+erased["number\0"] += 3
+assert int(erased["number\0"]) == 5, "erased Dict compound write"
+erased["number\0"] -= 2
+erased["number\0"] *= 3
+erased["number\0"] /= 3
+erased["number\0"] %= 2
+assert int(erased["number\0"]) == 1, "erased Dict arithmetic transactions"
+
+func dictionaryPack(***) as int
+    return arg.length
+end
+assert dictionaryPack(a = 1, b = "x") == 2, "named variadic Dict"
+
+func dictFactoryRoundtrip() as dict<int>
+    dict<int> local = {"a\0你": 7, "a": 2}
+    dict<int> result = local + {"a\0你": 9, "next": 8}
+    return result - "a"
+end
+dict<int> returned = dictFactoryRoundtrip()
+assert returned.length == 2 and returned["a\0你"] == 9, "native returned Dict"
