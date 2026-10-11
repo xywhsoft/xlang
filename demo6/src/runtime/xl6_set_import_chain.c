@@ -98,4 +98,4 @@ static bool inputConversion(ptr opaque,const xvalue* source,bool* output)
     *output=erased; return true;
 }
 const XL6_CollectionImportProviderV1* xl6SetImportProviderV1(void)
-{ static const XL6_CollectionImportProviderV1 provider={begin,end,empty,admits,append,inputBegin,inputEnd,inputConversion,NULL}; return &provider; }
+{ static const XL6_CollectionImportProviderV1 provider={begin,end,empty,admits,append,inputBegin,inputEnd,inputConversion,NULL,xl6SetOwnershipAdapterV1}; return &provider; }

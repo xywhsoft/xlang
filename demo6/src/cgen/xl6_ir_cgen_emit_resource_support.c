@@ -268,6 +268,8 @@ static int xl6IrCgenEmitResourceRuntime(
         xl6OutputPuts("#include <__xl_runtime/xl6_dict_schema.h>\n",out);
     if (needs->needsSetImportRuntime)
         xl6OutputPuts("#include <__xl_runtime/xl6_set_import_chain.h>\n",out);
+    if (needs->needsDictImportRuntime)
+        xl6OutputPuts("#include <__xl_runtime/xl6_dict_import_chain.h>\n",out);
     if (needs->needsSetMethodsRuntime)
         xl6OutputPuts("#include <__xl_runtime/xl6_set_methods.h>\n",out);
     if (needs->needsDictMethodsRuntime)

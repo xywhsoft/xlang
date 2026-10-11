@@ -27,7 +27,7 @@ int main(int argc,char** argv)
         assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SET_METHODS)==(lane!=3));
         assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_LIST_NATIVE)==(lane==1));
         assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SET_IMPORT_CHAIN)==(lane!=3));
-        assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_RESTORE_CLASS_SET)==(lane==2));
+        assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_RESTORE_CLASS_SET)==(lane!=3));
         assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_RESTORE_CLASS_COLLECTIONS)==(lane==1));
         assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_LIST_GRAPH)==(lane==1));
         assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_PERSISTENCE_PROJECT_COLLECTIONS)==(lane==1));
@@ -37,9 +37,8 @@ int main(int argc,char** argv)
             unsigned closed=0,legacy=0;
             for (size_t i=0;i<ir->persistenceRestoreRootCount;++i)
                 if (ir->persistenceRestoreRoots[i].pending) ++legacy; else ++closed;
-            /* Dict restoration still uses the legacy plan, but any nested Set
-             * must leave it as a genuine native owner, not a wire carrier. */
-            assert(closed && legacy);
+            /* Dict now shares the closed resident graph with nested Set. */
+            assert(closed && !legacy);
         }
         for (size_t i=0;i<ir->instructionCount;++i) {
             XL6_IrInstruction* ins=&ir->instructions[i];

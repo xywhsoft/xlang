@@ -35,6 +35,10 @@ typedef struct XL6_CollectionImportProviderV1 {
      * InputBegin/InputEnd in every mode; wire input is OBJECT, not ARRAY.
      * The synchronous input owns keys until InputEnd, never source addresses. */
     bool (*AppendText)(xvalue*,xstrview,const xvalue*);
+    /* Exact resident ownership adapter, observed by the common restore read
+     * boundary before traversing default class fields. No child admission is
+     * inferred from recognizing the owner; the normal graph check still runs. */
+    const struct xrtownershipadapterv1* (*OwnershipAdapter)(struct xrtownershipref);
 } XL6_CollectionImportProviderV1;
 
 enum { XL6_COLLECTION_IMPORT_RESTORE_V1=1u, XL6_COLLECTION_IMPORT_JSON_V1=2u,

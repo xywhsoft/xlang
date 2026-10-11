@@ -97,7 +97,8 @@ typedef enum XL6_IrCollectionCarrierAbi {
     XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1,
     /* Decode target only until all source List producers are migrated. */
     XL6_IR_COLLECTION_CARRIER_LIST_V1,
-    XL6_IR_COLLECTION_CARRIER_SET_V1
+    XL6_IR_COLLECTION_CARRIER_SET_V1,
+    XL6_IR_COLLECTION_CARRIER_DICT_V1
 } XL6_IrCollectionCarrierAbi;
 
 /* Complete element-admission family for checked erased collection rebinds.
@@ -2042,6 +2043,7 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_DICT_READ_VALUE_REQUIRED_COPY,
     XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE,
     XL6_IR_RUNTIME_DICT_CREATE,
+    XL6_IR_RUNTIME_DICT_IMPORT_CHAIN,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -6748,10 +6750,11 @@ XL6_IrTypeId xl6IrArrayAnyType(const XL6_IrModule*);
 XL6_IrTypeId xl6IrListAnyType(const XL6_IrModule*);
 XL6_IrTypeId xl6IrDictAnyType(const XL6_IrModule*);
 XL6_IrTypeId xl6IrSetAnyType(const XL6_IrModule*);
-/* Complete explicit data-import chain, outer Array first. Recurses only into
- * Array children; Stack children retain their native identity. No source
+/* Complete explicit data-import chain, outer collection first. Recurses into
+ * Array/List/Set/Dict children; Stack children retain their native identity. No source
  * carrier cutover authority. All descendant recipes/codecs are verified before
  * publishing any output. NULL/zero queries length; short buffers are unchanged. */
+int xl6IrCollectionImportChainRecipe(const XL6_IrModule*,XL6_IrTypeId,XL6_IrTypeId*,size_t,size_t*);
 int xl6IrArrayImportChainRecipe(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrTypeId*, size_t, size_t*);
 int xl6IrArrayImportRuntimeInstructionCompatible(const XL6_IrModule*, const XL6_IrInstruction*);
@@ -6761,6 +6764,8 @@ int xl6IrListImportChainRecipe(const XL6_IrModule*, XL6_IrTypeId,
 int xl6IrListImportRuntimeInstructionCompatible(const XL6_IrModule*, const XL6_IrInstruction*);
 int xl6IrListCreateRuntimeInstructionCompatible(const XL6_IrModule*, const XL6_IrInstruction*);
 int xl6IrDictCreateRuntimeInstructionCompatible(const XL6_IrModule*, const XL6_IrInstruction*);
+int xl6IrDictImportChainRecipe(const XL6_IrModule*,XL6_IrTypeId,XL6_IrTypeId*,size_t,size_t*);
+int xl6IrDictImportRuntimeInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 int xl6IrSetImportChainRecipe(const XL6_IrModule*,XL6_IrTypeId,XL6_IrTypeId*,size_t,size_t*);
 int xl6IrSetImportRuntimeInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 int xl6IrSetCreateRuntimeInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
@@ -6959,6 +6964,9 @@ typedef enum XL6_IrValueCopyProviderAbi {
     XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1,
     XL6_IR_VALUE_COPY_DICT_V1
 } XL6_IrValueCopyProviderAbi;
+/* Complete transitive storage capability for declared data projection. */
+enum { XL6_IR_GRAPH_LIST_V1=1u, XL6_IR_GRAPH_SET_V1=2u, XL6_IR_GRAPH_DICT_V1=4u };
+unsigned xl6IrPersistenceGraphProviders(const XL6_IrModule*,XL6_IrTypeId);
 XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbi(
     const XL6_IrModule*,const XL6_IrInstruction*);
 /* The same typed closure also serves compiler-derived restore isolation.

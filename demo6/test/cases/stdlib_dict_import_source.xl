@@ -1,0 +1,96 @@
+class DictImportItem
+    derive value
+    int number = 7
+end
+class DictImportData
+    derive value
+    dict<int8> small
+    dict<string?> words
+    dict<DictImportItem> objects
+    dict<list<array<dict<char>>>> mixed
+    set<dict<int>> identities = set{}
+end
+class DictImportSmallData
+    derive value
+    dict<int8> value
+end
+class DictImportBinaryData
+    derive value
+    dict<bytes> value
+end
+func main(...) as int
+    var raw = {"a\0你": 127, "a": -128, "": 3}
+    dict<int8> imported = raw
+    assert(imported.length == 3)
+    assert(imported["a\0你"] == int8(127) and imported["a"] == int8(-128))
+    assert(imported[""] == int8(3))
+    imported["a\0你"] = int8(9)
+    assert(raw["a\0你"] == 127)
+    var invalid = {"bad": "not an integer"}
+    bool caught = false
+    try
+        imported = invalid
+    catch e
+        if e.kind != "TypeError" then
+            throw
+        end
+        caught = true
+    end
+    assert(caught and imported["a\0你"] == int8(9) and invalid["bad"] == "not an integer")
+    dict<int> wrongTyped = {"number": 7}
+    var typedErased = wrongTyped
+    caught = false
+    try
+        imported = typedErased
+    catch e
+        if e.kind != "TypeError" then
+            throw
+        end
+        caught = true
+    end
+    assert(caught and imported.length == 3 and wrongTyped["number"] == 7)
+    var nested = {"outer": {"a\0b": "v\0你", "": ""}}
+    dict<dict<string>> exact = nested
+    assert(exact["outer"]["a\0b"] == "v\0你")
+    exact["outer"]["a\0b"] = "changed"
+    assert(nested["outer"]["a\0b"] == "v\0你")
+    var shared = {"x\0": 7}
+    var graph = {"left": shared, "right": shared}
+    dict<dict<int>> importedGraph = graph
+    importedGraph["left"]["x\0"] = 9
+    assert(importedGraph["right"]["x\0"] == 9 and shared["x\0"] == 7)
+    var arrays = [{"first": 2}, {"": 3}]
+    array<dict<int>> arrayDict = arrays
+    assert(arrayDict[0]["first"] == 2 and arrayDict[1][""] == 3)
+    var lists = [0: {"first": 4}, 1: {"": 5}]
+    list<dict<int>> listDict = lists
+    assert(listDict[0]["first"] == 4 and listDict[1][""] == 5)
+    var sets = set{{"first": 6}, {"": 7}}
+    set<dict<int>> setDict = sets
+    assert(setDict.length == 2)
+    DictImportSmallData parsed = json.parse::<DictImportSmallData>("{\"value\":{\"a\\u0000你\":127,\"a\":-128,\"\":3}}")
+    assert(parsed.value.length == 3 and parsed.value["a\0你"] == int8(127))
+    assert(json.parse::<DictImportSmallData>("{\"value\":{\"bad\":128}}") == null)
+    assert(json.parse::<DictImportSmallData>("{\"value\":[]}") == null)
+    DictImportData data = json.parse::<DictImportData>("{\"small\":{\"\":-128,\"a\\u0000你\":127},\"words\":{\"a\\u0000\":\"v\\u0000你\",\"nil\":null},\"objects\":{\"one\":{\"number\":31}},\"mixed\":{\"outer\":[[{\"a\\u0000\":65,\"你\":20320}]]},\"identities\":[{\"first\":9},{\"first\":9}]}")
+    assert(data.small[""] == int8(-128))
+    string? embedded = "v\0你"
+    assert(data.words["a\0"] == embedded and data.words["nil"] == null)
+    assert(data.objects["one"].number == 31)
+    assert(data.mixed["outer"][0][0]["a\0"] == 'A')
+    assert(data.mixed["outer"][0][0]["你"] == '你')
+    assert(data.identities.length == 2)
+    DictImportData jsonCopy = json.parse::<DictImportData>(json.stringify(data))
+    DictImportData xlonCopy = xlon.parse::<DictImportData>(xlon.stringify(data))
+    assert(jsonCopy.objects["one"].number == 31)
+    assert(xlonCopy.words["a\0"] == embedded)
+    assert(jsonCopy.identities.length == 2 and xlonCopy.identities.length == 2)
+    assert(json.parse::<DictImportData>("{\"small\":{\"bad\":128}}") == null)
+    assert(json.parse::<DictImportData>("{\"mixed\":{\"outer\":[[{\"bad\":55296}]]}}") == null)
+    DictImportBinaryData original = DictImportBinaryData()
+    original.value["a\0"] = b"a\0b"
+    original.value[""] = b""
+    DictImportBinaryData binary = xlon.parse::<DictImportBinaryData>(xlon.stringify(original))
+    assert(binary.value["a\0"] == b"a\0b" and binary.value[""] == b"")
+    return 0
+end

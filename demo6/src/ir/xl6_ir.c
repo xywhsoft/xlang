@@ -814,6 +814,7 @@ const char* xl6IrCollectionCarrierAbiName(XL6_IrCollectionCarrierAbi abi)
     case XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1: return "sequence-v1";
     case XL6_IR_COLLECTION_CARRIER_LIST_V1: return "list-v1";
     case XL6_IR_COLLECTION_CARRIER_SET_V1: return "set-v1";
+    case XL6_IR_COLLECTION_CARRIER_DICT_V1: return "dict-v1";
     default: return "invalid";
     }
 }
@@ -5805,6 +5806,7 @@ static XL6_IrCollectionCarrierAbi xl6IrPersistenceRestoreCarrierForType(
             XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1 : XL6_IR_COLLECTION_CARRIER_VALUE_V1;
     return abi==XL6_IR_PERSISTENCE_VALUE_LIST_SEQUENCE ? XL6_IR_COLLECTION_CARRIER_LIST_V1 :
         abi==XL6_IR_PERSISTENCE_VALUE_SET_SEQUENCE ? XL6_IR_COLLECTION_CARRIER_SET_V1 :
+        abi==XL6_IR_PERSISTENCE_VALUE_DICT_OBJECT ? XL6_IR_COLLECTION_CARRIER_DICT_V1 :
         XL6_IR_COLLECTION_CARRIER_NONE;
 }
 int xl6IrRefreshPersistenceTypeAbis(XL6_IrModule* module)
@@ -8369,16 +8371,17 @@ int xl6IrConcurrentQueueConstructionRecipe(const XL6_IrModule* module,XL6_IrType
     XL6_IrRuntimeResourceAbi* familyOut,XL6_IrTypeId* schemaOut,XL6_IrNominalIdentitySetId* setOut)
 { return xl6IrConcurrentQueueConstructionRecipeDepth(module,typeId,familyOut,schemaOut,setOut,0); }
 
-static int xl6IrCollectionImportChainRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
+int xl6IrCollectionImportChainRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
     XL6_IrTypeId* output,size_t capacity,size_t* count)
 {
     XL6_IrTypeId prepared[65]; size_t used=0;
-    if (!count || (!output && capacity)) return 0;
+    if (!module || !count || (!output && capacity)) return 0;
     for (;;) {
         const XL6_IrType* type=xl6IrTypeGet(&module->types,typeId);
         if (!type || used>=65) return 0;
         prepared[used++]=typeId;
-        if (type->collectionAbi==XL6_IR_COLLECTION_LIST || type->collectionAbi==XL6_IR_COLLECTION_SET) {
+        if (type->collectionAbi==XL6_IR_COLLECTION_LIST || type->collectionAbi==XL6_IR_COLLECTION_SET ||
+            type->collectionAbi==XL6_IR_COLLECTION_DICT) {
             XL6_IrValueCollectionRecipe recipe={0};
             if (!xl6IrValueCollectionConstructionRecipe(module,typeId,&recipe)) return 0;
             type=xl6IrTypeGet(&module->types,recipe.valueSchemaType);
@@ -8386,6 +8389,7 @@ static int xl6IrCollectionImportChainRecipe(const XL6_IrModule* module,XL6_IrTyp
         const XL6_IrSequenceLayout* plan=&type->sequenceLayout;
         if (plan->abi!=XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 &&
             plan->abi!=XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1 &&
+            plan->abi!=XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1 &&
             (plan->abi!=XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 ||
              plan->childRole!=XL6_IR_SEQUENCE_ROLE_ARRAY)) break;
         typeId=plan->baseElementType;
@@ -8408,6 +8412,13 @@ int xl6IrListImportChainRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
 {
     const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,typeId) : NULL;
     return type && type->collectionAbi==XL6_IR_COLLECTION_LIST &&
+        xl6IrCollectionImportChainRecipe(module,typeId,output,capacity,count);
+}
+int xl6IrDictImportChainRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
+    XL6_IrTypeId* output,size_t capacity,size_t* count)
+{
+    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,typeId) : NULL;
+    return type && type->collectionAbi==XL6_IR_COLLECTION_DICT &&
         xl6IrCollectionImportChainRecipe(module,typeId,output,capacity,count);
 }
 int xl6IrSetImportChainRecipe(const XL6_IrModule* module,XL6_IrTypeId typeId,
@@ -15160,6 +15171,8 @@ XL6_IrRuntimeOp xl6IrNativeCollectionImportRuntimeOp(const XL6_IrModule* module,
         xl6IrListImportChainRecipe(module,targetId,NULL,0,&count)) return XL6_IR_RUNTIME_LIST_IMPORT_CHAIN;
     if (target->collectionAbi==XL6_IR_COLLECTION_SET && target->paramCount==1 && target->params &&
         xl6IrSetImportChainRecipe(module,targetId,NULL,0,&count)) return XL6_IR_RUNTIME_SET_IMPORT_CHAIN;
+    if (target->collectionAbi==XL6_IR_COLLECTION_DICT && target->paramCount==1 && target->params &&
+        xl6IrDictImportChainRecipe(module,targetId,NULL,0,&count)) return XL6_IR_RUNTIME_DICT_IMPORT_CHAIN;
     return XL6_IR_RUNTIME_NONE;
 }
 
@@ -17095,6 +17108,7 @@ static XL6_IrErrorAbi xl6IrClassifyImplicitConversionErrorAbi(
          runtimeOp == XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||
          runtimeOp == XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
          runtimeOp == XL6_IR_RUNTIME_SET_IMPORT_CHAIN ||
+         runtimeOp == XL6_IR_RUNTIME_DICT_IMPORT_CHAIN ||
          runtimeOp == XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED ||
          runtimeOp == XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED ||
          runtimeOp == XL6_IR_RUNTIME_XVALUE_CALLABLE_FROM_CLOSURE ||
@@ -20652,6 +20666,7 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     case XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN:
     case XL6_IR_RUNTIME_LIST_IMPORT_CHAIN:
     case XL6_IR_RUNTIME_SET_IMPORT_CHAIN:
+    case XL6_IR_RUNTIME_DICT_IMPORT_CHAIN:
     case XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED:
     case XL6_IR_RUNTIME_FUTURE_ALL_XVALUES:
     case XL6_IR_RUNTIME_FUTURE_RACE:
@@ -22677,19 +22692,19 @@ static unsigned xl6IrCopyGraphCollectionProviders(const XL6_IrModule* module,XL6
     const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
     /* Recursive/opaque domains cannot be proven leaf-only. Conservatively
      * select the resident provider; never inspect an AST or diagnostic name. */
-    if (!type || depth>=64 || !*remaining) return 3;
+    if (!type || depth>=64 || !*remaining) return 7;
     --*remaining;
     if (
         type->kind==XL6_IR_TYPE_PROTOCOL || type->kind==XL6_IR_TYPE_TYPE_PARAM ||
         type->kind==XL6_IR_TYPE_TAGGED_ENUM ||
         (type->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && type->xvalueAdmissionAbi==XL6_VALUE_ADMIT_ANY &&
-         type->collectionAbi==XL6_IR_COLLECTION_NONE && type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NONE)) return 3;
+         type->collectionAbi==XL6_IR_COLLECTION_NONE && type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NONE)) return 7;
     unsigned providers=type->collectionAbi==XL6_IR_COLLECTION_LIST ? 1u :
-        type->collectionAbi==XL6_IR_COLLECTION_SET ? 2u : 0u;
+        type->collectionAbi==XL6_IR_COLLECTION_SET ? 2u : type->collectionAbi==XL6_IR_COLLECTION_DICT ? 4u : 0u;
     if (type->kind==XL6_IR_TYPE_CLASS ||
         (type->nominalSymbol && type->collectionAbi==XL6_IR_COLLECTION_NONE &&
          type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NONE)) {
-        if (module->classLayoutCount && !module->classLayouts) return 3;
+        if (module->classLayoutCount && !module->classLayouts) return 7;
         const XL6_IrClassLayout* layout=NULL;
         for (size_t i=0;i<module->classLayoutCount;++i)
             if (module->classLayouts[i].type==id) { layout=&module->classLayouts[i]; break; }
@@ -22697,14 +22712,14 @@ static unsigned xl6IrCopyGraphCollectionProviders(const XL6_IrModule* module,XL6
             layout->persistenceObjectAbi==XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA ||
             layout->firstField>module->classFieldCount ||
             layout->fieldCount>module->classFieldCount-layout->firstField ||
-            (layout->fieldCount && !module->classFields)) return 3;
+            (layout->fieldCount && !module->classFields)) return 7;
         for (size_t i=0;i<layout->fieldCount;++i) {
             const XL6_IrClassField* field=&module->classFields[layout->firstField+i];
             /* Native owned fields are opaque graph domains, even when the
              * public schema skips them. Copy traverses storage, not wire. */
-            providers |= field->nativeHandlePolicyAbi ? 3u :
+            providers |= field->nativeHandlePolicyAbi ? 7u :
                 xl6IrCopyGraphCollectionProviders(module,field->type,depth+1,remaining);
-            if (providers==3u) return providers;
+            if (providers==7u) return providers;
         }
         /* A nominal slot can hold a derived layout. Include its storage too;
          * no spelling, source declaration or serialized-field filter. */
@@ -22712,10 +22727,10 @@ static unsigned xl6IrCopyGraphCollectionProviders(const XL6_IrModule* module,XL6
             if (module->classLayouts[i].baseType==id)
                 providers |= xl6IrCopyGraphCollectionProviders(module,module->classLayouts[i].type,depth+1,remaining);
     }
-    if (type->paramCount && !type->params) return 3;
+    if (type->paramCount && !type->params) return 7;
     for (size_t i=0;i<type->paramCount;++i) {
         providers |= xl6IrCopyGraphCollectionProviders(module,type->params[i],depth+1,remaining);
-        if (providers==3u) return providers;
+        if (providers==7u) return providers;
     }
     return providers;
 }
@@ -22726,7 +22741,7 @@ XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbiForType(
     if (!type || type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) return XL6_IR_VALUE_COPY_INVALID;
     if (!deep && type->collectionAbi==XL6_IR_COLLECTION_DICT) return XL6_IR_VALUE_COPY_DICT_V1;
     size_t remaining=4096;
-    unsigned providers=deep ? xl6IrCopyGraphCollectionProviders(module,id,0,&remaining) :
+    unsigned providers=deep ? xl6IrCopyGraphCollectionProviders(module,id,0,&remaining)&3u :
         type->collectionAbi==XL6_IR_COLLECTION_LIST ? 1u : type->collectionAbi==XL6_IR_COLLECTION_SET ? 2u :
         type->collectionAbi==XL6_IR_COLLECTION_NONE && type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NONE &&
         type->xvalueAdmissionAbi==XL6_VALUE_ADMIT_ANY ? 3u : 0u;
@@ -22736,6 +22751,12 @@ XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbiForType(
     if (providers==1u) return type->collectionAbi==XL6_IR_COLLECTION_LIST ?
         XL6_IR_VALUE_COPY_LIST_V1 : XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1;
     return XL6_IR_VALUE_COPY_ARRAY_WIRE_V1;
+}
+unsigned xl6IrPersistenceGraphProviders(const XL6_IrModule* module,XL6_IrTypeId id)
+{
+    if (!module || !xl6IrTypeGet(&module->types,id)) return 0;
+    size_t remaining=4096;
+    return xl6IrCopyGraphCollectionProviders(module,id,0,&remaining);
 }
 XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbi(
     const XL6_IrModule* module,const XL6_IrInstruction* instruction)
@@ -23091,7 +23112,8 @@ static int xl6IrValueCollectionProducerMetadataCompatible(const XL6_IrModule* mo
         (importing ? XL6_IR_RUNTIME_LIST_IMPORT_CHAIN : XL6_IR_RUNTIME_LIST_CREATE) :
         family==XL6_IR_COLLECTION_SET ?
         (importing ? XL6_IR_RUNTIME_SET_IMPORT_CHAIN : XL6_IR_RUNTIME_XVALUE_SET_NEW) :
-        family==XL6_IR_COLLECTION_DICT && !importing ? XL6_IR_RUNTIME_DICT_CREATE : XL6_IR_RUNTIME_NONE;
+        family==XL6_IR_COLLECTION_DICT ?
+        (importing ? XL6_IR_RUNTIME_DICT_IMPORT_CHAIN : XL6_IR_RUNTIME_DICT_CREATE) : XL6_IR_RUNTIME_NONE;
     size_t count=0;
     if (!module || !instruction || instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
         instruction->runtimeOp!=operation ||
@@ -23131,6 +23153,8 @@ int xl6IrSetImportRuntimeInstructionCompatible(const XL6_IrModule* module,const 
 { return xl6IrValueCollectionProducerMetadataCompatible(module,instruction,XL6_IR_COLLECTION_SET,true); }
 int xl6IrDictCreateRuntimeInstructionCompatible(const XL6_IrModule* module,const XL6_IrInstruction* instruction)
 { return xl6IrValueCollectionProducerMetadataCompatible(module,instruction,XL6_IR_COLLECTION_DICT,false); }
+int xl6IrDictImportRuntimeInstructionCompatible(const XL6_IrModule* module,const XL6_IrInstruction* instruction)
+{ return xl6IrValueCollectionProducerMetadataCompatible(module,instruction,XL6_IR_COLLECTION_DICT,true); }
 
 static int xl6IrVerifyRuntimeIntegerIndexRead(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction,
@@ -38020,6 +38044,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       instruction->runtimeOp!=XL6_IR_RUNTIME_LIST_CREATE &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_DICT_CREATE &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_SET_IMPORT_CHAIN &&
+                      instruction->runtimeOp!=XL6_IR_RUNTIME_DICT_IMPORT_CHAIN &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_SET_NEW &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_AVL_TREE_CREATE &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_AVL_TREE_KEYS &&
@@ -38250,6 +38275,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                           instruction->runtimeOp == XL6_IR_RUNTIME_LIST_CREATE ||
                           instruction->runtimeOp == XL6_IR_RUNTIME_DICT_CREATE ||
                           instruction->runtimeOp == XL6_IR_RUNTIME_SET_IMPORT_CHAIN ||
+                          instruction->runtimeOp == XL6_IR_RUNTIME_DICT_IMPORT_CHAIN ||
                           instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_SET_NEW ||
                           instruction->runtimeOp ==
                               XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED ||
@@ -38473,6 +38499,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                          instruction->runtimeOp == XL6_IR_RUNTIME_LIST_CREATE ||
                          instruction->runtimeOp == XL6_IR_RUNTIME_DICT_CREATE ||
                          instruction->runtimeOp == XL6_IR_RUNTIME_SET_IMPORT_CHAIN ||
+                         instruction->runtimeOp == XL6_IR_RUNTIME_DICT_IMPORT_CHAIN ||
                          instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_SET_NEW ||
                          instruction->runtimeOp ==
                              XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE ||
@@ -41152,19 +41179,22 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 "XLIR checked collection projection has no exact consumed source, result, element or failure ABI");
                     } else if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||
                         instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
-                        instruction->runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN) {
+                        instruction->runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN ||
+                        instruction->runtimeOp==XL6_IR_RUNTIME_DICT_IMPORT_CHAIN) {
                         const XL6_IrInstruction* test=j+1<block->instructionCount ?
                             &module->instructions[block->firstInstruction+j+1] : NULL;
                         if (!(instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ?
                               xl6IrArrayImportRuntimeInstructionCompatible(module,instruction) :
                               instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ?
                               xl6IrListImportRuntimeInstructionCompatible(module,instruction) :
+                              instruction->runtimeOp==XL6_IR_RUNTIME_DICT_IMPORT_CHAIN ?
+                              xl6IrDictImportRuntimeInstructionCompatible(module,instruction) :
                               xl6IrSetImportRuntimeInstructionCompatible(module,instruction)) ||
                             !test || test->kind!=XL6_IR_INSTR_ERROR_TEST || test->operandCount!=1 ||
                             test->firstOperand>=module->operandCount ||
                             module->operands[test->firstOperand]!=instruction->result ||
                             !test->trueTarget || !test->falseTarget || test->trueTarget==test->falseTarget)
-                            return xl6IrDiag(diags,NULL,"XLIR Array import lacks an exact consumed erased source, complete native recipe or checked outcome");
+                            return xl6IrDiag(diags,NULL,"XLIR collection import lacks an exact consumed erased source, complete native recipe or checked outcome");
                     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_COUNT ) {
                         if ( !xl6IrCollectionReadRuntimeInstructionCompatible(module, instruction) )
                             return xl6IrDiag(diags, NULL,
@@ -43871,7 +43901,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND ||
                              source->runtimeOp == XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||
                              source->runtimeOp == XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
-                             source->runtimeOp == XL6_IR_RUNTIME_SET_IMPORT_CHAIN) &&
+                             source->runtimeOp == XL6_IR_RUNTIME_SET_IMPORT_CHAIN ||
+                             source->runtimeOp == XL6_IR_RUNTIME_DICT_IMPORT_CHAIN) &&
                             instruction->targetSymbol == 0 && j > 0 &&
                             source == &module->instructions[block->firstInstruction + j - 1]) ||
                             (source->kind == XL6_IR_INSTR_RUNTIME_CALL &&
@@ -47208,6 +47239,7 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE: return "dict-set-value-take";
     case XL6_IR_RUNTIME_LIST_IMPORT_CHAIN: return "list-import-chain";
     case XL6_IR_RUNTIME_SET_IMPORT_CHAIN: return "set-import-chain";
+    case XL6_IR_RUNTIME_DICT_IMPORT_CHAIN: return "dict-import-chain";
     case XL6_IR_RUNTIME_XVALUE_COUNT: return "xvalue-count";
     case XL6_IR_RUNTIME_XVALUE_ARRAY_NEW: return "xvalue-array-new";
 case XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY: return "array-read-value-copy";
