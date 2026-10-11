@@ -57,6 +57,7 @@
 #include "src/runtime/xl6_list.h"
 #include "src/runtime/xl6_dict.h"
 #include "src/runtime/xl6_slot_map.h"
+#include "src/runtime/xl6_slot_map_key_value.h"
 #include "src/runtime/xl6_dict_graph_access.h"
 #include "src/runtime/xl6_dict_graph.h"
 #include "src/runtime/xl6_dict_value_iterator.h"

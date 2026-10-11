@@ -1,10 +1,10 @@
 #include "xl6_slot_map.h"
+#include "xl6_slot_map_key.h"
 #include "xl6_array_admission.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdlib.h>
 #include <string.h>
 
-struct XL6_SlotMapInstanceV1 { volatile int32_t refs; };
 typedef struct SlotMapOwner {
     volatile int32_t refs;
     xatomic32 busy;
@@ -32,52 +32,6 @@ static void mutationBegin(xrtownershipscope* scope)
 { if (!xrtOwnershipMutationBegin(scope)) abort(); }
 static void mutationEnd(xrtownershipscope* scope)
 { if (!xrtOwnershipScopeEnd(scope)) abort(); }
-static void instanceDrop(XL6_SlotMapInstanceV1* instance)
-{
-    if (!instance) return;
-    int32_t refs=xrtRefRelease(&instance->refs); if (refs<0) abort();
-    if (!refs) xrtFree(instance);
-}
-static bool keyInit(ptr target,const xrttype* type)
-{ (void)type; *(XL6_SlotMapKeyV1*)target=(XL6_SlotMapKeyV1){0}; return true; }
-static bool keyCopy(ptr target,const void* source,const xrttype* type)
-{
-    (void)type; if (target==source) return true;
-    const XL6_SlotMapKeyV1* input=source; XL6_SlotMapKeyV1* output=target;
-    if (output->instance || output->slot || (!input->instance!=!input->slot)) {
-        xrtSetErrorKind(XERR_ARGUMENT); return false;
-    }
-    if (input->instance && xrtRefRetain(&input->instance->refs)<=0) {
-        xrtSetErrorKind(XERR_STATE); return false;
-    }
-    *output=*input; return true;
-}
-static bool keyMove(ptr target,ptr source,const xrttype* type)
-{
-    (void)type; if (target==source) return true;
-    XL6_SlotMapKeyV1* input=source; XL6_SlotMapKeyV1* output=target;
-    if (output->instance || output->slot || (!input->instance!=!input->slot)) {
-        xrtSetErrorKind(XERR_ARGUMENT); return false;
-    }
-    *output=*input; *input=(XL6_SlotMapKeyV1){0}; return true;
-}
-static void keyDrop(ptr target,const xrttype* type)
-{
-    (void)type; XL6_SlotMapKeyV1* value=target;
-    XL6_SlotMapInstanceV1* instance=value->instance; *value=(XL6_SlotMapKeyV1){0}; instanceDrop(instance);
-}
-const xrttype* xl6SlotMapKeyTypeV1(void)
-{
-    static const xrttypeops operations={.Init=keyInit,.Copy=keyCopy,.Move=keyMove,.Drop=keyDrop,.Clone=keyCopy};
-    /* xrtTypeId("xlang.runtime.slot-map-key.v1"), validated by the native gate. */
-    static const xrttype type={.Id=UINT64_C(0x672CFF1BC1957517),.Kind=XRT_TYPE_RECORD,
-        .Flags=XRT_TYPE_FLAG_COPYABLE|XRT_TYPE_FLAG_FINAL|XRT_TYPE_FLAG_RELOCATABLE,
-        .Name=XRT_STR_INIT("SlotMapKey"),.AbiName=XRT_STR_INIT("xlang.runtime.slot-map-key.v1"),
-        .Size=sizeof(XL6_SlotMapKeyV1),.Align=_Alignof(XL6_SlotMapKeyV1),.InstanceAlign=1,.Ops=&operations};
-    return &type;
-}
-bool xl6SlotMapKeyEqualV1(XL6_SlotMapKeyV1 left,XL6_SlotMapKeyV1 right)
-{ return left.instance==right.instance && left.slot==right.slot; }
 static bool sameLayout(const XL6_SlotMapLayoutV1* a,const XL6_SlotMapLayoutV1* b)
 {
     return a && b && a->identity==b->identity && a->value.identity==b->value.identity &&
@@ -155,7 +109,7 @@ static void drop(ptr opaque,ptr context)
         xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtErrorRef(prior)}); xrtClearError();
     }
     storageDestroy(&owner->storage,storageType(owner),entered ? &cleanup : NULL);
-    xl6SequenceAdmissionDropV3(&owner->policy); instanceDrop(owner->instance); xrtFree(owner);
+    xl6SequenceAdmissionDropV3(&owner->policy); xl6SlotMapInstanceDropV1(owner->instance); xrtFree(owner);
     if (entered) (void)scopeFinish(&cleanup,true);
     else { xrtClearError(); xrtSetErrorTake(prior); }
 }
@@ -279,8 +233,8 @@ xvalue* xl6SlotMapCreateTakeV1(const XL6_SlotMapLayoutV1* layout,xvalue* witness
     owner=xrtCalloc(1,sizeof(*owner)); if (!owner) goto done;
     owner->refs=1; owner->layout=*layout; owner->policy=policy; policy=(XL6_SequenceAdmissionV3){0};
     xrtAtomic32Init(&owner->busy,0);
-    owner->instance=xrtMalloc(sizeof(*owner->instance)); if (!owner->instance) goto done;
-    owner->instance->refs=1; if (!xrtSlotMapInit(&owner->storage)) goto done;
+    owner->instance=xl6SlotMapInstanceCreateV1(); if (!owner->instance) goto done;
+    if (!xrtSlotMapInit(&owner->storage)) goto done;
     result=xrtValueHandleTake((ptr*)&owner,&handleOps,NULL);
     if (result && (!xrtValueHandleOwnershipBindPhased(result,handleTrace) || !xrtValueTypeIdBind(result,layout->identity))) {
         xl6ErrorScopeCaptureFailure(&scope); discard(result); result=NULL;
@@ -319,16 +273,16 @@ bool xl6SlotMapInsertV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout,co
     if (!output || output->instance || output->slot ||
         (owner && input && overlaps(output,sizeof(*output),input,owner->layout.value.size))) xrtSetErrorKind(XERR_ARGUMENT);
     else if (owner && (item=copyItem(owner,input,&scope))) {
-        if (!xrtGetError() && !scope.failed && xrtRefRetain(&owner->instance->refs)>0) {
+        if (!xrtGetError() && !scope.failed && xl6SlotMapInstanceRetainV1(owner->instance)) {
             key.instance=owner->instance; key.slot=xrtSlotMapInsert(&owner->storage,item);
             if (key.slot) { item=NULL; success=true; }
-            else instanceDrop(key.instance);
+            else xl6SlotMapInstanceDropV1(key.instance);
         }
     }
     if (item) { xrtTypeDropValue(storageType(owner),item); xrtFree(item); }
     success=finish(&scope,owner,success);
     if (success) *output=key;
-    else if (key.slot) instanceDrop(key.instance);
+    else if (key.slot) xl6SlotMapInstanceDropV1(key.instance);
     return success;
 }
 static bool outputEmpty(const SlotMapOwner* owner,const void* output)

@@ -22,6 +22,7 @@ def main():
     replacements={'test/cases/stdlib_dict_native_host.c':'test/cases/stdlib_slot_map_native_host.c',
         'test/support/dict_native.c':'test/support/slot_map_native.c','src/runtime/xl6_dict.c':'src/runtime/xl6_slot_map.c'}
     sources=[replacements.get(source,source) for source in sources]
+    sources.append('src/runtime/xl6_slot_map_key.c')
     files={Path(__file__).resolve(),population,Path(cc),Path(sys.executable),*[root/source for source in sources]}
     for folder in ('src/runtime','src/api','release/include','lib/xrt','lib/xruntime','test/support'):
         files.update((root/folder).rglob('*.h'))
