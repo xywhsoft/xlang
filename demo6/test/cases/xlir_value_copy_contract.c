@@ -27,21 +27,22 @@ int main(int argc,char** argv)
         xl6CompileUnitFree(&unit); puts("Leaf/scalar actual plan excludes List copy/graph providers: verified"); return 0;
     }
     assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_VALUE_COPY) &&
-        xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_VALUE_COPY_GRAPH) &&
+        !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_VALUE_COPY_GRAPH) &&
         xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_LIST_GRAPH));
     assert(xl6ArtifactRuntimeSymbolOwner("xl6ValueCopyV1")==XL6_ARTIFACT_VALUE_COPY &&
         xl6ArtifactRuntimeSymbolOwner("xl6ValueCloneGraphV1")==XL6_ARTIFACT_VALUE_COPY_GRAPH &&
         xl6ArtifactRuntimeSymbolOwner("xl6ListGraphProviderV1")==XL6_ARTIFACT_LIST_GRAPH);
-    unsigned operations=0,mutations=0,providers[XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1+1]={0};
+    unsigned operations=0,mutations=0,providers[XL6_IR_VALUE_COPY_NATIVE_GRAPH_V1+1]={0};
     for (size_t i=0;i<unit.ir.instructionCount;++i) {
         XL6_IrInstruction* ins=&unit.ir.instructions[i];
         if (ins->kind!=XL6_IR_INSTR_RUNTIME_CALL || (ins->runtimeOp!=XL6_IR_RUNTIME_XVALUE_CLONE &&
             ins->runtimeOp!=XL6_IR_RUNTIME_XVALUE_DEEP_CLONE)) continue;
         XL6_IrValueCopyProviderAbi provider=xl6IrValueCopyProviderAbi(&unit.ir,ins);
-        assert(provider>XL6_IR_VALUE_COPY_INVALID && provider<=XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1); ++providers[provider];
+        assert(provider>XL6_IR_VALUE_COPY_INVALID && provider<=XL6_IR_VALUE_COPY_NATIVE_GRAPH_V1); ++providers[provider];
         assert(xl6IrCallInstructionErrorAbi(&unit.ir,ins)==XL6_IR_ERROR_ABI_MAY_RAISE &&
             xl6IrCallInstructionErrorPhysicalAbi(&unit.ir,ins)==XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT);
         XL6_IrInstruction saved=*ins;
+        ins->copyGraphProviders^=XL6_IR_GRAPH_DICT_V1; reject(&unit.ir); *ins=saved; ++mutations;
         ins->operandCount=0; assert(xl6IrValueCopyProviderAbi(&unit.ir,ins)==XL6_IR_VALUE_COPY_INVALID);
         reject(&unit.ir); *ins=saved; ++mutations;
         ins->type=XL6_IR_TYPE_INVALID; assert(xl6IrValueCopyProviderAbi(&unit.ir,ins)==XL6_IR_VALUE_COPY_INVALID);
@@ -51,8 +52,8 @@ int main(int argc,char** argv)
         test->falseTarget=test->trueTarget; reject(&unit.ir); *test=saved; ++mutations;
         test->kind=XL6_IR_INSTR_DISCARD; reject(&unit.ir); *test=saved; ++mutations; ++operations;
     }
-    assert(operations==5 && mutations==20 && providers[XL6_IR_VALUE_COPY_ARRAY_WIRE_V1]==1 &&
-        providers[XL6_IR_VALUE_COPY_LIST_V1]==1 && providers[XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1]==3);
+    assert(operations==5 && mutations==25 && providers[XL6_IR_VALUE_COPY_ARRAY_WIRE_V1]==1 &&
+        providers[XL6_IR_VALUE_COPY_NATIVE_GRAPH_V1]==3 && providers[XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1]==1);
     XL6_Output out; assert(xl6OutputOpenFile(&out,argv[2])); unsigned count=0;
     for (size_t i=0;i<unit.ir.functionCount;++i) {
         const XL6_IrFunction* f=&unit.ir.functions[i]; if (!f->debugName || !f->parameterCount) continue;

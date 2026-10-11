@@ -73,6 +73,7 @@
 - [Dict 原生语言工厂与驻留方法](stdlib53-b199-dict-source.md)：字面量、默认值、命名参数包与方法／代数迁移原生所有者；直接槽、递归导入、恢复和发布总门继续。
 - [Dict 精确键递归导入与原生恢复](stdlib53-b200-dict-import.md)：共享事务接通 Dict 原生文本键导入／恢复；语言 IR 配方及发布总门仍待接入。
 - [Dict 统一 IR 导入与原生持久化](stdlib53-b201-dict-language-import.md)：语言消费导入、封闭原生恢复与按需图投影接通；直接槽、深复制完整性与发布总门继续。
+- [统一图深复制合同与恢复隔离](stdlib53-b202-graph-clone.md)：完整 IR 提供方计划与单一图引擎通过；混合全局读边界、直接字段迭代及发布总验收继续。
 - [List 方法接入与集合异常合同](stdlib53-b174-list-methods-language.md)：checked 驻留方法、may-raise 和真实 C/JIT/continuation 验证；工厂、动态分发及恢复仍待切换。
 - [List 元素准入与目标构造合同](stdlib53-b173-list-target-recipes.md)：XLIR 精确元素 witness、泛型闭包和目标工厂；错误元数据与分配/作用域失败批处理验证，源载体尚未切换。
 - [List 原生动态方法与快照迭代](stdlib53-b172-list-erased-native.md)：复用 typed List 存储与游标，checked 动态方法、完整稀疏键和单步拥有投影；语言载体切换仍待完成。

@@ -22686,7 +22686,7 @@ static const XL6_IrType* xl6IrCheckedIteratorKeyLogicalType(
     return initialize ? logical : NULL;
 }
 
-static unsigned xl6IrCopyGraphCollectionProviders(const XL6_IrModule* module,XL6_IrTypeId id,
+static unsigned xl6IrValueGraphProvidersWalk(const XL6_IrModule* module,XL6_IrTypeId id,
     unsigned depth,size_t* remaining)
 {
     const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
@@ -22718,18 +22718,18 @@ static unsigned xl6IrCopyGraphCollectionProviders(const XL6_IrModule* module,XL6
             /* Native owned fields are opaque graph domains, even when the
              * public schema skips them. Copy traverses storage, not wire. */
             providers |= field->nativeHandlePolicyAbi ? 7u :
-                xl6IrCopyGraphCollectionProviders(module,field->type,depth+1,remaining);
+                xl6IrValueGraphProvidersWalk(module,field->type,depth+1,remaining);
             if (providers==7u) return providers;
         }
         /* A nominal slot can hold a derived layout. Include its storage too;
          * no spelling, source declaration or serialized-field filter. */
         for (size_t i=0;i<module->classLayoutCount;++i)
             if (module->classLayouts[i].baseType==id)
-                providers |= xl6IrCopyGraphCollectionProviders(module,module->classLayouts[i].type,depth+1,remaining);
+                providers |= xl6IrValueGraphProvidersWalk(module,module->classLayouts[i].type,depth+1,remaining);
     }
     if (type->paramCount && !type->params) return 7;
     for (size_t i=0;i<type->paramCount;++i) {
-        providers |= xl6IrCopyGraphCollectionProviders(module,type->params[i],depth+1,remaining);
+        providers |= xl6IrValueGraphProvidersWalk(module,type->params[i],depth+1,remaining);
         if (providers==7u) return providers;
     }
     return providers;
@@ -22740,8 +22740,9 @@ XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbiForType(
     const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,id) : NULL;
     if (!type || type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) return XL6_IR_VALUE_COPY_INVALID;
     if (!deep && type->collectionAbi==XL6_IR_COLLECTION_DICT) return XL6_IR_VALUE_COPY_DICT_V1;
-    size_t remaining=4096;
-    unsigned providers=deep ? xl6IrCopyGraphCollectionProviders(module,id,0,&remaining)&3u :
+    if (deep) return xl6IrValueGraphProvidersForType(module,id) ?
+        XL6_IR_VALUE_COPY_NATIVE_GRAPH_V1 : XL6_IR_VALUE_COPY_ARRAY_WIRE_V1;
+    unsigned providers=
         type->collectionAbi==XL6_IR_COLLECTION_LIST ? 1u : type->collectionAbi==XL6_IR_COLLECTION_SET ? 2u :
         type->collectionAbi==XL6_IR_COLLECTION_NONE && type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_NONE &&
         type->xvalueAdmissionAbi==XL6_VALUE_ADMIT_ANY ? 3u : 0u;
@@ -22752,11 +22753,26 @@ XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbiForType(
         XL6_IR_VALUE_COPY_LIST_V1 : XL6_IR_VALUE_COPY_ARRAY_LIST_WIRE_V1;
     return XL6_IR_VALUE_COPY_ARRAY_WIRE_V1;
 }
-unsigned xl6IrPersistenceGraphProviders(const XL6_IrModule* module,XL6_IrTypeId id)
+unsigned xl6IrValueGraphProvidersForType(const XL6_IrModule* module,XL6_IrTypeId id)
 {
     if (!module || !xl6IrTypeGet(&module->types,id)) return 0;
     size_t remaining=4096;
-    return xl6IrCopyGraphCollectionProviders(module,id,0,&remaining);
+    return xl6IrValueGraphProvidersWalk(module,id,0,&remaining);
+}
+int xl6IrRefreshValueCopyRecipes(XL6_IrModule* module)
+{
+    if (!module || (module->instructionCount && !module->instructions)) return 0;
+    for (size_t i=0;i<module->instructionCount;++i) {
+        XL6_IrInstruction* instruction=&module->instructions[i];
+        instruction->copyGraphProviders=0;
+        if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DEEP_CLONE) {
+            const XL6_IrType* type=xl6IrTypeGet(&module->types,instruction->type);
+            if (!type || type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) return 0;
+            instruction->copyGraphProviders=xl6IrValueGraphProvidersForType(module,instruction->type);
+        }
+    }
+    return 1;
 }
 XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbi(
     const XL6_IrModule* module,const XL6_IrInstruction* instruction)
@@ -22768,7 +22784,9 @@ XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbi(
         return XL6_IR_VALUE_COPY_INVALID;
     const XL6_IrInstruction* source=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
     const XL6_IrType* type=source ? xl6IrTypeGet(&module->types,source->type) : NULL;
-    if (!type || type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR || source->type!=instruction->type)
+    if (!type || type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR || source->type!=instruction->type ||
+        instruction->copyGraphProviders!=(instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DEEP_CLONE ?
+            xl6IrValueGraphProvidersForType(module,source->type) : 0))
         return XL6_IR_VALUE_COPY_INVALID;
     return xl6IrValueCopyProviderAbiForType(module,source->type,
         instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DEEP_CLONE);
@@ -38024,6 +38042,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 const XL6_IrInstruction* instruction = &module->instructions[block->firstInstruction + j];
                 const XL6_IrNode* instructionOrigin =
                     xl6IrNodeGet(module, instruction->origin);
+                if (instruction->copyGraphProviders &&
+                    (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+                     instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_DEEP_CLONE))
+                    return xl6IrDiag(diags,instructionOrigin,"XLIR copy graph providers are attached to an unrelated operation");
                 if (instruction->collectionDefaultAbi!=XL6_VALUE_DEFAULT_INVALID &&
                     (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
                      instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD ||

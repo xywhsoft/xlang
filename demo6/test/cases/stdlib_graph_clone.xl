@@ -1,0 +1,44 @@
+class GraphCloneDict
+    derive value
+    derive clone
+    dict<string> words = {"a\0你": "v\0b", "": ""}
+    dict<string> alias = {}
+    dict<string> hidden @persist(skip) = {"secret\0": "saved\0你"}
+end
+class GraphCloneSetDict
+    derive value
+    derive clone
+    set<dict<string>> members = set{}
+end
+GraphCloneDict shared = GraphCloneDict()
+shared.alias = shared.words
+GraphCloneDict first = clone(shared)
+first.words["a\0你"] = "new"
+first.hidden["secret\0"] = "hidden new"
+assert(first.alias["a\0你"] == "new")
+assert(shared.words["a\0你"] == "v\0b" and shared.hidden["secret\0"] == "saved\0你")
+dict<string> item = {"a\0你": "original"}
+GraphCloneSetDict identities = GraphCloneSetDict()
+identities.members.add(item)
+GraphCloneSetDict setCopy = clone(identities)
+assert(setCopy.members.length == 1 and not setCopy.members.contains(item))
+set<dict<string>> copiedMembers = setCopy.members
+for member in copiedMembers
+    assert(setCopy.members.contains(member))
+    member["a\0你"] = "set changed"
+    assert(setCopy.members.contains(member))
+end
+assert(item["a\0你"] == "original" and identities.members.contains(item))
+array<dict<string>> arraySource = [item, item]
+auto arrayCopy = clone(arraySource)
+arrayCopy[0]["a\0你"] = "array changed"
+assert(arrayCopy[1]["a\0你"] == "array changed" and item["a\0你"] == "original")
+list<dict<string>> listSource = [-9223372036854775808: item, 9223372036854775807: item]
+auto listCopy = clone(listSource)
+listCopy[-9223372036854775808]["a\0你"] = "list changed"
+assert(listCopy[9223372036854775807]["a\0你"] == "list changed" and item["a\0你"] == "original")
+var openSource = {"first": arraySource, "second": arraySource, "dict": item}
+var openCopy = clone(openSource)
+openCopy["first"][0]["a\0你"] = "open changed"
+assert(openCopy["second"][1]["a\0你"] == "open changed")
+assert(openCopy["dict"]["a\0你"] == "open changed" and item["a\0你"] == "original")

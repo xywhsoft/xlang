@@ -1,0 +1,15 @@
+class GraphCloneDictOnly
+    derive value
+    derive clone
+    dict<string> first = {"a\0你": "v\0b", "": ""}
+    dict<string> second = {}
+end
+GraphCloneDictOnly source = GraphCloneDictOnly()
+source.second = source.first
+GraphCloneDictOnly copied = clone(source)
+copied.first["a\0你"] = "changed"
+assert(copied.second["a\0你"] == "changed")
+assert(source.first["a\0你"] == "v\0b" and source.second["a\0你"] == "v\0b")
+dict<string> direct = clone(source.first)
+direct[""] = "not empty"
+assert(source.first[""] == "")

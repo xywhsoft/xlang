@@ -17,12 +17,17 @@ static int xl6IrCgenEmitRestoreCloneAdapter(XL6_Output* out,const XL6_IrModule* 
     return !xl6OutputHasFailed(out);
 }
 static int xl6IrCgenEmitRestoreIsolation(XL6_Output* out,const XL6_IrModule* module,
-    size_t root,size_t node,XL6_IrTypeId type,XL6_IrPersistenceIsolationAbi abi,const char* suffix,XL6_DiagList* diags)
+    size_t root,size_t node,XL6_IrTypeId type,XL6_IrPersistenceIsolationAbi abi,unsigned providers,
+    const char* suffix,XL6_DiagList* diags)
 {
     switch (abi) {
     case XL6_IR_PERSIST_ISOLATION_CHECKED_REJECT: xl6OutputPuts("NULL",out); break;
     case XL6_IR_PERSIST_ISOLATION_RUNTIME_SHALLOW:
     case XL6_IR_PERSIST_ISOLATION_RUNTIME_DEEP: {
+        if (providers) {
+            xl6OutputPrintf(out,"xlir_restore_r%lu_n%lu_%s",(unsigned long)root,(unsigned long)node,suffix);
+            break;
+        }
         const char* symbol=xl6IrCgenRestoreIsolationSymbol(module,type,abi);
         if (!symbol) return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR restore copy provider is unresolved");
         xl6OutputPuts(symbol,out); break;
@@ -40,6 +45,17 @@ static int xl6IrCgenEmitRestoreGraphCallbacks(XL6_Output* out,
     for (size_t i=0;i<root->nodeCount;++i) {
         const XL6_IrPersistenceRestoreNode* node=&module->persistenceRestoreNodes[root->firstNode+i];
         if (node->abi!=XL6_IR_RESTORE_NODE_CLASS) continue;
+        /* Only physical callback adaptation: the verified graph capability
+         * is data, and the single resident memo performs all traversal. */
+        for (unsigned open=0;open<2;++open) {
+            unsigned providers=open ? node->openIsolationGraphProviders : node->isolationGraphProviders;
+            if (!providers) continue;
+            xl6OutputPrintf(out,"static xvalue* xlir_restore_r%lu_n%lu_%s(const xvalue* value)\n"
+                "{ return xl6ValueDeepCloneNativeV1(value,",(unsigned long)rootIndex,(unsigned long)i,
+                open ? "open_clone" : "clone");
+            if (!xl6IrCgenEmitValueGraphPlan(out,providers,0)) return 0;
+            xl6OutputPuts("); }\n",out);
+        }
         if (node->openClassLayout!=SIZE_MAX) {
             const XL6_IrPersistenceRestoreSchema* schema=&module->persistenceRestoreSchemas[node->schema];
             int first=1;
@@ -92,7 +108,8 @@ static int xl6IrCgenEmitRestoreGraphPlan(XL6_Output* out,const XL6_IrModule* mod
         if (schema->claimCount) xl6OutputPrintf(out,"xlir_restore_r%lu_s%lu_claims",(unsigned long)rootIndex,(unsigned long)node->schema);
         else xl6OutputPuts("NULL",out);
         xl6OutputPuts(",",out);
-        if (!xl6IrCgenEmitRestoreIsolation(out,module,rootIndex,i,storage->type,node->openIsolationAbi,"open_clone",diags)) return 0;
+        if (!xl6IrCgenEmitRestoreIsolation(out,module,rootIndex,i,storage->type,node->openIsolationAbi,
+            node->openIsolationGraphProviders,"open_clone",diags)) return 0;
         xl6OutputPuts("};\n",out);
     }
     xl6OutputPrintf(out,"    const XL6_RestoreObjectProviderV1* objects = %s();\n"
@@ -123,7 +140,8 @@ static int xl6IrCgenEmitRestoreGraphPlan(XL6_Output* out,const XL6_IrModule* mod
                 (unsigned long)node->firstEdge,(unsigned long)node->edgeCount,
                 node->openClassLayout==SIZE_MAX ? "objects" : "xl6RestoreOpenProviderV1()");
             xl6OutputPuts(",.clone=",out);
-            if (!xl6IrCgenEmitRestoreIsolation(out,module,rootIndex,i,node->payloadType,node->isolationAbi,"clone",diags)) return 0;
+            if (!xl6IrCgenEmitRestoreIsolation(out,module,rootIndex,i,node->payloadType,node->isolationAbi,
+                node->isolationGraphProviders,"clone",diags)) return 0;
             if (node->openClassLayout!=SIZE_MAX) xl6OutputPrintf(out,",.open=&open_%lu",(unsigned long)i);
         } else return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR closed restore node is unresolved");
         xl6OutputPuts("},\n",out);
@@ -185,7 +203,13 @@ static int xl6IrCgenEmitNativeRestoreHelpers(XL6_Output* out,const XL6_IrModule*
             if (module->persistenceRestoreNodes[root->firstNode+i].openClassLayout!=SIZE_MAX) {
                 xl6OutputPuts("#include <__xl_runtime/xl6_restore_open.h>\n",out); break;
             }
-        if (!xl6IrCgenEmitRestoreGraphCallbacks(out,module,r,diags)) return 0;
+        unsigned isolationProviders=0;
+        for (size_t i=0;i<root->nodeCount;++i) {
+            const XL6_IrPersistenceRestoreNode* node=&module->persistenceRestoreNodes[root->firstNode+i];
+            isolationProviders|=node->isolationGraphProviders|node->openIsolationGraphProviders;
+        }
+        if (!xl6IrCgenEmitValueGraphHeaders(out,isolationProviders,0) ||
+            !xl6IrCgenEmitRestoreGraphCallbacks(out,module,r,diags)) return 0;
         xl6OutputPrintf(out,"static bool xlir_restore_r%lu_take(xvalue* source, xl6_error_result parsed, bool file, xvalue* target, xvalue** result)\n{\n",
             (unsigned long)r);
         if (!xl6IrCgenEmitRestoreGraphPlan(out,module,r,diags)) return 0;

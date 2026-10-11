@@ -1,0 +1,31 @@
+int graphCloneCleanups = 0
+async func graphCloneReady() as int
+    return 1
+end
+async func graphCloneLater(dict<string> source) as dict<string>
+    try
+        int ignored = await graphCloneReady()
+        return clone(source)
+    finally
+        graphCloneCleanups += 1
+    end
+end
+func graphCloneItems(dict<string> source) as generator<dict<string>>
+    try
+        yield clone(source)
+        yield clone(source)
+    finally
+        graphCloneCleanups += 1
+    end
+end
+dict<string> source = {"a\0你": "v\0b"}
+auto later = await graphCloneLater(source)
+later["a\0你"] = "later"
+assert(source["a\0你"] == "v\0b" and graphCloneCleanups == 1)
+int count = 0
+for item in graphCloneItems(source)
+    item["a\0你"] = "generator"
+    assert(source["a\0你"] == "v\0b")
+    count += 1
+end
+assert(count == 2 and graphCloneCleanups == 2)

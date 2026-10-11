@@ -1,5 +1,14 @@
 /* The same verified C implementation selection feeds emission and artifact
  * dependencies. This is backend library metadata, not a new semantic IR. */
+static int xl6IrCgenVisitValueGraphProviders(unsigned providers,int projection,
+    XL6_IrCgenNativeModuleVisitor visitor,void* context)
+{
+    if (providers&~7u) return 0;
+    return (!(providers&XL6_IR_GRAPH_LIST_V1) || visitor(context,projection ?
+        "xl6PersistenceListGraphProviderV1" : "xl6ListGraphProviderV1")) &&
+        (!(providers&XL6_IR_GRAPH_SET_V1) || visitor(context,"xl6SetGraphProviderV1")) &&
+        (!(providers&XL6_IR_GRAPH_DICT_V1) || visitor(context,"xl6DictGraphProviderV1"));
+}
 static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* needs,
     XL6_DiagList* diags, const XL6_IrCgenOptions* options)
 {
@@ -373,6 +382,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
                 const char* isolation=xl6IrCgenRestoreIsolationSymbol(module,
                     module->classLayouts[node->openClassLayout].type,node->openIsolationAbi);
                 if (isolation && !visitor(context,isolation)) return 0;
+                if (!xl6IrCgenVisitValueGraphProviders(node->openIsolationGraphProviders,0,visitor,context)) return 0;
             }
             if (node->abi==XL6_IR_RESTORE_NODE_ARRAY &&
                 (!visitor(context,"xl6ArrayProjectionTakeV1") ||
@@ -390,6 +400,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             }
             const char* isolation=xl6IrCgenRestoreIsolationSymbol(module,node->payloadType,node->isolationAbi);
             if (isolation && !visitor(context,isolation)) return 0;
+            if (!xl6IrCgenVisitValueGraphProviders(node->isolationGraphProviders,0,visitor,context)) return 0;
         }
     }
     for (size_t i=0;i<module->types.count;++i) {
@@ -553,11 +564,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
              !visitor(context,xl6IrCgenPersistenceProjectSymbol(module,instruction)))) return 0;
         if (instruction->runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
             instruction->runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT) {
-            unsigned providers=xl6IrPersistenceGraphProviders(module,instruction->payloadType);
-            if ((providers&XL6_IR_GRAPH_DICT_V1) &&
-                (!visitor(context,"xl6DictGraphProviderV1") ||
-                 ((providers&XL6_IR_GRAPH_LIST_V1) && !visitor(context,"xl6PersistenceListGraphProviderV1")) ||
-                 ((providers&XL6_IR_GRAPH_SET_V1) && !visitor(context,"xl6SetGraphProviderV1")))) return 0;
+            if (!xl6IrCgenVisitValueGraphProviders(
+                xl6IrValueGraphProvidersForType(module,instruction->payloadType),1,visitor,context)) return 0;
         }
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_CLONE &&
             !visitor(context,xl6IrCgenValueCloneSymbol(module,instruction))) return 0;
@@ -566,7 +574,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_LIST_WITHOUT_I64_KEY &&
             !visitor(context,"xl6ListValueWithoutKeyV1")) return 0;
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DEEP_CLONE &&
-            !visitor(context,xl6IrCgenValueDeepCloneSymbol(module,instruction))) return 0;
+            (!visitor(context,xl6IrCgenValueDeepCloneSymbol(module,instruction)) ||
+             !xl6IrCgenVisitValueGraphProviders(instruction->copyGraphProviders,0,visitor,context))) return 0;
         if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE &&
             (!xl6IrArrayCreateRuntimeInstructionCompatible(module,instruction) ||
              !visitor(context,"xl6ArrayProjectionTakeV1"))) return 0;

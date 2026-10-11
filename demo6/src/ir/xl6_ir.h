@@ -3085,6 +3085,10 @@ typedef struct XL6_IrInstruction {
     XL6_IrInstructionKind kind;
     XL6_IrOpcode opcode;
     XL6_IrRuntimeOp runtimeOp;
+    /* Complete native storage-provider closure on DEEP_CLONE only. Fixed
+     * after lowering; independently rederived by verification before C.
+     * Zero for shallow copy, leaf-only graphs and every unrelated operation. */
+    unsigned copyGraphProviders;
     /* Valid for AWAIT and typed Future aggregate runtime operations.  VOID
      * defines a control token with INVALID type; every value form fixes the
      * exact source completion representation. */
@@ -5961,6 +5965,7 @@ typedef struct XL6_IrPersistenceRestoreNode {
      * one borrowed receiver -> one owned result of payloadType. No source
      * name lookup, invented structural clone or second initializer is allowed. */
     XL6_IrPersistenceIsolationAbi isolationAbi;
+    unsigned isolationGraphProviders;
     uint32 cloneFunction;
     XL6_SymbolId cloneSymbol;
     XL6_IrErrorAbi cloneErrorAbi;
@@ -5968,6 +5973,7 @@ typedef struct XL6_IrPersistenceRestoreNode {
      * distinct from cloning the containing class or constructing it again. */
     size_t openClassLayout;
     XL6_IrPersistenceIsolationAbi openIsolationAbi;
+    unsigned openIsolationGraphProviders;
     uint32 openCloneFunction;
     XL6_SymbolId openCloneSymbol;
     XL6_IrErrorAbi openCloneErrorAbi;
@@ -6962,11 +6968,13 @@ typedef enum XL6_IrValueCopyProviderAbi {
     XL6_IR_VALUE_COPY_SET_V1,
     XL6_IR_VALUE_COPY_ARRAY_SET_WIRE_V1,
     XL6_IR_VALUE_COPY_ARRAY_COLLECTIONS_WIRE_V1,
-    XL6_IR_VALUE_COPY_DICT_V1
+    XL6_IR_VALUE_COPY_DICT_V1,
+    XL6_IR_VALUE_COPY_NATIVE_GRAPH_V1
 } XL6_IrValueCopyProviderAbi;
-/* Complete transitive storage capability for declared data projection. */
+/* Complete transitive storage capability shared by clone and projection. */
 enum { XL6_IR_GRAPH_LIST_V1=1u, XL6_IR_GRAPH_SET_V1=2u, XL6_IR_GRAPH_DICT_V1=4u };
-unsigned xl6IrPersistenceGraphProviders(const XL6_IrModule*,XL6_IrTypeId);
+unsigned xl6IrValueGraphProvidersForType(const XL6_IrModule*,XL6_IrTypeId);
+int xl6IrRefreshValueCopyRecipes(XL6_IrModule*);
 XL6_IrValueCopyProviderAbi xl6IrValueCopyProviderAbi(
     const XL6_IrModule*,const XL6_IrInstruction*);
 /* The same typed closure also serves compiler-derived restore isolation.
