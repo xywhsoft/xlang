@@ -323,6 +323,8 @@ static int xl6IrCgenVerifyInstructions(
                   !xl6IrListIndexRuntimeInstructionCompatible(module,instruction)) ||
                  (instruction->runtimeOp==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE &&
                   !xl6IrDictIndexWriteRuntimeInstructionCompatible(module,instruction)) ||
+                 (xl6IrDictDirectSlotRuntimeOpIs(instruction->runtimeOp) &&
+                  !xl6IrDictDirectSlotRuntimeInstructionCompatible(module,instruction)) ||
                  (xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp) &&
                   !xl6IrArrayScalarReadRuntimeInstructionCompatible(module, instruction)) ||
                  (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY &&
@@ -655,6 +657,7 @@ static int xl6IrCgenVerifyInstructions(
                    instruction->runtimeOp != XL6_IR_RUNTIME_DICT_READ_VALUE_OR_NULL_COPY &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_DICT_READ_VALUE_REQUIRED_COPY &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE &&
+                   !xl6IrDictDirectSlotRuntimeOpIs(instruction->runtimeOp) &&
                    !xl6IrListTypedReadRuntimeOpIs(instruction->runtimeOp) &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64 &&

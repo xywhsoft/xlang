@@ -22,17 +22,21 @@ int main(int argc,char** argv)
         XL6_IrInstruction* instruction=&ir->instructions[i];
         bool read=instruction->runtimeOp==XL6_IR_RUNTIME_DICT_READ_VALUE_COPY ||
             instruction->runtimeOp==XL6_IR_RUNTIME_DICT_READ_VALUE_OR_NULL_COPY ||
-            instruction->runtimeOp==XL6_IR_RUNTIME_DICT_READ_VALUE_REQUIRED_COPY;
-        bool write=instruction->runtimeOp==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE;
+            instruction->runtimeOp==XL6_IR_RUNTIME_DICT_READ_VALUE_REQUIRED_COPY ||
+            instruction->runtimeOp==XL6_IR_RUNTIME_DICT_READ_SLOT;
+        bool write=instruction->runtimeOp==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE ||
+            instruction->runtimeOp==XL6_IR_RUNTIME_DICT_SET_SLOT;
+        bool direct=xl6IrDictDirectSlotRuntimeOpIs(instruction->runtimeOp);
         if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL || (!read && !write)) continue;
         assert(instruction->operandCount==(read ? 2u : 3u));
         assert(xl6IrCallInstructionErrorAbi(ir,instruction)==XL6_IR_ERROR_ABI_MAY_RAISE);
-        assert(xl6IrCallInstructionErrorPhysicalAbi(ir,instruction)==(read ?
+        assert(xl6IrCallInstructionErrorPhysicalAbi(ir,instruction)==(read && !direct ?
             XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT : XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE));
         for (unsigned operand=0;operand<instruction->operandCount;++operand)
-            assert(xl6IrInstructionOperandOwnership(ir,instruction,operand)==(write && operand==2 ?
+            assert(xl6IrInstructionOperandOwnership(ir,instruction,operand)==(write && operand==2 && !direct ?
                 XL6_IR_OPERAND_OWNERSHIP_CONSUME : XL6_IR_OPERAND_OWNERSHIP_OBSERVE));
-        if (read) assert(xl6IrOwnedIndexReadRuntimeInstructionCompatible(ir,instruction) &&
+        if (direct) assert(xl6IrDictDirectSlotRuntimeInstructionCompatible(ir,instruction));
+        if (read && !direct) assert(xl6IrOwnedIndexReadRuntimeInstructionCompatible(ir,instruction) &&
             xl6IrValueOwnershipGet(ir,instruction->result)==XL6_IR_OWNERSHIP_MOVE);
         XL6_IrInstruction saved=*instruction;
 #define MUTATE(Field,Value) do { instruction->Field=(Value); dictIndexRejected(ir); *instruction=saved; } while (0)

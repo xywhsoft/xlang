@@ -1,0 +1,5 @@
+// Only a borrowed static Dict and exact text key. No factory/wire codec needed.
+export "direct_dict_leaf" func directLeaf(dict<int> values, string key, int next) as int
+    values[key] = next
+    return values[key]
+end

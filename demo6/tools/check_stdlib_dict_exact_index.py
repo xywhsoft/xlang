@@ -3,8 +3,8 @@
 Strict O0/O2, exact keys, immutable domains, owned read/consuming write,
 complete allocation and no-diagnostic entry/provider prefixes, real broken
 implementations, independent XLIR verification, JIT and selected AOT closure.
-Static keys use managed string SSA, owned results and checked projection.
-No source native Dict producer/unboxed-index/restore or shipping/full53 claim.
+Static keys use managed string SSA. Closed slots use direct native reads/writes;
+open/safe results retain the owned projection contract. No shipping/full53 claim.
 """
 from pathlib import Path
 import argparse,ast,concurrent.futures,hashlib,json,os,re,shutil,subprocess,sys
@@ -48,7 +48,7 @@ def main():
     report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Rows=rows,ClosedPrefixes=prefixes,
         NegativeControls=controls,Products=products,Objects=objects,Platform=sys.platform,Sanitized=a.sanitize,
         NativeDictDynamicIndex=True,GeneratedLanguageNativeInputs=bool(public),LanguageDictFactoryCutover=False,
-        TypedDictOwnedExactIndexCutover=True,TypedDictUnboxedIndexCutover=False,
+        TypedDictOwnedExactIndexCutover=True,TypedDictUnboxedIndexCutover=bool(public),
         DictRestoreCutover=False,ShippingLibraryAcceptance=False,Full53Acceptance=False,
         Scope=__doc__,ScopeInjection='GNU ld --wrap, not actual OS context exhaustion')
     flags=['-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease','-Irelease/include','-Isrc/runtime']
@@ -129,7 +129,7 @@ def main():
             for target in (generated,repeated): run(target.stem,[driver,fixture,'cgen-default',target])
             assert sha(generated)==sha(repeated); body=generated.read_text(encoding='utf-8-sig')
             assert 'xl6DictValueReadCopyV1(' in body and 'xl6DictValueSetTakeV1(' in body
-            assert 'xl6DictValueReadRequiredCopyV1(' in body
+            assert 'xl6DictReadSlotV1(' in body and 'xl6DictSetV1(' in body
             assert 'xlir_xvalue_object_get_literal_i64(' not in body
             for opt in ('O0','O2'):
                 memory=out/(opt+'-memory.o'); run(opt+'-memory',[cc,*flags,'-'+opt,'-c','test/support/module_product_memory.c','-o',memory])

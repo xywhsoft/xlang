@@ -611,6 +611,17 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             if (!xl6IrOwnedIndexReadRuntimeInstructionCompatible(module,instruction) || !visitor(context,symbol)) return 0;
             continue;
         }
+        if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL && xl6IrDictDirectSlotRuntimeOpIs(instruction->runtimeOp)) {
+            const XL6_IrInstruction* source=xl6IrCgenValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+            XL6_IrValueCollectionRecipe recipe={0};
+            if (!xl6IrDictDirectSlotRuntimeInstructionCompatible(module,instruction) || !source ||
+                !xl6IrDictDirectSlotRecipe(module,source->type,&recipe)) return 0;
+            const XL6_IrType* schema=xl6IrTypeGet(&module->types,recipe.valueSchemaType);
+            if (!xl6IrCgenVisitSlotProviders(schema->sequenceLayout.slotAbi,0,visitor,context) ||
+                !visitor(context,instruction->runtimeOp==XL6_IR_RUNTIME_DICT_READ_SLOT ?
+                    "xl6DictReadSlotV1" : "xl6DictSetV1")) return 0;
+            continue;
+        }
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL &&
             (xl6IrListTypedReadRuntimeOpIs(instruction->runtimeOp) ||
              instruction->runtimeOp==XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE)) {

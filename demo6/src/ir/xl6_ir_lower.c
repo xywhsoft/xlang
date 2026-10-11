@@ -1889,6 +1889,7 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
          xl6IrRuntimeCollectionCountErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeArrayScalarReadErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrListTypedReadRuntimeOpIs(runtimeOp) ||
+         runtimeOp==XL6_IR_RUNTIME_DICT_READ_SLOT ||
          xl6IrRuntimeFutureMetadataErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) &&
         !xl6IrLowerEmitRuntimeErrorEdge(ctx, failureOrigin, xl6IrNodeGet(ctx->module, failureOrigin), result))
         return XL6_IR_VALUE_INVALID;
@@ -4938,7 +4939,8 @@ static int xl6IrLowerResolveElementTargetOperations(
         (plan->lhs->indexWriteAbi==XL6_IR_INDEX_WRITE_XVALUE_OBJECT_LITERAL_SET_NEW ||
          plan->lhs->indexWriteAbi==XL6_IR_INDEX_WRITE_XVALUE_OBJECT_STRING_SET_NEW)) {
         plan->borrowOperation=XL6_IR_RUNTIME_DICT_READ_VALUE_COPY;
-        plan->writeOperation=XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE;
+        plan->writeOperation=xl6IrDictDirectSlotRecipe(ctx->module,plan->receiver->storageType,NULL)
+            ? XL6_IR_RUNTIME_DICT_SET_SLOT : XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE;
         return 1;
     }
     switch (plan->lhs->indexWriteAbi) {
@@ -5056,7 +5058,8 @@ static int xl6IrLowerPrepareElementTargetPlan(
         return plan->keyValue!=XL6_IR_VALUE_INVALID && (plan->keyTemporary==0 ||
             xl6IrLowerProtectEvaluationStorage(ctx,origin,plan->keyTemporary,plan->keyValue,0,0));
     }
-    if (plan->writeOperation==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE) {
+    if (plan->writeOperation==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE ||
+        plan->writeOperation==XL6_IR_RUNTIME_DICT_SET_SLOT) {
         if (!keyType || keyType->cAbi!=XL6_IR_C_ABI_MANAGED_STRING ||
             keyType->kind==XL6_IR_TYPE_NULLABLE) return 0;
         plan->keyValue=xl6IrLowerNode(ctx,ctx->module->children[lhs->firstChild+1]);
@@ -5211,6 +5214,13 @@ static XL6_IrValueId xl6IrLowerReadElementTargetPlan(
         if (ownedResult != NULL) *ownedResult = xl6IrLowerValueHasOwner(ctx, result);
         return result;
     }
+    if (plan && plan->writeOperation==XL6_IR_RUNTIME_DICT_SET_SLOT) {
+        operands[0]=plan->receiverValue; operands[1]=plan->keyValue;
+        XL6_IrValueId result=xl6IrLowerEmitRuntimeCall(ctx,origin,plan->lhs->storageType,
+            XL6_IR_RUNTIME_DICT_READ_SLOT,operands,2);
+        if (ownedResult) *ownedResult=xl6IrLowerValueHasOwner(ctx,result);
+        return result;
+    }
     if (plan && plan->writeOperation==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE) {
         operands[0]=plan->receiverValue; operands[1]=plan->keyValue;
         const XL6_IrType* element=xl6IrTypeGet(&ctx->module->types,plan->lhs->storageType);
@@ -5288,6 +5298,16 @@ static XL6_IrValueId xl6IrLowerEmitElementTargetWrite(
     if ( itemType == NULL || value == XL6_IR_VALUE_INVALID ||
          xl6IrLowerValueType(ctx, value) != plan->lhs->storageType )
         return 0;
+    if (operation==XL6_IR_RUNTIME_DICT_SET_SLOT) {
+        boolType=xl6IrLowerFindTypeByCAbi(ctx->module,XL6_IR_C_ABI_BOOL);
+        value=xl6IrLowerProtectOwnedBorrow(ctx,origin,value);
+        if (boolType==XL6_IR_TYPE_INVALID || value==XL6_IR_VALUE_INVALID) return XL6_IR_VALUE_INVALID;
+        operands[0]=plan->receiverValue; operands[1]=plan->keyValue; operands[2]=value;
+        updated=xl6IrLowerEmitRuntimeCall(ctx,origin,boolType,operation,operands,3);
+        return updated!=XL6_IR_VALUE_INVALID && xl6IrLowerObserveRuntimeCallOutcome(ctx,origin,updated) &&
+            xl6IrLowerCompleteEvaluationBorrows(ctx,origin,valueFirst,&updated)
+            ? updated : XL6_IR_VALUE_INVALID;
+    }
     /* Boxing strings/closures copies a borrowed payload into the xvalue.  If
      * the value is an owned SSA result, keep and later release that owner. */
     if ( plan->callableSignature != XL6_IR_TYPE_INVALID && xl6IrLowerValueHasOwner(ctx, value) ) {
@@ -5915,7 +5935,13 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueKeyRead(
         operands[1]=xl6IrLowerProtectOwnedBorrow(ctx,origin,operands[1]);
         if (operands[1]==XL6_IR_VALUE_INVALID) return XL6_IR_VALUE_INVALID;
     }
-    if (xl6IrOwnedIndexReadRuntimeOpIs(operation))
+    XL6_IrValueCollectionRecipe direct={0};
+    if (!dynamicReceiver && keyType->cAbi==XL6_IR_C_ABI_MANAGED_STRING &&
+        node->sourceKind!=XL6_AST_SAFE_INDEX &&
+        xl6IrDictDirectSlotRecipe(ctx->module,receiver->storageType,&direct) &&
+        direct.elementType==node->storageType)
+        result=xl6IrLowerEmitRuntimeCall(ctx,origin,node->storageType,XL6_IR_RUNTIME_DICT_READ_SLOT,operands,2);
+    else if (xl6IrOwnedIndexReadRuntimeOpIs(operation))
         result=xl6IrLowerOwnedIndexRead(ctx,origin,operation,operands,node->storageType);
     else {
         borrowed = xl6IrLowerEmitRuntimeCall(ctx, origin, dynamicType, operation, operands, 2);

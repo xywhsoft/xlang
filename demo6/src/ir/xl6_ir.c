@@ -20628,7 +20628,8 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     if ((xl6IrListTypedReadRuntimeOpIs(instruction->runtimeOp) &&
          instruction->runtimeOp!=XL6_IR_RUNTIME_LIST_READ_STRING) ||
         instruction->runtimeOp==XL6_IR_RUNTIME_LIST_SET_VALUE_TAKE ||
-        instruction->runtimeOp==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE)
+        instruction->runtimeOp==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE ||
+        xl6IrDictDirectSlotRuntimeOpIs(instruction->runtimeOp))
         return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
     if(stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ARRAY_REMOVE_VALUE ||
@@ -22420,7 +22421,7 @@ int xl6IrCollectionMemberRuntimeOpIs(XL6_IrRuntimeOp operation)
  * carriers and borrowed receiver/key operands that lowering materialized. */
 int xl6IrCollectionReadRuntimeOpIs(XL6_IrRuntimeOp operation)
 {
-    return xl6IrListTypedReadRuntimeOpIs(operation) || xl6IrOwnedIndexReadRuntimeOpIs(operation) || xl6IrCollectionCountRuntimeOpIs(operation) || xl6IrArrayScalarReadRuntimeOpIs(operation) ||
+    return operation==XL6_IR_RUNTIME_DICT_READ_SLOT || xl6IrListTypedReadRuntimeOpIs(operation) || xl6IrOwnedIndexReadRuntimeOpIs(operation) || xl6IrCollectionCountRuntimeOpIs(operation) || xl6IrArrayScalarReadRuntimeOpIs(operation) ||
            operation == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64 ||
            operation == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64_STRING_COPY;
 }
@@ -22486,6 +22487,61 @@ int xl6IrOwnedIndexReadRuntimeInstructionCompatible(
          xl6IrTypeGet(&module->types,source->type)->kind!=XL6_IR_TYPE_NULLABLE);
 }
 
+int xl6IrDictDirectSlotRecipe(const XL6_IrModule* module,XL6_IrTypeId owner,
+    XL6_IrValueCollectionRecipe* output)
+{
+    XL6_IrValueCollectionRecipe recipe={0};
+    if (!xl6IrValueCollectionConstructionRecipe(module,owner,&recipe) ||
+        recipe.family!=XL6_IR_COLLECTION_DICT) return 0;
+    const XL6_IrType* schema=xl6IrTypeGet(&module->types,recipe.valueSchemaType);
+    const XL6_IrType* element=xl6IrTypeGet(&module->types,recipe.elementType);
+    /* A closure's native slot is an xvalue, not its language closure pointer.
+     * Keep that explicit codec projection; do not reinterpret pointer size. */
+    /* dict<var> is an erased element view, including native owners whose
+     * actual slots have another physical domain. It needs the existing codec
+     * projection; an ANY admission is not proof of an exact output carrier. */
+    if (!schema || !element || xl6IrTypeIsDynamicXValueBuiltin(module,recipe.elementType) ||
+        schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1 ||
+        element->nativeSlotAbi!=schema->sequenceLayout.slotAbi) return 0;
+    if (output) *output=recipe;
+    return 1;
+}
+int xl6IrDictDirectSlotRuntimeOpIs(XL6_IrRuntimeOp operation)
+{ return operation==XL6_IR_RUNTIME_DICT_READ_SLOT || operation==XL6_IR_RUNTIME_DICT_SET_SLOT; }
+int xl6IrDictDirectSlotRequiresValue(const XL6_IrModule* module,const XL6_IrInstruction* instruction)
+{
+    const XL6_IrType* element=module && instruction ? xl6IrTypeGet(&module->types,instruction->type) : NULL;
+    return element && element->kind!=XL6_IR_TYPE_NULLABLE &&
+        !xl6IrTypeIsDynamicXValueBuiltin(module,instruction->type);
+}
+int xl6IrDictDirectSlotRuntimeInstructionCompatible(const XL6_IrModule* module,
+    const XL6_IrInstruction* instruction)
+{
+    bool write=instruction && instruction->runtimeOp==XL6_IR_RUNTIME_DICT_SET_SLOT;
+    if (!module || !instruction || instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+        !xl6IrDictDirectSlotRuntimeOpIs(instruction->runtimeOp) ||
+        instruction->result==XL6_IR_VALUE_INVALID || instruction->operandCount!=(write ? 3u : 2u) ||
+        !module->operands || instruction->firstOperand>module->operandCount ||
+        module->operandCount-instruction->firstOperand<instruction->operandCount ||
+        instruction->immediateText || instruction->immediateData || instruction->immediateSize ||
+        instruction->targetSymbol || instruction->targetValue!=XL6_IR_VALUE_INVALID ||
+        instruction->calleeType!=XL6_IR_TYPE_INVALID || instruction->payloadType!=XL6_IR_TYPE_INVALID ||
+        instruction->runtimeIdentityType!=XL6_IR_TYPE_INVALID || instruction->opcode!=XL6_IR_OPCODE_INVALID ||
+        instruction->collectionAbi!=XL6_IR_COLLECTION_NONE ||
+        instruction->typedCollectionOp!=XL6_IR_TYPED_COLLECTION_INVALID ||
+        instruction->dynamicCollectionOp!=XL6_IR_DYNAMIC_COLLECTION_INVALID ||
+        instruction->sequenceAdmissionIdentitySet!=XL6_IR_NOMINAL_IDENTITY_SET_INVALID) return 0;
+    const XL6_IrInstruction* source=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+    const XL6_IrInstruction* key=xl6IrValueDefinition(module,module->operands[instruction->firstOperand+1],NULL);
+    const XL6_IrType* index=key ? xl6IrTypeGet(&module->types,key->type) : NULL;
+    XL6_IrValueCollectionRecipe recipe={0};
+    if (!source || !xl6IrDictDirectSlotRecipe(module,source->type,&recipe) || !index ||
+        index->kind==XL6_IR_TYPE_NULLABLE || index->cAbi!=XL6_IR_C_ABI_MANAGED_STRING ||
+        index->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED) return 0;
+    if (!write) return instruction->type==recipe.elementType;
+    const XL6_IrInstruction* item=xl6IrValueDefinition(module,module->operands[instruction->firstOperand+2],NULL);
+    return item && item->type==recipe.elementType && xl6IrTypeIsBool(module,instruction->type);
+}
 int xl6IrDictIndexWriteRuntimeInstructionCompatible(const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
 {
@@ -22884,6 +22940,8 @@ int xl6IrCollectionReadRuntimeInstructionCompatible(
         return xl6IrCollectionCountRuntimeInstructionCompatible(module,instruction);
     if (instruction && xl6IrOwnedIndexReadRuntimeOpIs(instruction->runtimeOp))
         return xl6IrOwnedIndexReadRuntimeInstructionCompatible(module,instruction);
+    if (instruction && instruction->runtimeOp==XL6_IR_RUNTIME_DICT_READ_SLOT)
+        return xl6IrDictDirectSlotRuntimeInstructionCompatible(module,instruction);
     if (instruction && xl6IrListTypedReadRuntimeOpIs(instruction->runtimeOp))
         return xl6IrListIndexRuntimeInstructionCompatible(module,instruction);
     if (instruction && xl6IrArrayScalarReadRuntimeOpIs(instruction->runtimeOp))
@@ -41296,6 +41354,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             return xl6IrDiag(diags,
                                 xl6IrNodeGet(module, instruction->origin),
                                 "XLIR runtime safe array integer access has no exact canonical-null ABI");
+                    } else if (xl6IrDictDirectSlotRuntimeOpIs(instruction->runtimeOp)) {
+                        if (!xl6IrDictDirectSlotRuntimeInstructionCompatible(module,instruction))
+                            return xl6IrDiag(diags,NULL,"XLIR Dict index lacks a complete direct slot recipe");
                     } else if (instruction->runtimeOp==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE) {
                         if (!xl6IrDictIndexWriteRuntimeInstructionCompatible(module,instruction))
                             return xl6IrDiag(diags,NULL,"XLIR Dict write lacks exact observed string key and consuming Value ABI");
@@ -47283,6 +47344,8 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_ARRAY_CREATE: return "array-create";
     case XL6_IR_RUNTIME_LIST_CREATE: return "list-create";
     case XL6_IR_RUNTIME_DICT_CREATE: return "dict-create";
+    case XL6_IR_RUNTIME_DICT_READ_SLOT: return "dict-read-slot";
+    case XL6_IR_RUNTIME_DICT_SET_SLOT: return "dict-set-slot";
     case XL6_IR_RUNTIME_DICT_READ_VALUE_COPY: return "dict-read-value-copy";
     case XL6_IR_RUNTIME_DICT_READ_VALUE_OR_NULL_COPY: return "dict-read-value-or-null-copy";
     case XL6_IR_RUNTIME_DICT_READ_VALUE_REQUIRED_COPY: return "dict-read-value-required-copy";
