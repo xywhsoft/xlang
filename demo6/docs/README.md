@@ -87,6 +87,7 @@
 - [SlotMap 核心语言 API](stdlib53-b214-slot-map-core.md)：显式构造与九个 checked 核心方法，共享精确 XLIR／槽位 ABI；双端严格 C／JIT 和失败清理通过，快照、迭代与完整封板继续。
 - [SlotMap 独立快照与原生值遍历](stdlib53-b215-slot-map-snapshot-language.md)：公开 keys／values 与通用 checked 原生值 foreach，双端严格 C／JIT、真实 AOT 和按需独立程序通过；成对迭代、其他消费边界及发布总门继续。
 - [OrderedMap 与默认 Queue](stdlib53-b216-container-public-names.md)：有序映射公开名与同身份 MPMC 默认别名；双端批量源码、严格 C／JIT、真实 AOT 和裁剪通过，多返回值清理及发布总门继续。
+- [OrderedMap 原生查询与独立结果](stdlib53-b217-tree-query-native.md)：六种查询的空结果、拥有权和 checked 事务；双端严格 C、按需独立程序及 Linux sanitizer 通过，语言多返回值接线继续。
 - [SlotMap 的原生键和值快照](stdlib53-b212-slot-map-snapshots.md)：精确拥有快照、失败回滚与独立键组件；双端原生专项及值快照实际裁剪程序通过，公开语言 API 和成对迭代继续。
 - [List 方法接入与集合异常合同](stdlib53-b174-list-methods-language.md)：checked 驻留方法、may-raise 和真实 C/JIT/continuation 验证；工厂、动态分发及恢复仍待切换。
 - [List 元素准入与目标构造合同](stdlib53-b173-list-target-recipes.md)：XLIR 精确元素 witness、泛型闭包和目标工厂；错误元数据与分配/作用域失败批处理验证，源载体尚未切换。

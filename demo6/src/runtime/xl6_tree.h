@@ -39,6 +39,28 @@ XL6_TEXT_API bool xl6TreeKeyV1(const xvalue*, const XL6_TreeLayoutV1*, const voi
  * without changing either output, preserving the existing language contract. */
 XL6_TEXT_API bool xl6TreeEndpointV1(const xvalue*, const XL6_TreeLayoutV1*,
     unsigned int, const void*, void*, void*, bool*);
+/* Fresh result slots, not caller-variable writeback. Their exact resident
+ * storage type supplies alignment/copy/drop. Managed slots must be empty;
+ * trivial slots are scratch. Pairs are distinct, disjoint from search/layout/
+ * found, and have exact sizes. All initialized outputs are empty after a failed
+ * operation or a missing optional result. Empty is the resident codec's zero
+ * result state, not a default T (in particular no empty-string allocation).
+ * found is published only on success;
+ * invalid slot shapes leave every supplied byte untouched. The result slots
+ * stay private until the return status has been checked. */
+typedef enum XL6_TreeQueryV2 {
+    XL6_TREE_QUERY_GET_V2, XL6_TREE_QUERY_TAKE_V2,
+    XL6_TREE_QUERY_FIRST_V2, XL6_TREE_QUERY_LAST_V2,
+    XL6_TREE_QUERY_LOWER_V2, XL6_TREE_QUERY_UPPER_V2
+} XL6_TreeQueryV2;
+typedef struct XL6_TreeQuerySlotV2 { void* data; size_t size; } XL6_TreeQuerySlotV2;
+/* GET/TAKE have no key output; FIRST/LAST have no search key. Bounds have both.
+ * required converts an ordinary missing result to XERR_RANGE, never a storage,
+ * copy, state or allocation error to missing. TAKE moves the value, other
+ * queries copy independently owned results. No temporary result allocation. */
+XL6_TEXT_API bool xl6TreeQueryV2(const xvalue*, const XL6_TreeLayoutV1*,
+    XL6_TreeQueryV2, const void*, bool, XL6_TreeQuerySlotV2,
+    XL6_TreeQuerySlotV2, bool*);
 XL6_TEXT_API bool xl6TreeEqualsV1(const xvalue*, const xvalue*, const XL6_TreeLayoutV1*, bool*);
 XL6_TEXT_API bool xl6TreeMergeV1(const xvalue*, const xvalue*, const XL6_TreeLayoutV1*, bool);
 XL6_TEXT_API bool xl6TreeClearV1(const xvalue*, const XL6_TreeLayoutV1*);
