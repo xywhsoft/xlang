@@ -950,6 +950,8 @@ $taskAggregateArrayGateText = [System.IO.File]::ReadAllText($taskAggregateArrayG
 $taskNestedFutureGateText = [System.IO.File]::ReadAllText($taskNestedFutureGate, [System.Text.Encoding]::UTF8)
 $taskSpawnClosureGateText = [System.IO.File]::ReadAllText($taskSpawnClosureGate, [System.Text.Encoding]::UTF8)
 $threadResourceGateText = [System.IO.File]::ReadAllText($threadResourceGate, [System.Text.Encoding]::UTF8)
+$threadPublicGateText = [System.IO.File]::ReadAllText((Join-Path $Root 'tools/check_xlir_runtime_operand_catalog.py'), [System.Text.Encoding]::UTF8)
+$threadLanguageGateText = [System.IO.File]::ReadAllText((Join-Path $Root 'tools/check_stdlib_thread_language.py'), [System.Text.Encoding]::UTF8)
 $channelResourceGateText = [System.IO.File]::ReadAllText($channelResourceGate, [System.Text.Encoding]::UTF8)
 $channelOwnedGateText = [System.IO.File]::ReadAllText((Join-Path $Root 'tools/check_stdlib_channel_regressions.py'), [System.Text.Encoding]::UTF8)
 $syncResourceGateText = [System.IO.File]::ReadAllText($syncResourceGate, [System.Text.Encoding]::UTF8)
@@ -1219,17 +1221,17 @@ foreach ( $required in @(
     }
 }
 foreach ( $required in @(
-    "xlir_thread_resource_abi.xl", 'runtimeResourceAbiName -eq "thread"',
-    'runtimeResourceOpName -like "thread-*"',
-    'runtimeOpName -like "thread-*"', 'abiName -ne "retain-xvalue"',
-    "managed conditional closure ownership",
-    "xrtValueHandleTake", "xrtValueTypeIdBind", "xrtValueGetHandle",
-    "byte-for-byte deterministic", "strict-C/runtime gate failed"
+    "xlir_thread_resource_abi.xl", "runtimeResourceAbiName", "runtimeResourceOpName",
+    "runtimeOpName", "retain-xvalue", "conditional", "repeat.read_bytes()",
+    "xl6ThreadCreateV1", "xl6ThreadWaitV1", "StandaloneImports", "ThreadLanguage"
 
 ) ) {
-    if ( ! $threadResourceGateText.Contains($required) ) {
+    if ( ! ($threadPublicGateText+$threadLanguageGateText).Contains($required) ) {
         throw "XLIR migration matrix requires the typed thread resource/capture ABI gate: $required"
     }
+}
+if (!$threadResourceGateText.Contains('check_xlir_runtime_operand_catalog.ps1')) {
+    throw 'Thread migration coverage must execute current-source compiled/resident contract acceptance'
 }
 foreach ( $required in @(
     "xlir_channel_resource_abi", "xlir_channel_captured_output_abi",
