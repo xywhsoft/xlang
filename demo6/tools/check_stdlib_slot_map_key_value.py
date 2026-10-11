@@ -32,7 +32,7 @@ def main():
         Prefixes=prefixes,NegativeControls=controls,Platform=sys.platform,SelectedNativeClosureSanitized=args.sanitize,
         LanguageSlotMapKeyCutover=False,ErasedSetKeyCutover=True,ShippingLibraryAcceptance=False,Full53Acceptance=False,Scope=__doc__)
     flags=['-std=c11','-Wall','-Wextra','-Werror','-I.','-Irelease','-Irelease/include']
-    links=['-Wl,--wrap='+name for name in ('xl6ErrorScopeBegin','xrtTypeCopyValue','xrtValueTypeIdBind')]
+    links=['-Wl,--wrap='+name for name in ('xl6ErrorScopeBegin','xrtTypeCopyValue','xrtValueTypeIdBind','xrtValueRelease')]
     env=dict(os.environ); suffix='.exe' if os.name=='nt' else ''
     if os.name!='nt': flags+=['-D_GNU_SOURCE']; links+=['-pthread','-lm']
     if args.sanitize:
@@ -44,7 +44,7 @@ def main():
         data=result.stdout+result.stderr; log=out/(label+'.log'); log.write_bytes(data)
         rows.append(dict(Label=label,Command=command,Exit=result.returncode,ExpectedRejection=reject,Log=str(log),LogSha256=sha(log)))
         assert result.returncode!=0 if reject else result.returncode==0,(label,data[-6000:])
-        if reject: assert b'Assertion' in data or b'assertion' in data,(label,data[-3000:])
+        if reject: assert b'Assertion' in data or b'assertion' in data or b'runtime error:' in data,(label,data[-3000:])
         return data.decode(errors='replace')
     try:
         compiled={}
@@ -56,7 +56,7 @@ def main():
             compiled[opt]=current; product=out/(opt+'-native'+suffix)
             run(opt+'-link',[cc,*current,*links,'-o',product]); products.append(dict(Path=str(product),Sha256=sha(product)))
             run(opt+'-vectors',[product,'vectors']); data=run(opt+'-prefixes',[product,'prefixes'])
-            found=re.findall(r'slot-key (\S+) runs=(\d+) first-no-hit=(\d+)',data); assert len(found)==4
+            found=re.findall(r'slot-key (\S+) runs=(\d+) first-no-hit=(\d+)',data); assert len(found)==5
             for operation,runs,last in found:
                 assert int(runs)==int(last)+1
                 prefixes.append(dict(Optimization=opt,Operation=operation,Runs=int(runs),FirstNoHit=int(last)))
@@ -67,10 +67,19 @@ def main():
             'return a->profile==b->profile && a->profile->content->Equal(a->value,b->value,a->profile->content->UserData);',
             '(void)a; (void)b; return left==right;'),
             ('unbox-copy-omitted',native,
-            'copied=xrtTypeCopyValue(profile->Type(),output,box->value);','copied=true;'),
+            'copied=xrtTypeCopyValue(type,output,input);','copied=true;'),
             ('failed-copy-owner-leaked',native,
-            'xl6ErrorScopeCaptureFailure(&scope); xrtTypeDropValue(profile->Type(),output);',
-            'xl6ErrorScopeCaptureFailure(&scope);'),
+            'xrtTypeDropValue(type,output); copied=false;',
+            'copied=false;'),
+            ('occupied-direct-output-accepted',native,
+            'xrtMemRangesOverlap(input,type->Size,output,type->Size) || !profile->Empty(output)',
+            'xrtMemRangesOverlap(input,type->Size,output,type->Size)'),
+            ('misaligned-direct-output-accepted',native,
+            '!aligned(input,type) || !aligned(output,type) ||','false ||'),
+            ('overlapping-direct-output-accepted',native,
+            'xrtMemRangesOverlap(input,type->Size,output,type->Size) ||',''),
+            ('late-unbox-owner-published',native,
+            'if (copied && (xrtGetError() || scope.failed)) {','if (false && copied && (xrtGetError() || scope.failed)) {'),
             ('erased-value-treated-as-reference','src/runtime/xl6_set_key_policy.c',
             'if (xl6NativeLeafValueIsV1(value)) return true;','if (false && xl6NativeLeafValueIsV1(value)) return true;')]
         for name,source,before,after in mutations:

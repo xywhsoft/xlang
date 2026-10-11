@@ -56,10 +56,10 @@ def main():
             for operation,runs,last in found:
                 assert int(runs)==int(last)+1
                 prefixes.append(dict(Optimization=opt,Operation=operation,Runs=int(runs),FirstNoHit=int(last)))
-        changes=[('occupied-output-accepted','src/runtime/xl6_array_native_value_admission.c',
-            'return key && !key->instance && !key->slot;','return key!=NULL;'),
-            ('native-copy-omitted','src/runtime/xl6_array_native_value_admission.c',
-            'else success=xrtTypeCopyValue(xl6SlotMapKeyTypeV1(),&result,input);','else success=true;'),
+        changes=[('failed-native-copy-owner-leaked','src/runtime/xl6_native_leaf_value.c',
+            'xrtTypeDropValue(type,output); copied=false;','copied=false;'),
+            ('native-copy-omitted','src/runtime/xl6_native_leaf_value.c',
+            'copied=xrtTypeCopyValue(type,output,input);','copied=true;'),
             ('record-address-equality','src/runtime/xl6_sequence.c','equal=content->Equal(left,right,content->UserData);',
             'equal=left==right; (void)content;'),
             ('record-set-content-omitted','src/runtime/xl6_set.c',
