@@ -258,6 +258,10 @@ static int xl6IrCgenVisitSlotProviders(XL6_IrNativeSlotAbi slot,int projection,
     XL6_IrCgenNativeModuleVisitor visitor,void* context)
 {
     switch (slot) {
+#define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,Release,Type,Converter,Sequence,Profile,ValueId) \
+    case XL6_IR_NATIVE_SLOT_##Tag: return visitor(context,#Type) && (!projection || visitor(context,#Converter));
+#include "src/type/xl6_native_value_profiles.inc"
+#undef XL6_NATIVE_VALUE_PROFILE
 #define XL6_IR_CGEN_SLOT_PROVIDER(Slot,Type,Converter) \
     case XL6_IR_NATIVE_SLOT_##Slot: return visitor(context,#Type) && (!projection || visitor(context,#Converter));
 #include "src/cgen/xl6_ir_cgen_slot_providers.inc"
@@ -280,6 +284,14 @@ static int xl6IrCgenVisitSequenceFactorySymbols(const XL6_IrModule* module,XL6_I
     if (!xl6IrCgenVisitSlotProviders(type->sequenceLayout.slotAbi,converter,visitor,context)) return 0;
     const char* factory=NULL;
     switch (type->sequenceLayout.abi) {
+    case XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1:
+        {
+            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(
+                xl6IrTypeGet(&module->types,type->sequenceLayout.elementType));
+            if (!native) return 0;
+            factory=native->sequenceSymbol;
+        }
+        break;
     case XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE:
     case XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2: factory="xl6SequenceReferenceCreateV1"; break;
     case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2: factory="xl6SequencePrimitiveCreateV1"; break;
@@ -644,6 +656,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
                     instruction->collectionAbi==XL6_IR_COLLECTION_LIST ? "xl6ListValueTakeV1" :
                     instruction->collectionAbi==XL6_IR_COLLECTION_DICT ? "xl6DictValueTakeV1" : NULL;
                 if (!extract || !visitor(context,extract)) return 0;
+                const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,instruction->type));
+                if (native && !visitor(context,native->profileSymbol)) return 0;
             }
             if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
                 instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_RESIZE &&

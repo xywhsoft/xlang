@@ -2,6 +2,16 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_native_value_ir.py --fixture stdlib_native_value_collections.xl`
+adds typed Array/List/Set/Dict, nested/erased import and mutable Set identity
+coverage to the genuine-key host contract. Five compiled mutants include
+wrong language identity and an empty-only descriptor assignment. The default
+fixture remains the adjacent synchronous record ABI regression.
+`check_stdlib_native_value_extract.py --root <frozen-demo6> --out <fresh-output>`
+checks the independent extraction closure at O0/O2; Linux `--sanitize` enables
+ASan/UBSan for that closure. These are not public SlotMap or pruned shipping
+acceptance; see [native value collections](../docs/stdlib53-b211-native-value-collections.md).
+
 `check_stdlib_native_value_ir.py --root <frozen-demo6>
 --public-directory <fresh-source-build> --out <fresh-output>` verifies direct
 owning native records through actual source, checked copies/projections,

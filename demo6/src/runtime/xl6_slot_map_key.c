@@ -25,20 +25,25 @@ static bool keyCopy(ptr target,const void* source,const xrttype* type)
 {
     (void)type; if (target==source) return true;
     const XL6_SlotMapKeyV1* input=source; XL6_SlotMapKeyV1* output=target;
-    if (output->instance || output->slot || (!input->instance!=!input->slot)) {
+    if ((!output->instance!=!output->slot) || (!input->instance!=!input->slot)) {
         xrtSetErrorKind(XERR_ARGUMENT); return false;
     }
     if (input->instance && !xl6SlotMapInstanceRetainV1(input->instance)) return false;
-    *output=*input; return true;
+    /* xrttype Copy is assignment into an initialized slot, not the public
+     * empty-output acquire operation. Acquire first; failure preserves the
+     * prior value. Publication and its no-raise leaf retirement are atomic. */
+    XL6_SlotMapInstanceV1* prior=output->instance;
+    *output=*input; xl6SlotMapInstanceDropV1(prior); return true;
 }
 static bool keyMove(ptr target,ptr source,const xrttype* type)
 {
     (void)type; if (target==source) return true;
     XL6_SlotMapKeyV1* input=source; XL6_SlotMapKeyV1* output=target;
-    if (output->instance || output->slot || (!input->instance!=!input->slot)) {
+    if ((!output->instance!=!output->slot) || (!input->instance!=!input->slot)) {
         xrtSetErrorKind(XERR_ARGUMENT); return false;
     }
-    *output=*input; *input=(XL6_SlotMapKeyV1){0}; return true;
+    XL6_SlotMapInstanceV1* prior=output->instance;
+    *output=*input; *input=(XL6_SlotMapKeyV1){0}; xl6SlotMapInstanceDropV1(prior); return true;
 }
 static void keyDrop(ptr target,const xrttype* type)
 {

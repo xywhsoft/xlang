@@ -66,7 +66,7 @@ static bool aliasEmpty(const void* raw)
 { const XL6_SlotMapKeyV1* key=raw; return !key->instance && !key->slot; }
 static const xtypedsetkeypolicy aliasContent={aliasHash,aliasEqual,NULL};
 static const XL6_NativeLeafValueProfileV1 aliasProfile={
-    xl6SlotMapKeyTypeV1,UINT64_C(0x5BF65A92DC10A954),&aliasContent,aliasEmpty};
+    xl6SlotMapKeyTypeV1,XL6_SLOT_MAP_KEY_LANGUAGE_VALUE_ID,&aliasContent,aliasEmpty};
 static bool edge(xrtownershipref ref,ptr count) { (void)ref; ++*(size_t*)count; return true; }
 static xrttype rejectedType;
 static const xrttype* rejectedTypeGet(void) { return &rejectedType; }
@@ -147,7 +147,7 @@ static void vectors(void)
     XL6_SlotMapKeyV1 key={0},otherKey={0},output={0}; xvalue* map=create(&key),*other=create(&otherKey);
     directCopyVectors(key);
     xvalue* a=xl6SlotMapKeyBoxV1(key),*b=xl6SlotMapKeyBoxV1(key),*c=xl6SlotMapKeyBoxV1(otherKey); assert(a && b && c && a!=b);
-    assert(xrtValueTypeId(a)==xrtTypeId((xstrview)XRT_STR_INIT("type:SlotMapKey")));
+    assert(xrtValueTypeId(a)==XL6_SLOT_MAP_KEY_LANGUAGE_VALUE_ID);
     assert(xl6SlotMapKeyValueAdmitsV1(a) && xl6SlotMapKeyValueAdmitsV1(b));
     assert(xrtValueEqual(a,b) && !xrtValueEqual(a,c)); uint64 ah=0,bh=0;
     assert(xrtValueHash(a,&ah) && xrtValueHash(b,&bh) && ah==bh);

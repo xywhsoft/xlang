@@ -1,5 +1,6 @@
 #ifndef XL6_ARRAY_EXTRACT_H
 #define XL6_ARRAY_EXTRACT_H
+#include "xl6_array_extract_native_value_abi.h"
 #include "xl6_text_value.h"
 
 /* Borrow receiver. Array Take uses a nonnegative element index; Pop selects

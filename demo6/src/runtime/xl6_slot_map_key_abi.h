@@ -25,4 +25,11 @@ bool xl6SlotMapKeyEqualV1(XL6_SlotMapKeyV1, XL6_SlotMapKeyV1);
 struct xvalue;
 struct xvalue* xl6SlotMapKeyBoxV1(XL6_SlotMapKeyV1);
 bool xl6SlotMapKeyUnboxV1(const struct xvalue*, XL6_SlotMapKeyV1*);
+struct xrttype;
+struct xvalueconverter;
+const struct xrttype* xl6SlotMapKeyTypeV1(void);
+const struct xvalueconverter* xl6SlotMapKeyConverterV1(void);
+struct xvalue* xl6SequenceSlotMapKeyCreateV1(unsigned int, uint64_t);
+struct XL6_NativeLeafValueProfileV1;
+const struct XL6_NativeLeafValueProfileV1* xl6SlotMapKeyValueProfileV1Get(void);
 #endif

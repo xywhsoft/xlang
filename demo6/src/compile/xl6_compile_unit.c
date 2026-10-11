@@ -323,7 +323,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_array_native_value_admission.c", D(R(SEQUENCE),R(SLOT_MAP_KEY_VALUE),R(FOREIGN_ERROR)),
         {"XRT_MODULE_ATOMIC"}},
     {"src/runtime/xl6_native_leaf_value.c", D(R(FOREIGN_ERROR)),
-        {"XRT_MODULE_VALUE","XRUNTIME_MODULE_RUNTIME_TYPE","XRT_MODULE_ATOMIC"}}
+        {"XRT_MODULE_VALUE","XRUNTIME_MODULE_RUNTIME_TYPE","XRT_MODULE_ATOMIC"}},
+    {"src/runtime/xl6_array_extract_native_value.c", D(R(SEQUENCE),R(NATIVE_LEAF_VALUE),R(FOREIGN_ERROR)),
+        {"XRT_MODULE_VALUE_CONTAINER"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -551,6 +553,9 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                 case XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1: REQUIRE(R(ARRAY_C_SCALAR_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1: REQUIRE(R(ARRAY_NULLABLE_C_SCALAR_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1: REQUIRE(R(ARRAY_NUMERIC_ENUM_ADMISSION)); break;
+                case XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1:
+                    /* Shared resident-symbol visitor selects the exact profile. */
+                    break;
                 case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1: REQUIRE(R(ARRAY_SEQUENCE_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1: REQUIRE(R(LIST_SCHEMA)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1: REQUIRE(R(SET_SCHEMA)); break;

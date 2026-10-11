@@ -10,6 +10,7 @@
 #include "src/diag/xl6_diag.h"
 #include "src/ast/xl6_ast.h"
 #include "src/type/xl6_type_id.h"
+#include "src/type/xl6_native_value_ids.h"
 #include "src/runtime/xl6_value_admission_abi.h"
 #include "src/runtime/xl6_value_default_abi.h"
 #include "src/runtime/xl6_native_scalar_abi.h"
@@ -615,6 +616,9 @@ typedef enum XL6_IrNativeSlotAbi {
     XL6_IR_NATIVE_SLOT_NULLABLE_NATIVE_U32,
     XL6_IR_NATIVE_SLOT_NULLABLE_TYPE_ID,
     XL6_IR_NATIVE_SLOT_FUTURE_PTR,
+#define XL6_NATIVE_VALUE_PROFILE(Tag,...) XL6_IR_NATIVE_SLOT_##Tag,
+#include "src/type/xl6_native_value_profiles.inc"
+#undef XL6_NATIVE_VALUE_PROFILE
 } XL6_IrNativeSlotAbi;
 
 /* Target resident Sequence recipe, not permission to reinterpret an existing
@@ -644,7 +648,9 @@ typedef enum XL6_IrSequenceLayoutAbi {
     /* Distinct resident sparse owner, never a Sequence role or ANY domain. */
     XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1,
     XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1,
-    XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1
+    XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1,
+    /* Immutable owning record, exact resident profile, no generated codec. */
+    XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1
 } XL6_IrSequenceLayoutAbi;
 
 /* A recipe's physical slot need not equal its element's invocation ABI.
@@ -2085,6 +2091,12 @@ typedef struct XL6_IrNativeValuePlan {
     const char* boxSymbol;
     const char* projectSymbol;
     XL6_IrReleaseEffect releaseEffect;
+    XL6_IrNativeSlotAbi slotAbi;
+    const char* typeExpr;
+    const char* converterExpr;
+    const char* sequenceSymbol;
+    const char* profileSymbol;
+    uint64_t languageValueId;
 } XL6_IrNativeValuePlan;
 
 /* Canonical language identities for every stable XRT xvalue tag.  This table

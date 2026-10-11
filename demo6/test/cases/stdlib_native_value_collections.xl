@@ -1,0 +1,51 @@
+func kept(SlotMapKey key) as SlotMapKey
+    return key
+end
+
+func main(...) as int
+    if arg.length == 0 then return 0 end
+    assert(arg.length == 3)
+    auto first = arg[0] as SlotMapKey
+    auto equal = arg[1] as SlotMapKey
+    auto other = arg[2] as SlotMapKey
+    array<SlotMapKey> keys = [first, equal, other]
+    assert(keys.length == 3 and keys[0] == keys[1] and keys[0] != keys[2])
+    auto copied = keys[0]
+    keys[0] = other
+    assert(copied == first and keys[0] == other)
+    keys.push(first)
+    assert(keys.pop() == first and keys.length == 3)
+    assert(keys.take(1) == first and keys.length == 2)
+    keys.insert(1, first)
+    keys.reserve(10)
+    keys.resize(4)
+    auto inactive = keys.pop()
+    assert(inactive == inactive and keys.length == 3)
+    auto copiedKeys = copy(keys)
+    assert(copiedKeys[1] == first and copiedKeys[2] == other)
+    set<SlotMapKey> unique = set{first, equal, other}
+    assert(unique.length == 2 and unique.contains(first))
+    assert(unique.remove(equal) and unique.length == 1)
+    dict<SlotMapKey> byName = {"a\0b": first, "你": other}
+    assert(byName["a\0b"] == first and byName["你"] == other)
+    byName["a\0b"] = other
+    assert(byName["a\0b"] == other)
+    list<SlotMapKey> sparse = [0: first, 1: other]
+    assert(sparse[0] == first and sparse[1] == other)
+    sparse[0] = other
+    assert(sparse[0] == other)
+    array<array<SlotMapKey>> nested = [keys, copiedKeys]
+    assert(nested[0][1] == first and nested[1][2] == other)
+    var erased = keys
+    array<SlotMapKey> imported = erased
+    assert(imported[1] == first)
+    assert(kept(copied) == first)
+    array<int> mutableA = [1]
+    array<int> mutableB = [1]
+    set<array<int>> identities = set{mutableA, mutableA, mutableB}
+    assert(identities.length == 2)
+    mutableA[0] = 9
+    assert(identities.contains(mutableA) and identities.contains(mutableB))
+    assert(identities.remove(mutableA) and identities.length == 1)
+    return 0
+end

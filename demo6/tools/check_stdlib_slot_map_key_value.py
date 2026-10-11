@@ -24,7 +24,7 @@ def main():
     sources+=['src/runtime/xl6_slot_map_key.c','src/runtime/xl6_slot_map_key_value.c',
         'src/runtime/xl6_native_leaf_value.c','src/runtime/xl6_set_key_policy.c']
     files={Path(__file__).resolve(),population,Path(cc),Path(sys.executable),*[root/source for source in sources]}
-    for folder in ('src/runtime','src/api','release/include','lib/xrt','lib/xruntime','test/support'):
+    for folder in ('src/runtime','src/api','src/type','release/include','lib/xrt','lib/xruntime','test/support'):
         files.update((root/folder).rglob('*.h'))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(files)]
     out.mkdir(parents=True); rows=[]; products=[]; objects=[]; prefixes=[]; controls=[]

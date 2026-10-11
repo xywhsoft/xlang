@@ -3,8 +3,9 @@
 Fresh source compiler, genuine map-independent keys passed through public var
 arguments, direct source owning records, strict O0/O2, checked result carriers,
 products and Value Set content semantics. Resident object links, not a pruned
-shipping/full53 acceptance. Frame/cell/nullable/direct collection cutover is
-intentionally separate and is not certified by this synchronous fixture.
+shipping/full53 acceptance. Frame/cell/nullable and public SlotMap remain
+separate. The optional collection fixture covers sealed native-value recipes,
+not universal direct-slot reads or a pruned shipping/full53 acceptance.
 """
 from pathlib import Path
 import argparse,hashlib,json,os,re,shutil,subprocess,sys
@@ -12,12 +13,14 @@ def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('root','public-directory','out'): p.add_argument('--'+name,type=Path,required=True)
+    p.add_argument('--fixture',default='stdlib_native_value_ir.xl',help='Named source fixture in test/cases; same genuine-key host contract')
     a=p.parse_args(); root=a.root.resolve(); public=a.public_directory.resolve(); out=a.out.resolve()
     cc=shutil.which('gcc'); assert cc and not out.exists()
     manifest=public/'build.json'; build=json.loads(manifest.read_text(encoding='utf-8-sig')); driver=Path(build['Driver'])
     assert build['SourceXrt'] and not build['RuntimeOnly'] and build['EnableExeCompiler']==1
     runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
-    source=root/'test/cases/stdlib_native_value_ir.xl'; host=root/'test/cases/stdlib_native_value_ir_host.c'
+    assert Path(a.fixture).name==a.fixture and a.fixture.endswith('.xl')
+    source=root/'test/cases'/a.fixture; host=root/'test/cases/stdlib_native_value_ir_host.c'
     contract=root/'test/cases/xlir_native_value_contract.c'; memory=root/'test/support/module_product_memory.c'
     files={Path(__file__).resolve(),manifest,driver,runtime,source,host,contract,memory,Path(cc),
         root/'test/cases/xlir_artifact_runtime_contract.c'}
@@ -26,7 +29,8 @@ def main():
     inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(files)]; out.mkdir(); rows=[]; products=[]
     prefixes=[]; controls=[]
     report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Rows=rows,Products=products,Prefixes=prefixes,NegativeControls=controls,
-        PrunedShippingArtifact=False,LanguageNativeValueSyncCutover=True,Full53Acceptance=False,Scope=__doc__)
+        PrunedShippingArtifact=False,LanguageNativeValueSyncCutover=True,Full53Acceptance=False,Scope=__doc__,
+        LanguageNativeValueCollections=a.fixture=='stdlib_native_value_collections.xl',LanguageSlotMapCutover=False)
     env=dict(os.environ)
     if os.name!='nt': env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
     else: shutil.copy2(runtime,out/'xl.dll')
@@ -70,17 +74,24 @@ def main():
         products.append(dict(Path=str(proof),Sha256=sha(proof)))
         memory_object=out/'memory.o'; run('memory-build',[cc,*flags,'-O0','-c',memory,'-o',memory_object])
         products.append(dict(Path=str(memory_object),Sha256=sha(memory_object)))
+        if a.fixture=='stdlib_native_value_collections.xl':
+            boundary=root/'test/cases/stdlib_native_value_extract.c'
+            report['Inputs'].append(dict(Path=str(boundary),Sha256=sha(boundary)))
+            for opt in ('O0','O2'):
+                proof=out/('extract-'+opt+('.exe' if os.name=='nt' else ''))
+                run('extract-'+opt+'-build',[cc,*flags,'-'+opt,boundary,memory_object,*objects,runtime,*links,'-o',proof])
+                run('extract-'+opt,[proof]); products.append(dict(Path=str(proof),Sha256=sha(proof)))
         for opt in ('O0','O2'):
             product=out/(opt+('.exe' if os.name=='nt' else ''))
             run(opt+'-build',[cc,*flags,'-'+opt,'-include',generated,host,memory_object,*objects,runtime,*links,'-o',product])
             products.append(dict(Path=str(product),Sha256=sha(product))); run(opt+'-native-keys',[product])
             fault=out/(opt+'-fault'+('.exe' if os.name=='nt' else ''))
-            symbols=('xl6SlotMapKeyCopyValueV1','xl6SlotMapKeyUnboxV1','xl6SlotMapKeyBoxV1')
+            symbols=('xl6SlotMapKeyCopyValueV1','xl6SlotMapKeyUnboxV1','xl6SlotMapKeyBoxV1','xl6ArrayExtractNativeValueV1')
             wraps=['-Wl,--wrap='+symbol for symbol in symbols]
             run(opt+'-fault-build',[cc,*flags,'-'+opt,'-DXL6_NATIVE_VALUE_TEST_FAULTS','-include',generated,
                 host,memory_object,*objects,runtime,*links,*wraps,'-o',fault])
             products.append(dict(Path=str(fault),Sha256=sha(fault)))
-            for lane in ('copy','project','box','oom'):
+            for lane in (('copy','project','box','extract','oom') if a.fixture=='stdlib_native_value_collections.xl' else ('copy','project','box','oom')):
                 for at in range(256):
                     message=run(opt+'-'+lane+'-'+str(at),[fault,lane,at])
                     assert 'prefix='+lane+' at='+str(at)+' hit=' in message
@@ -92,6 +103,13 @@ def main():
             ('drop-owner','xl6_slot_map_key','{ keyDrop(&value,xl6SlotMapKeyTypeV1()); }','{ (void)value; }'),
             ('instance-domain','xl6_slot_map_key','{ return left.instance==right.instance && left.slot==right.slot; }',
              '{ return left.slot==right.slot; }'))
+        if a.fixture=='stdlib_native_value_collections.xl':
+            mutants+=(('wrong-language-id','xl6_slot_map_key_value',
+                '#define KEY_VALUE_ID XL6_SLOT_MAP_KEY_LANGUAGE_VALUE_ID',
+                '#define KEY_VALUE_ID UINT64_C(0x5BF65A92DC10A954)'),
+                ('descriptor-empty-only','xl6_slot_map_key',
+                'const XL6_SlotMapKeyV1* input=source; XL6_SlotMapKeyV1* output=target;\n    if ((!output->instance!=!output->slot)',
+                'const XL6_SlotMapKeyV1* input=source; XL6_SlotMapKeyV1* output=target;\n    if ((output->instance || output->slot)'))
         for name,stem,old,new in mutants:
             original=(root/'src/runtime'/ (stem+'.c')).read_text(encoding='utf-8-sig'); assert original.count(old)==1
             mutation=out/(name+'.c'); mutation.write_text(original.replace(old,new)); obj=out/(name+'.o')

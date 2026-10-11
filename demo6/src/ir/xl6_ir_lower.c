@@ -2336,6 +2336,16 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsExactType(
         ? xl6IrTypeGet(&ctx->module->types, resultTypeId) : NULL;
     if ( resultType == NULL || resultType->kind == XL6_IR_TYPE_NULLABLE )
         return XL6_IR_VALUE_INVALID;
+    if (xl6IrNativeValuePlanForType(resultType)) {
+        XL6_IrValueId result=xl6IrLowerEmitRuntimeCall(ctx,origin,resultTypeId,
+            XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED,&borrowed,1);
+        if (!result) return XL6_IR_VALUE_INVALID;
+        XL6_IrInstruction* instruction=&ctx->module->instructions[ctx->module->instructionCount-1];
+        instruction->payloadType=resultTypeId;
+        instruction->castAbi=XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED;
+        return xl6IrLowerEmitRuntimeErrorEdge(ctx,origin,xl6IrNodeGet(ctx->module,origin),result)
+            ? result : XL6_IR_VALUE_INVALID;
+    }
     if ( resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
          resultType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES )
         return xl6IrLowerProjectBorrowedXValueAsXValue(
