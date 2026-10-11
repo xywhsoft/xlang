@@ -269,6 +269,10 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             module->instructions[i].runtimeOp==XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE) {
             needs->needsXValueRuntime=1; needs->needsDictValueIndexRuntime=1;
         }
+        if (module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            xl6IrDictDirectSlotRuntimeOpIs(module->instructions[i].runtimeOp)) {
+            needs->needsXValueRuntime=1; needs->needsDictCreateRuntime=1;
+        }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_ARRAY_AT_I64 ||
                module->instructions[i].runtimeOp ==

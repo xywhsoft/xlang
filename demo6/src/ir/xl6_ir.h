@@ -2044,6 +2044,10 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_DICT_SET_VALUE_TAKE,
     XL6_IR_RUNTIME_DICT_CREATE,
     XL6_IR_RUNTIME_DICT_IMPORT_CHAIN,
+    /* Exact closed element carrier, not an erased Value projection. Read
+     * publishes a private initialized slot; write observes/copies its input. */
+    XL6_IR_RUNTIME_DICT_READ_SLOT,
+    XL6_IR_RUNTIME_DICT_SET_SLOT,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -6971,6 +6975,10 @@ int xl6IrListTypedReadRuntimeOpIs(XL6_IrRuntimeOp);
 const XL6_IrType* xl6IrListIndexReceiverType(const XL6_IrModule*,const XL6_IrInstruction*);
 int xl6IrListIndexRuntimeInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 int xl6IrDictIndexWriteRuntimeInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
+int xl6IrDictDirectSlotRecipe(const XL6_IrModule*,XL6_IrTypeId,XL6_IrValueCollectionRecipe*);
+int xl6IrDictDirectSlotRuntimeOpIs(XL6_IrRuntimeOp);
+int xl6IrDictDirectSlotRuntimeInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
+int xl6IrDictDirectSlotRequiresValue(const XL6_IrModule*,const XL6_IrInstruction*);
 int xl6IrOwnedIndexReadRuntimeInstructionCompatible(
     const XL6_IrModule* module,const XL6_IrInstruction* instruction);
 /* Verified representation-only provider closure for copy/clone. Open value

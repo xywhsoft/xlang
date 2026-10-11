@@ -27,6 +27,14 @@ XL6_TEXT_API bool xl6DictSetV1(const xvalue*,const XL6_DictLayoutV1*,xstrview,co
  * preserves it; Take
  * moves only a found value and removes exactly its copied text key. */
 XL6_TEXT_API bool xl6DictGetV1(const xvalue*,const XL6_DictLayoutV1*,xstrview,void*,bool,bool*);
+/* Compiler-private exact typed read. The output is initialized zero/empty,
+ * with the layout's physical carrier and size. It receives an owned copy,
+ * never a source address or a Value box. Missing required keys raise RANGE;
+ * optional keys remain empty (reference slots get canonical null). Native
+ * provenance and the entire captured layout are checked before slot access.
+ * Failure withdraws any acquired output, including a cleanup failure after
+ * copying. No wire OBJECT fallback or retained generated metadata. */
+XL6_TEXT_API bool xl6DictReadSlotV1(const xvalue*,const XL6_DictLayoutV1*,xstrview,void*,bool);
 XL6_TEXT_API bool xl6DictKeyV1(const xvalue*,const XL6_DictLayoutV1*,xstrview,bool,bool*);
 XL6_TEXT_API bool xl6DictClearV1(const xvalue*,const XL6_DictLayoutV1*);
 XL6_TEXT_API int64_t xl6DictCountV1(const xvalue*,const XL6_DictLayoutV1*);

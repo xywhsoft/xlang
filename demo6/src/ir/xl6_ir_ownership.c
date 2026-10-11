@@ -98,6 +98,8 @@ XL6_IrOperandOwnership xl6IrRuntimeOperandOwnership(
     case XL6_IR_RUNTIME_DICT_READ_VALUE_COPY:
     case XL6_IR_RUNTIME_DICT_READ_VALUE_OR_NULL_COPY:
     case XL6_IR_RUNTIME_DICT_READ_VALUE_REQUIRED_COPY:
+    case XL6_IR_RUNTIME_DICT_READ_SLOT:
+    case XL6_IR_RUNTIME_DICT_SET_SLOT:
     case XL6_IR_RUNTIME_LIST_READ_I64:
     case XL6_IR_RUNTIME_LIST_READ_U64:
     case XL6_IR_RUNTIME_LIST_READ_BOOL:
@@ -590,6 +592,8 @@ static int xl6IrOwnerAbsentOnFailure(
         /* Checked casts/constructors leave an empty output on failure even
          * where the older physical observer still uses the error slot. */
         switch (producer->runtimeOp) {
+        case XL6_IR_RUNTIME_DICT_READ_SLOT:
+            return 1;
         case XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD:
             /* Checked extraction destroys a prepared result if commit or
              * cleanup fails. A successful nullable null is distinct: this

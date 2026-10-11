@@ -280,6 +280,36 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
 {
     int read;
     if ( instruction == NULL ) return 0;
+    if (xl6IrDictDirectSlotRuntimeOpIs(instruction->runtimeOp)) {
+        if (!xl6IrDictDirectSlotRuntimeInstructionCompatible(module,instruction)) return -1;
+        const XL6_IrInstruction* source=xl6IrCgenValueDefinition(module,
+            module->operands[instruction->firstOperand],NULL);
+        XL6_IrValueCollectionRecipe recipe={0};
+        if (!source || !xl6IrDictDirectSlotRecipe(module,source->type,&recipe)) return -1;
+        const XL6_IrType* owner=xl6IrTypeGet(&module->types,source->type);
+        const XL6_IrType* schema=xl6IrTypeGet(&module->types,recipe.valueSchemaType);
+        const XL6_IrType* element=xl6IrTypeGet(&module->types,recipe.elementType);
+        const XL6_IrSequenceLayout* plan=&schema->sequenceLayout;
+        const char* slot=xl6IrCgenType(module,recipe.elementType);
+        const char* descriptor=xl6IrCgenNativeSlotTypeExpr(plan->slotAbi);
+        const char* transfer=xl6IrCgenSequenceTransferAbiToken(plan->transferAbi);
+        bool write=instruction->runtimeOp==XL6_IR_RUNTIME_DICT_SET_SLOT;
+        if (!slot || !descriptor || !transfer) return -1;
+        if (!write) xl6OutputPrintf(out,"    v%u = (%s){0};\n",(unsigned)instruction->result,slot);
+        if (write) xl6OutputPrintf(out,"    v%u = ",(unsigned)instruction->result);
+        else xl6OutputPuts("    (void)",out);
+        xl6OutputPrintf(out,"%s(v%u, &(const XL6_DictLayoutV1){0x%016llXULL,"
+            "{0x%016llXULL,0x%016llXULL,%s,sizeof(%s),%s}}, v%u, &v%u",
+            write ? "xl6DictSetV1" : "xl6DictReadSlotV1",
+            (unsigned)module->operands[instruction->firstOperand],
+            (unsigned long long)owner->typeValueId,(unsigned long long)schema->typeValueId,
+            (unsigned long long)element->typeValueId,transfer,slot,descriptor,
+            (unsigned)module->operands[instruction->firstOperand+1],
+            (unsigned)(write ? module->operands[instruction->firstOperand+2] : instruction->result));
+        if (!write) xl6OutputPrintf(out,", %s",xl6IrDictDirectSlotRequiresValue(module,instruction) ? "true" : "false");
+        xl6OutputPuts(");\n",out);
+        return xl6OutputHasFailed(out) ? -1 : 1;
+    }
     read = xl6IrCollectionReadRuntimeOpIs(instruction->runtimeOp);
     if ( !read && !xl6IrCollectionMemberRuntimeOpIs(instruction->runtimeOp) ) return 0;
     if ( !(read ? xl6IrCollectionReadRuntimeInstructionCompatible(module, instruction)

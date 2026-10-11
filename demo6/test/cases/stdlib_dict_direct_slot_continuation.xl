@@ -1,0 +1,26 @@
+async func directReady() as int
+    return 1
+end
+async func directAfterAwait(dict<string> values, string key) as string
+    await directReady()
+    values[key] += "\0z"
+    return values[key]
+end
+func directItems(dict<char> values) as generator<char>
+    yield values["key"]
+    values["key"] = '\0'
+    yield values["key"]
+end
+dict<string> texts = {"a\0": "v\0你"}
+assert(await directAfterAwait(texts,"a\0") == "v\0你\0z")
+dict<char> chars = {"key": '你'}
+int seen = 0
+for item in directItems(chars)
+    assert((seen == 0 and item == '你') or (seen == 1 and item == '\0'))
+    seen += 1
+end
+assert(seen == 2)
+dict<future<int>> futures = {"ready": directReady()}
+assert(await futures["ready"] == 1)
+futures["ready"] = directReady()
+assert(await futures["ready"] == 1)

@@ -5,6 +5,7 @@
 #include "src/api/xl_foreign_error.h"
 #include <limits.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct DictOwner {
     volatile int32_t refs;
@@ -384,6 +385,44 @@ bool xl6DictGetV1(const xvalue* value,const XL6_DictLayoutV1* layout,xstrview ke
     }
     success=finish(&scope,owner,success);
     if (success) *found=result;
+    return success;
+}
+bool xl6DictReadSlotV1(const xvalue* value,const XL6_DictLayoutV1* layout,xstrview key,
+    void* output,bool required)
+{
+    xl6_error_scope scope={0};
+    if (!xl6ErrorScopeBegin(&scope)) {
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return false;
+    }
+    DictOwner* owner=begin(value,layout,0); bool success=false,copied=false;
+    const xrttype* type=NULL; size_t size=0;
+    if (owner && outputEmpty(owner,output)) {
+        /* The resident storage descriptor, not caller metadata, owns rollback.
+         * It is context-free and remains valid after the operation pin ends. */
+        type=xrtTypedDictItemType(owner->storage); size=owner->layout.value.size;
+        const void* slot=xrtTypedDictConstGet(owner->storage,key);
+        if (slot) success=copied=xrtTypeCopyValue(type,output,slot);
+        else if (!xrtGetError()) {
+            if (required) xrtSetErrorKind(XERR_RANGE);
+            else if (owner->layout.value.transfer==3) {
+                xvalue* empty=xrtValueRetain(xrtValueNull());
+                if (empty) { *(xvalue**)output=empty; success=copied=true; }
+            } else success=true;
+        }
+    }
+    success=finish(&scope,owner,success);
+    if (!success && copied) {
+        xerror* incoming=xrtErrorRef(xrtGetError()); xl6_error_scope cleanup={0};
+        if (xl6ErrorScopeBeginCleanup(&cleanup,false)) {
+            xrtErrorFree(incoming); xrtTypeDropValue(type,output); memset(output,0,size);
+            (void)scopeFinish(&cleanup,true);
+        } else {
+            xerror* prior=incoming ? incoming : xrtTakeError(); xrtClearError();
+            xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtErrorRef(prior)});
+            xrtClearError(); xrtTypeDropValue(type,output); memset(output,0,size);
+            xrtClearError(); xrtSetErrorTake(prior);
+        }
+    }
     return success;
 }
 bool xl6DictKeyV1(const xvalue* value,const XL6_DictLayoutV1* layout,xstrview key,bool remove,bool* found)

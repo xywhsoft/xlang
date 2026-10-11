@@ -1,0 +1,85 @@
+int slotCleanups = 0
+func slotRead(dict<int> values, string key) as int
+    try
+        return values[key]
+    finally
+        slotCleanups += 1
+    end
+end
+func slotUpdate(dict<int> values, string key, int value) as int
+    values[key] = value
+    values[key] += 3
+    return values[key]
+end
+func slotText(dict<string> values, string key) as string
+    return values[key]
+end
+func slotOptional(dict<string?> values, string key) as string?
+    values[key] ?= "a\0b"
+    return values[key]
+end
+dict<int> integers = {"a\0你": 0, "a": 17, "": 8}
+assert(slotRead(integers, "a\0你") == 0 and slotRead(integers, "a") == 17)
+assert(slotUpdate(integers, "a\0你", 9) == 12)
+int caught = 0
+try
+    slotRead(integers, "missing")
+catch RangeError failure
+    caught += 1
+end
+assert(caught == 1 and slotCleanups == 3)
+dict<uint64> unsignedValues = {"": uint64(18446744073709551615)}
+assert(unsignedValues[""] == uint64(18446744073709551615))
+dict<bool> booleans = {"": false}
+assert(not booleans[""])
+booleans[""] = true
+assert(booleans[""])
+dict<float> floats = {"": 0.0}
+assert(floats[""] == 0.0)
+floats[""] = 1.5
+assert(floats[""] == 1.5)
+dict<char> characters = {"": '你'}
+assert(characters[""] == '你')
+characters[""] = '\0'
+assert(characters[""] == '\0')
+dict<bytes> binary = {"b\0": b"a\0b"}
+bytes copied = binary["b\0"]
+copied[0] = uint8(90)
+assert(binary["b\0"] == b"a\0b" and copied == b"Z\0b")
+binary["b\0"] = copied
+assert(binary["b\0"] == b"Z\0b")
+dict<string> texts = {"a\0": "a\0你", "": ""}
+string independent = slotText(texts, "a\0")
+independent[0] = 'Z'
+assert(independent == "Z\0你" and texts["a\0"] == "a\0你")
+texts["a\0"] = "b\0"
+texts["a\0"] += "你"
+assert(texts["a\0"] == "b\0你" and texts[""] == "")
+dict<string?> optionalText = {"null": null, "empty": ""}
+string? present = "a\0b"
+string? empty = ""
+assert(optionalText["missing"] == null)
+assert(slotOptional(optionalText, "null") == present)
+assert(slotOptional(optionalText, "empty") == empty)
+dict<int?> optionalInt = {"null": null, "zero": 0}
+int? zero = 0
+assert(optionalInt["missing"] == null and optionalInt["null"] == null and optionalInt["zero"] == zero)
+optionalInt["zero"] = null
+assert(optionalInt["zero"] == null)
+class DirectSlotItem
+    int value = 7
+end
+DirectSlotItem item = DirectSlotItem()
+dict<DirectSlotItem> objects = {"object": item}
+objects["object"].value = 19
+assert(item.value == 19)
+dict<dict<int>> nested = {"inner": integers}
+assert(nested["inner"]["a\0你"] == 12)
+nested["inner"]["a"] = 21
+assert(integers["a"] == 21)
+dict<int>? absent = null
+assert(absent?["missing"] == null and integers?["missing"] == null)
+dict<var> erasedSlots = {"null": null, "number": 23}
+assert(erasedSlots["missing"] == null and int(erasedSlots["number"]) == 23)
+erasedSlots["number"] = "v\0b"
+assert(string(erasedSlots["number"]) == "v\0b")
