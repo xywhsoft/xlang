@@ -68,7 +68,8 @@ static void vectors(void)
     assert(xl6SlotMapReadV1(map,&t,first,&output,&found) && found && output==42);
     assert(xrtTypeCopyValue(xl6SlotMapKeyTypeV1(),&copy,&first) && xl6SlotMapKeyEqualV1(first,copy));
     assert(!xrtMemDebugFailTriggered()); xrtMemDebugFailClear();
-    assert(!xrtTypeCopyValue(xl6SlotMapKeyTypeV1(),&copy,&first)); xrtClearError();
+    assert(xrtTypeCopyValue(xl6SlotMapKeyTypeV1(),&copy,&first) && xl6SlotMapKeyEqualV1(first,copy));
+    assert(!xrtGetError());
     assert(xl6SlotMapKeyV1(map,&t,first,true,&found) && found);
     assert(xl6SlotMapInsertV1(map,&t,&(int64_t){17},&second));
     assert(xrtSlotIndex(first.slot)==xrtSlotIndex(second.slot) && first.slot!=second.slot);

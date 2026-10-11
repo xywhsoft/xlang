@@ -25,7 +25,7 @@ bool __wrap_xrtTypeCopyValue(const xrttype* type,ptr output,const void* input)
     }
     return selected==2 || selected==-2 ? false : success;
 }
-static const uint64_t keyIdentity=UINT64_C(0x5BF65A92DC10A954);
+static const uint64_t keyIdentity=XL6_SLOT_MAP_KEY_LANGUAGE_VALUE_ID;
 static XL6_SequenceLayoutV1 tuple(void)
 { return (XL6_SequenceLayoutV1){0xED01,keyIdentity,5,sizeof(XL6_SlotMapKeyV1),xl6SlotMapKeyTypeV1()}; }
 static xvalue* witness(unsigned role) { return xl6SequenceSlotMapKeyCreateV1(role,tuple().identity); }

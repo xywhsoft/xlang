@@ -2,6 +2,7 @@
 #define XL6_SLOT_MAP_KEY_VALUE_H
 #include "xl6_slot_map_key.h"
 #include "xl6_native_leaf_value.h"
+#include "src/type/xl6_native_value_ids.h"
 /* Separate resident projection. Raw xrttype copying needs only KEY_NATIVE;
  * the checked CopyValue boundary currently shares this permanent leaf profile
  * with content hashing/boxing. Neither boundary selects Set or SlotMap storage.

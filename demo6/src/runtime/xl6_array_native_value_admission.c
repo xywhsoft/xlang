@@ -50,8 +50,9 @@ xvalue* xl6SequenceSlotMapKeyCreateV1(unsigned int role,uint64_t identity)
     if (policy) {
         policy->refs=1;
         policy->contract=(XL6_SequenceNativeValuePolicyV1){xl6SlotMapKeyTypeV1(),xl6SlotMapKeyContentPolicyV1(),empty,copy};
-        XL6_SequenceAdmissionV3 admission={&operations,policy,UINT64_C(0x5BF65A92DC10A954),
-            XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1,sizeof(XL6_SlotMapKeyV1),xl6SlotMapKeyTypeV1(),UINT64_C(0x5BF65A92DC10A954)};
+        const uint64_t element=xl6SlotMapKeyValueProfileV1Get()->identity;
+        XL6_SequenceAdmissionV3 admission={&operations,policy,element,
+            XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1,sizeof(XL6_SlotMapKeyV1),xl6SlotMapKeyTypeV1(),element};
         result=xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role,identity,&admission);
     }
     if (!result || xrtGetError() || scope.failed) xl6ErrorScopeCaptureFailure(&scope);

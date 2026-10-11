@@ -681,6 +681,8 @@ static XL6_IrNativeSlotAbi xl6IrNullableNativeIntegerSlot(size_t size,int isSign
 XL6_IrNativeSlotAbi xl6IrNativeSlotAbiForType(const XL6_IrTypePool* pool, const XL6_IrType* type)
 {
     if (!pool || !type) return XL6_IR_NATIVE_SLOT_NONE;
+    const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(type);
+    if (native) return native->slotAbi;
     if (type->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE) {
         const XL6_IrType* element=type->kind == XL6_IR_TYPE_NULLABLE && type->paramCount == 1 && type->params
             ? xl6IrTypeGet(pool,type->params[0]) : NULL;
@@ -756,6 +758,9 @@ XL6_IrNativeSlotAbi xl6IrNativeSlotAbiForType(const XL6_IrTypePool* pool, const 
 const char* xl6IrNativeSlotAbiName(XL6_IrNativeSlotAbi abi)
 {
     switch (abi) {
+#define XL6_NATIVE_VALUE_PROFILE(Tag,Name,...) case XL6_IR_NATIVE_SLOT_##Tag: return Name;
+#include "src/type/xl6_native_value_profiles.inc"
+#undef XL6_NATIVE_VALUE_PROFILE
     case XL6_IR_NATIVE_SLOT_NONE: return "none";
     case XL6_IR_NATIVE_SLOT_BOOL: return "bool";
     case XL6_IR_NATIVE_SLOT_I64: return "i64";
@@ -841,7 +846,7 @@ static int xl6IrSequenceLayoutComplete(XL6_IrSequenceLayoutAbi abi)
         abi==XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1 ||
         abi==XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1 ||
         abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1 ||
-        abi==XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1;
+        abi==XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1;
 }
 static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool* pool,
     const XL6_IrType* type,size_t depth)
@@ -901,6 +906,9 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         result.slotAbi=XL6_IR_NATIVE_SLOT_FUTURE_PTR;
         result.transferAbi=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF;
         result.codecAbi=XL6_IR_SEQUENCE_CODEC_DIRECT;
+    } else if (!result.nullable && xl6IrNativeValuePlanForType(base) &&
+               result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY) {
+        result.abi=XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1;
     } else if (result.slotAbi == XL6_IR_NATIVE_SLOT_NONE ||
         result.transferAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID) {
         result.abi=XL6_IR_SEQUENCE_LAYOUT_PENDING_SLOT;
@@ -1036,7 +1044,8 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         result.abi == XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1 ||
-        result.abi == XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1) {
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1) {
         if (!result.codecAbi) result.codecAbi=XL6_IR_SEQUENCE_CODEC_DIRECT;
         result.defaultAbi=result.nullable ? XL6_IR_SEQUENCE_DEFAULT_ABSENT :
             result.admissionAbi == XL6_VALUE_ADMIT_ANY ? XL6_IR_SEQUENCE_DEFAULT_DYNAMIC_NULL :
@@ -1103,6 +1112,7 @@ const char* xl6IrSequenceDefaultAbiName(XL6_IrSequenceDefaultAbi abi)
 const char* xl6IrSequenceLayoutAbiName(XL6_IrSequenceLayoutAbi abi)
 {
     switch (abi) {
+    case XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1: return "native-value-v1";
     case XL6_IR_SEQUENCE_LAYOUT_NONE: return "none";
     case XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE: return "dynamic-value";
     case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2: return "primitive-v2";
@@ -1222,6 +1232,7 @@ static XL6_IrSetKeyAbi xl6IrSetKeyAbiForType(const XL6_IrTypePool* pool,const XL
     switch (domain.transferAbi) {
     case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY:
     case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_STRING_COPY:
+    case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY:
         return XL6_IR_SET_KEY_TYPED_CONTENT_V1;
     case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN:
         return XL6_IR_SET_KEY_VALUE_CONTENT_OR_REFERENCE_IDENTITY_V1;
@@ -8262,7 +8273,8 @@ static int xl6IrSequenceConstructionRecipeDepth(const XL6_IrModule* module,
     case XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1:
-    case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1: return 1;
+    case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1: return 1;
     case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2:
         return xl6IrNominalIdentitySetGet(module,plan->baseElementType,setOut)!=NULL;
     case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1:
@@ -10499,8 +10511,11 @@ XL6_IrTypeId xl6IrCollectionBoxedElementType(
     const XL6_IrType* element = module != NULL
         ? xl6IrTypeGet(&module->types, elementType) : NULL;
     if ( element == NULL ) return XL6_IR_TYPE_INVALID;
+    /* A scalar/record box is a Value, never an instance of its containing
+     * Array/List/Set/Dict. Preserve exact native xvalue element identities;
+     * every physical erasure otherwise uses the canonical open carrier. */
     return element->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
-        ? elementType : receiverType;
+        ? elementType : xl6IrFindDynamicXValueBuiltinType(module);
 }
 
 int xl6IrCollectionElementCompatible(
@@ -10895,6 +10910,7 @@ XL6_IrRuntimeResourcePayloadAbi xl6IrTypeResourcePayloadAbi(const XL6_IrType* ty
 {
     if ( type == NULL || type->typeValueId == 0 )
         return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID;
+    if (xl6IrNativeValuePlanForType(type)) return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY;
     if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
          type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
          type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL )
@@ -13366,7 +13382,7 @@ static int xl6IrTypedCollectionElementResultSupported(const XL6_IrType* type)
          type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
          type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
          type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-         xl6IrArrayTrivialExtractResult(type));
+         xl6IrArrayTrivialExtractResult(type) || xl6IrNativeValuePlanForType(type));
 }
 
 static int xl6IrTypedCollectionDynamicTakeResultSupported(
@@ -20658,8 +20674,13 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
         instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE)
         return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
     if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
-        xl6IrTypedCollectionErrorAbi(instruction->typedCollectionOp) == XL6_IR_ERROR_ABI_MAY_RAISE)
+        xl6IrTypedCollectionErrorAbi(instruction->typedCollectionOp) == XL6_IR_ERROR_ABI_MAY_RAISE) {
+        if (instruction->collectionAbi==XL6_IR_COLLECTION_ARRAY &&
+            (instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_POP || instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_TAKE) &&
+            xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,instruction->type)))
+            return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
         return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
+    }
     stringAbi=xl6IrRuntimeFutureMetadataErrorPhysicalAbi(instruction->runtimeOp);
     if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     stringAbi=xl6IrRuntimeNativeValueErrorPhysicalAbi(instruction->runtimeOp);
@@ -21249,6 +21270,8 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
              (type->nativeValueAbi != XL6_IR_NATIVE_VALUE_NONE)) ||
             ((type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE) !=
              (xl6IrNativeValuePlanForType(type) != NULL))) return 0;
+        const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(type);
+        if (native && type->typeValueId!=native->languageValueId) return 0;
         if ( type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_NONE ||
              type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_XRT_CLONE ||
              type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_CLASS_SCHEMA ) {
@@ -46041,6 +46064,8 @@ static const char* xl6IrRuntimeResourcePayloadAbiName(
         return "xvalue-retain";
     case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF:
         return "future-ref";
+    case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY:
+        return "native-value-copy";
     default:
         return "invalid";
     }

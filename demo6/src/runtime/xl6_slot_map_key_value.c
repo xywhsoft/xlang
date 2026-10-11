@@ -3,7 +3,7 @@
 
 /* Canonical language `type:SlotMapKey`, distinct from the resident C ABI ID.
  * Immutable leaf: owns only an instance record, never the map or source code. */
-#define KEY_VALUE_ID UINT64_C(0x5BF65A92DC10A954)
+#define KEY_VALUE_ID XL6_SLOT_MAP_KEY_LANGUAGE_VALUE_ID
 uint64 xl6SlotMapKeyHashV1(XL6_SlotMapKeyV1 key)
 {
     /* No struct padding, slot address or text sentinel. Real XRT hash;

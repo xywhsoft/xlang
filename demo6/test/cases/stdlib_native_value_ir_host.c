@@ -2,6 +2,7 @@
  * direct owning ABI in copies, parameter rebinding, returns, products and Value. */
 #include "src/runtime/xl6_slot_map_key_value.h"
 #include "src/runtime/xl6_array_admission.h"
+#include "src/runtime/xl6_array_extract_native_value_abi.h"
 #include "test/support/module_product_memory.h"
 #include <assert.h>
 #include <stdio.h>
@@ -22,6 +23,11 @@ bool __wrap_xl6SlotMapKeyUnboxV1(const xvalue* value,XL6_SlotMapKeyV1* out)
 extern xvalue* __real_xl6SlotMapKeyBoxV1(XL6_SlotMapKeyV1);
 xvalue* __wrap_xl6SlotMapKeyBoxV1(XL6_SlotMapKeyV1 key)
 { return fail(2) ? NULL : __real_xl6SlotMapKeyBoxV1(key); }
+extern bool __real_xl6ArrayExtractNativeValueV1(const xvalue*,uint64_t,uint64_t,int64_t,bool,
+    const XL6_NativeLeafValueProfileV1*,void*);
+bool __wrap_xl6ArrayExtractNativeValueV1(const xvalue* value,uint64_t identity,uint64_t element,
+    int64_t index,bool pop,const XL6_NativeLeafValueProfileV1* profile,void* output)
+{ return fail(3) ? false : __real_xl6ArrayExtractNativeValueV1(value,identity,element,index,pop,profile,output); }
 #endif
 static xvalue* create(XL6_SlotMapKeyV1* key)
 {
@@ -65,8 +71,8 @@ int main(int argc,char** argv)
 #ifdef XL6_NATIVE_VALUE_TEST_FAULTS
         assert(argc==3); faultAt=(size_t)strtoull(argv[2],NULL,10);
         bool oom=strcmp(argv[1],"oom")==0;
-        lane=strcmp(argv[1],"copy")==0 ? 0 : strcmp(argv[1],"project")==0 ? 1 : 2;
-        assert(oom || strcmp(argv[1],"copy")==0 || strcmp(argv[1],"project")==0 || strcmp(argv[1],"box")==0);
+        lane=strcmp(argv[1],"copy")==0 ? 0 : strcmp(argv[1],"project")==0 ? 1 : strcmp(argv[1],"box")==0 ? 2 : 3;
+        assert(oom || strcmp(argv[1],"copy")==0 || strcmp(argv[1],"project")==0 || strcmp(argv[1],"box")==0 || strcmp(argv[1],"extract")==0);
         if (oom) assert(xrtMemDebugFailAfter(faultAt)); else armed=true;
         int code=-1; bool ok=xl_script_main_checked(arguments,&code)!=0;
         armed=false; bool hit=oom ? xrtMemDebugFailTriggered() : seen>faultAt;

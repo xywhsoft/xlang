@@ -20,8 +20,19 @@ int main(int argc,char** argv)
     XL6_IrModule* ir=&unit.ir; assert(xl6IrVerifyModule(ir,NULL)); unsigned operations[4]={0};
     for (size_t i=0;i<ir->types.count;++i) {
         XL6_IrType* type=&ir->types.items[i];
+        if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1) {
+            XL6_IrType saved=*type;
+#define BAD_LAYOUT(Field,Value) do { type->sequenceLayout.Field=(Value); refused(ir); *type=saved; } while (0)
+            BAD_LAYOUT(abi,XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2);
+            BAD_LAYOUT(transferAbi,XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY);
+            BAD_LAYOUT(slotAbi,XL6_IR_NATIVE_SLOT_XVALUE_CARRIER);
+            BAD_LAYOUT(codecAbi,XL6_IR_SEQUENCE_CODEC_NONE);
+            BAD_LAYOUT(elementType,XL6_IR_TYPE_INVALID);
+#undef BAD_LAYOUT
+        }
         if (type->cAbi != XL6_IR_C_ABI_NATIVE_VALUE) continue;
         assert(xl6IrNativeValuePlanForType(type));
+        assert(type->typeValueId==xl6IrNativeValuePlanForType(type)->languageValueId);
         assert(xl6IrTypeHasStorageReleaseAbi(ir,(XL6_IrTypeId)(i+1)) &&
             xl6IrTypeReleaseEffect(ir,(XL6_IrTypeId)(i+1))==XL6_IR_RELEASE_EFFECT_NO_RAISE);
         XL6_IrType saved=*type;
@@ -38,6 +49,19 @@ int main(int argc,char** argv)
     }
     for (size_t i=0;i<ir->instructionCount;++i) {
         XL6_IrInstruction* ins=&ir->instructions[i];
+        if (ins->kind==XL6_IR_INSTR_RUNTIME_CALL && ins->runtimeOp==XL6_IR_RUNTIME_XVALUE_TYPED_COLLECTION_METHOD &&
+            xl6IrNativeValuePlanForType(xl6IrTypeGet(&ir->types,ins->type))) {
+            assert(ins->collectionAbi==XL6_IR_COLLECTION_ARRAY &&
+                (ins->typedCollectionOp==XL6_IR_TYPED_COLLECTION_POP || ins->typedCollectionOp==XL6_IR_TYPED_COLLECTION_TAKE));
+            assert(xl6IrCallInstructionErrorPhysicalAbi(ir,ins)==XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT);
+            XL6_IrInstruction saved=*ins;
+            ins->collectionAbi=XL6_IR_COLLECTION_SET; refused(ir); *ins=saved;
+            ins->typedCollectionOp=XL6_IR_TYPED_COLLECTION_CLEAR; refused(ir); *ins=saved;
+            ins->operandCount=0; refused(ir); *ins=saved;
+            XL6_IrInstruction outcome=ir->instructions[i+1];
+            assert(outcome.kind==XL6_IR_INSTR_ERROR_TEST);
+            ir->instructions[i+1].kind=XL6_IR_INSTR_VALUE; refused(ir); ir->instructions[i+1]=outcome;
+        }
         if (ins->kind!=XL6_IR_INSTR_RUNTIME_CALL || ins->runtimeOp<XL6_IR_RUNTIME_NATIVE_VALUE_COPY ||
             ins->runtimeOp>XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED) continue;
         assert(xl6IrNativeValueInstructionPlan(ir,ins));

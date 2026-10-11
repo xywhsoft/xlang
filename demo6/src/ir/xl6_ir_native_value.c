@@ -2,8 +2,9 @@
  * contract. Source spelling, foreign structs and a matching sizeof cannot
  * confer this capability. Nullable/frames/cells need separate owning plans. */
 static const XL6_IrNativeValuePlan g_xl6IrNativeValues[] = {
-#define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,Release) \
-    {XL6_IR_NATIVE_VALUE_##Tag,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,XL6_IR_RELEASE_EFFECT_##Release},
+#define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,Release,Type,Converter,Sequence,Profile,ValueId) \
+    {XL6_IR_NATIVE_VALUE_##Tag,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,XL6_IR_RELEASE_EFFECT_##Release, \
+        XL6_IR_NATIVE_SLOT_##Tag,#Type "()",#Converter "()",Sequence,Profile,ValueId},
 #include "src/type/xl6_native_value_profiles.inc"
 #undef XL6_NATIVE_VALUE_PROFILE
 };
@@ -59,11 +60,11 @@ const XL6_IrNativeValuePlan* xl6IrNativeValueInstructionPlan(
         if (instruction->operandCount != 1 || instruction->payloadType != instruction->type ||
             instruction->castAbi != XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED) return NULL;
         left=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
-        const XL6_IrNode* origin=xl6IrNodeGet(module,instruction->origin);
-        if (!left || !xl6IrTypeIsDynamicXValueBuiltin(module,left->type) ||
-            !origin || origin->sourceKind != XL6_AST_TYPE_AS ||
-            origin->storageType != instruction->type || origin->castAbi != instruction->castAbi ||
-            origin->castErrorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) return NULL;
+        /* Physical checked projection is also used by exact typed collection
+         * reads. Source `as` authorization lives in Typed IR; the lowered
+         * operation's type, cast family and checked outcome are its contract,
+         * not the spelling/kind of its diagnostic origin. */
+        if (!left || !xl6IrTypeIsDynamicXValueBuiltin(module,left->type)) return NULL;
         return xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,instruction->type));
     }
     if (instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_BOX) {

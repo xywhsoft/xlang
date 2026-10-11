@@ -597,6 +597,7 @@ static const char* xl6IrCgenSequenceTransferAbiToken(XL6_IrRuntimeResourcePayloa
     case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_STRING_COPY: return "2";
     case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN: return "3";
     case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF: return "4";
+    case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY: return "5";
     default: return NULL;
     }
 }
@@ -673,6 +674,14 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
 #define XL6_SEQUENCE_CREATE_IDS result,(unsigned)plan->role, \
     (unsigned long long)sequence->typeValueId,(unsigned long long)payload->typeValueId
     switch (plan->abi) {
+    case XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1:
+        {
+            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(payload);
+            if (!native || plan->nullable || plan->slotAbi!=native->slotAbi) return -1;
+            xl6OutputPrintf(out,"    %s = %s(%u, 0x%016llXULL);\n",
+                result,native->sequenceSymbol,(unsigned)plan->role,(unsigned long long)sequence->typeValueId);
+        }
+        break;
     case XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE:
         xl6OutputPrintf(out,
             "    %s = xl6SequenceReferenceCreateV1(%u, 0x%016llXULL, 0x%016llXULL, %u, false, 0x%016llXULL);\n",
