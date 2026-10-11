@@ -23,21 +23,7 @@ static bool empty(const void* raw)
 { const XL6_SlotMapKeyV1* key=raw; return key && !key->instance && !key->slot; }
 static bool copy(const void* input,void* output)
 {
-    xl6_error_scope scope={0};
-    if (!xl6ErrorScopeBegin(&scope)) {
-        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return false;
-    }
-    XL6_SlotMapKeyV1 result={0}; bool success=false;
-    if (!input || !empty(output)) xrtSetErrorKind(XERR_ARGUMENT);
-    else success=xrtTypeCopyValue(xl6SlotMapKeyTypeV1(),&result,input);
-    if (!success || xrtGetError() || scope.failed) xl6ErrorScopeCaptureFailure(&scope);
-    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
-    if (outcome.ok) *(XL6_SlotMapKeyV1*)output=result;
-    else {
-        xrtTypeDropValue(xl6SlotMapKeyTypeV1(),&result);
-        xl6ErrorScopePropagateFailure(outcome);
-    }
-    return outcome.ok;
+    return xl6NativeLeafValueCopyV1(xl6SlotMapKeyValueProfileV1Get(),input,output);
 }
 static bool slot(const void* raw,const void* item)
 {

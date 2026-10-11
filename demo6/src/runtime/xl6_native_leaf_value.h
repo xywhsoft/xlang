@@ -13,6 +13,15 @@ typedef struct XL6_NativeLeafValueProfileV1 {
     const xtypedsetkeypolicy* content;
     bool (*Empty)(const void*);
 } XL6_NativeLeafValueProfileV1;
+/* Error-transparent descriptor probe, not an admission for arbitrary C
+ * pointers. The same trusted, permanent publisher contract applies here. */
+XL6_TEXT_API bool xl6NativeLeafValueProfileValidV1(const XL6_NativeLeafValueProfileV1*);
+/* Direct owning copy: source is a live borrowed native value; destination is
+ * private, aligned, empty and disjoint. No allocation/boxing on success.
+ * Failure (including a partial Copy with no diagnostic) restores empty;
+ * refusal never drops an occupied/aliased/misaligned destination. MAY_RAISE,
+ * not an infallible retain or POD assignment. No generated callbacks stored. */
+XL6_TEXT_API bool xl6NativeLeafValueCopyV1(const XL6_NativeLeafValueProfileV1*,const void*,void*);
 XL6_TEXT_API xvalue* xl6NativeLeafValueBoxV1(const XL6_NativeLeafValueProfileV1*,const void*);
 XL6_TEXT_API bool xl6NativeLeafValueUnboxV1(const xvalue*,const XL6_NativeLeafValueProfileV1*,void*);
 XL6_TEXT_API bool xl6NativeLeafValueAdmitsV1(const xvalue*,const XL6_NativeLeafValueProfileV1*);

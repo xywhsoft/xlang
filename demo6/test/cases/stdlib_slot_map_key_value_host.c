@@ -7,10 +7,18 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-static int copyFailure,entryFailure,bindFailure;
+static int copyFailure,entryFailure,bindFailure,releaseFailure;
 extern bool __real_xrtTypeCopyValue(const xrttype*,ptr,const void*);
 extern bool __real_xl6ErrorScopeBegin(xl6_error_scope*);
 extern bool __real_xrtValueTypeIdBind(xvalue*,uint64);
+extern void __real_xrtValueRelease(xvalue*);
+void __wrap_xrtValueRelease(xvalue* value)
+{
+    __real_xrtValueRelease(value);
+    int selected=releaseFailure; releaseFailure=0;
+    if (selected>0) xrtSetErrorKind(XERR_STATE);
+    else if (selected<0) xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL});
+}
 bool __wrap_xrtTypeCopyValue(const xrttype* type,ptr output,const void* source)
 {
     int selected=copyFailure; copyFailure=0;
@@ -60,9 +68,84 @@ static const xtypedsetkeypolicy aliasContent={aliasHash,aliasEqual,NULL};
 static const XL6_NativeLeafValueProfileV1 aliasProfile={
     xl6SlotMapKeyTypeV1,UINT64_C(0x5BF65A92DC10A954),&aliasContent,aliasEmpty};
 static bool edge(xrtownershipref ref,ptr count) { (void)ref; ++*(size_t*)count; return true; }
+static xrttype rejectedType;
+static const xrttype* rejectedTypeGet(void) { return &rejectedType; }
+static xrttype emptyOutputType;
+static const xrttype* emptyOutputTypeGet(void) { return &emptyOutputType; }
+static bool copyIntoEmpty(ptr target,const void* source,const xrttype* type)
+{
+    (void)type; XL6_SlotMapKeyV1 temporary={0};
+    if (!__real_xrtTypeCopyValue(xl6SlotMapKeyTypeV1(),&temporary,source)) return false;
+    /* A legitimate Copy implementation may rely on its caller's documented
+     * empty-output precondition instead of checking an occupied destination. */
+    *(XL6_SlotMapKeyV1*)target=temporary; return true;
+}
+static void directCopyVectors(XL6_SlotMapKeyV1 key)
+{
+    const XL6_NativeLeafValueProfileV1* profile=xl6SlotMapKeyValueProfileV1Get();
+    assert(profile && profile==xl6SlotMapKeyValueProfileV1Get() && xl6NativeLeafValueProfileValidV1(profile));
+    assert(!xl6NativeLeafValueProfileValidV1(NULL));
+    XL6_SlotMapKeyV1 output={0},empty={0};
+    assert(xrtMemDebugFailAfter(0));
+    for (size_t i=0;i<10000;++i) {
+        assert(xl6NativeLeafValueCopyV1(profile,&key,&output));
+        assert(xl6SlotMapKeyEqualV1(key,output)); keyDrop(&output);
+    }
+    assert(!xrtMemDebugFailTriggered()); xrtMemDebugFailClear();
+    assert(xl6NativeLeafValueCopyV1(profile,&key,&output));
+    assert(!xl6NativeLeafValueCopyV1(profile,&key,&output) && xl6SlotMapKeyEqualV1(key,output));
+    xrtClearError(); keyDrop(&output);
+    static xrttypeops emptyOutputOps;
+    static XL6_NativeLeafValueProfileV1 emptyOutputProfile;
+    emptyOutputType=*profile->Type(); emptyOutputOps=*emptyOutputType.Ops;
+    emptyOutputOps.Copy=copyIntoEmpty; emptyOutputType.Ops=&emptyOutputOps;
+    emptyOutputProfile=*profile; emptyOutputProfile.Type=emptyOutputTypeGet;
+    assert(xl6NativeLeafValueCopyV1(&emptyOutputProfile,&key,&output));
+    assert(!xl6NativeLeafValueCopyV1(&emptyOutputProfile,&key,&output) && xl6SlotMapKeyEqualV1(key,output));
+    xrtClearError(); keyDrop(&output);
+    assert(!xl6NativeLeafValueCopyV1(profile,&empty,&empty) && !empty.instance && !empty.slot); xrtClearError();
+    /* Alignment rejection must precede the profile's typed Empty/Copy loads. */
+    _Alignas(max_align_t) unsigned char raw[sizeof(XL6_SlotMapKeyV1)+_Alignof(max_align_t)]={0};
+    memcpy(raw+1,&key,sizeof(key));
+    assert(!xl6NativeLeafValueCopyV1(profile,raw+1,&output) && !output.instance && !output.slot); xrtClearError();
+    memset(raw,0,sizeof(raw));
+    assert(!xl6NativeLeafValueCopyV1(profile,&key,raw+1)); xrtClearError();
+    for (size_t i=0;i<sizeof(raw);++i) assert(!raw[i]);
+    assert(!xl6NativeLeafValueBoxV1(profile,raw+1)); xrtClearError();
+    XL6_NativeLeafValueProfileV1 bad=*profile; bad.Type=rejectedTypeGet;
+    for (unsigned i=0;i<6;++i) {
+        rejectedType=*profile->Type(); xrttypeops operations=*rejectedType.Ops;
+        if (i==0) rejectedType.Align=3;
+        if (i==1) ++rejectedType.Size;
+        if (i==2) rejectedType.Flags|=XRT_TYPE_FLAG_REFERENCE;
+        if (i==3) rejectedType.Id=0;
+        if (i==4) { operations.Copy=NULL; rejectedType.Ops=&operations; }
+        if (i==5) { operations.Drop=NULL; rejectedType.Ops=&operations; }
+        xrtSetErrorKind(XERR_TIMEOUT); const xerror* incoming=xrtGetError();
+        assert(!xl6NativeLeafValueProfileValidV1(&bad) && xrtGetError()==incoming); xrtClearError();
+        assert(!xl6NativeLeafValueCopyV1(&bad,&key,&output) && !output.instance && !output.slot); xrtClearError();
+    }
+    for (int failure=-2;failure<=2;++failure) if (failure) {
+        xl6_error_scope parent={0}; assert(xl6ErrorScopeBegin(&parent)); copyFailure=failure;
+        assert(!xl6NativeLeafValueCopyV1(profile,&key,&output) && !output.instance && !output.slot && !copyFailure);
+        xl6_error_result result=xl6ErrorScopeEnd(&parent); assert(!result.ok);
+        assert(failure<0 ? !result.error : xrtErrorKind(result.error)==XERR_STATE); xrtErrorFree(result.error);
+    }
+    for (int failure=-1;failure<=1;failure+=2) {
+        xl6_error_scope parent={0}; assert(xl6ErrorScopeBegin(&parent)); entryFailure=failure;
+        assert(!xl6NativeLeafValueCopyV1(profile,&key,&output) && !output.instance && !output.slot && !entryFailure);
+        xl6_error_result result=xl6ErrorScopeEnd(&parent); assert(!result.ok);
+        assert(failure<0 ? !result.error : xrtErrorKind(result.error)==XERR_MEMORY); xrtErrorFree(result.error);
+    }
+    xrtSetErrorKind(XERR_TIMEOUT); const xerror* incoming=xrtGetError();
+    assert(xl6NativeLeafValueProfileValidV1(profile) && xrtGetError()==incoming);
+    assert(xl6NativeLeafValueCopyV1(profile,&key,&output) && xrtGetError()==incoming);
+    keyDrop(&output); xrtClearError();
+}
 static void vectors(void)
 {
     XL6_SlotMapKeyV1 key={0},otherKey={0},output={0}; xvalue* map=create(&key),*other=create(&otherKey);
+    directCopyVectors(key);
     xvalue* a=xl6SlotMapKeyBoxV1(key),*b=xl6SlotMapKeyBoxV1(key),*c=xl6SlotMapKeyBoxV1(otherKey); assert(a && b && c && a!=b);
     assert(xrtValueTypeId(a)==xrtTypeId((xstrview)XRT_STR_INIT("type:SlotMapKey")));
     assert(xl6SlotMapKeyValueAdmitsV1(a) && xl6SlotMapKeyValueAdmitsV1(b));
@@ -90,6 +173,15 @@ static void vectors(void)
     assert(xl6SlotMapKeyUnboxV1(a,&output) && xl6SlotMapKeyEqualV1(output,key));
     assert(!xrtMemDebugFailTriggered()); xrtMemDebugFailClear();
     assert(!xl6SlotMapKeyUnboxV1(b,&output)); xrtClearError(); keyDrop(&output);
+    assert(!xl6NativeLeafValueUnboxV1(a,xl6SlotMapKeyValueProfileV1Get(),
+        (unsigned char*)&output+1)); xrtClearError();
+    assert(!output.instance && !output.slot);
+    for (int failure=-1;failure<=1;failure+=2) {
+        xl6_error_scope parent={0}; assert(xl6ErrorScopeBegin(&parent)); releaseFailure=failure;
+        assert(!xl6SlotMapKeyUnboxV1(a,&output) && !output.instance && !output.slot && !releaseFailure);
+        xl6_error_result result=xl6ErrorScopeEnd(&parent); assert(!result.ok);
+        assert(failure<0 ? !result.error : xrtErrorKind(result.error)==XERR_STATE); xrtErrorFree(result.error);
+    }
     xvalue* clone=xrtValueClone(a); assert(clone && xrtValueEqual(a,clone));
     assert(xrtValueToTyped(clone,xl6SlotMapKeyTypeV1(),&output,xl6SlotMapKeyConverterV1()));
     assert(xl6SlotMapKeyEqualV1(key,output)); keyDrop(&output);
@@ -152,6 +244,7 @@ static bool fault(const char* operation,size_t point)
     xl6_error_scope parent={0}; assert(xl6ErrorScopeBegin(&parent)); assert(xrtMemDebugFailAfter(point));
     bool success=false;
     if (!strcmp(operation,"box")) { result=xl6SlotMapKeyBoxV1(key); success=result!=NULL; }
+    else if (!strcmp(operation,"copy")) success=xl6NativeLeafValueCopyV1(xl6SlotMapKeyValueProfileV1Get(),&key,&output);
     else if (!strcmp(operation,"unbox")) success=xl6SlotMapKeyUnboxV1(box,&output);
     else if (!strcmp(operation,"encode")) { result=xrtValueFromTyped(xl6SlotMapKeyTypeV1(),&key,xl6SlotMapKeyConverterV1()); success=result!=NULL; }
     else if (!strcmp(operation,"decode")) success=xrtValueToTyped(box,xl6SlotMapKeyTypeV1(),&output,xl6SlotMapKeyConverterV1());
@@ -170,7 +263,7 @@ int main(int argc,char** argv)
         xl6ProductMemoryBegin(SIZE_MAX); vectors(); assert(!xrtGetError() && !xl6ProductMemoryEnd());
         xl6ProductMemoryVerify(); puts("[PASS] immutable SlotMap key projection and typed content capability"); return 0;
     }
-    assert(!strcmp(argv[1],"prefixes")); const char* operations[]={"box","unbox","encode","decode"};
+    assert(!strcmp(argv[1],"prefixes")); const char* operations[]={"box","unbox","encode","decode","copy"};
     for (size_t i=0;i<sizeof(operations)/sizeof(*operations);++i) {
         size_t point=0; while (point<4096 && fault(operations[i],point)) ++point; assert(point<4096);
         printf("slot-key %s runs=%zu first-no-hit=%zu\n",operations[i],point+1,point);
