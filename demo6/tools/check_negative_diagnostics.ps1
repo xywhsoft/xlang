@@ -216,22 +216,20 @@ $requiredArtifactSubstrings = @{
     "sem_task_cancel_generator.err.txt" = "task.cancel"
     "sem_task_cancel_sync.err.txt" = "task.cancel"
     "sem_task_cancel_thread.err.txt" = "task.cancel"
-    "sem_channel_class_element.err.txt" = $diagChannelPlainValueElement
     "sem_channel_function_element.err.txt" = $diagChannelPlainValueElement
     "sem_channel_generator_element.err.txt" = $diagChannelPlainValueElement
     "sem_channel_typed_array_element.err.txt" = $diagChannelPlainValueElement
-    "sem_channel_recv_target_type.err.txt" = $diagChannelRecvTargetType
-    "sem_channel_try_recv_target_type.err.txt" = $diagChannelTryRecvTargetType
-    "sem_channel_recv_timeout_target_type.err.txt" = "channel.recvTimeoutInto"
+    "sem_channel_recv_target_type.err.txt" = "target string, value nullable<int>"
+    "sem_channel_try_recv_target_type.err.txt" = "target string, value nullable<int>"
+    "sem_channel_recv_timeout_target_type.err.txt" = "target string, value nullable<int>"
     "sem_channel_recv_const_target.err.txt" = $diagConstAssign
     "sem_channel_try_recv_const_target.err.txt" = $diagConstAssign
     "sem_channel_send_type.err.txt" = $diagChannelSendType
     "sem_channel_send_named_argument.err.txt" = "channel.send"
-    "sem_channel_recv_named_argument.err.txt" = "channel.recvInto"
-    "sem_channel_try_recv_named_argument.err.txt" = "channel.tryRecvInto"
-    "sem_channel_recv_timeout_named_argument.err.txt" = "channel.recvTimeoutInto"
+    "sem_channel_recv_named_argument.err.txt" = "channel receive takes no output variable"
+    "sem_channel_try_recv_named_argument.err.txt" = "channel receive takes no output variable"
+    "sem_channel_recv_timeout_named_argument.err.txt" = "channel receive takes no output variable"
     "sem_channel_recv_timeout_type.err.txt" = "timeoutMs"
-    "sem_channel_receiver_expr.err.txt" = $diagChannelNamedReceiver
     "sem_channel_unknown_method.err.txt" = "unknown channel method"
     "sem_generator_class_element.err.txt" = $diagGeneratorPlainValueElement
     "sem_generator_function_element.err.txt" = $diagGeneratorPlainValueElement
@@ -657,6 +655,26 @@ for ( $i = 0; $i -lt $lines.Count; ++$i ) {
         $unassertedExpectedFailures += 1
         Add-Failure ("expected-failure command lacks a diagnostic assertion at {0}:{1}: {2}" -f
             $lineRecords[$i].Source, $lineRecords[$i].Line, $commandLine)
+    }
+}
+
+# The current Channel suite delegates its complete negative batch to Python.
+# Count its actual shared manifest, not retired Into commands or stale files.
+$channelSuite = [IO.File]::ReadAllText((Join-Path $testSuiteDir '07c_channel.bat'))
+if ($channelSuite.Contains('tools\check_xlir_channel_resource_abi.ps1')) {
+    $channelGate = Join-Path $Root 'tools/check_stdlib_channel_regressions.py'
+    $manifestText = & python $channelGate --list-negative
+    if ($LASTEXITCODE -ne 0) { Add-Failure 'Channel negative manifest could not be read' }
+    else {
+        $channelNegative = $manifestText | ConvertFrom-Json
+        foreach ($entry in $channelNegative.PSObject.Properties) {
+            $artifact = $entry.Name + '.err.txt'
+            if ($artifactNames.Add($artifact)) {
+                $expectedFailureCommands += 1
+                $assertedExpectedFailures += 1
+            }
+            $requiredArtifactSubstrings[$artifact] = $entry.Value
+        }
     }
 }
 

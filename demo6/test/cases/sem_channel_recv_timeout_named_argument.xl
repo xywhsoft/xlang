@@ -1,4 +1,4 @@
 channel<int> ch = channel::<int>(1)
 int result = 0
 
-bool ok = ch.recvTimeoutInto(target = result, timeoutMs = 10)
+auto status, value = ch.recvTimeout(timeoutMs = 10)

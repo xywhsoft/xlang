@@ -1,0 +1,29 @@
+// All globals below are actual lowered product members, not caller outputs.
+channel<var> dynamicValues = channel::<var>(2)
+auto absentStatus, absent = dynamicValues.tryRecv()
+assert absentStatus == channelStatus.empty and absent == null
+assert dynamicValues.send(null)
+auto nullStatus, nullValue = dynamicValues.recv()
+assert nullStatus == channelStatus.ok and nullValue == null
+assert dynamicValues.send("owned\0你")
+auto textStatus, textValue = dynamicValues.recv()
+assert textStatus == channelStatus.ok and string(textValue) == "owned\0你"
+dynamicValues.close()
+auto closedStatus, closedValue = dynamicValues.recv()
+assert closedStatus == channelStatus.closed and closedValue == null
+
+channel<string> texts = channel::<string>(1)
+auto missingTextStatus, missingText = texts.tryRecv()
+assert missingTextStatus == channelStatus.empty and missingText == null
+assert texts.send("")
+auto blankStatus, blank = texts.recv()
+assert blankStatus == channelStatus.ok and blank != null and blank == ""
+texts.close()
+
+var standaloneNull = null
+string? optionalText = null
+bytes? optionalBytes = null
+int? optionalInteger = null
+assert standaloneNull == null and optionalText == null
+assert optionalBytes == null and optionalInteger == null
+println("Channel global absence and owned retirement ok")

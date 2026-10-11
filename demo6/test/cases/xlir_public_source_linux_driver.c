@@ -7,7 +7,10 @@
 #include <unistd.h>
 int main(int argc,char** argv)
 {
-    if(argc!=4) return 2;
+    if(argc<4) {
+        fputs("usage: source-driver source.xl mode output [sidecar.c ...]\n",stderr);
+        return 2;
+    }
     const char* native=getenv("XL6_SOURCE_NATIVE_ROOT"); if(!native || !*native) return 3;
     char root[4096],runtime[8192],libraries[8192],headers[4096],temporary[8192];
     if(!getcwd(root,sizeof(root))) return 3;
@@ -24,7 +27,9 @@ int main(int argc,char** argv)
     XLC_ContextOptions options=xlcDefaultContextOptions();
     options.workDir=root; options.tempDir=temporary; options.tccDllPath=runtime; options.tccLibPath=libraries;
     XLC_Context* compiler=xlcCreateContext(&options); if(!compiler) return 4;
-    int ok=xlcAddIncludePath(compiler,headers) && xlcAddSourceFile(compiler,argv[1]) && xlcCompile(compiler);
+    int ok=xlcAddIncludePath(compiler,headers) && xlcAddSourceFile(compiler,argv[1]);
+    for(int index=4; ok && index<argc; ++index) ok=xlcAddCSourceFile(compiler,argv[index]);
+    if(ok) ok=xlcCompile(compiler);
     if(ok) {
         if(!strcmp(argv[2],"cgen-default")) ok=xlcEmitC(compiler,argv[3]);
         else if(!strcmp(argv[2],"ir-typed")) ok=xlcEmitIr(compiler,argv[3],1);

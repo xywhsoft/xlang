@@ -34,12 +34,12 @@ func main(...) as int
     xvoUnref = 8
     xrtTypedArrayDestroy.append(3)
     xrtChannelSend.send(11)
-    int received = 0
-    xrtChannelSend.recvInto(received)
+    auto receivedStatus, received = xrtChannelSend.recv()
+    assert receivedStatus == channelStatus.ok
     assert xrtFree == "after"
     assert xvoUnref == 8
     assert xrtTypedArrayDestroy.length == 3
-    assert received == 11
+    assert received != null and received == 11
     assert xrtCall(9) == 10
     assert xrtWorker() == 23
     assert code == 100

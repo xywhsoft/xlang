@@ -912,9 +912,14 @@ static int xl6IrCgenEmitRetainInstruction(
             (unsigned int)source, (unsigned int)source);
     else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
               type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES )
+        /* RETAIN copies the verified language slot, including absence. XRT's
+         * retain API requires a real value shell; NULL is not such a shell.
+         * This same mechanical instruction handles normal/async/generator
+         * execution and is independent of the slot's producer. */
         xl6OutputPrintf(out,
-            "    v%u = xrtValueRetain(v%u);\n",
-            (unsigned int)instruction->result, (unsigned int)source);
+            "    v%u = v%u != NULL ? xrtValueRetain(v%u) : NULL;\n",
+            (unsigned int)instruction->result, (unsigned int)source,
+            (unsigned int)source);
     else
         xl6OutputPrintf(out,
             "    v%u = xrtErrorRef(v%u);\n",

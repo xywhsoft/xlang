@@ -1,4 +1,7 @@
 channel<int> ch = channel::<int>(1)
 const int result = 0
 
-ch.tryRecvInto(result)
+auto status, value = ch.tryRecv()
+if status == channelStatus.ok and value != null then
+    result = value
+end

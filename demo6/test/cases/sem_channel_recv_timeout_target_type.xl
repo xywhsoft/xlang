@@ -1,4 +1,5 @@
 channel<int> ch = channel::<int>(1)
 float result = 0.0
 
-bool ok = ch.recvTimeoutInto(result, 10)
+auto status, received = ch.recvTimeout(10)
+string wrong = received

@@ -3,9 +3,16 @@ func outer() as int
     int result = 0
 
     auto recv = func() as int
-        ch.recvInto(result)
+        auto status, value = ch.recv()
+        if status == channelStatus.ok and value != null then
+            result = value
+        end
         return result
     end
 
-    return 0
+    assert ch.send(41)
+    assert recv() == 41
+    ch.close()
+    return result
 end
+assert outer() == 41

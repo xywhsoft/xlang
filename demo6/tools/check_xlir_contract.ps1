@@ -1176,6 +1176,9 @@ $taskSpawnClosureGate = Read-Utf8 "tools\check_xlir_task_spawn_closure_abi.ps1"
 $taskNestedFutureGate = Read-Utf8 "tools\check_xlir_task_nested_future_abi.ps1"
 $threadResourceGate = Read-Utf8 "tools\check_xlir_thread_resource_abi.ps1"
 $channelResourceGate = Read-Utf8 "tools\check_xlir_channel_resource_abi.ps1"
+$channelOwnedGate = Read-Utf8 "tools\check_stdlib_channel_regressions.py"
+$channelReceivePlan = Read-Utf8 "src\ir\xl6_ir_channel_receive.c"
+$channelNativeEmitter = Read-Utf8 "src\cgen\xl6_ir_cgen_channel_emit.c"
 $syncResourceGate = Read-Utf8 "tools\check_xlir_sync_resource_abi.ps1"
 $specialQueueResourceGate = Read-Utf8 "tools\check_xlir_special_queue_resource_abi.ps1"
 $stackResourceGate = Read-Utf8 "tools\check_xlir_stack_resource_abi.ps1"
@@ -3450,12 +3453,14 @@ foreach ( $required in @(
     }
 }
 foreach ( $required in @(
-    "xlir_async_storage_address.xl", "storage-address", "machine-local residence",
-    "storage-ref TypeId ABI", "-Werror"
+    "xlir_async_storage_address", "asyncMachineCount", "'storage-address'", "-Werror"
 ) ) {
-    if ( ! $asyncStorageAddressGate.Contains($required) ) {
-        throw "XLIR async storage-address quality gate is incomplete: $required"
+    if ( ! $channelOwnedGate.Contains($required) ) {
+        throw "XLIR async owned receive quality gate is incomplete: $required"
     }
+}
+if (!$asyncStorageAddressGate.Contains('check_xlir_channel_resource_abi.ps1')) {
+    throw 'The historical async storage-address entry must run the current owned receive gate'
 }
 if ( ! $languageFrontendSuite.Contains(
          "tools\check_xlir_async_storage_address.ps1") ) {
@@ -5849,9 +5854,8 @@ if ( ! $runtimeMatrix.Contains("xlir_thread_resource_abi.xl") ) {
     throw "XLIR thread resource fixture is missing from the runtime matrix"
 }
 
-# channel<T> carries a closed generic payload ABI and storage-reference write
-# target through Typed and Lowered XLIR.  Cgen may only render that verified
-# tuple into the shared xvalue handle and opaque XRT pointer transport.
+# Channel returns a fresh owning (status, optional payload) product. Its
+# closed schema and physical error ABI are verified before mechanical Cgen.
 foreach ( $required in @(
     "XL6_IR_RUNTIME_RESOURCE_CHANNEL",
     "XL6_IrRuntimeResourcePayloadAbi",
@@ -5859,8 +5863,7 @@ foreach ( $required in @(
     "XL6_IR_RUNTIME_RESOURCE_PAYLOAD_STRING_COPY",
     "XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN",
     "XL6_IR_RUNTIME_CHANNEL_CREATE", "XL6_IR_RUNTIME_CHANNEL_SEND",
-    "XL6_IR_RUNTIME_CHANNEL_RECV_INTO",
-    "XL6_IR_INTRINSIC_OPERAND_STORAGE_REF",
+    "XL6_IrChannelReceivePlan", "XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT",
     "runtimeResourcePayloadAbi"
 ) ) {
     if ( ! $header.Contains($required) ) {
@@ -5868,54 +5871,43 @@ foreach ( $required in @(
     }
 }
 foreach ( $required in @(
-    "xl6IrRuntimeResourcePayloadAbiForType",
-    "xl6IrRuntimeChannelPayloadType",
-    "channel-recv-timeout-into",
-    "XLIR runtime channel operation has no exact resource and payload identity ABI",
-    "XLIR runtime channel close has no exact void result ABI",
-    "XLIR runtime channel receive has no exact storage address, timeout or boolean result ABI"
+    "xl6IrChannelReceivePlanBuild", "xl6IrChannelReceiveSignatureCompatible",
+    "xl6IrChannelReceiveDependentSignatureCompatible", "xl6IrChannelReceiveIntrinsicCompatible",
+    "xl6IrOptionalTryResultCompatible", "XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT"
 ) ) {
-    if ( ! $source.Contains($required) ) {
+    if ( ! $channelReceivePlan.Contains($required) ) {
         throw "XLIR channel resource Typed/verifier contract is incomplete: $required"
     }
 }
 foreach ( $required in @(
-    "xl6IrLowerRuntimeResourcePayloadAbiForType",
-    "xl6IrLowerRuntimeChannelPayloadType",
-    "XL6_IR_RUNTIME_CHANNEL_CREATE", "XL6_IR_RUNTIME_CHANNEL_SEND",
-    "XL6_IR_RUNTIME_CHANNEL_RECV_INTO",
-    "XL6_IR_INTRINSIC_OPERAND_STORAGE_REF",
-    "xl6IrLowerEmitStorageAddress"
+    "xl6IrLowerRuntimeChannelPayloadType", "xl6IrChannelReceiveSpecResource",
+    "xl6IrChannelReceiveIntrinsicCompatible", "XL6_IR_RUNTIME_CHANNEL_CREATE",
+    "XL6_IR_RUNTIME_CHANNEL_SEND"
 ) ) {
     if ( ! $lower.Contains($required) ) {
         throw "XLIR channel resource lowering contract is incomplete: $required"
     }
 }
 foreach ( $required in @(
-    "xl6IrCgenChannelRuntimeOpIs", "xl6IrCgenChannelPayloadAbi",
-    "xl6IrCgenChannelTypeAbi", "xl6IrCgenRuntimeChannelAbi",
-    "xl6IrCgenEmitChannelRuntime", "needsChannelResourceRuntime",
-    "xlir_channel_handle_ops", "xrtRefRetain(&handle->refs)",
-    "xrtRefRelease(&handle->refs)", "xrtValueHandleTake",
-    "xrtValueTypeIdBind", "xrtValueGetHandle",
-    "handle->payload_type_id != payloadTypeId",
-    "xrtChannelDrain(handle->channel, xlir_channel_drain_item, handle)"
+    "xl6IrChannelInstructionCompatible", "xl6IrChannelReceiveInstructionPlan",
+    "xl6ChannelCreateTakeV1", "xl6ChannelReceiveV1", "XL6_ChannelStatusV1",
+    "xl6ErrorScopeCaptureFailure", "xl6IrCgenEmitOwnedPlaceRelease"
 ) ) {
-    if ( ! $cEmitter.Contains($required) ) {
+    if ( ! $channelNativeEmitter.Contains($required) ) {
         throw "XLIR channel resource C boundary is incomplete: $required"
     }
 }
 foreach ( $required in @(
-    "xlir_channel_resource_abi.xl", 'runtimeResourceAbiName -eq "channel"',
-    'runtimeResourceOpName -like "channel-*"',
-    'runtimeOpName -like "channel-*"', 'kindName -eq "storage-address"',
-    "retain-xvalue", "explicit error edges",
-    "byte-for-byte deterministic", "-Werror",
-    "strict-C/runtime gate failed"
+    "xlir_channel_resource_abi", "xlir_channel_captured_output_abi",
+    "runtimeResourceOpName", "runtimeOpName", "'storage-ref'", "'__tuple'",
+    "repeat.read_bytes()", "-Werror", "NativeGraphPrefixSweeps", "-aot-run"
 ) ) {
-    if ( ! $channelResourceGate.Contains($required) ) {
+    if ( ! $channelOwnedGate.Contains($required) ) {
         throw "XLIR channel resource quality gate is incomplete: $required"
     }
+}
+if (!$channelResourceGate.Contains('check_stdlib_channel_regressions.py')) {
+    throw 'The Channel resource entry must execute the shared current-source owning result gate'
 }
 if ( ! $languageFrontendSuite.Contains(
         "tools\check_xlir_channel_resource_abi.ps1") ) {
