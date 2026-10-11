@@ -1,66 +1,64 @@
 channel<int> ch = channel::<int>(4)
 
 bool sent = ch.send(42)
-int value = 0
-bool received = ch.recvInto(value)
+auto received, value = ch.recv()
 
 assert sent, "channel send failed"
-assert received, "channel recv failed"
-assert value == 42, "channel value mismatch"
+assert received == channelStatus.ok, "channel recv failed"
+assert value != null and value == 42, "channel value mismatch"
 assert ch.count() == 0, "channel count mismatch"
 
 ch.close()
 bool closed = ch.isClosed()
-bool empty = ch.tryRecvInto(value)
+auto empty, absent = ch.tryRecv()
 
 assert closed, "channel close failed"
-assert not empty, "closed channel should not receive"
+assert empty == channelStatus.closed and absent == null, "closed channel should not receive"
 
 auto autoCh = channel::<int>(1)
 auto autoSent = autoCh.send(7)
-int autoValue = 0
-auto autoReceived = autoCh.recvInto(autoValue)
+auto autoReceived, autoValue = autoCh.recv()
 
 assert autoSent, "auto channel send failed"
-assert autoReceived, "auto channel recv failed"
-assert autoValue == 7, "auto channel value mismatch"
+assert autoReceived == channelStatus.ok, "auto channel recv failed"
+assert autoValue != null and autoValue == 7, "auto channel value mismatch"
 
 autoCh.close()
 
 channel<bool> boolCh = channel::<bool>(2)
-bool boolValue = false
-
 assert boolCh.send(true), "bool channel send failed"
-assert boolCh.recvInto(boolValue), "bool channel recv failed"
-assert boolValue, "bool channel value mismatch"
-assert not boolCh.tryRecvInto(boolValue), "empty bool channel should not receive"
+auto boolStatus, boolValue = boolCh.recv()
+assert boolStatus == channelStatus.ok, "bool channel recv failed"
+assert boolValue != null and boolValue == true, "bool channel value mismatch"
+auto boolEmptyStatus, boolEmpty = boolCh.tryRecv()
+assert boolEmptyStatus == channelStatus.empty and boolEmpty == null, "empty bool channel should not receive"
 
 channel<var> varCh = channel::<var>(2)
 assert varCh.send(123), "var channel int send failed"
 assert varCh.send("abc"), "var channel string send failed"
 
-var varValue = null
-assert varCh.recvInto(varValue), "var channel int recv failed"
+auto varStatus, varValue = varCh.recv()
+assert varStatus == channelStatus.ok, "var channel int recv failed"
 assert int(varValue) == 123, "var channel int value mismatch"
-assert varCh.recvInto(varValue), "var channel string recv failed"
-assert string(varValue) == "abc", "var channel string value mismatch"
-assert not varCh.tryRecvInto(varValue), "empty var channel should not receive"
+auto varStringStatus, varString = varCh.recv()
+assert varStringStatus == channelStatus.ok, "var channel string recv failed"
+assert string(varString) == "abc", "var channel string value mismatch"
+auto varEmptyStatus, varEmpty = varCh.tryRecv()
+assert varEmptyStatus == channelStatus.empty and varEmpty == null, "empty var channel should not receive"
 varCh.close()
 assert varCh.isClosed(), "var channel close failed"
 
 channel<float> floatCh = channel::<float>(1)
-float floatValue = 0.0
-
 assert floatCh.send(1.5), "float channel send failed"
-assert floatCh.recvInto(floatValue), "float channel recv failed"
-assert floatValue == 1.5, "float channel value mismatch"
+auto floatStatus, floatValue = floatCh.recv()
+assert floatStatus == channelStatus.ok, "float channel recv failed"
+assert floatValue != null and floatValue == 1.5, "float channel value mismatch"
 
 channel<time> timeCh = channel::<time>(1)
-time timeValue = #00:00:00#
-
 assert timeCh.send(#12:34:56#), "time channel send failed"
-assert timeCh.recvInto(timeValue), "time channel recv failed"
-assert timeValue == #12:34:56#, "time channel value mismatch"
+auto timeStatus, timeValue = timeCh.recv()
+assert timeStatus == channelStatus.ok, "time channel recv failed"
+assert timeValue != null and timeValue == #12:34:56#, "time channel value mismatch"
 
 channel<int> closedCh = channel::<int>(1)
 closedCh.close()
@@ -72,18 +70,19 @@ assert defaultCh.send(1), "default channel first send failed"
 assert defaultCh.send(2), "default channel second send failed"
 assert defaultCh.count() == 2, "default channel count after send failed"
 
-int defaultFirst = 0
-assert defaultCh.tryRecvInto(defaultFirst), "default channel tryRecv should drain first value"
-assert defaultFirst == 1, "default channel first value mismatch"
+auto defaultFirstStatus, defaultFirst = defaultCh.tryRecv()
+assert defaultFirstStatus == channelStatus.ok, "default channel tryRecv should drain first value"
+assert defaultFirst != null and defaultFirst == 1, "default channel first value mismatch"
 assert defaultCh.count() == 1, "default channel count after tryRecv failed"
 
 defaultCh.close()
 assert defaultCh.isClosed(), "default channel should report closed"
 
-int defaultSecond = 0
-assert defaultCh.recvInto(defaultSecond), "closed channel should drain buffered value"
-assert defaultSecond == 2, "closed channel buffered value mismatch"
-assert not defaultCh.tryRecvInto(defaultSecond), "closed drained channel should not receive"
+auto defaultSecondStatus, defaultSecond = defaultCh.recv()
+assert defaultSecondStatus == channelStatus.ok, "closed channel should drain buffered value"
+assert defaultSecond != null and defaultSecond == 2, "closed channel buffered value mismatch"
+auto drainedStatus, drained = defaultCh.tryRecv()
+assert drainedStatus == channelStatus.closed and drained == null, "closed drained channel should not receive"
 assert not defaultCh.send(3), "closed default channel send should fail"
 
 defaultCh.close()
@@ -91,12 +90,12 @@ assert defaultCh.isClosed(), "channel close should be idempotent"
 
 channel<int> fullCh = channel::<int>(1)
 assert fullCh.send(10), "full channel first send failed"
-assert fullCh.send(11), "capacity-one channel should normalize to two slots"
-assert not fullCh.trySend(12), "full channel third trySend should fail"
+assert fullCh.count() == 1, "capacity-one channel must contain exactly one value"
+assert not fullCh.trySend(11), "full capacity-one channel trySend should fail"
 
-int fullValue = 0
-assert fullCh.recvInto(fullValue), "full channel receive failed"
-assert fullValue == 10, "full channel value mismatch"
+auto fullStatus, fullValue = fullCh.recv()
+assert fullStatus == channelStatus.ok, "full channel receive failed"
+assert fullValue != null and fullValue == 10, "full channel value mismatch"
 
 channel<int> crossThreadCh = channel::<int>(4)
 auto channelProducer = func() as int
@@ -115,13 +114,14 @@ assert producerThread.waitTimeout(2000), "channel producer thread wait failed"
 assert producerThread.exitCode() == 17, "channel producer thread exit failed"
 assert crossThreadCh.isClosed(), "cross-thread channel close should be visible"
 
-int crossFirst = 0
-int crossSecond = 0
-assert crossThreadCh.recvInto(crossFirst), "cross-thread channel first recv failed"
-assert crossFirst == 314, "cross-thread channel first value mismatch"
-assert crossThreadCh.recvInto(crossSecond), "cross-thread channel second recv failed"
-assert crossSecond == 159, "cross-thread channel second value mismatch"
-assert not crossThreadCh.tryRecvInto(crossSecond), "cross-thread closed drained channel should not receive"
+auto crossFirstStatus, crossFirst = crossThreadCh.recv()
+assert crossFirstStatus == channelStatus.ok, "cross-thread channel first recv failed"
+assert crossFirst != null and crossFirst == 314, "cross-thread channel first value mismatch"
+auto crossSecondStatus, crossSecond = crossThreadCh.recv()
+assert crossSecondStatus == channelStatus.ok, "cross-thread channel second recv failed"
+assert crossSecond != null and crossSecond == 159, "cross-thread channel second value mismatch"
+auto crossClosedStatus, crossClosed = crossThreadCh.tryRecv()
+assert crossClosedStatus == channelStatus.closed and crossClosed == null, "cross-thread closed drained channel should not receive"
 assert not crossThreadCh.send(265), "cross-thread closed channel send should fail"
 
 channel<int> delayedRecvCh = channel::<int>(1)
@@ -134,9 +134,9 @@ auto delayedRecvProducer = func() as int
 end
 
 thread delayedRecvThread = thread(delayedRecvProducer)
-int delayedRecvValue = 0
-assert delayedRecvCh.recvInto(delayedRecvValue), "blocking recv should wake after producer send"
-assert delayedRecvValue == 271, "blocking recv producer value mismatch"
+auto delayedRecvStatus, delayedRecvValue = delayedRecvCh.recv()
+assert delayedRecvStatus == channelStatus.ok, "blocking recv should wake after producer send"
+assert delayedRecvValue != null and delayedRecvValue == 271, "blocking recv producer value mismatch"
 assert delayedRecvThread.waitTimeout(2000), "blocking recv producer thread wait failed"
 assert delayedRecvThread.exitCode() == 19, "blocking recv producer thread exit failed"
 delayedRecvCh.close()
@@ -144,8 +144,8 @@ assert delayedRecvCh.isClosed(), "blocking recv channel close failed"
 
 channel<int> delayedConsumerCh = channel::<int>(1)
 auto delayedConsumer = func() as int
-    int got = 0
-    if not delayedConsumerCh.recvInto(got) then
+    auto status, got = delayedConsumerCh.recv()
+    if status != channelStatus.ok or got == null then
         return 10
     end
     return got
@@ -161,8 +161,8 @@ assert delayedConsumerCh.isClosed(), "blocking consumer channel close failed"
 
 channel<int> nonblockingTryThreadCh = channel::<int>(1)
 auto nonblockingTryConsumer = func() as int
-    int got = 0
-    if nonblockingTryThreadCh.tryRecvInto(got) then
+    auto status, got = nonblockingTryThreadCh.tryRecv()
+    if status == channelStatus.ok and got != null then
         return got
     end
     return 31
@@ -170,30 +170,32 @@ end
 
 thread nonblockingTryThread = thread(nonblockingTryConsumer)
 assert nonblockingTryThread.waitTimeout(2000), "nonblocking tryRecv thread wait failed"
-assert nonblockingTryThread.exitCode() == 31, "empty tryRecv in thread should return false"
+assert nonblockingTryThread.exitCode() == 31, "empty tryRecv in thread should return empty status"
 assert nonblockingTryThreadCh.send(42), "nonblocking tryRecv should leave channel usable"
-int nonblockingTryLater = 0
-assert nonblockingTryThreadCh.recvInto(nonblockingTryLater), "nonblocking tryRecv later recv failed"
-assert nonblockingTryLater == 42, "nonblocking tryRecv later value mismatch"
+auto laterStatus, nonblockingTryLater = nonblockingTryThreadCh.recv()
+assert laterStatus == channelStatus.ok, "nonblocking tryRecv later recv failed"
+assert nonblockingTryLater != null and nonblockingTryLater == 42, "nonblocking tryRecv later value mismatch"
 nonblockingTryThreadCh.close()
 assert nonblockingTryThreadCh.isClosed(), "nonblocking tryRecv channel close failed"
 
 channel<int> timeoutCh = channel::<int>(1)
-int timeoutValue = 0
-assert not timeoutCh.recvTimeoutInto(timeoutValue, 10), "empty recvTimeoutInto should time out"
-assert timeoutValue == 0, "recvTimeoutInto timeout should not modify target"
-assert timeoutCh.send(808), "recvTimeoutInto send setup failed"
-assert timeoutCh.recvTimeoutInto(timeoutValue, 100), "recvTimeoutInto should receive buffered value"
-assert timeoutValue == 808, "recvTimeoutInto value mismatch"
+auto timeoutStatus, timeoutValue = timeoutCh.recvTimeout(10)
+assert timeoutStatus == channelStatus.timeout and timeoutValue == null, "empty recvTimeout should return timeout without a value"
+assert timeoutCh.send(808), "recvTimeout send setup failed"
+auto timedSuccessStatus, timedSuccess = timeoutCh.recvTimeout(100)
+assert timedSuccessStatus == channelStatus.ok, "recvTimeout should receive buffered value"
+assert timedSuccess != null and timedSuccess == 808, "recvTimeout value mismatch"
 timeoutCh.close()
-assert not timeoutCh.recvTimeoutInto(timeoutValue, 0), "closed recvTimeoutInto should fail"
+auto timeoutClosedStatus, timeoutClosed = timeoutCh.recvTimeout(0)
+assert timeoutClosedStatus == channelStatus.closed and timeoutClosed == null, "closed recvTimeout should return closed"
 
 channel<int> closeWakeCh = channel::<int>(1)
 auto closeWakeConsumer = func() as int
-    int got = 0
-    if closeWakeCh.recvInto(got) then
+    auto status, got = closeWakeCh.recv()
+    if status == channelStatus.ok and got != null then
         return got
     end
+    assert status == channelStatus.closed and got == null
     return -1
 end
 
@@ -201,4 +203,4 @@ thread closeWakeThread = thread(closeWakeConsumer)
 time.sleep(30)
 closeWakeCh.close()
 assert closeWakeThread.waitTimeout(2000), "blocking recv should wake after channel close"
-assert closeWakeThread.exitCode() == -1, "blocking recv after close should return false"
+assert closeWakeThread.exitCode() == -1, "blocking recv after close should return closed"

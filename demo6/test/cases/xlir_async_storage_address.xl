@@ -8,12 +8,12 @@ async func receiveAfterAwait() as int
     if not values.send(37) then
         return -1
     end
-    int received = 0
-    if not values.recvInto(received) then
+    auto status, received = values.recv()
+    if status != channelStatus.ok or received == null then
         return -2
     end
     return prefix + received
 end
 
-assert await receiveAfterAwait() == 42, "async storage-address ABI failed"
-println("xlir async storage address ok")
+assert await receiveAfterAwait() == 42, "async owned receive ABI failed"
+println("xlir async owned receive ok")

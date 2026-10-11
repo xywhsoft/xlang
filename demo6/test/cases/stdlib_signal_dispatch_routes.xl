@@ -12,8 +12,12 @@ assert signal.raise(signal.TERM)
 assert spare.prepare(1000)
 SignalEvent received = SignalEvent(spare)
 spare.consume()
-assert events.tryRecvInto(received)
-assert received.code == signal.INT
+auto receivedStatus, event = events.tryRecv()
+assert receivedStatus == channelStatus.ok and event != null
+if event != null then
+    assert event.code == signal.INT
+end
+assert received.code == signal.TERM, "receiving must not mutate the existing event"
 assert route.dispatch() == 1, "retry must route the same pending event"
 assert route.pending == 0
 events.close()

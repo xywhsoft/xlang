@@ -951,6 +951,7 @@ $taskNestedFutureGateText = [System.IO.File]::ReadAllText($taskNestedFutureGate,
 $taskSpawnClosureGateText = [System.IO.File]::ReadAllText($taskSpawnClosureGate, [System.Text.Encoding]::UTF8)
 $threadResourceGateText = [System.IO.File]::ReadAllText($threadResourceGate, [System.Text.Encoding]::UTF8)
 $channelResourceGateText = [System.IO.File]::ReadAllText($channelResourceGate, [System.Text.Encoding]::UTF8)
+$channelOwnedGateText = [System.IO.File]::ReadAllText((Join-Path $Root 'tools/check_stdlib_channel_regressions.py'), [System.Text.Encoding]::UTF8)
 $syncResourceGateText = [System.IO.File]::ReadAllText($syncResourceGate, [System.Text.Encoding]::UTF8)
 $specialQueueResourceGateText = [System.IO.File]::ReadAllText($specialQueueResourceGate, [System.Text.Encoding]::UTF8)
 $stackResourceGateText = [System.IO.File]::ReadAllText($stackResourceGate, [System.Text.Encoding]::UTF8)
@@ -1231,20 +1232,18 @@ foreach ( $required in @(
     }
 }
 foreach ( $required in @(
-    "xlir_channel_resource_abi.xl", 'runtimeResourceAbiName -eq "channel"',
-    "xlir_channel_captured_output_abi.xl", 'abiName -eq "retain-cell"',
-    'temporary.kindName -ne "temporary"', "unique boolean commit edge",
-    "take/exchange/failure-release ownership split",
-    'runtimeResourceOpName -like "channel-*"',
-    'runtimeOpName -like "channel-*"', 'kindName -eq "storage-address"',
-    'abiName -ne "retain-xvalue"', "explicit error edges",
-    "xrtValueHandleTake", "xrtValueTypeIdBind", "xrtValueGetHandle",
-    "byte-for-byte deterministic", "strict-C/runtime gate failed"
+    "xlir_channel_resource_abi", "xlir_channel_captured_output_abi",
+    "runtimeResourceOpName", "runtimeOpName", "'storage-ref'", "'storage-address'",
+    "'__tuple'", "repeat.read_bytes()", "NativeGraphPrefixSweeps", "-aot-run",
+    "InputsUnchanged", "WaitQueueComplete=False", "ShippingArtifact=False"
 
 ) ) {
-    if ( ! $channelResourceGateText.Contains($required) ) {
+    if ( ! $channelOwnedGateText.Contains($required) ) {
         throw "XLIR migration matrix requires the typed channel resource/payload ABI gate: $required"
     }
+}
+if (!$channelResourceGateText.Contains('check_stdlib_channel_regressions.py')) {
+    throw 'The Channel migration gate must run current-source owning result acceptance'
 }
 foreach ( $required in @(
     "cgen_sync.xl", '"mutex", "sem", "cond", "rwlock"',

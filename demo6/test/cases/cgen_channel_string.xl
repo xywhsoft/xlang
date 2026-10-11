@@ -4,24 +4,30 @@ string source = "hello"
 assert textCh.send(source), "string channel send failed"
 source = "changed"
 
-string received = "old"
-assert textCh.recvInto(received), "string channel recv failed"
-assert received == "hello", "string channel must copy the sent value"
+auto receivedStatus, received = textCh.recv()
+assert receivedStatus == channelStatus.ok, "string channel recv failed"
+assert received != null and received == "hello", "string channel must copy the sent value"
 
 assert textCh.trySend("你好"), "UTF-8 string channel send failed"
-assert textCh.tryRecvInto(received), "UTF-8 string channel recv failed"
-assert received == "你好", "UTF-8 string channel value mismatch"
+auto unicodeStatus, unicodeText = textCh.tryRecv()
+assert unicodeStatus == channelStatus.ok, "UTF-8 string channel recv failed"
+assert unicodeText != null and unicodeText == "你好", "UTF-8 string channel value mismatch"
 
 assert textCh.send("a\0b"), "embedded-NUL string channel send failed"
-assert textCh.recvInto(received), "embedded-NUL string channel recv failed"
-assert string.byteLen(received) == 3, "channel must preserve full byte length"
-assert string.byteAt(received, 2) == 98, "channel must preserve bytes after NUL"
+auto binaryStatus, binaryText = textCh.recv()
+assert binaryStatus == channelStatus.ok and binaryText != null, "embedded-NUL string channel recv failed"
+if binaryText != null then
+    assert string.byteLen(binaryText) == 3, "channel must preserve full byte length"
+    assert string.byteAt(binaryText, 2) == 98, "channel must preserve bytes after NUL"
+end
 
 assert textCh.send("before close"), "buffered string send failed"
 textCh.close()
-assert textCh.recvInto(received), "closed string channel must drain buffered value"
-assert received == "before close", "closed string channel buffered value mismatch"
-assert not textCh.tryRecvInto(received), "drained string channel should be empty"
+auto bufferedStatus, buffered = textCh.recv()
+assert bufferedStatus == channelStatus.ok, "closed string channel must drain buffered value"
+assert buffered != null and buffered == "before close", "closed string channel buffered value mismatch"
+auto drainedStatus, drained = textCh.tryRecv()
+assert drainedStatus == channelStatus.closed and drained == null, "drained string channel should be closed"
 assert not textCh.send("after close"), "closed string channel send should fail"
 
 // 留下一条未消费消息，验证作用域清理会释放消息 box。
@@ -29,13 +35,14 @@ channel<string> pendingCh = channel::<string>(2)
 assert pendingCh.send("pending"), "pending string send failed"
 
 channel<string> timeoutTextCh = channel::<string>(1)
-string timeoutText = ""
-assert not timeoutTextCh.recvTimeoutInto(timeoutText, 1), "empty string recvTimeoutInto should time out"
-assert timeoutText == "", "string recvTimeoutInto timeout should not modify target"
-assert timeoutTextCh.send("waited"), "string recvTimeoutInto send setup failed"
-assert timeoutTextCh.recvTimeoutInto(timeoutText, 100), "string recvTimeoutInto should receive"
-assert timeoutText == "waited", "string recvTimeoutInto value mismatch"
+auto timeoutStatus, timeoutText = timeoutTextCh.recvTimeout(1)
+assert timeoutStatus == channelStatus.timeout and timeoutText == null, "empty string recvTimeout should return timeout and no value"
+assert timeoutTextCh.send("waited"), "string recvTimeout send setup failed"
+auto timedStatus, timedText = timeoutTextCh.recvTimeout(100)
+assert timedStatus == channelStatus.ok, "string recvTimeout should receive"
+assert timedText != null and timedText == "waited", "string recvTimeout value mismatch"
 timeoutTextCh.close()
-assert not timeoutTextCh.recvTimeoutInto(timeoutText, 0), "closed string recvTimeoutInto should fail"
+auto closedStatus, closedText = timeoutTextCh.recvTimeout(0)
+assert closedStatus == channelStatus.closed and closedText == null, "closed string recvTimeout should return closed and no value"
 
 println("channel string ok")

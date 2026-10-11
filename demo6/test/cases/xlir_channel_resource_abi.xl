@@ -10,9 +10,12 @@ func exerciseCapturedChannel() as int
     end
 
     thread worker = thread(producer)
-    string text = "old"
-    if not messages.recvTimeoutInto(text, 2000) then
+    auto status, text = messages.recvTimeout(2000)
+    if status != channelStatus.ok then
         return 1
+    end
+    if text == null then
+        return 2
     end
     if text != "captured" then
         return 2
@@ -29,7 +32,8 @@ func exerciseCapturedChannel() as int
     if messages.count() != 0 then
         return 6
     end
-    if messages.tryRecvInto(text) then
+    auto closedStatus, closedValue = messages.tryRecv()
+    if closedStatus != channelStatus.closed or closedValue != null then
         return 7
     end
     return 0
@@ -39,12 +43,13 @@ assert exerciseCapturedChannel() == 0, "captured channel runtime ABI failed"
 
 channel<int> numbers = channel::<int>()
 assert numbers.send(41), "integer channel send failed"
-int number = 0
-assert numbers.recvInto(number), "integer channel receive failed"
-assert number == 41, "integer channel payload mismatch"
+auto numberStatus, number = numbers.recv()
+assert numberStatus == channelStatus.ok, "integer channel receive failed"
+assert number != null and number == 41, "integer channel payload mismatch"
 assert numbers.trySend(42), "integer channel trySend failed"
-assert numbers.tryRecvInto(number), "integer channel tryRecv failed"
-assert number == 42, "integer channel try payload mismatch"
+auto nextStatus, nextNumber = numbers.tryRecv()
+assert nextStatus == channelStatus.ok, "integer channel tryRecv failed"
+assert nextNumber != null and nextNumber == 42, "integer channel try payload mismatch"
 assert numbers.count() == 0, "integer channel count failed"
 numbers.close()
 assert numbers.isClosed(), "integer channel close failed"
@@ -52,12 +57,14 @@ assert numbers.isClosed(), "integer channel close failed"
 channel<var> dynamicValues = channel::<var>(2)
 assert dynamicValues.send(123), "dynamic integer send failed"
 assert dynamicValues.send("text"), "dynamic string send failed"
-var dynamicValue = null
-assert dynamicValues.recvInto(dynamicValue), "dynamic integer receive failed"
+auto dynamicStatus, dynamicValue = dynamicValues.recv()
+assert dynamicStatus == channelStatus.ok, "dynamic integer receive failed"
 assert int(dynamicValue) == 123, "dynamic integer payload mismatch"
-assert dynamicValues.recvInto(dynamicValue), "dynamic string receive failed"
-assert string(dynamicValue) == "text", "dynamic string payload mismatch"
-assert not dynamicValues.tryRecvInto(dynamicValue), "dynamic channel should be empty"
+auto textStatus, textValue = dynamicValues.recv()
+assert textStatus == channelStatus.ok, "dynamic string receive failed"
+assert string(textValue) == "text", "dynamic string payload mismatch"
+auto emptyStatus, emptyValue = dynamicValues.tryRecv()
+assert emptyStatus == channelStatus.empty and emptyValue == null, "dynamic channel should be empty"
 dynamicValues.close()
 assert dynamicValues.isClosed(), "dynamic channel close failed"
 

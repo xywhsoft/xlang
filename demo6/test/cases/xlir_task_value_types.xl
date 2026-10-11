@@ -114,8 +114,8 @@ assert await task.spawn(semJob, gate) == 42
 assert gate.waitTimeout(1000)
 channel<int> messages = channel::<int>(1)
 assert await task.spawn(channelJob, messages) == 42
-int received = 0
-assert messages.recvInto(received) and received == 42
+auto receivedStatus, received = messages.recv()
+assert receivedStatus == channelStatus.ok and received != null and received == 42
 func() as int entry = threadEntry
 thread worker = thread(entry)
 assert await task.spawn(threadJob, worker) == 42

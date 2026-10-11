@@ -12007,6 +12007,8 @@ static int xl6IrRuntimeResourceInputCompatible(
      * allowing the existing scalar conversion followed by NULLABLE_WRAP.
      * Do not reinterpret the unwrapped scalar as the stored carrier. */
     if ( input != NULL && input->sourceKind == XL6_AST_NULL && target != NULL &&
+         xl6IrTypeIsDynamicXValueBuiltin(module, targetType) ) return 1;
+    if ( input != NULL && input->sourceKind == XL6_AST_NULL && target != NULL &&
          target->kind == XL6_IR_TYPE_NULLABLE && target->paramCount == 1 && target->params != NULL &&
          (target->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL ||
           target->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE ||

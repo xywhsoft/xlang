@@ -1,7 +1,7 @@
 """Closed Channel source schema and owning receive IR plan prerequisite.
 Real source type graph, schema factories and resident private result slots.
-Includes owned receive typed-to-lowered IR, not public recv/WaitQueue cutover
-or a shipping SDK.
+Includes owning receive typed-to-lowered IR and migrated public Channel smoke
+tests. This prerequisite is not WaitQueue or shipping SDK acceptance.
 """
 from pathlib import Path
 import argparse,hashlib,json,os,re,shutil,subprocess
@@ -81,12 +81,12 @@ def main():
             binary=out/('factory-'+opt+ext)
             run(opt+'-generated-build',[cc,*flags,*unity,'-'+opt,generated,*objects,*links,'-o',binary]); product(binary)
             run(opt+'-generated-schema-owned-slots',[binary])
-        # Existing source Channel transport remains legacy until a separate
-        # public cutover. Test its behavior, not a claim of modern ABI acceptance.
+        # Public source fixtures use the closed owning receive API. This
+        # prerequisite gate still does not replace full source/AOT acceptance.
         driver=Path(build['Driver']); files.add(driver); product(driver)
         for name in ('cgen_channel','cgen_channel_string','xlir_channel_resource_abi','sem_channel_class_element'):
             fixture=root/'test/cases'/(name+'.xl')
-            run('legacy-regression-'+name,[driver,fixture,'run',out/name])
+            run('public-regression-'+name,[driver,fixture,'run',out/name])
         for name in ('stdlib_concurrent_queue_owned','stdlib_concurrent_queue_callable_future'):
             run('queue-regression-'+name,[driver,root/'test/cases'/(name+'.xl'),'run',out/name])
         queue=out/('queue-recipe-contract'+ext); generated=out/'queue-recipes.c'

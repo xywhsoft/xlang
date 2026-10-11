@@ -67,8 +67,8 @@ auto awaitedValue = await futureValue
 
 auto autoCh = channel::<int>(1)
 auto sent = autoCh.send(33)
-int receivedValue = 0
-auto received = autoCh.recvInto(receivedValue)
+auto received, receivedValue = autoCh.recv()
+assert receivedValue != null
 autoCh.close()
 
 expect(literalInt, 42)
@@ -95,5 +95,9 @@ expect(callResult, 14)
 expect(awaitedValue, 12)
 
 expect(sent, 1)
-expect(received, 1)
-expect(receivedValue, 33)
+expect(received == channelStatus.ok, 1)
+if receivedValue != null then
+    expect(receivedValue, 33)
+else
+    assert false, "successful Channel receive must own a value"
+end

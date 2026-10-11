@@ -44,7 +44,19 @@ foreach ($name in $cases) {
                 56=@("MatrixBox",26,2);57=@("int",3,1);58=@("string",25,2);59=@("int",3,1)
                 61=@("function",31,2);62=@("int",3,1);63=@("int",3,1)
                 65=@("future<int>",30,2);66=@("int",3,1)
-                68=@("channel<int>",26,2);69=@("bool",2,1);70=@("int",3,1);71=@("bool",2,1)
+                68=@("channel<int>",26,2);69=@("bool",2,1)
+            }
+            # Multi-name declarations are verified product fields, not two
+            # unrelated source value-declaration nodes at magic line numbers.
+            $receive = @($module.instructions | Where-Object { $_.runtimeOpName -eq 'channel-owned-recv' })
+            if ($receive.Count -ne 1 -or $receive[0].operandCount -ne 1) {
+                throw 'Auto Channel receive lost its canonical owning product'
+            }
+            $productType = $types[$receive[0].type]
+            if ($productType.params.Count -ne 2 -or
+                $types[$productType.params[0]].displayName -ne 'int' -or
+                $types[$productType.params[1]].displayName -ne 'nullable<int>') {
+                throw 'Auto Channel receive must infer (int, nullable<int>)'
             }
             foreach ($entry in $expected.GetEnumerator()) {
                 $decl = @($module.nodes | Where-Object {

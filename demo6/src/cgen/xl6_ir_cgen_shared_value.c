@@ -412,8 +412,11 @@ static int xl6IrCgenEmitSharedXValueRuntime(
     switch ( instruction->runtimeOp ) {
     case XL6_IR_RUNTIME_XVALUE_RETAIN:
     case XL6_IR_RUNTIME_BYTES_RETAIN:
-        xl6OutputPrintf(out, "    v%u = xrtValueRetain(v%u);\n",
-            (unsigned)instruction->result, (unsigned)module->operands[instruction->firstOperand]);
+        /* A verified language slot may be absent. That is not an XRT value
+         * shell and must not be passed to its non-null retain API. */
+        xl6OutputPrintf(out, "    v%u = v%u != NULL ? xrtValueRetain(v%u) : NULL;\n",
+            (unsigned)instruction->result, (unsigned)module->operands[instruction->firstOperand],
+            (unsigned)module->operands[instruction->firstOperand]);
         break;
     case XL6_IR_RUNTIME_XVALUE_TYPE_BIND:
     case XL6_IR_RUNTIME_XVALUE_TYPE_REBIND_OWNED:

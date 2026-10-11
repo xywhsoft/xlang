@@ -3,9 +3,17 @@ func outer() as int
     int result = 0
 
     auto recv = func() as int
-        ch.tryRecvInto(result)
+        auto status, value = ch.tryRecv()
+        if status == channelStatus.ok and value != null then
+            result = value
+        end
         return result
     end
 
-    return 0
+    assert recv() == 0, "empty receive must leave the captured value unchanged"
+    assert ch.send(41)
+    assert recv() == 41
+    ch.close()
+    return result
 end
+assert outer() == 41

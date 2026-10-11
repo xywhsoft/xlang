@@ -14,9 +14,11 @@ int received = 0
 assert ch.send(77), "module global channel send failed"
 
 auto recvGlobal = func() as int
-    if not ch.recvInto(received) then
+    auto status, value = ch.recv()
+    if status != channelStatus.ok or value == null then
         return -1
     end
+    received = value
     return received
 end
 

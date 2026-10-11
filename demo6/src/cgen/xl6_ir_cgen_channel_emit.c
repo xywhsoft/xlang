@@ -73,9 +73,12 @@ static int xl6IrCgenEmitChannelRuntime(XL6_Output* out,const XL6_IrModule* modul
         xl6OutputPrintf(out,"      if (channel_outcome.ok) v%u.e1.hasValue = v%u.e0 == XL6_CHANNEL_OK_V1;\n",output,output);
     if (result->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED) {
         char place[24]; snprintf(place,sizeof(place),"v%u",output);
+        /* Cleanup entry latches the ambient failure, including a diagnostic-
+         * free failure. Install the original diagnostic before that latch;
+         * installing it afterwards cannot replace the first failed outcome. */
         xl6OutputPuts("      if (!channel_outcome.ok) { xl6_error_scope channel_cleanup = {0};\n"
-            "        if (!xl6ErrorScopeBeginCleanup(&channel_cleanup,true)) abort();\n"
-            "        xrtSetErrorTake(channel_outcome.error); xl6ErrorScopeCaptureFailure(&channel_cleanup);\n",out);
+            "        xrtSetErrorTake(channel_outcome.error);\n"
+            "        if (!xl6ErrorScopeBeginCleanup(&channel_cleanup,true)) abort();\n",out);
         if (!xl6IrCgenEmitOwnedPlaceRelease(out,module,ins->type,place,NULL)) return -1;
         xl6OutputPuts("        if (xrtGetError() != NULL) xl6ErrorScopeCaptureFailure(&channel_cleanup);\n"
             "        channel_outcome = xl6ErrorScopeEnd(&channel_cleanup); }\n",out);

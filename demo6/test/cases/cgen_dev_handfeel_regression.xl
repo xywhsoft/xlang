@@ -45,12 +45,14 @@ var data = {"name": "xlang"}
 string rendered = "say " + tpl.render(data)
 assert rendered == "say hello xlang", "Template.render should be typed as string"
 
-channel<int> ch = channel::<int>(1)
+channel<int> ch = channel::<int>(2)
 assert ch.trySend(10), "channel.trySend should send when space exists"
-assert ch.trySend(20), "channel.trySend should fill normalized second slot"
+assert ch.trySend(20), "channel.trySend should fill the explicit second slot"
 assert !ch.trySend(30), "channel.trySend should fail when channel is full"
-int got = 0
-assert ch.recvInto(got) and got == 10, "channel.recvInto should receive first value"
+auto firstStatus, first = ch.recv()
+assert firstStatus == channelStatus.ok and first != null and first == 10, "channel.recv should receive first value"
 assert ch.send(30), "channel.send should send after space is available"
-assert ch.recvInto(got) and got == 20, "channel.recvInto should receive second value"
-assert ch.recvInto(got) and got == 30, "channel.recvInto should receive third value"
+auto secondStatus, second = ch.recv()
+assert secondStatus == channelStatus.ok and second != null and second == 20, "channel.recv should receive second value"
+auto thirdStatus, third = ch.recv()
+assert thirdStatus == channelStatus.ok and third != null and third == 30, "channel.recv should receive third value"
