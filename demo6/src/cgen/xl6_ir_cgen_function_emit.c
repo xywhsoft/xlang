@@ -113,21 +113,15 @@ static int xl6IrCgenEmitFunction(
             XL6_IrTypeId physicalType = storage->cellType !=
                     XL6_IR_TYPE_INVALID
                 ? storage->cellType : storage->type;
-            const XL6_IrType* physical = xl6IrTypeGet(
-                &module->types, physicalType);
             const char* type = xl6IrCgenType(module, physicalType);
             if ( type == NULL ) return xl6IrCgenDiag(diags, module, storage->declaration, "XLIR C emitter does not support local storage ABI");
             if ( storage->cellType != XL6_IR_TYPE_INVALID ||
                  xl6IrTypeGet(&module->types, storage->type)->ownershipAbi ==
                      XL6_IR_OWNERSHIP_ABI_MANAGED ) {
-                if ( physical != NULL &&
-                     (physical->cAbi == XL6_IR_C_ABI_PRODUCT ||
-                      physical->cAbi == XL6_IR_C_ABI_MANAGED_STRING) )
-                    xl6OutputPrintf(out, "    %s s%u = {0};\n", type,
-                        (unsigned int)storage->symbol);
-                else
-                    xl6OutputPrintf(out, "    %s s%u = NULL;\n", type,
-                        (unsigned int)storage->symbol);
+                /* C zero initialization is valid for both owning aggregates
+                 * and pointer carriers; NULL is not an aggregate value. */
+                xl6OutputPrintf(out, "    %s s%u = {0};\n", type,
+                    (unsigned int)storage->symbol);
             }
             else
                 xl6OutputPrintf(out, "    %s s%u;\n", type, (unsigned int)storage->symbol);

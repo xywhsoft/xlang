@@ -198,9 +198,8 @@ static int xl6IrCgenEmitProductInstruction(
                 xl6IrCgenStorageReleaseFunction(xl6IrTypeGet(&module->types, instruction->type)), place, NULL);
         xl6OutputPrintf(out, "    v%u = %s;\n", (unsigned)instruction->result, place);
         if (instruction->kind == XL6_IR_INSTR_PRODUCT_TAKE)
-            xl6OutputPrintf(out, "    %s = %s;\n", place,
-                element->cAbi == XL6_IR_C_ABI_MANAGED_STRING
-                    ? "(xlir_string){0}" : "NULL");
+            xl6OutputPrintf(out, "    %s = (%s){0};\n", place,
+                xl6IrCgenType(module,instruction->type));
     }
     return !xl6OutputHasFailed(out);
 }

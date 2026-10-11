@@ -50,6 +50,10 @@ XL6_IrOperandOwnership xl6IrRuntimeOperandOwnership(
      * New RuntimeOps must declare their input effects before verification. */
     case XL6_IR_RUNTIME_STRING_DUP:
     case XL6_IR_RUNTIME_STRING_COPY:
+    case XL6_IR_RUNTIME_NATIVE_VALUE_COPY:
+    case XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL:
+    case XL6_IR_RUNTIME_NATIVE_VALUE_BOX:
+    case XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED:
     case XL6_IR_RUNTIME_STRING_CONCAT:
     case XL6_IR_RUNTIME_STRING_EQUAL:
     case XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL:

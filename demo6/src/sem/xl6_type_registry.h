@@ -47,6 +47,7 @@ int xl6TypeRegistryAdd(
 );
 int xl6TypeRegistryAddBuiltins(XL6_TypeRegistry* registry);
 int xl6TypeRegistryIsBuiltinName(const char* name);
+int xl6TypeRegistryIsNativeValueAbi(XL6_TypeAbiId abi);
 const XL6_TypeInfo* xl6TypeRegistryFind(const XL6_TypeRegistry* registry, const char* name);
 const XL6_TypeInfo* xl6TypeRegistryFindId(
     const XL6_TypeRegistry* registry,

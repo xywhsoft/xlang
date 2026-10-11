@@ -33,6 +33,9 @@ static const XL6_BuiltinTypeSeed g_xl6BuiltinTypeSeeds[] = {
     {"c_vararg", NULL, 0, 0},
     {"string", "xrt.string", 0, 0}, {"bytes", "xrt.bytes", 0, 0},
     {"time", "xrt.time", 0, 0},
+#define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,...) {Name,Abi,0,0},
+#include "src/type/xl6_native_value_profiles.inc"
+#undef XL6_NATIVE_VALUE_PROFILE
     {"point", "xrt.pointer", 1, 1}, {"error", NULL, 0, 0},
     {"function", NULL, 0, 0}, {"var", NULL, 0, 0},
     {"type", "xrt.type", 0, 0},
@@ -61,6 +64,14 @@ int xl6TypeRegistryIsBuiltinName(const char* name)
             return 1;
         }
     }
+    return 0;
+}
+
+int xl6TypeRegistryIsNativeValueAbi(XL6_TypeAbiId abi)
+{
+#define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,...) if (abi==xl6TypeAbiIdText(Abi)) return 1;
+#include "src/type/xl6_native_value_profiles.inc"
+#undef XL6_NATIVE_VALUE_PROFILE
     return 0;
 }
 

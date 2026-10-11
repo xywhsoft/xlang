@@ -2,6 +2,16 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_native_value_ir.py --root <frozen-demo6>
+--public-directory <fresh-source-build> --out <fresh-output>` verifies direct
+owning native records through actual source, checked copies/projections,
+products, Value boxing and Set equality. It checks deterministic C, public JIT,
+strict O0/O2, genuine keys after map destruction and pre-output malformed IR
+refusal, complete diagnosticless/OOM prefixes and three compiled bad native
+implementations. This is synchronous ABI coverage, not full SlotMap, frame/cell/nullable,
+pruned shipping or full53 acceptance; see
+[native value IR](../docs/stdlib53-b210-native-value-ir.md).
+
 `check_stdlib_restore_open_native.py --root <frozen-demo6> --out <fresh-output>`
 checks the resident Open restoration foundation: declared clone isolation, fresh
 DynamicFields, atomic slot publication, exact keys, physical policy rejection,

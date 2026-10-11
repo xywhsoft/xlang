@@ -228,8 +228,12 @@ static XL6_IrRuntimeResourceAbi xl6IrRuntimeResourceAbiFromName(
     return XL6_IR_RUNTIME_RESOURCE_NONE;
 }
 
+#include "src/ir/xl6_ir_native_value.c"
+
 static XL6_IrCAbi xl6IrCAbiFromFrontend(XL6_TypeAbiId abiId, const char* canonicalName)
 {
+    if (xl6IrNativeValueAbiFromFrontend(abiId) != XL6_IR_NATIVE_VALUE_NONE)
+        return XL6_IR_C_ABI_NATIVE_VALUE;
     if ( canonicalName != NULL && strcmp(canonicalName, "void") == 0 ) return XL6_IR_C_ABI_VOID;
     if ( abiId == xl6TypeAbiIdText("xrt.bool") ) return XL6_IR_C_ABI_BOOL;
     if ( abiId == xl6TypeAbiIdText("xrt.char") ||
@@ -306,7 +310,7 @@ static XL6_IrOwnershipAbi xl6IrOwnershipAbiFromFrontend(
     XL6_TypeAbiId abiId, const char* canonicalName)
 {
     XL6_IrCAbi cAbi = xl6IrCAbiFromFrontend(abiId, canonicalName);
-    return (cAbi == XL6_IR_C_ABI_MANAGED_STRING || cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
+    return (cAbi == XL6_IR_C_ABI_NATIVE_VALUE || cAbi == XL6_IR_C_ABI_MANAGED_STRING || cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
             cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
             cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR || cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
             cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR ||
@@ -404,6 +408,10 @@ static const char* xl6IrTypeExpectedErrorResultCName(
 {
     size_t typeIndex;
     if ( pool == NULL || type == NULL ) return NULL;
+    if (type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE) {
+        const XL6_IrNativeValuePlan* plan=xl6IrNativeValuePlanForType(type);
+        return plan ? plan->errorResultCName : NULL;
+    }
     switch ( type->cAbi ) {
     case XL6_IR_C_ABI_BOOL: return "xlir_result_bool";
     case XL6_IR_C_ABI_I64: return "xlir_result_i64";
@@ -1321,6 +1329,8 @@ int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
     size_t i;
     if ( pool == NULL || type == NULL ) return 0;
     type->nativeProductAbi = XL6_IR_NATIVE_PRODUCT_NONE;
+    type->nativeValueAbi = xl6IrNativeValueAbiFromType(type);
+    if (type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE && !xl6IrNativeValuePlanForType(type)) return 0;
     if ( type->kind == XL6_IR_TYPE_TAGGED_ENUM ) {
         if ( type->returnCount != 0 ) return 0;
         type->cAbi = XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
@@ -12314,6 +12324,7 @@ int xl6IrTypeCanBoxRuntimeXValue(
     const XL6_IrType* type = module != NULL
         ? xl6IrTypeGet(&module->types, typeId) : NULL;
     if ( type == NULL || type->kind == XL6_IR_TYPE_PERSISTENCE_WIRE ) return 0;
+    if (xl6IrNativeValuePlanForType(type)) return 1;
     if ( type->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
          type->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE ) return 1;
     if ( type->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ) {
@@ -16774,6 +16785,9 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
     case XL6_IR_C_ABI_MANAGED_BYTES:
         return target->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
             ? XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED : XL6_IR_CAST_INVALID;
+    case XL6_IR_C_ABI_NATIVE_VALUE:
+        return xl6IrNativeValuePlanForType(target)
+            ? XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED : XL6_IR_CAST_INVALID;
     case XL6_IR_C_ABI_RAW_POINTER:
         return target->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
                target->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL
@@ -16833,6 +16847,7 @@ static XL6_IrErrorAbi xl6IrClassifyCastErrorAbi(
     case XL6_IR_CAST_XVALUE_TO_ERROR_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_UNION_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_CLOSURE_CHECKED:
+    case XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_STRING_TRY:
     case XL6_IR_CAST_TAGGED_NULLABLE_TO_VALUE_CHECKED:
     case XL6_IR_CAST_NULLABLE_POINTER_TO_MANAGED_CHECKED:
@@ -18741,7 +18756,8 @@ static int xl6IrEvaluationOperandMayRaise(
     if (node == NULL || depth > module->nodeCount) return 0;
     if (node->valueCategory != XL6_IR_VALUE_NONE && node->storageType != XL6_IR_TYPE_INVALID) {
         const XL6_IrType* type = xl6IrTypeGet(&module->types, node->storageType);
-        return (type != NULL && type->cAbi == XL6_IR_C_ABI_MANAGED_STRING) ||
+        return (type != NULL && (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
+            xl6IrNativeValuePlanForType(type) != NULL)) ||
             xl6IrTypeReleaseEffect(module, node->storageType) == XL6_IR_RELEASE_EFFECT_MAY_RAISE;
     }
     if (node->kind != XL6_IR_NODE_LIST && node->kind != XL6_IR_NODE_OTHER) return 0;
@@ -18765,7 +18781,7 @@ static XL6_IrErrorAbi xl6IrNodeEvaluationErrorAbi(
         const XL6_IrType* type = xl6IrTypeGet(&module->types, node->storageType);
         if (type != NULL &&
             (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
-             type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES))
+             type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES || xl6IrNativeValuePlanForType(type) != NULL))
             return XL6_IR_ERROR_ABI_MAY_RAISE;
     }
     if (node->implicitNameAbi == XL6_IR_IMPLICIT_NAME_CLASS_FIELD &&
@@ -20326,6 +20342,8 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeStringAllocationErrorPhysicalAbi(XL6_IrRu
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeBoxingErrorPhysicalAbi(XL6_IrRuntimeOp operation)
 {
     switch (operation) {
+    case XL6_IR_RUNTIME_NATIVE_VALUE_BOX:
+        return xl6IrRuntimeNativeValueErrorPhysicalAbi(operation);
     case XL6_IR_RUNTIME_XVALUE_BINARY_ADD:
     case XL6_IR_RUNTIME_XVALUE_BINARY_SUB:
     case XL6_IR_RUNTIME_XVALUE_BINARY_MUL:
@@ -20399,6 +20417,8 @@ XL6_IrRuntimeOp xl6IrAllocatingBoxOpForType(const XL6_IrModule* module, XL6_IrTy
         return XL6_IR_RUNTIME_XVALUE_FOREIGN_SCALAR;
     switch (type->cAbi) {
     case XL6_IR_C_ABI_I64: return XL6_IR_RUNTIME_XVALUE_I64;
+    case XL6_IR_C_ABI_NATIVE_VALUE:
+        return xl6IrNativeValuePlanForType(type) ? XL6_IR_RUNTIME_NATIVE_VALUE_BOX : XL6_IR_RUNTIME_NONE;
     case XL6_IR_C_ABI_U64: return XL6_IR_RUNTIME_XVALUE_U64;
     case XL6_IR_C_ABI_CHAR_U32: return XL6_IR_RUNTIME_XVALUE_CHAR;
     case XL6_IR_C_ABI_F32: case XL6_IR_C_ABI_F64: return XL6_IR_RUNTIME_XVALUE_F64;
@@ -20641,6 +20661,8 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
         xl6IrTypedCollectionErrorAbi(instruction->typedCollectionOp) == XL6_IR_ERROR_ABI_MAY_RAISE)
         return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
     stringAbi=xl6IrRuntimeFutureMetadataErrorPhysicalAbi(instruction->runtimeOp);
+    if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
+    stringAbi=xl6IrRuntimeNativeValueErrorPhysicalAbi(instruction->runtimeOp);
     if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     stringAbi = xl6IrRuntimeStringAllocationErrorPhysicalAbi(instruction->runtimeOp);
     if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
@@ -21203,7 +21225,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
                type->runtimeResourceAbi < XL6_IR_RUNTIME_RESOURCE_NONE ||
               type->runtimeResourceAbi > XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE ||
               type->cAbi < XL6_IR_C_ABI_UNSUPPORTED ||
-             type->cAbi > XL6_IR_C_ABI_MANAGED_BYTES ||
+             type->cAbi > XL6_IR_C_ABI_NATIVE_VALUE ||
              type->ownershipAbi < XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
              type->ownershipAbi > XL6_IR_OWNERSHIP_ABI_MANAGED ||
              type->callableErasureAbi < XL6_IR_CALLABLE_ERASURE_INVALID ||
@@ -21222,6 +21244,11 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
               (type->parameterModes != NULL || type->parameterAbis != NULL)) ||
                (type->returnCount != 0 && type->returns == NULL) ||
              !xl6IrTypeDisplayNameMatches(pool, type) ) return 0;
+        if (type->nativeValueAbi != xl6IrNativeValueAbiFromType(type) ||
+            ((type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE) !=
+             (type->nativeValueAbi != XL6_IR_NATIVE_VALUE_NONE)) ||
+            ((type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE) !=
+             (xl6IrNativeValuePlanForType(type) != NULL))) return 0;
         if ( type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_NONE ||
              type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_XRT_CLONE ||
              type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_CLASS_SCHEMA ) {
@@ -21792,6 +21819,7 @@ static int xl6IrTypeHasStorageReleaseAbiDepth(
     if ( pool == NULL || depth > pool->count || item == NULL ) return 0;
     if ( item->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL ) return 1;
     if ( item->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ) return 0;
+    if (xl6IrNativeValuePlanForType(item)) return 1;
     if ( item->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
          item->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
          item->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
@@ -21818,6 +21846,8 @@ static XL6_IrReleaseEffect xl6IrTypeReleaseEffectDepth(
     if (item == NULL || depth > module->types.count) return XL6_IR_RELEASE_EFFECT_INVALID;
     if (item->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL) return effect;
     if (item->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED) return XL6_IR_RELEASE_EFFECT_INVALID;
+    const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(item);
+    if (native) return native->releaseEffect;
     if (item->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
         item->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
         item->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR)
@@ -32432,7 +32462,8 @@ int xl6IrCallTargetParameterCanBorrowReadOnly(
         return 0;
     lifetime = &target->parameterLifetimes[parameter];
     type = xl6IrTypeGet(&module->types, target->parameterTypes[parameter]);
-    if ( type == NULL || type->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
+    if ( type == NULL ||
+         (type->cAbi != XL6_IR_C_ABI_MANAGED_STRING && !xl6IrNativeValuePlanForType(type)) ||
          lifetime->sourceSymbol == 0 || lifetime->rebindable )
         return 0;
     for ( capture = 0; capture < module->closureCaptureCount; ++capture )
@@ -32563,7 +32594,8 @@ static size_t xl6IrParameterEntryFailureIndex(const XL6_IrModule* module,
             block->firstInstruction + block->instructionCount - cursor < 3) return SIZE_MAX;
         type = xl6IrTypeGet(&module->types, target->parameterTypes[p]);
         if (type == NULL) return SIZE_MAX;
-        if (type->cAbi != XL6_IR_C_ABI_MANAGED_STRING) { cursor += 3; continue; }
+        if (type->cAbi != XL6_IR_C_ABI_MANAGED_STRING &&
+            !xl6IrNativeValuePlanForType(type)) { cursor += 3; continue; }
         test = &module->instructions[cursor + 2];
         if (test->kind != XL6_IR_INSTR_ERROR_TEST || test->trueTarget == 0 ||
             test->trueTarget > module->blockCount || test->falseTarget == 0 ||
@@ -32803,7 +32835,7 @@ invalid:
 
 /* BORROW describes the physical call edge, not the mutability of the source
  * binding.  A user function acquires an owner only where its verified lifetime
- * contract requires one; read-only string borrows retain the caller's lifetime.
+ * contract requires one; read-only immutable-value borrows retain the caller's lifetime.
  * Verify each required adaptation and terminal release here. */
 static int xl6IrVerifyBorrowedParameterOwnerAbi(
     const XL6_IrModule* module, const XL6_IrFunction* function,
@@ -32849,7 +32881,9 @@ static int xl6IrVerifyBorrowedParameterOwnerAbi(
             expectedRuntime = XL6_IR_RUNTIME_XVALUE_RETAIN;
         else if ( type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES )
             expectedRuntime = XL6_IR_RUNTIME_BYTES_RETAIN;
-        if (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING) {
+        else if (type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE)
+            expectedRuntime = XL6_IR_RUNTIME_NATIVE_VALUE_COPY;
+        if (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING || type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE) {
             const XL6_IrInstruction* test = &module->instructions[cursor++];
             const XL6_IrBlock* failure;
             size_t p, releases = 0, edges = 0, scan;
@@ -37516,7 +37550,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                   XL6_IR_OPERATOR_OPERAND_NULLABLE_UNWRAP_SCALAR_CONVERT ||
              node->castAbi < XL6_IR_CAST_INVALID ||
              node->castAbi >
-                 XL6_IR_CAST_NULL_TO_NULLABLE ||
+                 XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED ||
              node->castErrorAbi < XL6_IR_ERROR_ABI_INVALID ||
              node->castErrorAbi > XL6_IR_ERROR_ABI_MAY_RAISE ||
              node->implicitConversionRuntimeOp < XL6_IR_RUNTIME_NONE ||
@@ -38361,7 +38395,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         "XLIR instruction has an ambiguous generator item ABI");
                 }
                 if ( ((instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
-                       (instruction->runtimeOp == XL6_IR_RUNTIME_FUTURE_ALL_XVALUES ||
+                       ((xl6IrNativeValueInstructionPlan(module,instruction) &&
+                         instruction->runtimeOp != XL6_IR_RUNTIME_NATIVE_VALUE_COPY) ||
+                        instruction->runtimeOp == XL6_IR_RUNTIME_FUTURE_ALL_XVALUES ||
                          instruction->runtimeOp == XL6_IR_RUNTIME_FUTURE_RACE ||
                          instruction->runtimeOp ==
                              XL6_IR_RUNTIME_FUTURE_ALL_XVALUES_ARRAY ||
@@ -39340,6 +39376,13 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             return xl6IrDiag(diags,
                                 xl6IrNodeGet(module, instruction->origin),
                                  "XLIR persistence parse operation has no exact format, borrowed text, default class and owned result ABI");
+                    } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_COPY ||
+                                instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL ||
+                                instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_BOX ||
+                                instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED ) {
+                        if (!xl6IrNativeValueInstructionPlan(module,instruction))
+                            return xl6IrDiag(diags,xl6IrNodeGet(module,instruction->origin),
+                                "XLIR native value operation has no exact owning record ABI");
                     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_COPY ) {
                         const XL6_IrType* copied = xl6IrTypeGet(
                             &module->types, instruction->type);
@@ -43782,6 +43825,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             XL6_IR_RUNTIME_XVALUE_UNION_CAST_CHECKED ||
                         instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED ||
+                        instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED ||
                         instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_TAGGED ||
                         instruction->runtimeOp ==
@@ -43798,6 +43842,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             XL6_IR_RUNTIME_XVALUE_UNION_CAST_CHECKED &&
                         instruction->runtimeOp !=
                             XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED &&
+                        instruction->runtimeOp != XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED &&
                         instruction->runtimeOp !=
                             XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_TAGGED &&
                         instruction->runtimeOp !=
@@ -43811,7 +43856,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       instruction->castAbi != XL6_IR_CAST_INVALID) ||
                      instruction->castAbi < XL6_IR_CAST_INVALID ||
                      instruction->castAbi >
-                         XL6_IR_CAST_NULL_TO_NULLABLE )
+                         XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED )
                     return xl6IrDiag(diags, NULL,
                         "XLIR instruction has an ambiguous closed cast ABI");
                 if ( instruction->kind == XL6_IR_INSTR_BRANCH &&
@@ -45386,6 +45431,7 @@ static const char* xl6IrCastAbiName(XL6_IrCastAbi abi)
     switch ( abi ) {
     case XL6_IR_CAST_IDENTITY: return "identity";
     case XL6_IR_CAST_NULL_TO_NULLABLE: return "null-to-nullable";
+    case XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED: return "xvalue-to-native-value-checked";
     case XL6_IR_CAST_XVALUE_TO_BOOL_CHECKED:
         return "xvalue-to-bool-checked";
     case XL6_IR_CAST_XVALUE_TO_I64_CHECKED:
@@ -47090,6 +47136,10 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     switch ( runtimeOp ) {
     case XL6_IR_RUNTIME_STRING_DUP: return "string-dup";
     case XL6_IR_RUNTIME_STRING_COPY: return "string-copy";
+    case XL6_IR_RUNTIME_NATIVE_VALUE_COPY: return "native-value-copy";
+    case XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL: return "native-value-equal";
+    case XL6_IR_RUNTIME_NATIVE_VALUE_BOX: return "native-value-box";
+    case XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED: return "native-value-project-checked";
     case XL6_IR_RUNTIME_STRING_TO_F64_CHECKED: return "string-to-f64-checked";
     case XL6_IR_RUNTIME_STRING_TO_TIME_CHECKED: return "string-to-time-checked";
     case XL6_IR_RUNTIME_XVALUE_TO_TIME_CHECKED: return "xvalue-to-time-checked";
@@ -49200,7 +49250,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             if ( item != 0 ) xl6OutputPuts(",", out);
             xl6OutputPrintf(out, "%u", (unsigned int)type->params[item]);
         }
-        xl6OutputPrintf(out,"],\"persistenceRestoreScalarAbi\":%u,\"persistenceRestoreCarrierAbi\":%u,\"persistenceWireFormat\":%u,\"collectionCarrierAbi\":%u,\"collectionCarrierAbiName\":\"%s\","
+        xl6OutputPrintf(out,"],\"nativeValueAbi\":%u",(unsigned)type->nativeValueAbi);
+        xl6OutputPrintf(out,",\"persistenceRestoreScalarAbi\":%u,\"persistenceRestoreCarrierAbi\":%u,\"persistenceWireFormat\":%u,\"collectionCarrierAbi\":%u,\"collectionCarrierAbiName\":\"%s\","
             "\"sequenceLayout\":{\"abi\":%u,\"abiName\":\"%s\",\"role\":%u,\"elementType\":%u,\"baseElementType\":%u,"
             "\"slotAbi\":%u,\"slotAbiName\":\"%s\",\"codecAbi\":%u,\"codecAbiName\":\"%s\","
             "\"transferAbi\":%u,\"admissionAbi\":%u,\"nullable\":%s,"

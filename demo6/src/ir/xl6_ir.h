@@ -427,8 +427,18 @@ typedef enum XL6_IrCAbi {
     /* Language `bytes` is an owned XRT byte value.  The pointer-shaped carrier
      * deliberately remains distinct from an erased `var` xvalue: its runtime
      * tag, indexing element ABI and mutation rules are statically closed. */
-    XL6_IR_C_ABI_MANAGED_BYTES
+    XL6_IR_C_ABI_MANAGED_BYTES,
+    /* An immutable native owning record, never a POD tuple or handle. Its
+     * closed resident profile fixes copy/drop/equality and outcome contracts. */
+    XL6_IR_C_ABI_NATIVE_VALUE
 } XL6_IrCAbi;
+
+typedef enum XL6_IrNativeValueAbi {
+    XL6_IR_NATIVE_VALUE_NONE = 0,
+#define XL6_NATIVE_VALUE_PROFILE(Tag,...) XL6_IR_NATIVE_VALUE_##Tag,
+#include "src/type/xl6_native_value_profiles.inc"
+#undef XL6_NATIVE_VALUE_PROFILE
+} XL6_IrNativeValueAbi;
 
 /* Frontend-fixed ownership category.  Lowering must not rediscover whether a
  * type needs a destruction edge from its diagnostic spelling. */
@@ -708,6 +718,7 @@ typedef struct XL6_IrType {
      * enough to distinguish int8/uint8/.../int64 semantics. */
     XL6_IrIntegerTarget integerTarget;
     XL6_IrNativeProductAbi nativeProductAbi;
+    XL6_IrNativeValueAbi nativeValueAbi;
     XL6_IrNativeSlotAbi nativeSlotAbi;
     XL6_IrSequenceLayout sequenceLayout;
     /* Nonblocking queue transport uses this exact canonical Array<T> schema.
@@ -2053,8 +2064,28 @@ typedef enum XL6_IrRuntimeOp {
      * publishes a private initialized slot; write observes/copies its input. */
     XL6_IR_RUNTIME_DICT_READ_SLOT,
     XL6_IR_RUNTIME_DICT_SET_SLOT,
+    XL6_IR_RUNTIME_NATIVE_VALUE_COPY,
+    XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL,
+    XL6_IR_RUNTIME_NATIVE_VALUE_BOX,
+    XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
+
+/* A closed compiler/runtime contract, not a source callback or an inferred
+ * C spelling. One row owns both the synchronous value and checked-copy ABI. */
+typedef struct XL6_IrNativeValuePlan {
+    XL6_IrNativeValueAbi abi;
+    const char* abiName;
+    const char* cName;
+    const char* header;
+    const char* errorResultCName;
+    const char* copySymbol;
+    const char* dropSymbol;
+    const char* equalSymbol;
+    const char* boxSymbol;
+    const char* projectSymbol;
+    XL6_IrReleaseEffect releaseEffect;
+} XL6_IrNativeValuePlan;
 
 /* Canonical language identities for every stable XRT xvalue tag.  This table
  * is fixed at the Typed XLIR boundary; Cgen consumes the numeric identities
@@ -2264,7 +2295,8 @@ typedef enum XL6_IrCastAbi {
     /* Representation-preserving casts have no runtime type test. Exact
      * logical TypeIds (including generic arguments) remain mandatory. */
     XL6_IR_CAST_IDENTITY,
-    XL6_IR_CAST_NULL_TO_NULLABLE
+    XL6_IR_CAST_NULL_TO_NULLABLE,
+    XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED
 } XL6_IrCastAbi;
 
 /* One closed contract for managed T <-> T? representation. No inference from
@@ -7218,5 +7250,9 @@ int xl6IrCallErrorPhysicalUsesForeignScope(XL6_IrCallErrorPhysicalAbi abi);
 XL6_IrRuntimeOp xl6IrAllocatingBoxOpForType(const XL6_IrModule* module, XL6_IrTypeId type);
 void xl6IrDumpModuleText(XL6_Output* out, const XL6_IrModule* module);
 void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module);
+const XL6_IrNativeValuePlan* xl6IrNativeValuePlanForType(const XL6_IrType*);
+const XL6_IrNativeValuePlan* xl6IrNativeValueInstructionPlan(
+    const XL6_IrModule*, const XL6_IrInstruction*);
+XL6_IrCallErrorPhysicalAbi xl6IrRuntimeNativeValueErrorPhysicalAbi(XL6_IrRuntimeOp);
 
 #endif

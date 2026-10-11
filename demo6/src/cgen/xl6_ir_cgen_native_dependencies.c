@@ -334,6 +334,35 @@ static int xl6IrCgenVisitSequenceFactorySymbols(const XL6_IrModule* module,XL6_I
     return visitor(context,factory);
 }
 
+static int xl6IrCgenVisitNativeValueDrops(const XL6_IrModule* module,XL6_IrTypeId id,
+    XL6_IrCgenNativeModuleVisitor visitor,void* context)
+{
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
+    if (!type) return id==XL6_IR_TYPE_INVALID;
+    const XL6_IrNativeValuePlan* plan=xl6IrNativeValuePlanForType(type);
+    if (plan) return visitor(context,plan->dropSymbol);
+    if (type->cAbi!=XL6_IR_C_ABI_PRODUCT) return 1;
+    /* Products form a DAG, not a tree. Visit each type once: repeated child
+     * products must not cause exponential work or recurse on the C stack. */
+    unsigned char* seen=xrtCalloc(module->types.count,1);
+    XL6_IrTypeId* pending=xrtCalloc(module->types.count,sizeof(*pending));
+    bool ok=seen && pending; size_t count=0;
+    if (ok) { pending[count++]=id; seen[id-1]=1; }
+    for (size_t at=0;ok && at<count;++at) {
+        type=xl6IrTypeGet(&module->types,pending[at]);
+        plan=xl6IrNativeValuePlanForType(type);
+        if (plan) { ok=visitor(context,plan->dropSymbol)!=0; continue; }
+        if (type->cAbi!=XL6_IR_C_ABI_PRODUCT) continue;
+        if (type->paramCount && !type->params) { ok=false; break; }
+        for (size_t i=0;i<type->paramCount;++i) {
+            XL6_IrTypeId child=type->params[i];
+            if (!child || child>module->types.count) { ok=false; break; }
+            if (!seen[child-1]) { seen[child-1]=1; pending[count++]=child; }
+        }
+    }
+    xrtFree(pending); xrtFree(seen); return ok;
+}
+
 int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diags,
     const XL6_IrCgenOptions* options, XL6_IrCgenNativeModuleVisitor visitor, void* context)
 {
@@ -423,6 +452,20 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     }
     for (size_t i=0;i<module->instructionCount;++i) {
         const XL6_IrInstruction* instruction=&module->instructions[i];
+        /* Includes nested products; unused builtin registrations are not
+         * roots. Never recover these dependencies by scanning generated C. */
+        if (xl6IrCgenInstructionIsReachable(module,i) &&
+            !xl6IrCgenVisitNativeValueDrops(module,instruction->type,visitor,context)) return 0;
+        if (xl6IrCgenInstructionIsReachable(module,i) &&
+            instruction->kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            instruction->runtimeOp>=XL6_IR_RUNTIME_NATIVE_VALUE_COPY &&
+            instruction->runtimeOp<=XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED) {
+            const XL6_IrNativeValuePlan* plan=xl6IrNativeValueInstructionPlan(module,instruction);
+            if (!plan || !visitor(context,instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_VALUE_COPY ?
+                    plan->copySymbol : instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL ?
+                    plan->equalSymbol : instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_VALUE_BOX ?
+                    plan->boxSymbol : plan->projectSymbol)) return 0;
+        }
         XL6_IrTypeId queueId=xl6IrConcurrentQueueInstructionType(module,instruction);
         const char* listIterator=xl6IrCgenListIteratorCreateSymbol(module,instruction);
         if (listIterator && xl6IrCgenInstructionIsReachable(module,i) &&

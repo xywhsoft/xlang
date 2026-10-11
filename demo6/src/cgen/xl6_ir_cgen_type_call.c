@@ -118,6 +118,17 @@ static int xl6IrCgenEmitProductTypes(
     size_t typeIndex;
     int emitted = 0;
     int scalarCarriersIncluded = 0;
+    /* Native record declarations precede every product which may contain one.
+     * The native header owns layout and checked-result ABI; no duplicate body. */
+    for (typeIndex=0;typeIndex<module->types.count;++typeIndex) {
+        const XL6_IrType* type=&module->types.items[typeIndex];
+        if (type->cAbi != XL6_IR_C_ABI_NATIVE_VALUE ||
+            !xl6IrCgenTypeSelected(module,(XL6_IrTypeId)(typeIndex+1),selectedTypes)) continue;
+        const XL6_IrNativeValuePlan* plan=xl6IrNativeValuePlanForType(type);
+        if (!plan) return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,
+            "XLIR native value type has no closed resident ABI");
+        xl6OutputPrintf(out,"#include <%s>\n",plan->header);
+    }
     for ( typeIndex = 0; typeIndex < module->types.count; ++typeIndex ) {
         const XL6_IrType* product = &module->types.items[typeIndex];
         size_t elementIndex;
