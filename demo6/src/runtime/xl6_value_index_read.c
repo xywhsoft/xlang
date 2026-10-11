@@ -2,6 +2,7 @@
 #include "src/runtime/xl6_array_value_read.h"
 #include "src/runtime/xl6_list_value_read.h"
 #include "src/runtime/xl6_list.h"
+#include "src/runtime/xl6_dict.h"
 #include "src/api/xl_foreign_error.h"
 
 static xvalue* read(const xvalue* source,const xvalue* key)
@@ -14,11 +15,20 @@ static xvalue* read(const xvalue* source,const xvalue* key)
         if (list || xrtValueType(source)==XVALUE_INT_MAP) return xl6ListValueReadCopyV1(source,index);
         return xl6ArrayValueReadIfArrayCopyV1(source,index);
     }
-    if (xrtValueType(key)==XVALUE_STRING && xrtValueType(source)==XVALUE_OBJECT) {
+    if (xrtValueType(key)==XVALUE_STRING) {
         xstrview text;
         if (!xrtValueGetString(key,&text)) return NULL;
-        const xvalue* item=xrtValueObjectGet(source,text);
-        return xrtValueRetain(item ? item : xrtValueNull());
+        int dict=xl6DictErasedProbeV1(source);
+        if (dict<0) return NULL;
+        if (dict) {
+            xvalue* result=NULL; bool found=false;
+            if (!xl6DictErasedReadV1(source,text,false,&result,&found)) return NULL;
+            return found ? result : xrtValueRetain(xrtValueNull());
+        }
+        if (xrtValueType(source)==XVALUE_OBJECT) {
+            const xvalue* item=xrtValueObjectGet(source,text);
+            return xrtValueRetain(item ? item : xrtValueNull());
+        }
     }
     return xrtValueRetain(xrtValueNull());
 }

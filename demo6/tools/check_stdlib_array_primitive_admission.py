@@ -45,10 +45,10 @@ def main() -> int:
     if args.iterator:
         common += ["src/runtime/xl6_value_iterator.c","src/runtime/xl6_array_value_iterator.c"]
     if args.reads:
-        # Only open keyed reads need the genuine List implementation closure.
+        # Only open keyed reads need the genuine List/Dict dispatch closure.
         common[common.index("test/support/array_value_native.c")]="test/support/list_index_native.c"
         common += ["src/runtime/xl6_array_value_read.c","src/runtime/xl6_value_index_read.c",
-            "src/runtime/xl6_list_value_read.c","src/runtime/xl6_list.c","src/runtime/xl6_array_future_admission.c"]
+            "src/runtime/xl6_list_value_read.c","src/runtime/xl6_list.c","src/runtime/xl6_dict.c","src/runtime/xl6_array_future_admission.c"]
     if args.imports:
         common += ["src/runtime/xl6_array_import.c","src/runtime/xl6_array_input.c"]
     common.append('src/api/xl_foreign_error.c')

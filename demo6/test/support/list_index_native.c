@@ -1,6 +1,7 @@
 /* Actual open-index closure. Unlike the general List test closure it has no
- * Stack implementation: open Array/List reads must not retain that family. */
+ * Stack implementation: open Array/List/Dict indexing must not retain it. */
 #define XRUNTIME_MODULE_TYPED_LIST_VALUE
+#define XRUNTIME_MODULE_TYPED_DICT
 #define XRUNTIME_MODULE_TYPED_ARRAY_VALUE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_TYPE
 #define XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE
