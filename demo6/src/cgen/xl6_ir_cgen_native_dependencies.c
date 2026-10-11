@@ -489,7 +489,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             if (!xl6IrCgenInstructionIsReachable(module,i)) continue;
             if (!xl6IrConcurrentQueueInstructionCompatible(module,instruction)) return 0;
             const XL6_IrType* type=xl6IrTypeGet(&module->types,queueId);
-            const XL6_IrType* schema=xl6IrTypeGet(&module->types,type->concurrentQueueSchemaType);
+            const XL6_IrType* schema=xl6IrTypeGet(&module->types,type->messageSchemaType);
             if (!schema || !xl6IrCgenVisitSlotProviders(schema->sequenceLayout.slotAbi,
                     instruction->runtimeOp==XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH,visitor,context)) return 0;
             const char* prefix=xl6IrCgenConcurrentQueuePrefix(type->runtimeResourceAbi);
@@ -498,7 +498,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             if (!prefix || !method || snprintf(symbol,sizeof(symbol),"%s%s",prefix,method)<0 ||
                 !visitor(context,symbol)) return 0;
             if (instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&
-                !xl6IrCgenVisitSequenceFactorySymbols(module,type->concurrentQueueSchemaType,visitor,context,0,false)) return 0;
+                !xl6IrCgenVisitSequenceFactorySymbols(module,type->messageSchemaType,visitor,context,0,false)) return 0;
         }
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL) {
         if (xl6IrCgenInstructionIsReachable(module,i) &&

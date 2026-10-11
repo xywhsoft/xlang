@@ -80,7 +80,7 @@ def main():
         queues=[t for t in types if t['runtimeResourceAbiName']=='mpmc-queue']
         assert queues and all(t['name']=='MpmcQueue' for t in queues)
         concrete=[t for t in queues if t['params']]
-        assert len(concrete)==1 and len(concrete[0]['params'])==1 and concrete[0]['concurrentQueueSchemaType']
+        assert len(concrete)==1 and len(concrete[0]['params'])==1 and concrete[0]['messageSchemaType']
         assert not any(t['name'] in ('Queue','AvlTree') for t in types)
         assert any(t['name']=='OrderedMap' and t['runtimeResourceAbiName']=='avl-tree' for t in types)
         report['QueueAliasIdentity']=True

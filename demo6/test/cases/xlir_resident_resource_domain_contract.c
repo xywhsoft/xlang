@@ -55,7 +55,7 @@ int main(int argc,char** argv)
 #undef BAD
         XL6_IrType* base=&ir.types.items[original.baseElementType-1];
         XL6_IrTypeId* schema=original.abi==XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1 ?
-            &base->treeValueSchemaType : &base->concurrentQueueSchemaType;
+            &base->treeValueSchemaType : &base->messageSchemaType;
         XL6_IrTypeId saved=*schema; *schema=0; refused(&ir); *schema=saved; ++mutations;
         XL6_IrTypeId savedParam=type->params[0]; type->params[0]=(XL6_IrTypeId)(i+1);
         refused(&ir); type->params[0]=savedParam; ++mutations;

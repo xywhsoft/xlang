@@ -34,6 +34,14 @@ XL6_IrRuntimeResourcePayloadAbi xl6IrRuntimeResourcePayloadAbiForOwnerType(
     const XL6_IrModule* module,XL6_IrTypeId owner,XL6_IrTypeId payload)
 {
     const XL6_IrType* queue=module ? xl6IrTypeGet(&module->types,owner) : NULL;
+    if (queue && queue->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_CHANNEL) {
+        XL6_IrTypeId schemaId=XL6_IR_TYPE_INVALID;
+        if (!xl6IrChannelConstructionRecipe(module,owner,&schemaId,NULL))
+            return XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID;
+        const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
+        return schema && schema->sequenceLayout.elementType==payload ?
+            schema->sequenceLayout.transferAbi : XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID;
+    }
     if(queue && queue->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SLOT_MAP) {
         XL6_IrValueCollectionRecipe recipe={0};
         return xl6IrSlotMapConstructionRecipe(module,owner,&recipe) && recipe.elementType==payload
@@ -129,8 +137,8 @@ static int xl6IrGenericConcurrentQueueSignatureCompatible(const XL6_IrModule* mo
         !xl6IrRuntimeResourceAbiIsConcurrentQueue(queue->runtimeResourceAbi) ||
         queue->paramCount!=1 || !queue->params ||
         !xl6IrBuildTypeContainsTypeParam(module,queue->params[0],0) ||
-        !queue->concurrentQueueSchemaType || queue->concurrentQueueSchemaType!=
-            xl6IrConcurrentQueueSchemaTypeForType(&module->types,queue)) return 0;
+        !queue->messageSchemaType || queue->messageSchemaType!=
+            xl6IrMessageSchemaTypeForType(&module->types,queue)) return 0;
     const XL6_IrNode* declaration=xl6IrNodeGet(module,origin);
     size_t depth=0;
     while (declaration && declaration->kind!=XL6_IR_NODE_FUNC_DECL && ++depth<=module->nodeCount)
@@ -139,7 +147,7 @@ static int xl6IrGenericConcurrentQueueSignatureCompatible(const XL6_IrModule* mo
         (xl6IrBuildTypeContainsTypeParam(module,declaration->declarationOwnerType,0) ||
          xl6IrBuildTypeContainsTypeParam(module,declaration->storageType,0)) &&
         xl6IrConcurrentQueueLogicalSignature(module,operation,receiver,result,operands,count,
-            queue->concurrentQueueSchemaType,1);
+            queue->messageSchemaType,1);
 }
 
 static XL6_IrRuntimeResourceOp xl6IrConcurrentQueueResourceOperation(XL6_IrRuntimeOp op)

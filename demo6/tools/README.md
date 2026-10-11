@@ -2,6 +2,13 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_channel_recipes.py --root <frozen-demo6> --public-directory
+<fresh-source-build> --out <fresh-output>` verifies the closed Channel source
+schema and owned receive IR plan, rejected mutations, actual Cgen schema
+factories and private native result slots at O0/O2, plus legacy regressions.
+This is a prerequisite, not public recv/WaitQueue or shipping acceptance.
+See [Channel owned receive IR contract](../docs/stdlib53-b220-channel-ir.md).
+
 `check_stdlib_tree_owned_queries.py --root <frozen-demo6> --public-directory
 <fresh-source-build> --out <fresh-output>` verifies the twelve owned OrderedMap
 queries, exact nullable presence, generic keys/values, retired Into rejection,
