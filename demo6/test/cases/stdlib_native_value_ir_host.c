@@ -78,7 +78,13 @@ int main(int argc,char** argv)
         armed=false; bool hit=oom ? xrtMemDebugFailTriggered() : seen>faultAt;
         xrtMemDebugFailClear();
         assert(ok==!hit && code==(hit ? 1 : 0));
-        if (!oom) assert(!xrtGetError());
+        /* Existing no-diagnostic faults must stay quiet. A fixture may add
+         * an explicitly reported native result failure, which the checked
+         * entry intentionally preserves for its host to inspect. */
+#ifndef XL6_NATIVE_VALUE_REPORTED_FAILURE
+#define XL6_NATIVE_VALUE_REPORTED_FAILURE false
+#endif
+        if (!oom) assert((bool)xrtGetError()==(hit && XL6_NATIVE_VALUE_REPORTED_FAILURE));
         xrtClearError();
         /* Neither a failed projection nor a partially completed callee may
          * corrupt caller-owned input; retry the full source after each fault. */

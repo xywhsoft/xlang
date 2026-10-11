@@ -1,0 +1,23 @@
+func kept(SlotMapKey key) as SlotMapKey
+    return key
+end
+
+extern "xl6SlotMapKeyEqualV1" @pure @no_raise @nonblocking func nativeEqual(SlotMapKey left, SlotMapKey right) as bool
+extern "xl6SlotMapKeyCloneV1" @pure @nonblocking func nativeClone(SlotMapKey key) as SlotMapKey
+
+func main(...) as int
+    if arg.length == 0 then return 0 end
+    assert(arg.length == 3)
+    auto first = arg[0] as SlotMapKey
+    auto equal = arg[1] as SlotMapKey
+    auto other = arg[2] as SlotMapKey
+    assert(nativeEqual(first, equal) and not nativeEqual(first, other))
+    auto cloned = nativeClone(first)
+    assert(cloned == first and cloned != other)
+    assert(nativeEqual(nativeClone(cloned), cloned))
+    assert(kept(cloned) == first)
+    var boxed = cloned
+    auto projected = boxed as SlotMapKey
+    assert(projected == first)
+    return 0
+end

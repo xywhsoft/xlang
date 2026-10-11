@@ -10,6 +10,11 @@ value-only program executes without the optional key projection/hash/factory.
 Linux sanitizer covers these selected native closures, not public SlotMap,
 VFS or full53 shipping acceptance.
 
+`check_stdlib_native_value_ir.py --fixture stdlib_native_value_bridge.xl`
+adds closed owning-record extern contracts, direct native arguments/results,
+100 genuine-key public JIT rounds, 1000 strict C lifetimes per optimization and
+reported/unreported failure after acquiring a returned owner. Wrong typed IR
+contracts must reject before output. This is not public SlotMap completion.
 `check_stdlib_native_value_ir.py --fixture stdlib_native_value_collections.xl`
 adds typed Array/List/Set/Dict, nested/erased import and mutable Set identity
 coverage to the genuine-key host contract. Five compiled mutants include

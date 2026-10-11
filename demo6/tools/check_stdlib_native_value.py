@@ -64,7 +64,10 @@ def main():
             'equal=left==right; (void)content;'),
             ('record-set-content-omitted','src/runtime/xl6_set.c',
             'layout->value.transfer==XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 ? xl6SequenceNativeValuePolicyV1(&policy)->content : NULL;',
-            'layout->value.transfer==XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 ? NULL : NULL;')]
+            'layout->value.transfer==XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 ? NULL : NULL;'),
+            ('foreign-result-owner-omitted','src/runtime/xl6_slot_map_key_value.c',
+            '    return result;\n}\nbool xl6SlotMapKeyValueAdmitsV1',
+            '    xl6SlotMapKeyDropValueV1(result); return input;\n}\nbool xl6SlotMapKeyValueAdmitsV1')]
         for name,source,before,after in changes:
             body=(root/source).read_text(encoding='utf-8'); assert body.count(before)==1,name
             bad=out/(name+'.c'); bad.write_text(body.replace(before,after),encoding='utf-8'); obj=out/(name+'.o'); product=out/(name+suffix)

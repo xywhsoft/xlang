@@ -19985,6 +19985,26 @@ static int xl6SemIsCAbiPrimitiveProductReturns(XL6_SemContext* ctx,
     return 1;
 }
 
+static int xl6SemDeclaredNativeValueExternType(XL6_SemContext* ctx,
+    const XL6_AstNode* declaration,const XL6_AstNode* type)
+{
+    static const char* const names[]={
+#define XL6_NATIVE_VALUE_BRIDGE(Name,...) Name,
+#include "src/abi/xl6_native_value_contracts.inc"
+#undef XL6_NATIVE_VALUE_BRIDGE
+    };
+    if (!declaration || !declaration->text || !type || type->childCount) return 0;
+    const XL6_TypeInfo* info=xl6TypeRegistryFind(&ctx->types,type->text);
+    if (!info || info->kind!=XL6_TYPE_BUILTIN || !xl6TypeRegistryIsNativeValueAbi(info->abiId)) return 0;
+    const char* name=declaration->text; size_t size=strlen(name);
+    if (size>=2 && name[0]=='"' && name[size-1]=='"') { ++name; size-=2; }
+    for (size_t i=0;i<XL6_ARRAY_COUNT(names);++i)
+        if (size==strlen(names[i]) && !memcmp(name,names[i],size)) return 1;
+    /* Admission is closed; typed XLIR proves the exact profile/signature and
+     * effects. A source spelling or an arbitrary extern grants no ownership. */
+    return 0;
+}
+
 static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     XL6_AstNode* params;
@@ -20053,6 +20073,7 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
                  !xl6SemIsCAbiEnumType(ctx, typeNode) &&
                  !xl6SemIsCAbiTypedContainerType(ctx, typeNode) &&
                  !xl6SemIsCAbiOpaqueHandleParamType(ctx, typeNode) &&
+                 !xl6SemDeclaredNativeValueExternType(ctx,node,typeNode) &&
                  (typeNode->childCount > 0 ||
                   (!xl6SemIsCAbiParamType(typeNode->text) && !xl6SemIsCAbiRecordType(ctx, typeNode))) ) {
                 xl6SemErrorNode(ctx, typeNode, "parameter type cannot enter first-stage C ABI extern directly");
@@ -20095,6 +20116,7 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
               !xl6SemIsCAbiClassType(ctx, typeNode) &&
               !xl6SemIsCAbiEnumType(ctx, typeNode) &&
               !xl6SemIsCAbiTypedContainerType(ctx, typeNode) &&
+              !xl6SemDeclaredNativeValueExternType(ctx,node,typeNode) &&
               (typeNode->childCount > 0 ||
                (!xl6SemIsCAbiParamType(typeNode->text) && !xl6SemIsCAbiRecordType(ctx, typeNode)))) ) {
             xl6SemErrorNode(ctx, typeNode, "return type cannot enter first-stage C ABI extern directly");

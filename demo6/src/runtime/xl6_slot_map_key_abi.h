@@ -22,6 +22,8 @@ typedef struct xlir_result_slot_map_key_v1 {
 bool xl6SlotMapKeyCopyValueV1(XL6_SlotMapKeyV1, XL6_SlotMapKeyV1*);
 void xl6SlotMapKeyDropValueV1(XL6_SlotMapKeyV1);
 bool xl6SlotMapKeyEqualV1(XL6_SlotMapKeyV1, XL6_SlotMapKeyV1);
+/* Owned return over the standard C record ABI; input is only observed. */
+XL6_SlotMapKeyV1 xl6SlotMapKeyCloneV1(XL6_SlotMapKeyV1);
 struct xvalue;
 struct xvalue* xl6SlotMapKeyBoxV1(XL6_SlotMapKeyV1);
 bool xl6SlotMapKeyUnboxV1(const struct xvalue*, XL6_SlotMapKeyV1*);
