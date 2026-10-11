@@ -43,6 +43,15 @@ if errorlevel 1 exit /b 1
 call tools\build_xrt_obj.bat
 if errorlevel 1 exit /b 1
 
+rem Compile the resident Channel provider once for both DLL targets. Keeping
+rem this object in DLL_LINKS also covers locally supplied response templates.
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_channel.c -o "%XL6_BUILD_TMP%\xl6_channel.o"
+if errorlevel 1 (
+    echo DEMO6 DLL build failed: resident Channel provider compilation failed.
+    exit /b 1
+)
+set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_channel.o""
+
 if not exist "lib\lzma\LzmaDec.c" (
     echo DEMO6 xl.dll build failed: missing LZMA decoder source "lib\lzma\LzmaDec.c".
     exit /b 1

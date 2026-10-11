@@ -46,6 +46,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_queue_mpsc_admission.c',
     'src/runtime/xl6_queue_mpmc_admission.c',
     'src/runtime/xl6_queue_spsc.c','src/runtime/xl6_queue_mpsc.c','src/runtime/xl6_queue_mpmc.c',
+    'src/runtime/xl6_channel.c',
     'src/runtime/xl6_array_os_argv.c',
     'src/runtime/xl6_array_method_remove.c','src/runtime/xl6_value_contains.c','src/runtime/xl6_dynamic_collection.c',
     'src/runtime/xl6_array_default.c',

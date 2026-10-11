@@ -40,6 +40,7 @@
 #include "src/runtime/xl6_thread.h"
 #include "src/runtime/xl6_thread_admission.h"
 #include "src/runtime/xl6_concurrent_queue.h"
+#include "src/runtime/xl6_channel.h"
 #include "src/runtime/xl6_array_os_argv.h"
 #include "src/runtime/xl6_dynamic_collection.h"
 #include "src/runtime/xl6_value_contains.h"
