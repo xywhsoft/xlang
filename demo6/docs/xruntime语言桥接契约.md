@@ -177,11 +177,13 @@ channel 别名和旧 `Into` 形参仍待整体退役，不能用本节原生验�
 ## 非阻塞队列的闭合 XLIR schema（B131）
 
 `SpscQueue<T>`、`MpscQueue<T>`、`MpmcQueue<T>` 的 family 由
-`runtimeResourceAbi` 明确表示，`concurrentQueueSchemaType` 指向规范化的
+`runtimeResourceAbi` 明确表示，`messageSchemaType` 指向规范化的
 `Array<T>` 类型。该 schema 在 Typed XLIR 构建和泛型/类成员类型闭合时
 建立，不依赖源程序是否创建过数组；规范化调用复用同一 TypeId。
 队列自身不是 Array/Stack，`sequenceLayout` 不被伪造为容器 role。
-WaitQueue、可空队列 owner 和非队列类型没有这一字段的有效值。
+Channel 也建立同一规范消息类型字段，由独立 Channel 配方约束实际
+传输能力，见 [Channel 统一 IR 合同](stdlib53-b220-channel-ir.md)。
+WaitQueue、可空队列 owner 和无关类型没有这一字段的有效值。
 
 `xl6IrConcurrentQueueConstructionRecipe` 只在 owner、family、规范 schema、
 元素身份、完整 Sequence 布局与预计算 nominal admission set 都闭合时

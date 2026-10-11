@@ -135,7 +135,7 @@ def main():
                 owner = instruction['type'] if operation == 'special-queue-create' else definitions[instruction['operands'][0]]['type']
                 if types[owner]['runtimeResourceAbiName'] == 'wait-queue':
                     continue
-                assert types[owner]['concurrentQueueSchemaType'] and instruction['result']
+                assert types[owner]['messageSchemaType'] and instruction['result']
                 assert operation not in ('special-queue-try-pop-into', 'special-queue-pop-batch-into')
                 check = ir['instructions'][index + 1]
                 assert check['kindName'] == 'error-test' and check['operands'] == [instruction['result']], operation

@@ -65,7 +65,7 @@ static int xl6IrCgenRuntimeCallableAdapterDirectlyNeeded(
         XL6_IrTypeId queueId=xl6IrConcurrentQueueInstructionType(module,instruction);
         if (queueId) {
             const XL6_IrType* queue=xl6IrTypeGet(&module->types,queueId);
-            const XL6_IrType* schema=xl6IrTypeGet(&module->types,queue->concurrentQueueSchemaType);
+            const XL6_IrType* schema=xl6IrTypeGet(&module->types,queue->messageSchemaType);
             if (schema && schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1 &&
                 schema->sequenceLayout.baseElementType==type &&
                 instruction->runtimeOp==(reverse ? XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP :

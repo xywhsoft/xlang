@@ -49,7 +49,7 @@ int main(int argc, char** argv)
         XL6_IrRuntimeResourceAbi family; XL6_IrTypeId schemaId; XL6_IrNominalIdentitySetId set;
         if (!xl6IrConcurrentQueueConstructionRecipe(&ir,id,&family,&schemaId,&set)) {
             refused(&ir,id);
-            if (type->concurrentQueueSchemaType) ++pending;
+            if (type->messageSchemaType) ++pending;
             continue;
         }
         ++recipes; families|=1u<<(unsigned)(family-XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE);
@@ -59,10 +59,10 @@ int main(int argc, char** argv)
         layouts|=1u<<(unsigned)schema->sequenceLayout.abi;
         size_t before=ir.types.count;
         assert(xl6IrTypeInternArray(&ir.types,type->params[0])==schemaId && ir.types.count==before);
-        XL6_IrTypeId savedId=type->concurrentQueueSchemaType;
-        type->concurrentQueueSchemaType=XL6_IR_TYPE_INVALID;
+        XL6_IrTypeId savedId=type->messageSchemaType;
+        type->messageSchemaType=XL6_IR_TYPE_INVALID;
         refused(&ir,id); assert(!xl6IrVerifyModule(&ir,NULL)); ++mutations;
-        type->concurrentQueueSchemaType=savedId;
+        type->messageSchemaType=savedId;
         /* Prefer a physically identical slot/transfer with another logical
          * domain. Equal width or pointer carrier is not admission authority. */
         XL6_IrTypeId other=0;
@@ -76,9 +76,9 @@ int main(int argc, char** argv)
                 other=(XL6_IrTypeId)(n+1); ++sameSlot; break;
             }
         }
-        assert(other); type->concurrentQueueSchemaType=other;
+        assert(other); type->messageSchemaType=other;
         refused(&ir,id); assert(!xl6IrVerifyModule(&ir,NULL)); ++mutations;
-        type->concurrentQueueSchemaType=savedId;
+        type->messageSchemaType=savedId;
         XL6_IrSequenceLayout saved=schema->sequenceLayout;
 #define BAD(FIELD,VALUE) do { schema->sequenceLayout.FIELD=(VALUE); refused(&ir,id); \
     assert(!xl6IrVerifyModule(&ir,NULL)); schema->sequenceLayout=saved; ++mutations; } while(0)
@@ -113,16 +113,16 @@ int main(int argc, char** argv)
         assert(xl6IrCgenRuntimeSpecialQueueAbi(&ir,instruction)); ++creates;
         XL6_IrInstruction saved=*instruction;
         XL6_IrType* queue=&ir.types.items[instruction->type-1];
-        XL6_IrTypeId savedSchema=queue->concurrentQueueSchemaType;
+        XL6_IrTypeId savedSchema=queue->messageSchemaType;
         for (unsigned mode=0;mode<3;++mode) {
             if (mode==0) instruction->sequenceAdmissionIdentitySet=UINT32_MAX;
             else if (mode==1) instruction->runtimeResourcePayloadAbi=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID;
-            else queue->concurrentQueueSchemaType=XL6_IR_TYPE_INVALID;
+            else queue->messageSchemaType=XL6_IR_TYPE_INVALID;
             assert(!xl6IrVerifyModule(&ir,NULL));
             XL6_Output refusedOutput; assert(xl6OutputOpenMemory(&refusedOutput));
             assert(xl6IrCgenEmitSpecialQueueRuntime(&refusedOutput,&ir,instruction)<0);
             assert(refusedOutput.buffer.Size==0); xl6OutputDiscard(&refusedOutput);
-            *instruction=saved; queue->concurrentQueueSchemaType=savedSchema; ++instructionMutations;
+            *instruction=saved; queue->messageSchemaType=savedSchema; ++instructionMutations;
         }
     }
     assert(creates>=2 && xl6IrVerifyModule(&ir,NULL));
@@ -159,7 +159,7 @@ int main(int argc, char** argv)
         const char* projection=plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN ? "NULL" :
             xl6IrCgenNativeValueConverterExpr(&ir,plan->elementType);
         xl6OutputPuts("    { xvalue* schema=NULL;\n",&out);
-        assert(xl6IrCgenEmitSequenceCreateDepth(&out,&ir,schemaId,"schema",set,0,NULL,0,false)>0);
+        assert(xl6IrCgenEmitSequenceCreateDepth(&out,&ir,schemaId,"schema",set,0,NULL,0,false,true)>0);
         xl6OutputPrintf(&out,"    xvalue* queue=%sCreateTakeV1(0x%016llXULL,schema,8); assert(queue);\n"
             "    assert(%sQueryV1(queue,0x%016llXULL,XL6_QUEUE_QUERY_CAPACITY_V1)==8);\n",
             prefix,(unsigned long long)type->typeValueId,prefix,(unsigned long long)type->typeValueId);

@@ -1,0 +1,56 @@
+class ChannelRecipeItem
+    int value = 7
+end
+
+// Signatures alone must close message admission; no source Array is needed.
+func intChannel(channel<int> c) as (int, int?)
+    return 0, null
+end
+func boolChannel(channel<bool> c) as (int, bool?)
+    return 0, null
+end
+func u64Channel(channel<uint64> c) as (int, uint64?)
+    return 0, null
+end
+func f32Channel(channel<float32> c) as (int, float32?)
+    return 0, null
+end
+func charChannel(channel<char> c) as (int, char?)
+    return 0, null
+end
+func stringChannel(channel<string> c) as (int, string?)
+    return 0, null
+end
+func bytesChannel(channel<bytes> c) as (int, bytes?)
+    return 0, null
+end
+func varChannel(channel<var> c) as (int, var)
+    return 0, null
+end
+func nominalChannel(channel<ChannelRecipeItem> c) as (int, ChannelRecipeItem?)
+    return 0, null
+end
+func nullableIntChannel(channel<int?> c) as (int, int?)
+    return 0, null
+end
+func nullableBytesChannel(channel<bytes?> c) as (int, bytes?)
+    return 0, null
+end
+func nullableStringChannel(channel<string?> c) as (int, string?)
+    return 0, null
+end
+func nullableNominalChannel(channel<ChannelRecipeItem?> c) as (int, ChannelRecipeItem?)
+    return 0, null
+end
+func pendingChannel<T>(channel<T> c) as int
+    return 0
+end
+func unsupportedFuture(channel<future<int>> c) as int
+    return 0
+end
+func unsupportedClosure(channel<func(int) as int> c) as int
+    return 0
+end
+func unsupportedNativeRecord(channel<SlotMapKey> c) as int
+    return 0
+end

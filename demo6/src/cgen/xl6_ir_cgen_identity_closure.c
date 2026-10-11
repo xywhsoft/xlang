@@ -76,7 +76,7 @@ static int xl6IrCgenNominalIdentitySetUsed(
             if (recipe && (recipe->collectionAbi==XL6_IR_COLLECTION_LIST || recipe->collectionAbi==XL6_IR_COLLECTION_SET || recipe->collectionAbi==XL6_IR_COLLECTION_DICT))
                 recipe=xl6IrTypeGet(&module->types,recipe->collectionValueSchemaType);
             if (instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE && recipe)
-                recipe=xl6IrTypeGet(&module->types,recipe->concurrentQueueSchemaType);
+                recipe=xl6IrTypeGet(&module->types,recipe->messageSchemaType);
             for (size_t depth=0;recipe && depth<=64;++depth) {
                 if (recipe->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2 &&
                     recipe->sequenceLayout.baseElementType==set->targetType) return 1;

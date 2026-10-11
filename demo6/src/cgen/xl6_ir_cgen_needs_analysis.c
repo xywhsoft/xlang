@@ -558,10 +558,10 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                 if (queue->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE) needs->needsSpscQueueRuntime=1;
                 else if (queue->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE) needs->needsMpscQueueRuntime=1;
                 else needs->needsMpmcQueueRuntime=1;
-                const XL6_IrType* schema=xl6IrTypeGet(&module->types,queue->concurrentQueueSchemaType);
+                const XL6_IrType* schema=xl6IrTypeGet(&module->types,queue->messageSchemaType);
                 if (!schema) return 0;
                 if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&
-                    !xl6IrCgenAnalyzeSequenceRecipeNeeds(module,queue->concurrentQueueSchemaType,needs,0)) return 0;
+                    !xl6IrCgenAnalyzeSequenceRecipeNeeds(module,queue->messageSchemaType,needs,0)) return 0;
                 if (schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1) {
                     needs->needsXValueClosureBridgeRuntime=1;
                     needs->needsXValueClosureProjectionRuntime=1;

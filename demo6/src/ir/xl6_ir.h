@@ -728,11 +728,12 @@ typedef struct XL6_IrType {
     XL6_IrNativeValueAbi nativeValueAbi;
     XL6_IrNativeSlotAbi nativeSlotAbi;
     XL6_IrSequenceLayout sequenceLayout;
-    /* Nonblocking queue transport uses this exact canonical Array<T> schema.
-     * The family is runtimeResourceAbi (SPSC/MPSC/MPMC), not a spelling or a
-     * generic channel. NONE for WaitQueue, nullable owners and other types.
-     * The schema exists even when source never mentions an Array<T> value. */
-    XL6_IrTypeId concurrentQueueSchemaType;
+    /* Message transports share an exact canonical Array<T> admission domain.
+     * runtimeResourceAbi distinguishes SPSC/MPSC/MPMC from Channel. NONE for
+     * WaitQueue, nullable owners and unrelated types. This is immutable schema
+     * metadata, not Array storage or authority inferred from a pointer width.
+     * It exists even when source never mentions an Array<T> value. */
+    XL6_IrTypeId messageSchemaType;
     /* Tree owns two independently sealed canonical Array admission domains,
      * even when source never projects keys()/values(). No Array storage is
      * part of the Tree owner; these are immutable construction recipes. */
@@ -6946,6 +6947,41 @@ XL6_IrTypeId xl6IrTypeInternArray(XL6_IrTypePool*, XL6_IrTypeId elementType);
 int xl6IrConcurrentQueueConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrRuntimeResourceAbi* familyOut, XL6_IrTypeId* schemaOut,
     XL6_IrNominalIdentitySetId* admissionSetOut);
+/* Resident Channel V1 uses direct trivial/string/xvalue transfers only.
+ * Unsupported concrete and dependent schemas fail without publishing outputs.
+ * This prerequisite does not authorize legacy Into calls as owned receives. */
+int xl6IrChannelConstructionRecipe(const XL6_IrModule*,XL6_IrTypeId,
+    XL6_IrTypeId* schemaOut,XL6_IrNominalIdentitySetId* admissionSetOut);
+typedef enum XL6_IrChannelReceiveKind {
+    XL6_IR_CHANNEL_RECEIVE_INVALID=0,
+#define XL6_CHANNEL_RECEIVE_OP(Id,...) XL6_IR_CHANNEL_RECEIVE_##Id,
+#include "src/abi/xl6_channel_receive_ops.inc"
+#undef XL6_CHANNEL_RECEIVE_OP
+} XL6_IrChannelReceiveKind;
+typedef struct XL6_IrChannelReceiveSpec {
+    XL6_IrChannelReceiveKind kind;
+    const char* name;
+    unsigned int waitMode;
+    bool timed;
+} XL6_IrChannelReceiveSpec;
+typedef struct XL6_IrChannelReceivePlan {
+    const XL6_IrChannelReceiveSpec* spec;
+    XL6_IrTypeId ownerType,schemaType,elementType,resultType,resultValueType;
+    XL6_IrNominalIdentitySetId admissionIdentitySet;
+    XL6_IrRuntimeResourcePayloadAbi transferAbi;
+    XL6_IrNativeSlotAbi slotAbi;
+    XL6_IrErrorAbi errorAbi;
+    XL6_IrCallErrorPhysicalAbi errorPhysicalAbi;
+    bool valueTagged;
+} XL6_IrChannelReceivePlan;
+const XL6_IrChannelReceiveSpec* xl6IrChannelReceiveSpec(XL6_IrChannelReceiveKind);
+const XL6_IrChannelReceiveSpec* xl6IrChannelReceiveMethod(const char*);
+/* One owning optional carrier. When T already admits null, reuse T unchanged;
+ * status, not nested optional tags or NULL, distinguishes successful null. */
+int xl6IrChannelReceivePlanBuild(const XL6_IrModule*,XL6_IrChannelReceiveKind,
+    XL6_IrTypeId owner,XL6_IrTypeId result,XL6_IrChannelReceivePlan*);
+int xl6IrChannelReceiveSignatureCompatible(const XL6_IrModule*,XL6_IrChannelReceiveKind,
+    XL6_IrTypeId owner,XL6_IrTypeId result,const XL6_IrTypeId*,size_t);
 int xl6IrConcurrentQueueSignatureCompatible(const XL6_IrModule*,XL6_IrRuntimeResourceOp,
     XL6_IrTypeId receiver,XL6_IrTypeId result,const XL6_IrTypeId*,size_t count);
 XL6_IrTypeId xl6IrConcurrentQueueInstructionType(const XL6_IrModule*,const XL6_IrInstruction*);
