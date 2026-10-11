@@ -70,6 +70,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_dict_schema.c',
     'src/runtime/xl6_dict_value_index.c',
     'src/runtime/xl6_dict_methods.c',
+    'src/runtime/xl6_dict_import_chain.c',
     'src/runtime/xl6_dict_graph.c','src/runtime/xl6_dict_value_iterator.c',
     'src/runtime/xl6_list_methods.c',
     'src/runtime/xl6_list_value_iterator.c',

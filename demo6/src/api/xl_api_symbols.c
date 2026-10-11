@@ -63,6 +63,7 @@
 #include "src/runtime/xl6_list_value_read.h"
 #include "src/runtime/xl6_dict_value_index.h"
 #include "src/runtime/xl6_dict_methods.h"
+#include "src/runtime/xl6_dict_import_chain.h"
 #include "src/runtime/xl6_list_typed_read.h"
 #include "src/runtime/xl6_list_value_write.h"
 #include "src/runtime/xl6_list_algebra.h"

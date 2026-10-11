@@ -71,6 +71,7 @@
 - [Dict 动态索引与拥有边界](stdlib53-b197-dict-index.md)：原生 Dict 接通生成代码的动态索引、精确键和 checked 拥有合同；静态工厂、直接槽和恢复继续。
 - [Dict 静态索引与精确键合同](stdlib53-b198-dict-exact-index.md)：静态键、计算键和赋值统一驻留 owned／checked 索引，拒绝旧 literal 指令；原生工厂、直接槽和恢复继续。
 - [Dict 原生语言工厂与驻留方法](stdlib53-b199-dict-source.md)：字面量、默认值、命名参数包与方法／代数迁移原生所有者；直接槽、递归导入、恢复和发布总门继续。
+- [Dict 精确键递归导入与原生恢复](stdlib53-b200-dict-import.md)：共享事务接通 Dict 原生文本键导入／恢复；语言 IR 配方及发布总门仍待接入。
 - [List 方法接入与集合异常合同](stdlib53-b174-list-methods-language.md)：checked 驻留方法、may-raise 和真实 C/JIT/continuation 验证；工厂、动态分发及恢复仍待切换。
 - [List 元素准入与目标构造合同](stdlib53-b173-list-target-recipes.md)：XLIR 精确元素 witness、泛型闭包和目标工厂；错误元数据与分配/作用域失败批处理验证，源载体尚未切换。
 - [List 原生动态方法与快照迭代](stdlib53-b172-list-erased-native.md)：复用 typed List 存储与游标，checked 动态方法、完整稀疏键和单步拥有投影；语言载体切换仍待完成。
