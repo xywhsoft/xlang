@@ -661,10 +661,10 @@ static int xl6IrCgenEmitCollectionAlgebraInstruction(
         function = "xl6ListValueWithoutKeyV1";
         break;
     case XL6_IR_RUNTIME_XVALUE_DICT_MERGE_RIGHT:
-        function = "xlir_xvalue_dict_merge_right";
+        function = "xl6DictValueMergeRightV1";
         break;
     case XL6_IR_RUNTIME_XVALUE_DICT_WITHOUT_STRING_KEY:
-        function = "xlir_xvalue_dict_without_string_key";
+        function = "xl6DictValueWithoutKeyV1";
         break;
     case XL6_IR_RUNTIME_XVALUE_SET_UNION:
     case XL6_IR_RUNTIME_XVALUE_SET_INTERSECTION:

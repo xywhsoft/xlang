@@ -1,0 +1,11 @@
+dict<int> source = {"a\0b": 7, "a": 2}
+dict<int> other = {"a\0b": 9, "next": 3}
+dict<int> independent = copy(source)
+assert(independent.remove("a") and source.length == 2)
+assert(source.reserve(32) and source.capacity() >= 32 and source.trim())
+dict<int> merged = source + other
+assert(merged["a\0b"] == 9 and source["a\0b"] == 7)
+dict<int> reduced = merged - "a\0b"
+assert(not reduced.contains("a\0b") and reduced.length == 2)
+assert(int(reduced.take("a")) == 2)
+assert(reduced.clear() and reduced.length == 0)

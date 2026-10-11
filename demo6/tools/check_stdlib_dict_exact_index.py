@@ -150,16 +150,19 @@ def main():
                 run(opt+'-module-pruned-build',[cc,*full,'-'+opt,'-include',generated,
                     root/'test/cases/xlir_module_product_oom_host.c',memory,*selected,*systems,'-o',binary])
                 assert 'balanced' in run(opt+'-module-pruned-run',[binary]); products.append(dict(Path=str(binary),Sha256=sha(binary)))
-                extra=['src/runtime/xl6_array_primitive_admission.c','src/runtime/xl6_value_admission.c','src/runtime/xl6_string_type.c']
+                needed=['src/runtime/xl6_array_primitive_admission.c','src/runtime/xl6_value_admission.c','src/runtime/xl6_string_type.c']
+                extra=[source for source in needed if source not in plan['Sources']]
+                report['PrunedNativeInputRequiredSources']=needed
                 report['PrunedNativeInputTestOnlySources']=extra
-                report['PrunedNativeInputTestOnlyModules']=['XRUNTIME_MODULE_RUNTIME_TYPE_STRING']
+                extra_modules=[] if 'XRUNTIME_MODULE_RUNTIME_TYPE_STRING' in plan['NativeModules'] else ['XRUNTIME_MODULE_RUNTIME_TYPE_STRING']
+                report['PrunedNativeInputTestOnlyModules']=extra_modules
                 for i,source in enumerate(extra):
-                    assert source not in plan['Sources']; obj=out/(opt+'-test-input-'+str(i)+'.o')
+                    obj=out/(opt+'-test-input-'+str(i)+'.o')
                     run(opt+'-test-input-compile-'+str(i),[cc,*full,'-'+opt,'-c',root/source,'-o',obj]); selected.append(obj)
                     objects.append(dict(Path=str(obj),Sha256=sha(obj)))
                 input_native=out/(opt+'-test-input-native.c'); input_object=out/(opt+'-test-input-native.o')
-                input_native.write_text(''.join('#define '+m+'\n' for m in plan['NativeModules'])+
-                    '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_MODULE_RUNTIME_TYPE_STRING\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
+                input_native.write_text(''.join('#define '+m+'\n' for m in plan['NativeModules']+extra_modules)+
+                    '#define XRT_MODULE_MEMORY_DEBUG\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf-8')
                 run(opt+'-test-input-native',[cc,*full,'-'+opt,'-c',input_native,'-o',input_object]); selected[0]=input_object
                 objects.append(dict(Path=str(input_object),Sha256=sha(input_object)))
                 binary=out/('language-pruned-'+opt+('.exe' if os.name=='nt' else ''))

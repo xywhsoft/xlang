@@ -143,7 +143,8 @@ def main():
                 assert all(n+'(' in body for n in ('xl6ValueContainsV1','xl6ValueIndexReadCopyV1','xl6ValueIndexSetTakeV1'))
                 assert 'xl6ListCreateTakeV1(' in body and 'xrtValueIntMap()' not in body
             else:
-                assert 'xl6ValueWireContainsV1(' in body and 'xl6ValueContainsV1(' not in body
+                assert 'xl6DictValueHasV1(' in body and 'xl6SetValueHasV1(' in body
+                assert 'xl6ValueWireContainsV1(' not in body and 'xl6ValueContainsV1(' not in body
             for level in (0,2):
                 lane=tag+'.O'+str(level); memory_obj=out/(lane+'.memory.o'); native=out/(lane+suffix)
                 run(lane+'.memory',[cc,*flags,'-O'+str(level),'-c',memory,'-o',memory_obj])

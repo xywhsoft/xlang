@@ -60,6 +60,7 @@ static int xl6IrCgenNominalIdentitySetUsed(
         if (instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||
             instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE ||
             instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ||
+            instruction->runtimeOp==XL6_IR_RUNTIME_DICT_CREATE ||
             instruction->runtimeOp==XL6_IR_RUNTIME_LIST_IMPORT_CHAIN ||
             instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_SET_NEW ||
             instruction->runtimeOp==XL6_IR_RUNTIME_SET_IMPORT_CHAIN ||

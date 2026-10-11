@@ -47,7 +47,9 @@ int main(int argc,char** argv)
     for (size_t i=0;i<sizeof(required)/sizeof(required[0]);++i) assert(!xl6ArtifactRuntimeSetHas(&plan.components,required[i]));
     assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_TYPED));
     assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_METHODS_FIND));
-    assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_VALUE_WIRE_CONTAINS));
+    assert(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_VALUE_WIRE_CONTAINS));
+    assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_DICT_METHODS));
+    assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_DICT_NATIVE));
     xl6CompileUnitFree(&unit);
     puts("Actual List var-index, Array and Set/Dict-only query plans verified"); return 0;
 }
