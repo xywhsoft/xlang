@@ -217,7 +217,7 @@ static XL6_IrRuntimeResourceAbi xl6IrRuntimeResourceAbiFromName(
     if ( strcmp(canonicalName, "Stack") == 0 )
         return XL6_IR_RUNTIME_RESOURCE_STACK;
     if (strcmp(canonicalName,"SlotMap")==0) return XL6_IR_RUNTIME_RESOURCE_SLOT_MAP;
-    if ( strcmp(canonicalName, "AvlTree") == 0 )
+    if ( strcmp(canonicalName, "OrderedMap") == 0 )
         return XL6_IR_RUNTIME_RESOURCE_AVL_TREE;
     if ( strcmp(canonicalName, "SpscQueue") == 0 )
         return XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE;
@@ -7283,7 +7283,7 @@ static const XL6_IrNode* xl6IrBuildPersistenceGenericTarget(
     return name;
 }
 
-/* AvlTree is the first runtime resource with two independent generic
+/* OrderedMap is the first runtime resource with two independent generic
  * contracts.  Read the pair only while Typed XLIR still owns source shape;
  * later phases receive the two TypeIds as explicit resource metadata. */
 static const XL6_IrNode* xl6IrBuildRuntimeResourceGenericPair(
@@ -11068,6 +11068,7 @@ xl6IrRuntimeResourceKeyOrderAbiForType(
 static XL6_IrRuntimeResourceAbi xl6IrSpecialQueueAbiForName(
     const char* name)
 {
+    name = xl6TypeCanonicalBuiltinName(name);
     if ( name == NULL ) return XL6_IR_RUNTIME_RESOURCE_NONE;
     if ( strcmp(name, "SpscQueue") == 0 )
         return XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE;
@@ -11131,7 +11132,7 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
          resource->params[0] == genericPayload )
         return XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE;
     if ( genericPairName != NULL && genericPairName->text != NULL &&
-         strcmp(genericPairName->text, "AvlTree") == 0 &&
+         strcmp(genericPairName->text, "OrderedMap") == 0 &&
          resource != NULL &&
          resource->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_AVL_TREE &&
          resource->kind == XL6_IR_TYPE_GENERIC_INSTANCE &&
@@ -42835,17 +42836,17 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              (mayRaise && !xl6IrNodeRequiresThrowExitPlan(
                                  module, instruction->origin)) )
                             return xl6IrDiag(diags, NULL,
-                                "XLIR runtime AvlTree operation has no exact key, value, order, ownership or failure ABI");
+                                "XLIR runtime OrderedMap operation has no exact key, value, order, ownership or failure ABI");
                         if ( creates ) {
                             if ( instruction->result ==
                                      XL6_IR_VALUE_INVALID ||
                                  instruction->operandCount != 0 ||
                                  instruction->sequenceAdmissionIdentitySet!=valueConstructionSet )
                                 return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime AvlTree create has no exact owned result ABI");
+                                    "XLIR runtime OrderedMap create has no exact owned result ABI");
                         } else if ( left == NULL || left->type != treeTypeId ) {
                             return xl6IrDiag(diags, NULL,
-                                "XLIR runtime AvlTree member has no exact borrowed receiver ABI");
+                                "XLIR runtime OrderedMap member has no exact borrowed receiver ABI");
                         } else if ( instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_SET ) {
                             if ( instruction->operandCount != 3 ||
@@ -42855,7 +42856,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  resultType == NULL ||
                                  resultType->cAbi != XL6_IR_C_ABI_BOOL )
                                 return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime AvlTree set has no exact key, copied value or boolean result ABI");
+                                    "XLIR runtime OrderedMap set has no exact key, copied value or boolean result ABI");
                         } else if ( instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_GET_INTO ||
                                     instruction->runtimeOp ==
@@ -42876,7 +42877,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  resultType == NULL ||
                                  resultType->cAbi != XL6_IR_C_ABI_BOOL )
                                 return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime AvlTree get/take has no exact key, value storage or boolean result ABI");
+                                    "XLIR runtime OrderedMap get/take has no exact key, value storage or boolean result ABI");
                         } else if ( instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_CONTAINS ||
                                     instruction->runtimeOp ==
@@ -42886,7 +42887,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  resultType == NULL ||
                                  resultType->cAbi != XL6_IR_C_ABI_BOOL )
                                 return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime AvlTree key operation has no exact key or boolean result ABI");
+                                    "XLIR runtime OrderedMap key operation has no exact key or boolean result ABI");
                         } else if ( instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_FIRST_INTO ||
                                     instruction->runtimeOp ==
@@ -42917,7 +42918,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  resultType == NULL ||
                                  resultType->cAbi != XL6_IR_C_ABI_BOOL )
                                 return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime AvlTree endpoint has no exact key/value storage or boolean result ABI");
+                                    "XLIR runtime OrderedMap endpoint has no exact key/value storage or boolean result ABI");
                         } else if ( instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_LOWER_BOUND_INTO ||
                                     instruction->runtimeOp ==
@@ -42949,7 +42950,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  resultType == NULL ||
                                  resultType->cAbi != XL6_IR_C_ABI_BOOL )
                                 return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime AvlTree bound has no exact search key, output storage or boolean result ABI");
+                                    "XLIR runtime OrderedMap bound has no exact search key, output storage or boolean result ABI");
                         } else if ( instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_TRIM_TO ) {
                             if ( instruction->operandCount != 2 ||
@@ -42959,7 +42960,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  resultType->integerTarget !=
                                      XL6_IR_INTEGER_TARGET_SIGNED_64 )
                                 return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime AvlTree trimTo has no exact capacity or signed result ABI");
+                                    "XLIR runtime OrderedMap trimTo has no exact capacity or signed result ABI");
                         } else if ( instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_EQUALS ) {
                             if ( instruction->operandCount != 2 ||
@@ -42967,7 +42968,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  resultType == NULL ||
                                  resultType->cAbi != XL6_IR_C_ABI_BOOL )
                                 return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime AvlTree equals has no exact peer or boolean result ABI");
+                                    "XLIR runtime OrderedMap equals has no exact peer or boolean result ABI");
                         } else if ( instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_MERGE ) {
                             if ( instruction->operandCount != 3 ||
@@ -42977,14 +42978,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  resultType == NULL ||
                                  resultType->cAbi != XL6_IR_C_ABI_BOOL )
                                 return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime AvlTree merge has no exact peer, explicit overwrite or boolean result ABI");
+                                    "XLIR runtime OrderedMap merge has no exact peer, explicit overwrite or boolean result ABI");
                         } else if ( instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_CLEAR ) {
                             if ( instruction->operandCount != 1 ||
                                  instruction->result == XL6_IR_VALUE_INVALID ||
                                  resultType == NULL || resultType->cAbi != XL6_IR_C_ABI_BOOL )
                                 return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime AvlTree clear has no checked hidden status ABI");
+                                    "XLIR runtime OrderedMap clear has no checked hidden status ABI");
                         } else if ( instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_COUNT ||
                                     instruction->runtimeOp ==
@@ -42994,7 +42995,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  resultType->integerTarget !=
                                      XL6_IR_INTEGER_TARGET_SIGNED_64 )
                                 return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime AvlTree count/trim has no exact signed result ABI");
+                                    "XLIR runtime OrderedMap count/trim has no exact signed result ABI");
                         } else if ( instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_KEYS ||
                                     instruction->runtimeOp ==
@@ -43022,7 +43023,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  resultType->params == NULL ||
                                  resultType->params[0] != elementType )
                                 return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime AvlTree key/value projection has no exact owned array result ABI");
+                                    "XLIR runtime OrderedMap key/value projection has no exact owned array result ABI");
                         } else if ( instruction->runtimeOp ==
                                         XL6_IR_RUNTIME_AVL_TREE_CLONE ) {
                             if ( instruction->operandCount != 1 ||
@@ -43030,10 +43031,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                      XL6_IR_VALUE_INVALID ||
                                  instruction->type != treeTypeId )
                                 return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime AvlTree clone has no exact owned tree result ABI");
+                                    "XLIR runtime OrderedMap clone has no exact owned tree result ABI");
                         } else {
                             return xl6IrDiag(diags, NULL,
-                                "XLIR runtime AvlTree operation is outside the verified member ABI");
+                                "XLIR runtime OrderedMap operation is outside the verified member ABI");
                         }
                     } else if ( xl6IrRuntimeSyncOpIs(instruction->runtimeOp) ) {
                         int creates = xl6IrRuntimeSyncOpCreates(

@@ -1,0 +1,17 @@
+func identity(Queue<string> input) as MpmcQueue<string>
+    return input
+end
+func main(...) as int
+    Queue<string> general = Queue::<string>(4)
+    MpmcQueue<string> explicit = identity(general)
+    Queue<string> alias = explicit
+    assert(alias.tryPush("a\0b") == queueStatus.ok)
+    auto status, item = general.tryPop()
+    assert(status == queueStatus.ok and item != null and item == "a\0b")
+    auto missing, absent = explicit.tryPop()
+    assert(missing == queueStatus.empty and absent == null)
+    general.close()
+    assert(alias.isClosed() and explicit.isDrained())
+    assert(alias.reset() and !general.isClosed())
+    return 0
+end

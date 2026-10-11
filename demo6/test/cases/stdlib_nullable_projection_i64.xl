@@ -1,7 +1,7 @@
 func main(...) as int
     int? first = -9223372036854775808
     int? second = 9223372036854775807
-    AvlTree<int, int?> tree = AvlTree::<int, int?>()
+    OrderedMap<int, int?> tree = OrderedMap::<int, int?>()
     assert(tree.set(1, null) and tree.set(2, first) and tree.set(3, second))
     array<int?> values = tree.values()
     assert(values.length == 3 and values[0] == null and values[1] == first and values[2] == second)

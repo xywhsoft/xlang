@@ -15,7 +15,7 @@ $classDefaultC = Join-Path $root "build\tmp\xlir_avl_class_default_abi.c"
 
 foreach ( $path in @($xl, $source, $classDefaultSource, $hostSource) ) {
     if ( ! (Test-Path -LiteralPath $path -PathType Leaf) ) {
-        throw "missing XLIR AvlTree resource gate input: $path"
+        throw "missing XLIR OrderedMap resource gate input: $path"
     }
 }
 New-Item -ItemType Directory -Force (Join-Path $root "build\tmp") | Out-Null
@@ -35,12 +35,12 @@ function Assert-Storage-Ref($module, $operand, [int]$payloadType, [string]$label
     if ( $operand.abiName -ne "storage-ref" -or $null -eq $referenceType -or
          $referenceType.params.Count -ne 1 -or
          $referenceType.params[0] -ne $payloadType ) {
-        throw "XLIR AvlTree $label lost its exact storage-ref ABI"
+        throw "XLIR OrderedMap $label lost its exact storage-ref ABI"
     }
 }
 
 & $xl ir $source --format json --emit $typedJson
-if ( $LASTEXITCODE -ne 0 ) { throw "XLIR AvlTree Typed IR failed" }
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR OrderedMap Typed IR failed" }
 $typed = Read-Json $typedJson
 
 $treeTypes = @($typed.types | Where-Object {
@@ -50,7 +50,7 @@ if ( $treeTypes.Count -ne 3 -or @($treeTypes | Where-Object {
         $_.kind -ne 6 -or $_.cAbi -ne 26 -or $_.ownershipAbi -ne 2 -or
         $_.nullAbi -ne 2 -or $_.typeValueId -eq "0x0000000000000000"
     }).Count -ne 0 ) {
-    throw "XLIR AvlTree<K,V> types lost exact managed xvalue identities"
+    throw "XLIR OrderedMap<K,V> types lost exact managed xvalue identities"
 }
 
 $resourceInitializers = @($typed.valueInitializers | Where-Object {
@@ -64,7 +64,7 @@ if ( $resourceInitializers.Count -ne 1 -or
      $resourceInitializers[0].runtimeResourceKeyOrderAbiName -ne "string" -or
      $resourceInitializers[0].runtimeResourcePayloadAbiName -ne "trivial-copy" -or
      $resourceInitializers[0].errorAbiName -ne "may-raise" ) {
-    throw "XLIR default AvlTree<K,V> declaration has no exact key/value/effect ABI"
+    throw "XLIR default OrderedMap<K,V> declaration has no exact key/value/effect ABI"
 }
 $resourceFields = @($typed.classFields | Where-Object {
     $_.initializerRuntimeResourceOpName -eq "avl-tree-create"
@@ -75,7 +75,7 @@ if ( $resourceFields.Count -ne 1 -or
      $resourceFields[0].initializerRuntimeResourceKeyOrderAbiName -ne "string" -or
      $resourceFields[0].initializerRuntimeResourcePayloadAbiName -ne "string-copy" -or
      $resourceFields[0].initializerErrorAbiName -ne "may-raise" ) {
-    throw "XLIR AvlTree<K,V> class field has no exact default resource contract"
+    throw "XLIR OrderedMap<K,V> class field has no exact default resource contract"
 }
 
 $expectedTypedCounts = [ordered]@{
@@ -106,11 +106,11 @@ foreach ( $entry in $expectedTypedCounts.GetEnumerator() ) {
     if ( @($calls | Where-Object {
              $_.runtimeResourceOpName -eq $entry.Key
          }).Count -ne $entry.Value ) {
-        throw "XLIR Typed AvlTree operation count changed: $($entry.Key)"
+        throw "XLIR Typed OrderedMap operation count changed: $($entry.Key)"
     }
 }
 if ( $calls.Count -ne ($expectedTypedCounts.Values | Measure-Object -Sum).Sum ) {
-    throw "XLIR Typed AvlTree family contains unaccounted operations"
+    throw "XLIR Typed OrderedMap family contains unaccounted operations"
 }
 
 $noRaiseOps = @(
@@ -127,7 +127,7 @@ foreach ( $call in $calls ) {
          $call.runtimeResourceKeyPayloadAbiName -eq "invalid" -or
          $call.runtimeResourceKeyOrderAbiName -eq "invalid" -or
          $call.runtimeResourcePayloadAbiName -eq "invalid" ) {
-        throw "XLIR Typed AvlTree call has ambiguous generic resource metadata"
+        throw "XLIR Typed OrderedMap call has ambiguous generic resource metadata"
     }
     $operands = @($typed.intrinsicOperands | Select-Object -Skip $call.firstOperand |
         Select-Object -First $call.operandCount)
@@ -139,7 +139,7 @@ foreach ( $call in $calls ) {
              $null -eq $treeType -or $treeType.params.Count -ne 2 -or
              $treeType.params[0] -ne $call.runtimeResourceKeyType -or
              $treeType.params[1] -ne $call.payloadType ) {
-            throw "XLIR AvlTree create ABI is not exact"
+            throw "XLIR OrderedMap create ABI is not exact"
         }
         continue
     }
@@ -149,13 +149,13 @@ foreach ( $call in $calls ) {
          $treeType.params[1] -ne $call.payloadType -or
          $operands.Count -eq 0 -or $operands[0].abiName -ne "borrow" -or
          $operands[0].type -ne $call.receiverType ) {
-        throw "XLIR AvlTree member has no exact receiver/key/value identity"
+        throw "XLIR OrderedMap member has no exact receiver/key/value identity"
     }
     $expectedError = if ( $call.runtimeResourceOpName -in $noRaiseOps ) {
         "no-raise"
     } else { "may-raise" }
     if ( $call.errorAbiName -ne $expectedError ) {
-        throw "XLIR AvlTree effect contract changed: $($call.runtimeResourceOpName)"
+        throw "XLIR OrderedMap effect contract changed: $($call.runtimeResourceOpName)"
     }
     $keyAbi = if ( $call.runtimeResourceKeyPayloadAbiName -eq "trivial-copy" ) {
         "value"
@@ -169,31 +169,31 @@ foreach ( $call in $calls ) {
                  $operands[1].abiName -ne $keyAbi -or
                  $operands[2].type -ne $call.payloadType -or
                  $operands[2].abiName -ne $valueAbi ) {
-                throw "XLIR AvlTree set key/value ABI is not exact"
+                throw "XLIR OrderedMap set key/value ABI is not exact"
             }
         }
         { $_ -in @("avl-tree-get-into", "avl-tree-take-into") } {
             if ( $operands.Count -ne 3 -or $operands[1].type -ne $call.runtimeResourceKeyType -or
                  $operands[1].abiName -ne $keyAbi ) {
-                throw "XLIR AvlTree get/take key ABI is not exact"
+                throw "XLIR OrderedMap get/take key ABI is not exact"
             }
             Assert-Storage-Ref $typed $operands[2] $call.payloadType "get/take output"
         }
         { $_ -in @("avl-tree-contains", "avl-tree-remove") } {
             if ( $operands.Count -ne 2 -or $operands[1].type -ne $call.runtimeResourceKeyType -or
                  $operands[1].abiName -ne $keyAbi ) {
-                throw "XLIR AvlTree contains/remove key ABI is not exact"
+                throw "XLIR OrderedMap contains/remove key ABI is not exact"
             }
         }
         { $_ -in $pairOutputOps } {
-            if ( $operands.Count -ne 3 ) { throw "XLIR AvlTree endpoint arity changed" }
+            if ( $operands.Count -ne 3 ) { throw "XLIR OrderedMap endpoint arity changed" }
             Assert-Storage-Ref $typed $operands[1] $call.runtimeResourceKeyType "endpoint key output"
             Assert-Storage-Ref $typed $operands[2] $call.payloadType "endpoint value output"
         }
         { $_ -in $boundOps } {
             if ( $operands.Count -ne 4 -or $operands[1].type -ne $call.runtimeResourceKeyType -or
                  $operands[1].abiName -ne $keyAbi ) {
-                throw "XLIR AvlTree bound key ABI is not exact"
+                throw "XLIR OrderedMap bound key ABI is not exact"
             }
             Assert-Storage-Ref $typed $operands[2] $call.runtimeResourceKeyType "bound key output"
             Assert-Storage-Ref $typed $operands[3] $call.payloadType "bound value output"
@@ -201,7 +201,7 @@ foreach ( $call in $calls ) {
         "avl-tree-equals" {
             if ( $operands.Count -ne 2 -or $operands[1].abiName -ne "borrow" -or
                  $operands[1].type -ne $call.receiverType ) {
-                throw "XLIR AvlTree equals peer ABI is not exact"
+                throw "XLIR OrderedMap equals peer ABI is not exact"
             }
         }
         "avl-tree-merge" {
@@ -209,14 +209,14 @@ foreach ( $call in $calls ) {
                  $operands[1].abiName -ne "borrow" -or
                  $operands[1].type -ne $call.receiverType -or
                  ($operands.Count -eq 3 -and $operands[2].abiName -ne "value") ) {
-                throw "XLIR AvlTree merge source/replace ABI is not exact"
+                throw "XLIR OrderedMap merge source/replace ABI is not exact"
             }
         }
     }
 }
 
 & $xl ir $classDefaultSource --format json --emit $classTypedJson
-if ( $LASTEXITCODE -ne 0 ) { throw "XLIR AvlTree class-default Typed IR failed" }
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR OrderedMap class-default Typed IR failed" }
 $classTyped = Read-Json $classTypedJson
 $classDefaults = @($classTyped.valueInitializers | Where-Object {
     $_.abiName -eq "class-default"
@@ -230,11 +230,11 @@ if ( $classDefaults.Count -ne 1 -or
      $classFields[0].initializerRuntimeResourceKeyPayloadAbiName -ne "string-copy" -or
      $classFields[0].initializerRuntimeResourceKeyOrderAbiName -ne "string" -or
      $classFields[0].initializerRuntimeResourcePayloadAbiName -ne "trivial-copy" ) {
-    throw "XLIR class-default initializer does not aggregate its AvlTree field contract"
+    throw "XLIR class-default initializer does not aggregate its OrderedMap field contract"
 }
 
 & $xl ir $source --lowered --format json --emit $loweredJson
-if ( $LASTEXITCODE -ne 0 ) { throw "XLIR AvlTree Lowered IR failed" }
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR OrderedMap Lowered IR failed" }
 $lowered = Read-Json $loweredJson
 $operations = @($lowered.instructions | Where-Object {
     $_.runtimeOpName -like "avl-tree-*"
@@ -255,12 +255,12 @@ foreach ( $entry in $expectedLoweredCounts.GetEnumerator() ) {
             $_.runtimeResourceKeyOrderAbiName -eq "invalid" -or
             $_.runtimeResourcePayloadAbiName -eq "invalid"
         }).Count -ne 0 ) {
-        throw "XLIR Lowered AvlTree RuntimeOp ABI is incomplete: $($entry.Key)"
+        throw "XLIR Lowered OrderedMap RuntimeOp ABI is incomplete: $($entry.Key)"
     }
 }
 $merges = @($operations | Where-Object { $_.runtimeOpName -eq "avl-tree-merge" })
 if ( @($merges | Where-Object { $_.operandCount -ne 3 }).Count -ne 0 ) {
-    throw "XLIR Lowered AvlTree merge did not normalize the default replace operand"
+    throw "XLIR Lowered OrderedMap merge did not normalize the default replace operand"
 }
 $definitions = @{}
 foreach ( $instruction in $lowered.instructions ) {
@@ -280,16 +280,16 @@ foreach ( $test in @($lowered.instructions | Where-Object {
 if ( $errorSources.Count -ne 27 -or @($errorSources | Where-Object {
         $_.runtimeOpName -in $noRaiseOps
     }).Count -ne 0 ) {
-    throw "XLIR AvlTree may-raise RuntimeOps lost exact error-test CFG edges"
+    throw "XLIR OrderedMap may-raise RuntimeOps lost exact error-test CFG edges"
 }
 $treeTypeIds = @($treeTypes.id)
 $captures = @($lowered.closureCaptures | Where-Object { $_.type -in $treeTypeIds })
 if ( $captures.Count -ne 1 -or $captures[0].abiName -ne "retain-xvalue" ) {
-    throw "XLIR AvlTree closure capture does not retain its exact xvalue handle"
+    throw "XLIR OrderedMap closure capture does not retain its exact xvalue handle"
 }
 
 & $xl ir $classDefaultSource --lowered --format json --emit $classLoweredJson
-if ( $LASTEXITCODE -ne 0 ) { throw "XLIR AvlTree class-default Lowered IR failed" }
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR OrderedMap class-default Lowered IR failed" }
 $classLowered = Read-Json $classLoweredJson
 $classCreates = @($classLowered.instructions | Where-Object {
     $_.runtimeOpName -eq "avl-tree-create"
@@ -323,19 +323,19 @@ if ( $classCreates.Count -ne 1 -or $classErrorTests.Count -ne 1 -or
      @($classFailureInstructions | Where-Object {
          $_.kindName -eq "throw"
      }).Count -ne 1 ) {
-    throw "XLIR AvlTree class-field create lacks error CFG and partial-object cleanup"
+    throw "XLIR OrderedMap class-field create lacks error CFG and partial-object cleanup"
 }
 
 & $xl cgen $source --backend xlir --emit $generatedC
-if ( $LASTEXITCODE -ne 0 ) { throw "XLIR AvlTree C generation failed" }
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR OrderedMap C generation failed" }
 & $xl cgen $source --backend xlir --emit $generatedCSecond
-if ( $LASTEXITCODE -ne 0 ) { throw "XLIR AvlTree repeat C generation failed" }
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR OrderedMap repeat C generation failed" }
 & $xl cgen $classDefaultSource --backend xlir --emit $classDefaultC
-if ( $LASTEXITCODE -ne 0 ) { throw "XLIR AvlTree class-default C generation failed" }
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR OrderedMap class-default C generation failed" }
 $c = [System.IO.File]::ReadAllText($generatedC, [System.Text.Encoding]::UTF8)
 $second = [System.IO.File]::ReadAllText($generatedCSecond, [System.Text.Encoding]::UTF8)
 if ( $c -cne $second ) {
-    throw "XLIR AvlTree generated C is not byte-for-byte deterministic"
+    throw "XLIR OrderedMap generated C is not byte-for-byte deterministic"
 }
 foreach ( $required in @(
     "typedef struct xlir_avl_handle", "xlir_avl_handle_ops",
@@ -348,7 +348,7 @@ foreach ( $required in @(
     "xlir_avl_clear", "xlir_avl_count", "xlir_avl_collect", "xlir_avl_clone"
 ) ) {
     if ( ! $c.Contains($required) ) {
-        throw "XLIR AvlTree mechanical C ABI emission is missing: $required"
+        throw "XLIR OrderedMap mechanical C ABI emission is missing: $required"
     }
 }
 $helperCounts = [ordered]@{
@@ -368,7 +368,7 @@ $helperCounts = [ordered]@{
 }
 foreach ( $entry in $helperCounts.GetEnumerator() ) {
     if ( ([regex]::Matches($c, $entry.Key)).Count -ne $entry.Value ) {
-        throw "XLIR AvlTree helper emission count changed: $($entry.Key)"
+        throw "XLIR OrderedMap helper emission count changed: $($entry.Key)"
     }
 }
 foreach ( $forbidden in @(
@@ -376,18 +376,18 @@ foreach ( $forbidden in @(
     "xl6IrCgenLegacy", "xl6SpecialTree", "__xl6_special_tree_dispatch"
 ) ) {
     if ( $c.Contains($forbidden) ) {
-        throw "XLIR AvlTree Cgen leaked internal/source/legacy dependency: $forbidden"
+        throw "XLIR OrderedMap Cgen leaked internal/source/legacy dependency: $forbidden"
     }
 }
 
 $xlirCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include build\tmp\xlir_avl_resource_abi.c test\cases\xlir_avl_resource_abi_host.c !XL6_CGEN_LINKS! -o build\test\xlir_avl_resource_abi.exe && build\test\xlir_avl_resource_abi.exe'
 & $env:ComSpec /d /v:on /c $xlirCommand
-if ( $LASTEXITCODE -ne 0 ) { throw "XLIR AvlTree strict-C/runtime gate failed" }
+if ( $LASTEXITCODE -ne 0 ) { throw "XLIR OrderedMap strict-C/runtime gate failed" }
 $classCommand = 'call test\suites\common.bat && !XL6_CGEN_CC! !XL6_CGEN_FLAGS! !XL6_CGEN_INCLUDES! -Werror -DXLIR_GENERATED_MODULE_PREINCLUDED -include build\tmp\xlir_avl_class_default_abi.c test\cases\xlir_generated_module_diagnostic_host.c !XL6_CGEN_LINKS! -o build\test\xlir_avl_class_default_abi.exe && build\test\xlir_avl_class_default_abi.exe'
 & $env:ComSpec /d /v:on /c $classCommand
 if ( $LASTEXITCODE -ne 0 ) {
-    throw "XLIR AvlTree class-default strict-C/runtime gate failed"
+    throw "XLIR OrderedMap class-default strict-C/runtime gate failed"
 }
 
-Write-Output "XLIR AvlTree resource ABI gate passed: exact key/value/order identities, normalized merge, class-field defaults and cleanup, storage refs, retained capture, deterministic declaration-only C, and strict runtime."
+Write-Output "XLIR OrderedMap resource ABI gate passed: exact key/value/order identities, normalized merge, class-field defaults and cleanup, storage refs, retained capture, deterministic declaration-only C, and strict runtime."
 exit 0

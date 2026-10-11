@@ -3,7 +3,7 @@ class TreeProjectionBox
 end
 
 func textSnapshot() as array<string>
-    AvlTree<int, string> tree = AvlTree::<int, string>()
+    OrderedMap<int, string> tree = OrderedMap::<int, string>()
     assert(tree.set(3, "你\0好") and tree.set(1, "") and tree.set(2, "a\0b"))
     auto keys = tree.keys()
     assert(keys.length == 3 and keys[0] == 1 and keys[1] == 2 and keys[2] == 3)
@@ -22,7 +22,7 @@ func main(...) as int
     assert(textPop == queueStatus.ok and textResult.length == 3 and textResult[1] == "a\0b")
     println("tree text snapshot ok")
 
-    AvlTree<int, char?> chars = AvlTree::<int, char?>()
+    OrderedMap<int, char?> chars = OrderedMap::<int, char?>()
     assert(chars.set(3, '你') and chars.set(1, null) and chars.set(2, '\0'))
     auto characterValues = chars.values()
     chars.clear()
@@ -34,7 +34,7 @@ func main(...) as int
     assert(charStatus == queueStatus.ok and charCount == 3)
     println("tree nullable char snapshot ok")
 
-    AvlTree<int, TreeProjectionBox> objects = AvlTree::<int, TreeProjectionBox>()
+    OrderedMap<int, TreeProjectionBox> objects = OrderedMap::<int, TreeProjectionBox>()
     auto box = TreeProjectionBox()
     box.value = 17
     assert(objects.set(1, box))
@@ -54,7 +54,7 @@ func main(...) as int
     assert(popped == queueStatus.ok and result.length == 1 and result[0].value == 29)
     println("tree nominal snapshot ok")
 
-    AvlTree<int, array<int>> nested = AvlTree::<int, array<int>>()
+    OrderedMap<int, array<int>> nested = OrderedMap::<int, array<int>>()
     array<int> child = array[31, 32]
     assert(nested.set(1, child))
     auto nestedValues = nested.values()
@@ -66,7 +66,7 @@ func main(...) as int
     assert(nestedStatus == queueStatus.ok and nestedCount == 1)
     println("tree nested snapshot ok")
 
-    AvlTree<int, string> empty = AvlTree::<int, string>()
+    OrderedMap<int, string> empty = OrderedMap::<int, string>()
     auto emptyValues = empty.values()
     auto emptyStatus, emptyCount = texts.pushBatch(emptyValues)
     assert(emptyStatus == queueStatus.ok and emptyCount == 0 and emptyValues.length == 0)

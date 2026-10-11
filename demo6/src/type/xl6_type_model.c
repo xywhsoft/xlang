@@ -49,6 +49,10 @@ const char* xl6TypeCanonicalBuiltinName(const char* name)
     if ( xl6TypeTextEquals(name, "float64") ) {
         return "float";
     }
+    /* Default Queue is the same MPMC type, not a second runtime policy. */
+    if ( xl6TypeTextEquals(name, "Queue") ) {
+        return "MpmcQueue";
+    }
     return name;
 }
 

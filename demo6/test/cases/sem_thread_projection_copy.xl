@@ -3,7 +3,7 @@ func worker() as int
 end
 func main(...) as int
     auto running = thread(worker)
-    auto tree = AvlTree::<int, thread>()
+    auto tree = OrderedMap::<int, thread>()
     assert(tree.set(1, running))
     auto values = tree.values()
     auto illegal = values[0]

@@ -1,5 +1,5 @@
 func main(...) as int
-    AvlTree<int, string> tree = AvlTree::<int, string>()
+    OrderedMap<int, string> tree = OrderedMap::<int, string>()
     assert(tree.set(1, "") and tree.set(2, "a\0b") and tree.set(3, "你"))
     array<string> values = tree.values()
     assert(values.length == 3 and values[0] == "" and values[1] == "a\0b" and values[2] == "你")
@@ -9,7 +9,7 @@ func main(...) as int
     auto popStatus, output = queue.popBatch(4)
     assert(popStatus == queueStatus.ok and output.length == 3)
     assert(output.length == 3 and output[0] == "" and output[1] == "a\0b" and output[2] == "你")
-    AvlTree<string, int> names = AvlTree::<string, int>()
+    OrderedMap<string, int> names = OrderedMap::<string, int>()
     assert(names.set("a\0b", 1) and names.set("你", 2))
     array<string> keys = names.keys()
     assert(keys.length == 2 and keys[0] == "a\0b" and keys[1] == "你")

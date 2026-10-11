@@ -7311,7 +7311,9 @@ static int xl6SemTypeEquals(XL6_SemContext* ctx, const XL6_AstNode* a, const XL6
     if ( (a->text == NULL) != (b->text == NULL) ) {
         return 0;
     }
-    if ( a->text != NULL && !xl6TextEquals(a->text, b->text) ) {
+    if ( a->text != NULL && !xl6TextEquals(
+             a->kind == XL6_AST_TYPE ? xl6TypeCanonicalBuiltinName(a->text) : a->text,
+             b->kind == XL6_AST_TYPE ? xl6TypeCanonicalBuiltinName(b->text) : b->text) ) {
         return 0;
     }
     for ( i = 0; i < a->childCount; ++i ) {

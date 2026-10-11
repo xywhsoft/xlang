@@ -9,8 +9,8 @@ async func makeStackAsync(int value) as Stack<int>
     return result
 end
 
-async func makeTreeAsync() as AvlTree<string, int>
-    AvlTree<string, int> result = AvlTree::<string, int>()
+async func makeTreeAsync() as OrderedMap<string, int>
+    OrderedMap<string, int> result = OrderedMap::<string, int>()
     result.set("answer", 42)
     return result
 end
@@ -60,7 +60,7 @@ Stack<int> conditionalOwned = await (chooseNamed ? conditionalSource : makeStack
 number = conditionalOwned.pop()
 assert number == 10
 
-AvlTree<string, int> tree = await makeTreeAsync()
+OrderedMap<string, int> tree = await makeTreeAsync()
 assert tree.getInto("answer", number) and number == 42
 
 WaitQueue<string> queue = await makeQueueAsync()

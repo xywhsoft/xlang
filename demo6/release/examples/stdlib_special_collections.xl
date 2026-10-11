@@ -6,12 +6,12 @@ func main(...) as int
     assert(value == 20)
     println("stack=ok")
 
-    AvlTree<string, int> tree = AvlTree::<string, int>()
+    OrderedMap<string, int> tree = OrderedMap::<string, int>()
     tree.set("b", 2)
     tree.set("a", 1)
     array<string> keys = tree.keys()
     assert(keys.length == 2 and keys[0] == "a" and keys[1] == "b")
-    println("avl=ok")
+    println("ordered_map=ok")
 
     SpscQueue<int> spsc = SpscQueue::<int>(4)
     assert(spsc.tryPush(1) == queueStatus.ok)
@@ -25,7 +25,7 @@ func main(...) as int
     assert(mpscStatus == queueStatus.ok and mpscValue != null and mpscValue == 2)
     println("mpsc=ok")
 
-    MpmcQueue<string> queue = MpmcQueue::<string>(8)
+    Queue<string> queue = Queue::<string>(8)
     assert(queue.tryPush("hello") == queueStatus.ok)
     auto status, text = queue.tryPop()
     assert(status == queueStatus.ok and text != null and text == "hello")

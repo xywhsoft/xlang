@@ -44,9 +44,9 @@ static const XL6_BuiltinTypeSeed g_xl6BuiltinTypeSeeds[] = {
     {"future", NULL, 1, 1}, {"task", NULL, 1, 1},
     {"channel", NULL, 1, 1}, {"generator", NULL, 1, 1},
     {"weak", "xrt.value_weak", 1, 1},
-    {"Stack", NULL, 1, 1}, {"AvlTree", NULL, 1, 2}, {"SlotMap", NULL, 1, 1},
+    {"Stack", NULL, 1, 1}, {"OrderedMap", NULL, 1, 2}, {"SlotMap", NULL, 1, 1},
     {"SpscQueue", NULL, 1, 1}, {"MpscQueue", NULL, 1, 1},
-    {"MpmcQueue", NULL, 1, 1}, {"WaitQueue", NULL, 1, 1},
+    {"MpmcQueue", NULL, 1, 1}, {"Queue", "xlang.MpmcQueue", 1, 1}, {"WaitQueue", NULL, 1, 1},
     {"thread", NULL, 0, 0}, {"mutex", NULL, 0, 0},
     {"cond", NULL, 0, 0}, {"rwlock", NULL, 0, 0},
     {"sem", NULL, 0, 0}

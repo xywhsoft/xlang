@@ -4,7 +4,7 @@
 func projectionBool()
     bool? first = false
     bool? second = true
-    AvlTree<int, bool?> tree = AvlTree::<int, bool?>()
+    OrderedMap<int, bool?> tree = OrderedMap::<int, bool?>()
     assert(tree.set(1, null) and tree.set(2, first) and tree.set(3, second))
     array<bool?> values = tree.values()
     assert(values.length == 3 and values[0] == null and values[1] == first and values[2] == second)
@@ -13,7 +13,7 @@ end
 func projectionI64()
     int? first = -9223372036854775808
     int? second = 9223372036854775807
-    AvlTree<int, int?> tree = AvlTree::<int, int?>()
+    OrderedMap<int, int?> tree = OrderedMap::<int, int?>()
     assert(tree.set(1, null) and tree.set(2, first) and tree.set(3, second))
     array<int?> values = tree.values()
     assert(values.length == 3 and values[0] == null and values[1] == first and values[2] == second)
@@ -22,7 +22,7 @@ end
 func projectionU64()
     uint64? first = 0
     uint64? second = 18446744073709551615
-    AvlTree<int, uint64?> tree = AvlTree::<int, uint64?>()
+    OrderedMap<int, uint64?> tree = OrderedMap::<int, uint64?>()
     assert(tree.set(1, null) and tree.set(2, first) and tree.set(3, second))
     array<uint64?> values = tree.values()
     assert(values.length == 3 and values[0] == null and values[1] == first and values[2] == second)
@@ -31,7 +31,7 @@ end
 func projectionF32()
     float32? first = float32(-1.25)
     float32? second = float32(1.25)
-    AvlTree<int, float32?> tree = AvlTree::<int, float32?>()
+    OrderedMap<int, float32?> tree = OrderedMap::<int, float32?>()
     assert(tree.set(1, null) and tree.set(2, first) and tree.set(3, second))
     array<float32?> values = tree.values()
     assert(values.length == 3 and values[0] == null and values[1] == first and values[2] == second)
@@ -40,7 +40,7 @@ end
 func projectionF64()
     float64? first = -1.25
     float64? second = 1.25
-    AvlTree<int, float64?> tree = AvlTree::<int, float64?>()
+    OrderedMap<int, float64?> tree = OrderedMap::<int, float64?>()
     assert(tree.set(1, null) and tree.set(2, first) and tree.set(3, second))
     array<float64?> values = tree.values()
     assert(values.length == 3 and values[0] == null and values[1] == first and values[2] == second)
@@ -49,7 +49,7 @@ end
 func projectionTime()
     time? first = time(-1)
     time? second = time(9223372036854775807)
-    AvlTree<int, time?> tree = AvlTree::<int, time?>()
+    OrderedMap<int, time?> tree = OrderedMap::<int, time?>()
     assert(tree.set(1, null) and tree.set(2, first) and tree.set(3, second))
     array<time?> values = tree.values()
     assert(values.length == 3 and values[0] == null and values[1] == first and values[2] == second)
@@ -58,7 +58,7 @@ end
 func projectionChar()
     char? first = '\0'
     char? second = '你'
-    AvlTree<int, char?> tree = AvlTree::<int, char?>()
+    OrderedMap<int, char?> tree = OrderedMap::<int, char?>()
     assert(tree.set(1, null) and tree.set(2, first) and tree.set(3, second))
     array<char?> values = tree.values()
     assert(values.length == 3 and values[0] == null and values[1] == first and values[2] == second)

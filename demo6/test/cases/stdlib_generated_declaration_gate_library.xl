@@ -1,4 +1,4 @@
 export "declaration_gate_library" func libraryProbe() as int
-    auto tree = AvlTree::<int, AvlTree<int, int>>()
+    auto tree = OrderedMap::<int, OrderedMap<int, int>>()
     return tree.count()
 end

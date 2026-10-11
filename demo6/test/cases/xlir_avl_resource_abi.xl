@@ -1,14 +1,14 @@
-AvlTree<string, int> defaultScores
+OrderedMap<string, int> defaultScores
 
 class AvlHolder
-    AvlTree<string, string> values
+    OrderedMap<string, string> values
 end
 
 func main(...) as int
     assert(defaultScores.count() == 0)
     assert(defaultScores.set("root", 1))
 
-    AvlTree<string, int> scores = AvlTree::<string, int>()
+    OrderedMap<string, int> scores = OrderedMap::<string, int>()
     assert(scores.set("bob", 70))
     assert(scores.set("alice", 90))
     assert(scores.set("bob", 80))
@@ -18,10 +18,10 @@ func main(...) as int
     int number = 0
     assert(scores.getInto("bob", number))
     assert(number == 80)
-    AvlTree<string, int> clone = scores.clone()
+    OrderedMap<string, int> clone = scores.clone()
     assert(scores.equals(clone))
 
-    AvlTree<string, int> patch = AvlTree::<string, int>()
+    OrderedMap<string, int> patch = OrderedMap::<string, int>()
     assert(patch.set("bob", 81))
     assert(patch.set("carol", 75))
     assert(clone.merge(patch, false))
@@ -62,7 +62,7 @@ func main(...) as int
     assert(scores.trimTo(1) >= 0)
     assert(scores.trim() >= 0)
 
-    AvlTree<int, int> sameType = AvlTree::<int, int>()
+    OrderedMap<int, int> sameType = OrderedMap::<int, int>()
     assert(sameType.set(1, 10))
     int aliasedOutput = 0
     assert(not sameType.firstInto(aliasedOutput, aliasedOutput))

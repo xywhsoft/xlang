@@ -133,7 +133,7 @@ XRUNTIME_CAPABILITY_CONTRACT = {
         "witnesses": ("test/cases/stdlib_special_collections.xl",),
     },
     "extlibs/xruntime/include/xrt/typed_tree.h": {
-        "capability": "AvlTree<K,V>",
+        "capability": "OrderedMap<K,V>",
         "disposition": "language-type",
         "backendStatus": "direct",
         "witnesses": ("test/cases/stdlib_special_collections.xl",),

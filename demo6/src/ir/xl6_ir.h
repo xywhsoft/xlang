@@ -215,7 +215,7 @@ typedef enum XL6_IrRuntimeResourceOp {
     XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_BATCH,
     XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_BATCH_AT,
     XL6_IR_RUNTIME_RESOURCE_OP_STACK_CAPACITY,
-    /* AvlTree<K,V> is deliberately not encoded as a one-payload resource.
+    /* OrderedMap<K,V> is deliberately not encoded as a one-payload resource.
      * Every operation carries independent key/value transfer contracts plus
      * a closed key ordering ABI, so lowering and Cgen never recover either
      * generic argument or comparison semantics from source/type names. */
@@ -268,7 +268,7 @@ typedef enum XL6_IrRuntimeResourcePayloadAbi {
     XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY = XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1
 } XL6_IrRuntimeResourcePayloadAbi;
 
-/* Closed ordering selected for AvlTree keys at the Typed XLIR boundary.
+/* Closed ordering selected for OrderedMap keys at the Typed XLIR boundary.
  * SIGNED_I64 also covers time; TYPE_ID is kept distinct despite its u64 C
  * representation because it is a different language comparison contract.
  * Floating order is the runtime's canonical total order, including NaN. */
@@ -3250,7 +3250,7 @@ typedef struct XL6_IrInstruction {
     /* Exact payload transfer contract for generic runtime resources.  INVALID
      * for every non-resource operation and for non-generic resources. */
     XL6_IrRuntimeResourcePayloadAbi runtimeResourcePayloadAbi;
-    /* AvlTree only: independent key transfer and ordering contracts.  These
+    /* OrderedMap only: independent key transfer and ordering contracts.  These
      * remain INVALID for every other runtime operation. */
     XL6_IrTypeId runtimeResourceKeyType;
     XL6_IrRuntimeResourcePayloadAbi runtimeResourceKeyPayloadAbi;
@@ -3614,7 +3614,7 @@ typedef struct XL6_IrIntrinsicCall {
     /* Exact generic runtime-resource transfer ABI.  This is independent from
      * Future payloadAbi, which remains dedicated to async completion values. */
     XL6_IrRuntimeResourcePayloadAbi runtimeResourcePayloadAbi;
-    /* AvlTree only. payloadType above is the value type. */
+    /* OrderedMap only. payloadType above is the value type. */
     XL6_IrTypeId runtimeResourceKeyType;
     XL6_IrRuntimeResourcePayloadAbi runtimeResourceKeyPayloadAbi;
     XL6_IrRuntimeResourceKeyOrderAbi runtimeResourceKeyOrderAbi;

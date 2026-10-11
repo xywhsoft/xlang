@@ -4,7 +4,7 @@ func main(...) as int
     assert(locks.push(lock))
     auto returned = locks.pop()
     assert(returned.lock() and lock.unlock())
-    auto conditions = AvlTree::<int, cond>()
+    auto conditions = OrderedMap::<int, cond>()
     auto condition = cond()
     assert(conditions.set(1, condition))
     cond fromTree
@@ -16,7 +16,7 @@ func main(...) as int
     auto maybe = optional.pop()
     assert(maybe != null)
     if maybe != null then assert(maybe.tryLock() and lock.unlock()) end
-    auto nested = AvlTree::<int, Stack<mutex>>()
+    auto nested = OrderedMap::<int, Stack<mutex>>()
     assert(locks.push(lock) and nested.set(1, locks))
     auto inner = Stack::<mutex>()
     assert(nested.getInto(1, inner))
