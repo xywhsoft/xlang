@@ -240,6 +240,10 @@ static const char* xl6IrCgenStorageReleaseFunction(
     switch ( type->cAbi ) {
     case XL6_IR_C_ABI_MANAGED_STRING: return "xlir_string_drop";
     case XL6_IR_C_ABI_MANAGED_BYTES: return "xrtValueRelease";
+    case XL6_IR_C_ABI_NATIVE_VALUE: {
+        const XL6_IrNativeValuePlan* plan=xl6IrNativeValuePlanForType(type);
+        return plan ? plan->dropSymbol : NULL;
+    }
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return "xrtValueRelease";
     case XL6_IR_C_ABI_RUNTIME_ERROR_PTR: return "xrtErrorFree";
     case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: return "xrtFutureDestroy";
@@ -306,10 +310,12 @@ static int xl6IrCgenEmitProductDrop(
         if ( release == NULL )
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                 "XLIR C emitter product element destructor ABI is unresolved");
-        if ( elementType->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
+        if ( elementType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
+             elementType->cAbi == XL6_IR_C_ABI_NATIVE_VALUE )
             xl6OutputPrintf(out,
-                "    %s(value->e%lu); value->e%lu = (xlir_string){0};\n",
-                release, (unsigned long)element, (unsigned long)element);
+                "    %s(value->e%lu); value->e%lu = (%s){0};\n",
+                release, (unsigned long)element, (unsigned long)element,
+                xl6IrCgenType(module,elementTypeId));
         else
             xl6OutputPrintf(out,
                 "    %s(value->e%lu); value->e%lu = NULL;\n",

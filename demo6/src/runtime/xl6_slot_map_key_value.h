@@ -2,8 +2,10 @@
 #define XL6_SLOT_MAP_KEY_VALUE_H
 #include "xl6_slot_map_key.h"
 #include "xl6_native_leaf_value.h"
-/* Separate resident projection. Native key copying does not select boxing,
- * hashing, Set storage or SlotMap storage. All results are owned. Unbox needs
+/* Separate resident projection. Raw xrttype copying needs only KEY_NATIVE;
+ * the checked CopyValue boundary currently shares this permanent leaf profile
+ * with content hashing/boxing. Neither boundary selects Set or SlotMap storage.
+ * All results are owned. Unbox needs
  * a private zero-initialized output and preserves it on refusal. Same-ID
  * foreign handles are not keys. These are not persistence encoders. */
 XL6_TEXT_API xvalue* xl6SlotMapKeyBoxV1(XL6_SlotMapKeyV1);

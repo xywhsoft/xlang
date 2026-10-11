@@ -1882,6 +1882,8 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
      * evaluation failure boundary are explicit independent inputs. */
     if ((xl6IrPersistenceInvocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeStringAllocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
+         (runtimeOp != XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED &&
+          xl6IrRuntimeNativeValueErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) ||
          xl6IrRuntimeContainerAllocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeClassErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeEqualityErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
@@ -3427,6 +3429,8 @@ static XL6_IrValueId xl6IrLowerAcquireValueOwner(
     if (info->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL || xl6IrLowerValueHasOwner(ctx, value))
         return value;
     if (info->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED) {
+        if (xl6IrNativeValuePlanForType(info))
+            return xl6IrLowerEmitRuntimeCall(ctx,origin,type,XL6_IR_RUNTIME_NATIVE_VALUE_COPY,&value,1);
         if (info->cAbi == XL6_IR_C_ABI_MANAGED_STRING)
             return xl6IrLowerEmitRuntimeCall(ctx, origin, type, info->kind == XL6_IR_TYPE_NULLABLE
                 ? XL6_IR_RUNTIME_STRING_NULLABLE_COPY : XL6_IR_RUNTIME_STRING_COPY, &value, 1);
@@ -3659,6 +3663,10 @@ static XL6_IrValueId xl6IrLowerBoxRuntimeXValueWithNativeDestroy(
             XL6_IR_RUNTIME_XVALUE_TAGGED_NULLABLE_BOX, &source, 1);
     }
     switch ( sourceType->cAbi ) {
+    case XL6_IR_C_ABI_NATIVE_VALUE:
+        if (!xl6IrNativeValuePlanForType(sourceType)) return XL6_IR_VALUE_INVALID;
+        return xl6IrLowerEmitRuntimeCallPayload(ctx,origin,origin,targetType,
+            XL6_IR_RUNTIME_NATIVE_VALUE_BOX,NULL,loweredSourceType,&source,1);
     case XL6_IR_C_ABI_BOOL: runtimeOp = XL6_IR_RUNTIME_XVALUE_BOOL; break;
     case XL6_IR_C_ABI_CHAR_U32: runtimeOp = XL6_IR_RUNTIME_XVALUE_CHAR; break;
     case XL6_IR_C_ABI_I64: runtimeOp = XL6_IR_RUNTIME_XVALUE_I64; break;
@@ -7235,7 +7243,7 @@ static XL6_IrValueId xl6IrLowerOwnedStorageValue(
     if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
         return xl6IrLowerOwnedManagedStringValue(
             ctx, origin, typeId, sourceNode, source);
-    if ( type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES )
+    if ( type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES || type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE )
         return xl6IrLowerAcquireValueOwner(ctx, origin, source);
     if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
         return xl6IrLowerBoxRuntimeXValue(ctx, origin, typeId, sourceNode, source);
@@ -7264,7 +7272,7 @@ static XL6_IrValueId xl6IrLowerOwnedValueBoundary(
     if ( xl6IrValueOwnershipGet(ctx->module, source) == XL6_IR_OWNERSHIP_MOVE ) return source;
     if ( typeInfo->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
         return xl6IrLowerOwnedManagedStringValue(ctx, origin, type, sourceNode, source);
-    if ( typeInfo->cAbi == XL6_IR_C_ABI_MANAGED_BYTES )
+    if ( typeInfo->cAbi == XL6_IR_C_ABI_MANAGED_BYTES || typeInfo->cAbi == XL6_IR_C_ABI_NATIVE_VALUE )
         return xl6IrLowerAcquireValueOwner(ctx, origin, source);
     if ( typeInfo->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
         return xl6IrLowerBoxRuntimeXValue(ctx, origin, type, sourceNode, source);
@@ -7357,6 +7365,8 @@ static int xl6IrLowerCastAbiMatchesType(
     case XL6_IR_CAST_XVALUE_TO_BYTES_CHECKED:
         return type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
                type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
+    case XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED:
+        return xl6IrNativeValuePlanForType(type) != NULL;
     case XL6_IR_CAST_XVALUE_TO_RAW_POINTER_CHECKED:
         return type->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
                type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
@@ -7435,6 +7445,8 @@ static XL6_IrValueId xl6IrLowerCheckedXValueCastValue(
         ctx, id, resultTypeId,
         castAbi == XL6_IR_CAST_XVALUE_TO_UNION_CHECKED
             ? XL6_IR_RUNTIME_XVALUE_UNION_CAST_CHECKED
+            : castAbi == XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED
+                ? XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED
             : castAbi == XL6_IR_CAST_XVALUE_TO_CLOSURE_CHECKED
                 ? XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED
                 : XL6_IR_RUNTIME_XVALUE_CAST_CHECKED,
@@ -8043,6 +8055,8 @@ static XL6_IrValueId xl6IrLowerCast(
     case XL6_IR_CAST_XVALUE_TO_ERROR_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_UNION_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_CLOSURE_CHECKED:
+        return xl6IrLowerCheckedXValueCast(ctx, id, node);
+    case XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED:
         return xl6IrLowerCheckedXValueCast(ctx, id, node);
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_BOOL_TRY:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_I64_TRY:
@@ -11245,7 +11259,7 @@ static int xl6IrLowerNativeSpecialIsDestroy(
 
 /* BORROW is the physical call-boundary promise: the caller keeps ownership.
  * A parameter that can be rebound or captured acquires a lexical owner at
- * entry.  Proven read-only string bindings stay borrowed through this
+ * entry. Proven read-only immutable-value bindings stay borrowed through this
  * synchronous activation and have no terminal release. */
 static int xl6IrLowerMaterializeBorrowedParameterOwners(
     XL6_IrLowerContext* ctx, const XL6_IrFunction* function,
@@ -11275,7 +11289,10 @@ static int xl6IrLowerMaterializeBorrowedParameterOwners(
              storage->type != target->parameterTypes[parameter] || type == NULL ||
              !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, storage->declaration,
                               storage->type, symbol, NULL, 0, &borrowed) ) return 0;
-        if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
+        if ( type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE )
+            owned = xl6IrLowerEmitRuntimeCall(ctx,storage->declaration,storage->type,
+                XL6_IR_RUNTIME_NATIVE_VALUE_COPY,&borrowed,1);
+        else if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
             owned = xl6IrLowerEmitRuntimeCall(
                 ctx, storage->declaration, storage->type,
                 type->kind == XL6_IR_TYPE_NULLABLE
@@ -27114,6 +27131,7 @@ static int xl6IrLowerManagedBinary(
     int strings = 0;
     int bytes = 0;
     int stringChar = 0;
+    int nativeValues = 0;
     int dynamicResult = 0;
     int negate = opcode == XL6_IR_OPCODE_NE;
     if ( sources[0] == NULL || sources[1] == NULL || result == NULL ) return 0;
@@ -27180,6 +27198,11 @@ static int xl6IrLowerManagedBinary(
         default: return 0;
         }
     } else if ( (opcode == XL6_IR_OPCODE_EQ || opcode == XL6_IR_OPCODE_NE) &&
+                sourceTypes[0] == sourceTypes[1] && xl6IrNativeValuePlanForType(types[0]) ) {
+        nativeValues = 1;
+        operation = XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL;
+        operandType = payloadType = sourceTypes[0];
+    } else if ( (opcode == XL6_IR_OPCODE_EQ || opcode == XL6_IR_OPCODE_NE) &&
                 types[0]->kind == XL6_IR_TYPE_CLASS &&
                 abis[0] == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && layout != NULL &&
                 layout->equalityAbi == XL6_IR_CLASS_EQUALITY_ABI_RUNTIME_DERIVED &&
@@ -27222,7 +27245,7 @@ static int xl6IrLowerManagedBinary(
             if ( values[i] == XL6_IR_VALUE_INVALID ) goto done;
             continue;
         }
-        if ( !strings && !bytes && !stringChar ) {
+        if ( !strings && !bytes && !stringChar && !nativeValues ) {
             owned = xl6IrLowerNodeAsRuntimeXValue(ctx, origin, child, sources[i], operandType);
         } else if ( abis[i] == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) {
             XL6_IrValueId input = xl6IrLowerNodeAsRuntimeXValue(
@@ -29072,7 +29095,8 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
               ownershipType->cAbi != XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR &&
               ownershipType->cAbi != XL6_IR_C_ABI_RUNTIME_ERROR_PTR &&
               ownershipType->cAbi != XL6_IR_C_ABI_CLOSURE_PTR &&
-              ownershipType->cAbi != XL6_IR_C_ABI_PRODUCT) ) {
+              ownershipType->cAbi != XL6_IR_C_ABI_PRODUCT &&
+              !xl6IrNativeValuePlanForType(ownershipType)) ) {
             xl6IrLowerDiag(ctx, id, "XLIR lowering requires explicit ownership instructions");
             return 0;
         }

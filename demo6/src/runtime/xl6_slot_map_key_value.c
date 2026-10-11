@@ -20,6 +20,8 @@ static bool empty(const void* raw)
 { const XL6_SlotMapKeyV1* key=raw; return key && !key->instance && !key->slot; }
 static const XL6_NativeLeafValueProfileV1 profile={xl6SlotMapKeyTypeV1,KEY_VALUE_ID,&content,empty};
 const XL6_NativeLeafValueProfileV1* xl6SlotMapKeyValueProfileV1Get(void) { return &profile; }
+bool xl6SlotMapKeyCopyValueV1(XL6_SlotMapKeyV1 input,XL6_SlotMapKeyV1* output)
+{ return xl6NativeLeafValueCopyV1(&profile,&input,output); }
 bool xl6SlotMapKeyValueAdmitsV1(const xvalue* value)
 { return xl6NativeLeafValueAdmitsV1(value,&profile); }
 const xrtownershipadapterv1* xl6SlotMapKeyValueOwnershipAdapterV1(xrtownershipref ref)

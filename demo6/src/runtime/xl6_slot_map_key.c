@@ -57,3 +57,5 @@ const xrttype* xl6SlotMapKeyTypeV1(void)
 }
 bool xl6SlotMapKeyEqualV1(XL6_SlotMapKeyV1 left,XL6_SlotMapKeyV1 right)
 { return left.instance==right.instance && left.slot==right.slot; }
+void xl6SlotMapKeyDropValueV1(XL6_SlotMapKeyV1 value)
+{ keyDrop(&value,xl6SlotMapKeyTypeV1()); }

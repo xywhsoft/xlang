@@ -1,6 +1,7 @@
 #ifndef XL6_SLOT_MAP_H
 #define XL6_SLOT_MAP_H
 #include "xl6_sequence.h"
+#include "xl6_slot_map_key_abi.h"
 
 /* Private typed SlotMap foundation. XRT owns the slot/free-list/generation
  * algorithm; these boundaries own elements and a sealed resident domain.
@@ -9,11 +10,6 @@ typedef struct XL6_SlotMapLayoutV1 {
     uint64_t identity;
     XL6_SequenceLayoutV1 value;
 } XL6_SlotMapLayoutV1;
-typedef struct XL6_SlotMapInstanceV1 XL6_SlotMapInstanceV1;
-typedef struct XL6_SlotMapKeyV1 {
-    XL6_SlotMapInstanceV1* instance;
-    xslot slot;
-} XL6_SlotMapKeyV1;
 
 /* Immutable owned key VALUE, not a borrow or a raw address. The small instance
  * record has no edge to the map, code or any element. A key can outlive its map
@@ -22,6 +18,8 @@ typedef struct XL6_SlotMapKeyV1 {
  * Keys are not serializable process-independent identifiers. */
 XL6_TEXT_API const xrttype* xl6SlotMapKeyTypeV1(void);
 XL6_TEXT_API bool xl6SlotMapKeyEqualV1(XL6_SlotMapKeyV1,XL6_SlotMapKeyV1);
+XL6_TEXT_API void xl6SlotMapKeyDropValueV1(XL6_SlotMapKeyV1);
+XL6_TEXT_API bool xl6SlotMapKeyCopyValueV1(XL6_SlotMapKeyV1,XL6_SlotMapKeyV1*);
 /* Consume a fresh empty admitted ARRAY witness on BOTH paths. */
 XL6_TEXT_API xvalue* xl6SlotMapCreateTakeV1(const XL6_SlotMapLayoutV1*,xvalue*);
 /* Key output starts {0}; insertion copies the exact typed input. No value

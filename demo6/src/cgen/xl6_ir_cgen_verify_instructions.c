@@ -116,6 +116,15 @@ static int xl6IrCgenVerifyInstructions(
             }
             break;
         case XL6_IR_INSTR_RUNTIME_CALL:
+            if (instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_COPY ||
+                instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL ||
+                instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_BOX ||
+                instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED) {
+                if (!xl6IrNativeValueInstructionPlan(module,instruction))
+                    return xl6IrCgenDiag(diags,module,instruction->origin,
+                        "XLIR native value operation has no closed owning ABI");
+                break;
+            }
             if ( xl6IrCgenSharedRuntimeOpIs(instruction->runtimeOp) ) {
                 if ( !xl6IrCgenSharedRuntimeAbi(module, instruction) )
                     return xl6IrCgenDiag(diags, module, instruction->origin,

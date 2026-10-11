@@ -1,0 +1,39 @@
+func kept(SlotMapKey key) as SlotMapKey
+    return key
+end
+
+func replaced(SlotMapKey left, SlotMapKey right) as SlotMapKey
+    left = right
+    right = left
+    return left
+end
+
+func pair(SlotMapKey key) as (SlotMapKey, SlotMapKey)
+    return key, key
+end
+
+func main(...) as int
+    if arg.length == 0 then
+        return 0
+    end
+    assert(arg.length == 3)
+    auto first = arg[0] as SlotMapKey
+    auto equal = arg[1] as SlotMapKey
+    auto other = arg[2] as SlotMapKey
+    assert(first == equal and first != other)
+    auto copied = kept(first)
+    assert(copied == first)
+    auto replacedKey = replaced(copied, other)
+    assert(copied == first and replacedKey == other)
+    auto left, right = pair(first)
+    assert(left == right and left == first)
+    auto keptPart, _ = pair(other)
+    assert(keptPart == other)
+    var boxed = left
+    auto projected = boxed as SlotMapKey
+    assert(projected == first)
+    set<var> keys = set{boxed, equal, other}
+    assert(keys.length == 2 and keys.contains(boxed))
+    assert(keys.remove(equal) and keys.length == 1)
+    return 0
+end
