@@ -1,0 +1,8 @@
+func unusedChannel() as int
+    channel<int> c = channel::<int>(1)
+    assert c.send(7)
+    auto status, value = c.recv()
+    assert status == channelStatus.ok and value != null and value == 7
+    return 0
+end
+assert 6 * 7 == 42

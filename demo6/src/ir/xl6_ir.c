@@ -10860,6 +10860,9 @@ XL6_IrIntrinsicResultAbi xl6IrRuntimeResourceResultAbiForType(
 static int xl6IrRuntimeResourceOpMayRaise(XL6_IrRuntimeResourceOp operation)
 {
     return xl6IrChannelReceiveSpecResource(operation) || xl6IrTreeQuerySpecResource(operation) || xl6IrSlotMapResourceOpIs(operation) || xl6IrRuntimeResourceOpCreates(operation) ||
+           operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CLOSE ||
+           operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_IS_CLOSED ||
+           operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_COUNT ||
            (operation>=XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE &&
             operation<=XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLONE) ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND ||
@@ -20674,7 +20677,7 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     XL6_IrCallErrorPhysicalAbi stringAbi;
     if (instruction == NULL || instruction->kind != XL6_IR_INSTR_RUNTIME_CALL)
         return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
-    stringAbi=xl6IrChannelReceiveErrorPhysicalAbi(instruction->runtimeOp);
+    stringAbi=xl6IrChannelInstructionErrorPhysicalAbi(instruction->runtimeOp);
     if (stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     if (xl6IrConcurrentQueueInstructionType(module,instruction))
         return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
@@ -38241,6 +38244,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 if (instruction->sequenceAdmissionIdentitySet!=XL6_IR_NOMINAL_IDENTITY_SET_INVALID &&
                     (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
                      (instruction->runtimeOp!=XL6_IR_RUNTIME_SLOT_MAP_CREATE && instruction->runtimeOp!=XL6_IR_RUNTIME_STACK_CREATE &&
+                      instruction->runtimeOp!=XL6_IR_RUNTIME_CHANNEL_CREATE &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_LIST_IMPORT_CHAIN &&
@@ -42191,168 +42195,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                     XL6_IR_INTEGER_TARGET_SIGNED_64) )
                             return xl6IrDiag(diags, NULL,
                                 "XLIR runtime thread member has no exact borrowed resource, optional timeout or result ABI");
-                    } else if ( instruction->runtimeOp >=
-                                    XL6_IR_RUNTIME_CHANNEL_CREATE &&
-                                instruction->runtimeOp <=
-                                    XL6_IR_RUNTIME_CHANNEL_COUNT ) {
-                        const XL6_IrType* channelType = NULL;
-                        XL6_IrTypeId channelTypeId =
-                            instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_CHANNEL_CREATE
-                                ? instruction->type
-                                : (left != NULL ? left->type
-                                                : XL6_IR_TYPE_INVALID);
-                        XL6_IrTypeId payloadTypeId;
-                        const XL6_IrType* payloadType;
-                        const XL6_IrInstruction* payloadValue = right;
-                        const XL6_IrInstruction* timeoutValue =
-                            instruction->operandCount == 3
-                                ? xl6IrValueDefinition(
-                                    module, module->operands[
-                                        instruction->firstOperand + 2], NULL)
-                                : NULL;
-                        const XL6_IrType* resultType = xl6IrTypeGet(
-                            &module->types, instruction->type);
-                        int creates = instruction->runtimeOp ==
-                            XL6_IR_RUNTIME_CHANNEL_CREATE;
-                        int sends = instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_CHANNEL_SEND ||
-                            instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_CHANNEL_TRY_SEND;
-                        int receives = instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_CHANNEL_RECV_INTO ||
-                            instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_CHANNEL_TRY_RECV_INTO ||
-                            instruction->runtimeOp ==
-                                XL6_IR_RUNTIME_CHANNEL_RECV_TIMEOUT_INTO;
-                        int takesTimeout = instruction->runtimeOp ==
-                            XL6_IR_RUNTIME_CHANNEL_RECV_TIMEOUT_INTO;
-                        int closes = instruction->runtimeOp ==
-                            XL6_IR_RUNTIME_CHANNEL_CLOSE;
-                        channelType = xl6IrTypeGet(
-                            &module->types, channelTypeId);
-                        payloadTypeId = channelType != NULL &&
-                            channelType->kind ==
-                                XL6_IR_TYPE_GENERIC_INSTANCE &&
-                            channelType->runtimeResourceAbi ==
-                                XL6_IR_RUNTIME_RESOURCE_CHANNEL &&
-                            channelType->paramCount == 1 &&
-                            channelType->params != NULL
-                                ? channelType->params[0]
-                                : XL6_IR_TYPE_INVALID;
-                        payloadType = xl6IrTypeGet(
-                            &module->types, payloadTypeId);
-                        if ( channelType == NULL ||
-                             channelType->cAbi !=
-                                 XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-                             channelType->ownershipAbi !=
-                                 XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                             channelType->typeValueId == 0 ||
-                             payloadType == NULL ||
-                             payloadType->typeValueId == 0 ||
-                             instruction->payloadType != payloadTypeId ||
-                             instruction->runtimeResourcePayloadAbi !=
-                                 xl6IrRuntimeResourcePayloadAbiForType(
-                                     module, payloadTypeId) ||
-                             instruction->runtimeResourcePayloadAbi ==
-                                 XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID ||
-                             instruction->immediateText != NULL ||
-                             instruction->targetSymbol != 0 ||
-                             instruction->targetValue !=
-                                 XL6_IR_VALUE_INVALID ||
-                             instruction->calleeType != XL6_IR_TYPE_INVALID ||
-                             instruction->runtimeIdentityType !=
-                                 XL6_IR_TYPE_INVALID ||
-                             instruction->opcode != XL6_IR_OPCODE_INVALID )
-                            return xl6IrDiag(diags, NULL,
-                                "XLIR runtime channel operation has no exact resource and payload identity ABI");
-                        if ( creates ) {
-                            const XL6_IrType* capacityType = left != NULL
-                                ? xl6IrTypeGet(
-                                    &module->types, left->type) : NULL;
-                            if ( instruction->result ==
-                                     XL6_IR_VALUE_INVALID ||
-                                 instruction->operandCount > 1 ||
-                                 (instruction->operandCount == 1 &&
-                                  (capacityType == NULL ||
-                                   capacityType->cAbi !=
-                                       XL6_IR_C_ABI_I64)) ||
-                                 !xl6IrNodeRequiresThrowExitPlan(
-                                     module, instruction->origin) )
-                                return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime channel create has no exact capacity, owned result or failure ABI");
-                        } else {
-                            if ( left == NULL || left->type != channelTypeId )
-                                return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime channel member has no exact borrowed receiver ABI");
-                            if ( closes ) {
-                                if ( instruction->operandCount != 1 ||
-                                     instruction->result !=
-                                         XL6_IR_VALUE_INVALID ||
-                                     instruction->type !=
-                                         XL6_IR_TYPE_INVALID )
-                                    return xl6IrDiag(diags, NULL,
-                                        "XLIR runtime channel close has no exact void result ABI");
-                            } else if ( sends ) {
-                                if ( instruction->operandCount != 2 ||
-                                     payloadValue == NULL ||
-                                     payloadValue->type != payloadTypeId ||
-                                     resultType == NULL ||
-                                     resultType->cAbi != XL6_IR_C_ABI_BOOL ||
-                                     !xl6IrNodeRequiresThrowExitPlan(
-                                         module, instruction->origin) )
-                                    return xl6IrDiag(diags, NULL,
-                                        "XLIR runtime channel send has no exact copied payload, boolean result or failure ABI");
-                            } else if ( receives ) {
-                                const XL6_IrType* referenceType =
-                                    payloadValue != NULL
-                                        ? xl6IrTypeGet(
-                                            &module->types,
-                                            payloadValue->type) : NULL;
-                                const XL6_IrType* timeoutType =
-                                    timeoutValue != NULL
-                                        ? xl6IrTypeGet(
-                                            &module->types,
-                                            timeoutValue->type) : NULL;
-                                if ( instruction->operandCount !=
-                                         (takesTimeout ? 3u : 2u) ||
-                                     payloadValue == NULL ||
-                                     payloadValue->kind !=
-                                         XL6_IR_INSTR_STORAGE_ADDRESS ||
-                                     referenceType == NULL ||
-                                     referenceType->kind !=
-                                         XL6_IR_TYPE_STORAGE_REF ||
-                                     referenceType->paramCount != 1 ||
-                                     referenceType->params == NULL ||
-                                     referenceType->params[0] != payloadTypeId ||
-                                     (takesTimeout &&
-                                      (timeoutType == NULL ||
-                                       timeoutType->cAbi !=
-                                           XL6_IR_C_ABI_I64)) ||
-                                     resultType == NULL ||
-                                     resultType->cAbi != XL6_IR_C_ABI_BOOL )
-                                    return xl6IrDiag(diags, NULL,
-                                        "XLIR runtime channel receive has no exact storage address, timeout or boolean result ABI");
-                            } else if ( instruction->runtimeOp ==
-                                           XL6_IR_RUNTIME_CHANNEL_IS_CLOSED ) {
-                                if ( instruction->operandCount != 1 ||
-                                     resultType == NULL ||
-                                     resultType->cAbi != XL6_IR_C_ABI_BOOL )
-                                    return xl6IrDiag(diags, NULL,
-                                        "XLIR runtime channel isClosed has no exact boolean result ABI");
-                            } else if ( instruction->runtimeOp ==
-                                           XL6_IR_RUNTIME_CHANNEL_COUNT ) {
-                                if ( instruction->operandCount != 1 ||
-                                     resultType == NULL ||
-                                     resultType->integerTarget !=
-                                         XL6_IR_INTEGER_TARGET_SIGNED_64 )
-                                    return xl6IrDiag(diags, NULL,
-                                        "XLIR runtime channel count has no exact signed result ABI");
-                            } else {
-                                return xl6IrDiag(diags, NULL,
-                                    "XLIR runtime channel operation is outside the verified member ABI");
-                            }
-                        }
+                    } else if (xl6IrChannelRuntimeOpIs(instruction->runtimeOp)) {
+                        if (!xl6IrChannelInstructionCompatible(module,instruction) ||
+                            !xl6IrNodeRequiresThrowExitPlan(module,instruction->origin))
+                            return xl6IrDiag(diags,NULL,
+                                "XLIR Channel operation requires a closed resident schema and independent checked outcome");
                     } else if (xl6IrConcurrentQueueInstructionType(module,instruction)) {
                         if (!xl6IrConcurrentQueueInstructionCompatible(module,instruction) ||
                             !xl6IrNodeRequiresThrowExitPlan(module,instruction->origin))

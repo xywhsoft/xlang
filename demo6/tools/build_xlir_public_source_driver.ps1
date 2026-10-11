@@ -210,6 +210,30 @@ foreach ($entry in (Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.tx
     $headers += [pscustomobject]@{Path=$target;Sha256=$hash;Source=$source}
 }
 if ($headers.Count -lt 6) { throw 'Private runtime package manifest is incomplete' }
+# Physical source mirror for standalone native-component validation. This is
+# not a shipping SDK or the nested import-xlang compiler resource package.
+foreach ($entry in Get-Content -LiteralPath tools/tcc_vfs_manifest_win64_xlc.txt -Encoding UTF8) {
+    $parts = $entry.Split('|')
+    if ($parts.Length -lt 3 -or !$parts[1].StartsWith('__xl_compiler/') -or !$parts[2].StartsWith('%XL6_ROOT%')) { continue }
+    if ($parts[1].Contains('..')) { throw "Unsafe private source target: $entry" }
+    $sourceRoot = $parts[2].Replace('%XL6_ROOT%', $rootPath)
+    $sourcesToStage = if ($parts[0] -eq 'dir') {
+        $patterns = $parts[3].Split(';')
+        @(Get-ChildItem -LiteralPath $sourceRoot -Recurse -File | Where-Object {
+            $name = $_.Name; @($patterns | Where-Object { $name -like $_ }).Count -gt 0
+        })
+    } else { @(Get-Item -LiteralPath $sourceRoot) }
+    foreach ($source in $sourcesToStage) {
+        $suffix = if ($parts[0] -eq 'dir') { '/' + [IO.Path]::GetRelativePath($sourceRoot, $source.FullName) } else { '' }
+        $target = Join-Path $batchPath ('include/' + $parts[1] + $suffix)
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $target) | Out-Null
+        if (Test-Path -LiteralPath $target) { throw "Duplicate private source target: $target" }
+        Copy-Item -LiteralPath $source.FullName -Destination $target
+        $hash = (Get-FileHash -LiteralPath $source.FullName).Hash
+        if ((Get-FileHash -LiteralPath $target).Hash -ne $hash) { throw "Private source staging mismatch: $source" }
+        $headers += [pscustomobject]@{Path=$target;Sha256=$hash;Source=$source.FullName}
+    }
+}
 $flags = @('-std=c11','-Wall','-Wextra','-Werror','-O0','-DXL_STATIC_EMBED',"-DXL_ENABLE_EXE_COMPILER=$enableExe",'-DTCC_DISABLE_BUILTIN_VFS',
     '-Wno-unused-function','-Wno-unused-label','-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
     '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation',

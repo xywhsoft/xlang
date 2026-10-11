@@ -11,6 +11,7 @@ static int xl6IrCgenEmitResourceRuntime(
             xl6OutputPuts("#include <__xl_runtime/xl6_slot_map.h>\n",out); break;
         }
     if (nativeQueue) xl6OutputPuts("#include <__xl_runtime/xl6_concurrent_queue_abi.h>\n",out);
+    if (needs->needsNativeChannelRuntime) xl6OutputPuts("#include <__xl_runtime/xl6_channel_abi.h>\n",out);
     if ( needs->needsThreadResourceRuntime )
         xl6OutputPuts(
             "extern xvalue* xl6ThreadCreateV1(xlir_closure*, uint64_t);\n"
@@ -26,7 +27,7 @@ static int xl6IrCgenEmitResourceRuntime(
         xl6OutputPuts(
             "enum { XLIR_CHANNEL_PAYLOAD_TRIVIAL_COPY = 1, XLIR_CHANNEL_PAYLOAD_STRING_COPY = 2, XLIR_CHANNEL_PAYLOAD_XVALUE_RETAIN = 3 };\n\n",
             out);
-    if ( needs->needsStackResourceRuntime || needs->needsArrayImportRuntime || needs->needsArrayCreateRuntime || needs->needsAvlTreeResourceRuntime || nativeQueue )
+    if ( needs->needsStackResourceRuntime || needs->needsArrayImportRuntime || needs->needsArrayCreateRuntime || needs->needsAvlTreeResourceRuntime || nativeQueue || needs->needsNativeChannelRuntime )
         xl6OutputPuts(
             "typedef struct xrttype xrttype;\n"
             "extern const xrttype* xl6CharTypeV1(void);\n"
@@ -239,7 +240,7 @@ static int xl6IrCgenEmitResourceRuntime(
             "static bool xlir_special_queue_is_drained(const xvalue* value, uint64_t queueTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize)\n"
             "{ xlir_channel_handle* handle = xlir_channel_borrow(value, queueTypeId, payloadTypeId, payloadAbi, payloadSize); xerror* saved; bool result; if (handle == NULL) return false; saved = xrtTakeError(); result = xrtChannelIsDrained(handle->channel); xlir_channel_finish_no_raise(saved); return result; }\n\n",
             out);
-    if ( needs->needsStackResourceRuntime || needs->needsArrayImportRuntime || needs->needsArrayCreateRuntime || nativeQueue || needs->needsAvlTreeResourceRuntime )
+    if ( needs->needsStackResourceRuntime || needs->needsArrayImportRuntime || needs->needsArrayCreateRuntime || nativeQueue || needs->needsAvlTreeResourceRuntime || needs->needsNativeChannelRuntime )
         xl6OutputPuts(
             "/* Sequence factories live in the resident typed runtime. */\n"
             "typedef struct xrttype xrttype;\n"

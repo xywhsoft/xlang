@@ -16992,7 +16992,12 @@ static int xl6IrLowerSpecializationCloneIntrinsicCalls(
                 xl6IrClassifyScalarConversionAbi(
                     concreteSource, concreteResult);
         }
-        target->admission = xl6IrLowerIntrinsicAdmissionSupported(build->ctx, target)
+        /* Recheck the concrete candidate, not the source template's pending
+         * admission. Closed validators must not inherit generic-dependent
+         * authority, nor reject a concrete clone merely for that old tag. */
+        XL6_IrIntrinsicCall candidate = *target;
+        candidate.admission = XL6_IR_INTRINSIC_ADMISSION_VERIFIED;
+        target->admission = xl6IrLowerIntrinsicAdmissionSupported(build->ctx, &candidate)
             ? XL6_IR_INTRINSIC_ADMISSION_VERIFIED
             : XL6_IR_INTRINSIC_ADMISSION_UNSUPPORTED_ABI;
      }
@@ -24474,6 +24479,12 @@ static int xl6IrLowerIntrinsicRuntimeResource(
     runtimeInstruction->payloadType = intrinsic->payloadType;
     runtimeInstruction->runtimeResourcePayloadAbi =
         intrinsic->runtimeResourcePayloadAbi;
+    if (runtimeOp==XL6_IR_RUNTIME_CHANNEL_CREATE &&
+        !xl6IrChannelConstructionRecipe(ctx->module,runtimeInstruction->type,NULL,
+            &runtimeInstruction->sequenceAdmissionIdentitySet)) {
+        xl6IrLowerDiag(ctx,id,"Channel construction requires a closed resident message schema");
+        ok=0; goto done;
+    }
     runtimeInstruction->runtimeResourceKeyType =
         intrinsic->runtimeResourceKeyType;
     runtimeInstruction->runtimeResourceKeyPayloadAbi =

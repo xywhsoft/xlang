@@ -232,15 +232,12 @@ static void lowerPipeline(XL6_CompileUnit* unit)
         outcome->kind=XL6_IR_INSTR_CONST; assert(!xl6IrVerifyModule(ir,NULL)); outcome->kind=kind; mutations+=2;
     }
     assert(found==pipeline && xl6IrVerifyModule(ir,NULL));
-    /* Distinct new operations must not silently select the old Into emitter
-     * while public/native Cgen integration is still pending. */
-    XL6_DiagList unsupported; xl6DiagInit(&unsupported);
-    assert(!xl6IrCgenVerifyEmittable(ir,&unsupported) && unsupported.count);
-    bool blocked=false;
-    for(size_t i=0;i<unsupported.count;++i)
-        if(strstr(unsupported.items[i].message,"runtime operation ABI is unresolved")) blocked=true;
-    assert(blocked);
-    xl6DiagFree(&unsupported);
+    /* The concrete plan now closes at the native C emission boundary. Real
+     * public source execution is verified separately, not by this retargeted
+     * private IR fixture. */
+    XL6_DiagList emitted; xl6DiagInit(&emitted);
+    assert(xl6IrCgenVerifyEmittable(ir,&emitted) && !emitted.count);
+    xl6DiagFree(&emitted);
 }
 int main(int argc,char** argv)
 {

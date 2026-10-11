@@ -1,98 +1,4 @@
-static int xl6IrCgenEmitChannelRuntime(
-    XL6_Output* out, const XL6_IrModule* module,
-    const XL6_IrInstruction* instruction)
-{
-    const XL6_IrInstruction* receiver;
-    const XL6_IrType* channel;
-    const XL6_IrType* payload;
-    const char* payloadType;
-    const char* payloadAbi;
-    XL6_IrValueId first;
-    if ( instruction == NULL ||
-         !xl6IrCgenChannelRuntimeOpIs(instruction->runtimeOp) ) return 0;
-    if ( !xl6IrCgenRuntimeChannelAbi(module, instruction) ) return -1;
-    first = instruction->operandCount != 0
-        ? module->operands[instruction->firstOperand] : XL6_IR_VALUE_INVALID;
-    receiver = instruction->runtimeOp == XL6_IR_RUNTIME_CHANNEL_CREATE
-        ? NULL : xl6IrCgenValueDefinition(module, first, NULL);
-    if ( !xl6IrCgenChannelTypeAbi(
-             module, receiver != NULL ? receiver->type : instruction->type,
-             &channel, &payload) ) return -1;
-    payloadType = xl6IrCgenType(module, instruction->payloadType);
-    payloadAbi = xl6IrCgenChannelPayloadAbiToken(
-        instruction->runtimeResourcePayloadAbi);
-    if ( payloadType == NULL || payloadAbi == NULL ) return -1;
-#define XL6_IR_CGEN_CHANNEL_COMMON_ARGS                                      \
-    (unsigned long long)channel->typeValueId,                               \
-    (unsigned long long)payload->typeValueId, payloadAbi, payloadType
-    switch ( instruction->runtimeOp ) {
-    case XL6_IR_RUNTIME_CHANNEL_CREATE:
-        if ( instruction->operandCount == 0 )
-            xl6OutputPrintf(out,
-                "    v%u = xlir_channel_create(0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), 2);\n",
-                (unsigned int)instruction->result,
-                XL6_IR_CGEN_CHANNEL_COMMON_ARGS);
-        else
-            xl6OutputPrintf(out,
-                "    v%u = xlir_channel_create(0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), v%u);\n",
-                (unsigned int)instruction->result,
-                XL6_IR_CGEN_CHANNEL_COMMON_ARGS,
-                (unsigned int)first);
-        break;
-    case XL6_IR_RUNTIME_CHANNEL_SEND:
-    case XL6_IR_RUNTIME_CHANNEL_TRY_SEND:
-        xl6OutputPrintf(out,
-            "    v%u = xlir_channel_send(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), &v%u, %s);\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            XL6_IR_CGEN_CHANNEL_COMMON_ARGS,
-            (unsigned int)module->operands[instruction->firstOperand + 1],
-            instruction->runtimeOp == XL6_IR_RUNTIME_CHANNEL_TRY_SEND
-                ? "true" : "false");
-        break;
-    case XL6_IR_RUNTIME_CHANNEL_RECV_INTO:
-    case XL6_IR_RUNTIME_CHANNEL_TRY_RECV_INTO:
-    case XL6_IR_RUNTIME_CHANNEL_RECV_TIMEOUT_INTO:
-        xl6OutputPrintf(out,
-            "    v%u = xlir_channel_recv(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), v%u, %s, ",
-            (unsigned int)instruction->result, (unsigned int)first,
-            XL6_IR_CGEN_CHANNEL_COMMON_ARGS,
-            (unsigned int)module->operands[instruction->firstOperand + 1],
-            instruction->runtimeOp == XL6_IR_RUNTIME_CHANNEL_RECV_INTO
-                ? "XLIR_CHANNEL_RECV_BLOCK"
-                : instruction->runtimeOp ==
-                      XL6_IR_RUNTIME_CHANNEL_TRY_RECV_INTO
-                    ? "XLIR_CHANNEL_RECV_TRY"
-                    : "XLIR_CHANNEL_RECV_TIMEOUT");
-        if ( instruction->runtimeOp ==
-             XL6_IR_RUNTIME_CHANNEL_RECV_TIMEOUT_INTO )
-            xl6OutputPrintf(out, "v%u);\n",
-                (unsigned int)module->operands[instruction->firstOperand + 2]);
-        else xl6OutputPuts("0);\n", out);
-        break;
-    case XL6_IR_RUNTIME_CHANNEL_CLOSE:
-        xl6OutputPrintf(out,
-            "    xlir_channel_close(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s));\n",
-            (unsigned int)first, XL6_IR_CGEN_CHANNEL_COMMON_ARGS);
-        break;
-    case XL6_IR_RUNTIME_CHANNEL_IS_CLOSED:
-        xl6OutputPrintf(out,
-            "    v%u = xlir_channel_is_closed(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s));\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            XL6_IR_CGEN_CHANNEL_COMMON_ARGS);
-        break;
-    case XL6_IR_RUNTIME_CHANNEL_COUNT:
-        xl6OutputPrintf(out,
-            "    v%u = xlir_channel_count(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s));\n",
-            (unsigned int)instruction->result, (unsigned int)first,
-            XL6_IR_CGEN_CHANNEL_COMMON_ARGS);
-        break;
-    default:
-#undef XL6_IR_CGEN_CHANNEL_COMMON_ARGS
-        return 0;
-    }
-#undef XL6_IR_CGEN_CHANNEL_COMMON_ARGS
-    return xl6OutputHasFailed(out) ? -1 : 1;
-}
+static int xl6IrCgenEmitChannelRuntime(XL6_Output*,const XL6_IrModule*,const XL6_IrInstruction*);
 
 static int xl6IrCgenRuntimeSpecialQueueAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
@@ -800,6 +706,7 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
     return xl6OutputHasFailed(out) ? -1 : 1;
 }
 #include "src/cgen/xl6_ir_cgen_concurrent_queue_emit.c"
+#include "src/cgen/xl6_ir_cgen_channel_emit.c"
 #include "src/cgen/xl6_ir_cgen_list_target_emit.c"
 static int xl6IrCgenEmitSequenceCreate(XL6_Output* out,const XL6_IrModule* module,
     XL6_IrTypeId typeId,XL6_IrValueId result,XL6_IrNominalIdentitySetId admissionSet)

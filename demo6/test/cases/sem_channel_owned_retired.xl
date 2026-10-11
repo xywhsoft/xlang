@@ -1,0 +1,3 @@
+channel<int> c = channel::<int>(1)
+int value = 0
+c.recvInto(value)
