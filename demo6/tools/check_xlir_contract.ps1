@@ -1,5 +1,6 @@
 param(
-    [string]$Root = ""
+    [string]$Root = "",
+    [string]$PublicDirectory = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -747,12 +748,11 @@ if (!(Read-Utf8 'test/suites/03_core_function_abi.bat').Contains('check_xlir_cel
     !(Read-Utf8 'test/cases/xlir_cell_cancel_race_runtime.c').Contains('continuation_owner_fault_balanced')) {
     throw 'Cell cancellation requires real transport overlap, independent producers, once-only delivery and balanced cleanup verification'
 }
-$runtimeEnum = [regex]::Match($header, 'typedef enum XL6_IrRuntimeOp \{([\s\S]*?)\} XL6_IrRuntimeOp;').Groups[1].Value
-foreach ($match in [regex]::Matches($runtimeEnum, '(?m)^\s*(XL6_IR_RUNTIME_[A-Z0-9_]+)\s*(?:=\s*0)?\s*,?\s*$')) {
-    if (!$ownership.Contains("case $($match.Groups[1].Value):")) {
-        throw "RuntimeOp is missing an explicit operand ownership effect: $($match.Groups[1].Value)"
-    }
-}
+# The compiled enum expands all X-macro families and excludes COUNT. Compare
+# production effects with independent consume-position expectations; reject
+# NONE, COUNT and unknown operations instead of matching source case labels.
+& "$PSScriptRoot/check_xlir_runtime_operand_catalog.ps1" -Root $Root -PublicDirectory $PublicDirectory -CatalogOnly
+if (!$?) { throw 'Compiled RuntimeOp input ownership catalog failed' }
 if (!$header.Contains('XL6_IR_OPERAND_OWNERSHIP_CONSUME_FIELD') -or
     !$ownership.Contains('instruction->elementIndex != field') -or
     $source.Contains('size_t wholeTransfers = 0;') -or $source.Contains('elementConsumes[element] != 1') -or
@@ -1175,6 +1175,8 @@ $persistenceJsonGate = Read-Utf8 "tools\check_xlir_persistence_json_abi.ps1"
 $taskSpawnClosureGate = Read-Utf8 "tools\check_xlir_task_spawn_closure_abi.ps1"
 $taskNestedFutureGate = Read-Utf8 "tools\check_xlir_task_nested_future_abi.ps1"
 $threadResourceGate = Read-Utf8 "tools\check_xlir_thread_resource_abi.ps1"
+$threadPublicGate = Read-Utf8 "tools\check_xlir_runtime_operand_catalog.py"
+$threadLanguageGate = Read-Utf8 "tools\check_stdlib_thread_language.py"
 $channelResourceGate = Read-Utf8 "tools\check_xlir_channel_resource_abi.ps1"
 $channelOwnedGate = Read-Utf8 "tools\check_stdlib_channel_regressions.py"
 $channelReceivePlan = Read-Utf8 "src\ir\xl6_ir_channel_receive.c"
@@ -4747,7 +4749,7 @@ foreach ( $required in @(
 }
 if ( $cEmitter -match 'XL6_AstNode\s*\*' -or $cEmitter -match 'XL6_Hir' -or
 $cEmitter -match 'xl6Cgen(?!Emit(?:BufferRuntime|FileRuntime|NetTcpComponent|NetBufferComponent|NetTcpStatsComponent|NetDatagramComponent|TlsRuntime|Http1Runtime|HttpDecodeRuntime|WebSocketProtocolRuntime|Base64TextCodecRuntime|HexBytesCodecRuntime|Base64BytesCodecRuntime|TextOutputRuntime|DirRuntime|ProcessRunRuntime|JsonValueRuntime|JsonStreamRuntime|SerializationCallbackRuntime|StructuredOptionsRuntime|NativeVoidAbiBegin|NativeVoidAbiEnd|XlonRuntime)\b)' -or
-     $cEmitter -match 'xl6Sem' ) {
+     $cEmitter -match '\bxl6Sem(?!(?:CreateV1|CreateDefaultV1|WaitV1|TryWaitV1|WaitTimeoutV1|PostV1|PostMultipleV1)\b)' ) {
     throw "XLIR C emitter must not consume AST/HIR/semantic analysis or call legacy Cgen"
 }
 $datagramComponent = Read-Utf8 'src/cgen/xl6_cgen_net_datagram.c'
@@ -5812,9 +5814,8 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xl6IrCgenThreadTypeAbi", "xl6IrCgenThreadCallableAbi",
     "xl6IrCgenRuntimeThreadAbi", "xl6IrCgenEmitThreadRuntime",
-    "needsThreadResourceRuntime", "xlir_thread_handle_ops",
-    "xrtValueHandleTake", "xrtValueTypeIdBind", "xrtValueGetHandle",
-    "ops != &xlir_thread_handle_ops", "xlir_thread_create",
+    "needsThreadResourceRuntime", "xl6ThreadCreateV1", "xl6ThreadWaitV1",
+    "xl6ThreadWaitTimeoutV1", "xl6ThreadExitCodeV1", "xl6ThreadStateV1", "xl6ThreadStopV1",
     "xlir_closure_retain (xl6ClosureRuntimeV1Get()->Retain)",
     "xlir_closure_release (xl6ClosureRuntimeV1Get()->Release)"
 ) ) {
@@ -5829,22 +5830,21 @@ foreach ($required in @('xrtRefRetain(&closure->refs)', 'xrtRefRelease(&closure-
         throw "Atomic closure reference implementation must be resident and unique: $required"
     }
 }
-$threadRuntime = Read-Utf8 'src/cgen/xl6_ir_cgen_emit_resource_support.c'
-foreach ($required in @('frame->callable = xlir_closure_retain(callable)',
-    'xlir_closure_release(callable)', 'xlir_closure_release(frame->callable)')) {
+$threadRuntime = Read-Utf8 'src/runtime/xl6_thread.c'
+foreach ($required in @('xl6ClosureRuntimeV1Get()->Retain', 'xl6ClosureRuntimeV1Get()->Release', 'xrtRefRetain', 'xrtRefRelease',
+    'xrtOwnershipMutationBegin', 'workerActive')) {
     if (!$threadRuntime.Contains($required)) { throw "Thread closure ownership boundary missing: $required" }
 }
 foreach ( $required in @(
-    "xlir_thread_resource_abi.xl", 'runtimeResourceAbiName -eq "thread"',
-    'runtimeResourceOpName -like "thread-*"',
-    'runtimeOpName -like "thread-*"', "retain-xvalue",
-    "managed conditional closure ownership",
-    "byte-for-byte deterministic", "-Werror",
-    "strict-C/runtime gate failed"
+    "xlir_thread_resource_abi.xl", "runtimeResourceAbiName", "runtimeResourceOpName",
+    "runtimeOpName", "retain-xvalue", "conditional", "repeat.read_bytes()", "-Werror"
 ) ) {
-    if ( ! $threadResourceGate.Contains($required) ) {
+    if ( ! ($threadLanguageGate+$threadPublicGate).Contains($required) ) {
         throw "XLIR thread resource quality gate is incomplete: $required"
     }
+}
+if (!$threadResourceGate.Contains('check_xlir_runtime_operand_catalog.ps1')) {
+    throw 'Thread resource acceptance must execute compiled current-source ownership and resident Thread tests'
 }
 if ( ! $languageFrontendSuite.Contains(
         "tools\check_xlir_thread_resource_abi.ps1") ) {

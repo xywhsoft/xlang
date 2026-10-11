@@ -122,6 +122,10 @@ def main():
                 assert bool(instruction['calleeType'])==(kind=='thread-create')
         captures=[row for row in ops['closureCaptures'] if row['type']==resource['id']]
         assert len(captures)==1 and captures[0]['abiName']=='retain-xvalue'
+        selected=min((row for row in ops['instructions'] if row['runtimeOpName']=='thread-create'),key=lambda row:row['sourceLine'])
+        conditional=[row for row in ops['instructions'] if row['sourceLine']==selected['sourceLine'] and row['type']==selected['calleeType']]
+        assert sum(row['kindName']=='retain' for row in conditional)==2
+        assert sum(row['kindName']=='move' for row in conditional)==1
         generated=out/'thread.abi.c'
         run('thread.abi-c',[build['Driver'],fixture,'cgen-default',generated])
         text=generated.read_text(encoding='utf-8')
