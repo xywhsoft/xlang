@@ -30,6 +30,11 @@ typedef struct XL6_IrDirectBridgeContract {
     const char* nativeHandlePolicy;
     XL6_IrCallNativeArrayResultAbi nativeArrayResultAbi;
     XL6_IrCallErrorPhysicalAbi errorPhysicalAbi;
+    /* Closed owning records are not PODs or arbitrary foreign structs. The
+     * same permanent native-value profile authorizes argument borrows and
+     * independent owned results; emission uses the ordinary call ABI. */
+    XL6_IrNativeValueAbi resultNativeValueAbi;
+    XL6_IrNativeValueAbi parameterNativeValueAbis[8];
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -317,6 +322,9 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define XL6_NATIVE_COLLECTION_BRIDGE(Name,...) {Name,__VA_ARGS__},
 #include "src/abi/xl6_native_collection_contracts.inc"
 #undef XL6_NATIVE_COLLECTION_BRIDGE
+#define XL6_NATIVE_VALUE_BRIDGE(Name,...) {Name,__VA_ARGS__},
+#include "src/abi/xl6_native_value_contracts.inc"
+#undef XL6_NATIVE_VALUE_BRIDGE
     {"xl6TextLowerV1",T,S,2,{S,I}},
     {"xl6TextUpperV1",T,S,2,{S,I}},
     {"xl6TextTrimV1",T,S,4,{S,S,I,I}},
@@ -746,7 +754,13 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     if (contract->result == XL6_IR_C_ABI_VOID) {
         if (target->returnType != XL6_IR_TYPE_INVALID) return 0;
     } else if (!contract->resultOwner) {
-        if (contract->resultProductAbi) {
+        if (contract->resultNativeValueAbi) {
+            if (contract->result != XL6_IR_C_ABI_NATIVE_VALUE ||
+                !xl6IrNativeValuePlanForType(result) ||
+                result->nativeValueAbi != contract->resultNativeValueAbi ||
+                contract->nullableResult || contract->resultProductAbi ||
+                contract->resultArrayItemAbi || contract->resultFutureElementAbi) return 0;
+        } else if (contract->resultProductAbi) {
             if (!result || result->cAbi != XL6_IR_C_ABI_PRODUCT ||
                 result->nativeProductAbi != contract->resultProductAbi ||
                 xl6IrNativeProductAbiForShape(&module->types,result) != contract->resultProductAbi ||
@@ -791,6 +805,17 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     for (i = 0; i < contract->parameterCount; ++i) {
         const XL6_IrType* type = xl6IrTypeGet(&module->types, target->parameterTypes[i]);
         XL6_IrCAbi abi = contract->parameters[i];
+        if (contract->parameterNativeValueAbis[i]) {
+            if (abi != XL6_IR_C_ABI_NATIVE_VALUE || !xl6IrNativeValuePlanForType(type) ||
+                type->nativeValueAbi != contract->parameterNativeValueAbis[i] ||
+                target->parameterAbis[i] != XL6_IR_PARAMETER_ABI_BORROW ||
+                target->parameterPhysicalAbis[i] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
+                target->parameterConstraintAbis[i] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
+                target->parameterPhysicalFieldDeclarations[i] != XL6_IR_NODE_INVALID ||
+                contract->parameterOwners[i] || contract->parameterDynamicBorrows[i] ||
+                contract->parameterArrayItemAbis[i] || contract->parameterNullaryCallableResultAbis[i]) return 0;
+            continue;
+        }
         if (contract->parameterNullaryCallableResultAbis[i]) {
             const XL6_IrType* returned=type && type->returnCount==1 && type->returns
                 ? xl6IrTypeGet(&module->types,type->returns[0]):NULL;

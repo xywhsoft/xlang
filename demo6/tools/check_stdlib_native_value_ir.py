@@ -20,17 +20,21 @@ def main():
     assert build['SourceXrt'] and not build['RuntimeOnly'] and build['EnableExeCompiler']==1
     runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     assert Path(a.fixture).name==a.fixture and a.fixture.endswith('.xl')
-    source=root/'test/cases'/a.fixture; host=root/'test/cases/stdlib_native_value_ir_host.c'
+    foreign=a.fixture=='stdlib_native_value_bridge.xl'
+    source=root/'test/cases'/a.fixture; host=root/'test/cases'/('stdlib_native_value_bridge_host.c' if foreign else 'stdlib_native_value_ir_host.c')
     contract=root/'test/cases/xlir_native_value_contract.c'; memory=root/'test/support/module_product_memory.c'
     files={Path(__file__).resolve(),manifest,driver,runtime,source,host,contract,memory,Path(cc),
         root/'test/cases/xlir_artifact_runtime_contract.c'}
+    if foreign:
+        files.update({root/'test/cases/stdlib_native_value_ir_host.c',root/'test/cases/stdlib_native_value_bridge_jit.c'})
     for row in build['Inputs']+build['Headers']+build['Objects']:
         assert sha(row['Path'])==row['Sha256'].lower(); files.add(Path(row['Path']))
     inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(files)]; out.mkdir(); rows=[]; products=[]
-    prefixes=[]; controls=[]
+    prefixes=[]; controls=[]; reportedResultFailures=set()
     report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Rows=rows,Products=products,Prefixes=prefixes,NegativeControls=controls,
         PrunedShippingArtifact=False,LanguageNativeValueSyncCutover=True,Full53Acceptance=False,Scope=__doc__,
-        LanguageNativeValueCollections=a.fixture=='stdlib_native_value_collections.xl',LanguageSlotMapCutover=False)
+        LanguageNativeValueCollections=a.fixture=='stdlib_native_value_collections.xl',LanguageSlotMapCutover=False,
+        LanguageNativeValueForeignCalls=foreign)
     env=dict(os.environ)
     if os.name!='nt': env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
     else: shutil.copy2(runtime,out/'xl.dll')
@@ -49,6 +53,9 @@ def main():
                        'xl6SlotMapKeyBoxV1','xl6SlotMapKeyUnboxV1'): assert symbol+'(' in body,symbol
         assert '#include <__xl_runtime/xl6_slot_map_key_abi.h>' in body
         assert 'typedef struct XL6_SlotMapKeyV1' not in body
+        if foreign:
+            assert re.search(r'v\d+ = xl6SlotMapKeyCloneV1\(v\d+\);',body)
+            assert re.search(r'v\d+ = xl6SlotMapKeyEqualV1\(v\d+, v\d+\);',body)
         products.extend(dict(Path=str(f),Sha256=sha(f)) for f in (generated,repeated))
         run('public-jit',[driver,source,'run',out/'jit'])
         for mode in ('ir-typed','ir-lowered'):
@@ -67,6 +74,14 @@ def main():
         flags+=['-DXL6_TEST_NATIVE_KEPT=xlir_fn_'+str(kept[0]['symbol'])]
         links=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-pthread','-ldl','-lm','-Wl,-rpath,'+str(runtime.parent)]
         if os.name!='nt': flags+=['-D_GNU_SOURCE']
+        if foreign:
+            consumer=root/'test/cases/stdlib_native_value_bridge_jit.c'
+            executable=out/('jit-keys'+('.exe' if os.name=='nt' else ''))
+            run('jit-keys-build',[cc,*flags,'-O0',consumer,*objects,runtime,*links,'-o',executable])
+            library=root/'res/tcc/win64/x86_64' if os.name=='nt' else Path(build['NativeRoot'])/'build/linux/tcc-dist'
+            run('jit-genuine-keys',[executable,source,public/'include',runtime,library,out/'jit-keys.temps',root])
+            products.append(dict(Path=str(executable),Sha256=sha(executable)))
+            report['JitGenuineKeyRounds']=100
         proof=out/('contract'+('.exe' if os.name=='nt' else ''))
         run('contract-build',[cc,*flags,'-Ilib/tcc','-O0',contract,*objects,runtime,*links,'-o',proof])
         text=run('contract',[proof,source]); match=re.search(r'native values copy=(\d+) equal=(\d+) box=(\d+) project=(\d+) mutations=(\d+)',text)
@@ -88,16 +103,22 @@ def main():
             fault=out/(opt+'-fault'+('.exe' if os.name=='nt' else ''))
             symbols=('xl6SlotMapKeyCopyValueV1','xl6SlotMapKeyUnboxV1','xl6SlotMapKeyBoxV1','xl6ArrayExtractNativeValueV1')
             wraps=['-Wl,--wrap='+symbol for symbol in symbols]
+            if foreign: wraps.append('-Wl,--wrap=xl6SlotMapKeyCloneV1')
             run(opt+'-fault-build',[cc,*flags,'-'+opt,'-DXL6_NATIVE_VALUE_TEST_FAULTS','-include',generated,
                 host,memory_object,*objects,runtime,*links,*wraps,'-o',fault])
             products.append(dict(Path=str(fault),Sha256=sha(fault)))
             for lane in (('copy','project','box','extract','oom') if a.fixture=='stdlib_native_value_collections.xl' else ('copy','project','box','oom')):
                 for at in range(256):
                     message=run(opt+'-'+lane+'-'+str(at),[fault,lane,at])
+                    if foreign:
+                        reportedResultFailures.update(re.findall(r'owned-foreign-result reported=([01])',message))
                     assert 'prefix='+lane+' at='+str(at)+' hit=' in message
                     if 'prefix='+lane+' at='+str(at)+' hit=0' in message: break
                 else: raise AssertionError('No final no-hit prefix: '+lane)
                 prefixes.append(dict(Optimization=opt,Lane=lane,Runs=at+1,Complete=True))
+        if foreign:
+            assert reportedResultFailures=={'0','1'}
+            report['OwnedForeignResultFailureVariants']=['reported','unreported']
         mutants=(('copy-owner','xl6_slot_map_key_value',
             '{ return xl6NativeLeafValueCopyV1(&profile,&input,output); }','{ *output=input; return true; }'),
             ('drop-owner','xl6_slot_map_key','{ keyDrop(&value,xl6SlotMapKeyTypeV1()); }','{ (void)value; }'),

@@ -10,6 +10,9 @@
  * a private zero-initialized output and preserves it on refusal. Same-ID
  * foreign handles are not keys. These are not persistence encoders. */
 XL6_TEXT_API xvalue* xl6SlotMapKeyBoxV1(XL6_SlotMapKeyV1);
+/* C by-value transport, independent owning result, borrowed input. Failure
+ * returns the empty record and a checked diagnostic, never an alias owner. */
+XL6_TEXT_API XL6_SlotMapKeyV1 xl6SlotMapKeyCloneV1(XL6_SlotMapKeyV1);
 XL6_TEXT_API bool xl6SlotMapKeyUnboxV1(const xvalue*,XL6_SlotMapKeyV1*);
 XL6_TEXT_API bool xl6SlotMapKeyValueAdmitsV1(const xvalue*);
 XL6_TEXT_API const xvalueconverter* xl6SlotMapKeyConverterV1(void);

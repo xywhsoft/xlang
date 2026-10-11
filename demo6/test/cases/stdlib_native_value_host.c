@@ -57,7 +57,22 @@ static void graph(const xvalue* value,unsigned kind)
 }
 static void vectors(void)
 {
+    xmemdebugsnapshot before,after; xrtMemDebugSnapshot(&before);
+    XL6_SlotMapKeyV1 input={0}; xvalue* producer=sample(&input);
+    XL6_SlotMapKeyV1 acquired=xl6SlotMapKeyCloneV1(input);
+    assert(xl6SlotMapKeyEqualV1(input,acquired) && !xrtGetError());
+    xrtValueRelease(producer); releaseKey(&input); xrtMemDebugSnapshot(&after);
+    assert(after.LiveCount==before.LiveCount+1);
+    releaseKey(&acquired); xrtMemDebugSnapshot(&after);
+    assert(after.LiveCount==before.LiveCount && after.LiveBytes==before.LiveBytes);
+    acquired=xl6SlotMapKeyCloneV1((XL6_SlotMapKeyV1){0});
+    assert(!acquired.instance && !acquired.slot && !xrtGetError());
     XL6_SlotMapKeyV1 key={0},other={0},out={0}; xvalue* source=sample(&key),*second=sample(&other);
+    for (int mode=-2;mode<=2;++mode) if (mode) {
+        copyFailure=mode; acquired=xl6SlotMapKeyCloneV1(key);
+        assert(!acquired.instance && !acquired.slot && xrtGetError()); xrtClearError();
+        acquired=xl6SlotMapKeyCloneV1(key); assert(xl6SlotMapKeyEqualV1(acquired,key)); releaseKey(&acquired);
+    }
     XL6_ListLayoutV1 l={0xED02,tuple()}; XL6_SetLayoutV1 s={0xED03,tuple()}; XL6_DictLayoutV1 d={0xED04,tuple()};
     XL6_SlotMapLayoutV1 m={0xED05,tuple()}; XL6_SlotMapKeyV1 stored={0};
     xvalue* a=witness(1),*stack=witness(2),*list=xl6ListCreateTakeV1(&l,witness(1));

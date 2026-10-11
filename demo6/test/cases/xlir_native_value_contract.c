@@ -96,6 +96,30 @@ int main(int argc,char** argv)
             ir->instructions[i+1].trueTarget=outcome.falseTarget; refused(ir); ir->instructions[i+1]=outcome;
         }
     }
+    for (size_t i=0;i<ir->callTargetCount;++i) {
+        XL6_IrCallTarget* target=&ir->callTargets[i];
+        if (target->kind!=XL6_IR_CALL_TARGET_EXTERN_C || !target->cName ||
+            (strcmp(target->cName,"xl6SlotMapKeyCloneV1") && strcmp(target->cName,"xl6SlotMapKeyEqualV1"))) continue;
+        XL6_IrCallTarget saved=*target;
+        assert(target->runtimeBridge==XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE && target->parameterCount);
+        for (size_t j=0;j<target->parameterCount;++j) {
+            assert(xl6IrNativeValuePlanForType(xl6IrTypeGet(&ir->types,target->parameterTypes[j])));
+            XL6_IrParameterAbi prior=target->parameterAbis[j];
+            target->parameterAbis[j]=XL6_IR_PARAMETER_ABI_OWNED; refused(ir); target->parameterAbis[j]=prior;
+            XL6_IrCallParameterPhysicalAbi physical=target->parameterPhysicalAbis[j];
+            target->parameterPhysicalAbis[j]=XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW;
+            refused(ir); target->parameterPhysicalAbis[j]=physical;
+            XL6_IrTypeId type=target->parameterTypes[j];
+            target->parameterTypes[j]=XL6_IR_TYPE_INVALID; refused(ir); target->parameterTypes[j]=type;
+        }
+#define BAD_TARGET(Field,Value) do { target->Field=(Value); refused(ir); *target=saved; } while (0)
+        BAD_TARGET(effectAbi,XL6_IR_CALL_EFFECT_CONSERVATIVE);
+        BAD_TARGET(executionBoundaryAbi,XL6_IR_CALL_EXECUTION_FOREIGN_MAY_BLOCK);
+        BAD_TARGET(returnType,XL6_IR_TYPE_INVALID);
+        BAD_TARGET(errorPhysicalAbi,XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT);
+        BAD_TARGET(runtimeBridge,XL6_IR_RUNTIME_BRIDGE_NONE);
+#undef BAD_TARGET
+    }
     for (unsigned i=0;i<4;++i) assert(operations[i]);
     assert(xl6IrVerifyModule(ir,NULL));
     printf("native values copy=%u equal=%u box=%u project=%u mutations=%u\n",
