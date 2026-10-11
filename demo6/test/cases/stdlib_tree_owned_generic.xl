@@ -1,0 +1,40 @@
+func orderedRead<T>(OrderedMap<int, T> values, int key) as T
+    return values.get(key)
+end
+
+func orderedTry<T>(OrderedMap<int, T> values, int key) as (bool, T?)
+    return values.tryTake(key)
+end
+
+func orderedFirst<T>(OrderedMap<int, T> values) as (int, T)
+    return values.first()
+end
+
+func orderedLookup<K, V>(OrderedMap<K, V> values, K key) as V
+    return values.get(key)
+end
+
+func orderedTryFirst<K, V>(OrderedMap<K, V> values) as (bool, K?, V?)
+    return values.tryFirst()
+end
+
+auto texts = OrderedMap::<int, string>()
+assert(texts.set(1, "generic\0你"))
+assert(orderedRead(texts, 1) == "generic\0你")
+auto key, value = orderedFirst(texts)
+assert(key == 1 and value == "generic\0你")
+auto found, item = orderedTry(texts, 1)
+assert(found and item != null and item == "generic\0你" and texts.count() == 0)
+auto absent, missing = orderedTry(texts, 1)
+assert(not absent and missing == null)
+
+auto numbers = OrderedMap::<int, int32>()
+assert(numbers.set(1, -2147483648))
+assert(orderedRead(numbers, 1) == -2147483648)
+auto numberFound, number = orderedTry(numbers, 1)
+assert(numberFound and number != null and number == -2147483648)
+
+auto named = OrderedMap::<string, int>()
+assert(named.set("a\0你", 42) and orderedLookup(named, "a\0你") == 42)
+auto namedFound, namedKey, namedValue = orderedTryFirst(named)
+assert(namedFound and namedKey != null and namedKey == "a\0你" and namedValue != null and namedValue == 42)

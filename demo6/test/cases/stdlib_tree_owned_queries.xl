@@ -1,0 +1,58 @@
+class OwnedQueryBox
+    int value
+end
+func main(...) as int
+    auto tree = OrderedMap::<int, string>()
+    assert(tree.set(1, "a\0b") and tree.set(3, "你\0好"))
+    assert(tree.get(1) == "a\0b")
+    auto firstKey, firstValue = tree.first()
+    auto lastKey, lastValue = tree.last()
+    assert(firstKey == 1 and firstValue == "a\0b" and lastKey == 3 and lastValue == "你\0好")
+    auto lowerKey, lowerValue = tree.lowerBound(2)
+    auto upperKey, upperValue = tree.upperBound(1)
+    assert(lowerKey == 3 and upperKey == 3 and lowerValue == lastValue and upperValue == lastValue)
+    auto hasItem, item = tree.tryGet(1)
+    auto missing, absent = tree.tryGet(2)
+    assert(hasItem and (item ?? "") == "a\0b" and not missing and absent == null)
+    auto hasFirst, optionalKey, optionalValue = tree.tryFirst()
+    assert(hasFirst and (optionalKey ?? 0) == 1 and (optionalValue ?? "") == "a\0b")
+    auto hasLast, optionalLastKey, optionalLast = tree.tryLast()
+    assert(hasLast and (optionalLastKey ?? 0) == 3 and (optionalLast ?? "") == "你\0好")
+    auto hasLower, optionalLowerKey, optionalLower = tree.tryLowerBound(2)
+    auto hasUpper, optionalUpperKey, optionalUpper = tree.tryUpperBound(1)
+    assert(hasLower and hasUpper and (optionalLowerKey ?? 0) == 3 and (optionalUpperKey ?? 0) == 3)
+    assert((optionalLower ?? "") == "你\0好" and (optionalUpper ?? "") == "你\0好")
+    auto noBound, noKey, noValue = tree.tryUpperBound(3)
+    assert(not noBound and noKey == null and noValue == null)
+    assert(tree.take(1) == "a\0b" and not tree.contains(1))
+    auto taken, detached = tree.tryTake(3)
+    assert(taken and (detached ?? "") == "你\0好" and tree.count() == 0)
+    auto noTake, emptyTake = tree.tryTake(3)
+    auto noFirst, emptyKey, emptyValue = tree.tryFirst()
+    assert(not noTake and emptyTake == null and not noFirst and emptyKey == null and emptyValue == null)
+    assert(firstValue == "a\0b" and lastValue == "你\0好")
+
+    auto nullable = OrderedMap::<int, int?>()
+    assert(nullable.set(1, null))
+    auto presentNull, nullItem = nullable.tryGet(1)
+    auto absentNull, absentItem = nullable.tryGet(2)
+    assert(presentNull and nullItem == null and not absentNull and absentItem == null)
+    auto nullFirstKey, nullFirst = nullable.first()
+    assert(nullFirstKey == 1 and nullFirst == null)
+    auto nullableText = OrderedMap::<string, string?>()
+    assert(nullableText.set("a\0b", null))
+    auto textPresent, textKey, textNull = nullableText.tryFirst()
+    assert(textPresent and (textKey ?? "") == "a\0b" and textNull == null)
+
+    auto objects = OrderedMap::<int, OwnedQueryBox>()
+    auto object = OwnedQueryBox()
+    object.value = 41
+    assert(objects.set(1, object))
+    auto shared = objects.get(1)
+    shared.value = 42
+    assert(object.value == 42)
+    auto takenObject = objects.take(1)
+    assert(takenObject.value == 42 and objects.count() == 0)
+    println("owned tree queries: exact presence, optional results, copies and moves ok")
+    return 0
+end

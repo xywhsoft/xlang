@@ -16,7 +16,7 @@ func main(...) as int
     assert(scores.contains("alice"))
 
     int number = 0
-    assert(scores.getInto("bob", number))
+    number = scores.get("bob")
     assert(number == 80)
     OrderedMap<string, int> clone = scores.clone()
     assert(scores.equals(clone))
@@ -25,24 +25,24 @@ func main(...) as int
     assert(patch.set("bob", 81))
     assert(patch.set("carol", 75))
     assert(clone.merge(patch, false))
-    assert(clone.getInto("bob", number))
+    number = clone.get("bob")
     assert(number == 80)
     assert(clone.merge(patch))
-    assert(clone.getInto("bob", number))
+    number = clone.get("bob")
     assert(number == 81)
     assert(not scores.equals(clone))
 
     string name = ""
     int score = 0
-    assert(scores.firstInto(name, score))
+    name, score = scores.first()
     assert(name == "alice")
     assert(score == 90)
-    assert(scores.lastInto(name, score))
+    name, score = scores.last()
     assert(name == "bob")
     assert(score == 80)
-    assert(scores.lowerBoundInto("amy", name, score))
+    name, score = scores.lowerBound("amy")
     assert(name == "bob")
-    assert(scores.upperBoundInto("alice", name, score))
+    name, score = scores.upperBound("alice")
     assert(name == "bob")
 
     array<string> names = scores.keys()
@@ -54,7 +54,7 @@ func main(...) as int
     assert(values[0] == 90)
     assert(values[1] == 80)
 
-    assert(scores.takeInto("alice", number))
+    number = scores.take("alice")
     assert(number == 90)
     assert(not scores.contains("alice"))
     assert(scores.remove("bob"))
@@ -65,14 +65,15 @@ func main(...) as int
     OrderedMap<int, int> sameType = OrderedMap::<int, int>()
     assert(sameType.set(1, 10))
     int aliasedOutput = 0
-    assert(not sameType.firstInto(aliasedOutput, aliasedOutput))
+    auto independentKey, independentValue = sameType.first()
+    assert(independentKey == 1 and independentValue == 10 and aliasedOutput == 0)
     sameType.clear()
     assert(sameType.count() == 0)
 
     AvlHolder holder = AvlHolder()
     string text = ""
     assert(holder.values.set("key", "value"))
-    assert(holder.values.getInto("key", text))
+    text = holder.values.get("key")
     assert(text == "value")
 
     func() as int observe = func() as int

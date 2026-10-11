@@ -29,12 +29,13 @@ int main(int argc,char** argv)
         xl6IrModuleFree(&ir); xl6ParseResultFree(&parse); return 1;
     }
     assert(xl6IrVerifyModule(&ir,NULL));
-    unsigned factories=0,nominalFactories=0,operations=0,mutations=0;
+    unsigned factories=0,nominalFactories=0,operations=0,mutations=0,ownedQueries=0;
     for (size_t i=0;i<ir.instructionCount;++i) {
         XL6_IrInstruction* instruction=&ir.instructions[i];
+        const XL6_IrTreeQuerySpec* query=xl6IrTreeQuerySpecRuntime(instruction->runtimeOp);
         if (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
-            instruction->runtimeOp<XL6_IR_RUNTIME_AVL_TREE_CREATE ||
-            instruction->runtimeOp>XL6_IR_RUNTIME_AVL_TREE_CLONE) continue;
+            (!query && (instruction->runtimeOp<XL6_IR_RUNTIME_AVL_TREE_CREATE ||
+            instruction->runtimeOp>XL6_IR_RUNTIME_AVL_TREE_CLONE))) continue;
         XL6_IrInstruction saved=*instruction;
 #define BAD(FIELD,VALUE) do { instruction->FIELD=(VALUE); refused(&ir); *instruction=saved; ++mutations; } while(0)
         BAD(payloadType,XL6_IR_TYPE_INVALID);
@@ -42,6 +43,21 @@ int main(int argc,char** argv)
         BAD(runtimeResourceKeyType,XL6_IR_TYPE_INVALID);
         BAD(runtimeResourceKeyPayloadAbi,XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID);
         BAD(runtimeResourceKeyOrderAbi,XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID);
+        if(query) {
+            XL6_IrValueId receiver=ir.operands[instruction->firstOperand];
+            const XL6_IrInstruction* owner=NULL;
+            for(size_t at=0;at<ir.instructionCount;++at)
+                if(ir.instructions[at].result==receiver) { owner=&ir.instructions[at]; break; }
+            assert(owner && xl6IrTreeQueryInstructionCompatible(&ir,instruction));
+            BAD(type,owner->type);
+            BAD(result,XL6_IR_VALUE_INVALID);
+            BAD(operandCount,instruction->operandCount+1);
+            BAD(firstOperand,UINT32_MAX);
+            BAD(sequenceAdmissionIdentitySet,1);
+            BAD(runtimeIdentityType,owner->type);
+            BAD(immediateText,"not-a-query-operand");
+            ++ownedQueries;
+        }
         if (instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_CREATE) {
             XL6_IrType* tree=&ir.types.items[instruction->type-1];
             XL6_IrType original=*tree;
@@ -57,7 +73,7 @@ int main(int argc,char** argv)
         assert(xl6IrVerifyModule(&ir,NULL)); ++operations;
     }
     assert(factories && operations>=factories && mutations>=operations*5+factories*3);
-    printf("Native Tree IR: %u actual factories (%u nominal), %u operations, %u rejected mutations; output retained\n",
-        factories,nominalFactories,operations,mutations);
+    printf("Native Tree IR: %u actual factories (%u nominal), %u operations (%u owned queries), %u rejected mutations; output retained\n",
+        factories,nominalFactories,operations,ownedQueries,mutations);
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse); return 0;
 }

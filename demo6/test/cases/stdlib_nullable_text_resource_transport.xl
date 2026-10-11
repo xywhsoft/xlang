@@ -16,8 +16,10 @@ func main(...) as int
     OrderedMap<int, string?> tree = OrderedMap::<int, string?>()
     assert(tree.set(1, text) and tree.set(2, null))
     assert(tree.count() == 2)
-    assert(tree.getInto(1, item) and item == text)
-    assert(tree.getInto(2, item) and item == null)
+    item = tree.get(1)
+    assert(item == text)
+    item = tree.get(2)
+    assert(item == null)
     OrderedMap<int, string?> copied = tree.clone()
     assert(tree.equals(copied))
     assert(copied.set(2, "") and not tree.equals(copied))
@@ -28,9 +30,12 @@ func main(...) as int
     assert(tree.set(1, "changed") and values[0] == text)
     assert(tree.set(1, text))
     int key = 99
-    assert(tree.firstInto(key, item) and key == 1 and item == text)
-    assert(tree.lastInto(key, item) and key == 2 and item == null)
-    assert(tree.takeInto(1, item) and item == text)
+    key, item = tree.first()
+    assert(key == 1 and item == text)
+    key, item = tree.last()
+    assert(key == 2 and item == null)
+    item = tree.take(1)
+    assert(item == text)
     assert(tree.count() == 1 and not tree.contains(1))
     return 0
 end

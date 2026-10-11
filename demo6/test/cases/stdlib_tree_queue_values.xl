@@ -48,6 +48,6 @@ func main(...) as int
     auto nestedStatus, nestedTree = nestedQueue.tryPop()
     assert(nestedStatus == queueStatus.ok and nestedTree != null)
     string text = "unchanged"
-    if nestedTree != null then assert(nestedTree.getInto(1, text) and text == "value\0中文") end
+    if nestedTree != null then assert(nestedTree.get(1) == "value\0中文") end
     return 0
 end

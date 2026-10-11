@@ -64,17 +64,12 @@ static int xl6IrCgenEmitTreeReferenceCreateDepth(XL6_Output* out,const XL6_IrMod
 }
 static const char* xl6IrCgenTreeNativeMethod(XL6_IrRuntimeOp operation)
 {
+    if(xl6IrTreeQuerySpecRuntime(operation)) return "xl6TreeQueryV2";
     switch (operation) {
     case XL6_IR_RUNTIME_AVL_TREE_CREATE: return "xl6TreeCreateTakeV1";
     case XL6_IR_RUNTIME_AVL_TREE_SET: return "xl6TreeSetV1";
-    case XL6_IR_RUNTIME_AVL_TREE_GET_INTO:
-    case XL6_IR_RUNTIME_AVL_TREE_TAKE_INTO: return "xl6TreeGetV1";
     case XL6_IR_RUNTIME_AVL_TREE_CONTAINS:
     case XL6_IR_RUNTIME_AVL_TREE_REMOVE: return "xl6TreeKeyV1";
-    case XL6_IR_RUNTIME_AVL_TREE_FIRST_INTO:
-    case XL6_IR_RUNTIME_AVL_TREE_LAST_INTO:
-    case XL6_IR_RUNTIME_AVL_TREE_LOWER_BOUND_INTO:
-    case XL6_IR_RUNTIME_AVL_TREE_UPPER_BOUND_INTO: return "xl6TreeEndpointV1";
     case XL6_IR_RUNTIME_AVL_TREE_EQUALS: return "xl6TreeEqualsV1";
     case XL6_IR_RUNTIME_AVL_TREE_MERGE: return "xl6TreeMergeV1";
     case XL6_IR_RUNTIME_AVL_TREE_CLEAR: return "xl6TreeClearV1";
@@ -87,10 +82,41 @@ static const char* xl6IrCgenTreeNativeMethod(XL6_IrRuntimeOp operation)
     default: return NULL;
     }
 }
+static int xl6IrCgenEmitTreeQuery(XL6_Output* out,const XL6_IrModule* module,
+    const XL6_IrInstruction* ins)
+{
+    const XL6_IrTreeQuerySpec* spec=xl6IrTreeQuerySpecRuntime(ins->runtimeOp);
+    if(!spec) return 0;
+    if(!xl6IrTreeQueryInstructionCompatible(module,ins)) return -1;
+    unsigned receiver=(unsigned)module->operands[ins->firstOperand],result=(unsigned)ins->result;
+    const XL6_IrInstruction* def=xl6IrCgenValueDefinition(module,receiver,NULL);
+    XL6_IrTreeQueryPlan plan={0};
+    if(!def || !xl6IrTreeQueryPlanBuild(module,spec->source,def->type,ins->type,&plan)) return -1;
+    char key[80],value[80];
+    if(plan.product) snprintf(value,sizeof(value),"v%u.e%u%s",result,plan.valueIndex,plan.valueTagged ? ".value" : "");
+    else snprintf(value,sizeof(value),"v%u",result);
+    if(spec->pair) snprintf(key,sizeof(key),"v%u.e%u%s",result,plan.keyIndex,plan.keyTagged ? ".value" : "");
+    xl6OutputPrintf(out,"    v%u = (%s){0};\n    { bool tree_found = false;\n",result,xl6IrCgenType(module,ins->type));
+    if(xl6IrCgenEmitTreeLayout(out,module,plan.ownerType,"tree_layout")<0) return -1;
+    xl6OutputPrintf(out,"      projection_ok_%u = xl6TreeQueryV2(v%u,&tree_layout,%s,",
+        result,receiver,spec->nativeToken);
+    if(spec->search) xl6OutputPrintf(out,"&v%u,",(unsigned)module->operands[ins->firstOperand+1]);
+    else xl6OutputPuts("NULL,",out);
+    xl6OutputPrintf(out,"%s,",spec->required ? "true" : "false");
+    if(spec->pair) xl6OutputPrintf(out,"(XL6_TreeQuerySlotV2){&%s,sizeof(%s)},",key,xl6IrCgenType(module,plan.keyType));
+    else xl6OutputPuts("(XL6_TreeQuerySlotV2){0},",out);
+    xl6OutputPrintf(out,"(XL6_TreeQuerySlotV2){&%s,sizeof(%s)},&tree_found);\n",value,xl6IrCgenType(module,plan.valueType));
+    if(!spec->required) xl6OutputPrintf(out,"      v%u.e0 = tree_found;\n",result);
+    if(plan.keyTagged) xl6OutputPrintf(out,"      v%u.e%u.hasValue = tree_found;\n",result,plan.keyIndex);
+    if(plan.valueTagged) xl6OutputPrintf(out,"      v%u.e%u.hasValue = tree_found;\n",result,plan.valueIndex);
+    xl6OutputPuts("    }\n",out); return xl6OutputHasFailed(out) ? -1 : 1;
+}
 static int xl6IrCgenEmitAvlRuntime(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
 {
     if (!instruction || !xl6IrCgenAvlRuntimeOpIs(instruction->runtimeOp)) return 0;
+    if(xl6IrTreeQuerySpecRuntime(instruction->runtimeOp))
+        return xl6IrCgenEmitTreeQuery(out,module,instruction);
     if (!xl6IrCgenRuntimeAvlAbi(module,instruction)) return -1;
     bool creates=instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_CREATE;
     const XL6_IrInstruction* receiver=creates ? NULL :
@@ -132,25 +158,10 @@ static int xl6IrCgenEmitAvlRuntime(XL6_Output* out,const XL6_IrModule* module,
     case XL6_IR_RUNTIME_AVL_TREE_SET:
         xl6OutputPrintf(out,"      v%u = %s(v%u, &tree_layout, &v%u, &v%u);\n",
             output,method,args[0],args[1],args[2]); break;
-    case XL6_IR_RUNTIME_AVL_TREE_GET_INTO:
-    case XL6_IR_RUNTIME_AVL_TREE_TAKE_INTO:
-        xl6OutputPrintf(out,"      (void)%s(v%u, &tree_layout, &v%u, v%u, %s, &v%u);\n",
-            method,args[0],args[1],args[2],instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_TAKE_INTO ? "true" : "false",output);
-        break;
     case XL6_IR_RUNTIME_AVL_TREE_CONTAINS:
     case XL6_IR_RUNTIME_AVL_TREE_REMOVE:
         xl6OutputPrintf(out,"      (void)%s(v%u, &tree_layout, &v%u, %s, &v%u);\n",
             method,args[0],args[1],instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_REMOVE ? "true" : "false",output);
-        break;
-    case XL6_IR_RUNTIME_AVL_TREE_FIRST_INTO:
-    case XL6_IR_RUNTIME_AVL_TREE_LAST_INTO:
-        xl6OutputPrintf(out,"      (void)%s(v%u, &tree_layout, %u, NULL, v%u, v%u, &v%u);\n",
-            method,args[0],instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_LAST_INTO ? 1u : 0u,args[1],args[2],output);
-        break;
-    case XL6_IR_RUNTIME_AVL_TREE_LOWER_BOUND_INTO:
-    case XL6_IR_RUNTIME_AVL_TREE_UPPER_BOUND_INTO:
-        xl6OutputPrintf(out,"      (void)%s(v%u, &tree_layout, %u, &v%u, v%u, v%u, &v%u);\n",
-            method,args[0],instruction->runtimeOp==XL6_IR_RUNTIME_AVL_TREE_UPPER_BOUND_INTO ? 3u : 2u,args[1],args[2],args[3],output);
         break;
     case XL6_IR_RUNTIME_AVL_TREE_EQUALS:
         xl6OutputPrintf(out,"      (void)%s(v%u, v%u, &tree_layout, &v%u);\n",method,args[0],args[1],output);

@@ -288,6 +288,26 @@ static int xl6SemCheckSpecialCollectionCtorCall(XL6_SemContext* ctx, XL6_AstNode
     return ok;
 }
 
+typedef struct XL6_SemTreeQuery { const char* name; bool search,pair,required; } XL6_SemTreeQuery;
+static int xl6SemTreeQueryAppend(XL6_AstNode* parent,XL6_AstNode* child)
+{
+    if(!child) return 0;
+    size_t count=parent->childCount;
+    xl6AstAddChild(parent,child);
+    if(parent->childCount!=count+1) { xl6AstFree(child); return 0; }
+    return 1;
+}
+static const XL6_SemTreeQuery* xl6SemTreeQuery(const char* name)
+{
+    static const XL6_SemTreeQuery queries[]={
+#define XL6_TREE_QUERY_OP(id,spelling,search,pair,required,native) {spelling,search,pair,required},
+#include "src/abi/xl6_tree_query_ops.inc"
+#undef XL6_TREE_QUERY_OP
+    };
+    for(size_t i=0;name && i<sizeof(queries)/sizeof(*queries);++i)
+        if(xl6TextEquals(name,queries[i].name)) return &queries[i];
+    return NULL;
+}
 typedef enum XL6_SemSlotMapRole {
     XL6_SEM_SLOT_MAP_NONE, XL6_SEM_SLOT_MAP_KEY, XL6_SEM_SLOT_MAP_ITEM,
     XL6_SEM_SLOT_MAP_INT, XL6_SEM_SLOT_MAP_BOOL, XL6_SEM_SLOT_MAP_OWNER,
@@ -412,7 +432,17 @@ static int xl6SemCheckSpecialCollectionMethodCall(XL6_SemContext* ctx, XL6_AstNo
             ok = 0;
         }
     } else if ( xl6TextEquals(typeName, "OrderedMap") ) {
-        if ( xl6TextEquals(method, "set") ) {
+        const XL6_SemTreeQuery* query=xl6SemTreeQuery(method);
+        if (xl6TextEquals(method,"getInto") || xl6TextEquals(method,"takeInto") ||
+            xl6TextEquals(method,"firstInto") || xl6TextEquals(method,"lastInto") ||
+            xl6TextEquals(method,"lowerBoundInto") || xl6TextEquals(method,"upperBoundInto")) {
+            xl6SemErrorNode(ctx,member,"[SC-TREE-OWNED] OrderedMap 查询返回拥有值；使用 get/take/first/last/lowerBound/upperBound 或对应 try 查询，不提供 Into 写回");
+            ok=0;
+        } else if(query) {
+            ok=xl6SemCheckSpecialCollectionArgCount(ctx,member,count,query->search ? 1u : 0u) &&
+                (!query->search || xl6SemCheckSpecialCollectionValueArg(ctx,
+                    xl6SemSpecialCollectionArgExpr(args,0),keyType,"OrderedMap 查询键类型不匹配"));
+        } else if ( xl6TextEquals(method, "set") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 2u) &&
                  xl6SemCheckSpecialCollectionValueArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 0), keyType,
@@ -420,39 +450,11 @@ static int xl6SemCheckSpecialCollectionMethodCall(XL6_SemContext* ctx, XL6_AstNo
                  xl6SemCheckSpecialCollectionValueArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 1), itemType,
                     "OrderedMap.set 值类型不匹配");
-        } else if ( xl6TextEquals(method, "getInto") || xl6TextEquals(method, "takeInto") ) {
-            ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 2u) &&
-                 xl6SemCheckSpecialCollectionValueArg(
-                    ctx, xl6SemSpecialCollectionArgExpr(args, 0), keyType,
-                    "OrderedMap 查询键类型不匹配") &&
-                 xl6SemCheckSpecialCollectionOutArg(
-                    ctx, xl6SemSpecialCollectionArgExpr(args, 1), itemType,
-                    "OrderedMap 输出目标类型不匹配");
         } else if ( xl6TextEquals(method, "contains") || xl6TextEquals(method, "remove") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 1u) &&
                  xl6SemCheckSpecialCollectionValueArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 0), keyType,
                     "OrderedMap 键类型不匹配");
-        } else if ( xl6TextEquals(method, "firstInto") || xl6TextEquals(method, "lastInto") ) {
-            ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 2u) &&
-                 xl6SemCheckSpecialCollectionOutArg(
-                    ctx, xl6SemSpecialCollectionArgExpr(args, 0), keyType,
-                    "OrderedMap 边界键输出类型不匹配") &&
-                 xl6SemCheckSpecialCollectionOutArg(
-                    ctx, xl6SemSpecialCollectionArgExpr(args, 1), itemType,
-                    "OrderedMap 边界值输出类型不匹配");
-        } else if ( xl6TextEquals(method, "lowerBoundInto") ||
-                    xl6TextEquals(method, "upperBoundInto") ) {
-            ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 3u) &&
-                 xl6SemCheckSpecialCollectionValueArg(
-                    ctx, xl6SemSpecialCollectionArgExpr(args, 0), keyType,
-                    "OrderedMap 边界查询键类型不匹配") &&
-                 xl6SemCheckSpecialCollectionOutArg(
-                    ctx, xl6SemSpecialCollectionArgExpr(args, 1), keyType,
-                    "OrderedMap 边界键输出类型不匹配") &&
-                 xl6SemCheckSpecialCollectionOutArg(
-                    ctx, xl6SemSpecialCollectionArgExpr(args, 2), itemType,
-                    "OrderedMap 边界值输出类型不匹配");
         } else if ( xl6TextEquals(method, "trimTo") ) {
             ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 1u) &&
                  xl6SemCheckSpecialCollectionIntArg(
@@ -592,10 +594,7 @@ static const char* xl6SemSpecialCollectionCallResultTypeName(XL6_SemContext* ctx
         result="bool";
     } else if ( xl6TextEquals(method, "push") ||
          xl6TextEquals(method, "reserve") || xl6TextEquals(method, "set") ||
-         xl6TextEquals(method, "getInto") || xl6TextEquals(method, "takeInto") ||
          xl6TextEquals(method, "contains") || xl6TextEquals(method, "remove") ||
-         xl6TextEquals(method, "firstInto") || xl6TextEquals(method, "lastInto") ||
-         xl6TextEquals(method, "lowerBoundInto") || xl6TextEquals(method, "upperBoundInto") ||
          xl6TextEquals(method, "equals") || xl6TextEquals(method, "merge") ||
          xl6TextEquals(method, "tryPush") || xl6TextEquals(method, "reset") ||
          xl6TextEquals(method, "tryPopInto") || xl6TextEquals(method, "popInto") ||
@@ -649,6 +648,14 @@ static XL6_AstNode* xl6SemCloneSpecialCollectionCallType(XL6_SemContext* ctx, XL
     member = node->children[0];
     receiverType=xl6SemCloneSpecialCollectionReceiverType(ctx,member);
     concreteType=xl6SemResolveAliasType(ctx,receiverType);
+    if(concreteType && xl6TextEquals(concreteType->text,"OrderedMap")) {
+        const XL6_SemTreeQuery* query=xl6SemTreeQuery(member->text);
+        if(query) {
+            XL6_AstNode* result=query->required && !query->pair
+                ? xl6SemCloneTypeNode(xl6SemSpecialCollectionTypeArg(ctx,receiverType,1u)) : NULL;
+            xl6AstFree(receiverType); return result;
+        }
+    }
     if(concreteType && xl6TextEquals(concreteType->text,"SlotMap")) {
         const XL6_SemSlotMapMethod* spec=xl6SemSlotMapMethod(member->text);
         XL6_AstNode* result=NULL;
@@ -717,6 +724,26 @@ static XL6_AstNode* xl6SemCloneSpecialCollectionReturnTypes(XL6_SemContext* ctx,
 {
     XL6_AstNode* member = node != NULL && node->kind == XL6_AST_CALL && node->childCount
         ? node->children[0] : NULL;
+    if(member && member->kind==XL6_AST_MEMBER && xl6SemTreeQuery(member->text)) {
+        XL6_AstNode* receiver=xl6SemCloneSpecialCollectionReceiverType(ctx,member);
+        const XL6_AstNode* concrete=xl6SemResolveAliasType(ctx,receiver);
+        const XL6_SemTreeQuery* query=concrete && xl6TextEquals(concrete->text,"OrderedMap")
+            ? xl6SemTreeQuery(member->text) : NULL;
+        if(query && (query->pair || !query->required)) {
+            XL6_AstNode* result=xl6AstNew(XL6_AST_RETURN_TYPES,NULL);
+            if(result && !query->required) {
+                XL6_AstNode* status=xl6AstNewText(XL6_AST_TYPE,"bool",4,NULL);
+                if(!xl6SemTreeQueryAppend(result,status)) { xl6AstFree(result); result=NULL; }
+            }
+            for(unsigned i=query->pair ? 0u : 1u;result && i<2u;++i) {
+                XL6_AstNode* part=xl6SemCloneTypeNode(xl6SemSpecialCollectionTypeArg(ctx,receiver,i));
+                if(part && !query->required) part=xl6SemLiftNullableType(part,member);
+                if(!xl6SemTreeQueryAppend(result,part)) { xl6AstFree(result); result=NULL; break; }
+            }
+            xl6AstFree(receiver); return result;
+        }
+        xl6AstFree(receiver);
+    }
     if ( member == NULL || member->kind != XL6_AST_MEMBER ||
          (!xl6TextEquals(member->text, "tryPop") && !xl6TextEquals(member->text, "tryPeek") &&
           !xl6TextEquals(member->text, "tryPeekAt") && !xl6TextEquals(member->text,"pushBatch") &&

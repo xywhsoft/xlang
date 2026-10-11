@@ -16,8 +16,8 @@ func main(...) as int
     auto tree = OrderedMap::<int, thread>()
     assert(tree.set(1, worker))
     auto copy = tree.clone()
-    thread returned
-    assert(copy.getInto(1, returned) and returned.wait() and returned.exitCode() == 42)
+    auto returned = copy.get(1)
+    assert(returned.wait() and returned.exitCode() == 42)
     assert(copy.equals(tree))
     auto values = tree.values()
     // Extract an owned shell: Thread is still not language-copyable.
@@ -26,7 +26,7 @@ func main(...) as int
     auto nested = OrderedMap::<int, Stack<thread>>()
     assert(stack.push(worker) and nested.set(1, stack))
     auto inner = Stack::<thread>()
-    assert(nested.getInto(1, inner))
+    inner = nested.get(1)
     auto twice = inner.pop()
     assert(twice.wait() and twice.exitCode() == 42)
     auto q1 = SpscQueue::<thread>(2)

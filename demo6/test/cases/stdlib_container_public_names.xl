@@ -25,7 +25,8 @@ func main(...) as int
     assert(keys.length == 3 and keys[0] == "a" and keys[1] == "a\0b" and keys[2] == "z")
     assert(values[0] == 1 and values[1] == 2 and values[2] == 3)
     int captured = 0
-    assert(ordered.getInto("a\0b", captured) and captured == 2)
+    captured = ordered.get("a\0b")
+    assert(captured == 2)
     auto copy = ordered.clone()
     assert(ordered.equals(copy) and copy.remove("a") and ordered.count() == 3)
     return 0

@@ -26,7 +26,8 @@ func main(...) as int
     assert(right.remove(2) and not left.equals(right))
     auto missing = TreeReferenceBox()
     missing.value = 99
-    assert(not left.getInto(10, missing) and missing.value == 99)
+    auto foundMissing, absent = left.tryGet(10)
+    assert(not foundMissing and absent == null and missing.value == 99)
     assert(not left.remove(10) and not left.contains(10))
     left.clear()
     right.clear()

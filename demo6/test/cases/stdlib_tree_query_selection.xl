@@ -4,15 +4,18 @@ func main(...) as int
     auto numbers = OrderedMap::<int, int?>()
     assert(numbers.set(1, null) and numbers.set(2, 41))
     int? value = 9
-    assert(numbers.getInto(1, value) and value == null)
+    value = numbers.get(1)
+    assert(value == null)
     auto texts = OrderedMap::<string, string>()
     assert(texts.set("a\0b", "你\0好"))
     string captured = "old"
-    assert(texts.getInto("a\0b", captured) and captured == "你\0好")
+    captured = texts.get("a\0b")
+    assert(captured == "你\0好")
     auto optional = OrderedMap::<int, string?>()
     assert(optional.set(1, null))
     string? empty = "old"
-    assert(optional.getInto(1, empty) and empty == null)
+    empty = optional.get(1)
+    assert(empty == null)
     auto nested = OrderedMap::<int, array<int>>()
     assert(nested.set(1, array[42]))
     auto copy = nested.values()

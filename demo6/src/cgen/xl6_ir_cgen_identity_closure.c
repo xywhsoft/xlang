@@ -54,9 +54,10 @@ static int xl6IrCgenNominalIdentitySetUsed(
         if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND &&
             instruction->collectionAdmissionAbi==XL6_IR_COLLECTION_ADMISSION_NOMINAL &&
             instruction->collectionAdmissionIdentitySet==(size_t)(set-module->nominalIdentitySets)+1) return 1;
-        if ((instruction->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_CREATE || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_CREATE ||
-             instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE) &&
-            instruction->sequenceAdmissionIdentitySet==(size_t)(set-module->nominalIdentitySets)+1) return 1;
+        /* The verifier restricts this field to actual admission producers.
+         * Consume the declared dependency; do not maintain a second factory
+         * list (which omitted get-only nominal Tree construction). */
+        if (instruction->sequenceAdmissionIdentitySet==(size_t)(set-module->nominalIdentitySets)+1) return 1;
         if (instruction->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_CREATE || instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN ||
             instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE ||
             instruction->runtimeOp==XL6_IR_RUNTIME_LIST_CREATE ||

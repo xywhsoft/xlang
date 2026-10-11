@@ -344,8 +344,11 @@ static int xl6IrCgenEmitSharedRuntime(
             xl6OutputPrintf(out,"    bool projection_ok_%u = false;\n",(unsigned)instruction->result);
         emitted=xl6IrCgenEmitSlotMap(out,module,instruction);
     }
-    if ( emitted == 0 )
+    if ( emitted == 0 ) {
+        if(xl6IrTreeQuerySpecRuntime(instruction->runtimeOp))
+            xl6OutputPrintf(out,"    bool projection_ok_%u = false;\n",(unsigned)instruction->result);
         emitted = xl6IrCgenEmitAvlRuntime(out, module, instruction);
+    }
     if ( emitted == 0 )
         emitted = xl6IrCgenEmitSyncRuntime(out, module, instruction);
     if ( emitted == 0 )
