@@ -125,7 +125,12 @@ static const char* xl6IrCgenFamilyIteratorCreateSymbol(const XL6_IrModule* modul
         const XL6_IrInstruction* source=xl6IrCgenValueDefinition(module,
             module->operands[instruction->firstOperand],NULL);
         const XL6_IrType* type=source ? xl6IrTypeGet(&module->types,source->type) : NULL;
-        return type && type->collectionAbi==XL6_IR_COLLECTION_SET ? "xl6SetValueIteratorCreateCheckedV1" : NULL;
+        if (!type) return NULL;
+        switch (type->collectionAbi) {
+        case XL6_IR_COLLECTION_SET: return "xl6SetValueIteratorCreateCheckedV1";
+        case XL6_IR_COLLECTION_DICT: return "xl6DictValueIteratorCreateCheckedV1";
+        default: return NULL;
+        }
     }
     if (instruction->runtimeOp!=XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED) return NULL;
     const XL6_IrType* logical=xl6IrTypeGet(&module->types,instruction->payloadType);

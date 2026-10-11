@@ -73,7 +73,7 @@ static XL6_RestorePlanV1 plan(XL6_RestoreNodeV1* nodes,XL6_RestoreFieldV1* field
         .as.object={rootDefault,ROOT_TAG,0,1,xl6RestoreOpenProviderV1()},.clone=rootClone,.open=open};
     nodes[1]=(XL6_RestoreNodeV1){.kind=XL6_RESTORE_SCALAR_V1,.identity=UINT64_C(0xED172),.as.scalar=XL6_VALUE_ADMIT_I64};
     *field=(XL6_RestoreFieldV1){XRT_STR_INIT("wire\0id"),XRT_STR_INIT("id"),1,0};
-    return (XL6_RestorePlanV1){sizeof(XL6_RestorePlanV1),2,1,0,nodes,field,false,NULL};
+    return (XL6_RestorePlanV1){sizeof(XL6_RestorePlanV1),2,1,0,nodes,field,false,NULL,0,NULL};
 }
 static xvalue* wire(bool extras,bool invalid)
 {

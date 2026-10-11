@@ -375,6 +375,9 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         }
         if (!visitor(context,"xl6PersistenceRestoreParsedTakeV1") ||
             !visitor(context,xl6IrCgenRestoreObjectProviderSymbol(module,root))) return 0;
+        if ((root->ownershipGraphProviders&1u) && !visitor(context,"xl6ListOwnershipAdapterV1")) return 0;
+        if ((root->ownershipGraphProviders&2u) && !visitor(context,"xl6SetOwnershipAdapterV1")) return 0;
+        if ((root->ownershipGraphProviders&4u) && !visitor(context,"xl6DictOwnershipAdapterV1")) return 0;
         for (size_t n=0;n<root->nodeCount;++n) {
             const XL6_IrPersistenceRestoreNode* node=&module->persistenceRestoreNodes[root->firstNode+n];
             if (node->openClassLayout!=SIZE_MAX) {

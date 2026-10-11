@@ -5,6 +5,8 @@
 #include "src/api/xl_module_read.inc"
 #include "src/runtime/xl6_persistence_restore_plan.h"
 #include "src/runtime/xl6_restore_class.h"
+#include "src/runtime/xl6_list.h"
+#include "src/runtime/xl6_array_admission.h"
 #include "src/api/xl_foreign_error.h"
 #include <assert.h>
 #include <stdio.h>
@@ -14,6 +16,9 @@
 static XL_Module readModule;
 static XL6_CodeOwnerGraph readOwner;
 static xvalue* readGlobal;
+static xvalue* readCollection;
+static bool readUnknownEdge;
+static const xrtownershipops unknownOps;
 static unsigned readTraces,readDrops,readClones,readFactories,unknownReads;
 static bool readShared;
 static int readAcquire(void* data)
@@ -21,7 +26,9 @@ static int readAcquire(void* data)
 static void readRelease(void* data)
 { XL_Module* m=data; xlApiLock(); assert(m->codeLeases); --m->codeLeases; xlApiUnlock(); }
 static bool readTrace(XL6_ModuleOwnershipVisit visit,void* context)
-{ ++readTraces; return visit(xrtValueOwnership(readGlobal),context); }
+{ ++readTraces; return visit(xrtValueOwnership(readGlobal),context) &&
+    visit(xrtValueOwnership(readCollection),context) &&
+    (!readUnknownEdge || visit((xrtownershipref){&readModule,&unknownOps},context)); }
 static int readFinish(void) { assert(0); return 0; }
 static const XL6_ModuleRetirementV1 readContract={sizeof(readContract),UINT64_C(0x584C364D525431),readTrace,readFinish};
 static const XL6_ModuleReadContractV1 readCertificate={sizeof(readCertificate),UINT64_C(0x584C364D524431),readTrace};
@@ -79,7 +86,7 @@ static XL6_RestorePlanV1 readPlan(XL6_RestoreNodeV1* nodes,XL6_RestoreFieldV1* f
     nodes[1]=(XL6_RestoreNodeV1){.kind=XL6_RESTORE_SCALAR_V1,.identity=UINT64_C(0xB161),.as.scalar=XL6_VALUE_ADMIT_I64};
     *field=(XL6_RestoreFieldV1){XRT_STR_INIT("n"),XRT_STR_INIT("n"),1,XL6_RESTORE_REQUIRED_V1};
     return (XL6_RestorePlanV1){sizeof(XL6_RestorePlanV1),2,1,0,nodes,field,false,
-        boundary ? xlModuleOwnershipReadBoundaryV1() : NULL};
+        boundary ? xlModuleOwnershipReadBoundaryV1() : NULL,0,NULL};
 }
 static xvalue* readWire(void)
 { xvalue* wire=xrtValueObject(); assert(wire && xrtValueObjectSetNew(wire,XRT_STR_LITERAL("n"),xrtValueInt(42))); return wire; }
@@ -192,9 +199,45 @@ static void readRefusals(void)
     assert(!result && !outcome.ok && !unknownReads); xrtErrorFree(outcome.error); xrtValueRelease(wire);
     readLeave(&call); assert(!readModule.codeLeases); xrtClearError();
 }
+static void readCollectionPlan(unsigned mode)
+{
+    readInit();
+    xvalue* witness=xl6SequencePrimitiveCreateV1(1,UINT64_C(0xB162),UINT64_C(0xB163),
+        1,sizeof(int64_t),xrtTypeInt64(),XL6_VALUE_ADMIT_I64,false,UINT64_C(0xB163));
+    assert(witness);
+    XL6_SequenceRoleV1 role; XL6_SequenceLayoutV1 layout={0}; XL6_SequenceAdmissionV3 policy={0};
+    assert(xl6SequenceSchemaCopyV1(witness,&role,&layout,&policy)); xl6SequenceAdmissionDropV3(&policy);
+    XL6_ListLayoutV1 list={UINT64_C(0xB164),layout};
+    readCollection=xl6ListProjectionTakeV1(xl6ListCreateTakeV1(&list,witness),&list,NULL);
+    int64_t n=19; assert(readCollection && xl6ListSetV1(readCollection,&list,INT64_MIN,&n));
+    XL6_RestoreNodeV1 nodes[2]; XL6_RestoreFieldV1 field;
+    XL6_RestorePlanV1 plan=readPlan(nodes,&field,true,false);
+    XL6_RestoreOwnershipAdapterV1 adapters[]={xl6ListOwnershipAdapterV1};
+    /* The legacy composite already admits List. Use the actual closed
+     * class/scalar root here so omission of this independent capability is
+     * observable, exactly as it is for a Dict-only generated restore plan. */
+    nodes[0].as.object.provider=xl6RestoreClassClosedProviderV1();
+    plan.ownershipAdapterCount=mode==1 ? 0 : 1; plan.ownershipAdapters=adapters;
+    if (mode==2) plan.ownershipAdapters=NULL;
+    if (mode==3) adapters[0]=NULL;
+    if (mode==4) plan.ownershipAdapterCount=SIZE_MAX;
+    readUnknownEdge=mode==5;
+    xvalue* wire=readWire(); XL6_ModuleCall call={0}; readEnter(&call);
+    unsigned factories=readFactories,reads=unknownReads;
+    xl6_error_scope error={0}; assert(xl6ErrorScopeBegin(&error));
+    xvalue* result=xl6PersistenceRestorePlanTakeV1(NULL,0,NULL,wire,&plan);
+    xl6_error_result outcome=xl6ErrorScopeEnd(&error);
+    assert(mode==0 ? result && outcome.ok && readNumber(result)==42 : !result && !outcome.ok);
+    assert(unknownReads==reads && !xl__moduleRead);
+    if (mode>=2 && mode<=4) assert(readFactories==factories); /* Pure metadata refusal. */
+    readUnknownEdge=false; xrtErrorFree(outcome.error); xrtValueRelease(result); xrtValueRelease(wire);
+    readLeave(&call); xrtValueRelease(readCollection); readCollection=NULL;
+    assert(!readModule.codeLeases && !readModule.activeCalls); xrtClearError();
+}
 void xl6TestRestoreModuleReadV1(void)
 {
     for (unsigned mode=0;mode<4;++mode) assert(!readRun(mode,0,false));
+    for (unsigned mode=0;mode<6;++mode) readCollectionPlan(mode);
     readRefusals(); for (unsigned mode=0;mode<3;++mode) readThreads(mode);
     printf("actual host read: paused current entries/scopes remain roots; foreign entry/scope/host-lock and unknown policy refuse; clone outside fence\n");
 }

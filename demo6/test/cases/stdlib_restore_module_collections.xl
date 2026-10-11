@@ -1,0 +1,30 @@
+class RestoreModuleChild
+    derive value
+    derive clone
+    dict<string> words = {"a\0你": "v\0b"}
+    dict<string> alias = {}
+    dict<string> hidden @persist(skip) = {"secret\0": "saved\0你"}
+end
+RestoreModuleChild shared = RestoreModuleChild()
+shared.alias = shared.words
+class RestoreModuleEnvelope
+    derive value
+    RestoreModuleChild child = shared
+end
+// These owners are not part of the restored wire schema. Class leases still
+// reach them through the actual module trace; their children need admission.
+dict<string> item = {"a\0你": "original"}
+set<dict<string>> unrelatedSet = set{}
+unrelatedSet.add(item)
+list<dict<string>> unrelatedList = [-9223372036854775808: item, 9223372036854775807: item]
+array<dict<string>> unrelatedArray = [item, item]
+var erased = {"set": unrelatedSet, "list": unrelatedList, "array": unrelatedArray}
+RestoreModuleEnvelope restored = json.parse::<RestoreModuleEnvelope>("{\"child\":{\"words\":{\"a\\u0000你\":\"restored\"}}}")
+assert(restored.child.words["a\0你"] == "restored")
+assert(restored.child.alias["a\0你"] == "v\0b")
+restored.child.hidden["secret\0"] = "restored hidden"
+assert(shared.hidden["secret\0"] == "saved\0你" and shared.words["a\0你"] == "v\0b")
+RestoreModuleEnvelope restoredXlon = xlon.parse::<RestoreModuleEnvelope>("{\"child\":{\"words\":{\"a\\u0000你\":\"xlon restored\"}}}")
+assert(restoredXlon.child.words["a\0你"] == "xlon restored")
+assert(shared.words["a\0你"] == "v\0b" and item["a\0你"] == "original")
+assert(unrelatedSet.contains(item) and unrelatedList.length == 2 and unrelatedArray.length == 2)
