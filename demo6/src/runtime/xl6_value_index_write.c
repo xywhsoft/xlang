@@ -1,6 +1,7 @@
 #include "src/runtime/xl6_value_index_write.h"
 #include "src/runtime/xl6_array_value_write.h"
 #include "src/runtime/xl6_list.h"
+#include "src/runtime/xl6_dict.h"
 #include "src/api/xl_foreign_error.h"
 
 bool xl6ValueIndexSetTakeV1(xvalue* source,const xvalue* key,xvalue* item)
@@ -27,23 +28,27 @@ bool xl6ValueIndexSetTakeV1(xvalue* source,const xvalue* key,xvalue* item)
                 success=xrtValueIntMapSetTake(source,index,&item);
             else if (!list) { success=xl6ArrayValueSetTakeV1(source,index,item); item=NULL; }
         }
-    } else if (xrtValueType(key)==XVALUE_STRING && xrtValueType(source)==XVALUE_OBJECT) {
+    } else if (xrtValueType(key)==XVALUE_STRING) {
         xstrview text;
         if (xrtValueGetString(key,&text)) {
-            /* Keep the old child alive across SetTake's mutation. Its last
+            int dict=xl6DictErasedProbeV1(source);
+            if (dict>0) success=xl6DictErasedSetV1(source,text,item);
+            else if (!dict && xrtValueType(source)==XVALUE_OBJECT) {
+                /* Keep the old child alive across SetTake's mutation. Its last
              * release, including a destructor that releases a back-reference
              * or reenters this object, then happens outside the BUSY fence.
              * Take leaves a rejected input with us: latch the operation's
              * first failure BEFORE either retirement can report a callback
              * failure. These pins only retain owners; no field snapshot or
              * allocation is added to an ordinary replacement. */
-            receiverPin=xrtValueRetain(source);
-            if (receiverPin) {
-                const xvalue* old=xrtValueObjectGet(source,text);
-                if (!xrtGetError() && old) retiredPin=xrtValueRetain(old);
-                if (!xrtGetError() && (!old || retiredPin))
-                    success=xrtValueObjectSetTake(source,text,&item);
-            }
+                receiverPin=xrtValueRetain(source);
+                if (receiverPin) {
+                    const xvalue* old=xrtValueObjectGet(source,text);
+                    if (!xrtGetError() && old) retiredPin=xrtValueRetain(old);
+                    if (!xrtGetError() && (!old || retiredPin))
+                        success=xrtValueObjectSetTake(source,text,&item);
+                }
+            } else if (!dict) xrtSetErrorKind(XERR_TYPE);
         }
     } else xrtSetErrorKind(XERR_TYPE);
     if (!success || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);

@@ -1,0 +1,24 @@
+int dictIndexCleanups = 0
+func dictIndexRead(var source, var key) as var
+    try
+        return source[key]
+    finally
+        dictIndexCleanups += 1
+    end
+end
+func dictIndexWrite(var source, var key, var item) as bool
+    try
+        source[key] = item
+        return true
+    finally
+        dictIndexCleanups += 1
+    end
+end
+var wire = {"a\0你": "v\0你", "a": "prefix", "": "empty"}
+assert(string(dictIndexRead(wire, "a\0你")) == "v\0你")
+assert(string(dictIndexRead(wire, "a")) == "prefix")
+assert(string(dictIndexRead(wire, "")) == "empty")
+assert(dictIndexRead(wire, "missing") == null)
+assert(dictIndexWrite(wire, "a\0你", "next\0value"))
+assert(string(dictIndexRead(wire, "a\0你")) == "next\0value")
+assert(dictIndexCleanups == 6)

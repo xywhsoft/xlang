@@ -25,7 +25,7 @@ def main():
     driver=Path(public['Driver']); assert sha(driver).lower()==public['DriverSha256'].lower()
     product=root/'release/xl.dll' if os.name=='nt' else Path(public['NativeRoot'])/'release/libxl.so'
     sources=['test/support/list_native.c','test/support/module_product_memory.c',
-        'src/runtime/xl6_set.c','src/runtime/xl6_set_key_policy.c',
+        'src/runtime/xl6_set.c','src/runtime/xl6_set_key_policy.c','src/runtime/xl6_dict.c',
         'src/runtime/xl6_list.c','src/runtime/xl6_list_methods.c','src/runtime/xl6_sequence.c',
         'src/runtime/xl6_array_reference_admission.c','src/runtime/xl6_array_reference_value.c',
         'src/runtime/xl6_string_value.c','src/runtime/xl6_nullable_i64_value.c','src/api/xl_foreign_error.c',

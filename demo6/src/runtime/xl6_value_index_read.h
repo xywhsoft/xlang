@@ -7,7 +7,8 @@ typedef struct xvalue xvalue;
 #define XL6_VALUE_INDEX_READ_API
 #endif
 /* Open dynamic index: borrow receiver/key, return one owned Value. Integer
- * keys select authenticated Array/List; strings select exact-length objects.
+ * keys select authenticated Array/List; strings select authenticated native
+ * Dict or explicit wire objects using exact byte spans, including empty/NUL.
  * Unsupported combinations and absent items return canonical null. Recognized
  * native BUSY/domain/cursor/retirement/projection failures never become misses.
  * Dispatch is resident, not emitted algorithms or speculative HANDLE casts. */
