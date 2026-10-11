@@ -543,7 +543,14 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              xl6IrCgenChannelRuntimeOpIs(
                  module->instructions[i].runtimeOp) ) {
-            needs->needsChannelResourceRuntime = 1;
+            if (!xl6IrChannelInstructionCompatible(module,&module->instructions[i])) return 0;
+            needs->needsNativeChannelRuntime = 1;
+            XL6_IrTypeId channelId=xl6IrChannelInstructionType(module,&module->instructions[i]);
+            const XL6_IrType* channel=xl6IrTypeGet(&module->types,channelId);
+            if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_CHANNEL_CREATE &&
+                !xl6IrCgenAnalyzeSequenceRecipeNeeds(module,channel->messageSchemaType,needs,0)) return 0;
+            needs->needsForeignErrorRuntime=1;
+            needs->needsNominalIdentityRuntime=1;
             needs->needsXValueRuntime = 1;
             needs->needsXValueHandleRuntime = 1;
             needs->needsXValueTypeIdentityRuntime = 1;

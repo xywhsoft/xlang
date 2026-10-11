@@ -25,6 +25,7 @@
 #include "src/runtime/xl6_thread_admission.h"
 #include "src/runtime/xl6_array_admission.h"
 #include "src/runtime/xl6_concurrent_queue.h"
+#include "src/runtime/xl6_channel.h"
 #include "src/runtime/xl6_value_iterator.h"
 #include "src/runtime/xl6_generator.h"
 #include "src/runtime/xl6_ownership_plan.h"
@@ -1644,6 +1645,17 @@ static void xlAddEmbeddedSourceIncludePaths(TCCState* s)
     (void)xl__tcc.tcc_add_include_path(s, XL_TCC_VFS_COMPILER_SOURCE_ROOT "/lib/tcc");
     (void)xl__tcc.tcc_add_include_path(s, XL_TCC_VFS_COMPILER_SOURCE_ROOT "/lib/lzma");
     (void)xl__tcc.tcc_add_include_path(s, XL_TCC_VFS_COMPILER_SOURCE_ROOT "/release");
+    /* Filesystem SDKs use the same reserved package root as the VFS. Resolve
+     * it only beside the compiler module, never from user include directories
+     * or source spelling. tcc_add_file does not search its include paths. */
+    char root[512], package[1536], path[2048];
+    if (xlGetProjectRoot(root,sizeof(root)) &&
+        xlJoinPathBuffer(package,sizeof(package),root,"include/" XL_TCC_VFS_COMPILER_SOURCE_ROOT)) {
+        const char* suffixes[]={"","src","lib/tcc","lib/lzma","release"};
+        for(size_t i=0;i<sizeof(suffixes)/sizeof(*suffixes);++i)
+            if (xlJoinPathBuffer(path,sizeof(path),package,suffixes[i]))
+                (void)xl__tcc.tcc_add_include_path(s,path);
+    }
 }
 
 static int xlEmbeddedSourcePath(char* out, size_t outSize, const char* relativePath)
@@ -1663,6 +1675,13 @@ static int xlEmbeddedSourcePath(char* out, size_t outSize, const char* relativeP
          xrtFileExists((str)externalPath) ) {
         return xlCopyToBuffer(out, outSize, externalPath);
     }
+
+    char package[1536];
+    if (xlGetProjectRoot(root,sizeof(root)) &&
+        xlJoinPathBuffer(package,sizeof(package),root,"include/" XL_TCC_VFS_COMPILER_SOURCE_ROOT) &&
+        xlJoinPathBuffer(externalPath,sizeof(externalPath),package,relativePath) &&
+        xrtFileExists((str)externalPath))
+        return xlCopyToBuffer(out,outSize,externalPath);
 
     written = snprintf(out, outSize, "%s/%s", XL_TCC_VFS_COMPILER_SOURCE_ROOT, relativePath);
     if ( written <= 0 || (size_t)written >= outSize ) {
@@ -2602,6 +2621,7 @@ static const XL6_OwnershipAdapterV1* xlModuleResolveOwnership(xrtownershipref re
     if ((adapter = xl6ClosureOwnershipAdapterV1(ref)) != NULL) return adapter;
     if ((adapter = xl6CellOwnershipAdapterV1(ref)) != NULL) return adapter;
     if((adapter=xl6SlotMapKeyValueOwnershipAdapterV1(ref))!=NULL) return adapter;
+    if((adapter=xl6ChannelOwnershipAdapterV1(ref))!=NULL) return adapter;
     {
         const XL6_SequenceAdmissionOpsV2* policies[]={xl6ArrayFutureAdmissionOpsV2Get(),
             xl6ArraySemAdmissionOpsV2Get(),xl6ArraySyncAdmissionOpsV2Get(),xl6ArrayThreadAdmissionOpsV2Get(),

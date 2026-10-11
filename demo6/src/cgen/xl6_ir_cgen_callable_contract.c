@@ -172,11 +172,11 @@ static int xl6IrCgenProductDropDirectlyNeeded(
         const XL6_IrInstruction* instruction = &module->instructions[i];
         if (!xl6IrCgenInstructionIsReachable(module, i) || instruction->type != type) continue;
         if (instruction->kind == XL6_IR_INSTR_RELEASE) return 1;
-        /* Native queue results may own a popped prefix even on failure.
+        /* Checked native results may own a received prefix even on failure.
          * STATUS_OUTPUT empties that result before the language error edge,
          * so its rollback owns the whole product independently of RELEASE. */
-        if (xl6IrConcurrentQueueInstructionType(module, instruction) &&
-            xl6IrCallInstructionErrorPhysicalAbi(module, instruction) == XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT)
+        if (xl6IrCallInstructionErrorPhysicalAbi(module, instruction) ==
+            XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT)
             return 1;
     }
     /* Export transactions also own a pending result until cleanup commits.

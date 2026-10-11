@@ -500,6 +500,20 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             if (instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&
                 !xl6IrCgenVisitSequenceFactorySymbols(module,type->messageSchemaType,visitor,context,0,false)) return 0;
         }
+        if (xl6IrChannelRuntimeOpIs(instruction->runtimeOp) && xl6IrCgenInstructionIsReachable(module,i)) {
+            XL6_IrTypeId channelId=xl6IrChannelInstructionType(module,instruction),schemaId=0;
+            const XL6_IrChannelReceiveSpec* receive=xl6IrChannelReceiveSpecRuntime(instruction->runtimeOp);
+            const char* method=receive ? "xl6ChannelReceiveV1" :
+                instruction->runtimeOp==XL6_IR_RUNTIME_CHANNEL_CREATE ? "xl6ChannelCreateTakeV1" :
+                instruction->runtimeOp==XL6_IR_RUNTIME_CHANNEL_SEND || instruction->runtimeOp==XL6_IR_RUNTIME_CHANNEL_TRY_SEND ? "xl6ChannelSendV1" :
+                instruction->runtimeOp==XL6_IR_RUNTIME_CHANNEL_CLOSE ? "xl6ChannelCloseV1" : "xl6ChannelQueryV1";
+            if (!xl6IrChannelInstructionCompatible(module,instruction) ||
+                !xl6IrChannelConstructionRecipe(module,channelId,&schemaId,NULL) || !visitor(context,method)) return 0;
+            const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
+            if (!xl6IrCgenVisitSlotProviders(schema->sequenceLayout.slotAbi,0,visitor,context) ||
+                (instruction->runtimeOp==XL6_IR_RUNTIME_CHANNEL_CREATE &&
+                 !xl6IrCgenVisitSequenceFactorySymbols(module,schemaId,visitor,context,0,false))) return 0;
+        }
         if (instruction->kind==XL6_IR_INSTR_RUNTIME_CALL) {
         if (xl6IrCgenInstructionIsReachable(module,i) &&
             instruction->runtimeOp>=XL6_IR_RUNTIME_STACK_PUSH_BATCH &&

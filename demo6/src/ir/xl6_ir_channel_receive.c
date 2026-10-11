@@ -102,7 +102,7 @@ int xl6IrChannelReceiveDependentSignatureCompatible(const XL6_IrModule* module,X
     const XL6_IrNode* declaration=xl6IrNodeGet(module,origin); size_t depth=0;
     while (declaration && declaration->kind!=XL6_IR_NODE_FUNC_DECL && ++depth<=module->nodeCount)
         declaration=xl6IrNodeGet(module,declaration->parent);
-    if (!declaration) return 0;
+    if (!declaration || declaration->kind!=XL6_IR_NODE_FUNC_DECL) return 0;
     if (xl6IrBuildTypeContainsTypeParam(module,declaration->declarationOwnerType,0)) return 1;
     /* Uncalled free-function declarations do not yet have an interned
      * callable storage type. Their explicit type-parameter declaration is
@@ -160,4 +160,56 @@ int xl6IrChannelReceiveInstructionPlan(const XL6_IrModule* module,const XL6_IrIn
         ins->payloadType!=plan.elementType || ins->runtimeResourcePayloadAbi!=plan.transferAbi) return 0;
     if (output) *output=plan;
     return 1;
+}
+
+int xl6IrChannelRuntimeOpIs(XL6_IrRuntimeOp op)
+{
+    return (op>=XL6_IR_RUNTIME_CHANNEL_CREATE && op<=XL6_IR_RUNTIME_CHANNEL_COUNT) ||
+        xl6IrChannelReceiveSpecRuntime(op)!=NULL;
+}
+XL6_IrCallErrorPhysicalAbi xl6IrChannelInstructionErrorPhysicalAbi(XL6_IrRuntimeOp op)
+{
+    return xl6IrChannelRuntimeOpIs(op) && op!=XL6_IR_RUNTIME_CHANNEL_RECV_INTO &&
+        op!=XL6_IR_RUNTIME_CHANNEL_TRY_RECV_INTO && op!=XL6_IR_RUNTIME_CHANNEL_RECV_TIMEOUT_INTO ?
+        XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT : XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
+}
+XL6_IrTypeId xl6IrChannelInstructionType(const XL6_IrModule* module,const XL6_IrInstruction* ins)
+{
+    if (!module || !ins || ins->kind!=XL6_IR_INSTR_RUNTIME_CALL || !xl6IrChannelRuntimeOpIs(ins->runtimeOp)) return 0;
+    if (ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_CREATE) return ins->type;
+    if (!ins->operandCount || ins->firstOperand>=module->operandCount) return 0;
+    const XL6_IrInstruction* receiver=xl6IrValueDefinition(module,module->operands[ins->firstOperand],NULL);
+    return receiver ? receiver->type : 0;
+}
+int xl6IrChannelInstructionCompatible(const XL6_IrModule* module,const XL6_IrInstruction* ins)
+{
+    if (!module || !ins || !xl6IrChannelInstructionErrorPhysicalAbi(ins->runtimeOp)) return 0;
+    if (xl6IrChannelReceiveSpecRuntime(ins->runtimeOp)) return xl6IrChannelReceiveInstructionPlan(module,ins,NULL);
+    XL6_IrTypeId owner=xl6IrChannelInstructionType(module,ins),schemaId=0;
+    XL6_IrNominalIdentitySetId set=0;
+    if (!owner || !xl6IrChannelConstructionRecipe(module,owner,&schemaId,&set) || !ins->result ||
+        ins->firstOperand>module->operandCount || ins->operandCount>module->operandCount-ins->firstOperand ||
+        ins->immediateText || ins->immediateData || ins->immediateSize || ins->opcode || ins->targetSymbol ||
+        ins->targetValue || ins->calleeType || ins->runtimeIdentityType || ins->collectionAbi ||
+        ins->runtimeResourceKeyType || ins->runtimeResourceKeyPayloadAbi || ins->runtimeResourceKeyOrderAbi) return 0;
+    const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
+    const XL6_IrType* result=xl6IrTypeGet(&module->types,ins->type);
+    if (!result || ins->payloadType!=schema->sequenceLayout.elementType ||
+        ins->runtimeResourcePayloadAbi!=schema->sequenceLayout.transferAbi ||
+        ins->sequenceAdmissionIdentitySet!=(ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_CREATE ? set : 0)) return 0;
+    if (ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_CREATE) {
+        const XL6_IrInstruction* capacity=ins->operandCount==1 ?
+            xl6IrValueDefinition(module,module->operands[ins->firstOperand],NULL) : NULL;
+        return ins->operandCount<=1 && (!ins->operandCount || (capacity && xl6IrConcurrentQueueIntegerType(module,capacity->type)));
+    }
+    if (ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_COUNT)
+        return ins->operandCount==1 && xl6IrConcurrentQueueIntegerType(module,ins->type);
+    if (result->kind!=XL6_IR_TYPE_BUILTIN || result->cAbi!=XL6_IR_C_ABI_BOOL ||
+        result->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL || result->nullAbi!=XL6_IR_NULL_ABI_NONE) return 0;
+    if (ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_SEND || ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_TRY_SEND) {
+        const XL6_IrInstruction* value=ins->operandCount==2 ?
+            xl6IrValueDefinition(module,module->operands[ins->firstOperand+1],NULL) : NULL;
+        return value && value->type==ins->payloadType;
+    }
+    return ins->operandCount==1 && (ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_CLOSE || ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_IS_CLOSED);
 }

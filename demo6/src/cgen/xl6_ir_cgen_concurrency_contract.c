@@ -183,8 +183,7 @@ static int xl6IrCgenEmitThreadRuntime(
 
 static int xl6IrCgenChannelRuntimeOpIs(XL6_IrRuntimeOp operation)
 {
-    return operation >= XL6_IR_RUNTIME_CHANNEL_CREATE &&
-           operation <= XL6_IR_RUNTIME_CHANNEL_COUNT;
+    return xl6IrChannelRuntimeOpIs(operation);
 }
 
 static int xl6IrCgenSpecialQueueRuntimeOpIs(XL6_IrRuntimeOp operation)
@@ -227,31 +226,6 @@ static XL6_IrRuntimeResourcePayloadAbi xl6IrCgenChannelPayloadAbi(
     const XL6_IrType* type)
 {
     return xl6IrTypeResourcePayloadAbi(type);
-}
-
-static int xl6IrCgenChannelTypeAbi(
-    const XL6_IrModule* module, XL6_IrTypeId typeId,
-    const XL6_IrType** channelOut, const XL6_IrType** payloadOut)
-{
-    const XL6_IrType* channel = module != NULL
-        ? xl6IrTypeGet(&module->types, typeId) : NULL;
-    const XL6_IrType* payload = channel != NULL &&
-            channel->paramCount == 1 && channel->params != NULL
-        ? xl6IrTypeGet(&module->types, channel->params[0]) : NULL;
-    if ( channelOut != NULL ) *channelOut = channel;
-    if ( payloadOut != NULL ) *payloadOut = payload;
-    return channel != NULL &&
-           channel->kind == XL6_IR_TYPE_GENERIC_INSTANCE &&
-           channel->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_CHANNEL &&
-           channel->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-           channel->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-           channel->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
-           channel->typeValueId != 0 &&
-           channel->paramCount == 1 && channel->params != NULL &&
-           payload != NULL && payload->typeValueId != 0 &&
-           xl6IrCgenChannelPayloadAbi(payload) !=
-               XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID &&
-           xl6IrCgenType(module, channel->params[0]) != NULL;
 }
 
 static int xl6IrCgenSpecialQueueTypeAbi(
@@ -433,131 +407,8 @@ static int xl6IrCgenAvlTypeAbi(
            xl6IrCgenType(module, tree->params[1]) != NULL;
 }
 
-static int xl6IrCgenRuntimeChannelAbi(
-    const XL6_IrModule* module, const XL6_IrInstruction* instruction)
-{
-    const XL6_IrInstruction* receiver = NULL;
-    const XL6_IrInstruction* payloadValue = NULL;
-    const XL6_IrInstruction* timeoutValue = NULL;
-    const XL6_IrType* channel = NULL;
-    const XL6_IrType* payload = NULL;
-    const XL6_IrType* resultType;
-    XL6_IrTypeId channelTypeId;
-    int creates;
-    int sends;
-    int receives;
-    int takesTimeout;
-    int closes;
-    if ( module == NULL || instruction == NULL ||
-         instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
-         !xl6IrCgenChannelRuntimeOpIs(instruction->runtimeOp) ||
-         instruction->immediateText != NULL ||
-         instruction->targetSymbol != 0 ||
-         instruction->targetValue != XL6_IR_VALUE_INVALID ||
-         instruction->calleeType != XL6_IR_TYPE_INVALID ||
-         instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID ||
-         instruction->opcode != XL6_IR_OPCODE_INVALID ||
-         instruction->firstOperand > module->operandCount ||
-         instruction->operandCount >
-             module->operandCount - instruction->firstOperand ) return 0;
-    creates = instruction->runtimeOp == XL6_IR_RUNTIME_CHANNEL_CREATE;
-    sends = instruction->runtimeOp == XL6_IR_RUNTIME_CHANNEL_SEND ||
-            instruction->runtimeOp == XL6_IR_RUNTIME_CHANNEL_TRY_SEND;
-    receives = instruction->runtimeOp == XL6_IR_RUNTIME_CHANNEL_RECV_INTO ||
-               instruction->runtimeOp == XL6_IR_RUNTIME_CHANNEL_TRY_RECV_INTO ||
-               instruction->runtimeOp ==
-                   XL6_IR_RUNTIME_CHANNEL_RECV_TIMEOUT_INTO;
-    takesTimeout = instruction->runtimeOp ==
-        XL6_IR_RUNTIME_CHANNEL_RECV_TIMEOUT_INTO;
-    closes = instruction->runtimeOp == XL6_IR_RUNTIME_CHANNEL_CLOSE;
-    if ( !creates && instruction->operandCount != 0 )
-        receiver = xl6IrCgenValueDefinition(
-            module, module->operands[instruction->firstOperand], NULL);
-    channelTypeId = creates ? instruction->type
-                            : receiver != NULL ? receiver->type
-                                               : XL6_IR_TYPE_INVALID;
-    if ( !xl6IrCgenChannelTypeAbi(
-             module, channelTypeId, &channel, &payload) ||
-         instruction->payloadType != channel->params[0] ||
-         instruction->runtimeResourcePayloadAbi !=
-             xl6IrCgenChannelPayloadAbi(payload) ) return 0;
-    resultType = xl6IrTypeGet(&module->types, instruction->type);
-    if ( creates ) {
-        const XL6_IrInstruction* capacity = instruction->operandCount == 1
-            ? xl6IrCgenValueDefinition(
-                module, module->operands[instruction->firstOperand], NULL)
-            : NULL;
-        const XL6_IrType* capacityType = capacity != NULL
-            ? xl6IrTypeGet(&module->types, capacity->type) : NULL;
-        return instruction->result != XL6_IR_VALUE_INVALID &&
-               instruction->operandCount <= 1 &&
-               (instruction->operandCount == 0 ||
-                (capacityType != NULL &&
-                 capacityType->cAbi == XL6_IR_C_ABI_I64 &&
-                 capacityType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-                 capacityType->integerTarget ==
-                     XL6_IR_INTEGER_TARGET_SIGNED_64));
-    }
-    if ( receiver == NULL || receiver->type != channelTypeId ) return 0;
-    if ( closes )
-        return instruction->operandCount == 1 &&
-               instruction->result == XL6_IR_VALUE_INVALID &&
-               instruction->type == XL6_IR_TYPE_INVALID;
-    if ( instruction->result == XL6_IR_VALUE_INVALID || resultType == NULL )
-        return 0;
-    if ( sends ) {
-        payloadValue = instruction->operandCount == 2
-            ? xl6IrCgenValueDefinition(
-                module, module->operands[instruction->firstOperand + 1], NULL)
-            : NULL;
-        return instruction->operandCount == 2 &&
-               payloadValue != NULL &&
-               payloadValue->type == instruction->payloadType &&
-               resultType->cAbi == XL6_IR_C_ABI_BOOL &&
-               resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
-    }
-    if ( receives ) {
-        const XL6_IrType* referenceType;
-        payloadValue = instruction->operandCount >= 2
-            ? xl6IrCgenValueDefinition(
-                module, module->operands[instruction->firstOperand + 1], NULL)
-            : NULL;
-        timeoutValue = instruction->operandCount == 3
-            ? xl6IrCgenValueDefinition(
-                module, module->operands[instruction->firstOperand + 2], NULL)
-            : NULL;
-        referenceType = payloadValue != NULL
-            ? xl6IrTypeGet(&module->types, payloadValue->type) : NULL;
-        return instruction->operandCount == (takesTimeout ? 3u : 2u) &&
-               payloadValue != NULL &&
-               payloadValue->kind == XL6_IR_INSTR_STORAGE_ADDRESS &&
-               referenceType != NULL &&
-               referenceType->kind == XL6_IR_TYPE_STORAGE_REF &&
-               referenceType->cAbi == XL6_IR_C_ABI_STORAGE_REF_PTR &&
-               referenceType->paramCount == 1 &&
-               referenceType->params != NULL &&
-               referenceType->params[0] == instruction->payloadType &&
-               (!takesTimeout ||
-                (timeoutValue != NULL &&
-                 xl6IrTypeGet(&module->types, timeoutValue->type) != NULL &&
-                 xl6IrTypeGet(&module->types, timeoutValue->type)->cAbi ==
-                     XL6_IR_C_ABI_I64 &&
-                 xl6IrTypeGet(&module->types, timeoutValue->type)->ownershipAbi ==
-                     XL6_IR_OWNERSHIP_ABI_TRIVIAL)) &&
-               resultType->cAbi == XL6_IR_C_ABI_BOOL &&
-               resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
-    }
-    if ( instruction->runtimeOp == XL6_IR_RUNTIME_CHANNEL_IS_CLOSED )
-        return instruction->operandCount == 1 &&
-               resultType->cAbi == XL6_IR_C_ABI_BOOL &&
-               resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
-    if ( instruction->runtimeOp == XL6_IR_RUNTIME_CHANNEL_COUNT )
-        return instruction->operandCount == 1 &&
-               resultType->cAbi == XL6_IR_C_ABI_I64 &&
-               resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-               resultType->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_64;
-    return 0;
-}
+static int xl6IrCgenRuntimeChannelAbi(const XL6_IrModule* module,const XL6_IrInstruction* instruction)
+{ return xl6IrChannelInstructionCompatible(module,instruction); }
 
 static const char* xl6IrCgenChannelPayloadAbiToken(
     XL6_IrRuntimeResourcePayloadAbi abi)

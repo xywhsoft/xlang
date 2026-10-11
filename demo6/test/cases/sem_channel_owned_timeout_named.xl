@@ -1,0 +1,2 @@
+channel<int> c = channel::<int>(1)
+auto status, value = c.recvTimeout(timeoutMs: 1)

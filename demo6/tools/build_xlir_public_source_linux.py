@@ -69,6 +69,22 @@ def main():
         assert sha(target)==sha(original)
         headers.append({'Path':str(target),'Source':str(original),'Sha256':sha(target)})
     assert len(headers)>=6
+    # Mirror manifest-owned native sources for standalone component builds;
+    # generated nested compiler resources are deliberately outside this gate.
+    for line in manifest.read_text(encoding='utf-8-sig').splitlines():
+        parts=line.split('|')
+        if len(parts)<3 or not parts[1].startswith('__xl_compiler/') or not parts[2].startswith('%XL6_ROOT%'): continue
+        relative=Path(parts[1]); assert '..' not in relative.parts and not relative.is_absolute()
+        source=Path(parts[2].replace('%XL6_ROOT%',str(root))).resolve()
+        assert source.is_relative_to(root)
+        originals=sorted(f for f in source.rglob('*') if f.is_file() and
+            any(f.match(pattern) for pattern in parts[3].split(';'))) if parts[0]=='dir' else [source]
+        for original in originals:
+            target=out/'include'/relative
+            if parts[0]=='dir': target/=original.relative_to(source)
+            target.parent.mkdir(parents=True,exist_ok=True); assert not target.exists()
+            shutil.copy2(original,target); assert sha(target)==sha(original)
+            headers.append({'Path':str(target),'Source':str(original),'Sha256':sha(target)})
     flags=['-std=c11','-D_GNU_SOURCE','-Wall','-Wextra','-Werror','-O0','-DXL_STATIC_EMBED',
         '-DXL_ENABLE_EXE_COMPILER=1','-DTCC_DISABLE_BUILTIN_VFS',
         '-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include'),'-I'+str(root/'lib/tcc')]

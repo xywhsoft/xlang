@@ -1,0 +1,31 @@
+func receiveWait(channel<string> c) as int
+    auto status, value = c.recv()
+    assert status == channelStatus.ok and value != null and value == "rendezvous\0你好"
+    return 23
+end
+func rendezvous()
+    channel<string> c = channel::<string>(0)
+    auto work = func() as int
+        return receiveWait(c)
+    end
+    auto worker = thread(work)
+    assert c.send("rendezvous\0你好")
+    assert worker.waitTimeout(5000) and worker.exitCode() == 23
+    c.close()
+end
+func timedReceive()
+    channel<int> c = channel::<int>(1)
+    auto producer = func() as int
+        assert c.send(10)
+        c.close()
+        return 11
+    end
+    auto worker = thread(producer)
+    auto status, value = c.recvTimeout(5000)
+    assert status == channelStatus.ok and value != null and value == 10
+    auto drainedStatus, drained = c.recvTimeout(5000)
+    assert drainedStatus == channelStatus.closed and drained == null
+    assert worker.waitTimeout(5000) and worker.exitCode() == 11
+end
+rendezvous()
+timedReceive()

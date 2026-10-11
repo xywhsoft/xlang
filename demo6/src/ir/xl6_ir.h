@@ -6987,6 +6987,10 @@ const XL6_IrChannelReceiveSpec* xl6IrChannelReceiveMethod(const char*);
 const XL6_IrChannelReceiveSpec* xl6IrChannelReceiveSpecResource(XL6_IrRuntimeResourceOp);
 const XL6_IrChannelReceiveSpec* xl6IrChannelReceiveSpecRuntime(XL6_IrRuntimeOp);
 XL6_IrCallErrorPhysicalAbi xl6IrChannelReceiveErrorPhysicalAbi(XL6_IrRuntimeOp);
+int xl6IrChannelRuntimeOpIs(XL6_IrRuntimeOp);
+XL6_IrTypeId xl6IrChannelInstructionType(const XL6_IrModule*,const XL6_IrInstruction*);
+int xl6IrChannelInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
+XL6_IrCallErrorPhysicalAbi xl6IrChannelInstructionErrorPhysicalAbi(XL6_IrRuntimeOp);
 /* Logical payload identity may be dependent. It is never a physical slot or
  * permission to emit native code before specialization closes the recipe. */
 XL6_IrTypeId xl6IrChannelReceivePayloadType(const XL6_IrModule*,XL6_IrTypeId);

@@ -136,6 +136,7 @@ static int xl6SemChannelElementTypeIsFirstStageSafe(XL6_SemContext* ctx, const X
 static int xl6SemChannelElementTypeIsMessageSafe(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
 static int xl6SemCheckChannelCall(XL6_SemContext* ctx, XL6_AstNode* node);
 static const char* xl6SemChannelCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
+static XL6_AstNode* xl6SemCloneChannelReceiveReturns(XL6_SemContext*, XL6_AstNode*);
 static int xl6SemIsSpecialCollectionTypeName(const char* name);
 static int xl6SemCheckSpecialCollectionCall(XL6_SemContext* ctx, XL6_AstNode* node);
 static const char* xl6SemSpecialCollectionCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
@@ -157,6 +158,7 @@ static int xl6SemApplyConditionFlow(
     int truth);
 static const char* xl6SemSyncCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemTypeCanCopy(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
+static int xl6SemTypeNodeGenericArgCount(const XL6_AstNode*);
 static int xl6SemTypeCanBeFunctionResult(XL6_SemContext* ctx, const XL6_AstNode* type);
 static int xl6SemTypeCanBeBorrowedParam(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
 static int xl6SemIsCAbiTaggedNullableScalar(
@@ -2019,6 +2021,10 @@ static int xl6SemTypeCanCopyDepth(XL6_SemContext* ctx, const XL6_AstNode* typeNo
         return 1;
     }
     if ( typeInfo->kind == XL6_TYPE_BUILTIN && xl6SemIsResourceHandleTypeName(typeNode->text) ) {
+        /* A resident Channel value is a shared xvalue owner, not a move-only
+         * raw resource. Copying retains that identity; it never clones queued
+         * messages or creates a second native channel. */
+        if (xl6TextEquals(typeNode->text,"channel") && xl6SemTypeNodeGenericArgCount(typeNode)==1) return 1;
         return 0;
     }
     if ( typeInfo->kind == XL6_TYPE_BUILTIN &&
@@ -7046,6 +7052,8 @@ static XL6_AstNode* xl6SemCallReturnTypesEx(XL6_SemContext* ctx, XL6_AstNode* ex
     if ( callee->kind == XL6_AST_MEMBER ) {
         if ( ownedType != NULL ) {
             *ownedType = xl6SemCloneSpecialCollectionReturnTypes(ctx, expr);
+            if ( *ownedType != NULL ) return *ownedType;
+            *ownedType = xl6SemCloneChannelReceiveReturns(ctx, expr);
             if ( *ownedType != NULL ) return *ownedType;
         }
         if ( expr->semanticCallKind == XL6_SEM_CALL_WITNESS &&
@@ -12150,6 +12158,8 @@ static int xl6SemChannelElementTypeIsFirstStageSafe(XL6_SemContext* ctx, const X
     const char* name;
 
     concreteType = xl6SemResolveAliasType(ctx, typeNode);
+    if (xl6SemTypeIsNullable(concreteType))
+        return xl6SemChannelElementTypeIsFirstStageSafe(ctx, xl6SemNullableInnerType(concreteType));
     name = concreteType != NULL ? concreteType->text : NULL;
     if ( name == NULL || (concreteType != NULL && concreteType->childCount > 0) ) {
         return 0;
@@ -12159,6 +12169,7 @@ static int xl6SemChannelElementTypeIsFirstStageSafe(XL6_SemContext* ctx, const X
            xl6SemIsFloatTypeName(name) ||
            xl6TextEquals(name, "string") ||
            xl6TextEquals(name, "bytes") ||
+           xl6TextEquals(name, "char") ||
            xl6TextEquals(name, "time") ||
            xl6TextEquals(name, "point");
 }
@@ -12289,6 +12300,37 @@ static XL6_AstNode* xl6SemCloneChannelReceiverType(XL6_SemContext* ctx, XL6_AstN
     return xl6SemCloneTypeNode(sym->type);
 }
 
+/* Shared names with typed and lowered IR; SEM constructs only logical types. */
+static int xl6SemChannelReceiveMode(const char* name)
+{
+    if (!name) return -1;
+#define XL6_CHANNEL_RECEIVE_OP(Id,Name,Mode,Timed) if (!strcmp(name,Name)) return Mode;
+#include "src/abi/xl6_channel_receive_ops.inc"
+#undef XL6_CHANNEL_RECEIVE_OP
+    return -1;
+}
+static XL6_AstNode* xl6SemCloneChannelReceiveReturns(XL6_SemContext* ctx, XL6_AstNode* call)
+{
+    XL6_AstNode* member=call && call->kind==XL6_AST_CALL && call->childCount ? call->children[0] : NULL;
+    if (!member || member->kind!=XL6_AST_MEMBER || xl6SemChannelReceiveMode(member->text)<0) return NULL;
+    XL6_AstNode* receiver=xl6SemCloneChannelReceiverType(ctx,member);
+    const XL6_AstNode* concrete=xl6SemResolveAliasType(ctx,receiver);
+    XL6_AstNode* value=concrete && xl6SemIsChannelTypeName(concrete->text) ?
+        xl6SemCloneSingleGenericArgType(ctx,receiver,"channel") : NULL;
+    xl6AstFree(receiver);
+    if (!value) return NULL;
+    value=xl6SemLiftNullableType(value,member);
+    XL6_AstNode* status=xl6AstNewText(XL6_AST_TYPE,"int",3,NULL);
+    XL6_AstNode* returns=xl6AstNew(XL6_AST_RETURN_TYPES,NULL);
+    if (!value || !status || !returns) {
+        xl6AstFree(value); xl6AstFree(status); xl6AstFree(returns); return NULL;
+    }
+    xl6AstAddChild(returns,status);
+    if (returns->childCount!=1) { xl6AstFree(status); xl6AstFree(value); xl6AstFree(returns); return NULL; }
+    xl6AstAddChild(returns,value);
+    if (returns->childCount!=2) { xl6AstFree(value); xl6AstFree(returns); return NULL; }
+    return returns;
+}
 static int xl6SemCheckChannelMethodCall(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     XL6_AstNode* member;
@@ -12314,8 +12356,8 @@ static int xl6SemCheckChannelMethodCall(XL6_SemContext* ctx, XL6_AstNode* node)
     }
 
     ok = 1;
-    if ( receiver == NULL || receiver->kind != XL6_AST_NAME ) {
-        xl6SemErrorNode(ctx, receiver != NULL ? receiver : member, "channel receiver 当前只支持具名变量");
+    if ( receiver == NULL ) {
+        xl6SemErrorNode(ctx, member, "channel method requires a typed receiver");
         ok = 0;
     }
     args = node->childCount > 1 ? node->children[1] : NULL;
@@ -12354,53 +12396,24 @@ static int xl6SemCheckChannelMethodCall(XL6_SemContext* ctx, XL6_AstNode* node)
         return ok;
     }
 
-    if ( xl6TextEquals(member->text, "recvInto") ||
-         xl6TextEquals(member->text, "tryRecvInto") ||
-         xl6TextEquals(member->text, "recvTimeoutInto") ) {
-        int isTimeout = xl6TextEquals(member->text, "recvTimeoutInto");
-        const char* methodName = isTimeout ? "channel.recvTimeoutInto" :
-            (xl6TextEquals(member->text, "tryRecvInto") ? "channel.tryRecvInto" : "channel.recvInto");
-        size_t expectedCount = isTimeout ? 2u : 1u;
-        char message[160];
-        XL6_AstNode* arg = argCount > 0 ? args->children[0] : NULL;
-        XL6_AstNode* timeoutArg = isTimeout && argCount > 1 ? args->children[1] : NULL;
-        XL6_AstNode* expr = arg != NULL && arg->childCount > 0 ? arg->children[0] : NULL;
-        XL6_AstNode* timeoutExpr = timeoutArg != NULL && timeoutArg->childCount > 0 ? timeoutArg->children[0] : NULL;
-        XL6_Symbol* targetSym = expr != NULL && expr->kind == XL6_AST_NAME ? xl6ScopeFind(ctx->scope, expr->text) : NULL;
-        itemType = xl6SemCloneSingleGenericArgType(ctx, receiverType, "channel");
-        if ( argCount != expectedCount ||
-             arg == NULL || arg->kind != XL6_AST_ARG ||
-             expr == NULL || expr->kind != XL6_AST_NAME ||
-             (isTimeout && (timeoutArg == NULL || timeoutArg->kind != XL6_AST_ARG || timeoutExpr == NULL)) ) {
-            snprintf(message, sizeof(message), "%s requires positional out variable%s",
-                     methodName, isTimeout ? " and timeoutMs" : "");
-            xl6SemErrorNode(ctx, node, message);
-            ok = 0;
-        } else if ( targetSym == NULL || targetSym->type == NULL ) {
-            snprintf(message, sizeof(message), "%s target variable is not declared", methodName);
-            xl6SemErrorNode(ctx, expr, message);
-            ok = 0;
-        } else if ( xl6SemSymbolIsConst(targetSym) ) {
-            xl6SemErrorNode(ctx, expr, "const 不能被重新赋值");
-            ok = 0;
-        } else if ( !xl6SemCheckBoundarySymbolUse(ctx, expr, targetSym, 1) ) {
-            ok = 0;
-        } else if ( itemType == NULL || !xl6SemTypeEquals(ctx, targetSym->type, itemType) ) {
-            snprintf(message, sizeof(message), "%s 目标变量类型必须等于 channel<T> 的元素类型", methodName);
-            xl6SemTypeMismatchError(
-                ctx,
-                expr,
-                message,
-                itemType,
-                xl6SemDisplayTypeName(ctx, targetSym->type));
-            ok = 0;
-        } else if ( isTimeout && !xl6SemIsIntegerTypeName(xl6SemExprStaticTypeName(ctx, timeoutExpr)) ) {
-            xl6SemErrorNode(ctx, timeoutExpr, "channel.recvTimeoutInto timeoutMs must be int");
-            ok = 0;
+    int receiveMode=xl6SemChannelReceiveMode(member->text);
+    if (receiveMode>=0) {
+        size_t expectedCount=receiveMode==2 ? 1u : 0u;
+        XL6_AstNode* arg=argCount==1 ? args->children[0] : NULL;
+        XL6_AstNode* expr=arg && arg->childCount ? arg->children[0] : NULL;
+        XL6_AstNode intType={0}; intType.kind=XL6_AST_TYPE; intType.text="int";
+        if (argCount!=expectedCount || (expectedCount && (!arg || arg->kind!=XL6_AST_ARG || !expr))) {
+            xl6SemErrorNode(ctx,node,"channel receive takes no output variable; recvTimeout requires one positional timeoutMs");
+            ok=0;
+        } else if (expectedCount && !xl6SemExprCanMatchParamType(ctx,expr,&intType)) {
+            xl6SemErrorNode(ctx,expr,"channel.recvTimeout timeoutMs must be int"); ok=0;
         }
-        xl6AstFree(itemType);
-        xl6AstFree(receiverType);
-        return ok;
+        xl6AstFree(receiverType); return ok;
+    }
+    if (xl6TextEquals(member->text,"recvInto") || xl6TextEquals(member->text,"tryRecvInto") ||
+        xl6TextEquals(member->text,"recvTimeoutInto")) {
+        xl6SemErrorNode(ctx,node,"channel Into methods are retired; use (status, value) = recv/tryRecv/recvTimeout");
+        xl6AstFree(receiverType); return 0;
     }
 
     xl6SemErrorNode(ctx, member, "unknown channel method");
@@ -12443,9 +12456,6 @@ static const char* xl6SemChannelCallResultTypeName(XL6_SemContext* ctx, XL6_AstN
     result = NULL;
     if ( xl6TextEquals(member->text, "send") ||
          xl6TextEquals(member->text, "trySend") ||
-         xl6TextEquals(member->text, "recvInto") ||
-         xl6TextEquals(member->text, "tryRecvInto") ||
-         xl6TextEquals(member->text, "recvTimeoutInto") ||
          xl6TextEquals(member->text, "isClosed") ) {
         result = "bool";
     } else if ( xl6TextEquals(member->text, "count") ) {

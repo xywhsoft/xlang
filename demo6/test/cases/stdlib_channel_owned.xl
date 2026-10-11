@@ -1,0 +1,94 @@
+class ChannelOwnedMessage
+    int number = 0
+    string text = ""
+end
+func identityChannel(channel<int> value) as channel<int>
+    return value
+end
+func receiveGeneric<T>(channel<T> value) as (int, T?)
+    return value.tryRecv()
+end
+func exerciseOwnedChannel()
+    channel<int> c = channel::<int>(1)
+    auto emptyStatus, empty = c.tryRecv()
+    assert emptyStatus == channelStatus.empty and empty == null
+    assert c.trySend(42) and not c.trySend(43)
+    assert c.count() == 1
+    auto status, value = c.recv()
+    assert status == channelStatus.ok and value != null and value == 42
+    auto timedStatus, timed = c.recvTimeout(0)
+    assert timedStatus == channelStatus.timeout and timed == null
+    c.close()
+    assert c.isClosed() and not c.trySend(44)
+    auto closedStatus, closed = c.recv()
+    assert closedStatus == channelStatus.closed and closed == null
+
+    channel<string> text = channel::<string>(2)
+    string input = "a\0b你🙂"
+    assert text.send(input) and text.send("")
+    input = "changed"
+    auto textStatus, original = text.tryRecv()
+    assert textStatus == channelStatus.ok and original != null and original == "a\0b你🙂"
+    assert text.send("generic\0string")
+    auto blankStatus, blank = text.recv()
+    assert blankStatus == channelStatus.ok and blank != null and blank == ""
+    auto genericTextStatus, genericText = receiveGeneric::<string>(text)
+    assert genericTextStatus == channelStatus.ok and genericText != null and genericText == "generic\0string"
+    auto absentStatus, absent = text.tryRecv()
+    assert absentStatus == channelStatus.empty and absent == null
+    text.close()
+
+    channel<int?> nullable = channel::<int?>(2)
+    assert nullable.send(null) and nullable.send(7)
+    auto nullStatus, none = nullable.recv()
+    assert nullStatus == channelStatus.ok and none == null
+    auto someStatus, some = nullable.recv()
+    assert someStatus == channelStatus.ok and some != null and some == 7
+    auto missingStatus, missing = nullable.tryRecv()
+    assert missingStatus == channelStatus.empty and missing == null
+    nullable.close()
+
+    channel<bytes> binary = channel::<bytes>(1)
+    bytes data = b"a\0b"
+    assert binary.send(data)
+    data[0] = 99
+    auto binaryStatus, received = binary.recv()
+    assert binaryStatus == channelStatus.ok and received != null and received == b"a\0b"
+    binary.close()
+
+    channel<char> characters = channel::<char>(1)
+    assert characters.send('你')
+    auto charStatus, character = characters.recv()
+    assert charStatus == channelStatus.ok and character != null and character == '你'
+    characters.close()
+
+    channel<ChannelOwnedMessage> objects = channel::<ChannelOwnedMessage>(1)
+    auto message = ChannelOwnedMessage()
+    message.number = 17
+    message.text = "class\0message"
+    assert objects.send(message)
+    auto objectStatus, objectValue = objects.recv()
+    assert objectStatus == channelStatus.ok and objectValue != null
+    if objectValue != null then
+        assert objectValue.number == 17 and objectValue.text == "class\0message"
+    end
+    assert objects.send(message)
+    message.number = 18
+    auto genericObjectStatus, genericObject = receiveGeneric::<ChannelOwnedMessage>(objects)
+    assert genericObjectStatus == channelStatus.ok and genericObject != null
+    if genericObject != null then
+        assert genericObject.number == 18
+    end
+    assert objects.send(message)
+    objects.close()
+
+    channel<int> expressions = channel::<int>(1)
+    assert identityChannel(expressions).send(99)
+    auto expressionStatus, expressionValue = identityChannel(expressions).recv()
+    assert expressionStatus == channelStatus.ok and expressionValue != null and expressionValue == 99
+    assert expressions.send(100)
+    auto genericStatus, genericValue = receiveGeneric::<int>(expressions)
+    assert genericStatus == channelStatus.ok and genericValue != null and genericValue == 100
+    expressions.close()
+end
+exerciseOwnedChannel()
