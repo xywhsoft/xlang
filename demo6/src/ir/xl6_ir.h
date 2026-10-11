@@ -128,7 +128,8 @@ typedef enum XL6_IrRuntimeResourceAbi {
     XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE,
     XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE,
     XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE,
-    XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE
+    XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE,
+    XL6_IR_RUNTIME_RESOURCE_SLOT_MAP
 } XL6_IrRuntimeResourceAbi;
 
 /* A source constructor/member spelling is converted once into this exact
@@ -243,7 +244,10 @@ typedef enum XL6_IrRuntimeResourceOp {
     XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_PUSH_BATCH,
     XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_POP_BATCH_INTO,
     XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_TRY_POP,
-    XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_POP_BATCH
+    XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_POP_BATCH,
+#define XL6_SLOT_MAP_OP(id, name, count, a, b, result, native, failure) XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_##id,
+#include "../abi/xl6_slot_map_ops.inc"
+#undef XL6_SLOT_MAP_OP
 } XL6_IrRuntimeResourceOp;
 
 /* Runtime resources with generic payloads carry an explicit transfer ABI in
@@ -2074,6 +2078,9 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL,
     XL6_IR_RUNTIME_NATIVE_VALUE_BOX,
     XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED,
+#define XL6_SLOT_MAP_OP(id, name, count, a, b, result, native, failure) XL6_IR_RUNTIME_SLOT_MAP_##id,
+#include "../abi/xl6_slot_map_ops.inc"
+#undef XL6_SLOT_MAP_OP
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -6811,6 +6818,17 @@ typedef struct XL6_IrValueCollectionRecipe {
     XL6_IrSetKeyAbi setKeyAbi;
     XL6_IrDictKeyAbi dictKeyAbi;
 } XL6_IrValueCollectionRecipe;
+int xl6IrSlotMapConstructionRecipe(const XL6_IrModule*,XL6_IrTypeId,XL6_IrValueCollectionRecipe*);
+int xl6IrSlotMapResourceOpIs(XL6_IrRuntimeResourceOp);
+XL6_IrRuntimeResourceOp xl6IrSlotMapResourceOp(XL6_IrRuntimeOp);
+XL6_IrRuntimeOp xl6IrSlotMapRuntimeOp(XL6_IrRuntimeResourceOp);
+XL6_IrRuntimeResourceOp xl6IrSlotMapMethod(const char*);
+const char* xl6IrSlotMapNativeSymbol(XL6_IrRuntimeOp);
+XL6_IrCallErrorPhysicalAbi xl6IrSlotMapErrorPhysicalAbi(XL6_IrRuntimeOp);
+int xl6IrSlotMapSignatureCompatible(const XL6_IrModule*,XL6_IrRuntimeResourceOp,
+    XL6_IrTypeId,XL6_IrTypeId,const XL6_IrTypeId*,size_t);
+int xl6IrSlotMapIntrinsicCompatible(const XL6_IrModule*,const XL6_IrIntrinsicCall*,const XL6_IrIntrinsicOperand*);
+int xl6IrSlotMapInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 int xl6IrValueCollectionConstructionRecipe(const XL6_IrModule*,XL6_IrTypeId,
     XL6_IrValueCollectionRecipe*);
 int xl6IrSetConstructionRecipe(const XL6_IrModule*,XL6_IrTypeId,

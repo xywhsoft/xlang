@@ -215,6 +215,7 @@ static XL6_IrRuntimeResourceAbi xl6IrRuntimeResourceAbiFromName(
         return XL6_IR_RUNTIME_RESOURCE_SEM;
     if ( strcmp(canonicalName, "Stack") == 0 )
         return XL6_IR_RUNTIME_RESOURCE_STACK;
+    if (strcmp(canonicalName,"SlotMap")==0) return XL6_IR_RUNTIME_RESOURCE_SLOT_MAP;
     if ( strcmp(canonicalName, "AvlTree") == 0 )
         return XL6_IR_RUNTIME_RESOURCE_AVL_TREE;
     if ( strcmp(canonicalName, "SpscQueue") == 0 )
@@ -1185,6 +1186,11 @@ static XL6_IrTypeId xl6IrTreeSchemaTypeForType(const XL6_IrTypePool* pool,
 }
 static XL6_IrTypeId xl6IrValueCollectionElementTypeForType(const XL6_IrTypePool* pool,const XL6_IrType* type)
 {
+    if(pool && type && type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SLOT_MAP &&
+        type->kind==XL6_IR_TYPE_GENERIC_INSTANCE && type->paramCount==1 && type->params &&
+        !type->returnCount && type->collectionAbi==XL6_IR_COLLECTION_NONE &&
+        type->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR && type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED)
+        return type->params[0];
     if (!pool || !type ||
         (type->collectionAbi!=XL6_IR_COLLECTION_LIST && type->collectionAbi!=XL6_IR_COLLECTION_SET &&
          type->collectionAbi!=XL6_IR_COLLECTION_DICT) ||
@@ -8498,6 +8504,7 @@ int xl6IrStackConstructionContract(const XL6_IrModule* module,XL6_IrTypeId typeI
 { return xl6IrStackConstructionContractDepth(module,typeId,setOut,0); }
 
 #include "xl6_ir_stack_batch.c"
+#include "xl6_ir_slot_map.c"
 
 XL6_IrNodeId xl6IrCallParameterListGet(
     const XL6_IrModule* module, XL6_IrNodeId declaration)
@@ -10756,7 +10763,7 @@ static XL6_IrIntrinsicKind xl6IrFutureMemberCalleeKind(
 
 static int xl6IrRuntimeResourceOpCreates(XL6_IrRuntimeResourceOp operation)
 {
-    return operation == XL6_IR_RUNTIME_RESOURCE_OP_THREAD_CREATE ||
+    return operation == XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_CREATE || operation == XL6_IR_RUNTIME_RESOURCE_OP_THREAD_CREATE ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CREATE ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_MUTEX_CREATE ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_SEM_CREATE ||
@@ -10772,6 +10779,7 @@ static int xl6IrRuntimeResourceOpReturnsOwned(
     XL6_IrRuntimeResourceOp operation, const XL6_IrType* result)
 {
     return xl6IrRuntimeResourceOpCreates(operation) ||
+           (xl6IrSlotMapResourceOpIs(operation) && result && result->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED) ||
            ((operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP ||
              operation == XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_TRY_POP ||
              operation == XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_POP_BATCH ||
@@ -10808,7 +10816,7 @@ XL6_IrIntrinsicResultAbi xl6IrRuntimeResourceResultAbiForType(
 
 static int xl6IrRuntimeResourceOpMayRaise(XL6_IrRuntimeResourceOp operation)
 {
-    return xl6IrRuntimeResourceOpCreates(operation) ||
+    return xl6IrSlotMapResourceOpIs(operation) || xl6IrRuntimeResourceOpCreates(operation) ||
            (operation>=XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE &&
             operation<=XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLONE) ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND ||
@@ -10880,6 +10888,7 @@ static int xl6IrRuntimeResourceAbiIsSpecialQueue(
 static XL6_IrRuntimeResourceAbi xl6IrRuntimeResourceAbiForOp(
     XL6_IrRuntimeResourceOp operation)
 {
+    if(xl6IrSlotMapResourceOpIs(operation)) return XL6_IR_RUNTIME_RESOURCE_SLOT_MAP;
     if ( operation >= XL6_IR_RUNTIME_RESOURCE_OP_THREAD_CREATE &&
          operation <= XL6_IR_RUNTIME_RESOURCE_OP_THREAD_STOP )
         return XL6_IR_RUNTIME_RESOURCE_THREAD;
@@ -11109,6 +11118,10 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
          resource->paramCount == 1 && resource->params != NULL &&
          resource->params[0] == genericPayload )
         return XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_CREATE;
+    if(genericName && genericName->text && strcmp(genericName->text,"SlotMap")==0 && resource &&
+        resource->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SLOT_MAP && resource->kind==XL6_IR_TYPE_GENERIC_INSTANCE &&
+        resource->paramCount==1 && resource->params && resource->params[0]==genericPayload)
+        return XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_CREATE;
     if ( genericName != NULL && genericName->text != NULL &&
          strcmp(genericName->text, "Stack") == 0 && resource != NULL &&
          resource->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_STACK &&
@@ -11155,6 +11168,7 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
     resource = xl6IrTypeGet(&module->types,receiverValueType);
     if ( resource == NULL ) return XL6_IR_RUNTIME_RESOURCE_OP_INVALID;
     *outReceiver = receiverId;
+    if(resource->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SLOT_MAP) return xl6IrSlotMapMethod(callee->text);
     if ( resource->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_THREAD ) {
         if ( strcmp(callee->text, "wait") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_THREAD_WAIT;
@@ -11522,6 +11536,8 @@ static int xl6IrRuntimeResourceSignatureCompatible(
     XL6_IrTypeId payloadType;
     XL6_IrTypeId keyType;
     if ( module == NULL ) return 0;
+    if(xl6IrSlotMapResourceOpIs(operation))
+        return xl6IrSlotMapSignatureCompatible(module,operation,receiverType,resultType,operandTypes,operandCount);
     if (xl6IrStackBatchResourceOpIs(operation))
         return xl6IrStackBatchSignatureCompatible(module,operation,receiverType,resultType,operandTypes,operandCount);
     result = xl6IrTypeGet(&module->types, resultType);
@@ -11924,6 +11940,8 @@ static XL6_IrTypeId xl6IrRuntimeResourceInputTargetType(
     XL6_IrRuntimeResourceOp operation, size_t operandIndex,
     XL6_IrTypeId keyType, XL6_IrTypeId payloadType)
 {
+    if((operation==XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_INSERT && operandIndex==1) ||
+        (operation==XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_SET && operandIndex==2)) return payloadType;
     if ( operandIndex == 1 &&
          (operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND ||
           operation == XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_TRY_SEND ||
@@ -13948,6 +13966,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         if ( xl6IrRuntimeResourceOpIsChannel(runtimeResourceOp) ||
              xl6IrRuntimeResourceOpIsSpecialQueue(runtimeResourceOp) ||
              xl6IrRuntimeResourceOpIsStack(runtimeResourceOp) ||
+             xl6IrSlotMapResourceOpIs(runtimeResourceOp) ||
              xl6IrRuntimeResourceOpIsAvlTree(runtimeResourceOp) ) {
             XL6_IrTypeId resourceType =
                 xl6IrRuntimeResourceOpCreates(runtimeResourceOp)
@@ -13960,7 +13979,9 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                     : xl6IrRuntimeResourceOpIsSpecialQueue(runtimeResourceOp)
                         ? xl6IrRuntimeSpecialQueuePayloadType(
                             module, resourceType)
-                        : xl6IrRuntimeStackPayloadType(module, resourceType);
+                        : xl6IrSlotMapResourceOpIs(runtimeResourceOp)
+                            ? xl6IrTypeGet(&module->types,resourceType)->params[0]
+                            : xl6IrRuntimeStackPayloadType(module, resourceType);
             intrinsic.runtimeResourcePayloadAbi =
                 xl6IrRuntimeResourcePayloadAbiForOwnerType(module,resourceType,intrinsic.payloadType);
             intrinsic.errorAbi=xl6IrRuntimeResourceErrorAbiForOwnerType(module,runtimeResourceOp,resourceType);
@@ -20681,6 +20702,8 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
             return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
         return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
     }
+    stringAbi=xl6IrSlotMapErrorPhysicalAbi(instruction->runtimeOp);
+    if(stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     stringAbi=xl6IrRuntimeFutureMetadataErrorPhysicalAbi(instruction->runtimeOp);
     if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     stringAbi=xl6IrRuntimeNativeValueErrorPhysicalAbi(instruction->runtimeOp);
@@ -21244,7 +21267,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
                type->persistenceValueAbi >
                    XL6_IR_PERSISTENCE_VALUE_DICT_OBJECT ||
                type->runtimeResourceAbi < XL6_IR_RUNTIME_RESOURCE_NONE ||
-              type->runtimeResourceAbi > XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE ||
+              type->runtimeResourceAbi > XL6_IR_RUNTIME_RESOURCE_SLOT_MAP ||
               type->cAbi < XL6_IR_C_ABI_UNSUPPORTED ||
              type->cAbi > XL6_IR_C_ABI_NATIVE_VALUE ||
              type->ownershipAbi < XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
@@ -21408,7 +21431,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
                         type->runtimeResourceAbi <= XL6_IR_RUNTIME_RESOURCE_SEM
                       ? (type->kind != XL6_IR_TYPE_BUILTIN || type->paramCount != 0)
                       : type->runtimeResourceAbi >= XL6_IR_RUNTIME_RESOURCE_STACK &&
-                        type->runtimeResourceAbi <= XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE
+                        type->runtimeResourceAbi <= XL6_IR_RUNTIME_RESOURCE_SLOT_MAP
                       ? !((type->kind == XL6_IR_TYPE_BUILTIN &&
                            type->paramCount == 0) ||
                           (type->kind == XL6_IR_TYPE_GENERIC_INSTANCE &&
@@ -34204,7 +34227,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         xl6IrRuntimeResourceOpIsSpecialQueue(
                             intrinsic->runtimeResourceOp);
                     int stack = xl6IrRuntimeResourceOpIsStack(
-                        intrinsic->runtimeResourceOp);
+                        intrinsic->runtimeResourceOp) || xl6IrSlotMapResourceOpIs(intrinsic->runtimeResourceOp);
                     int avlTree = xl6IrRuntimeResourceOpIsAvlTree(
                         intrinsic->runtimeResourceOp);
                     XL6_IrTypeId resourceType = creates
@@ -34242,8 +34265,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                        : specialQueue
                                            ? xl6IrRuntimeSpecialQueuePayloadType(
                                                  module, resourceType)
-                                           : xl6IrRuntimeStackPayloadType(
-                                                 module, resourceType)) ||
+                                           : xl6IrSlotMapResourceOpIs(intrinsic->runtimeResourceOp)
+                                               ? xl6IrTypeGet(&module->types,resourceType)->params[0]
+                                               : xl6IrRuntimeStackPayloadType(module, resourceType)) ||
                                intrinsic->runtimeResourcePayloadAbi !=
                                    xl6IrRuntimeResourcePayloadAbiForOwnerType(
                                        module,resourceType,intrinsic->payloadType) ||
@@ -38202,7 +38226,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     return xl6IrDiag(diags,instructionOrigin,"XLIR element admission is attached to an unrelated instruction");
                 if (instruction->sequenceAdmissionIdentitySet!=XL6_IR_NOMINAL_IDENTITY_SET_INVALID &&
                     (instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
-                     (instruction->runtimeOp!=XL6_IR_RUNTIME_STACK_CREATE &&
+                     (instruction->runtimeOp!=XL6_IR_RUNTIME_SLOT_MAP_CREATE && instruction->runtimeOp!=XL6_IR_RUNTIME_STACK_CREATE &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_LIST_IMPORT_CHAIN &&
@@ -38531,6 +38555,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO ||
                             instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP ||
                             instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH ||
+                            xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp)) ||
                            (instruction->runtimeOp >=
                                 XL6_IR_RUNTIME_STACK_CREATE &&
                             instruction->runtimeOp <=
@@ -38557,6 +38582,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO ||
                         instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP ||
                         instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH ||
+                        xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp)) ||
                         (instruction->runtimeOp >=
                              XL6_IR_RUNTIME_STACK_CREATE &&
                          instruction->runtimeOp <=
@@ -38570,9 +38596,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      instruction->runtimeResourcePayloadAbi <
                          XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID ||
                      instruction->runtimeResourcePayloadAbi >
-                         XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF ||
+                         (xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp))
+                             ? XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY : XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF) ||
                      (instruction->runtimeResourcePayloadAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF &&
-                      !xl6IrConcurrentQueueInstructionType(module,instruction)) )
+                      !xl6IrConcurrentQueueInstructionType(module,instruction) &&
+                      !xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp))) )
                     return xl6IrDiag(diags, NULL,
                         "XLIR instruction has an ambiguous runtime resource payload ABI");
                 if ( ((instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
@@ -42529,6 +42557,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                     "XLIR runtime special queue operation is outside the verified member ABI");
                             }
                         }
+                    } else if(xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp))) {
+                        const XL6_IrInstruction* outcome=j+1<block->instructionCount
+                            ? &module->instructions[block->firstInstruction+j+1] : NULL;
+                        if(!xl6IrSlotMapInstructionCompatible(module,instruction) || !outcome ||
+                            outcome->kind!=XL6_IR_INSTR_ERROR_TEST || outcome->operandCount!=1 ||
+                            outcome->firstOperand>=module->operandCount ||
+                            module->operands[outcome->firstOperand]!=instruction->result)
+                            return xl6IrDiag(diags,NULL,"XLIR SlotMap has no exact typed slot, owner, key or checked outcome contract");
                     } else if ( instruction->runtimeOp >=
                                     XL6_IR_RUNTIME_STACK_CREATE &&
                                 instruction->runtimeOp <=
@@ -44122,6 +44158,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                        XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE ||
                                   source->runtimeOp ==
                                        XL6_IR_RUNTIME_SPECIAL_QUEUE_TRY_PUSH ||
+                                  xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(source->runtimeOp)) ||
                                   (source->runtimeOp >= XL6_IR_RUNTIME_STACK_CREATE &&
                                    source->runtimeOp <= XL6_IR_RUNTIME_STACK_CAPACITY) ||
                                   xl6IrRuntimeAvlOpMayRaise(
@@ -45809,6 +45846,9 @@ static const char* xl6IrRuntimeResourceOpName(
     XL6_IrRuntimeResourceOp operation)
 {
     switch ( operation ) {
+#define XL6_SLOT_MAP_OP(id,name,count,a,b,result,native,failure) case XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_##id: return "slot-map-" #id;
+#include "src/abi/xl6_slot_map_ops.inc"
+#undef XL6_SLOT_MAP_OP
     case XL6_IR_RUNTIME_RESOURCE_OP_THREAD_CREATE: return "thread-create";
     case XL6_IR_RUNTIME_RESOURCE_OP_THREAD_WAIT: return "thread-wait";
     case XL6_IR_RUNTIME_RESOURCE_OP_THREAD_WAIT_TIMEOUT:
@@ -47159,6 +47199,9 @@ static const char* xl6IrClosureRawCallbackAbiName(
 static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
 {
     switch ( runtimeOp ) {
+#define XL6_SLOT_MAP_OP(id,name,count,a,b,result,native,failure) case XL6_IR_RUNTIME_SLOT_MAP_##id: return "slot-map-" #id;
+#include "src/abi/xl6_slot_map_ops.inc"
+#undef XL6_SLOT_MAP_OP
     case XL6_IR_RUNTIME_STRING_DUP: return "string-dup";
     case XL6_IR_RUNTIME_STRING_COPY: return "string-copy";
     case XL6_IR_RUNTIME_NATIVE_VALUE_COPY: return "native-value-copy";

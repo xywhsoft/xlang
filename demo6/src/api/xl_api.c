@@ -4,6 +4,9 @@
 #include "src/runtime/xl6_list.h"
 #include "src/runtime/xl6_set.h"
 #include "src/runtime/xl6_dict.h"
+#include "src/runtime/xl6_slot_map.h"
+#include "src/runtime/xl6_slot_map_key_value.h"
+#include "src/runtime/xl6_array_native_value_admission.h"
 #include "libtcc.h"
 #include "src/api/xl_api_internal.h"
 #include "src/api/xl_api_path.h"
@@ -2598,9 +2601,11 @@ static const XL6_OwnershipAdapterV1* xlModuleResolveOwnership(xrtownershipref re
     }
     if ((adapter = xl6ClosureOwnershipAdapterV1(ref)) != NULL) return adapter;
     if ((adapter = xl6CellOwnershipAdapterV1(ref)) != NULL) return adapter;
+    if((adapter=xl6SlotMapKeyValueOwnershipAdapterV1(ref))!=NULL) return adapter;
     {
         const XL6_SequenceAdmissionOpsV2* policies[]={xl6ArrayFutureAdmissionOpsV2Get(),
-            xl6ArraySemAdmissionOpsV2Get(),xl6ArraySyncAdmissionOpsV2Get(),xl6ArrayThreadAdmissionOpsV2Get()};
+            xl6ArraySemAdmissionOpsV2Get(),xl6ArraySyncAdmissionOpsV2Get(),xl6ArrayThreadAdmissionOpsV2Get(),
+            xl6ArraySlotMapKeyAdmissionOpsV2Get()};
         size_t policyCount=sizeof(policies)/sizeof(*policies);
         if ((adapter=xl6SpscQueueOwnershipAdapterV1(ref,policies,policyCount)) != NULL) return adapter;
         if ((adapter=xl6MpscQueueOwnershipAdapterV1(ref,policies,policyCount)) != NULL) return adapter;
@@ -2609,6 +2614,7 @@ static const XL6_OwnershipAdapterV1* xlModuleResolveOwnership(xrtownershipref re
         if ((adapter=xl6ListOwnershipAdapterV2(ref,policies,policyCount)) != NULL) return adapter;
         if ((adapter=xl6SetOwnershipAdapterV2(ref,policies,policyCount)) != NULL) return adapter;
         if ((adapter=xl6DictOwnershipAdapterV2(ref,policies,policyCount)) != NULL) return adapter;
+        if ((adapter=xl6SlotMapOwnershipAdapterV2(ref,policies,policyCount)) != NULL) return adapter;
     }
     if ((adapter=xl6TreeOwnershipAdapterV1(ref)) != NULL) return adapter;
     if ((adapter=xl6SemOwnershipAdapterV1(ref)) != NULL) return adapter;

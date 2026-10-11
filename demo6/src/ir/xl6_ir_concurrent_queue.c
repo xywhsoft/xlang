@@ -34,6 +34,11 @@ XL6_IrRuntimeResourcePayloadAbi xl6IrRuntimeResourcePayloadAbiForOwnerType(
     const XL6_IrModule* module,XL6_IrTypeId owner,XL6_IrTypeId payload)
 {
     const XL6_IrType* queue=module ? xl6IrTypeGet(&module->types,owner) : NULL;
+    if(queue && queue->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SLOT_MAP) {
+        XL6_IrValueCollectionRecipe recipe={0};
+        return xl6IrSlotMapConstructionRecipe(module,owner,&recipe) && recipe.elementType==payload
+            ? recipe.transferAbi : XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID;
+    }
     if (queue && xl6IrRuntimeResourceAbiIsConcurrentQueue(queue->runtimeResourceAbi)) {
         XL6_IrTypeId schemaId=XL6_IR_TYPE_INVALID;
         if (!xl6IrConcurrentQueueConstructionRecipe(module,owner,NULL,&schemaId,NULL))

@@ -1,0 +1,24 @@
+func main(...) as int
+    auto map = SlotMap::<string>()
+    auto key = map.insert("a\0b")
+    auto other = SlotMap::<string>()
+    int caught = 0
+    try
+        other.get(key)
+    catch RangeError failure
+        caught += 1
+    end
+    assert(map.remove(key))
+    try
+        map.get(key)
+    catch RangeError failure
+        caught += 1
+    end
+    try
+        map.reserve(-1)
+    catch RangeError failure
+        caught += 1
+    end
+    assert(caught == 3 and map.count() == 0 and !map.set(key, "no"))
+    return 0
+end

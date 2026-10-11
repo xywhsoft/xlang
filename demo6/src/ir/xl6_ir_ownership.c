@@ -4,6 +4,8 @@
 XL6_IrOperandOwnership xl6IrRuntimeOperandOwnership(
     XL6_IrRuntimeOp operation, size_t operand)
 {
+    if(xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(operation)))
+        return XL6_IR_OPERAND_OWNERSHIP_OBSERVE;
     switch (operation) {
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE:
     case XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE:
