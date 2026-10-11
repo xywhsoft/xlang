@@ -47,5 +47,23 @@ func main(...) as int
     mutableA[0] = 9
     assert(identities.contains(mutableA) and identities.contains(mutableB))
     assert(identities.remove(mutableA) and identities.length == 1)
+    int observed = 0
+    for key in keys
+        assert(key == other or key == first)
+        observed += 1
+    end
+    for key in sparse
+        assert(key == other)
+        observed += 1
+    end
+    for key in unique
+        assert(key == other)
+        observed += 1
+    end
+    for name, key in byName
+        assert((name == "a\0b" or name == "你") and key == other)
+        observed += 1
+    end
+    assert(observed == 8)
     return 0
 end

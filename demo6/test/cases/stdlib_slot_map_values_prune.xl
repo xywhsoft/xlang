@@ -1,0 +1,11 @@
+func main(...) as int
+    auto map = SlotMap::<string>()
+    map.insert("a\0b")
+    auto values = map.values()
+    assert(map.clear())
+    assert(values.length == 1 and values[0] == "a\0b")
+    for text in values
+        assert(text.length == 3 and text == "a\0b")
+    end
+    return 0
+end

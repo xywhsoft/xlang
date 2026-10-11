@@ -569,8 +569,11 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             const XL6_IrInstruction* owner=instruction->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_CREATE ? instruction :
                 xl6IrCgenValueDefinition(module,module->operands[instruction->firstOperand],NULL);
             XL6_IrValueCollectionRecipe domain={0};
+            bool projection=instruction->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_VALUES;
             if(!owner || !xl6IrSlotMapConstructionRecipe(module,owner->type,&domain) ||
-                !xl6IrCgenVisitSlotProviders(domain.slotAbi,0,visitor,context)) return 0;
+                !xl6IrCgenVisitSlotProviders(domain.slotAbi,projection,visitor,context)) return 0;
+            if(projection && domain.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
+                !visitor(context,"xl6ArrayReferenceConverterV1")) return 0;
             if(instruction->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_CREATE) {
                 XL6_IrValueCollectionRecipe plan={0};
                 if(!xl6IrSlotMapConstructionRecipe(module,instruction->type,&plan) ||
