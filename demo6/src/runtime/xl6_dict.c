@@ -759,6 +759,45 @@ bool xl6DictErasedKeyV1(const xvalue* value,xstrview key,bool remove,bool* outpu
     if (!finish(&scope,owner,ok)) return false;
     *output=result; return true;
 }
+bool xl6DictValueFinishReadV1(xvalue* value,bool success)
+{
+    if (!success) {
+        xerror* primary=xrtTakeError();
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtErrorRef(primary)});
+        xrtSetErrorTake(primary);
+    }
+    xl6_error_scope cleanup={0};
+    if (!xl6ErrorScopeBeginCleanup(&cleanup,!success)) {
+        xerror* primary=xrtTakeError();
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtErrorRef(primary)});
+        xrtClearError(); xrtValueRelease(value); xrtClearError(); xrtSetErrorTake(primary);
+        return false;
+    }
+    xrtValueRelease(value);
+    xl6_error_result outcome=xl6ErrorScopeEnd(&cleanup);
+    if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
+    return success && outcome.ok;
+}
+bool xl6DictErasedVisitKeysV1(const xvalue* value,bool (*visit)(xstrview,void*),void* context)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;
+    DictOwner* owner=erased(value); bool ok=false;
+    if (!visit) xrtSetErrorKind(XERR_ARGUMENT);
+    else if (owner) {
+        xtypeddictiter cursor={0};
+        ok=xrtTypedDictIterBegin(owner->storage,&cursor);
+        if (ok) {
+            xstrview key={0}; const void* item;
+            while ((item=xrtTypedDictIterNext(&cursor,&key))!=NULL) {
+                (void)item;
+                if (!visit(key,context)) { ok=false; break; }
+            }
+            if (xrtGetError() || scope.failed) ok=false;
+            xrtTypedDictIterEnd(&cursor);
+        }
+    }
+    return finish(&scope,owner,ok);
+}
 bool xl6DictErasedCountV1(const xvalue* value,bool capacity,int64_t* output)
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return false;

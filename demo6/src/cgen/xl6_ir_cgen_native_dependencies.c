@@ -375,11 +375,18 @@ static int xl6IrCgenVisitNativeValueDrops(const XL6_IrModule* module,XL6_IrTypeI
     xrtFree(pending); xrtFree(seen); return ok;
 }
 
+static int xl6IrCgenVisitOptionsSymbols(XL6_IrCgenNativeModuleVisitor visitor,void* context)
+{
+    return visitor(context,"xl6DictErasedProbeV1") && visitor(context,"xl6DictErasedReadV1") &&
+        visitor(context,"xl6DictErasedVisitKeysV1") && visitor(context,"xl6DictValueFinishReadV1");
+}
+
 int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diags,
     const XL6_IrCgenOptions* options, XL6_IrCgenNativeModuleVisitor visitor, void* context)
 {
     XL6_IrCgenNeeds needs;
     if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
+    if (needs.structuredOptionsBridgeOperations && !xl6IrCgenVisitOptionsSymbols(visitor,context)) return 0;
     if ((xl6IrCgenHasRawExecutionActivity(module) ||
          (module->abi.hostExecutionAbi == XL6_IR_MODULE_HOST_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1 &&
           (module->abi.entryKind != XL6_IR_MODULE_ENTRY_NONE || (options && options->emitScriptEntry)))) &&
@@ -464,6 +471,10 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     }
     for (size_t i=0;i<module->instructionCount;++i) {
         const XL6_IrInstruction* instruction=&module->instructions[i];
+        const XL6_IrPersistenceInvocationContract* configured=instruction->kind==XL6_IR_INSTR_RUNTIME_CALL
+            ? xl6IrPersistenceInvocationRuntime(instruction->runtimeOp) : NULL;
+        if (configured && !configured->nativePretty && !xl6IrPersistenceInvocationIsWriter(configured) &&
+            xl6IrCgenInstructionIsReachable(module,i) && !xl6IrCgenVisitOptionsSymbols(visitor,context)) return 0;
         /* Includes nested products; unused builtin registrations are not
          * roots. Never recover these dependencies by scanning generated C. */
         if (xl6IrCgenInstructionIsReachable(module,i) &&

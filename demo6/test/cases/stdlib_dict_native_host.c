@@ -387,6 +387,76 @@ static void projectedRead(const xvalue* dict,xstrview key,int64_t expected)
     assert(xl6DictErasedReadV1(dict,key,false,&item,&found) && found && item);
     assert(xrtValueGetInt(item,&number) && number==expected); xrtValueRelease(item);
 }
+typedef struct KeyVisit { const xvalue* source; unsigned mode,count; } KeyVisit;
+static bool visitKey(xstrview key,void* context)
+{
+    KeyVisit* state=context; ++state->count;
+    assert((key.Size==3 && !memcmp(key.Data,"p\0q",3)) || (key.Size==1 && key.Data[0]=='x'));
+    if (state->mode==1) return false;
+    if (state->mode==2) { xrtSetErrorKind(XERR_STATE); return false; }
+    if (state->mode==3) {
+        bool removed=false; assert(!xl6DictErasedKeyV1(state->source,key,true,&removed));
+        return false;
+    }
+    return true;
+}
+static void readKeyBoundaries(void)
+{
+    XL6_DictLayoutV1 tuple=layout(1,xrtTypeInt64());
+    xvalue* dict=projected(&tuple,XL6_VALUE_ADMIT_I64,&scalarCodec),*item=xrtValueInt(7); assert(dict && item);
+    assert(xl6DictErasedSetV1(dict,XRT_STR_LITERAL("p\0q"),item) &&
+        xl6DictErasedSetV1(dict,XRT_STR_LITERAL("x"),item)); xrtValueRelease(item);
+    KeyVisit state={dict,0,0}; assert(xrtMemDebugFailAfter(0));
+    assert(xl6DictErasedVisitKeysV1(dict,visitKey,&state) && state.count==2);
+    assert(!xrtMemDebugFailTriggered()); xrtMemDebugFailClear();
+    for(unsigned mode=1;mode<=3;++mode) {
+        xl6_error_scope parent={0}; assert(xl6ErrorScopeBegin(&parent));
+        state=(KeyVisit){dict,mode,0}; assert(!xl6DictErasedVisitKeysV1(dict,visitKey,&state) && state.count==1);
+        xl6_error_result outcome=xl6ErrorScopeEnd(&parent);
+        assert(!outcome.ok && (mode==1 ? !outcome.error : outcome.error!=NULL));
+        xrtErrorFree(outcome.error); xrtClearError();
+        state=(KeyVisit){dict,0,0}; assert(xl6DictErasedVisitKeysV1(dict,visitKey,&state) && state.count==2);
+    }
+    for(int mode=-1;mode<=1;mode+=2) {
+        xl6_error_scope parent={0}; assert(xl6ErrorScopeBegin(&parent));
+        iteratorFailure=mode; state=(KeyVisit){dict,0,0}; assert(!xl6DictErasedVisitKeysV1(dict,visitKey,&state));
+        xl6_error_result outcome=xl6ErrorScopeEnd(&parent); assert(!outcome.ok && state.count==0);
+        xrtErrorFree(outcome.error); xrtClearError();
+    }
+    xrtValueRelease(dict); puts("[PASS] exact zero-allocation key visit, checked EOF/failure and reentry refusal");
+}
+static unsigned readDrops,readDropMode;
+static void readDrop(ptr raw,ptr user)
+{
+    assert(raw==(ptr)1 && !user); ++readDrops;
+    if (readDropMode==1) xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL});
+    if (readDropMode==2) xrtSetErrorKind(XERR_STATE);
+}
+static void readFinishBoundaries(void)
+{
+    static const xvaluehandleops ops={NULL,readDrop,NULL,NULL};
+    for(unsigned ready=0;ready<2;++ready) for(unsigned mode=0;mode<3;++mode) {
+        ptr raw=(ptr)1; xvalue* value=xrtValueHandleTake(&raw,&ops,NULL); assert(value && !raw);
+        xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
+        if (!ready) xrtSetErrorKind(XERR_VALUE);
+        readDropMode=mode; bool ok=xl6DictValueFinishReadV1(value,ready!=0);
+        xl6_error_result result=xl6ErrorScopeEnd(&scope);
+        assert(ok==(ready && !mode) && result.ok==ok);
+        if (!ready) assert(result.error && xrtErrorKind(result.error)==XERR_VALUE);
+        else if (mode==1) assert(!result.error);
+        else if (mode==2) assert(result.error && xrtErrorKind(result.error)==XERR_STATE);
+        xrtErrorFree(result.error); xrtClearError();
+    }
+    readDropMode=0;
+    for(int mode=-1;mode<=1;mode+=2) {
+        ptr raw=(ptr)1; xvalue* value=xrtValueHandleTake(&raw,&ops,NULL); assert(value);
+        xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
+        cleanupFailure=mode; assert(!xl6DictValueFinishReadV1(value,true));
+        xl6_error_result result=xl6ErrorScopeEnd(&scope); assert(!result.ok);
+        xrtErrorFree(result.error); xrtClearError();
+    }
+    assert(readDrops==8);
+}
 static void projections(void)
 {
     XL6_DictLayoutV1 tuple=layout(1,xrtTypeInt64()); const xstrview key={"a\0b",3};
@@ -583,7 +653,7 @@ int main(int argc,char** argv)
     assert(argc==2); xl6ProductMemoryBegin(SIZE_MAX);
     if (!strcmp(argv[1],"vectors")) {
         keys(); domains(); snapshots(); references(); phased(); boundaries();
-        projections(); projectedSnapshots(); imports(); projectedDomains();
+        projections(); readKeyBoundaries(); readFinishBoundaries(); projectedSnapshots(); imports(); projectedDomains();
         assert(!xrtGetError() && !xl6ProductMemoryEnd()); xl6ProductMemoryVerify();
         puts("[PASS] genuine resident typed Dict vectors"); return 0;
     }

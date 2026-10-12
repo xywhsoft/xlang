@@ -77,6 +77,14 @@ XL6_TEXT_API bool xl6DictErasedSetV1(const xvalue*,xstrview,const xvalue*);
 XL6_TEXT_API bool xl6DictErasedReadV1(const xvalue*,xstrview,bool,xvalue**,bool*);
 XL6_TEXT_API bool xl6DictErasedKeyV1(const xvalue*,xstrview,bool,bool*);
 XL6_TEXT_API bool xl6DictErasedCountV1(const xvalue*,bool,int64_t*);
+/* Internal read-only key visit under the authenticated operation pin. Keys
+ * borrow the real storage only during Visit; no snapshot, value projection or
+ * per-key allocation. Reentry/mutation of this owner is refused. A callback
+ * false is a checked failure even without a diagnostic. Source is borrowed. */
+XL6_TEXT_API bool xl6DictErasedVisitKeysV1(const xvalue*,bool (*)(xstrview,void*),void*);
+/* Consume a projected read owner after scalar/record decoding. Preserve the
+ * first explicit failure, including no diagnostic, across its checked Drop. */
+XL6_TEXT_API bool xl6DictValueFinishReadV1(xvalue*,bool);
 XL6_TEXT_API bool xl6DictErasedClearV1(const xvalue*);
 XL6_TEXT_API bool xl6DictErasedReserveV1(const xvalue*,int64_t);
 XL6_TEXT_API bool xl6DictErasedTrimV1(const xvalue*);

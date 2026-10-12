@@ -2020,8 +2020,8 @@ foreach ( $required in @(
     "persistence-json-write", "persistence-json-read",
     "persistence-xlon-stringify", "persistence-xlon-parse",
     "persistence-xlon-write", "persistence-xlon-read",
-    "XLIR persistence stringify intrinsic has no canonical format identity and class schema ABI",
-    "XLIR persistence write intrinsic has no canonical format identity and class schema ABI",
+    "xl6IrPersistenceLegacyIntrinsicStructure",
+    "XLIR legacy persistence has no exact source-order roles, schema and bool ABI",
     "XLIR persistence parse intrinsic has no canonical format, generic target and class schema ABI"
 ) ) {
     if ( ! $source.Contains($required) ) {
@@ -2029,8 +2029,8 @@ foreach ( $required in @(
     }
 }
 foreach ( $required in @(
-    "xl6IrLowerIntrinsicPersistenceStringify",
-    "xl6IrLowerIntrinsicPersistenceWrite",
+    "xl6IrLowerIntrinsicPersistenceLegacy",
+    "xl6IrLowerPersistenceProject",
     "xl6IrLowerIntrinsicPersistenceParse",
     "xl6IrLowerPersistenceClassDefault",
     "XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY",
@@ -2050,7 +2050,7 @@ foreach ( $required in @(
     }
 }
 foreach ( $required in @(
-    "xl6IrCgenPersistenceStringifyAbi", "xl6IrCgenPersistenceWriteAbi",
+    "xl6IrCgenPersistenceStringifyAbi", "xl6IrPersistenceInvocationInstructionAbi",
     "xl6IrCgenPersistenceParseAbi",
     "xl6IrCgenEmitPersistenceHelpers",
     "XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY",
@@ -2061,8 +2061,9 @@ foreach ( $required in @(
     "XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE",
     "XL6_IR_RUNTIME_PERSISTENCE_XLON_WRITE",
     "XL6_IR_RUNTIME_PERSISTENCE_XLON_READ",
-    "xlir_persist_%s_assign_t", "xlir_persist_%s_parse_t",
-    "xlir_persist_%s_write_t", "xlir_persist_%s_read_t",
+    "xl6IrCgenEmitPersistenceProjectPlans", "xl6IrCgenEmitNativeRestoreHelpers",
+    "xl6IrVerifyPersistenceProjectPlans", "xl6PersistenceRestoreParsedTakeV1",
+    "xl6IrCgenPersistenceProjectSymbol", "xlir_persist_%s_parse_t", "xlir_persist_%s_read_t",
     'stringifyName = "xrtJsonStringify"',
     'parseName = "xrtJsonParse"',
     'writeName = "xrtJsonStringifyFile"',
@@ -2071,11 +2072,9 @@ foreach ( $required in @(
     'parseName = "xrtXlonParse"',
     'writeName = "xrtXlonStringifyFile"',
     'readName = "xrtXlonParseFile"',
-    '"    result = %s(value, pretty, &size);\n"',
-    '"    source = %s(text);\n"',
-    '"    result = %s(cpath, value, pretty);\n"',
-    '"    source = %s(cpath);\n"',
-    'return (xlir_string){result, result != NULL ? size : 0}',
+    'char* text = %s(v%u, v%u, &size)',
+    'bool projection_ok_%u',
+    'XL6_PersistencePlanV1',
     'xlir_string_cstr(path)'
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
@@ -2097,17 +2096,7 @@ foreach ( $forbidden in @(
     }
 }
 foreach ( $required in @(
-    "xlir_persistence_json_abi.xl", "Typed XLIR JSON persistence",
-    "persistence-json-stringify", "persistence-json-parse",
-    "persistence-json-write", "persistence-json-read",
-    "persistence-xlon-stringify", "persistence-xlon-parse",
-    "persistence-xlon-write", "persistence-xlon-read",
-    "derived layout schema", "explicit default-instance reconstruction",
-    "exact stringify/parse/write/read intrinsic and RuntimeOp contracts",
-    "format-parametric schema model", "inherited/nested projection",
-    "byte-for-byte deterministic",
-    "strict file/runtime behavior",
-    "strict-C/runtime gate failed"
+    "check_persistence_project_language.py", "--fixture abi", "PublicDirectory", "--out"
 ) ) {
     if ( ! $persistenceJsonGate.Contains($required) ) {
         throw "XLIR JSON persistence quality gate is incomplete: $required"
@@ -2119,6 +2108,12 @@ if ( ! $languageFrontendSuite.Contains(
 }
 if ( ! $runtimeMatrix.Contains("xlir_persistence_json_abi.xl") ) {
     throw "XLIR JSON persistence fixture is missing from the runtime matrix"
+}
+foreach ($required in @('PersistenceProfile','jsonPersistenceFlags','xlonPersistenceFlags','may-raise',
+    'persistenceRestoreRoots','BoxedProjectionTransactions','xvalue-string-copy','xvalue-i64')) {
+    if (!(Read-Utf8 'tools/xlir_persistence_abi_checks.py').Contains($required)) {
+        throw "Delegated persistence ABI proof lost a typed ownership/schema check: $required"
+    }
 }
 
 # Multiple semantic returns cross every callable boundary as one canonical

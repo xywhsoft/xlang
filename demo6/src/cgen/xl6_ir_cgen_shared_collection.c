@@ -77,10 +77,11 @@ static const char* xl6IrCgenRestoreObjectProviderSymbol(const XL6_IrModule* modu
 static const char* xl6IrCgenPersistenceProjectSymbol(const XL6_IrModule* module,
     const XL6_IrInstruction* instruction)
 {
-    if (instruction && xl6IrValueGraphProvidersForType(module,instruction->payloadType))
-        return "xl6PersistenceProjectNativeV1";
-    return instruction && xl6IrValueCopyProviderAbiForType(module,instruction->payloadType,1)==XL6_IR_VALUE_COPY_ARRAY_WIRE_V1
-        ? "xl6PersistenceProjectV1" : NULL;
+    switch (xl6IrPersistenceProjectProviderAbi(module,instruction)) {
+    case XL6_IR_PERSIST_PROJECT_PROVIDER_WIRE_V1: return "xl6PersistenceProjectV1";
+    case XL6_IR_PERSIST_PROJECT_PROVIDER_NATIVE_GRAPH_V1: return "xl6PersistenceProjectNativeV1";
+    default: return NULL;
+    }
 }
 static int xl6IrCgenEmitValueGraphHeaders(XL6_Output* out,unsigned providers,int projection)
 {

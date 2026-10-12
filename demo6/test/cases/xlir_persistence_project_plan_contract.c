@@ -1,4 +1,5 @@
 #include "src/cgen/xl6_ir_cgen.h"
+#include "src/compile/xl6_artifact_runtime.h"
 #include "src/parser/xl6_parser_api.h"
 #include "src/sem/xl6_sem.h"
 #include "src/stdlib/xl6_stdlib.h"
@@ -61,6 +62,19 @@ static int restoreResidentSymbol(void* context, const char* symbol)
 {
     if (!strcmp(symbol, "xl6ArrayImportTakeV1") ||
         !strcmp(symbol, "xl6PersistenceRestoreParsedTakeV1")) ++*(size_t*)context;
+    return 1;
+}
+static int nativeModule(void* context,const char* module)
+{
+    (void)context;
+    assert(!strncmp(module,"XRT_MODULE_",11) || !strncmp(module,"XRUNTIME_MODULE_",16));
+    return 1;
+}
+static int optionResident(void* context,const char* symbol)
+{
+    static const char* const names[]={"xl6DictErasedProbeV1","xl6DictErasedReadV1",
+        "xl6DictErasedVisitKeysV1","xl6DictValueFinishReadV1"};
+    for(unsigned i=0;i<4;++i) if(!strcmp(symbol,names[i])) *(unsigned*)context|=1u<<i;
     return 1;
 }
 static const XL6_IrInstruction* definition(const XL6_IrModule* ir, XL6_IrValueId value)
@@ -311,21 +325,61 @@ int main(int argc, char** argv)
             if (row->kind == XL6_IR_INSTR_RETURN) ALTER_OP(row, operandCount, 0);
         }
     }
+    assert(xl6IrPersistenceProjectProviderAbi(NULL,NULL)==XL6_IR_PERSIST_PROJECT_PROVIDER_INVALID);
+    unsigned scalarProjects=0;
+    for (size_t i=0;i<ir.instructionCount;++i) {
+        XL6_IrInstruction* item=&ir.instructions[i];
+        if (item->runtimeOp!=XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT &&
+            item->runtimeOp!=XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT) continue;
+        assert(xl6IrPersistenceProjectInstructionAbi(&ir,item));
+        unsigned providers=xl6IrValueGraphProvidersForType(&ir,item->payloadType);
+        assert(xl6IrPersistenceProjectProviderAbi(&ir,item)==(providers ?
+            XL6_IR_PERSIST_PROJECT_PROVIDER_NATIVE_GRAPH_V1 : XL6_IR_PERSIST_PROJECT_PROVIDER_WIRE_V1));
+        const XL6_IrType* payload=xl6IrTypeGet(&ir.types,item->payloadType);
+        if (payload->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR) {
+            assert(!providers && xl6IrPersistenceProjectProviderAbi(&ir,item)==XL6_IR_PERSIST_PROJECT_PROVIDER_WIRE_V1);
+            ++scalarProjects;
+        }
+        size_t saved=item->operandCount; item->operandCount=0;
+        assert(xl6IrPersistenceProjectProviderAbi(&ir,item)==XL6_IR_PERSIST_PROJECT_PROVIDER_INVALID);
+        rejectedOutput(&ir); item->operandCount=saved;
+    }
+    if (!strcmp(argv[3],"abi")) assert(scalarProjects==4);
+    /* Public XRT roots and resident link identities are separate namespaces.
+     * Configured non-Writer operations must select the complete owned options
+     * path; this check never derives a dependency from generated C text. */
+    assert(xl6IrCgenVisitNativeModules(&ir,NULL,NULL,nativeModule,NULL));
+    unsigned optionSymbols=0;
+    assert(xl6IrCgenVisitResidentSymbols(&ir,NULL,NULL,optionResident,&optionSymbols));
+    for(size_t i=0;i<ir.instructionCount;++i) {
+        const XL6_IrInstruction* item=&ir.instructions[i];
+        const XL6_IrPersistenceInvocationContract* row=item->kind==XL6_IR_INSTR_RUNTIME_CALL
+            ? xl6IrPersistenceInvocationRuntime(item->runtimeOp) : NULL;
+        if(row && !row->nativePretty && !xl6IrPersistenceInvocationIsWriter(row)) assert(optionSymbols==15);
+    }
+    if(!strcmp(argv[3],"pretty-prune")) {
+        assert(!optionSymbols);
+        XL6_ArtifactRuntimePlan artifact={0};
+        assert(xl6ArtifactRuntimePlanBuild(&ir,XL6_ARTIFACT_ENTRY_EXECUTABLE_V1,&artifact,NULL));
+        assert(!xl6ArtifactRuntimeSetHas(&artifact.components,XL6_ARTIFACT_DICT_NATIVE));
+    }
     size_t restoreImports = 0, restoreArrays = 0;
     for (size_t i = 0; i < ir.persistenceRestoreFieldCount; ++i)
         if (xl6IrTypeGet(&ir.types, ir.persistenceRestoreFields[i].payloadType)->persistenceRestoreCarrierAbi ==
             XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1) ++restoreArrays;
     assert(xl6IrCgenVisitResidentSymbols(&ir, NULL, NULL, restoreResidentSymbol, &restoreImports));
     if (restoreArrays) assert(restoreImports);
-    assert(xl6IrDynamicFieldsRuntimeBridgeErrorAbi(NULL) == XL6_IR_ERROR_ABI_INVALID &&
-        xl6IrDynamicFieldsRuntimeBridgeErrorAbi("not_a_bridge") == XL6_IR_ERROR_ABI_INVALID);
     for (size_t i = 0; i < ir.callTargetCount; ++i) {
         XL6_IrCallTarget* target = &ir.callTargets[i];
-        if (target->runtimeBridge != XL6_IR_RUNTIME_BRIDGE_DYNAMIC_FIELDS) continue;
+        if (!target->cName || strncmp(target->cName,"xl6_xrt_dynamic_fields_",23)) continue;
+        assert(target->runtimeBridge==XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE);
+        assert(xl6IrRuntimeDirectBridgeTargetMatches(&ir,target));
         XL6_IrErrorAbi saved = target->errorAbi;
-        assert(saved == xl6IrDynamicFieldsRuntimeBridgeErrorAbi(target->cName));
-        assert(target->errorPhysicalAbi == (saved == XL6_IR_ERROR_ABI_MAY_RAISE
-            ? XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR : XL6_IR_CALL_ERROR_PHYSICAL_NONE));
+        assert(target->errorPhysicalAbi == xl6IrRuntimeDirectBridgeErrorPhysicalAbi(target->cName));
+        XL6_IrCallErrorPhysicalAbi physical=target->errorPhysicalAbi;
+        target->errorPhysicalAbi=physical==XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE
+            ? XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR : XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
+        rejectedOutput(&ir); target->errorPhysicalAbi=physical;
         target->errorAbi = saved == XL6_IR_ERROR_ABI_MAY_RAISE
             ? XL6_IR_ERROR_ABI_NO_RAISE : XL6_IR_ERROR_ABI_MAY_RAISE;
         rejectedOutput(&ir); target->errorAbi = saved;

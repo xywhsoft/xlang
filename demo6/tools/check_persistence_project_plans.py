@@ -6,6 +6,7 @@ O0/O2 optimize the contract host; the linked source compiler keeps its build mod
 """
 from __future__ import annotations
 import argparse
+import concurrent.futures
 import hashlib
 import json
 import os
@@ -15,6 +16,7 @@ import shutil
 import subprocess
 import sys
 import traceback
+from xlir_public_build_inputs import verify_public_build
 
 def digest(path: Path) -> str:
     hashed = hashlib.sha256()
@@ -27,9 +29,9 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root', type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument('--test-root', type=Path)
-    parser.add_argument('--public-directory', type=Path)
+    parser.add_argument('--public-directory', type=Path, required=True)
     parser.add_argument('--pending-carriers-only', action='store_true',
-                        help='Supplemental actual-source List/Set/Dict pending-ABI test, not the full matrix')
+                        help='Focused native List/Set/Dict restoration recipe test, not the full matrix')
     parser.add_argument('--cases', help='Comma-separated declared fixture subset; explicitly recorded as focused validation')
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--recheck-evidence', type=Path,
@@ -49,17 +51,20 @@ def main() -> int:
              ('empty', test_root / 'test/cases/stdlib_dynamic_numeric_prune.xl'),
              ('defaults', test_root / 'test/cases/cgen_string_persistence_default_nul.xl')]
     cases.append(('readers', test_root / 'test/cases/stdlib_serialization_read_errors.xl'))
+    cases.append(('abi',test_root/'test/cases/xlir_persistence_json_abi.xl'))
     cases.append(('configured', test_root / 'test/cases/stdlib_persistence_configured_language.xl'))
     cases.append(('sinks', test_root / 'test/cases/stdlib_persistence_sink_language.xl'))
     cases.append(('files', test_root / 'test/cases/stdlib_persistence_file_language.xl'))
     cases.append(('writers', test_root / 'test/cases/stdlib_persistence_writer_language.xl'))
     cases.append(('nominal', test_root / 'test/cases/stdlib_persistence_nominal_language.xl'))
     cases.append(('pretty', test_root / 'test/cases/stdlib_persistence_pretty_language.xl'))
+    cases.append(('pretty-prune',test_root/'test/cases/stdlib_persistence_pretty_prune.xl'))
     cases.append(('restore', test_root / 'test/cases/stdlib_persistence_restore_language.xl'))
     cases.append(('restore_domains', test_root / 'test/cases/stdlib_persistence_restore_domains.xl'))
     cases.append(('restore_construction', test_root / 'test/cases/stdlib_persistence_restore_construction.xl'))
     cases.append(('restore_graph', test_root / 'test/cases/xlir_persistence_restore_graph.xl'))
     cases.append(('restore_isolation', test_root / 'test/cases/xlir_persistence_restore_isolation.xl'))
+    cases.append(('pending_carriers', test_root / 'test/cases/xlir_persistence_restore_pending_carriers.xl'))
     if args.pending_carriers_only:
         cases = [('pending_carriers', test_root / 'test/cases/xlir_persistence_restore_pending_carriers.xl')]
     if args.cases:
@@ -75,31 +80,26 @@ def main() -> int:
     product = root / ('release/xl.dll' if os.name == 'nt' else 'release/libxlc.so')
     flags = ['-std=c11', '-Wall', '-Wextra', '-Werror', '-DXL_STATIC_EMBED',
              '-I.', '-Irelease', '-Irelease/include', '-Ilib/tcc']
-    if args.public_directory:
-        manifest = args.public_directory.resolve() / 'build.json'
-        public = json.loads(manifest.read_text(encoding='utf-8-sig'))
-        if os.name != 'nt':
-            assert public['Complete'] and public['InputsUnchanged'] and public['SourceXrt']
-            product = Path(public['NativeRoot']) / 'release/libxl.so'
-        files.add(manifest)
-        for row in public['Inputs'] + public['Headers'] + public['Objects']:
-            path = Path(row['Path'])
-            if digest(path).lower() != row['Sha256'].lower():
-                parser.error('Stale source compiler input: ' + str(path))
-            files.add(path)
-        flags += ['-I' + str(args.public_directory.resolve() / 'include')]
-        links = [row['Path'] for row in public['Objects'] if Path(row['Path']).name not in
-                 ('xlir_public_source_driver.o', 'xlir_public_source_linux_driver.o')]
-        if os.name == 'nt':
-            links += [str(product), '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
-        else:
-            flags += ['-D_GNU_SOURCE']
-            links += [str(product), '-Wl,-rpath,' + str(product.parent), '-pthread', '-ldl', '-lm']
+    manifest = args.public_directory.resolve() / 'build.json'
+    public,pinned,compared=verify_public_build(root,args.public_directory)
+    files.update(pinned)
+    if os.name != 'nt':
+        assert public['Complete'] and public['InputsUnchanged'] and public['SourceXrt']
+        product = Path(public['NativeRoot']) / 'release/libxl.so'
+    files.add(manifest)
+    for row in public['Inputs'] + public['Headers'] + public['Objects']:
+        path = Path(row['Path'])
+        if digest(path).lower() != row['Sha256'].lower():
+            parser.error('Stale source compiler input: ' + str(path))
+        files.add(path)
+    flags += ['-I' + str(args.public_directory.resolve() / 'include')]
+    links = [row['Path'] for row in public['Objects'] if Path(row['Path']).name not in
+             ('xlir_public_source_driver.o', 'xlir_public_source_linux_driver.o')]
+    if os.name == 'nt':
+        links += [str(product), '-lws2_32', '-liphlpapi', '-lshell32', '-lole32', '-ladvapi32']
     else:
         flags += ['-D_GNU_SOURCE']
-        links = ['-Lrelease', '-lxlc', '-Wl,-rpath,' + str(root / 'release'), '-pthread', '-ldl', '-lm']
-        files.add(root / 'release/libxl.so')
-        files.update(path for path in (root / 'src').rglob('*') if path.suffix in ('.c', '.h', '.inc'))
+        links += [str(product), '-Wl,-rpath,' + str(product.parent), '-pthread', '-ldl', '-lm']
     files.add(product)
     recorded = None
     recorded_rows = {}
@@ -140,6 +140,7 @@ def main() -> int:
     report['NewHostExecution'] = not bool(evidence)
     report['SelectedCases'] = [name for name, _ in cases]
     report['FullFixtureMatrix'] = not args.pending_carriers_only and not args.cases
+    report.update(SourceInputsMatch=True,ProductionFiles=len(compared),Full53Acceptance=False,ShippingArtifact=False)
     out.mkdir(parents=True)
     if os.name == 'nt': shutil.copy2(product, out / 'xl.dll')
     def run(name: str, command: list[str]) -> str:
@@ -184,7 +185,8 @@ def main() -> int:
                 errors.append(str(error))
             if not host_ready:
                 continue
-            for name, fixture in cases:
+            def check_case(entry):
+                name,fixture=entry
                 target = out / (name + '.' + opt + '.json')
                 try:
                     log = run(name + '.' + opt, [str(host), str(fixture), str(target), 'empty' if name in ('defaults', 'readers') else name])
@@ -214,7 +216,9 @@ def main() -> int:
                         assert len(ns) == row['nodeCount'] and len(es) == row['edgeCount']
                         assert ns[0]['type'] == row['type']
                         assert len({(n['type'], n['contextField']) for n in ns}) == len(ns)
-                        assert sorted(n['seed'] for n in ns if n['abi'] == 2 and n['carrierAbi'] == 2) == list(range(row['seedCount']))
+                        native_slots={(2,2),(4,3),(5,4),(6,5)}
+                        assert sorted(n['seed'] for n in ns if (n['abi'],n['carrierAbi']) in native_slots) == list(range(row['seedCount']))
+                        assert all(n['seed']==2**64-1 for n in ns if (n['abi'],n['carrierAbi']) not in native_slots)
                         assert all(e['field'] < len(ir['persistenceRestoreFields']) and e['node'] < len(ns) for e in es)
                         for n in ns:
                             assert bool(n['flags'] & 2) == (n['contextField'] < len(ir['classFields']))
@@ -249,9 +253,7 @@ def main() -> int:
                                     if field['assignAbi'] == 2:
                                         assert child['contextField'] == field['classField'] and child['flags'] & 2 and child['defaultFunction'] == 0
                                     else: assert not child['flags'] & 2
-                            if n['abi'] == 4: assert row['pending'] & 4
-                            if n['abi'] == 5: assert row['pending'] & 8
-                            if n['abi'] == 6: assert row['pending'] & 16
+                            if n['abi'] in (4,5,6): assert not row['pending']
                             if n['abi'] != 3:
                                 assert n['isolationAbi'] == n['cloneFunction'] == n['cloneSymbol'] == 0
                                 assert n['cloneErrorAbi'] == 1  # NO_RAISE
@@ -316,7 +318,7 @@ def main() -> int:
                     if name == 'pending_carriers':
                         assert len(roots) == 2 and len(edges) == 6
                         assert sorted(n['abi'] for n in nodes if n['abi'] in (4, 5, 6)) == [4, 4, 5, 5, 6, 6]
-                        assert all(graph_root['pending'] == (4 | 8 | 16) for graph_root in roots)
+                        assert all(graph_root['pending'] == 0 for graph_root in roots)
                     if name == 'restore_isolation':
                         assert len(roots) == 2 and all(row['pending'] == 0 for row in roots)
                         types = {t['id']: t for t in ir['types']}
@@ -334,10 +336,12 @@ def main() -> int:
                                     'Fields': count[2], 'Sequences': len(ir['persistenceProjectSequences']),
                                     'RejectedMutations': count[3], 'RestoreRoots': len(roots),
                                     'RestoreNodes': len(nodes), 'RestoreEdges': len(edges),
-                                    'GraphRejectedMutations': int(graph[4]), 'IrSha256': digest(target)})
-                    results[-1]['RebuildAllocationFailurePrefixes'] = int(prefixes[1])
+                                    'GraphRejectedMutations': int(graph[4]), 'IrSha256': digest(target),
+                                    'RebuildAllocationFailurePrefixes':int(prefixes[1])})
                 except Exception as error:
                     errors.append(name + '.' + opt + ': ' + traceback.format_exc())
+            with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
+                list(pool.map(check_case,cases))
             for fixture in refusals:
                 try:
                     log = run(fixture.stem + '.' + opt, [str(host), str(fixture), str(out / 'unused.json'), 'reject'])

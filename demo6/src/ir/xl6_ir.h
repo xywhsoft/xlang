@@ -6700,6 +6700,16 @@ int xl6IrPersistenceWireMatches(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrTypeId sourceType, uint32 format);
 int xl6IrPersistenceProjectInstructionAbi(
     const XL6_IrModule*, const XL6_IrInstruction*);
+/* Projection operates on the verified boxed Value, not on the original
+ * semantic payload's native copy ABI. Zero-provider scalar/class graphs are
+ * wire graphs; opaque/native descendants require their explicit providers. */
+typedef enum XL6_IrPersistenceProjectProviderAbi {
+    XL6_IR_PERSIST_PROJECT_PROVIDER_INVALID = 0,
+    XL6_IR_PERSIST_PROJECT_PROVIDER_WIRE_V1,
+    XL6_IR_PERSIST_PROJECT_PROVIDER_NATIVE_GRAPH_V1
+} XL6_IrPersistenceProjectProviderAbi;
+XL6_IrPersistenceProjectProviderAbi xl6IrPersistenceProjectProviderAbi(
+    const XL6_IrModule*, const XL6_IrInstruction*);
 /* One closed descriptor owns public identity, record projection format and
  * physical encoder selection. Backends never rediscover a source overload. */
 typedef enum XL6_IrPersistenceInvocationAction {

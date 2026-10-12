@@ -28,8 +28,12 @@ class PersistenceProfile extends PersistenceBase
     end
 end
 
-extern "expect_i64" func expect(int actual, int expected)
-extern "expect_str" func expectText(string actual, string expected)
+func expect(int actual, int expected)
+    assert actual == expected
+end
+func expectText(string actual, string expected)
+    assert actual == expected
+end
 
 PersistenceProfile profile = PersistenceProfile()
 profile.id = 42
@@ -81,9 +85,11 @@ expectText(restoredXlon.password, "")
 expectText(restoredXlon.note, "")
 expectText(restoredXlon.address.city, "Shanghai")
 
-string jsonPath = "build/test/xlir_persistence_json_abi.json"
-string xlonPath = "build/test/xlir_persistence_json_abi.xlon"
-string scalarPath = "build/test/xlir_persistence_json_scalar.json"
+string root = env.get("XL6_PERSIST_FILE_ROOT") ?? ""
+assert root != ""
+string jsonPath = root + "/profile.json"
+string xlonPath = root + "/profile.xlon"
+string scalarPath = root + "/scalar.json"
 if file.exists(jsonPath) then
     file.delete(jsonPath)
 end

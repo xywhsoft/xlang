@@ -255,12 +255,13 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                             instruction->firstOperand + 1]);
                 } else if (instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
                            instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT) {
-                    if (!xl6IrPersistenceProjectInstructionAbi(module, instruction))
+                    const char* symbol=xl6IrCgenPersistenceProjectSymbol(module,instruction);
+                    if (!symbol)
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                             "XLIR C emitter persistence projection ABI is unresolved");
                     xl6OutputPrintf(out, "    v%u = %s(v%u, &xlir_persist_plan_%u",
                         (unsigned int)instruction->result,
-                        xl6IrCgenPersistenceProjectSymbol(module,instruction),
+                        symbol,
                         (unsigned int)module->operands[instruction->firstOperand],
                         (unsigned int)xl6IrCgenPersistenceRuntimeFormat(instruction->runtimeOp));
                     unsigned providers=xl6IrValueGraphProvidersForType(module,instruction->payloadType);
