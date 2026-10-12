@@ -47,8 +47,10 @@ def main() -> int:
     if args.reads:
         # Only open keyed reads need the genuine List/Dict dispatch closure.
         common[common.index("test/support/array_value_native.c")]="test/support/list_index_native.c"
-        common += ["src/runtime/xl6_array_value_read.c","src/runtime/xl6_value_index_read.c",
+        common += ["src/runtime/xl6_array_value_read.c","src/runtime/xl6_value_index_read.c","src/runtime/xl6_value_named_read.c",
             "src/runtime/xl6_list_value_read.c","src/runtime/xl6_list.c","src/runtime/xl6_dict.c","src/runtime/xl6_array_future_admission.c"]
+        common += ['src/runtime/xl6_value_object_fields.c','src/runtime/xl6_dynamic_fields.c',
+            'src/runtime/xl6_native_handle.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_code_lease.c']
     if args.imports:
         common += ["src/runtime/xl6_array_import.c","src/runtime/xl6_array_input.c"]
     common.append('src/api/xl_foreign_error.c')

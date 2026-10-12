@@ -12658,6 +12658,21 @@ int xl6IrDynamicMethodMatchesCallSite(
           site->memberBindingAbi == XL6_IR_DYNAMIC_MEMBER_BINDING_RETAIN_RECEIVER));
 }
 
+/* Registry absence is an IR fact, not a backend name heuristic. Even an
+ * unsupported/read-only property must retain dispatch and its refusal. */
+int xl6IrDynamicMemberNamedOnly(const XL6_IrModule* module,const XL6_IrDynamicCallSite* site)
+{
+    if(!module || !site || !site->memberName ||
+        (site->kind!=XL6_IR_DYNAMIC_CALL_MEMBER_GET && site->kind!=XL6_IR_DYNAMIC_CALL_MEMBER_SET)) return 0;
+    for(size_t i=0;i<module->dynamicMethodCount;++i) {
+        const XL6_IrDynamicMethod* method=&module->dynamicMethods[i];
+        if(xl6IrDynamicMethodMatchesCallSite(site,method) ||
+            (site->kind==XL6_IR_DYNAMIC_CALL_MEMBER_SET && method->kind==XL6_IR_DYNAMIC_CALL_MEMBER_GET &&
+                method->name && !strcmp(method->name,site->memberName))) return 0;
+    }
+    return 1;
+}
+
 static int xl6IrBuildDynamicMemberWrite(XL6_IrModule* module, XL6_IrNodeId id)
 {
     const XL6_IrNode* node = xl6IrNodeGet(module, id);
@@ -20299,6 +20314,7 @@ int xl6IrInstructionIsFallibleProjection(
 {
     const XL6_IrType* type;
     if (module == NULL || instruction == NULL || instruction->kind != XL6_IR_INSTR_RUNTIME_CALL) return 0;
+    if (instruction->runtimeOp==XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY) return 1;
     if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_STRING_COPY ||
         instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_STRING_COPY ||
         instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_PROJECT_CLOSURE_COPY ||
@@ -20483,6 +20499,7 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeContainerAllocationErrorPhysicalAbi(XL6_I
     case XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY:
     case XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY:
     case XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY:
+    case XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY:
     case XL6_IR_RUNTIME_LIST_READ_VALUE_COPY:
     case XL6_IR_RUNTIME_LIST_READ_VALUE_OR_NULL_COPY:
     case XL6_IR_RUNTIME_LIST_READ_VALUE_REQUIRED_COPY:
@@ -20801,6 +20818,7 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     case XL6_IR_RUNTIME_XVALUE_OBJECT_SET_LITERAL_CLOSURE:
     case XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_SET_LITERAL_NEW:
     case XL6_IR_RUNTIME_XVALUE_OBJECT_SET_LITERAL_NEW:
+    case XL6_IR_RUNTIME_NAMED_SET_LITERAL_TAKE:
         return XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE;
     case XL6_IR_RUNTIME_CLASS_FIELD_INIT_NEW:
     case XL6_IR_RUNTIME_TAGGED_ENUM_PAYLOAD_SET_NEW:
@@ -25938,13 +25956,45 @@ XL6_IrAsyncCaptureAbi xl6IrAsyncParameterCapture(
     }
 }
 
+/* Named erased-record access has a closed ABI, independently checked by IR,
+ * dependency selection and emission. No source spelling resolves a callee or
+ * a borrowed slot; the canonical literal supplies its exact byte span. */
+int xl6IrNamedValueInstructionCompatible(const XL6_IrModule* module,const XL6_IrInstruction* instruction)
+{
+    bool write=instruction && instruction->runtimeOp==XL6_IR_RUNTIME_NAMED_SET_LITERAL_TAKE;
+    if(!module || !instruction || instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+        (!write && instruction->runtimeOp!=XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY) ||
+        instruction->operandCount!=(write ? 2u : 1u) ||
+        instruction->firstOperand>module->operandCount ||
+        instruction->operandCount>module->operandCount-instruction->firstOperand || !module->operands ||
+        !xl6IrIsCanonicalCStringLiteral(instruction->immediateText) ||
+        instruction->targetSymbol || instruction->targetValue || instruction->calleeType ||
+        instruction->payloadType || instruction->runtimeIdentityType ||
+        instruction->immediateData || instruction->immediateSize ||
+        instruction->opcode!=XL6_IR_OPCODE_INVALID) return 0;
+    const XL6_IrInstruction* source=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+    const XL6_IrType* result=xl6IrTypeGet(&module->types,instruction->type);
+    if(!source || !xl6IrTypeIsRuntimeXValue(module,source->type) || !result ||
+        (write ? result->cAbi!=XL6_IR_C_ABI_BOOL : !xl6IrTypeIsDynamicXValueBuiltin(module,instruction->type))) return 0;
+    for(size_t i=0;i<module->dynamicCallSiteCount;++i) {
+        const XL6_IrDynamicCallSite* site=&module->dynamicCallSites[i];
+        if(site->origin!=instruction->origin) continue;
+        if(!xl6IrDynamicMemberNamedOnly(module,site) ||
+            (write!=(site->kind==XL6_IR_DYNAMIC_CALL_MEMBER_SET)) ||
+            !xl6IrCanonicalCStringLiteralMatchesText(instruction->immediateText,site->memberName)) return 0;
+        break;
+    }
+    if(write) {
+        const XL6_IrInstruction* item=xl6IrValueDefinition(module,module->operands[instruction->firstOperand+1],NULL);
+        if(!item || !xl6IrTypeIsRuntimeXValue(module,item->type)) return 0;
+    }
+    return 1;
+}
+
 /* Lowered values make the source owner observable without consulting AST
- * expression shape.  LOAD is a borrowed observation.  AWAIT follows its
- * explicit result ABI: owned/retained payload ABIs materialize a new local
- * owner, while copied payloads are trivial.  Explicit constructors/copies/
- * retains and callable results own their result.  VALUE preserves the
- * ownership of its operand.  Unknown managed producers remain blocked at the
- * XLIR boundary instead of being guessed by Cgen. */
+ * expression shape. LOAD is borrowed; explicit constructors/copies/retains
+ * and callable results own their result. Unknown managed producers remain
+ * blocked at the XLIR boundary instead of being guessed by Cgen. */
 static XL6_IrOwnership xl6IrValueOwnershipDepth(
     const XL6_IrModule* module, XL6_IrValueId value, size_t depth)
 {
@@ -41724,6 +41774,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                  instruction->payloadType )
                             return xl6IrDiag(diags, origin,
                                 "XLIR safe declared-class field lookup has no exact nullable receiver, field identity and borrowed result ABI");
+                    } else if (instruction->runtimeOp==XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY ||
+                               instruction->runtimeOp==XL6_IR_RUNTIME_NAMED_SET_LITERAL_TAKE) {
+                        if(!xl6IrNamedValueInstructionCompatible(module,instruction))
+                            return xl6IrDiag(diags,NULL,"XLIR named record operation has no exact span, owned result and consumed-item ABI");
                     } else if ( instruction->runtimeOp ==
                                     XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL ||
                                 instruction->runtimeOp ==
@@ -47340,6 +47394,8 @@ case XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_OR_NULL: return "xvalue-int-map-at-i64
         return "xvalue-dynamic-field-set-literal-new";
     case XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_SET_STRING_NEW:
         return "xvalue-dynamic-field-set-string-new";
+    case XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY: return "named-read-literal-copy";
+    case XL6_IR_RUNTIME_NAMED_SET_LITERAL_TAKE: return "named-set-literal-take";
     case XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_I64: return "xvalue-object-get-literal-i64";
     case XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_STRING_COPY: return "xvalue-object-get-literal-string-copy";
     case XL6_IR_RUNTIME_XVALUE_OBJECT_SET_LITERAL_CLOSURE: return "xvalue-object-set-literal-closure";

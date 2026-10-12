@@ -279,8 +279,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_list_methods.c", D(R(LIST_NATIVE),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_list_value_iterator.c", D(R(VALUE_ITERATOR),R(LIST_NATIVE)), {NULL}},
     {"src/runtime/xl6_list_value_read.c", D(R(LIST_NATIVE),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER"}},
-    {"src/runtime/xl6_value_index_read.c", D(R(ARRAY_VALUE_READ),R(LIST_VALUE_READ),R(DICT_NATIVE),R(FOREIGN_ERROR),R(VALUE_OBJECT_FIELDS)), {"XRT_MODULE_VALUE_CONTAINER"}},
-    {"src/runtime/xl6_value_index_write.c", D(R(ARRAY_ERASED),R(LIST_NATIVE),R(DICT_NATIVE),R(FOREIGN_ERROR),R(VALUE_OBJECT_FIELDS)), {"XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_value_index_read.c", D(R(ARRAY_VALUE_READ),R(LIST_VALUE_READ),R(VALUE_NAMED_READ),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_value_index_write.c", D(R(ARRAY_ERASED),R(LIST_NATIVE),R(VALUE_NAMED_WRITE),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_value_object_fields.c", D(R(CODE_FINALIZER),R(DYNAMIC_FIELDS),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_value_wire_contains.c", D(R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER","XRT_MODULE_STRING"}},
     {"src/runtime/xl6_list_scalar_read.c", D(R(LIST_NATIVE),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_CONTAINER"}},
@@ -329,7 +329,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_array_extract_native_value.c", D(R(SEQUENCE),R(NATIVE_LEAF_VALUE),R(FOREIGN_ERROR)),
         {"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_slot_map_keys.c", D(R(SLOT_MAP_NATIVE),R(ARRAY_NATIVE_VALUE_ADMISSION)),
-        {NULL}}
+        {NULL}},
+    {"src/runtime/xl6_value_named_read.c",D(R(DICT_NATIVE),R(VALUE_OBJECT_FIELDS),R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_value_named_write.c",D(R(DICT_NATIVE),R(VALUE_OBJECT_FIELDS),R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE_CONTAINER"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

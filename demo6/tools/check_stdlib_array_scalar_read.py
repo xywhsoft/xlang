@@ -44,8 +44,10 @@ def main() -> int:
             'src/runtime/xl6_array_reference_value.c','src/runtime/xl6_string_type.c','src/runtime/xl6_string_value.c']
         # This fixture calls open indexing, not just Array-specific writes.
         sources[sources.index('test/support/collection_count_native.c')]='test/support/list_index_native.c'
-        sources += ['src/runtime/xl6_value_index_write.c','src/runtime/xl6_list.c','src/runtime/xl6_dict.c',
+        sources += ['src/runtime/xl6_value_index_write.c','src/runtime/xl6_value_named_write.c','src/runtime/xl6_list.c','src/runtime/xl6_dict.c',
             'src/runtime/xl6_array_future_admission.c']
+        sources += ['src/runtime/xl6_value_object_fields.c','src/runtime/xl6_dynamic_fields.c',
+            'src/runtime/xl6_native_handle.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_code_lease.c']
     if args.checked_iterator:
         host='test/cases/stdlib_value_iterator_checked_native_host.c'
         provider='src/runtime/xl6_value_iterator.c'

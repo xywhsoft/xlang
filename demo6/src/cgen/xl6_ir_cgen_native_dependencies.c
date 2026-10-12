@@ -386,6 +386,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
 {
     XL6_IrCgenNeeds needs;
     if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
+    if((needs.namedValueOperations&1u) && !visitor(context,"xl6ValueNameReadCopyV1")) return 0;
+    if((needs.namedValueOperations&2u) && !visitor(context,"xl6ValueNameSetTakeV1")) return 0;
     if (needs.structuredOptionsBridgeOperations && !xl6IrCgenVisitOptionsSymbols(visitor,context)) return 0;
     if ((xl6IrCgenHasRawExecutionActivity(module) ||
          (module->abi.hostExecutionAbi == XL6_IR_MODULE_HOST_EXECUTION_RESIDENT_BORROWED_ACTIVITY_V1 &&

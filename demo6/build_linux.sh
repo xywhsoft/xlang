@@ -214,6 +214,8 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_set_key_policy.c"
   "$ROOT/src/runtime/xl6_set.c"
   "$ROOT/src/runtime/xl6_value_index_read.c"
+  "$ROOT/src/runtime/xl6_value_named_read.c"
+  "$ROOT/src/runtime/xl6_value_named_write.c"
   "$ROOT/src/runtime/xl6_value_index_write.c"
   "$ROOT/src/runtime/xl6_value_object_fields.c"
   "$ROOT/src/runtime/xl6_value_wire_contains.c"

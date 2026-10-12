@@ -5041,6 +5041,10 @@ static int xl6IrLowerPrepareElementTargetPlan(
                                         : XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_GET_LITERAL;
         plan->writeOperation = declared ? XL6_IR_RUNTIME_XVALUE_OBJECT_SET_LITERAL_NEW
                                        : XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_SET_LITERAL_NEW;
+        if(!declared && xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module,plan->receiver->storageType)) {
+            plan->borrowOperation=XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY;
+            plan->writeOperation=XL6_IR_RUNTIME_NAMED_SET_LITERAL_TAKE;
+        }
         if (fieldType != NULL && fieldType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR) {
             plan->callableSignature = xl6IrRuntimeCallableFieldSourceSignature(ctx->module, field->type);
             if (plan->callableSignature == XL6_IR_TYPE_INVALID) return 0;
@@ -5231,6 +5235,9 @@ static XL6_IrValueId xl6IrLowerReadElementTargetPlan(
         if (result == XL6_IR_VALUE_INVALID &&
             xl6IrLowerTypeIsRuntimeXValue(ctx->module, plan->lhs->storageType))
             result = xl6IrLowerBorrowElementTargetPlan(ctx, origin, plan);
+        if (result == XL6_IR_VALUE_INVALID || (plan->borrowOperation!=XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY &&
+            !xl6IrLowerObserveProjection(ctx, origin, result)))
+            return XL6_IR_VALUE_INVALID;
         if (ownedResult != NULL) *ownedResult = xl6IrLowerValueHasOwner(ctx, result);
         return result;
     }
@@ -5989,7 +5996,8 @@ static XL6_IrValueId xl6IrLowerBorrowedXValueLiteralRead(
         return XL6_IR_VALUE_INVALID;
     result = xl6IrLowerEmitRuntimeLiteralCall(
         ctx, origin, resultType, operation, key, &value, 1);
-    if (result == XL6_IR_VALUE_INVALID || !xl6IrLowerObserveProjection(ctx, origin, result))
+    if (result == XL6_IR_VALUE_INVALID || (operation!=XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY &&
+        !xl6IrLowerObserveProjection(ctx, origin, result)))
         return XL6_IR_VALUE_INVALID;
     if (result != XL6_IR_VALUE_INVALID &&
         xl6IrLowerTypeIsRuntimeXValue(ctx->module, resultType) &&
@@ -6001,10 +6009,10 @@ static XL6_IrValueId xl6IrLowerBorrowedXValueLiteralRead(
     return result;
 }
 
-/* Dynamic member reads, including safe members, are semantically resolved as
- * literal-key object access before XLIR lowering.  XRT returns NULL for a
- * null/non-object/missing receiver and the selected XLIR operation maps that
- * to the xvalue-null singleton, so safe access needs no Cgen-side branch. */
+/* Dynamic members carry an exact named-record operation. Native Dict reads
+ * own their projection; class field storage remains a separate borrowed ABI.
+ * Missing/null receivers use the canonical absence value, while invalid
+ * record access has an independent checked outcome, not a Cgen-side guess. */
 static XL6_IrValueId xl6IrLowerRuntimeXValueMemberGetLiteral(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrNode* node)
 {
@@ -6033,7 +6041,8 @@ static XL6_IrValueId xl6IrLowerRuntimeXValueMemberGetLiteral(
     }
     receiverValue = xl6IrLowerBorrowedXValueLiteralRead(
         ctx, origin, receiver, receiverValue, node->storageType,
-        XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_GET_LITERAL, keyLiteral);
+        xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module,receiver->storageType)
+            ? XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY : XL6_IR_RUNTIME_XVALUE_DYNAMIC_FIELD_GET_LITERAL, keyLiteral);
     xrtFree(keyLiteral);
     return receiverValue;
 }
@@ -25748,6 +25757,22 @@ static XL6_IrValueId xl6IrLowerDynamicCall(
         }
     }
     if (!xl6IrLowerCommitEvaluationOwnerRange(ctx, id, argumentOwnerFirst, argumentOwnerLast)) goto done;
+    if(xl6IrDynamicMemberNamedOnly(ctx->module,site)) {
+        char* literal=xl6IrCanonicalCStringBytes(site->memberName);
+        if(!literal) goto done;
+        XL6_IrTypeId type=writing ? xl6IrLowerFindTypeByCAbi(ctx->module,XL6_IR_C_ABI_BOOL) : site->resultType;
+        result=xl6IrLowerEmitRuntimeLiteralCall(ctx,id,type,
+            writing ? XL6_IR_RUNTIME_NAMED_SET_LITERAL_TAKE : XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY,
+            literal,operands,site->argumentCount+1);
+        xrtFree(literal);
+        if(!result || !xl6IrLowerObserveRuntimeCallOutcome(ctx,id,result)) { result=0; goto done; }
+        if(writing) {
+            if(!xl6IrLowerEmitCheckedWrite(ctx,id,result,"StateError","named assignment failed")) { result=0; goto done; }
+            result=xl6IrLowerEmitRuntimeLiteralCall(ctx,id,site->resultType,XL6_IR_RUNTIME_XVALUE_NULL,"null",NULL,0);
+        }
+        if(!result || !xl6IrLowerCompleteEvaluationBorrows(ctx,id,evaluationOwnerFirst,&result)) result=0;
+        goto done;
+    }
     result = xl6IrLowerEmitRuntimeCall(ctx, id, site->resultType,
         site->kind == XL6_IR_DYNAMIC_CALL_FUNCTION
             ? XL6_IR_RUNTIME_XVALUE_DYNAMIC_CALL : XL6_IR_RUNTIME_XVALUE_DYNAMIC_METHOD_CALL,

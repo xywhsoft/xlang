@@ -484,9 +484,11 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
             if (module->instructions[i].dynamicCallSite < module->dynamicCallSiteCount &&
                 (module->dynamicCallSites[module->instructions[i].dynamicCallSite].kind == XL6_IR_DYNAMIC_CALL_MEMBER_GET ||
                  module->dynamicCallSites[module->instructions[i].dynamicCallSite].kind == XL6_IR_DYNAMIC_CALL_MEMBER_SET)) {
-                needs->needsXValueDynamicFieldRuntime = 1;
+                needs->namedValueOperations|=module->dynamicCallSites[module->instructions[i].dynamicCallSite].kind==
+                    XL6_IR_DYNAMIC_CALL_MEMBER_GET ? 1u : 2u;
                 if (module->dynamicCallSites[module->instructions[i].dynamicCallSite].memberBindingAbi ==
                         XL6_IR_DYNAMIC_MEMBER_BINDING_RETAIN_RECEIVER) {
+                    needs->needsXValueDynamicFieldRuntime = 1;
                     needs->needsXCallRuntime = 1;
                     needs->needsClosureRuntime = 1;
                     needs->needsBoundMethodRuntime = 1;

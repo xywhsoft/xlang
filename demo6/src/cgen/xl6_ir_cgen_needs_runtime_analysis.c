@@ -10,6 +10,13 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             needs->needsCallableArrayFrameProducer=1;
     for ( i = 0; i < module->instructionCount; ++i ) {
         if ( !xl6IrCgenInstructionIsReachable(module, i) ) continue;
+        if(module->instructions[i].runtimeOp==XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY ||
+            module->instructions[i].runtimeOp==XL6_IR_RUNTIME_NAMED_SET_LITERAL_TAKE) {
+            if(!xl6IrNamedValueInstructionCompatible(module,&module->instructions[i]))
+                return xl6IrCgenDiag(diags,module,module->instructions[i].origin,"XLIR named record implementation has an invalid owned contract");
+            needs->namedValueOperations|=module->instructions[i].runtimeOp==XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY ? 1u : 2u;
+            needs->needsXValueRuntime=1; needs->needsStringViews=1; needs->needsForeignErrorRuntime=1;
+        }
         if (xl6IrCgenInstructionUsesListMethods(module,&module->instructions[i]))
             needs->needsListMethodsRuntime=1;
         if (xl6IrCgenSetMethodSymbol(module,&module->instructions[i])) needs->needsSetMethodsRuntime=1;
