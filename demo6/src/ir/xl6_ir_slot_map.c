@@ -59,6 +59,34 @@ int xl6IrSlotMapConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId id,XL
         .codecAbi=schema->sequenceLayout.codecAbi,.transferAbi=schema->sequenceLayout.transferAbi};
     return 1;
 }
+int xl6IrSlotMapLoopKeyType(const XL6_IrModule* m,XL6_IrTypeId id)
+{
+    const XL6_IrType* t=m ? xl6IrTypeGet(&m->types,id) : NULL;
+    const XL6_IrNativeValuePlan* p=xl6IrNativeValuePlanForType(t);
+    return p && p->abi==XL6_IR_NATIVE_VALUE_SLOT_MAP_KEY_V1;
+}
+int xl6IrSlotMapLoopRecipe(const XL6_IrModule* m,XL6_IrTypeId owner,
+    XL6_IrValueCollectionRecipe* value,XL6_IrTypeId* key,XL6_IrTypeId* keyArray)
+{
+    XL6_IrValueCollectionRecipe recipe={0};
+    XL6_IrTypeId schema=XL6_IR_TYPE_INVALID,element=XL6_IR_TYPE_INVALID;
+    if(!xl6IrSlotMapConstructionRecipe(m,owner,&recipe)) return 0;
+    const XL6_IrType* source=xl6IrTypeGet(&m->types,owner);
+    for(size_t i=0;i<m->types.count;++i) {
+        const XL6_IrType* t=&m->types.items[i];
+        if(t->collectionAbi!=XL6_IR_COLLECTION_ARRAY || t->paramCount!=1 || !t->params ||
+            !xl6IrSlotMapLoopKeyType(m,t->params[0])) continue;
+        if(schema || !xl6IrSequenceConstructionRecipe(m,(XL6_IrTypeId)(i+1),XL6_IR_SEQUENCE_ROLE_ARRAY,NULL) ||
+            t->typeValueId==source->typeValueId || t->sequenceLayout.codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT ||
+            t->sequenceLayout.transferAbi!=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY) return 0;
+        schema=(XL6_IrTypeId)(i+1); element=t->params[0];
+    }
+    if(!schema) return 0;
+    if(value) *value=recipe;
+    if(key) *key=element;
+    if(keyArray) *keyArray=schema;
+    return 1;
+}
 static int xl6IrSlotMapRoleMatches(const XL6_IrModule* m,XL6_IrSlotMapRole role,XL6_IrTypeId id,
     XL6_IrTypeId owner,XL6_IrTypeId item)
 {

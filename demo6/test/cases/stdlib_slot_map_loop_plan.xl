@@ -1,0 +1,99 @@
+class LoopPlanItem
+    int value
+end
+class LoopPlanHolder
+    SlotMap<int> slots = SlotMap::<int>()
+end
+func temporarySlots() as SlotMap<int>
+    auto slots = SlotMap::<int>()
+    slots.insert(9)
+    return slots
+end
+func inspect(SlotMap<int> slots) as SlotMapKey
+    for key in slots
+        try
+            return key
+        finally
+            assert(slots.contains(key))
+        end
+    end
+    return slots.insert(0)
+end
+func main(...) as int
+    auto slots = SlotMap::<int>()
+    auto original = slots.insert(11)
+    for key in slots
+        assert(slots.contains(key) and key == original)
+    end
+    for key, value in slots
+        assert(slots.contains(key) and value == 11)
+        if value == 11 then continue end
+        break
+    end
+    for _ in slots
+        assert(slots.count() == 1)
+    end
+    for _, value in slots
+        assert(value == 11)
+    end
+    for key, _ in slots
+        assert(slots.contains(key))
+    end
+    for _, _ in slots
+        assert(slots.count() == 1)
+    end
+    for key, value in temporarySlots()
+        assert(key == key and value == 9)
+    end
+    LoopPlanHolder holder = LoopPlanHolder()
+    holder.slots.insert(19)
+    for key, value in holder.slots
+        assert(holder.slots.contains(key) and value == 19)
+    end
+    auto texts = SlotMap::<string>()
+    texts.insert("你\0好")
+    for key, text in texts
+        assert(text == "你\0好" and texts.contains(key))
+    end
+    auto binaries = SlotMap::<bytes>()
+    binaries.insert(b"a\0b")
+    for key, data in binaries
+        assert(data == b"a\0b" and binaries.contains(key))
+    end
+    auto optionalBytes = SlotMap::<bytes?>()
+    optionalBytes.insert(null)
+    for key, data in optionalBytes
+        assert(data == null and optionalBytes.contains(key))
+    end
+    auto optional = SlotMap::<int?>()
+    optional.insert(null)
+    for key, value in optional
+        assert(value == null and optional.contains(key))
+    end
+    auto keyValues = SlotMap::<SlotMapKey>()
+    keyValues.insert(original)
+    for key, value in keyValues
+        assert(keyValues.contains(key) and value == original)
+    end
+    auto objects = SlotMap::<LoopPlanItem>()
+    objects.insert(LoopPlanItem())
+    for key, value in objects
+        assert(objects.contains(key) and value.value == 0)
+    end
+    auto nested = SlotMap::<array<int>>()
+    nested.insert([1])
+    for key, value in nested
+        assert(nested.contains(key) and value[0] == 1)
+    end
+    auto narrow = SlotMap::<int32>()
+    narrow.insert(17)
+    for key, value in narrow
+        assert(narrow.contains(key) and value == 17)
+    end
+    auto unicode = SlotMap::<char>()
+    unicode.insert('你')
+    for key, value in unicode
+        assert(unicode.contains(key) and value == '你')
+    end
+    return 0
+end

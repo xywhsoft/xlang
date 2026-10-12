@@ -41,7 +41,8 @@ static XL6_IrErrorAbi xl6IrNodeConstructionErrorAbi(const XL6_IrModule* module, 
             targets->childCount != 0) {
             int key = loop->loopKeyAbi != XL6_IR_LOOP_KEY_NONE && module->children[targets->firstChild] == id;
             if ((key && (loop->loopKeyAbi == XL6_IR_LOOP_KEY_STRING_COPY ||
-                         loop->loopKeyAbi == XL6_IR_LOOP_KEY_DYNAMIC_XVALUE)) ||
+                         loop->loopKeyAbi == XL6_IR_LOOP_KEY_DYNAMIC_XVALUE ||
+                         loop->loopKeyAbi == XL6_IR_LOOP_KEY_NATIVE_VALUE_COPY)) ||
                 (!key && (loop->loopItemAbi == XL6_IR_LOOP_ITEM_STRING_COPY ||
                           loop->loopItemAbi == XL6_IR_LOOP_ITEM_DYNAMIC_LOGICAL_XVALUE ||
                           loop->loopItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_STRING_COPY ||
@@ -17670,6 +17671,19 @@ XL6_IrLoopSourceAcquisitionAbi xl6IrLoopSourceAcquisition(
         return XL6_IR_LOOP_SOURCE_NAMED_BORROW;
     if (xl6IrLoopSourceIsOwnedTemporary(source)) return XL6_IR_LOOP_SOURCE_OWNED_TEMPORARY;
     type=module ? xl6IrTypeGet(&module->types,source->storageType) : NULL;
+    /* Semantic COPY on an ordinary managed call result is not a borrow:
+     * the exact CALL result has an independent owner at the CFG boundary.
+     * Admit this source only from its closed native recipe and CallSite. */
+    if (type && source->kind==XL6_IR_NODE_CALL && source->ownershipPlanned &&
+        source->ownership==XL6_IR_OWNERSHIP_COPY && source->valueCategory==XL6_IR_VALUE_RVALUE &&
+        xl6IrSlotMapConstructionRecipe(module,source->storageType,NULL)) {
+        const XL6_IrCallSite* call=NULL;
+        for (size_t i=0;i<module->callSiteCount;++i)
+            if (xl6IrNodeGet(module,module->callSites[i].origin)==source) { call=&module->callSites[i]; break; }
+        if (call && call->callKind==XL6_SEM_CALL_DIRECT && call->targetSymbol &&
+            call->resultType==source->storageType && source->targetSymbol==call->targetSymbol)
+            return XL6_IR_LOOP_SOURCE_OWNED_TEMPORARY;
+    }
     /* A verified read expression may be an lvalue without stable named storage.
      * Its canonical ownership/physical representation, not member spelling,
      * decides acquisition. Lowering retains the actual SSA result if borrowed,
@@ -17679,7 +17693,8 @@ XL6_IrLoopSourceAcquisitionAbi xl6IrLoopSourceAcquisition(
         source->ownership==XL6_IR_OWNERSHIP_BORROW &&
         source->valueCategory==XL6_IR_VALUE_LVALUE &&
         (xl6IrTypeIsDynamicXValueBuiltin(module,source->storageType) ||
-         (type->collectionAbi>=XL6_IR_COLLECTION_ARRAY && type->collectionAbi<=XL6_IR_COLLECTION_DICT)))
+         (type->collectionAbi>=XL6_IR_COLLECTION_ARRAY && type->collectionAbi<=XL6_IR_COLLECTION_DICT) ||
+         xl6IrSlotMapConstructionRecipe(module,source->storageType,NULL)))
         return XL6_IR_LOOP_SOURCE_OBSERVED_COLLECTION;
     return XL6_IR_LOOP_SOURCE_NONE;
 }
@@ -17997,6 +18012,7 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
     int dynamicIterator;
     int discardKey;
     int discardItem;
+    int slotMapIterator;
 
     if ( errorAbi != NULL ) *errorAbi = XL6_IR_ERROR_ABI_INVALID;
     if ( keyAbi != NULL ) *keyAbi = XL6_IR_LOOP_KEY_NONE;
@@ -18088,7 +18104,8 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
     stableNamedIterator = iterator->kind == XL6_IR_NODE_NAME &&
         iterator->symbol != 0 && iterator->targetSymbol == iterator->symbol &&
         iterator->valueCategory != XL6_IR_VALUE_RVALUE;
-    ownedTemporaryIterator = xl6IrLoopSourceIsOwnedTemporary(iterator);
+    ownedTemporaryIterator = xl6IrLoopSourceAcquisition(module,iterator)==
+        XL6_IR_LOOP_SOURCE_OWNED_TEMPORARY;
     observedCollectionIterator=xl6IrLoopSourceAcquisition(module,iterator)==
         XL6_IR_LOOP_SOURCE_OBSERVED_COLLECTION;
     if ( (stableNamedIterator || ownedTemporaryIterator) && iteratorType != NULL &&
@@ -18327,10 +18344,14 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
             ? XL6_IR_LOOP_ABI_XVALUE_ITERATOR_VALUE
             : XL6_IR_LOOP_ABI_XVALUE_ITERATOR_KEY_VALUE;
     }
+    slotMapIterator = iteratorType->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_SLOT_MAP;
+    if ( slotMapIterator &&
+         !xl6IrSlotMapLoopRecipe(module,iterator->storageType,NULL,NULL,NULL) )
+        return XL6_IR_LOOP_ABI_NONE;
     if (
          (iteratorType->kind != XL6_IR_TYPE_BUILTIN &&
           iteratorType->kind != XL6_IR_TYPE_GENERIC_INSTANCE) ||
-          (iteratorType->collectionAbi != XL6_IR_COLLECTION_ARRAY &&
+          (!slotMapIterator && iteratorType->collectionAbi != XL6_IR_COLLECTION_ARRAY &&
            iteratorType->collectionAbi != XL6_IR_COLLECTION_LIST &&
            iteratorType->collectionAbi != XL6_IR_COLLECTION_SET &&
          iteratorType->collectionAbi != XL6_IR_COLLECTION_DICT) ||
@@ -18377,6 +18398,18 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
         if ( itemType->kind == XL6_IR_TYPE_NULLABLE &&
              resolvedItemAbi != XL6_IR_LOOP_ITEM_NULLABLE_STRING_COPY )
             return XL6_IR_LOOP_ABI_NONE;
+        break;
+    case XL6_IR_C_ABI_MANAGED_BYTES:
+        if (!slotMapIterator || itemType->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
+            itemType->nullAbi!=XL6_IR_NULL_ABI_XVALUE_SENTINEL)
+            return XL6_IR_LOOP_ABI_NONE;
+        if (itemType->kind==XL6_IR_TYPE_BUILTIN && !itemType->paramCount)
+            resolvedItemAbi=XL6_IR_LOOP_ITEM_BYTES_COPY;
+        else if (itemType->kind==XL6_IR_TYPE_NULLABLE && itemType->paramCount==1 && itemType->params &&
+            xl6IrTypeGet(&module->types,itemType->params[0]) &&
+            xl6IrTypeGet(&module->types,itemType->params[0])->cAbi==XL6_IR_C_ABI_MANAGED_BYTES)
+            resolvedItemAbi=XL6_IR_LOOP_ITEM_NULLABLE_BYTES_COPY;
+        else return XL6_IR_LOOP_ABI_NONE;
         break;
     case XL6_IR_C_ABI_CLOSURE_PTR:
         if ( itemType->kind == XL6_IR_TYPE_FUNCTION &&
@@ -18443,9 +18476,9 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
             onlyTarget->kind == XL6_IR_NODE_NAME &&
             onlyTarget->symbol == 0 && onlyTarget->targetSymbol == 0 &&
             onlyTarget->text != NULL && strcmp(onlyTarget->text, "_") == 0;
-        discardKey = iteratorType->collectionAbi == XL6_IR_COLLECTION_DICT &&
+        discardKey = (slotMapIterator || iteratorType->collectionAbi == XL6_IR_COLLECTION_DICT) &&
             discardOnly;
-        discardItem = iteratorType->collectionAbi != XL6_IR_COLLECTION_DICT &&
+        discardItem = !slotMapIterator && iteratorType->collectionAbi != XL6_IR_COLLECTION_DICT &&
             discardOnly;
     }
     for ( i = 0; i < targets->childCount; ++i ) {
@@ -18459,7 +18492,11 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
              (!discardedTarget && target->symbol == 0) ||
              (!discardedTarget && targetType == NULL) ||
              (!discardedTarget &&
-              (iteratorType->collectionAbi == XL6_IR_COLLECTION_DICT
+              (slotMapIterator
+                  ? (i == 0
+                         ? !xl6IrSlotMapLoopKeyType(module,target->storageType)
+                         : target->storageType != itemTypeId)
+                  : iteratorType->collectionAbi == XL6_IR_COLLECTION_DICT
                   ? (i == 0
                          ? (targetType->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
                             targetType->ownershipAbi !=
@@ -18484,7 +18521,9 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
         return XL6_IR_LOOP_ABI_NONE;
     if ( keyAbi != NULL ) *keyAbi = discardKey
         ? XL6_IR_LOOP_KEY_DISCARD
-        : iteratorType->collectionAbi == XL6_IR_COLLECTION_DICT
+        : slotMapIterator
+            ? XL6_IR_LOOP_KEY_NATIVE_VALUE_COPY
+            : iteratorType->collectionAbi == XL6_IR_COLLECTION_DICT
             ? XL6_IR_LOOP_KEY_STRING_COPY
             : targets->childCount == 2
               ? (iteratorType->collectionAbi == XL6_IR_COLLECTION_ARRAY
@@ -18492,14 +18531,14 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
             : XL6_IR_LOOP_KEY_INTEGER_I64)
               : XL6_IR_LOOP_KEY_NONE;
     if ( itemAbi != NULL ) *itemAbi =
-        iteratorType->collectionAbi == XL6_IR_COLLECTION_DICT &&
+        (slotMapIterator || iteratorType->collectionAbi == XL6_IR_COLLECTION_DICT) &&
         targets->childCount == 1
             ? XL6_IR_LOOP_ITEM_NONE
             : discardItem ? XL6_IR_LOOP_ITEM_DISCARD : resolvedItemAbi;
     if ( discardItem && iteratorType->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
          resolvedItemAbi == XL6_IR_LOOP_ITEM_I64 )
         return XL6_IR_LOOP_ABI_NONE;
-    if ( observedCollectionIterator || (iteratorType->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
+    if ( slotMapIterator || observedCollectionIterator || (iteratorType->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
           resolvedItemAbi != XL6_IR_LOOP_ITEM_I64) ||
          iteratorType->collectionAbi == XL6_IR_COLLECTION_LIST ||
          iteratorType->collectionAbi == XL6_IR_COLLECTION_SET ||
@@ -18523,6 +18562,10 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
         if ( resourceAbi != NULL )
             *resourceAbi = XL6_IR_LOOP_RESOURCE_XVALUE_ITERATOR_DESTROY;
         if ( resourceType != NULL ) *resourceType = iteratorStateType;
+        if ( slotMapIterator )
+            return targets->childCount == 1
+                ? XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY
+                : XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY_VALUE;
         if ( iteratorType->collectionAbi == XL6_IR_COLLECTION_DICT )
             return targets->childCount == 1
                 ? XL6_IR_LOOP_ABI_XVALUE_ITERATOR_KEY
@@ -18552,6 +18595,7 @@ static XL6_IrLoopTargetLifetimeAbi xl6IrLoopKeyLifetimeAbi(
         return XL6_IR_LOOP_TARGET_LIFETIME_TRIVIAL_REPLACE;
     case XL6_IR_LOOP_KEY_STRING_COPY:
     case XL6_IR_LOOP_KEY_DYNAMIC_XVALUE:
+    case XL6_IR_LOOP_KEY_NATIVE_VALUE_COPY:
         return XL6_IR_LOOP_TARGET_LIFETIME_OWNED_ITERATION_RELEASE;
     default:
         return XL6_IR_LOOP_TARGET_LIFETIME_NONE;
@@ -18586,6 +18630,8 @@ static XL6_IrLoopTargetLifetimeAbi xl6IrLoopItemLifetimeAbi(
     case XL6_IR_LOOP_ITEM_PROTOCOL_PRODUCT_TAKE:
     case XL6_IR_LOOP_ITEM_GENERATOR_TAKE:
     case XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY:
+    case XL6_IR_LOOP_ITEM_BYTES_COPY:
+    case XL6_IR_LOOP_ITEM_NULLABLE_BYTES_COPY:
         return XL6_IR_LOOP_TARGET_LIFETIME_OWNED_ITERATION_RELEASE;
     default:
         return XL6_IR_LOOP_TARGET_LIFETIME_NONE;
@@ -18620,6 +18666,14 @@ int xl6IrRefreshLoopAbis(XL6_IrModule* module)
             module, module->children[loop->firstChild + 1]);
         collection = iterator != NULL
             ? xl6IrTypeGet(&module->types, iterator->storageType) : NULL;
+        if (collection && collection->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SLOT_MAP) {
+            const XL6_IrNode* targets=xl6IrNodeGet(module,module->children[loop->firstChild]);
+            const XL6_IrNode* key=targets && targets->childCount
+                ? xl6IrNodeGet(module,module->children[targets->firstChild]) : NULL;
+            if (!key || !xl6IrSlotMapLoopKeyType(module,key->storageType) ||
+                !xl6IrTypeInternArray(&module->types,key->storageType)) return 0;
+            collection=xl6IrTypeGet(&module->types,iterator->storageType); /* Intern may grow arena. */
+        }
         if ( collection != NULL && collection->cAbi ==
                  XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
              collection->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
@@ -18635,7 +18689,8 @@ int xl6IrRefreshLoopAbis(XL6_IrModule* module)
                        XL6_IR_C_ABI_I64)))) ||
                 collection->collectionAbi == XL6_IR_COLLECTION_LIST ||
                 collection->collectionAbi == XL6_IR_COLLECTION_SET ||
-                collection->collectionAbi == XL6_IR_COLLECTION_DICT))) &&
+                collection->collectionAbi == XL6_IR_COLLECTION_DICT ||
+                xl6IrSlotMapLoopRecipe(module,iterator->storageType,NULL,NULL,NULL)))) &&
              xl6IrTypeInternValueIterator(module, iterator->storageType) ==
                  XL6_IR_TYPE_INVALID ) return 0;
     }
@@ -19785,6 +19840,7 @@ XL6_IrTypeId xl6IrTypeInternValueIterator(
     if ( collection == NULL ||
          collection->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
          (collection->collectionAbi == XL6_IR_COLLECTION_NONE &&
+          !xl6IrSlotMapLoopRecipe(module,collectionType,NULL,NULL,NULL) &&
           !xl6IrTypeIsDynamicXValueBuiltin(module, collectionType)) )
         return XL6_IR_TYPE_INVALID;
     for ( i = 0; i < module->types.count; ++i ) {
@@ -21592,6 +21648,12 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
                  type->returnCount != 0 || collection == NULL ||
                  collection->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
                  (collection->collectionAbi == XL6_IR_COLLECTION_NONE &&
+                  !(collection->kind==XL6_IR_TYPE_GENERIC_INSTANCE &&
+                    collection->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SLOT_MAP &&
+                    collection->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
+                    collection->nullAbi==XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
+                    collection->paramCount==1 && collection->params &&
+                    collection->collectionValueSchemaType && collection->typeValueId) &&
                   !(collection->kind == XL6_IR_TYPE_BUILTIN &&
                     collection->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
                     collection->paramCount == 0 &&
@@ -33433,6 +33495,12 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
     if ( !xl6IrVerifyOwnedReadResults(module, diags) ) return 0;
     for ( i = 0; i < module->types.count; ++i ) {
         const XL6_IrType* type = &module->types.items[i];
+        if (type->kind==XL6_IR_TYPE_VALUE_ITERATOR && type->paramCount==1 && type->params) {
+            const XL6_IrType* source=xl6IrTypeGet(&module->types,type->params[0]);
+            if (source && source->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SLOT_MAP &&
+                !xl6IrSlotMapLoopRecipe(module,type->params[0],NULL,NULL,NULL))
+                return xl6IrDiag(diags,NULL,"XLIR SlotMap cursor has no exact paired native snapshot recipe");
+        }
         if ( type->nominalSymbol != XL6_SYMBOL_ID_INVALID ) {
             const XL6_IrNode* declaration = xl6IrSymbolNodeGet(module, type->nominalSymbol);
             int matches = declaration != NULL && declaration->symbol == type->nominalSymbol &&
@@ -37776,14 +37844,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                  "typed XLIR index mutation has no exact canonical write and failure ABI");
          }
         if ( node->loopAbi < XL6_IR_LOOP_ABI_NONE ||
-             node->loopAbi > XL6_IR_LOOP_ABI_BYTES_INDEX_VALUE ||
+             node->loopAbi > XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY_VALUE ||
              node->loopAbi != expectedLoopAbi ||
              node->loopErrorAbi != expectedLoopErrorAbi ||
              node->loopKeyAbi < XL6_IR_LOOP_KEY_NONE ||
-             node->loopKeyAbi > XL6_IR_LOOP_KEY_DISCARD ||
+             node->loopKeyAbi > XL6_IR_LOOP_KEY_NATIVE_VALUE_COPY ||
              node->loopKeyAbi != expectedLoopKeyAbi ||
              node->loopItemAbi < XL6_IR_LOOP_ITEM_NONE ||
-             node->loopItemAbi > XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY ||
+             node->loopItemAbi > XL6_IR_LOOP_ITEM_NULLABLE_BYTES_COPY ||
              node->loopItemAbi != expectedLoopItemAbi ||
              node->loopKeyLifetimeAbi < XL6_IR_LOOP_TARGET_LIFETIME_NONE ||
              node->loopKeyLifetimeAbi >
@@ -46779,6 +46847,10 @@ static const char* xl6IrLoopAbiName(XL6_IrLoopAbi abi)
         return "bytes-value";
     case XL6_IR_LOOP_ABI_BYTES_INDEX_VALUE:
         return "bytes-index-value";
+    case XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY:
+        return "slot-map-iterator-key";
+    case XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY_VALUE:
+        return "slot-map-iterator-key-value";
     default: return "invalid";
     }
 }
@@ -46792,6 +46864,7 @@ static const char* xl6IrLoopKeyAbiName(XL6_IrLoopKeyAbi abi)
     case XL6_IR_LOOP_KEY_STRING_COPY: return "string-copy";
     case XL6_IR_LOOP_KEY_DYNAMIC_XVALUE: return "dynamic-xvalue";
     case XL6_IR_LOOP_KEY_DISCARD: return "discard";
+    case XL6_IR_LOOP_KEY_NATIVE_VALUE_COPY: return "native-value-copy";
     default: return "invalid";
     }
 }
@@ -46828,6 +46901,8 @@ static const char* xl6IrLoopItemAbiName(XL6_IrLoopItemAbi abi)
     case XL6_IR_LOOP_ITEM_CHAR: return "char";
     case XL6_IR_LOOP_ITEM_U8: return "u8";
     case XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY: return "native-value-copy";
+    case XL6_IR_LOOP_ITEM_BYTES_COPY: return "bytes-copy";
+    case XL6_IR_LOOP_ITEM_NULLABLE_BYTES_COPY: return "nullable-bytes-copy";
     default: return "invalid";
     }
 }

@@ -18970,6 +18970,16 @@ static XL6_AstNode* xl6SemCloneForTargetType(XL6_SemContext* ctx, XL6_AstNode* i
         return xl6SemNewForTargetSimpleType("uint8", iterable);
     }
 
+    if ( xl6TextEquals(typeName, "SlotMap") ) {
+        if ( targetCount == 1 || targetIndex == 0 ) {
+            xl6AstFree(iterableType);
+            return xl6SemNewForTargetSimpleType("SlotMapKey", iterable);
+        }
+        itemType = xl6SemCloneSingleGenericArgType(ctx, concreteType, "SlotMap");
+        xl6AstFree(iterableType);
+        return itemType; /* No erased-var fallback for a malformed SlotMap<T>. */
+    }
+
     if ( xl6SemIsDictTypeName(typeName) ) {
         if ( targetCount == 1 || targetIndex == 0 ) {
             xl6AstFree(iterableType);
