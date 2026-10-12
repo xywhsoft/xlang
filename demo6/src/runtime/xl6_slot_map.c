@@ -408,63 +408,95 @@ static int64_t measure(const xvalue* value,const XL6_SlotMapLayoutV1* layout,boo
 int64_t xl6SlotMapCountV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout) { return measure(value,layout,false); }
 int64_t xl6SlotMapCapacityV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout) { return measure(value,layout,true); }
 
-static xvalue* snapshot(SlotMapOwner* owner,bool keys,XL6_SequenceLayoutV1 target,
-    XL6_SequenceAdmissionV3* policy,const xvalueconverter* converter)
+enum { SNAPSHOT_KEYS=1, SNAPSHOT_VALUES=2 };
+/* One shared supplier traversal for unary and paired capture. The two lanes
+ * are private typed owners, never parallel wire values or a second slot map.
+ * No lane or partial row is published until both lanes and cleanup succeed. */
+static bool snapshot(SlotMapOwner* owner,unsigned lanes,const XL6_SequenceLayoutV1 target[2],
+    XL6_SequenceAdmissionV3 policy[2],const xvalueconverter* const converter[2],XL6_SlotMapSnapshotPairV1* result)
 {
-    xvalue* result=xl6SequenceCreateAdmittedV1(XL6_SEQUENCE_ARRAY_V1,target.identity,policy);
-    XL6_Sequence* output=NULL; xslotmapiter iterator={0}; bool success=false;
-    if (result) output=xl6SequenceBeginRoleV1(result,XL6_SEQUENCE_ARRAY_V1,target.identity,
-        target.elementIdentity,target.transfer,target.size,target.type);
-    if (output && xl6SequenceBindProjectionV1(output,converter) &&
-        xrtTypedArrayReserve(xl6SequenceStorageV1(output),owner->storage.Count) &&
-        xrtSlotMapIterBegin(&owner->storage,&iterator)) {
+    xvalue* prepared[2]={0}; XL6_Sequence* output[2]={0}; xslotmapiter iterator={0}; bool success=true;
+    for(unsigned lane=0;lane<2 && success;++lane) if(lanes & (1u<<lane)) {
+        prepared[lane]=xl6SequenceCreateAdmittedV1(XL6_SEQUENCE_ARRAY_V1,target[lane].identity,&policy[lane]);
+        if(prepared[lane]) output[lane]=xl6SequenceBeginRoleV1(prepared[lane],XL6_SEQUENCE_ARRAY_V1,target[lane].identity,
+            target[lane].elementIdentity,target[lane].transfer,target[lane].size,target[lane].type);
+        success=output[lane] && xl6SequenceBindProjectionV1(output[lane],converter[lane]) &&
+            xrtTypedArrayReserve(xl6SequenceStorageV1(output[lane]),owner->storage.Count);
+    }
+    if (success && xrtSlotMapIterBegin(&owner->storage,&iterator)) {
         success=true; ptr item; xslot slot; size_t copied=0;
         while ((item=xrtSlotMapIterNext(&iterator,&slot))) {
             const XL6_SlotMapKeyV1 key={owner->instance,slot}; /* borrowed only under this pin */
-            const void* input=keys ? &key : item;
-            if (!xl6SequenceAdmitSlotV1(output,input) ||
-                !xrtTypedArrayPush(xl6SequenceStorageV1(output),input)) { success=false; break; }
+            for(unsigned lane=0;lane<2 && success;++lane) if(lanes & (1u<<lane)) {
+                const void* input=lane==0 ? (const void*)&key : item;
+                success=xl6SequenceAdmitSlotV1(output[lane],input) &&
+                    xrtTypedArrayPush(xl6SequenceStorageV1(output[lane]),input);
+            }
+            if(!success) break;
             ++copied;
         }
         success=success && copied==owner->storage.Count && !xrtGetError();
-    }
+    } else success=false;
     xrtSlotMapIterEnd(&iterator);
-    if (output) xl6SequenceEndV1(output);
-    if (!success || xrtGetError()) { discard(result); result=NULL; }
-    return result;
+    for(unsigned lane=0;lane<2;++lane) if(output[lane]) xl6SequenceEndV1(output[lane]);
+    if (!success || xrtGetError()) { discard(prepared[0]); discard(prepared[1]); return false; }
+    *result=(XL6_SlotMapSnapshotPairV1){prepared[0],prepared[1]}; return true;
+}
+static bool captureKeys(SlotMapOwner* owner,const xvalue* witness,
+    XL6_SequenceLayoutV1* target,XL6_SequenceAdmissionV3* policy)
+{
+    XL6_SequenceRoleV1 role=0;
+    if(!xl6SequenceSchemaCopyV1(witness,&role,target,policy)) return false;
+    if (role!=XL6_SEQUENCE_ARRAY_V1 || target->elementIdentity!=XL6_SLOT_MAP_KEY_LANGUAGE_VALUE_ID ||
+        policy->boxedIdentity!=XL6_SLOT_MAP_KEY_LANGUAGE_VALUE_ID || target->identity==owner->layout.identity ||
+        target->transfer!=XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 ||
+        target->size!=sizeof(XL6_SlotMapKeyV1) || target->type!=xl6SlotMapKeyTypeV1()) {
+        xrtSetErrorKind(XERR_TYPE); return false;
+    }
+    XL6_Sequence* schema=xl6SequenceBeginRoleV1(witness,role,target->identity,target->elementIdentity,
+        target->transfer,target->size,target->type);
+    bool empty=schema && xrtTypedArrayCount(xl6SequenceStorageV1(schema))==0;
+    if(schema) xl6SequenceEndV1(schema);
+    if(!empty && !xrtGetError()) xrtSetErrorKind(XERR_ARGUMENT);
+    return empty;
+}
+static bool captureValues(SlotMapOwner* owner,XL6_SequenceLayoutV1* target,XL6_SequenceAdmissionV3* policy)
+{
+    *target=owner->layout.value; *policy=owner->policy;
+    if(policy->ops->Retain(policy->data)) return true;
+    *policy=(XL6_SequenceAdmissionV3){0}; if(!xrtGetError()) xrtSetErrorKind(XERR_STATE);
+    return false;
 }
 xvalue* xl6SlotMapSnapshotTakeV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout,
     bool keys,xvalue* witness,const xvalueconverter* converter)
 {
     xl6_error_scope scope={0}; if (!scopeBegin(&scope)) { discard(witness); return NULL; }
-    SlotMapOwner* owner=begin(value,layout); XL6_SequenceAdmissionV3 policy={0};
-    XL6_SequenceLayoutV1 target={0}; xvalue* result=NULL;
+    SlotMapOwner* owner=begin(value,layout); XL6_SequenceAdmissionV3 policy[2]={0};
+    XL6_SequenceLayoutV1 target[2]={0}; XL6_SlotMapSnapshotPairV1 prepared={0};
+    const xvalueconverter* converters[2]={keys ? converter : NULL,keys ? NULL : converter};
+    bool success=false;
     if (!keys && witness) xrtSetErrorKind(XERR_ARGUMENT);
-    else if (owner && keys) {
-        XL6_SequenceRoleV1 role=0;
-        if (xl6SequenceSchemaCopyV1(witness,&role,&target,&policy)) {
-            if (role!=XL6_SEQUENCE_ARRAY_V1 || target.elementIdentity!=XL6_SLOT_MAP_KEY_LANGUAGE_VALUE_ID ||
-                policy.boxedIdentity!=XL6_SLOT_MAP_KEY_LANGUAGE_VALUE_ID || target.identity==owner->layout.identity ||
-                target.transfer!=XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 ||
-                target.size!=sizeof(XL6_SlotMapKeyV1) || target.type!=xl6SlotMapKeyTypeV1()) xrtSetErrorKind(XERR_TYPE);
-            else {
-                XL6_Sequence* schema=xl6SequenceBeginRoleV1(witness,role,target.identity,target.elementIdentity,
-                    target.transfer,target.size,target.type);
-                bool empty=schema && xrtTypedArrayCount(xl6SequenceStorageV1(schema))==0;
-                if (schema) xl6SequenceEndV1(schema);
-                if (!empty) { if (!xrtGetError()) xrtSetErrorKind(XERR_ARGUMENT); }
-                else result=snapshot(owner,true,target,&policy,converter);
-            }
-        }
-    } else if (owner) {
-        target=owner->layout.value; policy=owner->policy;
-        if (!policy.ops->Retain(policy.data)) {
-            policy=(XL6_SequenceAdmissionV3){0}; if (!xrtGetError()) xrtSetErrorKind(XERR_STATE);
-        } else result=snapshot(owner,false,target,&policy,converter);
-    }
-    xl6SequenceAdmissionDropV3(&policy); discard(witness);
-    if (!finish(&scope,owner,result!=NULL)) { discard(result); return NULL; }
-    return result;
+    else if (owner && (keys ? captureKeys(owner,witness,&target[0],&policy[0]) :
+        captureValues(owner,&target[1],&policy[1])))
+        success=snapshot(owner,keys ? SNAPSHOT_KEYS : SNAPSHOT_VALUES,target,policy,converters,&prepared);
+    xl6SequenceAdmissionDropV3(&policy[0]); xl6SequenceAdmissionDropV3(&policy[1]); discard(witness);
+    if (!finish(&scope,owner,success)) { discard(prepared.keys); discard(prepared.values); return NULL; }
+    return keys ? prepared.keys : prepared.values;
 }
 xvalue* xl6SlotMapValuesV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout,const xvalueconverter* converter)
 { return xl6SlotMapSnapshotTakeV1(value,layout,false,NULL,converter); }
+bool xl6SlotMapSnapshotPairTakeV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout,
+    xvalue* witness,const xvalueconverter* keyConverter,const xvalueconverter* valueConverter,XL6_SlotMapSnapshotPairV1* output)
+{
+    xl6_error_scope scope={0}; if(!scopeBegin(&scope)) { discard(witness); return false; }
+    SlotMapOwner* owner=begin(value,layout); XL6_SequenceAdmissionV3 policy[2]={0};
+    XL6_SequenceLayoutV1 target[2]={0}; XL6_SlotMapSnapshotPairV1 prepared={0}; bool success=false;
+    const xvalueconverter* converters[2]={keyConverter,valueConverter};
+    if(!output || output->keys || output->values) xrtSetErrorKind(XERR_ARGUMENT);
+    else if(owner && captureKeys(owner,witness,&target[0],&policy[0]) &&
+        captureValues(owner,&target[1],&policy[1]))
+        success=snapshot(owner,SNAPSHOT_KEYS|SNAPSHOT_VALUES,target,policy,converters,&prepared);
+    xl6SequenceAdmissionDropV3(&policy[0]); xl6SequenceAdmissionDropV3(&policy[1]); discard(witness);
+    if(!finish(&scope,owner,success)) { discard(prepared.keys); discard(prepared.values); return false; }
+    *output=prepared; return true;
+}

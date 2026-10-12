@@ -248,7 +248,7 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_persistence_project_set.c ^
     src\runtime\xl6_restore_class_set.c ^
     src\runtime\xl6_restore_class_collections.c ^
-    src\runtime\xl6_dict.c ^
+    src\runtime\xl6_dict.c src\runtime\xl6_slot_map.c src\runtime\xl6_slot_map_key.c src\runtime\xl6_slot_map_key_value.c src\runtime\xl6_native_leaf_value.c src\runtime\xl6_array_native_value_admission.c src\runtime\xl6_array_extract_native_value.c src\runtime\xl6_slot_map_keys.c src\runtime\xl6_slot_map_pairs.c ^
     src\runtime\xl6_dict_import_chain.c src\runtime\xl6_dict_methods.c src\runtime\xl6_dict_value_index.c src\runtime\xl6_dict_schema.c ^
     src\runtime\xl6_dict_graph.c ^
     src\runtime\xl6_dict_value_iterator.c ^
@@ -503,7 +503,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_persistence_project_set.c ^
     src\runtime\xl6_restore_class_set.c ^
     src\runtime\xl6_restore_class_collections.c ^
-    src\runtime\xl6_dict.c ^
+    src\runtime\xl6_dict.c src\runtime\xl6_slot_map.c src\runtime\xl6_slot_map_key.c src\runtime\xl6_slot_map_key_value.c src\runtime\xl6_native_leaf_value.c src\runtime\xl6_array_native_value_admission.c src\runtime\xl6_array_extract_native_value.c src\runtime\xl6_slot_map_keys.c src\runtime\xl6_slot_map_pairs.c ^
     src\runtime\xl6_dict_import_chain.c src\runtime\xl6_dict_methods.c src\runtime\xl6_dict_value_index.c src\runtime\xl6_dict_schema.c ^
     src\runtime\xl6_dict_graph.c ^
     src\runtime\xl6_dict_value_iterator.c ^
