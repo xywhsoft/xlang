@@ -1,37 +1,68 @@
 /* Included by xl6_ir.c. Native owning records have one closed representation
  * contract. Source spelling, foreign structs and a matching sizeof cannot
  * confer this capability. Capture is independently published as an immutable
- * native leaf capability. Nullable/cells need separate owning plans. */
+ * native leaf capability. Owning nullable records have independent plans. */
 static const XL6_IrNativeValuePlan g_xl6IrNativeValues[] = {
 #define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,Release,Type,Converter,Sequence,Profile,ValueId,CaptureHeader,CaptureProfile) \
     {XL6_IR_NATIVE_VALUE_##Tag,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,XL6_IR_RELEASE_EFFECT_##Release, \
-        XL6_IR_NATIVE_SLOT_##Tag,#Type "()",#Converter "()",Sequence,Profile,ValueId,CaptureHeader,CaptureProfile},
+        XL6_IR_NATIVE_SLOT_##Tag,#Type "()",#Converter "()",Sequence,Profile,ValueId,CaptureHeader,CaptureProfile,XL6_IR_NATIVE_VALUE_NONE},
 #include "src/type/xl6_native_value_profiles.inc"
 #undef XL6_NATIVE_VALUE_PROFILE
+    {XL6_IR_NATIVE_VALUE_NULLABLE_SLOT_MAP_KEY_V1,"xlang.runtime.nullable-slot-map-key.v1",
+        "XL6_NullableSlotMapKeyV1","__xl_runtime/xl6_nullable_slot_map_key_abi.h","xlir_result_nullable_slot_map_key_v1",
+        "xl6NullableSlotMapKeyCopyValueV1","xl6NullableSlotMapKeyDropValueV1","xl6NullableSlotMapKeyEqualV1",
+        "xl6NullableSlotMapKeyBoxV1","xl6NullableSlotMapKeyUnboxV1",XL6_IR_RELEASE_EFFECT_NO_RAISE,
+        XL6_IR_NATIVE_SLOT_NULLABLE_SLOT_MAP_KEY_V1,"xl6NullableSlotMapKeyTypeV1()",NULL,NULL,NULL,
+        UINT64_C(0x4634D6E6E6364F13),NULL,NULL,XL6_IR_NATIVE_VALUE_SLOT_MAP_KEY_V1},
 };
 static XL6_IrNativeValueAbi xl6IrNativeValueAbiFromFrontend(XL6_TypeAbiId abi)
 {
     size_t i;
     for (i=0;i<XL6_ARRAY_COUNT(g_xl6IrNativeValues);++i)
-        if (abi == xl6TypeAbiIdText(g_xl6IrNativeValues[i].abiName)) return g_xl6IrNativeValues[i].abi;
+        if (!g_xl6IrNativeValues[i].nullableElementAbi &&
+            abi == xl6TypeAbiIdText(g_xl6IrNativeValues[i].abiName)) return g_xl6IrNativeValues[i].abi;
     return XL6_IR_NATIVE_VALUE_NONE;
 }
 static XL6_IrNativeValueAbi xl6IrNativeValueAbiFromType(const XL6_IrType* type)
 {
-    if (!type || type->kind != XL6_IR_TYPE_BUILTIN || type->paramCount || type->returnCount)
+    if (!type || type->returnCount)
         return XL6_IR_NATIVE_VALUE_NONE;
+    if(type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params){
+        for(size_t i=0;i<XL6_ARRAY_COUNT(g_xl6IrNativeValues);++i)
+            if(g_xl6IrNativeValues[i].nullableElementAbi &&
+                type->abiId==xl6TypeAbiIdText(g_xl6IrNativeValues[i].abiName))return g_xl6IrNativeValues[i].abi;
+        return XL6_IR_NATIVE_VALUE_NONE;
+    }
+    if(type->kind!=XL6_IR_TYPE_BUILTIN || type->paramCount)return XL6_IR_NATIVE_VALUE_NONE;
     return xl6IrNativeValueAbiFromFrontend(type->abiId);
 }
 const XL6_IrNativeValuePlan* xl6IrNativeValuePlanForType(const XL6_IrType* type)
 {
     size_t i;
     if (!type || type->cAbi != XL6_IR_C_ABI_NATIVE_VALUE ||
-        type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED || type->nullAbi != XL6_IR_NULL_ABI_NONE ||
+        type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
         type->nativeValueAbi == XL6_IR_NATIVE_VALUE_NONE ||
         type->nativeValueAbi != xl6IrNativeValueAbiFromType(type)) return NULL;
     for (i=0;i<XL6_ARRAY_COUNT(g_xl6IrNativeValues);++i)
-        if (g_xl6IrNativeValues[i].abi == type->nativeValueAbi) return &g_xl6IrNativeValues[i];
+        if (g_xl6IrNativeValues[i].abi == type->nativeValueAbi &&
+            type->nullAbi==(g_xl6IrNativeValues[i].nullableElementAbi ? XL6_IR_NULL_ABI_TAGGED_VALUE : XL6_IR_NULL_ABI_NONE))
+            return &g_xl6IrNativeValues[i];
     return NULL;
+}
+static const XL6_IrNativeValuePlan* xl6IrNullableNativeValuePlanForElement(const XL6_IrType* element)
+{
+    const XL6_IrNativeValuePlan* base=xl6IrNativeValuePlanForType(element);
+    if(!base || base->nullableElementAbi)return NULL;
+    for(size_t i=0;i<XL6_ARRAY_COUNT(g_xl6IrNativeValues);++i)
+        if(g_xl6IrNativeValues[i].nullableElementAbi==base->abi)return &g_xl6IrNativeValues[i];
+    return NULL;
+}
+const XL6_IrNativeValuePlan* xl6IrNullableNativeValuePlan(const XL6_IrTypePool* pool,const XL6_IrType* type)
+{
+    const XL6_IrNativeValuePlan* plan=xl6IrNativeValuePlanForType(type);
+    const XL6_IrType* element=pool && type && type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params
+        ? xl6IrTypeGet(pool,type->params[0]) : NULL;
+    return plan && plan->nullableElementAbi && plan==xl6IrNullableNativeValuePlanForElement(element) ? plan : NULL;
 }
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeNativeValueErrorPhysicalAbi(XL6_IrRuntimeOp operation)
 {

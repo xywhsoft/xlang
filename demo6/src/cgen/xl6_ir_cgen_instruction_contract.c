@@ -78,7 +78,7 @@ static int xl6IrCgenNullInstructionAbi(
           (type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
            type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES)) ||
          (type->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-          type->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE));
+          (type->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE || xl6IrNullableNativeValuePlan(&module->types,type)!=NULL)));
 }
 
 static int xl6IrCgenEmitNullInstruction(
@@ -132,7 +132,7 @@ static int xl6IrCgenNullableInstructionAbi(
             (operandType->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL ||
              operandType->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL ||
              (operandType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-              operandType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE));
+              (operandType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE || xl6IrNullableNativeValuePlan(&module->types,operandType)!=NULL)));
     }
     if ( instruction->kind != XL6_IR_INSTR_NULLABLE_WRAP &&
          instruction->kind != XL6_IR_INSTR_NULLABLE_UNWRAP ) return 0;
@@ -144,8 +144,8 @@ static int xl6IrCgenNullableInstructionAbi(
     element = xl6IrTypeGet(&module->types, elementType);
     taggedAbi = nullableType != NULL &&
         nullableType->kind == XL6_IR_TYPE_NULLABLE &&
-        nullableType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
-        nullableType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE;
+        ((nullableType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
+        nullableType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE) || xl6IrNullableNativeValuePlan(&module->types,nullableType)!=NULL);
     sentinelAbi = nullableType != NULL && element != NULL &&
         nullableType->kind == XL6_IR_TYPE_NULLABLE &&
         (nullableType->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL ||
@@ -195,10 +195,16 @@ static int xl6IrCgenEmitNullableInstruction(
             (unsigned int)instruction->result,
             xl6IrCgenType(module, instruction->type), (unsigned int)value);
     } else if ( instruction->kind == XL6_IR_INSTR_NULLABLE_UNWRAP &&
-                operandType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ) {
+                (operandType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE || xl6IrNullableNativeValuePlan(&module->types,operandType)!=NULL) ) {
         xl6OutputPrintf(out, "    v%u = v%u.value;\n",
             (unsigned int)instruction->result, (unsigned int)value);
     } else {
+        if(instruction->kind==XL6_IR_INSTR_NULLABLE_WRAP &&
+            xl6IrNullableNativeValuePlan(&module->types,xl6IrTypeGet(&module->types,instruction->type))){
+            xl6OutputPrintf(out,"    v%u = (%s){ true, v%u };\n",(unsigned)instruction->result,
+                xl6IrCgenType(module,instruction->type),(unsigned)value);
+            return !xl6OutputHasFailed(out);
+        }
         xl6OutputPrintf(out, "    v%u = v%u;\n",
             (unsigned int)instruction->result, (unsigned int)value);
     }

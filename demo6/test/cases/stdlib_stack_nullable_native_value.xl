@@ -1,0 +1,35 @@
+func copyOptionalKey(SlotMapKey? input) as SlotMapKey?
+    try
+        return input
+    finally
+        input = null
+    end
+end
+func main(...) as int
+    auto map = SlotMap::<int>()
+    auto key = map.insert(7)
+    auto stack = Stack::<SlotMapKey>()
+    assert(stack.push(key))
+    auto hasPeek, peeked = stack.tryPeek()
+    auto hasAt, at = stack.tryPeekAt(0)
+    assert(hasPeek and peeked != null and peeked == key)
+    assert(hasAt and at != null and at == key and stack.count() == 1)
+    auto found, item = stack.tryPop()
+    assert(found and item != null and item == key)
+    auto saved = copyOptionalKey(item)
+    auto absent, none = stack.tryPop()
+    assert(not absent and none == null)
+    auto noPeek, emptyPeek = stack.tryPeek()
+    auto noAt, emptyAt = stack.tryPeekAt(0)
+    assert(not noPeek and emptyPeek == null and not noAt and emptyAt == null)
+    SlotMapKey? lifted = key
+    assert(lifted != null and lifted == key)
+    SlotMapKey? copied = lifted
+    lifted = null
+    map.clear()
+    stack.clear()
+    assert(peeked != null and peeked == key and at != null and at == key)
+    assert(lifted == null and copied != null and copied == key)
+    assert(saved != null and saved == key)
+    return 0
+end
