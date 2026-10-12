@@ -1,0 +1,142 @@
+class PressureState
+    mutex guard = mutex()
+    array<int> seen
+    int received = 0
+    int total = 0
+    bool started = false
+    func start()
+        assert(guard.lock())
+        self.started = true
+        assert(guard.unlock())
+    end
+    func ready() as bool
+        assert(guard.lock())
+        try
+            return started
+        finally
+            assert(guard.unlock())
+        end
+    end
+    func done() as bool
+        assert(guard.lock())
+        try
+            return received == total
+        finally
+            assert(guard.unlock())
+        end
+    end
+    func record(int value) as bool
+        assert(guard.lock())
+        try
+            if value < 0 or value >= total then return false end
+            if seen[value] != 0 then return false end
+            seen[value] = 1
+            self.received += 1
+            return true
+        finally
+            assert(guard.unlock())
+        end
+    end
+end
+func producer(MpmcQueue<int> queue, PressureState state, int first) as func() as int
+    return func() as int
+        while not state.ready()
+            time.sleep(0)
+        end
+        for id in range(first, first + 256)
+            int attempts = 0
+            while true
+                auto status = queue.tryPush(id)
+                if status == queueStatus.ok then break end
+                if status != queueStatus.full then return 10 end
+                attempts += 1
+                if attempts > 1000000 then return 11 end
+                time.sleep(0)
+            end
+        end
+        return 0
+    end
+end
+func consumer(MpmcQueue<int> queue, PressureState state) as func() as int
+    return func() as int
+        while not state.ready()
+            time.sleep(0)
+        end
+        int attempts = 0
+        while not state.done()
+            auto status, value = queue.tryPop()
+            if status == queueStatus.ok and value != null then
+                if not state.record(value) then return 20 end
+                attempts = 0
+            else
+                if status != queueStatus.empty then return 21 end
+                attempts += 1
+                if attempts > 1000000 then return 22 end
+                time.sleep(0)
+            end
+        end
+        return 0
+    end
+end
+func main(...) as int
+    auto queue = MpmcQueue::<int>(8)
+    auto emptyStatus, emptyValue = queue.tryPop()
+    assert(emptyStatus == queueStatus.empty and emptyValue == null)
+    for id in range(0, 8)
+        assert(queue.tryPush(id) == queueStatus.ok)
+    end
+    assert(queue.tryPush(9) == queueStatus.full)
+    for id in range(0, 8)
+        auto status, value = queue.tryPop()
+        assert(status == queueStatus.ok and value != null)
+        if value != null then assert(value == id) end
+    end
+    assert(queue.reset())
+    auto state = PressureState()
+    state.total = 1024
+    for id in range(0, state.total)
+        assert(state.seen.push(0))
+    end
+    thread c0 = thread(consumer(queue, state))
+    thread c1 = thread(consumer(queue, state))
+    thread c2 = thread(consumer(queue, state))
+    thread c3 = thread(consumer(queue, state))
+    thread p0 = thread(producer(queue, state, 0))
+    thread p1 = thread(producer(queue, state, 256))
+    thread p2 = thread(producer(queue, state, 512))
+    thread p3 = thread(producer(queue, state, 768))
+    state.start()
+    assert(c0.waitTimeout(30000))
+    assert(c0.exitCode() == 0)
+    assert(c1.waitTimeout(30000))
+    assert(c1.exitCode() == 0)
+    assert(c2.waitTimeout(30000))
+    assert(c2.exitCode() == 0)
+    assert(c3.waitTimeout(30000))
+    assert(c3.exitCode() == 0)
+    assert(p0.waitTimeout(30000))
+    assert(p0.exitCode() == 0)
+    assert(p1.waitTimeout(30000))
+    assert(p1.exitCode() == 0)
+    assert(p2.waitTimeout(30000))
+    assert(p2.exitCode() == 0)
+    assert(p3.waitTimeout(30000))
+    assert(p3.exitCode() == 0)
+    assert(state.received == state.total and queue.count() == 0)
+    for value in state.seen
+        assert(value == 1)
+    end
+    queue.close()
+    assert(queue.isClosed() and queue.isDrained())
+    auto closedStatus, closedValue = queue.tryPop()
+    assert(closedStatus == queueStatus.closed and closedValue == null)
+    // Exact-length owned text must remain independent of the producer input.
+    auto texts = MpmcQueue::<string>(2)
+    string input = "a\0你🙂"
+    assert(texts.tryPush(input) == queueStatus.ok)
+    input = "changed"
+    auto textStatus, output = texts.tryPop()
+    assert(textStatus == queueStatus.ok and output != null)
+    if output != null then assert(output == "a\0你🙂") end
+    return 0
+end

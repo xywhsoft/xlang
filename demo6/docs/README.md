@@ -147,6 +147,7 @@
 - `stdlib53-b240-native-callback-capture.md`：原生键 task.spawn／then 与 async 参数捕获、checked 清理和初始化后 auto 推导通过双端专项及旧捕获／异步压力回归；Future 元素与总验收继续。
 - `stdlib53-b241-future-iteration.md`：五类容器的 Future／nullable Future 元素循环、拥有绑定及跨 await／yield 清理通过双端专项、独立裁剪和旧异步压力回归；生产改动仅 IR，Channel／WaitQueue 与总验收继续。
 - `stdlib53-b242-native-value-fields.md`：原生拥有值类字段读取、临时接收者与返回 finally 通过双端专项、故障前缀和选定插桩；Channel 公共切换状态已核实，WaitQueue 拓扑与总验收继续。
+- `stdlib53-b243-queue-pressure.md`：三种队列公共并发收发、实际线程内故障隔离及字符串发布前 checked 复制通过双端专项、六个坏供应方和选定插桩；WaitQueue 与总验收继续。
 - `XRT与xlang系统整合任务.md`：当前长期整合范围、快照契约、实施顺序和 HTTP/WebSocket 快慢路径边界。
 - `扩展库开发问题清单.md`：六轮扩展库批次发现的语言/编译器/运行时问题账本（P0 崩溃类到 P4 C 库兼容），含最小复现、规避方案与修复优先级。
 - `剩余未压实扩展库清单.md`：删除 22 个占位库后 109 个未压实包的处置规划视图（按编解码改造/平台收编/真外部服务/迁移队列分类）。

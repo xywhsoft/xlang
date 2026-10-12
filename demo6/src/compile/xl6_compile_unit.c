@@ -144,7 +144,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_nullable_f64_value.c", D(R(NULLABLE_F64)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
     {"src/runtime/xl6_nullable_time_value.c", D(R(NULLABLE_TIME)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
     {"src/runtime/xl6_nullable_char_value.c", D(R(NULLABLE_CHAR)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
-    {"src/runtime/xl6_string_type.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE_STRING"}},
+    {"src/runtime/xl6_string_type.c", D(R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_RUNTIME_TYPE_STRING"}},
     {"src/runtime/xl6_string_value.c", D(R(STRING_TYPE),R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE"}},
     {"src/runtime/xl6_array_value.c", D(R(SEQUENCE),R(ARRAY_REFERENCE_VALUE)), {"XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
     {"src/runtime/xl6_char_type.c", D(), {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
