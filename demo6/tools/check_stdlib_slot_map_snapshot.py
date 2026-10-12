@@ -81,7 +81,7 @@ def main():
             products.append(dict(Path=str(product),Sha256=sha(product)))
         source='src/runtime/xl6_slot_map.c'; body=(root/source).read_text(encoding='utf-8')
         mutations=[('key-generation-omitted','const XL6_SlotMapKeyV1 key={owner->instance,slot};','const XL6_SlotMapKeyV1 key={owner->instance,1};'),
-            ('key-boxed-domain-omitted','policy.boxedIdentity!=XL6_SLOT_MAP_KEY_LANGUAGE_VALUE_ID ||','false ||'),
+            ('key-boxed-domain-omitted','policy->boxedIdentity!=XL6_SLOT_MAP_KEY_LANGUAGE_VALUE_ID ||','false ||'),
             ('short-iteration-accepted','success=success && copied==owner->storage.Count && !xrtGetError();',
              'success=success && !xrtGetError(); (void)copied;')]
         for name,before,after in mutations:

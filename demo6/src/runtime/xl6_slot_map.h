@@ -52,6 +52,18 @@ XL6_TEXT_API xvalue* xl6SlotMapKeysV1(const xvalue*,const XL6_SlotMapLayoutV1*,u
  * No raw slot address, generated callback or mutable source borrow escapes. */
 XL6_TEXT_API xvalue* xl6SlotMapSnapshotTakeV1(const xvalue*,const XL6_SlotMapLayoutV1*,
     bool,xvalue*,const xvalueconverter*);
+/* One source pin and one supplier traversal produce aligned independent
+ * snapshots. The private output starts empty and is unchanged on failure.
+ * Take consumes the empty key witness on BOTH paths, without mutating its
+ * aliases. Success transfers both owners together; neither owns the source.
+ * This is a resident foundation, not two calls to keys()/values(). */
+typedef struct XL6_SlotMapSnapshotPairV1 { xvalue* keys; xvalue* values; } XL6_SlotMapSnapshotPairV1;
+XL6_TEXT_API bool xl6SlotMapSnapshotPairTakeV1(const xvalue*,const XL6_SlotMapLayoutV1*,
+    xvalue*,const xvalueconverter*,const xvalueconverter*,XL6_SlotMapSnapshotPairV1*);
+/* Independent optional producer: only paired consumers select key boxing,
+ * key schema construction and this provider. No public language API yet. */
+XL6_TEXT_API bool xl6SlotMapPairsV1(const xvalue*,const XL6_SlotMapLayoutV1*,
+    uint64_t,const xvalueconverter*,XL6_SlotMapSnapshotPairV1*);
 /* Clear/remove/replace commit before old-element cleanup; a cleanup failure
  * is checked and must not be blindly retried as an uncommitted operation.
  * Full real edges and phased retirement, including duplicate/self edges.
