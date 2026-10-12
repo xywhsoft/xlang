@@ -10,8 +10,22 @@ assert values.reserve(16)
 assert string(values.take(0)) == "four"
 assert string(values.pop()) == "two"
 assert int(values.pop()) == 3
-assert values.pop() == null
-assert values.take(9) == null
+try
+    var missing = values.pop()
+    assert false, "empty Array pop must be a checked range failure"
+catch e
+    if e.kind != "RangeError"
+        throw
+    end
+end
+try
+    var missing = values.take(9)
+    assert false, "invalid Array take must be a checked range failure"
+catch e
+    if e.kind != "RangeError"
+        throw
+    end
+end
 assert values.clear()
 assert values.length == 0
 

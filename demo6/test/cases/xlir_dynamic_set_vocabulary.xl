@@ -1,0 +1,24 @@
+class DynamicSetKey
+    derive value
+    int number = 7
+end
+
+// No explicit default Set declaration may supply the producer vocabulary.
+var mixed = set{1, 2}
+assert mixed.add("a\0b")
+assert mixed.contains("a\0b") and not mixed.contains("a")
+assert mixed.add("你好")
+assert mixed.add(b"\x00\xff\x00")
+assert mixed.contains(b"\x00\xff\x00")
+DynamicSetKey key = DynamicSetKey()
+assert mixed.add(key)
+key.number = 9
+assert mixed.contains(key)
+assert not mixed.contains(DynamicSetKey())
+assert mixed.length == 6
+assert mixed.remove("a\0b") and not mixed.contains("a\0b")
+
+var empty = set{}
+assert empty.length == 0
+assert empty.add(42) and empty.contains(42)
+assert empty.clear() and empty.length == 0
