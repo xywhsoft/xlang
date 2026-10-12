@@ -140,6 +140,12 @@ static int xl6IrCgenEmitProductTypes(
                 product->paramCount == 1 && product->params != NULL
                     ? xl6IrTypeGet(&module->types, product->params[0]) : NULL;
             const char* cType = xl6IrCgenNullableScalarCarrier(module, (XL6_IrTypeId)(typeIndex + 1));
+            XL6_IrTypeId unionElement=xl6IrNullableUnionElementType(module,(XL6_IrTypeId)(typeIndex+1));
+            if (unionElement) {
+                xl6OutputPrintf(out,"typedef struct %s { bool hasValue; %s value; } %s;\n",
+                    product->cName,xl6IrCgenType(module,unionElement),product->cName);
+                emitted=1; continue;
+            }
             if ( product->cName[0] == '\0' || element == NULL || cType == NULL ||
                  element->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
                  element->cAbi == XL6_IR_C_ABI_PRODUCT )

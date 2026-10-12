@@ -331,7 +331,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_slot_map_keys.c", D(R(SLOT_MAP_NATIVE),R(ARRAY_NATIVE_VALUE_ADMISSION)),
         {NULL}},
     {"src/runtime/xl6_value_named_read.c",D(R(DICT_NATIVE),R(VALUE_OBJECT_FIELDS),R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE_CONTAINER"}},
-    {"src/runtime/xl6_value_named_write.c",D(R(DICT_NATIVE),R(VALUE_OBJECT_FIELDS),R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE_CONTAINER"}}
+    {"src/runtime/xl6_value_named_write.c",D(R(DICT_NATIVE),R(VALUE_OBJECT_FIELDS),R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_array_union_admission.c",D(R(SEQUENCE)),{"XRT_MODULE_VALUE","XRT_MODULE_ATOMIC"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -556,6 +557,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                 case XL6_IR_SEQUENCE_LAYOUT_DYNAMIC_VALUE: REQUIRE(R(ARRAY_REFERENCE_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2: REQUIRE(R(ARRAY_REFERENCE_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2: REQUIRE(R(ARRAY_NOMINAL_ADMISSION)); break;
+                case XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1: REQUIRE(R(ARRAY_UNION_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_C_SCALAR_V1: REQUIRE(R(ARRAY_C_SCALAR_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_NULLABLE_C_SCALAR_V1: REQUIRE(R(ARRAY_NULLABLE_C_SCALAR_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_NUMERIC_ENUM_V1: REQUIRE(R(ARRAY_NUMERIC_ENUM_ADMISSION)); break;

@@ -284,6 +284,7 @@ static int xl6IrCgenVisitSequenceFactorySymbols(const XL6_IrModule* module,XL6_I
     if (!xl6IrCgenVisitSlotProviders(type->sequenceLayout.slotAbi,converter,visitor,context)) return 0;
     const char* factory=NULL;
     switch (type->sequenceLayout.abi) {
+    case XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1: factory="xl6SequenceUnionCreateV1"; break;
     case XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1:
         {
             const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(

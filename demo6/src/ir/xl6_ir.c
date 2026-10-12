@@ -849,7 +849,8 @@ static int xl6IrSequenceLayoutComplete(XL6_IrSequenceLayoutAbi abi)
         abi==XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1 ||
         abi==XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1 ||
         abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1 ||
-        abi==XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1;
+        abi==XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1 ||
+        abi==XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1;
 }
 static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool* pool,
     const XL6_IrType* type,size_t depth)
@@ -901,6 +902,17 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         result.slotAbi=XL6_IR_NATIVE_SLOT_XVALUE_CARRIER;
         result.transferAbi=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN;
         result.codecAbi=XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1;
+    } else if (result.role==XL6_IR_SEQUENCE_ROLE_ARRAY && base->kind==XL6_IR_TYPE_UNION &&
+        base->cAbi==XL6_IR_C_ABI_UNION && base->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+        base->nullAbi==XL6_IR_NULL_ABI_NONE && !base->paramCount && !base->returnCount &&
+        base->typeValueId) {
+        /* Invocation remains the C union, never an xvalue pointer. A complete
+         * module layout is required at construction; nominal bytes encode its
+         * object representation, not an invented active member or ordering. */
+        result.abi=XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1;
+        result.slotAbi=XL6_IR_NATIVE_SLOT_XVALUE_CARRIER;
+        result.transferAbi=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN;
+        result.codecAbi=XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1;
     } else if (base->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
         base->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
         base->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL && base->paramCount==1 &&
@@ -1048,7 +1060,8 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         result.abi == XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1 ||
-        result.abi == XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1) {
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1) {
         if (!result.codecAbi) result.codecAbi=XL6_IR_SEQUENCE_CODEC_DIRECT;
         result.defaultAbi=result.nullable ? XL6_IR_SEQUENCE_DEFAULT_ABSENT :
             result.admissionAbi == XL6_VALUE_ADMIT_ANY ? XL6_IR_SEQUENCE_DEFAULT_DYNAMIC_NULL :
@@ -1094,6 +1107,7 @@ const char* xl6IrSequenceCodecAbiName(XL6_IrSequenceCodecAbi abi)
     case XL6_IR_SEQUENCE_CODEC_NONE: return "none";
     case XL6_IR_SEQUENCE_CODEC_DIRECT: return "direct";
     case XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1: return "closure-value-v1";
+    case XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1: return "union-value-v1";
     default: return "invalid";
     }
 }
@@ -1139,6 +1153,7 @@ const char* xl6IrSequenceLayoutAbiName(XL6_IrSequenceLayoutAbi abi)
     case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1: return "list-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1: return "set-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1: return "dict-reference-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1: return "union-value-v1";
     default: return "invalid";
     }
 }
@@ -1243,6 +1258,9 @@ static XL6_IrSetKeyAbi xl6IrSetKeyAbiForType(const XL6_IrTypePool* pool,const XL
     const XL6_IrType* schema=xl6IrTypeGet(pool,id);
     XL6_IrSequenceLayout domain=xl6IrSequenceLayoutForType(pool,schema);
     if (!xl6IrSequenceLayoutComplete(domain.abi)) return XL6_IR_SET_KEY_NONE;
+    /* Untagged unions have no active-field equality/hash contract. Storage
+     * authorization cannot silently turn padding bytes into language keys. */
+    if (domain.codecAbi==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1) return XL6_IR_SET_KEY_NONE;
     switch (domain.transferAbi) {
     case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY:
     case XL6_IR_RUNTIME_RESOURCE_PAYLOAD_STRING_COPY:
@@ -8259,6 +8277,7 @@ const XL6_IrNominalIdentitySet* xl6IrNominalIdentitySetGet(
     return NULL;
 }
 
+static int xl6IrVerifyUnionLayouts(const XL6_IrModule* module);
 static int xl6IrSequenceConstructionRecipeDepth(const XL6_IrModule* module,
     XL6_IrTypeId typeId, XL6_IrSequenceRoleAbi role,
     XL6_IrNominalIdentitySetId* setOut, size_t depth)
@@ -8293,6 +8312,9 @@ static int xl6IrSequenceConstructionRecipeDepth(const XL6_IrModule* module,
     case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1: return 1;
+    case XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1:
+        return role==XL6_IR_SEQUENCE_ROLE_ARRAY && xl6IrVerifyUnionLayouts(module) &&
+            xl6IrUnionLayoutGet(module,plan->baseElementType)!=NULL;
     case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2:
         return xl6IrNominalIdentitySetGet(module,plan->baseElementType,setOut)!=NULL;
     case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1:
@@ -8404,6 +8426,9 @@ static int xl6IrMessageConstructionRecipeDepth(const XL6_IrModule* module, XL6_I
             xl6IrMessageSchemaTypeForType(&module->types, type) ||
         !xl6IrSequenceConstructionRecipeDepth(module, type->messageSchemaType,
             XL6_IR_SEQUENCE_ROLE_ARRAY, &set,depth+1)) return 0;
+    /* A collection codec does not authorize the separate message ABI. */
+    const XL6_IrType* schema=xl6IrTypeGet(&module->types,type->messageSchemaType);
+    if (!schema || schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1) return 0;
     if (familyOut) *familyOut = type->runtimeResourceAbi;
     if (schemaOut) *schemaOut = type->messageSchemaType;
     if (admissionSetOut) *admissionSetOut = set;
@@ -20453,6 +20478,20 @@ XL6_IrCAbi xl6IrNullableScalarElementAbi(const XL6_IrModule* module, XL6_IrTypeI
     return element->cAbi;
 }
 
+XL6_IrTypeId xl6IrNullableUnionElementType(const XL6_IrModule* module,XL6_IrTypeId typeId)
+{
+    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,typeId) : NULL;
+    if (!type || type->kind!=XL6_IR_TYPE_NULLABLE || type->cAbi!=XL6_IR_C_ABI_TAGGED_NULLABLE ||
+        type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL || type->nullAbi!=XL6_IR_NULL_ABI_TAGGED_VALUE ||
+        type->paramCount!=1 || !type->params || type->returnCount || !type->typeValueId || !type->cName[0]) return 0;
+    const XL6_IrType* base=xl6IrTypeGet(&module->types,type->params[0]);
+    const XL6_IrUnionLayout* layout=xl6IrUnionLayoutGet(module,type->params[0]);
+    return base && base->kind==XL6_IR_TYPE_UNION && base->cAbi==XL6_IR_C_ABI_UNION &&
+        base->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && base->nullAbi==XL6_IR_NULL_ABI_NONE &&
+        !base->paramCount && !base->returnCount && base->typeValueId && layout && layout->fieldCount &&
+        xl6IrVerifyUnionLayouts(module) ? type->params[0] : 0;
+}
+
 XL6_IrRuntimeOp xl6IrAllocatingBoxOpForType(const XL6_IrModule* module, XL6_IrTypeId typeId)
 {
     const XL6_IrType* type = module != NULL
@@ -22592,7 +22631,7 @@ int xl6IrDictDirectSlotRecipe(const XL6_IrModule* module,XL6_IrTypeId owner,
      * actual slots have another physical domain. It needs the existing codec
      * projection; an ANY admission is not proof of an exact output carrier. */
     if (!schema || !element || xl6IrTypeIsDynamicXValueBuiltin(module,recipe.elementType) ||
-        schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1 ||
+        schema->sequenceLayout.codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT ||
         element->nativeSlotAbi!=schema->sequenceLayout.slotAbi) return 0;
     if (output) *output=recipe;
     return 1;
@@ -40947,7 +40986,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              sourceType->nullAbi != XL6_IR_NULL_ABI_TAGGED_VALUE ||
                              sourceType->cName[0] == '\0' || elementType == NULL ||
                              elementType->kind == XL6_IR_TYPE_NUMERIC_ENUM ||
-                             !xl6IrTaggedNullableScalarSupported(elementType->cAbi) )
+                             (!xl6IrTaggedNullableScalarSupported(elementType->cAbi) &&
+                              !xl6IrNullableUnionElementType(module,left->type)) )
                             return xl6IrDiag(diags, NULL,
                                 "XLIR tagged nullable dynamic box has no exact scalar carrier ABI");
                     } else if ( xl6IrCollectionAlgebraRuntimeOpIs(

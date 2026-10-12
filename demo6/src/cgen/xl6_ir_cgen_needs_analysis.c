@@ -876,6 +876,15 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                   XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_TAGGED_NULLABLE) ) {
             needs->needsXValueTaggedNullableRuntime = 1;
             needs->needsXValueRuntime = 1;
+            if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_XVALUE_TAGGED_NULLABLE_BOX) {
+                const XL6_IrInstruction* source=xl6IrCgenValueDefinition(module,
+                    module->operands[module->instructions[i].firstOperand],NULL);
+                if (source && xl6IrNullableUnionElementType(module,source->type)) {
+                    needs->needsXValueUnionRuntime=1;
+                    needs->needsXValueTypeIdentityRuntime=1;
+                    needs->needsRuntimeTrap=1;
+                }
+            }
             if ( module->instructions[i].runtimeOp ==
                  XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_TAGGED_NULLABLE ) {
                 needs->needsXValueObjectRuntime = 1;

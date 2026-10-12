@@ -1,0 +1,52 @@
+union ContainerBits
+    int number
+    c_double real
+end
+
+ContainerBits first
+first.number = 42
+ContainerBits replacement
+replacement.number = 81
+array<ContainerBits> values = [first]
+list<ContainerBits> sparse = list[7: first]
+dict<ContainerBits> named = dict{"a\0b": first}
+string key = "a\0b"
+values[0] = replacement
+sparse[9] = replacement
+named[key] = replacement
+ContainerBits fromArray = values[0]
+ContainerBits fromList = sparse[9]
+ContainerBits fromDict = named[key]
+assert(fromArray.number == 81)
+assert(fromList.number == 81)
+assert(fromDict.number == 81)
+assert(first.number == 42)
+auto present = values?[0]
+auto absent = values?[9]
+assert(present != null and absent == null)
+
+array<ContainerBits?> optional = [first, null]
+assert(optional[0] != null and optional[1] == null)
+optional[1] = replacement
+assert(optional[1] != null)
+list<ContainerBits?> optionalList = list[1: first, 2: null]
+dict<ContainerBits?> optionalDict = dict{"first": first, "absent": null}
+assert(optionalList[2] == null and optionalDict["absent"] == null)
+
+array<array<ContainerBits>> nested = [values]
+array<ContainerBits> child = nested[0]
+ContainerBits fromChild = child[0]
+assert(fromChild.number == 81)
+var erased = values
+var boxed = erased[0]
+ContainerBits recovered = boxed as ContainerBits
+assert(recovered.number == 81)
+
+export "xlir_union_container_roundtrip" func unionRoundtrip() as int
+    ContainerBits local
+    local.number = 99
+    dict<ContainerBits> store = dict{"item": local}
+    ContainerBits read = store["item"]
+    return read.number
+end
+assert(unionRoundtrip() == 99)

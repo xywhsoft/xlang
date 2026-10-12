@@ -558,11 +558,18 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
     const XL6_IrType* base=any ? payload : xl6IrTypeGet(&module->types,plan->baseElementType);
     const char* descriptor=any ? "xrtTypeValue()" : xl6IrCgenNativeSlotTypeExpr(plan->slotAbi);
     const char* baseDescriptor=xl6IrCgenNativeValueTypeExpr(module,plan->baseElementType);
-    const char* payloadType=xl6IrCgenType(module,element);
+    const char* payloadType=plan->codecAbi==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1 ||
+        plan->codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1 ? "xvalue*" : xl6IrCgenType(module,element);
     const char* transfer=any ? "3" : xl6IrCgenSequenceTransferAbiToken(plan->transferAbi);
 #define XL6_SEQUENCE_CREATE_IDS result,(unsigned)plan->role, \
     (unsigned long long)sequence->typeValueId,(unsigned long long)payload->typeValueId
     switch (plan->abi) {
+    case XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1:
+        xl6OutputPrintf(out,
+            "    %s = xl6SequenceUnionCreateV1(%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, sizeof(%s), %s);\n",
+            XL6_SEQUENCE_CREATE_IDS,(unsigned long long)base->typeValueId,
+            xl6IrCgenType(module,plan->baseElementType),plan->nullable ? "true" : "false");
+        break;
     case XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1:
         {
             const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(payload);
