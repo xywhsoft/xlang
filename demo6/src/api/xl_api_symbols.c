@@ -8,6 +8,8 @@
 #include "src/runtime/xl6_native_handle.h"
 #include "src/runtime/xl6_dynamic_fields.h"
 #include "src/runtime/xl6_value_object_fields.h"
+#include "src/runtime/xl6_value_named_read.h"
+#include "src/runtime/xl6_value_named_write.h"
 #include "src/runtime/xl6_closure.h"
 #include "src/runtime/xl6_cell.h"
 #include "src/runtime/xl6_slot.h"
@@ -321,6 +323,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6ClassRuntimeV1Get", (const void*)xl6ClassRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClassRuntimeV2Get", (const void*)xl6ClassRuntimeV2Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClassRuntimeV3Get", (const void*)xl6ClassRuntimeV3Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ClassDynamicFieldPathV3", (const void*)xl6ClassDynamicFieldPathV3)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6CodeLeaseAcquire", (const void*)xl6CodeLeaseAcquire) ||
         !xlApiAddTccSymbol(s, "xl6CodeActivityEnterV1", (const void*)xl6CodeActivityEnterV1) ||
         !xlApiAddTccSymbol(s, "xl6CodeActivityLeaveV1", (const void*)xl6CodeActivityLeaveV1) ||

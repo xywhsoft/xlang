@@ -2082,8 +2082,16 @@ typedef enum XL6_IrRuntimeOp {
 #define XL6_CHANNEL_RECEIVE_OP(Id,...) XL6_IR_RUNTIME_CHANNEL_RECEIVE_##Id,
 #include "../abi/xl6_channel_receive_ops.inc"
 #undef XL6_CHANNEL_RECEIVE_OP
+    /* Exact literal spans and owned named records, distinct from known-class
+     * borrowed field storage. A write consumes item but observes receiver. */
+    XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY,
+    XL6_IR_RUNTIME_NAMED_SET_LITERAL_TAKE,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
+
+struct XL6_IrModule;
+struct XL6_IrInstruction;
+int xl6IrNamedValueInstructionCompatible(const struct XL6_IrModule*,const struct XL6_IrInstruction*);
 
 /* A closed compiler/runtime contract, not a source callback or an inferred
  * C spelling. One row owns both the synchronous value and checked-copy ABI. */
@@ -3574,6 +3582,7 @@ typedef struct XL6_IrDynamicMethod {
 
 int xl6IrDynamicMethodMatchesCallSite(
     const XL6_IrDynamicCallSite* site, const XL6_IrDynamicMethod* method);
+int xl6IrDynamicMemberNamedOnly(const struct XL6_IrModule*,const XL6_IrDynamicCallSite*);
 
 typedef struct XL6_IrIntrinsicOperand {
     XL6_IrNodeId expression;

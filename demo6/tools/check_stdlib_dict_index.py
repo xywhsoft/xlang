@@ -24,7 +24,10 @@ def main():
     sources[sources.index('test/support/dict_native.c')]='test/support/list_index_native.c'
     sources+=['src/runtime/xl6_list.c','src/runtime/xl6_list_value_read.c','src/runtime/xl6_array.c',
         'src/runtime/xl6_array_erased.c','src/runtime/xl6_array_value_read.c',
-        'src/runtime/xl6_value_index_read.c','src/runtime/xl6_value_index_write.c']
+        'src/runtime/xl6_value_index_read.c','src/runtime/xl6_value_index_write.c',
+        'src/runtime/xl6_value_named_read.c','src/runtime/xl6_value_named_write.c',
+        'src/runtime/xl6_value_object_fields.c','src/runtime/xl6_dynamic_fields.c',
+        'src/runtime/xl6_native_handle.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_code_lease.c']
     fixture=root/'test/cases/stdlib_dict_index.xl'; contract=root/'test/cases/xlir_dict_index_contract.c'
     language=root/'test/cases/stdlib_dict_index_language_host.c'
     files={Path(__file__).resolve(),population,Path(cc),Path(sys.executable),fixture,contract,language,
@@ -69,7 +72,7 @@ def main():
     def sweep(label,binary,mode,language=False):
         data=run(label,[binary,mode]); prefix='Dict index language' if language else 'Dict index'
         found=re.findall(prefix+r' closed lane=(\d+) mode='+mode+r' runs=(\d+) first-no-hit=(\d+)',data)
-        assert len(found)==4
+        assert len(found)==(4 if language else 8)
         for lane,runs,first in found:
             lane,runs,first=map(int,(lane,runs,first)); assert runs==first+1
             points=re.findall(prefix+' lane='+str(lane)+' mode='+mode+r' point=(\d+) hit=(\d) balanced',data)
@@ -88,15 +91,15 @@ def main():
             for mode in ('oom','scopes','providers'): sweep(opt+'-'+mode,binary,mode)
             products.append(dict(Path=str(binary),Sha256=sha(binary)))
         for name,source,before,after in (
-            ('native-dict-read-omitted','src/runtime/xl6_value_index_read.c','if (dict) {',
-                'if (dict && xrtValueType(source)==XVALUE_OBJECT) {'),
-            ('native-dict-write-omitted','src/runtime/xl6_value_index_write.c',
-                'if (dict>0) success=xl6DictErasedSetV1(source,text,item);','if (dict>0) success=true;'),
+            ('native-dict-read-omitted','src/runtime/xl6_value_named_read.c','if(dict>0) {',
+                'if(dict>0 && xrtValueType(source)==XVALUE_OBJECT) {'),
+            ('native-dict-write-omitted','src/runtime/xl6_value_named_write.c',
+                'if(dict>0) success=xl6DictErasedSetV1(source,(xstrview){name,size},item);','if(dict>0) success=true;'),
             ('read-key-nul-truncated','src/runtime/xl6_value_index_read.c',
                 'if (!xrtValueGetString(key,&text)) return NULL;',
                 'if (!xrtValueGetString(key,&text)) return NULL;\n        text.Size=strlen(text.Data);'),
-            ('write-key-nul-truncated','src/runtime/xl6_value_index_write.c','int dict=xl6DictErasedProbeV1(source);',
-                'text.Size=strlen(text.Data); int dict=xl6DictErasedProbeV1(source);'),
+            ('write-key-nul-truncated','src/runtime/xl6_value_index_write.c','success=xl6ValueNameSetTakeV1(source,text.Data,text.Size,item);',
+                'success=xl6ValueNameSetTakeV1(source,text.Data,strlen(text.Data),item);'),
             ('scope-entry-input-not-consumed','src/runtime/xl6_value_index_write.c',
                 'xrtClearError(); xrtValueRelease(item); xrtClearError(); xrtSetErrorTake(primary);',
                 'xrtClearError(); xrtClearError(); xrtSetErrorTake(primary);')):
@@ -109,7 +112,9 @@ def main():
                 Product=str(binary),ProductSha256=sha(binary)))
         if public:
             if os.name=='nt': shutil.copy2(product,out/'xl.dll')
-            else: env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
+            else:
+                env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
+                env['XL6_TCC_LIB']=str(Path(build['NativeRoot'])/'build/linux/tcc-dist')
             full=flags+['-DXL_STATIC_EMBED','-Ilib/tcc','-I'+str(public/'include'),'-Wno-unused-function',
                 '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-label','-Wno-unused-const-variable',
                 '-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign']
@@ -166,7 +171,7 @@ def main():
                 products.append(dict(Path=str(binary),Sha256=sha(binary)))
             run('jit',[driver,fixture,'run',out/'jit-result'])
         report['InputsUnchanged']=all(sha(r['Path'])==r['Sha256'] for r in inputs+objects+products)
-        report['Complete']=report['InputsUnchanged'] and len(controls)==5 and len(prefixes)==(56 if public else 24)
+        report['Complete']=report['InputsUnchanged'] and len(controls)==5 and len(prefixes)==(80 if public else 48)
         assert report['Complete']
     finally: (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     print('Native Dict index: '+str(len(rows))+' phases, '+str(len(prefixes))+' full prefixes, five mutants rejected',flush=True)

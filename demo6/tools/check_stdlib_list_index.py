@@ -38,7 +38,10 @@ def main():
         'src/runtime/xl6_char_type.c','src/runtime/xl6_char_value.c',
         'src/runtime/xl6_array.c','src/runtime/xl6_array_value_read.c','src/runtime/xl6_array_erased.c',
         'src/runtime/xl6_array_method_find.c','src/runtime/xl6_value_contains.c','src/runtime/xl6_value_wire_contains.c',
-        'src/runtime/xl6_list_value_read.c','src/runtime/xl6_value_index_read.c','src/runtime/xl6_value_index_write.c']
+        'src/runtime/xl6_list_value_read.c','src/runtime/xl6_value_index_read.c','src/runtime/xl6_value_index_write.c',
+        'src/runtime/xl6_value_named_read.c','src/runtime/xl6_value_named_write.c',
+        'src/runtime/xl6_value_object_fields.c','src/runtime/xl6_dynamic_fields.c',
+        'src/runtime/xl6_native_handle.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_code_lease.c']
     cases=(args.test_root.resolve() if args.test_root else root)/'test/cases'; host=cases/'stdlib_list_index_native_host.c'
     language_host=cases/'stdlib_list_index_language_host.c'; contract=cases/'xlir_list_index_contract.c'
     fixtures=[cases/'stdlib_list_index.xl',cases/'stdlib_array_index_prune.xl',cases/'stdlib_set_dict_contains_prune.xl']
@@ -61,7 +64,9 @@ def main():
     report['Objects']=report['NativeObjects']
     environment=os.environ.copy(); suffix='.exe' if os.name=='nt' else ''
     if os.name=='nt': shutil.copy2(product,out/'xl.dll')
-    else: environment['XL6_SOURCE_NATIVE_ROOT']=public['NativeRoot']
+    else:
+        environment['XL6_SOURCE_NATIVE_ROOT']=public['NativeRoot']
+        environment['XL6_TCC_LIB']=str(Path(public['NativeRoot'])/'build/linux/tcc-dist')
     if args.sanitize: environment.update(ASAN_OPTIONS='detect_leaks=1:detect_stack_use_after_return=1:halt_on_error=1',
         UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1')
     flags=['-std=c11','-Wall','-Wextra','-Werror','-I'+str(root),'-I'+str(root/'release'),

@@ -7,6 +7,8 @@
 #include "src/runtime/xl6_dict_graph_access.h"
 #include "src/runtime/xl6_value_index_read.h"
 #include "src/runtime/xl6_value_index_write.h"
+#include "src/runtime/xl6_value_named_read.h"
+#include "src/runtime/xl6_value_named_write.h"
 
 static size_t indexPoint,indexSeen;
 static bool indexArmed,indexProviders;
@@ -122,6 +124,36 @@ static void indexDrop(ptr raw,ptr context)
 static const xvaluehandleops indexDropOps={.Drop=indexDrop};
 static xvalue* indexRejected(void)
 { ptr raw=(ptr)(uintptr_t)1; xvalue* value=xrtValueHandleTake(&raw,&indexDropOps,NULL); assert(value && !raw); return value; }
+static void namedVectors(void)
+{
+    xvalue* source=indexInput();
+    xvalue* saved=xl6ValueNameReadCopyV1(source,indexKeys[1].Data,indexKeys[1].Size,true);
+    indexText(saved,indexKeys[1]);
+    assert(xl6ValueNameSetTakeV1(source,indexKeys[1].Data,indexKeys[1].Size,
+        xrtValueString(XRT_STR_LITERAL("named replacement"))));
+    xvalue* key=xrtValueString(indexKeys[1]); assert(key);
+    xvalue* result=xl6ValueIndexReadCopyV1(source,key); indexText(result,XRT_STR_LITERAL("named replacement"));
+    xrtValueRelease(result); xrtValueRelease(key);
+    result=xl6ValueNameReadCopyV1(source,"missing",7,true); assert(result==xrtValueNull()); xrtValueRelease(result);
+    assert(!xl6ValueNameSetTakeV1(source,NULL,1,xrtValueString(XRT_STR_LITERAL("bad")))); indexError(XERR_ARGUMENT);
+    assert(!xl6ValueNameReadCopyV1(source,NULL,1,true)); indexError(XERR_ARGUMENT);
+    unsigned before=indexDrops; xl6_error_scope parent={0}; assert(xl6ErrorScopeBegin(&parent));
+    assert(!xl6ValueNameSetTakeV1(source,"a",1,indexRejected()));
+    xl6_error_result outcome=xl6ErrorScopeEnd(&parent);
+    assert(!outcome.ok && xrtErrorKind(outcome.error)==XERR_TYPE && indexDrops==before+1); xrtErrorFree(outcome.error);
+    for(int failure=-1;failure<=1;failure+=2) {
+        xvalue* rejected=indexRejected(); before=indexDrops; parent=(xl6_error_scope){0}; assert(xl6ErrorScopeBegin(&parent)); entryFailure=failure;
+        assert(!xl6ValueNameSetTakeV1(source,"a",1,rejected)); outcome=xl6ErrorScopeEnd(&parent);
+        assert(!outcome.ok && indexDrops==before+1 && !entryFailure);
+        assert(failure<0 ? !outcome.error : xrtErrorKind(outcome.error)==XERR_MEMORY); xrtErrorFree(outcome.error);
+    }
+    assert(xl6DictErasedClearV1(source)); xrtValueRelease(source); indexText(saved,indexKeys[1]); xrtValueRelease(saved);
+    result=xl6ValueNameReadCopyV1(NULL,"anything",8,true); assert(result==xrtValueNull()); xrtValueRelease(result);
+    source=xrtValueInt(1); assert(source);
+    assert(!xl6ValueNameReadCopyV1(source,"anything",8,true)); indexError(XERR_TYPE);
+    result=xl6ValueNameReadCopyV1(source,"anything",8,false); assert(result==xrtValueNull()); xrtValueRelease(result);
+    xrtValueRelease(source);
+}
 static void indexRefusals(void)
 {
     XL6_DictLayoutV1 t=layout(2,xl6StringTypeV1()); xvalue* dict=indexInput(),*key=xrtValueString(indexKeys[1]); assert(key);
@@ -157,25 +189,32 @@ static void indexRefusals(void)
 }
 static bool indexAttempt(unsigned lane,size_t point,const char* mode)
 {
+    unsigned slot=lane%4;
     xl6ProductMemoryBegin(SIZE_MAX); xvalue* dict=indexInput();
-    xvalue* key=xrtValueString(lane==1 || lane==2 ? XRT_STR_LITERAL("new") : indexKeys[1]);
+    xstrview selected=slot==1 || slot==2 ? XRT_STR_LITERAL("new") : indexKeys[1];
+    xvalue* key=xrtValueString(selected);
     xvalue* item=xrtValueString(XRT_STR_LITERAL("replacement")),*result=NULL; assert(key && item);
     xl6_error_scope parent={0}; assert(xl6ErrorScopeBegin(&parent));
     indexPoint=point; indexSeen=0; indexProviders=!strcmp(mode,"providers"); indexArmed=strcmp(mode,"oom")!=0;
     if (!indexArmed) assert(xrtMemDebugFailAfter(point));
     bool success;
-    if (lane<2) { result=xl6ValueIndexReadCopyV1(dict,key); success=result!=NULL; }
-    else { success=xl6ValueIndexSetTakeV1(dict,key,item); item=NULL; }
+    if (slot<2) {
+        result=lane<4 ? xl6ValueIndexReadCopyV1(dict,key) : xl6ValueNameReadCopyV1(dict,selected.Data,selected.Size,true);
+        success=result!=NULL;
+    } else {
+        success=lane<4 ? xl6ValueIndexSetTakeV1(dict,key,item) : xl6ValueNameSetTakeV1(dict,selected.Data,selected.Size,item);
+        item=NULL;
+    }
     bool hit=indexArmed ? indexSeen>point : xrtMemDebugFailTriggered(); indexArmed=false; indexProviders=false;
     xrtMemDebugFailClear(); xl6_error_result outcome=xl6ErrorScopeEnd(&parent);
     assert(success==!hit && outcome.ok==!hit); if (hit) assert(!result);
     if (hit && strcmp(mode,"oom")) assert(!outcome.error);
-    XL6_DictLayoutV1 t=layout(2,xl6StringTypeV1()); assert(xl6DictCountV1(dict,&t)==(lane==2 && !hit ? 4 : 3));
+    XL6_DictLayoutV1 t=layout(2,xl6StringTypeV1()); assert(xl6DictCountV1(dict,&t)==(slot==2 && !hit ? 4 : 3));
     xstrview actual={0}; bool found=false;
     assert(xl6DictGetV1(dict,&t,indexKeys[1],&actual,false,&found) && found);
-    xstrview expected=lane==3 && !hit ? XRT_STR_LITERAL("replacement") : indexKeys[1];
+    xstrview expected=slot==3 && !hit ? XRT_STR_LITERAL("replacement") : indexKeys[1];
     assert(actual.Size==expected.Size && !memcmp(actual.Data,expected.Data,actual.Size)); xrtTypeDropValue(t.value.type,&actual);
-    if (success && lane<2) { if (lane==1) assert(result==xrtValueNull()); else indexText(result,indexKeys[1]); }
+    if (success && slot<2) { if (slot==1) assert(result==xrtValueNull()); else indexText(result,indexKeys[1]); }
     xrtErrorFree(outcome.error); xrtValueRelease(result); xrtValueRelease(item); xrtValueRelease(key); xrtValueRelease(dict); xrtClearError();
     assert(!xl6ProductMemoryEnd()); xl6ProductMemoryVerify();
     printf("Dict index lane=%u mode=%s point=%zu hit=%d balanced\n",lane,mode,point,hit); return hit;
@@ -185,12 +224,12 @@ int main(int argc,char** argv)
 {
     assert(argc==2);
     if (!strcmp(argv[1],"vectors")) {
-        xl6ProductMemoryBegin(SIZE_MAX); indexVectors(); indexDomains(); indexRefusals();
+        xl6ProductMemoryBegin(SIZE_MAX); indexVectors(); indexDomains(); namedVectors(); indexRefusals();
         assert(!xrtGetError() && !xl6ProductMemoryEnd()); xl6ProductMemoryVerify();
         puts("[PASS] native Dict dynamic index exact keys, owned outputs and checked domains balanced"); return 0;
     }
     assert(!strcmp(argv[1],"oom") || !strcmp(argv[1],"scopes") || !strcmp(argv[1],"providers"));
-    for (unsigned lane=0;lane<4;++lane) {
+    for (unsigned lane=0;lane<8;++lane) {
         bool closed=false;
         for (size_t point=0;point<4096;++point) if (!indexAttempt(lane,point,argv[1])) {
             printf("Dict index closed lane=%u mode=%s runs=%zu first-no-hit=%zu\n",lane,argv[1],point+1,point);

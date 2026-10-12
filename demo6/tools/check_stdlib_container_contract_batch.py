@@ -1,6 +1,6 @@
 """Implicit collection vocabulary and supported container regression contracts.
 This is a declared focused batch, not all container families or full53. Source
-discovery's unresolved union and erased Dict member routes remain separate work.
+discovery's unresolved union routes remain separate work.
 Strict C O0/O2, real JIT/AOT, independent imports, exact compiled IR vocabulary,
 full synchronous module allocation prefixes and unused-producer pruning.
 """
@@ -9,7 +9,7 @@ import argparse,concurrent.futures,hashlib,json,os,re,shutil,subprocess,sys,trac
 from xlir_public_build_inputs import verify_public_build
 CASES=('xlir_dynamic_set_vocabulary','cgen_dynamic_container_methods','cgen_dynamic_method_arguments',
     'xlir_erased_collection_members','cgen_container_ops','xlir_erased_collection_member_lifetime',
-    'xlir_typed_dict_scalar_set')
+    'xlir_typed_dict_scalar_set','cgen_dynamic_container_reference','xlir_dict_named_route')
 def sha(p): return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -20,9 +20,12 @@ def main():
     driver=Path(build['Driver']); runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     memory=root/'test/support/module_product_memory.c'; host=root/'test/cases/xlir_module_product_oom_host.c'
     contract=root/'test/cases/xlir_implicit_collection_vocabulary_contract.c'
+    named=root/'test/cases/xlir_dict_named_route_contract.c'
+    named_prune=root/'test/cases/xlir_dict_named_prune.xl'
+    class_prune=root/'test/cases/xlir_class_named_prune.xl'
     numeric=root/'test/cases/stdlib_dynamic_numeric_prune.xl'
     sidecar=root/'test/cases/xlir_default_class_layout_support.c'; weak=root/'test/cases/xlir_json_stream_lifetime_host.c'
-    files={Path(__file__),Path(sys.executable),Path(cc),Path(objdump),*pinned,memory,host,contract,numeric,sidecar,weak,
+    files={Path(__file__),Path(sys.executable),Path(cc),Path(objdump),*pinned,memory,host,contract,named,named_prune,class_prune,numeric,sidecar,weak,
         root/'test/support/module_product_memory.h',runtime,*[root/'test/cases'/(n+'.xl') for n in CASES]}
     inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(files)]
     out.mkdir(); rows=[]; errors=[]; cases=[]; prefixes=[]; artifacts=[]
@@ -89,6 +92,10 @@ def main():
             run('vocabulary.O'+str(opt)+'.build',[cc,*flags,'-O'+str(opt),contract,*objects,*links,'-o',binary])
             assert 'six corruptions refused and unused Set pruned' in run('vocabulary.O'+str(opt)+'.run',
                 [binary,root/'test/cases/xlir_dynamic_set_vocabulary.xl',numeric])
+            binary=out/('named.O'+str(opt)+'.exe')
+            run('named.O'+str(opt)+'.build',[cc,*flags,'-O'+str(opt),named,*objects,*links,'-o',binary])
+            assert 'owned ABI and class/numeric pruning verified' in run('named.O'+str(opt)+'.run',
+                [binary,root/'test/cases/xlir_dict_named_route.xl',named_prune,class_prune,numeric])
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
             for case in pool.map(execute,CASES):
                 cases.append(case); print(case['Name']+': '+str(case['Complete']),flush=True)

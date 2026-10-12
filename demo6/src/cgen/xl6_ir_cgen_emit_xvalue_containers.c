@@ -4,6 +4,8 @@ static int xl6IrCgenEmitXValueContainerRuntime(
 {
     size_t i;
     size_t parameter;
+    if(needs->namedValueOperations&1u) xl6OutputPuts("#include <__xl_runtime/xl6_value_named_read.h>\n",out);
+    if(needs->namedValueOperations&2u) xl6OutputPuts("#include <__xl_runtime/xl6_value_named_write.h>\n",out);
     if ( needs->needsXValueRuntime || module->abi.entryKind == XL6_IR_MODULE_ENTRY_XLANG_MAIN ) {
         if ( needs->needsXValueCollectionRemoveRuntime )
             xl6OutputPuts("#include <__xl_runtime/xl6_array_methods.h>\n"

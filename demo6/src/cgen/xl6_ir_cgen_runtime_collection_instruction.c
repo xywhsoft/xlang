@@ -3,7 +3,17 @@ static int xl6IrCgenEmitCollectionRuntimeInstruction(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrInstruction* instruction, XL6_DiagList* diags)
 {
-    if ( xl6IrCgenEmitXValueIteratorInstruction(
+    if(instruction->runtimeOp==XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_NAMED_SET_LITERAL_TAKE) {
+        if(!xl6IrNamedValueInstructionCompatible(module,instruction))
+            return xl6IrCgenRuntimeEmitDiag(diags,module,instruction->origin,"XLIR named record emission requires an exact owned ABI");
+        bool write=instruction->runtimeOp==XL6_IR_RUNTIME_NAMED_SET_LITERAL_TAKE;
+        xl6OutputPrintf(out,"    v%u = %s(v%u, %s, sizeof(%s)-1, ",
+            (unsigned)instruction->result,write ? "xl6ValueNameSetTakeV1" : "xl6ValueNameReadCopyV1",
+            (unsigned)module->operands[instruction->firstOperand],instruction->immediateText,instruction->immediateText);
+        if(write) xl6OutputPrintf(out,"v%u);\n",(unsigned)module->operands[instruction->firstOperand+1]);
+        else xl6OutputPuts("true);\n",out);
+    } else if ( xl6IrCgenEmitXValueIteratorInstruction(
                                out, module, instruction) ) {
         } else if ( xl6IrCgenEmitXValueProjectionInstruction(
                                out, module, instruction) ) {

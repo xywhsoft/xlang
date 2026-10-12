@@ -575,12 +575,12 @@ static int xl6IrCgenEmitDynamicMethodDispatcher(
     if (dispatchKind == XL6_IR_DYNAMIC_CALL_MEMBER_GET)
         xl6OutputPuts(
             "    if (receiver == NULL || xrtValueType(receiver) == 0) { result = xrtValueRetain(xrtValueNull()); goto cleanup; }\n"
-            "    typeValue = xrtValueObjectGet(receiver, xrtStrView(\"$xlir.class.runtime-type\"));\n"
+            "    if (xrtValueType(receiver) == 12) typeValue = xrtValueObjectGet(receiver, xrtStrView(\"$xlir.class.runtime-type\"));\n"
             "    if (typeValue != NULL) (void)xrtValueGetInt(typeValue, &runtimeType);\n", out);
     else if (dispatchKind == XL6_IR_DYNAMIC_CALL_MEMBER_SET)
         xl6OutputPuts(
-            "    if (positionalCount != 1 || positionalValues == NULL || keywordCount != 0 || receiver == NULL || xrtValueType(receiver) != 12) { xrtSetErrorTake(xlir_error_create(\"TypeError\", \"dynamic setter requires an object receiver and one value\")); goto cleanup; }\n"
-            "    typeValue = xrtValueObjectGet(receiver, xrtStrView(\"$xlir.class.runtime-type\"));\n"
+            "    if (positionalCount != 1 || positionalValues == NULL || keywordCount != 0 || receiver == NULL) { xrtSetErrorTake(xlir_error_create(\"TypeError\", \"dynamic setter requires a record receiver and one value\")); goto cleanup; }\n"
+            "    if (xrtValueType(receiver) == 12) typeValue = xrtValueObjectGet(receiver, xrtStrView(\"$xlir.class.runtime-type\"));\n"
             "    if (typeValue != NULL && !xrtValueGetInt(typeValue, &runtimeType)) goto cleanup;\n",
             out);
     else if ( fallbackOperation != NULL )
@@ -663,9 +663,18 @@ static int xl6IrCgenEmitDynamicMethodDispatcher(
             (unsigned long)methodIndex, (unsigned long)methodIndex);
     }
     if (dispatchKind == XL6_IR_DYNAMIC_CALL_MEMBER_GET) {
-        xl6OutputPuts("    default: {\n        xvalue* field = xlir_xvalue_dynamic_field_find(receiver, xrtStrView(", out);
-        xl6IrCgenEmitCStringLiteral(out, site->memberName);
-        xl6OutputPuts("));\n        if (xrtGetError() != NULL) break;\n        if (field != NULL) { result = xrtValueRetain(field); break; }\n", out);
+        xl6OutputPuts("    default: {\n", out);
+        if(site->memberBindingAbi!=XL6_IR_DYNAMIC_MEMBER_BINDING_RETAIN_RECEIVER)
+            xl6OutputPuts("        result = xl6ValueNameReadCopyV1(receiver, ",out);
+        else xl6OutputPuts("        if (xrtValueType(receiver) != 12) { result = xl6ValueNameReadCopyV1(receiver, ",out);
+        xl6IrCgenEmitCStringLiteral(out,site->memberName);
+        xl6OutputPuts(", sizeof(",out); xl6IrCgenEmitCStringLiteral(out,site->memberName);
+        xl6OutputPuts(")-1, true); break;",out);
+        if(site->memberBindingAbi==XL6_IR_DYNAMIC_MEMBER_BINDING_RETAIN_RECEIVER) {
+            xl6OutputPuts(" }\n        xvalue* field = xlir_xvalue_dynamic_field_find(receiver, xrtStrView(",out);
+            xl6IrCgenEmitCStringLiteral(out,site->memberName);
+            xl6OutputPuts("));\n        if (xrtGetError() != NULL) break;\n        if (field != NULL) { result = xrtValueRetain(field); break; }\n",out);
+        } else xl6OutputPuts("\n",out);
         if (site->memberBindingAbi == XL6_IR_DYNAMIC_MEMBER_BINDING_RETAIN_RECEIVER) {
             /* Presence and runtime identities are fixed in the typed registry.
              * A present null field is not an absent field or a method group. */
@@ -684,9 +693,9 @@ static int xl6IrCgenEmitDynamicMethodDispatcher(
                     (unsigned int)method->runtimeTypeTag, (unsigned long)siteIndex);
             }
             xl6OutputPuts("        default: result = xrtValueRetain(xrtValueNull()); break;\n        }\n", out);
-        } else
-            xl6OutputPuts("        result = xrtValueRetain(xrtValueNull());\n", out);
-        xl6OutputPuts("        break;\n    }\n", out);
+            xl6OutputPuts("        break;\n",out);
+        }
+        xl6OutputPuts("    }\n", out);
     } else if (dispatchKind == XL6_IR_DYNAMIC_CALL_MEMBER_SET) {
         xl6OutputPuts("    default: {\n", out);
         /* Property presence is registry data, even when its adapter is unsupported
@@ -699,10 +708,11 @@ static int xl6IrCgenEmitDynamicMethodDispatcher(
                 "        if (runtimeType == %u) { xrtSetErrorTake(xlir_error_create(\"TypeError\", \"dynamic property is read-only or has no matching verified setter\")); goto cleanup; }\n",
                 (unsigned int)method->runtimeTypeTag);
         }
-        xl6OutputPuts("        bool stored = xlir_xvalue_dynamic_field_set_new(receiver, xrtStrView(", out);
+        xl6OutputPuts("        bool stored = xl6ValueNameSetTakeV1(receiver, ", out);
         xl6IrCgenEmitCStringLiteral(out, site->memberName);
+        xl6OutputPuts(", sizeof(",out); xl6IrCgenEmitCStringLiteral(out,site->memberName);
         xl6OutputPuts(
-            "), positionalValues[0]);\n"
+            ")-1, positionalValues[0]);\n"
             "        positionalValues[0] = NULL;\n"
             "        if (stored) result = xrtValueRetain(xrtValueNull());\n"
             "        else if (xrtGetError() == NULL) xrtSetErrorTake(xlir_error_create(\"RuntimeError\", \"dynamic field assignment failed\"));\n"
@@ -718,7 +728,7 @@ static int xl6IrCgenEmitDynamicMethodDispatcher(
         "    if (keywordValues != NULL) for (argumentIndex = 0; argumentIndex < keywordCount; ++argumentIndex) xrtValueRelease(keywordValues[argumentIndex]);\n"
         "    if (invocationScope.failed || xrtGetError() != NULL) { xl6ErrorScopeCaptureFailure(&invocationScope); xrtValueRelease(result); result = NULL; }\n"
         "    invocationOutcome = xl6ForeignCallEnd(&invocationScope);\n"
-        "    if (!invocationOutcome.ok) xrtSetErrorTake(invocationOutcome.error);\n"
+        "    if (!invocationOutcome.ok) xl6ErrorScopePropagateFailure(invocationOutcome);\n"
         "    return result;\n"
         "    }\n"
         "}\n",

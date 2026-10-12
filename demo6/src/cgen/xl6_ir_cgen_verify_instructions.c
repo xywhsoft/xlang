@@ -659,6 +659,8 @@ static int xl6IrCgenVerifyInstructions(
                    instruction->runtimeOp != XL6_IR_RUNTIME_ARRAY_READ_VALUE_COPY &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_ARRAY_READ_VALUE_OR_NULL_COPY &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_INDEX_READ_VALUE_COPY &&
+                   instruction->runtimeOp != XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY &&
+                   instruction->runtimeOp != XL6_IR_RUNTIME_NAMED_SET_LITERAL_TAKE &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_LIST_READ_VALUE_COPY &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_LIST_READ_VALUE_OR_NULL_COPY &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_LIST_READ_VALUE_REQUIRED_COPY &&

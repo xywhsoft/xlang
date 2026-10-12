@@ -2,8 +2,7 @@
 #include "src/runtime/xl6_array_value_read.h"
 #include "src/runtime/xl6_list_value_read.h"
 #include "src/runtime/xl6_list.h"
-#include "src/runtime/xl6_dict.h"
-#include "src/runtime/xl6_value_object_fields.h"
+#include "src/runtime/xl6_value_named_read.h"
 #include "src/api/xl_foreign_error.h"
 
 static xvalue* read(const xvalue* source,const xvalue* key)
@@ -19,18 +18,7 @@ static xvalue* read(const xvalue* source,const xvalue* key)
     if (xrtValueType(key)==XVALUE_STRING) {
         xstrview text;
         if (!xrtValueGetString(key,&text)) return NULL;
-        int dict=xl6DictErasedProbeV1(source);
-        if (dict<0) return NULL;
-        if (dict) {
-            xvalue* result=NULL; bool found=false;
-            if (!xl6DictErasedReadV1(source,text,false,&result,&found)) return NULL;
-            return found ? result : xrtValueRetain(xrtValueNull());
-        }
-        if (xrtValueType(source)==XVALUE_OBJECT) {
-            const xvalue* item=xl6ValueObjectFieldFindV1(source,text.Data,text.Size);
-            if (xrtGetError()) return NULL;
-            return xrtValueRetain(item ? item : xrtValueNull());
-        }
+        return xl6ValueNameReadCopyV1(source,text.Data,text.Size,false);
     }
     return xrtValueRetain(xrtValueNull());
 }

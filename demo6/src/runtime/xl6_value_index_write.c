@@ -1,8 +1,7 @@
 #include "src/runtime/xl6_value_index_write.h"
 #include "src/runtime/xl6_array_value_write.h"
 #include "src/runtime/xl6_list.h"
-#include "src/runtime/xl6_dict.h"
-#include "src/runtime/xl6_value_object_fields.h"
+#include "src/runtime/xl6_value_named_write.h"
 #include "src/api/xl_foreign_error.h"
 
 bool xl6ValueIndexSetTakeV1(xvalue* source,const xvalue* key,xvalue* item)
@@ -30,12 +29,7 @@ bool xl6ValueIndexSetTakeV1(xvalue* source,const xvalue* key,xvalue* item)
     } else if (xrtValueType(key)==XVALUE_STRING) {
         xstrview text;
         if (xrtValueGetString(key,&text)) {
-            int dict=xl6DictErasedProbeV1(source);
-            if (dict>0) success=xl6DictErasedSetV1(source,text,item);
-            else if (!dict && xrtValueType(source)==XVALUE_OBJECT) {
-                success=xl6ValueObjectFieldSetTakeV1(source,text.Data,text.Size,item);
-                item=NULL;
-            } else if (!dict) xrtSetErrorKind(XERR_TYPE);
+            success=xl6ValueNameSetTakeV1(source,text.Data,text.Size,item); item=NULL;
         }
     } else xrtSetErrorKind(XERR_TYPE);
     if (!success || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);

@@ -1,0 +1,8 @@
+class NamedPruneClass
+    int answer = 42
+end
+export "classOnly" func classOnly() as int
+    NamedPruneClass source = NamedPruneClass()
+    source.answer = 43
+    return source.answer
+end

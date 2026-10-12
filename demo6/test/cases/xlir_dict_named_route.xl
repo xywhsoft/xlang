@@ -1,0 +1,77 @@
+class NamedRouteChild
+    int count = 7
+end
+class NamedRouteProperty
+    string stored = "property"
+    get payload() as string
+        return self.stored
+    end
+    let payload(string value)
+        self.stored = value
+    end
+end
+class NamedRouteMethod
+    func action() as int
+        return 7
+    end
+end
+
+func namedRouteValue() as var
+    return {"payload": "a\0你", "nested": {"count": 1}}
+end
+
+var record = namedRouteValue()
+var alias = record
+var saved = record.payload
+alias.payload = "replacement"
+assert string(saved) == "a\0你"
+assert string(record["payload"]) == "replacement"
+alias.nested.count = int(alias.nested.count) + 4
+assert int(record["nested"]["count"]) == 5
+record.fresh = "first"
+assert string(record.fresh) == "first"
+assert record.missing == null
+var absent = null
+assert absent?.missing == null
+
+record["a\0b"] = "precise"
+record.a = "prefix"
+assert string(record["a\0b"]) == "precise" and string(record.a) == "prefix"
+record.binary = b"\x00\xff\x00"
+record.character = '你'
+assert bytes(record.binary) == b"\x00\xff\x00"
+assert record.character == '你'
+
+dict<string> typed = dict{"payload": "typed\0你"}
+var erased = typed
+var typedSaved = erased.payload
+erased.payload = "changed"
+assert typed["payload"] == "changed" and string(typedSaved) == "typed\0你"
+bool rejected = false
+try
+    erased.payload = 123
+catch TypeError failure
+    rejected = true
+end
+assert rejected and typed["payload"] == "changed"
+
+NamedRouteChild child = NamedRouteChild()
+record.child = child
+var observed = record.child
+record.child = null
+observed.count = 9
+assert child.count == 9
+record = null
+assert string(saved) == "a\0你" and string(typedSaved) == "typed\0你"
+assert string(namedRouteValue().payload) == "a\0你"
+var property = NamedRouteProperty()
+assert string(property.payload) == "property"
+property.payload = "setter"
+assert string(property.payload) == "setter"
+var method = NamedRouteMethod()
+var action = method.action
+assert int(action()) == 7
+var fallback = {"action": null}
+assert fallback.action == null
+fallback.action = 8
+assert int(fallback.action) == 8

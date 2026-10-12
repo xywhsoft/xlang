@@ -1,0 +1,4 @@
+export "namedOnly" func namedOnly(var source) as int
+    source.answer = 42
+    return int(source.answer)
+end
