@@ -1,0 +1,64 @@
+func fieldKey() as SlotMapKey
+    auto values = SlotMap::<int>()
+    return values.insert(3)
+end
+int fieldDestroyed = 0
+class NativeKeyField
+    SlotMapKey value = fieldKey()
+    func readImplicit() as SlotMapKey
+        return value
+    end
+    func readExplicit() as SlotMapKey
+        return self.value
+    end
+    func replace(SlotMapKey input)
+        self.value = input
+    end
+    destroy()
+        fieldDestroyed += 1
+    end
+end
+func temporaryField() as NativeKeyField
+    return NativeKeyField()
+end
+func returnField() as SlotMapKey
+    auto holder = NativeKeyField()
+    try
+        return holder.value
+    finally
+        holder.value = fieldKey()
+    end
+end
+func main(...) as int
+    auto original = fieldKey()
+    auto replacement = fieldKey()
+    auto holder = NativeKeyField()
+    holder.value = original
+    auto retained = holder.value
+    holder.replace(replacement)
+    assert(retained == original)
+    assert(holder.value == replacement)
+    assert(holder.readImplicit() == replacement and holder.readExplicit() == replacement)
+    int before = fieldDestroyed
+    auto escaped = temporaryField().value
+    assert(escaped == escaped and fieldDestroyed == before + 1)
+    array<NativeKeyField> owners = [NativeKeyField()]
+    auto fromArray = owners[0].value
+    owners.clear()
+    assert(fromArray == fromArray and fieldDestroyed == before + 2)
+    auto returned = returnField()
+    assert(returned == returned and fieldDestroyed == before + 3)
+    int observed = 0
+    try
+        auto checked = holder.value
+        throw ValueError "native field failure"
+    catch ValueError failure
+        assert(failure.message == "native field failure")
+        observed += 1
+    finally
+        assert(holder.value == replacement)
+        observed += 1
+    end
+    assert(observed == 2)
+    return 0
+end
