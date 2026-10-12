@@ -845,16 +845,16 @@ $slotEmitter=Read-Utf8 'src/cgen/xl6_ir_cgen_slots.c'
 $asyncStorage=Read-Utf8 'src/runtime/xl6_frame_storage.c'
 $asyncFrameEmitter=Read-Utf8 'src/cgen/xl6_ir_cgen_async_machine.c'
 $asyncInstructionEmitter=Read-Utf8 'src/cgen/xl6_ir_cgen_async_instruction.c'
-if (!$header.Contains('XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V2') -or
+if (!$header.Contains('XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V3') -or
     !$source.Contains('XLIR async physical storage ABI is unresolved') -or
-    !$lower.Contains('module->abi.asyncStorageAbi = XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V2') -or
+    !$lower.Contains('module->abi.asyncStorageAbi = XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V3') -or
     !$generatorPrelude.Contains('xl6ContinuationFrameRuntimeV2Get()->Discard') -or
     !$asyncStorage.Contains('XL6_OWNERSHIP_RETURN(void*, xrtMalloc(size))') -or
     !$asyncStorage.Contains('XL6_OWNERSHIP_RETURN_VOID(xrtFree(data))') -or
     $asyncFrameEmitter.Contains('xrtFree(frame);') -or $asyncInstructionEmitter.Contains('xrtFree(next);') -or
     !$asyncFrameEmitter.Contains('xlir_async_frame_allocate(sizeof(*frame), &xlir_async_machine_storage_') -or
     !$asyncInstructionEmitter.Contains('xlir_async_frame_allocate(sizeof(*next), &xlir_async_machine_storage_') -or
-    !$asyncFrameEmitter.Contains('XL6_ContinuationFrameLayoutV2') -or
+    !$asyncFrameEmitter.Contains('XL6_ContinuationFrameLayoutV3') -or
     $asyncFrameEmitter.Contains('xlir_async_machine_frame_trace_') -or
     !(Read-Utf8 'src/runtime/xl6_continuation_frame.c').Contains('xl6ContinuationFrameOwnershipAdapterV1') -or
     !(Read-Utf8 'tools/run_xlir_ownership_batch.ps1').Contains('check_xlir_async_storage.ps1')) {

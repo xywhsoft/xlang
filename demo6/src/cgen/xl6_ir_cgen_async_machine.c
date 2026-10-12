@@ -187,6 +187,14 @@ static int xl6IrCgenEmitAsyncMachine(
         goto done;
     }
 
+    for(local=0;local<machine->frameSlotCount;++local){
+        const XL6_IrContinuationFrameSlot* frame=&module->asyncMachineFrameSlots[machine->firstFrameSlot+local];
+        if(frame->destroyAbi==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE){
+            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,frame->type));
+            if(!native || !native->captureHeader || !native->captureProfileSymbol)goto done;
+            xl6OutputPrintf(out,"#include <%s>\n",native->captureHeader);
+        }
+    }
     xl6OutputPrintf(out, "typedef struct xlir_async_machine_frame_%u {\n",
                     (unsigned int)target->symbol);
     for ( local = 0; local < machine->frameSlotCount; ++local ) {
@@ -202,14 +210,14 @@ static int xl6IrCgenEmitAsyncMachine(
                   "    XL6_ContinuationTicket ticket;\n", out);
     xl6OutputPrintf(out, "} xlir_async_machine_frame_%u;\n", (unsigned int)target->symbol);
     if (!xl6IrCgenEmitActivationLayout(out, "xlir_async_machine", target->symbol,
-            module,0,
+            module,1,
             machine->frameSlotCount ? module->asyncMachineFrameSlots + machine->firstFrameSlot : NULL,
             machine->frameSlotCount, machine->firstFrameSlot,
             machine->destroyActionCount ? module->asyncFrameActions + machine->firstDestroyAction : NULL,
             machine->destroyActionCount)) goto done;
     xl6OutputPrintf(out,
-        "static const XL6_ContinuationFrameLayoutV2 xlir_async_machine_storage_%u = {\n"
-        "  sizeof(XL6_ContinuationFrameLayoutV2), &xlir_async_machine_layout_%u,\n"
+        "static const XL6_ContinuationFrameLayoutV3 xlir_async_machine_storage_%u = {\n"
+        "  sizeof(XL6_ContinuationFrameLayoutV3), &xlir_async_machine_layout_%u,\n"
         "  offsetof(xlir_async_machine_frame_%u, ticket), offsetof(xlir_async_machine_frame_%u, watch),\n"
         "  offsetof(xlir_async_machine_frame_%u, source), offsetof(xlir_async_machine_frame_%u, outer)};\n",
         (unsigned int)target->symbol, (unsigned int)target->symbol, (unsigned int)target->symbol,
@@ -310,10 +318,9 @@ static int xl6IrCgenEmitAsyncMachine(
         const XL6_IrAsyncMachineFrameSlot* frame =
             &module->asyncMachineFrameSlots[machine->firstFrameSlot + local];
         if ( frame->initBit == SIZE_MAX ) continue;
-        xl6OutputPrintf(out, "    frame->f%lu = %s; frame->i%lu = 0;\n",
+        xl6OutputPrintf(out, "    frame->f%lu = (%s){0}; frame->i%lu = 0;\n",
             (unsigned long)local,
-            xl6IrTypeGet(&module->types, frame->type)->cAbi == XL6_IR_C_ABI_MANAGED_STRING
-                ? "(xlir_string){0}" : "NULL",
+            xl6IrCgenType(module,frame->type),
             (unsigned long)frame->initBit);
     }
     for ( local = 0; local < machine->prologueActionCount; ++local ) {

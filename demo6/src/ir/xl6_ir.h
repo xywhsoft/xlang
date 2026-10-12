@@ -4382,7 +4382,8 @@ typedef enum XL6_IrAsyncCaptureAbi {
     /* Retains a borrowed language error value into the task frame. */
     XL6_IR_ASYNC_CAPTURE_RETAIN_ERROR,
     /* Takes the caller's already-owned byval argument; never retain again. */
-    XL6_IR_ASYNC_CAPTURE_TAKE_PARAMETER
+    XL6_IR_ASYNC_CAPTURE_TAKE_PARAMETER,
+    XL6_IR_ASYNC_CAPTURE_COPY_NATIVE_VALUE
 } XL6_IrAsyncCaptureAbi;
 
 /* Closure capture ownership is a separate ABI from a direct-call parameter.
@@ -5490,7 +5491,8 @@ typedef enum XL6_IrGeneratorStorageAbi {
 typedef enum XL6_IrAsyncStorageAbi {
     XL6_IR_ASYNC_STORAGE_NONE = 0,
     XL6_IR_ASYNC_STORAGE_RESIDENT_PHYSICAL_FRAME_V1, /* Historical unpinnable storage, not canonical Lowered IR. */
-    XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V2
+    XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V2,
+    XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V3
 } XL6_IrAsyncStorageAbi;
 
 /* One resident physical task frame, scoped callbacks and module pool admission.

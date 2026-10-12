@@ -17,6 +17,7 @@ typedef struct ContinuationProducer ContinuationProducer;
 typedef struct ContinuationFrame {
     xatomic64 gate;
     const XL6_ContinuationFrameLayoutV2* layout;
+    const XL6_ContinuationFrameLayoutV3* layoutV3;
     XL6_CodeLease* lease;
     ContinuationProducer* producer;
     size_t references, bytes;
@@ -38,12 +39,18 @@ static const xrtownershipops producer_ops;
 static void detach_producer(const void*);
 static ContinuationFrame* header(const void* data)
 { return data ? (ContinuationFrame*)((unsigned char*)data - offsetof(ContinuationFrame,data)) : NULL; }
+typedef struct TransportOffsets {size_t ticket,watch,source,outer;} TransportOffsets;
+static TransportOffsets offsets(const ContinuationFrame* frame)
+{
+    if(frame->layoutV3){const XL6_ContinuationFrameLayoutV3* l=frame->layoutV3;return (TransportOffsets){l->ticket,l->watch,l->source,l->outer};}
+    const XL6_ContinuationFrameLayoutV2* l=frame->layout;return (TransportOffsets){l->ticket,l->watch,l->source,l->outer};
+}
 static XL6_ContinuationTicket* frame_ticket(const ContinuationFrame* frame)
-{ return (XL6_ContinuationTicket*)(frame->data+frame->layout->ticket); }
+{ return (XL6_ContinuationTicket*)(frame->data+offsets(frame).ticket); }
 static xfuture** frame_source(ContinuationFrame* frame)
-{ return (xfuture**)(frame->data+frame->layout->source); }
+{ return (xfuture**)(frame->data+offsets(frame).source); }
 static xpromise** frame_outer(ContinuationFrame* frame)
-{ return (xpromise**)(frame->data+frame->layout->outer); }
+{ return (xpromise**)(frame->data+offsets(frame).outer); }
 static void begin(ContinuationFrame* frame,xrtownershipscope* mutation)
 {
     if(!xrtOwnershipMutationBegin(mutation))abort();
@@ -56,22 +63,36 @@ static void unlock(ContinuationFrame* frame) { xrtAtomic64Store(&frame->gate,0,X
 static void end(ContinuationFrame* frame,xrtownershipscope* mutation)
 { unlock(frame);if(!xrtOwnershipScopeEnd(mutation))abort(); }
 static bool overlap(size_t a,size_t n,size_t b,size_t m) { return a<b+m && b<a+n; }
-static bool validate(const XL6_ContinuationFrameLayoutV2* layout,size_t bytes)
+static bool validate_transport(size_t bytes,const size_t positions[4],
+    const XL6_ActivationCaptureLayoutV1* old,const XL6_ActivationCaptureLayoutV2* native)
 {
-    if(!layout||layout->size!=sizeof(*layout)||!xl6ActivationCaptureRuntimeV1Get()->Validate(layout->captures,bytes))return false;
-    const size_t offsets[]={layout->ticket,layout->watch,layout->source,layout->outer};
+    if(native ? old || !xl6ActivationCaptureRuntimeV2Get()->Validate(native,bytes) :
+        !xl6ActivationCaptureRuntimeV1Get()->Validate(old,bytes))return false;
+    size_t count=native?native->count:old->count;
     const size_t sizes[]={sizeof(XL6_ContinuationTicket),sizeof(xfuturewatch),sizeof(xfuture*),sizeof(xpromise*)};
     const size_t alignments[]={_Alignof(XL6_ContinuationTicket),_Alignof(xfuturewatch),_Alignof(xfuture*),_Alignof(xpromise*)};
     for(size_t i=0;i<4;++i){
-        if(offsets[i]>bytes||sizes[i]>bytes-offsets[i]||offsets[i]%alignments[i])return false;
-        for(size_t j=0;j<i;++j)if(overlap(offsets[i],sizes[i],offsets[j],sizes[j]))return false;
-        for(size_t j=0;j<layout->captures->count;++j){
-            const XL6_ActivationCaptureSlot* slot=&layout->captures->slots[j];
-            if(overlap(offsets[i],sizes[i],slot->value.offset,slot->value.bytes)||
-                (slot->initialized!=SIZE_MAX&&overlap(offsets[i],sizes[i],slot->initialized,1)))return false;
+        if(positions[i]>bytes||sizes[i]>bytes-positions[i]||positions[i]%alignments[i])return false;
+        for(size_t j=0;j<i;++j)if(overlap(positions[i],sizes[i],positions[j],sizes[j]))return false;
+        for(size_t j=0;j<count;++j){
+            const XL6_CaptureSlot* value=native?&native->slots[j].value.value:&old->slots[j].value;
+            size_t live=native?native->slots[j].initialized:old->slots[j].initialized;
+            if(overlap(positions[i],sizes[i],value->offset,value->bytes)||
+                (live!=SIZE_MAX&&overlap(positions[i],sizes[i],live,1)))return false;
         }
     }
     return true;
+}
+static bool validate(const XL6_ContinuationFrameLayoutV2* l,size_t bytes)
+{return l && l->size==sizeof(*l) && validate_transport(bytes,(const size_t[]){l->ticket,l->watch,l->source,l->outer},l->captures,NULL);}
+static bool validate_v3(const XL6_ContinuationFrameLayoutV3* l,size_t bytes)
+{return l && l->size==sizeof(*l) && l->captures && validate_transport(bytes,(const size_t[]){l->ticket,l->watch,l->source,l->outer},NULL,l->captures);}
+static bool validate_frame(const ContinuationFrame* f)
+{return f->layoutV3 ? !f->layout && validate_v3(f->layoutV3,f->bytes) : validate(f->layout,f->bytes);}
+static xl6_error_result cleanup_captures(ContinuationFrame* f,xl6_error_result incoming)
+{
+    return f->layoutV3 ? xl6ActivationCaptureRuntimeV2Get()->Cleanup(f->layoutV3->captures,f->data,f->bytes,incoming) :
+        xl6ActivationCaptureRuntimeV1Get()->Cleanup(f->layout->captures,f->data,incoming);
 }
 static bool count_frame(const void* data,size_t* count)
 {
@@ -99,9 +120,10 @@ static bool trace_frame(const void* data,xrtownershipvisitor visit,void* context
     const XL6_ContinuationTicket* ticket=frame_ticket(frame);
     /* The queue owns a SECOND real lease, separate from physical storage. */
     return (!ticket->codeLease||visit(xl6CodeLeaseOwnership(ticket->codeLease),context))&&
-        visit(xrtFutureOwnership(*(xfuture* const*)(frame->data+frame->layout->source)),context)&&
-        visit(xrtPromiseOwnership(*(xpromise* const*)(frame->data+frame->layout->outer)),context)&&
-        xl6ActivationCaptureRuntimeV1Get()->Trace(frame->layout->captures,frame->data,visit,context);
+        visit(xrtFutureOwnership(*(xfuture* const*)(frame->data+offsets(frame).source)),context)&&
+        visit(xrtPromiseOwnership(*(xpromise* const*)(frame->data+offsets(frame).outer)),context)&&
+        (frame->layoutV3 ? xl6ActivationCaptureRuntimeV2Get()->Trace(frame->layoutV3->captures,frame->data,frame->bytes,visit,context) :
+            xl6ActivationCaptureRuntimeV1Get()->Trace(frame->layout->captures,frame->data,visit,context));
 }
 static const xrtownershipops frame_ops={count_frame,trace_frame};
 static xrtownershipref ownership(const void* data)
@@ -128,18 +150,20 @@ static void release_header(const void* data)
 static void release_data(const void* data) { release_header(header(data)); }
 static const XL6_ContinuationStorageV2 storage={hold_data,release_data,ownership,NULL,NULL,NULL,NULL,NULL};
 static void retire(void* data);
-static void* allocate_body(size_t bytes,const XL6_ContinuationFrameLayoutV2* layout)
+static void* allocate_body(size_t bytes,const XL6_ContinuationFrameLayoutV2* layout,const XL6_ContinuationFrameLayoutV3* native)
 {
-    if(bytes>SIZE_MAX-sizeof(ContinuationFrame)||!validate(layout,bytes)){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    if(bytes>SIZE_MAX-sizeof(ContinuationFrame)||(native ? layout || !validate_v3(native,bytes) : !validate(layout,bytes))){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
     ContinuationFrame* frame=xrtMalloc(sizeof(*frame)+bytes);if(!frame)return NULL;
-    *frame=(ContinuationFrame){0};frame->references=1;frame->bytes=bytes;frame->layout=layout;
+    *frame=(ContinuationFrame){0};frame->references=1;frame->bytes=bytes;frame->layout=layout;frame->layoutV3=native;
     *frame_ticket(frame)=(XL6_ContinuationTicket){0};
-    *(xfuturewatch*)(frame->data+layout->watch)=(xfuturewatch){0};
+    *(xfuturewatch*)(frame->data+offsets(frame).watch)=(xfuturewatch){0};
     *frame_source(frame)=NULL;*frame_outer(frame)=NULL;
     return frame->data;
 }
 static void* allocate(size_t bytes,const XL6_ContinuationFrameLayoutV2* layout)
-{ XL6_OWNERSHIP_RETURN(void*,allocate_body(bytes,layout)); }
+{ XL6_OWNERSHIP_RETURN(void*,allocate_body(bytes,layout,NULL)); }
+static void* allocate_v3(size_t bytes,const XL6_ContinuationFrameLayoutV3* layout)
+{XL6_OWNERSHIP_RETURN(void*,allocate_body(bytes,NULL,layout));}
 static bool bind_frame(void* data)
 {
     if(!data){xrtSetErrorKind(XERR_ARGUMENT);return false;}
@@ -165,7 +189,7 @@ static xl6_error_result cleanup(void* data,xl6_error_result outcome)
     begin(frame,&mutation);
     if(!frame->references||frame->active||frame->retired||frame->cleared)abort();
     frame->active=true;xl6CodeScopeEnter(&code,frame->lease);end(frame,&mutation);
-    outcome=xl6ActivationCaptureRuntimeV1Get()->Cleanup(frame->layout->captures,data,outcome);
+    outcome=cleanup_captures(frame,outcome);
     begin(frame,&mutation);frame->active=false;end(frame,&mutation);
     xl6CodeScopeLeave(&code);return outcome;
 }
@@ -178,7 +202,7 @@ static void retire(void* data)
     if(!frame->references||frame->active||frame->retired||frame->cleared||frame_ticket(frame)->queue)abort();
     frame->active=true;xl6CodeScopeEnter(&code,frame->lease);end(frame,&mutation);
     if(!xl6ErrorScopeBeginCleanup(&boundary,false))abort();
-    outcome=xl6ActivationCaptureRuntimeV1Get()->Cleanup(frame->layout->captures,data,(xl6_error_result){true,NULL});
+    outcome=cleanup_captures(frame,(xl6_error_result){true,NULL});
     if(!outcome.ok)xl6ErrorScopePropagateFailure(outcome);
     /* Preserve semantic order: source destructor can still observe the output
      * promise while this frame is explicitly active and uninspectable. */
@@ -206,6 +230,10 @@ static void release(void* data) { release_data(data); }
 const XL6_ContinuationFrameRuntimeV2* xl6ContinuationFrameRuntimeV2Get(void)
 {
     static const XL6_ContinuationFrameRuntimeV2 api={allocate,bind_frame,cleanup,retire,discard,retain,release,ownership};return &api;
+}
+const XL6_ContinuationFrameRuntimeV5* xl6ContinuationFrameRuntimeV5Get(void)
+{
+    static const XL6_ContinuationFrameRuntimeV5 api={allocate_v3,bind_frame,cleanup,retire,discard,retain,release,ownership};return &api;
 }
 static bool claim(const void* data,const void* token)
 {
@@ -245,7 +273,7 @@ const xrtownershipadapterv1* xl6ContinuationFrameOwnershipAdapterV1(xrtownership
     static const xrtownershippreparationv1 policy={sizeof(policy),&adapter,prepared,prepare};
     size_t count;const ContinuationFrame* frame=ref.Data;
     if(ref.Ops==&producer_ops)return producer_adapter(ref,preparation);
-    if(!preparation||ref.Ops!=&frame_ops||!frame||!count_frame(frame,&count)||!validate(frame->layout,frame->bytes))return NULL;
+    if(!preparation||ref.Ops!=&frame_ops||!frame||!count_frame(frame,&count)||!validate_frame(frame))return NULL;
     *preparation=&policy;return &adapter;
 }
 
@@ -314,7 +342,7 @@ const xfuturewatchownershipv1* xl6ContinuationWatchPolicyV1Get(void) {return &wa
 static bool watch_init(const void* data,xfuturewatch* watch)
 {
     ContinuationFrame* frame=header(data);
-    if(!frame||!frame->producer||watch!=(xfuturewatch*)(frame->data+frame->layout->watch)){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    if(!frame||!frame->producer||watch!=(xfuturewatch*)(frame->data+offsets(frame).watch)){xrtSetErrorKind(XERR_ARGUMENT);return false;}
     bool initialized=xrtFutureWatchInitOwnershipV1(watch,frame,&watch_policy);
     if(initialized)frame->watchInitialized=true; /* registration owner still private */
     return initialized;
@@ -425,7 +453,7 @@ static bool cancel_wait_claimed(void* data,const void* token)
         /* Neither this function nor the Watch removal inherits mutation:
          * native cancellation observers and concurrent Watch tails may wait. */
         if(cancel){(void)xrtCancelRequest(cancel);xrtCancelDestroy(cancel);}
-        xrtFutureWatchRemove(*frame_source(frame),(xfuturewatch*)(frame->data+frame->layout->watch));
+        xrtFutureWatchRemove(*frame_source(frame),(xfuturewatch*)(frame->data+offsets(frame).watch));
     }
     begin(frame,&mutation);
     if(accepted)frame->readyReceived=true;

@@ -642,10 +642,9 @@ static int xl6IrCgenEmitAsyncMachineInstruction(
                     const XL6_IrAsyncMachineFrameSlot* nextFrame =
                         &module->asyncMachineFrameSlots[machine->firstFrameSlot + frameLocal];
                     if ( nextFrame->initBit != SIZE_MAX )
-                        xl6OutputPrintf(out, "      next->f%lu = %s; next->i%lu = 0;\n",
+                        xl6OutputPrintf(out, "      next->f%lu = (%s){0}; next->i%lu = 0;\n",
                             (unsigned long)frameLocal,
-                            xl6IrTypeGet(&module->types, nextFrame->type)->cAbi == XL6_IR_C_ABI_MANAGED_STRING
-                                ? "(xlir_string){0}" : "NULL",
+                            xl6IrCgenType(module,nextFrame->type),
                             (unsigned long)nextFrame->initBit);
                 }
                 if (!xl6IrCgenEmitAsyncFrameHandoff(out, module, machine,
