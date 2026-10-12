@@ -61,6 +61,7 @@
 #include "src/runtime/xl6_list.h"
 #include "src/runtime/xl6_dict.h"
 #include "src/runtime/xl6_slot_map.h"
+#include "src/runtime/xl6_slot_map_iterator_internal.h"
 #include "src/runtime/xl6_slot_map_key_value.h"
 #include "src/runtime/xl6_array_native_value_admission.h"
 #include "src/runtime/xl6_dict_graph_access.h"

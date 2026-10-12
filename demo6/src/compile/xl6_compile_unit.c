@@ -28,7 +28,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_future_wait.c", D(R(CONTINUATION_FRAME),R(FUTURE_CALLBACK)), {"XRT_MODULE_FUTURE_COMBINE"}},
     {"src/runtime/xl6_capture.c", D(R(CELL),R(CLOSURE),R(FOREIGN_ERROR),R(GENERATOR),R(VALUE_ITERATOR)),
         {"XRT_MODULE_MEMORY", "XRT_MODULE_VALUE", "XRT_MODULE_FUTURE"}},
-    {"src/runtime/xl6_value_iterator.c", D(R(ARRAY_VALUE_ITERATOR)), {"XRT_MODULE_MEMORY", "XRT_MODULE_ATOMIC", "XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_value_iterator.c", D(R(ARRAY_VALUE_ITERATOR),R(FOREIGN_ERROR)), {"XRT_MODULE_MEMORY", "XRT_MODULE_ATOMIC", "XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_future_callback.c", D(R(CAPTURE),R(CODE_LEASE)),
         {"XRT_MODULE_FUTURE", "XRT_MODULE_THREAD"}},
     {"src/runtime/xl6_generator.c", D(R(CAPTURE),R(CODE_LEASE),R(FOREIGN_ERROR)), {"XRT_MODULE_ATOMIC"}},
@@ -333,7 +333,13 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_value_named_read.c",D(R(DICT_NATIVE),R(VALUE_OBJECT_FIELDS),R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_value_named_write.c",D(R(DICT_NATIVE),R(VALUE_OBJECT_FIELDS),R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_array_union_admission.c",D(R(SEQUENCE)),{"XRT_MODULE_VALUE","XRT_MODULE_ATOMIC"}},
-    {"src/runtime/xl6_slot_map_pairs.c",D(R(SLOT_MAP_NATIVE),R(ARRAY_NATIVE_VALUE_ADMISSION),R(SLOT_MAP_KEY_VALUE),R(FOREIGN_ERROR)),{NULL}}
+    {"src/runtime/xl6_slot_map_pairs.c",D(R(SLOT_MAP_NATIVE),R(ARRAY_NATIVE_VALUE_ADMISSION),R(SLOT_MAP_KEY_VALUE),R(FOREIGN_ERROR)),{NULL}},
+    {"src/runtime/xl6_slot_map_iterator.c",D(R(SEQUENCE),R(VALUE_ITERATOR),R(FOREIGN_ERROR)),{"XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
+    {"src/runtime/xl6_slot_map_iterator_key.c",D(R(SLOT_MAP_ITERATOR_CORE),R(SLOT_MAP_KEY_NATIVE),R(FOREIGN_ERROR)),{NULL}},
+    {"src/runtime/xl6_slot_map_iterator_pair.c",D(R(SLOT_MAP_ITERATOR_KEY),R(SLOT_MAP_PAIRS)),{NULL}},
+    {"src/runtime/xl6_slot_map_iterator_keys.c",D(R(SLOT_MAP_ITERATOR_KEY),R(SLOT_MAP_KEYS)),{NULL}},
+    {"src/runtime/xl6_slot_map_iterator_values.c",D(R(SLOT_MAP_ITERATOR_CORE),R(SLOT_MAP_NATIVE)),{NULL}},
+    {"src/runtime/xl6_slot_map_iterator_count.c",D(R(SLOT_MAP_ITERATOR_CORE),R(SLOT_MAP_NATIVE)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
