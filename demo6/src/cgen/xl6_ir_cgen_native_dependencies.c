@@ -387,6 +387,31 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
 {
     XL6_IrCgenNeeds needs;
     if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
+    if(needs.needsNativeFuturePayloadRuntime && !visitor(context,"xl6NativeFuturePayloadRuntimeV1Get"))return 0;
+    for(size_t t=0;t<module->callTargetCount;++t) {
+        const XL6_IrCallTarget* target=&module->callTargets[t];
+        if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE ||
+            target->asyncResultAbi!=XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)continue;
+        const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,target->workerReturnType));
+        if(!native || !visitor(context,native->captureProfileSymbol) || !visitor(context,native->dropSymbol))return 0;
+        if(target->asyncDispatch==XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL && target->asyncMachine==SIZE_MAX &&
+            !visitor(context,"xl6TaskSubmitOwnedPolicyV1"))return 0;
+    }
+    for(size_t i=0;i<module->instructionCount;++i) {
+        const XL6_IrInstruction* instruction=&module->instructions[i];
+        if(!xl6IrCgenInstructionIsReachable(module,i))continue;
+        XL6_IrTypeId payloads[2]={
+            instruction->asyncResultAbi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE ?
+                (instruction->kind==XL6_IR_INSTR_AWAIT ? instruction->type : instruction->payloadType) : 0,
+            instruction->sourceAsyncResultAbi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE ? instruction->sourcePayloadType : 0};
+        for(size_t p=0;p<2;++p)if(payloads[p]) {
+            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,payloads[p]));
+            if(!native || !visitor(context,native->captureProfileSymbol))return 0;
+        }
+        if(instruction->runtimeOp==XL6_IR_RUNTIME_TASK_SPAWN_CLOSURE &&
+            instruction->asyncResultAbi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE &&
+            !visitor(context,"xl6TaskSubmitOwnedPolicyV1"))return 0;
+    }
     for(size_t m=0;m<module->asyncMachineCount;++m){
         const XL6_IrAsyncMachine* machine=&module->asyncMachines[m];
         const XL6_IrCallTarget* target=xl6IrCallTargetGet(module,machine->targetSymbol);

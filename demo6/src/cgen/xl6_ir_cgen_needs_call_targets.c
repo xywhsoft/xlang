@@ -37,6 +37,8 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
     for ( i = 0; i < module->callTargetCount; ++i ) {
         const XL6_IrCallTarget* target = &module->callTargets[i];
         if ( target->reachability == XL6_IR_REACHABILITY_UNREACHABLE ) continue;
+        if(target->asyncResultAbi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)
+            needs->needsNativeFuturePayloadRuntime=1;
         if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_LOG) {
             needs->needsLogAdapterDeclarations = 1;
             needs->needsStringRuntime = 1;

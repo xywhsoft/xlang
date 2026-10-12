@@ -130,6 +130,14 @@ XL6_CODE_LEASE_API XL6_ModulePrepareResult xl6TaskPoolTryQuiesceV1(XL6_TaskPool*
  * This does not authorize collecting pending task/Watch/frame callbacks. */
 XL6_CODE_LEASE_API struct xfuture* xl6TaskSubmitPayloadV1(XL6_TaskPool*, void*,
     struct xcancel*, XL6_FuturePayloadKind, bool languageOutcome);
+struct xfuturepayloadownershipv1;
+/* Trusted native counterpart of the closed kind API. The immutable policy and
+ * its actual Drop/Trace addresses must reside in the embedding runtime through
+ * final physical Future destruction. No module-local callback is admitted by
+ * this API. It uses the same executor admission, exact returned Drop identity,
+ * stable producer, Watch and language outcome transaction as SubmitPayloadV1. */
+XL6_CODE_LEASE_API struct xfuture* xl6TaskSubmitOwnedPolicyV1(XL6_TaskPool*,void*,
+    struct xcancel*,const struct xfuturepayloadownershipv1*,bool languageOutcome);
 /* Actual pending language-output owner; not an adapter for native queued jobs
  * or permission to collect an accepted task before it has run. */
 struct xfutureproducerownershipv1;

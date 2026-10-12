@@ -2644,7 +2644,10 @@ typedef enum XL6_IrAsyncResultAbi {
     XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR,
     /* A Unicode scalar uses uint32_t storage and therefore cannot share the
      * uint64_t payload contract even though both are unsigned values. */
-    XL6_IR_ASYNC_RESULT_COPY_CHAR
+    XL6_IR_ASYNC_RESULT_COPY_CHAR,
+    /* Exact closed native owning leaf, resident payload allocation/policy and
+     * checked independent acquisition. Never a trivial structure copy. */
+    XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE
 } XL6_IrAsyncResultAbi;
 
 /* Open dynamic invocation uses the runtime's multi-value call protocol, but a

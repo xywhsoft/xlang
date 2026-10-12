@@ -1146,6 +1146,8 @@ static int xl6IrCgenVerifyInstructions(
                 ? type != NULL && type->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR
                 : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR
                 ? type != NULL && type->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR
+                : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE
+                ? xl6IrNativeValuePlanForType(type) != NULL
                 : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_TAGGED
                 ? type != NULL && type->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE : 0;
             if ( instruction->operandCount != 1 || instruction->result == XL6_IR_VALUE_INVALID || !matches )

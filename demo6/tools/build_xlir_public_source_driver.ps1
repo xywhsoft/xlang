@@ -81,6 +81,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_slot_map_iterator_pair.c','src/runtime/xl6_slot_map_iterator_keys.c',
     'src/runtime/xl6_slot_map_iterator_values.c','src/runtime/xl6_slot_map_iterator_count.c',
     'src/runtime/xl6_capture_v2.c','src/runtime/xl6_slot_map_key_capture.c',
+    'src/runtime/xl6_native_future_payload.c',
     'src/runtime/xl6_dict_schema.c',
     'src/runtime/xl6_dict_value_index.c',
     'src/runtime/xl6_dict_methods.c',

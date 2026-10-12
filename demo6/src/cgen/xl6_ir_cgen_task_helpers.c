@@ -93,6 +93,7 @@ static const XL6_IrCgenAsyncPayloadContract* xl6IrCgenAsyncPayloadContract(
     static const XL6_IrCgenAsyncPayloadContract error = {"xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_ERROR)", "XL6_FUTURE_PAYLOAD_ERROR"};
     static const XL6_IrCgenAsyncPayloadContract future = {"xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_FUTURE)", "XL6_FUTURE_PAYLOAD_FUTURE"};
     static const XL6_IrCgenAsyncPayloadContract generator = {"xl6PayloadDropGet(XL6_FUTURE_PAYLOAD_GENERATOR)", "XL6_FUTURE_PAYLOAD_GENERATOR"};
+    static const XL6_IrCgenAsyncPayloadContract native = {"xl6NativeFuturePayloadRuntimeV1Get()->Drop", NULL};
     switch ( abi ) {
     case XL6_IR_ASYNC_RESULT_OWNED_STRING:
         return &string;
@@ -106,6 +107,8 @@ static const XL6_IrCgenAsyncPayloadContract* xl6IrCgenAsyncPayloadContract(
         return &future;
     case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR:
         return &generator;
+    case XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE:
+        return &native;
     case XL6_IR_ASYNC_RESULT_COPY_BOOL:
     case XL6_IR_ASYNC_RESULT_COPY_CHAR:
     case XL6_IR_ASYNC_RESULT_COPY_I64:
@@ -131,7 +134,9 @@ static int xl6IrCgenEmitAsyncPayloadPublish(XL6_Output* out, XL6_IrAsyncResultAb
 {
     const XL6_IrCgenAsyncPayloadContract* contract = xl6IrCgenAsyncPayloadContract(abi);
     if (contract == NULL) return 0;
-    xl6OutputPrintf(out, "xl6PayloadResolveOwned(%s, %s, %s)", promise, value, contract->residentKind);
+    if(abi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)
+        xl6OutputPrintf(out,"xl6NativeFuturePayloadRuntimeV1Get()->ResolveOwned(%s, %s)",promise,value);
+    else xl6OutputPrintf(out, "xl6PayloadResolveOwned(%s, %s, %s)", promise, value, contract->residentKind);
     return !xl6OutputHasFailed(out);
 }
 
@@ -141,7 +146,32 @@ static const char* xl6IrCgenAsyncPayloadKind(XL6_IrAsyncResultAbi abi)
      * submission remains certified and still rejects non-void mismatches. */
     if (abi == XL6_IR_ASYNC_RESULT_VOID) return "XL6_FUTURE_PAYLOAD_VALUE";
     const XL6_IrCgenAsyncPayloadContract* contract = xl6IrCgenAsyncPayloadContract(abi);
-    return contract != NULL ? contract->residentKind : "XL6_FUTURE_PAYLOAD_INVALID";
+    return contract != NULL && contract->residentKind != NULL ? contract->residentKind : "XL6_FUTURE_PAYLOAD_INVALID";
+}
+
+/* One result ABI selects allocation, resident Drop and publication together.
+ * Native payloads preserve their direct typed value address; the resident
+ * prefix never becomes an erased xvalue or a generated destructor/context. */
+static int xl6IrCgenEmitAsyncPayloadAllocation(XL6_Output* out,const XL6_IrModule* module,
+    XL6_IrTypeId id,XL6_IrAsyncResultAbi abi,const char* destination)
+{
+    const char* type=xl6IrCgenType(module,id);if(!type)return 0;
+    if(abi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE) {
+        const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,id));
+        if(!native)return 0;
+        xl6OutputPrintf(out,"    %s = (%s*)xl6NativeFuturePayloadRuntimeV1Get()->Allocate(%s());\n",
+            destination,type,native->captureProfileSymbol);
+    } else xl6OutputPrintf(out,"    %s = (%s*)xrtMalloc(sizeof(*%s));\n",destination,type,destination);
+    return !xl6OutputHasFailed(out);
+}
+
+static void xl6IrCgenEmitAsyncTaskSubmission(XL6_Output* out,XL6_IrAsyncResultAbi abi,int language)
+{
+    if(abi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)
+        xl6OutputPrintf(out,"    future = xl6TaskSubmitOwnedPolicyV1(xlir_async_pool, frame, NULL, xl6NativeFuturePayloadRuntimeV1Get()->Policy(), %s);\n",
+            language ? "true" : "false");
+    else xl6OutputPrintf(out,"    future = %s(frame, NULL, %s);\n",
+        language ? "xlir_async_pool_submit_language" : "xlir_async_pool_submit",xl6IrCgenAsyncPayloadKind(abi));
 }
 
 /* Callback frames are emitted from the verified activation capture program.
@@ -331,13 +361,15 @@ static int xl6IrCgenEmitTaskSpawnHelper(
         "        if (!xrtGetError()) xrtSetErrorTake(xlir_error_create(\"AsyncError\", \"task worker frame is invalid\"));\n"
         "        goto complete;\n"
         "    }\n", out);
-    if (!isVoid) xl6OutputPrintf(out,
-        "    value = (%s*)xrtMalloc(sizeof(*value));\n"
+    if (!isVoid) {
+        if(!xl6IrCgenEmitAsyncPayloadAllocation(out,module,instruction->payloadType,instruction->asyncResultAbi,"value"))return 0;
+        xl6OutputPrintf(out,
         "    if (value == NULL) {\n"
         "        if (!xrtGetError()) xrtSetErrorTake(xlir_error_create(\"MemoryError\", \"task result allocation failed\"));\n"
         "        goto complete;\n"
         "    }\n"
-        "    *value = (%s){0};\n", payloadType, payloadType);
+        "    *value = (%s){0};\n", payloadType);
+    }
     if (!xl6IrCgenEmitCallbackInvocationCommit(out, module, boundary)) return 0;
     xl6OutputPuts("    ok = ((bool (*)(void*", out);
     if (!isVoid) xl6OutputPrintf(out, ", %s*", payloadType);
@@ -384,15 +416,15 @@ static int xl6IrCgenEmitTaskSpawnHelper(
         "    }\n",
         (unsigned long)instructionIndex);
     if (!xl6IrCgenEmitCallbackCapture(out, module, boundary, "xlir_task_spawn", instructionIndex)) return 0;
+    xl6IrCgenEmitAsyncTaskSubmission(out,instruction->asyncResultAbi,0);
     xl6OutputPrintf(out,
-        "    future = xlir_async_pool_submit(frame, NULL, %s);\n"
         "    if (future == NULL) {\n"
         "        if (!xrtGetError()) xrtSetErrorTake(xlir_error_create(\"TaskError\", \"task.spawn submission failed\"));\n"
         "        xlir_task_spawn_frame_free_%lu(frame, NULL);\n"
         "    }\n"
         "    return future;\n"
         "}\n\n",
-        xl6IrCgenAsyncPayloadKind(instruction->asyncResultAbi), (unsigned long)instructionIndex);
+        (unsigned long)instructionIndex);
     return !xl6OutputHasFailed(out);
 }
 
@@ -445,10 +477,10 @@ static int xl6IrCgenEmitFutureContinuationHelper(
             "    if (input->State == XFUTURE_RESOLVED && input->Value == NULL) {\n"
             "        xrtSetErrorTake(xlir_error_create(\"AsyncError\", \"Future source payload is missing\")); ok = false; goto complete;\n"
             "    }\n", out);
+        if(!xl6IrCgenEmitAsyncPayloadAllocation(out,module,instruction->payloadType,instruction->asyncResultAbi,"value"))return 0;
         xl6OutputPrintf(out,
-            "    value = (%s*)xrtMalloc(sizeof(*value));\n"
             "    if (value == NULL) { if (!xrtGetError()) xrtSetErrorTake(xlir_error_create(\"MemoryError\", \"Future result allocation failed\")); ok = false; goto complete; }\n"
-            "    *value = (%s){0};\n", outputType, outputType);
+            "    *value = (%s){0};\n", outputType);
         if (isThen) xl6OutputPrintf(out,
         "    ok = ((bool (*)(void*, %s*, %s))frame->callable->invoke)(frame->callable->environment, value, *(%s const*)input->Value);\n",
             outputType, sourceType, sourceType);

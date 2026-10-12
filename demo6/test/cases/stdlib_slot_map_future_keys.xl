@@ -1,0 +1,52 @@
+func independentKey() as SlotMapKey
+    auto slots = SlotMap::<int>()
+    return slots.insert(19)
+end
+async func readyKey() as SlotMapKey
+    return independentKey()
+end
+async func laterNumber(int value) as int
+    time.sleep(1)
+    return value
+end
+async func delayedKey(future<int> first) as SlotMapKey
+    auto key = independentKey()
+    int value = await first
+    assert(value == 3 and key == key)
+    return key
+end
+async func relayKey(future<SlotMapKey> source, future<int> second) as SlotMapKey
+    auto key = await source
+    int value = await second
+    assert(value == 4 and key == key)
+    return key
+end
+async func failedKey(future<int> source) as SlotMapKey
+    auto key = independentKey()
+    try
+        int value = await source
+        throw ValueError "native Future failure"
+    finally
+        assert(key == key)
+    end
+    return key
+end
+auto ready = readyKey()
+auto first = await ready
+auto repeated = await ready
+assert(first == repeated)
+auto pending = delayedKey(laterNumber(3))
+auto relayed = relayKey(pending,laterNumber(4))
+auto delayed = await pending
+auto result = await relayed
+assert(result == delayed and await relayed == delayed)
+assert(first != delayed)
+array<SlotMapKey> keys = [first,result]
+assert(keys[0] == repeated and keys[1] == delayed)
+try
+    auto unused = await failedKey(laterNumber(0))
+    assert(false)
+catch ValueError failure
+    assert(failure.message == "native Future failure")
+end
+assert(first == repeated and result == delayed)

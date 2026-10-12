@@ -428,6 +428,13 @@ static int xl6IrCgenEmitRuntimePrelude(
             xl6OutputPuts("struct xvalue;\nextern struct xvalue* xrtValueRetain(const struct xvalue*);\n", out);
         xl6OutputPuts("\n", out);
     }
+    if(needs->needsNativeFuturePayloadRuntime) {
+        xl6OutputPuts("#include <__xl_runtime/xl6_native_future_payload.h>\n",out);
+        for(size_t i=0;i<module->types.count;++i) {
+            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(&module->types.items[i]);
+            if(native)xl6OutputPrintf(out,"#include <%s>\n",native->captureHeader);
+        }
+    }
     if ( needs->needsAsyncTaskRuntime || needs->needsAsyncReadyRuntime || needs->needsAsyncMachineRuntime ||
          needs->needsFutureContinuationRuntime ) {
         if ( !xl6IrCgenNeedsXrtDeclarations(needs) )

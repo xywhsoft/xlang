@@ -104,6 +104,9 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         const XL6_IrType* instructionType;
         if ( !xl6IrCgenInstructionIsReachable(module, i) ) continue;
         instructionType = xl6IrTypeGet(&module->types, module->instructions[i].type);
+        if(module->instructions[i].asyncResultAbi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE ||
+            module->instructions[i].sourceAsyncResultAbi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)
+            needs->needsNativeFuturePayloadRuntime=1;
         if ( module->instructions[i].asyncResultAbi ==
                  XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR ||
              module->instructions[i].sourceAsyncResultAbi ==

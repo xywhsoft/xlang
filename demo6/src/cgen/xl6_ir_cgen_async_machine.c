@@ -490,11 +490,12 @@ static int xl6IrCgenEmitAsyncLauncher(
     if ( target->asyncResultAbi != XL6_IR_ASYNC_RESULT_VOID )
         xl6OutputPrintf(out, "    %s* value = NULL;\n", resultType);
     xl6OutputPuts("    if (frame == NULL || result == NULL) { xrtSetErrorKind(XERR_INTERNAL); outcome.ok = false; goto complete; }\n", out);
-    if ( target->asyncResultAbi != XL6_IR_ASYNC_RESULT_VOID )
+    if ( target->asyncResultAbi != XL6_IR_ASYNC_RESULT_VOID ) {
+        if(!xl6IrCgenEmitAsyncPayloadAllocation(out,module,target->workerReturnType,target->asyncResultAbi,"value"))return 0;
         xl6OutputPrintf(out,
-                        "    value = (%s*)xrtMalloc(sizeof(*value));\n"
                         "    if (value == NULL) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); outcome.ok = false; goto complete; }\n"
-                        "    *value = (%s){0};\n", resultType, resultType);
+                        "    *value = (%s){0};\n", resultType);
+    }
     /* Detach consuming inputs before calling the worker. Borrowed captures
      * remain owned by the frame's verified pre-publication retirement. */
     for (parameter = 0; parameter < target->parameterCount; ++parameter) {
@@ -588,11 +589,8 @@ static int xl6IrCgenEmitAsyncLauncher(
             return xl6IrCgenDiag(diags, module, target->declaration,
                 "XLIR C emitter async task frame capture ABI is unresolved");
     }
-    xl6OutputPrintf(out,
-                    "    future = xlir_async_pool_submit_language(frame, NULL, %s);\n"
-                    "    if (future == NULL) {\n"
-                    ,
-                    xl6IrCgenAsyncPayloadKind(target->asyncResultAbi));
+    xl6IrCgenEmitAsyncTaskSubmission(out,target->asyncResultAbi,1);
+    xl6OutputPuts("    if (future == NULL) {\n",out);
     xl6IrCgenEmitActivationFailure(out);
     xl6OutputPrintf(out, "    xlir_async_frame_free_%u(frame, NULL); }\n"
         "    return future;\n}\n\n", (unsigned int)target->symbol);

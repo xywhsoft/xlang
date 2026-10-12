@@ -107,6 +107,9 @@ static int xl6IrCgenAsyncResultAbiMatches(
     case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR:
         return worker != NULL && worker->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR &&
                future->params[0] == target->workerReturnType;
+    case XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE:
+        return xl6IrNativeValuePlanForType(worker) != NULL &&
+               future->params[0] == target->workerReturnType;
     case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
         return worker != NULL && worker->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
                future->params[0] == target->workerReturnType;
@@ -340,12 +343,11 @@ static int xl6IrCgenEmitAsyncReadyLauncher(
         "    %s* value;\n"
         "    if (promise == NULL) {\n", resultType);
     if (!xl6IrCgenEmitActivationInputRollback(out, module, target, diags)) return 0;
-    xl6OutputPrintf(out,
-        "    return NULL; }\n"
-        "    value = (%s*)xrtMalloc(sizeof(*value));\n"
-        "    if (value == NULL) {\n", resultType);
+    xl6OutputPuts("    return NULL; }\n",out);
+    if(!xl6IrCgenEmitAsyncPayloadAllocation(out,module,target->workerReturnType,target->asyncResultAbi,"value"))return 0;
+    xl6OutputPuts("    if (value == NULL) {\n",out);
     if (!xl6IrCgenEmitActivationInputRollback(out, module, target, diags)) return 0;
-    xl6OutputPuts("    xrtPromiseDestroy(promise); xrtFutureDestroy(future); return NULL; }\n", out);
+    xl6OutputPrintf(out,"    xrtPromiseDestroy(promise); xrtFutureDestroy(future); return NULL; }\n    *value = (%s){0};\n",resultType);
     /* All transport allocation precedes the consuming call. No owned worker
      * result can be stranded by allocating its box after the call. */
     if (workerMayRaise)
@@ -359,11 +361,11 @@ static int xl6IrCgenEmitAsyncReadyLauncher(
     }
     xl6OutputPuts(");\n", out);
     if (workerMayRaise)
-        xl6OutputPuts(
-            "    if (!worker.ok) { xerror* error = xrtTakeError(); xrtFree(value);\n"
+        xl6OutputPrintf(out,
+            "    if (!worker.ok) { xerror* error = xrtTakeError(); %s(value, NULL);\n"
             "        if (!xlir_future_complete_error(promise, error)) { xrtErrorFree(error); xrtPromiseDestroy(promise); xrtFutureDestroy(future); return NULL; }\n"
             "        xrtErrorFree(error); xrtPromiseDestroy(promise); return future; }\n"
-            "    *value = worker.value;\n", out);
+            "    *value = worker.value;\n", valueDestroy);
     xl6OutputPuts("    if (!", out);
     if (!xl6IrCgenEmitAsyncPayloadPublish(out, target->asyncResultAbi, "promise", "value")) return 0;
     xl6OutputPuts(") {\n", out);

@@ -145,6 +145,8 @@ static int xl6IrCgenAsyncPayloadAbiMatches(
         return payload->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR;
     case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR:
         return payload->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR;
+    case XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE:
+        return xl6IrNativeValuePlanForType(payload) != NULL;
     default:
         return 0;
     }
@@ -204,11 +206,18 @@ static int xl6IrCgenEmitAwaitPayload(
         XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR) return 0;
     if (abi == XL6_IR_ASYNC_RESULT_VOID) return 1;
     if (type == NULL) return 0;
+    if(abi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)
+        xl6OutputPrintf(out,"    v%u = (%s){0};\n",result,type);
     xl6OutputPrintf(out, "    if (await_ok_%u) {\n"
         "      %s const* payload = (%s const*)(%s);\n"
         "      if (payload == NULL) { await_ok_%u = false; xrtSetErrorKind(XERR_STATE); }\n"
         "      else {\n", result, type, type, payload, result);
-    if (abi == XL6_IR_ASYNC_RESULT_OWNED_STRING)
+    if (abi == XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE) {
+        const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,instruction->type));
+        if(!native)return 0;
+        xl6OutputPrintf(out,"        await_ok_%u = xl6NativeFuturePayloadRuntimeV1Get()->Copy(payload, %s(), &v%u);\n",
+            result,native->captureProfileSymbol,result);
+    } else if (abi == XL6_IR_ASYNC_RESULT_OWNED_STRING)
         xl6OutputPrintf(out, "        v%u = xlir_string_copy(*payload);\n"
             "        if (payload->Data != NULL && v%u.Data == NULL) await_ok_%u = false;\n",
             result, result, result);

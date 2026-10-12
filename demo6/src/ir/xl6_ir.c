@@ -10296,6 +10296,8 @@ static XL6_IrAsyncResultAbi xl6IrBuildAsyncResultAbi(
     case XL6_IR_C_ABI_RUNTIME_ERROR_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_ERROR;
     case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_FUTURE;
     case XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR;
+    case XL6_IR_C_ABI_NATIVE_VALUE:
+        return xl6IrNativeValuePlanForType(type) ? XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE : XL6_IR_ASYNC_RESULT_INVALID;
     default: return XL6_IR_ASYNC_RESULT_INVALID;
     }
 }
@@ -26134,7 +26136,8 @@ static XL6_IrOwnership xl6IrValueOwnershipDepth(
              definition->asyncResultAbi != XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE &&
              definition->asyncResultAbi != XL6_IR_ASYNC_RESULT_RETAINED_ERROR &&
              definition->asyncResultAbi != XL6_IR_ASYNC_RESULT_RETAINED_FUTURE &&
-             definition->asyncResultAbi != XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR ) return XL6_IR_OWNERSHIP_NONE;
+             definition->asyncResultAbi != XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR &&
+             definition->asyncResultAbi != XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE ) return XL6_IR_OWNERSHIP_NONE;
         return XL6_IR_OWNERSHIP_MOVE;
     case XL6_IR_INSTR_VALUE:
     case XL6_IR_INSTR_NULLABLE_WRAP:
@@ -36968,6 +36971,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR:
                 resultMatches = worker != NULL && worker->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR;
                 break;
+            case XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE:
+                resultMatches = xl6IrNativeValuePlanForType(worker) != NULL;
+                break;
             case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
                 resultMatches = worker != NULL && worker->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE;
                 break;
@@ -43980,6 +43986,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR:
                         resultMatches = resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR;
                         break;
+                    case XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE:
+                        resultMatches = xl6IrNativeValuePlanForType(resultType) != NULL;
+                        break;
                     case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
                         resultMatches = resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE;
                         break;
@@ -46127,6 +46136,7 @@ static const char* xl6IrAsyncResultAbiName(XL6_IrAsyncResultAbi abi)
     case XL6_IR_ASYNC_RESULT_RETAINED_ERROR: return "retained-error";
     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE: return "retained-future";
     case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR: return "retained-generator";
+    case XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE: return "owned-native-value";
     default: return "invalid";
     }
 }

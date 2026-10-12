@@ -143,6 +143,7 @@
 - `stdlib53-b236-native-generator.md`：真实生成器帧接通完整键跨 yield 和独立参数复制，统一 IR 与 checked 清理、直接原生闭包、双端故障前缀及旧生成器回归通过；await 和原生语言结果继续。
 - `stdlib53-b237-native-generator-values.md`：generator<SlotMapKey> 直接产出和 take，结果专属发布依赖、嵌套转发与来源退役、双端独立 C／JIT／AOT 及完整失败前缀通过；异步槽和 Future 元素继续。
 - `stdlib53-b238-native-async-frame.md`：完整键跨两次 await、新版捕获／输送布局、真实 Watch／producer／取消与私有退役通过双端专项和旧压力回归；Future 原生结果／callback 捕获继续。
+- `stdlib53-b239-native-future-payload.md`：完整原生 Future 结果发布、重复 await 的独立拥有值、部分复制回滚、busy 清理重试及双端独立 C／JIT／AOT／选定插桩通过；原生捕获、Future 元素与总验收继续。
 - `XRT与xlang系统整合任务.md`：当前长期整合范围、快照契约、实施顺序和 HTTP/WebSocket 快慢路径边界。
 - `扩展库开发问题清单.md`：六轮扩展库批次发现的语言/编译器/运行时问题账本（P0 崩溃类到 P4 C 库兼容），含最小复现、规避方案与修复优先级。
 - `剩余未压实扩展库清单.md`：删除 22 个占位库后 109 个未压实包的处置规划视图（按编解码改造/平台收编/真外部服务/迁移队列分类）。

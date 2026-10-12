@@ -82,6 +82,7 @@ static int xl6IrCgenAsyncResultDrop(XL6_IrAsyncResultAbi abi, const char** relea
     case XL6_IR_ASYNC_RESULT_RETAINED_ERROR: *release = "xrtErrorFree"; return 1;
     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE: *release = "xrtFutureDestroy"; return 1;
     case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR: *release = "xlir_generator_destroy"; return 1;
+    case XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE: return 1;
     default: return 0;
     }
 }
@@ -135,6 +136,12 @@ static int xl6IrCgenEmitAsyncResultCommit(
         return xl6IrCgenDiag(diags, module, instruction->origin, "XLIR async result commit transaction is unresolved");
     if (release != NULL) snprintf(unboxedDrop, sizeof(unboxedDrop), "%s(v%u);", release,
         (unsigned int)module->operands[instruction->firstOperand]);
+    if(target->asyncResultAbi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE) {
+        const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,target->workerReturnType));
+        if(!native)return 0;
+        snprintf(unboxedDrop,sizeof(unboxedDrop),"%s(v%u);",native->dropSymbol,
+            (unsigned int)module->operands[instruction->firstOperand]);
+    }
     if (hasPayload) snprintf(boxedDrop, sizeof(boxedDrop), "%s(value, NULL);", destroy);
     xl6OutputPuts("    { xl6_error_result retired = {true, NULL};\n", out);
     if (hasPayload) xl6OutputPrintf(out, "      %s* value;\n", type);
@@ -147,9 +154,9 @@ static int xl6IrCgenEmitAsyncResultCommit(
     }
     // 完成信号没有数据分配，仍须先清理帧，再发布成功或失败。
     if (hasPayload) {
-      xl6OutputPrintf(out, "      value = (%s*)xrtMalloc(sizeof(*value));\n"
-        "      if (value == NULL) {\n"
-        "        if (xrtGetError() == NULL) xrtSetErrorKind(XERR_MEMORY);\n", type);
+      if(!xl6IrCgenEmitAsyncPayloadAllocation(out,module,target->workerReturnType,target->asyncResultAbi,"value"))return 0;
+      xl6OutputPuts("      if (value == NULL) {\n"
+        "        if (xrtGetError() == NULL) xrtSetErrorKind(XERR_MEMORY);\n",out);
       xl6IrCgenEmitAsyncResultRollback(out, target, launch, unboxedDrop);
       xl6IrCgenEmitAsyncCompletionBarrier(out, launch);
       xl6OutputPrintf(out, "        xlir_async_result_fail(%s);\n", promise);
