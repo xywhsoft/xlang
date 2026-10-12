@@ -205,6 +205,8 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_slot_map_iterator_keys.c"
   "$ROOT/src/runtime/xl6_slot_map_iterator_values.c"
   "$ROOT/src/runtime/xl6_slot_map_iterator_count.c"
+  "$ROOT/src/runtime/xl6_capture_v2.c"
+  "$ROOT/src/runtime/xl6_slot_map_key_capture.c"
   "$ROOT/src/runtime/xl6_dict_schema.c"
   "$ROOT/src/runtime/xl6_dict_value_index.c"
   "$ROOT/src/runtime/xl6_dict_methods.c"
