@@ -808,7 +808,7 @@ static int xl6IrCgenEmitStackRuntime(
              module, receiver != NULL ? receiver->type : instruction->type,
              &stack, &payload) ) return -1;
     payloadType = xl6IrCgenType(module, instruction->payloadType);
-    payloadAbi = xl6IrCgenChannelPayloadAbiToken(
+    payloadAbi = xl6IrCgenSequenceTransferAbiToken(
         instruction->runtimeResourcePayloadAbi);
     runtimeType = xl6IrCgenNativeValueTypeExpr(module, instruction->payloadType);
     if ( payloadType == NULL || payloadAbi == NULL || runtimeType == NULL ) return -1;

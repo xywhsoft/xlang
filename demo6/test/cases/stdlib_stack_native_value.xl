@@ -1,0 +1,52 @@
+class NativeValueStackHolder
+    Stack<SlotMapKey> keys
+end
+func keptKey(SlotMapKey key) as SlotMapKey
+    auto holder = NativeValueStackHolder()
+    assert(holder.keys.push(key))
+    try
+        return holder.keys.peek()
+    finally
+        holder.keys.clear()
+    end
+end
+func main(...) as int
+    auto values = SlotMap::<int>()
+    auto first = values.insert(7)
+    auto second = values.insert(11)
+    auto holder = NativeValueStackHolder()
+    assert(holder.keys.reserve(16))
+    assert(holder.keys.push(first) and holder.keys.push(second))
+    assert(holder.keys.count() == 2 and holder.keys.capacity() >= 16)
+    assert(holder.keys.peek() == second and holder.keys.peekAt(1) == first)
+    auto copied = holder.keys.clone()
+    assert(copied.equals(holder.keys))
+    assert(holder.keys.pop() == second and not copied.equals(holder.keys))
+    holder.keys.clear()
+    assert(holder.keys.trim() and holder.keys.count() == 0)
+    array<SlotMapKey> input = [first, second]
+    assert(holder.keys.pushBatch(input))
+    input.clear()
+    auto snapshot = holder.keys.peekBatch(2)
+    auto below = holder.keys.peekBatchAt(1, 1)
+    auto output = holder.keys.popBatch(2)
+    assert(holder.keys.count() == 0 and output.length == 2)
+    assert(output[0] == second and output[1] == first)
+    assert(snapshot[0] == second and below[0] == first)
+    auto escaped = keptKey(first)
+    values.clear()
+    assert(escaped == first and output[0] == second)
+    int rejected = 0
+    try
+        holder.keys.pop()
+    catch RangeError
+        rejected += 1
+    end
+    try
+        holder.keys.peekAt(-1)
+    catch RangeError
+        rejected += 1
+    end
+    assert(rejected == 2)
+    return 0
+end
