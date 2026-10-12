@@ -493,6 +493,22 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
                     plan->boxSymbol : plan->projectSymbol)) return 0;
         }
         XL6_IrTypeId queueId=xl6IrConcurrentQueueInstructionType(module,instruction);
+        if(instruction->kind==XL6_IR_INSTR_RUNTIME_CALL && xl6IrSlotMapIteratorOpIs(instruction->runtimeOp) &&
+            xl6IrCgenInstructionIsReachable(module,i)) {
+            if(!xl6IrSlotMapIteratorInstructionCompatible(module,instruction) ||
+                !visitor(context,xl6IrSlotMapIteratorNativeSymbol(instruction->runtimeOp))) return 0;
+            if(instruction->runtimeOp!=XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEY_COPY) {
+                const XL6_IrInstruction* source=xl6IrCgenValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+                XL6_IrValueCollectionRecipe p={0};
+                if(!source || !xl6IrSlotMapConstructionRecipe(module,source->type,&p) ||
+                    !xl6IrCgenVisitSlotProviders(p.slotAbi,0,visitor,context)) return 0;
+                if((instruction->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_PAIRS ||
+                    instruction->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_VALUES) &&
+                    (!xl6IrCgenVisitSlotProviders(p.slotAbi,1,visitor,context) ||
+                     (p.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
+                      !visitor(context,"xl6ArrayReferenceConverterV1")))) return 0;
+            }
+        }
         const char* listIterator=xl6IrCgenListIteratorCreateSymbol(module,instruction);
         if (listIterator && xl6IrCgenInstructionIsReachable(module,i) &&
             !visitor(context,listIterator)) return 0;

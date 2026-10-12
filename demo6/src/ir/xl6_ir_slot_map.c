@@ -169,3 +169,95 @@ int xl6IrSlotMapInstructionCompatible(const XL6_IrModule* m,const XL6_IrInstruct
     return ins->payloadType==p.elementType && ins->runtimeResourcePayloadAbi==p.transferAbi &&
         ins->sequenceAdmissionIdentitySet==(create ? p.admissionIdentitySet : 0);
 }
+
+/* A cursor's selected lanes are execution semantics, not an emitter guess.
+ * The discard contract is frozen in typed IR before any native instructions. */
+int xl6IrSlotMapIteratorOpIs(XL6_IrRuntimeOp op)
+{ return op>=XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_PAIRS && op<=XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEY_COPY; }
+XL6_IrRuntimeOp xl6IrSlotMapLoopIteratorOp(const XL6_IrNode* loop)
+{
+    if(!loop || loop->kind!=XL6_IR_NODE_LOOP || loop->sourceKind!=XL6_AST_FOR ||
+        (loop->loopAbi!=XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY &&
+         loop->loopAbi!=XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY_VALUE)) return XL6_IR_RUNTIME_NONE;
+    int key=loop->loopKeyAbi==XL6_IR_LOOP_KEY_NATIVE_VALUE_COPY;
+    if(!key && loop->loopKeyAbi!=XL6_IR_LOOP_KEY_DISCARD) return XL6_IR_RUNTIME_NONE;
+    int item=loop->loopAbi==XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY_VALUE &&
+        loop->loopItemAbi!=XL6_IR_LOOP_ITEM_DISCARD;
+    return key ? item ? XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_PAIRS : XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEYS :
+                 item ? XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_VALUES : XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_COUNT;
+}
+const char* xl6IrSlotMapIteratorNativeSymbol(XL6_IrRuntimeOp op)
+{
+    switch(op) {
+    case XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_PAIRS: return "xl6SlotMapPairIteratorCreateV1";
+    case XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEYS: return "xl6SlotMapKeyIteratorCreateV1";
+    case XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_VALUES: return "xl6SlotMapItemIteratorCreateV1";
+    case XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_COUNT: return "xl6SlotMapCountIteratorCreateV1";
+    case XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEY_COPY: return "xl6ValueIteratorKeyCopyV3";
+    default: return NULL;
+    }
+}
+/* Hidden immutable cursor storage preserves the acquisition lane. Merely
+ * asserting ValueIterator<SlotMap<T>> cannot forge key-producing capability. */
+static const XL6_IrInstruction* xl6IrSlotMapIteratorAcquisition(
+    const XL6_IrModule* m,const XL6_IrInstruction* source)
+{
+    /* Evaluation cleanup can transfer a produced cursor through a pending
+     * temporary before publishing the hidden local. Follow only verified,
+     * single-initialization storage transfers, with an explicit cycle bound. */
+    for(size_t depth=0;source && depth<=m->instructionCount;++depth) {
+        if(source->kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            source->runtimeOp>=XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_PAIRS &&
+            source->runtimeOp<=XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_COUNT) return source;
+        const XL6_IrStorage* storage=xl6IrStorageGet(m,source->targetSymbol);
+        if((source->kind!=XL6_IR_INSTR_LOAD && source->kind!=XL6_IR_INSTR_STORAGE_TAKE) || source->operandCount ||
+            !storage || (storage->kind!=XL6_IR_STORAGE_LOCAL && storage->kind!=XL6_IR_STORAGE_TEMPORARY) ||
+            (source->kind==XL6_IR_INSTR_STORAGE_TAKE && storage->kind!=XL6_IR_STORAGE_TEMPORARY) ||
+            storage->type!=source->type || storage->cellType) return NULL;
+        const XL6_IrInstruction* result=NULL;
+        for(size_t i=0;i<m->instructionCount;++i) {
+            const XL6_IrInstruction* write=&m->instructions[i];
+            if(write->targetSymbol!=source->targetSymbol || write->kind!=XL6_IR_INSTR_STORE) continue;
+            if(result || write->type!=source->type || write->operandCount!=1 || write->firstOperand>=m->operandCount) return NULL;
+            result=xl6IrValueDefinition(m,m->operands[write->firstOperand],NULL);
+            if(!result || result->type!=source->type) return NULL;
+        }
+        source=result;
+    }
+    return NULL;
+}
+int xl6IrSlotMapIteratorInstructionCompatible(const XL6_IrModule* m,const XL6_IrInstruction* ins)
+{
+    if(!m || !ins || ins->kind!=XL6_IR_INSTR_RUNTIME_CALL || !xl6IrSlotMapIteratorOpIs(ins->runtimeOp) ||
+        !ins->result || ins->operandCount!=1 || ins->firstOperand>=m->operandCount || !m->operands ||
+        ins->immediateText || ins->immediateData || ins->immediateSize || ins->opcode ||
+        ins->targetSymbol || ins->targetValue || ins->calleeType || ins->runtimeIdentityType ||
+        ins->collectionAbi || ins->typedCollectionOp || ins->dynamicCollectionOp ||
+        ins->sequenceAdmissionIdentitySet || ins->payloadType || ins->runtimeResourcePayloadAbi ||
+        ins->runtimeResourceKeyType || ins->runtimeResourceKeyPayloadAbi || ins->runtimeResourceKeyOrderAbi) return 0;
+    const XL6_IrInstruction* source=xl6IrValueDefinition(m,m->operands[ins->firstOperand],NULL);
+    const XL6_IrType* result=xl6IrTypeGet(&m->types,ins->type);
+    const XL6_IrType* input=source ? xl6IrTypeGet(&m->types,source->type) : NULL;
+    if(!input || !result) return 0;
+    int copy=ins->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEY_COPY;
+    const XL6_IrType* cursor=copy ? input : result;
+    if(cursor->kind!=XL6_IR_TYPE_VALUE_ITERATOR || cursor->cAbi!=XL6_IR_C_ABI_RUNTIME_VALUE_ITERATOR_PTR ||
+        cursor->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED || cursor->nullAbi!=XL6_IR_NULL_ABI_POINTER_SENTINEL ||
+        cursor->paramCount!=1 || !cursor->params) return 0;
+    XL6_IrValueCollectionRecipe recipe={0}; XL6_IrTypeId key=0,keys=0;
+    if(!xl6IrSlotMapLoopRecipe(m,cursor->params[0],&recipe,&key,&keys)) return 0;
+    if(copy) {
+        const XL6_IrInstruction* create=xl6IrSlotMapIteratorAcquisition(m,source);
+        return ins->type==key && !ins->payloadType && !ins->runtimeResourcePayloadAbi &&
+            !ins->runtimeResourceKeyType && create &&
+            (create->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_PAIRS ||
+             create->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEYS) &&
+            xl6IrSlotMapIteratorInstructionCompatible(m,create);
+    }
+    const XL6_IrNode* loop=xl6IrNodeGet(m,ins->origin);
+    if(!loop || loop->childCount!=3 || loop->firstChild>m->childCount ||
+        loop->childCount>m->childCount-loop->firstChild) return 0;
+    const XL6_IrNode* iterable=xl6IrNodeGet(m,m->children[loop->firstChild+1]);
+    return source->type==cursor->params[0] && iterable && iterable->storageType==source->type &&
+        loop->loopResourceType==ins->type && xl6IrSlotMapLoopIteratorOp(loop)==ins->runtimeOp;
+}

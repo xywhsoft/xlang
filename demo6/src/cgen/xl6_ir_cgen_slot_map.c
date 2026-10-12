@@ -2,6 +2,44 @@
  * does no type spelling lookup, boxing or container algorithm generation. */
 static int xl6IrCgenEmitSlotMap(XL6_Output* out,const XL6_IrModule* module,const XL6_IrInstruction* ins)
 {
+    if(xl6IrSlotMapIteratorOpIs(ins->runtimeOp)) {
+        if(!xl6IrSlotMapIteratorInstructionCompatible(module,ins)) return -1;
+        XL6_IrValueId operand=module->operands[ins->firstOperand];
+        if(ins->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEY_COPY) {
+            xl6OutputPrintf(out,"    v%u = (%s){0};\n    projection_ok_%u = xl6ValueIteratorKeyCopyV3(v%u,&v%u);\n",
+                (unsigned)ins->result,xl6IrCgenType(module,ins->type),(unsigned)ins->result,
+                (unsigned)operand,(unsigned)ins->result);
+            return xl6OutputHasFailed(out) ? -1 : 1;
+        }
+        const XL6_IrInstruction* source=xl6IrCgenValueDefinition(module,operand,NULL);
+        XL6_IrValueCollectionRecipe p={0};
+        XL6_IrTypeId key=0,keyArray=0;
+        if(!source || !xl6IrSlotMapLoopRecipe(module,source->type,&p,&key,&keyArray)) return -1;
+        const XL6_IrType* owner=xl6IrTypeGet(&module->types,source->type);
+        const XL6_IrType* schema=xl6IrTypeGet(&module->types,p.valueSchemaType);
+        const XL6_IrType* payload=xl6IrTypeGet(&module->types,p.elementType);
+        const char* slot=xl6IrCgenType(module,p.elementType);
+        const char* descriptor=xl6IrCgenNativeSlotTypeExpr(p.slotAbi);
+        const char* transfer=xl6IrCgenSequenceTransferAbiToken(p.transferAbi);
+        if(!slot || !descriptor || !transfer) return -1;
+        xl6OutputPrintf(out,"    {\n      const XL6_SlotMapLayoutV1 slot_map_layout = {0x%016llXULL,"
+            "{0x%016llXULL,0x%016llXULL,%s,sizeof(%s),%s}};\n      v%u = %s(v%u,&slot_map_layout",
+            (unsigned long long)owner->typeValueId,(unsigned long long)schema->typeValueId,
+            (unsigned long long)payload->typeValueId,transfer,slot,descriptor,(unsigned)ins->result,
+            xl6IrSlotMapIteratorNativeSymbol(ins->runtimeOp),(unsigned)operand);
+        if(ins->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_PAIRS || ins->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEYS) {
+            const XL6_IrType* keys=xl6IrTypeGet(&module->types,keyArray);
+            xl6OutputPrintf(out,",0x%016llXULL",(unsigned long long)keys->typeValueId);
+        }
+        if(ins->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_PAIRS || ins->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_VALUES) {
+            const char* projection=p.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN
+                ? "xl6ArrayReferenceConverterV1()" : xl6IrCgenNativeValueConverterExpr(module,p.elementType);
+            if(!projection) return -1;
+            xl6OutputPrintf(out,",%s",projection);
+        }
+        xl6OutputPuts(");\n    }\n",out);
+        return xl6OutputHasFailed(out) ? -1 : 1;
+    }
     XL6_IrRuntimeResourceOp op=xl6IrSlotMapResourceOp(ins->runtimeOp);
     if(!xl6IrSlotMapResourceOpIs(op)) return 0;
     if(!xl6IrSlotMapInstructionCompatible(module,ins)) return -1;

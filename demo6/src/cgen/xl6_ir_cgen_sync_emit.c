@@ -340,7 +340,8 @@ static int xl6IrCgenEmitSharedRuntime(
     if ( emitted == 0 )
         emitted = xl6IrCgenEmitStackRuntime(out, module, instruction);
     if(emitted==0) {
-        if(xl6IrSlotMapErrorPhysicalAbi(instruction->runtimeOp)==XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT)
+        if(xl6IrSlotMapErrorPhysicalAbi(instruction->runtimeOp)==XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT ||
+            instruction->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEY_COPY)
             xl6OutputPrintf(out,"    bool projection_ok_%u = false;\n",(unsigned)instruction->result);
         emitted=xl6IrCgenEmitSlotMap(out,module,instruction);
     }

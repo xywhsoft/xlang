@@ -17,10 +17,12 @@ def main():
     if os.name!='nt': assert build['Complete'] and build['InputsUnchanged']
     cc=Path(shutil.which('gcc')); driver=Path(build['Driver']); assert sha(driver)==build['DriverSha256'].lower()
     product=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
-    fixtures=[('xlir_list_i64_iterator_abi',9,0,0),('xlir_xvalue_iterator_scalar_projection',3,0,2),
-        ('xlir_xvalue_iterator_managed_projection',10,0,1),('xlir_erased_collection_iterator_abi',2,0,8),
-        ('xlir_set_i64_iterator_abi',0,0,9),('xlir_dynamic_var_iterator_abi',0,13,0),
-        ('stdlib_value_iterator_checked',1,1,4),('stdlib_value_iterator_checked_continuation',1,0,1)]
+    # Exact current native families, independently checked against the last
+    # committed source driver. Set/Dict factories are no longer wire cursors.
+    fixtures=[('xlir_list_i64_iterator_abi',9,0,0,0,0,0),('xlir_xvalue_iterator_scalar_projection',3,0,0,0,2,0),
+        ('xlir_xvalue_iterator_managed_projection',10,0,0,0,1,0),('xlir_erased_collection_iterator_abi',2,0,3,0,2,3),
+        ('xlir_set_i64_iterator_abi',0,0,0,0,9,0),('xlir_dynamic_var_iterator_abi',0,13,0,1,0,0),
+        ('stdlib_value_iterator_checked',1,1,2,0,1,1),('stdlib_value_iterator_checked_continuation',1,0,1,0,0,0)]
     scripts=['check_xlir_'+name+'.ps1' for name in ('xvalue_iterator_abi','xvalue_iterator_scalar_projection',
         'xvalue_iterator_managed_projection','erased_collection_iterator_abi','dynamic_var_iterator_abi')]
     host=root/'test/cases/xlir_module_product_oom_host.c'
@@ -55,17 +57,17 @@ def main():
         print(name+': '+str(result.returncode),flush=True)
         assert ok,(name,data[-6000:].decode(errors='replace')); return data.decode(errors='replace')
     try:
-        for name,list_count,erased_count,wire_count in fixtures:
+        for name,list_count,erased_count,wire_count,array_count,set_count,dict_count in fixtures:
             source=root/'test/cases'/(name+'.xl'); generated=out/(name+'.c'); repeat=out/(name+'.repeat.c')
             run(name+'.cgen',[driver,source,'cgen-default',generated])
             run(name+'.repeat',[driver,source,'cgen-default',repeat]); assert sha(generated)==sha(repeat)
             text=generated.read_text(encoding='utf-8-sig')
             assert 'xlir_xvalue_iterator_create_checked(' not in text
             for symbol,count in [('xl6ListValueIteratorCreateV1',list_count),
-                ('xl6CollectionValueIteratorCreateV1',erased_count),('xlir_xvalue_iterator_create',wire_count)]:
+                ('xl6CollectionValueIteratorCreateV1',erased_count),('xlir_xvalue_iterator_create',wire_count),
+                ('xl6ArrayValueIteratorCreateCheckedV1',array_count),('xl6SetValueIteratorCreateCheckedV1',set_count),
+                ('xl6DictValueIteratorCreateCheckedV1',dict_count)]:
                 assert len(re.findall(r'=\s*'+symbol+r'\(v\d+\);',text))==count,(name,symbol)
-            assert len(re.findall(r'=\s*xl6ArrayValueIteratorCreateCheckedV1\(v\d+\);',text))==int(
-                name=='xlir_dynamic_var_iterator_abi'),name
             for level in (0,2):
                 tag=name+'.O'+str(level); obj=out/(tag+'.memory.o'); binary=out/(tag+suffix)
                 run(tag+'.memory',[cc,*flags,'-O'+str(level),'-c',memory,'-o',obj])

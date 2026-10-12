@@ -1,6 +1,6 @@
-"""SlotMap key-only/paired typed plans; deliberately not language foreach acceptance.
+"""SlotMap key-only/paired typed plans and closed native backend admission.
 Fresh public-source build, exact input hashes, O0/O2 contract mutations and real
-bad-implementation controls. Backend refusal is an explicit temporary boundary.
+bad-implementation controls. Full lifetime/fault/pruning acceptance is separate.
 """
 from pathlib import Path
 import argparse, hashlib, json, os, re, shutil, subprocess
@@ -44,16 +44,15 @@ def main():
             assert n['loopErrorAbiName']=='may-raise' and n['loopResourceAbiName']=='xvalue-iterator-destroy'
             assert n['loopKeyLifetimeAbiName']==('none' if n['loopKeyAbiName']=='discard' else 'owned-iteration-release')
         report['TypedSlotMapLoopPlans']=True; products.append(dict(Path=str(typed),Sha256=sha(typed)))
-        refused=[]
+        admitted=[]
         modes=('ir-lowered','cgen-default','cgen-xlir','emit') if os.name=='nt' else ('ir-lowered','cgen-default')
         for mode in modes:
             target=out/('backend-'+mode)
-            text=run('backend-'+mode,[driver,fixture,mode,target],False)
-            assert 'paired native cursor backend' in text
-            assert not target.exists() or not target.stat().st_size
-            if mode=='emit': assert all(not Path(str(target)+ext).exists() or not Path(str(target)+ext).stat().st_size for ext in ('.c','.h','.json'))
-            refused.append(mode)
-        report['ExplicitBackendRefusalModes']=refused
+            run('backend-'+mode,[driver,fixture,mode,target])
+            if mode=='emit': assert Path(str(target)+'.c').stat().st_size
+            else: assert target.stat().st_size
+            admitted.append(mode)
+        report['NativeBackendAdmissionModes']=admitted
         negatives={
             'key-not-int':'auto slots=SlotMap::<int>()\nfor key in slots\n slots.get(1)\nend\n',
             'value-not-key':'auto slots=SlotMap::<int>()\nfor key,value in slots\n slots.contains(value)\nend\n',
@@ -77,7 +76,7 @@ def main():
             binary=out/('contract-'+opt+ext)
             run('contract-build-'+opt,[cc,*flags,'-'+opt,contract,*objects,runtime,*links,'-o',binary])
             text=run('contract-'+opt,[binary,fixture])
-            match=re.search(r'plans=(\d+) key-only=(\d+) pairs=(\d+) discard=(\d+) mutations=(\d+); backend refused',text)
+            match=re.search(r'plans=(\d+) key-only=(\d+) pairs=(\d+) discard=(\d+) mutations=(\d+); native backend admitted',text)
             assert match; counts.append(list(map(int,match.groups())))
             products.append(dict(Path=str(binary),Sha256=sha(binary)))
         assert counts[0]==counts[1] and counts[0]==[18,3,15,3,216]
@@ -107,5 +106,5 @@ def main():
     finally:
         report['PhaseCount']=len(rows)
         (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
-    print('SlotMap typed loop plans: 18 shapes, 216 IR mutations, two real bad controls; backend explicitly refused')
+    print('SlotMap typed loop plans: 18 shapes, 216 IR mutations, two real bad controls; native backend admitted')
 if __name__=='__main__': main()

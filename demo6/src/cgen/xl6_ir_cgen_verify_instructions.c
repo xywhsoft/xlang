@@ -116,6 +116,12 @@ static int xl6IrCgenVerifyInstructions(
             }
             break;
         case XL6_IR_INSTR_RUNTIME_CALL:
+            if(xl6IrSlotMapIteratorOpIs(instruction->runtimeOp)) {
+                if(!xl6IrSlotMapIteratorInstructionCompatible(module,instruction))
+                    return xl6IrCgenDiag(diags,module,instruction->origin,
+                        "XLIR SlotMap cursor has no closed lane or owning key ABI");
+                break;
+            }
             if (instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_COPY ||
                 instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL ||
                 instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_BOX ||

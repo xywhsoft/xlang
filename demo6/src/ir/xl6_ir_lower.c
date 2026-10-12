@@ -20925,12 +20925,13 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
     int nativeHandleItemProjection = 0;
     int unionItemProjection = 0;
     int nativeValueItemProjection = 0;
+    int slotMapIterator = xl6IrSlotMapLoopIteratorOp(node)!=XL6_IR_RUNTIME_NONE;
 
     if ( node->sourceKind != XL6_AST_FOR || node->childCount != 3 ||
          node->region == 0 ||
          (node->loopAbi != XL6_IR_LOOP_ABI_XVALUE_ITERATOR_VALUE &&
           node->loopAbi != XL6_IR_LOOP_ABI_XVALUE_ITERATOR_KEY_VALUE &&
-          node->loopAbi != XL6_IR_LOOP_ABI_XVALUE_ITERATOR_KEY) ||
+          node->loopAbi != XL6_IR_LOOP_ABI_XVALUE_ITERATOR_KEY && !slotMapIterator) ||
          (node->loopErrorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
           node->loopErrorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) ||
          node->loopResourceAbi !=
@@ -20941,9 +20942,10 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
         return 0;
     }
     hasKey = node->loopAbi == XL6_IR_LOOP_ABI_XVALUE_ITERATOR_KEY_VALUE ||
-        node->loopAbi == XL6_IR_LOOP_ABI_XVALUE_ITERATOR_KEY;
+        node->loopAbi == XL6_IR_LOOP_ABI_XVALUE_ITERATOR_KEY || slotMapIterator;
     hasItem = node->loopAbi == XL6_IR_LOOP_ABI_XVALUE_ITERATOR_VALUE ||
-        node->loopAbi == XL6_IR_LOOP_ABI_XVALUE_ITERATOR_KEY_VALUE;
+        node->loopAbi == XL6_IR_LOOP_ABI_XVALUE_ITERATOR_KEY_VALUE ||
+        node->loopAbi == XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY_VALUE;
     if ( !hasKey &&
          (node->loopKeyAbi != XL6_IR_LOOP_KEY_NONE ||
           node->loopKeyLifetimeAbi != XL6_IR_LOOP_TARGET_LIFETIME_NONE) ) {
@@ -20955,8 +20957,8 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
         ctx->module, ctx->module->children[node->firstChild]);
     iteratorId = ctx->module->children[node->firstChild + 1];
     iterator = xl6IrNodeGet(ctx->module, iteratorId);
-    ownedSource = xl6IrLowerLoopSourceIsOwnedTemporary(iterator);
     sourceAcquisition=xl6IrLoopSourceAcquisition(ctx->module,iterator);
+    ownedSource = sourceAcquisition==XL6_IR_LOOP_SOURCE_OWNED_TEMPORARY;
     if ( targets == NULL || targets->kind != XL6_IR_NODE_LIST ||
          targets->childCount != (size_t)(hasKey + hasItem) || iterator == NULL ||
          sourceAcquisition==XL6_IR_LOOP_SOURCE_NONE ||
@@ -20970,7 +20972,8 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
           collectionType->collectionAbi != XL6_IR_COLLECTION_ARRAY &&
           collectionType->collectionAbi != XL6_IR_COLLECTION_LIST &&
           collectionType->collectionAbi != XL6_IR_COLLECTION_SET &&
-          collectionType->collectionAbi != XL6_IR_COLLECTION_DICT) ||
+          collectionType->collectionAbi != XL6_IR_COLLECTION_DICT && !slotMapIterator) ||
+         (slotMapIterator && !xl6IrSlotMapLoopRecipe(ctx->module,iterator->storageType,NULL,NULL,NULL)) ||
          (!xl6IrLowerTypeIsDynamicXValueBuiltin(
               ctx->module, iterator->storageType) &&
           collectionType->collectionAbi == XL6_IR_COLLECTION_SET && hasKey) ||
@@ -21032,10 +21035,11 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
         ? xl6IrTypeGet(&ctx->module->types,iterator->type) : collectionType;
     XL6_IrCollectionAbi keyFamily = logicalCollection ? logicalCollection->collectionAbi : XL6_IR_COLLECTION_NONE;
     managedKey = materializesKey && (node->loopKeyAbi == XL6_IR_LOOP_KEY_DYNAMIC_XVALUE ||
-        node->loopKeyAbi == XL6_IR_LOOP_KEY_STRING_COPY);
+        node->loopKeyAbi == XL6_IR_LOOP_KEY_STRING_COPY || node->loopKeyAbi == XL6_IR_LOOP_KEY_NATIVE_VALUE_COPY);
     if ( hasKey &&
          (node->loopKeyAbi != (!materializesKey
               ? XL6_IR_LOOP_KEY_DISCARD
+              : slotMapIterator ? XL6_IR_LOOP_KEY_NATIVE_VALUE_COPY
               : dynamicSource && keyFamily == XL6_IR_COLLECTION_NONE
                 ? XL6_IR_LOOP_KEY_DYNAMIC_XVALUE
                 : keyFamily == XL6_IR_COLLECTION_DICT
@@ -21057,9 +21061,10 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
     case XL6_IR_LOOP_KEY_STRING_COPY: keyOp=XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_STRING_COPY; break;
     case XL6_IR_LOOP_KEY_ORDINAL_I64: keyOp=XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_ORDINAL_I64; break;
     case XL6_IR_LOOP_KEY_INTEGER_I64: keyOp=XL6_IR_RUNTIME_XVALUE_ITERATOR_KEY_I64; break;
+    case XL6_IR_LOOP_KEY_NATIVE_VALUE_COPY: keyOp=XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEY_COPY; break;
     default: return 0;
     }
-    if ( materializesItem ) switch ( node->loopItemAbi ) {
+    if ( materializesItem && !slotMapIterator ) switch ( node->loopItemAbi ) {
     case XL6_IR_LOOP_ITEM_CHAR:
         scalarItemProjection = 1;
         if ( projectedItemType->cAbi == XL6_IR_C_ABI_CHAR_U32 ) break;
@@ -21190,7 +21195,8 @@ invalidItemProjection:
         return 0;
     }
     managedItem = materializesItem &&
-        (node->loopItemAbi == XL6_IR_LOOP_ITEM_STRING_COPY ||
+        (slotMapIterator ? projectedItemType->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED :
+         node->loopItemAbi == XL6_IR_LOOP_ITEM_STRING_COPY ||
          node->loopItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_STRING_COPY ||
          node->loopItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_CLOSURE_COPY ||
          node->loopItemAbi == XL6_IR_LOOP_ITEM_CLOSURE_COPY ||
@@ -21233,6 +21239,7 @@ invalidItemProjection:
             (materializesKey && (node->loopKeyAbi == XL6_IR_LOOP_KEY_DYNAMIC_XVALUE
                 ? !xl6IrLowerTypeIsDynamicXValueBuiltin(
                       ctx->module, keyTarget->storageType)
+                : slotMapIterator ? !xl6IrSlotMapLoopKeyType(ctx->module,keyTarget->storageType)
                 : managedKey
                 ? (xl6IrTypeGet(&ctx->module->types,
                                 keyTarget->storageType)->cAbi !=
@@ -21285,16 +21292,16 @@ invalidItemProjection:
     }
     iteratorState = xl6IrLowerEmitRuntimeCall(
         ctx, id, node->loopResourceType,
-        dynamicSource
+        slotMapIterator ? xl6IrSlotMapLoopIteratorOp(node) : dynamicSource
           ? XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED
           : XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE,
         &sourceBorrow, 1);
     if ( iteratorState == XL6_IR_VALUE_INVALID ) return 0;
-    if ( dynamicSource ) {
+    if ( dynamicSource || slotMapIterator ) {
         /* The operand/result cursor parameter deliberately retain the physical
          * storage TypeId.  payloadType is the independent logical refinement
          * which drives the exact runtime family check in Cgen. */
-        ctx->module->instructions[
+        if(dynamicSource) ctx->module->instructions[
             ctx->module->instructionCount - 1].payloadType = iterator->type;
         if ( !xl6IrLowerNewBlock(ctx, &createSuccessBlock) ||
              !xl6IrLowerNewBlock(ctx, &createFailureBlock) ||
@@ -21353,11 +21360,13 @@ invalidItemProjection:
         key = xl6IrLowerEmitRuntimeCallPayload(ctx,keyTargetId,keyTargetId,keyTarget->storageType,
             keyOp,NULL,dynamicSource && node->loopKeyAbi != XL6_IR_LOOP_KEY_DYNAMIC_XVALUE
                 ? iterator->type : XL6_IR_TYPE_INVALID,&loadedState,1);
+        if(slotMapIterator && key!=XL6_IR_VALUE_INVALID &&
+            !xl6IrLowerEmitRuntimeErrorEdge(ctx,keyTargetId,keyTarget,key)) return 0;
         if (key == XL6_IR_VALUE_INVALID || !xl6IrLowerInitializeIterationTarget(
                 ctx, id, node, keyTargetId, key, node->loopKeyLifetimeAbi)) return 0;
     }
     if ( materializesItem ) {
-        if ( nullableItemProjection || scalarItemProjection || closureItemProjection ||
+        if ( slotMapIterator || nullableItemProjection || scalarItemProjection || closureItemProjection ||
              nativeHandleItemProjection ||
              unionItemProjection || nativeValueItemProjection ) {
             XL6_IrTypeId dynamicType =
@@ -21368,7 +21377,11 @@ invalidItemProjection:
                     ctx, itemTargetId, dynamicType,
                     XL6_IR_RUNTIME_XVALUE_ITERATOR_ITEM_BORROW,
                     &loadedState, 1);
-            item = nativeValueItemProjection
+            item = slotMapIterator
+                ? projectedItemType->kind==XL6_IR_TYPE_NULLABLE
+                    ? xl6IrLowerProjectBorrowedXValueAsNullable(ctx,itemTargetId,borrowedItem,itemType)
+                    : xl6IrLowerProjectBorrowedXValueAsExactType(ctx,itemTargetId,borrowedItem,itemType)
+                : nativeValueItemProjection
                 ? xl6IrLowerProjectBorrowedXValueAsExactType(ctx,itemTargetId,borrowedItem,itemType)
                 : scalarItemProjection
                 ? xl6IrLowerProjectBorrowedXValueAsScalar(
@@ -22071,9 +22084,7 @@ static XL6_IrValueId xl6IrLowerFor(
         return xl6IrLowerGeneratorFor(ctx, id, node);
     case XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY:
     case XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY_VALUE:
-        xl6IrLowerDiag(ctx,id,
-            "XLIR SlotMap loop requires the paired native cursor backend; no dict or integer-key fallback is admitted");
-        return XL6_IR_VALUE_INVALID;
+        return xl6IrLowerXValueIteratorFor(ctx,id,node);
     default:
         xl6IrLowerDiag(ctx, id,
             "XLIR for loop has no admitted canonical iterator ABI");
