@@ -685,6 +685,14 @@ xfuture* xl6TaskSubmitPayloadV1(XL6_TaskPool* pool,void* data,xcancel* cancel,XL
     if(!policy){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
     return task_submit_policy(pool,data,cancel,NULL,policy,language);
 }
+xfuture* xl6TaskSubmitOwnedPolicyV1(XL6_TaskPool* pool,void* data,xcancel* cancel,
+    const xfuturepayloadownershipv1* policy,bool language)
+{
+    if(!policy || policy->size!=sizeof(*policy) || !policy->Drop || !policy->Trace) {
+        xrtSetErrorKind(XERR_ARGUMENT);return NULL;
+    }
+    return task_submit_policy(pool,data,cancel,NULL,policy,language);
+}
 const XL6_TaskRuntimeV1* xl6TaskRuntimeV1Get(void)
 {
     static const XL6_TaskRuntimeV1 api={pool_create,pool_quiesce,pool_destroy,pool_is_quiescent,pool_is_closing,

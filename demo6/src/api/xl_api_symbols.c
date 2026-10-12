@@ -108,6 +108,7 @@
 #include "src/runtime/xl6_future_aggregate.h"
 #include "src/runtime/xl6_future_metadata.h"
 #include "src/runtime/xl6_future_payload.h"
+#include "src/runtime/xl6_native_future_payload.h"
 
 #if defined(CONFIG_TCC_STATIC) && !defined(XL_STATIC_TCC)
 #define XL_STATIC_TCC 1
@@ -248,6 +249,8 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
         !xlApiAddTccSymbol(s, "xl6ContinuationOwnership", (const void*)xl6ContinuationOwnership) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationWatchRegister", (const void*)xl6ContinuationWatchRegister)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6PayloadDropGet", (const void*)xl6PayloadDropGet) ||
+        !xlApiAddTccSymbol(s, "xl6NativeFuturePayloadRuntimeV1Get", (const void*)xl6NativeFuturePayloadRuntimeV1Get) ||
+        !xlApiAddTccSymbol(s, "xl6TaskSubmitOwnedPolicyV1", (const void*)xl6TaskSubmitOwnedPolicyV1) ||
         !xlApiAddTccSymbol(s, "xl6PayloadBoxFutureV1", (const void*)xl6PayloadBoxFutureV1) ||
         !xlApiAddTccSymbol(s, "xl6PayloadTraceGet", (const void*)xl6PayloadTraceGet) ||
         !xlApiAddTccSymbol(s, "xl6PayloadResolveOwned", (const void*)xl6PayloadResolveOwned) ||
