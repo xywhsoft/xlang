@@ -7,6 +7,7 @@
 #include "src/runtime/xl6_code_lease.h"
 #include "src/runtime/xl6_native_handle.h"
 #include "src/runtime/xl6_dynamic_fields.h"
+#include "src/runtime/xl6_value_object_fields.h"
 #include "src/runtime/xl6_closure.h"
 #include "src/runtime/xl6_cell.h"
 #include "src/runtime/xl6_slot.h"

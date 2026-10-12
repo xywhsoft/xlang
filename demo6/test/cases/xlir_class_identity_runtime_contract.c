@@ -106,6 +106,10 @@ static void lifetimes(const char* first,const char* second)
             anchors==3 && xrtOwnershipScopeEnd(&freeze));
         close_owner(&a); close_owner(&b); assert(a.pins==1 && b.pins==1 && !a.unmapped && !b.unmapped);
         xrtValueRelease(left);
+        XL6_ClassDynamicFieldPathV3 path={0};
+        assert(xl6ClassDynamicFieldPathV3(cow,&path)==1 && path.storageSize==3 && path.handleSize==3 &&
+            !memcmp(path.storageName,"s\0t",3) && !memcmp(path.handleName,"h\0d",3));
+        assert(xl6ClassDynamicFieldPathV3(deep,&path)==1 && !memcmp(path.storageName,"s\0t",3));
         assert(api->Equal(cow,right,&equal) && equal && xrtValueHash(deep,&h1) && h1==h2);
         xvalueiter cursor={0}; assert(xrtValueIterBegin(deep,&cursor)); xrtValueRelease(deep); xrtValueRelease(cow);
         assert(!a.unmapped && a.pins==1); xrtValueIterEnd(&cursor); xrtValueRelease(right);
@@ -115,7 +119,7 @@ static void lifetimes(const char* first,const char* second)
 }
 static const XL6_ClassIdentityFieldV3 local_fields[]={ {binary_key,sizeof(binary_key),0x21},{"own",3,0x22} };
 static const XL6_ClassIdentitySchemaV3 local_schema={sizeof(local_schema),UINT64_C(0x434c415353),17,
-    XL6_CLASS_IDENTITY_DERIVED_V3,XL6_CLASS_IDENTITY_DERIVED_V3,local_fields,2};
+    XL6_CLASS_IDENTITY_DERIVED_V3,XL6_CLASS_IDENTITY_DERIVED_V3,local_fields,2,{0}};
 static unsigned hash_calls,equal_calls,drops;
 static xvalue* receiver;
 static uint64 evil_hash(void* data,void* user)

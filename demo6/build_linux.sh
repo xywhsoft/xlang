@@ -215,6 +215,7 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_set.c"
   "$ROOT/src/runtime/xl6_value_index_read.c"
   "$ROOT/src/runtime/xl6_value_index_write.c"
+  "$ROOT/src/runtime/xl6_value_object_fields.c"
   "$ROOT/src/runtime/xl6_value_wire_contains.c"
   "$ROOT/src/runtime/xl6_array_algebra.c"
   "$ROOT/src/runtime/xl6_array_graph.c"

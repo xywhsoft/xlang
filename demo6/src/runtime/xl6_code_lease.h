@@ -177,6 +177,15 @@ typedef struct XL6_ClassIdentityFieldV3 {
     size_t nameSize;
     uint64_t identity;
 } XL6_ClassIdentityFieldV3;
+/* Canonical open-object storage path, taken from the verified ClassLayout.
+ * All-zero denotes a closed layout. Exact byte keys, not runtime-tag guessing
+ * or a module-local assumption about builtin field spellings. */
+typedef struct XL6_ClassDynamicFieldPathV3 {
+    const char* storageName;
+    size_t storageSize;
+    const char* handleName;
+    size_t handleSize;
+} XL6_ClassDynamicFieldPathV3;
 typedef struct XL6_ClassIdentitySchemaV3 {
     size_t size;
     uint64_t identity;
@@ -184,6 +193,7 @@ typedef struct XL6_ClassIdentitySchemaV3 {
     XL6_ClassIdentityModeV3 hashMode, equalMode;
     const XL6_ClassIdentityFieldV3* fields;
     size_t fieldCount;
+    XL6_ClassDynamicFieldPathV3 dynamicFields;
 } XL6_ClassIdentitySchemaV3;
 enum { XL6_CLASS_IDENTITY_DEPTH_MAX_V3 = 64 };
 /* V3 installs the schema with the lifetime at creation, not in identity user
@@ -205,6 +215,12 @@ typedef struct XL6_ClassRuntimeV3 {
     bool (*Equal)(const struct xvalue*, const struct xvalue*, bool*);
 } XL6_ClassRuntimeV3;
 XL6_CODE_LEASE_API const XL6_ClassRuntimeV3* xl6ClassRuntimeV3Get(void);
+/* Private resident discovery. +1 authenticated open V3 layout, 0 ordinary
+ * wire/closed layout, -1 rejected lifecycle or metadata. Output is unchanged
+ * except on +1. The caller owns the source shell throughout use of the copied
+ * immutable path; that shell's real CodeLease keeps its name bytes alive. */
+XL6_CODE_LEASE_API int xl6ClassDynamicFieldPathV3(const struct xvalue*,
+    XL6_ClassDynamicFieldPathV3*);
 /* Only the resident Class factory's exact lifetime/finalizer family, never
  * arbitrary legacy CodeFinalizerBind contexts. Requires complete graph admission. */
 XL6_CODE_LEASE_API const struct xrtownershipadapterv1* xl6ClassOwnershipAdapterV1(struct xrtownershipref);

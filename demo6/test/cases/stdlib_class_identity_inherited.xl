@@ -22,7 +22,9 @@ IdentityChild ownChanged = IdentityChild()
 ownChanged.childNumber = 12
 assert first != numberChanged and first != textChanged and first != ownChanged
 set<IdentityChild> keys = set{first, same, numberChanged, textChanged, ownChanged}
-assert keys.length == 4 and keys.contains(same)
+assert keys.length == 5 and keys.contains(same)
+same.baseNumber = 77
+assert keys.contains(same), "mutable class keys keep reference identity after mutation"
 
 // This base has no independently constructed instance. IR may nevertheless
 // intern its type later; both shapes must cover inherited fields.
@@ -43,4 +45,4 @@ UnconstructedIdentityChild inlineChanged = UnconstructedIdentityChild()
 inlineChanged.inherited = 18
 assert inlineFirst != inlineChanged
 set<UnconstructedIdentityChild> inlineKeys = set{inlineFirst, inlineSame, inlineChanged}
-assert inlineKeys.length == 2
+assert inlineKeys.length == 3

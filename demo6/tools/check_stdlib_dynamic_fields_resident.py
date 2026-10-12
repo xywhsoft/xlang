@@ -1,9 +1,10 @@
 """Current-source DynamicFields resident ABI, graph and language regression.
-Strict generated C O0/O2, physical native contracts and genuine TCC JIT.
-Compiler and native inputs are immutable; no shipping/full53/AOT claim.
+Strict generated C O0/O2, physical native contracts, genuine TCC JIT and AOT.
+Compiler and native inputs are immutable; no shipping/full53 claim.
 """
 from pathlib import Path
-import argparse, hashlib, json, os, shutil, subprocess, sys
+import argparse, hashlib, json, os, re, shutil, subprocess, sys
+from xlir_public_build_inputs import verify_public_build
 
 def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
@@ -13,10 +14,11 @@ def main():
     parser.add_argument('--native-contract',type=Path)
     args=parser.parse_args(); root=args.root.resolve(); public=args.public_directory.resolve(); out=args.out.resolve()
     assert not out.exists()
-    manifest=public/'build.json'; build=json.loads(manifest.read_text(encoding='utf-8-sig'))
+    manifest=public/'build.json'; build,pinned,compared=verify_public_build(root,public)
     assert build['SourceXrt'] and not build['RuntimeOnly']
     if os.name!='nt': assert build['Complete'] and build['InputsUnchanged']
     files={Path(__file__).resolve(),Path(sys.executable),manifest,Path(build['Driver'])}
+    files.update(pinned)
     for row in build['Inputs']+build['Headers']+build['Objects']:
         assert sha(row['Path'])==row['Sha256'].lower(),row['Path']; files.add(Path(row['Path']))
     cc=shutil.which('gcc'); assert cc
@@ -26,9 +28,13 @@ def main():
            'xlir_native_dynamic_fields_auto_destroy','xlir_native_dynamic_fields_explicit_destroy',
            'cgen_object_var_field_lifetime','stdlib_dynamic_fields_cycle')
     contracts=('stdlib_dynamic_fields_resident_host','xlir_dynamic_fields_contract_host',
-               'stdlib_persistence_project_native_host')
+               'stdlib_persistence_project_native_host','stdlib_object_fields_native_host')
     host=root/'test/cases/xlir_module_product_oom_host.c'; memory=root/'test/support/module_product_memory.c'
     files.update((host,memory,root/'test/support/module_product_memory.h'))
+    plan_source=root/'test/cases/xlir_object_fields_public_plan.c'
+    absent=root/'test/cases/stdlib_thread_artifact_absent.xl'
+    objdump=shutil.which('objdump'); assert objdump
+    files.update((plan_source,absent,Path(objdump)))
     files.update(root/'test/cases'/(name+'.xl') for name in cases)
     files.update(root/'test/cases'/(name+'.c') for name in contracts)
     if args.native_contract: files.add(args.native_contract.resolve())
@@ -43,7 +49,9 @@ def main():
     assert sha(build['Driver'])==build['DriverSha256'].lower()
     out.mkdir(parents=True); env=dict(os.environ)
     if os.name=='nt': shutil.copy2(native,out/'xl.dll')
-    else: env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
+    else:
+        env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
+        env['XL6_TCC_LIB']=str(Path(build['NativeRoot'])/'build/linux/tcc-dist')
     flags=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED',
         '-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include'),
         '-I'+str(root/'lib/tcc'),'-I'+str(public/'include'),
@@ -57,7 +65,9 @@ def main():
     else: flags+=['-D_GNU_SOURCE']; links+=['-Wl,-rpath,'+str(native.parent),'-pthread','-ldl','-lm']
     rows=[]; errors=[]; products=[]; report={'Complete':False,'InputsUnchanged':False,
         'Inputs':inputs,'Rows':rows,'Errors':errors,'Products':products,'Scope':__doc__,
-        'ShippingLibraryAcceptance':False,'Full53Acceptance':False,'Aot':False,'Sanitized':False}
+        'ShippingLibraryAcceptance':False,'Full53Acceptance':False,'Aot':False,'Sanitized':False,
+        'StandaloneImports':[]}
+    report['SourceInputsMatch']=True; report['ProductionFiles']=len(compared)
     def run(name,command,rejected=False):
         result=subprocess.run(list(map(str,command)),cwd=root,env=env,capture_output=True,timeout=360)
         (out/(name+'.log')).write_bytes(result.stdout+result.stderr)
@@ -88,13 +98,18 @@ def main():
             run(name+'.mutant.reject',[binary],rejected=True)
             products.extend({'Path':str(path),'Sha256':sha(path)} for path in (source,binary))
         report['ImplementationNegativeControls']=len(mutations)
+        plan=out/('object-fields-plan'+('.exe' if os.name=='nt' else ''))
+        run('object-fields-plan.compile',[cc,*flags,'-O2',plan_source,*links,'-o',plan])
+        run('object-fields-plan.present',[plan,root/'test/cases/cgen_object_var_field_lifetime.xl','required'])
+        run('object-fields-plan.absent',[plan,absent,'absent'])
+        products.append({'Path':str(plan),'Sha256':sha(plan)})
         for name in contracts:
             try:
                 for opt in ('O0','O2'):
                     binary=out/(name+'.'+opt+('.exe' if os.name=='nt' else ''))
                     extra=['-DXL6_PROJECT_OPEN=1','-DXL6_FACTORY_PROFILE=0'] if name=='stdlib_persistence_project_native_host' else []
                     contract=args.native_contract.resolve() if args.native_contract and name=='stdlib_dynamic_fields_resident_host' else root/'test/cases'/(name+'.c')
-                    support=[memory] if name=='stdlib_dynamic_fields_resident_host' else []
+                    support=[memory] if name in ('stdlib_dynamic_fields_resident_host','stdlib_object_fields_native_host') else []
                     run(name+'.'+opt+'.compile',[cc,*flags,'-'+opt,*extra,contract,*support,*links,'-o',binary])
                     run(name+'.'+opt+'.run',[binary]); products.append({'Path':str(binary),'Sha256':sha(binary)})
             except Exception as error: errors.append(name+': '+repr(error))
@@ -119,9 +134,19 @@ def main():
                 # Cycles require the real host ownership driver, not the
                 # unrestricted C harness's module-init/fini-only contract.
                 run(name+'.jit',[build['Driver'],source,'run',out/(name+'.jit')])
+                if name!='stdlib_dynamic_fields_cycle':
+                    run(name+'.module',[build['Driver'],source,'module',out/(name+'.module')])
+                    binary=out/(name+'.product'+('.exe' if os.name=='nt' else ''))
+                    run(name+'.aot.build',[build['Driver'],source,'exe',binary.with_suffix('') if os.name=='nt' else binary])
+                    run(name+'.aot.run',[binary])
+                    imports=run(name+'.imports',[objdump,'-p',binary])
+                    assert not re.search(r'DLL Name:\s*x(?:l|lc)\.dll|NEEDED\s+libx(?:l|lc)\.so',imports,re.I)
+                    report['StandaloneImports'].append(name)
+                    products.append({'Path':str(binary),'Sha256':sha(binary)})
                 products.extend({'Path':str(path),'Sha256':sha(path)} for path in (generated,repeat,ir))
             except Exception as error: errors.append(name+': '+repr(error))
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
+        report['Aot']=len(report['StandaloneImports'])==6
         report['Complete']=not errors and report['InputsUnchanged']
     finally: (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     if errors: print('\n'.join(errors),file=sys.stderr)

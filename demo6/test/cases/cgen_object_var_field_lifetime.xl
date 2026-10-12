@@ -35,6 +35,14 @@ assert int(boxed.boost) == 9, "boxed class dynamic dot write"
 println("object-var: dynamic dot write")
 assert int(boxed["rank"]) == 11, "boxed class dynamic index write"
 println("object-var: dynamic index write")
+boxed["a\0b"] = 12
+boxed["a"] = 13
+assert int(boxed["a\0b"]) == 12, "boxed exact embedded-NUL key"
+assert int(boxed["a"]) == 13, "boxed NUL key does not alias prefix"
+boxed["score"] = 44
+assert int(actor.score) == 44, "index replacement is visible to typed dot access"
+actor.score = 42
+assert int(boxed["score"]) == 42, "typed dot replacement is visible to erased index"
 
 var items = boxed.items
 assert int(items[0]) == 1, "boxed dynamic array first item"

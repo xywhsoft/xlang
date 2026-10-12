@@ -254,6 +254,7 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_dict_value_iterator.c ^
     src\runtime\xl6_value_index_read.c ^
     src\runtime\xl6_value_index_write.c ^
+    src\runtime\xl6_value_object_fields.c ^
     src\runtime\xl6_value_wire_contains.c ^
     src\runtime\xl6_array_algebra.c ^
     src\runtime\xl6_array_graph.c ^
@@ -506,6 +507,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_dict_value_iterator.c ^
     src\runtime\xl6_value_index_read.c ^
     src\runtime\xl6_value_index_write.c ^
+    src\runtime\xl6_value_object_fields.c ^
     src\runtime\xl6_value_wire_contains.c ^
     src\runtime\xl6_array_algebra.c ^
     src\runtime\xl6_array_graph.c ^

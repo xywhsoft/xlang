@@ -40,8 +40,10 @@ assert !(left != same), "derive equals should generate matching __ne__"
 assert left != other, "derive equals should detect changed compared field"
 
 set<DeriveRecord> records = set{left, same, other}
-assert records.length == 2, "typed set should combine derive hash and equals"
-assert same in records, "typed set lookup should use derived value semantics"
+assert records.length == 3, "mutable class keys use reference identity even with derived equality"
+assert same in records, "typed set lookup must find the original reference"
+same.id = 17
+assert same in records, "mutating key contents must not change set membership"
 
 ReferenceRecord referenceLeft = ReferenceRecord(7)
 ReferenceRecord referenceSameValue = ReferenceRecord(7)

@@ -83,6 +83,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_list_methods.c',
     'src/runtime/xl6_list_value_iterator.c',
     'src/runtime/xl6_list_value_read.c','src/runtime/xl6_value_index_read.c','src/runtime/xl6_value_index_write.c',
+    'src/runtime/xl6_value_object_fields.c',
     'src/runtime/xl6_list_scalar_read.c','src/runtime/xl6_list_string_read.c','src/runtime/xl6_list_value_write.c',
     'src/runtime/xl6_list_algebra.c',
     'src/runtime/xl6_value_copy.c',
