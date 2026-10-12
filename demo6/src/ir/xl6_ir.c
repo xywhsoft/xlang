@@ -8555,7 +8555,8 @@ static int xl6IrStackConstructionContractDepth(const XL6_IrModule* module,
     case XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1:
-    case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1: return 1;
+    case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1: return 1;
     case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2:
         return xl6IrNominalIdentitySetGet(module,plan->baseElementType,setOut)!=NULL;
     case XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1:
@@ -38811,7 +38812,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      instruction->runtimeResourcePayloadAbi <
                          XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID ||
                      instruction->runtimeResourcePayloadAbi >
-                         (xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp))
+                         (xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp)) ||
+                          (instruction->runtimeOp>=XL6_IR_RUNTIME_STACK_CREATE &&
+                           instruction->runtimeOp<=XL6_IR_RUNTIME_STACK_CAPACITY)
                              ? XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY : XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF) ||
                      (instruction->runtimeResourcePayloadAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF &&
                       !xl6IrConcurrentQueueInstructionType(module,instruction) &&
