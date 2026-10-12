@@ -1,0 +1,43 @@
+func independentKey() as SlotMapKey
+    auto slots = SlotMap::<int>()
+    return slots.insert(23)
+end
+func copyKey(SlotMapKey key) as SlotMapKey
+    assert(key == key)
+    return key
+end
+func acceptKey(SlotMapKey key) as int
+    assert(key == key)
+    return 9
+end
+func rejectKey(SlotMapKey key) as SlotMapKey
+    try
+        assert(key == key)
+        throw ValueError "native task failure"
+    finally
+        assert(key == key)
+    end
+    return key
+end
+async func asyncCopyKey(SlotMapKey key) as SlotMapKey
+    assert(key == key)
+    return key
+end
+auto original = independentKey()
+auto asyncResult = asyncCopyKey(original)
+auto spawned = task.spawn(copyKey,original)
+auto accepted = task.spawn(acceptKey,original)
+auto mapped = spawned.then(copyKey)
+assert(await asyncResult == original)
+assert(await spawned == original)
+auto mappedKey = await mapped
+assert(mappedKey == original)
+assert(await accepted == 9)
+assert(await asyncResult == original)
+try
+    auto unused = await task.spawn(rejectKey,original)
+    assert(false)
+catch failure
+    assert(failure.message == "native task failure")
+end
+assert(original == original)

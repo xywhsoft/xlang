@@ -4580,7 +4580,9 @@ typedef enum XL6_IrCallbackStorageAbi {
     /* Closed physical capture layouts. V1 values remain reserved but are not
      * valid Lowered callback contracts: opaque Drop/Trace is not a layout. */
     XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V2,
-    XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_FUTURE_FRAME_V2
+    XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_FUTURE_FRAME_V2,
+    XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3,
+    XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_FUTURE_FRAME_V3
 } XL6_IrCallbackStorageAbi;
 typedef enum XL6_IrCallbackCleanupAbi {
     XL6_IR_CALLBACK_CLEANUP_INVALID = 0,
@@ -5503,7 +5505,8 @@ typedef enum XL6_IrAsyncStorageAbi {
 typedef enum XL6_IrTaskStorageAbi {
     XL6_IR_TASK_STORAGE_NONE = 0,
     XL6_IR_TASK_STORAGE_RESIDENT_FRAME_POOL_V1, /* Reserved opaque layout; not canonical Lowered IR. */
-    XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V2
+    XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V2,
+    XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V3
 } XL6_IrTaskStorageAbi;
 
 /* Allocation prepares code ownership before any initialization can escape;

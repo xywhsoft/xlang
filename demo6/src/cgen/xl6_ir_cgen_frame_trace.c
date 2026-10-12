@@ -28,6 +28,22 @@ static const char* xl6IrCgenCaptureKind(XL6_IrAsyncFrameDestroyAbi abi)
     default: return NULL;
     }
 }
+/* A mechanical physical-slot renderer shared by task and callback producers.
+ * Native destruction has a closed publisher; established kinds keep NULL.
+ * V1 layouts are not allowed to acquire the new numeric kind implicitly. */
+static int xl6IrCgenEmitCaptureSlotV2(XL6_Output* out,const XL6_IrModule* module,
+    XL6_IrTypeId id,XL6_IrAsyncFrameDestroyAbi destroy,const char* frame,const char* field)
+{
+    const char* kind=xl6IrCgenCaptureKind(destroy);const char* publisher="NULL";
+    if(destroy==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE) {
+        const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,id));
+        if(!native || !native->captureProfileSymbol)return 0;
+        kind="XL6_CAPTURE_NATIVE_LEAF_V2";publisher=native->captureProfileSymbol;
+    }
+    if(!kind)return 0;
+    xl6OutputPrintf(out,"    {{%s, offsetof(%s, %s), sizeof(((%s*)0)->%s)}, %s},\n",
+        kind,frame,field,frame,field,publisher);return !xl6OutputHasFailed(out);
+}
 /* Serialize the already verified frame and action slices. The resident engine
  * implements tracing/cleanup once; a backend must not reconstruct lifetimes,
  * deduplicate apparent aliases, or invent a destruction order. */

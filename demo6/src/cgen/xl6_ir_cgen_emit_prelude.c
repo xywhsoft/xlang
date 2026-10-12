@@ -430,6 +430,8 @@ static int xl6IrCgenEmitRuntimePrelude(
     }
     if(needs->needsNativeFuturePayloadRuntime) {
         xl6OutputPuts("#include <__xl_runtime/xl6_native_future_payload.h>\n",out);
+    }
+    if(needs->needsNativeFuturePayloadRuntime || needs->needsNativeCaptureProfileHeaders) {
         for(size_t i=0;i<module->types.count;++i) {
             const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(&module->types.items[i]);
             if(native)xl6OutputPrintf(out,"#include <%s>\n",native->captureHeader);
@@ -492,11 +494,11 @@ static int xl6IrCgenEmitRuntimePrelude(
             ? "#define xlir_future_callback_owner (xlir_code_owner.size != 0 ? &xlir_code_owner : NULL)\n"
             : "#define xlir_future_callback_owner NULL\n",out);
         xl6OutputPuts(
-            "#define xlir_future_callback_allocate(...) (xl6FutureCallbackRuntimeV2Get()->Allocate)(xlir_future_callback_owner, __VA_ARGS__)\n"
+            "#define xlir_future_callback_allocate(...) (xl6FutureCallbackRuntimeV4Get()->Allocate)(xlir_future_callback_owner, __VA_ARGS__)\n"
             "#define xlir_future_callback_discard (xl6FutureCallbackRuntimeV1Get()->Discard)\n",out);
     }
     if (needs->needsAsyncTaskRuntime) {
-        if (module->abi.taskStorageAbi != XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V2)
+        if (module->abi.taskStorageAbi != XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V3)
             return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR task frame/pool storage ABI is unresolved");
         xl6OutputPuts("#include <__xl_runtime/xl6_task.h>\n",out);
         xl6OutputPuts(module->abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT
@@ -505,7 +507,7 @@ static int xl6IrCgenEmitRuntimePrelude(
         xl6OutputPuts(
             "/* Verified resident frame/pool ABI. The embedding boundary serializes\n"
             " * module activation/finalization; admission and callback tails are resident. */\n"
-            "#define xlir_task_allocate(...) (xl6TaskRuntimeV2Get()->Allocate)(xlir_task_owner, __VA_ARGS__)\n"
+            "#define xlir_task_allocate(...) (xl6TaskRuntimeV3Get()->Allocate)(xlir_task_owner, __VA_ARGS__)\n"
             "#define xlir_task_discard (xl6TaskRuntimeV1Get()->Discard)\n"
             "static XL6_TaskPool* xlir_async_pool = NULL;\n"
             "static bool xlir_async_pool_activate(void)\n"

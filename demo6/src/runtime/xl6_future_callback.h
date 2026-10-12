@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include "xl6_code_lease.h"
 #include "xl6_capture.h"
+#include "xl6_capture_v2.h"
 struct xfuture;
 struct xpromise;
 struct xcancel;
@@ -59,6 +60,13 @@ typedef struct XL6_FutureCallbackRuntimeV3 {
     struct xfuture* (*StartExclusive)(void*, struct xfuture* source);
 } XL6_FutureCallbackRuntimeV3;
 XL6_CODE_LEASE_API const XL6_FutureCallbackRuntimeV3* xl6FutureCallbackRuntimeV3Get(void);
+/* Exact V2 capture payload, sharing the V1 Start/Discard/Ownership and V3
+ * exclusive-source protocol. No new Watch, producer or scheduler identity. */
+typedef struct XL6_FutureCallbackRuntimeV4 {
+    void* (*Allocate)(const XL6_CodeOwner*,size_t,XL6_FutureCallbackProc,const XL6_CaptureLayoutV2*);
+    void (*Cleanup)(void*);
+} XL6_FutureCallbackRuntimeV4;
+XL6_CODE_LEASE_API const XL6_FutureCallbackRuntimeV4* xl6FutureCallbackRuntimeV4Get(void);
 /* Immutable identity for the real output-Future -> producer-frame reference.
  * Recognition of this policy alone does not admit the frame, Watch or captures
  * to collection; every physical child still requires its own full protocol. */

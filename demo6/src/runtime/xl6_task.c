@@ -4,6 +4,7 @@
 #include "lib/xrt/xrt.h"
 #include "xl6_task.h"
 #include "xl6_ownership_scope.h"
+#include "src/api/xl_foreign_error.h"
 #include <stddef.h>
 
 struct XL6_TaskPool {
@@ -26,6 +27,7 @@ typedef struct TaskFrame {
     XL6_TaskDrop drop;
     XL6_CodeContextTrace trace;
     const XL6_CaptureLayoutV1* layout;
+    const XL6_CaptureLayoutV2* layoutV2;
     size_t references, active, dataSize;
     const void* claim;
     bool publishing, committed, runEntered, payloadLive, cleared;
@@ -313,6 +315,13 @@ static bool frame_count(const void* data,size_t* count)
         if(!lease.Ops->Count(lease.Data,&references))return false;}
     *count=frame->references; return true;
 }
+static bool frame_has_layout(const TaskFrame* frame)
+{ return frame->layout || frame->layoutV2; }
+static bool frame_layout_valid(const TaskFrame* frame)
+{
+    return frame->layoutV2 ? !frame->layout && xl6CaptureRuntimeV2Get()->Validate(frame->layoutV2,frame->dataSize) :
+        frame->layout && xl6CaptureRuntimeV1Get()->Validate(frame->layout,frame->dataSize);
+}
 static bool frame_trace(const void* data,xrtownershipvisitor visit,void* context)
 {
     const TaskFrame* frame=data; size_t count;
@@ -320,7 +329,8 @@ static bool frame_trace(const void* data,xrtownershipvisitor visit,void* context
     return (!frame->lease || visit(xl6CodeLeaseOwnership(frame->lease),context)) &&
         (!frame->pool || visit(xl6TaskPoolOwnership(frame->pool),context)) &&
         visit(xrtFutureOwnership(frame->source),context) && visit(xrtPromiseOwnership(frame->output),context) &&
-        (!frame->payloadLive || (frame->layout
+        (!frame->payloadLive || (frame->layoutV2
+            ? xl6CaptureRuntimeV2Get()->Trace(frame->layoutV2,frame->data,frame->dataSize,visit,context) : frame->layout
             ? xl6CaptureRuntimeV1Get()->Trace(frame->layout,frame->data,visit,context)
             : frame->trace(frame->data,visit,context)));
 }
@@ -328,10 +338,10 @@ static const xrtownershipops frame_ops={frame_count,frame_trace};
 static xrtownershipref frame_ownership(const void* data)
 { return (xrtownershipref){frame_header(data),data?&frame_ops:NULL}; }
 static void* frame_allocate_body(const XL6_CodeOwner* owner,size_t size,XL6_TaskRun run,XL6_TaskDrop drop,
-    XL6_CodeContextTrace trace,const XL6_CaptureLayoutV1* layout)
+    XL6_CodeContextTrace trace,const XL6_CaptureLayoutV1* layout,const XL6_CaptureLayoutV2* layoutV2)
 {
     TaskFrame* frame; XL6_CodeLease* lease=NULL;
-    if(!run || size>SIZE_MAX-sizeof(*frame) || (layout
+    if(!run || size>SIZE_MAX-sizeof(*frame) || (layoutV2 ? layout || !xl6CaptureRuntimeV2Get()->Validate(layoutV2,size) : layout
         ? !xl6CaptureRuntimeV1Get()->Validate(layout,size) : !drop || !trace)) {
         xrtSetErrorKind(XERR_ARGUMENT); return NULL;
     }
@@ -342,25 +352,37 @@ static void* frame_allocate_body(const XL6_CodeOwner* owner,size_t size,XL6_Task
     }
     frame=xrtMalloc(sizeof(*frame)+size);
     if(!frame){xl6CodeLeaseRelease(lease);return NULL;}
-    *frame=(TaskFrame){0}; frame->lease=lease;frame->run=run;frame->drop=drop;frame->trace=trace;frame->layout=layout;
+    *frame=(TaskFrame){0}; frame->lease=lease;frame->run=run;frame->drop=drop;frame->trace=trace;frame->layout=layout;frame->layoutV2=layoutV2;
     frame->references=1;frame->payloadLive=true;frame->dataSize=size;return frame->data;
 }
 static void* frame_allocate(const XL6_CodeOwner* owner,size_t size,XL6_TaskRun run,XL6_TaskDrop drop,XL6_CodeContextTrace trace)
-{ XL6_OWNERSHIP_RETURN(void*,frame_allocate_body(owner,size,run,drop,trace,NULL)); }
+{ XL6_OWNERSHIP_RETURN(void*,frame_allocate_body(owner,size,run,drop,trace,NULL,NULL)); }
 static void* frame_allocate_v2(const XL6_CodeOwner* owner,size_t size,XL6_TaskRun run,const XL6_CaptureLayoutV1* layout)
 {
     if(!layout){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
-    XL6_OWNERSHIP_RETURN(void*,frame_allocate_body(owner,size,run,NULL,NULL,layout));
+    XL6_OWNERSHIP_RETURN(void*,frame_allocate_body(owner,size,run,NULL,NULL,layout,NULL));
+}
+static void* frame_allocate_v3(const XL6_CodeOwner* owner,size_t size,XL6_TaskRun run,const XL6_CaptureLayoutV2* layout)
+{
+    if(!layout){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    XL6_OWNERSHIP_RETURN(void*,frame_allocate_body(owner,size,run,NULL,NULL,NULL,layout));
 }
 static void frame_cleanup(void* data)
 {
     TaskFrame* frame=frame_header(data);
-    if(!frame || !frame->layout || !frame->payloadLive || (!frame->active && frame->committed))abort();
-    xl6CaptureRuntimeV1Get()->Cleanup(frame->layout,data);
+    if(!frame || !frame_has_layout(frame) || !frame->payloadLive || (!frame->active && frame->committed))abort();
+    if(frame->layoutV2) {
+        xl6_error_result outcome=xl6CaptureRuntimeV2Get()->Cleanup(frame->layoutV2,data,frame->dataSize,(xl6_error_result){true,NULL});
+        if(!outcome.ok)xl6ErrorScopePropagateFailure(outcome);
+    } else xl6CaptureRuntimeV1Get()->Cleanup(frame->layout,data);
 }
 const XL6_TaskRuntimeV2* xl6TaskRuntimeV2Get(void)
 {
     static const XL6_TaskRuntimeV2 api={frame_allocate_v2,frame_cleanup};return &api;
+}
+const XL6_TaskRuntimeV3* xl6TaskRuntimeV3Get(void)
+{
+    static const XL6_TaskRuntimeV3 api={frame_allocate_v3,frame_cleanup};return &api;
 }
 /* Every physical reference has a real holder: private caller, accepted job,
  * registration caller, registered Watch or pending language output Future.
@@ -394,7 +416,7 @@ static void frame_drop_payload(TaskFrame* frame)
     frame_mutation_begin(frame,&mutation);
     if(!frame->payloadLive)abort();
     ++frame->active; drop=frame->drop; frame_mutation_end(frame,&mutation);
-    if(frame->layout){
+    if(frame_has_layout(frame)){
         xerror* previous=xrtTakeError();frame_cleanup(frame->data);
         xrtClearError();xrtSetErrorTake(previous);
     }else drop(frame->data,NULL);
@@ -523,8 +545,7 @@ const xrtownershipadapterv1* xl6TaskOwnershipAdapterV1(xrtownershipref ref,
         claim_frame,restore_frame,NULL,clear_frame,NULL};
     static const xrtownershippreparationv1 prepare={sizeof(prepare),&adapter,prepared_frame,prepare_frame};
     const TaskFrame* frame=ref.Data;size_t count;
-    if(!preparation||ref.Ops!=&frame_ops||!frame||!frame->layout||
-        !xl6CaptureRuntimeV1Get()->Validate(frame->layout,frame->dataSize)||!frame_count(frame,&count))return NULL;
+    if(!preparation||ref.Ops!=&frame_ops||!frame||!frame_layout_valid(frame)||!frame_count(frame,&count))return NULL;
     *preparation=&prepare;return &adapter;
 }
 static void outcome_registration_failed(TaskFrame* frame,xfuture* future)
@@ -631,7 +652,7 @@ static xfuture* task_submit_body(XL6_TaskPool* pool,void* data,xcancel* cancel,
     if(language){
         frame->output=xrtPromiseCreate(&future,cancel);if(!frame->output)return NULL;
         if(!frame_bind_output(frame))goto preparation_failed;
-        if(frame->layout){
+        if(frame_has_layout(frame)){
             if(!xrtFutureWatchInitOwnershipV1(&frame->watch,frame,&watch_policy))goto preparation_failed;
         }else if(!xrtFutureWatchInitPhased(&frame->watch,outcome_notify,outcome_release,frame,outcome_trace))goto preparation_failed;
         token=xrtPromiseCancelToken(frame->output);if(!token)goto preparation_failed;

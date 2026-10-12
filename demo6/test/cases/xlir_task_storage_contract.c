@@ -18,12 +18,14 @@ int main(int argc,char** argv)
         ir.abi.valueIteratorStorageAbi=XL6_IR_VALUE_ITERATOR_STORAGE_NONE;
         ir.abi.taskStorageAbi=XL6_IR_TASK_STORAGE_RESIDENT_FRAME_POOL_V1;reject(&ir,"task frame/pool storage ABI");
         ir.abi.taskStorageAbi=XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V2;reject(&ir,"task frame/pool storage ABI");
+        ir.abi.taskStorageAbi=XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V3;reject(&ir,"task frame/pool storage ABI");
         ir.abi.taskStorageAbi=(XL6_IrTaskStorageAbi)99;reject(&ir,"task frame/pool storage ABI");
         ir.abi.taskStorageAbi=XL6_IR_TASK_STORAGE_NONE;assert(xl6IrLowerModule(&ir,&parse.diags));verify(&ir);
         ir.abi.taskStorageAbi=XL6_IR_TASK_STORAGE_NONE;reject(&ir,"task frame/pool storage ABI");
         ir.abi.taskStorageAbi=XL6_IR_TASK_STORAGE_RESIDENT_FRAME_POOL_V1;reject(&ir,"task frame/pool storage ABI");
         ir.abi.taskStorageAbi=(XL6_IrTaskStorageAbi)99;reject(&ir,"task frame/pool storage ABI");
-        ir.abi.taskStorageAbi=XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V2;
+        ir.abi.taskStorageAbi=XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V2;reject(&ir,"task frame/pool storage ABI");
+        ir.abi.taskStorageAbi=XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V3;
         ir.abi.valueIteratorStorageAbi=XL6_IR_VALUE_ITERATOR_STORAGE_NONE;reject(&ir,"value iterator storage ABI");
         ir.abi.valueIteratorStorageAbi=(XL6_IrValueIteratorStorageAbi)99;reject(&ir,"value iterator storage ABI");
         ir.abi.valueIteratorStorageAbi=XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_CHECKED_SNAPSHOT_V2;
@@ -70,13 +72,13 @@ int main(int argc,char** argv)
         if(ir.abi.taskPoolAbi!=XL6_IR_MODULE_TASK_POOL_NONE){
             ++pools;assert(strstr(text,"__xl_runtime/xl6_task.h") && strstr(text,"xl6TaskRuntimeV1Get()->PoolQuiesce") &&
                 ((strstr(text,"xlir_task_allocate(sizeof(*frame),") && strstr(text,"&xlir_async_layout_") &&
-                  strstr(text,"(xl6TaskRuntimeV2Get()->Cleanup)(frame)") && strstr(text,"(xl6TaskRuntimeV2Get()->Allocate)(xlir_task_owner")) ||
-                 (strstr(text,"(xl6TaskRuntimeV2Get()->Allocate)(xlir_task_owner,") &&
-                  strstr(text,"XL6_CaptureLayoutV1") && strstr(text,"XL6_CaptureSlot"))));
+                  strstr(text,"(xl6TaskRuntimeV3Get()->Cleanup)(frame)") && strstr(text,"(xl6TaskRuntimeV3Get()->Allocate)(xlir_task_owner")) ||
+                 (strstr(text,"(xl6TaskRuntimeV3Get()->Allocate)(xlir_task_owner,") &&
+                  strstr(text,"XL6_CaptureLayoutV2") && strstr(text,"XL6_CaptureSlotV2"))));
         }
         xrtFree(text);
         assert(xl6OutputOpenMemory(&out));xl6IrDumpModuleText(&out,&ir);text=xl6OutputTakeMemoryText(&out,NULL);
-        assert(text && strstr(text,"task-storage: 2") && strstr(text,"capture-traces=[") &&
+        assert(text && strstr(text,"task-storage: 3") && strstr(text,"capture-traces=[") &&
             strstr(text,"capture-destroys=[") && strstr(text,"value-iterator-storage: 1"));xrtFree(text);
         assert(xl6OutputOpenMemory(&out));xl6IrDumpModuleJson(&out,&ir);text=xl6OutputTakeMemoryText(&out,NULL);
         assert(text && strstr(text,"\"asyncCaptureDestroyAbis\":[") && strstr(text,"\"valueIteratorStorageAbi\": 1"));xrtFree(text);

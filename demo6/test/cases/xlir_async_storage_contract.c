@@ -34,8 +34,8 @@ int main(int argc,char** argv)
             if(ir.asyncMachineCount) { ++machines; assert(strstr(text,"xlir_async_frame_allocate(sizeof(*next), &xlir_async_machine_storage_") &&
                 strstr(text,"xlir_async_frame_dispose(next);")); }
         } else if(n==3) {
-            ++pools; assert(strstr(text,"__xl_runtime/xl6_task.h") && strstr(text,"xl6TaskRuntimeV2Get()->Allocate") &&
-                strstr(text,"XL6_CaptureLayoutV1") && strstr(text,"(xl6TaskRuntimeV2Get()->Cleanup)(frame)") &&
+            ++pools; assert(strstr(text,"__xl_runtime/xl6_task.h") && strstr(text,"xl6TaskRuntimeV3Get()->Allocate") &&
+                strstr(text,"XL6_CaptureLayoutV2") && strstr(text,"(xl6TaskRuntimeV3Get()->Cleanup)(frame)") &&
                 strstr(text,"xlir_task_allocate(sizeof(*frame),") && strstr(text,"xlir_task_discard(data);"));
         } else ++ready;
         xrtFree(text);
