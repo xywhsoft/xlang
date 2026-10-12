@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_string_type.h"
+#include "src/api/xl_foreign_error.h"
 #include <stdlib.h>
 
 static bool present(const void* value)
@@ -18,7 +19,19 @@ static bool init(ptr value, const xrttype* type)
     *(xstrview*)value=item; return true;
 }
 static bool copy(ptr target, const void* source, const xrttype* type)
-{ (void)type; return present(source) && xrtTypeCopyValue(xrtTypeStringView(),target,source); }
+{
+    (void)type;
+    /* Reject an explicit failure OR a pending callback error before a typed
+     * container publishes the destination. The container still owns and drops
+     * any partially initialized slot. Preserve inherited errors separately. */
+    xl6_error_scope scope={0};
+    if (!xl6ErrorScopeBegin(&scope)) return false;
+    bool copied=present(source) && xrtTypeCopyValue(xrtTypeStringView(),target,source);
+    if (!copied || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return false; }
+    return true;
+}
 static bool move(ptr target, ptr source, const xrttype* type)
 { (void)type; return present(source) && xrtTypeMoveValue(xrtTypeStringView(),target,source); }
 static void drop(ptr value, const xrttype* type)
