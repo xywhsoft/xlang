@@ -16213,6 +16213,9 @@ static XL6_IrMemberAbi xl6IrClassFieldMemberAbi(
     case XL6_IR_C_ABI_F32:
     case XL6_IR_C_ABI_MANAGED_BYTES:
         return XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE;
+    case XL6_IR_C_ABI_NATIVE_VALUE:
+        return xl6IrNativeValuePlanForType(resultType)
+            ? XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE : XL6_IR_MEMBER_ABI_NONE;
     case XL6_IR_C_ABI_TIME_I64:
         return XL6_IR_MEMBER_ABI_CLASS_FIELD_TIME;
     case XL6_IR_C_ABI_MANAGED_STRING:

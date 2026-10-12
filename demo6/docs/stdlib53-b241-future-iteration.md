@@ -61,7 +61,8 @@ yield 与提前关闭、task 异常及嵌套 finally。普通 task 失败仍按�
 
 ## 后续范围
 
-Channel 的公开切换与旧 Into 清退、WaitQueue backend、独立 borrowed
-原生 SSA spill 的完整失败边界、并发队列压力，以及 53 模块与正式
+Channel 的公开切换与旧 Into 清退此前已完成，更广无诊断故障与拥有图
+压力继续。WaitQueue backend、独立 borrowed 原生 SSA spill 的完整
+失败边界、并发队列压力，以及 53 模块与正式
 DLL／VFS 发布总验收继续。对象池仍最后，CRT 0、XRT 19 组未决策
 范围不变。复测入口为 tools/check_stdlib_future_iteration.py。

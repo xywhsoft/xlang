@@ -1,0 +1,25 @@
+func spillKey() as SlotMapKey
+    auto values = SlotMap::<int>()
+    return values.insert(7)
+end
+auto globalSpillKey = spillKey()
+class SpillKeyHolder
+    SlotMapKey value = spillKey()
+end
+SpillKeyHolder spillHolder = SpillKeyHolder()
+async func awaitedSpillKey() as SlotMapKey
+    time.sleep(1)
+    return globalSpillKey
+end
+async func compareSpillKey() as bool
+    try
+        return globalSpillKey == await awaitedSpillKey()
+    finally
+        assert(globalSpillKey == globalSpillKey)
+    end
+end
+assert(await compareSpillKey())
+async func compareHolderSpillKey() as bool
+    return spillHolder.value == await awaitedSpillKey()
+end
+assert(not await compareHolderSpillKey())
