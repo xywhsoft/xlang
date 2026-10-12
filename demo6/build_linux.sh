@@ -208,6 +208,7 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_capture_v2.c"
   "$ROOT/src/runtime/xl6_slot_map_key_capture.c"
   "$ROOT/src/runtime/xl6_native_future_payload.c"
+  "$ROOT/src/runtime/xl6_nullable_slot_map_key.c"
   "$ROOT/src/runtime/xl6_dict_schema.c"
   "$ROOT/src/runtime/xl6_dict_value_index.c"
   "$ROOT/src/runtime/xl6_dict_methods.c"

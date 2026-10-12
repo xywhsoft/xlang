@@ -150,6 +150,7 @@
 - `stdlib53-b243-queue-pressure.md`：三种队列公共并发收发、实际线程内故障隔离及字符串发布前 checked 复制通过双端专项、六个坏供应方和选定插桩；WaitQueue 与总验收继续。
 - `stdlib53-b244-three-group-discovery.md`：双端 288 个夹具统一生成／严格 C 检查、Stack 原生 Array／Dict 子域修复及独立运行、完整分配前缀和坏 IR 拒绝；不等同于 53 模块发布验收。
 - `stdlib53-b245-stack-native-value.md`：Stack 的原生拥有值单项／批量、寿命及错误边界通过双端专项、完整分配检查和三个实际坏实现；nullable／Future／函数值域及发布总门继续。
+- `stdlib53-b246-nullable-native-foundation.md`：可空原生键的显式存在位、拥有值复制与失败清理底座通过双端专项、真实坏供应方及选定插桩；语言 nullable／tryPop 接线尚未完成。
 - `XRT与xlang系统整合任务.md`：当前长期整合范围、快照契约、实施顺序和 HTTP/WebSocket 快慢路径边界。
 - `扩展库开发问题清单.md`：六轮扩展库批次发现的语言/编译器/运行时问题账本（P0 崩溃类到 P4 C 库兼容），含最小复现、规避方案与修复优先级。
 - `剩余未压实扩展库清单.md`：删除 22 个占位库后 109 个未压实包的处置规划视图（按编解码改造/平台收编/真外部服务/迁移队列分类）。
