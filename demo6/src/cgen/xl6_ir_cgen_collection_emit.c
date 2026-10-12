@@ -883,9 +883,7 @@ static int xl6IrCgenEmitStackRuntime(
     case XL6_IR_RUNTIME_STACK_TRY_PEEK_AT:
         {
             const XL6_IrType* product = xl6IrTypeGet(&module->types, instruction->type);
-            const XL6_IrType* optional = xl6IrTypeGet(&module->types, product->params[1]);
-            int tagged = optional->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
-                product->params[1] != instruction->payloadType;
+            int tagged = xl6IrOptionalResultPayloadTagged(module,product->params[1],instruction->payloadType);
             xl6OutputPrintf(out, "    v%u = (%s){0};\n",
                 (unsigned int)instruction->result, xl6IrCgenType(module, instruction->type));
             xl6OutputPrintf(out,

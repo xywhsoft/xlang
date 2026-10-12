@@ -36,7 +36,7 @@ static int xl6IrCgenVerifyInstructions(
                      (testedType->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL &&
                       testedType->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
                       !(testedType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-                        testedType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE)) )
+                        (testedType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE || xl6IrNullableNativeValuePlan(&module->types,testedType)!=NULL))) )
                     return xl6IrCgenDiag(diags, module, instruction->origin,
                                          "XLIR C emitter null-test ABI is unresolved");
             }
@@ -55,8 +55,8 @@ static int xl6IrCgenVerifyInstructions(
                     nullableType->paramCount == 1 && nullableType->params != NULL
                         ? nullableType->params[0] : XL6_IR_TYPE_INVALID;
                 int taggedAbi = nullableType != NULL &&
-                    nullableType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
-                    nullableType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE;
+                    ((nullableType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
+                    nullableType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE) || xl6IrNullableNativeValuePlan(&module->types,nullableType)!=NULL);
                 int sentinelAbi;
                 if ( elementType != XL6_IR_TYPE_INVALID )
                     element = xl6IrTypeGet(&module->types, elementType);

@@ -443,6 +443,7 @@ typedef enum XL6_IrNativeValueAbi {
 #define XL6_NATIVE_VALUE_PROFILE(Tag,...) XL6_IR_NATIVE_VALUE_##Tag,
 #include "src/type/xl6_native_value_profiles.inc"
 #undef XL6_NATIVE_VALUE_PROFILE
+    XL6_IR_NATIVE_VALUE_NULLABLE_SLOT_MAP_KEY_V1,
 } XL6_IrNativeValueAbi;
 
 /* Frontend-fixed ownership category.  Lowering must not rediscover whether a
@@ -623,6 +624,7 @@ typedef enum XL6_IrNativeSlotAbi {
 #define XL6_NATIVE_VALUE_PROFILE(Tag,...) XL6_IR_NATIVE_SLOT_##Tag,
 #include "src/type/xl6_native_value_profiles.inc"
 #undef XL6_NATIVE_VALUE_PROFILE
+    XL6_IR_NATIVE_SLOT_NULLABLE_SLOT_MAP_KEY_V1,
 } XL6_IrNativeSlotAbi;
 
 /* Target resident Sequence recipe, not permission to reinterpret an existing
@@ -2127,6 +2129,8 @@ typedef struct XL6_IrNativeValuePlan {
     uint64_t languageValueId;
     const char* captureHeader;
     const char* captureProfileSymbol;
+    /* Nonzero only for an owning tagged nullable record. */
+    XL6_IrNativeValueAbi nullableElementAbi;
 } XL6_IrNativeValuePlan;
 
 /* Canonical language identities for every stable XRT xvalue tag.  This table
@@ -6845,6 +6849,7 @@ int xl6IrStringCompareRuntimeSignatureValid(const XL6_IrModule*, const XL6_IrIns
 int xl6IrNullableScalarEqualSignatureValid(const XL6_IrModule*, const XL6_IrInstruction*);
 /* Exact (bool, optional payload) product for non-exceptional empty retrieval. */
 int xl6IrStackTryResultCompatible(const XL6_IrModule*, XL6_IrTypeId, XL6_IrTypeId);
+int xl6IrOptionalResultPayloadTagged(const XL6_IrModule*,XL6_IrTypeId,XL6_IrTypeId);
 /* Return the precomputed closed nominal acceptance set for one concrete class
  * or protocol target.  Lowering and Cgen consume this set directly; neither is
  * permitted to rediscover inheritance or protocol witnesses. */
@@ -7436,6 +7441,7 @@ XL6_IrRuntimeOp xl6IrAllocatingBoxOpForType(const XL6_IrModule* module, XL6_IrTy
 void xl6IrDumpModuleText(XL6_Output* out, const XL6_IrModule* module);
 void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module);
 const XL6_IrNativeValuePlan* xl6IrNativeValuePlanForType(const XL6_IrType*);
+const XL6_IrNativeValuePlan* xl6IrNullableNativeValuePlan(const XL6_IrTypePool*,const XL6_IrType*);
 const XL6_IrNativeValuePlan* xl6IrNativeValueInstructionPlan(
     const XL6_IrModule*, const XL6_IrInstruction*);
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeNativeValueErrorPhysicalAbi(XL6_IrRuntimeOp);

@@ -385,6 +385,7 @@ static XL6_IrNullAbi xl6IrNullAbiFromCAbi(XL6_IrCAbi cAbi)
 static XL6_IrCAbi xl6IrNullableCAbiForElement(const XL6_IrType* element)
 {
     if ( element == NULL ) return XL6_IR_C_ABI_UNSUPPORTED;
+    if (xl6IrNullableNativeValuePlanForElement(element))return XL6_IR_C_ABI_NATIVE_VALUE;
     /* A pure-native class is a nominal value, not the raw handle itself.  A
      * NULL handle is therefore a valid present payload and cannot double as
      * nullable's absence sentinel.  Keep the boxed xvalue so presence and the
@@ -1376,7 +1377,7 @@ int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
     if ( pool == NULL || type == NULL ) return 0;
     type->nativeProductAbi = XL6_IR_NATIVE_PRODUCT_NONE;
     type->nativeValueAbi = xl6IrNativeValueAbiFromType(type);
-    if (type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE && !xl6IrNativeValuePlanForType(type)) return 0;
+    if (type->kind!=XL6_IR_TYPE_NULLABLE && type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE && !xl6IrNativeValuePlanForType(type)) return 0;
     if ( type->kind == XL6_IR_TYPE_TAGGED_ENUM ) {
         if ( type->returnCount != 0 ) return 0;
         type->cAbi = XL6_IR_C_ABI_RUNTIME_XVALUE_PTR;
@@ -1440,6 +1441,13 @@ int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type)
     }
     if ( type->paramCount != 1 || type->params == NULL || type->returnCount != 0 ||
          (element = xl6IrTypeGet(pool, type->params[0])) == NULL ) return 0;
+    const XL6_IrNativeValuePlan* nullableNative=xl6IrNullableNativeValuePlanForElement(element);
+    if(nullableNative){
+        type->cAbi=XL6_IR_C_ABI_NATIVE_VALUE;type->ownershipAbi=XL6_IR_OWNERSHIP_ABI_MANAGED;
+        type->nullAbi=XL6_IR_NULL_ABI_TAGGED_VALUE;type->abiId=xl6TypeAbiIdText(nullableNative->abiName);
+        type->nativeValueAbi=nullableNative->abi;type->cName[0]='\0';
+        return xl6IrTypeFinalizeErrorResultCName(pool,type);
+    }
     if ( xl6IrNullableCAbiForElement(element) ==
              XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
          element->kind == XL6_IR_TYPE_CLASS &&
@@ -11461,7 +11469,9 @@ static int xl6IrOptionalOwnedResultCompatible(const XL6_IrModule* module,
         ((value->cAbi==payload->cAbi && value->nullAbi==payload->nullAbi &&
           (value->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL || value->nullAbi==XL6_IR_NULL_ABI_XVALUE_SENTINEL)) ||
          (value->cAbi==XL6_IR_C_ABI_TAGGED_NULLABLE && value->nullAbi==XL6_IR_NULL_ABI_TAGGED_VALUE &&
-          xl6IrNullableScalarElementAbi(module,valueId)==payload->cAbi));
+          xl6IrNullableScalarElementAbi(module,valueId)==payload->cAbi) ||
+         (xl6IrNullableNativeValuePlan(&module->types,value)!=NULL &&
+          xl6IrNativeValuePlanForType(payload)!=NULL));
 }
 static int xl6IrOptionalTryResultCompatible(
     const XL6_IrModule* module, XL6_IrTypeId resultId, XL6_IrTypeId payloadId,XL6_IrCAbi statusAbi)
@@ -11477,6 +11487,13 @@ static int xl6IrOptionalTryResultCompatible(
          status->cAbi != statusAbi || status->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
          status->nullAbi != XL6_IR_NULL_ABI_NONE || status->paramCount != 0 ) return 0;
     return xl6IrOptionalOwnedResultCompatible(module,result->params[1],payloadId);
+}
+
+int xl6IrOptionalResultPayloadTagged(const XL6_IrModule* module,XL6_IrTypeId valueId,XL6_IrTypeId payloadId)
+{
+    const XL6_IrType* value=module ? xl6IrTypeGet(&module->types,valueId) : NULL;
+    return valueId!=payloadId && value && value->nullAbi==XL6_IR_NULL_ABI_TAGGED_VALUE &&
+        xl6IrOptionalOwnedResultCompatible(module,valueId,payloadId);
 }
 
 int xl6IrStackTryResultCompatible(const XL6_IrModule* module,XL6_IrTypeId result,XL6_IrTypeId payload)
@@ -15840,6 +15857,7 @@ static int xl6IrNullableProjectionTypeIsClosed(
         nullable->params != NULL
             ? xl6IrTypeGet(&module->types, nullable->params[0]) : NULL;
     if ( nullable == NULL || element == NULL ) return 0;
+    if (xl6IrNullableNativeValuePlan(&module->types,nullable))return 1;
     if ( nullable->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
          nullable->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
          nullable->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
@@ -21443,6 +21461,7 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
              (xl6IrNativeValuePlanForType(type) != NULL))) return 0;
         const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(type);
         if (native && type->typeValueId!=native->languageValueId) return 0;
+        if(native && native->nullableElementAbi && !xl6IrNullableNativeValuePlan(pool,type))return 0;
         if ( type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_NONE ||
              type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_XRT_CLONE ||
              type->persistenceValueAbi == XL6_IR_PERSISTENCE_VALUE_CLASS_SCHEMA ) {
@@ -21639,7 +21658,8 @@ static int xl6IrVerifyTypePool(const XL6_IrTypePool* pool, size_t* invalidIndex)
                       type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
                       element->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
                       type->cName[0] != '\0') ||
-                     type->cAbi == XL6_IR_C_ABI_UNSUPPORTED)) ||
+                     type->cAbi == XL6_IR_C_ABI_UNSUPPORTED ||
+                     xl6IrNullableNativeValuePlan(pool,type)!=NULL)) ||
                    ((type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL ||
                       type->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL) &&
                      type->nullAbi == element->nullAbi &&
@@ -26164,9 +26184,16 @@ static XL6_IrOwnership xl6IrValueOwnershipDepth(
              definition->asyncResultAbi != XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR &&
              definition->asyncResultAbi != XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE ) return XL6_IR_OWNERSHIP_NONE;
         return XL6_IR_OWNERSHIP_MOVE;
+    case XL6_IR_INSTR_NULLABLE_UNWRAP:
+        if(definition->operandCount==1 && definition->firstOperand<module->operandCount){
+            const XL6_IrInstruction* source=xl6IrValueDefinition(module,module->operands[definition->firstOperand],NULL);
+            if(source && xl6IrNullableNativeValuePlan(&module->types,xl6IrTypeGet(&module->types,source->type)))
+                return XL6_IR_OWNERSHIP_BORROW;
+        }
+        /* Sentinel projections keep the existing carrier-owner relation. */
+        /* fall through */
     case XL6_IR_INSTR_VALUE:
     case XL6_IR_INSTR_NULLABLE_WRAP:
-    case XL6_IR_INSTR_NULLABLE_UNWRAP:
         if ( definition->operandCount != 1 || definition->firstOperand >= module->operandCount ||
              definition->targetValue != XL6_IR_VALUE_INVALID ) return XL6_IR_OWNERSHIP_NONE;
         return xl6IrValueOwnershipDepth(
@@ -26313,6 +26340,11 @@ static int xl6IrOwnedInputDepth(const XL6_IrModule* module,
         producer = xl6IrValueDefinition(module, value, &producerIndex);
         if (producer == NULL || producerIndex < function->firstInstruction ||
             producerIndex >= function->firstInstruction + function->instructionCount) return 0;
+        if(producer->kind==XL6_IR_INSTR_NULLABLE_UNWRAP && producer->operandCount==1 &&
+            xl6IrValueOwnershipGet(module,producer->result)==XL6_IR_OWNERSHIP_BORROW){
+            const XL6_IrInstruction* nullable=xl6IrValueDefinition(module,module->operands[producer->firstOperand],NULL);
+            if(nullable && xl6IrNullableNativeValuePlan(&module->types,xl6IrTypeGet(&module->types,nullable->type)))break;
+        }
         if (producer->kind != XL6_IR_INSTR_VALUE && producer->kind != XL6_IR_INSTR_NULLABLE_WRAP &&
             producer->kind != XL6_IR_INSTR_NULLABLE_UNWRAP) break;
         if (producer->operandCount != 1 || producer->firstOperand >= module->operandCount || producer->targetValue != 0) return 0;
@@ -38975,7 +39007,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                          (nullType->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL &&
                           nullType->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
                           !(nullType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-                            nullType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE)) )
+                            (nullType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ||
+                             xl6IrNullableNativeValuePlan(&module->types,nullType)!=NULL))) )
                         return xl6IrDiag(diags, NULL,
                                          "XLIR null construction has no exact sentinel ABI");
                 }
@@ -38992,7 +39025,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                          (testedType->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL &&
                           testedType->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
                           !(testedType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
-                            testedType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE)) )
+                            (testedType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ||
+                             xl6IrNullableNativeValuePlan(&module->types,testedType)!=NULL))) )
                         return xl6IrDiag(diags, xl6IrNodeGet(module, instruction->origin),
                                          "XLIR null test has no exact sentinel operand ABI");
                 }
@@ -39009,9 +39043,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         nullableType->kind == XL6_IR_TYPE_NULLABLE &&
                         nullableType->paramCount == 1 && nullableType->params != NULL
                             ? nullableType->params[0] : XL6_IR_TYPE_INVALID;
+                    int nativeTagged=xl6IrNullableNativeValuePlan(&module->types,nullableType)!=NULL;
                     int taggedAbi = nullableType != NULL &&
-                        nullableType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
-                        nullableType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE;
+                        ((nullableType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
+                        nullableType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE) || nativeTagged);
                     int sentinelAbi;
                     const XL6_IrNode* origin = xl6IrNodeGet(
                         module, instruction->origin);
@@ -39069,6 +39104,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                          nullableType == NULL || nullableType->kind != XL6_IR_TYPE_NULLABLE ||
                          elementType == XL6_IR_TYPE_INVALID ||
                          !matchingCast ||
+                         (nativeTagged && instruction->kind==XL6_IR_INSTR_NULLABLE_WRAP &&
+                          xl6IrValueOwnershipGet(module,module->operands[instruction->firstOperand])!=XL6_IR_OWNERSHIP_MOVE) ||
                          (instruction->kind == XL6_IR_INSTR_NULLABLE_WRAP &&
                            ((!taggedAbi && !sentinelAbi) || operand->type != elementType ||
                             instruction->type != (XL6_IrTypeId)(nullableType - module->types.items + 1))) ||

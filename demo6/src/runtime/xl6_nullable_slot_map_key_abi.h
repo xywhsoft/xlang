@@ -9,6 +9,11 @@ typedef struct XL6_NullableSlotMapKeyV1 {
     XL6_SlotMapKeyV1 value;
 } XL6_NullableSlotMapKeyV1;
 
+typedef struct xlir_result_nullable_slot_map_key_v1 {
+    bool ok;
+    XL6_NullableSlotMapKeyV1 value;
+} xlir_result_nullable_slot_map_key_v1;
+
 bool xl6NullableSlotMapKeyCopyValueV1(XL6_NullableSlotMapKeyV1,XL6_NullableSlotMapKeyV1*);
 void xl6NullableSlotMapKeyDropValueV1(XL6_NullableSlotMapKeyV1);
 bool xl6NullableSlotMapKeyEqualV1(XL6_NullableSlotMapKeyV1,XL6_NullableSlotMapKeyV1);
