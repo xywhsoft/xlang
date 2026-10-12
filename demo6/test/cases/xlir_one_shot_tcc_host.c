@@ -120,6 +120,7 @@ static void load_artifact(void)
     BIND(xl6FrameStorageRuntimeV1Get);
     BIND(xl6TaskRuntimeV1Get);
     BIND(xl6TaskRuntimeV2Get);
+    BIND(xl6TaskRuntimeV3Get);
     BIND(xl6TaskProducerPolicyV1Get);
     BIND(xl6TaskNativeDataPolicyV1Get);
     BIND(xl6TaskWatchPolicyV1Get);
@@ -130,6 +131,7 @@ static void load_artifact(void)
     BIND(xl6TaskPoolTryQuiesceV1);
     BIND(xl6FutureCallbackRuntimeV1Get);
     BIND(xl6FutureCallbackRuntimeV2Get);
+    BIND(xl6FutureCallbackRuntimeV4Get);
     BIND(xl6FutureCallbackProducerPolicyV1Get);
     BIND(xl6FutureCallbackWatchPolicyV1Get);
     BIND(xl6FutureCallbackOwnershipAdapterV1);

@@ -106,13 +106,13 @@ if (!$lower.Contains('xl6IrBuildCallbackBoundaries') -or !$source.Contains('xl6I
     $callbackEmitter.Contains('future = xrtFutureContinueOwned(')) {
     throw 'A runtime continuation adapter must not bypass the language capture cleanup/publication barrier'
 }
-foreach ($required in @('XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V2','XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_FUTURE_FRAME_V2','storageAbi')) {
+foreach ($required in @('XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3','XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_FUTURE_FRAME_V3','storageAbi')) {
     if (!$header.Contains($required) -or !$source.Contains($required) -or !$callbackEmitter.Contains($required)) {
         throw "Callback physical storage must be an exact verified IR contract: $required"
     }
 }
-if (!$callbackEmitter.Contains('XL6_CaptureLayoutV1') -or !$callbackEmitter.Contains('XL6_CaptureSlot') -or
-    !$callbackEmitter.Contains('xl6TaskRuntimeV2Get') -or !$callbackEmitter.Contains('xl6FutureCallbackRuntimeV2Get') -or
+if (!$callbackEmitter.Contains('XL6_CaptureLayoutV2') -or !$callbackEmitter.Contains('xl6IrCgenEmitCaptureSlotV2') -or
+    !$callbackEmitter.Contains('xl6TaskRuntimeV3Get') -or !$callbackEmitter.Contains('xl6FutureCallbackRuntimeV4Get') -or
     $callbackEmitter.Contains('static void %s_frame_drop_') -or $callbackEmitter.Contains('static bool %s_frame_trace_')) {
     throw 'Callback captures must use closed resident layouts, not generated Drop/Trace functions'
 }
@@ -213,8 +213,8 @@ foreach ($required in @('taskStorageAbi','XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FR
 }
 $taskLauncher=Read-Utf8 'src/cgen/xl6_ir_cgen_async_machine.c'
 $iteratorEmitter=Read-Utf8 'src/cgen/xl6_ir_cgen_emit_xvalue_core.c'
-if (!$taskLauncher.Contains('xl6IrCgenCaptureKind(target->asyncCaptureDestroyAbis[parameter])') -or
-    !$taskLauncher.Contains('(xl6TaskRuntimeV2Get()->Cleanup)(frame)') -or
+if (!$taskLauncher.Contains('xl6IrCgenEmitCaptureSlotV2(out,module,target->parameterTypes[parameter]') -or
+    !$taskLauncher.Contains('(xl6TaskRuntimeV3Get()->Cleanup)(frame)') -or
     $taskLauncher.Contains('static bool xlir_async_frame_trace_') -or $taskLauncher.Contains('static void xlir_async_frame_drop_') -or
     $iteratorEmitter.Contains('state->cursor') -or $iteratorEmitter.Contains('xlir_xvalue_iterator_ownership_ops') -or
     !$iteratorEmitter.Contains('xl6ValueIteratorRuntimeV2Get()->View') -or

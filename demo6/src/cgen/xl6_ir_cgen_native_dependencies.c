@@ -23,6 +23,13 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
         (module->abi.networkServiceAbi == XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1))
         return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,
             "XLIR network service ABI disagrees with verified implementation dependencies");
+    for(size_t b=0;b<module->callbackBoundaryCount;++b) {
+        const XL6_IrCallbackBoundary* boundary=&module->callbackBoundaries[b];
+        if(!xl6IrCgenInstructionIsReachable(module,boundary->instruction))continue;
+        for(size_t c=0;c<boundary->captureCount;++c)
+            if(module->callbackCaptures[boundary->firstCapture+c].destroyAbi==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE)
+                needs->needsNativeCaptureProfileHeaders=1;
+    }
     for (size_t i=0;i<module->storageCount;++i)
         if (module->storages[i].kind==XL6_IR_STORAGE_GLOBAL &&
             xl6IrCgenOwnershipView(module->storages[i].moduleTraceAbi)!=NULL)
@@ -388,6 +395,26 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     XL6_IrCgenNeeds needs;
     if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
     if(needs.needsNativeFuturePayloadRuntime && !visitor(context,"xl6NativeFuturePayloadRuntimeV1Get"))return 0;
+    for(size_t b=0;b<module->callbackBoundaryCount;++b) {
+        const XL6_IrCallbackBoundary* boundary=&module->callbackBoundaries[b];
+        if(!xl6IrCgenInstructionIsReachable(module,boundary->instruction))continue;
+        for(size_t c=0;c<boundary->captureCount;++c) {
+            const XL6_IrCallbackCapture* capture=&module->callbackCaptures[boundary->firstCapture+c];
+            if(capture->destroyAbi!=XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE)continue;
+            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,capture->type));
+            if(!native || !visitor(context,native->captureProfileSymbol) || !visitor(context,native->copySymbol))return 0;
+        }
+    }
+    for(size_t t=0;t<module->callTargetCount;++t) {
+        const XL6_IrCallTarget* target=&module->callTargets[t];
+        if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE ||
+            target->kind!=XL6_IR_CALL_TARGET_INTERNAL_ASYNC || !target->asyncCaptureDestroyAbis)continue;
+        for(size_t p=0;p<target->parameterCount;++p) {
+            if(target->asyncCaptureDestroyAbis[p]!=XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE)continue;
+            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,target->parameterTypes[p]));
+            if(!native || !visitor(context,native->captureProfileSymbol) || !visitor(context,native->copySymbol))return 0;
+        }
+    }
     for(size_t t=0;t<module->callTargetCount;++t) {
         const XL6_IrCallTarget* target=&module->callTargets[t];
         if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE ||

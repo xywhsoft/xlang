@@ -39,6 +39,10 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
         if ( target->reachability == XL6_IR_REACHABILITY_UNREACHABLE ) continue;
         if(target->asyncResultAbi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)
             needs->needsNativeFuturePayloadRuntime=1;
+        if(target->kind==XL6_IR_CALL_TARGET_INTERNAL_ASYNC && target->asyncCaptureDestroyAbis)
+            for(size_t p=0;p<target->parameterCount;++p)
+                if(target->asyncCaptureDestroyAbis[p]==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE)
+                    needs->needsNativeCaptureProfileHeaders=1;
         if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_LOG) {
             needs->needsLogAdapterDeclarations = 1;
             needs->needsStringRuntime = 1;

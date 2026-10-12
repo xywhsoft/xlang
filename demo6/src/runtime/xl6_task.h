@@ -6,6 +6,7 @@
 #include "xl6_code_lease.h"
 #include "xl6_future_payload.h"
 #include "xl6_capture.h"
+#include "xl6_capture_v2.h"
 struct xcancel;
 struct xfuture;
 struct xrtownershipref;
@@ -118,6 +119,13 @@ typedef struct XL6_TaskRuntimeV2 {
     void (*Cleanup)(void*);
 } XL6_TaskRuntimeV2;
 XL6_CODE_LEASE_API const XL6_TaskRuntimeV2* xl6TaskRuntimeV2Get(void);
+/* Separate exact native-leaf layout. The physical task, executor, producer and
+ * code-owner protocols are unchanged; V1 metadata is never reinterpreted. */
+typedef struct XL6_TaskRuntimeV3 {
+    void* (*Allocate)(const XL6_CodeOwner*,size_t,XL6_TaskRun,const XL6_CaptureLayoutV2*);
+    void (*Cleanup)(void*);
+} XL6_TaskRuntimeV3;
+XL6_CODE_LEASE_API const XL6_TaskRuntimeV3* xl6TaskRuntimeV3Get(void);
 /* Nonblocking retirement preparation, additive to the unchanged V1 table.
  * Close module admission without cancelling accepted work. BUSY does not join
  * active submitters/workers/callbacks and preserves the diagnostic. Only after

@@ -16467,24 +16467,6 @@ static int xl6SemDeclareVarWithKind(
         xl6SemErrorNode(ctx, node, "auto 声明必须包含初始化表达式");
             ok = 0;
         }
-        if ( xl6TextEquals(declaredType->text, "auto") && initExpr != NULL ) {
-            inferredType = xl6SemInferAutoTypeNode(ctx, initExpr);
-            if ( inferredType != NULL ) {
-                if ( xl6SemExprIntegerLiteralValue(initExpr, NULL, NULL) &&
-                     !xl6SemExprIntegerLiteralFitsType(initExpr, inferredType->text) ) {
-                    xl6SemErrorNode(ctx, initExpr, "整数字面量超出 auto 推断类型的表示范围");
-                    ok = 0;
-                    literalRangeError = 1;
-                }
-                if ( xl6SemOwnTypeNode(ctx, inferredType) ) {
-                    symbolType = inferredType;
-                } else {
-                    xl6AstFree(inferredType);
-                    symbolType = declaredType;
-                    ok = 0;
-                }
-            }
-        }
     }
     if ( !xl6ScopeAddTyped(ctx, nameNode, xl6SemVarDeclIsConst(node) ? constKind : valueKind, symbolType) ) {
         ok = 0;
@@ -16499,6 +16481,25 @@ static int xl6SemDeclareVarWithKind(
     }
     if ( initExpr != NULL && !xl6SemCheckExpr(ctx, initExpr) ) {
         ok = 0;
+    }
+    /* Register the name as unassigned before checking its initializer, but
+     * commit auto's storage type only from the checked expression. A Future
+     * continuation (or overload) can refine its complete result while being
+     * checked; an earlier bare-name guess must never become the symbol/IR type. */
+    if(ok && declaredType && xl6TextEquals(declaredType->text,"auto") && initExpr) {
+        inferredType=xl6SemInferAutoTypeNode(ctx,initExpr);
+        if(inferredType) {
+            if(xl6SemExprIntegerLiteralValue(initExpr,NULL,NULL) &&
+                !xl6SemExprIntegerLiteralFitsType(initExpr,inferredType->text)) {
+                xl6SemErrorNode(ctx,initExpr,"整数字面量超出 auto 推断类型的表示范围");
+                ok=0;literalRangeError=1;
+            }
+            if(xl6SemOwnTypeNode(ctx,inferredType)) {
+                XL6_Symbol* local=xl6ScopeFindLocal(ctx->scope,nameNode->text);
+                if(!local) return 0;
+                local->type=inferredType;
+            } else {xl6AstFree(inferredType);ok=0;}
+        }
     }
     if ( initExpr != NULL &&
          !xl6SemCheckCopyableExpr(ctx, initExpr, 1, "不可复制类型不能从已有值初始化") ) {

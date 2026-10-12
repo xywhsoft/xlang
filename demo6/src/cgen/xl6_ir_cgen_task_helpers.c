@@ -213,6 +213,8 @@ static void xl6IrCgenCallbackField(char* name, size_t size,
     else if (capture->role == XL6_IR_CALLBACK_CAPTURE_CALLABLE) snprintf(name, size, "callable");
     else snprintf(name, size, "%c%lu", input ? 'a' : 'p', (unsigned long)(capture->operand - 1));
 }
+static int xl6IrCgenEmitActivationCapture(XL6_Output*,const XL6_IrModule*,XL6_IrTypeId,
+    XL6_IrAsyncFrameTransferAbi,const char*,const char*,const char*,const char*);
 static int xl6IrCgenEmitCallbackFrame(XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrCallbackBoundary* boundary, const char* prefix, size_t index)
 {
@@ -226,29 +228,28 @@ static int xl6IrCgenEmitCallbackFrame(XL6_Output* out, const XL6_IrModule* modul
         xl6IrCgenCallbackField(field, sizeof(field), c, 0);
         xl6OutputPrintf(out, "    %s %s;\n", type, field);
     }
-    xl6OutputPrintf(out, "} %s_frame_%lu;\nstatic const XL6_CaptureSlot %s_slots_%lu[] = {\n",
+    xl6OutputPrintf(out, "} %s_frame_%lu;\nstatic const XL6_CaptureSlotV2 %s_slots_%lu[] = {\n",
         prefix, (unsigned long)index, prefix, (unsigned long)index);
     for (i = 0; i < boundary->captureCount; ++i) {
         const XL6_IrCallbackCapture* c = &module->callbackCaptures[boundary->firstCapture + i];
-        const char* kind = xl6IrCgenCaptureKind(c->destroyAbi); char field[64];
-        if (!kind) return 0;
+        char field[64],frameType[96];
         xl6IrCgenCallbackField(field, sizeof(field), c, 0);
-        xl6OutputPrintf(out, "    {%s, offsetof(%s_frame_%lu, %s), sizeof(((%s_frame_%lu*)0)->%s)},\n",
-            kind, prefix, (unsigned long)index, field, prefix, (unsigned long)index, field);
+        snprintf(frameType,sizeof(frameType),"%s_frame_%lu",prefix,(unsigned long)index);
+        if(!xl6IrCgenEmitCaptureSlotV2(out,module,c->type,c->destroyAbi,frameType,field))return 0;
     }
     xl6OutputPrintf(out,
-        "};\nstatic const XL6_CaptureLayoutV1 %s_layout_%lu = {\n"
-        "    sizeof(XL6_CaptureLayoutV1), sizeof(%s_frame_%lu), %lu, %s_slots_%lu\n};\n"
+        "};\nstatic const XL6_CaptureLayoutV2 %s_layout_%lu = {\n"
+        "    sizeof(XL6_CaptureLayoutV2), sizeof(%s_frame_%lu), %lu, %s_slots_%lu\n};\n"
         "#define %s_frame_cleanup_%lu(frame) (%s()->Cleanup)(frame)\n",
         prefix, (unsigned long)index, prefix, (unsigned long)index,
         (unsigned long)boundary->captureCount, prefix, (unsigned long)index,
         prefix, (unsigned long)index,
-        boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V2
-            ? "xl6TaskRuntimeV2Get" : "xl6FutureCallbackRuntimeV2Get");
+        boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3
+            ? "xl6TaskRuntimeV3Get" : "xl6FutureCallbackRuntimeV4Get");
     xl6OutputPrintf(out, "static void %s_frame_free_%lu(void* data, void* user)\n{ ", prefix, (unsigned long)index);
-    if (boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V2)
+    if (boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3)
         xl6OutputPuts("(void)user; xlir_task_discard(data);",out);
-    else if (boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_FUTURE_FRAME_V2)
+    else if (boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_FUTURE_FRAME_V3)
         xl6OutputPuts("(void)user; xlir_future_callback_discard(data);",out);
     else return 0;
     xl6OutputPuts(" }\n",out);
@@ -258,11 +259,11 @@ static int xl6IrCgenEmitCallbackCapture(XL6_Output* out, const XL6_IrModule* mod
     const XL6_IrCallbackBoundary* boundary, const char* prefix, size_t index)
 {
     size_t i;
-    if (boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V2)
+    if (boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3)
         xl6OutputPrintf(out,
-            "    frame = (%s_frame_%lu*)(xl6TaskRuntimeV2Get()->Allocate)(xlir_task_owner, sizeof(*frame), %s_task_%lu, &%s_layout_%lu);\n",
+            "    frame = (%s_frame_%lu*)(xl6TaskRuntimeV3Get()->Allocate)(xlir_task_owner, sizeof(*frame), %s_task_%lu, &%s_layout_%lu);\n",
             prefix, (unsigned long)index, prefix, (unsigned long)index, prefix, (unsigned long)index);
-    else if (boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_FUTURE_FRAME_V2)
+    else if (boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_FUTURE_FRAME_V3)
         xl6OutputPrintf(out,
             "    frame = (%s_frame_%lu*)xlir_future_callback_allocate(sizeof(*frame), %s_proc_%lu, &%s_layout_%lu);\n",
             prefix, (unsigned long)index, prefix, (unsigned long)index, prefix, (unsigned long)index);
@@ -278,6 +279,12 @@ static int xl6IrCgenEmitCallbackCapture(XL6_Output* out, const XL6_IrModule* mod
         xl6IrCgenCallbackField(input, sizeof(input), c, 1);
         if (c->transferAbi == XL6_IR_ASYNC_FRAME_TRANSFER_COPY_VALUE) {
             xl6OutputPrintf(out, "    frame->%s = %s;\n", field, input);
+            continue;
+        }
+        if(c->transferAbi==XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE) {
+            char place[96],rollback[160];snprintf(place,sizeof(place),"frame->%s",field);
+            snprintf(rollback,sizeof(rollback),"%s_frame_free_%lu(frame, NULL);",prefix,(unsigned long)index);
+            if(!xl6IrCgenEmitActivationCapture(out,module,c->type,c->transferAbi,place,input,NULL,rollback))return 0;
             continue;
         }
         transfer = xl6IrCgenCallbackTransfer(c->transferAbi);
@@ -317,10 +324,8 @@ static int xl6IrCgenEmitCallbackInvocationCommit(
         type = xl6IrCgenType(module, capture->type);
         if (!type || capture->role != XL6_IR_CALLBACK_CAPTURE_ARGUMENT) return 0;
         xl6IrCgenCallbackField(field, sizeof(field), capture, 0);
-        xl6OutputPrintf(out, "    %s invoked_%s = frame->%s; frame->%s = %s;\n",
-            type, field, field, field,
-            xl6IrTypeGet(&module->types, capture->type)->cAbi == XL6_IR_C_ABI_MANAGED_STRING
-                ? "(xlir_string){0}" : "NULL");
+        xl6OutputPrintf(out, "    %s invoked_%s = frame->%s; frame->%s = (%s){0};\n",
+            type, field, field, field,type);
     }
     return !xl6OutputHasFailed(out);
 }

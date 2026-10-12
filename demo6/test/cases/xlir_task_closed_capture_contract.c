@@ -21,8 +21,8 @@ int main(int argc,char** argv)
     assert(snprintf(marker,sizeof(marker),"static XL6_TaskOutcome xlir_async_task_%u(",(unsigned)target->symbol)>0);
     assert(strstr(generated,marker));
     assert(snprintf(marker,sizeof(marker),"&xlir_async_layout_%u",(unsigned)target->symbol)>0);
-    assert(strstr(generated,marker)&&strstr(generated,"xl6TaskRuntimeV2Get()->Allocate")&&
-        strstr(generated,"xl6TaskRuntimeV2Get()->Cleanup")&&!strstr(generated,"xlir_async_frame_drop_")&&
+    assert(strstr(generated,marker)&&strstr(generated,"xl6TaskRuntimeV3Get()->Allocate")&&
+        strstr(generated,"xl6TaskRuntimeV3Get()->Cleanup")&&!strstr(generated,"xlir_async_frame_drop_")&&
         !strstr(generated,"xlir_async_frame_trace_"));
     assert(xl6OutputOpenFile(&out,argv[1]));xl6OutputPrintf(&out,"%s",generated);xl6OutputClose(&out);xrtFree(generated);
     assert(xl6OutputOpenFile(&out,argv[2])&&xl6IrCgenEmitHeader(&out,&ir,"CLOSED_CAPTURE",&parse.diags));xl6OutputClose(&out);

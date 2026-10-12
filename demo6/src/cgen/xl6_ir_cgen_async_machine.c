@@ -448,18 +448,17 @@ static int xl6IrCgenEmitAsyncLauncher(
         xl6OutputPuts("    unsigned char reserved;\n", out);
     xl6OutputPrintf(out, "} xlir_async_frame_%u;\n", (unsigned int)target->symbol);
     if (target->parameterCount) {
-        xl6OutputPrintf(out, "static const XL6_CaptureSlot xlir_async_slots_%u[] = {\n", (unsigned int)target->symbol);
+        xl6OutputPrintf(out, "static const XL6_CaptureSlotV2 xlir_async_slots_%u[] = {\n", (unsigned int)target->symbol);
         for (parameter = 0; parameter < target->parameterCount; ++parameter) {
-            const char* kind = xl6IrCgenCaptureKind(target->asyncCaptureDestroyAbis[parameter]);
-            if (!kind) return xl6IrCgenDiag(diags, module, target->declaration,
-                "XLIR C emitter async task frame has no closed capture kind");
-            xl6OutputPrintf(out, "    {%s, offsetof(xlir_async_frame_%u, p%lu), sizeof(((xlir_async_frame_%u*)0)->p%lu)},\n",
-                kind, (unsigned int)target->symbol, (unsigned long)parameter,
-                (unsigned int)target->symbol, (unsigned long)parameter);
+            char frameType[64],field[64];
+            snprintf(frameType,sizeof(frameType),"xlir_async_frame_%u",(unsigned)target->symbol);
+            snprintf(field,sizeof(field),"p%lu",(unsigned long)parameter);
+            if(!xl6IrCgenEmitCaptureSlotV2(out,module,target->parameterTypes[parameter],
+                target->asyncCaptureDestroyAbis[parameter],frameType,field))return 0;
         }
         xl6OutputPuts("};\n", out);
     }
-    xl6OutputPrintf(out, "static const XL6_CaptureLayoutV1 xlir_async_layout_%u = {sizeof(XL6_CaptureLayoutV1), sizeof(xlir_async_frame_%u), %lu, ",
+    xl6OutputPrintf(out, "static const XL6_CaptureLayoutV2 xlir_async_layout_%u = {sizeof(XL6_CaptureLayoutV2), sizeof(xlir_async_frame_%u), %lu, ",
         (unsigned int)target->symbol, (unsigned int)target->symbol, (unsigned long)target->parameterCount);
     if (target->parameterCount) xl6OutputPrintf(out, "xlir_async_slots_%u", (unsigned int)target->symbol);
     else xl6OutputPuts("NULL", out);
@@ -473,7 +472,7 @@ static int xl6IrCgenEmitAsyncLauncher(
                     "    xrtSetErrorTake(outcome.error);\n"
                     "    if (!outcome.ok) xl6ErrorScopeCaptureFailure(&capture_cleanup);\n",
                     (unsigned int)target->symbol, (unsigned int)target->symbol);
-    xl6OutputPuts("    (xl6TaskRuntimeV2Get()->Cleanup)(frame);\n", out);
+    xl6OutputPuts("    (xl6TaskRuntimeV3Get()->Cleanup)(frame);\n", out);
     xl6IrCgenEmitActivationCleanupObserve(out);
     xl6OutputPuts("    return xl6ErrorScopeEnd(&capture_cleanup);\n", out);
     xl6OutputPrintf(out, "}\nstatic void xlir_async_frame_free_%u(void* data, void* user)\n"
