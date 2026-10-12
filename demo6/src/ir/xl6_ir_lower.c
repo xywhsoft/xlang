@@ -22069,6 +22069,11 @@ static XL6_IrValueId xl6IrLowerFor(
     case XL6_IR_LOOP_ABI_GENERATOR_VALUE:
     case XL6_IR_LOOP_ABI_GENERATOR_INDEX_VALUE:
         return xl6IrLowerGeneratorFor(ctx, id, node);
+    case XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY:
+    case XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY_VALUE:
+        xl6IrLowerDiag(ctx,id,
+            "XLIR SlotMap loop requires the paired native cursor backend; no dict or integer-key fallback is admitted");
+        return XL6_IR_VALUE_INVALID;
     default:
         xl6IrLowerDiag(ctx, id,
             "XLIR for loop has no admitted canonical iterator ABI");

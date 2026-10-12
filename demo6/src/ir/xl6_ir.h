@@ -2872,7 +2872,11 @@ typedef enum XL6_IrLoopAbi {
     /* Bytes traversal mirrors string traversal structurally but projects one
      * bounded uint8 value from an owned immutable snapshot. */
     XL6_IR_LOOP_ABI_BYTES_VALUE,
-    XL6_IR_LOOP_ABI_BYTES_INDEX_VALUE
+    XL6_IR_LOOP_ABI_BYTES_INDEX_VALUE,
+    /* One paired native capture. A single target receives the complete key,
+     * never the value or the integer slot ordinal. */
+    XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY,
+    XL6_IR_LOOP_ABI_SLOT_MAP_ITERATOR_KEY_VALUE
 } XL6_IrLoopAbi;
 
 typedef enum XL6_IrLoopKeyAbi {
@@ -2886,7 +2890,9 @@ typedef enum XL6_IrLoopKeyAbi {
     /* The source has an explicit first `_` target.  Iteration keeps its
      * two-target semantic shape but performs no key projection, storage write
      * or target cleanup. */
-    XL6_IR_LOOP_KEY_DISCARD
+    XL6_IR_LOOP_KEY_DISCARD,
+    /* Sealed SlotMapKey profile, copied into per-iteration owned storage. */
+    XL6_IR_LOOP_KEY_NATIVE_VALUE_COPY
 } XL6_IrLoopKeyAbi;
 
 typedef enum XL6_IrLoopItemAbi {
@@ -2937,7 +2943,11 @@ typedef enum XL6_IrLoopItemAbi {
     XL6_IR_LOOP_ITEM_U8,
     /* Independent owned record projected through its sealed native-value
      * plan. Copy can fail; the binding is released on every loop exit. */
-    XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY
+    XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY,
+    /* Exact bytes value (including nullable bytes), not an erased xvalue.
+     * Currently admitted only by the paired SlotMap loop contract. */
+    XL6_IR_LOOP_ITEM_BYTES_COPY,
+    XL6_IR_LOOP_ITEM_NULLABLE_BYTES_COPY
 } XL6_IrLoopItemAbi;
 
 /* Projection representation and target lifetime are distinct contracts.  A
@@ -6848,6 +6858,10 @@ typedef struct XL6_IrValueCollectionRecipe {
     XL6_IrDictKeyAbi dictKeyAbi;
 } XL6_IrValueCollectionRecipe;
 int xl6IrSlotMapConstructionRecipe(const XL6_IrModule*,XL6_IrTypeId,XL6_IrValueCollectionRecipe*);
+int xl6IrSlotMapLoopKeyType(const XL6_IrModule*,XL6_IrTypeId);
+/* Exact paired schemas. Outputs are published only after complete admission. */
+int xl6IrSlotMapLoopRecipe(const XL6_IrModule*,XL6_IrTypeId,
+    XL6_IrValueCollectionRecipe*,XL6_IrTypeId*,XL6_IrTypeId*);
 int xl6IrSlotMapResourceOpIs(XL6_IrRuntimeResourceOp);
 XL6_IrRuntimeResourceOp xl6IrSlotMapResourceOp(XL6_IrRuntimeOp);
 XL6_IrRuntimeOp xl6IrSlotMapRuntimeOp(XL6_IrRuntimeResourceOp);
