@@ -2,6 +2,7 @@
 #define XL6_VALUE_ITERATOR_H
 #include <stdint.h>
 #include "xl6_code_lease.h"
+#include "xl6_slot_map_key_abi.h"
 
 struct xvalue;
 typedef struct xlir_xvalue_iterator XL6_ValueIterator;
@@ -32,6 +33,11 @@ typedef struct XL6_ValueIteratorRuntimeV2 {
     struct xrtownershipref (*Ownership)(const XL6_ValueIterator*);
 } XL6_ValueIteratorRuntimeV2;
 XL6_CODE_LEASE_API const XL6_ValueIteratorRuntimeV2* xl6ValueIteratorRuntimeV2Get(void);
+/* New sealed paired-snapshot subinterface; the V2 record and View layout are
+ * unchanged. Copies the complete current key into an EMPTY output. A failed
+ * projection invalidates the cursor; EOF/before-first/wrong-family calls are
+ * refused without publishing a key. No box/unbox intermediate or key borrow. */
+XL6_CODE_LEASE_API bool xl6ValueIteratorKeyCopyV3(XL6_ValueIterator*,XL6_SlotMapKeyV1*);
 /* Logical Array with erased physical storage. Admit a sealed native ARRAY
  * snapshot or wire ARRAY only, never another native role or wire family.
  * Uses the same V2 carrier and introduces no optional List dependency. */
