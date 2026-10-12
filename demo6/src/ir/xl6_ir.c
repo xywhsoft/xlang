@@ -19603,7 +19603,7 @@ static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* 
             ? XL6_IR_GENERATOR_STORAGE_NONE : XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3))
         return xl6IrDiag(diags, NULL, "XLIR generator storage ABI is unresolved");
     if (module->abi.asyncStorageAbi != (module->stage == XL6_IR_STAGE_TYPED
-            ? XL6_IR_ASYNC_STORAGE_NONE : XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V2))
+            ? XL6_IR_ASYNC_STORAGE_NONE : XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V3))
         return xl6IrDiag(diags, NULL, "XLIR async physical storage ABI is unresolved");
     if (module->abi.taskStorageAbi != (module->stage == XL6_IR_STAGE_TYPED
             ? XL6_IR_TASK_STORAGE_NONE : XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V2))
@@ -26069,6 +26069,7 @@ XL6_IrAsyncCaptureAbi xl6IrAsyncParameterCapture(
     case XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_CLOSURE: return XL6_IR_ASYNC_CAPTURE_RETAIN_CLOSURE;
     case XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_ERROR: return XL6_IR_ASYNC_CAPTURE_RETAIN_ERROR;
     case XL6_IR_ASYNC_FRAME_TRANSFER_TAKE_PARAMETER: return XL6_IR_ASYNC_CAPTURE_TAKE_PARAMETER;
+    case XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE: return XL6_IR_ASYNC_CAPTURE_COPY_NATIVE_VALUE;
     default: return XL6_IR_ASYNC_CAPTURE_INVALID;
     }
 }
@@ -45186,6 +45187,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                callee->asyncCaptureAbis[operand] != XL6_IR_ASYNC_CAPTURE_RETAIN_FUTURE &&
                                callee->asyncCaptureAbis[operand] != XL6_IR_ASYNC_CAPTURE_RETAIN_CLOSURE &&
                                callee->asyncCaptureAbis[operand] != XL6_IR_ASYNC_CAPTURE_RETAIN_ERROR &&
+                               callee->asyncCaptureAbis[operand] != XL6_IR_ASYNC_CAPTURE_COPY_NATIVE_VALUE &&
                                callee->asyncCaptureAbis[operand] != XL6_IR_ASYNC_CAPTURE_TAKE_PARAMETER) ||
                              (callee->asyncCaptureAbis[operand] == XL6_IR_ASYNC_CAPTURE_RETAIN_FUTURE &&
                               (argumentNode == NULL ||
@@ -46978,6 +46980,7 @@ static const char* xl6IrAsyncCaptureAbiName(XL6_IrAsyncCaptureAbi abi)
     case XL6_IR_ASYNC_CAPTURE_RETAIN_CLOSURE: return "retain-closure";
     case XL6_IR_ASYNC_CAPTURE_RETAIN_ERROR: return "retain-error";
     case XL6_IR_ASYNC_CAPTURE_TAKE_PARAMETER: return "take-parameter";
+    case XL6_IR_ASYNC_CAPTURE_COPY_NATIVE_VALUE: return "copy-native-value";
     default: return "invalid";
     }
 }

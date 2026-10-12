@@ -9,6 +9,7 @@ static XL6_IrAsyncFrameTransferAbi xl6IrCgenAsyncCaptureTransfer(XL6_IrAsyncCapt
     case XL6_IR_ASYNC_CAPTURE_RETAIN_CLOSURE: return XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_CLOSURE;
     case XL6_IR_ASYNC_CAPTURE_RETAIN_ERROR: return XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_ERROR;
     case XL6_IR_ASYNC_CAPTURE_TAKE_PARAMETER: return XL6_IR_ASYNC_FRAME_TRANSFER_TAKE_PARAMETER;
+    case XL6_IR_ASYNC_CAPTURE_COPY_NATIVE_VALUE: return XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE;
     default: return XL6_IR_ASYNC_FRAME_TRANSFER_INVALID;
     }
 }
@@ -556,10 +557,8 @@ static int xl6IrCgenAsyncDeclareMachineProgramStorages(
                                  "XLIR async machine local storage has no C ABI");
         if ( storage->cellType != XL6_IR_TYPE_INVALID ||
              typeInfo->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED )
-            xl6OutputPrintf(out, "    %s s%u = %s;\n", type,
-                            (unsigned int)storage->symbol,
-                            typeInfo->cAbi == XL6_IR_C_ABI_MANAGED_STRING
-                                ? "(xlir_string){0}" : "NULL");
+            xl6OutputPrintf(out, "    %s s%u = (%s){0};\n", type,
+                            (unsigned int)storage->symbol,type);
         else
             xl6OutputPrintf(out, "    %s s%u;\n", type,
                             (unsigned int)storage->symbol);

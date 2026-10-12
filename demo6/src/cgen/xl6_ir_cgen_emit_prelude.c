@@ -42,10 +42,10 @@ static int xl6IrCgenEmitRuntimePrelude(
     if (needs->needsAsyncMachineRuntime || needs->needsGeneratorRuntime)
         xl6OutputPuts("#include <__xl_runtime/xl6_capture.h>\n",out);
     if (needs->needsAsyncMachineRuntime || needs->needsAsyncTaskRuntime) {
-        if (module->abi.asyncStorageAbi != XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V2)
+        if (module->abi.asyncStorageAbi != XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V3)
             return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR async physical storage ABI is unresolved");
         xl6OutputPuts("#include <__xl_runtime/xl6_continuation_future.h>\n"
-            "#define xlir_async_frame_allocate (xl6ContinuationFrameRuntimeV2Get()->Allocate)\n"
+            "#define xlir_async_frame_allocate (xl6ContinuationFrameRuntimeV5Get()->Allocate)\n"
             "#define xlir_async_frame_dispose (xl6ContinuationFrameRuntimeV2Get()->Discard)\n",out);
     }
     /* One closed declaration surface for shared string support. Prelude

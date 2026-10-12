@@ -10,7 +10,7 @@ static void assert_activation_layout(const char* text,const char* prefix,XL6_Sym
         "XL6_CAPTURE_FUTURE","XL6_CAPTURE_CLOSURE","XL6_CAPTURE_CELL","XL6_CAPTURE_ERROR",
         "XL6_CAPTURE_VALUE_ITERATOR","XL6_CAPTURE_GENERATOR"};
     char expected[512];
-    bool nativeLayout=!strcmp(prefix,"xlir_generator");
+    bool nativeLayout=true;
     snprintf(expected,sizeof(expected),"XL6_ActivationCaptureLayoutV%u %s_layout_%u",nativeLayout?2u:1u,prefix,symbol);assert(strstr(text,expected));
     if(!strcmp(prefix,"xlir_generator")){
         snprintf(expected,sizeof(expected),"xlir_generator_frame_allocate(sizeof(*frame), &%s_layout_%u)",prefix,symbol);assert(strstr(text,expected));
@@ -19,7 +19,7 @@ static void assert_activation_layout(const char* text,const char* prefix,XL6_Sym
         assert(!strstr(text,"xlir_generator_frame_trace_")&&!strstr(text,"xlir_generator_item_trace_")&&
             !strstr(text,"xlir_generator_frame_free_")&&!strstr(text,"xlir_generator_item_free_"));
     }else{
-        snprintf(expected,sizeof(expected),"sizeof(XL6_ContinuationFrameLayoutV2), &%s_layout_%u",prefix,symbol);assert(strstr(text,expected));
+        snprintf(expected,sizeof(expected),"sizeof(XL6_ContinuationFrameLayoutV3), &%s_layout_%u",prefix,symbol);assert(strstr(text,expected));
         snprintf(expected,sizeof(expected),"xlir_async_frame_allocate(sizeof(*frame), &xlir_async_machine_storage_%u)",symbol);assert(strstr(text,expected));
         assert(strstr(text,"xl6ContinuationFrameRuntimeV2Get()->Cleanup(frame, outcome)")&&
             strstr(text,"xl6ContinuationFrameRuntimeV2Get()->Retire")&&!strstr(text,"xlir_async_machine_frame_trace_"));

@@ -112,6 +112,7 @@ static void load_artifact(void)
     BIND(xl6ContinuationFrameRuntimeV2Get);
     BIND(xl6ContinuationFrameRuntimeV3Get);
     BIND(xl6ContinuationFrameRuntimeV4Get);
+    BIND(xl6ContinuationFrameRuntimeV5Get);
     BIND(xl6ContinuationProducerPolicyV1Get);
     BIND(xl6ContinuationWatchPolicyV1Get);
     BIND(xl6ContinuationFrameOwnershipAdapterV1);

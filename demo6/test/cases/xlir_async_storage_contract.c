@@ -21,7 +21,7 @@ int main(int argc,char** argv)
         ir.abi.asyncStorageAbi=XL6_IR_ASYNC_STORAGE_NONE; reject(&ir,"async physical storage ABI");
         ir.abi.asyncStorageAbi=(XL6_IrAsyncStorageAbi)99; reject(&ir,"async physical storage ABI");
         ir.abi.asyncStorageAbi=XL6_IR_ASYNC_STORAGE_RESIDENT_PHYSICAL_FRAME_V1; reject(&ir,"async physical storage ABI");
-        ir.abi.asyncStorageAbi=XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V2; verify(&ir);
+        ir.abi.asyncStorageAbi=XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V3; verify(&ir);
         assert(xl6OutputOpenMemory(&out) && xl6IrCgenEmitC(&out,&ir,&parse.diags)); text=xl6OutputTakeMemoryText(&out,NULL);
         assert(text && !strstr(text,"xrtFree(frame);") && !strstr(text,"xrtFree(next);"));
         if(ir.asyncMachineCount) {
@@ -40,9 +40,9 @@ int main(int argc,char** argv)
         } else ++ready;
         xrtFree(text);
         assert(xl6OutputOpenMemory(&out)); xl6IrDumpModuleText(&out,&ir); text=xl6OutputTakeMemoryText(&out,NULL);
-        assert(text && strstr(text,"async-storage: 2")); xrtFree(text);
+        assert(text && strstr(text,"async-storage: 3")); xrtFree(text);
         assert(xl6OutputOpenMemory(&out)); xl6IrDumpModuleJson(&out,&ir); text=xl6OutputTakeMemoryText(&out,NULL);
-        assert(text && strstr(text,"\"asyncStorageAbi\": 2")); xrtFree(text);
+        assert(text && strstr(text,"\"asyncStorageAbi\": 3")); xrtFree(text);
         if(n==0) {
             assert(xl6OutputOpenFile(&out,argv[1]) && xl6IrCgenEmitC(&out,&ir,&parse.diags)); xl6OutputClose(&out);
             assert(xl6OutputOpenFile(&out,argv[2])); size_t bindings=0;

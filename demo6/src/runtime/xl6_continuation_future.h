@@ -2,6 +2,7 @@
 #define XL6_CONTINUATION_FUTURE_H
 #include "xl6_continuation_queue.h"
 #include "xl6_capture.h"
+#include "xl6_capture_v2.h"
 typedef struct xfuture xfuture;
 typedef union xfuturewatch xfuturewatch;
 
@@ -50,6 +51,25 @@ typedef struct XL6_ContinuationFrameRuntimeV2 {
     struct xrtownershipref (*Ownership)(const void*);
 } XL6_ContinuationFrameRuntimeV2;
 XL6_CONTINUATION_API const XL6_ContinuationFrameRuntimeV2* xl6ContinuationFrameRuntimeV2Get(void);
+/* Separate metadata version for exact native owning leaves. Legacy layouts
+ * are never reinterpreted. The queue/producer/Watch identities and transitions
+ * are shared with V2; the payload uses its actual containing allocation span. */
+typedef struct XL6_ContinuationFrameLayoutV3 {
+    size_t size;
+    const XL6_ActivationCaptureLayoutV2* captures;
+    size_t ticket,watch,source,outer;
+} XL6_ContinuationFrameLayoutV3;
+typedef struct XL6_ContinuationFrameRuntimeV5 {
+    void* (*Allocate)(size_t,const XL6_ContinuationFrameLayoutV3*);
+    bool (*Bind)(void*);
+    struct xl6_foreign_error_result (*Cleanup)(void*,struct xl6_foreign_error_result);
+    XL6_ContinuationProc Retire;
+    void (*Discard)(void*);
+    void* (*Retain)(void*);
+    void (*Release)(void*);
+    struct xrtownershipref (*Ownership)(const void*);
+} XL6_ContinuationFrameRuntimeV5;
+XL6_CONTINUATION_API const XL6_ContinuationFrameRuntimeV5* xl6ContinuationFrameRuntimeV5Get(void);
 /* Explicit produced-activation binding, additive to V2 physical storage.
  * Root requires a fresh private outer Promise/Future pair, including a retry
  * after Abort: the old pair's bind-once producer association is not replaced.

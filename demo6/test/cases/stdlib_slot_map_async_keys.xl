@@ -1,0 +1,51 @@
+async func laterNumber(int value) as int
+    time.sleep(1)
+    return value
+end
+async func parameterAcrossAwait(SlotMapKey key, future<int> first, future<int> second) as int
+    auto copied = key
+    int left = await first
+    assert(copied == key)
+    int right = await second
+    assert(copied == key)
+    return left + right
+end
+async func pairsAcrossAwait(SlotMap<int> slots) as int
+    int total = 0
+    for key, value in slots
+        try
+            int copied = await laterNumber(value)
+            assert(slots.contains(key))
+            assert(key == key)
+            total += copied
+        finally
+            assert(key == key)
+        end
+    end
+    return total
+end
+async func failureAcrossAwait(SlotMapKey key) as int
+    try
+        int value = await laterNumber(1)
+        assert(key == key and value == 1)
+        throw ValueError "native await failure"
+    finally
+        assert(key == key)
+    end
+end
+    auto slots = SlotMap::<int>()
+    auto original = slots.insert(5)
+    auto pending = parameterAcrossAwait(original,laterNumber(3),laterNumber(4))
+    slots.clear()
+    assert(await pending == 7)
+    assert(await pending == 7 and original == original)
+    slots.insert(2)
+    slots.insert(3)
+    assert(await pairsAcrossAwait(slots) == 5)
+    try
+        int unused = await failureAcrossAwait(original)
+        assert(false)
+    catch ValueError failure
+        assert(failure.message == "native await failure")
+    end
+    assert(original == original)
