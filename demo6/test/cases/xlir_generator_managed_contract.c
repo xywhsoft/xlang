@@ -24,7 +24,7 @@ int main(int argc,char** argv)
         xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags)&&xl6IrLowerModule(&ir,&parse.diags);
     if(!built)xl6DiagPrintText(&parse.diags,"managed generator fixture");
     assert(built);
-    verify(&ir);assert(ir.abi.generatorStorageAbi==XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V2&&ir.generatorMachineCount==1);
+    verify(&ir);assert(ir.abi.generatorStorageAbi==XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3&&ir.generatorMachineCount==1);
     const XL6_IrGeneratorMachine* machine=&ir.generatorMachines[0];
     assert(machine->yieldAbi==XL6_IR_GENERATOR_YIELD_MOVE_XVALUE&&machine->frameSlotCount&&machine->destroyActionCount);
     size_t deadYield=SIZE_MAX,deadBlock=SIZE_MAX,totalYields=0;
@@ -48,11 +48,11 @@ int main(int argc,char** argv)
     ir.generatorSuspensions[machine->firstSuspension].itemValue=ir.operands[ir.instructions[deadYield].firstOperand];
     reject(&ir,NULL);ir.generatorSuspensions[machine->firstSuspension]=savedState;
     ir.abi.generatorStorageAbi=XL6_IR_GENERATOR_STORAGE_RESIDENT_SCOPED_FRAME_V1;reject(&ir,"generator storage ABI");
-    ir.abi.generatorStorageAbi=XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V2;
+    ir.abi.generatorStorageAbi=XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3;
     assert(xl6OutputOpenMemory(&out)&&xl6IrCgenEmitC(&out,&ir,&parse.diags));text=xl6OutputTakeMemoryText(&out,NULL);
     assert_activation_layout(text,"xlir_generator",machine->targetSymbol,ir.generatorFrameSlots+machine->firstFrameSlot,
         machine->frameSlotCount,machine->firstFrameSlot,ir.generatorFrameActions+machine->firstDestroyAction,machine->destroyActionCount);
-    char expected[256];snprintf(expected,sizeof(expected),"xlir_generator_item_slot_%u = {XL6_CAPTURE_XVALUE, 0, sizeof(xvalue*)}",machine->targetSymbol);
+    char expected[256];snprintf(expected,sizeof(expected),"xlir_generator_item_slot_%u = {{XL6_CAPTURE_XVALUE, 0, sizeof(xvalue*)}, NULL}",machine->targetSymbol);
     assert(strstr(text,expected));xrtFree(text);
     assert(xl6OutputOpenFile(&out,argv[1])&&xl6IrCgenEmitC(&out,&ir,&parse.diags));xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out,argv[2]));xl6OutputPrintf(&out,"#define MANAGED_GENERATOR_START xlir_generator_start_raw_%u\n",machine->targetSymbol);xl6OutputClose(&out);

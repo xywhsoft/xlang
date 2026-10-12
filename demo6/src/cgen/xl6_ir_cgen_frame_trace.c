@@ -32,17 +32,27 @@ static const char* xl6IrCgenCaptureKind(XL6_IrAsyncFrameDestroyAbi abi)
  * implements tracing/cleanup once; a backend must not reconstruct lifetimes,
  * deduplicate apparent aliases, or invent a destruction order. */
 static int xl6IrCgenEmitActivationLayout(XL6_Output* out, const char* prefix, XL6_SymbolId symbol,
+    const XL6_IrModule* module,int nativeLayout,
     const XL6_IrContinuationFrameSlot* frames, size_t count, size_t first,
     const XL6_IrContinuationFrameAction* cleanup, size_t cleanupCount)
 {
     if (count) {
-        xl6OutputPrintf(out, "static const XL6_ActivationCaptureSlot %s_slots_%u[] = {\n", prefix, (unsigned int)symbol);
+        xl6OutputPrintf(out, "static const %s %s_slots_%u[] = {\n",
+            nativeLayout ? "XL6_ActivationCaptureSlotV2" : "XL6_ActivationCaptureSlot", prefix, (unsigned int)symbol);
         for (size_t local = 0; local < count; ++local) {
             const XL6_IrContinuationFrameSlot* frame = &frames[local];
             const char* kind = xl6IrCgenCaptureKind(frame->destroyAbi);
+            const XL6_IrNativeValuePlan* native=frame->destroyAbi==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE ?
+                xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,frame->type)) : NULL;
+            if(native && nativeLayout)kind="XL6_CAPTURE_NATIVE_LEAF_V2";
             if (!kind) return 0;
+            if(nativeLayout)xl6OutputPuts("    {",out);
             xl6OutputPrintf(out, "    {{%s, offsetof(%s_frame_%u, f%lu), sizeof(((%s_frame_%u*)0)->f%lu)}, ",
                 kind, prefix, (unsigned int)symbol, (unsigned long)local, prefix, (unsigned int)symbol, (unsigned long)local);
+            if(nativeLayout){
+                if(native)xl6OutputPrintf(out,"&%s}, ",native->captureProfileSymbol);
+                else xl6OutputPuts("NULL}, ",out);
+            }
             if (frame->initBit == SIZE_MAX) xl6OutputPuts("SIZE_MAX},\n", out);
             else xl6OutputPrintf(out, "offsetof(%s_frame_%u, i%lu)},\n", prefix, (unsigned int)symbol, (unsigned long)frame->initBit);
         }
@@ -58,9 +68,10 @@ static int xl6IrCgenEmitActivationLayout(XL6_Output* out, const char* prefix, XL
         }
         xl6OutputPuts("};\n", out);
     }
-    xl6OutputPrintf(out, "static const XL6_ActivationCaptureLayoutV1 %s_layout_%u = {\n"
-        "    sizeof(XL6_ActivationCaptureLayoutV1), sizeof(%s_frame_%u), %lu, ",
-        prefix, (unsigned int)symbol, prefix, (unsigned int)symbol, (unsigned long)count);
+    const char* layout=nativeLayout?"XL6_ActivationCaptureLayoutV2":"XL6_ActivationCaptureLayoutV1";
+    xl6OutputPrintf(out, "static const %s %s_layout_%u = {\n"
+        "    sizeof(%s), sizeof(%s_frame_%u), %lu, ",
+        layout,prefix, (unsigned int)symbol,layout,prefix, (unsigned int)symbol, (unsigned long)count);
     if (count) xl6OutputPrintf(out, "%s_slots_%u", prefix, (unsigned int)symbol); else xl6OutputPuts("NULL", out);
     xl6OutputPrintf(out, ", %lu, ", (unsigned long)cleanupCount);
     if (cleanupCount) xl6OutputPrintf(out, "%s_cleanup_%u", prefix, (unsigned int)symbol); else xl6OutputPuts("NULL", out);

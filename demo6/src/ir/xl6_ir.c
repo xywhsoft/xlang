@@ -19598,7 +19598,7 @@ static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* 
             ? XL6_IR_SLOT_TRANSFER_NONE : XL6_IR_SLOT_TRANSFER_RESIDENT_ORDERED_WRITES_V1))
         return xl6IrDiag(diags, NULL, "XLIR physical slot transfer ABI is unresolved");
     if (module->abi.generatorStorageAbi != (module->stage == XL6_IR_STAGE_TYPED
-            ? XL6_IR_GENERATOR_STORAGE_NONE : XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V2))
+            ? XL6_IR_GENERATOR_STORAGE_NONE : XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3))
         return xl6IrDiag(diags, NULL, "XLIR generator storage ABI is unresolved");
     if (module->abi.asyncStorageAbi != (module->stage == XL6_IR_STAGE_TYPED
             ? XL6_IR_ASYNC_STORAGE_NONE : XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V2))
@@ -25867,6 +25867,8 @@ static XL6_IrAsyncFrameTransferAbi xl6IrAsyncBorrowTransferForType(
     case XL6_IR_C_ABI_CLOSURE_PTR: return XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_CLOSURE;
     case XL6_IR_C_ABI_RUNTIME_CELL_PTR: return XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_CELL;
     case XL6_IR_C_ABI_RUNTIME_ERROR_PTR: return XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_ERROR;
+    case XL6_IR_C_ABI_NATIVE_VALUE:
+        return xl6IrNativeValuePlanForType(type) ? XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE : XL6_IR_ASYNC_FRAME_TRANSFER_INVALID;
     default: return XL6_IR_ASYNC_FRAME_TRANSFER_INVALID;
     }
 }
@@ -25891,6 +25893,8 @@ XL6_IrAsyncFrameDestroyAbi xl6IrOwnedValueDestroyAbi(
         return XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_VALUE_ITERATOR;
     case XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR:
         return XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_GENERATOR;
+    case XL6_IR_C_ABI_NATIVE_VALUE:
+        return xl6IrNativeValuePlanForType(type) ? XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE : XL6_IR_ASYNC_FRAME_DESTROY_INVALID;
     default: return XL6_IR_ASYNC_FRAME_DESTROY_INVALID;
     }
 }
@@ -26479,6 +26483,7 @@ static XL6_IrContinuationFrameTraceAbi xl6IrContinuationFrameTraceForDestroy(XL6
     switch (destroy) {
     case XL6_IR_ASYNC_FRAME_DESTROY_NONE:
     case XL6_IR_ASYNC_FRAME_DESTROY_FREE_STRING: return XL6_IR_FRAME_TRACE_NONE;
+    case XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE: return XL6_IR_FRAME_TRACE_NONE;
     case XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_XVALUE: return XL6_IR_FRAME_TRACE_XVALUE;
     case XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_FUTURE: return XL6_IR_FRAME_TRACE_FUTURE;
     case XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_CLOSURE: return XL6_IR_FRAME_TRACE_CLOSURE;
@@ -46988,6 +46993,7 @@ static const char* xl6IrAsyncFrameDestroyAbiName(XL6_IrAsyncFrameDestroyAbi abi)
         return "destroy-value-iterator";
     case XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_GENERATOR:
         return "destroy-generator";
+    case XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE: return "native-value";
     default: return "invalid";
     }
 }
@@ -47015,6 +47021,7 @@ static const char* xl6IrAsyncFrameTransferAbiName(XL6_IrAsyncFrameTransferAbi ab
     case XL6_IR_ASYNC_FRAME_TRANSFER_MOVE_OWNED: return "move-owned";
     case XL6_IR_ASYNC_FRAME_TRANSFER_TAKE_PARAMETER: return "take-parameter";
     case XL6_IR_ASYNC_FRAME_TRANSFER_BORROW_STORAGE: return "borrow-storage";
+    case XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE: return "copy-native-value";
     default: return "invalid";
     }
 }

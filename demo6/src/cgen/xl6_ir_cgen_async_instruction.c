@@ -599,7 +599,8 @@ static int xl6IrCgenEmitAsyncMachineInstruction(
                     snprintf(place,sizeof(place),"frame->f%lu",(unsigned long)frameLocal);
                     snprintf(input,sizeof(input),"v%u",(unsigned int)frame->value);
                     snprintf(initialized,sizeof(initialized),"frame->i%lu",(unsigned long)frame->initBit);
-                    if (!xl6IrCgenEmitFrameAcquisitionBegin(out,type,frame->transferAbi,input,&acquired)) return 0;
+                    if (!xl6IrCgenEmitFrameAcquisitionBegin(out,type,frame->transferAbi,input,&acquired,
+                            xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,frame->type)))) return 0;
                     if (acquired) {
                         xl6OutputPrintf(out,"    if (%s != NULL && xlir_acquired == NULL) {\n",input);
                         xl6IrCgenEmitAsyncSetupFailure(out,module,suspension); xl6OutputPuts("    }\n",out);

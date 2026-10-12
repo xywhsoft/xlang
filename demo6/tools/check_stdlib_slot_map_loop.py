@@ -50,14 +50,13 @@ def main():
         code=[]
         boundary=out/'native-key-suspension.xl'
         boundary.write_text('func keys(SlotMap<string> slots) as generator<string>\n for key, value in slots\n yield value\n assert(slots.contains(key))\n end\nend\nauto slots=SlotMap::<string>()\nslots.insert("a")\nfor text in keys(slots)\n assert(text == "a")\nend\n',encoding='utf-8')
-        blocked=out/'native-key-suspension.c'
-        p=subprocess.run([str(driver),str(boundary),'cgen-default',str(blocked)],cwd=root,env=env,capture_output=True,timeout=600)
-        log=out/'native-key-suspension.log'; log.write_bytes(p.stdout+p.stderr)
-        rows.append(dict(Name='native-key-suspension',Exit=p.returncode,Log=str(log),LogSha256=sha(log),ExpectedRejection=True))
-        assert p.returncode and b'generator target has no exact machine/item ABI' in p.stdout+p.stderr
-        assert not blocked.exists() or not blocked.stat().st_size
+        blocked=out/'native-key-suspension-program.c'
+        run('native-key-suspension',[driver,boundary,'cgen-default',blocked])
+        assert 'XL6_CAPTURE_NATIVE_LEAF_V2' in blocked.read_text(encoding='utf-8-sig')
+        run('native-key-suspension-jit',[driver,boundary,'run',out/'native-key-jit'])
+        products.append(dict(Path=str(blocked),Sha256=sha(blocked)))
         products.append(dict(Path=str(boundary),Sha256=sha(boundary)))
-        report['NativeKeySuspensionExplicitlyRejected']=True
+        report['NativeKeySuspensionAdmitted']=True
         for index,source in enumerate(sources):
             tag=str(index); generated=out/(tag+'.c'); repeat=out/(tag+'-repeat.c')
             run(tag+'-generate',[driver,source,'cgen-default',generated]); run(tag+'-repeat',[driver,source,'cgen-default',repeat])

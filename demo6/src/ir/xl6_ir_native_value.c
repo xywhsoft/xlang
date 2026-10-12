@@ -1,10 +1,11 @@
 /* Included by xl6_ir.c. Native owning records have one closed representation
  * contract. Source spelling, foreign structs and a matching sizeof cannot
- * confer this capability. Nullable/frames/cells need separate owning plans. */
+ * confer this capability. Capture is independently published as an immutable
+ * native leaf capability. Nullable/cells need separate owning plans. */
 static const XL6_IrNativeValuePlan g_xl6IrNativeValues[] = {
-#define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,Release,Type,Converter,Sequence,Profile,ValueId) \
+#define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,Release,Type,Converter,Sequence,Profile,ValueId,CaptureHeader,CaptureProfile) \
     {XL6_IR_NATIVE_VALUE_##Tag,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,XL6_IR_RELEASE_EFFECT_##Release, \
-        XL6_IR_NATIVE_SLOT_##Tag,#Type "()",#Converter "()",Sequence,Profile,ValueId},
+        XL6_IR_NATIVE_SLOT_##Tag,#Type "()",#Converter "()",Sequence,Profile,ValueId,CaptureHeader,CaptureProfile},
 #include "src/type/xl6_native_value_profiles.inc"
 #undef XL6_NATIVE_VALUE_PROFILE
 };

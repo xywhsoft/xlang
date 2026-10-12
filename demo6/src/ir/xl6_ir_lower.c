@@ -32707,7 +32707,7 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
     module->abi.cellStorageAbi = XL6_IR_CELL_STORAGE_RESIDENT_TRANSFER_V1;
     module->abi.valueIteratorStorageAbi = XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_CHECKED_SNAPSHOT_V2;
     module->abi.slotTransferAbi = XL6_IR_SLOT_TRANSFER_RESIDENT_ORDERED_WRITES_V1;
-    module->abi.generatorStorageAbi = XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V2;
+    module->abi.generatorStorageAbi = XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3;
     module->abi.asyncStorageAbi = XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V2;
     module->abi.taskStorageAbi = XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V2;
     module->abi.classStorageAbi = XL6_IR_CLASS_STORAGE_RESIDENT_GRAPH_V2;

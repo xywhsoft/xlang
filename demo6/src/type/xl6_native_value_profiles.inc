@@ -6,4 +6,5 @@ XL6_NATIVE_VALUE_PROFILE(SLOT_MAP_KEY_V1, "SlotMapKey", "xlang.runtime.slot-map-
     "xl6SlotMapKeyCopyValueV1", "xl6SlotMapKeyDropValueV1", "xl6SlotMapKeyEqualV1",
     "xl6SlotMapKeyBoxV1", "xl6SlotMapKeyUnboxV1", NO_RAISE,
     xl6SlotMapKeyTypeV1, xl6SlotMapKeyConverterV1, "xl6SequenceSlotMapKeyCreateV1",
-    "xl6SlotMapKeyValueProfileV1Get", XL6_SLOT_MAP_KEY_LANGUAGE_VALUE_ID)
+    "xl6SlotMapKeyValueProfileV1Get", XL6_SLOT_MAP_KEY_LANGUAGE_VALUE_ID,
+    "__xl_runtime/xl6_slot_map_key_capture.h", "xl6SlotMapKeyCaptureProfileV1Get")

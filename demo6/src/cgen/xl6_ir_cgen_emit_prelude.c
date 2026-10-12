@@ -178,7 +178,7 @@ static int xl6IrCgenEmitRuntimePrelude(
             "}\n\n",
             out);
     if ( needs->needsGeneratorRuntime ) {
-        if (module->abi.generatorStorageAbi != XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V2)
+        if (module->abi.generatorStorageAbi != XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3)
             return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR generator storage ABI is unresolved");
         xl6OutputPuts("#include <__xl_runtime/xl6_generator.h>\n",out);
         xl6OutputPuts(module->abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT
@@ -186,7 +186,7 @@ static int xl6IrCgenEmitRuntimePrelude(
             : "#define xlir_generator_owner NULL\n",out);
         xl6OutputPuts(
             "typedef XL6_GeneratorStep xlir_generator_step;\n"
-            "#define xlir_generator_create(...) (xl6GeneratorRuntimeV2Get()->Create)(xlir_generator_owner, __VA_ARGS__)\n"
+            "#define xlir_generator_create(...) (xl6GeneratorRuntimeV3Get()->Create)(xlir_generator_owner, __VA_ARGS__)\n"
             "#define xlir_generator_ownership (xl6GeneratorRuntimeV1Get()->Ownership)\n"
             "#define xlir_generator_next (xl6GeneratorRuntimeV1Get()->Next)\n"
             "#define xlir_generator_item_get (xl6GeneratorRuntimeV1Get()->ItemGet)\n"
@@ -196,7 +196,7 @@ static int xl6IrCgenEmitRuntimePrelude(
             "#define xlir_generator_put (xl6GeneratorRuntimeV1Get()->Put)\n"
             "#define xlir_generator_set_state (xl6GeneratorRuntimeV1Get()->SetState)\n"
             "#define xlir_generator_finish (xl6GeneratorRuntimeV1Get()->Finish)\n"
-            "#define xlir_generator_frame_allocate (xl6GeneratorRuntimeV2Get()->FrameAllocate)\n"
+            "#define xlir_generator_frame_allocate (xl6GeneratorRuntimeV3Get()->FrameAllocate)\n"
             "#define xlir_generator_frame_discard (xl6GeneratorRuntimeV2Get()->FrameDiscard)\n"
             "\n",out);
     }

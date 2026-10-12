@@ -1,4 +1,5 @@
 #include "xl6_slot_map_key.h"
+#include "src/api/xl_foreign_error.h"
 #include <stdlib.h>
 
 struct XL6_SlotMapInstanceV1 { volatile int32_t refs; };
@@ -64,3 +65,32 @@ bool xl6SlotMapKeyEqualV1(XL6_SlotMapKeyV1 left,XL6_SlotMapKeyV1 right)
 { return left.instance==right.instance && left.slot==right.slot; }
 void xl6SlotMapKeyDropValueV1(XL6_SlotMapKeyV1 value)
 { keyDrop(&value,xl6SlotMapKeyTypeV1()); }
+/* Direct native ownership stays independent of erasure/hash/conversion. The
+ * input carrier is a by-value observation; output must be aligned and empty.
+ * The canonical xrttype operation acquires/publishes under its mutation. */
+bool xl6SlotMapKeyCopyValueV1(XL6_SlotMapKeyV1 input,XL6_SlotMapKeyV1* output)
+{
+    xl6_error_scope scope={0};
+    if(!xl6ErrorScopeBegin(&scope)){
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});return false;
+    }
+    bool copied=false;
+    if(!output || (uintptr_t)output%_Alignof(XL6_SlotMapKeyV1) || output->instance || output->slot)
+        xrtSetErrorKind(XERR_ARGUMENT);
+    else{
+        copied=xrtTypeCopyValue(xl6SlotMapKeyTypeV1(),output,&input);
+        if(!copied || xrtGetError() || scope.failed){
+            xl6ErrorScopeCaptureFailure(&scope);xrtTypeDropValue(xl6SlotMapKeyTypeV1(),output);copied=false;
+        }
+    }
+    if(!copied || xrtGetError() || scope.failed)xl6ErrorScopeCaptureFailure(&scope);
+    xl6_error_result r=xl6ErrorScopeEnd(&scope);if(!r.ok)xl6ErrorScopePropagateFailure(r);return r.ok;
+}
+XL6_SlotMapKeyV1 xl6SlotMapKeyCloneV1(XL6_SlotMapKeyV1 input)
+{
+    XL6_SlotMapKeyV1 result={0};
+    if(!xl6SlotMapKeyCopyValueV1(input,&result)){
+        xl6SlotMapKeyDropValueV1(result);if(!xrtGetError())xrtSetErrorKind(XERR_STATE);
+        return (XL6_SlotMapKeyV1){0};
+    }return result;
+}

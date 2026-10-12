@@ -2125,6 +2125,8 @@ typedef struct XL6_IrNativeValuePlan {
     const char* sequenceSymbol;
     const char* profileSymbol;
     uint64_t languageValueId;
+    const char* captureHeader;
+    const char* captureProfileSymbol;
 } XL6_IrNativeValuePlan;
 
 /* Canonical language identities for every stable XRT xvalue tag.  This table
@@ -4495,7 +4497,9 @@ typedef enum XL6_IrAsyncFrameDestroyAbi {
      * as an explicit frame action. */
     XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_VALUE_ITERATOR,
     /* Unique synchronous continuation activation. */
-    XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_GENERATOR
+    XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_GENERATOR,
+    /* Exact closed native owning leaf profile, not POD or a raw pointer. */
+    XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE
 } XL6_IrAsyncFrameDestroyAbi;
 
 /* Physical strong slots, independently checked against the exact destruction
@@ -4545,7 +4549,8 @@ typedef enum XL6_IrAsyncFrameTransferAbi {
     XL6_IR_ASYNC_FRAME_TRANSFER_TAKE_PARAMETER,
     /* Non-owning SSA pointer protected by an exact activation storage slot.
      * No retain, allocation, init bit or independent destructor is permitted. */
-    XL6_IR_ASYNC_FRAME_TRANSFER_BORROW_STORAGE
+    XL6_IR_ASYNC_FRAME_TRANSFER_BORROW_STORAGE,
+    XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE
 } XL6_IrAsyncFrameTransferAbi;
 
 /* Runtime callbacks are activations too. Their captures are acquired in
@@ -5473,7 +5478,8 @@ typedef enum XL6_IrSlotTransferAbi {
 typedef enum XL6_IrGeneratorStorageAbi {
     XL6_IR_GENERATOR_STORAGE_NONE = 0,
     XL6_IR_GENERATOR_STORAGE_RESIDENT_SCOPED_FRAME_V1, /* Reserved opaque frame; not canonical Lowered IR. */
-    XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V2
+    XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V2,
+    XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3
 } XL6_IrGeneratorStorageAbi;
 
 /* Physical async machine/task frame allocation and final disposal cooperate

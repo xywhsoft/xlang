@@ -248,15 +248,21 @@ static int xl6IrCgenActivationFrameParameterSupported(
     if (frame->destroyAbi == XL6_IR_ASYNC_FRAME_DESTROY_NONE)
         return frame->initBit == SIZE_MAX;
     return frame->initBit < initBitCount &&
-        xl6IrCgenFrameDestroyFunction(frame->destroyAbi) != NULL;
+        xl6IrCgenFrameDestroyForType(module,frame->type,frame->destroyAbi) != NULL;
 }
 
 static int xl6IrCgenEmitFrameAcquisitionBegin(XL6_Output* out,const char* type,
-    XL6_IrAsyncFrameTransferAbi transfer,const char* input,int* acquired)
+    XL6_IrAsyncFrameTransferAbi transfer,const char* input,int* acquired,const XL6_IrNativeValuePlan* native)
 {
     const char* acquire=NULL;
     if (!type || !input || !acquired) return 0;
     switch (transfer) {
+    case XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE:
+        if(!native || !native->captureProfileSymbol)return 0;
+        *acquired=1;
+        xl6OutputPrintf(out,"    { %s xlir_acquired = {0}; bool xlir_acquired_ok = %s(%s, &xlir_acquired);\n",
+            type,native->copySymbol,input);
+        return !xl6OutputHasFailed(out);
     case XL6_IR_ASYNC_FRAME_TRANSFER_COPY_VALUE:
     case XL6_IR_ASYNC_FRAME_TRANSFER_TAKE_PARAMETER:
     case XL6_IR_ASYNC_FRAME_TRANSFER_BORROW_STORAGE:
@@ -283,14 +289,18 @@ static int xl6IrCgenEmitFrameAcquisitionCommit(XL6_Output* out,const char* type,
     xl6OutputPuts("    }\n",out); return !xl6OutputHasFailed(out);
 }
 static int xl6IrCgenEmitActivationCapture(
-    XL6_Output* out,const char* type,XL6_IrAsyncFrameTransferAbi transfer,
+    XL6_Output* out,const XL6_IrModule* module,XL6_IrTypeId id,XL6_IrAsyncFrameTransferAbi transfer,
     const char* place,const char* input,const char* initialized,const char* rollback)
 {
     int acquired;
+    const char* type=xl6IrCgenType(module,id);
+    const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,id));
     if (transfer==XL6_IR_ASYNC_FRAME_TRANSFER_BORROW_STORAGE || transfer==XL6_IR_ASYNC_FRAME_TRANSFER_MOVE_OWNED ||
-        !xl6IrCgenEmitFrameAcquisitionBegin(out,type,transfer,input,&acquired)) return 0;
+        !xl6IrCgenEmitFrameAcquisitionBegin(out,type,transfer,input,&acquired,native)) return 0;
     if (acquired) {
-        if (transfer==XL6_IR_ASYNC_FRAME_TRANSFER_COPY_STRING)
+        if (transfer==XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE)
+            xl6OutputPuts("    if (!xlir_acquired_ok) {\n",out);
+        else if (transfer==XL6_IR_ASYNC_FRAME_TRANSFER_COPY_STRING)
             xl6OutputPrintf(out,"    if (%s.Data != NULL && xlir_acquired.Data == NULL) {\n",input);
         else
             xl6OutputPrintf(out,"    if (%s != NULL && xlir_acquired == NULL) {\n",input);
@@ -656,7 +666,7 @@ static int xl6IrCgenAsyncMachineProgramSupported(
         if ( frame->residence == XL6_IR_ASYNC_FRAME_RESIDENCE_SSA_SPILL ) {
             if (!protectedLoan && !trivial && !(residentTransfer && frameType != NULL &&
                 frameType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-                xl6IrCgenFrameDestroyFunction(frame->destroyAbi) != NULL))
+                xl6IrCgenFrameDestroyForType(module,frame->type,frame->destroyAbi) != NULL))
                 return xl6IrCgenAsyncProgramUnsupported(unsupportedReason,
                     "XLIR async SSA spill frame ABI is not admitted");
         } else if ( frame->residence == XL6_IR_ASYNC_FRAME_RESIDENCE_LAUNCH_PARAMETER ) {

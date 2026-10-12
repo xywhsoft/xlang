@@ -1,0 +1,67 @@
+func suspendedPairs(SlotMap<string> slots) as generator<string>
+    try
+        for key, value in slots
+            assert(slots.contains(key))
+            yield value
+            assert(key == key)
+            assert(value == "你\0好")
+        end
+    finally
+        slots.clear()
+    end
+end
+func parameterKey(SlotMapKey key) as generator<int>
+    try
+        yield 42
+        assert(key == key)
+    finally
+        assert(key == key)
+    end
+end
+func throwAfterResume(SlotMap<int> slots) as generator<int>
+    for key in slots
+        try
+            yield 7
+            assert(slots.contains(key))
+            throw ValueError "resumed key"
+        finally
+            assert(key == key)
+        end
+    end
+end
+func main(...) as int
+    auto slots = SlotMap::<string>()
+    slots.insert("你\0好")
+    int count = 0
+    for value in suspendedPairs(slots)
+        assert(value == "你\0好")
+        slots.clear()
+        count += 1
+    end
+    assert(count == 1 and slots.count() == 0)
+    slots.insert("你\0好")
+    for value in suspendedPairs(slots)
+        assert(value == "你\0好")
+        break
+    end
+    assert(slots.count() == 0)
+    auto keys = SlotMap::<int>()
+    auto key = keys.insert(42)
+    count = 0
+    for number in parameterKey(key)
+        keys.clear()
+        assert(number == 42)
+        count += 1
+    end
+    assert(count == 1 and key == key)
+    keys.insert(7)
+    try
+        for number in throwAfterResume(keys)
+            assert(number == 7)
+        end
+        assert(false)
+    catch ValueError failure
+        assert(failure.message == "resumed key")
+    end
+    return 0
+end
