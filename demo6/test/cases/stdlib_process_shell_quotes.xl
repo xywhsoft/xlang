@@ -10,7 +10,7 @@ string quoteCommand = "\"" + quoteXl + "\" check \"" + quoteSource + "\""
 ProcessResult quoteResult = process.run(quoteCommand, 10000)
 assert(quoteResult.success)
 assert(quoteResult.exitCode == 0)
-assert(string.trim(quoteResult.stderr) == "")
+assert(string.trim(quoteResult.stderrText()) == "")
 
 assert(file.delete(quoteSource))
 assert(dir.delete(quoteDir))

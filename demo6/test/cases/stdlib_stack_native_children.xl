@@ -1,0 +1,57 @@
+class NativeChildHolder
+    Stack<array<int>> numbers
+    Stack<dict<string>> texts
+end
+func escapedChild() as array<int>
+    auto holder = NativeChildHolder()
+    array<int> input = [3, 5]
+    assert(holder.numbers.push(input))
+    try
+        return holder.numbers.peek()
+    finally
+        holder.numbers.clear()
+    end
+end
+func main(...) as int
+    auto holder = NativeChildHolder()
+    array<int> original = [7, 11]
+    assert(holder.numbers.push(original))
+    original[0] = 19
+    auto alias = holder.numbers.peek()
+    assert(alias[0] == 19)
+    auto retained = holder.numbers.pop()
+    holder.numbers.clear()
+    retained[1] = 23
+    assert(original[1] == 23 and alias[1] == 23)
+    array<int> other = [31]
+    assert(holder.numbers.pushBatch(array[original, other]))
+    auto snapshot = holder.numbers.peekBatch(2)
+    auto extracted = holder.numbers.popBatch(2)
+    assert(holder.numbers.count() == 0 and snapshot.length == 2 and extracted.length == 2)
+    assert(snapshot[0][0] == 31 and extracted[1][0] == 19)
+    other[0] = 37
+    assert(snapshot[0][0] == 37 and extracted[0][0] == 37)
+    dict<string> text = {"a\0你": "b\0🙂"}
+    assert(holder.texts.push(text))
+    text["a\0你"] = "new\0text"
+    auto output = holder.texts.pop()
+    assert(output["a\0你"] == "new\0text")
+    auto nullable = Stack::<array<int>?>()
+    assert(nullable.push(null) and nullable.pop() == null)
+    assert(nullable.push(original))
+    auto item = nullable.pop()
+    assert(item != null)
+    if item != null then assert(item[0] == 19) end
+    auto outer = Stack::<array<Stack<dict<int>>>>()
+    auto inner = Stack::<dict<int>>()
+    dict<int> values = {"k\0": 41}
+    assert(inner.push(values))
+    assert(outer.push(array[inner]))
+    auto layers = outer.pop()
+    auto keptInner = layers[0]
+    auto leaves = keptInner.pop()
+    assert(leaves["k\0"] == 41)
+    auto escaped = escapedChild()
+    assert(escaped[0] == 3 and escaped[1] == 5)
+    return 0
+end
