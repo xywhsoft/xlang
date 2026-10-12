@@ -469,9 +469,9 @@ def main() -> int:
                 [str(cli),'cgen',source,'--inc-path',str(out/'include'),'--emit',str(target)])
             rejection=subprocess.run(command,cwd=root,env=env,capture_output=True,timeout=60)
             (out/'wire-child.refused.log').write_bytes(rejection.stdout+rejection.stderr)
-            accepted=rejection.returncode!=0 and b'closed resident Sequence recipe' in rejection.stdout+rejection.stderr and (not target.exists() or not target.stat().st_size)
+            accepted=rejection.returncode!=0 and b'typed container item type must be copyable' in rejection.stdout+rejection.stderr and (not target.exists() or not target.stat().st_size)
             rows.append({'Name':'wire-child.refused','Command':command,'Exit':rejection.returncode,'Complete':accepted})
-            assert accepted,'Unmigrated wire producer must be rejected before C output'
+            assert accepted,'Unsupported child domain must be rejected before C output'
         if args.layouts:
             child = out / "callable-scalars"
             command = [sys.executable, str(root / "tools/check_stdlib_callable_scalars.py"), "--out", str(child)]

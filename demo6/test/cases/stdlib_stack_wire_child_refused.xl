@@ -1,5 +1,6 @@
-// A target native recipe does not authorize an unmigrated wire producer.
+// A pointer-shaped child without a complete native recipe remains refused.
+// Ordinary Array children are native now and have a positive integration test.
 func main(...) as int
-    Stack<array<int>> value = Stack::<array<int>>()
+    Stack<array<generator<int>>> value = Stack::<array<generator<int>>>()
     return 0
 end

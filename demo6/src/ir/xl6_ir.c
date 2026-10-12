@@ -8566,11 +8566,16 @@ static int xl6IrStackConstructionContractDepth(const XL6_IrModule* module,
         return xl6IrListConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,depth+1);
     case XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1:
         return xl6IrSetConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,NULL,depth+1);
+    case XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1:
+        return xl6IrDictConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,NULL,depth+1);
     case XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1:
-        /* Source Array still has the Value-wire producer. Its native target
-         * recipe is not authority to pass that owner as a sealed Sequence. */
-        return plan->childRole==XL6_IR_SEQUENCE_ROLE_STACK &&
-            xl6IrStackConstructionContractDepth(module,plan->baseElementType,NULL,depth+1);
+        /* Both source families now produce sealed native Sequence owners.
+         * Require the child's complete recipe, never a pointer-shaped layout. */
+        return plan->childRole==XL6_IR_SEQUENCE_ROLE_STACK
+            ? xl6IrStackConstructionContractDepth(module,plan->baseElementType,NULL,depth+1)
+            : plan->childRole==XL6_IR_SEQUENCE_ROLE_ARRAY &&
+                xl6IrSequenceConstructionRecipeDepth(module,plan->baseElementType,
+                    XL6_IR_SEQUENCE_ROLE_ARRAY,NULL,depth+1);
     default: return 0;
     }
 }
