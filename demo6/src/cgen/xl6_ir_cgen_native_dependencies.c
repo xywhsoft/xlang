@@ -391,6 +391,11 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         const XL6_IrGeneratorMachine* machine=&module->generatorMachines[m];
         const XL6_IrCallTarget* target=xl6IrCallTargetGet(module,machine->targetSymbol);
         if(!target || target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        if(machine->yieldAbi==XL6_IR_GENERATOR_YIELD_MOVE_NATIVE_VALUE){
+            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,machine->itemType));
+            if(!native || !native->captureProfileSymbol || !visitor(context,native->captureProfileSymbol) ||
+                !visitor(context,native->dropSymbol))return 0;
+        }
         for(size_t f=0;f<machine->frameSlotCount;++f){
             const XL6_IrContinuationFrameSlot* frame=&module->generatorFrameSlots[machine->firstFrameSlot+f];
             if(frame->destroyAbi==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE){

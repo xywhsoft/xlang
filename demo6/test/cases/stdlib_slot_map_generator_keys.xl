@@ -1,0 +1,90 @@
+func completeKeys(SlotMap<int> slots) as generator<SlotMapKey>
+    try
+        for key in slots
+            yield key
+            assert(key == key)
+        end
+    finally
+        slots.clear()
+    end
+end
+func relayedKeys(SlotMap<int> slots) as generator<SlotMapKey>
+    for index, key in completeKeys(slots)
+        assert(index >= 0)
+        yield key
+        assert(key == key)
+    end
+end
+func independentKey() as SlotMapKey
+    auto slots = SlotMap::<int>()
+    return slots.insert(42)
+end
+func loneKey() as generator<SlotMapKey>
+    yield independentKey()
+end
+func echoKey(SlotMapKey key) as generator<SlotMapKey>
+    yield key
+    yield key
+end
+func failureKeys(SlotMap<int> slots) as generator<SlotMapKey>
+    for key in slots
+        try
+            yield key
+            throw ValueError "native yield failure"
+        finally
+            assert(key == key)
+        end
+    end
+end
+func main(...) as int
+    auto slots = SlotMap::<int>()
+    auto original = slots.insert(7)
+    auto second = slots.insert(8)
+    auto escaped = original
+    int count = 0
+    for index, key in completeKeys(slots)
+        assert(index == count)
+        assert(key == original or key == second)
+        escaped = key
+        slots.clear()
+        count += 1
+    end
+    assert(count == 2 and slots.count() == 0 and escaped == escaped)
+    slots.insert(3)
+    slots.insert(4)
+    for key in relayedKeys(slots)
+        assert(slots.contains(key))
+        escaped = key
+        break
+    end
+    assert(slots.count() == 0 and escaped == escaped)
+    count = 0
+    for key in echoKey(escaped)
+        assert(key == escaped)
+        count += 1
+    end
+    assert(count == 2)
+    for key in loneKey()
+        assert(key == key)
+        escaped = key
+    end
+    assert(escaped == escaped)
+    slots.insert(9)
+    try
+        for key in failureKeys(slots)
+            assert(slots.contains(key))
+            escaped = key
+        end
+        assert(false)
+    catch ValueError failure
+        assert(failure.message == "native yield failure")
+    end
+    assert(escaped == escaped)
+    auto empty = SlotMap::<int>()
+    count = 0
+    for key in completeKeys(empty)
+        count += 1
+    end
+    assert(count == 0)
+    return 0
+end
