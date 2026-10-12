@@ -1,0 +1,52 @@
+func collectionLoopValue() as int
+    return 23
+end
+async func checkCollectionFutures() as int
+    auto source = task.spawn(collectionLoopValue)
+    array<future<int>> values = [source, source]
+    int count = 0
+    for index, value in values
+        values.clear()
+        assert(index == 0 or index == 1)
+        assert(await value == 23)
+        count += 1
+    end
+    assert(count == 2)
+    list<future<int>> linked = list[3: source, 7: source]
+    for index, value in linked
+        linked.clear()
+        assert(index == 3 or index == 7)
+        assert(await value == 23)
+        count += 1
+    end
+    assert(count == 4)
+    dict<future<int>> named = dict{"a": source, "b": source}
+    for key, value in named
+        named.clear()
+        assert(key == "a" or key == "b")
+        assert(await value == 23)
+        count += 1
+    end
+    assert(count == 6)
+    set<future<int>> unique = set{source, source}
+    for value in unique
+        unique.clear()
+        assert(await value == 23)
+        count += 1
+    end
+    assert(count == 7)
+    array<future<int>?> optional = [null, source]
+    int absent = 0
+    for value in optional
+        optional.clear()
+        if value == null
+            absent += 1
+        else
+            assert(await value == 23)
+            count += 1
+        end
+    end
+    assert(count == 8 and absent == 1)
+    return 0
+end
+assert(await checkCollectionFutures() == 0)

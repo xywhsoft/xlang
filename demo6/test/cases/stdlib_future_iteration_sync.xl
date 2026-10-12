@@ -1,0 +1,79 @@
+func syncIterationResult() as int
+    return 17
+end
+func escapedFuture(SlotMap<future<int>> slots) as future<int>
+    for _, item in slots
+        try
+            return item
+        finally
+            slots.clear()
+        end
+    end
+    return task.spawn(syncIterationResult)
+end
+func main(...) as int
+    auto ready = task.spawn(syncIterationResult)
+    assert(ready.wait())
+    auto slots = SlotMap::<future<int>>()
+    auto key = slots.insert(ready)
+    int count = 0
+    for original, item in slots
+        assert(original == key and item == ready)
+        slots.clear()
+        assert(item.wait())
+        count += 1
+    end
+    slots.insert(ready)
+    for _, item in slots
+        assert(item == ready)
+        count += 1
+        continue
+    end
+    for original in slots
+        assert(slots.contains(original))
+        count += 1
+    end
+    for _, _ in slots
+        count += 1
+    end
+    auto escaped = escapedFuture(slots)
+    assert(escaped == ready and escaped.wait() and slots.count() == 0)
+    array<future<int>> values = [ready, ready]
+    for index, item in values
+        values.clear()
+        assert(index == 0 or index == 1)
+        assert(item == ready)
+        count += 1
+    end
+    list<future<int>> linked = list[3: ready, 7: ready]
+    for index, item in linked
+        linked.clear()
+        assert(index == 3 or index == 7)
+        assert(item == ready)
+        count += 1
+    end
+    dict<future<int>> named = dict{"a": ready, "b": ready}
+    for name, item in named
+        named.clear()
+        assert(name == "a" or name == "b")
+        assert(item == ready)
+        count += 1
+    end
+    set<future<int>> unique = set{ready, ready}
+    for item in unique
+        assert(item == ready)
+        count += 1
+        break
+    end
+    auto optional = SlotMap::<future<int>?>()
+    optional.insert(null)
+    optional.insert(ready)
+    int missing = 0
+    for _, item in optional
+        optional.clear()
+        if item == null then missing += 1 else assert(item == ready) end
+        count += 1
+    end
+    assert(count == 13 and missing == 1)
+    return 0
+end

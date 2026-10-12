@@ -1,0 +1,102 @@
+func loopFutureValue() as int
+    return 42
+end
+func loopFutureText() as string
+    return "你\0好"
+end
+func loopFutureKey() as SlotMapKey
+    auto values = SlotMap::<int>()
+    return values.insert(7)
+end
+func failedLoopFuture() as int
+    throw ValueError "future loop failure"
+    return 0
+end
+func futureLoopGenerator(SlotMap<future<int>> source) as generator<future<int>>
+    for _, value in source
+        yield value
+        assert(value != null)
+    end
+end
+async func checkLoopFutures() as int
+    auto slots = SlotMap::<future<int>>()
+    auto pending = task.spawn(loopFutureValue)
+    auto original = slots.insert(pending)
+    int count = 0
+    for key, value in slots
+        assert(key == original)
+        slots.clear()
+        assert(await value == 42)
+        assert(await value == 42)
+        count += 1
+    end
+    assert(count == 1 and slots.count() == 0)
+    slots.insert(pending)
+    for _, value in slots
+        assert(await value == 42)
+        count += 1
+    end
+    for key in slots
+        assert(slots.contains(key))
+        count += 1
+    end
+    for _, _ in slots
+        count += 1
+    end
+    assert(count == 4)
+    auto texts = SlotMap::<future<string>>()
+    texts.insert(task.spawn(loopFutureText))
+    for key, value in texts
+        texts.clear()
+        assert(key == key and await value == "你\0好")
+    end
+    auto keyValues = SlotMap::<future<SlotMapKey>>()
+    keyValues.insert(task.spawn(loopFutureKey))
+    for key, value in keyValues
+        keyValues.clear()
+        auto owned = await value
+        assert(key == key and owned == owned)
+    end
+    auto optional = SlotMap::<future<int>?>()
+    optional.insert(null)
+    optional.insert(pending)
+    int missing = 0
+    int present = 0
+    for _, value in optional
+        optional.clear()
+        if value == null
+            missing += 1
+        else
+            assert(await value == 42)
+            present += 1
+        end
+    end
+    assert(missing == 1 and present == 1)
+    int failed = 0
+    auto failures = SlotMap::<future<int>>()
+    failures.insert(task.spawn(failedLoopFuture))
+    try
+        for key, value in failures
+            try
+                failures.clear()
+                assert(await value == 0)
+            finally
+                assert(key == key)
+                failed += 1
+            end
+        end
+    catch AsyncError error
+        assert(error.message == "future loop failure")
+        failed += 1
+    finally
+        failed += 1
+    end
+    assert(failed == 3)
+    auto yielded = futureLoopGenerator(slots)
+    for value in yielded
+        assert(await value == 42)
+        break
+    end
+    return 0
+end
+assert(await checkLoopFutures() == 0)

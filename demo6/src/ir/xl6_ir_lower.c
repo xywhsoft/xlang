@@ -20927,6 +20927,7 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
     int nativeHandleItemProjection = 0;
     int unionItemProjection = 0;
     int nativeValueItemProjection = 0;
+    int futureItemProjection = 0;
     int slotMapIterator = xl6IrSlotMapLoopIteratorOp(node)!=XL6_IR_RUNTIME_NONE;
 
     if ( node->sourceKind != XL6_AST_FOR || node->childCount != 3 ||
@@ -21152,6 +21153,14 @@ static XL6_IrValueId xl6IrLowerXValueIteratorFor(
              projectedItemType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED )
             break;
         goto invalidItemProjection;
+    case XL6_IR_LOOP_ITEM_FUTURE_COPY:
+    case XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY:
+        futureItemProjection=1;
+        if(xl6IrFutureProjectionPayloadType(ctx->module,itemType,
+                node->loopItemAbi==XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY
+                    ? XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY
+                    : XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY)) break;
+        goto invalidItemProjection;
     case XL6_IR_LOOP_ITEM_NATIVE_HANDLE_BORROW:
         nativeHandleItemProjection = 1;
         if ( projectedItemType->kind == XL6_IR_TYPE_CLASS &&
@@ -21204,6 +21213,8 @@ invalidItemProjection:
          node->loopItemAbi == XL6_IR_LOOP_ITEM_CLOSURE_COPY ||
          node->loopItemAbi == XL6_IR_LOOP_ITEM_XVALUE_RETAIN ||
          node->loopItemAbi == XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY ||
+         node->loopItemAbi == XL6_IR_LOOP_ITEM_FUTURE_COPY ||
+         node->loopItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY ||
          node->loopItemAbi ==
              XL6_IR_LOOP_ITEM_DYNAMIC_LOGICAL_XVALUE);
     if ( hasItem && node->loopItemLifetimeAbi != (!materializesItem
@@ -21370,7 +21381,7 @@ invalidItemProjection:
     if ( materializesItem ) {
         if ( slotMapIterator || nullableItemProjection || scalarItemProjection || closureItemProjection ||
              nativeHandleItemProjection ||
-             unionItemProjection || nativeValueItemProjection ) {
+             unionItemProjection || nativeValueItemProjection || futureItemProjection ) {
             XL6_IrTypeId dynamicType =
                 xl6IrLowerFindDynamicBuiltinType(ctx->module);
             XL6_IrValueId borrowedItem = dynamicType == XL6_IR_TYPE_INVALID
@@ -21379,7 +21390,7 @@ invalidItemProjection:
                     ctx, itemTargetId, dynamicType,
                     XL6_IR_RUNTIME_XVALUE_ITERATOR_ITEM_BORROW,
                     &loadedState, 1);
-            item = slotMapIterator
+            item = slotMapIterator || futureItemProjection
                 ? projectedItemType->kind==XL6_IR_TYPE_NULLABLE
                     ? xl6IrLowerProjectBorrowedXValueAsNullable(ctx,itemTargetId,borrowedItem,itemType)
                     : xl6IrLowerProjectBorrowedXValueAsExactType(ctx,itemTargetId,borrowedItem,itemType)

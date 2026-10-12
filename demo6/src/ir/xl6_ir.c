@@ -48,7 +48,9 @@ static XL6_IrErrorAbi xl6IrNodeConstructionErrorAbi(const XL6_IrModule* module, 
                           loop->loopItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_STRING_COPY ||
                           loop->loopItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_CLOSURE_COPY ||
                           loop->loopItemAbi == XL6_IR_LOOP_ITEM_CLOSURE_COPY ||
-                          loop->loopItemAbi == XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY)))
+                          loop->loopItemAbi == XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY ||
+                          loop->loopItemAbi == XL6_IR_LOOP_ITEM_FUTURE_COPY ||
+                          loop->loopItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY)))
                 return XL6_IR_ERROR_ABI_MAY_RAISE;
         }
     }
@@ -18448,6 +18450,15 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
             return XL6_IR_LOOP_ABI_NONE;
         resolvedItemAbi = XL6_IR_LOOP_ITEM_XVALUE_RETAIN;
         break;
+    case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: {
+        int nullable=itemType->kind==XL6_IR_TYPE_NULLABLE;
+        if(!xl6IrFutureProjectionPayloadType(module,itemTypeId,nullable
+                ? XL6_IR_RUNTIME_XVALUE_PROJECT_NULLABLE_FUTURE_COPY
+                : XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY))
+            return XL6_IR_LOOP_ABI_NONE;
+        resolvedItemAbi=nullable ? XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY : XL6_IR_LOOP_ITEM_FUTURE_COPY;
+        break;
+    }
     case XL6_IR_C_ABI_NATIVE_HANDLE:
         if ( itemType->kind != XL6_IR_TYPE_CLASS ||
              itemType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
@@ -18526,7 +18537,9 @@ static XL6_IrLoopAbi xl6IrClassifyLoopAbi(
         (resolvedItemAbi == XL6_IR_LOOP_ITEM_CLOSURE_COPY ||
          resolvedItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_CLOSURE_COPY ||
          resolvedItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_STRING_COPY ||
-         resolvedItemAbi == XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY)
+         resolvedItemAbi == XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY ||
+         resolvedItemAbi == XL6_IR_LOOP_ITEM_FUTURE_COPY ||
+         resolvedItemAbi == XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY)
             ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
     if ( discardKey && iteratorType->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
          resolvedItemAbi == XL6_IR_LOOP_ITEM_I64 )
@@ -18644,6 +18657,8 @@ static XL6_IrLoopTargetLifetimeAbi xl6IrLoopItemLifetimeAbi(
     case XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY:
     case XL6_IR_LOOP_ITEM_BYTES_COPY:
     case XL6_IR_LOOP_ITEM_NULLABLE_BYTES_COPY:
+    case XL6_IR_LOOP_ITEM_FUTURE_COPY:
+    case XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY:
         return XL6_IR_LOOP_TARGET_LIFETIME_OWNED_ITERATION_RELEASE;
     default:
         return XL6_IR_LOOP_TARGET_LIFETIME_NONE;
@@ -37877,7 +37892,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              node->loopKeyAbi > XL6_IR_LOOP_KEY_NATIVE_VALUE_COPY ||
              node->loopKeyAbi != expectedLoopKeyAbi ||
              node->loopItemAbi < XL6_IR_LOOP_ITEM_NONE ||
-             node->loopItemAbi > XL6_IR_LOOP_ITEM_NULLABLE_BYTES_COPY ||
+             node->loopItemAbi > XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY ||
              node->loopItemAbi != expectedLoopItemAbi ||
              node->loopKeyLifetimeAbi < XL6_IR_LOOP_TARGET_LIFETIME_NONE ||
              node->loopKeyLifetimeAbi >
@@ -46942,6 +46957,8 @@ static const char* xl6IrLoopItemAbiName(XL6_IrLoopItemAbi abi)
     case XL6_IR_LOOP_ITEM_NATIVE_VALUE_COPY: return "native-value-copy";
     case XL6_IR_LOOP_ITEM_BYTES_COPY: return "bytes-copy";
     case XL6_IR_LOOP_ITEM_NULLABLE_BYTES_COPY: return "nullable-bytes-copy";
+    case XL6_IR_LOOP_ITEM_FUTURE_COPY: return "future-copy";
+    case XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY: return "nullable-future-copy";
     default: return "invalid";
     }
 }

@@ -2960,7 +2960,12 @@ typedef enum XL6_IrLoopItemAbi {
     /* Exact bytes value (including nullable bytes), not an erased xvalue.
      * Currently admitted only by the paired SlotMap loop contract. */
     XL6_IR_LOOP_ITEM_BYTES_COPY,
-    XL6_IR_LOOP_ITEM_NULLABLE_BYTES_COPY
+    XL6_IR_LOOP_ITEM_NULLABLE_BYTES_COPY,
+    /* A checked projection acquires one independent Future reference before
+     * entering the body. The exact payload type and nullable carrier remain
+     * explicit; the binding owns its reference until iteration cleanup. */
+    XL6_IR_LOOP_ITEM_FUTURE_COPY,
+    XL6_IR_LOOP_ITEM_NULLABLE_FUTURE_COPY
 } XL6_IrLoopItemAbi;
 
 /* Projection representation and target lifetime are distinct contracts.  A
