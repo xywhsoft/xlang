@@ -185,6 +185,8 @@ static int xl6IrCgenEmitTaggedNullableXValueRuntime(
         XL6_IrTypeId typeId = (XL6_IrTypeId)(typeIndex + 1);
         const XL6_IrType* tagged = &module->types.items[typeIndex];
         const XL6_IrType* element = xl6IrCgenTaggedNullableElement(module, typeId);
+        XL6_IrTypeId unionElement=xl6IrNullableUnionElementType(module,typeId);
+        if (unionElement) element=xl6IrTypeGet(&module->types,unionElement);
         const char* elementType;
         const char* constructor;
         const char* getter;
@@ -220,6 +222,17 @@ static int xl6IrCgenEmitTaggedNullableXValueRuntime(
                  instruction->type == typeId ) needsCast = 1;
         }
         if ( !needsBox && !needsGet && !needsIterator && !needsCast ) continue;
+        if (unionElement) {
+            /* Optional union projection has its own verified operation. Only
+             * boxing uses this shared optional entry; no scalar getter guess. */
+            if (!needsBox || needsGet || needsIterator || needsCast)
+                return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR optional union has no exact projection operation");
+            xl6OutputPrintf(out,"static xvalue* xlir_xvalue_box_%s(%s value)\n"
+                "{ return value.hasValue ? xlir_xvalue_union_box(&value.value, sizeof(value.value), 0x%016llXULL) : "
+                "xrtValueRetain(xrtValueNull()); }\n",
+                tagged->cName,tagged->cName,(unsigned long long)element->typeValueId);
+            continue;
+        }
         elementType = xl6IrCgenType(module, tagged->params[0]);
         /* XValue's real accessor writes double, never float*. Narrow only
          * when packing the verified float32 payload in its result carrier. */

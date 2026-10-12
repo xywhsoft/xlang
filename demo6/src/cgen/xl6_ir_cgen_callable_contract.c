@@ -573,8 +573,9 @@ static int xl6IrCgenRuntimeTaggedNullableXValueAbi(
         return instruction->immediateText == NULL &&
                resultType != NULL &&
                resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-               xl6IrCgenTaggedNullableElement(module, operand != NULL
-                   ? operand->type : XL6_IR_TYPE_INVALID) != NULL;
+               (xl6IrCgenTaggedNullableElement(module, operand != NULL
+                   ? operand->type : XL6_IR_TYPE_INVALID) != NULL ||
+                (operand && xl6IrNullableUnionElementType(module,operand->type)));
     }
     if ( instruction->runtimeOp ==
          XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_TAGGED_NULLABLE )

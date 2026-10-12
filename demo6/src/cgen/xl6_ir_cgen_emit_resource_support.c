@@ -251,6 +251,7 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern xvalue* xl6SequenceMpscQueueCreateTakeV1(unsigned int, uint64_t, uint64_t, uint64_t, xvalue*, bool);\n"
             "extern xvalue* xl6SequenceMpmcQueueCreateTakeV1(unsigned int, uint64_t, uint64_t, uint64_t, xvalue*, bool);\n"
             "extern xvalue* xl6SequenceNominalCreateV1(unsigned int, uint64_t, uint64_t, const XL6_NominalAdmissionV1*, bool, uint64_t);\n"
+            "extern xvalue* xl6SequenceUnionCreateV1(unsigned int, uint64_t, uint64_t, uint64_t, size_t, bool);\n"
             "extern xvalue* xl6SequenceCScalarCreateV1(unsigned int, uint64_t, uint64_t, const xrttype*, uint64_t);\n"
             "extern xvalue* xl6SequenceNullableCScalarCreateV1(unsigned int, uint64_t, uint64_t, const xrttype*, const xrttype*, uint64_t);\n"
             "extern xvalue* xl6SequenceNumericEnumCreateV1(unsigned int, uint64_t, uint64_t, const xrttype*, unsigned int, bool, uint64_t);\n"

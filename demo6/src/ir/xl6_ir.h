@@ -654,17 +654,23 @@ typedef enum XL6_IrSequenceLayoutAbi {
     XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1,
     XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1,
     /* Immutable owning record, exact resident profile, no generated codec. */
-    XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1
+    XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1,
+    /* Untagged trivial union: exact nominal bytes in owned Value slots. */
+    XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1
 } XL6_IrSequenceLayoutAbi;
 
 /* A recipe's physical slot need not equal its element's invocation ABI.
  * DIRECT preserves the declared native slot. CLOSURE_VALUE uses the existing
  * typed closure box/project operations at both boundaries; never reinterpret
- * a closure pointer as an xvalue pointer. Pending/dynamic recipes have NONE. */
+ * a closure pointer as an xvalue pointer. UNION_VALUE uses exact nominal
+ * object-representation bytes and the existing union box/project operations;
+ * it does not authorize active-member equality/hash. Pending/dynamic recipes
+ * have NONE. */
 typedef enum XL6_IrSequenceCodecAbi {
     XL6_IR_SEQUENCE_CODEC_NONE = 0,
     XL6_IR_SEQUENCE_CODEC_DIRECT,
-    XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1
+    XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1,
+    XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1
 } XL6_IrSequenceCodecAbi;
 
 typedef enum XL6_IrSequenceDefaultAbi {
@@ -7216,6 +7222,8 @@ XL6_IrCallVariadicAbi xl6IrCallVariadicAbiForParameter(
 int xl6IrTypeSupportsCVararg(const XL6_IrModule* module, XL6_IrTypeId type);
 int xl6IrTaggedNullableScalarSupported(XL6_IrCAbi abi);
 XL6_IrCAbi xl6IrNullableScalarElementAbi(const XL6_IrModule* module, XL6_IrTypeId type);
+/* Exact tagged optional of a concrete trivial union; never a scalar slot. */
+XL6_IrTypeId xl6IrNullableUnionElementType(const XL6_IrModule* module, XL6_IrTypeId type);
 /* Fitting literals may choose a narrower expected integer TypeId;
  * nonliteral inputs still require a lossless scalar conversion. */
 int xl6IrContextualIntegerLiteralValue(const XL6_IrModule* module, XL6_IrNodeId expression,

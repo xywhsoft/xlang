@@ -18,6 +18,11 @@ XL6_TEXT_API bool xl6SequenceReferenceAnyPolicyV1(XL6_Sequence*, uint64_t);
  * No allocation, slot access, borrowed policy retention or error changes. */
 XL6_TEXT_API bool xl6ReferenceAnyAdmissionV1(const XL6_SequenceAdmissionV3*,uint64_t);
 XL6_TEXT_API xvalue* xl6SequenceNominalCreateV1(unsigned int, uint64_t, uint64_t, const XL6_NominalAdmissionV1*, bool, uint64_t);
+/* Untagged trivial union object representations, exact nominal identity and
+ * sizeof(C union). Physical slots own boxed bytes, not raw union pointers.
+ * Zero growth is materialized by resident code; no generated callback lives
+ * in this independently owned schema. This is not an active-variant codec. */
+XL6_TEXT_API xvalue* xl6SequenceUnionCreateV1(unsigned int, uint64_t, uint64_t, uint64_t, size_t, bool);
 /* Exact logical scalar/text policy on the selected physical slot descriptor.
  * Integer widths use int64 storage (including u8/u16/u32), not coercion rules.
  * nullable element identity and nonnullable boxed value identity stay distinct.
