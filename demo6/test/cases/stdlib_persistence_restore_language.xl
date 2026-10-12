@@ -68,5 +68,14 @@ RestoreRecord xlonFile = xlon.read::<RestoreRecord>(xlonPath)
 assert(jsonFile.inherited == 42 and jsonFile.text == "a\0b" and jsonFile.nested.childText == "nested\0text")
 assert(xlonFile.inherited == 42 and xlonFile.text == "a\0b" and xlonFile.nested.childText == "nested\0text")
 var missingFile = json.read::<RestoreRecord>(root + "/missing.json")
-var nulFile = xlon.read::<RestoreRecord>(xlonPath + "\0other")
-assert(missingFile == null and nulFile == null)
+assert missingFile == null
+bool nulRejected = false
+try
+    var nulFile = xlon.read::<RestoreRecord>(xlonPath + "\0other")
+catch e
+    if e.kind != "ValueError"
+        throw
+    end
+    nulRejected = true
+end
+assert nulRejected, "invalid C path is checked rejection, not an ordinary I/O miss"

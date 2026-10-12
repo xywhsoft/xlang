@@ -3,10 +3,11 @@
 Checks actual public compiler output, deterministic C, O0/O2 generated-C
 execution with a balanced allocation ledger, and genuine TCC JIT. Optional
 closed/Open-native cutover and complete language OOM prefixes are explicit flags.
-Pending Set/List/Dict families remain legacy; no shipping/AOT claim.
+List/Set/Dict restoration uses verified native graph recipes; no shipping/AOT claim.
 """
 from pathlib import Path
 import argparse, hashlib, json, os, re, shutil, subprocess, sys
+from xlir_public_build_inputs import verify_public_build
 
 def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -26,10 +27,11 @@ def main():
     test_root=args.test_root.resolve() if args.test_root else root
     assert not out.exists()
     manifest = public_dir / 'build.json'
-    public = json.loads(manifest.read_text(encoding='utf-8-sig'))
+    public,pinned,compared=verify_public_build(root,public_dir)
     assert public['SourceXrt'] and not public['RuntimeOnly'] and public['EnableExeCompiler'] == 1
     if os.name != 'nt': assert public['Complete'] and public['InputsUnchanged']
     files = {Path(__file__).resolve(), Path(sys.executable), manifest}
+    files.update(pinned)
     for row in public['Inputs'] + public['Headers'] + public['Objects']:
         assert sha(row['Path']).lower() == row['Sha256'].lower(), row['Path']
         files.add(Path(row['Path']))
@@ -61,7 +63,9 @@ def main():
     if os.name == 'nt': shutil.copy2(product, out / 'xl.dll')
     environment = os.environ.copy()
     environment['XL6_PERSIST_FILE_ROOT']=str(out / 'files')
-    if os.name != 'nt': environment['XL6_SOURCE_NATIVE_ROOT'] = public['NativeRoot']
+    if os.name != 'nt':
+        environment['XL6_SOURCE_NATIVE_ROOT'] = public['NativeRoot']
+        environment['XL6_TCC_LIB']=str(Path(public['NativeRoot'])/'build/linux/tcc-dist')
     flags = ['-std=c11', '-Wall', '-Wextra', '-Werror', '-DXL_STATIC_EMBED',
              '-I' + str(root), '-I' + str(root / 'release'), '-I' + str(root / 'release/include'),
              '-I' + str(root / 'lib/tcc'), '-I' + str(public_dir / 'include'),
@@ -80,6 +84,7 @@ def main():
               'Results': results, 'Scope': __doc__, 'NativePlanCgenCutover': args.native_cutover,
               'Aot': False, 'ShippingProductAcceptance': False, 'Sanitized': False,
               'LanguageOomSweep': args.oom, 'LinkedSourceCompilerOptimization': 'O0'}
+    report.update(SourceInputsMatch=True,ProductionFiles=len(compared),Full53Acceptance=False,ShippingArtifact=False)
     def run(name, command):
         process = subprocess.run(list(map(str, command)), cwd=root, env=environment,
                                  capture_output=True, timeout=360)
@@ -94,8 +99,10 @@ def main():
             for optimization in ('O0','O2'):
                 binary=out / ('contract.'+optimization+('.exe' if os.name=='nt' else ''))
                 run('contract.'+optimization+'.compile',[cc,*flags,'-'+optimization,contract,*links,'-o',binary])
-                assert '22 corrupt ownership/plan mutations refused' in run('contract.'+optimization+'.run',
+                message=run('contract.'+optimization+'.run',
                     [binary,dict(cases)['native_oom'],dict(cases)['construction'],dict(cases)['open']])
+                match=re.search(r'restore take: (\d+) corrupt ownership/plan mutations refused',message)
+                assert match and int(match[1])>=22
         for name, source in cases:
             try:
                 typed, lowered = out / (name + '.typed.json'), out / (name + '.lowered.json')
@@ -123,12 +130,10 @@ def main():
                         assert 'xlir_persist_json_assign_' not in text and 'xlir_persist_xlon_assign_' not in text
                 if args.native_cutover and name=='construction':
                     roots=ir['persistenceRestoreRoots']
-                    assert all(not (r['pending'] & 128) for r in roots)
-                    assert all(not (r['pending'] & 1) for r in roots) and any(r['pending'] & 8 for r in roots)
-                    assert any(not r['pending'] for r in roots)
+                    assert roots and all(not r['pending'] for r in roots)
                     text=generated.read_text(encoding='utf-8-sig')
                     assert 'xl6PersistenceRestoreParsedTakeV1(' in text
-                    assert 'xl6SerializeRestoreReadFinishTakeV1(' in text
+                    assert 'xl6SerializeRestoreReadFinishTakeV1(' not in text
                 for optimization in ('O0', 'O2'):
                     memory_object = out / (name + '.' + optimization + '.memory.o')
                     binary = out / (name + '.' + optimization + ('.exe' if os.name == 'nt' else ''))

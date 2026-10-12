@@ -8,6 +8,8 @@
 #include "test/support/module_product_memory.h"
 extern int32_t xrtErrorLine(const xerror*);
 extern int32_t xrtErrorColumn(const xerror*);
+extern const char* xrtErrorDomain(const xerror*);
+extern int32_t xrtErrorCode(const xerror*);
 #if defined(XL6_PRODUCT_USER_ENTRY)
 /* Generated programs that do not construct arrays need not declare this
  * independent host argument factory. */
@@ -30,9 +32,10 @@ static bool runPoint(size_t point)
     bool hit = xl6ProductMemoryEnd();
     xerror* failure = xrtTakeError();
     if (hit ? initialized || xrtErrorKind(failure) != XERR_MEMORY : !initialized || failure)
-        fprintf(stderr, "point=%zu initialized=%d hit=%d kind=%d line=%d column=%d message=%s\n", point,
+        fprintf(stderr, "point=%zu initialized=%d hit=%d kind=%d line=%d column=%d domain=%s code=%d message=%s\n", point,
             initialized, hit, (int)xrtErrorKind(failure), (int)xrtErrorLine(failure),
-            (int)xrtErrorColumn(failure), failure ? xrtErrorMessage(failure) : "none");
+            (int)xrtErrorColumn(failure),failure ? xrtErrorDomain(failure) : "none",(int)xrtErrorCode(failure),
+            failure ? xrtErrorMessage(failure) : "none");
     assert(hit ? !initialized && xrtErrorKind(failure) == XERR_MEMORY : initialized && !failure);
     xlir_module_fini();
     assert(!xrtGetError() && !xlir_module_initialized);

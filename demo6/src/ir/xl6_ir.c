@@ -19943,6 +19943,16 @@ int xl6IrPersistenceProjectInstructionAbi(
     return 0;
 }
 
+XL6_IrPersistenceProjectProviderAbi xl6IrPersistenceProjectProviderAbi(
+    const XL6_IrModule* module,const XL6_IrInstruction* instruction)
+{
+    if (!xl6IrPersistenceProjectInstructionAbi(module,instruction))
+        return XL6_IR_PERSIST_PROJECT_PROVIDER_INVALID;
+    return xl6IrValueGraphProvidersForType(module,instruction->payloadType)
+        ? XL6_IR_PERSIST_PROJECT_PROVIDER_NATIVE_GRAPH_V1
+        : XL6_IR_PERSIST_PROJECT_PROVIDER_WIRE_V1;
+}
+
 /* Structural facts remain exact even in an uninstantiated generic body.
  * Projection admission is a separate obligation of executable calls. */
 static int xl6IrPersistenceInvocationIntrinsicStructure(

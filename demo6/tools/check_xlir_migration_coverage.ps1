@@ -2535,13 +2535,7 @@ foreach ( $required in @(
     }
 }
 foreach ( $required in @(
-    "xlir_persistence_json_abi.xl",
-    "persistence-json-stringify", "persistence-json-parse",
-    "persistence-json-write", "persistence-json-read",
-    "persistence-xlon-write", "persistence-xlon-read",
-    "explicit default-instance reconstruction",
-    "inherited/nested projection", "byte-for-byte deterministic",
-    "strict-C/runtime gate failed", "strict file/runtime behavior"
+    "check_persistence_project_language.py", "--fixture abi", "PublicDirectory", "--out"
 
 ) ) {
     if ( ! $persistenceJsonGateText.Contains($required) ) {

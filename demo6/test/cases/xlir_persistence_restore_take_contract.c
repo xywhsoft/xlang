@@ -64,8 +64,8 @@ int main(int argc,char** argv)
     assert(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_ARRAY_IMPORT_CHAIN));
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse);
     /* Resident DynamicFields no longer makes an otherwise closed root
-     * opaque. Open now has a native recipe; Set still has an unsupported
-     * recipe whose barrier cannot be stripped by an emitter. */
+     * opaque. Open and Set now have native recipes; reintroducing a false
+     * pending barrier must be refused, not stripped by an emitter. */
     xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     assert(xl6ParseFile(argv[2],&parse) && xl6StdlibExpandModule(parse.root,&parse.diags));
     assert(xl6SemCheckModule(parse.root,&parse.diags,"restore_mixed"));
@@ -78,9 +78,14 @@ int main(int argc,char** argv)
         assert(!(pending & XL6_IR_RESTORE_PENDING_OPAQUE_MODULE_OWNER));
         assert(!(pending & XL6_IR_RESTORE_PENDING_OPEN));
         closed = closed || !pending;
-        if (!(pending & XL6_IR_RESTORE_PENDING_SET)) continue;
-        set = set || (pending & XL6_IR_RESTORE_PENDING_SET);
-        ir.persistenceRestoreRoots[i].pending=0;
+        assert(!pending);
+        const XL6_IrPersistenceRestoreRoot* root=&ir.persistenceRestoreRoots[i];
+        bool hasSet=false;
+        for(size_t j=0;j<root->nodeCount;++j)
+            hasSet=hasSet || ir.persistenceRestoreNodes[root->firstNode+j].abi==XL6_IR_RESTORE_NODE_SET;
+        if (!hasSet) continue;
+        set=true;
+        ir.persistenceRestoreRoots[i].pending=XL6_IR_RESTORE_PENDING_SET;
         rejected(&ir); ir.persistenceRestoreRoots[i].pending=pending;
         ++setBarriers;
     }

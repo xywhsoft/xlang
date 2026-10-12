@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "test/support/module_product_memory.h"
 #include "src/runtime/xl6_persistence_restore.h"
+#include "src/runtime/xl6_serialization_read.h"
 
 static xvalue* restoreTiny(const xvalue* value)
 {

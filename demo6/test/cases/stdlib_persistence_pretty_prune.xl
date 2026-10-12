@@ -1,0 +1,9 @@
+// Boolean-only file writing needs neither configuration Dict nor graph providers.
+string root = env.get("XL6_PERSIST_FILE_ROOT") ?? ""
+assert root != ""
+string jsonPath = root + "/scalar-pretty.json"
+string xlonPath = root + "/scalar-pretty.xlon"
+assert json.write(jsonPath, 42, true)
+assert xlon.write(xlonPath, "a\0b")
+assert file.delete(jsonPath)
+assert file.delete(xlonPath)

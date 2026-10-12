@@ -85,8 +85,8 @@ assert retired == before + 1, "construction contract line 77"
 ConstructionEnvelope recovered = json.parse::<ConstructionEnvelope>("{\"items\":[{}]}")
 assert recovered.items[0].itemValue == 14, "construction contract line 95"
 ConstructionKeys keyed = json.parse::<ConstructionKeys>("{\"keys\":[{},{}]}")
-assert keyed != null and keyed.keys.length == 1, "factory preserves derived hash and equality"
+assert keyed != null and keyed.keys.length == 2, "distinct restored mutable objects remain distinct Set keys"
 ConstructionKeys keyedAgain = xlon.parse::<ConstructionKeys>(xlon.stringify(keyed))
-assert keyedAgain != null and keyedAgain.keys.length == 1, "value identity survives XLON restore"
+assert keyedAgain != null and keyedAgain.keys.length == 2, "reference-key membership survives XLON restore"
 ConstructionKey key = json.parse::<ConstructionKey>("{}")
-assert keyedAgain.keys.contains(key), "restored set uses declared value identity"
+assert not keyedAgain.keys.contains(key), "a separately restored object is a distinct Set reference key"

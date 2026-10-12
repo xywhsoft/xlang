@@ -2,6 +2,7 @@
 #define XL6_SERIALIZATION_OPTIONS_H
 
 #include <string.h>
+#include "xl6_dict.h"
 
 /* Only generated modules using advanced structured-data options include this
  * header. Options are borrowed xvalue objects; every XRT config is initialized
@@ -11,14 +12,36 @@ static inline bool xl6SerializeOptionObject(const xvalue* options)
 {
     if (options == NULL || xrtValueIs(options, XVALUE_NULL) ||
         xrtValueIs(options, XVALUE_OBJECT)) return true;
+    int native=xl6DictErasedProbeV1(options);
+    if (native) return native>0;
     xrtSetErrorKind(XERR_ARGUMENT);
     return false;
 }
 
-static inline const xvalue* xl6SerializeOption(const xvalue* options, const char* name)
+static inline bool xl6SerializeOption(const xvalue* options, const char* name,xvalue** output)
 {
-    if (options == NULL || xrtValueIs(options, XVALUE_NULL)) return NULL;
-    return xrtValueObjectGet(options, (xstrview){ name, strlen(name) });
+    if (options == NULL || xrtValueIs(options, XVALUE_NULL)) return true;
+    xstrview key={name,strlen(name)};
+    int native=xl6DictErasedProbeV1(options);
+    if (native<0) return false;
+    if (native) { bool found=false; return xl6DictErasedReadV1(options,key,false,output,&found); }
+    const xvalue* item=xrtValueObjectGet(options,key);
+    if (xrtGetError()) return false;
+    if (item) { *output=xrtValueRetain(item); return *output!=NULL; }
+    return true;
+}
+typedef struct XL6_SerializeKeyNames {
+    const char* const* names;
+    size_t count;
+} XL6_SerializeKeyNames;
+static inline bool xl6SerializeOptionKey(xstrview key,void* context)
+{
+    const XL6_SerializeKeyNames* allowed=context;
+    for(size_t i=0;i<allowed->count;++i) {
+        size_t size=strlen(allowed->names[i]);
+        if(key.Size==size && !memcmp(key.Data,allowed->names[i],size)) return true;
+    }
+    xrtSetErrorKind(XERR_ARGUMENT); return false;
 }
 
 static inline bool xl6SerializeOptionKeys(const xvalue* options,
@@ -27,6 +50,12 @@ static inline bool xl6SerializeOptionKeys(const xvalue* options,
     size_t count, i, j;
     if (!xl6SerializeOptionObject(options)) return false;
     if (options == NULL || xrtValueIs(options, XVALUE_NULL)) return true;
+    int native=xl6DictErasedProbeV1(options);
+    if (native<0) return false;
+    if (native) {
+        XL6_SerializeKeyNames allowed={names,nameCount};
+        return xl6DictErasedVisitKeysV1(options,xl6SerializeOptionKey,&allowed);
+    }
     count = xrtValueCount(options);
     for (i = 0; i < count; ++i) {
         xstrview key = {0};
@@ -53,60 +82,64 @@ static inline bool xl6SerializeOptionKeys(const xvalue* options,
 static inline bool xl6SerializeOptionBool(const xvalue* options, const char* name,
     uint32_t bit, uint32_t* flags)
 {
-    const xvalue* value = xl6SerializeOption(options, name);
+    xvalue* value=NULL;
+    if (!xl6SerializeOption(options,name,&value)) return false;
     bool enabled;
     if (value == NULL) return true;
-    if (!xrtValueGetBool(value, &enabled)) return false;
+    if (!xrtValueGetBool(value, &enabled)) return xl6DictValueFinishReadV1(value,false);
     if (enabled) *flags |= bit;
     else *flags &= ~bit;
-    return true;
+    return xl6DictValueFinishReadV1(value,true);
 }
 
 static inline bool xl6SerializeOptionEnum(const xvalue* options, const char* name,
     int maximum, int* result)
 {
-    const xvalue* value = xl6SerializeOption(options, name);
+    xvalue* value=NULL;
+    if (!xl6SerializeOption(options,name,&value)) return false;
     int64_t number;
     if (value == NULL) return true;
-    if (!xrtValueGetInt(value, &number)) return false;
+    if (!xrtValueGetInt(value, &number)) return xl6DictValueFinishReadV1(value,false);
     if (number < 0 || number > maximum) {
         xrtSetErrorKind(XERR_RANGE);
-        return false;
+        return xl6DictValueFinishReadV1(value,false);
     }
     *result = (int)number;
-    return true;
+    return xl6DictValueFinishReadV1(value,true);
 }
 
 static inline bool xl6SerializeOptionU32(const xvalue* options, const char* name,
     uint32_t* result)
 {
-    const xvalue* value = xl6SerializeOption(options, name);
+    xvalue* value=NULL;
+    if (!xl6SerializeOption(options,name,&value)) return false;
     int64_t number;
     if (value == NULL) return true;
-    if (!xrtValueGetInt(value, &number)) return false;
-    if (number == -1) return true;
+    if (!xrtValueGetInt(value, &number)) return xl6DictValueFinishReadV1(value,false);
+    if (number == -1) return xl6DictValueFinishReadV1(value,true);
     if (number < 0 || (uint64_t)number > UINT32_MAX) {
         xrtSetErrorKind(XERR_RANGE);
-        return false;
+        return xl6DictValueFinishReadV1(value,false);
     }
     *result = (uint32_t)number;
-    return true;
+    return xl6DictValueFinishReadV1(value,true);
 }
 
 static inline bool xl6SerializeOptionSize(const xvalue* options, const char* name,
     size_t* result)
 {
-    const xvalue* value = xl6SerializeOption(options, name);
+    xvalue* value=NULL;
+    if (!xl6SerializeOption(options,name,&value)) return false;
     int64_t number;
     if (value == NULL) return true;
-    if (!xrtValueGetInt(value, &number)) return false;
-    if (number == -1) return true;
+    if (!xrtValueGetInt(value, &number)) return xl6DictValueFinishReadV1(value,false);
+    if (number == -1) return xl6DictValueFinishReadV1(value,true);
     if (number < 0 || (uint64_t)number > (uint64_t)SIZE_MAX) {
         xrtSetErrorKind(XERR_RANGE);
-        return false;
+        return xl6DictValueFinishReadV1(value,false);
     }
     *result = (size_t)number;
-    return true;
+    return xl6DictValueFinishReadV1(value,true);
 }
 
 static inline bool xl6JsonReadOptions(const xvalue* options, xjsonreadconfig* config)
@@ -214,8 +247,10 @@ static inline bool xl6JsonlReadOptions(const xvalue* options, xjsonlreadconfig* 
     static const char* const keys[] = { "record", "rejectEmptyLines",
         "maxInputBytes", "maxRecords", "maxTotalValues" };
     xrtJsonlReadConfigInit(config);
-    return XL6_SERIALIZE_KEYS(options, keys) &&
-        xl6JsonReadOptions(xl6SerializeOption(options, "record"), &config->Record) &&
+    xvalue* record=NULL;
+    if (!XL6_SERIALIZE_KEYS(options,keys) || !xl6SerializeOption(options,"record",&record)) return false;
+    if (!xl6DictValueFinishReadV1(record,xl6JsonReadOptions(record,&config->Record))) return false;
+    return
         xl6SerializeOptionBool(options, "rejectEmptyLines", XJSONL_READ_REJECT_EMPTY_LINES, &config->Flags) &&
         xl6SerializeOptionSize(options, "maxInputBytes", &config->MaxInputBytes) &&
         xl6SerializeOptionSize(options, "maxRecords", &config->MaxRecords) &&
@@ -226,8 +261,10 @@ static inline bool xl6JsonlWriteOptions(const xvalue* options, xjsonlwriteconfig
 {
     static const char* const keys[] = { "record", "maxOutputBytes", "maxRecords" };
     xrtJsonlWriteConfigInit(config);
-    return XL6_SERIALIZE_KEYS(options, keys) &&
-        xl6JsonWriteOptions(xl6SerializeOption(options, "record"), &config->Record) &&
+    xvalue* record=NULL;
+    if (!XL6_SERIALIZE_KEYS(options,keys) || !xl6SerializeOption(options,"record",&record)) return false;
+    if (!xl6DictValueFinishReadV1(record,xl6JsonWriteOptions(record,&config->Record))) return false;
+    return
         xl6SerializeOptionSize(options, "maxOutputBytes", &config->MaxOutputBytes) &&
         xl6SerializeOptionSize(options, "maxRecords", &config->MaxRecords);
 }
@@ -237,8 +274,10 @@ static inline bool xl6XlonlReadOptions(const xvalue* options, xxlonlreadconfig* 
     static const char* const keys[] = { "record", "rejectEmptyLines",
         "maxInputBytes", "maxRecords", "maxTotalValues", "maxTotalDecodedBytes" };
     xrtXlonlReadConfigInit(config);
-    return XL6_SERIALIZE_KEYS(options, keys) &&
-        xl6XlonReadOptions(xl6SerializeOption(options, "record"), &config->Record) &&
+    xvalue* record=NULL;
+    if (!XL6_SERIALIZE_KEYS(options,keys) || !xl6SerializeOption(options,"record",&record)) return false;
+    if (!xl6DictValueFinishReadV1(record,xl6XlonReadOptions(record,&config->Record))) return false;
+    return
         xl6SerializeOptionBool(options, "rejectEmptyLines", XXLONL_READ_REJECT_EMPTY_LINES, &config->Flags) &&
         xl6SerializeOptionSize(options, "maxInputBytes", &config->MaxInputBytes) &&
         xl6SerializeOptionSize(options, "maxRecords", &config->MaxRecords) &&
@@ -250,8 +289,10 @@ static inline bool xl6XlonlWriteOptions(const xvalue* options, xxlonlwriteconfig
 {
     static const char* const keys[] = { "record", "maxOutputBytes", "maxRecords" };
     xrtXlonlWriteConfigInit(config);
-    return XL6_SERIALIZE_KEYS(options, keys) &&
-        xl6XlonWriteOptions(xl6SerializeOption(options, "record"), &config->Record) &&
+    xvalue* record=NULL;
+    if (!XL6_SERIALIZE_KEYS(options,keys) || !xl6SerializeOption(options,"record",&record)) return false;
+    if (!xl6DictValueFinishReadV1(record,xl6XlonWriteOptions(record,&config->Record))) return false;
+    return
         xl6SerializeOptionSize(options, "maxOutputBytes", &config->MaxOutputBytes) &&
         xl6SerializeOptionSize(options, "maxRecords", &config->MaxRecords);
 }
