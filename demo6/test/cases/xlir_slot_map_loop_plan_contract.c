@@ -77,10 +77,9 @@ int main(int argc,char** argv)
         assert(xl6IrVerifyModule(ir,NULL));
     }
     assert(loops==18 && keyOnly==3 && pairs==15 && discarded==3 && acquisitions==14);
-    /* The valid typed contract must not silently select the old cursor backend. */
-    assert(!xl6IrLowerModule(ir,&unit.parse.diags));
+    assert(xl6IrLowerModule(ir,&unit.parse.diags) && xl6IrVerifyModule(ir,NULL));
     xl6CompileUnitFree(&unit);
-    printf("slot-map loop plans=%u key-only=%u pairs=%u discard=%u mutations=%u; backend refused\n",
+    printf("slot-map loop plans=%u key-only=%u pairs=%u discard=%u mutations=%u; native backend admitted\n",
         loops,keyOnly,pairs,discarded,mutations);
     return 0;
 }

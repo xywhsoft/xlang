@@ -1844,6 +1844,13 @@ static int xl6IrTypePoolFinalizeCallableResults(XL6_IrTypePool* pool)
             pool->items[i].paramCount==1 && pool->items[i].params)
             element=pool->items[i].params[0];
         if (element && !xl6IrTypeInternArray(pool,element)) return 0;
+        /* SlotMap's key lane is independent of T. Close its native Sequence
+         * vocabulary before persistence/admission/layout plans are derived,
+         * even when the program never calls keys() or stores a key as T.
+         * Loop classification must not introduce a late unplanned array. */
+        const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(&pool->items[i]);
+        if(native && native->abi==XL6_IR_NATIVE_VALUE_SLOT_MAP_KEY_V1 &&
+            !xl6IrTypeInternArray(pool,(XL6_IrTypeId)(i+1))) return 0;
     }
     /* Sequence codecs depend on closed callable result carriers. Construction
      * may intern a Sequence before these results exist; finalize its derived
@@ -20812,6 +20819,9 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     if(stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     stringAbi=xl6IrSlotMapErrorPhysicalAbi(instruction->runtimeOp);
     if(stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
+    if(xl6IrSlotMapIteratorOpIs(instruction->runtimeOp))
+        return instruction->runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEY_COPY
+            ? XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT : XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
     stringAbi=xl6IrRuntimeFutureMetadataErrorPhysicalAbi(instruction->runtimeOp);
     if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     stringAbi=xl6IrRuntimeNativeValueErrorPhysicalAbi(instruction->runtimeOp);
@@ -42589,6 +42599,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             outcome->firstOperand>=module->operandCount ||
                             module->operands[outcome->firstOperand]!=instruction->result)
                             return xl6IrDiag(diags,NULL,"XLIR OrderedMap query has no exact owned result, presence or checked outcome contract");
+                    } else if(xl6IrSlotMapIteratorOpIs(instruction->runtimeOp)) {
+                        const XL6_IrInstruction* outcome=j+1<block->instructionCount
+                            ? &module->instructions[block->firstInstruction+j+1] : NULL;
+                        if(!xl6IrSlotMapIteratorInstructionCompatible(module,instruction) || !outcome ||
+                            outcome->kind!=XL6_IR_INSTR_ERROR_TEST || outcome->operandCount!=1 ||
+                            outcome->firstOperand>=module->operandCount ||
+                            module->operands[outcome->firstOperand]!=instruction->result)
+                            return xl6IrDiag(diags,NULL,"XLIR SlotMap cursor has no closed lane, complete key or checked outcome contract");
                     } else if(xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp))) {
                         const XL6_IrInstruction* outcome=j+1<block->instructionCount
                             ? &module->instructions[block->firstInstruction+j+1] : NULL;
@@ -47318,6 +47336,11 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_STRING_CONTAINS: return "string-contains";
     case XL6_IR_RUNTIME_I64_RANGE_CONTAINS: return "i64-range-contains";
     case XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE: return "xvalue-iterator-create";
+    case XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_PAIRS: return "slot-map-iterator-pairs";
+    case XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEYS: return "slot-map-iterator-keys";
+    case XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_VALUES: return "slot-map-iterator-values";
+    case XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_COUNT: return "slot-map-iterator-count";
+    case XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEY_COPY: return "slot-map-iterator-key-copy";
     case XL6_IR_RUNTIME_XVALUE_ITERATOR_CREATE_CHECKED:
         return "xvalue-iterator-create-checked";
     case XL6_IR_RUNTIME_XVALUE_ITERATOR_ADVANCE: return "xvalue-iterator-advance";

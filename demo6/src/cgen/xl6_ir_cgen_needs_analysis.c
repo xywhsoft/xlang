@@ -156,8 +156,8 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
              module->instructions[i].kind == XL6_IR_INSTR_RELEASE )
             needs->needsClosureRuntime = 1;
         if ( (module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
-              xl6IrCgenXValueIteratorRuntimeOpIs(
-                  module->instructions[i].runtimeOp)) ||
+              (xl6IrCgenXValueIteratorRuntimeOpIs(module->instructions[i].runtimeOp) ||
+               xl6IrSlotMapIteratorOpIs(module->instructions[i].runtimeOp))) ||
              ((module->instructions[i].kind == XL6_IR_INSTR_RELEASE ||
                module->instructions[i].kind == XL6_IR_INSTR_VALUE_RELEASE) &&
               instructionType != NULL && instructionType->cAbi ==

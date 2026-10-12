@@ -2092,6 +2092,12 @@ typedef enum XL6_IrRuntimeOp {
      * borrowed field storage. A write consumes item but observes receiver. */
     XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY,
     XL6_IR_RUNTIME_NAMED_SET_LITERAL_TAKE,
+    /* Closed native SlotMap cursor lanes; no integer-key or dict fallback. */
+    XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_PAIRS,
+    XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEYS,
+    XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_VALUES,
+    XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_COUNT,
+    XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEY_COPY,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -6872,6 +6878,10 @@ int xl6IrSlotMapSignatureCompatible(const XL6_IrModule*,XL6_IrRuntimeResourceOp,
     XL6_IrTypeId,XL6_IrTypeId,const XL6_IrTypeId*,size_t);
 int xl6IrSlotMapIntrinsicCompatible(const XL6_IrModule*,const XL6_IrIntrinsicCall*,const XL6_IrIntrinsicOperand*);
 int xl6IrSlotMapInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
+int xl6IrSlotMapIteratorOpIs(XL6_IrRuntimeOp);
+XL6_IrRuntimeOp xl6IrSlotMapLoopIteratorOp(const XL6_IrNode*);
+const char* xl6IrSlotMapIteratorNativeSymbol(XL6_IrRuntimeOp);
+int xl6IrSlotMapIteratorInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 /* One shared declaration and checked materialized plan. No writable source
  * outputs or backend recovery of query, result, optional or ownership rules. */
 typedef struct XL6_IrTreeQuerySpec {

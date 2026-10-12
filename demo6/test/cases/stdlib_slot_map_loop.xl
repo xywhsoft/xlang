@@ -1,0 +1,131 @@
+func temporaryLoopSlots() as SlotMap<int>
+    auto slots = SlotMap::<int>()
+    slots.insert(7)
+    return slots
+end
+func escapedLoopKey(SlotMap<int> slots) as SlotMapKey
+    for key in slots
+        try
+            return key
+        finally
+            assert(slots.contains(key))
+        end
+    end
+    return slots.insert(0)
+end
+func failLoop(SlotMap<string> slots) as int
+    for key, value in slots
+        try
+            assert(value == "你\0好")
+            throw ValueError "loop failure"
+        finally
+            assert(slots.contains(key))
+        end
+    end
+    return 0
+end
+func loopTexts(SlotMap<string> slots) as generator<string>
+    try
+        for _, value in slots
+            assert(value == "你\0好")
+            yield value
+            assert(value == "你\0好")
+        end
+    finally
+        slots.clear()
+    end
+end
+func main(...) as int
+    auto slots = SlotMap::<int>()
+    auto first = slots.insert(1)
+    auto second = slots.insert(2)
+    auto third = slots.insert(3)
+    auto escaped = escapedLoopKey(slots)
+    assert(escaped == first or escaped == second or escaped == third)
+    int count = 0
+    int total = 0
+    for key, value in slots
+        assert(key == first or key == second or key == third)
+        total += value
+        count += 1
+        slots.clear()
+    end
+    assert(count == 3 and total == 6 and slots.count() == 0)
+    slots.insert(4)
+    slots.insert(5)
+    slots.insert(6)
+    count = 0
+    for key in slots
+        assert(key == key)
+        slots.clear()
+        count += 1
+    end
+    assert(count == 3)
+    slots.insert(4)
+    slots.insert(5)
+    count = 0
+    for _, value in slots
+        assert(value == 4 or value == 5)
+        slots.clear()
+        count += 1
+    end
+    assert(count == 2)
+    slots.insert(9)
+    slots.insert(10)
+    count = 0
+    for _, _ in slots
+        slots.clear()
+        count += 1
+    end
+    assert(count == 2)
+    for key, value in temporaryLoopSlots()
+        assert(value == 7 and key == key)
+        break
+    end
+    auto texts = SlotMap::<string>()
+    texts.insert("你\0好")
+    try
+        failLoop(texts)
+        assert(false)
+    catch ValueError failure
+        assert(failure.message == "loop failure")
+    end
+    count = 0
+    for key, text in texts
+        try
+            assert(text == "你\0好")
+            continue
+        finally
+            count += 1
+            assert(texts.contains(key))
+        end
+    end
+    assert(count == 1)
+    for text in loopTexts(texts)
+        assert(text == "你\0好")
+        break
+    end
+    assert(texts.count() == 0)
+    texts.insert("你\0好")
+    count = 0
+    for text in loopTexts(texts)
+        assert(text == "你\0好")
+        count += 1
+    end
+    assert(count == 1 and texts.count() == 0 and escaped == escaped)
+    auto nullableTexts = SlotMap::<string?>()
+    nullableTexts.insert(null)
+    nullableTexts.insert("a\0b")
+    count = 0
+    for key, text in nullableTexts
+        assert(nullableTexts.contains(key))
+        assert(text == null or text == "a\0b")
+        count += 1
+    end
+    assert(count == 2)
+    auto empty = SlotMap::<int>()
+    for key, value in empty
+        assert(false)
+    end
+    return 0
+end
