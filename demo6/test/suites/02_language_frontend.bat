@@ -3246,7 +3246,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_xlir_class_value_identity_abi.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tools\check_stdlib_identity_fields.ps1
 if errorlevel 1 (
     echo XLIR class structural hash/equality and typed-set identity ABI quality gate failed.
     exit /b 1

@@ -2,6 +2,7 @@
 #include "src/runtime/xl6_array_value_write.h"
 #include "src/runtime/xl6_list.h"
 #include "src/runtime/xl6_dict.h"
+#include "src/runtime/xl6_value_object_fields.h"
 #include "src/api/xl_foreign_error.h"
 
 bool xl6ValueIndexSetTakeV1(xvalue* source,const xvalue* key,xvalue* item)
@@ -16,8 +17,6 @@ bool xl6ValueIndexSetTakeV1(xvalue* source,const xvalue* key,xvalue* item)
         return false;
     }
     bool success=false;
-    xvalue* receiverPin=NULL;
-    xvalue* retiredPin=NULL;
     if (!source || !key || !item) xrtSetErrorKind(XERR_ARGUMENT);
     else if (xrtValueType(key)==XVALUE_INT) {
         int64_t index;
@@ -34,29 +33,13 @@ bool xl6ValueIndexSetTakeV1(xvalue* source,const xvalue* key,xvalue* item)
             int dict=xl6DictErasedProbeV1(source);
             if (dict>0) success=xl6DictErasedSetV1(source,text,item);
             else if (!dict && xrtValueType(source)==XVALUE_OBJECT) {
-                /* Keep the old child alive across SetTake's mutation. Its last
-             * release, including a destructor that releases a back-reference
-             * or reenters this object, then happens outside the BUSY fence.
-             * Take leaves a rejected input with us: latch the operation's
-             * first failure BEFORE either retirement can report a callback
-             * failure. These pins only retain owners; no field snapshot or
-             * allocation is added to an ordinary replacement. */
-                receiverPin=xrtValueRetain(source);
-                if (receiverPin) {
-                    const xvalue* old=xrtValueObjectGet(source,text);
-                    if (!xrtGetError() && old) retiredPin=xrtValueRetain(old);
-                    if (!xrtGetError() && (!old || retiredPin))
-                        success=xrtValueObjectSetTake(source,text,&item);
-                }
+                success=xl6ValueObjectFieldSetTakeV1(source,text.Data,text.Size,item);
+                item=NULL;
             } else if (!dict) xrtSetErrorKind(XERR_TYPE);
         }
     } else xrtSetErrorKind(XERR_TYPE);
     if (!success || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
     xrtValueRelease(item);
-    if (xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
-    xrtValueRelease(retiredPin);
-    if (xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
-    xrtValueRelease(receiverPin);
     if (xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
     if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);

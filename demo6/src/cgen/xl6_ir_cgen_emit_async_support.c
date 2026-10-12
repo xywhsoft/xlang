@@ -202,6 +202,7 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
             const XL6_IrInstruction* instruction =
                 &module->instructions[instructionIndex];
             const XL6_IrClassIdentityPlan* identityPlan;
+            const XL6_IrClassLayout* classLayout;
             const char* hashMode;
             const char* equalMode;
             size_t priorInstruction;
@@ -223,7 +224,8 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
             }
             if ( priorInstruction != instructionIndex ) continue;
             identityPlan = xl6IrClassIdentityPlanGet(module, instruction->type);
-            if (identityPlan == NULL ||
+            classLayout = xl6IrCgenClassLayout(module, instruction->type);
+            if (identityPlan == NULL || classLayout == NULL ||
                 (hashMode = xl6IrCgenClassHashModeV3(identityPlan->hashAbi)) == NULL ||
                 (equalMode = xl6IrCgenClassEqualModeV3(identityPlan->equalityAbi)) == NULL)
                 return xl6IrCgenDiag(diags, module, instruction->origin,
@@ -255,7 +257,22 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
                 xl6OutputPrintf(out, "xlir_class_identity_fields_t%u",
                     (unsigned int)instruction->type);
             else xl6OutputPuts("NULL", out);
-            xl6OutputPrintf(out, ", %lu\n};\n\n", (unsigned long)identityPlan->fieldCount);
+            xl6OutputPrintf(out, ", %lu, ", (unsigned long)identityPlan->fieldCount);
+            if (classLayout->persistenceObjectAbi == XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_ROOT ||
+                classLayout->persistenceObjectAbi == XL6_IR_PERSISTENCE_OBJECT_OPEN_DYNAMIC_SCHEMA) {
+                if (classLayout->persistenceDynamicField >= module->classFieldCount ||
+                    classLayout->persistenceDynamicHandleField >= module->classFieldCount)
+                    return xl6IrCgenDiag(diags, module, instruction->origin,
+                        "XLIR class schema has no verified dynamic storage path");
+                const XL6_IrClassField* storage = &module->classFields[classLayout->persistenceDynamicField];
+                const XL6_IrClassField* handle = &module->classFields[classLayout->persistenceDynamicHandleField];
+                xl6OutputPuts("{", out);
+                xl6IrCgenEmitCStringLiteral(out, storage->name);
+                xl6OutputPrintf(out, ", %lu, ", (unsigned long)strlen(storage->name));
+                xl6IrCgenEmitCStringLiteral(out, handle->name);
+                xl6OutputPrintf(out, ", %lu}", (unsigned long)strlen(handle->name));
+            } else xl6OutputPuts("{0}", out);
+            xl6OutputPuts("\n};\n\n", out);
         }
     }
     if ( needs->needsClassDerivedToStringRuntime ) {

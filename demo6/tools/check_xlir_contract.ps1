@@ -981,10 +981,12 @@ if (!$lower.Contains("xl6IrLowerReleaseEvaluationBorrows") -or
     !(Read-Utf8 "test\cases\xlir_named_callable_owner_lifetime_host.c").Contains("#define xrtStrConcat tracked_string_concat")) {
     throw "Membership source-order failure cleanup and string allocation regression must stay wired"
 }
-if (!$header.Contains("xl6IrDynamicFieldsRuntimeBridgeTargetMatches") -or
-    !$source.Contains("xl6IrDynamicFieldsRuntimeBridgeTargetMatches") -or
-    !$lower.Contains("xl6IrDynamicFieldsRuntimeBridgeTargetMatches") -or
+if (!$header.Contains("xl6IrRuntimeDirectBridgeTargetMatches") -or
+    !$source.Contains("xl6IrRuntimeDirectBridgeTargetMatches") -or
+    !$lower.Contains("xl6IrRuntimeDirectBridgeTargetMatches") -or
     !$directBridgeUnit.Contains("testDynamicFieldsBridgeAbi()") -or
+    !$directBridge.Contains('nativeHandlePolicy="xl6DynamicFieldsHandlePolicyV1Get"') -or
+    !$directBridge.Contains('"xl6_xrt_dynamic_fields_destroy"') -or
     $lower.Contains("xl6IrLowerResolveNativeFactoryCName")) {
     throw "DynamicFields factories and methods must share one verified physical adapter ABI"
 }
@@ -1729,8 +1731,10 @@ if ( ! $cEmitter.Contains("case XL6_IR_INSTR_NATIVE_HANDLE_PROJECT:") -or
      $cEmitter.Contains("nativeHandleProjects") ) {
     throw "XLIR C emitter must consume only the lowered native handle projection instruction"
 }
-if ( ! $generatedRuntime.Contains("xl6_xrt_dynamic_fields_native_handle") ) {
-    throw "XLIR generated-C runtime is missing the public DynamicFields handle facade"
+if (!(Read-Utf8 'src/runtime/xl6_dynamic_fields.c').Contains('xl6_xrt_dynamic_fields_native_handle') -or
+    !(Read-Utf8 'src/runtime/xl6_text_symbols.inc').Contains('XL6_TEXT_EXPORT(xl6_xrt_dynamic_fields_native_handle, DYNAMIC_FIELDS)') -or
+    $generatedRuntime.Contains('static void* xl6_xrt_dynamic_fields_native_handle')) {
+    throw "DynamicFields handle facade must remain resident and explicitly registered, not generated"
 }
 foreach ( $required in @("--lowered", "--format json", "cgen_native_class.xl",
                            "nativeHandleProjectCount",
@@ -5551,33 +5555,41 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xl6IrCgenRuntimeClassDerivedEqualAbi",
     "xl6IrCgenRuntimeClassIdentityBindAbi",
-    "xlir_class_derive_equal_t", "xlir_class_derive_hash_t",
-    "xlir_class_reference_hash_t", "xlir_class_reference_equal_t",
-    "xlir_class_identity_bind_t", "xl6ClassRuntimeV2Get()->BindIdentity",
-    "compareDeriveIncluded"
+    "XL6_ClassIdentitySchemaV3", "xl6IrClassIdentityPlanGet",
+    "xlir_class_identity_fields_t", "classIdentityFields",
+    "XL6_IR_CLASS_IDENTITY_RESIDENT_SCHEMA_V3"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) {
         throw "XLIR class value identity C emitter contract is incomplete: $required"
     }
 }
 foreach ( $required in @(
-    "cgen_derive_string_hash_equals.xl",
-    "hashAbiName", "equalityAbiName", "runtime-reference",
-    "compareDeriveIncluded",
-    "xvalue-class-identity-bind", "class-derived-equal",
-    "xlir_class_derive_hash_t", "xlir_class_derive_equal_t",
-    "xlir_class_reference_hash_t", "xlir_class_reference_equal_t",
-    "xl6ClassRuntimeV2Get()->BindIdentity", "SequenceEqual",
-    "strict-C/runtime gate failed", "standalone artifact runtime gate failed",
-    "strict-C/runtime gate failed"
+    "check_xlir_class_identity_plan.py", "PublicDirectory", "--public", "--out"
 ) ) {
     if ( ! $classValueIdentityAbiGate.Contains($required) ) {
         throw "XLIR class value identity quality gate is incomplete: $required"
     }
 }
 if ( ! $languageFrontendSuite.Contains(
-         "tools\check_xlir_class_value_identity_abi.ps1") ) {
-    throw "XLIR class value identity quality gate is not wired into the language frontend suite"
+         "tools\check_stdlib_identity_fields.ps1") ) {
+    throw "XLIR current-source identity/fields batch is not wired into the language frontend suite"
+}
+foreach ($required in @('check_xlir_class_identity_plan.py','check_stdlib_dynamic_fields_resident.py',
+    'check_xlir_class_identity_runtime.py','check_stdlib_object_fields_native.py','PublicDirectory','InputsUnchanged')) {
+    if (!(Read-Utf8 'tools/check_stdlib_identity_fields.ps1').Contains($required)) {
+        throw "Resident identity/fields batch lost an independent proof: $required"
+    }
+}
+foreach ($required in @('cgen_derive_string_hash_equals','compareDeriveIncluded','hashAbiName','equalityAbiName',
+    'xvalue-class-identity-bind','class-derived-equal','SourceInputsMatch','contract.repeat','.AOT.run')) {
+    if (!(Read-Utf8 'tools/check_xlir_class_identity_plan.py').Contains($required)) {
+        throw "Delegated source identity proof lost its typed/runtime check: $required"
+    }
+}
+if (!(Read-Utf8 'src/runtime/xl6_value_object_fields.c').Contains('ops!=xl6DynamicFieldsHandlePolicyV1Get()->Ops') -or
+    !(Read-Utf8 'src/cgen/xl6_ir_cgen_emit_async_support.c').Contains('classLayout->persistenceDynamicHandleField') -or
+    (Read-Utf8 'src/cgen/xl6_ir_cgen_emit_xvalue_containers.c').Contains('static xrtdynamicfields* xlir_xvalue_dynamic_fields')) {
+    throw 'Erased open fields must use authenticated resident storage and the verified layout path'
 }
 if ( ! $runtimeMatrix.Contains(
          "derived class structural hash/equality and typed-set identity ABI") -or

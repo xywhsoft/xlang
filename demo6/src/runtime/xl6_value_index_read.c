@@ -3,6 +3,7 @@
 #include "src/runtime/xl6_list_value_read.h"
 #include "src/runtime/xl6_list.h"
 #include "src/runtime/xl6_dict.h"
+#include "src/runtime/xl6_value_object_fields.h"
 #include "src/api/xl_foreign_error.h"
 
 static xvalue* read(const xvalue* source,const xvalue* key)
@@ -26,7 +27,8 @@ static xvalue* read(const xvalue* source,const xvalue* key)
             return found ? result : xrtValueRetain(xrtValueNull());
         }
         if (xrtValueType(source)==XVALUE_OBJECT) {
-            const xvalue* item=xrtValueObjectGet(source,text);
+            const xvalue* item=xl6ValueObjectFieldFindV1(source,text.Data,text.Size);
+            if (xrtGetError()) return NULL;
             return xrtValueRetain(item ? item : xrtValueNull());
         }
     }

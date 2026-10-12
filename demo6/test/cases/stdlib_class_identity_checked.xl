@@ -39,15 +39,9 @@ catch e
 finally
     finished += 1
 end
-try
-    set<RecursiveIdentity> unexpected = set{left}
-    assert false, "deep hash must enter the checked keyed-collection boundary"
-catch e
-    assert e.kind == "RangeError"
-    caught += 1
-finally
-    finished += 1
-end
+// A mutable object key never evaluates its potentially recursive content hash.
+set<RecursiveIdentity> references = set{left, left, right}
+assert references.length == 2 and references.contains(left) and references.contains(right)
 var boxedLeft = left
 var boxedRight = right
 try
@@ -79,7 +73,7 @@ catch e
 finally
     finished += 1
 end
-assert caught == 6 and finished == 6
+assert caught == 5 and finished == 5
 
 // Ordinary false payloads are successful comparisons, not error statuses.
 var notEqualLeft = 7
@@ -94,7 +88,7 @@ RecursiveIdentity shallow = RecursiveIdentity()
 RecursiveIdentity shallowSame = RecursiveIdentity()
 assert shallow == shallowSame and not (shallow != shallowSame)
 set<RecursiveIdentity> shallowKeys = set{shallow, shallowSame}
-assert shallowKeys.length == 1
+assert shallowKeys.length == 2
 
 // Hash/equality contracts remain independent. Deriving only equals is valid
 // for direct ==/!= and must not silently acquire a structural hash protocol.

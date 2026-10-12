@@ -1,5 +1,5 @@
 // Independent native fields must use structural identity in all execution lanes.
-// Keys are not mutated while stored in a set; no immutable snapshot is implied.
+// Set keeps reference identity even for structurally equal mutable classes.
 class NativeSequenceKey
     derive value
     derive hash
@@ -25,7 +25,9 @@ reordered.items[0] = int8(2)
 reordered.items[1] = int8(1)
 assert first != reordered, "native array identity includes element order"
 set<NativeSequenceKey> keys = set{first, second, jsonCopy, xlonCopy, changed, reordered}
-assert keys.length == 3 and keys.contains(second) and keys.contains(jsonCopy)
+assert keys.length == 6 and keys.contains(second) and keys.contains(jsonCopy)
+second.items[0] = int8(99)
+assert keys.contains(second), "mutating nested key data preserves reference membership"
 class NativeBytesKey
     derive hash
     derive equals
@@ -46,4 +48,4 @@ NativeStackKey stackCopy = NativeStackKey()
 assert stackFirst.items.push("a\0你") and stackCopy.items.push("a\0你")
 assert stackFirst == stackCopy and stackFirst.items.equals(stackCopy.items)
 set<NativeStackKey> stacks = set{stackFirst, stackCopy}
-assert stacks.length == 1
+assert stacks.length == 2

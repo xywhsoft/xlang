@@ -41,69 +41,16 @@ static int xl6IrCgenEmitXValueContainerRuntime(
                     "}\n",
                     out);
             if ( needs->needsXValueDynamicFieldRuntime ) {
-                if ( needs->openDynamicField != NULL &&
-                     needs->openDynamicHandleField != NULL ) {
-                    xl6OutputPuts(
-                    "static xrtdynamicfields* xlir_xvalue_dynamic_fields(const xvalue* source)\n"
-                    "{\n"
-                    "    const xvalue* storage;\n"
-                    "    const xvalue* boxed;\n"
-                    "    void* handle = NULL;\n"
-                    "    if (source == NULL || xrtValueObjectGet(source, xrtStrView(\"$xlir.class.runtime-type\")) == NULL) return NULL;\n"
-                    "    storage = xrtValueObjectGet(source, xrtStrView(",
-                    out);
-                xl6IrCgenEmitCStringLiteral(out, needs->openDynamicField->name);
                 xl6OutputPuts(
-                    "));\n"
-                    "    if (storage == NULL) return NULL;\n"
-                    "    boxed = xrtValueObjectGet(storage, xrtStrView(",
-                    out);
-                xl6IrCgenEmitCStringLiteral(
-                    out, needs->openDynamicHandleField->name);
-                xl6OutputPuts(
-                    "));\n"
-                    "    if (boxed == NULL || !xrtValueGetHandle(boxed, &handle, NULL, NULL)) return NULL;\n"
-                    "    return (xrtdynamicfields*)handle;\n"
-                    "}\n"
+                    "#include <__xl_runtime/xl6_value_object_fields.h>\n"
                     "static xvalue* xlir_xvalue_dynamic_field_find(const xvalue* source, xlir_string_view key)\n"
                     "{\n"
-                    "    xvalue* declared = xrtValueObjectGet(source, key);\n"
-                    "    xrtdynamicfields* fields;\n"
-                    "    const xvalue* dynamic;\n"
-                    "    if (declared != NULL) return declared;\n"
-                    "    fields = xlir_xvalue_dynamic_fields(source);\n"
-                    "    dynamic = fields != NULL ? xrtDynamicFieldsGet(fields, key) : NULL;\n"
-                    "    return (xvalue*)dynamic;\n"
+                    "    return xl6ValueObjectFieldFindV1(source, key.Data, key.Size);\n"
                     "}\n"
                     "static bool xlir_xvalue_dynamic_field_set_new(xvalue* target, xlir_string_view key, xvalue* item)\n"
                     "{\n"
-                    "    xrtdynamicfields* fields;\n"
-                    "    if (target == NULL || item == NULL) { xrtValueRelease(item); return false; }\n"
-                    "    if (xrtValueObjectGet(target, key) != NULL)\n"
-                    "        return xrtValueObjectSetNewPostCommit(target, key, item);\n"
-                    "    fields = xlir_xvalue_dynamic_fields(target);\n"
-                    "    return fields != NULL\n"
-                    "        ? xrtDynamicFieldsSetNew(fields, key, item)\n"
-                    "        : xrtValueObjectSetNewPostCommit(target, key, item);\n"
-                    "}\n",
-                        out);
-                } else {
-                    /* Erased `var` access has no nominal class-layout
-                     * dependency.  When this module contains no open-object
-                     * schema, its dynamic-field operation deterministically
-                     * reduces to ordinary object storage. */
-                    xl6OutputPuts(
-                        "static xvalue* xlir_xvalue_dynamic_field_find(const xvalue* source, xlir_string_view key)\n"
-                        "{\n"
-                        "    return xrtValueObjectGet(source, key);\n"
-                        "}\n"
-                        "static bool xlir_xvalue_dynamic_field_set_new(xvalue* target, xlir_string_view key, xvalue* item)\n"
-                        "{\n"
-                        "    if (target == NULL || item == NULL) { xrtValueRelease(item); return false; }\n"
-                        "    return xrtValueObjectSetNewPostCommit(target, key, item);\n"
-                        "}\n",
-                        out);
-                }
+                    "    return xl6ValueObjectFieldSetTakeV1(target, key.Data, key.Size, item);\n"
+                    "}\n", out);
             }
             if ( needs->needsXValueDynamicFieldRuntime )
                 xl6OutputPuts(

@@ -264,6 +264,10 @@ static bool class_schema_valid_v3(const XL6_ClassIdentitySchemaV3* schema)
         (unsigned)schema->hashMode>XL6_CLASS_IDENTITY_DERIVED_V3 ||
         (unsigned)schema->equalMode>XL6_CLASS_IDENTITY_DERIVED_V3 ||
         schema->fieldCount>SIZE_MAX/sizeof(*schema->fields) || (!schema->fields && schema->fieldCount)) return false;
+    const XL6_ClassDynamicFieldPathV3* path=&schema->dynamicFields;
+    if (path->storageName || path->storageSize || path->handleName || path->handleSize) {
+        if (!path->storageName || !path->storageSize || !path->handleName || !path->handleSize) return false;
+    }
     for (size_t i=0;i<schema->fieldCount;++i)
         if ((!schema->fields[i].name && schema->fields[i].nameSize) || !schema->fields[i].identity) return false;
     return true;
@@ -361,6 +365,48 @@ static const XL6_ClassIdentitySchemaV3* class_read_schema_v3(const xvalueobjectr
         xrtSetErrorKind(XERR_STATE); return NULL;
     }
     return lifetime->schema;
+}
+static bool class_dynamic_path_visit_v3(const xvalueobjectreadv1* view,
+    const xvalueobjectreadv1* unused,void* data)
+{
+    (void)unused;
+    const XL6_ClassIdentitySchemaV3* schema=class_read_schema_v3(view,false);
+    if (!schema || !class_schema_valid_v3(schema)) {
+        if (!xrtGetError()) xrtSetErrorKind(XERR_STATE);
+        return false;
+    }
+    *(XL6_ClassDynamicFieldPathV3*)data=schema->dynamicFields;
+    return true;
+}
+static bool class_ordinary_backing_visit_v3(xrtownershipref ref,void* output)
+{
+    /* A resident Object shell emits only its physical backing edge, not its
+     * policy callbacks or children. A shell certificate alone is insufficient:
+     * a class with language-defined identity may have no native identity hook. */
+    *(bool*)output=xrtValueOwnershipAdapterV1(ref)!=NULL;
+    return true;
+}
+int xl6ClassDynamicFieldPathV3(const xvalue* source,XL6_ClassDynamicFieldPathV3* output)
+{
+    if (!source || !output) { xrtSetErrorKind(XERR_ARGUMENT); return -1; }
+    xrtownershipref ref=xrtValueOwnership(source);
+    /* Only recognized ordinary storage is a safe miss. ReadV1 authenticates
+     * V3 itself, including prepared constructors that collector admission
+     * deliberately refuses. Unknown policies/BUSY/claimed/cleared/corrupted
+     * instances are checked failures, never a fallback to ordinary storage. */
+    if (xrtValueType(source)!=XVALUE_OBJECT) { xrtSetErrorKind(XERR_TYPE); return -1; }
+    if (xrtValueObjectOwnershipAdapterV1(ref,&class_ownership_policy)) return 0;
+    bool ordinary=false;
+    if (!ref.Ops->Trace(ref.Data,class_ordinary_backing_visit_v3,&ordinary)) {
+        if (!xrtGetError()) xrtSetErrorKind(XERR_STATE);
+        return -1;
+    }
+    if (ordinary) return 0;
+    XL6_ClassDynamicFieldPathV3 path={0};
+    if (!xrtValueObjectReadV1(source,NULL,&class_ownership_policy_v3,
+            class_dynamic_path_visit_v3,&path)) return -1;
+    if (!path.storageName) return 0;
+    *output=path; return 1;
 }
 static bool class_schema_equal_v3(const XL6_ClassIdentitySchemaV3* a,const XL6_ClassIdentitySchemaV3* b)
 {

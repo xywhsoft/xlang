@@ -1422,14 +1422,7 @@ foreach ( $required in @(
     }
 }
 foreach ( $required in @(
-    "cgen_derive_string_hash_equals.xl",
-    "hashAbiName", "equalityAbiName", "runtime-reference",
-    "compareDeriveIncluded",
-    "xvalue-class-identity-bind", "class-derived-equal",
-    "xlir_class_derive_hash_t", "xlir_class_derive_equal_t",
-    "xlir_class_reference_hash_t", "xlir_class_reference_equal_t",
-    "xl6ClassRuntimeV2Get()->BindIdentity", "SequenceEqual",
-    "strict-C/runtime gate failed", "standalone artifact runtime gate failed"
+    "check_xlir_class_identity_plan.py", "PublicDirectory", "--public", "--out"
 
 ) ) {
     if ( ! $classValueIdentityAbiGateText.Contains($required) ) {
