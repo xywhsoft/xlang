@@ -585,12 +585,18 @@ static int xl6IrCgenEmitGeneratorMachine(
         xl6IrCgenGeneratorMachine(module, target);
     const XL6_IrFunction* function;
     const char* itemKind;
+    const XL6_IrNativeValuePlan* nativeItem=NULL;
     size_t local;
     if ( machine == NULL || !xl6IrCgenGeneratorMachineProgramSupported(
             module, target, machine) )
         return xl6IrCgenDiag(diags, module, target->declaration,
                              "XLIR C emitter generator machine ABI is not implemented");
     function = &module->functions[machine->function];
+    if(machine->yieldAbi==XL6_IR_GENERATOR_YIELD_MOVE_NATIVE_VALUE){
+        nativeItem=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,machine->itemType));
+        if(!nativeItem || !nativeItem->captureHeader || !nativeItem->captureProfileSymbol)return 0;
+        xl6OutputPrintf(out,"#include <%s>\n",nativeItem->captureHeader);
+    }
     for(local=0;local<machine->frameSlotCount;++local){
         const XL6_IrContinuationFrameSlot* frame=&module->generatorFrameSlots[machine->firstFrameSlot+local];
         if(frame->destroyAbi==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE){
@@ -617,6 +623,7 @@ static int xl6IrCgenEmitGeneratorMachine(
     case XL6_IR_GENERATOR_YIELD_MOVE_FUTURE: itemKind = "XL6_CAPTURE_FUTURE"; break;
     case XL6_IR_GENERATOR_YIELD_MOVE_ERROR: itemKind = "XL6_CAPTURE_ERROR"; break;
     case XL6_IR_GENERATOR_YIELD_MOVE_GENERATOR: itemKind = "XL6_CAPTURE_GENERATOR"; break;
+    case XL6_IR_GENERATOR_YIELD_MOVE_NATIVE_VALUE: itemKind = "XL6_CAPTURE_NATIVE_LEAF_V2"; break;
     default: return xl6IrCgenDiag(diags, module, target->declaration,
         "XLIR generator item storage ABI is unresolved");
     }
@@ -641,9 +648,9 @@ static int xl6IrCgenEmitGeneratorMachine(
             machine->destroyActionCount ? module->generatorFrameActions + machine->firstDestroyAction : NULL,
             machine->destroyActionCount)) return 0;
     xl6OutputPrintf(out,
-        "static const XL6_CaptureSlotV2 xlir_generator_item_slot_%u = {{%s, 0, sizeof(%s)}, NULL};\n"
+        "static const XL6_CaptureSlotV2 xlir_generator_item_slot_%u = {{%s, 0, sizeof(%s)}, %s};\n"
         "static const XL6_CaptureLayoutV2 xlir_generator_item_layout_%u = {sizeof(XL6_CaptureLayoutV2), sizeof(%s), 1, &xlir_generator_item_slot_%u};\n",
-        (unsigned int)target->symbol, itemKind, xl6IrCgenType(module, machine->itemType),
+        (unsigned int)target->symbol, itemKind, xl6IrCgenType(module, machine->itemType),nativeItem?nativeItem->captureProfileSymbol:"NULL",
         (unsigned int)target->symbol, xl6IrCgenType(module, machine->itemType), (unsigned int)target->symbol);
     xl6OutputPrintf(out,
         "static bool xlir_generator_resume_%u(xlir_generator* generator)\n{\n"

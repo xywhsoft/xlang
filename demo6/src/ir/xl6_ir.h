@@ -2681,7 +2681,9 @@ typedef enum XL6_IrGeneratorYieldAbi {
     XL6_IR_GENERATOR_YIELD_MOVE_FUTURE,
     XL6_IR_GENERATOR_YIELD_MOVE_ERROR,
     XL6_IR_GENERATOR_YIELD_MOVE_GENERATOR,
-    XL6_IR_GENERATOR_YIELD_COPY_CHAR
+    XL6_IR_GENERATOR_YIELD_COPY_CHAR,
+    /* Exact immutable native owning record; direct transfer, never erasure. */
+    XL6_IR_GENERATOR_YIELD_MOVE_NATIVE_VALUE
 } XL6_IrGeneratorYieldAbi;
 
 typedef struct XL6_IrSpan {
