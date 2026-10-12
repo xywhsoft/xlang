@@ -107,6 +107,7 @@ static void load_artifact(void)
     BIND(xl6SlotRuntimeV1Get);
     BIND(xl6GeneratorRuntimeV1Get);
     BIND(xl6GeneratorRuntimeV2Get);
+    BIND(xl6GeneratorRuntimeV3Get);
     BIND(xl6GeneratorOwnershipAdapterV1);
     BIND(xl6ContinuationFrameRuntimeV2Get);
     BIND(xl6ContinuationFrameRuntimeV3Get);

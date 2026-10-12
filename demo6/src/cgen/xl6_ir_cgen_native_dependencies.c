@@ -258,7 +258,7 @@ static int xl6IrCgenVisitSlotProviders(XL6_IrNativeSlotAbi slot,int projection,
     XL6_IrCgenNativeModuleVisitor visitor,void* context)
 {
     switch (slot) {
-#define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,Release,Type,Converter,Sequence,Profile,ValueId) \
+#define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,Release,Type,Converter,Sequence,Profile,ValueId,...) \
     case XL6_IR_NATIVE_SLOT_##Tag: return visitor(context,#Type) && (!projection || visitor(context,#Converter));
 #include "src/type/xl6_native_value_profiles.inc"
 #undef XL6_NATIVE_VALUE_PROFILE
@@ -387,6 +387,19 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
 {
     XL6_IrCgenNeeds needs;
     if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
+    for(size_t m=0;m<module->generatorMachineCount;++m){
+        const XL6_IrGeneratorMachine* machine=&module->generatorMachines[m];
+        const XL6_IrCallTarget* target=xl6IrCallTargetGet(module,machine->targetSymbol);
+        if(!target || target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        for(size_t f=0;f<machine->frameSlotCount;++f){
+            const XL6_IrContinuationFrameSlot* frame=&module->generatorFrameSlots[machine->firstFrameSlot+f];
+            if(frame->destroyAbi==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE){
+                const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,frame->type));
+                if(!native || !native->captureProfileSymbol || !visitor(context,native->captureProfileSymbol))return 0;
+                if(frame->transferAbi==XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE && !visitor(context,native->copySymbol))return 0;
+            }
+        }
+    }
     if((needs.namedValueOperations&1u) && !visitor(context,"xl6ValueNameReadCopyV1")) return 0;
     if((needs.namedValueOperations&2u) && !visitor(context,"xl6ValueNameSetTakeV1")) return 0;
     if (needs.structuredOptionsBridgeOperations && !xl6IrCgenVisitOptionsSymbols(visitor,context)) return 0;

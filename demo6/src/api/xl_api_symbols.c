@@ -259,6 +259,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6SlotRuntimeV1Get", (const void*)xl6SlotRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6GeneratorRuntimeV1Get", (const void*)xl6GeneratorRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6GeneratorRuntimeV2Get", (const void*)xl6GeneratorRuntimeV2Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6GeneratorRuntimeV3Get", (const void*)xl6GeneratorRuntimeV3Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6GeneratorOwnershipAdapterV1", (const void*)xl6GeneratorOwnershipAdapterV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ContinuationFrameRuntimeV2Get", (const void*)xl6ContinuationFrameRuntimeV2Get) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationFrameOwnershipAdapterV1", (const void*)xl6ContinuationFrameOwnershipAdapterV1)) return 0;

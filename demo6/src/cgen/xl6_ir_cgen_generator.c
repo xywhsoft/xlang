@@ -47,7 +47,7 @@ static int xl6IrCgenGeneratorMachineProgramSupported(
         const XL6_IrType* type = xl6IrTypeGet(&module->types, frame->type);
         if ( type == NULL || xl6IrCgenType(module, frame->type) == NULL ) return 0;
         if ( frame->destroyAbi < XL6_IR_ASYNC_FRAME_DESTROY_NONE ||
-             frame->destroyAbi > XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_GENERATOR ) return 0;
+             frame->destroyAbi > XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE ) return 0;
         if ( frame->residence == XL6_IR_ASYNC_FRAME_RESIDENCE_FRAME_STORAGE ) {
             if ( !xl6IrCgenFrameStorageSupported(module, frame, machine->initBitCount) ) return 0;
         } else if ( frame->residence == XL6_IR_ASYNC_FRAME_RESIDENCE_LAUNCH_PARAMETER ) {
@@ -545,7 +545,8 @@ static int xl6IrCgenEmitGeneratorInstruction(
                     snprintf(place,sizeof(place),"frame->f%lu",(unsigned long)field);
                     snprintf(input,sizeof(input),"v%u",(unsigned int)frame->value);
                     snprintf(initialized,sizeof(initialized),"frame->i%lu",(unsigned long)frame->initBit);
-                    if (!xl6IrCgenEmitFrameAcquisitionBegin(out,type,frame->transferAbi,input,&acquired) ||
+                    if (!xl6IrCgenEmitFrameAcquisitionBegin(out,type,frame->transferAbi,input,&acquired,
+                            xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,frame->type))) ||
                         !xl6IrCgenEmitFrameAcquisitionCommit(out,type,place,frame->initBit==SIZE_MAX?NULL:initialized)) return 0;
                 }
                 if (acquire) xl6OutputPuts("    }\n", out);
@@ -590,6 +591,14 @@ static int xl6IrCgenEmitGeneratorMachine(
         return xl6IrCgenDiag(diags, module, target->declaration,
                              "XLIR C emitter generator machine ABI is not implemented");
     function = &module->functions[machine->function];
+    for(local=0;local<machine->frameSlotCount;++local){
+        const XL6_IrContinuationFrameSlot* frame=&module->generatorFrameSlots[machine->firstFrameSlot+local];
+        if(frame->destroyAbi==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE){
+            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,frame->type));
+            if(!native || !native->captureHeader || !native->captureProfileSymbol)return 0;
+            xl6OutputPrintf(out,"#include <%s>\n",native->captureHeader);
+        }
+    }
     /* Serialize the closed, verified transfer ABI. No producer cleanup or
      * ownership callback is synthesized from a C type or source name. */
         switch (machine->yieldAbi) {
@@ -626,13 +635,14 @@ static int xl6IrCgenEmitGeneratorMachine(
     xl6OutputPrintf(out, "} xlir_generator_frame_%u;\n",
                     (unsigned int)target->symbol);
     if (!xl6IrCgenEmitActivationLayout(out, "xlir_generator", target->symbol,
+            module,1,
             machine->frameSlotCount ? module->generatorFrameSlots + machine->firstFrameSlot : NULL,
             machine->frameSlotCount, machine->firstFrameSlot,
             machine->destroyActionCount ? module->generatorFrameActions + machine->firstDestroyAction : NULL,
             machine->destroyActionCount)) return 0;
     xl6OutputPrintf(out,
-        "static const XL6_CaptureSlot xlir_generator_item_slot_%u = {%s, 0, sizeof(%s)};\n"
-        "static const XL6_CaptureLayoutV1 xlir_generator_item_layout_%u = {sizeof(XL6_CaptureLayoutV1), sizeof(%s), 1, &xlir_generator_item_slot_%u};\n",
+        "static const XL6_CaptureSlotV2 xlir_generator_item_slot_%u = {{%s, 0, sizeof(%s)}, NULL};\n"
+        "static const XL6_CaptureLayoutV2 xlir_generator_item_layout_%u = {sizeof(XL6_CaptureLayoutV2), sizeof(%s), 1, &xlir_generator_item_slot_%u};\n",
         (unsigned int)target->symbol, itemKind, xl6IrCgenType(module, machine->itemType),
         (unsigned int)target->symbol, xl6IrCgenType(module, machine->itemType), (unsigned int)target->symbol);
     xl6OutputPrintf(out,
@@ -662,7 +672,7 @@ static int xl6IrCgenEmitGeneratorMachine(
             storage->cellType != XL6_IR_TYPE_INVALID ? storage->cellType : storage->type);
         if ( type == NULL || cType == NULL ) return xl6IrCgenDiag(diags, module,
             storage->declaration, "XLIR generator local storage has no C ABI");
-        if (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING)
+        if (type->cAbi == XL6_IR_C_ABI_MANAGED_STRING || type->cAbi == XL6_IR_C_ABI_NATIVE_VALUE)
             xl6OutputPrintf(out, "    %s s%u = {0};\n",
                 cType, (unsigned int)storage->symbol);
         else
@@ -732,10 +742,9 @@ static int xl6IrCgenEmitGeneratorMachine(
         const XL6_IrContinuationFrameSlot* frame =
             &module->generatorFrameSlots[machine->firstFrameSlot + local];
         if ( frame->initBit != SIZE_MAX )
-            xl6OutputPrintf(out, "    frame->f%lu = %s; frame->i%lu = 0;\n",
+            xl6OutputPrintf(out, "    frame->f%lu = (%s){0}; frame->i%lu = 0;\n",
                 (unsigned long)local,
-                xl6IrTypeGet(&module->types, frame->type)->cAbi == XL6_IR_C_ABI_MANAGED_STRING
-                    ? "(xlir_string){0}" : "NULL",
+                xl6IrCgenType(module,frame->type),
                 (unsigned long)frame->initBit);
     }
     for ( local = 0; local < machine->prologueActionCount; ++local ) {
@@ -750,7 +759,7 @@ static int xl6IrCgenEmitGeneratorMachine(
             snprintf(place, sizeof(place), "frame->f%lu", (unsigned long)field);
             snprintf(input, sizeof(input), "a%lu", (unsigned long)frame->parameter);
             snprintf(initialized, sizeof(initialized), "frame->i%lu", (unsigned long)frame->initBit);
-            if (!xl6IrCgenEmitActivationCapture(out, xl6IrCgenType(module,frame->type), frame->transferAbi, place, input,
+            if (!xl6IrCgenEmitActivationCapture(out, module,frame->type, frame->transferAbi, place, input,
                     frame->initBit == SIZE_MAX ? NULL : initialized, "xlir_generator_frame_discard(frame);"))
                 return xl6IrCgenDiag(diags, module, target->declaration,
                     "XLIR generator launch capture ABI is unresolved");

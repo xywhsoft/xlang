@@ -202,6 +202,7 @@ static int xl6IrCgenEmitAsyncMachine(
                   "    XL6_ContinuationTicket ticket;\n", out);
     xl6OutputPrintf(out, "} xlir_async_machine_frame_%u;\n", (unsigned int)target->symbol);
     if (!xl6IrCgenEmitActivationLayout(out, "xlir_async_machine", target->symbol,
+            module,0,
             machine->frameSlotCount ? module->asyncMachineFrameSlots + machine->firstFrameSlot : NULL,
             machine->frameSlotCount, machine->firstFrameSlot,
             machine->destroyActionCount ? module->asyncFrameActions + machine->firstDestroyAction : NULL,
@@ -333,7 +334,7 @@ static int xl6IrCgenEmitAsyncMachine(
             snprintf(initialized, sizeof(initialized), "frame->i%lu", (unsigned long)frame->initBit);
             snprintf(rollback, sizeof(rollback), "xlir_async_machine_frame_free_%u(frame, NULL);",
                 (unsigned int)target->symbol);
-            if (!xl6IrCgenEmitActivationCapture(out, xl6IrCgenType(module,frame->type), frame->transferAbi, place, input,
+            if (!xl6IrCgenEmitActivationCapture(out, module,frame->type, frame->transferAbi, place, input,
                     frame->initBit == SIZE_MAX ? NULL : initialized, rollback)) goto done;
         } else goto done;
     }
@@ -576,7 +577,7 @@ static int xl6IrCgenEmitAsyncLauncher(
         snprintf(input, sizeof(input), "a%lu", (unsigned long)parameter);
         snprintf(rollback, sizeof(rollback), "xlir_async_frame_free_%u(frame, NULL);",
             (unsigned int)target->symbol);
-        if (!xl6IrCgenEmitActivationCapture(out, xl6IrCgenType(module,target->parameterTypes[parameter]), transfer, place, input, NULL, rollback))
+        if (!xl6IrCgenEmitActivationCapture(out, module,target->parameterTypes[parameter], transfer, place, input, NULL, rollback))
             return xl6IrCgenDiag(diags, module, target->declaration,
                 "XLIR C emitter async task frame capture ABI is unresolved");
     }

@@ -238,6 +238,15 @@ static const char* xl6IrCgenFrameDestroyFunction(XL6_IrContinuationFrameDestroyA
     default: return NULL;
     }
 }
+static const char* xl6IrCgenFrameDestroyForType(const XL6_IrModule* module,
+    XL6_IrTypeId type,XL6_IrContinuationFrameDestroyAbi abi)
+{
+    if(abi==XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE){
+        const XL6_IrNativeValuePlan* plan=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,type));
+        return plan && plan->captureProfileSymbol ? plan->dropSymbol : NULL;
+    }
+    return xl6IrCgenFrameDestroyFunction(abi);
+}
 
 /* The verifier owns type/ownership matching. Both continuation backends use
  * the same physical storage renderer and destructor vocabulary. */
@@ -251,7 +260,7 @@ static int xl6IrCgenFrameStorageSupported(
     if (frame->destroyAbi == XL6_IR_ASYNC_FRAME_DESTROY_NONE)
         return frame->initBit == SIZE_MAX;
     return frame->initBit < initBitCount &&
-        xl6IrCgenFrameDestroyFunction(frame->destroyAbi) != NULL;
+        xl6IrCgenFrameDestroyForType(module,frame->type,frame->destroyAbi) != NULL;
 }
 
 static int xl6IrCgenEmitFrameRelease(
@@ -263,5 +272,5 @@ static int xl6IrCgenEmitFrameRelease(
     snprintf(place, sizeof(place), "frame->f%lu", (unsigned long)field);
     snprintf(initialized, sizeof(initialized), "frame->i%lu", (unsigned long)initBit);
     return xl6IrCgenEmitDetachedRelease(out, xl6IrCgenType(module, type),
-        xl6IrCgenFrameDestroyFunction(abi), place, initialized);
+        xl6IrCgenFrameDestroyForType(module,type,abi), place, initialized);
 }

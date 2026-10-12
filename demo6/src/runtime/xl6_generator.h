@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include "xl6_code_lease.h"
 #include "xl6_capture.h"
+#include "xl6_capture_v2.h"
 
 typedef struct xlir_generator XL6_Generator;
 typedef void (*XL6_GeneratorFree)(void*);
@@ -79,6 +80,22 @@ typedef struct XL6_GeneratorRuntimeV2 {
     struct xrtownershipref (*FrameOwnership)(const void*);
 } XL6_GeneratorRuntimeV2;
 XL6_CODE_LEASE_API const XL6_GeneratorRuntimeV2* xl6GeneratorRuntimeV2Get(void);
+/* Separate descriptor ABI: V3 consumes V2 activation/item layouts, never
+ * casts a V1 layout or treats native owning records as trivial storage.
+ * Publication, independent references, close/finally and code residency are
+ * the same resident state machine as V2. All owning slots/flags must be
+ * initialized before Create or FrameDiscard. V1 operation entry points accept
+ * these controls; frame/control inspection uses the actual allocation span. */
+typedef struct XL6_GeneratorRuntimeV3 {
+    void* (*FrameAllocate)(size_t, const XL6_ActivationCaptureLayoutV2*);
+    void (*FrameDiscard)(void*);
+    XL6_Generator* (*Create)(const XL6_CodeOwner*, void*, XL6_GeneratorResume, const XL6_CaptureLayoutV2*);
+    XL6_Generator* (*Retain)(XL6_Generator*);
+    void* (*FrameRetain)(void*);
+    void (*FrameRelease)(void*);
+    struct xrtownershipref (*FrameOwnership)(const void*);
+} XL6_GeneratorRuntimeV3;
+XL6_CODE_LEASE_API const XL6_GeneratorRuntimeV3* xl6GeneratorRuntimeV3Get(void);
 struct xrtownershipadapterv1;
 struct xrtownershippreparationv1;
 /* Independently recognizes the control OR the actual frame identity. Prepare

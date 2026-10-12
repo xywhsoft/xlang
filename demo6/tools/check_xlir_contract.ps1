@@ -827,13 +827,13 @@ $generatorStorage=Read-Utf8 'src/runtime/xl6_generator.c'
 $generatorEmitter=Read-Utf8 'src/cgen/xl6_ir_cgen_generator.c'
 $generatorPrelude=Read-Utf8 'src/cgen/xl6_ir_cgen_emit_prelude.c'
 if (!$source.Contains('XLIR generator storage ABI is unresolved') -or
-    !$generatorPrelude.Contains('xl6GeneratorRuntimeV2Get()->Create') -or
+    !$generatorPrelude.Contains('xl6GeneratorRuntimeV3Get()->Create') -or
     $generatorPrelude.Contains('struct xlir_generator {') -or
     $generatorEmitter -match 'generator->(?:done|frame|has_item|running|state)\s*=' -or
     $generatorEmitter.Contains('xlir_generator_frame_ops_') -or
     !$generatorEmitter.Contains('xlir_generator_frame_discard(frame)') -or
     $generatorEmitter -match 'xlir_generator_(frame|item)_(trace|free)_' -or
-    !$header.Contains('XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V2') -or
+    !$header.Contains('XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3') -or
     !$generatorStorage.Contains('xl6GeneratorOwnershipAdapterV1') -or
     !$generatorStorage.Contains('frame->owner->running') -or
     !$generatorStorage.Contains('xl6CodeLeaseAcquireScoped(owner,&lease)') -or

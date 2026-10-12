@@ -303,7 +303,7 @@ static const char* xl6IrCgenNativeValueConverterExpr(const XL6_IrModule* module,
     const XL6_IrType* type = module != NULL ? xl6IrTypeGet(&module->types,typeId) : NULL;
     if (type == NULL) return "NULL";
     switch (type->nativeSlotAbi) {
-#define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,Release,Type,Converter,Sequence,Profile,ValueId) \
+#define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,Release,Type,Converter,Sequence,Profile,ValueId,...) \
     case XL6_IR_NATIVE_SLOT_##Tag: return #Converter "()";
 #include "src/type/xl6_native_value_profiles.inc"
 #undef XL6_NATIVE_VALUE_PROFILE
@@ -316,7 +316,7 @@ static const char* xl6IrCgenNativeValueConverterExpr(const XL6_IrModule* module,
 static const char* xl6IrCgenNativeSlotTypeExpr(XL6_IrNativeSlotAbi slot)
 {
     switch (slot) {
-#define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,Release,Type,Converter,Sequence,Profile,ValueId) \
+#define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,Release,Type,Converter,Sequence,Profile,ValueId,...) \
     case XL6_IR_NATIVE_SLOT_##Tag: return #Type "()";
 #include "src/type/xl6_native_value_profiles.inc"
 #undef XL6_NATIVE_VALUE_PROFILE

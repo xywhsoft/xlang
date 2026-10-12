@@ -10,11 +10,12 @@ static void assert_activation_layout(const char* text,const char* prefix,XL6_Sym
         "XL6_CAPTURE_FUTURE","XL6_CAPTURE_CLOSURE","XL6_CAPTURE_CELL","XL6_CAPTURE_ERROR",
         "XL6_CAPTURE_VALUE_ITERATOR","XL6_CAPTURE_GENERATOR"};
     char expected[512];
-    snprintf(expected,sizeof(expected),"XL6_ActivationCaptureLayoutV1 %s_layout_%u",prefix,symbol);assert(strstr(text,expected));
+    bool nativeLayout=!strcmp(prefix,"xlir_generator");
+    snprintf(expected,sizeof(expected),"XL6_ActivationCaptureLayoutV%u %s_layout_%u",nativeLayout?2u:1u,prefix,symbol);assert(strstr(text,expected));
     if(!strcmp(prefix,"xlir_generator")){
         snprintf(expected,sizeof(expected),"xlir_generator_frame_allocate(sizeof(*frame), &%s_layout_%u)",prefix,symbol);assert(strstr(text,expected));
         snprintf(expected,sizeof(expected),"xlir_generator_create(frame, xlir_generator_resume_%u, &xlir_generator_item_layout_%u)",symbol,symbol);assert(strstr(text,expected));
-        assert(strstr(text,"xl6GeneratorRuntimeV2Get()->Create")&&strstr(text,"xlir_generator_frame_discard(frame)"));
+        assert(strstr(text,"xl6GeneratorRuntimeV3Get()->Create")&&strstr(text,"xlir_generator_frame_discard(frame)"));
         assert(!strstr(text,"xlir_generator_frame_trace_")&&!strstr(text,"xlir_generator_item_trace_")&&
             !strstr(text,"xlir_generator_frame_free_")&&!strstr(text,"xlir_generator_item_free_"));
     }else{
@@ -27,6 +28,7 @@ static void assert_activation_layout(const char* text,const char* prefix,XL6_Sym
         assert(slots[i].destroyAbi>0&&slots[i].destroyAbi<sizeof(kinds)/sizeof(*kinds));
         int written=snprintf(expected,sizeof(expected),"{{%s, offsetof(%s_frame_%u, f%lu), sizeof(((%s_frame_%u*)0)->f%lu)}, ",
             kinds[slots[i].destroyAbi],prefix,symbol,(unsigned long)i,prefix,symbol,(unsigned long)i);assert(written>0&&(size_t)written<sizeof(expected));
+        if(nativeLayout){strcat(expected,"NULL}, ");written=(int)strlen(expected);}
         if(slots[i].initBit==SIZE_MAX)snprintf(expected+written,sizeof(expected)-(size_t)written,"SIZE_MAX}");
         else snprintf(expected+written,sizeof(expected)-(size_t)written,"offsetof(%s_frame_%u, i%lu)}",prefix,symbol,(unsigned long)slots[i].initBit);
         assert(strstr(text,expected));

@@ -66,6 +66,9 @@ static void native_detach(void* raw,unsigned char* live)
     else if(owned.mode==2) xrtSetErrorKind(XERR_INTERNAL);
 }
 static const XL6_NativeCaptureProfileV1 native_profile={sizeof(native_profile),43,native_type_get,native_detach};
+static const XL6_NativeCaptureProfileV1* native_profile_get(void){return &native_profile;}
+static const XL6_NativeCaptureProfileV1* test_profile;
+static const XL6_NativeCaptureProfileV1* test_profile_get(void){return test_profile;}
 static bool visit(xrtownershipref ref,void* context)
 { (void)context; assert(ref.Data && ref.Ops); ++edges; return true; }
 static bool refuse(xrtownershipref ref,void* context)
@@ -112,7 +115,7 @@ typedef struct Payload {
 } Payload;
 static void slots_make(XL6_ActivationCaptureSlotV2* slots)
 {
-    const XL6_NativeCaptureProfileV1* key=xl6SlotMapKeyCaptureProfileV1Get();
+    const XL6_NativeCaptureProfileV1* (*key)(void)=xl6SlotMapKeyCaptureProfileV1Get;
     slots[0]=(XL6_ActivationCaptureSlotV2){{{(XL6_CaptureKind)XL6_CAPTURE_NATIVE_LEAF_V2,offsetof(Payload,first),sizeof(XL6_SlotMapKeyV1)},key},offsetof(Payload,live)};
     slots[1]=(XL6_ActivationCaptureSlotV2){{{(XL6_CaptureKind)XL6_CAPTURE_NATIVE_LEAF_V2,offsetof(Payload,second),sizeof(XL6_SlotMapKeyV1)},key},offsetof(Payload,live)+1};
     slots[2]=(XL6_ActivationCaptureSlotV2){{{XL6_CAPTURE_STRING,offsetof(Payload,text),sizeof(xstrview)},NULL},offsetof(Payload,live)+2};
@@ -151,7 +154,7 @@ static void ordered(unsigned mode,bool sparseLayout)
     XL6_ActivationCaptureSlotV2 slots[3]; XL6_CaptureSlotV2 all[3]; const size_t cleanup[]={1,2,0};
     for(unsigned i=0;i<3;++i) {
         p.values[i]=(Native){xrtMalloc(1),i,i==1 ? 1u : 2u}; assert(p.values[i].resource); p.live[i]=live[i];
-        all[i]=(XL6_CaptureSlotV2){{(XL6_CaptureKind)XL6_CAPTURE_NATIVE_LEAF_V2,offsetof(struct Ordered,values)+i*sizeof(Native),sizeof(Native)},&native_profile};
+        all[i]=(XL6_CaptureSlotV2){{(XL6_CaptureKind)XL6_CAPTURE_NATIVE_LEAF_V2,offsetof(struct Ordered,values)+i*sizeof(Native),sizeof(Native)},native_profile_get};
         slots[i]=(XL6_ActivationCaptureSlotV2){all[i],offsetof(struct Ordered,live)+i};
     }
     (void)values;
@@ -191,12 +194,12 @@ static void invalid(void)
 #undef BAD_SLOT
     order[0]=5; refused(&l,&p); order[0]=2; order[1]=2; refused(&l,&p); order[1]=1;
     p.live[0]=2; refused(&l,&p); p.live[0]=0;
-    XL6_NativeCaptureProfileV1 profile=*first.value.native; slots[0].value.native=&profile;
-    profile.size=0; refused(&l,&p); profile=*first.value.native;
-    profile.identity=0; refused(&l,&p); profile=*first.value.native;
-    profile.Type=NULL; refused(&l,&p); profile=*first.value.native;
+    XL6_NativeCaptureProfileV1 profile=*first.value.native();test_profile=&profile; slots[0].value.native=test_profile_get;
+    profile.size=0; refused(&l,&p); profile=*first.value.native();
+    profile.identity=0; refused(&l,&p); profile=*first.value.native();
+    profile.Type=NULL; refused(&l,&p); profile=*first.value.native();
     profile.DetachCleanup=NULL; refused(&l,&p); slots[0]=first;
-    profile=*first.value.native; profile.Type=altered_type_get; slots[0].value.native=&profile;
+    profile=*first.value.native(); profile.Type=altered_type_get; slots[0].value.native=test_profile_get;
     altered_type=*xl6SlotMapKeyTypeV1(); altered_type.Size=0; refused(&l,&p);
     altered_type=*xl6SlotMapKeyTypeV1(); altered_type.Align=3; refused(&l,&p);
     altered_type=*xl6SlotMapKeyTypeV1(); altered_type.Flags|=XRT_TYPE_FLAG_REFERENCE; refused(&l,&p);
@@ -213,7 +216,7 @@ static void metadata_alias(void)
     xl6ProductMemoryBegin(SIZE_MAX);
     struct Aliased {Payload payload; XL6_NativeCaptureProfileV1 profile;} data={0};
     data.profile=*xl6SlotMapKeyCaptureProfileV1Get();
-    XL6_ActivationCaptureSlotV2 slots[5]; slots_make(slots); slots[0].value.native=&data.profile;
+    XL6_ActivationCaptureSlotV2 slots[5]; slots_make(slots);test_profile=&data.profile; slots[0].value.native=test_profile_get;
     const size_t order[]={2,1,3,0}; XL6_ActivationCaptureLayoutV2 l={sizeof(l),sizeof(data),5,slots,4,order};
     assert(api->Validate(&l,sizeof(data)) && !api->Trace(&l,&data,sizeof(data),visit,NULL));
     struct Aliased before=data;

@@ -1,4 +1,5 @@
 #include "xl6_capture_v2.h"
+#include "xl6_text_value.h"
 #include "src/api/xl_foreign_error.h"
 #include <stddef.h>
 
@@ -17,8 +18,8 @@ static bool slot_valid(const XL6_CaptureSlotV2* s,size_t bytes)
 {
     if(!s || !s->value.bytes || s->value.offset>bytes || s->value.bytes>bytes-s->value.offset) return false;
     if((unsigned)s->value.kind==XL6_CAPTURE_NATIVE_LEAF_V2) {
-        if(!xl6NativeCaptureProfileValidV1(s->native)) return false;
-        const xrttype* t=s->native->Type();
+        if(!s->native || !xl6NativeCaptureProfileValidV1(s->native())) return false;
+        const xrttype* t=s->native()->Type();
         return s->value.bytes==t->Size && s->value.offset%t->Align==0;
     }
     XL6_CaptureLayoutV1 one={sizeof(one),bytes,1,&s->value};
@@ -27,13 +28,13 @@ static bool slot_valid(const XL6_CaptureSlotV2* s,size_t bytes)
 static bool slot_address_valid(const XL6_CaptureSlotV2* s,const void* data)
 {
     return (unsigned)s->value.kind!=XL6_CAPTURE_NATIVE_LEAF_V2 ||
-        ((uintptr_t)data+s->value.offset)%s->native->Type()->Align==0;
+        ((uintptr_t)data+s->value.offset)%s->native()->Type()->Align==0;
 }
 static bool slot_metadata_disjoint(const XL6_CaptureSlotV2* s,const void* data,size_t bytes)
 {
     if((unsigned)s->value.kind!=XL6_CAPTURE_NATIVE_LEAF_V2) return true;
-    const xrttype* t=s->native->Type();
-    return !xrtMemRangesOverlap(data,bytes,s->native,sizeof(*s->native)) &&
+    const XL6_NativeCaptureProfileV1* native=s->native();const xrttype* t=native->Type();
+    return !xrtMemRangesOverlap(data,bytes,native,sizeof(*native)) &&
         !xrtMemRangesOverlap(data,bytes,t,sizeof(*t)) &&
         !xrtMemRangesOverlap(data,bytes,t->Ops,sizeof(*t->Ops));
 }
@@ -49,7 +50,7 @@ static void slot_cleanup(const XL6_CaptureSlotV2* s,size_t bytes,void* data,unsi
 {
     if(live && !*live) return;
     if((unsigned)s->value.kind==XL6_CAPTURE_NATIVE_LEAF_V2) {
-        s->native->DetachCleanup((char*)data+s->value.offset,live); return;
+        s->native()->DetachCleanup((char*)data+s->value.offset,live); return;
     }
     /* Reuse V1 sparse detach semantics for every established owning kind;
      * generated backends do not acquire a second cleanup implementation. */

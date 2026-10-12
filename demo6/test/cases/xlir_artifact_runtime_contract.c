@@ -198,8 +198,9 @@ static int slot_key_component_contract(void)
 {
     XL6_ArtifactRuntimePlan plan;
     XL6_ArtifactRuntimeSet root=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_SLOT_MAP_KEY_NATIVE);
-    CHECK(xl6ArtifactRuntimeClosePlan(&root,&plan) && plan.sourceCount==1);
-    CHECK(!strcmp(plan.sources[0],"src/runtime/xl6_slot_map_key.c"));
+    CHECK(xl6ArtifactRuntimeClosePlan(&root,&plan) && plan.sourceCount==2);
+    CHECK(xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_FOREIGN_ERROR) &&
+        xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SLOT_MAP_KEY_NATIVE));
     CHECK(!xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SLOT_MAP_NATIVE) &&
         !xl6ArtifactRuntimeSetHas(&plan.components,XL6_ARTIFACT_SLOT_MAP_KEY_VALUE));
     CHECK(!has_native_module(&plan,"XRT_MODULE_SLOT_MAP") && !has_native_module(&plan,"XRT_MODULE_HASH64") &&

@@ -73,7 +73,7 @@ def main():
             products.append(dict(Path=str(binary),Sha256=sha(binary)))
         assert counts[0]==counts[1]; report['Vectors'],report['Refusals'],report['Drops'],report['OutsideFreeze']=counts[0]
         mutations=[
-            ('no-native-drop','src/runtime/xl6_capture_v2.c','s->native->DetachCleanup((char*)data+s->value.offset,live); return;','return;'),
+            ('no-native-drop','src/runtime/xl6_capture_v2.c','s->native()->DetachCleanup((char*)data+s->value.offset,live); return;','return;'),
             ('inactive-native-drop','src/runtime/xl6_capture_v2.c','if(live && !*live) return;','if(live && !*live && (unsigned)s->value.kind!=XL6_CAPTURE_NATIVE_LEAF_V2) return;'),
             ('wrong-order','src/runtime/xl6_capture_v2.c','const XL6_ActivationCaptureSlotV2* slot=&l->slots[l->cleanup[i]];','const XL6_ActivationCaptureSlotV2* slot=&l->slots[l->cleanup[l->cleanupCount-1-i]];'),
             ('forget-key-empty','src/runtime/xl6_slot_map_key_capture.c','owned=*slot; *slot=(XL6_SlotMapKeyV1){0}; if(live) *live=0;','owned=*slot; if(live) *live=0;')]
