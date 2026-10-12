@@ -18,6 +18,11 @@ typedef struct ThreadOwner {
     bool creating, workerActive, cleared;
 } ThreadOwner;
 static const xvaluehandleops handleOps;
+typedef enum ThreadRelease {
+    THREAD_RELEASE_EXTERNAL,
+    THREAD_RELEASE_TRANSITION,
+    THREAD_RELEASE_WORKER_COMPLETE
+} ThreadRelease;
 static void mutationBegin(xrtownershipscope* scope)
 { if (!xrtOwnershipMutationBegin(scope)) abort(); }
 static void mutationEnd(xrtownershipscope* scope)
@@ -49,11 +54,18 @@ bool xl6ThreadAdmitsV1(const xvalue* value,uint64_t identity)
 /* A last shell's wait gets its own transition pin before dropping gates.
  * Worker release never waits for itself. Native method pins keep this branch
  * from joining while another method is still in flight. */
-static void releaseOwner(ThreadOwner* owner,bool worker)
+static void releaseOwner(ThreadOwner* owner,ThreadRelease role)
 {
     xrtownershipscope mutation={0}; mutationBegin(&mutation); lock(owner);
+    /* Completion includes captures, code leases and the worker error scope.
+     * Publish it together with worker-pin retirement: no observer can see a
+     * non-active worker whose real reference is still running cleanup. */
+    if (role==THREAD_RELEASE_WORKER_COMPLETE) {
+        if (!owner->workerActive || owner->callable) abort();
+        owner->workerActive=false;
+    }
     int32_t refs=xrtRefRelease(&owner->refs); if (refs<0) abort();
-    bool wait=!worker && !owner->creating && !owner->active && owner->thread &&
+    bool wait=role==THREAD_RELEASE_EXTERNAL && !owner->creating && !owner->active && owner->thread &&
         (!refs || (refs==1 && owner->workerActive));
     bool freeOwner=!refs;
     if (wait) { owner->refs=refs+1; freeOwner=false; }
@@ -64,7 +76,7 @@ static void releaseOwner(ThreadOwner* owner,bool worker)
            the genuine worker pin finish the callback and remaining cleanup. */
         if (xrtThreadId(owner->thread)!=xrtThreadCurrentId()) (void)xrtThreadWait(owner->thread);
         xl6_error_result result=xl6ErrorScopeEnd(&cleanup); xrtErrorFree(result.error);
-        releaseOwner(owner,true); return;
+        releaseOwner(owner,THREAD_RELEASE_TRANSITION); return;
     }
     if (freeOwner) {
         if (owner->active || owner->workerActive || (owner->claim && !owner->cleared)) abort();
@@ -77,7 +89,7 @@ static void releaseOwner(ThreadOwner* owner,bool worker)
     }
 }
 static void drop(void* raw,void* user)
-{ if (user) abort(); if (raw) releaseOwner(raw,false); }
+{ if (user) abort(); if (raw) releaseOwner(raw,THREAD_RELEASE_EXTERNAL); }
 static bool clone(void* raw,void** output,void* user)
 {
     if (user) abort();
@@ -113,7 +125,7 @@ static bool handleTrace(const xvalue* value,xrtownershipvisitor visit,void* cont
 }
 static bool hold(const void* raw)
 { ThreadOwner* owner=(ThreadOwner*)raw; return owner && owner->refs>0 && owner->refs<INT32_MAX && xrtRefRetain(&owner->refs)>0; }
-static void unpin(const void* raw) { releaseOwner((ThreadOwner*)raw,false); }
+static void unpin(const void* raw) { releaseOwner((ThreadOwner*)raw,THREAD_RELEASE_EXTERNAL); }
 static bool claim(const void* raw,const void* token)
 {
     ThreadOwner* owner=(ThreadOwner*)raw;
@@ -167,15 +179,17 @@ static int32_t entry(void* raw)
     /* Publish removal of the actual owning edge before arbitrary captures
        and their source leases are released, with no metadata gate held. */
     xrtownershipscope mutation={0}; mutationBegin(&mutation); lock(owner);
-    owner->callable=NULL; owner->workerActive=false; unlock(owner); mutationEnd(&mutation);
-    runtime->Release(callable); releaseOwner(owner,true);
+    owner->callable=NULL; unlock(owner); mutationEnd(&mutation);
+    runtime->Release(callable);
     if (begun) {
         xl6_error_result result=xl6ErrorScopeEnd(&work);
         ok=ok && result.ok; xrtErrorFree(result.error);
     }
     xrtClearError();
     uint32_t bits=(uint32_t)value;
-    return !ok ? 1 : bits<=UINT32_C(0x7FFFFFFF) ? (int32_t)bits : -1-(int32_t)(UINT32_MAX-bits);
+    int32_t code=!ok ? 1 : bits<=UINT32_C(0x7FFFFFFF) ? (int32_t)bits : -1-(int32_t)(UINT32_MAX-bits);
+    releaseOwner(owner,THREAD_RELEASE_WORKER_COMPLETE);
+    return code;
 }
 xvalue* xl6ThreadCreateV1(XL6_Closure* callable,uint64_t identity)
 {
@@ -200,7 +214,7 @@ xvalue* xl6ThreadCreateV1(XL6_Closure* callable,uint64_t identity)
                 if (!thread) owner->workerActive=false;
                 unlock(owner); mutationEnd(&mutation);
                 if (!thread) {
-                    xl6ErrorScopeCaptureFailure(&work); releaseOwner(owner,true);
+                    xl6ErrorScopeCaptureFailure(&work); releaseOwner(owner,THREAD_RELEASE_TRANSITION);
                     xrtValueRelease(value); value=NULL;
                 }
                 owner=NULL;
@@ -208,7 +222,7 @@ xvalue* xl6ThreadCreateV1(XL6_Closure* callable,uint64_t identity)
         }
     }
     if (!value) xl6ErrorScopeCaptureFailure(&work);
-    if (owner) releaseOwner(owner,true);
+    if (owner) releaseOwner(owner,THREAD_RELEASE_TRANSITION);
     xl6_error_result result=xl6ErrorScopeEnd(&work);
     if (!result.ok) { xl6ErrorScopePropagateFailure(result); xrtValueRelease(value); return NULL; }
     return value;
@@ -232,7 +246,7 @@ static void end(ThreadOwner* owner)
     xrtownershipscope mutation={0}; mutationBegin(&mutation); lock(owner);
     if (!owner->active) abort();
     --owner->active; unlock(owner); mutationEnd(&mutation);
-    releaseOwner(owner,false);
+    releaseOwner(owner,THREAD_RELEASE_EXTERNAL);
 }
 #define METHOD(Name,Type,Default,Operation) \
 Type xl6Thread##Name##V1(const xvalue* value,uint64_t identity) { \

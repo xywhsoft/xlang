@@ -47,6 +47,7 @@ def main():
     if windows:
         shutil.copy2(product,out/product.name); links=[product]
     else: links=['-L'+str(root/'release'),'-lxl','-Wl,-rpath,'+str(root/'release'),'-pthread','-ldl','-lm']
+    links.append('-Wl,--wrap=xrtThreadWait')
     try:
         for level in ('O0','O2'):
             obj=out/('thread.'+level+'.o'); binary=out/('host.'+level+('.exe' if windows else ''))
@@ -55,12 +56,12 @@ def main():
             good,_=run(level+'.host',[cc,*flags,'-'+level,host,memory,obj,*links,'-o',binary])
             if not good: continue
             modes=('methods','stress') if args.race else ('vectors','graph','stop','drop-freeze',
-                'active-release','lease','self-drop','errors','oom','stress','methods')
+                'active-release','lease','self-drop','capture-retirement','errors','oom','stress','methods')
             for mode in modes:
                 good,text=run(level+'.'+mode,[binary,mode])
                 if good and 'lifetimes balanced' not in text: failures.append({'Name':mode,'Tail':'Missing lifetime proof'})
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
-        assert report['InputsUnchanged'] and not failures and len(rows)==(8 if args.race else 26)
+        assert report['InputsUnchanged'] and not failures and len(rows)==(8 if args.race else 28)
         report['Complete']=True
     except Exception as error: report['Error']=repr(error); raise
     finally: save()

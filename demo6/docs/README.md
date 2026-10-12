@@ -133,6 +133,7 @@
 - `stdlib53-b226-persistence-batch.md`：boxed 投影与原生 Dict 配置修复，四格式严格 C／JIT／独立 AOT、完整故障前缀和图合同批量验收；33 条静态诊断及发布总门继续。
 - `stdlib53-b227-container-contracts.md`：隐式 Set 类型闭包与精确测试 C ABI 修复，双端专项验收；union 容器、原生 Dict 点访问及发布总门继续。
 - `stdlib53-b228-dict-named-route.md`：原生 Dict 点／索引共用拥有值与精确键路由；封闭 XLIR、故障前缀、独立程序及组件裁剪验收，union 容器和总门继续。
+- `stdlib53-b229-thread-retirement.md`：worker 完成与真实引用退役原子提交，修复捕获清理竞态；确定性坏实现拒绝、双端完整线程与故障压力验收。
 - `XRT与xlang系统整合任务.md`：当前长期整合范围、快照契约、实施顺序和 HTTP/WebSocket 快慢路径边界。
 - `扩展库开发问题清单.md`：六轮扩展库批次发现的语言/编译器/运行时问题账本（P0 崩溃类到 P4 C 库兼容），含最小复现、规避方案与修复优先级。
 - `剩余未压实扩展库清单.md`：删除 22 个占位库后 109 个未压实包的处置规划视图（按编解码改造/平台收编/真外部服务/迁移队列分类）。
