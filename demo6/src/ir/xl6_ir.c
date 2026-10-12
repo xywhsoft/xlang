@@ -18948,10 +18948,6 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
     XL6_AstNode boolType;
     XL6_AstNode errorType;
     XL6_AstNode stringType;
-    XL6_AstNode dynamicType;
-    XL6_AstNode arrayType;
-    XL6_AstNode listType;
-    XL6_AstNode dictType;
     if ( module == NULL ) return 0;
     classLayoutFailure[0] = '\0';
     classDispatchFailure[0] = '\0';
@@ -18984,42 +18980,21 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
     stringType.semanticTypeAbiId = xl6TypeAbiIdText("xrt.string");
     if ( ok && module->root != XL6_IR_NODE_INVALID &&
          xl6IrInternAstType(module, root, &stringType) == XL6_IR_TYPE_INVALID ) ok = 0;
-    /* Every XRT collection/object slot owns one erased xvalue item.  Make the
-     * carrier TypeId part of canonical Typed XLIR vocabulary even when user
-     * source never spells `var`; otherwise element storage would depend on an
-     * incidental dynamic expression elsewhere in the module.  Append it only
-     * after source types so source-visible TypeIds remain stable. */
-    memset(&dynamicType, 0, sizeof(dynamicType));
-    dynamicType.kind = XL6_AST_TYPE;
-    dynamicType.text = "var";
-    dynamicType.semanticTypeAbiId = xl6TypeAbiIdText("xlang.var");
-    if ( ok && module->root != XL6_IR_NODE_INVALID &&
-         xl6IrInternAstType(module, root, &dynamicType) == XL6_IR_TYPE_INVALID ) ok = 0;
-    /* Implicit heterogeneous literals own an actual Array before var erasure.
-     * Append vocabulary after source types, never inside backend lowering. */
-    memset(&arrayType,0,sizeof(arrayType));
-    arrayType.kind=XL6_AST_TYPE;
-    arrayType.text="array";
-    arrayType.semanticTypeAbiId=xl6TypeAbiIdText("xlang.array");
-    if(ok && module->root!=XL6_IR_NODE_INVALID &&
-        xl6IrInternAstType(module,root,&arrayType)==XL6_IR_TYPE_INVALID) ok=0;
-    /* Sparse literals erased to var likewise require a real canonical List
-     * producer. Register vocabulary before closing derived construction
-     * recipes, never by looking at incidental explicit List declarations. */
-    memset(&listType,0,sizeof(listType));
-    listType.kind=XL6_AST_TYPE;
-    listType.text="list";
-    listType.semanticTypeAbiId=xl6TypeAbiIdText("xlang.list");
-    if(ok && module->root!=XL6_IR_NODE_INVALID &&
-        xl6IrInternAstType(module,root,&listType)==XL6_IR_TYPE_INVALID) ok=0;
-    /* An erased dictionary literal owns a canonical Dict before erasure.
-     * Its factory cannot depend on another explicit Dict declaration. */
-    memset(&dictType,0,sizeof(dictType));
-    dictType.kind=XL6_AST_TYPE;
-    dictType.text="dict";
-    dictType.semanticTypeAbiId=xl6TypeAbiIdText("xlang.dict");
-    if(ok && module->root!=XL6_IR_NODE_INVALID &&
-        xl6IrInternAstType(module,root,&dictType)==XL6_IR_TYPE_INVALID) ok=0;
+    /* Contextual var literals own canonical producers before erasure. Close
+     * the complete implicit vocabulary before derived construction witnesses;
+     * no declaration occurrence or backend lowering may decide its existence.
+     * Append after source types, retaining their source-visible TypeIds. */
+    static const struct { const char* name; const char* abi; } vocabulary[]={
+        {"var","xlang.var"},{"array","xlang.array"},{"list","xlang.list"},
+        {"dict","xlang.dict"},{"set","xlang.set"}
+    };
+    for(size_t i=0;ok && module->root!=XL6_IR_NODE_INVALID &&
+        i<sizeof(vocabulary)/sizeof(vocabulary[0]);++i) {
+        XL6_AstNode implicitType={0};
+        implicitType.kind=XL6_AST_TYPE; implicitType.text=(char*)vocabulary[i].name;
+        implicitType.semanticTypeAbiId=xl6TypeAbiIdText(vocabulary[i].abi);
+        if(xl6IrInternAstType(module,root,&implicitType)==XL6_IR_TYPE_INVALID) ok=0;
+    }
     xl6IrBuildRuntimeTypeMap(module);
     if ( !ok || module->root == XL6_IR_NODE_INVALID ) {
         xl6IrModuleFree(module); return 0;
