@@ -9,6 +9,14 @@
 
 enum { THREAD_ID=401 };
 static _Atomic(unsigned) started, proceed, ended, callbacks;
+static _Atomic(unsigned) captureEntered,captureProceed,releaseReturned,waitEntered;
+static _Atomic(bool) captureWindow;
+extern xwaitresult __real_xrtThreadWait(xthread*);
+xwaitresult __wrap_xrtThreadWait(xthread* thread)
+{
+    if (captureWindow) atomic_store_explicit(&waitEntered,1,memory_order_release);
+    return __real_xrtThreadWait(thread);
+}
 static xvalue* transferred;
 static void await(_Atomic(unsigned)* flag)
 {
@@ -233,6 +241,52 @@ static void heapQuiescence(const xmemdebugsnapshot* before)
         assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
     } while (true);
 }
+static void blockedCaptureDrop(void* raw,void* context)
+{
+    assert(raw==(void*)(uintptr_t)1 && !context);
+    atomic_store_explicit(&captureEntered,1,memory_order_release);
+    await(&captureProceed);
+}
+static bool captureLeaf(const xvalue* value,xrtownershipvisitor visit,void* context)
+{ (void)value; (void)context; return visit!=NULL; }
+static int32 captureShellRelease(void* raw)
+{
+    xrtSetErrorKind(XERR_TIMEOUT); const xerror* prior=xrtGetError();
+    xrtValueRelease(raw);
+    assert(xrtGetError()==prior); xrtClearError();
+    atomic_store_explicit(&releaseReturned,1,memory_order_release); return 0;
+}
+static void captureRetirement(void)
+{
+    reset(); captureWindow=false;
+    atomic_store(&captureEntered,0); atomic_store(&captureProceed,0);
+    atomic_store(&releaseReturned,0); atomic_store(&waitEntered,0);
+    static const xvaluehandleops ops={NULL,blockedCaptureDrop,NULL,NULL};
+    void* raw=(void*)(uintptr_t)1; xvalue* captured=xrtValueHandleTake(&raw,&ops,NULL); assert(captured && !raw);
+    assert(xrtValueHandleOwnershipBindPhased(captured,captureLeaf));
+    XL6_Closure* closure=xl6ClosureRuntimeV2Get()->CreateValue(NULL,(void (*)(void))captureInvoke,captured); assert(closure);
+    xrtValueRelease(captured); xvalue* thread=xl6ThreadCreateV1(closure,THREAD_ID); assert(thread);
+    xl6ClosureRuntimeV1Get()->Release(closure); await(&started);
+    xrtownershipscope freeze={0}; assert(xrtOwnershipFreezeTryBegin(&freeze));
+    xrtownershipref owner=ownerRef(thread); assert(xrtOwnershipScopeEnd(&freeze));
+    atomic_store_explicit(&proceed,1,memory_order_release); await(&captureEntered);
+    captureWindow=true; xthread* releaser=xrtThreadCreate(captureShellRelease,thread,0); assert(releaser);
+    xdeadline deadline=xrtDeadlineAfter(UINT64_C(30000000));
+    while (!atomic_load_explicit(&waitEntered,memory_order_acquire) &&
+        !atomic_load_explicit(&releaseReturned,memory_order_acquire)) {
+        assert(!xrtDeadlineExpired(deadline)); xrtThreadYield();
+    }
+    assert(!atomic_load(&releaseReturned) && atomic_load(&waitEntered));
+    /* The wait must not hold a mutation or metadata gate. The real worker
+     * stays externally rooted while its already-detached captures retire. */
+    assert(xrtOwnershipFreezeTryBegin(&freeze)); size_t refs=0; int token;
+    const xrtownershipadapterv1* adapter=xl6ThreadOwnershipAdapterV1(owner); assert(adapter);
+    assert(owner.Ops->Count(owner.Data,&refs) && refs==2 && !adapter->Claim(owner.Data,&token));
+    assert(xrtOwnershipScopeEnd(&freeze));
+    atomic_store_explicit(&captureProceed,1,memory_order_release);
+    assert(xrtThreadWaitFor(releaser,UINT64_C(30000000))==XWAIT_OK && atomic_load(&releaseReturned));
+    captureWindow=false; xrtThreadDestroy(releaser);
+}
 static void selfDropVector(void)
 {
     reset(); xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
@@ -295,6 +349,7 @@ int main(int argc,char** argv)
     else if (!strcmp(argv[1],"active-release")) activeRelease();
     else if (!strcmp(argv[1],"lease")) leaseVector();
     else if (!strcmp(argv[1],"self-drop")) selfDropVector();
+    else if (!strcmp(argv[1],"capture-retirement")) captureRetirement();
     else if (!strcmp(argv[1],"errors")) errors();
     else if (!strcmp(argv[1],"oom")) failures();
     else if (!strcmp(argv[1],"methods")) {

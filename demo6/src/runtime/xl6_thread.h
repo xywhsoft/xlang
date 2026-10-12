@@ -8,7 +8,8 @@ struct xrtownershipadapterv1;
  * IR/native caller precondition. The worker and native methods hold real pins.
  * Source code appears only behind the closure's existing residency contract,
  * never as a generated owner/drop/trace callback. Status calls preserve errors.
- * Final shell release waits outside its own gate/mutation; self-release cannot
+ * Worker completion includes capture/code/error cleanup and atomically retires
+ * its real pin. Final shell release waits outside its own gate/mutation; self-release cannot
  * join itself. The XRT wait contract is logical completion, not OS-thread join. */
 XL6_CODE_LEASE_API struct xvalue* xl6ThreadCreateV1(XL6_Closure*,uint64_t);
 XL6_CODE_LEASE_API bool xl6ThreadWaitV1(const struct xvalue*,uint64_t);
