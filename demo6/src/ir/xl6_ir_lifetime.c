@@ -203,6 +203,7 @@ static int xl6IrInstructionMayInvalidateLoans(const XL6_IrModule* module, const 
     /* The caller can mutate shared storage while a generator is suspended. */
     case XL6_IR_INSTR_YIELD:
     case XL6_IR_INSTR_GENERATOR_NEXT:
+    case XL6_IR_INSTR_GENERATOR_PREPARE_YIELD:
     case XL6_IR_INSTR_CELL_RELEASE:
     case XL6_IR_INSTR_PRODUCT_DROP:
         return 1;

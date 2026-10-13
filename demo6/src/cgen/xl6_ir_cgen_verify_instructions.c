@@ -1092,6 +1092,7 @@ static int xl6IrCgenVerifyInstructions(
         case XL6_IR_INSTR_JUMP:
         case XL6_IR_INSTR_RETURN:
         case XL6_IR_INSTR_YIELD:
+        case XL6_IR_INSTR_GENERATOR_PREPARE_YIELD:
         case XL6_IR_INSTR_GENERATOR_CLOSE_TEST:
             break;
         case XL6_IR_INSTR_TRAP_IF_FALSE:

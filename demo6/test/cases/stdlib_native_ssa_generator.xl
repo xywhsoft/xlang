@@ -1,0 +1,46 @@
+extern "xlir_ssa_generator_cleanup" func cleanupSeen()
+extern "xlir_ssa_generator_entered" func entered()
+extern "xlir_ssa_generator_resumed" func resumed()
+extern "xlir_ssa_generator_stop" func stopEarly() as bool
+func newGeneratorKey() as SlotMapKey
+    auto slots = SlotMap::<int>()
+    return slots.insert(7)
+end
+func spillGeneratorKey(SlotMapKey key) as generator<int>
+    try
+        entered()
+        0
+        assert(key == key)
+        yield 1
+        resumed()
+        assert(key == key)
+    finally
+        cleanupSeen()
+    end
+end
+func nativeGeneratorItem(SlotMapKey key) as generator<SlotMapKey>
+    try
+        entered()
+        yield key
+        resumed()
+        assert(key == key)
+    finally
+        cleanupSeen()
+    end
+end
+auto sourceKey = newGeneratorKey()
+auto values = spillGeneratorKey(sourceKey)
+int count = 0
+for value in values
+    assert(value == 1)
+    count += 1
+    if stopEarly() then break end
+end
+assert(count == 1)
+count = 0
+for key in nativeGeneratorItem(sourceKey)
+    assert(key == sourceKey)
+    count += 1
+    if stopEarly() then break end
+end
+assert(count == 1)

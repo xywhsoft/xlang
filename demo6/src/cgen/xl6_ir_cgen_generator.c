@@ -61,6 +61,7 @@ static int xl6IrCgenGeneratorMachineProgramSupported(
                  frame->transferAbi != XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_CLOSURE &&
                  frame->transferAbi != XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_CELL &&
                  frame->transferAbi != XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_ERROR &&
+                 frame->transferAbi != XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE &&
                  frame->transferAbi != XL6_IR_ASYNC_FRAME_TRANSFER_MOVE_OWNED ) return 0;
         } else return 0;
     }
@@ -110,6 +111,7 @@ static int xl6IrCgenGeneratorMachineProgramSupported(
             case XL6_IR_INSTR_UNARY:
             case XL6_IR_INSTR_VALUE:
             case XL6_IR_INSTR_DISCARD:
+            case XL6_IR_INSTR_GENERATOR_PREPARE_YIELD:
             case XL6_IR_INSTR_NULL:
             case XL6_IR_INSTR_NULL_TEST:
             case XL6_IR_INSTR_NULLABLE_WRAP:
@@ -122,6 +124,15 @@ static int xl6IrCgenGeneratorMachineProgramSupported(
                       instruction->kind == XL6_IR_INSTR_NULLABLE_UNWRAP) &&
                      !xl6IrCgenNullableInstructionAbi(
                          module, instruction) ) return 0;
+                break;
+            case XL6_IR_INSTR_STORAGE_ADDRESS:
+                {
+                    const XL6_IrStorage* storage=xl6IrStorageGet(module,instruction->targetSymbol);
+                    if(!storage || !xl6IrCgenStorageRefTo(module,instruction,storage->type) ||
+                       (xl6IrCgenGeneratorFrameStorageSlot(module,machine,storage->symbol)==SIZE_MAX &&
+                        !xl6IrCgenGeneratorLocalStorage(module,machine,function,storage->symbol) &&
+                        !xl6IrCgenSharedStorage(module,storage->symbol)))return 0;
+                }
                 break;
             case XL6_IR_INSTR_BRANCH:
             case XL6_IR_INSTR_JUMP:
@@ -287,6 +298,17 @@ static int xl6IrCgenEmitGeneratorInstruction(
                 frameSlot != SIZE_MAX ? frameSlot - machine->firstFrameSlot : SIZE_MAX,
                 frameSlot != SIZE_MAX ? module->generatorFrameSlots[frameSlot].initBit : SIZE_MAX,
                 diags)) return 0;
+        break;
+    case XL6_IR_INSTR_STORAGE_ADDRESS:
+        {
+            const XL6_IrStorage* storage=xl6IrStorageGet(module,instruction->targetSymbol);
+            frameSlot=xl6IrCgenGeneratorFrameStorageSlot(module,machine,instruction->targetSymbol);
+            if(!storage || !xl6IrCgenStorageRefTo(module,instruction,storage->type))return 0;
+            xl6OutputPrintf(out,"    v%u = (void*)&",(unsigned)instruction->result);
+            if(frameSlot!=SIZE_MAX)xl6OutputPrintf(out,"frame->f%lu",(unsigned long)(frameSlot-machine->firstFrameSlot));
+            else xl6IrCgenPutStorageName(out,module,instruction->targetSymbol);
+            xl6OutputPuts(";\n",out);
+        }
         break;
     case XL6_IR_INSTR_STORE:
     case XL6_IR_INSTR_PRODUCT_STORE_MOVE:
@@ -470,6 +492,7 @@ static int xl6IrCgenEmitGeneratorInstruction(
                 xl6IrCgenEmitGeneratorNextTest(out, sourceIndex, tested, "gp",
                     block->trueTarget, block->falseTarget);
             } else if (source->kind == XL6_IR_INSTR_CLEANUP_END ||
+                       source->kind == XL6_IR_INSTR_GENERATOR_PREPARE_YIELD ||
                        (source->kind == XL6_IR_INSTR_RUNTIME_CALL && source->runtimeOp == XL6_IR_RUNTIME_STACK_CLEAR)) {
                 xl6OutputPrintf(out, "    if (v%u) goto gp%lu; else goto gp%lu;\n",
                     (unsigned int)tested, (unsigned long)block->trueTarget,
@@ -523,15 +546,17 @@ static int xl6IrCgenEmitGeneratorInstruction(
             return xl6IrCgenDiag(diags, module, instruction->origin,
                 "XLIR error-state ownership ABI is unresolved");
         break;
-    case XL6_IR_INSTR_YIELD:
+    case XL6_IR_INSTR_GENERATOR_PREPARE_YIELD:
         {
-            const XL6_IrGeneratorSuspension* suspension;
+            const XL6_IrGeneratorSuspension* suspension=NULL;
             size_t action;
-            if ( block->kind != XL6_IR_GENERATOR_MACHINE_BLOCK_YIELD ||
-                 block->suspension >= module->generatorSuspensionCount )
+            for(size_t i=machine->firstSuspension;i<machine->firstSuspension+machine->suspensionCount;++i)
+                if(module->generatorSuspensions[i].prepareInstruction==(size_t)(instruction-module->instructions))
+                    suspension=&module->generatorSuspensions[i];
+            if (!suspension || instruction->result==XL6_IR_VALUE_INVALID || instruction->operandCount!=1)
                 return xl6IrCgenDiag(diags, module, instruction->origin,
-                                     "XLIR generator yield has no suspension record");
-            suspension = &module->generatorSuspensions[block->suspension];
+                                     "XLIR generator preparation has no suspension record");
+            xl6OutputPrintf(out,"    v%u = false;\n",(unsigned)instruction->result);
             for ( action = 0; action < suspension->spillActionCount; ++action ) {
                 const XL6_IrContinuationFrameAction* spill =
                     &module->generatorFrameActions[suspension->firstSpillAction + action];
@@ -547,19 +572,29 @@ static int xl6IrCgenEmitGeneratorInstruction(
                     snprintf(input,sizeof(input),"v%u",(unsigned int)frame->value);
                     snprintf(initialized,sizeof(initialized),"frame->i%lu",(unsigned long)frame->initBit);
                     if (!xl6IrCgenEmitFrameAcquisitionBegin(out,type,frame->transferAbi,input,&acquired,
-                            xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,frame->type))) ||
-                        !xl6IrCgenEmitFrameAcquisitionCommit(out,type,place,frame->initBit==SIZE_MAX?NULL:initialized)) return 0;
+                            xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,frame->type)))) return 0;
+                    if(acquired){
+                        if(!xl6IrCgenEmitFrameAcquisitionFailureBegin(out,frame->transferAbi,input))return 0;
+                        xl6OutputPrintf(out,"    goto xlir_prepare_done_%lu; }\n",(unsigned long)suspension->prepareInstruction);
+                    }
+                    if(!xl6IrCgenEmitFrameAcquisitionCommit(out,type,place,frame->initBit==SIZE_MAX?NULL:initialized))return 0;
                 }
                 if (acquire) xl6OutputPuts("    }\n", out);
             }
             xl6OutputPrintf(out,
-                "    if (!xlir_generator_put(generator, &v%u, sizeof(v%u))) {\n"
-                "        xlir_generator_finish(generator); return false;\n"
-                "    }\n"
-                "    xlir_generator_set_state(generator, %uU);\n",
-                (unsigned int)suspension->itemValue,
-                (unsigned int)suspension->itemValue,
-                (unsigned int)(suspension->stateId + 1));
+                "    v%u = xlir_generator_put(generator, &v%u, sizeof(v%u));\n"
+                "    xlir_prepare_done_%lu:;\n",
+                (unsigned int)instruction->result,
+                (unsigned int)module->operands[instruction->firstOperand],
+                (unsigned int)module->operands[instruction->firstOperand],
+                (unsigned long)suspension->prepareInstruction);
+        }
+        break;
+    case XL6_IR_INSTR_YIELD:
+        {
+            if(block->kind!=XL6_IR_GENERATOR_MACHINE_BLOCK_YIELD || block->suspension>=module->generatorSuspensionCount)return 0;
+            const XL6_IrGeneratorSuspension* suspension=&module->generatorSuspensions[block->suspension];
+            xl6OutputPrintf(out,"    xlir_generator_set_state(generator, %uU);\n",(unsigned)(suspension->stateId+1));
             if (!xl6IrCgenEmitContinuationTransfers(out, module, 1, (size_t)(machine - module->generatorMachines),
                     instruction, XL6_IR_ASYNC_FRAME_ACTION_TRANSFER_ON_YIELD_COMMIT)) return 0;
             xl6OutputPuts("    return true;\n", out);

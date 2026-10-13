@@ -192,7 +192,7 @@ static int xl6IrCgenEmitRuntimePrelude(
             "}\n\n",
             out);
     if ( needs->needsGeneratorRuntime ) {
-        if (module->abi.generatorStorageAbi != XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3)
+        if (module->abi.generatorStorageAbi != XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V4)
             return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR generator storage ABI is unresolved");
         xl6OutputPuts("#include <__xl_runtime/xl6_generator.h>\n",out);
         xl6OutputPuts(module->abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT
