@@ -705,6 +705,13 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
              instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) &&
             !xl6IrCgenVisitSequenceFactorySymbols(module,instruction->type,visitor,context,0,false)) return 0;
         if(xl6IrCgenInstructionIsReachable(module,i) &&
+            (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_POP || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK ||
+             instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK_AT || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_POP ||
+             instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_PEEK || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_PEEK_AT)) {
+            const XL6_IrType* payload=xl6IrTypeGet(&module->types,instruction->payloadType);
+            if(payload && payload->cAbi==XL6_IR_C_ABI_CLOSURE_PTR && !visitor(context,"xl6StackCallableTakeV1")) return 0;
+        }
+        if(xl6IrCgenInstructionIsReachable(module,i) &&
             xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp))) {
             if(!xl6IrSlotMapInstructionCompatible(module,instruction) ||
                 !visitor(context,xl6IrSlotMapNativeSymbol(instruction->runtimeOp))) return 0;

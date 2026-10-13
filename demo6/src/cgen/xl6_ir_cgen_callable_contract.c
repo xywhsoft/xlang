@@ -71,6 +71,18 @@ static int xl6IrCgenRuntimeCallableAdapterDirectlyNeeded(
                 instruction->runtimeOp==(reverse ? XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP :
                     XL6_IR_RUNTIME_SPECIAL_QUEUE_TRY_PUSH)) return 1;
         }
+        if(xl6IrCgenStackRuntimeOpIs(instruction->runtimeOp) && instruction->runtimeOp!=XL6_IR_RUNTIME_STACK_CREATE &&
+            instruction->operandCount && instruction->firstOperand<module->operandCount) {
+            const XL6_IrInstruction* owner=xl6IrCgenValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+            const XL6_IrType* stack=owner ? xl6IrTypeGet(&module->types,owner->type) : NULL;
+            if(stack && stack->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1 &&
+                stack->sequenceLayout.baseElementType==type) {
+                if(!reverse && instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PUSH)return 1;
+                if(reverse && (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_POP || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK ||
+                    instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK_AT || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_POP ||
+                    instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_PEEK || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_PEEK_AT))return 1;
+            }
+        }
         aggregateClosure =
             (instruction->runtimeOp == XL6_IR_RUNTIME_FUTURE_ALL_XVALUES ||
              instruction->runtimeOp ==

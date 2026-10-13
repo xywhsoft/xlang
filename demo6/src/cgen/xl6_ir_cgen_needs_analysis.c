@@ -649,6 +649,16 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
              xl6IrCgenStackRuntimeOpIs(
                  module->instructions[i].runtimeOp) ) {
             needs->needsStackResourceRuntime = 1;
+            const XL6_IrInstruction* instruction=&module->instructions[i];
+            const XL6_IrType* payload=xl6IrTypeGet(&module->types,instruction->payloadType);
+            if(payload && payload->cAbi==XL6_IR_C_ABI_CLOSURE_PTR) {
+                needs->needsClosureRuntime=needs->needsXCallRuntime=needs->needsXValueClosureBridgeRuntime=1;
+                needs->needsForeignErrorRuntime=1;
+                if(instruction->runtimeOp==XL6_IR_RUNTIME_STACK_POP || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK ||
+                    instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK_AT || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_POP ||
+                    instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_PEEK || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_PEEK_AT)
+                    needs->needsStackCallableRuntime=1;
+            }
             if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_STACK_CREATE &&
                 !xl6IrCgenAnalyzeSequenceRecipeNeeds(module,module->instructions[i].type,needs,0)) return 0;
             if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_STACK_CREATE &&

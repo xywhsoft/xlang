@@ -350,7 +350,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_closure_capture_v3.c",D(R(CLOSURE),R(CAPTURE_V2),R(FOREIGN_ERROR)),{NULL}},
     {"src/runtime/xl6_array_native_value_policy.c",D(R(SEQUENCE),R(FOREIGN_ERROR)),{"XRT_MODULE_ATOMIC"}},
     {"src/runtime/xl6_nullable_slot_map_key_collection.c",D(R(ARRAY_NATIVE_VALUE_POLICY),R(NULLABLE_SLOT_MAP_KEY)),{NULL}},
-    {"src/runtime/xl6_cell_native.c",D(R(CELL),R(CAPTURE_V2),R(FOREIGN_ERROR)),{NULL}}
+    {"src/runtime/xl6_cell_native.c",D(R(CELL),R(CAPTURE_V2),R(FOREIGN_ERROR)),{NULL}},
+    {"src/runtime/xl6_stack_callable.c",D(R(SEQUENCE),R(CLOSURE),R(FOREIGN_ERROR)),
+        {"XRUNTIME_MODULE_TYPED_STACK","XRUNTIME_MODULE_RUNTIME_CALL","XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -613,7 +615,13 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         } else if (instruction->runtimeOp>=XL6_IR_RUNTIME_STACK_PUSH_BATCH &&
             instruction->runtimeOp<=XL6_IR_RUNTIME_STACK_PEEK_BATCH_AT) REQUIRE(R(STACK_BATCH));
         else if (instruction->runtimeOp > XL6_IR_RUNTIME_STACK_CREATE &&
-            instruction->runtimeOp <= XL6_IR_RUNTIME_STACK_CAPACITY) REQUIRE(R(STACK));
+            instruction->runtimeOp <= XL6_IR_RUNTIME_STACK_CAPACITY) {
+            const XL6_IrType* payload=xl6IrTypeGet(&module->types,instruction->payloadType);
+            bool read=instruction->runtimeOp==XL6_IR_RUNTIME_STACK_POP || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK ||
+                instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK_AT || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_POP ||
+                instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_PEEK || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_PEEK_AT;
+            REQUIRE(read && payload && payload->cAbi==XL6_IR_C_ABI_CLOSURE_PTR ? R(STACK_CALLABLE) : R(STACK));
+        }
         if (instruction->runtimeOp == XL6_IR_RUNTIME_NULLABLE_STRING_EQUAL) REQUIRE(R(NULLABLE_STRING));
         /* Only operations which physically consume an xrttype descriptor
          * select its immutable resident profile. Raw scalar queue/channel

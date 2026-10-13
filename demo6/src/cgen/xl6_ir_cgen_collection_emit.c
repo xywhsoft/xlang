@@ -807,7 +807,8 @@ static int xl6IrCgenEmitStackRuntime(
     if ( !xl6IrCgenStackTypeAbi(
              module, receiver != NULL ? receiver->type : instruction->type,
              &stack, &payload) ) return -1;
-    payloadType = xl6IrCgenType(module, instruction->payloadType);
+    bool closure=stack->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1;
+    payloadType = closure ? "xvalue*" : xl6IrCgenType(module, instruction->payloadType);
     payloadAbi = xl6IrCgenSequenceTransferAbiToken(
         instruction->runtimeResourcePayloadAbi);
     runtimeType = xl6IrCgenNativeSlotTypeExpr(stack->sequenceLayout.slotAbi);
@@ -842,12 +843,48 @@ static int xl6IrCgenEmitStackRuntime(
         }
         return xl6OutputHasFailed(out) ? -1 : 1;
     }
+    if(closure && (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_POP || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK_AT || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_POP ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_PEEK || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_PEEK_AT)) {
+        const XL6_IrSequenceLayout* plan=&stack->sequenceLayout;
+        const XL6_IrType* base=xl6IrTypeGet(&module->types,plan->baseElementType);
+        bool optional=instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_POP || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_PEEK ||
+            instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_PEEK_AT;
+        unsigned result=(unsigned)instruction->result;
+        xl6OutputPrintf(out,"    v%u = (%s){0};\n    bool projection_ok_%u = xl6StackCallableTakeV1(v%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, ",
+            result,xl6IrCgenType(module,instruction->type),result,(unsigned)first,(unsigned long long)stack->typeValueId,
+            (unsigned long long)payload->typeValueId,(unsigned long long)base->typeValueId,plan->nullable ? "true" : "false");
+        if(instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK_AT || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_PEEK_AT)
+            xl6OutputPrintf(out,"v%u",(unsigned)module->operands[instruction->firstOperand+1]);else xl6OutputPuts("0",out);
+        xl6OutputPrintf(out,", %s, xlir_closure_owner, (void (*)(void))xlir_xvalue_closure_entry_t%u, &v%u%s, ",
+            instruction->runtimeOp==XL6_IR_RUNTIME_STACK_POP || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_POP ? "true" : "false",
+            (unsigned)plan->baseElementType,result,optional ? ".e1" : "");
+        if(optional)xl6OutputPrintf(out,"&v%u.e0",result);else xl6OutputPuts("NULL",out);
+        xl6OutputPuts(");\n",out);return xl6OutputHasFailed(out) ? -1 : 1;
+    }
     switch ( instruction->runtimeOp ) {
     case XL6_IR_RUNTIME_STACK_CREATE:
         if (xl6IrCgenEmitSequenceCreate(out,module,instruction->type,instruction->result,
             instruction->sequenceAdmissionIdentitySet)<0) return -1;
         break;
     case XL6_IR_RUNTIME_STACK_PUSH:
+        if(closure) {
+            unsigned item=(unsigned)module->operands[instruction->firstOperand+1];
+            const XL6_IrSequenceLayout* plan=&stack->sequenceLayout;
+            const XL6_IrType* base=xl6IrTypeGet(&module->types,plan->baseElementType);
+            xl6OutputPrintf(out,
+                "    { xl6_error_scope stack_scope = {0};\n"
+                "      if (!xl6ErrorScopeBegin(&stack_scope)) abort();\n"
+                "      xvalue* stack_slot = v%u != NULL ? xlir_closure_to_xvalue_scalar(v%u, xlir_xcall_entry_t%u, 0x%016llXULL) : xrtValueRetain(xrtValueNull());\n"
+                "      v%u = stack_slot != NULL && xl6StackPushV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, &stack_slot);\n"
+                "      if (!v%u) xl6ErrorScopeCaptureFailure(&stack_scope);\n"
+                "      xrtValueRelease(stack_slot);\n"
+                "      xl6_error_result stack_outcome = xl6ErrorScopeEnd(&stack_scope);\n"
+                "      if (!stack_outcome.ok) xl6ErrorScopePropagateFailure(stack_outcome);\n    }\n",
+                item,item,(unsigned)plan->baseElementType,(unsigned long long)base->typeValueId,
+                (unsigned)instruction->result,(unsigned)first,XL6_IR_CGEN_STACK_COMMON_ARGS,(unsigned)instruction->result);
+            break;
+        }
         xl6OutputPrintf(out,
             "    v%u = xl6StackPushV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s, &v%u);\n",
             (unsigned int)instruction->result, (unsigned int)first,
