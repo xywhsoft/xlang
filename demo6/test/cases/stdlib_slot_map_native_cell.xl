@@ -1,0 +1,95 @@
+typedef OptionalReader = func() as SlotMapKey?
+typedef OptionalWriter = func(SlotMapKey?) as SlotMapKey?
+typedef NativeReader = func() as SlotMapKey
+typedef NativeWriter = func(SlotMapKey) as SlotMapKey
+func independentKey() as SlotMapKey
+    auto slots = SlotMap::<int>()
+    return slots.insert(31)
+end
+func shared(SlotMapKey? input) as (OptionalReader, OptionalWriter)
+    auto reader = func() as SlotMapKey? => input
+    auto writer = func(SlotMapKey? next) as SlotMapKey?
+        auto previous = input
+        input = next
+        return previous
+    end
+    return reader, writer
+end
+func nativeShared(SlotMapKey input) as (NativeReader, NativeWriter)
+    auto reader = func() as SlotMapKey => input
+    auto writer = func(SlotMapKey next) as SlotMapKey
+        auto previous = input
+        input = next
+        return previous
+    end
+    return reader, writer
+end
+func nested(SlotMapKey? input) as func() as SlotMapKey?
+    auto change = func(SlotMapKey? next)
+        input = next
+    end
+    auto factory = func() as func() as SlotMapKey?
+        return func() as SlotMapKey? => input
+    end
+    auto read = factory()
+    change(null)
+    return read
+end
+func pauseValue() as int
+    time.sleep(1)
+    return 7
+end
+async func suspendedCell(SlotMapKey? input, SlotMapKey? replacement) as SlotMapKey?
+    auto reader, writer = shared(input)
+    int waited = await task.spawn(pauseValue)
+    assert(waited == 7 and reader() == input)
+    assert(writer(replacement) == input)
+    return reader()
+end
+func cellGenerator(SlotMapKey? input) as generator<SlotMapKey?>
+    auto reader, writer = shared(input)
+    try
+        yield reader()
+        writer(null)
+        yield reader()
+    finally
+        writer(null)
+    end
+end
+func main(...) as int
+    auto firstKey = independentKey()
+    auto otherKey = independentKey()
+    SlotMapKey? first = firstKey
+    SlotMapKey? other = otherKey
+    SlotMapKey? absent = null
+    auto reader, writer = shared(first)
+    assert(reader() == first)
+    auto held = reader()
+    assert(writer(other) == first and reader() == other and held == first)
+    assert(writer(absent) == other and reader() == null)
+    assert(writer(first) == null and reader() == first)
+    auto nativeReader, nativeWriter = nativeShared(firstKey)
+    assert(nativeWriter(otherKey) == firstKey and nativeReader() == otherKey)
+    assert(nativeWriter(firstKey) == otherKey and nativeReader() == firstKey)
+    auto emptyReader = nested(first)
+    assert(emptyReader() == null and first != null)
+    auto missingReader, missingWriter = shared(null)
+    assert(missingReader() == null and missingWriter(other) == null)
+    assert(missingReader() == other)
+    int count = 0
+    for key in cellGenerator(first)
+        if count == 0 then assert(key == first) else assert(key == null) end
+        count += 1
+    end
+    assert(count == 2)
+    for key in cellGenerator(other)
+        assert(key == other)
+        break
+    end
+    assert(reader() == first and held == first)
+    return 0
+end
+SlotMapKey? suspendedFirst = independentKey()
+SlotMapKey? suspendedOther = independentKey()
+assert(await suspendedCell(suspendedFirst,suspendedOther) == suspendedOther)
+assert(await suspendedCell(null,suspendedOther) == suspendedOther)

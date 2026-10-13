@@ -584,6 +584,12 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             const char* symbol=xl6IrRuntimeNativeValueSymbol(plan,instruction->runtimeOp);
             if (!symbol || !visitor(context,symbol)) return 0;
         }
+        if(instruction->kind==XL6_IR_INSTR_CELL_NEW && xl6IrCgenInstructionIsReachable(module,i)){
+            const XL6_IrStorage* storage=xl6IrStorageGet(module,instruction->targetSymbol);
+            const XL6_IrNativeValuePlan* native=storage ? xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,storage->type)) : NULL;
+            if(native && (!native->captureProfileSymbol || !visitor(context,"xl6CellCreateNativeV2") ||
+                !visitor(context,native->captureProfileSymbol)))return 0;
+        }
         XL6_IrTypeId queueId=xl6IrConcurrentQueueInstructionType(module,instruction);
         if(instruction->kind==XL6_IR_INSTR_RUNTIME_CALL && xl6IrSlotMapIteratorOpIs(instruction->runtimeOp) &&
             xl6IrCgenInstructionIsReachable(module,i)) {

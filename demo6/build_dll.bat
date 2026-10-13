@@ -70,6 +70,9 @@ if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_nullable_slot_map_key_collection.c -o "%XL6_BUILD_TMP%\xl6_nullable_slot_map_key_collection.o"
 if errorlevel 1 exit /b 1
 set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_array_native_value_policy.o" "%XL6_BUILD_TMP%\xl6_nullable_slot_map_key_collection.o""
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_cell_native.c -o "%XL6_BUILD_TMP%\xl6_cell_native.o"
+if errorlevel 1 exit /b 1
+set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_cell_native.o""
 
 if not exist "lib\lzma\LzmaDec.c" (
     echo DEMO6 xl.dll build failed: missing LZMA decoder source "lib\lzma\LzmaDec.c".

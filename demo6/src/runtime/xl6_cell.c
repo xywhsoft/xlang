@@ -14,12 +14,14 @@ struct xlir_cell {
     const void* claim;
     void* retired;
     size_t size;
+    const XL6_CellLeafOpsV1* leaf;
+    const void* metadata;
     union { bool b; uint32_t character; int64_t i64; uint64_t u64; double f64; xstrview string; xvalue* value; void* bytes; } payload;
 };
 static bool cell_owning(const XL6_Cell* cell)
-{ return cell->kind==XL6_CELL_STRING || cell->kind==XL6_CELL_XVALUE; }
+{ return cell->kind==XL6_CELL_STRING || cell->kind==XL6_CELL_XVALUE || cell->kind==XL6_CELL_NATIVE_LEAF_V2; }
 static void* cell_data(const XL6_Cell* cell)
-{ return cell->kind==XL6_CELL_TRIVIAL_BYTES ? cell->payload.bytes : (void*)&cell->payload; }
+{ return cell->kind==XL6_CELL_TRIVIAL_BYTES || cell->kind==XL6_CELL_NATIVE_LEAF_V2 ? cell->payload.bytes : (void*)&cell->payload; }
 static bool cell_size_valid(XL6_CellKind kind, size_t size)
 {
     switch(kind) {
@@ -47,6 +49,26 @@ static XL6_Cell* cell_create_body(XL6_CellKind kind, size_t size)
     }
     return cell;
 }
+static bool cell_valid(const XL6_Cell* cell)
+{
+    return cell && (cell->kind==XL6_CELL_NATIVE_LEAF_V2
+        ? cell->leaf && cell->metadata && cell->leaf->Validate && cell->leaf->Destroy &&
+          cell->leaf->Validate(cell->metadata,cell->size)
+        : !cell->leaf && !cell->metadata && cell_size_valid(cell->kind,cell->size));
+}
+static XL6_Cell* cell_create_leaf_body(size_t size,const XL6_CellLeafOpsV1* ops,const void* metadata)
+{
+    if(!size || !ops || !ops->Validate || !ops->Destroy || !metadata || !ops->Validate(metadata,size)){
+        xrtSetErrorKind(XERR_ARGUMENT);return NULL;
+    }
+    XL6_Cell* cell=xrtCalloc(1,sizeof(*cell));if(!cell)return NULL;
+    cell->payload.bytes=xrtCalloc(1,size);
+    if(!cell->payload.bytes){xrtFree(cell);return NULL;}
+    cell->refs=1;cell->kind=XL6_CELL_NATIVE_LEAF_V2;cell->size=size;cell->leaf=ops;cell->metadata=metadata;
+    return cell;
+}
+XL6_Cell* xl6CellCreateLeafV1(size_t size,const XL6_CellLeafOpsV1* ops,const void* metadata)
+{XL6_OWNERSHIP_RETURN(XL6_Cell*,cell_create_leaf_body(size,ops,metadata));}
 static XL6_Cell* cell_create(XL6_CellKind kind, size_t size)
 { XL6_OWNERSHIP_RETURN(XL6_Cell*,cell_create_body(kind,size)); }
 static void cell_initialize_body(XL6_Cell* cell, const void* value, size_t size)
@@ -94,6 +116,9 @@ static void cell_release(XL6_Cell* cell)
     if(!xrtOwnershipScopeEnd(&mutation)) abort();
     if(cell->kind==XL6_CELL_STRING) xrtFree((void*)cell->payload.string.Data);
     else if(cell->kind==XL6_CELL_XVALUE) xrtValueRelease(cell->payload.value);
+    else if(cell->kind==XL6_CELL_NATIVE_LEAF_V2){
+        if(cell->payload.bytes){cell->leaf->Destroy(cell->metadata,cell->payload.bytes);xrtFree(cell->payload.bytes);}
+    }
     else if(cell->kind==XL6_CELL_TRIVIAL_BYTES) xrtFree(cell->payload.bytes);
     xrtFree(cell);
 }
@@ -106,7 +131,7 @@ static bool cell_count(const void* data, size_t* count)
 static bool cell_trace(const void* data, xrtownershipvisitor visit, void* context)
 {
     const XL6_Cell* cell=data;
-    if(!cell || cell->cleared || !visit || !cell_size_valid(cell->kind,cell->size)) return false;
+    if(!cell || cell->cleared || !visit || !cell_valid(cell)) return false;
     return cell->kind!=XL6_CELL_XVALUE || visit(xrtValueOwnership(cell->payload.value),context);
 }
 static const xrtownershipops cell_ops={cell_count,cell_trace};
@@ -142,7 +167,7 @@ static void cell_clear(const void* data,const void* token)
     if(cell->claim!=token || cell->cleared) abort();
     if(cell->kind==XL6_CELL_XVALUE) { cell->retired=cell->payload.value; cell->payload.value=NULL; }
     else if(cell->kind==XL6_CELL_STRING) { cell->retired=(void*)cell->payload.string.Data; cell->payload.string=(xstrview){0}; }
-    else if(cell->kind==XL6_CELL_TRIVIAL_BYTES) { cell->retired=cell->payload.bytes; cell->payload.bytes=NULL; }
+    else if(cell->kind==XL6_CELL_TRIVIAL_BYTES || cell->kind==XL6_CELL_NATIVE_LEAF_V2) { cell->retired=cell->payload.bytes; cell->payload.bytes=NULL; }
     cell->cleared=true;
 }
 static bool cell_finish(const void* data,const void* token)
@@ -151,6 +176,7 @@ static bool cell_finish(const void* data,const void* token)
     if(cell->claim!=token || !cell->cleared) abort();
     retired=cell->retired; cell->retired=NULL;
     if(cell->kind==XL6_CELL_XVALUE) xrtValueRelease(retired);
+    else if(cell->kind==XL6_CELL_NATIVE_LEAF_V2 && retired){cell->leaf->Destroy(cell->metadata,retired);xrtFree(retired);}
     else xrtFree(retired);
     return true;
 }
@@ -161,5 +187,5 @@ const xrtownershipadapterv1* xl6CellOwnershipAdapterV1(xrtownershipref ref)
     const XL6_Cell* cell;
     if(!ref.Data || ref.Ops!=&cell_ops) return NULL;
     cell=ref.Data;
-    return !cell->cleared && cell->refs>0 && cell_size_valid(cell->kind,cell->size) ? &adapter : NULL;
+    return !cell->cleared && cell->refs>0 && cell_valid(cell) ? &adapter : NULL;
 }

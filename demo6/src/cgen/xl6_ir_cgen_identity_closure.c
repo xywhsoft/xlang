@@ -500,7 +500,7 @@ static int xl6IrCgenEmitCellInstruction(
     const char* payloadType = storage != NULL ? xl6IrCgenType(module, storage->type) : NULL;
     char place[128], initialized[64];
     if (storage == NULL || storage->cellType == XL6_IR_TYPE_INVALID || kind == NULL || payloadType == NULL ||
-        module->abi.cellStorageAbi != XL6_IR_CELL_STORAGE_RESIDENT_TRANSFER_V1)
+        module->abi.cellStorageAbi != xl6IrModuleCellStorageRequirement(module))
         return xl6IrCgenDiag(diags, module, instruction->origin,
             "XLIR C emitter cell element ABI is unresolved");
     if (frameSlot != SIZE_MAX) {
@@ -519,8 +519,15 @@ static int xl6IrCgenEmitCellInstruction(
     if (initBit != SIZE_MAX) snprintf(initialized, sizeof(initialized), "frame->i%lu", (unsigned long)initBit);
     switch (instruction->kind) {
     case XL6_IR_INSTR_CELL_NEW:
-        xl6OutputPrintf(out, "    v%u = (xl6CellRuntimeV1Get()->Create)(%s, sizeof(%s));\n",
-            (unsigned int)instruction->result, kind, payloadType);
+        {
+            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(element);
+            if(native){
+                if(!native->captureProfileSymbol)return 0;
+                xl6OutputPrintf(out,"    v%u = xl6CellCreateNativeV2(%s());\n",
+                    (unsigned)instruction->result,native->captureProfileSymbol);
+            }else xl6OutputPrintf(out, "    v%u = (xl6CellRuntimeV1Get()->Create)(%s, sizeof(%s));\n",
+                (unsigned int)instruction->result, kind, payloadType);
+        }
         break;
     case XL6_IR_INSTR_CELL_INIT:
         xl6OutputPrintf(out, "    (xl6CellRuntimeV1Get()->Initialize)(v%u, &v%u, sizeof(%s));\n",

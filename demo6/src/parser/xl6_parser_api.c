@@ -339,7 +339,12 @@ static int xl6ParserMatchFuncTypeParam(const XL6_ParseTokenStream* stream, size_
         *outNext = index + 1;
         return 1;
     }
-    return xl6ParserMatchTypeExpr(stream, index, outNext);
+    size_t next;
+    if(!xl6ParserMatchTypeExpr(stream,index,&next))return 0;
+    /* Parameters are type-only contexts. Consume their nullable suffix just
+     * as return types/type lists do, before matching the enclosing ')'. */
+    if(next<stream->count && stream->tokens[next].kind==XL6_TK_QUESTION)++next;
+    *outNext=next;return 1;
 }
 
 static int xl6ParserMatchFunctionReturnSig(const XL6_ParseTokenStream* stream, size_t index, size_t* outNext)
@@ -532,7 +537,10 @@ static int xl6ParserVMatchFuncTypeParam(const XL6_ParseTokenStream* stream, XL6_
         *outNext = xl6ParserVNext(stream, pos);
         return 1;
     }
-    return xl6ParserVMatchTypeExpr(stream, pos, outNext);
+    XL6_VTokenPos next;
+    if(!xl6ParserVMatchTypeExpr(stream,pos,&next))return 0;
+    if(xl6ParserVKindAt(stream,next)==XL6_TK_QUESTION)next=xl6ParserVNext(stream,next);
+    *outNext=next;return 1;
 }
 
 static int xl6ParserVMatchFunctionReturnSig(const XL6_ParseTokenStream* stream, XL6_VTokenPos pos, XL6_VTokenPos* outNext)

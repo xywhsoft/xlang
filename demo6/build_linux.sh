@@ -145,6 +145,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_code_lease.c"
 	"$ROOT/src/runtime/xl6_closure.c"
 	"$ROOT/src/runtime/xl6_cell.c"
+  "$ROOT/src/runtime/xl6_cell_native.c"
 	"$ROOT/src/runtime/xl6_slot.c"
 	"$ROOT/src/runtime/xl6_frame_storage.c"
 	"$ROOT/src/runtime/xl6_task.c"
