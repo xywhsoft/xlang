@@ -1,7 +1,7 @@
 /* Actual public compiler/runtime, no white-box API inclusion or synthetic
  * module owner. Native graph/OOM gate and Windows TCC MEM_FREE gate provide
  * separate evidence, not instrumentation claims about this shared library. */
-#include "include/xlc.h"
+#include "xlc.h"
 #include "src/runtime/xl6_stack.h"
 #include <assert.h>
 #include <stdio.h>
@@ -30,6 +30,17 @@ static void dropped(int64_t id, int64_t count)
 static void transaction(const char* headers, const char* temporary, const char* runtime, const char* libraries,
     const char* fixture)
 {
+#ifdef XLIR_GRAPH_EMBEDDED_VFS
+    (void)headers; (void)libraries;
+    assert(xlRuntimeInit());
+    XL_ContextOptions options = xlDefaultContextOptions();
+    options.workDir = "."; options.tempDir = temporary; options.tccDllPath = runtime; options.tccLibPath = NULL;
+    XL_Context* context = xlCreateContext(&options); assert(context);
+    assert(xlRegisterCFunction(context,"stack_graph_capture",(void*)capture));
+    assert(xlRegisterCFunction(context,"stack_graph_dropped",(void*)dropped));
+    XL_Module* module = xlCompileScriptFileToModule(context,fixture);
+    if (!module) { fprintf(stderr,"%s\n",xlGetLastError(context)); abort(); }
+#else
     XLC_ContextOptions options = xlcDefaultContextOptions();
     options.workDir = "."; options.tempDir = temporary; options.tccDllPath = runtime; options.tccLibPath = libraries;
     XLC_Context* compiler = xlcCreateContext(&options); assert(compiler);
@@ -39,13 +50,20 @@ static void transaction(const char* headers, const char* temporary, const char* 
     assert(xlcAddSourceFile(compiler,fixture));
     if (!xlcCompile(compiler)) { fprintf(stderr,"%s\n",xlcGetLastError(compiler)); abort(); }
     XL_Module* module = xlcRelocateModule(compiler); assert(module);
-    XL_Context* context = xlcRuntimeContext(compiler); assert(xlActivateModule(context,module,NULL));
+    XL_Context* context = xlcRuntimeContext(compiler);
+#endif
+    assert(xlActivateModule(context,module,NULL));
     typedef int64_t (*Setup)(int64_t);
     Setup setup; void* symbol = xlModuleGetSymbol(module,"stack_graph_setup"); memcpy(&setup,&symbol,sizeof(setup)); assert(setup);
     escaped = NULL; droppedMarkers = 0; assert(setup(selected) == 42 && !xrtGetError());
     assert(!droppedMarkers && (escaped != NULL) == (selected != 0)); xlDestroyModule(module);
     if (selected) { assert(!droppedMarkers); xrtValueRelease(escaped); escaped = NULL; }
-    xlcDestroyContext(compiler); xlRuntimeUnit();
+#ifdef XLIR_GRAPH_EMBEDDED_VFS
+    xlDestroyContext(context);
+#else
+    xlcDestroyContext(compiler);
+#endif
+    xlRuntimeUnit();
     assert(droppedMarkers == (selected ? 3u : 1u) && !xrtGetError());
 }
 int main(int argc, char** argv)

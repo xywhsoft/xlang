@@ -1,4 +1,4 @@
-"""Actual shipping DLL/SO Tree/Queue graph retirement and Queue continuations.
+"""Actual shipping DLL/SO Stack/Tree/Queue graph retirement and Queue continuations.
 Public JIT uses embedded VFS without source/header/library fallback or provider
 overrides. Continuation hosts complete genuine Promises after resident Watch or
 Commit using explicit test-only call-site interposition, not fake notifications.
@@ -17,6 +17,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('root','build-report','out'):
         parser.add_argument('--'+name,type=Path,required=True)
+    parser.add_argument('--family',action='append',choices=('stack','tree','queue','continuations'))
     args=parser.parse_args(); root,out=args.root.resolve(),args.out.resolve()
     manifest=args.build_report.resolve(); assert not out.exists()
     build=json.loads(manifest.read_text(encoding='utf-8-sig'))
@@ -26,12 +27,14 @@ def main():
     products=[root/'release'/name for name in
         (('xl.dll','xlc.dll','xl.exe') if windows else ('libxl.so','libxlc.so','xl'))]
     cases=project/'test/cases'
-    families=[('tree','stdlib_tree_ownership',5,12),
+    families=[('stack','stdlib_stack_ownership',1,25),
+        ('tree','stdlib_tree_ownership',5,12),
         ('queue','stdlib_concurrent_queue_ownership',6,25)]
     fixtures=[cases/(stem+'.xl') for _,stem,_,_ in families]
     hosts=[cases/(stem+'_public.c') for _,stem,_,_ in families]
     continuation=cases/'stdlib_concurrent_queue_continuation.xl'
     continuation_host=cases/'stdlib_concurrent_queue_continuation_host.c'
+    selected=set(args.family or ('stack','tree','queue','continuations'))
     files={Path(__file__).resolve(),Path(sys.executable),Path(cc),manifest,
         *fixtures,*hosts,continuation,continuation_host,
         cases/'xlir_multi_await_host_prelude.h',cases/'xlir_multi_await_host_support.h'}
@@ -64,6 +67,8 @@ def main():
         'RuntimeInstrumented':False,'Full53Acceptance':False,
         'IndependentAotGraphRetirementAcceptance':False,'ModuleUnmapAcceptance':False,
         'SchedulerWideOomAcceptance':False}
+    report['SelectedFamilies']=sorted(selected)
+    report['ExplicitSubset']=bool(args.family)
     def save():
         (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     def run(name,command):
@@ -84,7 +89,7 @@ def main():
             print(name+': FAILED '+repr(error),flush=True)
     suffix='.exe' if windows else ''; cli=isolated/'release'/products[2].name
     flags=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED',
-        '-I'+str(root),'-I'+str(root/'release/include'),'-I'+str(headers)]
+        '-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include'),'-I'+str(headers)]
     if not windows: flags+=['-D_GNU_SOURCE']
     generated_compat=['-Wno-unused-function','-Wno-unused-parameter','-Wno-unused-variable',
         '-Wno-unused-label','-Wno-unused-const-variable','-Wno-unused-but-set-variable',
@@ -100,7 +105,9 @@ def main():
             run(label+'.'+name,[cli,'cgen',source,'--emit',target])
         assert generated.read_bytes()==repeated.read_bytes()
         text=generated.read_text(encoding='utf-8')
-        if label=='tree': assert 'xlir_avl_' not in text and 'xl6TreeCreateTakeV1(' in text
+        if label=='stack':
+            assert 'xl6SequenceNominalCreateV1(' in text and 'xl6StackPushV1(' in text
+        elif label=='tree': assert 'xlir_avl_' not in text and 'xl6TreeCreateTakeV1(' in text
         else:
             assert 'xlir_special_queue_' not in text
             assert all('xl6'+name+'QueueCreateTakeV1(' in text for name in ('Spsc','Mpsc','Mpmc'))
@@ -115,14 +122,16 @@ def main():
                 for mode,family in modes:
                     tag=name+'.mode'+str(mode)+'.family'+str(family)
                     def check(m=mode,f=family,n=tag,b=binary,p=product,l=level):
-                        text=run(n,[b,m,f,'',out/(n+'.temps'),isolated/'release'/p.name,'',source])
-                        assert str(lifetimes)+' '+('measured actual' if label=='tree' else 'actual')+\
-                            ' compile/JIT/retire lifetimes' in text and 'balanced' in text
+                        arguments=[b,m]+([] if label=='stack' else [f])+['',out/(n+'.temps'),isolated/'release'/p.name,'',source]
+                        text=run(n,arguments)
+                        prefix='measured actual' if label=='tree' else 'actual source' if label=='stack' else 'actual'
+                        assert str(lifetimes)+' '+prefix+' compile/JIT/retire lifetimes' in text and 'balanced' in text
                         proofs.append({'Case':label,'Product':p.name,'Optimization':l,
                             'Mode':m,'Family':f,'MeasuredLifetimes':lifetimes}); save()
                         print(n+': balanced '+str(lifetimes)+' measured JIT lifetimes',flush=True)
                     batch(tag,check)
-    for family in families: batch(family[0],lambda f=family:graph(*f))
+    for family in families:
+        if family[0] in selected:batch(family[0],lambda f=family:graph(*f))
     def continuations():
         source=isolated/'inputs'/continuation.name; generated=out/'continuation.c'
         repeated=out/'continuation.repeat.c'; ir=out/'continuation.ir.json'
@@ -156,9 +165,10 @@ def main():
                                 'Terminal':t,'Timing':when,'Activations':2,'FinallyCallsPerActivation':1}); save()
                             print(n+': two balanced activations, once-only finally',flush=True)
                         batch(name,check)
-    batch('continuations',continuations)
+    if 'continuations' in selected:batch('continuations',continuations)
     report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
-    report['Complete']=not failures and report['InputsUnchanged'] and len(proofs)==4*(16+19)+48
+    expected=sum(4*(1+3*count) for label,_,count,_ in families if label in selected)+(48 if 'continuations' in selected else 0)
+    report['Complete']=not failures and report['InputsUnchanged'] and len(proofs)==expected
     save(); print(f'Container graph shipping: {len(rows)} phases, {len(proofs)} modes, complete={report["Complete"]}',flush=True)
     return 0 if report['Complete'] else 1
 

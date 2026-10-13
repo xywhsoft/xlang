@@ -1,8 +1,14 @@
 /* Shared actual native/language callback fixture. No replacement container,
  * ownership adapter, error bridge, or generated-code patch. */
+#if defined(XL6_CLEAR_EMBEDDED_SDK)
+#include <__xl_runtime/xl6_stack.h>
+#include <__xl_runtime/xl6_array.h>
+#include <__xl_runtime/xl6_array_erased.h>
+#else
 #include "src/runtime/xl6_stack.h"
 #include "src/runtime/xl6_array.h"
 #include "src/runtime/xl6_array_erased.h"
+#endif
 #include <assert.h>
 #include <stdint.h>
 
