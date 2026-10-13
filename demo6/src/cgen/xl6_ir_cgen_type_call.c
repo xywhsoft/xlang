@@ -430,6 +430,17 @@ static int xl6IrCgenParameterAbiIsIndirect(XL6_IrParameterAbi abi)
            abi == XL6_IR_PARAMETER_ABI_OUT;
 }
 
+/* The canonical language place can differ from an ordinary extern's fixed C
+ * text argument. Both SSA calls and prepared dynamic witnesses use this map. */
+static const char* xl6IrCgenDirectPlaceSuffix(
+    const XL6_IrModule* module, const XL6_IrCallTarget* target, size_t parameter)
+{
+    const XL6_IrType* type = xl6IrTypeGet(&module->types, target->parameterTypes[parameter]);
+    return type != NULL && type->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+        (target->kind == XL6_IR_CALL_TARGET_EXTERN_C || target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
+        target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ? ".Data" : "";
+}
+
 static int xl6IrCgenEmitCallOperand(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrCallTarget* target, size_t parameter,
@@ -467,13 +478,8 @@ static int xl6IrCgenEmitCallOperand(
         if ( type == NULL ) return 0;
         xl6OutputPrintf(out, "(%s*)v%u", type, (unsigned int)value);
     } else {
-        const XL6_IrType* type = xl6IrTypeGet(&module->types,
-            target->parameterTypes[parameter]);
         xl6OutputPrintf(out, "v%u%s", (unsigned int)value,
-            type != NULL && type->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-            (target->kind == XL6_IR_CALL_TARGET_EXTERN_C ||
-             target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
-            target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ? ".Data" : "");
+            xl6IrCgenDirectPlaceSuffix(module, target, parameter));
     }
     return !xl6OutputHasFailed(out);
 }

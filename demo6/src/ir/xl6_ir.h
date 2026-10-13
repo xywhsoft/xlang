@@ -5260,6 +5260,13 @@ typedef struct XL6_IrCallTarget {
     XL6_IrCallVariadicAbi variadicAbi;
 } XL6_IrCallTarget;
 
+/* Complete physical callable envelope accepted by dynamic method adapters.
+ * Parameter matching remains a separate declared-language-domain contract. */
+int xl6IrDynamicMethodCallTargetSupported(const struct XL6_IrModule*, const XL6_IrCallTarget*);
+/* Portable closed payload for a signed/unsigned contextual integer literal,
+ * including unary signs and the exact minimum signed value. */
+char* xl6IrCanonicalContextualIntegerLiteral(const struct XL6_IrModule*, XL6_IrNodeId, XL6_IrTypeId);
+
 /* Allocation-free view of the selected synchronous property ABI. It projects
  * the already canonical direct/class/protocol target, with receiver separated
  * from explicit parameters, for transaction lowering and independent checks.

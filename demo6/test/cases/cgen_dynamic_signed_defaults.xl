@@ -1,0 +1,21 @@
+class SignedDefaultMethod
+    func size(int value = -1) as int
+        return value
+    end
+
+    func minimum(int value = -9223372036854775808) as int
+        return value
+    end
+end
+
+func signedDefaultFunction(int value = -1) as int
+    return value
+end
+
+var signedDefaultTarget = SignedDefaultMethod()
+assert int(signedDefaultTarget.size()) == -1
+assert int(signedDefaultTarget.minimum()) == -9223372036854775808
+var signedDefaultBound = signedDefaultTarget.size
+assert int(signedDefaultBound()) == -1
+var signedDefaultCallable = xcall(signedDefaultFunction)
+assert int(signedDefaultCallable()) == -1

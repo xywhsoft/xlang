@@ -1,0 +1,10 @@
+var nativeOwned = Buffer(b"a\0你")
+var nativeMore = Buffer(b"x")
+assert int(nativeOwned.len()) == 5
+assert bool(nativeOwned.append(nativeMore))
+assert bytes(nativeOwned.toBytes()) == b"a\0你x"
+assert bool(nativeOwned.append("y"))
+assert string(nativeOwned.text()) == "a\0你xy"
+var nativeExpression = Regex("a")
+assert bool(nativeExpression.test("a"))
+assert string(nativeExpression.replace("a\0a", "你")) == "你\0你"

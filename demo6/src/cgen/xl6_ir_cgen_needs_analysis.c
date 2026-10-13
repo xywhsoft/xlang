@@ -68,6 +68,18 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
 {
     size_t i;
     size_t parameter;
+    for ( i = 0; i < module->dynamicMethodCount; ++i ) {
+        const XL6_IrDynamicMethod* method = &module->dynamicMethods[i];
+        const XL6_IrCallTarget* target;
+        if ( !xl6IrCgenDynamicMethodNeeded(module, i) ) continue;
+        target = xl6IrCallTargetGet(module, method->targetSymbol);
+        if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ) continue;
+        if ( !xl6IrCgenRequireErrorResult(module, needs, method->returnType, method->declaration, diags) ) return 0;
+        needs->needsForeignErrorRuntime = needs->needsErrorRuntime = 1;
+        for ( parameter = 0; parameter < target->parameterCount; ++parameter )
+            if ( target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW )
+                needs->needsXValueHandleRuntime = 1;
+    }
     if (module->abi.taskPoolAbi == XL6_IR_MODULE_TASK_POOL_XRT_GUARDED_QUIESCE) {
         needs->needsAsyncTaskRuntime = 1;
         needs->needsRuntimeTrap = 1;
