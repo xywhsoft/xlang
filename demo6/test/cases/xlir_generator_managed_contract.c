@@ -1,5 +1,23 @@
 #include "xlir_continuation_owner_test.h"
 #include "xlir_activation_capture_assert.h"
+/* CFG reachability deliberately does not fold source constants. Turn the
+ * explicit false branch into its semantically identical unconditional edge,
+ * then rebuild all machine metadata. This preserves genuine dead-yield tests
+ * even now that checked preparation makes exceptional finally reachable. */
+static void fold_dead_fixture_branch(XL6_IrModule* ir)
+{
+    unsigned found=0;
+    for(size_t i=0;i<ir->instructionCount;++i){
+        XL6_IrInstruction* branch=&ir->instructions[i];
+        if(branch->kind!=XL6_IR_INSTR_BRANCH || branch->operandCount!=1)continue;
+        XL6_IrValueId input=ir->operands[branch->firstOperand];
+        const XL6_IrInstruction* literal=NULL;
+        for(size_t n=0;n<i;++n)if(ir->instructions[n].result==input)literal=&ir->instructions[n];
+        if(!literal || literal->kind!=XL6_IR_INSTR_CONST || !literal->immediateText || strcmp(literal->immediateText,"false"))continue;
+        branch->kind=XL6_IR_INSTR_JUMP;branch->trueTarget=branch->falseTarget;branch->falseTarget=0;branch->operandCount=0;++found;
+    }
+    assert(found==1 && xl6IrBuildGeneratorMachines(ir,NULL));verify(ir);
+}
 static void unused_generator(void)
 {
     XL6_ParseResult parse;XL6_IrModule ir;XL6_Output out;char* text;
@@ -8,10 +26,10 @@ static void unused_generator(void)
         xl6StdlibExpandModule(parse.root,&parse.diags)&&xl6SemCheckModule(parse.root,&parse.diags,"unreachable_yield")&&
         xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags)&&xl6IrLowerModule(&ir,&parse.diags);
     if(!built)xl6DiagPrintText(&parse.diags,"unused generator fixture");
-    assert(built);verify(&ir);assert(ir.generatorMachineCount==1);
+    assert(built);verify(&ir);fold_dead_fixture_branch(&ir);assert(ir.generatorMachineCount==1);
     const XL6_IrGeneratorMachine* machine=&ir.generatorMachines[0];
-    assert(ir.functions[machine->function].reachability==XL6_IR_REACHABILITY_UNREACHABLE&&machine->suspensionCount==3);
-    size_t yields=0;for(size_t i=0;i<ir.instructionCount;++i)yields+=ir.instructions[i].kind==XL6_IR_INSTR_YIELD;assert(yields==4);
+    assert(ir.functions[machine->function].reachability==XL6_IR_REACHABILITY_UNREACHABLE&&machine->suspensionCount==4);
+    size_t yields=0;for(size_t i=0;i<ir.instructionCount;++i)yields+=ir.instructions[i].kind==XL6_IR_INSTR_YIELD;assert(yields==5);
     assert(xl6OutputOpenMemory(&out)&&xl6IrCgenEmitC(&out,&ir,&parse.diags));text=xl6OutputTakeMemoryText(&out,NULL);
     assert(text&&!strstr(text,"xlir_generator_start_raw_"));xrtFree(text);xl6IrModuleFree(&ir);xl6ParseResultFree(&parse);
 }
@@ -24,7 +42,7 @@ int main(int argc,char** argv)
         xl6IrBuildModuleFromAst(&ir,parse.root,&parse.diags)&&xl6IrLowerModule(&ir,&parse.diags);
     if(!built)xl6DiagPrintText(&parse.diags,"managed generator fixture");
     assert(built);
-    verify(&ir);assert(ir.abi.generatorStorageAbi==XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3&&ir.generatorMachineCount==1);
+    verify(&ir);fold_dead_fixture_branch(&ir);assert(ir.abi.generatorStorageAbi==XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V4&&ir.generatorMachineCount==1);
     const XL6_IrGeneratorMachine* machine=&ir.generatorMachines[0];
     assert(machine->yieldAbi==XL6_IR_GENERATOR_YIELD_MOVE_XVALUE&&machine->frameSlotCount&&machine->destroyActionCount);
     size_t deadYield=SIZE_MAX,deadBlock=SIZE_MAX,totalYields=0;
@@ -37,7 +55,7 @@ int main(int argc,char** argv)
             if(!present){deadYield=i;deadBlock=function->firstBlock+b;}
         }
     }
-    assert(totalYields==4&&machine->suspensionCount==3&&deadYield!=SIZE_MAX&&deadBlock!=SIZE_MAX);
+    assert(totalYields==5&&machine->suspensionCount==4&&deadYield!=SIZE_MAX&&deadBlock!=SIZE_MAX);
     XL6_IrGeneratorMachineBlock savedBlock=ir.generatorMachineBlocks[machine->firstBlock];
     ir.generatorMachineBlocks[machine->firstBlock].block=(XL6_IrBlockId)(deadBlock+1);
     ir.generatorMachineBlocks[machine->firstBlock].firstInstruction=ir.blocks[deadBlock].firstInstruction;
@@ -48,7 +66,7 @@ int main(int argc,char** argv)
     ir.generatorSuspensions[machine->firstSuspension].itemValue=ir.operands[ir.instructions[deadYield].firstOperand];
     reject(&ir,NULL);ir.generatorSuspensions[machine->firstSuspension]=savedState;
     ir.abi.generatorStorageAbi=XL6_IR_GENERATOR_STORAGE_RESIDENT_SCOPED_FRAME_V1;reject(&ir,"generator storage ABI");
-    ir.abi.generatorStorageAbi=XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3;
+    ir.abi.generatorStorageAbi=XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V4;
     assert(xl6OutputOpenMemory(&out)&&xl6IrCgenEmitC(&out,&ir,&parse.diags));text=xl6OutputTakeMemoryText(&out,NULL);
     assert_activation_layout(text,"xlir_generator",machine->targetSymbol,ir.generatorFrameSlots+machine->firstFrameSlot,
         machine->frameSlotCount,machine->firstFrameSlot,ir.generatorFrameActions+machine->firstDestroyAction,machine->destroyActionCount);
@@ -59,5 +77,5 @@ int main(int argc,char** argv)
     assert(xl6OutputOpenFile(&out,argv[3]));xl6IrDumpModuleJson(&out,&ir);xl6OutputClose(&out);
     xl6IrModuleFree(&ir);xl6ParseResultFree(&parse);
     assert(mutations==3);
-    puts("Managed generator IR: closed V2 frame/item descriptors, dynamic owning capture and yield in finally; unused and reachable callable roots retain 4 CFG yields but exactly 3 executable suspensions; opaque V1, unreachable program and suspension identities rejected by C/header gates");return 0;
+    puts("Managed generator IR: closed frame/item descriptors, checked preparation and yield in finally; unused and reachable roots retain 5 CFG yields but exactly 4 executable suspensions, including preparation-failure cleanup; explicit false-branch yield remains unreachable and its program/suspension identities are rejected by C/header gates");return 0;
 }

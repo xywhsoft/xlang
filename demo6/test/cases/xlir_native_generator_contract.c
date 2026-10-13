@@ -19,9 +19,9 @@ int main(int argc,char** argv)
     assert(argc==2);XL6_CompileUnit unit;xl6CompileUnitInit(&unit);
     assert(xl6CompileUnitLoadFile(&unit,argv[1],1) && xl6IrLowerModule(&unit.ir,&unit.parse.diags));
     XL6_IrModule* ir=&unit.ir;assert(xl6IrVerifyModule(ir,NULL));
-    assert(ir->abi.generatorStorageAbi==XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3);
+    assert(ir->abi.generatorStorageAbi==XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V4);
     ir->abi.generatorStorageAbi=XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V2;refused(ir);
-    ir->abi.generatorStorageAbi=XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3;
+    ir->abi.generatorStorageAbi=XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V4;
     for(size_t i=0;i<ir->generatorFrameSlotCount;++i){
         XL6_IrContinuationFrameSlot* f=&ir->generatorFrameSlots[i];
         if(f->destroyAbi!=XL6_IR_ASYNC_FRAME_DESTROY_NATIVE_VALUE)continue;

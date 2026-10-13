@@ -13983,7 +13983,7 @@ static int xl6IrLowerSubtreeMayEscapeRaise(const XL6_IrModule* module, XL6_IrNod
     if ( initializer != NULL &&
          initializer->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE ) return 1;
     if ( node->kind == XL6_IR_NODE_ASSERT || node->kind == XL6_IR_NODE_THROW ||
-         node->kind == XL6_IR_NODE_AWAIT ) return 1;
+         node->kind == XL6_IR_NODE_AWAIT || node->kind == XL6_IR_NODE_YIELD ) return 1;
     if (node->callKind == XL6_SEM_CALL_CONSTRUCTOR) {
         const XL6_IrType* constructed = xl6IrTypeGet(&module->types, node->storageType);
         if (constructed != NULL && constructed->kind == XL6_IR_TYPE_CLASS &&
@@ -31472,6 +31472,10 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
         const XL6_IrType* itemType;
         XL6_IrValueId value;
         XL6_IrInstruction* instruction;
+        XL6_IrValueId prepared,observed,operands[2];
+        XL6_IrBlockId readyBlock,failureBlock;
+        XL6_SymbolId pendingItem=0;
+        const XL6_IrExitPlan* failurePlan;
         if ( function->kind != XL6_IR_FUNCTION_GENERATOR_WORKER ||
              target == NULL ||
              target->kind != XL6_IR_CALL_TARGET_INTERNAL_GENERATOR ||
@@ -31506,9 +31510,36 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 return XL6_IR_VALUE_INVALID;
             }
         }
+        observed=value;
+        if(itemType->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED){
+            observed=xl6IrLowerProtectEvaluationValue(ctx,id,target->generatorItemType,value);
+            if(observed==XL6_IR_VALUE_INVALID)return XL6_IR_VALUE_INVALID;
+            pendingItem=ctx->evaluationOwners[ctx->evaluationOwnerCount-1].storage;
+        }
+        failurePlan=xl6IrLowerExitPlan(ctx,id,XL6_SEM_EXIT_THROW);
+        if(!failurePlan || !xl6IrLowerEmit(ctx,XL6_IR_INSTR_GENERATOR_PREPARE_YIELD,id,
+                xl6IrLowerFindTypeByCAbi(ctx->module,XL6_IR_C_ABI_BOOL),pendingItem,&observed,1,&prepared))
+            return XL6_IR_VALUE_INVALID;
+        instruction=&ctx->module->instructions[ctx->module->instructionCount-1];
+        instruction->payloadType=target->generatorItemType;
+        instruction->generatorYieldAbi=target->generatorYieldAbi;
+        if(!xl6IrLowerNewBlock(ctx,&readyBlock) || !xl6IrLowerNewBlock(ctx,&failureBlock) ||
+           !xl6IrLowerEmit(ctx,XL6_IR_INSTR_ERROR_TEST,id,XL6_IR_TYPE_INVALID,0,&prepared,1,NULL))
+            return XL6_IR_VALUE_INVALID;
+        instruction=&ctx->module->instructions[ctx->module->instructionCount-1];
+        instruction->trueTarget=readyBlock;instruction->falseTarget=failureBlock;
+        xl6IrLowerEnterBlock(ctx,failureBlock);
+        if(!xl6IrLowerEmitExceptionTransfer(ctx,id,node,failurePlan,0))return XL6_IR_VALUE_INVALID;
+        xl6IrLowerEnterBlock(ctx,readyBlock);
+        if(pendingItem){
+            if(!xl6IrLowerEmit(ctx,XL6_IR_INSTR_STORAGE_TAKE,id,target->generatorItemType,
+                    pendingItem,NULL,0,&value))return XL6_IR_VALUE_INVALID;
+            --ctx->evaluationOwnerCount;
+        }
+        operands[0]=value;operands[1]=prepared;
         if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_YIELD, id,
                               target->generatorItemType, 0,
-                              &value, 1, NULL) ) return XL6_IR_VALUE_INVALID;
+                              operands, 2, NULL) ) return XL6_IR_VALUE_INVALID;
         instruction = &ctx->module->instructions[
             ctx->module->instructionCount - 1];
         instruction->generatorYieldAbi = target->generatorYieldAbi;
@@ -32766,7 +32797,7 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
     module->abi.cellStorageAbi = XL6_IR_CELL_STORAGE_RESIDENT_TRANSFER_V1;
     module->abi.valueIteratorStorageAbi = XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_CHECKED_SNAPSHOT_V2;
     module->abi.slotTransferAbi = XL6_IR_SLOT_TRANSFER_RESIDENT_ORDERED_WRITES_V1;
-    module->abi.generatorStorageAbi = XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3;
+    module->abi.generatorStorageAbi = XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V4;
     module->abi.asyncStorageAbi = XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V3;
     module->abi.taskStorageAbi = XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V3;
     module->abi.classStorageAbi = XL6_IR_CLASS_STORAGE_RESIDENT_GRAPH_V2;

@@ -1120,7 +1120,12 @@ typedef enum XL6_IrInstructionKind {
      * before destruction, and invalidate every borrowed view. Unlike RELEASE,
      * this operation has no storage symbol. The exact type fixes destruction;
      * potentially raising destruction requires a checked cleanup scope. */
-    XL6_IR_INSTR_VALUE_RELEASE
+    XL6_IR_INSTR_VALUE_RELEASE,
+    /* Checked generator preparation observes one pending item and acquires
+     * independent SSA frame residents. The bool result is authoritative and
+     * must be consumed by an immediate ERROR_TEST. Only its success edge may
+     * execute YIELD, which commits the item owner and suspends infallibly. */
+    XL6_IR_INSTR_GENERATOR_PREPARE_YIELD
 } XL6_IrInstructionKind;
 
 typedef enum XL6_IrGeneratorClosePointAbi {
@@ -5113,6 +5118,7 @@ typedef struct XL6_IrGeneratorSuspension {
     size_t machine;
     uint32 stateId;
     size_t yieldInstruction;
+    size_t prepareInstruction;
     XL6_IrBlockId block;
     XL6_IrValueId itemValue;
     XL6_IrTypeId itemType;
@@ -5507,7 +5513,9 @@ typedef enum XL6_IrGeneratorStorageAbi {
     XL6_IR_GENERATOR_STORAGE_NONE = 0,
     XL6_IR_GENERATOR_STORAGE_RESIDENT_SCOPED_FRAME_V1, /* Reserved opaque frame; not canonical Lowered IR. */
     XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V2,
-    XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3
+    XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3,
+    /* Checked prepare/error CFG before infallible ownership publication. */
+    XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V4
 } XL6_IrGeneratorStorageAbi;
 
 /* Physical async machine/task frame allocation and final disposal cooperate

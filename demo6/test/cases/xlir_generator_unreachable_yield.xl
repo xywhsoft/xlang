@@ -2,6 +2,7 @@ extern "managed_generator_mark" func managedGeneratorMark(int step)
 extern "managed_generator_fail" func managedGeneratorFail()
 
 func unusedGenerator(var capture) as generator<var>
+    if false then yield capture end
     try
         yield capture
     finally

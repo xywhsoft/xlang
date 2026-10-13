@@ -19,7 +19,8 @@ int main(int argc,char** argv)
         ir.abi.generatorStorageAbi=XL6_IR_GENERATOR_STORAGE_NONE; reject(&ir,"generator storage ABI");
         ir.abi.generatorStorageAbi=(XL6_IrGeneratorStorageAbi)99; reject(&ir,"generator storage ABI");
         ir.abi.generatorStorageAbi=XL6_IR_GENERATOR_STORAGE_RESIDENT_SCOPED_FRAME_V1; reject(&ir,"generator storage ABI");
-        ir.abi.generatorStorageAbi=XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3; verify(&ir);
+        ir.abi.generatorStorageAbi=XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3; reject(&ir,"generator storage ABI");
+        ir.abi.generatorStorageAbi=XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V4; verify(&ir);
         assert(xl6OutputOpenMemory(&out) && xl6IrCgenEmitC(&out,&ir,&parse.diags)); text=xl6OutputTakeMemoryText(&out,NULL);
         for(size_t m=0;m<ir.generatorMachineCount;++m){const XL6_IrGeneratorMachine* machine=&ir.generatorMachines[m];
             assert_activation_layout(text,"xlir_generator",machine->targetSymbol,
@@ -29,9 +30,9 @@ int main(int argc,char** argv)
             !strstr(text,"struct xlir_generator {") && !strstr(text,"generator->done =") &&
             !strstr(text,"static const xrtownershipops xlir_generator_frame_ops_")); xrtFree(text);
         assert(xl6OutputOpenMemory(&out)); xl6IrDumpModuleText(&out,&ir); text=xl6OutputTakeMemoryText(&out,NULL);
-        assert(text && strstr(text,"generator-storage: 3")); xrtFree(text);
+        assert(text && strstr(text,"generator-storage: 4")); xrtFree(text);
         assert(xl6OutputOpenMemory(&out)); xl6IrDumpModuleJson(&out,&ir); text=xl6OutputTakeMemoryText(&out,NULL);
-        assert(text && strstr(text,"\"generatorStorageAbi\": 3")); xrtFree(text);
+        assert(text && strstr(text,"\"generatorStorageAbi\": 4")); xrtFree(text);
         if(n==0) {
             assert(xl6OutputOpenFile(&out,argv[1]) && xl6IrCgenEmitC(&out,&ir,&parse.diags)); xl6OutputClose(&out);
             assert(xl6OutputOpenFile(&out,argv[2])); size_t bindings=0;
@@ -48,7 +49,7 @@ int main(int argc,char** argv)
         }
         xl6IrModuleFree(&ir); xl6ParseResultFree(&parse);
     }
-    assert(mutations==30);
-    puts("Generator storage IR: 5 fixtures, 30 rejected C/header-gated mutations (original 20 plus 10 V2 boundary checks); closed resident control/frame/item lifecycle, explicit text/JSON ABI");
+    assert(mutations==35);
+    puts("Generator storage IR: 5 fixtures, 35 rejected C/header-gated mutations; checked preparation V4, prior V3 refused, closed resident control/frame/item lifecycle, explicit text/JSON ABI");
     return 0;
 }

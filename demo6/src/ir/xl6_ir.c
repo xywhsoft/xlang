@@ -3131,6 +3131,7 @@ int xl6IrNodeRequiresThrowExitPlan(
            xl6IrNodeIsDynamicMemberWrite(module, nodeId) ||
            xl6IrNodeHasFallibleMemberWrite(module, nodeId) ||
            node->kind == XL6_IR_NODE_AWAIT ||
+           node->kind == XL6_IR_NODE_YIELD ||
            (node->callKind == XL6_SEM_CALL_WITNESS && node->targetSymbol != 0) ||
            node->memberAbi == XL6_IR_MEMBER_ABI_LENGTH_PROTOCOL_CALL ||
            node->compoundOperatorSymbol != 0 ||
@@ -19662,7 +19663,7 @@ static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* 
             ? XL6_IR_SLOT_TRANSFER_NONE : XL6_IR_SLOT_TRANSFER_RESIDENT_ORDERED_WRITES_V1))
         return xl6IrDiag(diags, NULL, "XLIR physical slot transfer ABI is unresolved");
     if (module->abi.generatorStorageAbi != (module->stage == XL6_IR_STAGE_TYPED
-            ? XL6_IR_GENERATOR_STORAGE_NONE : XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V3))
+            ? XL6_IR_GENERATOR_STORAGE_NONE : XL6_IR_GENERATOR_STORAGE_RESIDENT_CLOSED_FRAME_V4))
         return xl6IrDiag(diags, NULL, "XLIR generator storage ABI is unresolved");
     if (module->abi.asyncStorageAbi != (module->stage == XL6_IR_STAGE_TYPED
             ? XL6_IR_ASYNC_STORAGE_NONE : XL6_IR_ASYNC_STORAGE_RESIDENT_CLOSED_FRAME_V3))
@@ -27938,7 +27939,7 @@ static int xl6IrBuildGeneratorFunctionMachine(
             size_t scan;
             size_t bit;
             if ( yieldInstruction->kind != XL6_IR_INSTR_YIELD ) continue;
-            if ( yieldInstruction->operandCount != 1 ||
+            if ( yieldInstruction->operandCount != 2 ||
                  yieldInstruction->result != XL6_IR_VALUE_INVALID ||
                  yieldInstruction->type != target->generatorItemType ||
                  yieldInstruction->generatorYieldAbi !=
@@ -27953,6 +27954,13 @@ static int xl6IrBuildGeneratorFunctionMachine(
             suspension->machine = machineIndex;
             suspension->stateId = (uint32)machine->suspensionCount;
             suspension->yieldInstruction = instructionIndex;
+            {
+                size_t prepareIndex;
+                const XL6_IrInstruction* prepare=xl6IrValueDefinition(module,
+                    module->operands[yieldInstruction->firstOperand+1],&prepareIndex);
+                if(!prepare || prepare->kind!=XL6_IR_INSTR_GENERATOR_PREPARE_YIELD)goto done;
+                suspension->prepareInstruction=prepareIndex;
+            }
             suspension->block =
                 (XL6_IrBlockId)(function->firstBlock + blockLocal + 1);
             suspension->itemValue = module->operands[
@@ -29267,8 +29275,34 @@ static int xl6IrVerifyGeneratorMachinesReachable(
                     "XLIR generator suspension identity/range is malformed");
             yieldInstruction =
                 &module->instructions[suspension->yieldInstruction];
+            {
+                const XL6_IrInstruction* prepare;
+                const XL6_IrInstruction* guard;
+                const XL6_IrBlock* ready=&module->blocks[suspension->block-1];
+                const XL6_IrType* item=xl6IrTypeGet(&module->types,suspension->itemType);
+                size_t first=ready->firstInstruction;
+                if(suspension->prepareInstruction<function->firstInstruction ||
+                    suspension->prepareInstruction+1>=function->firstInstruction+function->instructionCount || !item)
+                    return xl6IrDiag(diags,NULL,"XLIR generator preparation identity/range is malformed");
+                prepare=&module->instructions[suspension->prepareInstruction];
+                guard=prepare+1;
+                if(prepare->kind!=XL6_IR_INSTR_GENERATOR_PREPARE_YIELD ||
+                    guard->kind!=XL6_IR_INSTR_ERROR_TEST || guard->trueTarget!=suspension->block ||
+                    function->entryBlock==suspension->block || yieldInstruction->operandCount!=2 ||
+                    module->operands[yieldInstruction->firstOperand+1]!=prepare->result ||
+                    suspension->yieldInstruction!=first+(item->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED?1:0))
+                    return xl6IrDiag(diags,NULL,"XLIR generator yield is not the exact preparation success commit");
+                for(size_t b=function->firstBlock;b<function->firstBlock+function->blockCount;++b){
+                    const XL6_IrBlock* source=&module->blocks[b];
+                    if(!source->instructionCount)continue;
+                    const XL6_IrInstruction* last=&module->instructions[source->firstInstruction+source->instructionCount-1];
+                    if((last->trueTarget==suspension->block || last->falseTarget==suspension->block) &&
+                       (last!=guard || last->falseTarget==suspension->block))
+                        return xl6IrDiag(diags,NULL,"XLIR generator preparation success entry has an unguarded incoming edge");
+                }
+            }
             if ( yieldInstruction->kind != XL6_IR_INSTR_YIELD ||
-                 yieldInstruction->operandCount != 1 ||
+                 yieldInstruction->operandCount != 2 ||
                  suspension->itemValue != module->operands[
                      yieldInstruction->firstOperand] ||
                  suspension->itemType != yieldInstruction->type ||
@@ -38535,7 +38569,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      instruction->pendingFailure > module->valueCount))
                     return xl6IrDiag(diags, instructionOrigin, "XLIR pending exception restoration has no cleanup outcome");
                  if ( instruction->kind <= XL6_IR_INSTR_INVALID ||
-                instruction->kind > XL6_IR_INSTR_VALUE_RELEASE ||
+                instruction->kind > XL6_IR_INSTR_GENERATOR_PREPARE_YIELD ||
                        instructionOrigin == NULL ||
                        instruction->firstOperand > module->operandCount ||
                       instruction->operandCount > module->operandCount - instruction->firstOperand ||
@@ -38676,6 +38710,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         return xl6IrDiag(diags, instructionOrigin, "XLIR generator close branch bypasses its cleanup-only unwind prefix");
                 }
                 if ( ((instruction->kind == XL6_IR_INSTR_YIELD ||
+                       instruction->kind == XL6_IR_INSTR_GENERATOR_PREPARE_YIELD ||
                        instruction->kind == XL6_IR_INSTR_GENERATOR_ITEM_GET ||
                        instruction->kind == XL6_IR_INSTR_GENERATOR_ITEM_TAKE) !=
                       (instruction->generatorYieldAbi !=
@@ -38809,7 +38844,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                            (instruction->runtimeOp >=
                                 XL6_IR_RUNTIME_AVL_TREE_CREATE &&
                             instruction->runtimeOp <=
-                                XL6_IR_RUNTIME_AVL_TREE_CLONE)))) !=
+                                XL6_IR_RUNTIME_AVL_TREE_CLONE))) ||
+                       instruction->kind == XL6_IR_INSTR_GENERATOR_PREPARE_YIELD) !=
                       (instruction->payloadType != XL6_IR_TYPE_INVALID) )
                     return xl6IrDiag(diags, NULL,
                         "XLIR instruction has an ambiguous runtime payload TypeId");
@@ -44134,7 +44170,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER &&
                             target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE && j > 0 &&
                             source == &module->instructions[block->firstInstruction + j - 1]) ||
-                           (source->kind == XL6_IR_INSTR_GENERATOR_NEXT &&
+                           ((source->kind == XL6_IR_INSTR_GENERATOR_NEXT ||
+                             source->kind == XL6_IR_INSTR_GENERATOR_PREPARE_YIELD) &&
                             instruction->targetSymbol == 0 && j > 0 &&
                             source == &module->instructions[
                                 block->firstInstruction + j - 1]) ||
@@ -45374,17 +45411,49 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 "XLIR generator item transfer has no exact yield ownership ABI");
                     }
                 }
+                if ( instruction->kind == XL6_IR_INSTR_GENERATOR_PREPARE_YIELD ) {
+                    const XL6_IrCallTarget* target=xl6IrCallTargetGet(module,function->symbol);
+                    const XL6_IrInstruction* item=instruction->operandCount==1
+                        ? xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL):NULL;
+                    const XL6_IrInstruction* test=j+1<function->firstInstruction+function->instructionCount
+                        ? &module->instructions[j+1]:NULL;
+                    const XL6_IrType* type=xl6IrTypeGet(&module->types,instruction->payloadType);
+                    const XL6_IrStorage* pending=xl6IrStorageGet(module,instruction->targetSymbol);
+                    size_t commits=0;
+                    for(size_t i=function->firstInstruction;i<function->firstInstruction+function->instructionCount;++i){
+                        const XL6_IrInstruction* commit=&module->instructions[i];
+                        if(commit->kind==XL6_IR_INSTR_YIELD && commit->operandCount==2 &&
+                            module->operands[commit->firstOperand+1]==instruction->result)++commits;
+                    }
+                    if(function->kind!=XL6_IR_FUNCTION_GENERATOR_WORKER || !target ||
+                        commits!=1 ||
+                        !item || !type || !xl6IrTypeIsBool(module,instruction->type) ||
+                        instruction->result==XL6_IR_VALUE_INVALID || instruction->targetValue ||
+                        instruction->runtimeOp!=XL6_IR_RUNTIME_NONE || instruction->opcode!=XL6_IR_OPCODE_INVALID ||
+                        instruction->calleeType || instruction->immediateText ||
+                        instruction->payloadType!=target->generatorItemType || item->type!=instruction->payloadType ||
+                        instruction->generatorYieldAbi!=target->generatorYieldAbi ||
+                        !test || test->kind!=XL6_IR_INSTR_ERROR_TEST || test->operandCount!=1 ||
+                        module->operands[test->firstOperand]!=instruction->result || test->origin!=instruction->origin ||
+                        (type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED
+                            ? !pending || pending->kind!=XL6_IR_STORAGE_TEMPORARY || pending->owner!=function->declaration ||
+                                pending->type!=item->type || item->kind!=XL6_IR_INSTR_LOAD || item->targetSymbol!=pending->symbol
+                            : instruction->targetSymbol!=0))
+                        return xl6IrDiag(diags,NULL,"XLIR generator preparation lacks an exact checked pending-item ABI");
+                }
                 if ( instruction->kind == XL6_IR_INSTR_YIELD ) {
                     const XL6_IrCallTarget* target =
                         xl6IrCallTargetGet(module, function->symbol);
-                    const XL6_IrInstruction* item = instruction->operandCount == 1
+                    const XL6_IrInstruction* item = instruction->operandCount == 2
                         ? xl6IrValueDefinition(module,
                             module->operands[instruction->firstOperand], NULL)
                         : NULL;
                     const XL6_IrNode* instructionOrigin = xl6IrNodeGet(module, instruction->origin);
+                    const XL6_IrInstruction* prepare=instruction->operandCount==2
+                        ? xl6IrValueDefinition(module,module->operands[instruction->firstOperand+1],NULL):NULL;
                     const XL6_IrInstruction* close = j + 1 < function->firstInstruction + function->instructionCount
                         ? &module->instructions[j + 1] : NULL;
-                    if (instruction->generatorClosePointAbi != instructionOrigin->generatorClosePointAbi ||
+                    if (!instructionOrigin || instruction->generatorClosePointAbi != instructionOrigin->generatorClosePointAbi ||
                         (instruction->generatorClosePointAbi != XL6_IR_GENERATOR_CLOSE_POINT_YIELD_UNWIND &&
                          instruction->generatorClosePointAbi != XL6_IR_GENERATOR_CLOSE_POINT_YIELD_DRAIN_FINALLY) ||
                         (instruction->generatorClosePointAbi == XL6_IR_GENERATOR_CLOSE_POINT_YIELD_UNWIND &&
@@ -45393,7 +45462,12 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     if ( function->kind != XL6_IR_FUNCTION_GENERATOR_WORKER ||
                          target == NULL ||
                          target->kind != XL6_IR_CALL_TARGET_INTERNAL_GENERATOR ||
-                         instruction->operandCount != 1 || item == NULL ||
+                         instruction->operandCount != 2 || item == NULL || prepare==NULL ||
+                         prepare->kind!=XL6_IR_INSTR_GENERATOR_PREPARE_YIELD ||
+                         prepare->payloadType!=instruction->type || prepare->origin!=instruction->origin ||
+                         (prepare->targetSymbol
+                             ? item->kind!=XL6_IR_INSTR_STORAGE_TAKE || item->targetSymbol!=prepare->targetSymbol
+                             : module->operands[prepare->firstOperand]!=module->operands[instruction->firstOperand]) ||
                          instruction->result != XL6_IR_VALUE_INVALID ||
                          instruction->type != target->generatorItemType ||
                          item->type != target->generatorItemType ||
@@ -46718,6 +46792,7 @@ static const char* xl6IrInstructionKindName(XL6_IrInstructionKind kind)
     case XL6_IR_INSTR_RETAIN: return "retain";
     case XL6_IR_INSTR_RELEASE: return "release";
     case XL6_IR_INSTR_VALUE_RELEASE: return "value-release";
+    case XL6_IR_INSTR_GENERATOR_PREPARE_YIELD: return "generator-prepare-yield";
     case XL6_IR_INSTR_MOVE: return "move";
     case XL6_IR_INSTR_DROP: return "drop";
     case XL6_IR_INSTR_CLOSURE_MAKE: return "closure-make";
@@ -48941,9 +49016,10 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
                 &module->generatorSuspensions[suspensionIndex];
             size_t live;
             xl6OutputPrintf(out,
-                "    generator-suspension gs%lu state=%u yield=i%lu block=b%u item=v%u/t%u/%s live=%lu..%lu spill=%lu..%lu resume=%lu..%lu\n",
+                "    generator-suspension gs%lu state=%u prepare=i%lu yield=i%lu block=b%u item=v%u/t%u/%s live=%lu..%lu spill=%lu..%lu resume=%lu..%lu\n",
                 (unsigned long)suspensionIndex,
                 (unsigned int)suspension->stateId,
+                (unsigned long)suspension->prepareInstruction,
                 (unsigned long)suspension->yieldInstruction,
                 (unsigned int)suspension->block,
                 (unsigned int)suspension->itemValue,
@@ -50561,7 +50637,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     for ( i = 0; i < module->generatorSuspensionCount; ++i ) {
         const XL6_IrGeneratorSuspension* suspension =
             &module->generatorSuspensions[i];
-        xl6OutputPrintf(out, "    {\"closePointAbi\":%d,\"closePointAbiName\":\"%s\",", (int)suspension->closePointAbi, xl6IrGeneratorClosePointAbiName(suspension->closePointAbi));
+        xl6OutputPrintf(out,"    {\"prepareInstruction\":%lu,",(unsigned long)suspension->prepareInstruction);
+        xl6OutputPrintf(out, "\"closePointAbi\":%d,\"closePointAbiName\":\"%s\",", (int)suspension->closePointAbi, xl6IrGeneratorClosePointAbiName(suspension->closePointAbi));
         xl6OutputPrintf(out,
             "\"id\":%lu,\"machine\":%lu,\"stateId\":%u,\"yieldInstruction\":%lu,\"yieldInstructionIndex\":%lu,\"yieldInstructionId\":%lu,\"block\":%u,\"itemValue\":%u,\"itemType\":%u,\"yieldAbi\":%d,\"yieldAbiName\":\"%s\",\"firstLiveSlot\":%lu,\"liveSlotCount\":%lu,\"firstSpillAction\":%lu,\"spillActionCount\":%lu,\"firstResumeAction\":%lu,\"resumeActionCount\":%lu}%s\n",
             (unsigned long)i, (unsigned long)suspension->machine,
