@@ -48,6 +48,15 @@ XL6_IrClosureStorageAbi xl6IrModuleClosureStorageRequirement(const XL6_IrModule*
             return XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3;
     return XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V2;
 }
+XL6_IrCellStorageAbi xl6IrModuleCellStorageRequirement(const XL6_IrModule* module)
+{
+    if(!module)return XL6_IR_CELL_STORAGE_NONE;
+    for(size_t i=0;i<module->storageCount;++i)
+        if(module->storages[i].cellType!=XL6_IR_TYPE_INVALID &&
+            xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,module->storages[i].type)))
+            return XL6_IR_CELL_STORAGE_RESIDENT_NATIVE_LEAF_V2;
+    return XL6_IR_CELL_STORAGE_RESIDENT_TRANSFER_V1;
+}
 static XL6_IrNativeValueAbi xl6IrNativeValueAbiFromType(const XL6_IrType* type)
 {
     if (!type || type->returnCount)

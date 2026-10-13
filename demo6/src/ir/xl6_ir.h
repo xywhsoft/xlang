@@ -5481,7 +5481,8 @@ typedef enum XL6_IrBoundMethodStorageAbi {
  * The closed element C ABI determines size/carrier, not cleanup inference. */
 typedef enum XL6_IrCellStorageAbi {
     XL6_IR_CELL_STORAGE_NONE = 0,
-    XL6_IR_CELL_STORAGE_RESIDENT_TRANSFER_V1
+    XL6_IR_CELL_STORAGE_RESIDENT_TRANSFER_V1,
+    XL6_IR_CELL_STORAGE_RESIDENT_NATIVE_LEAF_V2
 } XL6_IrCellStorageAbi;
 
 typedef enum XL6_IrValueIteratorStorageAbi {
@@ -7450,6 +7451,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module);
 const XL6_IrNativeValuePlan* xl6IrNativeValuePlanForType(const XL6_IrType*);
 XL6_IrClosureStorageAbi xl6IrClosureEnvironmentAbi(const XL6_IrModule*,const XL6_IrClosureTarget*);
 XL6_IrClosureStorageAbi xl6IrModuleClosureStorageRequirement(const XL6_IrModule*);
+XL6_IrCellStorageAbi xl6IrModuleCellStorageRequirement(const XL6_IrModule*);
 const XL6_IrNativeValuePlan* xl6IrNullableNativeValuePlan(const XL6_IrTypePool*,const XL6_IrType*);
 int xl6IrRuntimeNativeValueOpIs(XL6_IrRuntimeOp);
 const char* xl6IrRuntimeNativeValueSymbol(const XL6_IrNativeValuePlan*,XL6_IrRuntimeOp);

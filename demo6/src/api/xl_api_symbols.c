@@ -67,6 +67,7 @@
 #include "src/runtime/xl6_slot_map_key_value.h"
 #include "src/runtime/xl6_nullable_slot_map_key.h"
 #include "src/runtime/xl6_nullable_slot_map_key_capture.h"
+#include "src/runtime/xl6_cell_native.h"
 #include "src/runtime/xl6_array_native_value_admission.h"
 #include "src/runtime/xl6_nullable_slot_map_key_collection.h"
 #include "src/runtime/xl6_dict_graph_access.h"
@@ -265,6 +266,8 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6ClosureRuntimeV3Get", (const void*)xl6ClosureRuntimeV3Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClosureBoxErasedV1", (const void*)xl6ClosureBoxErasedV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6CellRuntimeV1Get", (const void*)xl6CellRuntimeV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6CellCreateLeafV1", (const void*)xl6CellCreateLeafV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6CellCreateNativeV2", (const void*)xl6CellCreateNativeV2)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6SlotRuntimeV1Get", (const void*)xl6SlotRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6GeneratorRuntimeV1Get", (const void*)xl6GeneratorRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6GeneratorRuntimeV2Get", (const void*)xl6GeneratorRuntimeV2Get)) return 0;

@@ -131,13 +131,22 @@ static int xl6IrCgenEmitRuntimePrelude(
             out);
     }
     if ( needs->needsCellRuntime ) {
-        if (module->abi.cellStorageAbi != XL6_IR_CELL_STORAGE_RESIDENT_TRANSFER_V1)
+        if (module->abi.cellStorageAbi != xl6IrModuleCellStorageRequirement(module))
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID, "XLIR cell storage ABI is unresolved");
         xl6OutputPuts("#include <__xl_runtime/xl6_cell.h>\n"
             "typedef XL6_Cell xlir_cell;\n"
             "#define xlir_cell_retain (xl6CellRuntimeV1Get()->Retain)\n"
             "#define xlir_cell_release (xl6CellRuntimeV1Get()->Release)\n"
             "#define xlir_cell_ownership (xl6CellRuntimeV1Get()->Ownership)\n\n", out);
+        if(module->abi.cellStorageAbi==XL6_IR_CELL_STORAGE_RESIDENT_NATIVE_LEAF_V2){
+            xl6OutputPuts("#include <__xl_runtime/xl6_cell_native.h>\n",out);
+            for(size_t i=0;i<module->types.count;++i){
+                const XL6_IrType* cell=&module->types.items[i];
+                if(cell->kind!=XL6_IR_TYPE_CELL || cell->paramCount!=1 || !cell->params)continue;
+                const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,cell->params[0]));
+                if(native && native->captureHeader)xl6OutputPrintf(out,"#include <%s>\n",native->captureHeader);
+            }
+        }
     }
     if ( needs->needsErrorRuntime )
         xl6OutputPuts("#include <__xl_runtime/xl6_error_text.h>\n"

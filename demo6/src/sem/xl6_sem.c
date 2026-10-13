@@ -14061,6 +14061,9 @@ static XL6_AstNode* xl6SemInferAutoTypeNodeRaw(XL6_SemContext* ctx, XL6_AstNode*
             XL6_AstNode* ownedReturns = NULL;
             XL6_AstNode* multiReturns = xl6SemCallReturnTypesEx(ctx, expr, &ownedReturns);
             XL6_AstNode* tupleType = xl6SemTupleTypeFromReturns(multiReturns, expr);
+            if(tupleType==NULL && expr->semanticCallKind==XL6_SEM_CALL_FUNCTION_VALUE &&
+                multiReturns && multiReturns->childCount==1)
+                tupleType=xl6SemCloneTypeNode(multiReturns->children[0]);
 
             xl6AstFree(ownedReturns);
             if ( tupleType != NULL ) {
@@ -14202,6 +14205,8 @@ static XL6_AstNode* xl6SemInferAutoTypeNodeRaw(XL6_SemContext* ctx, XL6_AstNode*
             if ( callableType == NULL ) {
                 callableType = sym->type;
             }
+            callableType=xl6SemResolveAliasType(ctx,callableType);
+            if(callableType==NULL)return NULL;
             if ( xl6TextEquals(callableType->text, "function") &&
                  callableType->childCount == 0 ) {
                 return xl6AstNewText(XL6_AST_TYPE, "var", 3, NULL);
@@ -16129,6 +16134,8 @@ static int xl6SemCheckBoundarySymbolUse(XL6_SemContext* ctx, const XL6_AstNode* 
         const XL6_AstNode* nullableElement = xl6SemNullableInnerType(cellValue);
         if ( nullableElement != NULL )
             cellValue = xl6SemResolveAliasType(ctx, nullableElement);
+        const XL6_TypeInfo* cellInfo=cellValue && cellValue->text
+            ? xl6TypeRegistryFind(&ctx->types,cellValue->text) : NULL;
         if ( cellValue == NULL || cellValue->text == NULL ||
              cellValue->childCount != 0 ||
              !(xl6SemIsBoolTypeName(cellValue->text) ||
@@ -16137,8 +16144,9 @@ static int xl6SemCheckBoundarySymbolUse(XL6_SemContext* ctx, const XL6_AstNode* 
                 xl6TextEquals(cellValue->text, "type") ||
                 xl6TextEquals(cellValue->text, "string") ||
                 xl6TextEquals(cellValue->text, "bytes") ||
-                xl6TextEquals(cellValue->text, "var")) ) {
-            xl6SemErrorNode(ctx, node, "可变捕获当前仅支持标量、type、trivial nullable、string 或 var cell ABI");
+                xl6TextEquals(cellValue->text, "var") ||
+                (cellInfo && cellInfo->kind==XL6_TYPE_BUILTIN && xl6TypeRegistryIsNativeValueAbi(cellInfo->abiId))) ) {
+            xl6SemErrorNode(ctx, node, "可变捕获需要已实现的共享 cell 元素 ABI");
             return 0;
         }
     }

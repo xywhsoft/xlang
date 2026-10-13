@@ -19644,7 +19644,7 @@ static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* 
             ? XL6_IR_BOUND_METHOD_STORAGE_NONE : XL6_IR_BOUND_METHOD_STORAGE_RESIDENT_CLOSURE_LAYOUT_V1))
         return xl6IrDiag(diags, NULL, "XLIR bound method storage/code ownership ABI is unresolved");
     if (module->abi.cellStorageAbi != (module->stage == XL6_IR_STAGE_TYPED
-            ? XL6_IR_CELL_STORAGE_NONE : XL6_IR_CELL_STORAGE_RESIDENT_TRANSFER_V1))
+            ? XL6_IR_CELL_STORAGE_NONE : xl6IrModuleCellStorageRequirement(module)))
         return xl6IrDiag(diags, NULL, "XLIR cell storage/resident transfer ABI is unresolved");
     if (module->abi.valueIteratorStorageAbi != (module->stage == XL6_IR_STAGE_TYPED
             ? XL6_IR_VALUE_ITERATOR_STORAGE_NONE : XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_CHECKED_SNAPSHOT_V2))

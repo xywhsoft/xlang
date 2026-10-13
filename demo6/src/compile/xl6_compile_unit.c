@@ -349,7 +349,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_nullable_slot_map_key_capture.c",D(R(CAPTURE_V2),R(NULLABLE_SLOT_MAP_KEY)),{NULL}},
     {"src/runtime/xl6_closure_capture_v3.c",D(R(CLOSURE),R(CAPTURE_V2),R(FOREIGN_ERROR)),{NULL}},
     {"src/runtime/xl6_array_native_value_policy.c",D(R(SEQUENCE),R(FOREIGN_ERROR)),{"XRT_MODULE_ATOMIC"}},
-    {"src/runtime/xl6_nullable_slot_map_key_collection.c",D(R(ARRAY_NATIVE_VALUE_POLICY),R(NULLABLE_SLOT_MAP_KEY)),{NULL}}
+    {"src/runtime/xl6_nullable_slot_map_key_collection.c",D(R(ARRAY_NATIVE_VALUE_POLICY),R(NULLABLE_SLOT_MAP_KEY)),{NULL}},
+    {"src/runtime/xl6_cell_native.c",D(R(CELL),R(CAPTURE_V2),R(FOREIGN_ERROR)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

@@ -11631,19 +11631,7 @@ static int xl6IrLowerBeginFunction(
                  !xl6IrLowerAddPromotedParameter(ctx, source, cellStorage) ||
                  !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, sourceDeclaration,
                                   sourceType, source, NULL, 0, &initial) ||
-                 (xl6IrLowerTypeIsManagedString(ctx->module, sourceType) &&
-                   (initial = xl6IrLowerEmitRuntimeCall(
-                      ctx, sourceDeclaration, sourceType,
-                      xl6IrTypeGet(&ctx->module->types, sourceType) != NULL &&
-                      xl6IrTypeGet(&ctx->module->types, sourceType)->kind ==
-                          XL6_IR_TYPE_NULLABLE
-                          ? XL6_IR_RUNTIME_STRING_NULLABLE_COPY
-                          : XL6_IR_RUNTIME_STRING_COPY,
-                      &initial, 1)) == XL6_IR_VALUE_INVALID) ||
-                 (xl6IrLowerTypeIsRuntimeXValue(ctx->module, sourceType) &&
-                  (initial = xl6IrLowerEmitRuntimeCall(
-                      ctx, sourceDeclaration, sourceType, XL6_IR_RUNTIME_XVALUE_RETAIN,
-                      &initial, 1)) == XL6_IR_VALUE_INVALID) ||
+                 (initial = xl6IrLowerAcquireValueOwner(ctx, sourceDeclaration, initial)) == XL6_IR_VALUE_INVALID ||
                  !xl6IrLowerConstructCell(ctx, sourceDeclaration, sourceDeclaration, cellStorage, initial) ) return 0;
             function->parameterCells[parameter] = cellStorage;
         }
@@ -13487,7 +13475,8 @@ static int xl6IrLowerClosureCaptureAdd(
                          captureType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE)) ||
                       captureType->cAbi == XL6_IR_C_ABI_MANAGED_STRING ||
                       captureType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-                      captureType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES) )
+                      captureType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
+                      xl6IrNativeValuePlanForType(captureType)!=NULL) )
         return xl6IrLowerDiag(ctx, origin,
                               "XLIR mutable closure capture requires a supported cell element ABI");
     if ( !xl6IrLowerGrow((void**)&ctx->module->closureCaptures,
@@ -32818,6 +32807,7 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
         return 0;
     }
     module->abi.closureStorageAbi=xl6IrModuleClosureStorageRequirement(module);
+    module->abi.cellStorageAbi=xl6IrModuleCellStorageRequirement(module);
     if ( !xl6IrLowerCanonicalizeDeadTrivialStorages(module) ) {
         (void)xl6IrLowerDiag(&ctx, module->root,
                             "XLIR lowering could not canonicalize dead trivial storage");
