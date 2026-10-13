@@ -1,0 +1,71 @@
+typedef StackFuture = future<int>
+typedef MaybeStackFuture = StackFuture?
+
+async func stackFutureReady(int value) as int
+    return value
+end
+
+auto first = stackFutureReady(11)
+auto second = stackFutureReady(22)
+auto stack = Stack::<StackFuture>()
+assert(stack.reserve(8))
+assert(stack.push(first) and stack.push(second))
+assert(stack.count() == 2 and stack.capacity() >= 8)
+auto peeked = stack.peek()
+auto old = stack.peekAt(1)
+assert(await peeked == 22 and await old == 11)
+auto clone = stack.clone()
+assert(clone.equals(stack))
+auto removed = stack.pop()
+assert(await removed == 22 and stack.count() == 1)
+assert(await clone.pop() == 22)
+auto found, owned = stack.tryPop()
+assert(found and owned != null)
+if owned != null then
+    assert(await owned == 11)
+end
+auto absent, missing = stack.tryPop()
+assert(not absent and missing == null)
+stack.clear()
+assert(stack.trim())
+
+auto nullable = Stack::<MaybeStackFuture>()
+assert(nullable.push(first) and nullable.push(null))
+auto presentNull, nullValue = nullable.tryPeek()
+assert(presentNull and nullValue == null and nullable.count() == 2)
+auto poppedNull, nullTaken = nullable.tryPop()
+assert(poppedNull and nullTaken == null and nullable.count() == 1)
+auto presentFuture, futureValue = nullable.tryPeekAt(0)
+assert(presentFuture and futureValue != null)
+if futureValue != null then
+    assert(await futureValue == 11)
+end
+auto outOfRange, noValue = nullable.tryPeekAt(9)
+assert(not outOfRange and noValue == null)
+
+array<MaybeStackFuture> batch = [second, null, first]
+nullable.clear()
+assert(nullable.pushBatch(batch))
+auto preview = nullable.peekBatch(2)
+assert(preview.length == 2 and preview[1] == null and nullable.count() == 3)
+auto window = nullable.peekBatchAt(1, 2)
+assert(window.length == 2 and window[0] == null)
+auto taken = nullable.popBatch(2)
+assert(taken.length == 2 and taken[1] == null and nullable.count() == 1)
+auto last = nullable.pop()
+assert(last != null)
+if last != null then
+    assert(await last == 22)
+end
+nullable.clear()
+assert(nullable.trim())
+auto retained = taken[0]
+assert(retained != null)
+if retained != null then
+    assert(await retained == 11)
+end
+
+auto nested = Stack::<Stack<StackFuture>>()
+assert(nested.push(clone))
+auto nestedValue = nested.pop()
+assert(await nestedValue.pop() == 11)

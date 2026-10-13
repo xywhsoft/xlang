@@ -289,7 +289,7 @@ static int xl6IrCgenRuntimeStackAbi(
              module, stackTypeId, &stack, &payload) ||
          instruction->payloadType != stack->params[0] ||
          instruction->runtimeResourcePayloadAbi !=
-             xl6IrCgenChannelPayloadAbi(payload) ) return 0;
+             stack->sequenceLayout.transferAbi ) return 0;
     resultType = xl6IrTypeGet(&module->types, instruction->type);
     if ( creates )
         return instruction->operandCount == 0 &&
@@ -810,7 +810,7 @@ static int xl6IrCgenEmitStackRuntime(
     payloadType = xl6IrCgenType(module, instruction->payloadType);
     payloadAbi = xl6IrCgenSequenceTransferAbiToken(
         instruction->runtimeResourcePayloadAbi);
-    runtimeType = xl6IrCgenNativeValueTypeExpr(module, instruction->payloadType);
+    runtimeType = xl6IrCgenNativeSlotTypeExpr(stack->sequenceLayout.slotAbi);
     if ( payloadType == NULL || payloadAbi == NULL || runtimeType == NULL ) return -1;
 #define XL6_IR_CGEN_STACK_COMMON_ARGS                                      \
     (unsigned long long)stack->typeValueId,                                \
