@@ -6,7 +6,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include <windows.h>
+#include "xlir_lifetime_platform.h"
 
 extern void* generator_storage_create(void);
 extern int generator_storage_next(void*);
@@ -14,13 +14,13 @@ extern int64_t generator_storage_get(void*);
 extern xrtownershipref generator_storage_ownership(const void*);
 extern void generator_storage_destroy(void*);
 static const XL6_GeneratorRuntimeV1* api;
-static volatile LONG generatedEntered;
-void generator_storage_entered(void) { InterlockedIncrement(&generatedEntered); }
-static LONG flag(volatile LONG* value) { return InterlockedCompareExchange(value,0,0); }
-static void wait_flag(volatile LONG* value)
+static XLIR_TestFlag generatedEntered;
+void generator_storage_entered(void) { xlirTestFlagIncrement(&generatedEntered); }
+static int flag(XLIR_TestFlag* value) { return xlirTestFlagGet(value); }
+static void wait_flag(XLIR_TestFlag* value)
 {
-    ULONGLONG deadline=GetTickCount64()+10000;
-    while(!flag(value)) { assert(GetTickCount64()<deadline); SwitchToThread(); }
+    uint64_t deadline=xlirTestMilliseconds()+10000;
+    while(!flag(value)) { assert(xlirTestMilliseconds()<deadline); xlirTestYield(); }
 }
 static void balanced(const xmemdebugsnapshot* before)
 {
@@ -30,42 +30,42 @@ static void balanced(const xmemdebugsnapshot* before)
     assert(before->InvalidFreeCount==after.InvalidFreeCount && before->DoubleFreeCount==after.DoubleFreeCount &&
         before->UseAfterFreeCount==after.UseAfterFreeCount);
 }
-typedef struct FrozenWorker { void* generator; bool create; volatile LONG ready,go,attempt,done; int result; } FrozenWorker;
-static DWORD WINAPI frozen_worker(void* data)
+typedef struct FrozenWorker { void* generator; bool create; XLIR_TestFlag ready,go,attempt,done; int result; } FrozenWorker;
+static XLIR_TEST_THREAD_RESULT XLIR_TEST_THREAD_CALL frozen_worker(void* data)
 {
     FrozenWorker* worker=data; xl6_error_scope warm={0};
     assert(xl6ErrorScopeBegin(&warm)); assert(xl6ErrorScopeEnd(&warm).ok);
-    InterlockedExchange(&worker->ready,1); wait_flag(&worker->go);
+    xlirTestFlagSet(&worker->ready,1); wait_flag(&worker->go);
     { xrtownershipscope refused={0}; assert(!xrtOwnershipFreezeTryBegin(&refused)); }
-    InterlockedExchange(&worker->attempt,1);
+    xlirTestFlagSet(&worker->attempt,1);
     if(worker->create) worker->generator=generator_storage_create();
     else worker->result=generator_storage_next(worker->generator);
-    InterlockedExchange(&worker->done,1); return 0;
+    xlirTestFlagSet(&worker->done,1); return 0;
 }
 static void generated_freezes(unsigned rounds)
 {
     for(unsigned n=0;n<rounds;++n)for(unsigned create=0;create<2;++create) {
-        xmemdebugsnapshot before; xrtownershipscope freeze={0}; FrozenWorker worker={0}; HANDLE thread;
-        xrtMemDebugSnapshot(&before); worker.create=create!=0; generatedEntered=0;
+        xmemdebugsnapshot before; xrtownershipscope freeze={0}; FrozenWorker worker={0}; XLIR_TestThread thread;
+        xrtMemDebugSnapshot(&before); worker.create=create!=0; xlirTestFlagSet(&generatedEntered,0);
         if(!create) { worker.generator=generator_storage_create(); assert(worker.generator); }
-        thread=CreateThread(NULL,0,frozen_worker,&worker,0,NULL); assert(thread); wait_flag(&worker.ready);
-        assert(xrtOwnershipFreezeTryBegin(&freeze)); InterlockedExchange(&worker.go,1); wait_flag(&worker.attempt);
-        Sleep(2);
+        assert(xlirTestThreadStart(&thread,frozen_worker,&worker)); wait_flag(&worker.ready);
+        assert(xrtOwnershipFreezeTryBegin(&freeze)); xlirTestFlagSet(&worker.go,1); wait_flag(&worker.attempt);
+        xlirTestSleep(2);
         if(flag(&generatedEntered)||flag(&worker.done)) fprintf(stderr,"generated generator lifecycle escaped freeze\n");
         assert(!flag(&generatedEntered) && !flag(&worker.done));
         if(!create) { xrtownershipref root=generator_storage_ownership(worker.generator); xrtownershipresult result;
             assert(xrtOwnershipInspect(&root,1,NULL,0,&result) && result.NodeCount==2 && result.EdgeCount==1 && result.ExternalRootCount==1); }
-        assert(xrtOwnershipScopeEnd(&freeze)); assert(WaitForSingleObject(thread,10000)==WAIT_OBJECT_0); CloseHandle(thread);
+        assert(xrtOwnershipScopeEnd(&freeze)); xlirTestThreadJoin(thread);
         assert(worker.generator);
         if(create) assert(generator_storage_next(worker.generator)==1); else assert(worker.result==1);
-        assert(generatedEntered==1 && generator_storage_get(worker.generator)==171);
+        assert(flag(&generatedEntered)==1 && generator_storage_get(worker.generator)==171);
         assert(generator_storage_next(worker.generator)==0); generator_storage_destroy(worker.generator); balanced(&before);
     }
 }
-typedef struct ActiveHooks { volatile LONG entered,leave; bool holdResume,holdDrop; unsigned dropped; } ActiveHooks;
+typedef struct ActiveHooks { XLIR_TestFlag entered,leave; bool holdResume,holdDrop; unsigned dropped; } ActiveHooks;
 typedef struct ActiveFrame { xvalue* value; ActiveHooks* hooks; } ActiveFrame;
 static void held(ActiveHooks* hooks)
-{ InterlockedExchange(&hooks->entered,1); wait_flag(&hooks->leave); }
+{ xlirTestFlagSet(&hooks->entered,1); wait_flag(&hooks->leave); }
 static bool active_trace(const void* data,XL6_ModuleOwnershipVisit visit,void* context)
 { return visit(xrtValueOwnership(((const ActiveFrame*)data)->value),context); }
 static bool item_trace(const void* data,XL6_ModuleOwnershipVisit visit,void* context)
@@ -98,32 +98,32 @@ static XL6_Generator* active_create(ActiveHooks* hooks)
 }
 static bool capture_frame(xrtownershipref child,void* data) { *(xrtownershipref*)data=child; return true; }
 typedef struct ActiveWorker { XL6_Generator* generator; bool destroy; } ActiveWorker;
-static DWORD WINAPI active_worker(void* data)
+static XLIR_TEST_THREAD_RESULT XLIR_TEST_THREAD_CALL active_worker(void* data)
 {
     ActiveWorker* worker=data;
     if(worker->destroy) api->Destroy(worker->generator);
     else { XL6_GeneratorStep step=api->Next(worker->generator); assert(step.ok && step.value); }
     return 0;
 }
-static void active_windows(void)
+static void active_refusals(void)
 {
     for(unsigned n=0;n<100;++n)for(unsigned drop=0;drop<2;++drop) {
         xmemdebugsnapshot before; ActiveHooks hooks={0}; XL6_Generator* generator; xrtownershipref root,frame={0};
-        ActiveWorker worker; HANDLE thread; xrtownershipscope freeze={0}; size_t count=987;
+        ActiveWorker worker; XLIR_TestThread thread; xrtownershipscope freeze={0}; size_t count=987;
         xrtMemDebugSnapshot(&before); hooks.holdResume=!drop; hooks.holdDrop=drop!=0;
         generator=active_create(&hooks); root=api->Ownership(generator);
         assert(root.Ops->Trace(root.Data,capture_frame,&frame) && frame.Data);
         { xrtownershipresult graph; assert(xrtOwnershipInspect(&root,1,NULL,0,&graph));
             assert(graph.NodeCount==3 && graph.EdgeCount==2 && graph.ExternalRootCount==1); }
-        worker=(ActiveWorker){generator,drop!=0}; thread=CreateThread(NULL,0,active_worker,&worker,0,NULL); assert(thread);
+        worker=(ActiveWorker){generator,drop!=0}; assert(xlirTestThreadStart(&thread,active_worker,&worker));
         wait_flag(&hooks.entered);
         /* The source callback is allowed to wait without pinning mutation. Both
          * public root and independently discovered physical frame refuse. */
         assert(xrtOwnershipFreezeTryBegin(&freeze));
         assert(!root.Ops->Count(root.Data,&count) && count==987);
         assert(!frame.Ops->Count(frame.Data,&count) && count==987);
-        assert(xrtOwnershipScopeEnd(&freeze)); InterlockedExchange(&hooks.leave,1);
-        assert(WaitForSingleObject(thread,10000)==WAIT_OBJECT_0); CloseHandle(thread);
+        assert(xrtOwnershipScopeEnd(&freeze)); xlirTestFlagSet(&hooks.leave,1);
+        xlirTestThreadJoin(thread);
         if(!drop) {
             xvalue* item=NULL; assert(api->ItemGet(generator,&item,sizeof(item),true)); check_value(item);
             xrtValueRelease(item); api->Destroy(generator);
@@ -149,17 +149,17 @@ static void allocation_and_transfer(void)
 }
 typedef struct DllOwner {
     XL6_CodeOwnerGraph descriptor; GeneratorStorageHooks hooks; XL6_CodeLease* child;
-    unsigned pins,acquired,released,unmapped; bool closed; HMODULE library; void* address;
+    unsigned pins,acquired,released,unmapped; bool closed; XLIR_TestLibrary library; void* address;
 } DllOwner;
 static int owner_acquire(void* data)
 { DllOwner* owner=data; if(owner->closed)return 0; ++owner->pins; ++owner->acquired; return 1; }
 static void owner_release(void* data)
 {
-    DllOwner* owner=data; MEMORY_BASIC_INFORMATION memory;
+    DllOwner* owner=data;
     assert(owner->pins); --owner->pins; ++owner->released;
     if(!owner->pins) {
         assert(owner->closed && owner->hooks.returned==1 && owner->hooks.dropped==1);
-        assert(FreeLibrary(owner->library)); assert(VirtualQuery(owner->address,&memory,sizeof(memory))==sizeof(memory) && memory.State==MEM_FREE);
+        xlirTestLibraryCloseUnmapped(owner->library,owner->address);
         ++owner->unmapped;
     }
 }
@@ -178,10 +178,10 @@ static void dll_lifetimes(const char* library)
     for(unsigned n=0;n<50;++n)for(unsigned resume=0;resume<2;++resume) {
         DllOwner owner={0}; XL6_GeneratorResume next; XL6_GeneratorFree drop; XL6_CodeContextTrace trace;
         GeneratorStorageFrame* frame; XL6_Generator* generator; xmemdebugsnapshot before;
-        owner.library=LoadLibraryA(library); assert(owner.library);
-        { FARPROC p=GetProcAddress(owner.library,"generator_storage_resume"); memcpy(&next,&p,sizeof(next)); owner.address=(void*)p;
-            p=GetProcAddress(owner.library,"generator_storage_frame_drop"); memcpy(&drop,&p,sizeof(drop));
-            p=GetProcAddress(owner.library,"generator_storage_trace"); memcpy(&trace,&p,sizeof(trace)); }
+        owner.library=xlirTestLibraryOpen(library); assert(owner.library);
+        { void* p=xlirTestLibrarySymbol(owner.library,"generator_storage_resume"); memcpy(&next,&p,sizeof(next)); owner.address=p;
+            p=xlirTestLibrarySymbol(owner.library,"generator_storage_frame_drop"); memcpy(&drop,&p,sizeof(drop));
+            p=xlirTestLibrarySymbol(owner.library,"generator_storage_trace"); memcpy(&trace,&p,sizeof(trace)); }
         assert(next && drop && trace); owner.descriptor=(XL6_CodeOwnerGraph){{sizeof(owner.descriptor),&owner,owner_acquire,owner_release},0x584C36434F574E31ULL,&owner_ops};
         owner.hooks.api=api; owner.hooks.during=dll_during; owner.hooks.context=&owner;
         xrtMemDebugSnapshot(&before); frame=api->FrameAllocate(sizeof(*frame)); assert(frame); frame->hooks=&owner.hooks;
@@ -202,7 +202,7 @@ int main(int argc,char** argv)
     api=xl6GeneratorRuntimeV1Get(); assert(xl6ErrorScopeBegin(&warm)); assert(xl6ErrorScopeEnd(&warm).ok);
     xrtMemDebugSnapshot(&initial);
     if(argc==2 && !strcmp(argv[1],"--generated-only")) { generated_freezes(1); return 0; }
-    assert(argc==2); generated_freezes(100); active_windows(); allocation_and_transfer(); dll_lifetimes(argv[1]);
+    assert(argc==2); generated_freezes(100); active_refusals(); allocation_and_transfer(); dll_lifetimes(argv[1]);
     balanced(&initial); xrtMemDebugSnapshot(&after); assert(after.AllocCount>initial.AllocCount);
     puts("Resident generators: 200 generated freezes, 200 active control/frame refusals, 200 real OOM rollbacks, 100 armed-OOM transfers, 100 actual DLL lifetimes with after-Close child leases; exact graphs and allocator balance, no native root registration");
     printf("Generator storage allocator: %llu real allocations, zero live delta\n",(unsigned long long)(after.AllocCount-initial.AllocCount));

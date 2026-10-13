@@ -6,7 +6,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-#include <windows.h>
+#include "xlir_lifetime_platform.h"
 
 static const XL6_GeneratorRuntimeV1* api;
 static const XL6_GeneratorRuntimeV2* managed;
@@ -19,16 +19,16 @@ static void balance(const xmemdebugsnapshot* before)
         before->InvalidFreeCount==after.InvalidFreeCount&&before->DoubleFreeCount==after.DoubleFreeCount&&
         before->UseAfterFreeCount==after.UseAfterFreeCount);
 }
-static DWORD WINAPI freeze_thread(void* unused)
+static XLIR_TEST_THREAD_RESULT XLIR_TEST_THREAD_CALL freeze_thread(void* unused)
 {
-    (void)unused;xrtownershipscope scope={0};ULONGLONG stop=GetTickCount64()+5000;
-    while(!xrtOwnershipFreezeTryBegin(&scope)){assert(GetTickCount64()<stop);SwitchToThread();}
+    (void)unused;xrtownershipscope scope={0};uint64_t stop=xlirTestMilliseconds()+5000;
+    while(!xrtOwnershipFreezeTryBegin(&scope)){assert(xlirTestMilliseconds()<stop);xlirTestYield();}
     assert(xrtOwnershipScopeEnd(&scope));return 0;
 }
 static void cross_thread(void)
 {
-    HANDLE thread=CreateThread(NULL,0,freeze_thread,NULL,0,NULL);
-    assert(thread&&WaitForSingleObject(thread,10000)==WAIT_OBJECT_0&&CloseHandle(thread));++probes;
+    XLIR_TestThread thread; assert(xlirTestThreadStart(&thread,freeze_thread,NULL));
+    xlirTestThreadJoin(thread);++probes;
 }
 static bool empty_trace(const void* data,xrtownershipvisitor visit,void* context)
 {(void)data;(void)visit;(void)context;return true;}
@@ -114,7 +114,7 @@ static void invalid_and_oom(void)
     ++ooms;xrtMemDebugFailClear();balance(&before);
 }
 typedef struct DllOwner {
-    XL6_CodeOwnerGraph descriptor;ManagedDllHooks hooks;HMODULE library;void* address;
+    XL6_CodeOwnerGraph descriptor;ManagedDllHooks hooks;XLIR_TestLibrary library;void* address;
     XL6_Generator* generator;xrtownershipref frameRef;unsigned pins,acquired,released,unmapped;bool closed;
 } DllOwner;
 static int owner_acquire(void* data)
@@ -123,8 +123,8 @@ static void owner_release(void* data)
 {
     DllOwner* owner=data;assert(owner->pins);--owner->pins;++owner->released;
     if(!owner->pins){
-        MEMORY_BASIC_INFORMATION memory;assert(owner->closed&&owner->hooks.entered==1&&owner->hooks.returned==1);
-        assert(FreeLibrary(owner->library)&&VirtualQuery(owner->address,&memory,sizeof(memory))==sizeof(memory)&&memory.State==MEM_FREE);++owner->unmapped;
+        assert(owner->closed&&owner->hooks.entered==1&&owner->hooks.returned==1);
+        xlirTestLibraryCloseUnmapped(owner->library,owner->address);++owner->unmapped;
     }
 }
 static bool owner_count(const void* data,size_t* count)
@@ -140,18 +140,26 @@ static void dll_during(void* data)
     XL6_CodeLease* child=NULL;assert(xl6CodeLeaseAcquireScoped(&owner->descriptor.base,&child)==XL6_CODE_LEASE_ACQUIRED&&child);
     xl6CodeLeaseRelease(child);assert(!owner->released);
 }
-static void dll_lifetime(const char* library,bool frameLast)
+static void dll_lifetime(const char* library,bool frameLast,bool currentAbi)
 {
     DllOwner owner={0};XL6_GeneratorResume callback;const XL6_ActivationCaptureLayoutV1* (*frameLayout)(void);
-    const XL6_CaptureLayoutV1* (*yieldLayout)(void);xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
-    owner.library=LoadLibraryA(library);assert(owner.library);
-    FARPROC p=GetProcAddress(owner.library,"generator_managed_resume");memcpy(&callback,&p,sizeof(callback));owner.address=(void*)p;
-    p=GetProcAddress(owner.library,"generator_managed_frame_layout");memcpy(&frameLayout,&p,sizeof(frameLayout));
-    p=GetProcAddress(owner.library,"generator_managed_item_layout");memcpy(&yieldLayout,&p,sizeof(yieldLayout));assert(callback&&frameLayout&&yieldLayout);
+    const XL6_CaptureLayoutV1* (*yieldLayout)(void);
+    const XL6_ActivationCaptureLayoutV2* (*frameLayoutV2)(void);
+    const XL6_CaptureLayoutV2* (*yieldLayoutV2)(void);
+    const XL6_GeneratorRuntimeV3* resident=xl6GeneratorRuntimeV3Get();
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
+    owner.library=xlirTestLibraryOpen(library);assert(owner.library);
+    void* p=xlirTestLibrarySymbol(owner.library,"generator_managed_resume");memcpy(&callback,&p,sizeof(callback));owner.address=p;
+    p=xlirTestLibrarySymbol(owner.library,"generator_managed_frame_layout");memcpy(&frameLayout,&p,sizeof(frameLayout));
+    p=xlirTestLibrarySymbol(owner.library,"generator_managed_item_layout");memcpy(&yieldLayout,&p,sizeof(yieldLayout));assert(callback&&frameLayout&&yieldLayout);
+    p=xlirTestLibrarySymbol(owner.library,"generator_managed_frame_layout_v3");memcpy(&frameLayoutV2,&p,sizeof(frameLayoutV2));
+    p=xlirTestLibrarySymbol(owner.library,"generator_managed_item_layout_v3");memcpy(&yieldLayoutV2,&p,sizeof(yieldLayoutV2));assert(frameLayoutV2&&yieldLayoutV2);
     owner.descriptor=(XL6_CodeOwnerGraph){{sizeof(owner.descriptor),&owner,owner_acquire,owner_release},0x584C36434F574E31ULL,&ownerOps};
     owner.hooks=(ManagedDllHooks){api,dll_during,&owner,0,0};
-    ManagedDllFrame* frame=managed->FrameAllocate(sizeof(*frame),frameLayout());assert(frame);frame->hooks=&owner.hooks;
-    XL6_Generator* generator=managed->Create(&owner.descriptor.base,frame,callback,yieldLayout());assert(generator&&owner.pins==1);owner.generator=generator;
+    ManagedDllFrame* frame=currentAbi ? resident->FrameAllocate(sizeof(*frame),frameLayoutV2()) :
+        managed->FrameAllocate(sizeof(*frame),frameLayout());assert(frame);frame->hooks=&owner.hooks;
+    XL6_Generator* generator=currentAbi ? resident->Create(&owner.descriptor.base,frame,callback,yieldLayoutV2()) :
+        managed->Create(&owner.descriptor.base,frame,callback,yieldLayout());assert(generator&&owner.pins==1);owner.generator=generator;
     owner.frameRef=managed->FrameOwnership(frame);xrtownershipref root=api->Ownership(generator);
     xrtownershipscope scope={0};assert(xrtOwnershipFreezeTryBegin(&scope));size_t count=0;
     const xrtownershippreparationv1* prep=NULL;const xrtownershipadapterv1* control=xl6GeneratorOwnershipAdapterV1(root,&prep);
@@ -178,7 +186,10 @@ int main(int argc,char** argv)
 {
     assert(argc==2&&xrtMemDebugEnable(true));api=xl6GeneratorRuntimeV1Get();managed=xl6GeneratorRuntimeV2Get();
     xl6_error_scope warm={0};assert(xl6ErrorScopeBegin(&warm));assert(xl6ErrorScopeEnd(&warm).ok);xrtSetErrorKind(XERR_MEMORY);xrtClearError();
-    for(unsigned n=0;n<50;++n){for(unsigned mode=0;mode<3;++mode)reentrant(mode);invalid_and_oom();dll_lifetime(argv[1],false);dll_lifetime(argv[1],true);}
+    for(unsigned n=0;n<50;++n){for(unsigned mode=0;mode<3;++mode)reentrant(mode);invalid_and_oom();dll_lifetime(argv[1],false,false);dll_lifetime(argv[1],true,false);}
     assert(invocations==150&&payloadDrops==150&&dllLifetimes==100&&probes==400&&ooms==100&&validationRefusals==250);
-    puts("Managed generator lifetimes: 150 last-owner reentrant closes, 150 sparse payload drops, 100 actual DLL unloads with separately held control/frame descriptors, 400 cross-thread freezes, 100 real OOM failures, 250 ABI refusals; exact memory balance");return 0;
+    puts("Managed generator lifetimes: 150 last-owner reentrant closes, 150 sparse payload drops, 100 actual DLL unloads with separately held control/frame descriptors, 400 cross-thread freezes, 100 real OOM failures, 250 ABI refusals; exact memory balance");
+    for(unsigned n=0;n<50;++n){dll_lifetime(argv[1],false,true);dll_lifetime(argv[1],true,true);}
+    assert(dllLifetimes==200&&probes==500&&invocations==150&&payloadDrops==150&&ooms==100&&validationRefusals==250);
+    puts("Current V3 descriptor lifetimes: 100 actual callback library unloads, independent control/frame last owners, 100 cross-thread freezes and exact memory balance");return 0;
 }
