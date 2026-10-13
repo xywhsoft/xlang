@@ -1,3 +1,5 @@
+static int xl6IrCgenEmitExternPrototype(XL6_Output*, const XL6_IrModule*, const XL6_IrCallTarget*, XL6_DiagList*);
+
 static int xl6IrCgenDynamicMethodNeeded(
     const XL6_IrModule* module, size_t methodIndex)
 {
@@ -8,7 +10,7 @@ static int xl6IrCgenDynamicMethodNeeded(
     method = &module->dynamicMethods[methodIndex];
     target = xl6IrCallTargetGet(module, method->targetSymbol);
     if ( method->adapterAbi != XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED ||
-         target == NULL || target->kind != XL6_IR_CALL_TARGET_INTERNAL ||
+         target == NULL || !xl6IrDynamicMethodCallTargetSupported(module, target) ||
          target->reachability == XL6_IR_REACHABILITY_UNREACHABLE ) return 0;
     for ( instructionIndex = 0;
           instructionIndex < module->instructionCount; ++instructionIndex ) {
@@ -181,6 +183,67 @@ static int xl6IrCgenEmitDynamicMethodMatcher(
     return !xl6OutputHasFailed(out);
 }
 
+/* All operands are projected before native entry, in parameter order. A failed
+ * projection never enters C and leaves the language owners for adapter rollback.
+ * Physical field names and text representation come only from CallTarget. */
+static int xl6IrCgenEmitDynamicNativeWitness(
+    XL6_Output* out, const XL6_IrModule* module, const XL6_IrCallTarget* target,
+    XL6_DiagList* diags)
+{
+    xl6OutputPuts("    { xl6_foreign_error_scope nativeScope = {0}; xl6_foreign_error_result nativeOutcome;\n", out);
+    for ( size_t p = 0; p < target->parameterCount; ++p )
+        if ( target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW )
+            xl6OutputPrintf(out, "      void* native%lu = NULL;\n", (unsigned long)p);
+    xl6OutputPuts("      if (!xl6ForeignCallBegin(&nativeScope)) goto fail;\n", out);
+    for ( size_t p = 0; p < target->parameterCount; ++p ) {
+        const XL6_IrClassField* field;
+        if ( target->parameterPhysicalAbis[p] != XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW ) continue;
+        field = xl6IrCgenNativeClassPhysicalField(module, target, p);
+        if ( field == NULL ) return xl6IrCgenDiag(diags, module, target->declaration,
+            "XLIR dynamic native operand has no exact physical field");
+        xl6OutputPuts("      { xvalue* field = xrtValueObjectGet(", out);
+        if ( p == 0 ) xl6OutputPuts("receiver", out);
+        else xl6OutputPrintf(out, "a%lu", (unsigned long)(p - 1));
+        xl6OutputPuts(", xlir_literal_view(", out);
+        xl6IrCgenEmitCStringLiteral(out, field->name);
+        xl6OutputPrintf(out,
+            ")); if (field == NULL || !%s(field, &native%lu%s)) { if (!nativeScope.failed && xrtGetError() == NULL) xrtSetErrorTake(xlir_error_create(\"TypeError\", \"dynamic native argument has no valid declared field\")); xl6ErrorScopeCaptureFailure(&nativeScope); goto native_done; } }\n",
+            field->nativeDestroySymbol != 0 ? "xrtValueGetHandle" : "xrtValueGetPointer",
+            (unsigned long)p, field->nativeDestroySymbol != 0 ? ", NULL, NULL" : "");
+    }
+    xl6OutputPuts("      ", out);
+    if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
+        xl6OutputPuts("callResult = ", out);
+    else if ( target->returnType != XL6_IR_TYPE_INVALID ) xl6OutputPuts("callResult.value = ", out);
+    if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY )
+        xl6OutputPuts("xlir_string_from_cstr(", out);
+    xl6OutputPrintf(out, "%s(", target->cName);
+    for ( size_t p = 0; p < target->parameterCount; ++p ) {
+        if ( p ) xl6OutputPuts(", ", out);
+        if ( target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW )
+            xl6OutputPrintf(out, "native%lu", (unsigned long)p);
+        else if ( p == 0 ) xl6OutputPuts("receiver", out);
+        else xl6OutputPrintf(out, "a%lu%s", (unsigned long)(p - 1), xl6IrCgenDirectPlaceSuffix(module, target, p));
+    }
+    xl6OutputPuts(")", out);
+    if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY ) xl6OutputPuts(")", out);
+    xl6OutputPuts(";\n", out);
+    /* OWNED inputs are consumed only by actual native entry. Nulling the local
+     * witnesses prevents the later failure path from releasing them again. */
+    for ( size_t p = 1; p < target->parameterCount; ++p )
+        if ( target->parameterAbis[p] == XL6_IR_PARAMETER_ABI_OWNED )
+            xl6OutputPrintf(out, "      a%lu = (%s){0};\n", (unsigned long)(p - 1), xl6IrCgenType(module, target->parameterTypes[p]));
+    if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
+        xl6OutputPuts("      if (!callResult.ok) { xl6_error_result failure = {false, xrtTakeError()}; xl6ErrorScopePropagateFailure(failure); }\n", out);
+    xl6OutputPuts("native_done:\n      if (nativeScope.failed || xrtGetError() != NULL) {\n"
+        "        xl6ErrorScopeCaptureFailure(&nativeScope);\n", out);
+    if ( target->returnType != XL6_IR_TYPE_INVALID &&
+         !xl6IrCgenEmitOwnedPlaceRelease(out, module, target->returnType, "callResult.value", diags) ) return 0;
+    xl6OutputPuts("      }\n      nativeOutcome = xl6ForeignCallEnd(&nativeScope); callResult.ok = nativeOutcome.ok;\n"
+        "      if (!nativeOutcome.ok) { xl6ErrorScopePropagateFailure(nativeOutcome); goto fail; }\n    }\n", out);
+    return !xl6OutputHasFailed(out);
+}
+
 /* Emit one source-free adapter for a VERIFIED dynamic method row.  Binding,
  * defaults, unboxing, ownership transfer and result boxing are derived only
  * from Lowered XLIR metadata; this function never consults AST nodes. */
@@ -200,12 +263,12 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
             method->returnType != XL6_IR_TYPE_INVALID
         ? xl6IrCgenType(module, method->returnType) : NULL;
     const char* carrierCType = target != NULL &&
-            target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE
+            (target->kind == XL6_IR_CALL_TARGET_EXTERN_C || target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE)
         ? xl6IrCgenErrorResultType(module, method->returnType) : NULL;
     size_t parameter;
     if ( method == NULL || target == NULL ||
          method->adapterAbi != XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED ||
-         target->kind != XL6_IR_CALL_TARGET_INTERNAL ||
+         !xl6IrDynamicMethodCallTargetSupported(module, target) ||
          (target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
           (target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
            carrierCType == NULL)) ||
@@ -411,14 +474,17 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
             "    a%lu = variadic; variadic = NULL;\n",
             (unsigned long)parameter);
     }
-    xl6OutputPuts("    ", out);
-    if ( carrierCType != NULL ) xl6OutputPuts("callResult = ", out);
-    else if ( resultType != NULL ) xl6OutputPuts("returned = ", out);
-    xl6OutputPrintf(out, "xlir_fn_%u(receiver",
-                    (unsigned int)method->targetSymbol);
-    for ( parameter = 0; parameter < method->parameterCount; ++parameter )
-        xl6OutputPrintf(out, ", a%lu", (unsigned long)parameter);
-    xl6OutputPuts(");\n", out);
+    if ( target->kind == XL6_IR_CALL_TARGET_EXTERN_C ) {
+        if ( carrierCType == NULL || !xl6IrCgenEmitDynamicNativeWitness(out, module, target, diags) ) return 0;
+    } else {
+        xl6OutputPuts("    ", out);
+        if ( carrierCType != NULL ) xl6OutputPuts("callResult = ", out);
+        else if ( resultType != NULL ) xl6OutputPuts("returned = ", out);
+        xl6OutputPrintf(out, "xlir_fn_%u(receiver", (unsigned int)method->targetSymbol);
+        for ( parameter = 0; parameter < method->parameterCount; ++parameter )
+            xl6OutputPrintf(out, ", a%lu", (unsigned long)parameter);
+        xl6OutputPuts(");\n", out);
+    }
     if (carrierCType != NULL)
         xl6OutputPuts("    if (!callResult.ok) { xl6_error_result failure = {false, xrtTakeError()}; xl6ErrorScopePropagateFailure(failure); }\n", out);
     for ( parameter = 0; parameter < method->parameterCount; ++parameter ) {
@@ -803,6 +869,17 @@ static int xl6IrCgenEmitDynamicMethodRuntime(
     size_t siteIndex;
     int bindingRuntimeEmitted = 0;
     unsigned admissionNeeds = xl6IrCgenDynamicArgumentAdmissionNeeds(module);
+    for ( methodIndex = 0; methodIndex < module->dynamicMethodCount; ++methodIndex ) {
+        const XL6_IrCallTarget* target;
+        if ( !xl6IrCgenDynamicMethodNeeded(module, methodIndex) ) continue;
+        target = xl6IrCallTargetGet(module, module->dynamicMethods[methodIndex].targetSymbol);
+        if ( target->kind == XL6_IR_CALL_TARGET_EXTERN_C ) {
+            xl6OutputPuts("#ifndef XLIR_XRT_DECLARATIONS\ntypedef struct xvaluehandleops xvaluehandleops;\n#endif\n"
+                "extern bool xrtValueGetHandle(const xvalue*, void**, const xvaluehandleops**, void**);\n"
+                "extern bool xrtValueGetPointer(const xvalue*, void**);\n", out);
+            break;
+        }
+    }
     if ( admissionNeeds & 1u )
         xl6OutputPuts("extern bool xl6ValueAdmitsV1(const xvalue*, unsigned int, bool, uint64_t);\n", out);
     if ( admissionNeeds & 2u )
@@ -821,7 +898,13 @@ static int xl6IrCgenEmitDynamicMethodRuntime(
     for ( methodIndex = 0; methodIndex < module->dynamicMethodCount;
           ++methodIndex ) {
         const XL6_IrFunction* function;
+        const XL6_IrCallTarget* target;
         if ( !xl6IrCgenDynamicMethodNeeded(module, methodIndex) ) continue;
+        target = xl6IrCallTargetGet(module, module->dynamicMethods[methodIndex].targetSymbol);
+        if ( target->kind == XL6_IR_CALL_TARGET_EXTERN_C ) {
+            if ( !xl6IrCgenEmitExternPrototype(out, module, target, diags) ) return 0;
+            continue;
+        }
         function = xl6IrCgenFindFunction(
             module, module->dynamicMethods[methodIndex].targetSymbol);
         if ( function == NULL ||

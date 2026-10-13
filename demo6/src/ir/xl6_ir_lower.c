@@ -14326,6 +14326,10 @@ static XL6_IrDynamicMethodDefaultAbi xl6IrLowerDynamicMethodDefaultAbi(
     const XL6_IrNode* expression = xl6IrNodeGet(module, expressionId);
     if ( type == NULL || expression == NULL )
         return XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
+    if ( type->cAbi == XL6_IR_C_ABI_I64 || type->cAbi == XL6_IR_C_ABI_U64 )
+        return xl6IrContextualIntegerLiteralValue(module, expressionId, typeId, NULL, NULL)
+            ? (type->cAbi == XL6_IR_C_ABI_I64 ? XL6_IR_DYNAMIC_METHOD_DEFAULT_I64 : XL6_IR_DYNAMIC_METHOD_DEFAULT_U64)
+            : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
     switch ( type->cAbi ) {
     case XL6_IR_C_ABI_BOOL:
         return expression->sourceKind == XL6_AST_BOOL
@@ -14426,11 +14430,11 @@ static int xl6IrLowerSetClosureCallParameterDefaults(
             break;
         case XL6_IR_DYNAMIC_METHOD_DEFAULT_I64:
             literals[parameter] =
-                xl6IrLowerCanonicalIntegerLiteral(expression->text);
+                xl6IrCanonicalContextualIntegerLiteral(ctx->module, expressionId, signature->params[parameter]);
             break;
         case XL6_IR_DYNAMIC_METHOD_DEFAULT_U64:
             literals[parameter] =
-                xl6IrLowerCanonicalUnsignedIntegerLiteral(expression->text);
+                xl6IrCanonicalContextualIntegerLiteral(ctx->module, expressionId, signature->params[parameter]);
             break;
         case XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR:
             literals[parameter] = xl6IrLowerCanonicalCharLiteral(expression);
@@ -14483,7 +14487,7 @@ static int xl6IrLowerLinkDynamicMethods(XL6_IrLowerContext* ctx)
         if ( method->adapterAbi !=
                  XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED ) continue;
         if ( target == NULL || target->declaration != method->declaration ||
-             target->kind != XL6_IR_CALL_TARGET_INTERNAL ||
+             !xl6IrDynamicMethodCallTargetSupported(module, target) ||
              target->returnType != method->returnType ||
              (target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
               target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) ||
@@ -14525,11 +14529,11 @@ static int xl6IrLowerLinkDynamicMethods(XL6_IrLowerContext* ctx)
                     break;
                 case XL6_IR_DYNAMIC_METHOD_DEFAULT_I64:
                     item->defaultLiteral =
-                        xl6IrLowerCanonicalIntegerLiteral(expression->text);
+                        xl6IrCanonicalContextualIntegerLiteral(module, item->defaultExpression, item->type);
                     break;
                 case XL6_IR_DYNAMIC_METHOD_DEFAULT_U64:
                     item->defaultLiteral =
-                        xl6IrLowerCanonicalUnsignedIntegerLiteral(expression->text);
+                        xl6IrCanonicalContextualIntegerLiteral(module, item->defaultExpression, item->type);
                     break;
                 case XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR:
                     item->defaultLiteral = xl6IrLowerCanonicalCharLiteral(expression);

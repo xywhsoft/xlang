@@ -798,7 +798,7 @@ static int xl6IrCgenRuntimeDynamicCallAbi(
                   candidate->targetErrorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) ||
                  (target = xl6IrCallTargetGet(
                       module, candidate->targetSymbol)) == NULL ||
-                 target->kind != XL6_IR_CALL_TARGET_INTERNAL ||
+                 !xl6IrDynamicMethodCallTargetSupported(module, target) ||
                  target->reachability == XL6_IR_REACHABILITY_UNREACHABLE )
                 return 0;
             candidateCount += 1u;

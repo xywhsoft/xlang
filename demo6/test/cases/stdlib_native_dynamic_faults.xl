@@ -1,0 +1,14 @@
+var nativeFaultBuffer = Buffer(b"a\0你")
+var nativeFaultSource = Buffer(b"x")
+
+export func nativeSizeProbe() as int
+    return int(nativeFaultBuffer.len())
+end
+
+export func nativeTextProbe() as string
+    return string(nativeFaultBuffer.text())
+end
+
+export func nativeAppendProbe() as bool
+    return bool(nativeFaultBuffer.append(nativeFaultSource))
+end

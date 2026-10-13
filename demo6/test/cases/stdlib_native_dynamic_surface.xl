@@ -1,0 +1,36 @@
+var nativeBuffer = Buffer(b"a\0你")
+assert int(nativeBuffer.len()) == 5
+assert bool(nativeBuffer.append("x"))
+bytes nativeData = bytes(nativeBuffer.toBytes())
+assert nativeData == b"a\0你x"
+assert string(nativeBuffer.text()) == "a\0你x"
+bool nativeMismatch = false
+try
+    nativeBuffer.append(7)
+catch error
+    nativeMismatch = true
+end
+assert nativeMismatch and bytes(nativeBuffer.toBytes()) == nativeData
+
+var nativeRegex = Regex("a")
+assert bool(nativeRegex.test("a"))
+var nativeFound = nativeRegex.find("a")
+assert nativeFound != null and string(nativeFound.text()) == "a"
+assert nativeRegex.find("z") == null
+assert string(nativeRegex.replace("a\0a", "你")) == "你\0你"
+
+var nativePattern = Pattern("/{value}", "tag\0你")
+assert bool(nativePattern.test("/x"))
+var nativeCaptured = nativePattern.find("/x")
+assert nativeCaptured != null and string(nativeCaptured.text()) == "x"
+assert string(nativeCaptured.tag) == "tag\0你"
+
+var nativeArray = array<int>[1, 2]
+nativeArray.append(3)
+assert int(nativeArray.pop()) == 3
+assert bool(nativeArray.contains(2))
+
+var nativeDict = dict<int>{"a\0你": 7}
+assert bool(nativeDict.contains("a\0你"))
+assert int(nativeDict.take("a\0你")) == 7
+assert not bool(nativeDict.contains("a\0你"))

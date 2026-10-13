@@ -1,0 +1,27 @@
+var nativeTarget = Buffer(b"ab")
+var nativeSource = Buffer(b"x\0y")
+
+assert bool(nativeTarget.append(nativeSource))
+assert bytes(nativeTarget.toBytes()) == b"abx\0y"
+assert bool(nativeTarget.copyFrom(1, nativeSource, sourceOffset = 1, count = 2))
+assert bytes(nativeTarget.toBytes()) == b"a\0y\0y"
+assert int(nativeTarget.compare(Buffer(b"a\0y\0y"))) == 0
+assert bool(nativeTarget.append(nativeTarget))
+assert bytes(nativeTarget.toBytes()) == b"a\0y\0ya\0y\0y"
+assert bool(nativeTarget.clear())
+assert bool(nativeTarget.append("a\0你", size = 20))
+assert int(nativeTarget.len()) == 5
+assert bytes(nativeTarget.toBytes()) == b"a\0你"
+
+var nativeRegex = Regex("a")
+var nativeOutput = Buffer()
+assert int(nativeRegex.replaceTo(nativeOutput, "a\0a", "你")) == 2
+assert bytes(nativeOutput.toBytes()) == b"你\0你"
+
+bool nativeRejected = false
+try
+    nativeTarget.append(nativeRegex)
+catch error
+    nativeRejected = true
+end
+assert nativeRejected and bytes(nativeTarget.toBytes()) == b"a\0你"
