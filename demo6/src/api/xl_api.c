@@ -1841,6 +1841,7 @@ static int xlAddEmbeddedXlangRuntimeSources(
         "src/parser/xl6_parser.c",
         "src/parser/xl6_parser_api.c",
         "src/ir/xl6_ir.c",
+        "src/ir/xl6_ir_class_identity.c",
         "src/ir/xl6_ir_lower.c",
         "src/package/xl6_package.c",
         "src/stdlib/xl6_stdlib.c",

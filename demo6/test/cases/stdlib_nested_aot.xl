@@ -1,0 +1,41 @@
+import xlang
+
+string source = r"""
+string text = "a\0你"
+assert text.length == 3, "nested string scalar length"
+Buffer encoded = Buffer()
+assert encoded.append(text) and encoded.len() == 5, "nested string byte extent"
+bytes binary = b"a\0b"
+assert binary.length == 3, "nested bytes length"
+char scalar = '你'
+assert scalar == 20320, "nested char"
+assert time.year(time.fromDate(2026, 10, 13)) == 2026
+WaitQueue<string> queue = WaitQueue::<string>(2)
+assert queue.tryPush(text) == queueStatus.ok
+auto status, value = queue.pop()
+assert status == queueStatus.ok and value != null and value == text
+queue.close()
+class NestedPayload
+    string text = "a\0你"
+    bytes data = b"a\0b"
+    char scalar = '你'
+end
+auto object = NestedPayload()
+WaitQueue<NestedPayload> objects = WaitQueue::<NestedPayload>(2)
+assert objects.tryPush(object) == queueStatus.ok
+auto objectStatus, result = objects.pop()
+assert objectStatus == queueStatus.ok and result != null
+if result != null then
+    assert result.text == text and result.data == binary and result.scalar == scalar
+end
+objects.close()
+"""
+
+for round in range(3)
+    auto context = xlang.Context()
+    assert context.run(source), context.lastError
+    assert not context.run("int broken = missingAotNestedName")
+    assert context.lastError != ""
+    assert context.run(source), context.lastError
+end
+println("nested AOT resources: PASS")

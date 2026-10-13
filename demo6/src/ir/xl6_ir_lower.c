@@ -3434,7 +3434,7 @@ static int xl6IrLowerIntrinsicTypeOf(
  * a borrowed runtime field into an owned value. */
 static int xl6IrLowerValueHasOwner(const XL6_IrLowerContext* ctx, XL6_IrValueId value)
 {
-    const XL6_IrInstruction* definition;
+    const XL6_IrInstruction* definition = NULL;
     size_t depth, i;
     for (depth = 0; depth <= ctx->module->instructionCount; ++depth) {
         definition = xl6IrLowerValueDefinition(ctx->module, value);
@@ -3450,7 +3450,7 @@ static int xl6IrLowerValueHasOwner(const XL6_IrLowerContext* ctx, XL6_IrValueId 
         if (definition->operandCount != 1 || definition->targetValue != 0) return 0;
         value = ctx->module->operands[definition->firstOperand];
     }
-    if (depth > ctx->module->instructionCount) return 0;
+    if (definition == NULL || depth > ctx->module->instructionCount) return 0;
     if (xl6IrValueOwnershipGet(ctx->module, value) == XL6_IR_OWNERSHIP_MOVE) return 1;
     if (definition->kind != XL6_IR_INSTR_LOAD) return 0;
     for (i = ctx->module->functions[ctx->functionIndex].firstInstruction; i < ctx->module->instructionCount; ++i) {
