@@ -83,6 +83,21 @@ uint64_t xl6PatternBuilderVersionV1(void* handle)
 {XL6_PatternBuilder* b=handle;return builderCheck(b)?xrtPatternBuilderVersion(b->builder):0;}
 xvalue* xl6PatternBuilderIdentityV1(void* handle)
 {XL6_PatternBuilder* b=handle;return builderCheck(b)?xrtValueRetain(b->identity):NULL;}
+/* This private wire state is created by the resident runtime, not inferred
+ * from a language class or promoted collection's current storage layout.
+ * Its real Value edges remain visible to the language ownership graph. */
+xvalue* xl6PatternStateCreateV1(const xvalue* identity)
+{
+    if(!identity){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    xvalue* state=xrtValueObject();xvalue* tags=state ? xrtValueIntMap() : NULL;
+    bool ok=state && tags && xrtValueObjectSet(state,XRT_STR_LITERAL("identity"),identity) &&
+        xrtValueObjectSetTake(state,XRT_STR_LITERAL("tags"),&tags);
+    if(!ok && !xrtGetError())xrtSetErrorKind(XERR_MEMORY);
+    xerror* failure=ok ? NULL : xrtTakeError();
+    xrtValueRelease(tags);
+    if(!ok){xrtValueRelease(state);state=NULL;xrtClearError();xrtSetErrorTake(failure);}
+    return state;
+}
 void xl6PatternBuilderReserveV1(void* handle,int64_t capacity)
 {
     XL6_PatternBuilder* b=handle;if (!builderCheck(b)) return;

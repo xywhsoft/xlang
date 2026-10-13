@@ -70,7 +70,7 @@
 - `Stack<T>`：LIFO、peek、push、pop、clear、count。
 - `AvlTree<K, V>`：有序映射、set/get/remove/contains、按序迭代。
 - `SpscQueue<T>`、`MpscQueue<T>`、`MpmcQueue<T>`：有界无锁队列。
-- `WaitQueue<T>`：可阻塞和超时等待的 MPSC 队列。
+- `WaitQueue<T>`：可阻塞和超时等待的 MPMC 队列，允许多个消费者并行等待和消费；接收返回 `(status, T?)` 拥有值（2026-10-13 用户确认）。
 - 内存池、BSMM、MemUnit 和裸 pointer array 只进入 `xrt` 低层模块，不作为默认安全标准库类型。
 
 专用结构必须保存完整类型描述并正确执行值的 retain/release；不允许将 `xvalue*` 当作无所有权裸指针塞入队列。

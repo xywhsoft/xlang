@@ -95,6 +95,8 @@ int main(int argc, char** argv)
     if ((size_t)(slash - headers) + sizeof("\\include") > sizeof(headers)) goto done;
     memcpy(slash, "\\include", sizeof("\\include"));
     if (!xlcAddIncludePath(compiler, headers)) goto done;
+    pathLength=snprintf(path,sizeof(path),"%s/release/include",root);
+    if(pathLength<0 || (size_t)pathLength>=sizeof(path) || !xlcAddIncludePath(compiler,path))goto done;
     if (!strcmp(requestedMode, "recovery")) { phase = "recovery"; ok = recovery(compiler, argv[3]); code = ok ? 0 : 1; goto done; }
     phase = "load"; if (!xlcAddSourceFile(compiler, argv[1])) goto done;
     phase = "load C sidecar";

@@ -1,0 +1,19 @@
+extern "xrtValueObject" func dictWireObject() as var
+func main(...) as int
+    var native = {"a": 1, "a\0b": 2}
+    assert(dict.remove(native, "a\0b") and native["a"] == 1 and not ("a\0b" in native))
+    assert(not dict.remove(native, "missing"))
+    var wire = dictWireObject()
+    wire["a"] = 3
+    wire["a\0b"] = 4
+    assert(dict.remove(wire, "a\0b") and wire["a"] == 3 and not ("a\0b" in wire))
+    assert(not dict.remove(wire, "missing"))
+    bool rejected = false
+    try
+        dict.remove(17, "a")
+    catch TypeError
+        rejected = true
+    end
+    assert(rejected)
+    return 0
+end

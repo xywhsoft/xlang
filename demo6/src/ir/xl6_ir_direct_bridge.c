@@ -48,6 +48,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define F XL6_IR_C_ABI_F64
 #define U XL6_IR_C_ABI_U64
 #define M XL6_IR_C_ABI_TIME_I64
+    {"xl6DictValueRemoveV1",T,B,2,{V,S},.parameterDynamicBorrows={1,0}},
     /* Printing borrows one dynamic argument array and can allocate or fail I/O.
      * Checked calls propagate the original thread error before the language
      * wrapper considers its boolean-only I/O fallback. */
@@ -515,6 +516,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6PatternBuilderCountV1",T,I,1,{V},.parameterOwners={"xl6PatternBuilderDestroyV1"}},
     {"xl6PatternBuilderVersionV1",T,U,1,{V},.parameterOwners={"xl6PatternBuilderDestroyV1"}},
     {"xl6PatternBuilderIdentityV1",T,V,1,{V},.parameterOwners={"xl6PatternBuilderDestroyV1"}},
+    {"xl6PatternStateCreateV1",T,V,1,{V},.parameterDynamicBorrows={1}},
     {"xl6PatternBuilderReserveV1",T,XL6_IR_C_ABI_VOID,2,{V,I},.parameterOwners={"xl6PatternBuilderDestroyV1"}},
     {"xl6PatternBuilderContainsV1",T,B,2,{V,V},.parameterOwners={"xl6PatternBuilderDestroyV1","xl6PatternKeyDestroyV1"}},
     {"xl6PatternBuilderCompileV1",T,V,1,{V},.resultOwner="xl6PatternDestroyV1",.parameterOwners={"xl6PatternBuilderDestroyV1"}},

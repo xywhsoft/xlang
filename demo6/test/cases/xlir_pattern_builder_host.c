@@ -13,11 +13,32 @@ static void balanced(xmemdebugsnapshot before)
 }
 static xvalue* stateCreate(void* builder)
 {
-    xvalue* state=xrtValueObject();assert(state);
     xvalue* identity=xl6PatternBuilderIdentityV1(builder);assert(identity);
-    xvalue* tags=xrtValueIntMap();assert(tags);
-    assert(xrtValueObjectSetTake(state,VIEW("identity"),&identity));
-    assert(xrtValueObjectSetTake(state,VIEW("tags"),&tags));return state;
+    xvalue* state=xl6PatternStateCreateV1(identity);assert(state);
+    assert(xrtValueObjectGet(state,VIEW("identity"))==identity);
+    assert(xrtValueType(xrtValueObjectGet(state,VIEW("tags")))==XVALUE_INT_MAP);
+    xrtValueRelease(identity);return state;
+}
+static void stateOom(void)
+{
+    assert(!xl6PatternStateCreateV1(NULL) && xrtErrorKind(xrtGetError())==XERR_ARGUMENT);
+    xrtClearError(); unsigned failures=0;
+    for(size_t point=0;;++point) {
+        assert(point<2048);xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
+        xvalue* identity=xrtValueUInt(1);assert(identity);
+        assert(xrtMemDebugFailAfter(point));
+        xvalue* state=xl6PatternStateCreateV1(identity);
+        bool hit=xrtMemDebugFailTriggered();xrtMemDebugFailClear();
+        if(hit){assert(!state && xrtErrorKind(xrtGetError())==XERR_MEMORY);++failures;}
+        else {
+            assert(state && !xrtGetError());
+            assert(xrtValueObjectGet(state,VIEW("identity"))==identity);
+            assert(xrtValueType(xrtValueObjectGet(state,VIEW("tags")))==XVALUE_INT_MAP);
+        }
+        xrtClearError();xrtValueRelease(state);xrtValueRelease(identity);balanced(before);
+        if(!hit)break;
+    }
+    assert(failures>0);printf("pattern state factory OOM: %u actual failures, balanced\n",failures);
 }
 static void* add(void* builder,xvalue* state,xstrview expression,xvalue* tag)
 {
@@ -162,6 +183,6 @@ int main(void)
     assert(xrtMemDebugEnable(true));xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
     assert(xl6PatternTagKeyFromId(0)==0 && xl6PatternTagKeyFromId(INT64_MAX)==INT64_MAX);
     assert(xl6PatternTagKeyFromId(UINT64_C(1)<<63)==INT64_MIN && xl6PatternTagKeyFromId(UINT64_MAX)==-1);
-    functional();oom();xrtClearError();balanced(before);
+    stateOom();functional();oom();xrtClearError();balanced(before);
     puts("pattern builder adapter: identity, stale keys, COW snapshots, orphan edits, thread checks and whole-sweep balance passed");return 0;
 }
