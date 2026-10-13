@@ -1,5 +1,11 @@
-#include "xlir_generator_storage.c"
-#include "xlir_generator_storage.bind.h"
+#ifndef XLIR_GENERATOR_STORAGE_SOURCE
+#define XLIR_GENERATOR_STORAGE_SOURCE "xlir_generator_storage.c"
+#endif
+#include XLIR_GENERATOR_STORAGE_SOURCE
+#ifndef XLIR_GENERATOR_STORAGE_BINDING
+#define XLIR_GENERATOR_STORAGE_BINDING "xlir_generator_storage.bind.h"
+#endif
+#include XLIR_GENERATOR_STORAGE_BINDING
 #include <assert.h>
 void* generator_storage_create(void) { return GENERATOR_STORAGE_START(); }
 int generator_storage_next(void* data)

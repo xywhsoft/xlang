@@ -6,7 +6,7 @@
 #include "src/runtime/xl6_ownership_plan.h"
 #include <assert.h>
 #include <stdio.h>
-#include <windows.h>
+#include "xlir_lifetime_platform.h"
 
 extern XL6_Generator* managed_generator_create(xvalue*);
 typedef struct Stats {
@@ -23,13 +23,13 @@ static const XL6_GeneratorRuntimeV1* api;
 static const XL6_GeneratorRuntimeV2* managed;
 static unsigned transactions,marks,finalizers,drops,probes,rooted,refusals,budgets,ooms,prepareFailures,finalizerFailures;
 static void freeze(xrtownershipscope* scope)
-{ULONGLONG stop=GetTickCount64()+5000;while(!xrtOwnershipFreezeTryBegin(scope)){assert(GetTickCount64()<stop);SwitchToThread();}}
-static DWORD WINAPI freeze_thread(void* unused)
+{uint64_t stop=xlirTestMilliseconds()+5000;while(!xrtOwnershipFreezeTryBegin(scope)){assert(xlirTestMilliseconds()<stop);xlirTestYield();}}
+static XLIR_TEST_THREAD_RESULT XLIR_TEST_THREAD_CALL freeze_thread(void* unused)
 {(void)unused;xrtownershipscope scope={0};freeze(&scope);assert(xrtOwnershipScopeEnd(&scope));return 0;}
 static void cross_thread(Stats* stats)
 {
-    HANDLE thread=CreateThread(NULL,0,freeze_thread,NULL,0,NULL);
-    assert(thread&&WaitForSingleObject(thread,10000)==WAIT_OBJECT_0&&CloseHandle(thread));++stats->probes;
+    XLIR_TestThread thread; assert(xlirTestThreadStart(&thread,freeze_thread,NULL));
+    xlirTestThreadJoin(thread);++stats->probes;
 }
 void managed_generator_mark(int64_t step)
 {
