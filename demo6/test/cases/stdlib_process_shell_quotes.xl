@@ -1,11 +1,11 @@
-// shell 命令中的引号必须由 cmd 解释，不能作为字面字符传给子程序。
+// shell 命令中的引号必须由平台 shell 解释，不能作为字面字符传给子程序。
 string quoteDir = path.join(path.cwd(), "build", "test", "process quote")
 assert(dir.createAll(quoteDir))
 
 string quoteSource = path.join(quoteDir, "source file.xl")
 assert(file.writeText(quoteSource, "println(1)"))
 
-string quoteXl = path.join(path.cwd(), "release", "xl.exe")
+string quoteXl = env.get("XL6_PRODUCT_CLI") ?? path.join(path.cwd(), "release", "xl.exe")
 string quoteCommand = "\"" + quoteXl + "\" check \"" + quoteSource + "\""
 ProcessResult quoteResult = process.run(quoteCommand, 10000)
 assert(quoteResult.success)

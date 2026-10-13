@@ -72,17 +72,7 @@ static void xl6IrCgenEmitFsPathRuntime(XL6_Output* out, const XL6_IrCgenNeeds* n
         "    { if (style < 0 || style > 2) xrtSetErrorKind(XERR_RANGE); return (xlir_string){0}; }\n"
         "  return xlir_string_take_cstr(xrtPathRelative((xstrview){base.Data,base.Size},(xstrview){target.Data,target.Size},(xpathstyle)style)); }\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_PATH_BUILD)) xl6OutputPuts(
-        "xlir_string xl6_xrt_fs_path_build(const xvalue* values, int64_t style)\n"
-        "{ size_t count, i; xstrview* parts = NULL; char* result;\n"
-        "  if (style < 0 || style > 2) { xrtSetErrorKind(XERR_RANGE); return (xlir_string){0}; }\n"
-        "  if (values == NULL || xrtValueType(values) != XVALUE_ARRAY) { xrtSetErrorKind(XERR_TYPE); return (xlir_string){0}; }\n"
-        "  count = xrtValueCount(values);\n"
-        "  if (count > SIZE_MAX / sizeof(*parts)) { xrtSetErrorKind(XERR_RANGE); return (xlir_string){0}; }\n"
-        "  if (count != 0 && (parts = (xstrview*)xrtMalloc(count*sizeof(*parts))) == NULL) { return (xlir_string){0}; }\n"
-        "  for (i = 0; i < count; ++i)\n"
-        "    { if (!xrtValueGetString(xrtValueArrayGet(values,i), &parts[i])) { xrtFree(parts); xrtSetErrorKind(XERR_TYPE); return (xlir_string){0}; }\n"
-        "      if (memchr(parts[i].Data,0,parts[i].Size) != NULL) { xrtFree(parts); xrtSetErrorKind(XERR_VALUE); return (xlir_string){0}; } }\n"
-        "  result = xrtPathBuild(parts,count,(xpathstyle)style); xrtFree(parts); return xlir_string_take_cstr(result); }\n", out);
+        "#include <__xl_runtime/xl6_path_build.h>\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_PATH_IS_ABS)) xl6OutputPuts(
         "bool xl6_xrt_fs_path_is_abs(xlir_string path)\n"
         "{ const char* text = xlir_string_cstr(path); return text != NULL && xrtPathIsAbs(text); }\n", out);
