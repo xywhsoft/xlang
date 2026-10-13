@@ -1,0 +1,15 @@
+// Dynamic multi-result syntax must preserve both values, not pack an Array.
+var stack = Stack::<string?>()
+auto found, item = stack.tryPop()
+assert not bool(found) and item == null
+assert bool(stack.push(null))
+found, item = stack.tryPeek()
+assert bool(found) and item == null and int(stack.count()) == 1
+found, item = stack.tryPop()
+assert bool(found) and item == null and int(stack.count()) == 0
+assert bool(stack.push("a\0你"))
+found, item = stack.tryPeekAt(9)
+assert not bool(found) and item == null and int(stack.count()) == 1
+var take = stack.tryPop
+found, item = take()
+assert bool(found) and string(item) == "a\0你" and int(stack.count()) == 0

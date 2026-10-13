@@ -8,6 +8,7 @@ def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('root','public-directory','out'): p.add_argument('--'+name,type=Path,required=True)
+    p.add_argument('--try-component',action='store_true',help='Also verify native two-result try provider; not dynamic try syntax')
     a=p.parse_args(); root=a.root.resolve(); public=a.public_directory.resolve(); out=a.out.resolve()
     assert not out.exists(); build,pinned,compared=verify_public_build(root,public)
     project=Path(__file__).resolve().parents[1]; cc=shutil.which('gcc'); nm=shutil.which('nm'); assert cc and nm
@@ -15,14 +16,18 @@ def main():
         'stdlib_stack_factory_only','stdlib_stack_values','stdlib_native_dynamic_inputs','stdlib_stack_dynamic_batch')
     fixtures=[(project if name.startswith('stdlib_stack_dynamic_') else root)/'test/cases'/(name+'.xl') for name in names]
     contract=project/'test/support/stack_erasure_contract.c'
+    tryContract=project/'test/support/stack_try_component_contract.c' if a.try_component else None
     host=root/'test/cases/xlir_module_product_oom_host.c'; memory=root/'test/support/module_product_memory.c'
     native=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(cc),Path(nm),*fixtures,contract,host,memory,native))
+    if tryContract: pinned.add(tryContract)
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]; out.mkdir(parents=True)
     rows=[]; prefixes=[]; products=[]; env=dict(os.environ); suffix='.exe' if os.name=='nt' else ''
     report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Rows=rows,ClosedPrefixes=prefixes,
         Products=products,ComparedSources=compared,StackCoreDynamicAcceptance=False,
         StackFullDynamicAcceptance=False,Full53Acceptance=False,ShippingLibraryAcceptance=False,Scope=__doc__)
+    report['NativeTryProviderAcceptance']=False
+    report['DynamicTrySyntaxAcceptance']=False
     if os.name=='nt': shutil.copy2(native,out/'xl.dll')
     else: env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
     flags=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED',
@@ -46,6 +51,12 @@ def main():
         binary=out/('contract'+suffix)
         run('contract.build',[cc,*flags,'-O0',contract,*links,'-o',binary])
         assert 'rejected before output' in run('contract.run',[binary,fixtures[0]])
+        if tryContract:
+            for opt in (0,2):
+                binary=out/('try-contract.O'+str(opt)+suffix)
+                run('try-contract.O'+str(opt)+'.build',[cc,*flags,'-O'+str(opt),tryContract,*links,'-o',binary])
+                assert 'provider closure and current-source linkage verified' in run('try-contract.O'+str(opt)+'.run',[binary])
+            report['NativeTryProviderAcceptance']=True
         objects={}
         for opt in (0,2):
             objects[opt]=out/('memory.O'+str(opt)+'.o')
@@ -75,7 +86,7 @@ def main():
             symbols=run(name+'.aot.symbols',[nm,'--defined-only',Path(str(target)+'.exe') if os.name=='nt' else target])
             if name=='stdlib_stack_factory_only':
                 assert not any(re.search(r'\b'+symbol+r'$',symbols,re.M) for symbol in
-                    ('xl6StackEraseTakeV1','xl6StackEraseTakeV2','xl6StackErasedReadV1','xl6StackErasedMethodV1','xl6DynamicCollectionCallTakeV1'))
+                    ('xl6StackEraseTakeV1','xl6StackEraseTakeV2','xl6StackErasedReadV1','xl6StackErasedMethodV1','xl6StackErasedTryCallV1','xl6DynamicCollectionCallTakeV1'))
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs); assert report['InputsUnchanged']
         products.extend(dict(Path=str(path),Sha256=sha(path)) for path in sorted(out.iterdir())
             if path.is_file() and (path.suffix in ('.h','.c','.o','.exe') or os.access(path,os.X_OK)))
