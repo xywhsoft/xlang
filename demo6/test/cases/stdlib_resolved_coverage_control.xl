@@ -1,0 +1,8 @@
+// encoding.isUtf8(b"bytes") and time.now() are not calls here.
+string names = "encoding.isUtf8(b\"bytes\"); time.now()"
+func declaredOnly(bytes input) as bool
+    return true
+end
+assert names.length > 0
+// Expanding this name declares both overloads. Only string may be counted.
+assert encoding.isUtf8("ok")
