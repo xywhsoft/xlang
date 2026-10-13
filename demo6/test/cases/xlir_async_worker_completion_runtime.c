@@ -17,6 +17,13 @@ static uint64 mainThread;
 static unsigned kind, executions, faultExecutions, observations, lateCancels, discarded;
 static int bodyMode, firstMode, unusedMode, resultMode, cancelPoint, boxFault, smoke;
 static xfuture* activeOutput;
+/* Added lane: arm the REAL worker's allocation budget at its exact generated
+ * payload-allocation entry, and leave it armed through body/retirement/publication.
+ * The completion observer clears that same worker's TLS before bookkeeping. */
+static bool scanFault;
+static unsigned scanBudget,scanRuns,scanHits;
+static xatomic32 scanTriggered;
+static void release_watch(void*);
 static xfuturestate expectedState;
 static xerrkind expectedKind;
 static int expectedCode;
@@ -31,7 +38,8 @@ void* worker_completion_malloc(size_t size)
 {
     if (xrtThreadCurrentId() != mainThread && count(&entries) == 0) {
         void* value; worker_entry();
-        if (boxFault) {
+        if (scanFault) assert(xrtMemDebugFailAfter(scanBudget));
+        else if (boxFault) {
             assert(xrtMemDebugFailAfter(0)); value = xrtMalloc(size);
             assert(value == NULL && xrtMemDebugFailTriggered()); xrtMemDebugFailClear();
             assert(xrtAtomic32FetchAdd(&boxFailures, 1, XMEMORY_SEQ_CST) == 0); return value;
@@ -73,11 +81,62 @@ static void check_outcome(void)
 }
 static void observe(void* data)
 {
-    (void)data; check_outcome();
+    (void)data;
+    if(scanFault){
+        assert(xrtThreadCurrentId()!=mainThread);
+        bool hit=xrtMemDebugFailTriggered();xrtMemDebugFailClear();
+        xrtAtomic32Store(&scanTriggered,hit?1:0,XMEMORY_SEQ_CST);
+        const xerror* error=xrtFutureError(activeOutput);
+        if(hit){
+            assert(xrtFutureState(activeOutput)==XFUTURE_FAILED);
+            /* A failed diagnostic allocation may be represented by the
+             * established asynchronous no-diagnostic InternalError fallback. */
+            assert(!error || xrtErrorKind(error)==XERR_MEMORY || xrtErrorKind(error)==XERR_INTERNAL);
+        }else assert(xrtFutureState(activeOutput)==XFUTURE_RESOLVED && !error);
+    }else check_outcome();
     assert(count(&firstDrops) == 1 && count(&unusedDrops) == 1);
-    if ((kind == 3 || kind == 4) && !bodyMode && !boxFault)
+    if (!scanFault && (kind == 3 || kind == 4) && !bodyMode && !boxFault)
         assert(count(&resultDrops) == (expectedState == XFUTURE_RESOLVED ? 0u : 1u));
     assert(xrtAtomic32FetchAdd(&publications, 1, XMEMORY_SEQ_CST) == 0); assert(xrtSemPost(observed));
+}
+static bool scan_case(unsigned selected,unsigned budget)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);worker_completion_prepare();
+    kind=selected;bodyMode=firstMode=unusedMode=resultMode=cancelPoint=boxFault=0;
+    scanBudget=budget;scanFault=true;xrtAtomic32Store(&scanTriggered,0,XMEMORY_SEQ_CST);
+    xatomic32* counters[]={&entries,&bodies,&firstDrops,&unusedDrops,&resultDrops,&publications,&watchDrops,&boxFailures};
+    for(size_t i=0;i<sizeof(counters)/sizeof(*counters);++i)xrtAtomic32Store(counters[i],0,XMEMORY_SEQ_CST);
+    activeOutput=worker_completion_launch(kind,0);assert(activeOutput);
+    assert(xrtSemWaitFor(entered,15000000)==XWAIT_OK && !xrtFutureDone(activeOutput));
+    xfuturewatch watch;assert(xrtFutureWatchInit(&watch,observe,release_watch,NULL));
+    assert(xrtFutureWatchAdd(activeOutput,&watch)==XFUTURE_WATCH_PENDING && xrtSemPost(proceed));
+    assert(xrtFutureWaitFor(activeOutput,15000000)==XWAIT_OK && xrtSemWaitFor(observed,15000000)==XWAIT_OK);
+    assert(xrtSemWaitFor(watchFinished,15000000)==XWAIT_OK);
+    bool hit=count(&scanTriggered)!=0;
+    if(!hit)worker_completion_check(kind,activeOutput);
+    xrtFutureDestroy(activeOutput);activeOutput=NULL;xrtClearError();
+    /* Module quiescence joins the actual worker, including payload/job frees.
+     * There is no open-pool Wait substitute or additional observer owner. */
+    worker_completion_finish();scanFault=false;
+    assert(count(&firstDrops)==1 && count(&unusedDrops)==1 && count(&publications)==1 && count(&watchDrops)==1);
+    assert(count(&resultDrops)<=1); /* Failed construction may never publish an owner. */
+    if(!hit && (kind==3 || kind==4))assert(count(&resultDrops)==1);
+    assert(!xrtGetError());continuation_owner_fault_balanced(&before);
+    assert(xrtSemWaitFor(inputsFinished,0)==XWAIT_OK && xrtSemWaitFor(inputsFinished,0)==XWAIT_OK);
+    if(count(&resultDrops))assert(xrtSemWaitFor(resultFinished,0)==XWAIT_OK);
+    ++scanRuns;if(hit)++scanHits;
+    printf("worker prefix kind=%u budget=%u hit=%u body=%u resultDrops=%u\n",kind,budget,(unsigned)hit,count(&bodies),count(&resultDrops));
+    return hit;
+}
+static void scan_prefixes(void)
+{
+    for(unsigned selected=0;selected<6;++selected)if(selected!=1){
+        bool complete=false;
+        for(unsigned budget=0;budget<128;++budget)if(!scan_case(selected,budget)){complete=true;break;}
+        assert(complete);
+    }
+    assert(scanRuns==scanHits+5);
+    printf("worker allocation prefixes: 5 complete lanes, %u runs, %u real worker TLS failures, module joins and exact memory balance\n",scanRuns,scanHits);
 }
 static void release_watch(void* data)
 {
@@ -98,8 +157,7 @@ static void run_case(void)
     expectedState = XFUTURE_RESOLVED; expectedKind = XERR_NONE; expectedCode = 0;
     if (boxFault) { expectedState = XFUTURE_FAILED; expectedKind = XERR_MEMORY; }
     else if (bodyMode) expect_failure(bodyMode, 31);
-    else if (kind == 5 && unusedMode) expect_failure(unusedMode, 99);
-    else if (cancelPoint == 1 || (cancelPoint == 2 && kind == 5)) expectedState = XFUTURE_CANCELLED;
+    else if (cancelPoint == 1) expectedState = XFUTURE_CANCELLED;
     else if (unusedMode) expect_failure(unusedMode, 99);
     else if (firstMode) expect_failure(firstMode, 97);
     ambient = xrtErrorCreate(XERR_STATE, "worker-completion", 11, "caller diagnostic"); assert(ambient);
@@ -193,6 +251,7 @@ int main(int argc, char** argv)
         printf("async worker completion: %u executions, %u real worker result allocation failures, %u observers, %u destructor-time cancellations, %u discarded Futures; measured 1989-case cycle: %llu balanced allocations\n",
             executions, faultExecutions, observations, lateCancels, discarded, (unsigned long long)(after.AllocCount - before.AllocCount));
     } else { assert(executions == 1296 && discarded == 324); printf("async worker completion C-host smoke: %u executions, %u discarded Futures\n", executions, discarded); }
+    if(!smoke)scan_prefixes();
     xrtSemDestroy(entered); xrtSemDestroy(proceed); xrtSemDestroy(dropEntered); xrtSemDestroy(dropProceed); xrtSemDestroy(observed);
     xrtSemDestroy(watchFinished); xrtSemDestroy(resultFinished);
     xrtSemDestroy(inputsFinished);
