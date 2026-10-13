@@ -22,7 +22,10 @@ bool xl6ValueAdmitsNominalV1(const xvalue* value, const XL6_NominalAdmissionV1* 
         const xstrview key={"$xlir.class.runtime-type",sizeof("$xlir.class.runtime-type")-1};
         xvalue* item=xrtValueObjectGet(value,key);
         int64_t runtimeTag=0;
-        if (!item || !xrtValueGetInt(item,&runtimeTag) || runtimeTag<=0) return false;
+        /* The getter reports type errors. Overload admission is a pure
+         * mismatch predicate: reject a malformed tag before calling it. */
+        if (!item || xrtValueType(item)!=XVALUE_INT ||
+            !xrtValueGetInt(item,&runtimeTag) || runtimeTag<=0) return false;
         identity=(uint64_t)runtimeTag;
     }
     if (!identity) return false;

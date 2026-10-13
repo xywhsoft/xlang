@@ -41,6 +41,15 @@ static void vectors(void)
     probe(object(12),&base,false,false); probe(object(-1),&base,false,false);
     probe(object(10),&named,false,false); probe(object(11),&named,false,true);
     probe(xrtValueObject(),&base,false,false);
+    /* A malformed reserved tag is a pure overload mismatch, not a request to
+     * convert it. It must preserve the ambient error even with no memory. */
+    const xstrview tagKey={"$xlir.class.runtime-type",sizeof("$xlir.class.runtime-type")-1};
+    xvalue* wrongTags[]={xrtValueString((xstrview){"11",2}),xrtValueUInt(11),xrtValueBool(true),xrtValueArray()};
+    for(size_t i=0;i<sizeof(wrongTags)/sizeof(*wrongTags);++i){
+        xvalue* malformed=xrtValueObject();assert(malformed&&wrongTags[i]);
+        assert(xrtValueObjectSetNew(malformed,tagKey,wrongTags[i]));
+        probe(malformed,&base,false,false);
+    }
     probe(xrtValueInt(11),&base,false,false);
     probe(xrtValueNull(),&base,false,false); probe(xrtValueNull(),&base,true,true);
     probe(xrtValueNull(),&named,true,true);
