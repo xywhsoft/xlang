@@ -40,6 +40,7 @@ def main():
     files={Path(__file__).resolve(),Path(cc),Path(sys.executable),a.build_report.resolve(),host,quote,pathFixture,pathHost,
         Path(inventory.__file__),Path(execution.__file__),root/'test/cases/stdlib_string_support.c',root/'test/cases/xlir_process_child.c',*cases}
     files.update(root/'tools'/g[1] for g in gates)
+    files.update(root/'test/cases'/name for name in execution.FIXTURE_C_SUPPORT.values())
     for row in build['Inputs']+build['Products']:assert sha(row['Path'])==row['Sha256'];files.add(Path(row['Path']))
     inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(files)]
     out.mkdir();isolated=out/'isolated';(isolated/'release').mkdir(parents=True);(isolated/'inputs').mkdir();tmp=out/'tmp';tmp.mkdir()
@@ -49,6 +50,9 @@ def main():
     sources={}
     for f in cases:target=isolated/'inputs'/f.name;shutil.copy2(f,target);sources[f.stem]=target
     sidecar=isolated/'inputs/stdlib_string_support.c';shutil.copy2(root/'test/cases'/sidecar.name,sidecar)
+    fixtureSupport={}
+    for name,support in execution.FIXTURE_C_SUPPORT.items():
+        destination=isolated/'inputs'/support;shutil.copy2(root/'test/cases'/support,destination);fixtureSupport[name]=destination
     assert not any((isolated/f).exists() for f in ('src','lib','res','include'))
     env={k:v for k,v in os.environ.items() if not k.upper().startswith('XL6_') and k not in
         ('LD_LIBRARY_PATH','LD_PRELOAD','LD_AUDIT','CPATH','C_INCLUDE_PATH','LIBRARY_PATH')}
@@ -82,6 +86,7 @@ def main():
             if source.stem=='stdlib_time_dst':local['TZ']='America/New_York'
             if 'XL6_PERSIST_FILE_ROOT' in text:files=directory/'files';files.mkdir();local['XL6_PERSIST_FILE_ROOT']=str(files)
             externs=set(re.findall(r'^extern\s+"([^"]+)"',text,re.M));support=[sidecar] if externs&{'expect_i64','expect_str'} else []
+            if source.stem in fixtureSupport:support.append(fixtureSupport[source.stem])
             modes=['check'] if source.stem in inventory.NEGATIVE else ['run','module']
             guard=lock if source.stem.startswith('stdlib_process') or re.search(r'\b(file|dir)\.',text) else None
             if guard:guard.acquire()

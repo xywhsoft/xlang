@@ -6,3 +6,12 @@ end
 assert names.length > 0
 // Expanding this name declares both overloads. Only string may be counted.
 assert encoding.isUtf8("ok")
+// Same spelling on an unrelated nominal class must not cover Buffer.len.
+class CoverageShadow
+    func len() as int
+        return 7
+    end
+end
+assert CoverageShadow().len() == 7
+// Only the string constructor is selected; bytes/point are declarations only.
+auto buffer = Buffer("ok")

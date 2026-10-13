@@ -1,0 +1,23 @@
+extern "stdlib_surface_fresh_buffer" func freshBuffer() as point
+auto adopted = Buffer(freshBuffer())
+assert adopted.len() == 0 and adopted.append(b"fresh\0value")
+assert adopted.toBytes() == b"fresh\0value"
+
+auto source = Buffer(b"a\0你")
+auto raw = source.data()
+assert raw != null and source.nativeHandle() != null
+auto destination = Buffer()
+assert destination.appendRaw(raw, source.len())
+assert destination.insertBytes(0, raw, source.len())
+assert destination.toBytes() == b"a\0你a\0你"
+assert source.toBytes() == b"a\0你"
+assert source.__item__(0) == uint8(97)
+source.__setItem__(0, 65)
+assert source.toBytes() == b"A\0你"
+assert source.__eq__(Buffer(b"A\0你"))
+assert source.__ne__(Buffer(b"B\0你"))
+auto iterator = source.__iter__()
+auto found, value = iterator.__next__()
+assert found and value == uint8(65)
+iterator.close()
+assert iterator.closed

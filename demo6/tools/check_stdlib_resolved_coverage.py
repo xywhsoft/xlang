@@ -56,6 +56,33 @@ def self_test():
     assert generic_match(by,('array<string>','func(string)asint','func(int,int)asint'))
     assert not generic_match(by,('array<string>','func(string)asint','func(string,string)asint'))
     assert key('signal.on',('int','func()','int'))!=key('signal.on',('int','func(SignalEvent)','int'))
+CLASS_NAMES={'Buffer','BufferIter','FixedStack','StringIterator','Utf8Validator','Regex','RegexMatch','RegexIterator',
+    'RegexSplitIterator','RegexSplitPart','RegexReplacer','RegexSet','PatternOptions','PatternKey','PatternSpec','Pattern',
+    'PatternMatch','PatternBuilder','DateTime','SignalSubscription','SignalEvent','SignalHandle','ProcessRunOptions',
+    'ProcessResult','ProcessExitStatus','ProcessCommand','Process','ProcessPipeline','PipelineResult','ProcessStageResult'}
+def class_members(catalog):
+    rows=[];classes=set()
+    for node in catalog['children']:
+        owner=node.get('text')
+        if node.get('kind')!='class' or owner not in CLASS_NAMES:continue
+        classes.add(owner)
+        for member in node['children'][1]['children']:
+            kind=member['kind'];flags=member.get('flags',0);children=member.get('children',[])
+            if kind=='field':
+                rows.append(dict(Owner=owner,Name=member['text'],Kind=kind,ParameterTypes=[],Flags=flags,
+                    Category='representation' if flags&128 else 'private' if flags&6 else 'field'));continue
+            if kind not in ('func','async_func','extern_func','native_extern_func','native_extern_special','get','let','create'):continue
+            name=member['text'] if kind=='create' else children[0]['text']
+            params=children[0]['children'] if kind=='create' else children[1]['children']
+            vector=[type_text(p['children'][0]).replace(' ','') for p in params]
+            category='private' if flags&6 else 'lifecycle' if name=='destroy' else 'internal-composition' if any('__Pattern' in t for t in vector) else 'callable'
+            rows.append(dict(Owner=owner,Name=name,Kind=kind,ParameterTypes=vector,Flags=flags,Category=category))
+    assert classes==CLASS_NAMES,('Missing managed class declarations',CLASS_NAMES-classes)
+    return rows
+def class_call(call):
+    owner=call['Owner'];base=owner.split('<',1)[0];vector=list(call['ParameterTypes'])
+    if not call['DeclarationFlags']&8 and call['DeclarationKind']!='native_extern_special' and vector and vector[0]==owner:vector.pop(0)
+    return base,call['Internal'],tuple(t.replace(' ','') for t in vector)
 def main():
     self_test()
     p=argparse.ArgumentParser(description=__doc__)
@@ -70,7 +97,8 @@ def main():
     if os.name=='nt' and not runtime.exists():runtime=root/'release/xl.dll'
     assert runtime.exists();sources=sorted(s for s in (root/'test/cases').glob('stdlib_*.xl') if PREFIX.match(s.name) or s.stem=='stdlib_crt_algorithms')
     control=task/'test/cases/stdlib_resolved_coverage_control.xl'
-    pinned.update((Path(__file__).resolve(),Path(inventory.__file__),host,control,Path(cc),runtime,*sources));inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(pinned)]
+    class_seed=task/'test/cases/stdlib_class_catalog.xl'
+    pinned.update((Path(__file__).resolve(),Path(inventory.__file__),host,control,class_seed,Path(cc),runtime,*sources));inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(pinned)]
     out.mkdir();rows=[];env=dict(os.environ);ext='.exe' if os.name=='nt' else ''
     if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')
     else:env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
@@ -86,6 +114,9 @@ def main():
     binary=out/('resolved'+ext);row,data,error=run('build',[cc,*flags,host,*objects,runtime,*systems,'-o',binary]);rows.append(row);assert row['Exit']==0,error[-5000:]
     row,data,error=run('catalog',[binary,'--catalog']);rows.append(row);assert row['Exit']==0,error[-5000:]
     catalog=json.loads(data);expected={}
+    row,data,error=run('class-catalog',[binary,'--class-catalog',class_seed]);rows.append(row);assert row['Exit']==0,error[-5000:]
+    class_catalog=json.loads(data)
+    member_catalog=class_members(class_catalog);class_observed={}
     for item in catalog['Registrations']:
         vectors=declarations(item['Ast'],item['Internal']) if item['Ast'] else [item['ParameterTypes']]
         assert vectors,('No actual declaration',item['Index'],item['Internal'])
@@ -95,6 +126,8 @@ def main():
     actual=json.loads(data)['Calls']
     controls={key(c['Internal'],c['ParameterTypes']) for c in actual if c['SourceCall'] and key(c['Internal'],c['ParameterTypes']) in expected}
     assert controls=={key('__xl_std_encoding_is_utf8',('string','int'))},controls
+    class_controls={class_call(c) for c in actual if c['SourceCall'] and c['Owner'].split('<',1)[0] in CLASS_NAMES}
+    assert class_controls=={('Buffer','create',('string','int'))},class_controls
     cases=[];bindings={};methods={};failures=[]
     def inspect(source):
         row,data,error=run(source.stem,[binary,source]);record=dict(Name=source.stem,Row=row,Calls=[])
@@ -114,13 +147,27 @@ def main():
                     for template in expected:
                         if template[0]==identity[0] and generic_match(template[1],identity[1]):bindings.setdefault(template,set()).add(case['Name'])
                 if call['Owner'] and call['SourceCall']:methods.setdefault((call['Owner'],call['Internal'],tuple(call['ParameterTypes'])),set()).add(case['Name'])
+                if call['Owner'] and call['SourceCall']:
+                    member=class_call(call)
+                    if member[0] in CLASS_NAMES:class_observed.setdefault(member,set()).add(case['Name'])
     missing=[dict(Internal=k[0],ParameterTypes=list(k[1]),Registrations=[i['Index'] for i in v],Public=[i['Namespace']+'.'+i['Name'] for i in v]) for k,v in expected.items() if k not in bindings]
+    class_missing=[]
+    for member in member_catalog:
+        if member['Category']!='callable':continue
+        identity=(member['Owner'],member['Name'],tuple(member['ParameterTypes']))
+        hits=set(class_observed.get(identity,()))
+        if member['Owner']=='FixedStack':
+            for concrete,fixtures in class_observed.items():
+                if concrete[:2]==identity[:2] and generic_match(identity[2],concrete[2]):hits.update(fixtures)
+        member['Fixtures']=sorted(hits)
+        if not hits:class_missing.append(member)
     report=dict(Complete=not failures,InputsUnchanged=all(sha(r['Path'])==r['Sha256'] for r in inputs),Scope=__doc__,Inputs=inputs,
-        Products=[dict(Path=str(binary),Sha256=sha(binary))],Rows=rows,Cases=cases,Catalog=catalog,
+        Products=[dict(Path=str(binary),Sha256=sha(binary))],Rows=rows,Cases=cases,Catalog=catalog,ClassCatalog=class_catalog,ClassMembers=member_catalog,MissingClassBindings=class_missing,
         CandidateCount=len(sources),RegistrationCount=len(catalog['Registrations']),ExpectedBindingCount=len(expected),BoundCount=len(bindings),Missing=missing,
         ComparedSourceInputs=compared,StaticBindings=[dict(Internal=k[0],ParameterTypes=list(k[1]),Fixtures=sorted(v)) for k,v in sorted(bindings.items())],
         ObservedClassBindings=[dict(Owner=k[0],Method=k[1],ParameterTypes=list(k[2]),Fixtures=sorted(v)) for k,v in sorted(methods.items())],Failures=failures,
-        AllStaticBindingsObserved=not missing,GenericMatchingControls=True,NoNameOrDeclarationFalsePositives=True,RuntimeExecutionAcceptance=False,ClassCompletenessAcceptance=False,
+        AllStaticBindingsObserved=not missing,AllManagedClassBindingsObserved=not class_missing,ClassIdentityControls=True,
+        GenericMatchingControls=True,NoNameOrDeclarationFalsePositives=True,RuntimeExecutionAcceptance=False,ClassCompletenessAcceptance=False,
         FunctionCoverageAcceptance=False,Full53Acceptance=False,ShippingArtifact=False)
     (out/'results.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     assert report['Complete'] and report['InputsUnchanged'],failures
