@@ -54,11 +54,17 @@ set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_channel.o""
 
 rem Keep the private optional-record supplier in both resident DLL targets.
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_nullable_slot_map_key.c -o "%XL6_BUILD_TMP%\xl6_nullable_slot_map_key.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_nullable_slot_map_key_capture.c -o "%XL6_BUILD_TMP%\xl6_nullable_slot_map_key_capture.o"
 if errorlevel 1 (
     echo DEMO6 DLL build failed: optional native record compilation failed.
     exit /b 1
 )
 set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_nullable_slot_map_key.o""
+set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_nullable_slot_map_key_capture.o""
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_closure_capture_v3.c -o "%XL6_BUILD_TMP%\xl6_closure_capture_v3.o"
+if errorlevel 1 exit /b 1
+set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_closure_capture_v3.o""
 
 if not exist "lib\lzma\LzmaDec.c" (
     echo DEMO6 xl.dll build failed: missing LZMA decoder source "lib\lzma\LzmaDec.c".

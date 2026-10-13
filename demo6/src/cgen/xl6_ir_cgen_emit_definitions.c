@@ -118,6 +118,7 @@ static int xl6IrCgenEmitModuleDefinitions(
         size_t capture;
         if ( closure->reachability == XL6_IR_REACHABILITY_UNREACHABLE ||
              closure->captureCount == 0 ) continue;
+        int nativeLayout=xl6IrClosureEnvironmentAbi(module,closure)==XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3;
         xl6OutputPrintf(out, "typedef struct xlir_closure_env_%u {\n",
                         (unsigned int)closure->targetSymbol);
         for ( capture = 0; capture < closure->captureCount; ++capture ) {
@@ -133,6 +134,7 @@ static int xl6IrCgenEmitModuleDefinitions(
                     type->cAbi == XL6_IR_C_ABI_MANAGED_STRING && type->kind != XL6_IR_TYPE_NULLABLE) ||
                    (item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING &&
                     type->cAbi == XL6_IR_C_ABI_MANAGED_STRING && type->kind == XL6_IR_TYPE_NULLABLE) ||
+                   (item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE && xl6IrNativeValuePlanForType(type)!=NULL) ||
                    (item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE &&
                     (type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
                      type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES)) ||
@@ -150,12 +152,13 @@ static int xl6IrCgenEmitModuleDefinitions(
         /* Verified physical slots, not producer-owned lifecycle callbacks.
          * Resident code owns traversal, rollback and post-commit release. */
         xl6OutputPrintf(out,
-            "static const XL6_ClosureCaptureSlot xlir_closure_slots_%u[] = {\n",
-            (unsigned int)closure->targetSymbol);
+            "static const %s xlir_closure_slots_%u[] = {\n",
+            nativeLayout ? "XL6_CaptureSlotV2" : "XL6_ClosureCaptureSlot",(unsigned int)closure->targetSymbol);
         for ( capture = 0; capture < closure->captureCount; ++capture ) {
             const XL6_IrClosureCapture* item = &module->closureCaptures[closure->firstCapture + capture];
             const char* kind;
             switch ( item->abi ) {
+            case XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE:kind="XL6_CAPTURE_NATIVE_LEAF_V2";break;
             case XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE: kind = "XL6_CLOSURE_CAPTURE_XVALUE"; break;
             case XL6_IR_CLOSURE_CAPTURE_RETAIN_CLOSURE: kind = "XL6_CLOSURE_CAPTURE_CLOSURE"; break;
             case XL6_IR_CLOSURE_CAPTURE_RETAIN_CELL: kind = "XL6_CLOSURE_CAPTURE_CELL"; break;
@@ -166,14 +169,31 @@ static int xl6IrCgenEmitModuleDefinitions(
             default: return xl6IrCgenDiag(diags, module, closure->declaration,
                 "XLIR C emitter closure layout ABI is unresolved");
             }
+            if(nativeLayout && item->abi!=XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE){
+                switch(item->abi){
+                case XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE:kind="XL6_CAPTURE_XVALUE";break;
+                case XL6_IR_CLOSURE_CAPTURE_RETAIN_CLOSURE:kind="XL6_CAPTURE_CLOSURE";break;
+                case XL6_IR_CLOSURE_CAPTURE_RETAIN_CELL:kind="XL6_CAPTURE_CELL";break;
+                case XL6_IR_CLOSURE_CAPTURE_RETAIN_FUTURE:kind="XL6_CAPTURE_FUTURE";break;
+                case XL6_IR_CLOSURE_CAPTURE_COPY_VALUE:kind="XL6_CAPTURE_TRIVIAL";break;
+                default:kind="XL6_CAPTURE_STRING";break;
+                }
+            }
             xl6OutputPrintf(out,
-                "    {%s, offsetof(xlir_closure_env_%u, c%lu), sizeof(((xlir_closure_env_%u*)0)->c%lu)},\n",
-                kind, (unsigned int)closure->targetSymbol, (unsigned long)capture,
+                "    %s{%s, offsetof(xlir_closure_env_%u, c%lu), sizeof(((xlir_closure_env_%u*)0)->c%lu)}",
+                nativeLayout ? "{" : "",kind, (unsigned int)closure->targetSymbol, (unsigned long)capture,
                 (unsigned int)closure->targetSymbol, (unsigned long)capture);
+            if(nativeLayout){
+                const XL6_IrNativeValuePlan* native=item->abi==XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE ?
+                    xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,item->type)) : NULL;
+                xl6OutputPrintf(out,", %s}",native ? native->captureProfileSymbol : "NULL");
+            }
+            xl6OutputPuts(",\n",out);
         }
-        xl6OutputPrintf(out, "};\nstatic const XL6_ClosureEnvironmentV1 xlir_closure_layout_%u = {\n"
-            "    sizeof(XL6_ClosureEnvironmentV1), sizeof(xlir_closure_env_%u), %lu, xlir_closure_slots_%u\n};\n\n",
-            (unsigned int)closure->targetSymbol, (unsigned int)closure->targetSymbol,
+        xl6OutputPrintf(out, "};\nstatic const %s xlir_closure_layout_%u = {\n"
+            "    sizeof(%s), sizeof(xlir_closure_env_%u), %lu, xlir_closure_slots_%u\n};\n\n",
+            nativeLayout ? "XL6_CaptureLayoutV2" : "XL6_ClosureEnvironmentV1",(unsigned int)closure->targetSymbol,
+            nativeLayout ? "XL6_CaptureLayoutV2" : "XL6_ClosureEnvironmentV1",(unsigned int)closure->targetSymbol,
             (unsigned long)closure->captureCount, (unsigned int)closure->targetSymbol);
     }
     /* Direct async machine launchers may construct and invoke closures before

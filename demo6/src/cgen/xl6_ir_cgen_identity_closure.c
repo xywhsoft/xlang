@@ -570,6 +570,7 @@ static int xl6IrCgenEmitClosureMakeInstruction(
     size_t capture;
     int needsCopies = 0;
     int conditionCount = 0;
+    int nativeLayout=target && xl6IrClosureEnvironmentAbi(module,target)==XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3;
     if ( instruction == NULL || xl6IrCgenType(module, instruction->type) == NULL ||
          target == NULL || signature == NULL ||
          signature->kind != XL6_IR_TYPE_FUNCTION ||
@@ -612,16 +613,23 @@ static int xl6IrCgenEmitClosureMakeInstruction(
         return !xl6OutputHasFailed(out);
     }
     xl6OutputPrintf(out,
-        "    xlir_closure_env_%u* e%lu = (xlir_closure_env_%u*)xrtMalloc(sizeof(*e%lu));\n"
+        "    xlir_closure_env_%u* e%lu = (xlir_closure_env_%u*)%ssizeof(*e%lu));\n"
         "    if (e%lu != NULL) {\n",
-        (unsigned int)target->targetSymbol, (unsigned long)instructionIndex,
-        (unsigned int)target->targetSymbol, (unsigned long)instructionIndex,
+        (unsigned int)target->targetSymbol,(unsigned long)instructionIndex,
+        (unsigned int)target->targetSymbol,nativeLayout ? "xrtCalloc(1, " : "xrtMalloc(",(unsigned long)instructionIndex,
         (unsigned long)instructionIndex);
     for ( capture = 0; capture < target->captureCount; ++capture ) {
         const XL6_IrClosureCapture* item =
             &module->closureCaptures[target->firstCapture + capture];
         XL6_IrValueId value = module->operands[instruction->firstOperand + capture];
-        if ( item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING ) {
+        if(item->abi==XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE){
+            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,item->type));
+            if(!native)return 0;
+            needsCopies=1;
+            xl6OutputPrintf(out,"        bool native_capture_ok_%lu_%lu = %s(v%u, &e%lu->c%lu);\n",
+                (unsigned long)instructionIndex,(unsigned long)capture,native->copySymbol,(unsigned)value,
+                (unsigned long)instructionIndex,(unsigned long)capture);
+        } else if ( item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING ) {
             needsCopies = 1;
             xl6OutputPrintf(out, "        e%lu->c%lu = xlir_string_copy(v%u);\n",
                 (unsigned long)instructionIndex, (unsigned long)capture,
@@ -664,7 +672,10 @@ static int xl6IrCgenEmitClosureMakeInstruction(
             const XL6_IrClosureCapture* item =
                 &module->closureCaptures[target->firstCapture + capture];
             XL6_IrValueId value = module->operands[instruction->firstOperand + capture];
-            if ( item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_STRING )
+            if(item->abi==XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE)
+                xl6OutputPrintf(out,"%s!native_capture_ok_%lu_%lu",conditionCount++ ? " || " : "",
+                    (unsigned long)instructionIndex,(unsigned long)capture);
+            else if ( item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_STRING )
                 xl6OutputPrintf(out, "%se%lu->c%lu.Data == NULL",
                     conditionCount++ ? " || " : "", (unsigned long)instructionIndex,
                     (unsigned long)capture);
@@ -680,14 +691,18 @@ static int xl6IrCgenEmitClosureMakeInstruction(
                     (unsigned long)instructionIndex, (unsigned long)capture);
         }
         xl6OutputPrintf(out,
-            ") { xlir_closure_env_drop(&xlir_closure_layout_%u, e%lu); v%u = NULL; } else {\n",
-            (unsigned int)target->targetSymbol, (unsigned long)instructionIndex,
-            (unsigned int)instruction->result);
+            ") { %s(&xlir_closure_layout_%u, e%lu",
+            nativeLayout ? "xlir_closure_env_drop_v3" : "xlir_closure_env_drop",
+            (unsigned int)target->targetSymbol, (unsigned long)instructionIndex);
+        if(nativeLayout)xl6OutputPrintf(out,", sizeof(*e%lu)",(unsigned long)instructionIndex);
+        xl6OutputPrintf(out,"); v%u = NULL; } else {\n",(unsigned)instruction->result);
     }
     xl6OutputPrintf(out,
-        "        v%u = xlir_closure_new((void (*)(void))xlir_closure_invoke_%u, NULL, e%lu, &xlir_closure_layout_%u, ",
-        (unsigned int)instruction->result, (unsigned int)target->targetSymbol,
-        (unsigned long)instructionIndex, (unsigned int)target->targetSymbol);
+        "        v%u = %s((void (*)(void))xlir_closure_invoke_%u, NULL, e%lu, ",
+        (unsigned int)instruction->result,nativeLayout ? "xlir_closure_new_v3" : "xlir_closure_new",(unsigned int)target->targetSymbol,
+        (unsigned long)instructionIndex);
+    if(nativeLayout)xl6OutputPrintf(out,"sizeof(*e%lu), ",(unsigned long)instructionIndex);
+    xl6OutputPrintf(out,"&xlir_closure_layout_%u, ",(unsigned)target->targetSymbol);
     if ( target->callParameterCount != 0 )
         xl6OutputPrintf(out, "xlir_closure_call_names_%u",
                         (unsigned int)target->targetSymbol);
@@ -700,10 +715,12 @@ static int xl6IrCgenEmitClosureMakeInstruction(
         xl6OutputPuts(", NULL", out);
     xl6OutputPrintf(out,
         ", %lu);\n"
-        "        if (v%u == NULL) xlir_closure_env_drop(&xlir_closure_layout_%u, e%lu);\n",
+        "        if (v%u == NULL) %s(&xlir_closure_layout_%u, e%lu",
         (unsigned long)target->callParameterCount,
-        (unsigned int)instruction->result, (unsigned int)target->targetSymbol,
+        (unsigned int)instruction->result,nativeLayout ? "xlir_closure_env_drop_v3" : "xlir_closure_env_drop",(unsigned int)target->targetSymbol,
         (unsigned long)instructionIndex);
+    if(nativeLayout)xl6OutputPrintf(out,", sizeof(*e%lu)",(unsigned long)instructionIndex);
+    xl6OutputPuts(");\n",out);
     if ( needsCopies ) xl6OutputPuts("        }\n", out);
     xl6OutputPrintf(out, "    } else v%u = NULL;\n",
                     (unsigned int)instruction->result);

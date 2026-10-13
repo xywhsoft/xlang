@@ -19638,7 +19638,7 @@ static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* 
          module->abi.futureAggregateAbi != XL6_IR_FUTURE_AGGREGATE_RESIDENT_SPLIT_V2))
         return xl6IrDiag(diags, NULL, "XLIR Future aggregate mapper/code ownership ABI is unresolved");
     if (module->abi.closureStorageAbi != (module->stage == XL6_IR_STAGE_TYPED
-            ? XL6_IR_CLOSURE_STORAGE_NONE : XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V2))
+            ? XL6_IR_CLOSURE_STORAGE_NONE : xl6IrModuleClosureStorageRequirement(module)))
         return xl6IrDiag(diags, NULL, "XLIR closure storage/code ownership ABI is unresolved");
     if (module->abi.boundMethodStorageAbi != (module->stage == XL6_IR_STAGE_TYPED
             ? XL6_IR_BOUND_METHOD_STORAGE_NONE : XL6_IR_BOUND_METHOD_STORAGE_RESIDENT_CLOSURE_LAYOUT_V1))
@@ -38418,6 +38418,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     type->cAbi == XL6_IR_C_ABI_MANAGED_STRING && type->kind != XL6_IR_TYPE_NULLABLE) ||
                    (item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING &&
                     type->cAbi == XL6_IR_C_ABI_MANAGED_STRING && type->kind == XL6_IR_TYPE_NULLABLE) ||
+                   (item->abi == XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE &&
+                    xl6IrNativeValuePlanForType(type)!=NULL) ||
                    (item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE &&
                     (type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
                      type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES)) ||
@@ -47249,6 +47251,7 @@ static const char* xl6IrClosureCaptureAbiName(XL6_IrClosureCaptureAbi abi)
     case XL6_IR_CLOSURE_CAPTURE_COPY_VALUE: return "copy-value";
     case XL6_IR_CLOSURE_CAPTURE_COPY_STRING: return "copy-string";
     case XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING: return "copy-nullable-string";
+    case XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE: return "copy-native-value";
     case XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE: return "retain-xvalue";
     case XL6_IR_CLOSURE_CAPTURE_RETAIN_FUTURE: return "retain-future";
     case XL6_IR_CLOSURE_CAPTURE_RETAIN_CLOSURE: return "retain-closure";

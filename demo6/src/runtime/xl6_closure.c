@@ -14,6 +14,9 @@
 typedef struct ClosureStorage {
     XL6_Closure base; /* Preserve the public invocation prefix and V1 ABI. */
     const XL6_ClosureEnvironmentV1* layout;
+    const XL6_ClosureEnvironmentOpsV1* environmentOps;
+    const void* environmentLayout;
+    size_t environmentBytes;
     const void* claim;
     void* retiredEnvironment;
     bool coordinated, cleared;
@@ -105,11 +108,15 @@ static XL6_Closure* closure_retain(XL6_Closure* closure)
 static XL6_Closure* xl6OwnershipBody_closure_create(const XL6_CodeOwner* owner, void (*invoke)(void),
     void (*raw)(void), void* environment, void (*drop)(void*),
     const char* const* names, const xlir_call_default* defaults, size_t count, XL6_CodeContextTrace trace,
-    const XL6_ClosureEnvironmentV1* layout, bool coordinated)
+    const XL6_ClosureEnvironmentV1* layout, bool coordinated,
+    const XL6_ClosureEnvironmentOpsV1* environmentOps,const void* environmentLayout,size_t environmentBytes)
 {
     XL6_Closure* closure; XL6_CodeLease* lease = NULL; XL6_CodeLeaseAdmission admission;
     xerror* prior = xrtTakeError();
-    if (invoke == NULL || (coordinated ? !environment_valid(layout, environment) :
+    if (invoke == NULL || (coordinated ? (environmentOps ?
+            (environmentOps->size!=sizeof(*environmentOps) || !environmentOps->Validate ||
+             !environmentOps->Trace || !environmentOps->Drop || !environmentLayout ||
+             !environmentOps->Validate(environmentLayout,environment,environmentBytes)) : !environment_valid(layout, environment)) :
             (environment != NULL && (drop == NULL || trace == NULL)))) {
         xrtSetErrorKind(XERR_ARGUMENT); closure = NULL; goto done;
     }
@@ -127,6 +134,9 @@ static XL6_Closure* xl6OwnershipBody_closure_create(const XL6_CodeOwner* owner, 
     closure->call_parameter_names = names; closure->call_parameter_defaults = defaults;
     closure->call_parameter_count = count; closure->environment_trace = trace; closure->lease = lease;
     ((ClosureStorage*)closure)->layout = layout;
+    ((ClosureStorage*)closure)->environmentOps=environmentOps;
+    ((ClosureStorage*)closure)->environmentLayout=environmentLayout;
+    ((ClosureStorage*)closure)->environmentBytes=environmentBytes;
     ((ClosureStorage*)closure)->coordinated = coordinated;
 done:
     if (prior != NULL) { xrtClearError(); xrtSetErrorTake(prior); }
@@ -136,14 +146,22 @@ static XL6_Closure* closure_create(const XL6_CodeOwner* owner, void (*invoke)(vo
     void (*raw)(void), void* environment, void (*drop)(void*),
     const char* const* names, const xlir_call_default* defaults, size_t count, XL6_CodeContextTrace trace)
 {
-    XL6_OWNERSHIP_RETURN(XL6_Closure*, xl6OwnershipBody_closure_create(owner, invoke, raw, environment, drop, names, defaults, count, trace, NULL, false));
+    XL6_OWNERSHIP_RETURN(XL6_Closure*, xl6OwnershipBody_closure_create(owner, invoke, raw, environment, drop, names, defaults, count, trace, NULL, false,NULL,NULL,0));
 }
 static XL6_Closure* closure_create_v2(const XL6_CodeOwner* owner, void (*invoke)(void),
     void (*raw)(void), void* environment, const XL6_ClosureEnvironmentV1* layout,
     const char* const* names, const xlir_call_default* defaults, size_t count)
 {
     XL6_OWNERSHIP_RETURN(XL6_Closure*, xl6OwnershipBody_closure_create(owner, invoke, raw, environment,
-        NULL, names, defaults, count, NULL, layout, true));
+        NULL, names, defaults, count, NULL, layout, true,NULL,NULL,0));
+}
+XL6_Closure* xl6ClosureCreateEnvironmentV1(const XL6_CodeOwner* owner,void (*invoke)(void),
+    void (*raw)(void),void* environment,size_t bytes,const void* layout,const XL6_ClosureEnvironmentOpsV1* ops,
+    const char* const* names,const xlir_call_default* defaults,size_t count)
+{
+    if(!ops){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    XL6_OWNERSHIP_RETURN(XL6_Closure*,xl6OwnershipBody_closure_create(owner,invoke,raw,environment,NULL,
+        names,defaults,count,NULL,NULL,true,ops,layout,bytes));
 }
 static XL6_Closure* closure_create_value_body(const XL6_CodeOwner* owner, void (*invoke)(void), const xvalue* source)
 {
@@ -155,7 +173,7 @@ static XL6_Closure* closure_create_value_body(const XL6_CodeOwner* owner, void (
     if (!environment) goto done;
     *environment = xrtValueRetain(source);
     if (*environment) closure = xl6OwnershipBody_closure_create(owner, invoke, NULL, environment,
-        NULL, NULL, NULL, 0, NULL, &layout, true);
+        NULL, NULL, NULL, 0, NULL, &layout, true,NULL,NULL,0);
     if (!closure) {
         xerror* failure = xrtTakeError(); environment_drop_body(&layout, environment);
         xrtClearError(); xrtSetErrorTake(failure);
@@ -173,6 +191,8 @@ static void closure_release(XL6_Closure* closure)
     int32 refs; XL6_CodeLease* lease; XL6_CodeScope scope = {0};
     xrtownershipscope mutation = {0};
     void* environment; void (*drop)(void*); const XL6_ClosureEnvironmentV1* layout;
+    const XL6_ClosureEnvironmentOpsV1* environmentOps;const void* environmentLayout;
+    size_t environmentBytes;
     ClosureStorage* storage = (ClosureStorage*)closure; bool coordinated;
     if (closure == NULL) return;
     if (!xrtOwnershipMutationBegin(&mutation)) abort();
@@ -182,12 +202,15 @@ static void closure_release(XL6_Closure* closure)
     lease = closure->lease; environment = closure->environment; drop = closure->environment_free;
     if (storage->retiredEnvironment != NULL) abort(); /* Finish must precede final unpin. */
     layout = storage->layout; coordinated = storage->coordinated;
+    environmentOps=storage->environmentOps;environmentLayout=storage->environmentLayout;
+    environmentBytes=storage->environmentBytes;
     xl6CodeScopeEnter(&scope, lease);
     xrtFree(closure);
     /* The real code lease/scope protects descriptor reads and every return
      * tail. The zero-count closure no longer exposes a live graph node. */
     if (coordinated && !xrtOwnershipScopeEnd(&mutation)) abort();
-    if (coordinated) environment_drop_body(layout, environment);
+    if(environmentOps){if(!environmentOps->Drop(environmentLayout,environment,environmentBytes) && !xrtGetError())xrtSetErrorKind(XERR_STATE);}
+    else if (coordinated) environment_drop_body(layout, environment);
     else if (drop != NULL) drop(environment);
     xl6CodeLeaseRelease(lease);
     xl6CodeScopeLeave(&scope);
@@ -207,7 +230,10 @@ static bool closure_trace(const void* data, xrtownershipvisitor visit, void* con
     const XL6_Closure* closure = (const XL6_Closure*)data;
     if (closure == NULL || visit == NULL || ((const ClosureStorage*)closure)->cleared) return false;
     if (closure->lease != NULL && !visit(xl6CodeLeaseOwnership(closure->lease), context)) return false;
-    if (((const ClosureStorage*)closure)->coordinated)
+    const ClosureStorage* storage=(const ClosureStorage*)closure;
+    if(storage->environmentOps)
+        return storage->environmentOps->Trace(storage->environmentLayout,closure->environment,storage->environmentBytes,visit,context);
+    if (storage->coordinated)
         return environment_trace(((const ClosureStorage*)closure)->layout, closure->environment, visit, context);
     return closure->environment == NULL ||
         (closure->environment_trace != NULL && closure->environment_trace(closure->environment, visit, context));
@@ -364,7 +390,8 @@ static bool closure_finish(const void* data, const void* token)
     ClosureStorage* storage = (ClosureStorage*)data; void* environment;
     if (storage->claim != token || !storage->cleared) abort();
     environment = storage->retiredEnvironment; storage->retiredEnvironment = NULL;
-    environment_drop_body(storage->layout, environment); return true;
+    if(storage->environmentOps)return storage->environmentOps->Drop(storage->environmentLayout,environment,storage->environmentBytes);
+    environment_drop_body(storage->layout, environment);return true;
 }
 const xrtownershipadapterv1* xl6ClosureOwnershipAdapterV1(xrtownershipref ref)
 {
