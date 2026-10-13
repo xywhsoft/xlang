@@ -172,6 +172,15 @@ XL6_TEXT_API XL6_Sequence* xl6SequenceBeginRoleV1(const xvalue*, XL6_SequenceRol
  * an admitted ARRAY; -1 for invalid/unbound/BUSY ARRAY state. */
 XL6_TEXT_API bool xl6SequenceBindProjectionV1(XL6_Sequence*, const xvalueconverter*);
 XL6_TEXT_API int xl6SequenceBeginErasedArrayV1(const xvalue*, XL6_Sequence**, XL6_SequenceLayoutV1*, const xvalueconverter**);
+/* Exact ARRAY/STACK erasure boundary. The ARRAY-only wrappers above retain
+ * their original family contract. Binding requires the matching operation
+ * pin; probing authenticates resident handle ops before reading its role.
+ * Outputs are reset on every valid-output call. A wrong family returns 0
+ * without allocating/changing diagnostics; unbound/BUSY owners return -1.
+ * Successful probing returns one pin that the caller must end. Neither
+ * function publishes a raw slot borrow or retains generated-code callbacks. */
+XL6_TEXT_API bool xl6SequenceBindProjectionRoleV1(XL6_Sequence*, XL6_SequenceRoleV1, const xvalueconverter*);
+XL6_TEXT_API int xl6SequenceBeginErasedRoleV1(const xvalue*, XL6_SequenceRoleV1, XL6_Sequence**, XL6_SequenceLayoutV1*, const xvalueconverter**);
 /* Captured Handle fields from XRT's guarded graph callback. Exact resident
  * ops are checked BEFORE the opaque pointer is dereferenced. The source
  * Value is BUSY, so a public GetHandle probe is deliberately not used.

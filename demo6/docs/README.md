@@ -175,6 +175,7 @@
 - `stdlib53-b268-nominal-predicate.md`：错误类型 class tag 的纯判定缺陷与双端原生修复；真实产品确认 Native var 方法 ABI 缺口，保留 pending 回归，不声称动态接入完成。
 - `stdlib53-b269-dynamic-value-domains.md`：动态方法精确值域、名义和容器匹配，bytes 拥有／可空语义及双端严格 C／JIT／module／AOT；Native 原生字段投影继续。
 - `stdlib53-b270-native-dynamic-envelope.md`：Native 动态参数 checked 投影、直接结果事务、负默认值及双端 104 项验收；Stack 动态资源分派与其余 Native 编码继续。
+- `stdlib53-b271-stack-projection-foundation.md`：Stack 精确角色的原生投影、失败原子 Pop 与克隆策略，双端原生、Linux 插桩和错误实现对照通过；统一 IR 动态分派继续。
 - `XRT与xlang系统整合任务.md`：当前长期整合范围、快照契约、实施顺序和 HTTP/WebSocket 快慢路径边界。
 - `扩展库开发问题清单.md`：六轮扩展库批次发现的语言/编译器/运行时问题账本（P0 崩溃类到 P4 C 库兼容），含最小复现、规避方案与修复优先级。
 - `剩余未压实扩展库清单.md`：删除 22 个占位库后 109 个未压实包的处置规划视图（按编解码改造/平台收编/真外部服务/迁移队列分类）。
