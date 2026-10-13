@@ -1,0 +1,71 @@
+typedef StackFunction = func(int) as int
+typedef MaybeStackFunction = StackFunction?
+
+func makeStackFunction(int offset) as StackFunction
+    return func(int value) as int
+        return value + offset
+    end
+end
+
+func main(...) as int
+    auto first = makeStackFunction(10)
+    auto second = makeStackFunction(20)
+    auto stack = Stack::<StackFunction>()
+    assert(stack.reserve(8) and stack.push(first) and stack.push(second))
+    assert(stack.count() == 2)
+    auto copy = stack.clone()
+    assert(copy.equals(stack))
+    assert(stack.peek()(2) == 22 and stack.peekAt(1)(3) == 13)
+    auto taken = stack.pop()
+    assert(taken(4) == 24 and stack.count() == 1)
+    auto found, owned = stack.tryPop()
+    assert(found and owned != null)
+    if owned != null then assert(owned(5) == 15) end
+    auto absent, missing = stack.tryPop()
+    assert(not absent and missing == null)
+    stack.clear()
+    assert(stack.trim() and copy.pop()(6) == 26)
+
+    auto nullable = Stack::<MaybeStackFunction>()
+    assert(nullable.push(first) and nullable.push(null))
+    auto foundNull, nullItem = nullable.tryPeek()
+    assert(foundNull and nullItem == null)
+    auto takenNull, nullTaken = nullable.tryPop()
+    assert(takenNull and nullTaken == null and nullable.count() == 1)
+    auto foundFunction, functionItem = nullable.tryPeekAt(0)
+    assert(foundFunction and functionItem != null)
+    if functionItem != null then assert(functionItem(7) == 17) end
+    auto outside, noItem = nullable.tryPeekAt(9)
+    assert(not outside and noItem == null)
+    array<MaybeStackFunction> input = [second, null, first]
+    nullable.clear()
+    assert(nullable.pushBatch(input))
+    auto preview = nullable.peekBatch(2)
+    auto below = nullable.peekBatchAt(1, 2)
+    auto output = nullable.popBatch(2)
+    assert(preview.length == 2 and preview[1] == null and below[0] == null)
+    assert(output.length == 2 and output[1] == null and nullable.count() == 1)
+    auto last = nullable.pop()
+    if last != null then assert(last(8) == 28) else assert(false) end
+    nullable.clear()
+    input.clear()
+    auto escaped = output[0]
+    if escaped != null then assert(escaped(9) == 19) else assert(false) end
+    auto nested = Stack::<Stack<StackFunction>>()
+    assert(nested.push(copy))
+    auto child = nested.pop()
+    assert(child.pop()(1) == 11)
+    int errors = 0
+    try
+        stack.pop()
+    catch RangeError
+        errors += 1
+    end
+    try
+        stack.peekAt(-1)
+    catch RangeError
+        errors += 1
+    end
+    assert(errors == 2)
+    return 0
+end

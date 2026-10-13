@@ -8552,7 +8552,8 @@ static int xl6IrStackConstructionContractDepth(const XL6_IrModule* module,
     if (!plan || depth>64 ||
         !xl6IrSequenceConstructionRecipe(module,typeId,XL6_IR_SEQUENCE_ROLE_STACK,setOut) ||
         type->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_STACK ||
-        plan->role!=XL6_IR_SEQUENCE_ROLE_STACK || plan->codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT ||
+        plan->role!=XL6_IR_SEQUENCE_ROLE_STACK ||
+        (plan->codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT && plan->codecAbi!=XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1) ||
         plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID) return 0;
     switch (plan->abi) {
     case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2:
@@ -8566,6 +8567,7 @@ static int xl6IrStackConstructionContractDepth(const XL6_IrModule* module,
     case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1: return 1;
     case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2:
         return xl6IrNominalIdentitySetGet(module,plan->baseElementType,setOut)!=NULL;

@@ -1,0 +1,6 @@
+func main(...) as int
+    auto stack = Stack::<func() as int>()
+    auto found, value = stack.tryPop()
+    assert(not found and value == null)
+    return 0
+end

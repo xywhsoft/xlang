@@ -289,6 +289,8 @@ static int xl6IrCgenEmitResourceRuntime(
         xl6OutputPuts("#include <__xl_runtime/xl6_collection_count_all.h>\n",out);
     if (needs->needsArrayCreateRuntime)
         xl6OutputPuts("extern xvalue* xl6ArrayProjectionTakeV1(xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const xvalueconverter*);\n",out);
+    if(needs->needsStackCallableRuntime)
+        xl6OutputPuts("#include <__xl_runtime/xl6_stack_callable.h>\n",out);
     if (needs->needsStackResourceRuntime)
         xl6OutputPuts(
             "extern bool xl6StackPushBatchV1(const xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const xvalue*, uint64_t);\n"
