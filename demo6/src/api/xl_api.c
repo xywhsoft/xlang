@@ -1022,6 +1022,16 @@ static void xlAddDefaultProjectToolchainPaths(TCCState* s)
 {
     char root[512];
     char path[1024];
+    char moduleDir[512];
+
+    /* A default context, including one constructed by an embedded xlang
+     * host, must find its own declaration SDK without a caller-supplied -I.
+     * This root belongs to the loaded compiler module (or its executable),
+     * never the context work directory or an arbitrary project include path. */
+    if (s != NULL && xlGetModuleDir(moduleDir,sizeof(moduleDir)) &&
+        xlJoinPathBuffer(path,sizeof(path),moduleDir,"include")) {
+        (void)xl__tcc.tcc_add_include_path(s, path);
+    }
 
     if ( s == NULL || !xlGetProjectRoot(root, sizeof(root)) ) {
         return;
