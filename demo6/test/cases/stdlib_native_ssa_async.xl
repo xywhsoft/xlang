@@ -1,0 +1,20 @@
+extern "xlir_make_i64_future" func makeFuture() as future<int>
+extern "xlir_spill_cleanup_seen" func cleanupSeen()
+func makeSpillKey() as SlotMapKey
+    auto slots = SlotMap::<int>()
+    return slots.insert(7)
+end
+auto spillKey = makeSpillKey()
+func nextSpillKey(int completed) as SlotMapKey
+    assert(completed == 41)
+    return spillKey
+end
+async func compareSpillKeys() as bool
+    try
+        0
+        return spillKey == nextSpillKey(await makeFuture())
+    finally
+        cleanupSeen()
+    end
+end
+assert(await compareSpillKeys())

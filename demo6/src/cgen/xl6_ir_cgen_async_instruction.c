@@ -609,7 +609,7 @@ static int xl6IrCgenEmitAsyncMachineInstruction(
                     if (!xl6IrCgenEmitFrameAcquisitionBegin(out,type,frame->transferAbi,input,&acquired,
                             xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,frame->type)))) return 0;
                     if (acquired) {
-                        xl6OutputPrintf(out,"    if (%s != NULL && xlir_acquired == NULL) {\n",input);
+                        if (!xl6IrCgenEmitFrameAcquisitionFailureBegin(out,frame->transferAbi,input)) return 0;
                         xl6IrCgenEmitAsyncSetupFailure(out,module,suspension); xl6OutputPuts("    }\n",out);
                     }
                     if (!xl6IrCgenEmitFrameAcquisitionCommit(out,type,place,frame->initBit==SIZE_MAX?NULL:initialized)) return 0;

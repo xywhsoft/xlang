@@ -292,6 +292,21 @@ static int xl6IrCgenEmitFrameAcquisitionCommit(XL6_Output* out,const char* type,
     if (!xl6IrCgenEmitSlotCommit(out,type,place,"xlir_acquired",initialized)) return 0;
     xl6OutputPuts("    }\n",out); return !xl6OutputHasFailed(out);
 }
+/* Acquisition status follows the closed transfer ABI, not the C carrier's
+ * spelling. In particular native values and strings are structs, not nullable
+ * pointers. Callers supply the verified rollback/error-CFG after this guard. */
+static int xl6IrCgenEmitFrameAcquisitionFailureBegin(XL6_Output* out,
+    XL6_IrAsyncFrameTransferAbi transfer,const char* input)
+{
+    if (transfer==XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE)
+        xl6OutputPuts("    if (!xlir_acquired_ok) {\n",out);
+    else if (transfer==XL6_IR_ASYNC_FRAME_TRANSFER_COPY_STRING)
+        xl6OutputPrintf(out,"    if (%s.Data != NULL && xlir_acquired.Data == NULL) {\n",input);
+    else
+        xl6OutputPrintf(out,"    if (%s != NULL && xlir_acquired == NULL) {\n",input);
+    xl6IrCgenEmitActivationFailure(out);
+    return !xl6OutputHasFailed(out);
+}
 static int xl6IrCgenEmitActivationCapture(
     XL6_Output* out,const XL6_IrModule* module,XL6_IrTypeId id,XL6_IrAsyncFrameTransferAbi transfer,
     const char* place,const char* input,const char* initialized,const char* rollback)
@@ -302,13 +317,8 @@ static int xl6IrCgenEmitActivationCapture(
     if (transfer==XL6_IR_ASYNC_FRAME_TRANSFER_BORROW_STORAGE || transfer==XL6_IR_ASYNC_FRAME_TRANSFER_MOVE_OWNED ||
         !xl6IrCgenEmitFrameAcquisitionBegin(out,type,transfer,input,&acquired,native)) return 0;
     if (acquired) {
-        if (transfer==XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE)
-            xl6OutputPuts("    if (!xlir_acquired_ok) {\n",out);
-        else if (transfer==XL6_IR_ASYNC_FRAME_TRANSFER_COPY_STRING)
-            xl6OutputPrintf(out,"    if (%s.Data != NULL && xlir_acquired.Data == NULL) {\n",input);
-        else
-            xl6OutputPrintf(out,"    if (%s != NULL && xlir_acquired == NULL) {\n",input);
-        xl6IrCgenEmitActivationFailure(out); xl6OutputPrintf(out,"    %s return NULL; }\n",rollback);
+        if (!xl6IrCgenEmitFrameAcquisitionFailureBegin(out,transfer,input)) return 0;
+        xl6OutputPrintf(out,"    %s return NULL; }\n",rollback);
     }
     if (!xl6IrCgenEmitFrameAcquisitionCommit(out,type,place,initialized)) return 0;
     return !xl6OutputHasFailed(out);
@@ -661,6 +671,7 @@ static int xl6IrCgenAsyncMachineProgramSupported(
             frame->destroyAbi == XL6_IR_ASYNC_FRAME_DESTROY_NONE &&
             frame->initBit == SIZE_MAX;
         int residentTransfer = frame->transferAbi == XL6_IR_ASYNC_FRAME_TRANSFER_MOVE_OWNED ||
+            frame->transferAbi == XL6_IR_ASYNC_FRAME_TRANSFER_COPY_NATIVE_VALUE ||
             frame->transferAbi == XL6_IR_ASYNC_FRAME_TRANSFER_COPY_STRING ||
             frame->transferAbi == XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_XVALUE ||
             frame->transferAbi == XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_CLOSURE;
