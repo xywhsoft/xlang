@@ -1967,6 +1967,13 @@ static XL6_IrValueId xl6IrLowerRetainXValueCarrierAs(
         return XL6_IR_VALUE_INVALID;
     retainOp = xl6IrLowerTypeIsManagedBytes(ctx->module, sourceType)
         ? XL6_IR_RUNTIME_BYTES_RETAIN : XL6_IR_RUNTIME_XVALUE_RETAIN;
+    XL6_IrTypeId stackId=xl6IrStackErasureSourceType(ctx->module,sourceType);
+    if (stackId && xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module,targetType)) {
+        source=xl6IrLowerEmitRuntimeCall(ctx,origin,sourceType,XL6_IR_RUNTIME_XVALUE_RETAIN,&source,1);
+        if (!source) return XL6_IR_VALUE_INVALID;
+        return xl6IrLowerEmitRuntimeCallMetadata(ctx,origin,origin,targetType,XL6_IR_RUNTIME_STACK_ERASE,NULL,
+            xl6IrTypeGet(&ctx->module->types,stackId)->params[0],stackId,&source,1);
+    }
     retained = xl6IrLowerEmitRuntimeCall(
         ctx, origin, sourceType, retainOp, &source, 1);
     if ( retained == XL6_IR_VALUE_INVALID || sourceType == targetType )
@@ -9186,6 +9193,15 @@ static XL6_IrValueId xl6IrLowerEmitValueCopy(
     XL6_IrValueId source)
 {
     XL6_IrValueId result = XL6_IR_VALUE_INVALID;
+    XL6_IrTypeId stackId=xl6IrStackErasureSourceType(ctx->module,xl6IrLowerValueType(ctx,source));
+    if (stackId && xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module,type)) {
+        if (!xl6IrLowerValueHasOwner(ctx,source)) {
+            source=xl6IrLowerEmitRuntimeCall(ctx,origin,xl6IrLowerValueType(ctx,source),XL6_IR_RUNTIME_XVALUE_RETAIN,&source,1);
+            if (!source) return XL6_IR_VALUE_INVALID;
+        }
+        return xl6IrLowerEmitRuntimeCallMetadata(ctx,origin,origin,type,XL6_IR_RUNTIME_STACK_ERASE,NULL,
+            xl6IrTypeGet(&ctx->module->types,stackId)->params[0],stackId,&source,1);
+    }
     if ( source == XL6_IR_VALUE_INVALID ||
          !xl6IrLowerEmit(ctx, XL6_IR_INSTR_VALUE, origin, type, 0, &source, 1,
                          &result) ) return XL6_IR_VALUE_INVALID;
@@ -28025,8 +28041,7 @@ static int xl6IrLowerIntrinsicDynamicCollectionMember(
             xl6IrNodeGet(ctx->module, binding->expression);
         if ( binding->abi != XL6_IR_INTRINSIC_OPERAND_CONSUME ||
              argument == NULL || argument->storageType != binding->type ||
-             !xl6IrTypeCanBoxRuntimeXValue(
-                 ctx->module, binding->type) ) {
+             !xl6IrDynamicCallArgumentCanBox(ctx->module,argument) ) {
             xl6IrLowerDiag(ctx, origin,
                 "XLIR dynamic collection member argument has no consumed boxed xvalue ABI");
             return -1;

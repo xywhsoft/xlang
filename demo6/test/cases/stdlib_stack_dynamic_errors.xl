@@ -1,0 +1,38 @@
+var stack = Stack::<int>()
+bool caught = false
+try
+    stack.pop()
+catch RangeError failure
+    caught = true
+end
+assert caught and int(stack.count()) == 0
+assert bool(stack.push(17))
+caught = false
+try
+    stack.push("wrong")
+catch TypeError failure
+    caught = true
+end
+assert caught and int(stack.count()) == 1 and int(stack.peek()) == 17
+caught = false
+try
+    stack.peekAt(-1)
+catch RangeError failure
+    caught = true
+end
+assert caught and int(stack.count()) == 1
+caught = false
+try
+    stack.reserve(-1)
+catch RangeError failure
+    caught = true
+end
+assert caught and int(stack.count()) == 1
+caught = false
+try
+    stack.insert(0, 8)
+catch TypeError failure
+    caught = true
+end
+assert caught and int(stack.count()) == 1
+assert int(stack.pop()) == 17

@@ -8603,6 +8603,35 @@ int xl6IrStackConstructionContract(const XL6_IrModule* module,XL6_IrTypeId typeI
     XL6_IrNominalIdentitySetId* setOut)
 { return xl6IrStackConstructionContractDepth(module,typeId,setOut,0); }
 
+XL6_IrTypeId xl6IrStackErasureSourceType(const XL6_IrModule* module,XL6_IrTypeId sourceId)
+{
+    const XL6_IrType* source=module ? xl6IrTypeGet(&module->types,sourceId) : NULL;
+    if (!source) return XL6_IR_TYPE_INVALID;
+    if (source->kind==XL6_IR_TYPE_NULLABLE) {
+        if (source->paramCount!=1 || !source->params ||
+            source->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+            source->nullAbi!=XL6_IR_NULL_ABI_XVALUE_SENTINEL) return XL6_IR_TYPE_INVALID;
+        sourceId=source->params[0];
+    }
+    return xl6IrStackConstructionContract(module,sourceId,NULL) ? sourceId : XL6_IR_TYPE_INVALID;
+}
+int xl6IrStackErasureInstructionCompatible(const XL6_IrModule* module,const XL6_IrInstruction* instruction)
+{
+    if (!module || !instruction || instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+        instruction->runtimeOp!=XL6_IR_RUNTIME_STACK_ERASE || instruction->operandCount!=1 ||
+        instruction->firstOperand>=module->operandCount || !instruction->result ||
+        !xl6IrTypeIsDynamicXValueBuiltin(module,instruction->type) ||
+        instruction->targetSymbol || instruction->targetValue || instruction->calleeType ||
+        instruction->immediateText || instruction->opcode!=XL6_IR_OPCODE_INVALID ||
+        instruction->runtimeResourcePayloadAbi!=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID ||
+        instruction->sequenceAdmissionIdentitySet!=XL6_IR_NOMINAL_IDENTITY_SET_INVALID) return 0;
+    const XL6_IrInstruction* source=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+    XL6_IrTypeId stackId=source ? xl6IrStackErasureSourceType(module,source->type) : XL6_IR_TYPE_INVALID;
+    const XL6_IrType* stack=xl6IrTypeGet(&module->types,stackId);
+    return stack && instruction->runtimeIdentityType==stackId &&
+        instruction->payloadType==stack->params[0];
+}
+
 #include "xl6_ir_stack_batch.c"
 #include "xl6_ir_slot_map.c"
 
@@ -12181,6 +12210,11 @@ int xl6IrDynamicCollectionOpOperandCountValid(
     switch ( operation ) {
     case XL6_IR_DYNAMIC_COLLECTION_POP:
     case XL6_IR_DYNAMIC_COLLECTION_CLEAR:
+    case XL6_IR_DYNAMIC_COLLECTION_COUNT:
+    case XL6_IR_DYNAMIC_COLLECTION_CAPACITY:
+    case XL6_IR_DYNAMIC_COLLECTION_PEEK:
+    case XL6_IR_DYNAMIC_COLLECTION_TRIM:
+    case XL6_IR_DYNAMIC_COLLECTION_CLONE:
         return operandCount == 0;
     case XL6_IR_DYNAMIC_COLLECTION_PUSH:
     case XL6_IR_DYNAMIC_COLLECTION_REMOVE_VALUE:
@@ -12189,6 +12223,7 @@ int xl6IrDynamicCollectionOpOperandCountValid(
     case XL6_IR_DYNAMIC_COLLECTION_ADD:
     case XL6_IR_DYNAMIC_COLLECTION_CONTAINS:
     case XL6_IR_DYNAMIC_COLLECTION_INDEX_OF:
+    case XL6_IR_DYNAMIC_COLLECTION_PEEK_AT:
         return operandCount == 1;
     case XL6_IR_DYNAMIC_COLLECTION_INSERT:
     case XL6_IR_DYNAMIC_COLLECTION_SWAP:
@@ -12424,6 +12459,12 @@ static XL6_IrDynamicCollectionOp xl6IrDynamicCollectionMemberOperation(
     if ( strcmp(name, "add") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_ADD;
     if ( strcmp(name, "contains") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_CONTAINS;
     if ( strcmp(name, "indexOf") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_INDEX_OF;
+    if ( strcmp(name, "count") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_COUNT;
+    if ( strcmp(name, "capacity") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_CAPACITY;
+    if ( strcmp(name, "peek") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_PEEK;
+    if ( strcmp(name, "peekAt") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_PEEK_AT;
+    if ( strcmp(name, "trim") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_TRIM;
+    if ( strcmp(name, "clone") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_CLONE;
     return XL6_IR_DYNAMIC_COLLECTION_INVALID;
 }
 
@@ -12476,7 +12517,7 @@ int xl6IrTypeCanBoxRuntimeXValue(
 /* Direct null is a canonical literal producer, not a stored C value. Its
  * explicit runtime-null lowering is valid at dynamic argument boundaries;
  * INVALID C ABI alone must never admit an arbitrary non-literal operand. */
-static int xl6IrDynamicCallArgumentCanBox(const XL6_IrModule* module, const XL6_IrNode* expression)
+int xl6IrDynamicCallArgumentCanBox(const XL6_IrModule* module, const XL6_IrNode* expression)
 {
     if (!expression) return 0;
     if (expression->sourceKind == XL6_AST_NULL) {
@@ -14570,9 +14611,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                 receiverType->paramCount == 0 &&
                 receiverType->nominalSymbol == XL6_SYMBOL_ID_INVALID;
             for ( i = 0; valid && i < operandCount; ++i )
-                valid = xl6IrTypeCanBoxRuntimeXValue(
-                    module,
-                    module->nodes[operands[i] - 1].storageType);
+                valid = xl6IrDynamicCallArgumentCanBox(module,&module->nodes[operands[i] - 1]);
             if ( valid ) intrinsic.admission = XL6_IR_INTRINSIC_ADMISSION_VERIFIED;
         }
         break;
@@ -20624,6 +20663,8 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeStringAllocationErrorPhysicalAbi(XL6_IrRu
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeBoxingErrorPhysicalAbi(XL6_IrRuntimeOp operation)
 {
     switch (operation) {
+    case XL6_IR_RUNTIME_STACK_ERASE:
+        return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
     case XL6_IR_RUNTIME_NATIVE_VALUE_BOX:
         return xl6IrRuntimeNativeValueErrorPhysicalAbi(operation);
     case XL6_IR_RUNTIME_XVALUE_BINARY_ADD:
@@ -35587,8 +35628,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             &module->intrinsicOperands[
                                 intrinsic->firstOperand + operandIndex];
                         if ( operand->abi != XL6_IR_INTRINSIC_OPERAND_CONSUME ||
-                             !xl6IrTypeCanBoxRuntimeXValue(
-                                 module, operand->type) )
+                             !xl6IrDynamicCallArgumentCanBox(module,xl6IrNodeGet(module,operand->expression)) )
                             return xl6IrDiag(diags, call,
                                 "XLIR dynamic collection member operand has no consumed boxed xvalue ABI");
                     }
@@ -38675,6 +38715,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       (instruction->targetValue != XL6_IR_VALUE_INVALID && instruction->targetValue > module->valueCount) ) {
                     return xl6IrDiag(diags, NULL, "XLIR instruction is malformed");
                 }
+                if (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_ERASE &&
+                    !xl6IrStackErasureInstructionCompatible(module,instruction))
+                    return xl6IrDiag(diags,instructionOrigin,"XLIR Stack erasure has no exact role, payload, consumed-source and owned-result ABI");
                 if ( instruction->sourceSpan.line != instructionOrigin->span.line ||
                      instruction->sourceSpan.column != instructionOrigin->span.column )
                     return xl6IrDiag(diags, instructionOrigin,
@@ -38943,6 +38986,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 XL6_IR_RUNTIME_AVL_TREE_CREATE &&
                             instruction->runtimeOp <=
                                 XL6_IR_RUNTIME_AVL_TREE_CLONE))) ||
+                       (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL && instruction->runtimeOp==XL6_IR_RUNTIME_STACK_ERASE) ||
                        instruction->kind == XL6_IR_INSTR_GENERATOR_PREPARE_YIELD) !=
                       (instruction->payloadType != XL6_IR_TYPE_INVALID) )
                     return xl6IrDiag(diags, NULL,
@@ -39066,6 +39110,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             XL6_IR_RUNTIME_XVALUE_FUTURE_REF ||
                         instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_SAFE_CLASS_FIELD_GET_LITERAL ||
+                        instruction->runtimeOp == XL6_IR_RUNTIME_STACK_ERASE ||
                         xl6IrPersistenceInvocationIsWriter(
                             xl6IrPersistenceInvocationRuntime(instruction->runtimeOp)))) !=
                       (instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID)) )
@@ -43944,6 +43989,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 return xl6IrDiag(diags, NULL,
                                     "XLIR runtime dynamic call argument has no consumed owned xvalue ABI");
                         }
+                    } else if (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_ERASE) {
+                        if (!xl6IrStackErasureInstructionCompatible(module,instruction))
+                            return xl6IrDiag(diags,NULL,"XLIR Stack erasure lost its exact checked projection ABI");
                     } else {
                         return xl6IrDiag(diags, NULL, "XLIR runtime call has no exact operation ABI");
                     }
@@ -45127,6 +45175,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         xl6IrNodeGet(module, instruction->origin);
                     const XL6_IrInstruction* source = xl6IrValueDefinition(
                         module, module->operands[instruction->firstOperand], NULL);
+                    if (source && xl6IrStackErasureSourceType(module,source->type) &&
+                        xl6IrTypeIsDynamicXValueBuiltin(module,instruction->type))
+                        return xl6IrDiag(diags,valueOrigin,"XLIR Stack erasure cannot bypass its checked runtime projection");
                     if ( source == NULL ||
                          (source->type != instruction->type &&
                           !xl6IrCallableTypesCompatible(module, source->type, instruction->type) &&
@@ -46242,6 +46293,12 @@ static const char* xl6IrDynamicCollectionOpName(
     case XL6_IR_DYNAMIC_COLLECTION_ADD: return "add";
     case XL6_IR_DYNAMIC_COLLECTION_CONTAINS: return "contains";
     case XL6_IR_DYNAMIC_COLLECTION_INDEX_OF: return "index-of";
+    case XL6_IR_DYNAMIC_COLLECTION_COUNT: return "count";
+    case XL6_IR_DYNAMIC_COLLECTION_CAPACITY: return "capacity";
+    case XL6_IR_DYNAMIC_COLLECTION_PEEK: return "peek";
+    case XL6_IR_DYNAMIC_COLLECTION_PEEK_AT: return "peek-at";
+    case XL6_IR_DYNAMIC_COLLECTION_TRIM: return "trim";
+    case XL6_IR_DYNAMIC_COLLECTION_CLONE: return "clone";
     default: return "invalid";
     }
 }
@@ -47703,6 +47760,7 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
         return "xvalue-foreign-scalar";
     case XL6_IR_RUNTIME_XVALUE_TIME: return "xvalue-time";
     case XL6_IR_RUNTIME_XVALUE_STRING_COPY: return "xvalue-string-copy";
+    case XL6_IR_RUNTIME_STACK_ERASE: return "stack-erase";
     case XL6_IR_RUNTIME_XVALUE_FUTURE_REF: return "xvalue-future-ref";
     case XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_TAKE: return "xvalue-native-handle-take";
     case XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_BORROW: return "xvalue-native-handle-borrow";

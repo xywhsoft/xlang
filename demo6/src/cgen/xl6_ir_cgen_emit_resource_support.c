@@ -27,12 +27,12 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern bool xl6ThreadStopV1(const xvalue*, uint64_t);\n"
             "extern xvalue* xl6SequenceThreadCreateV1(unsigned int, uint64_t, uint64_t, uint64_t, bool);\n",
             out);
-    if ( needs->needsStackResourceRuntime ||
+    if ( needs->needsStackResourceRuntime || needs->needsStackEraseRuntime ||
          needs->needsAvlTreeResourceRuntime )
         xl6OutputPuts(
             "enum { XLIR_CHANNEL_PAYLOAD_TRIVIAL_COPY = 1, XLIR_CHANNEL_PAYLOAD_STRING_COPY = 2, XLIR_CHANNEL_PAYLOAD_XVALUE_RETAIN = 3 };\n\n",
             out);
-    if ( needs->needsStackResourceRuntime || needs->needsArrayImportRuntime || needs->needsArrayCreateRuntime || needs->needsAvlTreeResourceRuntime || nativeQueue || needs->needsNativeChannelRuntime )
+    if ( needs->needsStackResourceRuntime || needs->needsStackEraseRuntime || needs->needsArrayImportRuntime || needs->needsArrayCreateRuntime || needs->needsAvlTreeResourceRuntime || nativeQueue || needs->needsNativeChannelRuntime )
         xl6OutputPuts(
             "typedef struct xrttype xrttype;\n"
             "extern const xrttype* xl6CharTypeV1(void);\n"
@@ -115,6 +115,8 @@ static int xl6IrCgenEmitResourceRuntime(
         xl6OutputPuts("#include <__xl_runtime/xl6_collection_count_all.h>\n",out);
     if (needs->needsArrayCreateRuntime)
         xl6OutputPuts("extern xvalue* xl6ArrayProjectionTakeV1(xvalue*, uint64_t, uint64_t, unsigned int, size_t, const xrttype*, const xvalueconverter*);\n",out);
+    if(needs->needsStackEraseRuntime)
+        xl6OutputPuts("#include <__xl_runtime/xl6_stack_erased.h>\n",out);
     if(needs->needsStackCallableRuntime)
         xl6OutputPuts("#include <__xl_runtime/xl6_stack_callable.h>\n",out);
     if (needs->needsStackResourceRuntime)

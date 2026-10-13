@@ -36,11 +36,18 @@ static xvalue* finish(xl6_error_scope* scope, xvalue* result)
 xvalue* xl6StackEraseV1(const xvalue* source, uint64_t identity,
     uint64_t elementIdentity, unsigned int transfer, size_t size,
     const xrttype* type, const xvalueconverter* converter)
+{ return xl6StackEraseV2(source,identity,elementIdentity,transfer,size,type,converter,false); }
+xvalue* xl6StackEraseV2(const xvalue* source, uint64_t identity,
+    uint64_t elementIdentity, unsigned int transfer, size_t size,
+    const xrttype* type, const xvalueconverter* converter, bool nullable)
 {
     xl6_error_scope scope={0};
     if (!enter(&scope)) return NULL;
     xvalue* result=NULL;
     if (transfer==3 && converter) xrtSetErrorKind(XERR_ARGUMENT);
+    else if (!xl6SequenceTupleV1(identity,elementIdentity,transfer,size,type)) { /* exact absent tuple */ }
+    else if (source && nullable && xrtValueType(source)==XVALUE_NULL)
+        result=xrtValueRetain(xrtValueNull());
     else {
         XL6_Sequence* owner=xl6SequenceBeginRoleV1(source,XL6_SEQUENCE_STACK_V1,
             identity,elementIdentity,transfer,size,type);
@@ -72,6 +79,25 @@ bool xl6StackErasedPushV1(const xvalue* source, const xvalue* item)
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
     if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
     return outcome.ok && ok;
+}
+xvalue* xl6StackEraseTakeV1(xvalue* source,uint64_t identity,uint64_t elementIdentity,
+    unsigned int transfer,size_t size,const xrttype* type,const xvalueconverter* converter,bool nullable)
+{
+    xl6_error_scope scope={0};
+    if (!enter(&scope)) {
+        xl6_error_scope cleanup={0};
+        if (xl6ErrorScopeBeginCleanup(&cleanup,true)) {
+            xrtValueRelease(source); xl6ErrorScopePropagateFailure(xl6ErrorScopeEnd(&cleanup));
+        } else {
+            xerror* primary=xrtTakeError(); xrtValueRelease(source);
+            xrtClearError(); xl6ErrorScopePropagateFailure((xl6_error_result){false,primary});
+        }
+        return NULL;
+    }
+    xvalue* result=xl6StackEraseV2(source,identity,elementIdentity,transfer,size,type,converter,nullable);
+    if (!result || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
+    xrtValueRelease(source);
+    return finish(&scope,result);
 }
 xvalue* xl6StackErasedReadV1(const xvalue* source, int64_t depth, bool pop)
 {

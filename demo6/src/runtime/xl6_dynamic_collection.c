@@ -1,6 +1,8 @@
 #include "src/runtime/xl6_dynamic_collection.h"
 #include "src/runtime/xl6_text_value.h"
 #include "src/runtime/xl6_array_erased.h"
+#include "src/runtime/xl6_stack_erased.h"
+#include "src/runtime/xl6_stack.h"
 #include "src/runtime/xl6_array_methods.h"
 #include "src/runtime/xl6_list.h"
 #include "src/runtime/xl6_list_methods.h"
@@ -14,13 +16,16 @@
 bool xl6DynamicCollectionArityV1(unsigned operation,size_t count)
 {
     switch (operation) {
-    case XL6_DYNAMIC_COLLECTION_POP: case XL6_DYNAMIC_COLLECTION_CLEAR: return count==0;
+    case XL6_DYNAMIC_COLLECTION_POP: case XL6_DYNAMIC_COLLECTION_CLEAR:
+    case XL6_DYNAMIC_COLLECTION_COUNT: case XL6_DYNAMIC_COLLECTION_CAPACITY:
+    case XL6_DYNAMIC_COLLECTION_PEEK: case XL6_DYNAMIC_COLLECTION_TRIM:
+    case XL6_DYNAMIC_COLLECTION_CLONE: return count==0;
     case XL6_DYNAMIC_COLLECTION_INSERT: case XL6_DYNAMIC_COLLECTION_SWAP: return count==2;
     case XL6_DYNAMIC_COLLECTION_REMOVE: return count==1 || count==2;
     case XL6_DYNAMIC_COLLECTION_PUSH: case XL6_DYNAMIC_COLLECTION_REMOVE_VALUE:
     case XL6_DYNAMIC_COLLECTION_TAKE: case XL6_DYNAMIC_COLLECTION_RESERVE:
     case XL6_DYNAMIC_COLLECTION_ADD: case XL6_DYNAMIC_COLLECTION_CONTAINS:
-    case XL6_DYNAMIC_COLLECTION_INDEX_OF: return count==1;
+    case XL6_DYNAMIC_COLLECTION_INDEX_OF: case XL6_DYNAMIC_COLLECTION_PEEK_AT: return count==1;
     default: return false;
     }
 }
@@ -65,7 +70,8 @@ xvalue* xl6DynamicCollectionCallTakeV1(xvalue* source,unsigned operation,xvalue*
         int list=xl6ListErasedProbeV1(source);
         int set=list ? 0 : xl6SetErasedProbeV1(source);
         int dict=list || set ? 0 : xl6DictErasedProbeV1(source);
-        bool array=type==XVALUE_ARRAY;
+        bool array=type==XVALUE_ARRAY,stack=false;
+        XL6_SequenceLayoutV1 stackLayout={0};
         /* HANDLE is a physical carrier, never a collection family. Authenticate
          * the resident Array role before dispatch, without touching foreign raw
          * pointers or treating List/Stack/iterator handles as contiguous arrays. */
@@ -76,11 +82,19 @@ xvalue* xl6DynamicCollectionCallTakeV1(xvalue* source,unsigned operation,xvalue*
             if (owner) xl6SequenceEndV1(owner);
             if (status<0) xl6ErrorScopeCaptureFailure(&transaction);
             array=status==1;
+            if (!status) {
+                status=xl6SequenceBeginErasedRoleV1(source,XL6_SEQUENCE_STACK_V1,&owner,&stackLayout,&converter);
+                if (owner) xl6SequenceEndV1(owner);
+                if (status<0) xl6ErrorScopeCaptureFailure(&transaction);
+                stack=status==1;
+            }
         }
+#define STACK_LAYOUT stackLayout.identity,stackLayout.elementIdentity,stackLayout.transfer,stackLayout.size,stackLayout.type
         if (list<0 || set<0 || dict<0) xl6ErrorScopeCaptureFailure(&transaction);
         if (!transaction.failed) switch (operation) {
         case XL6_DYNAMIC_COLLECTION_PUSH:
             if (array) { ok=xl6ArrayValueAppendTakeV1(source,arg0); arg0=NULL; }
+            else if (stack) ok=xl6StackErasedPushV1(source,arg0);
             else xrtSetErrorKind(XERR_TYPE);
             break;
         case XL6_DYNAMIC_COLLECTION_INSERT:
@@ -113,6 +127,7 @@ xvalue* xl6DynamicCollectionCallTakeV1(xvalue* source,unsigned operation,xvalue*
             break;
         case XL6_DYNAMIC_COLLECTION_POP:
             if (array) result=xl6ArrayMethodTakeV1(source,0,true);
+            else if (stack) result=xl6StackErasedReadV1(source,0,true);
             else xrtSetErrorKind(XERR_TYPE);
             ok=result!=NULL; break;
         case XL6_DYNAMIC_COLLECTION_TAKE:
@@ -134,6 +149,7 @@ xvalue* xl6DynamicCollectionCallTakeV1(xvalue* source,unsigned operation,xvalue*
             ok=result!=NULL; break;
         case XL6_DYNAMIC_COLLECTION_CLEAR:
             if (array) ok=xl6ArrayMethodClearV1(source);
+            else if (stack) ok=xl6StackClearV1(source,STACK_LAYOUT);
             else if (list || type==XVALUE_INT_MAP) ok=xl6ListValueClearV1(source);
             else if (set) ok=xl6SetErasedClearV1(source);
             else if (dict) ok=xl6DictErasedClearV1(source);
@@ -142,6 +158,7 @@ xvalue* xl6DynamicCollectionCallTakeV1(xvalue* source,unsigned operation,xvalue*
             break;
         case XL6_DYNAMIC_COLLECTION_RESERVE:
             if (array && integer(arg0,&first)) ok=xl6ArrayMethodReserveV1(source,first);
+            else if (stack && integer(arg0,&first)) ok=xl6StackReserveV1(source,STACK_LAYOUT,first);
             else if (set && integer(arg0,&first)) ok=xl6SetErasedReserveV1(source,first);
             else if (dict && integer(arg0,&first)) ok=xl6DictErasedReserveV1(source,first);
             else if (!xrtGetError()) xrtSetErrorKind(XERR_TYPE);
@@ -162,7 +179,29 @@ xvalue* xl6DynamicCollectionCallTakeV1(xvalue* source,unsigned operation,xvalue*
             else xrtSetErrorKind(XERR_TYPE);
             if (!xrtGetError() && !transaction.failed) result=xrtValueInt(index);
             ok=result!=NULL; break;
+        case XL6_DYNAMIC_COLLECTION_COUNT:
+        case XL6_DYNAMIC_COLLECTION_CAPACITY:
+            if (stack) {
+                first=xl6StackSizeV1(source,STACK_LAYOUT,operation==XL6_DYNAMIC_COLLECTION_CAPACITY);
+                if (!xrtGetError() && !transaction.failed) result=xrtValueInt(first);
+            } else xrtSetErrorKind(XERR_TYPE);
+            ok=result!=NULL; break;
+        case XL6_DYNAMIC_COLLECTION_PEEK:
+        case XL6_DYNAMIC_COLLECTION_PEEK_AT:
+            if (stack && (operation==XL6_DYNAMIC_COLLECTION_PEEK || integer(arg0,&first)))
+                result=xl6StackErasedReadV1(source,first,false);
+            else if (!xrtGetError()) xrtSetErrorKind(XERR_TYPE);
+            ok=result!=NULL; break;
+        case XL6_DYNAMIC_COLLECTION_TRIM:
+            if (stack) ok=xl6StackTrimV1(source,STACK_LAYOUT);
+            else xrtSetErrorKind(XERR_TYPE);
+            break;
+        case XL6_DYNAMIC_COLLECTION_CLONE:
+            if (stack) result=xl6StackCloneV1(source,STACK_LAYOUT);
+            else xrtSetErrorKind(XERR_TYPE);
+            ok=result!=NULL; break;
         }
+#undef STACK_LAYOUT
         if ((!ok && required) || xrtGetError()) xl6ErrorScopeCaptureFailure(&transaction);
         if (!transaction.failed && !result) result=xrtValueBool(ok);
     }

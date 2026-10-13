@@ -302,7 +302,13 @@ typedef enum XL6_IrDynamicCollectionOp {
     XL6_IR_DYNAMIC_COLLECTION_SWAP,
     XL6_IR_DYNAMIC_COLLECTION_ADD,
     XL6_IR_DYNAMIC_COLLECTION_CONTAINS,
-    XL6_IR_DYNAMIC_COLLECTION_INDEX_OF
+    XL6_IR_DYNAMIC_COLLECTION_INDEX_OF,
+    XL6_IR_DYNAMIC_COLLECTION_COUNT,
+    XL6_IR_DYNAMIC_COLLECTION_CAPACITY,
+    XL6_IR_DYNAMIC_COLLECTION_PEEK,
+    XL6_IR_DYNAMIC_COLLECTION_PEEK_AT,
+    XL6_IR_DYNAMIC_COLLECTION_TRIM,
+    XL6_IR_DYNAMIC_COLLECTION_CLONE
 } XL6_IrDynamicCollectionOp;
 
 /* Statically typed collection members share one closed semantic family.  The
@@ -2110,6 +2116,10 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY,
     XL6_IR_RUNTIME_WAIT_QUEUE_POP,
     XL6_IR_RUNTIME_WAIT_QUEUE_POP_TIMEOUT,
+    /* Consumes one typed Stack owner, returns one dynamic owner. Borrowed
+     * sources require an explicit prior retain. Concrete Stack/T are frozen
+     * in runtimeIdentityType/payloadType; failure consumes source too. */
+    XL6_IR_RUNTIME_STACK_ERASE,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -6891,6 +6901,8 @@ const XL6_IrNominalIdentitySet* xl6IrNominalIdentitySetGet(
  * No wire Array or unsupported slot codec is silently accepted. */
 int xl6IrStackConstructionContract(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrNominalIdentitySetId*);
+XL6_IrTypeId xl6IrStackErasureSourceType(const XL6_IrModule*, XL6_IrTypeId);
+int xl6IrStackErasureInstructionCompatible(const XL6_IrModule*, const XL6_IrInstruction*);
 int xl6IrStackBatchResourceOpIs(XL6_IrRuntimeResourceOp);
 int xl6IrStackBatchSignatureCompatible(const XL6_IrModule*, XL6_IrRuntimeResourceOp,
     XL6_IrTypeId, XL6_IrTypeId, const XL6_IrTypeId*, size_t);
@@ -7030,6 +7042,7 @@ int xl6IrLoopCleanupMayRaise(const XL6_IrModule* module,
  * never a backend-side boxing guess. */
 int xl6IrTypeCanBoxRuntimeXValue(
     const XL6_IrModule* module, XL6_IrTypeId typeId);
+int xl6IrDynamicCallArgumentCanBox(const XL6_IrModule*, const XL6_IrNode*);
 /* True when an ExternGlobal can use the TypeId's exact, trivially-copyable C
  * representation.  Nominal unions are admitted only with a verified layout;
  * lowering, verification and Cgen share this predicate. */
