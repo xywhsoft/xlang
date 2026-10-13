@@ -2,9 +2,16 @@
  * The queue substitution only controls scheduling; physical Watch/ticket and
  * generator/iterator implementations are the actual generated/source code. */
 #define xl6ContinuationExecutorReserveOwned generator_test_reserve
-#include "xlir_generator_ownership.c"
+#ifndef XLIR_GENERATOR_OWNERSHIP_SOURCE
+#define XLIR_GENERATOR_OWNERSHIP_SOURCE "xlir_generator_ownership.c"
+#endif
+#include XLIR_GENERATOR_OWNERSHIP_SOURCE
 #undef xl6ContinuationExecutorReserveOwned
-#include "xlir_generator_ownership.bind.h"
+#ifndef XLIR_GENERATOR_OWNERSHIP_BINDING
+#define XLIR_GENERATOR_OWNERSHIP_BINDING "xlir_generator_ownership.bind.h"
+#endif
+#include XLIR_GENERATOR_OWNERSHIP_BINDING
+#include "src/runtime/xl6_sequence.h"
 #include <assert.h>
 #include <stdio.h>
 
@@ -53,21 +60,53 @@ static void close_generator(xlir_generator* generator)
     result = xlir_generator_close(generator); activeGenerator = NULL;
     assert(result.ok && !result.error && !xrtGetError());
 }
+static bool count_edge(xrtownershipref ref, void* context)
+{
+    assert(ref.Data && ref.Ops); ++*(size_t*)context; return true;
+}
+static void native_array_graph(const xrtownershipref* anchors, size_t anchorCount,
+    const xrtownershipref* slots, size_t slotCount, bool nativeShared)
+{
+    /* Classify real adapters, not pointer names or generated frame offsets.
+     * The original Array and its snapshot each have a shell and one native
+     * owner. Each owner traces both duplicate elements. The iterator owns the
+     * snapshot shell AND its current projection; View is not another edge.
+     * The async source also creates a native one-element shared Array, while
+     * direct cases deliberately pass a host-created wire Value Array. */
+    xrtownershipsnapshot* snapshot = NULL;
+    size_t sequences = 0, sequenceEdges = 0, iterators = 0, iteratorEdges = 0;
+    assert(xrtOwnershipSnapshotCreate(anchors, anchorCount, slots, slotCount, NULL, NULL, &snapshot));
+    for (size_t i = 0; i < xrtOwnershipSnapshotNodeCount(snapshot); ++i) {
+        xrtownershipnode node; assert(xrtOwnershipSnapshotNode(snapshot, i, &node));
+        if (xl6SequenceOwnershipAdapterV1(node.Reference)) {
+            ++sequences; assert(node.Reference.Ops->Trace(node.Reference.Data, count_edge, &sequenceEdges));
+        }
+        if (xl6ValueIteratorOwnershipAdapterV1(node.Reference)) {
+            ++iterators; assert(node.Reference.Ops->Trace(node.Reference.Data, count_edge, &iteratorEdges));
+        }
+    }
+    xrtOwnershipSnapshotDestroy(snapshot);
+    printf("native array graph: sequences=%zu edges=%zu iterators=%zu edges=%zu\n",
+        sequences, sequenceEdges, iterators, iteratorEdges); fflush(stdout);
+    assert(sequences == (nativeShared ? 6u : 4u) && sequenceEdges == (nativeShared ? 8u : 6u) &&
+        iterators == 1 && iteratorEdges == 2);
+}
 static void direct_graph(unsigned round, unsigned kind, unsigned stage, xlir_generator* generator,
     xvalue* shared, xrtownershipref taken, xrtownershipref nestedItem)
 {
     /* Columns: unstarted, first yield/take, second yield/take, finished,
      * closed, nested child suspended, nested child's item transferred. */
-    /* Value: control/frame + shared Value/backing/int + collection/backing +
-     * language cursor/native cursor = 9. Only the backing owns both duplicate
-     * elements. Forward adds its own control/frame, not a second item edge
-     * to the child after TAKE. Nested adds another such control/frame pair. */
+    /* Value: control/frame + shared Value/backing/int + native Array shell/
+     * owner + snapshot shell/owner + language iterator = 10. Relative to the
+     * retired wire cursor, the native snapshot adds one node and three edges
+     * (snapshot shell, duplicate element, owned current projection). Forward
+     * adds its control/frame, not a second item edge to the child after TAKE. */
     static const size_t nodes[8][9] = {
-        {5,9,9,9,9,4,4,0,0}, {5,6,6,6,6,4,4,0,0}, {4,4,4,4,4,3,3,0,0}, {2,3,3,3,3,1,1,0,0},
-        {5,7,7,7,7,4,4,13,13}, {2,2,2,2,2,1,1,0,0}, {2,2,2,2,2,1,1,0,0}, {5,11,11,11,11,4,4,0,0}};
+        {5,10,10,10,10,4,4,0,0}, {5,6,6,6,6,4,4,0,0}, {4,4,4,4,4,3,3,0,0}, {2,3,3,3,3,1,1,0,0},
+        {5,7,7,7,7,4,4,14,14}, {2,2,2,2,2,1,1,0,0}, {2,2,2,2,2,1,1,0,0}, {5,12,12,12,12,4,4,0,0}};
     static const size_t edges[8][9] = {
-        {6,15,15,15,15,4,4,0,0}, {6,9,9,9,9,4,4,0,0}, {5,7,7,7,7,4,4,0,0}, {2,4,4,4,4,1,1,0,0},
-        {6,9,9,9,9,4,4,22,22}, {2,2,2,2,2,1,1,0,0}, {2,2,2,2,2,1,1,0,0}, {6,19,19,19,19,4,4,0,0}};
+        {6,18,18,18,18,4,4,0,0}, {6,9,9,9,9,4,4,0,0}, {5,7,7,7,7,4,4,0,0}, {2,4,4,4,4,1,1,0,0},
+        {6,9,9,9,9,4,4,25,25}, {2,2,2,2,2,1,1,0,0}, {2,2,2,2,2,1,1,0,0}, {6,22,22,22,22,4,4,0,0}};
     xrtownershipref root = xlir_generator_ownership(generator), slots[6];
     size_t count = 0; xrtownershipresult result; bool live = true;
     slots[count++] = root;
@@ -79,6 +118,8 @@ static void direct_graph(unsigned round, unsigned kind, unsigned stage, xlir_gen
     assert(!live && result.ExternalRootCount == 0);
     if (!round) { printf("generator kind=%u stage=%u nodes=%zu edges=%zu\n", kind, stage, result.NodeCount, result.EdgeCount); fflush(stdout); }
     assert(result.NodeCount == nodes[kind][stage] && result.EdgeCount == edges[kind][stage]);
+    if (!round && (((kind == 0 || kind == 7) && stage >= 1 && stage <= 4) ||
+        (kind == 4 && (stage == 7 || stage == 8)))) native_array_graph(&root, 1, slots, count, false);
     if (stage == 1) for (unsigned fault = 0; fault < 10; ++fault) {
         xrtownershipresult original = {91,92,93,94}, failed = original;
         bool reachable = true, ok, triggered; xmemdebugsnapshot before;
@@ -219,9 +260,9 @@ static void direct_case(unsigned round, unsigned kind, unsigned outcome)
 }
 static void async_graph(unsigned round, unsigned mode, unsigned stage)
 {
-    /* One stable async producer adds its physical node and three real edges;
-     * generator-only graphs and the independent queue-root proof are unchanged. */
-    static const size_t nodes[2] = {16,18}, edges[2] = {26,30};
+    /* Native Array snapshot: +1 physical node/+3 edges versus the retired
+     * wire cursor. The real queue execution root remains independent. */
+    static const size_t nodes[2] = {17,19}, edges[2] = {29,33};
     xrtownershipref anchors[4], slots[5]; xrtownershipresult result; bool live[4];
     anchors[0] = xrtFutureOwnership(sources[0]); anchors[1] = xrtFutureOwnership(sources[1]);
     anchors[2] = xrtValueOwnership(captured); anchors[3] = xrtFutureOwnership(xrtValueGetFuture(captured));
@@ -230,6 +271,7 @@ static void async_graph(unsigned round, unsigned mode, unsigned stage)
     assert(result.ExternalRootCount == 1 && result.ReachableAnchorCount == 2 && !live[2] && live[3]); /* real queue execution root */
     if (!round) { printf("async iterator mode=%u stage=%u nodes=%zu edges=%zu reachable=%zu\n", mode, stage, result.NodeCount, result.EdgeCount, result.ReachableAnchorCount); fflush(stdout); }
     assert(result.NodeCount == nodes[mode] && result.EdgeCount == edges[mode]);
+    if (!round) native_array_graph(anchors, 4, slots, 5, true);
 }
 static void resolve(xpromise* promise)
 {
