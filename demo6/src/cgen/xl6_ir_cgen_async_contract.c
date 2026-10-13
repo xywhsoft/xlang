@@ -767,6 +767,7 @@ static int xl6IrCgenAsyncMachineProgramSupported(
                         if ( abi != XL6_IR_CLOSURE_CAPTURE_COPY_VALUE &&
                              abi != XL6_IR_CLOSURE_CAPTURE_COPY_STRING &&
                              abi != XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING &&
+                             abi != XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE &&
                              abi != XL6_IR_CLOSURE_CAPTURE_RETAIN_XVALUE &&
                              abi != XL6_IR_CLOSURE_CAPTURE_RETAIN_FUTURE &&
                              abi != XL6_IR_CLOSURE_CAPTURE_RETAIN_CLOSURE &&

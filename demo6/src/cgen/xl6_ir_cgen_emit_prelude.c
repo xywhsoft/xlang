@@ -96,9 +96,11 @@ static int xl6IrCgenEmitRuntimePrelude(
          needs->needsGeneratorRuntime )
         xl6IrCgenEmitForeignErrorDeclarations(out, module->exportCount != 0);
     if ( needs->needsClosureRuntime ) {
-        if (module->abi.closureStorageAbi != XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V2)
+        if (module->abi.closureStorageAbi != xl6IrModuleClosureStorageRequirement(module))
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID, "XLIR closure storage ABI is unresolved");
         xl6OutputPuts("#include <__xl_runtime/xl6_closure.h>\n", out);
+        if(module->abi.closureStorageAbi==XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3)
+            xl6OutputPuts("#include <__xl_runtime/xl6_closure_capture_v3.h>\nextern void* xrtCalloc(size_t,size_t);\n",out);
         xl6OutputPuts("extern void* xrtMalloc(size_t);\nextern void xrtFree(void*);\n", out);
         xl6OutputPuts(module->abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT
             ? "#define xlir_closure_owner (xlir_code_owner.size != 0 ? &xlir_code_owner : NULL)\n"
@@ -111,6 +113,9 @@ static int xl6IrCgenEmitRuntimePrelude(
             "#define xlir_closure_ownership (xl6ClosureRuntimeV1Get()->Ownership)\n"
             "#define xlir_closure_enter (xl6ClosureRuntimeV1Get()->Enter)\n"
             "#define xlir_closure_leave (xl6ClosureRuntimeV1Get()->Leave)\n", out);
+        if(module->abi.closureStorageAbi==XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3)
+            xl6OutputPuts("#define xlir_closure_new_v3(...) (xl6ClosureRuntimeV3Get()->Create)(xlir_closure_owner, __VA_ARGS__)\n"
+                "#define xlir_closure_env_drop_v3 (xl6ClosureRuntimeV3Get()->DropEnvironment)\n",out);
         xl6OutputPuts("\n", out);
     }
     if ( needs->needsRawCallbackRuntime ) {

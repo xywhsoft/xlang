@@ -1,0 +1,107 @@
+func independentKey() as SlotMapKey
+    auto slots = SlotMap::<int>()
+    return slots.insert(31)
+end
+func reader(SlotMapKey? key) as func() as SlotMapKey?
+    return func() as SlotMapKey? => key
+end
+func mixedReader(SlotMapKey? key, string text) as func() as SlotMapKey?
+    int calls = 0
+    return func() as SlotMapKey?
+        calls += 1
+        assert(text == "你\0好" and calls > 0)
+        return key
+    end
+end
+func nativeReader(SlotMapKey key) as func() as SlotMapKey
+    return func() as SlotMapKey => key
+end
+func copyKey(SlotMapKey? key) as SlotMapKey?
+    return key
+end
+func refuseKey(SlotMapKey? key) as SlotMapKey?
+    try
+        assert(key != null)
+        throw ValueError "optional task failure"
+    finally
+        assert(key != null)
+    end
+    return key
+end
+async func readyKey(SlotMapKey? key) as SlotMapKey?
+    return key
+end
+async func laterNumber() as int
+    time.sleep(1)
+    return 7
+end
+async func acrossAwait(SlotMapKey? key, future<int> wait) as SlotMapKey?
+    auto copied = key
+    int number = await wait
+    assert(number == 7 and copied == key)
+    return copied
+end
+func suspendedKey(SlotMapKey? key) as generator<SlotMapKey?>
+    try
+        yield key
+        yield null
+        yield key
+    finally
+        key = null
+        assert(key == null)
+    end
+end
+auto original = independentKey()
+SlotMapKey? expected = original
+SlotMapKey? optional = original
+auto escaped = reader(optional)
+auto absentReader = reader(null)
+auto mixed = mixedReader(optional,"你\0好")
+auto native = nativeReader(original)
+optional = null
+assert(escaped() == expected and absentReader() == null)
+assert(mixed() == expected and mixed() == expected and native() == original)
+auto ready = readyKey(original)
+auto missing = readyKey(null)
+auto spawned = task.spawn(copyKey,original as SlotMapKey?)
+auto spawnedMissing = task.spawn(copyKey,null as SlotMapKey?)
+auto mapped = spawned.then(copyKey)
+auto mappedMissing = spawnedMissing.then(copyKey)
+auto delayed = acrossAwait(original,laterNumber())
+auto delayedMissing = acrossAwait(null,laterNumber())
+assert(await ready == expected and await ready == expected)
+assert(await missing == null and await missing == null)
+assert(await spawned == expected and await mapped == expected)
+assert(await spawnedMissing == null and await mappedMissing == null)
+assert(await delayed == expected and await delayedMissing == null)
+int count = 0
+SlotMapKey? escapedYield
+for key in suspendedKey(original)
+    if count == 1 then
+        assert(key == null)
+    else
+        assert(key == expected)
+        escapedYield = key
+    end
+    count += 1
+end
+assert(count == 3 and escapedYield == expected)
+for key in suspendedKey(original)
+    assert(key == expected)
+    escapedYield = key
+    break
+end
+assert(escapedYield == expected)
+count = 0
+for key in suspendedKey(null)
+    assert(key == null)
+    count += 1
+end
+assert(count == 3)
+try
+    auto ignored = await task.spawn(refuseKey,original as SlotMapKey?)
+    assert(false)
+catch AsyncError failure
+    assert(failure.message == "optional task failure")
+end
+assert(escaped() == expected and escapedYield == expected)

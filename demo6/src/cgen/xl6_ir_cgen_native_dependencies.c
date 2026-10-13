@@ -395,6 +395,18 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     XL6_IrCgenNeeds needs;
     if (!visitor || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
     if(needs.needsNativeFuturePayloadRuntime && !visitor(context,"xl6NativeFuturePayloadRuntimeV1Get"))return 0;
+    for(size_t t=0;t<module->closureTargetCount;++t){
+        const XL6_IrClosureTarget* target=&module->closureTargets[t];
+        if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        if(xl6IrClosureEnvironmentAbi(module,target)!=XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3)continue;
+        if(!visitor(context,"xl6ClosureRuntimeV3Get"))return 0;
+        for(size_t c=0;c<target->captureCount;++c){
+            const XL6_IrClosureCapture* capture=&module->closureCaptures[target->firstCapture+c];
+            if(capture->abi!=XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE)continue;
+            const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,capture->type));
+            if(!native || !visitor(context,native->captureProfileSymbol) || !visitor(context,native->copySymbol))return 0;
+        }
+    }
     for(size_t b=0;b<module->callbackBoundaryCount;++b) {
         const XL6_IrCallbackBoundary* boundary=&module->callbackBoundaries[b];
         if(!xl6IrCgenInstructionIsReachable(module,boundary->instruction))continue;

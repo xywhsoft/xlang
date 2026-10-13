@@ -1121,6 +1121,10 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                 needs->needsXValueRuntime = 1;
             else if ( capture->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_FUTURE )
                 needs->needsFutureRuntime = 1;
+            else if(capture->abi==XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE){
+                needs->needsNativeCaptureProfileHeaders=1;
+                needs->needsForeignErrorRuntime=1;
+            }
         }
     }
     for ( i = 0; i < module->callTargetCount; ++i ) {

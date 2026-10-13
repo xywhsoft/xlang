@@ -13473,7 +13473,8 @@ static int xl6IrLowerClosureCaptureAdd(
           captureType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
              captureType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
           captureType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ||
-          captureType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE) )
+          captureType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ||
+          xl6IrNativeValuePlanForType(captureType)!=NULL) )
         return xl6IrLowerDiag(ctx, origin,
                                "XLIR closure capture requires an implemented frame ownership ABI");
     if ( mutable && !((captureType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
@@ -13503,6 +13504,7 @@ static int xl6IrLowerClosureCaptureAdd(
     capture->type = type;
     capture->cellType = mutable ? xl6IrTypeInternCell(ctx->module, type) : XL6_IR_TYPE_INVALID;
     capture->abi = mutable ? XL6_IR_CLOSURE_CAPTURE_RETAIN_CELL
+        : xl6IrNativeValuePlanForType(captureType) ? XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE
         : captureType->cAbi == XL6_IR_C_ABI_MANAGED_STRING
         ? (captureType->kind == XL6_IR_TYPE_NULLABLE
             ? XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING : XL6_IR_CLOSURE_CAPTURE_COPY_STRING)
@@ -32815,6 +32817,7 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
         xrtFree(ctx.promotedParameters);
         return 0;
     }
+    module->abi.closureStorageAbi=xl6IrModuleClosureStorageRequirement(module);
     if ( !xl6IrLowerCanonicalizeDeadTrivialStorages(module) ) {
         (void)xl6IrLowerDiag(&ctx, module->root,
                             "XLIR lowering could not canonicalize dead trivial storage");

@@ -4423,7 +4423,8 @@ typedef enum XL6_IrClosureCaptureAbi {
     XL6_IR_CLOSURE_CAPTURE_RETAIN_CELL,
     /* Preserve an absent string as NULL. A non-null input is copied and its
      * allocation must succeed before the environment can be committed. */
-    XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING
+    XL6_IR_CLOSURE_CAPTURE_COPY_NULLABLE_STRING,
+    XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE
 } XL6_IrClosureCaptureAbi;
 
 typedef struct XL6_IrClosureCapture {
@@ -5463,7 +5464,8 @@ typedef enum XL6_IrClosureStorageAbi {
     XL6_IR_CLOSURE_STORAGE_RESIDENT_SCOPED_LEASE_V1,
     /* Immutable closed capture slots; resident trace/drop, no producer-owned
      * environment callbacks. V1 remains a rejected legacy lowered value. */
-    XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V2
+    XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V2,
+    XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3
 } XL6_IrClosureStorageAbi;
 
 /* Dynamic member values are erased callables, but their immutable receiver
@@ -7446,6 +7448,8 @@ XL6_IrRuntimeOp xl6IrAllocatingBoxOpForType(const XL6_IrModule* module, XL6_IrTy
 void xl6IrDumpModuleText(XL6_Output* out, const XL6_IrModule* module);
 void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module);
 const XL6_IrNativeValuePlan* xl6IrNativeValuePlanForType(const XL6_IrType*);
+XL6_IrClosureStorageAbi xl6IrClosureEnvironmentAbi(const XL6_IrModule*,const XL6_IrClosureTarget*);
+XL6_IrClosureStorageAbi xl6IrModuleClosureStorageRequirement(const XL6_IrModule*);
 const XL6_IrNativeValuePlan* xl6IrNullableNativeValuePlan(const XL6_IrTypePool*,const XL6_IrType*);
 int xl6IrRuntimeNativeValueOpIs(XL6_IrRuntimeOp);
 const char* xl6IrRuntimeNativeValueSymbol(const XL6_IrNativeValuePlan*,XL6_IrRuntimeOp);

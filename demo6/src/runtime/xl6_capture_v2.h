@@ -4,7 +4,7 @@
 typedef struct xrttype xrttype;
 
 /* Permanent resident publisher capability, not a source/foreign type ID.
- * Immutable native owning leaf: typed zero is empty, Copy owns independently,
+ * Immutable native owning record or optional leaf: typed zero is empty, Copy owns independently,
  * and there are NO language graph edges. DetachCleanup atomically empties the
  * exact typed slot and its optional 0/1 flag before destruction, then releases
  * outside mutation/freeze. It must not allocate on healthy cleanup. Only

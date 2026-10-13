@@ -11,6 +11,7 @@
 #include "src/runtime/xl6_value_named_read.h"
 #include "src/runtime/xl6_value_named_write.h"
 #include "src/runtime/xl6_closure.h"
+#include "src/runtime/xl6_closure_capture_v3.h"
 #include "src/runtime/xl6_cell.h"
 #include "src/runtime/xl6_slot.h"
 #include "src/runtime/xl6_generator.h"
@@ -65,6 +66,7 @@
 #include "src/runtime/xl6_slot_map_key_capture.h"
 #include "src/runtime/xl6_slot_map_key_value.h"
 #include "src/runtime/xl6_nullable_slot_map_key.h"
+#include "src/runtime/xl6_nullable_slot_map_key_capture.h"
 #include "src/runtime/xl6_array_native_value_admission.h"
 #include "src/runtime/xl6_dict_graph_access.h"
 #include "src/runtime/xl6_dict_graph.h"
@@ -258,6 +260,8 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
         !xlApiAddTccSymbol(s, "xl6PayloadObserveOutcome", (const void*)xl6PayloadObserveOutcome)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClosureRuntimeV1Get", (const void*)xl6ClosureRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClosureRuntimeV2Get", (const void*)xl6ClosureRuntimeV2Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ClosureCreateEnvironmentV1", (const void*)xl6ClosureCreateEnvironmentV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ClosureRuntimeV3Get", (const void*)xl6ClosureRuntimeV3Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClosureBoxErasedV1", (const void*)xl6ClosureBoxErasedV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6CellRuntimeV1Get", (const void*)xl6CellRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6SlotRuntimeV1Get", (const void*)xl6SlotRuntimeV1Get)) return 0;

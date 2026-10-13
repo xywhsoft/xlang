@@ -6,7 +6,8 @@
 bool xl6NativeCaptureProfileValidV1(const XL6_NativeCaptureProfileV1* p)
 {
     const xrttype* t=p && p->size==sizeof(*p) && p->Type ? p->Type() : NULL;
-    return t && p->identity && p->DetachCleanup && t->Id && t->Kind==XRT_TYPE_RECORD &&
+    return t && p->identity && p->DetachCleanup && t->Id &&
+        (t->Kind==XRT_TYPE_RECORD || (t->Kind==XRT_TYPE_OPTIONAL && (t->Flags&XRT_TYPE_FLAG_NULLABLE))) &&
         t->Size && t->Align && t->Align<=_Alignof(max_align_t) &&
         (_Alignof(max_align_t)%t->Align)==0 && t->Size%t->Align==0 &&
         t->Ops && t->Ops->Copy && t->Ops->Drop && (t->Flags&XRT_TYPE_FLAG_COPYABLE) &&

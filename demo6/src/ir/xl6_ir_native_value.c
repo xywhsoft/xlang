@@ -13,7 +13,8 @@ static const XL6_IrNativeValuePlan g_xl6IrNativeValues[] = {
         "xl6NullableSlotMapKeyCopyValueV1","xl6NullableSlotMapKeyDropValueV1","xl6NullableSlotMapKeyEqualV1",
         "xl6NullableSlotMapKeyBoxV1","xl6NullableSlotMapKeyUnboxV1",XL6_IR_RELEASE_EFFECT_NO_RAISE,
         XL6_IR_NATIVE_SLOT_NULLABLE_SLOT_MAP_KEY_V1,"xl6NullableSlotMapKeyTypeV1()",NULL,NULL,NULL,
-        UINT64_C(0x4634D6E6E6364F13),NULL,NULL,XL6_IR_NATIVE_VALUE_SLOT_MAP_KEY_V1,"xl6NullableSlotMapKeyTryUnboxV1"},
+        XL6_NULLABLE_SLOT_MAP_KEY_LANGUAGE_VALUE_ID,"__xl_runtime/xl6_nullable_slot_map_key_capture.h",
+        "xl6NullableSlotMapKeyCaptureProfileV1Get",XL6_IR_NATIVE_VALUE_SLOT_MAP_KEY_V1,"xl6NullableSlotMapKeyTryUnboxV1"},
 };
 static XL6_IrNativeValueAbi xl6IrNativeValueAbiFromFrontend(XL6_TypeAbiId abi)
 {
@@ -22,6 +23,29 @@ static XL6_IrNativeValueAbi xl6IrNativeValueAbiFromFrontend(XL6_TypeAbiId abi)
         if (!g_xl6IrNativeValues[i].nullableElementAbi &&
             abi == xl6TypeAbiIdText(g_xl6IrNativeValues[i].abiName)) return g_xl6IrNativeValues[i].abi;
     return XL6_IR_NATIVE_VALUE_NONE;
+}
+XL6_IrClosureStorageAbi xl6IrClosureEnvironmentAbi(const XL6_IrModule* module,const XL6_IrClosureTarget* target)
+{
+    if(!module || !target || target->firstCapture>module->closureCaptureCount ||
+        target->captureCount>module->closureCaptureCount-target->firstCapture)return XL6_IR_CLOSURE_STORAGE_NONE;
+    XL6_IrClosureStorageAbi result=XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V2;
+    for(size_t i=0;i<target->captureCount;++i){
+        const XL6_IrClosureCapture* capture=&module->closureCaptures[target->firstCapture+i];
+        if(capture->abi!=XL6_IR_CLOSURE_CAPTURE_COPY_NATIVE_VALUE)continue;
+        const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,capture->type));
+        if(!native || !native->captureHeader || !native->captureProfileSymbol)return XL6_IR_CLOSURE_STORAGE_NONE;
+        result=XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3;
+    }
+    return result;
+}
+XL6_IrClosureStorageAbi xl6IrModuleClosureStorageRequirement(const XL6_IrModule* module)
+{
+    if(!module)return XL6_IR_CLOSURE_STORAGE_NONE;
+    for(size_t i=0;i<module->closureTargetCount;++i)
+        if(module->closureTargets[i].reachability!=XL6_IR_REACHABILITY_UNREACHABLE &&
+            xl6IrClosureEnvironmentAbi(module,&module->closureTargets[i])==XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3)
+            return XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V3;
+    return XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V2;
 }
 static XL6_IrNativeValueAbi xl6IrNativeValueAbiFromType(const XL6_IrType* type)
 {

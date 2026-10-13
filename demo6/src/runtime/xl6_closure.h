@@ -92,6 +92,18 @@ typedef struct XL6_ClosureRuntimeV2 {
     XL6_Closure* (*CreateValue)(const XL6_CodeOwner*, void (*)(void), const struct xvalue*);
 } XL6_ClosureRuntimeV2;
 XL6_CODE_LEASE_API const XL6_ClosureRuntimeV2* xl6ClosureRuntimeV2Get(void);
+/* Trusted permanent resident policy. A producer-owned layout is protected by
+ * the closure's actual code lease, like V2. Not an arbitrary callback sandbox.
+ * Drop consumes the detached private environment outside mutation/freeze. */
+typedef struct XL6_ClosureEnvironmentOpsV1 {
+    size_t size;
+    bool (*Validate)(const void*,const void*,size_t);
+    bool (*Trace)(const void*,const void*,size_t,XL6_ModuleOwnershipVisit,void*);
+    bool (*Drop)(const void*,void*,size_t);
+} XL6_ClosureEnvironmentOpsV1;
+XL6_CODE_LEASE_API XL6_Closure* xl6ClosureCreateEnvironmentV1(
+    const XL6_CodeOwner*,void (*)(void),void (*)(void),void*,size_t,const void*,
+    const XL6_ClosureEnvironmentOpsV1*,const char* const*,const xlir_call_default*,size_t);
 /* Compiler-private erased callable transport: the same resident box lifetime
  * and execution protocol as V1 Box, without nominal callable identity. V1 Box
  * still requires a nonzero identity. Borrows closure; failure consumes none. */
