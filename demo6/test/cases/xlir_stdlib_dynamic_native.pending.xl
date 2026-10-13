@@ -1,0 +1,43 @@
+// Pending native dynamic-call ABI integration. Actual products currently
+// reject Buffer.len: native extern rows are retained but not admitted.
+// Keep this regression visible until IR contracts and adapters are completed.
+var buffer = Buffer(b"a\0你")
+assert int(buffer.len()) == 5
+assert bool(buffer.append("x"))
+bytes data = bytes(buffer.toBytes())
+assert data == b"a\0你x"
+assert string(buffer.text()) == "a\0你x"
+bool mismatch = false
+try
+    buffer.append(7)
+catch e
+    mismatch = true
+end
+assert mismatch and bytes(buffer.toBytes()) == data
+
+var regex = Regex("a")
+assert bool(regex.test("a"))
+var found = regex.find("a")
+assert found != null and string(found.text()) == "a"
+assert string(regex.replace("a\0a", "你")) == "你\0你"
+
+var pattern = Pattern("/{value}", "tag\0你")
+assert bool(pattern.test("/x"))
+var captured = pattern.find("/x")
+assert captured != null and string(captured.text()) == "x"
+assert string(captured.tag) == "tag\0你"
+
+var arrayValue = array<int>[1, 2]
+arrayValue.append(3)
+assert int(arrayValue.pop()) == 3
+assert bool(arrayValue.contains(2))
+
+var dictValue = dict<int>{"a\0你": 7}
+assert bool(dictValue.contains("a\0你"))
+assert int(dictValue.take("a\0你")) == 7
+assert not bool(dictValue.contains("a\0你"))
+
+var stack = Stack::<int>()
+assert bool(stack.push(9))
+assert int(stack.count()) == 1
+assert int(stack.pop()) == 9
