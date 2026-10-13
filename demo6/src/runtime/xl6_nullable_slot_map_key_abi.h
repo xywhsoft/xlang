@@ -22,4 +22,6 @@ bool xl6NullableSlotMapKeyProjectV1(XL6_NullableSlotMapKeyV1,XL6_SlotMapKeyV1*);
 const struct xrttype* xl6NullableSlotMapKeyTypeV1(void);
 struct xvalue* xl6NullableSlotMapKeyBoxV1(XL6_NullableSlotMapKeyV1);
 bool xl6NullableSlotMapKeyUnboxV1(const struct xvalue*,XL6_NullableSlotMapKeyV1*);
+/* Authenticated mismatch is absence; acquisition/resource failure is checked. */
+bool xl6NullableSlotMapKeyTryUnboxV1(const struct xvalue*,XL6_NullableSlotMapKeyV1*);
 #endif

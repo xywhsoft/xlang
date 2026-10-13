@@ -1904,6 +1904,7 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
          xl6IrSlotMapErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeStringAllocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          (runtimeOp != XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED &&
+          runtimeOp != XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY &&
           xl6IrRuntimeNativeValueErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) ||
          xl6IrRuntimeContainerAllocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeClassErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
@@ -2363,7 +2364,8 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsExactType(
 {
     const XL6_IrType* resultType = ctx != NULL
         ? xl6IrTypeGet(&ctx->module->types, resultTypeId) : NULL;
-    if ( resultType == NULL || resultType->kind == XL6_IR_TYPE_NULLABLE )
+    if ( resultType == NULL || (resultType->kind == XL6_IR_TYPE_NULLABLE &&
+         !xl6IrNullableNativeValuePlan(&ctx->module->types,resultType)) )
         return XL6_IR_VALUE_INVALID;
     if (xl6IrNativeValuePlanForType(resultType)) {
         XL6_IrValueId result=xl6IrLowerEmitRuntimeCall(ctx,origin,resultTypeId,
@@ -7724,7 +7726,7 @@ static XL6_IrValueId xl6IrLowerNullableLiftCast(
          targetNode->storageType != node->storageType ||
          node->castErrorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
          (abi != XL6_IR_CAST_VALUE_TO_TAGGED_NULLABLE &&
-          abi != XL6_IR_CAST_MANAGED_TO_POINTER_NULLABLE) ) {
+          abi != XL6_IR_CAST_MANAGED_TO_POINTER_NULLABLE && abi!=XL6_IR_CAST_NATIVE_VALUE_TO_NULLABLE) ) {
         xl6IrLowerDiag(ctx, id,
             "XLIR nullable lift has no exact element, representation and no-raise ABI");
         return XL6_IR_VALUE_INVALID;
@@ -7765,6 +7767,8 @@ static XL6_IrValueId xl6IrLowerNullableUnwrapCast(
     XL6_IrInstruction* raise;
     XL6_SymbolId temporary = 0;
     int managed;
+    int native;
+    size_t nativeFirst=ctx ? ctx->evaluationOwnerCount : 0;
     if ( ctx == NULL || node == NULL || node->childCount != 2 ||
          node->firstChild + 1 >= ctx->module->childCount )
         return XL6_IR_VALUE_INVALID;
@@ -7776,13 +7780,14 @@ static XL6_IrValueId xl6IrLowerNullableUnwrapCast(
         ? xl6IrTypeGet(&ctx->module->types, sourceNode->storageType) : NULL;
     managed = node->castAbi ==
         XL6_IR_CAST_NULLABLE_POINTER_TO_MANAGED_CHECKED;
+    native=node->castAbi==XL6_IR_CAST_NULLABLE_NATIVE_VALUE_TO_VALUE_CHECKED;
     if ( sourceNode == NULL || targetNode == NULL || nullable == NULL ||
          nullable->kind != XL6_IR_TYPE_NULLABLE ||
          nullable->paramCount != 1 || nullable->params == NULL ||
          nullable->params[0] != node->storageType ||
          targetNode->storageType != node->storageType ||
          node->castErrorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
-         (!managed && node->castAbi !=
+         (!managed && !native && node->castAbi !=
               XL6_IR_CAST_TAGGED_NULLABLE_TO_VALUE_CHECKED) ) {
         xl6IrLowerDiag(ctx, id,
             "XLIR nullable unwrap has no exact element, representation and checked failure ABI");
@@ -7805,6 +7810,7 @@ static XL6_IrValueId xl6IrLowerNullableUnwrapCast(
             ctx, id, ctx->module->children[node->firstChild], sourceNode)
         : xl6IrLowerNode(ctx, ctx->module->children[node->firstChild]);
     if ( source == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
+    if(native){source=xl6IrLowerProtectOwnedBorrow(ctx,id,source);if(!source)return XL6_IR_VALUE_INVALID;}
     if ( managed && xl6IrLowerValueHasOwner(ctx, source) ) {
         temporary = xl6IrLowerNewTempStorage(
             ctx, sourceNode->storageType, id);
@@ -7843,6 +7849,10 @@ static XL6_IrValueId xl6IrLowerNullableUnwrapCast(
         return XL6_IR_VALUE_INVALID;
     unwrap = &ctx->module->instructions[ctx->module->instructionCount - 1];
     unwrap->castAbi = node->castAbi;
+    if(native){
+        result=xl6IrLowerAcquireValueOwner(ctx,id,result);
+        return result && xl6IrLowerCompleteEvaluationBorrows(ctx,id,nativeFirst,&result) ? result : XL6_IR_VALUE_INVALID;
+    }
     if ( !managed ) return result;
     if ( temporary != 0 ) {
         if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_MOVE, id,
@@ -8122,10 +8132,32 @@ static XL6_IrValueId xl6IrLowerCast(
         return xl6IrLowerDynamicNullableCast(ctx, id, node);
     case XL6_IR_CAST_VALUE_TO_TAGGED_NULLABLE:
     case XL6_IR_CAST_MANAGED_TO_POINTER_NULLABLE:
+    case XL6_IR_CAST_NATIVE_VALUE_TO_NULLABLE:
         return xl6IrLowerNullableLiftCast(ctx, id, node);
     case XL6_IR_CAST_TAGGED_NULLABLE_TO_VALUE_CHECKED:
     case XL6_IR_CAST_NULLABLE_POINTER_TO_MANAGED_CHECKED:
+    case XL6_IR_CAST_NULLABLE_NATIVE_VALUE_TO_VALUE_CHECKED:
         return xl6IrLowerNullableUnwrapCast(ctx, id, node);
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_VALUE_TRY: {
+        const XL6_IrNode* source=xl6IrNodeGet(ctx->module,ctx->module->children[node->firstChild]);
+        if(!source || !xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module,source->storageType) ||
+            !xl6IrNullableNativeValuePlan(&ctx->module->types,xl6IrTypeGet(&ctx->module->types,node->storageType)) ||
+            node->castErrorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE)return XL6_IR_VALUE_INVALID;
+        size_t first=ctx->evaluationOwnerCount;
+        XL6_IrValueId borrowed=source->kind==XL6_IR_NODE_NAME && source->type!=source->storageType ?
+            xl6IrLowerNamePhysicalStorageValue(ctx,id,ctx->module->children[node->firstChild],source) :
+            xl6IrLowerNode(ctx,ctx->module->children[node->firstChild]);
+        borrowed=xl6IrLowerProtectOwnedBorrow(ctx,id,borrowed);
+        if(!source || !borrowed)return XL6_IR_VALUE_INVALID;
+        XL6_IrValueId result=xl6IrLowerEmitRuntimeCall(ctx,id,node->storageType,
+            XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY,&borrowed,1);
+        if(!result)return XL6_IR_VALUE_INVALID;
+        XL6_IrInstruction* projection=&ctx->module->instructions[ctx->module->instructionCount-1];
+        projection->payloadType=node->storageType;projection->castAbi=node->castAbi;
+        if(!xl6IrLowerEmitRuntimeErrorEdge(ctx,id,node,result) ||
+            !xl6IrLowerCompleteEvaluationBorrows(ctx,id,first,&result))return XL6_IR_VALUE_INVALID;
+        return result;
+    }
     case XL6_IR_CAST_XVALUE_TO_NOMINAL_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_NOMINAL_TRY:
         return xl6IrLowerNominalCast(ctx, id, node);
@@ -22708,6 +22740,8 @@ static XL6_IrValueId xl6IrLowerNullableCoalesce(
     int tagged;
     int managedPointer;
     int erased;
+    int native;
+    size_t nativeFirst=ctx ? ctx->evaluationOwnerCount : 0;
     if ( ctx == NULL || node == NULL || node->childCount != 2 ||
          node->opcode != XL6_IR_OPCODE_NULL_COALESCE ) return XL6_IR_VALUE_INVALID;
     leftId = ctx->module->children[node->firstChild];
@@ -22729,6 +22763,7 @@ static XL6_IrValueId xl6IrLowerNullableCoalesce(
     left = leftNode != NULL ? xl6IrLowerNode(ctx, leftId) : XL6_IR_VALUE_INVALID;
     leftType = xl6IrLowerValueType(ctx, left);
     nullableType = xl6IrTypeGet(&ctx->module->types, leftType);
+    native=xl6IrNullableNativeValuePlan(&ctx->module->types,nullableType)!=NULL;
     tagged = nullableType != NULL &&
         nullableType->kind == XL6_IR_TYPE_NULLABLE &&
         nullableType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
@@ -22760,7 +22795,7 @@ static XL6_IrValueId xl6IrLowerNullableCoalesce(
         (nullableType->kind != XL6_IR_TYPE_NULLABLE ||
          (nullableType->paramCount == 1 && nullableType->params != NULL));
     if ( leftNode == NULL || rightNode == NULL ||
-         (!tagged && !managedPointer && !erased) ) {
+         (!tagged && !managedPointer && !erased && !native) ) {
         xl6IrLowerDiag(ctx, id,
             "XLIR null coalescing has no exact tagged, managed-pointer or xvalue-sentinel operand ABI");
         return XL6_IR_VALUE_INVALID;
@@ -22772,7 +22807,7 @@ static XL6_IrValueId xl6IrLowerNullableCoalesce(
                         "XLIR xvalue-sentinel coalescing has no exact projected result TypeId");
         return XL6_IR_VALUE_INVALID;
     }
-    if ( managedPointer && elementType != node->storageType && leftType != node->storageType ) {
+    if ( (managedPointer || native) && elementType != node->storageType && leftType != node->storageType ) {
         xl6IrLowerDiag(ctx, id,
             "XLIR managed-pointer coalescing has no exact owned result TypeId");
         return XL6_IR_VALUE_INVALID;
@@ -22798,6 +22833,7 @@ static XL6_IrValueId xl6IrLowerNullableCoalesce(
             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, id, leftType, leftTemporary, NULL, 0, &left))
             return XL6_IR_VALUE_INVALID;
     }
+    if(native){left=xl6IrLowerProtectOwnedBorrow(ctx,id,left);if(!left)return XL6_IR_VALUE_INVALID;}
     if ( boolType == XL6_IR_TYPE_INVALID || left == XL6_IR_VALUE_INVALID ||
          !xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULL_TEST, id, boolType,
                           0, &left, 1, &isNull) ||
@@ -22845,7 +22881,7 @@ static XL6_IrValueId xl6IrLowerNullableCoalesce(
             return XL6_IR_VALUE_INVALID;
         }
     }
-    if ( managedPointer ) {
+    if ( managedPointer || native ) {
         /* A nullable fallback keeps the result nullable. Rewrap explicitly;
          * equal C pointer layouts do not authorize an implicit TypeId cast. */
         if (node->storageType == leftType) {
@@ -22883,7 +22919,7 @@ static XL6_IrValueId xl6IrLowerNullableCoalesce(
         : xl6IrLowerNodeAsType(
             ctx, id, rightId, rightNode, node->storageType);
     if ( fallback == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
-    if ( managedPointer ) {
+    if ( managedPointer || native ) {
         fallback = xl6IrLowerOwnedStorageValue(
             ctx, id, node->storageType, rightNode, fallback);
         if ( fallback == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
@@ -22893,7 +22929,8 @@ static XL6_IrValueId xl6IrLowerNullableCoalesce(
         return XL6_IR_VALUE_INVALID;
 
     xl6IrLowerEnterBlock(ctx, mergeBlock);
-    return xl6IrLowerReadJoinStorage(ctx, id, node->storageType, resultTemporary);
+    XL6_IrValueId joined=xl6IrLowerReadJoinStorage(ctx, id, node->storageType, resultTemporary);
+    return joined && (!native || xl6IrLowerCompleteEvaluationBorrows(ctx,id,nativeFirst,&joined)) ? joined : XL6_IR_VALUE_INVALID;
 }
 
 /* Conditional branches can carry a typed collection representation even when

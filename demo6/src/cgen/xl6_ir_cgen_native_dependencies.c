@@ -567,13 +567,10 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             !xl6IrCgenVisitNativeValueDrops(module,instruction->type,visitor,context)) return 0;
         if (xl6IrCgenInstructionIsReachable(module,i) &&
             instruction->kind==XL6_IR_INSTR_RUNTIME_CALL &&
-            instruction->runtimeOp>=XL6_IR_RUNTIME_NATIVE_VALUE_COPY &&
-            instruction->runtimeOp<=XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED) {
+            xl6IrRuntimeNativeValueOpIs(instruction->runtimeOp)) {
             const XL6_IrNativeValuePlan* plan=xl6IrNativeValueInstructionPlan(module,instruction);
-            if (!plan || !visitor(context,instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_VALUE_COPY ?
-                    plan->copySymbol : instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL ?
-                    plan->equalSymbol : instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_VALUE_BOX ?
-                    plan->boxSymbol : plan->projectSymbol)) return 0;
+            const char* symbol=xl6IrRuntimeNativeValueSymbol(plan,instruction->runtimeOp);
+            if (!symbol || !visitor(context,symbol)) return 0;
         }
         XL6_IrTypeId queueId=xl6IrConcurrentQueueInstructionType(module,instruction);
         if(instruction->kind==XL6_IR_INSTR_RUNTIME_CALL && xl6IrSlotMapIteratorOpIs(instruction->runtimeOp) &&
