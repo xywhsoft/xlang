@@ -358,7 +358,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_wait_queue_admission.c",D(R(WAIT_QUEUE_NATIVE),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)),{NULL}},
     {"src/runtime/xl6_path_build.c",D(R(ARRAY_INPUT),R(FOREIGN_ERROR)),{"XRT_MODULE_PATH"}},
     {"src/runtime/xl6_stack_erased.c",D(R(SEQUENCE),R(ARRAY_REFERENCE_VALUE),R(FOREIGN_ERROR)),
-        {"XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}}
+        {"XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
+    {"src/runtime/xl6_char_checked.c",D(R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

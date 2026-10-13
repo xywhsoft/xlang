@@ -1,0 +1,64 @@
+func dynamicChar() as var
+    return '你'
+end
+
+var scalar = '你'
+assert char(scalar) == '你'
+assert (scalar as char) == '你'
+assert char(dynamicChar()) == '你'
+assert (dynamicChar() as char) == '你'
+var zero = 0
+assert char(zero) == '\0'
+var integer = 65
+assert char(integer) == 'A'
+var unsigned = uint64(0x10ffff)
+assert char(unsigned) == '\U0010ffff'
+var beforeSurrogates = 0xd7ff
+var afterSurrogates = 0xe000
+assert char(beforeSurrogates) == '\uD7FF'
+assert char(afterSurrogates) == '\uE000'
+
+var values = Stack::<char>()
+assert bool(values.push('\0')) and bool(values.push('你'))
+assert (values.pop() as char) == '你'
+assert char(values.pop()) == '\0'
+
+bool caught = false
+try
+    auto wrong = integer as char
+catch TypeError failure
+    caught = true
+end
+assert caught
+var negative = -1
+caught = false
+try
+    char(negative)
+catch RangeError failure
+    caught = true
+end
+assert caught
+var surrogate = 0xd800
+caught = false
+try
+    char(surrogate)
+catch RangeError failure
+    caught = true
+end
+assert caught
+var tooLarge = uint64(0x110000)
+caught = false
+try
+    char(tooLarge)
+catch RangeError failure
+    caught = true
+end
+assert caught
+var text = "你"
+caught = false
+try
+    char(text)
+catch TypeError failure
+    caught = true
+end
+assert caught

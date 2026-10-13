@@ -164,6 +164,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_buffer_query.c"
 	"$ROOT/src/runtime/xl6_stack.c"
 	"$ROOT/src/runtime/xl6_stack_erased.c"
+	"$ROOT/src/runtime/xl6_char_checked.c"
 	"$ROOT/src/runtime/xl6_stack_batch.c"
 	"$ROOT/src/runtime/xl6_sequence.c"
 	"$ROOT/src/runtime/xl6_array_reference_admission.c"

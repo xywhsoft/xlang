@@ -10256,7 +10256,7 @@ static int xl6IrIntegerSourceAbiMatchesType(
 /* This is the complete admitted checked-conversion matrix.  Integer narrowing
  * from I64/U64 is deliberately absent: language narrowing has wrapping
  * semantics and belongs to a separate non-raising IR operation. */
-static int xl6IrCheckedIntegerConversionSignature(
+int xl6IrCheckedIntegerConversionSignature(
     const XL6_IrType* result, XL6_IrIntegerTarget target,
     XL6_IrIntegerSourceAbi sourceAbi)
 {
@@ -10266,7 +10266,8 @@ static int xl6IrCheckedIntegerConversionSignature(
     if ( target == XL6_IR_INTEGER_TARGET_UNICODE_SCALAR )
         return result->cAbi == XL6_IR_C_ABI_CHAR_U32 &&
                (sourceAbi == XL6_IR_INTEGER_SOURCE_I64 ||
-                sourceAbi == XL6_IR_INTEGER_SOURCE_U64);
+                sourceAbi == XL6_IR_INTEGER_SOURCE_U64 ||
+                sourceAbi == XL6_IR_INTEGER_SOURCE_XVALUE);
     if ( target == XL6_IR_INTEGER_TARGET_UNSIGNED_64 )
         return result->cAbi == XL6_IR_C_ABI_U64 &&
                (sourceAbi == XL6_IR_INTEGER_SOURCE_I64 ||
@@ -17022,6 +17023,8 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
     if ( !dynamicSource || target->kind == XL6_IR_TYPE_NULLABLE ||
          target->typeValueId == 0 ) return XL6_IR_CAST_INVALID;
     switch ( target->cAbi ) {
+    case XL6_IR_C_ABI_CHAR_U32:
+        return XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED;
     case XL6_IR_C_ABI_BOOL:
         return XL6_IR_CAST_XVALUE_TO_BOOL_CHECKED;
     case XL6_IR_C_ABI_I64:
@@ -17092,6 +17095,7 @@ static XL6_IrErrorAbi xl6IrClassifyCastErrorAbi(
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_NOMINAL_TRY:
         return XL6_IR_ERROR_ABI_NO_RAISE;
     case XL6_IR_CAST_XVALUE_TO_BOOL_CHECKED:
+    case XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_I64_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_U64_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_F64_CHECKED:
@@ -21019,6 +21023,12 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     stringAbi = xl6IrRuntimeStringAllocationErrorPhysicalAbi(instruction->runtimeOp);
     if (stringAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     const XL6_IrType* projectionType=xl6IrTypeGet(&module->types,instruction->type);
+    if ((instruction->runtimeOp==XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED &&
+         instruction->integerTarget==XL6_IR_INTEGER_TARGET_UNICODE_SCALAR &&
+         instruction->integerSourceAbi==XL6_IR_INTEGER_SOURCE_XVALUE) ||
+        (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_CAST_CHECKED &&
+         instruction->castAbi==XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED))
+        return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_PROJECT_TAGGED_NULLABLE_COPY &&
         xl6IrNativeScalarProfileForCAbi(xl6IrNullableScalarElementAbi(module,instruction->type))!=
             XL6_NATIVE_SCALAR_NONE) return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
@@ -37999,8 +38009,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
               node->operatorOperandAbis[1] >
                   XL6_IR_OPERATOR_OPERAND_NULLABLE_UNWRAP_SCALAR_CONVERT ||
              node->castAbi < XL6_IR_CAST_INVALID ||
-             node->castAbi >
-                 XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_VALUE_TRY ||
+             node->castAbi >= XL6_IR_CAST_COUNT ||
              node->castErrorAbi < XL6_IR_ERROR_ABI_INVALID ||
              node->castErrorAbi > XL6_IR_ERROR_ABI_MAY_RAISE ||
              node->implicitConversionRuntimeOp < XL6_IR_RUNTIME_NONE ||
@@ -40764,6 +40773,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                               resultType->cAbi == XL6_IR_C_ABI_I64 &&
                               resultType->ownershipAbi ==
                                   XL6_IR_OWNERSHIP_ABI_TRIVIAL) ||
+                             (scalar && instruction->castAbi == XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED &&
+                              resultType->cAbi == XL6_IR_C_ABI_CHAR_U32 &&
+                              resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL) ||
                              (scalar && instruction->castAbi ==
                                   XL6_IR_CAST_XVALUE_TO_U64_CHECKED &&
                               resultType->cAbi == XL6_IR_C_ABI_U64 &&
@@ -44146,8 +44158,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       instruction->kind != XL6_IR_INSTR_NULLABLE_UNWRAP &&
                       instruction->castAbi != XL6_IR_CAST_INVALID) ||
                      instruction->castAbi < XL6_IR_CAST_INVALID ||
-                     instruction->castAbi >
-                         XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_VALUE_TRY )
+                     instruction->castAbi >= XL6_IR_CAST_COUNT )
                     return xl6IrDiag(diags, NULL,
                         "XLIR instruction has an ambiguous closed cast ABI");
                 if ( instruction->kind == XL6_IR_INSTR_BRANCH &&
@@ -45766,6 +45777,7 @@ static const char* xl6IrErrorAbiName(XL6_IrErrorAbi abi)
 static const char* xl6IrCastAbiName(XL6_IrCastAbi abi)
 {
     switch ( abi ) {
+    case XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED:return "xvalue-to-char-checked";
     case XL6_IR_CAST_IDENTITY: return "identity";
     case XL6_IR_CAST_NULL_TO_NULLABLE: return "null-to-nullable";
     case XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED: return "xvalue-to-native-value-checked";

@@ -5,6 +5,8 @@ static int xl6IrCgenEmitResourceRuntime(
     size_t i;
     size_t parameter;
     int nativeQueue=needs->needsSpscQueueRuntime || needs->needsMpscQueueRuntime || needs->needsMpmcQueueRuntime || needs->needsWaitQueueRuntime;
+    if (needs->needsCharValueCheckedRuntime)
+        xl6OutputPuts("#include <__xl_runtime/xl6_char_checked.h>\n",out);
     for(i=0;i<module->instructionCount;++i)
         if(xl6IrCgenInstructionIsReachable(module,i) && xl6IrSlotMapIteratorOpIs(module->instructions[i].runtimeOp)) {
             xl6OutputPuts("#include <__xl_runtime/xl6_slot_map_iterator.h>\n",out); break;

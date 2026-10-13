@@ -2667,24 +2667,7 @@ static int xl6IrLowerCheckedIntegerSignature(
     const XL6_IrType* resultType, XL6_IrIntegerTarget target,
     XL6_IrIntegerSourceAbi sourceAbi)
 {
-    if ( resultType == NULL || target < XL6_IR_INTEGER_TARGET_SIGNED_8 ||
-         target > XL6_IR_INTEGER_TARGET_UNICODE_SCALAR ||
-         resultType->integerTarget != target ) return 0;
-    if ( target == XL6_IR_INTEGER_TARGET_UNICODE_SCALAR )
-        return resultType->cAbi == XL6_IR_C_ABI_CHAR_U32 &&
-               (sourceAbi == XL6_IR_INTEGER_SOURCE_I64 ||
-                sourceAbi == XL6_IR_INTEGER_SOURCE_U64);
-    if ( target == XL6_IR_INTEGER_TARGET_UNSIGNED_64 )
-        return resultType->cAbi == XL6_IR_C_ABI_U64 &&
-               (sourceAbi == XL6_IR_INTEGER_SOURCE_I64 ||
-                sourceAbi == XL6_IR_INTEGER_SOURCE_U64 ||
-                sourceAbi == XL6_IR_INTEGER_SOURCE_F64 ||
-                sourceAbi == XL6_IR_INTEGER_SOURCE_MANAGED_STRING ||
-                sourceAbi == XL6_IR_INTEGER_SOURCE_XVALUE);
-    if ( resultType->cAbi != XL6_IR_C_ABI_I64 ) return 0;
-    return sourceAbi == XL6_IR_INTEGER_SOURCE_F64 ||
-           sourceAbi == XL6_IR_INTEGER_SOURCE_MANAGED_STRING ||
-           sourceAbi == XL6_IR_INTEGER_SOURCE_XVALUE;
+    return xl6IrCheckedIntegerConversionSignature(resultType,target,sourceAbi);
 }
 
 static int xl6IrLowerWrappingIntegerSignature(
@@ -7411,6 +7394,9 @@ static int xl6IrLowerCastAbiMatchesType(
     case XL6_IR_CAST_XVALUE_TO_BOOL_CHECKED:
         return type->cAbi == XL6_IR_C_ABI_BOOL &&
                type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
+    case XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED:
+        return type->cAbi == XL6_IR_C_ABI_CHAR_U32 &&
+               type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
     case XL6_IR_CAST_XVALUE_TO_I64_CHECKED:
         return type->cAbi == XL6_IR_C_ABI_I64 &&
                type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
@@ -8118,6 +8104,7 @@ static XL6_IrValueId xl6IrLowerCast(
         }
     case XL6_IR_CAST_XVALUE_TO_BOOL_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_I64_CHECKED:
+    case XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_U64_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_F64_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_TIME_CHECKED:
