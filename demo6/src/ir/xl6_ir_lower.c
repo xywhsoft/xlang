@@ -15956,8 +15956,8 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
             payloadType != XL6_IR_TYPE_INVALID &&
             intrinsic->payloadType == payloadType &&
             intrinsic->runtimeResourcePayloadAbi ==
-                xl6IrLowerRuntimeResourcePayloadAbiForType(
-                    module, payloadType) &&
+                xl6IrRuntimeResourcePayloadAbiForOwnerType(
+                    module, intrinsic->resultType, payloadType) &&
             intrinsic->runtimeResourcePayloadAbi !=
                 XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID &&
             intrinsic->operandCount == 0;
@@ -16120,8 +16120,8 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
              payloadType == XL6_IR_TYPE_INVALID ||
              intrinsic->payloadType != payloadType ||
              intrinsic->runtimeResourcePayloadAbi !=
-                 xl6IrLowerRuntimeResourcePayloadAbiForType(
-                     module, payloadType) ||
+                 xl6IrRuntimeResourcePayloadAbiForOwnerType(
+                     module, intrinsic->receiverType, payloadType) ||
              intrinsic->runtimeResourcePayloadAbi ==
                  XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID ) return 0;
         if (xl6IrStackBatchResourceOpIs(intrinsic->runtimeResourceOp)) {

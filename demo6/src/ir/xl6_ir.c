@@ -8553,8 +8553,7 @@ static int xl6IrStackConstructionContractDepth(const XL6_IrModule* module,
         !xl6IrSequenceConstructionRecipe(module,typeId,XL6_IR_SEQUENCE_ROLE_STACK,setOut) ||
         type->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_STACK ||
         plan->role!=XL6_IR_SEQUENCE_ROLE_STACK || plan->codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT ||
-        plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID ||
-        plan->transferAbi!=xl6IrRuntimeResourcePayloadAbiForType(module,plan->elementType)) return 0;
+        plan->transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID) return 0;
     switch (plan->abi) {
     case XL6_IR_SEQUENCE_LAYOUT_PRIMITIVE_V2:
     case XL6_IR_SEQUENCE_LAYOUT_REFERENCE_V2:
@@ -8566,6 +8565,7 @@ static int xl6IrStackConstructionContractDepth(const XL6_IrModule* module,
     case XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1:
     case XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1: return 1;
     case XL6_IR_SEQUENCE_LAYOUT_NOMINAL_V2:
         return xl6IrNominalIdentitySetGet(module,plan->baseElementType,setOut)!=NULL;
@@ -11702,7 +11702,7 @@ static int xl6IrRuntimeResourceSignatureCompatible(
         payloadType = xl6IrRuntimeStackPayloadType(module, resultType);
         return receiverType == XL6_IR_TYPE_INVALID && result != NULL &&
             payloadType != XL6_IR_TYPE_INVALID &&
-            xl6IrRuntimeResourcePayloadAbiForType(module, payloadType) !=
+            xl6IrRuntimeResourcePayloadAbiForOwnerType(module, resultType, payloadType) !=
                 XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID &&
             operandCount == 0;
     }
@@ -11816,7 +11816,7 @@ static int xl6IrRuntimeResourceSignatureCompatible(
         payloadType = xl6IrRuntimeStackPayloadType(module, receiverType);
         if ( first->runtimeResourceAbi != XL6_IR_RUNTIME_RESOURCE_STACK ||
              payloadType == XL6_IR_TYPE_INVALID ||
-             xl6IrRuntimeResourcePayloadAbiForType(module, payloadType) ==
+             xl6IrRuntimeResourcePayloadAbiForOwnerType(module, receiverType, payloadType) ==
                  XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID ||
              receiverType != operandTypes[0] ) return 0;
         switch ( operation ) {
@@ -38862,7 +38862,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              ? XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY : XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF) ||
                      (instruction->runtimeResourcePayloadAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF &&
                       !xl6IrConcurrentQueueInstructionType(module,instruction) &&
-                      !xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp))) )
+                      !xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp)) &&
+                      !(instruction->runtimeOp>=XL6_IR_RUNTIME_STACK_CREATE &&
+                        instruction->runtimeOp<=XL6_IR_RUNTIME_STACK_CAPACITY)) )
                     return xl6IrDiag(diags, NULL,
                         "XLIR instruction has an ambiguous runtime resource payload ABI");
                 if ( ((instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
@@ -42742,8 +42744,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              payloadType->typeValueId == 0 ||
                              instruction->payloadType != payloadTypeId ||
                              instruction->runtimeResourcePayloadAbi !=
-                                 xl6IrRuntimeResourcePayloadAbiForType(
-                                     module, payloadTypeId) ||
+                                 xl6IrRuntimeResourcePayloadAbiForOwnerType(
+                                     module, stackTypeId, payloadTypeId) ||
                              instruction->runtimeResourcePayloadAbi ==
                                  XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID ||
                              instruction->immediateText != NULL ||

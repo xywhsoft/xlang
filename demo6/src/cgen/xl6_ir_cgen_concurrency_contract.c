@@ -291,8 +291,7 @@ static int xl6IrCgenStackTypeAbi(
            stack->typeValueId != 0 &&
            stack->paramCount == 1 && stack->params != NULL &&
            payload != NULL && payload->typeValueId != 0 &&
-           xl6IrCgenChannelPayloadAbi(payload) !=
-               XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID &&
+           xl6IrStackConstructionContract(module,typeId,NULL) &&
            xl6IrCgenType(module, stack->params[0]) != NULL;
 }
 
