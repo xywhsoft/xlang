@@ -436,20 +436,28 @@ XL6_Sequence* xl6SequenceBeginRoleV1(const xvalue* value, XL6_SequenceRoleV1 rol
     }
     return owner;
 }
-bool xl6SequenceBindProjectionV1(XL6_Sequence* owner, const xvalueconverter* converter)
+bool xl6SequenceBindProjectionRoleV1(XL6_Sequence* owner, XL6_SequenceRoleV1 role,
+    const xvalueconverter* converter)
 {
-    if (!owner || !xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE) ||
-        owner->role!=XL6_SEQUENCE_ARRAY_V1 || owner->cleared ||
+    if ((role!=XL6_SEQUENCE_ARRAY_V1 && role!=XL6_SEQUENCE_STACK_V1) ||
+        !owner || !xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE) ||
+        owner->role!=role || owner->cleared ||
         (converter && (converter->Context || !converter->ToTyped || !converter->FromTyped)) ||
         (owner->projectionBound && owner->projection!=converter)) {
         xrtSetErrorKind(XERR_ARGUMENT); return false;
     }
     owner->projection=converter; owner->projectionBound=true; return true;
 }
-int xl6SequenceBeginErasedArrayV1(const xvalue* value, XL6_Sequence** result,
+bool xl6SequenceBindProjectionV1(XL6_Sequence* owner, const xvalueconverter* converter)
+{ return xl6SequenceBindProjectionRoleV1(owner,XL6_SEQUENCE_ARRAY_V1,converter); }
+int xl6SequenceBeginErasedRoleV1(const xvalue* value, XL6_SequenceRoleV1 role, XL6_Sequence** result,
     XL6_SequenceLayoutV1* layout, const xvalueconverter** converter)
 {
     if (!result || !layout || !converter) { xrtSetErrorKind(XERR_ARGUMENT); return -1; }
+    *result=NULL; *layout=(XL6_SequenceLayoutV1){0}; *converter=NULL;
+    if (role!=XL6_SEQUENCE_ARRAY_V1 && role!=XL6_SEQUENCE_STACK_V1) {
+        xrtSetErrorKind(XERR_ARGUMENT); return -1;
+    }
     /* No foreign pointer is dereferenced before the sealed handle ops match. */
     xrtownershipscope mutation={0}; mutationBegin(&mutation);
     if (!value || xrtValueType(value)!=XVALUE_HANDLE) { mutationEnd(&mutation); return 0; }
@@ -457,7 +465,7 @@ int xl6SequenceBeginErasedArrayV1(const xvalue* value, XL6_Sequence** result,
     if (!xrtValueGetHandle(value,&raw,&actual,NULL)) { mutationEnd(&mutation); return -1; }
     if (actual!=&ops || !raw) { mutationEnd(&mutation); return 0; }
     XL6_Sequence* owner=raw; int status=0; bool unbound=false;
-    if (owner->role==XL6_SEQUENCE_ARRAY_V1) {
+    if (owner->role==role) {
         status=-1;
         if (owner->cleared || !owner->storage ||
             xrtValueTypeId(value)!=owner->identity) xrtSetErrorKind(XERR_STATE);
@@ -477,6 +485,9 @@ int xl6SequenceBeginErasedArrayV1(const xvalue* value, XL6_Sequence** result,
     if (unbound) { xl6SequenceEndV1(owner); xrtSetErrorKind(XERR_STATE); }
     return status;
 }
+int xl6SequenceBeginErasedArrayV1(const xvalue* value, XL6_Sequence** result,
+    XL6_SequenceLayoutV1* layout, const xvalueconverter** converter)
+{ return xl6SequenceBeginErasedRoleV1(value,XL6_SEQUENCE_ARRAY_V1,result,layout,converter); }
 int xl6SequenceGraphBeginV1(const xvaluehandleops* actual, ptr raw, ptr user,
     uint64_t identity, XL6_Sequence** result, XL6_SequenceLayoutV1* layout,
     const xvalueconverter** converter)
@@ -683,7 +694,7 @@ static xvalue* copyPinned(XL6_Sequence* owner, XL6_Sequence* append)
     if (result && owner->projectionBound) {
         XL6_Sequence* target=xl6SequenceBeginRoleV1(result,owner->role,owner->identity,
             owner->elementIdentity,owner->transfer,owner->size,owner->type);
-        bool ok=target && xl6SequenceBindProjectionV1(target,owner->projection);
+        bool ok=target && xl6SequenceBindProjectionRoleV1(target,owner->role,owner->projection);
         if (target) xl6SequenceEndV1(target);
         if (!ok) {
             xerror* failure=xrtTakeError(); xrtValueRelease(result); result=NULL;

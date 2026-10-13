@@ -33,9 +33,9 @@ def main() -> int:
         'src/runtime/xl6_array_primitive_admission.c', 'src/runtime/xl6_array_reference_admission.c',
         'src/runtime/xl6_array_future_admission.c', 'src/runtime/xl6_value_admission.c',
         'src/runtime/xl6_string_type.c', 'src/runtime/xl6_nullable_string.c',
-        'src/runtime/xl6_nullable_i64.c', 'src/runtime/xl6_ownership_plan.c']
+        'src/runtime/xl6_nullable_i64.c', 'src/runtime/xl6_ownership_plan.c', 'src/api/xl_foreign_error.c']
     files = {Path(__file__), Path(cc), Path(nm), Path(sys.executable),
-        root / 'lib/xrt/xrt.h', root / 'lib/xruntime/xruntime.h'}
+        root / 'lib/xrt/xrt.h', root / 'lib/xruntime/xruntime.h', root / 'src/api/xl_foreign_error.h'}
     files.update(root / name for name in sources)
     for directory in ('src/runtime', 'release/include'): files.update((root / directory).rglob('*.h'))
     inputs = [{'Path': str(path.resolve()), 'Sha256': digest(path)} for path in sorted(files)]
