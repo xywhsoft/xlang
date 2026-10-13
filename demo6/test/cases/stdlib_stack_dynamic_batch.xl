@@ -1,0 +1,96 @@
+class BatchStackItem
+    int value = 19
+end
+
+Stack<int> typed = Stack::<int>()
+var stack = typed
+array<int> inputs = [7, 11, 19]
+assert bool(stack.pushBatch(inputs))
+assert int(stack.count()) == 3, "pushBatch count"
+assert inputs.length == 3 and inputs[0] == 7 and inputs[1] == 11 and inputs[2] == 19, "pushBatch preserves input"
+var copy = stack.clone()
+assert bool(stack.equals(copy)), "equal clone"
+var peeked = stack.peekBatch(2)
+assert int(peeked[0]) == 19 and int(peeked[1]) == 11 and int(stack.count()) == 3, "peek LIFO"
+peeked = stack.peekBatchAt(1, 2)
+assert int(peeked[0]) == 11 and int(peeked[1]) == 7, "peek depth LIFO"
+peeked = stack.peekBatchAt(3, 2)
+assert int(peeked.length) == 0, "empty depth"
+var removed = copy.popBatch(20)
+assert int(removed[0]) == 19 and int(removed[1]) == 11 and int(removed[2]) == 7 and int(copy.count()) == 0, "pop LIFO clamp"
+assert int(stack.count()) == 3 and not bool(stack.equals(copy))
+assert bool(stack.equals(stack)), "self equality"
+
+bool caught = false
+try
+    stack.equals(Stack::<string>())
+catch TypeError failure
+    caught = true
+end
+assert caught and int(stack.count()) == 3
+caught = false
+try
+    stack.pushBatch(["wrong"])
+catch TypeError failure
+    caught = true
+end
+assert caught and int(stack.count()) == 3
+caught = false
+try
+    stack.popBatch(-1)
+catch RangeError failure
+    caught = true
+end
+assert caught and int(stack.count()) == 3
+caught = false
+try
+    stack.peekBatchAt(-1, 2)
+catch RangeError failure
+    caught = true
+end
+assert caught and int(stack.count()) == 3
+caught = false
+try
+    stack.peekBatch("wrong")
+catch TypeError failure
+    caught = true
+end
+assert caught and int(stack.count()) == 3
+
+var texts = Stack::<string>()
+array<string> strings = ["a\0你", ""]
+assert bool(texts.pushBatch(strings))
+var textResult = texts.popBatch(3)
+assert string(textResult[0]) == "" and string(textResult[1]) == "a\0你" and strings[0] == "a\0你" and strings[1] == ""
+var chars = Stack::<char>()
+array<char> scalars = ['\0', '你']
+assert bool(chars.pushBatch(scalars))
+var charResult = chars.popBatch(2)
+assert charResult[0] == '你' and charResult[1] == '\0'
+var optional = Stack::<int?>()
+array<int?> nullable = [null, 31]
+assert bool(optional.pushBatch(nullable))
+var nullableResult = optional.popBatch(2)
+assert int(nullableResult[0]) == 31 and nullableResult[1] == null
+
+var octets = Stack::<bytes>()
+bytes original = b"A\0你\xff"
+array<bytes> octetInputs = [original, b""]
+assert bool(octets.pushBatch(octetInputs))
+original[0] = 66
+var octetCopy = octets.clone()
+assert bool(octets.equals(octetCopy))
+var octetResult = octetCopy.popBatch(2)
+assert (octetResult[0] as bytes) == b"" and (octetResult[1] as bytes) == b"A\0你\xff"
+bytes changed = octetResult[1] as bytes
+changed[0] = 90
+assert (octets.peek() as bytes) == b"" and octetInputs[0] == b"A\0你\xff"
+
+auto item = BatchStackItem()
+array<BatchStackItem> objects = [item]
+var objectStack = Stack::<BatchStackItem>()
+assert bool(objectStack.pushBatch(objects))
+var objectResult = objectStack.popBatch(1)
+auto recovered = objectResult[0] as BatchStackItem
+recovered.value = 37
+assert item.value == 37

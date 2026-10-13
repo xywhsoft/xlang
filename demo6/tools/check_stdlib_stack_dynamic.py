@@ -1,4 +1,4 @@
-"""Stack erasure and core dynamic methods through current source C/JIT/module/AOT.
+"""Stack erasure, batch/equals and core dynamic methods through source C/JIT/module/AOT.
 Not all dynamic Stack methods, full53 or shipping library acceptance.
 """
 from pathlib import Path
@@ -12,7 +12,7 @@ def main():
     assert not out.exists(); build,pinned,compared=verify_public_build(root,public)
     project=Path(__file__).resolve().parents[1]; cc=shutil.which('gcc'); nm=shutil.which('nm'); assert cc and nm
     names=('stdlib_stack_dynamic_surface','stdlib_stack_dynamic_errors','xlir_stdlib_dynamic_native.pending',
-        'stdlib_stack_factory_only','stdlib_stack_values','stdlib_native_dynamic_inputs')
+        'stdlib_stack_factory_only','stdlib_stack_values','stdlib_native_dynamic_inputs','stdlib_stack_dynamic_batch')
     fixtures=[(project if name.startswith('stdlib_stack_dynamic_') else root)/'test/cases'/(name+'.xl') for name in names]
     contract=project/'test/support/stack_erasure_contract.c'
     host=root/'test/cases/xlir_module_product_oom_host.c'; memory=root/'test/support/module_product_memory.c'
@@ -55,19 +55,19 @@ def main():
             run(name+'.cgen',[build['Driver'],fixture,'cgen-default',generated])
             run(name+'.repeat',[build['Driver'],fixture,'cgen-default',repeat]); assert sha(generated)==sha(repeat)
             body=generated.read_text(encoding='utf-8')
-            if name=='stdlib_stack_dynamic_surface': assert 'xl6StackEraseTakeV1(' in body
-            if name=='stdlib_stack_factory_only': assert 'xl6StackEraseTakeV1(' not in body
+            if name in ('stdlib_stack_dynamic_surface','stdlib_stack_dynamic_batch'): assert 'xl6StackEraseTakeV2(' in body
+            if name=='stdlib_stack_factory_only': assert 'xl6StackEraseTakeV2(' not in body
             for opt in (0,2):
                 binary=out/(name+'.O'+str(opt)+suffix)
                 extras=['-DXL6_PRODUCT_USER_ENTRY'] if name in ('stdlib_stack_values','stdlib_stack_factory_only') else []
                 run(name+'.O'+str(opt)+'.build',[cc,*flags,'-O'+str(opt),'-include',generated,*extras,
                     host,objects[opt],*links,'-o',binary])
                 assert 'balanced' in run(name+'.O'+str(opt)+'.run',[binary])
-                if name=='stdlib_stack_dynamic_surface':
+                if name in ('stdlib_stack_dynamic_surface','stdlib_stack_dynamic_batch'):
                     log=run(name+'.O'+str(opt)+'.oom',[binary,'--all'])
                     match=re.search(r'full prefixes=(\d+) first-no-hit=(\d+) balanced',log); assert match
                     runs,first=map(int,match.groups()); assert runs==first+1
-                    prefixes.append(dict(Lane='O'+str(opt),Runs=runs,FirstNoHit=first))
+                    prefixes.append(dict(Fixture=name,Lane='O'+str(opt),Runs=runs,FirstNoHit=first))
             for mode in ('run','module'):
                 run(name+'.'+mode,[build['Driver'],fixture,mode,out/(name+'.'+mode+'.result')])
             target=out/(name+'.aot'); run(name+'.aot.build',[build['Driver'],fixture,'exe',target])
@@ -75,7 +75,7 @@ def main():
             symbols=run(name+'.aot.symbols',[nm,'--defined-only',Path(str(target)+'.exe') if os.name=='nt' else target])
             if name=='stdlib_stack_factory_only':
                 assert not any(re.search(r'\b'+symbol+r'$',symbols,re.M) for symbol in
-                    ('xl6StackEraseTakeV1','xl6StackErasedReadV1','xl6DynamicCollectionCallTakeV1'))
+                    ('xl6StackEraseTakeV1','xl6StackEraseTakeV2','xl6StackErasedReadV1','xl6StackErasedMethodV1','xl6DynamicCollectionCallTakeV1'))
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs); assert report['InputsUnchanged']
         products.extend(dict(Path=str(path),Sha256=sha(path)) for path in sorted(out.iterdir())
             if path.is_file() and (path.suffix in ('.h','.c','.o','.exe') or os.access(path,os.X_OK)))

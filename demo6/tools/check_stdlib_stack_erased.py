@@ -27,6 +27,7 @@ def main() -> int:
         parser.error('Require gcc/nm, a fresh output directory, and Linux for sanitizers')
     sources = ['test/cases/stdlib_stack_erased_native_host.c', 'test/support/array_value_native.c',
         'src/runtime/xl6_sequence.c', 'src/runtime/xl6_stack.c', 'src/runtime/xl6_stack_erased.c',
+        'src/runtime/xl6_stack_erased_methods.c', 'src/runtime/xl6_stack_batch.c',
         'src/runtime/xl6_array.c', 'src/runtime/xl6_array_erased.c', 'src/runtime/xl6_array_reference_value.c',
         'src/runtime/xl6_array_primitive_admission.c', 'src/runtime/xl6_array_reference_admission.c',
         'src/runtime/xl6_value_admission.c', 'src/runtime/xl6_string_type.c', 'src/runtime/xl6_string_value.c',
@@ -46,7 +47,8 @@ def main() -> int:
     env = dict(os.environ)
     flags = ['-std=c11', '-Wall', '-Wextra', '-Werror', '-DXL6_TEST_ERASED_STACK',
         '-I.', '-Irelease', '-Irelease/include']
-    links = [] if os.name == 'nt' else ['-pthread', '-lm']
+    links = ['-Wl,--wrap=xrtTypedArrayTakeTail','-Wl,--wrap=xrtTypedArraySlice']
+    if os.name!='nt': links += ['-pthread','-lm']
     if os.name != 'nt':
         flags += ['-D_GNU_SOURCE']
     if args.sanitize:
@@ -72,7 +74,7 @@ def main() -> int:
             assert {'xl6StackEraseV1', 'xl6StackErasedReadV1', 'xl6StackErasedPushV1',
                 'xl6SequenceBeginErasedRoleV1', 'xl6SequenceBindProjectionRoleV1'} <= names
             assert 'Stack projection scalar/text/reference/role/failure/busy balanced' in run(lane + '.vectors', [str(binary)])
-            for operation in ('peek', 'pop', 'push', 'clone'):
+            for operation in ('peek', 'pop', 'push', 'clone', 'batch-peek', 'batch-pop'):
                 for point in range(257):
                     text = run(f'{lane}.{operation}.{point}', [str(binary), operation, str(point)])
                     match = re.search(r'hit=([01]) balanced', text)
@@ -83,10 +85,16 @@ def main() -> int:
                         break
                 else:
                     raise AssertionError('Unclosed allocation failure prefix')
-        assert len(sweeps) == 8
+        assert len(sweeps) == 12
         # Compile actual broken implementations, never substitute a test stub
         # or count a compiler failure as a successful mutation detection.
         mutants = [
+            ('batch-result-leak-on-pending-failure', 'src/runtime/xl6_stack_batch.c',
+                'if (scope.failed) { xrtValueRelease(result); result=NULL; }',
+                'if (!success) { xrtValueRelease(result); result=NULL; }'),
+            ('clone-loses-array-witness', 'src/runtime/xl6_sequence.c',
+                'xl6SequenceBindStackResultArrayV1(target,owner->resultArrayIdentity)',
+                'xl6SequenceBindStackResultArrayV1(target,owner->resultArrayIdentity+1)'),
             ('pop-after-failure', 'src/runtime/xl6_stack_erased.c',
                 'result && pop && !scope.failed && !xrtTypedArrayRemove',
                 'result && pop && !xrtTypedArrayRemove'),
@@ -112,7 +120,7 @@ def main() -> int:
             assert b'stdlib_stack_erased_native_host.c' in rejected and b'assert' in rejected.lower(), name
             mutations.append({'Name': name, 'Source': selected, 'MutantSha256': digest(mutant),
                 'RuntimeExit': result.returncode, 'Rejected': True})
-        assert len(mutations) == 3
+        assert len(mutations) == 5
         report['InputsUnchanged'] = all(digest(Path(row['Path'])) == row['Sha256'] for row in inputs)
         assert report['InputsUnchanged']
         report['Complete'] = True

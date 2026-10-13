@@ -61,7 +61,8 @@ done:
     if (target) xl6SequenceEndV1(target);
     if (source) xl6SequenceEndV1(source);
     xl6SequenceAdmissionDropV3(&admission);
-    if (!success) { xrtValueRelease(result); result=NULL; }
+    if (xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
+    if (scope.failed) { xrtValueRelease(result); result=NULL; }
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
     if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return NULL; }
     return result;

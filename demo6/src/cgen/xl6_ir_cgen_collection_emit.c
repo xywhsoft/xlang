@@ -569,10 +569,11 @@ static int xl6IrCgenEmitStackRuntime(
         const char* converter=sealed->sequenceLayout.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN
             ? "NULL" : xl6IrCgenNativeValueConverterExpr(module,instruction->payloadType);
         if (!descriptor || !converter) return -1;
-        xl6OutputPrintf(out,"    v%u = xl6StackEraseTakeV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, %s->Size, %s, %s, %s);\n    v%u = NULL;\n",
+        xl6OutputPrintf(out,"    v%u = xl6StackEraseTakeV2(v%u, 0x%016llXULL, 0x%016llXULL, %s, %s->Size, %s, %s, %s, 0x%016llXULL);\n    v%u = NULL;\n",
             (unsigned)instruction->result,(unsigned)input,(unsigned long long)sealed->typeValueId,
             (unsigned long long)element->typeValueId,xl6IrCgenSequenceTransferAbiToken(sealed->sequenceLayout.transferAbi),
-            descriptor,descriptor,converter,source->kind==XL6_IR_TYPE_NULLABLE ? "true" : "false",(unsigned)input);
+            descriptor,descriptor,converter,source->kind==XL6_IR_TYPE_NULLABLE ? "true" : "false",
+            (unsigned long long)xl6IrTypeGet(&module->types,instruction->sequenceResultArrayType)->typeValueId,(unsigned)input);
         return xl6OutputHasFailed(out) ? -1 : 1;
     }
     if ( instruction == NULL ||

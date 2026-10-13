@@ -247,7 +247,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
     {"src/runtime/xl6_value_contains.c", D(R(ARRAY_METHODS_FIND),R(LIST_NATIVE),R(SET_NATIVE),R(DICT_NATIVE),R(VALUE_WIRE_CONTAINS),R(FOREIGN_ERROR)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_STRING"}},
-    {"src/runtime/xl6_dynamic_collection.c", D(R(ARRAY_ERASED),R(STACK_ERASED),R(STACK),R(ARRAY_METHODS_CORE),R(ARRAY_METHODS_INSERT),R(ARRAY_METHODS_FIND),R(ARRAY_METHODS_REMOVE),R(VALUE_CONTAINS),R(LIST_METHODS),R(SET_NATIVE),R(FOREIGN_ERROR)),
+    {"src/runtime/xl6_dynamic_collection.c", D(R(ARRAY_ERASED),R(STACK_ERASED),R(STACK),R(ARRAY_METHODS_CORE),R(ARRAY_METHODS_INSERT),R(ARRAY_METHODS_FIND),R(ARRAY_METHODS_REMOVE),R(VALUE_CONTAINS),R(LIST_METHODS),R(SET_NATIVE),R(FOREIGN_ERROR),R(STACK_ERASED_METHODS)),
         {"XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_array_os_argv.c", D(R(ARRAY_ENTRY),R(FOREIGN_ERROR)),
         {"XRT_MODULE_UNICODE", "XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
@@ -359,7 +359,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_path_build.c",D(R(ARRAY_INPUT),R(FOREIGN_ERROR)),{"XRT_MODULE_PATH"}},
     {"src/runtime/xl6_stack_erased.c",D(R(SEQUENCE),R(ARRAY_REFERENCE_VALUE),R(FOREIGN_ERROR)),
         {"XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
-    {"src/runtime/xl6_char_checked.c",D(R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE"}}
+    {"src/runtime/xl6_char_checked.c",D(R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_stack_erased_methods.c",D(R(STACK_ERASED),R(STACK_BATCH),R(STACK),R(FOREIGN_ERROR)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

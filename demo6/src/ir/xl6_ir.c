@@ -2664,7 +2664,7 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
         ? XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
         : xl6IrCAbiFromFrontend(type->semanticTypeAbiId, name);
     if (kind == XL6_IR_TYPE_GENERIC_INSTANCE && paramCount == 1 &&
-        (xl6IrRuntimeResourceAbiIsMessageTransport(runtimeResourceAbi) || collectionAbi==XL6_IR_COLLECTION_LIST) &&
+        (xl6IrRuntimeResourceAbiIsMessageTransport(runtimeResourceAbi) || runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_STACK || collectionAbi==XL6_IR_COLLECTION_LIST) &&
         xl6IrTypeInternArray(&module->types, params[0]) == XL6_IR_TYPE_INVALID) {
         xrtFree(params); xrtFree(parameterModes); xrtFree(parameterAbis);
         xrtFree(returns); return XL6_IR_TYPE_INVALID;
@@ -4588,7 +4588,7 @@ static XL6_IrTypeId xl6IrBuildInternClassSubstitutedTypeDepth(
             goto failed;
     }
     if (kind == XL6_IR_TYPE_GENERIC_INSTANCE && paramCount == 1 && params &&
-        (xl6IrRuntimeResourceAbiIsMessageTransport(runtimeResourceAbi) || collectionAbi==XL6_IR_COLLECTION_LIST) &&
+        (xl6IrRuntimeResourceAbiIsMessageTransport(runtimeResourceAbi) || runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_STACK || collectionAbi==XL6_IR_COLLECTION_LIST) &&
         xl6IrTypeInternArray(&module->types, params[0]) == XL6_IR_TYPE_INVALID)
         goto failed;
     if (kind == XL6_IR_TYPE_GENERIC_INSTANCE && runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE &&
@@ -8628,8 +8628,15 @@ int xl6IrStackErasureInstructionCompatible(const XL6_IrModule* module,const XL6_
     const XL6_IrInstruction* source=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
     XL6_IrTypeId stackId=source ? xl6IrStackErasureSourceType(module,source->type) : XL6_IR_TYPE_INVALID;
     const XL6_IrType* stack=xl6IrTypeGet(&module->types,stackId);
+    const XL6_IrType* array=xl6IrTypeGet(&module->types,instruction->sequenceResultArrayType);
     return stack && instruction->runtimeIdentityType==stackId &&
-        instruction->payloadType==stack->params[0];
+        instruction->payloadType==stack->params[0] && array && array->collectionAbi==XL6_IR_COLLECTION_ARRAY &&
+        array->kind==XL6_IR_TYPE_GENERIC_INSTANCE && array->paramCount==1 && array->params &&
+        array->params[0]==stack->params[0] &&
+        xl6IrSequenceConstructionRecipe(module,instruction->sequenceResultArrayType,XL6_IR_SEQUENCE_ROLE_ARRAY,NULL) &&
+        array->sequenceLayout.slotAbi==stack->sequenceLayout.slotAbi &&
+        array->sequenceLayout.transferAbi==stack->sequenceLayout.transferAbi &&
+        array->sequenceLayout.codecAbi==stack->sequenceLayout.codecAbi;
 }
 
 #include "xl6_ir_stack_batch.c"
@@ -12225,9 +12232,14 @@ int xl6IrDynamicCollectionOpOperandCountValid(
     case XL6_IR_DYNAMIC_COLLECTION_CONTAINS:
     case XL6_IR_DYNAMIC_COLLECTION_INDEX_OF:
     case XL6_IR_DYNAMIC_COLLECTION_PEEK_AT:
+    case XL6_IR_DYNAMIC_COLLECTION_PUSH_BATCH:
+    case XL6_IR_DYNAMIC_COLLECTION_POP_BATCH:
+    case XL6_IR_DYNAMIC_COLLECTION_PEEK_BATCH:
+    case XL6_IR_DYNAMIC_COLLECTION_EQUALS:
         return operandCount == 1;
     case XL6_IR_DYNAMIC_COLLECTION_INSERT:
     case XL6_IR_DYNAMIC_COLLECTION_SWAP:
+    case XL6_IR_DYNAMIC_COLLECTION_PEEK_BATCH_AT:
         return operandCount == 2;
     case XL6_IR_DYNAMIC_COLLECTION_REMOVE:
         return operandCount == 1 || operandCount == 2;
@@ -12466,6 +12478,11 @@ static XL6_IrDynamicCollectionOp xl6IrDynamicCollectionMemberOperation(
     if ( strcmp(name, "peekAt") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_PEEK_AT;
     if ( strcmp(name, "trim") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_TRIM;
     if ( strcmp(name, "clone") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_CLONE;
+    if ( strcmp(name, "pushBatch") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_PUSH_BATCH;
+    if ( strcmp(name, "popBatch") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_POP_BATCH;
+    if ( strcmp(name, "peekBatch") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_PEEK_BATCH;
+    if ( strcmp(name, "peekBatchAt") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_PEEK_BATCH_AT;
+    if ( strcmp(name, "equals") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_EQUALS;
     return XL6_IR_DYNAMIC_COLLECTION_INVALID;
 }
 
@@ -38724,6 +38741,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       (instruction->targetValue != XL6_IR_VALUE_INVALID && instruction->targetValue > module->valueCount) ) {
                     return xl6IrDiag(diags, NULL, "XLIR instruction is malformed");
                 }
+                if (instruction->sequenceResultArrayType && instruction->runtimeOp!=XL6_IR_RUNTIME_STACK_ERASE)
+                    return xl6IrDiag(diags,instructionOrigin,"XLIR non-Stack erasure carries a result Array identity");
                 if (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_ERASE &&
                     !xl6IrStackErasureInstructionCompatible(module,instruction))
                     return xl6IrDiag(diags,instructionOrigin,"XLIR Stack erasure has no exact role, payload, consumed-source and owned-result ABI");
@@ -46311,6 +46330,11 @@ static const char* xl6IrDynamicCollectionOpName(
     case XL6_IR_DYNAMIC_COLLECTION_PEEK_AT: return "peek-at";
     case XL6_IR_DYNAMIC_COLLECTION_TRIM: return "trim";
     case XL6_IR_DYNAMIC_COLLECTION_CLONE: return "clone";
+    case XL6_IR_DYNAMIC_COLLECTION_PUSH_BATCH: return "push-batch";
+    case XL6_IR_DYNAMIC_COLLECTION_POP_BATCH: return "pop-batch";
+    case XL6_IR_DYNAMIC_COLLECTION_PEEK_BATCH: return "peek-batch";
+    case XL6_IR_DYNAMIC_COLLECTION_PEEK_BATCH_AT: return "peek-batch-at";
+    case XL6_IR_DYNAMIC_COLLECTION_EQUALS: return "equals";
     default: return "invalid";
     }
 }
@@ -49383,6 +49407,9 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
                     if ( instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID )
                         xl6OutputPrintf(out, " identity=t%u",
                             (unsigned int)instruction->runtimeIdentityType);
+                    if ( instruction->sequenceResultArrayType != XL6_IR_TYPE_INVALID )
+                        xl6OutputPrintf(out, " sequenceResultArray=t%u",
+                            (unsigned int)instruction->sequenceResultArrayType);
                     if ( instruction->runtimeOp ==
                              XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED ||
                          instruction->runtimeOp ==
@@ -50972,6 +50999,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         size_t operandIndex;
         xl6OutputPrintf(out, "    {\"generatorClosePointAbi\":%d,\"generatorClosePointAbiName\":\"%s\",\"generatorClosePlan\":%lu,\"generatorYieldAbi\":%d,", (int)instruction->generatorClosePointAbi, xl6IrGeneratorClosePointAbiName(instruction->generatorClosePointAbi), (unsigned long)instruction->generatorClosePlan, (int)instruction->generatorYieldAbi);
         xl6OutputPrintf(out, "\"contextualCastSource\":%u,", (unsigned int)instruction->contextualCastSource);
+        xl6OutputPrintf(out, "\"sequenceResultArrayType\":%u,", (unsigned)instruction->sequenceResultArrayType);
         xl6OutputPrintf(out, "\"contextualIntegerConversionSource\":%u,",
             (unsigned int)instruction->contextualIntegerConversionSource);
         xl6OutputPrintf(out, "\"id\":%lu,\"index\":%lu,\"kind\":%d,\"kindName\":\"%s\",\"opcode\":%d,\"opcodeName\":\"%s\",\"runtimeOp\":%d,\"runtimeOpName\":\"%s\",\"asyncResultAbi\":%d,\"asyncResultAbiName\":\"%s\",\"futureOutcomeAbi\":%d,\"callbackBoundary\":%lu,\"sourceAsyncResultAbi\":%d,\"sourceAsyncResultAbiName\":\"%s\",\"futureContinuationKind\":%d,\"futureContinuationKindName\":\"%s\",\"callableErasureAbi\":%d,\"callableErasureAbiName\":\"%s\",\"scalarConversionAbi\":%d,\"scalarConversionAbiName\":\"%s\",\"castAbi\":%d,\"castAbiName\":\"%s\",\"integerTarget\":%d,\"integerTargetName\":\"%s\",\"integerSourceAbi\":%d,\"integerSourceAbiName\":\"%s\",\"collectionAbi\":%d,\"collectionAbiName\":\"%s\",\"runtimeResourcePayloadAbi\":%d,\"runtimeResourcePayloadAbiName\":\"%s\",\"runtimeResourceKeyType\":%u,\"runtimeResourceKeyPayloadAbi\":%d,\"runtimeResourceKeyPayloadAbiName\":\"%s\",\"runtimeResourceKeyOrderAbi\":%d,\"runtimeResourceKeyOrderAbiName\":\"%s\",\"typedCollectionOp\":%d,\"typedCollectionOpName\":\"%s\",\"dynamicCollectionOp\":%d,\"dynamicCollectionOpName\":\"%s\",\"dynamicCallResultAbi\":%d,\"dynamicCallResultAbiName\":\"%s\",\"payloadType\":%u,\"sourcePayloadType\":%u,\"runtimeIdentityType\":%u,\"hasImmediate\":%d,\"result\":%u,\"targetValue\":%u,\"type\":%u,\"targetSymbol\":%u,\"calleeType\":%u,\"dispatchSlot\":%u,\"elementIndex\":%ld,\"dynamicCallSite\":%ld,\"enumVariant\":%ld,\"enumPayload\":%ld,\"origin\":%u,\"sourceLine\":%d,\"sourceColumn\":%d,\"trueTarget\":%u,\"falseTarget\":%u,\"firstOperand\":%lu,\"operandCount\":%lu,\"operands\":[",

@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_stack_erased.h"
+#include "src/runtime/xl6_stack_erased_methods.h"
 #include "src/runtime/xl6_stack.h"
 #include "src/runtime/xl6_array.h"
 #include "src/runtime/xl6_array_erased.h"
@@ -20,6 +21,53 @@
 #define I64 OWNER,ELEMENT,1,sizeof(int64_t),xrtTypeInt64()
 #define STACK_TEXT OWNER,ELEMENT,2,sizeof(xstrview),xl6StringTypeV1()
 #define REF OWNER,ELEMENT,3,sizeof(xvalue*),xrtTypeValue()
+#define ARRAY_OWNER UINT64_C(9404)
+static void error(xerrkind);
+static xvalue* primitive(unsigned,const xrttype*,unsigned,unsigned);
+static unsigned batchResultFailure;
+extern xtypedarray* __real_xrtTypedArrayTakeTail(xtypedarray*,size_t,bool);
+extern xtypedarray* __real_xrtTypedArraySlice(const xtypedarray*,size_t,size_t,bool);
+static xtypedarray* batchPending(xtypedarray* result)
+{
+    if(result && batchResultFailure) {
+        if(batchResultFailure!=2) xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL});
+        if(batchResultFailure>=2) xrtSetErrorKind(XERR_IO);
+    }
+    return result;
+}
+xtypedarray* __wrap_xrtTypedArrayTakeTail(xtypedarray* array,size_t size,bool reverse)
+{ return batchPending(__real_xrtTypedArrayTakeTail(array,size,reverse)); }
+xtypedarray* __wrap_xrtTypedArraySlice(const xtypedarray* array,size_t start,size_t size,bool reverse)
+{ return batchPending(__real_xrtTypedArraySlice(array,start,size,reverse)); }
+
+static void batchMetadata(void)
+{
+    xvalue* stack=primitive(XL6_SEQUENCE_STACK_V1,xrtTypeInt64(),1,XL6_VALUE_ADMIT_I8);
+    assert(stack);
+    xvalue* erased=xl6StackEraseTakeV2(xrtValueRetain(stack),I64,NULL,false,ARRAY_OWNER);
+    assert(erased==stack);
+    XL6_Sequence* pin=xl6SequenceBeginRoleV1(stack,XL6_SEQUENCE_STACK_V1,I64); assert(pin);
+    assert(xl6SequenceStackResultArrayV1(pin)==ARRAY_OWNER);
+    assert(xl6SequenceBindStackResultArrayV1(pin,ARRAY_OWNER));
+    assert(!xl6SequenceBindStackResultArrayV1(pin,ARRAY_OWNER+1)); error(XERR_ARGUMENT);
+    assert(xl6SequenceStackResultArrayV1(pin)==ARRAY_OWNER); xl6SequenceEndV1(pin);
+    int64_t raw=11; assert(xl6StackPushV1(stack,I64,&raw));
+    raw=23; assert(xl6StackPushV1(stack,I64,&raw));
+    xvalue* copy=xl6StackCloneV1(stack,I64); assert(copy);
+    pin=xl6SequenceBeginRoleV1(copy,XL6_SEQUENCE_STACK_V1,I64); assert(pin);
+    assert(xl6SequenceStackResultArrayV1(pin)==ARRAY_OWNER); xl6SequenceEndV1(pin);
+    xvalue* result=xl6StackErasedMethodV1(stack,XL6_STACK_ERASED_EQUALS,copy,NULL);
+    bool same=false; assert(result && xrtValueGetBool(result,&same) && same); xrtValueRelease(result);
+    xvalue* maximum=xrtValueInt(2); assert(maximum);
+    result=xl6StackErasedMethodV1(copy,XL6_STACK_ERASED_POP_BATCH,maximum,NULL); assert(result);
+    assert(xrtValueTypeId(result)==ARRAY_OWNER && xl6StackSizeV1(copy,I64,false)==0);
+    pin=xl6SequenceBeginRoleV1(result,XL6_SEQUENCE_ARRAY_V1,ARRAY_OWNER,ELEMENT,1,sizeof(int64_t),xrtTypeInt64());
+    assert(pin && xrtTypedArrayCount(xl6SequenceStorageV1(pin))==2);
+    assert(*(const int64_t*)xrtTypedArrayConstGet(xl6SequenceStorageV1(pin),0)==23);
+    assert(!xl6SequenceBindStackResultArrayV1(pin,ARRAY_OWNER)); error(XERR_ARGUMENT);
+    xl6SequenceEndV1(pin);
+    xrtValueRelease(result); xrtValueRelease(maximum); xrtValueRelease(copy); xrtValueRelease(erased); xrtValueRelease(stack);
+}
 
 static void error(xerrkind kind)
 { assert(xrtGetError() && xrtErrorKind(xrtGetError())==kind); xrtClearError(); }
@@ -217,11 +265,55 @@ static void fault(const char* operation,size_t point)
     xrtValueRelease(result); xrtValueRelease(extra); xrtValueRelease(alias); xrtValueRelease(stack); balanced(&before);
     printf("stack-erased %s point=%zu hit=%d balanced\n",operation,point,hit);
 }
+static void batchFault(const char* operation,size_t point)
+{
+    xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
+    xvalue* stack=primitive(XL6_SEQUENCE_STACK_V1,xl6StringTypeV1(),2,XL6_VALUE_ADMIT_STRING);
+    xvalue* alias=xl6StackEraseTakeV2(xrtValueRetain(stack),STACK_TEXT,xl6StringConverterV1(),false,ARRAY_OWNER);
+    xstrview input={"old\0text",8}; assert(stack && alias && xl6StackPushV1(stack,STACK_TEXT,&input));
+    xvalue* maximum=xrtValueInt(1); assert(maximum);
+    unsigned method=!strcmp(operation,"batch-pop") ? XL6_STACK_ERASED_POP_BATCH : XL6_STACK_ERASED_PEEK_BATCH;
+    xl6_error_scope call={0}; assert(xl6ErrorScopeBegin(&call));
+    assert(xrtMemDebugFailAfter(point));
+    xvalue* result=xl6StackErasedMethodV1(alias,method,maximum,NULL);
+    bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
+    xl6_error_result outcome=xl6ErrorScopeEnd(&call);
+    assert(hit ? !result && !outcome.ok : result && outcome.ok && !outcome.error);
+    xrtErrorFree(outcome.error); xrtClearError();
+    int64_t expected=!hit && method==XL6_STACK_ERASED_POP_BATCH ? 0 : 1;
+    assert(xl6StackSizeV1(stack,STACK_TEXT,false)==expected);
+    if(expected) { xvalue* item=xl6StackErasedReadV1(alias,0,false); text(item,input.Data,input.Size); xrtValueRelease(item); }
+    if(result) assert(xrtValueTypeId(result)==ARRAY_OWNER);
+    xrtValueRelease(result); xrtValueRelease(maximum); xrtValueRelease(alias); xrtValueRelease(stack); balanced(&before);
+    printf("stack-erased %s point=%zu hit=%d balanced\n",operation,point,hit);
+}
+static void batchPendingFailures(void)
+{
+    for(unsigned mode=1;mode<=3;++mode) for(unsigned take=0;take<=1;++take) {
+        xvalue* stack=primitive(XL6_SEQUENCE_STACK_V1,xrtTypeInt64(),1,XL6_VALUE_ADMIT_I8);
+        xvalue* alias=xl6StackEraseTakeV2(xrtValueRetain(stack),I64,NULL,false,ARRAY_OWNER);
+        int64_t input=17; assert(stack && alias && xl6StackPushV1(stack,I64,&input));
+        xvalue* maximum=xrtValueInt(1); assert(maximum);
+        xl6_error_scope call={0}; assert(xl6ErrorScopeBegin(&call)); batchResultFailure=mode;
+        xvalue* result=xl6StackErasedMethodV1(alias,take?XL6_STACK_ERASED_POP_BATCH:XL6_STACK_ERASED_PEEK_BATCH,maximum,NULL);
+        batchResultFailure=0; xl6_error_result outcome=xl6ErrorScopeEnd(&call);
+        assert(!result && !outcome.ok && (mode==2 ? outcome.error!=NULL : outcome.error==NULL));
+        xrtErrorFree(outcome.error); xrtClearError();
+        /* This injected failure is after native publication; Take already
+         * committed. It must report failure and destroy its private result. */
+        assert(xl6StackSizeV1(stack,I64,false)==(take?0:1));
+        xrtValueRelease(maximum); xrtValueRelease(alias); xrtValueRelease(stack);
+    }
+}
 int main(int argc,char** argv)
 {
     assert(xrtMemDebugEnable(true));
-    if (argc==3) { fault(argv[1],(size_t)strtoull(argv[2],NULL,10)); return 0; }
+    if (argc==3) {
+        size_t point=(size_t)strtoull(argv[2],NULL,10);
+        if(!strncmp(argv[1],"batch-",6)) batchFault(argv[1],point); else fault(argv[1],point);
+        return 0;
+    }
     assert(argc==1); xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
-    scalar(); precision(); rejection(); callbacks(); busy(); balanced(&before);
+    scalar(); precision(); rejection(); callbacks(); busy(); batchMetadata(); batchPendingFailures(); balanced(&before);
     puts("Stack projection scalar/text/reference/role/failure/busy balanced"); return 0;
 }

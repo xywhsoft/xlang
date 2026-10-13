@@ -308,7 +308,12 @@ typedef enum XL6_IrDynamicCollectionOp {
     XL6_IR_DYNAMIC_COLLECTION_PEEK,
     XL6_IR_DYNAMIC_COLLECTION_PEEK_AT,
     XL6_IR_DYNAMIC_COLLECTION_TRIM,
-    XL6_IR_DYNAMIC_COLLECTION_CLONE
+    XL6_IR_DYNAMIC_COLLECTION_CLONE,
+    XL6_IR_DYNAMIC_COLLECTION_PUSH_BATCH,
+    XL6_IR_DYNAMIC_COLLECTION_POP_BATCH,
+    XL6_IR_DYNAMIC_COLLECTION_PEEK_BATCH,
+    XL6_IR_DYNAMIC_COLLECTION_PEEK_BATCH_AT,
+    XL6_IR_DYNAMIC_COLLECTION_EQUALS
 } XL6_IrDynamicCollectionOp;
 
 /* Statically typed collection members share one closed semantic family.  The
@@ -3334,6 +3339,9 @@ typedef struct XL6_IrInstruction {
      * operations, callable erasure records its concrete signature here so an
      * xvalue never collapses to the generic `func` identity. */
     XL6_IrTypeId runtimeIdentityType;
+    /* STACK_ERASE only: canonical array<T> result/argument identity. Explicit
+     * in IR; never recovered from runtime slot shape or source spelling. */
+    XL6_IrTypeId sequenceResultArrayType;
     XL6_SymbolId targetSymbol;
     uint32 dispatchSlot;
     /* Valid for PRODUCT_GET/TAKE/DROP and UNION_GET/SET; SIZE_MAX otherwise. */

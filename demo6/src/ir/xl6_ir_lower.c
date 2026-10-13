@@ -1843,6 +1843,19 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
     instruction->runtimeOp = runtimeOp;
     instruction->payloadType = payloadType;
     instruction->runtimeIdentityType = identityType;
+    if (runtimeOp==XL6_IR_RUNTIME_STACK_ERASE) {
+        const XL6_IrType* stack=xl6IrTypeGet(&ctx->module->types,identityType);
+        if (!stack || stack->paramCount!=1 || !stack->params) return XL6_IR_VALUE_INVALID;
+        for(size_t at=0;at<ctx->module->types.count;++at) {
+            const XL6_IrType* array=&ctx->module->types.items[at];
+            if(array->kind==XL6_IR_TYPE_GENERIC_INSTANCE && array->collectionAbi==XL6_IR_COLLECTION_ARRAY &&
+                array->paramCount==1 && array->params && array->params[0]==stack->params[0]) {
+                if(instruction->sequenceResultArrayType) return XL6_IR_VALUE_INVALID;
+                instruction->sequenceResultArrayType=(XL6_IrTypeId)(at+1);
+            }
+        }
+        if (!xl6IrStackErasureInstructionCompatible(ctx->module,instruction)) return XL6_IR_VALUE_INVALID;
+    }
     if (runtimeOp==XL6_IR_RUNTIME_LIST_CREATE || runtimeOp==XL6_IR_RUNTIME_XVALUE_SET_NEW ||
         runtimeOp==XL6_IR_RUNTIME_DICT_CREATE) {
         XL6_IrValueCollectionRecipe recipe={0};

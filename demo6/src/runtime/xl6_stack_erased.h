@@ -17,6 +17,8 @@ XL6_TEXT_API xvalue* xl6StackEraseV2(const xvalue*, uint64_t, uint64_t,
  * typed owner first when its source is borrowed. NULL denotes failed output. */
 XL6_TEXT_API xvalue* xl6StackEraseTakeV1(xvalue*, uint64_t, uint64_t,
     unsigned int, size_t, const xrttype*, const xvalueconverter*, bool);
+XL6_TEXT_API xvalue* xl6StackEraseTakeV2(xvalue*, uint64_t, uint64_t,
+    unsigned int, size_t, const xrttype*, const xvalueconverter*, bool,uint64_t);
 /* Borrowed receiver/item. Admission and conversion complete before append;
  * an error leaves count/content unchanged (capacity may have grown). */
 XL6_TEXT_API bool xl6StackErasedPushV1(const xvalue*, const xvalue*);
