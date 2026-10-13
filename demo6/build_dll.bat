@@ -217,7 +217,7 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_nullable_char.c ^
     src\runtime\xl6_nullable_bool_value.c src\runtime\xl6_nullable_i64_value.c src\runtime\xl6_nullable_u64_value.c ^
     src\runtime\xl6_nullable_f32_value.c src\runtime\xl6_nullable_f64_value.c src\runtime\xl6_nullable_time_value.c src\runtime\xl6_nullable_char_value.c ^
-    src\runtime\xl6_nullable_string.c src\runtime\xl6_string_type.c src\runtime\xl6_string_value.c src\runtime\xl6_array_value.c src\runtime\xl6_array_reference_value.c src\runtime\xl6_array_erased.c src\runtime\xl6_array_input.c src\runtime\xl6_array_rng_shuffle.c src\runtime\xl6_array_rand_shuffle.c src\runtime\xl6_collection_count.c src\runtime\xl6_array_scalar_read.c src\runtime\xl6_value_admission.c src\runtime\xl6_native_scalar_value.c src\runtime\xl6_nominal_admission.c src\runtime\xl6_char_type.c src\runtime\xl6_char_value.c ^
+    src\runtime\xl6_nullable_string.c src\runtime\xl6_string_type.c src\runtime\xl6_string_value.c src\runtime\xl6_array_value.c src\runtime\xl6_array_reference_value.c src\runtime\xl6_array_erased.c src\runtime\xl6_array_input.c src\runtime\xl6_path_build.c src\runtime\xl6_array_rng_shuffle.c src\runtime\xl6_array_rand_shuffle.c src\runtime\xl6_collection_count.c src\runtime\xl6_array_scalar_read.c src\runtime\xl6_value_admission.c src\runtime\xl6_native_scalar_value.c src\runtime\xl6_nominal_admission.c src\runtime\xl6_char_type.c src\runtime\xl6_char_value.c ^
     src\runtime\xl6_error_value.c src\runtime\xl6_value_text.c ^
     src\runtime\xl6_print_values.c src\runtime\xl6_class_text.c src\runtime\xl6_error_text.c ^
     src\runtime\xl6_array_string_read.c ^
@@ -472,7 +472,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_nullable_char.c ^
     src\runtime\xl6_nullable_bool_value.c src\runtime\xl6_nullable_i64_value.c src\runtime\xl6_nullable_u64_value.c ^
     src\runtime\xl6_nullable_f32_value.c src\runtime\xl6_nullable_f64_value.c src\runtime\xl6_nullable_time_value.c src\runtime\xl6_nullable_char_value.c ^
-    src\runtime\xl6_nullable_string.c src\runtime\xl6_string_type.c src\runtime\xl6_string_value.c src\runtime\xl6_array_value.c src\runtime\xl6_array_reference_value.c src\runtime\xl6_array_erased.c src\runtime\xl6_array_input.c src\runtime\xl6_array_rng_shuffle.c src\runtime\xl6_array_rand_shuffle.c src\runtime\xl6_collection_count.c src\runtime\xl6_array_scalar_read.c src\runtime\xl6_value_admission.c src\runtime\xl6_native_scalar_value.c src\runtime\xl6_nominal_admission.c src\runtime\xl6_char_type.c src\runtime\xl6_char_value.c ^
+    src\runtime\xl6_nullable_string.c src\runtime\xl6_string_type.c src\runtime\xl6_string_value.c src\runtime\xl6_array_value.c src\runtime\xl6_array_reference_value.c src\runtime\xl6_array_erased.c src\runtime\xl6_array_input.c src\runtime\xl6_path_build.c src\runtime\xl6_array_rng_shuffle.c src\runtime\xl6_array_rand_shuffle.c src\runtime\xl6_collection_count.c src\runtime\xl6_array_scalar_read.c src\runtime\xl6_value_admission.c src\runtime\xl6_native_scalar_value.c src\runtime\xl6_nominal_admission.c src\runtime\xl6_char_type.c src\runtime\xl6_char_value.c ^
     src\runtime\xl6_error_value.c src\runtime\xl6_value_text.c ^
     src\runtime\xl6_print_values.c src\runtime\xl6_class_text.c src\runtime\xl6_error_text.c ^
     src\runtime\xl6_array_string_read.c ^

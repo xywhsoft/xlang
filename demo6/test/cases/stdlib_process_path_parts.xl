@@ -1,0 +1,24 @@
+array parts = ["alpha", "beta"]
+assert path.build(parts, 1) == "alpha/beta"
+assert path.build(["目录", "文件"], 1) == "目录/文件"
+assert path.join("alpha", "beta", "gamma", "delta") == path.build(["alpha", "beta", "gamma", "delta"])
+array<string> typed = ["alpha", "beta"]
+assert path.build(typed, 1) == "alpha/beta"
+int caught = 0
+try
+    path.build(["alpha", 42], 1)
+catch TypeError e
+    caught += 1
+end
+try
+    path.build(["a\0b", "beta"], 1)
+catch ValueError e
+    caught += 1
+end
+try
+    path.build(parts, -1)
+catch RangeError e
+    caught += 1
+end
+assert caught == 3
+assert parts.length == 2 and parts[0] == "alpha" and parts[1] == "beta"
