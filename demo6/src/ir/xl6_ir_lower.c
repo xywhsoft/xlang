@@ -12250,33 +12250,6 @@ static int xl6IrLowerResolveRuntimeBridge(
         target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_STRING_CONTAINS;
         return 1;
     }
-    if ( strcmp(target->cName, "xl6_xrt_std_table_remove") == 0 ) {
-        result = xl6IrTypeGet(&ctx->module->types, target->returnType);
-        first = target->parameterCount == 3
-            ? xl6IrTypeGet(&ctx->module->types, target->parameterTypes[0]) : NULL;
-        second = target->parameterCount == 3
-            ? xl6IrTypeGet(&ctx->module->types, target->parameterTypes[1]) : NULL;
-        third = target->parameterCount == 3
-            ? xl6IrTypeGet(&ctx->module->types, target->parameterTypes[2]) : NULL;
-        if ( target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-             target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE || result == NULL ||
-             first == NULL || second == NULL || third == NULL ||
-             result->cAbi != XL6_IR_C_ABI_C_BOOL ||
-             first->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-             second->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
-             third->cAbi != XL6_IR_C_ABI_C_UINT || target->parameterAbis == NULL ||
-             target->parameterPhysicalAbis == NULL ||
-             target->parameterAbis[0] != XL6_IR_PARAMETER_ABI_BORROW ||
-             target->parameterAbis[1] != XL6_IR_PARAMETER_ABI_BORROW ||
-             target->parameterAbis[2] != XL6_IR_PARAMETER_ABI_VALUE ||
-             target->parameterPhysicalAbis[0] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
-             target->parameterPhysicalAbis[1] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
-             target->parameterPhysicalAbis[2] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT )
-            return xl6IrLowerDiag(ctx, target->declaration,
-                "XLIR xvalue table-remove runtime bridge has no exact private helper ABI");
-        target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_XVALUE_TABLE_REMOVE;
-        return 1;
-    }
     if ( strcmp(target->cName, "xl6_xrt_string_index_of") == 0 ) {
         result = xl6IrTypeGet(&ctx->module->types, target->returnType);
         first = target->parameterCount == 3

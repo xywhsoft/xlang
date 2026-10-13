@@ -369,16 +369,6 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
             "    return ignoreCase ? xrtStrCaseContains(textView, partView) : xrtStrContains(textView, partView);\n"
             "}\n\n", out);
     }
-    if ( needs->needsXValueTableRemoveBridgeRuntime ) {
-        xl6OutputPuts(
-            "extern bool xrtValueObjectRemove(xvalue*, xlir_string_view);\n"
-            "bool xl6_xrt_std_table_remove(xvalue* table, xlir_string key, unsigned int keyLen)\n"
-            "{\n"
-            "    xlir_string_view view = key;\n"
-            "    if (keyLen != 0u && (size_t)keyLen < view.Size) view.Size = (size_t)keyLen;\n"
-            "    return xrtValueObjectRemove(table, view);\n"
-            "}\n\n", out);
-    }
     if ( needs->needsStringIndexOfBridgeRuntime ) {
         xl6OutputPuts(
             "extern size_t xrtUtf8Find(xlir_string_view, xlir_string_view, size_t);\n"

@@ -30847,7 +30847,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
         (strcmp(target->cName, "xl6_xrt_print") == 0 ||
          strcmp(target->cName, "xl6_xrt_string_contains") == 0 ||
          strcmp(target->cName, "xl6_xrt_string_split_lines") == 0 ||
-         strcmp(target->cName, "xl6_xrt_std_table_remove") == 0 ||
          strcmp(target->cName, "xl6_xrt_string_index_of") == 0 ||
           strcmp(target->cName, "xl6_xrt_take_cstr") == 0 ||
           strcmp(target->cName, "xl6_xrt_last_error_text") == 0 ||
@@ -31155,28 +31154,6 @@ static int xl6IrRuntimeBridgeTargetMatches(
                target->parameterAbis[0] == XL6_IR_PARAMETER_ABI_BORROW &&
                target->parameterAbis[1] == XL6_IR_PARAMETER_ABI_BORROW &&
                target->parameterAbis[2] == XL6_IR_PARAMETER_ABI_VALUE;
-    }
-    if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_XVALUE_TABLE_REMOVE ) {
-        result = xl6IrTypeGet(&module->types, target->returnType);
-        first = target->parameterCount == 3
-            ? xl6IrTypeGet(&module->types, target->parameterTypes[0]) : NULL;
-        second = target->parameterCount == 3
-            ? xl6IrTypeGet(&module->types, target->parameterTypes[1]) : NULL;
-        third = target->parameterCount == 3
-            ? xl6IrTypeGet(&module->types, target->parameterTypes[2]) : NULL;
-        return strcmp(target->cName, "xl6_xrt_std_table_remove") == 0 &&
-               result != NULL && first != NULL && second != NULL && third != NULL &&
-               result->cAbi == XL6_IR_C_ABI_C_BOOL &&
-               first->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-               second->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-               third->cAbi == XL6_IR_C_ABI_C_UINT &&
-               target->parameterPhysicalAbis != NULL &&
-               target->parameterAbis[0] == XL6_IR_PARAMETER_ABI_BORROW &&
-               target->parameterAbis[1] == XL6_IR_PARAMETER_ABI_BORROW &&
-               target->parameterAbis[2] == XL6_IR_PARAMETER_ABI_VALUE &&
-               target->parameterPhysicalAbis[0] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT &&
-               target->parameterPhysicalAbis[1] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT &&
-               target->parameterPhysicalAbis[2] == XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT;
     }
     if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_STRING_INDEX_OF ) {
         result = xl6IrTypeGet(&module->types, target->returnType);
@@ -46444,7 +46421,7 @@ static const char* xl6IrRuntimeBridgeName(XL6_IrRuntimeBridgeKind bridge)
     case XL6_IR_RUNTIME_BRIDGE_STRING_CONTAINS: return "string-contains";
     case XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT_LINES: return "string-split-lines";
     case XL6_IR_RUNTIME_BRIDGE_DYNAMIC_FIELDS: return "dynamic-fields";
-    case XL6_IR_RUNTIME_BRIDGE_XVALUE_TABLE_REMOVE: return "xvalue-table-remove";
+    case XL6_IR_RUNTIME_BRIDGE_RESERVED_TABLE_REMOVE: return "reserved-table-remove";
     case XL6_IR_RUNTIME_BRIDGE_STRING_INDEX_OF: return "string-index-of";
     case XL6_IR_RUNTIME_BRIDGE_JSON_PARSE: return "json-parse";
     case XL6_IR_RUNTIME_BRIDGE_JSON_VALID: return "json-valid";

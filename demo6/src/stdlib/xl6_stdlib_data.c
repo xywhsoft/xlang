@@ -3220,12 +3220,6 @@ static const XL6_StdlibParam xl6StdJsonStringifyParams[] = {
     {"bool", "pretty"}
 };
 
-static const XL6_StdlibParam xl6StdXrtTableRemoveParams[] = {
-    {"var", "table"},
-    {"string", "key"},
-    {"c_uint", "keyLen"}
-};
-
 static const XL6_StdlibParam xl6StdDictRemoveParams[] = {
     {"var", "table"},
     {"string", "key"}
@@ -4954,7 +4948,7 @@ static const char xl6StdXlonParseWithBody[] =
 
 static const char xl6StdDictRemoveBody[] =
     "func __xl_std_dict_remove(var table, string key) as bool\n"
-    "    return __xl_std_xrt_table_remove(table, key, c_uint(0))\n"
+    "    return __xl_std_xrt_table_remove(table, key)\n"
     "end\n";
 
 static const char xl6StdXlonParseBody[] =
@@ -6262,7 +6256,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_json", "parseFile", "__xl_std_xrt_json_parse_file", "xl6_xrt_json_parse_file", xl6StdPathUnaryParams, 1, "var", NULL},
     {"__xrt_json", "stringify", "__xl_std_xrt_json_stringify", "xl6_xrt_json_stringify", xl6StdXrtJsonStringifyParams, 2, "point", NULL},
     {"__xrt_json", "writeFile", "__xl_std_xrt_json_write_file", "xl6_xrt_json_write_file", xl6StdXrtJsonWriteParams, 3, "c_bool", NULL},
-    {"__xrt_value", "tableRemove", "__xl_std_xrt_table_remove", "xl6_xrt_std_table_remove", xl6StdXrtTableRemoveParams, 3, "c_bool", NULL},
+    {"__xrt_value", "tableRemove", "__xl_std_xrt_table_remove", "xl6DictValueRemoveV1", xl6StdDictRemoveParams, 2, "bool", NULL},
     {"__runtime", "jsonVisit", "__xl_std_runtime_json_visit", "xl6_xrt_json_visit", xl6StdJsonVisitRuntimeParams, 2, "c_int", NULL},
     {"__xrt_jsonl", "stringify", "__xl_std_xrt_jsonl_stringify", "xl6_xrt_jsonl_stringify", xl6StdLinesValueParams, 1, "point", NULL},
     {"__xrt_xlonl", "stringify", "__xl_std_xrt_xlonl_stringify", "xl6_xrt_xlonl_stringify", xl6StdLinesValueParams, 1, "point", NULL},

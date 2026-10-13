@@ -372,6 +372,7 @@ XL6_TEXT_API void xl6PatternBuilderDestroyV1(void* handle);
 XL6_TEXT_API int64_t xl6PatternBuilderCountV1(void* handle);
 XL6_TEXT_API uint64_t xl6PatternBuilderVersionV1(void* handle);
 XL6_TEXT_API xvalue* xl6PatternBuilderIdentityV1(void* handle);
+XL6_TEXT_API xvalue* xl6PatternStateCreateV1(const xvalue* identity);
 XL6_TEXT_API void xl6PatternBuilderReserveV1(void* handle,int64_t capacity);
 XL6_TEXT_API bool xl6PatternBuilderContainsV1(void* handle,void* key);
 XL6_TEXT_API void* xl6PatternBuilderCompileV1(void* handle);

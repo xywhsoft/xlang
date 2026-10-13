@@ -37,6 +37,8 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
     for ( i = 0; i < module->callTargetCount; ++i ) {
         const XL6_IrCallTarget* target = &module->callTargets[i];
         if ( target->reachability == XL6_IR_REACHABILITY_UNREACHABLE ) continue;
+        if(target->runtimeBridge==XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE && target->cName &&
+            strcmp(target->cName,"xl6DictValueRemoveV1")==0)needs->needsDictMethodsRuntime=1;
         if(target->asyncResultAbi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)
             needs->needsNativeFuturePayloadRuntime=1;
         if(target->kind==XL6_IR_CALL_TARGET_INTERNAL_ASYNC && target->asyncCaptureDestroyAbis)
@@ -232,11 +234,6 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             needs->needsStringViews = 1;
             needs->needsXValueRuntime = 1;
             needs->needsXValueArrayRuntime = 1;
-        } else if ( target->runtimeBridge ==
-                        XL6_IR_RUNTIME_BRIDGE_XVALUE_TABLE_REMOVE ) {
-            needs->needsXValueTableRemoveBridgeRuntime = 1;
-            needs->needsStringViews = 1;
-            needs->needsXValueRuntime = 1;
         } else if ( target->runtimeBridge ==
                         XL6_IR_RUNTIME_BRIDGE_STRING_INDEX_OF ) {
             needs->needsStringIndexOfBridgeRuntime = 1;
