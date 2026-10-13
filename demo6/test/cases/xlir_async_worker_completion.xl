@@ -23,7 +23,7 @@ end
 async func workerString(WorkerCompletionOwner first, WorkerCompletionOwner unused, bool fail) as string
     workerBody(fail)
     assert first.id == 7
-    return "worker-result"
+    return "worker\0result"
 end
 async func workerObject(WorkerCompletionOwner first, WorkerCompletionOwner unused, bool fail) as WorkerCompletionOwner
     workerBody(fail)

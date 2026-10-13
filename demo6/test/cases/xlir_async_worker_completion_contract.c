@@ -2,7 +2,7 @@
 int main(int argc, char** argv)
 {
     XL6_ParseResult parse; XL6_IrModule ir; XL6_Output out;
-    size_t i, p, workers = 0, owned = 0; char binding[1024];
+    size_t i, p, workers = 0, retained = 0; char binding[1024];
     assert(argc == 4); xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     if (!xl6ParseFile("test/cases/xlir_async_worker_completion.xl", &parse) ||
         !xl6StdlibExpandModule(parse.root, &parse.diags) ||
@@ -30,13 +30,14 @@ int main(int argc, char** argv)
         target->asyncCompletionAbi = completion;
         for (p = 0; p < 2; ++p) {
             XL6_IrAsyncCaptureAbi capture = target->asyncCaptureAbis[p];
-            assert(capture == XL6_IR_ASYNC_CAPTURE_RETAIN_XVALUE || capture == XL6_IR_ASYNC_CAPTURE_TAKE_PARAMETER);
-            if (capture == XL6_IR_ASYNC_CAPTURE_TAKE_PARAMETER) ++owned;
+            /* No source parameter modifiers remain. Each ordinary class
+             * argument independently retains the shared object identity. */
+            assert(capture == XL6_IR_ASYNC_CAPTURE_RETAIN_XVALUE);++retained;
             target->asyncCaptureAbis[p] = XL6_IR_ASYNC_CAPTURE_COPY_VALUE;
             reject(&ir, NULL); target->asyncCaptureAbis[p] = capture;
         }
     }
-    assert(workers == 6 && owned == 1); verify(&ir);
+    assert(workers == 6 && retained == 12); verify(&ir);
     assert(xl6OutputOpenFile(&out, argv[1]) && xl6IrCgenEmitC(&out, &ir, &parse.diags)); xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out, argv[2]) && xl6IrCgenEmitHeader(&out, &ir, "WORKER_COMPLETION", &parse.diags)); xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out, argv[3])); xl6IrDumpModuleJson(&out, &ir); xl6OutputClose(&out);

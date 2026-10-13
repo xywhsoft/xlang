@@ -4,9 +4,15 @@ extern void* worker_completion_malloc(size_t);
 // Use the real allocator after the worker-entry barrier. Fault cases arm XRT's
 // thread-local allocation failure, never synthesize a NULL allocation result.
 #define xrtMalloc worker_completion_malloc
-#include "../../build/test/xlir_async_worker_completion.c"
+#ifndef XLIR_WORKER_COMPLETION_SOURCE
+#define XLIR_WORKER_COMPLETION_SOURCE "../../build/test/xlir_async_worker_completion.c"
+#endif
+#include XLIR_WORKER_COMPLETION_SOURCE
 #undef xrtMalloc
-#include "../../build/test/xlir_async_worker_completion.h.bind.h"
+#ifndef XLIR_WORKER_COMPLETION_BINDING
+#define XLIR_WORKER_COMPLETION_BINDING "../../build/test/xlir_async_worker_completion.h.bind.h"
+#endif
+#include XLIR_WORKER_COMPLETION_BINDING
 #define XLIR_TEST_LAUNCH_FUTURE
 #include "xlir_launch_test.h"
 extern int worker_completion_enter_body(void), worker_completion_drop_mode(int64_t);
@@ -49,7 +55,7 @@ xfuture* worker_completion_launch(unsigned kind, int mode)
     }
     // The worker cannot pass its entry barrier before these caller references
     // are gone. The generated frame/worker, not the test, is the final owner.
-    xrtValueRelease(first); if (kind != 5) xrtValueRelease(unused);
+    xrtValueRelease(first); xrtValueRelease(unused);
     outcome = xl6ErrorScopeEnd(&scope); assert(outcome.ok && !outcome.error && result); return result;
 }
 void worker_completion_check(unsigned kind, xfuture* result)
@@ -58,7 +64,10 @@ void worker_completion_check(unsigned kind, xfuture* result)
     if (kind == 1) { assert(value == NULL); return; }
     assert(value);
     if (kind == 0 || kind == 5) assert(*(int64_t*)value == 7);
-    else if (kind == 2) assert(*(char**)value && !strcmp(*(char**)value, "worker-result"));
+    else if (kind == 2) {
+        const xstrview* text=value;
+        assert(text->Data && text->Size==13 && !memcmp(text->Data,"worker\0result",13) && !text->Data[text->Size]);
+    }
     else if (kind == 3) assert(*(xvalue**)value);
     else if (kind == 4) {
         xlir_closure* closure = *(xlir_closure**)value; int64_t number = 0;
