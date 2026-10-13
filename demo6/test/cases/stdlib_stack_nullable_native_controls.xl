@@ -1,0 +1,58 @@
+SlotMapKey? globalOptional
+int fallbackCalls = 0
+class OptionalKeyHolder
+    SlotMapKey? key
+end
+func nullableResult(SlotMapKey key) as SlotMapKey?
+    return key
+end
+func fallbackKey(SlotMapKey key) as SlotMapKey
+    fallbackCalls += 1
+    return key
+end
+func emptyKey() as SlotMapKey?
+    SlotMapKey? value
+    return value
+end
+func main(...) as int
+    auto map = SlotMap::<int>()
+    auto first = map.insert(7)
+    auto second = map.insert(11)
+    SlotMapKey? absent
+    assert(absent == null and globalOptional == null)
+    auto holder = OptionalKeyHolder()
+    assert(holder.key == null)
+    auto lifted = first as SlotMapKey?
+    auto unwrapped = lifted as SlotMapKey
+    assert(lifted != null and unwrapped == first)
+    auto present = nullableResult(first) ?? fallbackKey(second)
+    assert(present == first and fallbackCalls == 0)
+    auto missing = emptyKey() ?? fallbackKey(second)
+    assert(missing == second and fallbackCalls == 1)
+    SlotMapKey? nullableFallback = null
+    auto bothAbsent = absent ?? nullableFallback
+    assert(bothAbsent == null)
+    auto keepNullable = nullableResult(first) ?? nullableFallback
+    assert(keepNullable != null and keepNullable == first)
+    var boxed = first
+    auto matched = boxed as SlotMapKey?
+    assert(matched != null and matched == first)
+    var wrong = 42
+    auto mismatch = wrong as SlotMapKey?
+    assert(mismatch == null)
+    var boxedNull = null
+    auto dynamicNull = boxedNull as SlotMapKey?
+    assert(dynamicNull == null)
+    int rejected = 0
+    try
+        auto invalid = emptyKey() as SlotMapKey
+    catch TypeError error
+        rejected += 1
+    end
+    assert(rejected == 1)
+    lifted = null
+    map.clear()
+    assert(unwrapped == first and present == first and missing == second)
+    assert(matched != null and matched == first)
+    return 0
+end

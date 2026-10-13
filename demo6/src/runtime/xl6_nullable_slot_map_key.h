@@ -12,4 +12,5 @@ XL6_TEXT_API bool xl6NullableSlotMapKeyProjectV1(XL6_NullableSlotMapKeyV1,XL6_Sl
 XL6_TEXT_API const xrttype* xl6NullableSlotMapKeyTypeV1(void);
 XL6_TEXT_API xvalue* xl6NullableSlotMapKeyBoxV1(XL6_NullableSlotMapKeyV1);
 XL6_TEXT_API bool xl6NullableSlotMapKeyUnboxV1(const xvalue*,XL6_NullableSlotMapKeyV1*);
+XL6_TEXT_API bool xl6NullableSlotMapKeyTryUnboxV1(const xvalue*,XL6_NullableSlotMapKeyV1*);
 #endif

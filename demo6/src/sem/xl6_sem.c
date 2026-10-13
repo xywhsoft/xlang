@@ -7384,7 +7384,7 @@ static int xl6SemRuntimeCastTargetSupported(XL6_SemContext* ctx, const XL6_AstNo
     typeInfo = xl6TypeRegistryFind(&ctx->types, name);
     if (typeInfo && typeInfo->kind == XL6_TYPE_BUILTIN &&
         xl6TypeRegistryIsNativeValueAbi(typeInfo->abiId))
-        return nullableInner == NULL && concreteType->childCount == 0;
+        return concreteType->childCount == 0;
 
     /*
         func 进入 var 必须显式经过 xcall；反向恢复同样只允许完整签名，

@@ -122,10 +122,7 @@ static int xl6IrCgenVerifyInstructions(
                         "XLIR SlotMap cursor has no closed lane or owning key ABI");
                 break;
             }
-            if (instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_COPY ||
-                instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL ||
-                instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_BOX ||
-                instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED) {
+            if (xl6IrRuntimeNativeValueOpIs(instruction->runtimeOp)) {
                 if (!xl6IrNativeValueInstructionPlan(module,instruction))
                     return xl6IrCgenDiag(diags,module,instruction->origin,
                         "XLIR native value operation has no closed owning ABI");

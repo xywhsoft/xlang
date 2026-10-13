@@ -5,7 +5,7 @@
 static const XL6_IrNativeValuePlan g_xl6IrNativeValues[] = {
 #define XL6_NATIVE_VALUE_PROFILE(Tag,Name,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,Release,Type,Converter,Sequence,Profile,ValueId,CaptureHeader,CaptureProfile) \
     {XL6_IR_NATIVE_VALUE_##Tag,Abi,CName,Header,Result,Copy,Drop,Eq,Box,Project,XL6_IR_RELEASE_EFFECT_##Release, \
-        XL6_IR_NATIVE_SLOT_##Tag,#Type "()",#Converter "()",Sequence,Profile,ValueId,CaptureHeader,CaptureProfile,XL6_IR_NATIVE_VALUE_NONE},
+        XL6_IR_NATIVE_SLOT_##Tag,#Type "()",#Converter "()",Sequence,Profile,ValueId,CaptureHeader,CaptureProfile,XL6_IR_NATIVE_VALUE_NONE,NULL},
 #include "src/type/xl6_native_value_profiles.inc"
 #undef XL6_NATIVE_VALUE_PROFILE
     {XL6_IR_NATIVE_VALUE_NULLABLE_SLOT_MAP_KEY_V1,"xlang.runtime.nullable-slot-map-key.v1",
@@ -13,7 +13,7 @@ static const XL6_IrNativeValuePlan g_xl6IrNativeValues[] = {
         "xl6NullableSlotMapKeyCopyValueV1","xl6NullableSlotMapKeyDropValueV1","xl6NullableSlotMapKeyEqualV1",
         "xl6NullableSlotMapKeyBoxV1","xl6NullableSlotMapKeyUnboxV1",XL6_IR_RELEASE_EFFECT_NO_RAISE,
         XL6_IR_NATIVE_SLOT_NULLABLE_SLOT_MAP_KEY_V1,"xl6NullableSlotMapKeyTypeV1()",NULL,NULL,NULL,
-        UINT64_C(0x4634D6E6E6364F13),NULL,NULL,XL6_IR_NATIVE_VALUE_SLOT_MAP_KEY_V1},
+        UINT64_C(0x4634D6E6E6364F13),NULL,NULL,XL6_IR_NATIVE_VALUE_SLOT_MAP_KEY_V1,"xl6NullableSlotMapKeyTryUnboxV1"},
 };
 static XL6_IrNativeValueAbi xl6IrNativeValueAbiFromFrontend(XL6_TypeAbiId abi)
 {
@@ -67,10 +67,27 @@ const XL6_IrNativeValuePlan* xl6IrNullableNativeValuePlan(const XL6_IrTypePool* 
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeNativeValueErrorPhysicalAbi(XL6_IrRuntimeOp operation)
 {
     if (operation == XL6_IR_RUNTIME_NATIVE_VALUE_COPY ||
-        operation == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED)
+        operation == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED || operation == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY)
         return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     return operation == XL6_IR_RUNTIME_NATIVE_VALUE_BOX
         ? XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT : XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
+}
+int xl6IrRuntimeNativeValueOpIs(XL6_IrRuntimeOp op)
+{
+    return (op>=XL6_IR_RUNTIME_NATIVE_VALUE_COPY && op<=XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED) ||
+        op==XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY;
+}
+const char* xl6IrRuntimeNativeValueSymbol(const XL6_IrNativeValuePlan* plan,XL6_IrRuntimeOp op)
+{
+    if(!plan)return NULL;
+    switch(op){
+    case XL6_IR_RUNTIME_NATIVE_VALUE_COPY:return plan->copySymbol;
+    case XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL:return plan->equalSymbol;
+    case XL6_IR_RUNTIME_NATIVE_VALUE_BOX:return plan->boxSymbol;
+    case XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED:return plan->projectSymbol;
+    case XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY:return plan->tryProjectSymbol;
+    default:return NULL;
+    }
 }
 const XL6_IrNativeValuePlan* xl6IrNativeValueInstructionPlan(
     const XL6_IrModule* module,const XL6_IrInstruction* instruction)
@@ -87,17 +104,22 @@ const XL6_IrNativeValuePlan* xl6IrNativeValueInstructionPlan(
         instruction->firstOperand > module->operandCount ||
         instruction->operandCount > module->operandCount-instruction->firstOperand) return NULL;
     if (instruction->runtimeOp != XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED &&
+        instruction->runtimeOp != XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY &&
         instruction->castAbi != XL6_IR_CAST_INVALID) return NULL;
-    if (instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED) {
+    if (instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED ||
+        instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY) {
+        int isTry=instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY;
         if (instruction->operandCount != 1 || instruction->payloadType != instruction->type ||
-            instruction->castAbi != XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED) return NULL;
+            instruction->castAbi != (isTry ? XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_VALUE_TRY :
+                XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED)) return NULL;
         left=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
         /* Physical checked projection is also used by exact typed collection
          * reads. Source `as` authorization lives in Typed IR; the lowered
          * operation's type, cast family and checked outcome are its contract,
          * not the spelling/kind of its diagnostic origin. */
         if (!left || !xl6IrTypeIsDynamicXValueBuiltin(module,left->type)) return NULL;
-        return xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,instruction->type));
+        type=xl6IrTypeGet(&module->types,instruction->type);
+        return isTry ? xl6IrNullableNativeValuePlan(&module->types,type) : xl6IrNativeValuePlanForType(type);
     }
     if (instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_BOX) {
         if (instruction->operandCount != 1 || !xl6IrTypeIsDynamicXValueBuiltin(module,instruction->type)) return NULL;

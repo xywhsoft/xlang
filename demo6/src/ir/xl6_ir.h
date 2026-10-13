@@ -2100,6 +2100,7 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_VALUES,
     XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_COUNT,
     XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEY_COPY,
+    XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -2131,6 +2132,7 @@ typedef struct XL6_IrNativeValuePlan {
     const char* captureProfileSymbol;
     /* Nonzero only for an owning tagged nullable record. */
     XL6_IrNativeValueAbi nullableElementAbi;
+    const char* tryProjectSymbol;
 } XL6_IrNativeValuePlan;
 
 /* Canonical language identities for every stable XRT xvalue tag.  This table
@@ -2342,7 +2344,10 @@ typedef enum XL6_IrCastAbi {
      * logical TypeIds (including generic arguments) remain mandatory. */
     XL6_IR_CAST_IDENTITY,
     XL6_IR_CAST_NULL_TO_NULLABLE,
-    XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED
+    XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED,
+    XL6_IR_CAST_NATIVE_VALUE_TO_NULLABLE,
+    XL6_IR_CAST_NULLABLE_NATIVE_VALUE_TO_VALUE_CHECKED,
+    XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_VALUE_TRY
 } XL6_IrCastAbi;
 
 /* One closed contract for managed T <-> T? representation. No inference from
@@ -7442,6 +7447,8 @@ void xl6IrDumpModuleText(XL6_Output* out, const XL6_IrModule* module);
 void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module);
 const XL6_IrNativeValuePlan* xl6IrNativeValuePlanForType(const XL6_IrType*);
 const XL6_IrNativeValuePlan* xl6IrNullableNativeValuePlan(const XL6_IrTypePool*,const XL6_IrType*);
+int xl6IrRuntimeNativeValueOpIs(XL6_IrRuntimeOp);
+const char* xl6IrRuntimeNativeValueSymbol(const XL6_IrNativeValuePlan*,XL6_IrRuntimeOp);
 const XL6_IrNativeValuePlan* xl6IrNativeValueInstructionPlan(
     const XL6_IrModule*, const XL6_IrInstruction*);
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeNativeValueErrorPhysicalAbi(XL6_IrRuntimeOp);

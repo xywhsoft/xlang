@@ -115,3 +115,11 @@ bool xl6NullableSlotMapKeyUnboxV1(const xvalue* input,XL6_NullableSlotMapKeyV1* 
     else ok=false;
     xl6NullableSlotMapKeyDropValueV1(acquired);return finish(&scope,ok);
 }
+bool xl6NullableSlotMapKeyTryUnboxV1(const xvalue* input,XL6_NullableSlotMapKeyV1* out)
+{
+    xl6_error_scope scope={0};if(!begin(&scope))return false;bool ok=false;
+    if(!input || !empty(out))xrtSetErrorKind(XERR_ARGUMENT);
+    else if(xl6SlotMapKeyValueAdmitsV1(input))ok=xl6NullableSlotMapKeyUnboxV1(input,out);
+    else ok=true;
+    return finish(&scope,ok);
+}

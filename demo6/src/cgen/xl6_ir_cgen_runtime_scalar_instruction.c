@@ -178,19 +178,17 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                     xl6OutputPrintf(out, "    v%u = xlir_string_from_utf8(%s, sizeof(%s) - 1u);\n",
                                     (unsigned int)instruction->result, instruction->immediateText,
                                     instruction->immediateText);
-                } else if (instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_COPY ||
-                           instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL ||
-                           instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_BOX ||
-                           instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED) {
+                } else if (xl6IrRuntimeNativeValueOpIs(instruction->runtimeOp)) {
                     const XL6_IrNativeValuePlan* plan=xl6IrNativeValueInstructionPlan(module,instruction);
                     if (!plan) return xl6IrCgenRuntimeEmitDiag(diags,module,instruction->origin,
                         "XLIR native value operation has no exact resident ABI");
                     if (instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_COPY ||
-                        instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED)
+                        instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED ||
+                        instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY)
                         xl6OutputPrintf(out,"    v%u = (%s){0};\n"
                             "    bool projection_ok_%u = %s(v%u, &v%u);\n",
                             (unsigned)instruction->result,plan->cName,(unsigned)instruction->result,
-                            instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_COPY ? plan->copySymbol : plan->projectSymbol,
+                            xl6IrRuntimeNativeValueSymbol(plan,instruction->runtimeOp),
                             (unsigned)module->operands[instruction->firstOperand],(unsigned)instruction->result);
                     else if (instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_BOX)
                         xl6OutputPrintf(out,"    v%u = %s(v%u);\n",(unsigned)instruction->result,

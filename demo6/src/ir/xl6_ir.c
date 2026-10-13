@@ -5279,7 +5279,9 @@ static XL6_IrInitializerAbi xl6IrNullDefaultInitializerAbi(const XL6_IrType* typ
         return XL6_IR_INITIALIZER_NONE;
     if (type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL)
         return XL6_IR_INITIALIZER_NULL_SENTINEL;
-    if (type->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE && type->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE)
+    if (type->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
+        (type->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ||
+         (xl6IrNativeValuePlanForType(type) && xl6IrNativeValuePlanForType(type)->nullableElementAbi)))
         return XL6_IR_INITIALIZER_TAGGED_NULL;
     if (type->kind == XL6_IR_TYPE_NULLABLE && type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
         type->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL)
@@ -5360,8 +5362,8 @@ static int xl6IrBuildClassLayoutAppendField(
         else if ( initializerNode != NULL &&
                   initializerNode->sourceKind == XL6_AST_NULL &&
                   fieldType != NULL &&
-                  fieldType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
-                  fieldType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE )
+                  fieldType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
+                  (fieldType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE || xl6IrNullableNativeValuePlan(&module->types,fieldType)) )
             item->initializerAbi = XL6_IR_INITIALIZER_TAGGED_NULL;
         else if ( initializerNode != NULL &&
                   initializerNode->sourceKind == XL6_AST_NULL &&
@@ -16809,6 +16811,7 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
         element = xl6IrTypeGet(&module->types, elementType);
         if ( element == NULL || element->typeValueId == 0 )
             return XL6_IR_CAST_INVALID;
+        if(xl6IrNullableNativeValuePlan(&module->types,target))return XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_VALUE_TRY;
         taggedNullable = target->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
             target->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
             target->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
@@ -16855,6 +16858,7 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
          target->params != NULL && source->storageType == target->params[0] ) {
         element = xl6IrTypeGet(&module->types, target->params[0]);
         if ( element == NULL ) return XL6_IR_CAST_INVALID;
+        if(xl6IrNullableNativeValuePlan(&module->types,target))return XL6_IR_CAST_NATIVE_VALUE_TO_NULLABLE;
         if ( target->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
              target->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
              target->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
@@ -16872,6 +16876,7 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
          sourceType->params[0] == node->storageType ) {
         element = xl6IrTypeGet(&module->types, sourceType->params[0]);
         if ( element == NULL ) return XL6_IR_CAST_INVALID;
+        if(xl6IrNullableNativeValuePlan(&module->types,sourceType))return XL6_IR_CAST_NULLABLE_NATIVE_VALUE_TO_VALUE_CHECKED;
         if ( sourceType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
              sourceType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
              sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
@@ -16952,6 +16957,7 @@ static XL6_IrErrorAbi xl6IrClassifyCastErrorAbi(
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_TIME_TRY:
     case XL6_IR_CAST_VALUE_TO_TAGGED_NULLABLE:
     case XL6_IR_CAST_MANAGED_TO_POINTER_NULLABLE:
+    case XL6_IR_CAST_NATIVE_VALUE_TO_NULLABLE:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_NOMINAL_TRY:
         return XL6_IR_ERROR_ABI_NO_RAISE;
     case XL6_IR_CAST_XVALUE_TO_BOOL_CHECKED:
@@ -16969,6 +16975,8 @@ static XL6_IrErrorAbi xl6IrClassifyCastErrorAbi(
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_STRING_TRY:
     case XL6_IR_CAST_TAGGED_NULLABLE_TO_VALUE_CHECKED:
     case XL6_IR_CAST_NULLABLE_POINTER_TO_MANAGED_CHECKED:
+    case XL6_IR_CAST_NULLABLE_NATIVE_VALUE_TO_VALUE_CHECKED:
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_VALUE_TRY:
     case XL6_IR_CAST_XVALUE_TO_NOMINAL_CHECKED:
     case XL6_IR_CAST_NULLABLE_NOMINAL_TO_NOMINAL_CHECKED:
         return XL6_IR_ERROR_ABI_MAY_RAISE;
@@ -20449,6 +20457,8 @@ int xl6IrInstructionIsFallibleProjection(
 {
     const XL6_IrType* type;
     if (module == NULL || instruction == NULL || instruction->kind != XL6_IR_INSTR_RUNTIME_CALL) return 0;
+    if(instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY)return 1;
     if (instruction->runtimeOp==XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY) return 1;
     if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_STRING_COPY ||
         instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_DICT_GET_LITERAL_STRING_COPY ||
@@ -24841,7 +24851,7 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
                       (initializerNode == NULL ||
                        initializerNode->sourceKind != XL6_AST_NULL)) ||
                      fieldType == NULL ||
-                     fieldType->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE ||
+                     (fieldType->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE && !xl6IrNullableNativeValuePlan(&module->types,fieldType)) ||
                       fieldType->nullAbi != XL6_IR_NULL_ABI_TAGGED_VALUE)) ||
                    (item->initializerAbi == XL6_IR_INITIALIZER_UNION_ZERO &&
                     (item->initializer != XL6_IR_NODE_INVALID || fieldType == NULL ||
@@ -37840,7 +37850,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                   XL6_IR_OPERATOR_OPERAND_NULLABLE_UNWRAP_SCALAR_CONVERT ||
              node->castAbi < XL6_IR_CAST_INVALID ||
              node->castAbi >
-                 XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED ||
+                 XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_VALUE_TRY ||
              node->castErrorAbi < XL6_IR_ERROR_ABI_INVALID ||
              node->castErrorAbi > XL6_IR_ERROR_ABI_MAY_RAISE ||
              node->implicitConversionRuntimeOp < XL6_IR_RUNTIME_NONE ||
@@ -39072,7 +39082,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                               (instruction->castAbi ==
                                    XL6_IR_CAST_MANAGED_TO_POINTER_NULLABLE &&
                                sentinelAbi && xl6IrNullableManagedRepresentationCompatible(
-                                   &module->types,instruction->type,elementType))) &&
+                                   &module->types,instruction->type,elementType)) ||
+                              (instruction->castAbi==XL6_IR_CAST_NATIVE_VALUE_TO_NULLABLE && nativeTagged)) &&
                              origin->castErrorAbi ==
                                  XL6_IR_ERROR_ABI_NO_RAISE) ||
                             (instruction->kind ==
@@ -39090,7 +39101,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                element->cAbi ==
                                    XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
                                xl6IrNominalIdentitySetGet(
-                                   module, elementType, NULL) != NULL)) &&
+                                   module, elementType, NULL) != NULL) ||
+                              (instruction->castAbi==XL6_IR_CAST_NULLABLE_NATIVE_VALUE_TO_VALUE_CHECKED && nativeTagged)) &&
                              origin->castErrorAbi ==
                                  XL6_IR_ERROR_ABI_MAY_RAISE);
                     }
@@ -39682,10 +39694,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             return xl6IrDiag(diags,
                                 xl6IrNodeGet(module, instruction->origin),
                                  "XLIR persistence parse operation has no exact format, borrowed text, default class and owned result ABI");
-                    } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_COPY ||
-                                instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL ||
-                                instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_BOX ||
-                                instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED ) {
+                    } else if (xl6IrRuntimeNativeValueOpIs(instruction->runtimeOp)) {
                         if (!xl6IrNativeValueInstructionPlan(module,instruction))
                             return xl6IrDiag(diags,xl6IrNodeGet(module,instruction->origin),
                                 "XLIR native value operation has no exact owning record ABI");
@@ -43930,6 +43939,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED ||
                         instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED ||
+                        instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY ||
                         instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_TAGGED ||
                         instruction->runtimeOp ==
@@ -43947,6 +43957,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         instruction->runtimeOp !=
                             XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED &&
                         instruction->runtimeOp != XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED &&
+                        instruction->runtimeOp != XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY &&
                         instruction->runtimeOp !=
                             XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_TAGGED &&
                         instruction->runtimeOp !=
@@ -43960,7 +43971,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       instruction->castAbi != XL6_IR_CAST_INVALID) ||
                      instruction->castAbi < XL6_IR_CAST_INVALID ||
                      instruction->castAbi >
-                         XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED )
+                         XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_VALUE_TRY )
                     return xl6IrDiag(diags, NULL,
                         "XLIR instruction has an ambiguous closed cast ABI");
                 if ( instruction->kind == XL6_IR_INSTR_BRANCH &&
@@ -45541,6 +45552,9 @@ static const char* xl6IrCastAbiName(XL6_IrCastAbi abi)
     case XL6_IR_CAST_IDENTITY: return "identity";
     case XL6_IR_CAST_NULL_TO_NULLABLE: return "null-to-nullable";
     case XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED: return "xvalue-to-native-value-checked";
+    case XL6_IR_CAST_NATIVE_VALUE_TO_NULLABLE:return "native-value-to-nullable";
+    case XL6_IR_CAST_NULLABLE_NATIVE_VALUE_TO_VALUE_CHECKED:return "nullable-native-value-to-value-checked";
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_VALUE_TRY:return "xvalue-to-nullable-native-value-try";
     case XL6_IR_CAST_XVALUE_TO_BOOL_CHECKED:
         return "xvalue-to-bool-checked";
     case XL6_IR_CAST_XVALUE_TO_I64_CHECKED:
@@ -47272,6 +47286,7 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL: return "native-value-equal";
     case XL6_IR_RUNTIME_NATIVE_VALUE_BOX: return "native-value-box";
     case XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED: return "native-value-project-checked";
+    case XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY:return "native-value-project-try";
     case XL6_IR_RUNTIME_STRING_TO_F64_CHECKED: return "string-to-f64-checked";
     case XL6_IR_RUNTIME_STRING_TO_TIME_CHECKED: return "string-to-time-checked";
     case XL6_IR_RUNTIME_XVALUE_TO_TIME_CHECKED: return "xvalue-to-time-checked";
