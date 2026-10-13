@@ -8,7 +8,7 @@
 - xruntime 产品公共函数：3653，其中扩展自有 464。
 - 低层能力：3653 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
-- 语言内核或标准库已直接使用：1797 个函数。其余 1856 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：1810 个函数。其余 1843 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -23,7 +23,7 @@
 | xrt | `include/xrt/avl.h` | 43 | 1 | 42 |
 | xrt | `include/xrt/buffer.h` | 23 | 20 | 3 |
 | xrt | `include/xrt/cancel.h` | 15 | 12 | 3 |
-| xrt | `include/xrt/channel.h` | 42 | 14 | 28 |
+| xrt | `include/xrt/channel.h` | 42 | 15 | 27 |
 | xrt | `include/xrt/charset.h` | 72 | 43 | 29 |
 | xrt | `include/xrt/codec.h` | 20 | 8 | 12 |
 | xrt | `include/xrt/compress.h` | 18 | 0 | 18 |
@@ -57,7 +57,7 @@
 | xrt | `include/xrt/jsonl.h` | 12 | 11 | 1 |
 | xrt | `include/xrt/list.h` | 28 | 0 | 28 |
 | xrt | `include/xrt/logger.h` | 80 | 55 | 25 |
-| xrt | `include/xrt/map.h` | 62 | 1 | 61 |
+| xrt | `include/xrt/map.h` | 62 | 2 | 60 |
 | xrt | `include/xrt/math.h` | 20 | 19 | 1 |
 | xrt | `include/xrt/memory.h` | 13 | 5 | 8 |
 | xrt | `include/xrt/memory_debug.h` | 11 | 0 | 11 |
@@ -76,13 +76,13 @@
 | xrt | `include/xrt/queue.h` | 46 | 0 | 46 |
 | xrt | `include/xrt/random.h` | 39 | 25 | 14 |
 | xrt | `include/xrt/regex.h` | 54 | 38 | 16 |
-| xrt | `include/xrt/set.h` | 34 | 0 | 34 |
+| xrt | `include/xrt/set.h` | 34 | 1 | 33 |
 | xrt | `include/xrt/signal.h` | 20 | 16 | 4 |
-| xrt | `include/xrt/slot_map.h` | 16 | 0 | 16 |
-| xrt | `include/xrt/spin.h` | 7 | 0 | 7 |
+| xrt | `include/xrt/slot_map.h` | 16 | 12 | 4 |
+| xrt | `include/xrt/spin.h` | 7 | 3 | 4 |
 | xrt | `include/xrt/stack.h` | 74 | 0 | 74 |
 | xrt | `include/xrt/string.h` | 85 | 53 | 32 |
-| xrt | `include/xrt/sync.h` | 48 | 25 | 23 |
+| xrt | `include/xrt/sync.h` | 48 | 26 | 22 |
 | xrt | `include/xrt/task.h` | 43 | 23 | 20 |
 | xrt | `include/xrt/task_net.h` | 6 | 0 | 6 |
 | xrt | `include/xrt/tcp.h` | 63 | 39 | 24 |
@@ -100,7 +100,7 @@
 | xrt | `include/xrt/tls_stream.h` | 53 | 27 | 26 |
 | xrt | `include/xrt/tls_verify.h` | 8 | 4 | 4 |
 | xrt | `include/xrt/udp.h` | 73 | 25 | 48 |
-| xrt | `include/xrt/value.h` | 157 | 133 | 24 |
+| xrt | `include/xrt/value.h` | 157 | 127 | 30 |
 | xrt | `include/xrt/vfs.h` | 31 | 23 | 8 |
 | xrt | `include/xrt/wait.h` | 3 | 3 | 0 |
 | xrt | `include/xrt/websocket.h` | 57 | 17 | 40 |
@@ -144,13 +144,13 @@
 | `extlibs/xruntime/include/xrt/runtime_type_string.h` | stable language type names | kernel | direct | 2 | 2 | `test/cases/cgen_runtime_type_baseline.xl` |
 | `extlibs/xruntime/include/xrt/runtime_value.h` | var lifecycle, boxing, comparison, and cloning | kernel | direct | 28 | 14 | `test/cases/runtime_var_type_storage_matrix.xl` |
 | `extlibs/xruntime/include/xrt/typed_array.h` | array<T> | language-type | direct | 34 | 28 | `test/cases/cgen_typed_container_functions.xl` |
-| `extlibs/xruntime/include/xrt/typed_dict.h` | dict<T> | language-type | direct | 30 | 14 | `test/cases/cgen_typed_container_functions.xl` |
+| `extlibs/xruntime/include/xrt/typed_dict.h` | dict<T> | language-type | direct | 30 | 22 | `test/cases/cgen_typed_container_functions.xl` |
 | `extlibs/xruntime/include/xrt/typed_list.h` | list<T> | language-type | direct | 30 | 23 | `test/cases/cgen_typed_container_functions.xl` |
 | `extlibs/xruntime/include/xrt/typed_queue.h` | typed SPSC/MPSC/MPMC queues | language-type | direct | 54 | 0 | `test/cases/stdlib_special_collections.xl` |
-| `extlibs/xruntime/include/xrt/typed_set.h` | set<T> | language-type | direct | 35 | 20 | `test/cases/cgen_typed_container_functions.xl` |
+| `extlibs/xruntime/include/xrt/typed_set.h` | set<T> | language-type | direct | 35 | 28 | `test/cases/cgen_typed_container_functions.xl` |
 | `extlibs/xruntime/include/xrt/typed_stack.h` | Stack<T> | language-type | direct | 21 | 11 | `test/cases/stdlib_special_collections.xl` |
-| `extlibs/xruntime/include/xrt/typed_tree.h` | AvlTree<K,V> | language-type | direct | 33 | 21 | `test/cases/stdlib_special_collections.xl` |
-| `extlibs/xruntime/include/xrt/typed_value.h` | typed values used by generic containers | kernel | direct | 32 | 28 | `test/cases/cgen_typed_container_functions.xl` |
+| `extlibs/xruntime/include/xrt/typed_tree.h` | OrderedMap<K,V> | language-type | direct | 33 | 21 | `test/cases/stdlib_special_collections.xl` |
+| `extlibs/xruntime/include/xrt/typed_value.h` | typed values used by generic containers | kernel | direct | 32 | 29 | `test/cases/cgen_typed_container_functions.xl` |
 
 ## 扩展延期边界
 

@@ -1,6 +1,6 @@
 #ifndef XL6_LIST_TYPED_READ_INTERNAL_H
 #define XL6_LIST_TYPED_READ_INTERNAL_H
-#include "src/runtime/xl6_list.h"
+#include "xl6_list.h"
 #include "src/api/xl_foreign_error.h"
 /* -1 failure, 0 borrowed wire item, 1 copied native slot. No foreign HANDLE
  * dereference, guessed tuple, whole-list projection or metadata allocation. */

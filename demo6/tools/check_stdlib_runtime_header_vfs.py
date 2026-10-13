@@ -29,6 +29,11 @@ def main():
     images=[Path(row['Path']) for row in build['Products'] if Path(row['Path']).name in
         ('tcc_builtin_resources.c','tcc_builtin_resources_runtime.c')]; assert len(images)==2
     rows=[]
+    compiler_declarations={'__xl_compiler/'+reference for header in headers
+        for reference in re.findall(r'^#\s*include "(include/[^"/]+\.h)"',header.read_text(encoding='utf-8'),re.M)}
+    source_declarations={reference for source in (root/'src').rglob('*')
+        if source.is_file() and source.suffix in ('.c','.h','.inc')
+        for reference in re.findall(r'^#\s*include "(include/[^"/]+\.h)"',source.read_text(encoding='utf-8'),re.M)}
     for image in images:
         text=image.read_text(encoding='utf-8')
         paths=re.findall(r'\{ "([^"\n]+)", tcc_builtin_res_',text)
@@ -39,8 +44,14 @@ def main():
         assert all(path.endswith('.h') for path in private),private
         if image.name=='tcc_builtin_resources_runtime.c':
             assert not any(path.startswith('__xl_compiler/') for path in paths),image
+        else:
+            assert compiler_declarations.issubset(paths),(image,sorted(compiler_declarations-set(paths)))
+            missing={name for name in source_declarations if name not in paths and '__xl_compiler/'+name not in paths}
+            assert not missing,(image,sorted(missing))
         rows.append({'Path':str(image),'Sha256':sha(image),'RuntimeHeaders':len(expected),
-            'PrivateDeclarationPaths':len(private),'AllPaths':len(paths)})
+            'PrivateDeclarationPaths':len(private),'AllPaths':len(paths),
+            'CompilerDeclarationReferences':len(compiler_declarations),
+            'SourceDeclarationReferences':len(source_declarations)})
     for row in build['Inputs']+build['Products']: assert sha(row['Path'])==row['Sha256'],row['Path']
     inputs=build['Inputs']+build['Products']+[{'Path':str(Path(__file__).resolve()),'Sha256':sha(__file__)}]
     out.parent.mkdir(parents=True,exist_ok=True)

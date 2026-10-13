@@ -5,7 +5,7 @@
 #include "xl6_array_reference_value.h"
 #include "src/api/xl_foreign_error.h"
 #if defined(XL6_Q_WAIT)
-#include "src/runtime/xl6_cond_internal.h"
+#include "xl6_cond_internal.h"
 #endif
 #include <limits.h>
 #include <stdlib.h>

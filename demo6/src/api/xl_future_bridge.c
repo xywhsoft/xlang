@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "include/xrt_decl.h"
+#include "include/xruntime_decl.h"
 
 #include "xl_future_bridge.h"
 #include "src/runtime/xl6_future_payload.h"
