@@ -166,6 +166,7 @@
 - `stdlib53-b259-hosted-acceptance.md`：六项专用宿主夹具双端各 309 阶段、3364 次计量生命周期通过，五类损坏报告拒绝；工作线程／图 OOM、卸载压力与完整函数覆盖继续。
 - `stdlib53-b260-native-ssa-async.md`：独立原生 SSA 跨 await 的取得与失败清理、保护借入零额外复制、双端终态／故障前缀与 Linux 插桩；generator 独立 spill 和完整总门继续。
 - `stdlib53-b261-generator-prepare.md`：generator checked 准备／成功提交 V4、原生 SSA 取得与 item 回滚、finally 和双端批量回归；专用宿主压力与发布总门继续。
+- `stdlib53-b262-generator-hosts.md`：关闭路由／首错／帧借入／拥有图专用宿主双端完整执行、原生 Array 拓扑严格检查与 Linux 插桩；卸载和发布总门继续。
 - `XRT与xlang系统整合任务.md`：当前长期整合范围、快照契约、实施顺序和 HTTP/WebSocket 快慢路径边界。
 - `扩展库开发问题清单.md`：六轮扩展库批次发现的语言/编译器/运行时问题账本（P0 崩溃类到 P4 C 库兼容），含最小复现、规避方案与修复优先级。
 - `剩余未压实扩展库清单.md`：删除 22 个占位库后 109 个未压实包的处置规划视图（按编解码改造/平台收编/真外部服务/迁移队列分类）。
