@@ -1,0 +1,22 @@
+auto source = SignalSubscription(signal.INT)
+source.checkOwner()
+try
+    assert signal.raise(signal.INT)
+    auto event = source.next(1000)
+    assert event != null
+    if event != null then
+        assert event.systemCode >= 0 and event.count == uint64(1)
+        assert event.time >= #1970-01-01#
+        assert not event.coalesced and not event.saturated
+    end
+finally
+    source.close()
+    signal.reset()
+end
+
+auto handle = SignalHandle(SignalSubscription(signal.INT), func(SignalEvent event) as bool
+    return event.code == signal.INT
+end, true)
+assert handle.code == signal.INT
+assert handle.close()
+signal.reset()

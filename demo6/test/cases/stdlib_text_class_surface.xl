@@ -1,0 +1,49 @@
+auto iterator = string.splitIter("a\0|你", "|").__iter__()
+auto hasText, text = iterator.__next__()
+assert hasText and text == "a\0"
+hasText, text = iterator.__next__()
+assert hasText and text == "你"
+hasText, text = iterator.__next__()
+assert not hasText and iterator.closed()
+
+auto validator = Utf8Validator()
+assert validator.feed(b"你", true) == unicode.complete and validator.finished
+
+auto regex = Regex("a")
+auto matches = RegexIterator(regex, "a a").__iter__()
+assert matches.hasNext()
+auto snapshot = RegexMatch(matches)
+assert (snapshot.text() ?? "") == "a"
+auto hasMatch, captured = matches.__next__()
+assert hasMatch and captured != null
+hasMatch, captured = matches.__next__()
+assert hasMatch and captured != null
+hasMatch, captured = matches.__next__()
+assert not hasMatch and matches.closed
+
+auto splits = RegexSplitIterator(regex, "xa y").__iter__()
+assert splits.hasNext()
+auto splitSnapshot = RegexSplitPart(splits)
+assert (splitSnapshot.text ?? "") == "x"
+auto hasPart, part = splits.__next__()
+assert hasPart and part != null
+hasPart, part = splits.__next__()
+assert hasPart and part != null
+hasPart, part = splits.__next__()
+assert not hasPart and splits.closed
+
+auto replacer = RegexReplacer(regex, "a\0a")
+assert replacer.run(func() as string
+    auto current = RegexMatch(replacer)
+    assert current.matched and (current.text() ?? "") == "a"
+    return "你"
+end) == "你\0你"
+
+auto stack = FixedStack::<string>(2)
+assert stack.push("a\0b")
+auto hasTop, top = stack.tryPeek()
+assert hasTop and (top ?? "") == "a\0b"
+auto copied = stack.__copy__()
+auto cloned = stack.__clone__()
+stack.clear()
+assert copied.pop() == "a\0b" and cloned.pop() == "a\0b"

@@ -1,0 +1,40 @@
+// Declaration-only input for the actual standard library expander. Do not run.
+// File/IO references select the already approved process stream/file methods.
+Buffer catalogBuffer
+BufferIter catalogBufferIterator
+FixedStack<int> catalogFixedStack
+StringIterator catalogStringIterator
+Utf8Validator catalogValidator
+Regex catalogRegex
+RegexMatch catalogRegexMatch
+RegexIterator catalogRegexIterator
+RegexSplitIterator catalogRegexSplitIterator
+RegexSplitPart catalogRegexSplitPart
+RegexReplacer catalogRegexReplacer
+RegexSet catalogRegexSet
+PatternOptions catalogPatternOptions
+PatternKey catalogPatternKey
+PatternSpec catalogPatternSpec
+Pattern catalogPattern
+PatternMatch catalogPatternMatch
+PatternBuilder catalogPatternBuilder
+DateTime catalogDateTime
+SignalSubscription catalogSignalSubscription
+SignalEvent catalogSignalEvent
+SignalHandle catalogSignalHandle
+ProcessRunOptions catalogProcessOptions
+ProcessResult catalogProcessResult
+ProcessExitStatus catalogProcessStatus
+ProcessCommand catalogProcessCommand
+Process catalogProcess
+ProcessPipeline catalogPipeline
+PipelineResult catalogPipelineResult
+ProcessStageResult catalogProcessStage
+File catalogProcessFile
+IoReader catalogProcessReader
+IoWriter catalogProcessWriter
+func selectProcessStreams(Process process)
+    process.stdinWriter()
+    process.stdoutReader()
+    process.stderrReader()
+end

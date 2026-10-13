@@ -1,0 +1,81 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+func require(bool condition, string message)
+    if not condition then throw RuntimeError message end
+end
+assert child != ""
+auto command = ProcessCommand(child, ["echo"])
+auto options = ProcessRunOptions(5000)
+auto result = ProcessResult(command, options, b"a\0你")
+require(result.success and result.stdout == b"a\0你", "direct result")
+require(result.readStderr() == b"E\0R", "stderr result")
+require(result.durationMs == result.duration / uint64(1000), "result duration")
+auto status = ProcessExitStatus(result)
+assert status.code == 0
+
+auto pipeline = ProcessPipeline()
+pipeline.add(command)
+auto pipelineResult = PipelineResult(pipeline, options, b"z\0你")
+require(pipelineResult.success and pipelineResult.stdout == b"z\0你", "pipeline result")
+require(pipelineResult.durationMs == pipelineResult.duration / uint64(1000), "pipeline duration")
+auto stage = ProcessStageResult(pipelineResult, 0)
+assert stage.success and stage.stderr == b"E\0R"
+assert ProcessExitStatus(stage).code == 0
+
+auto output = file.temp()
+auto redirected = ProcessCommand(child, ["exit", "0"])
+redirected.redirect(process.stdout, output)
+auto live = Process(redirected)
+auto waited = live.wait(5000)
+assert waited != null and ProcessExitStatus(live).code == 0
+assert output.close()
+
+func stoppedChild(string path, int operation)
+    // Terminate is a graceful request, not a promise that an arbitrary child
+    // obeys Ctrl+Break/SIGTERM. The echo helper cooperates with stdin closure.
+    array<string> args = ["sleep", "10000"]
+    if operation == 0 then args = ["echo"] end
+    auto command = ProcessCommand(path, args)
+    command.processGroup()
+    auto child = Process(command)
+    try
+        if operation == 0 then
+            require(child.terminate(), "terminate child")
+        elseif operation == 1 then
+            require(child.close(process.stdin), "close stdin")
+            require(child.kill(), "kill child")
+        else
+            require(child.close(process.stdin), "close stdin for tree")
+            require(child.killTree(), "kill child tree")
+        end
+        require(child.wait(5000) != null and not child.running, "wait stopped child " + string(operation))
+    finally
+        if child.running then child.kill() end
+        require(child.wait(5000) != null, "final wait stopped child")
+    end
+end
+stoppedChild(child, 0)
+stoppedChild(child, 1)
+stoppedChild(child, 2)
+
+// A process without an independent group must not broadcast Ctrl+Break.
+// POSIX still permits a targeted interrupt of this one controlled child.
+auto interruptCommand = ProcessCommand(child, ["sleep", "10000"])
+interruptCommand.processGroup(false)
+auto interrupted = Process(interruptCommand)
+try
+    bool accepted = false
+    try
+        accepted = interrupted.interrupt()
+    catch e
+        if e.kind != "NotImplementedError" then
+            throw RuntimeError "unexpected interrupt error: " + e.kind
+        end
+    end
+    if accepted then require(interrupted.wait(5000) != null, "wait interrupted child") end
+finally
+    if interrupted.running then interrupted.kill() end
+    assert interrupted.wait(5000) != null
+end
+
+auto shellCommand = ProcessCommand("exit 0")
+require(shellCommand.run(options).success, "shell command")

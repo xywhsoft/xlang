@@ -18,6 +18,7 @@ HOSTED={
  'stdlib_stack_clear_error':'native destruction/error injection host',
  'stdlib_stack_clear_error_continuation':'native destruction/error injection host',
 }
+FIXTURE_C_SUPPORT={'stdlib_buffer_class_surface':'stdlib_buffer_surface_support.c'}
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -34,6 +35,9 @@ def main():
     manifest,sdk,_=stage_private_sdk(root)
     child_source=root/'test/cases/xlir_process_child.c';expect=root/'test/cases/stdlib_string_support.c'
     pinned.update((Path(__file__).resolve(),Path(cc),child_source,expect,manifest,*sources))
+    pinned.update(root/'test/cases'/name for name in FIXTURE_C_SUPPORT.values())
+    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    pinned.add(runtime)
     pinned.update(Path(row[k]) for row in sdk for k in ('Source','Path'))
     inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(pinned)]
     out.mkdir();env=dict(os.environ);ext='.exe' if os.name=='nt' else ''
@@ -71,6 +75,7 @@ def main():
         if 'XL6_PERSIST_FILE_ROOT' in text:
             files=directory/'files';files.mkdir();local_env['XL6_PERSIST_FILE_ROOT']=str(files)
         sidecars=[expect] if externs&{'expect_i64','expect_str'} else []
+        if source.stem in FIXTURE_C_SUPPORT:sidecars.append(root/'test/cases'/FIXTURE_C_SUPPORT[source.stem])
         modes=['cgen-default'] if source.stem in NEGATIVE else (['run','module'] if a.mode=='both' else [a.mode])
         lock=mutable if source.stem.startswith('stdlib_process') or re.search(r'\b(file|dir)\.',text) else None
         if lock:lock.acquire()
