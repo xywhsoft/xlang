@@ -14359,6 +14359,7 @@ static XL6_IrDynamicMethodDefaultAbi xl6IrLowerDynamicMethodDefaultAbi(
         return expression->sourceKind == XL6_AST_STRING
             ? XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING
             : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
+    case XL6_IR_C_ABI_MANAGED_BYTES:
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
         return expression->sourceKind == XL6_AST_NULL
             ? XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL

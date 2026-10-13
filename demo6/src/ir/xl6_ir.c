@@ -12950,6 +12950,7 @@ static int xl6IrDynamicMethodAdapterTypeSupported(
         return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
     case XL6_IR_C_ABI_MANAGED_STRING:
         return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
+    case XL6_IR_C_ABI_MANAGED_BYTES:
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
         return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
     default:
@@ -12972,6 +12973,7 @@ static int xl6IrDynamicMethodParameterAbiSupported(
         return abi == XL6_IR_PARAMETER_ABI_VALUE &&
                variadicAbi == XL6_IR_CALL_VARIADIC_NONE;
     if ( type->cAbi != XL6_IR_C_ABI_MANAGED_STRING &&
+         type->cAbi != XL6_IR_C_ABI_MANAGED_BYTES &&
          type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) return 0;
     if ( abi != XL6_IR_PARAMETER_ABI_BORROW &&
          abi != XL6_IR_PARAMETER_ABI_OWNED ) return 0;
@@ -12989,6 +12991,13 @@ static XL6_IrDynamicMethodMatchAbi xl6IrDynamicMethodMatchAbiForType(
 {
     const XL6_IrType* type = xl6IrTypeGet(&module->types, typeId);
     if ( type == NULL ) return XL6_IR_DYNAMIC_METHOD_MATCH_INVALID;
+    const XL6_IrType* domain = type;
+    if ( type->kind == XL6_IR_TYPE_NULLABLE )
+        domain = type->paramCount == 1 && type->params != NULL
+            ? xl6IrTypeGet(&module->types, type->params[0]) : NULL;
+    if ( domain == NULL ) return XL6_IR_DYNAMIC_METHOD_MATCH_INVALID;
+    if ( domain->nominalSymbol != 0 )
+        return XL6_IR_DYNAMIC_METHOD_MATCH_NOMINAL;
     switch ( type->cAbi ) {
     case XL6_IR_C_ABI_BOOL: return XL6_IR_DYNAMIC_METHOD_MATCH_BOOL;
     case XL6_IR_C_ABI_CHAR_U32: return XL6_IR_DYNAMIC_METHOD_MATCH_CHAR;
@@ -12998,8 +13007,17 @@ static XL6_IrDynamicMethodMatchAbi xl6IrDynamicMethodMatchAbiForType(
     case XL6_IR_C_ABI_TIME_I64: return XL6_IR_DYNAMIC_METHOD_MATCH_TIME;
     case XL6_IR_C_ABI_MANAGED_STRING:
         return XL6_IR_DYNAMIC_METHOD_MATCH_STRING;
+    case XL6_IR_C_ABI_MANAGED_BYTES:
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
-        return XL6_IR_DYNAMIC_METHOD_MATCH_ANY_XVALUE;
+        if ( type->xvalueAdmissionAbi == XL6_VALUE_ADMIT_ANY )
+            return XL6_IR_DYNAMIC_METHOD_MATCH_ANY_XVALUE;
+        if ( type->xvalueAdmissionAbi != XL6_VALUE_ADMIT_NONE )
+            return XL6_IR_DYNAMIC_METHOD_MATCH_VALUE_DOMAIN;
+        if ( domain->typeValueId != 0 &&
+             (domain->collectionAbi != XL6_IR_COLLECTION_NONE ||
+              domain->runtimeResourceAbi != XL6_IR_RUNTIME_RESOURCE_NONE) )
+            return XL6_IR_DYNAMIC_METHOD_MATCH_EXACT_IDENTITY;
+        return XL6_IR_DYNAMIC_METHOD_MATCH_INVALID;
     default:
         return XL6_IR_DYNAMIC_METHOD_MATCH_INVALID;
     }
@@ -13013,7 +13031,8 @@ static XL6_IrDynamicMethodDefaultAbi xl6IrDynamicMethodLiteralDefaultAbi(
     const XL6_IrNode* expression = xl6IrNodeGet(module, expressionId);
     if ( type == NULL || expression == NULL || expression->text == NULL ) {
         if ( type != NULL && expression != NULL &&
-             type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+             (type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+              type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES) &&
              expression->sourceKind == XL6_AST_NULL )
             return XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL;
         return XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
@@ -13051,6 +13070,7 @@ static XL6_IrDynamicMethodDefaultAbi xl6IrDynamicMethodLiteralDefaultAbi(
         return expression->sourceKind == XL6_AST_STRING
             ? XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING
             : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
+    case XL6_IR_C_ABI_MANAGED_BYTES:
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
         return expression->sourceKind == XL6_AST_NULL
             ? XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL
@@ -13165,6 +13185,7 @@ static int xl6IrBuildDynamicMethodAppend(
         }
         if ( !xl6IrDynamicMethodParameterAbiSupported(
                  module, item->type, item->abi, item->variadicAbi) ||
+             item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_INVALID ||
              !xl6IrDynamicMethodAdapterTypeSupported(
                  module, item->type, 0) ||
              item->variadicAbi == XL6_IR_CALL_VARIADIC_C ||
@@ -13304,6 +13325,7 @@ int xl6IrRebindDynamicMethodSpecialization(
         }
         if ( !xl6IrDynamicMethodParameterAbiSupported(
                  module, item->type, item->abi, item->variadicAbi) ||
+             item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_INVALID ||
              !xl6IrDynamicMethodAdapterTypeSupported(
                  module, item->type, 0) ||
              item->variadicAbi == XL6_IR_CALL_VARIADIC_C ||
@@ -25414,6 +25436,7 @@ static int xl6IrVerifyDynamicMethodRegistry(
             }
             if ( !xl6IrDynamicMethodParameterAbiSupported(
                      module, item->type, item->abi, itemVariadic) ||
+                 item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_INVALID ||
                  !xl6IrDynamicMethodAdapterTypeSupported(
                      module, item->type, 0) ||
                  itemVariadic == XL6_IR_CALL_VARIADIC_C ||
@@ -45844,6 +45867,9 @@ static const char* xl6IrDynamicMethodMatchAbiName(
     case XL6_IR_DYNAMIC_METHOD_MATCH_TIME: return "time";
     case XL6_IR_DYNAMIC_METHOD_MATCH_STRING: return "string";
     case XL6_IR_DYNAMIC_METHOD_MATCH_CHAR: return "char";
+    case XL6_IR_DYNAMIC_METHOD_MATCH_VALUE_DOMAIN: return "value-domain";
+    case XL6_IR_DYNAMIC_METHOD_MATCH_NOMINAL: return "nominal";
+    case XL6_IR_DYNAMIC_METHOD_MATCH_EXACT_IDENTITY: return "exact-identity";
     default: return "invalid";
     }
 }

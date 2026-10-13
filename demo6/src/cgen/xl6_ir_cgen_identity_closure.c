@@ -45,6 +45,19 @@ static int xl6IrCgenNominalIdentitySetUsed(
 {
     size_t instructionIndex;
     if ( module == NULL || set == NULL ) return 0;
+    for ( size_t methodIndex = 0; methodIndex < module->dynamicMethodCount; ++methodIndex ) {
+        const XL6_IrDynamicMethod* method = &module->dynamicMethods[methodIndex];
+        if ( !xl6IrCgenDynamicMethodNeeded(module, methodIndex) ) continue;
+        for ( size_t p = 0; p < method->fixedParameterCount; ++p ) {
+            const XL6_IrDynamicMethodParameter* item =
+                &module->dynamicMethodParameters[method->firstParameter + p];
+            const XL6_IrType* type = xl6IrTypeGet(&module->types, item->type);
+            XL6_IrTypeId base = type != NULL && type->kind == XL6_IR_TYPE_NULLABLE
+                ? type->params[0] : item->type;
+            if ( item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_NOMINAL &&
+                 set->targetType == base ) return 1;
+        }
+    }
     for ( instructionIndex = 0;
           instructionIndex < module->instructionCount; ++instructionIndex ) {
         const XL6_IrInstruction* instruction =
