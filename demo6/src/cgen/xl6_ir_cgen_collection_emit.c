@@ -559,6 +559,22 @@ static int xl6IrCgenEmitStackRuntime(
     const char* payloadAbi;
     const char* runtimeType;
     XL6_IrValueId first;
+    if (instruction && instruction->runtimeOp==XL6_IR_RUNTIME_STACK_ERASE) {
+        if (!xl6IrStackErasureInstructionCompatible(module,instruction)) return -1;
+        const XL6_IrType* sealed=xl6IrTypeGet(&module->types,instruction->runtimeIdentityType);
+        const XL6_IrType* element=xl6IrTypeGet(&module->types,instruction->payloadType);
+        XL6_IrValueId input=module->operands[instruction->firstOperand];
+        const XL6_IrType* source=xl6IrTypeGet(&module->types,xl6IrCgenValueDefinition(module,input,NULL)->type);
+        const char* descriptor=xl6IrCgenNativeSlotTypeExpr(sealed->sequenceLayout.slotAbi);
+        const char* converter=sealed->sequenceLayout.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN
+            ? "NULL" : xl6IrCgenNativeValueConverterExpr(module,instruction->payloadType);
+        if (!descriptor || !converter) return -1;
+        xl6OutputPrintf(out,"    v%u = xl6StackEraseTakeV1(v%u, 0x%016llXULL, 0x%016llXULL, %s, %s->Size, %s, %s, %s);\n    v%u = NULL;\n",
+            (unsigned)instruction->result,(unsigned)input,(unsigned long long)sealed->typeValueId,
+            (unsigned long long)element->typeValueId,xl6IrCgenSequenceTransferAbiToken(sealed->sequenceLayout.transferAbi),
+            descriptor,descriptor,converter,source->kind==XL6_IR_TYPE_NULLABLE ? "true" : "false",(unsigned)input);
+        return xl6OutputHasFailed(out) ? -1 : 1;
+    }
     if ( instruction == NULL ||
          !xl6IrCgenStackRuntimeOpIs(instruction->runtimeOp) ) return 0;
     if ( !xl6IrCgenRuntimeStackAbi(module, instruction) ) return -1;

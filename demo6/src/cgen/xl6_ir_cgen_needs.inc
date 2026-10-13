@@ -44,6 +44,7 @@ XL6_IR_CGEN_NEED(int, needsMpscQueueRuntime, MPSC_QUEUE)
 XL6_IR_CGEN_NEED(int, needsMpmcQueueRuntime, MPMC_QUEUE)
 /* Declaration-only; selected resident providers own their native roots. */
 XL6_IR_CGEN_NEED(int, needsStackResourceRuntime, NONE)
+XL6_IR_CGEN_NEED(int, needsStackEraseRuntime, NONE)
 XL6_IR_CGEN_NEED(int, needsStackCallableRuntime, NONE)
 XL6_IR_CGEN_NEED(int, needsArrayImportRuntime, NONE)
 XL6_IR_CGEN_NEED(int, needsArrayCreateRuntime, NONE)

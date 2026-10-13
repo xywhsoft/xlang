@@ -683,6 +683,12 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
             needs->needsXValueTypeIdentityRuntime = 1;
             needs->needsErrorRuntime = 1;
         }
+        if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_STACK_ERASE) {
+            if (!xl6IrStackErasureInstructionCompatible(module,&module->instructions[i])) return 0;
+            needs->needsStackEraseRuntime=needs->needsXValueRuntime=needs->needsXValueHandleRuntime=1;
+            needs->needsXValueTypeIdentityRuntime=needs->needsErrorRuntime=needs->needsForeignErrorRuntime=1;
+            if (!xl6IrCgenAnalyzeSequenceRecipeNeeds(module,module->instructions[i].runtimeIdentityType,needs,0)) return 0;
+        }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              xl6IrCgenAvlRuntimeOpIs(
                  module->instructions[i].runtimeOp) ) {

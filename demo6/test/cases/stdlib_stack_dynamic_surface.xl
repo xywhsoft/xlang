@@ -1,0 +1,68 @@
+class ErasedStackItem
+    int value = 19
+end
+
+func stackAsValue(Stack<int> source) as var
+    return source
+end
+
+Stack<int> integers = Stack::<int>()
+var stack = integers
+assert bool(stack.push(7))
+assert bool(stack.push(11))
+assert int(stack.count()) == 2
+assert int(stack.capacity()) >= 2
+assert int(stack.peek()) == 11
+assert int(stack.peekAt(1)) == 7
+var copy = stack.clone()
+assert int(copy.pop()) == 11
+assert int(copy.count()) == 1
+assert int(stack.count()) == 2
+assert bool(stack.reserve(20))
+assert int(stack.capacity()) >= 20
+assert bool(stack.trim())
+assert int(stack.count()) == 2
+var returned = stackAsValue(integers)
+assert int(returned.pop()) == 11
+assert integers.count() == 1
+assert bool(returned.clear())
+assert integers.count() == 0
+
+var texts = Stack::<string>()
+assert bool(texts.push("a\0你"))
+assert string(texts.peek()) == "a\0你"
+assert string(texts.pop()) == "a\0你"
+assert int(texts.count()) == 0
+
+var chars = Stack::<char>()
+assert bool(chars.push('你'))
+assert chars.pop() == '你'
+
+var octets = Stack::<bytes>()
+bytes original = b"a\0b"
+assert bool(octets.push(original))
+bytes read = octets.peek() as bytes
+read[0] = 90
+assert (octets.pop() as bytes) == b"a\0b"
+assert original == b"a\0b"
+
+var optional = Stack::<int?>()
+assert bool(optional.push(null))
+assert bool(optional.push(23))
+assert int(optional.pop()) == 23
+assert optional.pop() == null
+
+var objects = Stack::<ErasedStackItem>()
+auto item = ErasedStackItem()
+assert bool(objects.push(item))
+auto recovered = objects.pop() as ErasedStackItem
+recovered.value = 31
+assert item.value == 31
+
+Stack<int>? absent = null
+var erasedAbsent = absent
+assert erasedAbsent == null
+Stack<int>? present = integers
+var erasedPresent = present
+assert bool(erasedPresent.push(37))
+assert integers.pop() == 37

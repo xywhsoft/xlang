@@ -711,6 +711,11 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_CREATE || instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_CREATE ||
              instruction->runtimeOp==XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN) &&
             !xl6IrCgenVisitSequenceFactorySymbols(module,instruction->type,visitor,context,0,false)) return 0;
+        if (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_ERASE && xl6IrCgenInstructionIsReachable(module,i)) {
+            const XL6_IrType* sealed=xl6IrTypeGet(&module->types,instruction->runtimeIdentityType);
+            if (!xl6IrStackErasureInstructionCompatible(module,instruction) || !visitor(context,"xl6StackEraseTakeV1") ||
+                !xl6IrCgenVisitSlotProviders(sealed->sequenceLayout.slotAbi,1,visitor,context)) return 0;
+        }
         if(xl6IrCgenInstructionIsReachable(module,i) &&
             (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_POP || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK ||
              instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK_AT || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_POP ||

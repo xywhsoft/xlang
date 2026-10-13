@@ -636,6 +636,7 @@ static int xl6IrCgenVerifyInstructions(
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_TAKE &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_BORROW &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_RAW_POINTER_BORROW &&
+                   instruction->runtimeOp != XL6_IR_RUNTIME_STACK_ERASE &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_RETAIN &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_BYTES_RETAIN &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_CLONE &&
