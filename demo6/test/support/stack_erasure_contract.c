@@ -28,6 +28,11 @@ int main(int argc,char** argv)
         assert(xl6IrCallInstructionErrorPhysicalAbi(&unit.ir,instruction)==XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT);
         instruction->runtimeIdentityType=XL6_IR_TYPE_INVALID; reject(&unit.ir); ++mutations; *instruction=saved;
         instruction->payloadType=XL6_IR_TYPE_INVALID; reject(&unit.ir); ++mutations; *instruction=saved;
+        instruction->sequenceResultArrayType=XL6_IR_TYPE_INVALID; reject(&unit.ir); ++mutations; *instruction=saved;
+        instruction->sequenceResultArrayType=instruction->runtimeIdentityType; reject(&unit.ir); ++mutations; *instruction=saved;
+        XL6_IrType* array=(XL6_IrType*)xl6IrTypeGet(&unit.ir.types,instruction->sequenceResultArrayType);
+        XL6_IrTypeId element=array->params[0]; array->params[0]=XL6_IR_TYPE_INVALID;
+        reject(&unit.ir); ++mutations; array->params[0]=element;
         instruction->operandCount=0; reject(&unit.ir); ++mutations; *instruction=saved;
         instruction->type=instruction->runtimeIdentityType; reject(&unit.ir); ++mutations; *instruction=saved;
         instruction->kind=XL6_IR_INSTR_VALUE; instruction->runtimeOp=XL6_IR_RUNTIME_NONE;
@@ -37,7 +42,7 @@ int main(int argc,char** argv)
         XL6_IrSequenceRoleAbi role=stack->sequenceLayout.role;
         stack->sequenceLayout.role=XL6_IR_SEQUENCE_ROLE_ARRAY; reject(&unit.ir); ++mutations; stack->sequenceLayout.role=role;
     }
-    assert(count>=6 && mutations==count*6);
+    assert(count>=6 && mutations==count*9);
     assert(xl6IrVerifyModule(&unit.ir,&unit.parse.diags));
     printf("Stack erasure boundaries=%zu mutations=%zu rejected before output\n",count,mutations);
     xl6CompileUnitFree(&unit); return 0;

@@ -181,6 +181,11 @@ XL6_TEXT_API int xl6SequenceBeginErasedArrayV1(const xvalue*, XL6_Sequence**, XL
  * function publishes a raw slot borrow or retains generated-code callbacks. */
 XL6_TEXT_API bool xl6SequenceBindProjectionRoleV1(XL6_Sequence*, XL6_SequenceRoleV1, const xvalueconverter*);
 XL6_TEXT_API int xl6SequenceBeginErasedRoleV1(const xvalue*, XL6_SequenceRoleV1, XL6_Sequence**, XL6_SequenceLayoutV1*, const xvalueconverter**);
+/* STACK pin only. Immutable module-independent canonical array<T> identity,
+ * copied with clone. Binding requires a bound projection; rebind is refused.
+ * Zero means not supplied by an old low-level native erasure, never inferred. */
+XL6_TEXT_API bool xl6SequenceBindStackResultArrayV1(XL6_Sequence*,uint64_t);
+XL6_TEXT_API uint64_t xl6SequenceStackResultArrayV1(XL6_Sequence*);
 /* Captured Handle fields from XRT's guarded graph callback. Exact resident
  * ops are checked BEFORE the opaque pointer is dereferenced. The source
  * Value is BUSY, so a public GetHandle probe is deliberately not used.

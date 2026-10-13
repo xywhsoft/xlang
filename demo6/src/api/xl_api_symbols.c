@@ -25,6 +25,7 @@
 #include "src/runtime/xl6_text_value.h"
 #include "src/runtime/xl6_stack.h"
 #include "src/runtime/xl6_stack_erased.h"
+#include "src/runtime/xl6_stack_erased_methods.h"
 #include "src/runtime/xl6_char_checked.h"
 #include "src/runtime/xl6_stack_callable.h"
 #include "src/runtime/xl6_stack_batch.h"

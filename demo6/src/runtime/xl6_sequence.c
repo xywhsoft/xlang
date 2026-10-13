@@ -66,6 +66,7 @@ struct XL6_Sequence {
     XL6_SequenceRoleV1 role;
     bool projectionBound;
     const xvalueconverter* projection;
+    uint64_t resultArrayIdentity;
     XL6_SequenceAdmissionV3 admission;
     /* One-way release publication of the immutable admission capability.
      * Nested domain probes acquire this flag without pinning child storage. */
@@ -450,6 +451,23 @@ bool xl6SequenceBindProjectionRoleV1(XL6_Sequence* owner, XL6_SequenceRoleV1 rol
 }
 bool xl6SequenceBindProjectionV1(XL6_Sequence* owner, const xvalueconverter* converter)
 { return xl6SequenceBindProjectionRoleV1(owner,XL6_SEQUENCE_ARRAY_V1,converter); }
+bool xl6SequenceBindStackResultArrayV1(XL6_Sequence* owner,uint64_t identity)
+{
+    if (!owner || owner->role!=XL6_SEQUENCE_STACK_V1 || !identity ||
+        !xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE) || !owner->projectionBound || owner->cleared ||
+        (owner->resultArrayIdentity && owner->resultArrayIdentity!=identity)) {
+        xrtSetErrorKind(XERR_ARGUMENT); return false;
+    }
+    owner->resultArrayIdentity=identity; return true;
+}
+uint64_t xl6SequenceStackResultArrayV1(XL6_Sequence* owner)
+{
+    if (!owner || owner->role!=XL6_SEQUENCE_STACK_V1 ||
+        !xrtAtomic32Load(&owner->busy,XMEMORY_ACQUIRE) || owner->cleared || !owner->resultArrayIdentity) {
+        xrtSetErrorKind(XERR_STATE); return 0;
+    }
+    return owner->resultArrayIdentity;
+}
 int xl6SequenceBeginErasedRoleV1(const xvalue* value, XL6_SequenceRoleV1 role, XL6_Sequence** result,
     XL6_SequenceLayoutV1* layout, const xvalueconverter** converter)
 {
@@ -695,6 +713,8 @@ static xvalue* copyPinned(XL6_Sequence* owner, XL6_Sequence* append)
         XL6_Sequence* target=xl6SequenceBeginRoleV1(result,owner->role,owner->identity,
             owner->elementIdentity,owner->transfer,owner->size,owner->type);
         bool ok=target && xl6SequenceBindProjectionRoleV1(target,owner->role,owner->projection);
+        if (ok && owner->role==XL6_SEQUENCE_STACK_V1 && owner->resultArrayIdentity)
+            ok=xl6SequenceBindStackResultArrayV1(target,owner->resultArrayIdentity);
         if (target) xl6SequenceEndV1(target);
         if (!ok) {
             xerror* failure=xrtTakeError(); xrtValueRelease(result); result=NULL;

@@ -2,6 +2,7 @@
 #include "src/runtime/xl6_text_value.h"
 #include "src/runtime/xl6_array_erased.h"
 #include "src/runtime/xl6_stack_erased.h"
+#include "src/runtime/xl6_stack_erased_methods.h"
 #include "src/runtime/xl6_stack.h"
 #include "src/runtime/xl6_array_methods.h"
 #include "src/runtime/xl6_list.h"
@@ -20,12 +21,15 @@ bool xl6DynamicCollectionArityV1(unsigned operation,size_t count)
     case XL6_DYNAMIC_COLLECTION_COUNT: case XL6_DYNAMIC_COLLECTION_CAPACITY:
     case XL6_DYNAMIC_COLLECTION_PEEK: case XL6_DYNAMIC_COLLECTION_TRIM:
     case XL6_DYNAMIC_COLLECTION_CLONE: return count==0;
-    case XL6_DYNAMIC_COLLECTION_INSERT: case XL6_DYNAMIC_COLLECTION_SWAP: return count==2;
+    case XL6_DYNAMIC_COLLECTION_INSERT: case XL6_DYNAMIC_COLLECTION_SWAP:
+    case XL6_DYNAMIC_COLLECTION_PEEK_BATCH_AT: return count==2;
     case XL6_DYNAMIC_COLLECTION_REMOVE: return count==1 || count==2;
     case XL6_DYNAMIC_COLLECTION_PUSH: case XL6_DYNAMIC_COLLECTION_REMOVE_VALUE:
     case XL6_DYNAMIC_COLLECTION_TAKE: case XL6_DYNAMIC_COLLECTION_RESERVE:
     case XL6_DYNAMIC_COLLECTION_ADD: case XL6_DYNAMIC_COLLECTION_CONTAINS:
-    case XL6_DYNAMIC_COLLECTION_INDEX_OF: case XL6_DYNAMIC_COLLECTION_PEEK_AT: return count==1;
+    case XL6_DYNAMIC_COLLECTION_INDEX_OF: case XL6_DYNAMIC_COLLECTION_PEEK_AT:
+    case XL6_DYNAMIC_COLLECTION_PUSH_BATCH: case XL6_DYNAMIC_COLLECTION_POP_BATCH:
+    case XL6_DYNAMIC_COLLECTION_PEEK_BATCH: case XL6_DYNAMIC_COLLECTION_EQUALS: return count==1;
     default: return false;
     }
 }
@@ -199,6 +203,19 @@ xvalue* xl6DynamicCollectionCallTakeV1(xvalue* source,unsigned operation,xvalue*
         case XL6_DYNAMIC_COLLECTION_CLONE:
             if (stack) result=xl6StackCloneV1(source,STACK_LAYOUT);
             else xrtSetErrorKind(XERR_TYPE);
+            ok=result!=NULL; break;
+        case XL6_DYNAMIC_COLLECTION_PUSH_BATCH:
+        case XL6_DYNAMIC_COLLECTION_POP_BATCH:
+        case XL6_DYNAMIC_COLLECTION_PEEK_BATCH:
+        case XL6_DYNAMIC_COLLECTION_PEEK_BATCH_AT:
+        case XL6_DYNAMIC_COLLECTION_EQUALS:
+            if (stack) {
+                unsigned native=operation==XL6_DYNAMIC_COLLECTION_PUSH_BATCH ? XL6_STACK_ERASED_PUSH_BATCH :
+                    operation==XL6_DYNAMIC_COLLECTION_POP_BATCH ? XL6_STACK_ERASED_POP_BATCH :
+                    operation==XL6_DYNAMIC_COLLECTION_PEEK_BATCH ? XL6_STACK_ERASED_PEEK_BATCH :
+                    operation==XL6_DYNAMIC_COLLECTION_PEEK_BATCH_AT ? XL6_STACK_ERASED_PEEK_BATCH_AT : XL6_STACK_ERASED_EQUALS;
+                result=xl6StackErasedMethodV1(source,native,arg0,arg1);
+            } else xrtSetErrorKind(XERR_TYPE);
             ok=result!=NULL; break;
         }
 #undef STACK_LAYOUT

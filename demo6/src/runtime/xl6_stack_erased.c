@@ -82,6 +82,9 @@ bool xl6StackErasedPushV1(const xvalue* source, const xvalue* item)
 }
 xvalue* xl6StackEraseTakeV1(xvalue* source,uint64_t identity,uint64_t elementIdentity,
     unsigned int transfer,size_t size,const xrttype* type,const xvalueconverter* converter,bool nullable)
+{ return xl6StackEraseTakeV2(source,identity,elementIdentity,transfer,size,type,converter,nullable,0); }
+xvalue* xl6StackEraseTakeV2(xvalue* source,uint64_t identity,uint64_t elementIdentity,
+    unsigned int transfer,size_t size,const xrttype* type,const xvalueconverter* converter,bool nullable,uint64_t arrayIdentity)
 {
     xl6_error_scope scope={0};
     if (!enter(&scope)) {
@@ -95,6 +98,12 @@ xvalue* xl6StackEraseTakeV1(xvalue* source,uint64_t identity,uint64_t elementIde
         return NULL;
     }
     xvalue* result=xl6StackEraseV2(source,identity,elementIdentity,transfer,size,type,converter,nullable);
+    if (result && arrayIdentity && xrtValueType(result)!=XVALUE_NULL && !scope.failed) {
+        XL6_Sequence* pin=xl6SequenceBeginRoleV1(result,XL6_SEQUENCE_STACK_V1,identity,elementIdentity,transfer,size,type);
+        bool ok=pin && xl6SequenceBindStackResultArrayV1(pin,arrayIdentity);
+        if(pin)xl6SequenceEndV1(pin);
+        if(!ok)xl6ErrorScopeCaptureFailure(&scope);
+    }
     if (!result || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
     xrtValueRelease(source);
     return finish(&scope,result);
