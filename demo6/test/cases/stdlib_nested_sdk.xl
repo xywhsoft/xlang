@@ -1,0 +1,18 @@
+import xlang
+
+auto context = xlang.Context()
+assert context.run("assert 40 + 2 == 42"), context.lastError
+assert xlang.run("assert 21 * 2 == 42")
+assert not context.run("int broken = missingNestedName")
+assert context.lastError != ""
+assert context.run("string text = \"a\\0b\"\nassert text.length == 3"), context.lastError
+
+auto isolated = env.get("XL6_NESTED_SDK_WORK")
+if isolated != null then
+    assert context.setWorkDir(isolated)
+    assert context.run("assert 6 * 7 == 42"), context.lastError
+    auto other = xlang.Context()
+    assert other.setWorkDir(isolated)
+    assert other.run("assert 42 == 42"), other.lastError
+end
+println("nested SDK: PASS")

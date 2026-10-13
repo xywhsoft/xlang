@@ -161,6 +161,7 @@
 - `stdlib53-b254-runtime-discovery.md`：Dict 命名空间和 PatternBuilder 私有状态表示边界修复；双端实际运行把七个失败收缩为一个嵌套编译器 SDK 问题，专用宿主与发布总门继续。
 - `stdlib53-b255-wait-queue-native.md`：独立 typed MPMC 等待底座复用队列与 Sync 生命周期；双端并发、Future 图、故障前缀和坏实现控制通过，WaitQueue 语言切换仍继续。
 - `stdlib53-b256-wait-queue-owned.md`：WaitQueue 状态与拥有接收完成语言接线，旧 Into 和生成队列算法清退；双端 52 阶段、301 夹具严格 C 通过，嵌套 SDK 和发布总门继续。
+- `stdlib53-b257-nested-sdk.md`：默认与嵌套 Context 自动解析模块旁 SDK；双端专项各 13 阶段、301 项声明与实际执行零失败，生成资源和发布总门继续。
 - `XRT与xlang系统整合任务.md`：当前长期整合范围、快照契约、实施顺序和 HTTP/WebSocket 快慢路径边界。
 - `扩展库开发问题清单.md`：六轮扩展库批次发现的语言/编译器/运行时问题账本（P0 崩溃类到 P4 C 库兼容），含最小复现、规避方案与修复优先级。
 - `剩余未压实扩展库清单.md`：删除 22 个占位库后 109 个未压实包的处置规划视图（按编解码改造/平台收编/真外部服务/迁移队列分类）。
