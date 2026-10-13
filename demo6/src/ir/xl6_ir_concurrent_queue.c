@@ -2,6 +2,29 @@
  * contract shared by Typed XLIR, lowering, verification and C emission.
  * In particular a closure's invocation ABI is NOT its resident slot ABI. */
 
+static const XL6_IrWaitQueueReceiveSpec xl6WaitQueueReceiveSpecs[]={
+#define XL6_WAIT_QUEUE_RECEIVE_OP(Name,Op,Mode,Timed) {Name,XL6_IR_RUNTIME_RESOURCE_OP_##Op,XL6_IR_RUNTIME_##Op,Mode,Timed},
+#include "src/abi/xl6_wait_queue_receive_ops.inc"
+#undef XL6_WAIT_QUEUE_RECEIVE_OP
+};
+const XL6_IrWaitQueueReceiveSpec* xl6IrWaitQueueReceiveMethod(const char* name)
+{
+    for(size_t i=0;name && i<sizeof(xl6WaitQueueReceiveSpecs)/sizeof(*xl6WaitQueueReceiveSpecs);++i)
+        if(!strcmp(name,xl6WaitQueueReceiveSpecs[i].name))return &xl6WaitQueueReceiveSpecs[i];
+    return NULL;
+}
+const XL6_IrWaitQueueReceiveSpec* xl6IrWaitQueueReceiveResource(XL6_IrRuntimeResourceOp op)
+{
+    for(size_t i=0;i<sizeof(xl6WaitQueueReceiveSpecs)/sizeof(*xl6WaitQueueReceiveSpecs);++i)
+        if(op==xl6WaitQueueReceiveSpecs[i].source)return &xl6WaitQueueReceiveSpecs[i];
+    return NULL;
+}
+const XL6_IrWaitQueueReceiveSpec* xl6IrWaitQueueReceiveRuntime(XL6_IrRuntimeOp op)
+{
+    for(size_t i=0;i<sizeof(xl6WaitQueueReceiveSpecs)/sizeof(*xl6WaitQueueReceiveSpecs);++i)
+        if(op==xl6WaitQueueReceiveSpecs[i].runtime)return &xl6WaitQueueReceiveSpecs[i];
+    return NULL;
+}
 static int xl6IrConcurrentQueueIntegerType(const XL6_IrModule* module,XL6_IrTypeId id)
 {
     const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,id) : NULL;
@@ -81,15 +104,22 @@ static int xl6IrConcurrentQueueLogicalSignature(const XL6_IrModule* module,
     const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
     if (!schema) return 0;
     XL6_IrTypeId element=schema->sequenceLayout.elementType;
+    const XL6_IrType* queue=xl6IrTypeGet(&module->types,creates?result:receiver);
+    int waitQueue=queue && queue->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE;
     if (creates) return !receiver && count==1 && xl6IrConcurrentQueueIntegerType(module,operands[0]);
     if (!count || operands[0]!=receiver) return 0;
     switch (operation) {
     case XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_TRY_PUSH:
         return count==2 && operands[1]==element && xl6IrConcurrentQueueIntegerType(module,result);
-    case XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_TRY_POP: {
+    case XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_TRY_POP:
+    case XL6_IR_RUNTIME_RESOURCE_OP_WAIT_QUEUE_POP:
+    case XL6_IR_RUNTIME_RESOURCE_OP_WAIT_QUEUE_POP_TIMEOUT: {
+        const XL6_IrWaitQueueReceiveSpec* wait=waitQueue?xl6IrWaitQueueReceiveResource(operation):NULL;
+        if((operation!=XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_TRY_POP && !wait) ||
+            count!=(wait && wait->timed?2u:1u) || (wait && wait->timed && !xl6IrConcurrentQueueIntegerType(module,operands[1])))return 0;
         const XL6_IrType* tuple=xl6IrTypeGet(&module->types,result);
         if (dependent) {
-            if (count!=1 || !tuple || tuple->kind!=XL6_IR_TYPE_TUPLE ||
+            if (!tuple || tuple->kind!=XL6_IR_TYPE_TUPLE ||
                 tuple->paramCount!=2 || !tuple->params ||
                 !xl6IrConcurrentQueueIntegerType(module,tuple->params[0])) return 0;
             const XL6_IrType* value=xl6IrTypeGet(&module->types,tuple->params[1]);
@@ -97,13 +127,13 @@ static int xl6IrConcurrentQueueLogicalSignature(const XL6_IrModule* module,
             return value && payload && ((tuple->params[1]==element && payload->kind==XL6_IR_TYPE_NULLABLE) ||
                 (value->kind==XL6_IR_TYPE_NULLABLE && value->paramCount==1 && value->params && value->params[0]==element));
         }
-        return count==1 && xl6IrOptionalTryResultCompatible(module,result,element,XL6_IR_C_ABI_I64) &&
+        return xl6IrOptionalTryResultCompatible(module,result,element,XL6_IR_C_ABI_I64) &&
             tuple && xl6IrConcurrentQueueIntegerType(module,tuple->params[0]);
     }
     case XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_PUSH_BATCH:
-        return count==2 && operands[1]==schemaId && xl6IrConcurrentQueueBatchResult(module,result,schemaId,1);
+        return !waitQueue && count==2 && operands[1]==schemaId && xl6IrConcurrentQueueBatchResult(module,result,schemaId,1);
     case XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_POP_BATCH:
-        return count==2 && xl6IrConcurrentQueueIntegerType(module,operands[1]) &&
+        return !waitQueue && count==2 && xl6IrConcurrentQueueIntegerType(module,operands[1]) &&
             xl6IrConcurrentQueueBatchResult(module,result,schemaId,0);
     case XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_CLOSE:
         return count==1 && result==XL6_IR_TYPE_INVALID;
@@ -111,6 +141,7 @@ static int xl6IrConcurrentQueueLogicalSignature(const XL6_IrModule* module,
     case XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_CAPACITY:
         return count==1 && xl6IrConcurrentQueueIntegerType(module,result);
     case XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_RESET:
+        return !waitQueue && count==1 && xl6IrConcurrentQueueBoolType(module,result);
     case XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_IS_CLOSED:
     case XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_IS_DRAINED:
         return count==1 && xl6IrConcurrentQueueBoolType(module,result);
@@ -163,6 +194,8 @@ static XL6_IrRuntimeResourceOp xl6IrConcurrentQueueResourceOperation(XL6_IrRunti
     case XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP: return XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_TRY_POP;
     case XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH: return XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_PUSH_BATCH;
     case XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH: return XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_POP_BATCH;
+    case XL6_IR_RUNTIME_WAIT_QUEUE_POP: return XL6_IR_RUNTIME_RESOURCE_OP_WAIT_QUEUE_POP;
+    case XL6_IR_RUNTIME_WAIT_QUEUE_POP_TIMEOUT: return XL6_IR_RUNTIME_RESOURCE_OP_WAIT_QUEUE_POP_TIMEOUT;
     case XL6_IR_RUNTIME_SPECIAL_QUEUE_CLOSE: return XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_CLOSE;
     case XL6_IR_RUNTIME_SPECIAL_QUEUE_COUNT: return XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_COUNT;
     case XL6_IR_RUNTIME_SPECIAL_QUEUE_CAPACITY: return XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_CAPACITY;

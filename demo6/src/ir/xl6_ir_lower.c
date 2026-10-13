@@ -1888,10 +1888,10 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
     }
     if (runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE) {
         const XL6_IrType* queue=xl6IrTypeGet(&ctx->module->types,type);
-        if (queue && queue->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE &&
+        if (queue &&
             !xl6IrConcurrentQueueConstructionRecipe(ctx->module,type,NULL,NULL,
                 &instruction->sequenceAdmissionIdentitySet)) {
-            xl6IrLowerDiag(ctx,origin,"Nonblocking queue construction requires a closed native family and complete resident element schema");
+            xl6IrLowerDiag(ctx,origin,"Queue construction requires a closed native family and complete resident element schema");
             return XL6_IR_VALUE_INVALID;
         }
     }
@@ -15614,7 +15614,9 @@ static int xl6IrLowerRuntimeResourceOpIsSpecialQueue(
            operation ==
                XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_POP_BATCH_INTO ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_TRY_POP ||
-           operation == XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_POP_BATCH;
+           operation == XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_POP_BATCH ||
+           operation == XL6_IR_RUNTIME_RESOURCE_OP_WAIT_QUEUE_POP ||
+           operation == XL6_IR_RUNTIME_RESOURCE_OP_WAIT_QUEUE_POP_TIMEOUT;
 }
 
 static int xl6IrLowerRuntimeResourceOpIsStack(
@@ -15798,7 +15800,8 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
     if (specialQueue && queue &&
         (queue->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE ||
          queue->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE ||
-         queue->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE)) {
+         queue->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE ||
+         queue->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE)) {
         XL6_IrTypeId schemaId=XL6_IR_TYPE_INVALID,types[2];
         if (intrinsic->operandCount>2 ||
             !xl6IrConcurrentQueueConstructionRecipe(module,queueOwner,NULL,&schemaId,NULL) ||
@@ -24143,6 +24146,10 @@ static XL6_IrRuntimeOp xl6IrLowerRuntimeResourceOp(
         return XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP;
     case XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_POP_BATCH:
         return XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH;
+    case XL6_IR_RUNTIME_RESOURCE_OP_WAIT_QUEUE_POP:
+        return XL6_IR_RUNTIME_WAIT_QUEUE_POP;
+    case XL6_IR_RUNTIME_RESOURCE_OP_WAIT_QUEUE_POP_TIMEOUT:
+        return XL6_IR_RUNTIME_WAIT_QUEUE_POP_TIMEOUT;
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE:
         return XL6_IR_RUNTIME_STACK_CREATE;
     case XL6_IR_RUNTIME_RESOURCE_OP_STACK_PUSH:

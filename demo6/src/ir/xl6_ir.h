@@ -181,6 +181,8 @@ typedef enum XL6_IrRuntimeResourceOp {
      * this distinct from the explicit two-argument constructor so lowering
      * never invents absent operands or backend-owned constants. */
     XL6_IR_RUNTIME_RESOURCE_OP_SEM_CREATE_DEFAULT,
+    XL6_IR_RUNTIME_RESOURCE_OP_WAIT_QUEUE_POP,
+    XL6_IR_RUNTIME_RESOURCE_OP_WAIT_QUEUE_POP_TIMEOUT,
     /* Generic concurrent collections use one payload transfer contract while
      * preserving their exact nominal resource family in the resource TypeId.
      * The operation identity fixes blocking/timeout behavior before Cgen. */
@@ -2101,6 +2103,8 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_COUNT,
     XL6_IR_RUNTIME_SLOT_MAP_ITERATOR_KEY_COPY,
     XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY,
+    XL6_IR_RUNTIME_WAIT_QUEUE_POP,
+    XL6_IR_RUNTIME_WAIT_QUEUE_POP_TIMEOUT,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -7091,6 +7095,16 @@ int xl6IrChannelReceiveInstructionPlan(const XL6_IrModule*,const XL6_IrInstructi
 int xl6IrConcurrentQueueSignatureCompatible(const XL6_IrModule*,XL6_IrRuntimeResourceOp,
     XL6_IrTypeId receiver,XL6_IrTypeId result,const XL6_IrTypeId*,size_t count);
 XL6_IrTypeId xl6IrConcurrentQueueInstructionType(const XL6_IrModule*,const XL6_IrInstruction*);
+typedef struct XL6_IrWaitQueueReceiveSpec {
+    const char* name;
+    XL6_IrRuntimeResourceOp source;
+    XL6_IrRuntimeOp runtime;
+    unsigned int waitMode;
+    bool timed;
+} XL6_IrWaitQueueReceiveSpec;
+const XL6_IrWaitQueueReceiveSpec* xl6IrWaitQueueReceiveMethod(const char*);
+const XL6_IrWaitQueueReceiveSpec* xl6IrWaitQueueReceiveResource(XL6_IrRuntimeResourceOp);
+const XL6_IrWaitQueueReceiveSpec* xl6IrWaitQueueReceiveRuntime(XL6_IrRuntimeOp);
 int xl6IrConcurrentQueueInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 /* A typed tree producer returns the complete native Array recipe, not a
  * logical identity rebound onto dynamic storage. */

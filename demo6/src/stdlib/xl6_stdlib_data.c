@@ -5879,6 +5879,7 @@ const XL6_StdlibConst xl6StdlibConsts[] = {
     {"queueStatus", "empty", XL6_AST_INT, "1"},
     {"queueStatus", "full", XL6_AST_INT, "2"},
     {"queueStatus", "closed", XL6_AST_INT, "3"},
+    {"queueStatus", "timeout", XL6_AST_INT, "4"},
     {"channelStatus", "ok", XL6_AST_INT, "0"},
     {"channelStatus", "empty", XL6_AST_INT, "1"},
     {"channelStatus", "full", XL6_AST_INT, "2"},

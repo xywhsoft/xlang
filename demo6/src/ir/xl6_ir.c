@@ -1166,7 +1166,7 @@ static int xl6IrRuntimeResourceAbiIsConcurrentQueue(XL6_IrRuntimeResourceAbi abi
 {
     return abi == XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE ||
         abi == XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE ||
-        abi == XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE;
+        abi == XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE || abi == XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE;
 }
 
 static int xl6IrRuntimeResourceAbiIsMessageTransport(XL6_IrRuntimeResourceAbi abi)
@@ -10881,6 +10881,8 @@ static int xl6IrRuntimeResourceOpReturnsOwned(
             result && result->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED) ||
            ((operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_POP ||
              operation == XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_TRY_POP ||
+             operation == XL6_IR_RUNTIME_RESOURCE_OP_WAIT_QUEUE_POP ||
+             operation == XL6_IR_RUNTIME_RESOURCE_OP_WAIT_QUEUE_POP_TIMEOUT ||
              operation == XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_POP_BATCH ||
              operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK ||
              operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_PEEK_AT ||
@@ -10959,7 +10961,9 @@ static int xl6IrRuntimeResourceOpIsSpecialQueue(
            operation ==
                XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_POP_BATCH_INTO ||
            operation == XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_TRY_POP ||
-           operation == XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_POP_BATCH;
+           operation == XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_POP_BATCH ||
+           operation == XL6_IR_RUNTIME_RESOURCE_OP_WAIT_QUEUE_POP ||
+           operation == XL6_IR_RUNTIME_RESOURCE_OP_WAIT_QUEUE_POP_TIMEOUT;
 }
 
 static int xl6IrRuntimeResourceOpIsStack(
@@ -11312,9 +11316,12 @@ static XL6_IrRuntimeResourceOp xl6IrRuntimeResourceCalleeOp(
                  XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE &&
              strcmp(callee->text, "popBatch") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_POP_BATCH;
-        if (resource->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE &&
-            strcmp(callee->text,"tryPop")==0)
+        if (strcmp(callee->text,"tryPop")==0)
             return XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_TRY_POP;
+        if(resource->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE) {
+            const XL6_IrWaitQueueReceiveSpec* receive=xl6IrWaitQueueReceiveMethod(callee->text);
+            if(receive)return receive->source;
+        }
         if (resource->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE && strcmp(callee->text, "tryPopInto") == 0 )
             return XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_TRY_POP_INTO;
         if ( resource->runtimeResourceAbi ==
@@ -38790,6 +38797,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO ||
                             instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP ||
                             instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH ||
+                            instruction->runtimeOp == XL6_IR_RUNTIME_WAIT_QUEUE_POP ||
+                            instruction->runtimeOp == XL6_IR_RUNTIME_WAIT_QUEUE_POP_TIMEOUT ||
                             xl6IrTreeQuerySpecRuntime(instruction->runtimeOp) ||
                             xl6IrChannelReceiveSpecRuntime(instruction->runtimeOp) ||
                             xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp)) ||
@@ -38818,7 +38827,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         instruction->runtimeOp ==
                             XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO ||
                         instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP ||
-                        instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH ||
+                            instruction->runtimeOp == XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH ||
+                            instruction->runtimeOp == XL6_IR_RUNTIME_WAIT_QUEUE_POP ||
+                            instruction->runtimeOp == XL6_IR_RUNTIME_WAIT_QUEUE_POP_TIMEOUT ||
                         xl6IrTreeQuerySpecRuntime(instruction->runtimeOp) ||
                         xl6IrChannelReceiveSpecRuntime(instruction->runtimeOp) ||
                         xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp)) ||
@@ -45985,6 +45996,8 @@ static const char* xl6IrRuntimeResourceOpName(
         return "special-queue-push-batch";
     case XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_TRY_POP:
         return "concurrent-queue-try-pop";
+    case XL6_IR_RUNTIME_RESOURCE_OP_WAIT_QUEUE_POP: return "wait-queue-pop";
+    case XL6_IR_RUNTIME_RESOURCE_OP_WAIT_QUEUE_POP_TIMEOUT: return "wait-queue-pop-timeout";
     case XL6_IR_RUNTIME_RESOURCE_OP_CONCURRENT_QUEUE_POP_BATCH:
         return "concurrent-queue-pop-batch";
     case XL6_IR_RUNTIME_RESOURCE_OP_SPECIAL_QUEUE_POP_BATCH_INTO:
@@ -47740,6 +47753,8 @@ case XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_OR_NULL: return "xvalue-int-map-at-i64
         return "special-queue-push-batch";
     case XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP:
         return "concurrent-queue-try-pop";
+    case XL6_IR_RUNTIME_WAIT_QUEUE_POP: return "wait-queue-pop";
+    case XL6_IR_RUNTIME_WAIT_QUEUE_POP_TIMEOUT: return "wait-queue-pop-timeout";
     case XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH:
         return "concurrent-queue-pop-batch";
     case XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO:

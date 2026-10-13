@@ -5,6 +5,13 @@
     编译器只负责类型检查与方法分派，不复制栈、树或队列算法。
 */
 
+static const char* xl6SemWaitQueueReceiveName(const char* name,bool* timed)
+{
+#define XL6_WAIT_QUEUE_RECEIVE_OP(Name,Op,Mode,Timed) if(xl6TextEquals(name,Name)){if(timed)*timed=Timed;return Name;}
+#include "src/abi/xl6_wait_queue_receive_ops.inc"
+#undef XL6_WAIT_QUEUE_RECEIVE_OP
+    return NULL;
+}
 static int xl6SemIsSpecialQueueTypeName(const char* name)
 {
     name = xl6TypeCanonicalBuiltinName(name);
@@ -370,8 +377,8 @@ static int xl6SemCheckSpecialCollectionMethodCall(XL6_SemContext* ctx, XL6_AstNo
         xl6AstFree(receiverType);
         return -1;
     }
-    if ( member->children[0] == NULL ||
-         (member->children[0]->kind != XL6_AST_NAME && member->children[0]->kind != XL6_AST_MEMBER) ) {
+    if (!xl6TextEquals(typeName,"WaitQueue") && (member->children[0] == NULL ||
+         (member->children[0]->kind != XL6_AST_NAME && member->children[0]->kind != XL6_AST_MEMBER))) {
         xl6SemErrorNode(ctx, member->children[0],
                         "[SC-TEMP-RECEIVER] 专用数据结构方法必须通过具名变量或字段调用");
         xl6AstFree(receiverType);
@@ -486,10 +493,15 @@ static int xl6SemCheckSpecialCollectionMethodCall(XL6_SemContext* ctx, XL6_AstNo
             ok = 0;
         }
     } else {
-        if (!xl6TextEquals(typeName,"WaitQueue") &&
-            (xl6TextEquals(method,"tryPopInto") || xl6TextEquals(method,"popBatchInto"))) {
+        bool timedWait=false;
+        if (xl6TextEquals(method,"tryPopInto") || xl6TextEquals(method,"popInto") ||
+            xl6TextEquals(method,"popTimeoutInto") || xl6TextEquals(method,"popBatchInto")) {
             xl6SemErrorNode(ctx,member,"[SC-QUEUE-OWNED] 使用 tryPop()/popBatch(maximum) 的状态和拥有返回值；队列不提供 Into 写回");
             ok=0;
+        } else if(xl6TextEquals(typeName,"WaitQueue") && xl6SemWaitQueueReceiveName(method,&timedWait)) {
+            ok=xl6SemCheckSpecialCollectionArgCount(ctx,member,count,timedWait?1u:0u) &&
+                (!timedWait || xl6SemCheckSpecialCollectionIntArg(ctx,xl6SemSpecialCollectionArgExpr(args,0),
+                    "等待超时必须是整数毫秒"));
         } else if (!xl6TextEquals(typeName,"WaitQueue") && xl6TextEquals(method,"tryPop")) {
             ok=xl6SemCheckSpecialCollectionArgCount(ctx,member,count,0u);
         } else if (!xl6TextEquals(typeName,"WaitQueue") && xl6TextEquals(method,"popBatch")) {
@@ -511,21 +523,6 @@ static int xl6SemCheckSpecialCollectionMethodCall(XL6_SemContext* ctx, XL6_AstNo
                  xl6SemCheckSpecialCollectionValueArg(
                     ctx, xl6SemSpecialCollectionArgExpr(args, 0), itemType,
                     "队列元素类型不匹配");
-        } else if ( xl6TextEquals(method, "tryPopInto") ||
-                    (xl6TextEquals(typeName, "WaitQueue") && xl6TextEquals(method, "popInto")) ) {
-            ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 1u) &&
-                 xl6SemCheckSpecialCollectionOutArg(
-                    ctx, xl6SemSpecialCollectionArgExpr(args, 0), itemType,
-                    "队列输出目标类型不匹配");
-        } else if ( xl6TextEquals(typeName, "WaitQueue") &&
-                    xl6TextEquals(method, "popTimeoutInto") ) {
-            ok = xl6SemCheckSpecialCollectionArgCount(ctx, member, count, 2u) &&
-                 xl6SemCheckSpecialCollectionOutArg(
-                    ctx, xl6SemSpecialCollectionArgExpr(args, 0), itemType,
-                    "队列输出目标类型不匹配") &&
-                 xl6SemCheckSpecialCollectionIntArg(
-                    ctx, xl6SemSpecialCollectionArgExpr(args, 1),
-                    "等待超时必须是整数毫秒");
         } else if ( xl6TextEquals(typeName, "WaitQueue") && xl6TextEquals(method, "reset") ) {
             xl6SemErrorNode(ctx, member, "[SC-WAIT-RESET] WaitQueue 不支持 reset");
             ok = 0;
@@ -583,8 +580,7 @@ static const char* xl6SemSpecialCollectionCallResultTypeName(XL6_SemContext* ctx
             spec->result==XL6_SEM_SLOT_MAP_INT ? "int" : NULL) : NULL;
         xl6AstFree(receiverType); return result;
     }
-    if (xl6SemIsSpecialQueueTypeName(concreteType->text) &&
-        !xl6TextEquals(concreteType->text,"WaitQueue") && xl6TextEquals(method,"tryPush")) {
+    if (xl6SemIsSpecialQueueTypeName(concreteType->text) && xl6TextEquals(method,"tryPush")) {
         result="int";
     } else if (xl6SemIsSpecialQueueTypeName(concreteType->text) &&
         !xl6TextEquals(concreteType->text,"WaitQueue") && xl6TextEquals(method,"pushBatch")) {
@@ -747,15 +743,17 @@ static XL6_AstNode* xl6SemCloneSpecialCollectionReturnTypes(XL6_SemContext* ctx,
     if ( member == NULL || member->kind != XL6_AST_MEMBER ||
          (!xl6TextEquals(member->text, "tryPop") && !xl6TextEquals(member->text, "tryPeek") &&
           !xl6TextEquals(member->text, "tryPeekAt") && !xl6TextEquals(member->text,"pushBatch") &&
-          !xl6TextEquals(member->text,"popBatch")) ) return NULL;
+          !xl6TextEquals(member->text,"popBatch") && !xl6SemWaitQueueReceiveName(member->text,NULL)) ) return NULL;
     XL6_AstNode* receiver = xl6SemCloneSpecialCollectionReceiverType(ctx, member);
     const XL6_AstNode* concrete = xl6SemResolveAliasType(ctx, receiver);
-    bool queue=concrete && xl6SemIsSpecialQueueTypeName(concrete->text) &&
-        !xl6TextEquals(concrete->text,"WaitQueue");
+    bool queue=concrete && xl6SemIsSpecialQueueTypeName(concrete->text);
+    bool waitQueue=queue && xl6TextEquals(concrete->text,"WaitQueue");
     bool stack=concrete && xl6TextEquals(concrete->text,"Stack");
-    if ((!queue && !stack) || (queue && !xl6TextEquals(member->text,"tryPop") &&
+    if ((!queue && !stack) || (waitQueue && !xl6SemWaitQueueReceiveName(member->text,NULL)) ||
+        (queue && !waitQueue && !xl6TextEquals(member->text,"tryPop") &&
         !xl6TextEquals(member->text,"pushBatch") && !xl6TextEquals(member->text,"popBatch")) ||
-        (stack && (xl6TextEquals(member->text,"pushBatch") || xl6TextEquals(member->text,"popBatch")))) {
+        (stack && !xl6TextEquals(member->text,"tryPop") && !xl6TextEquals(member->text,"tryPeek") &&
+         !xl6TextEquals(member->text,"tryPeekAt"))) {
         xl6AstFree(receiver); return NULL;
     }
     const XL6_AstNode* item = concrete != NULL

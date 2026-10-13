@@ -193,7 +193,9 @@ static int xl6IrCgenSpecialQueueRuntimeOpIs(XL6_IrRuntimeOp operation)
            operation == XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH ||
            operation == XL6_IR_RUNTIME_SPECIAL_QUEUE_POP_BATCH_INTO ||
            operation == XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP ||
-           operation == XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH;
+           operation == XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH ||
+           operation == XL6_IR_RUNTIME_WAIT_QUEUE_POP ||
+           operation == XL6_IR_RUNTIME_WAIT_QUEUE_POP_TIMEOUT;
 }
 
 static int xl6IrCgenStackRuntimeOpIs(XL6_IrRuntimeOp operation)
