@@ -260,7 +260,7 @@ static const char* xl6IrCgenArrayScalarReadSymbol(XL6_IrRuntimeOp operation)
 static const char* xl6IrCgenArrayExtractSymbol(const XL6_IrType* result)
 {
     if (!result) return NULL;
-    if (xl6IrNativeValuePlanForType(result)) return "xl6ArrayExtractNativeValueV1";
+    if (xl6IrNativeValuePlanForType(result)) return "xl6ArrayExtractNativeValueV2";
     if (xl6IrArrayTrivialExtractResult(result)) return "xl6ArrayExtractTrivialV1";
     switch (result->cAbi) {
     case XL6_IR_C_ABI_BOOL: return "xl6ArrayExtractBoolV1";

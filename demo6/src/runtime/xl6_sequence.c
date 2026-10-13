@@ -308,7 +308,9 @@ bool xl6SequenceTupleV1(uint64_t identity, uint64_t elementIdentity, unsigned in
          (type->Kind != XRT_TYPE_FUTURE || size != sizeof(xfuture*) ||
           !(type->Flags & XRT_TYPE_FLAG_REFERENCE))) ||
         (transfer == XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 &&
-         (type->Kind!=XRT_TYPE_RECORD || (type->Flags & (XRT_TYPE_FLAG_REFERENCE|XRT_TYPE_FLAG_TRIVIAL_DROP))))) {
+         ((type->Kind!=XRT_TYPE_RECORD &&
+           !(type->Kind==XRT_TYPE_OPTIONAL && (type->Flags&XRT_TYPE_FLAG_NULLABLE))) ||
+          (type->Flags & (XRT_TYPE_FLAG_REFERENCE|XRT_TYPE_FLAG_TRIVIAL_DROP))))) {
         xrtSetErrorKind(XERR_ARGUMENT); return false;
     }
     return true;

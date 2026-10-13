@@ -196,6 +196,8 @@ RUNTIME_SOURCES=(
   "$ROOT/src/runtime/xl6_slot_map_key_value.c"
   "$ROOT/src/runtime/xl6_native_leaf_value.c"
   "$ROOT/src/runtime/xl6_array_native_value_admission.c"
+  "$ROOT/src/runtime/xl6_array_native_value_policy.c"
+  "$ROOT/src/runtime/xl6_nullable_slot_map_key_collection.c"
   "$ROOT/src/runtime/xl6_array_extract_native_value.c"
   "$ROOT/src/runtime/xl6_slot_map_keys.c"
   "$ROOT/src/runtime/xl6_slot_map_pairs.c"

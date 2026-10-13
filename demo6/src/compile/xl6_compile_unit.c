@@ -322,8 +322,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_slot_map_key.c", D(R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_RUNTIME_TYPE","XRT_MODULE_ATOMIC"}},
     {"src/runtime/xl6_slot_map_key_value.c", D(R(SLOT_MAP_KEY_NATIVE),R(NATIVE_LEAF_VALUE)),
         {"XRT_MODULE_VALUE","XRT_MODULE_HASH64"}},
-    {"src/runtime/xl6_array_native_value_admission.c", D(R(SEQUENCE),R(SLOT_MAP_KEY_VALUE),R(FOREIGN_ERROR)),
-        {"XRT_MODULE_ATOMIC"}},
+    {"src/runtime/xl6_array_native_value_admission.c", D(R(ARRAY_NATIVE_VALUE_POLICY),R(SLOT_MAP_KEY_VALUE)),
+        {NULL}},
     {"src/runtime/xl6_native_leaf_value.c", D(R(FOREIGN_ERROR)),
         {"XRT_MODULE_VALUE","XRUNTIME_MODULE_RUNTIME_TYPE","XRT_MODULE_ATOMIC"}},
     {"src/runtime/xl6_array_extract_native_value.c", D(R(SEQUENCE),R(NATIVE_LEAF_VALUE),R(FOREIGN_ERROR)),
@@ -347,7 +347,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_nullable_slot_map_key.c",D(R(SLOT_MAP_KEY_NATIVE),R(SLOT_MAP_KEY_VALUE),R(FOREIGN_ERROR)),
         {"XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_nullable_slot_map_key_capture.c",D(R(CAPTURE_V2),R(NULLABLE_SLOT_MAP_KEY)),{NULL}},
-    {"src/runtime/xl6_closure_capture_v3.c",D(R(CLOSURE),R(CAPTURE_V2),R(FOREIGN_ERROR)),{NULL}}
+    {"src/runtime/xl6_closure_capture_v3.c",D(R(CLOSURE),R(CAPTURE_V2),R(FOREIGN_ERROR)),{NULL}},
+    {"src/runtime/xl6_array_native_value_policy.c",D(R(SEQUENCE),R(FOREIGN_ERROR)),{"XRT_MODULE_ATOMIC"}},
+    {"src/runtime/xl6_nullable_slot_map_key_collection.c",D(R(ARRAY_NATIVE_VALUE_POLICY),R(NULLABLE_SLOT_MAP_KEY)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

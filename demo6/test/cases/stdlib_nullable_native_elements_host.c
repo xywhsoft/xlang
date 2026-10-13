@@ -1,0 +1,31 @@
+#include "test/support/module_product_memory.h"
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+static bool armed;
+static size_t seen,point;
+extern bool __real_xl6SlotMapKeyCopyValueV1(XL6_SlotMapKeyV1,XL6_SlotMapKeyV1*);
+bool __wrap_xl6SlotMapKeyCopyValueV1(XL6_SlotMapKeyV1 input,XL6_SlotMapKeyV1* out)
+{return armed && seen++==point ? false : __real_xl6SlotMapKeyCopyValueV1(input,out);}
+static bool execute(void)
+{
+    int code=-1;bool ok=xl_script_main_checked(NULL,&code)!=0;
+    assert(code==(ok?0:1));return ok;
+}
+int main(int argc,char** argv)
+{
+    xl6ProductMemoryBegin(SIZE_MAX);
+    if(argc==1){for(unsigned i=0;i<100;++i){assert(execute());xlir_module_fini();assert(!xrtGetError());}}
+    else{
+        assert(argc==3);bool oom=!strcmp(argv[1],"oom");assert(oom || !strcmp(argv[1],"copy"));
+        point=(size_t)strtoull(argv[2],NULL,10);seen=0;
+        if(oom)assert(xrtMemDebugFailAfter(point));else armed=true;
+        bool ok=execute(),hit=oom?xrtMemDebugFailTriggered():seen>point;
+        armed=false;xrtMemDebugFailClear();assert(ok==!hit);
+        xrtClearError();xlir_module_fini();xrtClearError();
+        assert(execute());xlir_module_fini();assert(!xrtGetError());
+        printf("lane=%s point=%zu hit=%u balanced\n",argv[1],point,(unsigned)hit);
+    }
+    assert(!xl6ProductMemoryEnd());xl6ProductMemoryVerify();return 0;
+}

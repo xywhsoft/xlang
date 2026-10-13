@@ -573,7 +573,7 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
     case XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1:
         {
             const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(payload);
-            if (!native || plan->nullable || plan->slotAbi!=native->slotAbi) return -1;
+            if (!native || !native->sequenceSymbol || plan->slotAbi!=native->slotAbi) return -1;
             xl6OutputPrintf(out,"    %s = %s(%u, 0x%016llXULL);\n",
                 result,native->sequenceSymbol,(unsigned)plan->role,(unsigned long long)sequence->typeValueId);
         }

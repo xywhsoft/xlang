@@ -12,7 +12,8 @@ static const XL6_IrNativeValuePlan g_xl6IrNativeValues[] = {
         "XL6_NullableSlotMapKeyV1","__xl_runtime/xl6_nullable_slot_map_key_abi.h","xlir_result_nullable_slot_map_key_v1",
         "xl6NullableSlotMapKeyCopyValueV1","xl6NullableSlotMapKeyDropValueV1","xl6NullableSlotMapKeyEqualV1",
         "xl6NullableSlotMapKeyBoxV1","xl6NullableSlotMapKeyUnboxV1",XL6_IR_RELEASE_EFFECT_NO_RAISE,
-        XL6_IR_NATIVE_SLOT_NULLABLE_SLOT_MAP_KEY_V1,"xl6NullableSlotMapKeyTypeV1()",NULL,NULL,NULL,
+        XL6_IR_NATIVE_SLOT_NULLABLE_SLOT_MAP_KEY_V1,"xl6NullableSlotMapKeyTypeV1()","xl6NullableSlotMapKeyConverterV1()",
+        "xl6SequenceNullableSlotMapKeyCreateV1","xl6NullableSlotMapKeyCollectionProfileV1Get",
         XL6_NULLABLE_SLOT_MAP_KEY_LANGUAGE_VALUE_ID,"__xl_runtime/xl6_nullable_slot_map_key_capture.h",
         "xl6NullableSlotMapKeyCaptureProfileV1Get",XL6_IR_NATIVE_VALUE_SLOT_MAP_KEY_V1,"xl6NullableSlotMapKeyTryUnboxV1"},
 };
