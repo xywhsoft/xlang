@@ -51,6 +51,9 @@ if errorlevel 1 (
     exit /b 1
 )
 set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_channel.o""
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_wait_queue.c -o "%XL6_BUILD_TMP%\xl6_wait_queue.o"
+if errorlevel 1 exit /b 1
+set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_wait_queue.o""
 
 rem Keep the private optional-record supplier in both resident DLL targets.
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_nullable_slot_map_key.c -o "%XL6_BUILD_TMP%\xl6_nullable_slot_map_key.o"
