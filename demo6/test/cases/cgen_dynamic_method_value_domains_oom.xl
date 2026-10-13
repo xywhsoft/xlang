@@ -1,0 +1,30 @@
+class DynamicOwnerToken
+end
+
+class DynamicOwnerSelector
+    func accept(DynamicOwnerToken value) as int
+        return 7
+    end
+
+    func change(bytes value) as bytes
+        value[0] = 65
+        return value
+    end
+
+    func maybe(bytes? value = null) as bytes?
+        return value
+    end
+end
+
+var dynamicOwnerSelector = DynamicOwnerSelector()
+
+func main(...) as int
+    bytes original = b"a\0你"
+    assert int(dynamicOwnerSelector.accept(DynamicOwnerToken())) == 7
+    assert bytes(dynamicOwnerSelector.change(original)) == b"A\0你"
+    assert original == b"a\0你"
+    assert dynamicOwnerSelector.maybe() == null
+    assert dynamicOwnerSelector.maybe(null) == null
+    assert bytes(dynamicOwnerSelector.maybe(original)) == original
+    return 0
+end

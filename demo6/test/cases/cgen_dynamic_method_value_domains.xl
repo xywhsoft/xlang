@@ -1,0 +1,74 @@
+class DynamicDomainToken
+end
+
+class DynamicDomainOther
+end
+
+class DynamicDomainChild extends DynamicDomainToken
+end
+
+class DynamicDomainSelector
+    func pick(bytes value) as int
+        return 1
+    end
+
+    func pick(DynamicDomainToken value) as int
+        return 2
+    end
+
+    func pick(array<int> value) as int
+        return 3
+    end
+
+    func anything(var value) as int
+        return 4
+    end
+
+    func change(bytes value) as bytes
+        value[0] = 65
+        return value
+    end
+
+    func maybe(bytes? value = null) as bytes?
+        return value
+    end
+end
+
+var dynamicDomainSelector = DynamicDomainSelector()
+
+func main(...) as int
+    assert int(dynamicDomainSelector.pick(b"a\0你")) == 1
+    assert int(dynamicDomainSelector.pick(DynamicDomainToken())) == 2
+    assert int(dynamicDomainSelector.pick(DynamicDomainChild())) == 2
+    assert int(dynamicDomainSelector.pick(array<int>[7])) == 3
+    assert int(dynamicDomainSelector.anything("a\0你")) == 4
+    assert int(dynamicDomainSelector.anything(DynamicDomainOther())) == 4
+    bytes original = b"a\0你"
+    assert bytes(dynamicDomainSelector.change(original)) == b"A\0你"
+    assert original == b"a\0你"
+    assert dynamicDomainSelector.maybe() == null
+    assert dynamicDomainSelector.maybe(null) == null
+    assert bytes(dynamicDomainSelector.maybe(original)) == original
+    bool rejected = false
+    try
+        dynamicDomainSelector.pick("not bytes")
+    catch error
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        dynamicDomainSelector.pick(DynamicDomainOther())
+    catch error
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        dynamicDomainSelector.pick(array<string>["not int"])
+    catch error
+        rejected = true
+    end
+    assert rejected
+    return 0
+end

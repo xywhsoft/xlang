@@ -3590,7 +3590,12 @@ typedef enum XL6_IrDynamicMethodMatchAbi {
     XL6_IR_DYNAMIC_METHOD_MATCH_F64,
     XL6_IR_DYNAMIC_METHOD_MATCH_TIME,
     XL6_IR_DYNAMIC_METHOD_MATCH_STRING,
-    XL6_IR_DYNAMIC_METHOD_MATCH_CHAR
+    XL6_IR_DYNAMIC_METHOD_MATCH_CHAR,
+    /* Carrier shape is not a language domain. These rows consume the sealed
+     * type admission / nominal set / exact container identity respectively. */
+    XL6_IR_DYNAMIC_METHOD_MATCH_VALUE_DOMAIN,
+    XL6_IR_DYNAMIC_METHOD_MATCH_NOMINAL,
+    XL6_IR_DYNAMIC_METHOD_MATCH_EXACT_IDENTITY
 } XL6_IrDynamicMethodMatchAbi;
 
 typedef struct XL6_IrDynamicMethodParameter {

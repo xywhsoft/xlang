@@ -37,6 +37,43 @@ static void xl6IrCgenEmitDynamicMethodError(
     xl6OutputPuts(")); goto fail;", out);
 }
 
+/* A matcher only selects an overload. Reuse the resident, allocation-free
+ * language predicates; never call a converting getter to probe a candidate. */
+static int xl6IrCgenEmitDynamicArgumentAdmission(
+    XL6_Output* out, const XL6_IrModule* module,
+    const XL6_IrDynamicMethodParameter* item, size_t parameter)
+{
+    const XL6_IrType* type = xl6IrTypeGet(&module->types, item->type);
+    if ( type == NULL ) return 0;
+    if ( item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_NOMINAL ) {
+        XL6_IrTypeId base = type->kind == XL6_IR_TYPE_NULLABLE
+            ? type->params[0] : item->type;
+        XL6_IrNominalIdentitySetId setId = XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+        if ( xl6IrNominalIdentitySetGet(module, base, &setId) == NULL ) return 0;
+        xl6OutputPrintf(out,
+            "xl6ValueAdmitsNominalV1(bound%lu, &xlir_nominal_set_%u, %s)",
+            (unsigned long)parameter, (unsigned int)setId,
+            type->kind == XL6_IR_TYPE_NULLABLE ? "true" : "false");
+    } else if ( item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_EXACT_IDENTITY ) {
+        const XL6_IrType* base = type->kind == XL6_IR_TYPE_NULLABLE
+            ? xl6IrTypeGet(&module->types, type->params[0]) : type;
+        if ( base == NULL || base->typeValueId == 0 ) return 0;
+        if ( type->kind == XL6_IR_TYPE_NULLABLE )
+            xl6OutputPrintf(out, "(xrtValueType(bound%lu) == XVALUE_NULL || ",
+                (unsigned long)parameter);
+        xl6OutputPrintf(out, "xrtValueTypeId(bound%lu) == 0x%016llXULL",
+            (unsigned long)parameter, (unsigned long long)base->typeValueId);
+        if ( type->kind == XL6_IR_TYPE_NULLABLE ) xl6OutputPuts(")", out);
+    } else {
+        if ( type->xvalueAdmissionAbi == XL6_VALUE_ADMIT_NONE ) return 0;
+        xl6OutputPrintf(out, "xl6ValueAdmitsV1(bound%lu, %u, %s, 0x%016llXULL)",
+            (unsigned long)parameter, (unsigned int)type->xvalueAdmissionAbi,
+            type->xvalueAdmissionNullable ? "true" : "false",
+            (unsigned long long)type->xvalueAdmissionTypeValueId);
+    }
+    return !xl6OutputHasFailed(out);
+}
+
 static int xl6IrCgenEmitDynamicMethodMatcher(
     XL6_Output* out, const XL6_IrModule* module, size_t methodIndex,
     XL6_DiagList* diags)
@@ -128,37 +165,17 @@ static int xl6IrCgenEmitDynamicMethodMatcher(
         const XL6_IrDynamicMethodParameter* item =
             &module->dynamicMethodParameters[
                 method->firstParameter + parameter];
-        int expectedTag = -1;
         if ( item->defaultAbi == XL6_IR_DYNAMIC_METHOD_DEFAULT_NONE )
             xl6OutputPrintf(out,
                 "    if (!has%lu) return false;\n",
                 (unsigned long)parameter);
-        switch ( item->matchAbi ) {
-        case XL6_IR_DYNAMIC_METHOD_MATCH_ANY_XVALUE:
-            break;
-        case XL6_IR_DYNAMIC_METHOD_MATCH_BOOL:
-            expectedTag = (int)XVALUE_BOOL; break;
-        case XL6_IR_DYNAMIC_METHOD_MATCH_CHAR:
-            expectedTag = (int)XVALUE_CHAR; break;
-        case XL6_IR_DYNAMIC_METHOD_MATCH_I64:
-            expectedTag = (int)XVALUE_INT; break;
-        case XL6_IR_DYNAMIC_METHOD_MATCH_U64:
-            expectedTag = (int)XVALUE_UINT; break;
-        case XL6_IR_DYNAMIC_METHOD_MATCH_F64:
-            expectedTag = (int)XVALUE_FLOAT; break;
-        case XL6_IR_DYNAMIC_METHOD_MATCH_TIME:
-            expectedTag = (int)XVALUE_TIME; break;
-        case XL6_IR_DYNAMIC_METHOD_MATCH_STRING:
-            expectedTag = (int)XVALUE_STRING; break;
-        default:
-            return xl6IrCgenDiag(diags, module, method->declaration,
-                "XLIR C emitter dynamic method match ABI is unresolved");
+        if ( item->matchAbi != XL6_IR_DYNAMIC_METHOD_MATCH_ANY_XVALUE ) {
+            xl6OutputPrintf(out, "    if (has%lu && !(", (unsigned long)parameter);
+            if ( !xl6IrCgenEmitDynamicArgumentAdmission(out, module, item, parameter) )
+                return xl6IrCgenDiag(diags, module, method->declaration,
+                    "XLIR C emitter dynamic method match ABI is unresolved");
+            xl6OutputPuts(")) return false;\n", out);
         }
-        if ( expectedTag >= 0 )
-            xl6OutputPrintf(out,
-                "    if (has%lu && xrtValueType(bound%lu) != %d) return false;\n",
-                (unsigned long)parameter, (unsigned long)parameter,
-                expectedTag);
     }
     xl6OutputPuts("    return true;\n}\n", out);
     return !xl6OutputHasFailed(out);
@@ -336,6 +353,16 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
                 out, "dynamic method required parameter is missing");
             xl6OutputPuts(" }\n", out);
         }
+        if ( item->matchAbi != XL6_IR_DYNAMIC_METHOD_MATCH_ANY_XVALUE ) {
+            xl6OutputPrintf(out, "    if (has%lu && !(", (unsigned long)parameter);
+            if ( !xl6IrCgenEmitDynamicArgumentAdmission(out, module, item, parameter) )
+                return xl6IrCgenDiag(diags, module, method->declaration,
+                    "XLIR dynamic argument admission is unresolved");
+            xl6OutputPuts(")) { ", out);
+            xl6IrCgenEmitDynamicMethodError(out,
+                "dynamic method argument is outside its declared value domain");
+            xl6OutputPuts(" }\n", out);
+        }
         if ( getter != NULL ) {
             xl6OutputPrintf(out,
                 "    if (has%lu) { if (!%s(bound%lu, &a%lu)) { ",
@@ -362,6 +389,12 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
                     " else if ((a%lu = xlir_string_from_utf8(%s, sizeof(%s) - 1u)).Data == NULL) goto fail;",
                     (unsigned long)parameter, item->defaultLiteral, item->defaultLiteral);
             xl6OutputPuts("\n", out);
+        } else if ( type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ) {
+            xl6OutputPrintf(out,
+                "    if (has%lu && xrtValueType(bound%lu) != XVALUE_NULL) { a%lu = xrtValueRetain(bound%lu); if (a%lu == NULL) goto fail; }\n",
+                (unsigned long)parameter, (unsigned long)parameter,
+                (unsigned long)parameter, (unsigned long)parameter,
+                (unsigned long)parameter);
         } else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) {
             xl6OutputPrintf(out,
                 "    a%lu = xrtValueRetain(has%lu ? bound%lu : xrtValueNull()); if (a%lu == NULL) goto fail;\n",
@@ -397,7 +430,8 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
         if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
             xl6OutputPrintf(out, "    xlir_string_drop(a%lu); a%lu = (xlir_string){0};\n",
                 (unsigned long)parameter, (unsigned long)parameter);
-        else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
+        else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+                  type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES )
             xl6OutputPrintf(out,
                 "    xrtValueRelease(a%lu); a%lu = NULL;\n",
                 (unsigned long)parameter, (unsigned long)parameter);
@@ -433,6 +467,11 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
             xl6OutputPuts("    else boxedResult = xrtValueRetain(xrtValueNull());\n", out);
         xl6OutputPuts("    xlir_string_drop(returned);\n", out);
     }
+    else if ( resultType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ) {
+        xl6OutputPuts("    boxedResult = returned;\n", out);
+        if ( resultType->kind == XL6_IR_TYPE_NULLABLE )
+            xl6OutputPuts("    if (returned == NULL) boxedResult = xrtValueRetain(xrtValueNull());\n", out);
+    }
     else if ( resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
         xl6OutputPuts("    boxedResult = returned;\n", out);
     else
@@ -452,7 +491,8 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
         if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
             xl6OutputPrintf(out, "    xlir_string_drop(a%lu);\n",
                             (unsigned long)parameter);
-        else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
+        else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+                  type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES )
             xl6OutputPrintf(out, "    xrtValueRelease(a%lu);\n",
                             (unsigned long)parameter);
     }
@@ -736,12 +776,37 @@ static int xl6IrCgenEmitDynamicMethodDispatcher(
     return !xl6OutputHasFailed(out);
 }
 
+/* Bit 1 selects primitive predicates, bit 2 exact identities. Emission and
+ * the resident link plan share this reachable-row closure. */
+static unsigned xl6IrCgenDynamicArgumentAdmissionNeeds(const XL6_IrModule* module)
+{
+    size_t methodIndex;
+    unsigned needs = 0;
+    for ( methodIndex = 0; methodIndex < module->dynamicMethodCount; ++methodIndex ) {
+        const XL6_IrDynamicMethod* method = &module->dynamicMethods[methodIndex];
+        if ( !xl6IrCgenDynamicMethodNeeded(module, methodIndex) ) continue;
+        for ( size_t p = 0; p < method->fixedParameterCount; ++p ) {
+            XL6_IrDynamicMethodMatchAbi abi =
+                module->dynamicMethodParameters[method->firstParameter + p].matchAbi;
+            if ( abi == XL6_IR_DYNAMIC_METHOD_MATCH_EXACT_IDENTITY ) needs |= 2u;
+            else if ( abi != XL6_IR_DYNAMIC_METHOD_MATCH_ANY_XVALUE &&
+                      abi != XL6_IR_DYNAMIC_METHOD_MATCH_NOMINAL ) needs |= 1u;
+        }
+    }
+    return needs;
+}
+
 static int xl6IrCgenEmitDynamicMethodRuntime(
     XL6_Output* out, const XL6_IrModule* module, XL6_DiagList* diags)
 {
     size_t methodIndex;
     size_t siteIndex;
     int bindingRuntimeEmitted = 0;
+    unsigned admissionNeeds = xl6IrCgenDynamicArgumentAdmissionNeeds(module);
+    if ( admissionNeeds & 1u )
+        xl6OutputPuts("extern bool xl6ValueAdmitsV1(const xvalue*, unsigned int, bool, uint64_t);\n", out);
+    if ( admissionNeeds & 2u )
+        xl6OutputPuts("extern uint64_t xrtValueTypeId(const xvalue*);\n", out);
     xl6OutputPuts(
         "extern bool xrtValueGetBool(const xvalue*, bool*);\n"
         "extern bool xrtValueGetInt(const xvalue*, int64_t*);\n"

@@ -1,0 +1,12 @@
+class DynamicNoArgumentSelector
+    func answerWithoutArguments() as int
+        return 7
+    end
+end
+
+var dynamicNoArgumentSelector = DynamicNoArgumentSelector()
+
+func main(...) as int
+    assert int(dynamicNoArgumentSelector.answerWithoutArguments()) == 7
+    return 0
+end
