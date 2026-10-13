@@ -1,0 +1,3 @@
+char ascii = char(65)
+char last = char(uint64(0x10ffff))
+assert ascii == 'A' and last == '\U0010ffff'

@@ -150,7 +150,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_nullable_native_u32_value.c',
     'src/runtime/xl6_nullable_string.c',
     'src/runtime/xl6_string_type.c','src/runtime/xl6_string_value.c','src/runtime/xl6_array_value.c','src/runtime/xl6_array_reference_value.c','src/runtime/xl6_array_erased.c','src/runtime/xl6_value_admission.c','src/runtime/xl6_native_scalar_value.c','src/runtime/xl6_nominal_admission.c',
-    'src/runtime/xl6_char_type.c','src/runtime/xl6_char_value.c',
+    'src/runtime/xl6_char_type.c','src/runtime/xl6_char_value.c','src/runtime/xl6_char_checked.c',
     'src/runtime/xl6_error_value.c','src/runtime/xl6_value_text.c',
     'src/runtime/xl6_print_values.c',
     'src/runtime/xl6_class_text.c','src/runtime/xl6_error_text.c',

@@ -177,6 +177,7 @@
 - `stdlib53-b270-native-dynamic-envelope.md`：Native 动态参数 checked 投影、直接结果事务、负默认值及双端 104 项验收；Stack 动态资源分派与其余 Native 编码继续。
 - `stdlib53-b271-stack-projection-foundation.md`：Stack 精确角色的原生投影、失败原子 Pop 与克隆策略，双端原生、Linux 插桩和错误实现对照通过；统一 IR 动态分派继续。
 - `stdlib53-b272-stack-dynamic-ir.md`：显式 Stack 擦除、核心动态方法、双端 72 项与完整拥有前缀通过，原 pending 端到端通过；动态完整公开面及字符转换继续。
+- `stdlib53-b273-char-dynamic-checked.md`：动态 char 构造／类型断言、独立成功状态、双端 107 项与 52 个 IR 变异；原生插桩、错误实现对照和 typed 裁剪通过，完整总门继续。
 - `XRT与xlang系统整合任务.md`：当前长期整合范围、快照契约、实施顺序和 HTTP/WebSocket 快慢路径边界。
 - `扩展库开发问题清单.md`：六轮扩展库批次发现的语言/编译器/运行时问题账本（P0 崩溃类到 P4 C 库兼容），含最小复现、规避方案与修复优先级。
 - `剩余未压实扩展库清单.md`：删除 22 个占位库后 109 个未压实包的处置规划视图（按编解码改造/平台收编/真外部服务/迁移队列分类）。

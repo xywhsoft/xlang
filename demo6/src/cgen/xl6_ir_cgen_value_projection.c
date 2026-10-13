@@ -547,6 +547,14 @@ static int xl6IrCgenEmitXValueProjectionInstruction(
             (unsigned long long)identity->typeValueId);
     } else if ( instruction->runtimeOp ==
                 XL6_IR_RUNTIME_XVALUE_CAST_CHECKED ) {
+        if (instruction->castAbi==XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED) {
+            if (instruction->payloadType!=instruction->type || result->kind==XL6_IR_TYPE_NULLABLE ||
+                result->cAbi!=XL6_IR_C_ABI_CHAR_U32 || !result->typeValueId) return 0;
+            xl6OutputPrintf(out,"    bool projection_ok_%u = xl6CharValueCheckedV1(v%u, 0x%016llXULL, true, &v%u);\n",
+                (unsigned)instruction->result,(unsigned)operand,(unsigned long long)result->typeValueId,
+                (unsigned)instruction->result);
+            return xl6OutputHasFailed(out) ? -1 : 1;
+        }
         int matchingResult =
             (instruction->castAbi ==
                  XL6_IR_CAST_XVALUE_TO_BOOL_CHECKED &&

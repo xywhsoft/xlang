@@ -222,26 +222,7 @@ static int xl6IrCgenRuntimeIntegerConvertAbi(
          resultType->integerTarget != instruction->integerTarget ||
          instruction->integerSourceAbi <= XL6_IR_INTEGER_SOURCE_INVALID ||
          instruction->integerSourceAbi > XL6_IR_INTEGER_SOURCE_XVALUE ) return 0;
-    if ( instruction->integerTarget ==
-             XL6_IR_INTEGER_TARGET_UNICODE_SCALAR )
-        return resultType->cAbi == XL6_IR_C_ABI_CHAR_U32 &&
-               (instruction->integerSourceAbi ==
-                    XL6_IR_INTEGER_SOURCE_I64 ||
-                instruction->integerSourceAbi ==
-                    XL6_IR_INTEGER_SOURCE_U64);
-    if ( instruction->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64 )
-        return resultType->cAbi == XL6_IR_C_ABI_U64 &&
-               (instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_I64 ||
-                instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_U64 ||
-                instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_F64 ||
-                instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_MANAGED_STRING ||
-                instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_XVALUE);
-    return resultType->cAbi == XL6_IR_C_ABI_I64 &&
-           instruction->integerTarget >= XL6_IR_INTEGER_TARGET_SIGNED_8 &&
-           instruction->integerTarget < XL6_IR_INTEGER_TARGET_UNSIGNED_64 &&
-           (instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_F64 ||
-            instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_MANAGED_STRING ||
-            instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_XVALUE);
+    return xl6IrCheckedIntegerConversionSignature(resultType,instruction->integerTarget,instruction->integerSourceAbi);
 }
 
 static int xl6IrCgenRuntimeCheckedFloatConvertAbi(

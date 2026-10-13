@@ -2366,7 +2366,9 @@ typedef enum XL6_IrCastAbi {
     XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED,
     XL6_IR_CAST_NATIVE_VALUE_TO_NULLABLE,
     XL6_IR_CAST_NULLABLE_NATIVE_VALUE_TO_VALUE_CHECKED,
-    XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_VALUE_TRY
+    XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_VALUE_TRY,
+    XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED,
+    XL6_IR_CAST_COUNT
 } XL6_IrCastAbi;
 
 /* One closed contract for managed T <-> T? representation. No inference from
@@ -7042,6 +7044,7 @@ int xl6IrLoopCleanupMayRaise(const XL6_IrModule* module,
  * never a backend-side boxing guess. */
 int xl6IrTypeCanBoxRuntimeXValue(
     const XL6_IrModule* module, XL6_IrTypeId typeId);
+int xl6IrCheckedIntegerConversionSignature(const XL6_IrType*, XL6_IrIntegerTarget, XL6_IrIntegerSourceAbi);
 int xl6IrDynamicCallArgumentCanBox(const XL6_IrModule*, const XL6_IrNode*);
 /* True when an ExternGlobal can use the TypeId's exact, trivially-copyable C
  * representation.  Nominal unions are admitted only with a verified layout;

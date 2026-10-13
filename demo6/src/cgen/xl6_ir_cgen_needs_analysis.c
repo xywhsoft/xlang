@@ -296,7 +296,9 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              module->instructions[i].runtimeOp ==
                  XL6_IR_RUNTIME_XVALUE_CAST_CHECKED ) {
-            needs->needsXValueCheckedCastRuntime = 1;
+            if (module->instructions[i].castAbi==XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED)
+                needs->needsCharValueCheckedRuntime=1;
+            else needs->needsXValueCheckedCastRuntime = 1;
             needs->needsXValueTypeIdentityRuntime = 1;
             needs->needsXValueRuntime = 1;
             needs->needsStringViews = 1;
@@ -991,8 +993,11 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED ) {
             if ( module->instructions[i].integerTarget ==
-                     XL6_IR_INTEGER_TARGET_UNICODE_SCALAR )
-                needs->needsCheckedCharRuntime = 1;
+                     XL6_IR_INTEGER_TARGET_UNICODE_SCALAR ) {
+                if (module->instructions[i].integerSourceAbi==XL6_IR_INTEGER_SOURCE_XVALUE)
+                    needs->needsCharValueCheckedRuntime=1;
+                else needs->needsCheckedCharRuntime = 1;
+            }
             else if ( module->instructions[i].integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64 )
                 needs->needsCheckedU64Runtime = 1;
             else
@@ -1001,7 +1006,10 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED ) {
             const XL6_IrInstruction* conversion = &module->instructions[i];
-            if ( conversion->integerSourceAbi == XL6_IR_INTEGER_SOURCE_XVALUE ) {
+            if (conversion->integerTarget==XL6_IR_INTEGER_TARGET_UNICODE_SCALAR &&
+                conversion->integerSourceAbi==XL6_IR_INTEGER_SOURCE_XVALUE) {
+                needs->needsCharValueCheckedRuntime=needs->needsXValueRuntime=1;
+            } else if ( conversion->integerSourceAbi == XL6_IR_INTEGER_SOURCE_XVALUE ) {
                 needs->needsXValueIntegerConvertRuntime = 1;
                 needs->needsXValueRuntime = 1;
                 needs->needsStringViews = 1;

@@ -1,0 +1,3 @@
+var zero = 0
+char scalar = char(zero)
+assert scalar == '\0'

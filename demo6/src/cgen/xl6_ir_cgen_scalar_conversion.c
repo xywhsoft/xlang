@@ -87,6 +87,13 @@ static int xl6IrCgenEmitScalarConversionRuntime(
         sourceValue = module->operands[instruction->firstOperand];
         if ( instruction->integerTarget ==
                  XL6_IR_INTEGER_TARGET_UNICODE_SCALAR ) {
+            if (instruction->integerSourceAbi==XL6_IR_INTEGER_SOURCE_XVALUE) {
+                xl6OutputPrintf(out,"    bool projection_ok_%u = xl6CharValueCheckedV1(v%u, 0x%016llXULL, false, &v%u);\n",
+                    (unsigned)instruction->result,(unsigned)sourceValue,
+                    (unsigned long long)xl6IrTypeGet(&module->types,instruction->type)->typeValueId,
+                    (unsigned)instruction->result);
+                return xl6OutputHasFailed(out) ? -1 : 1;
+            }
             const char* helper = instruction->integerSourceAbi ==
                     XL6_IR_INTEGER_SOURCE_I64
                 ? "xlir_i64_to_char_checked"
