@@ -7,12 +7,14 @@ static const char* xl6IrCgenConcurrentQueuePrefix(XL6_IrRuntimeResourceAbi famil
     case XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE: return "xl6SpscQueue";
     case XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE: return "xl6MpscQueue";
     case XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE: return "xl6MpmcQueue";
+    case XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE: return "xl6WaitQueue";
     default: return NULL;
     }
 }
 
-static const char* xl6IrCgenConcurrentQueueMethod(XL6_IrRuntimeOp op)
+static const char* xl6IrCgenConcurrentQueueMethod(XL6_IrRuntimeResourceAbi family,XL6_IrRuntimeOp op)
 {
+    if(family==XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE && xl6IrWaitQueueReceiveRuntime(op))return "ReceiveV1";
     switch (op) {
     case XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE: return "CreateTakeV1";
     case XL6_IR_RUNTIME_SPECIAL_QUEUE_TRY_PUSH: return "PushV1";
@@ -35,6 +37,7 @@ static const char* xl6IrCgenConcurrentQueueAdmissionFactory(XL6_IrRuntimeResourc
     case XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE: return "xl6SequenceSpscQueueCreateTakeV1";
     case XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE: return "xl6SequenceMpscQueueCreateTakeV1";
     case XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE: return "xl6SequenceMpmcQueueCreateTakeV1";
+    case XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE: return "xl6SequenceWaitQueueCreateTakeV1";
     default: return NULL;
     }
 }
@@ -86,7 +89,7 @@ static int xl6IrCgenEmitConcurrentQueueRuntime(XL6_Output* out,const XL6_IrModul
     const XL6_IrType* result=xl6IrTypeGet(&module->types,instruction->type);
     const XL6_IrSequenceLayout* plan=&schema->sequenceLayout;
     const char* prefix=xl6IrCgenConcurrentQueuePrefix(family);
-    const char* method=xl6IrCgenConcurrentQueueMethod(instruction->runtimeOp);
+    const char* method=xl6IrCgenConcurrentQueueMethod(family,instruction->runtimeOp);
     const char* descriptor=xl6IrCgenNativeSlotTypeExpr(plan->slotAbi);
     bool closure=plan->codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1;
     const char* slotType=closure ? "xvalue*" : xl6IrCgenType(module,instruction->payloadType);
@@ -127,22 +130,39 @@ static int xl6IrCgenEmitConcurrentQueueRuntime(XL6_Output* out,const XL6_IrModul
             output,prefix,method,first,ownerIdentity,elementIdentity,slotType,descriptor,second);
         xl6OutputPrintf(out,"      if (v%u == XQUEUE_ERROR) xl6ErrorScopeCaptureFailure(&queue_scope);\n",output);
         break;
-    case XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP: {
+    case XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP:
+    case XL6_IR_RUNTIME_WAIT_QUEUE_POP:
+    case XL6_IR_RUNTIME_WAIT_QUEUE_POP_TIMEOUT: {
         const XL6_IrType* optional=xl6IrTypeGet(&module->types,result->params[1]);
         bool tagged=optional->cAbi==XL6_IR_C_ABI_TAGGED_NULLABLE && result->params[1]!=instruction->payloadType;
+        if(tagged)xl6OutputPrintf(out,"      v%u.e1.hasValue = true;\n",output);
         if (closure) xl6OutputPuts("      xvalue* queue_slot = NULL;\n",out);
-        xl6OutputPrintf(out,"      v%u.e0 = %s%s(v%u, 0x%016llXULL, 0x%016llXULL, sizeof(%s), %s, ",
+        if(family==XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE) {
+            const XL6_IrWaitQueueReceiveSpec* spec=xl6IrWaitQueueReceiveRuntime(instruction->runtimeOp);
+            if(!spec)return -1;
+            xl6OutputPrintf(out,"      XL6_ChannelStatusV1 queue_status = XL6_CHANNEL_EMPTY_V1;\n"
+                "      bool queue_ok = xl6WaitQueueReceiveV1(v%u, 0x%016llXULL, 0x%016llXULL, %s,\n"
+                "          (XL6_ChannelSlotV1){",first,ownerIdentity,elementIdentity,descriptor);
+            if(closure)xl6OutputPuts("&queue_slot",out);
+            else xl6OutputPrintf(out,"&v%u.e1%s",output,tagged?".value":"");
+            xl6OutputPrintf(out,", sizeof(%s)}, (XL6_ChannelWaitV1)%u, ",slotType,spec->waitMode);
+            if(spec->timed)xl6OutputPrintf(out,"v%u",second);else xl6OutputPuts("0",out);
+            xl6OutputPrintf(out,", &queue_status);\n"
+                "      if (!queue_ok) xl6ErrorScopeCaptureFailure(&queue_scope);\n"
+                "      v%u.e0 = (int64_t)queue_status;\n",output);
+        } else {
+            xl6OutputPrintf(out,"      v%u.e0 = %s%s(v%u, 0x%016llXULL, 0x%016llXULL, sizeof(%s), %s, ",
             output,prefix,method,first,ownerIdentity,elementIdentity,slotType,descriptor);
         if (closure) xl6OutputPuts("&queue_slot);\n",out);
         else xl6OutputPrintf(out,"&v%u.e1%s);\n",output,tagged ? ".value" : "");
         xl6OutputPrintf(out,"      if (v%u.e0 == XQUEUE_ERROR) xl6ErrorScopeCaptureFailure(&queue_scope);\n",output);
+        }
         if (closure) {
             xl6OutputPrintf(out,
                 "      if (v%u.e0 == XQUEUE_OK && !xlir_xvalue_project_closure_try_copy_into(queue_slot, (void (*)(void))xlir_xvalue_closure_entry_t%u, %s, &v%u.e1)) xl6ErrorScopeCaptureFailure(&queue_scope);\n"
                 "      xrtValueRelease(queue_slot);\n",
                 output,(unsigned)plan->baseElementType,plan->nullable ? "true" : "false",output);
         }
-        if (tagged) xl6OutputPrintf(out,"      v%u.e1.hasValue = v%u.e0 == XQUEUE_OK;\n",output,output);
         break;
     }
     case XL6_IR_RUNTIME_SPECIAL_QUEUE_PUSH_BATCH:
@@ -183,14 +203,19 @@ static int xl6IrCgenEmitConcurrentQueueRuntime(XL6_Output* out,const XL6_IrModul
     xl6OutputPuts(
         "      if (xrtGetError() != NULL) xl6ErrorScopeCaptureFailure(&queue_scope);\n"
         "      xl6_error_result queue_outcome = xl6ErrorScopeEnd(&queue_scope);\n",out);
+    if(xl6IrWaitQueueReceiveRuntime(instruction->runtimeOp) && result->kind==XL6_IR_TYPE_TUPLE &&
+        result->params[1]!=instruction->payloadType &&
+        xl6IrTypeGet(&module->types,result->params[1])->cAbi==XL6_IR_C_ABI_TAGGED_NULLABLE)
+        xl6OutputPrintf(out,"      if (queue_outcome.ok) v%u.e1.hasValue = v%u.e0 == XQUEUE_OK;\n",output,output);
     /* STATUS_OUTPUT promises an empty owner on failure. Native pop can still
      * return an owned prefix after a cleanup failure, so retire it exactly
      * once at this language invocation boundary, preserving the first error. */
     if (result->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED) {
         char place[24]; snprintf(place,sizeof(place),"v%u",output);
         xl6OutputPuts("      if (!queue_outcome.ok) { xl6_error_scope queue_cleanup = {0};\n"
+            "        xrtSetErrorTake(queue_outcome.error);\n"
             "        if (!xl6ErrorScopeBeginCleanup(&queue_cleanup,true)) abort();\n"
-            "        xrtSetErrorTake(queue_outcome.error); xl6ErrorScopeCaptureFailure(&queue_cleanup);\n",out);
+            "        xl6ErrorScopeCaptureFailure(&queue_cleanup);\n",out);
         if (!xl6IrCgenEmitOwnedPlaceRelease(out,module,instruction->type,place,NULL)) return -1;
         xl6OutputPuts("        if (xrtGetError() != NULL) xl6ErrorScopeCaptureFailure(&queue_cleanup);\n"
             "        queue_outcome = xl6ErrorScopeEnd(&queue_cleanup); }\n",out);

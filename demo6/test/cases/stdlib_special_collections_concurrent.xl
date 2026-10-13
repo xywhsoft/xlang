@@ -71,13 +71,12 @@ func main(...) as int
 
     WaitQueue<string> waits = WaitQueue::<string>(8)
     auto delayed = func() as int
-        if not waits.tryPush("ready") then return 20 end
+        if waits.tryPush("ready") != queueStatus.ok then return 20 end
         return 0
     end
     thread worker = thread(delayed)
-    string message = ""
-    assert(waits.popTimeoutInto(message, 5000))
-    assert(message == "ready")
+    auto waitStatus, message = waits.popTimeout(5000)
+    assert(waitStatus == queueStatus.ok and message != null and message == "ready")
     assert(worker.waitTimeout(5000))
     assert(worker.exitCode() == 0)
 

@@ -8,7 +8,7 @@ from pathlib import Path
 import argparse,concurrent.futures,hashlib,json,os,re,shutil,subprocess,time
 from xlir_public_build_inputs import verify_public_build
 
-PREFIX=re.compile(r'^stdlib_(time|environment|signal|process|number|text|string|unicode|html|charset|encoding|pattern|regex|queue|concurrent_queue|special_collections|array|list|buffer|ptr_array|slot_map|avl|tree|ordered_map|int_map|dict|map|set|fixed_stack|ptr_fixed_stack|stack|block_stack|ptr_stack|containers|spsc|mpsc|mpmc)(_|\.)')
+PREFIX=re.compile(r'^stdlib_(time|environment|signal|process|number|text|string|unicode|html|charset|encoding|pattern|regex|queue|wait_queue|concurrent_queue|special_collections|array|list|buffer|ptr_array|slot_map|avl|tree|ordered_map|int_map|dict|map|set|fixed_stack|ptr_fixed_stack|stack|block_stack|ptr_stack|containers|spsc|mpsc|mpmc)(_|\.)')
 NEGATIVE={'stdlib_stack_wire_child_refused':'[sem] typed container item type must be copyable'}
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 

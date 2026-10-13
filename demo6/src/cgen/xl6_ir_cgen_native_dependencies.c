@@ -621,7 +621,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             if (!schema || !xl6IrCgenVisitSlotProviders(schema->sequenceLayout.slotAbi,
                     instruction->runtimeOp==XL6_IR_RUNTIME_CONCURRENT_QUEUE_POP_BATCH,visitor,context)) return 0;
             const char* prefix=xl6IrCgenConcurrentQueuePrefix(type->runtimeResourceAbi);
-            const char* method=xl6IrCgenConcurrentQueueMethod(instruction->runtimeOp);
+            const char* method=xl6IrCgenConcurrentQueueMethod(type->runtimeResourceAbi,instruction->runtimeOp);
             char symbol[64];
             if (!prefix || !method || snprintf(symbol,sizeof(symbol),"%s%s",prefix,method)<0 ||
                 !visitor(context,symbol)) return 0;

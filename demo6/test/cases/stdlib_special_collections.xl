@@ -156,11 +156,18 @@ func main(...) as int
 
     WaitQueue<int> waits = WaitQueue::<int>(4)
     assert(waits.capacity() >= 4)
-    assert(not waits.popTimeoutInto(number, -1))
-    assert(not waits.popTimeoutInto(number, 1))
-    assert(waits.tryPush(42))
-    assert(waits.popInto(number))
-    assert(number == 42)
+    bool invalidWait = false
+    try
+        auto invalidStatus, invalidValue = waits.popTimeout(-1)
+    catch ValueError
+        invalidWait = true
+    end
+    assert(invalidWait)
+    auto timeoutStatus, noNumber = waits.popTimeout(1)
+    assert(timeoutStatus == queueStatus.timeout and noNumber == null)
+    assert(waits.tryPush(42) == queueStatus.ok)
+    auto waitStatus, waitNumber = waits.pop()
+    assert(waitStatus == queueStatus.ok and waitNumber != null and waitNumber == 42)
     waits.close()
     assert(waits.isClosed())
     assert(waits.isDrained())

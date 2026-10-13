@@ -68,8 +68,8 @@ static int xl6IrCgenRuntimeCallableAdapterDirectlyNeeded(
             const XL6_IrType* schema=xl6IrTypeGet(&module->types,queue->messageSchemaType);
             if (schema && schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1 &&
                 schema->sequenceLayout.baseElementType==type &&
-                instruction->runtimeOp==(reverse ? XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP :
-                    XL6_IR_RUNTIME_SPECIAL_QUEUE_TRY_PUSH)) return 1;
+                (reverse ? xl6IrWaitQueueReceiveRuntime(instruction->runtimeOp)!=NULL :
+                    instruction->runtimeOp==XL6_IR_RUNTIME_SPECIAL_QUEUE_TRY_PUSH)) return 1;
         }
         if(xl6IrCgenStackRuntimeOpIs(instruction->runtimeOp) && instruction->runtimeOp!=XL6_IR_RUNTIME_STACK_CREATE &&
             instruction->operandCount && instruction->firstOperand<module->operandCount) {

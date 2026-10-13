@@ -1,0 +1,25 @@
+func take<T>(WaitQueue<T> queue) as (int, T?)
+    return queue.popTimeout(10)
+end
+func main(...) as int
+    WaitQueue<int> numbers = WaitQueue::<int>(2)
+    auto status, absent = numbers.tryPop()
+    assert status == queueStatus.empty and absent == null
+    auto timeout, nothing = numbers.popTimeout(0)
+    assert timeout == queueStatus.timeout and nothing == null
+    assert numbers.tryPush(17) == queueStatus.ok
+    auto ready, value = take(numbers)
+    assert ready == queueStatus.ok and value != null and value == 17
+    numbers.close()
+    auto closed, missing = numbers.pop()
+    assert closed == queueStatus.closed and missing == null
+    WaitQueue<string> texts = WaitQueue::<string>(2)
+    assert texts.tryPush("a\0你") == queueStatus.ok
+    auto found, text = texts.pop()
+    assert found == queueStatus.ok and text != null and text == "a\0你"
+    WaitQueue<string?> optionals = WaitQueue::<string?>(2)
+    assert optionals.tryPush(null) == queueStatus.ok
+    auto present, nullText = optionals.tryPop()
+    assert present == queueStatus.ok and nullText == null
+    return 0
+end

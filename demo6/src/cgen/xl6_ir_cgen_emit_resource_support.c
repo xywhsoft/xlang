@@ -4,7 +4,7 @@ static int xl6IrCgenEmitResourceRuntime(
 {
     size_t i;
     size_t parameter;
-    int nativeQueue=needs->needsSpscQueueRuntime || needs->needsMpscQueueRuntime || needs->needsMpmcQueueRuntime;
+    int nativeQueue=needs->needsSpscQueueRuntime || needs->needsMpscQueueRuntime || needs->needsMpmcQueueRuntime || needs->needsWaitQueueRuntime;
     for(i=0;i<module->instructionCount;++i)
         if(xl6IrCgenInstructionIsReachable(module,i) && xl6IrSlotMapIteratorOpIs(module->instructions[i].runtimeOp)) {
             xl6OutputPuts("#include <__xl_runtime/xl6_slot_map_iterator.h>\n",out); break;
@@ -15,6 +15,7 @@ static int xl6IrCgenEmitResourceRuntime(
             xl6OutputPuts("#include <__xl_runtime/xl6_slot_map.h>\n",out); break;
         }
     if (nativeQueue) xl6OutputPuts("#include <__xl_runtime/xl6_concurrent_queue_abi.h>\n",out);
+    if(needs->needsWaitQueueRuntime)xl6OutputPuts("#include <__xl_runtime/xl6_wait_queue_abi.h>\n",out);
     if (needs->needsNativeChannelRuntime) xl6OutputPuts("#include <__xl_runtime/xl6_channel_abi.h>\n",out);
     if ( needs->needsThreadResourceRuntime )
         xl6OutputPuts(
@@ -26,7 +27,7 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern bool xl6ThreadStopV1(const xvalue*, uint64_t);\n"
             "extern xvalue* xl6SequenceThreadCreateV1(unsigned int, uint64_t, uint64_t, uint64_t, bool);\n",
             out);
-    if ( needs->needsChannelResourceRuntime || needs->needsStackResourceRuntime ||
+    if ( needs->needsStackResourceRuntime ||
          needs->needsAvlTreeResourceRuntime )
         xl6OutputPuts(
             "enum { XLIR_CHANNEL_PAYLOAD_TRIVIAL_COPY = 1, XLIR_CHANNEL_PAYLOAD_STRING_COPY = 2, XLIR_CHANNEL_PAYLOAD_XVALUE_RETAIN = 3 };\n\n",
@@ -68,182 +69,6 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern const xvalueconverter* xl6NullableNativeU16ConverterV1(void);\n"
             "extern const xvalueconverter* xl6NullableNativeI32ConverterV1(void);\n"
             "extern const xvalueconverter* xl6NullableNativeU32ConverterV1(void);\n", out);
-    if ( needs->needsChannelResourceRuntime && needs->needsStringRuntime )
-        xl6OutputPuts("typedef struct xrttype xrttype;\n"
-                      "extern const xrttype* xrtTypeStringView(void);\n"
-                      "extern bool xrtTypeCopyValue(const xrttype*, void*, const void*);\n", out);
-    if ( needs->needsChannelResourceRuntime &&
-         !xl6IrCgenNeedsXrtDeclarations(needs) )
-        xl6OutputPuts("typedef struct xchannel xchannel;\n", out);
-    if ( needs->needsChannelResourceRuntime )
-        xl6OutputPrintf(out, "#define XLIR_CHANNEL_HAS_STRING_PAYLOAD %d\n", needs->needsStringRuntime ? 1 : 0);
-    if ( needs->needsChannelResourceRuntime )
-        xl6OutputPuts(
-            "/* channel<T> and verified concurrent queues use one exact XLIR\n"
-            " * payload transport.  XRT transports\n"
-            " * opaque pointers, so every queued value is held by an owning box.\n"
-            " * The shared handle records the verified nominal and payload ABI;\n"
-            " * generated member calls must present the same immutable tuple. */\n"
-            "typedef struct xlir_channel_handle {\n"
-            "    volatile int32_t refs; xchannel* channel; uint64_t channel_type_id;\n"
-            "    uint64_t payload_type_id; unsigned int payload_abi; size_t payload_size;\n"
-            "} xlir_channel_handle;\n"
-            "enum { XLIR_CHANNEL_RECV_BLOCK = 0, XLIR_CHANNEL_RECV_TRY = 1, XLIR_CHANNEL_RECV_TIMEOUT = 2 };\n"
-            "#ifndef XLIR_XRT_DECLARATIONS\n"
-            "extern xchannel* xrtChannelCreate(size_t);\n"
-            "extern bool xrtChannelDestroy(xchannel*);\n"
-            "extern int xrtChannelTrySend(xchannel*, void*);\n"
-            "extern int xrtChannelSend(xchannel*, void*);\n"
-            "extern int xrtChannelTryRecv(xchannel*, void**);\n"
-            "extern int xrtChannelRecv(xchannel*, void**);\n"
-            "extern int xrtChannelRecvFor(xchannel*, void**, uint64_t);\n"
-            "extern size_t xrtChannelCount(xchannel*);\n"
-            "extern size_t xrtChannelCapacity(xchannel*);\n"
-            "extern bool xrtChannelIsClosed(xchannel*);\n"
-            "extern bool xrtChannelIsDrained(xchannel*);\n"
-            "extern bool xrtChannelReset(xchannel*);\n"
-            "extern void xrtChannelClose(xchannel*);\n"
-            "extern size_t xrtChannelDrain(xchannel*, void (*)(void*, void*), void*);\n"
-            "extern void* xrtMalloc(size_t);\n"
-            "extern void xrtFree(void*);\n"
-            "extern int32_t xrtRefRetain(volatile int32_t*);\n"
-            "extern int32_t xrtRefRelease(volatile int32_t*);\n"
-            "extern char* xrtStrDup(const char*);\n"
-            "extern uint64_t xrtValueTypeId(const xvalue*);\n"
-            "extern bool xrtValueTypeIdBind(xvalue*, uint64_t);\n"
-            "extern bool xrtValueGetHandle(const xvalue*, void**, const xvaluehandleops**, void**);\n"
-            "#endif\n"
-            "static void xlir_channel_raise(const char* message)\n"
-            "{ if (xrtGetError() == NULL) xrtSetErrorTake(xlir_error_create(\"ChannelError\", message)); }\n"
-            "static void xlir_channel_finish_no_raise(xerror* saved)\n"
-            "{ xerror* transient = xrtTakeError(); xrtErrorFree(transient); if (saved != NULL) xrtSetErrorTake(saved); }\n"
-            "static void xlir_channel_payload_drop(unsigned int abi, void* item)\n"
-            "{\n"
-            "    if (item == NULL) return;\n"
-            "#if XLIR_CHANNEL_HAS_STRING_PAYLOAD\n"
-            "    if (abi == XLIR_CHANNEL_PAYLOAD_STRING_COPY) xlir_string_drop(*(xlir_string*)item);\n"
-            "    else\n"
-            "#endif\n"
-            "    if (abi == XLIR_CHANNEL_PAYLOAD_XVALUE_RETAIN) xrtValueRelease(*(xvalue**)item);\n"
-            "    else if (abi != XLIR_CHANNEL_PAYLOAD_TRIVIAL_COPY) abort();\n"
-            "    xrtFree(item);\n"
-            "}\n"
-            "static bool xlir_channel_payload_copy(unsigned int abi, size_t size, void* item, const void* source)\n"
-            "{\n"
-            "    if (item == NULL || source == NULL || size == 0) abort();\n"
-            "    memset(item, 0, size);\n"
-            "    if (abi == XLIR_CHANNEL_PAYLOAD_TRIVIAL_COPY) { memcpy(item, source, size); return true; }\n"
-            "#if XLIR_CHANNEL_HAS_STRING_PAYLOAD\n"
-            "    if (abi == XLIR_CHANNEL_PAYLOAD_STRING_COPY) { *(xlir_string*)item = (xlir_string){0}; return xrtTypeCopyValue(xrtTypeStringView(), item, source); }\n"
-            "#endif\n"
-            "    if (abi == XLIR_CHANNEL_PAYLOAD_XVALUE_RETAIN) { xvalue* value = *(xvalue* const*)source; if (value == NULL) abort(); *(xvalue**)item = xrtValueRetain(value); return *(xvalue**)item != NULL; }\n"
-            "    abort(); return false;\n"
-            "}\n"
-            "static void xlir_channel_payload_move(unsigned int abi, size_t size, void* target, void* item)\n"
-            "{\n"
-            "    if (target == NULL || item == NULL || size == 0) abort();\n"
-            "    if (abi == XLIR_CHANNEL_PAYLOAD_TRIVIAL_COPY) memcpy(target, item, size);\n"
-            "#if XLIR_CHANNEL_HAS_STRING_PAYLOAD\n"
-            "    else if (abi == XLIR_CHANNEL_PAYLOAD_STRING_COPY) { xlir_string_drop(*(xlir_string*)target); *(xlir_string*)target = *(xlir_string*)item; *(xlir_string*)item = (xlir_string){0}; }\n"
-            "#endif\n"
-            "    else if (abi == XLIR_CHANNEL_PAYLOAD_XVALUE_RETAIN) { xrtValueRelease(*(xvalue**)target); *(xvalue**)target = *(xvalue**)item; *(xvalue**)item = NULL; }\n"
-            "    else abort();\n"
-            "}\n"
-            "static void xlir_channel_drain_item(void* item, void* context)\n"
-            "{ xlir_channel_handle* handle = (xlir_channel_handle*)context; if (handle == NULL) abort(); xlir_channel_payload_drop(handle->payload_abi, item); }\n"
-            "static bool xlir_channel_handle_clone(void* opaque, void** clone, void* user)\n"
-            "{ xlir_channel_handle* handle = (xlir_channel_handle*)opaque; (void)user; if (handle == NULL || clone == NULL || xrtRefRetain(&handle->refs) < 0) { xlir_channel_raise(\"channel handle clone failed\"); return false; } *clone = handle; return true; }\n"
-            "static void xlir_channel_handle_drop(void* opaque, void* user)\n"
-            "{\n"
-            "    xlir_channel_handle* handle = (xlir_channel_handle*)opaque; int32_t refs; xerror* saved;\n"
-            "    (void)user; if (handle == NULL) return; refs = xrtRefRelease(&handle->refs); if (refs > 0) return; if (refs < 0) abort();\n"
-            "    saved = xrtTakeError(); xrtChannelClose(handle->channel); (void)xrtChannelDrain(handle->channel, xlir_channel_drain_item, handle);\n"
-            "    if (!xrtChannelDestroy(handle->channel)) abort();\n"
-            "    handle->channel = NULL; xrtFree(handle); xlir_channel_finish_no_raise(saved);\n"
-            "}\n"
-            "static const xvaluehandleops xlir_channel_handle_ops = { xlir_channel_handle_clone, xlir_channel_handle_drop, NULL, NULL };\n"
-            "static xlir_channel_handle* xlir_channel_borrow(const xvalue* value, uint64_t channelTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize)\n"
-            "{\n"
-            "    void* opaque = NULL; const xvaluehandleops* ops = NULL; xlir_channel_handle* handle;\n"
-            "    if (value == NULL || xrtValueType(value) == 0) return NULL;\n"
-            "    if (channelTypeId == 0 || payloadTypeId == 0 || payloadSize == 0 || xrtValueTypeId(value) != channelTypeId || !xrtValueGetHandle(value, &opaque, &ops, NULL) || ops != &xlir_channel_handle_ops || opaque == NULL) abort();\n"
-            "    handle = (xlir_channel_handle*)opaque;\n"
-            "    if (handle->channel == NULL || handle->channel_type_id != channelTypeId || handle->payload_type_id != payloadTypeId || handle->payload_abi != payloadAbi || handle->payload_size != payloadSize) abort();\n"
-            "    return handle;\n"
-            "}\n"
-            "static xvalue* xlir_channel_create(uint64_t channelTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize, int64_t requestedCapacity)\n"
-            "{\n"
-            "    size_t capacity; xlir_channel_handle* handle; xvalue* value;\n"
-            "    if (channelTypeId == 0 || payloadTypeId == 0 || payloadSize == 0 || payloadAbi < XLIR_CHANNEL_PAYLOAD_TRIVIAL_COPY || payloadAbi > XLIR_CHANNEL_PAYLOAD_XVALUE_RETAIN) abort();\n"
-            "    if (requestedCapacity < 2) capacity = 2; else if ((uint64_t)requestedCapacity > (uint64_t)SIZE_MAX) { xlir_channel_raise(\"channel capacity is out of range\"); return NULL; } else capacity = (size_t)requestedCapacity;\n"
-            "    handle = (xlir_channel_handle*)xrtMalloc(sizeof(*handle));\n"
-            "    if (handle == NULL) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }\n"
-            "    memset(handle, 0, sizeof(*handle)); handle->refs = 1; handle->channel_type_id = channelTypeId; handle->payload_type_id = payloadTypeId; handle->payload_abi = payloadAbi; handle->payload_size = payloadSize;\n"
-            "    handle->channel = xrtChannelCreate(capacity);\n"
-            "    if (handle->channel == NULL) { xrtFree(handle); if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }\n"
-            "    value = xrtValueHandleTake((void**)&handle, &xlir_channel_handle_ops, NULL);\n"
-            "    if (value == NULL) { if (handle != NULL) xlir_channel_handle_drop(handle, NULL); if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }\n"
-            "    if (!xrtValueTypeIdBind(value, channelTypeId)) { xrtValueRelease(value); xlir_channel_raise(\"channel resource identity binding failed\"); return NULL; }\n"
-            "    return value;\n"
-            "}\n"
-            "static bool xlir_channel_send(const xvalue* value, uint64_t channelTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize, const void* source, bool tryOnly)\n"
-            "{\n"
-            "    xlir_channel_handle* handle = xlir_channel_borrow(value, channelTypeId, payloadTypeId, payloadAbi, payloadSize); void* item; int result;\n"
-            "    if (handle == NULL) return false;\n"
-            "    item = xrtMalloc(payloadSize);\n"
-            "    if (item == NULL) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return false; }\n"
-            "    if (!xlir_channel_payload_copy(payloadAbi, payloadSize, item, source)) { xlir_channel_payload_drop(payloadAbi, item); xlir_channel_raise(\"channel payload copy failed\"); return false; }\n"
-            "    result = tryOnly ? xrtChannelTrySend(handle->channel, item) : xrtChannelSend(handle->channel, item);\n"
-            "    if (result != 0) xlir_channel_payload_drop(payloadAbi, item);\n"
-            "    return result == 0;\n"
-            "}\n"
-            "static uint64_t xlir_channel_timeout_us(int64_t timeoutMs)\n"
-            "{ if (timeoutMs <= 0) return 0; if ((uint64_t)timeoutMs > UINT64_MAX / 1000u) return UINT64_MAX; return (uint64_t)timeoutMs * 1000u; }\n"
-            "static bool xlir_channel_recv(const xvalue* value, uint64_t channelTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize, void* target, int mode, int64_t timeoutMs)\n"
-            "{\n"
-            "    xlir_channel_handle* handle = xlir_channel_borrow(value, channelTypeId, payloadTypeId, payloadAbi, payloadSize); void* item = NULL; xerror* saved; int result;\n"
-            "    if (handle == NULL) return false;\n"
-            "    if (target == NULL) abort();\n"
-            "    saved = xrtTakeError();\n"
-            "    if (mode == XLIR_CHANNEL_RECV_BLOCK) result = xrtChannelRecv(handle->channel, &item);\n"
-            "    else if (mode == XLIR_CHANNEL_RECV_TRY) result = xrtChannelTryRecv(handle->channel, &item);\n"
-            "    else if (mode == XLIR_CHANNEL_RECV_TIMEOUT) result = xrtChannelRecvFor(handle->channel, &item, xlir_channel_timeout_us(timeoutMs));\n"
-            "    else abort();\n"
-            "    if (result == 0) { if (item == NULL) abort(); xlir_channel_payload_move(payloadAbi, payloadSize, target, item); xlir_channel_payload_drop(payloadAbi, item); }\n"
-            "    else if (item != NULL) abort();\n"
-            "    xlir_channel_finish_no_raise(saved); return result == 0;\n"
-            "}\n"
-            "static void xlir_channel_close(const xvalue* value, uint64_t channelTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize)\n"
-            "{ xlir_channel_handle* handle = xlir_channel_borrow(value, channelTypeId, payloadTypeId, payloadAbi, payloadSize); xerror* saved; if (handle == NULL) return; saved = xrtTakeError(); xrtChannelClose(handle->channel); xlir_channel_finish_no_raise(saved); }\n"
-            "static bool xlir_channel_is_closed(const xvalue* value, uint64_t channelTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize)\n"
-            "{ xlir_channel_handle* handle = xlir_channel_borrow(value, channelTypeId, payloadTypeId, payloadAbi, payloadSize); xerror* saved; bool result; if (handle == NULL) return false; saved = xrtTakeError(); result = xrtChannelIsClosed(handle->channel); xlir_channel_finish_no_raise(saved); return result; }\n"
-             "static int64_t xlir_channel_count(const xvalue* value, uint64_t channelTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize)\n"
-             "{ xlir_channel_handle* handle = xlir_channel_borrow(value, channelTypeId, payloadTypeId, payloadAbi, payloadSize); xerror* saved; size_t result; if (handle == NULL) return 0; saved = xrtTakeError(); result = xrtChannelCount(handle->channel); xlir_channel_finish_no_raise(saved); return result > (size_t)INT64_MAX ? INT64_MAX : (int64_t)result; }\n\n",
-             out);
-    if ( needs->needsChannelResourceRuntime )
-        xl6OutputPuts(
-            "/* Fixed special-queue entry points preserve the queue RuntimeOp\n"
-            " * identity in generated C while delegating only transport to the\n"
-            " * already verified channel handle tuple. */\n"
-            "static xvalue* xlir_special_queue_create(uint64_t queueTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize, int64_t capacity)\n"
-            "{ return xlir_channel_create(queueTypeId, payloadTypeId, payloadAbi, payloadSize, capacity); }\n"
-            "static bool xlir_special_queue_try_push(const xvalue* value, uint64_t queueTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize, const void* source)\n"
-            "{ return xlir_channel_send(value, queueTypeId, payloadTypeId, payloadAbi, payloadSize, source, true); }\n"
-            "static bool xlir_special_queue_pop(const xvalue* value, uint64_t queueTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize, void* target, int mode, int64_t timeoutMs)\n"
-            "{ return xlir_channel_recv(value, queueTypeId, payloadTypeId, payloadAbi, payloadSize, target, mode, timeoutMs); }\n"
-            "static void xlir_special_queue_close(const xvalue* value, uint64_t queueTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize)\n"
-            "{ xlir_channel_close(value, queueTypeId, payloadTypeId, payloadAbi, payloadSize); }\n"
-            "static int64_t xlir_special_queue_count(const xvalue* value, uint64_t queueTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize)\n"
-            "{ return xlir_channel_count(value, queueTypeId, payloadTypeId, payloadAbi, payloadSize); }\n"
-            "static int64_t xlir_special_queue_capacity(const xvalue* value, uint64_t queueTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize)\n"
-            "{ xlir_channel_handle* handle = xlir_channel_borrow(value, queueTypeId, payloadTypeId, payloadAbi, payloadSize); xerror* saved; size_t result; if (handle == NULL) return 0; saved = xrtTakeError(); result = xrtChannelCapacity(handle->channel); xlir_channel_finish_no_raise(saved); return result > (size_t)INT64_MAX ? INT64_MAX : (int64_t)result; }\n"
-            "static bool xlir_special_queue_reset(const xvalue* value, uint64_t queueTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize)\n"
-            "{ xlir_channel_handle* handle = xlir_channel_borrow(value, queueTypeId, payloadTypeId, payloadAbi, payloadSize); xerror* saved; bool result; if (handle == NULL) return false; saved = xrtTakeError(); result = xrtChannelReset(handle->channel); xlir_channel_finish_no_raise(saved); return result; }\n"
-            "static bool xlir_special_queue_is_closed(const xvalue* value, uint64_t queueTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize)\n"
-            "{ return xlir_channel_is_closed(value, queueTypeId, payloadTypeId, payloadAbi, payloadSize); }\n"
-            "static bool xlir_special_queue_is_drained(const xvalue* value, uint64_t queueTypeId, uint64_t payloadTypeId, unsigned int payloadAbi, size_t payloadSize)\n"
-            "{ xlir_channel_handle* handle = xlir_channel_borrow(value, queueTypeId, payloadTypeId, payloadAbi, payloadSize); xerror* saved; bool result; if (handle == NULL) return false; saved = xrtTakeError(); result = xrtChannelIsDrained(handle->channel); xlir_channel_finish_no_raise(saved); return result; }\n\n",
-            out);
     if ( needs->needsStackResourceRuntime || needs->needsArrayImportRuntime || needs->needsArrayCreateRuntime || nativeQueue || needs->needsAvlTreeResourceRuntime || needs->needsNativeChannelRuntime )
         xl6OutputPuts(
             "/* Sequence factories live in the resident typed runtime. */\n"
@@ -254,6 +79,7 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern xvalue* xl6SequenceSpscQueueCreateTakeV1(unsigned int, uint64_t, uint64_t, uint64_t, xvalue*, bool);\n"
             "extern xvalue* xl6SequenceMpscQueueCreateTakeV1(unsigned int, uint64_t, uint64_t, uint64_t, xvalue*, bool);\n"
             "extern xvalue* xl6SequenceMpmcQueueCreateTakeV1(unsigned int, uint64_t, uint64_t, uint64_t, xvalue*, bool);\n"
+            "extern xvalue* xl6SequenceWaitQueueCreateTakeV1(unsigned int, uint64_t, uint64_t, uint64_t, xvalue*, bool);\n"
             "extern xvalue* xl6SequenceNominalCreateV1(unsigned int, uint64_t, uint64_t, const XL6_NominalAdmissionV1*, bool, uint64_t);\n"
             "extern xvalue* xl6SequenceUnionCreateV1(unsigned int, uint64_t, uint64_t, uint64_t, size_t, bool);\n"
             "extern xvalue* xl6SequenceCScalarCreateV1(unsigned int, uint64_t, uint64_t, const xrttype*, uint64_t);\n"

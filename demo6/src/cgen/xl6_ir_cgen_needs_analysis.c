@@ -54,6 +54,7 @@ static int xl6IrCgenAnalyzeSequenceRecipeNeeds(const XL6_IrModule* module,XL6_Ir
         case XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE: needs->needsSpscQueueRuntime=1; break;
         case XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE: needs->needsMpscQueueRuntime=1; break;
         case XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE: needs->needsMpmcQueueRuntime=1; break;
+        case XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE: needs->needsWaitQueueRuntime=1; break;
         default: return 0;
         }
         needs->needsForeignErrorRuntime=1;
@@ -569,6 +570,7 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                 const XL6_IrType* queue=xl6IrTypeGet(&module->types,queueId);
                 if (queue->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE) needs->needsSpscQueueRuntime=1;
                 else if (queue->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE) needs->needsMpscQueueRuntime=1;
+                else if(queue->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE)needs->needsWaitQueueRuntime=1;
                 else needs->needsMpmcQueueRuntime=1;
                 const XL6_IrType* schema=xl6IrTypeGet(&module->types,queue->messageSchemaType);
                 if (!schema) return 0;
@@ -582,7 +584,7 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                 }
                 needs->needsForeignErrorRuntime=1;
                 needs->needsNominalIdentityRuntime=1;
-            } else needs->needsChannelResourceRuntime=1; /* WaitQueue only. */
+            } else return 0; /* No legacy generated queue fallback. */
             needs->needsXValueRuntime = 1;
             needs->needsXValueHandleRuntime = 1;
             needs->needsXValueTypeIdentityRuntime = 1;

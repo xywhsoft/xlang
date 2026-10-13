@@ -1,0 +1,6 @@
+func unused(WaitQueue<int> queue) as (int, int?)
+    return queue.pop()
+end
+func main(...) as int
+    return 0
+end

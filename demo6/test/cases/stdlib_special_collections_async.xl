@@ -65,8 +65,8 @@ number = tree.get("answer")
 assert number == 42
 
 WaitQueue<string> queue = await makeQueueAsync()
-string text = ""
-assert queue.popInto(text) and text == "ready"
+auto queueStatusValue, text = queue.pop()
+assert queueStatusValue == queueStatus.ok and text != null and text == "ready"
 
 func() as Stack<int> maker = makeStackSync
 future<Stack<int>> spawned = task.spawn(maker)

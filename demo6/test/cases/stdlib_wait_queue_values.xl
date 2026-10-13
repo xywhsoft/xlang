@@ -1,0 +1,46 @@
+class WaitMessage
+    string text = ""
+end
+async func waitReady(int value) as int
+    return value
+end
+WaitQueue<bytes> binary = WaitQueue::<bytes>(2)
+bytes input = b"a\0b"
+assert binary.tryPush(input) == queueStatus.ok
+input[0] = 99
+auto binaryStatus, output = binary.pop()
+assert binaryStatus == queueStatus.ok and output != null and output == b"a\0b"
+WaitQueue<char> characters = WaitQueue::<char>(2)
+assert characters.tryPush('你') == queueStatus.ok
+auto charStatus, scalar = characters.popTimeout(10)
+assert charStatus == queueStatus.ok and scalar != null and scalar == '你'
+WaitQueue<WaitMessage> messages = WaitQueue::<WaitMessage>(2)
+auto message = WaitMessage()
+message.text = "before"
+assert messages.tryPush(message) == queueStatus.ok
+message.text = "after"
+auto messageStatus, received = messages.pop()
+assert messageStatus == queueStatus.ok and received != null
+if received != null then assert received.text == "after" end
+int captured = 40
+auto callback = func(int value) as int
+    return captured + value
+end
+WaitQueue<func(int) as int> callbacks = WaitQueue::<func(int) as int>(2)
+assert callbacks.tryPush(callback) == queueStatus.ok
+auto callbackStatus, callable = callbacks.pop()
+assert callbackStatus == queueStatus.ok and callable != null
+if callable != null then assert callable(2) == 42 end
+WaitQueue<future<int>?> jobs = WaitQueue::<future<int>?>(2)
+assert jobs.tryPush(null) == queueStatus.ok
+assert jobs.tryPush(waitReady(17)) == queueStatus.ok
+auto absentStatus, absent = jobs.tryPop()
+assert absentStatus == queueStatus.ok and absent == null
+auto jobStatus, job = jobs.popTimeout(1000)
+assert jobStatus == queueStatus.ok and job != null
+if job != null then assert job.wait() and await job == 17 end
+WaitQueue<int> child = WaitQueue::<int>(2)
+array<WaitQueue<int>> holders = array[child]
+assert holders[0].tryPush(23) == queueStatus.ok
+auto nestedStatus, nestedValue = child.pop()
+assert nestedStatus == queueStatus.ok and nestedValue != null and nestedValue == 23

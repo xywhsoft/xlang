@@ -1,0 +1,2 @@
+WaitQueue<int> queue = WaitQueue::<int>(2)
+auto status, value = queue.popTimeout("10")
