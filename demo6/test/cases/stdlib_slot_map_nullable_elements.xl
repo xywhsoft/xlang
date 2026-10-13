@@ -1,0 +1,85 @@
+func independentKey() as SlotMapKey
+    auto slots = SlotMap::<int>()
+    return slots.insert(31)
+end
+func main(...) as int
+    SlotMapKey? first = independentKey()
+    SlotMapKey? other = independentKey()
+    SlotMapKey? absent = null
+    array<SlotMapKey?> keys = [first, null, other]
+    assert(keys.length == 3 and keys[0] == first and keys[1] == null)
+    auto owned = keys[0]
+    keys[0] = null
+    assert(owned == first and keys[0] == null)
+    keys.push(first)
+    assert(keys.pop() == first and keys.length == 3)
+    assert(keys.take(1) == null and keys.length == 2)
+    keys.insert(1, first)
+    keys.reserve(10)
+    keys.resize(5)
+    assert(keys[3] == null and keys.pop() == null)
+    auto copied = copy(keys)
+    keys[1] = null
+    assert(copied[1] == first and keys[1] == null)
+    set<SlotMapKey?> unique = set{first, first, null, other, null}
+    assert(unique.length == 3 and unique.contains(absent) and unique.contains(first))
+    assert(unique.remove(absent) and unique.length == 2)
+    unique.add(absent)
+    assert(unique.length == 3)
+    dict<SlotMapKey?> byName = {"a\0b": first, "你": null}
+    assert(byName["a\0b"] == first and byName["你"] == null)
+    byName["你"] = other
+    assert(byName["你"] == other)
+    list<SlotMapKey?> sparse = [0: first, 9: null]
+    assert(sparse[0] == first and sparse[9] == null)
+    sparse[0] = null
+    assert(sparse[0] == null)
+    auto slots = SlotMap::<SlotMapKey?>()
+    auto handle = slots.insert(first)
+    auto nullHandle = slots.insert(absent)
+    assert(slots.get(handle) == first and slots.get(nullHandle) == null)
+    slots.set(handle, other)
+    assert(slots.get(handle) == other)
+    array<array<SlotMapKey?>> nested = [keys, copied]
+    assert(nested[0][1] == null and nested[1][1] == first)
+    var erased = copied
+    array<SlotMapKey?> imported = erased
+    assert(imported[1] == first)
+    auto stack = Stack::<SlotMapKey?>()
+    stack.push(first)
+    stack.push(absent)
+    auto hasNull, nullItem = stack.tryPop()
+    assert(hasNull and nullItem == null)
+    auto hasKey, item = stack.tryPeek()
+    assert(hasKey and item == first)
+    auto popped, poppedItem = stack.tryPop()
+    assert(popped and poppedItem == first)
+    auto emptyStack, missing = stack.tryPop()
+    assert(not emptyStack and missing == null)
+    int observed = 0
+    for key in copied
+        bool known = key == first or key == other
+        assert(key == null or known)
+        observed += 1
+    end
+    for key in sparse
+        assert(key == null)
+        observed += 1
+    end
+    for key in unique
+        bool known = key == first or key == other
+        assert(key == null or known)
+        observed += 1
+    end
+    for name, key in byName
+        assert((name == "a\0b" and key == first) or (name == "你" and key == other))
+        observed += 1
+    end
+    for handle, key in slots
+        bool known = key == other
+        assert(key == null or known)
+        observed += 1
+    end
+    assert(observed == 13)
+    return 0
+end

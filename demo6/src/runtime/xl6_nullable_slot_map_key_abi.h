@@ -24,4 +24,9 @@ struct xvalue* xl6NullableSlotMapKeyBoxV1(XL6_NullableSlotMapKeyV1);
 bool xl6NullableSlotMapKeyUnboxV1(const struct xvalue*,XL6_NullableSlotMapKeyV1*);
 /* Authenticated mismatch is absence; acquisition/resource failure is checked. */
 bool xl6NullableSlotMapKeyTryUnboxV1(const struct xvalue*,XL6_NullableSlotMapKeyV1*);
+struct xvalueconverter;
+const struct xvalueconverter* xl6NullableSlotMapKeyConverterV1(void);
+struct XL6_NativeCollectionValueProfileV1;
+const struct XL6_NativeCollectionValueProfileV1* xl6NullableSlotMapKeyCollectionProfileV1Get(void);
+struct xvalue* xl6SequenceNullableSlotMapKeyCreateV1(unsigned int,uint64_t);
 #endif

@@ -101,7 +101,7 @@ def main():
             run(opt+'-build',[cc,*flags,'-'+opt,'-include',generated,host,memory_object,*objects,runtime,*links,'-o',product])
             products.append(dict(Path=str(product),Sha256=sha(product))); run(opt+'-native-keys',[product])
             fault=out/(opt+'-fault'+('.exe' if os.name=='nt' else ''))
-            symbols=('xl6SlotMapKeyCopyValueV1','xl6SlotMapKeyUnboxV1','xl6SlotMapKeyBoxV1','xl6ArrayExtractNativeValueV1')
+            symbols=('xl6SlotMapKeyCopyValueV1','xl6SlotMapKeyUnboxV1','xl6SlotMapKeyBoxV1','xl6ArrayExtractNativeValueV2')
             wraps=['-Wl,--wrap='+symbol for symbol in symbols]
             if foreign: wraps.append('-Wl,--wrap=xl6SlotMapKeyCloneV1')
             run(opt+'-fault-build',[cc,*flags,'-'+opt,'-DXL6_NATIVE_VALUE_TEST_FAULTS','-include',generated,
@@ -119,8 +119,8 @@ def main():
         if foreign:
             assert reportedResultFailures=={'0','1'}
             report['OwnedForeignResultFailureVariants']=['reported','unreported']
-        mutants=(('copy-owner','xl6_slot_map_key_value',
-            '{ return xl6NativeLeafValueCopyV1(&profile,&input,output); }','{ *output=input; return true; }'),
+        mutants=(('copy-owner','xl6_slot_map_key',
+            'copied=xrtTypeCopyValue(xl6SlotMapKeyTypeV1(),output,&input);','*output=input;copied=true;'),
             ('drop-owner','xl6_slot_map_key','{ keyDrop(&value,xl6SlotMapKeyTypeV1()); }','{ (void)value; }'),
             ('instance-domain','xl6_slot_map_key','{ return left.instance==right.instance && left.slot==right.slot; }',
              '{ return left.slot==right.slot; }'))

@@ -23,11 +23,11 @@ bool __wrap_xl6SlotMapKeyUnboxV1(const xvalue* value,XL6_SlotMapKeyV1* out)
 extern xvalue* __real_xl6SlotMapKeyBoxV1(XL6_SlotMapKeyV1);
 xvalue* __wrap_xl6SlotMapKeyBoxV1(XL6_SlotMapKeyV1 key)
 { return fail(2) ? NULL : __real_xl6SlotMapKeyBoxV1(key); }
-extern bool __real_xl6ArrayExtractNativeValueV1(const xvalue*,uint64_t,uint64_t,int64_t,bool,
-    const XL6_NativeLeafValueProfileV1*,void*);
-bool __wrap_xl6ArrayExtractNativeValueV1(const xvalue* value,uint64_t identity,uint64_t element,
-    int64_t index,bool pop,const XL6_NativeLeafValueProfileV1* profile,void* output)
-{ return fail(3) ? false : __real_xl6ArrayExtractNativeValueV1(value,identity,element,index,pop,profile,output); }
+extern bool __real_xl6ArrayExtractNativeValueV2(const xvalue*,uint64_t,uint64_t,int64_t,bool,
+    const struct XL6_NativeCollectionValueProfileV1*,void*);
+bool __wrap_xl6ArrayExtractNativeValueV2(const xvalue* value,uint64_t identity,uint64_t element,
+    int64_t index,bool pop,const struct XL6_NativeCollectionValueProfileV1* profile,void* output)
+{ return fail(3) ? false : __real_xl6ArrayExtractNativeValueV2(value,identity,element,index,pop,profile,output); }
 #endif
 static xvalue* create(XL6_SlotMapKeyV1* key)
 {

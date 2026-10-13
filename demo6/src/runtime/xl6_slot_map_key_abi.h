@@ -34,4 +34,6 @@ const struct xvalueconverter* xl6SlotMapKeyConverterV1(void);
 struct xvalue* xl6SequenceSlotMapKeyCreateV1(unsigned int, uint64_t);
 struct XL6_NativeLeafValueProfileV1;
 const struct XL6_NativeLeafValueProfileV1* xl6SlotMapKeyValueProfileV1Get(void);
+struct XL6_NativeCollectionValueProfileV1;
+const struct XL6_NativeCollectionValueProfileV1* xl6SlotMapKeyCollectionProfileV1Get(void);
 #endif

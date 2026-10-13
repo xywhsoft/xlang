@@ -925,7 +925,7 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         result.slotAbi=XL6_IR_NATIVE_SLOT_FUTURE_PTR;
         result.transferAbi=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF;
         result.codecAbi=XL6_IR_SEQUENCE_CODEC_DIRECT;
-    } else if (!result.nullable && xl6IrNativeValuePlanForType(base) &&
+    } else if (xl6IrNativeValuePlanForType(element) &&
                result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY) {
         result.abi=XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1;
     } else if (result.slotAbi == XL6_IR_NATIVE_SLOT_NONE ||
