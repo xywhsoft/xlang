@@ -326,6 +326,7 @@ RUNTIME_SOURCES=(
     "$ROOT/src/runtime/xl6_queue_mpsc.c"
     "$ROOT/src/runtime/xl6_queue_mpmc.c"
     "$ROOT/src/runtime/xl6_channel.c"
+    "$ROOT/src/runtime/xl6_wait_queue.c"
     "$ROOT/src/runtime/xl6_array_os_argv.c"
     "$ROOT/src/runtime/xl6_array_method_remove.c"
     "$ROOT/src/runtime/xl6_value_contains.c"

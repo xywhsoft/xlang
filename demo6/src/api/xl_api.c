@@ -26,6 +26,7 @@
 #include "src/runtime/xl6_array_admission.h"
 #include "src/runtime/xl6_concurrent_queue.h"
 #include "src/runtime/xl6_channel.h"
+#include "src/runtime/xl6_wait_queue.h"
 #include "src/runtime/xl6_value_iterator.h"
 #include "src/runtime/xl6_generator.h"
 #include "src/runtime/xl6_ownership_plan.h"
@@ -2630,6 +2631,7 @@ static const XL6_OwnershipAdapterV1* xlModuleResolveOwnership(xrtownershipref re
         if ((adapter=xl6SpscQueueOwnershipAdapterV1(ref,policies,policyCount)) != NULL) return adapter;
         if ((adapter=xl6MpscQueueOwnershipAdapterV1(ref,policies,policyCount)) != NULL) return adapter;
         if ((adapter=xl6MpmcQueueOwnershipAdapterV1(ref,policies,policyCount)) != NULL) return adapter;
+        if ((adapter=xl6WaitQueueOwnershipAdapterV1(ref,policies,policyCount)) != NULL) return adapter;
         if ((adapter=xl6SequenceOwnershipAdapterV2(ref,policies,policyCount)) != NULL) return adapter;
         if ((adapter=xl6ListOwnershipAdapterV2(ref,policies,policyCount)) != NULL) return adapter;
         if ((adapter=xl6SetOwnershipAdapterV2(ref,policies,policyCount)) != NULL) return adapter;

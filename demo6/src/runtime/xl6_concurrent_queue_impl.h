@@ -1,9 +1,12 @@
-/* Intentionally instantiated in three independent resident TUs. The macro
+/* Intentionally instantiated in independent resident TUs. The macro
  * backend selects a direct typed XRT implementation at compile time, not a
  * runtime kind switch/function table that pulls every queue into an artifact. */
 #include "xl6_concurrent_queue.h"
 #include "xl6_array_reference_value.h"
 #include "src/api/xl_foreign_error.h"
+#if defined(XL6_Q_WAIT)
+#include "src/runtime/xl6_cond_internal.h"
+#endif
 #include <limits.h>
 #include <stdlib.h>
 #define XL6_Q_JOIN_(A,B) A##B
@@ -20,6 +23,10 @@ typedef struct QueueOwner {
     xatomic32 activity, producer, consumer;
     const void* claim;
     bool cleared;
+#if defined(XL6_Q_WAIT)
+    xvalue* waitMutex;
+    xvalue* available;
+#endif
 } QueueOwner;
 enum { EXCLUSIVE=UINT32_MAX };
 static void mutationBegin(xrtownershipscope* scope)
@@ -30,6 +37,18 @@ static void destroy(XL6_Q_TYPE* queue)
 {
     XL6_Q_NATIVE(Destroy)(queue);
 }
+#if defined(XL6_Q_WAIT)
+static void waitUnit(QueueOwner* owner,xl6_error_scope* scope)
+{
+    /* Resident Sync owners keep failed physical retirement in the existing
+     * checked host ledger. No lost raw allocation or automatic forced unlock.
+     * Clear fields before release so graph retries never repeat a duty. */
+    xvalue* available=owner->available;owner->available=NULL;xrtValueRelease(available);
+    if(xrtGetError())xl6ErrorScopeCaptureFailure(scope);
+    xvalue* mutex=owner->waitMutex;owner->waitMutex=NULL;xrtValueRelease(mutex);
+    if(xrtGetError())xl6ErrorScopeCaptureFailure(scope);
+}
+#endif
 static void drop(void* data, void* context)
 {
     if (context) abort();
@@ -42,7 +61,11 @@ static void drop(void* data, void* context)
     XL6_Q_TYPE* queue=owner->queue; owner->queue=NULL;
     mutationEnd(&scope);
     xl6_error_scope cleanup={0}; if (!xl6ErrorScopeBeginCleanup(&cleanup,false)) abort();
-    destroy(queue); xl6SequenceAdmissionDropV3(&owner->admission); xrtFree(owner);
+    destroy(queue);
+#if defined(XL6_Q_WAIT)
+    waitUnit(owner,&cleanup);
+#endif
+    xl6SequenceAdmissionDropV3(&owner->admission); xrtFree(owner);
     xl6_error_result outcome=xl6ErrorScopeEnd(&cleanup);
     if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
 }
@@ -94,6 +117,10 @@ static bool trace(const void* data, xrtownershipvisitor visit, void* context)
 {
     const QueueOwner* owner=data; size_t count;
     if (!visit || !countReferences(owner,&count) || !owner->queue) return false;
+#if defined(XL6_Q_WAIT)
+    if(!visit(xrtValueOwnership(owner->waitMutex),context) ||
+        !visit(xrtValueOwnership(owner->available),context))return false;
+#endif
     if (owner->layout.transfer!=3 && owner->layout.transfer!=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1) return true;
     const xtypedqueuecore* core=&owner->queue->Core;
     /* Graph freeze excludes new participating operations. Activity pins cause
@@ -147,6 +174,9 @@ static bool finishClear(const void* data, const void* token)
      * physical release into an endlessly retrying Finish=false. */
     xl6_error_scope work={0}; if (!xl6ErrorScopeBegin(&work)) abort();
     destroy(retired);
+#if defined(XL6_Q_WAIT)
+    waitUnit(owner,&work);
+#endif
     xl6_error_result completed=xl6ErrorScopeEnd(&work); bool ok=completed.ok;
     if (!ok) xl6ErrorScopePropagateFailure(completed);
     xl6_error_result outcome=xl6ErrorScopeEnd(&cleanup);
@@ -236,6 +266,10 @@ xvalue* XL6_Q_PUBLIC(CreateTakeV1)(uint64_t identity, xvalue* schema, int64_t ca
     if (!xl6SequenceSchemaCopyV1(schema,&role,&owner->layout,&owner->admission)) goto fail;
     owner->schemaIdentity=owner->layout.identity;
     owner->layout.identity=identity;
+#if defined(XL6_Q_WAIT)
+    owner->waitMutex=xl6MutexCreateV1(identity);if(!owner->waitMutex)goto fail;
+    owner->available=xl6CondCreateV1(identity);if(!owner->available)goto fail;
+#endif
     owner->queue=XL6_Q_NATIVE(Create)(xl6SequenceStorageTypeV1(owner->layout.transfer,owner->layout.type),(size_t)capacity);
     if (!owner->queue) goto fail;
     if (XL6_Q_NATIVE(Capacity)(owner->queue)>INT64_MAX) { xrtSetErrorKind(XERR_RANGE); goto fail; }
@@ -260,7 +294,17 @@ xqueueresult XL6_Q_PUBLIC(PushV1)(const xvalue* value, uint64_t identity, uint64
     if (owner && tuple(owner,element,size,type)) {
         if (!range(item,1,size,type)) { /* Refuse before a typed predicate reads. */ }
         else if (!owner->admission.ops->Slot(owner->admission.data,item)) xrtSetErrorKind(XERR_TYPE);
-        else result=XL6_Q_NATIVE(TryPush)(owner->queue,item);
+        else {
+#if defined(XL6_Q_WAIT)
+            if(xl6MutexLockV1(owner->waitMutex,identity)) {
+                result=XL6_Q_NATIVE(TryPush)(owner->queue,item);
+                if(result==XQUEUE_OK && !xl6CondSignalV1(owner->available,identity))xl6ErrorScopeCaptureFailure(&scope);
+                if(!xl6MutexUnlockV1(owner->waitMutex,identity))xl6ErrorScopeCaptureFailure(&scope);
+            }
+#else
+            result=XL6_Q_NATIVE(TryPush)(owner->queue,item);
+#endif
+        }
     }
     if (result==XQUEUE_ERROR || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
     if (owner) end(owner,1);
@@ -268,6 +312,7 @@ xqueueresult XL6_Q_PUBLIC(PushV1)(const xvalue* value, uint64_t identity, uint64
     if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return XQUEUE_ERROR; }
     return result;
 }
+#if !defined(XL6_Q_WAIT)
 /* Caller owns the lane pin and error scope. This is the sole resident prefix
  * loop, shared by physical-slot and native-Array transports. No nested lane
  * entry (which would reject SPSC) and no generated wire conversion loop. */
@@ -408,6 +453,59 @@ xqueueresult XL6_Q_PUBLIC(PopV1)(const xvalue* value, uint64_t identity, uint64_
     if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return XQUEUE_ERROR; }
     return result;
 }
+#else
+/* One absolute monotonic deadline survives all spurious wakeups. A timed
+ * wake always rechecks the queue while holding the publication mutex: a
+ * published item or close wins over a simultaneous timeout. */
+bool XL6_Q_PUBLIC(ReceiveV1)(const xvalue* value,uint64_t identity,uint64_t element,
+    const xrttype* type,XL6_ChannelSlotV1 slot,XL6_ChannelWaitV1 mode,
+    int64_t milliseconds,XL6_ChannelStatusV1* status)
+{
+    xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))abort();
+    QueueOwner* owner=begin(value,identity,2);bool ok=false,locked=false;
+    XL6_ChannelStatusV1 actual=XL6_CHANNEL_EMPTY_V1;
+    if(!owner)goto done;
+    if(!tuple(owner,element,slot.size,type) || !range(slot.data,1,slot.size,type))goto done;
+    uintptr_t output=(uintptr_t)slot.data,mark=(uintptr_t)status;
+    if(!status || mark%_Alignof(XL6_ChannelStatusV1) || mark>UINTPTR_MAX-sizeof(*status) ||
+        (output<mark+sizeof(*status) && mark<output+slot.size) ||
+        (output<(uintptr_t)owner+sizeof(*owner) && (uintptr_t)owner<output+slot.size) ||
+        (mark<(uintptr_t)owner+sizeof(*owner) && (uintptr_t)owner<mark+sizeof(*status)) ||
+        mode<XL6_CHANNEL_TRY_V1 || mode>XL6_CHANNEL_FOR_V1 || milliseconds<0 ||
+        (mode!=XL6_CHANNEL_FOR_V1 && milliseconds)) {xrtSetErrorKind(XERR_ARGUMENT);goto done;}
+    if((owner->layout.transfer==3 && *(xvalue* const*)slot.data) ||
+        (owner->layout.transfer==XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1 && *(void* const*)slot.data) ||
+        (owner->layout.transfer==2 && (((xstrview*)slot.data)->Data || ((xstrview*)slot.data)->Size))) {
+        xrtSetErrorKind(XERR_STATE);goto done;
+    }
+    uint64_t micros=(uint64_t)milliseconds>UINT64_MAX/1000?UINT64_MAX:(uint64_t)milliseconds*1000;
+    xdeadline deadline=mode==XL6_CHANNEL_FOR_V1?xrtDeadlineAfter(micros):0;
+    if(!xl6MutexLockV1(owner->waitMutex,identity))goto done;
+    locked=true;
+    bool timedOut=false;
+    for(;;) {
+        xqueueresult result=XL6_Q_NATIVE(TryPop)(owner->queue,slot.data);
+        if(result==XQUEUE_OK){actual=XL6_CHANNEL_OK_V1;ok=true;break;}
+        if(result==XQUEUE_CLOSED){actual=XL6_CHANNEL_CLOSED_V1;ok=true;break;}
+        if(result!=XQUEUE_EMPTY)break;
+        if(mode==XL6_CHANNEL_TRY_V1){actual=XL6_CHANNEL_EMPTY_V1;ok=true;break;}
+        if(timedOut || (mode==XL6_CHANNEL_FOR_V1 && xrtDeadlineExpired(deadline))) {
+            actual=XL6_CHANNEL_TIMEOUT_V1;ok=true;break;
+        }
+        xwaitresult waited=xl6CondWaitUntilNative(owner->available,identity,owner->waitMutex,identity,
+            mode==XL6_CHANNEL_WAIT_V1?XRT_DEADLINE_NEVER:deadline);
+        if(waited==XWAIT_TIMEOUT)timedOut=true;
+        else if(waited!=XWAIT_OK)break;
+    }
+done:
+    if(locked && !xl6MutexUnlockV1(owner->waitMutex,identity))xl6ErrorScopeCaptureFailure(&scope);
+    if(!ok || xrtGetError())xl6ErrorScopeCaptureFailure(&scope);
+    if(owner)end(owner,2);
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    if(!outcome.ok){xl6ErrorScopePropagateFailure(outcome);return false;}
+    *status=actual;return true;
+}
+#endif
 int64_t XL6_Q_PUBLIC(QueryV1)(const xvalue* value, uint64_t identity, unsigned query)
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
@@ -425,6 +523,7 @@ int64_t XL6_Q_PUBLIC(QueryV1)(const xvalue* value, uint64_t identity, unsigned q
     if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return -1; }
     return result;
 }
+#if !defined(XL6_Q_WAIT)
 static bool transition(const xvalue* value, uint64_t identity, bool reset)
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
@@ -438,6 +537,22 @@ static bool transition(const xvalue* value, uint64_t identity, bool reset)
 }
 bool XL6_Q_PUBLIC(CloseV1)(const xvalue* value,uint64_t identity) { return transition(value,identity,false); }
 bool XL6_Q_PUBLIC(ResetV1)(const xvalue* value,uint64_t identity) { return transition(value,identity,true); }
+#else
+bool XL6_Q_PUBLIC(CloseV1)(const xvalue* value,uint64_t identity)
+{
+    xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))abort();
+    QueueOwner* owner=begin(value,identity,0);bool ok=false;
+    if(owner && xl6MutexLockV1(owner->waitMutex,identity)) {
+        XL6_Q_NATIVE(Close)(owner->queue);ok=xl6CondBroadcastV1(owner->available,identity);
+        if(!xl6MutexUnlockV1(owner->waitMutex,identity))ok=false;
+    }
+    if(!ok || xrtGetError())xl6ErrorScopeCaptureFailure(&scope);
+    if(owner)end(owner,0);
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    if(!outcome.ok){xl6ErrorScopePropagateFailure(outcome);return false;}
+    return true;
+}
+#endif
 #undef XL6_Q_NATIVE
 #undef XL6_Q_PUBLIC
 #undef XL6_Q_JOIN
