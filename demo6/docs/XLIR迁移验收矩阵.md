@@ -5,6 +5,14 @@
 lowering 阶段明确拒绝，不能被 XLIR Cgen 回溯为 AST/HIR 或暗中调用 legacy Cgen；
 但明确拒绝只是迁移期间的安全边界，不能代替已承诺语言功能的实现与验收。
 
+## 动态回调验收
+
+动态方法的非可空函数参数按完整签名匹配，不能只检查 callable
+形状或放宽成任意原生回调。checked closure 原生参数须匹配声明
+合同；拥有投影在失败／正常路径均退役，返回函数装箱复用已有
+callable 桥接。运行与破坏反例见
+[动态方法的精确回调合同](stdlib53-b286-dynamic-callables.md)。
+
 ## 泛型依赖闭包验收
 
 完整标准库类目录及仅声明 FixedStack 的输入须通过 Lowering、验证和

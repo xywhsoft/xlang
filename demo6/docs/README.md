@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [动态方法的精确回调合同](stdlib53-b286-dynamic-callables.md)：完整签名选择、checked closure 原生合同与投影 owner 清理。
+
 - [泛型依赖闭包与二进制默认初始化](stdlib53-b285-generic-graph.md)：晚登记的具体方法统一收集依赖，空 bytes 与 null 分离。
 
 - [动态调用的二进制默认值](stdlib53-b284-bytes-defaults.md)：显式长度常量、借入默认值临时 owner 与通用调用清理。

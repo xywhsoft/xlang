@@ -57,7 +57,24 @@ static int xl6IrCgenRuntimeCallableAdapterDirectlyNeeded(
     const XL6_IrModule* module, XL6_IrTypeId type, int reverse)
 {
     size_t i;
-    if ( module == NULL ) return 0;
+    const XL6_IrType* signature = module != NULL ? xl6IrTypeGet(&module->types, type) : NULL;
+    if ( signature == NULL || signature->kind != XL6_IR_TYPE_FUNCTION ) return 0;
+    /* Dynamic adapters are producers/consumers of the same callable codec.
+     * Reachability, not all declared function types, selects either bridge. */
+    for ( i = 0; i < module->dynamicMethodCount; ++i ) {
+        const XL6_IrDynamicMethod* method = &module->dynamicMethods[i];
+        if ( !xl6IrCgenDynamicMethodNeeded(module, i) ) continue;
+        if ( reverse ) {
+            for ( size_t p = 0; p < method->parameterCount; ++p )
+                if ( module->dynamicMethodParameters[method->firstParameter + p].type == type ) return 1;
+        } else {
+            const XL6_IrType* result = xl6IrTypeGet(&module->types, method->returnType);
+            if ( method->returnType == type ) return 1;
+            if ( result && result->cAbi == XL6_IR_C_ABI_PRODUCT )
+                for ( size_t p = 0; p < result->paramCount; ++p )
+                    if ( result->params[p] == type ) return 1;
+        }
+    }
     for ( i = 0; i < module->instructionCount; ++i ) {
         const XL6_IrInstruction* instruction = &module->instructions[i];
         XL6_IrTypeId signatureType;

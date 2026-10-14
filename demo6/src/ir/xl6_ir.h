@@ -3634,7 +3634,9 @@ typedef enum XL6_IrDynamicMethodMatchAbi {
      * type admission / nominal set / exact container identity respectively. */
     XL6_IR_DYNAMIC_METHOD_MATCH_VALUE_DOMAIN,
     XL6_IR_DYNAMIC_METHOD_MATCH_NOMINAL,
-    XL6_IR_DYNAMIC_METHOD_MATCH_EXACT_IDENTITY
+    XL6_IR_DYNAMIC_METHOD_MATCH_EXACT_IDENTITY,
+    /* Callable shape plus exact canonical signature, without conversion. */
+    XL6_IR_DYNAMIC_METHOD_MATCH_CALLABLE
 } XL6_IrDynamicMethodMatchAbi;
 
 typedef struct XL6_IrDynamicMethodParameter {

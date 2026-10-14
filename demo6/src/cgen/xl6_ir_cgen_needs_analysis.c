@@ -83,6 +83,23 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         const XL6_IrCallTarget* target;
         if ( !xl6IrCgenDynamicMethodNeeded(module, i) ) continue;
         target = xl6IrCallTargetGet(module, method->targetSymbol);
+        for ( parameter = 0; parameter < method->parameterCount; ++parameter ) {
+            const XL6_IrType* type = xl6IrTypeGet(&module->types,
+                module->dynamicMethodParameters[method->firstParameter + parameter].type);
+            if ( type && type->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ) {
+                needs->needsXValueClosureProjectionRuntime = needs->needsXValueClosureBridgeRuntime = 1;
+                needs->needsClosureRuntime = needs->needsXCallRuntime = needs->needsXValueRuntime = 1;
+            }
+        }
+        const XL6_IrType* result = xl6IrTypeGet(&module->types, method->returnType);
+        if ( result && result->cAbi == XL6_IR_C_ABI_PRODUCT ) {
+            for ( size_t p = 0; p < result->paramCount; ++p ) {
+                const XL6_IrType* field = xl6IrTypeGet(&module->types, result->params[p]);
+                if ( field && field->cAbi == XL6_IR_C_ABI_CLOSURE_PTR )
+                    needs->needsClosureRuntime = needs->needsXCallRuntime = needs->needsXValueRuntime = 1;
+            }
+        } else if ( result && result->cAbi == XL6_IR_C_ABI_CLOSURE_PTR )
+            needs->needsClosureRuntime = needs->needsXCallRuntime = needs->needsXValueRuntime = 1;
         if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ) continue;
         if ( !xl6IrCgenRequireErrorResult(module, needs, method->returnType, method->declaration, diags) ) return 0;
         needs->needsForeignErrorRuntime = needs->needsErrorRuntime = 1;
