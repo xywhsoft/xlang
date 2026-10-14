@@ -9,6 +9,55 @@
 #else
 #include <unistd.h>
 #include <sys/ioctl.h>
+#include <signal.h>
+#include <time.h>
+#include <errno.h>
+#endif
+#if defined(_WIN32)
+/* ConPTY resize and input use different channels. Observe real console events
+ * until both the complete input line and requested size have arrived; do not
+ * turn an arbitrary sleep into a cross-channel ordering guarantee. */
+static int terminalEventLine(char* line,size_t capacity,unsigned wantedColumns,unsigned wantedRows)
+{
+    HANDLE input=GetStdHandle(STD_INPUT_HANDLE),output=GetStdHandle(STD_OUTPUT_HANDLE);
+    size_t length=0;int ready=0;ULONGLONG deadline=GetTickCount64()+5000;
+    for(;;){
+        CONSOLE_SCREEN_BUFFER_INFO info;
+        if(!GetConsoleScreenBufferInfo(output,&info))return 97;
+        unsigned columns=(unsigned)(info.srWindow.Right-info.srWindow.Left+1);
+        unsigned rows=(unsigned)(info.srWindow.Bottom-info.srWindow.Top+1);
+        if(ready && columns==wantedColumns && rows==wantedRows){line[length]=0;return 0;}
+        ULONGLONG now=GetTickCount64();if(now>=deadline)return 99;
+        if(WaitForSingleObject(input,(DWORD)(deadline-now))!=WAIT_OBJECT_0)return 99;
+        INPUT_RECORD event;DWORD count=0;
+        if(!ReadConsoleInputW(input,&event,1,&count) || count!=1)return 96;
+        if(event.EventType!=KEY_EVENT || !event.Event.KeyEvent.bKeyDown || ready)continue;
+        WCHAR character=event.Event.KeyEvent.uChar.UnicodeChar;
+        if(character=='\r' || character=='\n'){
+            ready=1;fputs("line-ready\n",stdout);fflush(stdout);continue;
+        }
+        if(!character)continue;
+        if(character>127)return 96; /* This private protocol receives ASCII hello. */
+        for(unsigned repeat=0;repeat<event.Event.KeyEvent.wRepeatCount;++repeat){
+            if(length+1>=capacity)return 96;
+            line[length++]=(char)character;
+        }
+    }
+}
+#else
+static int terminalWaitSize(unsigned wantedColumns,unsigned wantedRows,const sigset_t* signals)
+{
+    struct timespec deadline;if(clock_gettime(CLOCK_MONOTONIC,&deadline))return 97;deadline.tv_sec+=5;
+    for(;;){
+        struct winsize info;if(ioctl(STDOUT_FILENO,TIOCGWINSZ,&info))return 97;
+        if(info.ws_col==wantedColumns && info.ws_row==wantedRows)return 0;
+        struct timespec now,remaining;if(clock_gettime(CLOCK_MONOTONIC,&now))return 97;
+        remaining.tv_sec=deadline.tv_sec-now.tv_sec;remaining.tv_nsec=deadline.tv_nsec-now.tv_nsec;
+        if(remaining.tv_nsec<0){--remaining.tv_sec;remaining.tv_nsec+=1000000000;}
+        if(remaining.tv_sec<0 || (!remaining.tv_sec && !remaining.tv_nsec))return 99;
+        if(sigtimedwait(signals,NULL,&remaining)<0 && errno!=EINTR)return 99;
+    }
+}
 #endif
 static int childMain(int argc,char** argv)
 {
@@ -18,16 +67,43 @@ static int childMain(int argc,char** argv)
 #endif
     if(!strcmp(argv[1],"exit"))return argc>2 ? atoi(argv[2]) : 0;
     if(!strcmp(argv[1],"terminal")){
+        unsigned wantedColumns=0,wantedRows=0;
+        if(argc==4){
+            int columns=atoi(argv[2]),rows=atoi(argv[3]);
+            if(columns<=0 || columns>32767 || rows<=0 || rows>32767)return 90;
+            wantedColumns=(unsigned)columns;wantedRows=(unsigned)rows;
+        }
 #if defined(_WIN32)
         int in=_isatty(_fileno(stdin))!=0,out=_isatty(_fileno(stdout))!=0,err=_isatty(_fileno(stderr))!=0;
+        if(wantedColumns){
+            DWORD mode=0;HANDLE input=GetStdHandle(STD_INPUT_HANDLE);
+            if(!GetConsoleMode(input,&mode) || !SetConsoleMode(input,mode|ENABLE_WINDOW_INPUT))return 97;
+        }
 #else
         int in=isatty(STDIN_FILENO)!=0,out=isatty(STDOUT_FILENO)!=0,err=isatty(STDERR_FILENO)!=0;
+        sigset_t resized,previous;
+        if(wantedColumns){
+            if(sigemptyset(&resized) || sigaddset(&resized,SIGWINCH) || sigprocmask(SIG_BLOCK,&resized,&previous))return 97;
+        }
 #endif
         printf("tty:%d:%d:%d\n",in,out,err);
         fputs("terminal-stderr\n",stderr);fflush(stdout);fflush(stderr);
-        char line[64];if(!fgets(line,sizeof(line),stdin))return 96;
+        char line[64];
+#if defined(_WIN32)
+        if(wantedColumns){int code=terminalEventLine(line,sizeof(line),wantedColumns,wantedRows);if(code)return code;}
+        else
+#endif
+        if(!fgets(line,sizeof(line),stdin))return 96;
         size_t length=strlen(line);
         while(length && (line[length-1]=='\r' || line[length-1]=='\n'))line[--length]=0;
+#if !defined(_WIN32)
+        if(wantedColumns){
+            fputs("line-ready\n",stdout);fflush(stdout);
+            int code=terminalWaitSize(wantedColumns,wantedRows,&resized);
+            if(sigprocmask(SIG_SETMASK,&previous,NULL))return 97;
+            if(code)return code;
+        }
+#endif
         unsigned columns,rows;
 #if defined(_WIN32)
         CONSOLE_SCREEN_BUFFER_INFO info;
@@ -40,6 +116,7 @@ static int childMain(int argc,char** argv)
         columns=info.ws_col;rows=info.ws_row;
 #endif
         printf("size:%u:%u\nreply:%s\n",columns,rows,line);fflush(stdout);
+        if(wantedColumns && (columns!=wantedColumns || rows!=wantedRows))return 99;
         return in && out && err && !strcmp(line,"hello") ? 0 : 98;
     }
     if(!strcmp(argv[1],"sleep")){

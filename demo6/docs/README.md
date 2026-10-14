@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [专用宿主验收与终端尺寸观察](stdlib53-b298-hosted-source-contracts.md)：六项完整模式矩阵、精确证据接线及真实尺寸事件回归。
+
 - [语言数值构造的精确文本与反射边界](stdlib53-b297-language-scalar-contracts.md)：完整字节长度、驻留解析、反射拒绝和明确状态输出。
 
 - [动态方法默认值的 IR 执行合同](stdlib53-b288-runtime-method-defaults.md)：调用时求值、接收者与前序参数借入、拥有结果及统一失败边界。

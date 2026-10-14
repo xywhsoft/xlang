@@ -1,0 +1,43 @@
+func containsTerminalToken(bytes data, bytes token) as bool
+    if token.length > data.length then return false end
+    int start = 0
+    while start <= data.length - token.length
+        int offset = 0
+        while offset < token.length and data[start + offset] == token[offset]
+            offset += 1
+        end
+        if offset == token.length then return true end
+        start += 1
+    end
+    return false
+end
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto command = process.cmd(child, ["terminal", "96", "32"])
+command.terminal()
+command.terminalSize(80, 24)
+auto handle = command.start()
+auto input = handle.stdinWriter()
+auto output = handle.stdoutReader()
+input.writeAll(b"hello\r\n")
+input.flush()
+bytes observed = b""
+// Force the formerly racing order: the child has consumed its complete line
+// while still at 80x24. Only its native size event can let it finish.
+while not containsTerminalToken(observed, b"line-ready")
+    bytes chunk = output.read(512)
+    assert chunk.length > 0
+    observed = observed + chunk
+    assert observed.length <= 16384
+end
+assert handle.resize(96, 32)
+observed = observed + output.readAll(16384)
+assert containsTerminalToken(observed, b"tty:1:1:1")
+assert containsTerminalToken(observed, b"terminal-stderr")
+assert containsTerminalToken(observed, b"size:96:32")
+assert containsTerminalToken(observed, b"reply:hello")
+auto status = handle.wait(5000)
+assert status != null
+if status != null then assert status.code == 0 end
+input.close()
+output.close()
