@@ -34,6 +34,13 @@ static int xl6IrCgenEmitCallableBridgeCleanup(
      * the target only borrows it. It is separate from the decoded ABI slot. */
     if(!reverse)for(i=0;i<bridge->parameterCount;++i) {
         const XL6_IrCallableBridgeParameter* slot=&module->callableBridgeParameters[bridge->firstParameter+i];
+        if (slot->decodedDestroyAbi == XL6_IR_ASYNC_FRAME_DESTROY_NONE &&
+            xl6IrOwnedValueDestroyAbi(module, slot->type) != XL6_IR_ASYNC_FRAME_DESTROY_NONE) {
+            char place[40]; snprintf(place, sizeof(place), "a%lu", (unsigned long)i);
+            xl6OutputPrintf(out, "      if (default_owned%lu) { default_owned%lu = false;\n", (unsigned long)i, (unsigned long)i);
+            if (!xl6IrCgenEmitOwnedPlaceRelease(out, module, slot->type, place, NULL)) return 0;
+            xl6OutputPuts("      if (xrtGetError()) xl6ErrorScopeCaptureFailure(&parameter_cleanup); }\n", out);
+        }
         if(slot->decodeAbi==XL6_IR_CALLABLE_BRIDGE_BYTES_BORROW || slot->decodeAbi==XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN)
             xl6OutputPrintf(out,"      { xvalue* value = default_bytes%lu; default_bytes%lu = NULL; xrtValueRelease(value); }\n"
                 "      if(xrtGetError())xl6ErrorScopeCaptureFailure(&parameter_cleanup);\n",(unsigned long)i,(unsigned long)i);
@@ -107,7 +114,8 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
     int hasResult;
     size_t i;
     if ( bridge == NULL || signature == NULL ||
-         bridge->forwardErrorBoundaryAbi != XL6_IR_CALLABLE_ERROR_BOUNDARY_NATIVE_CALLBACK )
+         bridge->forwardErrorBoundaryAbi != XL6_IR_CALLABLE_ERROR_BOUNDARY_NATIVE_CALLBACK ||
+         bridge->argumentBindingAbi != XL6_IR_CALLABLE_BIND_PROVIDED_THEN_DEFAULTS )
         return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
                              "XLIR C emitter runtime callable signature is unresolved");
     hasResult = signature->returnCount != 0;
@@ -150,6 +158,9 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
             xl6OutputPrintf(out, "    %s a%lu = (%s){0};\n",
                 parameterType, (unsigned long)i, parameterType);
         const XL6_IrCallableBridgeParameter* slot=&module->callableBridgeParameters[bridge->firstParameter+i];
+        if (slot->decodedDestroyAbi == XL6_IR_ASYNC_FRAME_DESTROY_NONE &&
+            xl6IrOwnedValueDestroyAbi(module, slot->type) != XL6_IR_ASYNC_FRAME_DESTROY_NONE)
+            xl6OutputPrintf(out, "    bool default_owned%lu = false;\n", (unsigned long)i);
         if(slot->decodeAbi==XL6_IR_CALLABLE_BRIDGE_BYTES_BORROW || slot->decodeAbi==XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN)
             xl6OutputPrintf(out,"    xvalue* default_bytes%lu = NULL;\n",(unsigned long)i);
     }
@@ -245,6 +256,10 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
             "        }\n"
             "    }\n", out);
     }
+    /* Decode every provided argument before evaluating missing defaults.
+     * Each physical slot is visited exactly once; a later bad input cannot
+     * cause earlier default side effects. No argument is transferred yet. */
+    xl6OutputPuts("    for (unsigned bindingPhase = 0; bindingPhase < 2; ++bindingPhase) {\n", out);
     for ( i = 0; i < fixedCount; ++i ) {
         const XL6_IrType* parameter = xl6IrTypeGet(&module->types, signature->params[i]);
         const XL6_IrCallableBridgeParameter* slot =
@@ -252,6 +267,23 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
         xl6OutputPrintf(out,
             "    if (bound%lu && f%lu == NULL) { xrtSetErrorTake(xlir_error_create(\"TypeError\", \"runtime callable argument binding is incomplete\")); goto argument_fail; }\n",
             (unsigned long)i, (unsigned long)i);
+        xl6OutputPrintf(out, "    if ((bindingPhase == 0) == bound%lu) {\n", (unsigned long)i);
+        xl6OutputPrintf(out,
+            "    if (!bound%lu && closure->call_parameter_count == %lu && closure->call_parameter_defaults && closure->call_parameter_defaults[%lu].abi == %d) {\n",
+            (unsigned long)i, (unsigned long)signature->paramCount, (unsigned long)i,
+            (int)XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM);
+        if (i) {
+            xl6OutputPrintf(out, "      const void* prefix[%lu] = {", (unsigned long)i);
+            for (size_t p = 0; p < i; ++p) xl6OutputPrintf(out, "%s&a%lu", p ? ", " : "", (unsigned long)p);
+            xl6OutputPuts("};\n", out);
+        }
+        xl6OutputPrintf(out,
+            "      if (!closure->call_parameter_defaults[%lu].program || !closure->call_parameter_defaults[%lu].program(closure->environment, &a%lu, %s)) goto argument_fail;\n",
+            (unsigned long)i, (unsigned long)i, (unsigned long)i, i ? "prefix" : "NULL");
+        if (slot->decodedDestroyAbi == XL6_IR_ASYNC_FRAME_DESTROY_NONE &&
+            xl6IrOwnedValueDestroyAbi(module, slot->type) != XL6_IR_ASYNC_FRAME_DESTROY_NONE)
+            xl6OutputPrintf(out, "      default_owned%lu = true;\n", (unsigned long)i);
+        xl6OutputPuts("    } else {\n", out);
         if(slot->presenceAbi!=XL6_IR_CALLABLE_PRESENCE_NONE) {
             XL6_IrCallableBridgeResult decode={.type=slot->type,.valueType=slot->valueType,.presenceAbi=slot->presenceAbi,
                 .decodeAbi=slot->decodeAbi,.integerDomain=slot->integerDomain,.nativeScalarProfile=slot->nativeScalarProfile};
@@ -402,7 +434,10 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
                 (unsigned long)signature->paramCount, (unsigned long)i,
                 (int)defaultAbi, (unsigned long)i, (unsigned long)i, field);
         }
+        xl6OutputPuts("    }\n", out);
+        xl6OutputPuts("    }\n", out);
     }
+    xl6OutputPuts("    }\n", out);
     if ( arrayVariadic ) {
         const size_t variadicIndex = signature->paramCount - 1;
         const XL6_IrType* array = xl6IrTypeGet(&module->types,

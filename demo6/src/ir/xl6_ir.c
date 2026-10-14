@@ -2226,6 +2226,7 @@ void xl6IrModuleFree(XL6_IrModule* module)
         xrtFree(module->closureTargets[i].callParameterNames);
         xrtFree(module->closureTargets[i].callParameterDefaultAbis);
         xrtFree(module->closureTargets[i].callParameterDefaultLiterals);
+        xrtFree(module->closureTargets[i].callParameterDefaultFunctions);
     }
     xrtFree(module->closureTargets);
     xrtFree(module->closureCaptures);
@@ -25925,6 +25926,10 @@ static int xl6IrVerifyDynamicDefaultPrograms(const XL6_IrModule* module, XL6_Dia
             goto invalid;
         for (size_t p = 0; p < module->dynamicMethodParameterCount; ++p)
             references += module->dynamicMethodParameters[p].defaultFunction == f + 1;
+        for (size_t c = 0; c < module->closureTargetCount; ++c)
+            if (module->closureTargets[c].callParameterDefaultFunctions)
+                for (size_t p = 0; p < module->closureTargets[c].callParameterCount; ++p)
+                    references += module->closureTargets[c].callParameterDefaultFunctions[p] == f + 1;
         for (size_t p = 0; p < module->exitPlanCount; ++p)
             boundaries += module->exitPlans[p].origin == function->declaration &&
                 module->exitPlans[p].point == XL6_IR_EXIT_POINT_FUNCTION_FAILURE;
@@ -25934,7 +25939,7 @@ static int xl6IrVerifyDynamicDefaultPrograms(const XL6_IrModule* module, XL6_Dia
             if (instruction->origin != function->declaration) goto invalid;
             ++returns;
         }
-        if (references != 1 || boundaries != 1 || !returns) goto invalid;
+        if (!references || boundaries != 1 || !returns) goto invalid;
     }
     return 1;
 invalid:
@@ -26116,7 +26121,7 @@ static int xl6IrVerifyDynamicMethodRegistry(
                 program = &module->functions[item->defaultFunction - 1];
                 if (program->kind != XL6_IR_FUNCTION_ARGUMENT_DEFAULT || !program->symbol ||
                     program->declaration != item->declaration || program->returnType != item->type ||
-                    program->parameterCount != parameter + 1 || program->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
+                    program->defaultClosureSymbol || program->parameterCount != parameter + 1 || program->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
                     program->firstParameter > module->functionParameterCount ||
                     program->parameterCount > module->functionParameterCount - program->firstParameter)
                     return xl6IrDiag(diags, declaration, "XLIR dynamic default program signature is malformed");
@@ -26379,6 +26384,16 @@ static int xl6IrBuildReachabilityFacts(
 
     do {
         changed = 0;
+        for (size_t c = 0; c < module->closureTargetCount; ++c) {
+            const XL6_IrClosureTarget* closure = &module->closureTargets[c];
+            if (facts->closureTargets[c] == XL6_IR_REACHABILITY_UNREACHABLE) continue;
+            for (size_t p = 0; p < closure->callParameterCount; ++p) {
+                uint32 function = closure->callParameterDefaultFunctions ? closure->callParameterDefaultFunctions[p] : 0;
+                if (!function) continue;
+                if (function > module->functionCount) goto failed;
+                changed |= xl6IrReachabilityPromote(&facts->functions[function - 1], XL6_IR_REACHABILITY_TRANSITIVE);
+            }
+        }
         for ( i = 0; i < module->functionCount; ++i ) {
             const XL6_IrFunction* function = &module->functions[i];
             size_t instructionIndex;
@@ -33649,9 +33664,14 @@ static int xl6IrVerifyParameterLifetime(const XL6_IrModule* module,
                 if (stores != 1) goto invalid; /* Exactly the retained-borrow entry copy. */
             }
         } else if (target != NULL && target->parameterCount != 0) goto invalid;
-        for (capture = 0; target != NULL && capture < module->closureCaptureCount; ++capture) {
+        XL6_SymbolId captureSource = symbol;
+        if (function->kind == XL6_IR_FUNCTION_ARGUMENT_DEFAULT && !parameter->cellType) {
+            const XL6_IrNode* source = xl6IrNodeGet(module, parameter->declaration);
+            captureSource = source && source->kind == XL6_IR_NODE_PARAM_DECL ? source->symbol : 0;
+        }
+        for (capture = 0; (target != NULL || function->kind == XL6_IR_FUNCTION_ARGUMENT_DEFAULT) && capture < module->closureCaptureCount; ++capture) {
             const XL6_IrClosureCapture* item = &module->closureCaptures[capture];
-            if (item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_CELL && item->sourceSymbol == symbol) {
+            if (item->abi == XL6_IR_CLOSURE_CAPTURE_RETAIN_CELL && item->sourceSymbol == captureSource) {
                 expectedCell = item->cellType;
                 break;
             }
@@ -38331,13 +38351,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         owner = xl6IrNodeGet(module, storage->owner);
         if (module->stage == XL6_IR_STAGE_LOWERED && owner->kind == XL6_IR_NODE_PARAM_DECL) {
             size_t owners = 0;
-            for (j = 0; j < module->dynamicMethodParameterCount; ++j) {
-                const XL6_IrDynamicMethodParameter* parameter = &module->dynamicMethodParameters[j];
-                if (parameter->declaration == storage->owner &&
-                    parameter->defaultAbi == XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM && parameter->defaultFunction &&
-                    parameter->defaultFunction <= module->functionCount &&
-                    module->functions[parameter->defaultFunction - 1].kind == XL6_IR_FUNCTION_ARGUMENT_DEFAULT) ++owners;
-            }
+            for (j = 0; j < module->functionCount; ++j)
+                owners += module->functions[j].declaration == storage->owner &&
+                    module->functions[j].kind == XL6_IR_FUNCTION_ARGUMENT_DEFAULT;
             argumentDefaultOwner = owners == 1;
         }
         if (module->stage == XL6_IR_STAGE_LOWERED && storage->kind == XL6_IR_STORAGE_TEMPORARY &&
@@ -38915,7 +38931,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              (closure->callParameterCount != 0 &&
               (closure->callParameterNames == NULL ||
                closure->callParameterDefaultAbis == NULL ||
-               closure->callParameterDefaultLiterals == NULL)) ||
+               closure->callParameterDefaultLiterals == NULL ||
+               closure->callParameterDefaultFunctions == NULL)) ||
              closure->firstCapture > module->closureCaptureCount ||
              closure->captureCount > module->closureCaptureCount - closure->firstCapture )
             return xl6IrDiag(diags, NULL, "XLIR closure target has no complete signature and body ABI");
@@ -39042,12 +39059,38 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                  !(target != NULL &&
                    target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE &&
                    targetParameter + 1 == target->parameterCount) )
-                expectedDefault = xl6IrDynamicMethodLiteralDefaultAbi(
+                expectedDefault = xl6IrDynamicMethodParameterDefaultAbi(
                     module, signature->params[capture],
                     module->children[parameter->firstChild + 1]);
             if ( closure->callParameterDefaultAbis[capture] != expectedDefault )
                 return xl6IrDiag(diags, declaration,
                     "XLIR closure call-frame default ABI is inconsistent");
+            uint32 defaultFunction = closure->callParameterDefaultFunctions[capture];
+            if (expectedDefault == XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM) {
+                const XL6_IrFunction* program;
+                if (defaultLiteral || !defaultFunction || defaultFunction > module->functionCount)
+                    return xl6IrDiag(diags, declaration, "XLIR callable default program identity is malformed");
+                program = &module->functions[defaultFunction - 1];
+                if (program->kind != XL6_IR_FUNCTION_ARGUMENT_DEFAULT || !program->symbol ||
+                    program->declaration != (XL6_IrNodeId)(parameter - module->nodes + 1) ||
+                    program->returnType != signature->params[capture] || program->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
+                    program->defaultClosureSymbol != (closure->captureCount ? closure->targetSymbol : 0) ||
+                    program->parameterCount != capture + closure->captureCount ||
+                    program->firstParameter > module->functionParameterCount ||
+                    program->parameterCount > module->functionParameterCount - program->firstParameter)
+                    return xl6IrDiag(diags, declaration, "XLIR callable default program signature is malformed");
+                for (size_t input = 0; input < program->parameterCount; ++input) {
+                    const XL6_IrClosureCapture* captured = input >= capture
+                        ? &module->closureCaptures[closure->firstCapture + input - capture] : NULL;
+                    const XL6_IrStorage* storage = xl6IrStorageGet(module,
+                        module->functionParameters[program->firstParameter + input]);
+                    if (!storage || storage->kind != XL6_IR_STORAGE_PARAMETER || storage->owner != program->declaration ||
+                        storage->declaration != (captured ? closure->declaration : module->children[callParameters->firstChild + input]) ||
+                        storage->type != (captured ? captured->type : signature->params[input]) ||
+                        storage->cellType != (captured ? captured->cellType : 0))
+                        return xl6IrDiag(diags, declaration, "XLIR callable default prefix/capture storage is malformed");
+                }
+            } else if (defaultFunction) return 0;
             if ( expectedDefault == XL6_IR_DYNAMIC_METHOD_DEFAULT_I64 || expectedDefault == XL6_IR_DYNAMIC_METHOD_DEFAULT_U64 ) {
                 char* canonical = xl6IrCanonicalIntegerDefault(module,
                     module->children[parameter->firstChild + 1], signature->params[capture]);
@@ -39057,6 +39100,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     "XLIR closure integer default differs from its declared closed literal");
             }
             switch ( expectedDefault ) {
+            case XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM:
+                break;
             case XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID:
             case XL6_IR_DYNAMIC_METHOD_DEFAULT_NONE:
             case XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL:
@@ -45537,6 +45582,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                   function->kind != XL6_IR_FUNCTION_GENERATOR_WORKER ) {
                 return xl6IrDiag(diags, NULL, "XLIR function has no explicit semantic role");
             }
+            if (function->kind != XL6_IR_FUNCTION_ARGUMENT_DEFAULT && function->defaultClosureSymbol)
+                return xl6IrDiag(diags, NULL, "XLIR non-default function carries a capture context");
             if ( function->kind == XL6_IR_FUNCTION_MODULE_INIT &&
                  (function->symbol != 0 || function->declaration != module->root ||
                   function->parameterCount != 0 || function->returnType != XL6_IR_TYPE_INVALID) ) {
@@ -49415,6 +49462,8 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
                 xl6OutputPuts("=", out);
                 xl6OutputPuts(target->callParameterDefaultLiterals[parameter], out);
             }
+            if (target->callParameterDefaultFunctions[parameter])
+                xl6OutputPrintf(out, "=f%u", (unsigned)target->callParameterDefaultFunctions[parameter]);
         }
         xl6OutputPuts("]\n", out);
     }
@@ -49528,12 +49577,12 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
     }
     for (i = 0; i < module->callableBridgeCount; ++i) {
         const XL6_IrCallableBridge* b = &module->callableBridges[i];
-        xl6OutputPrintf(out, "  callable-bridge %lu signature=t%u parameters=%lu..%lu fixed=%lu results=%lu..%lu result-type=t%u commit=%d frame-cleanup=%d forward-error=%d reverse-error=%d erasure=%d variadic-carrier=%d variadic-element=0x%016llX cleanup=%d error=%d reverse=%d\n",
+        xl6OutputPrintf(out, "  callable-bridge %lu signature=t%u parameters=%lu..%lu fixed=%lu results=%lu..%lu result-type=t%u commit=%d frame-cleanup=%d forward-error=%d reverse-error=%d binding=%d erasure=%d variadic-carrier=%d variadic-element=0x%016llX cleanup=%d error=%d reverse=%d\n",
             (unsigned long)i, (unsigned)b->signatureType, (unsigned long)b->firstParameter,
             (unsigned long)(b->firstParameter + b->parameterCount), (unsigned long)b->fixedParameterCount,
             (unsigned long)b->firstResult, (unsigned long)(b->firstResult + b->resultCount),
             (unsigned)b->resultType, (int)b->resultCommitAbi, (int)b->frameCleanupAbi,
-            (int)b->forwardErrorBoundaryAbi, (int)b->reverseErrorBoundaryAbi,
+            (int)b->forwardErrorBoundaryAbi, (int)b->reverseErrorBoundaryAbi, (int)b->argumentBindingAbi,
             (int)b->erasureAbi, (int)b->variadicCarrierAbi, (unsigned long long)b->variadicElementIdentity,
             (int)b->cleanupAbi, (int)b->errorAbi, b->reverseSupported);
     }
@@ -50997,6 +51046,9 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             xl6OutputPrintf(out, "%s\"%s\"", parameter == 0 ? "" : ",",
                 xl6IrDynamicMethodDefaultAbiName(
                     target->callParameterDefaultAbis[parameter]));
+        xl6OutputPuts("],\"callParameterDefaultFunctions\":[", out);
+        for (parameter = 0; parameter < target->callParameterCount; ++parameter)
+            xl6OutputPrintf(out, "%s%u", parameter ? "," : "", (unsigned)target->callParameterDefaultFunctions[parameter]);
         xl6OutputPrintf(out, "]}%s\n",
             i + 1 == module->closureTargetCount ? "" : ",");
     }
@@ -51153,12 +51205,12 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPuts("  ],\n  \"callableBridges\": [\n", out);
     for (i = 0; i < module->callableBridgeCount; ++i) {
         const XL6_IrCallableBridge* b = &module->callableBridges[i];
-        xl6OutputPrintf(out, "    {\"id\":%lu,\"signatureType\":%u,\"firstParameter\":%lu,\"parameterCount\":%lu,\"fixedParameterCount\":%lu,\"firstResult\":%lu,\"resultCount\":%lu,\"resultType\":%u,\"resultCommitAbi\":%d,\"frameCleanupAbi\":%d,\"forwardErrorBoundaryAbi\":%d,\"reverseErrorBoundaryAbi\":%d,\"erasureAbi\":%d,\"variadicCarrierAbi\":%d,\"variadicElementIdentity\":%llu,\"cleanupAbi\":%d,\"errorAbi\":%d,\"reverseSupported\":%d}%s\n",
+        xl6OutputPrintf(out, "    {\"id\":%lu,\"signatureType\":%u,\"firstParameter\":%lu,\"parameterCount\":%lu,\"fixedParameterCount\":%lu,\"firstResult\":%lu,\"resultCount\":%lu,\"resultType\":%u,\"resultCommitAbi\":%d,\"frameCleanupAbi\":%d,\"forwardErrorBoundaryAbi\":%d,\"reverseErrorBoundaryAbi\":%d,\"argumentBindingAbi\":%d,\"erasureAbi\":%d,\"variadicCarrierAbi\":%d,\"variadicElementIdentity\":%llu,\"cleanupAbi\":%d,\"errorAbi\":%d,\"reverseSupported\":%d}%s\n",
             (unsigned long)i, (unsigned)b->signatureType, (unsigned long)b->firstParameter,
             (unsigned long)b->parameterCount, (unsigned long)b->fixedParameterCount,
             (unsigned long)b->firstResult, (unsigned long)b->resultCount, (unsigned)b->resultType,
             (int)b->resultCommitAbi, (int)b->frameCleanupAbi,
-            (int)b->forwardErrorBoundaryAbi, (int)b->reverseErrorBoundaryAbi,
+            (int)b->forwardErrorBoundaryAbi, (int)b->reverseErrorBoundaryAbi, (int)b->argumentBindingAbi,
             (int)b->erasureAbi, (int)b->variadicCarrierAbi, (unsigned long long)b->variadicElementIdentity,
             (int)b->cleanupAbi, (int)b->errorAbi, b->reverseSupported,
             i + 1 == module->callableBridgeCount ? "" : ",");
@@ -51568,7 +51620,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         for (p = 0; p < function->parameterCount; ++p)
             xl6OutputPrintf(out, "%s%u", p != 0 ? "," : "",
                 (unsigned int)(function->parameterCells != NULL ? function->parameterCells[p] : 0));
-        xl6OutputPrintf(out, "]}%s\n", i + 1 == module->functionCount ? "" : ",");
+        xl6OutputPrintf(out, "],\"defaultClosureSymbol\":%u}%s\n", (unsigned)function->defaultClosureSymbol,
+            i + 1 == module->functionCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"blocks\": [\n", out);
     for ( i = 0; i < module->blockCount; ++i ) {

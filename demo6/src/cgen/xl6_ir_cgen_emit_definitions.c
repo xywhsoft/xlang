@@ -1,3 +1,46 @@
+/* Adapt only a verified default program's native input/output carriers. Its
+ * expression, capture reads, ownership and error CFG already live in XLIR. */
+static int xl6IrCgenEmitClosureDefaultPrograms(XL6_Output* out,
+    const XL6_IrModule* module, XL6_DiagList* diags)
+{
+    for (size_t c = 0; c < module->closureTargetCount; ++c) {
+        const XL6_IrClosureTarget* closure = &module->closureTargets[c];
+        if (closure->reachability == XL6_IR_REACHABILITY_UNREACHABLE) continue;
+        const XL6_IrType* signature = xl6IrTypeGet(&module->types, closure->signatureType);
+        for (size_t p = 0; p < closure->callParameterCount; ++p) {
+            uint32 id = closure->callParameterDefaultFunctions[p];
+            if (!id) continue;
+            const XL6_IrFunction* program = &module->functions[id - 1];
+            const char* result = xl6IrCgenType(module, program->returnType);
+            const char* carrier = xl6IrCgenErrorResultType(module, program->returnType);
+            if (!signature || !result || !carrier) return 0;
+            xl6OutputPrintf(out,
+                "static bool xlir_default_c%u_p%lu(void* environment, void* output, const void* const* prefix)\n{\n",
+                (unsigned)closure->targetSymbol, (unsigned long)p);
+            xl6OutputPuts("    (void)environment; (void)prefix;\n", out);
+            xl6OutputPrintf(out, "    if (!output%s%s) { xrtSetErrorKind(XERR_TYPE); return false; }\n",
+                p ? " || !prefix" : "", closure->captureCount ? " || !environment" : "");
+            for (size_t input = 0; input < p; ++input)
+                xl6OutputPrintf(out, "    if (!prefix[%lu]) { xrtSetErrorKind(XERR_TYPE); return false; }\n", (unsigned long)input);
+            if (closure->captureCount) xl6OutputPrintf(out,
+                "    const xlir_closure_env_%u* captured = (const xlir_closure_env_%u*)environment;\n",
+                (unsigned)closure->targetSymbol, (unsigned)closure->targetSymbol);
+            xl6OutputPrintf(out, "    %s value = xlir_fn_%u(", carrier, (unsigned)program->symbol);
+            for (size_t input = 0; input < p; ++input) {
+                const char* type = xl6IrCgenType(module, signature->params[input]);
+                if (!type) return 0;
+                xl6OutputPrintf(out, "%s*(%s const*)prefix[%lu]", input ? ", " : "", type, (unsigned long)input);
+            }
+            for (size_t input = 0; input < closure->captureCount; ++input)
+                xl6OutputPrintf(out, "%scaptured->c%lu", p || input ? ", " : "", (unsigned long)input);
+            xl6OutputPrintf(out,
+                ");\n    if (!value.ok) { xl6ErrorScopePropagateFailure((xl6_error_result){false, xrtTakeError()}); return false; }\n"
+                "    *(%s*)output = value.value; return true;\n}\n", result);
+        }
+    }
+    (void)diags; return !xl6OutputHasFailed(out);
+}
+
 /* Assemble storage, closure, dispatcher, machine and export definitions. */
 static int xl6IrCgenEmitModuleDefinitions(
     XL6_Output* out, const XL6_IrModule* module,
@@ -47,9 +90,14 @@ static int xl6IrCgenEmitModuleDefinitions(
             return xl6IrCgenDiag(diags, module, closure->declaration,
                 "XLIR C emitter closure call-frame parameter metadata is unresolved");
         if ( closure->callParameterDefaultAbis == NULL ||
-             closure->callParameterDefaultLiterals == NULL )
+             closure->callParameterDefaultLiterals == NULL ||
+             closure->callParameterDefaultFunctions == NULL )
             return xl6IrCgenDiag(diags, module, closure->declaration,
                 "XLIR C emitter closure call-frame default metadata is unresolved");
+        for (parameter = 0; parameter < closure->callParameterCount; ++parameter)
+            if (closure->callParameterDefaultFunctions[parameter]) xl6OutputPrintf(out,
+                "static bool xlir_default_c%u_p%lu(void*, void*, const void* const*);\n",
+                (unsigned)closure->targetSymbol, (unsigned long)parameter);
         xl6OutputPrintf(out,
             "static const char* const xlir_closure_call_names_%u[%lu] = {",
             (unsigned int)closure->targetSymbol,
@@ -108,6 +156,10 @@ static int xl6IrCgenEmitModuleDefinitions(
                 xl6OutputPuts(literal, out);
             else
                 xl6OutputPuts("UINT32_C(0)", out);
+            xl6OutputPuts(", ", out);
+            if (closure->callParameterDefaultFunctions[parameter])
+                xl6OutputPrintf(out, "xlir_default_c%u_p%lu", (unsigned)closure->targetSymbol, (unsigned long)parameter);
+            else xl6OutputPuts("NULL", out);
             xl6OutputPuts("}", out);
         }
         xl6OutputPuts("};\n", out);
@@ -237,6 +289,7 @@ static int xl6IrCgenEmitModuleDefinitions(
     }
     xl6OutputPuts("\n", out);
     if (!xl6IrCgenEmitModuleFiniBoundary(out, module)) return 0;
+    if (!xl6IrCgenEmitClosureDefaultPrograms(out, module, diags)) return 0;
     /* Continuation bodies are emitted by async/generator launchers before the
      * dispatcher definitions below.  Publish the same verified signature
      * once so protocol calls never depend on C declaration order. */

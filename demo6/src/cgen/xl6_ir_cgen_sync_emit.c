@@ -565,7 +565,9 @@ static const char* xl6IrCgenFunctionParameterType(
      * monomorphic instances intentionally have no source symbol slot, so the
      * backend must consume the lowered storage ABI just like LOAD/STORE do. */
     parameter = xl6IrStorageGet(module, symbol);
-    return parameter != NULL ? xl6IrCgenType(module, parameter->type) : NULL;
+    return parameter != NULL ? xl6IrCgenType(module,
+        function->kind == XL6_IR_FUNCTION_ARGUMENT_DEFAULT && parameter->cellType
+            ? parameter->cellType : parameter->type) : NULL;
 }
 
 static const XL6_IrFunction* xl6IrCgenFindFunction(const XL6_IrModule* module, XL6_SymbolId symbol)

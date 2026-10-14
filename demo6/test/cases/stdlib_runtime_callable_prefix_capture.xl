@@ -1,0 +1,18 @@
+func choose(int initial, var action = xcall(func() as int
+    initial += 1
+    return initial
+end)) as int
+    return int(action())
+end
+var callable = xcall(choose)
+assert int(callable(40)) == 41
+assert int(callable(40)) == 41
+func text(string initial, var action = xcall(func() as string
+    initial[0] = 'Z'
+    return initial
+end)) as string
+    assert initial == "a\0你"
+    return string(action())
+end
+var strings = xcall(text)
+assert string(strings("a\0你")) == "Z\0你"

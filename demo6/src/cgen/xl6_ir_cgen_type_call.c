@@ -388,7 +388,7 @@ static XL6_IrParameterAbi xl6IrCgenStorageParameterAbi(
                 if (module->functionParameters[function->firstParameter + parameter] == storage->symbol) {
                     const XL6_IrType* type = xl6IrTypeGet(&module->types, storage->type);
                     if (outParameter) *outParameter = parameter;
-                    return type && type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL
+                    return !storage->cellType && type && type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL
                         ? XL6_IR_PARAMETER_ABI_VALUE : XL6_IR_PARAMETER_ABI_BORROW;
                 }
             continue;

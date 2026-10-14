@@ -1,0 +1,38 @@
+int calls = 0
+int entered = 0
+func firstDefault() as bytes
+    calls += 1
+    return b"a\0\xff"
+end
+func failDefault() as bytes
+    calls += 1
+    throw ValueError("callable default original")
+end
+func target(bytes first = firstDefault(), bytes second = failDefault()) as bytes
+    entered += 1
+    return first + second
+end
+var callable = xcall(target)
+bool rejected = false
+try
+    callable()
+catch ValueError error
+    rejected = error.message == "callable default original"
+end
+assert rejected and calls == 2 and entered == 0
+assert bytes(callable(second = b"ok")) == b"a\0\xffok"
+assert calls == 3 and entered == 1
+rejected = false
+try
+    callable(first = "wrong", second = b"ok")
+catch TypeError error
+    rejected = true
+end
+assert rejected and calls == 3 and entered == 1
+rejected = false
+try
+    callable(second = "wrong")
+catch TypeError error
+    rejected = true
+end
+assert rejected and calls == 3 and entered == 1

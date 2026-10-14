@@ -3416,6 +3416,9 @@ typedef struct XL6_IrFunction {
     /* Optional parameterCount entries. Each nonzero symbol is the exact
      * promoted cell owned by that parameter's activation, not an alias query. */
     XL6_SymbolId* parameterCells;
+    /* ARGUMENT_DEFAULT only: exact source closure whose capture slots are
+     * appended as borrowed physical inputs. Zero for capture-free programs. */
+    XL6_SymbolId defaultClosureSymbol;
 } XL6_IrFunction;
 
 /* A typed call site owns argument binding before CFG lowering.  Source
@@ -4556,6 +4559,9 @@ typedef struct XL6_IrClosureTarget {
     char** callParameterNames;
     XL6_IrDynamicMethodDefaultAbi* callParameterDefaultAbis;
     char** callParameterDefaultLiterals;
+    /* PROGRAM entries name independently lowered expression functions.
+     * Literal/required entries are zero; descriptors belong to the value. */
+    uint32* callParameterDefaultFunctions;
     size_t callParameterCount;
     size_t firstCapture;
     size_t captureCount;
@@ -4812,6 +4818,11 @@ typedef enum XL6_IrCallableBridgeErrorBoundaryAbi {
     XL6_IR_CALLABLE_ERROR_BOUNDARY_ISOLATED_STATUS
 } XL6_IrCallableBridgeErrorBoundaryAbi;
 
+typedef enum XL6_IrCallableBindingAbi {
+    XL6_IR_CALLABLE_BIND_INVALID = 0,
+    XL6_IR_CALLABLE_BIND_PROVIDED_THEN_DEFAULTS
+} XL6_IrCallableBindingAbi;
+
 typedef struct XL6_IrCallableBridge {
     XL6_IrTypeId signatureType;
     size_t firstParameter;
@@ -4824,6 +4835,10 @@ typedef struct XL6_IrCallableBridge {
     XL6_IrCallableBridgeFrameCleanupAbi frameCleanupAbi;
     XL6_IrCallableBridgeErrorBoundaryAbi forwardErrorBoundaryAbi;
     XL6_IrCallableBridgeErrorBoundaryAbi reverseErrorBoundaryAbi;
+    /* Forward call-frame binding fully projects supplied arguments before
+     * evaluating any omitted default. Defaults use declaration order and all
+     * owners stay in the adapter until the final invocation commit. */
+    XL6_IrCallableBindingAbi argumentBindingAbi;
     XL6_IrCallableErasureAbi erasureAbi;
     /* Explicit forward-adapter producer, not the signature's legacy carrier.
      * ARRAY variadics own a native ANY Sequence; dict variadics remain Value.
