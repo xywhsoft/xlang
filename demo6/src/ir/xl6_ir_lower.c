@@ -14510,11 +14510,11 @@ static int xl6IrLowerSetClosureCallParameterDefaults(
             break;
         case XL6_IR_DYNAMIC_METHOD_DEFAULT_I64:
             literals[parameter] =
-                xl6IrCanonicalContextualIntegerLiteral(ctx->module, expressionId, signature->params[parameter]);
+                xl6IrCanonicalIntegerDefault(ctx->module, expressionId, signature->params[parameter]);
             break;
         case XL6_IR_DYNAMIC_METHOD_DEFAULT_U64:
             literals[parameter] =
-                xl6IrCanonicalContextualIntegerLiteral(ctx->module, expressionId, signature->params[parameter]);
+                xl6IrCanonicalIntegerDefault(ctx->module, expressionId, signature->params[parameter]);
             break;
         case XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR:
             literals[parameter] = xl6IrLowerCanonicalCharLiteral(expression);
@@ -14567,6 +14567,8 @@ static int xl6IrLowerLinkDynamicMethods(XL6_IrLowerContext* ctx)
         method->variadicCarrierAbi = XL6_IR_COLLECTION_CARRIER_NONE;
         method->variadicElementIdentity = 0;
         if ( target != NULL ) method->targetErrorAbi = target->errorAbi;
+        method->adapterAbi = xl6IrDynamicMethodSourceSupported(module, method)
+            ? XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED : XL6_IR_DYNAMIC_METHOD_ADAPTER_UNSUPPORTED;
         if ( method->adapterAbi !=
                  XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED ) continue;
         if ( target == NULL || target->declaration != method->declaration ||
@@ -14612,11 +14614,11 @@ static int xl6IrLowerLinkDynamicMethods(XL6_IrLowerContext* ctx)
                     break;
                 case XL6_IR_DYNAMIC_METHOD_DEFAULT_I64:
                     item->defaultLiteral =
-                        xl6IrCanonicalContextualIntegerLiteral(module, item->defaultExpression, item->type);
+                        xl6IrCanonicalIntegerDefault(module, item->defaultExpression, item->type);
                     break;
                 case XL6_IR_DYNAMIC_METHOD_DEFAULT_U64:
                     item->defaultLiteral =
-                        xl6IrCanonicalContextualIntegerLiteral(module, item->defaultExpression, item->type);
+                        xl6IrCanonicalIntegerDefault(module, item->defaultExpression, item->type);
                     break;
                 case XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR:
                     item->defaultLiteral = xl6IrLowerCanonicalCharLiteral(expression);

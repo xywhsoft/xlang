@@ -101,6 +101,10 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
     if ( !xl6IrCgenEmitNetDatagramRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitAsyncAndCallableRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitResourceRuntime(out, module, &needs, diags) ) return 0;
+    /* Dynamic adapters consume physical bridge definitions, not normalized
+     * language prototypes. Emit them after every selected bridge family. */
+    if ( needs.needsDynamicMethodRuntime &&
+         !xl6IrCgenEmitDynamicMethodRuntime(out, module, diags) ) return 0;
     if ( !xl6IrCgenEmitModuleDefinitions(
             out, module, &needs, options, diags) ) return 0;
     if ( !xl6IrCgenEmitModuleOwnershipTrace(out, module, &needs) ) return 0;
