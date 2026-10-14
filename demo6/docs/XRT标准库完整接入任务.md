@@ -24,6 +24,9 @@ checked IR；静态／动态使用同一安全转换，范围与专项证据见
 [C 标量显式转换与精确投影](stdlib53-b294-native-scalar-conversion.md)。
 反射令牌的 UInt 载体与数值语义已分离，规范身份及 V2 checked
 入口见 [动态数值构造的反射身份边界](stdlib53-b295-numeric-reflection-boundaries.md)。
+泛型 C 构造在具体实例化后重新验证，字段默认值与声明共用零值域；
+整批 JIT／模块执行及剩余范围见
+[泛型 C 数值构造与原生字段合同](stdlib53-b296-generic-scalar-contracts.md)。
 已证明安全构造的 IR 优化及完整发布总验收继续，不扩大隐式 C ABI
 转换或异步多返回值的设计范围。
 

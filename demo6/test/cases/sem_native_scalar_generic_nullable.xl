@@ -1,0 +1,5 @@
+func nativeInt<T>(T value) as c_int
+    return c_int(value)
+end
+c_int? value = null
+auto invalid = nativeInt::<c_int?>(value)

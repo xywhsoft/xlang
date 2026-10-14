@@ -5337,6 +5337,19 @@ static int xl6IrBuildFieldDeriveIncluded(
 
 /* Nullability precedes payload defaults for every storage location. In
  * particular string? starts null, while string starts as an empty string. */
+/* Construction, value declarations and verification share the same closed
+ * zero-initialized scalar domain, including specialized native fields. */
+static int xl6IrScalarZeroInitializerType(const XL6_IrType* type)
+{
+    if(!type || type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+        type->nullAbi!=XL6_IR_NULL_ABI_NONE ||
+        (type->kind!=XL6_IR_TYPE_BUILTIN && type->kind!=XL6_IR_TYPE_NUMERIC_ENUM))return 0;
+    return type->cAbi==XL6_IR_C_ABI_BOOL || type->cAbi==XL6_IR_C_ABI_I64 ||
+        type->cAbi==XL6_IR_C_ABI_U64 || type->cAbi==XL6_IR_C_ABI_TIME_I64 ||
+        type->cAbi==XL6_IR_C_ABI_CHAR_U32 || type->cAbi==XL6_IR_C_ABI_F32 ||
+        type->cAbi==XL6_IR_C_ABI_F64 ||
+        xl6IrNativeScalarProfileForCAbi(type->cAbi)!=XL6_NATIVE_SCALAR_NONE;
+}
 static XL6_IrInitializerAbi xl6IrNullDefaultInitializerAbi(const XL6_IrType* type)
 {
     if (type == NULL) return XL6_IR_INITIALIZER_NONE;
@@ -5444,14 +5457,7 @@ static int xl6IrBuildClassLayoutAppendField(
         XL6_IrInitializerAbi nullDefault = xl6IrNullDefaultInitializerAbi(fieldType);
         if (nullDefault != XL6_IR_INITIALIZER_NONE)
             item->initializerAbi = nullDefault;
-        else if ( fieldType != NULL &&
-             (fieldType->cAbi == XL6_IR_C_ABI_BOOL || fieldType->cAbi == XL6_IR_C_ABI_I64 ||
-               fieldType->cAbi == XL6_IR_C_ABI_TIME_I64 ||
-               fieldType->cAbi == XL6_IR_C_ABI_U64 ||
-               fieldType->cAbi == XL6_IR_C_ABI_F64 ||
-               fieldType->cAbi == XL6_IR_C_ABI_F32 ||
-               (fieldType->cAbi >= XL6_IR_C_ABI_C_CHAR &&
-                fieldType->cAbi <= XL6_IR_C_ABI_C_WCHAR)) )
+        else if ( xl6IrScalarZeroInitializerType(fieldType) )
             item->initializerAbi = XL6_IR_INITIALIZER_SCALAR_ZERO;
         else if ( fieldType != NULL &&
                   fieldType->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
@@ -14647,6 +14653,9 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         if(operandCount==1 && sourceType && result &&
             xl6IrNativeScalarConversionSignature(module,module->nodes[operands[0]-1].storageType,call->storageType))
             intrinsic.admission=XL6_IR_INTRINSIC_ADMISSION_VERIFIED;
+        else if(operandCount==1 && sourceType && result &&
+            xl6IrNativeScalarGenericSignature(module,origin,module->nodes[operands[0]-1].storageType,call->storageType))
+            intrinsic.admission=XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT;
         break;
     case XL6_IR_INTRINSIC_CHECKED_INTEGER_CONVERT:
         if ( operandCount == 1 && result != NULL && sourceType != NULL &&
@@ -15650,13 +15659,7 @@ static XL6_IrInitializerAbi xl6IrDefaultValueInitializerAbi(
     XL6_IrInitializerAbi nullDefault = xl6IrNullDefaultInitializerAbi(type);
     if ( type == NULL ) return XL6_IR_INITIALIZER_NONE;
     if (nullDefault != XL6_IR_INITIALIZER_NONE) return nullDefault;
-    if ( type->cAbi == XL6_IR_C_ABI_BOOL || type->cAbi == XL6_IR_C_ABI_I64 ||
-         type->cAbi == XL6_IR_C_ABI_TIME_I64 ||
-         type->cAbi == XL6_IR_C_ABI_U64 ||
-         type->cAbi == XL6_IR_C_ABI_TYPE_ID ||
-         type->cAbi == XL6_IR_C_ABI_F64 ||
-         (type->cAbi >= XL6_IR_C_ABI_C_CHAR &&
-          type->cAbi <= XL6_IR_C_ABI_C_WCHAR) )
+    if ( xl6IrScalarZeroInitializerType(type) )
         return XL6_IR_INITIALIZER_SCALAR_ZERO;
     if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
         return XL6_IR_INITIALIZER_STRING_EMPTY;
@@ -16742,6 +16745,11 @@ static XL6_IrMemberAbi xl6IrClassFieldMemberAbi(
             ? XL6_IR_MEMBER_ABI_CLASS_FIELD_UNION_COPY
             : XL6_IR_MEMBER_ABI_NONE;
     default:
+        if ( resultType->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+             resultType->nullAbi==XL6_IR_NULL_ABI_NONE &&
+             (resultType->kind==XL6_IR_TYPE_BUILTIN || resultType->kind==XL6_IR_TYPE_NUMERIC_ENUM) &&
+             xl6IrNativeScalarProfileForCAbi(resultType->cAbi) != XL6_NATIVE_SCALAR_NONE )
+            return XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE;
         return XL6_IR_MEMBER_ABI_NONE;
     }
 }
@@ -22602,6 +22610,17 @@ int xl6IrNativeScalarConversionSignature(const XL6_IrModule* module,XL6_IrTypeId
         to && to->kind==XL6_IR_TYPE_BUILTIN && to->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
         to->nullAbi==XL6_IR_NULL_ABI_NONE && profile && profile<=XL6_NATIVE_SCALAR_WCHAR;
 }
+int xl6IrNativeScalarGenericSignature(const XL6_IrModule* module,XL6_IrNodeId origin,XL6_IrTypeId source,XL6_IrTypeId target)
+{
+    const XL6_IrType* from=module ? xl6IrTypeGet(&module->types,source) : NULL;
+    if(!from || from->kind!=XL6_IR_TYPE_TYPE_PARAM ||
+        !xl6IrNativeScalarConversionSignature(module,target,target))return 0;
+    const XL6_IrNode* owner=xl6IrNodeGet(module,origin);size_t depth=0;
+    while(owner && owner->kind!=XL6_IR_NODE_FUNC_DECL && ++depth<=module->nodeCount)
+        owner=xl6IrNodeGet(module,owner->parent);
+    return owner && (xl6IrBuildTypeContainsTypeParam(module,owner->storageType,0) ||
+        xl6IrBuildTypeContainsTypeParam(module,owner->declarationOwnerType,0));
+}
 XL6_IrTypeId xl6IrNativeScalarAsIdentity(const XL6_IrModule* module,XL6_IrTypeId target)
 {
     const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,target) : NULL;
@@ -22618,7 +22637,8 @@ XL6_IrTypeId xl6IrNativeScalarAsIdentity(const XL6_IrModule* module,XL6_IrTypeId
 int xl6IrNativeScalarIntrinsicCompatible(const XL6_IrModule* module,const XL6_IrIntrinsicCall* intrinsic)
 {
     if(!module || !intrinsic || intrinsic->kind!=XL6_IR_INTRINSIC_CHECKED_NATIVE_SCALAR_CONVERT ||
-        intrinsic->admission!=XL6_IR_INTRINSIC_ADMISSION_VERIFIED || intrinsic->operandCount!=1 ||
+        (intrinsic->admission!=XL6_IR_INTRINSIC_ADMISSION_VERIFIED &&
+         intrinsic->admission!=XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT) || intrinsic->operandCount!=1 ||
         intrinsic->firstOperand>=module->intrinsicOperandCount || intrinsic->resultAbi!=XL6_IR_INTRINSIC_RESULT_VALUE ||
         intrinsic->errorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE || intrinsic->scalarConversionAbi || intrinsic->castAbi ||
         intrinsic->integerTarget || intrinsic->integerSourceAbi)return 0;
@@ -22630,7 +22650,9 @@ int xl6IrNativeScalarIntrinsicCompatible(const XL6_IrModule* module,const XL6_Ir
     return call && callee && call->callKind==XL6_SEM_CALL_BUILTIN && callee->typeValueTarget==intrinsic->resultType &&
         intrinsic->resultType==call->storageType && source && source->storageType==operand->type && type &&
         operand->abi==(type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED ? XL6_IR_INTRINSIC_OPERAND_BORROW : XL6_IR_INTRINSIC_OPERAND_VALUE) &&
-        xl6IrNativeScalarConversionSignature(module,operand->type,intrinsic->resultType);
+        (intrinsic->admission==XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT ?
+            xl6IrNativeScalarGenericSignature(module,intrinsic->origin,operand->type,intrinsic->resultType) :
+            xl6IrNativeScalarConversionSignature(module,operand->type,intrinsic->resultType));
 }
 int xl6IrNativeScalarInstructionCompatible(const XL6_IrModule* module,const XL6_IrInstruction* instruction)
 {
@@ -25632,10 +25654,7 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
                          fieldType->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL))))) ||
                   (item->initializerAbi == XL6_IR_INITIALIZER_SCALAR_ZERO &&
                     (item->initializer != XL6_IR_NODE_INVALID || fieldType == NULL ||
-                    (fieldType->cAbi != XL6_IR_C_ABI_BOOL && fieldType->cAbi != XL6_IR_C_ABI_I64 &&
-                      fieldType->cAbi != XL6_IR_C_ABI_TIME_I64 &&
-                      fieldType->cAbi != XL6_IR_C_ABI_U64 &&
-                      fieldType->cAbi != XL6_IR_C_ABI_F64))) ||
+                      !xl6IrScalarZeroInitializerType(fieldType))) ||
                   (item->initializerAbi == XL6_IR_INITIALIZER_STRING_EMPTY &&
                    (item->initializer != XL6_IR_NODE_INVALID || fieldType == NULL ||
                     fieldType->cAbi != XL6_IR_C_ABI_MANAGED_STRING)) ||
@@ -35211,7 +35230,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                    intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_UNSUPPORTED_ABI &&
                    intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT) ||
                   (intrinsic->admission == XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT &&
-                   intrinsic->kind != XL6_IR_INTRINSIC_RUNTIME_RESOURCE) ||
+                   intrinsic->kind != XL6_IR_INTRINSIC_RUNTIME_RESOURCE &&
+                   intrinsic->kind != XL6_IR_INTRINSIC_CHECKED_NATIVE_SCALAR_CONVERT) ||
                    intrinsic->resultType != call->storageType ||
                   (returnsVoid
                       ? (intrinsic->resultType != XL6_IR_TYPE_INVALID ||

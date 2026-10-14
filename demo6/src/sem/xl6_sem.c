@@ -8935,6 +8935,13 @@ static int xl6SemCheckTypeConvertCall(XL6_SemContext* ctx, XL6_AstNode* call)
     sourceIsNumericEnum =
         sourceTypeInfo != NULL &&
         sourceTypeInfo->kind == XL6_TYPE_NUMERIC_ENUM;
+    /* The source of a numeric constructor is unknown in a generic template.
+     * Concrete instantiation must still rebuild and verify the full IR ABI;
+     * this does not classify the parameter as var or admit a concrete type. */
+    if ( xl6SemFindTypeParam(ctx, concreteSourceType) &&
+         (xl6SemIsIntegerTypeName(concreteTargetType) ||
+          xl6SemIsFloatTypeName(concreteTargetType) ||
+          xl6SemIsBoolTypeName(concreteTargetType)) ) return 1;
     if ( xl6TextEquals(callee->text, "var") && !xl6SemExprCanBoxToVar(ctx, argExpr) ) {
         xl6SemVarBoxMismatchError(ctx, argExpr, "该表达式不能装入 var");
         return 0;
