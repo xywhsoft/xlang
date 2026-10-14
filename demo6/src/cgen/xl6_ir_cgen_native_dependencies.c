@@ -723,6 +723,9 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             if (!xl6IrStackErasureInstructionCompatible(module,instruction) || !visitor(context,"xl6StackEraseTakeV2") ||
                 !xl6IrCgenVisitSlotProviders(sealed->sequenceLayout.slotAbi,1,visitor,context)) return 0;
         }
+        if(xl6IrCgenInstructionIsReachable(module,i) && instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DYNAMIC_CALL &&
+           instruction->dynamicCallResultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT &&
+           (!xl6IrDynamicProductType(module,instruction->type) || !visitor(context,"xl6DynamicFunctionProductTakeV1")))return 0;
         if(xl6IrCgenInstructionIsReachable(module,i) &&
             (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_POP || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK ||
              instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK_AT || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_POP ||

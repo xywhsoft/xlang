@@ -2696,7 +2696,9 @@ typedef enum XL6_IrDynamicCallResultAbi {
     XL6_IR_DYNAMIC_CALL_RESULT_OWNED_UNIT_VALUE,
     /* Statement invocation accepts zero or more results, releases the whole
      * result vector, and returns an owned unit sentinel for the error edge. */
-    XL6_IR_DYNAMIC_CALL_RESULT_DISCARD_TO_OWNED_UNIT
+    XL6_IR_DYNAMIC_CALL_RESULT_DISCARD_TO_OWNED_UNIT,
+    /* Exact receiving-context arity, all independently owned var fields. */
+    XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT
 } XL6_IrDynamicCallResultAbi;
 
 /* Yield ownership is a continuation boundary contract, not a memcpy chosen by
@@ -7029,6 +7031,8 @@ int xl6IrNodeIsDynamicMemberRead(const XL6_IrModule* module, XL6_IrNodeId nodeId
 int xl6IrNodeIsDynamicMemberWrite(const XL6_IrModule* module, XL6_IrNodeId nodeId);
 XL6_IrDynamicCallResultAbi xl6IrDynamicCallExpectedResultAbi(
     const XL6_IrModule* module, const XL6_IrDynamicCallSite* site);
+XL6_IrTypeId xl6IrDynamicCallValueType(const XL6_IrModule*,const XL6_IrDynamicCallSite*);
+int xl6IrDynamicProductType(const XL6_IrModule*,XL6_IrTypeId);
 int xl6IrNodeHasFallibleMemberWrite(const XL6_IrModule* module, XL6_IrNodeId nodeId);
 int xl6IrInstructionIsFallibleProjection(const XL6_IrModule* module, const XL6_IrInstruction* instruction);
 int xl6IrNodeRequiresThrowExitPlan(
