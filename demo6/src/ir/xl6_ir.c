@@ -2233,6 +2233,7 @@ void xl6IrModuleFree(XL6_IrModule* module)
     xrtFree(module->callableBridges);
     xrtFree(module->callableBridgeParameters);
     xrtFree(module->callableBridgeResults);
+    xrtFree(module->dynamicMethodScalarCodecs);
     xrtFree(module->callbackBoundaries);
     xrtFree(module->callbackCaptures);
     xrtFree(module->asyncMachines);
@@ -13199,19 +13200,13 @@ static int xl6IrDynamicMethodAdapterTypeSupported(
     type = xl6IrTypeGet(&module->types, typeId);
     if ( type == NULL || xl6IrBuildTypeContainsTypeParam(module, typeId, 0) )
         return 0;
+    if (xl6IrDynamicMethodScalarPlanForType(module,typeId,NULL)) return 1;
     if(allowVoid && type->cAbi==XL6_IR_C_ABI_PRODUCT && type->kind==XL6_IR_TYPE_TUPLE && type->paramCount>=2 && type->params) {
         for(size_t i=0;i<type->paramCount;++i)
             if(!xl6IrDynamicMethodAdapterTypeSupported(module,type->params[i],0))return 0;
         return 1;
     }
     switch ( type->cAbi ) {
-    case XL6_IR_C_ABI_BOOL:
-    case XL6_IR_C_ABI_I64:
-    case XL6_IR_C_ABI_U64:
-    case XL6_IR_C_ABI_F64:
-    case XL6_IR_C_ABI_TIME_I64:
-    case XL6_IR_C_ABI_CHAR_U32:
-        return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
     case XL6_IR_C_ABI_MANAGED_STRING:
         return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
     case XL6_IR_C_ABI_MANAGED_BYTES:
@@ -13233,14 +13228,8 @@ static int xl6IrDynamicMethodParameterAbiSupported(
 {
     const XL6_IrType* type = xl6IrTypeGet(&module->types, typeId);
     if ( type == NULL ) return 0;
-    if ( type->cAbi == XL6_IR_C_ABI_BOOL ||
-         type->cAbi == XL6_IR_C_ABI_I64 ||
-         type->cAbi == XL6_IR_C_ABI_U64 ||
-         type->cAbi == XL6_IR_C_ABI_F64 ||
-         type->cAbi == XL6_IR_C_ABI_TIME_I64 ||
-         type->cAbi == XL6_IR_C_ABI_CHAR_U32 )
-        return abi == XL6_IR_PARAMETER_ABI_VALUE &&
-               variadicAbi == XL6_IR_CALL_VARIADIC_NONE;
+    if (xl6IrDynamicMethodScalarPlanForType(module,typeId,NULL))
+        return abi==XL6_IR_PARAMETER_ABI_VALUE && variadicAbi==XL6_IR_CALL_VARIADIC_NONE;
     if ( type->cAbi != XL6_IR_C_ABI_MANAGED_STRING &&
          type->cAbi != XL6_IR_C_ABI_MANAGED_BYTES &&
          type->cAbi != XL6_IR_C_ABI_CLOSURE_PTR &&
@@ -13262,6 +13251,8 @@ static XL6_IrDynamicMethodMatchAbi xl6IrDynamicMethodMatchAbiForType(
 {
     const XL6_IrType* type = xl6IrTypeGet(&module->types, typeId);
     if ( type == NULL ) return XL6_IR_DYNAMIC_METHOD_MATCH_INVALID;
+    if (xl6IrDynamicMethodScalarPlanForType(module,typeId,NULL))
+        return XL6_IR_DYNAMIC_METHOD_MATCH_SCALAR_CODEC;
     const XL6_IrType* domain = type;
     if ( type->kind == XL6_IR_TYPE_NULLABLE )
         domain = type->paramCount == 1 && type->params != NULL
@@ -13270,12 +13261,6 @@ static XL6_IrDynamicMethodMatchAbi xl6IrDynamicMethodMatchAbiForType(
     if ( domain->nominalSymbol != 0 )
         return XL6_IR_DYNAMIC_METHOD_MATCH_NOMINAL;
     switch ( type->cAbi ) {
-    case XL6_IR_C_ABI_BOOL: return XL6_IR_DYNAMIC_METHOD_MATCH_BOOL;
-    case XL6_IR_C_ABI_CHAR_U32: return XL6_IR_DYNAMIC_METHOD_MATCH_CHAR;
-    case XL6_IR_C_ABI_I64: return XL6_IR_DYNAMIC_METHOD_MATCH_I64;
-    case XL6_IR_C_ABI_U64: return XL6_IR_DYNAMIC_METHOD_MATCH_U64;
-    case XL6_IR_C_ABI_F64: return XL6_IR_DYNAMIC_METHOD_MATCH_F64;
-    case XL6_IR_C_ABI_TIME_I64: return XL6_IR_DYNAMIC_METHOD_MATCH_TIME;
     case XL6_IR_C_ABI_MANAGED_STRING:
         return XL6_IR_DYNAMIC_METHOD_MATCH_STRING;
     case XL6_IR_C_ABI_CLOSURE_PTR:
@@ -13485,6 +13470,34 @@ static int xl6IrRefreshDynamicMethodAdmissions(XL6_IrModule* module)
         module->dynamicMethods[i].adapterAbi = xl6IrDynamicMethodSourceSupported(module, &module->dynamicMethods[i])
             ? XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED : XL6_IR_DYNAMIC_METHOD_ADAPTER_UNSUPPORTED;
     return 1;
+}
+
+int xl6IrBuildDynamicBoundSignatures(XL6_IrModule* module,XL6_DiagList* diags)
+{
+    for(size_t m=0;m<module->dynamicMethodCount;++m) {
+        XL6_IrDynamicMethod* method=&module->dynamicMethods[m];
+        method->boundSignatureType=XL6_IR_TYPE_INVALID;
+        if(method->kind!=XL6_IR_DYNAMIC_CALL_METHOD || method->adapterAbi!=XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED)continue;
+        size_t groupCount=0;
+        for(size_t other=0;other<module->dynamicMethodCount;++other) {
+            const XL6_IrDynamicMethod* candidate=&module->dynamicMethods[other];
+            if(candidate->kind==XL6_IR_DYNAMIC_CALL_METHOD && candidate->runtimeTypeTag==method->runtimeTypeTag &&
+                candidate->name && method->name && !strcmp(candidate->name,method->name))++groupCount;
+        }
+        if(groupCount!=1)continue;
+        const XL6_IrNode* declaration=xl6IrNodeGet(module,method->declaration);
+        const XL6_IrNode* parameters=declaration && declaration->childCount>2 ?
+            xl6IrNodeGet(module,module->children[declaration->firstChild+1]):NULL;
+        const XL6_IrNode* returns=declaration && declaration->childCount>2 ?
+            xl6IrNodeGet(module,module->children[declaration->firstChild+2]):NULL;
+        XL6_IrCallableErasureAbi erasure=method->variadicAbi==XL6_IR_CALL_VARIADIC_ARRAY ? XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC :
+            method->variadicAbi==XL6_IR_CALL_VARIADIC_DICT ? XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC : XL6_IR_CALLABLE_ERASURE_FIXED;
+        if(!parameters || !returns ||
+            !(method->boundSignatureType=xl6IrInternNamedCallableSignature(module,parameters,returns,erasure)))
+            return xl6IrDiag(diags,NULL,"XLIR unique bound method has no exact public signature");
+    }
+    return xl6IrTypePoolFinalizeCallableResults(&module->types) ||
+        xl6IrDiag(diags,NULL,"XLIR bound signature has no finalized result representation");
 }
 
 static int xl6IrBuildDynamicMethodAppend(
@@ -46446,6 +46459,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
     if ( !xl6IrVerifyModuleFinalizer(module, diags) ||
          !xl6IrVerifyClassFinalizers(module, diags) ||
          !xl6IrVerifyCallableBridges(module, diags) ||
+         !xl6IrVerifyDynamicMethodScalarCodecs(module, diags) ||
          !xl6IrVerifyCallbackBoundaries(module, diags) ||
          !xl6IrVerifyInstantiations(module, diags) ||
          !xl6IrVerifyPersistenceDefaultFunctions(module, diags) ||
@@ -46738,6 +46752,7 @@ static const char* xl6IrDynamicMethodMatchAbiName(
     case XL6_IR_DYNAMIC_METHOD_MATCH_EXACT_IDENTITY: return "exact-identity";
     case XL6_IR_DYNAMIC_METHOD_MATCH_CALLABLE: return "callable-signature";
     case XL6_IR_DYNAMIC_METHOD_MATCH_FUTURE: return "future-identity";
+    case XL6_IR_DYNAMIC_METHOD_MATCH_SCALAR_CODEC: return "scalar-codec";
     default: return "invalid";
     }
 }
@@ -50855,7 +50870,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     for ( i = 0; i < module->dynamicMethodCount; ++i ) {
         const XL6_IrDynamicMethod* method = &module->dynamicMethods[i];
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"kindName\":\"%s\",\"ownerDeclaration\":%u,\"ownerType\":%u,\"runtimeTypeTag\":%u,\"declaration\":%u,\"targetSymbol\":%u,\"name\":\"%s\",\"returnCount\":%lu,\"returnType\":%u,\"targetErrorAbi\":%d,\"targetErrorAbiName\":\"%s\",\"adapterAbi\":%d,\"adapterAbiName\":\"%s\",\"firstParameter\":%lu,\"parameterCount\":%lu,\"fixedParameterCount\":%lu,\"variadicAbi\":%d,\"variadicAbiName\":\"%s\",\"variadicCarrierAbi\":%d,\"variadicElementIdentity\":\"0x%016llX\"}%s\n",
+            "    {\"id\":%lu,\"kindName\":\"%s\",\"ownerDeclaration\":%u,\"ownerType\":%u,\"runtimeTypeTag\":%u,\"declaration\":%u,\"targetSymbol\":%u,\"name\":\"%s\",\"returnCount\":%lu,\"returnType\":%u,\"targetErrorAbi\":%d,\"targetErrorAbiName\":\"%s\",\"adapterAbi\":%d,\"adapterAbiName\":\"%s\",\"firstParameter\":%lu,\"parameterCount\":%lu,\"fixedParameterCount\":%lu,\"variadicAbi\":%d,\"variadicAbiName\":\"%s\",\"variadicCarrierAbi\":%d,\"variadicElementIdentity\":\"0x%016llX\",\"boundSignatureType\":%u,\"firstScalarResultCodec\":%lu,\"scalarResultCodecCount\":%lu}%s\n",
             (unsigned long)i, xl6IrDynamicCallKindName(method->kind), (unsigned int)method->ownerDeclaration,
             (unsigned int)method->ownerType,
             (unsigned int)method->runtimeTypeTag,
@@ -50874,6 +50889,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             (int)method->variadicAbi,
             xl6IrCallVariadicAbiName(method->variadicAbi),
             (int)method->variadicCarrierAbi,(unsigned long long)method->variadicElementIdentity,
+            (unsigned)method->boundSignatureType,(unsigned long)method->firstScalarResultCodec,(unsigned long)method->scalarResultCodecCount,
             i + 1 == module->dynamicMethodCount ? "" : ",");
     }
     xl6OutputPuts("  ],\n  \"dynamicMethodParameters\": [\n", out);
@@ -50881,7 +50897,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         const XL6_IrDynamicMethodParameter* parameter =
             &module->dynamicMethodParameters[i];
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"declaration\":%u,\"name\":\"%s\",\"type\":%u,\"abi\":%d,\"abiName\":\"%s\",\"matchAbi\":%d,\"matchAbiName\":\"%s\",\"defaultExpression\":%u,\"defaultAbi\":%d,\"defaultAbiName\":\"%s\",\"defaultFunction\":%u,\"variadicAbi\":%d,\"variadicAbiName\":\"%s\"}%s\n",
+            "    {\"id\":%lu,\"declaration\":%u,\"name\":\"%s\",\"type\":%u,\"abi\":%d,\"abiName\":\"%s\",\"matchAbi\":%d,\"matchAbiName\":\"%s\",\"defaultExpression\":%u,\"defaultAbi\":%d,\"defaultAbiName\":\"%s\",\"defaultFunction\":%u,\"variadicAbi\":%d,\"variadicAbiName\":\"%s\",\"scalarCodec\":%lu}%s\n",
             (unsigned long)i, (unsigned int)parameter->declaration,
             parameter->name != NULL ? parameter->name : "",
             (unsigned int)parameter->type, (int)parameter->abi,
@@ -50894,7 +50910,17 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             (unsigned)parameter->defaultFunction,
             (int)parameter->variadicAbi,
             xl6IrCallVariadicAbiName(parameter->variadicAbi),
+            (unsigned long)parameter->scalarCodec,
             i + 1 == module->dynamicMethodParameterCount ? "" : ",");
+    }
+    xl6OutputPuts("  ],\n  \"dynamicMethodScalarCodecs\": [\n",out);
+    for(i=0;i<module->dynamicMethodScalarCodecCount;++i) {
+        const XL6_IrCallableBridgeResult* codec=&module->dynamicMethodScalarCodecs[i];
+        xl6OutputPrintf(out,"    {\"id\":%lu,\"result\":%lu,\"type\":%u,\"valueType\":%u,\"presenceAbi\":%d,\"decodeAbi\":%d,\"encodeAbi\":%d,\"nativeScalarProfile\":%d,\"integerRule\":%u,\"integerIdentity\":\"0x%016llX\",\"integerNominal\":%d,\"destroyAbi\":%d}%s\n",
+            (unsigned long)i+1,(unsigned long)codec->result,(unsigned)codec->type,(unsigned)codec->valueType,
+            (int)codec->presenceAbi,(int)codec->decodeAbi,(int)codec->encodeAbi,(int)codec->nativeScalarProfile,
+            (unsigned)codec->integerDomain.rule,(unsigned long long)codec->integerDomain.identity,
+            codec->integerDomain.nominal,(int)codec->destroyAbi,i+1==module->dynamicMethodScalarCodecCount?"":",");
     }
     xl6OutputPuts("  ],\n  \"intrinsicCalls\": [\n", out);
     for ( i = 0; i < module->intrinsicCallCount; ++i ) {

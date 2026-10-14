@@ -100,6 +100,20 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         const XL6_IrCallTarget* target;
         if ( !xl6IrCgenDynamicMethodNeeded(module, i) ) continue;
         target = xl6IrCallTargetGet(module, method->targetSymbol);
+        for(size_t p=0;p<method->parameterCount+method->scalarResultCodecCount;++p) {
+            int argument=p<method->parameterCount;
+            size_t index=argument ? module->dynamicMethodParameters[method->firstParameter+p].scalarCodec :
+                method->firstScalarResultCodec+(p-method->parameterCount)+1;
+            const XL6_IrCallableBridgeResult* codec=xl6IrDynamicMethodScalarCodecGet(module,index);
+            if(!codec)continue;
+            needs->needsXValueTypeIdentityRuntime=1;
+            if(codec->nativeScalarProfile!=XL6_NATIVE_SCALAR_NONE) {
+                needs->needsCallableNativeScalarCodec=1;
+                if(argument)needs->needsDynamicNativeScalarAdmission=1;
+            }
+            if(codec->integerDomain.rule!=XL6_VALUE_ADMIT_NONE)needs->needsCallableIntegerCodec=1;
+            if(codec->decodeAbi==XL6_IR_CALLABLE_BRIDGE_F32 && argument)needs->needsCallableF32Reader=1;
+        }
         for ( parameter = 0; parameter < method->parameterCount; ++parameter ) {
             const XL6_IrType* type = xl6IrTypeGet(&module->types,
                 module->dynamicMethodParameters[method->firstParameter + parameter].type);

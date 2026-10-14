@@ -1,0 +1,30 @@
+class Optional
+    func character(char? value = null) as char?
+        return value
+    end
+    func narrow(float32? value = null) as float32?
+        return value
+    end
+    func native(c_int? value = null) as c_int?
+        return value
+    end
+    func defaulted(float32? value = float32(1.5)) as float32?
+        return value
+    end
+    func ordinary(int? value = null) as int?
+        return value
+    end
+end
+var source = Optional()
+assert source.character() == null and source.character(null) == null
+assert (source.character('你') as char) == '你'
+assert source.narrow() == null and source.narrow(null) == null
+assert (source.narrow(float32(1.5)) as float32) == float32(1.5)
+assert source.native() == null and source.native(null) == null
+assert source.native(c_int(-7)) == c_int(-7)
+assert (source.defaulted() as float32) == float32(1.5)
+assert source.defaulted(null) == null
+assert source.ordinary() == null and int(source.ordinary(42)) == 42
+var bound = source.narrow
+assert bound() == null and bound(null) == null
+assert (bound(float32(1.5)) as float32) == float32(1.5)

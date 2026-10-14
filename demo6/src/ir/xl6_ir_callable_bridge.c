@@ -180,6 +180,140 @@ const XL6_IrCallableBridge* xl6IrCallableBridgeGet(
     return NULL;
 }
 
+/* Dynamic methods project scalar inputs and publish scalar result fields with
+ * the same exact codecs as function bridges. Source spellings never select a
+ * conversion; tagged presence and native platform profiles remain IR facts. */
+int xl6IrDynamicMethodScalarPlanForType(const XL6_IrModule* module,
+    XL6_IrTypeId id,XL6_IrCallableBridgeResult* output)
+{
+    XL6_IrCallableBridgeResult plan;
+    XL6_IrType signature={0}; signature.returnCount=1; signature.returns=&id;
+    if (!module || !xl6IrCallableBridgeResultPlan(module,&signature,0,&plan)) return 0;
+    const XL6_IrType* source=xl6IrTypeGet(&module->types,id);
+    const XL6_IrType* value=xl6IrTypeGet(&module->types,plan.valueType);
+    if (!source || !value || !value->typeValueId ||
+        (value->kind!=XL6_IR_TYPE_BUILTIN && value->kind!=XL6_IR_TYPE_NUMERIC_ENUM) ||
+        source->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+        value->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+        (!xl6IrRuntimeCallableScalarAbi(value->cAbi) && value->cAbi!=XL6_IR_C_ABI_RAW_POINTER) ||
+        plan.destroyAbi!=XL6_IR_ASYNC_FRAME_DESTROY_NONE) return 0;
+    if (output) *output=plan;
+    return 1;
+}
+const XL6_IrCallableBridgeResult* xl6IrDynamicMethodScalarCodecGet(
+    const XL6_IrModule* module,size_t index)
+{
+    return module && module->stage==XL6_IR_STAGE_LOWERED && index &&
+        index<=module->dynamicMethodScalarCodecCount && module->dynamicMethodScalarCodecs &&
+        module->dynamicMethodScalarCodecs[index-1].decodeAbi!=XL6_IR_CALLABLE_BRIDGE_INVALID
+        ? &module->dynamicMethodScalarCodecs[index-1] : NULL;
+}
+static int xl6IrAppendDynamicMethodScalarCodec(XL6_IrModule* module,
+    const XL6_IrCallableBridgeResult* plan)
+{
+    if (!xl6IrGrow((void**)&module->dynamicMethodScalarCodecs,
+        &module->dynamicMethodScalarCodecCapacity,module->dynamicMethodScalarCodecCount,
+        sizeof(*module->dynamicMethodScalarCodecs))) return 0;
+    module->dynamicMethodScalarCodecs[module->dynamicMethodScalarCodecCount++]=*plan;
+    return 1;
+}
+int xl6IrBuildDynamicMethodScalarCodecs(XL6_IrModule* module,XL6_DiagList* diags)
+{
+    xrtFree(module->dynamicMethodScalarCodecs); module->dynamicMethodScalarCodecs=NULL;
+    module->dynamicMethodScalarCodecCount=module->dynamicMethodScalarCodecCapacity=0;
+    for(size_t p=0;p<module->dynamicMethodParameterCount;++p)
+        module->dynamicMethodParameters[p].scalarCodec=0;
+    for(size_t m=0;m<module->dynamicMethodCount;++m) {
+        XL6_IrDynamicMethod* method=&module->dynamicMethods[m];
+        method->firstScalarResultCodec=method->scalarResultCodecCount=0;
+        if(method->adapterAbi!=XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED) continue;
+        for(size_t p=0;p<method->parameterCount;++p) {
+            XL6_IrDynamicMethodParameter* item=&module->dynamicMethodParameters[method->firstParameter+p];
+            XL6_IrCallableBridgeResult plan;
+            if(item->matchAbi!=XL6_IR_DYNAMIC_METHOD_MATCH_SCALAR_CODEC)continue;
+            if(!xl6IrDynamicMethodScalarPlanForType(module,item->type,&plan) ||
+                !xl6IrAppendDynamicMethodScalarCodec(module,&plan)) goto failed;
+            item->scalarCodec=module->dynamicMethodScalarCodecCount;
+        }
+        method->firstScalarResultCodec=module->dynamicMethodScalarCodecCount;
+        const XL6_IrType* product=xl6IrTypeGet(&module->types,method->returnType);
+        if(method->returnCount>1 && (!product || product->cAbi!=XL6_IR_C_ABI_PRODUCT ||
+            !product->params || product->paramCount!=method->returnCount))goto failed;
+        for(size_t r=0;r<method->returnCount;++r) {
+            XL6_IrTypeId id=method->returnCount==1 ? method->returnType : product->params[r];
+            XL6_IrCallableBridgeResult plan={0};
+            (void)xl6IrDynamicMethodScalarPlanForType(module,id,&plan);
+            plan.result=r; plan.type=id;
+            if(!xl6IrAppendDynamicMethodScalarCodec(module,&plan)) goto failed;
+            ++method->scalarResultCodecCount;
+        }
+    }
+    return 1;
+failed:
+    return xl6IrDiag(diags,NULL,"XLIR dynamic scalar codecs could not be materialized");
+}
+static int xl6IrDynamicScalarCodecEqual(const XL6_IrCallableBridgeResult* a,
+    const XL6_IrCallableBridgeResult* b)
+{
+    return a->result==b->result && a->type==b->type && a->valueType==b->valueType &&
+        a->presenceAbi==b->presenceAbi && a->decodeAbi==b->decodeAbi && a->encodeAbi==b->encodeAbi &&
+        xl6IrCallableBridgeIntegerDomainEqual(a->integerDomain,b->integerDomain) &&
+        a->nativeScalarProfile==b->nativeScalarProfile && a->destroyAbi==b->destroyAbi;
+}
+int xl6IrVerifyDynamicMethodScalarCodecs(const XL6_IrModule* module,XL6_DiagList* diags)
+{
+    size_t next=0;
+    if(module->dynamicMethodScalarCodecCount && !module->dynamicMethodScalarCodecs)goto malformed;
+    for(size_t m=0;m<module->dynamicMethodCount;++m) {
+        const XL6_IrDynamicMethod* method=&module->dynamicMethods[m];
+        int linked=module->stage==XL6_IR_STAGE_LOWERED && method->adapterAbi==XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED;
+        size_t groupCount=0;
+        if(linked && method->kind==XL6_IR_DYNAMIC_CALL_METHOD)
+            for(size_t other=0;other<module->dynamicMethodCount;++other) {
+                const XL6_IrDynamicMethod* candidate=&module->dynamicMethods[other];
+                if(candidate->kind==XL6_IR_DYNAMIC_CALL_METHOD && candidate->runtimeTypeTag==method->runtimeTypeTag &&
+                    candidate->name && method->name && !strcmp(candidate->name,method->name))++groupCount;
+            }
+        if(groupCount==1) {
+            const XL6_IrType* signature=xl6IrTypeGet(&module->types,method->boundSignatureType);
+            const XL6_IrNode* declaration=xl6IrNodeGet(module,method->declaration);
+            const XL6_IrNode* parameters=declaration && declaration->childCount>2 ?
+                xl6IrNodeGet(module,module->children[declaration->firstChild+1]):NULL;
+            const XL6_IrNode* returns=declaration && declaration->childCount>2 ?
+                xl6IrNodeGet(module,module->children[declaration->firstChild+2]):NULL;
+            XL6_IrCallableErasureAbi erasure=method->variadicAbi==XL6_IR_CALL_VARIADIC_ARRAY ? XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC :
+                method->variadicAbi==XL6_IR_CALL_VARIADIC_DICT ? XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC : XL6_IR_CALLABLE_ERASURE_FIXED;
+            if(!signature || !signature->typeValueId || signature->paramCount!=method->parameterCount ||
+                !parameters || !returns || !xl6IrNamedCallableSignatureMatches(module,method->boundSignatureType,parameters,returns,erasure))goto malformed;
+        } else if(method->boundSignatureType)goto malformed;
+        for(size_t p=0;p<method->parameterCount;++p) {
+            const XL6_IrDynamicMethodParameter* item=&module->dynamicMethodParameters[method->firstParameter+p];
+            if(linked && item->matchAbi==XL6_IR_DYNAMIC_METHOD_MATCH_SCALAR_CODEC) {
+                XL6_IrCallableBridgeResult expected;
+                if(item->scalarCodec!=next+1 || next>=module->dynamicMethodScalarCodecCount ||
+                    !xl6IrDynamicMethodScalarPlanForType(module,item->type,&expected) ||
+                    !xl6IrDynamicScalarCodecEqual(&module->dynamicMethodScalarCodecs[next++],&expected))goto malformed;
+            } else if(item->scalarCodec)goto malformed;
+        }
+        if(!linked) { if(method->firstScalarResultCodec || method->scalarResultCodecCount)goto malformed; continue; }
+        if(method->firstScalarResultCodec!=next || method->scalarResultCodecCount!=method->returnCount)goto malformed;
+        const XL6_IrType* product=xl6IrTypeGet(&module->types,method->returnType);
+        for(size_t r=0;r<method->returnCount;++r) {
+            if(method->returnCount>1 && (!product || product->cAbi!=XL6_IR_C_ABI_PRODUCT ||
+                !product->params || r>=product->paramCount))goto malformed;
+            XL6_IrTypeId id=method->returnCount==1 ? method->returnType : product->params[r];
+            XL6_IrCallableBridgeResult expected={0};
+            (void)xl6IrDynamicMethodScalarPlanForType(module,id,&expected);
+            expected.result=r; expected.type=id;
+            if(next>=module->dynamicMethodScalarCodecCount ||
+                !xl6IrDynamicScalarCodecEqual(&module->dynamicMethodScalarCodecs[next++],&expected))goto malformed;
+        }
+    }
+    if(next==module->dynamicMethodScalarCodecCount)return 1;
+malformed:
+    return xl6IrDiag(diags,NULL,"XLIR dynamic scalar projection, presence or result codec is malformed");
+}
+
 const XL6_IrCallableBridgeParameter* xl6IrCallableBridgeParameterGet(
     const XL6_IrModule* module, XL6_IrTypeId signatureType, size_t parameter)
 {

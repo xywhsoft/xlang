@@ -3649,7 +3649,8 @@ typedef enum XL6_IrDynamicMethodMatchAbi {
     XL6_IR_DYNAMIC_METHOD_MATCH_EXACT_IDENTITY,
     /* Callable shape plus exact canonical signature, without conversion. */
     XL6_IR_DYNAMIC_METHOD_MATCH_CALLABLE,
-    XL6_IR_DYNAMIC_METHOD_MATCH_FUTURE
+    XL6_IR_DYNAMIC_METHOD_MATCH_FUTURE,
+    XL6_IR_DYNAMIC_METHOD_MATCH_SCALAR_CODEC
 } XL6_IrDynamicMethodMatchAbi;
 
 typedef struct XL6_IrDynamicMethodParameter {
@@ -3658,6 +3659,8 @@ typedef struct XL6_IrDynamicMethodParameter {
     XL6_IrTypeId type;
     XL6_IrParameterAbi abi;
     XL6_IrDynamicMethodMatchAbi matchAbi;
+    /* One-based closed scalar projection; zero for non-scalars/Typed rows. */
+    size_t scalarCodec;
     /* INVALID for a required/variadic parameter; otherwise the exact typed
      * expression evaluated when this candidate supplies its default. */
     XL6_IrNodeId defaultExpression;
@@ -3691,6 +3694,11 @@ typedef struct XL6_IrDynamicMethod {
     /* Closed producer contract; NONE in Typed/unsupported rows. */
     XL6_IrCollectionCarrierAbi variadicCarrierAbi;
     uint64 variadicElementIdentity;
+    /* Per-result-field closed codecs, including explicit non-scalar rows. */
+    size_t firstScalarResultCodec;
+    size_t scalarResultCodecCount;
+    /* Exact single-declaration binding identity; overloaded groups stay erased. */
+    XL6_IrTypeId boundSignatureType;
 } XL6_IrDynamicMethod;
 
 int xl6IrDynamicMethodMatchesCallSite(
@@ -6535,6 +6543,9 @@ typedef struct XL6_IrModule {
     XL6_IrCallableBridgeResult* callableBridgeResults;
     size_t callableBridgeResultCount;
     size_t callableBridgeResultCapacity;
+    XL6_IrCallableBridgeResult* dynamicMethodScalarCodecs;
+    size_t dynamicMethodScalarCodecCount;
+    size_t dynamicMethodScalarCodecCapacity;
     XL6_IrCallbackBoundary* callbackBoundaries;
     size_t callbackBoundaryCount;
     size_t callbackBoundaryCapacity;
@@ -6952,6 +6963,11 @@ int xl6IrRefreshReachability(XL6_IrModule* module);
 int xl6IrTaskSpawnParameterAbiSupported(const XL6_IrType* type, XL6_IrParameterMode mode, XL6_IrParameterAbi abi);
 int xl6IrTaskSpawnArgumentCanBind(const XL6_IrModule* module, XL6_IrTypeId actualType, XL6_IrTypeId parameterType);
 int xl6IrBuildCallableBridges(XL6_IrModule* module, XL6_DiagList* diags);
+int xl6IrDynamicMethodScalarPlanForType(const XL6_IrModule*,XL6_IrTypeId,XL6_IrCallableBridgeResult*);
+int xl6IrBuildDynamicMethodScalarCodecs(XL6_IrModule*,XL6_DiagList*);
+int xl6IrBuildDynamicBoundSignatures(XL6_IrModule*,XL6_DiagList*);
+int xl6IrVerifyDynamicMethodScalarCodecs(const XL6_IrModule*,XL6_DiagList*);
+const XL6_IrCallableBridgeResult* xl6IrDynamicMethodScalarCodecGet(const XL6_IrModule*,size_t);
 const XL6_IrCallableBridge* xl6IrCallableBridgeGet(
     const XL6_IrModule* module, XL6_IrTypeId signatureType);
 const XL6_IrCallableBridgeParameter* xl6IrCallableBridgeParameterGet(

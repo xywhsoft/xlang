@@ -8,5 +8,8 @@
  * TYPE_ID requires its exact logical identity on input; other primitives may
  * be unbound but must not carry a foreign nominal identity. */
 XL6_TEXT_API bool xl6ValueReadNativeScalarV1(const xvalue*, unsigned int, uint64_t, void*);
+/* Pure overload admission with target C widths; no coercion/allocation/error
+ * changes. Nullable admits canonical null only for a valid profile/identity. */
+XL6_TEXT_API bool xl6ValueAdmitsNativeScalarV1(const xvalue*,unsigned int,uint64_t,bool);
 XL6_TEXT_API xvalue* xl6ValueBoxNativeScalarV1(const void*, unsigned int, uint64_t);
 #endif

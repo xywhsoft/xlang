@@ -61,6 +61,12 @@ bool xl6ValueReadNativeScalarV1(const xvalue* source, unsigned int profile, uint
     if (!xrtValueToTyped(source, type, &temporary, NULL)) return false;
     memcpy(output, &temporary, type->Size); return true;
 }
+bool xl6ValueAdmitsNativeScalarV1(const xvalue* source,unsigned int profile,uint64_t identity,bool nullable)
+{
+    const xrttype* type=profileType(profile);
+    return source && identity && type && type->Size<=sizeof(uint64_t) &&
+        (xrtValueType(source)==XVALUE_NULL ? nullable : xl6CScalarValueV1(type,identity,source));
+}
 xvalue* xl6ValueBoxNativeScalarV1(const void* source, unsigned int profile, uint64_t identity)
 {
     const xrttype* type = profileType(profile);
