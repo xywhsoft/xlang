@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [驻留导出归属与源码构建校验](stdlib53-b280-resident-registration.md)：精确 Stack／Sequence 归属、实际提供方及源码消费快照绑定。
+
 - [动态标量装箱与 float32 显式转换](stdlib53-b279-scalar-conversion.md)：明确缩窄与无损读取的边界，独立成功状态和按需驻留组件。
 
 - [Nullable callable 的存在性与载荷合同](stdlib53-b278-nullable-callable.md)：声明化 null 表示、基础载荷编解码、参数副本与专项验收边界。

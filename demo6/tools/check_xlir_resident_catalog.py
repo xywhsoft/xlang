@@ -6,6 +6,7 @@ This proves the resident catalog/closures, not shipping or full53 acceptance.
 """
 from pathlib import Path
 import argparse, copy, hashlib, json, os, re, shutil, subprocess
+from xlir_public_build_inputs import verify_public_build
 
 
 def sha(path):
@@ -90,6 +91,14 @@ def negative_controls(ids, entries, components):
     reject('wrong-owner', [(symbol, next(name for name in ids if name != owner)), *entries[1:]], components)
     reject('duplicate-declaration', [*entries, entries[0]], components)
     reject('unknown-owner', [(symbol, 'NOT_A_COMPONENT'), *entries[1:]], components)
+    for required in ('xl6SequenceBeginErasedRoleV1', 'xl6SequenceBindProjectionRoleV1',
+                     'xl6SequenceBindStackResultArrayV1', 'xl6SequenceStackResultArrayV1', 'xl6StackEraseV1'):
+        selected = next((item for item in entries if item[0] == required), None)
+        assert selected, 'Missing required role/Stack ownership contract: ' + required
+        reject('missing-role-' + required, [item for item in entries if item != selected], components)
+        wrong = next(name for name in ids if name != selected[1])
+        reject('misowned-role-' + required,
+               [(name, wrong if name == required else owner) for name, owner in entries], components)
     mutated = copy.deepcopy(components)
     next(row for row in mutated if symbol in row['Defined'])['Defined'].remove(symbol)
     reject('missing-definition', entries, mutated)
@@ -159,13 +168,11 @@ def main():
         assert not build_dir.exists()
         build_dir.mkdir(parents=True)
         manifest = args.compiler.resolve() / 'build.json'
-        build = json.loads(manifest.read_text(encoding='utf-8-sig'))
-        assert build['SourceXrt'] and not build['RuntimeOnly']
-        assert sha(build['Driver']) == build['DriverSha256'].lower()
+        build, public_inputs, compared = verify_public_build(root, args.compiler)
+        files.update(public_inputs)
+        report['PublicBuildVerified'] = True
+        report['ComparedSources'] = compared
         files.update((manifest, Path(build['Driver']), Path(cc), root / 'test/cases/xlir_artifact_runtime_contract.c'))
-        for row in build['Inputs'] + build['Headers'] + build['Objects']:
-            assert sha(row['Path']) == row['Sha256'].lower(), 'Stale compiler input: ' + row['Path']
-            files.add(Path(row['Path']))
         objects = [row['Path'] for row in build['Objects'] if Path(row['Path']).name not in
                    ('xlir_public_source_driver.o', 'xlir_public_source_linux_driver.o')]
         if windows:

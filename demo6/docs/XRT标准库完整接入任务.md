@@ -2,6 +2,9 @@
 
 ## 1. 目标
 
+既有 Stack／Sequence 驻留接口的精确归属及源码构建绑定见
+[驻留导出归属与源码构建校验](stdlib53-b280-resident-registration.md)。
+
 typed nullable callable 的基础标量、字符串和 bytes 编解码合同见
 [Nullable callable 的存在性与载荷合同](stdlib53-b278-nullable-callable.md)。
 存在性独立于 false、零值和空容器。动态 float32 转换与直接参数
