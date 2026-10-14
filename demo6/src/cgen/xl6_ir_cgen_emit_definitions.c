@@ -94,12 +94,12 @@ static int xl6IrCgenEmitModuleDefinitions(
             else
                 xl6OutputPuts("0.0", out);
             xl6OutputPuts(", ", out);
-            if ( abi == XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING )
+            if ( abi == XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING || abi == XL6_IR_DYNAMIC_METHOD_DEFAULT_BYTES )
                 xl6OutputPuts(literal, out);
             else
                 xl6OutputPuts("NULL", out);
             xl6OutputPuts(", ", out);
-            if ( abi == XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING )
+            if ( abi == XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING || abi == XL6_IR_DYNAMIC_METHOD_DEFAULT_BYTES )
                 xl6OutputPrintf(out, "sizeof(%s) - 1u", literal);
             else
                 xl6OutputPuts("0u", out);

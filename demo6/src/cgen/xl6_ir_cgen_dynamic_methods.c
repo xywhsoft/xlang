@@ -483,10 +483,14 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
             xl6OutputPuts("\n", out);
         } else if ( type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ) {
             xl6OutputPrintf(out,
-                "    if (has%lu && xrtValueType(bound%lu) != XVALUE_NULL) { a%lu = xrtValueRetain(bound%lu); if (a%lu == NULL) goto fail; }\n",
+                "    if (has%lu && xrtValueType(bound%lu) != XVALUE_NULL) { a%lu = xrtValueRetain(bound%lu); if (a%lu == NULL) goto fail; }",
                 (unsigned long)parameter, (unsigned long)parameter,
                 (unsigned long)parameter, (unsigned long)parameter,
                 (unsigned long)parameter);
+            if(item->defaultAbi==XL6_IR_DYNAMIC_METHOD_DEFAULT_BYTES)
+                xl6OutputPrintf(out," else if (!has%lu) { a%lu = xrtValueBytes((xbytesview){(const unsigned char*)%s,sizeof(%s)-1u}); if(!a%lu)goto fail; }",
+                    (unsigned long)parameter,(unsigned long)parameter,item->defaultLiteral,item->defaultLiteral,(unsigned long)parameter);
+            xl6OutputPuts("\n",out);
         } else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) {
             xl6OutputPrintf(out,
                 "    a%lu = xrtValueRetain(has%lu ? bound%lu : xrtValueNull()); if (a%lu == NULL) goto fail;\n",

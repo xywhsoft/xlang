@@ -1,6 +1,6 @@
-// Pending native dynamic-call ABI integration. Actual products currently
-// reject Buffer.len: native extern rows are retained but not admitted.
-// Keep this regression visible until IR contracts and adapters are completed.
+// Integrated Native/Array/Dict/Stack dynamic regression. The historical
+// filename is retained for prior evidence; check_stdlib_bytes_defaults runs
+// this fixture through strict C, JIT, checked module and independent AOT.
 var buffer = Buffer(b"a\0你")
 assert int(buffer.len()) == 5
 assert bool(buffer.append("x"))

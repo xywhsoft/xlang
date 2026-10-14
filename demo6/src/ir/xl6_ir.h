@@ -3615,7 +3615,8 @@ typedef enum XL6_IrDynamicMethodDefaultAbi {
     XL6_IR_DYNAMIC_METHOD_DEFAULT_TIME,
     XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING,
     XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL,
-    XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR
+    XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR,
+    XL6_IR_DYNAMIC_METHOD_DEFAULT_BYTES
 } XL6_IrDynamicMethodDefaultAbi;
 
 /* Non-mutating overload selection contract for an already-boxed argument. */
@@ -6670,6 +6671,7 @@ void xl6IrModuleFree(XL6_IrModule* module);
  * decode language escapes; Bytes/Identifier encode already-semantic text. */
 char* xl6IrCanonicalCStringLiteral(const char* text);
 char* xl6IrCanonicalCStringBytes(const char* text);
+char* xl6IrCanonicalCDataLiteral(const unsigned char* data, size_t size);
 char* xl6IrCanonicalIdentifierCString(const char* text);
 /* Primary frontend entry: copy the semantic AST into owned typed XLIR. */
 int xl6IrBuildModuleFromAst(

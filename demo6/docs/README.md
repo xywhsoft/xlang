@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [动态调用的二进制默认值](stdlib53-b284-bytes-defaults.md)：显式长度常量、借入默认值临时 owner 与通用调用清理。
+
 - [资源引用投影与 float32 无损转换](stdlib53-b283-resource-domains.md)：完整元数据见证、同一资源身份、无损读取与 checked 失败边界。
 
 - [原生容器的统一动态投影](stdlib53-b282-container-projection.md)：六类容器的完整策略、共享 checked 事务、独立提供方及实际裁剪产物验收。
