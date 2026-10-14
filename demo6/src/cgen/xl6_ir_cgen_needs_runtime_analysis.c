@@ -10,6 +10,11 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             needs->needsCallableArrayFrameProducer=1;
     for ( i = 0; i < module->instructionCount; ++i ) {
         if ( !xl6IrCgenInstructionIsReachable(module, i) ) continue;
+        if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_XVALUE_FUTURE_CAST_CHECKED) {
+            if (!xl6IrFutureCastInstructionCompatible(module,&module->instructions[i]))
+                return xl6IrCgenDiag(diags,module,module->instructions[i].origin,"Future cast has no exact checked identity contract");
+            needs->needsXValueFutureReader=needs->needsFutureRuntime=needs->needsXValueRuntime=1;
+        }
         if(module->instructions[i].runtimeOp==XL6_IR_RUNTIME_F32_AS_CHECKED) {
             if(!xl6IrFloat32AsInstructionCompatible(module,&module->instructions[i]))
                 return xl6IrCgenDiag(diags,module,module->instructions[i].origin,"F32 as has no lossless status contract");

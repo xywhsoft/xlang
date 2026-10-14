@@ -398,7 +398,8 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
                 wide ? (int)XL6_IR_DYNAMIC_METHOD_DEFAULT_U64 : (int)XL6_IR_DYNAMIC_METHOD_DEFAULT_I64,
                 (unsigned long)i, (unsigned long)i, wide ? "u64_value" : "i64_value",
                 (unsigned long)i, (unsigned)slot->integerDomain.rule);
-        } else if (slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_CLOSURE_COPY) {
+        } else if (slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_CLOSURE_COPY ||
+                   slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_FUTURE_COPY) {
             XL6_IrCallableBridgeResult decode={.type=slot->type,.valueType=slot->valueType,.presenceAbi=slot->presenceAbi,.decodeAbi=slot->decodeAbi};
             char output[64],input[64]; snprintf(output,sizeof(output),"a%lu",(unsigned long)i); snprintf(input,sizeof(input),"f%lu",(unsigned long)i);
             xl6OutputPrintf(out,"    if (!bound%lu) { xrtSetErrorKind(XERR_TYPE); goto argument_fail; }\n",(unsigned long)i);

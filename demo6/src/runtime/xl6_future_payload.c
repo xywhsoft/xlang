@@ -6,6 +6,31 @@
 #include "xl6_future_payload.h"
 #include "xl6_closure.h"
 #include "xl6_generator.h"
+#include "src/api/xl_foreign_error.h"
+
+bool xl6PayloadReadFutureV1(const xvalue* source, uint64_t identity,
+    unsigned int mode, xfuture** output)
+{
+    xl6_error_scope scope={0}; xfuture* owned=NULL; bool ok=false;
+    if (!xl6ErrorScopeBegin(&scope)) {
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return false;
+    }
+    if (!identity || !output || *output || mode>XL6_FUTURE_VALUE_TRY) xrtSetErrorKind(XERR_ARGUMENT);
+    else if (source && mode==XL6_FUTURE_VALUE_NULLABLE && xrtValueType(source)==XVALUE_NULL) ok=true;
+    else if (!source || xrtValueTypeId(source)!=identity || !xrtValueIsFuture(source))
+        { if (source && mode==XL6_FUTURE_VALUE_TRY) ok=true; else xrtSetErrorKind(XERR_TYPE); }
+    else {
+        xfuture* borrowed=xrtValueGetFuture(source);
+        if (borrowed) owned=xrtFutureRef(borrowed);
+        ok=owned!=NULL;
+        if (!ok && !xrtGetError()) xrtSetErrorKind(XERR_STATE);
+    }
+    if (!ok || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
+    if (scope.failed) { xrtFutureDestroy(owned); owned=NULL; }
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return false; }
+    *output=owned; return true;
+}
 
 xvalue* xl6PayloadBoxFutureV1(xfuture* future, uint64_t identity)
 {

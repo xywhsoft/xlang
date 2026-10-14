@@ -4,6 +4,9 @@ static int xl6IrCgenEmitXValueOperationRuntime(
 {
     size_t i;
     size_t parameter;
+    if (needs->needsXValueFutureReader)
+        xl6OutputPuts("extern bool xl6PayloadReadFutureV1(const xvalue*, uint64_t, unsigned int, xfuture**);\n"
+            "extern bool xrtValueIsFuture(const xvalue*);\n",out);
     if(needs->needsFloat32As)xl6OutputPuts("extern bool xl6ValueReadF32V1(const xvalue*, uint64_t, float*);\n"
         "extern bool xl6ValueTryReadF32V1(const xvalue*, uint64_t, bool*, float*);\n",out);
     if (needs->needsNativeContainerProjection) {

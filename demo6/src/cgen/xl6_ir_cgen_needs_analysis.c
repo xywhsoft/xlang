@@ -82,6 +82,12 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
         const XL6_IrCallableBridge* bridge=&module->callableBridges[i];
         if (!xl6IrCgenRuntimeCallableAdapterNeeded(module,bridge->signatureType,0) &&
             !xl6IrCgenRuntimeCallableAdapterNeeded(module,bridge->signatureType,1)) continue;
+        for (parameter=0;parameter<bridge->parameterCount;++parameter)
+            if (module->callableBridgeParameters[bridge->firstParameter+parameter].decodeAbi==XL6_IR_CALLABLE_BRIDGE_FUTURE_COPY)
+                needs->needsXValueFutureReader=needs->needsXValueFutureRuntime=needs->needsFutureRuntime=1;
+        for (parameter=0;parameter<bridge->resultCount;++parameter)
+            if (module->callableBridgeResults[bridge->firstResult+parameter].decodeAbi==XL6_IR_CALLABLE_BRIDGE_FUTURE_COPY)
+                needs->needsXValueFutureReader=needs->needsXValueFutureRuntime=needs->needsFutureRuntime=1;
         for (parameter=0; parameter<bridge->parameterCount; ++parameter)
             if (module->callableBridgeParameters[bridge->firstParameter+parameter].decodeAbi==XL6_IR_CALLABLE_BRIDGE_CLOSURE_COPY) {
                 needs->needsXValueClosureProjectionRuntime=needs->needsXValueClosureBridgeRuntime=1;
@@ -101,6 +107,8 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                 needs->needsXValueClosureProjectionRuntime = needs->needsXValueClosureBridgeRuntime = 1;
                 needs->needsClosureRuntime = needs->needsXCallRuntime = needs->needsXValueRuntime = 1;
             }
+            if (type && type->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR)
+                needs->needsXValueFutureReader=needs->needsFutureRuntime=needs->needsXValueRuntime=1;
         }
         const XL6_IrType* result = xl6IrTypeGet(&module->types, method->returnType);
         if ( result && result->cAbi == XL6_IR_C_ABI_PRODUCT ) {
@@ -108,9 +116,13 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                 const XL6_IrType* field = xl6IrTypeGet(&module->types, result->params[p]);
                 if ( field && field->cAbi == XL6_IR_C_ABI_CLOSURE_PTR )
                     needs->needsClosureRuntime = needs->needsXCallRuntime = needs->needsXValueRuntime = 1;
+                if (field && field->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR)
+                    needs->needsXValueFutureRuntime=needs->needsFutureRuntime=needs->needsXValueRuntime=1;
             }
         } else if ( result && result->cAbi == XL6_IR_C_ABI_CLOSURE_PTR )
             needs->needsClosureRuntime = needs->needsXCallRuntime = needs->needsXValueRuntime = 1;
+        if (result && result->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR)
+            needs->needsXValueFutureRuntime=needs->needsFutureRuntime=needs->needsXValueRuntime=1;
         if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ) continue;
         if ( !xl6IrCgenRequireErrorResult(module, needs, method->returnType, method->declaration, diags) ) return 0;
         needs->needsForeignErrorRuntime = needs->needsErrorRuntime = 1;

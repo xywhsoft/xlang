@@ -1,4 +1,6 @@
 static int xl6IrCgenEmitExternPrototype(XL6_Output*, const XL6_IrModule*, const XL6_IrCallTarget*, XL6_DiagList*);
+static int xl6IrCgenEmitLauncherPrototype(XL6_Output*,const XL6_IrModule*,const XL6_IrCallTarget*,XL6_DiagList*);
+static void xl6IrCgenEmitDispatchTargetCall(XL6_Output*,const XL6_IrCallTarget*,const XL6_IrClassField*,size_t);
 
 static int xl6IrCgenDynamicMethodNeeded(
     const XL6_IrModule* module, size_t methodIndex)
@@ -56,6 +58,13 @@ static int xl6IrCgenEmitDynamicArgumentAdmission(
             "(xrtValueIsCallable(bound%lu) && xrtValueTypeId(bound%lu) == 0x%016llXULL)",
             (unsigned long)parameter, (unsigned long)parameter,
             (unsigned long long)base->typeValueId);
+        if (type->kind==XL6_IR_TYPE_NULLABLE) xl6OutputPuts(")",out);
+    } else if ( item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_FUTURE ) {
+        const XL6_IrType* base=type->kind==XL6_IR_TYPE_NULLABLE ? xl6IrTypeGet(&module->types,type->params[0]) : type;
+        if (!base || !base->typeValueId) return 0;
+        if (type->kind==XL6_IR_TYPE_NULLABLE) xl6OutputPrintf(out,"(xrtValueType(bound%lu) == XVALUE_NULL || ",(unsigned long)parameter);
+        xl6OutputPrintf(out,"(xrtValueIsFuture(bound%lu) && xrtValueTypeId(bound%lu) == 0x%016llXULL)",
+            (unsigned long)parameter,(unsigned long)parameter,(unsigned long long)base->typeValueId);
         if (type->kind==XL6_IR_TYPE_NULLABLE) xl6OutputPuts(")",out);
     } else if ( item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_NOMINAL ) {
         XL6_IrTypeId base = type->kind == XL6_IR_TYPE_NULLABLE
@@ -287,6 +296,12 @@ static int xl6IrCgenEmitDynamicReturnedBox(XL6_Output* out,const XL6_IrModule* m
             "    boxedResult = xlir_closure_to_xvalue_scalar(%s, xlir_xcall_entry_t%u, 0x%016llXULL);\n",
             value,(unsigned)signature,(unsigned long long)base->typeValueId);
         xl6OutputPrintf(out,"    xlir_closure_release(%s); %s = NULL;\n",value,value);
+    } else if (type->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR) {
+        const XL6_IrType* base=type->kind==XL6_IR_TYPE_NULLABLE ? xl6IrTypeGet(&module->types,type->params[0]) : type;
+        if (!base || !base->typeValueId) return 0;
+        xl6OutputPrintf(out,"    boxedResult = (%s != NULL || %s) ? xl6PayloadBoxFutureV1(%s, 0x%016llXULL) : NULL;\n"
+            "    xrtFutureDestroy(%s); %s = NULL;\n",value,type->kind==XL6_IR_TYPE_NULLABLE ? "true" : "false",
+            value,(unsigned long long)base->typeValueId,value,value);
     } else return 0;
     return !xl6OutputHasFailed(out);
 }
@@ -535,6 +550,12 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
                 "    if (has%lu && !xlir_xvalue_project_closure_try_copy_into(bound%lu, (void (*)(void))xlir_xvalue_closure_entry_t%u, %s, &a%lu)) goto fail;\n",
                 (unsigned long)parameter,(unsigned long)parameter,(unsigned)signature,
                 type->kind==XL6_IR_TYPE_NULLABLE ? "true" : "false",(unsigned long)parameter);
+        } else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ) {
+            const XL6_IrType* base=type->kind==XL6_IR_TYPE_NULLABLE ? xl6IrTypeGet(&module->types,type->params[0]) : type;
+            if (!base || !base->typeValueId) return 0;
+            xl6OutputPrintf(out,"    if (has%lu && !xl6PayloadReadFutureV1(bound%lu, 0x%016llXULL, %s, &a%lu)) goto fail;\n",
+                (unsigned long)parameter,(unsigned long)parameter,(unsigned long long)base->typeValueId,
+                type->kind==XL6_IR_TYPE_NULLABLE ? "true" : "false",(unsigned long)parameter);
         } else if ( type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) {
             xl6OutputPrintf(out,
                 "    a%lu = xrtValueRetain(has%lu ? bound%lu : xrtValueNull()); if (a%lu == NULL) goto fail;\n",
@@ -559,10 +580,8 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
         xl6OutputPuts("    ", out);
         if ( carrierCType != NULL ) xl6OutputPuts("callResult = ", out);
         else if ( resultType != NULL ) xl6OutputPuts("returned = ", out);
-        xl6OutputPrintf(out, "xlir_fn_%u(receiver", (unsigned int)method->targetSymbol);
-        for ( parameter = 0; parameter < method->parameterCount; ++parameter )
-            xl6OutputPrintf(out, ", a%lu", (unsigned long)parameter);
-        xl6OutputPuts(");\n", out);
+        xl6IrCgenEmitDispatchTargetCall(out,target,NULL,method->parameterCount);
+        xl6OutputPuts(";\n",out);
     }
     if(vector) {
         for(parameter=0;parameter<method->parameterCount;++parameter) {
@@ -582,6 +601,8 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
         if ( type->cAbi == XL6_IR_C_ABI_CLOSURE_PTR )
             xl6OutputPrintf(out, "    xlir_closure_release(a%lu); a%lu = NULL;\n",
                 (unsigned long)parameter, (unsigned long)parameter);
+        else if (type->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR)
+            xl6OutputPrintf(out,"    xrtFutureDestroy(a%lu); a%lu = NULL;\n",(unsigned long)parameter,(unsigned long)parameter);
         else if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
             xl6OutputPrintf(out, "    xlir_string_drop(a%lu); a%lu = (xlir_string){0};\n",
                 (unsigned long)parameter, (unsigned long)parameter);
@@ -663,7 +684,7 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
     }
     else if ( resultType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
         xl6OutputPuts("    boxedResult = returned;\n", out);
-    else if ( resultType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR ) {
+    else if ( resultType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR || resultType->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ) {
         if (!xl6IrCgenEmitDynamicReturnedBox(out, module, method->returnType, "returned")) return 0;
     }
     else
@@ -682,6 +703,8 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
         const XL6_IrType* type = xl6IrTypeGet(&module->types, item->type);
         if ( type->cAbi == XL6_IR_C_ABI_CLOSURE_PTR )
             xl6OutputPrintf(out, "    xlir_closure_release(a%lu);\n", (unsigned long)parameter);
+        else if (type->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR)
+            xl6OutputPrintf(out,"    xrtFutureDestroy(a%lu);\n",(unsigned long)parameter);
         else if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
             xl6OutputPrintf(out, "    xlir_string_drop(a%lu);\n",
                             (unsigned long)parameter);
@@ -1098,6 +1121,10 @@ static int xl6IrCgenEmitDynamicMethodRuntime(
         }
         if ( target->kind == XL6_IR_CALL_TARGET_EXTERN_C ) {
             if ( !xl6IrCgenEmitExternPrototype(out, module, target, diags) ) return 0;
+            continue;
+        }
+        if (target->kind==XL6_IR_CALL_TARGET_INTERNAL_ASYNC) {
+            if (!xl6IrCgenEmitLauncherPrototype(out,module,target,diags)) return 0;
             continue;
         }
         function = xl6IrCgenFindFunction(

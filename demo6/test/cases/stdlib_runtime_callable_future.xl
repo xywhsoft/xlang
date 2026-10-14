@@ -1,0 +1,31 @@
+async func message() as string
+    return "a\0你"
+end
+var erased = xcall(message)
+var result = erased()
+assert await (result as future<string>) == "a\0你"
+auto typed = message
+assert await typed() == "a\0你"
+future<string> pending = message()
+assert await (true ? pending : message()) == "a\0你"
+assert await (false ? pending : message()) == "a\0你"
+assert await pending == "a\0你"
+func invoke(func() as future<string> callback) as future<string>
+    return callback()
+end
+assert await (xcall(invoke)(xcall(message)) as future<string>) == "a\0你"
+func echo(future<string> pending) as future<string>
+    return pending
+end
+var echoed = xcall(echo)(result)
+assert await (echoed as future<string>) == "a\0你"
+func optional(future<string>? pending = null) as future<string>?
+    return pending
+end
+var optionalCall = xcall(optional)
+assert optionalCall() == null
+assert optionalCall(null) == null
+assert await (optionalCall(result) as future<string>) == "a\0你"
+assert (result as future<int>?) == null
+var absent = null
+assert (absent as future<string>?) == null

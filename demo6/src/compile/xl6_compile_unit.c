@@ -32,7 +32,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_future_callback.c", D(R(CAPTURE_V2),R(CODE_LEASE)),
         {"XRT_MODULE_FUTURE", "XRT_MODULE_THREAD"}},
     {"src/runtime/xl6_generator.c", D(R(CAPTURE_V2),R(CODE_LEASE),R(FOREIGN_ERROR)), {"XRT_MODULE_ATOMIC"}},
-    {"src/runtime/xl6_future_payload.c", D(R(CLOSURE),R(GENERATOR)),
+    {"src/runtime/xl6_future_payload.c", D(R(CLOSURE),R(GENERATOR),R(FOREIGN_ERROR)),
         {"XRT_MODULE_MEMORY", "XRT_MODULE_VALUE", "XRT_MODULE_FUTURE", "XRUNTIME_MODULE_RUNTIME_VALUE_FUTURE"}},
     {"src/runtime/xl6_code_finalizer.c", D(R(CODE_LEASE),R(FOREIGN_ERROR)), {"XRT_MODULE_VALUE_GRAPH"}},
     {"src/runtime/xl6_ownership_plan.c", NULL, 0, {"XRT_MODULE_MEMORY"}},

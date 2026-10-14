@@ -963,6 +963,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         (!visitor(context,"xl6ArrayIsValueV1") || !visitor(context,"xl6ArrayConcatDynamicV1") ||
          !visitor(context,"xl6ValueStringConcatV1"))) return 0;
     if (needs.needsXValueFutureRuntime && !visitor(context,"xl6PayloadBoxFutureV1")) return 0;
+    if (needs.needsXValueFutureReader && !visitor(context,"xl6PayloadReadFutureV1")) return 0;
     if ((needs.needsXValueErrorProjectionRuntime || needs.needsXValueCheckedCastRuntime) &&
         !visitor(context,"xl6ErrorValueReadRefV1")) return 0;
     if (needs.needsXValueToStringRuntime && !visitor(context,"xl6ValueTextV1")) return 0;
