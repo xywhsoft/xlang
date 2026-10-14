@@ -10,6 +10,20 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             needs->needsCallableArrayFrameProducer=1;
     for ( i = 0; i < module->instructionCount; ++i ) {
         if ( !xl6IrCgenInstructionIsReachable(module, i) ) continue;
+        if(module->instructions[i].runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED ||
+            module->instructions[i].runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED) {
+            const XL6_IrInstruction* instruction=&module->instructions[i];
+            if(!xl6IrNativeScalarInstructionCompatible(module,instruction))
+                return xl6IrCgenDiag(diags,module,instruction->origin,"Native scalar projection/conversion has no closed checked contract");
+            needs->needsErrorRuntime=needs->needsForeignErrorRuntime=1;
+            if(instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED)
+                needs->needsNativeScalarAs=needs->needsXValueRuntime=1;
+            else {
+                unsigned input=xl6IrNativeScalarConversionInput(xl6IrTypeGet(&module->types,instruction->payloadType));
+                needs->needsNativeScalarConvert|=input==XL6_SCALAR_INPUT_XVALUE ? 2u : 1u;
+                if(input==XL6_SCALAR_INPUT_XVALUE)needs->needsXValueRuntime=1;
+            }
+        }
         if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_XVALUE_FUTURE_CAST_CHECKED) {
             if (!xl6IrFutureCastInstructionCompatible(module,&module->instructions[i]))
                 return xl6IrCgenDiag(diags,module,module->instructions[i].origin,"Future cast has no exact checked identity contract");

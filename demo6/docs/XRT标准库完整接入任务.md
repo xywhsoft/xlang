@@ -19,6 +19,12 @@
 动态方法共享标量 codec、可空载体、原生纯匹配及单声明绑定身份见
 [动态方法的精确标量与绑定签名合同](stdlib53-b293-method-scalars.md)。
 
+`c_int(var)` 等显式平台数值构造和精确 nullable 投影已接入统一
+checked IR；静态／动态使用同一安全转换，范围与专项证据见
+[C 标量显式转换与精确投影](stdlib53-b294-native-scalar-conversion.md)。
+已证明安全构造的 IR 优化及完整发布总验收继续，不扩大隐式 C ABI
+转换或异步多返回值的设计范围。
+
 整数转换常量默认值的阶段合同与 File 动态 map／lock 见
 [整数转换默认值的统一 IR 合同](stdlib53-b287-integer-defaults.md)。
 运行时默认表达式、异步动态返回与发布总验收仍在完整目标内。

@@ -43,6 +43,13 @@ if errorlevel 1 exit /b 1
 call tools\build_xrt_obj.bat
 if errorlevel 1 exit /b 1
 
+rem Safe native constructors are separate from lossless read/box providers.
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_native_scalar_convert.c -o "%XL6_BUILD_TMP%\xl6_native_scalar_convert.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_value_native_scalar_convert.c -o "%XL6_BUILD_TMP%\xl6_value_native_scalar_convert.o"
+if errorlevel 1 exit /b 1
+set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_native_scalar_convert.o" "%XL6_BUILD_TMP%\xl6_value_native_scalar_convert.o""
+
 rem Compile the resident Channel provider once for both DLL targets. Keeping
 rem this object in DLL_LINKS also covers locally supplied response templates.
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_channel.c -o "%XL6_BUILD_TMP%\xl6_channel.o"

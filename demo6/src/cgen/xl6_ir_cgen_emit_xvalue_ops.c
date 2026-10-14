@@ -4,6 +4,13 @@ static int xl6IrCgenEmitXValueOperationRuntime(
 {
     size_t i;
     size_t parameter;
+    if(needs->needsNativeScalarAs)
+        xl6OutputPuts("extern bool xl6ValueReadNativeScalarV1(const xvalue*, unsigned int, uint64_t, void*);\n"
+            "extern bool xl6ValueTryReadNativeScalarV1(const xvalue*, unsigned int, uint64_t, bool*, void*);\n",out);
+    if(needs->needsNativeScalarConvert&1u)
+        xl6OutputPuts("extern bool xl6NativeScalarConvertV1(const void*, unsigned int, unsigned int, void*);\n",out);
+    if(needs->needsNativeScalarConvert&2u)
+        xl6OutputPuts("extern bool xl6ValueConvertNativeScalarV1(const xvalue*, unsigned int, void*);\n",out);
     if(needs->needsDynamicNativeScalarAdmission)
         xl6OutputPuts("extern bool xl6ValueAdmitsNativeScalarV1(const xvalue*, unsigned int, uint64_t, bool);\n",out);
     if (needs->needsXValueFutureReader)

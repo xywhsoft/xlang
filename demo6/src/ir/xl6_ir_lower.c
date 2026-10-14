@@ -8161,19 +8161,21 @@ static XL6_IrValueId xl6IrLowerNativeContainerProjectionCast(
     return result;
 }
 
-static XL6_IrValueId xl6IrLowerFloat32As(XL6_IrLowerContext* ctx,XL6_IrNodeId id,const XL6_IrNode* node)
+static XL6_IrValueId xl6IrLowerCheckedScalarRuntime(XL6_IrLowerContext* ctx,XL6_IrNodeId id,const XL6_IrNode* node,
+    XL6_IrNodeId sourceId,XL6_IrRuntimeOp operation,XL6_IrTypeId payload,XL6_IrTypeId identity,XL6_IrCastAbi cast)
 {
-    const XL6_IrNode* source=xl6IrNodeGet(ctx->module,ctx->module->children[node->firstChild]);
+    const XL6_IrNode* source=xl6IrNodeGet(ctx->module,sourceId);
     const XL6_IrExitPlan* plan=xl6IrLowerExitPlan(ctx,id,XL6_SEM_EXIT_THROW);
-    if(!source || !plan || node->castErrorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE)return XL6_IR_VALUE_INVALID;
+    if(!source || !plan)return XL6_IR_VALUE_INVALID;
     XL6_IrValueId value=source->kind==XL6_IR_NODE_NAME && source->type!=source->storageType
-        ? xl6IrLowerNamePhysicalStorageValue(ctx,id,ctx->module->children[node->firstChild],source)
-        : xl6IrLowerNode(ctx,ctx->module->children[node->firstChild]);
+        ? xl6IrLowerNamePhysicalStorageValue(ctx,id,sourceId,source) : xl6IrLowerNode(ctx,sourceId);
     XL6_SymbolId temporary=0;
-    value=xl6IrLowerBorrowRuntimeXValueOperand(ctx,id,source,value,&temporary);
-    XL6_IrValueId result=value ? xl6IrLowerEmitRuntimeCall(ctx,id,node->storageType,XL6_IR_RUNTIME_F32_AS_CHECKED,&value,1) : XL6_IR_VALUE_INVALID;
+    if(xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module,source->storageType))
+        value=xl6IrLowerBorrowRuntimeXValueOperand(ctx,id,source,value,&temporary);
+    XL6_IrValueId result=value ? xl6IrLowerEmitRuntimeCall(ctx,id,node->storageType,operation,&value,1) : XL6_IR_VALUE_INVALID;
     if(!result)return result;
-    XL6_IrInstruction* call=(XL6_IrInstruction*)xl6IrLowerValueDefinition(ctx->module,result); call->castAbi=node->castAbi;
+    XL6_IrInstruction* call=(XL6_IrInstruction*)xl6IrLowerValueDefinition(ctx->module,result);
+    call->castAbi=cast;call->payloadType=payload;call->runtimeIdentityType=identity;
     XL6_IrBlockId success,failure;
     if(!xl6IrLowerNewBlock(ctx,&success) || !xl6IrLowerNewBlock(ctx,&failure) ||
         !xl6IrLowerEmit(ctx,XL6_IR_INSTR_ERROR_TEST,id,XL6_IR_TYPE_INVALID,0,&result,1,NULL))return XL6_IR_VALUE_INVALID;
@@ -8189,8 +8191,17 @@ static XL6_IrValueId xl6IrLowerCast(
     XL6_IrLowerContext* ctx, XL6_IrNodeId id, const XL6_IrNode* node)
 {
     switch ( node != NULL ? node->castAbi : XL6_IR_CAST_INVALID ) {
+    case XL6_IR_CAST_XVALUE_TO_NATIVE_SCALAR_CHECKED:
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_SCALAR_TRY: {
+        XL6_IrTypeId base=xl6IrNativeScalarAsIdentity(ctx->module,node->storageType);
+        return base && node->castErrorAbi==XL6_IR_ERROR_ABI_MAY_RAISE ?
+            xl6IrLowerCheckedScalarRuntime(ctx,id,node,ctx->module->children[node->firstChild],
+                XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED,base,base,node->castAbi) : XL6_IR_VALUE_INVALID;
+    }
     case XL6_IR_CAST_XVALUE_TO_F32_CHECKED:
-    case XL6_IR_CAST_XVALUE_TO_NULLABLE_F32_TRY:return xl6IrLowerFloat32As(ctx,id,node);
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_F32_TRY:
+        return node->castErrorAbi==XL6_IR_ERROR_ABI_MAY_RAISE ? xl6IrLowerCheckedScalarRuntime(ctx,id,node,
+            ctx->module->children[node->firstChild],XL6_IR_RUNTIME_F32_AS_CHECKED,0,0,node->castAbi) : XL6_IR_VALUE_INVALID;
     case XL6_IR_CAST_XVALUE_TO_NATIVE_CONTAINER_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY:
         return xl6IrLowerNativeContainerProjectionCast(ctx,id,node);
@@ -16542,6 +16553,8 @@ static int xl6IrLowerIntrinsicAdmissionSupported(
             intrinsic->collectionAbi == XL6_IR_COLLECTION_NONE &&
             xl6IrLowerRuntimeResourceSignatureCompatible(
                 module, intrinsic, operands);
+    case XL6_IR_INTRINSIC_CHECKED_NATIVE_SCALAR_CONVERT:
+        return xl6IrNativeScalarIntrinsicCompatible(module,intrinsic);
     case XL6_IR_INTRINSIC_CHECKED_INTEGER_CONVERT:
         return call->callKind == XL6_SEM_CALL_BUILTIN && intrinsic->operandCount == 1 &&
                source != NULL &&
@@ -30117,6 +30130,9 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                         xl6IrLowerDiag(ctx, id,
                             "XLIR runtime resource intrinsic has no exact resource, operation, ownership or failure ABI");
                         break;
+                    case XL6_IR_INTRINSIC_CHECKED_NATIVE_SCALAR_CONVERT:
+                        xl6IrLowerDiag(ctx,id,"XLIR native scalar constructor accepts only a closed numeric source and checked C target");
+                        break;
                     case XL6_IR_INTRINSIC_CHECKED_INTEGER_CONVERT:
                         xl6IrLowerDiag(ctx, id,
                             "XLIR checked integer intrinsic has no exact conversion and failure ABI");
@@ -30312,6 +30328,14 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 case XL6_IR_INTRINSIC_RUNTIME_RESOURCE:
                     builtinLowered = xl6IrLowerIntrinsicRuntimeResource(
                         ctx, id, node, intrinsic, &result);
+                    break;
+                case XL6_IR_INTRINSIC_CHECKED_NATIVE_SCALAR_CONVERT:
+                    builtinLowered=1;
+                    if(xl6IrNativeScalarIntrinsicCompatible(ctx->module,intrinsic)) {
+                        const XL6_IrIntrinsicOperand* source=&ctx->module->intrinsicOperands[intrinsic->firstOperand];
+                        result=xl6IrLowerCheckedScalarRuntime(ctx,id,node,source->expression,
+                            XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED,source->type,node->storageType,XL6_IR_CAST_INVALID);
+                    }
                     break;
                 case XL6_IR_INTRINSIC_CHECKED_INTEGER_CONVERT:
                     builtinLowered = xl6IrLowerIntrinsicCheckedIntegerConvert(

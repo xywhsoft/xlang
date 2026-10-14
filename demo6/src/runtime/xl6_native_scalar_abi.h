@@ -15,4 +15,12 @@ typedef enum XL6_NativeScalarProfileV1 {
     XL6_NATIVE_SCALAR_BOOL, XL6_NATIVE_SCALAR_FLOAT, XL6_NATIVE_SCALAR_DOUBLE,
     XL6_NATIVE_SCALAR_WCHAR, XL6_NATIVE_SCALAR_TYPE_ID
 } XL6_NativeScalarProfileV1;
+/* Physical input slots for safe explicit native constructors. Native profiles
+ * occupy BASE + profile, while language slots keep their fixed ABI widths. */
+typedef enum XL6_ScalarConversionInputV1 {
+    XL6_SCALAR_INPUT_INVALID=0, XL6_SCALAR_INPUT_BOOL,
+    XL6_SCALAR_INPUT_I64, XL6_SCALAR_INPUT_U64, XL6_SCALAR_INPUT_F32,
+    XL6_SCALAR_INPUT_F64, XL6_SCALAR_INPUT_TIME, XL6_SCALAR_INPUT_CHAR,
+    XL6_SCALAR_INPUT_XVALUE, XL6_SCALAR_INPUT_NATIVE_BASE=128
+} XL6_ScalarConversionInputV1;
 #endif

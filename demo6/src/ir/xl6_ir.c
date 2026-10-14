@@ -14167,7 +14167,13 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
     if ( call->callKind == XL6_SEM_CALL_BUILTIN && callee != NULL &&
          callee->kind == XL6_IR_NODE_NAME && callee->text != NULL ) {
         XL6_IrIntegerTarget integerTarget = xl6IrBuildIntegerTarget(callee->text);
-        if ( strcmp(callee->text, "type") == 0 ) {
+        if(result && callee->typeValueTarget==call->storageType &&
+            xl6IrNativeScalarProfileForCAbi(result->cAbi)>XL6_NATIVE_SCALAR_NONE &&
+            xl6IrNativeScalarProfileForCAbi(result->cAbi)<=XL6_NATIVE_SCALAR_WCHAR) {
+            intrinsic.kind=XL6_IR_INTRINSIC_CHECKED_NATIVE_SCALAR_CONVERT;
+            intrinsic.resultAbi=XL6_IR_INTRINSIC_RESULT_VALUE;
+            intrinsic.errorAbi=XL6_IR_ERROR_ABI_MAY_RAISE;
+        } else if ( strcmp(callee->text, "type") == 0 ) {
             intrinsic.kind = XL6_IR_INTRINSIC_TYPE_OF;
             intrinsic.resultAbi = XL6_IR_INTRINSIC_RESULT_VALUE;
             if ( operandCount == 1 && sourceType != NULL ) {
@@ -14635,6 +14641,11 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                     intrinsic.admission = XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT;
             }
         }
+        break;
+    case XL6_IR_INTRINSIC_CHECKED_NATIVE_SCALAR_CONVERT:
+        if(operandCount==1 && sourceType && result &&
+            xl6IrNativeScalarConversionSignature(module,module->nodes[operands[0]-1].storageType,call->storageType))
+            intrinsic.admission=XL6_IR_INTRINSIC_ADMISSION_VERIFIED;
         break;
     case XL6_IR_INTRINSIC_CHECKED_INTEGER_CONVERT:
         if ( operandCount == 1 && result != NULL && sourceType != NULL &&
@@ -17229,6 +17240,9 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
         return XL6_IR_CAST_INVALID;
     dynamicSource = xl6IrTypeIsDynamicXValueBuiltin(
         module, source->storageType);
+    if(dynamicSource && xl6IrNativeScalarAsIdentity(module,node->storageType))
+        return target->kind==XL6_IR_TYPE_NULLABLE ? XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_SCALAR_TRY :
+            XL6_IR_CAST_XVALUE_TO_NATIVE_SCALAR_CHECKED;
     if(dynamicSource && target->cAbi==XL6_IR_C_ABI_F32 && target->kind==XL6_IR_TYPE_BUILTIN &&
         target->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && !target->paramCount)
         return XL6_IR_CAST_XVALUE_TO_F32_CHECKED;
@@ -17438,6 +17452,8 @@ static XL6_IrErrorAbi xl6IrClassifyCastErrorAbi(
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_NOMINAL_TRY:
         return XL6_IR_ERROR_ABI_NO_RAISE;
     case XL6_IR_CAST_XVALUE_TO_BOOL_CHECKED:
+    case XL6_IR_CAST_XVALUE_TO_NATIVE_SCALAR_CHECKED:
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_SCALAR_TRY:
     case XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_NATIVE_CONTAINER_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY:
@@ -21428,6 +21444,8 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     case XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED:
     case XL6_IR_RUNTIME_F32_AS_CHECKED:
     case XL6_IR_RUNTIME_XVALUE_FUTURE_CAST_CHECKED:
+    case XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED:
+    case XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED:
         return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     case XL6_IR_RUNTIME_STACK_PUSH_BATCH:
         return XL6_IR_CALL_ERROR_PHYSICAL_FALSE_RESULT;
@@ -22551,6 +22569,93 @@ XL6_NativeScalarProfileV1 xl6IrNativeScalarProfileForCAbi(XL6_IrCAbi abi)
     case XL6_IR_C_ABI_TYPE_ID: return XL6_NATIVE_SCALAR_TYPE_ID;
     default: return XL6_NATIVE_SCALAR_NONE;
     }
+}
+unsigned xl6IrNativeScalarConversionInput(const XL6_IrType* type)
+{
+    if(!type || type->kind==XL6_IR_TYPE_NULLABLE)return XL6_SCALAR_INPUT_INVALID;
+    if(type->kind==XL6_IR_TYPE_BUILTIN && type->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+        !type->paramCount && type->collectionAbi==XL6_IR_COLLECTION_NONE &&
+        type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED)return XL6_SCALAR_INPUT_XVALUE;
+    if(type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+        (type->kind!=XL6_IR_TYPE_BUILTIN && type->kind!=XL6_IR_TYPE_NUMERIC_ENUM))return XL6_SCALAR_INPUT_INVALID;
+    unsigned native=xl6IrNativeScalarProfileForCAbi(type->cAbi);
+    if(native && native<=XL6_NATIVE_SCALAR_WCHAR)return XL6_SCALAR_INPUT_NATIVE_BASE+native;
+    switch(type->cAbi) {
+    case XL6_IR_C_ABI_BOOL:return XL6_SCALAR_INPUT_BOOL;
+    case XL6_IR_C_ABI_I64:return XL6_SCALAR_INPUT_I64;
+    case XL6_IR_C_ABI_U64:return XL6_SCALAR_INPUT_U64;
+    case XL6_IR_C_ABI_F32:return XL6_SCALAR_INPUT_F32;
+    case XL6_IR_C_ABI_F64:return XL6_SCALAR_INPUT_F64;
+    case XL6_IR_C_ABI_TIME_I64:return XL6_SCALAR_INPUT_TIME;
+    case XL6_IR_C_ABI_CHAR_U32:return XL6_SCALAR_INPUT_CHAR;
+    default:return XL6_SCALAR_INPUT_INVALID;
+    }
+}
+int xl6IrNativeScalarConversionSignature(const XL6_IrModule* module,XL6_IrTypeId source,XL6_IrTypeId target)
+{
+    const XL6_IrType* from=module ? xl6IrTypeGet(&module->types,source) : NULL;
+    const XL6_IrType* to=module ? xl6IrTypeGet(&module->types,target) : NULL;
+    unsigned input=xl6IrNativeScalarConversionInput(from);
+    unsigned profile=to ? xl6IrNativeScalarProfileForCAbi(to->cAbi) : 0;
+    return input && (input!=XL6_SCALAR_INPUT_XVALUE || xl6IrTypeIsDynamicXValueBuiltin(module,source)) &&
+        to && to->kind==XL6_IR_TYPE_BUILTIN && to->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+        to->nullAbi==XL6_IR_NULL_ABI_NONE && profile && profile<=XL6_NATIVE_SCALAR_WCHAR;
+}
+XL6_IrTypeId xl6IrNativeScalarAsIdentity(const XL6_IrModule* module,XL6_IrTypeId target)
+{
+    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,target) : NULL;
+    if(!type)return XL6_IR_TYPE_INVALID;
+    if(type->kind==XL6_IR_TYPE_NULLABLE) {
+        if(type->paramCount!=1 || !type->params || type->cAbi!=XL6_IR_C_ABI_TAGGED_NULLABLE ||
+            type->nullAbi!=XL6_IR_NULL_ABI_TAGGED_VALUE)return XL6_IR_TYPE_INVALID;
+        target=type->params[0];type=xl6IrTypeGet(&module->types,target);
+    }
+    return type && type->kind==XL6_IR_TYPE_BUILTIN && type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+        type->nullAbi==XL6_IR_NULL_ABI_NONE && type->typeValueId &&
+        xl6IrNativeScalarProfileForCAbi(type->cAbi)!=XL6_NATIVE_SCALAR_NONE ? target : XL6_IR_TYPE_INVALID;
+}
+int xl6IrNativeScalarIntrinsicCompatible(const XL6_IrModule* module,const XL6_IrIntrinsicCall* intrinsic)
+{
+    if(!module || !intrinsic || intrinsic->kind!=XL6_IR_INTRINSIC_CHECKED_NATIVE_SCALAR_CONVERT ||
+        intrinsic->admission!=XL6_IR_INTRINSIC_ADMISSION_VERIFIED || intrinsic->operandCount!=1 ||
+        intrinsic->firstOperand>=module->intrinsicOperandCount || intrinsic->resultAbi!=XL6_IR_INTRINSIC_RESULT_VALUE ||
+        intrinsic->errorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE || intrinsic->scalarConversionAbi || intrinsic->castAbi ||
+        intrinsic->integerTarget || intrinsic->integerSourceAbi)return 0;
+    const XL6_IrNode* call=xl6IrNodeGet(module,intrinsic->origin);
+    const XL6_IrNode* callee=call && call->childCount==2 ? xl6IrNodeGet(module,module->children[call->firstChild]) : NULL;
+    const XL6_IrIntrinsicOperand* operand=&module->intrinsicOperands[intrinsic->firstOperand];
+    const XL6_IrNode* source=xl6IrNodeGet(module,operand->expression);
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,operand->type);
+    return call && callee && call->callKind==XL6_SEM_CALL_BUILTIN && callee->typeValueTarget==intrinsic->resultType &&
+        intrinsic->resultType==call->storageType && source && source->storageType==operand->type && type &&
+        operand->abi==(type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED ? XL6_IR_INTRINSIC_OPERAND_BORROW : XL6_IR_INTRINSIC_OPERAND_VALUE) &&
+        xl6IrNativeScalarConversionSignature(module,operand->type,intrinsic->resultType);
+}
+int xl6IrNativeScalarInstructionCompatible(const XL6_IrModule* module,const XL6_IrInstruction* instruction)
+{
+    if(!module || !instruction || instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL || instruction->operandCount!=1 ||
+        instruction->firstOperand>=module->operandCount || instruction->immediateText || instruction->targetSymbol ||
+        instruction->targetValue || instruction->calleeType || instruction->opcode || instruction->integerTarget ||
+        instruction->integerSourceAbi || instruction->scalarConversionAbi || instruction->sequenceAdmissionIdentitySet ||
+        instruction->collectionAbi || instruction->runtimeResourcePayloadAbi)return 0;
+    const XL6_IrNode* origin=xl6IrNodeGet(module,instruction->origin);
+    const XL6_IrInstruction* source=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+    if(!origin || !source || origin->storageType!=instruction->type)return 0;
+    if(instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED) {
+        const XL6_IrIntrinsicCall* intrinsic=xl6IrIntrinsicCallGet(module,instruction->origin);
+        return xl6IrNativeScalarIntrinsicCompatible(module,intrinsic) && !instruction->castAbi &&
+            instruction->payloadType==source->type && instruction->runtimeIdentityType==instruction->type &&
+            module->intrinsicOperands[intrinsic->firstOperand].type==source->type &&
+            xl6IrNativeScalarConversionSignature(module,source->type,instruction->type);
+    }
+    if(instruction->runtimeOp!=XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED || origin->sourceKind!=XL6_AST_TYPE_AS ||
+        origin->castErrorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE || origin->castAbi!=instruction->castAbi ||
+        !xl6IrTypeIsDynamicXValueBuiltin(module,source->type))return 0;
+    XL6_IrTypeId identity=xl6IrNativeScalarAsIdentity(module,instruction->type);
+    const XL6_IrType* target=xl6IrTypeGet(&module->types,instruction->type);
+    return identity && identity==instruction->runtimeIdentityType && identity==instruction->payloadType &&
+        instruction->castAbi==(target->kind==XL6_IR_TYPE_NULLABLE ?
+            XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_SCALAR_TRY : XL6_IR_CAST_XVALUE_TO_NATIVE_SCALAR_CHECKED);
 }
 static int xl6IrRuntimeCallableScalarAbi(XL6_IrCAbi abi)
 {
@@ -35100,7 +35205,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       intrinsic->kind ==
                           XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITE))) ||
                   intrinsic->kind <= XL6_IR_INTRINSIC_INVALID ||
-                   intrinsic->kind > XL6_IR_INTRINSIC_CHECKED_XVALUE_CONVERT ||
+                   intrinsic->kind > XL6_IR_INTRINSIC_CHECKED_NATIVE_SCALAR_CONVERT ||
                   (intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_VERIFIED &&
                    intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_UNSUPPORTED_ABI &&
                    intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT) ||
@@ -35355,6 +35460,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         return xl6IrDiag(diags, call,
                             "XLIR runtime resource intrinsic has no canonical constructor/member identity ABI");
                 }
+                break;
+            case XL6_IR_INTRINSIC_CHECKED_NATIVE_SCALAR_CONVERT:
+                if(!xl6IrNativeScalarIntrinsicCompatible(module,intrinsic))
+                    return xl6IrDiag(diags,call,"XLIR native scalar constructor has no closed numeric input/target and checked result contract");
                 break;
             case XL6_IR_INTRINSIC_CHECKED_INTEGER_CONVERT:
                 if ( call->callKind != XL6_SEM_CALL_BUILTIN ||
@@ -36030,6 +36139,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                        intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID )
                     return xl6IrDiag(diags, call,
                         "XLIR string intrinsic has no exact borrowed/value source and owned result ABI");
+                break;
+            case XL6_IR_INTRINSIC_CHECKED_NATIVE_SCALAR_CONVERT:
+                if(!xl6IrNativeScalarIntrinsicCompatible(module,intrinsic))
+                    return xl6IrDiag(diags,call,"XLIR native scalar constructor has no exact source/target and checked output contract");
                 break;
             case XL6_IR_INTRINSIC_SCALAR_CONVERT:
                 if ( call->callKind != XL6_SEM_CALL_BUILTIN || intrinsic->operandCount != 1 ||
@@ -39673,6 +39786,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 XL6_IR_RUNTIME_AVL_TREE_CLONE))) ||
                        (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL && (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_ERASE ||
                         instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED ||
+                        instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED ||
+                        instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED ||
                         instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_FUTURE_CAST_CHECKED)) ||
                        instruction->kind == XL6_IR_INSTR_GENERATOR_PREPARE_YIELD) !=
                       (instruction->payloadType != XL6_IR_TYPE_INVALID) )
@@ -39799,6 +39914,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             XL6_IR_RUNTIME_XVALUE_SAFE_CLASS_FIELD_GET_LITERAL ||
                         instruction->runtimeOp == XL6_IR_RUNTIME_STACK_ERASE ||
                         instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED ||
+                        instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED ||
+                        instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED ||
                         xl6IrPersistenceInvocationIsWriter(
                             xl6IrPersistenceInvocationRuntime(instruction->runtimeOp)))) !=
                       (instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID)) )
@@ -44706,6 +44823,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             status->firstOperand>=module->operandCount ||
                             module->operands[status->firstOperand]!=instruction->result)
                             return xl6IrDiag(diags,NULL,"Future cast requires an exact identity and immediate checked status edge");
+                    } else if (instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED ||
+                        instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED) {
+                        const XL6_IrInstruction* status=j+1<block->instructionCount ? &module->instructions[block->firstInstruction+j+1] : NULL;
+                        if(!xl6IrNativeScalarInstructionCompatible(module,instruction) ||
+                            !xl6IrNodeRequiresThrowExitPlan(module,instruction->origin) || !status ||
+                            status->kind!=XL6_IR_INSTR_ERROR_TEST || status->operandCount!=1 ||
+                            status->firstOperand>=module->operandCount || module->operands[status->firstOperand]!=instruction->result)
+                            return xl6IrDiag(diags,NULL,"Native scalar conversion/projection requires a closed domain and immediate checked status edge");
                     } else if (instruction->runtimeOp==XL6_IR_RUNTIME_F32_AS_CHECKED) {
                         const XL6_IrInstruction* status=j+1<block->instructionCount
                             ? &module->instructions[block->firstInstruction+j+1] : NULL;
@@ -44865,6 +44990,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             XL6_IR_RUNTIME_XVALUE_CAST_CHECKED &&
                         instruction->runtimeOp != XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED &&
                         instruction->runtimeOp != XL6_IR_RUNTIME_F32_AS_CHECKED &&
+                        instruction->runtimeOp != XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED &&
                         instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_FUTURE_CAST_CHECKED &&
                         instruction->runtimeOp !=
                             XL6_IR_RUNTIME_XVALUE_UNION_CAST_CHECKED &&
@@ -46527,6 +46653,8 @@ static const char* xl6IrCastAbiName(XL6_IrCastAbi abi)
     case XL6_IR_CAST_XVALUE_TO_NATIVE_CONTAINER_CHECKED: return "xvalue-to-native-container-checked";
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY: return "xvalue-to-nullable-native-container-try";
     case XL6_IR_CAST_XVALUE_TO_F32_CHECKED:return "xvalue-to-f32-checked";
+    case XL6_IR_CAST_XVALUE_TO_NATIVE_SCALAR_CHECKED:return "xvalue-to-native-scalar-checked";
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_SCALAR_TRY:return "xvalue-to-nullable-native-scalar-try";
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_F32_TRY:return "xvalue-to-nullable-f32-try";
     case XL6_IR_CAST_XVALUE_TO_FUTURE_CHECKED:return "xvalue-to-future-checked";
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_FUTURE_TRY:return "xvalue-to-nullable-future-try";
@@ -46787,6 +46915,7 @@ static const char* xl6IrIntrinsicKindName(XL6_IrIntrinsicKind kind)
     case XL6_IR_INTRINSIC_CHECKED_TIME_CONVERT: return "checked-time-convert";
     case XL6_IR_INTRINSIC_STRING_CONVERT: return "string-convert";
     case XL6_IR_INTRINSIC_SCALAR_CONVERT: return "scalar-convert";
+    case XL6_IR_INTRINSIC_CHECKED_NATIVE_SCALAR_CONVERT:return "checked-native-scalar-convert";
     case XL6_IR_INTRINSIC_ERASED_COLLECTION_CONVERT:
         return "erased-collection-convert";
     case XL6_IR_INTRINSIC_COPY: return "copy";
@@ -48288,6 +48417,8 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT: return "f64-to-f32-explicit";
     case XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED: return "native-container-project-checked";
     case XL6_IR_RUNTIME_F32_AS_CHECKED:return "f32-as-checked";
+    case XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED:return "native-scalar-as-checked";
+    case XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED:return "native-scalar-convert-checked";
     case XL6_IR_RUNTIME_XVALUE_FUTURE_CAST_CHECKED:return "future-cast-checked";
     case XL6_IR_RUNTIME_STRING_TO_TIME_CHECKED: return "string-to-time-checked";
     case XL6_IR_RUNTIME_XVALUE_TO_TIME_CHECKED: return "xvalue-to-time-checked";

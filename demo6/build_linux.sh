@@ -353,6 +353,8 @@ RUNTIME_SOURCES=(
     "$ROOT/src/runtime/xl6_dynamic_collection.c"
     "$ROOT/src/runtime/xl6_value_admission.c"
     "$ROOT/src/runtime/xl6_native_scalar_value.c"
+    "$ROOT/src/runtime/xl6_native_scalar_convert.c"
+    "$ROOT/src/runtime/xl6_value_native_scalar_convert.c"
     "$ROOT/src/runtime/xl6_error_value.c"
     "$ROOT/src/runtime/xl6_value_text.c"
     "$ROOT/src/runtime/xl6_print_values.c"

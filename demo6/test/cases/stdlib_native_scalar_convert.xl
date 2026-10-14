@@ -1,0 +1,41 @@
+func echo(var input) as var
+    return input
+end
+var signed = -7
+var unsigned = uint64(7)
+var real = 1.5
+assert c_int(signed) == c_int(-7)
+assert c_uint(unsigned) == c_uint(7)
+assert c_int(real) == c_int(1)
+assert c_int(-1.5) == c_int(-1)
+assert c_float(echo(1.1)) == c_float(1.1)
+assert c_char(echo(7)) == c_char(7)
+assert c_schar(echo(-7)) == c_schar(-7)
+assert c_uchar(echo(7)) == c_uchar(7)
+assert c_short(echo(-7)) == c_short(-7)
+assert c_ushort(echo(7)) == c_ushort(7)
+assert c_long(echo(-7)) == c_long(-7)
+assert c_ulong(echo(7)) == c_ulong(7)
+assert c_longlong(echo(-7)) == c_longlong(-7)
+assert c_ulonglong(echo(7)) == c_ulonglong(7)
+assert c_size(echo(7)) == c_size(7)
+assert c_ssize(echo(-7)) == c_ssize(-7)
+assert c_ptrdiff(echo(-7)) == c_ptrdiff(-7)
+assert c_intptr(echo(-7)) == c_intptr(-7)
+assert c_uintptr(echo(7)) == c_uintptr(7)
+assert c_bool(echo(0)) == c_bool(false)
+assert c_bool(echo(math.nan)) == c_bool(true)
+assert c_double(echo(1.5)) == c_double(1.5)
+assert c_wchar(echo(65)) == c_wchar(65)
+assert c_uint('你') == c_uint(echo('你'))
+assert math.isInf(float(c_float(echo(math.inf))))
+assert math.isNaN(float(c_float(echo(math.nan))))
+c_longlong original = c_longlong(-7)
+assert c_int(original) == c_int(echo(original))
+class NativeValue
+    func value(c_int input) as c_int
+        return input
+    end
+end
+var receiver = NativeValue()
+assert c_int(receiver.value(c_int(-7))) == c_int(-7)
