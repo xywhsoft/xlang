@@ -14512,6 +14512,9 @@ static int xl6IrLowerSetClosureCallParameterDefaults(
             literals[parameter] =
                 xl6IrLowerCanonicalTimeLiteral(expression->text);
             break;
+        case XL6_IR_DYNAMIC_METHOD_DEFAULT_BYTES:
+            literals[parameter]=xl6IrCanonicalCDataLiteral(expression->literalData,expression->literalSize);
+            break;
         case XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING:
             literals[parameter] =
                 xl6IrCanonicalCStringLiteral(expression->text);
@@ -14610,6 +14613,9 @@ static int xl6IrLowerLinkDynamicMethods(XL6_IrLowerContext* ctx)
                 case XL6_IR_DYNAMIC_METHOD_DEFAULT_TIME:
                     item->defaultLiteral =
                         xl6IrLowerCanonicalTimeLiteral(expression->text);
+                    break;
+                case XL6_IR_DYNAMIC_METHOD_DEFAULT_BYTES:
+                    item->defaultLiteral=xl6IrCanonicalCDataLiteral(expression->literalData,expression->literalSize);
                     break;
                 case XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING:
                     item->defaultLiteral =

@@ -1,0 +1,22 @@
+// Intentional caught errors are separate from the uncaught-OOM prefix oracle.
+class BytesDefaultReject
+    func echo(bytes input = b"a\0\xff") as bytes
+        return input
+    end
+end
+var value = BytesDefaultReject()
+var bound = value.echo
+bool rejected = false
+try
+    bound("wrong")
+catch TypeError failure
+    rejected = true
+end
+assert rejected
+rejected = false
+try
+    value.echo(input = "wrong")
+catch TypeError failure
+    rejected = true
+end
+assert rejected

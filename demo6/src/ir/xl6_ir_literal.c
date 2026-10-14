@@ -68,26 +68,35 @@ static int xl6IrLiteralAppendByte(char* output, size_t* length, unsigned char ch
  * string tokens.  Encode their bytes directly into the same canonical C
  * literal form used by literal-key object operations, so Cgen never needs to
  * interpret member spelling or manufacture an object key. */
-char* xl6IrCanonicalCStringBytes(const char* text)
+static char* xl6IrCanonicalCByteSpan(const unsigned char* data,size_t size,int asciiOnly)
 {
     size_t i;
     size_t length = 0;
-    size_t textLength;
     char* output;
 
-    if ( text == NULL ) return NULL;
-    textLength = strlen(text);
-    if ( textLength > (SIZE_MAX - 3) / 4 ) return NULL;
-    output = (char*)xrtCalloc(textLength * 4 + 3, sizeof(*output));
+    if ( data == NULL && size != 0 ) return NULL;
+    if ( size > (SIZE_MAX - 3) / 4 ) return NULL;
+    output = (char*)xrtCalloc(size * 4 + 3, sizeof(*output));
     if ( output == NULL ) return NULL;
     output[length++] = '"';
-    for ( i = 0; i < textLength; ++i ) {
-        xl6IrLiteralAppendByte(output, &length, (unsigned char)text[i]);
+    for ( i = 0; i < size; ++i ) {
+        /* Arbitrary bytes need not be valid UTF-8. Keep the generated C text
+         * ASCII while preserving every high byte in its physical payload. */
+        if(asciiOnly && data[i]>=0x80) {
+            output[length++]='\\';
+            output[length++]=(char)('0'+((data[i]>>6)&7));
+            output[length++]=(char)('0'+((data[i]>>3)&7));
+            output[length++]=(char)('0'+(data[i]&7));
+        } else xl6IrLiteralAppendByte(output, &length, data[i]);
     }
     output[length++] = '"';
     output[length] = '\0';
     return output;
 }
+char* xl6IrCanonicalCStringBytes(const char* text)
+{ return text ? xl6IrCanonicalCByteSpan((const unsigned char*)text,strlen(text),0) : NULL; }
+char* xl6IrCanonicalCDataLiteral(const unsigned char* data,size_t size)
+{ return xl6IrCanonicalCByteSpan(data,size,1); }
 
 static int xl6IrLiteralHexDigit(char ch)
 {

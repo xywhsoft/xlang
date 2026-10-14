@@ -1,0 +1,12 @@
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+var command = ProcessCommand(child, ["echo"])
+var result = command.run()
+assert bool(result.success) and bytes(result.readStdout()) == b""
+var bound = command.run
+result = bound(timeoutMs = 3000)
+assert bool(result.success)
+var pipeline = ProcessPipeline()
+pipeline.add(ProcessCommand(child, ["echo"]))
+result = pipeline.run()
+assert bool(result.success) and bytes(result.readStdout()) == b""

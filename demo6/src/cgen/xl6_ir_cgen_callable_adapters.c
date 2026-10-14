@@ -30,6 +30,14 @@ static int xl6IrCgenEmitCallableBridgeCleanup(
             xl6IrCgenType(module, slot->type), (unsigned long)(i - 1), (unsigned long)(i - 1),
             xl6IrCgenType(module, slot->type), destroy);
     }
+    /* A missing bytes parameter owns its literal materialization even when
+     * the target only borrows it. It is separate from the decoded ABI slot. */
+    if(!reverse)for(i=0;i<bridge->parameterCount;++i) {
+        const XL6_IrCallableBridgeParameter* slot=&module->callableBridgeParameters[bridge->firstParameter+i];
+        if(slot->decodeAbi==XL6_IR_CALLABLE_BRIDGE_BYTES_BORROW || slot->decodeAbi==XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN)
+            xl6OutputPrintf(out,"      { xvalue* value = default_bytes%lu; default_bytes%lu = NULL; xrtValueRelease(value); }\n"
+                "      if(xrtGetError())xl6ErrorScopeCaptureFailure(&parameter_cleanup);\n",(unsigned long)i,(unsigned long)i);
+    }
     xl6OutputPrintf(out,
         "      parameter_outcome = xl6ErrorScopeEnd(&parameter_cleanup);\n"
         "      xrtSetErrorTake(parameter_outcome.error); %s = parameter_outcome.ok; }\n", outcome);
@@ -141,6 +149,9 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
         else
             xl6OutputPrintf(out, "    %s a%lu = (%s){0};\n",
                 parameterType, (unsigned long)i, parameterType);
+        const XL6_IrCallableBridgeParameter* slot=&module->callableBridgeParameters[bridge->firstParameter+i];
+        if(slot->decodeAbi==XL6_IR_CALLABLE_BRIDGE_BYTES_BORROW || slot->decodeAbi==XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN)
+            xl6OutputPrintf(out,"    xvalue* default_bytes%lu = NULL;\n",(unsigned long)i);
     }
     if ( dictVariadic )
         xl6OutputPrintf(out,
@@ -265,6 +276,16 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
             } else if(slot->presenceAbi==XL6_IR_CALLABLE_PRESENCE_STRING_DATA) {
                 xl6OutputPrintf(out,"    else if(closure->call_parameter_count==%lu && closure->call_parameter_defaults && closure->call_parameter_defaults[%lu].abi==%d) { a%lu=xlir_string_from_utf8(closure->call_parameter_defaults[%lu].string_value,closure->call_parameter_defaults[%lu].string_size); if(!a%lu.Data)goto argument_fail; }\n",
                     (unsigned long)signature->paramCount,(unsigned long)i,(int)XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING,(unsigned long)i,(unsigned long)i,(unsigned long)i,(unsigned long)i);
+            } else if(slot->presenceAbi==XL6_IR_CALLABLE_PRESENCE_XVALUE_NULL &&
+                      (slot->decodeAbi==XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN || slot->decodeAbi==XL6_IR_CALLABLE_BRIDGE_BYTES_BORROW)) {
+                xl6OutputPrintf(out,"    else if(closure->call_parameter_count==%lu && closure->call_parameter_defaults && closure->call_parameter_defaults[%lu].abi==%d) {\n"
+                    "      default_bytes%lu=xrtValueBytes((xbytesview){(const unsigned char*)closure->call_parameter_defaults[%lu].string_value,closure->call_parameter_defaults[%lu].string_size});\n"
+                    "      if(!default_bytes%lu) { goto argument_fail; }\n      a%lu=%sdefault_bytes%lu%s;\n"
+                    "      if(!a%lu) { goto argument_fail; } }\n",
+                    (unsigned long)signature->paramCount,(unsigned long)i,(int)XL6_IR_DYNAMIC_METHOD_DEFAULT_BYTES,
+                    (unsigned long)i,(unsigned long)i,(unsigned long)i,(unsigned long)i,(unsigned long)i,
+                    slot->decodeAbi==XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN ? "xrtValueRetain(" : "",(unsigned long)i,
+                    slot->decodeAbi==XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN ? ")" : "",(unsigned long)i);
             }
             xl6OutputPuts("    else { xrtSetErrorKind(XERR_TYPE); goto argument_fail; }\n",out);
         } else if ( slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_XVALUE_BORROW ||
@@ -285,9 +306,14 @@ static int xl6IrCgenEmitRuntimeCallableEntry(
                     slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN ) {
             xl6OutputPrintf(out,
                 "    if (bound%lu && xrtValueType(f%lu) == XVALUE_BYTES) a%lu = f%lu;\n"
+                "    else if (!bound%lu && closure->call_parameter_count == %lu && closure->call_parameter_defaults && closure->call_parameter_defaults[%lu].abi == %d) {\n"
+                "      default_bytes%lu = xrtValueBytes((xbytesview){(const unsigned char*)closure->call_parameter_defaults[%lu].string_value,closure->call_parameter_defaults[%lu].string_size});\n"
+                "      if(!default_bytes%lu) { goto argument_fail; }\n      a%lu = default_bytes%lu; }\n"
                 "    else { xrtSetErrorTake(xlir_error_create(\"TypeError\", \"runtime callable bytes argument does not match its verified slot ABI\")); goto argument_fail; }\n",
                 (unsigned long)i, (unsigned long)i,
-                (unsigned long)i, (unsigned long)i);
+                (unsigned long)i, (unsigned long)i,(unsigned long)i,(unsigned long)signature->paramCount,(unsigned long)i,
+                (int)XL6_IR_DYNAMIC_METHOD_DEFAULT_BYTES,(unsigned long)i,(unsigned long)i,(unsigned long)i,
+                (unsigned long)i,(unsigned long)i,(unsigned long)i);
             if (slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN)
                 xl6OutputPrintf(out,
                     "    a%lu = xrtValueRetain(a%lu); if (a%lu == NULL) goto argument_fail;\n",

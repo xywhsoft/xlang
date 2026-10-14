@@ -2,6 +2,10 @@
 
 ## 1. 目标
 
+动态 bytes 默认值的声明合同、临时 owner 和实际进程接入见
+[动态调用的二进制默认值](stdlib53-b284-bytes-defaults.md)。综合
+Native／容器场景已纳入回归，其他动态编码与完整目录仍须验收。
+
 队列／Channel／SlotMap／同步与线程的资源引用投影及 `as float32`
 无损合同见 [资源引用投影与 float32 无损转换](stdlib53-b283-resource-domains.md)。
 资源见证只创建元数据，成功仍保留原对象身份；工作线程故障、其他

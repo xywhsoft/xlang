@@ -1,0 +1,50 @@
+class BytesDefaults
+    func echo(bytes input = b"a\0\xff你") as bytes
+        return input
+    end
+    func empty(bytes input = b"") as bytes
+        return input
+    end
+    func optional(bytes? input = b"q\0\xff") as bytes?
+        return input
+    end
+    func mutate(bytes input = b"a\0\xff") as bytes
+        input[0] = 90
+        return input
+    end
+end
+var object = BytesDefaults()
+assert bytes(object.echo()) == b"a\0\xff你"
+assert bytes(object.echo(b"x\0y")) == b"x\0y"
+assert bytes(object.empty()) == b""
+assert bytes(object.optional()) == b"q\0\xff"
+assert object.optional(null) == null
+var bound = object.echo
+assert bytes(bound()) == b"a\0\xff你"
+assert bytes(bound(input = b"z\0w")) == b"z\0w"
+func echo(bytes input = b"f\0\xff") as bytes
+    return input
+end
+var erased = xcall(echo)
+assert bytes(erased()) == b"f\0\xff"
+assert bytes(erased(b"o\0k")) == b"o\0k"
+func optional(bytes? input = b"p\0\xff") as bytes?
+    return input
+end
+var erasedOptional = xcall(optional)
+assert bytes(erasedOptional()) == b"p\0\xff"
+assert erasedOptional(null) == null
+func empty(bytes input = b"") as bytes
+    return input
+end
+var erasedEmpty = xcall(empty)
+assert bytes(erasedEmpty()) == b""
+assert bytes(object.mutate()) == b"Z\0\xff"
+assert bytes(object.mutate()) == b"Z\0\xff"
+func mutate(bytes input = b"b\0\xff") as bytes
+    input[0] = 90
+    return input
+end
+var erasedMutation = xcall(mutate)
+assert bytes(erasedMutation()) == b"Z\0\xff"
+assert bytes(erasedMutation()) == b"Z\0\xff"

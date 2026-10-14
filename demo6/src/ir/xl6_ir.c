@@ -13326,6 +13326,10 @@ XL6_IrDynamicMethodDefaultAbi xl6IrDynamicMethodLiteralDefaultAbi(
             ? XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING
             : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
     case XL6_IR_C_ABI_MANAGED_BYTES:
+        if(expression->sourceKind==XL6_AST_BYTES && expression->literalDecoded &&
+            (expression->literalData || !expression->literalSize))return XL6_IR_DYNAMIC_METHOD_DEFAULT_BYTES;
+        return expression->sourceKind==XL6_AST_NULL
+            ? XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
         return expression->sourceKind == XL6_AST_NULL
             ? XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL
@@ -25999,7 +26003,8 @@ static int xl6IrVerifyDynamicMethodRegistry(
                      item->defaultLiteral != NULL ) return 0;
                 continue;
             }
-            if ( item->defaultAbi != expected || itemType == NULL ) return 0;
+            if ( item->defaultAbi != expected || itemType == NULL )
+                return xl6IrDiag(diags,declaration,"Dynamic method default ABI differs from its declared type and literal");
             if ( expected == XL6_IR_DYNAMIC_METHOD_DEFAULT_I64 || expected == XL6_IR_DYNAMIC_METHOD_DEFAULT_U64 ) {
                 char* canonical = xl6IrCanonicalContextualIntegerLiteral(module, item->defaultExpression, item->type);
                 int exact = canonical != NULL && item->defaultLiteral != NULL && strcmp(canonical, item->defaultLiteral) == 0;
@@ -26034,6 +26039,13 @@ static int xl6IrVerifyDynamicMethodRegistry(
                 if ( !xl6IrIsCanonicalFloatLiteral(
                          item->defaultLiteral) ) return 0;
                 break;
+            case XL6_IR_DYNAMIC_METHOD_DEFAULT_BYTES: {
+                const XL6_IrNode* expression=xl6IrNodeGet(module,item->defaultExpression);
+                char* canonical=expression ? xl6IrCanonicalCDataLiteral(expression->literalData,expression->literalSize) : NULL;
+                bool exact=canonical && item->defaultLiteral && !strcmp(canonical,item->defaultLiteral);
+                xrtFree(canonical); if(!exact)return xl6IrDiag(diags,declaration,"Dynamic bytes default differs from decoded declared bytes");
+                break;
+            }
             case XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING:
                 if ( !xl6IrIsCanonicalCStringLiteral(
                          item->defaultLiteral) ) return 0;
@@ -38920,6 +38932,13 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             case XL6_IR_DYNAMIC_METHOD_DEFAULT_F64:
                 if ( !xl6IrIsCanonicalFloatLiteral(defaultLiteral) ) return 0;
                 break;
+            case XL6_IR_DYNAMIC_METHOD_DEFAULT_BYTES: {
+                const XL6_IrNode* expression=xl6IrNodeGet(module,module->children[parameter->firstChild+1]);
+                char* canonical=expression ? xl6IrCanonicalCDataLiteral(expression->literalData,expression->literalSize) : NULL;
+                bool exact=canonical && defaultLiteral && !strcmp(canonical,defaultLiteral);
+                xrtFree(canonical); if(!exact)return xl6IrDiag(diags,declaration,"Callable bytes default differs from decoded declared bytes");
+                break;
+            }
             case XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING:
                 if ( !xl6IrIsCanonicalCStringLiteral(defaultLiteral) ) return 0;
                 break;
@@ -46399,6 +46418,7 @@ static const char* xl6IrDynamicMethodDefaultAbiName(
     case XL6_IR_DYNAMIC_METHOD_DEFAULT_F64: return "f64";
     case XL6_IR_DYNAMIC_METHOD_DEFAULT_TIME: return "time";
     case XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING: return "string";
+    case XL6_IR_DYNAMIC_METHOD_DEFAULT_BYTES: return "bytes";
     case XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL: return "xvalue-null";
     case XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR: return "char";
     default: return "invalid";
