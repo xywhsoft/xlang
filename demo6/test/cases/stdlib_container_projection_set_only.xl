@@ -1,0 +1,4 @@
+set<int> source = set{7}
+var dynamicSource = source
+set<int> result = dynamicSource as set<int>
+assert 7 in result

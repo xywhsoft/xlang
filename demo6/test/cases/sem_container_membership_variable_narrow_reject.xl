@@ -1,0 +1,3 @@
+set<int8?> values = set{null, 127}
+int value = 127
+assert value in values

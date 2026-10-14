@@ -1,5 +1,20 @@
 static int xl6IrCgenEmitChannelRuntime(XL6_Output*,const XL6_IrModule*,const XL6_IrInstruction*);
 static int xl6IrCgenEmitConcurrentQueueRuntime(XL6_Output*,const XL6_IrModule*,const XL6_IrInstruction*);
+static const char* xl6IrCgenContainerProjectionSymbol(const XL6_IrModule* module,const XL6_IrInstruction* instruction)
+{
+    XL6_IrNativeContainerProjectionAbi family=XL6_IR_NATIVE_PROJECTION_NONE;
+    if(!xl6IrNativeContainerProjectionInstructionCompatible(module,instruction) ||
+        !xl6IrNativeContainerProjectionTarget(module,instruction->type,NULL,&family,NULL))return NULL;
+    switch(family) {
+    case XL6_IR_NATIVE_PROJECTION_ARRAY:
+    case XL6_IR_NATIVE_PROJECTION_STACK:return "xl6SequenceProjectionWitnessTakeV1";
+    case XL6_IR_NATIVE_PROJECTION_LIST:return "xl6ListProjectionWitnessTakeV1";
+    case XL6_IR_NATIVE_PROJECTION_SET:return "xl6SetProjectionWitnessTakeV1";
+    case XL6_IR_NATIVE_PROJECTION_DICT:return "xl6DictProjectionWitnessTakeV1";
+    case XL6_IR_NATIVE_PROJECTION_TREE:return "xl6TreeProjectionWitnessTakeV1";
+    default:return NULL;
+    }
+}
 
 /* Every queue family, including WaitQueue, consumes one closed native contract.
  * Legacy output-variable calls are rejected by that contract, never emitted. */
@@ -559,15 +574,19 @@ static int xl6IrCgenEmitStackRuntime(
     const char* payloadAbi;
     const char* runtimeType;
     XL6_IrValueId first;
-    if (instruction && instruction->runtimeOp==XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED) {
-        XL6_IrSequenceRoleAbi role=XL6_IR_SEQUENCE_ROLE_NONE;
-        if (!xl6IrSequenceProjectionInstructionCompatible(module,instruction) ||
-            !xl6IrSequenceProjectionTarget(module,instruction->type,NULL,&role,NULL)) return -1;
+    if (instruction && instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED) {
+        XL6_IrNativeContainerProjectionAbi role=XL6_IR_NATIVE_PROJECTION_NONE;
+        const char* symbol=xl6IrCgenContainerProjectionSymbol(module,instruction);
+        if (!symbol ||
+            !xl6IrNativeContainerProjectionTarget(module,instruction->type,NULL,&role,NULL)) return -1;
         XL6_IrValueId seed=module->operands[instruction->firstOperand];
         XL6_IrValueId source=module->operands[instruction->firstOperand+1];
-        xl6OutputPrintf(out,"    v%u = NULL;\n    bool projection_ok_%u = xl6SequenceProjectionWitnessTakeV1(v%u, %u, v%u, %s, &v%u);\n    v%u = NULL;\n",
-            (unsigned)instruction->result,(unsigned)instruction->result,(unsigned)seed,(unsigned)role,(unsigned)source,
-            instruction->castAbi==XL6_IR_CAST_XVALUE_TO_NULLABLE_SEQUENCE_TRY ? "true" : "false",
+        xl6OutputPrintf(out,"    v%u = NULL;\n    bool projection_ok_%u = %s(v%u, ",
+            (unsigned)instruction->result,(unsigned)instruction->result,symbol,(unsigned)seed);
+        if(role==XL6_IR_NATIVE_PROJECTION_ARRAY || role==XL6_IR_NATIVE_PROJECTION_STACK)
+            xl6OutputPrintf(out,"%u, ",role==XL6_IR_NATIVE_PROJECTION_ARRAY ? 1u : 2u);
+        xl6OutputPrintf(out,"v%u, %s, &v%u);\n    v%u = NULL;\n",(unsigned)source,
+            instruction->castAbi==XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY ? "true" : "false",
             (unsigned)instruction->result,(unsigned)seed);
         return xl6OutputHasFailed(out) ? -1 : 1;
     }

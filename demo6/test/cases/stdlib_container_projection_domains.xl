@@ -1,0 +1,40 @@
+class ProjectionObject
+    int value = 7
+end
+ProjectionObject object = ProjectionObject()
+list<ProjectionObject> objects = [-7: object]
+var dynamicObjects = objects
+list<ProjectionObject> objectView = dynamicObjects as list<ProjectionObject>
+objectView[-7].value = 19
+assert object.value == 19
+set<ProjectionObject> members = set{object}
+var dynamicMembers = members
+set<ProjectionObject> membersView = dynamicMembers as set<ProjectionObject>
+object.value = 29
+assert object in membersView
+dict<array<int>> children = {"x": [1, 2]}
+var dynamicChildren = children
+dict<array<int>> childView = dynamicChildren as dict<array<int>>
+childView["x"][1] = 31
+assert children["x"][1] == 31
+list<char?> chars = [-1: null, 9: '你', 17: '\0']
+var dynamicChars = chars
+list<char?> charsView = dynamicChars as list<char?>
+assert charsView[-1] == null and (charsView[9] as char) == '你'
+set<int8?> small = set{null, 127, -128}
+var dynamicSmall = small
+set<int8?> smallView = dynamicSmall as set<int8?>
+assert null in smallView and 127 in smallView and -128 in smallView
+assert smallView.contains(127)
+OrderedMap<string, ProjectionObject> tree = OrderedMap::<string, ProjectionObject>()
+assert tree.set("a\0你", object)
+var dynamicTree = tree
+OrderedMap<string, ProjectionObject> treeView = dynamicTree as OrderedMap<string, ProjectionObject>
+ProjectionObject retrieved = treeView.get("a\0你")
+retrieved.value = 41
+assert object.value == 41
+OrderedMap<int, float32> floats = OrderedMap::<int, float32>()
+assert floats.set(1, float32(1.5))
+var dynamicFloats = floats
+OrderedMap<int, float32> floatView = dynamicFloats as OrderedMap<int, float32>
+assert floatView.get(1) == float32(1.5)

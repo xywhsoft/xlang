@@ -1,0 +1,5 @@
+OrderedMap<int, int> source = OrderedMap::<int, int>()
+assert source.set(1, 7)
+var dynamicSource = source
+OrderedMap<int, int> result = dynamicSource as OrderedMap<int, int>
+assert result.get(1) == 7

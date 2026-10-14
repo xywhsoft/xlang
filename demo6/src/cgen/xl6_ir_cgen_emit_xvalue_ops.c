@@ -4,8 +4,13 @@ static int xl6IrCgenEmitXValueOperationRuntime(
 {
     size_t i;
     size_t parameter;
-    if (needs->needsSequenceProjection)
+    if (needs->needsNativeContainerProjection) {
         xl6OutputPuts("extern bool xl6SequenceProjectionWitnessTakeV1(xvalue*, unsigned int, const xvalue*, bool, xvalue**);\n",out);
+        xl6OutputPuts("extern bool xl6ListProjectionWitnessTakeV1(xvalue*, const xvalue*, bool, xvalue**);\n"
+            "extern bool xl6SetProjectionWitnessTakeV1(xvalue*, const xvalue*, bool, xvalue**);\n"
+            "extern bool xl6DictProjectionWitnessTakeV1(xvalue*, const xvalue*, bool, xvalue**);\n"
+            "extern bool xl6TreeProjectionWitnessTakeV1(xvalue*, const xvalue*, bool, xvalue**);\n",out);
+    }
     if (needs->needsExplicitF32Text)
         xl6OutputPuts("extern bool xl6Float32TextConvertV1(xstrview, float*);\n",out);
     if (needs->needsExplicitF32Value)

@@ -10707,6 +10707,22 @@ int xl6IrCollectionContainsOperandCompatible(
     return xl6IrCollectionElementCompatible(module, receiverTypeId, itemType);
 }
 
+int xl6IrCollectionContainsExpressionCompatible(const XL6_IrModule* module,
+    XL6_IrTypeId receiver,XL6_IrNodeId expression)
+{
+    const XL6_IrNode* item=xl6IrNodeGet(module,expression);
+    if(!item)return 0;
+    if(xl6IrCollectionContainsOperandCompatible(module,receiver,item->storageType))return 1;
+    const XL6_IrType* collection=xl6IrTypeGet(&module->types,receiver);
+    XL6_IrTypeId element=xl6IrCollectionElementType(module,receiver);
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,element);
+    if(!collection || collection->collectionAbi==XL6_IR_COLLECTION_DICT || !type)return 0;
+    if(type->kind==XL6_IR_TYPE_NULLABLE) {
+        if(type->paramCount!=1 || !type->params)return 0;
+        element=type->params[0];
+    }
+    return xl6IrContextualIntegerLiteralValue(module,expression,element,NULL,NULL);
+}
 static int xl6IrBuildCollectionRemoveOperandCompatible(
     const XL6_IrModule* module, XL6_IrTypeId receiverTypeId,
     XL6_IrTypeId operandType)
@@ -14640,9 +14656,9 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                 xl6IrTypeGet(&module->types, intrinsic.receiverType);
             if ( receiverType != NULL &&
                  receiverType->collectionAbi == intrinsic.collectionAbi &&
-                 xl6IrCollectionContainsOperandCompatible(
+                 xl6IrCollectionContainsExpressionCompatible(
                      module, intrinsic.receiverType,
-                     module->nodes[operands[0] - 1].storageType) )
+                     operands[0]) )
                 intrinsic.admission = XL6_IR_INTRINSIC_ADMISSION_VERIFIED;
         }
         break;
@@ -17016,9 +17032,9 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
         return XL6_IR_CAST_INVALID;
     dynamicSource = xl6IrTypeIsDynamicXValueBuiltin(
         module, source->storageType);
-    if (dynamicSource && xl6IrSequenceProjectionTarget(module,node->storageType,NULL,NULL,NULL))
+    if (dynamicSource && xl6IrNativeContainerProjectionTarget(module,node->storageType,NULL,NULL,NULL))
         return target->kind==XL6_IR_TYPE_NULLABLE
-            ? XL6_IR_CAST_XVALUE_TO_NULLABLE_SEQUENCE_TRY : XL6_IR_CAST_XVALUE_TO_SEQUENCE_CHECKED;
+            ? XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY : XL6_IR_CAST_XVALUE_TO_NATIVE_CONTAINER_CHECKED;
 
     /* Class and protocol acceptance is a closed Typed-XLIR identity set.  A
      * cast records only the representation/effect family; lowering references
@@ -17210,8 +17226,8 @@ static XL6_IrErrorAbi xl6IrClassifyCastErrorAbi(
         return XL6_IR_ERROR_ABI_NO_RAISE;
     case XL6_IR_CAST_XVALUE_TO_BOOL_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED:
-    case XL6_IR_CAST_XVALUE_TO_SEQUENCE_CHECKED:
-    case XL6_IR_CAST_XVALUE_TO_NULLABLE_SEQUENCE_TRY:
+    case XL6_IR_CAST_XVALUE_TO_NATIVE_CONTAINER_CHECKED:
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY:
     case XL6_IR_CAST_XVALUE_TO_I64_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_U64_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_F64_CHECKED:
@@ -21174,7 +21190,7 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     case XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT:
     case XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT:
     case XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT:
-    case XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED:
+    case XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED:
         return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     case XL6_IR_RUNTIME_STACK_PUSH_BATCH:
         return XL6_IR_CALL_ERROR_PHYSICAL_FALSE_RESULT;
@@ -23703,8 +23719,8 @@ static int xl6IrVerifyRuntimeCollectionCheckedRebind(
 
 /* Array creation is not a wire allocation followed by an identity retag. The
  * complete native factory/projection chain is the producer's verified ABI. */
-int xl6IrSequenceProjectionTarget(const XL6_IrModule* module,XL6_IrTypeId target,
-    XL6_IrTypeId* baseOut,XL6_IrSequenceRoleAbi* roleOut,XL6_IrNominalIdentitySetId* setOut)
+int xl6IrNativeContainerProjectionTarget(const XL6_IrModule* module,XL6_IrTypeId target,
+    XL6_IrTypeId* baseOut,XL6_IrNativeContainerProjectionAbi* roleOut,XL6_IrNominalIdentitySetId* setOut)
 {
     const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,target) : NULL;
     XL6_IrTypeId base=target;
@@ -23716,20 +23732,45 @@ int xl6IrSequenceProjectionTarget(const XL6_IrModule* module,XL6_IrTypeId target
     }
     if (!type || type->kind==XL6_IR_TYPE_NULLABLE || type->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
         type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED || !type->typeValueId) return 0;
-    XL6_IrSequenceRoleAbi role=type->collectionAbi==XL6_IR_COLLECTION_ARRAY
-        ? XL6_IR_SEQUENCE_ROLE_ARRAY : type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_STACK
-            ? XL6_IR_SEQUENCE_ROLE_STACK : XL6_IR_SEQUENCE_ROLE_NONE;
+    XL6_IrNativeContainerProjectionAbi role=XL6_IR_NATIVE_PROJECTION_NONE;
     XL6_IrNominalIdentitySetId set=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
-    if (role==XL6_IR_SEQUENCE_ROLE_NONE || !xl6IrSequenceConstructionRecipe(module,base,role,&set)) return 0;
+    if(type->collectionAbi==XL6_IR_COLLECTION_ARRAY || type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_STACK) {
+        XL6_IrSequenceRoleAbi sequence=type->collectionAbi==XL6_IR_COLLECTION_ARRAY
+            ? XL6_IR_SEQUENCE_ROLE_ARRAY : XL6_IR_SEQUENCE_ROLE_STACK;
+        if(!xl6IrSequenceConstructionRecipe(module,base,sequence,&set))return 0;
+        role=sequence==XL6_IR_SEQUENCE_ROLE_ARRAY ? XL6_IR_NATIVE_PROJECTION_ARRAY : XL6_IR_NATIVE_PROJECTION_STACK;
+    } else if(type->collectionAbi==XL6_IR_COLLECTION_LIST || type->collectionAbi==XL6_IR_COLLECTION_SET ||
+        type->collectionAbi==XL6_IR_COLLECTION_DICT) {
+        XL6_IrValueCollectionRecipe recipe={0};
+        if(!xl6IrValueCollectionConstructionRecipe(module,base,&recipe))return 0;
+        role=recipe.family==XL6_IR_COLLECTION_LIST ? XL6_IR_NATIVE_PROJECTION_LIST :
+            recipe.family==XL6_IR_COLLECTION_SET ? XL6_IR_NATIVE_PROJECTION_SET : XL6_IR_NATIVE_PROJECTION_DICT;
+        set=recipe.admissionIdentitySet;
+    } else if(type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE) {
+        if(!xl6IrAvlConstructionRecipe(module,base,NULL,NULL,NULL,&set))return 0;
+        role=XL6_IR_NATIVE_PROJECTION_TREE;
+    } else return 0;
     if (baseOut) *baseOut=base;
     if (roleOut) *roleOut=role;
     if (setOut) *setOut=set;
     return 1;
 }
-int xl6IrSequenceProjectionInstructionCompatible(const XL6_IrModule* module,const XL6_IrInstruction* instruction)
+XL6_IrRuntimeOp xl6IrNativeContainerProjectionFactory(XL6_IrNativeContainerProjectionAbi family)
+{
+    switch(family) {
+    case XL6_IR_NATIVE_PROJECTION_ARRAY:return XL6_IR_RUNTIME_ARRAY_CREATE;
+    case XL6_IR_NATIVE_PROJECTION_STACK:return XL6_IR_RUNTIME_STACK_CREATE;
+    case XL6_IR_NATIVE_PROJECTION_LIST:return XL6_IR_RUNTIME_LIST_CREATE;
+    case XL6_IR_NATIVE_PROJECTION_SET:return XL6_IR_RUNTIME_XVALUE_SET_NEW;
+    case XL6_IR_NATIVE_PROJECTION_DICT:return XL6_IR_RUNTIME_DICT_CREATE;
+    case XL6_IR_NATIVE_PROJECTION_TREE:return XL6_IR_RUNTIME_AVL_TREE_CREATE;
+    default:return XL6_IR_RUNTIME_NONE;
+    }
+}
+int xl6IrNativeContainerProjectionInstructionCompatible(const XL6_IrModule* module,const XL6_IrInstruction* instruction)
 {
     if (!module || !instruction || instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
-        instruction->runtimeOp!=XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED || instruction->operandCount!=2 ||
+        instruction->runtimeOp!=XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED || instruction->operandCount!=2 ||
         instruction->firstOperand>=module->operandCount || module->operandCount-instruction->firstOperand<2 ||
         instruction->immediateText || instruction->targetSymbol || instruction->targetValue ||
         instruction->calleeType || instruction->opcode || instruction->integerTarget || instruction->integerSourceAbi ||
@@ -23740,20 +23781,20 @@ int xl6IrSequenceProjectionInstructionCompatible(const XL6_IrModule* module,cons
     const XL6_IrInstruction* seed=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
     const XL6_IrInstruction* source=xl6IrValueDefinition(module,module->operands[instruction->firstOperand+1],NULL);
     const XL6_IrType* target=xl6IrTypeGet(&module->types,instruction->type);
-    XL6_IrTypeId base=XL6_IR_TYPE_INVALID; XL6_IrSequenceRoleAbi role=XL6_IR_SEQUENCE_ROLE_NONE;
+    XL6_IrTypeId base=XL6_IR_TYPE_INVALID; XL6_IrNativeContainerProjectionAbi role=XL6_IR_NATIVE_PROJECTION_NONE;
     XL6_IrNominalIdentitySetId set=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
     return origin && origin->sourceKind==XL6_AST_TYPE_AS && origin->storageType==instruction->type &&
         origin->castAbi==instruction->castAbi && origin->castErrorAbi==XL6_IR_ERROR_ABI_MAY_RAISE &&
         target && instruction->castAbi==(target->kind==XL6_IR_TYPE_NULLABLE
-            ? XL6_IR_CAST_XVALUE_TO_NULLABLE_SEQUENCE_TRY : XL6_IR_CAST_XVALUE_TO_SEQUENCE_CHECKED) &&
-        xl6IrSequenceProjectionTarget(module,instruction->type,&base,&role,&set) &&
+            ? XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY : XL6_IR_CAST_XVALUE_TO_NATIVE_CONTAINER_CHECKED) &&
+        xl6IrNativeContainerProjectionTarget(module,instruction->type,&base,&role,&set) &&
         seed && seed->kind==XL6_IR_INSTR_RUNTIME_CALL && seed->type==base &&
-        seed->runtimeOp==(role==XL6_IR_SEQUENCE_ROLE_ARRAY ? XL6_IR_RUNTIME_ARRAY_CREATE : XL6_IR_RUNTIME_STACK_CREATE) &&
+        seed->runtimeOp==xl6IrNativeContainerProjectionFactory(role) &&
         seed->origin==instruction->origin && source && source->result!=seed->result &&
         xl6IrTypeIsDynamicXValueBuiltin(module,source->type) &&
         instruction->runtimeIdentityType==base &&
-        xl6IrTypeGet(&module->types,base)->paramCount==1 &&
-        instruction->payloadType==xl6IrTypeGet(&module->types,base)->params[0] &&
+        xl6IrTypeGet(&module->types,base)->paramCount==(role==XL6_IR_NATIVE_PROJECTION_TREE ? 2u : 1u) &&
+        instruction->payloadType==xl6IrTypeGet(&module->types,base)->params[role==XL6_IR_NATIVE_PROJECTION_TREE ? 1 : 0] &&
         instruction->collectionAbi==XL6_IR_COLLECTION_NONE &&
         instruction->sequenceAdmissionIdentitySet==set;
 }
@@ -35698,9 +35739,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         xl6IrTypeGet(&module->types, intrinsic->receiverType);
                     if ( receiver == NULL ||
                          receiver->collectionAbi != intrinsic->collectionAbi ||
-                         !xl6IrCollectionContainsOperandCompatible(
+                         !xl6IrCollectionContainsExpressionCompatible(
                              module, intrinsic->receiverType,
-                             module->intrinsicOperands[intrinsic->firstOperand].type) )
+                             module->intrinsicOperands[intrinsic->firstOperand].expression) )
                         return xl6IrDiag(diags, call,
                             "XLIR collection contains intrinsic has no verified element or key ABI");
                 }
@@ -38857,7 +38898,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       instruction->runtimeOp!=XL6_IR_RUNTIME_AVL_TREE_KEYS &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_AVL_TREE_VALUES &&
                       instruction->runtimeOp!=XL6_IR_RUNTIME_ARRAY_CREATE &&
-                      instruction->runtimeOp!=XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED)))
+                      instruction->runtimeOp!=XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED)))
                     return xl6IrDiag(diags,instructionOrigin,"XLIR Sequence admission set is attached to an unrelated instruction");
                 if (instruction->exitStep != 0 &&
                     (instruction->kind != XL6_IR_INSTR_CLEANUP_BEGIN ||
@@ -39194,7 +39235,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             instruction->runtimeOp <=
                                 XL6_IR_RUNTIME_AVL_TREE_CLONE))) ||
                        (instruction->kind == XL6_IR_INSTR_RUNTIME_CALL && (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_ERASE ||
-                        instruction->runtimeOp==XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED)) ||
+                        instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED)) ||
                        instruction->kind == XL6_IR_INSTR_GENERATOR_PREPARE_YIELD) !=
                       (instruction->payloadType != XL6_IR_TYPE_INVALID) )
                     return xl6IrDiag(diags, NULL,
@@ -39319,7 +39360,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_SAFE_CLASS_FIELD_GET_LITERAL ||
                         instruction->runtimeOp == XL6_IR_RUNTIME_STACK_ERASE ||
-                        instruction->runtimeOp == XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED ||
+                        instruction->runtimeOp == XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED ||
                         xl6IrPersistenceInvocationIsWriter(
                             xl6IrPersistenceInvocationRuntime(instruction->runtimeOp)))) !=
                       (instruction->runtimeIdentityType != XL6_IR_TYPE_INVALID)) )
@@ -44218,15 +44259,15 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 return xl6IrDiag(diags, NULL,
                                     "XLIR runtime dynamic call argument has no consumed owned xvalue ABI");
                         }
-                    } else if (instruction->runtimeOp==XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED) {
+                    } else if (instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED) {
                         const XL6_IrInstruction* outcome=j+1<block->instructionCount
                             ? &module->instructions[block->firstInstruction+j+1] : NULL;
-                        if (!xl6IrSequenceProjectionInstructionCompatible(module,instruction) ||
+                        if (!xl6IrNativeContainerProjectionInstructionCompatible(module,instruction) ||
                             !xl6IrNodeRequiresThrowExitPlan(module,instruction->origin) || !outcome ||
                             outcome->kind!=XL6_IR_INSTR_ERROR_TEST || outcome->operandCount!=1 ||
                             outcome->firstOperand>=module->operandCount ||
                             module->operands[outcome->firstOperand]!=instruction->result)
-                            return xl6IrDiag(diags,NULL,"Sequence projection requires a sealed target factory and immediate checked status edge");
+                            return xl6IrDiag(diags,NULL,"Native container projection requires a sealed target factory and immediate checked status edge");
                     } else if (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_ERASE) {
                         if (!xl6IrStackErasureInstructionCompatible(module,instruction))
                             return xl6IrDiag(diags,NULL,"XLIR Stack erasure lost its exact checked projection ABI");
@@ -44366,7 +44407,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      ((instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ||
                        (instruction->runtimeOp !=
                             XL6_IR_RUNTIME_XVALUE_CAST_CHECKED &&
-                        instruction->runtimeOp != XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED &&
+                        instruction->runtimeOp != XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED &&
                         instruction->runtimeOp !=
                             XL6_IR_RUNTIME_XVALUE_UNION_CAST_CHECKED &&
                         instruction->runtimeOp !=
@@ -46019,8 +46060,8 @@ static const char* xl6IrCastAbiName(XL6_IrCastAbi abi)
         return "xvalue-to-u64-checked";
     case XL6_IR_CAST_XVALUE_TO_F64_CHECKED:
         return "xvalue-to-f64-checked";
-    case XL6_IR_CAST_XVALUE_TO_SEQUENCE_CHECKED: return "xvalue-to-sequence-checked";
-    case XL6_IR_CAST_XVALUE_TO_NULLABLE_SEQUENCE_TRY: return "xvalue-to-nullable-sequence-try";
+    case XL6_IR_CAST_XVALUE_TO_NATIVE_CONTAINER_CHECKED: return "xvalue-to-native-container-checked";
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY: return "xvalue-to-nullable-native-container-try";
     case XL6_IR_CAST_XVALUE_TO_TIME_CHECKED:
         return "xvalue-to-time-checked";
     case XL6_IR_CAST_XVALUE_TO_STRING_CHECKED:
@@ -47771,7 +47812,7 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT: return "string-to-f32-explicit";
     case XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT: return "xvalue-to-f32-explicit";
     case XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT: return "f64-to-f32-explicit";
-    case XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED: return "sequence-project-checked";
+    case XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED: return "native-container-project-checked";
     case XL6_IR_RUNTIME_STRING_TO_TIME_CHECKED: return "string-to-time-checked";
     case XL6_IR_RUNTIME_XVALUE_TO_TIME_CHECKED: return "xvalue-to-time-checked";
     case XL6_IR_RUNTIME_TIME_TO_STRING: return "time-to-string";

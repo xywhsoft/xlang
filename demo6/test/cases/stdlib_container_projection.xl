@@ -1,0 +1,61 @@
+list<int> sparse = [-4: 7, 100: 9]
+var dynamicList = sparse
+list<int> listView = dynamicList as list<int>
+listView[-4] = 13
+assert sparse[-4] == 13 and listView.length == 2
+list<int>? optionalList = dynamicList as list<int>?
+assert optionalList != null
+list<int8>? wrongList = dynamicList as list<int8>?
+assert wrongList == null
+dict<int>? wrongFamily = dynamicList as dict<int>?
+assert wrongFamily == null
+bool rejected = false
+try
+    dynamicList as list<int8>
+catch TypeError failure
+    rejected = true
+end
+assert rejected and sparse[-4] == 13
+
+set<string> words = set{"a\0你", "b"}
+var dynamicSet = words
+set<string> setView = dynamicSet as set<string>
+assert setView.add("third") and "third" in words
+set<bytes>? wrongSet = dynamicSet as set<bytes>?
+assert wrongSet == null
+
+dict<bytes> data = {"a\0你": b"x\0y"}
+var dynamicDict = data
+dict<bytes> dictView = dynamicDict as dict<bytes>
+dictView["a\0你"] = b"updated\0"
+assert data["a\0你"] == b"updated\0"
+dict<string>? wrongDict = dynamicDict as dict<string>?
+assert wrongDict == null
+
+OrderedMap<int, string> tree = OrderedMap::<int, string>()
+assert tree.set(1, "a\0你")
+var dynamicTree = tree
+OrderedMap<int, string> treeView = dynamicTree as OrderedMap<int, string>
+assert treeView.set(2, "shared") and tree.get(2) == "shared"
+OrderedMap<int, string>? optionalTree = dynamicTree as OrderedMap<int, string>?
+assert optionalTree != null
+OrderedMap<int8, string>? wrongTreeKey = dynamicTree as OrderedMap<int8, string>?
+assert wrongTreeKey == null
+OrderedMap<int, bytes>? wrongTreeValue = dynamicTree as OrderedMap<int, bytes>?
+assert wrongTreeValue == null
+rejected = false
+try
+    dynamicTree as OrderedMap<int8, string>
+catch TypeError failure
+    rejected = true
+end
+assert rejected and tree.get(1) == "a\0你"
+var nil = null
+set<int>? absent = nil as set<int>?
+assert absent == null
+func temporary() as var
+    dict<int> item = {"n": 31}
+    return item
+end
+dict<int> fresh = temporary() as dict<int>
+assert fresh["n"] == 31

@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [原生容器的统一动态投影](stdlib53-b282-container-projection.md)：六类容器的完整策略、共享 checked 事务、独立提供方及实际裁剪产物验收。
+
 - [Array 与 Stack 的动态类型投影](stdlib53-b281-sequence-projection.md)：完整原生策略校验、同一对象引用、nullable 错配和 checked 拥有事务。
 
 - [驻留导出归属与源码构建校验](stdlib53-b280-resident-registration.md)：精确 Stack／Sequence 归属、实际提供方及源码消费快照绑定。
