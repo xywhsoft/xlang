@@ -121,6 +121,15 @@ set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_dict_projection_cast.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_tree_projection_cast.c -o "%XL6_BUILD_TMP%\xl6_tree_projection_cast.o"
 if errorlevel 1 goto :fail
 set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_tree_projection_cast.o""
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_value_domain_projection.c -o "%XL6_BUILD_TMP%\xl6_value_domain_projection.o"
+if errorlevel 1 goto :fail
+set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_value_domain_projection.o""
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_channel_admission.c -o "%XL6_BUILD_TMP%\xl6_channel_admission.o"
+if errorlevel 1 goto :fail
+set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_channel_admission.o""
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_slot_map_admission.c -o "%XL6_BUILD_TMP%\xl6_slot_map_admission.o"
+if errorlevel 1 goto :fail
+set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_slot_map_admission.o""
 
 if not exist "lib\lzma\LzmaDec.c" (
     echo DEMO6 xl.dll build failed: missing LZMA decoder source "lib\lzma\LzmaDec.c".

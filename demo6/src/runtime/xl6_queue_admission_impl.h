@@ -9,6 +9,9 @@
 #define XL6_QA_JOIN_(A,B) A##B
 #define XL6_QA_JOIN(A,B) XL6_QA_JOIN_(A,B)
 #define XL6_QA_PUBLIC(Suffix) XL6_QA_JOIN(XL6_QA_PREFIX,Suffix)
+#ifndef XL6_QA_ADMITS
+#define XL6_QA_ADMITS XL6_QA_PUBLIC(AdmitsSchemaV1)
+#endif
 
 typedef struct QueueSchema {
     uint64_t identity;
@@ -23,7 +26,7 @@ static void drop(const void* opaque)
 static bool admits(const void* opaque,const xvalue* value)
 {
     const QueueSchema* schema=opaque;
-    return XL6_QA_PUBLIC(AdmitsSchemaV1)(value,schema->identity,&schema->layout,&schema->policy);
+    return XL6_QA_ADMITS(value,schema->identity,&schema->layout,&schema->policy);
 }
 static bool equivalent(const void* left,const void* right)
 {

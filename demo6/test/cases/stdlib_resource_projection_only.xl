@@ -1,0 +1,4 @@
+SlotMap<int> slots = SlotMap::<int>()
+var source = slots
+SlotMap<int> view = source as SlotMap<int>
+assert view.count() == 0

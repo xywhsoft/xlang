@@ -1,0 +1,4 @@
+SlotMap<int> source = SlotMap::<int>()
+var dynamicSource = source
+SlotMap<int> result = dynamicSource as SlotMap<int>
+assert result.count() == 0

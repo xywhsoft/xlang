@@ -2,6 +2,11 @@
 
 ## 1. 目标
 
+队列／Channel／SlotMap／同步与线程的资源引用投影及 `as float32`
+无损合同见 [资源引用投影与 float32 无损转换](stdlib53-b283-resource-domains.md)。
+资源见证只创建元数据，成功仍保留原对象身份；工作线程故障、其他
+动态／Native 编解码与发布总验收继续。
+
 Array／Stack／List／Set／Dict／OrderedMap 已共用完整原生动态投影
 IR 合同。List、Set、Dict 与 Tree 复用共享 checked 事务，提供方独立
 选择；见 [原生容器的统一动态投影](stdlib53-b282-container-projection.md)。

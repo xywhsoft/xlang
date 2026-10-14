@@ -1,0 +1,62 @@
+SpscQueue<int> s = SpscQueue::<int>(2)
+var ds = s
+SpscQueue<int> sv = ds as SpscQueue<int>
+assert sv.tryPush(7) == queueStatus.ok
+auto status, item = s.tryPop()
+assert status == queueStatus.ok and (item as int) == 7
+SpscQueue<int>? so = ds as SpscQueue<int>?
+assert so != null
+MpscQueue<int>? differentFamily = ds as MpscQueue<int>?
+assert differentFamily == null
+SpscQueue<int8>? differentDomain = ds as SpscQueue<int8>?
+assert differentDomain == null
+bool rejected = false
+try
+    ds as MpscQueue<int>
+catch TypeError failure
+    rejected = true
+end
+assert rejected
+MpscQueue<string> m = MpscQueue::<string>(2)
+var dm = m
+MpscQueue<string> mv = dm as MpscQueue<string>
+assert mv.tryPush("a\0你") == queueStatus.ok
+auto ms, mi = m.tryPop()
+assert ms == queueStatus.ok and (mi as string) == "a\0你"
+MpmcQueue<bytes> p = MpmcQueue::<bytes>(2)
+var dp = p
+MpmcQueue<bytes> pv = dp as MpmcQueue<bytes>
+assert pv.tryPush(b"a\0b") == queueStatus.ok
+auto ps, pi = p.tryPop()
+assert ps == queueStatus.ok and (pi as bytes) == b"a\0b"
+WaitQueue<char> w = WaitQueue::<char>(2)
+var dw = w
+WaitQueue<char> wv = dw as WaitQueue<char>
+assert wv.tryPush('你') == queueStatus.ok
+auto ws, wi = w.tryPop()
+assert ws == queueStatus.ok and (wi as char) == '你'
+channel<string> c = channel::<string>(2)
+var dc = c
+channel<string> cv = dc as channel<string>
+assert cv.trySend("a\0你")
+auto cs, ci = c.tryRecv()
+assert cs == channelStatus.ok and (ci as string) == "a\0你"
+channel<bytes>? wrongChannel = dc as channel<bytes>?
+assert wrongChannel == null
+SlotMap<int> map = SlotMap::<int>()
+auto key = map.insert(11)
+var dmap = map
+SlotMap<int> mapView = dmap as SlotMap<int>
+assert mapView.get(key) == 11 and mapView.set(key, 13)
+assert map.get(key) == 13
+SlotMap<int8>? wrongMap = dmap as SlotMap<int8>?
+assert wrongMap == null
+var absent = null
+WaitQueue<int>? missing = absent as WaitQueue<int>?
+assert missing == null
+func temporary() as var
+    SlotMap<int> value = SlotMap::<int>()
+    return value
+end
+SlotMap<int> detached = temporary() as SlotMap<int>
+assert detached.count() == 0

@@ -1,0 +1,38 @@
+var source = float32(1.5)
+float32 result = source as float32
+assert result == float32(1.5)
+float32? present = source as float32?
+assert present != null and (present as float32) == float32(1.5)
+source = float32(0)
+result = source as float32
+assert result == float32(0)
+source = float32(math.inf)
+assert math.isInf(source as float32)
+source = float32(math.nan)
+assert math.isNaN(source as float32)
+source = 1.1
+bool rejected = false
+try
+    source as float32
+catch TypeError failure
+    rejected = true
+end
+assert rejected
+float32? absent = source as float32?
+assert absent == null
+source = 1
+assert (source as float32?) == null
+source = null
+assert (source as float32?) == null
+func temporary() as var
+    return float32(2.5)
+end
+assert (temporary() as float32) == float32(2.5)
+assert float(float32(1.1)) != 1.1
+rejected = false
+try
+    float32(1e100)
+catch RangeError failure
+    rejected = true
+end
+assert rejected

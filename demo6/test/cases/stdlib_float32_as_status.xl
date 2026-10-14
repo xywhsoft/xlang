@@ -1,0 +1,3 @@
+var source = float32(0)
+float32 result = source as float32
+assert result == float32(0)

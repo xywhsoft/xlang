@@ -371,7 +371,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_list_projection_cast.c",D(R(CONTAINER_PROJECTION),R(LIST_NATIVE)),{NULL}},
     {"src/runtime/xl6_set_projection_cast.c",D(R(CONTAINER_PROJECTION),R(SET_NATIVE)),{NULL}},
     {"src/runtime/xl6_dict_projection_cast.c",D(R(CONTAINER_PROJECTION),R(DICT_NATIVE)),{NULL}},
-    {"src/runtime/xl6_tree_projection_cast.c",D(R(CONTAINER_PROJECTION),R(TREE)),{NULL}}
+    {"src/runtime/xl6_tree_projection_cast.c",D(R(CONTAINER_PROJECTION),R(TREE)),{NULL}},
+    {"src/runtime/xl6_value_domain_projection.c",D(R(CONTAINER_PROJECTION),R(SEQUENCE)),{NULL}},
+    {"src/runtime/xl6_channel_admission.c",D(R(TYPED_CHANNEL),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)),{NULL}},
+    {"src/runtime/xl6_slot_map_admission.c",D(R(SLOT_MAP_NATIVE),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -609,6 +612,8 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                 case XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1: REQUIRE(R(DICT_SCHEMA)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1: REQUIRE(R(TREE_ADMISSION)); break;
                 case XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1:
+                case XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1:
+                case XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1:
                     /* The shared resident-symbol visitor selects the exact
                      * family and all descendants from this closed recipe. */
                     break;
@@ -620,6 +625,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
                 case XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1:
                 case XL6_IR_SEQUENCE_LAYOUT_RWLOCK_REFERENCE_V1: REQUIRE(R(ARRAY_SYNC_ADMISSION)); break;
                 default: /* Verifier must reject unsupported producers. */
+                    xl6DiagAdd(diags,0,0,"Artifact sequence recipe has no registered resident layout provider");
                     xrtFree(work.seen); xrtFree(work.queue); return 0;
                 }
                 if (recipe->sequenceLayout.abi!=XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 &&

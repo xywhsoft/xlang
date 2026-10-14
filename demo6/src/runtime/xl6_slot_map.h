@@ -22,6 +22,10 @@ XL6_TEXT_API void xl6SlotMapKeyDropValueV1(XL6_SlotMapKeyV1);
 XL6_TEXT_API bool xl6SlotMapKeyCopyValueV1(XL6_SlotMapKeyV1,XL6_SlotMapKeyV1*);
 /* Consume a fresh empty admitted ARRAY witness on BOTH paths. */
 XL6_TEXT_API xvalue* xl6SlotMapCreateTakeV1(const XL6_SlotMapLayoutV1*,xvalue*);
+/* Error-transparent immutable full-domain probe. Private owner ops are
+ * checked before dereferencing foreign pointers; BUSY is allowed. No key
+ * instance or mutable slot is read, and no source reference is acquired. */
+XL6_TEXT_API bool xl6SlotMapAdmitsSchemaV1(const xvalue*,const XL6_SlotMapLayoutV1*,const XL6_SequenceAdmissionV3*);
 /* Key output starts {0}; insertion copies the exact typed input. No value
  * is published before all allocation/admission succeeds. One native owned
  * allocation per element follows XRT slot_map's nonempty pointer storage. */

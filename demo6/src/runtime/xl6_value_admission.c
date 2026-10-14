@@ -45,10 +45,22 @@ xvalue* xl6ValueCheckedRetainV1(const xvalue* source, unsigned int rule, bool nu
 }
 bool xl6ValueReadF32V1(const xvalue* source, uint64_t identity, float* output)
 {
-    if (!output) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
-    if (!xl6ValueAdmitsV1(source,XL6_VALUE_ADMIT_F32,false,identity)) { xrtSetErrorKind(XERR_TYPE); return false; }
+    if (!output || !identity) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    if (!source || xrtValueType(source)!=XVALUE_FLOAT ||
+        (xrtValueTypeId(source) && xrtValueTypeId(source)!=identity)) { xrtSetErrorKind(XERR_TYPE); return false; }
     double value; if (!xrtValueGetFloat(source,&value)) return false;
+    if(!xl6Float32DomainV1(value)) { xrtSetErrorKind(XERR_TYPE); return false; }
     *output=(float)value; return true;
+}
+bool xl6ValueTryReadF32V1(const xvalue* source,uint64_t identity,bool* present,float* output)
+{
+    if(!source || !identity || !present || !output) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    if(xrtValueType(source)!=XVALUE_FLOAT || (xrtValueTypeId(source) && xrtValueTypeId(source)!=identity)) {
+        *present=false; return true;
+    }
+    double value; if(!xrtValueGetFloat(source,&value))return false;
+    if(!xl6Float32DomainV1(value)) { *present=false; return true; }
+    *output=(float)value; *present=true; return true;
 }
 bool xl6ValueIntegerSlotAdmitsV1(const void* slot, unsigned int rule)
 {

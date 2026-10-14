@@ -46,6 +46,16 @@ static int xl6IrCgenAnalyzeSequenceRecipeNeeds(const XL6_IrModule* module,XL6_Ir
             xl6IrCgenAnalyzeSequenceRecipeNeeds(module,key,needs,depth+1) &&
             xl6IrCgenAnalyzeSequenceRecipeNeeds(module,value,needs,depth+1);
     }
+    if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1 ||
+        type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1) {
+        const XL6_IrType* resource=xl6IrTypeGet(&module->types,type->sequenceLayout.baseElementType);
+        if(resource) {
+            XL6_IrTypeId child=type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1
+                ? resource->messageSchemaType : resource->collectionValueSchemaType;
+            return xl6IrCgenAnalyzeSequenceRecipeNeeds(module,child,needs,depth+1);
+        }
+        return 0;
+    }
     if (type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1) {
         XL6_IrRuntimeResourceAbi family=XL6_IR_RUNTIME_RESOURCE_NONE;
         XL6_IrTypeId schema=0;
