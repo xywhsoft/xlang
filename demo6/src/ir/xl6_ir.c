@@ -13196,6 +13196,10 @@ static int xl6IrDynamicMethodAdapterTypeSupported(
     case XL6_IR_C_ABI_MANAGED_BYTES:
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
         return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
+    case XL6_IR_C_ABI_CLOSURE_PTR:
+        return type->kind == XL6_IR_TYPE_FUNCTION &&
+               xl6IrRuntimeCallableFieldSignatureSupported(module, typeId) &&
+               xl6IrRuntimeCallableClosureToXValueSignatureSupported(module, typeId);
     default:
         return 0;
     }
@@ -13217,6 +13221,7 @@ static int xl6IrDynamicMethodParameterAbiSupported(
                variadicAbi == XL6_IR_CALL_VARIADIC_NONE;
     if ( type->cAbi != XL6_IR_C_ABI_MANAGED_STRING &&
          type->cAbi != XL6_IR_C_ABI_MANAGED_BYTES &&
+         type->cAbi != XL6_IR_C_ABI_CLOSURE_PTR &&
          type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) return 0;
     if ( abi != XL6_IR_PARAMETER_ABI_BORROW &&
          abi != XL6_IR_PARAMETER_ABI_OWNED ) return 0;
@@ -13250,6 +13255,10 @@ static XL6_IrDynamicMethodMatchAbi xl6IrDynamicMethodMatchAbiForType(
     case XL6_IR_C_ABI_TIME_I64: return XL6_IR_DYNAMIC_METHOD_MATCH_TIME;
     case XL6_IR_C_ABI_MANAGED_STRING:
         return XL6_IR_DYNAMIC_METHOD_MATCH_STRING;
+    case XL6_IR_C_ABI_CLOSURE_PTR:
+        return type->kind == XL6_IR_TYPE_FUNCTION && type->typeValueId &&
+               xl6IrRuntimeCallableFieldSignatureSupported(module, typeId)
+            ? XL6_IR_DYNAMIC_METHOD_MATCH_CALLABLE : XL6_IR_DYNAMIC_METHOD_MATCH_INVALID;
     case XL6_IR_C_ABI_MANAGED_BYTES:
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
         if ( type->xvalueAdmissionAbi == XL6_VALUE_ADMIT_ANY )
@@ -15956,6 +15965,11 @@ int xl6IrDynamicMethodCallTargetSupported(
         if ( target->parameterConstraintAbis[p] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ) return 0;
         if ( target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW ) {
             if ( xl6IrCallTargetNativeClassPhysicalField(module, target, p) == NULL ) return 0;
+        } else if ( target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW ) {
+            if ( p == 0 || target->parameterAbis[p] != XL6_IR_PARAMETER_ABI_BORROW ||
+                 target->parameterPhysicalFieldDeclarations[p] != XL6_IR_NODE_INVALID ||
+                 !xl6IrRuntimeDirectBridgeCheckedClosureParameter(target->cName, p) ||
+                 !xl6IrRuntimeDirectBridgeTargetMatches(module, target) ) return 0;
         } else if ( target->parameterPhysicalAbis[p] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
                     target->parameterPhysicalFieldDeclarations[p] != XL6_IR_NODE_INVALID ) return 0;
     }
@@ -46464,6 +46478,7 @@ static const char* xl6IrDynamicMethodMatchAbiName(
     case XL6_IR_DYNAMIC_METHOD_MATCH_VALUE_DOMAIN: return "value-domain";
     case XL6_IR_DYNAMIC_METHOD_MATCH_NOMINAL: return "nominal";
     case XL6_IR_DYNAMIC_METHOD_MATCH_EXACT_IDENTITY: return "exact-identity";
+    case XL6_IR_DYNAMIC_METHOD_MATCH_CALLABLE: return "callable-signature";
     default: return "invalid";
     }
 }

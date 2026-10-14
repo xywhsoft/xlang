@@ -1,0 +1,33 @@
+class CallbackReject
+    int entered = 0
+    func invoke(func(int) as int callback) as int
+        self.entered += 1
+        return callback(1)
+    end
+end
+func wrong(string input) as string
+    return input
+end
+var object = CallbackReject()
+int failures = 0
+try
+    object.invoke(xcall(wrong))
+catch TypeError error
+    failures += 1
+end
+try
+    object.invoke(42)
+catch TypeError error
+    failures += 1
+end
+assert failures == 2 and object.entered == 0
+func throws(int input) as int
+    throw ValueError "callback-first"
+end
+try
+    object.invoke(xcall(throws))
+catch ValueError error
+    assert error.message == "callback-first"
+    failures += 1
+end
+assert failures == 3 and object.entered == 1

@@ -1,0 +1,51 @@
+class CallbackBox
+    func invoke(func(int) as int callback, int input) as int
+        return callback(input)
+    end
+    func choose(func(int) as int callback) as int
+        return callback(40)
+    end
+    func choose(func(string) as string callback) as string
+        return callback("A\0你")
+    end
+    func forward(func(int) as int callback) as func(int) as int
+        return callback
+    end
+end
+func plusTwo(int input) as int
+    return input + 2
+end
+func identityText(string input) as string
+    return input
+end
+var box = CallbackBox()
+assert int(box.invoke(xcall(plusTwo), 40)) == 42
+assert int(box.choose(xcall(plusTwo))) == 42
+assert string(box.choose(xcall(identityText))) == "A\0你"
+var bound = box.invoke
+assert int(bound(xcall(plusTwo), 40)) == 42
+var forwarded = box.forward(xcall(plusTwo))
+assert int(forwarded(40)) == 42
+
+var regex = Regex("a")
+int visits = 0
+func replacement(RegexMatch item) as string
+    visits += 1
+    assert (item.text() ?? "") == "a"
+    return "你\0"
+end
+assert string(regex.replaceWith("aba", xcall(replacement))) == "你\0b你\0"
+assert visits == 2
+var replacer = RegexReplacer(Regex("a"), "aa")
+assert string(replacer.run(xcall(func() as string
+    return "B\0"
+end))) == "B\0B\0"
+
+auto target = Buffer()
+assert int(regex.replaceWithTo(target, "aa", xcall(replacement))) == 2
+assert target.len() == 8 and target.byteAt(3) == 0 and target.byteAt(7) == 0
+var writer = RegexReplacer(Regex("a"), "a")
+assert int(writer.runTo(target, xcall(func() as string
+    return "Z\0"
+end))) == 1
+assert target.len() == 10 and target.byteAt(8) == 90 and target.byteAt(9) == 0
