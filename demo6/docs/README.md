@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [泛型依赖闭包与二进制默认初始化](stdlib53-b285-generic-graph.md)：晚登记的具体方法统一收集依赖，空 bytes 与 null 分离。
+
 - [动态调用的二进制默认值](stdlib53-b284-bytes-defaults.md)：显式长度常量、借入默认值临时 owner 与通用调用清理。
 
 - [资源引用投影与 float32 无损转换](stdlib53-b283-resource-domains.md)：完整元数据见证、同一资源身份、无损读取与 checked 失败边界。

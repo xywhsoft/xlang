@@ -3785,7 +3785,9 @@ typedef enum XL6_IrInitializerAbi {
     XL6_IR_INITIALIZER_UNION_ZERO,
     /* Construct the declaration's exact owning synchronization resource.
      * runtimeResourceOp fixes both the family and any language default values. */
-    XL6_IR_INITIALIZER_RUNTIME_RESOURCE_DEFAULT
+    XL6_IR_INITIALIZER_RUNTIME_RESOURCE_DEFAULT,
+    /* Owned empty binary value, never a nullable pointer sentinel. */
+    XL6_IR_INITIALIZER_BYTES_EMPTY
 } XL6_IrInitializerAbi;
 
 typedef struct XL6_IrValueInitializer {
@@ -7117,6 +7119,8 @@ int xl6IrTypeFinalizeRepresentation(XL6_IrTypePool* pool, XL6_IrType* type);
 /* Canonical structural vocabulary, shared by source and specialization.
  * May grow the pool; callers must reacquire any pointer into pool->items. */
 XL6_IrTypeId xl6IrTypeInternArray(XL6_IrTypePool*, XL6_IrTypeId elementType);
+int xl6IrTypeInternGenericDependencies(XL6_IrTypePool*, XL6_IrCollectionAbi,
+    XL6_IrRuntimeResourceAbi, const XL6_IrTypeId*, size_t);
 int xl6IrConcurrentQueueConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrRuntimeResourceAbi* familyOut, XL6_IrTypeId* schemaOut,
     XL6_IrNominalIdentitySetId* admissionSetOut);

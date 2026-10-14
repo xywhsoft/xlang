@@ -1852,6 +1852,23 @@ static bool xl6IrHasResidentProjectionDomain(XL6_IrRuntimeResourceAbi abi)
     default:return false;
     }
 }
+/* Source types and late generic instances require the same schema closure.
+ * Snapshot argument IDs before interning can move the pool. */
+int xl6IrTypeInternGenericDependencies(XL6_IrTypePool* pool,
+    XL6_IrCollectionAbi collection, XL6_IrRuntimeResourceAbi resource,
+    const XL6_IrTypeId* params, size_t count)
+{
+    if ( count == 1 && params &&
+         (xl6IrRuntimeResourceAbiIsMessageTransport(resource) ||
+          resource == XL6_IR_RUNTIME_RESOURCE_STACK || collection == XL6_IR_COLLECTION_LIST) )
+        return xl6IrTypeInternArray(pool, params[0]) != XL6_IR_TYPE_INVALID;
+    if ( count == 2 && params && resource == XL6_IR_RUNTIME_RESOURCE_AVL_TREE ) {
+        XL6_IrTypeId key = params[0], value = params[1];
+        return xl6IrTypeInternArray(pool, key) != XL6_IR_TYPE_INVALID &&
+               xl6IrTypeInternArray(pool, value) != XL6_IR_TYPE_INVALID;
+    }
+    return 1;
+}
 static int xl6IrInternProjectionDomains(XL6_IrModule* module)
 {
     for(size_t i=0;i<module->nodeCount;++i) {
@@ -2713,15 +2730,9 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
             xl6IrFindTypeDecl(root, type)->kind == XL6_AST_PROTOCOL))
         ? XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
         : xl6IrCAbiFromFrontend(type->semanticTypeAbiId, name);
-    if (kind == XL6_IR_TYPE_GENERIC_INSTANCE && paramCount == 1 &&
-        (xl6IrRuntimeResourceAbiIsMessageTransport(runtimeResourceAbi) || runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_STACK || collectionAbi==XL6_IR_COLLECTION_LIST) &&
-        xl6IrTypeInternArray(&module->types, params[0]) == XL6_IR_TYPE_INVALID) {
-        xrtFree(params); xrtFree(parameterModes); xrtFree(parameterAbis);
-        xrtFree(returns); return XL6_IR_TYPE_INVALID;
-    }
-    if (kind == XL6_IR_TYPE_GENERIC_INSTANCE && runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE &&
-        paramCount==2 && (xl6IrTypeInternArray(&module->types,params[0])==XL6_IR_TYPE_INVALID ||
-                         xl6IrTypeInternArray(&module->types,params[1])==XL6_IR_TYPE_INVALID)) {
+    if ( kind == XL6_IR_TYPE_GENERIC_INSTANCE &&
+         !xl6IrTypeInternGenericDependencies(&module->types, collectionAbi,
+             runtimeResourceAbi, params, paramCount) ) {
         xrtFree(params); xrtFree(parameterModes); xrtFree(parameterAbis);
         xrtFree(returns); return XL6_IR_TYPE_INVALID;
     }
@@ -4637,13 +4648,9 @@ static XL6_IrTypeId xl6IrBuildInternClassSubstitutedTypeDepth(
         if ( returnCount != 0 && callableResult == XL6_IR_TYPE_INVALID )
             goto failed;
     }
-    if (kind == XL6_IR_TYPE_GENERIC_INSTANCE && paramCount == 1 && params &&
-        (xl6IrRuntimeResourceAbiIsMessageTransport(runtimeResourceAbi) || runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_STACK || collectionAbi==XL6_IR_COLLECTION_LIST) &&
-        xl6IrTypeInternArray(&module->types, params[0]) == XL6_IR_TYPE_INVALID)
-        goto failed;
-    if (kind == XL6_IR_TYPE_GENERIC_INSTANCE && runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE &&
-        paramCount==2 && params && (xl6IrTypeInternArray(&module->types,params[0])==XL6_IR_TYPE_INVALID ||
-                                  xl6IrTypeInternArray(&module->types,params[1])==XL6_IR_TYPE_INVALID))
+    if ( kind == XL6_IR_TYPE_GENERIC_INSTANCE &&
+         !xl6IrTypeInternGenericDependencies(&module->types, collectionAbi,
+             runtimeResourceAbi, params, paramCount) )
         goto failed;
     if ( !xl6IrGrow((void**)&module->types.items, &module->types.capacity,
                      module->types.count, sizeof(*module->types.items)) )
@@ -5446,6 +5453,11 @@ static int xl6IrBuildClassLayoutAppendField(
                   fieldType->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
             item->initializerAbi = XL6_IR_INITIALIZER_STRING_EMPTY;
         else if ( fieldType != NULL &&
+                  fieldType->cAbi == XL6_IR_C_ABI_MANAGED_BYTES ) {
+            item->initializerAbi = XL6_IR_INITIALIZER_BYTES_EMPTY;
+            item->initializerErrorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
+        }
+        else if ( fieldType != NULL &&
                    fieldType->kind == XL6_IR_TYPE_UNION &&
                    fieldType->cAbi == XL6_IR_C_ABI_UNION )
             item->initializerAbi = XL6_IR_INITIALIZER_UNION_ZERO;
@@ -5981,6 +5993,7 @@ static int xl6IrClassDeclarationConstructible(
         case XL6_IR_INITIALIZER_EXPLICIT:
         case XL6_IR_INITIALIZER_SCALAR_ZERO:
         case XL6_IR_INITIALIZER_STRING_EMPTY:
+        case XL6_IR_INITIALIZER_BYTES_EMPTY:
         case XL6_IR_INITIALIZER_NULL_SENTINEL:
         case XL6_IR_INITIALIZER_TAGGED_NULL:
         case XL6_IR_INITIALIZER_XVALUE_NULL:
@@ -15530,6 +15543,8 @@ static XL6_IrInitializerAbi xl6IrDefaultValueInitializerAbi(
         return XL6_IR_INITIALIZER_SCALAR_ZERO;
     if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
         return XL6_IR_INITIALIZER_STRING_EMPTY;
+    if ( type->cAbi == XL6_IR_C_ABI_MANAGED_BYTES )
+        return XL6_IR_INITIALIZER_BYTES_EMPTY;
     if ( type->kind == XL6_IR_TYPE_UNION &&
          type->cAbi == XL6_IR_C_ABI_UNION )
         return XL6_IR_INITIALIZER_UNION_ZERO;
@@ -15765,6 +15780,8 @@ static int xl6IrBuildValueInitializers(XL6_IrModule* module)
         } else if ( abi == XL6_IR_INITIALIZER_XVALUE_CONTAINER_EMPTY ) {
             initializer->runtimeOp = xl6IrDefaultEmptyContainerRuntimeOp(
                 module, declaration->storageType);
+            initializer->errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
+        } else if ( abi == XL6_IR_INITIALIZER_BYTES_EMPTY ) {
             initializer->errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
         } else if ( abi == XL6_IR_INITIALIZER_RUNTIME_RESOURCE_DEFAULT ) {
             initializer->runtimeResourceOp = xl6IrDefaultRuntimeResourceOp(
@@ -25349,6 +25366,10 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
                   (item->initializerAbi == XL6_IR_INITIALIZER_STRING_EMPTY &&
                    (item->initializer != XL6_IR_NODE_INVALID || fieldType == NULL ||
                     fieldType->cAbi != XL6_IR_C_ABI_MANAGED_STRING)) ||
+                  (item->initializerAbi == XL6_IR_INITIALIZER_BYTES_EMPTY &&
+                   (item->initializer != XL6_IR_NODE_INVALID || fieldType == NULL ||
+                    fieldType->cAbi != XL6_IR_C_ABI_MANAGED_BYTES ||
+                    fieldType->kind == XL6_IR_TYPE_NULLABLE)) ||
                   (item->initializer == XL6_IR_NODE_INVALID &&
                    xl6IrNullDefaultInitializerAbi(fieldType) != XL6_IR_INITIALIZER_NONE &&
                    item->initializerAbi != xl6IrNullDefaultInitializerAbi(fieldType)) ||
@@ -25393,6 +25414,7 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
                    item->initializerAbi != XL6_IR_INITIALIZER_EXPLICIT &&
                    item->initializerAbi != XL6_IR_INITIALIZER_SCALAR_ZERO &&
                     item->initializerAbi != XL6_IR_INITIALIZER_STRING_EMPTY &&
+                    item->initializerAbi != XL6_IR_INITIALIZER_BYTES_EMPTY &&
                      item->initializerAbi != XL6_IR_INITIALIZER_NULL_SENTINEL &&
                      item->initializerAbi != XL6_IR_INITIALIZER_XVALUE_NULL &&
                      item->initializerAbi !=
@@ -25414,7 +25436,8 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
                    item->initializerErrorAbi !=
                        (item->initializerAbi ==
                             XL6_IR_INITIALIZER_RUNTIME_RESOURCE_DEFAULT ||
-                        item->initializerAbi == XL6_IR_INITIALIZER_XVALUE_CONTAINER_EMPTY
+                        item->initializerAbi == XL6_IR_INITIALIZER_XVALUE_CONTAINER_EMPTY ||
+                        item->initializerAbi == XL6_IR_INITIALIZER_BYTES_EMPTY
                              ? XL6_IR_ERROR_ABI_MAY_RAISE
                              : XL6_IR_ERROR_ABI_NO_RAISE) ||
                    item->nativeDestroySymbol != expectedNativeDestroy ) return 0;
@@ -37117,7 +37140,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       initializer->errorAbi !=
                           (initializer->abi ==
                                XL6_IR_INITIALIZER_RUNTIME_RESOURCE_DEFAULT ||
-                           initializer->abi == XL6_IR_INITIALIZER_XVALUE_CONTAINER_EMPTY
+                           initializer->abi == XL6_IR_INITIALIZER_XVALUE_CONTAINER_EMPTY ||
+                           initializer->abi == XL6_IR_INITIALIZER_BYTES_EMPTY
                                ? XL6_IR_ERROR_ABI_MAY_RAISE
                                : initializer->abi ==
                                      XL6_IR_INITIALIZER_CLASS_DEFAULT
@@ -48612,6 +48636,7 @@ static const char* xl6IrInitializerAbiName(XL6_IrInitializerAbi abi)
     case XL6_IR_INITIALIZER_EXPLICIT: return "explicit";
     case XL6_IR_INITIALIZER_SCALAR_ZERO: return "scalar-zero";
     case XL6_IR_INITIALIZER_STRING_EMPTY: return "string-empty";
+    case XL6_IR_INITIALIZER_BYTES_EMPTY: return "bytes-empty";
     case XL6_IR_INITIALIZER_NULL_SENTINEL: return "null-sentinel";
     case XL6_IR_INITIALIZER_XVALUE_NULL: return "xvalue-null";
     case XL6_IR_INITIALIZER_XVALUE_CONTAINER_EMPTY: return "xvalue-container-empty";
