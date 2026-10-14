@@ -120,6 +120,8 @@ static int xl6IrCgenEmitCallableBridgeDecode(
         xl6OutputPrintf(out, "    if (!xlir_xvalue_cast_checked(%s, 0x%016llXULL, %d, &%s)) goto conversion_fail;\n",
             boxed, (unsigned long long)item->typeValueId, (int)XL6_IR_CAST_XVALUE_TO_ERROR_CHECKED, output); break;
     case XL6_IR_CALLABLE_BRIDGE_CLOSURE_COPY:
+        xl6OutputPrintf(out, "    if (!xrtValueIsCallable(%s) || xrtValueTypeId(%s) != 0x%016llXULL) { xrtSetErrorKind(XERR_TYPE); goto conversion_fail; }\n",
+            boxed, boxed, (unsigned long long)item->typeValueId);
         xl6OutputPrintf(out, "    %s = xlir_xvalue_project_closure_try_copy(%s, (void (*)(void))xlir_xvalue_closure_entry_t%u);\n"
             "    if (%s == NULL) goto conversion_fail;\n", output, boxed, (unsigned)slot->type, output); break;
     case XL6_IR_CALLABLE_BRIDGE_BOOL: getter = "xrtValueGetBool"; break;

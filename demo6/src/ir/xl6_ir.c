@@ -22596,18 +22596,22 @@ static XL6_IrTypeId xl6IrCallableBridgePayloadType(const XL6_IrTypePool* pool,
         *presence=XL6_IR_CALLABLE_PRESENCE_TAGGED;
     else if(type->cAbi==base->cAbi && type->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL) {
         if(type->cAbi==XL6_IR_C_ABI_MANAGED_STRING)*presence=XL6_IR_CALLABLE_PRESENCE_STRING_DATA;
-        else if(type->cAbi==XL6_IR_C_ABI_MANAGED_BYTES || type->cAbi==XL6_IR_C_ABI_RUNTIME_ERROR_PTR || type->cAbi==XL6_IR_C_ABI_RAW_POINTER)
+        else if(type->cAbi==XL6_IR_C_ABI_MANAGED_BYTES || type->cAbi==XL6_IR_C_ABI_RUNTIME_ERROR_PTR || type->cAbi==XL6_IR_C_ABI_RAW_POINTER || type->cAbi==XL6_IR_C_ABI_CLOSURE_PTR)
             *presence=XL6_IR_CALLABLE_PRESENCE_POINTER;
     } else if(type->cAbi==base->cAbi && type->cAbi==XL6_IR_C_ABI_MANAGED_BYTES && type->nullAbi==XL6_IR_NULL_ABI_XVALUE_SENTINEL)
         *presence=XL6_IR_CALLABLE_PRESENCE_XVALUE_NULL;
     return *presence!=XL6_IR_CALLABLE_PRESENCE_NONE?type->params[0]:id;
 }
 static int xl6IrRuntimeCallableAdapterParameterSlotSupported(
-    const XL6_IrTypePool* pool, XL6_IrTypeId id, XL6_IrParameterAbi abi)
+    const XL6_IrTypePool* pool, XL6_IrTypeId id, XL6_IrParameterAbi abi, int allowDictVariadic, size_t depth)
 {
     XL6_IrCallableBridgePresenceAbi presence;
     const XL6_IrType* parameter=xl6IrTypeGet(pool,xl6IrCallableBridgePayloadType(pool,id,&presence));
     if ( parameter == NULL ) return 0;
+    if (parameter->cAbi == XL6_IR_C_ABI_CLOSURE_PTR)
+        return (abi == XL6_IR_PARAMETER_ABI_BORROW || abi == XL6_IR_PARAMETER_ABI_OWNED) &&
+            parameter->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+            xl6IrRuntimeCallableAdapterSignatureSupportedDepth(pool, (XL6_IrTypeId)(parameter-pool->items+1), allowDictVariadic, depth + 1);
     if ( xl6IrRuntimeCallableScalarAbi(parameter->cAbi) )
         return abi == XL6_IR_PARAMETER_ABI_VALUE;
     if ( parameter->cAbi == XL6_IR_C_ABI_RAW_POINTER )
@@ -22656,7 +22660,7 @@ static int xl6IrRuntimeCallableAdapterResultSlotSupported(
          (result->cAbi == XL6_IR_C_ABI_CLOSURE_PTR &&
           result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
           xl6IrRuntimeCallableAdapterSignatureSupportedDepth(
-              pool, type, allowDictVariadic, depth + 1)));
+              pool, (XL6_IrTypeId)(result-pool->items+1), allowDictVariadic, depth + 1)));
 }
 
 static int xl6IrRuntimeCallableAdapterSignatureSupportedDepth(
@@ -22712,7 +22716,7 @@ static int xl6IrRuntimeCallableAdapterSignatureSupportedDepth(
              signature->parameterAbis[i] != xl6IrParameterAbiForMode(
                  parameter, signature->parameterModes[i]) ||
              !xl6IrRuntimeCallableAdapterParameterSlotSupported(
-                 pool, signature->params[i], signature->parameterAbis[i]) ) return 0;
+                 pool, signature->params[i], signature->parameterAbis[i], allowDictVariadic, depth) ) return 0;
     }
     if ( signature->returnCount == 0 ) return 1;
     for ( i = 0; i < signature->returnCount; ++i )

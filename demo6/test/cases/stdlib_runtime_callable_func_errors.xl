@@ -1,0 +1,36 @@
+int entered = 0
+func invoke(func(int) as int action, int value = 7) as int
+    entered += 1
+    return action(value)
+end
+func wrong(string text) as string
+    return text
+end
+func fail(int value) as int
+    throw ValueError("callable input original")
+end
+var callable = xcall(invoke)
+int failures = 0
+try
+    callable(xcall(wrong))
+catch TypeError error
+    failures += 1
+end
+try
+    callable(42)
+catch TypeError error
+    failures += 1
+end
+try
+    callable(null)
+catch TypeError error
+    failures += 1
+end
+assert failures == 3 and entered == 0
+try
+    callable(xcall(fail))
+catch ValueError error
+    assert error.message == "callable input original"
+    failures += 1
+end
+assert failures == 4 and entered == 1

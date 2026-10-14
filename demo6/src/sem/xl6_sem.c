@@ -2818,18 +2818,32 @@ static int xl6SemTypeIsOrExtendsClass(XL6_SemContext* ctx, const XL6_AstNode* ty
 }
 
 /* XCall 只接收能够无损进入 xvalue 的静态值类型。 */
-static int xl6SemTypeSupportsXCallValue(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
+static int xl6SemTypeSupportsXCallValueDepth(XL6_SemContext* ctx, const XL6_AstNode* typeNode, unsigned depth)
 {
     const XL6_AstNode* concreteType;
     const XL6_AstNode* args;
     const char* typeName;
 
+    if (depth > 32) return 0;
     concreteType = xl6SemResolveAliasType(ctx, typeNode);
     if(xl6SemTypeIsNullable(concreteType))
-        return xl6SemTypeSupportsXCallValue(ctx,xl6SemNullableInnerType(concreteType));
+        return xl6SemTypeSupportsXCallValueDepth(ctx,xl6SemNullableInnerType(concreteType),depth+1);
     typeName = concreteType != NULL ? concreteType->text : NULL;
     if ( typeName == NULL ) {
         return 0;
+    }
+    if (xl6TextEquals(typeName, "function")) {
+        const XL6_AstNode *params, *returns;
+        if (concreteType->childCount != 2 || !(params=concreteType->children[0]) || !(returns=concreteType->children[1])) return 0;
+        for (size_t i=0; i<params->childCount; ++i) {
+            const XL6_AstNode* parameter=params->children[i];
+            unsigned mode=xl6SemParamMode(parameter);
+            if (mode==XL6_AST_FLAG_BYREF || mode==XL6_AST_FLAG_OUT || xl6SemTypeIsCVararg(parameter) ||
+                !xl6SemTypeSupportsXCallValueDepth(ctx,parameter,depth+1)) return 0;
+        }
+        for (size_t i=0; i<returns->childCount; ++i)
+            if (!xl6SemTypeSupportsXCallValueDepth(ctx,returns->children[i],depth+1)) return 0;
+        return 1;
     }
     if ( xl6TextEquals(typeName, "var") || xl6TextEquals(typeName, "error") ||
          xl6TextEquals(typeName, "bool") || xl6TextEquals(typeName, "c_bool") ||
@@ -2866,28 +2880,16 @@ static int xl6SemTypeSupportsXCallValue(XL6_SemContext* ctx, const XL6_AstNode* 
             xl6TextEquals(args->children[0]->text, "var"));
 }
 
+static int xl6SemTypeSupportsXCallValue(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
+{ return xl6SemTypeSupportsXCallValueDepth(ctx, typeNode, 0); }
+
 /* Explicit xcall adapts returned closed callables recursively. This does not
  * permit implicit func-to-var conversion, caller-storage parameters, or an
  * unsupported boxed parameter family in the returned signature. */
 static int xl6SemTypeSupportsXCallResultDepth(
     XL6_SemContext* ctx, const XL6_AstNode* typeNode, unsigned depth)
 {
-    const XL6_AstNode *type, *params, *returns;
-    size_t i;
-    if (depth > 32) return 0;
-    type = xl6SemResolveAliasType(ctx, typeNode);
-    if (!type || !xl6TextEquals(type->text, "function"))
-        return xl6SemTypeSupportsXCallValue(ctx, type);
-    if (type->childCount != 2 || !(params = type->children[0]) || !(returns = type->children[1])) return 0;
-    for (i = 0; i < params->childCount; ++i) {
-        const XL6_AstNode* parameter = params->children[i];
-        unsigned mode = xl6SemParamMode(parameter);
-        if (mode == XL6_AST_FLAG_BYREF || mode == XL6_AST_FLAG_OUT ||
-            xl6SemTypeIsCVararg(parameter) || !xl6SemTypeSupportsXCallValue(ctx, parameter)) return 0;
-    }
-    for (i = 0; i < returns->childCount; ++i)
-        if (!xl6SemTypeSupportsXCallResultDepth(ctx, returns->children[i], depth + 1)) return 0;
-    return 1;
+    return xl6SemTypeSupportsXCallValueDepth(ctx,typeNode,depth);
 }
 
 static int xl6SemTypeSatisfiesGenericConstraint(

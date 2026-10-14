@@ -138,25 +138,26 @@ static int xl6IrCgenRuntimeCallableAdapterNeededDepth(
     if ( module == NULL || depth > module->types.count ) return 0;
     if ( xl6IrCgenRuntimeCallableAdapterDirectlyNeeded(
              module, type, reverse) ) return 1;
-    for ( parentIndex = 0; parentIndex < module->types.count; ++parentIndex ) {
-        XL6_IrTypeId parentType = (XL6_IrTypeId)(parentIndex + 1);
-        const XL6_IrType* parent = xl6IrTypeGet(
-            &module->types, parentType);
+    for ( parentIndex = 0; parentIndex < module->callableBridgeCount; ++parentIndex ) {
+        const XL6_IrCallableBridge* parent = &module->callableBridges[parentIndex];
+        XL6_IrTypeId parentType = parent->signatureType;
         size_t resultIndex;
-        if ( parent == NULL ||
-             !(reverse
-                 ? xl6IrRuntimeCallableFieldSignatureSupported(
-                     module, parentType)
-                 : xl6IrRuntimeCallableClosureToXValueSignatureSupported(
-                     module, parentType)) ) continue;
-        for ( resultIndex = 0; resultIndex < parent->returnCount;
-              ++resultIndex )
-            if ( parent->returns[resultIndex] == type &&
-                 xl6IrTypeGet(&module->types, type) != NULL &&
-                 xl6IrTypeGet(&module->types, type)->cAbi ==
-                     XL6_IR_C_ABI_CLOSURE_PTR &&
+        for ( resultIndex = 0; resultIndex < parent->resultCount; ++resultIndex ) {
+            const XL6_IrCallableBridgeResult* slot=&module->callableBridgeResults[parent->firstResult+resultIndex];
+            if ( (!reverse || parent->reverseSupported) && slot->valueType == type &&
+                 slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_CLOSURE_COPY &&
                  xl6IrCgenRuntimeCallableAdapterNeededDepth(
                      module, parentType, reverse, depth + 1) ) return 1;
+        }
+        /* A parameter reverses the bridge direction: native input encoding
+         * needs the child's forward entry; erased input decoding its reverse.
+         * Nullable carriers share the same exact underlying signature. */
+        for (size_t p = 0; p < parent->parameterCount; ++p) {
+            const XL6_IrCallableBridgeParameter* slot=&module->callableBridgeParameters[parent->firstParameter+p];
+            if ((reverse || parent->reverseSupported) && slot->valueType == type &&
+                slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_CLOSURE_COPY &&
+                xl6IrCgenRuntimeCallableAdapterNeededDepth(module,parentType,!reverse,depth+1)) return 1;
+        }
     }
     return 0;
 }

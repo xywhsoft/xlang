@@ -1,0 +1,41 @@
+func plusOne(int value) as int
+    return value + 1
+end
+func invoke(func(int) as int action, int value) as int
+    return action(value)
+end
+var erased = xcall(invoke)
+assert int(erased(xcall(plusOne), 40)) == 41
+assert int(erased(value = 40, action = xcall(plusOne))) == 41
+func nested(func(func(int) as int, int) as int apply, func(int) as int action) as int
+    return apply(action, 40)
+end
+var higher = xcall(nested)
+assert int(higher(xcall(invoke), xcall(plusOne))) == 41
+func optional((func(int) as int)? action = null, int value = 40) as int
+    if action == null
+        return -1
+    end
+    return action(value)
+end
+var nullable = xcall(optional)
+assert int(nullable()) == -1
+assert int(nullable(null)) == -1
+assert int(nullable(xcall(plusOne))) == 41
+func echo((func(int) as int)? action = null) as (func(int) as int)?
+    return action
+end
+var echoed = xcall(echo)
+assert echoed() == null
+var callback = echoed(xcall(plusOne))
+assert int(callback(40)) == 41
+func makeCounter(int base) as func(int) as int
+    return func(int value) as int
+        base += value
+        return base
+    end
+end
+var counter = xcall(makeCounter(10))
+assert int(erased(counter, 2)) == 12
+assert int(erased(counter, 3)) == 15
+assert int(counter(4)) == 19

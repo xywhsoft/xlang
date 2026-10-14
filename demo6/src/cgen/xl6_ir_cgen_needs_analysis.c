@@ -78,6 +78,17 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
 {
     size_t i;
     size_t parameter;
+    for (i = 0; i < module->callableBridgeCount; ++i) {
+        const XL6_IrCallableBridge* bridge=&module->callableBridges[i];
+        if (!xl6IrCgenRuntimeCallableAdapterNeeded(module,bridge->signatureType,0) &&
+            !xl6IrCgenRuntimeCallableAdapterNeeded(module,bridge->signatureType,1)) continue;
+        for (parameter=0; parameter<bridge->parameterCount; ++parameter)
+            if (module->callableBridgeParameters[bridge->firstParameter+parameter].decodeAbi==XL6_IR_CALLABLE_BRIDGE_CLOSURE_COPY) {
+                needs->needsXValueClosureProjectionRuntime=needs->needsXValueClosureBridgeRuntime=1;
+                needs->needsClosureRuntime=needs->needsXCallRuntime=needs->needsXValueRuntime=1;
+                needs->needsXValueTypeIdentityRuntime=1;
+            }
+    }
     for ( i = 0; i < module->dynamicMethodCount; ++i ) {
         const XL6_IrDynamicMethod* method = &module->dynamicMethods[i];
         const XL6_IrCallTarget* target;
