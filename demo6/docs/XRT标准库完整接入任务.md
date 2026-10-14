@@ -13,7 +13,11 @@
 [可变参数展开与可空方法回调的 IR 合同](stdlib53-b291-variadic-nullable-functions.md) 接入。
 异步动态返回的精确 Future 合同见
 [动态调用的 Future 合同](stdlib53-b292-runtime-futures.md)，本批冻结源码三通道通过；
-异步多返回值、其余动态／Native 组合及完整目标继续。
+异步多返回值按用户决定继续禁止，留作后续语言设计，不属于本轮
+标准库阻塞。其余动态／Native 组合及完整目标继续。
+
+动态方法共享标量 codec、可空载体、原生纯匹配及单声明绑定身份见
+[动态方法的精确标量与绑定签名合同](stdlib53-b293-method-scalars.md)。
 
 整数转换常量默认值的阶段合同与 File 动态 map／lock 见
 [整数转换默认值的统一 IR 合同](stdlib53-b287-integer-defaults.md)。

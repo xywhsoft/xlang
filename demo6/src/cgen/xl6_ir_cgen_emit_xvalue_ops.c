@@ -4,11 +4,21 @@ static int xl6IrCgenEmitXValueOperationRuntime(
 {
     size_t i;
     size_t parameter;
+    if(needs->needsDynamicNativeScalarAdmission)
+        xl6OutputPuts("extern bool xl6ValueAdmitsNativeScalarV1(const xvalue*, unsigned int, uint64_t, bool);\n",out);
     if (needs->needsXValueFutureReader)
         xl6OutputPuts("extern bool xl6PayloadReadFutureV1(const xvalue*, uint64_t, unsigned int, xfuture**);\n"
             "extern bool xrtValueIsFuture(const xvalue*);\n",out);
     if(needs->needsFloat32As)xl6OutputPuts("extern bool xl6ValueReadF32V1(const xvalue*, uint64_t, float*);\n"
         "extern bool xl6ValueTryReadF32V1(const xvalue*, uint64_t, bool*, float*);\n",out);
+    /* Method projections use the same codecs without requiring a boxed
+     * callable adapter. Declare each resident ABI from its own exact need. */
+    if (needs->needsCallableF32Reader && !needs->needsFloat32As)
+        xl6OutputPuts("extern bool xl6ValueReadF32V1(const xvalue*, uint64_t, float*);\n",out);
+    if (needs->needsCallableIntegerCodec)
+        xl6OutputPuts("extern bool xl6ValueIntegerSlotAdmitsV1(const void*, unsigned int);\n"
+            "extern bool xl6ValueReadIntegerV1(const xvalue*, unsigned int, uint64_t, bool, void*);\n"
+            "extern xvalue* xl6ValueBoxIntegerV1(const void*, unsigned int, uint64_t, bool);\n",out);
     if (needs->needsNativeContainerProjection) {
         xl6OutputPuts("extern bool xl6SequenceProjectionWitnessTakeV1(xvalue*, unsigned int, const xvalue*, bool, xvalue**);\n",out);
         xl6OutputPuts("extern bool xl6ListProjectionWitnessTakeV1(xvalue*, const xvalue*, bool, xvalue**);\n"
@@ -311,12 +321,6 @@ static int xl6IrCgenEmitXValueOperationRuntime(
                 "extern xvalue* xrtValuePointer(void*);\n"
                 "extern char* xrtStrDup(const char*);\n"
                 "extern char* xrtStrDupN(const char*, size_t);\n", out);
-            if (needs->needsCallableF32Reader)
-                xl6OutputPuts("extern bool xl6ValueReadF32V1(const xvalue*, uint64_t, float*);\n", out);
-            if (needs->needsCallableIntegerCodec)
-                xl6OutputPuts("extern bool xl6ValueIntegerSlotAdmitsV1(const void*, unsigned int);\n"
-                    "extern bool xl6ValueReadIntegerV1(const xvalue*, unsigned int, uint64_t, bool, void*);\n"
-                    "extern xvalue* xl6ValueBoxIntegerV1(const void*, unsigned int, uint64_t, bool);\n", out);
             /* Pure erased invocation and bound methods use XRT callables,
              * not native XLIR closures. Emit this bridge only when required. */
             if (needs->needsClosureRuntime)

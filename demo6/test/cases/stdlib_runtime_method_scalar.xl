@@ -1,0 +1,108 @@
+class Scalars
+    func character(char value) as char
+        return value
+    end
+    func narrow(float32 value = float32(1.1)) as float32
+        return value
+    end
+    func signed(c_int value) as c_int
+        return value
+    end
+    func unsigned(c_uchar value) as c_uchar
+        return value
+    end
+    func nativeFloat(c_float value) as c_float
+        return value
+    end
+    func code(type value) as type
+        return value
+    end
+    func nativeChar(c_char value) as c_char
+        return value
+    end
+    func nativeSChar(c_schar value) as c_schar
+        return value
+    end
+    func nativeShort(c_short value) as c_short
+        return value
+    end
+    func nativeUShort(c_ushort value) as c_ushort
+        return value
+    end
+    func nativeUInt(c_uint value) as c_uint
+        return value
+    end
+    func nativeLong(c_long value) as c_long
+        return value
+    end
+    func nativeULong(c_ulong value) as c_ulong
+        return value
+    end
+    func nativeLongLong(c_longlong value) as c_longlong
+        return value
+    end
+    func nativeULongLong(c_ulonglong value) as c_ulonglong
+        return value
+    end
+    func nativeSize(c_size value) as c_size
+        return value
+    end
+    func nativeSSize(c_ssize value) as c_ssize
+        return value
+    end
+    func nativePtrDiff(c_ptrdiff value) as c_ptrdiff
+        return value
+    end
+    func nativeIntPtr(c_intptr value) as c_intptr
+        return value
+    end
+    func nativeUIntPtr(c_uintptr value) as c_uintptr
+        return value
+    end
+    func nativeBool(c_bool value) as c_bool
+        return value
+    end
+    func nativeDouble(c_double value) as c_double
+        return value
+    end
+    func nativeWChar(c_wchar value) as c_wchar
+        return value
+    end
+    func pair(c_long first, float32 second) as (c_long, float32, char, string)
+        return first, second, '你', "a\0你"
+    end
+end
+var source = Scalars()
+assert (source.character('你') as char) == '你'
+assert (source.narrow(float32(1.5)) as float32) == float32(1.5)
+assert (source.narrow() as float32) == float32(1.1)
+assert math.isInf(source.narrow(float32(math.inf)) as float32)
+assert math.isNaN(source.narrow(float32(math.nan)) as float32)
+assert source.signed(c_int(-7)) == c_int(-7)
+assert source.unsigned(c_uchar(255)) == c_uchar(255)
+assert source.nativeFloat(c_float(1.5)) == c_float(1.5)
+func(type) as type restoredCode = source.code
+assert restoredCode(int) == int
+assert source.nativeChar(c_char(7)) == c_char(7)
+assert source.nativeSChar(c_schar(-7)) == c_schar(-7)
+assert source.nativeShort(c_short(-7)) == c_short(-7)
+assert source.nativeUShort(c_ushort(7)) == c_ushort(7)
+assert source.nativeUInt(c_uint(7)) == c_uint(7)
+assert source.nativeLong(c_long(-7)) == c_long(-7)
+assert source.nativeULong(c_ulong(7)) == c_ulong(7)
+assert source.nativeLongLong(c_longlong(-7)) == c_longlong(-7)
+assert source.nativeULongLong(c_ulonglong(7)) == c_ulonglong(7)
+assert source.nativeSize(c_size(7)) == c_size(7)
+assert source.nativeSSize(c_ssize(-7)) == c_ssize(-7)
+assert source.nativePtrDiff(c_ptrdiff(-7)) == c_ptrdiff(-7)
+assert source.nativeIntPtr(c_intptr(-7)) == c_intptr(-7)
+assert source.nativeUIntPtr(c_uintptr(7)) == c_uintptr(7)
+assert source.nativeBool(c_bool(false)) == false
+assert source.nativeDouble(c_double(1.5)) == 1.5
+assert source.nativeWChar(c_wchar(65)) == c_wchar(65)
+var bound = source.narrow
+assert (bound(float32(1.5)) as float32) == float32(1.5)
+auto first, second, third, fourth = source.pair(c_long(7), float32(1.5))
+assert first == c_long(7)
+assert (second as float32) == float32(1.5)
+assert (third as char) == '你' and string(fourth) == "a\0你"

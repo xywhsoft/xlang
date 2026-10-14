@@ -1,0 +1,67 @@
+class Checked
+    int entered = 0
+    func narrow(float32 value) as float32
+        self.entered += 1
+        return value
+    end
+    func character(char value) as char
+        self.entered += 1
+        return value
+    end
+    func tiny(c_uchar value) as c_uchar
+        self.entered += 1
+        return value
+    end
+    func optional(float32? value) as float32?
+        self.entered += 1
+        return value
+    end
+    func pick(int value) as int
+        return value + 1
+    end
+    func pick(string value) as int
+        return string.len(value)
+    end
+end
+var source = Checked()
+int errors = 0
+try
+    source.narrow(1.1)
+catch TypeError failure
+    errors += 1
+end
+try
+    source.narrow(1e100)
+catch TypeError failure
+    errors += 1
+end
+try
+    source.character(65)
+catch TypeError failure
+    errors += 1
+end
+try
+    source.tiny(uint64(256))
+catch TypeError failure
+    errors += 1
+end
+try
+    source.optional(1.1)
+catch TypeError failure
+    errors += 1
+end
+try
+    func(int) as int invalid = source.narrow
+catch TypeError failure
+    errors += 1
+end
+try
+    func(int) as int ambiguous = source.pick
+catch TypeError failure
+    errors += 1
+end
+assert errors == 7 and int(source.entered) == 0
+var overloaded = source.pick
+assert int(overloaded(4)) == 5 and int(overloaded("a\0你")) == 3
+assert (source.narrow(float32(1.5)) as float32) == float32(1.5)
+assert int(source.entered) == 1

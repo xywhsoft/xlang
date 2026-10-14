@@ -955,6 +955,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         !visitor(context,"xl6CallFrameExpansionFinishV1")) return 0;
     if (needs.needsCallableNativeScalarCodec &&
         (!visitor(context,"xl6ValueReadNativeScalarV1") || !visitor(context,"xl6ValueBoxNativeScalarV1"))) return 0;
+    if(needs.needsDynamicNativeScalarAdmission && !visitor(context,"xl6ValueAdmitsNativeScalarV1"))return 0;
     if (needs.needsXValueDynamicFieldRuntime &&
         (!visitor(context,"xl6ValueObjectFieldFindV1") ||
          !visitor(context,"xl6ValueObjectFieldSetTakeV1"))) return 0;

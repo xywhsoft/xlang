@@ -33152,8 +33152,12 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
     const char* schemaFailure = NULL;
     if ( !xl6IrBuildGeneratorMachines(module, diags) )
         schemaFailure = "XLIR lowering could not derive generator facts";
+    else if (!xl6IrBuildDynamicBoundSignatures(module,diags))
+        schemaFailure="XLIR lowering could not derive exact bound signatures";
     else if ( !xl6IrBuildCallableBridges(module, diags) )
         schemaFailure = "XLIR lowering could not derive callable bridge facts";
+    else if (!xl6IrBuildDynamicMethodScalarCodecs(module,diags))
+        schemaFailure = "XLIR lowering could not derive dynamic method scalar codecs";
     else if ( !xl6IrRefreshValueCopyRecipes(module) )
         schemaFailure = "XLIR lowering could not derive complete value copy recipes";
     else if ( !xl6IrBuildPersistenceProjectPlans(module) )
