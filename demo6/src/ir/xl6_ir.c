@@ -13199,9 +13199,7 @@ static int xl6IrDynamicMethodAdapterTypeSupported(
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
         return type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED;
     case XL6_IR_C_ABI_CLOSURE_PTR:
-        return type->kind == XL6_IR_TYPE_FUNCTION &&
-               xl6IrRuntimeCallableFieldSignatureSupported(module, typeId) &&
-               xl6IrRuntimeCallableClosureToXValueSignatureSupported(module, typeId);
+        return xl6IrRuntimeCallableFieldSourceSignature(module,typeId) != XL6_IR_TYPE_INVALID;
     default:
         return 0;
     }
@@ -13258,8 +13256,8 @@ static XL6_IrDynamicMethodMatchAbi xl6IrDynamicMethodMatchAbiForType(
     case XL6_IR_C_ABI_MANAGED_STRING:
         return XL6_IR_DYNAMIC_METHOD_MATCH_STRING;
     case XL6_IR_C_ABI_CLOSURE_PTR:
-        return type->kind == XL6_IR_TYPE_FUNCTION && type->typeValueId &&
-               xl6IrRuntimeCallableFieldSignatureSupported(module, typeId)
+        return domain->kind == XL6_IR_TYPE_FUNCTION && domain->typeValueId &&
+               xl6IrRuntimeCallableFieldSourceSignature(module,typeId) != XL6_IR_TYPE_INVALID
             ? XL6_IR_DYNAMIC_METHOD_MATCH_CALLABLE : XL6_IR_DYNAMIC_METHOD_MATCH_INVALID;
     case XL6_IR_C_ABI_MANAGED_BYTES:
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
@@ -22750,7 +22748,7 @@ int xl6IrRuntimeCallableFieldSignatureSupported(
     const XL6_IrModule* module, XL6_IrTypeId type)
 {
     return xl6IrRuntimeCallableAdapterSignatureSupportedDepth(
-        module ? &module->types : NULL, type, 0, 0);
+        module ? &module->types : NULL, type, 1, 0);
 }
 
 #include "src/ir/xl6_ir_callable_bridge.c"
@@ -49581,11 +49579,11 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
     }
     for (i = 0; i < module->callableBridgeCount; ++i) {
         const XL6_IrCallableBridge* b = &module->callableBridges[i];
-        xl6OutputPrintf(out, "  callable-bridge %lu signature=t%u parameters=%lu..%lu fixed=%lu results=%lu..%lu result-type=t%u commit=%d frame-cleanup=%d forward-error=%d reverse-error=%d binding=%d erasure=%d variadic-carrier=%d variadic-element=0x%016llX cleanup=%d error=%d reverse=%d\n",
+        xl6OutputPrintf(out, "  callable-bridge %lu signature=t%u parameters=%lu..%lu fixed=%lu results=%lu..%lu result-type=t%u commit=%d frame-cleanup=%d expansion=%d forward-error=%d reverse-error=%d binding=%d erasure=%d variadic-carrier=%d variadic-element=0x%016llX cleanup=%d error=%d reverse=%d\n",
             (unsigned long)i, (unsigned)b->signatureType, (unsigned long)b->firstParameter,
             (unsigned long)(b->firstParameter + b->parameterCount), (unsigned long)b->fixedParameterCount,
             (unsigned long)b->firstResult, (unsigned long)(b->firstResult + b->resultCount),
-            (unsigned)b->resultType, (int)b->resultCommitAbi, (int)b->frameCleanupAbi,
+            (unsigned)b->resultType, (int)b->resultCommitAbi, (int)b->frameCleanupAbi, (int)b->reverseFrameExpansionAbi,
             (int)b->forwardErrorBoundaryAbi, (int)b->reverseErrorBoundaryAbi, (int)b->argumentBindingAbi,
             (int)b->erasureAbi, (int)b->variadicCarrierAbi, (unsigned long long)b->variadicElementIdentity,
             (int)b->cleanupAbi, (int)b->errorAbi, b->reverseSupported);
@@ -51209,11 +51207,11 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPuts("  ],\n  \"callableBridges\": [\n", out);
     for (i = 0; i < module->callableBridgeCount; ++i) {
         const XL6_IrCallableBridge* b = &module->callableBridges[i];
-        xl6OutputPrintf(out, "    {\"id\":%lu,\"signatureType\":%u,\"firstParameter\":%lu,\"parameterCount\":%lu,\"fixedParameterCount\":%lu,\"firstResult\":%lu,\"resultCount\":%lu,\"resultType\":%u,\"resultCommitAbi\":%d,\"frameCleanupAbi\":%d,\"forwardErrorBoundaryAbi\":%d,\"reverseErrorBoundaryAbi\":%d,\"argumentBindingAbi\":%d,\"erasureAbi\":%d,\"variadicCarrierAbi\":%d,\"variadicElementIdentity\":%llu,\"cleanupAbi\":%d,\"errorAbi\":%d,\"reverseSupported\":%d}%s\n",
+        xl6OutputPrintf(out, "    {\"id\":%lu,\"signatureType\":%u,\"firstParameter\":%lu,\"parameterCount\":%lu,\"fixedParameterCount\":%lu,\"firstResult\":%lu,\"resultCount\":%lu,\"resultType\":%u,\"resultCommitAbi\":%d,\"frameCleanupAbi\":%d,\"reverseFrameExpansionAbi\":%d,\"forwardErrorBoundaryAbi\":%d,\"reverseErrorBoundaryAbi\":%d,\"argumentBindingAbi\":%d,\"erasureAbi\":%d,\"variadicCarrierAbi\":%d,\"variadicElementIdentity\":%llu,\"cleanupAbi\":%d,\"errorAbi\":%d,\"reverseSupported\":%d}%s\n",
             (unsigned long)i, (unsigned)b->signatureType, (unsigned long)b->firstParameter,
             (unsigned long)b->parameterCount, (unsigned long)b->fixedParameterCount,
             (unsigned long)b->firstResult, (unsigned long)b->resultCount, (unsigned)b->resultType,
-            (int)b->resultCommitAbi, (int)b->frameCleanupAbi,
+            (int)b->resultCommitAbi, (int)b->frameCleanupAbi, (int)b->reverseFrameExpansionAbi,
             (int)b->forwardErrorBoundaryAbi, (int)b->reverseErrorBoundaryAbi, (int)b->argumentBindingAbi,
             (int)b->erasureAbi, (int)b->variadicCarrierAbi, (unsigned long long)b->variadicElementIdentity,
             (int)b->cleanupAbi, (int)b->errorAbi, b->reverseSupported,

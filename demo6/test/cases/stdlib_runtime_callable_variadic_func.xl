@@ -1,0 +1,40 @@
+func count(int base, ...) as int
+    return base + arg.length
+end
+func apply(func(int, ...) as int callback) as int
+    return callback(10, 1, 2, 3)
+end
+var callable = xcall(apply)
+assert int(callable(xcall(count))) == 13
+func countKeywords(int base, ***) as int
+    return base + arg.length
+end
+func applyKeywords(func(int, ***) as int callback) as int
+    return callback(10, alpha = "a\0你", beta = b"\0\xff")
+end
+var keywords = xcall(applyKeywords)
+assert int(keywords(xcall(countKeywords))) == 12
+func verifyTail(...) as bool
+    return arg.length == 4 and arg[0] == "a\0你" and arg[1] == b"\0\xff" and arg[2] == null and arg[3] == '你'
+end
+func applyTail(func(...) as bool callback) as bool
+    return callback("a\0你", b"\0\xff", null, '你')
+end
+var tail = xcall(applyTail)
+assert bool(tail(xcall(verifyTail)))
+func empty(...) as int
+    return arg.length
+end
+func emptyKeywords(***) as int
+    return arg.length
+end
+func invokeEmpty(func(...) as int callback) as int
+    return callback()
+end
+func invokeEmptyKeywords(func(***) as int callback) as int
+    return callback()
+end
+var emptyArray = xcall(invokeEmpty)
+var emptyObject = xcall(invokeEmptyKeywords)
+assert int(emptyArray(xcall(empty))) == 0
+assert int(emptyObject(xcall(emptyKeywords))) == 0

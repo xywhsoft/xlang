@@ -9,7 +9,9 @@
 [动态函数默认参数合同](stdlib53-b289-runtime-callable-defaults.md) 接入；
 固定签名 typed／nullable 函数参数见
 [动态调用的函数参数合同](stdlib53-b290-runtime-callable-func.md)；
-变长函数反向展开、nullable 动态方法回调、异步动态返回及完整目标继续。
+变长函数反向展开与 nullable 动态方法回调已按
+[可变参数展开与可空方法回调的 IR 合同](stdlib53-b291-variadic-nullable-functions.md) 接入。
+异步动态返回、其余动态／Native 组合及完整目标继续。
 
 整数转换常量默认值的阶段合同与 File 动态 map／lock 见
 [整数转换默认值的统一 IR 合同](stdlib53-b287-integer-defaults.md)。

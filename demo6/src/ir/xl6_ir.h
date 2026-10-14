@@ -4823,6 +4823,12 @@ typedef enum XL6_IrCallableBindingAbi {
     XL6_IR_CALLABLE_BIND_PROVIDED_THEN_DEFAULTS
 } XL6_IrCallableBindingAbi;
 
+typedef enum XL6_IrCallableFrameExpansionAbi {
+    XL6_IR_CALLABLE_EXPAND_NONE = 0,
+    XL6_IR_CALLABLE_EXPAND_ARRAY_SNAPSHOT_V1,
+    XL6_IR_CALLABLE_EXPAND_DICT_SNAPSHOT_V1
+} XL6_IrCallableFrameExpansionAbi;
+
 typedef struct XL6_IrCallableBridge {
     XL6_IrTypeId signatureType;
     size_t firstParameter;
@@ -4833,6 +4839,7 @@ typedef struct XL6_IrCallableBridge {
     XL6_IrTypeId resultType;
     XL6_IrCallableBridgeResultCommitAbi resultCommitAbi;
     XL6_IrCallableBridgeFrameCleanupAbi frameCleanupAbi;
+    XL6_IrCallableFrameExpansionAbi reverseFrameExpansionAbi;
     XL6_IrCallableBridgeErrorBoundaryAbi forwardErrorBoundaryAbi;
     XL6_IrCallableBridgeErrorBoundaryAbi reverseErrorBoundaryAbi;
     /* Forward call-frame binding fully projects supplied arguments before

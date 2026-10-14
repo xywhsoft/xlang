@@ -66,13 +66,13 @@ static int xl6IrCgenRuntimeCallableAdapterDirectlyNeeded(
         if ( !xl6IrCgenDynamicMethodNeeded(module, i) ) continue;
         if ( reverse ) {
             for ( size_t p = 0; p < method->parameterCount; ++p )
-                if ( module->dynamicMethodParameters[method->firstParameter + p].type == type ) return 1;
+                if (xl6IrRuntimeCallableFieldSourceSignature(module,module->dynamicMethodParameters[method->firstParameter+p].type) == type) return 1;
         } else {
             const XL6_IrType* result = xl6IrTypeGet(&module->types, method->returnType);
-            if ( method->returnType == type ) return 1;
+            if (xl6IrRuntimeCallableFieldSourceSignature(module,method->returnType) == type) return 1;
             if ( result && result->cAbi == XL6_IR_C_ABI_PRODUCT )
                 for ( size_t p = 0; p < result->paramCount; ++p )
-                    if ( result->params[p] == type ) return 1;
+                    if (xl6IrRuntimeCallableFieldSourceSignature(module,result->params[p]) == type) return 1;
         }
     }
     for ( i = 0; i < module->instructionCount; ++i ) {

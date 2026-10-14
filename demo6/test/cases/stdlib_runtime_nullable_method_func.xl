@@ -1,0 +1,25 @@
+class OptionalCallback
+    int entered = 0
+    func invoke((func(int) as int)? callback = null) as int
+        self.entered += 1
+        if callback == null
+            return -1
+        end
+        return callback(40)
+    end
+    func echo((func(int) as int)? callback = null) as (func(int) as int)?
+        return callback
+    end
+end
+func plusOne(int value) as int
+    return value + 1
+end
+var object = OptionalCallback()
+assert int(object.invoke()) == -1
+assert int(object.invoke(xcall(plusOne))) == 41
+assert int(object.invoke(null)) == -1
+var bound = object.invoke
+assert int(bound()) == -1 and int(bound(xcall(plusOne))) == 41
+assert object.echo() == null
+var echoed = object.echo(xcall(plusOne))
+assert int(echoed(40)) == 41

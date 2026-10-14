@@ -321,6 +321,8 @@ RUNTIME_SOURCES=(
     "$ROOT/src/runtime/xl6_array_reference_value.c"
     "$ROOT/src/runtime/xl6_array_erased.c"
     "$ROOT/src/runtime/xl6_array_call_frame.c"
+    "$ROOT/src/runtime/xl6_call_frame_expansion.c"
+    "$ROOT/src/runtime/xl6_dict_call_frame.c"
     "$ROOT/src/runtime/xl6_array_entry.c"
     "$ROOT/src/runtime/xl6_array_producer.c"
     "$ROOT/src/runtime/xl6_tree_projection.c"

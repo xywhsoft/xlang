@@ -189,6 +189,14 @@ static XL6_IrCollectionCarrierAbi xl6IrCallableVariadicCarrierAbi(const XL6_IrTy
         ? XL6_IR_COLLECTION_CARRIER_VALUE_V1 : XL6_IR_COLLECTION_CARRIER_NONE;
 }
 
+static XL6_IrCallableFrameExpansionAbi xl6IrCallableFrameExpansionAbi(const XL6_IrType* signature)
+{
+    return signature->callableErasureAbi==XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC
+        ? XL6_IR_CALLABLE_EXPAND_ARRAY_SNAPSHOT_V1
+        : signature->callableErasureAbi==XL6_IR_CALLABLE_ERASURE_DICT_VARIADIC
+        ? XL6_IR_CALLABLE_EXPAND_DICT_SNAPSHOT_V1 : XL6_IR_CALLABLE_EXPAND_NONE;
+}
+
 int xl6IrBuildCallableBridges(XL6_IrModule* module, XL6_DiagList* diags)
 {
     size_t i, p;
@@ -206,7 +214,7 @@ int xl6IrBuildCallableBridges(XL6_IrModule* module, XL6_DiagList* diags)
         bridge->signatureType = id; bridge->firstParameter = module->callableBridgeParameterCount;
         bridge->parameterCount = signature->paramCount; bridge->erasureAbi = signature->callableErasureAbi;
         bridge->variadicCarrierAbi = xl6IrCallableVariadicCarrierAbi(signature);
-        bridge->variadicElementIdentity = bridge->variadicCarrierAbi == XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1
+        bridge->variadicElementIdentity = bridge->variadicCarrierAbi != XL6_IR_COLLECTION_CARRIER_NONE
             ? module->runtimeTypeMap.fallbackTypeValueId : 0;
         bridge->fixedParameterCount = signature->paramCount -
             (signature->callableErasureAbi != XL6_IR_CALLABLE_ERASURE_FIXED ? 1 : 0);
@@ -215,6 +223,7 @@ int xl6IrBuildCallableBridges(XL6_IrModule* module, XL6_DiagList* diags)
         bridge->resultType = signature->callableResultType;
         bridge->resultCommitAbi = XL6_IR_CALLABLE_RESULT_COMMIT_AFTER_CLEANUP;
         bridge->frameCleanupAbi = XL6_IR_CALLABLE_FRAME_CLEANUP_REPLACE_REVERSE;
+        bridge->reverseFrameExpansionAbi=xl6IrCallableFrameExpansionAbi(signature);
         bridge->forwardErrorBoundaryAbi = XL6_IR_CALLABLE_ERROR_BOUNDARY_NATIVE_CALLBACK;
         bridge->argumentBindingAbi = XL6_IR_CALLABLE_BIND_PROVIDED_THEN_DEFAULTS;
         bridge->reverseErrorBoundaryAbi = XL6_IR_CALLABLE_ERROR_BOUNDARY_ISOLATED_STATUS;
@@ -272,10 +281,11 @@ static int xl6IrVerifyCallableBridges(const XL6_IrModule* module, XL6_DiagList* 
             bridge->frameCleanupAbi != XL6_IR_CALLABLE_FRAME_CLEANUP_REPLACE_REVERSE ||
             bridge->forwardErrorBoundaryAbi != XL6_IR_CALLABLE_ERROR_BOUNDARY_NATIVE_CALLBACK ||
             bridge->argumentBindingAbi != XL6_IR_CALLABLE_BIND_PROVIDED_THEN_DEFAULTS ||
+            bridge->reverseFrameExpansionAbi != xl6IrCallableFrameExpansionAbi(signature) ||
             bridge->reverseErrorBoundaryAbi != XL6_IR_CALLABLE_ERROR_BOUNDARY_ISOLATED_STATUS ||
             bridge->erasureAbi != signature->callableErasureAbi ||
             bridge->variadicCarrierAbi != xl6IrCallableVariadicCarrierAbi(signature) ||
-            bridge->variadicElementIdentity != (signature->callableErasureAbi == XL6_IR_CALLABLE_ERASURE_ARRAY_VARIADIC
+            bridge->variadicElementIdentity != (signature->callableErasureAbi != XL6_IR_CALLABLE_ERASURE_FIXED
                 ? module->runtimeTypeMap.fallbackTypeValueId : 0) ||
             bridge->cleanupAbi != XL6_IR_CALLBACK_CLEANUP_TRANSACTIONAL ||
             bridge->errorAbi != XL6_IR_CALLBACK_ERROR_PRESERVE ||

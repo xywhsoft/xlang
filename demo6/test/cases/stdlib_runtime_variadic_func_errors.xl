@@ -1,0 +1,50 @@
+func failArray(int base, ...) as int
+    assert arg.length == 3
+    throw ValueError("expanded array original")
+end
+func invokeArray(func(int, ...) as int callback) as int
+    return callback(10, "a\0你", b"\0\xff", null)
+end
+func failKeywords(int base, ***) as int
+    assert arg.length == 2
+    throw ValueError("expanded keywords original")
+end
+func invokeKeywords(func(int, ***) as int callback) as int
+    return callback(10, alpha = "a\0你", beta = b"\0\xff")
+end
+var arrays = xcall(invokeArray)
+var keywords = xcall(invokeKeywords)
+int errors = 0
+try
+    arrays(xcall(failArray))
+catch ValueError failure
+    assert failure.message == "expanded array original"
+    errors += 1
+end
+try
+    keywords(xcall(failKeywords))
+catch ValueError failure
+    assert failure.message == "expanded keywords original"
+    errors += 1
+end
+assert errors == 2
+class OptionalCallback
+    int entered = 0
+    func invoke((func(int) as int)? callback = null) as int
+        self.entered += 1
+        if callback == null
+            return -1
+        end
+        return callback(40)
+    end
+end
+func wrong(string text) as string
+    return text
+end
+var object = OptionalCallback()
+try
+    object.invoke(xcall(wrong))
+catch TypeError failure
+    errors += 1
+end
+assert errors == 3 and int(object.entered) == 0

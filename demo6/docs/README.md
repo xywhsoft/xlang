@@ -12,6 +12,8 @@
 
 - [动态调用的函数参数合同](stdlib53-b290-runtime-callable-func.md)：typed／nullable 函数参数、完整签名、子桥接方向和拥有清理。
 
+- [可变参数展开与可空方法回调的 IR 合同](stdlib53-b291-variadic-nullable-functions.md)：位置／关键字帧快照、提供方裁剪、精确签名与独立拥有清理。
+
 - [整数转换默认值的统一 IR 合同](stdlib53-b287-integer-defaults.md)：先登记身份再接纳合同，精确常量默认值与物理桥接输出顺序。
 
 - [动态方法的精确回调合同](stdlib53-b286-dynamic-callables.md)：完整签名选择、checked closure 原生合同与投影 owner 清理。

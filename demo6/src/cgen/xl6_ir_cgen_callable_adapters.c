@@ -45,6 +45,8 @@ static int xl6IrCgenEmitCallableBridgeCleanup(
             xl6OutputPrintf(out,"      { xvalue* value = default_bytes%lu; default_bytes%lu = NULL; xrtValueRelease(value); }\n"
                 "      if(xrtGetError())xl6ErrorScopeCaptureFailure(&parameter_cleanup);\n",(unsigned long)i,(unsigned long)i);
     }
+    if (reverse && bridge->reverseFrameExpansionAbi != XL6_IR_CALLABLE_EXPAND_NONE)
+        xl6OutputPuts("      if (!xl6CallFrameExpansionFinishV1(&expanded, false)) xl6ErrorScopeCaptureFailure(&parameter_cleanup);\n",out);
     xl6OutputPrintf(out,
         "      parameter_outcome = xl6ErrorScopeEnd(&parameter_cleanup);\n"
         "      xrtSetErrorTake(parameter_outcome.error); %s = parameter_outcome.ok; }\n", outcome);
@@ -555,6 +557,8 @@ static int xl6IrCgenEmitRuntimeCallableClosureEntry(
     xl6OutputPuts(
         "    xrtcallframe callFrame = {0}; xrtcallresult callResults = {0}; bool success = false;",
         out);
+    if (bridge->reverseFrameExpansionAbi != XL6_IR_CALLABLE_EXPAND_NONE)
+        xl6OutputPuts(" void* expanded = NULL;",out);
     if ( hasResult ) {
         if ( result->cAbi == XL6_IR_C_ABI_PRODUCT || result->cAbi==XL6_IR_C_ABI_TAGGED_NULLABLE ||
              result->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
@@ -569,7 +573,7 @@ static int xl6IrCgenEmitRuntimeCallableClosureEntry(
     xl6OutputPuts(
         ") { xrtSetErrorTake(xlir_error_create(\"TypeError\", \"runtime callable closure has no environment or result storage\")); goto argument_fail; }\n",
         out);
-    for ( i = 0; i < bridge->parameterCount; ++i ) {
+    for ( i = 0; i < bridge->fixedParameterCount; ++i ) {
         const XL6_IrCallableBridgeParameter* slot =
             &module->callableBridgeParameters[bridge->firstParameter + i];
         char input[64], argument[64];
@@ -579,17 +583,27 @@ static int xl6IrCgenEmitRuntimeCallableClosureEntry(
             return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID, "XLIR callable parameter encoding plan is unresolved");
         xl6OutputPrintf(out, "    if (%s == NULL) goto argument_fail;\n", argument);
     }
-    xl6OutputPrintf(out,
-        "    callFrame.ArgumentCount = %lu; callFrame.Arguments = %s;\n"
+    xl6OutputPrintf(out,"    callFrame.ArgumentCount = %lu; callFrame.Arguments = %s;\n",
+        (unsigned long)bridge->fixedParameterCount, signature->paramCount ? "arguments" : "NULL");
+    if (bridge->reverseFrameExpansionAbi != XL6_IR_CALLABLE_EXPAND_NONE) {
+        const XL6_IrCallableBridgeParameter* tail=&module->callableBridgeParameters[bridge->firstParameter+bridge->fixedParameterCount];
+        const XL6_IrType* owner=xl6IrTypeGet(&module->types,tail->type);
+        if (!owner || !owner->typeValueId) return 0;
+        xl6OutputPrintf(out,
+            "    { xrtcallframe fixed = callFrame; if (!%s(0x%016llXULL, 0x%016llXULL, a%lu, &fixed, &callFrame, &expanded)) goto argument_fail; }\n",
+            bridge->reverseFrameExpansionAbi == XL6_IR_CALLABLE_EXPAND_ARRAY_SNAPSHOT_V1 ?
+                "xl6ArrayCallFrameExpandV1" : "xl6DictCallFrameExpandV1",
+            (unsigned long long)owner->typeValueId,
+            (unsigned long long)bridge->variadicElementIdentity,(unsigned long)bridge->fixedParameterCount);
+    }
+    xl6OutputPuts(
         "    { xl6_foreign_error_scope invocation = {0};\n"
         "      if (xl6ForeignCallBegin(&invocation)) {\n"
         "        success = xrtValueInvoke(*(xvalue* const*)environment, &callFrame, &callResults);\n"
         "        if (!success) xl6ErrorScopeCaptureFailure(&invocation);\n"
         "        { xl6_foreign_error_result outcome = xl6ForeignCallEnd(&invocation);\n"
         "          success = outcome.ok; xrtSetErrorTake(outcome.error); }\n"
-        "      } }\n",
-        (unsigned long)signature->paramCount,
-        signature->paramCount != 0 ? "arguments" : "NULL");
+        "      } }\n",out);
     if (!xl6IrCgenEmitCallableBridgeCleanup(out, module, bridge, 1, "!success", "success")) return 0;
     xl6OutputPuts("    if (xrtGetError() != NULL) success = false;\n", out);
     xl6OutputPuts(

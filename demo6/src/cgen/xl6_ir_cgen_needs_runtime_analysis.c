@@ -758,6 +758,10 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
                 if (!bridge) return 0;
                 if (forward && bridge->variadicCarrierAbi == XL6_IR_COLLECTION_CARRIER_SEQUENCE_V1)
                     needs->needsCallableArrayFrameProducer = 1;
+                if (reverse && bridge->reverseFrameExpansionAbi == XL6_IR_CALLABLE_EXPAND_ARRAY_SNAPSHOT_V1)
+                    needs->needsCallableArrayFrameExpansion=1;
+                if (reverse && bridge->reverseFrameExpansionAbi == XL6_IR_CALLABLE_EXPAND_DICT_SNAPSHOT_V1)
+                    needs->needsCallableDictFrameExpansion=1;
                 for (parameter = 0; parameter < bridge->parameterCount; ++parameter)
                     if (module->callableBridgeParameters[bridge->firstParameter + parameter].nativeScalarProfile != XL6_NATIVE_SCALAR_NONE)
                         needs->needsCallableNativeScalarCodec = 1;

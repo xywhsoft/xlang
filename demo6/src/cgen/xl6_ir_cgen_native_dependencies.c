@@ -949,6 +949,10 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     if ((needs.randomBridgeOperations & XL6_CGEN_RAND_SHUFFLE_ARRAY) &&
         !visitor(context,"xl6ArrayRandShuffleV1")) return 0;
     if (needs.needsCallableArrayFrameProducer && !visitor(context,"xl6ArrayCallFramePackV1")) return 0;
+    if (needs.needsCallableArrayFrameExpansion && !visitor(context,"xl6ArrayCallFrameExpandV1")) return 0;
+    if (needs.needsCallableDictFrameExpansion && !visitor(context,"xl6DictCallFrameExpandV1")) return 0;
+    if ((needs.needsCallableArrayFrameExpansion || needs.needsCallableDictFrameExpansion) &&
+        !visitor(context,"xl6CallFrameExpansionFinishV1")) return 0;
     if (needs.needsCallableNativeScalarCodec &&
         (!visitor(context,"xl6ValueReadNativeScalarV1") || !visitor(context,"xl6ValueBoxNativeScalarV1"))) return 0;
     if (needs.needsXValueDynamicFieldRuntime &&

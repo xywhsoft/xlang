@@ -2,6 +2,7 @@
 #include "src/runtime/xl6_array_admission.h"
 #include "src/runtime/xl6_array.h"
 #include "src/runtime/xl6_array_erased.h"
+#include "src/runtime/xl6_call_frame_expansion_internal.h"
 #include "src/api/xl_foreign_error.h"
 #include <limits.h>
 #include <stdlib.h>
@@ -46,4 +47,29 @@ xvalue* xl6ArrayCallFramePackV1(uint64_t identity, uint64_t elementIdentity,
         }
     }
     return owner;
+}
+
+bool xl6ArrayCallFrameExpandV1(uint64_t identity, uint64_t elementIdentity,
+    const xvalue* tail, const xrtcallframe* fixed, xrtcallframe* output, void** state)
+{
+    if (!identity || !elementIdentity || !xl6FrameExpansionInputs(tail,fixed,output,state)) {
+        xrtSetErrorKind(XERR_ARGUMENT); return false;
+    }
+    XL6_FrameExpansion* owner=xrtCalloc(1,sizeof(*owner)); if (!owner) return false;
+    owner->snapshot=xl6ArrayEraseV1(tail,identity,elementIdentity,3,sizeof(xvalue*),xrtTypeValue(),NULL);
+    if (!owner->snapshot) goto fail;
+    int64_t size=xl6ArrayErasedSizeV1(owner->snapshot);
+    if (size<0) goto fail;
+    if ((uint64_t)size>SIZE_MAX) {
+        xrtSetErrorKind(XERR_RANGE); goto fail;
+    }
+    size_t count=(size_t)size;
+    if (!xl6FrameExpansionFixed(owner,fixed,count)) goto fail;
+    for (size_t i=0; i<count; ++i) {
+        xvalue* value=xl6ArrayErasedReadV1(owner->snapshot,(int64_t)i);
+        if (!value) goto fail;
+        owner->arguments[owner->argumentCount++]=value;
+    }
+    xl6FrameExpansionPublish(owner,fixed,output,state); return true;
+fail: return xl6FrameExpansionFailed(owner);
 }

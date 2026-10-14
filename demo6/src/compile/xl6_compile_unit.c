@@ -239,7 +239,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_class_text.c", D(R(VALUE_TEXT)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_STRING"}},
     {"src/runtime/xl6_error_text.c", D(), {"XRT_MODULE_STRING"}},
-    {"src/runtime/xl6_array_call_frame.c", D(R(ARRAY_TYPED),R(ARRAY_ERASED),R(ARRAY_REFERENCE_ADMISSION),R(FOREIGN_ERROR)),
+    {"src/runtime/xl6_array_call_frame.c", D(R(ARRAY_TYPED),R(ARRAY_ERASED),R(ARRAY_REFERENCE_ADMISSION),R(CALL_FRAME_EXPANSION),R(FOREIGN_ERROR)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
     {"src/runtime/xl6_array_entry.c", D(R(ARRAY_TYPED),R(ARRAY_ERASED),R(ARRAY_REFERENCE_VALUE),R(ARRAY_REFERENCE_ADMISSION),R(ARRAY_IMPORT),R(FOREIGN_ERROR)),
         {"XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_STRING", "XRUNTIME_MODULE_TYPED_ARRAY_VALUE"}},
@@ -374,7 +374,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_tree_projection_cast.c",D(R(CONTAINER_PROJECTION),R(TREE)),{NULL}},
     {"src/runtime/xl6_value_domain_projection.c",D(R(CONTAINER_PROJECTION),R(SEQUENCE)),{NULL}},
     {"src/runtime/xl6_channel_admission.c",D(R(TYPED_CHANNEL),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)),{NULL}},
-    {"src/runtime/xl6_slot_map_admission.c",D(R(SLOT_MAP_NATIVE),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)),{NULL}}
+    {"src/runtime/xl6_slot_map_admission.c",D(R(SLOT_MAP_NATIVE),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)),{NULL}},
+    {"src/runtime/xl6_call_frame_expansion.c",D(R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_dict_call_frame.c",D(R(DICT_NATIVE),R(ARRAY_REFERENCE_ADMISSION),R(CALL_FRAME_EXPANSION),R(FOREIGN_ERROR)),
+        {"XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_STRING"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
