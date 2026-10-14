@@ -13,12 +13,13 @@
  X(INT,int) X(UINT,unsigned int) X(LONG,long) X(ULONG,unsigned long) X(LONGLONG,long long) \
  X(ULONGLONG,unsigned long long) X(SIZE,size_t) X(SSIZE,ptrdiff_t) X(PTRDIFF,ptrdiff_t) \
  X(INTPTR,intptr_t) X(UINTPTR,uintptr_t) X(BOOL,bool) X(FLOAT,float) X(DOUBLE,double) X(WCHAR,wchar_t)
-static size_t pairs,ranges;
+static size_t pairs,ranges,reflection;
+#define REFLECTION_ID UINT64_C(0x99110022)
 static void target(unsigned profile,const void* expected,size_t size,const void* input,unsigned source,const xvalue* dynamic)
 {
     unsigned char result[32];memset(result,0xa5,sizeof(result));
     xl6ProductMemoryBegin(0);
-    assert(dynamic ? xl6ValueConvertNativeScalarV1(dynamic,profile,result+1) :
+    assert(dynamic ? xl6ValueConvertNativeScalarV2(dynamic,profile,REFLECTION_ID,result+1) :
         xl6NativeScalarConvertV1(input,source,profile,result+1));
     assert(!xl6ProductMemoryEnd() && !xrtGetError());xl6ProductMemoryVerify();
     assert(!memcmp(result+1,expected,size) && result[0]==0xa5 && result[size+1]==0xa5);++pairs;
@@ -32,10 +33,17 @@ static void matrix(const void* input,unsigned source,const xvalue* dynamic)
 static void range(unsigned targetProfile,const void* input,unsigned inputProfile,const xvalue* dynamic)
 {
     unsigned char result[32],saved[32];memset(result,0xa5,sizeof(result));memcpy(saved,result,sizeof(saved));
-    assert(!(dynamic ? xl6ValueConvertNativeScalarV1(dynamic,targetProfile,result+1) :
+    assert(!(dynamic ? xl6ValueConvertNativeScalarV2(dynamic,targetProfile,REFLECTION_ID,result+1) :
         xl6NativeScalarConvertV1(input,inputProfile,targetProfile,result+1)));
     assert(xrtGetError() && xrtErrorKind(xrtGetError())==XERR_RANGE && !memcmp(result,saved,sizeof(result)));
     xrtClearError();++ranges;
+}
+static void rejectReflection(unsigned targetProfile,const xvalue* token)
+{
+    unsigned char result[32],saved[32];memset(result,0xa5,sizeof(result));memcpy(saved,result,sizeof(saved));
+    assert(!xl6ValueConvertNativeScalarV2(token,targetProfile,REFLECTION_ID,result+1));
+    assert(xrtGetError() && xrtErrorKind(xrtGetError())==XERR_TYPE && !memcmp(result,saved,sizeof(result)));
+    xrtClearError();++reflection;
 }
 int main(void)
 {
@@ -64,7 +72,7 @@ int main(void)
     float result=0;int64_t doubleRound=INT64_C(4611686293305294849);
     assert(xl6NativeScalarConvertV1(&doubleRound,XL6_SCALAR_INPUT_I64,XL6_NATIVE_SCALAR_FLOAT,&result) && result==0x1.000002p62f);
     xvalue* boxed=xrtValueInt(doubleRound);assert(boxed);
-    assert(xl6ValueConvertNativeScalarV1(boxed,XL6_NATIVE_SCALAR_FLOAT,&result) && result==0x1.000002p62f);xrtValueRelease(boxed);
+    assert(xl6ValueConvertNativeScalarV2(boxed,XL6_NATIVE_SCALAR_FLOAT,REFLECTION_ID,&result) && result==0x1.000002p62f);xrtValueRelease(boxed);
     assert(xl6NativeScalarConvertV1(&infinity,XL6_SCALAR_INPUT_F64,XL6_NATIVE_SCALAR_FLOAT,&result) && isinf(result));
     double fraction=-1.9;int truncated=0;
     assert(xl6NativeScalarConvertV1(&fraction,XL6_SCALAR_INPUT_F64,XL6_NATIVE_SCALAR_INT,&truncated) && truncated==-1);
@@ -73,7 +81,20 @@ int main(void)
     xl6ProductMemoryBegin(0);
     assert(xl6ValueTryReadNativeScalarV1(mismatch,XL6_NATIVE_SCALAR_INT,123,&present,&unchanged) && !present && unchanged==91);
     assert(!xl6ProductMemoryEnd() && xrtGetError()==original);xl6ProductMemoryVerify();xrtClearError();xrtValueRelease(mismatch);
-    assert(pairs==660 && ranges==69 && !xrtGetError());
+    xvalue* token=xrtValueUInt(7);assert(token && xrtValueTypeIdBind(token,REFLECTION_ID));
+#define REFLECTION(Name,Type) rejectReflection(XL6_NATIVE_SCALAR_##Name,token);
+    TARGETS(REFLECTION)
+#undef REFLECTION
+    unsigned char failureOutput[16],failureSaved[16];memset(failureOutput,0xa5,sizeof(failureOutput));memcpy(failureSaved,failureOutput,sizeof(failureOutput));
+    xl6ProductMemoryBegin(0);
+    assert(!xl6ValueConvertNativeScalarV2(token,XL6_NATIVE_SCALAR_ULONGLONG,REFLECTION_ID,failureOutput+1));
+    assert(!xl6ProductMemoryEnd() && xrtGetError() && xrtErrorKind(xrtGetError())==XERR_TYPE &&
+        !memcmp(failureOutput,failureSaved,sizeof(failureOutput)));xrtClearError();xl6ProductMemoryVerify();
+    assert(!xl6ValueConvertNativeScalarV2(token,XL6_NATIVE_SCALAR_UINT,0,failureOutput+1));
+    assert(xrtGetError() && xrtErrorKind(xrtGetError())==XERR_ARGUMENT && !memcmp(failureOutput,failureSaved,sizeof(failureOutput)));
+    xrtClearError();xrtValueRelease(token);
+    assert(pairs==660 && ranges==69 && reflection==20 && !xrtGetError());
     printf("native conversion profiles=20 pairs=%zu range-rejections=%zu zero-allocation unaligned transactional balanced\n",pairs,ranges);
+    puts("reflection exclusions=20 zero-allocation transactional balanced");
     return 0;
 }

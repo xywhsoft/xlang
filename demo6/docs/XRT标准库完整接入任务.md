@@ -22,6 +22,8 @@
 `c_int(var)` 等显式平台数值构造和精确 nullable 投影已接入统一
 checked IR；静态／动态使用同一安全转换，范围与专项证据见
 [C 标量显式转换与精确投影](stdlib53-b294-native-scalar-conversion.md)。
+反射令牌的 UInt 载体与数值语义已分离，规范身份及 V2 checked
+入口见 [动态数值构造的反射身份边界](stdlib53-b295-numeric-reflection-boundaries.md)。
 已证明安全构造的 IR 优化及完整发布总验收继续，不扩大隐式 C ABI
 转换或异步多返回值的设计范围。
 

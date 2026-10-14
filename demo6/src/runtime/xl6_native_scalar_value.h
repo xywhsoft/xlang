@@ -15,7 +15,9 @@ XL6_TEXT_API xvalue* xl6ValueBoxNativeScalarV1(const void*, unsigned int, uint64
 /* Safe explicit numeric conversion, distinct from lossless typed reads.
  * Input/output may be unaligned; output commits only on checked success. */
 XL6_TEXT_API bool xl6NativeScalarConvertV1(const void*,unsigned int,unsigned int,void*);
-XL6_TEXT_API bool xl6ValueConvertNativeScalarV1(const xvalue*,unsigned int,void*);
+/* Reflection identity is supplied by the verified language type map. It must
+ * be nonzero; reflection UInt carriers never enter numeric conversion. */
+XL6_TEXT_API bool xl6ValueConvertNativeScalarV2(const xvalue*,unsigned int,uint64_t,void*);
 /* A mismatch/null is absent; actual checked failures are not swallowed. */
 XL6_TEXT_API bool xl6ValueTryReadNativeScalarV1(const xvalue*,unsigned int,uint64_t,bool*,void*);
 #endif

@@ -1538,7 +1538,7 @@ static void xl6IrBuildRuntimeTypeMap(XL6_IrModule* module)
     if ( module == NULL ) return;
     map = &module->runtimeTypeMap;
     memset(map, 0, sizeof(*map));
-    map->abiVersion = 2;
+    map->abiVersion = 3;
     map->fallbackTypeValueId = xl6IrBuiltinTypeValueId("var");
     map->nullTypeValueId = xl6IrBuiltinTypeValueId("null");
     map->boolTypeValueId = xl6IrBuiltinTypeValueId("bool");
@@ -1555,6 +1555,7 @@ static void xl6IrBuildRuntimeTypeMap(XL6_IrModule* module)
     map->objectTypeValueId = xl6IrBuiltinTypeValueId("dict");
     map->u64TypeValueId = xl6IrBuiltinTypeValueId("uint64");
     map->charTypeValueId = xl6IrBuiltinTypeValueId("char");
+    map->typeTypeValueId = xl6IrBuiltinTypeValueId("type");
 }
 
 static int xl6IrVerifyRuntimeTypeMap(const XL6_IrRuntimeTypeMap* map)
@@ -49188,7 +49189,7 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
                     (unsigned long)module->cleanupActionCount,
                     (unsigned long)module->blockCount, (unsigned long)module->instructionCount);
     xl6OutputPrintf(out,
-        "  runtime-type-map version=%u fallback=0x%016llX null=0x%016llX bool=0x%016llX i64=0x%016llX u64=0x%016llX char=0x%016llX f64=0x%016llX string=0x%016llX bytes=0x%016llX time=0x%016llX pointer=0x%016llX handle=0x%016llX array=0x%016llX int-map=0x%016llX set=0x%016llX object=0x%016llX\n",
+        "  runtime-type-map version=%u fallback=0x%016llX null=0x%016llX bool=0x%016llX i64=0x%016llX u64=0x%016llX char=0x%016llX f64=0x%016llX string=0x%016llX bytes=0x%016llX time=0x%016llX pointer=0x%016llX handle=0x%016llX array=0x%016llX int-map=0x%016llX set=0x%016llX object=0x%016llX type=0x%016llX\n",
         (unsigned int)module->runtimeTypeMap.abiVersion,
         (unsigned long long)module->runtimeTypeMap.fallbackTypeValueId,
         (unsigned long long)module->runtimeTypeMap.nullTypeValueId,
@@ -49205,7 +49206,8 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
         (unsigned long long)module->runtimeTypeMap.arrayTypeValueId,
         (unsigned long long)module->runtimeTypeMap.intMapTypeValueId,
         (unsigned long long)module->runtimeTypeMap.setTypeValueId,
-        (unsigned long long)module->runtimeTypeMap.objectTypeValueId);
+        (unsigned long long)module->runtimeTypeMap.objectTypeValueId,
+        (unsigned long long)module->runtimeTypeMap.typeTypeValueId);
     for ( i = 0; i < module->types.count; ++i ) {
         const XL6_IrType* type = &module->types.items[i];
         size_t parameter;
@@ -50493,7 +50495,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPrintf(out, "  \"functionParameterCount\": %lu,\n",
                     (unsigned long)module->functionParameterCount);
     xl6OutputPrintf(out,
-        "  \"runtimeTypeMap\": {\"abiVersion\":%u,\"fallback\":\"0x%016llX\",\"null\":\"0x%016llX\",\"bool\":\"0x%016llX\",\"i64\":\"0x%016llX\",\"u64\":\"0x%016llX\",\"char\":\"0x%016llX\",\"f64\":\"0x%016llX\",\"string\":\"0x%016llX\",\"bytes\":\"0x%016llX\",\"time\":\"0x%016llX\",\"pointer\":\"0x%016llX\",\"handle\":\"0x%016llX\",\"array\":\"0x%016llX\",\"intMap\":\"0x%016llX\",\"set\":\"0x%016llX\",\"object\":\"0x%016llX\"},\n  \"types\": [\n",
+        "  \"runtimeTypeMap\": {\"abiVersion\":%u,\"fallback\":\"0x%016llX\",\"null\":\"0x%016llX\",\"bool\":\"0x%016llX\",\"i64\":\"0x%016llX\",\"u64\":\"0x%016llX\",\"char\":\"0x%016llX\",\"f64\":\"0x%016llX\",\"string\":\"0x%016llX\",\"bytes\":\"0x%016llX\",\"time\":\"0x%016llX\",\"pointer\":\"0x%016llX\",\"handle\":\"0x%016llX\",\"array\":\"0x%016llX\",\"intMap\":\"0x%016llX\",\"set\":\"0x%016llX\",\"object\":\"0x%016llX\",\"type\":\"0x%016llX\"},\n  \"types\": [\n",
         (unsigned int)module->runtimeTypeMap.abiVersion,
         (unsigned long long)module->runtimeTypeMap.fallbackTypeValueId,
         (unsigned long long)module->runtimeTypeMap.nullTypeValueId,
@@ -50510,7 +50512,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         (unsigned long long)module->runtimeTypeMap.arrayTypeValueId,
         (unsigned long long)module->runtimeTypeMap.intMapTypeValueId,
         (unsigned long long)module->runtimeTypeMap.setTypeValueId,
-        (unsigned long long)module->runtimeTypeMap.objectTypeValueId);
+        (unsigned long long)module->runtimeTypeMap.objectTypeValueId,
+        (unsigned long long)module->runtimeTypeMap.typeTypeValueId);
     for ( i = 0; i < module->types.count; ++i ) {
         const XL6_IrType* type = &module->types.items[i];
         size_t item;
