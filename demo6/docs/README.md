@@ -180,6 +180,7 @@
 - `stdlib53-b273-char-dynamic-checked.md`：动态 char 构造／类型断言、独立成功状态、双端 107 项与 52 个 IR 变异；原生插桩、错误实现对照和 typed 裁剪通过，完整总门继续。
 - `stdlib53-b274-stack-dynamic-batch.md`：Stack 动态批量／equals、IR 结果 Array 身份和 checked 清理；双端 85 项、81 个 IR 变异与完整 OOM 前缀通过，动态 try／容器转换及总门继续。
 - `stdlib53-b275-stack-try-multivalue-native.md`：Stack try 原生双结果拥有底座；双端 84 项、18 条前缀及八个错误实现对照通过，语言多值接收和 product IR 仍继续。
+- `stdlib53-b276-dynamic-function-products.md`：动态函数的上下文 product 与独立成功状态；双端 85 项、30 个 IR 变异和完整同步前缀通过，动态方法／绑定方法及 nullable 编解码继续。
 - `XRT与xlang系统整合任务.md`：当前长期整合范围、快照契约、实施顺序和 HTTP/WebSocket 快慢路径边界。
 - `扩展库开发问题清单.md`：六轮扩展库批次发现的语言/编译器/运行时问题账本（P0 崩溃类到 P4 C 库兼容），含最小复现、规避方案与修复优先级。
 - `剩余未压实扩展库清单.md`：删除 22 个占位库后 109 个未压实包的处置规划视图（按编解码改造/平台收编/真外部服务/迁移队列分类）。

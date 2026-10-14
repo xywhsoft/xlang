@@ -1,0 +1,6 @@
+func pair() as (int, int)
+    return 0, 0
+end
+var invoke = xcall(pair)
+auto left, right = invoke()
+assert int(left) == 0 and int(right) == 0

@@ -350,8 +350,7 @@ static int xl6IrCgenRuntimeCallableFromClosureAbi(
          xl6IrTypeGet(&module->types, instruction->calleeType)->callableErasureAbi !=
              instruction->callableErasureAbi ||
          xl6IrTypeGet(&module->types, instruction->type) == NULL ||
-         xl6IrTypeGet(&module->types, instruction->type)->cAbi !=
-             XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) return 0;
+         xl6IrTypeGet(&module->types, instruction->type)->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) return 0;
     closure = xl6IrCgenValueDefinition(
         module, module->operands[instruction->firstOperand], NULL);
     return closure != NULL && closure->type == instruction->calleeType;
@@ -740,13 +739,15 @@ static int xl6IrCgenRuntimeDynamicCallAbi(
          instruction->opcode != XL6_IR_OPCODE_INVALID ||
          instruction->dynamicCallSite >= module->dynamicCallSiteCount ||
          xl6IrTypeGet(&module->types, instruction->type) == NULL ||
-         xl6IrTypeGet(&module->types, instruction->type)->cAbi !=
-             XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) return 0;
+         !(xl6IrTypeGet(&module->types, instruction->type)->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+           (instruction->dynamicCallResultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT &&
+            xl6IrDynamicProductType(module,instruction->type))) ) return 0;
     site = &module->dynamicCallSites[instruction->dynamicCallSite];
     if ( site->resultType != instruction->type ||
          !(site->kind == XL6_IR_DYNAMIC_CALL_MEMBER_SET
              ? site->resultAbi == XL6_IR_DYNAMIC_CALL_RESULT_OWNED_UNIT_VALUE
              : site->resultAbi == XL6_IR_DYNAMIC_CALL_RESULT_OWNED_FIRST_VALUE ||
+               (site->kind == XL6_IR_DYNAMIC_CALL_FUNCTION && site->resultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT) ||
                (site->kind == XL6_IR_DYNAMIC_CALL_FUNCTION &&
                 site->resultAbi == XL6_IR_DYNAMIC_CALL_RESULT_DISCARD_TO_OWNED_UNIT)) ||
          site->evaluationOrder != (site->kind == XL6_IR_DYNAMIC_CALL_MEMBER_SET

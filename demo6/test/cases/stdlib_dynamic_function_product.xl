@@ -1,0 +1,20 @@
+func pair(string input) as (bool, string)
+    return false, input
+end
+var invoke = xcall(pair)
+auto present, text = invoke("a\0你")
+assert not bool(present) and string(text) == "a\0你"
+present, text = invoke("second")
+assert not bool(present) and string(text) == "second"
+auto _, onlyText = invoke("discard")
+assert string(onlyText) == "discard"
+auto keywordFlag, keywordText = invoke(input = "keyword\0tail")
+assert not bool(keywordFlag) and string(keywordText) == "keyword\0tail"
+
+func six() as (bool, int, char, bytes, string, var)
+    return false, 0, '\0', b"\0\xff", "a\0你", null
+end
+var many = xcall(six)
+auto flag, zero, scalar, octets, unicode, absent = many()
+assert not bool(flag) and int(zero) == 0 and char(scalar) == '\0'
+assert (octets as bytes) == b"\0\xff" and string(unicode) == "a\0你" and absent == null

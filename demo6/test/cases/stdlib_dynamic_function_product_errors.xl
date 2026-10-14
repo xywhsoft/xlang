@@ -1,0 +1,24 @@
+func one() as string
+    return "one"
+end
+func three() as (int, int, string)
+    return 1, 2, "extra"
+end
+var shortCall = xcall(one)
+var longCall = xcall(three)
+var left = "unchanged-left"
+var right = "unchanged-right"
+bool caught = false
+try
+    left, right = shortCall()
+catch TypeError failure
+    caught = true
+end
+assert caught and string(left) == "unchanged-left" and string(right) == "unchanged-right"
+caught = false
+try
+    left, right = longCall()
+catch TypeError failure
+    caught = true
+end
+assert caught and string(left) == "unchanged-left" and string(right) == "unchanged-right"

@@ -4,6 +4,12 @@ static int xl6IrCgenEmitResourceRuntime(
 {
     size_t i;
     size_t parameter;
+    for(size_t instruction=0;instruction<module->instructionCount;++instruction)
+        if(xl6IrCgenInstructionIsReachable(module,instruction) &&
+           module->instructions[instruction].runtimeOp==XL6_IR_RUNTIME_XVALUE_DYNAMIC_CALL &&
+           module->instructions[instruction].dynamicCallResultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT) {
+            xl6OutputPuts("#include <__xl_runtime/xl6_dynamic_product.h>\n",out); break;
+        }
     int nativeQueue=needs->needsSpscQueueRuntime || needs->needsMpscQueueRuntime || needs->needsMpmcQueueRuntime || needs->needsWaitQueueRuntime;
     if (needs->needsCharValueCheckedRuntime)
         xl6OutputPuts("#include <__xl_runtime/xl6_char_checked.h>\n",out);

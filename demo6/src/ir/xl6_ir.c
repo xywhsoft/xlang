@@ -12635,6 +12635,23 @@ static int xl6IrTypeIsErasedCallable(const XL6_IrType* type)
         type->nominalSymbol == XL6_SYMBOL_ID_INVALID;
 }
 
+int xl6IrDynamicProductType(const XL6_IrModule* module,XL6_IrTypeId id)
+{
+    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,id) : NULL;
+    if(!type || type->kind!=XL6_IR_TYPE_TUPLE || type->cAbi!=XL6_IR_C_ABI_PRODUCT ||
+       type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED || type->paramCount<2 || !type->params) return 0;
+    for(size_t i=0;i<type->paramCount;++i)
+        if(type->params[i]!=type->params[0] || !xl6IrTypeIsOpenDynamicBuiltin(module,xl6IrTypeGet(&module->types,type->params[i]))) return 0;
+    return 1;
+}
+XL6_IrTypeId xl6IrDynamicCallValueType(const XL6_IrModule* module,const XL6_IrDynamicCallSite* site)
+{
+    if(!module || !site) return XL6_IR_TYPE_INVALID;
+    if(xl6IrTypeIsOpenDynamicBuiltin(module,xl6IrTypeGet(&module->types,site->resultType))) return site->resultType;
+    if(site->resultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT && xl6IrDynamicProductType(module,site->resultType))
+        return xl6IrTypeGet(&module->types,site->resultType)->params[0];
+    return XL6_IR_TYPE_INVALID;
+}
 XL6_IrDynamicCallResultAbi xl6IrDynamicCallExpectedResultAbi(
     const XL6_IrModule* module, const XL6_IrDynamicCallSite* site)
 {
@@ -12644,6 +12661,14 @@ XL6_IrDynamicCallResultAbi xl6IrDynamicCallExpectedResultAbi(
     if (site->kind == XL6_IR_DYNAMIC_CALL_MEMBER_SET) return XL6_IR_DYNAMIC_CALL_RESULT_OWNED_UNIT_VALUE;
     call = xl6IrNodeGet(module, site->origin);
     parent = call != NULL ? xl6IrNodeGet(module, call->parent) : NULL;
+    if(parent && call && (site->kind==XL6_IR_DYNAMIC_CALL_FUNCTION || site->kind==XL6_IR_DYNAMIC_CALL_METHOD) &&
+       (parent->sourceKind==XL6_AST_MULTI_VAR_DECL || parent->sourceKind==XL6_AST_MULTI_ASSIGN)) {
+        const XL6_IrNode* bindings=parent->childCount==2 ? xl6IrNodeGet(module,module->children[parent->firstChild]) : NULL;
+        const XL6_IrType* product=xl6IrTypeGet(&module->types,site->resultType);
+        return bindings && bindings->kind==XL6_IR_NODE_LIST &&
+            module->children[parent->firstChild+1]==site->origin && xl6IrDynamicProductType(module,site->resultType) &&
+            product->paramCount==bindings->childCount ? XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT : XL6_IR_DYNAMIC_CALL_RESULT_INVALID;
+    }
     if (site->kind == XL6_IR_DYNAMIC_CALL_FUNCTION && parent != NULL &&
         parent->sourceKind == XL6_AST_EXPR_STMT && parent->childCount == 1 &&
         module->children[parent->firstChild] == site->origin)
@@ -20994,6 +21019,9 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     XL6_IrCallErrorPhysicalAbi stringAbi;
     if (instruction == NULL || instruction->kind != XL6_IR_INSTR_RUNTIME_CALL)
         return XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
+    if((instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DYNAMIC_CALL || instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DYNAMIC_METHOD_CALL) &&
+       instruction->dynamicCallResultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT)
+        return xl6IrDynamicProductType(module,instruction->type) ? XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT : XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
     stringAbi=xl6IrChannelInstructionErrorPhysicalAbi(instruction->runtimeOp);
     if (stringAbi!=XL6_IR_CALL_ERROR_PHYSICAL_INVALID) return stringAbi;
     if (xl6IrConcurrentQueueInstructionType(module,instruction))
@@ -34242,7 +34270,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                   site->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
                  !(xl6IrTypeIsOpenDynamicBuiltin(module, subjectType) ||
                    xl6IrTypeIsErasedCallable(subjectType)) ||
-                 !xl6IrTypeIsOpenDynamicBuiltin(module, resultType) )
+                 !(xl6IrTypeIsOpenDynamicBuiltin(module, resultType) ||
+                   (site->resultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT && xl6IrDynamicProductType(module,site->resultType))) )
                 return xl6IrDiag(diags, call,
                     "XLIR dynamic call has no exact erased subject, owned result or failure ABI");
             if ( site->kind == XL6_IR_DYNAMIC_CALL_FUNCTION ) {
@@ -44009,7 +44038,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              instruction->targetValue != XL6_IR_VALUE_INVALID ||
                              instruction->calleeType != XL6_IR_TYPE_INVALID ||
                              instruction->opcode != XL6_IR_OPCODE_INVALID || left == NULL ||
-                             !xl6IrTypeIsRuntimeXValue(module, instruction->type) ||
+                             !(xl6IrTypeIsRuntimeXValue(module, instruction->type) ||
+                               (site->resultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT && xl6IrDynamicProductType(module,instruction->type))) ||
                              !xl6IrTypeIsRuntimeXValue(module, left->type) )
                             return xl6IrDiag(diags, NULL,
                                 "XLIR runtime dynamic call has no linked subject, frame and owned result ABI");
@@ -45959,6 +45989,7 @@ static const char* xl6IrDynamicCallResultAbiName(
         return "owned-unit-value";
     case XL6_IR_DYNAMIC_CALL_RESULT_DISCARD_TO_OWNED_UNIT:
         return "discard-to-owned-unit";
+    case XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT: return "owned-product";
     default: return "invalid";
     }
 }

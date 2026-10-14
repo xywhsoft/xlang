@@ -25793,8 +25793,9 @@ static XL6_IrValueId xl6IrLowerDynamicCall(
         ? xl6IrNodeGet(ctx->module, ctx->module->children[call->firstChild]) : call;
     size_t phase, i;
     site = xl6IrLowerDynamicCallSiteGet(ctx->module, id, &siteIndex);
+    XL6_IrTypeId valueType=xl6IrDynamicCallValueType(ctx->module,site);
     if (call == NULL || destination == NULL || site == NULL || siteIndex == SIZE_MAX ||
-        !xl6IrLowerTypeIsRuntimeXValue(ctx->module, site->resultType) ||
+        !xl6IrLowerTypeIsRuntimeXValue(ctx->module, valueType) ||
         site->resultType != destination->storageType ||
         site->resultAbi != xl6IrDynamicCallExpectedResultAbi(ctx->module, site) ||
         site->evaluationOrder != (writing ? XL6_IR_DYNAMIC_CALL_ARGUMENTS_FIRST : XL6_IR_DYNAMIC_CALL_SUBJECT_FIRST) ||
@@ -25806,6 +25807,10 @@ static XL6_IrValueId xl6IrLowerDynamicCall(
         (writing != (site->kind == XL6_IR_DYNAMIC_CALL_MEMBER_SET)) ||
         xl6IrLowerExitPlan(ctx, id, XL6_SEM_EXIT_THROW) == NULL) {
         xl6IrLowerDiag(ctx, id, "XLIR dynamic call has no verified evaluation, frame and outcome descriptor");
+        return XL6_IR_VALUE_INVALID;
+    }
+    if(site->resultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT && site->kind!=XL6_IR_DYNAMIC_CALL_FUNCTION) {
+        xl6IrLowerDiag(ctx,id,"XLIR dynamic multi-result method needs its complete vector dispatcher ABI");
         return XL6_IR_VALUE_INVALID;
     }
     operands = (XL6_IrValueId*)xrtCalloc(site->argumentCount + 1, sizeof(*operands));
@@ -25839,10 +25844,10 @@ static XL6_IrValueId xl6IrLowerDynamicCall(
                     goto done;
                 }
                 operands[i + 1] = xl6IrLowerNodeAsRuntimeXValue(
-                    ctx, id, binding->expression, expression, site->resultType);
+                    ctx, id, binding->expression, expression, valueType);
                 if (operands[i + 1] == XL6_IR_VALUE_INVALID) goto done;
                 operands[i + 1] = xl6IrLowerProtectEvaluationValue(
-                    ctx, binding->expression, site->resultType, operands[i + 1]);
+                    ctx, binding->expression, valueType, operands[i + 1]);
                 if (operands[i + 1] == XL6_IR_VALUE_INVALID) goto done;
             }
             argumentOwnerLast = ctx->evaluationOwnerCount;

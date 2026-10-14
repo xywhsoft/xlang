@@ -210,16 +210,23 @@ static int xl6IrCgenEmitAsyncRuntimeInstruction(
                                     site->positionalCount + argument]);
                         xl6OutputPuts("};\n", out);
                     }
-                    xl6OutputPrintf(out, "    v%u = ",
-                        (unsigned int)instruction->result);
+                    int product=site->resultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT;
+                    if(product) {
+                        const XL6_IrType* resultType=xl6IrTypeGet(&module->types,site->resultType);
+                        xl6OutputPrintf(out,"    v%u = (%s){0};\n",(unsigned)instruction->result,xl6IrCgenType(module,site->resultType));
+                        xl6OutputPrintf(out,"    xvalue** dpo%lu[%lu] = {",(unsigned long)instructionIndex,(unsigned long)resultType->paramCount);
+                        for(size_t field=0;field<resultType->paramCount;++field)
+                            xl6OutputPrintf(out,"%s&v%u.e%lu",field?", ":"",(unsigned)instruction->result,(unsigned long)field);
+                        xl6OutputPuts("};\n",out);
+                        xl6OutputPrintf(out,"    bool projection_ok_%u = ",(unsigned)instruction->result);
+                    } else xl6OutputPrintf(out, "    v%u = ",(unsigned int)instruction->result);
                     if ( instruction->runtimeOp ==
                              XL6_IR_RUNTIME_XVALUE_DYNAMIC_METHOD_CALL )
                         xl6OutputPrintf(out,
                             "xlir_dynamic_method_call_d%lu(",
                             (unsigned long)instruction->dynamicCallSite);
-                    else
-                        xl6OutputPuts(
-                            "xlir_xvalue_dynamic_call_owned(", out);
+                    else if(product) xl6OutputPuts("xl6DynamicFunctionProductTakeV1(",out);
+                    else xl6OutputPuts("xlir_xvalue_dynamic_call_owned(", out);
                     xl6OutputPrintf(out, "v%u, %lu, ",
                         (unsigned int)module->operands[
                             instruction->firstOperand],
@@ -233,7 +240,9 @@ static int xl6IrCgenEmitAsyncRuntimeInstruction(
                         xl6OutputPrintf(out, "dkn%lu, dkv%lu",
                             (unsigned long)instructionIndex, (unsigned long)instructionIndex);
                     else xl6OutputPuts("NULL, NULL", out);
-                    if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_DYNAMIC_CALL)
+                    if(product)
+                        xl6OutputPrintf(out,", %lu, dpo%lu",(unsigned long)xl6IrTypeGet(&module->types,site->resultType)->paramCount,(unsigned long)instructionIndex);
+                    else if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_DYNAMIC_CALL)
                         xl6OutputPuts(site->resultAbi == XL6_IR_DYNAMIC_CALL_RESULT_DISCARD_TO_OWNED_UNIT
                             ? ", true" : ", false", out);
                     xl6OutputPuts(");\n", out);

@@ -16761,6 +16761,25 @@ static int xl6SemTypeCanAssignFromType(XL6_SemContext* ctx, const XL6_AstNode* v
     return xl6SemTypeEquals(ctx, valueType, targetType);
 }
 
+/* Dynamic return shape comes from the receiving context, not a member name.
+ * Each result stays var; the runtime must check the exact requested arity. */
+static XL6_AstNode* xl6SemContextualDynamicReturns(XL6_AstNode* expr,size_t count)
+{
+    if(!expr || count<2 || (expr->semanticCallKind!=XL6_SEM_CALL_DYNAMIC_FUNCTION &&
+       expr->semanticCallKind!=XL6_SEM_CALL_DYNAMIC_METHOD)) return NULL;
+    XL6_AstNode* returns=xl6AstNew(XL6_AST_LIST,NULL);
+    if(!returns) return NULL;
+    for(size_t i=0;i<count;++i) {
+        XL6_AstNode* type=xl6AstNewText(XL6_AST_TYPE,"var",3,NULL);
+        if(!type) { xl6AstFree(returns); return NULL; }
+        xl6AstAddChild(returns,type);
+    }
+    XL6_AstNode* product=xl6SemTupleTypeFromReturns(returns,expr);
+    if(!product) { xl6AstFree(returns); return NULL; }
+    xl6AstFree(expr->inferredType); expr->inferredType=product;
+    return returns;
+}
+
 static int xl6SemCheckMultiVarDeclWithKind(
     XL6_SemContext* ctx, XL6_AstNode* node, XL6_SymbolKind valueKind)
 {
@@ -16780,6 +16799,7 @@ static int xl6SemCheckMultiVarDeclWithKind(
     }
     ownedReturnType = NULL;
     returns = xl6SemCallReturnTypesEx(ctx, expr, &ownedReturnType);
+    if(!returns && names) returns=ownedReturnType=xl6SemContextualDynamicReturns(expr,names->childCount);
     if ( returns == NULL || returns->childCount <= 1 ) {
         xl6SemErrorNode(ctx, expr != NULL ? expr : node, "多返回值声明右侧必须是多返回值函数调用");
         ok = 0;
@@ -17937,6 +17957,7 @@ static int xl6SemCheckMultiAssign(XL6_SemContext* ctx, XL6_AstNode* node)
     }
     ownedReturnType = NULL;
     returns = xl6SemCallReturnTypesEx(ctx, expr, &ownedReturnType);
+    if(!returns && targets) returns=ownedReturnType=xl6SemContextualDynamicReturns(expr,targets->childCount);
     if ( returns == NULL || returns->childCount <= 1 ) {
         xl6SemErrorNode(ctx, expr != NULL ? expr : node, "多返回值赋值右侧必须是多返回值函数调用");
         ok = 0;
