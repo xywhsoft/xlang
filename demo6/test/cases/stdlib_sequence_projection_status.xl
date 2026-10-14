@@ -1,0 +1,4 @@
+array<int> source = array<int>[1]
+var dynamicSource = source
+array<int> result = dynamicSource as array<int>
+assert result[0] == 1

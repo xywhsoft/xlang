@@ -2131,6 +2131,7 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT,
     XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT,
     XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT,
+    XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -2379,6 +2380,8 @@ typedef enum XL6_IrCastAbi {
     XL6_IR_CAST_NULLABLE_NATIVE_VALUE_TO_VALUE_CHECKED,
     XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_VALUE_TRY,
     XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED,
+    XL6_IR_CAST_XVALUE_TO_SEQUENCE_CHECKED,
+    XL6_IR_CAST_XVALUE_TO_NULLABLE_SEQUENCE_TRY,
     XL6_IR_CAST_COUNT
 } XL6_IrCastAbi;
 
@@ -7544,5 +7547,8 @@ const XL6_IrNativeValuePlan* xl6IrNativeValueInstructionPlan(
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeNativeValueErrorPhysicalAbi(XL6_IrRuntimeOp);
 int xl6IrCheckedFloatConversionSignature(const XL6_IrModule*,
     const XL6_IrType*, const XL6_IrType*, XL6_IrCastAbi);
+int xl6IrSequenceProjectionTarget(const XL6_IrModule*,XL6_IrTypeId,
+    XL6_IrTypeId*,XL6_IrSequenceRoleAbi*,XL6_IrNominalIdentitySetId*);
+int xl6IrSequenceProjectionInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 
 #endif

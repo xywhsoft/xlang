@@ -2,6 +2,11 @@
 
 ## 1. 目标
 
+Array／Stack 的动态投影已接通精确 owner、角色、布局和完整元素策略，
+不复制或重标记源对象；nullable 错配与真实失败明确区分。见
+[Array 与 Stack 的动态类型投影](stdlib53-b281-sequence-projection.md)。
+List／Set／Dict／Tree 等其余容器转换和发布总验收仍在完整目标内。
+
 既有 Stack／Sequence 驻留接口的精确归属及源码构建绑定见
 [驻留导出归属与源码构建校验](stdlib53-b280-resident-registration.md)。
 

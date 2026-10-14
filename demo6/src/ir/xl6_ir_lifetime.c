@@ -13,6 +13,7 @@ static int xl6IrRuntimePreservesLoans(XL6_IrRuntimeOp operation)
 {
     switch (operation) {
     case XL6_IR_RUNTIME_STRING_DUP:
+    case XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED:
     case XL6_IR_RUNTIME_STRING_COPY:
     case XL6_IR_RUNTIME_NATIVE_VALUE_COPY:
     case XL6_IR_RUNTIME_NATIVE_VALUE_EQUAL:

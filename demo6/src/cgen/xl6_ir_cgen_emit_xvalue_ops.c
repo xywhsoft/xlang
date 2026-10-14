@@ -4,6 +4,8 @@ static int xl6IrCgenEmitXValueOperationRuntime(
 {
     size_t i;
     size_t parameter;
+    if (needs->needsSequenceProjection)
+        xl6OutputPuts("extern bool xl6SequenceProjectionWitnessTakeV1(xvalue*, unsigned int, const xvalue*, bool, xvalue**);\n",out);
     if (needs->needsExplicitF32Text)
         xl6OutputPuts("extern bool xl6Float32TextConvertV1(xstrview, float*);\n",out);
     if (needs->needsExplicitF32Value)

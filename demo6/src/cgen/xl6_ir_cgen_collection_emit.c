@@ -559,6 +559,18 @@ static int xl6IrCgenEmitStackRuntime(
     const char* payloadAbi;
     const char* runtimeType;
     XL6_IrValueId first;
+    if (instruction && instruction->runtimeOp==XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED) {
+        XL6_IrSequenceRoleAbi role=XL6_IR_SEQUENCE_ROLE_NONE;
+        if (!xl6IrSequenceProjectionInstructionCompatible(module,instruction) ||
+            !xl6IrSequenceProjectionTarget(module,instruction->type,NULL,&role,NULL)) return -1;
+        XL6_IrValueId seed=module->operands[instruction->firstOperand];
+        XL6_IrValueId source=module->operands[instruction->firstOperand+1];
+        xl6OutputPrintf(out,"    v%u = NULL;\n    bool projection_ok_%u = xl6SequenceProjectionWitnessTakeV1(v%u, %u, v%u, %s, &v%u);\n    v%u = NULL;\n",
+            (unsigned)instruction->result,(unsigned)instruction->result,(unsigned)seed,(unsigned)role,(unsigned)source,
+            instruction->castAbi==XL6_IR_CAST_XVALUE_TO_NULLABLE_SEQUENCE_TRY ? "true" : "false",
+            (unsigned)instruction->result,(unsigned)seed);
+        return xl6OutputHasFailed(out) ? -1 : 1;
+    }
     if (instruction && instruction->runtimeOp==XL6_IR_RUNTIME_STACK_ERASE) {
         if (!xl6IrStackErasureInstructionCompatible(module,instruction)) return -1;
         const XL6_IrType* sealed=xl6IrTypeGet(&module->types,instruction->runtimeIdentityType);

@@ -1,0 +1,40 @@
+array<int> original = array<int>[1, 2]
+var erased = original
+array<int> projected = erased as array<int>
+projected[0] = 9
+assert original[0] == 9 and projected.length == 2
+array<int>? optional = erased as array<int>?
+assert optional != null and (optional as array<int>)[1] == 2
+array<int8>? wrongWidth = erased as array<int8>?
+assert wrongWidth == null
+bool caught = false
+try
+    erased as array<int8>
+catch TypeError failure
+    caught = true
+end
+assert caught and original[0] == 9
+
+Stack<string> stack = Stack::<string>()
+stack.push("a\0你")
+var dynamicStack = stack
+Stack<string> sameStack = dynamicStack as Stack<string>
+assert sameStack.pop() == "a\0你" and stack.count() == 0
+Stack<string>? optionalStack = dynamicStack as Stack<string>?
+assert optionalStack != null
+array<string>? wrongRole = dynamicStack as array<string>?
+assert wrongRole == null
+Stack<int>? wrongDomain = dynamicStack as Stack<int>?
+assert wrongDomain == null
+var scalar = 17
+array<int>? absent = scalar as array<int>?
+assert absent == null
+var nil = null
+Stack<int>? missing = nil as Stack<int>?
+assert missing == null
+
+func temporary() as var
+    return array<int>[7, 8]
+end
+array<int> fresh = temporary() as array<int>
+assert fresh[1] == 8

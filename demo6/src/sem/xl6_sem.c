@@ -7385,6 +7385,7 @@ static int xl6SemRuntimeCastTargetSupported(XL6_SemContext* ctx, const XL6_AstNo
         return 1;
     }
     if ( xl6SemRuntimeResourceCastTarget(ctx, concreteType) ) return 1;
+    if (xl6TextEquals(name,"array") && concreteType->childCount==1) return 1;
     typeInfo = xl6TypeRegistryFind(&ctx->types, name);
     if (typeInfo && typeInfo->kind == XL6_TYPE_BUILTIN &&
         xl6TypeRegistryIsNativeValueAbi(typeInfo->abiId))
@@ -7487,7 +7488,11 @@ static int xl6SemCheckRuntimeTypeExpr(XL6_SemContext* ctx, XL6_AstNode* node, in
     } else if ( xl6SemRuntimeResourceCastTarget(ctx, effectiveTarget) ) {
         /* Resource handles are invariant. This is exact identity/lift/unwrap,
          * not a dynamic projection or a change of generic element domain. */
-        if ( effectiveSource == NULL ||
+        if ( effectiveSource != NULL && xl6TextEquals(effectiveSource->text,"var") &&
+             effectiveTarget != NULL && xl6TextEquals(effectiveTarget->text,"Stack")) {
+            /* A dynamic Stack projection keeps identity and the full generic
+             * domain. XLIR owns its sealed schema and checked failure edge. */
+        } else if ( effectiveSource == NULL ||
              !xl6SemTypeEquals(ctx, effectiveSource, effectiveTarget) ) {
             xl6SemErrorNode(ctx, value,
                 "[CAST-RESOURCE-IDENTITY] resource as requires the same complete source and target type");
