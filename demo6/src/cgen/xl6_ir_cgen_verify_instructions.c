@@ -156,7 +156,10 @@ static int xl6IrCgenVerifyInstructions(
                        instruction->runtimeOp) &&
                    !xl6IrCgenPrimitiveSequenceRuntimeAbi(
                        module, instruction)) ||
-                  (instruction->runtimeOp == XL6_IR_RUNTIME_STRING_TO_F64_CHECKED &&
+                  ((instruction->runtimeOp == XL6_IR_RUNTIME_STRING_TO_F64_CHECKED ||
+                    instruction->runtimeOp == XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT ||
+                    instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT ||
+                    instruction->runtimeOp == XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT) &&
                    !xl6IrCgenRuntimeCheckedFloatConvertAbi(module, instruction)) ||
                   ((instruction->runtimeOp == XL6_IR_RUNTIME_STRING_TO_TIME_CHECKED ||
                     instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_TIME_CHECKED) &&
@@ -583,6 +586,9 @@ static int xl6IrCgenVerifyInstructions(
                      instruction->runtimeOp != XL6_IR_RUNTIME_STRING_COPY &&
                      instruction->runtimeOp != XL6_IR_RUNTIME_STRING_NULLABLE_COPY &&
                      instruction->runtimeOp != XL6_IR_RUNTIME_STRING_TO_F64_CHECKED &&
+                     instruction->runtimeOp != XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT &&
+                     instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT &&
+                     instruction->runtimeOp != XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT &&
                      instruction->runtimeOp != XL6_IR_RUNTIME_STRING_TO_TIME_CHECKED &&
                      instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_TO_TIME_CHECKED &&
                      instruction->runtimeOp != XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED &&

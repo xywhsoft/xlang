@@ -7,6 +7,10 @@ lowering 阶段明确拒绝，不能被 XLIR Cgen 回溯为 AST/HIR 或暗中调
 
 ## Open 动态字段恢复的语言验收
 
+动态 float32 构造和 C 标量／type profile 装箱已保存独立的规范
+合同，string／Value／double 转换按来源分区，并使用成功状态输出。
+相关专项与总验收边界见 [动态标量装箱与 float32 显式转换](stdlib53-b279-scalar-conversion.md)。
+
 2026-10-10：受支持 JSON/XLON Open 恢复图切换驻留事务。XLIR 保存并
 独立验证计长静态键、存储 clone、错误物理 ABI 和隐式调用可达性；Cgen
 只发数据与物理适配，不重建赋值语义。双端各 96 语言恢复、82 驻留和

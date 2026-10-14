@@ -8177,9 +8177,8 @@ static XL6_IrValueId xl6IrLowerCast(
     }
 }
 
-/* A checked float intrinsic has two closed partitions: borrowed-string parse
- * (castAbi INVALID) and exact open-xvalue cast.  The latter delegates to the
- * shared Cast ABI carrier; neither branch inspects source spelling. */
+/* F64 retains its exact projection/string parse partitions. F32 construction
+ * has a separate explicit conversion, with borrowed input and status output. */
 static int xl6IrLowerIntrinsicCheckedFloatConvert(
     XL6_IrLowerContext* ctx, XL6_IrNodeId id, const XL6_IrNode* call,
     const XL6_IrIntrinsicCall* intrinsic, XL6_IrValueId* result)
@@ -8212,9 +8211,9 @@ static int xl6IrLowerIntrinsicCheckedFloatConvert(
     errorPlan = xl6IrLowerExitPlan(ctx, id, XL6_SEM_EXIT_THROW);
     if ( source == NULL || sourceType == NULL || resultType == NULL ||
          binding->type != source->storageType ||
-         binding->abi != XL6_IR_INTRINSIC_OPERAND_BORROW ||
-         resultType->cAbi != XL6_IR_C_ABI_F64 ||
-         resultType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+         binding->abi != (sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
+            ? XL6_IR_INTRINSIC_OPERAND_BORROW : XL6_IR_INTRINSIC_OPERAND_VALUE) ||
+         !xl6IrCheckedFloatConversionSignature(ctx->module, sourceType, resultType, intrinsic->castAbi) ||
          errorPlan == NULL ) {
         xl6IrLowerDiag(ctx, id,
             "XLIR builtin float conversion has no resolved checked source, result and failure ABI");
@@ -8232,22 +8231,29 @@ static int xl6IrLowerIntrinsicCheckedFloatConvert(
             intrinsic->castAbi, intrinsic->errorAbi);
         return 1;
     }
-    if ( intrinsic->castAbi != XL6_IR_CAST_INVALID ||
+    if ( resultType->cAbi != XL6_IR_C_ABI_F32 && (intrinsic->castAbi != XL6_IR_CAST_INVALID ||
          sourceType->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
          sourceType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-         sourceType->kind == XL6_IR_TYPE_NULLABLE ) {
+         sourceType->kind == XL6_IR_TYPE_NULLABLE) ) {
         xl6IrLowerDiag(ctx, id,
             "XLIR builtin float conversion has no exact string-parse ABI");
         return 1;
     }
     operand = xl6IrLowerNode(ctx, binding->expression);
     if ( operand == XL6_IR_VALUE_INVALID ) return 1;
-    operand = xl6IrLowerBorrowManagedStringOperand(
-        ctx, id, source, operand, &temporary);
+    if (sourceType->cAbi == XL6_IR_C_ABI_MANAGED_STRING)
+        operand = xl6IrLowerBorrowManagedStringOperand(ctx, id, source, operand, &temporary);
+    else if (sourceType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR)
+        operand = xl6IrLowerBorrowRuntimeXValueOperand(ctx, id, source, operand, &temporary);
     if ( operand == XL6_IR_VALUE_INVALID ) return 1;
     *result = xl6IrLowerEmitRuntimeCall(
         ctx, id, call->storageType,
-        XL6_IR_RUNTIME_STRING_TO_F64_CHECKED, &operand, 1);
+        resultType->cAbi == XL6_IR_C_ABI_F32
+            ? (sourceType->cAbi == XL6_IR_C_ABI_MANAGED_STRING
+                ? XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT
+                : (sourceType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR
+                    ? XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT : XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT))
+            : XL6_IR_RUNTIME_STRING_TO_F64_CHECKED, &operand, 1);
     if ( *result == XL6_IR_VALUE_INVALID ||
          !xl6IrLowerNewBlock(ctx, &successBlock) ||
          !xl6IrLowerNewBlock(ctx, &failureBlock) ||

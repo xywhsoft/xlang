@@ -10,6 +10,7 @@ def main():
     for name in ('root','public-directory','out'): p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--methods',action='store_true',help='Also verify dynamic method vectors and native Stack try roles.')
     p.add_argument('--nullable',action='store_true',help='Also verify typed nullable callable payload/presence plans.')
+    p.add_argument('--scalars',action='store_true',help='Also verify native scalar boxing and explicit F32 conversions.')
     p.add_argument('--sanitize',action='store_true',help='Instrument generated strict C and hosts on Linux, not the linked compiler/runtime providers.')
     a=p.parse_args(); root=a.root.resolve(); public=a.public_directory.resolve(); out=a.out.resolve()
     assert not out.exists(); build,pinned,compared=verify_public_build(root,public)
@@ -20,21 +21,25 @@ def main():
         'stdlib_stack_dynamic_try.pending',*names)
     if a.nullable:names=('stdlib_callable_nullable','stdlib_callable_nullable_domains','stdlib_callable_nullable_errors','stdlib_callable_nullable_ownership','stdlib_callable_nullable_unused',
         'stdlib_callable_scalars','stdlib_callable_integer_domains','stdlib_callable_native_scalars',*names)
+    if a.scalars:names=('stdlib_dynamic_scalar_boxing','stdlib_dynamic_f32_conversion','stdlib_dynamic_f32_status',*names)
     fixtures=[(project if name.startswith(('stdlib_dynamic_function_','stdlib_dynamic_method_')) else root)/'test/cases'/(name+'.xl') for name in names]
     contract=project/'test/support/dynamic_product_contract.c'; faultHost=project/'test/support/dynamic_product_status_host.c'
     methodFaultHost=project/'test/support/dynamic_method_product_status_host.c'
     nullableContract=project/'test/support/callable_nullable_contract.c'
+    floatContract=project/'test/support/float_conversion_contract.c'; floatHost=project/'test/support/float_conversion_status_host.c'
+    floatRuntime=project/'test/support/float_conversion_runtime.c'
     host=root/'test/cases/xlir_module_product_oom_host.c'; memory=root/'test/support/module_product_memory.c'
     native=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(cc),Path(nm),*fixtures,contract,faultHost,host,memory,native))
     if a.methods:pinned.add(methodFaultHost)
     if a.nullable:pinned.add(nullableContract)
+    if a.scalars:pinned.update((floatContract,floatHost,floatRuntime))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]; out.mkdir(parents=True)
     rows=[]; prefixes=[]; products=[]; env=dict(os.environ); suffix='.exe' if os.name=='nt' else ''
     report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Rows=rows,ClosedPrefixes=prefixes,
         Products=products,ComparedSources=compared,DynamicFunctionProductAcceptance=False,DynamicMethodProductAcceptance=False,Full53Acceptance=False,
         ShippingLibraryAcceptance=False,MethodProductsRequested=a.methods,NullableCallableRequested=a.nullable,NullableCallableAcceptance=False,
-        GeneratedInstrumented=a.sanitize,RuntimeInstrumented=False,Scope=__doc__)
+        GeneratedInstrumented=a.sanitize,RuntimeInstrumented=False,ScalarConversionsRequested=a.scalars,ScalarConversionsAcceptance=False,Scope=__doc__)
     if os.name=='nt': shutil.copy2(native,out/'xl.dll')
     else: env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
     flags=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED',
@@ -44,7 +49,7 @@ def main():
         '-Wno-missing-field-initializers','-Wno-pointer-sign']
     if os.name!='nt': flags+=['-D_GNU_SOURCE']
     if a.sanitize:
-        flags+=['-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie']
+        flags+=['-g','-fno-var-tracking-assignments','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie']
         env.update(ASAN_OPTIONS='detect_leaks=1:detect_stack_use_after_return=1:halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1')
     links=[row['Path'] for row in build['Objects'] if Path(row['Path']).stem not in
         ('xlir_public_source_driver','xlir_public_source_linux_driver')]
@@ -65,11 +70,25 @@ def main():
         if a.nullable:
             binary=out/('nullable-contract'+suffix)
             run('nullable-contract.build',[cc,*flags,'-O0',nullableContract,*links,'-o',binary])
-            for fixture in fixtures[:2]:assert 'rejected before output' in run(fixture.stem+'.contract',[binary,fixture])
+            for fixture in fixtures:
+                if fixture.stem in ('stdlib_callable_nullable','stdlib_callable_nullable_domains'):
+                    assert 'rejected before output' in run(fixture.stem+'.contract',[binary,fixture])
         objects={}
         for opt in (0,2):
             objects[opt]=out/('memory.O'+str(opt)+'.o')
             run('memory.O'+str(opt),[cc,*flags,'-O'+str(opt),'-c',memory,'-o',objects[opt]])
+        if a.scalars:
+            binary=out/('float-contract'+suffix)
+            run('float-contract.build',[cc,*flags,'-O0',floatContract,*links,'-o',binary])
+            assert 'rejected before output' in run('float-contract.run',[binary,root/'test/cases/stdlib_dynamic_f32_conversion.xl'])
+            for opt in (0,2):
+                binary=out/('float-runtime.O'+str(opt)+suffix)
+                # Instrument the changed resident helper too; unrelated linked
+                # compiler/XRT providers are still outside sanitizer coverage.
+                run('float-runtime.O'+str(opt)+'.build',[cc,*flags,'-I'+str(root/'release'),'-O'+str(opt),'-Wl,--wrap=xrtNumParse',floatRuntime,
+                    root/'src/runtime/xl6_float_convert.c',objects[opt],
+                    *[path for path in links if Path(path).stem!='xl6_float_convert'],'-o',binary])
+                assert 'null diagnostic preserved' in run('float-runtime.O'+str(opt)+'.run',[binary])
         for fixture in fixtures:
             name=fixture.stem; generated=out/(name+'.c'); repeat=out/(name+'.repeat.c')
             run(name+'.cgen',[build['Driver'],fixture,'cgen-default',generated])
@@ -80,7 +99,9 @@ def main():
             for opt in (0,2):
                 binary=out/(name+'.O'+str(opt)+suffix)
                 selected=methodFaultHost if name=='stdlib_dynamic_method_product_status' else faultHost if name=='stdlib_dynamic_function_product_status' else host
+                if name=='stdlib_dynamic_f32_status':selected=floatHost
                 extras=['-Wl,--wrap=xl6DynamicDispatchProductTakeV1'] if name=='stdlib_dynamic_method_product_status' else ['-Wl,--wrap=xl6DynamicFunctionProductTakeV1'] if name=='stdlib_dynamic_function_product_status' else []
+                if name=='stdlib_dynamic_f32_status':extras=['-Wl,--wrap=xl6Float32ValueConvertV1']
                 if name in ('stdlib_callable_scalars','stdlib_callable_integer_domains','stdlib_callable_native_scalars'):extras+=['-DXL6_PRODUCT_USER_ENTRY']
                 run(name+'.O'+str(opt)+'.build',[cc,*flags,'-O'+str(opt),'-include',generated,*extras,
                     selected,objects[opt],*links,'-o',binary])
@@ -98,6 +119,15 @@ def main():
             if name=='stdlib_char_typed_only':
                 assert not re.search(r'\bxl6DynamicFunctionProductTakeV1$',symbols,re.M)
             if name=='stdlib_callable_nullable_unused':assert not re.search(r'\bxl6Value(?:ReadF32V1|ReadIntegerV1|BoxIntegerV1)$',symbols,re.M)
+            if a.scalars and name=='stdlib_char_typed_only':assert not re.search(r'\bxl6Float32(?:(?:Text|Value)Convert|Convert)V1$',symbols,re.M)
+        if a.scalars:
+            original=(out/'stdlib_dynamic_f32_status.c').read_text(encoding='utf-8')
+            status=re.findall(r'bool projection_ok_(\d+) = xl6Float32ValueConvertV1\(',original); assert len(status)==1
+            changed,n=re.subn(r'if \(projection_ok_'+status[0]+r'\)', 'if (true)',original); assert n==1
+            mutant=out/'lost-float-status.c'; mutant.write_text(changed,encoding='utf-8'); binary=out/('lost-float-status'+suffix)
+            run('lost-float-status.build',[cc,*flags,'-O0','-include',mutant,'-Wl,--wrap=xl6Float32ValueConvertV1',floatHost,objects[0],*links,'-o',binary])
+            rejected=run('lost-float-status.reject',[binary],True)
+            assert 'float_conversion_status_host.c' in rejected and 'assert' in rejected.lower()
         if a.nullable:
             generated=out/'stdlib_callable_nullable.c'; original=generated.read_text(encoding='utf-8')
             changed,n=re.subn(r'(\ba\d+)\.hasValue=true;',r'\1.hasValue=false;',original); assert n
@@ -124,7 +154,7 @@ def main():
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs); assert report['InputsUnchanged']
         products.extend(dict(Path=str(path),Sha256=sha(path)) for path in sorted(out.iterdir())
             if path.is_file() and (path.suffix in ('.h','.c','.o','.exe') or os.access(path,os.X_OK)))
-        report['DynamicFunctionProductAcceptance']=True; report['DynamicMethodProductAcceptance']=a.methods; report['NullableCallableAcceptance']=a.nullable; report['Complete']=True
+        report['DynamicFunctionProductAcceptance']=True; report['DynamicMethodProductAcceptance']=a.methods; report['NullableCallableAcceptance']=a.nullable; report['ScalarConversionsAcceptance']=a.scalars; report['Complete']=True
     except Exception as error: report['Error']=repr(error); print(error,file=sys.stderr)
     finally: (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     return 0 if report['Complete'] else 1

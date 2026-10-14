@@ -4,6 +4,12 @@ static int xl6IrCgenEmitXValueOperationRuntime(
 {
     size_t i;
     size_t parameter;
+    if (needs->needsExplicitF32Text)
+        xl6OutputPuts("extern bool xl6Float32TextConvertV1(xstrview, float*);\n",out);
+    if (needs->needsExplicitF32Value)
+        xl6OutputPuts("extern bool xl6Float32ValueConvertV1(const xvalue*, float*);\n",out);
+    if (needs->needsExplicitF32Scalar)
+        xl6OutputPuts("extern bool xl6Float32ConvertV1(double, float*);\n",out);
     /* Dynamic-method adapters and boxed-callable adapters independently use
      * the resident frame producer. Its declaration follows that exact need,
      * not whether an unrelated closure/call bridge happens to be present. */

@@ -2128,6 +2128,9 @@ typedef enum XL6_IrRuntimeOp {
      * sources require an explicit prior retain. Concrete Stack/T are frozen
      * in runtimeIdentityType/payloadType; failure consumes source too. */
     XL6_IR_RUNTIME_STACK_ERASE,
+    XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT,
+    XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT,
+    XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -3729,8 +3732,8 @@ typedef struct XL6_IrIntrinsicCall {
      * operand/result records; the family prevents later phases from treating
      * every pair as an undifferentiated C cast. */
     XL6_IrScalarConversionAbi scalarConversionAbi;
-    /* CHECKED_FLOAT_CONVERT uses INVALID for the borrowed-string parse ABI or
-     * XVALUE_TO_F64_CHECKED for an exact open-xvalue cast.  Every other
+    /* CHECKED_FLOAT_CONVERT uses INVALID for a borrowed-string parse or an
+     * explicit F32 conversion; XVALUE_TO_F64_CHECKED is an exact F64 cast. Other
      * intrinsic keeps this INVALID, so lowering never rediscovers which
      * checked conversion the source spelling selected. */
     XL6_IrCastAbi castAbi;
@@ -7539,5 +7542,7 @@ const char* xl6IrRuntimeNativeValueSymbol(const XL6_IrNativeValuePlan*,XL6_IrRun
 const XL6_IrNativeValuePlan* xl6IrNativeValueInstructionPlan(
     const XL6_IrModule*, const XL6_IrInstruction*);
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeNativeValueErrorPhysicalAbi(XL6_IrRuntimeOp);
+int xl6IrCheckedFloatConversionSignature(const XL6_IrModule*,
+    const XL6_IrType*, const XL6_IrType*, XL6_IrCastAbi);
 
 #endif

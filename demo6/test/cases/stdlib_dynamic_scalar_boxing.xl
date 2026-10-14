@@ -1,0 +1,26 @@
+func echo(var input) as var
+    return input
+end
+func narrow(float32 input) as float32
+    return input
+end
+func token(type input) as bool
+    return input == string
+end
+var call = xcall(echo)
+var real = xcall(narrow)
+var types = xcall(token)
+assert real(float32(0)) == 0.0 and real(float32(1.5)) == 1.5
+assert real(input=float32(1.5)) == 1.5
+assert call(c_char(0)) == c_char(0)
+assert call(c_schar(-128)) == c_schar(-128)
+assert call(c_uchar(255)) == c_uchar(255)
+assert call(c_short(-32768)) == c_short(-32768)
+assert call(c_ushort(65535)) == c_ushort(65535)
+assert call(c_int(0)) == c_int(0) and call(c_uint(0)) == c_uint(0)
+assert call(c_long(0)) == c_long(0) and call(c_ulong(0)) == c_ulong(0)
+assert call(c_longlong(0)) == c_longlong(0) and call(c_ulonglong(0)) == c_ulonglong(0)
+assert call(c_size(0)) == c_size(0) and call(c_ssize(0)) == c_ssize(0)
+assert call(c_ptrdiff(0)) == c_ptrdiff(0) and call(c_intptr(0)) == c_intptr(0) and call(c_uintptr(0)) == c_uintptr(0)
+assert call(c_bool(false)) == false and call(c_float(0)) == 0.0 and call(c_double(0)) == 0.0
+assert call(c_wchar(0)) == c_wchar(0) and bool(types(string))

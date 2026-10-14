@@ -12525,7 +12525,9 @@ int xl6IrTypeCanBoxRuntimeXValue(
             type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
             type->typeValueId != 0 &&
             xl6IrUnionLayoutGet(module, typeId) != NULL;
-    return type->cAbi == XL6_IR_C_ABI_BOOL ||
+    return xl6IrNativeScalarProfileForCAbi(type->cAbi)!=XL6_NATIVE_SCALAR_NONE ||
+           type->cAbi == XL6_IR_C_ABI_F32 ||
+           type->cAbi == XL6_IR_C_ABI_BOOL ||
            type->cAbi == XL6_IR_C_ABI_CHAR_U32 ||
            type->cAbi == XL6_IR_C_ABI_I64 ||
            type->cAbi == XL6_IR_C_ABI_U64 ||
@@ -12567,6 +12569,23 @@ static int xl6IrTypeIsOpenDynamicBuiltin(
         type->paramCount == 0 &&
         type->nominalSymbol == XL6_SYMBOL_ID_INVALID &&
         type->typeValueId == module->runtimeTypeMap.fallbackTypeValueId;
+}
+
+int xl6IrCheckedFloatConversionSignature(const XL6_IrModule* module,
+    const XL6_IrType* source, const XL6_IrType* target, XL6_IrCastAbi cast)
+{
+    if (!source || !target || target->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+        target->kind == XL6_IR_TYPE_NULLABLE) return 0;
+    int text = source->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+        source->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED && source->kind != XL6_IR_TYPE_NULLABLE;
+    int dynamic = xl6IrTypeIsOpenDynamicBuiltin(module, source);
+    if (target->cAbi == XL6_IR_C_ABI_F32)
+        return cast == XL6_IR_CAST_INVALID && (text || dynamic ||
+            (source->kind != XL6_IR_TYPE_NULLABLE && source->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+             (source->cAbi == XL6_IR_C_ABI_F64 || source->cAbi == XL6_IR_C_ABI_C_DOUBLE)));
+    return target->cAbi == XL6_IR_C_ABI_F64 &&
+        ((cast == XL6_IR_CAST_INVALID && text) ||
+         (cast == XL6_IR_CAST_XVALUE_TO_F64_CHECKED && dynamic));
 }
 
 int xl6IrNodeIsDynamicMemberRead(const XL6_IrModule* module, XL6_IrNodeId id)
@@ -14011,16 +14030,19 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         } else if ( operandCount == 1 && result != NULL && sourceType != NULL &&
                     callee->typeValueTarget != XL6_IR_TYPE_INVALID &&
                     callee->typeValueTarget == call->storageType &&
-                    result->cAbi == XL6_IR_C_ABI_F64 &&
+                    (result->cAbi == XL6_IR_C_ABI_F64 || result->cAbi == XL6_IR_C_ABI_F32) &&
                     result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
                     ((sourceType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
                       sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
                       sourceType->kind != XL6_IR_TYPE_NULLABLE) ||
-                     xl6IrTypeIsOpenDynamicBuiltin(module, sourceType)) ) {
+                     xl6IrTypeIsOpenDynamicBuiltin(module, sourceType) ||
+                     (result->cAbi == XL6_IR_C_ABI_F32 &&
+                      sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL && sourceType->kind != XL6_IR_TYPE_NULLABLE &&
+                      (sourceType->cAbi == XL6_IR_C_ABI_F64 || sourceType->cAbi == XL6_IR_C_ABI_C_DOUBLE))) ) {
             intrinsic.kind = XL6_IR_INTRINSIC_CHECKED_FLOAT_CONVERT;
             intrinsic.resultAbi = XL6_IR_INTRINSIC_RESULT_VALUE;
             intrinsic.errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
-            if ( xl6IrTypeIsOpenDynamicBuiltin(module, sourceType) )
+            if ( result->cAbi == XL6_IR_C_ABI_F64 && xl6IrTypeIsOpenDynamicBuiltin(module, sourceType) )
                 intrinsic.castAbi = XL6_IR_CAST_XVALUE_TO_F64_CHECKED;
         } else if ( operandCount == 1 && result != NULL && sourceType != NULL &&
                     callee->typeValueTarget != XL6_IR_TYPE_INVALID &&
@@ -14420,14 +14442,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         break;
     case XL6_IR_INTRINSIC_CHECKED_FLOAT_CONVERT:
         if ( operandCount == 1 && result != NULL && sourceType != NULL &&
-             result->cAbi == XL6_IR_C_ABI_F64 &&
-             result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
-             ((intrinsic.castAbi == XL6_IR_CAST_INVALID &&
-               sourceType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-               sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-               sourceType->kind != XL6_IR_TYPE_NULLABLE) ||
-              (intrinsic.castAbi == XL6_IR_CAST_XVALUE_TO_F64_CHECKED &&
-               xl6IrTypeIsOpenDynamicBuiltin(module, sourceType))) )
+             xl6IrCheckedFloatConversionSignature(module, sourceType, result, intrinsic.castAbi) )
             intrinsic.admission = XL6_IR_INTRINSIC_ADMISSION_VERIFIED;
         break;
     case XL6_IR_INTRINSIC_CHECKED_XVALUE_CONVERT:
@@ -21151,6 +21166,10 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
             ? XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT : XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
     }
     switch (instruction->runtimeOp) {
+    case XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT:
+    case XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT:
+    case XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT:
+        return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     case XL6_IR_RUNTIME_STACK_PUSH_BATCH:
         return XL6_IR_CALL_ERROR_PHYSICAL_FALSE_RESULT;
     case XL6_IR_RUNTIME_STACK_POP_BATCH:
@@ -34865,14 +34884,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                          intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_VALUE ||
                          intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
                          intrinsic->integerTarget != XL6_IR_INTEGER_TARGET_INVALID ||
-                         !((intrinsic->castAbi == XL6_IR_CAST_INVALID &&
-                            source != NULL &&
-                            source->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-                            source->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-                            source->kind != XL6_IR_TYPE_NULLABLE) ||
-                           (intrinsic->castAbi ==
-                                XL6_IR_CAST_XVALUE_TO_F64_CHECKED &&
-                            xl6IrTypeIsOpenDynamicBuiltin(module, source))) )
+                         !xl6IrCheckedFloatConversionSignature(module, source, result, intrinsic->castAbi) )
                         return xl6IrDiag(diags, call,
                             "XLIR checked float intrinsic has no canonical type-target and failure ABI");
                 }
@@ -35360,21 +35372,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             case XL6_IR_INTRINSIC_CHECKED_FLOAT_CONVERT:
                 if ( call->callKind != XL6_SEM_CALL_BUILTIN ||
                      intrinsic->operandCount != 1 || source == NULL ||
-                     !((intrinsic->castAbi == XL6_IR_CAST_INVALID &&
-                        source->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-                        source->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-                        source->kind != XL6_IR_TYPE_NULLABLE) ||
-                       (intrinsic->castAbi ==
-                            XL6_IR_CAST_XVALUE_TO_F64_CHECKED &&
-                        xl6IrTypeIsOpenDynamicBuiltin(module, source))) ||
-                     result->cAbi != XL6_IR_C_ABI_F64 ||
-                     result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+                     !xl6IrCheckedFloatConversionSignature(module, source, result, intrinsic->castAbi) ||
                      module->intrinsicOperands[intrinsic->firstOperand].abi !=
-                         XL6_IR_INTRINSIC_OPERAND_BORROW ||
+                         (source->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED
+                            ? XL6_IR_INTRINSIC_OPERAND_BORROW : XL6_IR_INTRINSIC_OPERAND_VALUE) ||
                      intrinsic->resultAbi != XL6_IR_INTRINSIC_RESULT_VALUE ||
                      intrinsic->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE )
                     return xl6IrDiag(diags, call,
-                        "XLIR checked float intrinsic has no exact borrowed string/xvalue, F64 result and failure ABI");
+                        "XLIR checked float intrinsic has no exact source, target and failure ABI");
                 break;
             case XL6_IR_INTRINSIC_CHECKED_XVALUE_CONVERT:
                 if ( call->callKind != XL6_SEM_CALL_BUILTIN ||
@@ -40070,6 +40075,22 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                              sourceType->kind == XL6_IR_TYPE_NULLABLE )
                             return xl6IrDiag(diags, NULL,
                                 "XLIR checked float conversion has no exact borrowed string and F64 result ABI");
+                    } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT ||
+                                instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT ||
+                                instruction->runtimeOp == XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT ) {
+                        const XL6_IrType* target = xl6IrTypeGet(&module->types, instruction->type);
+                        const XL6_IrType* source = left ? xl6IrTypeGet(&module->types, left->type) : NULL;
+                        if (instruction->operandCount != 1 || instruction->immediateText ||
+                            instruction->targetSymbol || instruction->targetValue || instruction->calleeType ||
+                            instruction->payloadType || instruction->opcode || instruction->integerTarget ||
+                            instruction->integerSourceAbi || instruction->castAbi || !target ||
+                            target->cAbi != XL6_IR_C_ABI_F32 ||
+                            !xl6IrCheckedFloatConversionSignature(module, source, target, XL6_IR_CAST_INVALID) ||
+                            ((instruction->runtimeOp == XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT) !=
+                             (source->cAbi == XL6_IR_C_ABI_MANAGED_STRING)) ||
+                            ((instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT) !=
+                             xl6IrTypeIsOpenDynamicBuiltin(module, source)))
+                            return xl6IrDiag(diags, NULL, "XLIR explicit F32 conversion has no exact borrowed source and status-output ABI");
                     } else if ( instruction->runtimeOp ==
                                     XL6_IR_RUNTIME_STRING_TO_TIME_CHECKED ||
                                 instruction->runtimeOp ==
@@ -47671,6 +47692,9 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED: return "native-value-project-checked";
     case XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY:return "native-value-project-try";
     case XL6_IR_RUNTIME_STRING_TO_F64_CHECKED: return "string-to-f64-checked";
+    case XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT: return "string-to-f32-explicit";
+    case XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT: return "xvalue-to-f32-explicit";
+    case XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT: return "f64-to-f32-explicit";
     case XL6_IR_RUNTIME_STRING_TO_TIME_CHECKED: return "string-to-time-checked";
     case XL6_IR_RUNTIME_XVALUE_TO_TIME_CHECKED: return "xvalue-to-time-checked";
     case XL6_IR_RUNTIME_TIME_TO_STRING: return "time-to-string";

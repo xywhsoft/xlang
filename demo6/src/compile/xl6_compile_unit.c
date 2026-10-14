@@ -363,7 +363,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_stack_erased_methods.c",D(R(STACK_ERASED),R(STACK_BATCH),R(STACK),R(FOREIGN_ERROR)),{NULL}},
     {"src/runtime/xl6_stack_erased_try.c",D(R(STACK_ERASED),R(FOREIGN_ERROR)),{"XRUNTIME_MODULE_RUNTIME_CALL"}},
     {"src/runtime/xl6_dynamic_product.c",D(R(FOREIGN_ERROR)),{"XRUNTIME_MODULE_RUNTIME_CALL","XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"}},
-    {"src/runtime/xl6_dynamic_collection_vector.c",D(R(STACK_ERASED_TRY),R(FOREIGN_ERROR)),{NULL}}
+    {"src/runtime/xl6_dynamic_collection_vector.c",D(R(STACK_ERASED_TRY),R(FOREIGN_ERROR)),{NULL}},
+    {"src/runtime/xl6_float_convert.c",D(R(FOREIGN_ERROR)),
+        {"XRT_MODULE_NUMBER_FLOAT", "XRUNTIME_MODULE_VALUE_CONVERT"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

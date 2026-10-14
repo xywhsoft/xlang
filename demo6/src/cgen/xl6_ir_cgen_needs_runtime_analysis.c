@@ -10,6 +10,17 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             needs->needsCallableArrayFrameProducer=1;
     for ( i = 0; i < module->instructionCount; ++i ) {
         if ( !xl6IrCgenInstructionIsReachable(module, i) ) continue;
+        if (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT ||
+            module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT ||
+            module->instructions[i].runtimeOp == XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT) {
+            if (!xl6IrCgenRuntimeCheckedFloatConvertAbi(module, &module->instructions[i]))
+                return xl6IrCgenDiag(diags,module,module->instructions[i].origin,
+                    "XLIR explicit F32 conversion has no closed physical ABI");
+            needs->needsExplicitF32Text |= module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT;
+            needs->needsExplicitF32Value |= module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT;
+            needs->needsExplicitF32Scalar |= module->instructions[i].runtimeOp == XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT;
+            needs->needsStringViews = 1;
+        }
         if(module->instructions[i].runtimeOp==XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY ||
             module->instructions[i].runtimeOp==XL6_IR_RUNTIME_NAMED_SET_LITERAL_TAKE) {
             if(!xl6IrNamedValueInstructionCompatible(module,&module->instructions[i]))
