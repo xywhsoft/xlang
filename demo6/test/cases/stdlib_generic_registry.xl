@@ -1,0 +1,35 @@
+// Only the registry roots touch cascade/count; no statically resolved call.
+class RegistryBox<T>
+    T value
+
+    create(T initial)
+        self.value = initial
+    end
+
+    func read() as T
+        return self.value
+    end
+
+    func cascade() as T
+        return self.read()
+    end
+
+    func count() as int
+        auto values = FixedStack::<T>(1)
+        if not values.push(self.cascade()) then return -1 end
+        return values.count()
+    end
+end
+
+var registryNumber = RegistryBox::<int>(42)
+var registryText = RegistryBox::<string>("A\0你")
+var registryBytes = RegistryBox::<bytes>(b"A\0\xff")
+bytes emptyGlobal
+assert emptyGlobal == b""
+
+assert int(registryNumber.cascade()) == 42
+assert string(registryText.cascade()) == "A\0你"
+assert bytes(registryBytes.cascade()) == b"A\0\xff"
+assert int(registryNumber.count()) == 1
+assert int(registryText.count()) == 1
+assert int(registryBytes.count()) == 1

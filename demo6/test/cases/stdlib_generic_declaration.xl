@@ -1,0 +1,2 @@
+// A declaration must close registry-only method bodies without executing it.
+FixedStack<int> uninitializedFixedStack

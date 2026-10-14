@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <string.h>
 
+enum { XL6_IR_GENERIC_SPECIALIZATION_LIMIT = 1024 };
+
 typedef struct XL6_IrLowerContext {
     XL6_IrModule* module;
     XL6_IrBlockId block;
@@ -10913,6 +10915,7 @@ static XL6_IrValueId xl6IrLowerDefaultClassFieldInitializer(
          *object == XL6_IR_VALUE_INVALID ||
          (field->initializerAbi != XL6_IR_INITIALIZER_SCALAR_ZERO &&
           field->initializerAbi != XL6_IR_INITIALIZER_STRING_EMPTY &&
+          field->initializerAbi != XL6_IR_INITIALIZER_BYTES_EMPTY &&
           field->initializerAbi != XL6_IR_INITIALIZER_NULL_SENTINEL &&
            field->initializerAbi != XL6_IR_INITIALIZER_TAGGED_NULL &&
            field->initializerAbi != XL6_IR_INITIALIZER_XVALUE_NULL &&
@@ -11017,6 +11020,15 @@ static XL6_IrValueId xl6IrLowerDefaultClassFieldInitializer(
             if ( instruction->immediateText == NULL ) return XL6_IR_VALUE_INVALID;
         }
         return boxed;
+    }
+    if ( field->initializerAbi == XL6_IR_INITIALIZER_BYTES_EMPTY ) {
+        const XL6_IrNode* fieldNode = xl6IrNodeGet(ctx->module, field->declaration);
+        if ( type->cAbi != XL6_IR_C_ABI_MANAGED_BYTES || fieldNode == NULL )
+            return XL6_IR_VALUE_INVALID;
+        scalar = xl6IrLowerEmitRuntimeDataCallPayload(ctx, field->declaration, origin,
+            field->type, XL6_IR_RUNTIME_BYTES_FROM_DATA, NULL, 0);
+        return scalar == XL6_IR_VALUE_INVALID ? scalar :
+            xl6IrLowerAcquireErasedElementValue(ctx, origin, fieldNode, scalar, 0);
     }
     if ( field->initializerAbi == XL6_IR_INITIALIZER_STRING_EMPTY ) {
         XL6_IrValueId loaded;
@@ -11135,6 +11147,7 @@ static int xl6IrLowerDefaultClassInitializeBody(
         if (instanceId == 0) return 0;
         if ( field->initializerAbi == XL6_IR_INITIALIZER_SCALAR_ZERO ||
              field->initializerAbi == XL6_IR_INITIALIZER_STRING_EMPTY ||
+             field->initializerAbi == XL6_IR_INITIALIZER_BYTES_EMPTY ||
              field->initializerAbi == XL6_IR_INITIALIZER_NULL_SENTINEL ||
               field->initializerAbi == XL6_IR_INITIALIZER_TAGGED_NULL ||
               field->initializerAbi == XL6_IR_INITIALIZER_XVALUE_NULL ||
@@ -11161,6 +11174,8 @@ static int xl6IrLowerDefaultClassInitializeBody(
         keyLiteral = xl6IrCanonicalCStringBytes(field->name);
         if ( boxed == XL6_IR_VALUE_INVALID || keyLiteral == NULL ) {
             xrtFree(keyLiteral);
+            xl6IrLowerDiag(ctx, field->declaration,
+                "XLIR class field initializer cannot produce its verified owned value");
             return 0;
         }
         operands[0] = *object;
@@ -14928,16 +14943,13 @@ static XL6_IrTypeId xl6IrLowerSpecializationSubstituteType(
         }
     }
     if ( !changed ) { xrtFree(params); xrtFree(returns); return source; }
-    if (original->kind == XL6_IR_TYPE_GENERIC_INSTANCE && original->paramCount == 1 &&
-        (original->collectionAbi == XL6_IR_COLLECTION_LIST ||
-         original->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE ||
-         original->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE ||
-         original->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE)) {
-        if (xl6IrTypeInternArray(&module->types, params[0]) == XL6_IR_TYPE_INVALID) {
+    if ( original->kind == XL6_IR_TYPE_GENERIC_INSTANCE ) {
+        if ( !xl6IrTypeInternGenericDependencies(&module->types, original->collectionAbi,
+                original->runtimeResourceAbi, params, original->paramCount) ) {
             xrtFree(params); xrtFree(returns); return XL6_IR_TYPE_INVALID;
         }
         /* Canonical schema interning may reallocate the pool. */
-        original = xl6IrTypeGet(&module->types, source);
+        original = &originalSnapshot;
     }
     if (original->kind == XL6_IR_TYPE_NULLABLE && original->paramCount == 1 && params) {
         const XL6_IrType* inner = xl6IrTypeGet(&module->types, params[0]);
@@ -17398,6 +17410,13 @@ static int xl6IrLowerBuildGenericSpecialization(
         xrtFree(typeParams);
         return 1;
     }
+    /* The one graph budget is shared by every root producer. Cached instances
+     * above remain available after reaching the limit. */
+    if ( module->genericSpecializationCount >= XL6_IR_GENERIC_SPECIALIZATION_LIMIT ) {
+        xrtFree(typeParams);
+        return xl6IrLowerDiag(ctx, callId ? callId : sourceDeclaration,
+            "XLIR generic specialization graph exceeds its finite lowering limit");
+    }
     memset(&build, 0, sizeof(build));
     build.ctx = ctx;
     sourceReceiver = xl6IrLowerClassReceiverType(module, sourceDeclaration);
@@ -17487,7 +17506,6 @@ static int xl6IrLowerMaterializeGenericSpecializations(XL6_IrLowerContext* ctx)
 {
     XL6_IrModule* module = ctx->module;
     size_t id;
-    size_t created = 0;
     for ( id = 1; id <= module->nodeCount; ++id ) {
         const XL6_IrNode* call = xl6IrNodeGet(module, (XL6_IrNodeId)id);
         XL6_IrNodeId owner = call != NULL
@@ -17554,7 +17572,7 @@ static int xl6IrLowerMaterializeGenericSpecializations(XL6_IrLowerContext* ctx)
             return xl6IrLowerDiag(ctx, (XL6_IrNodeId)id,
                                    "XLIR generic call requires resolved concrete type arguments before lowering");
         }
-        if ( created++ >= 1024 || !xl6IrLowerBuildGenericSpecialization(
+        if ( !xl6IrLowerBuildGenericSpecialization(
          ctx, (XL6_IrNodeId)id, declaration, typeArgs, typeArgCount, NULL) ) {
             xrtFree(typeArgs);
             if ( !ctx->failed ) xl6IrLowerDiag(ctx, (XL6_IrNodeId)id,
@@ -17902,7 +17920,36 @@ static int xl6IrLowerMaterializeGenericDynamicMethods(
     return 1;
 }
 
-/* Calls carry a resolved semantic target.  Derive the result ABI from that
+/* Calls, class protocols, loop protocols and the dynamic registry can each
+ * append dependencies for another producer. Close one graph before physical
+ * target registration, instead of relying on a fixed number of passes. */
+static int xl6IrLowerCloseGenericSpecializationGraph(XL6_IrLowerContext* ctx)
+{
+    XL6_IrModule* module = ctx->module;
+    for ( size_t round = 0; round <= XL6_IR_GENERIC_SPECIALIZATION_LIMIT; ++round ) {
+        size_t nodes = module->nodeCount, types = module->types.count;
+        size_t instances = module->genericSpecializationCount, layouts = module->classLayoutCount;
+        if ( !xl6IrLowerMaterializeGenericSpecializations(ctx) ||
+            !xl6IrLowerMaterializeGenericClassSyntaxUses(ctx) ||
+            !xl6IrLowerMaterializeGenericClassCopyProtocols(ctx) ||
+            !xl6IrLowerMaterializeGenericProtocolWitnesses(ctx) ||
+            !xl6IrLowerMaterializeGenericLoopProtocols(ctx) ||
+            !xl6IrRefreshClassLayouts(module) || !xl6IrRefreshNominalIdentitySets(module) ||
+            !xl6IrLowerMaterializeGenericDynamicMethods(ctx) ) {
+            if ( ctx->diags == NULL || ctx->diags->count == 0 )
+                xl6IrLowerDiag(ctx, module->root,
+                    "XLIR generic dependency closure failed without diagnostic provenance");
+            return 0;
+        }
+        if ( nodes == module->nodeCount && types == module->types.count &&
+             instances == module->genericSpecializationCount && layouts == module->classLayoutCount )
+            return 1;
+    }
+    return xl6IrLowerDiag(ctx, module->root,
+        "XLIR generic dependency closure did not converge within its finite limit");
+}
+
+/* Calls carry a resolved semantic target. Derive the result ABI from that
  * target's canonical function signature instead of treating an absent source
  * inferred type as an implicit Cgen-side "void" convention. */
 static int xl6IrLowerResolvedCallReturnType(
@@ -26619,6 +26666,14 @@ static XL6_IrValueId xl6IrLowerValueInitializer(
             return XL6_IR_VALUE_INVALID;
         return result;
     }
+    if ( initializer->abi == XL6_IR_INITIALIZER_BYTES_EMPTY ) {
+        if ( type->cAbi != XL6_IR_C_ABI_MANAGED_BYTES ||
+             initializer->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
+             xl6IrLowerValueInitializerErrorPlan(ctx, declarationId, initializer) == NULL )
+            return XL6_IR_VALUE_INVALID;
+        return xl6IrLowerEmitRuntimeDataCall(ctx, declarationId, initializer->type,
+            XL6_IR_RUNTIME_BYTES_FROM_DATA, NULL, 0);
+    }
     if ( initializer->abi == XL6_IR_INITIALIZER_STRING_EMPTY ) {
         return xl6IrLowerEmitRuntimeLiteralCall(ctx, declarationId, initializer->type,
             XL6_IR_RUNTIME_STRING_DUP, "\"\"", NULL, 0);
@@ -32607,64 +32662,7 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
                 "XLIR lowering declaration admission failed without diagnostic provenance");
         return 0;
     }
-    if ( !xl6IrLowerMaterializeGenericSpecializations(&ctx) ) {
-        if ( diags == NULL || diags->count == 0 )
-            xl6IrLowerDiag(&ctx, module->root,
-                "XLIR lowering generic specialization materialization failed without diagnostic provenance");
-        return 0;
-    }
-    if ( !xl6IrLowerMaterializeGenericClassSyntaxUses(&ctx) ) {
-        if ( diags == NULL || diags->count == 0 )
-            xl6IrLowerDiag(&ctx, module->root,
-                "XLIR lowering generic syntax materialization failed without diagnostic provenance");
-        return 0;
-    }
-    if ( !xl6IrLowerMaterializeGenericClassCopyProtocols(&ctx) ) {
-        if ( diags == NULL || diags->count == 0 )
-            xl6IrLowerDiag(&ctx, module->root,
-                "XLIR lowering generic class protocol materialization failed without diagnostic provenance");
-        return 0;
-    }
-    if ( !xl6IrLowerMaterializeGenericProtocolWitnesses(&ctx) ) {
-        if ( diags == NULL || diags->count == 0 )
-            xl6IrLowerDiag(&ctx, module->root,
-                "XLIR lowering generic protocol witness materialization failed without diagnostic provenance");
-        return 0;
-    }
-    if ( !xl6IrLowerMaterializeGenericLoopProtocols(&ctx) ) {
-        if ( diags == NULL || diags->count == 0 )
-            xl6IrLowerDiag(&ctx, module->root,
-                "XLIR lowering generic loop protocol materialization failed without diagnostic provenance");
-        return 0;
-    }
-    if ( !xl6IrRefreshClassLayouts(module) ) {
-        if ( diags == NULL || diags->count == 0 )
-            xl6IrLowerDiag(&ctx, module->root,
-                "XLIR lowering generic class-layout refresh failed without diagnostic provenance");
-        return 0;
-    }
-    if ( !xl6IrRefreshNominalIdentitySets(module) ) {
-        if ( diags == NULL || diags->count == 0 )
-            xl6IrLowerDiag(&ctx, module->root,
-                "XLIR lowering nominal identity refresh failed without diagnostic provenance");
-        return 0;
-    }
-    /* The implicit __iter__ specialization may itself contain ordinary
-     * generic calls (for example I::<T> construction).  Close that newly
-     * appended call graph before call-target registration. */
-    if ( !xl6IrLowerMaterializeGenericSpecializations(&ctx) ||
-         !xl6IrLowerMaterializeGenericClassSyntaxUses(&ctx) ) {
-        if ( diags == NULL || diags->count == 0 )
-            xl6IrLowerDiag(&ctx, module->root,
-                "XLIR lowering generic loop specialization closure failed without diagnostic provenance");
-        return 0;
-    }
-    if ( !xl6IrLowerMaterializeGenericDynamicMethods(&ctx) ) {
-        if ( diags == NULL || diags->count == 0 )
-            xl6IrLowerDiag(&ctx, module->root,
-                "XLIR lowering generic dynamic method materialization failed without diagnostic provenance");
-        return 0;
-    }
+    if ( !xl6IrLowerCloseGenericSpecializationGraph(&ctx) ) return 0;
     /* Registry-only specializations may introduce concrete nullable/product
      * types after layout construction. Derive their persistence contracts
      * from the final TypePool just as for source-instantiated types. */
