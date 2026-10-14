@@ -7642,6 +7642,7 @@ int xl6IrCollectionContainsExpressionCompatible(const XL6_IrModule*,XL6_IrTypeId
 int xl6IrFloat32AsInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 unsigned xl6IrNativeScalarConversionInput(const XL6_IrType*);
 int xl6IrNativeScalarConversionSignature(const XL6_IrModule*,XL6_IrTypeId,XL6_IrTypeId);
+int xl6IrNativeScalarGenericSignature(const XL6_IrModule*,XL6_IrNodeId,XL6_IrTypeId,XL6_IrTypeId);
 XL6_IrTypeId xl6IrNativeScalarAsIdentity(const XL6_IrModule*,XL6_IrTypeId);
 int xl6IrNativeScalarIntrinsicCompatible(const XL6_IrModule*,const XL6_IrIntrinsicCall*);
 int xl6IrNativeScalarInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);

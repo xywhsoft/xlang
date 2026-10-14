@@ -1,0 +1,53 @@
+class Cell<T>
+    T value
+    create(T input)
+        self.value = input
+    end
+    func get() as T
+        return self.value
+    end
+    func replace(T input) as T
+        T previous = self.value
+        self.value = input
+        return previous
+    end
+end
+var receiver = Cell::<c_int>(c_int(7))
+assert c_int(receiver.get()) == c_int(7)
+assert c_int(receiver.replace(c_int(-7))) == c_int(7)
+assert c_int(receiver.get()) == c_int(-7)
+var narrow = Cell::<float32>(float32(1.5))
+assert (narrow.get() as float32) == float32(1.5)
+class Empty<T>
+    T value
+    func get() as T
+        return self.value
+    end
+end
+assert Empty::<c_char>().get() == c_char(0)
+assert Empty::<c_schar>().get() == c_schar(0)
+assert Empty::<c_uchar>().get() == c_uchar(0)
+assert Empty::<c_short>().get() == c_short(0)
+assert Empty::<c_ushort>().get() == c_ushort(0)
+assert Empty::<c_int>().get() == c_int(0)
+assert Empty::<c_uint>().get() == c_uint(0)
+assert Empty::<c_long>().get() == c_long(0)
+assert Empty::<c_ulong>().get() == c_ulong(0)
+assert Empty::<c_longlong>().get() == c_longlong(0)
+assert Empty::<c_ulonglong>().get() == c_ulonglong(0)
+assert Empty::<c_size>().get() == c_size(0)
+assert Empty::<c_ssize>().get() == c_ssize(0)
+assert Empty::<c_ptrdiff>().get() == c_ptrdiff(0)
+assert Empty::<c_intptr>().get() == c_intptr(0)
+assert Empty::<c_uintptr>().get() == c_uintptr(0)
+assert Empty::<c_bool>().get() == c_bool(false)
+assert Empty::<c_float>().get() == c_float(0.0)
+assert Empty::<c_double>().get() == c_double(0.0)
+assert Empty::<c_wchar>().get() == c_wchar(0)
+assert Empty::<float32>().get() == float32(0)
+assert Empty::<char>().get() == char(0)
+var empty = Empty::<c_int>()
+assert (empty.value as c_int) == c_int(0)
+empty.value = c_int(-7)
+assert (empty.value as c_int) == c_int(-7)
+assert c_int(empty.get()) == c_int(-7)

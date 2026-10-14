@@ -1,0 +1,23 @@
+func echo(var input) as var
+    return input
+end
+func nativeInt<T>(T input) as c_int
+    return c_int(input)
+end
+func exactInt<T>(T input) as c_int
+    var dynamic = input
+    return dynamic as c_int
+end
+assert nativeInt::<int>(7) == c_int(7)
+assert nativeInt::<var>(echo(7)) == c_int(7)
+assert nativeInt::<c_short>(c_short(-7)) == c_int(-7)
+assert exactInt::<c_int>(c_int(-7)) == c_int(-7)
+assert nativeInt::<float32>(float32(1.5)) == c_int(1)
+assert nativeInt::<char>('A') == c_int(65)
+bool caught = false
+try
+    nativeInt::<var>(echo(int))
+catch TypeError failure
+    caught = true
+end
+assert caught

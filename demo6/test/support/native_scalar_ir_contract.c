@@ -25,6 +25,12 @@ int main(int argc,char** argv)
     unit.ir.runtimeTypeMap.typeTypeValueId=0;reject(&unit.ir);unit.ir.runtimeTypeMap=typeMap;
     unit.ir.runtimeTypeMap.typeTypeValueId=typeMap.u64TypeValueId;reject(&unit.ir);unit.ir.runtimeTypeMap=typeMap;
     unit.ir.runtimeTypeMap.abiVersion=2;reject(&unit.ir);unit.ir.runtimeTypeMap=typeMap;
+    for(size_t i=0;i<unit.ir.classFieldCount;++i) {
+        XL6_IrClassField* field=&unit.ir.classFields[i];
+        if(field->initializerAbi!=XL6_IR_INITIALIZER_SCALAR_ZERO)continue;
+        XL6_IrInitializerAbi saved=field->initializerAbi;
+        field->initializerAbi=XL6_IR_INITIALIZER_BYTES_EMPTY;reject(&unit.ir);field->initializerAbi=saved;
+    }
     for(size_t i=0;i<unit.ir.instructionCount;++i) {
         XL6_IrInstruction* item=&unit.ir.instructions[i];
         if(item->runtimeOp!=XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED && item->runtimeOp!=XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED)continue;
@@ -43,6 +49,10 @@ int main(int argc,char** argv)
         XL6_IrIntrinsicCall* item=&unit.ir.intrinsicCalls[i];
         if(item->kind!=XL6_IR_INTRINSIC_CHECKED_NATIVE_SCALAR_CONVERT)continue;
         XL6_IrErrorAbi error=item->errorAbi;item->errorAbi=XL6_IR_ERROR_ABI_NO_RAISE;reject(&unit.ir);item->errorAbi=error;
+        XL6_IrIntrinsicAdmission admission=item->admission;
+        item->admission=admission==XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT ?
+            XL6_IR_INTRINSIC_ADMISSION_VERIFIED : XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT;
+        reject(&unit.ir);item->admission=admission;
     }
     assert(conversions+casts && mutations);
     printf("native scalar conversions=%zu casts=%zu mutations=%zu rejected before output\n",conversions,casts,mutations);

@@ -11090,6 +11090,24 @@ static XL6_IrValueId xl6IrLowerDefaultClassFieldInitializer(
             XL6_IR_RUNTIME_XVALUE_UNION_BOX, NULL, field->type, &unionValue, 1);
         return boxed;
     }
+    if ( type->cAbi == XL6_IR_C_ABI_F32 || type->cAbi == XL6_IR_C_ABI_CHAR_U32 ||
+         xl6IrNativeScalarProfileForCAbi(type->cAbi) != XL6_NATIVE_SCALAR_NONE ) {
+        char* zero = (type->cAbi == XL6_IR_C_ABI_F32 ||
+                      type->cAbi == XL6_IR_C_ABI_C_FLOAT ||
+                      type->cAbi == XL6_IR_C_ABI_C_DOUBLE)
+            ? xl6IrLowerCanonicalFloatLiteral("0.0")
+            : type->cAbi == XL6_IR_C_ABI_C_BOOL
+                ? xrtStrDupN("false", 5) : xrtStrDupN("0", 1);
+        if ( zero == NULL ||
+             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_CONST, field->declaration,
+                              field->type, 0, NULL, 0, &scalar) ) {
+            xrtFree(zero);
+            return XL6_IR_VALUE_INVALID;
+        }
+        ctx->module->instructions[ctx->module->instructionCount - 1].immediateText = zero;
+        return xl6IrLowerAcquireErasedElementValue(ctx,field->declaration,
+            xl6IrNodeGet(ctx->module,field->declaration),scalar,0);
+    }
     if ( type->cAbi == XL6_IR_C_ABI_I64 ) {
         scalar = xl6IrLowerEmitIntConst(ctx, field->declaration, field->type, "0");
         runtimeOp = XL6_IR_RUNTIME_XVALUE_I64;

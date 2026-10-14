@@ -1,0 +1,4 @@
+func nativeInt<T>(T value) as c_int
+    return c_int(value)
+end
+auto invalid = nativeInt::<string>("7")
