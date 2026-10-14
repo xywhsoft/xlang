@@ -1,0 +1,16 @@
+int defaultCalls = 0
+func sideEffect() as uint64
+    defaultCalls += 1
+    return uint64(7)
+end
+class DefaultBoundaries
+    func side(uint64 value = sideEffect()) as uint64
+        return value
+    end
+    func wraps(uint8 value = uint8(256)) as uint8
+        return value
+    end
+end
+auto typed = DefaultBoundaries()
+assert typed.side() == uint64(7) and defaultCalls == 1
+assert typed.wraps() == uint8(0)

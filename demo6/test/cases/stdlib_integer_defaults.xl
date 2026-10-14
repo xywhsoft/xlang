@@ -1,0 +1,31 @@
+class IntegerDefaults
+    func zero(uint64 value = uint64(0)) as uint64
+        return value
+    end
+    func nested(uint64 value = uint64(int8(5))) as uint64
+        return value
+    end
+    func minimum(int64 value = int64(-9223372036854775808)) as int64
+        return value
+    end
+    func maximum(uint64 value = uint64(18446744073709551615)) as uint64
+        return value
+    end
+    func narrow(int8 low = int8(-128), uint8 high = uint8(255), int16 mid = int16(32767)) as int
+        return int(low) + int(high) + int(mid)
+    end
+end
+var object = IntegerDefaults()
+assert uint64(object.zero()) == uint64(0)
+assert uint64(object.zero(uint64(9))) == uint64(9)
+assert uint64(object.nested()) == uint64(5)
+assert int(object.minimum()) == -9223372036854775808
+assert uint64(object.maximum()) == uint64(18446744073709551615)
+assert int(object.narrow()) == 32894
+var bound = object.zero
+assert uint64(bound()) == uint64(0)
+func named(uint64 value = uint64(int8(5))) as uint64
+    return value
+end
+var erased = xcall(named)
+assert uint64(erased()) == uint64(5)

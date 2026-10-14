@@ -439,8 +439,6 @@ static int xl6IrCgenEmitXValueOperationRuntime(
                          out, module, signatureType, diags) ) return 0;
             }
         }
-        if ( needs->needsDynamicMethodRuntime &&
-             !xl6IrCgenEmitDynamicMethodRuntime(out, module, diags) ) return 0;
         xl6OutputPuts("\n", out);
     }
     return !xl6OutputHasFailed(out);

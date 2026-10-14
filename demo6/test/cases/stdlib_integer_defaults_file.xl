@@ -1,0 +1,9 @@
+var source = file.temp()
+assert int(source.writeAll(b"a\0b")) == 3
+assert int(source.seek(0)) == 0
+var mapped = source.map()
+assert bytes(mapped.bytes()) == b"a\0b"
+assert bool(mapped.close())
+var lease = source.lock()
+assert bool(lease.close())
+assert bool(source.close())

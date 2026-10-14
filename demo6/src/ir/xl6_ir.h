@@ -5323,6 +5323,7 @@ int xl6IrDynamicMethodCallTargetSupported(const struct XL6_IrModule*, const XL6_
 /* Portable closed payload for a signed/unsigned contextual integer literal,
  * including unary signs and the exact minimum signed value. */
 char* xl6IrCanonicalContextualIntegerLiteral(const struct XL6_IrModule*, XL6_IrNodeId, XL6_IrTypeId);
+char* xl6IrCanonicalIntegerDefault(const struct XL6_IrModule*, XL6_IrNodeId, XL6_IrTypeId);
 XL6_IrDynamicMethodDefaultAbi xl6IrDynamicMethodLiteralDefaultAbi(const struct XL6_IrModule*, XL6_IrTypeId, XL6_IrNodeId);
 
 /* Allocation-free view of the selected synchronous property ABI. It projects
@@ -6905,6 +6906,7 @@ int xl6IrRefreshNominalIdentitySets(XL6_IrModule* module);
  * choose between a generic source row and a concrete runtime candidate. */
 int xl6IrRebindDynamicMethodSpecialization(
     XL6_IrModule* module, size_t methodIndex, XL6_IrNodeId declaration);
+int xl6IrDynamicMethodSourceSupported(const XL6_IrModule*, const XL6_IrDynamicMethod*);
 /* Rebuild the exact root/transitive callable closure after all lowered
  * functions, dispatch tables and async continuation states are final. */
 int xl6IrRefreshReachability(XL6_IrModule* module);

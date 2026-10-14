@@ -13275,21 +13275,70 @@ static XL6_IrDynamicMethodMatchAbi xl6IrDynamicMethodMatchAbiForType(
     }
 }
 
-char* xl6IrCanonicalContextualIntegerLiteral(
-    const XL6_IrModule* module, XL6_IrNodeId expression, XL6_IrTypeId targetType)
+static char* xl6IrCanonicalIntegerValue(const XL6_IrType* type, uint64_t magnitude, int negative)
 {
-    uint64_t magnitude;
-    int negative;
     char text[48];
-    const XL6_IrType* type = xl6IrTypeGet(&module->types, targetType);
-    if(type && type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params)
-        return xl6IrCanonicalContextualIntegerLiteral(module,expression,type->params[0]);
-    if ( type == NULL || !xl6IrContextualIntegerLiteralValue(module, expression, targetType, &magnitude, &negative) ) return NULL;
     if ( negative && magnitude == (UINT64_C(1) << 63) )
         return xrtStrDupN("(-9223372036854775807LL - 1LL)", sizeof("(-9223372036854775807LL - 1LL)") - 1);
     int size = snprintf(text, sizeof(text), "%s%llu%s", negative ? "-" : "",
         (unsigned long long)magnitude, type->cAbi == XL6_IR_C_ABI_U64 ? "ULL" : "LL");
     return size > 0 && (size_t)size < sizeof(text) ? xrtStrDupN(text, (size_t)size) : NULL;
+}
+
+char* xl6IrCanonicalContextualIntegerLiteral(
+    const XL6_IrModule* module, XL6_IrNodeId expression, XL6_IrTypeId targetType)
+{
+    uint64_t magnitude; int negative;
+    const XL6_IrType* type = xl6IrTypeGet(&module->types, targetType);
+    if ( type && type->kind == XL6_IR_TYPE_NULLABLE && type->paramCount == 1 && type->params )
+        return xl6IrCanonicalContextualIntegerLiteral(module, expression, type->params[0]);
+    if ( !type || !xl6IrContextualIntegerLiteralValue(module, expression, targetType, &magnitude, &negative) ) return NULL;
+    return xl6IrCanonicalIntegerValue(type, magnitude, negative);
+}
+
+/* Defaults consume closed intrinsic contracts, never a callee spelling.
+ * Only integer conversions whose literal value fits every intermediate type
+ * are folded here. Wrapping out-of-range values remain runtime expressions. */
+static int xl6IrIntegerDefaultValue(const XL6_IrModule* module,
+    XL6_IrNodeId expression, XL6_IrTypeId targetType, uint64_t* magnitude, int* negative, size_t depth)
+{
+    if ( !module || depth > module->nodeCount ) return 0;
+    if ( xl6IrContextualIntegerLiteralValue(module, expression, targetType, magnitude, negative) ) return 1;
+    const XL6_IrNode* node = xl6IrNodeGet(module, expression);
+    const XL6_IrIntrinsicCall* call = xl6IrIntrinsicCallGet(module, expression);
+    const XL6_IrType* target = xl6IrTypeGet(&module->types, targetType);
+    if ( !node || !call || !target || node->kind != XL6_IR_NODE_CALL ||
+         call->admission != XL6_IR_INTRINSIC_ADMISSION_VERIFIED || call->operandCount != 1 ||
+         call->firstOperand >= module->intrinsicOperandCount || call->resultType != node->storageType ||
+         (call->kind != XL6_IR_INTRINSIC_TRIVIAL_INTEGER_CONVERT &&
+          call->kind != XL6_IR_INTRINSIC_WRAPPING_INTEGER_CONVERT &&
+          call->kind != XL6_IR_INTRINSIC_CHECKED_INTEGER_CONVERT) ) return 0;
+    const XL6_IrIntrinsicOperand* source = &module->intrinsicOperands[call->firstOperand];
+    uint64_t value; int sign;
+    if ( !xl6IrIntegerDefaultValue(module, source->expression, call->resultType, &value, &sign, depth + 1) ) return 0;
+    const XL6_IrType* converted = xl6IrTypeGet(&module->types, call->resultType);
+    unsigned width = xl6IrBuildIntegerTargetWidth(target->integerTarget);
+    if ( !converted || !width || target->kind != XL6_IR_TYPE_BUILTIN ||
+         target->nullAbi != XL6_IR_NULL_ABI_NONE ||
+         (target->cAbi != XL6_IR_C_ABI_I64 && target->cAbi != XL6_IR_C_ABI_U64) ) return 0;
+    uint64_t limit = xl6IrBuildIntegerTargetSigned(target->integerTarget)
+        ? (sign ? UINT64_C(1) << (width - 1) : (UINT64_C(1) << (width - 1)) - 1)
+        : (width == 64 ? UINT64_MAX : (UINT64_C(1) << width) - 1);
+    if ( value > limit || (sign && !xl6IrBuildIntegerTargetSigned(target->integerTarget)) ) return 0;
+    if ( magnitude ) *magnitude = value;
+    if ( negative ) *negative = sign;
+    return 1;
+}
+
+char* xl6IrCanonicalIntegerDefault(const XL6_IrModule* module,
+    XL6_IrNodeId expression, XL6_IrTypeId targetType)
+{
+    uint64_t magnitude; int negative;
+    const XL6_IrType* type = xl6IrTypeGet(&module->types, targetType);
+    if ( type && type->kind == XL6_IR_TYPE_NULLABLE && type->paramCount == 1 && type->params )
+        return xl6IrCanonicalIntegerDefault(module, expression, type->params[0]);
+    if ( !type || !xl6IrIntegerDefaultValue(module, expression, targetType, &magnitude, &negative, 0) ) return NULL;
+    return xl6IrCanonicalIntegerValue(type, magnitude, negative);
 }
 
 XL6_IrDynamicMethodDefaultAbi xl6IrDynamicMethodLiteralDefaultAbi(
@@ -13303,7 +13352,7 @@ XL6_IrDynamicMethodDefaultAbi xl6IrDynamicMethodLiteralDefaultAbi(
         return xl6IrDynamicMethodLiteralDefaultAbi(module,type->params[0],expressionId);
     }
     if ( type != NULL && (type->cAbi == XL6_IR_C_ABI_I64 || type->cAbi == XL6_IR_C_ABI_U64) )
-        return xl6IrContextualIntegerLiteralValue(module, expressionId, typeId, NULL, NULL)
+        return xl6IrIntegerDefaultValue(module, expressionId, typeId, NULL, NULL, 0)
             ? (type->cAbi == XL6_IR_C_ABI_I64 ? XL6_IR_DYNAMIC_METHOD_DEFAULT_I64 : XL6_IR_DYNAMIC_METHOD_DEFAULT_U64)
             : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
     if ( type == NULL || expression == NULL || expression->text == NULL ) {
@@ -13361,13 +13410,51 @@ XL6_IrDynamicMethodDefaultAbi xl6IrDynamicMethodLiteralDefaultAbi(
     }
 }
 
+int xl6IrDynamicMethodSourceSupported(const XL6_IrModule* module, const XL6_IrDynamicMethod* row)
+{
+    const XL6_IrNode* method = module && row ? xl6IrNodeGet(module, row->declaration) : NULL;
+    const XL6_IrNode* parameters;
+    XL6_IrTypeId returnType; size_t returnCount;
+    if ( !method || row->firstParameter > module->dynamicMethodParameterCount ||
+         row->parameterCount > module->dynamicMethodParameterCount - row->firstParameter ||
+         !xl6IrBuildDynamicMethodSignature(module, row->declaration,
+            &parameters, &returnCount, &returnType) ||
+         parameters->childCount != row->parameterCount ||
+         returnType != row->returnType || returnCount != row->returnCount ||
+         (method->sourceKind != XL6_AST_FUNC && method->sourceKind != XL6_AST_GET &&
+          method->sourceKind != XL6_AST_LET && method->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC) ||
+         (row->kind == XL6_IR_DYNAMIC_CALL_MEMBER_GET && (returnCount != 1 || parameters->childCount != 0)) ||
+         (row->kind == XL6_IR_DYNAMIC_CALL_MEMBER_SET && (returnCount != 0 || parameters->childCount != 1 ||
+          xl6IrCallVariadicAbiForParameter(module, xl6IrNodeGet(module, module->children[parameters->firstChild])) != XL6_IR_CALL_VARIADIC_NONE)) ||
+         !xl6IrDynamicMethodAdapterTypeSupported(module, returnType, 1) ) return 0;
+    const XL6_IrNode* typeParameters = xl6IrBuildDeclarationTypeParams(module, row->declaration);
+    if ( typeParameters && typeParameters->childCount ) return 0;
+    for ( size_t p = 0; p < row->parameterCount; ++p ) {
+        const XL6_IrDynamicMethodParameter* item = &module->dynamicMethodParameters[row->firstParameter + p];
+        if ( !xl6IrDynamicMethodParameterAbiSupported(module, item->type, item->abi, item->variadicAbi) ||
+             item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_INVALID ||
+             !xl6IrDynamicMethodAdapterTypeSupported(module, item->type, 0) ||
+             item->variadicAbi == XL6_IR_CALL_VARIADIC_C ||
+             (item->defaultExpression && xl6IrDynamicMethodLiteralDefaultAbi(module,
+                 item->type, item->defaultExpression) == XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID) ) return 0;
+    }
+    return 1;
+}
+
+static int xl6IrRefreshDynamicMethodAdmissions(XL6_IrModule* module)
+{
+    for ( size_t i = 0; i < module->dynamicMethodCount; ++i )
+        module->dynamicMethods[i].adapterAbi = xl6IrDynamicMethodSourceSupported(module, &module->dynamicMethods[i])
+            ? XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED : XL6_IR_DYNAMIC_METHOD_ADAPTER_UNSUPPORTED;
+    return 1;
+}
+
 static int xl6IrBuildDynamicMethodAppend(
     XL6_IrModule* module, const XL6_IrClassLayout* layout,
     XL6_IrNodeId declaration)
 {
     const XL6_IrNode* method = xl6IrNodeGet(module, declaration);
     const XL6_IrNode* parameters;
-    const XL6_IrNode* typeParameters;
     XL6_IrDynamicMethod row;
     XL6_IrTypeId returnType;
     size_t returnCount;
@@ -13392,7 +13479,9 @@ static int xl6IrBuildDynamicMethodAppend(
     row.returnCount = returnCount;
     row.returnType = returnType;
     row.targetErrorAbi = XL6_IR_ERROR_ABI_INVALID;
-    row.adapterAbi = XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED;
+    /* Identity is needed by intrinsic class-first resolution. Admission is
+     * finalized only once all typed default-expression contracts exist. */
+    row.adapterAbi = XL6_IR_DYNAMIC_METHOD_ADAPTER_INVALID;
     row.firstParameter = module->dynamicMethodParameterCount;
     row.parameterCount = parameters->childCount;
     row.fixedParameterCount = parameters->childCount;
@@ -13419,16 +13508,6 @@ static int xl6IrBuildDynamicMethodAppend(
             return 0;
         }
     }
-    typeParameters = xl6IrBuildDeclarationTypeParams(module, declaration);
-    if ( (method->sourceKind != XL6_AST_FUNC && method->sourceKind != XL6_AST_GET && method->sourceKind != XL6_AST_LET && method->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC) ||
-         (row.kind == XL6_IR_DYNAMIC_CALL_MEMBER_GET && (returnCount != 1 || parameters->childCount != 0)) ||
-         (row.kind == XL6_IR_DYNAMIC_CALL_MEMBER_SET && (returnCount != 0 || parameters->childCount != 1 ||
-          xl6IrCallVariadicAbiForParameter(module, xl6IrNodeGet(module, module->children[parameters->firstChild])) != XL6_IR_CALL_VARIADIC_NONE)) ||
-         (typeParameters != NULL && typeParameters->childCount != 0) ||
-         (returnType != XL6_IR_TYPE_INVALID &&
-          !xl6IrDynamicMethodAdapterTypeSupported(
-              module, returnType, 1)) )
-        row.adapterAbi = XL6_IR_DYNAMIC_METHOD_ADAPTER_UNSUPPORTED;
     for ( i = 0; i < parameters->childCount; ++i ) {
         XL6_IrNodeId parameterId =
             module->children[parameters->firstChild + i];
@@ -13465,17 +13544,6 @@ static int xl6IrBuildDynamicMethodAppend(
             row.variadicAbi = item->variadicAbi;
             row.fixedParameterCount = i;
         }
-        if ( !xl6IrDynamicMethodParameterAbiSupported(
-                 module, item->type, item->abi, item->variadicAbi) ||
-             item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_INVALID ||
-             !xl6IrDynamicMethodAdapterTypeSupported(
-                 module, item->type, 0) ||
-             item->variadicAbi == XL6_IR_CALL_VARIADIC_C ||
-             (item->defaultExpression != XL6_IR_NODE_INVALID &&
-              xl6IrDynamicMethodLiteralDefaultAbi(
-                  module, item->type, item->defaultExpression) ==
-                  XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID) )
-            row.adapterAbi = XL6_IR_DYNAMIC_METHOD_ADAPTER_UNSUPPORTED;
     }
     module->dynamicMethods[module->dynamicMethodCount++] = row;
     module->dynamicMethodParameterCount = required;
@@ -13532,15 +13600,12 @@ int xl6IrRebindDynamicMethodSpecialization(
     const XL6_IrClassLayout* layout;
     const XL6_IrNode* method;
     const XL6_IrNode* parameters;
-    const XL6_IrNode* typeParameters;
     XL6_IrDynamicMethodParameter* replacements = NULL;
     XL6_IrTypeId returnType = XL6_IR_TYPE_INVALID;
     size_t returnCount = 0;
     size_t fixed;
     size_t i;
     XL6_IrCallVariadicAbi variadic = XL6_IR_CALL_VARIADIC_NONE;
-    XL6_IrDynamicMethodAdapterAbi adapter =
-        XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED;
     const char* name;
     if ( module == NULL || methodIndex >= module->dynamicMethodCount ||
          declaration == XL6_IR_NODE_INVALID ) return 0;
@@ -13562,15 +13627,6 @@ int xl6IrRebindDynamicMethodSpecialization(
         if ( replacements == NULL ) return 0;
     }
     fixed = row->parameterCount;
-    typeParameters = xl6IrBuildDeclarationTypeParams(module, declaration);
-    if ( (method->sourceKind != XL6_AST_FUNC && method->sourceKind != XL6_AST_GET && method->sourceKind != XL6_AST_LET && method->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC) ||
-         (row->kind == XL6_IR_DYNAMIC_CALL_MEMBER_GET && (returnCount != 1 || parameters->childCount != 0)) ||
-         (row->kind == XL6_IR_DYNAMIC_CALL_MEMBER_SET && (returnCount != 0 || parameters->childCount != 1 ||
-          xl6IrCallVariadicAbiForParameter(module, xl6IrNodeGet(module, module->children[parameters->firstChild])) != XL6_IR_CALL_VARIADIC_NONE)) ||
-         (typeParameters != NULL && typeParameters->childCount != 0) ||
-         (returnType != XL6_IR_TYPE_INVALID &&
-          !xl6IrDynamicMethodAdapterTypeSupported(module, returnType, 1)) )
-        adapter = XL6_IR_DYNAMIC_METHOD_ADAPTER_UNSUPPORTED;
     for ( i = 0; i < row->parameterCount; ++i ) {
         XL6_IrNodeId parameterId =
             module->children[parameters->firstChild + i];
@@ -13606,17 +13662,6 @@ int xl6IrRebindDynamicMethodSpecialization(
             variadic = item->variadicAbi;
             fixed = i;
         }
-        if ( !xl6IrDynamicMethodParameterAbiSupported(
-                 module, item->type, item->abi, item->variadicAbi) ||
-             item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_INVALID ||
-             !xl6IrDynamicMethodAdapterTypeSupported(
-                 module, item->type, 0) ||
-             item->variadicAbi == XL6_IR_CALL_VARIADIC_C ||
-             (item->defaultExpression != XL6_IR_NODE_INVALID &&
-              xl6IrDynamicMethodLiteralDefaultAbi(
-                  module, item->type, item->defaultExpression) ==
-                  XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID) )
-            adapter = XL6_IR_DYNAMIC_METHOD_ADAPTER_UNSUPPORTED;
     }
     for ( i = 0; i < row->parameterCount; ++i ) {
         XL6_IrDynamicMethodParameter* destination =
@@ -13632,11 +13677,12 @@ int xl6IrRebindDynamicMethodSpecialization(
     row->returnCount = returnCount;
     row->returnType = returnType;
     row->targetErrorAbi = XL6_IR_ERROR_ABI_INVALID;
-    row->adapterAbi = adapter;
     row->fixedParameterCount = fixed;
     row->variadicAbi = variadic;
     row->variadicCarrierAbi = XL6_IR_COLLECTION_CARRIER_NONE;
     row->variadicElementIdentity = 0;
+    row->adapterAbi = xl6IrDynamicMethodSourceSupported(module, row)
+        ? XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED : XL6_IR_DYNAMIC_METHOD_ADAPTER_UNSUPPORTED;
     return 1;
 
 failed:
@@ -19570,6 +19616,8 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
         buildFailure = "cannot build XLIR dynamic method registry";
     else if ( !xl6IrBuildIntrinsicCalls(module) )
         buildFailure = "cannot build XLIR intrinsic calls";
+    else if ( !xl6IrRefreshDynamicMethodAdmissions(module) )
+        buildFailure = "cannot finalize XLIR dynamic method admissions";
     else if ( !xl6IrBuildCallSites(module) )
         buildFailure = "cannot build XLIR call sites";
     else if ( !xl6IrBuildValueInitializers(module) )
@@ -25876,14 +25924,13 @@ static int xl6IrVerifyDynamicMethodRegistry(
         const XL6_IrNode* declaration =
             xl6IrNodeGet(module, method->declaration);
         const XL6_IrNode* parameters;
-        const XL6_IrNode* typeParameters;
         XL6_IrTypeId returnType;
         size_t returnCount;
         XL6_IrCallVariadicAbi variadic = XL6_IR_CALL_VARIADIC_NONE;
         size_t fixed;
         size_t parameter;
         size_t prior;
-        int supported = 1;
+        int supported;
         if ( owner == NULL || declaration == NULL ||
              owner->declaration != method->ownerDeclaration ||
              owner->runtimeTypeTag != method->runtimeTypeTag ||
@@ -25909,16 +25956,7 @@ static int xl6IrVerifyDynamicMethodRegistry(
             return xl6IrDiag(diags, declaration,
                 "XLIR dynamic method identity/signature row is malformed");
         fixed = parameters->childCount;
-        typeParameters = xl6IrBuildDeclarationTypeParams(
-            module, method->declaration);
-        if ( (declaration->sourceKind != XL6_AST_FUNC && declaration->sourceKind != XL6_AST_GET && declaration->sourceKind != XL6_AST_LET && declaration->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC) ||
-             (method->kind == XL6_IR_DYNAMIC_CALL_MEMBER_GET && (returnCount != 1 || parameters->childCount != 0)) ||
-         (method->kind == XL6_IR_DYNAMIC_CALL_MEMBER_SET && (returnCount != 0 || parameters->childCount != 1 ||
-          xl6IrCallVariadicAbiForParameter(module, xl6IrNodeGet(module, module->children[parameters->firstChild])) != XL6_IR_CALL_VARIADIC_NONE)) ||
-             (typeParameters != NULL && typeParameters->childCount != 0) ||
-             (returnType != XL6_IR_TYPE_INVALID &&
-              !xl6IrDynamicMethodAdapterTypeSupported(
-                  module, returnType, 1)) ) supported = 0;
+        supported = xl6IrDynamicMethodSourceSupported(module, method);
         for ( parameter = 0; parameter < method->parameterCount;
               ++parameter ) {
             XL6_IrNodeId sourceId =
@@ -25958,16 +25996,6 @@ static int xl6IrVerifyDynamicMethodRegistry(
                 variadic = itemVariadic;
                 fixed = parameter;
             }
-            if ( !xl6IrDynamicMethodParameterAbiSupported(
-                     module, item->type, item->abi, itemVariadic) ||
-                 item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_INVALID ||
-                 !xl6IrDynamicMethodAdapterTypeSupported(
-                     module, item->type, 0) ||
-                 itemVariadic == XL6_IR_CALL_VARIADIC_C ||
-                 (defaultExpression != XL6_IR_NODE_INVALID &&
-                  xl6IrDynamicMethodLiteralDefaultAbi(
-                      module, item->type, defaultExpression) ==
-                      XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID) ) supported = 0;
         }
         if ( method->fixedParameterCount != fixed ||
              method->variadicAbi != variadic )
@@ -26043,7 +26071,7 @@ static int xl6IrVerifyDynamicMethodRegistry(
             if ( item->defaultAbi != expected || itemType == NULL )
                 return xl6IrDiag(diags,declaration,"Dynamic method default ABI differs from its declared type and literal");
             if ( expected == XL6_IR_DYNAMIC_METHOD_DEFAULT_I64 || expected == XL6_IR_DYNAMIC_METHOD_DEFAULT_U64 ) {
-                char* canonical = xl6IrCanonicalContextualIntegerLiteral(module, item->defaultExpression, item->type);
+                char* canonical = xl6IrCanonicalIntegerDefault(module, item->defaultExpression, item->type);
                 int exact = canonical != NULL && item->defaultLiteral != NULL && strcmp(canonical, item->defaultLiteral) == 0;
                 xrtFree(canonical);
                 if ( !exact ) return xl6IrDiag(diags, declaration,
@@ -38939,7 +38967,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 return xl6IrDiag(diags, declaration,
                     "XLIR closure call-frame default ABI is inconsistent");
             if ( expectedDefault == XL6_IR_DYNAMIC_METHOD_DEFAULT_I64 || expectedDefault == XL6_IR_DYNAMIC_METHOD_DEFAULT_U64 ) {
-                char* canonical = xl6IrCanonicalContextualIntegerLiteral(module,
+                char* canonical = xl6IrCanonicalIntegerDefault(module,
                     module->children[parameter->firstChild + 1], signature->params[capture]);
                 int exact = canonical != NULL && defaultLiteral != NULL && strcmp(canonical, defaultLiteral) == 0;
                 xrtFree(canonical);

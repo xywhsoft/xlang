@@ -2,6 +2,10 @@
 
 ## 1. 目标
 
+整数转换常量默认值的阶段合同与 File 动态 map／lock 见
+[整数转换默认值的统一 IR 合同](stdlib53-b287-integer-defaults.md)。
+运行时默认表达式、异步动态返回与发布总验收仍在完整目标内。
+
 动态 bytes 默认值的声明合同、临时 owner 和实际进程接入见
 [动态调用的二进制默认值](stdlib53-b284-bytes-defaults.md)。综合
 Native／容器场景已纳入回归，其他动态编码与完整目录仍须验收。
