@@ -854,7 +854,8 @@ static int xl6IrSequenceLayoutComplete(XL6_IrSequenceLayoutAbi abi)
         abi==XL6_IR_SEQUENCE_LAYOUT_THREAD_REFERENCE_V1 ||
         abi==XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1 ||
         abi==XL6_IR_SEQUENCE_LAYOUT_DICT_REFERENCE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1 ||
-        abi==XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1;
+        abi==XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1 ||
+        abi==XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1;
 }
 static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool* pool,
     const XL6_IrType* type,size_t depth)
@@ -1024,6 +1025,19 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
             ? XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1 : XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN;
     } else if (result.slotAbi==XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
                result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
+               (base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_CHANNEL ||
+                base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SLOT_MAP) &&
+               base->kind==XL6_IR_TYPE_GENERIC_INSTANCE && base->paramCount==1 && base->params) {
+        XL6_IrTypeId schema=base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_CHANNEL
+            ? xl6IrMessageSchemaTypeForType(pool,base) : xl6IrValueCollectionSchemaTypeForType(pool,base);
+        XL6_IrSequenceLayout child=xl6IrSequenceLayoutForTypeDepth(pool,xl6IrTypeGet(pool,schema),depth+1);
+        bool channel=base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_CHANNEL;
+        result.abi=xl6IrSequenceLayoutComplete(child.abi) && child.codecAbi==XL6_IR_SEQUENCE_CODEC_DIRECT &&
+            (!channel || child.transferAbi<=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN)
+            ? (channel ? XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1 : XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1)
+            : XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN;
+    } else if (result.slotAbi==XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
+               result.transferAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN &&
                result.admissionAbi==XL6_VALUE_ADMIT_NONE &&
                (base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SEM ||
                 base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_MUTEX ||
@@ -1056,6 +1070,8 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         result.abi == XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1 ||
+        result.abi == XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 ||
         result.abi == XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 ||
@@ -1077,6 +1093,8 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
             result.abi == XL6_IR_SEQUENCE_LAYOUT_SEQUENCE_REFERENCE_V1 ||
             result.abi == XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1 ||
             result.abi == XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1 ||
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1 ||
+            result.abi == XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1 ||
             result.abi == XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1 ||
             result.abi == XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1 ||
             result.abi == XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1 ||
@@ -1149,6 +1167,8 @@ const char* xl6IrSequenceLayoutAbiName(XL6_IrSequenceLayoutAbi abi)
     case XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1: return "future-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_TREE_REFERENCE_V1: return "tree-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1: return "queue-reference-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1: return "channel-reference-v1";
+    case XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1: return "slot-map-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_SEMAPHORE_REFERENCE_V1: return "semaphore-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_MUTEX_REFERENCE_V1: return "mutex-reference-v1";
     case XL6_IR_SEQUENCE_LAYOUT_COND_REFERENCE_V1: return "cond-reference-v1";
@@ -1820,6 +1840,36 @@ XL6_IrTypeId xl6IrTypeInternArray(XL6_IrTypePool* pool, XL6_IrTypeId elementType
  * available.  A function type can be declared without any call expression,
  * so its multi-result product must be interned from the declaration itself;
  * expression occurrence is not allowed to decide whether the ABI exists. */
+static bool xl6IrHasResidentProjectionDomain(XL6_IrRuntimeResourceAbi abi)
+{
+    switch(abi) {
+    case XL6_IR_RUNTIME_RESOURCE_SPSC_QUEUE: case XL6_IR_RUNTIME_RESOURCE_MPSC_QUEUE:
+    case XL6_IR_RUNTIME_RESOURCE_MPMC_QUEUE: case XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE:
+    case XL6_IR_RUNTIME_RESOURCE_CHANNEL: case XL6_IR_RUNTIME_RESOURCE_SLOT_MAP:
+    case XL6_IR_RUNTIME_RESOURCE_SEM: case XL6_IR_RUNTIME_RESOURCE_MUTEX:
+    case XL6_IR_RUNTIME_RESOURCE_COND: case XL6_IR_RUNTIME_RESOURCE_RWLOCK:
+    case XL6_IR_RUNTIME_RESOURCE_THREAD:return true;
+    default:return false;
+    }
+}
+static int xl6IrInternProjectionDomains(XL6_IrModule* module)
+{
+    for(size_t i=0;i<module->nodeCount;++i) {
+        const XL6_IrNode* node=&module->nodes[i];
+        if(node->sourceKind!=XL6_AST_TYPE_AS || node->childCount!=2 ||
+            node->firstChild>=module->childCount || module->childCount-node->firstChild<2)continue;
+        const XL6_IrNode* source=xl6IrNodeGet(module,module->children[node->firstChild]);
+        if(!source || !xl6IrTypeIsDynamicXValueBuiltin(module,source->storageType))continue;
+        XL6_IrTypeId base=node->storageType; const XL6_IrType* type=xl6IrTypeGet(&module->types,base);
+        if(type && type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params) {
+            base=type->params[0]; type=xl6IrTypeGet(&module->types,base);
+        }
+        if(type && type->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+            xl6IrHasResidentProjectionDomain(type->runtimeResourceAbi) &&
+            !xl6IrTypeInternArray(&module->types,base))return 0;
+    }
+    return 1;
+}
 static int xl6IrTypePoolFinalizeCallableResults(XL6_IrTypePool* pool)
 {
     size_t i;
@@ -8350,6 +8400,18 @@ static int xl6IrSequenceConstructionRecipeDepth(const XL6_IrModule* module,
         return xl6IrAvlConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,NULL,NULL,depth+1);
     case XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1:
         return xl6IrConcurrentQueueConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,NULL,depth+1);
+    case XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1: {
+        bool channel=plan->abi==XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1;
+        XL6_IrTypeId child=channel ? base->messageSchemaType : base->collectionValueSchemaType;
+        const XL6_IrType* schema=xl6IrTypeGet(&module->types,child);
+        return base->kind==XL6_IR_TYPE_GENERIC_INSTANCE && base->paramCount==1 && base->params &&
+            base->runtimeResourceAbi==(channel ? XL6_IR_RUNTIME_RESOURCE_CHANNEL : XL6_IR_RUNTIME_RESOURCE_SLOT_MAP) &&
+            child==(channel ? xl6IrMessageSchemaTypeForType(&module->types,base) : xl6IrValueCollectionSchemaTypeForType(&module->types,base)) &&
+            schema && schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_DIRECT &&
+            (!channel || schema->sequenceLayout.transferAbi<=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN) &&
+            xl6IrSequenceConstructionRecipeDepth(module,child,XL6_IR_SEQUENCE_ROLE_ARRAY,NULL,depth+1);
+    }
     case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1:
         return xl6IrListConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,depth+1);
     case XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1:
@@ -8581,6 +8643,9 @@ static int xl6IrStackConstructionContractDepth(const XL6_IrModule* module,
         return xl6IrAvlConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,NULL,NULL,depth+1);
     case XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1:
         return xl6IrConcurrentQueueConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,NULL,depth+1);
+    case XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1:
+        return xl6IrSequenceConstructionRecipeDepth(module,typeId,XL6_IR_SEQUENCE_ROLE_STACK,setOut,depth+1);
     case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1:
         return xl6IrListConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,depth+1);
     case XL6_IR_SEQUENCE_LAYOUT_SET_REFERENCE_V1:
@@ -17032,6 +17097,15 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
         return XL6_IR_CAST_INVALID;
     dynamicSource = xl6IrTypeIsDynamicXValueBuiltin(
         module, source->storageType);
+    if(dynamicSource && target->cAbi==XL6_IR_C_ABI_F32 && target->kind==XL6_IR_TYPE_BUILTIN &&
+        target->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && !target->paramCount)
+        return XL6_IR_CAST_XVALUE_TO_F32_CHECKED;
+    if(dynamicSource && target->kind==XL6_IR_TYPE_NULLABLE && target->paramCount==1 && target->params &&
+        target->cAbi==XL6_IR_C_ABI_TAGGED_NULLABLE && target->nullAbi==XL6_IR_NULL_ABI_TAGGED_VALUE) {
+        const XL6_IrType* f32=xl6IrTypeGet(&module->types,target->params[0]);
+        if(f32 && f32->kind==XL6_IR_TYPE_BUILTIN && f32->cAbi==XL6_IR_C_ABI_F32)
+            return XL6_IR_CAST_XVALUE_TO_NULLABLE_F32_TRY;
+    }
     if (dynamicSource && xl6IrNativeContainerProjectionTarget(module,node->storageType,NULL,NULL,NULL))
         return target->kind==XL6_IR_TYPE_NULLABLE
             ? XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY : XL6_IR_CAST_XVALUE_TO_NATIVE_CONTAINER_CHECKED;
@@ -17094,6 +17168,8 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
                 return XL6_IR_CAST_XVALUE_TO_NULLABLE_U64_TRY;
             case XL6_IR_C_ABI_F64:
                 return XL6_IR_CAST_XVALUE_TO_NULLABLE_F64_TRY;
+            case XL6_IR_C_ABI_F32:
+                return XL6_IR_CAST_XVALUE_TO_NULLABLE_F32_TRY;
             case XL6_IR_C_ABI_TIME_I64:
                 return XL6_IR_CAST_XVALUE_TO_NULLABLE_TIME_TRY;
             default:
@@ -17228,6 +17304,8 @@ static XL6_IrErrorAbi xl6IrClassifyCastErrorAbi(
     case XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_NATIVE_CONTAINER_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY:
+    case XL6_IR_CAST_XVALUE_TO_F32_CHECKED:
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_F32_TRY:
     case XL6_IR_CAST_XVALUE_TO_I64_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_U64_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_F64_CHECKED:
@@ -19427,6 +19505,8 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
         buildFailure = "cannot intern XLIR async declaration invocation types";
     else if ( !xl6IrBuildNamedCallableAbis(module) )
         buildFailure = "cannot build XLIR named-callable ABIs";
+    else if ( !xl6IrInternProjectionDomains(module) )
+        buildFailure = "cannot intern complete resident projection domains";
     else if ( !xl6IrTypePoolFinalizeCallableResults(&module->types) )
         buildFailure = "cannot finalize XLIR callable result types";
     else if ( !xl6IrBuildOwnedReadResults(module) )
@@ -21191,6 +21271,7 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
     case XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT:
     case XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT:
     case XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED:
+    case XL6_IR_RUNTIME_F32_AS_CHECKED:
         return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     case XL6_IR_RUNTIME_STACK_PUSH_BATCH:
         return XL6_IR_CALL_ERROR_PHYSICAL_FALSE_RESULT;
@@ -23719,6 +23800,22 @@ static int xl6IrVerifyRuntimeCollectionCheckedRebind(
 
 /* Array creation is not a wire allocation followed by an identity retag. The
  * complete native factory/projection chain is the producer's verified ABI. */
+XL6_IrTypeId xl6IrNativeContainerProjectionWitnessType(const XL6_IrModule* module,XL6_IrTypeId base)
+{
+    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,base) : NULL;
+    if(!type)return XL6_IR_TYPE_INVALID;
+    if(!xl6IrHasResidentProjectionDomain(type->runtimeResourceAbi))return base;
+    XL6_IrTypeId result=XL6_IR_TYPE_INVALID;
+    for(size_t i=0;i<module->types.count;++i) {
+        const XL6_IrType* candidate=&module->types.items[i];
+        if(candidate->kind==XL6_IR_TYPE_GENERIC_INSTANCE && candidate->collectionAbi==XL6_IR_COLLECTION_ARRAY &&
+            candidate->paramCount==1 && candidate->params && candidate->params[0]==base) {
+            if(result)return XL6_IR_TYPE_INVALID;
+            result=(XL6_IrTypeId)(i+1);
+        }
+    }
+    return result;
+}
 int xl6IrNativeContainerProjectionTarget(const XL6_IrModule* module,XL6_IrTypeId target,
     XL6_IrTypeId* baseOut,XL6_IrNativeContainerProjectionAbi* roleOut,XL6_IrNominalIdentitySetId* setOut)
 {
@@ -23749,6 +23846,10 @@ int xl6IrNativeContainerProjectionTarget(const XL6_IrModule* module,XL6_IrTypeId
     } else if(type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE) {
         if(!xl6IrAvlConstructionRecipe(module,base,NULL,NULL,NULL,&set))return 0;
         role=XL6_IR_NATIVE_PROJECTION_TREE;
+    } else if(xl6IrHasResidentProjectionDomain(type->runtimeResourceAbi)) {
+        XL6_IrTypeId witness=xl6IrNativeContainerProjectionWitnessType(module,base);
+        if(!witness || !xl6IrSequenceConstructionRecipe(module,witness,XL6_IR_SEQUENCE_ROLE_ARRAY,&set))return 0;
+        role=XL6_IR_NATIVE_PROJECTION_DOMAIN;
     } else return 0;
     if (baseOut) *baseOut=base;
     if (roleOut) *roleOut=role;
@@ -23764,6 +23865,7 @@ XL6_IrRuntimeOp xl6IrNativeContainerProjectionFactory(XL6_IrNativeContainerProje
     case XL6_IR_NATIVE_PROJECTION_SET:return XL6_IR_RUNTIME_XVALUE_SET_NEW;
     case XL6_IR_NATIVE_PROJECTION_DICT:return XL6_IR_RUNTIME_DICT_CREATE;
     case XL6_IR_NATIVE_PROJECTION_TREE:return XL6_IR_RUNTIME_AVL_TREE_CREATE;
+    case XL6_IR_NATIVE_PROJECTION_DOMAIN:return XL6_IR_RUNTIME_ARRAY_CREATE;
     default:return XL6_IR_RUNTIME_NONE;
     }
 }
@@ -23788,15 +23890,42 @@ int xl6IrNativeContainerProjectionInstructionCompatible(const XL6_IrModule* modu
         target && instruction->castAbi==(target->kind==XL6_IR_TYPE_NULLABLE
             ? XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY : XL6_IR_CAST_XVALUE_TO_NATIVE_CONTAINER_CHECKED) &&
         xl6IrNativeContainerProjectionTarget(module,instruction->type,&base,&role,&set) &&
-        seed && seed->kind==XL6_IR_INSTR_RUNTIME_CALL && seed->type==base &&
+        seed && seed->kind==XL6_IR_INSTR_RUNTIME_CALL && seed->type==xl6IrNativeContainerProjectionWitnessType(module,base) &&
         seed->runtimeOp==xl6IrNativeContainerProjectionFactory(role) &&
         seed->origin==instruction->origin && source && source->result!=seed->result &&
         xl6IrTypeIsDynamicXValueBuiltin(module,source->type) &&
         instruction->runtimeIdentityType==base &&
-        xl6IrTypeGet(&module->types,base)->paramCount==(role==XL6_IR_NATIVE_PROJECTION_TREE ? 2u : 1u) &&
-        instruction->payloadType==xl6IrTypeGet(&module->types,base)->params[role==XL6_IR_NATIVE_PROJECTION_TREE ? 1 : 0] &&
+        (role==XL6_IR_NATIVE_PROJECTION_DOMAIN ? instruction->payloadType==base :
+            (xl6IrTypeGet(&module->types,base)->paramCount==(role==XL6_IR_NATIVE_PROJECTION_TREE ? 2u : 1u) &&
+             instruction->payloadType==xl6IrTypeGet(&module->types,base)->params[role==XL6_IR_NATIVE_PROJECTION_TREE ? 1 : 0])) &&
         instruction->collectionAbi==XL6_IR_COLLECTION_NONE &&
         instruction->sequenceAdmissionIdentitySet==set;
+}
+int xl6IrFloat32AsInstructionCompatible(const XL6_IrModule* module,const XL6_IrInstruction* instruction)
+{
+    if(!module || !instruction || instruction->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+        instruction->runtimeOp!=XL6_IR_RUNTIME_F32_AS_CHECKED || instruction->operandCount!=1 ||
+        instruction->firstOperand>=module->operandCount || instruction->immediateText ||
+        instruction->targetSymbol || instruction->targetValue || instruction->calleeType ||
+        instruction->opcode || instruction->payloadType || instruction->runtimeIdentityType ||
+        instruction->integerTarget || instruction->integerSourceAbi || instruction->sequenceAdmissionIdentitySet ||
+        instruction->collectionAbi || instruction->runtimeResourcePayloadAbi)return 0;
+    const XL6_IrNode* origin=xl6IrNodeGet(module,instruction->origin);
+    const XL6_IrType* target=xl6IrTypeGet(&module->types,instruction->type);
+    const XL6_IrInstruction* source=xl6IrValueDefinition(module,module->operands[instruction->firstOperand],NULL);
+    bool nullable=target && target->kind==XL6_IR_TYPE_NULLABLE;
+    const XL6_IrType* base=target;
+    if(nullable) {
+        if(target->paramCount!=1 || !target->params || target->cAbi!=XL6_IR_C_ABI_TAGGED_NULLABLE ||
+            target->nullAbi!=XL6_IR_NULL_ABI_TAGGED_VALUE)return 0;
+        base=xl6IrTypeGet(&module->types,target->params[0]);
+    }
+    return origin && origin->sourceKind==XL6_AST_TYPE_AS && origin->storageType==instruction->type &&
+        origin->castAbi==instruction->castAbi && origin->castErrorAbi==XL6_IR_ERROR_ABI_MAY_RAISE &&
+        base && base->kind==XL6_IR_TYPE_BUILTIN && base->cAbi==XL6_IR_C_ABI_F32 &&
+        base->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && base->xvalueAdmissionTypeValueId &&
+        instruction->castAbi==(nullable ? XL6_IR_CAST_XVALUE_TO_NULLABLE_F32_TRY : XL6_IR_CAST_XVALUE_TO_F32_CHECKED) &&
+        source && xl6IrTypeIsDynamicXValueBuiltin(module,source->type);
 }
 
 int xl6IrArrayCreateRuntimeInstructionCompatible(const XL6_IrModule* module,
@@ -44259,6 +44388,15 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 return xl6IrDiag(diags, NULL,
                                     "XLIR runtime dynamic call argument has no consumed owned xvalue ABI");
                         }
+                    } else if (instruction->runtimeOp==XL6_IR_RUNTIME_F32_AS_CHECKED) {
+                        const XL6_IrInstruction* status=j+1<block->instructionCount
+                            ? &module->instructions[block->firstInstruction+j+1] : NULL;
+                        if(!xl6IrFloat32AsInstructionCompatible(module,instruction) ||
+                            !xl6IrNodeRequiresThrowExitPlan(module,instruction->origin) || !status ||
+                            status->kind!=XL6_IR_INSTR_ERROR_TEST || status->operandCount!=1 ||
+                            status->firstOperand>=module->operandCount ||
+                            module->operands[status->firstOperand]!=instruction->result)
+                            return xl6IrDiag(diags,NULL,"F32 as requires an exact lossless projection and immediate status edge");
                     } else if (instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED) {
                         const XL6_IrInstruction* outcome=j+1<block->instructionCount
                             ? &module->instructions[block->firstInstruction+j+1] : NULL;
@@ -44408,6 +44546,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                        (instruction->runtimeOp !=
                             XL6_IR_RUNTIME_XVALUE_CAST_CHECKED &&
                         instruction->runtimeOp != XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED &&
+                        instruction->runtimeOp != XL6_IR_RUNTIME_F32_AS_CHECKED &&
                         instruction->runtimeOp !=
                             XL6_IR_RUNTIME_XVALUE_UNION_CAST_CHECKED &&
                         instruction->runtimeOp !=
@@ -46062,6 +46201,8 @@ static const char* xl6IrCastAbiName(XL6_IrCastAbi abi)
         return "xvalue-to-f64-checked";
     case XL6_IR_CAST_XVALUE_TO_NATIVE_CONTAINER_CHECKED: return "xvalue-to-native-container-checked";
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY: return "xvalue-to-nullable-native-container-try";
+    case XL6_IR_CAST_XVALUE_TO_F32_CHECKED:return "xvalue-to-f32-checked";
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_F32_TRY:return "xvalue-to-nullable-f32-try";
     case XL6_IR_CAST_XVALUE_TO_TIME_CHECKED:
         return "xvalue-to-time-checked";
     case XL6_IR_CAST_XVALUE_TO_STRING_CHECKED:
@@ -47813,6 +47954,7 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT: return "xvalue-to-f32-explicit";
     case XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT: return "f64-to-f32-explicit";
     case XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED: return "native-container-project-checked";
+    case XL6_IR_RUNTIME_F32_AS_CHECKED:return "f32-as-checked";
     case XL6_IR_RUNTIME_STRING_TO_TIME_CHECKED: return "string-to-time-checked";
     case XL6_IR_RUNTIME_XVALUE_TO_TIME_CHECKED: return "xvalue-to-time-checked";
     case XL6_IR_RUNTIME_TIME_TO_STRING: return "time-to-string";

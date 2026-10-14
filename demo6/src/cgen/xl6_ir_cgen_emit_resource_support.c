@@ -94,6 +94,8 @@ static int xl6IrCgenEmitResourceRuntime(
             "extern xvalue* xl6SequenceSpscQueueCreateTakeV1(unsigned int, uint64_t, uint64_t, uint64_t, xvalue*, bool);\n"
             "extern xvalue* xl6SequenceMpscQueueCreateTakeV1(unsigned int, uint64_t, uint64_t, uint64_t, xvalue*, bool);\n"
             "extern xvalue* xl6SequenceMpmcQueueCreateTakeV1(unsigned int, uint64_t, uint64_t, uint64_t, xvalue*, bool);\n"
+            "extern xvalue* xl6SequenceChannelCreateTakeV1(unsigned int, uint64_t, uint64_t, uint64_t, xvalue*, bool);\n"
+            "extern xvalue* xl6SequenceSlotMapCreateTakeV1(unsigned int, uint64_t, uint64_t, uint64_t, xvalue*, bool);\n"
             "extern xvalue* xl6SequenceWaitQueueCreateTakeV1(unsigned int, uint64_t, uint64_t, uint64_t, xvalue*, bool);\n"
             "extern xvalue* xl6SequenceNominalCreateV1(unsigned int, uint64_t, uint64_t, const XL6_NominalAdmissionV1*, bool, uint64_t);\n"
             "extern xvalue* xl6SequenceUnionCreateV1(unsigned int, uint64_t, uint64_t, uint64_t, size_t, bool);\n"

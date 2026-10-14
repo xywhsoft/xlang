@@ -674,7 +674,9 @@ typedef enum XL6_IrSequenceLayoutAbi {
     /* Immutable owning record, exact resident profile, no generated codec. */
     XL6_IR_SEQUENCE_LAYOUT_NATIVE_VALUE_V1,
     /* Untagged trivial union: exact nominal bytes in owned Value slots. */
-    XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1
+    XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1,
+    XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1,
+    XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1
 } XL6_IrSequenceLayoutAbi;
 
 /* A recipe's physical slot need not equal its element's invocation ABI.
@@ -2132,6 +2134,7 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT,
     XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT,
     XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED,
+    XL6_IR_RUNTIME_F32_AS_CHECKED,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -2382,6 +2385,8 @@ typedef enum XL6_IrCastAbi {
     XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED,
     XL6_IR_CAST_XVALUE_TO_NATIVE_CONTAINER_CHECKED,
     XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY,
+    XL6_IR_CAST_XVALUE_TO_F32_CHECKED,
+    XL6_IR_CAST_XVALUE_TO_NULLABLE_F32_TRY,
     XL6_IR_CAST_COUNT
 } XL6_IrCastAbi;
 
@@ -7551,14 +7556,17 @@ typedef enum XL6_IrNativeContainerProjectionAbi {
     XL6_IR_NATIVE_PROJECTION_NONE=0, XL6_IR_NATIVE_PROJECTION_ARRAY,
     XL6_IR_NATIVE_PROJECTION_STACK, XL6_IR_NATIVE_PROJECTION_LIST,
     XL6_IR_NATIVE_PROJECTION_SET, XL6_IR_NATIVE_PROJECTION_DICT,
-    XL6_IR_NATIVE_PROJECTION_TREE
+    XL6_IR_NATIVE_PROJECTION_TREE,
+    XL6_IR_NATIVE_PROJECTION_DOMAIN
 } XL6_IrNativeContainerProjectionAbi;
 int xl6IrNativeContainerProjectionTarget(const XL6_IrModule*,XL6_IrTypeId,
     XL6_IrTypeId*,XL6_IrNativeContainerProjectionAbi*,XL6_IrNominalIdentitySetId*);
 XL6_IrRuntimeOp xl6IrNativeContainerProjectionFactory(XL6_IrNativeContainerProjectionAbi);
+XL6_IrTypeId xl6IrNativeContainerProjectionWitnessType(const XL6_IrModule*,XL6_IrTypeId);
 int xl6IrNativeContainerProjectionInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 /* Adds only the existing compile-time range-proved integer literal exception
  * to membership's exact element/key contract. Variables never narrow here. */
 int xl6IrCollectionContainsExpressionCompatible(const XL6_IrModule*,XL6_IrTypeId,XL6_IrNodeId);
+int xl6IrFloat32AsInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 
 #endif

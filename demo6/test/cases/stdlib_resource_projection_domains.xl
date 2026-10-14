@@ -1,0 +1,45 @@
+mutex lock = mutex()
+var dl = lock
+mutex lv = dl as mutex
+assert lv.tryLock() and lock.unlock()
+rwlock rw = rwlock()
+var drw = rw
+rwlock rwv = drw as rwlock
+assert rwv.readLock() and rw.readUnlock()
+rwlock? wrong = dl as rwlock?
+assert wrong == null
+cond condition = cond()
+var dcondition = condition
+cond conditionView = dcondition as cond
+assert conditionView.broadcast()
+sem gate = sem(1, 2)
+var dg = gate
+sem gv = dg as sem
+assert gv.tryWait() and gate.post()
+thread worker = thread(func() as int
+    return 17
+end)
+var dt = worker
+thread tv = dt as thread
+assert tv.wait() and worker.exitCode() == 17
+channel<int> channelValue = channel::<int>(1)
+array<channel<int>> channels = [channelValue]
+channel<int> storedChannel = channels[0]
+assert storedChannel.trySend(19)
+auto code, number = channelValue.tryRecv()
+assert code == channelStatus.ok and (number as int) == 19
+SlotMap<array<int>> slots = SlotMap::<array<int>>()
+auto key = slots.insert([1, 2])
+array<SlotMap<array<int>>> slotOwners = [slots]
+var dynamicSlots = slots
+SlotMap<array<int>> slotView = dynamicSlots as SlotMap<array<int>>
+array<int> child = slotView.get(key)
+child[1] = 23
+array<int> otherChild = slots.get(key)
+assert otherChild[1] == 23
+SpscQueue<channel<int>> nested = SpscQueue::<channel<int>>(2)
+assert nested.tryPush(channelValue) == queueStatus.ok
+var dn = nested
+SpscQueue<channel<int>> nestedView = dn as SpscQueue<channel<int>>
+auto ns, nv = nestedView.tryPop()
+assert ns == queueStatus.ok and nv != null

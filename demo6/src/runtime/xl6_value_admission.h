@@ -9,6 +9,10 @@ XL6_TEXT_API bool xl6ValueAdmitsV1(const xvalue*, unsigned int, bool, uint64_t);
 XL6_TEXT_API xvalue* xl6ValueCheckedRetainV1(const xvalue*, unsigned int, bool, uint64_t);
 /* Status/output contract; a failed projection leaves output untouched. */
 XL6_TEXT_API bool xl6ValueReadF32V1(const xvalue*, uint64_t, float*);
+/* Checked operation status is independent of ordinary type mismatch. Present
+ * is committed on success; an absent result leaves payload unchanged. No
+ * explicit rounding/conversion is performed and logical identity is exact. */
+XL6_TEXT_API bool xl6ValueTryReadF32V1(const xvalue*,uint64_t,bool*,float*);
 /* I8..U32 use an int64_t physical slot; U64 uses uint64_t. The rule fixes the
  * complete logical range, not the pointed-to language spelling. Slot admission
  * is pure and allocation-free; read failure never changes the output. A nominal

@@ -349,6 +349,15 @@ static int xl6IrCgenVisitSequenceFactorySymbols(const XL6_IrModule* module,XL6_I
         if (!factory) return 0;
         break;
     }
+    case XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1: {
+        const XL6_IrType* resource=xl6IrTypeGet(&module->types,type->sequenceLayout.baseElementType);
+        bool channel=type->sequenceLayout.abi==XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1;
+        XL6_IrTypeId schema=resource ? (channel ? resource->messageSchemaType : resource->collectionValueSchemaType) : XL6_IR_TYPE_INVALID;
+        if(!schema || !xl6IrCgenVisitSequenceFactorySymbols(module,schema,visitor,context,depth+1,false))return 0;
+        factory=channel ? "xl6SequenceChannelCreateTakeV1" : "xl6SequenceSlotMapCreateTakeV1";
+        break;
+    }
     default: return 0;
     }
     return visitor(context,factory);
@@ -729,6 +738,10 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             (!xl6IrNativeContainerProjectionInstructionCompatible(module,instruction) ||
              !xl6IrCgenContainerProjectionSymbol(module,instruction) ||
              !visitor(context,xl6IrCgenContainerProjectionSymbol(module,instruction)))) return 0;
+        if(xl6IrCgenInstructionIsReachable(module,i) && instruction->runtimeOp==XL6_IR_RUNTIME_F32_AS_CHECKED &&
+            (!xl6IrFloat32AsInstructionCompatible(module,instruction) ||
+             !visitor(context,instruction->castAbi==XL6_IR_CAST_XVALUE_TO_NULLABLE_F32_TRY ?
+                "xl6ValueTryReadF32V1" : "xl6ValueReadF32V1")))return 0;
         if (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_ERASE && xl6IrCgenInstructionIsReachable(module,i)) {
             const XL6_IrType* sealed=xl6IrTypeGet(&module->types,instruction->runtimeIdentityType);
             if (!xl6IrStackErasureInstructionCompatible(module,instruction) || !visitor(context,"xl6StackEraseTakeV2") ||

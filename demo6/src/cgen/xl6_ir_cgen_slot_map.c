@@ -67,7 +67,7 @@ static int xl6IrCgenEmitSlotMap(XL6_Output* out,const XL6_IrModule* module,const
         (unsigned long long)payload->typeValueId,transfer,slot,descriptor);
     /* Output publication uses the same physical checked ABI for both primitive
      * and owning records; false normal booleans never enter the error lane. */
-    if(create) xl6OutputPrintf(out,"      v%u = xl6SlotMapCreateTakeV1(&slot_map_layout,slot_map_schema);\n",(unsigned)ins->result);
+    if(create) xl6OutputPrintf(out,"      v%u = slot_map_schema ? xl6SlotMapCreateTakeV1(&slot_map_layout,slot_map_schema) : NULL;\n",(unsigned)ins->result);
     else if(op==XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_KEYS) {
         const XL6_IrType* array=xl6IrTypeGet(&module->types,ins->type);
         xl6OutputPrintf(out,"      v%u = xl6SlotMapKeysV1(v%u,&slot_map_layout,0x%016llXULL);\n",

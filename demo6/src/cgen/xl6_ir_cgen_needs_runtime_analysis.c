@@ -10,6 +10,11 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             needs->needsCallableArrayFrameProducer=1;
     for ( i = 0; i < module->instructionCount; ++i ) {
         if ( !xl6IrCgenInstructionIsReachable(module, i) ) continue;
+        if(module->instructions[i].runtimeOp==XL6_IR_RUNTIME_F32_AS_CHECKED) {
+            if(!xl6IrFloat32AsInstructionCompatible(module,&module->instructions[i]))
+                return xl6IrCgenDiag(diags,module,module->instructions[i].origin,"F32 as has no lossless status contract");
+            needs->needsFloat32As=1;
+        }
         if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED) {
             if (!xl6IrNativeContainerProjectionInstructionCompatible(module,&module->instructions[i]))
                 return xl6IrCgenDiag(diags,module,module->instructions[i].origin,"Native container projection has no full target/schema contract");

@@ -12,6 +12,7 @@ static const char* xl6IrCgenContainerProjectionSymbol(const XL6_IrModule* module
     case XL6_IR_NATIVE_PROJECTION_SET:return "xl6SetProjectionWitnessTakeV1";
     case XL6_IR_NATIVE_PROJECTION_DICT:return "xl6DictProjectionWitnessTakeV1";
     case XL6_IR_NATIVE_PROJECTION_TREE:return "xl6TreeProjectionWitnessTakeV1";
+    case XL6_IR_NATIVE_PROJECTION_DOMAIN:return "xl6ValueDomainProjectionWitnessTakeV1";
     default:return NULL;
     }
 }
@@ -468,6 +469,21 @@ static int xl6IrCgenEmitSequenceCreateDepth(XL6_Output* out,const XL6_IrModule* 
     case XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1:
         if (xl6IrCgenEmitQueueReferenceCreateDepth(out,module,typeId,result,depth+1)<0) return -1;
         break;
+    case XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1:
+    case XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1: {
+        bool channel=plan->abi==XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1;
+        XL6_IrTypeId child=channel ? base->messageSchemaType : base->collectionValueSchemaType;
+        XL6_IrNominalIdentitySetId childSet=0; char childResult[48];
+        if(!xl6IrSequenceConstructionRecipe(module,child,XL6_IR_SEQUENCE_ROLE_ARRAY,&childSet))return -1;
+        snprintf(childResult,sizeof(childResult),"xlir_resource_schema_%u",(unsigned)(depth+1));
+        xl6OutputPrintf(out,"    { xvalue* %s = NULL;\n",childResult);
+        if(xl6IrCgenEmitSequenceCreateDepth(out,module,child,childResult,childSet,depth+1,NULL,0,false,true)<0)return -1;
+        xl6OutputPrintf(out,"    %s = %s ? %s(%u, 0x%016llXULL, 0x%016llXULL, 0x%016llXULL, %s, %s) : NULL; }\n",
+            result,childResult,channel ? "xl6SequenceChannelCreateTakeV1" : "xl6SequenceSlotMapCreateTakeV1",
+            (unsigned)plan->role,(unsigned long long)sequence->typeValueId,(unsigned long long)payload->typeValueId,
+            (unsigned long long)base->typeValueId,childResult,plan->nullable ? "true" : "false");
+        break;
+    }
     default: return -1;
     }
 #undef XL6_SEQUENCE_CREATE_IDS
@@ -574,6 +590,21 @@ static int xl6IrCgenEmitStackRuntime(
     const char* payloadAbi;
     const char* runtimeType;
     XL6_IrValueId first;
+    if(instruction && instruction->runtimeOp==XL6_IR_RUNTIME_F32_AS_CHECKED) {
+        if(!xl6IrFloat32AsInstructionCompatible(module,instruction))return -1;
+        const XL6_IrType* target=xl6IrTypeGet(&module->types,instruction->type);
+        bool nullable=target->kind==XL6_IR_TYPE_NULLABLE;
+        const XL6_IrType* base=nullable ? xl6IrTypeGet(&module->types,target->params[0]) : target;
+        XL6_IrValueId source=module->operands[instruction->firstOperand];
+        if(nullable) {
+            xl6OutputPrintf(out,"    v%u.hasValue = false; v%u.value = 0;\n    bool projection_ok_%u = xl6ValueTryReadF32V1(v%u, 0x%016llXULL, &v%u.hasValue, &v%u.value);\n",
+                (unsigned)instruction->result,(unsigned)instruction->result,(unsigned)instruction->result,
+                (unsigned)source,(unsigned long long)base->xvalueAdmissionTypeValueId,(unsigned)instruction->result,(unsigned)instruction->result);
+        } else xl6OutputPrintf(out,"    v%u = 0;\n    bool projection_ok_%u = xl6ValueReadF32V1(v%u, 0x%016llXULL, &v%u);\n",
+            (unsigned)instruction->result,(unsigned)instruction->result,(unsigned)source,
+            (unsigned long long)base->xvalueAdmissionTypeValueId,(unsigned)instruction->result);
+        return xl6OutputHasFailed(out) ? -1 : 1;
+    }
     if (instruction && instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED) {
         XL6_IrNativeContainerProjectionAbi role=XL6_IR_NATIVE_PROJECTION_NONE;
         const char* symbol=xl6IrCgenContainerProjectionSymbol(module,instruction);

@@ -111,7 +111,7 @@ static int xl6IrCgenEmitConcurrentQueueRuntime(XL6_Output* out,const XL6_IrModul
         xl6OutputPuts("      xvalue* queue_schema = NULL;\n",out);
         if (xl6IrCgenEmitSequenceCreateDepth(out,module,schemaId,"queue_schema",set,0,NULL,0,false,true)<0) return -1;
         xl6OutputPrintf(out,
-            "      v%u = %s%s(0x%016llXULL, queue_schema, v%u);\n"
+            "      v%u = queue_schema ? %s%s(0x%016llXULL, queue_schema, v%u) : NULL;\n"
             "      if (v%u == NULL) xl6ErrorScopeCaptureFailure(&queue_scope);\n",
             output,prefix,method,ownerIdentity,first,output);
         break;

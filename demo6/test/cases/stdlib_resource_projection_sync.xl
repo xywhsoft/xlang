@@ -1,0 +1,31 @@
+mutex lock = mutex()
+var dl = lock
+mutex lv = dl as mutex
+assert lv.tryLock() and lock.unlock()
+rwlock rw = rwlock()
+var drw = rw
+rwlock rwv = drw as rwlock
+assert rwv.readLock() and rw.readUnlock()
+cond condition = cond()
+var dc = condition
+cond cv = dc as cond
+assert cv.broadcast()
+sem gate = sem(1, 2)
+var dg = gate
+sem gv = dg as sem
+assert gv.tryWait() and gate.post()
+channel<int> c = channel::<int>(2)
+array<channel<int>> channels = [c]
+var erased = channels
+array<channel<int>> view = erased as array<channel<int>>
+channel<int> stored = view[0]
+assert stored.trySend(7)
+auto status, number = c.tryRecv()
+assert status == channelStatus.ok and (number as int) == 7
+SlotMap<array<int>> slots = SlotMap::<array<int>>()
+auto key = slots.insert([1, 2])
+array<SlotMap<array<int>>> owners = [slots]
+var dynamicOwners = owners
+array<SlotMap<array<int>>> ownerView = dynamicOwners as array<SlotMap<array<int>>>
+SlotMap<array<int>> selected = ownerView[0]
+assert selected.get(key)[1] == 2

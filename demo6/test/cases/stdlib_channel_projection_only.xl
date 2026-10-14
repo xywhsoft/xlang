@@ -1,0 +1,6 @@
+channel<int> source = channel::<int>(2)
+var erased = source
+channel<int> view = erased as channel<int>
+assert view.trySend(7)
+auto status, value = source.tryRecv()
+assert status == channelStatus.ok and (value as int) == 7

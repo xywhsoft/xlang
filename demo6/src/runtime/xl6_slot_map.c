@@ -126,6 +126,22 @@ static uint64 unsupportedHash(ptr owner,ptr context)
 static bool unsupportedEqual(ptr a,ptr b,ptr context)
 { (void)a; (void)b; (void)context; xrtSetErrorKind(XERR_UNSUPPORTED); return false; }
 static const xvaluehandleops handleOps={retain,drop,unsupportedHash,unsupportedEqual};
+bool xl6SlotMapAdmitsSchemaV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout,
+    const XL6_SequenceAdmissionV3* policy)
+{
+    if(!value || !layout || !policy || !policy->ops || !policy->data ||
+        xrtValueType(value)!=XVALUE_HANDLE || xrtValueTypeId(value)!=layout->identity)return false;
+    xrtownershipscope scope={0}; mutationBegin(&scope);
+    ptr raw=NULL,user=NULL; const xvaluehandleops* actual=NULL; bool admitted=false;
+    if(xrtValueGetHandle(value,&raw,&actual,&user) && actual==&handleOps && raw && !user) {
+        const SlotMapOwner* owner=raw; const XL6_SequenceAdmissionV3* domain=&owner->policy;
+        admitted=!owner->cleared && sameLayout(&owner->layout,layout) && domain->ops==policy->ops &&
+            domain->elementIdentity==policy->elementIdentity && domain->transfer==policy->transfer &&
+            domain->size==policy->size && domain->type==policy->type && domain->boxedIdentity==policy->boxedIdentity &&
+            (domain->data==policy->data || domain->ops->Equivalent(domain->data,policy->data));
+    }
+    mutationEnd(&scope); return admitted;
+}
 static SlotMapOwner* begin(const xvalue* value,const XL6_SlotMapLayoutV1* layout)
 {
     xrtownershipscope mutation={0}; mutationBegin(&mutation);

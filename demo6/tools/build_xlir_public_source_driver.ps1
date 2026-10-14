@@ -153,6 +153,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_char_type.c','src/runtime/xl6_char_value.c','src/runtime/xl6_char_checked.c','src/runtime/xl6_stack_erased_methods.c','src/runtime/xl6_stack_erased_try.c','src/runtime/xl6_dynamic_product.c','src/runtime/xl6_dynamic_collection_vector.c','src/runtime/xl6_float_convert.c','src/runtime/xl6_sequence_projection_schema.c',
     'src/runtime/xl6_container_projection.c','src/runtime/xl6_list_projection_cast.c','src/runtime/xl6_set_projection_cast.c',
     'src/runtime/xl6_dict_projection_cast.c','src/runtime/xl6_tree_projection_cast.c',
+    'src/runtime/xl6_value_domain_projection.c','src/runtime/xl6_channel_admission.c','src/runtime/xl6_slot_map_admission.c',
     'src/runtime/xl6_error_value.c','src/runtime/xl6_value_text.c',
     'src/runtime/xl6_print_values.c',
     'src/runtime/xl6_class_text.c','src/runtime/xl6_error_text.c',

@@ -1992,6 +1992,23 @@ static int xl6SemTypeCanCapture(XL6_SemContext* ctx, const XL6_AstNode* typeNode
     return xl6SemTypeCanCaptureDepth(ctx, typeNode, 0);
 }
 
+/* These resident values carry one managed xvalue identity. Ordinary assignment
+ * and erasure retain it; this does not grant copy()/clone() of native state.
+ * Other resource ABIs must not inherit this rule without an owner contract. */
+static int xl6SemTypeUsesResidentReferenceSemantics(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
+{
+    typeNode=xl6SemResolveAliasType(ctx,typeNode);
+    if(xl6SemTypeIsNullable(typeNode))
+        typeNode=xl6SemResolveAliasType(ctx,xl6SemNullableInnerType(typeNode));
+    if(!typeNode || !typeNode->text)return 0;
+    const XL6_TypeInfo* info=xl6TypeRegistryFind(&ctx->types,typeNode->text);
+    if(!info || info->kind!=XL6_TYPE_BUILTIN)return 0;
+    return (xl6TextEquals(typeNode->text,"channel") && xl6SemTypeNodeGenericArgCount(typeNode)==1) ||
+        xl6TextEquals(typeNode->text,"thread") || xl6TextEquals(typeNode->text,"mutex") ||
+        xl6TextEquals(typeNode->text,"cond") || xl6TextEquals(typeNode->text,"rwlock") ||
+        xl6TextEquals(typeNode->text,"sem");
+}
+
 static int xl6SemTypeCanCopyDepth(XL6_SemContext* ctx, const XL6_AstNode* typeNode, int depth)
 {
     const XL6_TypeInfo* typeInfo;
@@ -2070,6 +2087,7 @@ static int xl6SemTypeCanBeBorrowedParam(XL6_SemContext* ctx, const XL6_AstNode* 
     const XL6_TypeInfo* typeInfo;
 
     if ( xl6SemTypeUsesClassReferenceSemantics(ctx, typeNode) ||
+         xl6SemTypeUsesResidentReferenceSemantics(ctx, typeNode) ||
          xl6SemTypeCanCopy(ctx, typeNode) ) {
         return 1;
     }
@@ -2116,7 +2134,8 @@ static int xl6SemTypeCanBoxToVarDepth(XL6_SemContext* ctx, const XL6_AstNode* ty
     if ( xl6TextEquals(typeNode->text, "function") ) {
         return 0;
     }
-    if ( xl6SemTypeUsesClassReferenceSemantics(ctx, typeNode) ) {
+    if ( xl6SemTypeUsesClassReferenceSemantics(ctx, typeNode) ||
+         xl6SemTypeUsesResidentReferenceSemantics(ctx, typeNode) ) {
         return 1;
     }
 
@@ -7491,7 +7510,13 @@ static int xl6SemCheckRuntimeTypeExpr(XL6_SemContext* ctx, XL6_AstNode* node, in
          * not a dynamic projection or a change of generic element domain. */
         if ( effectiveSource != NULL && xl6TextEquals(effectiveSource->text,"var") &&
              effectiveTarget != NULL && (xl6TextEquals(effectiveTarget->text,"Stack") ||
-                xl6TextEquals(effectiveTarget->text,"OrderedMap"))) {
+                xl6TextEquals(effectiveTarget->text,"OrderedMap") ||
+                xl6TextEquals(effectiveTarget->text,"SpscQueue") || xl6TextEquals(effectiveTarget->text,"MpscQueue") ||
+                xl6TextEquals(effectiveTarget->text,"MpmcQueue") || xl6TextEquals(effectiveTarget->text,"Queue") ||
+                xl6TextEquals(effectiveTarget->text,"WaitQueue") || xl6TextEquals(effectiveTarget->text,"channel") ||
+                xl6TextEquals(effectiveTarget->text,"SlotMap") || xl6TextEquals(effectiveTarget->text,"mutex") ||
+                xl6TextEquals(effectiveTarget->text,"cond") || xl6TextEquals(effectiveTarget->text,"rwlock") ||
+                xl6TextEquals(effectiveTarget->text,"sem") || xl6TextEquals(effectiveTarget->text,"thread"))) {
             /* A dynamic container projection keeps identity and the full generic
              * domain. XLIR owns its sealed schema and checked failure edge. */
         } else if ( effectiveSource == NULL ||
@@ -14528,6 +14553,7 @@ static int xl6SemCheckCopyableExpr(XL6_SemContext* ctx, XL6_AstNode* expr, int a
     }
     ok = 1;
     if ( !xl6SemTypeUsesClassReferenceSemantics(ctx, typeNode) &&
+         !xl6SemTypeUsesResidentReferenceSemantics(ctx, typeNode) &&
          !xl6SemTypeCanCopy(ctx, typeNode) ) {
         xl6SemErrorNode(ctx, expr, message);
         ok = 0;

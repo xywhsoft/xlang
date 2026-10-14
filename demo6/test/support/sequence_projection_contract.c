@@ -28,7 +28,7 @@ int main(int argc,char** argv)
         assert(xl6IrRuntimeOperandOwnership(row->runtimeOp,1)==XL6_IR_OPERAND_OWNERSHIP_OBSERVE);
         row->castAbi=XL6_IR_CAST_XVALUE_TO_F64_CHECKED; reject(&unit.ir); *row=saved;
         row->operandCount=1; reject(&unit.ir); *row=saved;
-        row->payloadType=row->type; reject(&unit.ir); *row=saved;
+        row->payloadType=XL6_IR_TYPE_INVALID; reject(&unit.ir); *row=saved;
         row->runtimeIdentityType=XL6_IR_TYPE_INVALID; reject(&unit.ir); *row=saved;
         row->integerTarget=XL6_IR_INTEGER_TARGET_SIGNED_64; reject(&unit.ir); *row=saved;
         row->collectionAbi=XL6_IR_COLLECTION_ARRAY; reject(&unit.ir); *row=saved;
