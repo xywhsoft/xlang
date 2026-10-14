@@ -331,6 +331,43 @@ bool xl6TreeAdmitsSchemaV1(const xvalue* value,const XL6_TreeLayoutV1* layout,
     }
     mutationEnd(&mutation); return admitted;
 }
+bool xl6TreeSchemaCopyV1(const xvalue* source,XL6_TreeLayoutV1* layout,
+    XL6_SequenceAdmissionV3* keyOut,XL6_SequenceAdmissionV3* valueOut)
+{
+    xl6_error_scope scope={0};
+    if(!xl6ErrorScopeBegin(&scope)) {
+        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return false;
+    }
+    XL6_SequenceAdmissionV3 key={0},value={0}; XL6_TreeLayoutV1 captured={0}; bool ok=false;
+    if(!source || !layout || keyOut==valueOut || !emptyPolicy(keyOut) || !emptyPolicy(valueOut))
+        xrtSetErrorKind(XERR_ARGUMENT);
+    else {
+        xrtownershipscope mutation={0}; mutationBegin(&mutation);
+        void* raw=NULL; void* user=NULL; const xvaluehandleops* actual=NULL;
+        if(xrtValueGetHandle(source,&raw,&actual,&user) && actual==&handleOps && raw && !user) {
+            const TreeOwner* owner=raw;
+            if(owner->cleared || !owner->storage || xrtValueTypeId(source)!=owner->layout.identity)
+                xrtSetErrorKind(XERR_STATE);
+            else if(owner->keyPolicy.ops->Retain(owner->keyPolicy.data)) {
+                key=owner->keyPolicy;
+                if(owner->valuePolicy.ops->Retain(owner->valuePolicy.data)) {
+                    value=owner->valuePolicy; captured=owner->layout; ok=true;
+                }
+            }
+        } else xrtSetErrorKind(XERR_ARGUMENT);
+        mutationEnd(&mutation);
+    }
+    if(!ok || xrtGetError() || scope.failed) {
+        xl6ErrorScopeCaptureFailure(&scope);
+        xl6SequenceAdmissionDropV3(&value); xl6SequenceAdmissionDropV3(&key);
+        (void)scopeFinish(&scope,false); return false;
+    }
+    if(!scopeFinish(&scope,true)) {
+        xerror* first=xrtTakeError(); xl6SequenceAdmissionDropV3(&value); xl6SequenceAdmissionDropV3(&key);
+        xrtClearError(); xl6ErrorScopePropagateFailure((xl6_error_result){false,first}); return false;
+    }
+    *layout=captured; *keyOut=key; *valueOut=value; return true;
+}
 xvalue* xl6TreeCreateTakeV1(const XL6_TreeLayoutV1* layout,xvalue* keys,xvalue* values)
 {
     xl6_error_scope scope={0};

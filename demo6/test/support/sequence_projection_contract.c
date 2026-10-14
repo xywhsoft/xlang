@@ -21,7 +21,7 @@ int main(int argc,char** argv)
     size_t projections=0;
     for(size_t i=0;i<unit.ir.instructionCount;++i) {
         XL6_IrInstruction* row=&unit.ir.instructions[i],saved=*row;
-        if(row->runtimeOp!=XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED)continue;
+        if(row->runtimeOp!=XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED)continue;
         ++projections;
         assert(xl6IrCallInstructionErrorPhysicalAbi(&unit.ir,row)==XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT);
         assert(xl6IrRuntimeOperandOwnership(row->runtimeOp,0)==XL6_IR_OPERAND_OWNERSHIP_CONSUME);
@@ -45,6 +45,6 @@ int main(int argc,char** argv)
         origin->castErrorAbi=XL6_IR_ERROR_ABI_NO_RAISE; reject(&unit.ir); origin->castErrorAbi=error;
     }
     assert(projections && rejected==projections*12);
-    printf("sequence projections=%zu mutations=%zu rejected before output\n",projections,rejected);
+    printf("native container projections=%zu mutations=%zu rejected before output\n",projections,rejected);
     xl6CompileUnitFree(&unit); return 0;
 }

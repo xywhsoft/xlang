@@ -10,10 +10,10 @@ static int xl6IrCgenAnalyzeRuntimeNeeds(
             needs->needsCallableArrayFrameProducer=1;
     for ( i = 0; i < module->instructionCount; ++i ) {
         if ( !xl6IrCgenInstructionIsReachable(module, i) ) continue;
-        if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED) {
-            if (!xl6IrSequenceProjectionInstructionCompatible(module,&module->instructions[i]))
-                return xl6IrCgenDiag(diags,module,module->instructions[i].origin,"Sequence projection has no full target/schema contract");
-            needs->needsSequenceProjection=1;
+        if (module->instructions[i].runtimeOp==XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED) {
+            if (!xl6IrNativeContainerProjectionInstructionCompatible(module,&module->instructions[i]))
+                return xl6IrCgenDiag(diags,module,module->instructions[i].origin,"Native container projection has no full target/schema contract");
+            needs->needsNativeContainerProjection=1;
         }
         if (module->instructions[i].runtimeOp == XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT ||
             module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT ||

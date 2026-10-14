@@ -366,7 +366,12 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_dynamic_collection_vector.c",D(R(STACK_ERASED_TRY),R(FOREIGN_ERROR)),{NULL}},
     {"src/runtime/xl6_float_convert.c",D(R(FOREIGN_ERROR)),
         {"XRT_MODULE_NUMBER_FLOAT", "XRUNTIME_MODULE_VALUE_CONVERT"}},
-    {"src/runtime/xl6_sequence_projection_schema.c",D(R(SEQUENCE),R(FOREIGN_ERROR)),{NULL}}
+    {"src/runtime/xl6_sequence_projection_schema.c",D(R(SEQUENCE),R(FOREIGN_ERROR)),{NULL}},
+    {"src/runtime/xl6_container_projection.c",D(R(FOREIGN_ERROR)),{NULL}},
+    {"src/runtime/xl6_list_projection_cast.c",D(R(CONTAINER_PROJECTION),R(LIST_NATIVE)),{NULL}},
+    {"src/runtime/xl6_set_projection_cast.c",D(R(CONTAINER_PROJECTION),R(SET_NATIVE)),{NULL}},
+    {"src/runtime/xl6_dict_projection_cast.c",D(R(CONTAINER_PROJECTION),R(DICT_NATIVE)),{NULL}},
+    {"src/runtime/xl6_tree_projection_cast.c",D(R(CONTAINER_PROJECTION),R(TREE)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

@@ -1,0 +1,4 @@
+dict<int> source = {"x": 7}
+var dynamicSource = source
+dict<int> result = dynamicSource as dict<int>
+assert result["x"] == 7

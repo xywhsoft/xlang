@@ -8091,16 +8091,16 @@ static XL6_IrValueId xl6IrLowerNominalNullableUnwrapCast(
     return owned;
 }
 
-static XL6_IrValueId xl6IrLowerSequenceProjectionCast(
+static XL6_IrValueId xl6IrLowerNativeContainerProjectionCast(
     XL6_IrLowerContext* ctx,XL6_IrNodeId id,const XL6_IrNode* node)
 {
-    XL6_IrTypeId base=XL6_IR_TYPE_INVALID; XL6_IrSequenceRoleAbi role=XL6_IR_SEQUENCE_ROLE_NONE;
+    XL6_IrTypeId base=XL6_IR_TYPE_INVALID; XL6_IrNativeContainerProjectionAbi role=XL6_IR_NATIVE_PROJECTION_NONE;
     XL6_IrNominalIdentitySetId set=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
     const XL6_IrNode* source=xl6IrNodeGet(ctx->module,ctx->module->children[node->firstChild]);
     const XL6_IrExitPlan* errorPlan=xl6IrLowerExitPlan(ctx,id,XL6_SEM_EXIT_THROW);
     if (!source || !errorPlan || node->castErrorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE ||
         !xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module,source->storageType) ||
-        !xl6IrSequenceProjectionTarget(ctx->module,node->storageType,&base,&role,&set)) return XL6_IR_VALUE_INVALID;
+        !xl6IrNativeContainerProjectionTarget(ctx->module,node->storageType,&base,&role,&set)) return XL6_IR_VALUE_INVALID;
     XL6_IrValueId value=source->kind==XL6_IR_NODE_NAME && source->type!=source->storageType
         ? xl6IrLowerNamePhysicalStorageValue(ctx,id,ctx->module->children[node->firstChild],source)
         : xl6IrLowerNode(ctx,ctx->module->children[node->firstChild]);
@@ -8109,13 +8109,19 @@ static XL6_IrValueId xl6IrLowerSequenceProjectionCast(
     value=xl6IrLowerBorrowRuntimeXValueOperand(ctx,id,source,value,&temporary);
     if (!value) return XL6_IR_VALUE_INVALID;
     const XL6_IrType* target=xl6IrTypeGet(&ctx->module->types,base);
+    XL6_IrTypeId element=target->params[role==XL6_IR_NATIVE_PROJECTION_TREE ? 1 : 0];
     XL6_IrValueId seed=XL6_IR_VALUE_INVALID;
     if (!xl6IrLowerEmit(ctx,XL6_IR_INSTR_RUNTIME_CALL,id,base,0,NULL,0,&seed)) return XL6_IR_VALUE_INVALID;
     XL6_IrInstruction* factory=&ctx->module->instructions[ctx->module->instructionCount-1];
-    factory->runtimeOp=role==XL6_IR_SEQUENCE_ROLE_ARRAY ? XL6_IR_RUNTIME_ARRAY_CREATE : XL6_IR_RUNTIME_STACK_CREATE;
-    factory->payloadType=target->params[0]; factory->sequenceAdmissionIdentitySet=set;
-    if (role==XL6_IR_SEQUENCE_ROLE_ARRAY) factory->collectionAbi=XL6_IR_COLLECTION_ARRAY;
-    else factory->runtimeResourcePayloadAbi=xl6IrRuntimeResourcePayloadAbiForOwnerType(ctx->module,base,target->params[0]);
+    factory->runtimeOp=xl6IrNativeContainerProjectionFactory(role);
+    factory->payloadType=element; factory->sequenceAdmissionIdentitySet=set;
+    if(target->collectionAbi!=XL6_IR_COLLECTION_NONE)factory->collectionAbi=target->collectionAbi;
+    else factory->runtimeResourcePayloadAbi=xl6IrRuntimeResourcePayloadAbiForOwnerType(ctx->module,base,element);
+    if(role==XL6_IR_NATIVE_PROJECTION_TREE) {
+        factory->runtimeResourceKeyType=target->params[0];
+        factory->runtimeResourceKeyPayloadAbi=xl6IrRuntimeResourcePayloadAbiForOwnerType(ctx->module,base,target->params[0]);
+        factory->runtimeResourceKeyOrderAbi=xl6IrAvlKeyOrderAbi(ctx->module,base);
+    }
     XL6_IrBlockId factorySuccess,factoryFailure;
     if (!xl6IrLowerNewBlock(ctx,&factorySuccess) || !xl6IrLowerNewBlock(ctx,&factoryFailure) ||
         !xl6IrLowerEmit(ctx,XL6_IR_INSTR_ERROR_TEST,id,XL6_IR_TYPE_INVALID,0,&seed,1,NULL)) return XL6_IR_VALUE_INVALID;
@@ -8127,7 +8133,7 @@ static XL6_IrValueId xl6IrLowerSequenceProjectionCast(
     xl6IrLowerEnterBlock(ctx,factorySuccess);
     XL6_IrValueId operands[2]={seed,value};
     XL6_IrValueId result=xl6IrLowerEmitRuntimeCallMetadata(ctx,id,id,node->storageType,
-        XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED,NULL,target->params[0],base,operands,2);
+        XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED,NULL,element,base,operands,2);
     if (!result) return XL6_IR_VALUE_INVALID;
     XL6_IrInstruction* project=(XL6_IrInstruction*)xl6IrLowerValueDefinition(ctx->module,result);
     project->castAbi=node->castAbi; project->sequenceAdmissionIdentitySet=set;
@@ -8148,9 +8154,9 @@ static XL6_IrValueId xl6IrLowerCast(
     XL6_IrLowerContext* ctx, XL6_IrNodeId id, const XL6_IrNode* node)
 {
     switch ( node != NULL ? node->castAbi : XL6_IR_CAST_INVALID ) {
-    case XL6_IR_CAST_XVALUE_TO_SEQUENCE_CHECKED:
-    case XL6_IR_CAST_XVALUE_TO_NULLABLE_SEQUENCE_TRY:
-        return xl6IrLowerSequenceProjectionCast(ctx,id,node);
+    case XL6_IR_CAST_XVALUE_TO_NATIVE_CONTAINER_CHECKED:
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY:
+        return xl6IrLowerNativeContainerProjectionCast(ctx,id,node);
     case XL6_IR_CAST_IDENTITY:
         {
             XL6_IrNodeId sourceId = ctx->module->children[node->firstChild];
@@ -27614,8 +27620,8 @@ static XL6_IrValueId xl6IrLowerXValueContains(
         return XL6_IR_VALUE_INVALID;
     }
     if ( isTypedCollection )
-        itemMatches = xl6IrCollectionContainsOperandCompatible(
-            ctx->module, collectionNode->storageType, itemNode->storageType);
+        itemMatches = xl6IrCollectionContainsExpressionCompatible(
+            ctx->module, collectionNode->storageType, itemId);
     if ( !(isDynamic || (isTypedCollection && itemMatches)) ) {
         xl6IrLowerDiag(ctx, origin,
             "XLIR xvalue membership has no exact collection, element/key or boolean ABI");
@@ -27671,7 +27677,16 @@ static XL6_IrValueId xl6IrLowerXValueContains(
                      ctx, origin, collectionTemporary, collectionValue, 0, 0) ) goto done;
             operands[0] = collectionValue;
         } else {
-            boxed = xl6IrLowerNodeAsRuntimeXValue(ctx, origin, itemId, itemNode, boxedType);
+            if(isTypedCollection && !xl6IrCollectionContainsOperandCompatible(
+                ctx->module,collectionNode->storageType,itemNode->storageType)) {
+                XL6_IrTypeId element=xl6IrCollectionElementType(ctx->module,collectionNode->storageType);
+                const XL6_IrType* type=xl6IrTypeGet(&ctx->module->types,element);
+                if(type && type->kind==XL6_IR_TYPE_NULLABLE)element=type->params[0];
+                XL6_IrValueId converted=xl6IrLowerNodeAsType(ctx,origin,itemId,itemNode,element);
+                XL6_IrNode typed=*itemNode; typed.type=typed.storageType=element;
+                boxed=converted ? xl6IrLowerBoxEvaluatedRuntimeXValue(ctx,origin,&typed,boxedType,converted)
+                    : XL6_IR_VALUE_INVALID;
+            } else boxed = xl6IrLowerNodeAsRuntimeXValue(ctx, origin, itemId, itemNode, boxedType);
             itemTemporary = xl6IrLowerNewTempStorage(ctx, boxedType, origin);
             if ( boxed == XL6_IR_VALUE_INVALID || itemTemporary == 0 ||
                  !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, origin, boxedType,

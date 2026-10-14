@@ -24,6 +24,11 @@ XL6_TEXT_API bool xl6TreeDomainsCopyV1(const XL6_TreeLayoutV1*, const xvalue*, c
     XL6_SequenceAdmissionV3*, XL6_SequenceAdmissionV3*);
 XL6_TEXT_API bool xl6TreeAdmitsSchemaV1(const xvalue*, const XL6_TreeLayoutV1*,
     const XL6_SequenceAdmissionV3*, const XL6_SequenceAdmissionV3*);
+/* Captures both immutable policies from a genuine Tree, including a BUSY
+ * owner, without reading slots or retaining storage. Independent empty
+ * outputs are unchanged on failure; both policies own their metadata. */
+XL6_TEXT_API bool xl6TreeSchemaCopyV1(const xvalue*,XL6_TreeLayoutV1*,
+    XL6_SequenceAdmissionV3*,XL6_SequenceAdmissionV3*);
 /* Consumes both ARRAY schema witnesses on every path. Only independently
  * owned metadata enters the parent; no temporary Tree storage is allocated. */
 XL6_TEXT_API xvalue* xl6SequenceTreeCreateTakeV1(unsigned int, uint64_t, uint64_t,

@@ -1,0 +1,4 @@
+list<int> source = [-1: 7]
+var dynamicSource = source
+list<int> result = dynamicSource as list<int>
+assert result[-1] == 7

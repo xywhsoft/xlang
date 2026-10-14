@@ -2,6 +2,11 @@
 
 ## 1. 目标
 
+Array／Stack／List／Set／Dict／OrderedMap 已共用完整原生动态投影
+IR 合同。List、Set、Dict 与 Tree 复用共享 checked 事务，提供方独立
+选择；见 [原生容器的统一动态投影](stdlib53-b282-container-projection.md)。
+其他资源转换、完整 Native 编码和发布总验收继续。
+
 Array／Stack 的动态投影已接通精确 owner、角色、布局和完整元素策略，
 不复制或重标记源对象；nullable 错配与真实失败明确区分。见
 [Array 与 Stack 的动态类型投影](stdlib53-b281-sequence-projection.md)。
