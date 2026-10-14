@@ -100,6 +100,30 @@ static void invalid(void)
     assert(!xl6DynamicFunctionProductTakeV1(function,0,NULL,0,NULL,NULL,2,output));
     assert(!a && !ctx.calls); xrtClearError(); xrtValueRelease(function);
 }
+static bool ownedDispatch(xvalue* source,size_t argc,xvalue** argv,size_t kwc,const xstrview* names,xvalue** keywords,xrtcallresult* result)
+{
+    (void)source;
+    xrtcallframe frame={.ArgumentCount=argc,.Arguments=argv,.KeywordCount=kwc,.KeywordNames=names,.KeywordValues=keywords};
+    bool ok=invoke(dropping,&frame,result);
+    for(size_t i=0;i<argc;++i)xrtValueRelease(argv[i]);
+    for(size_t i=0;i<kwc;++i)xrtValueRelease(keywords[i]);
+    return ok;
+}
+static void dispatch(void)
+{
+    Context ctx={.count=2}; dropping=&ctx; xvalue* subject=callable(&ctx);
+    xvalue* left=NULL; xvalue* right=NULL; xvalue** output[]={&left,&right};
+    xvalue* arg=xrtValueInt(7); assert(arg); xvalue* args[]={arg};
+    assert(xl6DynamicDispatchProductTakeV1(subject,ownedDispatch,1,args,0,NULL,NULL,2,output));
+    bool flag=true; assert(xrtValueGetBool(left,&flag) && !flag); xrtValueRelease(left); xrtValueRelease(right);
+    xvalue* first=xl6DynamicDispatchFirstTakeV1(subject,ownedDispatch,0,NULL,0,NULL,NULL);
+    assert(first && xrtValueGetBool(first,&flag) && !flag); xrtValueRelease(first);
+    ctx.failure=1; left=right=NULL;
+    xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
+    assert(!xl6DynamicDispatchProductTakeV1(subject,ownedDispatch,0,NULL,0,NULL,NULL,2,output));
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope); assert(!outcome.ok && !outcome.error && !left && !right);
+    xrtValueRelease(subject);
+}
 static void fault(size_t expected,size_t point)
 {
     xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
@@ -124,6 +148,6 @@ int main(int argc,char** argv)
     callCase(2,0); callCase(1,0); callCase(3,0);
     for(unsigned mode=1;mode<=3;++mode)callCase(2,mode);
     callCase(2,6); callCase(2,7);
-    callCase(3,4); callCase(3,5); argumentFailure(); invalid(); balanced(&before);
+    callCase(3,4); callCase(3,5); argumentFailure(); invalid(); dispatch(); balanced(&before);
     puts("dynamic product exact-count/no-diagnostic/cleanup balanced"); return 0;
 }

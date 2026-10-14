@@ -1,0 +1,50 @@
+class ProductReceiver
+    func tryPop() as (bool, string)
+        return true, "class\0你"
+    end
+    func pair(string text) as (int, string)
+        return 0, text
+    end
+    func six() as (bool, int, char, bytes, string, var)
+        return false, 0, '\0', b"\0\xff", "a\0你", null
+    end
+end
+var receiver = ProductReceiver()
+auto found, item = receiver.tryPop()
+assert bool(found) and string(item) == "class\0你"
+found, item = receiver.pair("a\0b")
+assert int(found) == 0 and string(item) == "a\0b"
+var bound = receiver.tryPop
+found, item = bound()
+assert bool(found) and string(item) == "class\0你"
+var first = receiver.tryPop()
+assert bool(first)
+auto flag, zero, scalar, octets, unicode, absent = receiver.six()
+assert not bool(flag) and int(zero) == 0 and char(scalar) == '\0'
+assert (octets as bytes) == b"\0\xff" and string(unicode) == "a\0你" and absent == null
+var many = receiver.six
+flag, zero, scalar, octets, unicode, absent = many()
+assert not bool(flag) and int(zero) == 0 and char(scalar) == '\0'
+assert (octets as bytes) == b"\0\xff" and string(unicode) == "a\0你" and absent == null
+receiver = null
+found, item = bound()
+assert bool(found) and string(item) == "class\0你"
+
+var stack = Stack::<string?>()
+found, item = stack.tryPop()
+assert not bool(found) and item == null
+assert bool(stack.push(null))
+found, item = stack.tryPeek()
+assert bool(found) and item == null and int(stack.count()) == 1
+found, item = stack.tryPop()
+assert bool(found) and item == null and int(stack.count()) == 0
+assert bool(stack.push("a\0你"))
+found, item = stack.tryPeekAt(9)
+assert not bool(found) and item == null and int(stack.count()) == 1
+var take = stack.tryPop
+found, item = take()
+assert bool(found) and string(item) == "a\0你" and int(stack.count()) == 0
+assert bool(stack.push("retained"))
+stack = null
+found, item = take()
+assert bool(found) and string(item) == "retained"

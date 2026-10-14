@@ -168,6 +168,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_stack_erased_methods.c"
 	"$ROOT/src/runtime/xl6_stack_erased_try.c"
 	"$ROOT/src/runtime/xl6_dynamic_product.c"
+	"$ROOT/src/runtime/xl6_dynamic_collection_vector.c"
 	"$ROOT/src/runtime/xl6_stack_batch.c"
 	"$ROOT/src/runtime/xl6_sequence.c"
 	"$ROOT/src/runtime/xl6_array_reference_admission.c"

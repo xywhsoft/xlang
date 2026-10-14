@@ -39,7 +39,8 @@ def main():
                         assert point>0; sweeps.append(dict(Lane='O'+str(opt),Arity=count,FirstNoHit=point)); break
                 else: raise AssertionError('Unclosed fault prefix')
         changes=[
-            ('drop-extra-results','if(xrtCallResultCount(&result)!=expected)','if(xrtCallResultCount(&result)<expected)'),
+            ('drop-extra-results','if(exact ? xrtCallResultCount(&result)!=expected : xrtCallResultCount(&result)<expected)',
+                'if(xrtCallResultCount(&result)<expected)'),
             ('ignore-failure-during-publication','if(scope.failed)for','if(xrtGetError())for'),
             ('skip-failed-argument-cleanup','for(size_t i=0;i<count;++i) { xrtValueRelease(values[i]);','for(size_t i=0;i<count && !scope->failed;++i) { xrtValueRelease(values[i]);'),
         ]

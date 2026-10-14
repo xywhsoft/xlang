@@ -2,6 +2,15 @@
 
 本文记录已经由 XRT 提供、并由 xlang 标准库公开的扩展能力。这里是当前口径，不承担旧版本兼容说明。
 
+## 动态方法与 Stack 接收
+
+动态多值接收的当前合同见
+[动态方法多返回值与 Stack 安全接收](stdlib53-b277-dynamic-method-products.md)。
+`var` 接收者的类方法与绑定方法保存全部返回值；动态 Stack try 返回
+`(found, item)`，其中 `(false, null)` 为未找到，`(true, null)` 为取到
+可空元素。多值接收严格检查数量；普通单值表达式只投影第一项。
+内部输出参数不构成语言 `byref`，现有参数值语义不变。
+
 ## 进程配置与同步捕获
 
 `process.cmd` 使用 typed `array<string>` 直接 argv；`process.shell` 明确

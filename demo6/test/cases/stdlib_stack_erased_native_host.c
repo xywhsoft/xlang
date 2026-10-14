@@ -1,6 +1,7 @@
 #include "src/runtime/xl6_stack_erased.h"
 #include "src/runtime/xl6_stack_erased_methods.h"
 #include "src/runtime/xl6_stack_erased_try.h"
+#include "src/runtime/xl6_dynamic_collection_vector.h"
 #include "src/runtime/xl6_stack.h"
 #include "src/runtime/xl6_array.h"
 #include "src/runtime/xl6_array_erased.h"
@@ -415,6 +416,45 @@ static void tryPendingFailures(void)
         xrtCallResultUnit(&result); xrtValueRelease(alias); xrtValueRelease(stack);
     }
 }
+static void dynamicVector(void)
+{
+    xvalue* stack=primitive(XL6_SEQUENCE_STACK_V1,xrtTypeInt64(),1,XL6_VALUE_ADMIT_I8);
+    xvalue* alias=xl6StackEraseV1(stack,I64,NULL);
+    xvalue* array=primitive(XL6_SEQUENCE_ARRAY_V1,xrtTypeInt64(),1,XL6_VALUE_ADMIT_I8);
+    assert(stack && alias && array);
+    assert(xl6DynamicStackMethodProbeV1(alias)==1);
+    assert(xl6DynamicStackMethodProbeV1(array)==0);
+    for(unsigned op=XL6_DYNAMIC_COLLECTION_TRY_POP;op<=XL6_DYNAMIC_COLLECTION_TRY_PEEK_AT;++op) {
+        size_t arity=op==XL6_DYNAMIC_COLLECTION_TRY_PEEK_AT?1:0;
+        assert(xl6DynamicCollectionVectorArityV1(op,arity));
+        assert(!xl6DynamicCollectionVectorArityV1(op,arity+1));
+    }
+    assert(!xl6DynamicCollectionVectorArityV1(XL6_DYNAMIC_COLLECTION_POP,0));
+    xrtcallresult result=XRT_CALL_RESULT_INIT;
+    assert(xl6DynamicCollectionVectorTakeV1(alias,XL6_DYNAMIC_COLLECTION_TRY_POP,NULL,NULL,&result));
+    tryVector(&result,false,XVALUE_NULL); xrtCallResultClear(&result);
+    int64_t input=0; assert(xl6StackPushV1(stack,I64,&input));
+    assert(xl6DynamicCollectionVectorTakeV1(alias,XL6_DYNAMIC_COLLECTION_TRY_PEEK_AT,xrtValueInt(0),NULL,&result));
+    tryVector(&result,true,XVALUE_INT); xrtCallResultClear(&result);
+    assert(xl6StackSizeV1(stack,I64,false)==1);
+    assert(!xl6DynamicCollectionVectorTakeV1(alias,XL6_DYNAMIC_COLLECTION_TRY_PEEK_AT,xrtValueInt(-1),NULL,&result)); error(XERR_RANGE);
+    assert(!xrtCallResultCount(&result));
+    assert(!xl6DynamicCollectionVectorTakeV1(alias,XL6_DYNAMIC_COLLECTION_TRY_PEEK_AT,xrtValueUInt(0),NULL,&result)); error(XERR_TYPE);
+    assert(!xl6DynamicCollectionVectorTakeV1(alias,XL6_DYNAMIC_COLLECTION_TRY_PEEK_AT,xrtValueString(xrtStrView("owned invalid depth")),NULL,&result)); error(XERR_TYPE);
+    assert(!xl6DynamicCollectionVectorTakeV1(alias,XL6_DYNAMIC_COLLECTION_TRY_POP,xrtValueInt(0),NULL,&result)); error(XERR_ARGUMENT);
+    assert(!xl6DynamicCollectionVectorTakeV1(array,XL6_DYNAMIC_COLLECTION_TRY_POP,NULL,NULL,&result)); error(XERR_TYPE);
+    for(unsigned mode=1;mode<=5;++mode) {
+        xl6_error_scope call={0}; assert(xl6ErrorScopeBegin(&call)); tryMoveFailure=mode;
+        bool ok=xl6DynamicCollectionVectorTakeV1(alias,XL6_DYNAMIC_COLLECTION_TRY_PEEK_AT,xrtValueInt(0),NULL,&result);
+        tryMoveFailure=0; xl6_error_result outcome=xl6ErrorScopeEnd(&call);
+        assert(!ok && !outcome.ok && !xrtCallResultCount(&result));
+        assert(mode==3 ? outcome.error!=NULL : outcome.error==NULL);
+        xrtErrorFree(outcome.error); xrtClearError();
+    }
+    assert(xl6DynamicCollectionVectorTakeV1(alias,XL6_DYNAMIC_COLLECTION_TRY_POP,NULL,NULL,&result));
+    tryVector(&result,true,XVALUE_INT); assert(!xl6StackSizeV1(stack,I64,false));
+    xrtCallResultUnit(&result); xrtValueRelease(alias); xrtValueRelease(stack); xrtValueRelease(array);
+}
 static void tryFault(const char* operation,size_t point)
 {
     xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
@@ -447,6 +487,6 @@ int main(int argc,char** argv)
     }
     assert(argc==1); xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
     scalar(); precision(); rejection(); callbacks(); busy(); batchMetadata(); batchPendingFailures(); balanced(&before);
-    tryResults(); tryCallbacks(); tryPendingFailures(); balanced(&before);
+    tryResults(); tryCallbacks(); tryPendingFailures(); dynamicVector(); balanced(&before);
     puts("Stack projection scalar/text/reference/role/failure/busy balanced"); return 0;
 }

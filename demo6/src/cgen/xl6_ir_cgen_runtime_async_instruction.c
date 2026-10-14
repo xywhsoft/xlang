@@ -220,17 +220,19 @@ static int xl6IrCgenEmitAsyncRuntimeInstruction(
                         xl6OutputPuts("};\n",out);
                         xl6OutputPrintf(out,"    bool projection_ok_%u = ",(unsigned)instruction->result);
                     } else xl6OutputPrintf(out, "    v%u = ",(unsigned int)instruction->result);
-                    if ( instruction->runtimeOp ==
-                             XL6_IR_RUNTIME_XVALUE_DYNAMIC_METHOD_CALL )
+                    int method=instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DYNAMIC_METHOD_CALL && site->kind==XL6_IR_DYNAMIC_CALL_METHOD;
+                    if(method)xl6OutputPuts(product?"xl6DynamicDispatchProductTakeV1(":"xl6DynamicDispatchFirstTakeV1(",out);
+                    else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_DYNAMIC_METHOD_CALL )
                         xl6OutputPrintf(out,
                             "xlir_dynamic_method_call_d%lu(",
                             (unsigned long)instruction->dynamicCallSite);
                     else if(product) xl6OutputPuts("xl6DynamicFunctionProductTakeV1(",out);
                     else xl6OutputPuts("xlir_xvalue_dynamic_call_owned(", out);
-                    xl6OutputPrintf(out, "v%u, %lu, ",
+                    xl6OutputPrintf(out, "v%u, ",
                         (unsigned int)module->operands[
-                            instruction->firstOperand],
-                        (unsigned long)site->positionalCount);
+                            instruction->firstOperand]);
+                    if(method)xl6OutputPrintf(out,"xlir_dynamic_method_vector_call_d%lu, ",(unsigned long)instruction->dynamicCallSite);
+                    xl6OutputPrintf(out,"%lu, ",(unsigned long)site->positionalCount);
                     if ( site->positionalCount != 0 )
                         xl6OutputPrintf(out, "da%lu", (unsigned long)instructionIndex);
                     else xl6OutputPuts("NULL", out);

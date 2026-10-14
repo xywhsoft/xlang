@@ -313,7 +313,10 @@ typedef enum XL6_IrDynamicCollectionOp {
     XL6_IR_DYNAMIC_COLLECTION_POP_BATCH,
     XL6_IR_DYNAMIC_COLLECTION_PEEK_BATCH,
     XL6_IR_DYNAMIC_COLLECTION_PEEK_BATCH_AT,
-    XL6_IR_DYNAMIC_COLLECTION_EQUALS
+    XL6_IR_DYNAMIC_COLLECTION_EQUALS,
+    XL6_IR_DYNAMIC_COLLECTION_TRY_POP,
+    XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK,
+    XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK_AT
 } XL6_IrDynamicCollectionOp;
 
 /* Statically typed collection members share one closed semantic family.  The
@@ -3566,6 +3569,8 @@ typedef struct XL6_IrDynamicCallSite {
      * receiver-tag fallback when no runtime class tag exists.  INVALID means
      * the call is class-only. */
     XL6_IrDynamicCollectionOp fallbackCollectionOp;
+    /* MEMBER_GET native method binding fallback; INVALID otherwise. */
+    XL6_IrDynamicCollectionOp boundCollectionOp;
     XL6_IrTypeId resultType;
     XL6_IrDynamicCallResultAbi resultAbi;
     XL6_IrErrorAbi errorAbi;
