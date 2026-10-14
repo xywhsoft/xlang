@@ -95,6 +95,11 @@ static int xl6IrCallableBridgeParameterPlan(
         plan->encodeAbi = XL6_IR_CALLABLE_BRIDGE_CLOSURE_REF;
         plan->decodedDestroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_CLOSURE;
         break;
+    case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR:
+        plan->decodeAbi=XL6_IR_CALLABLE_BRIDGE_FUTURE_COPY;
+        plan->encodeAbi=XL6_IR_CALLABLE_BRIDGE_FUTURE_REF;
+        plan->decodedDestroyAbi=XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_FUTURE;
+        break;
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
         plan->decodeAbi = abi == XL6_IR_PARAMETER_ABI_OWNED
             ? XL6_IR_CALLABLE_BRIDGE_XVALUE_RETAIN : XL6_IR_CALLABLE_BRIDGE_XVALUE_BORROW;
@@ -155,6 +160,10 @@ static int xl6IrCallableBridgeResultPlan(
         plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_CLOSURE_COPY;
         plan->encodeAbi = XL6_IR_CALLABLE_BRIDGE_CLOSURE_REF;
         plan->destroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_CLOSURE; break;
+    case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR:
+        plan->decodeAbi=XL6_IR_CALLABLE_BRIDGE_FUTURE_COPY;
+        plan->encodeAbi=XL6_IR_CALLABLE_BRIDGE_FUTURE_REF;
+        plan->destroyAbi=XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_FUTURE; break;
     default: return 0;
     }
     if (plan->encodeAbi == XL6_IR_CALLABLE_BRIDGE_INVALID) plan->encodeAbi = plan->decodeAbi;

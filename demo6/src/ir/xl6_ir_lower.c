@@ -7403,6 +7403,8 @@ static int xl6IrLowerCastAbiMatchesType(
     const XL6_IrModule* module, XL6_IrTypeId typeId,
     XL6_IrCastAbi abi, const XL6_IrType* type)
 {
+    if (abi==XL6_IR_CAST_XVALUE_TO_FUTURE_CHECKED || abi==XL6_IR_CAST_XVALUE_TO_NULLABLE_FUTURE_TRY)
+        return xl6IrFutureCastIdentityType(module,typeId,abi)!=XL6_IR_TYPE_INVALID;
     if ( type == NULL || type->kind == XL6_IR_TYPE_NULLABLE ||
          type->typeValueId == 0 ) return 0;
     switch ( abi ) {
@@ -7508,7 +7510,9 @@ static XL6_IrValueId xl6IrLowerCheckedXValueCastValue(
     if ( source == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
     result = xl6IrLowerEmitRuntimeCall(
         ctx, id, resultTypeId,
-        castAbi == XL6_IR_CAST_XVALUE_TO_UNION_CHECKED
+        (castAbi==XL6_IR_CAST_XVALUE_TO_FUTURE_CHECKED || castAbi==XL6_IR_CAST_XVALUE_TO_NULLABLE_FUTURE_TRY)
+            ? XL6_IR_RUNTIME_XVALUE_FUTURE_CAST_CHECKED
+        : castAbi == XL6_IR_CAST_XVALUE_TO_UNION_CHECKED
             ? XL6_IR_RUNTIME_XVALUE_UNION_CAST_CHECKED
             : castAbi == XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED
                 ? XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_CHECKED
@@ -7524,6 +7528,8 @@ static XL6_IrValueId xl6IrLowerCheckedXValueCastValue(
         xl6IrContextualCallableCastAllowed(ctx->module, id, sourceId, resultTypeId))
         instruction->contextualCastSource = sourceId;
     instruction->payloadType = resultTypeId;
+    if (castAbi==XL6_IR_CAST_XVALUE_TO_FUTURE_CHECKED || castAbi==XL6_IR_CAST_XVALUE_TO_NULLABLE_FUTURE_TRY)
+        instruction->payloadType=xl6IrFutureCastIdentityType(ctx->module,resultTypeId,castAbi);
     if ( castAbi == XL6_IR_CAST_XVALUE_TO_CLOSURE_CHECKED )
         instruction->calleeType = resultTypeId;
     if ( !xl6IrLowerNewBlock(ctx, &successBlock) ||
@@ -8220,6 +8226,8 @@ static XL6_IrValueId xl6IrLowerCast(
     case XL6_IR_CAST_XVALUE_TO_ERROR_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_UNION_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_CLOSURE_CHECKED:
+    case XL6_IR_CAST_XVALUE_TO_FUTURE_CHECKED:
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_FUTURE_TRY:
         return xl6IrLowerCheckedXValueCast(ctx, id, node);
     case XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED:
         return xl6IrLowerCheckedXValueCast(ctx, id, node);
@@ -23120,10 +23128,10 @@ static XL6_IrValueId xl6IrLowerConditionalFutureOwned(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrNode* source,
     XL6_SymbolId* outTemporary);
 
-/* Normalize one future expression into an owned value.  Direct async calls
- * already return an owner; a NAME is a borrowed storage observation and must
- * be retained.  Nested conditionals recursively close the same ownership
- * contract before their temporary is released. */
+/* Normalize a Future expression through its lowered ownership, not a source
+ * spelling whitelist. Checked casts, projections and calls can all produce
+ * owned Futures; a borrowed storage observation requires an explicit retain.
+ * Nested conditionals close their temporary before returning an owner. */
 static XL6_IrValueId xl6IrLowerFutureOwned(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrNodeId sourceId,
     const XL6_IrNode* source)
@@ -23148,17 +23156,9 @@ static XL6_IrValueId xl6IrLowerFutureOwned(
             return XL6_IR_VALUE_INVALID;
         return owned;
     }
-    if ( source->kind != XL6_IR_NODE_NAME && source->kind != XL6_IR_NODE_CALL ) {
-        xl6IrLowerDiag(ctx, origin,
-                       "XLIR conditional future branch requires storage, call or conditional ownership");
-        return XL6_IR_VALUE_INVALID;
-    }
     value = xl6IrLowerNode(ctx, sourceId);
     if ( value == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
-    if ( source->kind == XL6_IR_NODE_CALL ) return value;
-    return xl6IrLowerEmit(ctx, XL6_IR_INSTR_RETAIN, origin, source->storageType,
-                          0, &value, 1, &owned)
-        ? owned : XL6_IR_VALUE_INVALID;
+    return xl6IrLowerAcquireValueOwner(ctx,origin,value);
 }
 
 /* A conditional future is an owning join, not a raw pointer phi.  Each branch
@@ -27251,6 +27251,7 @@ static XL6_IrClosureTarget* xl6IrLowerRegisterNamedAdapter(
           (signature->parameterModes == NULL || signature->parameterAbis == NULL)) ||
          target == NULL ||
          (target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
+          target->kind != XL6_IR_CALL_TARGET_INTERNAL_ASYNC &&
           target->kind != XL6_IR_CALL_TARGET_INTERNAL_GENERATOR &&
           target->kind != XL6_IR_CALL_TARGET_EXTERN_C) ||
          (target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
@@ -27259,6 +27260,7 @@ static XL6_IrClosureTarget* xl6IrLowerRegisterNamedAdapter(
          target->variadicAbi != variadicAbi ||
          declaration == NULL ||
          (declaration->sourceKind != XL6_AST_FUNC &&
+          declaration->sourceKind != XL6_AST_ASYNC_FUNC &&
           declaration->sourceKind != XL6_AST_EXPORT_FUNC &&
           declaration->sourceKind != XL6_AST_EXTERN_FUNC) ||
          xl6IrLowerEnclosingClass(ctx->module, target->declaration) != XL6_IR_NODE_INVALID ||
@@ -30969,21 +30971,12 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                                 "XLIR await requires an exact or structurally compatible Future payload ABI");
                 return XL6_IR_VALUE_INVALID;
             }
-            if ( futureNode->kind != XL6_IR_NODE_NAME &&
-                 futureNode->kind != XL6_IR_NODE_CALL &&
-                 futureNode->kind != XL6_IR_NODE_CONDITIONAL &&
-                 futureNode->kind != XL6_IR_NODE_INDEX ) {
-                xl6IrLowerDiag(ctx, id,
-                                "XLIR await requires a resolved future storage, call, index or conditional result");
-                return XL6_IR_VALUE_INVALID;
-            }
             if ( futureNode->kind == XL6_IR_NODE_CONDITIONAL ) {
                 future = xl6IrLowerConditionalFutureOwned(ctx, id, futureNode, &futureTemporary);
-            } else {
+            } else if (futureNode->kind==XL6_IR_NODE_NAME) {
                 future = xl6IrLowerNode(ctx, ctx->module->children[node->firstChild]);
-            }
-            if ( futureNode->kind == XL6_IR_NODE_CALL ||
-                 futureNode->kind == XL6_IR_NODE_INDEX ) {
+            } else {
+                future=xl6IrLowerFutureOwned(ctx,id,ctx->module->children[node->firstChild],futureNode);
                 XL6_IrValueId loaded;
                 futureTemporary = xl6IrLowerNewTempStorage(ctx, futureNode->storageType, id);
                 if ( future == XL6_IR_VALUE_INVALID || futureTemporary == 0 ||
@@ -32116,6 +32109,7 @@ static int xl6IrLowerBeginNamedAdapterFunction(
          signature == NULL || signature->kind != XL6_IR_TYPE_FUNCTION ||
          target == NULL ||
          (target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
+          target->kind != XL6_IR_CALL_TARGET_INTERNAL_ASYNC &&
           target->kind != XL6_IR_CALL_TARGET_INTERNAL_GENERATOR &&
           target->kind != XL6_IR_CALL_TARGET_EXTERN_C) ||
          (target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
@@ -32498,7 +32492,9 @@ static int xl6IrLowerNamedAdapterBody(
      * Default temporaries use the same commit as incoming parameter slots. */
     if (!xl6IrLowerCommitEvaluationOwners(ctx, closure->declaration, first)) goto done;
     if ( !xl6IrLowerEmit(ctx,
-                          target->kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR
+                          target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC
+                              ? XL6_IR_INSTR_ASYNC_START
+                              : target->kind == XL6_IR_CALL_TARGET_INTERNAL_GENERATOR
                               ? XL6_IR_INSTR_GENERATOR_START
                               : XL6_IR_INSTR_CALL,
                           closure->declaration,

@@ -2135,6 +2135,7 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT,
     XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED,
     XL6_IR_RUNTIME_F32_AS_CHECKED,
+    XL6_IR_RUNTIME_XVALUE_FUTURE_CAST_CHECKED,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -2390,6 +2391,8 @@ typedef enum XL6_IrCastAbi {
     XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_CONTAINER_TRY,
     XL6_IR_CAST_XVALUE_TO_F32_CHECKED,
     XL6_IR_CAST_XVALUE_TO_NULLABLE_F32_TRY,
+    XL6_IR_CAST_XVALUE_TO_FUTURE_CHECKED,
+    XL6_IR_CAST_XVALUE_TO_NULLABLE_FUTURE_TRY,
     XL6_IR_CAST_COUNT
 } XL6_IrCastAbi;
 
@@ -3645,7 +3648,8 @@ typedef enum XL6_IrDynamicMethodMatchAbi {
     XL6_IR_DYNAMIC_METHOD_MATCH_NOMINAL,
     XL6_IR_DYNAMIC_METHOD_MATCH_EXACT_IDENTITY,
     /* Callable shape plus exact canonical signature, without conversion. */
-    XL6_IR_DYNAMIC_METHOD_MATCH_CALLABLE
+    XL6_IR_DYNAMIC_METHOD_MATCH_CALLABLE,
+    XL6_IR_DYNAMIC_METHOD_MATCH_FUTURE
 } XL6_IrDynamicMethodMatchAbi;
 
 typedef struct XL6_IrDynamicMethodParameter {
@@ -4750,7 +4754,9 @@ typedef enum XL6_IrCallableBridgeValueAbi {
     /* F32 uses the lossless resident Value domain reader; TIME is not I64. */
     XL6_IR_CALLABLE_BRIDGE_F32,
     XL6_IR_CALLABLE_BRIDGE_TIME,
-    XL6_IR_CALLABLE_BRIDGE_NATIVE_SCALAR
+    XL6_IR_CALLABLE_BRIDGE_NATIVE_SCALAR,
+    XL6_IR_CALLABLE_BRIDGE_FUTURE_COPY,
+    XL6_IR_CALLABLE_BRIDGE_FUTURE_REF
 } XL6_IrCallableBridgeValueAbi;
 
 /* Logical integer domains are independent of the widened I64/U64 carrier.
@@ -7562,6 +7568,8 @@ XL6_IrCallErrorPhysicalAbi xl6IrCallInstructionErrorPhysicalAbi(
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeFutureMetadataErrorPhysicalAbi(XL6_IrRuntimeOp operation);
 XL6_IrTypeId xl6IrFutureProjectionPayloadType(const XL6_IrModule* module,
     XL6_IrTypeId resultType, XL6_IrRuntimeOp operation);
+XL6_IrTypeId xl6IrFutureCastIdentityType(const XL6_IrModule*,XL6_IrTypeId,XL6_IrCastAbi);
+int xl6IrFutureCastInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 /* Fixed result protocol for runtime string allocation. INVALID means this
  * operation is outside the family. Shared by lowering and module verification;
  * a nullable string copy uses status, never NULL as a failure discriminator. */

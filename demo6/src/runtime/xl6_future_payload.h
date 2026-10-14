@@ -66,4 +66,15 @@ struct xvalue;
  * immutable identity is the exact non-null future<T> TypeId. A null Future
  * becomes canonical null, never a differently typed null sentinel. */
 XL6_FUTURE_PAYLOAD_API struct xvalue* xl6PayloadBoxFutureV1(struct xfuture*, uint64_t);
+typedef enum XL6_FutureValueReadMode {
+    XL6_FUTURE_VALUE_NONNULL = 0,
+    XL6_FUTURE_VALUE_NULLABLE = 1,
+    XL6_FUTURE_VALUE_TRY = 2
+} XL6_FutureValueReadMode;
+/* Exact erased Future admission. Source is borrowed; output starts NULL and
+ * receives one independent reference only after checked success. NULLABLE
+ * accepts canonical null but rejects a mismatched Future<T>; TRY publishes
+ * NULL on type mismatch. Other checked failures never masquerade as absence. */
+XL6_FUTURE_PAYLOAD_API bool xl6PayloadReadFutureV1(const struct xvalue*, uint64_t,
+    unsigned int, struct xfuture**);
 #endif

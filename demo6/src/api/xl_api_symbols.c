@@ -272,6 +272,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
         !xlApiAddTccSymbol(s, "xl6NativeFuturePayloadRuntimeV1Get", (const void*)xl6NativeFuturePayloadRuntimeV1Get) ||
         !xlApiAddTccSymbol(s, "xl6TaskSubmitOwnedPolicyV1", (const void*)xl6TaskSubmitOwnedPolicyV1) ||
         !xlApiAddTccSymbol(s, "xl6PayloadBoxFutureV1", (const void*)xl6PayloadBoxFutureV1) ||
+        !xlApiAddTccSymbol(s, "xl6PayloadReadFutureV1", (const void*)xl6PayloadReadFutureV1) ||
         !xlApiAddTccSymbol(s, "xl6PayloadTraceGet", (const void*)xl6PayloadTraceGet) ||
         !xlApiAddTccSymbol(s, "xl6PayloadResolveOwned", (const void*)xl6PayloadResolveOwned) ||
         !xlApiAddTccSymbol(s, "xl6PayloadObserveOutcome", (const void*)xl6PayloadObserveOutcome)) return 0;

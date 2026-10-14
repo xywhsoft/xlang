@@ -11,7 +11,9 @@
 [动态调用的函数参数合同](stdlib53-b290-runtime-callable-func.md)；
 变长函数反向展开与 nullable 动态方法回调已按
 [可变参数展开与可空方法回调的 IR 合同](stdlib53-b291-variadic-nullable-functions.md) 接入。
-异步动态返回、其余动态／Native 组合及完整目标继续。
+异步动态返回的精确 Future 合同见
+[动态调用的 Future 合同](stdlib53-b292-runtime-futures.md)，本批冻结源码三通道通过；
+异步多返回值、其余动态／Native 组合及完整目标继续。
 
 整数转换常量默认值的阶段合同与 File 动态 map／lock 见
 [整数转换默认值的统一 IR 合同](stdlib53-b287-integer-defaults.md)。

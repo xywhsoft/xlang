@@ -1,0 +1,25 @@
+class Source
+    int entered = 0
+    async func message() as string
+        self.entered += 1
+        return "a\0你"
+    end
+    func echo(future<string> pending) as future<string>
+        self.entered += 1
+        return pending
+    end
+    func optional(future<string>? pending = null) as future<string>?
+        return pending
+    end
+end
+var source = Source()
+var result = source.message()
+assert await (result as future<string>) == "a\0你"
+var bound = source.message
+assert await (bound() as future<string>) == "a\0你"
+var echoed = source.echo(result)
+assert await (echoed as future<string>) == "a\0你"
+assert source.optional() == null
+assert source.optional(null) == null
+assert await (source.optional(result) as future<string>) == "a\0你"
+assert int(source.entered) == 3

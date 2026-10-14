@@ -3,7 +3,15 @@ static int xl6IrCgenEmitCollectionRuntimeInstruction(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrInstruction* instruction, XL6_DiagList* diags)
 {
-    if(instruction->runtimeOp==XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY ||
+    if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_FUTURE_CAST_CHECKED) {
+        if (!xl6IrFutureCastInstructionCompatible(module,instruction))
+            return xl6IrCgenRuntimeEmitDiag(diags,module,instruction->origin,"Future cast has no exact owned projection ABI");
+        const XL6_IrType* identity=xl6IrTypeGet(&module->types,instruction->payloadType);
+        xl6OutputPrintf(out,"    v%u = NULL;\n    bool projection_ok_%u = xl6PayloadReadFutureV1(v%u, 0x%016llXULL, %uu, &v%u);\n",
+            (unsigned)instruction->result,(unsigned)instruction->result,
+            (unsigned)module->operands[instruction->firstOperand],(unsigned long long)identity->typeValueId,
+            instruction->castAbi==XL6_IR_CAST_XVALUE_TO_NULLABLE_FUTURE_TRY ? 2u : 0u,(unsigned)instruction->result);
+    } else if(instruction->runtimeOp==XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY ||
         instruction->runtimeOp==XL6_IR_RUNTIME_NAMED_SET_LITERAL_TAKE) {
         if(!xl6IrNamedValueInstructionCompatible(module,instruction))
             return xl6IrCgenRuntimeEmitDiag(diags,module,instruction->origin,"XLIR named record emission requires an exact owned ABI");

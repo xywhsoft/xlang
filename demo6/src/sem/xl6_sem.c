@@ -116,9 +116,11 @@ static XL6_AstNode* xl6SemFunctionTypeFromCallableParts(
     const XL6_AstNode* returns,
     const XL6_AstNode* at);
 static XL6_AstNode* xl6SemFunctionTypeFromGenericCallable(
+    XL6_SemContext* ctx,
     const XL6_AstNode* func,
     const XL6_AstNode* typeArgs,
     const XL6_AstNode* at);
+static XL6_AstNode* xl6SemFunctionTypeFromInvocation(XL6_SemContext*,const XL6_AstNode*,const XL6_AstNode*);
 static XL6_AstNode* xl6SemNewGenericContainerType(const char* name, XL6_AstNode* itemType, const XL6_AstNode* at);
 static XL6_AstNode* xl6SemCloneAwaitResultType(XL6_SemContext* ctx, XL6_AstNode* expr);
 static XL6_AstNode* xl6SemCloneAsyncCallResultType(XL6_SemContext* ctx, const XL6_AstNode* func, const XL6_AstNode* typeArgs, const XL6_AstNode* at);
@@ -2004,6 +2006,7 @@ static int xl6SemTypeUsesResidentReferenceSemantics(XL6_SemContext* ctx, const X
     const XL6_TypeInfo* info=xl6TypeRegistryFind(&ctx->types,typeNode->text);
     if(!info || info->kind!=XL6_TYPE_BUILTIN)return 0;
     return (xl6TextEquals(typeNode->text,"channel") && xl6SemTypeNodeGenericArgCount(typeNode)==1) ||
+        xl6SemIsSharedContainerFuture(ctx,typeNode) ||
         xl6TextEquals(typeNode->text,"thread") || xl6TextEquals(typeNode->text,"mutex") ||
         xl6TextEquals(typeNode->text,"cond") || xl6TextEquals(typeNode->text,"rwlock") ||
         xl6TextEquals(typeNode->text,"sem");
@@ -2832,6 +2835,7 @@ static int xl6SemTypeSupportsXCallValueDepth(XL6_SemContext* ctx, const XL6_AstN
     if ( typeName == NULL ) {
         return 0;
     }
+    if (xl6SemIsSharedContainerFuture(ctx,concreteType)) return 1;
     if (xl6TextEquals(typeName, "function")) {
         const XL6_AstNode *params, *returns;
         if (concreteType->childCount != 2 || !(params=concreteType->children[0]) || !(returns=concreteType->children[1])) return 0;
@@ -7518,7 +7522,8 @@ static int xl6SemCheckRuntimeTypeExpr(XL6_SemContext* ctx, XL6_AstNode* node, in
                 xl6TextEquals(effectiveTarget->text,"WaitQueue") || xl6TextEquals(effectiveTarget->text,"channel") ||
                 xl6TextEquals(effectiveTarget->text,"SlotMap") || xl6TextEquals(effectiveTarget->text,"mutex") ||
                 xl6TextEquals(effectiveTarget->text,"cond") || xl6TextEquals(effectiveTarget->text,"rwlock") ||
-                xl6TextEquals(effectiveTarget->text,"sem") || xl6TextEquals(effectiveTarget->text,"thread"))) {
+                xl6TextEquals(effectiveTarget->text,"sem") || xl6TextEquals(effectiveTarget->text,"thread") ||
+                xl6TextEquals(effectiveTarget->text,"future"))) {
             /* A dynamic container projection keeps identity and the full generic
              * domain. XLIR owns its sealed schema and checked failure edge. */
         } else if ( effectiveSource == NULL ||
@@ -7728,11 +7733,16 @@ static XL6_AstNode* xl6SemFindFunctionValueFunc(XL6_SemContext* ctx, const char*
             continue;
         }
         candidateCount += 1;
-        if ( functionType->childCount == 0 ||
+        XL6_AstNode* invocationReturns=func->kind==XL6_AST_ASYNC_FUNC ?
+            xl6SemCloneInvocationReturnTypes(ctx,NULL,NULL,func,NULL,atNode) : NULL;
+        if (func->kind==XL6_AST_ASYNC_FUNC && !invocationReturns) return NULL;
+        int matches=functionType->childCount == 0 ||
              xl6SemFunctionTypeMatchesParts(ctx,
                                              functionType,
                                              func->childCount > 1 ? func->children[1] : NULL,
-                                             func->childCount > 2 ? func->children[2] : NULL) ) {
+                                             invocationReturns ? invocationReturns : func->childCount > 2 ? func->children[2] : NULL);
+        xl6AstFree(invocationReturns);
+        if (matches) {
             selected = func;
             matchCount += 1;
         }
@@ -7870,10 +7880,7 @@ static int xl6SemBindUniqueNamedFunctionValue(
         return 0;
     }
 
-    functionType = xl6SemFunctionTypeFromCallableParts(
-        selected->childCount > 1 ? selected->children[1] : NULL,
-        selected->childCount > 2 ? selected->children[2] : NULL,
-        expr);
+    functionType = xl6SemFunctionTypeFromInvocation(ctx,selected,expr);
     if ( functionType == NULL ) {
         xl6SemErrorNode(ctx, expr, "out of memory while recording named function signature");
         return 0;
@@ -8024,10 +8031,7 @@ static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNo
              * Recording the open destination type on the expression would
              * lose the only sound adapter ABI. */
             if ( typeNode->childCount == 0 ) {
-                concreteFunctionType = xl6SemFunctionTypeFromCallableParts(
-                    selected->childCount > 1 ? selected->children[1] : NULL,
-                    selected->childCount > 2 ? selected->children[2] : NULL,
-                    expr);
+                concreteFunctionType = xl6SemFunctionTypeFromInvocation(ctx,selected,expr);
                 if ( concreteFunctionType == NULL ) {
                     xl6SemErrorNode(ctx, expr,
                         "out of memory while preserving erased named function signature");
@@ -8828,8 +8832,8 @@ static int xl6SemCheckMemberFunctionValueCall(XL6_SemContext* ctx, XL6_AstNode* 
     xl6AstFree(memberType);
     return -1;
 }
-/* Declaration/method overloads retain their own resolution paths. Everything
- * that actually produces a function value shares this signature-based check;
+/* Declaration/method overloads retain their own resolution paths. A resolved
+ * callable value or erased value shares the same expression-level check;
  * no index/conditional/factory/anonymous-function syntax whitelist. */
 static int xl6SemCheckFunctionValueExprCall(XL6_SemContext* ctx, XL6_AstNode* call)
 {
@@ -8843,6 +8847,11 @@ static int xl6SemCheckFunctionValueExprCall(XL6_SemContext* ctx, XL6_AstNode* ca
         if (symbol != NULL && symbol->kind == XL6_SYM_FUNC) return -1;
     }
     callable = xl6SemResolveAliasType(ctx, callee->inferredType);
+    if (callable != NULL && xl6TextEquals(callable->text, "var")) {
+        xl6SemSetCallPlan(call, XL6_SEM_CALL_DYNAMIC_FUNCTION, NULL);
+        if (symbol != NULL) call->semanticTargetSymbolId = symbol->id;
+        return xl6SemCheckVarFunctionCall(ctx, call);
+    }
     nullable = xl6SemResolveAliasType(ctx, xl6SemNullableInnerType(callable));
     if (nullable != NULL && xl6TextEquals(nullable->text, "function")) {
         xl6SemErrorNode(ctx, callee, "nullable function must be checked for null before calling");
@@ -11388,6 +11397,7 @@ static int xl6SemCheckGenericInstant(XL6_SemContext* ctx, XL6_AstNode* node)
             ok = 0;
         } else {
             XL6_AstNode* functionType = xl6SemFunctionTypeFromGenericCallable(
+                ctx,
                 explicitFunc,
                 typeArgs,
                 node);
@@ -12587,7 +12597,18 @@ static XL6_AstNode* xl6SemFunctionTypeFromCallableParts(
     return typeNode;
 }
 
+static XL6_AstNode* xl6SemFunctionTypeFromInvocation(XL6_SemContext* ctx,
+    const XL6_AstNode* func,const XL6_AstNode* at)
+{
+    if (!func || func->childCount<3) return NULL;
+    XL6_AstNode* returns=xl6SemCloneInvocationReturnTypes(ctx,NULL,NULL,func,NULL,at);
+    if (!returns) return NULL;
+    XL6_AstNode* type=xl6SemFunctionTypeFromCallableParts(func->children[1],returns,at);
+    xl6AstFree(returns); return type;
+}
+
 static XL6_AstNode* xl6SemFunctionTypeFromGenericCallable(
+    XL6_SemContext* ctx,
     const XL6_AstNode* func,
     const XL6_AstNode* typeArgs,
     const XL6_AstNode* at)
@@ -12598,10 +12619,7 @@ static XL6_AstNode* xl6SemFunctionTypeFromGenericCallable(
     if ( func == NULL ) {
         return NULL;
     }
-    genericType = xl6SemFunctionTypeFromCallableParts(
-        func->childCount > 1 ? func->children[1] : NULL,
-        func->childCount > 2 ? func->children[2] : NULL,
-        at);
+    genericType = xl6SemFunctionTypeFromInvocation(ctx,func,at);
     if ( genericType == NULL ) {
         return NULL;
     }
@@ -13223,6 +13241,7 @@ static int xl6SemTypeCanBeFunctionResult(XL6_SemContext* ctx, const XL6_AstNode*
     return xl6SemTypeIsAuto(type) ||
         (resolved != NULL && xl6SemIsGeneratorTypeName(resolved->text)) ||
         xl6SemTypeIsFutureLikeResource(ctx, type) ||
+        xl6SemIsSharedContainerFuture(ctx,type) ||
         xl6SemTypeUsesClassReferenceSemantics(ctx, type) ||
         xl6SemTypeCanCopy(ctx, type) || xl6SemTypeRequiresFreshValue(ctx, type);
 }

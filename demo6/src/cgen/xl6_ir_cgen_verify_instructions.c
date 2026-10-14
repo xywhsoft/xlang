@@ -116,6 +116,11 @@ static int xl6IrCgenVerifyInstructions(
             }
             break;
         case XL6_IR_INSTR_RUNTIME_CALL:
+            if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_FUTURE_CAST_CHECKED) {
+                if (!xl6IrFutureCastInstructionCompatible(module,instruction))
+                    return xl6IrCgenDiag(diags,module,instruction->origin,"Future cast has no complete identity/output contract");
+                break;
+            }
             if(instruction->runtimeOp==XL6_IR_RUNTIME_F32_AS_CHECKED) {
                 if(!xl6IrFloat32AsInstructionCompatible(module,instruction))
                     return xl6IrCgenDiag(diags,module,instruction->origin,"F32 as has no complete lossless output contract");

@@ -1,0 +1,36 @@
+async func integer() as int
+    return 42
+end
+async func fail() as string
+    throw ValueError("dynamic future original")
+end
+var number = xcall(integer)()
+int errors = 0
+try
+    auto wrong = number as future<string>
+catch TypeError failure
+    errors += 1
+end
+assert (number as future<string>?) == null
+assert await (number as future<int>) == 42
+var rejected = xcall(fail)()
+try
+    auto wrong = await (rejected as future<string>)
+catch ValueError failure
+    assert failure.message == "dynamic future original"
+    errors += 1
+end
+class Consumer
+    int entered = 0
+    func echo(future<string> pending) as future<string>
+        self.entered += 1
+        return pending
+    end
+end
+var consumer = Consumer()
+try
+    consumer.echo(number)
+catch TypeError failure
+    errors += 1
+end
+assert errors == 3 and int(consumer.entered) == 0
