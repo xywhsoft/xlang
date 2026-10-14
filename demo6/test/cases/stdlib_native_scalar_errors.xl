@@ -1,0 +1,60 @@
+func echo(var input) as var
+    return input
+end
+int caught = 0
+try
+    c_schar(128)
+catch RangeError failure
+    caught += 1
+end
+try
+    c_schar(echo(128))
+catch RangeError failure
+    caught += 1
+end
+try
+    c_uchar(-1)
+catch RangeError failure
+    caught += 1
+end
+try
+    c_uchar(echo(-1))
+catch RangeError failure
+    caught += 1
+end
+try
+    c_int(math.inf)
+catch RangeError failure
+    caught += 1
+end
+try
+    c_int(echo(math.nan))
+catch RangeError failure
+    caught += 1
+end
+try
+    c_float(1e100)
+catch RangeError failure
+    caught += 1
+end
+try
+    c_float(echo(1e100))
+catch RangeError failure
+    caught += 1
+end
+try
+    c_int(echo("123"))
+catch TypeError failure
+    caught += 1
+end
+try
+    c_int(echo(null))
+catch TypeError failure
+    caught += 1
+end
+try
+    auto bad = echo(c_uint(7)) as c_int
+catch TypeError failure
+    caught += 1
+end
+assert caught == 11

@@ -151,7 +151,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_nullable_native_u32.c',
     'src/runtime/xl6_nullable_native_u32_value.c',
     'src/runtime/xl6_nullable_string.c',
-    'src/runtime/xl6_string_type.c','src/runtime/xl6_string_value.c','src/runtime/xl6_array_value.c','src/runtime/xl6_array_reference_value.c','src/runtime/xl6_array_erased.c','src/runtime/xl6_value_admission.c','src/runtime/xl6_native_scalar_value.c','src/runtime/xl6_nominal_admission.c',
+    'src/runtime/xl6_string_type.c','src/runtime/xl6_string_value.c','src/runtime/xl6_array_value.c','src/runtime/xl6_array_reference_value.c','src/runtime/xl6_array_erased.c','src/runtime/xl6_value_admission.c','src/runtime/xl6_native_scalar_value.c','src/runtime/xl6_native_scalar_convert.c','src/runtime/xl6_value_native_scalar_convert.c','src/runtime/xl6_nominal_admission.c',
     'src/runtime/xl6_char_type.c','src/runtime/xl6_char_value.c','src/runtime/xl6_char_checked.c','src/runtime/xl6_stack_erased_methods.c','src/runtime/xl6_stack_erased_try.c','src/runtime/xl6_dynamic_product.c','src/runtime/xl6_dynamic_collection_vector.c','src/runtime/xl6_float_convert.c','src/runtime/xl6_sequence_projection_schema.c',
     'src/runtime/xl6_container_projection.c','src/runtime/xl6_list_projection_cast.c','src/runtime/xl6_set_projection_cast.c',
     'src/runtime/xl6_dict_projection_cast.c','src/runtime/xl6_tree_projection_cast.c',

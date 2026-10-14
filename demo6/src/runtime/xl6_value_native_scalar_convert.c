@@ -1,0 +1,25 @@
+#include "src/runtime/xl6_native_scalar_profile.h"
+#include "src/api/xl_foreign_error.h"
+/* Only builtin numeric tags; delegate to the same static constructor rules. */
+bool xl6ValueConvertNativeScalarV1(const xvalue* source,unsigned targetProfile,void* output)
+{
+    xl6_error_scope scope={0};XL6_NativeScalarScratchV1 input={0};bool ok=false;unsigned profile=0;
+    if(!xl6ErrorScopeBegin(&scope)) { xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});return false; }
+    if(!source || !output || !targetProfile || targetProfile>XL6_NATIVE_SCALAR_WCHAR)xrtSetErrorKind(XERR_ARGUMENT);
+    else {
+        switch(xrtValueType(source)) {
+        case XVALUE_BOOL:profile=XL6_SCALAR_INPUT_BOOL;ok=xrtValueGetBool(source,&input.boolean);break;
+        case XVALUE_INT:profile=XL6_SCALAR_INPUT_I64;ok=xrtValueGetInt(source,&input.i64);break;
+        case XVALUE_UINT:profile=XL6_SCALAR_INPUT_U64;ok=xrtValueGetUInt(source,&input.u64);break;
+        case XVALUE_FLOAT:profile=XL6_SCALAR_INPUT_F64;ok=xrtValueGetFloat(source,&input.f64);break;
+        case XVALUE_TIME:profile=XL6_SCALAR_INPUT_TIME;ok=xrtValueGetTime(source,&input.i64);break;
+        case XVALUE_CHAR:profile=XL6_SCALAR_INPUT_CHAR;ok=xrtValueGetChar(source,&input.u32);break;
+        default:xrtSetErrorKind(XERR_TYPE);break;
+        }
+        if(ok)ok=xl6NativeScalarConvertV1(&input,profile,targetProfile,output);
+    }
+    if(!ok || xrtGetError())xl6ErrorScopeCaptureFailure(&scope);
+    xl6_error_result result=xl6ErrorScopeEnd(&scope);
+    if(!result.ok) { xl6ErrorScopePropagateFailure(result);return false; }
+    return true;
+}

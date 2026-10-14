@@ -116,6 +116,12 @@ static int xl6IrCgenVerifyInstructions(
             }
             break;
         case XL6_IR_INSTR_RUNTIME_CALL:
+            if(instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED ||
+                instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED) {
+                if(!xl6IrNativeScalarInstructionCompatible(module,instruction))
+                    return xl6IrCgenDiag(diags,module,instruction->origin,"Native scalar operation has no full checked output contract");
+                break;
+            }
             if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_FUTURE_CAST_CHECKED) {
                 if (!xl6IrFutureCastInstructionCompatible(module,instruction))
                     return xl6IrCgenDiag(diags,module,instruction->origin,"Future cast has no complete identity/output contract");

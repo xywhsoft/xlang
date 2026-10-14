@@ -1,0 +1,8 @@
+func echo(var input) as var
+    return input
+end
+assert int(echo(7) as c_int) == 7
+c_int? present = echo(7) as c_int?
+assert present != null and int(present as c_int) == 7
+assert (echo("a\0你") as c_int?) == null
+assert (echo(null) as c_int?) == null

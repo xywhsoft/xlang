@@ -1,0 +1,34 @@
+func echo(var input) as var
+    return input
+end
+assert (echo(c_int(-7)) as c_int) == c_int(-7)
+assert (echo(c_uint(7)) as c_uint) == c_uint(7)
+assert (echo(c_float(1.5)) as c_float) == c_float(1.5)
+assert (echo(c_char(7)) as c_char) == c_char(7)
+assert (echo(c_schar(-7)) as c_schar) == c_schar(-7)
+assert (echo(c_uchar(7)) as c_uchar) == c_uchar(7)
+assert (echo(c_short(-7)) as c_short) == c_short(-7)
+assert (echo(c_ushort(7)) as c_ushort) == c_ushort(7)
+assert (echo(c_long(-7)) as c_long) == c_long(-7)
+assert (echo(c_ulong(7)) as c_ulong) == c_ulong(7)
+assert (echo(c_longlong(-7)) as c_longlong) == c_longlong(-7)
+assert (echo(c_ulonglong(7)) as c_ulonglong) == c_ulonglong(7)
+assert (echo(c_size(7)) as c_size) == c_size(7)
+assert (echo(c_ssize(-7)) as c_ssize) == c_ssize(-7)
+assert (echo(c_ptrdiff(-7)) as c_ptrdiff) == c_ptrdiff(-7)
+assert (echo(c_intptr(-7)) as c_intptr) == c_intptr(-7)
+assert (echo(c_uintptr(7)) as c_uintptr) == c_uintptr(7)
+assert (echo(c_bool(true)) as c_bool) == c_bool(true)
+assert (echo(c_double(1.5)) as c_double) == c_double(1.5)
+assert (echo(c_wchar(65)) as c_wchar) == c_wchar(65)
+assert (echo(int) as type) == int
+c_int? present = echo(c_int(-7)) as c_int?
+assert present != null and (present as c_int) == c_int(-7)
+var missing = null
+assert (missing as c_int?) == null
+var wrong = "a\0你"
+assert (wrong as c_int?) == null
+assert (echo(1.1) as c_float?) == null
+assert (echo(c_uint(7)) as c_int?) == null
+type? token = echo(string) as type?
+assert token != null and (token as type) == string

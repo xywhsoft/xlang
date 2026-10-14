@@ -2136,6 +2136,8 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED,
     XL6_IR_RUNTIME_F32_AS_CHECKED,
     XL6_IR_RUNTIME_XVALUE_FUTURE_CAST_CHECKED,
+    XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED,
+    XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -2393,6 +2395,8 @@ typedef enum XL6_IrCastAbi {
     XL6_IR_CAST_XVALUE_TO_NULLABLE_F32_TRY,
     XL6_IR_CAST_XVALUE_TO_FUTURE_CHECKED,
     XL6_IR_CAST_XVALUE_TO_NULLABLE_FUTURE_TRY,
+    XL6_IR_CAST_XVALUE_TO_NATIVE_SCALAR_CHECKED,
+    XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_SCALAR_TRY,
     XL6_IR_CAST_COUNT
 } XL6_IrCastAbi;
 
@@ -2551,7 +2555,8 @@ typedef enum XL6_IrIntrinsicKind {
     XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_VALUE,
     XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_NAME,
     XL6_IR_INTRINSIC_PERSISTENCE_XLON_WRITER_INDEX,
-    XL6_IR_INTRINSIC_CHECKED_XVALUE_CONVERT
+    XL6_IR_INTRINSIC_CHECKED_XVALUE_CONVERT,
+    XL6_IR_INTRINSIC_CHECKED_NATIVE_SCALAR_CONVERT
 } XL6_IrIntrinsicKind;
 
 /* The continuation mode survives intrinsic lowering because a single runtime
@@ -7633,5 +7638,10 @@ int xl6IrNativeContainerProjectionInstructionCompatible(const XL6_IrModule*,cons
  * to membership's exact element/key contract. Variables never narrow here. */
 int xl6IrCollectionContainsExpressionCompatible(const XL6_IrModule*,XL6_IrTypeId,XL6_IrNodeId);
 int xl6IrFloat32AsInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
+unsigned xl6IrNativeScalarConversionInput(const XL6_IrType*);
+int xl6IrNativeScalarConversionSignature(const XL6_IrModule*,XL6_IrTypeId,XL6_IrTypeId);
+XL6_IrTypeId xl6IrNativeScalarAsIdentity(const XL6_IrModule*,XL6_IrTypeId);
+int xl6IrNativeScalarIntrinsicCompatible(const XL6_IrModule*,const XL6_IrIntrinsicCall*);
+int xl6IrNativeScalarInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 
 #endif

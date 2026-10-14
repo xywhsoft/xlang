@@ -590,6 +590,29 @@ static int xl6IrCgenEmitStackRuntime(
     const char* payloadAbi;
     const char* runtimeType;
     XL6_IrValueId first;
+    if(instruction && (instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED ||
+        instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED)) {
+        if(!xl6IrNativeScalarInstructionCompatible(module,instruction))return -1;
+        const XL6_IrType* target=xl6IrTypeGet(&module->types,instruction->type);
+        const XL6_IrType* identity=xl6IrTypeGet(&module->types,instruction->runtimeIdentityType);
+        unsigned profile=xl6IrNativeScalarProfileForCAbi(identity->cAbi);
+        XL6_IrValueId source=module->operands[instruction->firstOperand];
+        if(instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED) {
+            unsigned input=xl6IrNativeScalarConversionInput(xl6IrTypeGet(&module->types,instruction->payloadType));
+            if(input==XL6_SCALAR_INPUT_XVALUE)
+                xl6OutputPrintf(out,"    bool projection_ok_%u = xl6ValueConvertNativeScalarV1(v%u, %u, &v%u);\n",
+                    (unsigned)instruction->result,(unsigned)source,profile,(unsigned)instruction->result);
+            else xl6OutputPrintf(out,"    bool projection_ok_%u = xl6NativeScalarConvertV1(&v%u, %u, %u, &v%u);\n",
+                (unsigned)instruction->result,(unsigned)source,input,profile,(unsigned)instruction->result);
+        } else if(target->kind==XL6_IR_TYPE_NULLABLE) {
+            xl6OutputPrintf(out,"    v%u.hasValue=false; v%u.value=0;\n"
+                "    bool projection_ok_%u = xl6ValueTryReadNativeScalarV1(v%u, %u, 0x%016llXULL, &v%u.hasValue, &v%u.value);\n",
+                (unsigned)instruction->result,(unsigned)instruction->result,(unsigned)instruction->result,
+                (unsigned)source,profile,(unsigned long long)identity->typeValueId,(unsigned)instruction->result,(unsigned)instruction->result);
+        } else xl6OutputPrintf(out,"    bool projection_ok_%u = xl6ValueReadNativeScalarV1(v%u, %u, 0x%016llXULL, &v%u);\n",
+            (unsigned)instruction->result,(unsigned)source,profile,(unsigned long long)identity->typeValueId,(unsigned)instruction->result);
+        return xl6OutputHasFailed(out) ? -1 : 1;
+    }
     if(instruction && instruction->runtimeOp==XL6_IR_RUNTIME_F32_AS_CHECKED) {
         if(!xl6IrFloat32AsInstructionCompatible(module,instruction))return -1;
         const XL6_IrType* target=xl6IrTypeGet(&module->types,instruction->type);

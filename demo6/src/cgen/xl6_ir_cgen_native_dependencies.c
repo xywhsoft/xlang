@@ -738,6 +738,18 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             (!xl6IrNativeContainerProjectionInstructionCompatible(module,instruction) ||
              !xl6IrCgenContainerProjectionSymbol(module,instruction) ||
              !visitor(context,xl6IrCgenContainerProjectionSymbol(module,instruction)))) return 0;
+        if(xl6IrCgenInstructionIsReachable(module,i) &&
+            (instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED ||
+             instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED)) {
+            if(!xl6IrNativeScalarInstructionCompatible(module,instruction))return 0;
+            const char* symbol;
+            if(instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED)
+                symbol=instruction->castAbi==XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_SCALAR_TRY ?
+                    "xl6ValueTryReadNativeScalarV1" : "xl6ValueReadNativeScalarV1";
+            else symbol=xl6IrNativeScalarConversionInput(xl6IrTypeGet(&module->types,instruction->payloadType))==XL6_SCALAR_INPUT_XVALUE ?
+                "xl6ValueConvertNativeScalarV1" : "xl6NativeScalarConvertV1";
+            if(!visitor(context,symbol))return 0;
+        }
         if(xl6IrCgenInstructionIsReachable(module,i) && instruction->runtimeOp==XL6_IR_RUNTIME_F32_AS_CHECKED &&
             (!xl6IrFloat32AsInstructionCompatible(module,instruction) ||
              !visitor(context,instruction->castAbi==XL6_IR_CAST_XVALUE_TO_NULLABLE_F32_TRY ?
