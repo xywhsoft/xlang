@@ -1,0 +1,52 @@
+func nullableInt(int8? value = null) as int8?
+    return value
+end
+func nullableBool(bool? value = false) as bool?
+    return value
+end
+func nullableChar(char? value = null) as char?
+    return value
+end
+func nullableReal(float32? value) as float32?
+    return value
+end
+func nullableText(string? value = null) as string?
+    return value
+end
+func nullableBytes(bytes? value = null) as bytes?
+    return value
+end
+func mixed(bool? flag, int8? number, char? scalar, string? text, bytes? octets) as (bool?, int8?, char?, string?, bytes?)
+    return flag, number, scalar, text, octets
+end
+var i = xcall(nullableInt)
+var b = xcall(nullableBool)
+var c = xcall(nullableChar)
+var f = xcall(nullableReal)
+var s = xcall(nullableText)
+var raw = xcall(nullableBytes)
+var many = xcall(mixed)
+func(int8?) as int8? restoredInt = i
+func(string?) as string? restoredText = s
+func(bytes?) as bytes? restoredBytes = raw
+func(float32?) as float32? restoredFloat = f
+func(bool?, int8?, char?, string?, bytes?) as (bool?, int8?, char?, string?, bytes?) restoredMany = many
+assert i() == null and i(null) == null and int(i(0)) == 0
+assert not bool(b()) and b(null) == null and not bool(b(false))
+assert c(null) == null and char(c('\0')) == '\0' and char(c('你')) == '你'
+var widenedFloat = float32(0)
+assert f(null) == null and f(widenedFloat) == 0.0
+assert restoredFloat(null) == null and (restoredFloat(float32(0)) ?? float32(1)) == float32(0)
+assert s() == null and s(null) == null and string(s("")) == "" and string(s("a\0你")) == "a\0你"
+assert raw() == null and raw(null) == null and (raw(b"\0\xff") as bytes) == b"\0\xff"
+assert restoredInt(null) == null and (restoredInt(int8(0)) ?? int8(1)) == int8(0)
+assert restoredText(null) == null and (restoredText("a\0你") ?? "missing") == "a\0你"
+assert restoredBytes(null) == null and (restoredBytes(b"\0\xff") ?? b"missing") == b"\0\xff"
+auto flag, number, scalar, text, octets = many(null, null, null, null, null)
+assert flag == null and number == null and scalar == null and text == null and octets == null
+flag, number, scalar, text, octets = many(false, 0, '\0', "", b"")
+assert not bool(flag) and int(number) == 0 and char(scalar) == '\0' and string(text) == "" and (octets as bytes) == b""
+auto tf, ti, tc, ts, tb = restoredMany(null, null, null, null, null)
+assert tf == null and ti == null and tc == null and ts == null and tb == null
+tf, ti, tc, ts, tb = restoredMany(false, int8(0), '你', "a\0你", b"\0\xff")
+assert (tf ?? true) == false and (ti ?? int8(1)) == int8(0) and (tc ?? '?') == '你' and (ts ?? "missing") == "a\0你" and (tb ?? b"missing") == b"\0\xff"

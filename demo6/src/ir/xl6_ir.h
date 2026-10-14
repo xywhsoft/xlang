@@ -4732,9 +4732,21 @@ typedef struct XL6_IrCallableBridgeIntegerDomain {
     bool nominal;
 } XL6_IrCallableBridgeIntegerDomain;
 
+/* Presence is orthogonal to payload conversion. Cgen executes this closed
+ * plan instead of inferring null handling from a carrier or zero payload. */
+typedef enum XL6_IrCallableBridgePresenceAbi {
+    XL6_IR_CALLABLE_PRESENCE_NONE = 0,
+    XL6_IR_CALLABLE_PRESENCE_TAGGED,
+    XL6_IR_CALLABLE_PRESENCE_STRING_DATA,
+    XL6_IR_CALLABLE_PRESENCE_POINTER,
+    XL6_IR_CALLABLE_PRESENCE_XVALUE_NULL
+} XL6_IrCallableBridgePresenceAbi;
+
 typedef struct XL6_IrCallableBridgeParameter {
     size_t parameter;
     XL6_IrTypeId type;
+    XL6_IrTypeId valueType;
+    XL6_IrCallableBridgePresenceAbi presenceAbi;
     XL6_IrCallableBridgeValueAbi decodeAbi;
     XL6_IrCallableBridgeValueAbi encodeAbi;
     XL6_IrCallableBridgeIntegerDomain integerDomain;
@@ -4761,6 +4773,8 @@ typedef enum XL6_IrCallableBridgeFrameCleanupAbi {
 typedef struct XL6_IrCallableBridgeResult {
     size_t result;
     XL6_IrTypeId type;
+    XL6_IrTypeId valueType;
+    XL6_IrCallableBridgePresenceAbi presenceAbi;
     XL6_IrCallableBridgeValueAbi decodeAbi;
     XL6_IrCallableBridgeValueAbi encodeAbi;
     XL6_IrCallableBridgeIntegerDomain integerDomain;
@@ -5293,6 +5307,7 @@ int xl6IrDynamicMethodCallTargetSupported(const struct XL6_IrModule*, const XL6_
 /* Portable closed payload for a signed/unsigned contextual integer literal,
  * including unary signs and the exact minimum signed value. */
 char* xl6IrCanonicalContextualIntegerLiteral(const struct XL6_IrModule*, XL6_IrNodeId, XL6_IrTypeId);
+XL6_IrDynamicMethodDefaultAbi xl6IrDynamicMethodLiteralDefaultAbi(const struct XL6_IrModule*, XL6_IrTypeId, XL6_IrNodeId);
 
 /* Allocation-free view of the selected synchronous property ABI. It projects
  * the already canonical direct/class/protocol target, with receiver separated

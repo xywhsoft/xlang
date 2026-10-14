@@ -1,0 +1,25 @@
+func replaceText(string? input = "") as string?
+    input = "changed\0你"
+    return input
+end
+func replaceBytes(bytes? input = null) as bytes?
+    input = b"\0\xff"
+    return input
+end
+func defaultInteger(int8? input = 0) as int8?
+    return input
+end
+var textCall = xcall(replaceText)
+var byteCall = xcall(replaceBytes)
+var integerCall = xcall(defaultInteger)
+func(string?) as string? typedText = textCall
+func(bytes?) as bytes? typedBytes = byteCall
+string original = "a\0你"
+bytes data = b"source"
+assert string(textCall(input=original)) == "changed\0你" and original == "a\0你"
+assert string(textCall()) == "changed\0你"
+assert (byteCall(input=data) as bytes) == b"\0\xff" and data == b"source"
+assert (byteCall(null) as bytes) == b"\0\xff"
+assert (typedText(original) ?? "missing") == "changed\0你" and original == "a\0你"
+assert (typedBytes(data) ?? b"missing") == b"\0\xff" and data == b"source"
+assert int(integerCall()) == 0 and integerCall(input=null) == null

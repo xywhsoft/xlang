@@ -31,6 +31,8 @@ static int xl6IrCallableBridgeParameterPlan(
         !(type = xl6IrTypeGet(&module->types, signature->params[parameter]))) return 0;
     memset(plan, 0, sizeof(*plan));
     plan->parameter = parameter; plan->type = signature->params[parameter];
+    plan->valueType=xl6IrCallableBridgePayloadType(&module->types,plan->type,&plan->presenceAbi);
+    type=xl6IrTypeGet(&module->types,plan->valueType); if(!type)return 0;
     plan->integerDomain = xl6IrCallableBridgeIntegerDomain(type);
     plan->nativeScalarProfile = xl6IrNativeScalarProfileForCAbi(type->cAbi);
     abi = signature->parameterAbis[parameter];
@@ -112,6 +114,8 @@ static int xl6IrCallableBridgeResultPlan(
         !(type = xl6IrTypeGet(&module->types, signature->returns[result]))) return 0;
     memset(plan, 0, sizeof(*plan));
     plan->result = result; plan->type = signature->returns[result];
+    plan->valueType=xl6IrCallableBridgePayloadType(&module->types,plan->type,&plan->presenceAbi);
+    type=xl6IrTypeGet(&module->types,plan->valueType); if(!type)return 0;
     plan->integerDomain = xl6IrCallableBridgeIntegerDomain(type);
     plan->nativeScalarProfile = xl6IrNativeScalarProfileForCAbi(type->cAbi);
     plan->destroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_NONE;
@@ -276,6 +280,7 @@ static int xl6IrVerifyCallableBridges(const XL6_IrModule* module, XL6_DiagList* 
                 !xl6IrCallableBridgeParameterPlan(module, signature, p, &expected)) goto malformed;
             actual = &module->callableBridgeParameters[next++];
             if (actual->parameter != expected.parameter || actual->type != expected.type ||
+                actual->valueType!=expected.valueType || actual->presenceAbi!=expected.presenceAbi ||
                 actual->decodeAbi != expected.decodeAbi || actual->encodeAbi != expected.encodeAbi ||
                 !xl6IrCallableBridgeIntegerDomainEqual(actual->integerDomain, expected.integerDomain) ||
                 actual->nativeScalarProfile != expected.nativeScalarProfile ||
@@ -290,6 +295,7 @@ static int xl6IrVerifyCallableBridges(const XL6_IrModule* module, XL6_DiagList* 
                 !xl6IrCallableBridgeResultPlan(module, signature, p, &expected)) goto malformed;
             actual = &module->callableBridgeResults[nextResult++];
             if (actual->result != expected.result || actual->type != expected.type ||
+                actual->valueType!=expected.valueType || actual->presenceAbi!=expected.presenceAbi ||
                 actual->decodeAbi != expected.decodeAbi || actual->encodeAbi != expected.encodeAbi ||
                 !xl6IrCallableBridgeIntegerDomainEqual(actual->integerDomain, expected.integerDomain) ||
                 actual->nativeScalarProfile != expected.nativeScalarProfile ||

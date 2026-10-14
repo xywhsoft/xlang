@@ -2,6 +2,11 @@
 
 ## 1. 目标
 
+typed nullable callable 的基础标量、字符串和 bytes 编解码合同见
+[Nullable callable 的存在性与载荷合同](stdlib53-b278-nullable-callable.md)。
+存在性独立于 false、零值和空容器；未支持的动态 float32 转换与
+直接参数装箱仍在本长期任务范围内，不通过改写调用方式标成完成。
+
 动态方法与绑定方法已接通完整多返回值，动态 Stack 的 `tryPop`、
 `tryPeek`、`tryPeekAt` 按精确原生操作返回拥有的 `(found, item)`。
 2026-10-14 的双平台源码、语言与故障专项见
