@@ -23,7 +23,7 @@ def main():
         'stdlib_runtime_callable_prefix_capture','stdlib_runtime_method_defaults','stdlib_runtime_method_defaults_errors',
         'stdlib_integer_defaults','stdlib_integer_defaults_boundary','stdlib_integer_defaults_file',
         'stdlib_dynamic_callbacks','stdlib_dynamic_callbacks_reject','stdlib_float32_as','stdlib_bytes_defaults',
-        'stdlib_stack_dynamic_surface','stdlib_stack_dynamic_try.pending','stdlib_native_scalar_as_only',
+        'stdlib_stack_dynamic_surface','stdlib_stack_dynamic_try.pending','stdlib_native_scalar_as_only','stdlib_native_scalar_reflection',
         'stdlib_runtime_callable_variadic_func','stdlib_runtime_nullable_method_func','stdlib_runtime_variadic_func_errors')
     fixtures=[root/'test/cases'/(name+'.xl') for name in (*compile_only,*runtime)]
     contract=root/'test/support/native_scalar_ir_contract.c'
@@ -44,11 +44,12 @@ def main():
     admissionContract=root/'test/support/native_scalar_admission_contract.c'
     arrayOnly=root/'test/cases/stdlib_runtime_callable_variadic_array_only.xl'
     asyncMultiReturn=root/'test/cases/sem_async_multi_return.xl'
-    pinned.update((Path(__file__).resolve(),Path(cc),Path(nm),*fixtures,contract,scalarContract,futureContract,funcContract,defaultContract,methodContract,integerContract,artifact,host,funcErrorHost,defaultErrorHost,memory,native,frameContract,admissionContract,arrayOnly,variadicContract,variadicErrorHost,asyncMultiReturn))
+    reflectionStatic=root/'test/cases/sem_native_scalar_reflection_static.xl'
+    pinned.update((Path(__file__).resolve(),Path(cc),Path(nm),*fixtures,contract,scalarContract,futureContract,funcContract,defaultContract,methodContract,integerContract,artifact,host,funcErrorHost,defaultErrorHost,memory,native,frameContract,admissionContract,arrayOnly,variadicContract,variadicErrorHost,asyncMultiReturn,reflectionStatic))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]
     out.mkdir(parents=True);rows=[];prefixes=[];products=[];env=dict(os.environ);suffix='.exe' if os.name=='nt' else ''
     report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Rows=rows,ClosedPrefixes=prefixes,Products=products,
-        ComparedSources=compared,NativeScalarConversionAcceptance=False,Full53Acceptance=False,ShippingLibraryAcceptance=False,
+        ComparedSources=compared,NativeScalarConversionAcceptance=False,NativeScalarReflectionAcceptance=False,Full53Acceptance=False,ShippingLibraryAcceptance=False,
         GeneratedInstrumented=a.sanitize,OtherProvidersInstrumented=False,Scope=__doc__)
     if os.name=='nt':shutil.copy2(native,out/'xl.dll')
     else:env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
@@ -72,6 +73,8 @@ def main():
     try:
         assert 'multi-return' in run('async-multi-return.reject',
             [build['Driver'],asyncMultiReturn,'cgen-default',out/'async-multi-return.invalid.c'],True)
+        run('reflection-static.reject',[build['Driver'],reflectionStatic,'cgen-default',out/'reflection-static.invalid.c'],True)
+        invalid=out/'reflection-static.invalid.c';assert not invalid.exists() or invalid.stat().st_size==0
         binary=out/('frame-contract'+suffix)
         run('frame-contract.build',[cc,*flags,*san,'-O0',frameContract,memory,*links,'-o',binary])
         frameLog=run('frame-contract.run',[binary]);assert 'balanced' in frameLog
@@ -79,7 +82,7 @@ def main():
         run('admission-contract.build',[cc,*flags,*san,'-O0',admissionContract,memory,*links,'-o',binary])
         assert 'balanced' in run('admission-contract.run',[binary])
         binary=out/('contract'+suffix);run('contract.build',[cc,*flags,'-O0',contract,*links,'-o',binary])
-        for name in runtime[:3]:
+        for name in (*runtime[:3],'stdlib_native_scalar_reflection'):
             assert 'rejected before output' in run(name+'.contract',[binary,root/'test/cases'/(name+'.xl')])
         binary=out/('scalar-contract'+suffix);run('scalar-contract.build',[cc,*flags,'-O0',scalarContract,*links,'-o',binary])
         for name in runtime[3:6]:
@@ -107,6 +110,14 @@ def main():
         for opt in (0,2):
             memoryObjects[opt]=out/('memory.O'+str(opt)+'.o')
             run('memory.O'+str(opt),[cc,*flags,*san,'-O'+str(opt),'-c',memory,'-o',memoryObjects[opt]])
+        for name in ('stdlib_native_scalar_reflection','stdlib_native_scalar_as_only'):
+            for mode in ('ir-typed','ir-lowered'):
+                target=out/(name+'.'+mode+'.json');run(name+'.'+mode,[build['Driver'],root/'test/cases'/(name+'.xl'),mode,target])
+                document=json.loads(target.read_text(encoding='utf-8-sig'));mapping=document['runtimeTypeMap']
+                assert mapping['abiVersion']==3 and mapping['type']!=mapping['u64']
+                reflected=[t for t in document['types'] if t['name']=='type']
+                assert all(t['typeValueId']==mapping['type'] for t in reflected)
+                if name=='stdlib_native_scalar_reflection':assert reflected
         for fixture in fixtures:
             name=fixture.stem;generated=out/(name+'.c');repeat=out/(name+'.repeat.c')
             run(name+'.cgen',[build['Driver'],fixture,'cgen-default',generated])
@@ -119,7 +130,7 @@ def main():
                 fixtureHost=variadicErrorHost if name=='stdlib_runtime_variadic_func_errors' else funcErrorHost if name=='stdlib_runtime_callable_func_errors' else defaultErrorHost if name=='stdlib_runtime_callable_defaults_errors' else host
                 run(name+'.O'+str(opt)+'.build',[cc,*flags,*san,'-O'+str(opt),'-include',generated,fixtureHost,memoryObjects[opt],*links,'-o',binary])
                 assert 'balanced' in run(name+'.O'+str(opt)+'.run',[binary])
-                if name in runtime[:3]:
+                if name in (*runtime[:3],'stdlib_native_scalar_reflection'):
                     log=run(name+'.O'+str(opt)+'.oom',[binary,'--all']);match=re.search(r'full prefixes=(\d+) first-no-hit=(\d+) balanced',log);assert match
                     runs,first=map(int,match.groups());assert runs==first+1
                     recovered=re.search(r'preserved original errors recovered prefixes=(\d+)',log)
@@ -144,7 +155,7 @@ def main():
                 *[root/source for source in plan['Sources']],*systems,'-o',binary])
             run(name+'.pruned.run',[binary]);symbols=run(name+'.pruned.symbols',[nm,'--defined-only',binary]);assert re.search(r'\bxlir_module_init$',symbols,re.M)
             if name==arrayOnly.stem:assert not re.search(r'\bxl6Dict\w+',symbols)
-            if name=='stdlib_native_scalar_as_only':assert not re.search(r'\b(?:xl6NativeScalarConvertV1|xl6ValueConvertNativeScalarV1)$',symbols,re.M)
+            if name=='stdlib_native_scalar_as_only':assert not re.search(r'\b(?:xl6NativeScalarConvertV1|xl6ValueConvertNativeScalarV[12])$',symbols,re.M)
         original=(out/'stdlib_runtime_method_scalar.c').read_text(encoding='utf-8')
         changed,count=re.subn(r'if \(signature && !xrtValueTypeIdBind\(result, signature\)\) goto fail;',r'(void)signature;',original)
         assert count==1, 'Monomorphic bound methods must bind their verified identity'
@@ -153,7 +164,7 @@ def main():
         run('lost-default-owner.reject',[binary],True)
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs);assert report['InputsUnchanged']
         products.extend(dict(Path=str(path),Sha256=sha(path)) for path in sorted(out.iterdir()) if path.is_file() and (path.suffix in ('.h','.c','.o','.exe') or os.access(path,os.X_OK)))
-        report['NativeScalarConversionAcceptance']=True;report['Complete']=True
+        report['NativeScalarConversionAcceptance']=True;report['NativeScalarReflectionAcceptance']=True;report['Complete']=True
     except Exception as error:report['Error']=repr(error);print(error,file=sys.stderr)
     finally:(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     return 0 if report['Complete'] else 1

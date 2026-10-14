@@ -2193,6 +2193,8 @@ typedef struct XL6_IrRuntimeTypeMap {
     uint64 objectTypeValueId;
     uint64 u64TypeValueId;
     uint64 charTypeValueId;
+    /* Reflection tokens use UInt physically but are not numeric values. */
+    uint64 typeTypeValueId;
 } XL6_IrRuntimeTypeMap;
 
 /* Checked integer conversion normalizes every accepted language/C source

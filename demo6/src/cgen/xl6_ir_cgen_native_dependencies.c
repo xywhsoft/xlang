@@ -747,7 +747,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
                 symbol=instruction->castAbi==XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_SCALAR_TRY ?
                     "xl6ValueTryReadNativeScalarV1" : "xl6ValueReadNativeScalarV1";
             else symbol=xl6IrNativeScalarConversionInput(xl6IrTypeGet(&module->types,instruction->payloadType))==XL6_SCALAR_INPUT_XVALUE ?
-                "xl6ValueConvertNativeScalarV1" : "xl6NativeScalarConvertV1";
+                "xl6ValueConvertNativeScalarV2" : "xl6NativeScalarConvertV1";
             if(!visitor(context,symbol))return 0;
         }
         if(xl6IrCgenInstructionIsReachable(module,i) && instruction->runtimeOp==XL6_IR_RUNTIME_F32_AS_CHECKED &&

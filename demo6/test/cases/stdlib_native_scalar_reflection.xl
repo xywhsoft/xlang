@@ -1,0 +1,130 @@
+func echo(var input) as var
+    return input
+end
+func rejectToken(var token)
+    int caught = 0
+    try
+        c_char(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_schar(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_uchar(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_short(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_ushort(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_int(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_uint(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_long(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_ulong(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_longlong(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_ulonglong(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_size(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_ssize(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_ptrdiff(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_intptr(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_uintptr(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_bool(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_float(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_double(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        c_wchar(token)
+    catch TypeError failure
+        caught += 1
+    end
+    assert caught == 20
+end
+var token = int
+rejectToken(token)
+assert (token as type) == int
+var copied = token
+rejectToken(copied)
+assert (copied as type) == int
+array<var> tokens = array[echo(int), echo(string)]
+rejectToken(tokens[0])
+rejectToken(tokens[1])
+assert (tokens[0] as type) == int
+assert (tokens[1] as type) == string
+class Tokens
+    func token(type value = string) as type
+        return value
+    end
+end
+var receiver = Tokens()
+rejectToken(receiver.token())
+assert (receiver.token(int) as type) == int
+rejectToken(echo(c_int))
+assert c_ulonglong(echo(uint64(7))) == c_ulonglong(7)
+assert c_int(echo(c_uchar(7))) == c_int(7)
+assert int(echo(c_int(-7)) as c_int) == -7

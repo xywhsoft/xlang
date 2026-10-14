@@ -20,6 +20,11 @@ int main(int argc,char** argv)
         xl6DiagPrintText(&unit.parse.diags,argv[1]);return 1;
     }
     size_t conversions=0,casts=0;
+    XL6_IrRuntimeTypeMap typeMap=unit.ir.runtimeTypeMap;
+    assert(typeMap.abiVersion==3 && typeMap.typeTypeValueId && typeMap.typeTypeValueId!=typeMap.u64TypeValueId);
+    unit.ir.runtimeTypeMap.typeTypeValueId=0;reject(&unit.ir);unit.ir.runtimeTypeMap=typeMap;
+    unit.ir.runtimeTypeMap.typeTypeValueId=typeMap.u64TypeValueId;reject(&unit.ir);unit.ir.runtimeTypeMap=typeMap;
+    unit.ir.runtimeTypeMap.abiVersion=2;reject(&unit.ir);unit.ir.runtimeTypeMap=typeMap;
     for(size_t i=0;i<unit.ir.instructionCount;++i) {
         XL6_IrInstruction* item=&unit.ir.instructions[i];
         if(item->runtimeOp!=XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED && item->runtimeOp!=XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED)continue;

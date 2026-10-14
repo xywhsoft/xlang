@@ -1,0 +1,1 @@
+auto invalid = c_ulonglong(int)

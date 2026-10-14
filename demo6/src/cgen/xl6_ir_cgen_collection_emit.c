@@ -600,8 +600,9 @@ static int xl6IrCgenEmitStackRuntime(
         if(instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED) {
             unsigned input=xl6IrNativeScalarConversionInput(xl6IrTypeGet(&module->types,instruction->payloadType));
             if(input==XL6_SCALAR_INPUT_XVALUE)
-                xl6OutputPrintf(out,"    bool projection_ok_%u = xl6ValueConvertNativeScalarV1(v%u, %u, &v%u);\n",
-                    (unsigned)instruction->result,(unsigned)source,profile,(unsigned)instruction->result);
+                xl6OutputPrintf(out,"    bool projection_ok_%u = xl6ValueConvertNativeScalarV2(v%u, %u, 0x%016llXULL, &v%u);\n",
+                    (unsigned)instruction->result,(unsigned)source,profile,
+                    (unsigned long long)module->runtimeTypeMap.typeTypeValueId,(unsigned)instruction->result);
             else xl6OutputPrintf(out,"    bool projection_ok_%u = xl6NativeScalarConvertV1(&v%u, %u, %u, &v%u);\n",
                 (unsigned)instruction->result,(unsigned)source,input,profile,(unsigned)instruction->result);
         } else if(target->kind==XL6_IR_TYPE_NULLABLE) {

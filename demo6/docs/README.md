@@ -18,6 +18,7 @@
 
 - [动态方法的精确标量与绑定签名合同](stdlib53-b293-method-scalars.md)：共享标量 codec、可空载体、原生纯匹配及单声明绑定身份。
 - [C 标量显式转换与精确投影](stdlib53-b294-native-scalar-conversion.md)：静态／动态安全构造、checked IR、独立纯读取供给方与精确 nullable 投影。
+- [动态数值构造的反射身份边界](stdlib53-b295-numeric-reflection-boundaries.md)：规范类型表、反射 UInt 与数值区分、V2 原生入口及输出事务。
 
 - [整数转换默认值的统一 IR 合同](stdlib53-b287-integer-defaults.md)：先登记身份再接纳合同，精确常量默认值与物理桥接输出顺序。
 
