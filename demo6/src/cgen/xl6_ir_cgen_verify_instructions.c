@@ -116,6 +116,11 @@ static int xl6IrCgenVerifyInstructions(
             }
             break;
         case XL6_IR_INSTR_RUNTIME_CALL:
+            if (instruction->runtimeOp==XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED) {
+                if (!xl6IrSequenceProjectionInstructionCompatible(module,instruction))
+                    return xl6IrCgenDiag(diags,module,instruction->origin,"Sequence projection has no declared owned schema boundary");
+                break;
+            }
             if(xl6IrSlotMapIteratorOpIs(instruction->runtimeOp)) {
                 if(!xl6IrSlotMapIteratorInstructionCompatible(module,instruction))
                     return xl6IrCgenDiag(diags,module,instruction->origin,

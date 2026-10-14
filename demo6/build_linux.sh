@@ -170,6 +170,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_dynamic_product.c"
 	"$ROOT/src/runtime/xl6_dynamic_collection_vector.c"
 	"$ROOT/src/runtime/xl6_float_convert.c"
+	"$ROOT/src/runtime/xl6_sequence_projection_schema.c"
 	"$ROOT/src/runtime/xl6_stack_batch.c"
 	"$ROOT/src/runtime/xl6_sequence.c"
 	"$ROOT/src/runtime/xl6_array_reference_admission.c"

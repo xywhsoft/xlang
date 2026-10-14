@@ -8091,10 +8091,66 @@ static XL6_IrValueId xl6IrLowerNominalNullableUnwrapCast(
     return owned;
 }
 
+static XL6_IrValueId xl6IrLowerSequenceProjectionCast(
+    XL6_IrLowerContext* ctx,XL6_IrNodeId id,const XL6_IrNode* node)
+{
+    XL6_IrTypeId base=XL6_IR_TYPE_INVALID; XL6_IrSequenceRoleAbi role=XL6_IR_SEQUENCE_ROLE_NONE;
+    XL6_IrNominalIdentitySetId set=XL6_IR_NOMINAL_IDENTITY_SET_INVALID;
+    const XL6_IrNode* source=xl6IrNodeGet(ctx->module,ctx->module->children[node->firstChild]);
+    const XL6_IrExitPlan* errorPlan=xl6IrLowerExitPlan(ctx,id,XL6_SEM_EXIT_THROW);
+    if (!source || !errorPlan || node->castErrorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE ||
+        !xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module,source->storageType) ||
+        !xl6IrSequenceProjectionTarget(ctx->module,node->storageType,&base,&role,&set)) return XL6_IR_VALUE_INVALID;
+    XL6_IrValueId value=source->kind==XL6_IR_NODE_NAME && source->type!=source->storageType
+        ? xl6IrLowerNamePhysicalStorageValue(ctx,id,ctx->module->children[node->firstChild],source)
+        : xl6IrLowerNode(ctx,ctx->module->children[node->firstChild]);
+    XL6_SymbolId temporary=0;
+    if (!value) return XL6_IR_VALUE_INVALID;
+    value=xl6IrLowerBorrowRuntimeXValueOperand(ctx,id,source,value,&temporary);
+    if (!value) return XL6_IR_VALUE_INVALID;
+    const XL6_IrType* target=xl6IrTypeGet(&ctx->module->types,base);
+    XL6_IrValueId seed=XL6_IR_VALUE_INVALID;
+    if (!xl6IrLowerEmit(ctx,XL6_IR_INSTR_RUNTIME_CALL,id,base,0,NULL,0,&seed)) return XL6_IR_VALUE_INVALID;
+    XL6_IrInstruction* factory=&ctx->module->instructions[ctx->module->instructionCount-1];
+    factory->runtimeOp=role==XL6_IR_SEQUENCE_ROLE_ARRAY ? XL6_IR_RUNTIME_ARRAY_CREATE : XL6_IR_RUNTIME_STACK_CREATE;
+    factory->payloadType=target->params[0]; factory->sequenceAdmissionIdentitySet=set;
+    if (role==XL6_IR_SEQUENCE_ROLE_ARRAY) factory->collectionAbi=XL6_IR_COLLECTION_ARRAY;
+    else factory->runtimeResourcePayloadAbi=xl6IrRuntimeResourcePayloadAbiForOwnerType(ctx->module,base,target->params[0]);
+    XL6_IrBlockId factorySuccess,factoryFailure;
+    if (!xl6IrLowerNewBlock(ctx,&factorySuccess) || !xl6IrLowerNewBlock(ctx,&factoryFailure) ||
+        !xl6IrLowerEmit(ctx,XL6_IR_INSTR_ERROR_TEST,id,XL6_IR_TYPE_INVALID,0,&seed,1,NULL)) return XL6_IR_VALUE_INVALID;
+    XL6_IrInstruction* factoryTest=&ctx->module->instructions[ctx->module->instructionCount-1];
+    factoryTest->trueTarget=factorySuccess; factoryTest->falseTarget=factoryFailure;
+    xl6IrLowerEnterBlock(ctx,factoryFailure);
+    if (temporary && !xl6IrLowerEmit(ctx,XL6_IR_INSTR_RELEASE,id,source->storageType,temporary,NULL,0,NULL)) return XL6_IR_VALUE_INVALID;
+    if (!xl6IrLowerEmitExceptionTransfer(ctx,id,node,errorPlan,0)) return XL6_IR_VALUE_INVALID;
+    xl6IrLowerEnterBlock(ctx,factorySuccess);
+    XL6_IrValueId operands[2]={seed,value};
+    XL6_IrValueId result=xl6IrLowerEmitRuntimeCallMetadata(ctx,id,id,node->storageType,
+        XL6_IR_RUNTIME_SEQUENCE_PROJECT_CHECKED,NULL,target->params[0],base,operands,2);
+    if (!result) return XL6_IR_VALUE_INVALID;
+    XL6_IrInstruction* project=(XL6_IrInstruction*)xl6IrLowerValueDefinition(ctx->module,result);
+    project->castAbi=node->castAbi; project->sequenceAdmissionIdentitySet=set;
+    XL6_IrBlockId success,failure;
+    if (!xl6IrLowerNewBlock(ctx,&success) || !xl6IrLowerNewBlock(ctx,&failure) ||
+        !xl6IrLowerEmit(ctx,XL6_IR_INSTR_ERROR_TEST,id,XL6_IR_TYPE_INVALID,0,&result,1,NULL)) return XL6_IR_VALUE_INVALID;
+    XL6_IrInstruction* test=&ctx->module->instructions[ctx->module->instructionCount-1];
+    test->trueTarget=success; test->falseTarget=failure;
+    xl6IrLowerEnterBlock(ctx,failure);
+    if (temporary && !xl6IrLowerEmit(ctx,XL6_IR_INSTR_RELEASE,id,source->storageType,temporary,NULL,0,NULL)) return XL6_IR_VALUE_INVALID;
+    if (!xl6IrLowerEmitExceptionTransfer(ctx,id,node,errorPlan,0)) return XL6_IR_VALUE_INVALID;
+    xl6IrLowerEnterBlock(ctx,success);
+    if (temporary && !xl6IrLowerEmit(ctx,XL6_IR_INSTR_RELEASE,id,source->storageType,temporary,NULL,0,NULL)) return XL6_IR_VALUE_INVALID;
+    return result;
+}
+
 static XL6_IrValueId xl6IrLowerCast(
     XL6_IrLowerContext* ctx, XL6_IrNodeId id, const XL6_IrNode* node)
 {
     switch ( node != NULL ? node->castAbi : XL6_IR_CAST_INVALID ) {
+    case XL6_IR_CAST_XVALUE_TO_SEQUENCE_CHECKED:
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_SEQUENCE_TRY:
+        return xl6IrLowerSequenceProjectionCast(ctx,id,node);
     case XL6_IR_CAST_IDENTITY:
         {
             XL6_IrNodeId sourceId = ctx->module->children[node->firstChild];

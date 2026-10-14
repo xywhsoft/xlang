@@ -1,0 +1,51 @@
+class ProjectionItem
+    int value = 7
+end
+func add(int value) as int
+    return value + 3
+end
+array<char> letters = array<char>['你', '\0']
+var chars = letters
+array<char> charView = chars as array<char>
+assert charView[0] == '你' and charView[1] == '\0'
+array<bytes> octets = array<bytes>[b"a\0b"]
+var binary = octets
+array<bytes> byteView = binary as array<bytes>
+assert byteView[0] == b"a\0b"
+array<float32> real = array<float32>[float32(1.5)]
+var floating = real
+array<float32> floatView = floating as array<float32>
+assert floatView[0] == float32(1.5)
+array<int8?> optional = array<int8?>[null, 127]
+var dynamicOptional = optional
+array<int8?> optionalView = dynamicOptional as array<int8?>
+assert optionalView[0] == null and (optionalView[1] as int8) == 127
+ProjectionItem item = ProjectionItem()
+array<ProjectionItem> objects = array<ProjectionItem>[item]
+var dynamicObjects = objects
+array<ProjectionItem> objectView = dynamicObjects as array<ProjectionItem>
+objectView[0].value = 19
+assert item.value == 19
+array<func(int) as int> callbacks = array<func(int) as int>[add]
+var dynamicCallbacks = callbacks
+array<func(int) as int> callbackView = dynamicCallbacks as array<func(int) as int>
+assert callbackView[0](4) == 7
+array<array<int>> nested = [[1, 2], [3]]
+var dynamicNested = nested
+array<array<int>> nestedView = dynamicNested as array<array<int>>
+nestedView[0][1] = 41
+assert nested[0][1] == 41
+Stack<int> child = Stack::<int>()
+child.push(31)
+array<Stack<int>> stacks = [child]
+var dynamicStacks = stacks
+array<Stack<int>> stackView = dynamicStacks as array<Stack<int>>
+Stack<int> projectedChild = stackView[0]
+assert projectedChild.pop() == 31 and child.count() == 0
+Stack<array<int>> arrayStack = Stack::<array<int>>()
+arrayStack.push(nested[0])
+var dynamicArrayStack = arrayStack
+Stack<array<int>> arrayStackView = dynamicArrayStack as Stack<array<int>>
+array<int> selected = arrayStackView.pop()
+selected[0] = 29
+assert nested[0][0] == 29
