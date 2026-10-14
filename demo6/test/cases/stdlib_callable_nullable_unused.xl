@@ -1,0 +1,4 @@
+func never(int8? input) as int8?
+    return input
+end
+assert true

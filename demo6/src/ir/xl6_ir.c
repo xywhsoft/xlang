@@ -13160,6 +13160,8 @@ char* xl6IrCanonicalContextualIntegerLiteral(
     int negative;
     char text[48];
     const XL6_IrType* type = xl6IrTypeGet(&module->types, targetType);
+    if(type && type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params)
+        return xl6IrCanonicalContextualIntegerLiteral(module,expression,type->params[0]);
     if ( type == NULL || !xl6IrContextualIntegerLiteralValue(module, expression, targetType, &magnitude, &negative) ) return NULL;
     if ( negative && magnitude == (UINT64_C(1) << 63) )
         return xrtStrDupN("(-9223372036854775807LL - 1LL)", sizeof("(-9223372036854775807LL - 1LL)") - 1);
@@ -13168,12 +13170,16 @@ char* xl6IrCanonicalContextualIntegerLiteral(
     return size > 0 && (size_t)size < sizeof(text) ? xrtStrDupN(text, (size_t)size) : NULL;
 }
 
-static XL6_IrDynamicMethodDefaultAbi xl6IrDynamicMethodLiteralDefaultAbi(
+XL6_IrDynamicMethodDefaultAbi xl6IrDynamicMethodLiteralDefaultAbi(
     const XL6_IrModule* module, XL6_IrTypeId typeId,
     XL6_IrNodeId expressionId)
 {
     const XL6_IrType* type = xl6IrTypeGet(&module->types, typeId);
     const XL6_IrNode* expression = xl6IrNodeGet(module, expressionId);
+    if(type && type->kind==XL6_IR_TYPE_NULLABLE && type->paramCount==1 && type->params) {
+        if(expression && expression->sourceKind==XL6_AST_NULL)return XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL;
+        return xl6IrDynamicMethodLiteralDefaultAbi(module,type->params[0],expressionId);
+    }
     if ( type != NULL && (type->cAbi == XL6_IR_C_ABI_I64 || type->cAbi == XL6_IR_C_ABI_U64) )
         return xl6IrContextualIntegerLiteralValue(module, expressionId, typeId, NULL, NULL)
             ? (type->cAbi == XL6_IR_C_ABI_I64 ? XL6_IR_DYNAMIC_METHOD_DEFAULT_I64 : XL6_IR_DYNAMIC_METHOD_DEFAULT_U64)
@@ -22362,9 +22368,30 @@ static int xl6IrRuntimeCallableSignatureSupported(
     return xl6IrRuntimeCallableClosureToXValueSignatureSupported(module, type);
 }
 
-static int xl6IrRuntimeCallableAdapterParameterSlotSupported(
-    const XL6_IrType* parameter, XL6_IrParameterAbi abi)
+static XL6_IrTypeId xl6IrCallableBridgePayloadType(const XL6_IrTypePool* pool,
+    XL6_IrTypeId id, XL6_IrCallableBridgePresenceAbi* presence)
 {
+    const XL6_IrType* type=xl6IrTypeGet(pool,id);
+    *presence=XL6_IR_CALLABLE_PRESENCE_NONE;
+    if(!type || type->kind!=XL6_IR_TYPE_NULLABLE || type->paramCount!=1 || !type->params)return id;
+    const XL6_IrType* base=xl6IrTypeGet(pool,type->params[0]);
+    if(!base || base->kind==XL6_IR_TYPE_NULLABLE)return id;
+    if(type->cAbi==XL6_IR_C_ABI_TAGGED_NULLABLE && type->nullAbi==XL6_IR_NULL_ABI_TAGGED_VALUE &&
+       type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && xl6IrRuntimeCallableScalarAbi(base->cAbi))
+        *presence=XL6_IR_CALLABLE_PRESENCE_TAGGED;
+    else if(type->cAbi==base->cAbi && type->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL) {
+        if(type->cAbi==XL6_IR_C_ABI_MANAGED_STRING)*presence=XL6_IR_CALLABLE_PRESENCE_STRING_DATA;
+        else if(type->cAbi==XL6_IR_C_ABI_MANAGED_BYTES || type->cAbi==XL6_IR_C_ABI_RUNTIME_ERROR_PTR || type->cAbi==XL6_IR_C_ABI_RAW_POINTER)
+            *presence=XL6_IR_CALLABLE_PRESENCE_POINTER;
+    } else if(type->cAbi==base->cAbi && type->cAbi==XL6_IR_C_ABI_MANAGED_BYTES && type->nullAbi==XL6_IR_NULL_ABI_XVALUE_SENTINEL)
+        *presence=XL6_IR_CALLABLE_PRESENCE_XVALUE_NULL;
+    return *presence!=XL6_IR_CALLABLE_PRESENCE_NONE?type->params[0]:id;
+}
+static int xl6IrRuntimeCallableAdapterParameterSlotSupported(
+    const XL6_IrTypePool* pool, XL6_IrTypeId id, XL6_IrParameterAbi abi)
+{
+    XL6_IrCallableBridgePresenceAbi presence;
+    const XL6_IrType* parameter=xl6IrTypeGet(pool,xl6IrCallableBridgePayloadType(pool,id,&presence));
     if ( parameter == NULL ) return 0;
     if ( xl6IrRuntimeCallableScalarAbi(parameter->cAbi) )
         return abi == XL6_IR_PARAMETER_ABI_VALUE;
@@ -22391,6 +22418,8 @@ static int xl6IrRuntimeCallableAdapterResultSlotSupported(
 {
     const XL6_IrType* result = pool != NULL
         ? xl6IrTypeGet(pool, type) : NULL;
+    XL6_IrCallableBridgePresenceAbi presence;
+    if(result)result=xl6IrTypeGet(pool,xl6IrCallableBridgePayloadType(pool,type,&presence));
     if ( result != NULL &&
          result->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
          !xl6IrTypeHasStorageReleaseAbiDepth(pool, type, 0) ) return 0;
@@ -22468,7 +22497,7 @@ static int xl6IrRuntimeCallableAdapterSignatureSupportedDepth(
              signature->parameterAbis[i] != xl6IrParameterAbiForMode(
                  parameter, signature->parameterModes[i]) ||
              !xl6IrRuntimeCallableAdapterParameterSlotSupported(
-                 parameter, signature->parameterAbis[i]) ) return 0;
+                 pool, signature->params[i], signature->parameterAbis[i]) ) return 0;
     }
     if ( signature->returnCount == 0 ) return 1;
     for ( i = 0; i < signature->returnCount; ++i )
@@ -49050,16 +49079,18 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
     }
     for (i = 0; i < module->callableBridgeParameterCount; ++i) {
         const XL6_IrCallableBridgeParameter* p = &module->callableBridgeParameters[i];
-        xl6OutputPrintf(out, "  callable-bridge-parameter %lu parameter=%lu type=t%u decode=%d encode=%d integer-rule=%d integer-identity=0x%016llX integer-nominal=%d native-scalar=%d invoke=%d decoded-destroy=%d input-destroy=%d\n",
+        xl6OutputPrintf(out, "  callable-bridge-parameter %lu parameter=%lu type=t%u value-type=t%u presence=%d decode=%d encode=%d integer-rule=%d integer-identity=0x%016llX integer-nominal=%d native-scalar=%d invoke=%d decoded-destroy=%d input-destroy=%d\n",
             (unsigned long)i, (unsigned long)p->parameter, (unsigned)p->type,
+            (unsigned)p->valueType,(int)p->presenceAbi,
             (int)p->decodeAbi, (int)p->encodeAbi, (int)p->integerDomain.rule,
             (unsigned long long)p->integerDomain.identity, (int)p->integerDomain.nominal, (int)p->nativeScalarProfile, (int)p->invokeAbi,
             (int)p->decodedDestroyAbi, (int)p->inputDestroyAbi);
     }
     for (i = 0; i < module->callableBridgeResultCount; ++i) {
         const XL6_IrCallableBridgeResult* r = &module->callableBridgeResults[i];
-        xl6OutputPrintf(out, "  callable-bridge-result %lu result=%lu type=t%u decode=%d encode=%d integer-rule=%d integer-identity=0x%016llX integer-nominal=%d native-scalar=%d destroy=%d\n",
+        xl6OutputPrintf(out, "  callable-bridge-result %lu result=%lu type=t%u value-type=t%u presence=%d decode=%d encode=%d integer-rule=%d integer-identity=0x%016llX integer-nominal=%d native-scalar=%d destroy=%d\n",
             (unsigned long)i, (unsigned long)r->result, (unsigned)r->type,
+            (unsigned)r->valueType,(int)r->presenceAbi,
             (int)r->decodeAbi, (int)r->encodeAbi, (int)r->integerDomain.rule,
             (unsigned long long)r->integerDomain.identity, (int)r->integerDomain.nominal, (int)r->nativeScalarProfile, (int)r->destroyAbi);
     }
@@ -50674,8 +50705,9 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPuts("  ],\n  \"callableBridgeParameters\": [\n", out);
     for (i = 0; i < module->callableBridgeParameterCount; ++i) {
         const XL6_IrCallableBridgeParameter* p = &module->callableBridgeParameters[i];
-        xl6OutputPrintf(out, "    {\"id\":%lu,\"parameter\":%lu,\"type\":%u,\"decodeAbi\":%d,\"encodeAbi\":%d,\"integerDomain\":{\"rule\":%d,\"identity\":\"0x%016llX\",\"nominal\":%d},\"nativeScalarProfile\":%d,\"invokeAbi\":%d,\"decodedDestroyAbi\":%d,\"inputDestroyAbi\":%d}%s\n",
+        xl6OutputPrintf(out, "    {\"id\":%lu,\"parameter\":%lu,\"type\":%u,\"valueType\":%u,\"presenceAbi\":%d,\"decodeAbi\":%d,\"encodeAbi\":%d,\"integerDomain\":{\"rule\":%d,\"identity\":\"0x%016llX\",\"nominal\":%d},\"nativeScalarProfile\":%d,\"invokeAbi\":%d,\"decodedDestroyAbi\":%d,\"inputDestroyAbi\":%d}%s\n",
             (unsigned long)i, (unsigned long)p->parameter, (unsigned)p->type,
+            (unsigned)p->valueType,(int)p->presenceAbi,
             (int)p->decodeAbi, (int)p->encodeAbi, (int)p->integerDomain.rule,
             (unsigned long long)p->integerDomain.identity, (int)p->integerDomain.nominal, (int)p->nativeScalarProfile, (int)p->invokeAbi,
             (int)p->decodedDestroyAbi, (int)p->inputDestroyAbi,
@@ -50684,8 +50716,9 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPuts("  ],\n  \"callableBridgeResults\": [\n", out);
     for (i = 0; i < module->callableBridgeResultCount; ++i) {
         const XL6_IrCallableBridgeResult* r = &module->callableBridgeResults[i];
-        xl6OutputPrintf(out, "    {\"id\":%lu,\"result\":%lu,\"type\":%u,\"decodeAbi\":%d,\"encodeAbi\":%d,\"integerDomain\":{\"rule\":%d,\"identity\":\"0x%016llX\",\"nominal\":%d},\"nativeScalarProfile\":%d,\"destroyAbi\":%d}%s\n",
+        xl6OutputPrintf(out, "    {\"id\":%lu,\"result\":%lu,\"type\":%u,\"valueType\":%u,\"presenceAbi\":%d,\"decodeAbi\":%d,\"encodeAbi\":%d,\"integerDomain\":{\"rule\":%d,\"identity\":\"0x%016llX\",\"nominal\":%d},\"nativeScalarProfile\":%d,\"destroyAbi\":%d}%s\n",
             (unsigned long)i, (unsigned long)r->result, (unsigned)r->type,
+            (unsigned)r->valueType,(int)r->presenceAbi,
             (int)r->decodeAbi, (int)r->encodeAbi, (int)r->integerDomain.rule,
             (unsigned long long)r->integerDomain.identity, (int)r->integerDomain.nominal, (int)r->nativeScalarProfile, (int)r->destroyAbi,
             i + 1 == module->callableBridgeResultCount ? "" : ",");

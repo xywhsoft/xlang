@@ -4,6 +4,11 @@
 
 ## 动态方法与 Stack 接收
 
+typed func 与 xcall 的 nullable 参数／返回值合同见
+[Nullable callable 的存在性与载荷合同](stdlib53-b278-nullable-callable.md)。
+null 不折叠为 false、零值、空 string 或空 bytes，参数和结果的
+基础载荷继续沿用既有精确身份、范围与所有权合同。
+
 动态多值接收的当前合同见
 [动态方法多返回值与 Stack 安全接收](stdlib53-b277-dynamic-method-products.md)。
 `var` 接收者的类方法与绑定方法保存全部返回值；动态 Stack try 返回

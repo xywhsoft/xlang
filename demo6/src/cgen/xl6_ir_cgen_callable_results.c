@@ -2,12 +2,27 @@
  * never an ownership or conversion decision in the renderer. */
 static int xl6IrCgenEmitCallableBridgeEncode(
     XL6_Output* out, const XL6_IrModule* module, XL6_IrTypeId type,
+    XL6_IrTypeId valueType, XL6_IrCallableBridgePresenceAbi presence,
     XL6_IrCallableBridgeValueAbi abi, XL6_IrCallableBridgeIntegerDomain domain,
     XL6_NativeScalarProfileV1 nativeProfile,
     const char* input, const char* boxed)
 {
     const XL6_IrType* item = xl6IrTypeGet(&module->types, type);
     if (!item) return 0;
+    if(presence!=XL6_IR_CALLABLE_PRESENCE_NONE) {
+        char payload[96];
+        snprintf(payload,sizeof(payload),presence==XL6_IR_CALLABLE_PRESENCE_TAGGED?"%s.value":"%s",input);
+        if(presence==XL6_IR_CALLABLE_PRESENCE_XVALUE_NULL)xl6OutputPrintf(out,"    if(%s != NULL && xrtValueType(%s)!=XVALUE_NULL) {\n",input,input);
+        else xl6OutputPrintf(out,"    if(%s%s) {\n",input,
+            presence==XL6_IR_CALLABLE_PRESENCE_TAGGED?".hasValue":presence==XL6_IR_CALLABLE_PRESENCE_STRING_DATA?".Data != NULL":" != NULL");
+        if(!xl6IrCgenEmitCallableBridgeEncode(out,module,valueType,valueType,XL6_IR_CALLABLE_PRESENCE_NONE,abi,domain,nativeProfile,payload,boxed))return 0;
+        if(presence==XL6_IR_CALLABLE_PRESENCE_XVALUE_NULL) {
+            xl6OutputPrintf(out,"    } else { %s = %s != NULL ? xrtValueRetain(xrtValueNull()) : NULL;\n",boxed,input);
+            if(abi==XL6_IR_CALLABLE_BRIDGE_BYTES_MOVE)xl6OutputPrintf(out,"    if(%s != NULL)%s = NULL;\n",boxed,input);
+            xl6OutputPuts("    }\n",out);
+        } else xl6OutputPrintf(out,"    } else %s = xrtValueRetain(xrtValueNull());\n",boxed);
+        return !xl6OutputHasFailed(out);
+    }
     if (abi == XL6_IR_CALLABLE_BRIDGE_NATIVE_SCALAR) {
         xl6OutputPrintf(out, "    %s = xl6ValueBoxNativeScalarV1(&%s, %u, 0x%016llXULL);\n",
             boxed, input, (unsigned)nativeProfile, (unsigned long long)item->typeValueId);
@@ -67,6 +82,16 @@ static int xl6IrCgenEmitCallableBridgeDecode(
     const XL6_IrType* item = xl6IrTypeGet(&module->types, slot->type);
     const char* getter = NULL;
     if (!item) return 0;
+    if(slot->presenceAbi!=XL6_IR_CALLABLE_PRESENCE_NONE) {
+        XL6_IrCallableBridgeResult child=*slot;
+        child.type=slot->valueType; child.presenceAbi=XL6_IR_CALLABLE_PRESENCE_NONE;
+        char payload[96]; snprintf(payload,sizeof(payload),slot->presenceAbi==XL6_IR_CALLABLE_PRESENCE_TAGGED?"%s.value":"%s",output);
+        if(slot->presenceAbi==XL6_IR_CALLABLE_PRESENCE_XVALUE_NULL)xl6OutputPrintf(out,"    if(%s != NULL && xrtValueType(%s)==XVALUE_NULL) %s = xrtValueRetain(xrtValueNull());\n    else {\n",boxed,boxed,output);
+        else xl6OutputPrintf(out,"    if(%s != NULL && xrtValueType(%s)==XVALUE_NULL) %s = (%s){0};\n    else {\n",boxed,boxed,output,xl6IrCgenType(module,slot->type));
+        if(!xl6IrCgenEmitCallableBridgeDecode(out,module,&child,payload,boxed))return 0;
+        if(slot->presenceAbi==XL6_IR_CALLABLE_PRESENCE_TAGGED)xl6OutputPrintf(out,"    %s.hasValue=true;\n",output);
+        xl6OutputPuts("    }\n",out); return !xl6OutputHasFailed(out);
+    }
     if (slot->decodeAbi == XL6_IR_CALLABLE_BRIDGE_NATIVE_SCALAR) {
         xl6OutputPrintf(out, "    if (!xl6ValueReadNativeScalarV1(%s, %u, 0x%016llXULL, &%s)) goto conversion_fail;\n",
             boxed, (unsigned)slot->nativeScalarProfile, (unsigned long long)item->typeValueId, output);
@@ -79,12 +104,16 @@ static int xl6IrCgenEmitCallableBridgeDecode(
         return !xl6OutputHasFailed(out);
     }
     switch (slot->decodeAbi) {
+    case XL6_IR_CALLABLE_BRIDGE_XVALUE_BORROW:
+        xl6OutputPrintf(out,"    %s = %s; if(%s == NULL)goto conversion_fail;\n",output,boxed,output); break;
     case XL6_IR_CALLABLE_BRIDGE_XVALUE_RETAIN:
         xl6OutputPrintf(out, "    %s = xrtValueRetain(%s); if (%s == NULL) goto conversion_fail;\n", output, boxed, output); break;
     case XL6_IR_CALLABLE_BRIDGE_BYTES_RETAIN:
         xl6OutputPrintf(out,
-            "    if (%s == NULL || xrtValueType(%s) != XVALUE_BYTES || (%s = xrtValueRetain(%s)) == NULL) goto conversion_fail;\n",
+            "    if (%s == NULL || xrtValueType(%s) != XVALUE_BYTES) { xrtSetErrorKind(XERR_TYPE); goto conversion_fail; } if ((%s = xrtValueRetain(%s)) == NULL) goto conversion_fail;\n",
             boxed, boxed, output, boxed); break;
+    case XL6_IR_CALLABLE_BRIDGE_BYTES_BORROW:
+        xl6OutputPrintf(out,"    if(%s == NULL || xrtValueType(%s)!=XVALUE_BYTES) { xrtSetErrorKind(XERR_TYPE); goto conversion_fail; } %s = %s;\n",boxed,boxed,output,boxed); break;
     case XL6_IR_CALLABLE_BRIDGE_STRING_COPY:
         xl6OutputPrintf(out, "    { xlir_string_view text = {0}; if (!xrtValueGetString(%s, &text) || (%s = xlir_string_from_utf8(text.Data, text.Size)).Data == NULL) goto conversion_fail; }\n", boxed, output); break;
     case XL6_IR_CALLABLE_BRIDGE_ERROR_REF:

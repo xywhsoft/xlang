@@ -1,0 +1,47 @@
+int entered = 0
+func small(int8? input) as int8?
+    entered += 1
+    return input
+end
+var call = xcall(small)
+bool caught = false
+try
+    call(128)
+catch TypeError failure
+    caught = true
+end
+assert caught and entered == 0
+caught = false
+try
+    call("not an integer")
+catch TypeError failure
+    caught = true
+end
+assert caught and entered == 0
+assert call(null) == null and entered == 1
+assert int(call(0)) == 0 and entered == 2
+func text(string? input) as string?
+    entered += 1
+    return input
+end
+var textCall = xcall(text)
+caught = false
+try
+    textCall(b"binary")
+catch TypeError failure
+    caught = true
+end
+assert caught and entered == 2
+assert textCall(null) == null and entered == 3
+func octets(bytes? input) as bytes?
+    entered += 1
+    return input
+end
+var bytesCall = xcall(octets)
+caught = false
+try
+    bytesCall("text")
+catch TypeError failure
+    caught = true
+end
+assert caught and entered == 3

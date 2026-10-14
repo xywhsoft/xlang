@@ -2806,6 +2806,8 @@ static int xl6SemTypeSupportsXCallValue(XL6_SemContext* ctx, const XL6_AstNode* 
     const char* typeName;
 
     concreteType = xl6SemResolveAliasType(ctx, typeNode);
+    if(xl6SemTypeIsNullable(concreteType))
+        return xl6SemTypeSupportsXCallValue(ctx,xl6SemNullableInnerType(concreteType));
     typeName = concreteType != NULL ? concreteType->text : NULL;
     if ( typeName == NULL ) {
         return 0;
@@ -2818,6 +2820,8 @@ static int xl6SemTypeSupportsXCallValue(XL6_SemContext* ctx, const XL6_AstNode* 
         return 1;
     }
     /* class 已统一为带 TypeDesc 的 xvalue 句柄，可无损穿过 XCall。 */
+    const XL6_TypeInfo* info=xl6TypeRegistryFind(&ctx->types,typeName);
+    if(info && info->kind==XL6_TYPE_NUMERIC_ENUM)return 1;
     if ( xl6SemClassHandleTargetType(ctx, concreteType) != NULL ) {
         return 1;
     }

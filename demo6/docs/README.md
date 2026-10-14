@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [Nullable callable 的存在性与载荷合同](stdlib53-b278-nullable-callable.md)：声明化 null 表示、基础载荷编解码、参数副本与专项验收边界。
+
 - [动态方法多返回值与 Stack 安全接收](stdlib53-b277-dynamic-method-products.md)：规范返回 product、完整绑定向量、原生 Stack 角色检查及双平台专项验收。
 
 - `标准库FixedStack.md`：固定逻辑容量、普通泛型实现、精确资源/可空结果合同与专项验收范围。

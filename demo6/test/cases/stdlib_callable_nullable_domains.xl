@@ -1,0 +1,45 @@
+enum Small as int8
+    zero = 0
+    high = 127
+end
+func integers(int8? a, int16? b, int32? c, int64? d, uint8? e, uint16? f, uint32? g, uint64? h) as (int8?, int16?, int32?, int64?, uint8?, uint16?, uint32?, uint64?)
+    return a, b, c, d, e, f, g, h
+end
+var ints = xcall(integers)
+func(int8?, int16?, int32?, int64?, uint8?, uint16?, uint32?, uint64?) as (int8?, int16?, int32?, int64?, uint8?, uint16?, uint32?, uint64?) typedInts = ints
+auto a, b, c, d, e, f, g, h = typedInts(null, null, null, null, null, null, null, null)
+assert a == null and b == null and c == null and d == null and e == null and f == null and g == null and h == null
+a, b, c, d, e, f, g, h = typedInts(int8(-128), int16(-32768), int32(-2147483648), -9223372036854775808, uint8(255), uint16(65535), uint32(4294967295), uint64(18446744073709551615))
+assert (a ?? int8(0)) == int8(-128) and (b ?? int16(0)) == int16(-32768) and (c ?? int32(0)) == int32(-2147483648) and (d ?? 0) == -9223372036854775808
+assert (e ?? uint8(0)) == uint8(255) and (f ?? uint16(0)) == uint16(65535) and (g ?? uint32(0)) == uint32(4294967295) and (h ?? uint64(0)) == uint64(18446744073709551615)
+func scalars(float32? a, float64? b, time? c, Small? d) as (float32?, float64?, time?, Small?)
+    return a, b, c, d
+end
+var scalarCall = xcall(scalars)
+func(float32?, float64?, time?, Small?) as (float32?, float64?, time?, Small?) typedScalars = scalarCall
+auto real32, real64, stamp, nominal = typedScalars(null, null, null, null)
+assert real32 == null and real64 == null and stamp == null and nominal == null
+real32, real64, stamp, nominal = typedScalars(float32(0), 0.0, #2026-01-01#, Small.zero)
+assert (real32 ?? float32(1)) == float32(0) and (real64 ?? 1.0) == 0.0 and (stamp ?? #2025-01-01#) == #2026-01-01# and (nominal ?? Small.high) == Small.zero
+func native(c_char? a, c_schar? b, c_uchar? c, c_short? d, c_ushort? e, c_int? f, c_uint? g, c_long? h, c_ulong? i, c_longlong? j, c_ulonglong? k, c_size? l, c_ptrdiff? m, c_wchar? n) as (c_char?, c_schar?, c_uchar?, c_short?, c_ushort?, c_int?, c_uint?, c_long?, c_ulong?, c_longlong?, c_ulonglong?, c_size?, c_ptrdiff?, c_wchar?)
+    return a, b, c, d, e, f, g, h, i, j, k, l, m, n
+end
+var nativeCall = xcall(native)
+func(c_char?, c_schar?, c_uchar?, c_short?, c_ushort?, c_int?, c_uint?, c_long?, c_ulong?, c_longlong?, c_ulonglong?, c_size?, c_ptrdiff?, c_wchar?) as (c_char?, c_schar?, c_uchar?, c_short?, c_ushort?, c_int?, c_uint?, c_long?, c_ulong?, c_longlong?, c_ulonglong?, c_size?, c_ptrdiff?, c_wchar?) typedNative = nativeCall
+auto na, nb, nc, nd, ne, nf, ng, nh, ni, nj, nk, nl, nm, nn = typedNative(null, null, null, null, null, null, null, null, null, null, null, null, null, null)
+assert na == null and nb == null and nc == null and nd == null and ne == null and nf == null and ng == null
+assert nh == null and ni == null and nj == null and nk == null and nl == null and nm == null and nn == null
+na, nb, nc, nd, ne, nf, ng, nh, ni, nj, nk, nl, nm, nn = typedNative(c_char(0), c_schar(-128), c_uchar(255), c_short(-32768), c_ushort(65535), c_int(0), c_uint(0), c_long(0), c_ulong(0), c_longlong(0), c_ulonglong(0), c_size(0), c_ptrdiff(0), c_wchar(0))
+assert (na ?? c_char(1)) == c_char(0) and (nb ?? c_schar(0)) == c_schar(-128) and (nc ?? c_uchar(0)) == c_uchar(255) and (nd ?? c_short(0)) == c_short(-32768) and (ne ?? c_ushort(0)) == c_ushort(65535)
+assert (nf ?? c_int(1)) == c_int(0) and (ng ?? c_uint(1)) == c_uint(0) and (nh ?? c_long(1)) == c_long(0) and (ni ?? c_ulong(1)) == c_ulong(0) and (nj ?? c_longlong(1)) == c_longlong(0)
+assert (nk ?? c_ulonglong(1)) == c_ulonglong(0) and (nl ?? c_size(1)) == c_size(0) and (nm ?? c_ptrdiff(1)) == c_ptrdiff(0) and (nn ?? c_wchar(1)) == c_wchar(0)
+func nativeRest(c_ssize? a, c_intptr? b, c_uintptr? c, c_bool? d, c_float? e, c_double? f, type? g) as (c_ssize?, c_intptr?, c_uintptr?, c_bool?, c_float?, c_double?, type?)
+    return a, b, c, d, e, f, g
+end
+var moreCall = xcall(nativeRest)
+func(c_ssize?, c_intptr?, c_uintptr?, c_bool?, c_float?, c_double?, type?) as (c_ssize?, c_intptr?, c_uintptr?, c_bool?, c_float?, c_double?, type?) typedRest = moreCall
+auto pa, pb, pc, pd, pe, pf, pg = typedRest(null, null, null, null, null, null, null)
+assert pa == null and pb == null and pc == null and pd == null and pe == null and pf == null and pg == null
+pa, pb, pc, pd, pe, pf, pg = typedRest(c_ssize(0), c_intptr(0), c_uintptr(0), c_bool(false), c_float(0), c_double(0), string)
+assert (pa ?? c_ssize(1)) == c_ssize(0) and (pb ?? c_intptr(1)) == c_intptr(0) and (pc ?? c_uintptr(1)) == c_uintptr(0)
+assert (pd ?? c_bool(true)) == c_bool(false) and (pe ?? c_float(1)) == c_float(0) and (pf ?? c_double(1)) == c_double(0) and (pg ?? int) == string

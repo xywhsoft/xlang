@@ -14338,55 +14338,7 @@ static XL6_IrDynamicMethodDefaultAbi xl6IrLowerDynamicMethodDefaultAbi(
     const XL6_IrModule* module, XL6_IrTypeId typeId,
     XL6_IrNodeId expressionId)
 {
-    const XL6_IrType* type = xl6IrTypeGet(&module->types, typeId);
-    const XL6_IrNode* expression = xl6IrNodeGet(module, expressionId);
-    if ( type == NULL || expression == NULL )
-        return XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
-    if ( type->cAbi == XL6_IR_C_ABI_I64 || type->cAbi == XL6_IR_C_ABI_U64 )
-        return xl6IrContextualIntegerLiteralValue(module, expressionId, typeId, NULL, NULL)
-            ? (type->cAbi == XL6_IR_C_ABI_I64 ? XL6_IR_DYNAMIC_METHOD_DEFAULT_I64 : XL6_IR_DYNAMIC_METHOD_DEFAULT_U64)
-            : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
-    switch ( type->cAbi ) {
-    case XL6_IR_C_ABI_BOOL:
-        return expression->sourceKind == XL6_AST_BOOL
-            ? XL6_IR_DYNAMIC_METHOD_DEFAULT_BOOL
-            : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
-    case XL6_IR_C_ABI_CHAR_U32:
-        return expression->sourceKind == XL6_AST_CHAR &&
-               expression->literalDecoded &&
-               expression->literalScalar <= 0x10ffffu &&
-               !(expression->literalScalar >= 0xd800u &&
-                 expression->literalScalar <= 0xdfffu)
-            ? XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR
-            : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
-    case XL6_IR_C_ABI_I64:
-        return expression->sourceKind == XL6_AST_INT
-            ? XL6_IR_DYNAMIC_METHOD_DEFAULT_I64
-            : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
-    case XL6_IR_C_ABI_U64:
-        return expression->sourceKind == XL6_AST_INT
-            ? XL6_IR_DYNAMIC_METHOD_DEFAULT_U64
-            : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
-    case XL6_IR_C_ABI_F64:
-        return expression->sourceKind == XL6_AST_FLOAT
-            ? XL6_IR_DYNAMIC_METHOD_DEFAULT_F64
-            : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
-    case XL6_IR_C_ABI_TIME_I64:
-        return expression->sourceKind == XL6_AST_TIME
-            ? XL6_IR_DYNAMIC_METHOD_DEFAULT_TIME
-            : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
-    case XL6_IR_C_ABI_MANAGED_STRING:
-        return expression->sourceKind == XL6_AST_STRING
-            ? XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING
-            : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
-    case XL6_IR_C_ABI_MANAGED_BYTES:
-    case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
-        return expression->sourceKind == XL6_AST_NULL
-            ? XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL
-            : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
-    default:
-        return XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
-    }
+    return xl6IrDynamicMethodLiteralDefaultAbi(module,typeId,expressionId);
 }
 
 /* Runtime call-frame binding is a property of the closure value, not of its
