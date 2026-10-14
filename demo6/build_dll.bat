@@ -270,6 +270,8 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_print_values.c src\runtime\xl6_class_text.c src\runtime\xl6_error_text.c ^
     src\runtime\xl6_array_string_read.c ^
     src\runtime\xl6_array_call_frame.c ^
+    src\runtime\xl6_call_frame_expansion.c ^
+    src\runtime\xl6_dict_call_frame.c ^
     src\runtime\xl6_array_entry.c ^
     src\runtime\xl6_array_producer.c ^
     src\runtime\xl6_tree_projection.c ^
@@ -526,6 +528,8 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_array_string_read.c ^
     src\runtime\xl6_array_value_read.c ^
     src\runtime\xl6_array_call_frame.c ^
+    src\runtime\xl6_call_frame_expansion.c ^
+    src\runtime\xl6_dict_call_frame.c ^
     src\runtime\xl6_array_entry.c ^
     src\runtime\xl6_array_producer.c ^
     src\runtime\xl6_tree_projection.c ^

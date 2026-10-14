@@ -57,7 +57,8 @@ O0／O2 各完成正常用例 122 个、错误用例 28 个、私有 cell 用例
 
 固定签名 typed／nullable 函数形参的普通 `xcall` 准入见
 [动态调用的函数参数合同](stdlib53-b290-runtime-callable-func.md)。
-变长函数反向展开、nullable 动态方法回调、异步动态返回、
+变长反向展开与 nullable 动态方法回调见
+[可变参数展开与可空方法回调的 IR 合同](stdlib53-b291-variadic-nullable-functions.md)。异步动态返回、
 其他动态编解码、工作线程与对象图故障、模块组合与真实卸载、
 时区和完整 CLI／DLL／VFS／RC0 发布验收继续。53 模块长期目标不结项。
 CRT 无未决项；XRT 19 组未决策和对象池最后的顺序不变。

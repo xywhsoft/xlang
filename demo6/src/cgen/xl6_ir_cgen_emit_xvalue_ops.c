@@ -25,6 +25,12 @@ static int xl6IrCgenEmitXValueOperationRuntime(
      * not whether an unrelated closure/call bridge happens to be present. */
     if (needs->needsCallableArrayFrameProducer)
         xl6OutputPuts("extern xvalue* xl6ArrayCallFramePackV1(uint64_t, uint64_t, const xrtcallframe*, size_t);\n",out);
+    if (needs->needsCallableArrayFrameExpansion)
+        xl6OutputPuts("extern bool xl6ArrayCallFrameExpandV1(uint64_t, uint64_t, const xvalue*, const xrtcallframe*, xrtcallframe*, void**);\n",out);
+    if (needs->needsCallableDictFrameExpansion)
+        xl6OutputPuts("extern bool xl6DictCallFrameExpandV1(uint64_t, uint64_t, const xvalue*, const xrtcallframe*, xrtcallframe*, void**);\n",out);
+    if (needs->needsCallableArrayFrameExpansion || needs->needsCallableDictFrameExpansion)
+        xl6OutputPuts("extern bool xl6CallFrameExpansionFinishV1(void**, bool);\n",out);
     if ( needs->needsXValueRuntime || module->abi.entryKind == XL6_IR_MODULE_ENTRY_XLANG_MAIN ) {
         /* Direct scalar boxing and callable bridges share this resident ABI.
          * Declaration selection must not depend on an unrelated call bridge. */

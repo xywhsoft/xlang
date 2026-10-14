@@ -40,6 +40,7 @@
 #include "src/runtime/xl6_array_reference_value.h"
 #include "src/runtime/xl6_array_erased.h"
 #include "src/runtime/xl6_array_call_frame.h"
+#include "src/runtime/xl6_dict_call_frame.h"
 #include "src/runtime/xl6_array_entry.h"
 #include "src/runtime/xl6_array_producer.h"
 #include "src/runtime/xl6_tree_projection.h"
