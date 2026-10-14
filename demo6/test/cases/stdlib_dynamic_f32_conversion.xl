@@ -1,0 +1,69 @@
+var value = float32(0)
+assert float32(value) == float32(0)
+func identity(float32 input) as float32
+    return input
+end
+var call = xcall(identity)
+assert call(float32(0)) == 0.0
+assert call(float32(1.5)) == 1.5
+assert float32("1.5") == float32(1.5)
+value = "1.5"
+assert float32(value) == float32(1.5)
+value = 1.1
+assert float32(value) == float32(1.1)
+bool typeRejected = false
+try
+    call(value)
+catch TypeError failure
+    typeRejected = true
+end
+assert typeRejected
+value = 16777217
+assert float32(value) == float32(16777216)
+value = 4611686293305294849
+assert float32(value) == float32(4611686293305294849)
+value = 1.5
+assert float32(value) == float32(1.5)
+value = true
+assert float32(value) == float32(1)
+value = null
+assert float32(value) == float32(0)
+value = "1\0.5"
+bool rejected = false
+try
+    float32(value)
+catch ValueError failure
+    rejected = true
+end
+assert rejected
+float64 wide = 1e50
+rejected = false
+try
+    float32(wide)
+catch RangeError failure
+    rejected = true
+end
+assert rejected
+rejected = false
+try
+    float32(c_double(1e50))
+catch RangeError failure
+    rejected = true
+end
+assert rejected
+float32 positiveInfinity = float32(math.inf)
+assert math.isInf(positiveInfinity)
+float32 notNumber = float32(math.nan)
+assert math.isNaN(notNumber)
+func temporary() as var
+    return "2.5"
+end
+assert float32(temporary()) == float32(2.5)
+value = "1e50"
+rejected = false
+try
+    float32(value)
+catch RangeError failure
+    rejected = true
+end
+assert rejected

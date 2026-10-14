@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [动态标量装箱与 float32 显式转换](stdlib53-b279-scalar-conversion.md)：明确缩窄与无损读取的边界，独立成功状态和按需驻留组件。
+
 - [Nullable callable 的存在性与载荷合同](stdlib53-b278-nullable-callable.md)：声明化 null 表示、基础载荷编解码、参数副本与专项验收边界。
 
 - [动态方法多返回值与 Stack 安全接收](stdlib53-b277-dynamic-method-products.md)：规范返回 product、完整绑定向量、原生 Stack 角色检查及双平台专项验收。

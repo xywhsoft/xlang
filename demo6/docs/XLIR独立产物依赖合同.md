@@ -1,5 +1,9 @@
 # XLIR 独立产物依赖合同
 
+float32 显式转换入口归属独立 `FLOAT_CONVERT` 驻留组件，绑定 XRT
+数字解析和 xruntime 显式 Value 转换的依赖闭包，未使用时裁剪。
+接口与验收边界见 [动态标量装箱与 float32 显式转换](stdlib53-b279-scalar-conversion.md)。
+
 当前实现：2026-09-14，v205。XLIR 产物装配改为消费经验证的 C 实现需求
 和原生根模块清单，不再走历史 AST/生成 C 文本扫描。17 个独立程序的
 Cgen/JIT/AOT/EXE 共 68 项专项已通过，实际 AOT 原生实现与计划逐字节一致。

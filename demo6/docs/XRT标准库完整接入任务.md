@@ -4,8 +4,9 @@
 
 typed nullable callable 的基础标量、字符串和 bytes 编解码合同见
 [Nullable callable 的存在性与载荷合同](stdlib53-b278-nullable-callable.md)。
-存在性独立于 false、零值和空容器；未支持的动态 float32 转换与
-直接参数装箱仍在本长期任务范围内，不通过改写调用方式标成完成。
+存在性独立于 false、零值和空容器。动态 float32 转换与直接参数
+装箱的修复合同见 [动态标量装箱与 float32 显式转换](stdlib53-b279-scalar-conversion.md)。
+完整容器转换、其他动态／Native 编码组合和发布总验收继续。
 
 动态方法与绑定方法已接通完整多返回值，动态 Stack 的 `tryPop`、
 `tryPeek`、`tryPeekAt` 按精确原生操作返回拥有的 `(found, item)`。
@@ -82,7 +83,7 @@ typed nullable callable 的基础标量、字符串和 bytes 编解码合同见
 - `Stack<T>`：LIFO、peek、push、pop、clear、count。
 - `AvlTree<K, V>`：有序映射、set/get/remove/contains、按序迭代。
 - `SpscQueue<T>`、`MpscQueue<T>`、`MpmcQueue<T>`：有界无锁队列。
-- `WaitQueue<T>`：可阻塞和超时等待的 MPMC 队列，允许多个消费者并行等待和消费；接收返回 `(status, T?)` 拥有值（2026-10-13 用户确认）。
+- `WaitQueue<T>`：可阻塞和超时等待的 MPMC 队列，允许多个消费者并行等待和消费；接收返回 `(status, T?)` 拥有值（2026-10-14 用户确认）。
 - 内存池、BSMM、MemUnit 和裸 pointer array 只进入 `xrt` 低层模块，不作为默认安全标准库类型。
 
 专用结构必须保存完整类型描述并正确执行值的 retain/release；不允许将 `xvalue*` 当作无所有权裸指针塞入队列。

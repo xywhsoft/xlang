@@ -244,6 +244,16 @@ static int xl6IrCgenRuntimeCheckedFloatConvertAbi(
     sourceType = source != NULL
         ? xl6IrTypeGet(&module->types, source->type) : NULL;
     resultType = xl6IrTypeGet(&module->types, instruction->type);
+    if (instruction->runtimeOp == XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT ||
+        instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT ||
+        instruction->runtimeOp == XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT)
+        return sourceType && resultType && instruction->castAbi == XL6_IR_CAST_INVALID &&
+            resultType->cAbi == XL6_IR_C_ABI_F32 &&
+            xl6IrCheckedFloatConversionSignature(module, sourceType, resultType, XL6_IR_CAST_INVALID) &&
+            ((instruction->runtimeOp == XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT) ==
+             (sourceType->cAbi == XL6_IR_C_ABI_MANAGED_STRING)) &&
+            ((instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT) ==
+             (sourceType->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR));
     return sourceType != NULL && resultType != NULL &&
         sourceType->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
         sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&

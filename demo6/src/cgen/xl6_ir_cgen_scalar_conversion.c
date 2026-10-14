@@ -26,6 +26,9 @@ static int xl6IrCgenEmitSpecialF64(
 static int xl6IrCgenScalarConversionRuntimeOpIs(XL6_IrRuntimeOp operation)
 {
     return operation == XL6_IR_RUNTIME_STRING_TO_F64_CHECKED ||
+           operation == XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT ||
+           operation == XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT ||
+           operation == XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT ||
            operation == XL6_IR_RUNTIME_STRING_TO_TIME_CHECKED ||
            operation == XL6_IR_RUNTIME_XVALUE_TO_TIME_CHECKED ||
            operation == XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED ||
@@ -39,6 +42,9 @@ static int xl6IrCgenScalarConversionRuntimeAbi(
          instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ) return 0;
     switch ( instruction->runtimeOp ) {
     case XL6_IR_RUNTIME_STRING_TO_F64_CHECKED:
+    case XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT:
+    case XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT:
+    case XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT:
         return xl6IrCgenRuntimeCheckedFloatConvertAbi(module, instruction);
     case XL6_IR_RUNTIME_STRING_TO_TIME_CHECKED:
     case XL6_IR_RUNTIME_XVALUE_TO_TIME_CHECKED:
@@ -59,7 +65,17 @@ static int xl6IrCgenEmitScalarConversionRuntime(
     if ( instruction == NULL ||
          !xl6IrCgenScalarConversionRuntimeOpIs(instruction->runtimeOp) ) return 0;
     if ( !xl6IrCgenScalarConversionRuntimeAbi(module, instruction) ) return -1;
-    if ( instruction->runtimeOp ==
+    if (instruction->runtimeOp == XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT ||
+        instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT ||
+        instruction->runtimeOp == XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT) {
+        xl6OutputPrintf(out, "    bool projection_ok_%u = %s(v%u, &v%u);\n",
+            (unsigned)instruction->result,
+            instruction->runtimeOp == XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT
+                ? "xl6Float32TextConvertV1"
+                : (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT
+                    ? "xl6Float32ValueConvertV1" : "xl6Float32ConvertV1"),
+            (unsigned)module->operands[instruction->firstOperand], (unsigned)instruction->result);
+    } else if ( instruction->runtimeOp ==
                 XL6_IR_RUNTIME_STRING_TO_F64_CHECKED ) {
         if ( !xl6IrCgenRuntimeCheckedFloatConvertAbi(module, instruction) )
             return -1;
