@@ -1,0 +1,8 @@
+class ProductStatus
+    func pair() as (bool, int)
+        return false, 0
+    end
+end
+var receiver = ProductStatus()
+auto present, zero = receiver.pair()
+assert not bool(present) and int(zero) == 0

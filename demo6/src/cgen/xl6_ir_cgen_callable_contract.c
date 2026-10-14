@@ -1,3 +1,5 @@
+static int xl6IrCgenDynamicMethodNeeded(const XL6_IrModule*,size_t);
+
 static int xl6IrCgenRuntimeCallableSignatureAbi(
     const XL6_IrModule* module, XL6_IrTypeId type)
 {
@@ -207,6 +209,12 @@ static int xl6IrCgenProductDropDirectlyNeeded(
              xl6IrCgenRuntimeCallableAdapterNeeded(
                  module, (XL6_IrTypeId)(i + 1), 0) ) return 1;
     }
+    /* A reachable erased method adapter owns the typed return product until
+     * every field has been boxed, even when the method body only returns it. */
+    for(i=0;i<module->dynamicMethodCount;++i)
+        if(module->dynamicMethods[i].kind==XL6_IR_DYNAMIC_CALL_METHOD &&
+           module->dynamicMethods[i].returnType==type &&
+           xl6IrCgenDynamicMethodNeeded(module,i))return 1;
     return 0;
 }
 
@@ -747,7 +755,7 @@ static int xl6IrCgenRuntimeDynamicCallAbi(
          !(site->kind == XL6_IR_DYNAMIC_CALL_MEMBER_SET
              ? site->resultAbi == XL6_IR_DYNAMIC_CALL_RESULT_OWNED_UNIT_VALUE
              : site->resultAbi == XL6_IR_DYNAMIC_CALL_RESULT_OWNED_FIRST_VALUE ||
-               (site->kind == XL6_IR_DYNAMIC_CALL_FUNCTION && site->resultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT) ||
+               ((site->kind == XL6_IR_DYNAMIC_CALL_FUNCTION || site->kind==XL6_IR_DYNAMIC_CALL_METHOD) && site->resultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT) ||
                (site->kind == XL6_IR_DYNAMIC_CALL_FUNCTION &&
                 site->resultAbi == XL6_IR_DYNAMIC_CALL_RESULT_DISCARD_TO_OWNED_UNIT)) ||
          site->evaluationOrder != (site->kind == XL6_IR_DYNAMIC_CALL_MEMBER_SET

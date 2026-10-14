@@ -21,8 +21,8 @@ static void results(xl6_error_scope* scope,xrtcallresult* result)
     }
     xrtCallResultUnit(result); capture(scope);
 }
-bool xl6DynamicFunctionProductTakeV1(const xvalue* callable,size_t argumentCount,xvalue** positional,
-    size_t keywordCount,const xstrview* names,xvalue** keywords,size_t expected,xvalue*** output)
+static bool invokeProduct(const xvalue* callable,XL6_DynamicOwnedDispatchV1 dispatch,size_t argumentCount,xvalue** positional,
+    size_t keywordCount,const xstrview* names,xvalue** keywords,size_t expected,xvalue*** output,bool exact)
 {
     xl6_error_scope scope={0};
     if(!xl6ErrorScopeBegin(&scope)) {
@@ -42,7 +42,7 @@ bool xl6DynamicFunctionProductTakeV1(const xvalue* callable,size_t argumentCount
     xrtcallresult result=XRT_CALL_RESULT_INIT;
     xvalue* local[XRT_CALL_RESULT_INLINE_COUNT]={0};
     xvalue** prepared=local; size_t retained=0; bool success=false,published=false;
-    if(!callable || expected<2 || expected>SIZE_MAX/sizeof(*prepared) || !output ||
+    if(!callable || expected<(exact?2u:1u) || expected>SIZE_MAX/sizeof(*prepared) || !output ||
        argumentCount>SIZE_MAX-keywordCount || (argumentCount && !positional) ||
        (keywordCount && (!keywords || !names))) { xrtSetErrorKind(XERR_ARGUMENT); goto done; }
     for(size_t i=0;i<expected;++i) {
@@ -55,7 +55,12 @@ bool xl6DynamicFunctionProductTakeV1(const xvalue* callable,size_t argumentCount
     }
     xrtcallframe frame={.ArgumentCount=argumentCount,.Arguments=positional,
         .KeywordCount=keywordCount,.KeywordNames=names,.KeywordValues=keywords};
-    if(!xrtValueInvoke(callable,&frame,&result)) {
+    bool invoked;
+    if(dispatch) {
+        invoked=dispatch((xvalue*)callable,argumentCount,positional,keywordCount,names,keywords,&result);
+        argumentCount=keywordCount=0; /* Dispatcher consumed all values. */
+    } else invoked=xrtValueInvoke(callable,&frame,&result);
+    if(!invoked) {
         if(!scope.failed) {
             xerror* error=xrtTakeError(); const xerror* cause=xrtErrorCause(error);
             xerror* primary=cause ? xrtErrorRef(cause) : NULL;
@@ -65,7 +70,7 @@ bool xl6DynamicFunctionProductTakeV1(const xvalue* callable,size_t argumentCount
         goto done;
     }
     if(xrtGetError() || scope.failed)goto done;
-    if(xrtCallResultCount(&result)!=expected) { xrtSetErrorKind(XERR_TYPE); goto done; }
+    if(exact ? xrtCallResultCount(&result)!=expected : xrtCallResultCount(&result)<expected) { xrtSetErrorKind(XERR_TYPE); goto done; }
     for(size_t i=0;i<expected;++i) {
         prepared[i]=xrtValueRetain(xrtCallResultGet(&result,i));
         if(prepared[i])++retained;
@@ -86,4 +91,19 @@ done:
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
     if(!outcome.ok)xl6ErrorScopePropagateFailure(outcome);
     return success && outcome.ok;
+}
+bool xl6DynamicFunctionProductTakeV1(const xvalue* callable,size_t argc,xvalue** argv,size_t kwc,
+    const xstrview* names,xvalue** keywords,size_t expected,xvalue*** output)
+{ return invokeProduct(callable,NULL,argc,argv,kwc,names,keywords,expected,output,true); }
+bool xl6DynamicDispatchProductTakeV1(xvalue* receiver,XL6_DynamicOwnedDispatchV1 dispatch,size_t argc,xvalue** argv,size_t kwc,
+    const xstrview* names,xvalue** keywords,size_t expected,xvalue*** output)
+{
+    /* Missing dispatch is a physical misuse, never an implicit callable path. */
+    return invokeProduct(dispatch?receiver:NULL,dispatch,argc,argv,kwc,names,keywords,expected,output,true);
+}
+xvalue* xl6DynamicDispatchFirstTakeV1(xvalue* receiver,XL6_DynamicOwnedDispatchV1 dispatch,size_t argc,xvalue** argv,size_t kwc,
+    const xstrview* names,xvalue** keywords)
+{
+    xvalue* result=NULL; xvalue** output[]={&result};
+    return invokeProduct(dispatch?receiver:NULL,dispatch,argc,argv,kwc,names,keywords,1,output,false)?result:NULL;
 }

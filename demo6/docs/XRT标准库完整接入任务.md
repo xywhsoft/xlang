@@ -2,6 +2,13 @@
 
 ## 1. 目标
 
+动态方法与绑定方法已接通完整多返回值，动态 Stack 的 `tryPop`、
+`tryPeek`、`tryPeekAt` 按精确原生操作返回拥有的 `(found, item)`。
+2026-10-14 的双平台源码、语言与故障专项见
+[动态方法多返回值与 Stack 安全接收](stdlib53-b277-dynamic-method-products.md)。
+三分类接入长期任务仍包含 typed nullable callable 编解码、完整容器
+转换、工作线程／对象图故障、模块组合和发布总验收；对象池最后。
+
 本批次补齐当前只公开部分能力的 XRT 模块，并新增专用数据结构与原始 TLS 会话。
 
 实现必须遵守以下边界：

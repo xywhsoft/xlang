@@ -4,10 +4,17 @@ static int xl6IrCgenEmitResourceRuntime(
 {
     size_t i;
     size_t parameter;
+    for(size_t site=0;site<module->dynamicCallSiteCount;++site)
+        if(module->dynamicCallSites[site].boundCollectionOp!=XL6_IR_DYNAMIC_COLLECTION_INVALID ||
+           (module->dynamicCallSites[site].fallbackCollectionOp>=XL6_IR_DYNAMIC_COLLECTION_TRY_POP &&
+            module->dynamicCallSites[site].fallbackCollectionOp<=XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK_AT)) {
+            xl6OutputPuts("#include <__xl_runtime/xl6_dynamic_collection_vector.h>\n",out); break;
+        }
     for(size_t instruction=0;instruction<module->instructionCount;++instruction)
         if(xl6IrCgenInstructionIsReachable(module,instruction) &&
-           module->instructions[instruction].runtimeOp==XL6_IR_RUNTIME_XVALUE_DYNAMIC_CALL &&
-           module->instructions[instruction].dynamicCallResultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT) {
+           ((module->instructions[instruction].runtimeOp==XL6_IR_RUNTIME_XVALUE_DYNAMIC_CALL &&
+             module->instructions[instruction].dynamicCallResultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT) ||
+            module->instructions[instruction].runtimeOp==XL6_IR_RUNTIME_XVALUE_DYNAMIC_METHOD_CALL)) {
             xl6OutputPuts("#include <__xl_runtime/xl6_dynamic_product.h>\n",out); break;
         }
     int nativeQueue=needs->needsSpscQueueRuntime || needs->needsMpscQueueRuntime || needs->needsMpmcQueueRuntime || needs->needsWaitQueueRuntime;

@@ -36,7 +36,31 @@ int main(int argc,char** argv)
         reject(&unit.ir); ++mutations; product->params[1]=field;
         site->resultType=XL6_IR_TYPE_INVALID; reject(&unit.ir); ++mutations; *site=savedSite;
     }
-    assert(count>=4 && mutations==count*6); assert(xl6IrVerifyModule(&unit.ir,&unit.parse.diags));
+    assert(count>=4 && mutations==count*6);
+    size_t boundCount=0,boundMutations=0;
+    for(size_t i=0;i<unit.ir.dynamicCallSiteCount;++i) {
+        XL6_IrDynamicCallSite* site=&unit.ir.dynamicCallSites[i];
+        if(site->boundCollectionOp==XL6_IR_DYNAMIC_COLLECTION_INVALID)continue;
+        ++boundCount; XL6_IrDynamicCallSite saved=*site;
+        site->boundCollectionOp=XL6_IR_DYNAMIC_COLLECTION_INVALID; reject(&unit.ir); ++boundMutations; *site=saved;
+        site->boundCollectionOp=saved.boundCollectionOp==XL6_IR_DYNAMIC_COLLECTION_TRY_POP?
+            XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK:XL6_IR_DYNAMIC_COLLECTION_TRY_POP;
+        reject(&unit.ir); ++boundMutations; *site=saved;
+        site->memberBindingAbi=XL6_IR_DYNAMIC_MEMBER_BINDING_NONE; reject(&unit.ir); ++boundMutations; *site=saved;
+    }
+    assert(boundMutations==boundCount*3); assert(xl6IrVerifyModule(&unit.ir,&unit.parse.diags));
+    printf("bound native products=%zu mutations=%zu rejected before output\n",boundCount,boundMutations);
+    size_t methods=0,methodMutations=0;
+    for(size_t i=0;i<unit.ir.dynamicMethodCount;++i) {
+        XL6_IrDynamicMethod* method=&unit.ir.dynamicMethods[i];
+        if(method->adapterAbi!=XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED || method->returnCount<2)continue;
+        ++methods; XL6_IrDynamicMethod saved=*method;
+        method->returnCount=1; reject(&unit.ir); ++methodMutations; *method=saved;
+        method->returnType=XL6_IR_TYPE_INVALID; reject(&unit.ir); ++methodMutations; *method=saved;
+        method->adapterAbi=XL6_IR_DYNAMIC_METHOD_ADAPTER_UNSUPPORTED; reject(&unit.ir); ++methodMutations; *method=saved;
+    }
+    assert(methodMutations==methods*3 && xl6IrVerifyModule(&unit.ir,&unit.parse.diags));
+    printf("method products=%zu mutations=%zu rejected before output\n",methods,methodMutations);
     printf("dynamic products=%zu mutations=%zu rejected before output\n",count,mutations);
     xl6CompileUnitFree(&unit); return 0;
 }

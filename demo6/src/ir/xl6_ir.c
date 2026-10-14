@@ -12223,6 +12223,8 @@ int xl6IrDynamicCollectionOpOperandCountValid(
     case XL6_IR_DYNAMIC_COLLECTION_PEEK:
     case XL6_IR_DYNAMIC_COLLECTION_TRIM:
     case XL6_IR_DYNAMIC_COLLECTION_CLONE:
+    case XL6_IR_DYNAMIC_COLLECTION_TRY_POP:
+    case XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK:
         return operandCount == 0;
     case XL6_IR_DYNAMIC_COLLECTION_PUSH:
     case XL6_IR_DYNAMIC_COLLECTION_REMOVE_VALUE:
@@ -12236,6 +12238,7 @@ int xl6IrDynamicCollectionOpOperandCountValid(
     case XL6_IR_DYNAMIC_COLLECTION_POP_BATCH:
     case XL6_IR_DYNAMIC_COLLECTION_PEEK_BATCH:
     case XL6_IR_DYNAMIC_COLLECTION_EQUALS:
+    case XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK_AT:
         return operandCount == 1;
     case XL6_IR_DYNAMIC_COLLECTION_INSERT:
     case XL6_IR_DYNAMIC_COLLECTION_SWAP:
@@ -12483,6 +12486,9 @@ static XL6_IrDynamicCollectionOp xl6IrDynamicCollectionMemberOperation(
     if ( strcmp(name, "peekBatch") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_PEEK_BATCH;
     if ( strcmp(name, "peekBatchAt") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_PEEK_BATCH_AT;
     if ( strcmp(name, "equals") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_EQUALS;
+    if ( strcmp(name, "tryPop") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_TRY_POP;
+    if ( strcmp(name, "tryPeek") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK;
+    if ( strcmp(name, "tryPeekAt") == 0 ) return XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK_AT;
     return XL6_IR_DYNAMIC_COLLECTION_INVALID;
 }
 
@@ -12781,8 +12787,8 @@ static int xl6IrBuildDynamicCall(
     }
     if ( site.kind == XL6_IR_DYNAMIC_CALL_METHOD &&
          site.keywordCount == 0 && site.positionalCount == site.argumentCount &&
-         xl6IrTypeIsOpenDynamicBuiltin(
-             module, xl6IrTypeGet(&module->types, site.resultType)) ) {
+         (xl6IrTypeIsOpenDynamicBuiltin(module,xl6IrTypeGet(&module->types,site.resultType)) ||
+          xl6IrDynamicProductType(module,site.resultType)) ) {
         XL6_IrDynamicCollectionOp fallback =
             xl6IrDynamicCollectionMemberOperation(site.memberName);
         int valid = xl6IrDynamicCollectionOpOperandCountValid(
@@ -12826,6 +12832,7 @@ int xl6IrDynamicMemberNamedOnly(const XL6_IrModule* module,const XL6_IrDynamicCa
 {
     if(!module || !site || !site->memberName ||
         (site->kind!=XL6_IR_DYNAMIC_CALL_MEMBER_GET && site->kind!=XL6_IR_DYNAMIC_CALL_MEMBER_SET)) return 0;
+    if(site->boundCollectionOp!=XL6_IR_DYNAMIC_COLLECTION_INVALID)return 0;
     for(size_t i=0;i<module->dynamicMethodCount;++i) {
         const XL6_IrDynamicMethod* method=&module->dynamicMethods[i];
         if(xl6IrDynamicMethodMatchesCallSite(site,method) ||
@@ -12890,6 +12897,10 @@ static int xl6IrBuildDynamicCalls(XL6_IrModule* module)
             site.kind = XL6_IR_DYNAMIC_CALL_MEMBER_GET;
             site.memberBindingAbi = xl6IrBuildHasDynamicMethodName(module, node->text)
                 ? XL6_IR_DYNAMIC_MEMBER_BINDING_RETAIN_RECEIVER : XL6_IR_DYNAMIC_MEMBER_BINDING_NONE;
+            XL6_IrDynamicCollectionOp bound=xl6IrDynamicCollectionMemberOperation(node->text);
+            if(bound>=XL6_IR_DYNAMIC_COLLECTION_TRY_POP && bound<=XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK_AT) {
+                site.boundCollectionOp=bound; site.memberBindingAbi=XL6_IR_DYNAMIC_MEMBER_BINDING_RETAIN_RECEIVER;
+            }
             site.subject = module->children[node->firstChild];
             site.memberName = xrtStrDupN(node->text, strlen(node->text));
             site.resultType = node->storageType;
@@ -12982,6 +12993,30 @@ static int xl6IrBuildDynamicMethodEligible(
     return 0;
 }
 
+/* A method need not occur as a typed call or function value. Prepare its
+ * physical return product from the declaration before read-only consumers
+ * (registry, specialization verification, Cgen) select the canonical type. */
+static int xl6IrPrepareDynamicMethodResults(XL6_IrModule* module, XL6_IrNodeId declaration)
+{
+    const XL6_IrNode* method=xl6IrNodeGet(module,declaration);
+    size_t offset=method && method->sourceKind==XL6_AST_ANON_FUNC?0u:1u;
+    const XL6_IrNode* returns=method && method->childCount>offset+1u?
+        xl6IrNodeGet(module,module->children[method->firstChild+offset+1u]):NULL;
+    if(!returns || returns->kind!=XL6_IR_NODE_LIST)return 0;
+    size_t count=returns->childCount;
+    if(count<2)return 1;
+    if(count>SIZE_MAX/sizeof(XL6_IrTypeId))return 0;
+    XL6_IrTypeId* fields=xrtMalloc(count*sizeof(*fields));
+    if(!fields)return 0;
+    size_t i=0;
+    for(;i<count;++i) {
+        const XL6_IrNode* field=xl6IrNodeGet(module,module->children[returns->firstChild+i]);
+        if(!field || !xl6IrTypeGet(&module->types,field->type))break;
+        fields[i]=field->type;
+    }
+    XL6_IrTypeId type=i==count?xl6IrTypePoolInternTuple(&module->types,fields,count):XL6_IR_TYPE_INVALID;
+    xrtFree(fields); return type!=XL6_IR_TYPE_INVALID;
+}
 static int xl6IrBuildDynamicMethodSignature(
     const XL6_IrModule* module, XL6_IrNodeId declaration,
     const XL6_IrNode** parametersOut, size_t* returnCountOut,
@@ -13012,7 +13047,8 @@ static int xl6IrBuildDynamicMethodSignature(
         if ( result == NULL || result->type == XL6_IR_TYPE_INVALID ||
              xl6IrTypeGet(&module->types, result->type) == NULL ) return 0;
         *returnTypeOut = result->type;
-    }
+    } else if ( returns->childCount > 1u &&
+                (*returnTypeOut = xl6IrBuildResultListType(module, returns)) == XL6_IR_TYPE_INVALID ) return 0;
     *parametersOut = parameters;
     return 1;
 }
@@ -13029,6 +13065,11 @@ static int xl6IrDynamicMethodAdapterTypeSupported(
     type = xl6IrTypeGet(&module->types, typeId);
     if ( type == NULL || xl6IrBuildTypeContainsTypeParam(module, typeId, 0) )
         return 0;
+    if(allowVoid && type->cAbi==XL6_IR_C_ABI_PRODUCT && type->kind==XL6_IR_TYPE_TUPLE && type->paramCount>=2 && type->params) {
+        for(size_t i=0;i<type->paramCount;++i)
+            if(!xl6IrDynamicMethodAdapterTypeSupported(module,type->params[i],0))return 0;
+        return 1;
+    }
     switch ( type->cAbi ) {
     case XL6_IR_C_ABI_BOOL:
     case XL6_IR_C_ABI_I64:
@@ -13203,6 +13244,7 @@ static int xl6IrBuildDynamicMethodAppend(
     size_t i;
     if ( !xl6IrBuildDynamicMethodEligible(
              module, layout, declaration, method) ) return 1;
+    if(!xl6IrPrepareDynamicMethodResults(module,declaration))return 0;
     name = xl6IrBuildClassMethodName(module, declaration);
     if ( name == NULL || !xl6IrBuildDynamicMethodSignature(
             module, declaration, &parameters, &returnCount,
@@ -13246,7 +13288,7 @@ static int xl6IrBuildDynamicMethodAppend(
         }
     }
     typeParameters = xl6IrBuildDeclarationTypeParams(module, declaration);
-    if ( (method->sourceKind != XL6_AST_FUNC && method->sourceKind != XL6_AST_GET && method->sourceKind != XL6_AST_LET && method->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC) || returnCount > 1u ||
+    if ( (method->sourceKind != XL6_AST_FUNC && method->sourceKind != XL6_AST_GET && method->sourceKind != XL6_AST_LET && method->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC) ||
          (row.kind == XL6_IR_DYNAMIC_CALL_MEMBER_GET && (returnCount != 1 || parameters->childCount != 0)) ||
          (row.kind == XL6_IR_DYNAMIC_CALL_MEMBER_SET && (returnCount != 0 || parameters->childCount != 1 ||
           xl6IrCallVariadicAbiForParameter(module, xl6IrNodeGet(module, module->children[parameters->firstChild])) != XL6_IR_CALL_VARIADIC_NONE)) ||
@@ -13378,6 +13420,7 @@ int xl6IrRebindDynamicMethodSpecialization(
          strcmp(row->name, name) != 0 ||
          !xl6IrBuildDynamicMethodEligible(
              module, layout, declaration, method) ||
+         !xl6IrPrepareDynamicMethodResults(module,declaration) ||
          !xl6IrBuildDynamicMethodSignature(
              module, declaration, &parameters, &returnCount, &returnType) ||
          parameters->childCount != row->parameterCount ) return 0;
@@ -13388,7 +13431,7 @@ int xl6IrRebindDynamicMethodSpecialization(
     }
     fixed = row->parameterCount;
     typeParameters = xl6IrBuildDeclarationTypeParams(module, declaration);
-    if ( (method->sourceKind != XL6_AST_FUNC && method->sourceKind != XL6_AST_GET && method->sourceKind != XL6_AST_LET && method->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC) || returnCount > 1u ||
+    if ( (method->sourceKind != XL6_AST_FUNC && method->sourceKind != XL6_AST_GET && method->sourceKind != XL6_AST_LET && method->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC) ||
          (row->kind == XL6_IR_DYNAMIC_CALL_MEMBER_GET && (returnCount != 1 || parameters->childCount != 0)) ||
          (row->kind == XL6_IR_DYNAMIC_CALL_MEMBER_SET && (returnCount != 0 || parameters->childCount != 1 ||
           xl6IrCallVariadicAbiForParameter(module, xl6IrNodeGet(module, module->children[parameters->firstChild])) != XL6_IR_CALL_VARIADIC_NONE)) ||
@@ -13538,6 +13581,11 @@ static XL6_IrIntrinsicKind xl6IrCollectionMemberCalleeKind(
     type = xl6IrTypeGet(&module->types, receiverNode->storageType);
     if ( type == NULL || type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR )
         return XL6_IR_INTRINSIC_INVALID;
+    XL6_IrDynamicCollectionOp candidate=xl6IrDynamicCollectionMemberOperation(callee->text);
+    const XL6_IrNode* call=xl6IrNodeGet(module,callee->parent);
+    if(xl6IrTypeIsOpenDynamicBuiltin(module,type) &&
+       ((candidate>=XL6_IR_DYNAMIC_COLLECTION_TRY_POP && candidate<=XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK_AT) ||
+        (call && xl6IrDynamicProductType(module,call->storageType))))return XL6_IR_INTRINSIC_INVALID;
     if ( type->kind == XL6_IR_TYPE_BUILTIN &&
          type->collectionAbi == XL6_IR_COLLECTION_NONE &&
          type->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_NONE &&
@@ -25543,7 +25591,7 @@ static int xl6IrVerifyDynamicMethodRegistry(
         fixed = parameters->childCount;
         typeParameters = xl6IrBuildDeclarationTypeParams(
             module, method->declaration);
-        if ( (declaration->sourceKind != XL6_AST_FUNC && declaration->sourceKind != XL6_AST_GET && declaration->sourceKind != XL6_AST_LET && declaration->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC) || returnCount > 1u ||
+        if ( (declaration->sourceKind != XL6_AST_FUNC && declaration->sourceKind != XL6_AST_GET && declaration->sourceKind != XL6_AST_LET && declaration->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC) ||
              (method->kind == XL6_IR_DYNAMIC_CALL_MEMBER_GET && (returnCount != 1 || parameters->childCount != 0)) ||
          (method->kind == XL6_IR_DYNAMIC_CALL_MEMBER_SET && (returnCount != 0 || parameters->childCount != 1 ||
           xl6IrCallVariadicAbiForParameter(module, xl6IrNodeGet(module, module->children[parameters->firstChild])) != XL6_IR_CALL_VARIADIC_NONE)) ||
@@ -34317,9 +34365,14 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     "XLIR dynamic call has an invalid operation kind");
             }
             if (site->memberBindingAbi !=
-                (site->kind == XL6_IR_DYNAMIC_CALL_MEMBER_GET && xl6IrBuildHasDynamicMethodName(module, site->memberName)
+                ((site->kind == XL6_IR_DYNAMIC_CALL_MEMBER_GET && xl6IrBuildHasDynamicMethodName(module, site->memberName))
+                    || site->boundCollectionOp!=XL6_IR_DYNAMIC_COLLECTION_INVALID
                     ? XL6_IR_DYNAMIC_MEMBER_BINDING_RETAIN_RECEIVER : XL6_IR_DYNAMIC_MEMBER_BINDING_NONE))
                 return xl6IrDiag(diags, call, "XLIR dynamic member binding has no exact retained receiver and callable environment ABI");
+            XL6_IrDynamicCollectionOp bound=site->kind==XL6_IR_DYNAMIC_CALL_MEMBER_GET ?
+                xl6IrDynamicCollectionMemberOperation(site->memberName) : XL6_IR_DYNAMIC_COLLECTION_INVALID;
+            if(bound<XL6_IR_DYNAMIC_COLLECTION_TRY_POP || bound>XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK_AT)bound=XL6_IR_DYNAMIC_COLLECTION_INVALID;
+            if(site->boundCollectionOp!=bound)return xl6IrDiag(diags,call,"XLIR bound native method has no exact opcode identity");
             for ( prior = 0; prior < i; ++prior )
                 if ( module->dynamicCallSites[prior].origin == site->origin )
                     return xl6IrDiag(diags, call,
@@ -34423,7 +34476,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         hasMethod = 1;
                         break;
                     }
-                if ( !hasMethod )
+                if ( !hasMethod && !(site->fallbackCollectionOp>=XL6_IR_DYNAMIC_COLLECTION_TRY_POP &&
+                                      site->fallbackCollectionOp<=XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK_AT) )
                     return xl6IrDiag(diags, call,
                         "XLIR dynamic method collection fallback has no class-first method candidate");
             }
@@ -46366,6 +46420,9 @@ static const char* xl6IrDynamicCollectionOpName(
     case XL6_IR_DYNAMIC_COLLECTION_PEEK_BATCH: return "peek-batch";
     case XL6_IR_DYNAMIC_COLLECTION_PEEK_BATCH_AT: return "peek-batch-at";
     case XL6_IR_DYNAMIC_COLLECTION_EQUALS: return "equals";
+    case XL6_IR_DYNAMIC_COLLECTION_TRY_POP: return "try-pop";
+    case XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK: return "try-peek";
+    case XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK_AT: return "try-peek-at";
     default: return "invalid";
     }
 }
@@ -48628,7 +48685,7 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
     for ( i = 0; i < module->dynamicCallSiteCount; ++i ) {
         const XL6_IrDynamicCallSite* site = &module->dynamicCallSites[i];
         xl6OutputPrintf(out,
-            "  dynamic-call d%lu origin=n%u kind=%s bindingAbi=%d evaluationOrder=%d subject=n%u subjectSymbol=s%llu member=%s fallback=%s result=t%u resultAbi=%s error=%s arguments=%lu+%lu positional=%lu keyword=%lu\n",
+            "  dynamic-call d%lu origin=n%u kind=%s bindingAbi=%d evaluationOrder=%d subject=n%u subjectSymbol=s%llu member=%s fallback=%s boundFallback=%s result=t%u resultAbi=%s error=%s arguments=%lu+%lu positional=%lu keyword=%lu\n",
             (unsigned long)i, (unsigned int)site->origin,
             xl6IrDynamicCallKindName(site->kind),
             (int)site->memberBindingAbi, (int)site->evaluationOrder,
@@ -48636,6 +48693,7 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
             (unsigned long long)site->subjectSymbol,
             site->memberName != NULL ? site->memberName : "",
             xl6IrDynamicCollectionOpName(site->fallbackCollectionOp),
+            xl6IrDynamicCollectionOpName(site->boundCollectionOp),
             (unsigned int)site->resultType,
             xl6IrDynamicCallResultAbiName(site->resultAbi),
             xl6IrErrorAbiName(site->errorAbi),
@@ -50120,7 +50178,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     for ( i = 0; i < module->dynamicCallSiteCount; ++i ) {
         const XL6_IrDynamicCallSite* site = &module->dynamicCallSites[i];
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"origin\":%u,\"kind\":%d,\"kindName\":\"%s\",\"memberBindingAbi\":%d,\"evaluationOrder\":%d,\"subject\":%u,\"subjectSymbol\":%llu,\"memberName\":\"%s\",\"fallbackCollectionOp\":%d,\"fallbackCollectionOpName\":\"%s\",\"resultType\":%u,\"resultAbi\":%d,\"resultAbiName\":\"%s\",\"errorAbi\":%d,\"errorAbiName\":\"%s\",\"firstArgument\":%lu,\"argumentCount\":%lu,\"positionalCount\":%lu,\"keywordCount\":%lu}%s\n",
+            "    {\"id\":%lu,\"origin\":%u,\"kind\":%d,\"kindName\":\"%s\",\"memberBindingAbi\":%d,\"evaluationOrder\":%d,\"subject\":%u,\"subjectSymbol\":%llu,\"memberName\":\"%s\",\"fallbackCollectionOp\":%d,\"fallbackCollectionOpName\":\"%s\",\"boundCollectionOp\":%d,\"resultType\":%u,\"resultAbi\":%d,\"resultAbiName\":\"%s\",\"errorAbi\":%d,\"errorAbiName\":\"%s\",\"firstArgument\":%lu,\"argumentCount\":%lu,\"positionalCount\":%lu,\"keywordCount\":%lu}%s\n",
             (unsigned long)i, (unsigned int)site->origin,
             (int)site->kind, xl6IrDynamicCallKindName(site->kind),
             (int)site->memberBindingAbi, (int)site->evaluationOrder,
@@ -50129,6 +50187,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             site->memberName != NULL ? site->memberName : "",
             (int)site->fallbackCollectionOp,
             xl6IrDynamicCollectionOpName(site->fallbackCollectionOp),
+            (int)site->boundCollectionOp,
             (unsigned int)site->resultType, (int)site->resultAbi,
             xl6IrDynamicCallResultAbiName(site->resultAbi),
             (int)site->errorAbi,

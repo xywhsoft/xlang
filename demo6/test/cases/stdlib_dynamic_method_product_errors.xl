@@ -1,0 +1,51 @@
+class ProductErrors
+    func one() as string
+        return "one"
+    end
+    func three() as (int, int, string)
+        return 1, 2, "extra"
+    end
+end
+var receiver = ProductErrors()
+var left = "unchanged-left"
+var right = "unchanged-right"
+bool caught = false
+try
+    left, right = receiver.one()
+catch TypeError failure
+    caught = true
+end
+assert caught and string(left) == "unchanged-left" and string(right) == "unchanged-right"
+caught = false
+var bound = receiver.three
+try
+    left, right = bound()
+catch TypeError failure
+    caught = true
+end
+assert caught and string(left) == "unchanged-left" and string(right) == "unchanged-right"
+var stack = Stack::<string>()
+assert bool(stack.push("preserved"))
+caught = false
+try
+    left, right = stack.tryPeekAt(-1)
+catch RangeError failure
+    caught = true
+end
+assert caught and int(stack.count()) == 1
+caught = false
+try
+    left, right = stack.tryPeekAt("bad")
+catch TypeError failure
+    caught = true
+end
+assert caught and int(stack.count()) == 1
+array<string> typedArray = ["not-a-stack"]
+var queue = typedArray
+caught = false
+try
+    left, right = queue.tryPop()
+catch TypeError failure
+    caught = true
+end
+assert caught and string(left) == "unchanged-left" and string(right) == "unchanged-right"

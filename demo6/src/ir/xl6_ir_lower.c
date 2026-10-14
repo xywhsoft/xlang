@@ -25809,10 +25809,6 @@ static XL6_IrValueId xl6IrLowerDynamicCall(
         xl6IrLowerDiag(ctx, id, "XLIR dynamic call has no verified evaluation, frame and outcome descriptor");
         return XL6_IR_VALUE_INVALID;
     }
-    if(site->resultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT && site->kind!=XL6_IR_DYNAMIC_CALL_FUNCTION) {
-        xl6IrLowerDiag(ctx,id,"XLIR dynamic multi-result method needs its complete vector dispatcher ABI");
-        return XL6_IR_VALUE_INVALID;
-    }
     operands = (XL6_IrValueId*)xrtCalloc(site->argumentCount + 1, sizeof(*operands));
     if (operands == NULL) { ctx->failed = 1; return XL6_IR_VALUE_INVALID; }
     for (phase = 0; phase < 2; ++phase) {

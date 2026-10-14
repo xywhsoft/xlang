@@ -31,6 +31,7 @@ def main() -> int:
         'src/runtime/xl6_sequence.c', 'src/runtime/xl6_stack.c', 'src/runtime/xl6_stack_erased.c',
         'src/runtime/xl6_stack_erased_methods.c', 'src/runtime/xl6_stack_batch.c',
         'src/runtime/xl6_stack_erased_try.c',
+        'src/runtime/xl6_dynamic_collection_vector.c',
         'src/runtime/xl6_char_value.c','src/runtime/xl6_char_type.c',
         'src/runtime/xl6_array.c', 'src/runtime/xl6_array_erased.c', 'src/runtime/xl6_array_reference_value.c',
         'src/runtime/xl6_array_primitive_admission.c', 'src/runtime/xl6_array_reference_admission.c',
@@ -93,6 +94,13 @@ def main() -> int:
         # Compile actual broken implementations, never substitute a test stub
         # or count a compiler failure as a successful mutation detection.
         mutants = [
+            ('vector-probe-wrong-role','src/runtime/xl6_dynamic_collection_vector.c',
+                'source,XL6_SEQUENCE_STACK_V1,&pin','source,XL6_SEQUENCE_ARRAY_V1,&pin'),
+            ('vector-peek-becomes-pop','src/runtime/xl6_dynamic_collection_vector.c',
+                'operation==XL6_DYNAMIC_COLLECTION_TRY_POP,result','true,result'),
+            ('vector-skips-owned-argument','src/runtime/xl6_dynamic_collection_vector.c',
+                'xrtValueRelease(first); if(xrtGetError())xl6ErrorScopeCaptureFailure(&scope);',
+                '(void)first; if(xrtGetError())xl6ErrorScopeCaptureFailure(&scope);'),
             ('try-ignores-independent-failure','src/runtime/xl6_stack_erased_try.c',
                 ' || scope.failed', ''),
             ('try-leaks-published-on-no-diagnostic','src/runtime/xl6_stack_erased_try.c',
@@ -131,7 +139,7 @@ def main() -> int:
             assert b'stdlib_stack_erased_native_host.c' in rejected and b'assert' in rejected.lower(), name
             mutations.append({'Name': name, 'Source': selected, 'MutantSha256': digest(mutant),
                 'RuntimeExit': result.returncode, 'Rejected': True})
-        assert len(mutations) == 8
+        assert len(mutations) == 11
         report['InputsUnchanged'] = all(digest(Path(row['Path'])) == row['Sha256'] for row in inputs)
         assert report['InputsUnchanged']
         report['Complete'] = True

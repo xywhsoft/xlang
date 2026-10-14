@@ -247,6 +247,28 @@ static int xl6IrCgenEmitDynamicNativeWitness(
 /* Emit one source-free adapter for a VERIFIED dynamic method row.  Binding,
  * defaults, unboxing, ownership transfer and result boxing are derived only
  * from Lowered XLIR metadata; this function never consults AST nodes. */
+/* Physical boxing only. The verified return row already fixes every field. */
+static int xl6IrCgenEmitDynamicReturnedBox(XL6_Output* out,const XL6_IrModule* module,
+    XL6_IrTypeId id,const char* value)
+{
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
+    if(!type)return 0;
+    const char* box=type->cAbi==XL6_IR_C_ABI_BOOL?"xrtValueBool":
+        type->cAbi==XL6_IR_C_ABI_CHAR_U32?"xrtValueChar":type->cAbi==XL6_IR_C_ABI_I64?"xrtValueInt":
+        type->cAbi==XL6_IR_C_ABI_U64?"xrtValueUInt":type->cAbi==XL6_IR_C_ABI_F64?"xrtValueFloat":
+        type->cAbi==XL6_IR_C_ABI_TIME_I64?"xrtValueTime":NULL;
+    if(box)xl6OutputPrintf(out,"    boxedResult = %s(%s);\n",box,value);
+    else if(type->cAbi==XL6_IR_C_ABI_MANAGED_STRING) {
+        xl6OutputPrintf(out,"    boxedResult = %s.Data != NULL ? xrtValueString(%s) : NULL;\n",value,value);
+        if(type->kind==XL6_IR_TYPE_NULLABLE)xl6OutputPuts("    if(boxedResult == NULL && !xrtGetError()) boxedResult = xrtValueRetain(xrtValueNull());\n",out);
+        xl6OutputPrintf(out,"    xlir_string_drop(%s); %s = (xlir_string){0};\n",value,value);
+    } else if(type->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR || type->cAbi==XL6_IR_C_ABI_MANAGED_BYTES) {
+        xl6OutputPrintf(out,"    boxedResult = %s; %s = NULL;\n",value,value);
+        if(type->kind==XL6_IR_TYPE_NULLABLE)xl6OutputPuts("    if(boxedResult == NULL)boxedResult = xrtValueRetain(xrtValueNull());\n",out);
+    } else return 0;
+    return !xl6OutputHasFailed(out);
+}
+
 static int xl6IrCgenEmitDynamicMethodAdapter(
     XL6_Output* out, const XL6_IrModule* module, size_t methodIndex,
     XL6_DiagList* diags)
@@ -266,6 +288,7 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
             (target->kind == XL6_IR_CALL_TARGET_EXTERN_C || target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE)
         ? xl6IrCgenErrorResultType(module, method->returnType) : NULL;
     size_t parameter;
+    int vector=method && method->kind==XL6_IR_DYNAMIC_CALL_METHOD;
     if ( method == NULL || target == NULL ||
          method->adapterAbi != XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED ||
          !xl6IrDynamicMethodCallTargetSupported(module, target) ||
@@ -278,7 +301,12 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
             method != NULL ? method->declaration : XL6_IR_NODE_INVALID,
             "XLIR C emitter dynamic method adapter is unresolved");
 
-    xl6OutputPrintf(out,
+    if(vector)xl6OutputPrintf(out,
+        "static bool xlir_dynamic_method_dm%lu(xvalue* receiver, size_t positionalCount, xvalue** positionalValues, size_t keywordCount, const xlir_string_view* keywordNames, xvalue** keywordValues, xrtcallresult* resultVector)\n"
+        "{\n    xvalue* boxedResult = NULL; xvalue* variadic = NULL; size_t keywordIndex;\n"
+        "    xrtcallresult prepared = {0}; xl6_error_scope adapterScope = {0};\n",
+        (unsigned long)methodIndex);
+    else xl6OutputPrintf(out,
         "static xvalue* xlir_dynamic_method_dm%lu(xvalue* receiver, size_t positionalCount, xvalue** positionalValues, size_t keywordCount, const xlir_string_view* keywordNames, xvalue** keywordValues)\n"
         "{\n"
         "    xvalue* boxedResult = NULL; xvalue* variadic = NULL; size_t keywordIndex;\n",
@@ -308,6 +336,7 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
                 "    xlir_string_view text%lu = {0};\n",
                 (unsigned long)parameter);
     }
+    if(vector)xl6OutputPuts("    if(!xl6ErrorScopeBegin(&adapterScope)) { xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return false; }\n",out);
     xl6OutputPrintf(out,
         "    if (receiver == NULL || (positionalCount != 0 && positionalValues == NULL) || "
         "(keywordCount != 0 && (keywordNames == NULL || keywordValues == NULL)) || ");
@@ -474,6 +503,7 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
             "    a%lu = variadic; variadic = NULL;\n",
             (unsigned long)parameter);
     }
+    if(vector)xl6OutputPuts("    if(adapterScope.failed || xrtGetError())goto fail;\n",out);
     if ( target->kind == XL6_IR_CALL_TARGET_EXTERN_C ) {
         if ( carrierCType == NULL || !xl6IrCgenEmitDynamicNativeWitness(out, module, target, diags) ) return 0;
     } else {
@@ -484,6 +514,13 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
         for ( parameter = 0; parameter < method->parameterCount; ++parameter )
             xl6OutputPrintf(out, ", a%lu", (unsigned long)parameter);
         xl6OutputPuts(");\n", out);
+    }
+    if(vector) {
+        for(parameter=0;parameter<method->parameterCount;++parameter) {
+            const XL6_IrDynamicMethodParameter* item=&module->dynamicMethodParameters[method->firstParameter+parameter];
+            if(item->abi==XL6_IR_PARAMETER_ABI_OWNED)
+                xl6OutputPrintf(out,"    a%lu = (%s){0};\n",(unsigned long)parameter,xl6IrCgenType(module,item->type));
+        }
     }
     if (carrierCType != NULL)
         xl6OutputPuts("    if (!callResult.ok) { xl6_error_result failure = {false, xrtTakeError()}; xl6ErrorScopePropagateFailure(failure); }\n", out);
@@ -501,13 +538,47 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
             xl6OutputPrintf(out,
                 "    xrtValueRelease(a%lu); a%lu = NULL;\n",
                 (unsigned long)parameter, (unsigned long)parameter);
+        if(vector)xl6OutputPuts("    if(xrtGetError())xl6ErrorScopeCaptureFailure(&adapterScope);\n",out);
     }
     if ( carrierCType != NULL ) {
+        if(vector) {
+            xl6OutputPuts("    if (!callResult.ok) goto fail;\n",out);
+            if(resultType)xl6OutputPuts("    returned = callResult.value; callResult.value = (",out);
+            if(resultType)xl6OutputPrintf(out,"%s){0};\n",resultCType);
+        } else {
         xl6OutputPuts(
             "    if (!callResult.ok) { if (xrtGetError() == NULL) xrtSetErrorTake(xlir_error_create(\"RuntimeError\", \"dynamic method target returned an error without runtime state\")); return NULL; }\n",
             out);
         if ( resultType != NULL )
             xl6OutputPuts("    returned = callResult.value;\n", out);
+        }
+    }
+    if(vector) {
+        if(!resultType) {
+            xl6OutputPuts("    boxedResult = xrtValueRetain(xrtValueNull());\n    if(!boxedResult || !xrtCallResultSetTake(&prepared,0,&boxedResult))goto fail;\n",out);
+        } else {
+            size_t count=method->returnCount;
+            for(size_t field=0;field<count;++field) {
+                char place[64]; snprintf(place,sizeof(place),count>1?"returned.e%lu":"returned",(unsigned long)field);
+                XL6_IrTypeId fieldType=count>1?resultType->params[field]:method->returnType;
+                if(!xl6IrCgenEmitDynamicReturnedBox(out,module,fieldType,place))return 0;
+                xl6OutputPrintf(out,"    if(!boxedResult || adapterScope.failed || xrtGetError() || !xrtCallResultSetTake(&prepared,%lu,&boxedResult))goto fail;\n",(unsigned long)field);
+            }
+        }
+        if(resultType && !xl6IrCgenEmitOwnedPlaceRelease(out,module,method->returnType,"returned",diags))return 0;
+        xl6OutputPuts("    if(adapterScope.failed || xrtGetError() || !xrtCallResultMove(resultVector,&prepared))goto fail;\n"
+            "    { xl6_error_result outcome = xl6ErrorScopeEnd(&adapterScope); if(!outcome.ok) { xrtCallResultClear(resultVector); xl6ErrorScopePropagateFailure(outcome); return false; } return true; }\n"
+            "fail:\n    xl6ErrorScopeCaptureFailure(&adapterScope);\n",out);
+        for(parameter=0;parameter<method->parameterCount;++parameter) {
+            const XL6_IrDynamicMethodParameter* item=&module->dynamicMethodParameters[method->firstParameter+parameter];
+            char place[48]; snprintf(place,sizeof(place),"a%lu",(unsigned long)parameter);
+            if(!xl6IrCgenEmitOwnedPlaceRelease(out,module,item->type,place,diags))return 0;
+            xl6OutputPuts("    if(xrtGetError())xl6ErrorScopeCaptureFailure(&adapterScope);\n",out);
+        }
+        if(resultType && !xl6IrCgenEmitOwnedPlaceRelease(out,module,method->returnType,"returned",diags))return 0;
+        xl6OutputPuts("    xrtValueRelease(boxedResult); xrtValueRelease(variadic); xrtCallResultUnit(&prepared);\n"
+            "    { xl6_error_result outcome = xl6ErrorScopeEnd(&adapterScope); xl6ErrorScopePropagateFailure(outcome); return false; }\n}\n",out);
+        return !xl6OutputHasFailed(out);
     }
     if ( resultType == NULL )
         xl6OutputPuts(
@@ -574,7 +645,7 @@ static int xl6IrCgenEmitBoundMethodRuntime(XL6_Output* out, const XL6_IrModule* 
     if (module->abi.boundMethodStorageAbi != XL6_IR_BOUND_METHOD_STORAGE_RESIDENT_CLOSURE_LAYOUT_V1)
         return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID, "XLIR bound method storage ABI is unresolved");
     xl6OutputPuts(
-        "typedef xvalue* (*xlir_dynamic_method_dispatch)(xvalue*, size_t, xvalue**, size_t, const xlir_string_view*, xvalue**);\n"
+        "typedef XL6_DynamicOwnedDispatchV1 xlir_dynamic_method_dispatch;\n"
         "typedef struct xlir_bound_method {\n"
         "    xvalue* receiver;\n"
         "    xlir_dynamic_method_dispatch invoke;\n"
@@ -590,7 +661,7 @@ static int xl6IrCgenEmitBoundMethodRuntime(XL6_Output* out, const XL6_IrModule* 
         "{\n"
         "    XL6_Closure* closure = (XL6_Closure*)data;\n"
         "    xlir_bound_method* bound = closure != NULL ? (xlir_bound_method*)closure->environment : NULL;\n"
-        "    xvalue** owned = NULL; xvalue* result = NULL; size_t total = 0, retained = 0, i;\n"
+        "    xvalue** owned = NULL; bool result = false; size_t total = 0, retained = 0, i;\n"
         "    if (bound == NULL || bound->receiver == NULL || bound->invoke == NULL || callResult == NULL ||\n"
         "        frame == NULL || (frame->ArgumentCount && frame->Arguments == NULL) ||\n"
         "        (frame->KeywordCount && (frame->KeywordNames == NULL || frame->KeywordValues == NULL)) ||\n"
@@ -613,16 +684,16 @@ static int xl6IrCgenEmitBoundMethodRuntime(XL6_Output* out, const XL6_IrModule* 
         "        }\n"
         "    }\n"
         "    result = bound->invoke(bound->receiver, frame->ArgumentCount, owned, frame->KeywordCount,\n"
-        "        frame->KeywordNames, owned != NULL ? owned + frame->ArgumentCount : NULL);\n"
+        "        frame->KeywordNames, owned != NULL ? owned + frame->ArgumentCount : NULL, callResult);\n"
         "    retained = 0; /* The verified dispatcher consumes every argument on both outcomes. */\n"
         "    xrtFree(owned); owned = NULL;\n"
-        "    if (result == NULL || !xrtCallResultSetTake(callResult, 0, &result)) goto fail;\n"
+        "    if (!result) goto fail;\n"
         "    return true;\n"
         "fail: {\n"
         "    xerror* pendingError;\n"
         "    xl6ForeignCallbackFail(); pendingError = xrtTakeError();\n"
         "    for (i = 0; i < retained; ++i) xrtValueRelease(owned[i]);\n"
-        "    xrtFree(owned); xrtValueRelease(result);\n"
+        "    xrtFree(owned);\n"
         "    if (callResult != NULL) xrtCallResultUnit(callResult);\n"
         "    xrtSetErrorTake(pendingError); return false;\n"
         "}\n"
@@ -663,10 +734,22 @@ static int xl6IrCgenEmitDynamicMethodDispatcher(
     XL6_IrDynamicCallKind dispatchKind)
 {
     const XL6_IrDynamicCallSite* site = &module->dynamicCallSites[siteIndex];
-    const char* fallbackOperation = dispatchKind == site->kind
-        ? xl6IrCgenDynamicCollectionOpToken(site->fallbackCollectionOp) : NULL;
+    XL6_IrDynamicCollectionOp fallback=dispatchKind==site->kind?site->fallbackCollectionOp:
+        dispatchKind==XL6_IR_DYNAMIC_CALL_METHOD?site->boundCollectionOp:XL6_IR_DYNAMIC_COLLECTION_INVALID;
+    const char* fallbackOperation=xl6IrCgenDynamicCollectionOpToken(fallback);
     size_t methodIndex;
-    xl6OutputPrintf(out,
+    int vector=dispatchKind==XL6_IR_DYNAMIC_CALL_METHOD;
+    if(vector)xl6OutputPrintf(out,
+        "static bool xlir_dynamic_method_vector_%s_d%lu(xvalue* receiver, size_t positionalCount, xvalue** positionalValues, size_t keywordCount, const xlir_string_view* keywordNames, xvalue** keywordValues, xrtcallresult* resultVector)\n"
+        "{\n    xvalue* result = NULL; xvalue* typeValue = NULL; int64_t runtimeType = 0; int selected = -1; size_t argumentIndex; bool vectorSuccess = false; xrtcallresult prepared = {0};\n"
+        "    xl6_foreign_error_scope invocationScope; xl6_foreign_error_result invocationOutcome;\n"
+        "    if (!xl6ForeignCallBegin(&invocationScope)) {\n"
+        "        xerror* error = xrtTakeError();\n"
+        "        if(positionalValues)for(argumentIndex=0;argumentIndex<positionalCount;++argumentIndex)xrtValueRelease(positionalValues[argumentIndex]);\n"
+        "        if(keywordValues)for(argumentIndex=0;argumentIndex<keywordCount;++argumentIndex)xrtValueRelease(keywordValues[argumentIndex]);\n"
+        "        xl6ErrorScopePropagateFailure((xl6_error_result){false,error}); return false;\n    }\n",
+        dispatchKind == site->kind ? "call" : "bound",(unsigned long)siteIndex);
+    else xl6OutputPrintf(out,
         "static xvalue* xlir_dynamic_method_%s_d%lu(xvalue* receiver, size_t positionalCount, xvalue** positionalValues, size_t keywordCount, const xlir_string_view* keywordNames, xvalue** keywordValues)\n"
         "{\n"
         "    xvalue* result = NULL; xvalue* typeValue = NULL; int64_t runtimeType = 0; int selected = -1; size_t argumentIndex;\n"
@@ -689,23 +772,44 @@ static int xl6IrCgenEmitDynamicMethodDispatcher(
             "    if (xrtValueType(receiver) == 12) typeValue = xrtValueObjectGet(receiver, xrtStrView(\"$xlir.class.runtime-type\"));\n"
             "    if (typeValue != NULL && !xrtValueGetInt(typeValue, &runtimeType)) goto cleanup;\n",
             out);
-    else if ( fallbackOperation != NULL )
+    else if ( fallbackOperation != NULL ) {
+        if(fallback>=XL6_IR_DYNAMIC_COLLECTION_TRY_POP && fallback<=XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK_AT)
+            xl6OutputPrintf(out,
+                "    if(receiver == NULL || xrtValueType(receiver) != 12) {\n"
+                "        if(keywordCount || (positionalCount && !positionalValues) || !xl6DynamicCollectionVectorArityV1(%s,positionalCount)) { xrtSetErrorKind(XERR_ARGUMENT); goto cleanup; }\n"
+                "        vectorSuccess = xl6DynamicCollectionVectorTakeV1(receiver,%s,positionalCount?positionalValues[0]:NULL,NULL,&prepared);\n"
+                "        for(argumentIndex=0;argumentIndex<positionalCount;++argumentIndex)positionalValues[argumentIndex]=NULL;\n"
+                "        goto cleanup;\n    }\n"
+                "    typeValue = xrtValueObjectGet(receiver,xrtStrView(\"$xlir.class.runtime-type\"));\n"
+                "    if(!typeValue || !xrtValueGetInt(typeValue,&runtimeType)) { xrtSetErrorKind(XERR_TYPE); goto cleanup; }\n",
+                fallbackOperation,fallbackOperation);
+        else {
         xl6OutputPrintf(out,
             "    if (xrtValueType(receiver) != 12) {\n"
             "        if (keywordCount || (positionalCount && !positionalValues) || !xl6DynamicCollectionArityV1(%s, positionalCount)) { xrtSetErrorTake(xlir_error_create(\"ArgumentError\", \"invalid dynamic collection arguments\")); goto cleanup; }\n"
             "        result = xl6DynamicCollectionCallTakeV1(receiver, %s, positionalCount > 0 ? positionalValues[0] : NULL, positionalCount > 1 ? positionalValues[1] : NULL);\n"
             "        for (argumentIndex = 0; argumentIndex < positionalCount; ++argumentIndex) positionalValues[argumentIndex] = NULL;\n"
             "        if (result == NULL && xrtGetError() == NULL) xrtSetErrorTake(xlir_error_create(\"RuntimeError\", \"dynamic collection fallback failed\"));\n"
+            "        if(result != NULL) vectorSuccess = xrtCallResultSetTake(&prepared,0,&result);\n"
             "        goto cleanup;\n"
             "    }\n"
             "    typeValue = xrtValueObjectGet(receiver, xrtStrView(\"$xlir.class.runtime-type\"));\n"
             "    if (typeValue == NULL || !xrtValueGetInt(typeValue, &runtimeType)) { if (xrtGetError() == NULL) xrtSetErrorTake(xlir_error_create(\"TypeError\", \"dynamic method receiver has no runtime class tag\")); goto cleanup; }\n",
             fallbackOperation,fallbackOperation);
+        }
+    }
     else
         xl6OutputPuts(
             "    typeValue = xrtValueObjectGet(receiver, xrtStrView(\"$xlir.class.runtime-type\"));\n"
             "    if (typeValue == NULL || !xrtValueGetInt(typeValue, &runtimeType)) { if (xrtGetError() == NULL) xrtSetErrorTake(xlir_error_create(\"TypeError\", \"dynamic method receiver has no runtime class tag\")); goto cleanup; }\n",
             out);
+    if(dispatchKind==XL6_IR_DYNAMIC_CALL_MEMBER_GET && site->boundCollectionOp!=XL6_IR_DYNAMIC_COLLECTION_INVALID) {
+        xl6OutputPrintf(out,
+            "    if(xrtValueType(receiver) != 12) { int nativeStatus = xl6DynamicStackMethodProbeV1(receiver);\n"
+            "        if(nativeStatus < 0)goto cleanup;\n"
+            "        if(nativeStatus > 0) { result = xlir_bound_method_create(receiver,xlir_dynamic_method_vector_bound_d%lu); goto cleanup; }\n    }\n",
+            (unsigned long)siteIndex);
+    }
     if (dispatchKind == XL6_IR_DYNAMIC_CALL_MEMBER_GET) {
         for (methodIndex = 0; methodIndex < module->dynamicMethodCount; ++methodIndex) {
             const XL6_IrDynamicMethod* method = &module->dynamicMethods[methodIndex];
@@ -764,9 +868,12 @@ static int xl6IrCgenEmitDynamicMethodDispatcher(
         if ( method->kind != dispatchKind || !xl6IrCgenDynamicMethodNeeded(module, methodIndex) ||
              method->name == NULL || site->memberName == NULL ||
              strcmp(method->name, site->memberName) != 0 ) continue;
-        xl6OutputPrintf(out,
+        if(vector)xl6OutputPrintf(out,
+            "    case %lu: vectorSuccess = xlir_dynamic_method_dm%lu(receiver, positionalCount, positionalValues, keywordCount, keywordNames, keywordValues,&prepared); break;\n",
+            (unsigned long)methodIndex,(unsigned long)methodIndex);
+        else xl6OutputPrintf(out,
             "    case %lu: result = xlir_dynamic_method_dm%lu(receiver, positionalCount, positionalValues, keywordCount, keywordNames, keywordValues); break;\n",
-            (unsigned long)methodIndex, (unsigned long)methodIndex);
+            (unsigned long)methodIndex,(unsigned long)methodIndex);
     }
     if (dispatchKind == XL6_IR_DYNAMIC_CALL_MEMBER_GET) {
         xl6OutputPuts("    default: {\n", out);
@@ -795,7 +902,7 @@ static int xl6IrCgenEmitDynamicMethodDispatcher(
                         xl6IrDynamicMethodMatchesCallSite(site, &module->dynamicMethods[prior]) &&
                         module->dynamicMethods[prior].runtimeTypeTag == method->runtimeTypeTag) break;
                 if (prior != methodIndex) continue;
-                xl6OutputPrintf(out, "        case %u: result = xlir_bound_method_create(receiver, xlir_dynamic_method_bound_d%lu); break;\n",
+                xl6OutputPrintf(out, "        case %u: result = xlir_bound_method_create(receiver, xlir_dynamic_method_vector_bound_d%lu); break;\n",
                     (unsigned int)method->runtimeTypeTag, (unsigned long)siteIndex);
             }
             xl6OutputPuts("        default: result = xrtValueRetain(xrtValueNull()); break;\n        }\n", out);
@@ -826,6 +933,19 @@ static int xl6IrCgenEmitDynamicMethodDispatcher(
             "    }\n", out);
     } else
         xl6OutputPuts("    default: if (xrtGetError() == NULL) xrtSetErrorTake(xlir_error_create(\"TypeError\", \"dynamic method call has no matching verified overload\")); break;\n", out);
+    if(vector) {
+        xl6OutputPuts("    }\ncleanup:\n"
+            "    if(!vectorSuccess || xrtGetError())xl6ErrorScopeCaptureFailure(&invocationScope);\n"
+            "    if(positionalValues)for(argumentIndex=0;argumentIndex<positionalCount;++argumentIndex) { xrtValueRelease(positionalValues[argumentIndex]); if(xrtGetError())xl6ErrorScopeCaptureFailure(&invocationScope); }\n"
+            "    if(keywordValues)for(argumentIndex=0;argumentIndex<keywordCount;++argumentIndex) { xrtValueRelease(keywordValues[argumentIndex]); if(xrtGetError())xl6ErrorScopeCaptureFailure(&invocationScope); }\n"
+            "    xrtValueRelease(result);\n"
+            "    if(invocationScope.failed || xrtGetError()) { xl6ErrorScopeCaptureFailure(&invocationScope); xrtCallResultUnit(&prepared); }\n"
+            "    else if(!resultVector || !xrtCallResultMove(resultVector,&prepared)) { xl6ErrorScopeCaptureFailure(&invocationScope); xrtCallResultUnit(&prepared); }\n"
+            "    invocationOutcome = xl6ForeignCallEnd(&invocationScope);\n"
+            "    if(!invocationOutcome.ok) { if(resultVector)xrtCallResultClear(resultVector); xl6ErrorScopePropagateFailure(invocationOutcome); return false; }\n"
+            "    return true;\n}\n",out);
+        return !xl6OutputHasFailed(out);
+    }
     xl6OutputPuts(
         "    }\n"
         "cleanup: {\n"
@@ -865,6 +985,17 @@ static unsigned xl6IrCgenDynamicArgumentAdmissionNeeds(const XL6_IrModule* modul
 static int xl6IrCgenEmitDynamicMethodRuntime(
     XL6_Output* out, const XL6_IrModule* module, XL6_DiagList* diags)
 {
+    /* These adapters are emitted before resource support. Their physical
+     * function-pointer and vector ABI declarations must precede all uses. */
+    xl6OutputPuts("#include <__xl_runtime/xl6_dynamic_product.h>\n",out);
+    for(size_t i=0;i<module->dynamicCallSiteCount;++i) {
+        const XL6_IrDynamicCallSite* site=&module->dynamicCallSites[i];
+        if(site->boundCollectionOp!=XL6_IR_DYNAMIC_COLLECTION_INVALID ||
+           (site->fallbackCollectionOp>=XL6_IR_DYNAMIC_COLLECTION_TRY_POP &&
+            site->fallbackCollectionOp<=XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK_AT)) {
+            xl6OutputPuts("#include <__xl_runtime/xl6_dynamic_collection_vector.h>\n",out); break;
+        }
+    }
     size_t methodIndex;
     size_t siteIndex;
     int bindingRuntimeEmitted = 0;

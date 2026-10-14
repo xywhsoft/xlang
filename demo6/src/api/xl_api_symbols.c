@@ -28,6 +28,7 @@
 #include "src/runtime/xl6_stack_erased_methods.h"
 #include "src/runtime/xl6_stack_erased_try.h"
 #include "src/runtime/xl6_dynamic_product.h"
+#include "src/runtime/xl6_dynamic_collection_vector.h"
 #include "src/runtime/xl6_char_checked.h"
 #include "src/runtime/xl6_stack_callable.h"
 #include "src/runtime/xl6_stack_batch.h"

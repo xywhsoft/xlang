@@ -97,6 +97,9 @@ set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_stack_erased_try.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_dynamic_product.c -o "%XL6_BUILD_TMP%\xl6_dynamic_product.o"
 if errorlevel 1 exit /b %errorlevel%
 set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_dynamic_product.o""
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_dynamic_collection_vector.c -o "%XL6_BUILD_TMP%\xl6_dynamic_collection_vector.o"
+if errorlevel 1 exit /b %errorlevel%
+set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_dynamic_collection_vector.o""
 
 if not exist "lib\lzma\LzmaDec.c" (
     echo DEMO6 xl.dll build failed: missing LZMA decoder source "lib\lzma\LzmaDec.c".

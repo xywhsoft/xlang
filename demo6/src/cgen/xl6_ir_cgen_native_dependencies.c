@@ -726,6 +726,19 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
         if(xl6IrCgenInstructionIsReachable(module,i) && instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DYNAMIC_CALL &&
            instruction->dynamicCallResultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT &&
            (!xl6IrDynamicProductType(module,instruction->type) || !visitor(context,"xl6DynamicFunctionProductTakeV1")))return 0;
+        if(xl6IrCgenInstructionIsReachable(module,i) && instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DYNAMIC_METHOD_CALL &&
+           instruction->dynamicCallSite<module->dynamicCallSiteCount &&
+           module->dynamicCallSites[instruction->dynamicCallSite].kind==XL6_IR_DYNAMIC_CALL_METHOD &&
+           !visitor(context,instruction->dynamicCallResultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT?
+               "xl6DynamicDispatchProductTakeV1":"xl6DynamicDispatchFirstTakeV1"))return 0;
+        if(xl6IrCgenInstructionIsReachable(module,i) && instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_DYNAMIC_METHOD_CALL &&
+           instruction->dynamicCallSite<module->dynamicCallSiteCount) {
+            const XL6_IrDynamicCallSite* site=&module->dynamicCallSites[instruction->dynamicCallSite];
+            if((site->boundCollectionOp!=XL6_IR_DYNAMIC_COLLECTION_INVALID ||
+                (site->fallbackCollectionOp>=XL6_IR_DYNAMIC_COLLECTION_TRY_POP && site->fallbackCollectionOp<=XL6_IR_DYNAMIC_COLLECTION_TRY_PEEK_AT)) &&
+               (!visitor(context,"xl6DynamicCollectionVectorTakeV1") || !visitor(context,"xl6DynamicCollectionVectorArityV1") ||
+                !visitor(context,"xl6DynamicStackMethodProbeV1")))return 0;
+        }
         if(xl6IrCgenInstructionIsReachable(module,i) &&
             (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_POP || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK ||
              instruction->runtimeOp==XL6_IR_RUNTIME_STACK_PEEK_AT || instruction->runtimeOp==XL6_IR_RUNTIME_STACK_TRY_POP ||
