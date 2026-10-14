@@ -23,7 +23,10 @@ string child = env.get("XL6_PROCESS_CHILD") ?? ""
 assert child != ""
 // Do not call terminalSupported first: it must not accidentally provide
 // the missing native terminal root for the configuration/start path.
-auto command = process.cmd(child, ["terminal"])
+// The child waits for actual native size observation, not for a fixed delay.
+// Windows resize-control and input are independent channels; resize success
+// is not an acknowledgement from the child's next input/read operation.
+auto command = process.cmd(child, ["terminal", "96", "32"])
 command.terminal()
 command.terminalSize(80, 24)
 auto handle = command.start()

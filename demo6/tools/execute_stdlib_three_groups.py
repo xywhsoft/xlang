@@ -24,10 +24,22 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     for n in ('root','public-directory','out'):p.add_argument('--'+n,type=Path,required=True)
     p.add_argument('--jobs',type=int,default=2);p.add_argument('--mode',choices=('run','module','both'),default='run')
-    p.add_argument('--fixture',action='append');a=p.parse_args()
+    p.add_argument('--fixture',action='append')
+    p.add_argument('--hosted-report',type=Path,help='Complete exact-source six-fixture host evidence; never a status override.')
+    a=p.parse_args()
     root,public,out=a.root.resolve(),a.public_directory.resolve(),a.out.resolve();cc=shutil.which('gcc')
     assert cc and not out.exists() and 1<=a.jobs<=8
-    build,pinned,_=verify_public_build(root,public);driver=Path(build['Driver'])
+    build,pinned,compared=verify_public_build(root,public);driver=Path(build['Driver']);hosted=None
+    if a.hosted_report:
+        from check_stdlib_hosted_source import validate_hosted_source
+        path=a.hosted_report.resolve();hosted=json.loads(path.read_text(encoding='utf-8-sig'))
+        fixtures={name:sha(root/'test/cases'/(name+'.xl')) for name in HOSTED}
+        coverage,_=validate_hosted_source(hosted,fixtures,sha(driver))
+        assert hosted['SourceFingerprint']==compared,'Host provider source differs from the selected compiler tree'
+        assert len(hosted['NegativeControls'])==5
+        assert all(sha(row['Path'])==row['Sha256'] for row in hosted['Inputs']+hosted['Products'])
+        pinned.update(Path(row['Path']) for row in hosted['Inputs']+hosted['Products'])
+        pinned.update((path,root/'tools/check_stdlib_hosted_source.py'))
     sources=sorted(s for s in (root/'test/cases').glob('stdlib_*.xl') if PREFIX.match(s.name))
     all_count=len(sources)
     if a.fixture:
@@ -45,7 +57,9 @@ def main():
     child=out/('process-child'+ext);mutable=threading.Lock();rows=[]
     report=dict(Complete=False,InputsUnchanged=False,AllExecutablePassed=False,Scope=__doc__,Inputs=inputs,Cases=[],
         CandidateCount=all_count,SelectedCount=len(sources),ExplicitSubset=bool(a.fixture),Mode=a.mode,
-        Full53Acceptance=False,ShippingArtifact=False,FunctionCoverageAcceptance=False)
+        Full53Acceptance=False,ShippingArtifact=False,FunctionCoverageAcceptance=False,
+        HostedSourceAcceptance=hosted is not None,HostedEvidence=None if hosted is None else
+            dict(Path=str(a.hosted_report.resolve()),Sha256=sha(a.hosted_report),PhaseCount=hosted['PhaseCount'],MeasuredLifecycles=hosted['MeasuredLifecycles']))
     def command(directory,name,argv,timeout=90,environment=None):
         start=time.monotonic()
         try:
@@ -62,6 +76,9 @@ def main():
         directory=out/source.stem;directory.mkdir();text=source.read_text(encoding='utf-8-sig')
         record=dict(Name=source.stem,Source=str(source),SourceSha256=sha(source),Rows=[],Executed=False,Passed=False)
         if source.stem in HOSTED:
+            if hosted is not None:
+                record.update(Status='hosted-passed',Executed=True,Passed=True,HostedCoverage=coverage[source.stem],
+                    HostedReportSha256=sha(a.hosted_report));return record
             record.update(Status='requires-host',Reason=HOSTED[source.stem]);return record
         if source.stem=='stdlib_process_shell_quotes':
             record.update(Status='requires-product',Reason='explicit release/xl.exe check helper; requires separately verified CLI product');return record
@@ -100,7 +117,9 @@ def main():
         report['Complete']=report['InputsUnchanged'] and len(report['Cases'])==len(sources)
         report['AllExecutablePassed']=report['Complete'] and all(c['Passed'] for c in report['Cases'] if c['Status'] not in ('requires-host','requires-platform','requires-product'))
     finally:
-        report['PhaseCount']=sum(len(c['Rows']) for c in report['Cases'])+len(rows);save()
+        report['PhaseCount']=sum(len(c['Rows']) for c in report['Cases'])+len(rows)
+        report['ReferencedHostedPhaseCount']=0 if hosted is None else hosted['PhaseCount']
+        report['CombinedEvidencePhaseCount']=report['PhaseCount']+report['ReferencedHostedPhaseCount'];save()
     failures=[c['Name'] for c in report['Cases'] if c['Status']=='failed']
     report['Failures']=failures;report['UnexecutedRequirements']=[c['Name'] for c in report['Cases'] if c['Status'] in ('requires-host','requires-platform','requires-product')];save()
     print(json.dumps(dict(Complete=report['Complete'],AllExecutablePassed=report['AllExecutablePassed'],Failures=failures,Unexecuted=report['UnexecutedRequirements'])),flush=True)
