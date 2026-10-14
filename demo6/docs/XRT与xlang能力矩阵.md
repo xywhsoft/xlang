@@ -134,8 +134,8 @@
 
 | 公共头 | 语言能力 | 归属 | 后端状态 | API | 直接调用 | 见证 |
 | --- | --- | --- | --- | ---: | ---: | --- |
-| `extlibs/xruntime/include/xrt/runtime_call.h` | function values, call frames, and dynamic invocation | kernel | direct | 25 | 15 | `test/cases/cgen_function_named_value.xl` |
-| `extlibs/xruntime/include/xrt/runtime_convert.h` | checked runtime conversion for is/as and var | kernel | direct | 6 | 1 | `test/cases/cgen_runtime_is_as.xl` |
+| `extlibs/xruntime/include/xrt/runtime_call.h` | function values, call frames, and dynamic invocation | kernel | direct | 25 | 16 | `test/cases/cgen_function_named_value.xl` |
+| `extlibs/xruntime/include/xrt/runtime_convert.h` | checked runtime conversion for is/as and var | kernel | direct | 6 | 3 | `test/cases/cgen_runtime_is_as.xl` |
 | `extlibs/xruntime/include/xrt/runtime_field.h` | DynamicFields and class dynamic-field storage | language-type | direct | 44 | 27 | `test/cases/xruntime_dynamic_fields.xl` |
 | `extlibs/xruntime/include/xrt/runtime_object.h` | class instance identity, payload, and weak ownership | kernel | direct | 20 | 11 | `test/cases/weak_class_lifecycle.xl`, `test/cases/weak_async_lifecycle.xl`, `test/cases/async_class_receiver_lifetime.xl` |
 | `extlibs/xruntime/include/xrt/runtime_object_graph.h` | custom runtime object graph traversal | explicit-low-level | public-extern | 9 | 0 | `docs/xruntime语言桥接契约.md` |

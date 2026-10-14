@@ -147,5 +147,12 @@ if ( $LASTEXITCODE -ne 0 ) {
     exit $LASTEXITCODE
 }
 
+# Match the ordinary Linux build: generated capability evidence must agree
+# with the same repository-local runtime and language sources, not just APIs.
+& python (Join-Path $Root "tools\gen_xrt_xlang_matrix.py") --root $Root --check
+if ( $LASTEXITCODE -ne 0 ) {
+    exit $LASTEXITCODE
+}
+
 Write-Host "XRT/xruntime snapshots are current: xrt=$($coreMetadata.publicApiCount) APIs, xruntime=$($runtimeMetadata.publicApiCount) APIs ($($runtimeMetadata.ownedPublicApiCount) owned)"
 exit 0
