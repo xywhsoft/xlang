@@ -245,13 +245,15 @@ static int xl6IrCgenVerifyDeclarations(
         if ( function->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE &&
               (function->kind == XL6_IR_FUNCTION_USER ||
                function->kind == XL6_IR_FUNCTION_ASYNC_WORKER ||
-               function->kind == XL6_IR_FUNCTION_NAMED_ADAPTER) &&
+               function->kind == XL6_IR_FUNCTION_NAMED_ADAPTER ||
+               function->kind == XL6_IR_FUNCTION_ARGUMENT_DEFAULT) &&
              xl6IrCgenErrorResultType(module, function->returnType) == NULL )
             return xl6IrCgenDiag(diags, module, function->declaration,
                                  "XLIR C emitter does not support this function error-result ABI");
         if ( (function->kind == XL6_IR_FUNCTION_USER ||
               function->kind == XL6_IR_FUNCTION_ASYNC_WORKER ||
-              function->kind == XL6_IR_FUNCTION_NAMED_ADAPTER) &&
+              function->kind == XL6_IR_FUNCTION_NAMED_ADAPTER ||
+              function->kind == XL6_IR_FUNCTION_ARGUMENT_DEFAULT) &&
              function->returnType != XL6_IR_TYPE_INVALID && xl6IrCgenType(module, function->returnType) == NULL )
             return xl6IrCgenDiag(diags, module, function->declaration, "XLIR C emitter does not support this function return ABI");
         for ( parameterIndex = 0; parameterIndex < function->parameterCount; ++parameterIndex ) {

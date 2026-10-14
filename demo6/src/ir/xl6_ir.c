@@ -14,7 +14,8 @@ _Static_assert((int)XL6_IR_NOMINAL_IDENTITY_CLASS_RUNTIME_TAG==(int)XL6_NOMINAL_
 
 int xl6IrFunctionHasIndependentFailureBoundary(XL6_IrFunctionKind kind)
 {
-    return kind == XL6_IR_FUNCTION_NAMED_ADAPTER || kind == XL6_IR_FUNCTION_CLASS_DEFAULT;
+    return kind == XL6_IR_FUNCTION_NAMED_ADAPTER || kind == XL6_IR_FUNCTION_CLASS_DEFAULT ||
+        kind == XL6_IR_FUNCTION_ARGUMENT_DEFAULT;
 }
 
 static int xl6IrRuntimeCallableSignatureSupported(
@@ -13410,6 +13411,15 @@ XL6_IrDynamicMethodDefaultAbi xl6IrDynamicMethodLiteralDefaultAbi(
     }
 }
 
+XL6_IrDynamicMethodDefaultAbi xl6IrDynamicMethodParameterDefaultAbi(
+    const XL6_IrModule* module, XL6_IrTypeId type, XL6_IrNodeId expression)
+{
+    XL6_IrDynamicMethodDefaultAbi literal = xl6IrDynamicMethodLiteralDefaultAbi(module, type, expression);
+    if (literal != XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID) return literal;
+    return xl6IrNodeGet(module, expression) && xl6IrTypeGet(&module->types, type)
+        ? XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM : XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID;
+}
+
 int xl6IrDynamicMethodSourceSupported(const XL6_IrModule* module, const XL6_IrDynamicMethod* row)
 {
     const XL6_IrNode* method = module && row ? xl6IrNodeGet(module, row->declaration) : NULL;
@@ -13435,7 +13445,7 @@ int xl6IrDynamicMethodSourceSupported(const XL6_IrModule* module, const XL6_IrDy
              item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_INVALID ||
              !xl6IrDynamicMethodAdapterTypeSupported(module, item->type, 0) ||
              item->variadicAbi == XL6_IR_CALL_VARIADIC_C ||
-             (item->defaultExpression && xl6IrDynamicMethodLiteralDefaultAbi(module,
+             (item->defaultExpression && xl6IrDynamicMethodParameterDefaultAbi(module,
                  item->type, item->defaultExpression) == XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID) ) return 0;
     }
     return 1;
@@ -15354,7 +15364,6 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
      * DynamicCallSite with an explicit collection fallback; emitting only the
      * collection intrinsic would erase the class method before lowering. */
     if ( intrinsic.kind == XL6_IR_INTRINSIC_DYNAMIC_COLLECTION_MEMBER &&
-         intrinsic.admission == XL6_IR_INTRINSIC_ADMISSION_VERIFIED &&
          callee != NULL && callee->kind == XL6_IR_NODE_MEMBER &&
          xl6IrBuildHasDynamicMethodName(module, callee->text) ) {
         xrtFree(operands);
@@ -25903,6 +25912,35 @@ static int xl6IrVerifyNominalIdentitySets(const XL6_IrModule* module)
     return expectedSetCount == module->nominalIdentitySetCount;
 }
 
+static int xl6IrVerifyDynamicDefaultPrograms(const XL6_IrModule* module, XL6_DiagList* diags)
+{
+    for (size_t f = 0; f < module->functionCount; ++f) {
+        const XL6_IrFunction* function = &module->functions[f];
+        size_t references = 0, boundaries = 0, returns = 0;
+        if (function->kind != XL6_IR_FUNCTION_ARGUMENT_DEFAULT) continue;
+        if (module->stage != XL6_IR_STAGE_LOWERED || !function->symbol ||
+            xl6IrCallTargetGet(module, function->symbol) ||
+            function->firstInstruction > module->instructionCount ||
+            function->instructionCount > module->instructionCount - function->firstInstruction)
+            goto invalid;
+        for (size_t p = 0; p < module->dynamicMethodParameterCount; ++p)
+            references += module->dynamicMethodParameters[p].defaultFunction == f + 1;
+        for (size_t p = 0; p < module->exitPlanCount; ++p)
+            boundaries += module->exitPlans[p].origin == function->declaration &&
+                module->exitPlans[p].point == XL6_IR_EXIT_POINT_FUNCTION_FAILURE;
+        for (size_t i = function->firstInstruction; i < function->firstInstruction + function->instructionCount; ++i) {
+            const XL6_IrInstruction* instruction = &module->instructions[i];
+            if (instruction->kind != XL6_IR_INSTR_RETURN) continue;
+            if (instruction->origin != function->declaration) goto invalid;
+            ++returns;
+        }
+        if (references != 1 || boundaries != 1 || !returns) goto invalid;
+    }
+    return 1;
+invalid:
+    return xl6IrDiag(diags, NULL, "XLIR argument default has no unique program and failure boundary");
+}
+
 static int xl6IrVerifyDynamicMethodRegistry(
     const XL6_IrModule* module, XL6_DiagList* diags)
 {
@@ -26056,7 +26094,7 @@ static int xl6IrVerifyDynamicMethodRegistry(
             XL6_IrDynamicMethodDefaultAbi expected =
                 item->defaultExpression == XL6_IR_NODE_INVALID
                     ? XL6_IR_DYNAMIC_METHOD_DEFAULT_NONE
-                    : xl6IrDynamicMethodLiteralDefaultAbi(
+                    : xl6IrDynamicMethodParameterDefaultAbi(
                           module, item->type, item->defaultExpression);
             const XL6_IrType* itemType =
                 xl6IrTypeGet(&module->types, item->type);
@@ -26065,11 +26103,31 @@ static int xl6IrVerifyDynamicMethodRegistry(
                      XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED ) {
                 if ( item->defaultAbi !=
                          XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID ||
-                     item->defaultLiteral != NULL ) return 0;
+                     item->defaultLiteral != NULL || item->defaultFunction != 0 ) return 0;
                 continue;
             }
             if ( item->defaultAbi != expected || itemType == NULL )
                 return xl6IrDiag(diags,declaration,"Dynamic method default ABI differs from its declared type and literal");
+            if (expected == XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM) {
+                const XL6_IrFunction* program;
+                const XL6_IrCallTarget* target = xl6IrCallTargetGet(module, method->targetSymbol);
+                if (item->defaultLiteral || !item->defaultFunction || item->defaultFunction > module->functionCount || !target)
+                    return xl6IrDiag(diags, declaration, "XLIR dynamic default program identity is malformed");
+                program = &module->functions[item->defaultFunction - 1];
+                if (program->kind != XL6_IR_FUNCTION_ARGUMENT_DEFAULT || !program->symbol ||
+                    program->declaration != item->declaration || program->returnType != item->type ||
+                    program->parameterCount != parameter + 1 || program->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
+                    program->firstParameter > module->functionParameterCount ||
+                    program->parameterCount > module->functionParameterCount - program->firstParameter)
+                    return xl6IrDiag(diags, declaration, "XLIR dynamic default program signature is malformed");
+                for (size_t prefix = 0; prefix < program->parameterCount; ++prefix) {
+                    const XL6_IrStorage* storage = xl6IrStorageGet(module,
+                        module->functionParameters[program->firstParameter + prefix]);
+                    if (!storage || storage->kind != XL6_IR_STORAGE_PARAMETER ||
+                        storage->owner != item->declaration || storage->type != target->parameterTypes[prefix])
+                        return xl6IrDiag(diags, declaration, "XLIR dynamic default prefix storage is malformed");
+                }
+            } else if (item->defaultFunction) return 0;
             if ( expected == XL6_IR_DYNAMIC_METHOD_DEFAULT_I64 || expected == XL6_IR_DYNAMIC_METHOD_DEFAULT_U64 ) {
                 char* canonical = xl6IrCanonicalIntegerDefault(module, item->defaultExpression, item->type);
                 int exact = canonical != NULL && item->defaultLiteral != NULL && strcmp(canonical, item->defaultLiteral) == 0;
@@ -26078,6 +26136,8 @@ static int xl6IrVerifyDynamicMethodRegistry(
                     "XLIR dynamic integer default differs from its declared closed literal");
             }
             switch ( expected ) {
+            case XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM:
+                break;
             case XL6_IR_DYNAMIC_METHOD_DEFAULT_NONE:
             case XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL:
                 if ( item->defaultLiteral != NULL ) return 0;
@@ -26400,10 +26460,19 @@ static int xl6IrBuildReachabilityFacts(
                             &module->dynamicMethods[method];
                         if ( candidate->adapterAbi ==
                                  XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED &&
-                             xl6IrDynamicMethodMatchesCallSite(site, candidate) )
+                             xl6IrDynamicMethodMatchesCallSite(site, candidate) ) {
                             changed |= xl6IrReachabilityMarkSymbol(
                                 module, facts, candidate->targetSymbol,
                                 XL6_IR_REACHABILITY_TRANSITIVE);
+                            for (size_t parameter = 0; parameter < candidate->parameterCount; ++parameter) {
+                                const XL6_IrDynamicMethodParameter* item =
+                                    &module->dynamicMethodParameters[candidate->firstParameter + parameter];
+                                if (!item->defaultFunction) continue;
+                                if (item->defaultFunction > module->functionCount) goto failed;
+                                changed |= xl6IrReachabilityPromote(&facts->functions[item->defaultFunction - 1],
+                                    XL6_IR_REACHABILITY_TRANSITIVE);
+                            }
+                        }
                     }
                 } else if ( instruction->kind == XL6_IR_INSTR_VIRTUAL_CALL ) {
                     size_t implementation;
@@ -34259,7 +34328,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         return xl6IrDiag(diags, NULL,
             "XLIR nominal identity-set arena is malformed");
     }
-    if ( !xl6IrVerifyDynamicMethodRegistry(module, diags) ) return 0;
+    if ( !xl6IrVerifyDynamicMethodRegistry(module, diags) ||
+         !xl6IrVerifyDynamicDefaultPrograms(module, diags) ) return 0;
     if ( module->storageCount > module->storageCapacity ||
          (module->storageCount != 0 && module->storages == NULL) ) {
         return xl6IrDiag(diags, NULL, "XLIR storage arena is malformed");
@@ -38245,6 +38315,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         int namedAdapterOwner = 0;
         int classFinalizerParameter = 0;
         int classDefaultTemporary = 0;
+        int argumentDefaultOwner = 0;
         size_t j;
         if ( storage->kind < XL6_IR_STORAGE_GLOBAL || storage->kind > XL6_IR_STORAGE_TEMPORARY ||
              storage->symbol == 0 || xl6IrTypeGet(&module->types, storage->type) == NULL ||
@@ -38258,6 +38329,17 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         if (storage->moduleTraceAbi != xl6IrModuleStorageTraceFor(module, storage))
             return xl6IrDiag(diags, NULL, "XLIR module storage ownership trace ABI is unresolved");
         owner = xl6IrNodeGet(module, storage->owner);
+        if (module->stage == XL6_IR_STAGE_LOWERED && owner->kind == XL6_IR_NODE_PARAM_DECL) {
+            size_t owners = 0;
+            for (j = 0; j < module->dynamicMethodParameterCount; ++j) {
+                const XL6_IrDynamicMethodParameter* parameter = &module->dynamicMethodParameters[j];
+                if (parameter->declaration == storage->owner &&
+                    parameter->defaultAbi == XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM && parameter->defaultFunction &&
+                    parameter->defaultFunction <= module->functionCount &&
+                    module->functions[parameter->defaultFunction - 1].kind == XL6_IR_FUNCTION_ARGUMENT_DEFAULT) ++owners;
+            }
+            argumentDefaultOwner = owners == 1;
+        }
         if (module->stage == XL6_IR_STAGE_LOWERED && storage->kind == XL6_IR_STORAGE_TEMPORARY &&
             owner->kind == XL6_IR_NODE_TYPE_DECL && owner->sourceKind == XL6_AST_CLASS) {
             size_t owners = 0;
@@ -38295,7 +38377,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         if ( (storage->kind == XL6_IR_STORAGE_GLOBAL && storage->owner != module->root) ||
              (storage->kind != XL6_IR_STORAGE_GLOBAL &&
                owner->kind != XL6_IR_NODE_FUNC_DECL && storage->owner != module->root &&
-               !namedAdapterOwner && !classFinalizerParameter && !classDefaultTemporary) ) {
+               !namedAdapterOwner && !classFinalizerParameter && !classDefaultTemporary && !argumentDefaultOwner) ) {
             return xl6IrDiag(diags, NULL, "XLIR storage owner does not match its scope ABI");
         }
         for ( j = 0; j < i; ++j ) {
@@ -45448,6 +45530,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                   function->kind != XL6_IR_FUNCTION_MODULE_FINI &&
                   function->kind != XL6_IR_FUNCTION_CLASS_FINI &&
                   function->kind != XL6_IR_FUNCTION_CLASS_DEFAULT &&
+                  function->kind != XL6_IR_FUNCTION_ARGUMENT_DEFAULT &&
                   function->kind != XL6_IR_FUNCTION_USER &&
                   function->kind != XL6_IR_FUNCTION_ASYNC_WORKER &&
                   function->kind != XL6_IR_FUNCTION_NAMED_ADAPTER &&
@@ -46139,6 +46222,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                        function->kind == XL6_IR_FUNCTION_ASYNC_WORKER ||
                        function->kind == XL6_IR_FUNCTION_NAMED_ADAPTER ||
                        function->kind == XL6_IR_FUNCTION_CLASS_DEFAULT ||
+                       function->kind == XL6_IR_FUNCTION_ARGUMENT_DEFAULT ||
                        function->kind == XL6_IR_FUNCTION_GENERATOR_WORKER) ) {
                     if ( function->returnType == XL6_IR_TYPE_INVALID && instruction->operandCount != 0 )
                         return xl6IrDiag(diags, NULL, "XLIR void return has a value ABI");
@@ -46166,7 +46250,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             if ( (function->kind == XL6_IR_FUNCTION_USER ||
                   function->kind == XL6_IR_FUNCTION_ASYNC_WORKER ||
                   function->kind == XL6_IR_FUNCTION_NAMED_ADAPTER ||
-                  function->kind == XL6_IR_FUNCTION_CLASS_DEFAULT) &&
+                  function->kind == XL6_IR_FUNCTION_CLASS_DEFAULT ||
+                  function->kind == XL6_IR_FUNCTION_ARGUMENT_DEFAULT) &&
                  function->returnType != XL6_IR_TYPE_INVALID ) {
                 size_t blockIndex, entryLocal;
                 int changed;
@@ -46344,6 +46429,7 @@ static const char* xl6IrFunctionKindName(XL6_IrFunctionKind kind)
         case XL6_IR_FUNCTION_MODULE_FINI: return "module-fini";
         case XL6_IR_FUNCTION_CLASS_FINI: return "class-fini";
         case XL6_IR_FUNCTION_CLASS_DEFAULT: return "class-default";
+        case XL6_IR_FUNCTION_ARGUMENT_DEFAULT: return "argument-default";
         default: return "invalid";
     }
 }
@@ -46485,6 +46571,7 @@ static const char* xl6IrDynamicMethodDefaultAbiName(
     case XL6_IR_DYNAMIC_METHOD_DEFAULT_TIME: return "time";
     case XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING: return "string";
     case XL6_IR_DYNAMIC_METHOD_DEFAULT_BYTES: return "bytes";
+    case XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM: return "program";
     case XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL: return "xvalue-null";
     case XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR: return "char";
     default: return "invalid";
@@ -49139,7 +49226,7 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
         const XL6_IrDynamicMethodParameter* parameter =
             &module->dynamicMethodParameters[i];
         xl6OutputPrintf(out,
-            "  dynamic-method-parameter dmp%lu declaration=n%u name=%s type=t%u abi=%s match=%s default=n%u/%s literal=%s variadic=%s\n",
+            "  dynamic-method-parameter dmp%lu declaration=n%u name=%s type=t%u abi=%s match=%s default=n%u/%s program=f%u literal=%s variadic=%s\n",
             (unsigned long)i, (unsigned int)parameter->declaration,
             parameter->name != NULL ? parameter->name : "",
             (unsigned int)parameter->type,
@@ -49147,6 +49234,7 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
             xl6IrDynamicMethodMatchAbiName(parameter->matchAbi),
             (unsigned int)parameter->defaultExpression,
             xl6IrDynamicMethodDefaultAbiName(parameter->defaultAbi),
+            (unsigned)parameter->defaultFunction,
             parameter->defaultLiteral != NULL
                 ? parameter->defaultLiteral : "",
             xl6IrCallVariadicAbiName(parameter->variadicAbi));
@@ -50646,7 +50734,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         const XL6_IrDynamicMethodParameter* parameter =
             &module->dynamicMethodParameters[i];
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"declaration\":%u,\"name\":\"%s\",\"type\":%u,\"abi\":%d,\"abiName\":\"%s\",\"matchAbi\":%d,\"matchAbiName\":\"%s\",\"defaultExpression\":%u,\"defaultAbi\":%d,\"defaultAbiName\":\"%s\",\"variadicAbi\":%d,\"variadicAbiName\":\"%s\"}%s\n",
+            "    {\"id\":%lu,\"declaration\":%u,\"name\":\"%s\",\"type\":%u,\"abi\":%d,\"abiName\":\"%s\",\"matchAbi\":%d,\"matchAbiName\":\"%s\",\"defaultExpression\":%u,\"defaultAbi\":%d,\"defaultAbiName\":\"%s\",\"defaultFunction\":%u,\"variadicAbi\":%d,\"variadicAbiName\":\"%s\"}%s\n",
             (unsigned long)i, (unsigned int)parameter->declaration,
             parameter->name != NULL ? parameter->name : "",
             (unsigned int)parameter->type, (int)parameter->abi,
@@ -50656,6 +50744,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
             (unsigned int)parameter->defaultExpression,
             (int)parameter->defaultAbi,
             xl6IrDynamicMethodDefaultAbiName(parameter->defaultAbi),
+            (unsigned)parameter->defaultFunction,
             (int)parameter->variadicAbi,
             xl6IrCallVariadicAbiName(parameter->variadicAbi),
             i + 1 == module->dynamicMethodParameterCount ? "" : ",");

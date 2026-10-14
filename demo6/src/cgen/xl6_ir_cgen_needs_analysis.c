@@ -1266,6 +1266,7 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
               function->kind != XL6_IR_FUNCTION_NAMED_ADAPTER &&
               function->kind != XL6_IR_FUNCTION_MODULE_FINI &&
               function->kind != XL6_IR_FUNCTION_CLASS_FINI &&
+              function->kind != XL6_IR_FUNCTION_ARGUMENT_DEFAULT &&
               function->kind != XL6_IR_FUNCTION_CLASS_DEFAULT) ||
              function->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ) continue;
         if ( !xl6IrCgenRequireErrorResult(module, needs, function->returnType,

@@ -449,6 +449,19 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
                 ? "xrtValueGetFloat"
             : type->cAbi == XL6_IR_C_ABI_TIME_I64
                 ? "xrtValueGetTime" : NULL;
+        if (item->defaultAbi == XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM) {
+            const XL6_IrFunction* program = &module->functions[item->defaultFunction - 1];
+            const char* carrier = xl6IrCgenErrorResultType(module, item->type);
+            if (!carrier) return xl6IrCgenDiag(diags, module, method->declaration,
+                "XLIR dynamic default program has no checked result carrier");
+            xl6OutputPrintf(out, "    if (!has%lu) { %s defaultResult = xlir_fn_%u(receiver",
+                (unsigned long)parameter, carrier, (unsigned)program->symbol);
+            for (size_t prefix = 0; prefix < parameter; ++prefix)
+                xl6OutputPrintf(out, ", a%lu", (unsigned long)prefix);
+            xl6OutputPrintf(out,
+                "); if (!defaultResult.ok) { xl6ErrorScopePropagateFailure((xl6_error_result){false, xrtTakeError()}); goto fail; } a%lu = defaultResult.value; } else {\n",
+                (unsigned long)parameter);
+        }
         if ( item->defaultAbi == XL6_IR_DYNAMIC_METHOD_DEFAULT_NONE ) {
             xl6OutputPrintf(out, "    if (!has%lu) { ",
                             (unsigned long)parameter);
@@ -474,7 +487,8 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
             xl6IrCgenEmitDynamicMethodError(
                 out, "dynamic method argument has the wrong scalar type");
             xl6OutputPuts(" } }", out);
-            if ( item->defaultAbi != XL6_IR_DYNAMIC_METHOD_DEFAULT_NONE )
+            if ( item->defaultAbi != XL6_IR_DYNAMIC_METHOD_DEFAULT_NONE &&
+                 item->defaultAbi != XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM )
                 xl6OutputPrintf(out, " else a%lu = %s;",
                     (unsigned long)parameter, item->defaultLiteral);
             xl6OutputPuts("\n", out);
@@ -487,7 +501,8 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
             xl6IrCgenEmitDynamicMethodError(
                 out, "dynamic method argument has the wrong string type");
             xl6OutputPuts(" } }", out);
-            if ( item->defaultAbi != XL6_IR_DYNAMIC_METHOD_DEFAULT_NONE )
+            if ( item->defaultAbi != XL6_IR_DYNAMIC_METHOD_DEFAULT_NONE &&
+                 item->defaultAbi != XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM )
                 xl6OutputPrintf(out,
                     " else if ((a%lu = xlir_string_from_utf8(%s, sizeof(%s) - 1u)).Data == NULL) goto fail;",
                     (unsigned long)parameter, item->defaultLiteral, item->defaultLiteral);
@@ -515,6 +530,7 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
             return xl6IrCgenDiag(diags, module, method->declaration,
                 "XLIR C emitter dynamic method projection ABI is unresolved");
         }
+        if (item->defaultAbi == XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM) xl6OutputPuts("    }\n", out);
     }
     if ( method->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ) {
         parameter = method->fixedParameterCount;
@@ -1059,6 +1075,13 @@ static int xl6IrCgenEmitDynamicMethodRuntime(
         const XL6_IrCallTarget* target;
         if ( !xl6IrCgenDynamicMethodNeeded(module, methodIndex) ) continue;
         target = xl6IrCallTargetGet(module, module->dynamicMethods[methodIndex].targetSymbol);
+        const XL6_IrDynamicMethod* method = &module->dynamicMethods[methodIndex];
+        for (size_t p = 0; p < method->parameterCount; ++p) {
+            const XL6_IrDynamicMethodParameter* item = &module->dynamicMethodParameters[method->firstParameter + p];
+            if (!item->defaultFunction) continue;
+            if (!xl6IrCgenEmitPrototype(out, module, &module->functions[item->defaultFunction - 1], diags)) return 0;
+            xl6OutputPuts(";\n", out);
+        }
         if ( target->kind == XL6_IR_CALL_TARGET_EXTERN_C ) {
             if ( !xl6IrCgenEmitExternPrototype(out, module, target, diags) ) return 0;
             continue;

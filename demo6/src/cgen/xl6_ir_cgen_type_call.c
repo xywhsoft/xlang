@@ -383,6 +383,16 @@ static XL6_IrParameterAbi xl6IrCgenStorageParameterAbi(
         const XL6_IrType* closureSignature = NULL;
         size_t parameter;
         if ( function->declaration != storage->owner ) continue;
+        if (function->kind == XL6_IR_FUNCTION_ARGUMENT_DEFAULT) {
+            for (parameter = 0; parameter < function->parameterCount; ++parameter)
+                if (module->functionParameters[function->firstParameter + parameter] == storage->symbol) {
+                    const XL6_IrType* type = xl6IrTypeGet(&module->types, storage->type);
+                    if (outParameter) *outParameter = parameter;
+                    return type && type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL
+                        ? XL6_IR_PARAMETER_ABI_VALUE : XL6_IR_PARAMETER_ABI_BORROW;
+                }
+            continue;
+        }
         if (function->kind == XL6_IR_FUNCTION_CLASS_FINI) {
             if (function->parameterCount != 1 ||
                 module->functionParameters[function->firstParameter] != storage->symbol) continue;

@@ -14600,7 +14600,7 @@ static int xl6IrLowerLinkDynamicMethods(XL6_IrLowerContext* ctx)
                     xl6IrNodeGet(module, item->defaultExpression);
                 const XL6_IrType* type =
                     xl6IrTypeGet(&module->types, item->type);
-                item->defaultAbi = xl6IrLowerDynamicMethodDefaultAbi(
+                item->defaultAbi = xl6IrDynamicMethodParameterDefaultAbi(
                     module, item->type, item->defaultExpression);
                 if ( expression == NULL || type == NULL ||
                      item->defaultAbi ==
@@ -14608,6 +14608,8 @@ static int xl6IrLowerLinkDynamicMethods(XL6_IrLowerContext* ctx)
                     return xl6IrLowerDiag(ctx, method->declaration,
                         "XLIR dynamic method default has no closed literal ABI");
                 switch ( item->defaultAbi ) {
+                case XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM:
+                    break;
                 case XL6_IR_DYNAMIC_METHOD_DEFAULT_BOOL:
                     item->defaultLiteral = xrtStrDupN(
                         expression->text, strlen(expression->text));
@@ -14646,6 +14648,7 @@ static int xl6IrLowerLinkDynamicMethods(XL6_IrLowerContext* ctx)
                 }
                 if ( item->defaultAbi !=
                          XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL &&
+                     item->defaultAbi != XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM &&
                      item->defaultLiteral == NULL )
                     return xl6IrLowerDiag(ctx, method->declaration,
                         "XLIR dynamic method default cannot be canonicalized");
@@ -32176,6 +32179,68 @@ static int xl6IrLowerBeginNamedAdapterFunction(
     return xl6IrLowerAddFunctionFailurePlan(ctx, closure->declaration);
 }
 
+/* Evaluate one missing argument with the already-bound prefix borrowed.
+ * The program's independent invocation boundary owns only its temporaries and
+ * returned value; earlier argument owners remain in the caller adapter. */
+static int xl6IrLowerDynamicDefaultPrograms(XL6_IrLowerContext* ctx)
+{
+    XL6_IrModule* module = ctx->module;
+    for (size_t m = 0; m < module->dynamicMethodCount; ++m) {
+        XL6_IrDynamicMethod method = module->dynamicMethods[m];
+        if (method.adapterAbi != XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED) continue;
+        const XL6_IrCallTarget* target = xl6IrCallTargetGet(module, method.targetSymbol);
+        if (!target || target->parameterCount != method.parameterCount + 1) return 0;
+        for (size_t p = 0; p < method.parameterCount; ++p) {
+            size_t parameterIndex = method.firstParameter + p;
+            XL6_IrDynamicMethodParameter item = module->dynamicMethodParameters[parameterIndex];
+            XL6_IrValueId result;
+            XL6_SymbolId pending;
+            size_t first = ctx->evaluationOwnerCount;
+            if (item.defaultAbi != XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM) continue;
+            if (module->functionCount >= UINT32_MAX ||
+                !xl6IrLowerBeginFunction(ctx, item.declaration, XL6_IR_FUNCTION_ARGUMENT_DEFAULT)) return 0;
+            uint32 functionId = (uint32)module->functionCount;
+            XL6_IrFunction* function = &module->functions[ctx->functionIndex];
+            function->symbol = xl6IrLowerNewSyntheticSymbol(ctx);
+            function->debugName = "<argument-default>";
+            function->returnType = item.type;
+            function->errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
+            module->dynamicMethodParameters[parameterIndex].defaultFunction = functionId;
+            if (!function->symbol || !xl6IrLowerAddFunctionFailurePlan(ctx, item.declaration)) return 0;
+            for (size_t prefix = 0; prefix <= p; ++prefix) {
+                XL6_IrNodeId sourceId = prefix == 0
+                    ? xl6IrLowerFindClassReceiverInSubtree(module, method.declaration)
+                    : module->dynamicMethodParameters[method.firstParameter + prefix - 1].declaration;
+                const XL6_IrNode* source = xl6IrNodeGet(module, sourceId);
+                XL6_SymbolId sourceSymbol = source ? (prefix ? source->symbol : source->targetSymbol) : 0;
+                XL6_SymbolId symbol = xl6IrLowerNewSyntheticSymbol(ctx);
+                XL6_IrTypeId type = target->parameterTypes[prefix];
+                if (!symbol || !xl6IrLowerGrow((void**)&module->functionParameters,
+                        &module->functionParameterCapacity, module->functionParameterCount, sizeof(*module->functionParameters)) ||
+                    !xl6IrLowerRegisterStorage(ctx, XL6_IR_STORAGE_PARAMETER, symbol, type,
+                        source ? sourceId : item.declaration, item.declaration) ||
+                    (sourceSymbol && !xl6IrLowerAddPromotedParameter(ctx, sourceSymbol, symbol))) return 0;
+                module->functionParameters[module->functionParameterCount++] = symbol;
+                module->functions[ctx->functionIndex].parameterCount++;
+            }
+            result = xl6IrLowerNodeAsType(ctx, item.defaultExpression, item.defaultExpression,
+                xl6IrNodeGet(module, item.defaultExpression), item.type);
+            if (result != XL6_IR_VALUE_INVALID)
+                result = xl6IrLowerOwnedStorageValue(ctx, item.defaultExpression, item.type,
+                    xl6IrNodeGet(module, item.defaultExpression), result);
+            pending = result != XL6_IR_VALUE_INVALID
+                ? xl6IrLowerPrepareReturnValue(ctx, item.declaration, item.type, result) : 0;
+            if (result == XL6_IR_VALUE_INVALID || ctx->failed ||
+                !xl6IrLowerEmitTerminal(ctx, XL6_IR_INSTR_RETURN, item.declaration, &result, 1, pending)) return 0;
+            ctx->evaluationOwnerCount = first;
+            xl6IrLowerEndFunction(ctx);
+            target = xl6IrCallTargetGet(module, method.targetSymbol);
+            if (!target) return 0;
+        }
+    }
+    return !ctx->failed;
+}
+
 static int xl6IrLowerNamedAdapterBody(
     XL6_IrLowerContext* ctx, const XL6_IrClosureTarget* closure)
 {
@@ -32801,6 +32866,9 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
             xl6IrLowerEndFunction(&ctx);
         }
     }
+    /* Default programs can register named adapters or nested closures.
+     * Materialize them before draining the growing closure work queue. */
+    if (!ctx.failed && !xl6IrLowerDynamicDefaultPrograms(&ctx)) ctx.failed = 1;
     /* Closure bodies are lowered independently from the activation that
      * constructs them.  Their empty capture slice is already recorded in the
      * closure arena; capture-bearing bodies will receive frame storage rather
