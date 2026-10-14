@@ -728,12 +728,22 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
               instruction->castAbi==XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED)) &&
             !visitor(context,"xl6CharValueCheckedV1")) return 0;
         if (xl6IrCgenInstructionIsReachable(module,i) &&
+            instruction->runtimeOp == XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED &&
+            instruction->integerTarget != XL6_IR_INTEGER_TARGET_UNICODE_SCALAR &&
+            (instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_MANAGED_STRING ||
+             instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_XVALUE) &&
+            !visitor(context, instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_MANAGED_STRING
+                ? "xl6IntegerTextConvertV1" : "xl6IntegerValueConvertV1")) return 0;
+        if (xl6IrCgenInstructionIsReachable(module,i) &&
+            instruction->runtimeOp == XL6_IR_RUNTIME_STRING_TO_F64_CHECKED &&
+            !visitor(context, "xl6Float64TextConvertV1")) return 0;
+        if (xl6IrCgenInstructionIsReachable(module,i) &&
             (instruction->runtimeOp==XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT ||
              instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT ||
              instruction->runtimeOp==XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT) &&
             !visitor(context,instruction->runtimeOp==XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT
                 ? "xl6Float32TextConvertV1" : (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT
-                    ? "xl6Float32ValueConvertV1" : "xl6Float32ConvertV1"))) return 0;
+                    ? "xl6Float32ValueConvertV2" : "xl6Float32ConvertV1"))) return 0;
         if (xl6IrCgenInstructionIsReachable(module,i) && instruction->runtimeOp==XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED &&
             (!xl6IrNativeContainerProjectionInstructionCompatible(module,instruction) ||
              !xl6IrCgenContainerProjectionSymbol(module,instruction) ||

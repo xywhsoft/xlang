@@ -5088,9 +5088,8 @@ foreach ( $required in @(
     "XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED",
     "XL6_IR_RUNTIME_INTEGER_CONVERT_WRAPPING",
     "xl6IrCgenRuntimeIntegerConvertAbi",
-    "xlir_string_to_i64_checked", "xlir_string_to_u64_checked",
-    "xlir_f64_to_i64_checked", "xlir_xvalue_to_i64_checked",
-    "xlir_f64_to_u64_checked", "xlir_xvalue_to_u64_checked",
+    "xl6IntegerTextConvertV1", "xl6IntegerValueConvertV1",
+    "xlir_f64_to_i64_checked", "xlir_f64_to_u64_checked",
     "xlir_integer_wrap_to_i64", "xrtGetError() == NULL"
 ) ) {
     if ( ! $cEmitter.Contains($required) ) { throw "XLIR integer conversion C ABI contract is incomplete: $required" }

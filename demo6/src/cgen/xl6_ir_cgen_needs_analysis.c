@@ -1037,8 +1037,10 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
             needs->needsErrorRuntime = 1;
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              module->instructions[i].runtimeOp ==
-                 XL6_IR_RUNTIME_STRING_TO_F64_CHECKED )
+                 XL6_IR_RUNTIME_STRING_TO_F64_CHECKED ) {
             needs->needsStringF64ConvertRuntime = 1;
+            needs->needsStringViews = 1;
+        }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              module->instructions[i].runtimeOp ==
                  XL6_IR_RUNTIME_STRING_TO_TIME_CHECKED ) {
@@ -1062,10 +1064,12 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                     needs->needsCharValueCheckedRuntime=1;
                 else needs->needsCheckedCharRuntime = 1;
             }
-            else if ( module->instructions[i].integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64 )
-                needs->needsCheckedU64Runtime = 1;
-            else
-                needs->needsCheckedI64Runtime = 1;
+            else if (module->instructions[i].integerSourceAbi != XL6_IR_INTEGER_SOURCE_MANAGED_STRING &&
+                     module->instructions[i].integerSourceAbi != XL6_IR_INTEGER_SOURCE_XVALUE) {
+                if (module->instructions[i].integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64)
+                    needs->needsCheckedU64Runtime = 1;
+                else needs->needsCheckedI64Runtime = 1;
+            }
         }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              module->instructions[i].runtimeOp == XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED ) {
@@ -1077,15 +1081,13 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                 needs->needsXValueIntegerConvertRuntime = 1;
                 needs->needsXValueRuntime = 1;
                 needs->needsStringViews = 1;
-                /* The shared dynamic decoder emits exact signed and unsigned
-                 * projections; keep both range helper families available. */
-                needs->needsCheckedI64Runtime = 1;
             } else if ( conversion->integerSourceAbi ==
                         XL6_IR_INTEGER_SOURCE_MANAGED_STRING ) {
                 if ( conversion->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_64 )
                     needs->needsStringU64ConvertRuntime = 1;
                 else
                     needs->needsStringI64ConvertRuntime = 1;
+                needs->needsStringViews = 1;
             }
         }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&

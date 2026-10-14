@@ -29,12 +29,13 @@ static bool begin(xl6_error_scope* scope)
     return false;
 }
 
-bool xl6Float32ValueConvertV1(const xvalue* source, float* output)
+bool xl6Float32ValueConvertV2(const xvalue* source, uint64_t reflectionIdentity, float* output)
 {
     xl6_error_scope scope = {0}; float value = 0; bool ok = false;
     if (!begin(&scope)) return false;
-    if (!output) xrtSetErrorKind(XERR_ARGUMENT);
+    if (!output || !reflectionIdentity) xrtSetErrorKind(XERR_ARGUMENT);
     else if (!source) xrtSetErrorKind(XERR_TYPE);
+    else if (xrtValueTypeId(source) == reflectionIdentity) xrtSetErrorKind(XERR_TYPE);
     else if (xrtValueType(source) == XVALUE_STRING) {
         xstrview text = {0};
         ok = xrtValueGetString(source, &text);
@@ -70,7 +71,7 @@ bool xl6Float32TextConvertV1(xstrview text, float* output)
     if (!output || (!text.Data && text.Size)) xrtSetErrorKind(XERR_ARGUMENT);
     else {
         if (!text.Data) text.Data = "";
-        ok = xrtNumParse(text, 0, &parsed);
+        ok = xrtNumParse(text, XNUMBER_PARSE_SPACE | XNUMBER_PARSE_SPECIAL, &parsed);
         if (!ok) { xl6NumberParseError(); xl6ErrorScopeCaptureFailure(&scope); }
         else ok = narrow(parsed, &value);
     }
@@ -84,4 +85,21 @@ bool xl6Float32ConvertV1(double source, float* output)
     if (!output) xrtSetErrorKind(XERR_ARGUMENT);
     else ok = narrow(source, &value);
     return finish(&scope, ok, value, output);
+}
+
+bool xl6Float64TextConvertV1(xstrview text, double* output)
+{
+    xl6_error_scope scope = {0}; double value = 0; bool ok = false;
+    if (!begin(&scope)) return false;
+    if (!output || (!text.Data && text.Size)) xrtSetErrorKind(XERR_ARGUMENT);
+    else {
+        if (!text.Data) text.Data = "";
+        ok = xrtNumParse(text, XNUMBER_PARSE_SPACE | XNUMBER_PARSE_SPECIAL, &value);
+        if (!ok) xl6NumberParseError();
+    }
+    if (!ok || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
+    xl6_error_result result = xl6ErrorScopeEnd(&scope);
+    if (!result.ok) { xl6ErrorScopePropagateFailure(result); return false; }
+    *output = value;
+    return true;
 }

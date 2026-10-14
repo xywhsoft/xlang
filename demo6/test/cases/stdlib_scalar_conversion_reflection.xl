@@ -1,0 +1,37 @@
+func echo(var input) as var
+    return input
+end
+func rejectToken(var token)
+    int caught = 0
+    try
+        int(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        uint64(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        float(token)
+    catch TypeError failure
+        caught += 1
+    end
+    try
+        float32(token)
+    catch TypeError failure
+        caught += 1
+    end
+    assert caught == 4
+end
+rejectToken(echo(int))
+rejectToken(echo(uint64))
+rejectToken(echo(float))
+rejectToken(echo(string))
+var signedNumber = -11
+var unsignedNumber = uint64(11)
+assert int(signedNumber) == -11
+assert int(unsignedNumber) == 11
+assert uint64(unsignedNumber) == uint64(11)
+assert float32(unsignedNumber) == float32(11)

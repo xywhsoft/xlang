@@ -37,7 +37,7 @@ static int xl6IrCgenEmitXValueOperationRuntime(
     if (needs->needsExplicitF32Text)
         xl6OutputPuts("extern bool xl6Float32TextConvertV1(xstrview, float*);\n",out);
     if (needs->needsExplicitF32Value)
-        xl6OutputPuts("extern bool xl6Float32ValueConvertV1(const xvalue*, float*);\n",out);
+        xl6OutputPuts("extern bool xl6Float32ValueConvertV2(const xvalue*, uint64_t, float*);\n",out);
     if (needs->needsExplicitF32Scalar)
         xl6OutputPuts("extern bool xl6Float32ConvertV1(double, float*);\n",out);
     /* Dynamic-method adapters and boxed-callable adapters independently use
@@ -248,64 +248,8 @@ static int xl6IrCgenEmitXValueOperationRuntime(
                 "    }\n"
                 "    return xlir_i64_approx(xlir_xvalue_i64(left), xlir_xvalue_i64(right));\n"
                 "}\n", out);
-        if ( needs->needsXValueIntegerConvertRuntime )
-            xl6OutputPuts(
-                "static inline int64_t xlir_xvalue_to_i64_checked(const xvalue* value, int target)\n"
-                "{\n"
-                "    int type = value != NULL ? xrtValueType(value) : 0;\n"
-                "    int64_t integer = 0; uint64_t unsignedInteger = 0; double number = 0.0; bool boolean = false;\n"
-                "    if (type == 0) return 0;\n"
-                "    if (type == 1 && xrtValueGetBool(value, &boolean)) return xlir_i64_range_checked(boolean ? 1 : 0, target);\n"
-                "    if (type == 2 && xrtValueGetInt(value, &integer)) return xlir_i64_range_checked(integer, target);\n"
-                "    if (type == 13 && xrtValueGetUInt(value, &unsignedInteger)) {\n"
-                "        if (unsignedInteger <= (uint64_t)INT64_MAX) return xlir_i64_range_checked((int64_t)unsignedInteger, target);\n"
-                "        xrtSetErrorTake(xlir_error_create(\"RangeError\", \"unsigned integer value is outside signed integer range\")); return 0;\n"
-                "    }\n"
-                "    if (type == 3 && xrtValueGetFloat(value, &number)) return xlir_f64_to_i64_checked(number, target);\n"
-                "    if (type == 4) {\n"
-                "        xlir_string_view text; char* owned; char* start; char* end = NULL;\n"
-                "        if (!xrtValueGetString(value, &text) || (owned = xrtStrDupN(text.Data, text.Size)) == NULL) {\n"
-                "            xrtSetErrorTake(xlir_error_create(\"ValueError\", \"invalid integer string\")); return 0;\n"
-                "        }\n"
-                "        start = owned; while (*start == ' ' || *start == '\\t' || *start == '\\r' || *start == '\\n' || *start == '\\v' || *start == '\\f') ++start;\n"
-                "        errno = 0; integer = (int64_t)strtoll(start, &end, 10);\n"
-                "        while (end != NULL && (*end == ' ' || *end == '\\t' || *end == '\\r' || *end == '\\n' || *end == '\\v' || *end == '\\f')) ++end;\n"
-                "        if (end == start || errno == ERANGE || end == NULL || *end != '\\0') {\n"
-                "            xrtFree(owned); xrtSetErrorTake(xlir_error_create(\"ValueError\", \"invalid integer string\")); return 0;\n"
-                "        }\n"
-                "        xrtFree(owned); return xlir_i64_range_checked(integer, target);\n"
-                "    }\n"
-                "    xrtSetErrorTake(xlir_error_create(\"TypeError\", \"dynamic value cannot convert to integer\"));\n"
-                "    return 0;\n"
-                "}\n", out);
-        if ( needs->needsXValueIntegerConvertRuntime && needs->needsCheckedU64Runtime )
-            xl6OutputPuts(
-                "static inline uint64_t xlir_xvalue_to_u64_checked(const xvalue* value)\n"
-                "{\n"
-                "    int type = value != NULL ? xrtValueType(value) : 0;\n"
-                "    int64_t integer = 0; uint64_t unsignedInteger = 0; double number = 0.0; bool boolean = false;\n"
-                "    if (type == 0) return 0;\n"
-                "    if (type == 1 && xrtValueGetBool(value, &boolean)) return boolean ? 1u : 0u;\n"
-                "    if (type == 2 && xrtValueGetInt(value, &integer)) return xlir_i64_to_u64_checked(integer);\n"
-                "    if (type == 13 && xrtValueGetUInt(value, &unsignedInteger)) return unsignedInteger;\n"
-                "    if (type == 3 && xrtValueGetFloat(value, &number)) return xlir_f64_to_u64_checked(number);\n"
-                "    if (type == 4) {\n"
-                "        xlir_string_view text; char* owned; char* start; char* end = NULL;\n"
-                "        if (!xrtValueGetString(value, &text) || (owned = xrtStrDupN(text.Data, text.Size)) == NULL) {\n"
-                "            xrtSetErrorTake(xlir_error_create(\"ValueError\", \"invalid uint64 string\")); return 0;\n"
-                "        }\n"
-                "        start = owned; while (*start == ' ' || *start == '\\t' || *start == '\\r' || *start == '\\n' || *start == '\\v' || *start == '\\f') ++start;\n"
-                "        if (*start == '-') { xrtFree(owned); xrtSetErrorTake(xlir_error_create(\"RangeError\", \"negative value is outside uint64 range\")); return 0; }\n"
-                "        errno = 0; unsignedInteger = (uint64_t)strtoull(start, &end, 10);\n"
-                "        while (end != NULL && (*end == ' ' || *end == '\\t' || *end == '\\r' || *end == '\\n' || *end == '\\v' || *end == '\\f')) ++end;\n"
-                "        if (end == start || errno == ERANGE || end == NULL || *end != '\\0') {\n"
-                "            xrtFree(owned); xrtSetErrorTake(xlir_error_create(\"ValueError\", \"invalid uint64 string\")); return 0;\n"
-                "        }\n"
-                "        xrtFree(owned); return unsignedInteger;\n"
-                "    }\n"
-                "    xrtSetErrorTake(xlir_error_create(\"TypeError\", \"dynamic value cannot convert to uint64\"));\n"
-                "    return 0;\n"
-                "}\n", out);
+        if (needs->needsXValueIntegerConvertRuntime)
+            xl6OutputPuts("extern bool xl6IntegerValueConvertV1(const xvalue*, unsigned int, uint64_t, void*);\n", out);
         if ( needs->needsXCallRuntime ) {
             size_t signatureIndex;
             xl6OutputPuts(

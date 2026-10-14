@@ -94,8 +94,8 @@ if ( ! [System.Linq.Enumerable]::SequenceEqual(
 }
 $generated = [System.IO.File]::ReadAllText($generatedPath, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "static double xlir_string_to_f64_checked(xlir_string input)",
-    "strtod(text, &end)", "invalid float string", "ValueError",
+    "extern bool xl6Float64TextConvertV1(xstrview, double*)",
+    "xl6Float64TextConvertV1(v", "projection_ok_",
     "if (xrtGetError() == NULL)"
 ) ) {
     if ( ! $generated.Contains($required) ) {
