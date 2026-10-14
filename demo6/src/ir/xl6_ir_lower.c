@@ -13414,6 +13414,12 @@ static int xl6IrLowerSubtreeAssignsSymbol(
     if ( node->kind == XL6_IR_NODE_ASSIGN && node->childCount != 0 ) {
         const XL6_IrNode* left = xl6IrNodeGet(module, module->children[node->firstChild]);
         if ( left != NULL && left->targetSymbol == symbol ) return 1;
+        if (left && left->kind == XL6_IR_NODE_INDEX && left->childCount &&
+            (left->indexWriteAbi == XL6_IR_INDEX_WRITE_STRING_SCALAR_SET_COPY ||
+             left->indexWriteAbi == XL6_IR_INDEX_WRITE_BYTES_SET_COPY)) {
+            const XL6_IrNode* receiver = xl6IrNodeGet(module, module->children[left->firstChild]);
+            if (receiver && receiver->kind == XL6_IR_NODE_NAME && receiver->targetSymbol == symbol) return 1;
+        }
     }
     for ( i = 0; i < node->childCount; ++i )
         if ( xl6IrLowerSubtreeAssignsSymbol(
@@ -13939,7 +13945,9 @@ static int xl6IrLowerRegisterModuleCallTargets(XL6_IrLowerContext* ctx)
                 "XLIR closure target has no normalized body");
         if ( !xl6IrLowerCollectClosureCaptures(
                  ctx, closure, ctx->module->children[node->firstChild + 2],
-                 ctx->module->children[node->firstChild + 2]) ) {
+                 ctx->module->children[node->firstChild + 2]) ||
+             !xl6IrLowerCollectClosureCaptures(ctx, closure, declaration,
+                 ctx->module->children[node->firstChild]) ) {
             if ( ctx->diags == NULL || ctx->diags->count == 0 )
                 xl6IrLowerDiag(ctx, declaration,
                     "XLIR closure target capture analysis failed without diagnostic provenance");
@@ -14465,6 +14473,7 @@ static int xl6IrLowerSetClosureCallParameterDefaults(
 {
     XL6_IrDynamicMethodDefaultAbi* abis = NULL;
     char** literals = NULL;
+    uint32* functions = NULL;
     size_t parameter;
     if ( ctx == NULL || closure == NULL || parameters == NULL ||
          parameters->kind != XL6_IR_NODE_LIST || signature == NULL ||
@@ -14477,7 +14486,8 @@ static int xl6IrLowerSetClosureCallParameterDefaults(
     abis = (XL6_IrDynamicMethodDefaultAbi*)xrtCalloc(
         signature->paramCount, sizeof(*abis));
     literals = (char**)xrtCalloc(signature->paramCount, sizeof(*literals));
-    if ( abis == NULL || literals == NULL ) goto fail;
+    functions = (uint32*)xrtCalloc(signature->paramCount, sizeof(*functions));
+    if ( abis == NULL || literals == NULL || functions == NULL ) goto fail;
     for ( parameter = 0; parameter < signature->paramCount; ++parameter ) {
         size_t targetParameter = parameter;
         const XL6_IrNode* source;
@@ -14498,12 +14508,14 @@ static int xl6IrLowerSetClosureCallParameterDefaults(
               targetParameter + 1 == target->parameterCount) ) continue;
         expressionId = ctx->module->children[source->firstChild + 1];
         expression = xl6IrNodeGet(ctx->module, expressionId);
-        abis[parameter] = xl6IrLowerDynamicMethodDefaultAbi(
+        abis[parameter] = xl6IrDynamicMethodParameterDefaultAbi(
             ctx->module, signature->params[parameter], expressionId);
         if ( expression == NULL ||
              abis[parameter] == XL6_IR_DYNAMIC_METHOD_DEFAULT_INVALID )
             continue;
         switch ( abis[parameter] ) {
+        case XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM:
+            break;
         case XL6_IR_DYNAMIC_METHOD_DEFAULT_BOOL:
             literals[parameter] = xrtStrDupN(
                 expression->text, strlen(expression->text));
@@ -14540,10 +14552,12 @@ static int xl6IrLowerSetClosureCallParameterDefaults(
             goto fail;
         }
         if ( abis[parameter] != XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL &&
+             abis[parameter] != XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM &&
              literals[parameter] == NULL ) goto fail;
     }
     closure->callParameterDefaultAbis = abis;
     closure->callParameterDefaultLiterals = literals;
+    closure->callParameterDefaultFunctions = functions;
     return 1;
 fail:
     if ( literals != NULL )
@@ -14551,6 +14565,7 @@ fail:
             xrtFree(literals[parameter]);
     xrtFree(abis);
     xrtFree(literals);
+    xrtFree(functions);
     return 0;
 }
 
@@ -14734,6 +14749,7 @@ static void xl6IrLowerClearCallTargets(XL6_IrModule* module)
         xrtFree(module->closureTargets[i].callParameterNames);
         xrtFree(module->closureTargets[i].callParameterDefaultAbis);
         xrtFree(module->closureTargets[i].callParameterDefaultLiterals);
+        xrtFree(module->closureTargets[i].callParameterDefaultFunctions);
     }
     xrtFree(module->closureTargets);
     module->closureTargets = NULL;
@@ -32182,6 +32198,9 @@ static int xl6IrLowerBeginNamedAdapterFunction(
 /* Evaluate one missing argument with the already-bound prefix borrowed.
  * The program's independent invocation boundary owns only its temporaries and
  * returned value; earlier argument owners remain in the caller adapter. */
+static int xl6IrLowerDefaultParameterCell(XL6_IrLowerContext* ctx,
+    size_t index, XL6_SymbolId source, XL6_SymbolId parameter, XL6_IrNodeId declaration);
+
 static int xl6IrLowerDynamicDefaultPrograms(XL6_IrLowerContext* ctx)
 {
     XL6_IrModule* module = ctx->module;
@@ -32197,6 +32216,15 @@ static int xl6IrLowerDynamicDefaultPrograms(XL6_IrLowerContext* ctx)
             XL6_SymbolId pending;
             size_t first = ctx->evaluationOwnerCount;
             if (item.defaultAbi != XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM) continue;
+            for (size_t f = 0; f < module->functionCount; ++f) {
+                const XL6_IrFunction* prior = &module->functions[f];
+                if (prior->kind == XL6_IR_FUNCTION_ARGUMENT_DEFAULT && prior->declaration == item.declaration &&
+                    !prior->defaultClosureSymbol && prior->returnType == item.type && prior->parameterCount == p + 1) {
+                    module->dynamicMethodParameters[parameterIndex].defaultFunction = (uint32)(f + 1);
+                    break;
+                }
+            }
+            if (module->dynamicMethodParameters[parameterIndex].defaultFunction) continue;
             if (module->functionCount >= UINT32_MAX ||
                 !xl6IrLowerBeginFunction(ctx, item.declaration, XL6_IR_FUNCTION_ARGUMENT_DEFAULT)) return 0;
             uint32 functionId = (uint32)module->functionCount;
@@ -32205,6 +32233,8 @@ static int xl6IrLowerDynamicDefaultPrograms(XL6_IrLowerContext* ctx)
             function->debugName = "<argument-default>";
             function->returnType = item.type;
             function->errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
+            function->parameterCells = (XL6_SymbolId*)xrtCalloc(p + 1, sizeof(XL6_SymbolId));
+            if (!function->parameterCells) return 0;
             module->dynamicMethodParameters[parameterIndex].defaultFunction = functionId;
             if (!function->symbol || !xl6IrLowerAddFunctionFailurePlan(ctx, item.declaration)) return 0;
             for (size_t prefix = 0; prefix <= p; ++prefix) {
@@ -32223,6 +32253,13 @@ static int xl6IrLowerDynamicDefaultPrograms(XL6_IrLowerContext* ctx)
                 module->functionParameters[module->functionParameterCount++] = symbol;
                 module->functions[ctx->functionIndex].parameterCount++;
             }
+            for (size_t prefix = 1; prefix <= p; ++prefix) {
+                XL6_IrNodeId sourceId = module->dynamicMethodParameters[method.firstParameter + prefix - 1].declaration;
+                const XL6_IrNode* source = xl6IrNodeGet(module, sourceId);
+                function = &module->functions[ctx->functionIndex];
+                if (!source || !xl6IrLowerDefaultParameterCell(ctx, prefix, source->symbol,
+                    module->functionParameters[function->firstParameter + prefix], sourceId)) return 0;
+            }
             result = xl6IrLowerNodeAsType(ctx, item.defaultExpression, item.defaultExpression,
                 xl6IrNodeGet(module, item.defaultExpression), item.type);
             if (result != XL6_IR_VALUE_INVALID)
@@ -32237,6 +32274,119 @@ static int xl6IrLowerDynamicDefaultPrograms(XL6_IrLowerContext* ctx)
             target = xl6IrCallTargetGet(module, method.targetSymbol);
             if (!target) return 0;
         }
+    }
+    return !ctx->failed;
+}
+
+/* A mutable nested capture of an earlier argument belongs to this default
+ * activation, not to the caller's argument slot. The physical input remains
+ * borrowed; an explicit private cell owns an acquired copy for the closure. */
+static int xl6IrLowerDefaultParameterCell(XL6_IrLowerContext* ctx,
+    size_t index, XL6_SymbolId source, XL6_SymbolId parameter, XL6_IrNodeId declaration)
+{
+    XL6_IrTypeId cellType = xl6IrLowerCaptureCellTypeForSource(ctx->module, source);
+    XL6_IrFunction* function = &ctx->module->functions[ctx->functionIndex];
+    const XL6_IrStorage* storage = xl6IrStorageGet(ctx->module, parameter);
+    XL6_IrTypeId type = storage ? storage->type : XL6_IR_TYPE_INVALID;
+    XL6_IrValueId initial;
+    if (!cellType) return 1;
+    XL6_SymbolId cell = xl6IrLowerNewTempStorage(ctx, type, declaration);
+    if (!function->parameterCells) return 0;
+    if (!cell || !xl6IrLowerSetStorageCell(ctx, cell, cellType, declaration) ||
+        !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, declaration, type, parameter, NULL, 0, &initial) ||
+        (initial = xl6IrLowerAcquireValueOwner(ctx, declaration, initial)) == XL6_IR_VALUE_INVALID ||
+        !xl6IrLowerConstructCell(ctx, declaration, declaration, cell, initial)) return 0;
+    function->parameterCells[index] = cell;
+    for (size_t p = 0; p < ctx->promotedParameterCount; ++p) {
+        if (ctx->promotedParameters[p].sourceSymbol != source) continue;
+        ctx->promotedParameters[p].cellStorage = cell;
+        return 1;
+    }
+    return 0;
+}
+
+static int xl6IrLowerClosureDefaultPrograms(XL6_IrLowerContext* ctx, size_t closureIndex)
+{
+    XL6_IrModule* module = ctx->module;
+    XL6_IrClosureTarget closure = module->closureTargets[closureIndex];
+    const XL6_IrType* signature = xl6IrTypeGet(&module->types, closure.signatureType);
+    const XL6_IrCallTarget* target = xl6IrCallTargetGet(module,
+        closure.kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ? closure.adaptedTargetSymbol : closure.targetSymbol);
+    const XL6_IrNode* declaration = target ? xl6IrNodeGet(module, target->declaration) : NULL;
+    const XL6_IrNode* parameters = declaration ? xl6IrNodeGet(module,
+        module->children[declaration->firstChild + (declaration->sourceKind == XL6_AST_ANON_FUNC ? 0 : 1)]) : NULL;
+    if (!signature || !target || !parameters) return 0;
+    for (size_t p = 0; p < closure.callParameterCount; ++p) {
+        if (closure.callParameterDefaultAbis[p] != XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM) continue;
+        XL6_IrNodeId parameterId = module->children[parameters->firstChild + p];
+        const XL6_IrNode* parameter = xl6IrNodeGet(module, parameterId);
+        XL6_IrNodeId expression = parameter && parameter->childCount >= 2
+            ? module->children[parameter->firstChild + 1] : XL6_IR_NODE_INVALID;
+        XL6_IrTypeId resultType = signature->params[p];
+        XL6_SymbolId context = closure.captureCount ? closure.targetSymbol : 0;
+        size_t inputs = p + closure.captureCount, first = ctx->evaluationOwnerCount;
+        for (size_t f = 0; f < module->functionCount; ++f) {
+            const XL6_IrFunction* prior = &module->functions[f];
+            if (prior->kind == XL6_IR_FUNCTION_ARGUMENT_DEFAULT && prior->declaration == parameterId &&
+                prior->defaultClosureSymbol == context && prior->returnType == resultType && prior->parameterCount == inputs) {
+                module->closureTargets[closureIndex].callParameterDefaultFunctions[p] = (uint32)(f + 1);
+                break;
+            }
+        }
+        if (module->closureTargets[closureIndex].callParameterDefaultFunctions[p]) continue;
+        if (!expression || module->functionCount >= UINT32_MAX ||
+            !xl6IrLowerBeginFunction(ctx, parameterId, XL6_IR_FUNCTION_ARGUMENT_DEFAULT)) return 0;
+        uint32 functionId = (uint32)module->functionCount;
+        XL6_IrFunction* function = &module->functions[ctx->functionIndex];
+        function->symbol = xl6IrLowerNewSyntheticSymbol(ctx);
+        function->debugName = "<callable-default>";
+        function->returnType = resultType;
+        function->errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
+        function->defaultClosureSymbol = context;
+        function->parameterCells = inputs ? (XL6_SymbolId*)xrtCalloc(inputs, sizeof(XL6_SymbolId)) : NULL;
+        if (inputs && !function->parameterCells) return 0;
+        module->closureTargets[closureIndex].callParameterDefaultFunctions[p] = functionId;
+        if (!function->symbol || !xl6IrLowerAddFunctionFailurePlan(ctx, parameterId)) return 0;
+        for (size_t input = 0; input < inputs; ++input) {
+            const XL6_IrClosureCapture* capture = input >= p
+                ? &module->closureCaptures[closure.firstCapture + input - p] : NULL;
+            XL6_IrNodeId sourceId = input < p ? module->children[parameters->firstChild + input] : closure.declaration;
+            const XL6_IrNode* source = xl6IrNodeGet(module, sourceId);
+            XL6_SymbolId sourceSymbol = capture ? capture->sourceSymbol : source ? source->symbol : 0;
+            XL6_IrTypeId type = capture ? capture->type : signature->params[input];
+            XL6_SymbolId symbol = xl6IrLowerNewSyntheticSymbol(ctx);
+            if (!sourceSymbol || !symbol || !xl6IrLowerGrow((void**)&module->functionParameters,
+                    &module->functionParameterCapacity, module->functionParameterCount, sizeof(*module->functionParameters)) ||
+                !xl6IrLowerRegisterStorage(ctx, XL6_IR_STORAGE_PARAMETER, symbol, type, sourceId, parameterId) ||
+                !xl6IrLowerAddPromotedParameter(ctx, sourceSymbol, symbol) ||
+                (capture && capture->cellType && !xl6IrLowerSetStorageCell(ctx, symbol, capture->cellType, sourceId))) return 0;
+            module->functionParameters[module->functionParameterCount++] = symbol;
+            module->functions[ctx->functionIndex].parameterCount++;
+        }
+        for (size_t input = 0; input < p; ++input) {
+            XL6_IrNodeId sourceId = module->children[parameters->firstChild + input];
+            const XL6_IrNode* source = xl6IrNodeGet(module, sourceId);
+            function = &module->functions[ctx->functionIndex];
+            if (!source || !xl6IrLowerDefaultParameterCell(ctx, input, source->symbol,
+                module->functionParameters[function->firstParameter + input], sourceId)) return 0;
+        }
+        XL6_IrValueId result = xl6IrLowerNodeAsType(ctx, expression, expression,
+            xl6IrNodeGet(module, expression), resultType);
+        if (result != XL6_IR_VALUE_INVALID) result = xl6IrLowerOwnedStorageValue(ctx, expression, resultType,
+            xl6IrNodeGet(module, expression), result);
+        XL6_SymbolId pending = result != XL6_IR_VALUE_INVALID
+            ? xl6IrLowerPrepareReturnValue(ctx, parameterId, resultType, result) : 0;
+        if (result == XL6_IR_VALUE_INVALID || ctx->failed ||
+            !xl6IrLowerEmitTerminal(ctx, XL6_IR_INSTR_RETURN, parameterId, &result, 1, pending)) return 0;
+        ctx->evaluationOwnerCount = first;
+        xl6IrLowerEndFunction(ctx);
+        signature = xl6IrTypeGet(&module->types, closure.signatureType);
+        target = xl6IrCallTargetGet(module,
+            closure.kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ? closure.adaptedTargetSymbol : closure.targetSymbol);
+        declaration = target ? xl6IrNodeGet(module, target->declaration) : NULL;
+        parameters = declaration ? xl6IrNodeGet(module, module->children[declaration->firstChild +
+            (declaration->sourceKind == XL6_AST_ANON_FUNC ? 0 : 1)]) : NULL;
+        if (!signature || !parameters) return 0;
     }
     return !ctx->failed;
 }
@@ -32703,6 +32853,7 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
     size_t i;
     if ( module == NULL || module->stage != XL6_IR_STAGE_TYPED || !xl6IrVerifyModule(module, diags) ) return 0;
     xrtFree(module->blocks); module->blocks = NULL; module->blockCount = 0; module->blockCapacity = 0;
+    for (i = 0; i < module->functionCount; ++i) xrtFree(module->functions[i].parameterCells);
     xrtFree(module->functions); module->functions = NULL; module->functionCount = 0; module->functionCapacity = 0;
     for (i = 0; i < module->classLayoutCount; ++i)
         module->classLayouts[i].persistenceDefaultFunction = 0;
@@ -32874,6 +33025,7 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
      * closure arena; capture-bearing bodies will receive frame storage rather
      * than sharing their creator's C locals. */
     for ( i = 0; !ctx.failed && i < module->closureTargetCount; ++i ) {
+        if (!xl6IrLowerClosureDefaultPrograms(&ctx, i)) { ctx.failed = 1; break; }
         XL6_IrClosureTarget closure = module->closureTargets[i];
         const XL6_IrNode* node = xl6IrNodeGet(module, closure.declaration);
         if ( closure.kind == XL6_IR_CLOSURE_TARGET_NAMED_ADAPTER ) {
@@ -32915,6 +33067,7 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
                            message);
         }
         xrtFree(module->blocks); module->blocks = NULL; module->blockCount = 0; module->blockCapacity = 0;
+        for (i = 0; i < module->functionCount; ++i) xrtFree(module->functions[i].parameterCells);
         xrtFree(module->functions); module->functions = NULL; module->functionCount = 0; module->functionCapacity = 0;
         for (i = 0; i < module->classLayoutCount; ++i) {
             module->classLayouts[i].destroyFunction = 0;

@@ -8,6 +8,8 @@
 
 - [动态方法默认值的 IR 执行合同](stdlib53-b288-runtime-method-defaults.md)：调用时求值、接收者与前序参数借入、拥有结果及统一失败边界。
 
+- [动态函数默认参数的 IR 执行合同](stdlib53-b289-runtime-callable-defaults.md)：普通 xcall、匿名闭包捕获、前序参数私有 cell 和显式实参先校验。
+
 - [整数转换默认值的统一 IR 合同](stdlib53-b287-integer-defaults.md)：先登记身份再接纳合同，精确常量默认值与物理桥接输出顺序。
 
 - [动态方法的精确回调合同](stdlib53-b286-dynamic-callables.md)：完整签名选择、checked closure 原生合同与投影 owner 清理。

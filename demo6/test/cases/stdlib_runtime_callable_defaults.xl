@@ -1,0 +1,67 @@
+int calls = 0
+func nextText() as string
+    calls += 1
+    return string(calls) + "\0你"
+end
+func nextBytes() as bytes
+    calls += 1
+    return b"a\0\xff"
+end
+func named(string first = nextText(), string second = first) as string
+    first[0] = 'Z'
+    return second
+end
+var erased = xcall(named)
+assert string(erased()) == "1\0你" and calls == 1
+assert string(erased(second = "explicit")) == "explicit" and calls == 2
+assert string(erased(first = "given")) == "given" and calls == 2
+var another = xcall(named)
+assert string(another()) == "3\0你" and calls == 3
+func byteAlias(bytes first = nextBytes(), bytes second = first) as bytes
+    first[0] = 90
+    return second
+end
+var binary = xcall(byteAlias)
+assert bytes(binary()) == b"a\0\xff" and calls == 4
+func makeRead(string seed) as func(string) as string
+    return func(string text = seed + "!") as string
+        return text
+    end
+end
+var read = xcall(makeRead("s\0你"))
+assert string(read()) == "s\0你!"
+assert string(read("direct")) == "direct"
+func makeCounter() as func(int) as int
+    int counter = 0
+    auto advance = func() as int
+        counter += 1
+        return counter
+    end
+    return func(int value = advance()) as int
+        return value
+    end
+end
+var counter = xcall(makeCounter())
+assert int(counter()) == 1 and int(counter()) == 2
+assert int(counter(99)) == 99
+assert int(counter()) == 3
+func makeMutable() as func(int) as int
+    int value = 10
+    return func(int current = value + 1) as int
+        value += 1
+        return current
+    end
+end
+var mutable = xcall(makeMutable())
+assert int(mutable()) == 11 and int(mutable()) == 12
+func narrow(float32 value = float32(1.1)) as float32
+    return value
+end
+var rounded = xcall(narrow)
+assert (rounded() as float32) == float32(1.1)
+func optional(string? value = nextText()) as string?
+    return value
+end
+var nullable = xcall(optional)
+assert string(nullable()) == "5\0你" and calls == 5
+assert nullable(null) == null

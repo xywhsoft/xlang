@@ -15,6 +15,10 @@ typedef struct xlir_call_default {
     int abi; bool boolean_value; int64_t i64_value; uint64_t u64_value;
     double f64_value; const char* string_value; size_t string_size;
     uint32_t char_value;
+    /* Typed output and borrowed native prefix; no erasure or ownership
+     * transfer of the inputs. Protected by the containing closure's lease.
+     * Failure writes no output and preserves its checked language outcome. */
+    bool (*program)(void* environment, void* output, const void* const* prefix);
 } xlir_call_default;
 typedef struct xlir_closure XL6_Closure;
 struct xlir_closure {

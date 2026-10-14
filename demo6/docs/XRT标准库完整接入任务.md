@@ -5,7 +5,9 @@
 动态方法运行时默认表达式降为独立 checked IR 程序，不在 Cgen
 解析源码。接收者、前序参数、拥有结果及失败合同见
 [动态方法默认值的 IR 执行合同](stdlib53-b288-runtime-method-defaults.md)。
-普通 xcall／匿名闭包默认值、异步动态返回及完整目标继续。
+普通 xcall／匿名闭包默认值已按
+[动态函数默认参数合同](stdlib53-b289-runtime-callable-defaults.md) 接入；
+typed 函数形参准入、可空函数参数、异步动态返回及完整目标继续。
 
 整数转换常量默认值的阶段合同与 File 动态 map／lock 见
 [整数转换默认值的统一 IR 合同](stdlib53-b287-integer-defaults.md)。
