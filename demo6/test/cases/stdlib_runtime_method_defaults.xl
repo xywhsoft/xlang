@@ -1,0 +1,66 @@
+int calls = 0
+func nextValue() as int
+    calls += 1
+    return calls
+end
+func nextText(int prefix) as string
+    calls += 1
+    return string(prefix) + "\0你"
+end
+func nextBytes() as bytes
+    calls += 1
+    return b"7\0你"
+end
+func increment(int value) as int
+    return value + 1
+end
+func makeItems() as array<int>
+    return [4, 5]
+end
+class RuntimeDefaults
+    int base = 10
+    func count(int value = nextValue()) as int
+        return value
+    end
+    func prefix(int first = nextValue(), string second = nextText(first)) as string
+        return string(first) + ":" + second
+    end
+    func receiver(int value = self.base + nextValue()) as int
+        return value
+    end
+    func binary(bytes value = nextBytes()) as bytes
+        return value
+    end
+    func wrap(uint8 value = uint8(256)) as uint8
+        return value
+    end
+    func aliases(string first = nextText(3), string second = first) as string
+        first[0] = 'Z'
+        return second
+    end
+    func byteAliases(bytes first = nextBytes(), bytes second = first) as bytes
+        first[0] = 90
+        return second
+    end
+    func callback(func(int) as int value = increment) as int
+        return value(7)
+    end
+    func items(array<int> value = makeItems()) as int
+        return value[0]
+    end
+end
+var object = RuntimeDefaults()
+assert int(object.count()) == 1 and calls == 1
+assert int(object.count(99)) == 99 and calls == 1
+assert string(object.prefix()) == "2:2\0你" and calls == 3
+assert string(object.prefix(second = "explicit")) == "4:explicit" and calls == 4
+assert string(object.prefix(first = 7)) == "7:7\0你" and calls == 5
+assert int(object.receiver()) == 16 and calls == 6
+assert bytes(object.binary()) == b"7\0\xe4\xbd\xa0" and calls == 7
+assert int(object.wrap()) == 0
+var bound = object.prefix
+assert string(bound()) == "8:8\0你" and calls == 9
+assert string(object.aliases()) == "3\0你" and calls == 10
+assert bytes(object.byteAliases()) == b"7\0你" and calls == 11
+assert int(object.callback()) == 8
+assert int(object.items()) == 4

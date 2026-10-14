@@ -2319,7 +2319,10 @@ typedef enum XL6_IrFunctionKind {
      * lowering owns allocation, initializer evaluation, rollback and commit;
      * no user create body is invoked. Its owned result has the normal checked
      * function ABI and is shared by all persistence wire formats. */
-    XL6_IR_FUNCTION_CLASS_DEFAULT
+    XL6_IR_FUNCTION_CLASS_DEFAULT,
+    /* One parameter's default expression, with a borrowed receiver/prefix.
+     * Every expression, owner and error edge is ordinary lowered XLIR. */
+    XL6_IR_FUNCTION_ARGUMENT_DEFAULT
 } XL6_IrFunctionKind;
 
 /* Generated invocations have no source-owned lexical failure route. */
@@ -3616,7 +3619,10 @@ typedef enum XL6_IrDynamicMethodDefaultAbi {
     XL6_IR_DYNAMIC_METHOD_DEFAULT_STRING,
     XL6_IR_DYNAMIC_METHOD_DEFAULT_XVALUE_NULL,
     XL6_IR_DYNAMIC_METHOD_DEFAULT_CHAR,
-    XL6_IR_DYNAMIC_METHOD_DEFAULT_BYTES
+    XL6_IR_DYNAMIC_METHOD_DEFAULT_BYTES,
+    /* Independently lowered expression program, returning an owned value.
+     * It borrows receiver plus the already-bound parameter prefix. */
+    XL6_IR_DYNAMIC_METHOD_DEFAULT_PROGRAM
 } XL6_IrDynamicMethodDefaultAbi;
 
 /* Non-mutating overload selection contract for an already-boxed argument. */
@@ -3649,9 +3655,11 @@ typedef struct XL6_IrDynamicMethodParameter {
      * expression evaluated when this candidate supplies its default. */
     XL6_IrNodeId defaultExpression;
     /* INVALID in Typed XLIR.  Lowered VERIFIED rows carry a closed source-free
-     * descriptor; payload is NULL only for NONE and XVALUE_NULL. */
+     * descriptor; PROGRAM owns a function identity instead of a literal. */
     XL6_IrDynamicMethodDefaultAbi defaultAbi;
     char* defaultLiteral;
+    /* One-based function identity; zero for every non-program descriptor. */
+    uint32 defaultFunction;
     XL6_IrCallVariadicAbi variadicAbi;
 } XL6_IrDynamicMethodParameter;
 
@@ -5325,6 +5333,7 @@ int xl6IrDynamicMethodCallTargetSupported(const struct XL6_IrModule*, const XL6_
 char* xl6IrCanonicalContextualIntegerLiteral(const struct XL6_IrModule*, XL6_IrNodeId, XL6_IrTypeId);
 char* xl6IrCanonicalIntegerDefault(const struct XL6_IrModule*, XL6_IrNodeId, XL6_IrTypeId);
 XL6_IrDynamicMethodDefaultAbi xl6IrDynamicMethodLiteralDefaultAbi(const struct XL6_IrModule*, XL6_IrTypeId, XL6_IrNodeId);
+XL6_IrDynamicMethodDefaultAbi xl6IrDynamicMethodParameterDefaultAbi(const struct XL6_IrModule*, XL6_IrTypeId, XL6_IrNodeId);
 
 /* Allocation-free view of the selected synchronous property ABI. It projects
  * the already canonical direct/class/protocol target, with receiver separated

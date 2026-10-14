@@ -38,10 +38,10 @@ int main(int argc, char** argv)
         int boundary = method->name &&
             (!strcmp(method->name, "side") || !strcmp(method->name, "wraps"));
         if (boundary) {
-            assert(method->adapterAbi == XL6_IR_DYNAMIC_METHOD_ADAPTER_UNSUPPORTED);
-            assert(!xl6IrDynamicMethodSourceSupported(&unit.ir, method)); ++boundaries;
-            method->adapterAbi = XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED;
-            reject(&unit.ir); method->adapterAbi = XL6_IR_DYNAMIC_METHOD_ADAPTER_UNSUPPORTED;
+            assert(method->adapterAbi == XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED);
+            assert(xl6IrDynamicMethodSourceSupported(&unit.ir, method)); ++boundaries;
+            method->adapterAbi = XL6_IR_DYNAMIC_METHOD_ADAPTER_UNSUPPORTED;
+            reject(&unit.ir); method->adapterAbi = XL6_IR_DYNAMIC_METHOD_ADAPTER_VERIFIED;
         }
         for (size_t p = 0; p < method->parameterCount; ++p) {
             XL6_IrDynamicMethodParameter* item = &unit.ir.dynamicMethodParameters[method->firstParameter + p];

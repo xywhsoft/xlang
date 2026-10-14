@@ -1,0 +1,33 @@
+int entered = 0
+int defaults = 0
+func failDefault() as string
+    defaults += 1
+    throw ValueError("default original")
+end
+func makeDefault() as string
+    defaults += 1
+    return "a\0你"
+end
+class DefaultErrors
+    func call(string first = makeDefault(), string second = failDefault()) as string
+        entered += 1
+        return first + second
+    end
+end
+var object = DefaultErrors()
+bool rejected = false
+try
+    object.call()
+catch ValueError error
+    rejected = error.message == "default original"
+end
+assert rejected and defaults == 2 and entered == 0
+assert string(object.call(second = "ok")) == "a\0你ok"
+assert defaults == 3 and entered == 1
+rejected = false
+try
+    object.call(first = 9)
+catch TypeError error
+    rejected = true
+end
+assert rejected and defaults == 3 and entered == 1
