@@ -1,0 +1,90 @@
+var text = "7\0junk"
+int caught = 0
+try
+    int(text)
+catch ValueError failure
+    caught += 1
+end
+try
+    uint64(text)
+catch ValueError failure
+    caught += 1
+end
+try
+    float("1.5\0junk")
+catch ValueError failure
+    caught += 1
+end
+assert caught == 3
+string textSigned = "-12\0"
+string textUnsigned = "12\0"
+string textFloat = "1.25\0"
+caught = 0
+try
+    int(textSigned)
+catch ValueError failure
+    caught += 1
+end
+try
+    uint64(textUnsigned)
+catch ValueError failure
+    caught += 1
+end
+try
+    float(textFloat)
+catch ValueError failure
+    caught += 1
+end
+try
+    float32(textFloat)
+catch ValueError failure
+    caught += 1
+end
+var dynamicFloatText = textFloat
+try
+    float32(dynamicFloatText)
+catch ValueError failure
+    caught += 1
+end
+assert caught == 5
+assert int(" \t-12\r\n") == -12
+assert uint64(" \t12\r\n") == uint64(12)
+assert float(" \t1.25\r\n") == 1.25
+assert float32(" \t1.25\r\n") == float32(1.25)
+var valid = " 17 "
+assert int(valid) == 17
+assert uint64(valid) == uint64(17)
+var truncated = -12.75
+assert int(truncated) == -12
+var unsignedTruncated = 12.75
+assert uint64(unsignedTruncated) == uint64(12)
+assert int8("127") == 127
+assert uint8("255") == 255
+assert int16("32767") == 32767
+assert uint16("65535") == 65535
+assert int32("2147483647") == 2147483647
+assert uint32("4294967295") == 4294967295
+assert int64("-9223372036854775808") == -9223372036854775808
+assert uint64("18446744073709551615") == uint64(-1)
+caught = 0
+try
+    int8("128")
+catch RangeError failure
+    caught += 1
+end
+try
+    uint8("256")
+catch RangeError failure
+    caught += 1
+end
+try
+    int("9223372036854775808")
+catch RangeError failure
+    caught += 1
+end
+try
+    uint64("18446744073709551616")
+catch RangeError failure
+    caught += 1
+end
+assert caught == 4

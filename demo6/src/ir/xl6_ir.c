@@ -1,5 +1,16 @@
 #include "src/ir/xl6_ir.h"
 #include "src/runtime/xl6_nominal_admission_abi.h"
+#include "src/runtime/xl6_integer_convert_abi.h"
+
+_Static_assert((int)XL6_IR_INTEGER_TARGET_SIGNED_8 == (int)XL6_INTEGER_SIGNED_8 &&
+    (int)XL6_IR_INTEGER_TARGET_UNSIGNED_8 == (int)XL6_INTEGER_UNSIGNED_8 &&
+    (int)XL6_IR_INTEGER_TARGET_SIGNED_16 == (int)XL6_INTEGER_SIGNED_16 &&
+    (int)XL6_IR_INTEGER_TARGET_UNSIGNED_16 == (int)XL6_INTEGER_UNSIGNED_16 &&
+    (int)XL6_IR_INTEGER_TARGET_SIGNED_32 == (int)XL6_INTEGER_SIGNED_32 &&
+    (int)XL6_IR_INTEGER_TARGET_UNSIGNED_32 == (int)XL6_INTEGER_UNSIGNED_32 &&
+    (int)XL6_IR_INTEGER_TARGET_SIGNED_64 == (int)XL6_INTEGER_SIGNED_64 &&
+    (int)XL6_IR_INTEGER_TARGET_UNSIGNED_64 == (int)XL6_INTEGER_UNSIGNED_64,
+    "Checked integer profiles must match the resident conversion ABI");
 
 _Static_assert((int)XL6_IR_NOMINAL_IDENTITY_CLASS_RUNTIME_TAG==(int)XL6_NOMINAL_ADMIT_CLASS_TAG &&
     (int)XL6_IR_NOMINAL_IDENTITY_EXACT_TYPE_ID==(int)XL6_NOMINAL_ADMIT_EXACT_ID &&
@@ -21446,7 +21457,14 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
         return type != NULL && type->cAbi == XL6_IR_C_ABI_MANAGED_STRING
             ? XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT : XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
     }
+    if (instruction->runtimeOp == XL6_IR_RUNTIME_INTEGER_CONVERT_CHECKED &&
+        instruction->integerTarget != XL6_IR_INTEGER_TARGET_UNICODE_SCALAR &&
+        (instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_MANAGED_STRING ||
+         instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_XVALUE))
+        return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     switch (instruction->runtimeOp) {
+    case XL6_IR_RUNTIME_STRING_TO_F64_CHECKED:
+        return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     case XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT:
     case XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT:
     case XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT:

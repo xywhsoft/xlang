@@ -41,7 +41,7 @@ static void inspect_error_payload(const xvalue* value)
         exit(1);
     }
     message = xrtErrorMessage((const xerror*)handle);
-    if ( message == NULL || strcmp(message, "invalid integer string") != 0 ) {
+    if ( message == NULL || strcmp(message, "integer text contains a digit outside its base") != 0 ) {
         fprintf(stderr, "dynamic error handle lost its payload: %s\n",
                 message != NULL ? message : "(null)");
         exit(1);

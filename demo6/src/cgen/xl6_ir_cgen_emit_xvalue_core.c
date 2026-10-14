@@ -512,15 +512,6 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                           "extern xvalue* xrtValueNull(void);\n"
                           "extern xvalue* xrtValueRetain(const xvalue*);\n"
                           "extern xvalue* xrtValueInt(int64_t);\n", out);
-        if ( needs->needsXValueIntegerConvertRuntime )
-            xl6OutputPuts("#ifndef XLIR_XRT_DECLARATIONS\nextern int xrtValueType(const xvalue*);\n#endif\n"
-                          "extern bool xrtValueGetBool(const xvalue*, bool*);\n"
-                          "extern bool xrtValueGetInt(const xvalue*, int64_t*);\n"
-                          "extern bool xrtValueGetUInt(const xvalue*, uint64_t*);\n"
-                          "extern bool xrtValueGetFloat(const xvalue*, double*);\n"
-                          "extern bool xrtValueGetString(const xvalue*, xlir_string_view*);\n"
-                          "extern char* xrtStrDupN(const char*, size_t);\n"
-                          "extern void xrtFree(void*);\n", out);
         if ( needs->needsStringViews )
             xl6OutputPuts("extern xvalue* xrtValueString(xlir_string_view);\n", out);
         if ( needs->needsXValueFutureRuntime )

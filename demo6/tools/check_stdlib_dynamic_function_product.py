@@ -101,7 +101,7 @@ def main():
                 selected=methodFaultHost if name=='stdlib_dynamic_method_product_status' else faultHost if name=='stdlib_dynamic_function_product_status' else host
                 if name=='stdlib_dynamic_f32_status':selected=floatHost
                 extras=['-Wl,--wrap=xl6DynamicDispatchProductTakeV1'] if name=='stdlib_dynamic_method_product_status' else ['-Wl,--wrap=xl6DynamicFunctionProductTakeV1'] if name=='stdlib_dynamic_function_product_status' else []
-                if name=='stdlib_dynamic_f32_status':extras=['-Wl,--wrap=xl6Float32ValueConvertV1']
+                if name=='stdlib_dynamic_f32_status':extras=['-Wl,--wrap=xl6Float32ValueConvertV2']
                 if name in ('stdlib_callable_scalars','stdlib_callable_integer_domains','stdlib_callable_native_scalars'):extras+=['-DXL6_PRODUCT_USER_ENTRY']
                 run(name+'.O'+str(opt)+'.build',[cc,*flags,'-O'+str(opt),'-include',generated,*extras,
                     selected,objects[opt],*links,'-o',binary])
@@ -122,10 +122,10 @@ def main():
             if a.scalars and name=='stdlib_char_typed_only':assert not re.search(r'\bxl6Float32(?:(?:Text|Value)Convert|Convert)V1$',symbols,re.M)
         if a.scalars:
             original=(out/'stdlib_dynamic_f32_status.c').read_text(encoding='utf-8')
-            status=re.findall(r'bool projection_ok_(\d+) = xl6Float32ValueConvertV1\(',original); assert len(status)==1
+            status=re.findall(r'bool projection_ok_(\d+) = xl6Float32ValueConvertV2\(',original); assert len(status)==1
             changed,n=re.subn(r'if \(projection_ok_'+status[0]+r'\)', 'if (true)',original); assert n==1
             mutant=out/'lost-float-status.c'; mutant.write_text(changed,encoding='utf-8'); binary=out/('lost-float-status'+suffix)
-            run('lost-float-status.build',[cc,*flags,'-O0','-include',mutant,'-Wl,--wrap=xl6Float32ValueConvertV1',floatHost,objects[0],*links,'-o',binary])
+            run('lost-float-status.build',[cc,*flags,'-O0','-include',mutant,'-Wl,--wrap=xl6Float32ValueConvertV2',floatHost,objects[0],*links,'-o',binary])
             rejected=run('lost-float-status.reject',[binary],True)
             assert 'float_conversion_status_host.c' in rejected and 'assert' in rejected.lower()
         if a.nullable:

@@ -68,21 +68,26 @@ static int xl6IrCgenEmitScalarConversionRuntime(
     if (instruction->runtimeOp == XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT ||
         instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT ||
         instruction->runtimeOp == XL6_IR_RUNTIME_F64_TO_F32_EXPLICIT) {
+        if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT) {
+            xl6OutputPrintf(out, "    bool projection_ok_%u = xl6Float32ValueConvertV2(v%u, UINT64_C(0x%016llX), &v%u);\n",
+                (unsigned)instruction->result, (unsigned)module->operands[instruction->firstOperand],
+                (unsigned long long)module->runtimeTypeMap.typeTypeValueId, (unsigned)instruction->result);
+            return xl6OutputHasFailed(out) ? -1 : 1;
+        }
         xl6OutputPrintf(out, "    bool projection_ok_%u = %s(v%u, &v%u);\n",
             (unsigned)instruction->result,
             instruction->runtimeOp == XL6_IR_RUNTIME_STRING_TO_F32_EXPLICIT
                 ? "xl6Float32TextConvertV1"
-                : (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TO_F32_EXPLICIT
-                    ? "xl6Float32ValueConvertV1" : "xl6Float32ConvertV1"),
+                : "xl6Float32ConvertV1",
             (unsigned)module->operands[instruction->firstOperand], (unsigned)instruction->result);
     } else if ( instruction->runtimeOp ==
                 XL6_IR_RUNTIME_STRING_TO_F64_CHECKED ) {
         if ( !xl6IrCgenRuntimeCheckedFloatConvertAbi(module, instruction) )
             return -1;
         xl6OutputPrintf(out,
-            "    v%u = xlir_string_to_f64_checked(v%u);\n",
+            "    bool projection_ok_%u = xl6Float64TextConvertV1(v%u, &v%u);\n",
             (unsigned int)instruction->result,
-            (unsigned int)module->operands[instruction->firstOperand]);
+            (unsigned int)module->operands[instruction->firstOperand], (unsigned)instruction->result);
     } else if ( instruction->runtimeOp ==
                     XL6_IR_RUNTIME_STRING_TO_TIME_CHECKED ||
                 instruction->runtimeOp ==
@@ -101,6 +106,19 @@ static int xl6IrCgenEmitScalarConversionRuntime(
         if ( !xl6IrCgenRuntimeIntegerConvertAbi(module, instruction) )
             return -1;
         sourceValue = module->operands[instruction->firstOperand];
+        if (instruction->integerTarget != XL6_IR_INTEGER_TARGET_UNICODE_SCALAR &&
+            (instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_MANAGED_STRING ||
+             instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_XVALUE)) {
+            if (instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_MANAGED_STRING)
+                xl6OutputPrintf(out, "    bool projection_ok_%u = xl6IntegerTextConvertV1(v%u, %u, &v%u);\n",
+                    (unsigned)instruction->result, (unsigned)sourceValue,
+                    (unsigned)instruction->integerTarget, (unsigned)instruction->result);
+            else
+                xl6OutputPrintf(out, "    bool projection_ok_%u = xl6IntegerValueConvertV1(v%u, %u, UINT64_C(0x%016llX), &v%u);\n",
+                    (unsigned)instruction->result, (unsigned)sourceValue, (unsigned)instruction->integerTarget,
+                    (unsigned long long)module->runtimeTypeMap.typeTypeValueId, (unsigned)instruction->result);
+            return xl6OutputHasFailed(out) ? -1 : 1;
+        }
         if ( instruction->integerTarget ==
                  XL6_IR_INTEGER_TARGET_UNICODE_SCALAR ) {
             if (instruction->integerSourceAbi==XL6_IR_INTEGER_SOURCE_XVALUE) {
@@ -125,19 +143,14 @@ static int xl6IrCgenEmitScalarConversionRuntime(
                     ? "    v%u = v%u;\n"
                 : instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_F64
                     ? "    v%u = xlir_f64_to_u64_checked(v%u);\n"
-                : instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_MANAGED_STRING
-                    ? "    v%u = xlir_string_to_u64_checked(v%u);\n"
-                    : "    v%u = xlir_xvalue_to_u64_checked(v%u);\n";
+                    : NULL;
+            if (!format) return -1;
             xl6OutputPrintf(out, format,
                 (unsigned int)instruction->result,
                 (unsigned int)sourceValue);
         } else {
-            const char* format =
-                instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_F64
-                    ? "    v%u = xlir_f64_to_i64_checked(v%u, %d);\n"
-                : instruction->integerSourceAbi == XL6_IR_INTEGER_SOURCE_MANAGED_STRING
-                    ? "    v%u = xlir_string_to_i64_checked(v%u, %d);\n"
-                    : "    v%u = xlir_xvalue_to_i64_checked(v%u, %d);\n";
+            if (instruction->integerSourceAbi != XL6_IR_INTEGER_SOURCE_F64) return -1;
+            const char* format = "    v%u = xlir_f64_to_i64_checked(v%u, %d);\n";
             xl6OutputPrintf(out, format,
                             (unsigned int)instruction->result,
                             (unsigned int)sourceValue,

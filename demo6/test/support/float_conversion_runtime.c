@@ -15,7 +15,7 @@ bool __wrap_xrtNumParse(xstrview text,uint32_t flags,double* output)
 static void value(xvalue* source, float expected)
 {
     assert(source); float result=99;
-    assert(xl6Float32ValueConvertV1(source,&result));
+    assert(xl6Float32ValueConvertV2(source,UINT64_C(0x99110022),&result));
     assert(isnan(expected) ? isnan(result) : result==expected);
     if(expected==0)assert(!!signbit(expected)==!!signbit(result));
     assert(!xrtGetError()); xrtValueRelease(source);
@@ -45,13 +45,13 @@ int main(void)
     assert(!xl6Float32TextConvertV1((xstrview){zero,sizeof(zero)},&output) && output==77);
     assert(xrtErrorKind(xrtGetError())==XERR_VALUE); xrtClearError();
     xvalue* tooLarge=xrtValueFloat(DBL_MAX); assert(tooLarge);
-    assert(!xl6Float32ValueConvertV1(tooLarge,&output) && output==77);
+    assert(!xl6Float32ValueConvertV2(tooLarge,UINT64_C(0x99110022),&output) && output==77);
     assert(xrtErrorKind(xrtGetError())==XERR_RANGE); xrtClearError(); xrtValueRelease(tooLarge);
     xvalue* bytes=xrtValueBytes((xbytesview){(const unsigned char*)"x",1}); assert(bytes);
-    assert(!xl6Float32ValueConvertV1(bytes,&output) && output==77);
+    assert(!xl6Float32ValueConvertV2(bytes,UINT64_C(0x99110022),&output) && output==77);
     assert(xrtErrorKind(xrtGetError())==XERR_TYPE); xrtClearError(); xrtValueRelease(bytes);
     assert(!xl6Float32TextConvertV1((xstrview){NULL,1},&output) && output==77); xrtClearError();
-    assert(!xl6Float32ValueConvertV1(NULL,&output) && output==77); xrtClearError();
+    assert(!xl6Float32ValueConvertV2(NULL,UINT64_C(0x99110022),&output) && output==77); xrtClearError();
     failWithoutDiagnostic=true;
     assert(!xl6Float32TextConvertV1((xstrview){"1.5",3},&output) && output==77 && !xrtGetError());
     failWithoutDiagnostic=false;

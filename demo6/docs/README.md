@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [语言数值构造的精确文本与反射边界](stdlib53-b297-language-scalar-contracts.md)：完整字节长度、驻留解析、反射拒绝和明确状态输出。
+
 - [动态方法默认值的 IR 执行合同](stdlib53-b288-runtime-method-defaults.md)：调用时求值、接收者与前序参数借入、拥有结果及统一失败边界。
 
 - [动态函数默认参数的 IR 执行合同](stdlib53-b289-runtime-callable-defaults.md)：普通 xcall、匿名闭包捕获、前序参数私有 cell 和显式实参先校验。

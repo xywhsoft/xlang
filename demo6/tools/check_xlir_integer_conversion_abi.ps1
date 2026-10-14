@@ -116,13 +116,12 @@ if ( ! [System.Linq.Enumerable]::SequenceEqual(
 }
 $generated = [System.IO.File]::ReadAllText($generatedPath, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "static int64_t xlir_string_to_i64_checked(const char* text, int target)",
-    "static uint64_t xlir_string_to_u64_checked(const char* text)",
-    "static inline int64_t xlir_xvalue_to_i64_checked(const xvalue* value, int target)",
-    "static inline uint64_t xlir_xvalue_to_u64_checked(const xvalue* value)",
+    "extern bool xl6IntegerTextConvertV1(xstrview, unsigned int, void*)",
+    "extern bool xl6IntegerValueConvertV1(const xvalue*, unsigned int, uint64_t, void*)",
+    "projection_ok_",
     "static int64_t xlir_integer_wrap_to_i64(uint64_t value, int target)",
-    "negative string cannot convert to unsigned integer",
-    "invalid unsigned integer string"
+    "xl6IntegerTextConvertV1(v",
+    "xl6IntegerValueConvertV1(v"
 ) ) {
     if ( ! $generated.Contains($required) ) {
         throw "XLIR integer conversion C emission is incomplete: $required"

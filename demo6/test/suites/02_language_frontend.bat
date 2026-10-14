@@ -2564,7 +2564,7 @@ rem Dynamic integer conversion has the same verified XLIR operation, selected
 rem from the xvalue operand ABI rather than source-level type/callee spelling.
 release\xl.exe cgen test\cases\xlir_dynamic_int_convert.xl --backend xlir --emit build\test\xlir_dynamic_int_convert_generated.c
 if errorlevel 1 exit /b 1
-findstr /C:"xlir_xvalue_to_i64_checked" build\test\xlir_dynamic_int_convert_generated.c >nul
+findstr /C:"xl6IntegerValueConvertV1" build\test\xlir_dynamic_int_convert_generated.c >nul
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% test\cases\xlir_dynamic_int_convert_host.c %XL6_CGEN_LINKS% -o build\test\xlir_dynamic_int_convert_host.exe
 if errorlevel 1 exit /b 1
@@ -2574,7 +2574,7 @@ if errorlevel 1 exit /b 1
 rem Dynamic parse failure travels through ERROR_TEST and a typed ValueError catch.
 release\xl.exe cgen test\cases\xlir_dynamic_int_convert_failure.xl --backend xlir --emit build\test\xlir_dynamic_int_convert_failure_generated.c
 if errorlevel 1 exit /b 1
-findstr /C:"dynamic value cannot convert to integer" build\test\xlir_dynamic_int_convert_failure_generated.c >nul
+findstr /C:"xl6IntegerValueConvertV1" build\test\xlir_dynamic_int_convert_failure_generated.c >nul
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% test\cases\xlir_dynamic_int_convert_failure_host.c %XL6_CGEN_LINKS% -o build\test\xlir_dynamic_int_convert_failure_host.exe
 if errorlevel 1 exit /b 1
@@ -2624,9 +2624,9 @@ rem integerTarget carries sign/width into the same checked operation: no C cast
 rem may truncate a dynamic value before RangeError reaches the typed catch edge.
 release\xl.exe cgen test\cases\xlir_dynamic_int_width_convert.xl --backend xlir --emit build\test\xlir_dynamic_int_width_convert_generated.c
 if errorlevel 1 exit /b 1
-findstr /C:"xlir_xvalue_to_i64_checked(v3, 1);" build\test\xlir_dynamic_int_width_convert_generated.c >nul
+findstr /C:"xl6IntegerValueConvertV1(v3, 1, UINT64_C(" build\test\xlir_dynamic_int_width_convert_generated.c >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xlir_xvalue_to_i64_checked(v7, 2);" build\test\xlir_dynamic_int_width_convert_generated.c >nul
+findstr /C:"xl6IntegerValueConvertV1(v7, 2, UINT64_C(" build\test\xlir_dynamic_int_width_convert_generated.c >nul
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% test\cases\xlir_dynamic_int_width_convert_host.c %XL6_CGEN_LINKS% -o build\test\xlir_dynamic_int_width_convert_host.exe
 if errorlevel 1 exit /b 1
@@ -2646,9 +2646,9 @@ rem The same integerTarget ABI covers all lossless i64 execution targets through
 rem 32 bits; boundary values must survive without C-level narrowing.
 release\xl.exe cgen test\cases\xlir_dynamic_wide_int_convert.xl --backend xlir --emit build\test\xlir_dynamic_wide_int_convert_generated.c
 if errorlevel 1 exit /b 1
-findstr /C:"xlir_xvalue_to_i64_checked(v3, 3);" build\test\xlir_dynamic_wide_int_convert_generated.c >nul
+findstr /C:"xl6IntegerValueConvertV1(v3, 3, UINT64_C(" build\test\xlir_dynamic_wide_int_convert_generated.c >nul
 if errorlevel 1 exit /b 1
-findstr /C:"xlir_xvalue_to_i64_checked(v15, 6);" build\test\xlir_dynamic_wide_int_convert_generated.c >nul
+findstr /C:"xl6IntegerValueConvertV1(v15, 6, UINT64_C(" build\test\xlir_dynamic_wide_int_convert_generated.c >nul
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% test\cases\xlir_dynamic_wide_int_convert_host.c %XL6_CGEN_LINKS% -o build\test\xlir_dynamic_wide_int_convert_host.exe
 if errorlevel 1 exit /b 1
@@ -2669,7 +2669,7 @@ release\xl.exe cgen test\cases\xlir_dynamic_width_compare.xl --backend xlir --em
 if errorlevel 1 exit /b 1
 findstr /R /C:"v[0-9]* = v[0-9]* == v[0-9]*;" build\test\xlir_dynamic_width_compare_generated.c | find /C "==" | findstr /X "2" >nul
 if errorlevel 1 exit /b 1
-findstr /C:"= xlir_xvalue_to_i64_checked(" build\test\xlir_dynamic_width_compare_generated.c | find /C "=" | findstr /X "2" >nul
+findstr /C:"= xl6IntegerValueConvertV1(" build\test\xlir_dynamic_width_compare_generated.c | find /C "=" | findstr /X "2" >nul
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% -Werror test\cases\xlir_dynamic_width_compare_host.c %XL6_CGEN_LINKS% -o build\test\xlir_dynamic_width_compare_host.exe
 if errorlevel 1 exit /b 1

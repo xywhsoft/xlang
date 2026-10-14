@@ -1974,7 +1974,7 @@ foreach ( $required in @(
     "xvalue-binary-add",
     "xvalue-binary-sub",
     "xvalue-binary-mul",
-    "xlir_xvalue_to_u64_checked",
+    "xl6IntegerValueConvertV1",
     "xrtValueUInt",
     "xrtValueGetUInt",
     "xl6FutureAggregateAllV2(",
@@ -2004,7 +2004,7 @@ foreach ( $required in @(
 foreach ( $required in @(
     "xlir_checked_float_string.xl", "checked-float-convert",
     "string-to-f64-checked", "borrow", "may-raise", "ERROR_TEST",
-    "strtod(text, &end)", "ValueError", "invalid float string",
+    "xl6Float64TextConvertV1", "projection_ok_",
     "ReadAllBytes", "-Werror", "strict-C runtime failed"
 ) ) {
     if ( ! $checkedFloatConversionGateText.Contains($required) ) {

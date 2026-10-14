@@ -67,9 +67,6 @@ static int xl6IrCgenEmitRuntimePrelude(
          needs->needsStackResourceRuntime ||
          needs->needsFutureAggregateAllArray || needs->needsFutureAggregateRaceArray )
         xl6OutputPuts("#include <limits.h>\n", out);
-    if ( needs->needsXValueIntegerConvertRuntime || needs->needsStringI64ConvertRuntime ||
-         needs->needsStringU64ConvertRuntime || needs->needsStringF64ConvertRuntime )
-        xl6OutputPuts("#include <errno.h>\n#include <stdlib.h>\n", out);
     if ( needs->needsErrorRuntime || needs->needsXCallRuntime || needs->needsDynamicMethodRuntime )
         xl6OutputPuts("#include <string.h>\n", out);
     xl6OutputPuts("\n", out);
@@ -289,57 +286,10 @@ static int xl6IrCgenEmitRuntimePrelude(
                       "{ if (value == value && value >= 0.0 && value < 18446744073709551616.0) return (uint64_t)value;\n"
                       "  xrtSetErrorTake(xlir_error_create(\"RangeError\", \"float value is outside uint64 range\")); return 0; }\n\n",
                       out);
-    if ( needs->needsStringI64ConvertRuntime || needs->needsStringU64ConvertRuntime ||
-         needs->needsStringF64ConvertRuntime )
-        xl6OutputPuts("static int xlir_numeric_string_is_space(char ch)\n"
-                      "{ return ch == ' ' || ch == '\\t' || ch == '\\r' || ch == '\\n' || ch == '\\v' || ch == '\\f'; }\n",
-                      out);
-    if ( needs->needsStringI64ConvertRuntime )
-        xl6OutputPuts("static int64_t xlir_string_to_i64_checked(xlir_string input, int target)\n"
-                      "{\n"
-                      "    const char* text = xlir_string_cstr(input);\n"
-                      "    char* end = NULL; long long value;\n"
-                      "    if (text == NULL) return 0;\n"
-                      "    while (xlir_numeric_string_is_space(*text)) ++text;\n"
-                      "    errno = 0; value = strtoll(text, &end, 10);\n"
-                      "    if (end == text || errno == ERANGE) goto invalid;\n"
-                      "    while (end != NULL && xlir_numeric_string_is_space(*end)) ++end;\n"
-                      "    if (end == NULL || *end != '\\0') goto invalid;\n"
-                      "    return xlir_i64_range_checked((int64_t)value, target);\n"
-                      "invalid:\n"
-                      "    xrtSetErrorTake(xlir_error_create(\"ValueError\", \"invalid integer string\")); return 0;\n"
-                      "}\n\n", out);
-    if ( needs->needsStringU64ConvertRuntime )
-        xl6OutputPuts("static uint64_t xlir_string_to_u64_checked(xlir_string input)\n"
-                      "{\n"
-                      "    const char* text = xlir_string_cstr(input);\n"
-                      "    char* end = NULL; unsigned long long value;\n"
-                      "    if (text == NULL) return 0;\n"
-                      "    while (xlir_numeric_string_is_space(*text)) ++text;\n"
-                      "    if (*text == '-') { xrtSetErrorTake(xlir_error_create(\"RangeError\", \"negative string cannot convert to unsigned integer\")); return 0; }\n"
-                      "    errno = 0; value = strtoull(text, &end, 10);\n"
-                      "    if (end == text || errno == ERANGE) goto invalid;\n"
-                      "    while (end != NULL && xlir_numeric_string_is_space(*end)) ++end;\n"
-                      "    if (end == NULL || *end != '\\0') goto invalid;\n"
-                      "    return (uint64_t)value;\n"
-                      "invalid:\n"
-                      "    xrtSetErrorTake(xlir_error_create(\"ValueError\", \"invalid unsigned integer string\")); return 0;\n"
-                      "}\n\n", out);
-    if ( needs->needsStringF64ConvertRuntime )
-        xl6OutputPuts("static double xlir_string_to_f64_checked(xlir_string input)\n"
-                      "{\n"
-                      "    const char* text = xlir_string_cstr(input);\n"
-                      "    char* end = NULL; double value;\n"
-                      "    if (text == NULL) return 0.0;\n"
-                      "    while (xlir_numeric_string_is_space(*text)) ++text;\n"
-                      "    errno = 0; value = strtod(text, &end);\n"
-                      "    if (end == text || errno == ERANGE) goto invalid;\n"
-                      "    while (end != NULL && xlir_numeric_string_is_space(*end)) ++end;\n"
-                      "    if (end == NULL || *end != '\\0') goto invalid;\n"
-                      "    return value;\n"
-                      "invalid:\n"
-                      "    xrtSetErrorTake(xlir_error_create(\"ValueError\", \"invalid float string\")); return 0.0;\n"
-                      "}\n\n", out);
+    if (needs->needsStringI64ConvertRuntime || needs->needsStringU64ConvertRuntime)
+        xl6OutputPuts("extern bool xl6IntegerTextConvertV1(xstrview, unsigned int, void*);\n", out);
+    if (needs->needsStringF64ConvertRuntime)
+        xl6OutputPuts("extern bool xl6Float64TextConvertV1(xstrview, double*);\n", out);
     if ( needs->needsFutureRuntime ) {
         if ( !xl6IrCgenNeedsXrtDeclarations(needs) )
             xl6OutputPuts("typedef enum xfuturestate { XFUTURE_PENDING = 0, XFUTURE_RESOLVED = 1, XFUTURE_FAILED = 2, XFUTURE_CANCELLED = 3, XFUTURE_CLOSED = 4 } xfuturestate;\n"

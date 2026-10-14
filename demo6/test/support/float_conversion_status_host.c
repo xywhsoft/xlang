@@ -3,11 +3,11 @@
 #include <assert.h>
 #include <stdio.h>
 static unsigned mode;
-extern bool __real_xl6Float32ValueConvertV1(const xvalue*,float*);
-bool __wrap_xl6Float32ValueConvertV1(const xvalue* source,float* output)
+extern bool __real_xl6Float32ValueConvertV2(const xvalue*,uint64_t,float*);
+bool __wrap_xl6Float32ValueConvertV2(const xvalue* source,uint64_t reflectionIdentity,float* output)
 {
-    if(!mode)return __real_xl6Float32ValueConvertV1(source,output);
-    assert(source && output);
+    if(!mode)return __real_xl6Float32ValueConvertV2(source,reflectionIdentity,output);
+    assert(source && output && reflectionIdentity);
     if(mode==2)xrtSetErrorKind(XERR_TYPE);
     return false;
 }

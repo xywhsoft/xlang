@@ -186,7 +186,7 @@ $c = [System.IO.File]::ReadAllText($generatedC, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
     "xlir_xvalue_project_string_copy(",
     "xlir_xvalue_type_id(",
-    "xlir_xvalue_to_i64_checked(",
+    "xl6IntegerValueConvertV1(",
     "xlir_result_void",
     "if (r"
 ) ) {
