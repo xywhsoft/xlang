@@ -90,6 +90,11 @@ static int xl6IrCallableBridgeParameterPlan(
         plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_ERROR_REF;
         plan->decodedDestroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_FREE_ERROR;
         break;
+    case XL6_IR_C_ABI_CLOSURE_PTR:
+        plan->decodeAbi = XL6_IR_CALLABLE_BRIDGE_CLOSURE_COPY;
+        plan->encodeAbi = XL6_IR_CALLABLE_BRIDGE_CLOSURE_REF;
+        plan->decodedDestroyAbi = XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_CLOSURE;
+        break;
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR:
         plan->decodeAbi = abi == XL6_IR_PARAMETER_ABI_OWNED
             ? XL6_IR_CALLABLE_BRIDGE_XVALUE_RETAIN : XL6_IR_CALLABLE_BRIDGE_XVALUE_BORROW;

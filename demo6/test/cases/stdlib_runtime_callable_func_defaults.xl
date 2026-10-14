@@ -1,0 +1,8 @@
+func increment(int value) as int
+    return value + 1
+end
+func callback(func(int) as int action = increment) as int
+    return action(7)
+end
+var callable = xcall(callback)
+assert int(callable()) == 8
