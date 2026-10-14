@@ -68,6 +68,11 @@ static int closure_contract(void)
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SequenceOwnershipAdapterV1")==XL6_ARTIFACT_SEQUENCE);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SequenceCreateAdmittedV1")==XL6_ARTIFACT_SEQUENCE);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SequenceCloneRoleV1")==XL6_ARTIFACT_SEQUENCE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SequenceBindProjectionRoleV1")==XL6_ARTIFACT_SEQUENCE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SequenceBeginErasedRoleV1")==XL6_ARTIFACT_SEQUENCE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SequenceBindStackResultArrayV1")==XL6_ARTIFACT_SEQUENCE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6SequenceStackResultArrayV1")==XL6_ARTIFACT_SEQUENCE);
+    CHECK(xl6ArtifactRuntimeSymbolOwner("xl6StackEraseV1")==XL6_ARTIFACT_STACK_ERASED);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6CollectionIdentityEnterV1")==XL6_ARTIFACT_SEQUENCE);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6CodeOwnerScopeForeign")==XL6_ARTIFACT_CODE_LEASE);
     CHECK(xl6ArtifactRuntimeSymbolOwner("xl6PersistenceRestorePlanTakeV1")==XL6_ARTIFACT_ARRAY_IMPORT_CHAIN);
