@@ -7,6 +7,7 @@
 struct xvalue;
 struct xvaluehandleops;
 struct xrtownershipref;
+struct xrtownershipadapterv1;
 
 /* Immutable, resident resource declaration. These identities are not a
  * universal handle certificate: the host admits each audited policy by exact
@@ -35,15 +36,17 @@ XL6_CODE_LEASE_API bool xl6NativeHandleTraceLeaf(const struct xvalue*,
     bool (*)(struct xrtownershipref, void*), void*);
 
 /* Commands own text/config/duplicated OS capabilities; statuses own plain data.
- * Live Process is NOT a leaf: its XRT process can own a shared Future, Promise
- * and error, while the native waiter holds a real process reference. Its
- * resident policy provides ordinary destruction but refuses graph Trace until
- * the complete physical owning graph and retirement protocol are admitted.
+ * Live Process is NOT a leaf: its shared wrapper owns one XRT process user
+ * endpoint, which can own a shared Future, Promise and error. The native waiter
+ * holds its own real process reference. Each physical node has independent
+ * lifecycle admission; native resource retirement runs outside graph Freeze.
  * No generated callback is retained; that alone does not certify a leaf.
  * This list does NOT certify custom IO, arbitrary extensions or other handles. */
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6ProcessCommandHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6ProcessHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6ProcessStatusHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API struct xrtownershipref xl6ProcessLiveOwnershipV1(const void*);
+XL6_CODE_LEASE_API const struct xrtownershipadapterv1* xl6ProcessLiveOwnershipAdapterV1(struct xrtownershipref);
 /* An iterator owns only a copied byte allocation, never its source Buffer. */
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6BufferIteratorHandlePolicyV1Get(void);
 /* The actual XRT buffer contains Data/Size/Capacity, not language values. */

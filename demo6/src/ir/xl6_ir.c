@@ -16742,6 +16742,10 @@ static XL6_IrMemberAbi xl6IrClassFieldMemberAbi(
         return XL6_IR_MEMBER_ABI_CLASS_FIELD_TAGGED_NULLABLE;
     case XL6_IR_C_ABI_CLOSURE_PTR:
         return XL6_IR_MEMBER_ABI_CLASS_FIELD_CLOSURE;
+    case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR:
+        return xl6IrFutureProjectionPayloadType(module,resultTypeId,
+            XL6_IR_RUNTIME_XVALUE_PROJECT_FUTURE_COPY)!=XL6_IR_TYPE_INVALID
+            ? XL6_IR_MEMBER_ABI_CLASS_FIELD_EXACT_VALUE : XL6_IR_MEMBER_ABI_NONE;
     case XL6_IR_C_ABI_RUNTIME_ERROR_PTR:
         return resultType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
                resultType->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&

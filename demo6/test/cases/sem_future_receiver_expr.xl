@@ -2,4 +2,5 @@ async func addAsync(int a, int b) as int
     return a + b
 end
 
-bool done = addAsync(1, 2).wait()
+// Expression receivers are valid; wait still takes no arguments.
+bool done = addAsync(1, 2).wait(1)

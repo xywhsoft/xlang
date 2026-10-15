@@ -1,0 +1,56 @@
+int made = 0
+async func resolved(int value) as int
+    return value
+end
+func produce() as future<int>
+    made += 1
+    return resolved(42)
+end
+assert produce().wait()
+assert made == 1
+assert produce().waitTimeout(5000)
+assert made == 2
+class FutureReceiverOwner
+    future<int> completion
+    create(future<int> completion)
+        self.completion = completion
+    end
+    func check() as bool
+        assert self.completion.isDone()
+        assert not self.completion.isPending()
+        assert not self.completion.isFailed()
+        assert not self.completion.isCancelled()
+        assert self.completion.state() == 1
+        assert self.completion.status() == 0
+        assert self.completion.wait()
+        assert self.completion.waitUntil(0)
+        return true
+    end
+end
+future<int> completion = resolved(7)
+assert completion.wait()
+auto owner = FutureReceiverOwner(completion)
+assert owner.check()
+array<future<int>> items = [completion]
+assert items[0].isDone()
+assert items[0].wait()
+int evaluated = 0
+func failingTimeout() as int
+    evaluated += 1
+    throw "later Future operand"
+    return 0
+end
+bool caught = false
+try
+    auto ignored = produce().waitTimeout(failingTimeout())
+catch Error failure
+    caught = true
+end
+assert caught and made == 3 and evaluated == 1
+caught = false
+try
+    auto ignored = owner.completion.waitTimeout(failingTimeout())
+catch Error failure
+    caught = true
+end
+assert caught and evaluated == 2
