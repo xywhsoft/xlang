@@ -121,6 +121,10 @@ typedef struct XL_LoadedLibrary {
 } XL_LoadedLibrary;
 
 struct XL_Context {
+    /* Owning fields are native configuration/OS resources only. The resident
+     * xl6XlangContextHandlePolicyV1Get publishes that exact leaf contract.
+     * Calls own compile units/modules on their stack, not in this record.
+     * An added owning language field requires revisiting that graph policy. */
     char* baseDir;
     char* workDir;
     char* tempDir;
@@ -2135,6 +2139,10 @@ static int xlCompileUnitToExternalOutputWithC(
             &artifactRuntime, &unit->parse.diags)) {
         xlSetCompileDiagError(ctx, unit);
         goto cleanup;
+    }
+    if ((artifactRuntime.hostAbi & XL6_ARTIFACT_HOST_XLANG_RUNTIME_V1) &&
+        !(unit->importDeps.features & (XL6_IMPORT_FEATURE_XLANG_RUNTIME | XL6_IMPORT_FEATURE_XLANG_COMPILER))) {
+        xlSetError(ctx,"artifact requires the declared embedded xlang runtime host ABI");goto cleanup;
     }
     if(options.emitMainWrapper){
         entryContract.managed=artifactRuntime.entryOwnershipAbi==XL6_ARTIFACT_ENTRY_OWNERSHIP_GRAPH;

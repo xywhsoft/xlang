@@ -524,7 +524,7 @@ int main(int argc,char** argv)
             if (!xl6ArtifactRuntimeClosePlan(&roots,&plan)) return 1;
             printf("{\"Id\":%u,\"Source\":\"%s\",\"Dependencies\":[",i,item->source);
             for (size_t j=0;j<item->dependencyCount;++j) printf("%s%zu",j?",":"",item->dependencies[j]);
-            printf("],\"Closure\":"); print_set(&plan.components); puts("}");
+            printf("],\"HostAbi\":%u,\"ClosureHostAbi\":%u,\"Closure\":",item->hostAbi,plan.hostAbi); print_set(&plan.components); puts("}");
         }
         return 0;
     }

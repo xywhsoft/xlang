@@ -374,6 +374,8 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogCreateV1", (const void*)xl6OwnershipCatalogCreateV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogDestroyV1", (const void*)xl6OwnershipCatalogDestroyV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogResolveV1", (const void*)xl6OwnershipCatalogResolveV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6XlangContextHandlePolicyV1Get", (const void*)xl6XlangContextHandlePolicyV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6BufferHandlePolicyV1Get", (const void*)xl6BufferHandlePolicyV1Get)) return 0;
 #define XL6_POLICY_ADD_SYMBOL(Name, Type) \
     if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogAdd" #Name "V1", (const void*)xl6OwnershipCatalogAdd##Name##V1)) return 0;
     XL6_OWNERSHIP_POLICY_GROUPS(XL6_POLICY_ADD_SYMBOL)

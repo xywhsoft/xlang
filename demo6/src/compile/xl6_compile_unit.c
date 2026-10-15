@@ -121,7 +121,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_buffer_iterator.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_BUFFER", "XRT_MODULE_MEMORY", "XRT_MODULE_THREAD"}},
     {"src/runtime/xl6_buffer_hex.c", D(), {"XRT_MODULE_BUFFER_HEX"}},
     {"src/runtime/xl6_buffer_base64.c", D(), {"XRT_MODULE_BUFFER_BASE64"}},
-    {"src/runtime/xl6_buffer_core.c", D(), {"XRT_MODULE_BUFFER"}},
+    {"src/runtime/xl6_buffer_core.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_BUFFER"}},
     {"src/runtime/xl6_buffer_query.c", D(), {"XRT_MODULE_BUFFER", "XRT_MODULE_STRING"}},
     {"src/runtime/xl6_sequence.c", D(), {"XRUNTIME_MODULE_TYPED_ARRAY", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE",
         "XRUNTIME_MODULE_RUNTIME_TYPE_STRING_VALUE", "XRT_MODULE_ATOMIC"}},
@@ -424,7 +424,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_future_payload.c",D(R(OWNERSHIP_CATALOG),R(FUTURE_PAYLOAD)),{NULL}},
     {"src/runtime/xl6_ownership_domain_native_future.c",D(R(OWNERSHIP_CATALOG)),{"XRT_MODULE_FUTURE"}},
     {"src/runtime/xl6_ownership_domain_future_aggregate.c",D(R(OWNERSHIP_CATALOG),R(FUTURE_AGGREGATE)),{"XRT_MODULE_FUTURE_COMBINE"}},
-    {"src/runtime/xl6_ownership_domain_network.c",D(R(OWNERSHIP_CATALOG),R(NETWORK_SERVICE)),{"XRT_MODULE_NET_ENGINE","XRT_MODULE_NET_RESOLVER"}}
+    {"src/runtime/xl6_ownership_domain_network.c",D(R(OWNERSHIP_CATALOG),R(NETWORK_SERVICE)),{"XRT_MODULE_NET_ENGINE","XRT_MODULE_NET_RESOLVER"}},
+    {"src/runtime/xl6_xlang_context_policy.c",D(R(NATIVE_HANDLE)),{NULL},XL6_ARTIFACT_HOST_XLANG_RUNTIME_V1},
+    {"src/runtime/xl6_ownership_domain_xlang_context.c",D(R(OWNERSHIP_CATALOG),R(XLANG_CONTEXT_POLICY)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_buffer.c",D(R(OWNERSHIP_CATALOG),R(BUFFER_CORE)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -516,6 +519,8 @@ int xl6ArtifactRuntimeClosePlan(const XL6_ArtifactRuntimeSet* roots, XL6_Artifac
     for (unsigned i=0;i<XL6_ARTIFACT_RUNTIME_COUNT;++i) {
         const XL6_ArtifactRuntimeComponent* item=&xl6ArtifactComponents[i];
         if (!xl6ArtifactRuntimeSetHas(&result.components,i)) continue;
+        if(item->hostAbi & ~(unsigned)XL6_ARTIFACT_HOST_ALL)return 0;
+        result.hostAbi|=item->hostAbi;
         result.sources[result.sourceCount++]=item->source;
         for (size_t j=0;j<sizeof(item->nativeModules)/sizeof(item->nativeModules[0]) && item->nativeModules[j];++j) {
             size_t k=0;
@@ -567,7 +572,8 @@ int xl6ArtifactOwnershipPlanBuild(const XL6_ArtifactRuntimePlan* base,XL6_Artifa
     XL6_ArtifactOwnershipPlan result={0};
     XL6_ArtifactRuntimePlan closed={0};
     if(!xl6ArtifactRuntimeClosePlan(&base->roots,&closed) ||
-        !xl6ArtifactRuntimeSetEqual(&base->components,&closed.components) || base->sourceCount!=closed.sourceCount)return 0;
+        !xl6ArtifactRuntimeSetEqual(&base->components,&closed.components) || base->sourceCount!=closed.sourceCount ||
+        base->hostAbi!=closed.hostAbi)return 0;
     for(size_t i=0;i<closed.sourceCount;++i)
         if(!base->sources[i] || strcmp(base->sources[i],closed.sources[i]))return 0;
     XL6_ArtifactRuntimeSet roots=base->roots;

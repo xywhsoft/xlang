@@ -2,6 +2,11 @@
 
 ## 1. 目标
 
+Context／Buffer 的驻留拥有合同、嵌套 SDK 修复及 31 个可达原生
+入口审计清单见
+[原生 Context 和 Buffer 的驻留拥有合同](stdlib53-b304-xlang-context-policy.md)。
+完整三组目标不缩减，未知原生拥有关系仍拒绝准入。
+
 对象图策略已拆为独立能力并接入 JIT，按需部署元数据见
 [对象图退役的精确策略目录](stdlib53-b302-ownership-policy-catalog.md)。
 独立 main 已接入共同原生驱动，源码 AOT 及读取合同见

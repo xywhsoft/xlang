@@ -36,7 +36,7 @@ def declarations(root):
     return ids, entries
 
 
-def inspect(ids, entries, components):
+def inspect(ids, entries, components, host_symbols, host_abis):
     errors, declared, actual = [], {}, {}
     for symbol, owner in entries:
         if symbol in declared:
@@ -62,6 +62,8 @@ def inspect(ids, entries, components):
             errors.append('Declared export missing: ' + symbol)
     links = []
     by_id = {row['Id']: row for row in components}
+    allowed_bits=0
+    for bit in host_abis:allowed_bits|=bit
     for row in components:
         reached, pending = set(), [row['Id']]
         while pending:
@@ -75,7 +77,14 @@ def inspect(ids, entries, components):
                 pending.extend(by_id[item]['Dependencies'])
         if reached != set(row['Closure']) or len(row['Closure']) != len(set(row['Closure'])):
             errors.append('Incorrect component closure: ' + str(row['Id']))
-        missing = [symbol for symbol in row['Undefined'] if actual.get(symbol) not in row['Closure']]
+        host_abi=row['HostAbi'];closed_host=0
+        if host_abi & ~allowed_bits:errors.append('Unknown host ABI: '+str(row['Id']))
+        for identifier in reached:
+            if identifier in by_id:closed_host|=by_id[identifier]['HostAbi']
+        if row['ClosureHostAbi']!=closed_host:errors.append('Incorrect host closure: '+str(row['Id']))
+        imports={symbol for bit,symbol in host_abis.items() if host_abi & bit}
+        missing = [symbol for symbol in row['Undefined'] if actual.get(symbol) not in row['Closure'] and
+            not (symbol in imports and symbol in host_symbols)]
         links.append({'Id': row['Id'], 'Source': row['Source'], 'Build': row['Build'],
                       'Missing': missing, 'Complete': row['Build'] == 0 and not missing})
         errors.extend('Missing resident dependency: ' + symbol for symbol in missing)
@@ -83,12 +92,12 @@ def inspect(ids, entries, components):
             'ActualExports': len(actual), 'ComponentCount': len(ids), 'Linkage': links}
 
 
-def negative_controls(ids, entries, components):
+def negative_controls(ids, entries, components, host_symbols, host_abis):
     """Mutate the actual full passing population, never an invented toy catalog."""
     checks = []
 
     def reject(name, changed_entries, changed_components):
-        result = inspect(ids, changed_entries, changed_components)
+        result = inspect(ids, changed_entries, changed_components,host_symbols,host_abis)
         assert result['RegistryErrors'], 'Audit accepted negative control: ' + name
         checks.append({'Name': name, 'Rejected': True, 'Errors': result['RegistryErrors']})
 
@@ -126,6 +135,13 @@ def negative_controls(ids, entries, components):
         mutated = copy.deepcopy(components)
         next(row for row in mutated if name in row['Defined'])['Defined'].remove(name)
         reject('missing-host-' + name, entries, mutated)
+    row=next(item for item in components if item['HostAbi'])
+    changed=copy.deepcopy(components);changed[row['Id']]['HostAbi']=0
+    reject('undeclared-host-abi',entries,changed)
+    changed=copy.deepcopy(components);changed[row['Id']]['HostAbi']=1<<31
+    reject('unknown-host-abi',entries,changed)
+    assert inspect(ids,entries,components,set(),host_abis)['RegistryErrors']
+    checks.append(dict(Name='missing-actual-host-definition',Rejected=True))
     return checks
 
 
@@ -136,6 +152,7 @@ def main():
     mode.add_argument('--catalog-dir', type=Path, help='Reuse actual objects from the enclosing artifact gate')
     mode.add_argument('--compiler', type=Path, help='Build contract and every resident provider independently')
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--host-object',type=Path,help='Actual host object/library for a reused provider catalog')
     args = parser.parse_args()
     root, out = args.root.resolve(), args.out.resolve()
     assert not out.exists(), 'Preserve prior catalog evidence'
@@ -143,7 +160,13 @@ def main():
     assert cc and nm
     build_dir = args.catalog_dir.resolve() if args.catalog_dir else out.parent / (out.stem + '-objects')
     files = {Path(__file__).resolve(), Path(nm)}
-    files.update(root / path for path in ('src/compile/xl6_artifact_runtime.h',
+    host_provider=None;host_inspector=None
+    if args.catalog_dir:
+        host_provider=args.host_object.resolve() if args.host_object else root/'release'/('xl.dll' if os.name=='nt' else 'libxl.so')
+        assert host_provider.is_file(),'A host capability must be checked against an actual provider'
+        host_inspector=shutil.which('objdump') if os.name=='nt' and host_provider.suffix=='.dll' else nm
+        assert host_inspector;files.update((host_provider,Path(host_inspector)))
+    files.update(root / path for path in ('src/compile/xl6_artifact_runtime.h','src/compile/xl6_artifact_host_abis.inc',
         'src/compile/xl6_artifact_runtime_symbols.inc', 'src/runtime/xl6_log_symbols.inc',
         'src/runtime/xl6_text_symbols.inc'))
     # Include all native/header inputs, not just the exported registry rows.
@@ -223,9 +246,31 @@ def main():
             report.setdefault('Objects', []).append({'Path': str(obj), 'Sha256': sha(obj)})
             components.append(dict(component, Build=0, Defined=defined, Undefined=undefined))
         ids, entries = declarations(root)
-        report.update(inspect(ids, entries, components))
+        abi_text=(root/'src/compile/xl6_artifact_host_abis.inc').read_text(encoding='utf-8')
+        declared_host=re.findall(r'XL6_ARTIFACT_HOST_ABI\((\w+),(\d+),"(\w+)"\)',abi_text)
+        assert declared_host and len({int(bit) for _,bit,_ in declared_host})==len(declared_host)
+        host_abis={int(bit):symbol for _,bit,symbol in declared_host}
+        assert all(bit and not bit&(bit-1) for bit in host_abis)
+        if args.compiler:
+            host_object=next(Path(row['Path']) for row in build['Objects'] if Path(row['Path']).stem=='xl_api')
+            host_text=run('host-definitions',[nm,'-g','--defined-only',host_object])
+            host_symbols=set(re.findall(r'\b[A-Za-z]\s+(xl\w+)\s*$',host_text,re.M))
+            report['ActualHostObject']=dict(Path=str(host_object),Sha256=sha(host_object))
+        else:
+            if os.name=='nt' and host_provider.suffix=='.dll':
+                host_text=run('host-definitions',[host_inspector,'-p',host_provider])
+                # Binutils can print either the compact name-pointer table or
+                # the +base/ordinal form. Accept only complete export rows.
+                host_symbols=set(re.findall(r'^\s*\[\s*\d+\]\s+(?:\+base\[\s*\d+\]\s+[0-9a-fA-F]+\s+)?(xl\w+)\s*$',host_text,re.M))
+            else:
+                host_text=run('host-definitions',[nm,*(['-D'] if host_provider.suffix=='.so' else []),'-g','--defined-only',host_provider])
+                host_symbols=set(re.findall(r'\b[A-Za-z]\s+(xl\w+)\s*$',host_text,re.M))
+            report['ActualHostObject']=dict(Path=str(host_provider),Sha256=sha(host_provider))
+        report['DeclaredHostAbis']=declared_host
+        report['ActualRequiredHostExports']=sorted(host_symbols & set(host_abis.values()))
+        report.update(inspect(ids, entries, components,host_symbols,host_abis))
         assert not report['RegistryErrors'], report['RegistryErrors']
-        report['NegativeControls'] = negative_controls(ids, entries, components)
+        report['NegativeControls'] = negative_controls(ids, entries, components,host_symbols,host_abis)
         report['DependencyPairs'] = len(ids) ** 2
         report['HostCheckedExports'] = sorted(symbol for row in components for symbol in row['Defined'] if symbol.startswith('xlSync'))
         report['InputsUnchanged'] = all(sha(row['Path']) == row['Sha256'] for row in inputs + report['Objects'])

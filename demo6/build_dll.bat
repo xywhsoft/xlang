@@ -44,6 +44,15 @@ call tools\build_xrt_obj.bat
 if errorlevel 1 exit /b 1
 
 rem Safe native constructors are separate from lossless read/box providers.
+rem Audited nested-runtime context policy stays resident in both DLL targets.
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_xlang_context_policy.c -o "%XL6_BUILD_TMP%\xl6_xlang_context_policy.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_xlang_context.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_xlang_context.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_buffer.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_buffer.o"
+if errorlevel 1 exit /b 1
+set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_xlang_context_policy.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_xlang_context.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_buffer.o""
+
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_native_scalar_convert.c -o "%XL6_BUILD_TMP%\xl6_native_scalar_convert.o"
 if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_value_native_scalar_convert.c -o "%XL6_BUILD_TMP%\xl6_value_native_scalar_convert.o"
