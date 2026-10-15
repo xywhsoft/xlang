@@ -38,6 +38,9 @@ typedef struct XL6_IrDirectBridgeContract {
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
+    {"xl6_xlang_context_destroy",XL6_IR_RUNTIME_BRIDGE_XLANG,XL6_IR_C_ABI_VOID,1,
+        {XL6_IR_C_ABI_RUNTIME_XVALUE_PTR},.parameterOwners={"xl6_xlang_context_destroy"},.noRaise=1,
+        .nativeHandlePolicy="xl6XlangContextHandlePolicyV1Get"},
 #define S XL6_IR_C_ABI_MANAGED_STRING
 #define I XL6_IR_C_ABI_I64
 #define T XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE
@@ -78,7 +81,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6BufferCreateV1",T,V,0,{0},.resultOwner="xl6BufferDestroyV1"},
     {"xl6BufferCreateReserveV1",T,V,1,{I},.resultOwner="xl6BufferDestroyV1"},
     {"xl6BufferAdoptV1",T,V,1,{XL6_IR_C_ABI_RAW_POINTER},.resultOwner="xl6BufferDestroyV1"},
-    {"xl6BufferDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6BufferDestroyV1"},.noRaise=1},
+    {"xl6BufferDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6BufferDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6BufferHandlePolicyV1Get"},
     {"xl6BufferLengthV1",T,I,1,{V},.parameterOwners={"xl6BufferDestroyV1"}},
     {"xl6BufferCapacityV1",T,I,1,{V},.parameterOwners={"xl6BufferDestroyV1"}},
     {"xl6BufferReserveV1",T,B,2,{V,I},.parameterOwners={"xl6BufferDestroyV1"}},

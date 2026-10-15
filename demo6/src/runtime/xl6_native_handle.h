@@ -43,6 +43,11 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6ProcessHandlePolicyV1Get(v
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6ProcessStatusHandlePolicyV1Get(void);
 /* An iterator owns only a copied byte allocation, never its source Buffer. */
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6BufferIteratorHandlePolicyV1Get(void);
+/* The actual XRT buffer contains Data/Size/Capacity, not language values. */
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6BufferHandlePolicyV1Get(void);
+/* XL_Context owns only native configuration/OS libraries. This does not
+ * certify XLC_Context, XlangHandler, borrowed callback data or extensions. */
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6XlangContextHandlePolicyV1Get(void);
 
 /* Used only in audited resident implementation units, with complete XRT types.
  * Keep the same explicit error boundary as a generated native destructor; a

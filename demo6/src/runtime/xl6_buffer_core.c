@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_buffer_internal.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 
 void xl6BufferDestroyV1(void* raw)
 {
@@ -12,6 +14,8 @@ void* xl6BufferCreateV1(void)
     xbuffer* result = xrtBufferCreate();
     xl6BufferAllocation(result != NULL); return result;
 }
+/* xbuffer owns raw bytes only; it cannot retain a language object/callback. */
+XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6BufferHandlePolicyV1Get,xl6BufferDestroyV1)
 void* xl6BufferCreateReserveV1(int64_t capacity)
 {
     if (capacity < 0 || (uint64_t)capacity > SIZE_MAX) { xrtSetErrorKind(XERR_RANGE); return NULL; }

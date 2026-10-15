@@ -342,6 +342,9 @@ typedef enum XL6_ArtifactRuntimeId {
     XL6_ARTIFACT_OWNERSHIP_DOMAIN_NATIVE_FUTURE,
     XL6_ARTIFACT_OWNERSHIP_DOMAIN_FUTURE_AGGREGATE,
     XL6_ARTIFACT_OWNERSHIP_DOMAIN_NETWORK,
+    XL6_ARTIFACT_XLANG_CONTEXT_POLICY,
+    XL6_ARTIFACT_OWNERSHIP_DOMAIN_XLANG_CONTEXT,
+    XL6_ARTIFACT_OWNERSHIP_DOMAIN_BUFFER,
     XL6_ARTIFACT_RUNTIME_COUNT
 } XL6_ArtifactRuntimeId;
 #define XL6_ARTIFACT_RUNTIME_WORD_COUNT (XL6_ARTIFACT_RUNTIME_COUNT / 64u + (XL6_ARTIFACT_RUNTIME_COUNT % 64u != 0))
@@ -368,7 +371,19 @@ typedef struct XL6_ArtifactRuntimeComponent {
     const size_t* dependencies;
     size_t dependencyCount;
     const char* nativeModules[8];
+    unsigned hostAbi;
 } XL6_ArtifactRuntimeComponent;
+
+typedef enum XL6_ArtifactHostAbi {
+    XL6_ARTIFACT_HOST_NONE = 0,
+#define XL6_ARTIFACT_HOST_ABI(Name, Bit, Symbol) XL6_ARTIFACT_HOST_##Name = Bit,
+#include "src/compile/xl6_artifact_host_abis.inc"
+#undef XL6_ARTIFACT_HOST_ABI
+    XL6_ARTIFACT_HOST_ALL = 0
+#define XL6_ARTIFACT_HOST_ABI(Name, Bit, Symbol) | Bit
+#include "src/compile/xl6_artifact_host_abis.inc"
+#undef XL6_ARTIFACT_HOST_ABI
+} XL6_ArtifactHostAbi;
 
 typedef struct XL6_ArtifactNativeSymbol {
     const char* symbol;
@@ -391,6 +406,9 @@ typedef struct XL6_ArtifactRuntimePlan {
     /* Executable deployment only: 0 for fragments/modules, 1 direct checked
      * cleanup, 2 real owning graph. Chosen before emission from verified IR. */
     XL6_ArtifactEntryOwnershipAbi entryOwnershipAbi;
+    /* Separate from resident components and XRT module closure. A deployment
+     * must explicitly provide these versioned host capabilities. */
+    unsigned hostAbi;
     XL6_ArtifactRuntimeSet roots;
     XL6_ArtifactRuntimeSet components;
     size_t sourceCount;

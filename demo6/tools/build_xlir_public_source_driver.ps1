@@ -61,6 +61,8 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_ownership_domain_native_future.c',
     'src/runtime/xl6_ownership_domain_future_aggregate.c',
     'src/runtime/xl6_ownership_domain_network.c',
+    'src/runtime/xl6_xlang_context_policy.c','src/runtime/xl6_ownership_domain_xlang_context.c',
+    'src/runtime/xl6_ownership_domain_buffer.c',
     'src/runtime/xl6_network_service.c','src/runtime/xl6_log.c','src/runtime/xl6_log_console.c',
     'src/runtime/xl6_log_record.c','src/runtime/xl6_log_text.c','src/runtime/xl6_log_json.c','src/runtime/xl6_log_custom.c',
     'src/runtime/xl6_log_file.c','src/runtime/xl6_log_file_text.c','src/runtime/xl6_log_file_json.c','src/runtime/xl6_log_async.c','src/runtime/xl6_log_ring.c',
