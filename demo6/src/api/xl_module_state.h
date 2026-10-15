@@ -3,6 +3,7 @@
 #include "src/common/xl6_xrt.h"
 #include "src/runtime/xl6_ownership_read.h"
 #include "src/runtime/xl6_ownership_plan.h"
+#include "src/runtime/xl6_ownership_catalog.h"
 typedef struct TCCState TCCState;
 typedef struct XL_Module XL_Module;
 struct XL_LoadedLibrary;
@@ -37,6 +38,7 @@ struct XL_Module {
     size_t preparationRefs;
     int retirementPrepared;
     XL6_OwnershipPlan* ownershipPlan;
+    XL6_OwnershipCatalog* ownershipCatalog;
     const void* ownershipClaim;
     size_t snapshotRefs;
     int ownershipPhase;

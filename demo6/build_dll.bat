@@ -439,6 +439,48 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_future_callback.c ^
     src\runtime\xl6_ownership_plan.c ^
     src\runtime\xl6_static_module.c ^
+    src\runtime\xl6_ownership_catalog.c ^
+    src\runtime\xl6_ownership_domain_code_lease.c ^
+    src\runtime\xl6_ownership_domain_class.c ^
+    src\runtime\xl6_ownership_domain_cell.c ^
+    src\runtime\xl6_ownership_domain_tree.c ^
+    src\runtime\xl6_ownership_domain_semaphore.c ^
+    src\runtime\xl6_ownership_domain_sync.c ^
+    src\runtime\xl6_ownership_domain_thread.c ^
+    src\runtime\xl6_ownership_domain_value_iterator.c ^
+    src\runtime\xl6_ownership_domain_error_value.c ^
+    src\runtime\xl6_ownership_domain_slot_map_key.c ^
+    src\runtime\xl6_ownership_domain_channel.c ^
+    src\runtime\xl6_ownership_domain_sequence.c ^
+    src\runtime\xl6_ownership_domain_list.c ^
+    src\runtime\xl6_ownership_domain_set.c ^
+    src\runtime\xl6_ownership_domain_dict.c ^
+    src\runtime\xl6_ownership_domain_slot_map.c ^
+    src\runtime\xl6_ownership_domain_spsc_queue.c ^
+    src\runtime\xl6_ownership_domain_mpsc_queue.c ^
+    src\runtime\xl6_ownership_domain_mpmc_queue.c ^
+    src\runtime\xl6_ownership_domain_wait_queue.c ^
+    src\runtime\xl6_ownership_domain_process_command.c ^
+    src\runtime\xl6_ownership_domain_process_status.c ^
+    src\runtime\xl6_ownership_domain_process_live.c ^
+    src\runtime\xl6_ownership_domain_buffer_iterator.c ^
+    src\runtime\xl6_ownership_domain_sequence_future.c ^
+    src\runtime\xl6_ownership_domain_sequence_semaphore.c ^
+    src\runtime\xl6_ownership_domain_sequence_sync.c ^
+    src\runtime\xl6_ownership_domain_sequence_thread.c ^
+    src\runtime\xl6_ownership_domain_sequence_slot_map_key.c ^
+    src\runtime\xl6_ownership_domain_closure.c ^
+    src\runtime\xl6_ownership_domain_dynamic_fields.c ^
+    src\runtime\xl6_ownership_domain_executor.c ^
+    src\runtime\xl6_ownership_domain_generator.c ^
+    src\runtime\xl6_ownership_domain_queue.c ^
+    src\runtime\xl6_ownership_domain_frame.c ^
+    src\runtime\xl6_ownership_domain_future_callback.c ^
+    src\runtime\xl6_ownership_domain_task.c ^
+    src\runtime\xl6_ownership_domain_future_payload.c ^
+    src\runtime\xl6_ownership_domain_native_future.c ^
+    src\runtime\xl6_ownership_domain_future_aggregate.c ^
+    src\runtime\xl6_ownership_domain_network.c ^
     src\runtime\xl6_generator.c ^
     src\runtime\xl6_code_finalizer.c ^
     src\runtime\xl6_future_payload.c ^
@@ -697,6 +739,48 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_future_callback.c ^
     src\runtime\xl6_ownership_plan.c ^
     src\runtime\xl6_static_module.c ^
+    src\runtime\xl6_ownership_catalog.c ^
+    src\runtime\xl6_ownership_domain_code_lease.c ^
+    src\runtime\xl6_ownership_domain_class.c ^
+    src\runtime\xl6_ownership_domain_cell.c ^
+    src\runtime\xl6_ownership_domain_tree.c ^
+    src\runtime\xl6_ownership_domain_semaphore.c ^
+    src\runtime\xl6_ownership_domain_sync.c ^
+    src\runtime\xl6_ownership_domain_thread.c ^
+    src\runtime\xl6_ownership_domain_value_iterator.c ^
+    src\runtime\xl6_ownership_domain_error_value.c ^
+    src\runtime\xl6_ownership_domain_slot_map_key.c ^
+    src\runtime\xl6_ownership_domain_channel.c ^
+    src\runtime\xl6_ownership_domain_sequence.c ^
+    src\runtime\xl6_ownership_domain_list.c ^
+    src\runtime\xl6_ownership_domain_set.c ^
+    src\runtime\xl6_ownership_domain_dict.c ^
+    src\runtime\xl6_ownership_domain_slot_map.c ^
+    src\runtime\xl6_ownership_domain_spsc_queue.c ^
+    src\runtime\xl6_ownership_domain_mpsc_queue.c ^
+    src\runtime\xl6_ownership_domain_mpmc_queue.c ^
+    src\runtime\xl6_ownership_domain_wait_queue.c ^
+    src\runtime\xl6_ownership_domain_process_command.c ^
+    src\runtime\xl6_ownership_domain_process_status.c ^
+    src\runtime\xl6_ownership_domain_process_live.c ^
+    src\runtime\xl6_ownership_domain_buffer_iterator.c ^
+    src\runtime\xl6_ownership_domain_sequence_future.c ^
+    src\runtime\xl6_ownership_domain_sequence_semaphore.c ^
+    src\runtime\xl6_ownership_domain_sequence_sync.c ^
+    src\runtime\xl6_ownership_domain_sequence_thread.c ^
+    src\runtime\xl6_ownership_domain_sequence_slot_map_key.c ^
+    src\runtime\xl6_ownership_domain_closure.c ^
+    src\runtime\xl6_ownership_domain_dynamic_fields.c ^
+    src\runtime\xl6_ownership_domain_executor.c ^
+    src\runtime\xl6_ownership_domain_generator.c ^
+    src\runtime\xl6_ownership_domain_queue.c ^
+    src\runtime\xl6_ownership_domain_frame.c ^
+    src\runtime\xl6_ownership_domain_future_callback.c ^
+    src\runtime\xl6_ownership_domain_task.c ^
+    src\runtime\xl6_ownership_domain_future_payload.c ^
+    src\runtime\xl6_ownership_domain_native_future.c ^
+    src\runtime\xl6_ownership_domain_future_aggregate.c ^
+    src\runtime\xl6_ownership_domain_network.c ^
     src\runtime\xl6_generator.c ^
     src\runtime\xl6_code_finalizer.c ^
     src\runtime\xl6_future_payload.c ^

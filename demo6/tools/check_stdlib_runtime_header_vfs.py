@@ -18,7 +18,8 @@ def main():
     for header in headers:
         text=header.read_text(encoding='utf-8')
         assert not re.search(r'^#\s*include "src/runtime/',text,re.M),header
-        for sibling in re.findall(r'^#\s*include "(xl6_[^"/]+\.h)"',text,re.M):
+        for sibling in re.findall(r'^#\s*include "(xl6_[^"/]+)"',text,re.M):
+            assert sibling.endswith('.h'),(header,sibling,'private SDK embeds declarations only')
             assert (header.parent/sibling).is_file(),(header,sibling)
     for platform in ('linux','win64'):
         for kind in ('runtime','xlc'):

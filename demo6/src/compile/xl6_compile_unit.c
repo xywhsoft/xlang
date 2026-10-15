@@ -382,7 +382,49 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_value_native_scalar_convert.c",D(R(NATIVE_SCALAR_CONVERT),R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_integer_convert.c",D(R(FOREIGN_ERROR)),{"XRT_MODULE_NUMBER_INTEGER","XRUNTIME_MODULE_RUNTIME_CONVERT","XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_static_module.c",D(R(CODE_LEASE),R(CODE_FINALIZER),R(OWNERSHIP_PLAN),R(FOREIGN_ERROR)),
-        {"XRT_MODULE_MUTEX","XRT_MODULE_VALUE_GRAPH"}}
+        {"XRT_MODULE_MUTEX","XRT_MODULE_VALUE_GRAPH"}},
+    {"src/runtime/xl6_ownership_catalog.c",D(R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE_GRAPH","XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_ownership_domain_code_lease.c",D(R(OWNERSHIP_CATALOG),R(CODE_LEASE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_class.c",D(R(OWNERSHIP_CATALOG),R(CODE_FINALIZER)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_cell.c",D(R(OWNERSHIP_CATALOG),R(CELL)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_tree.c",D(R(OWNERSHIP_CATALOG),R(TREE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_semaphore.c",D(R(OWNERSHIP_CATALOG),R(SEMAPHORE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_sync.c",D(R(OWNERSHIP_CATALOG),R(SYNC_CORE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_thread.c",D(R(OWNERSHIP_CATALOG),R(THREAD)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_value_iterator.c",D(R(OWNERSHIP_CATALOG),R(VALUE_ITERATOR)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_error_value.c",D(R(OWNERSHIP_CATALOG),R(ERROR_VALUE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_slot_map_key.c",D(R(OWNERSHIP_CATALOG),R(SLOT_MAP_KEY_VALUE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_channel.c",D(R(OWNERSHIP_CATALOG),R(TYPED_CHANNEL)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_sequence.c",D(R(OWNERSHIP_CATALOG),R(SEQUENCE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_list.c",D(R(OWNERSHIP_CATALOG),R(LIST_NATIVE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_set.c",D(R(OWNERSHIP_CATALOG),R(SET_NATIVE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_dict.c",D(R(OWNERSHIP_CATALOG),R(DICT_NATIVE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_slot_map.c",D(R(OWNERSHIP_CATALOG),R(SLOT_MAP_NATIVE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_spsc_queue.c",D(R(OWNERSHIP_CATALOG),R(TYPED_QUEUE_SPSC)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_mpsc_queue.c",D(R(OWNERSHIP_CATALOG),R(TYPED_QUEUE_MPSC)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_mpmc_queue.c",D(R(OWNERSHIP_CATALOG),R(TYPED_QUEUE_MPMC)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_wait_queue.c",D(R(OWNERSHIP_CATALOG),R(WAIT_QUEUE_NATIVE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_process_command.c",D(R(OWNERSHIP_CATALOG),R(PROCESS_COMMAND)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_process_status.c",D(R(OWNERSHIP_CATALOG),R(PROCESS_STATUS)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_process_live.c",D(R(OWNERSHIP_CATALOG),R(PROCESS_LIVE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_buffer_iterator.c",D(R(OWNERSHIP_CATALOG),R(BUFFER_ITERATOR)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_sequence_future.c",D(R(OWNERSHIP_CATALOG),R(ARRAY_FUTURE_ADMISSION)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_sequence_semaphore.c",D(R(OWNERSHIP_CATALOG),R(ARRAY_SEMAPHORE_ADMISSION)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_sequence_sync.c",D(R(OWNERSHIP_CATALOG),R(ARRAY_SYNC_ADMISSION)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_sequence_thread.c",D(R(OWNERSHIP_CATALOG),R(ARRAY_THREAD_ADMISSION)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_sequence_slot_map_key.c",D(R(OWNERSHIP_CATALOG),R(ARRAY_NATIVE_VALUE_ADMISSION)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_closure.c",D(R(OWNERSHIP_CATALOG),R(CLOSURE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_dynamic_fields.c",D(R(OWNERSHIP_CATALOG),R(DYNAMIC_FIELDS)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_executor.c",D(R(OWNERSHIP_CATALOG),R(EXECUTOR)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_generator.c",D(R(OWNERSHIP_CATALOG),R(GENERATOR)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_queue.c",D(R(OWNERSHIP_CATALOG),R(QUEUE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_frame.c",D(R(OWNERSHIP_CATALOG),R(CONTINUATION_FRAME)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_future_callback.c",D(R(OWNERSHIP_CATALOG),R(FUTURE_CALLBACK)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_task.c",D(R(OWNERSHIP_CATALOG),R(TASK)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_future_payload.c",D(R(OWNERSHIP_CATALOG),R(FUTURE_PAYLOAD)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_native_future.c",D(R(OWNERSHIP_CATALOG)),{"XRT_MODULE_FUTURE"}},
+    {"src/runtime/xl6_ownership_domain_future_aggregate.c",D(R(OWNERSHIP_CATALOG),R(FUTURE_AGGREGATE)),{"XRT_MODULE_FUTURE_COMBINE"}},
+    {"src/runtime/xl6_ownership_domain_network.c",D(R(OWNERSHIP_CATALOG),R(NETWORK_SERVICE)),{"XRT_MODULE_NET_ENGINE","XRT_MODULE_NET_RESOLVER"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -514,6 +556,33 @@ static int xl6ArtifactInstructionReachable(const XL6_IrModule* module, size_t in
             return function->reachability != XL6_IR_REACHABILITY_UNREACHABLE;
     }
     return 0;
+}
+
+int xl6ArtifactOwnershipPlanBuild(const XL6_ArtifactRuntimePlan* base,XL6_ArtifactOwnershipPlan* output)
+{
+    if(!output)return 0;
+    memset(output,0,sizeof(*output));
+    if(!base || base->entry<XL6_ARTIFACT_ENTRY_FRAGMENT || base->entry>XL6_ARTIFACT_ENTRY_EXECUTABLE_V1 ||
+        base->sourceCount>XL6_ARTIFACT_RUNTIME_COUNT || base->nativeModuleCount>XL6_ARTIFACT_NATIVE_MODULE_LIMIT)return 0;
+    XL6_ArtifactOwnershipPlan result={0};
+    XL6_ArtifactRuntimePlan closed={0};
+    if(!xl6ArtifactRuntimeClosePlan(&base->roots,&closed) ||
+        !xl6ArtifactRuntimeSetEqual(&base->components,&closed.components) || base->sourceCount!=closed.sourceCount)return 0;
+    for(size_t i=0;i<closed.sourceCount;++i)
+        if(!base->sources[i] || strcmp(base->sources[i],closed.sources[i]))return 0;
+    XL6_ArtifactRuntimeSet roots=base->roots;
+    if(!xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,R(OWNERSHIP_CATALOG)))return 0;
+#define XL6_OWNERSHIP_DOMAIN_ENTRY(Producer, Component, Getter) \
+    if(xl6ArtifactRuntimeSetHas(&base->components,R(Producer)) || xl6ArtifactRuntimeSetHas(&base->components,R(Component))){ \
+        if(!xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,R(Component)))return 0; \
+        result.domains[result.domainCount++]=#Getter; \
+    }
+#include "src/runtime/xl6_ownership_domains.inc"
+#undef XL6_OWNERSHIP_DOMAIN_ENTRY
+    if(!xl6ArtifactRuntimeClosePlan(&roots,&result.runtime))return 0;
+    for(size_t i=0;i<base->nativeModuleCount;++i)
+        if(!xl6ArtifactNativeModuleRequire(&result.runtime,base->nativeModules[i]))return 0;
+    result.runtime.entry=base->entry;*output=result;return 1;
 }
 
 static int xl6ArtifactVisitResidentSymbol(void* opaque, const char* symbol)

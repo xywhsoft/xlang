@@ -6,6 +6,7 @@
 #include "src/runtime/xl6_continuation_future.h"
 #include "src/runtime/xl6_code_lease.h"
 #include "src/runtime/xl6_static_module.h"
+#include "src/runtime/xl6_ownership_domains.h"
 #include "src/runtime/xl6_native_handle.h"
 #include "src/runtime/xl6_dynamic_fields.h"
 #include "src/runtime/xl6_value_object_fields.h"
@@ -364,6 +365,17 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6StaticModuleOwnershipV1", (const void*)xl6StaticModuleOwnershipV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6StaticModuleRetireV1", (const void*)xl6StaticModuleRetireV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6StaticModuleDestroyV1", (const void*)xl6StaticModuleDestroyV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogCreateV1", (const void*)xl6OwnershipCatalogCreateV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogDestroyV1", (const void*)xl6OwnershipCatalogDestroyV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogResolveV1", (const void*)xl6OwnershipCatalogResolveV1)) return 0;
+#define XL6_POLICY_ADD_SYMBOL(Name, Type) \
+    if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogAdd" #Name "V1", (const void*)xl6OwnershipCatalogAdd##Name##V1)) return 0;
+    XL6_OWNERSHIP_POLICY_GROUPS(XL6_POLICY_ADD_SYMBOL)
+#undef XL6_POLICY_ADD_SYMBOL
+#define XL6_OWNERSHIP_DOMAIN_ENTRY(Producer, Component, Getter) \
+    if (!xlApiAddTccSymbol(s, #Getter, (const void*)Getter)) return 0;
+#include "src/runtime/xl6_ownership_domains.inc"
+#undef XL6_OWNERSHIP_DOMAIN_ENTRY
     if (!xlApiAddTccSymbol(s, "xl6ClassDynamicFieldPathV3", (const void*)xl6ClassDynamicFieldPathV3)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6CodeLeaseAcquire", (const void*)xl6CodeLeaseAcquire) ||
         !xlApiAddTccSymbol(s, "xl6CodeActivityEnterV1", (const void*)xl6CodeActivityEnterV1) ||

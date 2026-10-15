@@ -52,13 +52,16 @@ def main():
         plan=json.loads((out/'selected.plan.json').read_text());report['Plan']=plan
         required={'src/runtime/xl6_static_module.c','src/runtime/xl6_code_lease.c',
             'src/runtime/xl6_code_finalizer.c','src/runtime/xl6_ownership_plan.c',
-            'src/runtime/xl6_sequence.c','src/runtime/xl6_stack.c','src/api/xl_foreign_error.c'}
+            'src/runtime/xl6_sequence.c','src/runtime/xl6_stack.c','src/api/xl_foreign_error.c',
+            'src/runtime/xl6_ownership_catalog.c','src/runtime/xl6_ownership_domain_code_lease.c',
+            'src/runtime/xl6_ownership_domain_class.c','src/runtime/xl6_ownership_domain_sequence.c'}
         assert set(plan['Sources'])==required and len(plan['Sources'])==len(required),plan
+        assert set(plan['Domains'])=={'xl6OwnershipDomainCodeLeaseV1Get','xl6OwnershipDomainClassV1Get','xl6OwnershipDomainSequenceV1Get'}
         assert {'XRT_MODULE_MUTEX','XRT_MODULE_VALUE_GRAPH'}<=set(plan['NativeModules'])
         assert not any(any(word in name for word in ('NETWORK','TLS','PROCESS','REGEX','LOGGER')) for name in plan['NativeModules'])
         for opt in ('O0','O2'):
             image=out/(opt+suffix)
-            run(opt+'.build',[cc,*flags,'-'+opt,'-DXRT_MODULE_MEMORY_DEBUG',host,out/'selected.xrt.c',
+            run(opt+'.build',[cc,*flags,'-'+opt,'-DXRT_MODULE_MEMORY_DEBUG','-DXL6_TEST_SELECTED_OWNERSHIP_DOMAINS','-I'+str(out),host,out/'selected.xrt.c',
                 *[root/name for name in plan['Sources']],*libraries,'-o',image])
             independent=relocated/image.name;shutil.copy2(image,independent)
             data=run(opt+'.imports',[inspect,'-p' if windows else '-d',independent],relocated)

@@ -2,6 +2,10 @@
 
 ## 1. 目标
 
+对象图策略已拆为独立能力并接入 JIT，按需部署元数据见
+[对象图退役的精确策略目录](stdlib53-b302-ownership-policy-catalog.md)。
+独立 main 仍待接线，完整产品及三组总验收继续。
+
 独立模块共同原生拥有记录与 checked 退役驱动见
 [独立模块拥有记录与可重试退役底座](stdlib53-b301-static-module-owner.md)。
 该底座不替代生成入口接线；独立 AOT 循环图和发布总验收继续。
