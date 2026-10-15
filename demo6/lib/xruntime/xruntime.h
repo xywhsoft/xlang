@@ -29806,6 +29806,14 @@ XRT_API xcancel* xrtTaskGroupCancelToken(const xtaskgroup* pGroup);
 /* 关闭并取消仍活动的项，随后以延迟回收方式释放任务组。 */
 XRT_API void xrtTaskGroupDestroy(xtaskgroup* pGroup);
 
+/* Borrowed physical graph, requiring whole-graph freeze and resident code.
+ * Counts include the owned cancel observer, active-list rights, Future
+ * registrations and every real temporary pin. Busy callbacks/reservations
+ * refuse inspection. This view alone grants no collection or unload right. */
+XRT_API xrtownershipref xrtTaskGroupOwnership(const xtaskgroup* pGroup);
+XRT_API const xfuturewatchownershipv1* xrtTaskGroupWatchPolicyV1Get(void);
+XRT_API const xcancelwatchownershipv1* xrtTaskGroupCancelPolicyV1Get(void);
+
 
 
 XRT_EXTERN_C_END
@@ -250579,6 +250587,7 @@ struct xrt_task_group_item {
 	size_t Index;
 	bool ClosePosted;
 	bool CancelPosted;
+	bool Listed;
 };
 
 
@@ -250608,14 +250617,80 @@ struct xtaskgroup {
 	xerror* FirstError;
 	bool Closed;
 	bool Cancelling;
+	size_t Busy;
 };
+
+/* Every physical count/edge transition participates in whole-graph freeze.
+ * Callback execution and endpoint release stay outside these short scopes. */
+static void __xrtTaskGroupBegin(const xtaskgroup* pGroup, xrtownershipscope* pScope)
+{
+	if (!xrtOwnershipMutationBegin(pScope) || !xrtMutexLock((xmutex*)&pGroup->Lock)) abort();
+}
+static void __xrtTaskGroupEnd(const xtaskgroup* pGroup, xrtownershipscope* pScope)
+{
+	if (!xrtMutexUnlock((xmutex*)&pGroup->Lock) || !xrtOwnershipScopeEnd(pScope)) abort();
+}
+static bool __xrtTaskGroupOwnershipCount(const void* pData, size_t* pCount)
+{
+	const xtaskgroup* pGroup = pData; int32 iCount;
+	if (!pGroup || !pCount || pGroup->Busy || pGroup->Reserved) return false;
+	iCount = __xrtAtomicRefLoad(&pGroup->RefCount);
+	if (iCount <= 0) return false;
+	*pCount = (size_t)iCount; return true;
+}
+static bool __xrtTaskGroupItemOwnershipCount(const void* pData, size_t* pCount)
+{
+	const xrt_task_group_item* pItem = pData; size_t iGroupCount; int32 iCount;
+	if (!pItem || !pCount || !pItem->Listed || !pItem->Future || pItem->Waiter.Calling ||
+		!__xrtTaskGroupOwnershipCount(pItem->Group, &iGroupCount)) return false;
+	iCount = __xrtAtomicRefLoad(&pItem->RefCount);
+	if (iCount <= 0) return false;
+	*pCount = (size_t)iCount; return true;
+}
+static bool __xrtTaskGroupOwnershipTrace(const void*, xrtownershipvisitor, ptr);
+static bool __xrtTaskGroupItemOwnershipTrace(const void*, xrtownershipvisitor, ptr);
+static const xrtownershipops __xrtTaskGroupOwnershipOps = {
+	__xrtTaskGroupOwnershipCount, __xrtTaskGroupOwnershipTrace
+};
+static const xrtownershipops __xrtTaskGroupItemOwnershipOps = {
+	__xrtTaskGroupItemOwnershipCount, __xrtTaskGroupItemOwnershipTrace
+};
+XRT_API xrtownershipref xrtTaskGroupOwnership(const xtaskgroup* pGroup)
+{ return (xrtownershipref){pGroup, pGroup ? &__xrtTaskGroupOwnershipOps : NULL}; }
+static bool __xrtTaskGroupItemOwnershipTrace(const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{
+	const xrt_task_group_item* pItem = pData; size_t iCount;
+	if (!pVisit || !__xrtTaskGroupItemOwnershipCount(pData, &iCount)) return false;
+	return pVisit(xrtTaskGroupOwnership(pItem->Group), pContext) &&
+		(!pItem->Child || pVisit(xrtTaskGroupOwnership(pItem->Child), pContext)) &&
+		pVisit(xrtFutureOwnership(pItem->Future), pContext);
+}
+static bool __xrtTaskGroupOwnershipTrace(const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{
+	const xtaskgroup* pGroup = pData; const xrt_task_group_item* pPrevious = NULL; size_t iCount, iItems = 0;
+	if (!pVisit || !__xrtTaskGroupOwnershipCount(pData, &iCount)) return false;
+	if (pGroup->Cancel && !pVisit(xrtCancelOwnership(pGroup->Cancel), pContext)) return false;
+	if (pGroup->Watch && !pVisit(xrtCancelWatchOwnership(pGroup->Watch), pContext)) return false;
+	if (pGroup->Future && !pVisit(xrtFutureOwnership(pGroup->Future), pContext)) return false;
+	if (pGroup->Promise && !pVisit(xrtPromiseOwnership(pGroup->Promise), pContext)) return false;
+	if (pGroup->FirstError && !pVisit(xrtErrorOwnership(pGroup->FirstError), pContext)) return false;
+	for (const xrt_task_group_item* pItem = pGroup->Head; pItem; pItem = pItem->Next) {
+		if (++iItems > pGroup->Active || !pItem->Listed || pItem->Group != pGroup ||
+			pItem->Previous != pPrevious || !pVisit((xrtownershipref){pItem, &__xrtTaskGroupItemOwnershipOps}, pContext)) return false;
+		pPrevious = pItem;
+	}
+	return iItems == pGroup->Active;
+}
 
 
 
 /* 增加任务组内部引用；达到计数上限时拒绝继续接纳活动项。 */
 static bool __xrtTaskGroupRef(xtaskgroup* pGroup)
 {
-	return xrtRefRetain(&pGroup->RefCount) >= 0;
+	xrtownershipscope Scope = {0}; bool bHeld;
+	__xrtTaskGroupBegin(pGroup, &Scope);
+	bHeld = xrtRefRetain(&pGroup->RefCount) >= 0;
+	__xrtTaskGroupEnd(pGroup, &Scope); return bHeld;
 }
 
 
@@ -250623,17 +250698,23 @@ static bool __xrtTaskGroupRef(xtaskgroup* pGroup)
 /* 释放任务组内部引用，并在全部活动项退出后回收公共状态。 */
 static void __xrtTaskGroupRelease(xtaskgroup* pGroup)
 {
-	if ( xrtRefRelease(&pGroup->RefCount) == 0 ) {
-		if ( pGroup->Watch != NULL ) {
-			xrtCancelUnwatch(pGroup->Watch);
-		}
-		xrtPromiseDestroy(pGroup->Promise);
-		xrtFutureDestroy(pGroup->Future);
-		xrtCancelDestroy(pGroup->Cancel);
-		xrtErrorFree(pGroup->FirstError);
-		(void)xrtMutexUnit(&pGroup->Lock);
-		xrtFree(pGroup);
+	xrtownershipscope Scope = {0}; int32 iLeft;
+	xpromise* pPromise = NULL; xfuture* pFuture = NULL; xcancel* pCancel = NULL; xerror* pError = NULL;
+	__xrtTaskGroupBegin(pGroup, &Scope); iLeft = xrtRefRelease(&pGroup->RefCount);
+	if (iLeft == 0) {
+		if (pGroup->Watch || pGroup->Head || pGroup->Active || pGroup->Reserved || pGroup->Busy) abort();
+		pPromise = pGroup->Promise; pGroup->Promise = NULL;
+		pFuture = pGroup->Future; pGroup->Future = NULL;
+		pCancel = pGroup->Cancel; pGroup->Cancel = NULL;
+		pError = pGroup->FirstError; pGroup->FirstError = NULL;
 	}
+	__xrtTaskGroupEnd(pGroup, &Scope);
+	if (iLeft < 0) abort();
+	if (iLeft != 0) return;
+	xrtPromiseDestroy(pPromise); xrtFutureDestroy(pFuture); xrtCancelDestroy(pCancel); xrtErrorFree(pError);
+	if (!xrtOwnershipMutationBegin(&Scope)) abort();
+	(void)xrtMutexUnit(&pGroup->Lock); xrtFree(pGroup);
+	if (!xrtOwnershipScopeEnd(&Scope)) abort();
 }
 
 
@@ -250641,7 +250722,7 @@ static void __xrtTaskGroupRelease(xtaskgroup* pGroup)
 /* 增加活动项引用，供锁外关闭或取消传播使用。 */
 static void __xrtTaskGroupItemRef(xrt_task_group_item* pItem)
 {
-	(void)xrtRefRetain(&pItem->RefCount);
+	if (xrtRefRetain(&pItem->RefCount) < 0) abort();
 }
 
 
@@ -250649,14 +250730,20 @@ static void __xrtTaskGroupItemRef(xrt_task_group_item* pItem)
 /* 释放活动项及其源、子组和父组引用。 */
 static void __xrtTaskGroupItemRelease(xrt_task_group_item* pItem)
 {
-	if ( xrtRefRelease(&pItem->RefCount) == 0 ) {
-		xrtFutureDestroy(pItem->Future);
-		if ( pItem->Child != NULL ) {
-			__xrtTaskGroupRelease(pItem->Child);
-		}
-		__xrtTaskGroupRelease(pItem->Group);
-		xrtFree(pItem);
+	xrtownershipscope Scope = {0}; int32 iLeft; xtaskgroup *pGroup = NULL, *pChild = NULL; xfuture* pFuture = NULL;
+	if (!xrtOwnershipMutationBegin(&Scope)) abort();
+	iLeft = xrtRefRelease(&pItem->RefCount);
+	if (iLeft == 0) {
+		if (pItem->Listed || pItem->Waiter.Linked || pItem->Waiter.Calling) abort();
+		pGroup = pItem->Group; pChild = pItem->Child; pFuture = pItem->Future;
+		pItem->Group = NULL; pItem->Child = NULL; pItem->Future = NULL; xrtFree(pItem);
 	}
+	if (!xrtOwnershipScopeEnd(&Scope)) abort();
+	if (iLeft < 0) abort();
+	if (iLeft != 0) return;
+	xrtFutureDestroy(pFuture);
+	if (pChild) __xrtTaskGroupRelease(pChild);
+	__xrtTaskGroupRelease(pGroup);
 }
 
 
@@ -250667,6 +250754,7 @@ static void __xrtTaskGroupItemRemoveLocked(
 	xrt_task_group_item* pItem
 )
 {
+	if (!pItem->Listed) abort();
 	if ( pItem->Previous != NULL ) {
 		pItem->Previous->Next = pItem->Next;
 	} else if ( pGroup->Head == pItem ) {
@@ -250677,6 +250765,7 @@ static void __xrtTaskGroupItemRemoveLocked(
 	}
 	pItem->Previous = NULL;
 	pItem->Next = NULL;
+	pItem->Listed = false;
 }
 
 
@@ -250686,6 +250775,23 @@ static void __xrtTaskGroupWaiterRelease(ptr pData)
 {
 	__xrtTaskGroupItemRelease((xrt_task_group_item*)pData);
 }
+
+static void __xrtTaskGroupSourceDone(ptr pData);
+static void __xrtTaskGroupCancelled(ptr pData);
+static void __xrtTaskGroupCancelDrop(const void* pData)
+{ __xrtTaskGroupRelease((xtaskgroup*)pData); }
+static const xfuturewatchownershipv1 __xrtTaskGroupWatchPolicy = {
+	sizeof(xfuturewatchownershipv1), __xrtTaskGroupSourceDone,
+	__xrtTaskGroupWaiterRelease, &__xrtTaskGroupItemOwnershipOps
+};
+static const xcancelwatchownershipv1 __xrtTaskGroupCancelPolicy = {
+	sizeof(xcancelwatchownershipv1), __xrtTaskGroupCancelled,
+	__xrtTaskGroupCancelDrop, &__xrtTaskGroupOwnershipOps
+};
+XRT_API const xfuturewatchownershipv1* xrtTaskGroupWatchPolicyV1Get(void)
+{ return &__xrtTaskGroupWatchPolicy; }
+XRT_API const xcancelwatchownershipv1* xrtTaskGroupCancelPolicyV1Get(void)
+{ return &__xrtTaskGroupCancelPolicy; }
 
 
 
@@ -250764,6 +250870,7 @@ static bool __xrtTaskGroupShouldCancel(
 /* 一个源完成后从活动链摘除，并更新累计结果和组完成条件。 */
 static void __xrtTaskGroupSourceDone(ptr pData)
 {
+	xrtownershipscope Scope = {0};
 	xrt_task_group_item* pItem = (xrt_task_group_item*)pData;
 	xtaskgroup* pGroup = pItem->Group;
 	xfuturestate State;
@@ -250771,6 +250878,7 @@ static void __xrtTaskGroupSourceDone(ptr pData)
 	xpromise* pPromise;
 	bool bCancel;
 
+	__xrtTaskGroupBegin(pGroup, &Scope); ++pGroup->Busy; __xrtTaskGroupEnd(pGroup, &Scope);
 	if ( pItem->Child != NULL ) {
 		State = __xrtTaskGroupChildState(pItem->Child, &pError);
 	} else {
@@ -250782,7 +250890,7 @@ static void __xrtTaskGroupSourceDone(ptr pData)
 		}
 	}
 
-	(void)xrtMutexLock(&pGroup->Lock);
+	__xrtTaskGroupBegin(pGroup, &Scope);
 	__xrtTaskGroupItemRemoveLocked(pGroup, pItem);
 	pGroup->Active--;
 	pGroup->Completed++;
@@ -250806,13 +250914,16 @@ static void __xrtTaskGroupSourceDone(ptr pData)
 	bCancel = !pGroup->Cancelling &&
 		__xrtTaskGroupShouldCancel(pGroup, State);
 	pPromise = __xrtTaskGroupTakePromise(pGroup);
-	(void)xrtMutexUnlock(&pGroup->Lock);
+	__xrtTaskGroupEnd(pGroup, &Scope);
 
 	xrtErrorFree(pError);
 	if ( bCancel ) {
 		(void)xrtCancelRequest(pGroup->Cancel);
 	}
 	__xrtTaskGroupResolve(pPromise);
+	/* Discharge the list's right separately from the completion callback. */
+	__xrtTaskGroupItemRelease(pItem);
+	__xrtTaskGroupBegin(pGroup, &Scope); --pGroup->Busy; __xrtTaskGroupEnd(pGroup, &Scope);
 }
 
 
@@ -250820,15 +250931,16 @@ static void __xrtTaskGroupSourceDone(ptr pData)
 /* 取消一个已经提交的活动项；预留项在提交时补发取消。 */
 static void __xrtTaskGroupItemCancel(xrt_task_group_item* pItem)
 {
+	xrtownershipscope Scope = {0};
 	if ( pItem->Child != NULL ) {
 		(void)xrtTaskGroupCancel(pItem->Child);
 	} else {
 		xfuture* pFuture;
 
-		(void)xrtMutexLock(&pItem->Group->Lock);
+		__xrtTaskGroupBegin(pItem->Group, &Scope);
 		pFuture = pItem->Future != NULL ?
 			xrtFutureRef(pItem->Future) : NULL;
-		(void)xrtMutexUnlock(&pItem->Group->Lock);
+		__xrtTaskGroupEnd(pItem->Group, &Scope);
 		if ( pFuture != NULL ) {
 			(void)xrtFutureCancel(pFuture);
 			xrtFutureDestroy(pFuture);
@@ -250841,11 +250953,13 @@ static void __xrtTaskGroupItemCancel(xrt_task_group_item* pItem)
 /* 组取消令牌命中后关闭接纳，并无分配地快照全部活动项。 */
 static void __xrtTaskGroupCancelled(ptr pData)
 {
+	xrtownershipscope Scope = {0};
 	xtaskgroup* pGroup = (xtaskgroup*)pData;
 	xrt_task_group_item* pList = NULL;
 	xpromise* pPromise;
 
-	(void)xrtMutexLock(&pGroup->Lock);
+	__xrtTaskGroupBegin(pGroup, &Scope);
+	++pGroup->Busy;
 	if ( !pGroup->Cancelling ) {
 		pGroup->Cancelling = true;
 		pGroup->Closed = true;
@@ -250860,7 +250974,7 @@ static void __xrtTaskGroupCancelled(ptr pData)
 		}
 	}
 	pPromise = __xrtTaskGroupTakePromise(pGroup);
-	(void)xrtMutexUnlock(&pGroup->Lock);
+	__xrtTaskGroupEnd(pGroup, &Scope);
 
 	while ( pList != NULL ) {
 		xrt_task_group_item* pItem = pList;
@@ -250871,6 +250985,7 @@ static void __xrtTaskGroupCancelled(ptr pData)
 		__xrtTaskGroupItemRelease(pItem);
 	}
 	__xrtTaskGroupResolve(pPromise);
+	__xrtTaskGroupBegin(pGroup, &Scope); --pGroup->Busy; __xrtTaskGroupEnd(pGroup, &Scope);
 }
 
 
@@ -250881,13 +250996,14 @@ static xrt_task_group_item* __xrtTaskGroupItemCreate(
 	xtaskgroup* pChild
 )
 {
+	xrtownershipscope Scope = {0};
 	xrt_task_group_item* pItem;
 
 	pItem = (xrt_task_group_item*)xrtCalloc(1, sizeof(xrt_task_group_item));
 	if ( pItem == NULL ) {
-		(void)xrtMutexLock(&pGroup->Lock);
+		__xrtTaskGroupBegin(pGroup, &Scope);
 		pGroup->Rejected++;
-		(void)xrtMutexUnlock(&pGroup->Lock);
+		__xrtTaskGroupEnd(pGroup, &Scope);
 		return NULL;
 	}
 	pItem->RefCount = 1;
@@ -250897,20 +251013,23 @@ static xrt_task_group_item* __xrtTaskGroupItemCreate(
 	pItem->Waiter.PublicWatch = true;
 	pItem->Waiter.Release = __xrtTaskGroupWaiterRelease;
 	pItem->Waiter.Data = pItem;
+	pItem->Waiter.Phased = true;
+	pItem->Waiter.Certified = 1;
+	pItem->Waiter.OwnershipPolicy = &__xrtTaskGroupWatchPolicy;
 	if ( !__xrtTaskGroupRef(pGroup) ) {
 		xrtFree(pItem);
-		(void)xrtMutexLock(&pGroup->Lock);
+		__xrtTaskGroupBegin(pGroup, &Scope);
 		pGroup->Rejected++;
-		(void)xrtMutexUnlock(&pGroup->Lock);
+		__xrtTaskGroupEnd(pGroup, &Scope);
 		__xrtErrorSetSizeOverflow();
 		return NULL;
 	}
 	if ( (pChild != NULL) && !__xrtTaskGroupRef(pChild) ) {
 		__xrtTaskGroupRelease(pGroup);
 		xrtFree(pItem);
-		(void)xrtMutexLock(&pGroup->Lock);
+		__xrtTaskGroupBegin(pGroup, &Scope);
 		pGroup->Rejected++;
-		(void)xrtMutexUnlock(&pGroup->Lock);
+		__xrtTaskGroupEnd(pGroup, &Scope);
 		__xrtErrorSetSizeOverflow();
 		return NULL;
 	}
@@ -250925,6 +251044,7 @@ static xrt_task_group_item* __xrtTaskGroupReserve(
 	xtaskgroup* pChild
 )
 {
+	xrtownershipscope Scope = {0};
 	xrt_task_group_item* pItem;
 	bool bClosed;
 	bool bLimited;
@@ -250939,7 +251059,7 @@ static xrt_task_group_item* __xrtTaskGroupReserve(
 		return NULL;
 	}
 
-	(void)xrtMutexLock(&pGroup->Lock);
+	__xrtTaskGroupBegin(pGroup, &Scope);
 	bClosed = pGroup->Closed;
 	bLimited = (pGroup->Limit != 0) && (pGroup->Active >= pGroup->Limit);
 	bOverflow = (pGroup->Added >= (uint64)SIZE_MAX) ||
@@ -250952,10 +251072,12 @@ static xrt_task_group_item* __xrtTaskGroupReserve(
 			pGroup->Head->Previous = pItem;
 		}
 		pGroup->Head = pItem;
+		pItem->Listed = true;
+		__xrtTaskGroupItemRef(pItem);
 		pGroup->Active++;
 		pGroup->Reserved++;
 	}
-	(void)xrtMutexUnlock(&pGroup->Lock);
+	__xrtTaskGroupEnd(pGroup, &Scope);
 	if ( bClosed || bLimited || bOverflow ) {
 		__xrtTaskGroupItemRelease(pItem);
 		if ( bClosed ) {
@@ -250975,18 +251097,20 @@ static xrt_task_group_item* __xrtTaskGroupReserve(
 /* 回滚未能启动 Future 的预留项，并重新检查组完成条件。 */
 static void __xrtTaskGroupAbort(xrt_task_group_item* pItem)
 {
+	xrtownershipscope Scope = {0};
 	xtaskgroup* pGroup = pItem->Group;
 	xpromise* pPromise;
 
-	(void)xrtMutexLock(&pGroup->Lock);
+	__xrtTaskGroupBegin(pGroup, &Scope);
 	__xrtTaskGroupItemRemoveLocked(pGroup, pItem);
 	pGroup->Active--;
 	pGroup->Reserved--;
 	pGroup->Rejected++;
 	pPromise = __xrtTaskGroupTakePromise(pGroup);
-	(void)xrtMutexUnlock(&pGroup->Lock);
+	__xrtTaskGroupEnd(pGroup, &Scope);
 	__xrtTaskGroupResolve(pPromise);
 	__xrtTaskGroupItemRelease(pItem);
+	__xrtTaskGroupItemRelease(pItem); /* List and untransferred creator. */
 }
 
 
@@ -250997,6 +251121,7 @@ static bool __xrtTaskGroupCommit(
 	xfuture* pFuture
 )
 {
+	xrtownershipscope Scope = {0};
 	xtaskgroup* pGroup = pItem->Group;
 	xfuture* pTracked;
 	bool bCancel;
@@ -251012,13 +251137,13 @@ static bool __xrtTaskGroupCommit(
 		return false;
 	}
 
-	(void)xrtMutexLock(&pGroup->Lock);
+	__xrtTaskGroupBegin(pGroup, &Scope);
 	pItem->Future = pTracked;
 	pItem->Index = (size_t)pGroup->Added;
 	pGroup->Added++;
 	pGroup->Reserved--;
 	bCancel = pItem->CancelPosted;
-	(void)xrtMutexUnlock(&pGroup->Lock);
+	__xrtTaskGroupEnd(pGroup, &Scope);
 
 	if ( bCancel ) {
 		__xrtTaskGroupItemCancel(pItem);
@@ -251061,6 +251186,7 @@ static bool __xrtTaskGroupAdd(
 /* 创建结构化任务组及其取消源和稳定 Done Future。 */
 XRT_API xtaskgroup* xrtTaskGroupCreate(const xtaskgroupconfig* pConfig)
 {
+	xrtownershipscope Scope = {0};
 	xtaskgroup* pGroup;
 	xcancel* pParent = pConfig != NULL ? pConfig->Cancel : NULL;
 	uint32 iCancelOn = pConfig != NULL ? pConfig->CancelOn : 0;
@@ -251074,6 +251200,7 @@ XRT_API xtaskgroup* xrtTaskGroupCreate(const xtaskgroupconfig* pConfig)
 		return NULL;
 	}
 	pGroup->RefCount = 1;
+	pGroup->Busy = 1; /* Owned observer can synchronously notify during construction. */
 	pGroup->Limit = pConfig != NULL ? pConfig->Limit : 0;
 	pGroup->CancelOn = iCancelOn;
 	pGroup->FirstIndex = SIZE_MAX;
@@ -251095,19 +251222,17 @@ XRT_API xtaskgroup* xrtTaskGroupCreate(const xtaskgroupconfig* pConfig)
 		xrtFree(pGroup);
 		return NULL;
 	}
-	pGroup->Watch = xrtCancelWatch(
-		pGroup->Cancel,
-		__xrtTaskGroupCancelled,
-		pGroup
-	);
+	if (!__xrtTaskGroupRef(pGroup)) {
+		pGroup->Busy = 0; __xrtTaskGroupRelease(pGroup); __xrtErrorSetSizeOverflow(); return NULL;
+	}
+	pGroup->Watch = xrtCancelWatchOwnedV1(pGroup->Cancel, pGroup, &__xrtTaskGroupCancelPolicy);
 	if ( pGroup->Watch == NULL ) {
-		xrtPromiseDestroy(pGroup->Promise);
-		xrtFutureDestroy(pGroup->Future);
-		xrtCancelDestroy(pGroup->Cancel);
-		(void)xrtMutexUnit(&pGroup->Lock);
-		xrtFree(pGroup);
+		pGroup->Busy = 0;
+		__xrtTaskGroupRelease(pGroup); /* Constructor failure did not consume Data. */
+		__xrtTaskGroupRelease(pGroup);
 		return NULL;
 	}
+	__xrtTaskGroupBegin(pGroup, &Scope); --pGroup->Busy; __xrtTaskGroupEnd(pGroup, &Scope);
 	return pGroup;
 }
 
@@ -251197,6 +251322,7 @@ XRT_API xfuture* xrtTaskGroupStart(
 /* 停止接纳，并把关闭动作传播到当前嵌套子组。 */
 XRT_API bool xrtTaskGroupClose(xtaskgroup* pGroup)
 {
+	xrtownershipscope Scope = {0};
 	xrt_task_group_item* pList = NULL;
 	xpromise* pPromise;
 	bool bClosed;
@@ -251205,7 +251331,7 @@ XRT_API bool xrtTaskGroupClose(xtaskgroup* pGroup)
 		__xrtErrorSetInvalidArgument();
 		return false;
 	}
-	(void)xrtMutexLock(&pGroup->Lock);
+	__xrtTaskGroupBegin(pGroup, &Scope);
 	bClosed = pGroup->Closed;
 	if ( !bClosed ) {
 		pGroup->Closed = true;
@@ -251220,7 +251346,7 @@ XRT_API bool xrtTaskGroupClose(xtaskgroup* pGroup)
 		}
 	}
 	pPromise = __xrtTaskGroupTakePromise(pGroup);
-	(void)xrtMutexUnlock(&pGroup->Lock);
+	__xrtTaskGroupEnd(pGroup, &Scope);
 
 	while ( pList != NULL ) {
 		xrt_task_group_item* pItem = pList;
@@ -251322,11 +251448,12 @@ XRT_API bool xrtTaskGroupGet(
 	xtaskgroupstats* pStats
 )
 {
+	xrtownershipscope Scope = {0};
 	if ( (pGroup == NULL) || (pStats == NULL) ) {
 		__xrtErrorSetInvalidArgument();
 		return false;
 	}
-	(void)xrtMutexLock((xmutex*)&pGroup->Lock);
+	__xrtTaskGroupBegin(pGroup, &Scope);
 	pStats->Active = pGroup->Active;
 	pStats->Added = pGroup->Added;
 	pStats->Completed = pGroup->Completed;
@@ -251339,7 +251466,7 @@ XRT_API bool xrtTaskGroupGet(
 	pStats->FirstState = pGroup->FirstState;
 	pStats->Accepting = !pGroup->Closed;
 	pStats->Cancelling = pGroup->Cancelling;
-	(void)xrtMutexUnlock((xmutex*)&pGroup->Lock);
+	__xrtTaskGroupEnd(pGroup, &Scope);
 	return true;
 }
 
@@ -251348,15 +251475,16 @@ XRT_API bool xrtTaskGroupGet(
 /* 返回任务组保留的首个失败错误。 */
 XRT_API const xerror* xrtTaskGroupError(const xtaskgroup* pGroup)
 {
+	xrtownershipscope Scope = {0};
 	const xerror* pError;
 
 	if ( pGroup == NULL ) {
 		__xrtErrorSetInvalidArgument();
 		return NULL;
 	}
-	(void)xrtMutexLock((xmutex*)&pGroup->Lock);
+	__xrtTaskGroupBegin(pGroup, &Scope);
 	pError = pGroup->FirstError;
-	(void)xrtMutexUnlock((xmutex*)&pGroup->Lock);
+	__xrtTaskGroupEnd(pGroup, &Scope);
 	return pError;
 }
 
@@ -251377,18 +251505,24 @@ XRT_API xcancel* xrtTaskGroupCancelToken(const xtaskgroup* pGroup)
 /* 关闭并取消仍活动的项，最终回收由活动监听引用计数驱动。 */
 XRT_API void xrtTaskGroupDestroy(xtaskgroup* pGroup)
 {
+	xrtownershipscope Scope = {0};
 	bool bActive;
+	xcancelwatch* pWatch;
 
 	if ( pGroup == NULL ) {
 		return;
 	}
 	(void)xrtTaskGroupClose(pGroup);
-	(void)xrtMutexLock(&pGroup->Lock);
+	__xrtTaskGroupBegin(pGroup, &Scope);
 	bActive = pGroup->Active != 0;
-	(void)xrtMutexUnlock(&pGroup->Lock);
+	__xrtTaskGroupEnd(pGroup, &Scope);
 	if ( bActive ) {
 		(void)xrtTaskGroupCancel(pGroup);
 	}
+	/* Consume only the public owner's registration right. Watch's Data ref is
+	 * independent and may return later when a real callback/dispatch retires. */
+	__xrtTaskGroupBegin(pGroup, &Scope); pWatch = pGroup->Watch; pGroup->Watch = NULL;
+	__xrtTaskGroupEnd(pGroup, &Scope); xrtCancelUnwatch(pWatch);
 	__xrtTaskGroupRelease(pGroup);
 }
 

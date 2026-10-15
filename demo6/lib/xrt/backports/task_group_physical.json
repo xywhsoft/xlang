@@ -1,0 +1,48 @@
+{
+  "Schema": 1,
+  "Purpose": "Physical TaskGroup, active-list and certified callback ownership",
+  "Integration": "Reviewed task public/source delta, not a full upstream snapshot refresh",
+  "CanonicalCommit": "21038572f4025fc101eab0d5ac83f5ca6155c1e5",
+  "CanonicalSources": [
+    {
+      "Path": "include/xrt/task.h",
+      "Sha256": "c9c580b4492a31586c4b89d4c6fe3d9af7887971983a04eafb12f48eb242be8d"
+    },
+    {
+      "Path": "src/concurrency/task_group.c",
+      "Sha256": "440f565d81d393d8455b07670e7c399b8f6ccac47f6f9a012e026cd841ecb367"
+    },
+    {
+      "Path": "tests/concurrency/test_task_group_graph.c",
+      "Sha256": "eb599c1608beb631832c1d57160b63403034886271956f4444aec8c22fe0cbe4"
+    }
+  ],
+  "ConsumerBase": "edf23492ad73b6db69817a30b59f6b9e718645a9",
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "d1cc1995f5f9596ce2c710caff6a1e3c0bcb401494189be6ba9913b6b5a76662",
+      "AfterSha256": "5723ebd3eaacdb6ec254a935790b3abf2860bda8e5e106845b8ef634113b9b2f"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "2b02383d67517a0201a99d063a40c7e98cb43d473a3e54f4567169e73a635d04",
+      "AfterSha256": "a81a02e1b674b6548b143630dbeac9418ff28f65aea434f5bcdbec9742b63027"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "67921288ef859772c64d734d03bc2e41dd706eccf2e4e14dc046807467bffe33",
+      "AfterSha256": "92ef77db15b898e27a3520adc81a43d7072f144e7f00484c59c70c6794d140b7"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "76e2872dd24ded5cff5280873d58578ad2774e0e40b713cc225734b014cb6501",
+      "AfterSha256": "61d7ef71cf5c1fae72a7417c50ac5dd749f99974372d9dcf55ea9ddb26e66f5d"
+    }
+  ],
+  "PreservedContracts": [
+    "Embedded Future and TaskGroup relative timeouts remain microseconds",
+    "No new language API or TaskGroup collector adapter is admitted",
+    "Unrelated core and extension edits excluded"
+  ]
+}
