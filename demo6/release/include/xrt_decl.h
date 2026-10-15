@@ -43306,6 +43306,15 @@ XRT_API xprocess* xrtProcessRef(xprocess* pProcess);
 */
 XRT_API void xrtProcessDestroy(xprocess* pProcess);
 
+/* Physical process control block. Count includes ALL real references: user
+ * endpoints, the native waiter's independent lifetime and collector pins.
+ * Trace exposes the owned Error and (when selected) shared Future/Promise.
+ * Queries require graph Freeze; all children need independent admission.
+ * Clear retires slots without closing pipes; Finish releases them outside
+ * Freeze. Holds are NOT user endpoints and never postpone last-user EOF. */
+XRT_API xrtownershipref xrtProcessOwnership(const xprocess* pProcess);
+XRT_API const xrtownershipadapterv1* xrtProcessOwnershipAdapterV1(xrtownershipref Reference);
+
 
 
 /* 返回进程状态快照。 */
@@ -43665,6 +43674,10 @@ XRT_EXTERN_C_BEGIN
 
 /* Future 成功值是由 Future 自身拥有的只读 xprocessstatus 快照。 */
 XRT_API xfuture* xrtProcessWaitAsync(xprocess* pProcess);
+
+/* Exact policy for the immutable, owned xprocessstatus terminal snapshot.
+ * This does not certify arbitrary Future payloads, observers or producers. */
+XRT_API const xfuturepayloadownershipv1* xrtProcessFuturePayloadPolicyV1Get(void);
 
 
 

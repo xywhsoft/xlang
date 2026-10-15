@@ -7,6 +7,7 @@ typedef struct ProcessStream {
 } ProcessStream;
 static bool streamReserve(ProcessStream* context,XL6_ProcessLive* process,xprocessstream stream)
 {
+    xrtownershipscope mutation={0};if(!xrtOwnershipMutationBegin(&mutation))abort();
     unsigned bit=1u<<(unsigned)stream;
     xl6ProcessLiveLock(process);
     xerrkind error=XERR_NONE;
@@ -14,12 +15,13 @@ static bool streamReserve(ProcessStream* context,XL6_ProcessLive* process,xproce
     else if (process->closed&bit) error=XERR_CLOSED;
     else if (process->leased&bit) error=XERR_STATE;
     if (error!=XERR_NONE) {
-        xl6ProcessLiveUnlock(process); xrtSetErrorKind(error); return false;
+        xl6ProcessLiveUnlock(process);if(!xrtOwnershipScopeEnd(&mutation))abort();
+        xrtSetErrorKind(error); return false;
     }
     if (xrtRefRetain(&process->refs)<0) abort();
     process->leased|=bit;
     context->process=process; context->stream=stream;
-    xl6ProcessLiveUnlock(process); return true;
+    xl6ProcessLiveUnlock(process);if(!xrtOwnershipScopeEnd(&mutation))abort();return true;
 }
 static void streamRelease(ProcessStream* context)
 {

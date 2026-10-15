@@ -1,0 +1,51 @@
+{
+  "Schema": 1,
+  "Purpose": "Exact Process/shared-Future physical ownership and phased retirement",
+  "Integration": "Reviewed Process public/internal/source section backport, not a full upstream snapshot refresh",
+  "CanonicalCommit": "ed56be2665f388b93ff2cbb0a47eba0b697dfa5a",
+  "CanonicalSources": [
+    {
+      "Path": "include/xrt/process.h",
+      "Sha256": "000cd12a51d1d211c6738c1e032fca68decd3cd3598144b80cc5f7f593906d80"
+    },
+    {
+      "Path": "src/internal/xrt_process.h",
+      "Sha256": "4a289ec577ec6a23b9022b04276f1b3f09039326b496e5a43ac507bb1b830752"
+    },
+    {
+      "Path": "src/process/process.c",
+      "Sha256": "5e5e19e8d25c5a63e63da4b6ac4492a86897bdcad05177bdf4b8df37ea7d2a55"
+    },
+    {
+      "Path": "src/process/process_future.c",
+      "Sha256": "c8410f1593db1d108d66bc624faf0ed3633e346035778db74a130c45df91800a"
+    }
+  ],
+  "ConsumerBase": "ceb3b859d7b068d097d549268d483aa98da426c6",
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "e3389ba5741405f8ddb1017b9087013223eadbfe128e3bd68597a6913dcdf01a",
+      "AfterSha256": "8cd953e692572b1e859506f302963390d91cad8daaadbd8ecc55a78186ed037c"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "0050f6ffa65b42d61e6f5f7e500fdffbfdbb7ab31336359b4da0a0887d86f3b2",
+      "AfterSha256": "812bb5da630fb454409c526fbc1b254936b196258f2deeec4c568dc5b2312f76"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "01cccd4a3ab5aeab2c34798f43ccf295ff7812d638309fb4001341f8f39b4244",
+      "AfterSha256": "91af9cdbbf65dbd6678afe91f15f879bd44ded6004693c6a6ea0a6b53601a89a"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "45e76b1900882aa4c4c7c24398417ac534a65b7edc0b4dcdc3af2e590656cfde",
+      "AfterSha256": "ae509cbece5c4c3a88c45f6291a79959ed45c4492c4e868233e1f2d58d06a313"
+    }
+  ],
+  "PreservedContracts": [
+    "Embedded Future relative timeouts remain microseconds",
+    "Unrelated upstream/worktree core and extension edits excluded"
+  ]
+}

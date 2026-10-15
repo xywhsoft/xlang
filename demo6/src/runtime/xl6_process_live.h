@@ -12,6 +12,8 @@ typedef struct XL6_ProcessLive {
     xmutex* guard;
     xprocess* native;
     unsigned pipes, leased, closed;
+    const void* claim;
+    bool cleared;
 } XL6_ProcessLive;
 static inline XL6_ProcessLive* xl6ProcessLiveCheck(void* handle)
 {

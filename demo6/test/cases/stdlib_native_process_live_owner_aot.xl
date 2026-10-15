@@ -1,0 +1,27 @@
+class NativeLiveProcessOwner
+    Stack<NativeLiveProcessOwner> cycle
+    Process childProcess
+    future<ProcessExitStatus> completion
+    create(Process childProcess, future<ProcessExitStatus> completion)
+        self.childProcess = childProcess
+        self.completion = completion
+    end
+    func link()
+        assert cycle.push(self)
+    end
+    destroy()
+        assert self.childProcess.id > 0 and not self.childProcess.running
+        auto status = self.childProcess.status
+        assert status != null
+        if status != null then assert status.code == 7 end
+        assert self.completion.isDone()
+        print("native-live-process-finalized")
+    end
+end
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto running = process.startFile(child, ["exit", "7"])
+auto completion = running.waitAsync()
+assert (await completion).code == 7
+NativeLiveProcessOwner root = NativeLiveProcessOwner(running, completion)
+root.link()

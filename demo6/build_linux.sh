@@ -464,6 +464,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_ownership_domain_process_command.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_process_status.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_process_live.c"
+	"$ROOT/src/runtime/xl6_ownership_domain_process_future.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_buffer_iterator.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_sequence_future.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_sequence_semaphore.c"

@@ -1,14 +1,18 @@
 #include "src/runtime/xl6_process_live.h"
 #include "src/runtime/xl6_native_handle.h"
 #include "src/api/xl_foreign_error.h"
+#include "src/runtime/xl6_ownership_scope.h"
 
 void xl6ProcessDestroyV1(void* handle)
 {
     XL6_ProcessLive* process=handle;
     if (!process) return;
     xerror* prior=xrtTakeError();
+    xrtownershipscope mutation={0};
+    if(!xrtOwnershipMutationBegin(&mutation))abort();
     int32 remaining=xrtRefRelease(&process->refs);
     if (remaining<0) abort();
+    if(!xrtOwnershipScopeEnd(&mutation))abort();
     if (!remaining) {
         /* Preserve XRT's explicit-stop semantics: dropping references closes
          * pipes, not the child. Its native waiter still reaps the child. */
@@ -18,16 +22,70 @@ void xl6ProcessDestroyV1(void* handle)
     }
     xrtClearError(); xrtSetErrorTake(prior);
 }
-static bool processTrace(const xvalue* value,xrtownershipvisitor visitor,void* context)
+static bool processCount(const void* raw,size_t* count)
 {
-    /* Native-only callbacks do not imply an empty owning graph: xprocess owns
-     * its shared WaitFuture/WaitPromise and error, and the native waiter owns
-     * a real process reference. Until these physical nodes and their complete
-     * mutation/retirement protocol are admitted, refuse collection. In
-     * particular, EXITED is not proof that the waiter has retired. Ordinary
-     * reference-counted destruction remains available outside graph Clear. */
-    (void)value; (void)visitor; (void)context;
-    return false;
+    const XL6_ProcessLive* process=raw;int32 refs;
+    if(!process || !count || process->cleared || !process->native)return false;
+    refs=process->refs; /* Every owning transition participates in Freeze. */
+    if(refs<=0)return false;
+    *count=(size_t)refs;return true;
+}
+static bool processEdges(const void* raw,xrtownershipvisitor visit,void* context)
+{
+    const XL6_ProcessLive* process=raw;size_t count;
+    return visit && processCount(raw,&count) && visit(xrtProcessOwnership(process->native),context);
+}
+static const xrtownershipops processOps={processCount,processEdges};
+xrtownershipref xl6ProcessLiveOwnershipV1(const void* raw)
+{ return (xrtownershipref){raw,raw?&processOps:NULL}; }
+static bool processHold(const void* raw)
+{
+    XL6_ProcessLive* process=(XL6_ProcessLive*)raw;xrtownershipscope mutation={0};
+    if(!xrtOwnershipMutationBegin(&mutation))abort();
+    bool held=!process->cleared && xrtRefRetain(&process->refs)>0;
+    if(!xrtOwnershipScopeEnd(&mutation))abort();
+    return held;
+}
+static void processDrop(const void* raw) { xl6ProcessDestroyV1((void*)raw); }
+static bool processClaim(const void* raw,const void* token)
+{
+    XL6_ProcessLive* process=(XL6_ProcessLive*)raw;size_t count;
+    if(!token || !processCount(raw,&count) || (process->claim && process->claim!=token))return false;
+    process->claim=token;return true;
+}
+static void processRestore(const void* raw,const void* token)
+{
+    XL6_ProcessLive* process=(XL6_ProcessLive*)raw;
+    if(!token || process->claim!=token || process->cleared)abort();
+    process->claim=NULL;
+}
+static void processClear(const void* raw,const void* token)
+{
+    XL6_ProcessLive* process=(XL6_ProcessLive*)raw;
+    if(!token || process->claim!=token || process->cleared)abort();
+    process->cleared=true; /* Actual native user endpoint is retired at Finish. */
+}
+static bool processFinish(const void* raw,const void* token)
+{
+    XL6_ProcessLive* process=(XL6_ProcessLive*)raw;xrtownershipscope mutation={0};xprocess* native;
+    if(!xrtOwnershipMutationBegin(&mutation))abort();
+    if(!token || process->claim!=token || !process->cleared)abort();
+    native=process->native;process->native=NULL;
+    if(!xrtOwnershipScopeEnd(&mutation))abort();
+    /* A collector pin on native is not a user endpoint. Last-user close must
+     * still deliver EOF, outside Freeze, even if its waiter remains active. */
+    xrtProcessDestroy(native);return true;
+}
+const xrtownershipadapterv1* xl6ProcessLiveOwnershipAdapterV1(xrtownershipref ref)
+{
+    static const xrtownershipadapterv1 adapter={sizeof(adapter),processHold,processDrop,
+        processClaim,processRestore,NULL,processClear,processFinish};size_t count;
+    return ref.Ops==&processOps && processCount(ref.Data,&count)?&adapter:NULL;
+}
+static bool processTrace(const xvalue* value,xrtownershipvisitor visit,void* context)
+{
+    void* raw=NULL;
+    return visit && xrtValueGetHandle(value,&raw,NULL,NULL) && raw && visit(xl6ProcessLiveOwnershipV1(raw),context);
 }
 XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6ProcessHandlePolicyV1Get, xl6ProcessDestroyV1, processTrace)
 void* xl6ProcessSpawnV1(void* commandHandle)

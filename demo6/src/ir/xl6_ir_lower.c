@@ -2420,8 +2420,11 @@ static XL6_IrValueId xl6IrLowerProjectBorrowedXValueAsExactType(
          resultType->cAbi == XL6_IR_C_ABI_CLOSURE_PTR )
         return xl6IrLowerProjectBorrowedXValueAsClosure(
             ctx, origin, borrowed, resultTypeId);
-    if (resultType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR)
-        return xl6IrLowerProjectBorrowedXValueAsFuture(ctx, origin, borrowed, resultTypeId);
+    if (resultType->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR) {
+        XL6_IrValueId future=xl6IrLowerProjectBorrowedXValueAsFuture(ctx, origin, borrowed, resultTypeId);
+        return future!=XL6_IR_VALUE_INVALID && xl6IrLowerObserveProjection(ctx,origin,future)
+            ? future : XL6_IR_VALUE_INVALID;
+    }
     if ( resultType->cAbi == XL6_IR_C_ABI_RAW_POINTER )
         return xl6IrLowerProjectBorrowedXValueAsRawPointer(
             ctx, origin, borrowed, resultTypeId);
@@ -24782,6 +24785,35 @@ done:
 /* `xcall(fn)` is the typed boundary from an XLIR closure to an XRT callable
  * xvalue.  The operation borrows the closure; the returned xvalue owns the
  * retained callable/closure chain. */
+/* All non-continuation Future methods share one evaluation transaction.
+ * Physical ownership, not NAME/lvalue syntax, decides whether an operand
+ * needs an anchor. Protect it before evaluating a later possibly-failing
+ * operand, and retire it on both the success and existing failure CFG. */
+static XL6_IrValueId xl6IrLowerFutureBorrowedRuntimeCall(
+    XL6_IrLowerContext* ctx,XL6_IrNodeId id,const XL6_IrNode* call,
+    const XL6_IrIntrinsicCall* intrinsic,XL6_IrRuntimeOp operation)
+{
+    XL6_IrValueId operands[2]={XL6_IR_VALUE_INVALID,XL6_IR_VALUE_INVALID},result;
+    size_t first=ctx->evaluationOwnerCount,i;
+    if(!intrinsic->operandCount || intrinsic->operandCount>2 ||
+       intrinsic->firstOperand>ctx->module->intrinsicOperandCount ||
+       intrinsic->operandCount>ctx->module->intrinsicOperandCount-intrinsic->firstOperand)
+        return XL6_IR_VALUE_INVALID;
+    for(i=0;i<intrinsic->operandCount;++i){
+        const XL6_IrIntrinsicOperand* binding=&ctx->module->intrinsicOperands[intrinsic->firstOperand+i];
+        if(binding->abi!=XL6_IR_INTRINSIC_OPERAND_BORROW && binding->abi!=XL6_IR_INTRINSIC_OPERAND_VALUE)
+            return XL6_IR_VALUE_INVALID;
+        operands[i]=xl6IrLowerNode(ctx,binding->expression);
+        if(operands[i]==XL6_IR_VALUE_INVALID)return XL6_IR_VALUE_INVALID;
+        if(binding->abi==XL6_IR_INTRINSIC_OPERAND_BORROW)
+            operands[i]=xl6IrLowerProtectOwnedBorrow(ctx,id,operands[i]);
+        if(operands[i]==XL6_IR_VALUE_INVALID)return XL6_IR_VALUE_INVALID;
+    }
+    result=xl6IrLowerEmitRuntimeCall(ctx,id,call->storageType,operation,operands,intrinsic->operandCount);
+    return result!=XL6_IR_VALUE_INVALID && xl6IrLowerCompleteEvaluationBorrows(ctx,id,first,&result)
+        ? result : XL6_IR_VALUE_INVALID;
+}
+
 static int xl6IrLowerIntrinsicFutureCancel(
     XL6_IrLowerContext* ctx, XL6_IrNodeId id, const XL6_IrNode* call,
     const XL6_IrIntrinsicCall* intrinsic,
@@ -24792,9 +24824,6 @@ static int xl6IrLowerIntrinsicFutureCancel(
     const XL6_IrType* sourceType;
     const XL6_IrType* resultType;
     XL6_IrNodeId sourceId;
-    XL6_IrValueId future;
-    XL6_IrValueId loaded;
-    XL6_SymbolId temporary = 0;
     if ( result != NULL ) *result = XL6_IR_VALUE_INVALID;
     if ( ctx == NULL || call == NULL || intrinsic == NULL || result == NULL ||
          intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_VERIFIED ||
@@ -24819,23 +24848,7 @@ static int xl6IrLowerIntrinsicFutureCancel(
             "XLIR future cancel requires one borrowed Future and a boolean result ABI");
         return 1;
     }
-    future = xl6IrLowerNode(ctx, sourceId);
-    if ( future == XL6_IR_VALUE_INVALID ) return 1;
-    if ( source->valueCategory == XL6_IR_VALUE_RVALUE ) {
-        temporary = xl6IrLowerNewTempStorage(ctx, source->storageType, id);
-        if ( temporary == 0 ||
-             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, sourceId, source->storageType,
-                              temporary, &future, 1, NULL) ||
-             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, sourceId, source->storageType,
-                              temporary, NULL, 0, &loaded) ) return 1;
-        future = loaded;
-    }
-    *result = xl6IrLowerEmitRuntimeCall(
-        ctx, id, call->storageType, XL6_IR_RUNTIME_FUTURE_CANCEL, &future, 1);
-    if ( *result == XL6_IR_VALUE_INVALID ) return 1;
-    if ( temporary != 0 && !xl6IrLowerEmit(
-             ctx, XL6_IR_INSTR_RELEASE, sourceId, source->storageType,
-             temporary, NULL, 0, NULL) ) *result = XL6_IR_VALUE_INVALID;
+    *result=xl6IrLowerFutureBorrowedRuntimeCall(ctx,id,call,intrinsic,XL6_IR_RUNTIME_FUTURE_CANCEL);
     return 1;
 }
 
@@ -24876,11 +24889,6 @@ static int xl6IrLowerIntrinsicFutureMember(
     const XL6_IrType* resultType;
     const XL6_IrType* timeType = NULL;
     XL6_IrRuntimeOp runtimeOp;
-    XL6_IrValueId operands[2] = {
-        XL6_IR_VALUE_INVALID, XL6_IR_VALUE_INVALID
-    };
-    XL6_IrValueId loaded;
-    XL6_SymbolId temporary = 0;
     size_t operandCount;
     int takesTime;
     if ( result != NULL ) *result = XL6_IR_VALUE_INVALID;
@@ -24919,29 +24927,7 @@ static int xl6IrLowerIntrinsicFutureMember(
             "XLIR Future member operation requires one borrowed Future, an optional I64 time value and a boolean result ABI");
         return 1;
     }
-    operands[0] = xl6IrLowerNode(ctx, bindings[0].expression);
-    if ( operands[0] == XL6_IR_VALUE_INVALID ) return 1;
-    if ( source->valueCategory == XL6_IR_VALUE_RVALUE ) {
-        temporary = xl6IrLowerNewTempStorage(ctx, source->storageType, id);
-        if ( temporary == 0 ||
-             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, bindings[0].expression,
-                              source->storageType, temporary, &operands[0], 1, NULL) ||
-             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, bindings[0].expression,
-                              source->storageType, temporary, NULL, 0, &loaded) )
-            return 1;
-        operands[0] = loaded;
-    }
-    if ( takesTime ) {
-        operands[1] = xl6IrLowerNode(ctx, bindings[1].expression);
-        if ( operands[1] == XL6_IR_VALUE_INVALID ) return 1;
-    }
-    *result = xl6IrLowerEmitRuntimeCall(
-        ctx, id, call->storageType, runtimeOp, operands, operandCount);
-    if ( *result == XL6_IR_VALUE_INVALID ) return 1;
-    if ( temporary != 0 && !xl6IrLowerEmit(
-             ctx, XL6_IR_INSTR_RELEASE, bindings[0].expression,
-             source->storageType, temporary, NULL, 0, NULL) )
-        *result = XL6_IR_VALUE_INVALID;
+    *result=xl6IrLowerFutureBorrowedRuntimeCall(ctx,id,call,intrinsic,runtimeOp);
     return 1;
 }
 
@@ -24989,9 +24975,6 @@ static int xl6IrLowerIntrinsicFutureInspection(
     const XL6_IrType* sourceType;
     const XL6_IrType* resultType;
     XL6_IrRuntimeOp runtimeOp;
-    XL6_IrValueId future;
-    XL6_IrValueId loaded;
-    XL6_SymbolId temporary = 0;
     int returnsError;
     if ( result != NULL ) *result = XL6_IR_VALUE_INVALID;
     if ( ctx == NULL || call == NULL || intrinsic == NULL || result == NULL )
@@ -25025,25 +25008,7 @@ static int xl6IrLowerIntrinsicFutureInspection(
             "XLIR Future state/status/error operation requires one borrowed Future and an exact scalar or owned-error result ABI");
         return 1;
     }
-    future = xl6IrLowerNode(ctx, binding->expression);
-    if ( future == XL6_IR_VALUE_INVALID ) return 1;
-    if ( source->valueCategory == XL6_IR_VALUE_RVALUE ) {
-        temporary = xl6IrLowerNewTempStorage(ctx, source->storageType, id);
-        if ( temporary == 0 ||
-             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, binding->expression,
-                              source->storageType, temporary, &future, 1, NULL) ||
-             !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, binding->expression,
-                              source->storageType, temporary, NULL, 0, &loaded) )
-            return 1;
-        future = loaded;
-    }
-    *result = xl6IrLowerEmitRuntimeCall(
-        ctx, id, call->storageType, runtimeOp, &future, 1);
-    if ( *result == XL6_IR_VALUE_INVALID ) return 1;
-    if ( temporary != 0 && !xl6IrLowerEmit(
-             ctx, XL6_IR_INSTR_RELEASE, binding->expression,
-             source->storageType, temporary, NULL, 0, NULL) )
-        *result = XL6_IR_VALUE_INVALID;
+    *result=xl6IrLowerFutureBorrowedRuntimeCall(ctx,id,call,intrinsic,runtimeOp);
     return 1;
 }
 
@@ -25060,10 +25025,6 @@ static int xl6IrLowerIntrinsicFutureMetadata(
     const XL6_IrType* nameType = NULL;
     const XL6_IrType* resultType;
     XL6_IrRuntimeOp runtimeOp;
-    XL6_IrValueId operands[2] = {
-        XL6_IR_VALUE_INVALID, XL6_IR_VALUE_INVALID
-    };
-    size_t firstOwner;
     int setsName;
     int returnsName;
     size_t operandCount;
@@ -25077,6 +25038,7 @@ static int xl6IrLowerIntrinsicFutureMetadata(
     operandCount = setsName ? 2u : 1u;
     if ( intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_VERIFIED ||
          intrinsic->operandCount != operandCount ||
+         intrinsic->firstOperand + operandCount < intrinsic->firstOperand ||
          intrinsic->firstOperand + operandCount >
              ctx->module->intrinsicOperandCount ||
          intrinsic->resultType != call->storageType ||
@@ -25116,22 +25078,7 @@ static int xl6IrLowerIntrinsicFutureMetadata(
             "XLIR Future metadata operation requires an exact borrowed Future, optional managed name and result ABI");
         return 1;
     }
-    firstOwner = ctx->evaluationOwnerCount;
-    operands[0] = xl6IrLowerNode(ctx, bindings[0].expression);
-    if ( operands[0] == XL6_IR_VALUE_INVALID ) return 1;
-    operands[0] = xl6IrLowerProtectOwnedBorrow(ctx, id, operands[0]);
-    if ( operands[0] == XL6_IR_VALUE_INVALID ) return 1;
-    if ( setsName ) {
-        operands[1] = xl6IrLowerNode(ctx, bindings[1].expression);
-        if ( operands[1] == XL6_IR_VALUE_INVALID ) return 1;
-        operands[1] = xl6IrLowerProtectOwnedBorrow(ctx, id, operands[1]);
-        if ( operands[1] == XL6_IR_VALUE_INVALID ) return 1;
-    }
-    *result = xl6IrLowerEmitRuntimeCall(
-        ctx, id, call->storageType, runtimeOp, operands, operandCount);
-    if ( *result == XL6_IR_VALUE_INVALID ) return 1;
-    if (!xl6IrLowerCompleteEvaluationBorrows(ctx, id, firstOwner, result))
-        *result = XL6_IR_VALUE_INVALID;
+    *result=xl6IrLowerFutureBorrowedRuntimeCall(ctx,id,call,intrinsic,runtimeOp);
     return 1;
 }
 

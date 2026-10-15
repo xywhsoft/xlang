@@ -386,11 +386,14 @@ if not errorlevel 1 (
     echo sem_future_receiver_expr.xl should fail.
     exit /b 1
 )
-findstr /C:"future receiver" build\test\sem_future_receiver_expr.err.txt >nul
+findstr /C:"future method argument count mismatch" build\test\sem_future_receiver_expr.err.txt >nul
 if errorlevel 1 (
-    echo sem_future_receiver_expr.xl missing future receiver diagnostic.
+    echo sem_future_receiver_expr.xl missing future argument-count diagnostic.
     exit /b 1
 )
+
+release\xl.exe run test\cases\stdlib_future_receivers.xl
+if errorlevel 1 exit /b 1
 
 release\xl.exe check test\cases\sem_future_unknown_method.xl >nul 2> build\test\sem_future_unknown_method.err.txt
 if not errorlevel 1 (
