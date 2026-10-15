@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [独立程序循环对象图退役缺陷与验收门](stdlib53-b300-aot-graph-retirement.md)：双端真实 AOT 的核心生命周期失败、无环对照及驻留协议修复要求。
+
 - [当前产品构建与安全数值转换验收](stdlib53-b299-current-products.md)：新 CLI／DLL／SO、完整产品清单及十个数值用例的独立 AOT。
 
 - [专用宿主验收与终端尺寸观察](stdlib53-b298-hosted-source-contracts.md)：六项完整模式矩阵、精确证据接线及真实尺寸事件回归。

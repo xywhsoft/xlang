@@ -1,0 +1,11 @@
+extern "graph_probe_begin" func beginGraphProbe() as bool
+extern "stack_graph_dropped" func dropped(int id, int count)
+assert(beginGraphProbe())
+string controlGraphText = "module\0" + " alive"
+class AotGraphControl
+    destroy()
+        assert(controlGraphText == "module\0 alive")
+        dropped(9, 0)
+    end
+end
+AotGraphControl controlGraphRoot = AotGraphControl()
