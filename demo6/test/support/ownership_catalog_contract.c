@@ -30,7 +30,7 @@ static const XL6_OwnershipDomainV1* const* allDomains(size_t* count)
 #define XL6_OWNERSHIP_DOMAIN_ENTRY(Producer, Component, Getter) domains[n++]=Getter();
 #include "src/runtime/xl6_ownership_domains.inc"
 #undef XL6_OWNERSHIP_DOMAIN_ENTRY
-    assert(n==60);domains[n++]=&observer;*count=n;return domains;
+    assert(n==63);domains[n++]=&observer;*count=n;return domains;
 }
 static bool forbiddenCount(const void* data,size_t* count)
 { (void)data;(void)count;++calls;return false; }
@@ -99,7 +99,7 @@ static void basic(void)
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);size_t count=0;
     const XL6_OwnershipDomainV1* const* domains=allDomains(&count);
     XL6_OwnershipCatalog* catalog=xl6OwnershipCatalogCreateV1(domains,count);assert(catalog);admit(catalog);
-    const size_t expected[]={5,30,10,6,3,1,3,1,1,1,1};
+    const size_t expected[]={5,33,10,6,3,1,3,1,1,1,1};
     assert(sizeof(expected)==sizeof(observed) && !memcmp(expected,observed,sizeof(expected)));
     assert(!xl6OwnershipCatalogAddSequenceV1(catalog,xl6ArrayFutureAdmissionOpsV2Get()));xrtClearError();admit(catalog);
     xl6OwnershipCatalogDestroyV1(catalog);balanced(&before);

@@ -1,8 +1,8 @@
-"""Exact 22-owner XLIR rejection/pruning and relocated native AOT finalizers.
+"""Exact 25-owner XLIR rejection/pruning and relocated native AOT finalizers.
 
 Uses the complete selected source build and ordinary shipping CLI embedded VFS.
 Fixtures and assertions may follow that frozen production build. No production
-provider is replaced. The nine unadmitted resource families remain outstanding.
+provider is replaced. The six unadmitted resource families remain outstanding.
 """
 from pathlib import Path
 import argparse,json,os,shutil,subprocess,sys,time
@@ -15,10 +15,10 @@ def main():
     build,pinned,compared=verify_public_build(root,public);cc=shutil.which('gcc');assert cc
     windows=os.name=='nt';suffix='.exe' if windows else '';task=Path(__file__).resolve().parents[1]
     ir=task/'test/support/native_resources_ir.c'
-    owners=[task/'test/cases'/(name+'.xl') for name in ('stdlib_native_resource_owner_aot','stdlib_native_resource_process_owner_aot')]
+    owners=[task/'test/cases'/(name+'.xl') for name in ('stdlib_native_resource_owner_aot','stdlib_native_resource_process_owner_aot','stdlib_native_resource_scalar_owner_aot')]
     originals=[root/'test/cases'/(name+'.xl') for name in ('stdlib_pattern_builder_lifetime','stdlib_regex_replace_func','stdlib_regex_iterators',
         'stdlib_regex_split_only','stdlib_regex_set_only','stdlib_signal_class_surface','stdlib_time_datetime','stdlib_unicode_validator')]
-    fixtures=[owners[0],root/'test/cases/stdlib_process_pipeline_bytes.xl',root/'test/cases/stdlib_signal_class_surface.xl',root/'test/cases/cgen_basic.xl']
+    fixtures=[owners[0],owners[2],root/'test/cases/stdlib_process_pipeline_bytes.xl',root/'test/cases/stdlib_signal_class_surface.xl',root/'test/cases/cgen_basic.xl']
     shipping=json.loads(a.build_report.read_text(encoding='utf-8-sig'));assert shipping['Complete'] and shipping['InputsUnchanged']
     products=[root/'release'/name for name in (('xl.exe','xl.dll','xlc.dll') if windows else ('xl','libxl.so','libxlc.so'))]
     recorded={Path(row['Path']).resolve():row['Sha256'] for row in shipping['Products']};assert all(recorded[f]==sha(f) for f in products)
@@ -50,7 +50,7 @@ def main():
         if not windows:flags+=['-D_GNU_SOURCE']
         for opt in ('O0','O2'):
             binary=out/('ir.'+opt+suffix);run(opt+'.ir.build',[cc,*flags,'-'+opt,ir,*objects,runtime,*systems,'-o',binary],source_env)
-            data=run(opt+'.ir',[binary,*fixtures],source_env);assert b'targets=22 fields=22 rejected=88' in data
+            data=run(opt+'.ir',[binary,*fixtures],source_env);assert b'targets=25 fields=25 rejected=100' in data
         report['IrPolicyAcceptance']=True
         child=relocated/('process-child'+suffix);run('child.build',[cc,'-std=c11','-Wall','-Wextra','-Werror','-O2',*(['-municode'] if windows else ['-D_GNU_SOURCE']),child_source,'-o',child])
         env['XL6_PROCESS_CHILD']=str(child)
@@ -58,7 +58,7 @@ def main():
             local=compiler/(fixture.stem+'.xl');shutil.copy2(fixture,local);image=compiler/(fixture.stem+suffix+'.aot')
             run(fixture.stem+'.build',[compiler/'release'/products[0].name,'build',local,'-o',image])
             image2=relocated/image.name;shutil.copy2(image,image2)
-            marker=(b'native-owner-finalized' if index==0 else b'native-process-owner-finalized' if index==1 else None)
+            marker=([b'native-owner-finalized',b'native-process-owner-finalized',b'native-scalar-owner-finalized'][index] if index<3 else None)
             for trial in range(4 if marker else 1):
                 data=run(fixture.stem+'.run'+str(trial),[image2],directory=relocated)
                 if marker:assert data.count(marker)==1,(fixture.stem,data)

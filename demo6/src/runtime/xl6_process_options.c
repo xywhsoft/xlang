@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_process_run_internal.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 
 void xl6ProcessRunOptionsDestroyV1(void* handle)
 {
@@ -34,3 +36,14 @@ bool xl6ProcessRunOptionsRequestedV1(void* handle)
     if(!handle){xrtSetErrorKind(XERR_ARGUMENT);return false;}
     return xrtCancelRequested(((XL6_ProcessRunOptions*)handle)->options.Cancel);
 }
+
+/* Options own one real token reference. Async run may share that token with
+ * a certified observer; neither that edge nor the observer may be hidden. */
+static bool optionsTrace(const xvalue* value,xrtownershipvisitor visitor,void* context)
+{
+    void* raw=NULL;
+    if(!visitor || !xrtValueGetHandle(value,&raw,NULL,NULL) || !raw)return false;
+    const XL6_ProcessRunOptions* options=raw;
+    return options->options.Cancel && visitor(xrtCancelOwnership(options->options.Cancel),context);
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6ProcessRunOptionsHandlePolicyV1Get,xl6ProcessRunOptionsDestroyV1,optionsTrace)

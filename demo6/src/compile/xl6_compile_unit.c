@@ -102,7 +102,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_signal_queue.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_SIGNAL", "XRT_MODULE_STRING", "XRT_MODULE_TIME", "XRT_MODULE_WAIT"}},
     {"src/runtime/xl6_signal_task_group.c", D(R(TASK_GROUP)), {"XRT_MODULE_ERROR"}},
     {"src/runtime/xl6_process_command.c", D(R(NATIVE_HANDLE),R(ARRAY_INPUT)), {"XRT_MODULE_PROCESS", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_STRING", "XRT_MODULE_VALUE_CONTAINER"}},
-    {"src/runtime/xl6_process_options.c", D(), {"XRT_MODULE_PROCESS_RUN"}},
+    {"src/runtime/xl6_process_options.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_PROCESS_RUN"}},
     {"src/runtime/xl6_process_run.c", D(R(NATIVE_HANDLE),R(PROCESS_COMMAND)), {"XRT_MODULE_PROCESS_RUN", "XRT_MODULE_VALUE", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_STRING"}},
     {"src/runtime/xl6_process_status.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_PROCESS"}},
     {"src/runtime/xl6_process_open.c", D(), {"XRT_MODULE_PROCESS_OPEN", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_STRING"}},
@@ -444,7 +444,12 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_resource_regex_split.c",D(R(OWNERSHIP_CATALOG),R(REGEX_SPLIT)),{NULL}},
     {"src/runtime/xl6_ownership_domain_resource_regex_set.c",D(R(OWNERSHIP_CATALOG),R(REGEX_SET)),{NULL}},
     {"src/runtime/xl6_ownership_domain_resource_regex_replace_func.c",D(R(OWNERSHIP_CATALOG),R(REGEX_REPLACE_FUNC)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_resource_signal_queue.c",D(R(OWNERSHIP_CATALOG),R(SIGNAL_QUEUE)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_resource_signal_queue.c",D(R(OWNERSHIP_CATALOG),R(SIGNAL_QUEUE)),{NULL}},
+    {"src/runtime/xl6_random_state.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_RANDOM","XRT_MODULE_THREAD","XRT_MODULE_MEMORY"}},
+    {"src/runtime/xl6_fs_file_owner.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_FILE","XRT_MODULE_ATOMIC"}},
+    {"src/runtime/xl6_ownership_domain_resource_process_options.c",D(R(OWNERSHIP_CATALOG),R(PROCESS_OPTIONS)),{"XRT_MODULE_CANCEL"}},
+    {"src/runtime/xl6_ownership_domain_resource_random_state.c",D(R(OWNERSHIP_CATALOG),R(RANDOM_STATE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_resource_fs_file.c",D(R(OWNERSHIP_CATALOG),R(FS_FILE_OWNER)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

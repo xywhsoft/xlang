@@ -60,6 +60,6 @@ int main(int argc,char** argv)
 #include "src/runtime/xl6_native_resource_policies.inc"
 #undef XL6_NATIVE_RESOURCE_POLICY
     assert(plan.hostAbi==XL6_ARTIFACT_HOST_NONE);xl6CompileUnitFree(&unit);
-    assert(targets==22 && fields==22 && rejected==88);
+    assert(targets==25 && fields==25 && rejected==100);
     printf("native policies targets=%zu fields=%zu rejected=%u; scalar provider pruning passed\n",targets,fields,rejected);return 0;
 }

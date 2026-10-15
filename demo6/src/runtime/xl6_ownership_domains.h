@@ -62,4 +62,7 @@ XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainResourceRegexS
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainResourceRegexSetV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainResourceRegexReplaceFuncV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainResourceSignalQueueV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainResourceProcessOptionsV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainResourceRandomStateV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainResourceFsFileV1Get(void);
 #endif

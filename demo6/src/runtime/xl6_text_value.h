@@ -14,6 +14,10 @@
 struct xlir_closure;
 struct xfuture;
 struct XL6_NativeHandlePolicyV1;
+XL6_TEXT_API void* xl6_xrt_rng_create(uint64_t,uint64_t);
+XL6_TEXT_API void* xl6_xrt_rng_create_default(uint64_t);
+XL6_TEXT_API void xl6_xrt_rng_destroy(void*);
+XL6_TEXT_API void xl6_xrt_fs_file_destroy(void*);
 /* Existing DynamicFields class: resident private C linkage. Names are exact
  * byte spans; adoption of a raw point transfers one native strong owner. */
 XL6_TEXT_API void* xl6_xrt_dynamic_fields_create(void);

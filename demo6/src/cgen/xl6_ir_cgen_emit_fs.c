@@ -113,10 +113,6 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
             "  owner = xlir_fs_file_alloc(); if (owner == NULL) { return NULL; }\n"
             "  owner->file = xrtVfsOpen((xvfs)vfs, name, &options);\n"
             "  if (owner->file == NULL) { xrtFree(owner); return NULL; } return owner; }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_DESTROY)) xl6OutputPuts(
-            "void xl6_xrt_fs_file_destroy(void* handle)\n"
-            "{ xerror* error = xrtTakeError(); xlir_fs_file_drop((xlir_fs_file*)handle);\n"
-            "  xrtClearError(); if (error != NULL) xrtSetErrorTake(error); }\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_CLOSE)) xl6OutputPuts(
             "bool xl6_xrt_fs_file_close(void* handle)\n"
             "{ xlir_fs_file* owner = (xlir_fs_file*)handle; xfile file;\n"
