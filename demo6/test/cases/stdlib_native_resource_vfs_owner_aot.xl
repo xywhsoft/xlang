@@ -1,0 +1,49 @@
+class NativeVfsResourceOwner
+    Stack<NativeVfsResourceOwner> cycle
+    Vfs fs = Vfs()
+    MemoryFS memory = MemoryFS()
+    DiskFS disk
+    PackOptions options = vfs.packOptions()
+    PackFS archive
+    PackStats stats
+    VfsMount memoryMount
+    VfsMount diskMount
+    VfsMount packMount
+    FileStat info
+    DirectoryIterator directory
+    File opened
+    create(string root, string packPath)
+        assert memory.put("entry.bin", b"a\0b")
+        assert memory.seal()
+        self.disk = DiskFS(root, 1)
+        self.archive = vfs.pack(packPath, options)
+        self.stats = archive.stats()
+        self.memoryMount = fs.mount("/memory", memory)
+        self.diskMount = fs.mount("/disk", disk)
+        self.packMount = fs.mount("/pack", archive)
+        self.info = fs.stat("/memory/entry.bin")
+        self.directory = fs.openDir("/memory")
+        self.opened = fs.open("/memory/entry.bin")
+    end
+    func link()
+        assert cycle.push(self)
+    end
+    destroy()
+        assert fs.readBytes("/memory/entry.bin") == b"a\0b"
+        assert fs.readBytes("/disk/entry.bin") == b"a\0b"
+        assert fs.readBytes("/pack/entry.bin") == b"a\0b"
+        assert memoryMount.id != uint64(0) and diskMount.id != uint64(0) and packMount.id != uint64(0)
+        assert info.size == uint64(3) and opened.size == uint64(3) and not opened.closed
+        assert options.maxEntries > uint64(0) and stats.loads == uint64(0)
+        assert archive.format == 1
+        assert directory.advance()
+        assert directory.current().name == "entry.bin"
+        print("native-vfs-owner-finalized")
+    end
+end
+string rootPath = env.get("XL6_VFS_FIXTURE_ROOT") ?? ""
+string packPath = env.get("XL6_VFS_FIXTURE_PACK") ?? ""
+assert rootPath != "" and packPath != ""
+NativeVfsResourceOwner root = NativeVfsResourceOwner(rootPath, packPath)
+var alias = root
+root.link()

@@ -2,6 +2,11 @@
 
 ## 1. 目标
 
+标准 VFS 和派生资源的驻留迁移见
+[VFS 的驻留适配与资源清理](stdlib53-b308-resident-vfs.md)。
+原先入口清单剩任务组和 IO reader、writer 三项未准入，跨模块
+Future、完整 exit、终端与发布总门继续。
+
 ProcessRunOptions、Random 和 File 的驻留清理进展见
 [取消选项和基础资源的驻留清理](stdlib53-b307-cancel-rng-file-owners.md)。
 可达原生待审入口由九项降至六项，完整发布目标继续。

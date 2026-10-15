@@ -7,6 +7,26 @@ import argparse, hashlib, json, shutil, subprocess
 
 def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
+def blob_hashes(stream,count=None):
+    """Hash raw and CRLF-normalized bytes with bounded memory.
+
+    A CR at a block boundary must be normalized together with the following
+    LF; a lone/trailing CR is preserved. None means read through file EOF.
+    """
+    raw=hashlib.sha256();normalized=hashlib.sha256();tail=b''
+    while count is None or count:
+        block=stream.read(65536 if count is None else min(count,65536))
+        if not block:
+            assert count is None or count==0,'Truncated Git blob'
+            break
+        if count is not None:count-=len(block)
+        raw.update(block);block=tail+block
+        tail=b'\r' if block.endswith(b'\r') else b''
+        if tail:block=block[:-1]
+        normalized.update(block.replace(b'\r\n',b'\n'))
+    normalized.update(tail)
+    return raw.hexdigest(),normalized.digest()
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out',type=Path,required=True)
@@ -30,23 +50,28 @@ def main():
     out.mkdir(parents=True); frozen=out/'frozen'; frozen.mkdir()
     subprocess.run(['git','-c','core.autocrlf=false','checkout-index','--stdin','-z',
         '--prefix='+frozen.as_posix()+'/'],cwd=project,input=files,check=True)
-    # One process, exact batch contents: avoid thousands of slow per-file Git
-    # launches while preserving the same index-vs-export byte verification.
-    objects=subprocess.check_output(['git','cat-file','--batch'],cwd=project,
-        input=b''.join(b':'+name.encode('utf-8')+b'\n' for name in names))
-    rows=[]; offset=0
-    for name in names:
-        boundary=objects.index(b'\n',offset); header=objects[offset:boundary].split()
-        assert len(header)==3 and header[1]==b'blob',name
-        count=int(header[2]); offset=boundary+1; blob=objects[offset:offset+count]; offset+=count
-        assert len(blob)==count and objects[offset:offset+1]==b'\n',name
-        offset+=1
-        actual=(frozen/name).read_bytes()
-        # An explicit eol=crlf attribute may still control exported batch files.
-        assert actual.replace(b'\r\n',b'\n')==blob.replace(b'\r\n',b'\n'),name
-        rows.append({'Path':name,'IndexSha256':hashlib.sha256(blob).hexdigest(),
-            'FrozenSha256':sha(frozen/name)})
-    assert offset==len(objects)
+    # Keep a single Git process, but request and validate one object at a time.
+    # Neither all source blobs nor even one large blob are buffered in RAM.
+    rows=[]; objects=subprocess.Popen(['git','cat-file','--batch'],cwd=project,
+        stdin=subprocess.PIPE,stdout=subprocess.PIPE)
+    try:
+        for name in names:
+            objects.stdin.write(b':'+name.encode('utf-8')+b'\n');objects.stdin.flush()
+            header=objects.stdout.readline().split()
+            assert len(header)==3 and header[1]==b'blob',name
+            index_sha,index_normalized=blob_hashes(objects.stdout,int(header[2]))
+            assert objects.stdout.read(1)==b'\n',name
+            with (frozen/name).open('rb') as exported:
+                frozen_sha,frozen_normalized=blob_hashes(exported)
+            # An explicit eol=crlf attribute may control exported batch files.
+            assert index_normalized==frozen_normalized,name
+            rows.append({'Path':name,'IndexSha256':index_sha,'FrozenSha256':frozen_sha})
+        objects.stdin.close();assert objects.stdout.read(1)==b''
+        assert objects.wait()==0
+    finally:
+        if objects.poll() is None:objects.terminate();objects.wait()
+        objects.stdout.close()
+        if not objects.stdin.closed:objects.stdin.close()
     products=[]
     for name in (('xl.dll','xlc.dll') if runtime else ()):
         source=runtime/'release'/name; assert source.is_file()

@@ -81,6 +81,38 @@ if errorlevel 1 exit /b 1
 set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_time_date_time.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_unicode_validator.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_text_iterator.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_pattern_core.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_pattern_options.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_pattern_match.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_pattern_builder.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_process_pipeline_config.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_process_pipeline.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_process_run.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_core.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_match.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_iterator.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_split.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_set.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_replace_func.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_signal_queue.o""
 
 rem Audited nested-runtime context policy stays resident in both DLL targets.
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_vfs_core.c -o "%XL6_BUILD_TMP%\xl6_vfs_core.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_vfs_memory.c -o "%XL6_BUILD_TMP%\xl6_vfs_memory.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_vfs_disk.c -o "%XL6_BUILD_TMP%\xl6_vfs_disk.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_vfs_pack.c -o "%XL6_BUILD_TMP%\xl6_vfs_pack.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_vfs_file.c -o "%XL6_BUILD_TMP%\xl6_vfs_file.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_vfs_info.c -o "%XL6_BUILD_TMP%\xl6_vfs_info.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_vfs_dir.c -o "%XL6_BUILD_TMP%\xl6_vfs_dir.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_fs_info_owner.c -o "%XL6_BUILD_TMP%\xl6_fs_info_owner.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_fs_dir_owner.c -o "%XL6_BUILD_TMP%\xl6_fs_dir_owner.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_vfs_core.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_vfs_core.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_vfs_memory.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_vfs_memory.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_vfs_disk.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_vfs_disk.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_vfs_pack.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_vfs_pack.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_fs_info_owner.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_fs_info_owner.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_fs_dir_owner.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_fs_dir_owner.o"
+if errorlevel 1 exit /b 1
+set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_vfs_core.o" "%XL6_BUILD_TMP%\xl6_vfs_memory.o" "%XL6_BUILD_TMP%\xl6_vfs_disk.o" "%XL6_BUILD_TMP%\xl6_vfs_pack.o" "%XL6_BUILD_TMP%\xl6_vfs_file.o" "%XL6_BUILD_TMP%\xl6_vfs_info.o" "%XL6_BUILD_TMP%\xl6_vfs_dir.o" "%XL6_BUILD_TMP%\xl6_fs_info_owner.o" "%XL6_BUILD_TMP%\xl6_fs_dir_owner.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_vfs_core.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_vfs_memory.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_vfs_disk.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_vfs_pack.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_fs_info_owner.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_fs_dir_owner.o""
+
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_process_options.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_process_options.o"
 if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_random_state.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_random_state.o"
