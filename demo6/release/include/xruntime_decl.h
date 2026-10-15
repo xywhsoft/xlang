@@ -10467,6 +10467,21 @@ XRT_API const xrtownershipadapterv1* xrtFutureCombineOwnershipAdapterV1(xrtowner
 	const xfuturecombineownershipv1* const* pPolicies, size_t iPolicyCount,
 	const xrtownershippreparationv1** ppPreparation);
 
+/* Post-Clear physical retirement, with no eager input completion, mapper or
+ * cancellation. Use Future V5, Watch V2 and Token V3 for the transitive graph.
+ * Clear suppresses new completion/map work and keeps every strong slot.
+ * Step first obtains a short exclusive freeze: an active/queued callback or
+ * a busy freeze yields BUSY with no owning-edge changes. Stable registrations
+ * are then detached; context and endpoint rights are dropped outside freeze.
+ * All physical plan pins outlive every duty, including dispatch tails. Map
+ * Data still needs independent semantic finalization/admission. This protocol
+ * does not replace the old preparation contract or authorize skipping an
+ * accepted language callback. Mandatory completion output is unchanged on
+ * refusal; unknown/legacy mapped policies remain unadmitted. */
+XRT_API const xrtownershipadapterv1* xrtFutureCombineOwnershipAdapterV2(xrtownershipref Reference,
+	const xfuturecombineownershipv1* const* pPolicies, size_t iPolicyCount,
+	const xrtownershipfinishv1** ppCompletion);
+
 typedef enum xfuturewaitrulev1 {
 	XFUTURE_WAIT_ALL_TERMINAL = 1,
 	XFUTURE_WAIT_ANY_TERMINAL = 2
