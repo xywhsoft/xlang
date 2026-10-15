@@ -1,0 +1,65 @@
+{
+  "Schema": 1,
+  "Purpose": "Post-finalization TaskGroup and Future cyclic retirement",
+  "Integration": "Reviewed Future/task/cancel ownership delta, not a full upstream snapshot refresh",
+  "CanonicalCommit": "d2d3510a4029fb704a23edc988685c3af537d635",
+  "CanonicalSources": [
+    {
+      "Path": "include/xrt/future.h",
+      "Sha256": "0a6873da187937dc334dc8af2ca32dc7d8f9f624daf37147162d50b2991d4ae7"
+    },
+    {
+      "Path": "include/xrt/task.h",
+      "Sha256": "a230c9604f0a7c5119af7eca39220808a58497021d550351a548433174484023"
+    },
+    {
+      "Path": "src/internal/xrt_cancel.h",
+      "Sha256": "02ed3ff6de80fb27ea50173d17ccac47d7b3683af619ccf4731ddd8962752eaa"
+    },
+    {
+      "Path": "src/concurrency/cancel.c",
+      "Sha256": "485e1b1fd88c0b61619a17a269922b5b9ea33b2f33509492dc3afcf5061bc887"
+    },
+    {
+      "Path": "src/concurrency/future.c",
+      "Sha256": "2194dfcf9e65f5850be91c2a26192482f627423162b1c843911bc7522f95c260"
+    },
+    {
+      "Path": "src/concurrency/task_group.c",
+      "Sha256": "84910aac88a417fd94038228ae65e47f1ab91baf9ca4228d52caa0fabf0969a1"
+    },
+    {
+      "Path": "tests/concurrency/test_task_group_retirement.c",
+      "Sha256": "6e06e6021a69ebfd1318d130a32a7eb62c296b66f242b43ed1bffb7ee50bf02d"
+    }
+  ],
+  "ConsumerBase": "cb2f5f593b1fc080c896d8e6321854ed360baa95",
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "5723ebd3eaacdb6ec254a935790b3abf2860bda8e5e106845b8ef634113b9b2f",
+      "AfterSha256": "aeb58098687a331f94b4063d62d3e008f42c1fa8df342228b900dff083a353f9"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "a81a02e1b674b6548b143630dbeac9418ff28f65aea434f5bcdbec9742b63027",
+      "AfterSha256": "8e4ea28a32ff9098efba7adf7f93157c93b32ae89a879a431688ae9f3cec596c"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "92ef77db15b898e27a3520adc81a43d7072f144e7f00484c59c70c6794d140b7",
+      "AfterSha256": "05866fd047a433aeeaf6ea4cf80778f8e2519caa3b3d5e1391d009157cd71229"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "61d7ef71cf5c1fae72a7417c50ac5dd749f99974372d9dcf55ea9ddb26e66f5d",
+      "AfterSha256": "ab6b55e29ab4b70fb9a59a4e091703010ba9116ca9f96428d391eec5d738f218"
+    }
+  ],
+  "PreservedContracts": [
+    "Embedded relative timeouts remain microseconds",
+    "Legacy Future V1-V4 and Cancel adapter identities remain unchanged",
+    "No language domain is switched implicitly; bridge policy and coordinated routing still required",
+    "Unrelated core and extension edits excluded"
+  ]
+}

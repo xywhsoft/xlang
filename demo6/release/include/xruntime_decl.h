@@ -10173,6 +10173,15 @@ XRT_API const xrtownershipadapterv1* xrtFutureOwnershipAdapterV4(xrtownershipref
 	const xfutureownershipadmissionv1* pAdmission,
 	const xrtownershippreparationv1** ppPreparation);
 
+/* Explicit post-Clear registration retirement. No preparation closes the
+ * pending Future before finalizers. Clear never notifies and preserves all
+ * physical slots; actual owners detach registrations in Finish. Step stays
+ * BUSY without edge changes until waiters retire, then releases slots outside
+ * mutation. Use the exact mandatory completion, not bool Finish. Unknown or
+ * legacy policies and transitive nodes remain independently unadmitted. */
+XRT_API const xrtownershipadapterv1* xrtFutureOwnershipAdapterV5(xrtownershipref Reference,
+	const xfutureownershipadmissionv1* pAdmission, const xrtownershipfinishv1** ppCompletion);
+
 /* Atomically publish value, destructor, context and non-NULL ownership trace.
  * Success transfers the same ownership as ResolveOwned. Failure (including
  * duplicate completion) transfers nothing and never calls Destroy/Trace.
@@ -32338,6 +32347,14 @@ XRT_API void xrtTaskGroupDestroy(xtaskgroup* pGroup);
 XRT_API xrtownershipref xrtTaskGroupOwnership(const xtaskgroup* pGroup);
 XRT_API const xfuturewatchownershipv1* xrtTaskGroupWatchPolicyV1Get(void);
 XRT_API const xcancelwatchownershipv1* xrtTaskGroupCancelPolicyV1Get(void);
+
+/* Group and real active-item lifecycle admission under whole-graph freeze.
+ * No early close, cancel or Unwatch. All semantic finalizers precede Clear;
+ * the mandatory exact completion detaches only actual owned rights afterward.
+ * Use with Future V5 and Cancel Watch V2/Token V3, and independently admit every
+ * transitive node. Unknown references leave the completion output unchanged. */
+XRT_API const xrtownershipadapterv1* xrtTaskGroupOwnershipAdapterV1(xrtownershipref Reference,
+	const xrtownershipfinishv1** ppCompletion);
 
 
 
