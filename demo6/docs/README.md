@@ -6,8 +6,9 @@
 
 ## 当前权威设计
 
+- [Process 派生 IO 的拥有图](stdlib53-b312-process-io-graph.md)：唯一流上下文的真实拥有边、Reader 转移与流租约的可重试完成。
 - [Process 共享拥有图](stdlib53-b311-process-owning-graph.md)：真实后台引用、共享终态 Future、消费者独立取消，以及冻结外的管道退役。
-- [IO 的驻留实现和文件流回调](stdlib53-b309-resident-io.md)：51 个适配入口迁出 Cgen，内建流拥有策略、独立组件和错误回滚；进程派生流的拥有边仍待接通。
+- [IO 的驻留实现和文件流回调](stdlib53-b309-resident-io.md)：51 个适配入口迁出 Cgen，内建流拥有策略、独立组件和错误回滚；进程派生流的拥有边见上文专项。
 
 - [VFS 的驻留适配与资源清理](stdlib53-b308-resident-vfs.md)：私有 namespace、内建后端与返回对象清理，移除 VFS 和 Pack emitter，IO 与任务组继续审计。
 

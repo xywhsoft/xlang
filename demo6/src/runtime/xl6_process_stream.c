@@ -1,5 +1,6 @@
 #include "src/runtime/xl6_process_live.h"
 #include "src/runtime/xl6_io_handle.h"
+#include "src/runtime/xl6_native_handle.h"
 
 typedef struct ProcessStream {
     XL6_ProcessLive* process;
@@ -26,8 +27,10 @@ static bool streamReserve(ProcessStream* context,XL6_ProcessLive* process,xproce
 static void streamRelease(ProcessStream* context)
 {
     XL6_ProcessLive* process=context->process;
+    xrtownershipscope mutation={0};if(!xrtOwnershipMutationBegin(&mutation))abort();
     xl6ProcessLiveLock(process); process->leased&=~(1u<<(unsigned)context->stream);
     xl6ProcessLiveUnlock(process);
+    if(!xrtOwnershipScopeEnd(&mutation))abort();
     xl6ProcessDestroyV1(process); xrtFree(context);
 }
 static bool streamClose(void* data)
@@ -77,7 +80,8 @@ void* xl6ProcessReaderV1(void* handle,int64_t stream)
          * NOT the pipe, so an allocation failure is safely retryable. */
         streamRelease(context); xrtFree(reader); return NULL;
     }
-    reader->origin=XL6_IO_ORIGIN_PROCESS;return reader;
+    reader->origin=XL6_IO_ORIGIN_PROCESS;
+    reader->contextOwner=xl6ProcessLiveOwnershipV1(process);return reader;
 }
 void* xl6ProcessWriterV1(void* handle)
 {
@@ -92,5 +96,6 @@ void* xl6ProcessWriterV1(void* handle)
     const xwriterops ops={.Write=streamWrite,.Close=streamClose};
     writer->stream=xrtWriterCreate(&ops,context);
     if (!writer->stream) { streamRelease(context); xrtFree(writer); return NULL; }
-    writer->origin=XL6_IO_ORIGIN_PROCESS;return writer;
+    writer->origin=XL6_IO_ORIGIN_PROCESS;
+    writer->contextOwner=xl6ProcessLiveOwnershipV1(process);return writer;
 }

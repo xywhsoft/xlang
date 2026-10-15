@@ -1,0 +1,43 @@
+class NativeProcessIoOwner
+    Stack<NativeProcessIoOwner> cycle
+    Process childProcess
+    IoReader movedReader
+    IoWriter input
+    IoLineReader lines
+    IoReader errors
+    create(Process childProcess, IoReader movedReader, IoWriter input, IoLineReader lines, IoReader errors)
+        self.childProcess = childProcess
+        self.movedReader = movedReader
+        self.input = input
+        self.lines = lines
+        self.errors = errors
+    end
+    func link()
+        assert cycle.push(self)
+    end
+    destroy()
+        assert self.childProcess.id > 0 and self.childProcess.running
+        assert self.movedReader.closed()
+        assert not self.input.closed()
+        self.input.writeAll(b"a\0你\n")
+        self.input.close()
+        assert self.errors.readAll() == b"E\0R"
+        auto found, text, ending = self.lines.next()
+        assert found and text == b"a\0你" and ending == io.lineLf
+        auto status = self.childProcess.wait(5000)
+        assert status != null
+        if status != null then assert status.code == 0 end
+        print("native-live-process-finalized")
+    end
+end
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto command = process.cmd(child, ["echo"])
+// Keep stderr open: the private echo child writes a three-byte marker at EOF.
+auto running = command.start()
+auto input = running.stdinWriter()
+auto output = running.stdoutReader()
+auto lines = io.lines(output, 128)
+auto errors = running.stderrReader()
+NativeProcessIoOwner root = NativeProcessIoOwner(running, output, input, lines, errors)
+root.link()

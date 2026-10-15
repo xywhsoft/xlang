@@ -4,9 +4,11 @@
 #include "xl6_io_handle.h"
 #include "xl6_native_handle.h"
 #include "src/api/xl_foreign_error.h"
+#include "src/runtime/xl6_ownership_scope.h"
 #include <string.h>
 /* Private resident helpers. No generated callback or arbitrary host stream is
- * admitted by this ABI. Process streams remain a separate owning-graph audit. */
+ * admitted by this ABI. Certified process contexts publish their actual owner
+ * edge; unique stream moves and detaches participate in the graph freeze. */
 static inline const char* xl6IoPath(xstrview path)
 {
     if(!path.Data){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}

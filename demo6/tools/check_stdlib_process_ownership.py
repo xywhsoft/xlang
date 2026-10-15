@@ -3,7 +3,8 @@
 Full source providers, physical-node snapshots, real cycle collection, closed
 construction-failure prefixes, original language regressions and moved AOT.
 The genuine released TCC core is reused; this is not shipping/VFS or full53
-acceptance. Process-backed IO graph admission remains a separate task.
+acceptance. --process-io separately checks the exact unique-context IO edges
+and retryable shared-wrapper completion; it does not certify arbitrary IO.
 """
 from pathlib import Path
 import argparse,json,os,re,shutil,subprocess,sys
@@ -12,10 +13,12 @@ from xlir_public_build_inputs import sha,verify_public_build
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('root','public-directory','out'):parser.add_argument('--'+name,type=Path,required=True)
+    parser.add_argument('--process-io',action='store_true')
     args=parser.parse_args();root,out=args.root.resolve(),args.out.resolve();assert not out.exists()
     build,pinned,compared=verify_public_build(root,args.public_directory)
     cc=shutil.which('gcc');inspector=shutil.which('objdump' if os.name=='nt' else 'readelf');assert cc and inspector
-    contract=root/'test/support/process_ownership_native.c';child_source=root/'test/cases/xlir_process_child.c'
+    contract=root/'test/support'/('process_io_ownership_native.c' if args.process_io else 'process_ownership_native.c')
+    child_source=root/'test/cases/xlir_process_child.c'
     artifact=root/'test/support/container_projection_artifact.c'
     lifetime=root/'test/support/process_ownership_public.c'
     fixtures=[root/'test/cases'/(name+'.xl') for name in (
@@ -24,6 +27,10 @@ def main():
         'stdlib_process_future_allocations','stdlib_process_future_cancel_allocations',
         'stdlib_native_scalar_convert','stdlib_native_scalar_as','stdlib_native_scalar_errors',
         'stdlib_future_receivers','stdlib_native_process_live_owner_aot')]
+    receiver_fixture=fixtures[-2]
+    if args.process_io:
+        fixtures.extend(root/'test/cases'/(name+'.xl') for name in (
+            'stdlib_io_streams','stdlib_io_allocation','stdlib_native_process_io_owner_aot'))
     negative=root/'test/cases/sem_future_receiver_expr.xl'
     runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(sys.executable),Path(cc),Path(inspector),contract,artifact,lifetime,negative,child_source,runtime,*fixtures))
@@ -58,11 +65,18 @@ def main():
             binary=out/('native.'+optimization+suffix)
             run(optimization+'.build',[cc,*flags,'-'+optimization,contract,*objects,*libraries,'-o',binary])
             output=run(optimization+'.run',[binary,child])
-            assert '3/11/5 physical nodes' in output and 'opaque legacy observer refused' in output
-            assert 'EOF only at Finish' in output
-            match=re.search(r'continuation prefixes=(\d+) first-no-hit=(\d+) balanced',output);assert match
-            runs,first=map(int,match.groups());assert first>0 and runs==first+1
-            prefixes.append(dict(Optimization=optimization,Runs=runs,FirstNoHit=first))
+            if args.process_io:
+                assert 'exact 3-node paths' in output and 'refused before foreign Count/Trace' in output
+                assert 'Finish BUSY until real leases retire' in output
+                matches=re.findall(r'operation=(\d+) prefixes=(\d+) first-no-hit=(\d+) balanced',output)
+                assert len(matches)==3 and [int(row[0]) for row in matches]==[0,1,2]
+            else:
+                assert '3/11/5 physical nodes' in output and 'opaque legacy observer refused' in output
+                assert 'EOF only at Finish' in output
+                matches=[('continuation',*re.search(r'continuation prefixes=(\d+) first-no-hit=(\d+) balanced',output).groups())]
+            for operation,runs,first in matches:
+                runs,first=int(runs),int(first);assert first>0 and runs==first+1
+                prefixes.append(dict(Optimization=optimization,Operation=operation,Runs=runs,FirstNoHit=first))
         strict=['-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-label',
             '-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign']
         marker='native-live-process-finalized'
@@ -78,17 +92,20 @@ def main():
         tcc=str(root/'res/tcc/win64/x86_64') if os.name=='nt' else str(Path(build['NativeRoot'])/'build/linux/tcc-dist')
         output=run('lifetime.run',[host,runtime,tcc,args.public_directory/'include',fixtures[-1],out/'lifetime-temps'])
         assert output.count(marker)==5 and 'complete XRT release ledger balanced' in output
-        output=run('receiver-lifetime.run',[host,runtime,tcc,args.public_directory/'include',fixtures[-2],out/'receiver-lifetime-temps'])
+        output=run('receiver-lifetime.run',[host,runtime,tcc,args.public_directory/'include',receiver_fixture,out/'receiver-lifetime-temps'])
         assert 'complete XRT release ledger balanced' in output
         planner=out/('artifact-plan'+suffix)
         run('artifact.build',[cc,*flags,'-O0',artifact,*objects,*libraries,'-o',planner])
-        for name,asynchronous in (('stdlib_process_live_wait',False),('stdlib_process_future',True)):
+        for name,asynchronous in (('stdlib_process_live_wait',False),('stdlib_process_future',True),('stdlib_io_streams',False)):
             prefix=out/(name+'.plan');run(name+'.plan',[planner,root/'test/cases'/(name+'.xl'),prefix])
             plan=json.loads(Path(str(prefix)+'.plan.json').read_text())
             source_names={Path(source).name for source in plan['Sources']}
             assert ('xl6_process_future.c' in source_names)==asynchronous
             assert ('xl6_ownership_domain_process_future.c' in source_names)==asynchronous
             assert ('XRT_MODULE_PROCESS_FUTURE' in plan['NativeModules'])==asynchronous
+            if name=='stdlib_io_streams':
+                assert 'xl6_process_live.c' not in source_names and 'xl6_process_stream.c' not in source_names
+                assert 'XRT_MODULE_PROCESS' not in plan['NativeModules']
         fixture=fixtures[-1];image=out/('process-owner.aot'+suffix)
         run('owner.aot.build',[build['Driver'],fixture,'exe',image])
         actual=Path(str(image)+'.exe') if os.name=='nt' and not image.exists() else image
@@ -100,7 +117,8 @@ def main():
         for trial in range(3):assert run('owner.aot.moved'+str(trial),[moved],relocated).count(marker)==1
         report['AotDependencies']=dependencies
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs);assert report['InputsUnchanged']
-        report.update(Complete=True,ProcessGraphAcceptance=True,LanguageFixtureCount=len(fixtures),SourceAotAcceptance=True,AsyncProviderPruningAcceptance=True,
+        report.update(Complete=True,ProcessGraphAcceptance=True,ProcessIoGraphAcceptance=args.process_io,
+            LanguageFixtureCount=len(fixtures),SourceAotAcceptance=True,AsyncProviderPruningAcceptance=True,
             JitImageRetirementProof='MEM_FREE' if os.name=='nt' else 'non-executable')
     except Exception as error:failures.append(repr(error));print(repr(error),file=sys.stderr)
     report['Products']=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(out.rglob('*')) if path.is_file()]

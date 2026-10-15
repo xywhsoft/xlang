@@ -64,6 +64,6 @@ ProcessLive 域分别识别共享包装对象与原生 Process 节点；ProcessF
 真实循环退役、构造失败前缀、既有语言用例，以及移动后的独立 AOT
 析构。XRT 的 `process_ownership_tests` 同时覆盖模块化和单头实现。
 
-Process 派生 Reader、Writer 和 LineReader 的原生上下文仍需独立的
-拥有边接入；它们继续拒绝图收集，不继承本次 Process 的证书。
+Process 派生 Reader、Writer 和 LineReader 的原生上下文拥有边由
+[派生 IO 专项](stdlib53-b312-process-io-graph.md)接入，不从本专项推定。
 本专项不代替发布库、嵌入 VFS 或全部 53 模块的发布验收。
