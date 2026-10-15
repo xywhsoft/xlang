@@ -58,7 +58,18 @@ int main(int argc,char** argv)
     assert(argc==6 && xrtMemDebugEnable(true));
     transaction(argv);transaction(argv);
     for(unsigned round=0;round<3;++round){
-        xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);transaction(argv);xrtMemDebugSnapshot(&after);
+        xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);transaction(argv);
+        /* A native waiter can outlive the generated code image. Observe its
+         * real release tail without discounting any allocation or reference. */
+        double deadline=xrtTimer()+5;
+        for(;;){
+            xrtMemDebugSnapshot(&after);
+            assert(before.InvalidFreeCount==after.InvalidFreeCount && before.DoubleFreeCount==after.DoubleFreeCount &&
+                before.UseAfterFreeCount==after.UseAfterFreeCount);
+            if(before.LiveCount==after.LiveCount && before.LiveBytes==after.LiveBytes &&
+                after.AllocCount-before.AllocCount==after.FreeCount-before.FreeCount)break;
+            assert(xrtTimer()<deadline);xrtThreadYield();
+        }
         assert(before.LiveCount==after.LiveCount && before.LiveBytes==after.LiveBytes &&
             after.AllocCount-before.AllocCount==after.FreeCount-before.FreeCount &&
             before.InvalidFreeCount==after.InvalidFreeCount && before.DoubleFreeCount==after.DoubleFreeCount &&

@@ -7,9 +7,10 @@ static bool ownershipLoadProcessLive(XL6_OwnershipCatalog* catalog)
 { return xl6OwnershipCatalogAddHandleV1(catalog,xl6ProcessHandlePolicyV1Get()); }
 XL6_OWNERSHIP_QUERY(ProcessLive)
 {
-    (void)policies;(void)preparation;(void)completion;
+    (void)policies;(void)preparation;
     *adapter=xl6ProcessLiveOwnershipAdapterV1(ref);
-    if(!*adapter)*adapter=xrtProcessOwnershipAdapterV1(ref);
+    if(*adapter)*completion=xl6ProcessLiveOwnershipFinishV1Get();
+    else *adapter=xrtProcessOwnershipAdapterV1(ref);
     return *adapter!=NULL;
 }
 XL6_OWNERSHIP_DOMAIN(ProcessLive,ownershipLoadProcessLive,ownershipDomainProcessLive)
