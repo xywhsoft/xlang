@@ -113,7 +113,7 @@ static void cycle(void)
     assert(result==XL6_OWNERSHIP_PLAN_READY && process->native==native && process->cleared && process->leased);
     assert(!xrtFutureDone(terminal));
     const XL6_OwnershipFinishV1* completion=xl6ProcessLiveOwnershipFinishV1Get();
-    assert(completion->Step(process,plan)==XL6_OWNERSHIP_STEP_BUSY && process->native==native && !xrtGetError());
+    assert(completion->Step(process,plan)==XRT_OWNERSHIP_FINISH_BUSY && process->native==native && !xrtGetError());
     XL6_OwnershipStepResult step;
     do{step=xl6OwnershipPlanFinishV2(plan);assert(step>=XL6_OWNERSHIP_STEP_BUSY && xrtTimer()<deadline);}while(step==XL6_OWNERSHIP_STEP_BUSY);
     assert(!process->native && !process->leased && !xrtGetError());

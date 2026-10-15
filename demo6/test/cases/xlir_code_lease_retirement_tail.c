@@ -2,26 +2,25 @@
 #define XRT_MODULE_VALUE
 #include "lib/xrt/xrt.h"
 #include "src/runtime/xl6_code_lease.h"
-#include <windows.h>
+#include "test/support/ownership_test_thread.h"
 #include <assert.h>
 #include <stdio.h>
 
 typedef struct Owner { unsigned pins,acquires,releases; } Owner;
 static unsigned runs;
 static int acquire(void* data){Owner* o=data;++o->pins;++o->acquires;return 1;}
-static DWORD WINAPI worker(void* unused)
+static void worker(void* unused)
 {
     xrtownershipscope mutation={0};(void)unused;
     assert(xrtOwnershipMutationBegin(&mutation));xvalue* v=xrtValueInt(175);assert(v);xrtValueRelease(v);
-    assert(xrtOwnershipScopeEnd(&mutation));return 0;
+    assert(xrtOwnershipScopeEnd(&mutation));
 }
 static void release(void* data)
 {
     Owner* o=data;xrtownershipscope freeze={0};
     assert(o->pins==1 && xrtOwnershipFreezeTryBegin(&freeze));
     assert(xrtOwnershipScopeEnd(&freeze));
-    HANDLE thread=CreateThread(NULL,0,worker,NULL,0,NULL);
-    assert(thread && WaitForSingleObject(thread,3000)==WAIT_OBJECT_0 && CloseHandle(thread));
+    xl6OwnershipTestThreadRun(worker,NULL);
     --o->pins;++o->releases;++runs;
     xrtSetErrorKind(XERR_ARGUMENT); /* must not replace the caller's error */
 }

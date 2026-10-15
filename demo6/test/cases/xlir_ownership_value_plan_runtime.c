@@ -4,7 +4,7 @@
 #include "src/runtime/xl6_ownership_plan.h"
 #include <assert.h>
 #include <stdio.h>
-#include <windows.h>
+#include "test/support/ownership_test_thread.h"
 
 /* The native owner has one actual self-owning slot and two real COW shells.
  * No fake refcounts, tracing roots, or direct access to XRT private layouts. */
@@ -81,8 +81,8 @@ static void check_value(xvalue* weak,bool available)
     else{assert(xrtValueType(value)==XVALUE_NULL);++refusedPromotions;}
     xrtValueRelease(value);
 }
-static DWORD WINAPI denied_worker(void* weak)
-{for(unsigned i=0;i<100;++i)check_value(weak,false);return 0;}
+static void denied_worker(void* weak)
+{for(unsigned i=0;i<100;++i)check_value(weak,false);}
 static void end_plan(XL6_OwnershipPlan* plan)
 {assert(xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_READY);}
 static void transaction(unsigned kind,unsigned mode)
@@ -103,8 +103,7 @@ static void transaction(unsigned kind,unsigned mode)
         assert(xl6OwnershipPlanTryCreate(view(owner),resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_READY);
     }
     if(mode==0){
-        HANDLE thread=CreateThread(NULL,0,denied_worker,weak,0,NULL);
-        assert(thread && WaitForSingleObject(thread,3000)==WAIT_OBJECT_0 && CloseHandle(thread));
+        xl6OwnershipTestThreadRun(denied_worker,weak);
     }
     /* No allocation or foreign finalizer can occur in physical field clear;
      * preparation still allocates and is separately fault-swept below. */

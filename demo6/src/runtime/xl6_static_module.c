@@ -168,11 +168,11 @@ static void staticClear(const void* data,const void* token)
     if(module->claim!=token || module->cleared)abort();
     module->cleared=true;
 }
-static XL6_OwnershipStepResult staticFinish(const void* data,const void* token)
+static xrtownershipfinishresult staticFinish(const void* data,const void* token)
 {
     XL6_StaticModule* module=(XL6_StaticModule*)data;
     if(module->claim!=token || !module->cleared)abort();
-    xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))return XL6_OWNERSHIP_STEP_FAILED;
+    xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))return XRT_OWNERSHIP_FINISH_FAILED;
     XL6_ModuleRetireResult status=module->contract.step ? module->contract.step() :
         module->contract.graph->finish() ? XL6_MODULE_RETIRE_READY : XL6_MODULE_RETIRE_FAILED;
     if(status!=XL6_MODULE_RETIRE_READY && status!=XL6_MODULE_RETIRE_BUSY && status!=XL6_MODULE_RETIRE_FAILED){
@@ -180,15 +180,15 @@ static XL6_OwnershipStepResult staticFinish(const void* data,const void* token)
     }
     if(status==XL6_MODULE_RETIRE_FAILED)xl6ErrorScopeCaptureFailure(&scope);
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
-    if(!outcome.ok){xl6ErrorScopePropagateFailure(outcome);return XL6_OWNERSHIP_STEP_FAILED;}
+    if(!outcome.ok){xl6ErrorScopePropagateFailure(outcome);return XRT_OWNERSHIP_FINISH_FAILED;}
     xrtErrorFree(outcome.error);
-    if(status==XL6_MODULE_RETIRE_BUSY)return XL6_OWNERSHIP_STEP_BUSY;
+    if(status==XL6_MODULE_RETIRE_BUSY)return XRT_OWNERSHIP_FINISH_BUSY;
     /* Finish is outside Freeze. Publish the owning-slot state in Mutation. */
     xrtownershipscope mutation={0};if(!xrtOwnershipMutationBegin(&mutation))abort();
-    module->finished=true;if(!xrtOwnershipScopeEnd(&mutation))abort();return XL6_OWNERSHIP_STEP_READY;
+    module->finished=true;if(!xrtOwnershipScopeEnd(&mutation))abort();return XRT_OWNERSHIP_FINISH_READY;
 }
 static bool staticFinishLegacy(const void* data,const void* token)
-{ return staticFinish(data,token)==XL6_OWNERSHIP_STEP_READY; }
+{ return staticFinish(data,token)==XRT_OWNERSHIP_FINISH_READY; }
 static const xrtownershipadapterv1 staticAdapter={sizeof(staticAdapter),staticHold,staticDrop,
     staticClaim,staticRestore,NULL,staticClear,staticFinishLegacy};
 static const XL6_OwnershipFinishV1 staticCompletion={sizeof(staticCompletion),&staticAdapter,staticFinish};

@@ -66,7 +66,7 @@ static void processClear(const void* raw,const void* token)
     if(!token || process->claim!=token || process->cleared)abort();
     process->cleared=true; /* Actual native user endpoint is retired at Finish. */
 }
-static XL6_OwnershipStepResult processFinishStep(const void* raw,const void* token)
+static xrtownershipfinishresult processFinishStep(const void* raw,const void* token)
 {
     XL6_ProcessLive* process=(XL6_ProcessLive*)raw;xrtownershipscope mutation={0};xprocess* native;
     if(!xrtOwnershipMutationBegin(&mutation))abort();
@@ -79,16 +79,16 @@ static XL6_OwnershipStepResult processFinishStep(const void* raw,const void* tok
     xl6ProcessLiveUnlock(process);
     if(leased){
         if(!xrtOwnershipScopeEnd(&mutation))abort();
-        return XL6_OWNERSHIP_STEP_BUSY;
+        return XRT_OWNERSHIP_FINISH_BUSY;
     }
     native=process->native;process->native=NULL;
     if(!xrtOwnershipScopeEnd(&mutation))abort();
     /* A collector pin on native is not a user endpoint. Last-user close must
      * still deliver EOF, outside Freeze, even if its waiter remains active. */
-    xrtProcessDestroy(native);return XL6_OWNERSHIP_STEP_READY;
+    xrtProcessDestroy(native);return XRT_OWNERSHIP_FINISH_READY;
 }
 static bool processFinish(const void* raw,const void* token)
-{ return processFinishStep(raw,token)==XL6_OWNERSHIP_STEP_READY; }
+{ return processFinishStep(raw,token)==XRT_OWNERSHIP_FINISH_READY; }
 static const xrtownershipadapterv1 processAdapter={sizeof(processAdapter),processHold,processDrop,
     processClaim,processRestore,NULL,processClear,processFinish};
 const xrtownershipadapterv1* xl6ProcessLiveOwnershipAdapterV1(xrtownershipref ref)

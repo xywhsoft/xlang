@@ -81,8 +81,8 @@ static bool swallowedLoad(XL6_OwnershipCatalog* catalog)
 static bool nullFailure(XL6_OwnershipCatalog* catalog)
 { (void)catalog;xl6ErrorScopePropagateFailure((xl6_error_result){false,NULL});return true; }
 static unsigned queryMode;
-static XL6_OwnershipStepResult neverFinish(const void* data,const void* token)
-{ (void)data;(void)token;assert(0);return XL6_OWNERSHIP_STEP_FAILED; }
+static xrtownershipfinishresult neverFinish(const void* data,const void* token)
+{ (void)data;(void)token;assert(0);return XRT_OWNERSHIP_FINISH_FAILED; }
 static bool invalidQuery(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
     const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,
     const XL6_OwnershipFinishV1** completion)
