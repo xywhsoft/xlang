@@ -10,10 +10,6 @@ static int xl6IrCgenEmitStdlibBridgeRuntime(
          !xl6IrCgenEmitXidRuntime(out, module, needs, diags) ) return 0;
     if ( needs->randomBridgeOperations != 0 )
         xl6IrCgenEmitRandomRuntime(out, needs->randomBridgeOperations);
-    if ( needs->ioBridgeOperations != 0 )
-        xl6IrCgenEmitIoRuntime(out, needs->ioBridgeOperations,
-            xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_READER),
-            xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_WRITER));
     if (needs->fsBridgeOperations0 != 0 || needs->fsBridgeOperations1 != 0 || needs->fsBridgeOperations2 != 0)
         xl6IrCgenEmitFsRuntime(out, needs);
     if ( needs->consoleBridgeOperations != 0 )

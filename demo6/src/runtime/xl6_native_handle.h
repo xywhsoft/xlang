@@ -86,6 +86,12 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6PackOptionsHandlePolicyV1G
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6PackStatsHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6FsInfoHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6FsDirHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6IoReaderHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6IoWriterHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6IoLinesHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6FsMapHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6FsLockHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6FsRootHandlePolicyV1Get(void);
 
 /* Used only in audited resident implementation units, with complete XRT types.
  * Keep the same explicit error boundary as a generated native destructor; a
