@@ -10,6 +10,17 @@
 
 typedef struct xl6_task_group xl6_task_group;
 
+struct xrtownershipref;
+struct xrtownershipadapterv1;
+struct xrtownershipfinishv1;
+struct xcancelwatchownershipv1;
+/* Quiescent frozen physical view. Every transitive owner is independently
+ * admitted; these queries do not switch the global language collector. */
+XL_API struct xrtownershipref xl6TaskGroupOwnershipV1(const xl6_task_group*);
+XL_API const struct xrtownershipadapterv1* xl6TaskGroupOwnershipAdapterV1(
+    struct xrtownershipref,const struct xrtownershipfinishv1**);
+XL_API const struct xcancelwatchownershipv1* xl6TaskGroupParentPolicyV1Get(void);
+
 
 
 XL_API xl6_task_group* xl6TaskGroupCreate(void);

@@ -3,14 +3,14 @@
   "product": "xruntime",
   "implementation": {
     "source": "xrt/extlibs/xruntime/single/xruntime.h",
-    "sha256": "8E4EA28A32FF9098EFBA7ADF7F93157C93B32AE89A879A431688AE9F3CEC596C",
-    "bytes": 9066948
+    "sha256": "43D5AB06BFC1E7A675B3AE39ABD061019EE6DF8260BF2CED9BA080EF2FE0F177",
+    "bytes": 9067038
   },
   "declarations": {
     "source": "xrt/extlibs/xruntime/single/xruntime_decl.h",
-    "sha256": "AB6B55E29AB4B70FB9A59A4E091703010BA9116CA9F96428D391EEC5D738F218",
-    "bytes": 1538253
+    "sha256": "AD042C4C676609EA3B5939D13086C9DFF60E296B358FF683B4703A21CE3F09E9",
+    "bytes": 1538828
   },
-  "publicApiCount": 3663,
+  "publicApiCount": 3664,
   "ownedPublicApiCount": 464
 }

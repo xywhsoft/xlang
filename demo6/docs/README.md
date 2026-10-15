@@ -6,6 +6,7 @@
 
 ## 当前权威设计
 
+- [TaskGroup 桥接句柄的真实拥有与重入安全](stdlib53-b318-task-group-bridge-ownership.md)：owned 父观察者、在途引用、循环退役和冻结外重入；全局目录协议继续协调。
 - [拥有图完成协议的统一 ABI](stdlib53-b317-completion-abi.md)：原生与语言节点共用规范描述符，真实取消循环经过同一计划执行；TaskGroup 全局准入继续。
 - [TaskGroup 和 Future 的终结后退役](stdlib53-b316-task-group-retirement.md)：原生真实循环、完整 Clear 后完成协议及并发派发尾部；语言目录和桥接继续。
 - [TaskGroup 的真实拥有图](stdlib53-b315-task-group-physical.md)：链表、完成注册和取消观察者分别持有真实引用；生命周期收集协议继续。
