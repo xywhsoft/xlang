@@ -438,6 +438,7 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_value_iterator.c ^
     src\runtime\xl6_future_callback.c ^
     src\runtime\xl6_ownership_plan.c ^
+    src\runtime\xl6_static_module.c ^
     src\runtime\xl6_generator.c ^
     src\runtime\xl6_code_finalizer.c ^
     src\runtime\xl6_future_payload.c ^
@@ -695,6 +696,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_value_iterator.c ^
     src\runtime\xl6_future_callback.c ^
     src\runtime\xl6_ownership_plan.c ^
+    src\runtime\xl6_static_module.c ^
     src\runtime\xl6_generator.c ^
     src\runtime\xl6_code_finalizer.c ^
     src\runtime\xl6_future_payload.c ^

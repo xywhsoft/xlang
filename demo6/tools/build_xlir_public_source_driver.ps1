@@ -19,7 +19,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/api/xl_future_bridge.c','src/api/xl_task_group_bridge.c',
     'src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c',
     'src/runtime/xl6_continuation_future.c','src/runtime/xl6_code_lease.c','src/runtime/xl6_future_payload.c',
-    'src/runtime/xl6_ownership_plan.c','src/runtime/xl6_network_service.c','src/runtime/xl6_log.c','src/runtime/xl6_log_console.c',
+    'src/runtime/xl6_ownership_plan.c','src/runtime/xl6_static_module.c','src/runtime/xl6_network_service.c','src/runtime/xl6_log.c','src/runtime/xl6_log_console.c',
     'src/runtime/xl6_log_record.c','src/runtime/xl6_log_text.c','src/runtime/xl6_log_json.c','src/runtime/xl6_log_custom.c',
     'src/runtime/xl6_log_file.c','src/runtime/xl6_log_file_text.c','src/runtime/xl6_log_file_json.c','src/runtime/xl6_log_async.c','src/runtime/xl6_log_ring.c',
     'src/runtime/xl6_log_printf.c','src/runtime/xl6_log_text_writer.c','src/runtime/xl6_log_json_writer.c','src/runtime/xl6_text_value.c',

@@ -1,6 +1,11 @@
 /* Exact private C linkage ownership. This table maps already-resolved XLIR
  * call targets, never generated C text or source-name prefixes. The artifact
  * contract test checks exports against actual resident object files. */
+XL6_ARTIFACT_SYMBOL("xl6StaticModuleCreateV1", STATIC_MODULE)
+XL6_ARTIFACT_SYMBOL("xl6StaticModuleOwnerV1", STATIC_MODULE)
+XL6_ARTIFACT_SYMBOL("xl6StaticModuleOwnershipV1", STATIC_MODULE)
+XL6_ARTIFACT_SYMBOL("xl6StaticModuleRetireV1", STATIC_MODULE)
+XL6_ARTIFACT_SYMBOL("xl6StaticModuleDestroyV1", STATIC_MODULE)
 XL6_ARTIFACT_SYMBOL("xl6ActivationCaptureRuntimeV1Get", CAPTURE)
 XL6_ARTIFACT_SYMBOL("xl6NativeHandleTakeV1", NATIVE_HANDLE)
 XL6_ARTIFACT_SYMBOL("xl6NativeHandleTraceLeaf", NATIVE_HANDLE)
