@@ -1,4 +1,5 @@
 /* Derive call-target runtime dependencies from reachable verified XLIR. */
+#include "src/compile/xl6_artifact_runtime.h"
 static int xl6IrCgenRequireErrorResult(
     const XL6_IrModule* module, XL6_IrCgenNeeds* needs,
     XL6_IrTypeId returnType, XL6_IrNodeId declaration, XL6_DiagList* diags)
@@ -50,6 +51,11 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             needs->needsStringRuntime = 1;
             needs->needsStringViews = 1;
         }
+        /* A reached resident symbol needs the shared physical declarations
+         * regardless of its language bridge family. Registry linkage, not a
+         * VFS/FS symbol spelling or emitted adapter body, selects this header. */
+        if (xl6ArtifactRuntimeSymbolOwner(target->cName) != XL6_ARTIFACT_RUNTIME_COUNT)
+            needs->needsTextAdapterDeclarations = 1;
         if (target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE) {
             needs->needsTextAdapterDeclarations = 1;
             needs->needsStringRuntime = 1;

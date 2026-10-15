@@ -449,7 +449,22 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_fs_file_owner.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_FILE","XRT_MODULE_ATOMIC"}},
     {"src/runtime/xl6_ownership_domain_resource_process_options.c",D(R(OWNERSHIP_CATALOG),R(PROCESS_OPTIONS)),{"XRT_MODULE_CANCEL"}},
     {"src/runtime/xl6_ownership_domain_resource_random_state.c",D(R(OWNERSHIP_CATALOG),R(RANDOM_STATE)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_resource_fs_file.c",D(R(OWNERSHIP_CATALOG),R(FS_FILE_OWNER)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_resource_fs_file.c",D(R(OWNERSHIP_CATALOG),R(FS_FILE_OWNER)),{NULL}},
+    {"src/runtime/xl6_vfs_core.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_VFS"}},
+    {"src/runtime/xl6_vfs_memory.c",D(R(VFS_CORE),R(NATIVE_HANDLE)),{"XRT_MODULE_VFS_MEMORY"}},
+    {"src/runtime/xl6_vfs_disk.c",D(R(VFS_CORE),R(NATIVE_HANDLE)),{"XRT_MODULE_VFS_DISK"}},
+    {"src/runtime/xl6_vfs_pack.c",D(R(VFS_CORE),R(NATIVE_HANDLE)),{"XRT_MODULE_VFS_PACK","XRT_MODULE_FILE","XRT_MODULE_ATOMIC"}},
+    {"src/runtime/xl6_vfs_file.c",D(R(VFS_CORE),R(FS_FILE_OWNER)),{"XRT_MODULE_VFS","XRT_MODULE_FILE","XRT_MODULE_ATOMIC"}},
+    {"src/runtime/xl6_vfs_info.c",D(R(VFS_CORE),R(FS_INFO_OWNER)),{"XRT_MODULE_VFS","XRT_MODULE_FILE"}},
+    {"src/runtime/xl6_vfs_dir.c",D(R(VFS_CORE),R(FS_DIR_OWNER)),{"XRT_MODULE_VFS","XRT_MODULE_DIR"}},
+    {"src/runtime/xl6_fs_info_owner.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_FILE"}},
+    {"src/runtime/xl6_fs_dir_owner.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_DIR"}},
+    {"src/runtime/xl6_ownership_domain_resource_vfs_core.c",D(R(OWNERSHIP_CATALOG),R(VFS_CORE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_resource_vfs_memory.c",D(R(OWNERSHIP_CATALOG),R(VFS_MEMORY)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_resource_vfs_disk.c",D(R(OWNERSHIP_CATALOG),R(VFS_DISK)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_resource_vfs_pack.c",D(R(OWNERSHIP_CATALOG),R(VFS_PACK)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_resource_fs_info_owner.c",D(R(OWNERSHIP_CATALOG),R(FS_INFO_OWNER)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_resource_fs_dir_owner.c",D(R(OWNERSHIP_CATALOG),R(FS_DIR_OWNER)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

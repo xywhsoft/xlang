@@ -10,7 +10,6 @@ static int xl6IrCgenFsSelected(const XL6_IrCgenNeeds* needs, XL6_IrRuntimeBridge
 #include "src/cgen/xl6_ir_cgen_emit_fs_path.c"
 #include "src/cgen/xl6_ir_cgen_emit_fs_whole.c"
 #include "src/cgen/xl6_ir_cgen_emit_fs_tree.c"
-#include "src/cgen/xl6_ir_cgen_emit_fs_pack.c"
 #include "src/cgen/xl6_ir_cgen_emit_fs_walk.c"
 #include "src/cgen/xl6_ir_cgen_emit_fs_async.c"
 static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs)
@@ -43,25 +42,7 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
             "  xrtFileOptionsInit(options); options->Flags = (uint32_t)flags;\n"
             "  options->Mode = (uint32_t)mode; options->Share = (uint32_t)share; return true; }\n"
             "\n", out);
-    if (info) xl6OutputPuts(
-            "typedef struct xlir_fs_info { xfileinfo info; char* path; char* name; size_t nameSize; uint32_t flags; } xlir_fs_info;\n"
-            "static inline void xlir_fs_info_drop(xlir_fs_info* info)\n"
-            "{ if (info != NULL) { xrtFree(info->path); xrtFree(info->name); xrtFree(info); } }\n"
-            "static inline xlir_fs_info* xlir_fs_info_alloc(const char* path)\n"
-            "{ const char* name = path; const char* at; xlir_fs_info* info = (xlir_fs_info*)xrtCalloc(1, sizeof(*info));\n"
-            "  if (info == NULL) { return NULL; }\n"
-            "  for (at = path; *at != 0; ++at) if (*at == '/'\n"
-            "#if defined(_WIN32)\n"
-            "      || *at == '\\\\'\n"
-            "#endif\n"
-            "      ) name = at + 1;\n"
-            "  info->path = xrtStrDup(path); info->nameSize = strlen(name); info->name = xrtStrDupN(name, info->nameSize);\n"
-            "  if (info->path == NULL || info->name == NULL) { xlir_fs_info_drop(info); return NULL; }\n"
-            "  info->flags = 1u; return info; }\n"
-            "\n", out);
-    if (dir) xl6OutputPuts(
-            "typedef struct xlir_fs_dir { xdir dir; xdirentry entry; bool current; } xlir_fs_dir;\n"
-            "\n", out);
+    if (info || dir) xl6OutputPuts("#include <__xl_runtime/xl6_fs_snapshot.h>\n",out);
     if (root) xl6OutputPuts(
             "typedef struct xlir_fs_root { xroot root; } xlir_fs_root;\n"
             "static inline xroot xlir_fs_root_get(void* handle)\n"
@@ -104,14 +85,6 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
             "  name = xlir_string_cstr(path); if (name == NULL) { return NULL; }\n"
             "  owner = xlir_fs_file_alloc(); if (owner == NULL) { return NULL; }\n"
             "  owner->file = xrtFileOpen(name, &options);\n"
-            "  if (owner->file == NULL) { xrtFree(owner); return NULL; } return owner; }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_VFS_OPEN)) xl6OutputPuts(
-            "void* xl6_xrt_fs_vfs_open(void* vfs, xlir_string path, int64_t flags, int64_t mode, int64_t share)\n"
-            "{ const char* name; xlir_fs_file* owner; xfileoptions options;\n"
-            "  if (!xlir_fs_options(flags, mode, share, &options)) { return NULL; }\n"
-            "  name = xlir_string_cstr(path); if (name == NULL) { return NULL; }\n"
-            "  owner = xlir_fs_file_alloc(); if (owner == NULL) { return NULL; }\n"
-            "  owner->file = xrtVfsOpen((xvfs)vfs, name, &options);\n"
             "  if (owner->file == NULL) { xrtFree(owner); return NULL; } return owner; }\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_CLOSE)) xl6OutputPuts(
             "bool xl6_xrt_fs_file_close(void* handle)\n"
@@ -192,12 +165,6 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
             "  if (file == NULL) { return NULL; } info = xlir_fs_info_alloc(\"\");\n"
             "  if (info == NULL) { return NULL; }\n"
             "  if (!xrtFileStat(file, &info->info)) { xlir_fs_info_drop(info); return NULL; } return info; }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_INFO_VFS)) xl6OutputPuts(
-            "void* xl6_xrt_fs_info_vfs(void* vfs, xlir_string path, bool follow)\n"
-            "{ const char* name = xlir_string_cstr(path); xlir_fs_info* info;\n"
-            "  if (name == NULL) { return NULL; } info = xlir_fs_info_alloc(name);\n"
-            "  if (info == NULL) { return NULL; }\n"
-            "  if (!xrtVfsStat((xvfs)vfs, name, follow, &info->info)) { xlir_fs_info_drop(info); return NULL; } return info; }\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_INFO_DIRECTORY)) xl6OutputPuts(
             "void* xl6_xrt_fs_info_directory(void* handle)\n"
             "{ xlir_fs_dir* dir = (xlir_fs_dir*)handle; xlir_fs_info* info;\n"
@@ -209,8 +176,6 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
             "  info->path = xrtDirEntryPath(dir->dir, &dir->entry);\n"
             "  if (info->path == NULL) { xlir_fs_info_drop(info); return NULL; }\n"
             "  info->info = dir->entry.Info; return info; }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_INFO_DESTROY)) xl6OutputPuts(
-            "void xl6_xrt_fs_info_destroy(void* handle) { xlir_fs_info_drop((xlir_fs_info*)handle); }\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_INFO_TYPE)) xl6OutputPuts(
             "int64_t xl6_xrt_fs_info_type(void* handle)\n"
             "{ if (handle == NULL) { xrtSetErrorKind(XERR_STATE); return 0; }\n"
@@ -289,19 +254,6 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
             "  owner = (xlir_fs_dir*)xrtCalloc(1, sizeof(*owner)); if (owner == NULL) { return NULL; }\n"
             "  owner->dir = xrtDirOpen(name, (uint32_t)flags);\n"
             "  if (owner->dir == NULL) { xrtFree(owner); return NULL; } return owner; }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_VFS_DIR_OPEN)) xl6OutputPuts(
-            "void* xl6_xrt_fs_vfs_dir_open(void* vfs, xlir_string path, int64_t flags)\n"
-            "{ const char* name; xlir_fs_dir* owner;\n"
-            "  if (flags < 0 || flags > 7) { xrtSetErrorKind(XERR_RANGE); return NULL; }\n"
-            "  name = xlir_string_cstr(path); if (name == NULL) { return NULL; }\n"
-            "  owner = (xlir_fs_dir*)xrtCalloc(1, sizeof(*owner)); if (owner == NULL) { return NULL; }\n"
-            "  owner->dir = xrtVfsDirOpen((xvfs)vfs, name, (uint32_t)flags);\n"
-            "  if (owner->dir == NULL) { xrtFree(owner); return NULL; } return owner; }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_DIR_DESTROY)) xl6OutputPuts(
-            "void xl6_xrt_fs_dir_destroy(void* handle)\n"
-            "{ xerror* error = xrtTakeError(); xlir_fs_dir* owner = (xlir_fs_dir*)handle;\n"
-            "  if (owner != NULL) { if (owner->dir != NULL) (void)xrtDirClose(owner->dir); xrtFree(owner); }\n"
-            "  xrtClearError(); if (error != NULL) xrtSetErrorTake(error); }\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_DIR_CLOSE)) xl6OutputPuts(
             "bool xl6_xrt_fs_dir_close(void* handle)\n"
             "{ xlir_fs_dir* owner = (xlir_fs_dir*)handle; xdir dir;\n"
@@ -545,7 +497,6 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
     xl6IrCgenEmitFsPathRuntime(out, needs);
     xl6IrCgenEmitFsWholeRuntime(out, needs);
     xl6IrCgenEmitFsTreeRuntime(out, needs);
-    xl6IrCgenEmitFsPackRuntime(out, needs);
     xl6IrCgenEmitFsWalkRuntime(out, needs);
     xl6IrCgenEmitFsAsyncRuntime(out, needs);
 }

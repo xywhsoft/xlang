@@ -37,9 +37,20 @@ static const Case cases[]={
     {"private-publication",xl6PatternPublicationHandlePolicyV1Get,1},
     {"xl6ProcessRunOptionsDestroyV1",xl6ProcessRunOptionsHandlePolicyV1Get,2},
     {"xl6_xrt_rng_destroy",xl6RandomStateHandlePolicyV1Get,1},
-    {"xl6_xrt_fs_file_destroy",xl6FsFileHandlePolicyV1Get,1}
+    {"xl6_xrt_fs_file_destroy",xl6FsFileHandlePolicyV1Get,1},
+    {"xl6_xrt_vfs_destroy",xl6VfsHandlePolicyV1Get,1},
+    {"xl6_xrt_vfs_memory_destroy",xl6VfsMemoryHandlePolicyV1Get,1},
+    {"xl6_xrt_vfs_disk_destroy",xl6VfsDiskHandlePolicyV1Get,1},
+    {"xl6_xrt_vfs_pack_destroy",xl6VfsPackHandlePolicyV1Get,1},
+    {"xl6_xrt_vfs_mount_destroy",xl6VfsMountHandlePolicyV1Get,1},
+    {"xl6_xrt_fs_info_destroy",xl6FsInfoHandlePolicyV1Get,1},
+    {"xl6_xrt_fs_dir_destroy",xl6FsDirHandlePolicyV1Get,1},
+    {"xl6_xrt_fs_pack_options_destroy",xl6PackOptionsHandlePolicyV1Get,1},
+    {"xl6_xrt_fs_pack_stats_destroy",xl6PackStatsHandlePolicyV1Get,1}
 };
 static const char* child;
+static const char* fixtureRoot;
+static const char* fixturePack;
 static bool forbidden(const xvalue* value,xrtownershipvisitor visitor,void* context)
 {(void)value;(void)visitor;(void)context;assert(0);return false;}
 static void balance(const xmemdebugsnapshot* before)
@@ -68,6 +79,20 @@ static void* processResult(bool pipeline)
         result=xl6ProcessPipelineRunV1(stages,options,bytes,-1);xl6ProcessPipelineDestroyV1(stages);
     }else result=xl6ProcessRunV1(cmd,options,bytes,-1);
     xl6ProcessRunOptionsDestroyV1(options);xl6ProcessCommandDestroyV1(cmd);xrtValueRelease(bytes);return result;
+}
+static xstrview packName(void)
+{ return (xstrview){fixturePack,strlen(fixturePack)}; }
+static void* memory(void)
+{
+    void* provider=xl6_xrt_vfs_memory_create();assert(provider);
+    assert(xl6_xrt_vfs_memory_put_string(provider,XRT_STR_LITERAL("entry.bin"),XRT_STR_LITERAL("a\0b"),-1));
+    assert(xl6_xrt_vfs_memory_seal(provider));return provider;
+}
+static void* populatedVfs(void)
+{
+    void* fs=xl6_xrt_vfs_create();assert(fs);void* provider=memory();
+    void* mount=xl6_xrt_vfs_mount_memory(fs,provider,XRT_STR_LITERAL("/app"),0,0);assert(mount);
+    xl6_xrt_vfs_memory_destroy(provider);xl6_xrt_vfs_mount_destroy(mount);return fs;
 }
 static void* create(unsigned which)
 {
@@ -110,8 +135,21 @@ static void* create(unsigned which)
     if(which==22)return xrtCalloc(1,sizeof(xatomic32));
     if(which==23)return xl6ProcessRunOptionsCreateV1(5000,4096,4096,0,100,0);
     if(which==24)return xl6_xrt_rng_create(42,1);
-    assert(which==25);xlir_fs_file* file=xlir_fs_file_alloc();assert(file);
-    file->file=xrtOpen(child,XFILE_READ);assert(file->file);return file;
+    if(which==25){xlir_fs_file* file=xlir_fs_file_alloc();assert(file);
+        file->file=xrtOpen(child,XFILE_READ);assert(file->file);return file;}
+    if(which==26)return populatedVfs();
+    if(which==27)return memory();
+    if(which==28)return xl6_xrt_vfs_disk_create((xstrview){fixtureRoot,strlen(fixtureRoot)},XVFS_DISK_READ);
+    if(which==29)return xl6_xrt_vfs_pack_create(packName(),0,-1,0,1048576,1048576,1048576);
+    if(which==30){void* fs=xl6_xrt_vfs_create();assert(fs);void* provider=memory();
+        void* mount=xl6_xrt_vfs_mount_memory(fs,provider,XRT_STR_LITERAL("/app"),0,0);assert(mount);
+        xl6_xrt_vfs_memory_destroy(provider);xl6_xrt_vfs_destroy(fs);return mount;}
+    if(which==31 || which==32){void* fs=populatedVfs();
+        void* result=which==31?xl6_xrt_fs_info_vfs(fs,XRT_STR_LITERAL("/app/entry.bin"),true):xl6_xrt_fs_vfs_dir_open(fs,XRT_STR_LITERAL("/app"),0);
+        xl6_xrt_vfs_destroy(fs);return result;}
+    if(which==33)return xl6_xrt_fs_pack_options_create(0,100,1048576,1048576,1048576,1048576);
+    assert(which==34);void* pack=create(29);assert(pack);void* result=xl6_xrt_fs_pack_stats_create(pack);
+    xl6_xrt_vfs_pack_destroy(pack);return result;
 }
 static XL6_OwnershipCatalog* catalog(void)
 {
@@ -139,6 +177,40 @@ static void graph(unsigned which,XL6_OwnershipCatalog* cat,xvalue* value,size_t 
 }
 static void legacyNotify(void* data)
 { (void)data;assert(0); }
+static void vfsConstructorFailures(void)
+{
+    static const unsigned kinds[]={26,27,28,29,33,34,25,31,32,30};
+    for(unsigned operation=0;operation<10;++operation){
+        size_t point;
+        for(point=0;point<256;++point){
+            xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
+            void* parent=NULL;void* provider=NULL;void* result=NULL;
+            if(operation==5){parent=create(29);assert(parent);}
+            else if(operation>=6 && operation<=8)parent=populatedVfs();
+            else if(operation==9){parent=xl6_xrt_vfs_create();provider=memory();assert(parent && provider);}
+            assert(xrtMemDebugFailAfter(point));
+            switch(operation){
+            case 0:result=xl6_xrt_vfs_create();break;
+            case 1:result=xl6_xrt_vfs_memory_create();break;
+            case 2:result=xl6_xrt_vfs_disk_create((xstrview){fixtureRoot,strlen(fixtureRoot)},XVFS_DISK_READ);break;
+            case 3:result=xl6_xrt_vfs_pack_create(packName(),0,-1,0,1048576,1048576,1048576);break;
+            case 4:result=xl6_xrt_fs_pack_options_create(0,100,1048576,1048576,1048576,1048576);break;
+            case 5:result=xl6_xrt_fs_pack_stats_create(parent);break;
+            case 6:result=xl6_xrt_fs_vfs_open(parent,XRT_STR_LITERAL("/app/entry.bin"),1,0,7);break;
+            case 7:result=xl6_xrt_fs_info_vfs(parent,XRT_STR_LITERAL("/app/entry.bin"),true);break;
+            case 8:result=xl6_xrt_fs_vfs_dir_open(parent,XRT_STR_LITERAL("/app"),0);break;
+            case 9:result=xl6_xrt_vfs_mount_memory(parent,provider,XRT_STR_LITERAL("/app"),0,0);break;
+            }
+            bool hit=xrtMemDebugFailTriggered();xrtMemDebugFailClear();assert(hit?!result:result!=NULL);
+            if(result)cases[kinds[operation]].policy()->Ops->Drop(result,NULL);
+            if(operation==5)xl6_xrt_vfs_pack_destroy(parent);
+            else if(operation>=6)xl6_xrt_vfs_destroy(parent);
+            xl6_xrt_vfs_memory_destroy(provider);balance(&before);
+            if(!hit)break;
+        }
+        assert(point<256);printf("vfs factory %u prefixes=%zu first-no-hit=%zu balanced\n",operation,point+1,point);
+    }
+}
 static void cancellationAndFileOwners(void)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
@@ -194,9 +266,9 @@ static void concurrentClose(unsigned which)
 int main(int argc,char** argv)
 {
     setvbuf(stdout,NULL,_IONBF,0);
-    assert(argc==2 && xrtMemDebugEnable(true));child=argv[1];assert(sizeof(cases)/sizeof(*cases)==26);
+    assert(argc==4 && xrtMemDebugEnable(true));child=argv[1];fixtureRoot=argv[2];fixturePack=argv[3];assert(sizeof(cases)/sizeof(*cases)==35);
     void* warm=create(20);assert(warm);xl6SignalQueueDestroyV1(warm);
-    for(unsigned which=0;which<26;++which){
+    for(unsigned which=0;which<35;++which){
         const Case* test=&cases[which];const XL6_NativeHandlePolicyV1* policy=test->policy();
         for(unsigned round=0;round<4;++round){
             xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);void* raw=create(which);assert(raw && !xrtGetError());
@@ -222,6 +294,6 @@ int main(int argc,char** argv)
         }
         assert(point<64);printf("native resource %s nodes=%zu prefixes=%zu first-no-hit=%zu balanced\n",test->name,test->nodes,point+1,point);
     }
-    concurrentClose(15);concurrentClose(16);cancellationAndFileOwners();
-    assert(xrtSignalShutdown());puts("native resources: 26 exact policies, real factories, owning graphs, closed prefixes and 52 rejecting controls; two concurrent close transitions; opaque cancel observer rejected and shared owners preserved");return 0;
+    concurrentClose(15);concurrentClose(16);cancellationAndFileOwners();vfsConstructorFailures();
+    assert(xrtSignalShutdown());puts("native resources: 35 exact policies, real factories, owning graphs, closed prefixes and 70 rejecting controls; two concurrent close transitions; opaque cancel observer rejected and shared owners preserved");return 0;
 }
