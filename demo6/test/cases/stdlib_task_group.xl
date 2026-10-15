@@ -1,20 +1,25 @@
-func delayed(int value, int delayMs) as int
-    time.sleep(delayMs)
+func delayed(int value, WaitQueue<int> release) as int
+    auto status, token = release.pop()
+    assert status == queueStatus.ok and token != null
+    assert (token as int) == 1
     return value
 end
 
-func(int, int) as int job = delayed
+func(int, WaitQueue<int>) as int job = delayed
+WaitQueue<int> release = WaitQueue::<int>(3)
 
 TaskGroup group = task.group()
 assert group.valid
 assert group.count == 0
 assert not group.add(123)
 
-future<int> first = task.spawn(job, 10, 30)
-future<int> second = task.spawn(job, 20, 40)
+future<int> first = task.spawn(job, 10, release)
+future<int> second = task.spawn(job, 20, release)
 assert group.add(first)
 assert group.add(second)
 assert group.count == 2
+assert release.tryPush(1) == queueStatus.ok
+assert release.tryPush(1) == queueStatus.ok
 assert group.waitTimeout(2000)
 assert group.count == 0
 assert await first == 10
@@ -24,8 +29,9 @@ TaskGroup parent = task.group()
 TaskGroup child = parent.child()
 assert child.valid
 
-future<int> nested = task.spawn(job, 30, 20)
+future<int> nested = task.spawn(job, 30, release)
 assert child.add(nested)
+assert release.tryPush(1) == queueStatus.ok
 future<null> childDone = child.joinAsync()
 await childDone
 assert child.reapCompleted() == 1

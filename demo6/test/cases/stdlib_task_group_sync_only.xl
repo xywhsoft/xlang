@@ -1,0 +1,7 @@
+func main(...) as int
+    TaskGroup group = task.group()
+    assert group.valid and group.count == 0
+    group.close()
+    assert group.joinTimeout(0)
+    return 0
+end

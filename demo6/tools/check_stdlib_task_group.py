@@ -1,0 +1,94 @@
+"""Resident TaskGroup API, checked failures and ordinary scope cleanup.
+
+Exact full-source objects, strict C, source JIT/module, independent moved AOT
+and pruning. This does NOT certify TaskGroup cyclic ownership, unknown native
+observers, product VFS/shipping libraries or all 53 modules.
+"""
+from pathlib import Path
+import argparse,json,os,re,shutil,subprocess,sys
+from xlir_public_build_inputs import sha,verify_public_build
+
+def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    for name in ('root','public-directory','out'):parser.add_argument('--'+name,type=Path,required=True)
+    args=parser.parse_args();root,out=args.root.resolve(),args.out.resolve();assert not out.exists()
+    build,pinned,compared=verify_public_build(root,args.public_directory)
+    cc=shutil.which('gcc');inspector=shutil.which('objdump' if os.name=='nt' else 'readelf');assert cc and inspector
+    native=root/'test/support/task_group_resident_native.c';lifetime=root/'test/support/process_ownership_public.c'
+    planner=root/'test/support/container_projection_artifact.c'
+    fixtures=[root/'test/cases'/(name+'.xl') for name in (
+        'stdlib_task_group','stdlib_task_group_methods','stdlib_task_group_allocations','stdlib_task_group_sync_only')]
+    negatives=[root/'test/cases'/(name+'.xl') for name in ('xlir_task_group_bad_future','xlir_task_group_bad_effect')]
+    runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
+    pinned.update((Path(__file__).resolve(),Path(sys.executable),Path(cc),Path(inspector),native,lifetime,planner,runtime,*fixtures,*negatives))
+    inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]
+    objects=[Path(row['Path']) for row in build['Objects'] if Path(row['Path']).stem not in ('xlir_public_source_driver','xlir_public_source_linux_driver')]
+    flags=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include')]
+    libraries=[str(runtime)]
+    if os.name=='nt':libraries+=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']
+    else:flags+=['-D_GNU_SOURCE'];libraries+=['-pthread','-ldl','-lm','-Wl,-rpath,'+str(runtime.parent)]
+    out.mkdir(parents=True);relocated=out/'relocated';relocated.mkdir()
+    if os.name=='nt':shutil.copy2(runtime,out/runtime.name)
+    rows=[];failures=[];prefixes=[];environment=dict(os.environ)
+    if os.name!='nt':environment['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
+    report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Rows=rows,Failures=failures,Prefixes=prefixes,
+        ComparedSources=compared,Scope=__doc__,NativeApiAcceptance=False,OrdinaryScopeCleanupAcceptance=False,
+        TaskGroupGraphAcceptance=False,ShippingAcceptance=False,Full53Acceptance=False,ProvidersInstrumented=False)
+    suffix='.exe' if os.name=='nt' else ''
+    def run(name,command,directory=root,reject=False):
+        command=list(map(str,command));process=subprocess.run(command,cwd=directory,env=environment,capture_output=True,timeout=300)
+        data=process.stdout+process.stderr;log=out/(name+'.log');log.write_bytes(data)
+        rows.append(dict(Name=name,Command=command,Exit=process.returncode,ExpectedRejection=reject,Log=str(log),LogSha256=sha(log)))
+        assert process.returncode!=0 if reject else process.returncode==0,(name,data[-5000:].decode(errors='replace'))
+        print(name+': '+str(process.returncode),flush=True);return data.decode(errors='replace')
+    try:
+        for optimization in ('O0','O2'):
+            binary=out/('native.'+optimization+suffix)
+            run(optimization+'.build',[cc,*flags,'-'+optimization,native,*objects,*libraries,'-o',binary])
+            output=run(optimization+'.run',[binary])
+            assert 'rejected cancelled second parent cannot cancel' in output and 'independent consumers and cancellation balanced' in output
+            matches=re.findall(r'operation=(\d+) prefixes=(\d+) first-no-hit=(\d+) balanced',output)
+            assert len(matches)==5 and [(int(op),int(first)) for op,_,first in matches]==[(0,6),(1,7),(2,1),(3,1),(4,3)]
+            for operation,runs,first in matches:
+                runs,first=int(runs),int(first);assert runs==first+1
+                prefixes.append(dict(Optimization=optimization,Operation=operation,Runs=runs,FirstNoHit=first))
+        strict=['-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-label',
+            '-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign']
+        for fixture in fixtures:
+            generated=out/(fixture.stem+'.c');run(fixture.stem+'.cgen',[build['Driver'],fixture,'cgen-default',generated])
+            run(fixture.stem+'.strict',[cc,*flags,*strict,'-I'+str(args.public_directory/'include'),'-O2','-fsyntax-only',generated])
+            for mode in ('run','module'):run(fixture.stem+'.'+mode,[build['Driver'],fixture,mode,out/(fixture.stem+'.'+mode)])
+        for fixture in negatives:
+            generated=out/(fixture.stem+'.invalid.c')
+            output=run(fixture.stem+'.reject',[build['Driver'],fixture,'cgen-default',generated],reject=True)
+            assert 'XLIR' in output and (not generated.exists() or not generated.stat().st_size)
+        host=out/('public-lifetime'+suffix)
+        run('lifetime.build',[cc,*flags,'-O2',lifetime,*objects,*libraries,'-o',host])
+        tcc=str(root/'res/tcc/win64/x86_64') if os.name=='nt' else str(Path(build['NativeRoot'])/'build/linux/tcc-dist')
+        output=run('lifetime.run',[host,runtime,tcc,args.public_directory/'include',fixtures[1],out/'lifetime-temps'])
+        assert output.count('task-group-resident-methods')==5 and 'complete XRT release ledger balanced' in output
+        artifact=out/('artifact-plan'+suffix)
+        run('artifact.build',[cc,*flags,'-O0',planner,*objects,*libraries,'-o',artifact])
+        for fixture,asynchronous in ((fixtures[3],False),(fixtures[1],True)):
+            prefix=out/(fixture.stem+'.plan');run(fixture.stem+'.plan',[artifact,fixture,prefix])
+            plan=json.loads(Path(str(prefix)+'.plan.json').read_text());sources={Path(path).name for path in plan['Sources']}
+            assert ('xl6_task_group_future.c' in sources)==asynchronous
+            assert not {'XRT_MODULE_TASK_GROUP_POOL','XRT_MODULE_TASK_GROUP_COROUTINE','XRT_MODULE_TASK_POOL','XRT_MODULE_COROUTINE'}&set(plan['NativeModules'])
+        image=out/('task-group.aot'+suffix);run('owner.aot.build',[build['Driver'],fixtures[1],'exe',image])
+        actual=Path(str(image)+'.exe') if os.name=='nt' and not image.exists() else image
+        moved=relocated/actual.name;shutil.copy2(actual,moved)
+        imports=run('owner.aot.imports',[inspector,'-p' if os.name=='nt' else '-d',moved],relocated)
+        dependencies=re.findall(r'DLL Name:\s*([^\s]+)',imports) if os.name=='nt' else re.findall(r'Shared library:\s*\[([^\]]+)\]',imports)
+        assert dependencies and not {name.lower() for name in dependencies}&{'xl.dll','xlc.dll','libxl.so','libxlc.so'}
+        if os.name!='nt':assert '(RPATH)' not in imports and '(RUNPATH)' not in imports
+        for trial in range(3):assert run('owner.aot.moved'+str(trial),[moved],relocated).count('task-group-resident-methods')==1
+        report['AotDependencies']=dependencies
+        report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs);assert report['InputsUnchanged']
+        report.update(Complete=True,NativeApiAcceptance=True,OrdinaryScopeCleanupAcceptance=True,
+            LanguageFixtureCount=len(fixtures),SourceAotAcceptance=True,AsyncProviderPruningAcceptance=True,
+            JitImageRetirementProof='MEM_FREE' if os.name=='nt' else 'non-executable')
+    except Exception as error:failures.append(repr(error));print(repr(error),file=sys.stderr)
+    report['Products']=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(out.rglob('*')) if path.is_file()]
+    (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+    return 0 if report['Complete'] else 1
+if __name__=='__main__':raise SystemExit(main())

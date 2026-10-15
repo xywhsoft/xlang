@@ -402,6 +402,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_signal_core.c"
 	"$ROOT/src/runtime/xl6_signal_queue.c"
 	"$ROOT/src/runtime/xl6_signal_task_group.c"
+	"$ROOT/src/runtime/xl6_task_group_future.c"
 	"$ROOT/src/runtime/xl6_process_command.c"
 	"$ROOT/src/runtime/xl6_process_options.c"
 	"$ROOT/src/runtime/xl6_process_run.c"

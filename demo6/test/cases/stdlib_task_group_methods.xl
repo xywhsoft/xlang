@@ -1,0 +1,24 @@
+func main(...) as int
+    TaskGroup group = task.group()
+    assert group.valid and group.count == 0
+    assert not group.add(null) and not group.add("not a Future")
+    assert not group.bindParent(12)
+    assert group.close()
+    assert not group.close()
+    assert group.join() and group.wait()
+    assert group.joinTimeout(0) and group.waitTimeout(0)
+    assert group.joinUntil(0) and group.waitUntil(0)
+    assert group.reapCompleted() == 0
+    future<null> first = group.joinAsync()
+    future<null> second = group.joinAsync()
+    assert first.wait()
+    assert second.wait()
+    assert first.isDone() and second.isDone()
+    TaskGroup parent = task.group()
+    TaskGroup child = parent.child()
+    child.close()
+    parent.wait()
+    assert parent.reapCompleted() == 1
+    print("task-group-resident-methods")
+    return 0
+end

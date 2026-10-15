@@ -27,6 +27,7 @@ typedef struct XL6_IrDirectBridgeContract {
     /* Future is a managed generic carrier, never an unchecked pointer or
      * builtin. Its resident producer must publish this exact element ABI. */
     XL6_IrCAbi resultFutureElementAbi;
+    XL6_IrAsyncResultAbi resultFutureAbi;
     const char* nativeHandlePolicy;
     XL6_IrCallNativeArrayResultAbi nativeArrayResultAbi;
     XL6_IrCallErrorPhysicalAbi errorPhysicalAbi;
@@ -243,10 +244,24 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6SignalEventCoalescedV1",T,B,1,{V},.parameterOwners={"xl6SignalEventDestroyV1"}},
     {"xl6SignalEventSaturatedV1",T,B,1,{V},.parameterOwners={"xl6SignalEventDestroyV1"}},
     {"xl6SignalEventNameV1",T,S,1,{V},.parameterOwners={"xl6SignalEventDestroyV1"}},
-    {"xl6SignalTaskGroupCreateV1",T,V,0,{0},.resultOwner="xl6SignalTaskGroupDestroyV1"},
+    {"xl6SignalTaskGroupCreateV1",T,V,0,{0},.resultOwner="xl6SignalTaskGroupDestroyV1",.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
     {"xl6SignalTaskGroupDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.noRaise=1},
     {"xl6SignalTaskGroupCloseV1",T,B,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
     {"xl6SignalTaskGroupCancelV1",T,B,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
+    {"xl6_xrt_task_group_wrap",T,V,1,{XL6_IR_C_ABI_RAW_POINTER},.resultOwner="xl6SignalTaskGroupDestroyV1"},
+    {"xl6_xrt_task_group_child",T,XL6_IR_C_ABI_RAW_POINTER,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+    {"xl6_xrt_task_group_add",T,B,2,{V,V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.parameterDynamicBorrows={0,1},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+    {"xl6_xrt_task_group_bind_parent",T,B,2,{V,V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"},.parameterDynamicBorrows={0,1},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+    {"xl6_xrt_task_group_count",T,XL6_IR_C_ABI_C_INT,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
+    {"xl6_xrt_task_group_reap",T,XL6_IR_C_ABI_C_INT,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
+    {"xl6_xrt_task_group_join",T,B,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
+    {"xl6_xrt_task_group_join_timeout",T,B,2,{V,I},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
+    {"xl6_xrt_task_group_join_until",T,B,2,{V,I},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
+    {"xl6_xrt_task_group_wait",T,B,1,{V},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
+    {"xl6_xrt_task_group_wait_timeout",T,B,2,{V,I},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
+    {"xl6_xrt_task_group_wait_until",T,B,2,{V,I},.parameterOwners={"xl6SignalTaskGroupDestroyV1"}},
+    {"xl6_xrt_task_group_join_async",T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,1,{V},
+        .parameterOwners={"xl6SignalTaskGroupDestroyV1"},.resultFutureAbi=XL6_IR_ASYNC_RESULT_VOID,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
     {"xl6EnvGetV1",T,S,2,{S,I},.nullableResult=1},
     {"xl6EnvHasV1",T,B,2,{S,I}},
     {"xl6EnvSetV1",T,XL6_IR_C_ABI_VOID,4,{S,S,I,I}},
@@ -777,14 +792,14 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 !xl6IrNativeValuePlanForType(result) ||
                 result->nativeValueAbi != contract->resultNativeValueAbi ||
                 contract->nullableResult || contract->resultProductAbi ||
-                contract->resultArrayItemAbi || contract->resultFutureElementAbi) return 0;
+                contract->resultArrayItemAbi || contract->resultFutureElementAbi || contract->resultFutureAbi) return 0;
         } else if (contract->resultProductAbi) {
             if (!result || result->cAbi != XL6_IR_C_ABI_PRODUCT ||
                 result->nativeProductAbi != contract->resultProductAbi ||
                 xl6IrNativeProductAbiForShape(&module->types,result) != contract->resultProductAbi ||
                 result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL || result->nullAbi != XL6_IR_NULL_ABI_NONE ||
                 strcmp(result->cName,xl6IrNativeProductAbiCName(contract->resultProductAbi)) != 0) return 0;
-        } else if (contract->resultFutureElementAbi) {
+        } else if (contract->resultFutureElementAbi || contract->resultFutureAbi) {
             const XL6_IrType* element = result && result->paramCount == 1 && result->params
                 ? xl6IrTypeGet(&module->types, result->params[0]) : NULL;
             if (contract->result != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR || !result ||
@@ -794,10 +809,13 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 result->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ||
                 result->collectionAbi != XL6_IR_COLLECTION_NONE || result->returnCount ||
                 !element || element->kind != XL6_IR_TYPE_BUILTIN || element->paramCount || element->returnCount ||
-                element->collectionAbi != XL6_IR_COLLECTION_NONE ||
-                element->cAbi != contract->resultFutureElementAbi ||
-                element->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-                element->nullAbi != XL6_IR_NULL_ABI_NONE) return 0;
+                element->collectionAbi != XL6_IR_COLLECTION_NONE) return 0;
+            if(contract->resultFutureAbi){
+                if(contract->resultFutureElementAbi ||
+                    xl6IrBuildAsyncResultAbi(module,result->params[0])!=contract->resultFutureAbi)return 0;
+            }else if(element->cAbi!=contract->resultFutureElementAbi ||
+                element->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
+                element->nullAbi!=XL6_IR_NULL_ABI_NONE)return 0;
         } else if (contract->resultArrayItemAbi) {
             if (!xl6IrDirectBridgeCollectionMatches(module, result, contract->resultArrayItemAbi,
                 contract->resultCollectionAbi ? contract->resultCollectionAbi : XL6_IR_COLLECTION_ARRAY)) return 0;
