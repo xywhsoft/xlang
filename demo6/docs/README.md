@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [任务池空闲线程的拥有图准入](stdlib53-b305-task-pool-idle.md)：clear 续体 AOT 退役失败根因、确定性回归与核心修复的精确同步范围。
+
 - [原生 Context 和 Buffer 的驻留拥有合同](stdlib53-b304-xlang-context-policy.md)：资源布局审计、声明式策略、显式宿主 ABI 与可达入口的批量清单。
 
 - [独立程序入口与对象图退役](stdlib53-b303-static-entry.md)：声明化部署合同、共同原生驱动、独立读取准入及双端真实源码 AOT。

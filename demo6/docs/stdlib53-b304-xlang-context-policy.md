@@ -1,5 +1,9 @@
 # 原生 Context 和 Buffer 的驻留拥有合同
 
+本页保留本批失败记录；clear 续体 AOT 后续定位到原生池的
+空闲线程检查，修复与验收见
+[任务池空闲线程的拥有图准入](stdlib53-b305-task-pool-idle.md)。
+
 `xlang.Context` 和 `Buffer` 的原生 payload 已改为声明式驻留策略，
 不再保存生成模块中的 Drop 包装。上一轮嵌套 SDK 两项独立 AOT
 在主逻辑输出 PASS 后退出失败的问题，已在两端真实产品中复测

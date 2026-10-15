@@ -196946,8 +196946,14 @@ static bool __xrtTaskPoolOwnershipCount(const void* pData, size_t* pCount)
 		if (!pPool->Workers || pPool->StartedThreads != pPool->ThreadCount) return false;
 		for (uint32 i = 0; i < pPool->StartedThreads; ++i) {
 			const xrt_task_worker* pWorker = &pPool->Workers[i];
+			/* Freeze prevents the next worker mutation. An idle worker may
+			 * not have entered its first iteration, or be between iterations;
+			 * neither requires Parked. Running/finalizer counters above cover
+			 * every callback and cleanup tail. Keep the terminal consistency
+			 * checks: an exited worker cannot be parked, and Joined requires
+			 * every worker to have exited. No worker reference is fabricated. */
 			if (pWorker->Pool != pPool || !pWorker->Thread ||
-				(pWorker->Exited ? pWorker->Parked : (!pWorker->Parked || pPool->Joined))) return false;
+				(pWorker->Exited ? pWorker->Parked : pPool->Joined)) return false;
 		}
 	}
 	size_t iJobs = 0; const xrt_task_job* pTail = NULL;
