@@ -1,0 +1,53 @@
+{
+  "Schema": 1,
+  "Purpose": "Owner-driven post-Clear cancellation retirement with explicit BUSY completion",
+  "Integration": "Reviewed core type and cancel protocol deltas, not a full upstream snapshot refresh",
+  "CanonicalCommit": "f0e787f8215645e25a21a93912ba371398779699",
+  "CanonicalSources": [
+    {
+      "Path": "include/xrt/core.h",
+      "Sha256": "d246e32cdbf262fb867f35f57012b69c12d76a32f138ecab79486745524bb0d1"
+    },
+    {
+      "Path": "include/xrt/cancel.h",
+      "Sha256": "0906dc617e7852c36fe4dd8392bfce57f7495bf9b0c1750017b359cffd735fed"
+    },
+    {
+      "Path": "src/concurrency/cancel.c",
+      "Sha256": "0c6461e9bbc0e78b7f029146ad59eedeccb939a5bbc37ba4374c5fc19cad0403"
+    },
+    {
+      "Path": "tests/concurrency/test_cancel_retirement.c",
+      "Sha256": "9e557af8b3b317c135a557a6620634a6eaffe7331404fb362aea085d10af4569"
+    }
+  ],
+  "ConsumerBase": "aebe735a36289e684a266a1f8c52dd8ca42575fe",
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "8cd953e692572b1e859506f302963390d91cad8daaadbd8ecc55a78186ed037c",
+      "AfterSha256": "d1cc1995f5f9596ce2c710caff6a1e3c0bcb401494189be6ba9913b6b5a76662"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "812bb5da630fb454409c526fbc1b254936b196258f2deeec4c568dc5b2312f76",
+      "AfterSha256": "2b02383d67517a0201a99d063a40c7e98cb43d473a3e54f4567169e73a635d04"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "91af9cdbbf65dbd6678afe91f15f879bd44ded6004693c6a6ea0a6b53601a89a",
+      "AfterSha256": "67921288ef859772c64d734d03bc2e41dd706eccf2e4e14dc046807467bffe33"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "ae509cbece5c4c3a88c45f6291a79959ed45c4492c4e868233e1f2d58d06a313",
+      "AfterSha256": "76e2872dd24ded5cff5280873d58578ad2774e0e40b713cc225734b014cb6501"
+    }
+  ],
+  "PreservedContracts": [
+    "Embedded Future relative timeouts remain microseconds",
+    "Existing cancel adapter identities and preparation protocols remain unchanged",
+    "New protocol is not admitted to the xlang owning graph until coordinated integration",
+    "Unrelated core and extension edits excluded"
+  ]
+}
