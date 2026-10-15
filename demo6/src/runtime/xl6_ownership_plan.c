@@ -311,13 +311,13 @@ XL6_OwnershipStepResult xl6OwnershipPlanFinishV2(XL6_OwnershipPlan* plan)
     plan->running=true;
     for(size_t i=0;i<plan->count;++i){PlanNode* node=&plan->nodes[i];
         if(node->claimed && !node->finished){
-            XL6_OwnershipStepResult status=node->completion
+            xrtownershipfinishresult status=node->completion
                 ? node->completion->Step(node->ref.Data,plan)
-                : node->adapter->Finish(node->ref.Data,plan)?XL6_OWNERSHIP_STEP_READY:XL6_OWNERSHIP_STEP_FAILED;
-            if(status==XL6_OWNERSHIP_STEP_READY)node->finished=true;
-            else if(status==XL6_OWNERSHIP_STEP_BUSY)result=XL6_OWNERSHIP_STEP_BUSY;
+                : node->adapter->Finish(node->ref.Data,plan)?XRT_OWNERSHIP_FINISH_READY:XRT_OWNERSHIP_FINISH_FAILED;
+            if(status==XRT_OWNERSHIP_FINISH_READY)node->finished=true;
+            else if(status==XRT_OWNERSHIP_FINISH_BUSY)result=XL6_OWNERSHIP_STEP_BUSY;
             else {
-                if(status!=XL6_OWNERSHIP_STEP_FAILED)xrtSetErrorKind(XERR_INTERNAL);
+                if(status!=XRT_OWNERSHIP_FINISH_FAILED)xrtSetErrorKind(XERR_INTERNAL);
                 result=XL6_OWNERSHIP_STEP_FAILED;break;
             }
         }

@@ -11,6 +11,8 @@ try {
     $runtime=@($build.Objects | Where-Object {[IO.Path]::GetFileName($_.Path) -eq 'xrt_single_header_impl.o'})
     if(!$build.SourceXrt -or $runtime.Count -ne 1){throw 'Current complete source XRT object required'}
     $programs=@(
+        @{Name='native-finish';Source='test/cases/xlir_ownership_native_finish_runtime.c';Runtime='src/runtime/xl6_ownership_plan.c';
+            Marker='Native completion ABI: 200 physical cycles, 800 BUSY turns, 100 diagnostic-free failures, 100 restored registrations; exact native descriptors, all pins retained, zero live delta'},
         @{Name='finish';Source='test/cases/xlir_ownership_finish_runtime.c';Runtime='src/runtime/xl6_ownership_plan.c';
             Marker='Ownership completion: 501 real cycles, 900 BUSY turns, 200 diagnostic-free failures, 100 invalid outcomes, 400 pre-trace descriptor refusals, 2 rejected reentries; exact pins, no repeated completed duty, zero live delta'},
         @{Name='preparation';Source='test/cases/xlir_ownership_preparation_runtime.c';Runtime='src/runtime/xl6_ownership_plan.c';
@@ -22,7 +24,8 @@ try {
         @{Name='tail';Source='test/cases/xlir_code_lease_retirement_tail.c';Runtime='src/runtime/xl6_code_lease.c';
             Marker='Code lease retirement tails: 100 direct and 100 scoped final releases, exclusive graph freezes and native worker joins, exact diagnostic and allocator balance'})
     $files=@(Get-Item -LiteralPath $PSCommandPath,$Tcc,'C:/Windows/System32/ucrtbase.dll',(Get-Command gcc).Source,
-        'src/runtime/xl6_ownership_plan.h','src/runtime/xl6_ownership_plan.c','src/runtime/xl6_code_lease.h','src/runtime/xl6_code_lease.c')+
+        'src/runtime/xl6_ownership_plan.h','src/runtime/xl6_ownership_plan.c','src/runtime/xl6_code_lease.h','src/runtime/xl6_code_lease.c',
+        'test/support/ownership_test_thread.h')+
         @($programs | ForEach-Object {Get-Item -LiteralPath $_.Source})
     $inputs=@($build.Inputs)+@($build.Headers)+@($runtime)+@($files | ForEach-Object {
         [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}
@@ -58,6 +61,7 @@ $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingD
             Resurrections=25;NewDuties=50;Notifications=200;Finalizers=300;CrossThreadFreezes=200;PostNotificationAllocationFailures=25};
         Completion=[pscustomobject]@{Cycles=501;BusyTurns=900;DiagnosticFreeFailures=200;
             InvalidOutcomes=100;DescriptorRefusals=400;RejectedReentries=2};
+        NativeCompletion=[pscustomobject]@{Cycles=200;BusyTurns=800;DiagnosticFreeFailures=100;RestoredRegistrations=100};
         Scope='Actual native cycles and ordinary XRT physical Value/COW adapters, real strong pins, pre-trace admission, exclusive claims, revalidation/clear, weak quarantine, resurrection/new-node/finalizer-error abort, real OOM, host freeze and thread-join tails. V2 prepares and revalidates before each semantic duty, including new resources created by a finalizer. Custom class/closure/native callback policies and actual module retirement are not exercised by this gate. Not full language or Linux/release verification.'}
     [IO.File]::WriteAllText("$outputPath/results.json",($report | ConvertTo-Json -Depth 7),[Text.UTF8Encoding]::new($false))
     if(!$unchanged -or @($rows | Where-Object {!$_.Complete}).Count){throw 'Ownership-plan batch collected failures'}

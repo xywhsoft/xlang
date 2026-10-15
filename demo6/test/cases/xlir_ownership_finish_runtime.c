@@ -14,7 +14,7 @@ typedef struct Node {
 } Node;
 static unsigned allocated, freed, clears, counts, traces, badDescriptor, reentries;
 static bool replaceDescriptor, legacy, reenter;
-static XL6_OwnershipStepResult answers[2];
+static xrtownershipfinishresult answers[2];
 static void end_scope(xrtownershipscope* s) { assert(xrtOwnershipScopeEnd(s)); }
 static Node* hold_node(Node* n) { assert(xrtRefRetain(&n->refs)>0); return n; }
 static void drop(const void* data)
@@ -44,7 +44,7 @@ static void clear(const void* data,const void* token)
     assert(n->claim==token && !n->cleared && next->refs>=2);
     n->next=NULL; n->cleared=true; ++clears; drop(next);
 }
-static XL6_OwnershipStepResult finish(const void* data,const void* token)
+static xrtownershipfinishresult finish(const void* data,const void* token)
 {
     Node* n=(Node*)data; xrtownershipscope proof={0};
     assert(n->claim==token && n->cleared && n->refs==1);
@@ -58,9 +58,9 @@ static XL6_OwnershipStepResult finish(const void* data,const void* token)
     return answers[n->kind];
 }
 static bool finish_bool(const void* data,const void* token)
-{ return finish(data,token)==XL6_OWNERSHIP_STEP_READY; }
+{ return finish(data,token)==XRT_OWNERSHIP_FINISH_READY; }
 static const XL6_OwnershipAdapterV1 adapter={sizeof(adapter),hold,drop,claim,restore,NULL,clear,finish_bool};
-static const XL6_OwnershipFinishV1 completion={sizeof(completion),&adapter,finish};
+static const xrtownershipfinishv1 completion={sizeof(completion),&adapter,finish};
 static const XL6_OwnershipFinishV1 replacement={sizeof(replacement),&adapter,finish};
 static const XL6_OwnershipFinishV1 invalid[]={
     {0,&adapter,finish},{sizeof(completion),NULL,finish},{sizeof(completion),&adapter,NULL}};
@@ -89,7 +89,7 @@ static XL6_OwnershipPlan* commit(Node* root)
 }
 static void complete(XL6_OwnershipPlan* plan)
 {
-    answers[0]=answers[1]=XL6_OWNERSHIP_STEP_READY;
+    answers[0]=answers[1]=XRT_OWNERSHIP_FINISH_READY;
     assert(xl6OwnershipPlanFinishV2(plan)==XL6_OWNERSHIP_STEP_READY);
     assert(xl6OwnershipPlanFinish(plan));
     assert(xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_READY);
@@ -97,17 +97,17 @@ static void complete(XL6_OwnershipPlan* plan)
 static void busy_cycle(void)
 {
     Node* a=cycle(),*b=a->next; unsigned priorFrees=freed; XL6_OwnershipPlan* plan=commit(a);
-    answers[0]=answers[1]=XL6_OWNERSHIP_STEP_BUSY;
+    answers[0]=answers[1]=XRT_OWNERSHIP_FINISH_BUSY;
     xrtSetErrorKind(XERR_STATE);const xerror* error=xrtGetError();assert(error);
     assert(xrtMemDebugFailAfter(0));
     assert(xl6OwnershipPlanFinishV2(plan)==XL6_OWNERSHIP_STEP_BUSY);
     assert(!xrtMemDebugFailTriggered() && xrtGetError()==error);xrtMemDebugFailClear();xrtClearError();
     assert(a->calls==1 && b->calls==1 && freed==priorFrees);
-    answers[1]=XL6_OWNERSHIP_STEP_READY;
+    answers[1]=XRT_OWNERSHIP_FINISH_READY;
     for(unsigned n=0;n<8;++n)assert(xl6OwnershipPlanFinishV2(plan)==XL6_OWNERSHIP_STEP_BUSY);
     assert(a->calls==9 && b->calls==2 && freed==priorFrees);
     assert(xl6OwnershipPlanTryDestroy(plan)==XL6_OWNERSHIP_PLAN_ERROR);xrtClearError();
-    answers[0]=XL6_OWNERSHIP_STEP_READY;
+    answers[0]=XRT_OWNERSHIP_FINISH_READY;
     assert(xl6OwnershipPlanFinishV2(plan)==XL6_OWNERSHIP_STEP_READY);
     assert(a->calls==10 && b->calls==2 && freed==priorFrees);
     assert(xl6OwnershipPlanFinishV2(plan)==XL6_OWNERSHIP_STEP_READY && a->calls==10 && b->calls==2);
@@ -116,7 +116,7 @@ static void busy_cycle(void)
 static void failed_cycle(bool old)
 {
     legacy=old;Node* a=cycle(),*b=a->next;XL6_OwnershipPlan* plan=commit(a);
-    answers[0]=XL6_OWNERSHIP_STEP_FAILED;answers[1]=XL6_OWNERSHIP_STEP_READY;
+    answers[0]=XRT_OWNERSHIP_FINISH_FAILED;answers[1]=XRT_OWNERSHIP_FINISH_READY;
     assert(xrtMemDebugFailAfter(0));
     assert(xl6OwnershipPlanFinishV2(plan)==XL6_OWNERSHIP_STEP_FAILED);
     assert(!xrtGetError() && !xrtMemDebugFailTriggered());xrtMemDebugFailClear();
@@ -125,7 +125,7 @@ static void failed_cycle(bool old)
 static void invalid_cycle(void)
 {
     Node* a=cycle();XL6_OwnershipPlan* plan=commit(a);
-    answers[0]=(XL6_OwnershipStepResult)99;
+    answers[0]=(xrtownershipfinishresult)99;
     assert(xl6OwnershipPlanFinishV2(plan)==XL6_OWNERSHIP_STEP_FAILED && xrtGetError());
     xrtClearError();complete(plan);
 }

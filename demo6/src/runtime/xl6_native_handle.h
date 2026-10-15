@@ -8,7 +8,7 @@ struct xvalue;
 struct xvaluehandleops;
 struct xrtownershipref;
 struct xrtownershipadapterv1;
-struct XL6_OwnershipFinishV1;
+struct xrtownershipfinishv1;
 
 /* Immutable, resident resource declaration. These identities are not a
  * universal handle certificate: the host admits each audited policy by exact
@@ -48,7 +48,7 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6ProcessHandlePolicyV1Get(v
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6ProcessStatusHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API struct xrtownershipref xl6ProcessLiveOwnershipV1(const void*);
 XL6_CODE_LEASE_API const struct xrtownershipadapterv1* xl6ProcessLiveOwnershipAdapterV1(struct xrtownershipref);
-XL6_CODE_LEASE_API const struct XL6_OwnershipFinishV1* xl6ProcessLiveOwnershipFinishV1Get(void);
+XL6_CODE_LEASE_API const struct xrtownershipfinishv1* xl6ProcessLiveOwnershipFinishV1Get(void);
 /* An iterator owns only a copied byte allocation, never its source Buffer. */
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6BufferIteratorHandlePolicyV1Get(void);
 /* The actual XRT buffer contains Data/Size/Capacity, not language values. */

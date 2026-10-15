@@ -2635,7 +2635,7 @@ static void xlModuleClear(const void* data, const void* token)
     /* Globals are quarantined retired slots until checked Finish. All owning
      * descendants have actual plan pins; no generated cleanup under Freeze. */
 }
-static XL6_OwnershipStepResult xlModuleFinishOwnershipV2(const void* data, const void* token)
+static xrtownershipfinishresult xlModuleFinishOwnershipV2(const void* data, const void* token)
 {
     XL_Module* module = (XL_Module*)data;
     xl6_error_scope cleanup = {0}; xl6_error_result outcome;
@@ -2649,11 +2649,11 @@ static XL6_OwnershipStepResult xlModuleFinishOwnershipV2(const void* data, const
         ? XL_MODULE_INACTIVE : XL_MODULE_DEACTIVATION_PENDING;
     xlApiUnlock();
     if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
-    return !outcome.ok ? XL6_OWNERSHIP_STEP_FAILED : result == XL6_MODULE_RETIRE_READY
-        ? XL6_OWNERSHIP_STEP_READY : XL6_OWNERSHIP_STEP_BUSY;
+    return !outcome.ok ? XRT_OWNERSHIP_FINISH_FAILED : result == XL6_MODULE_RETIRE_READY
+        ? XRT_OWNERSHIP_FINISH_READY : XRT_OWNERSHIP_FINISH_BUSY;
 }
 static bool xlModuleFinishOwnership(const void* data, const void* token)
-{ return xlModuleFinishOwnershipV2(data, token) == XL6_OWNERSHIP_STEP_READY; }
+{ return xlModuleFinishOwnershipV2(data, token) == XRT_OWNERSHIP_FINISH_READY; }
 static const XL6_OwnershipAdapterV1 xlModuleOwnershipAdapter = {sizeof(xlModuleOwnershipAdapter),
     xlModuleSnapshotHold, xlModuleSnapshotDrop, xlModuleClaim, xlModuleRestore,
     NULL, xlModuleClear, xlModuleFinishOwnership};

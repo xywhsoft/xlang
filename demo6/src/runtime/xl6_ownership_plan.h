@@ -56,12 +56,12 @@ typedef enum XL6_OwnershipStepResult {
  * is an explicit callback failure even without a diagnostic. A failed duty
  * may be retried, but a READY duty is never invoked again. These immutable
  * identities are admitted before Count/Trace, just like preparation. Step
- * may return only FAILED/BUSY/READY; ERROR is reserved for plan misuse. */
-typedef struct XL6_OwnershipFinishV1 {
-    size_t size;
-    const XL6_OwnershipAdapterV1* Adapter;
-    XL6_OwnershipStepResult (*Step)(const void*, const void*);
-} XL6_OwnershipFinishV1;
+ * is XRT's canonical descriptor, including its callback return type; no
+ * layout or function-pointer casts are permitted at the resident boundary.
+ * Step returns XRT_OWNERSHIP_FINISH_FAILED/BUSY/READY. The plan maps them to
+ * XL6_OWNERSHIP_STEP_*; STEP_ERROR is reserved for plan misuse/snapshots. */
+struct xrtownershipfinishv1;
+typedef struct xrtownershipfinishv1 XL6_OwnershipFinishV1;
 typedef bool (*XL6_OwnershipResolveV3)(struct xrtownershipref, void*,
     const XL6_OwnershipAdapterV1**, const struct xrtownershippreparationv1**,
     const XL6_OwnershipFinishV1**);
