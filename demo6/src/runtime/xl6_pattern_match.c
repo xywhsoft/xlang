@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_pattern_internal.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 
 typedef struct XL6_PatternSnapshot {
     xpattern* program;
@@ -96,3 +98,6 @@ int64_t xl6PatternMatchIndexV1(void* handle,xstrview name,int64_t size)
     size_t index=xrtPatternCaptureIndex(result->program,result->match.PatternIndex,name);
     return index==XRT_NPOS?-1:(int64_t)index;
 }
+
+/* Resident policy: terminal Drop runs after the phased handle is detached. */
+XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6PatternMatchHandlePolicyV1Get,xl6PatternMatchDestroyV1)

@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [原生资源的精确拥有边与销毁](stdlib53-b306-native-resource-graphs.md)：22 项析构策略、真实内部拥有边、并发关闭和独立 AOT 验收，另九项资源继续审计。
+
 - [任务池空闲线程的拥有图准入](stdlib53-b305-task-pool-idle.md)：clear 续体 AOT 退役失败根因、确定性回归与核心修复的精确同步范围。
 
 - [原生 Context 和 Buffer 的驻留拥有合同](stdlib53-b304-xlang-context-policy.md)：资源布局审计、声明式策略、显式宿主 ABI 与可达入口的批量清单。

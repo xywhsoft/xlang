@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_regex_internal.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 
 static XL6_RegexSnapshot* xl6RegexSnapshotCheck(void* handle)
 {
@@ -93,3 +95,13 @@ xstrview xl6RegexMatchInputV1(void* handle)
     XL6_RegexSnapshot* s = xl6RegexSnapshotCheck(handle);
     return s ? xl6TextCopy(s->text) : xl6TextFailure;
 }
+
+/* Resident policy: terminal Drop runs after the phased handle is detached. */
+static bool xl6RegexMatchHandlePolicyV1GetTrace(const xvalue* value,xrtownershipvisitor visitor,void* context)
+{
+    void* raw=NULL;
+    if(!visitor || !xrtValueGetHandle(value,&raw,NULL,NULL) || !raw)return false;
+    const XL6_RegexSnapshot* payload=raw;
+    return (payload->input && visitor(xrtValueOwnership(payload->input),context));
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6RegexMatchHandlePolicyV1Get,xl6RegexMatchDestroyV1,xl6RegexMatchHandlePolicyV1GetTrace)

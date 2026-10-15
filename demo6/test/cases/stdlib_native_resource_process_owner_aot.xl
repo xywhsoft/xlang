@@ -1,0 +1,29 @@
+class NativeProcessOwner
+    Stack<NativeProcessOwner> cycle
+    ProcessPipeline pipeline = ProcessPipeline()
+    PipelineResult combined
+    ProcessStageResult stage
+    ProcessResult single
+    create(string child)
+        auto command = process.cmd(child, ["echo"])
+        self.pipeline.add(command)
+        self.combined = pipeline.run(b"a\0b", 5000)
+        self.stage = combined.stage(0)
+        self.single = command.run(b"a\0b", 5000)
+    end
+    func link()
+        assert cycle.push(self)
+    end
+    destroy()
+        assert pipeline.count == 1
+        assert combined.count == 1 and combined.success
+        assert combined.stdout == b"a\0b"
+        assert stage.stderr == b"E\0R" and stage.success
+        assert single.stdout == b"a\0b" and single.success
+        print("native-process-owner-finalized")
+    end
+end
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+NativeProcessOwner root = NativeProcessOwner(child)
+root.link()

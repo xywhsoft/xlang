@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_text_pieces.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 
 typedef struct XL6_TextIterator {
     uint64_t ownerThread; /* Immutable, checked before reading mutable state. */
@@ -76,3 +78,6 @@ bool xl6TextIteratorClosedV1(void* handle)
     XL6_TextIterator* it = xl6TextIteratorCheck(handle);
     return it ? it->closed : false;
 }
+
+/* Resident policy: terminal Drop runs after the phased handle is detached. */
+XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6TextIteratorHandlePolicyV1Get,xl6TextIteratorDestroyV1)

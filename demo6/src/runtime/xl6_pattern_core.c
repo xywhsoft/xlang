@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_pattern_internal.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 
 void xl6PatternDestroyV1(void* handle)
 {xrtPatternRelease(handle);}
@@ -80,3 +82,6 @@ int64_t xl6PatternErrorIndexV1(const xerror* error)
         if (xrtPatternErrorPattern(error,&result) && result<=INT64_MAX) return (int64_t)result;}
     return -1;
 }
+
+/* Resident policy: terminal Drop runs after the phased handle is detached. */
+XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6PatternHandlePolicyV1Get,xl6PatternDestroyV1)

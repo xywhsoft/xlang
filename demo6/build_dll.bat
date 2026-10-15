@@ -44,6 +44,42 @@ call tools\build_xrt_obj.bat
 if errorlevel 1 exit /b 1
 
 rem Safe native constructors are separate from lossless read/box providers.
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_time_date_time.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_time_date_time.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_unicode_validator.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_unicode_validator.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_text_iterator.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_text_iterator.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_pattern_core.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_pattern_core.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_pattern_options.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_pattern_options.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_pattern_match.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_pattern_match.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_pattern_builder.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_pattern_builder.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_process_pipeline_config.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_process_pipeline_config.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_process_pipeline.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_process_pipeline.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_process_run.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_process_run.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_regex_core.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_core.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_regex_match.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_match.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_regex_iterator.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_iterator.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_regex_split.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_split.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_regex_set.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_set.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_regex_replace_func.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_replace_func.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_signal_queue.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_signal_queue.o"
+if errorlevel 1 exit /b 1
+set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_time_date_time.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_unicode_validator.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_text_iterator.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_pattern_core.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_pattern_options.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_pattern_match.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_pattern_builder.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_process_pipeline_config.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_process_pipeline.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_process_run.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_core.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_match.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_iterator.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_split.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_set.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_replace_func.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_signal_queue.o""
+
 rem Audited nested-runtime context policy stays resident in both DLL targets.
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_xlang_context_policy.c -o "%XL6_BUILD_TMP%\xl6_xlang_context_policy.o"
 if errorlevel 1 exit /b 1

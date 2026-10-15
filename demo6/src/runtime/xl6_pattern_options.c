@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_pattern_internal.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 
 void xl6PatternOptionsDestroyV1(void* handle)
 {
@@ -51,3 +53,6 @@ OPTION(Captures,MaxCaptures)
 OPTION(States,MaxStates)
 OPTION(Compiled,MaxCompiledBytes)
 #undef OPTION
+
+/* Resident policy: terminal Drop runs after the phased handle is detached. */
+XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6PatternOptionsHandlePolicyV1Get,xl6PatternOptionsDestroyV1)

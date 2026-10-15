@@ -27,6 +27,9 @@ def declarations(root):
         ('src/runtime/xl6_text_symbols.inc', r'XL6_TEXT_EXPORT\((\w+), (\w+)\)'),
     ):
         entries.extend(re.findall(pattern, (root / path).read_text(encoding='utf-8')))
+    resources=(root/'src/runtime/xl6_native_resource_policies.inc').read_text(encoding='utf-8')
+    entries.extend((getter,owner) for owner,getter in re.findall(
+        r'XL6_NATIVE_RESOURCE_POLICY\((?:"\w+"|NULL),(\w+),(\w+)\)',resources))
     domains = (root / "src/runtime/xl6_ownership_domains.inc").read_text(encoding="utf-8")
     policies = re.findall(r"XL6_OWNERSHIP_DOMAIN_ENTRY\((\w+),(\w+),(\w+)\)", domains)
     prototypes = re.findall(r'\b(xl6OwnershipDomain\w+V1Get)\(void\);',

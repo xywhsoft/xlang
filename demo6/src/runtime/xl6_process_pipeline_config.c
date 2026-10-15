@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_process_pipeline_internal.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 
 void xl6ProcessPipelineDestroyV1(void* handle)
 {
@@ -46,3 +48,6 @@ void xl6ProcessPipelineClearV1(void* handle)
 }
 int64_t xl6ProcessPipelineCountV1(void* handle)
 {XL6_ProcessPipeline* pipeline=xl6ProcessPipelineCheck(handle);return pipeline ? (int64_t)pipeline->count : 0;}
+
+/* Resident policy: terminal Drop runs after the phased handle is detached. */
+XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6ProcessPipelineHandlePolicyV1Get,xl6ProcessPipelineDestroyV1)
