@@ -1,0 +1,49 @@
+{
+  "Schema": 1,
+  "Purpose": "Post-Clear FutureCombine physical retirement with mixed TaskGroup graphs",
+  "CanonicalCommit": "3b65db71eb9f38f6301d9854f74af6db5d8d2c41",
+  "CanonicalSources": [
+    {
+      "Path": "include/xrt/future.h",
+      "Sha256": "22c54616442242a0bb826ea0209ef846c5314ba7dddae2508288c9e99ffe927a"
+    },
+    {
+      "Path": "src/concurrency/future_combine.c",
+      "Sha256": "e9017f828ec13ea007726fa1d87a9f2dd7f5a42cc3697d787383ce01c446351d"
+    },
+    {
+      "Path": "tests/concurrency/test_future_combine_retirement.c",
+      "Sha256": "52c9a67b30e763c377a4de7b95c658377dba75b278db4a2e776f8337ac627eff"
+    }
+  ],
+  "ConsumerBase": "d34580ba002060431f25db71a5d894ff13d49ea2",
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "608f71deed0c9063fa630a36c6ba223b3a31eb6a4b7f352279551826f277bf09",
+      "AfterSha256": "41559af0c36a5d234c5734add0e6e592d73fc1f1b0155a2dcd1df08e6e9d8fe6"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "43d5ab06bfc1e7a675b3ae39abd061019ee6df8260bf2ced9ba080ef2fe0f177",
+      "AfterSha256": "7ecdc250e186097566ddf4489b36757b0bd0a098b81497deb3782ae300cc215c"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "b2a8c4a57183f3558da2a99d146dcb5de78e09f65e4bcc61ae6554a763abe3e2",
+      "AfterSha256": "8e62dd008f4299aa5ace795d349cd52b602250cb851a8312f3aa84a6764c4b3e"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "ad042c4c676609ea3b5939d13086c9dff60e296b358ff683b4703a21ce3f09e9",
+      "AfterSha256": "82ec2f671ba21cf602fdfab96bb7a773e2885aa207cfa4f7ac15832c760647fe"
+    }
+  ],
+  "PreservedContracts": [
+    "Only future public declarations and future_combine implementation are updated",
+    "Future execution and embedded microsecond relative timeouts are unchanged",
+    "Legacy Combine V1 preparation and global language admission routing remain unchanged",
+    "Accepted language catch/finally preparation is not skipped",
+    "Unrelated edits are excluded"
+  ]
+}

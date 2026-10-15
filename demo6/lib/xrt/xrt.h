@@ -7466,6 +7466,21 @@ XRT_API const xrtownershipadapterv1* xrtFutureCombineOwnershipAdapterV1(xrtowner
 	const xfuturecombineownershipv1* const* pPolicies, size_t iPolicyCount,
 	const xrtownershippreparationv1** ppPreparation);
 
+/* Post-Clear physical retirement, with no eager input completion, mapper or
+ * cancellation. Use Future V5, Watch V2 and Token V3 for the transitive graph.
+ * Clear suppresses new completion/map work and keeps every strong slot.
+ * Step first obtains a short exclusive freeze: an active/queued callback or
+ * a busy freeze yields BUSY with no owning-edge changes. Stable registrations
+ * are then detached; context and endpoint rights are dropped outside freeze.
+ * All physical plan pins outlive every duty, including dispatch tails. Map
+ * Data still needs independent semantic finalization/admission. This protocol
+ * does not replace the old preparation contract or authorize skipping an
+ * accepted language callback. Mandatory completion output is unchanged on
+ * refusal; unknown/legacy mapped policies remain unadmitted. */
+XRT_API const xrtownershipadapterv1* xrtFutureCombineOwnershipAdapterV2(xrtownershipref Reference,
+	const xfuturecombineownershipv1* const* pPolicies, size_t iPolicyCount,
+	const xrtownershipfinishv1** ppCompletion);
+
 typedef enum xfuturewaitrulev1 {
 	XFUTURE_WAIT_ALL_TERMINAL = 1,
 	XFUTURE_WAIT_ANY_TERMINAL = 2
@@ -95625,23 +95640,85 @@ static bool __xrtFutureCombineFinish(const void* data, const void* token)
     if (!token || group->Claim != token || !group->Cleared) abort();
     __xrtFutureCombineDisposeSlots(group); return true;
 }
+static bool __xrtFutureCombineAdmitted(xrtownershipref ref,
+    const xfuturecombineownershipv1* const* policies, size_t policyCount)
+{
+    const xrt_future_combine* group; size_t count; bool known = false;
+    if (ref.Ops != &__xrtFutureCombineOwnershipOps || !ref.Data || (policyCount && !policies)) return false;
+    group = ref.Data;
+    if (!__xrtFutureCombineOwnershipCount(group, &count)) return false;
+    if (group->MapAccepted) {
+        for (size_t i = 0; i < policyCount; ++i) if (policies[i] && policies[i] == group->MapPolicy) { known = true; break; }
+        if (!known || group->MapPolicy->size != sizeof(xfuturecombineownershipv1) || !group->MapPolicy->Drop ||
+            !group->MapPolicy->Ops || !group->MapPolicy->Ops->Count || !group->MapPolicy->Ops->Trace ||
+            (group->Mode == XRT_FUTURE_COMBINE_ALL ? group->AllMap != group->MapPolicy->AllMap : group->PickMap != group->MapPolicy->PickMap)) return false;
+    }
+    return true;
+}
 XRT_API const xrtownershipadapterv1* xrtFutureCombineOwnershipAdapterV1(xrtownershipref ref,
     const xfuturecombineownershipv1* const* policies, size_t policyCount, const xrtownershippreparationv1** preparation)
 {
     static const xrtownershipadapterv1 adapter = {sizeof(adapter), __xrtFutureCombineHold, __xrtFutureCombineProducerDrop,
         __xrtFutureCombineClaim, __xrtFutureCombineRestore, NULL, __xrtFutureCombineClear, __xrtFutureCombineFinish};
     static const xrtownershippreparationv1 prepare = {sizeof(prepare), &adapter, __xrtFutureCombinePrepared, __xrtFutureCombinePrepare};
-    const xrt_future_combine* group; size_t count; bool known = false;
-    if (ref.Ops != &__xrtFutureCombineOwnershipOps || !ref.Data || !preparation || (policyCount && !policies)) return NULL;
-    group = ref.Data;
-    if (!__xrtFutureCombineOwnershipCount(group, &count)) return NULL;
-    if (group->MapAccepted) {
-        for (size_t i = 0; i < policyCount; ++i) if (policies[i] && policies[i] == group->MapPolicy) { known = true; break; }
-        if (!known || group->MapPolicy->size != sizeof(xfuturecombineownershipv1) || !group->MapPolicy->Drop ||
-            !group->MapPolicy->Ops || !group->MapPolicy->Ops->Count || !group->MapPolicy->Ops->Trace ||
-            (group->Mode == XRT_FUTURE_COMBINE_ALL ? group->AllMap != group->MapPolicy->AllMap : group->PickMap != group->MapPolicy->PickMap)) return NULL;
-    }
+    if (!preparation || !__xrtFutureCombineAdmitted(ref,policies,policyCount)) return NULL;
     *preparation = &prepare; return &adapter;
+}
+
+static void __xrtFutureCombineClearV2(const void* data, const void* token)
+{
+    xrt_future_combine* group = (xrt_future_combine*)data; size_t count;
+    if (!token || group->Claim != token || !__xrtFutureCombineOwnershipCount(group,&count)) abort();
+    group->Cleared = true; group->Completed = true;
+}
+static xrtownershipfinishresult __xrtFutureCombineFinishV2(const void* data, const void* token)
+{
+    xrt_future_combine* group = (xrt_future_combine*)data;
+    xrtownershipscope freeze = {0}, scope = {0}; xpromise* promise;
+    /* Preflight every embedded registration under ONE exclusive freeze.
+     * Callback tails update Owned under Mutation; a queued callback keeps
+     * Calling set. No partial detach is ever reported as BUSY. */
+    if (!xrtOwnershipFreezeTryBegin(&freeze)) return XRT_OWNERSHIP_FINISH_BUSY;
+    if (!token || group->Claim != token || !group->Cleared) abort();
+    bool busy = group->Publishing || group->Active;
+    for (size_t i = 0; i < group->Count && !busy; ++i) {
+        const xrt_future_waiter* waiter = &__xrtFutureWatchImpl(&group->Items[i].Watch)->Waiter;
+        busy = waiter->Calling || group->Items[i].Owned != waiter->Linked;
+    }
+    if (busy) {
+        if (!xrtOwnershipScopeEnd(&freeze)) abort();
+        return XRT_OWNERSHIP_FINISH_BUSY;
+    }
+    for (size_t i = 0; i < group->Count; ++i) {
+        if (group->Items[i].Owned && !xrtFutureWatchDetach(group->Sources[i],&group->Items[i].Watch)) {
+            if (!xrtOwnershipScopeEnd(&freeze)) abort();
+            return XRT_OWNERSHIP_FINISH_FAILED;
+        }
+    }
+    /* Global Clear has suppressed this owned observer before Step. Native
+     * registration/Data releases here are nonterminal because ALL nodes have
+     * actual plan pins; foreign mapper Data is released only after freeze. */
+    if (group->Watch && !xrtCancelUnwatchChecked(group->Watch)) {
+        if (!xrtOwnershipScopeEnd(&freeze)) abort();
+        return XRT_OWNERSHIP_FINISH_FAILED;
+    }
+    __xrtFutureCombineBegin(group,&scope);
+    group->Watch = NULL; promise = group->Promise; group->Promise = NULL;
+    __xrtFutureCombineEnd(group,&scope);
+    if (!xrtOwnershipScopeEnd(&freeze)) abort();
+    xrtPromiseDestroy(promise); __xrtFutureCombineDisposeSlots(group);
+    return XRT_OWNERSHIP_FINISH_READY;
+}
+static bool __xrtFutureCombineFinishV2Bool(const void* data, const void* token)
+{ return __xrtFutureCombineFinishV2(data,token) == XRT_OWNERSHIP_FINISH_READY; }
+XRT_API const xrtownershipadapterv1* xrtFutureCombineOwnershipAdapterV2(xrtownershipref ref,
+    const xfuturecombineownershipv1* const* policies, size_t policyCount, const xrtownershipfinishv1** completion)
+{
+    static const xrtownershipadapterv1 adapter = {sizeof(adapter), __xrtFutureCombineHold, __xrtFutureCombineProducerDrop,
+        __xrtFutureCombineClaim, __xrtFutureCombineRestore, NULL, __xrtFutureCombineClearV2, __xrtFutureCombineFinishV2Bool};
+    static const xrtownershipfinishv1 completed = {sizeof(completed), &adapter, __xrtFutureCombineFinishV2};
+    if (!completion || !__xrtFutureCombineAdmitted(ref,policies,policyCount)) return NULL;
+    *completion = &completed; return &adapter;
 }
 XRT_API bool xrtFutureCombineWaitV1(xrtownershipref ref, const void* token, xfuturecombinewaitv1* wait)
 {
