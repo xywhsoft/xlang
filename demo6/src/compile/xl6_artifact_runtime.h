@@ -381,8 +381,16 @@ typedef enum XL6_ArtifactEntryAbi {
     XL6_ARTIFACT_ENTRY_EXECUTABLE_V1
 } XL6_ArtifactEntryAbi;
 
+typedef enum XL6_ArtifactEntryOwnershipAbi {
+    XL6_ARTIFACT_ENTRY_OWNERSHIP_NONE,
+    XL6_ARTIFACT_ENTRY_OWNERSHIP_DIRECT,
+    XL6_ARTIFACT_ENTRY_OWNERSHIP_GRAPH
+} XL6_ArtifactEntryOwnershipAbi;
 typedef struct XL6_ArtifactRuntimePlan {
     XL6_ArtifactEntryAbi entry;
+    /* Executable deployment only: 0 for fragments/modules, 1 direct checked
+     * cleanup, 2 real owning graph. Chosen before emission from verified IR. */
+    XL6_ArtifactEntryOwnershipAbi entryOwnershipAbi;
     XL6_ArtifactRuntimeSet roots;
     XL6_ArtifactRuntimeSet components;
     size_t sourceCount;

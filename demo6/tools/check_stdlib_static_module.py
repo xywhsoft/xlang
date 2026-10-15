@@ -50,13 +50,14 @@ def main():
         for opt in ('O0','O2'):
             binary=out/(opt+suffix)
             run(opt+'.build',[cc,*flags,'-'+opt,*[root/name for name in SOURCES],*libs,'-o',binary])
-            for mode in range(17):
+            for mode in range(26):
                 data=run(opt+'.mode'+str(mode),[binary,str(mode)]);assert b'once-only destructor, checked recovery balanced' in data
             data=run(opt+'.oom',[binary,'--oom']);match=re.search(rb'full prefixes=(\d+) first-no-hit=(\d+) balanced',data);assert match
             runs,first=map(int,match.groups());assert runs==first+1 and first>0
             prefixes.append(dict(Optimization=opt,Runs=runs,FirstNoHit=first))
         original=(root/'src/runtime/xl6_static_module.c').read_text(encoding='utf-8-sig')
         mutants=[
+            ('missing-root-pin','xl6OwnershipPlanTryCreateV5(','xl6OwnershipPlanTryCreateV4(',22),
             ('lost-lease-count','*count=module->leases+module->pins+(module->entry ? 1u : 0u);','*count=module->pins+(module->entry ? 1u : 0u);',0),
             ('lost-finalizer','xl6OwnershipPlanFinalizeV2(module->plan);','XL6_OWNERSHIP_STEP_READY;',0),
             ('reopen-closed','!module->closing && module->leases<','module->leases<',0),

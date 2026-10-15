@@ -69,7 +69,7 @@ def main():
             assert deps and not {item.decode().lower() for item in deps}&{'xl.dll','xlc.dll','libxl.so','libxlc.so'}
             if not windows:assert b'(RPATH)' not in data and b'(RUNPATH)' not in data
             report.setdefault('IndependentProducts',[]).append(dict(Path=str(independent),Dependencies=[item.decode() for item in deps]))
-            for mode in range(17):
+            for mode in range(26):
                 data=run(opt+'.mode'+str(mode),[independent,str(mode)],relocated)
                 assert b'once-only destructor, checked recovery balanced' in data
             data=run(opt+'.oom',[independent,'--oom'],relocated)

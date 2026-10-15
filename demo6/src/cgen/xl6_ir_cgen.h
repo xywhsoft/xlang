@@ -14,7 +14,17 @@ typedef struct XL6_IrCgenOptions {
     /* Emit source-location probes from lowered XLIR spans. */
     int debugMode;
     const char* debugSourcePath;
+    /* Deployment metadata is supplied by the verified compiler plan. Not
+     * language inference, AST recovery or a scan of generated C. */
+    const struct XL6_IrCgenEntryContractV1* entryContract;
 } XL6_IrCgenOptions;
+typedef struct XL6_IrCgenEntryContractV1 {
+    size_t size;
+    bool managed;
+    const char* const* domains;
+    size_t domainCount;
+    const char* discoverSymbol;
+} XL6_IrCgenEntryContractV1;
 typedef int (*XL6_IrCgenNativeModuleVisitor)(void* context, const char* moduleName);
 /* Enumerates the native implementation requirements selected from verified
  * Lowered XLIR. Does not emit C, read AST, or inspect source/identifier text. */

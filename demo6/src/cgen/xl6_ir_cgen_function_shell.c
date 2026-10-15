@@ -131,7 +131,7 @@ static void xl6IrCgenEmitRetireSteps(XL6_Output* out, const XL6_IrModule* module
 static int xl6IrCgenEmitHostBindings(
     XL6_Output* out, const XL6_IrModule* module,
     int emitScriptEntry, int emitMainWrapper,
-    int emitErrorKind, int unitNet, XL6_DiagList* diags)
+    int emitErrorKind, int unitNet, const XL6_IrCgenEntryContractV1* entry, XL6_DiagList* diags)
 {
     if ( module->abi.entryKind == XL6_IR_MODULE_ENTRY_NONE &&
          !emitScriptEntry ) return 1;
@@ -258,6 +258,7 @@ static int xl6IrCgenEmitHostBindings(
         "}\n"
         "#endif\n\n", out);
     if ( emitMainWrapper ) {
+        if(entry->managed)return xl6IrCgenEmitStaticEntry(out,module,entry);
         xl6OutputPuts(
             "#ifndef XLIR_XRT_DECLARATIONS\n"
             "extern void xrtValueRelease(xvalue*);\n"

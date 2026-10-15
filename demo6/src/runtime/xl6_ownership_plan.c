@@ -168,7 +168,7 @@ failed:
 }
 static XL6_OwnershipPlanResult create(xrtownershipref root,XL6_OwnershipResolve resolve,
     XL6_OwnershipResolveV2 resolveV2,XL6_OwnershipResolveV3 resolveV3,
-    XL6_OwnershipDiscoverV1 discover,void* context,XL6_OwnershipPlan** output)
+    XL6_OwnershipDiscoverV1 discover,bool pinRoot,void* context,XL6_OwnershipPlan** output)
 {
     xrtownershipscope freeze={0};XL6_OwnershipPlan* plan;XL6_OwnershipPlanResult result;
     if(!root.Data || !root.Ops || (!resolve && !resolveV2 && !resolveV3) || !output){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_PLAN_ERROR;}
@@ -176,24 +176,48 @@ static XL6_OwnershipPlanResult create(xrtownershipref root,XL6_OwnershipResolve 
     plan=xrtCalloc(1,sizeof(*plan));
     if(!plan){freeze_end(&freeze);return XL6_OWNERSHIP_PLAN_ERROR;}
     plan->root=root;plan->resolve=resolve;plan->resolveV2=resolveV2;plan->resolveV3=resolveV3;
-    plan->discover=discover;plan->context=context;result=rebuild(plan);
-    if(result<=XL6_OWNERSHIP_PLAN_BUSY){xrtFree(plan);freeze_end(&freeze);return result;}
+    plan->discover=discover;plan->context=context;
+    if(pinRoot){
+        /* Acquire a real plan-owned pin before snapshotting a native control
+         * record with independent storage lifetime and no incoming lease.
+         * Its Hold is recorded as an internal slot, never a made-up count. */
+        PlanBuild seed={.plan=plan};
+        if(!admit(root,&seed) || !seed.nodes[0].adapter->Hold(root.Data)){
+            xerror* error=seed.admissionError ? seed.admissionError : xrtTakeError();
+            if(seed.admissionError)xrtClearError();
+            xrtFree(seed.nodes);xrtFree(plan);freeze_end(&freeze);xrtSetErrorTake(error);return XL6_OWNERSHIP_PLAN_ERROR;
+        }
+        seed.nodes[0].held=true;plan->nodes=seed.nodes;plan->count=1;
+    }
+    result=rebuild(plan);
+    if(result<=XL6_OWNERSHIP_PLAN_BUSY){
+        const XL6_OwnershipAdapterV1* adapter=pinRoot ? plan->nodes[0].adapter : NULL;
+        xerror* error=xrtTakeError();xrtFree(plan->nodes);xrtFree(plan);freeze_end(&freeze);
+        if(adapter)adapter->Drop(root.Data);
+        xrtClearError();xrtSetErrorTake(error);return result;
+    }
     *output=plan;freeze_end(&freeze);return result;
 }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreate(xrtownershipref root,XL6_OwnershipResolve resolve,
     void* context,XL6_OwnershipPlan** output)
-{ return create(root,resolve,NULL,NULL,NULL,context,output); }
+{ return create(root,resolve,NULL,NULL,NULL,false,context,output); }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV2(xrtownershipref root,XL6_OwnershipResolveV2 resolve,
     void* context,XL6_OwnershipPlan** output)
-{ return create(root,NULL,resolve,NULL,NULL,context,output); }
+{ return create(root,NULL,resolve,NULL,NULL,false,context,output); }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV3(xrtownershipref root,XL6_OwnershipResolveV3 resolve,
     void* context,XL6_OwnershipPlan** output)
-{ return create(root,NULL,NULL,resolve,NULL,context,output); }
+{ return create(root,NULL,NULL,resolve,NULL,false,context,output); }
 XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV4(xrtownershipref root,XL6_OwnershipResolveV3 resolve,
     XL6_OwnershipDiscoverV1 discover,void* context,XL6_OwnershipPlan** output)
 {
     if(!resolve || !discover){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_PLAN_ERROR;}
-    return create(root,NULL,NULL,resolve,discover,context,output);
+    return create(root,NULL,NULL,resolve,discover,false,context,output);
+}
+XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV5(xrtownershipref root,XL6_OwnershipResolveV3 resolve,
+    XL6_OwnershipDiscoverV1 discover,void* context,XL6_OwnershipPlan** output)
+{
+    if(!resolve || !discover){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_PLAN_ERROR;}
+    return create(root,NULL,NULL,resolve,discover,true,context,output);
 }
 XL6_OwnershipStepResult xl6OwnershipPlanPrepare(XL6_OwnershipPlan* plan)
 {

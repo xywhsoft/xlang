@@ -1,0 +1,17 @@
+extern "graph_probe_begin" func beginGraphProbe() as bool
+extern "stack_graph_dropped" func dropped(int id, int count)
+assert(beginGraphProbe())
+string entryText = "entry" + " alive"
+class EntryFinalizerErrorMarker
+    Stack<EntryFinalizerErrorMarker> links
+    destroy()
+        assert(entryText == "entry alive")
+        dropped(7, self.links.count())
+        throw "aot-entry-finalizer-sentinel"
+    end
+end
+EntryFinalizerErrorMarker entryMarker = EntryFinalizerErrorMarker()
+assert(entryMarker.links.push(entryMarker))
+func main(...) as int
+    return 0
+end

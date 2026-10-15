@@ -78,6 +78,13 @@ typedef bool (*XL6_OwnershipDiscoverV1)(XL6_ModuleOwnershipVisit, void*, void*);
 XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV4(
     struct xrtownershipref, XL6_OwnershipResolveV3, XL6_OwnershipDiscoverV1,
     void*, XL6_OwnershipPlan**);
+/* Native root with independent, caller-guaranteed storage lifetime: acquire
+ * one actual adapter Hold before its first snapshot. The plan owns this pin,
+ * records it as an internal slot and balances Drop on success or failure.
+ * This does not resurrect an invalid Value or admit an unknown descriptor. */
+XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV5(
+    struct xrtownershipref, XL6_OwnershipResolveV3, XL6_OwnershipDiscoverV1,
+    void*, XL6_OwnershipPlan**);
 XL6_CODE_LEASE_API XL6_OwnershipStepResult xl6OwnershipPlanPrepare(XL6_OwnershipPlan*);
 XL6_CODE_LEASE_API XL6_OwnershipStepResult xl6OwnershipPlanFinalizeV2(XL6_OwnershipPlan*);
 /* Rebuild from EVERY real plan-held node, subtracting exactly those holds as

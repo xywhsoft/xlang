@@ -79,6 +79,9 @@ int main(int argc, char** argv)
     options.tccDllPath = runtime; options.tccLibPath = libraries;
     compiler = xlcCreateContext(&options);
     if (!compiler) { fprintf(stderr, "public source context creation failed\n"); return 4; }
+    /* Pin the actual executable deployment and native source closure for
+     * independent entry/lifetime acceptance, not just a library-only emit. */
+    if (!strcmp(requestedMode, "exe") && !xlcSetSaveTemps(compiler, 1)) goto done;
     /* cgen-default deliberately leaves the context's canonical backend
      * untouched; cgen-xlir checks the compatibility selector. */
     if (!strcmp(requestedMode, "cgen-default")) {

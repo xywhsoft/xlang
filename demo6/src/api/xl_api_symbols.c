@@ -365,6 +365,12 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6StaticModuleOwnershipV1", (const void*)xl6StaticModuleOwnershipV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6StaticModuleRetireV1", (const void*)xl6StaticModuleRetireV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6StaticModuleDestroyV1", (const void*)xl6StaticModuleDestroyV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6StaticModuleDrainV1", (const void*)xl6StaticModuleDrainV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6StaticModuleReadBeginV1", (const void*)xl6StaticModuleReadBeginV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6StaticModuleReadAdmitsV1", (const void*)xl6StaticModuleReadAdmitsV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6StaticModuleReadEndV1", (const void*)xl6StaticModuleReadEndV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6DynamicFieldsReadAdmitsV1", (const void*)xl6DynamicFieldsReadAdmitsV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogAdmitsReadV1", (const void*)xl6OwnershipCatalogAdmitsReadV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogCreateV1", (const void*)xl6OwnershipCatalogCreateV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogDestroyV1", (const void*)xl6OwnershipCatalogDestroyV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogResolveV1", (const void*)xl6OwnershipCatalogResolveV1)) return 0;

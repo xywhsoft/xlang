@@ -56,6 +56,12 @@ def main():
         assert all(closed_headers(path.read_text(encoding='utf-8')) for path in (root/'src/runtime').glob('*.h'))
         actual=(root/'src/runtime/xl6_ownership_domains.h').read_text(encoding='utf-8')
         assert closed_headers(actual) and not closed_headers(actual+'\n#include "xl6_ownership_domains.inc"\n')
+        domains=sorted((root/'src/runtime').glob('xl6_ownership_domain_*.c'))
+        assert len(domains)==41
+        for source in domains:
+            includes=re.findall(r'^#\s*include "([^"]+)"',source.read_text(encoding='utf-8'),re.M)
+            assert 'include/xruntime_decl.h' in includes and not any(name.startswith('release/') for name in includes),source
+        report['PrivateSourceDeclarationIncludeAcceptance']=True
         report['DeclarationSiblingClosureAcceptance']=True
         for opt in ('O0','O2'):
             check(opt+'.declarations',[cc,*flags,'-'+opt,'-fsyntax-only',declarations])

@@ -2107,6 +2107,8 @@ static int xlCompileUnitToExternalOutputWithC(
     char* cText;
     char* runtimeSource;
     XL6_ArtifactRuntimePlan artifactRuntime;
+    XL6_ArtifactOwnershipPlan entryOwnership={0};
+    XL6_IrCgenEntryContractV1 entryContract={sizeof(entryContract),false,NULL,0,NULL};
     XL6_IrCgenOptions options = {0};
     int ok;
 
@@ -2128,15 +2130,25 @@ static int xlCompileUnitToExternalOutputWithC(
          xlCompileUnitHasExecutableEntry(ctx, unit) > 0);
     ok = 0;
     xlTccDynamicVfsClear();
-    if ( !xlCgenToMemory(ctx, unit, &cText, &options) ) {
-        goto cleanup;
-    }
-    if (!xl6ArtifactRuntimePlanBuild(&unit->ir, options.emitMainWrapper
+    if (!xlEnsureUnitXlirLowered(ctx,unit) || !xl6ArtifactRuntimePlanBuild(&unit->ir, options.emitMainWrapper
             ? XL6_ARTIFACT_ENTRY_EXECUTABLE_V1 : XL6_ARTIFACT_ENTRY_CHECKED_MODULE_V1,
             &artifactRuntime, &unit->parse.diags)) {
         xlSetCompileDiagError(ctx, unit);
         goto cleanup;
     }
+    if(options.emitMainWrapper){
+        entryContract.managed=artifactRuntime.entryOwnershipAbi==XL6_ARTIFACT_ENTRY_OWNERSHIP_GRAPH;
+        if(entryContract.managed){
+            if(!xl6ArtifactOwnershipPlanBuild(&artifactRuntime,&entryOwnership)){
+                xlSetError(ctx,"cannot build executable ownership deployment");goto cleanup;
+            }
+            entryContract.domains=entryOwnership.domains;entryContract.domainCount=entryOwnership.domainCount;
+            if(xl6ArtifactRuntimeSetHas(&artifactRuntime.components,XL6_ARTIFACT_CODE_FINALIZER))
+                entryContract.discoverSymbol="xl6ClassOwnershipDiscoverV1";
+        }
+        options.entryContract=&entryContract;
+    }
+    if(!xlCgenToMemory(ctx,unit,&cText,&options))goto cleanup;
     if ( !xlSaveTempTextByName(ctx, "module.c", cText) ) {
         goto cleanup;
     }

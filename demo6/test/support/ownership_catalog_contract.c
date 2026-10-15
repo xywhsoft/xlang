@@ -18,7 +18,7 @@ static bool inspect(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
 #undef OBSERVE
     return false;
 }
-static const XL6_OwnershipDomainV1 observer={sizeof(observer),NULL,inspect};
+static const XL6_OwnershipDomainV1 observer={sizeof(observer),NULL,inspect,NULL};
 static const XL6_OwnershipDomainV1* const* allDomains(size_t* count)
 {
     enum { capacity=1
@@ -37,6 +37,8 @@ static bool forbiddenCount(const void* data,size_t* count)
 static bool forbiddenTrace(const void* data,xrtownershipvisitor visit,void* context)
 { (void)data;(void)visit;(void)context;++calls;return false; }
 static const xrtownershipops forbidden={forbiddenCount,forbiddenTrace};
+static bool readLeaf(xrtownershipref ref)
+{ return xrtValueOwnershipAdapterV1(ref)!=NULL; }
 static void balanced(const xmemdebugsnapshot* before)
 {
     xmemdebugsnapshot after;xrtClearError();xrtMemDebugSnapshot(&after);
@@ -48,6 +50,18 @@ static void balanced(const xmemdebugsnapshot* before)
 static void admit(XL6_OwnershipCatalog* catalog)
 {
     xvalue* value=xrtValueInt(7);assert(value);
+    /* Read certification is independent of retirement adapter discovery.
+     * A normal value resolves in the empty catalog but is not thereby given
+     * an opaque read capability. A read-only domain need not load policies. */
+    XL6_OwnershipCatalog* readCatalog=xl6OwnershipCatalogCreateV1(NULL,0);assert(readCatalog);
+    assert(!xl6OwnershipCatalogAdmitsReadV1(xrtValueOwnership(value),readCatalog));
+    xl6OwnershipCatalogDestroyV1(readCatalog);
+    const XL6_OwnershipDomainV1 readOnly={sizeof(readOnly),NULL,NULL,readLeaf};
+    const XL6_OwnershipDomainV1* readDomains[]={&readOnly};
+    readCatalog=xl6OwnershipCatalogCreateV1(readDomains,1);assert(readCatalog);
+    assert(xl6OwnershipCatalogAdmitsReadV1(xrtValueOwnership(value),readCatalog));
+    calls=0;assert(!xl6OwnershipCatalogAdmitsReadV1((xrtownershipref){(void*)(uintptr_t)1,&forbidden},readCatalog) && !calls);
+    xl6OwnershipCatalogDestroyV1(readCatalog);
     const xrtownershipadapterv1* adapter=NULL;const xrtownershippreparationv1* preparation=NULL;
     const XL6_OwnershipFinishV1* completion=NULL;
     xrtownershipscope freeze={0};assert(xrtOwnershipFreezeTryBegin(&freeze));
@@ -93,9 +107,9 @@ static void basic(void)
     const XL6_OwnershipDomainV1* duplicate[]={&observer,&observer};
     assert(!xl6OwnershipCatalogCreateV1(duplicate,2));balanced(&before);
     assert(!xl6OwnershipCatalogCreateV1(NULL,1));balanced(&before);
-    const XL6_OwnershipDomainV1 bad={0,NULL,inspect};const XL6_OwnershipDomainV1* one[]={&bad};
+    const XL6_OwnershipDomainV1 bad={0,NULL,inspect,NULL};const XL6_OwnershipDomainV1* one[]={&bad};
     assert(!xl6OwnershipCatalogCreateV1(one,1));balanced(&before);
-    const XL6_OwnershipDomainV1 fail={sizeof(fail),nullFailure,NULL};one[0]=&fail;
+    const XL6_OwnershipDomainV1 fail={sizeof(fail),nullFailure,NULL,NULL};one[0]=&fail;
     assert(!xl6OwnershipCatalogCreateV1(one,1) && !xrtGetError());balanced(&before);
     xrtSetErrorKind(XERR_STATE);xerror* incoming=xrtErrorRef(xrtGetError());assert(incoming);
     assert(!xl6OwnershipCatalogCreateV1(one,1) && xrtGetError()==incoming);
@@ -105,7 +119,7 @@ static void basic(void)
     xrtSetErrorKind(XERR_ARGUMENT);
     assert(!xl6OwnershipCatalogCreateV1(one,1));
     xl6_error_result first=xl6ErrorScopeEnd(&outer);assert(!first.ok && !first.error);balanced(&before);
-    const XL6_OwnershipDomainV1 invalid={sizeof(invalid),NULL,invalidQuery};one[0]=&invalid;
+    const XL6_OwnershipDomainV1 invalid={sizeof(invalid),NULL,invalidQuery,NULL};one[0]=&invalid;
     catalog=xl6OwnershipCatalogCreateV1(one,1);assert(catalog);
     xvalue* value=xrtValueInt(7);assert(value);
     for(queryMode=0;queryMode<3;++queryMode){
@@ -121,7 +135,7 @@ static void basic(void)
 }
 static void oom(bool ignored)
 {
-    const XL6_OwnershipDomainV1 swallowed={sizeof(swallowed),swallowedLoad,NULL};
+    const XL6_OwnershipDomainV1 swallowed={sizeof(swallowed),swallowedLoad,NULL,NULL};
     const XL6_OwnershipDomainV1* one[]={&swallowed};size_t count=0;
     const XL6_OwnershipDomainV1* const* domains=ignored ? one : allDomains(&count);if(ignored)count=1;
     size_t point=0;

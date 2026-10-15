@@ -1,6 +1,7 @@
 #ifndef XL6_STATIC_MODULE_H
 #define XL6_STATIC_MODULE_H
 #include "xl6_ownership_plan.h"
+#include "xl6_ownership_read_abi.h"
 
 typedef struct XL6_StaticModule XL6_StaticModule;
 /* Immutable deployment metadata, not language type inference. The caller's
@@ -16,6 +17,9 @@ typedef struct XL6_StaticModuleContractV1 {
     XL6_ModuleRetireResult (*step)(void);
     XL6_OwnershipResolveV3 resolve;
     void* context;
+    const XL6_ModuleReadContractV1* read;
+    bool (*admitsRead)(struct xrtownershipref,void*);
+    bool (*discover)(const XL6_CodeOwner*,XL6_ModuleOwnershipVisit,void*);
 } XL6_StaticModuleContractV1;
 typedef struct XL6_StaticModuleResultV1 {
     bool ready; /* Physical retirement finished; not merely an accepted close. */
@@ -37,6 +41,14 @@ XL6_CODE_LEASE_API XL6_StaticModule* xl6StaticModuleCreateV1(const XL6_StaticMod
 XL6_CODE_LEASE_API const XL6_CodeOwner* xl6StaticModuleOwnerV1(const XL6_StaticModule*);
 XL6_CODE_LEASE_API struct xrtownershipref xl6StaticModuleOwnershipV1(const XL6_StaticModule*);
 XL6_CODE_LEASE_API XL6_StaticModuleResultV1 xl6StaticModuleRetireV1(XL6_StaticModule*);
+/* Executable drain: yields while accepted execution/preparation makes the
+ * graph temporarily busy, continues once-only semantic finalizer failures,
+ * and returns an explicit non-ready result for external roots or a physical
+ * failure requiring caller recovery. Never invents READY or drops a record. */
+XL6_CODE_LEASE_API XL6_StaticModuleResultV1 xl6StaticModuleDrainV1(XL6_StaticModule*);
+XL6_CODE_LEASE_API int xl6StaticModuleReadBeginV1(XL6_StaticModule*,XL6_OwnershipReadScopeV1*);
+XL6_CODE_LEASE_API bool xl6StaticModuleReadAdmitsV1(const XL6_StaticModule*,const XL6_OwnershipReadScopeV1*,struct xrtownershipref);
+XL6_CODE_LEASE_API void xl6StaticModuleReadEndV1(XL6_StaticModule*,XL6_OwnershipReadScopeV1*);
 /* Consumes and NULLs only after physical retirement, irrespective of a prior
  * reported semantic failure. The caller must retain the checked result/error. */
 XL6_CODE_LEASE_API bool xl6StaticModuleDestroyV1(XL6_StaticModule**);

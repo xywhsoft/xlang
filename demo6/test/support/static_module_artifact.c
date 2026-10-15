@@ -14,6 +14,7 @@ int main(int argc,char** argv)
     assert(argc==2);XL6_ArtifactRuntimePlan plan={0};XL6_ImportDeps imports={0};
     XL6_ArtifactRuntimeSet roots=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_STATIC_MODULE);
     assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_STACK));
+    assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_CODE_FINALIZER));
     assert(xl6ArtifactRuntimeClosePlan(&roots,&plan));
     XL6_ArtifactOwnershipPlan ownership={0};assert(xl6ArtifactOwnershipPlanBuild(&plan,&ownership));
     plan=ownership.runtime;

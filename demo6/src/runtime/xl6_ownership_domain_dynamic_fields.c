@@ -1,5 +1,5 @@
 /* Exact resident capability; selected independently of its producer. */
-#include "release/include/xruntime_decl.h"
+#include "include/xruntime_decl.h"
 #include "xl6_ownership_domain_impl.h"
 #include "xl6_dynamic_fields.h"
 
@@ -10,4 +10,8 @@ XL6_OWNERSHIP_QUERY(DynamicFields)
     (void)policies;(void)preparation;(void)completion;
     *adapter=xrtDynamicFieldsOwnershipAdapterV1(ref);return *adapter!=NULL;
 }
-XL6_OWNERSHIP_DOMAIN(DynamicFields,ownershipLoadDynamicFields,ownershipDomainDynamicFields)
+const XL6_OwnershipDomainV1* xl6OwnershipDomainDynamicFieldsV1Get(void)
+{
+    static const XL6_OwnershipDomainV1 domain={sizeof(domain),ownershipLoadDynamicFields,
+        ownershipDomainDynamicFields,xl6DynamicFieldsReadAdmitsV1};return &domain;
+}
