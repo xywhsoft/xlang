@@ -34,9 +34,12 @@ XL6_CODE_LEASE_API struct xvalue* xl6NativeHandleTakeV1(
 XL6_CODE_LEASE_API bool xl6NativeHandleTraceLeaf(const struct xvalue*,
     bool (*)(struct xrtownershipref, void*), void*);
 
-/* These three private native payloads have no owning language edges. Commands
- * hold owned text/config/duplicated OS capabilities, live processes hold native
- * XRT resources, statuses hold plain data. None retains a generated callback.
+/* Commands own text/config/duplicated OS capabilities; statuses own plain data.
+ * Live Process is NOT a leaf: its XRT process can own a shared Future, Promise
+ * and error, while the native waiter holds a real process reference. Its
+ * resident policy provides ordinary destruction but refuses graph Trace until
+ * the complete physical owning graph and retirement protocol are admitted.
+ * No generated callback is retained; that alone does not certify a leaf.
  * This list does NOT certify custom IO, arbitrary extensions or other handles. */
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6ProcessCommandHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6ProcessHandlePolicyV1Get(void);

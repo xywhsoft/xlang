@@ -18,7 +18,18 @@ void xl6ProcessDestroyV1(void* handle)
     }
     xrtClearError(); xrtSetErrorTake(prior);
 }
-XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6ProcessHandlePolicyV1Get, xl6ProcessDestroyV1)
+static bool processTrace(const xvalue* value,xrtownershipvisitor visitor,void* context)
+{
+    /* Native-only callbacks do not imply an empty owning graph: xprocess owns
+     * its shared WaitFuture/WaitPromise and error, and the native waiter owns
+     * a real process reference. Until these physical nodes and their complete
+     * mutation/retirement protocol are admitted, refuse collection. In
+     * particular, EXITED is not proof that the waiter has retired. Ordinary
+     * reference-counted destruction remains available outside graph Clear. */
+    (void)value; (void)visitor; (void)context;
+    return false;
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6ProcessHandlePolicyV1Get, xl6ProcessDestroyV1, processTrace)
 void* xl6ProcessSpawnV1(void* commandHandle)
 {
     XL6_ProcessCommand* command=xl6ProcessCommandCheck(commandHandle);
