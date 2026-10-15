@@ -5,6 +5,7 @@
 #include "src/runtime/xl6_process_run_internal.h"
 #include "src/runtime/xl6_random_state.h"
 #include "src/runtime/xl6_fs_file.h"
+#include "src/runtime/xl6_fs_resource.h"
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
@@ -46,7 +47,13 @@ static const Case cases[]={
     {"xl6_xrt_fs_info_destroy",xl6FsInfoHandlePolicyV1Get,1},
     {"xl6_xrt_fs_dir_destroy",xl6FsDirHandlePolicyV1Get,1},
     {"xl6_xrt_fs_pack_options_destroy",xl6PackOptionsHandlePolicyV1Get,1},
-    {"xl6_xrt_fs_pack_stats_destroy",xl6PackStatsHandlePolicyV1Get,1}
+    {"xl6_xrt_fs_pack_stats_destroy",xl6PackStatsHandlePolicyV1Get,1},
+    {"xl6_xrt_io_reader_destroy",xl6IoReaderHandlePolicyV1Get,1},
+    {"xl6_xrt_io_writer_destroy",xl6IoWriterHandlePolicyV1Get,1},
+    {"xl6_xrt_io_lines_destroy",xl6IoLinesHandlePolicyV1Get,1},
+    {"xl6_xrt_fs_map_destroy",xl6FsMapHandlePolicyV1Get,1},
+    {"xl6_xrt_fs_lock_destroy",xl6FsLockHandlePolicyV1Get,1},
+    {"xl6_xrt_fs_root_destroy",xl6FsRootHandlePolicyV1Get,1}
 };
 static const char* child;
 static const char* fixtureRoot;
@@ -131,7 +138,11 @@ static void* create(unsigned which)
     }
     if(which==20)return xl6SignalQueueCreateV1(XSIGNAL_INT,false,8);
     if(which==21){void* q=xl6SignalQueueCreateV1(XSIGNAL_INT,false,8);assert(q && xrtSignalRaise(XSIGNAL_INT));
-        assert(xl6SignalQueuePrepareV1(q,5000));void* result=xl6SignalQueueSnapshotV1(q);xl6SignalQueueDestroyV1(q);return result;}
+        assert(xl6SignalQueuePrepareV1(q,5000));void* result=xl6SignalQueueSnapshotV1(q);xl6SignalQueueDestroyV1(q);
+        /* Off joins the user callback, not the dispatcher's trailing retained
+         * watch reference. Shutdown joins that real owner before heap accounting;
+         * the copied event remains valid independently of the entire dispatcher. */
+        assert(xrtSignalShutdown());return result;}
     if(which==22)return xrtCalloc(1,sizeof(xatomic32));
     if(which==23)return xl6ProcessRunOptionsCreateV1(5000,4096,4096,0,100,0);
     if(which==24)return xl6_xrt_rng_create(42,1);
@@ -148,8 +159,20 @@ static void* create(unsigned which)
         void* result=which==31?xl6_xrt_fs_info_vfs(fs,XRT_STR_LITERAL("/app/entry.bin"),true):xl6_xrt_fs_vfs_dir_open(fs,XRT_STR_LITERAL("/app"),0);
         xl6_xrt_vfs_destroy(fs);return result;}
     if(which==33)return xl6_xrt_fs_pack_options_create(0,100,1048576,1048576,1048576,1048576);
-    assert(which==34);void* pack=create(29);assert(pack);void* result=xl6_xrt_fs_pack_stats_create(pack);
-    xl6_xrt_vfs_pack_destroy(pack);return result;
+    if(which==34){void* pack=create(29);assert(pack);void* result=xl6_xrt_fs_pack_stats_create(pack);
+        xl6_xrt_vfs_pack_destroy(pack);return result;}
+    if(which==35){xvalue* data=xrtValueBytes((xbytesview){(const unsigned char*)"a\0b",3});assert(data);
+        void* result=xl6_xrt_io_reader_bytes(data,-1);xrtValueRelease(data);return result;}
+    if(which==36)return xl6_xrt_io_writer_buffer();
+    if(which==37){void* reader=create(35);assert(reader);
+        void* lines=xl6_xrt_io_lines_create(reader,32);xl6_xrt_io_reader_destroy(reader);return lines;}
+    if(which==40){xlir_fs_root* root=xrtCalloc(1,sizeof(*root));assert(root);root->root=xrtRootOpen(fixtureRoot);assert(root->root);return root;}
+    xlir_fs_file* file=xlir_fs_file_alloc();assert(file);
+    char path[4096];int length=snprintf(path,sizeof(path),"%s/entry.bin",fixtureRoot);assert(length>0 && (size_t)length<sizeof(path));
+    file->file=xrtOpen(path,XFILE_READ|XFILE_WRITE);assert(file->file);
+    if(which==38){xlir_fs_map* map=xrtCalloc(1,sizeof(*map));assert(map);map->map=xrtFileMap(file->file,0,0,XFILE_MAP_READ);assert(map->map);map->file=file;map->flags=XFILE_MAP_READ;return map;}
+    assert(which==39);xlir_fs_lock* lock=xrtCalloc(1,sizeof(*lock));assert(lock);
+    assert(xrtFileLockRange(file->file,XFILE_LOCK_SHARED,0,0,false));xrtAtomic32Store(&file->lock,1,XMEMORY_RELEASE);lock->file=file;return lock;
 }
 static XL6_OwnershipCatalog* catalog(void)
 {
@@ -266,9 +289,10 @@ static void concurrentClose(unsigned which)
 int main(int argc,char** argv)
 {
     setvbuf(stdout,NULL,_IONBF,0);
-    assert(argc==4 && xrtMemDebugEnable(true));child=argv[1];fixtureRoot=argv[2];fixturePack=argv[3];assert(sizeof(cases)/sizeof(*cases)==35);
+    assert(argc==4 && xrtMemDebugEnable(true));child=argv[1];fixtureRoot=argv[2];fixturePack=argv[3];assert(sizeof(cases)/sizeof(*cases)==41);
     void* warm=create(20);assert(warm);xl6SignalQueueDestroyV1(warm);
-    for(unsigned which=0;which<35;++which){
+    for(unsigned which=0;which<sizeof(cases)/sizeof(*cases);++which){
+        if(which==21)assert(xrtSignalShutdown());
         const Case* test=&cases[which];const XL6_NativeHandlePolicyV1* policy=test->policy();
         for(unsigned round=0;round<4;++round){
             xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);void* raw=create(which);assert(raw && !xrtGetError());
@@ -295,5 +319,5 @@ int main(int argc,char** argv)
         assert(point<64);printf("native resource %s nodes=%zu prefixes=%zu first-no-hit=%zu balanced\n",test->name,test->nodes,point+1,point);
     }
     concurrentClose(15);concurrentClose(16);cancellationAndFileOwners();vfsConstructorFailures();
-    assert(xrtSignalShutdown());puts("native resources: 35 exact policies, real factories, owning graphs, closed prefixes and 70 rejecting controls; two concurrent close transitions; opaque cancel observer rejected and shared owners preserved");return 0;
+    assert(xrtSignalShutdown());puts("native resources: 41 exact policies, real factories, owning graphs, closed prefixes and 82 rejecting controls; two concurrent close transitions; opaque cancel observer rejected and shared owners preserved");return 0;
 }

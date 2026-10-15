@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [IO 的驻留实现和文件流回调](stdlib53-b309-resident-io.md)：51 个适配入口迁出 Cgen，内建流拥有策略、独立组件和错误回滚；进程来源和 Future 拥有图继续。
+
 - [VFS 的驻留适配与资源清理](stdlib53-b308-resident-vfs.md)：私有 namespace、内建后端与返回对象清理，移除 VFS 和 Pack emitter，IO 与任务组继续审计。
 
 - [取消选项和基础资源的驻留清理](stdlib53-b307-cancel-rng-file-owners.md)：取消令牌真实拥有边、Random 和 File 析构驻留，另六项资源继续审计。

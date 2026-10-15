@@ -1,0 +1,37 @@
+class NativeIoResourceOwner
+    Stack<NativeIoResourceOwner> cycle
+    IoReader reader = io.fromBytes(b"a\0b")
+    IoWriter writer = io.bufferWriter()
+    IoLineReader lines = io.lines(io.fromBytes(b"a\0b\r\n"))
+    IoReader fileReader
+    MappedFile mapped
+    FileLock locked
+    FileRoot rooted
+    create(string directory)
+        auto source = file.open(directory + "/entry.bin", 3)
+        self.fileReader = source.reader()
+        self.mapped = source.map()
+        self.locked = source.lock(1)
+        self.rooted = file.root(directory)
+        self.writer.writeAll(b"a\0b")
+    end
+    func link()
+        assert cycle.push(self)
+    end
+    destroy()
+        assert reader.readExact(3) == b"a\0b"
+        assert fileReader.readExact(3) == b"a\0b"
+        assert mapped.bytes() == b"a\0b"
+        assert locked.close()
+        assert rooted.stat("entry.bin").size == uint64(3)
+        assert writer.toBytes() == b"a\0b"
+        auto found, data, ending = lines.next()
+        assert found and data == b"a\0b" and ending == io.lineCrLf
+        print("native-io-owner-finalized")
+    end
+end
+string rootPath = env.get("XL6_VFS_FIXTURE_ROOT") ?? ""
+assert rootPath != ""
+NativeIoResourceOwner root = NativeIoResourceOwner(rootPath)
+var alias = root
+root.link()

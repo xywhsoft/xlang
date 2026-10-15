@@ -11,7 +11,9 @@ def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('root','public-directory','out'):p.add_argument('--'+name,type=Path,required=True)
+    p.add_argument('--jobs',type=int,default=1,help='Bound simultaneous source-JIT processes; assertions are unchanged')
     a=p.parse_args();root,out=a.root.resolve(),a.out.resolve();assert not out.exists()
+    assert 1<=a.jobs<=8
     build,pinned,compared=verify_public_build(root,a.public_directory);cc=shutil.which('gcc');assert cc
     windows=os.name=='nt';suffix='.exe' if windows else '';task=Path(__file__).resolve().parents[1]
     contract=task/'test/support/ownership_catalog_contract.c'
@@ -57,7 +59,7 @@ def main():
         actual=(root/'src/runtime/xl6_ownership_domains.h').read_text(encoding='utf-8')
         assert closed_headers(actual) and not closed_headers(actual+'\n#include "xl6_ownership_domains.inc"\n')
         domains=sorted((root/'src/runtime').glob('xl6_ownership_domain_*.c'))
-        assert len(domains)==69
+        assert len(domains)==75
         for source in domains:
             includes=re.findall(r'^#\s*include "([^"]+)"',source.read_text(encoding='utf-8'),re.M)
             assert 'include/xruntime_decl.h' in includes and not any(name.startswith('release/') for name in includes),source
@@ -105,7 +107,7 @@ def main():
             name,args,lifetimes=job;row,data=run(name,args)
             assert b'balanced' in data and (str(lifetimes)+' ').encode() in data
             return row,dict(Name=name,MeasuredLifetimes=lifetimes)
-        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=a.jobs) as executor:
             for row,proof in executor.map(graph,jobs):rows.append(row);proofs.append(proof)
         assert len(proofs)==78 and sum(p['MeasuredLifetimes'] for p in proofs)==1534
         report['SourceJitGraphAcceptance']=True

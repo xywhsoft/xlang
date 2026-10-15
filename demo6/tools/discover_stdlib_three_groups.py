@@ -66,7 +66,11 @@ def main():
         SourceInputsMatch=True,ProductionFiles=len(compared),ReadOnlyLanguageCompilation=True,
         NativeExecutionAcceptance=False,Full53Acceptance=False,ShippingArtifact=False)
     def save():
-        (out/'results.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+        # Bound serialization memory and never expose a partial progress report.
+        pending=out/'results.json.pending'
+        with pending.open('w',encoding='utf-8') as handle:
+            json.dump(report,handle,ensure_ascii=False,indent=2);handle.write('\n')
+        pending.replace(out/'results.json')
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
             for record in pool.map(execute,sources):

@@ -78,7 +78,6 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_signal_queue.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_signal_queue.o"
 if errorlevel 1 exit /b 1
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_time_date_time.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_unicode_validator.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_text_iterator.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_pattern_core.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_pattern_options.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_pattern_match.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_pattern_builder.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_process_pipeline_config.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_process_pipeline.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_process_run.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_core.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_match.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_iterator.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_split.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_set.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_regex_replace_func.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_signal_queue.o""
 
 rem Audited nested-runtime context policy stays resident in both DLL targets.
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_vfs_core.c -o "%XL6_BUILD_TMP%\xl6_vfs_core.o"
@@ -111,7 +110,58 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_fs_dir_owner.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_fs_dir_owner.o"
 if errorlevel 1 exit /b 1
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_vfs_core.o" "%XL6_BUILD_TMP%\xl6_vfs_memory.o" "%XL6_BUILD_TMP%\xl6_vfs_disk.o" "%XL6_BUILD_TMP%\xl6_vfs_pack.o" "%XL6_BUILD_TMP%\xl6_vfs_file.o" "%XL6_BUILD_TMP%\xl6_vfs_info.o" "%XL6_BUILD_TMP%\xl6_vfs_dir.o" "%XL6_BUILD_TMP%\xl6_fs_info_owner.o" "%XL6_BUILD_TMP%\xl6_fs_dir_owner.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_vfs_core.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_vfs_memory.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_vfs_disk.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_vfs_pack.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_fs_info_owner.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_fs_dir_owner.o""
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_io_reader.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_io_reader.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_io_writer.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_io_writer.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_io_line.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_io_line.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_fs_map_owner.c -o "%XL6_BUILD_TMP%\xl6_fs_map_owner.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_fs_lock_owner.c -o "%XL6_BUILD_TMP%\xl6_fs_lock_owner.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_fs_root_owner.c -o "%XL6_BUILD_TMP%\xl6_fs_root_owner.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_fs_map.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_fs_map.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_fs_lock.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_fs_lock.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_fs_root.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_fs_root.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_read_file.c -o "%XL6_BUILD_TMP%\xl6_io_read_file.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_write_file.c -o "%XL6_BUILD_TMP%\xl6_io_write_file.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_reader.c -o "%XL6_BUILD_TMP%\xl6_io_reader.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_reader_data.c -o "%XL6_BUILD_TMP%\xl6_io_reader_data.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_reader_position.c -o "%XL6_BUILD_TMP%\xl6_io_reader_position.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_writer.c -o "%XL6_BUILD_TMP%\xl6_io_writer.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_writer_data.c -o "%XL6_BUILD_TMP%\xl6_io_writer_data.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_writer_position.c -o "%XL6_BUILD_TMP%\xl6_io_writer_position.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_line.c -o "%XL6_BUILD_TMP%\xl6_io_line.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_copy.c -o "%XL6_BUILD_TMP%\xl6_io_copy.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_file.c -o "%XL6_BUILD_TMP%\xl6_io_file.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_reader_open.c -o "%XL6_BUILD_TMP%\xl6_io_reader_open.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_reader_memory.c -o "%XL6_BUILD_TMP%\xl6_io_reader_memory.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_reader_standard.c -o "%XL6_BUILD_TMP%\xl6_io_reader_standard.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_writer_open.c -o "%XL6_BUILD_TMP%\xl6_io_writer_open.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_writer_buffer.c -o "%XL6_BUILD_TMP%\xl6_io_writer_buffer.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_writer_standard.c -o "%XL6_BUILD_TMP%\xl6_io_writer_standard.o"
+if errorlevel 1 exit /b 1
 
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_process_options.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_process_options.o"
 if errorlevel 1 exit /b 1
@@ -123,7 +173,6 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_fs_file_owner.c -o "%XL6_BUILD_TMP%\xl6_fs_file_owner.o"
 if errorlevel 1 exit /b 1
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_process_options.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_random_state.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_fs_file.o" "%XL6_BUILD_TMP%\xl6_random_state.o" "%XL6_BUILD_TMP%\xl6_fs_file_owner.o""
 
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_xlang_context_policy.c -o "%XL6_BUILD_TMP%\xl6_xlang_context_policy.o"
 if errorlevel 1 exit /b 1
@@ -131,13 +180,11 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_buffer.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_buffer.o"
 if errorlevel 1 exit /b 1
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_xlang_context_policy.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_xlang_context.o" "%XL6_BUILD_TMP%\xl6_ownership_domain_buffer.o""
 
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_native_scalar_convert.c -o "%XL6_BUILD_TMP%\xl6_native_scalar_convert.o"
 if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_value_native_scalar_convert.c -o "%XL6_BUILD_TMP%\xl6_value_native_scalar_convert.o"
 if errorlevel 1 exit /b 1
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_native_scalar_convert.o" "%XL6_BUILD_TMP%\xl6_value_native_scalar_convert.o""
 
 rem Compile the resident Channel provider once for both DLL targets. Keeping
 rem this object in DLL_LINKS also covers locally supplied response templates.
@@ -146,13 +193,10 @@ if errorlevel 1 (
     echo DEMO6 DLL build failed: resident Channel provider compilation failed.
     exit /b 1
 )
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_channel.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_wait_queue.c -o "%XL6_BUILD_TMP%\xl6_wait_queue.o"
 if errorlevel 1 exit /b 1
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_wait_queue.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_wait_queue_admission.c -o "%XL6_BUILD_TMP%\xl6_wait_queue_admission.o"
 if errorlevel 1 exit /b 1
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_wait_queue_admission.o""
 
 rem Keep the private optional-record supplier in both resident DLL targets.
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_nullable_slot_map_key.c -o "%XL6_BUILD_TMP%\xl6_nullable_slot_map_key.o"
@@ -162,73 +206,50 @@ if errorlevel 1 (
     echo DEMO6 DLL build failed: optional native record compilation failed.
     exit /b 1
 )
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_nullable_slot_map_key.o""
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_nullable_slot_map_key_capture.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_closure_capture_v3.c -o "%XL6_BUILD_TMP%\xl6_closure_capture_v3.o"
 if errorlevel 1 exit /b 1
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_closure_capture_v3.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_array_native_value_policy.c -o "%XL6_BUILD_TMP%\xl6_array_native_value_policy.o"
 if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_nullable_slot_map_key_collection.c -o "%XL6_BUILD_TMP%\xl6_nullable_slot_map_key_collection.o"
 if errorlevel 1 exit /b 1
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_array_native_value_policy.o" "%XL6_BUILD_TMP%\xl6_nullable_slot_map_key_collection.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_cell_native.c -o "%XL6_BUILD_TMP%\xl6_cell_native.o"
 if errorlevel 1 exit /b 1
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_cell_native.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_stack_callable.c -o "%XL6_BUILD_TMP%\xl6_stack_callable.o"
 if errorlevel 1 exit /b 1
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_stack_callable.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_stack_erased.c -o "%XL6_BUILD_TMP%\xl6_stack_erased.o"
 if errorlevel 1 exit /b 1
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_stack_erased.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_char_checked.c -o "%XL6_BUILD_TMP%\xl6_char_checked.o"
 if errorlevel 1 exit /b 1
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_char_checked.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_stack_erased_methods.c -o "%XL6_BUILD_TMP%\xl6_stack_erased_methods.o"
 if errorlevel 1 exit /b %errorlevel%
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_stack_erased_methods.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_stack_erased_try.c -o "%XL6_BUILD_TMP%\xl6_stack_erased_try.o"
 if errorlevel 1 exit /b %errorlevel%
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_stack_erased_try.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_dynamic_product.c -o "%XL6_BUILD_TMP%\xl6_dynamic_product.o"
 if errorlevel 1 exit /b %errorlevel%
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_dynamic_product.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_dynamic_collection_vector.c -o "%XL6_BUILD_TMP%\xl6_dynamic_collection_vector.o"
 if errorlevel 1 exit /b %errorlevel%
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_dynamic_collection_vector.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_float_convert.c -o "%XL6_BUILD_TMP%\xl6_float_convert.o"
 if errorlevel 1 goto :fail
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_float_convert.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_integer_convert.c -o "%XL6_BUILD_TMP%\xl6_integer_convert.o"
 if errorlevel 1 goto :fail
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_integer_convert.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_sequence_projection_schema.c -o "%XL6_BUILD_TMP%\xl6_sequence_projection_schema.o"
 if errorlevel 1 goto :fail
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_sequence_projection_schema.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_container_projection.c -o "%XL6_BUILD_TMP%\xl6_container_projection.o"
 if errorlevel 1 goto :fail
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_container_projection.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_list_projection_cast.c -o "%XL6_BUILD_TMP%\xl6_list_projection_cast.o"
 if errorlevel 1 goto :fail
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_list_projection_cast.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_set_projection_cast.c -o "%XL6_BUILD_TMP%\xl6_set_projection_cast.o"
 if errorlevel 1 goto :fail
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_set_projection_cast.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_dict_projection_cast.c -o "%XL6_BUILD_TMP%\xl6_dict_projection_cast.o"
 if errorlevel 1 goto :fail
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_dict_projection_cast.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_tree_projection_cast.c -o "%XL6_BUILD_TMP%\xl6_tree_projection_cast.o"
 if errorlevel 1 goto :fail
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_tree_projection_cast.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_value_domain_projection.c -o "%XL6_BUILD_TMP%\xl6_value_domain_projection.o"
 if errorlevel 1 goto :fail
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_value_domain_projection.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_channel_admission.c -o "%XL6_BUILD_TMP%\xl6_channel_admission.o"
 if errorlevel 1 goto :fail
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_channel_admission.o""
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_slot_map_admission.c -o "%XL6_BUILD_TMP%\xl6_slot_map_admission.o"
 if errorlevel 1 goto :fail
-set "XL6_DLL_LINKS=%XL6_DLL_LINKS% "%XL6_BUILD_TMP%\xl6_slot_map_admission.o""
 
 if not exist "lib\lzma\LzmaDec.c" (
     echo DEMO6 xl.dll build failed: missing LZMA decoder source "lib\lzma\LzmaDec.c".
@@ -321,6 +342,10 @@ if "%XL6_REUSE_VFS_RESOURCES%"=="1" (
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_tcc_vfs_resources.ps1 -Root "%XL6_ROOT%" -Resource "%XL6_BUILD_TMP%\tcc_builtin_resources_runtime.c"
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_tcc_vfs_resources.ps1 -Root "%XL6_ROOT%" -Resource "%XL6_BUILD_TMP%\tcc_builtin_resources.c"
+powershell -NoProfile -ExecutionPolicy Bypass -File tools\gen_dll_object_response.ps1 -Directory "%XL6_BUILD_TMP%"
+if errorlevel 1 exit /b 1
+set "XL6_DLL_LINKS=%XL6_DLL_LINKS% @"%XL6_BUILD_TMP%\dll_objects.rsp""
+
 if errorlevel 1 exit /b 1
 
 echo Building DEMO6 xl.dll runtime...

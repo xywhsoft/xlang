@@ -75,7 +75,7 @@ void* xl6ProcessReaderV1(void* handle,int64_t stream)
          * NOT the pipe, so an allocation failure is safely retryable. */
         streamRelease(context); xrtFree(reader); return NULL;
     }
-    return reader;
+    reader->origin=XL6_IO_ORIGIN_PROCESS;return reader;
 }
 void* xl6ProcessWriterV1(void* handle)
 {
@@ -90,5 +90,5 @@ void* xl6ProcessWriterV1(void* handle)
     const xwriterops ops={.Write=streamWrite,.Close=streamClose};
     writer->stream=xrtWriterCreate(&ops,context);
     if (!writer->stream) { streamRelease(context); xrtFree(writer); return NULL; }
-    return writer;
+    writer->origin=XL6_IO_ORIGIN_PROCESS;return writer;
 }

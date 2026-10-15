@@ -43,41 +43,17 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
             "  options->Mode = (uint32_t)mode; options->Share = (uint32_t)share; return true; }\n"
             "\n", out);
     if (info || dir) xl6OutputPuts("#include <__xl_runtime/xl6_fs_snapshot.h>\n",out);
+    if(root || map || lock)xl6OutputPuts("#include <__xl_runtime/xl6_fs_resource.h>\n",out);
     if (root) xl6OutputPuts(
-            "typedef struct xlir_fs_root { xroot root; } xlir_fs_root;\n"
             "static inline xroot xlir_fs_root_get(void* handle)\n"
             "{ xlir_fs_root* owner = (xlir_fs_root*)handle;\n"
-            "  if (owner == NULL || owner->root == NULL) { xrtSetErrorKind(XERR_CLOSED); return NULL; } return owner->root; }\n", out);
+            "  if (owner == NULL || owner->root == NULL) { xrtSetErrorKind(XERR_CLOSED); return NULL; } return owner->root; }\n"
+            ,out);
     if (map) xl6OutputPuts(
-            "typedef struct xlir_fs_map { xfilemap map; xlir_fs_file* file; uint32_t flags; } xlir_fs_map;\n"
             "static inline xfilemap xlir_fs_map_get(void* handle)\n"
             "{ xlir_fs_map* owner = (xlir_fs_map*)handle;\n"
             "  if (owner == NULL || owner->map == NULL) { xrtSetErrorKind(XERR_CLOSED); return NULL; } return owner->map; }\n"
-            "static inline bool xlir_fs_map_close(xlir_fs_map* owner)\n"
-            "{ xfilemap map; xlir_fs_file* file; bool ok; xerror* error;\n"
-            "  if (owner == NULL || owner->map == NULL) { return true; }\n"
-            "  map = owner->map; file = owner->file; owner->map = NULL; owner->file = NULL;\n"
-            "  ok = xrtFileUnmap(map); error = !ok ? xrtTakeError() : NULL;\n"
-            "  xlir_fs_file_drop(file);\n"
-            "  if (error != NULL) { xrtClearError(); xrtSetErrorTake(error); }\n"
-            "  return ok && xrtGetError() == NULL; }\n", out);
-    if (lock) xl6OutputPuts(
-            "typedef struct xlir_fs_lock { xlir_fs_file* file; uint64_t offset; uint64_t size; } xlir_fs_lock;\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_READER) || xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_WRITER)) xl6OutputPuts(
-            "static bool xlir_fs_stream_read(void* owner, void* data, size_t count, size_t* done)\n"
-            "{ xfile file = xlir_fs_file_get(owner); return file != NULL && xrtRead(file, data, count, done); }\n"
-            "static bool xlir_fs_stream_write(void* owner, const void* data, size_t count, size_t* done)\n"
-            "{ xfile file = xlir_fs_file_get(owner); return file != NULL && xrtWrite(file, data, count, done); }\n"
-            "static bool xlir_fs_stream_seek(void* owner, int64_t offset, xseek origin, uint64_t* position)\n"
-            "{ xfile file = xlir_fs_file_get(owner); return file != NULL && xrtSeek(file, offset, origin, position); }\n"
-            "static bool xlir_fs_stream_tell(void* owner, uint64_t* position)\n"
-            "{ xfile file = xlir_fs_file_get(owner); return file != NULL && xrtTell(file, position); }\n"
-            "static bool xlir_fs_stream_size(void* owner, uint64_t* size)\n"
-            "{ xfile file = xlir_fs_file_get(owner); return file != NULL && xrtFileSize(file, size); }\n"
-            "static bool xlir_fs_stream_flush(void* owner)\n"
-            "{ xfile file = xlir_fs_file_get(owner); return file != NULL && xrtFlush(file); }\n"
-            "static bool xlir_fs_stream_drop(void* owner)\n"
-            "{ xlir_fs_file_drop((xlir_fs_file*)owner); return xrtGetError() == NULL; }\n", out);
+            ,out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_OPEN)) xl6OutputPuts(
             "void* xl6_xrt_fs_file_open(xlir_string path, int64_t flags, int64_t mode, int64_t share)\n"
             "{ const char* name; xlir_fs_file* owner; xfileoptions options;\n"
@@ -298,46 +274,12 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_CAPABILITIES)) xl6OutputPuts(
             "uint64_t xl6_xrt_fs_file_capabilities(void* handle)\n"
             "{ xfile file = xlir_fs_file_get(handle); return file != NULL ? xrtFileCapabilities(file) : 0; }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_READER)) xl6OutputPuts(
-            "void* xl6_xrt_fs_file_reader(void* handle)\n"
-            "{ xlir_fs_file* owner = (xlir_fs_file*)handle; xfile file = xlir_fs_file_get(handle); xreaderops ops = {0};\n"
-            "  uint64_t caps; xreader* reader; xerror* error;\n"
-            "  if (file == NULL) { return NULL; } caps = xrtFileCapabilities(file);\n"
-            "  if (!(caps & XFILE_CAP_READ)) { xrtSetErrorKind(XERR_UNSUPPORTED); return NULL; }\n"
-            "  ops.Read = xlir_fs_stream_read; ops.Close = xlir_fs_stream_drop;\n"
-            "  if (caps & XFILE_CAP_SEEK) { ops.Seek = xlir_fs_stream_seek; ops.Tell = xlir_fs_stream_tell; }\n"
-            "  if (caps & XFILE_CAP_STAT) ops.Size = xlir_fs_stream_size;\n"
-            "  if (!xlir_fs_file_ref(owner)) { return NULL; }\n"
-            "  reader = xrtReaderCreate(&ops, owner);\n"
-            "  if (reader == NULL) { error = xrtTakeError(); xlir_fs_file_drop(owner); xrtClearError();\n"
-            "    if (error != NULL) { xrtSetErrorTake(error); } return NULL; }\n"
-            "  return xlir_io_reader_take(reader); }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_FILE_WRITER)) xl6OutputPuts(
-            "void* xl6_xrt_fs_file_writer(void* handle)\n"
-            "{ xlir_fs_file* owner = (xlir_fs_file*)handle; xfile file = xlir_fs_file_get(handle); xwriterops ops = {0};\n"
-            "  uint64_t caps; xwriter* writer; xerror* error;\n"
-            "  if (file == NULL) { return NULL; } caps = xrtFileCapabilities(file);\n"
-            "  if (!(caps & XFILE_CAP_WRITE)) { xrtSetErrorKind(XERR_UNSUPPORTED); return NULL; }\n"
-            "  ops.Write = xlir_fs_stream_write; ops.Close = xlir_fs_stream_drop;\n"
-            "  if (caps & XFILE_CAP_SEEK) { ops.Seek = xlir_fs_stream_seek; ops.Tell = xlir_fs_stream_tell; }\n"
-            "  if (caps & XFILE_CAP_STAT) ops.Size = xlir_fs_stream_size;\n"
-            "  if (caps & XFILE_CAP_FLUSH) ops.Flush = xlir_fs_stream_flush;\n"
-            "  if (!xlir_fs_file_ref(owner)) { return NULL; }\n"
-            "  writer = xrtWriterCreate(&ops, owner);\n"
-            "  if (writer == NULL) { error = xrtTakeError(); xlir_fs_file_drop(owner); xrtClearError();\n"
-            "    if (error != NULL) { xrtSetErrorTake(error); } return NULL; }\n"
-            "  return xlir_io_writer_take(writer, NULL, NULL); }\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_CREATE)) xl6OutputPuts(
             "void* xl6_xrt_fs_root_create(xlir_string path)\n"
             "{ const char* name = xlir_string_cstr(path); xlir_fs_root* owner;\n"
             "  if (name == NULL) { return NULL; }\n"
             "  owner = (xlir_fs_root*)xrtCalloc(1, sizeof(*owner)); if (owner == NULL) { return NULL; }\n"
             "  owner->root = xrtRootOpen(name); if (owner->root == NULL) { xrtFree(owner); return NULL; } return owner; }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_DESTROY)) xl6OutputPuts(
-            "void xl6_xrt_fs_root_destroy(void* handle)\n"
-            "{ xerror* error = xrtTakeError(); xlir_fs_root* owner = (xlir_fs_root*)handle;\n"
-            "  if (owner != NULL) { if (owner->root != NULL) { (void)xrtRootClose(owner->root); } xrtFree(owner); }\n"
-            "  xrtClearError(); if (error != NULL) { xrtSetErrorTake(error); } }\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_ROOT_CLOSE)) xl6OutputPuts(
             "bool xl6_xrt_fs_root_close(void* handle)\n"
             "{ xlir_fs_root* owner = (xlir_fs_root*)handle; xroot root;\n"
@@ -429,10 +371,6 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
             "  owner->map = xrtFileMap(file->file, offset, count, (uint32_t)flags);\n"
             "  if (owner->map == NULL) { xerror* error = xrtTakeError(); xlir_fs_file_drop(file); xrtFree(owner);\n"
             "    xrtClearError(); if (error != NULL) { xrtSetErrorTake(error); } return NULL; } return owner; }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_MAP_DESTROY)) xl6OutputPuts(
-            "void xl6_xrt_fs_map_destroy(void* handle)\n"
-            "{ xerror* error = xrtTakeError(); (void)xlir_fs_map_close((xlir_fs_map*)handle);\n"
-            "  xrtFree(handle); xrtClearError(); if (error != NULL) { xrtSetErrorTake(error); } }\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_MAP_CLOSE)) xl6OutputPuts(
             "bool xl6_xrt_fs_map_close(void* handle) { return xlir_fs_map_close((xlir_fs_map*)handle); }\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_MAP_SIZE)) xl6OutputPuts(
@@ -480,13 +418,6 @@ static void xl6IrCgenEmitFsRuntime(XL6_Output* out, const XL6_IrCgenNeeds* needs
             "    if (error != NULL) { xrtSetErrorTake(error); } return NULL;\n"
             "  }\n"
             "  owner->file = file; owner->offset = offset; owner->size = size; return owner; }\n", out);
-    if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_LOCK_DESTROY)) xl6OutputPuts(
-            "void xl6_xrt_fs_lock_destroy(void* handle)\n"
-            "{ xerror* error = xrtTakeError(); xlir_fs_lock* owner = (xlir_fs_lock*)handle;\n"
-            "  if (owner != NULL) { if (owner->file != NULL) { (void)xrtFileUnlockRange(owner->file->file, owner->offset, owner->size);\n"
-            "      xrtAtomic32Store(&owner->file->lock, 0, XMEMORY_RELEASE);\n"
-            "      xlir_fs_file_drop(owner->file); } xrtFree(owner); }\n"
-            "  xrtClearError(); if (error != NULL) { xrtSetErrorTake(error); } }\n", out);
     if (xl6IrCgenFsSelected(needs, XL6_IR_RUNTIME_BRIDGE_FS_LOCK_CLOSE)) xl6OutputPuts(
             "bool xl6_xrt_fs_lock_close(void* handle)\n"
             "{ xlir_fs_lock* owner = (xlir_fs_lock*)handle; xlir_fs_file* file;\n"
