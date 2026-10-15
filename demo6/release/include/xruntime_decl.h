@@ -9847,6 +9847,15 @@ XRT_API xrtownershipref xrtCancelWatchOwnership(const xcancelwatch* pWatch);
 /* 注销并释放监听；从其他线程调用时等待正在执行的回调返回。 */
 XRT_API void xrtCancelUnwatch(xcancelwatch* pWatch);
 
+/* Consume the same registration right, reporting whether unlink/retirement
+ * was accepted even when no diagnostic can be allocated. NULL succeeds.
+ * False leaves the owner's right unconsumed; retry while storage is valid.
+ * Self-unwatch succeeds with its physical release deferred until callback
+ * return. Success does not imply that all dispatcher references have left.
+ * Repeated calls require an independent real lifetime pin; never reuse a
+ * pointer whose last right was consumed by an earlier call. */
+XRT_API bool xrtCancelUnwatchChecked(xcancelwatch* pWatch);
+
 
 
 XRT_EXTERN_C_END

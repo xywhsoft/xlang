@@ -1,0 +1,53 @@
+{
+  "Schema": 1,
+  "Purpose": "Checked cancel-registration retirement for the TaskGroup language bridge",
+  "CanonicalCommit": "91f044ac113c4c056be33940b8d0e1eacf73b587",
+  "CanonicalSources": [
+    {
+      "Path": "include/xrt/cancel.h",
+      "Sha256": "1892617bb5922c9c8d79be25e5c0bb01efae670424264eac3181e445190d6321"
+    },
+    {
+      "Path": "src/concurrency/cancel.c",
+      "Sha256": "ac220dbb159351430e417b8ae18133ea8df852e68b6fb30b0aa92b7c401303c4"
+    },
+    {
+      "Path": "src/concurrency/task_group.c",
+      "Sha256": "553ad593bca0a695b7421a3ffdbc00a6661006144f331e7206336150f0367291"
+    },
+    {
+      "Path": "src/internal/xrt_cancel.h",
+      "Sha256": "c5b597a55124c2d77581d246931ddb7854c22cfd22f44ae19cd20d934a9de060"
+    }
+  ],
+  "ConsumerBase": "53d7f799d16d5e61605a62a88a0bd67ccf016716",
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "aeb58098687a331f94b4063d62d3e008f42c1fa8df342228b900dff083a353f9",
+      "AfterSha256": "608f71deed0c9063fa630a36c6ba223b3a31eb6a4b7f352279551826f277bf09"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "8e4ea28a32ff9098efba7adf7f93157c93b32ae89a879a431688ae9f3cec596c",
+      "AfterSha256": "43d5ab06bfc1e7a675b3ae39abd061019ee6df8260bf2ced9ba080ef2fe0f177"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "05866fd047a433aeeaf6ea4cf80778f8e2519caa3b3d5e1391d009157cd71229",
+      "AfterSha256": "b2a8c4a57183f3558da2a99d146dcb5de78e09f65e4bcc61ae6554a763abe3e2"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "ab6b55e29ab4b70fb9a59a4e091703010ba9116ca9f96428d391eec5d738f218",
+      "AfterSha256": "ad042c4c676609ea3b5939d13086c9dff60e296b358ff683b4703a21ce3f09e9"
+    }
+  ],
+  "PreservedContracts": [
+    "Only the reviewed cancellation delta is applied",
+    "Embedded relative timeouts remain microseconds",
+    "Legacy void Unwatch shares the same implementation",
+    "Global Future/Cancel admission versions remain unchanged",
+    "Unrelated worktree edits excluded"
+  ]
+}

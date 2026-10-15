@@ -446,6 +446,9 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
         return 0;
     }
     if ( !xlApiAddTccSymbol(s, "xl6TaskGroupCreate", (const void*)xl6TaskGroupCreate) ||
+         !xlApiAddTccSymbol(s, "xl6TaskGroupOwnershipV1", (const void*)xl6TaskGroupOwnershipV1) ||
+         !xlApiAddTccSymbol(s, "xl6TaskGroupOwnershipAdapterV1", (const void*)xl6TaskGroupOwnershipAdapterV1) ||
+         !xlApiAddTccSymbol(s, "xl6TaskGroupParentPolicyV1Get", (const void*)xl6TaskGroupParentPolicyV1Get) ||
          !xlApiAddTccSymbol(s, "xl6TaskGroupChild", (const void*)xl6TaskGroupChild) ||
          !xlApiAddTccSymbol(s, "xl6TaskGroupDestroy", (const void*)xl6TaskGroupDestroy) ||
          !xlApiAddTccSymbol(s, "xl6TaskGroupClose", (const void*)xl6TaskGroupClose) ||
