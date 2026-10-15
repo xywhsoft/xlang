@@ -439,6 +439,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_value_iterator.c"
 	"$ROOT/src/runtime/xl6_future_callback.c"
 	"$ROOT/src/runtime/xl6_ownership_plan.c"
+	"$ROOT/src/runtime/xl6_static_module.c"
 	"$ROOT/src/runtime/xl6_generator.c"
 	"$ROOT/src/runtime/xl6_code_finalizer.c"
 	"$ROOT/src/runtime/xl6_future_payload.c"

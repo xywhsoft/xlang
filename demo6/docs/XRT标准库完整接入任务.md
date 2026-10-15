@@ -2,6 +2,10 @@
 
 ## 1. 目标
 
+独立模块共同原生拥有记录与 checked 退役驱动见
+[独立模块拥有记录与可重试退役底座](stdlib53-b301-static-module-owner.md)。
+该底座不替代生成入口接线；独立 AOT 循环图和发布总验收继续。
+
 动态方法运行时默认表达式降为独立 checked IR 程序，不在 Cgen
 解析源码。接收者、前序参数、拥有结果及失败合同见
 [动态方法默认值的 IR 执行合同](stdlib53-b288-runtime-method-defaults.md)。

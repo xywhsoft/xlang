@@ -5,6 +5,7 @@
 #include "src/runtime/xl6_continuation_executor.h"
 #include "src/runtime/xl6_continuation_future.h"
 #include "src/runtime/xl6_code_lease.h"
+#include "src/runtime/xl6_static_module.h"
 #include "src/runtime/xl6_native_handle.h"
 #include "src/runtime/xl6_dynamic_fields.h"
 #include "src/runtime/xl6_value_object_fields.h"
@@ -358,6 +359,11 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6ClassRuntimeV1Get", (const void*)xl6ClassRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClassRuntimeV2Get", (const void*)xl6ClassRuntimeV2Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClassRuntimeV3Get", (const void*)xl6ClassRuntimeV3Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6StaticModuleCreateV1", (const void*)xl6StaticModuleCreateV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6StaticModuleOwnerV1", (const void*)xl6StaticModuleOwnerV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6StaticModuleOwnershipV1", (const void*)xl6StaticModuleOwnershipV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6StaticModuleRetireV1", (const void*)xl6StaticModuleRetireV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6StaticModuleDestroyV1", (const void*)xl6StaticModuleDestroyV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClassDynamicFieldPathV3", (const void*)xl6ClassDynamicFieldPathV3)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6CodeLeaseAcquire", (const void*)xl6CodeLeaseAcquire) ||
         !xlApiAddTccSymbol(s, "xl6CodeActivityEnterV1", (const void*)xl6CodeActivityEnterV1) ||
