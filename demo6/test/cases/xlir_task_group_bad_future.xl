@@ -1,0 +1,7 @@
+class WrongGroup
+    private native point handle
+    extern "xl6SignalTaskGroupCreateV1" create()
+    extern "xl6SignalTaskGroupDestroyV1" destroy()
+    extern "xl6_xrt_task_group_join_async" func joinAsync() as future<int>
+end
+auto pending = WrongGroup().joinAsync()

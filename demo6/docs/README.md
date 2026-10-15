@@ -6,6 +6,7 @@
 
 ## 当前权威设计
 
+- [任务组驻留接口与拥有图边界](stdlib53-b313-task-group-resident-api.md)：补齐现有方法、父绑定回滚和独立异步等待；传递拥有图继续。
 - [Process 派生 IO 的拥有图](stdlib53-b312-process-io-graph.md)：唯一流上下文的真实拥有边、Reader 转移与流租约的可重试完成。
 - [Process 共享拥有图](stdlib53-b311-process-owning-graph.md)：真实后台引用、共享终态 Future、消费者独立取消，以及冻结外的管道退役。
 - [IO 的驻留实现和文件流回调](stdlib53-b309-resident-io.md)：51 个适配入口迁出 Cgen，内建流拥有策略、独立组件和错误回滚；进程派生流的拥有边见上文专项。

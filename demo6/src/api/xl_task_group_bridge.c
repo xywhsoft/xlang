@@ -1,7 +1,6 @@
 #include <limits.h>
 
-#define XRT_MODULE_TASK_GROUP_POOL
-#define XRT_MODULE_TASK_GROUP_COROUTINE
+#define XRT_MODULE_TASK_GROUP
 #include "lib/xrt/xrt.h"
 
 #include "xl_task_group_bridge.h"
@@ -13,6 +12,7 @@ struct xl6_task_group {
 	xmutex Lock;
 	xtaskgroup* Group;
 	xcancelwatch* ParentWatch;
+	bool BindingParent;
 	uint64 Reaped;
 };
 
@@ -162,11 +162,19 @@ XL_API bool xl6TaskGroupBindParent(
 	bool bAvailable;
 
 	if ( (pGroup == NULL) || (pParent == NULL) ) {
+		xrtSetErrorKind(XERR_ARGUMENT);
 		return false;
 	}
+	/* Reserve before registering: a cancelled second parent must not run its
+	 * synchronous callback and cancel this group before we reject the bind. */
+	(void)xrtMutexLock(&pGroup->Lock);
+	bAvailable = pGroup->Group != NULL && pGroup->ParentWatch == NULL && !pGroup->BindingParent;
+	if (bAvailable) pGroup->BindingParent = true;
+	(void)xrtMutexUnlock(&pGroup->Lock);
+	if (!bAvailable) { xrtSetErrorKind(XERR_STATE); return false; }
 	pCancel = xrtFutureCancelToken(pParent);
 	if ( pCancel == NULL ) {
-		return false;
+		goto failed;
 	}
 	pWatch = xrtCancelWatch(
 		pCancel,
@@ -175,7 +183,7 @@ XL_API bool xl6TaskGroupBindParent(
 	);
 	xrtCancelDestroy(pCancel);
 	if ( pWatch == NULL ) {
-		return false;
+		goto failed;
 	}
 	(void)xrtMutexLock(&pGroup->Lock);
 	bAvailable = (pGroup->Group != NULL) &&
@@ -183,11 +191,18 @@ XL_API bool xl6TaskGroupBindParent(
 	if ( bAvailable ) {
 		pGroup->ParentWatch = pWatch;
 	}
+	pGroup->BindingParent = false;
 	(void)xrtMutexUnlock(&pGroup->Lock);
 	if ( !bAvailable ) {
 		xrtCancelUnwatch(pWatch);
+		xrtSetErrorKind(XERR_STATE);
 	}
 	return bAvailable;
+failed:
+	(void)xrtMutexLock(&pGroup->Lock);
+	pGroup->BindingParent = false;
+	(void)xrtMutexUnlock(&pGroup->Lock);
+	return false;
 }
 
 

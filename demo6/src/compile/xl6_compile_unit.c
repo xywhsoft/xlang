@@ -40,7 +40,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/api/xl_future_bridge.c", D(R(CODE_LEASE),R(FUTURE_PAYLOAD),R(FUTURE_METADATA)),
         {"XRT_MODULE_FUTURE_COMBINE", "XRT_MODULE_THREAD", "XRT_MODULE_MUTEX"}},
     {"src/api/xl_channel_bridge.c", NULL, 0, {"XRT_MODULE_CHANNEL_SELECT_CANCEL", "XRT_MODULE_CHANNEL_COROUTINE"}},
-    {"src/api/xl_task_group_bridge.c", NULL, 0, {"XRT_MODULE_TASK_GROUP_POOL", "XRT_MODULE_TASK_GROUP_COROUTINE"}},
+    {"src/api/xl_task_group_bridge.c", NULL, 0, {"XRT_MODULE_TASK_GROUP"}},
     {"src/api/xl_foreign_error.c", NULL, 0, {"XRT_MODULE_ONCE", "XRT_MODULE_ERROR"}},
     {"src/runtime/xl6_network_service.c", NULL, 0, {"XRT_MODULE_NET_ENGINE", "XRT_MODULE_NET_RESOLVER"}},
     {"src/runtime/xl6_task_file.c", D(R(TASK)), {"XRT_MODULE_FILE_ASYNC"}},
@@ -100,7 +100,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_environment.c", D(), {"XRT_MODULE_ENVIRONMENT", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_STRING"}},
     {"src/runtime/xl6_signal_core.c", D(), {"XRT_MODULE_SIGNAL", "XRT_MODULE_STRING"}},
     {"src/runtime/xl6_signal_queue.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_SIGNAL", "XRT_MODULE_STRING", "XRT_MODULE_TIME", "XRT_MODULE_WAIT"}},
-    {"src/runtime/xl6_signal_task_group.c", D(R(TASK_GROUP)), {"XRT_MODULE_ERROR"}},
+    {"src/runtime/xl6_signal_task_group.c", D(R(TASK_GROUP),R(FOREIGN_ERROR)), {"XRT_MODULE_ERROR"}},
     {"src/runtime/xl6_process_command.c", D(R(NATIVE_HANDLE),R(ARRAY_INPUT)), {"XRT_MODULE_PROCESS", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_STRING", "XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_process_options.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_PROCESS_RUN"}},
     {"src/runtime/xl6_process_run.c", D(R(NATIVE_HANDLE),R(PROCESS_COMMAND)), {"XRT_MODULE_PROCESS_RUN", "XRT_MODULE_VALUE", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_STRING"}},
@@ -491,7 +491,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_fs_root_owner.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_FILE_ROOT"}},
     {"src/runtime/xl6_ownership_domain_resource_fs_map.c",D(R(OWNERSHIP_CATALOG),R(FS_MAP_OWNER)),{NULL}},
     {"src/runtime/xl6_ownership_domain_resource_fs_lock.c",D(R(OWNERSHIP_CATALOG),R(FS_LOCK_OWNER)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_resource_fs_root.c",D(R(OWNERSHIP_CATALOG),R(FS_ROOT_OWNER)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_resource_fs_root.c",D(R(OWNERSHIP_CATALOG),R(FS_ROOT_OWNER)),{NULL}},
+    {"src/runtime/xl6_task_group_future.c",D(R(TASK_GROUP),R(FUTURE_CALLBACK)),{"XRT_MODULE_FUTURE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
