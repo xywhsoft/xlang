@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_regex_internal.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 typedef struct XL6_RegexIterator {
     XL6_RegexThreadOwner thread;
     xregex* regex;
@@ -17,10 +19,15 @@ static XL6_RegexIterator* check(void* handle)
 }
 static void closeInput(XL6_RegexIterator* it)
 {
+    xrtownershipscope mutation={0};
+    if(!xrtOwnershipMutationBegin(&mutation))abort();
+    xregexmatcher* matcher=it->matcher;xregex* regex=it->regex;xvalue* input=it->input;
     it->closed=true; it->pending=false;
-    xrtRegexMatcherFree(it->matcher); it->matcher=NULL;
-    xrtRegexRelease(it->regex); it->regex=NULL;
-    xrtValueRelease(it->input); it->input=NULL; it->text=(xstrview){NULL,0};
+    it->matcher=NULL;it->regex=NULL;it->input=NULL;it->text=(xstrview){NULL,0};
+    if(!xrtOwnershipScopeEnd(&mutation))abort();
+    /* Detach the owning edge while frozen inspection is excluded, then drop
+     * children without an enclosing mutation or a borrowed input view. */
+    xrtRegexMatcherFree(matcher);xrtRegexRelease(regex);xrtValueRelease(input);
 }
 void xl6RegexIteratorDestroyV1(void* handle)
 { XL6_RegexIterator* it=handle; if (it) {closeInput(it);xl6RegexThreadDrop(&it->thread);xrtFree(it);} }
@@ -66,3 +73,13 @@ void xl6RegexIteratorCloseV1(void* handle)
 { XL6_RegexIterator* it=check(handle); if (it) closeInput(it); }
 bool xl6RegexIteratorClosedV1(void* handle)
 { XL6_RegexIterator* it=check(handle); return it ? it->closed:false; }
+
+/* Resident policy: terminal Drop runs after the phased handle is detached. */
+static bool xl6RegexIteratorHandlePolicyV1GetTrace(const xvalue* value,xrtownershipvisitor visitor,void* context)
+{
+    void* raw=NULL;
+    if(!visitor || !xrtValueGetHandle(value,&raw,NULL,NULL) || !raw)return false;
+    const XL6_RegexIterator* payload=raw;
+    return (payload->input ? visitor(xrtValueOwnership(payload->input),context) : payload->closed);
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6RegexIteratorHandlePolicyV1Get,xl6RegexIteratorDestroyV1,xl6RegexIteratorHandlePolicyV1GetTrace)

@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_regex_internal.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 
 /* Immutable XRT regex is the native field itself: no second refcount layer,
  * no exposed matcher, and no generated implementation in Cgen. */
@@ -54,3 +56,6 @@ xstrview xl6RegexEscapeV1(xstrview text, int64_t size)
     char* result = xrtRegexEscape(text, &length);
     return xl6TextOwn(result, length);
 }
+
+/* Resident policy: terminal Drop runs after the phased handle is detached. */
+XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6RegexHandlePolicyV1Get,xl6RegexDestroyV1)

@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_regex_internal.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 #include "src/runtime/xl6_closure.h"
 
 /* A synchronous session owns input independently of the caller. Only the
@@ -91,3 +93,13 @@ xstrview xl6RegexReplacerRunV1(void* handle,XL6_Closure* callback)
     size_t size=output.Size;char* result=xrtStrBufTake(&output);
     xrtStrBufFree(&output);return xl6TextOwn(result,size);
 }
+
+/* Resident policy: terminal Drop runs after the phased handle is detached. */
+static bool xl6RegexReplacerHandlePolicyV1GetTrace(const xvalue* value,xrtownershipvisitor visitor,void* context)
+{
+    void* raw=NULL;
+    if(!visitor || !xrtValueGetHandle(value,&raw,NULL,NULL) || !raw)return false;
+    const XL6_RegexReplacer* payload=raw;
+    return (payload->input && visitor(xrtValueOwnership(payload->input),context));
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6RegexReplacerHandlePolicyV1Get,xl6RegexReplacerDestroyV1,xl6RegexReplacerHandlePolicyV1GetTrace)

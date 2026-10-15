@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_pattern_internal.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 #include "src/runtime/xl6_text_thread.h"
 #include "src/runtime/xl6_array_input.h"
 #include <stdlib.h>
@@ -26,17 +28,15 @@ typedef struct XL6_PatternKey { xvalue* identity; xvalue* publication; xpatterni
  * never let a retained provisional key resurrect when an unused ID is reused.
  * This private leaf has no language references or graph edges. XRT owns its
  * reference count; the atomic flag permits immutable published key reads. */
-static void publicationDrop(ptr handle,ptr userData) {(void)userData;xrtFree(handle);}
-static const xvaluehandleops publicationOps={NULL,publicationDrop,NULL,NULL};
 static xvalue* publicationCreate(void)
 {
     ptr flag=xrtCalloc(1,sizeof(xatomic32));if (!flag) return NULL;
-    xvalue* value=xrtValueHandleTake(&flag,&publicationOps,NULL);xrtFree(flag);return value;
+    return xl6NativeHandleTakeV1(&flag,xl6PatternPublicationHandlePolicyV1Get());
 }
 static xatomic32* publicationFlag(const xvalue* value)
 {
     ptr flag=NULL;const xvaluehandleops* ops=NULL;
-    if (!xrtValueGetHandle(value,&flag,&ops,NULL) || ops!=&publicationOps || !flag) abort();
+    if (!xrtValueGetHandle(value,&flag,&ops,NULL) || ops!=xl6PatternPublicationHandlePolicyV1Get()->Ops || !flag) abort();
     return flag;
 }
 static bool keyPublished(const XL6_PatternKey* key)
@@ -296,3 +296,30 @@ void xl6PatternEditApplyV1(void* handle,xvalue* state,const xvalue* payload)
 {apply(handle,state,payload,false);}
 void xl6PatternEditApplyManyV1(void* handle,xvalue* state,const xvalue* payload)
 {apply(handle,state,payload,true);}
+
+/* Resident policy: terminal Drop runs after the phased handle is detached. */
+static bool xl6PatternBuilderHandlePolicyV1GetTrace(const xvalue* value,xrtownershipvisitor visitor,void* context)
+{
+    void* raw=NULL;
+    if(!visitor || !xrtValueGetHandle(value,&raw,NULL,NULL) || !raw)return false;
+    const XL6_PatternBuilder* payload=raw;
+    return (payload->identity && visitor(xrtValueOwnership(payload->identity),context));
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6PatternBuilderHandlePolicyV1Get,xl6PatternBuilderDestroyV1,xl6PatternBuilderHandlePolicyV1GetTrace)
+static bool xl6PatternEditHandlePolicyV1GetTrace(const xvalue* value,xrtownershipvisitor visitor,void* context)
+{
+    void* raw=NULL;
+    if(!visitor || !xrtValueGetHandle(value,&raw,NULL,NULL) || !raw)return false;
+    const XL6_PatternEdit* payload=raw;
+    return (payload->identity && visitor(xrtValueOwnership(payload->identity),context) && (!payload->publication || visitor(xrtValueOwnership(payload->publication),context)));
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6PatternEditHandlePolicyV1Get,xl6PatternEditDestroyV1,xl6PatternEditHandlePolicyV1GetTrace)
+static bool xl6PatternKeyHandlePolicyV1GetTrace(const xvalue* value,xrtownershipvisitor visitor,void* context)
+{
+    void* raw=NULL;
+    if(!visitor || !xrtValueGetHandle(value,&raw,NULL,NULL) || !raw)return false;
+    const XL6_PatternKey* payload=raw;
+    return (payload->identity && payload->publication && visitor(xrtValueOwnership(payload->identity),context) && visitor(xrtValueOwnership(payload->publication),context));
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6PatternKeyHandlePolicyV1Get,xl6PatternKeyDestroyV1,xl6PatternKeyHandlePolicyV1GetTrace)
+XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6PatternPublicationHandlePolicyV1Get,xrtFree)

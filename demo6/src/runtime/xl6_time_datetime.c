@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_time_internal.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 
 void xl6DateTimeDestroyV1(void* handle) { xrtFree(handle); }
 void* xl6DateTimeSplitV1(int64_t value, int64_t offset)
@@ -40,3 +42,6 @@ int64_t xl6DateTimeToTimeV1(void* handle)
     (void)xrtTimeMake(&((const XL6_DateTime*)handle)->fields, &result);
     return result;
 }
+
+/* Resident policy: terminal Drop runs after the phased handle is detached. */
+XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6DateTimeHandlePolicyV1Get,xl6DateTimeDestroyV1)

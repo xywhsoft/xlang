@@ -1,0 +1,72 @@
+// Keep actual native children alive through a language-object/typed-stack cycle.
+// The final marker is required by the native AOT test, not just a zero exit.
+class NativeResourceOwner
+    Stack<NativeResourceOwner> cycle
+    DateTime date
+    Utf8Validator validator
+    StringIterator words
+    Regex expression
+    RegexMatch? matchedItem
+    RegexIterator matches
+    RegexSplitIterator parts
+    RegexSplitPart? part
+    RegexSet patterns
+    RegexReplacer replacer
+    PatternOptions options
+    PatternBuilder builder
+    PatternKey? key
+    Pattern? route
+    PatternMatch? found
+    SignalSubscription signals
+    create()
+        self.date = DateTime(2024, 2, 29)
+        self.validator = unicode.validator()
+        self.words = string.splitIter("a\0b,c", ",")
+        self.expression = Regex("a")
+        self.matches = Regex(".").all("a\0b")
+        self.parts = Regex(",").split("a\0b,c")
+        self.replacer = RegexReplacer(Regex("a"), "a\0b")
+        self.options = PatternOptions("/")
+        self.builder = PatternBuilder(options)
+        self.signals = SignalSubscription(signal.INT, false, 2)
+        array<string> names = ["a\0b", "c"]
+        self.patterns = RegexSet(names)
+        self.matchedItem = expression.find("a\0b")
+        self.part = parts.next()
+    end
+    func link()
+        self.key = builder.add("/u/{id}", 7)
+        assert cycle.push(self)
+        auto compiled = builder.compile()
+        self.route = compiled
+        self.found = compiled.find("/u/你")
+    end
+    destroy()
+        assert date.year == 2024 and date.day == 29
+        assert not validator.finished and validator.total == 0
+        assert not words.closed() and not matches.closed and not parts.closed
+        auto savedMatch = matchedItem
+        auto savedPart = part
+        auto savedKey = key
+        auto savedRoute = route
+        auto savedFound = found
+        assert savedMatch != null and savedPart != null
+        if savedMatch != null then assert savedMatch.input == "a\0b" end
+        if savedPart != null then
+            auto content = savedPart.text
+            assert content != null
+            if content != null then assert content == "a\0b" end
+        end
+        assert patterns.pattern(0) == "a\0b"
+        assert options.separators == "/" and builder.count == 1
+        if savedKey != null then assert savedKey.id != 0 end
+        if savedRoute != null then assert savedRoute.test("/u/你") end
+        if savedFound != null then assert savedFound.input == "/u/你" end
+        assert signals.active and not signals.closed
+        print("native-owner-finalized")
+    end
+end
+NativeResourceOwner root = NativeResourceOwner()
+var alias = root
+root.link()
+assert root.matchedItem != null and root.found != null and root.part != null

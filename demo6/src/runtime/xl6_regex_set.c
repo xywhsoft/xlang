@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_regex_internal.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 #include "src/runtime/xl6_array_input.h"
 #include "src/runtime/xl6_array_producer.h"
 void xl6RegexSetDestroyV1(void* handle)
@@ -80,3 +82,6 @@ int64_t xl6RegexSetFirstV1(void* handle,xstrview text,int64_t start,int64_t size
 }
 bool xl6RegexSetTestV1(void* handle,xstrview text,int64_t start,int64_t size)
 { return xl6RegexSetFirstV1(handle,text,start,size)>=0; }
+
+/* Resident policy: terminal Drop runs after the phased handle is detached. */
+XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6RegexSetHandlePolicyV1Get,xl6RegexSetDestroyV1)

@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_process_run_internal.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 
 void xl6ProcessResultDestroyV1(void* handle)
 {if(handle){xrtProcessResultUnit(handle);xrtFree(handle);}}
@@ -70,3 +72,6 @@ void* xl6ProcessResultStatusV1(void* handle)
     xprocessresult* r=resultCheck(handle);if(!r)return NULL;
     xprocessstatus* snapshot=xrtMalloc(sizeof(*snapshot));if(snapshot)*snapshot=r->Status;return snapshot;
 }
+
+/* Resident policy: terminal Drop runs after the phased handle is detached. */
+XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6ProcessResultHandlePolicyV1Get,xl6ProcessResultDestroyV1)

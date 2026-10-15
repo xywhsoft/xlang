@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_text_thread.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -182,3 +184,7 @@ xstrview xl6SignalEventNameV1(void* handle)
     SignalRecord* e=eventCheck(handle);if(!e)return xl6TextFailure;
     const char* name=xrtSignalName(e->code);return xl6TextOwn(xrtStrDup(name),strlen(name));
 }
+
+/* Resident policy: terminal Drop runs after the phased handle is detached. */
+XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6SignalQueueHandlePolicyV1Get,xl6SignalQueueDestroyV1)
+XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6SignalEventHandlePolicyV1Get,xl6SignalEventDestroyV1)

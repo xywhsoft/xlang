@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_unicode_internal.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 
 typedef struct XL6_Utf8Validator {
     uint64_t ownerThread; /* Checked before any mutable state is accessed. */
@@ -60,3 +62,6 @@ bool xl6UnicodeValidatorFinishedV1(void* handle)
     XL6_Utf8Validator* validator = xl6UnicodeValidatorCheck(handle);
     return validator && validator->finished;
 }
+
+/* Resident policy: terminal Drop runs after the phased handle is detached. */
+XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6UnicodeValidatorHandlePolicyV1Get,xl6UnicodeValidatorDestroyV1)

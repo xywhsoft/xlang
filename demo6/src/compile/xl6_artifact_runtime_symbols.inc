@@ -201,6 +201,9 @@ XL6_ARTIFACT_SYMBOL("xl6OwnershipPlanTryCreateV4", OWNERSHIP_PLAN)
 XL6_ARTIFACT_SYMBOL("xl6OwnershipPlanTryCreateV5", OWNERSHIP_PLAN)
 XL6_ARTIFACT_SYMBOL("xl6XlangContextHandlePolicyV1Get", XLANG_CONTEXT_POLICY)
 XL6_ARTIFACT_SYMBOL("xl6BufferHandlePolicyV1Get", BUFFER_CORE)
+#define XL6_NATIVE_RESOURCE_POLICY(Owner, Component, Getter) XL6_ARTIFACT_SYMBOL(#Getter, Component)
+#include "src/runtime/xl6_native_resource_policies.inc"
+#undef XL6_NATIVE_RESOURCE_POLICY
 XL6_ARTIFACT_SYMBOL("xl6OwnershipPlanTryDestroy", OWNERSHIP_PLAN)
 XL6_ARTIFACT_SYMBOL("xl6OwnershipPlanTryRefresh", OWNERSHIP_PLAN)
 XL6_ARTIFACT_SYMBOL("xl6PayloadDropGet", FUTURE_PAYLOAD)

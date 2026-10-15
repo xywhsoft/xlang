@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_regex_internal.h"
+#include "xl6_native_handle.h"
+#include "src/api/xl_foreign_error.h"
 typedef struct XL6_RegexSplitIterator {
     XL6_RegexThreadOwner thread;
     xregexsplitter* splitter;
@@ -22,9 +24,13 @@ static XL6_RegexSplitIterator* check(void* handle)
 }
 static void closeInput(XL6_RegexSplitIterator* it)
 {
+    xrtownershipscope mutation={0};
+    if(!xrtOwnershipMutationBegin(&mutation))abort();
+    xregexsplitter* splitter=it->splitter;xvalue* input=it->input;
     it->closed=true; it->pending=false;
-    xrtRegexSplitterFree(it->splitter); it->splitter=NULL;
-    xrtValueRelease(it->input); it->input=NULL; it->text=(xstrview){NULL,0};
+    it->splitter=NULL;it->input=NULL;it->text=(xstrview){NULL,0};
+    if(!xrtOwnershipScopeEnd(&mutation))abort();
+    xrtRegexSplitterFree(splitter);xrtValueRelease(input);
 }
 void xl6RegexSplitDestroyV1(void* handle)
 { XL6_RegexSplitIterator* it=handle; if(it){closeInput(it);xl6RegexThreadDrop(&it->thread);xrtFree(it);} }
@@ -94,3 +100,21 @@ int64_t xl6RegexSplitPartStartV1(void* handle)
 { XL6_RegexSplitPart* p=partCheck(handle);return p&&p->matched?(int64_t)p->begin:-1; }
 int64_t xl6RegexSplitPartEndV1(void* handle)
 { XL6_RegexSplitPart* p=partCheck(handle);return p&&p->matched?(int64_t)p->end:-1; }
+
+/* Resident policy: terminal Drop runs after the phased handle is detached. */
+static bool xl6RegexSplitHandlePolicyV1GetTrace(const xvalue* value,xrtownershipvisitor visitor,void* context)
+{
+    void* raw=NULL;
+    if(!visitor || !xrtValueGetHandle(value,&raw,NULL,NULL) || !raw)return false;
+    const XL6_RegexSplitIterator* payload=raw;
+    return (payload->input ? visitor(xrtValueOwnership(payload->input),context) : payload->closed);
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6RegexSplitHandlePolicyV1Get,xl6RegexSplitDestroyV1,xl6RegexSplitHandlePolicyV1GetTrace)
+static bool xl6RegexSplitPartHandlePolicyV1GetTrace(const xvalue* value,xrtownershipvisitor visitor,void* context)
+{
+    void* raw=NULL;
+    if(!visitor || !xrtValueGetHandle(value,&raw,NULL,NULL) || !raw)return false;
+    const XL6_RegexSplitPart* payload=raw;
+    return (payload->input && visitor(xrtValueOwnership(payload->input),context));
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6RegexSplitPartHandlePolicyV1Get,xl6RegexSplitPartDestroyV1,xl6RegexSplitPartHandlePolicyV1GetTrace)
