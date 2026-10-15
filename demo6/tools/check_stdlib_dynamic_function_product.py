@@ -2,7 +2,7 @@
 Requested flags define the verified scope; never full53 or shipping acceptance.
 """
 from pathlib import Path
-import argparse,hashlib,json,os,re,shutil,subprocess,sys
+import argparse,hashlib,json,os,re,shutil,subprocess,sys,time
 from xlir_public_build_inputs import verify_public_build
 def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
@@ -12,8 +12,9 @@ def main():
     p.add_argument('--nullable',action='store_true',help='Also verify typed nullable callable payload/presence plans.')
     p.add_argument('--scalars',action='store_true',help='Also verify native scalar boxing and explicit F32 conversions.')
     p.add_argument('--sanitize',action='store_true',help='Instrument generated strict C and hosts on Linux, not the linked compiler/runtime providers.')
+    p.add_argument('--compile-timeout',type=int,default=300,help='GCC compile budget in seconds, independent of the unchanged 300-second execution budget.')
     a=p.parse_args(); root=a.root.resolve(); public=a.public_directory.resolve(); out=a.out.resolve()
-    assert not out.exists(); build,pinned,compared=verify_public_build(root,public)
+    assert not out.exists() and 30<=a.compile_timeout<=1800; build,pinned,compared=verify_public_build(root,public)
     project=root; cc=shutil.which('gcc'); nm=shutil.which('nm'); assert cc and nm and not (a.sanitize and os.name=='nt')
     names=('stdlib_dynamic_function_product','stdlib_dynamic_function_product_errors','stdlib_dynamic_function_product_status',
         'stdlib_char_typed_only','stdlib_stack_dynamic_surface','stdlib_stack_dynamic_batch','xlir_stdlib_dynamic_native.pending')
@@ -39,7 +40,8 @@ def main():
     report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Rows=rows,ClosedPrefixes=prefixes,
         Products=products,ComparedSources=compared,DynamicFunctionProductAcceptance=False,DynamicMethodProductAcceptance=False,Full53Acceptance=False,
         ShippingLibraryAcceptance=False,MethodProductsRequested=a.methods,NullableCallableRequested=a.nullable,NullableCallableAcceptance=False,
-        GeneratedInstrumented=a.sanitize,RuntimeInstrumented=False,ScalarConversionsRequested=a.scalars,ScalarConversionsAcceptance=False,Scope=__doc__)
+        GeneratedInstrumented=a.sanitize,RuntimeInstrumented=False,ScalarConversionsRequested=a.scalars,ScalarConversionsAcceptance=False,
+        CompileTimeoutSeconds=a.compile_timeout,ExecutionTimeoutSeconds=300,Scope=__doc__)
     if os.name=='nt': shutil.copy2(native,out/'xl.dll')
     else: env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
     flags=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED',
@@ -56,11 +58,17 @@ def main():
     links += [str(native),*(['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt'
         else ['-pthread','-ldl','-lm','-Wl,-rpath,'+str(native.parent)])]
     def run(name,command,reject=False):
-        result=subprocess.run(list(map(str,command)),cwd=root,env=env,capture_output=True,timeout=300)
-        data=result.stdout+result.stderr; (out/(name+'.log')).write_bytes(data)
-        rows.append(dict(Name=name,Command=list(map(str,command)),Exit=result.returncode,ExpectedRejection=reject))
-        print(name+': '+str(result.returncode),flush=True)
-        assert result.returncode!=0 if reject else result.returncode==0,(name,data[-5000:].decode(errors='replace'))
+        command=list(map(str,command));budget=a.compile_timeout if command[0]==cc else 300;start=time.monotonic()
+        try:
+            result=subprocess.run(command,cwd=root,env=env,capture_output=True,timeout=budget)
+            data,code=result.stdout+result.stderr,result.returncode
+        except subprocess.TimeoutExpired as error:
+            data,code=(error.stdout or b'')+(error.stderr or b''),'timeout'
+        log=out/(name+'.log');log.write_bytes(data)
+        rows.append(dict(Name=name,Command=command,Exit=code,ExpectedRejection=reject,
+            TimeoutSeconds=budget,Seconds=time.monotonic()-start,Log=str(log),LogSha256=sha(log)))
+        print(name+': '+str(code),flush=True)
+        assert code not in (0,'timeout') if reject else code==0,(name,data[-5000:].decode(errors='replace'))
         return data.decode(errors='replace')
     try:
         binary=out/('contract'+suffix)

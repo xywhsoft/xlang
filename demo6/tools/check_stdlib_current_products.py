@@ -32,7 +32,11 @@ def main():
         ('graphs','check_stdlib_container_graph_shipping.py','results.json',True),
         ('clear','check_stdlib_clear_shipping.py','results.json',True),
         ('thread','check_stdlib_thread_shipping.py','thread.shipping.json',True),
-        ('sync','check_stdlib_sync_shipping.py','sync.shipping.json',False)]
+        ('sync','check_stdlib_sync_shipping.py','sync.shipping.json',False),
+        # This assertion runner may follow the pinned product build. Its only
+        # native code observes callbacks through the embedded SDK; production
+        # sources, headers and providers still come exclusively from the build.
+        ('aot-graphs',task/'tools/check_stdlib_aot_graph_retirement.py','results.json',True)]
     if not windows:gates.append(('elf','check_stdlib_sync_shipping_elf.py','sync.shipping.elf.json',True))
     products=[root/'release'/n for n in (('xl.exe','xl.dll','xlc.dll') if windows else ('xl','libxl.so','libxlc.so'))]
     recorded={Path(row['Path']).resolve():row['Sha256'] for row in build['Products']}
@@ -60,7 +64,8 @@ def main():
     rows=[];records=[];children=[];failures=[];lock=threading.Lock();rowLock=threading.Lock()
     report=dict(Complete=False,InputsUnchanged=False,Scope=__doc__,Inputs=inputs,Rows=rows,Cases=records,Children=children,Failures=failures,
         CandidateCount=len(cases),ExplicitSubset=False,SourceProductAcceptance=True,ProviderOverrides=False,EmbeddedVfsWithoutFallback=True,
-        AllExecutablePassed=False,HostedProductAcceptance=False,Full53Acceptance=False,FunctionCoverageAcceptance=False,WorkerWideOomAcceptance=False)
+        AllExecutablePassed=False,HostedProductAcceptance=False,AotGraphRetirementAcceptance=False,
+        Full53Acceptance=False,FunctionCoverageAcceptance=False,WorkerWideOomAcceptance=False)
     def save():(out/'results.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     def run(name,command,directory=isolated,environment=env,timeout=180):
         start=time.monotonic()
@@ -135,6 +140,7 @@ def main():
         if row['Exit']==0:row,data=run('path-parts-aot-run',[image])
         if row['Exit']!=0:failures.append(dict(Name='path-parts-aot',Error=data.decode(errors='replace')[-6000:]))
         report['HostedProductAcceptance']=all(c['Passed'] for c in children if c['Name'] in ('graphs','clear'))
+        report['AotGraphRetirementAcceptance']=any(c['Name']=='aot-graphs' and c['Passed'] for c in children)
         report['UnexecutedRequirements']=[c['Name'] for c in records if c['Status']=='requires-platform']
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
         report['Complete']=report['InputsUnchanged'] and report['AllExecutablePassed'] and len(children)==len(gates) and not failures
