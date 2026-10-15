@@ -381,7 +381,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_native_scalar_convert.c",D(R(FOREIGN_ERROR)),{"XRUNTIME_MODULE_RUNTIME_CONVERT"}},
     {"src/runtime/xl6_value_native_scalar_convert.c",D(R(NATIVE_SCALAR_CONVERT),R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_integer_convert.c",D(R(FOREIGN_ERROR)),{"XRT_MODULE_NUMBER_INTEGER","XRUNTIME_MODULE_RUNTIME_CONVERT","XRT_MODULE_VALUE"}},
-    {"src/runtime/xl6_static_module.c",D(R(CODE_LEASE),R(CODE_FINALIZER),R(OWNERSHIP_PLAN),R(FOREIGN_ERROR)),
+    {"src/runtime/xl6_static_module.c",D(R(CODE_LEASE),R(OWNERSHIP_PLAN),R(FOREIGN_ERROR)),
         {"XRT_MODULE_MUTEX","XRT_MODULE_VALUE_GRAPH"}},
     {"src/runtime/xl6_ownership_catalog.c",D(R(FOREIGN_ERROR)),{"XRT_MODULE_VALUE_GRAPH","XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_ownership_domain_code_lease.c",D(R(OWNERSHIP_CATALOG),R(CODE_LEASE)),{NULL}},
@@ -582,7 +582,7 @@ int xl6ArtifactOwnershipPlanBuild(const XL6_ArtifactRuntimePlan* base,XL6_Artifa
     if(!xl6ArtifactRuntimeClosePlan(&roots,&result.runtime))return 0;
     for(size_t i=0;i<base->nativeModuleCount;++i)
         if(!xl6ArtifactNativeModuleRequire(&result.runtime,base->nativeModules[i]))return 0;
-    result.runtime.entry=base->entry;*output=result;return 1;
+    result.runtime.entry=base->entry;result.runtime.entryOwnershipAbi=base->entryOwnershipAbi;*output=result;return 1;
 }
 
 static int xl6ArtifactVisitResidentSymbol(void* opaque, const char* symbol)
@@ -930,6 +930,29 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         }
     }
     plan->entry=entry;
+    if(entry==XL6_ARTIFACT_ENTRY_EXECUTABLE_V1){
+        bool graph=module->exportCount!=0 || xl6ArtifactRuntimeSetHas(&plan->components,R(CODE_FINALIZER)) ||
+            xl6ArtifactRuntimeSetHas(&plan->components,R(CLOSURE)) ||
+            xl6ArtifactRuntimeSetHas(&plan->components,R(CELL)) ||
+            module->abi.readBoundaryAbi!=XL6_IR_MODULE_READ_BOUNDARY_NONE;
+        for(size_t i=0;i<module->storageCount;++i){
+            const XL6_IrStorage* storage=&module->storages[i];
+            if(storage->kind==XL6_IR_STORAGE_GLOBAL && storage->moduleTraceAbi!=XL6_IR_FRAME_TRACE_NONE &&
+                storage->moduleTraceAbi!=XL6_IR_FRAME_TRACE_INVALID && storage->moduleTraceAbi!=XL6_IR_FRAME_TRACE_OPAQUE)graph=true;
+        }
+        plan->entryOwnershipAbi=graph ? XL6_ARTIFACT_ENTRY_OWNERSHIP_GRAPH : XL6_ARTIFACT_ENTRY_OWNERSHIP_DIRECT;
+        if(graph){
+            XL6_ArtifactRuntimeSet entryRoots=plan->roots;
+            XL6_ArtifactRuntimePlan entryPlan={0};XL6_ArtifactOwnershipPlan ownership={0};
+            if(!xl6ComponentSetAdd(entryRoots.words,XL6_ARTIFACT_RUNTIME_COUNT,R(STATIC_MODULE)) ||
+                !xl6ArtifactRuntimeClosePlan(&entryRoots,&entryPlan))goto native_capacity_failure;
+            for(size_t i=0;i<plan->nativeModuleCount;++i)
+                if(!xl6ArtifactNativeModuleRequire(&entryPlan,plan->nativeModules[i]))goto native_capacity_failure;
+            entryPlan.entry=entry;entryPlan.entryOwnershipAbi=XL6_ARTIFACT_ENTRY_OWNERSHIP_GRAPH;
+            if(!xl6ArtifactOwnershipPlanBuild(&entryPlan,&ownership))goto native_capacity_failure;
+            *plan=ownership.runtime;
+        }
+    }
     return 1;
 native_capacity_failure:
     memset(plan,0,sizeof(*plan));

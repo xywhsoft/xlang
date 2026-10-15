@@ -97,9 +97,7 @@ static bool xlModuleReadAdmits(const XL6_OwnershipReadScopeV1* scope,xrtownershi
      * two exact adapters explicit: no generic lifetime resolver, arbitrary
      * policy getter, inferred leaf or authorization of other resources. */
     if (ref.Ops != &xlModuleOwnershipOps) {
-        const XL6_NativeHandlePolicyV1* policy=xl6DynamicFieldsHandlePolicyV1Get();
-        return xrtDynamicFieldsOwnershipAdapterV1(ref) ||
-            xrtValueHandleOwnershipAdapterV1(ref,policy->Ops,policy->Trace);
+        return xl6DynamicFieldsReadAdmitsV1(ref);
     }
     module = ref.Data;
     return module->retirementContract && xlModuleReadQuiescent(module) &&

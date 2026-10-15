@@ -3,7 +3,11 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
 {
     XL6_IrCgenNeeds needs = {0};
     size_t i;
-    if (out==NULL || !xl6IrCgenBuildNeeds(module,&needs,diags,options)) return 0;
+    if (out==NULL || !xl6IrCgenBuildNeeds(module,&needs,diags,options) || !xl6IrCgenVerifyEntryContract(module,diags,options)) return 0;
+    if(options && options->emitMainWrapper && !options->entryContract->managed &&
+        (module->classLayoutCount || module->exportCount || needs.needsClosureRuntime || needs.needsCellRuntime ||
+         needs.needsModuleOwnershipViews || module->abi.readBoundaryAbi!=XL6_IR_MODULE_READ_BOUNDARY_NONE))
+        return xl6IrCgenDiag(diags,module,XL6_IR_NODE_INVALID,"XLIR executable contract omits required graph lifetime");
     if ( xl6IrCgenNeedsXrtDeclarations(&needs) )
         xl6OutputPuts(
             "#define XLIR_XRT_DECLARATIONS 1\n"
@@ -115,6 +119,7 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
         options != NULL && options->emitMainWrapper,
         needs.needsErrorRuntime,
         module->abi.networkServiceAbi != XL6_IR_MODULE_NETWORK_SERVICE_NONE,
+        options!=NULL ? options->entryContract : NULL,
         diags);
 }
 

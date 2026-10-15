@@ -38,6 +38,10 @@ typedef struct XL6_OwnershipDomainV1 {
     bool (*Resolve)(struct xrtownershipref,const XL6_OwnershipPoliciesV1*,
         const struct xrtownershipadapterv1**,const struct xrtownershippreparationv1**,
         const XL6_OwnershipFinishV1**);
+    /* Independent whole-graph READ capability, not implied by lifecycle
+     * admission. NULL refuses opaque read participation. Frozen, no callbacks
+     * through unknown node tables, no allocation or reference transitions. */
+    bool (*AdmitsRead)(struct xrtownershipref);
 } XL6_OwnershipDomainV1;
 
 /* Create copies the domain pointer list and seals the policy population.
@@ -53,6 +57,7 @@ XL6_CODE_LEASE_API void xl6OwnershipCatalogDestroyV1(XL6_OwnershipCatalog*);
 XL6_CODE_LEASE_API bool xl6OwnershipCatalogResolveV1(struct xrtownershipref,void*,
     const struct xrtownershipadapterv1**,const struct xrtownershippreparationv1**,
     const XL6_OwnershipFinishV1**);
+XL6_CODE_LEASE_API bool xl6OwnershipCatalogAdmitsReadV1(struct xrtownershipref,void*);
 /* Only a Load callback on its unpublished catalog may append a non-NULL
  * capability. Repeated identical capabilities are deduplicated by identity. */
 #define XL6_POLICY_ADD(Name, Type) \

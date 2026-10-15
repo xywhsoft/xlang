@@ -17,7 +17,7 @@ struct XL6_StaticModule {
     XL6_StaticModuleContractV1 contract;
     xmutex* lock;
     size_t leases, pins;
-    bool entry, closing, running, cleared, finished, prepared;
+    bool entry, closing, running, cleared, finished, prepared, blocked;
     xatomic32 failed;
     unsigned long long driverThread;
     unsigned phase;
@@ -25,6 +25,41 @@ struct XL6_StaticModule {
     xerror* firstError;
     XL6_OwnershipPlan* plan;
 };
+/* Admission, not a made-up owning root. A reader and semantic retirement are
+ * mutually exclusive; callbacks see BUSY rather than waiting on themselves.
+ * The owning reference counts remain unchanged. No allocating TLS/registry. */
+enum { STATIC_BOUNDARY_READ=1,STATIC_BOUNDARY_RETIRE=2,STATIC_BOUNDARY_FINALIZER_READ=3 };
+static xatomic32 staticBoundaryGate={0};
+static xatomic64 staticBoundaryThread={0};
+static XL6_OwnershipReadScopeV1* staticReadScope;
+static const XL6_StaticModule* staticReadModule;
+static bool staticBoundaryEnter(uint32 mode)
+{
+    uint32 expected=0;
+    if(!xrtAtomic32CompareExchange(&staticBoundaryGate,&expected,mode,XMEMORY_ACQUIRE,XMEMORY_RELAXED))return false;
+    xrtAtomic64Store(&staticBoundaryThread,xrtThreadCurrentId(),XMEMORY_RELEASE);return true;
+}
+static void staticBoundaryLeave(void)
+{
+    xrtAtomic64Store(&staticBoundaryThread,0,XMEMORY_RELEASE);
+    xrtAtomic32Store(&staticBoundaryGate,0,XMEMORY_RELEASE);
+}
+static bool staticReadActive(void)
+{
+    /* Only this exact thread may touch the non-atomic scope pointer. The
+     * global admission gate excludes replacement until its same-thread End. */
+    return xrtAtomic64Load(&staticBoundaryThread,XMEMORY_ACQUIRE)==xrtThreadCurrentId() &&
+        (xrtAtomic32Load(&staticBoundaryGate,XMEMORY_ACQUIRE)==STATIC_BOUNDARY_READ ||
+         xrtAtomic32Load(&staticBoundaryGate,XMEMORY_ACQUIRE)==STATIC_BOUNDARY_FINALIZER_READ) &&
+        staticReadScope && staticReadScope->self==staticReadScope && staticReadScope->thread==xrtThreadCurrentId();
+}
+static bool staticReadQuiescent(const XL6_StaticModule* module)
+{
+    return staticReadActive() && module->contract.read &&
+        (!module->running || (module->driverThread==xrtThreadCurrentId() && module->phase==STATIC_FINALIZE)) &&
+        !module->cleared && !module->finished &&
+        !xl6CodeOwnerScopeForeign(&module->owner.base);
+}
 static bool staticFailed(const XL6_StaticModule* module)
 { return xrtAtomic32Load(&module->failed,XMEMORY_ACQUIRE)!=0; }
 static int staticAcquire(void* data)
@@ -54,7 +89,7 @@ static bool staticCount(const void* data,size_t* count)
 {
     const XL6_StaticModule* module=data;
     if(!module || !count || (module->running && module->driverThread!=xrtThreadCurrentId()) ||
-       xl6CodeOwnerScopeActive(&module->owner.base) || module->leases>SIZE_MAX-module->pins ||
+       (xl6CodeOwnerScopeActive(&module->owner.base) && !staticReadQuiescent(module)) || module->leases>SIZE_MAX-module->pins ||
        (module->entry && module->leases+module->pins==SIZE_MAX))return false;
     *count=module->leases+module->pins+(module->entry ? 1u : 0u);return true;
 }
@@ -66,6 +101,41 @@ static bool staticTrace(const void* data,xrtownershipvisitor visit,void* context
     return module->finished || module->contract.graph->trace(visit,context);
 }
 static const xrtownershipops staticOps={staticCount,staticTrace};
+int xl6StaticModuleReadBeginV1(XL6_StaticModule* module,XL6_OwnershipReadScopeV1* scope)
+{
+    if(!module || !module->contract.read || !scope || scope->self || scope->thread)return XL6_OWNERSHIP_READ_ERROR_V1;
+    if(!staticBoundaryEnter(STATIC_BOUNDARY_READ)){
+        if(xrtAtomic64Load(&staticBoundaryThread,XMEMORY_ACQUIRE)!=xrtThreadCurrentId() ||
+            xrtAtomic32Load(&staticBoundaryGate,XMEMORY_ACQUIRE)!=STATIC_BOUNDARY_RETIRE ||
+            !module->running || module->driverThread!=xrtThreadCurrentId() || module->phase!=STATIC_FINALIZE)
+            return XL6_OWNERSHIP_READ_BUSY_V1;
+        /* The semantic callback is outside Freeze. Preserve its exact driver
+         * admission while synchronously inspecting intact fields; no nested
+         * retirement, counter discount, unlock or foreign-thread permission. */
+        xrtAtomic32Store(&staticBoundaryGate,STATIC_BOUNDARY_FINALIZER_READ,XMEMORY_RELEASE);
+    }
+    scope->self=scope;scope->thread=xrtThreadCurrentId();staticReadScope=scope;staticReadModule=module;
+    return XL6_OWNERSHIP_READ_READY_V1;
+}
+bool xl6StaticModuleReadAdmitsV1(const XL6_StaticModule* module,const XL6_OwnershipReadScopeV1* scope,xrtownershipref ref)
+{
+    if(!staticReadActive() || scope!=staticReadScope || module!=staticReadModule || !ref.Data || !staticReadQuiescent(module))return false;
+    if(ref.Ops==&staticOps){
+        size_t count;return ref.Data==module && staticCount(module,&count);
+    }
+    /* A graph follows a module lease before reaching its opaque field family.
+     * Inspect only certified descriptors from that exact implementation. The
+     * independent callback is installed by the executable deployment contract. */
+    return module->contract.admitsRead && module->contract.admitsRead(ref,module->contract.context);
+}
+void xl6StaticModuleReadEndV1(XL6_StaticModule* module,XL6_OwnershipReadScopeV1* scope)
+{
+    if(!staticReadActive() || scope!=staticReadScope || module!=staticReadModule)abort();
+    bool nested=xrtAtomic32Load(&staticBoundaryGate,XMEMORY_ACQUIRE)==STATIC_BOUNDARY_FINALIZER_READ;
+    staticReadScope=NULL;staticReadModule=NULL;*scope=(XL6_OwnershipReadScopeV1){0};
+    if(nested)xrtAtomic32Store(&staticBoundaryGate,STATIC_BOUNDARY_RETIRE,XMEMORY_RELEASE);
+    else staticBoundaryLeave();
+}
 static bool staticHold(const void* data)
 {
     XL6_StaticModule* module=(XL6_StaticModule*)data;size_t count;
@@ -155,13 +225,17 @@ static bool staticResolve(xrtownershipref ref,void* data,const xrtownershipadapt
 static bool staticDiscover(XL6_ModuleOwnershipVisit visit,void* context,void* data)
 {
     XL6_StaticModule* module=data;size_t count;
-    return staticCount(data,&count) && xl6ClassOwnershipDiscoverV1(&module->owner.base,visit,context);
+    return staticCount(data,&count) && (!module->contract.discover || module->contract.discover(&module->owner.base,visit,context));
 }
 XL6_StaticModule* xl6StaticModuleCreateV1(const XL6_StaticModuleContractV1* contract)
 {
     if(!contract || contract->size!=sizeof(*contract) || !contract->graph ||
        contract->graph->size!=sizeof(*contract->graph) || contract->graph->abiTag!=0x584C364D525431ULL ||
-       !contract->graph->trace || !contract->graph->finish || !contract->resolve){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+       !contract->graph->trace || !contract->graph->finish || !contract->resolve ||
+       (contract->read && (contract->read->size!=sizeof(*contract->read) || contract->read->abiTag!=0x584C364D524431ULL ||
+        contract->read->trace!=contract->graph->trace)) || (!contract->read && contract->admitsRead)){
+        xrtSetErrorKind(XERR_ARGUMENT);return NULL;
+    }
     XL6_StaticModule* module=xrtCalloc(1,sizeof(*module));if(!module)return NULL;
     xrtAtomic32Init(&module->failed,0);
     module->lock=xrtMutexCreate();if(!module->lock){xrtFree(module);return NULL;}
@@ -173,13 +247,13 @@ const XL6_CodeOwner* xl6StaticModuleOwnerV1(const XL6_StaticModule* module)
 { return module ? &module->owner.base : NULL; }
 xrtownershipref xl6StaticModuleOwnershipV1(const XL6_StaticModule* module)
 { return (xrtownershipref){module,module ? &staticOps : NULL}; }
-XL6_StaticModuleResultV1 xl6StaticModuleRetireV1(XL6_StaticModule* module)
+static XL6_StaticModuleResultV1 staticRetire(XL6_StaticModule* module)
 {
     if(!module){xrtSetErrorKind(XERR_ARGUMENT);return (XL6_StaticModuleResultV1){false,false};}
     xrtownershipscope freeze={0};
     if(!xrtOwnershipFreezeTryBegin(&freeze))return (XL6_StaticModuleResultV1){false,!staticFailed(module)};
     if(module->running){if(!xrtOwnershipScopeEnd(&freeze))abort();return (XL6_StaticModuleResultV1){false,!staticFailed(module)};}
-    module->closing=true;module->entry=false;
+    module->blocked=false;module->closing=true;module->entry=false;
     if(xl6CodeOwnerScopeActive(&module->owner.base)){
         if(!xrtOwnershipScopeEnd(&freeze))abort();
         return (XL6_StaticModuleResultV1){false,!staticFailed(module)};
@@ -188,40 +262,43 @@ XL6_StaticModuleResultV1 xl6StaticModuleRetireV1(XL6_StaticModule* module)
     xl6_error_scope scope={0};bool begun=xl6ErrorScopeBegin(&scope);
     if(begun){
         if(module->phase==STATIC_START){
-            XL6_OwnershipPlanResult status=xl6OwnershipPlanTryCreateV4(xl6StaticModuleOwnershipV1(module),staticResolve,staticDiscover,module,&module->plan);
-            if(status==XL6_OWNERSHIP_PLAN_ERROR){xl6ErrorScopeCaptureFailure(&scope);goto end;}
+            XL6_OwnershipPlanResult status=xl6OwnershipPlanTryCreateV5(xl6StaticModuleOwnershipV1(module),staticResolve,staticDiscover,module,&module->plan);
+            if(status==XL6_OWNERSHIP_PLAN_ERROR){module->blocked=true;xl6ErrorScopeCaptureFailure(&scope);goto end;}
             if(status==XL6_OWNERSHIP_PLAN_BUSY)goto end;
+            if(status==XL6_OWNERSHIP_PLAN_ROOTED)module->blocked=true;
             module->phase=status==XL6_OWNERSHIP_PLAN_ROOTED ? STATIC_ABORT : status==XL6_OWNERSHIP_PLAN_PREPARATIONS ? STATIC_PREPARE : STATIC_FINALIZE;
         }
         if(module->phase==STATIC_PREPARE || module->phase==STATIC_FINALIZE){
             bool preparing=module->phase==STATIC_PREPARE;
             XL6_OwnershipStepResult status=preparing ? xl6OwnershipPlanPrepare(module->plan) : xl6OwnershipPlanFinalizeV2(module->plan);
             if(status==XL6_OWNERSHIP_STEP_FAILED || status==XL6_OWNERSHIP_STEP_ERROR){
+                if(preparing || status==XL6_OWNERSHIP_STEP_ERROR)module->blocked=true;
                 xl6ErrorScopeCaptureFailure(&scope);module->phase=STATIC_ABORT;
             }else if(status==XL6_OWNERSHIP_STEP_BUSY)goto end;
             else module->phase=preparing ? STATIC_FINALIZE : STATIC_COMMIT;
         }
         if(module->phase==STATIC_COMMIT){
             XL6_OwnershipPlanResult status=xl6OwnershipPlanTryCommit(module->plan);
-            if(status==XL6_OWNERSHIP_PLAN_ERROR){xl6ErrorScopeCaptureFailure(&scope);module->phase=STATIC_ABORT;}
-            else if(status==XL6_OWNERSHIP_PLAN_ROOTED)module->phase=STATIC_ABORT;
+            if(status==XL6_OWNERSHIP_PLAN_ERROR){module->blocked=true;xl6ErrorScopeCaptureFailure(&scope);module->phase=STATIC_ABORT;}
+            else if(status==XL6_OWNERSHIP_PLAN_ROOTED){module->blocked=true;module->phase=STATIC_ABORT;}
             else if(status==XL6_OWNERSHIP_PLAN_FINALIZERS)module->phase=STATIC_FINALIZE;
             else if(status==XL6_OWNERSHIP_PLAN_PREPARATIONS)module->phase=STATIC_PREPARE;
             else if(status==XL6_OWNERSHIP_PLAN_READY)module->phase=STATIC_FINISH;
         }
         if(module->phase==STATIC_FINISH){
             XL6_OwnershipStepResult status=xl6OwnershipPlanFinishV2(module->plan);
-            if(status==XL6_OWNERSHIP_STEP_FAILED || status==XL6_OWNERSHIP_STEP_ERROR)xl6ErrorScopeCaptureFailure(&scope);
+            if(status==XL6_OWNERSHIP_STEP_FAILED || status==XL6_OWNERSHIP_STEP_ERROR){module->blocked=true;xl6ErrorScopeCaptureFailure(&scope);}
             else if(status==XL6_OWNERSHIP_STEP_READY)module->phase=STATIC_DESTROY;
         }
         if(module->phase==STATIC_DESTROY || module->phase==STATIC_ABORT){
             bool committed=module->phase==STATIC_DESTROY;
             XL6_OwnershipPlanResult status=xl6OwnershipPlanTryDestroy(module->plan);
             if(status==XL6_OWNERSHIP_PLAN_READY){module->plan=NULL;module->phase=committed ? STATIC_DONE : STATIC_START;}
-            else if(status==XL6_OWNERSHIP_PLAN_ERROR)xl6ErrorScopeCaptureFailure(&scope);
+            else if(status==XL6_OWNERSHIP_PLAN_ERROR){module->blocked=true;xl6ErrorScopeCaptureFailure(&scope);}
         }
     end:;
     }
+    if(!begun)module->blocked=true;
     xl6_error_result outcome=begun ? xl6ErrorScopeEnd(&scope) : (xl6_error_result){false,xrtTakeError()};
     xrtownershipscope mutation={0};if(!xrtOwnershipMutationBegin(&mutation))abort();
     if(!outcome.ok && !staticFailed(module)){
@@ -235,7 +312,7 @@ XL6_StaticModuleResultV1 xl6StaticModuleRetireV1(XL6_StaticModule* module)
     if(!result.ok && !xrtGetError())xrtSetErrorTake(xrtErrorRef(module->firstError));
     return result;
 }
-bool xl6StaticModuleDestroyV1(XL6_StaticModule** pointer)
+static bool staticDestroy(XL6_StaticModule** pointer)
 {
     if(!pointer || !*pointer){xrtSetErrorKind(XERR_ARGUMENT);return false;}
     XL6_StaticModule* module=*pointer;xrtownershipscope freeze={0};
@@ -245,4 +322,29 @@ bool xl6StaticModuleDestroyV1(XL6_StaticModule** pointer)
     if(!ready){xrtSetErrorKind(XERR_STATE);return false;}
     if(!xrtMutexDestroy(module->lock))return false;
     xrtErrorFree(module->firstError);xrtFree(module);*pointer=NULL;return true;
+}
+XL6_StaticModuleResultV1 xl6StaticModuleRetireV1(XL6_StaticModule* module)
+{
+    if(!module){xrtSetErrorKind(XERR_ARGUMENT);return (XL6_StaticModuleResultV1){false,false};}
+    if(!staticBoundaryEnter(STATIC_BOUNDARY_RETIRE))return (XL6_StaticModuleResultV1){false,!staticFailed(module)};
+    XL6_StaticModuleResultV1 result=staticRetire(module);staticBoundaryLeave();return result;
+}
+XL6_StaticModuleResultV1 xl6StaticModuleDrainV1(XL6_StaticModule* module)
+{
+    if(!module){xrtSetErrorKind(XERR_ARGUMENT);return (XL6_StaticModuleResultV1){false,false};}
+    for(;;){
+        if(!staticBoundaryEnter(STATIC_BOUNDARY_RETIRE)){
+            if(xrtAtomic64Load(&staticBoundaryThread,XMEMORY_ACQUIRE)==xrtThreadCurrentId())
+                return (XL6_StaticModuleResultV1){false,!staticFailed(module)};
+            xrtThreadYield();continue;
+        }
+        XL6_StaticModuleResultV1 result=staticRetire(module);bool blocked=module->blocked;
+        staticBoundaryLeave();if(result.ready || blocked)return result;
+        xrtThreadYield();
+    }
+}
+bool xl6StaticModuleDestroyV1(XL6_StaticModule** pointer)
+{
+    if(!staticBoundaryEnter(STATIC_BOUNDARY_RETIRE))return false;
+    bool ok=staticDestroy(pointer);staticBoundaryLeave();return ok;
 }

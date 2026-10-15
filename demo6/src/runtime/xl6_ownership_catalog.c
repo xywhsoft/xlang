@@ -63,7 +63,7 @@ XL6_OwnershipCatalog* xl6OwnershipCatalogCreateV1(
 {
     if((count && !domains) || count>SIZE_MAX/sizeof(*domains)){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
     for(size_t i=0;i<count;++i){
-        if(!domains[i] || domains[i]->size!=sizeof(*domains[i]) || (!domains[i]->Load && !domains[i]->Resolve)){
+        if(!domains[i] || domains[i]->size!=sizeof(*domains[i]) || (!domains[i]->Load && !domains[i]->Resolve && !domains[i]->AdmitsRead)){
             xrtSetErrorKind(XERR_ARGUMENT);return NULL;
         }
         for(size_t j=0;j<i;++j)if(domains[i]==domains[j]){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
@@ -130,4 +130,12 @@ bool xl6OwnershipCatalogResolveV1(xrtownershipref ref,void* data,
     }
     if(!selected)return false;
     *adapter=selected;*preparation=pending;*completion=finish;return true;
+}
+bool xl6OwnershipCatalogAdmitsReadV1(xrtownershipref ref,void* data)
+{
+    const XL6_OwnershipCatalog* catalog=data;
+    if(!catalog || catalog->building)return false;
+    for(size_t i=0;i<catalog->count;++i)
+        if(catalog->domains[i]->AdmitsRead && catalog->domains[i]->AdmitsRead(ref))return true;
+    return false;
 }

@@ -28,6 +28,7 @@ int main(int argc,char** argv)
     options.workDir=root; options.tempDir=temporary; options.tccDllPath=runtime; options.tccLibPath=libraries;
     XLC_Context* compiler=xlcCreateContext(&options); if(!compiler) return 4;
     int ok=xlcAddIncludePath(compiler,headers) && xlcAddSourceFile(compiler,argv[1]);
+    if(ok && !strcmp(argv[2],"exe"))ok=xlcSetSaveTemps(compiler,1);
     char publicHeaders[8192];int h=snprintf(publicHeaders,sizeof(publicHeaders),"%s/release/include",root);
     ok=ok && h>=0 && (size_t)h<sizeof(publicHeaders) && xlcAddIncludePath(compiler,publicHeaders);
     for(int index=4; ok && index<argc; ++index) ok=xlcAddCSourceFile(compiler,argv[index]);

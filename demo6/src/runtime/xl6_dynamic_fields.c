@@ -2,6 +2,12 @@
 #include "src/api/xl_foreign_error.h"
 #include <limits.h>
 
+bool xl6DynamicFieldsReadAdmitsV1(xrtownershipref ref)
+{
+    const XL6_NativeHandlePolicyV1* policy=xl6DynamicFieldsHandlePolicyV1Get();
+    return xrtDynamicFieldsOwnershipAdapterV1(ref) || xrtValueHandleOwnershipAdapterV1(ref,policy->Ops,policy->Trace);
+}
+
 /* Trace is a pure physical edge query. The boxed handle owns one REAL XRT
  * object strong reference; that object in turn owns one Value per field slot.
  * Do not flatten slots, call a language method, or label this handle a leaf. */
