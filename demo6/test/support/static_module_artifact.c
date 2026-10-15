@@ -15,6 +15,14 @@ int main(int argc,char** argv)
     XL6_ArtifactRuntimeSet roots=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_STATIC_MODULE);
     assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_STACK));
     assert(xl6ArtifactRuntimeClosePlan(&roots,&plan));
+    XL6_ArtifactOwnershipPlan ownership={0};assert(xl6ArtifactOwnershipPlanBuild(&plan,&ownership));
+    plan=ownership.runtime;
+    char declarations[8192]={0};size_t used=0;
+    for(size_t i=0;i<ownership.domainCount;++i){
+        int bytes=snprintf(declarations+used,sizeof(declarations)-used,"%s(),\n",ownership.domains[i]);
+        assert(bytes>0 && (size_t)bytes<sizeof(declarations)-used);used+=(size_t)bytes;
+    }
+    writeText(argv[1],".domains.h",declarations);
     assert(!xl6XrtTrimRequiresFull(&imports,0));char* implementation=NULL;
     assert(xl6XrtTrimBuildImplementationSourceFromArtifact(&imports,0,plan.nativeModules,plan.nativeModuleCount,&implementation));
     assert(implementation);writeText(argv[1],".xrt.c",implementation);xrtFree(implementation);
@@ -23,5 +31,7 @@ int main(int argc,char** argv)
     for(size_t i=0;i<plan.sourceCount;++i)fprintf(file,"%s\"%s\"",i ? "," : "",plan.sources[i]);
     fputs("],\"NativeModules\":[",file);
     for(size_t i=0;i<plan.nativeModuleCount;++i)fprintf(file,"%s\"%s\"",i ? "," : "",plan.nativeModules[i]);
+    fputs("],\"Domains\":[",file);
+    for(size_t i=0;i<ownership.domainCount;++i)fprintf(file,"%s\"%s\"",i ? "," : "",ownership.domains[i]);
     fputs("]}\n",file);assert(!fclose(file));return 0;
 }

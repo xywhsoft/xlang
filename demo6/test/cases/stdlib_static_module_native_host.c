@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_static_module.h"
+#include "src/runtime/xl6_ownership_domains.h"
 #include "src/runtime/xl6_code_lease.h"
 #include "src/runtime/xl6_sequence.h"
 #include "src/runtime/xl6_stack.h"
@@ -9,6 +10,7 @@
 #include <string.h>
 #define REF_ARGS UINT64_C(102),UINT64_C(202),3,sizeof(xvalue*),xrtTypeValue()
 static XL6_StaticModule* module;
+static XL6_OwnershipCatalog* catalog;
 static xvalue* root;
 static unsigned finalized,finished,preflightCalls,finishBusy;
 static bool noDiagnostic,failFinalizer,failPreflight,failFinish,reenter,detached,environmentAlive;
@@ -34,17 +36,6 @@ static XL6_ModuleRetireResult step(void)
     if(failFinish){failFinish=false;if(!noDiagnostic || laterDiagnostic)xrtSetErrorKind(XERR_ARGUMENT);return XL6_MODULE_RETIRE_FAILED;}
     return finish() ? XL6_MODULE_RETIRE_READY : XL6_MODULE_RETIRE_FAILED;
 }
-static bool resolve(xrtownershipref ref,void* context,const xrtownershipadapterv1** adapter,
-    const xrtownershippreparationv1** preparation,const XL6_OwnershipFinishV1** completion)
-{
-    (void)context;*preparation=NULL;*completion=NULL;
-    *adapter=xl6ClassOwnershipAdapterV1(ref);
-    if(!*adapter)*adapter=xl6CodeLeaseOwnershipAdapterV1(ref);
-    if(!*adapter)*adapter=xl6SequenceOwnershipAdapterV1(ref);
-    if(!*adapter)*adapter=xrtErrorOwnershipAdapterV1(ref);
-    if(!*adapter)*adapter=xrtValueOwnershipAdapterV1(ref);
-    return *adapter!=NULL;
-}
 static bool finalize(xvalue* object,void* context)
 {
     (void)context;int64_t id=0;
@@ -66,7 +57,15 @@ static bool finalize(xvalue* object,void* context)
 static void setup(void)
 {
     static const XL6_ModuleRetirementV1 graph={sizeof(graph),0x584C364D525431ULL,trace,finish};
-    XL6_StaticModuleContractV1 contract={sizeof(contract),&graph,prepare,step,resolve,NULL};
+    const XL6_OwnershipDomainV1* domains[]={
+#if defined(XL6_TEST_SELECTED_OWNERSHIP_DOMAINS)
+#include "selected.domains.h"
+#else
+        xl6OwnershipDomainClassV1Get(),xl6OwnershipDomainCodeLeaseV1Get(),xl6OwnershipDomainSequenceV1Get()
+#endif
+    };
+    catalog=xl6OwnershipCatalogCreateV1(domains,sizeof(domains)/sizeof(*domains));assert(catalog);
+    XL6_StaticModuleContractV1 contract={sizeof(contract),&graph,prepare,step,xl6OwnershipCatalogResolveV1,catalog};
     module=xl6StaticModuleCreateV1(&contract);assert(module);environmentAlive=true;
     const XL6_ClassRuntimeV2* api=xl6ClassRuntimeV2Get();
     root=api->Create(xl6StaticModuleOwnerV1(module),finalize);assert(root);
@@ -109,6 +108,7 @@ static void run(unsigned mode)
     assert(result.ok==!observedFailure);
     XL6_CodeLease* closed=NULL;assert(xl6CodeLeaseAcquire(xl6StaticModuleOwnerV1(module),&closed)==XL6_CODE_LEASE_CLOSED && !closed);
     assert(xl6StaticModuleDestroyV1(&module) && !module);
+    xl6OwnershipCatalogDestroyV1(catalog);catalog=NULL;
     if(incoming){assert(xrtGetError()==incoming);xrtErrorFree(incoming);}
     xrtClearError();
     xrtMemDebugSnapshot(&after);
@@ -136,7 +136,8 @@ static bool oom(size_t point)
         result=xl6StaticModuleRetireV1(module);assert(hit ? !result.ok : result.ok);xrtClearError();
     }
     assert(result.ready && finalized==1 && finished==1 && !root);
-    assert(xl6StaticModuleDestroyV1(&module) && !module);xrtClearError();xrtMemDebugSnapshot(&after);
+    assert(xl6StaticModuleDestroyV1(&module) && !module);
+    xl6OwnershipCatalogDestroyV1(catalog);catalog=NULL;xrtClearError();xrtMemDebugSnapshot(&after);
     assert(before.LiveCount==after.LiveCount && before.LiveBytes==after.LiveBytes);
     assert(after.AllocCount-before.AllocCount==after.FreeCount-before.FreeCount);
     assert(before.InvalidFreeCount==after.InvalidFreeCount && before.DoubleFreeCount==after.DoubleFreeCount && before.UseAfterFreeCount==after.UseAfterFreeCount);

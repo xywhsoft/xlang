@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [对象图退役的精确策略目录](stdlib53-b302-ownership-policy-catalog.md)：独立能力声明、JIT 共用解析器和按需部署元数据，AOT 入口接线继续。
+
 - [独立模块拥有记录与可重试退役底座](stdlib53-b301-static-module-owner.md)：共同原生驱动、真实 lease 与可恢复清理；独立入口接线仍待完成。
 
 - [独立程序循环对象图退役缺陷与验收门](stdlib53-b300-aot-graph-retirement.md)：双端真实 AOT 的核心生命周期失败、无环对照及驻留协议修复要求。

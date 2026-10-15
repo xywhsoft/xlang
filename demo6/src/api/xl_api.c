@@ -30,6 +30,7 @@
 #include "src/runtime/xl6_value_iterator.h"
 #include "src/runtime/xl6_generator.h"
 #include "src/runtime/xl6_ownership_plan.h"
+#include "src/runtime/xl6_ownership_domains.h"
 #include "src/runtime/xl6_ownership_read.h"
 #include "src/api/xl_module_state.h"
 #include "src/api/xl_api_lock.h"
@@ -2533,6 +2534,19 @@ static XL_Module* xlCreateModuleFromState(XL_Context* ctx, TCCState* s)
             return NULL;
         }
     }
+    if(module->retirementContract){
+        const XL6_OwnershipDomainV1* domains[]={
+#define XL6_OWNERSHIP_DOMAIN_ENTRY(Producer, Component, Getter) Getter(),
+#include "src/runtime/xl6_ownership_domains.inc"
+#undef XL6_OWNERSHIP_DOMAIN_ENTRY
+        };
+        module->ownershipCatalog=xl6OwnershipCatalogCreateV1(domains,sizeof(domains)/sizeof(*domains));
+        if(!module->ownershipCatalog){
+            xlModuleLoadedLibrariesFree(module);xrtFree(module);
+            xlRuntimeReleaseManualUnlocked();xlSetError(ctx,"cannot initialize module ownership policy catalog");
+            return NULL;
+        }
+    }
     module->codeOwnerReady = 1;
     return module;
 }
@@ -2623,120 +2637,21 @@ static bool xlModuleFinishOwnership(const void* data, const void* token)
 static const XL6_OwnershipAdapterV1 xlModuleOwnershipAdapter = {sizeof(xlModuleOwnershipAdapter),
     xlModuleSnapshotHold, xlModuleSnapshotDrop, xlModuleClaim, xlModuleRestore,
     NULL, xlModuleClear, xlModuleFinishOwnership};
-static const XL6_OwnershipAdapterV1* xlModuleResolveOwnership(xrtownershipref ref, void* context)
-{
-    const XL6_OwnershipAdapterV1* adapter; (void)context;
-    if (ref.Ops == &xlModuleOwnershipOps && ref.Data) {
-        const XL_Module* module = ref.Data; size_t count;
-        return module->retirementContract && xlModuleOwnershipCount(module, &count) ? &xlModuleOwnershipAdapter : NULL;
-    }
-    if ((adapter = xl6ClosureOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter = xl6CellOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if((adapter=xl6SlotMapKeyValueOwnershipAdapterV1(ref))!=NULL) return adapter;
-    if((adapter=xl6ChannelOwnershipAdapterV1(ref))!=NULL) return adapter;
-    {
-        const XL6_SequenceAdmissionOpsV2* policies[]={xl6ArrayFutureAdmissionOpsV2Get(),
-            xl6ArraySemAdmissionOpsV2Get(),xl6ArraySyncAdmissionOpsV2Get(),xl6ArrayThreadAdmissionOpsV2Get(),
-            xl6ArraySlotMapKeyAdmissionOpsV2Get()};
-        size_t policyCount=sizeof(policies)/sizeof(*policies);
-        if ((adapter=xl6SpscQueueOwnershipAdapterV1(ref,policies,policyCount)) != NULL) return adapter;
-        if ((adapter=xl6MpscQueueOwnershipAdapterV1(ref,policies,policyCount)) != NULL) return adapter;
-        if ((adapter=xl6MpmcQueueOwnershipAdapterV1(ref,policies,policyCount)) != NULL) return adapter;
-        if ((adapter=xl6WaitQueueOwnershipAdapterV1(ref,policies,policyCount)) != NULL) return adapter;
-        if ((adapter=xl6SequenceOwnershipAdapterV2(ref,policies,policyCount)) != NULL) return adapter;
-        if ((adapter=xl6ListOwnershipAdapterV2(ref,policies,policyCount)) != NULL) return adapter;
-        if ((adapter=xl6SetOwnershipAdapterV2(ref,policies,policyCount)) != NULL) return adapter;
-        if ((adapter=xl6DictOwnershipAdapterV2(ref,policies,policyCount)) != NULL) return adapter;
-        if ((adapter=xl6SlotMapOwnershipAdapterV2(ref,policies,policyCount)) != NULL) return adapter;
-    }
-    if ((adapter=xl6TreeOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter=xl6SemOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter=xl6SyncOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter=xl6ThreadOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter = xl6ValueIteratorOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter = xrtValueCursorOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter = xl6CodeLeaseOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter = xl6ClassOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter = xrtValueCallableOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter = xrtValueFutureOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter = xl6PayloadOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter = xl6FutureAggregateOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter = xrtCancelOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter = xrtErrorOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter = xl6ErrorValueOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter = xrtNetAddrListOwnershipAdapterV1(ref)) != NULL) return adapter;
-    if ((adapter = xrtDynamicFieldsOwnershipAdapterV1(ref)) != NULL) return adapter;
-    {
-        const XL6_NativeHandlePolicyV1* policies[] = {
-            xl6ProcessCommandHandlePolicyV1Get(), xl6ProcessHandlePolicyV1Get(),
-            xl6ProcessStatusHandlePolicyV1Get(), xl6BufferIteratorHandlePolicyV1Get(),
-            xl6DynamicFieldsHandlePolicyV1Get()
-        };
-        for (size_t i = 0; i < sizeof(policies)/sizeof(*policies); ++i)
-            if ((adapter = xrtValueHandleOwnershipAdapterV1(ref,
-                    policies[i]->Ops, policies[i]->Trace)) != NULL) return adapter;
-    }
-    /* Unknown class/native policies and Future nodes still REFUSE before
-     * Count/Trace. Known Handle bridges do not authorize opaque children. */
-    return xrtValueOwnershipAdapterV1(ref);
-}
-static bool xlModuleResolveOwnershipV2(xrtownershipref ref, void* context,
-    const XL6_OwnershipAdapterV1** lifecycle, const xrtownershippreparationv1** preparation)
-{
-    enum {
-        XL6_RESIDENT_PAYLOAD_COUNT =
-            XL6_FUTURE_PAYLOAD_COUNT - XL6_FUTURE_PAYLOAD_VALUE
-    };
-    const XL6_OwnershipAdapterV1* adapter;
-    const xfuturepayloadownershipv1* payloads[XL6_RESIDENT_PAYLOAD_COUNT + 3];
-    const xfutureproducerownershipv1* producers[]={xl6FutureCallbackProducerPolicyV1Get(),xl6TaskProducerPolicyV1Get(),xrtTaskProducerPolicyV1Get(),xl6ContinuationProducerPolicyV1Get(),xrtFutureCombineProducerPolicyV1Get(),xrtNetResolverFutureProducerPolicyV1Get()};
-    const xfuturewatchownershipv1* watches[]={xl6FutureCallbackWatchPolicyV1Get(),xl6TaskWatchPolicyV1Get(),xl6ContinuationWatchPolicyV1Get()};
-    const xfuturewatchownershipv2* projectedWatches[]={xrtFutureCombineWatchPolicyV2Get()};
-    const xcancelwatchownershipv1* cancelWatches[]={xrtFutureCombineCancelPolicyV1Get(),xl6FutureCallbackCancelPolicyV1Get(),xrtNetResolverFutureCancelPolicyV1Get()};
-    const xfuturecombineownershipv1* aggregateMaps[]={xl6FutureAggregatePolicyV1Get()};
-    const xtaskdataownershipv1* tasks[]={xl6TaskNativeDataPolicyV1Get()};
-    const XL6_ContinuationStorageV2* queuedStorage[]={xl6ContinuationProducedStorageV2Get()};
-    const xnetresolveownershipv1* resolverRequests[]={xrtNetResolverFutureRequestPolicyV1Get()};
-    if((adapter=xl6ContinuationExecutorOwnershipAdapterV1(ref,preparation))!=NULL){*lifecycle=adapter;return true;}
-    if((adapter=xl6TaskPoolOwnershipAdapterV1(ref,preparation))!=NULL){*lifecycle=adapter;return true;}
-    if((adapter=xrtTaskPoolOwnershipAdapterV1(ref,preparation))!=NULL){*lifecycle=adapter;return true;}
-    if((adapter=xl6ContinuationQueueOwnershipAdapterV1(ref,queuedStorage,1,preparation))!=NULL){*lifecycle=adapter;return true;}
-    if((adapter=xl6FutureCallbackOwnershipAdapterV1(ref,preparation))!=NULL){*lifecycle=adapter;return true;}
-    if((adapter=xl6TaskOwnershipAdapterV1(ref,preparation))!=NULL){*lifecycle=adapter;return true;}
-    if((adapter=xl6GeneratorOwnershipAdapterV1(ref,preparation))!=NULL){*lifecycle=adapter;return true;}
-    if((adapter=xl6ContinuationFrameOwnershipAdapterV1(ref,preparation))!=NULL){*lifecycle=adapter;return true;}
-    if((adapter=xrtTaskOwnershipAdapterV1(ref,tasks,1,preparation))!=NULL){*lifecycle=adapter;return true;}
-    if((adapter=xrtFutureCombineOwnershipAdapterV1(ref,aggregateMaps,1,preparation))!=NULL){*lifecycle=adapter;return true;}
-    if((adapter=xrtCancelWatchOwnershipAdapterV1(ref,cancelWatches,sizeof(cancelWatches)/sizeof(*cancelWatches),preparation))!=NULL){*lifecycle=adapter;return true;}
-    if((adapter=xrtCancelOwnershipAdapterV2(ref,cancelWatches,sizeof(cancelWatches)/sizeof(*cancelWatches),preparation))!=NULL){*lifecycle=adapter;return true;}
-    for(unsigned i=0;i<XL6_RESIDENT_PAYLOAD_COUNT;++i)
-        payloads[i]=xl6PayloadPolicyGet((XL6_FuturePayloadKind)(XL6_FUTURE_PAYLOAD_VALUE+i));
-    payloads[XL6_RESIDENT_PAYLOAD_COUNT]=xrtFutureCombineAllPayloadPolicyV1Get();
-    payloads[XL6_RESIDENT_PAYLOAD_COUNT+1]=xrtFutureCombinePickPayloadPolicyV1Get();
-    payloads[XL6_RESIDENT_PAYLOAD_COUNT+2]=xrtNetResolverFuturePayloadPolicyV1Get();
-    const xfutureownershipadmissionv1 admission={sizeof(admission),payloads,
-        sizeof(payloads)/sizeof(*payloads),
-        producers,sizeof(producers)/sizeof(*producers),watches,sizeof(watches)/sizeof(*watches),
-        projectedWatches,1,cancelWatches,sizeof(cancelWatches)/sizeof(*cancelWatches)};
-    if((adapter=xrtFutureOwnershipAdapterV4(ref,&admission,preparation))!=NULL){*lifecycle=adapter;return true;}
-    if((adapter=xrtNetResolverFutureOwnershipAdapterV1(ref,preparation))!=NULL){*lifecycle=adapter;return true;}
-    if((adapter=xrtNetResolveOpOwnershipAdapterV1(ref,resolverRequests,1,preparation))!=NULL){*lifecycle=adapter;return true;}
-    if((adapter=xrtNetResolverOwnershipAdapterV1(ref,NULL,0,preparation))!=NULL){*lifecycle=adapter;return true;}
-    if((adapter=xrtNetEngineOwnershipAdapterV1(ref,NULL,0,NULL,0,preparation))!=NULL){*lifecycle=adapter;return true;}
-    adapter=xlModuleResolveOwnership(ref,context);
-    if(!adapter)return false;
-    *lifecycle=adapter;*preparation=NULL;return true;
-}
-static bool xlModuleResolveOwnershipV3(xrtownershipref ref, void* context,
-    const XL6_OwnershipAdapterV1** lifecycle, const xrtownershippreparationv1** preparation,
+static bool xlModuleResolveOwnershipV3(xrtownershipref ref,void* context,
+    const XL6_OwnershipAdapterV1** lifecycle,const xrtownershippreparationv1** preparation,
     const XL6_OwnershipFinishV1** completion)
 {
-    static const XL6_OwnershipFinishV1 moduleFinish = {sizeof(moduleFinish),
-        &xlModuleOwnershipAdapter, xlModuleFinishOwnershipV2};
-    if (!xlModuleResolveOwnershipV2(ref, context, lifecycle, preparation)) return false;
-    *completion = *lifecycle == &xlModuleOwnershipAdapter && ((const XL_Module*)ref.Data)->retirementStep
-        ? &moduleFinish : NULL;
-    return true;
+    static const XL6_OwnershipFinishV1 moduleFinish={sizeof(moduleFinish),
+        &xlModuleOwnershipAdapter,xlModuleFinishOwnershipV2};
+    *lifecycle=NULL;*preparation=NULL;*completion=NULL;
+    if(ref.Ops==&xlModuleOwnershipOps && ref.Data){
+        const XL_Module* module=ref.Data;size_t count;
+        if(!module->retirementContract || !xlModuleOwnershipCount(module,&count))return false;
+        *lifecycle=&xlModuleOwnershipAdapter;
+        *completion=module->retirementStep ? &moduleFinish : NULL;return true;
+    }
+    const XL_Module* module=context;
+    return module && xl6OwnershipCatalogResolveV1(ref,module->ownershipCatalog,lifecycle,preparation,completion);
 }
 static XL6_OwnershipStepResult xlModuleOwnershipStepV2(XL6_OwnershipPlan* plan,
     XL6_OwnershipStepResult (*step)(XL6_OwnershipPlan*),xl6_error_result* outcome)
@@ -2939,6 +2854,7 @@ static int xlModuleTryRetireUnlocked(XL_Module* module)
     xlModuleLoadedLibrariesFree(module);
     xlModuleUnqueueRetirementUnlocked(module);
     xrtErrorFree(module->retirementError);
+    xl6OwnershipCatalogDestroyV1(module->ownershipCatalog);
     ownsRuntimeRef = module->ownsRuntimeRef;
     module->ownsRuntimeRef = 0;
     /* 最后一个运行时引用会关闭 XRT 内存池，模块外壳必须在此之前释放。 */

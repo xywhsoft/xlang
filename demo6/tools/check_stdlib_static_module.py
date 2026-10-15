@@ -10,7 +10,9 @@ import argparse,hashlib,json,os,re,shutil,subprocess,sys,time
 SOURCES=('test/cases/stdlib_static_module_native_host.c','test/support/static_module_native.c',
     'src/runtime/xl6_static_module.c','src/runtime/xl6_sequence.c','src/runtime/xl6_stack.c',
     'src/runtime/xl6_code_lease.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_ownership_plan.c',
-    'src/api/xl_foreign_error.c')
+    'src/api/xl_foreign_error.c','src/runtime/xl6_ownership_catalog.c',
+    'src/runtime/xl6_ownership_domain_class.c','src/runtime/xl6_ownership_domain_code_lease.c',
+    'src/runtime/xl6_ownership_domain_sequence.c')
 
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
