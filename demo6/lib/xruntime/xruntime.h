@@ -5571,6 +5571,25 @@ typedef struct xrtownershippreparationv1 {
 	bool (*Ready)(const void* pData);
 	xrtownershipprepareresult (*Prepare)(const void* pData, const void* pToken);
 } xrtownershippreparationv1;
+
+/* Optional completion after Clear, distinct from semantic preparation.
+ * Exact Adapter identity and permanent code are admitted with this descriptor.
+ * Step runs outside freeze/mutation with all plan pins retained. BUSY makes
+ * no owning-edge change or semantic notification and never waits for another
+ * participant: the collector must try other duties, then retry. READY is
+ * idempotent; FAILED is explicit even without an allocated diagnostic.
+ * A consumer of this descriptor MUST use Step, not the V1 bool Finish slot,
+ * to distinguish an unfinished dependency from a cleanup failure. */
+typedef enum xrtownershipfinishresult {
+	XRT_OWNERSHIP_FINISH_FAILED = -1,
+	XRT_OWNERSHIP_FINISH_BUSY = 0,
+	XRT_OWNERSHIP_FINISH_READY = 1
+} xrtownershipfinishresult;
+typedef struct xrtownershipfinishv1 {
+	size_t size;
+	const xrtownershipadapterv1* Adapter;
+	xrtownershipfinishresult (*Step)(const void* pData, const void* pToken);
+} xrtownershipfinishv1;
 typedef struct xrtownershipresult {
 	size_t NodeCount;
 	size_t EdgeCount;
@@ -7267,6 +7286,23 @@ XRT_API const xrtownershipadapterv1* xrtCancelOwnershipAdapterV2(xrtownershipref
 XRT_API const xrtownershipadapterv1* xrtCancelWatchOwnershipAdapterV1(xrtownershipref Reference,
 	const xcancelwatchownershipv1* const* pPolicies, size_t iPolicyCount,
 	const xrtownershippreparationv1** ppPreparation);
+
+/* Post-Clear owner-driven retirement. Unlike the earlier adapters, these do
+ * not require or perform Unwatch before semantic finalization. Whole-graph
+ * freeze admits the same closed owned-policy set and rejects active/unknown
+ * observers. Clear prevents new notification without dropping any slot.
+ * The actual registration owner must detach and Unwatch during its Finish;
+ * Watch completion stays BUSY until that right is consumed and dispatch tails
+ * retire. Token completion stays BUSY while linked registrations remain.
+ * The returned completion is mandatory and must be admitted by exact Adapter
+ * identity; refusal leaves its output unchanged. No legacy observer is opted
+ * in, no request is delivered or undone, and abort leaves registration armed. */
+XRT_API const xrtownershipadapterv1* xrtCancelWatchOwnershipAdapterV2(xrtownershipref Reference,
+	const xcancelwatchownershipv1* const* pPolicies, size_t iPolicyCount,
+	const xrtownershipfinishv1** ppCompletion);
+XRT_API const xrtownershipadapterv1* xrtCancelOwnershipAdapterV3(xrtownershipref Reference,
+	const xcancelwatchownershipv1* const* pPolicies, size_t iPolicyCount,
+	const xrtownershipfinishv1** ppCompletion);
 
 
 
@@ -97087,7 +97123,7 @@ static bool __xrtCancelWatchIsCallbackThread(const xcancelwatch* pWatch)
 static xcancelproc __xrtCancelWatchStart(xcancelwatch* pWatch, ptr* ppData)
 {
 	if (
-		pWatch->Destroying || !pWatch->Armed ||
+		pWatch->Destroying || pWatch->OwnershipCleared || !pWatch->Armed ||
 		(__xrtAtomicRefLoad(&pWatch->Triggered) == 0) ||
 		pWatch->CallbackStarted
 	) {
@@ -97676,6 +97712,93 @@ XRT_API const xrtownershipadapterv1* xrtCancelOwnershipAdapterV2(xrtownershipref
 			pNode->Watch->Destroying || !__xrtCancelWatchPolicyKnown(pNode->Watch, pPolicies, iPolicyCount)) return NULL;
 	}
 	*ppPreparation = &Preparation; return &Adapter;
+}
+
+/* A retired owner keeps its registration and all physical slots until its
+ * own Finish consumes Unwatch. Disabling notification under the same freeze
+ * closes the gap between global Clear and that eventual owner duty. */
+static void __xrtCancelWatchClearV2(const void* pData, const void* pToken)
+{
+	xcancelwatch* pWatch = (xcancelwatch*)pData;
+	if (!pToken || pWatch->OwnershipClaim != pToken || !__xrtCancelWatchStable(pWatch)) abort();
+	pWatch->OwnershipCleared = true;
+}
+static xrtownershipfinishresult __xrtCancelWatchFinishV2(const void* pData, const void* pToken)
+{
+	xcancelwatch* pWatch = (xcancelwatch*)pData; bool bReady;
+	xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) return XRT_OWNERSHIP_FINISH_BUSY;
+	if (!pToken || pWatch->OwnershipClaim != pToken || !pWatch->OwnershipCleared) abort();
+	(void)xrtMutexLock(&pWatch->Lock);
+	bReady = __xrtCancelWatchPrepared(pData);
+	(void)xrtMutexUnlock(&pWatch->Lock);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	if (!bReady) return XRT_OWNERSHIP_FINISH_BUSY;
+	/* UnwatchDone is published after every list unlink. With no dispatch or
+	 * callback left, readiness cannot regress; the collector serializes Step. */
+	return __xrtCancelWatchAdapterFinish(pData, pToken)
+		? XRT_OWNERSHIP_FINISH_READY : XRT_OWNERSHIP_FINISH_FAILED;
+}
+static bool __xrtCancelWatchFinishV2Bool(const void* pData, const void* pToken)
+{ return __xrtCancelWatchFinishV2(pData, pToken) == XRT_OWNERSHIP_FINISH_READY; }
+XRT_API const xrtownershipadapterv1* xrtCancelWatchOwnershipAdapterV2(xrtownershipref Reference,
+	const xcancelwatchownershipv1* const* pPolicies, size_t iPolicyCount,
+	const xrtownershipfinishv1** ppCompletion)
+{
+	static const xrtownershipadapterv1 Adapter = {sizeof(Adapter), __xrtCancelWatchAdapterHold,
+		__xrtCancelWatchAdapterDrop, __xrtCancelWatchAdapterClaim, __xrtCancelWatchAdapterRestore,
+		NULL, __xrtCancelWatchClearV2, __xrtCancelWatchFinishV2Bool};
+	static const xrtownershipfinishv1 Completion = {sizeof(Completion), &Adapter, __xrtCancelWatchFinishV2};
+	const xcancelwatch* pWatch;
+	if (Reference.Ops != &__xrtCancelWatchOwnershipOps || !Reference.Data || !ppCompletion ||
+		(iPolicyCount && !pPolicies)) return NULL;
+	pWatch = Reference.Data;
+	if (!__xrtCancelWatchStable(pWatch) || __xrtAtomicRefLoad(&pWatch->RefCount) <= 0 ||
+		!__xrtCancelWatchPolicyKnown(pWatch, pPolicies, iPolicyCount)) return NULL;
+	*ppCompletion = &Completion; return &Adapter;
+}
+static void __xrtCancelClearV3(const void* pData, const void* pToken)
+{
+	xcancel* pCancel = (xcancel*)pData;
+	if (!pToken || pCancel->OwnershipClaim != pToken || pCancel->OwnershipCleared || pCancel->ActiveRequests) abort();
+	pCancel->OwnershipCleared = true;
+}
+static xrtownershipfinishresult __xrtCancelFinishV3(const void* pData, const void* pToken)
+{
+	xcancel* pCancel = (xcancel*)pData; xcancel* pParent; xrtownershipscope Mutation = {0};
+	if (!xrtOwnershipMutationBegin(&Mutation)) return XRT_OWNERSHIP_FINISH_BUSY;
+	if (!pToken || pCancel->OwnershipClaim != pToken || !pCancel->OwnershipCleared) abort();
+	(void)xrtMutexLock(&pCancel->Lock);
+	if (pCancel->WatchHead || pCancel->ActiveRequests) {
+		(void)xrtMutexUnlock(&pCancel->Lock);
+		if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+		return XRT_OWNERSHIP_FINISH_BUSY;
+	}
+	pParent = pCancel->Parent; pCancel->Parent = NULL;
+	(void)xrtMutexUnlock(&pCancel->Lock);
+	if (!xrtOwnershipScopeEnd(&Mutation)) abort();
+	xrtCancelDestroy(pParent); return XRT_OWNERSHIP_FINISH_READY;
+}
+static bool __xrtCancelFinishV3Bool(const void* pData, const void* pToken)
+{ return __xrtCancelFinishV3(pData, pToken) == XRT_OWNERSHIP_FINISH_READY; }
+XRT_API const xrtownershipadapterv1* xrtCancelOwnershipAdapterV3(xrtownershipref Reference,
+	const xcancelwatchownershipv1* const* pPolicies, size_t iPolicyCount,
+	const xrtownershipfinishv1** ppCompletion)
+{
+	static const xrtownershipadapterv1 Adapter = {sizeof(Adapter), __xrtCancelAdapterHold,
+		__xrtCancelAdapterDrop, __xrtCancelAdapterClaimV2, __xrtCancelAdapterRestoreV2,
+		NULL, __xrtCancelClearV3, __xrtCancelFinishV3Bool};
+	static const xrtownershipfinishv1 Completion = {sizeof(Completion), &Adapter, __xrtCancelFinishV3};
+	const xcancel* pCancel;
+	if (Reference.Ops != &__xrtCancelOwnershipOps || !Reference.Data || !ppCompletion ||
+		(iPolicyCount && !pPolicies)) return NULL;
+	pCancel = Reference.Data;
+	if (pCancel->OwnershipCleared || pCancel->ActiveRequests || __xrtAtomicRefLoad(&pCancel->RefCount) <= 0) return NULL;
+	for (const xcancelnode* pNode = pCancel->WatchHead; pNode; pNode = pNode->Next) {
+		if (!pNode->Linked || pNode->Cancel != pCancel || !__xrtCancelWatchStable(pNode->Watch) ||
+			pNode->Watch->Destroying || !__xrtCancelWatchPolicyKnown(pNode->Watch, pPolicies, iPolicyCount)) return NULL;
+	}
+	*ppCompletion = &Completion; return &Adapter;
 }
 
 #endif

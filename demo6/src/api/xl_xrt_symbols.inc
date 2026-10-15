@@ -1,5 +1,5 @@
 /* 由 tools/gen_xrt_symbol_table.py 或 .ps1 生成；不要手工修改。 */
-/* 当前登记 3656 个 XRT/xruntime 公共函数。 */
+/* 当前登记 3658 个 XRT/xruntime 公共函数。 */
 XL_XRT_SYMBOL(xrtAVLClear)
 XL_XRT_SYMBOL(xrtAVLFind)
 XL_XRT_SYMBOL(xrtAVLFirst)
@@ -200,6 +200,7 @@ XL_XRT_SYMBOL(xrtCancelDestroy)
 XL_XRT_SYMBOL(xrtCancelOwnership)
 XL_XRT_SYMBOL(xrtCancelOwnershipAdapterV1)
 XL_XRT_SYMBOL(xrtCancelOwnershipAdapterV2)
+XL_XRT_SYMBOL(xrtCancelOwnershipAdapterV3)
 XL_XRT_SYMBOL(xrtCancelRef)
 XL_XRT_SYMBOL(xrtCancelRequest)
 XL_XRT_SYMBOL(xrtCancelRequested)
@@ -209,6 +210,7 @@ XL_XRT_SYMBOL(xrtCancelWatch)
 XL_XRT_SYMBOL(xrtCancelWatchOwnedV1)
 XL_XRT_SYMBOL(xrtCancelWatchOwnership)
 XL_XRT_SYMBOL(xrtCancelWatchOwnershipAdapterV1)
+XL_XRT_SYMBOL(xrtCancelWatchOwnershipAdapterV2)
 XL_XRT_SYMBOL(xrtChaCha20)
 XL_XRT_SYMBOL(xrtChaCha20Poly1305Decrypt)
 XL_XRT_SYMBOL(xrtChaCha20Poly1305Encrypt)

@@ -8096,6 +8096,25 @@ typedef struct xrtownershippreparationv1 {
 	bool (*Ready)(const void* pData);
 	xrtownershipprepareresult (*Prepare)(const void* pData, const void* pToken);
 } xrtownershippreparationv1;
+
+/* Optional completion after Clear, distinct from semantic preparation.
+ * Exact Adapter identity and permanent code are admitted with this descriptor.
+ * Step runs outside freeze/mutation with all plan pins retained. BUSY makes
+ * no owning-edge change or semantic notification and never waits for another
+ * participant: the collector must try other duties, then retry. READY is
+ * idempotent; FAILED is explicit even without an allocated diagnostic.
+ * A consumer of this descriptor MUST use Step, not the V1 bool Finish slot,
+ * to distinguish an unfinished dependency from a cleanup failure. */
+typedef enum xrtownershipfinishresult {
+	XRT_OWNERSHIP_FINISH_FAILED = -1,
+	XRT_OWNERSHIP_FINISH_BUSY = 0,
+	XRT_OWNERSHIP_FINISH_READY = 1
+} xrtownershipfinishresult;
+typedef struct xrtownershipfinishv1 {
+	size_t size;
+	const xrtownershipadapterv1* Adapter;
+	xrtownershipfinishresult (*Step)(const void* pData, const void* pToken);
+} xrtownershipfinishv1;
 typedef struct xrtownershipresult {
 	size_t NodeCount;
 	size_t EdgeCount;
@@ -9792,6 +9811,23 @@ XRT_API const xrtownershipadapterv1* xrtCancelOwnershipAdapterV2(xrtownershipref
 XRT_API const xrtownershipadapterv1* xrtCancelWatchOwnershipAdapterV1(xrtownershipref Reference,
 	const xcancelwatchownershipv1* const* pPolicies, size_t iPolicyCount,
 	const xrtownershippreparationv1** ppPreparation);
+
+/* Post-Clear owner-driven retirement. Unlike the earlier adapters, these do
+ * not require or perform Unwatch before semantic finalization. Whole-graph
+ * freeze admits the same closed owned-policy set and rejects active/unknown
+ * observers. Clear prevents new notification without dropping any slot.
+ * The actual registration owner must detach and Unwatch during its Finish;
+ * Watch completion stays BUSY until that right is consumed and dispatch tails
+ * retire. Token completion stays BUSY while linked registrations remain.
+ * The returned completion is mandatory and must be admitted by exact Adapter
+ * identity; refusal leaves its output unchanged. No legacy observer is opted
+ * in, no request is delivered or undone, and abort leaves registration armed. */
+XRT_API const xrtownershipadapterv1* xrtCancelWatchOwnershipAdapterV2(xrtownershipref Reference,
+	const xcancelwatchownershipv1* const* pPolicies, size_t iPolicyCount,
+	const xrtownershipfinishv1** ppCompletion);
+XRT_API const xrtownershipadapterv1* xrtCancelOwnershipAdapterV3(xrtownershipref Reference,
+	const xcancelwatchownershipv1* const* pPolicies, size_t iPolicyCount,
+	const xrtownershipfinishv1** ppCompletion);
 
 
 
