@@ -1,0 +1,26 @@
+class NativeScalarResourceOwner
+    Stack<NativeScalarResourceOwner> cycle
+    Random generator = Random(uint64(42))
+    ProcessRunOptions options = ProcessRunOptions()
+    ProcessRunOptions idle = ProcessRunOptions()
+    File source
+    create(string path)
+        self.source = File(path, 1, 0, 7)
+    end
+    func link()
+        assert cycle.push(self)
+        assert options.cancel()
+    end
+    destroy()
+        assert generator.below(uint64(1)) == uint64(0)
+        assert options.requested
+        assert not idle.requested
+        assert not source.closed and source.size > uint64(0)
+        print("native-scalar-owner-finalized")
+    end
+end
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+NativeScalarResourceOwner root = NativeScalarResourceOwner(child)
+var alias = root
+root.link()

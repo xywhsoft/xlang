@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [取消选项和基础资源的驻留清理](stdlib53-b307-cancel-rng-file-owners.md)：取消令牌真实拥有边、Random 和 File 析构驻留，另六项资源继续审计。
+
 - [原生资源的精确拥有边与销毁](stdlib53-b306-native-resource-graphs.md)：22 项析构策略、真实内部拥有边、并发关闭和独立 AOT 验收，另九项资源继续审计。
 
 - [任务池空闲线程的拥有图准入](stdlib53-b305-task-pool-idle.md)：clear 续体 AOT 退役失败根因、确定性回归与核心修复的精确同步范围。

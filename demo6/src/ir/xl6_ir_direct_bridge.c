@@ -187,7 +187,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
     {"xl6ProcessCommandStdioV1",T,XL6_IR_C_ABI_VOID,3,{V,I,I},.parameterOwners={"xl6ProcessCommandDestroyV1"}},
     {"xl6ProcessCommandFileV1",T,XL6_IR_C_ABI_VOID,3,{V,I,V},.parameterOwners={"xl6ProcessCommandDestroyV1",NULL,"xl6_xrt_fs_file_destroy"}},
     {"xl6ProcessRunOptionsCreateV1",T,V,6,{I,I,I,I,I,U},.resultOwner="xl6ProcessRunOptionsDestroyV1"},
-    {"xl6ProcessRunOptionsDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessRunOptionsDestroyV1"},.noRaise=1},
+    {"xl6ProcessRunOptionsDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ProcessRunOptionsDestroyV1"},.noRaise=1,.nativeHandlePolicy="xl6ProcessRunOptionsHandlePolicyV1Get"},
     {"xl6ProcessRunOptionsCancelV1",T,B,1,{V},.parameterOwners={"xl6ProcessRunOptionsDestroyV1"}},
     {"xl6ProcessRunOptionsRequestedV1",T,B,1,{V},.parameterOwners={"xl6ProcessRunOptionsDestroyV1"}},
     {"xl6ProcessRunV1",T,V,4,{V,V,Y,I},.resultOwner="xl6ProcessResultDestroyV1",.parameterOwners={"xl6ProcessCommandDestroyV1","xl6ProcessRunOptionsDestroyV1"}},
@@ -634,6 +634,19 @@ const char* xl6IrRuntimeNativeHandlePolicyForName(const char* name)
                 if (contract->nativeHandlePolicy != NULL && strlen(contract->name) == length-2 &&
                     memcmp(name+1,contract->name,length-2) == 0) return contract->nativeHandlePolicy;
             }
+    }
+    /* Dedicated bridge families use the same exact resource declaration as
+     * direct calls. This is linkage metadata, not Cgen symbol heuristics. */
+    if(name){
+        size_t length=strlen(name);const char* canonical=name;
+        if(length>=2 && name[0]=='"' && name[length-1]=='"'){canonical=name+1;length-=2;}
+        static const struct {const char* owner;const char* getter;} resources[]={
+#define XL6_NATIVE_RESOURCE_POLICY(Owner,Component,Getter) {Owner,#Getter},
+#include "src/runtime/xl6_native_resource_policies.inc"
+#undef XL6_NATIVE_RESOURCE_POLICY
+        };
+        for(size_t i=0;i<sizeof(resources)/sizeof(resources[0]);++i)
+            if(resources[i].owner && strlen(resources[i].owner)==length && !memcmp(canonical,resources[i].owner,length))return resources[i].getter;
     }
     return NULL;
 }

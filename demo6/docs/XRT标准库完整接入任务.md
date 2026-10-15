@@ -2,6 +2,10 @@
 
 ## 1. 目标
 
+ProcessRunOptions、Random 和 File 的驻留清理进展见
+[取消选项和基础资源的驻留清理](stdlib53-b307-cancel-rng-file-owners.md)。
+可达原生待审入口由九项降至六项，完整发布目标继续。
+
 22 项原生析构入口的布局审计、精确拥有边与双端 AOT 验收见
 [原生资源的精确拥有边与销毁](stdlib53-b306-native-resource-graphs.md)。
 31 项入口中的另九项、终端竞态、完整 exit 及发布总门继续。

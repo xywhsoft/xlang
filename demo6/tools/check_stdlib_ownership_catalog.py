@@ -57,7 +57,7 @@ def main():
         actual=(root/'src/runtime/xl6_ownership_domains.h').read_text(encoding='utf-8')
         assert closed_headers(actual) and not closed_headers(actual+'\n#include "xl6_ownership_domains.inc"\n')
         domains=sorted((root/'src/runtime').glob('xl6_ownership_domain_*.c'))
-        assert len(domains)==60
+        assert len(domains)==63
         for source in domains:
             includes=re.findall(r'^#\s*include "([^"]+)"',source.read_text(encoding='utf-8'),re.M)
             assert 'include/xruntime_decl.h' in includes and not any(name.startswith('release/') for name in includes),source

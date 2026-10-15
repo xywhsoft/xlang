@@ -30,7 +30,7 @@ static void xl6IrCgenEmitRandomRuntime(XL6_Output* out, unsigned int operations)
             "  return value; }\n\n", out);
     if (explicit)
         xl6OutputPuts(
-            "typedef struct xlir_random_state { xrng rng; uint64_t owner; } xlir_random_state;\n\n", out);
+            "#include <__xl_runtime/xl6_random_state.h>\n\n", out);
     if (explicit & ~(XL6_CGEN_RNG_CREATE | XL6_CGEN_RNG_CREATE_DEFAULT |
             XL6_CGEN_RNG_DESTROY))
         xl6OutputPuts(
@@ -39,33 +39,11 @@ static void xl6IrCgenEmitRandomRuntime(XL6_Output* out, unsigned int operations)
             "  if (state == NULL || state->owner != xrtThreadCurrentId() || !xrtRngReady(&state->rng))\n"
             "    { xrtSetErrorKind(XERR_STATE); return NULL; }\n"
             "  return &state->rng; }\n\n", out);
-    if (operations & (XL6_CGEN_RNG_CREATE | XL6_CGEN_RNG_CREATE_DEFAULT |
-            XL6_CGEN_RNG_SEED))
+    if (operations & XL6_CGEN_RNG_SEED)
         xl6OutputPuts(
             "static bool xlir_random_stream(uint64_t stream)\n"
             "{ if ((stream >> 63u) != 0) { xrtSetErrorKind(XERR_RANGE); return false; }\n"
             "  return true; }\n\n", out);
-    if (operations & (XL6_CGEN_RNG_CREATE | XL6_CGEN_RNG_CREATE_DEFAULT))
-        xl6OutputPuts(
-            "static void* xlir_random_create(uint64_t seed, uint64_t stream)\n"
-            "{ xlir_random_state* state; if (!xlir_random_stream(stream)) return NULL;\n"
-            "  state = (xlir_random_state*)xrtMalloc(sizeof(*state));\n"
-            "  if (state == NULL) return NULL;\n"
-            "  state->owner = xrtThreadCurrentId();\n"
-            "  xrtRngSeed(&state->rng, seed, stream); return state; }\n\n", out);
-    if (operations & XL6_CGEN_RNG_CREATE)
-        xl6OutputPuts(
-            "void* xl6_xrt_rng_create(uint64_t seed, uint64_t stream)\n"
-            "{ return xlir_random_create(seed, stream); }\n\n", out);
-    if (operations & XL6_CGEN_RNG_CREATE_DEFAULT)
-        xl6OutputPuts(
-            "void* xl6_xrt_rng_create_default(uint64_t seed)\n"
-            "{ return xlir_random_create(seed, 1u); }\n\n", out);
-    if (operations & XL6_CGEN_RNG_DESTROY)
-        xl6OutputPuts(
-            "void xl6_xrt_rng_destroy(void* handle)\n"
-            "{ if (handle != NULL) { xrtSecureZero(handle, sizeof(xlir_random_state)); xrtFree(handle); }\n"
-            "}\n\n", out);
     if (operations & XL6_CGEN_RNG_SEED)
         xl6OutputPuts(
             "void xl6_xrt_rng_seed(void* handle, uint64_t seed, uint64_t stream)\n"

@@ -1,5 +1,6 @@
 #ifndef XL6_FS_FILE_H
 #define XL6_FS_FILE_H
+void xl6_xrt_fs_file_destroy(void* handle);
 /* Fixed File resource projection, shared by generated filesystem operations
  * and resident consumers. This owns only an XRT resource, not a language object.
  * References protect lifetime; cursor/IO/explicit close still require caller
