@@ -2,6 +2,10 @@
 
 ## 1. 目标
 
+clear 续体独立 AOT 的原生池空闲检查修复及精确移植范围见
+[任务池空闲线程的拥有图准入](stdlib53-b305-task-pool-idle.md)。
+确定性原生回归与真实产品验收分别记录，完整三组目标不缩减。
+
 Context／Buffer 的驻留拥有合同、嵌套 SDK 修复及 31 个可达原生
 入口审计清单见
 [原生 Context 和 Buffer 的驻留拥有合同](stdlib53-b304-xlang-context-policy.md)。

@@ -1,0 +1,23 @@
+{
+  "Schema": 1,
+  "Purpose": "Admit exact idle task-pool ownership before workers first park",
+  "Integration": "Reviewed function backport, not a full upstream snapshot refresh",
+  "CanonicalBase": "13332753c01fd4074e5937c3858cc060dc7e3008",
+  "CanonicalTree": "ab9d22740b091141a4dbabecb569df27008462fe",
+  "CanonicalSource": "src/concurrency/task_pool.c",
+  "CanonicalSourceSha256": "bbb11ea413ab4b70ed8312c47f413edb4792a6f8f1ced1d0711a9f60374d7f7a",
+  "FunctionSha256": "f6e1bc6e98f2d8e82346257c786d72fe1b8768fe4255057c7fc086c2066ad8e8",
+  "ConsumerBase": "9b227ee19c522e8636315c02f38f7dc767041a58",
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "ba620567a03b82f41c9e22308ab69aee59db0914a36cb95806e28faf8ffd7d19",
+      "AfterSha256": "e3389ba5741405f8ddb1017b9087013223eadbfe128e3bd68597a6913dcdf01a"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "c49325520308fdfec80a6bfbc325df6a6b786e53d2859e465ae945b9f234083f",
+      "AfterSha256": "0050f6ffa65b42d61e6f5f7e500fdffbfdbb7ab31336359b4da0a0887d86f3b2"
+    }
+  ]
+}
