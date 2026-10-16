@@ -23,8 +23,12 @@ def main():
     quote=task/'test/cases/stdlib_process_shell_quotes.xl'
     pathFixture=task/'test/cases/stdlib_process_path_parts.xl'
     pathHost=task/'test/cases/stdlib_path_build_product_host.c'
+    childSource=task/'test/cases/xlir_process_child.c'
+    terminalFixtures={stem:task/'test/cases'/(stem+'.xl') for stem in
+        ('stdlib_process_terminal_session','stdlib_process_terminal_event_order')}
     cases=sorted((root/'test/cases').glob('stdlib_*.xl'));cases=[s for s in cases if inventory.PREFIX.match(s.name)]
     cases=[quote if s.stem==quote.stem else s for s in cases]
+    cases=[terminalFixtures.get(s.stem,s) for s in cases]
     if not any(s.stem==pathFixture.stem for s in cases):cases.append(pathFixture);cases.sort()
     assert cases
     gates=[('headers','check_stdlib_runtime_header_vfs.py',None,True),
@@ -37,13 +41,14 @@ def main():
         # This assertion runner may follow the pinned product build. Its only
         # native code observes callbacks through the embedded SDK; production
         # sources, headers and providers still come exclusively from the build.
-        ('aot-graphs',task/'tools/check_stdlib_aot_graph_retirement.py','results.json',True)]
+        ('aot-graphs',task/'tools/check_stdlib_aot_graph_retirement.py','results.json',True),
+        ('terminal',task/'tools/check_stdlib_terminal_shipping.py','results.json',True)]
     if not windows:gates.append(('elf','check_stdlib_sync_shipping_elf.py','sync.shipping.elf.json',True))
     products=[root/'release'/n for n in (('xl.exe','xl.dll','xlc.dll') if windows else ('xl','libxl.so','libxlc.so'))]
     recorded={Path(row['Path']).resolve():row['Sha256'] for row in build['Products']}
     assert all(recorded[f]==sha(f) for f in products)
     files={Path(__file__).resolve(),Path(cc),Path(sys.executable),a.build_report.resolve(),host,quote,pathFixture,pathHost,
-        Path(inventory.__file__),Path(execution.__file__),root/'test/cases/stdlib_string_support.c',root/'test/cases/xlir_process_child.c',*cases}
+        Path(inventory.__file__),Path(execution.__file__),root/'test/cases/stdlib_string_support.c',childSource,*cases}
     files.update(root/'tools'/g[1] for g in gates)
     files.update(root/'test/cases'/name for name in execution.FIXTURE_C_SUPPORT.values())
     for row in build['Inputs']+build['Products']:assert sha(row['Path'])==row['Sha256'];files.add(Path(row['Path']))
@@ -66,6 +71,7 @@ def main():
     report=dict(Complete=False,InputsUnchanged=False,Scope=__doc__,Inputs=inputs,Rows=rows,Cases=records,Children=children,Failures=failures,
         CandidateCount=len(cases),ExplicitSubset=False,SourceProductAcceptance=True,ProviderOverrides=False,EmbeddedVfsWithoutFallback=True,
         AllExecutablePassed=False,HostedProductAcceptance=False,AotGraphRetirementAcceptance=False,
+        TerminalReadinessAcceptance=False,
         Full53Acceptance=False,FunctionCoverageAcceptance=False,WorkerWideOomAcceptance=False)
     def save():(out/'results.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     def run(name,command,directory=isolated,environment=env,timeout=180):
@@ -81,7 +87,7 @@ def main():
         libs=[isolated/'release/xlc.dll'] if windows else ['-L'+str(isolated/'release'),'-lxlc','-Wl,-rpath,$ORIGIN/release','-pthread','-ldl','-lm']
         row,data=run('fixture-host-build',[cc,'-std=c11','-Wall','-Wextra','-Werror','-O2','-DXL_STATIC_EMBED','-I'+str(root/'release/include'),host,*libs,'-o',binary]);assert row['Exit']==0,data[-4000:]
         child=out/('process-child'+('.exe' if windows else ''))
-        row,data=run('process-child-build',[cc,'-std=c11','-Wall','-Wextra','-Werror','-O2',*(['-municode'] if windows else ['-D_GNU_SOURCE']),root/'test/cases/xlir_process_child.c','-o',child]);assert row['Exit']==0,data[-4000:]
+        row,data=run('process-child-build',[cc,'-std=c11','-Wall','-Wextra','-Werror','-O2',*(['-municode'] if windows else ['-D_GNU_SOURCE']),childSource,'-o',child]);assert row['Exit']==0,data[-4000:]
         env['XL6_PROCESS_CHILD']=str(child);(isolated/'build/test').mkdir(parents=True)
         def fixture(source):
             record=dict(Name=source.stem,Rows=[],Executed=False,Passed=False);text=source.read_text(encoding='utf-8-sig')
@@ -142,6 +148,7 @@ def main():
         if row['Exit']!=0:failures.append(dict(Name='path-parts-aot',Error=data.decode(errors='replace')[-6000:]))
         report['HostedProductAcceptance']=all(c['Passed'] for c in children if c['Name'] in ('graphs','clear'))
         report['AotGraphRetirementAcceptance']=any(c['Name']=='aot-graphs' and c['Passed'] for c in children)
+        report['TerminalReadinessAcceptance']=any(c['Name']=='terminal' and c['Passed'] for c in children)
         report['UnexecutedRequirements']=[c['Name'] for c in records if c['Status']=='requires-platform']
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
         report['Complete']=report['InputsUnchanged'] and report['AllExecutablePassed'] and len(children)==len(gates) and not failures
