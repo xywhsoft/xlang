@@ -10,7 +10,8 @@ typedef struct xvalue xvalue;
 /* Borrowed receiver, exact signed sparse key; one independent owned Value.
  * Missing returns the canonical null Value, not failure. Native projection and
  * admission run under the owner's pin. Failure, including without diagnostics,
- * returns NULL and latches the enclosing checked boundary. Legacy IntMap is an
+ * returns NULL and publishes its owned diagnostic without failing the caller's
+ * enclosing callback scope. Legacy IntMap is an
  * explicit migration input, not a native handle or a schema fallback. */
 XL6_LIST_VALUE_READ_API xvalue* xl6ListValueReadCopyV1(const xvalue*,int64_t);
 /* Safe nullable receiver: C NULL / canonical null is a normal owned miss;

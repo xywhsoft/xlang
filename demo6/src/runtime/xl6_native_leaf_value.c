@@ -18,15 +18,14 @@ bool xl6NativeLeafValueProfileValidV1(const XL6_NativeLeafValueProfileV1* profil
         (type->Flags&XRT_TYPE_FLAG_COPYABLE) && !(type->Flags&XRT_TYPE_FLAG_REFERENCE);
 }
 static bool enter(xl6_error_scope* scope)
-{
-    if (xl6ErrorScopeBegin(scope)) return true;
-    xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return false;
-}
+{ return xl6ErrorScopeBegin(scope); }
 static bool finish(xl6_error_scope* scope,bool success)
 {
     if (!success || xrtGetError() || scope->failed) xl6ErrorScopeCaptureFailure(scope);
     xl6_error_result result=xl6ErrorScopeEnd(scope);
-    if (!result.ok) xl6ErrorScopePropagateFailure(result);
+    /* Copy/unbox return checked status; boxing returns an owned Value or
+     * NULL. These outcomes must not escape an enclosing language catch. */
+    if (!result.ok) xrtSetErrorTake(result.error);
     return result.ok;
 }
 static bool aligned(const void* value,const xrttype* type)
@@ -122,7 +121,10 @@ xvalue* xl6NativeLeafValueBoxV1(const XL6_NativeLeafValueProfileV1* profile,cons
     }
     if (!result) xl6ErrorScopeCaptureFailure(&scope);
     drop(box,NULL);
-    if (!finish(&scope,result!=NULL)) { xrtValueRelease(result); return NULL; }
+    if (xrtGetError() || scope.failed) {
+        xl6ErrorScopeCaptureFailure(&scope); xrtValueRelease(result); result=NULL;
+    }
+    if (!finish(&scope,result!=NULL)) return NULL;
     return result;
 }
 bool xl6NativeLeafValueUnboxV1(const xvalue* value,const XL6_NativeLeafValueProfileV1* profile,void* output)

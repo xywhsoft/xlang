@@ -5,9 +5,7 @@
 static xvalue* read(const xvalue* source,int64_t key,bool safe,bool required)
 {
     xl6_error_scope scope={0};
-    if (!xl6ErrorScopeBegin(&scope)) {
-        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return NULL;
-    }
+    if (!xl6ErrorScopeBegin(&scope)) return NULL;
     xvalue* result=NULL; bool found=false,success=false;
     if (safe && (!source || xrtValueType(source)==XVALUE_NULL)) success=true;
     else if (!source) xrtSetErrorKind(XERR_ARGUMENT);
@@ -28,7 +26,7 @@ static xvalue* read(const xvalue* source,int64_t key,bool safe,bool required)
         xl6ErrorScopeCaptureFailure(&scope); xrtValueRelease(result); result=NULL;
     }
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
-    if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
+    if (!outcome.ok) xrtSetErrorTake(outcome.error);
     return result;
 }
 xvalue* xl6ListValueReadCopyV1(const xvalue* source,int64_t key)

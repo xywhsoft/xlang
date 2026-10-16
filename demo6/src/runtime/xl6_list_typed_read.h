@@ -13,7 +13,9 @@
  * Value boxing or schema copies. IntMap is an explicit migration input only.
  * Missing typed keys are checked RANGE errors; scalar zero/false is valid.
  * String returns an independent length-bearing owner, including embedded NUL.
- * Failures also latch the enclosing scope when no diagnostic is available. */
+ * Scalar payloads latch the enclosing checked call scope when no diagnostic
+ * is available. String instead returns NULL Data on failure and publishes the
+ * owned diagnostic locally; a language catch may consume that outcome. */
 XL6_LIST_TYPED_READ_API int64_t xl6ListReadI64V1(const xvalue*,uint64_t,uint64_t,uint64_t,int64_t);
 XL6_LIST_TYPED_READ_API uint64_t xl6ListReadU64V1(const xvalue*,uint64_t,uint64_t,uint64_t,int64_t);
 XL6_LIST_TYPED_READ_API bool xl6ListReadBoolV1(const xvalue*,uint64_t,uint64_t,uint64_t,int64_t);

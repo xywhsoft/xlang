@@ -6,9 +6,7 @@ xstrview xl6ListReadStringV1(const xvalue* source,uint64_t identity,uint64_t sch
     uint64_t element,int64_t key)
 {
     xstrview result={0},view={0}; xl6_error_scope scope={0};
-    if (!xl6ErrorScopeBegin(&scope)) {
-        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return result;
-    }
+    if (!xl6ErrorScopeBegin(&scope)) return result;
     const xvalue* wire=NULL; xvalue* pin=NULL;
     int status=xl6ListTypedReadSlot(source,identity,schema,element,key,2,sizeof(result),
         xl6StringTypeV1(),&result,&wire);
@@ -26,6 +24,9 @@ xstrview xl6ListReadStringV1(const xvalue* source,uint64_t identity,uint64_t sch
     xrtValueRelease(pin);
     if (xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
     if (scope.failed) { xrtFree((void*)result.Data); result=(xstrview){0}; }
-    (void)xl6ListTypedReadFinish(&scope,success);
+    /* Unlike zero/false scalar payloads, string has its own NULL Data failure
+     * carrier. End locally so the language catch owns this checked outcome. */
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    if (!outcome.ok) xrtSetErrorTake(outcome.error);
     return result;
 }

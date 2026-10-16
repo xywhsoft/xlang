@@ -17,18 +17,26 @@ typedef struct SlotMapOwner {
     bool cleared;
 } SlotMapOwner;
 
-static bool scopeFinish(xl6_error_scope* scope,bool success)
+static xl6_error_result scopeOutcome(xl6_error_scope* scope,bool success)
 {
     if (!success || xrtGetError() || scope->failed) xl6ErrorScopeCaptureFailure(scope);
-    xl6_error_result result=xl6ErrorScopeEnd(scope);
-    if (!result.ok) xl6ErrorScopePropagateFailure(result);
+    return xl6ErrorScopeEnd(scope);
+}
+/* Language SlotMap operations use explicit NULL/false/status carriers. Only
+ * internal void cleanup and ownership callbacks propagate out of a scope. */
+static bool scopeFinish(xl6_error_scope* scope,bool success)
+{
+    xl6_error_result result=scopeOutcome(scope,success);
+    if (!result.ok) xrtSetErrorTake(result.error);
     return result.ok;
 }
-static bool scopeBegin(xl6_error_scope* scope)
+static void scopePropagate(xl6_error_scope* scope,bool success)
 {
-    if (xl6ErrorScopeBegin(scope)) return true;
-    xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return false;
+    xl6_error_result result=scopeOutcome(scope,success);
+    if (!result.ok) xl6ErrorScopePropagateFailure(result);
 }
+static bool scopeBegin(xl6_error_scope* scope)
+{ return xl6ErrorScopeBegin(scope); }
 static void mutationBegin(xrtownershipscope* scope)
 { if (!xrtOwnershipMutationBegin(scope)) abort(); }
 static void mutationEnd(xrtownershipscope* scope)
@@ -87,7 +95,7 @@ static void discard(xvalue* value)
     if (!value) return;
     xerror* incoming=xrtErrorRef(xrtGetError()); xl6_error_scope cleanup={0};
     if (xl6ErrorScopeBeginCleanup(&cleanup,false)) {
-        xrtErrorFree(incoming); xrtValueRelease(value); (void)scopeFinish(&cleanup,true);
+        xrtErrorFree(incoming); xrtValueRelease(value); scopePropagate(&cleanup,true);
     } else {
         xerror* prior=incoming ? incoming : xrtTakeError(); xrtClearError();
         xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtErrorRef(prior)});
@@ -111,7 +119,7 @@ static void drop(ptr opaque,ptr context)
     }
     storageDestroy(&owner->storage,storageType(owner),entered ? &cleanup : NULL);
     xl6SequenceAdmissionDropV3(&owner->policy); xl6SlotMapInstanceDropV1(owner->instance); xrtFree(owner);
-    if (entered) (void)scopeFinish(&cleanup,true);
+    if (entered) scopePropagate(&cleanup,true);
     else { xrtClearError(); xrtSetErrorTake(prior); }
 }
 static bool retain(ptr opaque,ptr* output,ptr context)
@@ -220,9 +228,12 @@ static bool ownershipFinish(const void* raw,const void* token)
 {
     SlotMapOwner* owner=(SlotMapOwner*)raw; if (!token || owner->claim!=token || !owner->cleared) abort();
     xl6_error_scope cleanup={0},work={0}; if (!xl6ErrorScopeBeginCleanup(&cleanup,false)) return false;
-    if (!scopeBegin(&work)) { (void)scopeFinish(&cleanup,false); return false; }
+    if (!scopeBegin(&work)) { scopePropagate(&cleanup,false); return false; }
     xslotmap retired=owner->retired; owner->retired=(xslotmap){0}; storageDestroy(&retired,storageType(owner),&work);
-    bool success=scopeFinish(&work,true); (void)scopeFinish(&cleanup,true); return success;
+    xl6_error_result completed=scopeOutcome(&work,true);
+    bool success=completed.ok;
+    if (!success) xl6ErrorScopePropagateFailure(completed);
+    scopePropagate(&cleanup,true); return success;
 }
 const xrtownershipadapterv1* xl6SlotMapOwnershipAdapterV2(xrtownershipref ref,
     const XL6_SequenceAdmissionOpsV2* const* allowed,size_t count)
@@ -260,7 +271,10 @@ done:
     if (!result) xl6ErrorScopeCaptureFailure(&scope);
     if (owner) drop(owner,NULL);
     xl6SequenceAdmissionDropV3(&policy); discard(witness);
-    if (!scopeFinish(&scope,result!=NULL)) { discard(result); return NULL; }
+    if (scope.failed || xrtGetError()) {
+        xl6ErrorScopeCaptureFailure(&scope); discard(result); result=NULL;
+    }
+    if (!scopeFinish(&scope,result!=NULL)) return NULL;
     return result;
 }
 static bool admits(const SlotMapOwner* owner,const void* input)
@@ -331,7 +345,7 @@ bool xl6SlotMapReadV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout,XL6_
     if (success) *found=result;
     else if (copied) {
         xerror* incoming=xrtErrorRef(xrtGetError()); xl6_error_scope cleanup={0};
-        if (xl6ErrorScopeBeginCleanup(&cleanup,false)) {
+        if (xl6ErrorScopeBeginCleanup(&cleanup,true)) {
             xrtErrorFree(incoming); xrtTypeDropValue(type,output); memset(output,0,size);
             (void)scopeFinish(&cleanup,true);
         } else {
@@ -483,6 +497,21 @@ static bool captureValues(SlotMapOwner* owner,XL6_SequenceLayoutV1* target,XL6_S
     *policy=(XL6_SequenceAdmissionV3){0}; if(!xrtGetError()) xrtSetErrorKind(XERR_STATE);
     return false;
 }
+/* Result owners must retire while this operation still owns the first-error
+ * accumulator, including a diagnostic-free failure in source-pin release.
+ * Never discard a partial pair after publishing its checked return. */
+static bool finishSnapshot(xl6_error_scope* scope,SlotMapOwner* owner,bool success,
+    XL6_SlotMapSnapshotPairV1* prepared)
+{
+    if (!success || xrtGetError() || scope->failed) xl6ErrorScopeCaptureFailure(scope);
+    if (owner) end(owner);
+    if (scope->failed || xrtGetError()) {
+        xl6ErrorScopeCaptureFailure(scope);
+        discard(prepared->keys); discard(prepared->values);
+        *prepared=(XL6_SlotMapSnapshotPairV1){0};
+    }
+    return scopeFinish(scope,true);
+}
 xvalue* xl6SlotMapSnapshotTakeV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout,
     bool keys,xvalue* witness,const xvalueconverter* converter)
 {
@@ -496,7 +525,7 @@ xvalue* xl6SlotMapSnapshotTakeV1(const xvalue* value,const XL6_SlotMapLayoutV1* 
         captureValues(owner,&target[1],&policy[1])))
         success=snapshot(owner,keys ? SNAPSHOT_KEYS : SNAPSHOT_VALUES,target,policy,converters,&prepared);
     xl6SequenceAdmissionDropV3(&policy[0]); xl6SequenceAdmissionDropV3(&policy[1]); discard(witness);
-    if (!finish(&scope,owner,success)) { discard(prepared.keys); discard(prepared.values); return NULL; }
+    if (!finishSnapshot(&scope,owner,success,&prepared)) return NULL;
     return keys ? prepared.keys : prepared.values;
 }
 xvalue* xl6SlotMapValuesV1(const xvalue* value,const XL6_SlotMapLayoutV1* layout,const xvalueconverter* converter)
@@ -513,6 +542,6 @@ bool xl6SlotMapSnapshotPairTakeV1(const xvalue* value,const XL6_SlotMapLayoutV1*
         captureValues(owner,&target[1],&policy[1]))
         success=snapshot(owner,SNAPSHOT_KEYS|SNAPSHOT_VALUES,target,policy,converters,&prepared);
     xl6SequenceAdmissionDropV3(&policy[0]); xl6SequenceAdmissionDropV3(&policy[1]); discard(witness);
-    if(!finish(&scope,owner,success)) { discard(prepared.keys); discard(prepared.values); return false; }
+    if(!finishSnapshot(&scope,owner,success,&prepared)) return false;
     *output=prepared; return true;
 }
