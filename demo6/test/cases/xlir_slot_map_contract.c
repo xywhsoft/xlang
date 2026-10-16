@@ -36,6 +36,8 @@ int main(int argc,char** argv)
         BAD(payloadType,0); BAD(type,0); BAD(runtimeResourcePayloadAbi,XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID);
         BAD(opcode,XL6_IR_OPCODE_ADD); BAD(runtimeIdentityType,saved.type); BAD(runtimeResourceKeyType,saved.type);
         BAD(operandCount,saved.operandCount+1); BAD(targetValue,1);
+        if(saved.runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_CREATE)
+            BAD(sequenceAdmissionIdentitySet,saved.sequenceAdmissionIdentitySet ? 0 : UINT32_MAX);
         if(saved.runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_KEYS || saved.runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_VALUES) {
             const XL6_IrType* array=xl6IrTypeGet(&ir->types,saved.type);
             assert(array && array->collectionAbi==XL6_IR_COLLECTION_ARRAY);
@@ -52,6 +54,30 @@ int main(int argc,char** argv)
 #undef BAD
         XL6_IrInstruction outcome=ir->instructions[i+1]; assert(outcome.kind==XL6_IR_INSTR_ERROR_TEST);
         ir->instructions[i+1].kind=XL6_IR_INSTR_VALUE; refused(ir); ir->instructions[i+1]=outcome;
+    }
+    for(size_t i=0;i<ir->valueInitializerCount;++i) {
+        XL6_IrValueInitializer* item=&ir->valueInitializers[i];
+        if(item->runtimeResourceOp!=XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_CREATE) continue;
+        XL6_IrValueInitializer saved=*item;
+        assert(item->abi==XL6_IR_INITIALIZER_RUNTIME_RESOURCE_DEFAULT);
+#define BAD(Field,Value) do { item->Field=(Value); refused(ir); *item=saved; } while(0)
+        BAD(payloadType,0); BAD(runtimeResourcePayloadAbi,XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID);
+        BAD(runtimeResourceOp,XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE);
+        BAD(errorAbi,XL6_IR_ERROR_ABI_NO_RAISE); BAD(runtimeResourceKeyType,saved.type);
+#undef BAD
+    }
+    for(size_t i=0;i<ir->classFieldCount;++i) {
+        XL6_IrClassField* item=&ir->classFields[i];
+        if(item->initializerRuntimeResourceOp!=XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_CREATE) continue;
+        XL6_IrClassField saved=*item;
+        assert(item->initializerAbi==XL6_IR_INITIALIZER_RUNTIME_RESOURCE_DEFAULT);
+#define BAD(Field,Value) do { item->Field=(Value); refused(ir); *item=saved; } while(0)
+        BAD(initializerPayloadType,0);
+        BAD(initializerRuntimeResourcePayloadAbi,XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID);
+        BAD(initializerRuntimeResourceOp,XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE);
+        BAD(initializerErrorAbi,XL6_IR_ERROR_ABI_NO_RAISE);
+        BAD(initializerRuntimeResourceKeyType,saved.type);
+#undef BAD
     }
     for(size_t i=0;i<ir->types.count;++i) {
         XL6_IrType* t=&ir->types.items[i];

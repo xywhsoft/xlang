@@ -1,0 +1,19 @@
+func main(...) as int
+    auto values = WaitQueue::<string>(2)
+    assert(values.count() == 0 and values.capacity() == 2)
+    assert(values.tryPush("a\0你") == queueStatus.ok)
+    assert(values.count() == 1)
+    assert(values.tryPush("second") == queueStatus.ok)
+    assert(values.count() == 2)
+    assert(values.tryPush("full") == queueStatus.full and values.count() == 2)
+    values.close()
+    assert(values.count() == 2 and not values.isDrained())
+    auto status, first = values.pop()
+    assert(status == queueStatus.ok and first != null and first == "a\0你" and values.count() == 1)
+    auto ready, second = values.tryPop()
+    assert(ready == queueStatus.ok and second != null and second == "second" and values.count() == 0)
+    assert(values.isDrained())
+    auto closed, absent = values.pop()
+    assert(closed == queueStatus.closed and absent == null and values.count() == 0)
+    return 0
+end

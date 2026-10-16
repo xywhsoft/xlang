@@ -1,6 +1,8 @@
-"""Aggregate fresh product gates and execute the complete three-group fixture
+"""Aggregate genuine product gates and execute the complete three-group fixture
 inventory through real compiler DLL/SO run/relocate APIs and embedded VFS.
 Independent failures are collected, hosted/platform requirements remain visible.
+Optional reuse rehashes completed child inputs/products/logs against the same
+build and products. Changed or failed children always run again in fresh paths.
 No source/provider fallback, release promotion, worker-wide OOM or full53 claim.
 """
 from pathlib import Path
@@ -9,6 +11,7 @@ def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('root','build-report','out'):p.add_argument('--'+name,type=Path,required=True)
+    p.add_argument('--reuse-report',type=Path,help='Reuse only complete, unchanged child gates from the same actual products')
     p.add_argument('--jobs',type=int,default=2);a=p.parse_args()
     root,out=a.root.resolve(),a.out.resolve();assert not out.exists() and 1<=a.jobs<=4
     cc=shutil.which('gcc');assert cc;windows=os.name=='nt'
@@ -46,14 +49,25 @@ def main():
         ('terminal-ledger',task/'tools/check_stdlib_terminal_ledger_shipping.py','results.json',True),
         ('worker-fault',task/'tools/check_stdlib_worker_fault_shipping.py','results.json',True),
         ('worker-completion',task/'tools/check_stdlib_worker_completion_shipping.py','results.json',True),
-        ('native-future-policy',task/'tools/check_stdlib_native_future_policy_shipping.py','results.json',True)]
-    if not windows:gates.append(('elf','check_stdlib_sync_shipping_elf.py','sync.shipping.elf.json',True))
+        ('native-future-policy',task/'tools/check_stdlib_native_future_policy_shipping.py','results.json',True),
+        ('native-defaults',task/'tools/check_stdlib_native_defaults.py','results.json',True)]
+    if not windows:
+        gates.append(('elf','check_stdlib_sync_shipping_elf.py','sync.shipping.elf.json',True))
+        gates.append(('native-public',task/'tools/check_stdlib_intrinsic_coverage.py','results.json',True))
     products=[root/'release'/n for n in (('xl.exe','xl.dll','xlc.dll') if windows else ('xl','libxl.so','libxlc.so'))]
     recorded={Path(row['Path']).resolve():row['Sha256'] for row in build['Products']}
     assert all(recorded[f]==sha(f) for f in products)
+    cached={}
+    if a.reuse_report:
+        prior=json.loads(a.reuse_report.read_text(encoding='utf-8-sig'))
+        prior_inputs={Path(r['Path']).resolve():r['Sha256'].lower() for r in prior['Inputs']}
+        assert prior_inputs.get(a.build_report.resolve())==sha(a.build_report)
+        assert all(prior_inputs.get(f)==sha(f) for f in products),'Reuse requires identical actual products'
+        cached={r['Name']:r for r in prior['Children'] if r['Passed']}
     files={Path(__file__).resolve(),Path(cc),Path(sys.executable),a.build_report.resolve(),host,quote,pathFixture,pathHost,
         Path(inventory.__file__),Path(execution.__file__),root/'test/cases/stdlib_string_support.c',childSource,*cases}
     files.update(root/'tools'/g[1] for g in gates)
+    if a.reuse_report:files.add(a.reuse_report.resolve())
     files.update(root/'test/cases'/name for name in execution.FIXTURE_C_SUPPORT.values())
     for row in build['Inputs']+build['Products']:assert sha(row['Path'])==row['Sha256'];files.add(Path(row['Path']))
     inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(files)]
@@ -126,6 +140,19 @@ def main():
         failures.extend(dict(Name=c['Name'],Error=c.get('Diagnostic','expected rejection mismatch')) for c in records if c['Status'] not in ('requires-host','requires-platform') and not c['Passed'])
         def gate(spec):
             name,script,result,withBuild=spec;destination=out/('gate-'+name)
+            old=cached.get(name)
+            if old and result:
+                try:
+                    path=Path(old['Report']);assert sha(path)==old['Sha256']
+                    body=json.loads(path.read_text(encoding='utf-8-sig'))
+                    assert body['Complete'] and body['InputsUnchanged'] and not body.get('Failures',[]) and not body.get('Errors',[])
+                    for r in body['Inputs']+body.get('Products',[])+body.get('Objects',[]):
+                        assert sha(r['Path'])==r['Sha256'].lower(),r['Path']
+                    for r in body.get('Rows',[]):
+                        if r.get('Log'):assert sha(r['Log'])==r.get('LogSha256',r.get('Sha256')).lower()
+                    return dict(old,Reused=True,RevalidatedInputsAndProducts=True)
+                except (AssertionError,OSError,KeyError,ValueError):
+                    pass  # Never waive stale inputs or a failed child; run it below.
             command=[sys.executable,root/'tools'/script,'--root',root,'--out',destination]
             if withBuild:command+=['--build-report',a.build_report.resolve()]
             row,data=run('gate-'+name,command,directory=root,timeout=1800)
@@ -133,7 +160,7 @@ def main():
             if not path.is_file():return dict(Name=name,Passed=False,Exit=row['Exit'],Diagnostic=data.decode(errors='replace')[-6000:])
             childReport=json.loads(path.read_text(encoding='utf-8-sig'))
             passed=row['Exit']==0 and childReport['Complete'] and childReport['InputsUnchanged'] and not childReport.get('Failures',[]) and not childReport.get('Errors',[])
-            return dict(Name=name,Passed=passed,Exit=row['Exit'],Report=str(path),Sha256=sha(path),Diagnostic='' if passed else data.decode(errors='replace')[-6000:])
+            return dict(Name=name,Passed=passed,Exit=row['Exit'],Report=str(path),Sha256=sha(path),Reused=False,Diagnostic='' if passed else data.decode(errors='replace')[-6000:])
         with concurrent.futures.ThreadPoolExecutor(max_workers=a.jobs) as pool:
             for childReport in pool.map(gate,gates):children.append(childReport);save();print('gate '+childReport['Name']+': '+str(childReport['Passed']),flush=True)
         failures.extend(dict(Name='gate-'+c['Name'],Error=c['Diagnostic']) for c in children if not c['Passed'])
@@ -160,6 +187,8 @@ def main():
         report['WorkerBodyFaultPrefixAcceptance']=any(c['Name']=='worker-fault' and c['Passed'] for c in children)
         report['NativeTaskWorkerCompletionAcceptance']=any(c['Name']=='worker-completion' and c['Passed'] for c in children)
         report['NativeFuturePolicyAcceptance']=any(c['Name']=='native-future-policy' and c['Passed'] for c in children)
+        report['NativeDefaultRecipeAcceptance']=any(c['Name']=='native-defaults' and c['Passed'] for c in children)
+        report['NativePublicBindingAcceptance']=any(c['Name']=='native-public' and c['Passed'] for c in children)
         report['UnexecutedRequirements']=[c['Name'] for c in records if c['Status']=='requires-platform']
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
         report['Complete']=report['InputsUnchanged'] and report['AllExecutablePassed'] and len(children)==len(gates) and not failures

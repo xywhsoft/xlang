@@ -372,10 +372,11 @@ static int xl6IrCgenEmitSharedCollectionRuntime(
             module->operands[instruction->firstOperand + 1];
         if ( instruction->collectionAbi == XL6_IR_COLLECTION_ARRAY )
             xl6OutputPrintf(out,
-                "    v%u = xl6ArrayMethodRemoveV1(v%u, v%u, 1);\n",
+                "    v%u = xl6ArrayMethodRemoveV1(v%u, v%u, v%u);\n",
                 (unsigned int)instruction->result,
                 (unsigned int)collection,
-                (unsigned int)operand);
+                (unsigned int)operand,
+                (unsigned int)module->operands[instruction->firstOperand + 2]);
         else if ( instruction->collectionAbi == XL6_IR_COLLECTION_LIST )
             xl6OutputPrintf(out,
                 "    v%u = xl6ListValueRemoveV1(v%u, v%u);\n",

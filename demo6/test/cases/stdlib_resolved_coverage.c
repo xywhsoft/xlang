@@ -73,6 +73,10 @@ static void catalog(void)
         putchar('}');
     }puts("]}");
 }
+#ifdef XL6_COVERAGE_ENUM_NAMES_HEADER
+#include XL6_COVERAGE_ENUM_NAMES_HEADER
+#include "stdlib_intrinsic_coverage.h"
+#endif
 int main(int argc,char**argv)
 {
     if(argc==3&&!strcmp(argv[1],"--class-catalog")){
@@ -86,6 +90,11 @@ int main(int argc,char**argv)
     XL6_CompileUnit unit;xl6CompileUnitInit(&unit);
     if(!xl6ParseFile(argv[1],&unit.parse)){xl6DiagPrintText(&unit.parse.diags,argv[1]);xl6CompileUnitFree(&unit);return 2;}
     size_t originalCount=unit.parse.root->childCount;
+#ifdef XL6_COVERAGE_ENUM_NAMES_HEADER
+    CoverageIntrinsicSources sources={0};
+    for(size_t i=0;i<originalCount;++i)
+        coverage_capture_members(&sources,unit.parse.root->children[i],(uintptr_t)unit.parse.root->children[i]);
+#endif
     /* Keep pointer identities only. Imports may retire an original node;
      * dereference it only if it remains a current module child. */
     XL6_AstNode**original=xrtMalloc(originalCount*sizeof(*original));assert(original||!originalCount);
@@ -93,9 +102,21 @@ int main(int argc,char**argv)
     if(!xl6ImportsExpandModule(unit.parse.root,argv[1],&unit.parse.diags,&unit.importDeps)||
        !xl6StdlibExpandModule(unit.parse.root,&unit.parse.diags)||
        !xl6SemCheckModule(unit.parse.root,&unit.parse.diags,"coverage")||
-       !xl6IrBuildModuleFromAst(&unit.ir,unit.parse.root,&unit.parse.diags)||!xl6IrLowerModule(&unit.ir,&unit.parse.diags)){
+       !xl6IrBuildModuleFromAst(&unit.ir,unit.parse.root,&unit.parse.diags)){
+#ifdef XL6_COVERAGE_ENUM_NAMES_HEADER
+        coverage_free_sources(&sources);
+#endif
         xrtFree(original);
         xl6DiagPrintText(&unit.parse.diags,argv[1]);xl6CompileUnitFree(&unit);return 2;
+    }
+#ifdef XL6_COVERAGE_ENUM_NAMES_HEADER
+    coverage_bind_module(&sources,&unit.ir,unit.parse.root);
+#endif
+    if(!xl6IrLowerModule(&unit.ir,&unit.parse.diags)){
+#ifdef XL6_COVERAGE_ENUM_NAMES_HEADER
+        coverage_free_sources(&sources);
+#endif
+        xrtFree(original);xl6DiagPrintText(&unit.parse.diags,argv[1]);xl6CompileUnitFree(&unit);return 2;
     }
     puts("{\"Calls\":[");int comma=0;
     for(size_t i=0;i<unit.ir.callSiteCount;++i){const XL6_IrCallSite*site=&unit.ir.callSites[i];const XL6_IrCallTarget*t=NULL;
@@ -117,5 +138,9 @@ int main(int argc,char**argv)
         fputs(",\"CSymbol\":",stdout);quoted(t->cName);fputs(",\"Owner\":",stdout);
         quoted(owner?owner->displayName:NULL);
         fputs(",\"ParameterTypes\":[",stdout);for(size_t p=0;p<t->parameterCount;++p){if(p)putchar(',');putchar('"');type_name(&unit.ir.types,t->parameterTypes[p]);putchar('"');}fputs("]}",stdout);
-    }puts("]}");xrtFree(original);xl6CompileUnitFree(&unit);return 0;
+    }putchar(']');
+#ifdef XL6_COVERAGE_ENUM_NAMES_HEADER
+    coverage_dump_intrinsics(&sources,&unit.ir);coverage_dump_properties(&sources,&unit.ir);coverage_free_sources(&sources);
+#endif
+    puts("}");xrtFree(original);xl6CompileUnitFree(&unit);return 0;
 }

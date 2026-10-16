@@ -399,7 +399,8 @@ static int xl6IrCgenVerifyInstructions(
                    (instruction->immediateText != NULL || instruction->operandCount != 2 ||
                     xl6IrCgenType(module, instruction->type) == NULL)) ||
                   (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE &&
-                   (instruction->immediateText != NULL || instruction->operandCount != 2 ||
+                   (instruction->immediateText != NULL || instruction->operandCount !=
+                        (instruction->collectionAbi == XL6_IR_COLLECTION_ARRAY ? 3u : 2u) ||
                     instruction->collectionAbi < XL6_IR_COLLECTION_ARRAY ||
                     instruction->collectionAbi > XL6_IR_COLLECTION_DICT ||
                     xl6IrCgenType(module, instruction->type) == NULL)) ||

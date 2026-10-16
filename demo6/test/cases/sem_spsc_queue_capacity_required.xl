@@ -1,0 +1,1 @@
+auto values = SpscQueue::<int>()

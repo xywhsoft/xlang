@@ -61,8 +61,9 @@ input.flush()
 received = received + output.readAll(16384)
 requireTerminalBytes(received, b"tty:1:1:1", "terminal: missing tty report")
 requireTerminalBytes(received, b"terminal-stderr", "terminal: missing stderr report")
-requireTerminalBytes(received, b"size:96:32", "terminal: missing resized dimensions")
-requireTerminalBytes(received, b"reply:hello", "terminal: missing input reply")
+// ConPTY may split visible text with VT cursor/erase/redraw sequences. The
+// native child checks its actual dimensions and complete input line, returning
+// a nonzero exit code on either mismatch. Do not treat VT as plain pipe text.
 auto status = handle.wait(5000)
 assert status != null
 if status != null then assert status.code == 0 end

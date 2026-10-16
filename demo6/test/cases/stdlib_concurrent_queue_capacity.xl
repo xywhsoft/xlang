@@ -1,0 +1,27 @@
+func main(...) as int
+    int rejected = 0
+    int zero = 0
+    int negative = -1
+    try
+        auto unusedSpsc = SpscQueue::<int>(zero)
+    catch RangeError
+        rejected += 1
+    end
+    try
+        auto unusedMpsc = MpscQueue::<int>(negative)
+    catch RangeError
+        rejected += 1
+    end
+    try
+        auto unusedMpmc = MpmcQueue::<int>(zero)
+    catch RangeError
+        rejected += 1
+    end
+    try
+        auto unusedWait = WaitQueue::<int>(negative)
+    catch RangeError
+        rejected += 1
+    end
+    assert(rejected == 4)
+    return 0
+end
