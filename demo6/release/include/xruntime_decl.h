@@ -9776,6 +9776,8 @@ XRT_API void xrtCancelDestroy(xcancel* pCancel);
  * Watch-list links borrow registration storage and are not strong references.
  * Caller provides whole-graph quiescence and code residency. */
 XRT_API xrtownershipref xrtCancelOwnership(const xcancel* pCancel);
+XRT_API const xrtownershipquiescencev1* xrtCancelOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtCancelWatchOwnershipQuiescenceV1Get(void);
 
 /* Explicit native adapter, queried under whole-graph freeze. Registered
  * observers are refused before Trace, not treated as empty owning slots.
@@ -10144,6 +10146,7 @@ XRT_API bool xrtFutureDebugSetNameN(xfuture* pFuture, cstr Name, size_t Size);
  * Whole-graph quiescence through any later commit and callback code residency
  * remain the caller's responsibility; this API does not establish either. */
 XRT_API xrtownershipref xrtFutureOwnership(const xfuture* pFuture);
+XRT_API const xrtownershipquiescencev1* xrtFutureOwnershipQuiescenceV1Get(void);
 XRT_API xrtownershipref xrtPromiseOwnership(const xpromise* pPromise);
 
 /* Publish an explicitly certified owned result atomically. Failure does not
@@ -32380,6 +32383,8 @@ XRT_API void xrtTaskGroupDestroy(xtaskgroup* pGroup);
  * registrations and every real temporary pin. Busy callbacks/reservations
  * refuse inspection. This view alone grants no collection or unload right. */
 XRT_API xrtownershipref xrtTaskGroupOwnership(const xtaskgroup* pGroup);
+XRT_API const xrtownershipquiescencev1* xrtTaskGroupOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtTaskGroupItemOwnershipQuiescenceV1Get(void);
 XRT_API const xfuturewatchownershipv1* xrtTaskGroupWatchPolicyV1Get(void);
 XRT_API const xcancelwatchownershipv1* xrtTaskGroupCancelPolicyV1Get(void);
 /* Pending Done owns one actual group producer reference, released exactly

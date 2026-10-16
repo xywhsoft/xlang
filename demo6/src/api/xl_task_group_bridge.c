@@ -98,6 +98,15 @@ static bool trace(const void* data,xrtownershipvisitor visit,ptr context)
         (!group->ParentWatch || visit(xrtCancelWatchOwnership(group->ParentWatch),context));
 }
 static const xrtownershipops ops={count,trace};
+static bool busy(const void* data)
+{
+    const xl6_task_group* group=data;
+    return group && !group->Cleared && (group->Busy || group->BindingParent);
+}
+XL_API const xrtownershipquiescencev1* xl6TaskGroupQuiescenceV1Get(void)
+{
+    static const xrtownershipquiescencev1 policy={sizeof(policy),&ops,busy};return &policy;
+}
 static const xcancelwatchownershipv1 parent_policy={sizeof(parent_policy),parent_cancelled,drop,&ops};
 XL_API const xcancelwatchownershipv1* xl6TaskGroupParentPolicyV1Get(void) { return &parent_policy; }
 XL_API xrtownershipref xl6TaskGroupOwnershipV1(const xl6_task_group* group)

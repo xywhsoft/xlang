@@ -6775,6 +6775,8 @@ XRT_API void xrtCancelDestroy(xcancel* pCancel);
  * Watch-list links borrow registration storage and are not strong references.
  * Caller provides whole-graph quiescence and code residency. */
 XRT_API xrtownershipref xrtCancelOwnership(const xcancel* pCancel);
+XRT_API const xrtownershipquiescencev1* xrtCancelOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtCancelWatchOwnershipQuiescenceV1Get(void);
 
 /* Explicit native adapter, queried under whole-graph freeze. Registered
  * observers are refused before Trace, not treated as empty owning slots.
@@ -7143,6 +7145,7 @@ XRT_API bool xrtFutureDebugSetNameN(xfuture* pFuture, cstr Name, size_t Size);
  * Whole-graph quiescence through any later commit and callback code residency
  * remain the caller's responsibility; this API does not establish either. */
 XRT_API xrtownershipref xrtFutureOwnership(const xfuture* pFuture);
+XRT_API const xrtownershipquiescencev1* xrtFutureOwnershipQuiescenceV1Get(void);
 XRT_API xrtownershipref xrtPromiseOwnership(const xpromise* pPromise);
 
 /* Publish an explicitly certified owned result atomically. Failure does not
@@ -29379,6 +29382,8 @@ XRT_API void xrtTaskGroupDestroy(xtaskgroup* pGroup);
  * registrations and every real temporary pin. Busy callbacks/reservations
  * refuse inspection. This view alone grants no collection or unload right. */
 XRT_API xrtownershipref xrtTaskGroupOwnership(const xtaskgroup* pGroup);
+XRT_API const xrtownershipquiescencev1* xrtTaskGroupOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtTaskGroupItemOwnershipQuiescenceV1Get(void);
 XRT_API const xfuturewatchownershipv1* xrtTaskGroupWatchPolicyV1Get(void);
 XRT_API const xcancelwatchownershipv1* xrtTaskGroupCancelPolicyV1Get(void);
 /* Pending Done owns one actual group producer reference, released exactly
@@ -91983,6 +91988,38 @@ static bool __xrtCancelWatchOwnershipTrace(const void* pData, xrtownershipvisito
 static const xrtownershipops __xrtCancelWatchOwnershipOps = {
 	__xrtCancelWatchOwnershipCount, __xrtCancelWatchOwnershipTrace
 };
+/* Read only under whole-graph freeze. These native execution flags are not
+ * lifecycle admission: an idle legacy/unknown observer still fails closed. */
+static bool __xrtCancelWatchOwnershipBusy(const void* pData)
+{
+	const xcancelwatch* pWatch = pData;
+	return pWatch && !pWatch->OwnershipCleared && (pWatch->CallbackActive ||
+		pWatch->Dispatching || pWatch->DeferredRelease);
+}
+static bool __xrtCancelOwnershipBusy(const void* pData)
+{
+	const xcancel* pCancel = pData;
+	if (!pCancel || pCancel->OwnershipCleared) return false;
+	if (pCancel->ActiveRequests) return true;
+	/* The list borrows native Watch storage, not its user Data. Do not call
+	 * any observer policy, Count or Trace merely to recognize its dispatch. */
+	for (const xcancelnode* pNode = pCancel->WatchHead; pNode; pNode = pNode->Next)
+		if (__xrtCancelWatchOwnershipBusy(pNode->Watch)) return true;
+	return false;
+}
+XRT_API const xrtownershipquiescencev1* xrtCancelOwnershipQuiescenceV1Get(void)
+{
+	static const xrtownershipquiescencev1 Policy = {sizeof(Policy),
+		&__xrtCancelOwnershipOps, __xrtCancelOwnershipBusy};
+	return &Policy;
+}
+XRT_API const xrtownershipquiescencev1* xrtCancelWatchOwnershipQuiescenceV1Get(void)
+{
+	static const xrtownershipquiescencev1 Policy = {sizeof(Policy),
+		&__xrtCancelWatchOwnershipOps, __xrtCancelWatchOwnershipBusy};
+	return &Policy;
+}
+
 
 XRT_API xrtownershipref xrtCancelWatchOwnership(const xcancelwatch* pWatch)
 {
@@ -92927,6 +92964,19 @@ static bool __xrtFutureOwnershipTrace(const void* pData, xrtownershipvisitor pVi
 static const xrtownershipops __xrtFutureOwnershipOps = {
 	__xrtFutureOwnershipCount, __xrtFutureOwnershipTrace
 };
+static bool __xrtFutureOwnershipBusy(const void* pData)
+{
+	const xfuture* pFuture = pData;
+	return pFuture && !pFuture->OwnershipCleared && (pFuture->Completing ||
+		xrtCancelOwnershipQuiescenceV1Get()->Busy(pFuture->Cancel));
+}
+XRT_API const xrtownershipquiescencev1* xrtFutureOwnershipQuiescenceV1Get(void)
+{
+	static const xrtownershipquiescencev1 Policy = {sizeof(Policy),
+		&__xrtFutureOwnershipOps, __xrtFutureOwnershipBusy};
+	return &Policy;
+}
+
 
 XRT_API xrtownershipref xrtFutureOwnership(const xfuture* pFuture)
 {
@@ -245686,6 +245736,29 @@ static const xrtownershipops __xrtTaskGroupOwnershipOps = {
 static const xrtownershipops __xrtTaskGroupItemOwnershipOps = {
 	__xrtTaskGroupItemOwnershipCount, __xrtTaskGroupItemOwnershipTrace
 };
+static bool __xrtTaskGroupOwnershipBusy(const void* pData)
+{
+	const xtaskgroup* pGroup = pData;
+	return pGroup && !pGroup->OwnershipCleared && (pGroup->Busy || pGroup->Reserved);
+}
+static bool __xrtTaskGroupItemOwnershipBusy(const void* pData)
+{
+	const xrt_task_group_item* pItem = pData;
+	return pItem && !pItem->OwnershipCleared && (pItem->Waiter.Calling ||
+		__xrtTaskGroupOwnershipBusy(pItem->Group));
+}
+XRT_API const xrtownershipquiescencev1* xrtTaskGroupOwnershipQuiescenceV1Get(void)
+{
+	static const xrtownershipquiescencev1 Policy = {sizeof(Policy),
+		&__xrtTaskGroupOwnershipOps, __xrtTaskGroupOwnershipBusy};
+	return &Policy;
+}
+XRT_API const xrtownershipquiescencev1* xrtTaskGroupItemOwnershipQuiescenceV1Get(void)
+{
+	static const xrtownershipquiescencev1 Policy = {sizeof(Policy),
+		&__xrtTaskGroupItemOwnershipOps, __xrtTaskGroupItemOwnershipBusy};
+	return &Policy;
+}
 XRT_API xrtownershipref xrtTaskGroupOwnership(const xtaskgroup* pGroup)
 { return (xrtownershipref){pGroup, pGroup ? &__xrtTaskGroupOwnershipOps : NULL}; }
 static bool __xrtTaskGroupItemOwnershipTrace(const void* pData, xrtownershipvisitor pVisit, ptr pContext)
@@ -246190,12 +246263,21 @@ static bool __xrtTaskGroupCommit(
 		__xrtTaskGroupAbort(pItem);
 		return false;
 	}
+	/* Completion may synchronously call an observer which destroys the public
+	 * group owner. This operation needs its own real right through Busy exit. */
+	if (!__xrtTaskGroupRef(pGroup)) {
+		xrtFutureDestroy(pTracked); __xrtTaskGroupAbort(pItem); return false;
+	}
 
 	__xrtTaskGroupBegin(pGroup, &Scope);
 	pItem->Future = pTracked;
 	pItem->Index = (size_t)pGroup->Added;
 	pGroup->Added++;
 	pGroup->Reserved--;
+	/* A published Future is not yet linked to its waiter. Describe that real
+	 * commit operation explicitly rather than interpreting a list mismatch as
+	 * BUSY (which would also hide a permanently invalid graph). */
+	++pGroup->Busy;
 	bCancel = pItem->CancelPosted;
 	__xrtTaskGroupEnd(pGroup, &Scope);
 
@@ -246206,6 +246288,8 @@ static bool __xrtTaskGroupCommit(
 		__xrtTaskGroupSourceDone(pItem);
 		__xrtTaskGroupItemRelease(pItem);
 	}
+	__xrtTaskGroupBegin(pGroup, &Scope); --pGroup->Busy; __xrtTaskGroupEnd(pGroup, &Scope);
+	__xrtTaskGroupRelease(pGroup);
 	return true;
 }
 

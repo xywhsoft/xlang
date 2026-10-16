@@ -1,6 +1,12 @@
 /* Exact resident capability; selected independently of its producer. */
 #include "include/xruntime_decl.h"
 #include "xl6_ownership_domain_impl.h"
+static bool load(XL6_OwnershipCatalog* catalog)
+{
+    return xl6OwnershipCatalogAddQuiescenceV1(catalog,xrtFutureOwnershipQuiescenceV1Get()) &&
+        xl6OwnershipCatalogAddQuiescenceV1(catalog,xrtCancelOwnershipQuiescenceV1Get()) &&
+        xl6OwnershipCatalogAddQuiescenceV1(catalog,xrtCancelWatchOwnershipQuiescenceV1Get());
+}
 
 XL6_OWNERSHIP_QUERY(NativeFuture)
 {
@@ -14,4 +20,4 @@ XL6_OWNERSHIP_QUERY(NativeFuture)
     if(!*adapter)*adapter=xrtCancelOwnershipAdapterV2(ref,policies->CancelWatch,policies->CancelWatchCount,preparation);
     return *adapter!=NULL;
 }
-XL6_OWNERSHIP_DOMAIN(NativeFuture,NULL,ownershipDomainNativeFuture)
+XL6_OWNERSHIP_DOMAIN(NativeFuture,load,ownershipDomainNativeFuture)
