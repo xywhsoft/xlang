@@ -85,7 +85,6 @@
 #include "src/cgen/xl6_ir_cgen_emit_console.c"
 #include "src/cgen/xl6_ir_cgen_emit_stdlib_bridges.c"
 #include "src/cgen/xl6_ir_cgen_emit_string_bridges.c"
-#include "src/cgen/xl6_ir_cgen_emit_string_text.c"
 #include "src/cgen/xl6_ir_cgen_emit_net.c"
 #include "src/cgen/xl6_ir_cgen_emit_net_datagram.c"
 #include "src/cgen/xl6_ir_cgen_emit_async_support.c"

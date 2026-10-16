@@ -56,32 +56,6 @@ static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
          needs->vfsBridgeOperations != 0 ||
          needs->fsBridgeOperations0 != 0 || needs->fsBridgeOperations1 != 0 || needs->fsBridgeOperations2 != 0 ||
          needs->needsStringBytesBridgeRuntime || needs->needsStringCharsBridgeRuntime ||
-         needs->needsStringCompareBridgeRuntime ||
-         needs->needsStringLastIndexOfBridgeRuntime ||
-         needs->needsStringCountBridgeRuntime ||
-         needs->needsStringHasAnyBridgeRuntime ||
-         needs->needsStringLikeBridgeRuntime ||
-         needs->needsStringApproxBridgeRuntime ||
-         needs->needsStringSimilarityBridgeRuntime ||
-         needs->needsStringIsUtf8BridgeRuntime ||
-         needs->needsStringLowerBridgeRuntime ||
-         needs->needsStringUpperBridgeRuntime ||
-         needs->needsStringTrimBridgeRuntime ||
-         needs->needsStringLTrimBridgeRuntime ||
-         needs->needsStringRTrimBridgeRuntime ||
-         needs->needsStringFilterBridgeRuntime ||
-         needs->needsStringLeftBridgeRuntime ||
-         needs->needsStringRightBridgeRuntime ||
-         needs->needsStringCharAtBridgeRuntime ||
-         needs->needsStringIsEmptyBridgeRuntime ||
-         needs->needsStringIsBlankBridgeRuntime ||
-         needs->needsStringRemoveBridgeRuntime ||
-         needs->needsStringRemoveAtBridgeRuntime ||
-         needs->needsStringInsertBridgeRuntime ||
-         needs->needsStringPadLeftBridgeRuntime ||
-         needs->needsStringPadRightBridgeRuntime ||
-         needs->needsStringPadCenterBridgeRuntime ||
-         needs->needsStringReverseBridgeRuntime ||
          needs->needsHttp1Runtime || needs->needsJsonVisitBridgeRuntime ||
          needs->needsJsonWriterBridgeRuntime || needs->xlonBridgeOperations != 0 ||
          needs->structuredOptionsBridgeOperations != 0 ||

@@ -16,6 +16,17 @@ unreachable and legacy-observer controls prevent false bindings; dependent gener
 templates are not executable ABIs. This required Linux product gate is binding
 coverage, not runtime branch coverage. See [Native container contracts](../docs/stdlib53-b332-native-public-surface.md).
 
+`check_stdlib_retired_text_bridges.py --root <frozen-demo6> --build-report
+<shipping.json> --out <fresh-directory>` is the required retired-text gate.
+Each retired internal namespace call must fail before C output; explicit raw
+externs cannot acquire a compiler-generated implementation. Public resident
+text, exact NUL/Unicode/size and function values run in real JIT/module/relocated
+AOT and strict O0/O2 C. Linux also checks genuine-SO closed bridge kinds/plans.
+Optional `--baseline-build-report <old-shipping.json>` requires all 26 old
+implementations to be reachable in that immutable old product. The aggregate's
+`--retired-text-baseline-build-report` pins and forwards this requirement, even
+when a failed/stale child must be rerun; reuse cannot silently waive it.
+
 `check_stdlib_queue_product_stress.py --root <frozen-demo6> --build-report
 <shipping.json> --out <fresh-directory>` is the required actual-library queue
 stress gate. Runtime/compiler libraries, O0/O2 observers, exact single/batch
