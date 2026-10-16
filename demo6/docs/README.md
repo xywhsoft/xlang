@@ -6,6 +6,7 @@
 
 ## 当前权威设计
 
+- [TaskGroup 的等待依赖与清理准备](stdlib53-b321-task-group-wait.md)：真实活动项、正常关闭、稳定完成态节点与生产等待求解器；全局语言准入继续协调。
 - [TaskGroup 的 Done 生产者关系](stdlib53-b320-task-group-producer.md)：真实生产者引用、外部 Done 保活、构造回滚与准备 BUSY；语言等待协调继续推进。
 - [FutureCombine 的终结后物理退役](stdlib53-b319-future-combine-retirement.md)：ALL／ANY／RACE 与 TaskGroup 混合图、无拥有边副作用的 BUSY 预检；语言准备协议继续协调。
 - [TaskGroup 桥接句柄的真实拥有与重入安全](stdlib53-b318-task-group-bridge-ownership.md)：owned 父观察者、在途引用、循环退役和冻结外重入；全局目录协议继续协调。

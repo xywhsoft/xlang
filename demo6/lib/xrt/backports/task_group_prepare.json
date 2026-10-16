@@ -1,0 +1,51 @@
+{
+  "Schema": 1,
+  "Purpose": "Normal TaskGroup preparation and streamed actual ALL-terminal wait dependencies",
+  "CanonicalCommit": "a60dc0253b833643182bd05bfb2b8364f054d83b",
+  "CanonicalSources": [
+    {
+      "Path": "include/xrt/task.h",
+      "Sha256": "8badc4cb7616faea01bb4d45b988c05d7f91ffcd07bc68290bbae53855fd42f3"
+    },
+    {
+      "Path": "src/concurrency/task_group.c",
+      "Sha256": "5ab4f570738f52a19ed8b07bab32068703f703c1625da297bc35d6486f7eb482"
+    },
+    {
+      "Path": "tests/concurrency/test_task_group_prepare.c",
+      "Sha256": "6ea4ac3d8ba2c8d021165ee86519c89e8c39bd60749f6beef19cb6466eeb260b"
+    }
+  ],
+  "ConsumerBase": "a536903b2c1d36cc87921f7b4d3759efc376668c",
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "62fdb40c58d01cbbcb06f32b3337fba11ba4e9f390545335b5f86c7a55476c0b",
+      "AfterSha256": "a8d371c576099cea02ea87e5b893d158beff1b03f50cee2aac5420234b841f16"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "bc2727e2f5db88d9aa185a7df5f1ef43c03e8d7bf0dab0366653a3eed32ec604",
+      "AfterSha256": "58f54491b0c96bc10a3dd7bf0f49d9a60af25f0f4f46b3f74c76a3451d3b627f"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "375af5b3d5cb7a7bc6984df293d98ae4803f1a223c632ac19260b54808e14bfd",
+      "AfterSha256": "00ca7f16fae623ef49a97ada9dfefd05dd6f056d1b6aca27b15228d5981d77eb"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "e11ec70d564b7dfbf00a2a716c0fa22102832da10186a66a4ac2a599e2515d4b",
+      "AfterSha256": "73c36aeab526283491a6c4e195cd1caa358a47313f127962596a2cd55e0c16d1"
+    }
+  ],
+  "PreservedContracts": [
+    "Only task public declarations and task_group implementation are updated",
+    "Future execution and microsecond relative timeouts remain unchanged",
+    "V1 descriptor identities and active-item refusal stay unchanged",
+    "Wait facts create no owning edges, references or cancellation authority",
+    "Normal callbacks precede physical Clear",
+    "Global language TaskGroup admission remains closed",
+    "Unrelated edits are excluded"
+  ]
+}

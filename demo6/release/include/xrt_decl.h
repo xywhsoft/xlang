@@ -31691,6 +31691,35 @@ XRT_API const xfutureproducerownershipv1* xrtTaskGroupProducerPolicyV1Get(void);
 XRT_API const xrtownershipadapterv1* xrtTaskGroupOwnershipAdapterV1(xrtownershipref Reference,
 	const xrtownershipfinishv1** ppCompletion);
 
+/* V2 adds normal Close/drain preparation, without cancellation or invented
+ * completion. A normally completed item remains an honest physical anchor
+ * while a plan pin owns it; V1 keeps its active-item refusal boundary.
+ * Prepare runs outside freeze, with the whole graph independently admitted,
+ * claimed unreachable and pinned. Semantic callbacks/finally finish normally
+ * before Clear; completion still requires all transitive pins until READY.
+ * Both mandatory outputs are unchanged on refusal. Group/Item identities
+ * are distinct from V1; never replace descriptors in an existing plan. */
+XRT_API const xrtownershipadapterv1* xrtTaskGroupOwnershipAdapterV2(xrtownershipref Reference,
+	const xrtownershippreparationv1** ppPreparation, const xrtownershipfinishv1** ppCompletion);
+
+typedef struct xtaskgroupwaitv1 {
+	size_t size;
+	xpromise* Output;
+	size_t Count;
+} xtaskgroupwaitv1;
+typedef bool (*xtaskgroupwaitvisitorv1)(xfuture* pSource, ptr pContext);
+/* Borrowed ALL-terminal dependencies of a closed, stable, pending group.
+ * Caller holds the entire physical graph's exclusive freeze and one same
+ * unreachable claim on the group AND every active item. Ordered duplicate
+ * sources are visited once per real item, without allocation or new refs.
+ * A NULL visitor queries metadata only. The visitor is collector code: no
+ * mutation, retain, semantic callback, waiting or reentrant group operations;
+ * private analysis scratch is allowed. Invalid state is checked before any
+ * visit; visitor refusal leaves output unchanged (its own scratch may change).
+ * This fact neither proves a cycle nor grants cancellation/collection. */
+XRT_API bool xrtTaskGroupWaitV1(xrtownershipref Reference, const void* pToken,
+	xtaskgroupwaitv1* pWait, xtaskgroupwaitvisitorv1 pVisit, ptr pContext);
+
 
 
 XRT_EXTERN_C_END

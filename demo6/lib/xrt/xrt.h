@@ -29383,6 +29383,35 @@ XRT_API const xfutureproducerownershipv1* xrtTaskGroupProducerPolicyV1Get(void);
 XRT_API const xrtownershipadapterv1* xrtTaskGroupOwnershipAdapterV1(xrtownershipref Reference,
 	const xrtownershipfinishv1** ppCompletion);
 
+/* V2 adds normal Close/drain preparation, without cancellation or invented
+ * completion. A normally completed item remains an honest physical anchor
+ * while a plan pin owns it; V1 keeps its active-item refusal boundary.
+ * Prepare runs outside freeze, with the whole graph independently admitted,
+ * claimed unreachable and pinned. Semantic callbacks/finally finish normally
+ * before Clear; completion still requires all transitive pins until READY.
+ * Both mandatory outputs are unchanged on refusal. Group/Item identities
+ * are distinct from V1; never replace descriptors in an existing plan. */
+XRT_API const xrtownershipadapterv1* xrtTaskGroupOwnershipAdapterV2(xrtownershipref Reference,
+	const xrtownershippreparationv1** ppPreparation, const xrtownershipfinishv1** ppCompletion);
+
+typedef struct xtaskgroupwaitv1 {
+	size_t size;
+	xpromise* Output;
+	size_t Count;
+} xtaskgroupwaitv1;
+typedef bool (*xtaskgroupwaitvisitorv1)(xfuture* pSource, ptr pContext);
+/* Borrowed ALL-terminal dependencies of a closed, stable, pending group.
+ * Caller holds the entire physical graph's exclusive freeze and one same
+ * unreachable claim on the group AND every active item. Ordered duplicate
+ * sources are visited once per real item, without allocation or new refs.
+ * A NULL visitor queries metadata only. The visitor is collector code: no
+ * mutation, retain, semantic callback, waiting or reentrant group operations;
+ * private analysis scratch is allowed. Invalid state is checked before any
+ * visit; visitor refusal leaves output unchanged (its own scratch may change).
+ * This fact neither proves a cycle nor grants cancellation/collection. */
+XRT_API bool xrtTaskGroupWaitV1(xrtownershipref Reference, const void* pToken,
+	xtaskgroupwaitv1* pWait, xtaskgroupwaitvisitorv1 pVisit, ptr pContext);
+
 
 
 XRT_EXTERN_C_END
@@ -245615,8 +245644,8 @@ static bool __xrtTaskGroupOwnershipCount(const void* pData, size_t* pCount)
 static bool __xrtTaskGroupItemOwnershipCount(const void* pData, size_t* pCount)
 {
 	const xrt_task_group_item* pItem = pData; size_t iGroupCount; int32 iCount;
-	if (!pItem || !pCount || pItem->OwnershipCleared || !pItem->Listed || !pItem->Future ||
-		!pItem->Waiter.Linked || pItem->Waiter.Calling ||
+	if (!pItem || !pCount || pItem->OwnershipCleared || !pItem->Future ||
+		pItem->Listed != pItem->Waiter.Linked || pItem->Waiter.Calling ||
 		!__xrtTaskGroupOwnershipCount(pItem->Group, &iGroupCount)) return false;
 	iCount = __xrtAtomicRefLoad(&pItem->RefCount);
 	if (iCount <= 0) return false;
@@ -246686,10 +246715,91 @@ XRT_API const xrtownershipadapterv1* xrtTaskGroupOwnershipAdapterV1(xrtownership
 	if (Reference.Ops == &__xrtTaskGroupOwnershipOps && __xrtTaskGroupOwnershipCount(Reference.Data,&iCount)) {
 		*ppCompletion = &GroupFinish; return &Group;
 	}
-	if (Reference.Ops == &__xrtTaskGroupItemOwnershipOps && __xrtTaskGroupItemOwnershipCount(Reference.Data,&iCount)) {
+	if (Reference.Ops == &__xrtTaskGroupItemOwnershipOps &&
+		((const xrt_task_group_item*)Reference.Data)->Listed && __xrtTaskGroupItemOwnershipCount(Reference.Data,&iCount)) {
 		*ppCompletion = &ItemFinish; return &Item;
 	}
 	return NULL;
+}
+
+/* Preparation is normal structured shutdown, not physical Clear. It closes
+ * admission, lets every accepted item publish normally, then retires the
+ * group's own cancellation registration. No source is cancelled or skipped. */
+static bool __xrtTaskGroupPrepared(const void* pData)
+{
+	const xtaskgroup* pGroup = pData;
+	return pGroup->Closed && !pGroup->Active && !pGroup->Reserved && !pGroup->Busy &&
+		!pGroup->Promise && !pGroup->Watch;
+}
+static void __xrtTaskGroupClearV2(const void* pData, const void* pToken)
+{
+	if (!__xrtTaskGroupPrepared(pData)) abort();
+	__xrtTaskGroupAdapterClear(pData,pToken);
+}
+static xrtownershipprepareresult __xrtTaskGroupPrepare(const void* pData, const void* pToken)
+{
+	xtaskgroup* pGroup = (xtaskgroup*)pData; xrtownershipscope Scope = {0}; xcancelwatch* pWatch;
+	__xrtTaskGroupBegin(pGroup,&Scope);
+	if (!pToken || pGroup->OwnershipClaim != pToken || pGroup->OwnershipCleared) abort();
+	bool bBusy = pGroup->Busy || pGroup->Reserved;
+	__xrtTaskGroupEnd(pGroup,&Scope);
+	if (bBusy) return XRT_OWNERSHIP_PREPARE_BUSY;
+	/* Close returns false for an already closed group, not just an error.
+	 * A normal source/cancellation callback can win that transition. */
+	(void)xrtTaskGroupClose(pGroup);
+	__xrtTaskGroupBegin(pGroup,&Scope);
+	if (!pGroup->Closed) { __xrtTaskGroupEnd(pGroup,&Scope); return XRT_OWNERSHIP_PREPARE_FAILED; }
+	bBusy = pGroup->Active || pGroup->Reserved || pGroup->Busy || pGroup->Promise;
+	pWatch = pGroup->Watch;
+	__xrtTaskGroupEnd(pGroup,&Scope);
+	if (bBusy) return XRT_OWNERSHIP_PREPARE_BUSY;
+	if (pWatch) {
+		if (!xrtCancelUnwatchChecked(pWatch)) return XRT_OWNERSHIP_PREPARE_FAILED;
+		__xrtTaskGroupBegin(pGroup,&Scope); pGroup->Watch = NULL; __xrtTaskGroupEnd(pGroup,&Scope);
+	}
+	__xrtTaskGroupBegin(pGroup,&Scope); bool bReady = __xrtTaskGroupPrepared(pGroup); __xrtTaskGroupEnd(pGroup,&Scope);
+	return bReady ? XRT_OWNERSHIP_PREPARE_READY : XRT_OWNERSHIP_PREPARE_BUSY;
+}
+XRT_API const xrtownershipadapterv1* xrtTaskGroupOwnershipAdapterV2(xrtownershipref Reference,
+	const xrtownershippreparationv1** ppPreparation, const xrtownershipfinishv1** ppCompletion)
+{
+	static const xrtownershipadapterv1 Group = {sizeof(Group), __xrtTaskGroupAdapterHold, __xrtTaskGroupAdapterDrop,
+		__xrtTaskGroupAdapterClaim, __xrtTaskGroupAdapterRestore, NULL, __xrtTaskGroupClearV2, __xrtTaskGroupAdapterFinishBool};
+	static const xrtownershipadapterv1 Item = {sizeof(Item), __xrtTaskGroupItemAdapterHold, __xrtTaskGroupItemAdapterDrop,
+		__xrtTaskGroupItemAdapterClaim, __xrtTaskGroupItemAdapterRestore, NULL, __xrtTaskGroupItemAdapterClear, __xrtTaskGroupItemAdapterFinishBool};
+	static const xrtownershippreparationv1 Preparation = {sizeof(Preparation), &Group, __xrtTaskGroupPrepared, __xrtTaskGroupPrepare};
+	static const xrtownershipfinishv1 GroupFinish = {sizeof(GroupFinish), &Group, __xrtTaskGroupAdapterFinish};
+	static const xrtownershipfinishv1 ItemFinish = {sizeof(ItemFinish), &Item, __xrtTaskGroupItemAdapterFinish};
+	size_t iCount;
+	if (!Reference.Data || !ppPreparation || !ppCompletion) return NULL;
+	if (Reference.Ops == &__xrtTaskGroupOwnershipOps && __xrtTaskGroupOwnershipCount(Reference.Data,&iCount)) {
+		*ppPreparation = &Preparation; *ppCompletion = &GroupFinish; return &Group;
+	}
+	if (Reference.Ops == &__xrtTaskGroupItemOwnershipOps && __xrtTaskGroupItemOwnershipCount(Reference.Data,&iCount)) {
+		*ppPreparation = NULL; *ppCompletion = &ItemFinish; return &Item;
+	}
+	return NULL;
+}
+XRT_API bool xrtTaskGroupWaitV1(xrtownershipref Reference, const void* pToken,
+	xtaskgroupwaitv1* pWait, xtaskgroupwaitvisitorv1 pVisit, ptr pContext)
+{
+	const xtaskgroup* pGroup; const xrt_task_group_item* pPrevious = NULL; size_t iCount, iItems = 0;
+	if (Reference.Ops != &__xrtTaskGroupOwnershipOps || !Reference.Data || !pToken || !pWait) return false;
+	pGroup = Reference.Data;
+	if (pGroup->OwnershipClaim != pToken || !__xrtTaskGroupOwnershipCount(pGroup,&iCount) ||
+		!pGroup->Closed || !pGroup->Active || !pGroup->Promise || xrtPromiseDone(pGroup->Promise)) return false;
+	/* Validate the WHOLE list before visiting any borrowed source. A normally
+ * retired item can still be a physical plan anchor, but is not a group wait. */
+	for (const xrt_task_group_item* pItem = pGroup->Head; pItem; pItem = pItem->Next) {
+		if (iItems == pGroup->Active || !pItem->Listed || !pItem->Waiter.Linked || pItem->Waiter.Calling ||
+			pItem->OwnershipCleared || pItem->OwnershipClaim != pToken || pItem->Group != pGroup ||
+			pItem->Previous != pPrevious || !pItem->Future || xrtFutureState(pItem->Future) != XFUTURE_PENDING) return false;
+		++iItems; pPrevious = pItem;
+	}
+	if (iItems != pGroup->Active) return false;
+	if (pVisit) for (const xrt_task_group_item* pItem = pGroup->Head; pItem; pItem = pItem->Next)
+		if (!pVisit(pItem->Future,pContext)) return false;
+	*pWait = (xtaskgroupwaitv1){sizeof(*pWait),pGroup->Promise,iItems}; return true;
 }
 
 #endif
