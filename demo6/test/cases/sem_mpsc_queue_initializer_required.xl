@@ -1,0 +1,9 @@
+MpscQueue<int> globalQueue
+class BareMpscQueue
+    MpscQueue<int> fieldQueue
+end
+func main(...) as int
+    MpscQueue<int> localQueue
+    localQueue = MpscQueue::<int>(2)
+    return 0
+end

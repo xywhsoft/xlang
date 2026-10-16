@@ -1,0 +1,41 @@
+typedef DeferredQueue = MpmcQueue<int>?
+SpscQueue<int>? globalOptional
+MpscQueue<int> globalQueue = MpscQueue::<int>(4)
+class InitializedQueues
+    SpscQueue<int> spsc = SpscQueue::<int>(2)
+    MpscQueue<int> mpsc = MpscQueue::<int>(4)
+    MpmcQueue<int> mpmc = MpmcQueue::<int>(4)
+    WaitQueue<int> waiting = WaitQueue::<int>(8)
+    Queue<int> aliasQueue = Queue::<int>(16)
+    WaitQueue<int>? optional
+end
+func main(...) as int
+    SpscQueue<int> spsc = SpscQueue::<int>(2)
+    MpscQueue<int> mpsc = MpscQueue::<int>(4)
+    MpmcQueue<int> mpmc = MpmcQueue::<int>(4)
+    WaitQueue<int> waiting = WaitQueue::<int>(8)
+    Queue<int> aliasQueue = Queue::<int>(16)
+    assert(spsc.count() == 0 and mpsc.count() == 0 and mpmc.count() == 0)
+    assert(waiting.count() == 0 and aliasQueue.count() == 0)
+    assert(globalQueue.count() == 0 and globalOptional == null)
+    auto owner = InitializedQueues()
+    assert(owner.spsc.capacity() == 2 and owner.mpsc.capacity() == 4)
+    assert(owner.mpmc.capacity() == 4 and owner.waiting.capacity() == 8)
+    assert(owner.aliasQueue.capacity() == 16 and owner.optional == null)
+    DeferredQueue deferred
+    assert(deferred == null)
+    deferred = MpmcQueue::<int>(2)
+    if deferred != null
+        assert(deferred.count() == 0 and deferred.capacity() == 2)
+    end
+    globalOptional = SpscQueue::<int>(2)
+    if globalOptional != null
+        assert(globalOptional.count() == 0)
+    end
+    owner.optional = WaitQueue::<int>(2)
+    auto optional = owner.optional
+    if optional != null
+        assert(optional.capacity() == 2)
+    end
+    return 0
+end

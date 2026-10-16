@@ -15,6 +15,7 @@
 #include "src/runtime/xl6_value_default_abi.h"
 #include "src/runtime/xl6_native_scalar_abi.h"
 #include "src/runtime/xl6_native_value_abi.h"
+#include "src/runtime/xl6_tree_key_abi.h"
 
 typedef uint32 XL6_IrNodeId;
 typedef uint32 XL6_IrBlockId;
@@ -275,13 +276,14 @@ typedef enum XL6_IrRuntimeResourcePayloadAbi {
  * representation because it is a different language comparison contract.
  * Floating order is the runtime's canonical total order, including NaN. */
 typedef enum XL6_IrRuntimeResourceKeyOrderAbi {
-    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID = 0,
-    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_BOOL,
-    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_SIGNED_I64,
-    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_UNSIGNED_U64,
-    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_FLOAT_TOTAL,
-    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_STRING,
-    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_TYPE_ID
+    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID = XL6_TREE_KEY_INVALID_V1,
+    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_BOOL = XL6_TREE_KEY_BOOL_V1,
+    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_SIGNED_I64 = XL6_TREE_KEY_SIGNED_I64_V1,
+    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_UNSIGNED_U64 = XL6_TREE_KEY_UNSIGNED_U64_V1,
+    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_FLOAT_TOTAL = XL6_TREE_KEY_FLOAT_TOTAL_V1,
+    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_STRING = XL6_TREE_KEY_STRING_V1,
+    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_TYPE_ID = XL6_TREE_KEY_TYPE_ID_V1,
+    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_CHAR = XL6_TREE_KEY_CHAR_V1
 } XL6_IrRuntimeResourceKeyOrderAbi;
 
 /* A member call on the open `var` xvalue cannot name one static collection

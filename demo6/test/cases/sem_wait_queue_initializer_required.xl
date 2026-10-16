@@ -1,0 +1,9 @@
+WaitQueue<int> globalQueue
+class BareWaitQueue
+    WaitQueue<int> fieldQueue
+end
+func main(...) as int
+    WaitQueue<int> localQueue
+    localQueue = WaitQueue::<int>(2)
+    return 0
+end

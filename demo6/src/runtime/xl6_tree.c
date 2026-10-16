@@ -1,6 +1,7 @@
 #include "src/runtime/xl6_tree.h"
 #include "src/runtime/xl6_tree_projection.h"
 #include "src/runtime/xl6_string_type.h"
+#include "src/runtime/xl6_scalar_type_abi.h"
 #include "src/api/xl_foreign_error.h"
 #include <limits.h>
 #include <stdlib.h>
@@ -68,7 +69,7 @@ static bool samePolicy(const XL6_SequenceAdmissionV3* a,const XL6_SequenceAdmiss
 }
 static bool layoutValid(const XL6_TreeLayoutV1* layout)
 {
-    if (!layout || !layout->identity || !layout->keyOrder || layout->keyOrder>6 ||
+    if (!layout || !layout->identity || !layout->keyOrder ||
         layout->key.transfer>2 || layout->value.transfer>3 ||
         !xl6SequenceTupleV1(layout->key.identity,layout->key.elementIdentity,
             layout->key.transfer,layout->key.size,layout->key.type) ||
@@ -81,12 +82,13 @@ static bool layoutValid(const XL6_TreeLayoutV1* layout)
     const xrttype* type=layout->key.type;
     bool ordered=false;
     switch (layout->keyOrder) {
-    case 1: ordered=type==xrtTypeBool(); break;
-    case 2: ordered=type==xrtTypeInt64() || type==xrtTypeTime(); break;
-    case 3: ordered=type==xrtTypeUInt64(); break;
-    case 4: ordered=type==xrtTypeFloat32() || type==xrtTypeFloat64(); break;
-    case 5: ordered=xl6StringTypeAbiV1(type); break;
-    case 6: ordered=type==xrtTypeType(); break;
+    case XL6_TREE_KEY_BOOL_V1: ordered=type==xrtTypeBool(); break;
+    case XL6_TREE_KEY_SIGNED_I64_V1: ordered=type==xrtTypeInt64() || type==xrtTypeTime(); break;
+    case XL6_TREE_KEY_UNSIGNED_U64_V1: ordered=type==xrtTypeUInt64(); break;
+    case XL6_TREE_KEY_FLOAT_TOTAL_V1: ordered=type==xrtTypeFloat32() || type==xrtTypeFloat64(); break;
+    case XL6_TREE_KEY_STRING_V1: ordered=xl6StringTypeAbiV1(type); break;
+    case XL6_TREE_KEY_TYPE_ID_V1: ordered=type==xrtTypeType(); break;
+    case XL6_TREE_KEY_CHAR_V1: ordered=xl6CharTypeAbiV1(type); break;
     }
     if (!ordered) xrtSetErrorKind(XERR_TYPE);
     return ordered;

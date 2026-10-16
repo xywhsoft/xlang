@@ -1,10 +1,11 @@
 #ifndef XL6_TREE_H
 #define XL6_TREE_H
 #include "xl6_sequence.h"
+#include "xl6_tree_key_abi.h"
 
 /* Closed XLIR tuple. Array identities describe the two independently owned
  * admission domains, not Array storage kept inside the tree. The key order
- * is the six-case XLIR ordering ABI; values do not acquire a fake order. */
+ * uses XL6_TreeKeyOrderV1; values do not acquire a fake order. */
 typedef struct XL6_TreeLayoutV1 {
     uint64_t identity;
     unsigned int keyOrder;

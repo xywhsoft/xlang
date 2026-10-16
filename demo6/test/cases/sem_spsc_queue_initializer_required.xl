@@ -1,0 +1,9 @@
+SpscQueue<int> globalQueue
+class BareSpscQueue
+    SpscQueue<int> fieldQueue
+end
+func main(...) as int
+    SpscQueue<int> localQueue
+    localQueue = SpscQueue::<int>(2)
+    return 0
+end

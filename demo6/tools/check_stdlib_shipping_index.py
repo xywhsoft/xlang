@@ -37,13 +37,14 @@ def main():
     optional={'demo6/tools/check_stdlib_thread_shipping.py','demo6/tools/check_stdlib_shipping_index.py',
         'demo6/tools/check_stdlib_runtime_header_vfs.py'}
     test_only=set(args.test_only_change)
-    assert all(name in blobs and name.startswith(('demo6/test/','demo6/tools/check_'))
+    assert all(name in blobs and (name.startswith(('demo6/test/','demo6/tools/check_'))
+        or name=='demo6/tools/stdlib_fixture_inputs.py')
         and '..' not in Path(name).parts for name in test_only)
     comparisons=[]; differences=[]
     for name,blob in blobs.items():
         path=root/Path(name).relative_to('demo6')
         if not path.exists():
-            assert name in optional or name.startswith(('demo6/test/','demo6/tools/check_')),name
+            assert name in optional or name in test_only or name.startswith(('demo6/test/','demo6/tools/check_')),name
             differences.append(name+': absent test-only input'); continue
         if normal(path.read_bytes())!=normal(blob):
             # The tool index is prose, not a compiler source/build input. Keep
