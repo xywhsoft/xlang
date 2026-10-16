@@ -2,6 +2,18 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_product_witnesses.py --census-report <actual-SO-census.json>
+--windows-products <aggregate.json> --windows-aot <aot.json> --linux-products
+<aggregate.json> --linux-aot <aot.json> --out <new-report.json>` is a read-only
+WSL audit associating each public signature with the same passing source case
+in genuine Windows/Linux JIT/module and relocated AOT reports. It rehashes
+transitive inputs, products, children, objects, logs and AOT images. Hosted or
+platform requirements, unexecuted functions, differing sources/products and
+missing execution modes cannot substitute for a witness. This is not runtime
+branch instrumentation or full53 acceptance. Run its 16 positive/refusal
+controls with `python3 tools/test_stdlib_product_witnesses.py` inside Linux.
+See [Signature/product witnesses](../docs/stdlib53-b337-product-witnesses.md).
+
 `check_stdlib_native_defaults.py --root <frozen-demo6> --build-report
 <ordinary-build.json> --out <fresh-output>` checks required queue capacities,
 SlotMap local/global/field defaults and Array range removal through genuine
@@ -14,7 +26,10 @@ registered signatures/classes plus 142 native container member/arity/property
 contracts against exact source-to-Typed-IR observations. Shadow/declaration/comment,
 unreachable and legacy-observer controls prevent false bindings; dependent generic
 templates are not executable ABIs. This required Linux product gate is binding
-coverage, not runtime branch coverage. See [Native container contracts](../docs/stdlib53-b332-native-public-surface.md).
+coverage, not runtime branch coverage. Static and class signatures must also
+have a call in a reachable lowered function; the report preserves source
+positions and separate reachable fixture lists for all three categories.
+See [Native container contracts](../docs/stdlib53-b332-native-public-surface.md).
 
 `check_stdlib_retired_text_bridges.py --root <frozen-demo6> --build-report
 <shipping.json> --out <fresh-directory>` is the required retired-text gate.

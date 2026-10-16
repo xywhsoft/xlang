@@ -93,6 +93,7 @@ def main():
     assert recorded[library]==sha(library)
     host=task/'test/cases/stdlib_resolved_coverage.c';helper=task/'test/cases/stdlib_intrinsic_coverage.h'
     control=task/'test/cases/stdlib_intrinsic_coverage_control.xl'
+    call_control=task/'test/cases/stdlib_executable_coverage_control.xl'
     old_control=task/'test/cases/stdlib_resolved_coverage_control.xl';seed=root/'test/cases/stdlib_class_catalog.xl'
     sources=sorted(s for s in (root/'test/cases').glob('stdlib_*.xl') if legacy.PREFIX.match(s.name) or s.stem=='stdlib_crt_algorithms')
     sources=stdlib_fixture_inputs.select(sources,a.fixture_source)
@@ -102,7 +103,7 @@ def main():
     if a.fixture:
         wanted=set(a.fixture);sources=[s for s in sources if s.stem in wanted];assert len(sources)==len(wanted)
     files={Path(__file__).resolve(),Path(stdlib_fixture_inputs.__file__).resolve(),Path(legacy.__file__).resolve(),Path(sys.executable),Path(cc),a.build_report.resolve(),
-           host,helper,control,old_control,seed,*sources}
+           host,helper,control,call_control,old_control,seed,*sources}
     for r in build['Inputs']+build['Products']:assert sha(r['Path'])==r['Sha256'];files.add(Path(r['Path']))
     inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(files)]
     out.mkdir();rows=[];cases=[];failures=[];expected=native_contract(root)
@@ -111,7 +112,8 @@ def main():
         FixtureSourceUpdates=[str(p.resolve()) for p in a.fixture_source],
         FrozenCandidateCount=frozenPopulation,AdditionalFixtureSources=[str(p.resolve()) for p in a.additional_fixture_source],
         CompilerSourceObjects=False,UsesActualCompilerSO=True,RuntimeExecutionAcceptance=False,
-        Full53Acceptance=False,NativeBindings=[],MissingNativeBindings=[],UnexpectedNativeBindings=[])
+        Full53Acceptance=False,NativeBindings=[],MissingNativeBindings=[],UnexpectedNativeBindings=[],
+        CallReachabilityControl=False,ReachableFunctionBindingAcceptance=False)
     env={k:v for k,v in os.environ.items() if not k.upper().startswith('XL6_') and k not in
          ('LD_LIBRARY_PATH','LD_PRELOAD','LD_AUDIT','CPATH','C_INCLUDE_PATH','LIBRARY_PATH')}
     def run(tag,args):
@@ -122,7 +124,7 @@ def main():
         return row,r.stdout,r.stderr
     def checked(tag,args):
         row,data,error=run(tag,args);rows.append(row);assert row['Exit']==0,(tag,error[-5000:]);return json.loads(data)
-    bindings={};reachable={};static={};class_observed={}
+    bindings={};reachable={};static={};static_reachable={};class_observed={};class_reachable={}
     try:
         names=out/'enum_names.h';write_names(root,names);binary=out/'resolved'
         row,data,error=run('build',[cc,'-std=c11','-O2','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-D_GNU_SOURCE',
@@ -156,6 +158,17 @@ def main():
         report['LegacyObserverCompatibility']=True
         observed={legacy.key(c['Internal'],c['ParameterTypes']) for c in old['Calls'] if c['SourceCall'] and legacy.key(c['Internal'],c['ParameterTypes']) in expected_static}
         assert observed=={legacy.key('__xl_std_encoding_is_utf8',('string','int'))},observed
+        call_data=checked('call-reachability-control',[binary,call_control])
+        assert checked('legacy-call-reachability-control',[legacy_binary,call_control])['Calls']==call_data['Calls']
+        observed_calls=[c for c in call_data['Calls'] if c['SourceCall'] and
+                        legacy.key(c['Internal'],c['ParameterTypes']) in expected_static]
+        assert len(observed_calls)==2,observed_calls
+        assert {c['InReachableFunction'] for c in observed_calls}=={False,True},observed_calls
+        visible_calls=[c for c in observed_calls if c['InReachableFunction']]
+        assert {legacy.key(c['Internal'],c['ParameterTypes']) for c in visible_calls}=={
+            legacy.key('__xl_std_encoding_is_utf8',('string','int'))},visible_calls
+        assert all(c['SourceLine']>0 and c['SourceColumn']>0 for c in observed_calls)
+        report['CallReachabilityControl']=True
         def scan(source):
             row,data,error=run(source.stem,[binary,source]);record=dict(Name=source.stem,Row=row)
             if source.stem in legacy.NEGATIVE:
@@ -170,11 +183,18 @@ def main():
                 for call in case.get('Calls',[]):
                     identity=legacy.key(call['Internal'],call['ParameterTypes'])
                     if call['SourceCall']:
-                        if identity in expected_static:static.setdefault(identity,set()).add(name)
+                        matched=[]
+                        if identity in expected_static:matched.append(identity)
                         elif call['Internal'] in ('__xl_std_array_sort','__xl_std_array_sort_by','__xl_std_array_binary_search'):
                             for template in expected_static:
-                                if template[0]==identity[0] and legacy.generic_match(template[1],identity[1]):static.setdefault(template,set()).add(name)
-                        if call['Owner']:class_observed.setdefault(legacy.class_call(call),set()).add(name)
+                                if template[0]==identity[0] and legacy.generic_match(template[1],identity[1]):matched.append(template)
+                        for match in matched:
+                            static.setdefault(match,set()).add(name)
+                            if call['InReachableFunction']:static_reachable.setdefault(match,set()).add(name)
+                        if call['Owner']:
+                            member=legacy.class_call(call)
+                            class_observed.setdefault(member,set()).add(name)
+                            if call['InReachableFunction']:class_reachable.setdefault(member,set()).add(name)
                 for entry in case.get('Intrinsics',[])+case.get('Properties',[]):
                     identity=native_binding(entry)
                     if identity:
@@ -184,27 +204,44 @@ def main():
                         bindings.setdefault(identity,set()).add(name)
                         if entry['InReachableFunction']:reachable.setdefault(identity,set()).add(name)
                 print(name+': '+('rejected' if case.get('ExpectedRejection') else 'error' if case.get('Error') else 'scanned'),flush=True)
-        class_missing=[]
+        class_missing=[];class_unreachable=[]
         for member in members:
             if member['Category']!='callable':continue
             identity=(member['Owner'],member['Name'],tuple(member['ParameterTypes']));hits=set(class_observed.get(identity,()))
+            reached=set(class_reachable.get(identity,()))
             if member['Owner']=='FixedStack':
                 for concrete,fixtures in class_observed.items():
                     if concrete[:2]==identity[:2] and legacy.generic_match(identity[2],concrete[2]):hits.update(fixtures)
+                for concrete,fixtures in class_reachable.items():
+                    if concrete[:2]==identity[:2] and legacy.generic_match(identity[2],concrete[2]):reached.update(fixtures)
             member['Fixtures']=sorted(hits)
+            member['ReachableFunctionFixtures']=sorted(reached)
             if not hits:class_missing.append(member)
+            if not reached:class_unreachable.append(member)
         def native_row(identity):
             return dict(Owner=identity[0],Name=identity[1],SourceArgumentCount=identity[2],SourceKind=identity[3],
                         Fixtures=sorted(bindings.get(identity,())),ReachableFunctionFixtures=sorted(reachable.get(identity,())))
+        def static_row(identity):
+            return dict(Internal=identity[0],ParameterTypes=list(identity[1]),
+                Public=sorted({r['Namespace']+'.'+r['Name'] for r in expected_static[identity]}),
+                Fixtures=sorted(static.get(identity,())),ReachableFunctionFixtures=sorted(static_reachable.get(identity,())))
         report.update(NativeExpectedCount=len(expected),NativeBoundCount=len(expected&bindings.keys()),
             NativeBindings=[native_row(k) for k in sorted(expected)],MissingNativeBindings=[native_row(k) for k in sorted(expected-bindings.keys())],
+            UnreachableNativeBindings=[native_row(k) for k in sorted(expected-reachable.keys())],
             UnexpectedNativeBindings=[native_row(k) for k in sorted(bindings.keys()-expected)],
             StaticRegistrationCount=len(catalog['Registrations']),StaticExpectedCount=len(expected_static),StaticBoundCount=len(static),
+            StaticBindings=[static_row(k) for k in sorted(expected_static)],
+            StaticReachableCount=len(static_reachable),UnreachableStaticBindings=[static_row(k) for k in sorted(expected_static) if k not in static_reachable],
             MissingStaticBindings=[dict(Internal=k[0],ParameterTypes=list(k[1])) for k in expected_static if k not in static],
-            ClassMembers=members,MissingClassBindings=class_missing,SourceIdentityControl=True,UnreachableControl=True)
+            ClassMembers=members,MissingClassBindings=class_missing,UnreachableClassBindings=class_unreachable,
+            ClassCallableCount=sum(m['Category']=='callable' for m in members),
+            ClassReachableCount=sum(m['Category']=='callable' and bool(m.get('ReachableFunctionFixtures')) for m in members),
+            SourceIdentityControl=True,UnreachableControl=True)
         report['InputsUnchanged']=all(sha(r['Path'])==r['Sha256'] for r in inputs)
         report['DiscoveryComplete']=report['InputsUnchanged'] and len(cases)==len(sources) and not failures
-        report['Complete']=report['DiscoveryComplete'] and not a.fixture and not any(report[k] for k in
+        report['ReachableFunctionBindingAcceptance']=not any(report[k] for k in
+            ('UnreachableNativeBindings','UnreachableStaticBindings','UnreachableClassBindings'))
+        report['Complete']=report['DiscoveryComplete'] and not a.fixture and report['ReachableFunctionBindingAcceptance'] and not any(report[k] for k in
             ('MissingNativeBindings','UnexpectedNativeBindings','MissingStaticBindings','MissingClassBindings'))
     except Exception as error:failures.append(dict(Name='gate',Error=repr(error)))
     report['Products']=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(out.rglob('*')) if f.is_file()]

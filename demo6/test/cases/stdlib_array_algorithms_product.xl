@@ -1,0 +1,48 @@
+// Portable product witness for all three generic algorithm signatures.
+func compareNumber(int left, int right) as int
+    if left < right then return -1 end
+    if left > right then return 1 end
+    return 0
+end
+
+func textOrder(string left, string right) as int
+    return string.compare(left, right)
+end
+
+int extracted = 0
+func textSize(string value) as int
+    extracted += 1
+    return value.length
+end
+
+func failedKey(string value) as int
+    throw ValueError "deliberate algorithm key failure"
+end
+
+array<int> numbers = [9, -4, 9, 0, -4]
+array.sort::<int>(numbers, compareNumber)
+assert numbers == array<int>[-4, -4, 0, 9, 9]
+assert array.binarySearch::<int>(numbers, -4, compareNumber) == 0
+assert array.binarySearch::<int>(numbers, 9, compareNumber) == 3
+assert array.binarySearch::<int>(numbers, 3, compareNumber) == -1
+
+array<string> words = ["你", "a\0z", "a\0b", "a"]
+array.sort::<string>(words, textOrder)
+assert words == array<string>["a", "a\0b", "a\0z", "你"]
+assert array.binarySearch::<string>(words, "a\0z", textOrder) == 2
+assert array.binarySearch::<string>(words, "a\0c", textOrder) == -1
+
+array<string> bySize = ["aaa", "b", "cc"]
+array.sortBy::<string, int>(bySize, textSize, compareNumber)
+assert extracted == 3 and bySize == array<string>["b", "cc", "aaa"]
+bool caught = false
+try
+    array.sortBy::<string, int>(bySize, failedKey, compareNumber)
+catch ValueError e
+    caught = true
+end
+assert caught and bySize == array<string>["b", "cc", "aaa"]
+
+array<int> empty = []
+array.sort::<int>(empty, compareNumber)
+assert array.binarySearch::<int>(empty, 0, compareNumber) == -1

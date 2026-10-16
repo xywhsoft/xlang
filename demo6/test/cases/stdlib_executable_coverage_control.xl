@@ -1,0 +1,7 @@
+// Binding a real API in an uncalled function is not an executed test.
+string spellings = "time.now(); encoding.isUtf8(b'not a call')"
+func neverInvoked() as time
+    return time.now()
+end
+assert encoding.isUtf8("ok")
+assert spellings.length > 0
