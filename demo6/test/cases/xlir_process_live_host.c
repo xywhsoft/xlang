@@ -1,6 +1,7 @@
 /* Real private child + white-box waiter retirement. Public wait is deliberately
  * NOT a waiter join; this fixture retains a native observer to finish its heap
  * ledger deterministically. No sleeps, shell, network, GUI or user files. */
+#if !defined(XL6_PROCESS_PRODUCT_OBSERVER)
 #define XRT_MODULE_PROCESS
 #define XRT_MODULE_IO
 #define XRT_MODULE_VALUE_CONTAINER
@@ -16,6 +17,7 @@
 #include "src/runtime/xl6_process_live.c"
 #include "src/runtime/xl6_process_stream.c"
 #include "src/runtime/xl6_process_status.c"
+#endif
 #include <assert.h>
 #include <stdio.h>
 
@@ -46,6 +48,29 @@ static void readerDrop(xlir_io_reader* reader)
 { assert(xrtReaderDestroy(reader->stream)); xrtFree(reader); }
 static void writerDrop(xlir_io_writer* writer)
 { assert(xrtWriterDestroy(writer->stream)); xrtFree(writer); }
+#if defined(XL6_PROCESS_PRODUCT_OBSERVER)
+static unsigned spawnSweep(const char* child)
+{
+    XL6_ProcessCommand* plan=command(child,"exit","7");
+    for(int64_t stream=0;stream<3;++stream)xl6ProcessCommandStdioV1(plan,stream,XPROCESS_IO_NULL);
+    assert(!xrtGetError());
+    for(size_t point=0;point<512;++point){
+        xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
+        assert(xrtMemDebugFailAfter(point));
+        XL6_ProcessLive* process=xl6ProcessSpawnV1(plan);
+        bool hit=xrtMemDebugFailTriggered();xrtMemDebugFailClear();
+        if(hit)assert(!process && xrtErrorKind(xrtGetError())==XERR_MEMORY);
+        else assert(process && !xrtGetError());
+        if(process){
+            xprocess* observer=xrtProcessRef(process->native);assert(observer);
+            xl6ProcessDestroyV1(process);retire(observer);
+        }
+        xrtClearError();balanced(&before);
+        if(!hit){xl6ProcessCommandDestroyV1(plan);return (unsigned)point;}
+    }
+    abort();
+}
+#endif
 static unsigned factorySweep(XL6_ProcessLive* process,bool reader)
 {
     unsigned failures=0;
@@ -69,6 +94,10 @@ static unsigned factorySweep(XL6_ProcessLive* process,bool reader)
 int main(int argc,char** argv)
 {
     assert(argc==2 && xrtMemDebugEnable(true));
+#if defined(XL6_PROCESS_PRODUCT_OBSERVER)
+    unsigned spawn=spawnSweep(argv[1]);
+    printf("live product spawn OOM %u failures + 1 first no-hit, waiter retired, balanced\n",spawn);
+#endif
     XL6_ProcessCommand* plan=command(argv[1],"echo",NULL);
     /* Wrapper-only failures are before spawn. Native spawn's full allocation
      * prefix is already exercised separately; these are not OS fault seams. */

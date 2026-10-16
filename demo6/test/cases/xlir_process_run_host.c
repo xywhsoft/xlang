@@ -152,7 +152,11 @@ int main(int argc,char** argv)
     assert(complete);
     printf("native run complete prefix: %zu failures and 1 first no-hit, balanced\n",failed);
     xl6ProcessRunOptionsDestroyV1(runOptions);xl6ProcessCommandDestroyV1(runCommand);xrtValueRelease(input);
+#if !defined(XL6_PROCESS_PRODUCT_OBSERVER)
+    /* The private POSIX launch-plan unit belongs to the source-only test.
+     * Product mode reaches it through the real exported Run implementation. */
     extern void testProcessPlanOom(void);
     testProcessPlanOom();
+#endif
     return 0;
 }
