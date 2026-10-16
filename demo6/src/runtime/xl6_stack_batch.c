@@ -64,7 +64,7 @@ done:
     if (xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
     if (scope.failed) { xrtValueRelease(result); result=NULL; }
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
-    if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return NULL; }
+    if (!outcome.ok) { xrtSetErrorTake(outcome.error); return NULL; }
     return result;
 }
 #undef ARRAY_LAYOUT

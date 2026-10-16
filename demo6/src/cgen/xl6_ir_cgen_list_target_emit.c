@@ -40,8 +40,8 @@ static int xl6IrCgenEmitValueCollectionTargetCreateDepth(XL6_Output* out,const X
         "      if (!%s || xrtGetError()) xl6ErrorScopeCaptureFailure(&xlir_value_collection_target_scope);\n"
         "      if (xlir_value_collection_target_scope.failed) { xrtValueRelease(%s); %s = NULL; }\n"
         "      xl6_error_result xlir_value_collection_target_outcome = xl6ErrorScopeEnd(&xlir_value_collection_target_scope);\n"
-        "      if (!xlir_value_collection_target_outcome.ok) xl6ErrorScopePropagateFailure(xlir_value_collection_target_outcome);\n"
-        "      } else { %s = NULL; xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); } }\n",
+        "      if (!xlir_value_collection_target_outcome.ok) xrtSetErrorTake(xlir_value_collection_target_outcome.error);\n"
+        "      } else { %s = NULL; } }\n",
         target->layout,(unsigned long long)owner->typeValueId,(unsigned long long)schema->typeValueId,
         (unsigned long long)payload->typeValueId,transfer,slot,descriptor,
         result,target->create,result,result,target->project,result,converter,result,result,result,result);

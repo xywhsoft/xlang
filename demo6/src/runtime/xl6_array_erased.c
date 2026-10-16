@@ -40,7 +40,7 @@ xvalue* xl6ArrayProjectionTakeV1(xvalue* source, uint64_t identity, uint64_t ele
     xrtSetErrorTake(failure); xl6ErrorScopeCaptureFailure(&cleanup);
     xrtValueRelease(source);
     xl6_error_result outcome=xl6ErrorScopeEnd(&cleanup);
-    if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
+    if (!outcome.ok) xrtSetErrorTake(outcome.error);
     return NULL;
 }
 static xvalue* read(const xvalue* source, int64_t index, bool take)
@@ -179,7 +179,7 @@ xvalue* xl6ValueCloneV1(const xvalue* source)
     xl6_error_scope operation={0};
     if (!xl6ErrorScopeBegin(&operation)) {
         xrtErrorFree(incoming);
-        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return NULL;
+        return NULL;
     }
     XL6_Sequence* owner=NULL; XL6_SequenceLayoutV1 layout;
     const xvalueconverter* converter=NULL;
@@ -189,7 +189,7 @@ xvalue* xl6ValueCloneV1(const xvalue* source)
     if (!result || xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
     if (operation.failed) { consume(result); result=NULL; }
     xl6_error_result outcome=xl6ErrorScopeEnd(&operation);
-    if (!outcome.ok) { xrtErrorFree(incoming); xl6ErrorScopePropagateFailure(outcome); }
+    if (!outcome.ok) { xrtErrorFree(incoming); xrtSetErrorTake(outcome.error); }
     else xrtSetErrorTake(incoming);
     return result;
 }

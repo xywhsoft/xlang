@@ -34,6 +34,8 @@ xvalue* xl6NativeHandleTakeV1(void** slot, const XL6_NativeHandlePolicyV1* polic
     if (value) xrtValueRelease(value);
     else if (owned) policy->Ops->Drop(owned, NULL);
     outcome = xl6ErrorScopeEnd(&cleanup);
-    xl6ErrorScopePropagateFailure(outcome);
+    /* The failed factory returns NULL even if the first diagnostic is NULL.
+     * Cleanup has finished locally; an enclosing language catch may handle it. */
+    xrtSetErrorTake(outcome.error);
     return NULL;
 }

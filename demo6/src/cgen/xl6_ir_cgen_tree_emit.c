@@ -54,8 +54,8 @@ static int xl6IrCgenEmitTreeReferenceCreateDepth(XL6_Output* out,const XL6_IrMod
         "      if (!%s) xl6ErrorScopeCaptureFailure(&%s);\n"
         "      if (%s.failed) { xrtValueRelease(%s); %s = NULL; }\n"
         "      xl6_error_result %s = xl6ErrorScopeEnd(&%s);\n"
-        "      if (!%s.ok) xl6ErrorScopePropagateFailure(%s);\n"
-        "      } else { %s = NULL; xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); } }\n",values,scope,
+        "      if (!%s.ok) xrtSetErrorTake(%s.error);\n"
+        "      } else { %s = NULL; } }\n",values,scope,
         result,(unsigned)plan->role,(unsigned long long)sequence->typeValueId,
         (unsigned long long)xl6IrTypeGet(&module->types,plan->elementType)->typeValueId,
         layout,keys,values,plan->nullable ? "true" : "false",result,scope,scope,result,result,
@@ -151,8 +151,8 @@ static int xl6IrCgenEmitAvlRuntime(XL6_Output* out,const XL6_IrModule* module,
             "      if (!v%u) xl6ErrorScopeCaptureFailure(&tree_scope);\n"
             "      if (tree_scope.failed) { xrtValueRelease(v%u); v%u = NULL; }\n"
             "      xl6_error_result tree_outcome = xl6ErrorScopeEnd(&tree_scope);\n"
-            "      if (!tree_outcome.ok) xl6ErrorScopePropagateFailure(tree_outcome);\n"
-            "      } else { v%u = NULL; xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); }\n",
+            "      if (!tree_outcome.ok) xrtSetErrorTake(tree_outcome.error);\n"
+            "      } else { v%u = NULL; }\n",
             output,method,output,output,output,output);
         break;
     case XL6_IR_RUNTIME_AVL_TREE_SET:

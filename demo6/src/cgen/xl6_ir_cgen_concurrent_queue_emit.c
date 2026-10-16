@@ -64,8 +64,8 @@ static int xl6IrCgenEmitQueueReferenceCreateDepth(XL6_Output* out,const XL6_IrMo
         "      if (!%s) xl6ErrorScopeCaptureFailure(&%s);\n"
         "      if (%s.failed) { xrtValueRelease(%s); %s = NULL; }\n"
         "      xl6_error_result %s = xl6ErrorScopeEnd(&%s);\n"
-        "      if (!%s.ok) xl6ErrorScopePropagateFailure(%s);\n"
-        "      } else { %s = NULL; xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); } }\n",seed,scope,result,factory,
+        "      if (!%s.ok) xrtSetErrorTake(%s.error);\n"
+        "      } else { %s = NULL; } }\n",seed,scope,result,factory,
         (unsigned)plan->role,(unsigned long long)sequence->typeValueId,
         (unsigned long long)xl6IrTypeGet(&module->types,plan->elementType)->typeValueId,
         (unsigned long long)xl6IrTypeGet(&module->types,plan->baseElementType)->typeValueId,
@@ -222,6 +222,6 @@ static int xl6IrCgenEmitConcurrentQueueRuntime(XL6_Output* out,const XL6_IrModul
     }
     xl6OutputPrintf(out,
         "      projection_ok_%u = queue_outcome.ok;\n"
-        "      if (!queue_outcome.ok) xl6ErrorScopePropagateFailure(queue_outcome); }\n",output);
+        "      if (!queue_outcome.ok) xrtSetErrorTake(queue_outcome.error); }\n",output);
     return xl6OutputHasFailed(out) ? -1 : 1;
 }
