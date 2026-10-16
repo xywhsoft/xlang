@@ -2,7 +2,9 @@
  * A private native observer joins the waiter tail before checking the heap;
  * public Process.wait/await deliberately do not promise a waiter-thread join. */
 #if !defined(XL6_PROCESS_PRODUCT_OBSERVER)
+#if !defined(XL6_PROCESS_SOURCE_CONTRACTS)
 #include "tools/xrt_single_header_impl.c"
+#endif
 #include "src/runtime/xl6_native_handle.c"
 #include "src/runtime/xl6_process_command.c"
 #include "src/runtime/xl6_process_live.c"
@@ -47,23 +49,31 @@ static void ready(xfuture* future)
     assert(xrtFutureOwnershipAdapterV1(xrtFutureOwnership(future),allowed,1));
 }
 #if !defined(XL6_PROCESS_PRODUCT_OBSERVER)
+static void* mapperFrame(void)
+{
+    static const XL6_CaptureLayoutV2 empty={sizeof(empty),1,0,NULL};
+    void* frame=xl6FutureCallbackRuntimeV4Get()->Allocate(NULL,1,processReady,&empty);
+    assert(frame);return frame;
+}
 static unsigned mapperSweep(void)
 {
     for(size_t point=0;point<8;++point) {
         xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
         xfuture* future=NULL; xpromise* promise=xrtPromiseCreate(&future,NULL); assert(promise);
+        void* frame=mapperFrame();
         xprocessstatus status={0}; xfutureresult input={0};
         input.State=XFUTURE_RESOLVED; input.Value=&status;
         xrtSetErrorKind(XERR_IO); const xerror* prior=xrtGetError();
-        assert(xrtMemDebugFailAfter(point)); processReady(&input,promise,NULL);
+        assert(xrtMemDebugFailAfter(point)); processReady(&input,promise,NULL,frame);
         bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();
         assert(xrtGetError()==prior);
         if(hit) assert(xrtFutureState(future)==XFUTURE_FAILED && xrtErrorKind(xrtFutureError(future))==XERR_MEMORY);
         else {
             ready(future);
             /* Duplicate publication must not consume/leak the new bool box. */
-            processReady(&input,promise,NULL); assert(xrtGetError()==prior); ready(future);
+            processReady(&input,promise,NULL,frame); assert(xrtGetError()==prior); ready(future);
         }
+        xl6FutureCallbackRuntimeV1Get()->Discard(frame);
         xrtPromiseDestroy(promise); xrtFutureDestroy(future); xrtClearError(); balanced(&before);
         if(!hit) return (unsigned)point;
     }
@@ -105,9 +115,11 @@ int main(int argc,char** argv)
     for(unsigned guard=0;guard<2;++guard) {
         xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
         xfuture* future=NULL; xpromise* promise=xrtPromiseCreate(&future,NULL); assert(promise);
+        void* frame=mapperFrame();
         xprocessstatus status={0}; xfutureresult input={0};
         input.State=guard ? XFUTURE_RESOLVED : XFUTURE_FAILED; input.Value=guard ? NULL : &status;
-        processReady(&input,promise,NULL); assert(xrtFutureState(future)==XFUTURE_CLOSED && !xrtGetError());
+        processReady(&input,promise,NULL,frame); assert(xrtFutureState(future)==XFUTURE_CLOSED && !xrtGetError());
+        xl6FutureCallbackRuntimeV1Get()->Discard(frame);
         xrtPromiseDestroy(promise); xrtFutureDestroy(future); balanced(&before);
     }
 #endif

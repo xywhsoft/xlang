@@ -2,18 +2,11 @@
  * sleeps, OS fault seam, shell, GUI, network or user files. Invalid native
  * handles below intentionally exercise the real DuplicateHandle/fcntl failure. */
 #if !defined(XL6_PROCESS_PRODUCT_OBSERVER)
-#define XRT_MODULE_PROCESS_FILE
-#define XRT_MODULE_FILE_TEMP
-#define XRT_MODULE_ATOMIC
-#define XRT_MODULE_VFS_MEMORY
-#define XRT_MODULE_VALUE_CONTAINER
-#define XRT_MODULE_UNICODE_TEXT
-#define XRT_MODULE_STRING
-#define XRT_MODULE_MEMORY_DEBUG
-#define XRT_IMPLEMENTATION
-#define XRT_MODULE_ONCE
-#include "lib/xrt/xrt.h"
-#include "src/api/xl_foreign_error.c"
+#if !defined(XL6_PROCESS_SOURCE_CONTRACTS)
+/* White-box source mode uses the same complete native ABI as other resident
+ * unit hosts. The separate product/pruning gates prove trimmed applications. */
+#include "tools/xrt_single_header_impl.c"
+#endif
 #include "src/runtime/xl6_native_handle.c"
 #include "src/runtime/xl6_process_command.c"
 #include "src/runtime/xl6_process_terminal_config.c"
