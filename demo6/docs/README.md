@@ -6,6 +6,7 @@
 
 ## 当前权威设计
 
+- [工作线程已捕获错误的传播缺陷与验收门](stdlib53-b327-worker-error-boundary.md)：真实产品双平台复现 catch 已处理但线程失败，新增不可跳过的故障门禁；普通返回与 void 回调边界待修复。
 - [终端共享产品的完整资源账本](stdlib53-b326-terminal-product-ledger.md)：旧源码夹具迁到真实 DLL／SO，保留错误守卫、独立流寿命和完整堆／自有句柄账本；拒绝不匹配私有布局。
 - [启动期 resize 的应用就绪合同](stdlib53-b325-terminal-readiness.md)：保留系统 ConPTY，明确 Windows 10 启动期限制；应用就绪后单次 resize，真实产品与拒绝对照验收。
 - [真实产品与独立程序的标准库验收](stdlib53-b324-current-products.md)：普通产品源闭包、私有 SDK、原生 Future 载荷策略、Array 宿主入口和两端清单执行；保留专用宿主与平台条件。

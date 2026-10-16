@@ -18,6 +18,8 @@ HOSTED={
  'stdlib_stack_clear_error':'native destruction/error injection host',
  'stdlib_stack_clear_error_continuation':'native destruction/error injection host',
 }
+SOURCE_HOSTED=frozenset(HOSTED)
+HOSTED['stdlib_containers_worker_oom']='genuine worker-thread fault prefixes, callbacks and retained XRT completion'
 FIXTURE_C_SUPPORT={'stdlib_buffer_class_surface':'stdlib_buffer_surface_support.c'}
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
@@ -33,7 +35,7 @@ def main():
     if a.hosted_report:
         from check_stdlib_hosted_source import validate_hosted_source
         path=a.hosted_report.resolve();hosted=json.loads(path.read_text(encoding='utf-8-sig'))
-        fixtures={name:sha(root/'test/cases'/(name+'.xl')) for name in HOSTED}
+        fixtures={name:sha(root/'test/cases'/(name+'.xl')) for name in SOURCE_HOSTED}
         coverage,_=validate_hosted_source(hosted,fixtures,sha(driver))
         assert hosted['SourceFingerprint']==compared,'Host provider source differs from the selected compiler tree'
         assert len(hosted['NegativeControls'])==5
@@ -76,7 +78,7 @@ def main():
         directory=out/source.stem;directory.mkdir();text=source.read_text(encoding='utf-8-sig')
         record=dict(Name=source.stem,Source=str(source),SourceSha256=sha(source),Rows=[],Executed=False,Passed=False)
         if source.stem in HOSTED:
-            if hosted is not None:
+            if hosted is not None and source.stem in coverage:
                 record.update(Status='hosted-passed',Executed=True,Passed=True,HostedCoverage=coverage[source.stem],
                     HostedReportSha256=sha(a.hosted_report));return record
             record.update(Status='requires-host',Reason=HOSTED[source.stem]);return record
