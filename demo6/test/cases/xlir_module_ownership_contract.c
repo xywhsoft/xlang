@@ -26,7 +26,7 @@ int main(void)
         /* The existing frame fixture owns an await executor. Preserve every
          * original global/slot mutation while testing its new exact contract. */
         const bool executor = n == 2;
-        const XL6_IrModuleRetirementAbi retirement = executor ? XL6_IR_MODULE_RETIREMENT_OWNED_SERVICES_GRAPH_V3 : XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2;
+        const XL6_IrModuleRetirementAbi retirement = executor ? XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4 : XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2;
         assert(ir.abi.retirementAbi == retirement);
         ir.abi.retirementAbi = XL6_IR_MODULE_RETIREMENT_NONE;
         reject(&ir, "module retirement ABI");
@@ -70,15 +70,15 @@ int main(void)
             assert(xl6OutputOpenMemory(&out) && xl6IrCgenEmitCEx(&out, &ir, &parse.diags, &options));
             text = xl6OutputTakeMemoryText(&out, NULL);
             assert(text && strstr(text, "xl_script_module_retirement_v1(void)") &&
-                strstr(text, "0x584C364D525431ULL") && strstr(text, executor ? "xl_script_module_retirement_v3(void)" : "xl_script_module_retirement_v2(void)") &&
-                strstr(text, executor ? "0x584C364D525433ULL" : "0x584C364D525432ULL") && strstr(text, "xlir_module_prepare_resources")); xrtFree(text);
+                strstr(text, "0x584C364D525431ULL") && strstr(text, executor ? "xl_script_module_retirement_v4(void)" : "xl_script_module_retirement_v2(void)") &&
+                strstr(text, executor ? "0x584C364D525434ULL" : "0x584C364D525432ULL") && strstr(text, "xlir_module_prepare_resources")); xrtFree(text);
         }
         assert(xl6OutputOpenMemory(&out)); xl6IrDumpModuleText(&out, &ir);
         text = xl6OutputTakeMemoryText(&out, NULL);
-        assert(text && strstr(text, "module-trace=") && strstr(text, executor ? "module-retirement: 3" : "module-retirement: 2")); xrtFree(text);
+        assert(text && strstr(text, "module-trace=") && strstr(text, executor ? "module-retirement: 4" : "module-retirement: 2")); xrtFree(text);
         assert(xl6OutputOpenMemory(&out)); xl6IrDumpModuleJson(&out, &ir);
         text = xl6OutputTakeMemoryText(&out, NULL);
-        assert(text && strstr(text, executor ? "\"retirementAbi\": 3" : "\"retirementAbi\": 2")); xrtFree(text);
+        assert(text && strstr(text, executor ? "\"retirementAbi\": 4" : "\"retirementAbi\": 2")); xrtFree(text);
         xl6IrModuleFree(&ir); xl6ParseResultFree(&parse);
     }
     assert(globals && nonGlobals && (kinds & (1u << XL6_IR_FRAME_TRACE_XVALUE)) &&

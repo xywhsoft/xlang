@@ -65,6 +65,17 @@ typedef struct xrtownershipfinishv1 XL6_OwnershipFinishV1;
 typedef bool (*XL6_OwnershipResolveV3)(struct xrtownershipref, void*,
     const XL6_OwnershipAdapterV1**, const struct xrtownershippreparationv1**,
     const XL6_OwnershipFinishV1**);
+/* BUSY is an explicit resident capability decision, never inferred from an
+ * exception kind or a failed Count/Trace. REFUSED remains fail-closed. A BUSY
+ * probe leaves every output NULL and performs no semantic work. */
+typedef enum XL6_OwnershipAdmissionV1 {
+    XL6_OWNERSHIP_ADMISSION_REFUSED = 0,
+    XL6_OWNERSHIP_ADMISSION_ADMITTED = 1,
+    XL6_OWNERSHIP_ADMISSION_BUSY = 2
+} XL6_OwnershipAdmissionV1;
+typedef XL6_OwnershipAdmissionV1 (*XL6_OwnershipProbeV1)(struct xrtownershipref,void*,
+    const XL6_OwnershipAdapterV1**,const struct xrtownershippreparationv1**,
+    const XL6_OwnershipFinishV1**);
 XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV3(
     struct xrtownershipref, XL6_OwnershipResolveV3, void*, XL6_OwnershipPlan**);
 /* Read-only, resident discovery under the SAME freeze as each snapshot/pin
@@ -85,6 +96,9 @@ XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV4(
 XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV5(
     struct xrtownershipref, XL6_OwnershipResolveV3, XL6_OwnershipDiscoverV1,
     void*, XL6_OwnershipPlan**);
+XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV6(
+    struct xrtownershipref,XL6_OwnershipProbeV1,XL6_OwnershipDiscoverV1,
+    bool pinRoot,void*,XL6_OwnershipPlan**);
 XL6_CODE_LEASE_API XL6_OwnershipStepResult xl6OwnershipPlanPrepare(XL6_OwnershipPlan*);
 XL6_CODE_LEASE_API XL6_OwnershipStepResult xl6OwnershipPlanFinalizeV2(XL6_OwnershipPlan*);
 /* Rebuild from EVERY real plan-held node, subtracting exactly those holds as

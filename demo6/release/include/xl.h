@@ -41,6 +41,13 @@ typedef struct XL_ContextOptions {
 XL_API XL_ContextOptions xlDefaultContextOptions(void);
 XL_API int xlRuntimeInit(void);
 XL_API void xlRuntimeUnit(void);
+typedef struct XL_RuntimeDrainResult { int ready; int ok; } XL_RuntimeDrainResult;
+/* Retire queued modules without consuming runtime/context references or
+ * closing live module handles. Preserve failure independently of readiness.
+ * -1 waits; 0 is one bounded turn; positive milliseconds bound retries only.
+ * Stop creating/using contexts while performing process shutdown. External
+ * owners remain genuine roots; same-driver callback reentry returns BUSY. */
+XL_API XL_RuntimeDrainResult xlRuntimeDrainRetiringChecked(long long timeoutMilliseconds);
 
 XL_API XL_Context* xlCreateContext(const XL_ContextOptions* options);
 XL_API void xlDestroyContext(XL_Context* ctx);

@@ -2673,6 +2673,26 @@ static bool xlModuleResolveOwnershipV3(xrtownershipref ref,void* context,
     const XL_Module* module=context;
     return module && xl6OwnershipCatalogResolveV1(ref,module->ownershipCatalog,lifecycle,preparation,completion);
 }
+static XL6_OwnershipAdmissionV1 xlModuleProbeOwnershipV1(xrtownershipref ref,void* context,
+    const XL6_OwnershipAdapterV1** adapter,const xrtownershippreparationv1** preparation,
+    const XL6_OwnershipFinishV1** completion)
+{
+    *adapter=NULL;*preparation=NULL;*completion=NULL;
+    if(ref.Ops==&xlModuleOwnershipOps){
+        const XL_Module* candidate=ref.Data;
+        if(!candidate || !candidate->state || !candidate->codeOwnerReady || !candidate->ownershipTrace ||
+            !candidate->retirementContract || candidate->ownershipCleared)return XL6_OWNERSHIP_ADMISSION_REFUSED;
+        if(candidate->retirementRunning ||
+            ((candidate->activeCalls || xl6CodeOwnerScopeActive(&candidate->codeOwnerGraph.base)) && !xlModuleReadQuiescent(candidate)) ||
+            candidate->activation==XL_MODULE_DEACTIVATING ||
+            (candidate->activation==XL_MODULE_DEACTIVATION_PENDING && !candidate->retirementPrepared))return XL6_OWNERSHIP_ADMISSION_BUSY;
+        return xlModuleResolveOwnershipV3(ref,context,adapter,preparation,completion)
+            ? XL6_OWNERSHIP_ADMISSION_ADMITTED : XL6_OWNERSHIP_ADMISSION_REFUSED;
+    }
+    const XL_Module* module=context;
+    return module ? xl6OwnershipCatalogProbeV1(ref,module->ownershipCatalog,adapter,preparation,completion)
+        : XL6_OWNERSHIP_ADMISSION_REFUSED;
+}
 static XL6_OwnershipStepResult xlModuleOwnershipStepV2(XL6_OwnershipPlan* plan,
     XL6_OwnershipStepResult (*step)(XL6_OwnershipPlan*),xl6_error_result* outcome)
 {
@@ -2706,10 +2726,13 @@ static void xlModuleAdvanceOwnershipUnlocked(XL_Module* module)
     xl6_error_result outcome = {true, NULL};
     if (xl__ownershipDriverRunning) return;
     xl__ownershipDriverRunning = 1; prior = xrtTakeError();
+    module->ownershipAdmissionRefused=0;
     if (!module->ownershipPlan) {
-        result = xl6OwnershipPlanTryCreateV4((xrtownershipref){module, &xlModuleOwnershipOps},
-            xlModuleResolveOwnershipV3, xlModuleDiscoverOwnership, module, &module->ownershipPlan);
-        if (result <= XL6_OWNERSHIP_PLAN_BUSY) goto done;
+        result = xl6OwnershipPlanTryCreateV6((xrtownershipref){module, &xlModuleOwnershipOps},
+            xlModuleProbeOwnershipV1, xlModuleDiscoverOwnership, false, module, &module->ownershipPlan);
+        if (result <= XL6_OWNERSHIP_PLAN_BUSY) {
+            module->ownershipAdmissionRefused=result==XL6_OWNERSHIP_PLAN_ERROR;goto done;
+        }
         module->ownershipPhase = result == XL6_OWNERSHIP_PLAN_ROOTED ? 5 :
             result == XL6_OWNERSHIP_PLAN_PREPARATIONS ? 6 : 1;
     }
@@ -2719,6 +2742,7 @@ static void xlModuleAdvanceOwnershipUnlocked(XL_Module* module)
         XL6_OwnershipStepResult prepared;
         xlApiUnlock();
         prepared=xlModuleOwnershipStepV2(module->ownershipPlan,xl6OwnershipPlanPrepare,&outcome);xlApiLock();
+        if(prepared==XL6_OWNERSHIP_STEP_ERROR)module->ownershipAdmissionRefused=1;
         if(!outcome.ok || prepared==XL6_OWNERSHIP_STEP_ERROR)module->ownershipPhase=5;
         else if(prepared==XL6_OWNERSHIP_STEP_READY)module->ownershipPhase=1;
         else goto done;
@@ -2726,12 +2750,14 @@ static void xlModuleAdvanceOwnershipUnlocked(XL_Module* module)
     if (module->ownershipPhase == 1) {
         XL6_OwnershipStepResult finalized;
         xlApiUnlock();finalized=xlModuleOwnershipStepV2(module->ownershipPlan,xl6OwnershipPlanFinalizeV2,&outcome);xlApiLock();
+        if(finalized==XL6_OWNERSHIP_STEP_ERROR)module->ownershipAdmissionRefused=1;
         if(!outcome.ok || finalized==XL6_OWNERSHIP_STEP_ERROR)module->ownershipPhase=5;
         else if(finalized==XL6_OWNERSHIP_STEP_BUSY)goto done;
         else module->ownershipPhase=2;
     }
     if (module->ownershipPhase == 2) {
         result = xl6OwnershipPlanTryCommit(module->ownershipPlan);
+        if(result==XL6_OWNERSHIP_PLAN_ERROR)module->ownershipAdmissionRefused=1;
         if (result == XL6_OWNERSHIP_PLAN_READY) module->ownershipPhase = 3;
         else if (result == XL6_OWNERSHIP_PLAN_FINALIZERS) module->ownershipPhase = 1;
         else if (result == XL6_OWNERSHIP_PLAN_PREPARATIONS) module->ownershipPhase = 6;
@@ -2740,12 +2766,14 @@ static void xlModuleAdvanceOwnershipUnlocked(XL_Module* module)
     if (module->ownershipPhase == 3) {
         XL6_OwnershipStepResult finished;
         xlApiUnlock(); finished = xlModuleOwnershipStepV2(module->ownershipPlan, xl6OwnershipPlanFinishV2, &outcome); xlApiLock();
+        if(finished==XL6_OWNERSHIP_STEP_ERROR)module->ownershipAdmissionRefused=1;
         if (outcome.ok && finished == XL6_OWNERSHIP_STEP_READY) module->ownershipPhase = 4;
     }
     if (module->ownershipPhase == 4 || module->ownershipPhase == 5) {
         /* Abort restores quarantine under its Freeze. Drop may invoke host
          * release hooks, so the API mutex must not span this operation. */
         xlApiUnlock(); result = xl6OwnershipPlanTryDestroy(module->ownershipPlan); xlApiLock();
+        if(result==XL6_OWNERSHIP_PLAN_ERROR)module->ownershipAdmissionRefused=1;
         if (result == XL6_OWNERSHIP_PLAN_READY) {
             module->ownershipPlan = NULL; module->ownershipPhase = 0;
         }
@@ -2918,6 +2946,52 @@ static void xlCollectRetiringModulesUnlocked(void)
     xl__collectingRetirements = 0;
 }
 
+XL_RuntimeDrainResult xlRuntimeDrainRetiringChecked(long long milliseconds)
+{
+    xl6_error_scope scope={0};bool ready=false;
+    if(!xl6ErrorScopeBegin(&scope))return (XL_RuntimeDrainResult){0,0};
+    if(milliseconds< -1){xrtSetErrorKind(XERR_ARGUMENT);xl6ErrorScopeCaptureFailure(&scope);goto drain_end;}
+    uint64 timeout=milliseconds<0 || (uint64)milliseconds>UINT64_MAX/1000u ? UINT64_MAX : (uint64)milliseconds*1000u;
+    xdeadline deadline=xrtDeadlineAfter(timeout);
+    for(;;){
+        xlApiLock();bool reentry=xl__collectingRetirements || xl__ownershipDriverRunning,recovery=false;
+        if(!reentry){
+            /* Observe an earlier no-diagnostic failure before a successful
+             * retry can finish and free that module's physical record. */
+            for(XL_Module* module=xl__retiringModules;module && !scope.failed;module=module->retirementNext)
+                if(module->retirementFailed){
+                    if(!xrtGetError())xrtSetErrorTake(xrtErrorRef(module->retirementError));
+                    xl6ErrorScopeCaptureFailure(&scope);
+                }
+            xlCollectRetiringModulesUnlocked();
+            for(XL_Module* module=xl__retiringModules;module;module=module->retirementNext)
+                if(module->retirementFailed || module->ownershipAdmissionRefused){
+                    recovery=true;
+                    if(!scope.failed){
+                        if(!xrtGetError()){
+                            if(module->retirementFailed)xrtSetErrorTake(xrtErrorRef(module->retirementError));
+                            else xrtSetErrorKind(XERR_STATE);
+                        }
+                        xl6ErrorScopeCaptureFailure(&scope);
+                    }
+                }
+            ready=xl__retiringModules==NULL;
+        }
+        xlApiUnlock();
+        if(ready || reentry || recovery || (milliseconds>=0 && xrtDeadlineExpired(deadline)))break;
+        xrtThreadYield();
+    }
+drain_end:;
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);bool ok=outcome.ok;
+    if(!ok){
+        /* An ambient caller failure is still first, but failure without a
+         * diagnostic must also reach an enclosing checked foreign scope. */
+        xerror* prior=xrtTakeError();
+        if(prior){xrtErrorFree(outcome.error);outcome.error=prior;}
+        xl6ErrorScopePropagateFailure(outcome);
+    }else xrtErrorFree(outcome.error);
+    return (XL_RuntimeDrainResult){ready,ok};
+}
 static int xlModuleAcquireCode(void* data)
 {
     XL_Module* module = (XL_Module*)data; int ok = 0;

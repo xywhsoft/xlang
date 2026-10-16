@@ -1701,6 +1701,15 @@ int xlcShellMain(int argc, char** argv)
     return 1;
 }
 
+static int xlcShellRetireModules(int code)
+{
+    XL_RuntimeDrainResult drained=xlRuntimeDrainRetiringChecked(-1);
+    if(!drained.ready || !drained.ok){
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR,"runtime retirement incomplete or failed\n");
+        if(!code)code=1;
+    }
+    return code;
+}
 #ifdef _WIN32
 static char** xlcShellMakeUtf8Argv(int* outArgc)
 {
@@ -1763,7 +1772,7 @@ int main(void)
         xl6ConsoleSessionEnd();
         return 1;
     }
-    rc = xlcShellMain(argc, argv);
+    rc = xlcShellRetireModules(xlcShellMain(argc, argv));
     xlcShellFreeUtf8Argv(argc, argv);
     xl6ConsoleSessionEnd();
     return rc;
@@ -1774,7 +1783,7 @@ int main(int argc, char** argv)
     int rc;
 
     xl6ConsoleSessionBegin();
-    rc = xlcShellMain(argc, argv);
+    rc = xlcShellRetireModules(xlcShellMain(argc, argv));
     xl6ConsoleSessionEnd();
     return rc;
 }

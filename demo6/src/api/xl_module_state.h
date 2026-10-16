@@ -42,6 +42,7 @@ struct XL_Module {
     const void* ownershipClaim;
     size_t snapshotRefs;
     int ownershipPhase;
+    int ownershipAdmissionRefused;
     int ownershipCleared;
     size_t codeLeases;
     int codeOwnerReady;

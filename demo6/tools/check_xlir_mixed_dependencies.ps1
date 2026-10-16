@@ -32,9 +32,10 @@ try {
         $code=$LASTEXITCODE;$complete=$false
         if(!$code){
             $ir=Get-Content "$out/emit$pass.json" -Raw|ConvertFrom-Json
-            $complete=$ir.asyncMachines.Count-eq1-and$ir.moduleExecutorOwnershipAbi-eq1-and$ir.moduleTaskPoolOwnershipAbi-eq1-and$ir.retirementAbi-eq3-and
-                $ir.callbackBoundaries.Count-eq5-and@($ir.callbackBoundaries|Where-Object {$_.transportAbi-eq2-and$_.storageAbi-eq4}).Count-eq4
-            if($Aggregate){$complete=$complete-and$ir.futureAggregateAbi-eq1}
+            $complete=$ir.asyncMachines.Count-eq1-and$ir.moduleExecutorOwnershipAbi-eq1-and$ir.moduleTaskPoolOwnershipAbi-eq1-and$ir.retirementAbi-eq4-and
+                $ir.callbackBoundaries.Count-eq5-and@($ir.callbackBoundaries|Where-Object {$_.transportAbi-eq2-and$_.storageAbi-eq6}).Count-eq4-and
+                @($ir.callbackBoundaries|Where-Object {$_.transportAbi-eq1-and$_.storageAbi-eq5}).Count-eq1
+            if($Aggregate){$complete=$complete-and$ir.futureAggregateAbi-eq2}
         }
         $emission+=[pscustomobject]@{Pass=$pass;Exit=$code;Complete=$complete};$deterministic=$deterministic-and$complete
     }
@@ -50,7 +51,7 @@ try {
         $dependencies=@($public.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-notin$excluded}|ForEach-Object Path)
         $flags=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
             '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-unused-const-variable','-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers',
-            '-I.','-Irelease','-Ilib/tcc',"-I$out")
+            '-I.','-Irelease','-Irelease/include','-Ilib/tcc',"-I$out")
         $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
         $waitSources=@('src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_future_wait.c')
         $waitNames=@($waitSources|ForEach-Object {[IO.Path]::GetFileNameWithoutExtension($_)+'.o'})
@@ -92,7 +93,7 @@ $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingD
                 if($Aggregate){
                     $match=[regex]::Match($log,'Aggregate dependency modules: 170 real unloads, six literal/array ALL/RACE/ANY modes, 72 rings, 24 feeders, 24 acyclic controls, 128 external-root checks, 48 cleanup-await roots, 704 callback finally executions, 32 snapshot budgets, ([1-9][0-9]*) actual OOM; original async catch/finally, complete ALL results, ANY index, MEM_FREE and exact memory balance')
                     $admission=[regex]::Match($log,'Aggregate wait proof: 80 actual independently admitted module plans, 160 members, 12 feeders refused, 108 diagnostic-preserving proof budgets, 12 resource failures, 12 real producer BUSY deferrals; zero premature cancellation or semantic cleanup')
-                    $snapshot=[regex]::Match($log,'Aggregate snapshot admission: ([0-9]+) exact native-pool quiescence deferrals; every successful plan independently readmits the whole graph')
+                    $snapshot=[regex]::Match($log,'Aggregate snapshot admission: ([0-9]+) exact native-transition quiescence deferrals; every successful plan independently readmits the whole graph')
                     $boundary=$log.Contains('Aggregate descriptor boundary: 172 unprepared-queue refusals and 172 wrong-claim refusals; actual queue preparation required')
                     $nativeFacts=$log.Contains('Aggregate native input facts: 172 exact complete ordered views, duplicate and completed slots, ALL/ANY rules and Race-only loser cancellation; 18 success/failure/cancellation completions after module Close')
                     if($snapshot.Success){$snapshotDeferrals=[int]$snapshot.Groups[1].Value}

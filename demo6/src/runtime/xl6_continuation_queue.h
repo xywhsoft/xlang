@@ -25,6 +25,8 @@ typedef bool (*XL6_ContinuationTrace)(const void*, bool (*)(struct xrtownershipr
  * An executor owns RunOne. Producers only signal an already-reserved ticket.
  * This queue does not create workers or choose a blocking/execution policy. */
 typedef struct XL6_ContinuationQueue XL6_ContinuationQueue;
+struct xrtownershipquiescencev1;
+XL6_CONTINUATION_API const struct xrtownershipquiescencev1* xl6ContinuationQueueQuiescenceV1Get(void);
 /* Private resident executor slot. WaitRunOwned acquires one REAL queue
  * reference into queue for the entire call. While parked, the owning executor
  * traces that exact field; while running it remains an uninspectable native

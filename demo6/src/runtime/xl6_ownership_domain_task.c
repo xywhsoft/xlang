@@ -5,7 +5,9 @@
 
 static bool ownershipLoadTask(XL6_OwnershipCatalog* catalog)
 {
-    return xl6OwnershipCatalogAddProducerV1(catalog,xl6TaskProducerPolicyV1Get()) &&
+    return xl6OwnershipCatalogAddQuiescenceV1(catalog,xl6TaskPoolQuiescenceV1Get()) &&
+        xl6OwnershipCatalogAddQuiescenceV1(catalog,xrtTaskPoolOwnershipQuiescenceV1Get()) &&
+        xl6OwnershipCatalogAddProducerV1(catalog,xl6TaskProducerPolicyV1Get()) &&
         xl6OwnershipCatalogAddProducerV1(catalog,xrtTaskProducerPolicyV1Get()) &&
         xl6OwnershipCatalogAddWatchV1(catalog,xl6TaskWatchPolicyV1Get()) &&
         xl6OwnershipCatalogAddTaskV1(catalog,xl6TaskNativeDataPolicyV1Get());

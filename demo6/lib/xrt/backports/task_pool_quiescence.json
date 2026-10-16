@@ -1,0 +1,41 @@
+{
+  "Schema": 1,
+  "Purpose": "Separate active native task-pool tails from invalid ownership admission",
+  "Integration": "Reviewed canonical capability only; other workspace changes not synchronized",
+  "CanonicalSources": [
+    {
+      "Path": "include/xrt/core.h",
+      "Sha256": "dc112a822a8fc7041ff8f3acbd4ccdce0ec6f11a0b8108ebccdffdbd9881fbf6"
+    },
+    {
+      "Path": "include/xrt/task.h",
+      "Sha256": "b00877ad125b1ba4803ef4b13103ee792162c2a9eaf227008bb2e8e0348e4453"
+    },
+    {
+      "Path": "src/concurrency/task_pool.c",
+      "Sha256": "009305c0e701e0d5f74ac1ae09b5276bd3c99643840958085bc25d8e77d757b6"
+    }
+  ],
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "a8d371c576099cea02ea87e5b893d158beff1b03f50cee2aac5420234b841f16",
+      "AfterSha256": "48deb6f78147823d45bd3afa2cf233db8e7e1f1689f0630d07f87d7ebf8b1d0e"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "58f54491b0c96bc10a3dd7bf0f49d9a60af25f0f4f46b3f74c76a3451d3b627f",
+      "AfterSha256": "dce9a37a2ab25c7ebcf20c2ef2685fc230da74a501684911e8295f161b758e64"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "00ca7f16fae623ef49a97ada9dfefd05dd6f056d1b6aca27b15228d5981d77eb",
+      "AfterSha256": "ff87c087ad95dd3f5564a193dcecee16bcb689840e44945f9f9366869c63fe2a"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "73c36aeab526283491a6c4e195cd1caa358a47313f127962596a2cd55e0c16d1",
+      "AfterSha256": "67254710996e0cbb2ebf089699379a3b7f4d34c331ba69fa7b7c37864e370441"
+    }
+  ]
+}

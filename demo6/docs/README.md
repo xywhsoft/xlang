@@ -6,6 +6,7 @@
 
 ## 当前权威设计
 
+- [TaskGroup 语言拥有域与清理合同](stdlib53-b322-task-group-catalog.md)：精确句柄域、暂态准入、统一 V4 服务退役及宿主／独立程序退出清理；发布总门继续。
 - [TaskGroup 的等待依赖与清理准备](stdlib53-b321-task-group-wait.md)：真实活动项、正常关闭、稳定完成态节点与生产等待求解器；全局语言准入继续协调。
 - [TaskGroup 的 Done 生产者关系](stdlib53-b320-task-group-producer.md)：真实生产者引用、外部 Done 保活、构造回滚与准备 BUSY；语言等待协调继续推进。
 - [FutureCombine 的终结后物理退役](stdlib53-b319-future-combine-retirement.md)：ALL／ANY／RACE 与 TaskGroup 混合图、无拥有边副作用的 BUSY 预检；语言准备协议继续协调。

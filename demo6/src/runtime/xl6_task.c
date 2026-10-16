@@ -230,6 +230,16 @@ static bool pool_trace(const void* data,xrtownershipvisitor visit,void* context)
     return visit&&pool_count(data,&count)&&(!pool->native||visit(xrtTaskPoolOwnership(pool->native),context));
 }
 static const xrtownershipops pool_ops={pool_count,pool_trace};
+static bool pool_busy(const void* data)
+{
+    const XL6_TaskPool* pool=data;
+    if(!pool || !pool->references || pool->cleared)return false;
+    return pool->entries || pool->activities || pool->submitting || pool->creating || pool->quiescing || pool->retiring;
+}
+const xrtownershipquiescencev1* xl6TaskPoolQuiescenceV1Get(void)
+{
+    static const xrtownershipquiescencev1 policy={sizeof(policy),&pool_ops,pool_busy};return &policy;
+}
 xrtownershipref xl6TaskPoolOwnership(const XL6_TaskPool* pool)
 {return (xrtownershipref){pool,pool?&pool_ops:NULL};}
 static bool pool_claim(const void* data,const void* token)

@@ -3,4 +3,11 @@
 #include "xl6_ownership_domain_impl.h"
 #include "xl6_continuation_executor.h"
 
-XL6_OWNERSHIP_DOMAIN_PREPARED(Executor,xl6ContinuationExecutorOwnershipAdapterV1)
+static bool load(XL6_OwnershipCatalog* catalog)
+{ return xl6OwnershipCatalogAddQuiescenceV1(catalog,xl6ContinuationExecutorQuiescenceV1Get()); }
+XL6_OWNERSHIP_QUERY(Executor)
+{
+    (void)policies;(void)completion;
+    *adapter=xl6ContinuationExecutorOwnershipAdapterV1(ref,preparation);return *adapter!=NULL;
+}
+XL6_OWNERSHIP_DOMAIN(Executor,load,ownershipDomainExecutor)

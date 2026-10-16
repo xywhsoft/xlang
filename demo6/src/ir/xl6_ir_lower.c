@@ -33080,11 +33080,7 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
     module->valueCount = ctx.nextValue - 1;
     module->abi.closureStorageAbi = XL6_IR_CLOSURE_STORAGE_RESIDENT_LAYOUT_V2;
     module->abi.boundMethodStorageAbi = XL6_IR_BOUND_METHOD_STORAGE_RESIDENT_CLOSURE_LAYOUT_V1;
-    module->abi.retirementAbi = module->abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT
-        ? (module->abi.executorOwnershipAbi == XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN_V1 ||
-           module->abi.taskPoolOwnershipAbi == XL6_IR_MODULE_TASK_POOL_OWNERSHIP_RESIDENT_NATIVE_JOBS_JOIN_V1
-            ? XL6_IR_MODULE_RETIREMENT_OWNED_SERVICES_GRAPH_V3 : XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2)
-        : XL6_IR_MODULE_RETIREMENT_NONE;
+    module->abi.retirementAbi = xl6IrModuleRetirementRequirement(module);
     module->abi.cellStorageAbi = XL6_IR_CELL_STORAGE_RESIDENT_TRANSFER_V1;
     module->abi.valueIteratorStorageAbi = XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_CHECKED_SNAPSHOT_V2;
     module->abi.slotTransferAbi = XL6_IR_SLOT_TRANSFER_RESIDENT_ORDERED_WRITES_V1;

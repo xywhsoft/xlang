@@ -10,7 +10,7 @@ static int prepare_mixed_module(void);
 static atomic_uint callback_finally[3][2];
 static unsigned callback_count;
 static unsigned preflight_calls, preflight_total, admission_deferrals;
-static XL6_ModuleRetirementV3 observed_preflight;
+static XL6_ModuleRetirementV4 observed_preflight;
 static XL6_ModulePrepareResult mixed_preflight(void)
 {
     assert(!preflight_calls++ && module->preparationRefs == 1 && module->retirementRunning);
@@ -45,7 +45,7 @@ static void bind_mixed_callbacks(void)
     void* symbol = lookup(compiled_state, "mixed_dependency_bind"); memcpy(&bind, &symbol, sizeof(bind));
     assert(bind); bind(mixed_callback);
     preflight_calls = 0; observed_preflight = *real_contract; observed_preflight.preflight = mixed_preflight;
-    module->retirementPreflight = &observed_preflight;
+    module->retirementStep = &observed_preflight;
 #ifdef MODULE_MIXED_CREATED
     MODULE_MIXED_CREATED();
 #endif

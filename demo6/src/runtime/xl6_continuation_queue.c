@@ -5,6 +5,7 @@
 #include "lib/xrt/xrt.h"
 #include "xl6_continuation_queue.h"
 #include "xl6_ownership_scope.h"
+#include "xl6_ownership_catalog.h"
 #include <stdlib.h>
 
 enum { COMMITTED = XL6_CONTINUATION_COMMITTED, READY = XL6_CONTINUATION_READY,
@@ -504,6 +505,16 @@ static bool queue_trace(const void* data,xrtownershipvisitor visit,void* context
     return true;
 }
 static const xrtownershipops queue_ops={queue_count,queue_trace};
+static bool queue_busy(const void* data)
+{
+    const XL6_ContinuationQueue* queue=data;
+    return queue && queue->references && !queue->cleared &&
+        (queue->readers || queue->completed);
+}
+const XL6_OwnershipQuiescenceV1* xl6ContinuationQueueQuiescenceV1Get(void)
+{
+    static const XL6_OwnershipQuiescenceV1 policy={sizeof(policy),&queue_ops,queue_busy};return &policy;
+}
 xrtownershipref xl6ContinuationQueueOwnership(const XL6_ContinuationQueue* queue)
 {return (xrtownershipref){queue,queue?&queue_ops:NULL};}
 static bool queue_hold(const void* data)

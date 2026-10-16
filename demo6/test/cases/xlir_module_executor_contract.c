@@ -25,14 +25,14 @@ int main(int argc, char** argv)
         XL6_IrModuleExecutorOwnershipAbi saved = ir.abi.executorOwnershipAbi;
         XL6_IrModuleRetirementAbi retirement = ir.abi.retirementAbi;
         assert(saved == (n ? XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE : XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN_V1));
-        assert(retirement == (n ? XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2 : XL6_IR_MODULE_RETIREMENT_OWNED_SERVICES_GRAPH_V3));
+        assert(retirement == (n ? XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2 : XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4));
         ir.abi.executorOwnershipAbi = n ? XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN_V1 : XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE;
         reject(&ir, "module executor ownership ABI");
         ir.abi.executorOwnershipAbi = (XL6_IrModuleExecutorOwnershipAbi)99;
         reject(&ir, "module executor ownership ABI"); ir.abi.executorOwnershipAbi = saved;
         const XL6_IrModuleRetirementAbi versions[] = {XL6_IR_MODULE_RETIREMENT_NONE, XL6_IR_MODULE_RETIREMENT_CHECKED_GRAPH_V1,
-            XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2, XL6_IR_MODULE_RETIREMENT_OWNED_SERVICES_GRAPH_V3, (XL6_IrModuleRetirementAbi)99};
-        for (unsigned i = 0; i < 5; ++i) if (versions[i] != retirement) {
+            XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2, XL6_IR_MODULE_RETIREMENT_OWNED_SERVICES_GRAPH_V3, XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4, (XL6_IrModuleRetirementAbi)99};
+        for (unsigned i = 0; i < sizeof(versions)/sizeof(*versions); ++i) if (versions[i] != retirement) {
             ir.abi.retirementAbi = versions[i]; reject(&ir, "module retirement ABI");
         }
         ir.abi.retirementAbi = retirement;
@@ -49,15 +49,19 @@ int main(int argc, char** argv)
         reject(&ir, NULL); ir.exports[0].cName = name;
         name = ir.callTargets[0].cName; ir.callTargets[0].cName = "xl_script_module_retirement_v3";
         reject(&ir, NULL); ir.callTargets[0].cName = name; verify(&ir);
+        name = ir.exports[0].cName; ir.exports[0].cName = "xl_script_module_retirement_v4";
+        reject(&ir, NULL); ir.exports[0].cName = name;
+        name = ir.callTargets[0].cName; ir.callTargets[0].cName = "xl_script_module_retirement_v4";
+        reject(&ir, NULL); ir.callTargets[0].cName = name; verify(&ir);
         assert(xl6OutputOpenMemory(&out) && xl6IrCgenEmitCEx(&out, &ir, &parse.diags, &options));
         text = xl6OutputTakeMemoryText(&out, NULL); assert(text);
-        if (!n) assert(strstr(text, "xl_script_module_retirement_v3(void)") && !strstr(text, "xl_script_module_retirement_v2(void)") &&
+        if (!n) assert(strstr(text, "xl_script_module_retirement_v4(void)") && !strstr(text, "xl_script_module_retirement_v3(void)") && !strstr(text, "xl_script_module_retirement_v2(void)") &&
             strstr(text, "visit(xl6ContinuationExecutorOwnership(xlir_continuation_executor), context)") &&
             strstr(text, "if (teardown && !xlir_continuation_quiesce(wait))") &&
             strstr(text, "xl6ContinuationExecutorDestroyCompleted(xlir_continuation_executor)") &&
             strstr(text, "xl6ContinuationComplete(&frame->ticket)") &&
             !strstr(text, "xlir_continuation_executor != NULL) return false"));
-        else assert(strstr(text, "xl_script_module_retirement_v2(void)") && !strstr(text, "xl_script_module_retirement_v3(void)"));
+        else assert(strstr(text, "xl_script_module_retirement_v2(void)") && !strstr(text, "xl_script_module_retirement_v4(void)"));
         xrtFree(text);
         assert(xl6OutputOpenMemory(&out)); xl6IrDumpModuleText(&out, &ir);
         text = xl6OutputTakeMemoryText(&out, NULL); assert(text && strstr(text, n ? "module-executor-ownership: 0" : "module-executor-ownership: 1")); xrtFree(text);
@@ -74,7 +78,7 @@ int main(int argc, char** argv)
         }
         xl6IrModuleFree(&ir); xl6ParseResultFree(&parse);
     }
-    assert(mutations == 23);
-    puts("Module executor IR: 23 C/header-gated mutations, typed/lowered ownership, nonexecutor V2, owned-service V3, reserved linkage, text/JSON and real module trace");
+    assert(mutations == 29);
+    puts("Module executor IR: 29 C/header-gated mutations, typed/lowered ownership, nonexecutor V2, retryable-service V4, reserved linkage, text/JSON and real module trace");
     return 0;
 }

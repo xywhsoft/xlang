@@ -24,6 +24,7 @@ def main():
     files={Path(__file__).resolve(),Path(sys.executable).resolve(),Path(cc).resolve(),*[root/name for name in SOURCES]}
     for folder in ('src/runtime','src/api','lib/xrt','lib/xruntime','release/include','test/support'):
         files.update(path for path in (root/folder).rglob('*') if path.is_file() and path.suffix in ('.h','.c','.inc'))
+    quiescence=root/'test/support/static_module_quiescence.c';files.add(quiescence)
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(files)]
     out.mkdir(parents=True);rows=[];prefixes=[];controls=[];env=dict(os.environ);suffix='.exe' if os.name=='nt' else ''
     flags=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include')]
@@ -55,6 +56,9 @@ def main():
             data=run(opt+'.oom',[binary,'--oom']);match=re.search(rb'full prefixes=(\d+) first-no-hit=(\d+) balanced',data);assert match
             runs,first=map(int,match.groups());assert runs==first+1 and first>0
             prefixes.append(dict(Optimization=opt,Runs=runs,FirstNoHit=first))
+            binary=out/('quiescence.'+opt+suffix)
+            run('quiescence.'+opt+'.build',[cc,*flags,'-'+opt,quiescence,*[root/name for name in SOURCES[1:]],*libs,'-o',binary])
+            assert b'64 real finalizer-to-worker handoffs' in run('quiescence.'+opt+'.run',[binary])
         original=(root/'src/runtime/xl6_static_module.c').read_text(encoding='utf-8-sig')
         mutants=[
             ('missing-root-pin','xl6OwnershipPlanTryCreateV5(','xl6OwnershipPlanTryCreateV4(',22),
@@ -72,8 +76,14 @@ def main():
             run(name+'.build',[cc,*flags,'-O0','-I'+str(root/'src/runtime'),*selected,*libs,'-o',binary])
             data=run(name+'.reject',[binary,str(mode)],True);assert b'assert' in data.lower()
             controls.append(name)
+        old='return XL6_OWNERSHIP_ADMISSION_BUSY;';assert original.count(old)==1
+        source=out/'active-scope-refusal.c';source.write_text(original.replace(old,'return XL6_OWNERSHIP_ADMISSION_REFUSED;'),encoding='utf-8')
+        binary=out/('active-scope-refusal'+suffix)
+        selected=[source if path=='src/runtime/xl6_static_module.c' else root/path for path in SOURCES[1:]]
+        run('active-scope-refusal.build',[cc,*flags,'-O0','-I'+str(root/'src/runtime'),quiescence,*selected,*libs,'-o',binary])
+        assert b'assert' in run('active-scope-refusal.reject',[binary],True).lower();controls.append('active-scope-refusal')
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs);assert report['InputsUnchanged']
-        report.update(Complete=True,NativeFoundationAcceptance=True,PhaseCount=len(rows))
+        report.update(Complete=True,NativeFoundationAcceptance=True,StaticModuleTransientAcceptance=True,PhaseCount=len(rows))
     except Exception as error:report['Error']=repr(error);print(repr(error),flush=True)
     report['Products']=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(out.rglob('*')) if path.is_file()]
     (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')

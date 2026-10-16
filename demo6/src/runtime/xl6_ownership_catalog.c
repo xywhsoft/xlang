@@ -79,6 +79,13 @@ XL6_OwnershipCatalog* xl6OwnershipCatalogCreateV1(
     catalog->count=count;catalog->building=true;
     for(size_t i=0;i<count;++i)
         if(domains[i]->Load && (!domains[i]->Load(catalog) || catalog->failed))goto failed;
+    for(size_t i=0;i<catalog->policies.QuiescenceCount;++i){
+        const XL6_OwnershipQuiescenceV1* policy=catalog->Quiescence[i];
+        if(policy->size!=sizeof(*policy) || !policy->Ops || !policy->Busy){xrtSetErrorKind(XERR_ARGUMENT);goto failed;}
+        for(size_t j=0;j<i;++j)if(catalog->Quiescence[j]->Ops==policy->Ops && catalog->Quiescence[j]->Busy!=policy->Busy){
+            xrtSetErrorKind(XERR_STATE);goto failed;
+        }
+    }
     catalog->building=false;
     {
         xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
@@ -130,6 +137,21 @@ bool xl6OwnershipCatalogResolveV1(xrtownershipref ref,void* data,
     }
     if(!selected)return false;
     *adapter=selected;*preparation=pending;*completion=finish;return true;
+}
+XL6_OwnershipAdmissionV1 xl6OwnershipCatalogProbeV1(xrtownershipref ref,void* data,
+    const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,
+    const XL6_OwnershipFinishV1** completion)
+{
+    const XL6_OwnershipCatalog* catalog=data;
+    if(!adapter || !preparation || !completion){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_ADMISSION_REFUSED;}
+    *adapter=NULL;*preparation=NULL;*completion=NULL;
+    if(!catalog || catalog->building){xrtSetErrorKind(XERR_ARGUMENT);return XL6_OWNERSHIP_ADMISSION_REFUSED;}
+    for(size_t i=0;i<catalog->policies.QuiescenceCount;++i){
+        const XL6_OwnershipQuiescenceV1* policy=catalog->Quiescence[i];
+        if(ref.Ops==policy->Ops && policy->Busy(ref.Data))return XL6_OWNERSHIP_ADMISSION_BUSY;
+    }
+    return xl6OwnershipCatalogResolveV1(ref,data,adapter,preparation,completion)
+        ? XL6_OWNERSHIP_ADMISSION_ADMITTED : XL6_OWNERSHIP_ADMISSION_REFUSED;
 }
 bool xl6OwnershipCatalogAdmitsReadV1(xrtownershipref ref,void* data)
 {

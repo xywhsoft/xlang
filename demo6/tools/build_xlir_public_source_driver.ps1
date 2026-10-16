@@ -122,6 +122,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_ownership_domain_resource_fs_map.c',
     'src/runtime/xl6_ownership_domain_resource_fs_lock.c',
     'src/runtime/xl6_ownership_domain_resource_fs_root.c',
+    'src/runtime/xl6_ownership_domain_resource_task_group.c',
     'src/runtime/xl6_ownership_domain_resource_vfs_core.c',
     'src/runtime/xl6_ownership_domain_resource_vfs_memory.c',
     'src/runtime/xl6_ownership_domain_resource_vfs_disk.c',

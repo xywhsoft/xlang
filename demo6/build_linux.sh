@@ -544,6 +544,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_ownership_domain_resource_fs_map.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_resource_fs_lock.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_resource_fs_root.c"
+	"$ROOT/src/runtime/xl6_ownership_domain_resource_task_group.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_resource_vfs_core.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_resource_vfs_memory.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_resource_vfs_disk.c"

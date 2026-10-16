@@ -49,6 +49,8 @@ int main(int argc,char** argv)
     if(!ok) fprintf(stderr,"public Linux source %s failed: %s\n",argv[2],
         xlcGetLastError(compiler) ? xlcGetLastError(compiler) : "without diagnostic");
     xlcDestroyContext(compiler);
+    { XL_RuntimeDrainResult drained=xlRuntimeDrainRetiringChecked(-1);
+      if(!drained.ready || !drained.ok){fprintf(stderr,"public Linux source retirement incomplete or failed\n");if(!code)code=1;} }
     if(ok && !code) puts("public Linux source complete");
     return code;
 }
