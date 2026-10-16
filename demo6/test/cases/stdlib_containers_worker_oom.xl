@@ -1,0 +1,134 @@
+// Faults are armed on the genuine language worker, never on its caller.
+// Explicit test callbacks observe ownership/retirement; no provider is replaced.
+extern "workerProbeCase" func workerCase() as int
+extern "workerProbeBudget" func workerBudget() as uint64
+extern "workerProbeStart" func workerStart() as c_bool
+extern "workerProbeFinish" func workerFinish(bool caught) as c_bool
+extern "workerProbeCompleted" func workerCompleted() as c_bool
+extern "xrtMemDebugFailAfter" func failAfter(uint64 budget) as c_bool
+
+class WorkerFaultItem
+    int number = 7
+end
+
+func workerOperation(int kind)
+    if kind == 0 then
+        auto parts = string.split("你\0|😀||a\0|", "|")
+        assert(parts.length == 5 and parts[0] == "你\0" and parts[3] == "a\0")
+        string saved = parts[0]
+        parts[0] = "changed"
+        assert(saved == "你\0")
+        assert(string.replace("a\0a", "a", "你") == "你\0你")
+    elseif kind == 1 then
+        auto expression = Regex("(?<value>你a\0b)")
+        auto result = expression.find("x你a\0b!")
+        assert(result != null)
+        if result != null then
+            assert((result.text(1) ?? "") == "你a\0b" and result.startByte() == 1)
+        end
+        assert(expression.test("你a\0b", true))
+    elseif kind == 2 then
+        array<int> child = [1, 2]
+        array<array<int>> source = [child, child]
+        auto copied = clone(source)
+        child[0] = 9
+        assert(copied[0][0] == 1 and copied[1][0] == 1)
+        copied[0][1] = 7
+        assert(copied[1][1] == 7 and child[1] == 2)
+        array<bytes> binary = [b"a\0b", b"\xff"]
+        auto values = binary + binary
+        assert(values.length == 4 and values[2] == b"a\0b")
+    elseif kind == 3 then
+        list<string> source = [-7: "a\0你", 9223372036854775807: "z"]
+        auto copied = copy(source)
+        assert(copied[-7] == "a\0你")
+        assert(copied.take(9223372036854775807) == "z")
+        assert(source.length == 2 and copied.length == 1)
+        assert(copied.clear() and copied.length == 0)
+    elseif kind == 4 then
+        array<int> child = [3, 4]
+        dict<array<int>> source = {"a\0你": child, "again": child}
+        auto copied = clone(source)
+        copied["a\0你"][0] = 8
+        assert(copied["again"][0] == 8 and child[0] == 3)
+        dict<bytes> binary = {"a\0": b"a\0b"}
+        bytes value = binary["a\0"]
+        value[0] = 99
+        assert(binary["a\0"] == b"a\0b")
+    elseif kind == 5 then
+        auto first = WorkerFaultItem()
+        auto second = WorkerFaultItem()
+        set<WorkerFaultItem> objects = set{first, second, first}
+        first.number = 19
+        assert(objects.length == 2 and first in objects and second in objects)
+        set<string> left = set{"a\0你", "b"}
+        set<string> right = set{"b", "c"}
+        auto joined = left | right
+        assert(joined.length == 3 and "a\0你" in joined)
+        auto copied = copy(left)
+        assert(copied.remove("b") and left.length == 2)
+    elseif kind == 6 then
+        auto values = Stack::<string>()
+        assert(values.pushBatch(array<string>["a\0b", "你", ""]))
+        auto snapshot = values.peekBatch(3)
+        auto moved = values.popBatch(3)
+        assert(snapshot == moved and moved[2] == "a\0b" and values.count() == 0)
+        assert(values.pushBatch(moved))
+        assert(values.pop() == "a\0b")
+    elseif kind == 7 then
+        auto values = OrderedMap::<int, string>()
+        assert(values.set(1, "a\0b") and values.set(3, "你"))
+        auto present, key, value = values.tryLowerBound(2)
+        assert(present and (key ?? 0) == 3 and (value ?? "") == "你")
+        auto keys = values.keys()
+        auto texts = values.values()
+        assert(keys.length == 2 and texts.length == 2)
+        auto copied = values.clone()
+        assert(copied.take(1) == "a\0b" and values.count() == 2)
+    elseif kind == 8 then
+        auto values = SlotMap::<bytes>()
+        auto key = values.insert(b"a\0b")
+        auto keys = values.keys()
+        auto snapshots = values.values()
+        assert(keys.length == 1 and keys[0] == key and snapshots[0] == b"a\0b")
+        assert(values.remove(key) and not values.contains(key))
+        assert(snapshots[0] == b"a\0b")
+    elseif kind == 9 then
+        auto queue = MpmcQueue::<bytes>(2)
+        assert(queue.tryPush(b"a\0b") == queueStatus.ok)
+        auto status, value = queue.tryPop()
+        assert(status == queueStatus.ok and (value ?? b"") == b"a\0b")
+        queue.close()
+        assert(queue.isClosed() and queue.isDrained())
+        auto waiting = WaitQueue::<string>(2)
+        assert(waiting.tryPush("a\0你") == queueStatus.ok)
+        auto received, text = waiting.popTimeout(0)
+        assert(received == queueStatus.ok and (text ?? "") == "a\0你")
+        waiting.close()
+    else
+        assert(false)
+    end
+end
+
+func workerBody(int kind, uint64 budget) as int
+    assert(workerStart())
+    assert(failAfter(budget))
+    bool caught = false
+    try
+        workerOperation(kind)
+    catch MemoryError
+        caught = true
+    finally
+        assert(workerFinish(caught))
+    end
+    return 0
+end
+
+func main(...) as int
+    int kind = workerCase()
+    uint64 budget = workerBudget()
+    auto worker = thread(func() as int => workerBody(kind, budget))
+    assert(worker.waitTimeout(30000) and worker.wait() and worker.exitCode() == 0)
+    assert(workerCompleted())
+    return 0
+end
