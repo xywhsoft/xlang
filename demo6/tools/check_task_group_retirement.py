@@ -33,7 +33,7 @@ def main():
         data=process.stdout+process.stderr;log=out/(name+'.log');log.write_bytes(data)
         rows.append(dict(Name=name,Command=command,Exit=process.returncode,Log=str(log),LogSha256=sha(log)))
         assert process.returncode==0,(name,data[-5000:].decode(errors='replace'))
-        if expect_marker:assert b'TaskGroup retirement: 64 real owner cycles, 4 aborts and 2 threaded tails' in data and b'full ledger balanced' in data
+        if expect_marker:assert b'TaskGroup retirement: 32 unrooted cycles and 32 rooted-Done retention cases' in data and b'full ledger balanced' in data
         print(name+': '+str(process.returncode),flush=True)
     try:
         for product in ('xrt','xruntime'):

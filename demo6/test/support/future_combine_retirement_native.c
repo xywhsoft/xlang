@@ -211,12 +211,12 @@ static bool visit(xrtownershipref ref,ptr data)
 static void snapshot(plan* value,owner* root)
 {
     const xfuturepayloadownershipv1* payloads[]={xrtFutureCombineAllPayloadPolicyV1Get(),xrtFutureCombinePickPayloadPolicyV1Get()};
-    const xfutureproducerownershipv1* producers[]={xrtFutureCombineProducerPolicyV1Get()};
+    const xfutureproducerownershipv1* producers[]={xrtFutureCombineProducerPolicyV1Get(),xrtTaskGroupProducerPolicyV1Get()};
     const xfuturewatchownershipv1* direct[]={xrtTaskGroupWatchPolicyV1Get()};
     const xfuturewatchownershipv2* projected[]={xrtFutureCombineWatchPolicyV2Get()};
     const xcancelwatchownershipv1* cancels[]={xrtFutureCombineCancelPolicyV1Get(),xrtTaskGroupCancelPolicyV1Get()};
     const xfuturecombineownershipv1* maps[]={&map_policy};
-    const xfutureownershipadmissionv1 admission={sizeof(admission),payloads,2,producers,1,direct,1,projected,1,cancels,2};
+    const xfutureownershipadmissionv1 admission={sizeof(admission),payloads,2,producers,2,direct,1,projected,1,cancels,2};
     *value=(plan){0};
     value->nodes[0].ref=view(root);value->size=1;
     for(size_t i=0;i<value->size;++i){node* item=&value->nodes[i];value->current=i;

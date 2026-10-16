@@ -77,7 +77,8 @@ static bool resolve(xrtownershipref ref,void* context,const xrtownershipadapterv
     if(!*adapter)*adapter=xrtTaskGroupOwnershipAdapterV1(ref,completion);
     const xfuturewatchownershipv1* watches[]={xrtTaskGroupWatchPolicyV1Get()};
     const xcancelwatchownershipv1* cancels[]={xl6TaskGroupParentPolicyV1Get(),xrtTaskGroupCancelPolicyV1Get()};
-    const xfutureownershipadmissionv1 admission={sizeof(admission),NULL,0,NULL,0,watches,1,NULL,0,cancels,2};
+    const xfutureproducerownershipv1* producers[]={xrtTaskGroupProducerPolicyV1Get()};
+    const xfutureownershipadmissionv1 admission={sizeof(admission),NULL,0,producers,1,watches,1,NULL,0,cancels,2};
     if(!*adapter)*adapter=xrtFutureOwnershipAdapterV5(ref,&admission,completion);
     if(!*adapter)*adapter=xrtCancelWatchOwnershipAdapterV2(ref,cancels,2,completion);
     if(!*adapter)*adapter=xrtCancelOwnershipAdapterV3(ref,cancels,2,completion);
@@ -111,7 +112,7 @@ static void cycle(unsigned flags)
     xrtownershipref root=view(owner);xrtownershipscope scope={0};xrtownershipresult graph={0};
     assert(xrtOwnershipFreezeTryBegin(&scope) && xrtOwnershipInspect(&root,1,NULL,0,&graph));
     assert(graph.NodeCount==10u+((flags&1)?7u:0u)+((flags&2)?3u:0u));
-    assert(graph.EdgeCount==16u+((flags&1)?14u:0u)+((flags&2)?7u:0u));
+    assert(graph.EdgeCount==17u+((flags&1)?15u:0u)+((flags&2)?7u:0u));
     assert(graph.ExternalRootCount==((flags&4)?2u:0u));end(&scope);
     XL6_OwnershipPlan* plan=NULL;
     assert(xl6OwnershipPlanTryCreateV3(root,resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_FINALIZERS);

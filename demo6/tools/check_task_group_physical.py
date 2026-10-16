@@ -33,7 +33,7 @@ def main():
         data=process.stdout+process.stderr;log=out/(name+'.log');log.write_bytes(data)
         rows.append(dict(Name=name,Command=command,Exit=process.returncode,Log=str(log),LogSha256=sha(log)))
         assert process.returncode==0,(name,data[-5000:].decode(errors='replace'))
-        if expect_marker:assert b'TaskGroup physical graph: 5/7, 8/12 and nested 11/19' in data and b'full ledger balanced' in data
+        if expect_marker:assert b'TaskGroup physical graph: 5/8, 8/13 and nested 11/21' in data and b'full ledger balanced' in data
         print(name+': '+str(process.returncode),flush=True)
     try:
         for product in ('xrt','xruntime'):

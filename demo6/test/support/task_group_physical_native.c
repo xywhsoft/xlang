@@ -141,20 +141,20 @@ static void balanced(const xmemdebugsnapshot* before)
 static void ordinary(bool destroy_pending)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);xtaskgroup* group=xrtTaskGroupCreate(NULL);testRequire(group!=NULL,"group");
-    graph(xrtTaskGroupOwnership(group),5,7,1,2);
+    graph(xrtTaskGroupOwnership(group),5,8,1,3);
     xfuture* source=NULL;xpromise* promise=xrtPromiseCreate(&source,NULL);testRequire(promise && source,"source");
-    testRequire(xrtTaskGroupAdd(group,source),"source admission");graph(xrtTaskGroupOwnership(group),8,12,2,3);
+    testRequire(xrtTaskGroupAdd(group,source),"source admission");graph(xrtTaskGroupOwnership(group),8,13,2,4);
     const xfuturewatchownershipv1* watches[1]={xrtTaskGroupWatchPolicyV1Get()};const xrtownershippreparationv1* preparation=NULL;
     xrtownershipscope scope={0};freeze(&scope);
     testRequire(xrtFutureOwnershipAdapterV3(xrtFutureOwnership(source),NULL,0,NULL,0,watches,1,&preparation) && preparation,
         "source registration has exact immutable direct-owner policy");end(&scope);
     if(destroy_pending){
         xrtTaskGroupDestroy(group); /* Only the public owner's Watch right is consumed. */
-        graph(xrtFutureOwnership(source),7,9,1,3);
+        graph(xrtFutureOwnership(source),7,10,1,3);
     }
     testRequire(xrtPromiseResolve(promise,NULL),"source completion");
     if(!destroy_pending){
-        graph(xrtTaskGroupOwnership(group),5,7,1,2);testRequire(xrtTaskGroupClose(group),"close");
+        graph(xrtTaskGroupOwnership(group),5,8,1,3);testRequire(xrtTaskGroupClose(group),"close");
         graph(xrtTaskGroupOwnership(group),5,6,1,2);xrtTaskGroupDestroy(group);
     }
     xrtPromiseDestroy(promise);xrtFutureDestroy(source);balanced(&before);
@@ -163,10 +163,49 @@ static void child(void)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);xtaskgroup* parent=xrtTaskGroupCreate(NULL);
     xtaskgroup* nested=xrtTaskGroupChild(parent,NULL);testRequire(parent && nested,"nested groups");
-    graph(xrtTaskGroupOwnership(parent),11,19,2,3);
+    graph(xrtTaskGroupOwnership(parent),11,21,2,4);
     testRequire(xrtTaskGroupClose(parent),"parent close propagates outside mutation");
     graph(xrtTaskGroupOwnership(parent),5,6,1,2);graph(xrtTaskGroupOwnership(nested),5,6,1,2);
     xrtTaskGroupDestroy(nested);xrtTaskGroupDestroy(parent);balanced(&before);
+}
+static void producer(void)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);xtaskgroup* group=xrtTaskGroupCreate(NULL);
+    testRequire(group!=NULL,"producer group");xfuture* done=xrtTaskGroupFuture(group);testRequire(done!=NULL,"Done observer");
+    const xfutureproducerownershipv1* policies[]={xrtTaskGroupProducerPolicyV1Get()};
+    const xfutureproducerownershipv1* unknown[]={(const xfutureproducerownershipv1*)(uintptr_t)1};
+    xfutureownershipadmissionv1 admission={0};admission.size=sizeof(admission);
+    admission.ProducerPolicies=unknown;admission.ProducerPolicyCount=1;
+    const xrtownershippreparationv1* preparation=(const xrtownershippreparationv1*)(uintptr_t)1;
+    xrtownershipscope scope={0};unsigned token=0;freeze(&scope);
+    testRequire(!xrtFutureOwnershipAdapterV4(xrtFutureOwnership(done),&admission,&preparation) &&
+        preparation==(const xrtownershippreparationv1*)(uintptr_t)1,"unknown producer refused without dereference or output change");
+    admission.ProducerPolicies=policies;
+    const xrtownershipadapterv1* adapter=xrtFutureOwnershipAdapterV4(xrtFutureOwnership(done),&admission,&preparation);
+    testRequire(adapter && preparation && !preparation->Ready(done) && adapter->Hold(done) && adapter->Claim(done,&token),
+        "pending Done is genuinely produced even without user waiters");end(&scope);
+    testRequire(preparation->Prepare(done,&token)==XRT_OWNERSHIP_PREPARE_BUSY && xrtFutureState(done)==XFUTURE_PENDING,
+        "preparation cannot manufacture a closed result for an active producer");
+    freeze(&scope);adapter->Restore(done,&token);end(&scope);adapter->Drop(done);
+    testRequire(xrtTaskGroupClose(group) && xrtFutureState(done)==XFUTURE_RESOLVED,"normal completion retires producer before notification");
+    graph(xrtTaskGroupOwnership(group),5,6,2,2);
+    xrtFutureDestroy(done);xrtTaskGroupDestroy(group);balanced(&before);
+}
+static void construction(void)
+{
+    bool succeeded=false;
+    for(unsigned fail=0;fail<32 && !succeeded;++fail){
+        xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);testRequire(xrtMemDebugFailAfter(fail),"constructor allocation sweep");
+        xtaskgroup* group=xrtTaskGroupCreate(NULL);succeeded=group!=NULL;
+        if(!group)testRequire(xrtMemDebugFailTriggered() && xrtErrorKind(xrtGetError())==XERR_MEMORY,"constructor preserves allocation failure");
+        xrtMemDebugFailClear();xrtClearError();xrtTaskGroupDestroy(group);balanced(&before);
+    }
+    testRequire(succeeded,"all constructor failure points and successful producer transfer covered");
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);xcancel* parent=xrtCancelCreate();
+    testRequire(parent && xrtCancelRequest(parent),"already cancelled parent");xtaskgroupconfig config={0};config.Cancel=parent;
+    xtaskgroup* group=xrtTaskGroupCreate(&config);testRequire(group!=NULL,"synchronously cancelled construction");
+    xfuture* done=xrtTaskGroupFuture(group);testRequire(done && xrtFutureState(done)==XFUTURE_RESOLVED,"synchronous callback retires producer once");
+    xrtFutureDestroy(done);xrtTaskGroupDestroy(group);xrtCancelDestroy(parent);balanced(&before);
 }
 typedef struct barrier {
 	volatile int32 refs;
@@ -197,7 +236,7 @@ static void reservation(void)
     testRequire(value.group!=NULL,"reservation group");testthread thread={0};thread.Proc=run_start;thread.Data=&value;
     testThreadsStart(&thread,1);wait_entered(&value);refused(value.group);
     xrtAtomic32Store(&value.proceed,1,XMEMORY_RELEASE);testThreadsJoin(&thread,1);testRequire(thread.Result==0,"start joined");
-    graph(xrtTaskGroupOwnership(value.group),8,12,2,3);testRequire(xrtPromiseResolve(value.promise,NULL),"resolve started source");
+    graph(xrtTaskGroupOwnership(value.group),8,13,2,4);testRequire(xrtPromiseResolve(value.promise,NULL),"resolve started source");
     xrtTaskGroupDestroy(value.group);xrtPromiseDestroy(value.promise);xrtFutureDestroy(value.source);balanced(&before);
 }
 /* The test owns the stack storage; each callback transfers a real separate
@@ -229,6 +268,6 @@ static void callback(void)
 int main(void)
 {
     testRequire(xrtMemDebugEnable(true),"debug ledger");setvbuf(stdout,NULL,_IONBF,0);
-    ordinary(false);ordinary(true);child();reservation();callback();
-    puts("TaskGroup physical graph: 5/7, 8/12 and nested 11/19; list and callbacks own real refs; active freeze refusal; full ledger balanced");return 0;
+    ordinary(false);ordinary(true);child();producer();construction();reservation();callback();
+    puts("TaskGroup physical graph: 5/8, 8/13 and nested 11/21; Done producer, list and callbacks own real refs; active freeze refusal; full ledger balanced");return 0;
 }

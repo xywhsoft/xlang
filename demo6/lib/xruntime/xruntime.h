@@ -29846,6 +29846,10 @@ XRT_API void xrtTaskGroupDestroy(xtaskgroup* pGroup);
 XRT_API xrtownershipref xrtTaskGroupOwnership(const xtaskgroup* pGroup);
 XRT_API const xfuturewatchownershipv1* xrtTaskGroupWatchPolicyV1Get(void);
 XRT_API const xcancelwatchownershipv1* xrtTaskGroupCancelPolicyV1Get(void);
+/* Pending Done owns one actual group producer reference, released exactly
+ * once before terminal notification. Dropping Done does not cancel the group.
+ * Admit this identity explicitly when inspecting/collecting that Future. */
+XRT_API const xfutureproducerownershipv1* xrtTaskGroupProducerPolicyV1Get(void);
 
 /* Group and real active-item lifecycle admission under whole-graph freeze.
  * No early close, cancel or Unwatch. All semantic finalizers precede Clear;
@@ -250933,6 +250937,11 @@ static void __xrtTaskGroupSourceDone(ptr pData);
 static void __xrtTaskGroupCancelled(ptr pData);
 static void __xrtTaskGroupCancelDrop(const void* pData)
 { __xrtTaskGroupRelease((xtaskgroup*)pData); }
+/* Pending Done owns a distinct, real producer right. Returning it is strictly
+ * mechanical: closing/cancelling accepted work belongs to the group owner. */
+static const xfutureproducerownershipv1 __xrtTaskGroupProducerPolicy = {
+	sizeof(xfutureproducerownershipv1), __xrtTaskGroupCancelDrop
+};
 static const xfuturewatchownershipv1 __xrtTaskGroupWatchPolicy = {
 	sizeof(xfuturewatchownershipv1), __xrtTaskGroupSourceDone,
 	__xrtTaskGroupWaiterRelease, &__xrtTaskGroupItemOwnershipOps
@@ -250945,6 +250954,20 @@ XRT_API const xfuturewatchownershipv1* xrtTaskGroupWatchPolicyV1Get(void)
 { return &__xrtTaskGroupWatchPolicy; }
 XRT_API const xcancelwatchownershipv1* xrtTaskGroupCancelPolicyV1Get(void)
 { return &__xrtTaskGroupCancelPolicy; }
+XRT_API const xfutureproducerownershipv1* xrtTaskGroupProducerPolicyV1Get(void)
+{ return &__xrtTaskGroupProducerPolicy; }
+
+/* Construction has not published the group. Break the pending endpoint's
+ * producer right before returning the creator right, preserving the failure. */
+static void __xrtTaskGroupCreateFailed(xtaskgroup* pGroup)
+{
+	xerror* pError = xrtTakeError();
+	xpromise* pPromise = pGroup->Promise; pGroup->Promise = NULL;
+	pGroup->Busy = 0;
+	xrtPromiseDestroy(pPromise);
+	__xrtTaskGroupRelease(pGroup);
+	xrtClearError(); xrtSetErrorTake(pError);
+}
 
 
 
@@ -251380,13 +251403,20 @@ XRT_API xtaskgroup* xrtTaskGroupCreate(const xtaskgroupconfig* pConfig)
 		return NULL;
 	}
 	if (!__xrtTaskGroupRef(pGroup)) {
-		pGroup->Busy = 0; __xrtTaskGroupRelease(pGroup); __xrtErrorSetSizeOverflow(); return NULL;
+		__xrtErrorSetSizeOverflow(); __xrtTaskGroupCreateFailed(pGroup); return NULL;
+	}
+	if (!xrtPromiseProducerBindTakeV1(pGroup->Promise, xrtTaskGroupOwnership(pGroup),
+		&__xrtTaskGroupProducerPolicy)) {
+		__xrtTaskGroupRelease(pGroup); /* Bind failure consumes nothing. */
+		__xrtTaskGroupCreateFailed(pGroup); return NULL;
+	}
+	if (!__xrtTaskGroupRef(pGroup)) {
+		__xrtErrorSetSizeOverflow(); __xrtTaskGroupCreateFailed(pGroup); return NULL;
 	}
 	pGroup->Watch = xrtCancelWatchOwnedV1(pGroup->Cancel, pGroup, &__xrtTaskGroupCancelPolicy);
 	if ( pGroup->Watch == NULL ) {
-		pGroup->Busy = 0;
 		__xrtTaskGroupRelease(pGroup); /* Constructor failure did not consume Data. */
-		__xrtTaskGroupRelease(pGroup);
+		__xrtTaskGroupCreateFailed(pGroup);
 		return NULL;
 	}
 	__xrtTaskGroupBegin(pGroup, &Scope); --pGroup->Busy; __xrtTaskGroupEnd(pGroup, &Scope);
