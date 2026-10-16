@@ -115,7 +115,8 @@ static bool scan_case(unsigned selected,unsigned budget)
     bool hit=count(&scanTriggered)!=0;
     if(!hit)worker_completion_check(kind,activeOutput);
     xrtFutureDestroy(activeOutput);activeOutput=NULL;xrtClearError();
-    /* Module quiescence joins the actual worker, including payload/job frees.
+    /* Module quiescence drains payload/job frees and XRT logical worker
+     * completion. This is not an OS-thread join or a code-unmap barrier.
      * There is no open-pool Wait substitute or additional observer owner. */
     worker_completion_finish();scanFault=false;
     assert(count(&firstDrops)==1 && count(&unusedDrops)==1 && count(&publications)==1 && count(&watchDrops)==1);
@@ -136,7 +137,7 @@ static void scan_prefixes(void)
         assert(complete);
     }
     assert(scanRuns==scanHits+5);
-    printf("worker allocation prefixes: 5 complete lanes, %u runs, %u real worker TLS failures, module joins and exact memory balance\n",scanRuns,scanHits);
+    printf("worker allocation prefixes: 5 complete lanes, %u runs, %u real worker TLS failures, module logical quiescence and exact memory balance\n",scanRuns,scanHits);
 }
 static void release_watch(void* data)
 {
@@ -227,9 +228,9 @@ static void cycle(void)
     for (firstMode = 0; firstMode < 3; ++firstMode)
     for (unusedMode = 0; unusedMode < 3; ++unusedMode)
     for (resultMode = 0; resultMode < (smoke ? 1 : 3); ++resultMode) run_discarded();
-    // Only module quiescence joins the worker threads and all task job frees.
+    // Module quiescence drains worker callbacks and all task job frees.
     // An open pool's Wait API is not an idle barrier. Memory is measured after
-    // this join, while each case separately awaits all its test callbacks.
+    // logical completion, while each case awaits all its test callbacks.
     boxFault = 0; worker_completion_finish();
 }
 int main(int argc, char** argv)
