@@ -1,4 +1,4 @@
-#include "xl6_io_private.h"
+#include "xl6_io_private.inc"
 
 XL6_TEXT_API void* xl6_xrt_io_writer_open(xstrview path, int64_t mode)
 { const char* name; xfile file; xwriter* stream; xerror* error; uint32_t flags;

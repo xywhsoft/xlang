@@ -1,4 +1,4 @@
-#include "xl6_io_private.h"
+#include "xl6_io_private.inc"
 
 static bool xlir_io_write_file(xstrview path, const void* data, size_t actual, int64_t mode, int64_t limit)
 { const char* name; xfile file; xwriter* writer; uint32_t flags; size_t count;

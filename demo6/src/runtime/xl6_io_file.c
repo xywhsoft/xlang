@@ -1,4 +1,4 @@
-#include "xl6_io_private.h"
+#include "xl6_io_private.inc"
 #include "xl6_fs_file.h"
 
 static bool xlir_fs_stream_read(void* owner, void* data, size_t count, size_t* done)

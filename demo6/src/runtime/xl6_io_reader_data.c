@@ -1,4 +1,4 @@
-#include "xl6_io_private.h"
+#include "xl6_io_private.inc"
 
 static xvalue* xlir_io_read(void* handle, int64_t max, bool exact)
 { size_t count, done = 0; unsigned char* data = NULL; xvalue* result; xreader* r;

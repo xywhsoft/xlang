@@ -1,4 +1,4 @@
-#include "xl6_io_private.h"
+#include "xl6_io_private.inc"
 
 XL6_TEXT_API bool xl6_xrt_io_writer_flush(void* handle)
 { xwriter* w = xlir_io_writer_get(handle); return w != NULL && xrtWriterFlush(w); }

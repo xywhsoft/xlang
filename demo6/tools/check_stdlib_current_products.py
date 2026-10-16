@@ -31,6 +31,7 @@ def main():
         ('nested','check_stdlib_nested_aot.py','results.json',True),
         ('graphs','check_stdlib_container_graph_shipping.py','results.json',True),
         ('clear','check_stdlib_clear_shipping.py','results.json',True),
+        ('array-entry','check_stdlib_array_entry_shipping.py','results.json',True),
         ('thread','check_stdlib_thread_shipping.py','thread.shipping.json',True),
         ('sync','check_stdlib_sync_shipping.py','sync.shipping.json',False),
         # This assertion runner may follow the pinned product build. Its only
