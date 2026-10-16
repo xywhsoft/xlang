@@ -30,6 +30,7 @@ while not containsTerminalToken(observed, b"line-ready")
     observed = observed + chunk
     assert observed.length <= 16384
 end
+assert containsTerminalToken(observed, b"terminal-ready")
 assert handle.resize(96, 32)
 observed = observed + output.readAll(16384)
 assert containsTerminalToken(observed, b"tty:1:1:1")

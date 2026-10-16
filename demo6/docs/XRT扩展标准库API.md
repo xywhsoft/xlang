@@ -284,6 +284,11 @@ Windows console control 与 POSIX 的平台支持不同；生产退出流程应�
 
 `process.terminalSupported()` 查询当前平台是否能创建伪终端。标准流编号为 `process.stdin`、`process.stdout`、`process.stderr`；重定向模式为 `process.stdioInherit`、`process.stdioPipe`、`process.stdioNull`。
 
+终端启动尺寸用 `ProcessCommand.terminalSize` 指定。Windows 10 系统 ConPTY
+可能丢失应用尚未就绪时的 resize 请求，即使平台返回成功；首次动态调整应
+先等待应用协议的就绪确认。`Process.resize` 不是应用尺寸观察屏障，库不隐式
+重发、延时或替换后端；具体支持合同见[进程终端](进程终端.md)。
+
 `process.open(target, size = -1)` 请求系统关联应用/launcher。按字节选择
 前缀后严格拒绝空串、不完整 UTF-8 与内嵌 NUL；长度超过输入时截断。
 成功仅表示系统接受请求，不等于应用完成，不产生可等待的 Process；

@@ -42,13 +42,23 @@ catch e
     rejected += 1
 end
 assert rejected == 2
-assert handle.resize(96, 32)
 auto input = handle.stdinWriter()
 auto output = handle.stdoutReader()
+// start() and resize() do not acknowledge that the application is ready.
+// The initial dimensions belong in terminalSize; dynamic resize follows this
+// private application's explicit readiness protocol (including on Windows 10).
+bytes received = b""
+while not containsBytes(received, b"terminal-ready")
+    bytes chunk = output.read(512)
+    assert chunk.length > 0
+    received = received + chunk
+    assert received.length <= 16384
+end
+assert handle.resize(96, 32)
 input.writeAll(b"hello\r\n")
 input.flush()
 // Terminal output is a byte stream, including platform terminal processing.
-bytes received = output.readAll(16384)
+received = received + output.readAll(16384)
 requireTerminalBytes(received, b"tty:1:1:1", "terminal: missing tty report")
 requireTerminalBytes(received, b"terminal-stderr", "terminal: missing stderr report")
 requireTerminalBytes(received, b"size:96:32", "terminal: missing resized dimensions")

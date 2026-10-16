@@ -86,8 +86,19 @@ static int childMain(int argc,char** argv)
             if(sigemptyset(&resized) || sigaddset(&resized,SIGWINCH) || sigprocmask(SIG_BLOCK,&resized,&previous))return 97;
         }
 #endif
+        /* Application-level readiness, not a spawn/ResizePseudoConsole ack.
+         * Query the attached terminal before allowing the parent to resize.
+         * Windows 10 inbox ConPTY can lose requests during client startup. */
+#if defined(_WIN32)
+        CONSOLE_SCREEN_BUFFER_INFO initial;
+        if(!GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE),&initial))return 97;
+#else
+        struct winsize initial;
+        if(ioctl(STDOUT_FILENO,TIOCGWINSZ,&initial))return 97;
+#endif
         printf("tty:%d:%d:%d\n",in,out,err);
         fputs("terminal-stderr\n",stderr);fflush(stdout);fflush(stderr);
+        fputs("terminal-ready\n",stdout);fflush(stdout);
         char line[64];
 #if defined(_WIN32)
         if(wantedColumns){int code=terminalEventLine(line,sizeof(line),wantedColumns,wantedRows);if(code)return code;}
