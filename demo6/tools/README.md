@@ -2,6 +2,15 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_strict_c_shipping.py --root <frozen-demo6> --build-report
+<ordinary-build.json> --aot-report <complete-aot-results.json> --out <fresh-directory>`
+generates C with the actual CLI for the complete AOT assertion population, then
+compiles each positive fixture at O0/O2 with C11/Wall/Wextra/Werror and the existing
+explicit generated-code warning exceptions. Its inspection SDK uses the same
+build's public headers and private VFS inputs, without source/provider fallback.
+Six real malformed-C controls must be rejected. Hosted/platform execution
+conditions remain visible; compilation is not execution or full53 acceptance.
+
 `check_stdlib53_pruning_shipping.py --root <frozen-demo6> --build-report
 <ordinary-build.json> --inventory-report <complete-products.json> --aot-report
 <complete-aot.json> --out <fresh-directory>` runs after the product/AOT receipts.
