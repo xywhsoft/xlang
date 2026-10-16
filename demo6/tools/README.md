@@ -2,6 +2,18 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_process_language_oom_shipping.py --root <frozen-demo6> --build-report
+<ordinary-build.json> --out <fresh-directory> --jobs 2` preserves all eleven
+historical language Process fault fixtures. Actual CLI output is compiled
+unmodified at O0/O2 and linked against each genuine runtime/compiler DLL/SO.
+Transparent consumer call-site probes forward real Spawn/outcome calls and keep
+private waiter references through managed boxing failures. Complete caller-thread
+prefixes require MemoryError, except one exact optional cancellation diagnostic
+fallback in its designated fixture. Seven compiled controls include missing
+injection, leaked references, missing cancellation observation and a fake provider
+definition, with CRLF verification. This required `process-language-oom` gate is
+observed emitted-C execution, not unobserved JIT/trimmed AOT/provider unloading.
+
 `check_stdlib_process_source_contracts.py --root <selected-demo6> --out <fresh-directory>`
 is a white-box source gate, not a shipping substitute. Live/File/Future units use
 actual undefined symbols and the canonical component dependencies for linkage.

@@ -2,6 +2,10 @@
 
 ## 1. 目标
 
+十一份语言进程故障夹具新增真实产品验收，见
+[进程语言故障前缀的真实产品验收](stdlib53-b343-process-language-product-prefixes.md)。
+生成 C 的透明观察覆盖装箱前失败；普通 JIT／AOT 与平台条件仍分别验收。
+
 三份旧进程源码宿主的 xruntime 声明与 V4 回调帧修复见
 [进程源码测试的回调帧和依赖闭包](stdlib53-b342-process-source-contracts.md)。
 白盒单元不替代实际产品及语言层进程分配故障验收。

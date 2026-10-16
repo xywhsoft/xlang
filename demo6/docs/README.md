@@ -6,6 +6,7 @@
 
 ## 当前权威设计
 
+- [进程语言故障前缀的真实产品验收](stdlib53-b343-process-language-product-prefixes.md)：十一份原语言夹具用实际产品完成双端 44 配置的装箱与清理故障前缀；透明调用点观察、取消诊断回退与普通 JIT／AOT 分别记录。
 - [进程源码测试的回调帧和依赖闭包](stdlib53-b342-process-source-contracts.md)：修复三份旧宿主的声明和 V4 帧协议，按规范组件表解析源码单元依赖；源码、sanitizer 和真实产品分别验证。
 - [进程原生接口的真实产品故障验收](stdlib53-b341-process-product-prefixes.md)：五组原生接口迁到实际 DLL／SO，每端 84 条完整前缀与四项已编译反例；语言进程前缀和平台验收分别保留。
 - [完整标准库清单的严格 C 验收](stdlib53-b340-strict-c-inventory.md)：同一普通构建按完整 AOT 断言人口生成 C，并逐项编译 O0／O2 对象；专用宿主和平台运行条件保持独立。
