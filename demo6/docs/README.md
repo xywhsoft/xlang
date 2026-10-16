@@ -6,6 +6,7 @@
 
 ## 当前权威设计
 
+- [并发队列真实产品验收](stdlib53-b335-queue-product-stress.md)：四种队列的实际双产品并发角色、精确拥有传输与线程局部分配故障，公开语言 JIT／模块／独立 AOT 及按需族选择。
 - [OrderedMap 原生键域与泛型合同](stdlib53-b334-ordered-key-domains.md)：C ABI 标量保留真实槽宽，bytes 使用按需原生内容排序；统一直接／嵌套类型配方与泛型逻辑绑定，完整任务继续。
 - [队列初始化与字符键排序](stdlib53-b333-queue-initialization-char-keys.md)：不可空并发队列声明必须初始化，nullable 支持延迟创建；OrderedMap 字符键复用原生 char 描述符和 XRT typed tree。
 - [原生容器公开面与默认构造验收](stdlib53-b332-native-public-surface.md)：统一并发队列显式容量，补齐 SlotMap 默认构造和 Array 区间删除；真实产品专项、IR 拒绝对照与 142 项原生签名绑定核对通过，不等同全部运行分支覆盖。

@@ -144,8 +144,11 @@ static void threads(void)
         assert(xl6WaitQueueCloseV1(all.q,ID));
         for(unsigned i=0;i<4;++i){assert(xrtThreadWaitFor(actors[i],UINT64_C(30000000))==XWAIT_OK);xrtThreadDestroy(actors[i]);}
         assert(xrtAtomic32Load(&all.received,XMEMORY_ACQUIRE)==1024);xrtValueRelease(all.q);
+        for(unsigned i=0;i<1024;++i)assert(xrtAtomic32Load(&all.seen[i],XMEMORY_ACQUIRE)==1);
+        printf("wait-transport text=%u producers=4 consumers=4 delivered=1024 closed-drained\n",text);
     }
 }
+#ifndef XL6_QUEUE_PRODUCT_TEST
 static bool failSignal,scriptedWait,failMutexUnit,pauseWait;static unsigned wakes,deadlineCalls;static xdeadline firstDeadline;
 static xatomic32 waitEntered,waitLeave;
 static xvalue* scriptQueue;
@@ -201,26 +204,39 @@ static void logical(void)
     assert(xrtThreadWaitFor(waiter,UINT64_C(30000000))==XWAIT_OK);xrtThreadDestroy(waiter);pauseWait=false;
     puts("WaitQueue logical errors and absolute deadline: passed");
 }
+#endif
+static bool faultAt(unsigned operation,size_t point)
+{
+    assert(operation<2);xl6ProductMemoryBegin(SIZE_MAX);xvalue* schema=operation?NULL:seed(1,false);
+    xvalue* q=operation?create(2,false,2):NULL;xstrview text=XRT_STR_LITERAL("failure\0你");
+    assert(xrtMemDebugFailAfter(point));
+    if(!operation)q=xl6WaitQueueCreateTakeV1(ID,schema,2);
+    else {xqueueresult result=push(q,xl6StringTypeV1(),SLOT(text));assert(result==XQUEUE_OK || result==XQUEUE_ERROR);}
+    bool hit=xl6ProductMemoryEnd();
+    if(hit){assert(xrtErrorKind(xrtGetError())==XERR_MEMORY);if(!operation)assert(!q);}
+    else assert(q && !xrtGetError());
+    xrtClearError();xrtValueRelease(q);xl6ProductMemoryVerify();
+    printf("wait-fault operation=%u point=%zu hit=%u balanced\n",operation,point,(unsigned)hit);
+    return hit;
+}
 static void prefixes(void)
 {
     for(unsigned operation=0;operation<2;++operation)for(size_t point=0;;++point) {
-        assert(point<2048);xl6ProductMemoryBegin(SIZE_MAX);xvalue* schema=operation?NULL:seed(1,false);
-        xvalue* q=operation?create(2,false,2):NULL;xstrview text=XRT_STR_LITERAL("failure\0你");
-        assert(xrtMemDebugFailAfter(point));
-        if(!operation)q=xl6WaitQueueCreateTakeV1(ID,schema,2);
-        else {xqueueresult result=push(q,xl6StringTypeV1(),SLOT(text));assert(result==XQUEUE_OK || result==XQUEUE_ERROR);}
-        bool hit=xl6ProductMemoryEnd();
-        if(hit){assert(xrtErrorKind(xrtGetError())==XERR_MEMORY);if(!operation)assert(!q);}
-        else assert(q && !xrtGetError());
-        xrtClearError();xrtValueRelease(q);xl6ProductMemoryVerify();
+        assert(point<2048);bool hit=faultAt(operation,point);
         if(!hit){printf("WaitQueue operation=%u first-no-hit=%zu balanced\n",operation,point);assert(point>0);break;}
     }
 }
 int main(int argc,char** argv)
 {
+    if(argc==4 && !strcmp(argv[1],"fault")) {
+        (void)faultAt((unsigned)strtoul(argv[2],NULL,10),(size_t)strtoull(argv[3],NULL,10));return 0;
+    }
     xl6ProductMemoryBegin(SIZE_MAX);
+#ifndef XL6_QUEUE_PRODUCT_TEST
     if(argc==2 && !strcmp(argv[1],"logical"))logical();
-    else if(argc==2 && !strcmp(argv[1],"prefixes")){xl6ProductMemoryEnd();prefixes();return 0;}
+    else
+#endif
+    if(argc==2 && !strcmp(argv[1],"prefixes")){xl6ProductMemoryEnd();prefixes();return 0;}
     else {vectors();graph();futureGraph();threads();}
     assert(!xrtGetError());xl6ProductMemoryEnd();xl6ProductMemoryVerify();
     puts("WaitQueue native: MPMC, exact ownership, graph and close drain passed");return 0;

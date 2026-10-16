@@ -96,6 +96,8 @@ def main():
     old_control=task/'test/cases/stdlib_resolved_coverage_control.xl';seed=root/'test/cases/stdlib_class_catalog.xl'
     sources=sorted(s for s in (root/'test/cases').glob('stdlib_*.xl') if legacy.PREFIX.match(s.name) or s.stem=='stdlib_crt_algorithms')
     sources=stdlib_fixture_inputs.select(sources,a.fixture_source)
+    frozenPopulation=len(sources)
+    sources=stdlib_fixture_inputs.extend(sources,a.additional_fixture_source,legacy.PREFIX)
     population=len(sources)
     if a.fixture:
         wanted=set(a.fixture);sources=[s for s in sources if s.stem in wanted];assert len(sources)==len(wanted)
@@ -107,6 +109,7 @@ def main():
     report=dict(Complete=False,DiscoveryComplete=False,InputsUnchanged=False,Scope=__doc__,Inputs=inputs,
         Rows=rows,Cases=cases,Failures=failures,CandidateCount=population,SelectedCount=len(sources),ExplicitSubset=bool(a.fixture),
         FixtureSourceUpdates=[str(p.resolve()) for p in a.fixture_source],
+        FrozenCandidateCount=frozenPopulation,AdditionalFixtureSources=[str(p.resolve()) for p in a.additional_fixture_source],
         CompilerSourceObjects=False,UsesActualCompilerSO=True,RuntimeExecutionAcceptance=False,
         Full53Acceptance=False,NativeBindings=[],MissingNativeBindings=[],UnexpectedNativeBindings=[])
     env={k:v for k,v in os.environ.items() if not k.upper().startswith('XL6_') and k not in

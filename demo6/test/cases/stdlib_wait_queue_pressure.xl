@@ -1,0 +1,79 @@
+class WaitPressureState
+    mutex guard = mutex()
+    array<int> seen
+    int received = 0
+    func record(int value)
+        assert(guard.lock())
+        try
+            assert(value >= 0 and value < 1024 and seen[value] == 0)
+            seen[value] = 1
+            self.received += 1
+        finally
+            assert(guard.unlock())
+        end
+    end
+end
+func waitProducer(WaitQueue<int> queue, int first) as func() as int
+    return func() as int
+        for value in range(first, first + 256)
+            while true
+                auto status = queue.tryPush(value)
+                if status == queueStatus.ok then break end
+                assert(status == queueStatus.full)
+                time.sleep(0)
+            end
+        end
+        return 0
+    end
+end
+func waitConsumer(WaitQueue<int> queue, WaitPressureState state) as func() as int
+    return func() as int
+        while true
+            auto status, value = queue.pop()
+            if status == queueStatus.closed then return 0 end
+            assert(status == queueStatus.ok and value != null)
+            if value != null then state.record(value) end
+        end
+        return 1
+    end
+end
+func main(...) as int
+    auto queue = WaitQueue::<int>(8)
+    auto state = WaitPressureState()
+    for id in range(0, 1024)
+        assert(state.seen.push(0))
+    end
+    thread c0 = thread(waitConsumer(queue, state))
+    thread c1 = thread(waitConsumer(queue, state))
+    thread c2 = thread(waitConsumer(queue, state))
+    thread c3 = thread(waitConsumer(queue, state))
+    thread p0 = thread(waitProducer(queue, 0))
+    thread p1 = thread(waitProducer(queue, 256))
+    thread p2 = thread(waitProducer(queue, 512))
+    thread p3 = thread(waitProducer(queue, 768))
+    assert(p0.waitTimeout(30000) and p0.exitCode() == 0)
+    assert(p1.waitTimeout(30000) and p1.exitCode() == 0)
+    assert(p2.waitTimeout(30000) and p2.exitCode() == 0)
+    assert(p3.waitTimeout(30000) and p3.exitCode() == 0)
+    queue.close()
+    assert(c0.waitTimeout(30000) and c0.exitCode() == 0)
+    assert(c1.waitTimeout(30000) and c1.exitCode() == 0)
+    assert(c2.waitTimeout(30000) and c2.exitCode() == 0)
+    assert(c3.waitTimeout(30000) and c3.exitCode() == 0)
+    assert(state.received == 1024 and queue.isClosed() and queue.isDrained())
+    for count in state.seen
+        assert(count == 1)
+    end
+    auto texts = WaitQueue::<string>(2)
+    auto timeoutStatus, absent = texts.popTimeout(0)
+    assert(timeoutStatus == queueStatus.timeout and absent == null)
+    string input = "a\0你🙂"
+    assert(texts.tryPush(input) == queueStatus.ok)
+    input = "changed"
+    auto status, output = texts.pop()
+    assert(status == queueStatus.ok and output != null and output == "a\0你🙂")
+    texts.close()
+    auto closedStatus, closedValue = texts.tryPop()
+    assert(closedStatus == queueStatus.closed and closedValue == null)
+    return 0
+end

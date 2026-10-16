@@ -22,6 +22,8 @@ def main():
     sys.path.insert(0,str(root/'tools'));inventory=importlib.import_module('discover_stdlib_three_groups');execution=importlib.import_module('execute_stdlib_three_groups')
     sources=sorted(p for p in (root/'test/cases').glob('stdlib_*.xl') if inventory.PREFIX.match(p.name));candidate_count=len(sources)
     sources=stdlib_fixture_inputs.select(sources,args.fixture_source)
+    frozen_count=candidate_count
+    sources=stdlib_fixture_inputs.extend(sources,args.additional_fixture_source,inventory.PREFIX);candidate_count=len(sources)
     if args.fixture:
         selected=set(args.fixture);sources=[p for p in sources if p.stem in selected];assert len(sources)==len(selected)
     products=[root/'release'/name for name in (('xl.exe','xl.dll','xlc.dll') if windows else ('xl','libxl.so','libxlc.so'))]
@@ -41,6 +43,7 @@ def main():
     env.update(TMPDIR=str(temporary),TEMP=str(temporary),TMP=str(temporary),XL6_PRODUCT_CLI=str(release/products[0].name))
     rows=[];cases=[];mutable=threading.Lock();row_lock=threading.Lock()
     report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Rows=rows,Cases=cases,CandidateCount=candidate_count,SelectedCount=len(sources),
+        FrozenCandidateCount=frozen_count,AdditionalFixtureSources=[str(p.resolve()) for p in args.additional_fixture_source],
         ExplicitSubset=bool(args.fixture),FixtureSourceUpdates=[str(p.resolve()) for p in args.fixture_source],Scope=__doc__,AllExecutablePassed=False,RelocatedAotInventoryAcceptance=False,Full53Acceptance=False,FunctionCoverageAcceptance=False)
     def command(name,argv,environment=env,timeout=240):
         argv=list(map(str,argv));started=time.monotonic()

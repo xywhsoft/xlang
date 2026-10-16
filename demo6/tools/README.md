@@ -16,6 +16,23 @@ unreachable and legacy-observer controls prevent false bindings; dependent gener
 templates are not executable ABIs. This required Linux product gate is binding
 coverage, not runtime branch coverage. See [Native container contracts](../docs/stdlib53-b332-native-public-surface.md).
 
+`check_stdlib_queue_product_stress.py --root <frozen-demo6> --build-report
+<shipping.json> --out <fresh-directory>` is the required actual-library queue
+stress gate. Runtime/compiler libraries, O0/O2 observers, exact single/batch
+transport, role barriers/FIFO, WaitQueue MPMC and actor-local allocator prefixes
+are tested without replacement providers or linker copy interposition. Four
+source-free JIT/module/relocated-AOT programs and Linux genuine-SO family plans
+complete the gate; scheduler-wide simultaneous OOM is not claimed.
+
+Product, AOT and native binding inventories accept explicit
+`--additional-fixture-source <new-stdlib-family.xl>` assertions. Unlike replacement
+`--fixture-source`, this grows both the recorded candidate count and selected
+population, preserving the frozen count separately. Existing/duplicate names,
+missing files, non-language inputs and out-of-scope family names are refused.
+Native census reuse must match both replacement and addition lists exactly.
+`test/cases/stdlib_fixture_inputs_controls.py --root <frozen-demo6> --out
+<fresh-report.json>` checks ten positive/refusal controls for this boundary.
+
 `check_stdlib_tree_keys_shipping.py --root <frozen-demo6> --build-report
 <shipping.json> --out <fresh-directory>` is the required native ordered-key gate.
 It exercises all twenty C ABI scalar profiles and exact immutable bytes keys
