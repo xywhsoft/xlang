@@ -31678,6 +31678,10 @@ XRT_API void xrtTaskGroupDestroy(xtaskgroup* pGroup);
 XRT_API xrtownershipref xrtTaskGroupOwnership(const xtaskgroup* pGroup);
 XRT_API const xfuturewatchownershipv1* xrtTaskGroupWatchPolicyV1Get(void);
 XRT_API const xcancelwatchownershipv1* xrtTaskGroupCancelPolicyV1Get(void);
+/* Pending Done owns one actual group producer reference, released exactly
+ * once before terminal notification. Dropping Done does not cancel the group.
+ * Admit this identity explicitly when inspecting/collecting that Future. */
+XRT_API const xfutureproducerownershipv1* xrtTaskGroupProducerPolicyV1Get(void);
 
 /* Group and real active-item lifecycle admission under whole-graph freeze.
  * No early close, cancel or Unwatch. All semantic finalizers precede Clear;

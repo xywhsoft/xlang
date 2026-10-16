@@ -1,0 +1,50 @@
+{
+  "Schema": 1,
+  "Purpose": "TaskGroup Done owns its actual producer until terminal publication",
+  "CanonicalCommit": "6c43dc56add659ceec411be76843d3fadb07a356",
+  "CanonicalSources": [
+    {
+      "Path": "include/xrt/task.h",
+      "Sha256": "a5841a40afe8f8c18307a2e40410c98bce32ec780381af38e100a724d5a3f470"
+    },
+    {
+      "Path": "src/concurrency/task_group.c",
+      "Sha256": "585a7d19ca4d31aa41af891f8641d73e7052a3d6305ab11b707188f15c33faf7"
+    },
+    {
+      "Path": "tests/concurrency/test_task_group_graph.c",
+      "Sha256": "5f7c94fffb123aaa3a952aac540eec4c9cf05ca97f3fb44f24babe57ccafd775"
+    }
+  ],
+  "ConsumerBase": "7c49d4d2f95a9da1d089fe89e16ac5b13c986b0a",
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "41559af0c36a5d234c5734add0e6e592d73fc1f1b0155a2dcd1df08e6e9d8fe6",
+      "AfterSha256": "62fdb40c58d01cbbcb06f32b3337fba11ba4e9f390545335b5f86c7a55476c0b"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "7ecdc250e186097566ddf4489b36757b0bd0a098b81497deb3782ae300cc215c",
+      "AfterSha256": "bc2727e2f5db88d9aa185a7df5f1ef43c03e8d7bf0dab0366653a3eed32ec604"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "8e62dd008f4299aa5ace795d349cd52b602250cb851a8312f3aa84a6764c4b3e",
+      "AfterSha256": "375af5b3d5cb7a7bc6984df293d98ae4803f1a223c632ac19260b54808e14bfd"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "82ec2f671ba21cf602fdfab96bb7a773e2885aa207cfa4f7ac15832c760647fe",
+      "AfterSha256": "e11ec70d564b7dfbf00a2a716c0fa22102832da10186a66a4ac2a599e2515d4b"
+    }
+  ],
+  "PreservedContracts": [
+    "Only task public declarations and task_group implementation are updated",
+    "Future execution, preparation identities and embedded microsecond relative timeouts are unchanged",
+    "Done dropping does not cancel accepted work",
+    "Global language TaskGroup admission remains closed",
+    "Accepted language callbacks and catch/finally are not skipped",
+    "Unrelated edits are excluded"
+  ]
+}

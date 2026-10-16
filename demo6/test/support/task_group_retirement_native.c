@@ -204,6 +204,7 @@ typedef struct plan {
     node nodes[LIMIT];unsigned edges[LIMIT][LIMIT];size_t size,current;
     xfutureownershipadmissionv1 admission;
     const xfuturewatchownershipv1* watches[1];
+    const xfutureproducerownershipv1* producers[1];
     const xcancelwatchownershipv1* cancels[2];
 } plan;
 static size_t find(plan* value,xrtownershipref ref)
@@ -228,6 +229,8 @@ static void snapshot(plan* value,owner* root)
     memset(value,0,sizeof(*value));value->watches[0]=xrtTaskGroupWatchPolicyV1Get();
     value->cancels[0]=xrtTaskGroupCancelPolicyV1Get();value->cancels[1]=&owner_policy;
     value->admission.size=sizeof(value->admission);value->admission.WatchPolicies=value->watches;value->admission.WatchPolicyCount=1;
+    value->producers[0]=xrtTaskGroupProducerPolicyV1Get();
+    value->admission.ProducerPolicies=value->producers;value->admission.ProducerPolicyCount=1;
     value->admission.CancelWatchPolicies=value->cancels;value->admission.CancelWatchPolicyCount=2;
     value->nodes[0].ref.Data=root;value->nodes[0].ref.Ops=&owner_ops;value->size=1;
     for(size_t i=0;i<value->size;++i){
@@ -279,16 +282,21 @@ static void cycle(unsigned bits,bool restore)
     dispatch blocked={0};testthread thread={0};xcancelwatch* external_watch=NULL;bool released=false;
     xtaskgroup* group=root->group;xfuture* source=root->source;xcancel* parent=external_parent?xrtCancelRef(root->parent):NULL;
     xfuture* done=external_done?xrtTaskGroupFuture(group):NULL;plan value;xrtownershipscope scope={0};unsigned token=0,conflict=1;
-    freeze(&scope);snapshot(&value,root);testRequire(!value.nodes[0].live,"the real owner cycle has no external owner");
+    freeze(&scope);snapshot(&value,root);
+    if(!done)testRequire(!value.nodes[0].live,"the real owner cycle has no external owner");
+    if(done){size_t index=find(&value,xrtTaskGroupOwnership(group));
+        testRequire(index<LIMIT && value.nodes[index].live,"rooted pending Done keeps its real producer live");}
     size_t active=0;
     for(size_t i=0;i<value.size;++i){node* item=&value.nodes[i];testRequire(item->adapter->Hold(item->ref.Data),"actual plan pin");
         if(!item->live){++active;testRequire(item->adapter->Claim(item->ref.Data,&token) && !item->adapter->Claim(item->ref.Data,&conflict),"exclusive claim");}}
     end(&scope);
     xtaskgroupstats stats={0};testRequire(xrtTaskGroupGet(group,&stats) && stats.Accepting && stats.Active==1 &&
         xrtFutureState(source)==XFUTURE_PENDING && !counters.notify && !counters.drop,"finalizers still see unchanged semantic slots");
-    if(restore){
+    if(restore || done){
         freeze(&scope);for(size_t i=0;i<value.size;++i)if(!value.nodes[i].live)value.nodes[i].adapter->Restore(value.nodes[i].ref.Data,&token);end(&scope);
-        testRequire(parent && xrtCancelRequest(parent) && counters.notify==1,"abort preserves original cancellation");dispose(root);
+        if(restore)testRequire(parent && xrtCancelRequest(parent) && counters.notify==1,"abort preserves original cancellation");
+        dispose(root);
+        if(done)testRequire(xrtFutureState(done)==XFUTURE_RESOLVED,"rooted Done completes normally rather than losing its producer");
     }else{
         freeze(&scope);for(size_t step=0;step<value.size;++step){size_t i=(bits&8)?value.size-1-step:step;
             if(!value.nodes[i].live)value.nodes[i].adapter->Clear(value.nodes[i].ref.Data,&token);}end(&scope);
@@ -360,5 +368,5 @@ int main(void)
     for(unsigned bits=2;bits<8;bits+=4){cycle(bits,true);cycle(bits|1,true);}
     cycle(64|2,false);cycle(64|2|1|4|8|16|32,false);
     refusal();
-    puts("TaskGroup retirement: 64 real owner cycles, 4 aborts and 2 threaded tails; no early notification; BUSY/READY; rooted Done completion; all pins and full ledger balanced");return 0;
+    puts("TaskGroup retirement: 32 unrooted cycles and 32 rooted-Done retention cases, 4 aborts and a threaded tail; BUSY/READY; all pins and full ledger balanced");return 0;
 }
