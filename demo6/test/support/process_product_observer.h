@@ -1,11 +1,11 @@
-/* Declarations for the ordinary full DLL/SO, not a runtime implementation.
- * Only the observation layout is staged from that exact product snapshot.
- * The host keeps products loaded; a private waiter join is not a public wait
- * or module-finalization guarantee. Source-only mapper/plan units stay separate. */
+/* Declarations for the full native ABI, never a runtime implementation.
+ * Select either a genuine shared product or a separately linked source unit.
+ * The observation layout is extracted from the identical full snapshot.
+ * A test-owned waiter join is not a public wait/finalization guarantee. */
 #ifndef XL6_TEST_PROCESS_PRODUCT_OBSERVER_H
 #define XL6_TEST_PROCESS_PRODUCT_OBSERVER_H
-#if !defined(XL6_PROCESS_PRODUCT_OBSERVER)
-#error "Product observer must be selected explicitly"
+#if defined(XL6_PROCESS_PRODUCT_OBSERVER) == defined(XL6_PROCESS_SOURCE_CONTRACTS)
+#error "Select exactly one explicit native observation mode"
 #endif
 #define XRT_MODULE_ALL
 #define XRUNTIME_MODULE_ALL

@@ -2,6 +2,16 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_process_source_contracts.py --root <selected-demo6> --out <fresh-directory>`
+is a white-box source gate, not a shipping substitute. Live/File/Future units use
+actual undefined symbols and the canonical component dependencies for linkage.
+One full native/error object per optimization level is shared by all hosts;
+private mapper calls use a real V4 capture frame. Old-arity compilation and
+NULL-frame execution controls must fail in their designated stages. Default
+levels are O0/O2; Linux `--sanitize` retains the O1 ASan/UBSan lane. Optional
+`--family future` remains an explicit subset. The existing process source scripts
+delegate their three corresponding unit steps to this runner.
+
 `check_stdlib_process_oom_shipping.py --root <frozen-demo6> --build-report
 <ordinary-build.json> --out <fresh-directory>` is the required `process-oom`
 product gate. Five native test families link the actual runtime/compiler DLL/SO

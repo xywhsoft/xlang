@@ -2,16 +2,11 @@
  * NOT a waiter join; this fixture retains a native observer to finish its heap
  * ledger deterministically. No sleeps, shell, network, GUI or user files. */
 #if !defined(XL6_PROCESS_PRODUCT_OBSERVER)
-#define XRT_MODULE_PROCESS
-#define XRT_MODULE_IO
-#define XRT_MODULE_VALUE_CONTAINER
-#define XRT_MODULE_UNICODE_TEXT
-#define XRT_MODULE_STRING
-#define XRT_MODULE_MEMORY_DEBUG
-#define XRT_IMPLEMENTATION
-#define XRT_MODULE_ONCE
-#include "lib/xrt/xrt.h"
-#include "src/api/xl_foreign_error.c"
+#if !defined(XL6_PROCESS_SOURCE_CONTRACTS)
+/* White-box source mode uses the same complete native ABI as other resident
+ * unit hosts. The separate product/pruning gates prove trimmed applications. */
+#include "tools/xrt_single_header_impl.c"
+#endif
 #include "src/runtime/xl6_native_handle.c"
 #include "src/runtime/xl6_process_command.c"
 #include "src/runtime/xl6_process_live.c"

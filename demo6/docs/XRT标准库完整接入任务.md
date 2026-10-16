@@ -2,6 +2,10 @@
 
 ## 1. 目标
 
+三份旧进程源码宿主的 xruntime 声明与 V4 回调帧修复见
+[进程源码测试的回调帧和依赖闭包](stdlib53-b342-process-source-contracts.md)。
+白盒单元不替代实际产品及语言层进程分配故障验收。
+
 进程原生接口的故障前缀新增当前 DLL／SO 证据，见
 [进程原生接口的真实产品故障验收](stdlib53-b341-process-product-prefixes.md)。
 语言进程完整前缀的产品迁移与 Windows DST 环境验收不由此替代。

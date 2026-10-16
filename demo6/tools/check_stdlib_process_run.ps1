@@ -50,8 +50,9 @@ try {
         'test/cases/xlir_process_terminal_host.c',
         'tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',
         'release/xl.exe','release/xlc.dll','release/xl.dll','release/examples/stdlib_process_run.xl','release/examples/stdlib_process_support.xl','release/examples/stdlib_process_pipeline.xl',"$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
-    $extra+=@('tools/stage_stdlib_process_observer.py')
-    if(!$FutureOnly){$python=(Get-Command python -ErrorAction Stop).Source;$extra+=@($python)}
+    $extra+=@('tools/stage_stdlib_process_observer.py','tools/check_stdlib_process_source_contracts.py',
+        'tools/check_xlir_resident_catalog.py','tools/xlir_public_build_inputs.py')
+    $python=(Get-Command python -ErrorAction Stop).Source;$extra+=@($python)
     $paths=@($build.Inputs.Path)+@($build.Headers.Path)+@($build.Objects.Path)+@($stage.Files.Source)+@($stage.Files.Path)+$extra
     $paths+=@($cases+$negatives|ForEach-Object {"test/cases/$_.xl"})
     $inputs=[ordered]@{}
@@ -61,8 +62,8 @@ try {
     $inputs["$work/xl.dll"]=(Get-FileHash "$work/xl.dll").Hash
     $rows=[Collections.Generic.List[object]]::new(); $utf8=[Text.UTF8Encoding]::new($false)
     $child="$work/child.exe"
-    function Check($name,$program,[string[]]$arguments,$error='') {
-        $result=Invoke-ExtlibSmokeProcess $program $arguments $root 120 @{XL6_PROCESS_CHILD=$child}
+    function Check($name,$program,[string[]]$arguments,$error='',[int]$timeoutSeconds=120) {
+        $result=Invoke-ExtlibSmokeProcess $program $arguments $root $timeoutSeconds @{XL6_PROCESS_CHILD=$child}
         $rows.Add([ordered]@{Name=$name;Program=$program;Arguments=$arguments;Result=$result})
         [IO.File]::WriteAllText("$work/$name.log",$result.stdout+$result.stderr,$utf8)
         if($error){if($result.status-ne'fail'-or$result.exitCode-ne1-or$result.stderr-notmatch$error){throw "$name rejection mismatch"}}
@@ -77,14 +78,16 @@ try {
         $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
         $null=Check 'child-build' gcc @('-std=c11','-Wall','-Wextra','-Werror','-municode','test/cases/xlir_process_child.c','-o',$child)
         $inputs[$child]=(Get-FileHash $child).Hash
+        $sourceArgs=@('tools/check_stdlib_process_source_contracts.py','--root',$root,'--out',"$work/source-contracts")
+        if($FutureOnly){$sourceArgs+=@('--family','future')}
+        $sourceContracts=Check 'process-source-contracts' $python $sourceArgs -timeoutSeconds 600
         if(!$FutureOnly){
         $null=Check 'terminal-observer-stage' $python @('tools/stage_stdlib_process_observer.py','--root',$root,'--out',"$work/observer")
         $inputs["$work/observer/process_observer_layout.h"]=(Get-FileHash "$work/observer/process_observer_layout.h").Hash
         $null=Check 'terminal-native-build' gcc ($flags+@("-I$work/observer",'test/cases/xlir_process_terminal_host.c','release/xl.dll')+$libs+@('-o',"$work/terminal-native.exe"))
         $terminalNative=Check 'terminal-native' "$work/terminal-native.exe" @($child)
         if($terminalNative-notmatch 'terminal: real tty/merged stderr, child-observed resize, independent stream leases; 13 guards, heap/owned handles balanced; raw Win32 platform retention=[0-9]+, no extra handles'){throw 'Real terminal IO/resize/lifetime witness missing'}
-        $null=Check 'file-native-build' gcc ($flags+@('test/cases/xlir_process_file_host.c')+$libs+@('-o',"$work/file-native.exe"))
-        $fileNative=Check 'file-native' "$work/file-native.exe" @($child)
+        $fileNative=$sourceContracts
         if($fileNative-notmatch 'process file: independent non-inheritable handles, replacement/rollback, original close, binary child, 5 guards; OS error prefix [0-9]+ failures \+ 1 first no-hit, heap/handles balanced'){throw 'Process File ownership/error ledger witness missing'}
         $null=Check 'pipeline-prefix-build' gcc ($flags+@('-DXL6_PIPELINE_PREFIX_FROM_XLANG=1','test/cases/xlir_process_pipeline_prefix.c')+$libs+@('-o',"$work/pipeline-prefix.exe"))
         $pipelinePrefix=Check 'pipeline-prefix' "$work/pipeline-prefix.exe" @()
@@ -92,8 +95,7 @@ try {
         $null=Check 'pipeline-prefix-full-build' gcc ($flags+@('-DXRT_MODULE_ALL=1','-DXL6_PIPELINE_PREFIX_FROM_XLANG=1','test/cases/xlir_process_pipeline_prefix.c')+$libs+@('-o',"$work/pipeline-prefix-full.exe"))
         $pipelineFull=Check 'pipeline-prefix-full' "$work/pipeline-prefix-full.exe" @()
         if($pipelineFull-notmatch 'pipeline native prefixes: [0-9]+/[0-9]+ failures \+ 2 first no-hit, unrelated stdin intact, exact binary per-stage stderr, private waiters retired, balanced'){throw 'Full native Pipeline/Process Future retirement witness missing'}
-        $null=Check 'live-native-build' gcc ($flags+@('test/cases/xlir_process_live_host.c')+$libs+@('-o',"$work/live-native.exe"))
-        $live=Check 'live-native' "$work/live-native.exe" @($child)
+        $live=$sourceContracts
         if($live-notmatch 'exact binary streams survive parent drop; unique leases, timeout/range/state, independent status; reader/writer OOM 3/3 failures \+ 2 first no-hit, balanced'){throw 'Live process ownership witness missing'}
         $null=Check 'io-loan-build' gcc ($flags+@('test/cases/xlir_process_io_loan.c')+$libs+@('-o',"$work/io-loan.exe"))
         $loan=Check 'io-loan' "$work/io-loan.exe" @()
@@ -115,11 +117,7 @@ try {
             ForEach-Object {Join-Path $public ([IO.Path]::GetFileNameWithoutExtension($_)+'.o')})
         $null=Check 'live-oom-observer-build' gcc ($flags+@('-include','tools/xrt_single_header_impl.c','-c','test/support/process_oom_observer.c','-o',"$work/live-oom-observer.o"))
         $retirementObjects=@($nativeObjects|Where-Object {[IO.Path]::GetFileName($_)-ne'xrt_single_header_impl.o'})+@("$work/live-oom-observer.o")
-        $futureResident=@('xl6_code_lease','xl6_code_finalizer','xl6_continuation_queue','xl6_continuation_executor','xl6_continuation_future',
-            'xl6_continuation_frame','xl6_future_wait','xl6_closure','xl6_cell','xl6_slot','xl6_frame_storage','xl6_task','xl6_capture',
-            'xl6_value_iterator','xl6_future_callback','xl6_generator','xl6_future_payload')|ForEach-Object {Join-Path $public ($_.ToString()+'.o')}
-        $null=Check 'future-native-build' gcc ($flags+@('test/cases/xlir_process_future_host.c')+$futureResident+$libs+@('-o',"$work/future-native.exe"))
-        $future=Check 'future-native' "$work/future-native.exe" @($child)
+        $future=$sourceContracts
         if($future-notmatch 'mapper/pending/terminal OOM 1/[0-9]+/[0-9]+ failures \+ 3 first no-hit, waiter retired, balanced'){throw 'Process Future native/OOM witness missing'}
         $null=Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c')+$compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/contract.exe"))
         foreach($case in $cases) {
