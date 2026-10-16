@@ -6,6 +6,7 @@
 
 ## 当前权威设计
 
+- [标准库签名与产品执行用例](stdlib53-b337-product-witnesses.md)：699 项目录签名关联两端实际 JIT／模块／独立 AOT 用例，补齐 Array 算法与可移植进程便捷入口的执行清单；不将可达函数冒称为全部分支覆盖。
 - [旧字符串生成桥清理](stdlib53-b336-retired-text-bridges.md)：退役 26 个被驻留入口替代的内部字符串桥及 Cgen 实现；公开能力、精确长度、函数值与显式 FFI 声明保持，双端实际产品专项通过。
 - [并发队列真实产品验收](stdlib53-b335-queue-product-stress.md)：四种队列的实际双产品并发角色、精确拥有传输与线程局部分配故障，公开语言 JIT／模块／独立 AOT 及按需族选择。
 - [OrderedMap 原生键域与泛型合同](stdlib53-b334-ordered-key-domains.md)：C ABI 标量保留真实槽宽，bytes 使用按需原生内容排序；统一直接／嵌套类型配方与泛型逻辑绑定，完整任务继续。

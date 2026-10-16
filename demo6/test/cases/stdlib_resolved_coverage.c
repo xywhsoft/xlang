@@ -61,6 +61,18 @@ children:
     for(size_t i=0;i<node->childCount;++i)if(source_calls(node->children[i],symbol,name,owner,span))return 1;
     return 0;
 }
+static bool call_reachable(const XL6_IrModule* ir,XL6_IrNodeId origin)
+{
+    for(size_t i=0;i<ir->functionCount;++i) {
+        const XL6_IrFunction* function=&ir->functions[i];
+        if(function->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        assert(function->firstInstruction<=ir->instructionCount &&
+            function->instructionCount<=ir->instructionCount-function->firstInstruction);
+        for(size_t j=0;j<function->instructionCount;++j)
+            if(ir->instructions[function->firstInstruction+j].origin==origin)return true;
+    }
+    return false;
+}
 static void catalog(void)
 {
     XL6_Output out;xl6OutputInitStdFile(&out,stdout);puts("{\"Registrations\":[");int comma=0;
@@ -134,6 +146,8 @@ int main(int argc,char**argv)
                 if(unit.parse.root->children[c]==original[p])called=source_calls(unit.parse.root->children[c],t->symbol,name,owner,span);
         if(comma++)putchar(',');
         printf("{\"Site\":%zu,\"Symbol\":%u,\"Declaration\":%u,\"SourceCall\":%s,\"DeclarationFlags\":%u,\"DeclarationKind\":",i,t->symbol,t->declaration,called?"true":"false",n->flags);quoted(xl6AstKindName(n->sourceKind));
+        printf(",\"Origin\":%u,\"SourceLine\":%d,\"SourceColumn\":%d,\"InReachableFunction\":%s",
+            site->origin,span.line,span.column,call_reachable(&unit.ir,site->origin)?"true":"false");
         fputs(",\"Internal\":",stdout);quoted(name);
         fputs(",\"CSymbol\":",stdout);quoted(t->cName);fputs(",\"Owner\":",stdout);
         quoted(owner?owner->displayName:NULL);

@@ -1,0 +1,36 @@
+// No cmd/findstr/more assumptions: the product gate builds this controlled child.
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+auto result = process.runFile(child, ["exit", "7"], 5000)
+assert not result.success and result.exitCode == 7
+assert not result.timedOut and not result.cancelled
+assert result.stdout == b"" and result.stderr == b""
+
+// Both supported platform shells accept a double-quoted, generated child path.
+string command = "\"" + child + "\" echo"
+auto live = process.start(command)
+auto input = live.stdinWriter()
+auto output = live.stdoutReader()
+auto errors = live.stderrReader()
+input.writeAll(b"a\0你")
+input.close()
+auto ended = live.wait(5000)
+assert ended != null and not live.running
+if ended != null then assert ended.code == 0 end
+assert output.readAll() == b"a\0你"
+assert errors.readAll() == b"E\0R"
+output.close()
+errors.close()
+
+int rejected = 0
+try
+    process.runFile(child + "\0ignored", ["exit", "0"], 5000)
+catch ValueError e
+    rejected += 1
+end
+try
+    process.start(command + "\0ignored")
+catch ValueError e
+    rejected += 1
+end
+assert rejected == 2
