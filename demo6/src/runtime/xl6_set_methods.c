@@ -87,12 +87,16 @@ static xvalue* finishValue(xl6_error_scope* scope,xvalue* result)
     if (!result || scope->failed || xrtGetError()) {
         xl6ErrorScopeCaptureFailure(scope); discard(result); result=NULL;
     }
-    if (!finish(scope,result!=NULL)) { discard(result); return NULL; }
+    /* Value producers have a NULL failure carrier. Do not use the scoped
+     * payload-only boolean/count finisher: its callback notification would
+     * bypass a language catch on this ordinary checked return. */
+    xl6_error_result outcome=xl6ErrorScopeEnd(scope);
+    if (!outcome.ok) xrtSetErrorTake(outcome.error);
     return result;
 }
 xvalue* xl6SetValueCountOrNullV1(const xvalue* source)
 {
-    xl6_error_scope scope={0}; if (!enter(&scope)) return NULL;
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return NULL;
     xvalue* result=NULL; int64_t size=0;
     if (!source || xrtValueType(source)==XVALUE_NULL) result=xrtValueRetain(xrtValueNull());
     else if (xl6SetErasedCountV1(source,false,&size)) result=xrtValueInt(size);
@@ -100,12 +104,12 @@ xvalue* xl6SetValueCountOrNullV1(const xvalue* source)
 }
 xvalue* xl6SetValueCloneV1(const xvalue* source)
 {
-    xl6_error_scope scope={0}; if (!enter(&scope)) return NULL;
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return NULL;
     return finishValue(&scope,xl6SetErasedCloneV1(source));
 }
 xvalue* xl6SetValueAlgebraV1(const xvalue* left,const xvalue* right,unsigned int operation)
 {
-    xl6_error_scope scope={0}; if (!enter(&scope)) return NULL;
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) return NULL;
     return finishValue(&scope,xl6SetErasedAlgebraV1(left,right,(XL6_SetAlgebraV1)operation));
 }
 bool xl6SetValueRelationV1(const xvalue* left,const xvalue* right,unsigned int operation,bool proper)

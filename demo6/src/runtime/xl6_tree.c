@@ -29,11 +29,24 @@ static void mutationEnd(xrtownershipscope* scope)
 { if (!xrtOwnershipScopeEnd(scope)) abort(); }
 static void scopeBegin(xl6_error_scope* scope)
 { if (!xl6ErrorScopeBegin(scope)) abort(); }
-static bool scopeFinish(xl6_error_scope* scope, bool success)
+static xl6_error_result scopeOutcome(xl6_error_scope* scope, bool success)
 {
     if (!success || xrtGetError()) xl6ErrorScopeCaptureFailure(scope);
-    xl6_error_result result=xl6ErrorScopeEnd(scope);
+    return xl6ErrorScopeEnd(scope);
+}
+/* Payload-only Tree operations are bracketed by the IR FOREIGN_SCOPE ABI;
+ * void finalizers also need an independent notification, even with no error
+ * allocation. Keep that contract distinct from STATUS_OUTPUT queries. */
+static bool scopeFinish(xl6_error_scope* scope, bool success)
+{
+    xl6_error_result result=scopeOutcome(scope,success);
     if (!result.ok) xl6ErrorScopePropagateFailure(result);
+    return result.ok;
+}
+static bool scopeFinishChecked(xl6_error_scope* scope, bool success)
+{
+    xl6_error_result result=scopeOutcome(scope,success);
+    if (!result.ok) xrtSetErrorTake(result.error);
     return result.ok;
 }
 static bool sameLayout(const XL6_SequenceLayoutV1* a,const XL6_SequenceLayoutV1* b)
@@ -525,7 +538,7 @@ done:
         if (valueReady) { xrtTypeDropValue(valueType,valueOutput.data); memset(valueOutput.data,0,valueOutput.size); }
         if (keyReady) { xrtTypeDropValue(keyType,keyOutput.data); memset(keyOutput.data,0,keyOutput.size); }
     }
-    success=scopeFinish(&scope,true);
+    success=scopeFinishChecked(&scope,true);
     if (success) *found=present;
     return success;
 }

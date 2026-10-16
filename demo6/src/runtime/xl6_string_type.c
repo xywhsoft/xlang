@@ -29,7 +29,9 @@ static bool copy(ptr target, const void* source, const xrttype* type)
     bool copied=present(source) && xrtTypeCopyValue(xrtTypeStringView(),target,source);
     if (!copied || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
-    if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return false; }
+    /* xrttype Copy/Clone have an explicit false failure return. XRT checks
+     * that carrier before committing any slot; this is not a void finalizer. */
+    if (!outcome.ok) { xrtSetErrorTake(outcome.error); return false; }
     return true;
 }
 static bool move(ptr target, ptr source, const xrttype* type)

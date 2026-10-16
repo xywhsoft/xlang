@@ -11,10 +11,7 @@ static int carrier(const xvalue* source)
     xrtSetErrorKind(XERR_TYPE); return -1;
 }
 static bool enter(xl6_error_scope* scope)
-{
-    if (xl6ErrorScopeBegin(scope)) return true;
-    xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return false;
-}
+{ return xl6ErrorScopeBegin(scope); }
 static void capture(xl6_error_scope* scope,bool success)
 { if (!success || scope->failed || xrtGetError()) xl6ErrorScopeCaptureFailure(scope); }
 static xvalue* finish(xl6_error_scope* scope,xvalue* result,bool success)
@@ -22,7 +19,10 @@ static xvalue* finish(xl6_error_scope* scope,xvalue* result,bool success)
     capture(scope,success && result);
     if (scope->failed) { xrtValueRelease(result); result=NULL; }
     xl6_error_result outcome=xl6ErrorScopeEnd(scope);
-    if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
+    /* All exported operations in this unit return an owned Value or NULL.
+     * Internal callbacks were captured locally; the checked return owns the
+     * outcome until its language caller chooses to handle or escape it. */
+    if (!outcome.ok) xrtSetErrorTake(outcome.error);
     return result;
 }
 xvalue* xl6ListValueCloneV1(const xvalue* source)

@@ -31,9 +31,7 @@ static const XL6_SequenceAdmissionOpsV2 ops={retain,drop,slot,value,equivalent,d
 const XL6_SequenceAdmissionOpsV2* xl6ArrayNativeValueAdmissionOpsV2Get(void){return &ops;}
 xvalue* xl6SequenceNativeValueCreateV1(unsigned int role,uint64_t identity,const XL6_NativeCollectionValueProfileV1* profile)
 {
-    xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope)){
-        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});return NULL;
-    }
+    xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))return NULL;
     xvalue* result=NULL;NativePolicy* p=NULL;
     if(!identity || (role!=XL6_SEQUENCE_ARRAY_V1 && role!=XL6_SEQUENCE_STACK_V1) ||
         !xl6NativeCollectionValueProfileValidV1(profile))xrtSetErrorKind(XERR_ARGUMENT);
@@ -45,8 +43,10 @@ xvalue* xl6SequenceNativeValueCreateV1(unsigned int role,uint64_t identity,const
             type->Size,type,profile->boxedIdentity};
         result=xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role,identity,&policy);
     }
-    if(!result || xrtGetError() || scope.failed)xl6ErrorScopeCaptureFailure(&scope);
+    if(!result || xrtGetError() || scope.failed){
+        xl6ErrorScopeCaptureFailure(&scope);xrtValueRelease(result);result=NULL;
+    }
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
-    if(!outcome.ok){xrtValueRelease(result);xl6ErrorScopePropagateFailure(outcome);return NULL;}
+    if(!outcome.ok){xrtSetErrorTake(outcome.error);return NULL;}
     return result;
 }
