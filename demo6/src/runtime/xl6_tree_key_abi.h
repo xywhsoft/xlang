@@ -12,7 +12,9 @@ typedef enum XL6_TreeKeyOrderV1 {
     XL6_TREE_KEY_FLOAT_TOTAL_V1 = 4,
     XL6_TREE_KEY_STRING_V1 = 5,
     XL6_TREE_KEY_TYPE_ID_V1 = 6,
-    XL6_TREE_KEY_CHAR_V1 = 7
+    XL6_TREE_KEY_CHAR_V1 = 7,
+    XL6_TREE_KEY_C_SCALAR_V1 = 8,
+    XL6_TREE_KEY_BYTES_V1 = 9
 } XL6_TreeKeyOrderV1;
 
 #endif

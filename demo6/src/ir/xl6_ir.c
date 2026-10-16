@@ -104,6 +104,7 @@ int xl6IrRefreshConstructionAbis(XL6_IrModule* module)
 }
 
 static int xl6IrBuildOwnedReadResults(XL6_IrModule* module);
+static int xl6IrBuildTypeContainsTypeParam(const XL6_IrModule*,XL6_IrTypeId,size_t);
 static XL6_IrTypeId xl6IrRuntimeCallableSourceSignature(
     const XL6_IrModule* module, XL6_IrTypeId type);
 static int xl6IrTypeIsDynamicXValueBuiltin(
@@ -875,6 +876,30 @@ static int xl6IrSequenceLayoutComplete(XL6_IrSequenceLayoutAbi abi)
         abi==XL6_IR_SEQUENCE_LAYOUT_UNION_VALUE_V1 || abi==XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1 ||
         abi==XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1;
 }
+/* One key-domain authority for direct operations, nested schemas, lowering
+ * and verification. Check the closed scalar shape before recursive descent. */
+XL6_IrRuntimeResourceKeyOrderAbi xl6IrOrderedKeyAbi(const XL6_IrType* type)
+{
+    if (!type || !type->typeValueId || type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_INVALID)
+        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
+    switch(type->cAbi) {
+    case XL6_IR_C_ABI_BOOL:return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_BOOL;
+    case XL6_IR_C_ABI_CHAR_U32:return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_CHAR;
+    case XL6_IR_C_ABI_I64:case XL6_IR_C_ABI_TIME_I64:return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_SIGNED_I64;
+    case XL6_IR_C_ABI_U64:return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_UNSIGNED_U64;
+    case XL6_IR_C_ABI_TYPE_ID:return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_TYPE_ID;
+    case XL6_IR_C_ABI_F32:case XL6_IR_C_ABI_F64:return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_FLOAT_TOTAL;
+    case XL6_IR_C_ABI_MANAGED_STRING:
+        return type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED ? XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_STRING : XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
+    case XL6_IR_C_ABI_MANAGED_BYTES:
+        return type->kind==XL6_IR_TYPE_BUILTIN && !type->paramCount && type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED
+            ? XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_BYTES : XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
+    default:
+        return type->cAbi>=XL6_IR_C_ABI_C_CHAR && type->cAbi<=XL6_IR_C_ABI_C_WCHAR
+            ? XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_C_SCALAR : XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
+    }
+}
+
 static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool* pool,
     const XL6_IrType* type,size_t depth)
 {
@@ -1017,10 +1042,7 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         const XL6_IrType* key=xl6IrTypeGet(pool,base->params[0]);
         /* A Tree key cannot itself be a recursive resource. Reject its shape
          * before descent, including hostile cyclic type-pool mutations. */
-        bool ordered=key && (key->cAbi==XL6_IR_C_ABI_BOOL || key->cAbi==XL6_IR_C_ABI_I64 ||
-            key->cAbi==XL6_IR_C_ABI_U64 || key->cAbi==XL6_IR_C_ABI_F32 || key->cAbi==XL6_IR_C_ABI_F64 ||
-            key->cAbi==XL6_IR_C_ABI_TIME_I64 || key->cAbi==XL6_IR_C_ABI_TYPE_ID ||
-            key->cAbi==XL6_IR_C_ABI_MANAGED_STRING);
+        bool ordered=xl6IrOrderedKeyAbi(key)!=XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
         XL6_IrSequenceLayout k={0},v={0};
         if (ordered) {
             k=xl6IrSequenceLayoutForTypeDepth(pool,
@@ -3037,6 +3059,15 @@ static int xl6IrNodeIsResolvedSyntaxCall(const XL6_IrNode* node)
             node->kind == XL6_IR_NODE_ASSIGN);
 }
 
+static int xl6IrDeclarationIsProduct(const XL6_IrModule* module,const XL6_IrNode* node,const XL6_IrType* type)
+{
+    /* Preserve logical tuple fields before a template has a physical carrier.
+     * Specialization rebuilds the actual product layout and cleanup contracts. */
+    return type && type->kind==XL6_IR_TYPE_TUPLE &&
+        (type->cAbi==XL6_IR_C_ABI_PRODUCT ||
+         (node && node->sourceKind==XL6_AST_MULTI_VAR_DECL && type->cAbi==XL6_IR_C_ABI_UNSUPPORTED &&
+          xl6IrBuildTypeContainsTypeParam(module,node->storageType,0)));
+}
 size_t xl6IrDeclarationBindingCount(const XL6_IrModule* module, XL6_IrNodeId declaration)
 {
     const XL6_IrNode* node = xl6IrNodeGet(module, declaration);
@@ -3046,7 +3077,7 @@ size_t xl6IrDeclarationBindingCount(const XL6_IrModule* module, XL6_IrNodeId dec
         return variant != NULL && variant->payloadCount == node->childCount ? node->childCount : 0;
     }
     if (node == NULL || node->kind != XL6_IR_NODE_VALUE_DECL || type == NULL) return 0;
-    return type->kind == XL6_IR_TYPE_TUPLE && type->cAbi == XL6_IR_C_ABI_PRODUCT
+    return xl6IrDeclarationIsProduct(module,node,type)
         ? type->paramCount : 1u;
 }
 
@@ -3072,7 +3103,7 @@ int xl6IrDeclarationBindingAt(const XL6_IrModule* module, XL6_IrNodeId declarati
     }
     if (type == NULL) return 0;
     binding->origin = declaration; binding->symbol = node->symbol; binding->type = node->storageType;
-    if (type->kind == XL6_IR_TYPE_TUPLE && type->cAbi == XL6_IR_C_ABI_PRODUCT) {
+    if (xl6IrDeclarationIsProduct(module,node,type)) {
         const XL6_IrNode* names;
         const XL6_IrNode* name;
         if (node->childCount != 2 || type->params == NULL || module->children == NULL ||
@@ -11324,29 +11355,7 @@ static XL6_IrRuntimeResourceKeyOrderAbi
 xl6IrRuntimeResourceKeyOrderAbiForType(
     const XL6_IrModule* module, XL6_IrTypeId typeId)
 {
-    const XL6_IrType* type = module != NULL
-        ? xl6IrTypeGet(&module->types, typeId) : NULL;
-    if ( type == NULL || type->typeValueId == 0 ||
-         type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_INVALID )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
-    if ( type->cAbi == XL6_IR_C_ABI_BOOL )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_BOOL;
-    if ( type->cAbi == XL6_IR_C_ABI_CHAR_U32 )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_CHAR;
-    if ( type->cAbi == XL6_IR_C_ABI_I64 ||
-         type->cAbi == XL6_IR_C_ABI_TIME_I64 )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_SIGNED_I64;
-    if ( type->cAbi == XL6_IR_C_ABI_U64 )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_UNSIGNED_U64;
-    if ( type->cAbi == XL6_IR_C_ABI_TYPE_ID )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_TYPE_ID;
-    if ( type->cAbi == XL6_IR_C_ABI_F64 ||
-         type->cAbi == XL6_IR_C_ABI_F32 )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_FLOAT_TOTAL;
-    if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-         type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_STRING;
-    return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
+    return xl6IrOrderedKeyAbi(module ? xl6IrTypeGet(&module->types,typeId) : NULL);
 }
 
 static XL6_IrRuntimeResourceAbi xl6IrSpecialQueueAbiForName(
@@ -11757,6 +11766,7 @@ int xl6IrAvlProjectionContract(const XL6_IrModule* module,XL6_IrTypeId treeId,
 }
 
 #include "src/ir/xl6_ir_tree_query.c"
+#include "src/ir/xl6_ir_tree_contract.c"
 
 /* Stack algorithms in an open generic body have exact logical types but no
  * physical slot transfer yet. Keep this distinct from both VERIFIED and an
@@ -12066,50 +12076,9 @@ static int xl6IrRuntimeResourceSignatureCompatible(
              xl6IrRuntimeResourcePayloadAbiForType(module, payloadType) ==
                  XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID ||
              receiverType != operandTypes[0] ) return 0;
-        switch ( operation ) {
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_SET:
-            return operandCount == 3 && operandTypes[1] == keyType &&
-                operandTypes[2] == payloadType && result != NULL &&
-                result->cAbi == XL6_IR_C_ABI_BOOL;
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CONTAINS:
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_REMOVE:
-            return operandCount == 2 && operandTypes[1] == keyType &&
-                result != NULL && result->cAbi == XL6_IR_C_ABI_BOOL;
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_TRIM_TO:
-            return operandCount == 2 && second != NULL &&
-                second->cAbi == XL6_IR_C_ABI_I64 && result != NULL &&
-                result->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_64;
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_EQUALS:
-            return operandCount == 2 && operandTypes[1] == receiverType &&
-                result != NULL && result->cAbi == XL6_IR_C_ABI_BOOL;
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_MERGE:
-            return (operandCount == 2 || operandCount == 3) &&
-                operandTypes[1] == receiverType &&
-                (operandCount == 2 ||
-                 (third != NULL && third->cAbi == XL6_IR_C_ABI_BOOL)) &&
-                result != NULL && result->cAbi == XL6_IR_C_ABI_BOOL;
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLEAR:
-            return operandCount == 1 && resultType == XL6_IR_TYPE_INVALID;
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_COUNT:
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_TRIM:
-            return operandCount == 1 && result != NULL &&
-                result->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_64;
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_KEYS:
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_VALUES:
-            return operandCount == 1 && result != NULL &&
-                xl6IrAvlProjectionContract(module,receiverType,resultType,
-                    operation==XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_KEYS,NULL) &&
-                result->kind == XL6_IR_TYPE_GENERIC_INSTANCE &&
-                result->collectionAbi == XL6_IR_COLLECTION_ARRAY &&
-                result->paramCount == 1 && result->params != NULL &&
-                result->params[0] ==
-                    (operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_KEYS
-                        ? keyType : payloadType);
-        case XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CLONE:
-            return operandCount == 1 && resultType == receiverType;
-        default:
-            return 0;
-        }
+        return xl6IrTreeLogicalSignature(module,operation,receiverType,resultType,operandTypes,operandCount) &&
+            ((operation!=XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_KEYS && operation!=XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_VALUES) ||
+             xl6IrAvlProjectionContract(module,receiverType,resultType,operation==XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_KEYS,NULL));
     }
     if ( expectedResourceAbi == XL6_IR_RUNTIME_RESOURCE_NONE ||
          first->runtimeResourceAbi != expectedResourceAbi ||
@@ -14664,7 +14633,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                         XL6_IR_INTRINSIC_ADMISSION_VERIFIED;
                 else if (compatible && (xl6IrGenericStackSignatureCompatible(module, origin,
                     intrinsic.runtimeResourceOp, intrinsic.receiverType, intrinsic.resultType,
-                    operandTypes, operandCount) || xl6IrGenericTreeQuerySignatureCompatible(module,origin,
+                    operandTypes, operandCount) || xl6IrGenericTreeSignatureCompatible(module,origin,
                     intrinsic.runtimeResourceOp,intrinsic.receiverType,intrinsic.resultType,operandTypes,operandCount) ||
                     xl6IrGenericConcurrentQueueSignatureCompatible(module,origin,
                     intrinsic.runtimeResourceOp,intrinsic.receiverType,intrinsic.resultType,operandTypes,operandCount) ||
@@ -36504,7 +36473,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     int dependent = xl6IrGenericStackSignatureCompatible(module, intrinsic->origin,
                         intrinsic->runtimeResourceOp, intrinsic->receiverType, intrinsic->resultType,
                         operandTypes, intrinsic->operandCount) ||
-                        xl6IrGenericTreeQuerySignatureCompatible(module,intrinsic->origin,
+                        xl6IrGenericTreeSignatureCompatible(module,intrinsic->origin,
                             intrinsic->runtimeResourceOp,intrinsic->receiverType,intrinsic->resultType,
                             operandTypes,intrinsic->operandCount) ||
                         xl6IrGenericConcurrentQueueSignatureCompatible(module,intrinsic->origin,
@@ -39933,7 +39902,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      instruction->runtimeResourceKeyOrderAbi <
                          XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID ||
                      instruction->runtimeResourceKeyOrderAbi >
-                         XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_CHAR )
+                         XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_BYTES )
                     return xl6IrDiag(diags, NULL,
                         "XLIR instruction has ambiguous runtime resource key ABI metadata");
                 if ( ((instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&

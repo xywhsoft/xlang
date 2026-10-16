@@ -63,7 +63,7 @@ def main():
             assert generated.read_bytes()==repeat.read_bytes()
             text=generated.read_text(encoding='utf-8')
             assert 'xlir_avl_' not in text and 'xl6TreeCreateTakeV1(' in text
-            assert 'const XL6_TreeLayoutV1 tree_layout' in text
+            assert 'const XL6_TreeLayoutV2 tree_layout' in text
             ir=out/(case+'.ir.json')
             run(case+'.ir',[cli,fixture,'ir-lowered',ir] if args.public else [cli,'ir',fixture,'--lowered','--format','json','--emit',ir])
             data=json.loads(ir.read_text(encoding='utf-8')); types={row['id']:row for row in data['types']}

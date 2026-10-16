@@ -10,7 +10,7 @@
 typedef struct TreeOwner {
     volatile int32_t refs;
     xatomic32 busy;
-    XL6_TreeLayoutV1 layout;
+    XL6_TreeLayoutV2 layout;
     XL6_SequenceAdmissionV3 keyPolicy, valuePolicy;
     xtypedtree* storage;
     xtypedtree* retired;
@@ -55,10 +55,31 @@ static bool sameLayout(const XL6_SequenceLayoutV1* a,const XL6_SequenceLayoutV1*
     return a->identity==b->identity && a->elementIdentity==b->elementIdentity &&
         a->transfer==b->transfer && a->size==b->size && a->type==b->type;
 }
-static bool sameTreeLayout(const XL6_TreeLayoutV1* a,const XL6_TreeLayoutV1* b)
+static bool sameTreeLayout(const XL6_TreeLayoutV2* a,const XL6_TreeLayoutV2* b)
 {
     return a && b && a->identity==b->identity && a->keyOrder==b->keyOrder &&
+        a->keyCodec==b->keyCodec &&
         sameLayout(&a->key,&b->key) && sameLayout(&a->value,&b->value);
+}
+static const xrttype* orderedKeyType(const XL6_TreeLayoutV2* layout)
+{ return layout->keyCodec ? layout->keyCodec->type : layout->key.type; }
+static bool bytesCodecValid(const XL6_TreeKeyCodecV1* codec)
+{
+    const xrttype* type=codec ? codec->type : NULL;
+    return codec && codec->abi==XL6_TREE_BYTES_CODEC_ABI_V1 && codec->Admits && type &&
+        type->Id==XL6_TREE_BYTES_CODEC_ABI_V1 && type->Kind==XRT_TYPE_HANDLE &&
+        type->Size==sizeof(xvalue*) && type->Align==_Alignof(xvalue*) && type->InstanceAlign==1 &&
+        type->Flags==(XRT_TYPE_FLAG_COPYABLE|XRT_TYPE_FLAG_REFERENCE|XRT_TYPE_FLAG_NULLABLE|
+            XRT_TYPE_FLAG_FINAL|XRT_TYPE_FLAG_RELOCATABLE) &&
+        type->AbiName.Size==sizeof("xl6.tree-bytes-key.v1")-1 && type->AbiName.Data &&
+        !memcmp(type->AbiName.Data,"xl6.tree-bytes-key.v1",sizeof("xl6.tree-bytes-key.v1")-1) &&
+        type->Ops && type->Ops->Init && type->Ops->Copy && type->Ops->Move && type->Ops->Drop && type->Ops->Compare;
+}
+static bool cScalarType(const xrttype* type)
+{
+    return type==xrtTypeBool() || type==xrtTypeInt8() || type==xrtTypeUInt8() ||
+        type==xrtTypeInt16() || type==xrtTypeUInt16() || type==xrtTypeInt32() || type==xrtTypeUInt32() ||
+        type==xrtTypeInt64() || type==xrtTypeUInt64() || type==xrtTypeFloat32() || type==xrtTypeFloat64();
 }
 static bool samePolicy(const XL6_SequenceAdmissionV3* a,const XL6_SequenceAdmissionV3* b)
 {
@@ -67,15 +88,17 @@ static bool samePolicy(const XL6_SequenceAdmissionV3* a,const XL6_SequenceAdmiss
         a->boxedIdentity==b->boxedIdentity &&
         (a->data==b->data || a->ops->Equivalent(a->data,b->data));
 }
-static bool layoutValid(const XL6_TreeLayoutV1* layout)
+static bool layoutValid(const XL6_TreeLayoutV2* layout)
 {
     if (!layout || !layout->identity || !layout->keyOrder ||
-        layout->key.transfer>2 || layout->value.transfer>3 ||
+        layout->key.transfer>3 || layout->value.transfer>3 ||
         !xl6SequenceTupleV1(layout->key.identity,layout->key.elementIdentity,
             layout->key.transfer,layout->key.size,layout->key.type) ||
         !xl6SequenceTupleV1(layout->value.identity,layout->value.elementIdentity,
             layout->value.transfer,layout->value.size,layout->value.type) ||
-        !xrtTypeIsComparable(layout->key.type)) {
+        (layout->keyOrder==XL6_TREE_KEY_BYTES_V1 ?
+            layout->key.transfer!=3 || layout->key.type!=xrtTypeValue() || !bytesCodecValid(layout->keyCodec) :
+            layout->keyCodec!=NULL || layout->key.transfer>2 || !xrtTypeIsComparable(layout->key.type))) {
         if (!xrtGetError()) xrtSetErrorKind(XERR_ARGUMENT);
         return false;
     }
@@ -89,6 +112,8 @@ static bool layoutValid(const XL6_TreeLayoutV1* layout)
     case XL6_TREE_KEY_STRING_V1: ordered=xl6StringTypeAbiV1(type); break;
     case XL6_TREE_KEY_TYPE_ID_V1: ordered=type==xrtTypeType(); break;
     case XL6_TREE_KEY_CHAR_V1: ordered=xl6CharTypeAbiV1(type); break;
+    case XL6_TREE_KEY_C_SCALAR_V1: ordered=layout->key.transfer==1 && cScalarType(type); break;
+    case XL6_TREE_KEY_BYTES_V1: ordered=true; break;
     }
     if (!ordered) xrtSetErrorKind(XERR_TYPE);
     return ordered;
@@ -130,7 +155,7 @@ static bool retain(void* opaque,void** result,void* context)
  * remains the existing reference contract; no new key Hash/order is invented. */
 static const xvaluehandleops handleOps={retain,drop,NULL,NULL};
 
-static TreeOwner* begin(const xvalue* value,const XL6_TreeLayoutV1* expected)
+static TreeOwner* begin(const xvalue* value,const XL6_TreeLayoutV2* expected)
 {
     TreeOwner* owner=NULL;
     xrtownershipscope mutation={0}; mutationBegin(&mutation);
@@ -187,6 +212,10 @@ static bool traceEntry(ptr entry,ptr opaque)
 {
     TreeTrace* trace=opaque;
     const TreeOwner* owner=trace->owner;
+    if (owner->layout.key.transfer==3) {
+        const xvalue* key=*(xvalue* const*)entry;
+        if (!trace->visit(xrtValueOwnership(key),trace->context)) { trace->failed=true; return false; }
+    }
     if (owner->layout.value.transfer==3) {
         const xvalue* value=*(xvalue* const*)((const unsigned char*)entry+owner->storage->ValueOffset);
         if (!trace->visit(xrtValueOwnership(value),trace->context)) { trace->failed=true; return false; }
@@ -197,7 +226,7 @@ static bool ownershipTrace(const void* opaque,xrtownershipvisitor visit,void* co
 {
     const TreeOwner* owner=opaque; size_t refs;
     if (!visit || !ownershipCount(opaque,&refs)) return false;
-    if (owner->layout.value.transfer!=3) return true;
+    if (owner->layout.key.transfer!=3 && owner->layout.value.transfer!=3) return true;
     TreeTrace trace={owner,visit,context,false};
     size_t count=owner->storage->Storage.Base.Count;
     size_t visited=xrtAVLTreeVisit(&owner->storage->Storage,traceEntry,&trace);
@@ -267,7 +296,7 @@ const xrtownershipadapterv1* xl6TreeOwnershipAdapterV1(xrtownershipref ref)
 
 /* All three inputs are consumed. Called only with metadata copied from genuine
  * admitted owners. Publication binds the complete resident graph capability. */
-static xvalue* wrap(xtypedtree* storage,const XL6_TreeLayoutV1* layout,
+static xvalue* wrap(xtypedtree* storage,const XL6_TreeLayoutV2* layout,
     XL6_SequenceAdmissionV3* key,XL6_SequenceAdmissionV3* value)
 {
     xl6_error_scope scope={0}; scopeBegin(&scope);
@@ -317,7 +346,7 @@ static bool emptyPolicy(const XL6_SequenceAdmissionV3* policy)
     return policy && !policy->ops && !policy->data && !policy->elementIdentity &&
         !policy->transfer && !policy->size && !policy->type && !policy->boxedIdentity;
 }
-bool xl6TreeDomainsCopyV1(const XL6_TreeLayoutV1* layout,const xvalue* keys,const xvalue* values,
+bool xl6TreeDomainsCopyV1(const XL6_TreeLayoutV2* layout,const xvalue* keys,const xvalue* values,
     XL6_SequenceAdmissionV3* keyOut,XL6_SequenceAdmissionV3* valueOut)
 {
     if (!keys || !values || keyOut==valueOut || !emptyPolicy(keyOut) || !emptyPolicy(valueOut)) {
@@ -327,11 +356,14 @@ bool xl6TreeDomainsCopyV1(const XL6_TreeLayoutV1* layout,const xvalue* keys,cons
     XL6_SequenceAdmissionV3 key={0},value={0};
     bool success=layoutValid(layout) && witnessCopy(keys,&layout->key,&key) &&
         witnessCopy(values,&layout->value,&value);
+    if (success && layout->keyCodec && !layout->keyCodec->Admits(&key,layout->key.elementIdentity)) {
+        xrtSetErrorKind(XERR_TYPE);success=false;
+    }
     if (success) { *keyOut=key; *valueOut=value; }
     else { xl6SequenceAdmissionDropV3(&value); xl6SequenceAdmissionDropV3(&key); }
     return success;
 }
-bool xl6TreeAdmitsSchemaV1(const xvalue* value,const XL6_TreeLayoutV1* layout,
+bool xl6TreeAdmitsSchemaV1(const xvalue* value,const XL6_TreeLayoutV2* layout,
     const XL6_SequenceAdmissionV3* key,const XL6_SequenceAdmissionV3* item)
 {
     if (!value || !layout || !key || !item || !key->ops || !item->ops ||
@@ -346,14 +378,14 @@ bool xl6TreeAdmitsSchemaV1(const xvalue* value,const XL6_TreeLayoutV1* layout,
     }
     mutationEnd(&mutation); return admitted;
 }
-bool xl6TreeSchemaCopyV1(const xvalue* source,XL6_TreeLayoutV1* layout,
+bool xl6TreeSchemaCopyV1(const xvalue* source,XL6_TreeLayoutV2* layout,
     XL6_SequenceAdmissionV3* keyOut,XL6_SequenceAdmissionV3* valueOut)
 {
     xl6_error_scope scope={0};
     if(!xl6ErrorScopeBegin(&scope)) {
         xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return false;
     }
-    XL6_SequenceAdmissionV3 key={0},value={0}; XL6_TreeLayoutV1 captured={0}; bool ok=false;
+    XL6_SequenceAdmissionV3 key={0},value={0}; XL6_TreeLayoutV2 captured={0}; bool ok=false;
     if(!source || !layout || keyOut==valueOut || !emptyPolicy(keyOut) || !emptyPolicy(valueOut))
         xrtSetErrorKind(XERR_ARGUMENT);
     else {
@@ -383,13 +415,13 @@ bool xl6TreeSchemaCopyV1(const xvalue* source,XL6_TreeLayoutV1* layout,
     }
     *layout=captured; *keyOut=key; *valueOut=value; return true;
 }
-xvalue* xl6TreeCreateTakeV1(const XL6_TreeLayoutV1* layout,xvalue* keys,xvalue* values)
+xvalue* xl6TreeCreateTakeV1(const XL6_TreeLayoutV2* layout,xvalue* keys,xvalue* values)
 {
     xl6_error_scope scope={0};
     if (!(keys && values ? xl6ErrorScopeBegin(&scope) : xl6ErrorScopeBeginCleanup(&scope,true))) abort();
     XL6_SequenceAdmissionV3 key={0},value={0}; xvalue* result=NULL;
     if (xl6TreeDomainsCopyV1(layout,keys,values,&key,&value)) {
-        xtypedtree* storage=xrtTypedTreeCreate(layout->key.type,
+        xtypedtree* storage=xrtTypedTreeCreate(orderedKeyType(layout),
             xl6SequenceStorageTypeV1(layout->value.transfer,layout->value.type));
         if (storage) result=wrap(storage,layout,&key,&value);
     }
@@ -399,14 +431,14 @@ xvalue* xl6TreeCreateTakeV1(const XL6_TreeLayoutV1* layout,xvalue* keys,xvalue* 
     if (!scopeFinish(&scope,result!=NULL)) { xrtValueRelease(result); return NULL; }
     return result;
 }
-bool xl6TreeSetV1(const xvalue* value,const XL6_TreeLayoutV1* layout,const void* key,const void* item)
+bool xl6TreeSetV1(const xvalue* value,const XL6_TreeLayoutV2* layout,const void* key,const void* item)
 {
     xl6_error_scope scope={0}; scopeBegin(&scope); TreeOwner* owner=begin(value,layout);
     bool success=owner && slotAdmits(&owner->keyPolicy,key) && slotAdmits(&owner->valuePolicy,item) &&
         xrtTypedTreeSet(owner->storage,key,item);
     return finish(&scope,owner,success);
 }
-bool xl6TreeGetV1(const xvalue* value,const XL6_TreeLayoutV1* layout,const void* key,
+bool xl6TreeGetV1(const xvalue* value,const XL6_TreeLayoutV2* layout,const void* key,
     void* output,bool take,bool* found)
 {
     xl6_error_scope scope={0}; scopeBegin(&scope); TreeOwner* owner=begin(value,layout);
@@ -424,7 +456,7 @@ bool xl6TreeGetV1(const xvalue* value,const XL6_TreeLayoutV1* layout,const void*
     if (success) *found=result;
     return success;
 }
-bool xl6TreeKeyV1(const xvalue* value,const XL6_TreeLayoutV1* layout,const void* key,bool remove,bool* found)
+bool xl6TreeKeyV1(const xvalue* value,const XL6_TreeLayoutV2* layout,const void* key,bool remove,bool* found)
 {
     xl6_error_scope scope={0}; scopeBegin(&scope); TreeOwner* owner=begin(value,layout);
     bool success=false,result=false;
@@ -458,7 +490,7 @@ static bool querySlotEmpty(const XL6_SequenceLayoutV1* layout,const void* slot)
     }
     return true;
 }
-static bool querySlotsValid(const XL6_TreeLayoutV1* layout,XL6_TreeQueryV2 operation,
+static bool querySlotsValid(const XL6_TreeLayoutV2* layout,XL6_TreeQueryV2 operation,
     const void* search,XL6_TreeQuerySlotV2 key,XL6_TreeQuerySlotV2 value,bool* found)
 {
     bool pair=operation>=XL6_TREE_QUERY_FIRST_V2;
@@ -481,7 +513,7 @@ static bool querySlotsValid(const XL6_TreeLayoutV1* layout,XL6_TreeQueryV2 opera
             (searches && overlaps(key.data,key.size,search,layout->key.size))))) return false;
     return querySlotEmpty(&layout->value,value.data) && (!pair || querySlotEmpty(&layout->key,key.data));
 }
-bool xl6TreeQueryV2(const xvalue* object,const XL6_TreeLayoutV1* layout,XL6_TreeQueryV2 operation,
+bool xl6TreeQueryV2(const xvalue* object,const XL6_TreeLayoutV2* layout,XL6_TreeQueryV2 operation,
     const void* search,bool required,XL6_TreeQuerySlotV2 keyOutput,
     XL6_TreeQuerySlotV2 valueOutput,bool* found)
 {
@@ -490,7 +522,7 @@ bool xl6TreeQueryV2(const xvalue* object,const XL6_TreeLayoutV1* layout,XL6_Tree
     TreeOwner* owner=begin(object,layout);
     bool pair=operation>=XL6_TREE_QUERY_FIRST_V2;
     bool keyReady=false,valueReady=false,success=false,present=false;
-    const xrttype* keyType=owner ? owner->layout.key.type : NULL;
+    const xrttype* keyType=owner ? orderedKeyType(&owner->layout) : NULL;
     const xrttype* valueType=owner ? xl6SequenceStorageTypeV1(owner->layout.value.transfer,owner->layout.value.type) : NULL;
     if (!owner) goto done;
     if (!querySlotsValid(&owner->layout,operation,search,keyOutput,valueOutput,found) ||
@@ -547,7 +579,7 @@ done:
 static bool copyPair(TreeOwner* owner,const void* key,const void* value,void* keyOut,void* valueOut)
 {
     xl6_error_scope scope={0}; scopeBegin(&scope);
-    const xrttype* keyType=owner->layout.key.type;
+    const xrttype* keyType=orderedKeyType(&owner->layout);
     const xrttype* valueType=xl6SequenceStorageTypeV1(owner->layout.value.transfer,owner->layout.value.type);
     void* keyTemp=NULL;
     void* valueTemp=NULL;
@@ -572,7 +604,7 @@ done:
     xrtFree(valueTemp); xrtFree(keyTemp);
     return scopeFinish(&scope,true);
 }
-bool xl6TreeEndpointV1(const xvalue* object,const XL6_TreeLayoutV1* layout,unsigned int operation,
+bool xl6TreeEndpointV1(const xvalue* object,const XL6_TreeLayoutV2* layout,unsigned int operation,
     const void* search,void* keyOutput,void* valueOutput,bool* found)
 {
     xl6_error_scope scope={0}; scopeBegin(&scope); TreeOwner* owner=begin(object,layout);
@@ -602,7 +634,7 @@ static bool compatiblePolicies(const TreeOwner* a,const TreeOwner* b)
         samePolicy(&a->valuePolicy,&b->valuePolicy)) return true;
     xrtSetErrorKind(XERR_TYPE); return false;
 }
-static TreeOwner* beginOther(const xvalue* other,const XL6_TreeLayoutV1* layout,TreeOwner* first)
+static TreeOwner* beginOther(const xvalue* other,const XL6_TreeLayoutV2* layout,TreeOwner* first)
 {
     if (first) {
         void* raw=NULL; void* user=NULL; const xvaluehandleops* actual=NULL;
@@ -611,7 +643,7 @@ static TreeOwner* beginOther(const xvalue* other,const XL6_TreeLayoutV1* layout,
     }
     return begin(other,layout);
 }
-bool xl6TreeEqualsV1(const xvalue* left,const xvalue* right,const XL6_TreeLayoutV1* layout,bool* output)
+bool xl6TreeEqualsV1(const xvalue* left,const xvalue* right,const XL6_TreeLayoutV2* layout,bool* output)
 {
     xl6_error_scope scope={0}; scopeBegin(&scope);
     TreeOwner* a=begin(left,layout); TreeOwner* b=a ? beginOther(right,layout,a) : NULL;
@@ -644,7 +676,7 @@ done:
     if (success) *output=equal;
     return success;
 }
-bool xl6TreeMergeV1(const xvalue* target,const xvalue* source,const XL6_TreeLayoutV1* layout,bool replace)
+bool xl6TreeMergeV1(const xvalue* target,const xvalue* source,const XL6_TreeLayoutV2* layout,bool replace)
 {
     xl6_error_scope scope={0}; scopeBegin(&scope);
     TreeOwner* a=begin(target,layout); TreeOwner* b=a ? beginOther(source,layout,a) : NULL;
@@ -653,19 +685,19 @@ bool xl6TreeMergeV1(const xvalue* target,const xvalue* source,const XL6_TreeLayo
     if (b && b!=a) end(b);
     return finish(&scope,a,true);
 }
-bool xl6TreeClearV1(const xvalue* value,const XL6_TreeLayoutV1* layout)
+bool xl6TreeClearV1(const xvalue* value,const XL6_TreeLayoutV2* layout)
 {
     xl6_error_scope scope={0}; scopeBegin(&scope); TreeOwner* owner=begin(value,layout);
     return finish(&scope,owner,owner && xrtTypedTreeClear(owner->storage));
 }
-int64_t xl6TreeCountV1(const xvalue* value,const XL6_TreeLayoutV1* layout)
+int64_t xl6TreeCountV1(const xvalue* value,const XL6_TreeLayoutV2* layout)
 {
     xl6_error_scope scope={0}; scopeBegin(&scope); TreeOwner* owner=begin(value,layout);
     size_t count=owner ? xrtTypedTreeCount(owner->storage) : 0;
     if (count>INT64_MAX) xrtSetErrorKind(XERR_RANGE);
     return finish(&scope,owner,owner && count<=INT64_MAX) ? (int64_t)count : -1;
 }
-int64_t xl6TreeTrimV1(const xvalue* value,const XL6_TreeLayoutV1* layout,int64_t retainEmpty)
+int64_t xl6TreeTrimV1(const xvalue* value,const XL6_TreeLayoutV2* layout,int64_t retainEmpty)
 {
     xl6_error_scope scope={0}; scopeBegin(&scope); TreeOwner* owner=begin(value,layout);
     bool success=owner && retainEmpty>=0 && (uint64_t)retainEmpty<=SIZE_MAX;
@@ -676,7 +708,7 @@ int64_t xl6TreeTrimV1(const xvalue* value,const XL6_TreeLayoutV1* layout,int64_t
     }
     return finish(&scope,owner,success) ? (int64_t)count : -1;
 }
-xvalue* xl6TreeCloneV1(const xvalue* value,const XL6_TreeLayoutV1* layout)
+xvalue* xl6TreeCloneV1(const xvalue* value,const XL6_TreeLayoutV2* layout)
 {
     xl6_error_scope scope={0}; scopeBegin(&scope); TreeOwner* owner=begin(value,layout);
     XL6_SequenceAdmissionV3 key={0},item={0}; xvalue* result=NULL;
@@ -693,7 +725,7 @@ xvalue* xl6TreeCloneV1(const xvalue* value,const XL6_TreeLayoutV1* layout)
     if (!finish(&scope,owner,true)) { xrtValueRelease(result); return NULL; }
     return result;
 }
-xvalue* xl6TreeProjectTakeV1(const xvalue* value,const XL6_TreeLayoutV1* layout,bool keys,
+xvalue* xl6TreeProjectTakeV1(const xvalue* value,const XL6_TreeLayoutV2* layout,bool keys,
     xvalue* seed,const xvalueconverter* converter)
 {
     xl6_error_scope scope={0};
@@ -703,8 +735,9 @@ xvalue* xl6TreeProjectTakeV1(const xvalue* value,const XL6_TreeLayoutV1* layout,
         const XL6_SequenceLayoutV1* projection=keys ? &owner->layout.key : &owner->layout.value;
         const XL6_SequenceAdmissionV3* policy=keys ? &owner->keyPolicy : &owner->valuePolicy;
         if (xl6SequenceAdmitsSchemaV1(seed,XL6_SEQUENCE_ARRAY_V1,projection,policy)) {
-            result=xl6TypedTreeProjectTakeV1(owner->storage,keys,seed,projection->identity,
-                projection->elementIdentity,projection->transfer,projection->size,projection->type,converter);
+            result=xl6TypedTreeProjectTakeV2(owner->storage,keys,seed,projection->identity,
+                projection->elementIdentity,projection->transfer,projection->size,projection->type,converter,
+                keys ? owner->layout.keyCodec : NULL);
             seed=NULL;
         } else xrtSetErrorKind(XERR_TYPE);
     }

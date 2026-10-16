@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 typedef struct TreeSchema {
-    XL6_TreeLayoutV1 layout;
+    XL6_TreeLayoutV2 layout;
     XL6_SequenceAdmissionV3 key,value;
 } TreeSchema;
 static void drop(const void* opaque)
@@ -33,12 +33,13 @@ static bool equivalent(const void* left,const void* right)
 {
     const TreeSchema* a=left; const TreeSchema* b=right;
     return a->layout.identity==b->layout.identity && a->layout.keyOrder==b->layout.keyOrder &&
+        a->layout.keyCodec==b->layout.keyCodec &&
         sameLayout(&a->layout.key,&b->layout.key) && sameLayout(&a->layout.value,&b->layout.value) &&
         samePolicy(&a->key,&b->key) && samePolicy(&a->value,&b->value);
 }
 static const XL6_ResidentReferenceSchemaOpsV1 schemaOps={drop,admits,equivalent};
 xvalue* xl6SequenceTreeCreateTakeV1(unsigned int role,uint64_t identity,uint64_t element,
-    const XL6_TreeLayoutV1* layout,xvalue* keys,xvalue* values,bool nullable)
+    const XL6_TreeLayoutV2* layout,xvalue* keys,xvalue* values,bool nullable)
 {
     xl6_error_scope scope={0};
     if (!(keys && values ? xl6ErrorScopeBegin(&scope) : xl6ErrorScopeBeginCleanup(&scope,true))) abort();

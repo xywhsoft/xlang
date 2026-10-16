@@ -11,25 +11,25 @@
 #include <string.h>
 
 enum { TREE=7001,KEY_ARRAY=7002,VALUE_ARRAY=7003,KEY=501,ITEM=502,PARENT=9001,OPTIONAL=9002 };
-static XL6_TreeLayoutV1 layout(void)
+static XL6_TreeLayoutV2 layout(void)
 {
-    return (XL6_TreeLayoutV1){TREE,2,
+    return (XL6_TreeLayoutV2){TREE,2,
         {KEY_ARRAY,KEY,1,sizeof(int64_t),xrtTypeInt64()},
-        {VALUE_ARRAY,ITEM,3,sizeof(xvalue*),xrtTypeValue()}};
+        {VALUE_ARRAY,ITEM,3,sizeof(xvalue*),xrtTypeValue()},NULL};
 }
-static xvalue* keys(const XL6_TreeLayoutV1* tuple)
+static xvalue* keys(const XL6_TreeLayoutV2* tuple)
 {
     return xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,tuple->key.identity,tuple->key.elementIdentity,
         1,sizeof(int64_t),xrtTypeInt64(),XL6_VALUE_ADMIT_I64,false,tuple->key.elementIdentity);
 }
-static xvalue* values(const XL6_TreeLayoutV1* tuple,unsigned int rule)
+static xvalue* values(const XL6_TreeLayoutV2* tuple,unsigned int rule)
 {
     return xl6SequenceReferenceCreateV1(XL6_SEQUENCE_ARRAY_V1,tuple->value.identity,tuple->value.elementIdentity,
         rule,false,rule==XL6_VALUE_ADMIT_ANY ? 0 : tuple->value.elementIdentity);
 }
-static xvalue* tree(const XL6_TreeLayoutV1* tuple,unsigned int rule)
+static xvalue* tree(const XL6_TreeLayoutV2* tuple,unsigned int rule)
 { return xl6TreeCreateTakeV1(tuple,keys(tuple),values(tuple,rule)); }
-static xvalue* parent(const XL6_TreeLayoutV1* tuple,unsigned int rule,bool nullable)
+static xvalue* parent(const XL6_TreeLayoutV2* tuple,unsigned int rule,bool nullable)
 {
     return xl6SequenceTreeCreateTakeV1(XL6_SEQUENCE_ARRAY_V1,PARENT,nullable ? OPTIONAL : TREE,
         tuple,keys(tuple),values(tuple,rule),nullable);
@@ -49,7 +49,7 @@ static void reentrant(void* data,void* context)
 }
 static void vectors(void)
 {
-    XL6_TreeLayoutV1 tuple=layout();
+    XL6_TreeLayoutV2 tuple=layout();
     xvalue* array=parent(&tuple,XL6_VALUE_ADMIT_ANY,false);
     xvalue* good=tree(&tuple,XL6_VALUE_ADMIT_ANY),*wrong=tree(&tuple,XL6_VALUE_ADMIT_BYTES);
     assert(array && good && wrong && xl6ArrayPushV1(array,PARENT_TUPLE(TREE),&good));
@@ -95,7 +95,7 @@ static xvalue* chain(unsigned int rule)
         assert(xl6SequenceSchemaCopyV1(result,&role,&child,&policy));
         xl6SequenceAdmissionDropV3(&policy);
         if (depth%2) {
-            XL6_TreeLayoutV1 tuple=layout(); tuple.identity=10000+depth; tuple.value=child;
+            XL6_TreeLayoutV2 tuple=layout(); tuple.identity=10000+depth; tuple.value=child;
             result=xl6SequenceTreeCreateTakeV1(XL6_SEQUENCE_ARRAY_V1,100+depth,tuple.identity,
                 &tuple,keys(&tuple),result,false);
         } else result=xl6SequenceNestedCreateTakeV2(XL6_SEQUENCE_ARRAY_V1,100+depth,child.identity,result,false);
@@ -112,7 +112,7 @@ static void depth(void)
     assert(xl6SequenceAdmitsSchemaV1(same,role,&tuple,&policy) && !xl6SequenceAdmitsSchemaV1(different,role,&tuple,&policy));
     assert(xrtGetError()==prior && !xrtMemDebugFailTriggered()); xrtMemDebugFailClear(); xrtClearError();
     assert(!xl6SequenceNestedCreateTakeV2(XL6_SEQUENCE_ARRAY_V1,165,164,xrtValueRetain(good),false)); clearError(XERR_RANGE);
-    XL6_TreeLayoutV1 treeTuple=layout(); treeTuple.identity=20000; treeTuple.value=tuple;
+    XL6_TreeLayoutV2 treeTuple=layout(); treeTuple.identity=20000; treeTuple.value=tuple;
     assert(!xl6SequenceTreeCreateTakeV1(XL6_SEQUENCE_ARRAY_V1,166,treeTuple.identity,
         &treeTuple,keys(&treeTuple),xrtValueRetain(good),false)); clearError(XERR_RANGE);
     xrtValueRelease(good); xrtValueRelease(same); xrtValueRelease(different);
@@ -121,7 +121,7 @@ static void depth(void)
 }
 static void fault(const char* operation,size_t point)
 {
-    XL6_TreeLayoutV1 tuple=layout(); xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
+    XL6_TreeLayoutV2 tuple=layout(); xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
     assert(xrtMemDebugFailAfter(point));
     xvalue* result=!strcmp(operation,"deep") ? chain(XL6_VALUE_ADMIT_ANY) : parent(&tuple,XL6_VALUE_ADMIT_ANY,false);
     bool hit=xrtMemDebugFailTriggered(); xrtMemDebugFailClear();

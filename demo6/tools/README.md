@@ -16,6 +16,21 @@ unreachable and legacy-observer controls prevent false bindings; dependent gener
 templates are not executable ABIs. This required Linux product gate is binding
 coverage, not runtime branch coverage. See [Native container contracts](../docs/stdlib53-b332-native-public-surface.md).
 
+`check_stdlib_tree_keys_shipping.py --root <frozen-demo6> --build-report
+<shipping.json> --out <fresh-directory>` is the required native ordered-key gate.
+It exercises all twenty C ABI scalar profiles and exact immutable bytes keys
+through actual JIT/module/relocated AOT products, strict O0/O2 generated C and
+real provider objects. Linux additionally checks actual-SO IR/C/header refusal,
+artifact-plan byte-codec selection, physical key ownership and complete native
+allocation-fault prefixes. No source compiler objects or replacement providers
+are accepted; a stripped TCC symbol table is not pruning evidence.
+
+`check_stdlib_current_products.py --reuse-child-report tree-keys=<results.json>`
+can reuse this independently completed expensive gate. Reuse requires matching
+runner, build report and all three actual products, followed by rehashing every
+recorded input, product, object and log. Stale or failed reports run fresh, and
+the aggregate always records whether a child was reused and revalidated.
+
 `check_stdlib_current_products.py --reuse-report <prior-aggregate>` always reruns
 the complete fixture inventory. A completed child is reused only for identical
 build/products after rehashing its recorded inputs, products and logs. Failed or

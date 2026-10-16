@@ -283,7 +283,9 @@ typedef enum XL6_IrRuntimeResourceKeyOrderAbi {
     XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_FLOAT_TOTAL = XL6_TREE_KEY_FLOAT_TOTAL_V1,
     XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_STRING = XL6_TREE_KEY_STRING_V1,
     XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_TYPE_ID = XL6_TREE_KEY_TYPE_ID_V1,
-    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_CHAR = XL6_TREE_KEY_CHAR_V1
+    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_CHAR = XL6_TREE_KEY_CHAR_V1,
+    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_C_SCALAR = XL6_TREE_KEY_C_SCALAR_V1,
+    XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_BYTES = XL6_TREE_KEY_BYTES_V1
 } XL6_IrRuntimeResourceKeyOrderAbi;
 
 /* A member call on the open `var` xvalue cannot name one static collection
@@ -6998,6 +7000,7 @@ const XL6_IrType* xl6IrTypeGet(const XL6_IrTypePool* pool, XL6_IrTypeId typeId);
  * Bytes use the language's existing read-sharing/write-copy discipline;
  * retaining their physical carrier does not grant a mutable language alias. */
 XL6_IrRuntimeResourcePayloadAbi xl6IrTypeResourcePayloadAbi(const XL6_IrType* type);
+XL6_IrRuntimeResourceKeyOrderAbi xl6IrOrderedKeyAbi(const XL6_IrType* type);
 XL6_IrIntrinsicResultAbi xl6IrRuntimeResourceResultAbiForType(XL6_IrRuntimeResourceOp, const XL6_IrType*);
 int xl6IrStringCompareRuntimeSignatureValid(const XL6_IrModule*, const XL6_IrInstruction*);
 int xl6IrNullableScalarEqualSignatureValid(const XL6_IrModule*, const XL6_IrInstruction*);

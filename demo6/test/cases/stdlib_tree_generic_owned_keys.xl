@@ -1,0 +1,42 @@
+func readOwnedKey<K>(OrderedMap<K, int> values) as K
+    auto key, value = values.first()
+    assert(value == 7)
+    auto copy = values.clone()
+    assert(copy.contains(key))
+    auto keys = copy.keys()
+    assert(keys.length == 1)
+    return key
+end
+func makePair<T>(T value) as (T, int)
+    return value, 9
+end
+func readPair<T>(T value) as T
+    auto item, number = makePair(value)
+    assert(number == 9)
+    return item
+end
+func main(...) as int
+    auto texts = OrderedMap::<string, int>()
+    assert(texts.set("a\0你", 7))
+    string text = readOwnedKey(texts)
+    texts.clear()
+    assert(text == "a\0你" and readPair(text) == text)
+    auto binaries = OrderedMap::<bytes, int>()
+    assert(binaries.set(b"a\0\xff", 7))
+    bytes key = readOwnedKey(binaries)
+    binaries.clear()
+    assert(key == b"a\0\xff" and readPair(key) == key)
+    key[0] = uint8(120)
+    assert(key == b"x\0\xff")
+    auto characters = OrderedMap::<char, int>()
+    assert(characters.set('你', 7))
+    auto nestedCharacters = array[characters]
+    auto characterMap = nestedCharacters[0]
+    assert(characterMap.get('你') == 7)
+    auto nativeKeys = OrderedMap::<c_int, int>()
+    assert(nativeKeys.set(c_int(-1), 7))
+    auto nestedNative = array[nativeKeys]
+    auto nativeMap = nestedNative[0]
+    assert(nativeMap.get(c_int(-1)) == 7)
+    return 0
+end

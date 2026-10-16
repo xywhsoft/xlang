@@ -169,7 +169,7 @@ static int xl6IrCgenEmitResourceRuntime(
             out);
     if ( needs->needsAvlTreeResourceRuntime )
         xl6OutputPuts("#include <__xl_runtime/xl6_tree.h>\n"
-            "extern xvalue* xl6SequenceTreeCreateTakeV1(unsigned int, uint64_t, uint64_t, const XL6_TreeLayoutV1*, xvalue*, xvalue*, bool);\n",out);
+            "extern xvalue* xl6SequenceTreeCreateTakeV1(unsigned int, uint64_t, uint64_t, const XL6_TreeLayoutV2*, xvalue*, xvalue*, bool);\n",out);
     if ( needs->needsSemaphoreResourceRuntime )
         xl6OutputPuts(
             "/* Fixed resident semaphore ABI: no generated owner or callbacks. */\n"

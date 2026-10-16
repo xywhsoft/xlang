@@ -259,6 +259,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_channel.c", D(R(SEQUENCE),R(FOREIGN_ERROR)), {"XRT_MODULE_CHANNEL", "XRT_MODULE_SPIN"}},
     {"src/runtime/xl6_tree_projection.c", D(R(SEQUENCE),R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_TYPED_TREE"}},
     {"src/runtime/xl6_tree.c", D(R(SEQUENCE),R(TREE_PROJECTION),R(FOREIGN_ERROR)), {"XRUNTIME_MODULE_TYPED_TREE"}},
+    {"src/runtime/xl6_tree_bytes_key.c", D(R(ARRAY_REFERENCE_ADMISSION)), {"XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
     {"src/runtime/xl6_tree_admission.c", D(R(TREE),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)), {NULL}},
     {"src/runtime/xl6_queue_spsc_admission.c", D(R(TYPED_QUEUE_SPSC),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)), {NULL}},
     {"src/runtime/xl6_queue_mpsc_admission.c", D(R(TYPED_QUEUE_MPSC),R(ARRAY_SEQUENCE_ADMISSION),R(FOREIGN_ERROR)), {NULL}},
@@ -954,6 +955,9 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
     for (size_t i=0;i<module->classFieldCount;++i) xl6ArtifactTypeRequire(&work,module->classFields[i].type);
     for (size_t i=0;i<work.count;++i) {
         const XL6_IrType* type=xl6IrTypeGet(&module->types,work.queue[i]);
+        if(type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_AVL_TREE &&
+            xl6IrAvlKeyOrderAbi(module,work.queue[i])==XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_BYTES)
+            REQUIRE(R(TREE_BYTES_KEY));
         switch (type->cAbi) {
         case XL6_IR_C_ABI_CLOSURE_PTR: REQUIRE(R(CLOSURE)); break;
         case XL6_IR_C_ABI_RUNTIME_CELL_PTR: REQUIRE(R(CELL)); break;

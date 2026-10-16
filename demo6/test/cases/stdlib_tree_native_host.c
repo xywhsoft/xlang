@@ -14,11 +14,11 @@
 #define KEY_ITEM UINT64_C(0xD352)
 #define VALUE_ARRAY UINT64_C(0xD353)
 #define VALUE_ITEM UINT64_C(0xD354)
-static XL6_TreeLayoutV1 layout(unsigned transfer,const xrttype* type)
+static XL6_TreeLayoutV2 layout(unsigned transfer,const xrttype* type)
 {
-    return (XL6_TreeLayoutV1){TREE_ID,2,
+    return (XL6_TreeLayoutV2){TREE_ID,2,
         {KEY_ARRAY,KEY_ITEM,1,sizeof(int64_t),xrtTypeInt64()},
-        {VALUE_ARRAY,VALUE_ITEM,transfer,type->Size,type}};
+        {VALUE_ARRAY,VALUE_ITEM,transfer,type->Size,type},NULL};
 }
 static xvalue* seed(const XL6_SequenceLayoutV1* field,unsigned rule)
 {
@@ -27,7 +27,7 @@ static xvalue* seed(const XL6_SequenceLayoutV1* field,unsigned rule)
         xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,field->identity,
             field->elementIdentity,field->transfer,field->size,field->type,rule,false,field->elementIdentity);
 }
-static xvalue* create(const XL6_TreeLayoutV1* tuple,unsigned rule)
+static xvalue* create(const XL6_TreeLayoutV2* tuple,unsigned rule)
 {
     /* Explicit order is important to preserve the first failed witness. */
     xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
@@ -51,7 +51,7 @@ static bool edge(xrtownershipref ref,void* context)
 }
 static void integers(void)
 {
-    XL6_TreeLayoutV1 tuple=layout(1,xrtTypeInt64());
+    XL6_TreeLayoutV2 tuple=layout(1,xrtTypeInt64());
     xvalue* tree=create(&tuple,XL6_VALUE_ADMIT_I64); assert(tree);
     int64_t key=2,item=12,output=99; bool found=true,equal=false;
     assert(xl6TreeGetV1(tree,&tuple,&key,&output,false,&found) && !found && output==99);
@@ -82,7 +82,7 @@ static void integers(void)
 }
 static void references(void)
 {
-    XL6_TreeLayoutV1 tuple=layout(3,xrtTypeValue());
+    XL6_TreeLayoutV2 tuple=layout(3,xrtTypeValue());
     xvalue* tree=create(&tuple,XL6_VALUE_ADMIT_ANY); assert(tree);
     xvalue* item=xrtValueArray(); assert(item);
     assert(xrtValueArrayAppendNew(item,xrtValueInt(42)));
@@ -109,7 +109,7 @@ static void references(void)
 }
 static void phased(void)
 {
-    XL6_TreeLayoutV1 tuple=layout(1,xrtTypeInt64());
+    XL6_TreeLayoutV2 tuple=layout(1,xrtTypeInt64());
     xvalue* tree=create(&tuple,XL6_VALUE_ADMIT_I64); assert(tree);
     int64_t key=1,item=7; assert(xl6TreeSetV1(tree,&tuple,&key,&item));
     xrtownershipref root=xrtValueOwnership(tree); Edges edges={0};
@@ -132,7 +132,7 @@ static void phased(void)
 }
 static void rejected(void)
 {
-    XL6_TreeLayoutV1 tuple=layout(3,xrtTypeValue());
+    XL6_TreeLayoutV2 tuple=layout(3,xrtTypeValue());
     xvalue* bytes=create(&tuple,XL6_VALUE_ADMIT_BYTES);
     xvalue* any=create(&tuple,XL6_VALUE_ADMIT_ANY); assert(bytes && any);
     bool equal=true;
@@ -141,7 +141,7 @@ static void rejected(void)
     int64_t key=1; xvalue* item=xrtValueString((xstrview)XRT_STR_INIT("not bytes")); assert(item);
     assert(!xl6TreeSetV1(bytes,&tuple,&key,&item)); xrtClearError(); xrtValueRelease(item);
     assert(xl6TreeCountV1(bytes,&tuple)==0);
-    XL6_TreeLayoutV1 bad=tuple; ++bad.value.elementIdentity;
+    XL6_TreeLayoutV2 bad=tuple; ++bad.value.elementIdentity;
     assert(xl6TreeCountV1(bytes,&bad)==-1); xrtClearError();
     bad=tuple; bad.keyOrder=3;
     assert(!create(&bad,XL6_VALUE_ADMIT_ANY)); xrtClearError();
@@ -152,7 +152,7 @@ static void rejected(void)
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope); assert(!outcome.ok); xrtErrorFree(outcome.error);
     xrtValueRelease(bytes); xrtValueRelease(any);
 }
-typedef struct Reentrant { xvalue* tree; XL6_TreeLayoutV1 tuple; unsigned drops; } Reentrant;
+typedef struct Reentrant { xvalue* tree; XL6_TreeLayoutV2 tuple; unsigned drops; } Reentrant;
 static bool callbackRetain(void* data,void** out,void* context)
 { (void)context; *out=data; return true; }
 static void callbackDrop(void* data,void* context)
@@ -178,7 +178,7 @@ static void reentrant(void)
 }
 static void fault(const char* operation,size_t point)
 {
-    XL6_TreeLayoutV1 tuple=layout(2,xl6StringTypeV1());
+    XL6_TreeLayoutV2 tuple=layout(2,xl6StringTypeV1());
     xvalue* tree=NULL; xvalue* result=NULL;
     int64_t key=7,keyOut=99;
     xstrview item={"a\0\xE4\xBD\xA0",5};

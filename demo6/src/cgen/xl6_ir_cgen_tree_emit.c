@@ -11,9 +11,9 @@ static int xl6IrCgenEmitTreeLayout(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrSequenceLayout* k=&key->sequenceLayout;
     const XL6_IrSequenceLayout* v=&value->sequenceLayout;
     xl6OutputPrintf(out,
-        "      const XL6_TreeLayoutV1 %s = {0x%016llXULL, %u,\n"
+        "      const XL6_TreeLayoutV2 %s = {0x%016llXULL, %u,\n"
         "      {0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s},\n"
-        "      {0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s}};\n",
+        "      {0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s}, %s};\n",
         name,(unsigned long long)owner->typeValueId,(unsigned)xl6IrAvlKeyOrderAbi(module,ownerId),
         (unsigned long long)key->typeValueId,
         (unsigned long long)xl6IrTypeGet(&module->types,k->elementType)->typeValueId,
@@ -22,7 +22,8 @@ static int xl6IrCgenEmitTreeLayout(XL6_Output* out,const XL6_IrModule* module,
         (unsigned long long)value->typeValueId,
         (unsigned long long)xl6IrTypeGet(&module->types,v->elementType)->typeValueId,
         xl6IrCgenSequenceTransferAbiToken(v->transferAbi),xl6IrCgenType(module,v->elementType),
-        xl6IrCgenNativeSlotTypeExpr(v->slotAbi));
+        xl6IrCgenNativeSlotTypeExpr(v->slotAbi),
+        xl6IrAvlKeyOrderAbi(module,ownerId)==XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_BYTES ? "xl6TreeBytesKeyCodecV1()" : "NULL");
     return xl6OutputHasFailed(out) ? -1 : 1;
 }
 static int xl6IrCgenEmitTreeReferenceCreateDepth(XL6_Output* out,const XL6_IrModule* module,

@@ -6,6 +6,7 @@
 
 ## 当前权威设计
 
+- [OrderedMap 原生键域与泛型合同](stdlib53-b334-ordered-key-domains.md)：C ABI 标量保留真实槽宽，bytes 使用按需原生内容排序；统一直接／嵌套类型配方与泛型逻辑绑定，完整任务继续。
 - [队列初始化与字符键排序](stdlib53-b333-queue-initialization-char-keys.md)：不可空并发队列声明必须初始化，nullable 支持延迟创建；OrderedMap 字符键复用原生 char 描述符和 XRT typed tree。
 - [原生容器公开面与默认构造验收](stdlib53-b332-native-public-surface.md)：统一并发队列显式容量，补齐 SlotMap 默认构造和 Array 区间删除；真实产品专项、IR 拒绝对照与 142 项原生签名绑定核对通过，不等同全部运行分支覆盖。
 - [内部容器依赖与原生裁剪验收](stdlib53-b331-internal-container-closure.md)：真实产品与 O0/O2 对象核实 ptr_array／int_map／AVL 依赖，排除旧 raw stack 系列；关闭六项纯内部待验收，不宣称完整 53 模块完成。

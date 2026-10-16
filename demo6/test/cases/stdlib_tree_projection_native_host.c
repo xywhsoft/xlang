@@ -17,7 +17,7 @@ static xvalue* seed(unsigned rule,const xrttype* type,unsigned transfer)
 }
 static xvalue* project(xtypedtree* tree,bool keys,xvalue* array,const xrttype* type,
     unsigned transfer,const xvalueconverter* converter)
-{ return xl6TypedTreeProjectTakeV1(tree,keys,array,ID,ITEM,transfer,type->Size,type,converter); }
+{ return xl6TypedTreeProjectTakeV2(tree,keys,array,ID,ITEM,transfer,type->Size,type,converter,NULL); }
 static int64_t integerAt(xvalue* array,int64_t index)
 {
     xvalue* value=xl6ArrayErasedReadV1(array,index); int64_t item=0;
