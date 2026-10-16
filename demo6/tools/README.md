@@ -2,6 +2,16 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_text_suites_shipping.py --root <frozen-demo6> --build-report
+<ordinary-build.json> --out <fresh-directory> --jobs 2` is the required
+`native-text` product gate. Fourteen unchanged native test hosts link actual
+runtime/compiler DLL/SO at O0/O2. Consumer reset observation checks full heap
+ledgers before and after old counters reset. Persistent physical-allocator
+prefixes, original one-shot logical regex/pattern prefixes and single-point
+failures stay separate. Eleven compiled leak/debug/injection/provider controls
+must be rejected. This is not generated-language OOM, runtime sanitizer,
+worker-wide injection, OS join, image-unload or full53 acceptance.
+
 `check_stdlib_resource_identity_shipping.py --root <frozen-demo6> --build-report
 <ordinary-build.json> --out <fresh-directory>` is the required `resource-identity`
 gate. Three resource families use real managed creators and runtime/compiler
