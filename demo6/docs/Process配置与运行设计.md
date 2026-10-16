@@ -1,9 +1,10 @@
 # Process 配置与同步运行
 
-本页记录三组长期任务 B21 配置/同步运行、B23 live Process 和 B27
-生成程序分配失败验收的公开合同，B28b 增补真正的 typed pipeline。
-typed Future 见 B26 专页；文件重定向和 PTY 会话仍待后续开发，
-不是七个 process 模块或 53 模块的完整总验收。
+本页给出当前配置／同步运行、live Process、typed pipeline 与结果的公开合同。
+typed Future、文件重定向和 PTY 已分别接入；终端的实际产品拥有账本与平台
+支持边界见[终端共享产品验收](stdlib53-b326-terminal-product-ledger.md)和
+[启动期 resize 协议](stdlib53-b325-terminal-readiness.md)。
+每项专项的历史范围不等于整个 53 模块完成审计。
 旧裸 point live 门面已由 typed Process 与 owned Reader/Writer 替换，
 不再用裸 point 转换绕过所有权合同。
 
@@ -88,8 +89,8 @@ hideWindow/terminal/terminalSize/stdio` 修改配置。terminalSize 必须为正
 uint32 范围。stdio 接受 inherit=0、pipe=1、null=2；merge=4 仅 stderr，
 不把 raw HANDLE=3 导出为整数。捕获式 run 强制 stdout 为 PIPE，保留
 stderr 的 merge，否则也改为 PIPE；提供输入或 stdin=pipe 时使用输入
-管道。默认构造设置三条 PIPE。它不是文件重定向入口；terminal 的启动
-能力待下一批验收。
+管道。默认构造设置三条 PIPE。文件重定向使用独立 File capability，终端
+启动使用明确的 PTY／ConPTY 配置，不将 raw HANDLE 伪装成普通整数。
 
 ## 选项、执行与错误
 
@@ -169,14 +170,16 @@ Windows 文本准备、内部 waiter 创建、并发 I/O 与失败回收均保�
 但不标记 pure/nonblocking，不把运行时资源可用性宣称为永久平台保证。
 查询和关联启动各自是独立 resident 组件，不依赖 Command/Run/Status。
 
-专项 `stdlib_process_support`、`stdlib_process_open_only`、
-`stdlib_process_terminal_only` 和示例 `stdlib_process_support.xl` 不会
-启动宿主关联程序。原生夹具使用真实 XRT 分配器/Unicode/终端查询，
-只替换 association launcher，验证精确前缀、截断、七类输入拒绝、原生
-错误传递及分配失败账本。这不是 Windows ShellExecute / Linux
-xdg-open / macOS open 的系统集成成功验收；不要将受控 launcher 算为
-真实关联应用验证。live Process 已由下方 B23 接通；PTY 会话与 resize
-仍属后续批次。
+输入／错误专项 `stdlib_process_support` 与 `stdlib_process_open_only` 不启动
+用户关联应用；它们验证前缀、截断、拒绝及错误合同。原生故障夹具的替代
+launcher 只用于失败注入，不能替代产品集成证据。
+
+`check_stdlib_process_open_shipping.py` 是独立的实际产品门：Windows 真实调用
+ShellExecute，打开带空格与 Unicode 路径的无窗口测试程序；Linux 真实调用
+XRT spawn，经私有 PATH 启动独立 xdg-open launcher，核对目标参数的完整字节。
+不替换 XRT 或驻留提供方，不修改系统关联或注册表，不启动默认浏览器／编辑器。
+测试应用正常写入到达标记后以 7 退出，系统接受请求仍应返回 true。
+它验证实际系统请求及接入，不证明任意桌面关联应用的业务行为。
 
 ## Live Process 与标准流（B23）
 

@@ -2,6 +2,19 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_process_open_shipping.py --root <frozen-demo6> --build-report
+<ordinary-build.json> --out <fresh-directory>` is a required product gate.
+It uses real Windows ShellExecute or Linux XRT spawn/PATH lookup, with a headless
+controlled application/external launcher and exact Unicode/space/metacharacter
+target checks. Each actual JIT/module/relocated-AOT lane requires its own arrival
+marker; application exit 7 must not become the API's boolean result. No registry
+changes, desktop application, XRT/provider substitution or arbitrary association
+acceptance is claimed. Generated C also compiles strictly at O0/O2.
+`check_stdlib_guide_contracts.py --root <frozen-demo6> --out <fresh-directory>`
+is the companion required documentation gate. It compares the current guide
+example with `stdlib_containers_guide.xl` and refuses six stale/wrong variants;
+the product/AOT inventories execute the example separately.
+
 `check_stdlib_product_witnesses.py --census-report <actual-SO-census.json>
 --windows-products <aggregate.json> --windows-aot <aot.json> --linux-products
 <aggregate.json> --linux-aot <aot.json> --out <new-report.json>` is a read-only

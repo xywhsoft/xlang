@@ -1,0 +1,46 @@
+// The current public guide's example. No output-variable or parameter modifiers.
+auto ordered = OrderedMap::<string, string?>()
+assert ordered.set("a\0b", null)
+auto present, value = ordered.tryGet("a\0b")
+auto missing, absent = ordered.tryGet("absent")
+assert present and value == null and not missing and absent == null
+auto firstKey, firstValue = ordered.first()
+assert firstKey == "a\0b" and firstValue == null
+
+auto queue = Queue::<string?>(2)
+MpmcQueue<string?> sameQueue = queue
+assert queue.tryPush(null) == queueStatus.ok
+auto received, message = sameQueue.tryPop()
+assert received == queueStatus.ok and message == null
+auto empty, nothing = queue.tryPop()
+assert empty == queueStatus.empty and nothing == null
+queue.close()
+auto closed, gone = queue.tryPop()
+assert closed == queueStatus.closed and gone == null
+
+auto waiting = WaitQueue::<bytes>(2)
+assert waiting.tryPush(b"a\0你") == queueStatus.ok
+auto ready, binary = waiting.pop()
+assert ready == queueStatus.ok and binary != null and binary == b"a\0你"
+auto timeout, noBinary = waiting.popTimeout(0)
+assert timeout == queueStatus.timeout and noBinary == null
+waiting.close()
+
+auto slots = SlotMap::<string>()
+auto key = slots.insert("before")
+for itemKey, item in slots
+    assert itemKey == key and item == "before"
+    slots.set(itemKey, "after")
+    assert item == "before" and slots.get(itemKey) == "after"
+end
+assert slots.remove(key) and not slots.contains(key)
+auto replacement = slots.insert("new")
+assert replacement != key and not slots.contains(key)
+
+channel<string?> messages = channel::<string?>(1)
+assert messages.send(null)
+auto accepted, nullable = messages.recv()
+assert accepted == channelStatus.ok and nullable == null
+messages.close()
+auto ended, noMessage = messages.recv()
+assert ended == channelStatus.closed and noMessage == null

@@ -1,0 +1,5 @@
+// A real platform request, with a controlled external target selected by the host.
+string target = env.get("XL6_ASSOCIATION_TARGET") ?? ""
+assert target != ""
+// The external application exits 7. Acceptance must not be confused with its exit.
+assert process.open(target)
