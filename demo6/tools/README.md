@@ -2,6 +2,15 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_internal_container_closure.py --root <frozen-demo6> --build-report
+<ordinary-build.json> --out <fresh-output>` runs six source-free real-product
+JIT/module/relocated-AOT paths and strictly compiles saved production native
+inputs and generated C at O0/O2. Feature/object-symbol checks distinguish
+PtrArray/IntMap/AVL dependencies from excluded raw stack families; three actual
+retained-code objects must be rejected. Inspection objects are rebuilt, not used
+as runtime substitutes. This is not a complete stripped-AOT symbol table or
+full53/function-coverage proof. See [Internal container closure](../docs/stdlib53-b331-internal-container-closure.md).
+
 `check_stdlib_worker_completion_shipping.py --root <frozen-demo6> --build-report
 <ordinary-build.json> --out <fresh-output>` runs the full task-worker population
 using C/IR from the genuine CLI and both resident DLL/SO products at O0/O2.

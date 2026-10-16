@@ -6,6 +6,7 @@
 
 ## 当前权威设计
 
+- [内部容器依赖与原生裁剪验收](stdlib53-b331-internal-container-closure.md)：真实产品与 O0/O2 对象核实 ptr_array／int_map／AVL 依赖，排除旧 raw stack 系列；关闭六项纯内部待验收，不宣称完整 53 模块完成。
 - [任务线程阻塞终结与真实产品验收](stdlib53-b330-task-worker-quiescence.md)：修复 task pool 忽略 wait 合同；完整任务线程与 Native Future 策略成为实际产品必需门，双端完整人口及拒绝对照通过。
 - [拥有值与槽复制的工作线程错误隔离](stdlib53-b329-owned-return-worker.md)：保留首错和回调失败，修复 List 读取、拥有结果、字符串槽和 SlotMap 回滚；双平台每端四十项完整 worker 故障前缀通过。
 - [普通失败返回与外层回调的隔离](stdlib53-b328-checked-return-isolation.md)：通用 NULL／状态返回不再污染外层回调，双平台五组完整 worker 前缀通过；另五组仍失败，不放宽发布门禁。
