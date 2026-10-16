@@ -63,7 +63,11 @@ XL6_FOREIGN_API void xl6ErrorScopeCaptureFailure(xl6_error_scope* scope);
 /* Consumes a failed result at a void native callback boundary (e.g. an object
  * finalizer). Publishes the ORIGINAL diagnostic and propagates failure only
  * to the immediate enclosing scope. Do not use on an ordinary language error
- * edge: its catch/cleanup CFG owns the result until it actually escapes. */
+ * edge: its catch/cleanup CFG owns the result until it actually escapes.
+ * A checked NULL/false/status return instead publishes the owned diagnostic
+ * with xrtSetErrorTake(result.error) and returns its explicit failure carrier.
+ * Do not substitute that rule for diagnostic-only APIs: a NULL diagnostic
+ * cannot represent their failure independently of an enclosing call scope. */
 XL6_FOREIGN_API void xl6ErrorScopePropagateFailure(xl6_error_result failure);
 
 XL6_FOREIGN_API bool xl6ForeignCallBegin(xl6_foreign_error_scope* scope);

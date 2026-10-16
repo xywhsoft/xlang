@@ -8,9 +8,7 @@
 xvalue* xl6ValueCopyV1(const xvalue* source)
 {
     xl6_error_scope scope={0};
-    if (!xl6ErrorScopeBegin(&scope)) {
-        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()}); return NULL;
-    }
+    if (!xl6ErrorScopeBegin(&scope)) return NULL;
     int list=xl6ListErasedProbeV1(source);
     int set=list ? 0 : xl6SetErasedProbeV1(source);
     int dict=list || set ? 0 : xl6DictErasedProbeV1(source);
@@ -19,6 +17,6 @@ xvalue* xl6ValueCopyV1(const xvalue* source)
     if (!result || scope.failed || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
     if (scope.failed) { xrtValueRelease(result); result=NULL; }
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
-    if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome);
+    if (!outcome.ok) xrtSetErrorTake(outcome.error);
     return result;
 }

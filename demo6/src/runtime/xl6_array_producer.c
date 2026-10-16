@@ -43,6 +43,8 @@ xvalue* xl6ArrayProducerFinishV1(XL6_ArrayProducerV1* state, bool success)
     xvalue* result=state->result; state->result=NULL;
     if (state->transaction.failed) { xrtValueRelease(result); result=NULL; }
     xl6_error_result outcome=xl6ErrorScopeEnd(&state->transaction);
-    if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return NULL; }
+    /* NULL is the checked failure carrier. Only the language caller decides
+     * whether this outcome escapes; do not fail its enclosing callback. */
+    if (!outcome.ok) { xrtSetErrorTake(outcome.error); return NULL; }
     return result;
 }

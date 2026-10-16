@@ -21,12 +21,16 @@ def main():
     from gen_tcc_vfs_resources import load_resources
     source=task/'test/cases/stdlib_containers_worker_oom.xl';host=task/'test/cases/stdlib_worker_oom_product_host.c'
     probe=task/'test/support/worker_oom_probe.c'
+    returnControl=task/'test/cases/stdlib_checked_return_scope_host.c'
+    scopeControl=task/'test/cases/xlir_cleanup_error_scope_runtime.c'
+    scopePeer=task/'test/cases/xlir_foreign_error_peer.c'
     build=json.loads(args.build_report.read_text(encoding='utf-8-sig'))
     assert build['Complete'] and build['InputsUnchanged'] and build['Exit']==0
     products=[root/'release'/n for n in (('xl.exe','xl.dll','xlc.dll') if windows else ('xl','libxl.so','libxlc.so'))]
     recorded={Path(row['Path']).resolve():row['Sha256'] for row in build['Products']}
     assert all(recorded.get(p)==sha(p) for p in products)
-    files={Path(__file__).resolve(),Path(sys.executable),Path(cc),args.build_report.resolve(),source,host,probe}
+    files={Path(__file__).resolve(),Path(sys.executable),Path(cc),args.build_report.resolve(),source,host,probe,
+        returnControl,scopeControl,scopePeer}
     for row in build['Inputs']+build['Products']:assert sha(row['Path'])==row['Sha256'];files.add(Path(row['Path']))
     inputs=[dict(Path=str(p),Sha256=sha(p)) for p in sorted(files)]
     out.mkdir(parents=True);isolated=out/'compiler';release=isolated/'release';release.mkdir(parents=True)
@@ -54,6 +58,8 @@ def main():
         IndependentFailuresCollected=True,ExplicitSubset=False,WorkerBodyPrefixAcceptance=False,SchedulerWideOomAcceptance=False,
         RuntimeInstrumented=False,ProviderOverrides=False,Full53Acceptance=False)
     report['OsThreadJoinAcceptance']=False
+    report['CheckedReturnIsolationAcceptance']=False
+    report['CallbackFirstErrorAcceptance']=False
     def command(name,argv,env=environment):
         argv=list(map(str,argv));started=time.monotonic()
         try:r=subprocess.run(argv,cwd=isolated,env=env,capture_output=True,timeout=180);code,data=r.returncode,r.stdout+r.stderr
@@ -71,11 +77,23 @@ def main():
         for level in ('O0','O2'):
             row,data=command('strict.'+level,[cc,*flags,*compat,'-'+level,'-c',out/'worker.c','-o',out/('worker.'+level+'.o')]);rows.append(row)
             if row['Exit']!=0:failures.append(dict(Name=row['Name'],Diagnostic=data.decode(errors='replace')[-5000:]))
-    jobs=[]
+    jobs=[];controls=[]
     for product in products[1:]:
         libs=[release/product.name] if windows else ['-L'+str(release),'-l'+product.stem[3:],'-Wl,-rpath,$ORIGIN/release','-pthread','-ldl','-lm']
         for level in ('O0','O2'):
             name=product.stem+'.'+level;binary=isolated/(name+('.exe' if windows else ''))
+            # Private declaration headers are explicit observer inputs only.
+            # Do not compile their implementation units or give this include
+            # path to the isolated language compiler/JIT/AOT.
+            for kind,sources in (('return',[returnControl]),('scope',[scopeControl,scopePeer])):
+                tag=name+'.'+kind;control=isolated/(tag+('.exe' if windows else ''))
+                row,data=command(tag+'.build',[cc,*flags,'-'+level,'-I'+str(root),'-I'+str(root/'release'),*sources,*libs,'-o',control]);rows.append(row)
+                if row['Exit']==0:
+                    row,data=command(tag,[control]);rows.append(row)
+                    passed=row['Exit']==0
+                else:passed=False
+                controls.append(dict(Name=tag,Kind=kind,Passed=passed))
+                if not passed:failures.append(dict(Name=tag,Diagnostic=data.decode(errors='replace')[-5000:]))
             row,data=command(name+'.build',[cc,*flags,'-'+level,host,probe,*libs,'-o',binary]);rows.append(row)
             if row['Exit']!=0:failures.append(dict(Name=name+'.build',Diagnostic=data.decode(errors='replace')[-5000:]));continue
             jobs.extend((name,product.name,level,binary,kind) for kind in range(len(CASES)))
@@ -106,6 +124,9 @@ def main():
                 if row['Exit']!=0:failures.append(dict(Name=row['Name'],Diagnostic=data.decode(errors='replace')[-3500:]))
     else:failures.append(dict(Name='aot.build',Diagnostic=data.decode(errors='replace')[-5000:]))
     report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
+    report['NativeBoundaryControls']=controls
+    report['CheckedReturnIsolationAcceptance']=len([c for c in controls if c['Kind']=='return' and c['Passed']])==4
+    report['CallbackFirstErrorAcceptance']=len([c for c in controls if c['Kind']=='scope' and c['Passed']])==4
     report['Complete']=report['InputsUnchanged'] and len(cases)==4*len(CASES) and not failures
     report['DiscoveryComplete']=report['InputsUnchanged'] and len(cases)==4*len(CASES)
     report['WorkerBodyPrefixAcceptance']=report['Complete']

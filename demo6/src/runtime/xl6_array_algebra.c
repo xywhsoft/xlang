@@ -43,7 +43,7 @@ done:
     if (xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
     if (operation.failed) { releasePreservingError(result); result=NULL; }
     xl6_error_result outcome=xl6ErrorScopeEnd(&operation);
-    if (!outcome.ok) { xrtErrorFree(incoming); xl6ErrorScopePropagateFailure(outcome); }
+    if (!outcome.ok) { xrtErrorFree(incoming); xrtSetErrorTake(outcome.error); }
     else xrtSetErrorTake(incoming);
     return result;
 }
@@ -79,7 +79,7 @@ done:
     if (xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
     if (operation.failed) { releasePreservingError(result); result=NULL; }
     xl6_error_result outcome=xl6ErrorScopeEnd(&operation);
-    if (!outcome.ok) { xrtErrorFree(incoming); xl6ErrorScopePropagateFailure(outcome); }
+    if (!outcome.ok) { xrtErrorFree(incoming); xrtSetErrorTake(outcome.error); }
     else xrtSetErrorTake(incoming);
     return result;
 }

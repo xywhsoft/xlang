@@ -84,6 +84,6 @@ static int xl6IrCgenEmitChannelRuntime(XL6_Output* out,const XL6_IrModule* modul
             "        channel_outcome = xl6ErrorScopeEnd(&channel_cleanup); }\n",out);
     }
     xl6OutputPrintf(out,"      projection_ok_%u = channel_outcome.ok;\n"
-        "      if (!channel_outcome.ok) xl6ErrorScopePropagateFailure(channel_outcome); }\n",output);
+        "      if (!channel_outcome.ok) xrtSetErrorTake(channel_outcome.error); }\n",output);
     return xl6OutputHasFailed(out) ? -1 : 1;
 }

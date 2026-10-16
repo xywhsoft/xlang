@@ -7,6 +7,10 @@
 
 ## 测试范围与结果
 
+首批实现修复与新产品复测见
+[普通失败返回与外层回调的隔离](stdlib53-b328-checked-return-isolation.md)。
+下述数字保留本批原始失败证据，不回写为后续产品通过。
+
 `stdlib_containers_worker_oom.xl` 在真实语言 `thread` 内调用
 `xrtMemDebugFailAfter`，分别执行文本、Regex、Array、List、Dict、Set、Stack、
 OrderedMap、SlotMap、MPMC／WaitQueue 十组操作。数据包括 UTF8、内嵌 NUL、

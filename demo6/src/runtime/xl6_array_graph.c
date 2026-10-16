@@ -122,9 +122,7 @@ static int invoke(const XL6_ValueGraphProviderV1* provider,const xvaluehandleops
     uint64_t identity,xvaluegraphnextv1* next,xvalue** output,GraphContext* graph,bool sequence)
 {
     xl6_error_scope scope={0};
-    if (!xl6ErrorScopeBegin(&scope)) {
-        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtErrorRef(xrtGetError())}); return -1;
-    }
+    if (!xl6ErrorScopeBegin(&scope)) return -1;
     int status=provider ? provider->Copy(ops,raw,user,identity,next,output,graph->data,sequence) :
         copyArray(ops,raw,user,identity,next,output,graph);
     bool valid=(status==0 && !*output) || (status==1 && *output);
@@ -134,7 +132,7 @@ static int invoke(const XL6_ValueGraphProviderV1* provider,const xvaluehandleops
     }
     if (!valid || xrtGetError() || scope.failed) xl6ErrorScopeCaptureFailure(&scope);
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
-    if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return -1; }
+    if (!outcome.ok) { xrtSetErrorTake(outcome.error); return -1; }
     return status;
 }
 static int copyHandle(const xvaluehandleops* ops,ptr raw,ptr user,uint64_t identity,
@@ -158,7 +156,7 @@ static xvalue* copyGraph(const xvalue* source, GraphContext* graph)
     xl6_error_scope operation={0};
     if (!xl6ErrorScopeBegin(&operation)) {
         xrtErrorFree(incoming);
-        xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtErrorRef(xrtGetError())}); return NULL;
+        return NULL;
     }
     const xvaluegraphcopyv1 config={.Size=sizeof(config),
         .Flags=graph->data ? XVALUE_GRAPH_COPY_DATA_V1 : 0,
@@ -168,7 +166,7 @@ static xvalue* copyGraph(const xvalue* source, GraphContext* graph)
     if (!result || xrtGetError()) xl6ErrorScopeCaptureFailure(&operation);
     if (operation.failed) { releaseKeepingFailure(result); result=NULL; }
     xl6_error_result outcome=xl6ErrorScopeEnd(&operation);
-    if (!outcome.ok) { xrtErrorFree(incoming); xl6ErrorScopePropagateFailure(outcome); }
+    if (!outcome.ok) { xrtErrorFree(incoming); xrtSetErrorTake(outcome.error); }
     else xrtSetErrorTake(incoming);
     return result;
 }
