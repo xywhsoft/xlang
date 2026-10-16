@@ -1,26 +1,21 @@
-/* Actual selected terminal backend, adapters and private child. No terminal
- * emulation, shell, fault seam or success skip. Join the private native waiter
- * only to finish the test's physical heap/OS-handle ledger deterministically. */
-#define XRT_MODULE_PROCESS_TERMINAL
-#define XRT_MODULE_IO
-#define XRT_MODULE_ATOMIC
-#define XRT_MODULE_VALUE_CONTAINER
-#define XRT_MODULE_UNICODE_TEXT
-#define XRT_MODULE_STRING
-#define XRT_MODULE_MEMORY_DEBUG
-#define XRT_IMPLEMENTATION
-#define XRT_MODULE_ONCE
-#include "lib/xrt/xrt.h"
-#include "src/api/xl_foreign_error.c"
-#include "src/runtime/xl6_native_handle.c"
-#include "src/runtime/xl6_process_command.c"
-#include "src/runtime/xl6_process_terminal_config.c"
-#include "src/runtime/xl6_process_terminal_live.c"
-#include "src/runtime/xl6_process_live.c"
-#include "src/runtime/xl6_process_stream.c"
-#include "src/runtime/xl6_process_status.c"
+/* Actual shared product and private child, never a source/provider substitute.
+ * The selected test-only layout permits joining its real waiter and checking
+ * owned handles. It is extracted from the matching XRT snapshot, not invented
+ * here, and must never become a public API or production source dependency. */
+#define XRT_MODULE_ALL
+#define XRUNTIME_MODULE_ALL
+#include "lib/xruntime/xruntime.h"
+#if defined(_WIN32)
+#include <windows.h>
+#else
+#include <sys/types.h>
+#endif
+#include "process_observer_layout.h"
+#include "src/runtime/xl6_process_live.h"
+#include "src/runtime/xl6_io_handle.h"
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #if !defined(_WIN32)
 #include <dirent.h>
 #endif
@@ -52,12 +47,19 @@ static void terminalBalanced(const xmemdebugsnapshot* before,unsigned descriptor
 static unsigned terminalPlatformControl(void)
 {
 #if defined(_WIN32)
-    xprocessterminalapi api;assert(__xrtProcessTerminalApiLoad(&api));
+    typedef HRESULT (WINAPI *CreateTerminal)(COORD,HANDLE,HANDLE,DWORD,HANDLE*);
+    typedef void (WINAPI *CloseTerminal)(HANDLE);
+    HMODULE kernel=GetModuleHandleW(L"kernel32.dll");assert(kernel);
+    FARPROC entry=GetProcAddress(kernel,"CreatePseudoConsole");CreateTerminal create;
+    _Static_assert(sizeof(create)==sizeof(entry),"Windows function pointer representation");
+    memcpy(&create,&entry,sizeof(create));assert(create);
+    entry=GetProcAddress(kernel,"ClosePseudoConsole");CloseTerminal close;
+    memcpy(&close,&entry,sizeof(close));assert(close);
     unsigned before=terminalHandles();
     HANDLE inputRead,inputWrite,outputRead,outputWrite,terminal;
     assert(CreatePipe(&inputRead,&inputWrite,NULL,0) && CreatePipe(&outputRead,&outputWrite,NULL,0));
-    assert(SUCCEEDED(api.Create((COORD){80,24},inputRead,outputWrite,0,&terminal)));
-    assert(CloseHandle(inputRead) && CloseHandle(outputWrite));api.Close(terminal);
+    assert(SUCCEEDED(create((COORD){80,24},inputRead,outputWrite,0,&terminal)));
+    assert(CloseHandle(inputRead) && CloseHandle(outputWrite));close(terminal);
     assert(CloseHandle(inputWrite) && CloseHandle(outputRead));
     unsigned after=terminalHandles();assert(after>=before);return after-before;
 #else
@@ -69,17 +71,25 @@ static XL6_ProcessCommand* terminalCommand(const char* child,const char* mode)
 {
     xvalue* args=xrtValueArray();assert(args);
     assert(xrtValueArrayAppendNew(args,xrtValueString(terminalView(mode))));
+    if(!strcmp(mode,"terminal")){
+        assert(xrtValueArrayAppendNew(args,xrtValueString(terminalView("96"))));
+        assert(xrtValueArrayAppendNew(args,xrtValueString(terminalView("32"))));
+    }
     XL6_ProcessCommand* command=xl6ProcessCommandDirectV1(terminalView(child),args,-1,-1);
     xrtValueRelease(args);assert(command);return command;
 }
 static void terminalRetire(xprocess* observer)
 {
     assert(xrtProcessWait(observer)==XWAIT_OK);
+    xprocessstatus status;assert(xrtProcessStatus(observer,&status));
+    assert(status.Kind==XPROCESS_EXIT_CODE && status.Code==0);
     assert(xrtThreadWait(observer->Waiter)==XWAIT_OK);xrtProcessDestroy(observer);
 }
 int main(int argc,char** argv)
 {
-    assert(argc==2 && xrtMemDebugEnable(true) && xrtProcessTerminalSupported());
+    assert((argc==2 || argc==3) && xrtMemDebugEnable(true) && xrtProcessTerminalSupported());
+    unsigned sessions=argc==3 ? (unsigned)strtoul(argv[2],NULL,10) : 1;
+    assert(sessions && sessions<=64);
     /* Initialize process-wide Windows loader/console caches before per-session
      * comparison; no allocation failure is enabled in these explicit controls. */
     XL6_ProcessCommand* warm=terminalCommand(argv[1],"exit");
@@ -89,6 +99,7 @@ int main(int argc,char** argv)
     (void)terminalPlatformControl();
     unsigned platformRetention=terminalPlatformControl();
     assert(terminalPlatformControl()==platformRetention);
+    for(unsigned session=0;session<sessions;++session){
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);unsigned descriptors=terminalHandles();
     xl6ProcessCommandTerminalV1(NULL,true);
     assert(xrtErrorKind(xrtGetError())==XERR_ARGUMENT);xrtClearError();
@@ -114,16 +125,20 @@ int main(int argc,char** argv)
         assert(!xl6ProcessResizeV1(process,invalid[i][0],invalid[i][1]));
         assert(xrtErrorKind(xrtGetError())==XERR_RANGE);xrtClearError();
     }
-    assert(xl6ProcessResizeV1(process,96,32));
     assert(!xl6ProcessReaderV1(process,2) && xrtErrorKind(xrtGetError())==XERR_STATE);xrtClearError();
     xlir_io_reader* output=xl6ProcessReaderV1(process,1);assert(output);
     xlir_io_writer* input=xl6ProcessWriterV1(process);assert(input);
     assert(!xl6ProcessReaderV1(process,1) && xrtErrorKind(xrtGetError())==XERR_STATE);xrtClearError();
-    size_t actual=0;assert(xrtWriterWriteFull(input->stream,"hello\r\n",7,&actual) && actual==7);
+    char data[16384];size_t used=0,actual=0;
+    do {
+        assert(used<sizeof(data)-1 && xrtReaderRead(output->stream,data+used,sizeof(data)-1-used,&actual));
+        assert(actual);used+=actual;data[used]=0;
+    }while(!strstr(data,"terminal-ready"));
+    assert(xl6ProcessResizeV1(process,96,32));
+    assert(xrtWriterWriteFull(input->stream,"hello\r\n",7,&actual) && actual==7);
     assert(xrtWriterFlush(input->stream));
     /* Stream leases keep the Process alive independently of its language owner. */
     xl6ProcessDestroyV1(process);
-    char data[16384];size_t used=0;
     do {assert(used<sizeof(data)-1 && xrtReaderRead(output->stream,data+used,sizeof(data)-1-used,&actual));used+=actual;}while(actual);
     data[used]=0;
     assert(strstr(data,"tty:1:1:1") && strstr(data,"terminal-stderr"));
@@ -146,6 +161,8 @@ int main(int argc,char** argv)
     assert(!xl6ProcessResizeV1(process,80,24) && xrtErrorKind(xrtGetError())==XERR_STATE);xrtClearError();
     xl6ProcessDestroyV1(process);terminalRetire(observer);xl6ProcessCommandDestroyV1(command);
     xrtClearError();terminalBalanced(&before,descriptors,0);
+    }
     printf("terminal: real tty/merged stderr, child-observed resize, independent stream leases; 13 guards, heap/owned handles balanced; raw Win32 platform retention=%u, no extra handles\n",platformRetention);
+    printf("terminal product ledger: %u sessions, native exit code=0, no runtime/provider replacement\n",sessions);
     return 0;
 }

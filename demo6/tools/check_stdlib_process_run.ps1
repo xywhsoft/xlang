@@ -50,11 +50,15 @@ try {
         'test/cases/xlir_process_terminal_host.c',
         'tools/extlib_smoke_process.ps1','tools/stage_xlir_artifact_runtime_sources.ps1',
         'release/xl.exe','release/xlc.dll','release/xl.dll','release/examples/stdlib_process_run.xl','release/examples/stdlib_process_support.xl','release/examples/stdlib_process_pipeline.xl',"$public/build.json","$public/artifact_sources.json",$build.Driver,(Get-Command gcc).Source)
+    $extra+=@('tools/stage_stdlib_process_observer.py')
+    if(!$FutureOnly){$python=(Get-Command python -ErrorAction Stop).Source;$extra+=@($python)}
     $paths=@($build.Inputs.Path)+@($build.Headers.Path)+@($build.Objects.Path)+@($stage.Files.Source)+@($stage.Files.Path)+$extra
     $paths+=@($cases+$negatives|ForEach-Object {"test/cases/$_.xl"})
     $inputs=[ordered]@{}
     foreach($path in @($paths|ForEach-Object {(Resolve-Path -LiteralPath $_).Path}|Sort-Object -Unique)){$inputs[$path]=(Get-FileHash $path).Hash}
     New-Item -ItemType Directory -Path $work|Out-Null
+    Copy-Item -LiteralPath release/xl.dll -Destination "$work/xl.dll"
+    $inputs["$work/xl.dll"]=(Get-FileHash "$work/xl.dll").Hash
     $rows=[Collections.Generic.List[object]]::new(); $utf8=[Text.UTF8Encoding]::new($false)
     $child="$work/child.exe"
     function Check($name,$program,[string[]]$arguments,$error='') {
@@ -74,7 +78,9 @@ try {
         $null=Check 'child-build' gcc @('-std=c11','-Wall','-Wextra','-Werror','-municode','test/cases/xlir_process_child.c','-o',$child)
         $inputs[$child]=(Get-FileHash $child).Hash
         if(!$FutureOnly){
-        $null=Check 'terminal-native-build' gcc ($flags+@('test/cases/xlir_process_terminal_host.c')+$libs+@('-o',"$work/terminal-native.exe"))
+        $null=Check 'terminal-observer-stage' $python @('tools/stage_stdlib_process_observer.py','--root',$root,'--out',"$work/observer")
+        $inputs["$work/observer/process_observer_layout.h"]=(Get-FileHash "$work/observer/process_observer_layout.h").Hash
+        $null=Check 'terminal-native-build' gcc ($flags+@("-I$work/observer",'test/cases/xlir_process_terminal_host.c','release/xl.dll')+$libs+@('-o',"$work/terminal-native.exe"))
         $terminalNative=Check 'terminal-native' "$work/terminal-native.exe" @($child)
         if($terminalNative-notmatch 'terminal: real tty/merged stderr, child-observed resize, independent stream leases; 13 guards, heap/owned handles balanced; raw Win32 platform retention=[0-9]+, no extra handles'){throw 'Real terminal IO/resize/lifetime witness missing'}
         $null=Check 'file-native-build' gcc ($flags+@('test/cases/xlir_process_file_host.c')+$libs+@('-o',"$work/file-native.exe"))
@@ -116,7 +122,6 @@ try {
         $future=Check 'future-native' "$work/future-native.exe" @($child)
         if($future-notmatch 'mapper/pending/terminal OOM 1/[0-9]+/[0-9]+ failures \+ 3 first no-hit, waiter retired, balanced'){throw 'Process Future native/OOM witness missing'}
         $null=Check 'contract-build' gcc ($flags+@('-DXL_STATIC_EMBED','-Ilib/tcc','test/cases/xlir_text_value_contract.c')+$compilerObjects+@('release/xl.dll')+$libs+@('-o',"$work/contract.exe"))
-        Copy-Item release/xl.dll "$work/xl.dll"
         foreach($case in $cases) {
             $source="test/cases/$case.xl";$prefix="$work/$case"
             $null=Check "$case-emit" $build.Driver @($source,'emit',$prefix)

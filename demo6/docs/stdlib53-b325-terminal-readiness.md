@@ -81,8 +81,11 @@ XRT 原生 API 文档同步提交为 `f132faaf`，仅更新 `docs/api/process.md
 额外重编旧 `xlir_process_terminal_host.c` 时发现，它的源码拼接依赖落后于当前
 typed Array 和 xruntime 声明闭包。失败记录保留在两端第一轮
 `stdlib53-b325-terminal-ready-*/native-ledger-build.log`；本轮没有替换生产提供方
-来迁就它，也不将旧源码账本记为重新通过。该夹具依赖和就绪协议迁移仍须完成；
-正式产品门明确记录 `NativeSourceLedgerAcceptance=false`。
+来迁就它，也不将旧源码账本记为重新通过。B325 报告明确记录
+`NativeSourceLedgerAcceptance=false`。随后已完成共享产品观察器迁移和双端
+完整账本验收，当前状态见
+[终端共享产品的完整资源账本](stdlib53-b326-terminal-product-ledger.md)；
+原 B325 报告仍保持原值，不将后续通过回写为历史通过。
 
 完整函数／分支覆盖、工作线程故障注入及发布总验收继续，53 模块不结项。
 CRT 未决策为 0；19 个 XRT 未决策组不变，对象池仍最后。
