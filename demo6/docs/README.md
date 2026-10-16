@@ -6,6 +6,7 @@
 
 ## 当前权威设计
 
+- [旧字符串生成桥清理](stdlib53-b336-retired-text-bridges.md)：退役 26 个被驻留入口替代的内部字符串桥及 Cgen 实现；公开能力、精确长度、函数值与显式 FFI 声明保持，双端实际产品专项通过。
 - [并发队列真实产品验收](stdlib53-b335-queue-product-stress.md)：四种队列的实际双产品并发角色、精确拥有传输与线程局部分配故障，公开语言 JIT／模块／独立 AOT 及按需族选择。
 - [OrderedMap 原生键域与泛型合同](stdlib53-b334-ordered-key-domains.md)：C ABI 标量保留真实槽宽，bytes 使用按需原生内容排序；统一直接／嵌套类型配方与泛型逻辑绑定，完整任务继续。
 - [队列初始化与字符键排序](stdlib53-b333-queue-initialization-char-keys.md)：不可空并发队列声明必须初始化，nullable 支持延迟创建；OrderedMap 字符键复用原生 char 描述符和 XRT typed tree。

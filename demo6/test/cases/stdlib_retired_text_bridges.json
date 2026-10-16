@@ -1,0 +1,538 @@
+[
+  {
+    "Name": "xl6_xrt_string_compare",
+    "Member": "compare",
+    "Internal": "__xl_std_xrt_string_compare",
+    "ParamArray": "xl6StdXrtStrCompParams",
+    "Arity": 3,
+    "Result": "c_int",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_COMPARE",
+    "Need": "needsStringCompareBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "left"
+      },
+      {
+        "Type": "string",
+        "Name": "right"
+      },
+      {
+        "Type": "c_bool",
+        "Name": "ignoreCase"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_last_index_of",
+    "Member": "lastIndexOf",
+    "Internal": "__xl_std_xrt_string_last_index_of",
+    "ParamArray": "xl6StdXrtInStrParams",
+    "Arity": 3,
+    "Result": "int",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_LAST_INDEX_OF",
+    "Need": "needsStringLastIndexOfBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "string",
+        "Name": "part"
+      },
+      {
+        "Type": "c_bool",
+        "Name": "ignoreCase"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_count",
+    "Member": "count",
+    "Internal": "__xl_std_xrt_string_count",
+    "ParamArray": "xl6StdXrtInStrParams",
+    "Arity": 3,
+    "Result": "int",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_COUNT",
+    "Need": "needsStringCountBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "string",
+        "Name": "part"
+      },
+      {
+        "Type": "c_bool",
+        "Name": "ignoreCase"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_has_any",
+    "Member": "hasAny",
+    "Internal": "__xl_std_xrt_string_has_any",
+    "ParamArray": "xl6StdXrtCheckStrParams",
+    "Arity": 2,
+    "Result": "c_bool",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_HAS_ANY",
+    "Need": "needsStringHasAnyBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "string",
+        "Name": "chars"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_like",
+    "Member": "like",
+    "Internal": "__xl_std_xrt_string_like",
+    "ParamArray": "xl6StdXrtStrLikeParams",
+    "Arity": 3,
+    "Result": "c_bool",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_LIKE",
+    "Need": "needsStringLikeBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "string",
+        "Name": "pattern"
+      },
+      {
+        "Type": "c_bool",
+        "Name": "ignoreCase"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_approx",
+    "Member": "approx",
+    "Internal": "__xl_std_xrt_string_approx",
+    "ParamArray": "xl6StdXrtStrApproxParams",
+    "Arity": 2,
+    "Result": "c_bool",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_APPROX",
+    "Need": "needsStringApproxBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "left"
+      },
+      {
+        "Type": "string",
+        "Name": "right"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_similarity",
+    "Member": "similarity",
+    "Internal": "__xl_std_xrt_string_similarity",
+    "ParamArray": "xl6StdXrtStrApproxParams",
+    "Arity": 2,
+    "Result": "c_double",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_SIMILARITY",
+    "Need": "needsStringSimilarityBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "left"
+      },
+      {
+        "Type": "string",
+        "Name": "right"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_is_utf8",
+    "Member": "isUtf8",
+    "Internal": "__xl_std_xrt_string_is_utf8",
+    "ParamArray": "xl6StdXrtIsUtf8Params",
+    "Arity": 1,
+    "Result": "c_bool",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_IS_UTF8",
+    "Need": "needsStringIsUtf8BridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_lower",
+    "Member": "lower",
+    "Internal": "__xl_std_xrt_string_lower",
+    "ParamArray": "xl6StdXrtStringCaseParams",
+    "Arity": 1,
+    "Result": "point",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_LOWER",
+    "Need": "needsStringLowerBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_upper",
+    "Member": "upper",
+    "Internal": "__xl_std_xrt_string_upper",
+    "ParamArray": "xl6StdXrtStringCaseParams",
+    "Arity": 1,
+    "Result": "point",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_UPPER",
+    "Need": "needsStringUpperBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_trim",
+    "Member": "trim",
+    "Internal": "__xl_std_xrt_string_trim",
+    "ParamArray": "xl6StdXrtStringTrimParams",
+    "Arity": 2,
+    "Result": "point",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_TRIM",
+    "Need": "needsStringTrimBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "string",
+        "Name": "chars"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_ltrim",
+    "Member": "ltrim",
+    "Internal": "__xl_std_xrt_string_ltrim",
+    "ParamArray": "xl6StdXrtStringTrimParams",
+    "Arity": 2,
+    "Result": "point",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_LTRIM",
+    "Need": "needsStringLTrimBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "string",
+        "Name": "chars"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_rtrim",
+    "Member": "rtrim",
+    "Internal": "__xl_std_xrt_string_rtrim",
+    "ParamArray": "xl6StdXrtStringTrimParams",
+    "Arity": 2,
+    "Result": "point",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_RTRIM",
+    "Need": "needsStringRTrimBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "string",
+        "Name": "chars"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_filter",
+    "Member": "filter",
+    "Internal": "__xl_std_xrt_string_filter",
+    "ParamArray": "xl6StdXrtStringTrimParams",
+    "Arity": 2,
+    "Result": "point",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_FILTER",
+    "Need": "needsStringFilterBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "string",
+        "Name": "chars"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_left",
+    "Member": "left",
+    "Internal": "__xl_std_xrt_string_left",
+    "ParamArray": "xl6StdXrtStringCountParams",
+    "Arity": 2,
+    "Result": "point",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_LEFT",
+    "Need": "needsStringLeftBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "int",
+        "Name": "count"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_right",
+    "Member": "right",
+    "Internal": "__xl_std_xrt_string_right",
+    "ParamArray": "xl6StdXrtStringCountParams",
+    "Arity": 2,
+    "Result": "point",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_RIGHT",
+    "Need": "needsStringRightBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "int",
+        "Name": "count"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_char_at",
+    "Member": "charAt",
+    "Internal": "__xl_std_xrt_string_char_at",
+    "ParamArray": "xl6StdXrtStringByteAtParams",
+    "Arity": 2,
+    "Result": "point",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_AT",
+    "Need": "needsStringCharAtBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "int",
+        "Name": "index"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_is_empty",
+    "Member": "isEmpty",
+    "Internal": "__xl_std_xrt_string_is_empty",
+    "ParamArray": "xl6StdXrtStringSizeParams",
+    "Arity": 1,
+    "Result": "c_bool",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_IS_EMPTY",
+    "Need": "needsStringIsEmptyBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_is_blank",
+    "Member": "isBlank",
+    "Internal": "__xl_std_xrt_string_is_blank",
+    "ParamArray": "xl6StdXrtStringSizeParams",
+    "Arity": 1,
+    "Result": "c_bool",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_IS_BLANK",
+    "Need": "needsStringIsBlankBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_remove",
+    "Member": "remove",
+    "Internal": "__xl_std_xrt_string_remove",
+    "ParamArray": "xl6StdXrtStringRemoveParams",
+    "Arity": 3,
+    "Result": "point",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_REMOVE",
+    "Need": "needsStringRemoveBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "string",
+        "Name": "part"
+      },
+      {
+        "Type": "c_bool",
+        "Name": "ignoreCase"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_remove_at",
+    "Member": "removeAt",
+    "Internal": "__xl_std_xrt_string_remove_at",
+    "ParamArray": "xl6StdXrtStringSliceParams",
+    "Arity": 3,
+    "Result": "point",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_REMOVE_AT",
+    "Need": "needsStringRemoveAtBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "int",
+        "Name": "start"
+      },
+      {
+        "Type": "int",
+        "Name": "count"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_insert",
+    "Member": "insert",
+    "Internal": "__xl_std_xrt_string_insert",
+    "ParamArray": "xl6StdXrtStringInsertParams",
+    "Arity": 3,
+    "Result": "point",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_INSERT",
+    "Need": "needsStringInsertBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "int",
+        "Name": "start"
+      },
+      {
+        "Type": "string",
+        "Name": "part"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_pad_left",
+    "Member": "padLeft",
+    "Internal": "__xl_std_xrt_string_pad_left",
+    "ParamArray": "xl6StdXrtStringPadParams",
+    "Arity": 3,
+    "Result": "point",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_PAD_LEFT",
+    "Need": "needsStringPadLeftBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "int",
+        "Name": "width"
+      },
+      {
+        "Type": "string",
+        "Name": "pad"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_pad_right",
+    "Member": "padRight",
+    "Internal": "__xl_std_xrt_string_pad_right",
+    "ParamArray": "xl6StdXrtStringPadParams",
+    "Arity": 3,
+    "Result": "point",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_PAD_RIGHT",
+    "Need": "needsStringPadRightBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "int",
+        "Name": "width"
+      },
+      {
+        "Type": "string",
+        "Name": "pad"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_pad_center",
+    "Member": "padCenter",
+    "Internal": "__xl_std_xrt_string_pad_center",
+    "ParamArray": "xl6StdXrtStringPadParams",
+    "Arity": 3,
+    "Result": "point",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_PAD_CENTER",
+    "Need": "needsStringPadCenterBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      },
+      {
+        "Type": "int",
+        "Name": "width"
+      },
+      {
+        "Type": "string",
+        "Name": "pad"
+      }
+    ]
+  },
+  {
+    "Name": "xl6_xrt_string_reverse",
+    "Member": "reverse",
+    "Internal": "__xl_std_xrt_string_reverse",
+    "ParamArray": "xl6StdXrtStringSizeParams",
+    "Arity": 1,
+    "Result": "point",
+    "Kind": "XL6_IR_RUNTIME_BRIDGE_STRING_REVERSE",
+    "Need": "needsStringReverseBridgeRuntime",
+    "Parameters": [
+      {
+        "Type": "string",
+        "Name": "text"
+      }
+    ]
+  }
+]

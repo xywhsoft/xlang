@@ -2601,11 +2601,6 @@ static const XL6_StdlibParam xl6StdMathModParams[] = {
     {"float", "divisor"}
 };
 
-static const XL6_StdlibParam xl6StdXrtStrCompParams[] = {
-    {"string", "left"},
-    {"string", "right"},
-    {"c_bool", "ignoreCase"}
-};
 
 static const XL6_StdlibParam xl6StdXrtInStrParams[] = {
     {"string", "text"},
@@ -2613,25 +2608,9 @@ static const XL6_StdlibParam xl6StdXrtInStrParams[] = {
     {"c_bool", "ignoreCase"}
 };
 
-static const XL6_StdlibParam xl6StdXrtCheckStrParams[] = {
-    {"string", "text"},
-    {"string", "chars"}
-};
 
-static const XL6_StdlibParam xl6StdXrtStrLikeParams[] = {
-    {"string", "text"},
-    {"string", "pattern"},
-    {"c_bool", "ignoreCase"}
-};
 
-static const XL6_StdlibParam xl6StdXrtStrApproxParams[] = {
-    {"string", "left"},
-    {"string", "right"}
-};
 
-static const XL6_StdlibParam xl6StdXrtIsUtf8Params[] = {
-    {"string", "text"}
-};
 
 static const XL6_StdlibParam xl6StdRuntimeTakeCstrParams[] = {
     {"point", "value"}
@@ -2868,14 +2847,7 @@ static const XL6_StdlibParam xl6StdRuntimeNetEnginePostDelayedParams[] = {
     {"int", "affinity"}
 };
 
-static const XL6_StdlibParam xl6StdXrtStringCaseParams[] = {
-    {"string", "text"}
-};
 
-static const XL6_StdlibParam xl6StdXrtStringTrimParams[] = {
-    {"string", "text"},
-    {"string", "chars"}
-};
 
 static const XL6_StdlibParam xl6StdXrtStringReplaceParams[] = {
     {"string", "text"},
@@ -2903,23 +2875,8 @@ static const XL6_StdlibParam xl6StdXrtStringByteAtParams[] = {
     {"int", "index"}
 };
 
-static const XL6_StdlibParam xl6StdXrtStringRemoveParams[] = {
-    {"string", "text"},
-    {"string", "part"},
-    {"c_bool", "ignoreCase"}
-};
 
-static const XL6_StdlibParam xl6StdXrtStringInsertParams[] = {
-    {"string", "text"},
-    {"int", "start"},
-    {"string", "part"}
-};
 
-static const XL6_StdlibParam xl6StdXrtStringPadParams[] = {
-    {"string", "text"},
-    {"int", "width"},
-    {"string", "pad"}
-};
 
 static const XL6_StdlibParam xl6StdXrtYearParams[] = {
     {"int", "year"}
@@ -6153,40 +6110,14 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"xlang", "run", "__xl_std_xlang_run", NULL, NULL, 0, "bool", xl6StdXlangRunBody},
     {"xlang", "runFile", "__xl_std_xlang_run_file", NULL, NULL, 0, "bool", xl6StdXlangRunFileBody},
 
-    {"__xrt_string", "compare", "__xl_std_xrt_string_compare", "xl6_xrt_string_compare", xl6StdXrtStrCompParams, 3, "c_int", NULL},
     {"__xrt_string", "byteLen", "__xl_std_xrt_string_byte_len", "xl6_xrt_string_byte_len", xl6StdXrtStringSizeParams, 1, "c_size", NULL},
     {"__xrt_string", "charLen", "__xl_std_xrt_string_char_len", "xl6_xrt_string_char_len", xl6StdXrtStringSizeParams, 1, "c_size", NULL},
     {"__xrt_string", "contains", "__xl_std_xrt_string_contains", "xl6_xrt_string_contains", xl6StdXrtInStrParams, 3, "c_bool", NULL},
     {"__xrt_string", "indexOf", "__xl_std_xrt_string_index_of", "xl6_xrt_string_index_of", xl6StdXrtInStrParams, 3, "int", NULL},
-    {"__xrt_string", "lastIndexOf", "__xl_std_xrt_string_last_index_of", "xl6_xrt_string_last_index_of", xl6StdXrtInStrParams, 3, "int", NULL},
-    {"__xrt_string", "count", "__xl_std_xrt_string_count", "xl6_xrt_string_count", xl6StdXrtInStrParams, 3, "int", NULL},
-    {"__xrt_string", "hasAny", "__xl_std_xrt_string_has_any", "xl6_xrt_string_has_any", xl6StdXrtCheckStrParams, 2, "c_bool", NULL},
-    {"__xrt_string", "like", "__xl_std_xrt_string_like", "xl6_xrt_string_like", xl6StdXrtStrLikeParams, 3, "c_bool", NULL},
-    {"__xrt_string", "approx", "__xl_std_xrt_string_approx", "xl6_xrt_string_approx", xl6StdXrtStrApproxParams, 2, "c_bool", NULL},
-    {"__xrt_string", "similarity", "__xl_std_xrt_string_similarity", "xl6_xrt_string_similarity", xl6StdXrtStrApproxParams, 2, "c_double", NULL},
-    {"__xrt_string", "isUtf8", "__xl_std_xrt_string_is_utf8", "xl6_xrt_string_is_utf8", xl6StdXrtIsUtf8Params, 1, "c_bool", NULL},
-    {"__xrt_string", "lower", "__xl_std_xrt_string_lower", "xl6_xrt_string_lower", xl6StdXrtStringCaseParams, 1, "point", NULL},
-    {"__xrt_string", "upper", "__xl_std_xrt_string_upper", "xl6_xrt_string_upper", xl6StdXrtStringCaseParams, 1, "point", NULL},
-    {"__xrt_string", "trim", "__xl_std_xrt_string_trim", "xl6_xrt_string_trim", xl6StdXrtStringTrimParams, 2, "point", NULL},
-    {"__xrt_string", "ltrim", "__xl_std_xrt_string_ltrim", "xl6_xrt_string_ltrim", xl6StdXrtStringTrimParams, 2, "point", NULL},
-    {"__xrt_string", "rtrim", "__xl_std_xrt_string_rtrim", "xl6_xrt_string_rtrim", xl6StdXrtStringTrimParams, 2, "point", NULL},
-    {"__xrt_string", "filter", "__xl_std_xrt_string_filter", "xl6_xrt_string_filter", xl6StdXrtStringTrimParams, 2, "point", NULL},
     {"__xrt_string", "replace", "__xl_std_xrt_string_replace", "xl6_xrt_string_replace", xl6StdXrtStringReplaceParams, 3, "point", NULL},
     {"__xrt_string", "slice", "__xl_std_xrt_string_slice", "xl6_xrt_string_slice", xl6StdXrtStringSliceParams, 3, "point", NULL},
-    {"__xrt_string", "left", "__xl_std_xrt_string_left", "xl6_xrt_string_left", xl6StdXrtStringCountParams, 2, "point", NULL},
-    {"__xrt_string", "right", "__xl_std_xrt_string_right", "xl6_xrt_string_right", xl6StdXrtStringCountParams, 2, "point", NULL},
-    {"__xrt_string", "charAt", "__xl_std_xrt_string_char_at", "xl6_xrt_string_char_at", xl6StdXrtStringByteAtParams, 2, "point", NULL},
     {"__xrt_string", "byteAt", "__xl_std_xrt_string_byte_at", "xl6_xrt_string_byte_at", xl6StdXrtStringByteAtParams, 2, "c_int", NULL},
     {"__xrt_string", "repeat", "__xl_std_xrt_string_repeat", "xl6_xrt_string_repeat", xl6StdXrtStringCountParams, 2, "point", NULL},
-    {"__xrt_string", "isEmpty", "__xl_std_xrt_string_is_empty", "xl6_xrt_string_is_empty", xl6StdXrtStringSizeParams, 1, "c_bool", NULL},
-    {"__xrt_string", "isBlank", "__xl_std_xrt_string_is_blank", "xl6_xrt_string_is_blank", xl6StdXrtStringSizeParams, 1, "c_bool", NULL},
-    {"__xrt_string", "remove", "__xl_std_xrt_string_remove", "xl6_xrt_string_remove", xl6StdXrtStringRemoveParams, 3, "point", NULL},
-    {"__xrt_string", "removeAt", "__xl_std_xrt_string_remove_at", "xl6_xrt_string_remove_at", xl6StdXrtStringSliceParams, 3, "point", NULL},
-    {"__xrt_string", "insert", "__xl_std_xrt_string_insert", "xl6_xrt_string_insert", xl6StdXrtStringInsertParams, 3, "point", NULL},
-    {"__xrt_string", "padLeft", "__xl_std_xrt_string_pad_left", "xl6_xrt_string_pad_left", xl6StdXrtStringPadParams, 3, "point", NULL},
-    {"__xrt_string", "padRight", "__xl_std_xrt_string_pad_right", "xl6_xrt_string_pad_right", xl6StdXrtStringPadParams, 3, "point", NULL},
-    {"__xrt_string", "padCenter", "__xl_std_xrt_string_pad_center", "xl6_xrt_string_pad_center", xl6StdXrtStringPadParams, 3, "point", NULL},
-    {"__xrt_string", "reverse", "__xl_std_xrt_string_reverse", "xl6_xrt_string_reverse", xl6StdXrtStringSizeParams, 1, "point", NULL},
     {"__xrt_math", "sign", "__xl_std_xrt_math_sign", "xrtMathSign", xl6StdMathUnaryFloatParams, 1, "c_int", NULL},
     {"__xrt_time", "dateAdd", "__xl_std_xrt_date_add", NULL, NULL, 0, "time", "extern \"xl6TimeAddV1\" func __xl_std_xrt_date_add(time value, int amount, int unit) as time\n"},
     {"__xrt_time", "dateDiff", "__xl_std_xrt_date_diff", NULL, NULL, 0, "int", "extern \"xl6TimeDiffV1\" func __xl_std_xrt_date_diff(time left, time right, int unit) as int\n"},

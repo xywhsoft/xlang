@@ -13,6 +13,8 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('root','build-report','out'):p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--reuse-report',type=Path,help='Reuse only complete, unchanged child gates from the same actual products')
+    p.add_argument('--retired-text-baseline-build-report',type=Path,
+        help='Also require old-product reachability controls for the retired-text gate; pins the old build evidence')
     p.add_argument('--reuse-child-report',action='append',default=[],metavar='NAME=REPORT',
         help='Reuse one independently completed gate only after verifying its current runner, inputs and exact build/products')
     stdlib_fixture_inputs.add_arguments(p)
@@ -59,7 +61,8 @@ def main():
         ('native-future-policy',task/'tools/check_stdlib_native_future_policy_shipping.py','results.json',True),
         ('native-defaults',task/'tools/check_stdlib_native_defaults.py','results.json',True),
         ('tree-keys',task/'tools/check_stdlib_tree_keys_shipping.py','results.json',True),
-        ('queue-stress',task/'tools/check_stdlib_queue_product_stress.py','results.json',True)]
+        ('queue-stress',task/'tools/check_stdlib_queue_product_stress.py','results.json',True),
+        ('retired-text',task/'tools/check_stdlib_retired_text_bridges.py','results.json',True)]
     if not windows:
         gates.append(('elf','check_stdlib_sync_shipping_elf.py','sync.shipping.elf.json',True))
         gates.append(('native-public',task/'tools/check_stdlib_intrinsic_coverage.py','results.json',True))
@@ -84,6 +87,7 @@ def main():
     files.update(root/'tools'/g[1] for g in gates)
     if a.reuse_report:files.add(a.reuse_report.resolve())
     files.update(supplied.values())
+    if a.retired_text_baseline_build_report:files.add(a.retired_text_baseline_build_report.resolve())
     files.update(root/'test/cases'/name for name in execution.FIXTURE_C_SUPPORT.values())
     for row in build['Inputs']+build['Products']:assert sha(row['Path'])==row['Sha256'];files.add(Path(row['Path']))
     inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(files)]
@@ -172,6 +176,9 @@ def main():
                     if name=='native-public':
                         assert body.get('FixtureSourceUpdates',[])==[str(p.resolve()) for p in a.fixture_source]
                         assert body.get('AdditionalFixtureSources',[])==[str(p.resolve()) for p in a.additional_fixture_source]
+                    if name=='retired-text' and a.retired_text_baseline_build_report:
+                        assert body.get('BaselineRequested') and body.get('OldAll26EmittersReachable')
+                        assert childInputs.get(a.retired_text_baseline_build_report.resolve())==sha(a.retired_text_baseline_build_report)
                     for r in body['Inputs']+body.get('Products',[])+body.get('Objects',[]):
                         assert sha(r['Path'])==r['Sha256'].lower(),r['Path']
                     for r in body.get('Rows',[]):
@@ -184,6 +191,8 @@ def main():
             if name=='native-public':
                 for source in a.fixture_source:command+=['--fixture-source',source.resolve()]
                 for source in a.additional_fixture_source:command+=['--additional-fixture-source',source.resolve()]
+            if name=='retired-text' and a.retired_text_baseline_build_report:
+                command+=['--baseline-build-report',a.retired_text_baseline_build_report.resolve()]
             row,data=run('gate-'+name,command,directory=root,timeout=1800)
             path=destination/result if result else destination
             if not path.is_file():return dict(Name=name,Passed=False,Exit=row['Exit'],Diagnostic=data.decode(errors='replace')[-6000:])
@@ -219,6 +228,7 @@ def main():
         report['NativeDefaultRecipeAcceptance']=any(c['Name']=='native-defaults' and c['Passed'] for c in children)
         report['NativeOrderedKeyAcceptance']=any(c['Name']=='tree-keys' and c['Passed'] for c in children)
         report['NativeQueueRoleStressAcceptance']=any(c['Name']=='queue-stress' and c['Passed'] for c in children)
+        report['RetiredTextBridgeAcceptance']=any(c['Name']=='retired-text' and c['Passed'] for c in children)
         report['NativePublicBindingAcceptance']=any(c['Name']=='native-public' and c['Passed'] for c in children)
         report['UnexecutedRequirements']=[c['Name'] for c in records if c['Status']=='requires-platform']
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)

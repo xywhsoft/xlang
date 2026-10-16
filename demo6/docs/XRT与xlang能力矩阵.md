@@ -8,7 +8,7 @@
 - xruntime 产品公共函数：3674，其中扩展自有 464。
 - 低层能力：3674 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
-- 语言内核或标准库已直接使用：1824 个函数。其余 1850 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：1814 个函数。其余 1860 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -24,7 +24,7 @@
 | xrt | `include/xrt/buffer.h` | 23 | 20 | 3 |
 | xrt | `include/xrt/cancel.h` | 20 | 14 | 6 |
 | xrt | `include/xrt/channel.h` | 42 | 15 | 27 |
-| xrt | `include/xrt/charset.h` | 72 | 43 | 29 |
+| xrt | `include/xrt/charset.h` | 72 | 36 | 36 |
 | xrt | `include/xrt/codec.h` | 20 | 8 | 12 |
 | xrt | `include/xrt/compress.h` | 18 | 0 | 18 |
 | xrt | `include/xrt/console.h` | 22 | 22 | 0 |
@@ -81,7 +81,7 @@
 | xrt | `include/xrt/slot_map.h` | 16 | 12 | 4 |
 | xrt | `include/xrt/spin.h` | 7 | 3 | 4 |
 | xrt | `include/xrt/stack.h` | 74 | 0 | 74 |
-| xrt | `include/xrt/string.h` | 85 | 53 | 32 |
+| xrt | `include/xrt/string.h` | 85 | 50 | 35 |
 | xrt | `include/xrt/sync.h` | 48 | 26 | 22 |
 | xrt | `include/xrt/task.h` | 53 | 32 | 21 |
 | xrt | `include/xrt/task_net.h` | 6 | 0 | 6 |

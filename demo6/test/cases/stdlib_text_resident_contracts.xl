@@ -1,0 +1,35 @@
+func main(...) as int
+    assert(string.compare("A\0你", "a\0你", true) == 0)
+    assert(string.lastIndexOf("a\0ba\0b", "\0b") == 4)
+    assert(string.count("a\0b\0", "\0") == 2)
+    assert(string.hasAny("a\0b", "\0"))
+    assert(string.like("a\0b", "a?b"))
+    assert(string.approx("a\0你", "a\0你"))
+    assert(string.sim("a\0你", "a\0你") == 1.0)
+    assert(string.isUtf8("a\0你"))
+    assert(string.lower("A\0B") == "a\0b")
+    assert(string.upper("a\0b") == "A\0B")
+    assert(string.trim(" \0a ") == "\0a")
+    assert(string.ltrim(" \0a ") == "\0a ")
+    assert(string.rtrim(" \0a ") == " \0a")
+    assert(string.filter("a\0b", "\0") == "ab")
+    assert(string.left("a\0你", 2) == "a\0")
+    assert(string.right("a\0你", 2) == "\0你")
+    assert(string.charAt("a\0你", 1) == '\0')
+    assert(not string.isEmpty("\0") and not string.isBlank("\0"))
+    assert(string.remove("A\0a", "a", true) == "\0")
+    assert(string.removeAt("a\0你", 1, 1) == "a你")
+    assert(string.insert("a\0b", 1, "你") == "a你\0b")
+    assert(string.padLeft("a\0", 4, "-") == "--a\0")
+    assert(string.padRight("a\0", 4, "-") == "a\0--")
+    assert(string.padCenter("a\0", 4, "-") == "-a\0-")
+    assert(string.reverse("a\0你") == "你\0a")
+    // Size/default binding and owned function values retain the resident ABI.
+    func(string, int) as string lower = string.lower
+    assert(lower("A\0B", 2) == "a\0")
+    assert(string.remove("A\0a", "a", true, 2) == "\0")
+    // Language operators and the public numeric formatting dependency survive.
+    assert("a\0b" ~= "a\0b")
+    assert(int.format(17, "d") == "17")
+    return 0
+end
