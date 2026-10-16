@@ -1,6 +1,6 @@
 """Current-IR real task workers: preserve the full completion/cancellation/
 destructor/error populations, actual worker result-allocation faults, exact
-string/NUL results and module join/memory balance. Windows/Linux O0/O2 plus
+string/NUL results and module logical quiescence/memory balance. Windows/Linux O0/O2 plus
 optional selected Linux ASan/UBSan. Not worker-wide OOM or full53 acceptance.
 """
 from pathlib import Path
@@ -62,7 +62,7 @@ def main():
                 '-DXLIR_WORKER_COMPLETION_BINDING="'+(out/'worker.h.bind.h').as_posix()+'"']
             run(opt+'-build',[cc,*flags,*extra,level,*definitions,root/'test/cases'/(name+'_host.c'),root/'test/cases'/(name+'_runtime.c'),*providers,*systems,*sanlinks,'-o',binary]);product(binary)
             text=run(opt+'-execute',[binary]);assert '3978 executions, 90 real worker result allocation failures' in text and '972 discarded Futures' in text and 'balanced allocations' in text
-            assert 'worker allocation prefixes: 5 complete lanes' in text and 'real worker TLS failures, module joins and exact memory balance' in text
+            assert 'worker allocation prefixes: 5 complete lanes' in text and 'real worker TLS failures, module logical quiescence and exact memory balance' in text
             proofs.append(dict(Optimization=opt,Output=text,FullOriginalPopulation=True))
         report['InputsUnchanged']=all(sha(r['Path'])==r['Sha256'] for r in inputs);report['Complete']=report['InputsUnchanged']
     finally:report['PhaseCount']=len(rows);(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')

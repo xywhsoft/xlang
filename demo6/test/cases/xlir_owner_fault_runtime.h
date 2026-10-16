@@ -16,6 +16,12 @@ unsigned continuation_owner_fault_end(int fault)
 static void continuation_owner_fault_balanced(const xmemdebugsnapshot* before)
 {
     xmemdebugsnapshot after; xrtMemDebugSnapshot(&after);
+    if (before->LiveCount != after.LiveCount || before->LiveBytes != after.LiveBytes)
+        fprintf(stderr, "owner balance before=%llu/%llu after=%llu/%llu allocated=%llu freed=%llu\n",
+            (unsigned long long)before->LiveCount, (unsigned long long)before->LiveBytes,
+            (unsigned long long)after.LiveCount, (unsigned long long)after.LiveBytes,
+            (unsigned long long)(after.AllocCount - before->AllocCount),
+            (unsigned long long)(after.FreeCount - before->FreeCount));
     assert(before->LiveCount == after.LiveCount && before->LiveBytes == after.LiveBytes);
     assert(after.AllocCount - before->AllocCount == after.FreeCount - before->FreeCount);
     assert(before->DoubleFreeCount == after.DoubleFreeCount && before->InvalidFreeCount == after.InvalidFreeCount);

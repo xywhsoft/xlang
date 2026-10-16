@@ -37,7 +37,14 @@ void worker_completion_drop(int64_t id)
     }
 }
 void worker_completion_prepare(void) { assert(xlir_module_init() && !xrtGetError()); }
-void worker_completion_finish(void) { xlir_module_fini(); assert(!xrtGetError()); }
+void worker_completion_finish(void)
+{
+    xl6_error_scope scope = {0}; xl6_error_result outcome;
+    assert(xl6ErrorScopeBegin(&scope)); xlir_module_fini(); outcome = xl6ErrorScopeEnd(&scope);
+    /* A diagnostic-free failure is still a failure. Do not silently proceed
+     * into a second cycle with an admission-closed, unretired module pool. */
+    assert(outcome.ok && !outcome.error && xlir_module_initialized == 0 && !xrtGetError());
+}
 xfuture* worker_completion_launch(unsigned kind, int mode)
 {
     xl6_error_scope scope = {0}; xl6_error_result outcome;
@@ -56,7 +63,13 @@ xfuture* worker_completion_launch(unsigned kind, int mode)
     // The worker cannot pass its entry barrier before these caller references
     // are gone. The generated frame/worker, not the test, is the final owner.
     xrtValueRelease(first); xrtValueRelease(unused);
-    outcome = xl6ErrorScopeEnd(&scope); assert(outcome.ok && !outcome.error && result); return result;
+    outcome = xl6ErrorScopeEnd(&scope);
+    if (!outcome.ok || outcome.error || !result)
+        fprintf(stderr, "worker launch kind=%u mode=%d ok=%u diagnostic=%d/%d result=%p message=%s\n",
+            kind, mode, (unsigned)outcome.ok, outcome.error ? xrtErrorKind(outcome.error) : 0,
+            outcome.error ? xrtErrorCode(outcome.error) : 0, (void*)result,
+            outcome.error ? xrtErrorMessage(outcome.error) : "none");
+    assert(outcome.ok && !outcome.error && result); return result;
 }
 void worker_completion_check(unsigned kind, xfuture* result)
 {

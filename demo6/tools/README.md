@@ -2,6 +2,17 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_worker_completion_shipping.py --root <frozen-demo6> --build-report
+<ordinary-build.json> --out <fresh-output>` runs the full task-worker population
+using C/IR from the genuine CLI and both resident DLL/SO products at O0/O2.
+It retains 3978 executions, 90 result-allocation faults, 972 discarded Futures,
+five complete worker-TLS allocation prefixes and callback/allocator rejection
+controls. No compiler objects or native providers are rebuilt. Generated-C
+allocation entry is observed; the product runtime remains unmodified. Logical
+module completion is not OS join, scheduler-wide OOM or module-unmap proof.
+`check_stdlib_current_products.py` requires this gate and the exact native
+Future payload-policy gate. See [Task-worker quiescence](../docs/stdlib53-b330-task-worker-quiescence.md).
+
 `check_stdlib_channel_recipes.py --root <frozen-demo6> --public-directory
 <fresh-source-build> --out <fresh-output>` verifies the closed Channel source
 schema and owned receive IR plan, dependent logical contracts, actual lowering,
