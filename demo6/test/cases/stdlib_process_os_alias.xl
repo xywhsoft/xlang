@@ -1,0 +1,41 @@
+// os.exec/run are existing process aliases. They share process's -1 default;
+// explicit zero remains an immediate timeout, not an alternate "infinite" flag.
+string child = env.get("XL6_PROCESS_CHILD") ?? ""
+assert child != ""
+// The validation host supplies a controlled path without shell metacharacters.
+string delay = "\"" + child + "\" sleep 20"
+auto result = os.run(delay)
+assert not result.timedOut and result.success and result.exitCode == 0
+string arguments = "\"" + child + "\" args A 你"
+// Both supported shells understand &&. Output is later than the default
+// 250ms stop grace: a zero-timeout call can still collect earlier output.
+assert os.exec("\"" + child + "\" sleep 1000 && " + arguments) == "A\0你\0"
+assert os.exec(arguments, -1) == "A\0你\0"
+assert os.exec(arguments + "\0ignored", -1, string.byteLen(arguments)) == "A\0你\0"
+assert os.exec(arguments, -1, 1000000) == "A\0你\0"
+assert os.run("exit 0\0ignored", -1, 6).success
+auto immediate = os.run("\"" + child + "\" sleep 2000", 0)
+assert immediate.timedOut and not immediate.success
+auto normal = process.run(delay)
+assert not normal.timedOut and normal.success
+bool rejected = false
+try
+    os.run(delay, -2)
+catch RangeError
+    rejected = true
+end
+assert rejected
+rejected = false
+try
+    os.exec(arguments, -1, -2)
+catch RangeError
+    rejected = true
+end
+assert rejected
+rejected = false
+try
+    os.run("exit 0\0ignored")
+catch ValueError
+    rejected = true
+end
+assert rejected

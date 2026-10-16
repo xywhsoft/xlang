@@ -1,9 +1,10 @@
 #include "src/runtime/xl6_text_pieces.h"
+#include "src/runtime/xl6_text_thread.h"
 #include "xl6_native_handle.h"
 #include "src/api/xl_foreign_error.h"
 
 typedef struct XL6_TextIterator {
-    uint64_t ownerThread; /* Immutable, checked before reading mutable state. */
+    XL6_TextThreadOwner thread; /* Retain managed identity, not a reusable OS ID. */
     XL6_TextPieces pieces;
     char* text;
     char* separator;
@@ -15,7 +16,7 @@ static XL6_TextIterator* xl6TextIteratorCheck(void* handle)
 {
     XL6_TextIterator* it = handle;
     if (!it) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
-    if (it->ownerThread != xrtThreadCurrentId()) { xrtSetErrorKind(XERR_STATE); return NULL; }
+    if (!xl6TextThreadCheck(&it->thread)) return NULL;
     return it;
 }
 static void xl6TextIteratorReleaseInput(XL6_TextIterator* it)
@@ -33,7 +34,7 @@ void xl6TextIteratorDestroyV1(void* handle)
      * on a different thread and must neither allocate nor replace an error. */
     XL6_TextIterator* it = handle;
     if (!it) return;
-    xl6TextIteratorReleaseInput(it); xrtFree(it);
+    xl6TextIteratorReleaseInput(it); xl6TextThreadDrop(&it->thread); xrtFree(it);
 }
 void* xl6TextIteratorCreateV1(xstrview text, xstrview separator, int64_t mode, int64_t size, int64_t separatorSize)
 {
@@ -41,7 +42,8 @@ void* xl6TextIteratorCreateV1(xstrview text, xstrview separator, int64_t mode, i
     if (!xl6TextSelect(&text, size) || !xl6TextSelect(&separator, separatorSize)) return NULL;
     XL6_TextIterator* it = xrtCalloc(1, sizeof(*it));
     if (!it) return NULL;
-    it->ownerThread = xrtThreadCurrentId(); it->mode = (unsigned)mode;
+    if (!xl6TextThreadInit(&it->thread)) goto fail;
+    it->mode = (unsigned)mode;
     it->text = xrtStrDupView(text);
     if (!it->text) goto fail;
     if (mode == 0) {

@@ -52,7 +52,9 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6ProcessStatusHandlePolicyV
 XL6_CODE_LEASE_API struct xrtownershipref xl6ProcessLiveOwnershipV1(const void*);
 XL6_CODE_LEASE_API const struct xrtownershipadapterv1* xl6ProcessLiveOwnershipAdapterV1(struct xrtownershipref);
 XL6_CODE_LEASE_API const struct xrtownershipfinishv1* xl6ProcessLiveOwnershipFinishV1Get(void);
-/* An iterator owns only a copied byte allocation, never its source Buffer. */
+/* A snapshot owns copied bytes and managed creator identity, never its source
+ * Buffer or an owning language edge. The retained native thread's Data is a
+ * borrowed callback argument, not a transitive language owner. */
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6BufferIteratorHandlePolicyV1Get(void);
 /* The actual XRT buffer contains Data/Size/Capacity, not language values. */
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6BufferHandlePolicyV1Get(void);

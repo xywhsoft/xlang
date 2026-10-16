@@ -15,11 +15,15 @@ def main():
     p.add_argument('--reuse-report',type=Path,help='Reuse only complete, unchanged child gates from the same actual products')
     p.add_argument('--retired-text-baseline-build-report',type=Path,
         help='Also require old-product reachability controls for the retired-text gate; pins the old build evidence')
+    p.add_argument('--resource-identity-baseline-root',type=Path)
+    p.add_argument('--resource-identity-baseline-build-report',type=Path,
+        help='Also require the old actual products to fail managed resource creator identity pinning')
     p.add_argument('--reuse-child-report',action='append',default=[],metavar='NAME=REPORT',
         help='Reuse one independently completed gate only after verifying its current runner, inputs and exact build/products')
     stdlib_fixture_inputs.add_arguments(p)
     p.add_argument('--jobs',type=int,default=2);a=p.parse_args()
     root,out=a.root.resolve(),a.out.resolve();assert not out.exists() and 1<=a.jobs<=4
+    assert bool(a.resource_identity_baseline_root)==bool(a.resource_identity_baseline_build_report)
     cc=shutil.which('gcc');assert cc;windows=os.name=='nt'
     build=json.loads(a.build_report.read_text(encoding='utf-8-sig'));assert build['Complete'] and build['InputsUnchanged'] and build['Exit']==0
     sys.path.insert(0,str(root/'tools'))
@@ -66,6 +70,7 @@ def main():
         ('process-open',task/'tools/check_stdlib_process_open_shipping.py','results.json',True),
         ('process-oom',task/'tools/check_stdlib_process_oom_shipping.py','results.json',True),
         ('process-language-oom',task/'tools/check_stdlib_process_language_oom_shipping.py','results.json',True),
+        ('resource-identity',task/'tools/check_stdlib_resource_identity_shipping.py','results.json',True),
         ('guide-contracts',task/'tools/check_stdlib_guide_contracts.py','results.json',False)]
     if not windows:
         gates.append(('elf','check_stdlib_sync_shipping_elf.py','sync.shipping.elf.json',True))
@@ -92,6 +97,7 @@ def main():
     if a.reuse_report:files.add(a.reuse_report.resolve())
     files.update(supplied.values())
     if a.retired_text_baseline_build_report:files.add(a.retired_text_baseline_build_report.resolve())
+    if a.resource_identity_baseline_build_report:files.add(a.resource_identity_baseline_build_report.resolve())
     files.update(root/'test/cases'/name for name in execution.FIXTURE_C_SUPPORT.values())
     for row in build['Inputs']+build['Products']:assert sha(row['Path'])==row['Sha256'];files.add(Path(row['Path']))
     inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(files)]
@@ -184,6 +190,9 @@ def main():
                     if name=='retired-text' and a.retired_text_baseline_build_report:
                         assert body.get('BaselineRequested') and body.get('OldAll26EmittersReachable')
                         assert childInputs.get(a.retired_text_baseline_build_report.resolve())==sha(a.retired_text_baseline_build_report)
+                    if name=='resource-identity' and a.resource_identity_baseline_build_report:
+                        assert body.get('BaselineRequested') and body.get('ActualOldProductsRejected')
+                        assert childInputs.get(a.resource_identity_baseline_build_report.resolve())==sha(a.resource_identity_baseline_build_report)
                     for r in body['Inputs']+body.get('Products',[])+body.get('Objects',[]):
                         assert sha(r['Path'])==r['Sha256'].lower(),r['Path']
                     for r in body.get('Rows',[]):
@@ -198,6 +207,9 @@ def main():
                 for source in a.additional_fixture_source:command+=['--additional-fixture-source',source.resolve()]
             if name=='retired-text' and a.retired_text_baseline_build_report:
                 command+=['--baseline-build-report',a.retired_text_baseline_build_report.resolve()]
+            if name=='resource-identity' and a.resource_identity_baseline_build_report:
+                command+=['--baseline-root',a.resource_identity_baseline_root.resolve(),
+                          '--baseline-build-report',a.resource_identity_baseline_build_report.resolve()]
             row,data=run('gate-'+name,command,directory=root,timeout=1800)
             path=destination/result if result else destination
             if not path.is_file():return dict(Name=name,Passed=False,Exit=row['Exit'],Diagnostic=data.decode(errors='replace')[-6000:])
@@ -237,6 +249,7 @@ def main():
         report['RealPlatformOpenAcceptance']=any(c['Name']=='process-open' and c['Passed'] for c in children)
         report['NativeProcessFaultPrefixAcceptance']=any(c['Name']=='process-oom' and c['Passed'] for c in children)
         report['EmittedLanguageProcessPrefixAcceptance']=any(c['Name']=='process-language-oom' and c['Passed'] for c in children)
+        report['RetainedResourceCreatorIdentityAcceptance']=any(c['Name']=='resource-identity' and c['Passed'] for c in children)
         report['CurrentGuideContractAcceptance']=any(c['Name']=='guide-contracts' and c['Passed'] for c in children)
         report['NativePublicBindingAcceptance']=any(c['Name']=='native-public' and c['Passed'] for c in children)
         report['UnexecutedRequirements']=[c['Name'] for c in records if c['Status']=='requires-platform']

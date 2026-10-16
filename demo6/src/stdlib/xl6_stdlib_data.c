@@ -4507,13 +4507,13 @@ static const char xl6StdOsSetCwdBody[] =
     "end\n";
 
 static const char xl6StdOsExecBody[] =
-    "func __xl_std_os_exec(string command, int timeoutMs = 0) as string\n"
-    "    return __xl_std_process_exec(command, timeoutMs)\n"
+    "func __xl_std_os_exec(string command, int timeoutMs = -1, int size = -1) as string\n"
+    "    return __xl_std_process_exec(command, timeoutMs, size)\n"
     "end\n";
 
 static const char xl6StdOsRunBody[] =
-    "func __xl_std_os_run(string command, int timeoutMs = 0) as ProcessResult\n"
-    "    return __xl_std_process_run(command, timeoutMs)\n"
+    "func __xl_std_os_run(string command, int timeoutMs = -1, int size = -1) as ProcessResult\n"
+    "    return __xl_std_process_run(command, timeoutMs, size)\n"
     "end\n";
 
 static const char xl6StdOsStartBody[] =

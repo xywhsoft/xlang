@@ -2,6 +2,16 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_resource_identity_shipping.py --root <frozen-demo6> --build-report
+<ordinary-build.json> --out <fresh-directory>` is the required `resource-identity`
+gate. Three resource families use real managed creators and runtime/compiler
+DLL/SO consumers at O0/O2. Native TLS exit witnesses allow allocation metadata
+checks after XRT entry return, without retired-pointer reads or forced OS-ID
+reuse. Full constructor OOM prefixes, wrong-owner guards, remote destruction and
+heap ledgers must pass. Optional paired `--baseline-root`/`--baseline-build-report`
+require twelve genuine-old-product missing-pin rejections. This is managed
+identity retention, not arbitrary host-thread reuse safety, OS join or unload.
+
 `check_stdlib_process_language_oom_shipping.py --root <frozen-demo6> --build-report
 <ordinary-build.json> --out <fresh-directory> --jobs 2` preserves all eleven
 historical language Process fault fixtures. Actual CLI output is compiled

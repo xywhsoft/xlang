@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_buffer_internal.h"
+#include "src/runtime/xl6_text_thread.h"
 #include "src/runtime/xl6_native_handle.h"
 #include "src/api/xl_foreign_error.h"
 
@@ -6,7 +7,7 @@
  * callback. Creation costs O(n); traversal is O(1) per byte. Close releases
  * the copied bytes immediately while keeping a valid exhausted iterator. */
 typedef struct XL6_BufferSnapshot {
-    uint64_t ownerThread;
+    XL6_TextThreadOwner thread;
     unsigned char* data;
     size_t size, index;
     bool closed;
@@ -17,10 +18,7 @@ static XL6_BufferSnapshot* bufferSnapshotCheck(void* raw)
     if (!snapshot) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
     /* Mutable traversal state is creation-thread confined. Final resource
      * retirement may run elsewhere after managed ownership serializes it. */
-    if (snapshot->ownerThread != xrtThreadCurrentId()) {
-        xrtSetErrorKind(XERR_STATE);
-        return NULL;
-    }
+    if (!xl6TextThreadCheck(&snapshot->thread)) return NULL;
     return snapshot;
 }
 static void bufferSnapshotRelease(XL6_BufferSnapshot* snapshot)
@@ -38,6 +36,7 @@ void xl6BufferIteratorDestroyV1(void* raw)
     if (!snapshot) return;
     xerror* prior = xrtTakeError();
     bufferSnapshotRelease(snapshot);
+    xl6TextThreadDrop(&snapshot->thread);
     xrtFree(snapshot);
     xrtClearError();
     xrtSetErrorTake(prior);
@@ -49,7 +48,10 @@ void* xl6BufferIteratorCreateV1(void* source, int64_t size)
     if (!xl6BufferInput(source, size, &view)) return NULL;
     XL6_BufferSnapshot* snapshot = xrtCalloc(1, sizeof(*snapshot));
     if (!xl6BufferAllocation(snapshot != NULL)) return NULL;
-    snapshot->ownerThread = xrtThreadCurrentId();
+    if (!xl6TextThreadInit(&snapshot->thread)) {
+        xl6BufferIteratorDestroyV1(snapshot);
+        return NULL;
+    }
     if (view.Size) {
         snapshot->data = xrtMalloc(view.Size);
         if (!xl6BufferAllocation(snapshot->data != NULL)) {
