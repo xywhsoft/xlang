@@ -1,6 +1,7 @@
 /* Real selected native closure. No callback lifetime, artificial allocator,
  * sleeps, OS fault seam, shell, GUI, network or user files. Invalid native
  * handles below intentionally exercise the real DuplicateHandle/fcntl failure. */
+#if !defined(XL6_PROCESS_PRODUCT_OBSERVER)
 #define XRT_MODULE_PROCESS_FILE
 #define XRT_MODULE_FILE_TEMP
 #define XRT_MODULE_ATOMIC
@@ -17,10 +18,13 @@
 #include "src/runtime/xl6_process_command.c"
 #include "src/runtime/xl6_process_terminal_config.c"
 #include "src/runtime/xl6_process_file.c"
+#endif
 #include <assert.h>
 #include <stdio.h>
 #if !defined(_WIN32)
 #include <dirent.h>
+#include <fcntl.h>
+#include <unistd.h>
 #endif
 
 static unsigned handles(void)

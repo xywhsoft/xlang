@@ -1,11 +1,13 @@
 /* Actual XRT process/Future implementation and resident bool payload policy.
  * A private native observer joins the waiter tail before checking the heap;
  * public Process.wait/await deliberately do not promise a waiter-thread join. */
+#if !defined(XL6_PROCESS_PRODUCT_OBSERVER)
 #include "tools/xrt_single_header_impl.c"
 #include "src/runtime/xl6_native_handle.c"
 #include "src/runtime/xl6_process_command.c"
 #include "src/runtime/xl6_process_live.c"
 #include "src/runtime/xl6_process_future.c"
+#endif
 #include <assert.h>
 #include <stdio.h>
 
@@ -44,6 +46,7 @@ static void ready(xfuture* future)
     const xfuturepayloadownershipv1* allowed[]={xl6PayloadPolicyGet(XL6_FUTURE_PAYLOAD_VALUE)};
     assert(xrtFutureOwnershipAdapterV1(xrtFutureOwnership(future),allowed,1));
 }
+#if !defined(XL6_PROCESS_PRODUCT_OBSERVER)
 static unsigned mapperSweep(void)
 {
     for(size_t point=0;point<8;++point) {
@@ -66,6 +69,7 @@ static unsigned mapperSweep(void)
     }
     abort();
 }
+#endif
 static unsigned factorySweep(const char* child,bool terminal)
 {
     for(size_t point=0;point<32;++point) {
@@ -96,6 +100,7 @@ int main(int argc,char** argv)
 {
     assert(argc==2 && xrtMemDebugEnable(true));
     assert(!xl6ProcessWaitReadyAsyncV1(NULL) && xrtErrorKind(xrtGetError())==XERR_ARGUMENT); xrtClearError();
+#if !defined(XL6_PROCESS_PRODUCT_OBSERVER)
     unsigned mapper=mapperSweep();
     for(unsigned guard=0;guard<2;++guard) {
         xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
@@ -105,6 +110,7 @@ int main(int argc,char** argv)
         processReady(&input,promise,NULL); assert(xrtFutureState(future)==XFUTURE_CLOSED && !xrtGetError());
         xrtPromiseDestroy(promise); xrtFutureDestroy(future); balanced(&before);
     }
+#endif
     unsigned pending=factorySweep(argv[1],false),terminal=factorySweep(argv[1],true);
     xmemdebugsnapshot before; xrtMemDebugSnapshot(&before);
     XL6_ProcessLive* process=spawn(argv[1],false);
@@ -128,6 +134,10 @@ int main(int argc,char** argv)
     xrtProcessDestroy(observer); /* Both independently owned snapshots remain. */
     ready(second); assert(status->Code==0);
     xrtFutureDestroy(first); xrtFutureDestroy(second); xrtFutureDestroy(shared); balanced(&before);
+#if defined(XL6_PROCESS_PRODUCT_OBSERVER)
+    printf("Process Future product: shared source untouched, parent-drop readiness, exact bool/resident ownership; pending/terminal OOM %u/%u failures + 2 first no-hit, waiter retired, balanced\n",pending,terminal);
+#else
     printf("Process Future: shared source untouched, parent-drop readiness, exact bool/resident ownership, 3 guards, duplicate/ambient; mapper/pending/terminal OOM %u/%u/%u failures + 3 first no-hit, waiter retired, balanced\n",mapper,pending,terminal);
+#endif
     return 0;
 }

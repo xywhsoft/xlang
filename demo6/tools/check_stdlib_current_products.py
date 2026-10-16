@@ -64,6 +64,7 @@ def main():
         ('queue-stress',task/'tools/check_stdlib_queue_product_stress.py','results.json',True),
         ('retired-text',task/'tools/check_stdlib_retired_text_bridges.py','results.json',True),
         ('process-open',task/'tools/check_stdlib_process_open_shipping.py','results.json',True),
+        ('process-oom',task/'tools/check_stdlib_process_oom_shipping.py','results.json',True),
         ('guide-contracts',task/'tools/check_stdlib_guide_contracts.py','results.json',False)]
     if not windows:
         gates.append(('elf','check_stdlib_sync_shipping_elf.py','sync.shipping.elf.json',True))
@@ -233,6 +234,7 @@ def main():
         report['NativeQueueRoleStressAcceptance']=any(c['Name']=='queue-stress' and c['Passed'] for c in children)
         report['RetiredTextBridgeAcceptance']=any(c['Name']=='retired-text' and c['Passed'] for c in children)
         report['RealPlatformOpenAcceptance']=any(c['Name']=='process-open' and c['Passed'] for c in children)
+        report['NativeProcessFaultPrefixAcceptance']=any(c['Name']=='process-oom' and c['Passed'] for c in children)
         report['CurrentGuideContractAcceptance']=any(c['Name']=='guide-contracts' and c['Passed'] for c in children)
         report['NativePublicBindingAcceptance']=any(c['Name']=='native-public' and c['Passed'] for c in children)
         report['UnexecutedRequirements']=[c['Name'] for c in records if c['Status']=='requires-platform']

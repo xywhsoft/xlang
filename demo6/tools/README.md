@@ -2,6 +2,16 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_process_oom_shipping.py --root <frozen-demo6> --build-report
+<ordinary-build.json> --out <fresh-directory>` is the required `process-oom`
+product gate. Five native test families link the actual runtime/compiler DLL/SO
+at O0/O2, with complete caller-thread allocation prefixes and real heap ledgers.
+Snapshot-derived observation layout permits a retained private waiter join;
+no runtime implementation/provider is compiled into the hosts. Four compiled
+no-injection/leaked-stage controls must fail assertions. Source-only private
+mapper/POSIX-plan units, language OOM migration and platform conditions remain
+separate; no worker-wide OOM, image-unload or full53 claim.
+
 `check_stdlib_strict_c_shipping.py --root <frozen-demo6> --build-report
 <ordinary-build.json> --aot-report <complete-aot-results.json> --out <fresh-directory>`
 generates C with the actual CLI for the complete AOT assertion population, then

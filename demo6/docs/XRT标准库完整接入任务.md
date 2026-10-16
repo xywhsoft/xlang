@@ -2,6 +2,10 @@
 
 ## 1. 目标
 
+进程原生接口的故障前缀新增当前 DLL／SO 证据，见
+[进程原生接口的真实产品故障验收](stdlib53-b341-process-product-prefixes.md)。
+语言进程完整前缀的产品迁移与 Windows DST 环境验收不由此替代。
+
 完整断言人口的生成 C 与 O0／O2 对象检查见
 [完整标准库清单的严格 C 验收](stdlib53-b340-strict-c-inventory.md)。
 编译覆盖包括宿主／平台条件夹具，但不代替其运行验收。
