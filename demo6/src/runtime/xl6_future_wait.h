@@ -33,7 +33,9 @@ typedef enum XL6_FutureWaitProof {
     XL6_FUTURE_WAIT_CYCLE_MEMBER = 1
 } XL6_FutureWaitProof;
 /* One shared AND/OR proof over the single-input providers above and native
- * ALL/ANY descriptors. Ordered duplicate inputs remain separate edges. An
+ * ALL/ANY descriptors and closed TaskGroup ALL-terminal dependencies. Ordered
+ * duplicate inputs remain separate edges. The group streams its actual active
+ * items into private scratch, without a copied source array or new references. An
  * unknown/ready input may progress: ALL is blocked by any blocked required
  * input, whereas ANY is blocked only when every choice is blocked. After the
  * greatest fixed point, membership requires a path back to this producer

@@ -1,4 +1,5 @@
 #define XRT_MODULE_FUTURE_COMBINE
+#define XRT_MODULE_TASK_GROUP
 #define XRT_MODULE_MEMORY
 #include "lib/xrt/xrt.h"
 #include "xl6_future_wait.h"
@@ -12,23 +13,28 @@ typedef struct WaitDescription {
     xfuture* const* inputs;
     size_t count;
     bool all;
+    xrtownershipref group;
 } WaitDescription;
 static bool describe(xrtownershipref producer, const void* token, WaitDescription* wait)
 {
-    XL6_FutureWaitV1 single = {0}; xfuturecombinewaitv1 multiple = {0};
+    XL6_FutureWaitV1 single = {0}; xfuturecombinewaitv1 multiple = {0}; xtaskgroupwaitv1 group = {0};
     if (!producer.Data || !producer.Ops || !token || !wait) return false;
     /* Closed providers check identity and stable same-claim state before
      * reading Data. Physical adapter admission remains independent. */
     if ((xl6ContinuationFutureWaitV1(producer, token, &single) ||
          xl6CallbackFutureWaitV1(producer, token, &single)) && single.output && single.source &&
         xrtFutureState(single.source) == XFUTURE_PENDING) {
-        *wait = (WaitDescription){xrtPromiseOwnership(single.output), single.source, NULL, 1, true};
+        *wait = (WaitDescription){.output=xrtPromiseOwnership(single.output), .single=single.source, .count=1, .all=true};
         return true;
     }
     if (xrtFutureCombineWaitV1(producer, token, &multiple) && multiple.Output && multiple.Sources && multiple.Count &&
         (multiple.Rule == XFUTURE_WAIT_ALL_TERMINAL || multiple.Rule == XFUTURE_WAIT_ANY_TERMINAL)) {
-        *wait = (WaitDescription){xrtPromiseOwnership(multiple.Output), NULL, multiple.Sources,
-            multiple.Count, multiple.Rule == XFUTURE_WAIT_ALL_TERMINAL};
+        *wait = (WaitDescription){.output=xrtPromiseOwnership(multiple.Output), .inputs=multiple.Sources,
+            .count=multiple.Count, .all=multiple.Rule == XFUTURE_WAIT_ALL_TERMINAL};
+        return true;
+    }
+    if (xrtTaskGroupWaitV1(producer,token,&group,NULL,NULL) && group.Output && group.Count) {
+        *wait = (WaitDescription){.output=xrtPromiseOwnership(group.Output), .count=group.Count, .all=true, .group=producer};
         return true;
     }
     return false;
@@ -104,6 +110,20 @@ static bool add_edge(WaitGraph* graph, size_t source, size_t target)
     graph->edges[graph->edgeCount++] = (WaitEdge){source, target, WAIT_NONE}; return true;
 }
 typedef enum WaitBuild { WAIT_BUILD_RESOURCE = -1, WAIT_BUILD_UNAVAILABLE = 0, WAIT_BUILD_READY = 1 } WaitBuild;
+typedef struct WaitInputs {
+    WaitGraph* graph;
+    const void* token;
+    size_t source, count;
+    bool resource;
+} WaitInputs;
+static bool append_input(xfuture* source, void* data)
+{
+    WaitInputs* inputs=data; xrtownershipref next=source_producer(source,inputs->token); size_t target=WAIT_NONE;
+    if ((next.Data && !add_node(inputs->graph,next,&target)) || !add_edge(inputs->graph,inputs->source,target)) {
+        inputs->resource=true; return false;
+    }
+    ++inputs->count; return true;
+}
 static WaitBuild build_graph(WaitGraph* graph, xrtownershipref producer, const void* token)
 {
     WaitDescription initial = {0}; size_t root;
@@ -113,11 +133,16 @@ static WaitBuild build_graph(WaitGraph* graph, xrtownershipref producer, const v
         WaitDescription wait = {0};
         if (!describe(graph->nodes[i].producer, token, &wait)) return WAIT_BUILD_UNAVAILABLE;
         graph->nodes[i].first = graph->edgeCount; graph->nodes[i].count = wait.count; graph->nodes[i].all = wait.all;
-        for (size_t j = 0; j < wait.count; ++j) {
-            xrtownershipref next = source_producer(wait.inputs ? wait.inputs[j] : wait.single, token); size_t target = WAIT_NONE;
-            if (next.Data && !add_node(graph, next, &target)) return WAIT_BUILD_RESOURCE;
-            if (!add_edge(graph, i, target)) return WAIT_BUILD_RESOURCE;
+        WaitInputs inputs={.graph=graph,.token=token,.source=i};
+        if (wait.group.Data) {
+            xtaskgroupwaitv1 observed={0};
+            if (!xrtTaskGroupWaitV1(wait.group,token,&observed,append_input,&inputs))
+                return inputs.resource ? WAIT_BUILD_RESOURCE : WAIT_BUILD_UNAVAILABLE;
+            if (observed.Count!=wait.count || !same(xrtPromiseOwnership(observed.Output),wait.output)) return WAIT_BUILD_UNAVAILABLE;
+        } else for (size_t j = 0; j < wait.count; ++j) {
+            if (!append_input(wait.inputs ? wait.inputs[j] : wait.single,&inputs)) return WAIT_BUILD_RESOURCE;
         }
+        if (inputs.count!=wait.count) return WAIT_BUILD_UNAVAILABLE;
     }
     return WAIT_BUILD_READY;
 }

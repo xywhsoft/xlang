@@ -34,7 +34,9 @@ static inline bool xl6RestoreOpenRecipeValidV1(const XL6_RestoreOpenV1* open)
 }
 static inline bool xl6RestoreOpenClaimsKeyV1(const XL6_RestoreOpenV1* open,xstrview key)
 {
-    xstrview reserved[]={open->storage,XRT_STR_LITERAL("$xlir.class.runtime-type")};
+    xstrview reserved[2];
+    reserved[0]=open->storage;
+    reserved[1]=XRT_STR_LITERAL("$xlir.class.runtime-type");
     for (size_t i=0;i<2;++i)
         if (reserved[i].Size==key.Size && (!key.Size || !memcmp(reserved[i].Data,key.Data,key.Size))) return true;
     for (size_t i=0;i<open->claimedCount;++i)

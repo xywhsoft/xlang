@@ -25,7 +25,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_continuation_future.c", D(R(QUEUE)), {"XRT_MODULE_FUTURE"}},
     {"src/runtime/xl6_continuation_frame.c", D(R(CAPTURE_V2),R(CODE_LEASE),R(QUEUE),R(FOREIGN_ERROR),R(FUTURE_WAIT)),
         {"XRT_MODULE_THREAD", "XRT_MODULE_FUTURE"}},
-    {"src/runtime/xl6_future_wait.c", D(R(CONTINUATION_FRAME),R(FUTURE_CALLBACK)), {"XRT_MODULE_FUTURE_COMBINE"}},
+    {"src/runtime/xl6_future_wait.c", D(R(CONTINUATION_FRAME),R(FUTURE_CALLBACK)), {"XRT_MODULE_FUTURE_COMBINE", "XRT_MODULE_TASK_GROUP"}},
     {"src/runtime/xl6_capture.c", D(R(CELL),R(CLOSURE),R(FOREIGN_ERROR),R(GENERATOR),R(VALUE_ITERATOR)),
         {"XRT_MODULE_MEMORY", "XRT_MODULE_VALUE", "XRT_MODULE_FUTURE"}},
     {"src/runtime/xl6_value_iterator.c", D(R(ARRAY_VALUE_ITERATOR),R(FOREIGN_ERROR)), {"XRT_MODULE_MEMORY", "XRT_MODULE_ATOMIC", "XRT_MODULE_VALUE_CONTAINER"}},
