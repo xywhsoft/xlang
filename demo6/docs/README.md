@@ -6,6 +6,7 @@
 
 ## 当前权威设计
 
+- [终端共享产品的完整资源账本](stdlib53-b326-terminal-product-ledger.md)：旧源码夹具迁到真实 DLL／SO，保留错误守卫、独立流寿命和完整堆／自有句柄账本；拒绝不匹配私有布局。
 - [启动期 resize 的应用就绪合同](stdlib53-b325-terminal-readiness.md)：保留系统 ConPTY，明确 Windows 10 启动期限制；应用就绪后单次 resize，真实产品与拒绝对照验收。
 - [真实产品与独立程序的标准库验收](stdlib53-b324-current-products.md)：普通产品源闭包、私有 SDK、原生 Future 载荷策略、Array 宿主入口和两端清单执行；保留专用宿主与平台条件。
 - [TaskGroup 原生取消与退役](stdlib53-b323-native-task-group-quiescence.md)：父取消、同步绑定、通知与监听发布的精确 BUSY；无语言 CodeScope 的宿主退役回归。

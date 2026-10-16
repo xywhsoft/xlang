@@ -42,7 +42,8 @@ def main():
         # native code observes callbacks through the embedded SDK; production
         # sources, headers and providers still come exclusively from the build.
         ('aot-graphs',task/'tools/check_stdlib_aot_graph_retirement.py','results.json',True),
-        ('terminal',task/'tools/check_stdlib_terminal_shipping.py','results.json',True)]
+        ('terminal',task/'tools/check_stdlib_terminal_shipping.py','results.json',True),
+        ('terminal-ledger',task/'tools/check_stdlib_terminal_ledger_shipping.py','results.json',True)]
     if not windows:gates.append(('elf','check_stdlib_sync_shipping_elf.py','sync.shipping.elf.json',True))
     products=[root/'release'/n for n in (('xl.exe','xl.dll','xlc.dll') if windows else ('xl','libxl.so','libxlc.so'))]
     recorded={Path(row['Path']).resolve():row['Sha256'] for row in build['Products']}
@@ -72,6 +73,7 @@ def main():
         CandidateCount=len(cases),ExplicitSubset=False,SourceProductAcceptance=True,ProviderOverrides=False,EmbeddedVfsWithoutFallback=True,
         AllExecutablePassed=False,HostedProductAcceptance=False,AotGraphRetirementAcceptance=False,
         TerminalReadinessAcceptance=False,
+        NativeTerminalLedgerAcceptance=False,
         Full53Acceptance=False,FunctionCoverageAcceptance=False,WorkerWideOomAcceptance=False)
     def save():(out/'results.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     def run(name,command,directory=isolated,environment=env,timeout=180):
@@ -149,6 +151,7 @@ def main():
         report['HostedProductAcceptance']=all(c['Passed'] for c in children if c['Name'] in ('graphs','clear'))
         report['AotGraphRetirementAcceptance']=any(c['Name']=='aot-graphs' and c['Passed'] for c in children)
         report['TerminalReadinessAcceptance']=any(c['Name']=='terminal' and c['Passed'] for c in children)
+        report['NativeTerminalLedgerAcceptance']=any(c['Name']=='terminal-ledger' and c['Passed'] for c in children)
         report['UnexecutedRequirements']=[c['Name'] for c in records if c['Status']=='requires-platform']
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
         report['Complete']=report['InputsUnchanged'] and report['AllExecutablePassed'] and len(children)==len(gates) and not failures

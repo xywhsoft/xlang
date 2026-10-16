@@ -32,7 +32,7 @@ fi
 {
     find src lib release/include -type f -print0
     printf '%s\0' "$CC" release/xl release/libxl.so release/libxlc.so build_linux.sh
-    printf '%s\0' tools/check_stdlib_process_run.sh tools/check_stdlib_process_run.ps1 tools/tcc_vfs_manifest_linux_xlc.txt
+    printf '%s\0' tools/check_stdlib_process_run.sh tools/check_stdlib_process_run.ps1 tools/tcc_vfs_manifest_linux_xlc.txt tools/stage_stdlib_process_observer.py
     printf '%s\0' test/cases/xlir_process_run_host.c test/support/process_native.c test/cases/xlir_text_value_contract.c
     printf '%s\0' test/cases/xlir_process_support_host.c
     printf '%s\0' test/cases/xlir_process_live_host.c
@@ -74,7 +74,11 @@ run child-build "$CC" -std=c11 -D_GNU_SOURCE -Wall -Wextra -Werror test/cases/xl
 export XL6_PROCESS_CHILD="$OUT/child"
 sha256sum "$OUT/child" >>"$OUT/inputs.sha256"
 if [[ "$MODE" = --all ]]; then
-run terminal-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_terminal_host.c -pthread -ldl -lm -o "$OUT/terminal-native"
+run terminal-observer-stage python3 tools/stage_stdlib_process_observer.py --root "$ROOT" --out "$OUT/observer"
+sha256sum "$OUT/observer/process_observer_layout.h" >>"$OUT/inputs.sha256"
+# Only the observer host is instrumented here; production backend/adapter code
+# comes from the selected shared product, not a second source implementation.
+run terminal-native-build "$CC" "${strict[@]}" "${sanitize[@]}" -I"$OUT/observer" test/cases/xlir_process_terminal_host.c "${libs[@]}" -lxl -o "$OUT/terminal-native"
 run terminal-native "$OUT/terminal-native" "$OUT/child"
 grep -q 'terminal: real tty/merged stderr, child-observed resize, independent stream leases; 13 guards, heap/owned handles balanced; raw Win32 platform retention=0, no extra handles' "$OUT/terminal-native.log"
 run file-native-build "$CC" "${strict[@]}" "${sanitize[@]}" test/cases/xlir_process_file_host.c -pthread -ldl -lm -o "$OUT/file-native"
