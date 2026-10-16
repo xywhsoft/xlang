@@ -2,6 +2,11 @@
 
 ## 1. 目标
 
+OrderedMap 的 C ABI 标量、bytes 键与泛型逻辑合同见
+[OrderedMap 原生键域与泛型合同](stdlib53-b334-ordered-key-domains.md)。
+复用 XRT typed tree，bytes 使用独立按需 codec；统一直接／嵌套类型准入，
+不在 Cgen 生成比较算法。其他键域和完整 53 模块验收继续。
+
 不可空队列的声明初始化与 OrderedMap 字符键合同见
 [队列初始化与字符键排序](stdlib53-b333-queue-initialization-char-keys.md)。
 按用户决定拒绝无初始化的不可空队列声明，nullable 队列保留延迟创建；

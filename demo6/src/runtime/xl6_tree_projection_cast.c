@@ -2,7 +2,7 @@
 #include "src/runtime/xl6_tree.h"
 #include "src/api/xl_foreign_error.h"
 typedef struct Schema {
-    XL6_TreeLayoutV1 layout;
+    XL6_TreeLayoutV2 layout;
     XL6_SequenceAdmissionV3 key,value;
 } Schema;
 static bool capture(void* raw,const xvalue* witness)

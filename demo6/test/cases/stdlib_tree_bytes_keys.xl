@@ -1,0 +1,52 @@
+OrderedMap<bytes, string> globalBytesMap
+class BinaryKeyOwner
+    OrderedMap<bytes, int> values
+end
+func main(...) as int
+    auto values = OrderedMap::<bytes, string>()
+    bytes key = b"a\0b"
+    assert(values.set(key, "captured\0你"))
+    key[0] = uint8(120)
+    assert(values.contains(b"a\0b") and not values.contains(key))
+    assert(values.set(b"", "empty") and values.set(b"\0", "zero"))
+    assert(values.set(b"a", "prefix") and values.set(b"a\0", "prefix-nul"))
+    assert(values.set(b"\xff", "last"))
+    auto first, firstValue = values.first()
+    auto last, lastValue = values.last()
+    assert(first == b"" and firstValue == "empty" and last == b"\xff" and lastValue == "last")
+    auto lower, lowerValue = values.lowerBound(b"a\0a")
+    auto upper, upperValue = values.upperBound(b"a\0b")
+    assert(lower == b"a\0b" and lowerValue == "captured\0你")
+    assert(upper == b"\xff" and upperValue == "last")
+    auto found, optionalKey, optionalValue = values.tryFirst()
+    assert(found and optionalKey != null and optionalKey == b"" and optionalValue != null and optionalValue == "empty")
+    auto absent, noValue = values.tryGet(b"missing")
+    assert(not absent and noValue == null)
+    auto keys = values.keys()
+    assert(keys.length == 6 and keys[4] == b"a\0b")
+    bytes projected = keys[4]
+    projected[0] = uint8(121)
+    keys[4] = projected
+    last[0] = uint8(122)
+    assert(values.contains(b"a\0b") and values.contains(b"\xff"))
+    auto copy = values.clone()
+    assert(copy.equals(values))
+    assert(copy.remove(b"a\0b") and values.contains(b"a\0b"))
+    assert(copy.take(b"a") == "prefix" and not copy.contains(b"a"))
+    assert(globalBytesMap.set(b"x\0", "global") and globalBytesMap.get(b"x\0") == "global")
+    auto owner = BinaryKeyOwner()
+    auto other = BinaryKeyOwner()
+    assert(owner.values.set(b"a\0", 17) and owner.values.get(b"a\0") == 17)
+    assert(other.values.count() == 0)
+    auto nested = array[values]
+    auto nestedValues = nested[0]
+    assert(nestedValues.contains(b"a\0b"))
+    int rejected = 0
+    try
+        auto unused = values.get(b"missing")
+    catch RangeError
+        rejected += 1
+    end
+    assert(rejected == 1)
+    return 0
+end

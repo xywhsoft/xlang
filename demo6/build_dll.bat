@@ -411,6 +411,7 @@ echo Building DEMO6 xl.dll runtime...
     src\runtime\xl6_array_producer.c ^
     src\runtime\xl6_tree_projection.c ^
     src\runtime\xl6_tree.c ^
+    src\runtime\xl6_tree_bytes_key.c ^
     src\runtime\xl6_tree_admission.c ^
     src\runtime\xl6_semaphore.c ^
     src\runtime\xl6_array_semaphore_admission.c ^
@@ -712,6 +713,7 @@ echo Building DEMO6 xlc.dll compiler runtime...
     src\runtime\xl6_array_producer.c ^
     src\runtime\xl6_tree_projection.c ^
     src\runtime\xl6_tree.c ^
+    src\runtime\xl6_tree_bytes_key.c ^
     src\runtime\xl6_tree_admission.c ^
     src\runtime\xl6_semaphore.c ^
     src\runtime\xl6_array_semaphore_admission.c ^

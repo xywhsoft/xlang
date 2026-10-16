@@ -3,9 +3,9 @@
 #include <limits.h>
 #include <stdlib.h>
 
-xvalue* xl6TypedTreeProjectTakeV1(xtypedtree* tree, bool keys, xvalue* seed,
+xvalue* xl6TypedTreeProjectTakeV2(xtypedtree* tree, bool keys, xvalue* seed,
     uint64_t identity, uint64_t element, unsigned int transfer, size_t size,
-    const xrttype* type, const xvalueconverter* projection)
+    const xrttype* type, const xvalueconverter* projection,const XL6_TreeKeyCodecV1* codec)
 {
     xl6_error_scope scope={0};
     /* A failed factory's existing outcome is part of this construction, not
@@ -15,10 +15,12 @@ xvalue* xl6TypedTreeProjectTakeV1(xtypedtree* tree, bool keys, xvalue* seed,
     XL6_Sequence* target=NULL;
     xtypedtreeiter iterator={0};
     bool started=false, success=false;
+    const xrttype* sourceType=codec ? codec->type : keys ? type : xl6SequenceStorageTypeV1(transfer,type);
     if (!seed) goto done;
-    if (!tree || !xl6SequenceAdmitsArrayV1(seed,identity) ||
-        (keys ? xrtTypedTreeKeyType(tree) : xrtTypedTreeValueType(tree))!=
-            (keys ? type : xl6SequenceStorageTypeV1(transfer,type))) {
+    if (!tree || !sourceType || (codec && (!keys || codec->abi!=XL6_TREE_BYTES_CODEC_ABI_V1 ||
+            transfer!=3 || type!=xrtTypeValue())) || sourceType->Size!=size ||
+        !xl6SequenceAdmitsArrayV1(seed,identity) ||
+        (keys ? xrtTypedTreeKeyType(tree) : xrtTypedTreeValueType(tree))!=sourceType) {
         if (!xrtGetError()) xrtSetErrorKind(XERR_TYPE);
         goto done;
     }
@@ -37,6 +39,9 @@ xvalue* xl6TypedTreeProjectTakeV1(xtypedtree* tree, bool keys, xvalue* seed,
     const void* value;
     while ((value=xrtTypedTreeIterNext(&iterator,&key))!=NULL) {
         const void* slot=keys ? key : value;
+        /* The only custom key codec owns immutable byte atoms. Copying the
+         * reference into a new Array slot preserves language value semantics;
+         * no per-key staging allocation or mutable-shell alias is necessary. */
         if (!xl6SequenceAdmitSlotV1(target,slot) || !xrtTypedArrayPush(storage,slot)) goto done;
     }
     if (xrtGetError() || xrtTypedArrayCount(storage)!=count) goto done;

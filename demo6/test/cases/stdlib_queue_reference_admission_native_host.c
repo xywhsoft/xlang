@@ -75,7 +75,7 @@ static void vectors(void)
         xrtValueRelease(wrong); xrtValueRelease(good); xrtValueRelease(array);
     }
 }
-static xvalue* keys(const XL6_TreeLayoutV1* tree)
+static xvalue* keys(const XL6_TreeLayoutV2* tree)
 {
     return xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,tree->key.identity,tree->key.elementIdentity,
         1,sizeof(int64_t),xrtTypeInt64(),XL6_VALUE_ADMIT_I64,false,tree->key.elementIdentity);
@@ -88,7 +88,7 @@ static xvalue* chain(unsigned int rule)
         assert(xl6SequenceSchemaCopyV1(result,&role,&child,&policy)); xl6SequenceAdmissionDropV3(&policy);
         if (depth%4==0) result=xl6SequenceNestedCreateTakeV2(XL6_SEQUENCE_ARRAY_V1,100+depth,child.identity,result,false);
         else if (depth%4==1) {
-            XL6_TreeLayoutV1 tree={10000+depth,2,{20000+depth,500,1,sizeof(int64_t),xrtTypeInt64()},child};
+            XL6_TreeLayoutV2 tree={10000+depth,2,{20000+depth,500,1,sizeof(int64_t),xrtTypeInt64()},child,NULL};
             result=xl6SequenceTreeCreateTakeV1(XL6_SEQUENCE_ARRAY_V1,100+depth,tree.identity,&tree,keys(&tree),result,false);
         } else result=families[depth%3].Schema(XL6_SEQUENCE_ARRAY_V1,100+depth,10000+depth,10000+depth,result,false);
     }

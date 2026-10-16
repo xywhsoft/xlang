@@ -13,6 +13,8 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('root','build-report','out'):p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--reuse-report',type=Path,help='Reuse only complete, unchanged child gates from the same actual products')
+    p.add_argument('--reuse-child-report',action='append',default=[],metavar='NAME=REPORT',
+        help='Reuse one independently completed gate only after verifying its current runner, inputs and exact build/products')
     stdlib_fixture_inputs.add_arguments(p)
     p.add_argument('--jobs',type=int,default=2);a=p.parse_args()
     root,out=a.root.resolve(),a.out.resolve();assert not out.exists() and 1<=a.jobs<=4
@@ -53,7 +55,8 @@ def main():
         ('worker-fault',task/'tools/check_stdlib_worker_fault_shipping.py','results.json',True),
         ('worker-completion',task/'tools/check_stdlib_worker_completion_shipping.py','results.json',True),
         ('native-future-policy',task/'tools/check_stdlib_native_future_policy_shipping.py','results.json',True),
-        ('native-defaults',task/'tools/check_stdlib_native_defaults.py','results.json',True)]
+        ('native-defaults',task/'tools/check_stdlib_native_defaults.py','results.json',True),
+        ('tree-keys',task/'tools/check_stdlib_tree_keys_shipping.py','results.json',True)]
     if not windows:
         gates.append(('elf','check_stdlib_sync_shipping_elf.py','sync.shipping.elf.json',True))
         gates.append(('native-public',task/'tools/check_stdlib_intrinsic_coverage.py','results.json',True))
@@ -67,10 +70,17 @@ def main():
         assert prior_inputs.get(a.build_report.resolve())==sha(a.build_report)
         assert all(prior_inputs.get(f)==sha(f) for f in products),'Reuse requires identical actual products'
         cached={r['Name']:r for r in prior['Children'] if r['Passed']}
+    supplied={}
+    for entry in a.reuse_child_report:
+        name,path=entry.split('=',1);path=Path(path).resolve()
+        assert name in {g[0] for g in gates} and name not in supplied,'Unknown or duplicate child report'
+        supplied[name]=path
+        cached[name]=dict(Name=name,Report=str(path),Sha256=sha(path),Passed=True,Exit=0)
     files={Path(__file__).resolve(),Path(stdlib_fixture_inputs.__file__).resolve(),Path(cc),Path(sys.executable),a.build_report.resolve(),host,quote,pathFixture,pathHost,
         Path(inventory.__file__),Path(execution.__file__),root/'test/cases/stdlib_string_support.c',childSource,*cases}
     files.update(root/'tools'/g[1] for g in gates)
     if a.reuse_report:files.add(a.reuse_report.resolve())
+    files.update(supplied.values())
     files.update(root/'test/cases'/name for name in execution.FIXTURE_C_SUPPORT.values())
     for row in build['Inputs']+build['Products']:assert sha(row['Path'])==row['Sha256'];files.add(Path(row['Path']))
     inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(files)]
@@ -149,6 +159,12 @@ def main():
                     path=Path(old['Report']);assert sha(path)==old['Sha256']
                     body=json.loads(path.read_text(encoding='utf-8-sig'))
                     assert body['Complete'] and body['InputsUnchanged'] and not body.get('Failures',[]) and not body.get('Errors',[])
+                    childInputs={Path(r['Path']).resolve():r['Sha256'].lower() for r in body['Inputs']}
+                    runner=(root/'tools'/script).resolve()
+                    assert childInputs.get(runner)==sha(runner),'Cached child must use the current gate runner'
+                    if name in supplied:
+                        assert childInputs.get(a.build_report.resolve())==sha(a.build_report)
+                        assert all(childInputs.get(f)==sha(f) for f in products),'Independent child uses different products'
                     if name=='native-public':
                         assert body.get('FixtureSourceUpdates',[])==[str(p.resolve()) for p in a.fixture_source]
                     for r in body['Inputs']+body.get('Products',[])+body.get('Objects',[]):
@@ -195,6 +211,7 @@ def main():
         report['NativeTaskWorkerCompletionAcceptance']=any(c['Name']=='worker-completion' and c['Passed'] for c in children)
         report['NativeFuturePolicyAcceptance']=any(c['Name']=='native-future-policy' and c['Passed'] for c in children)
         report['NativeDefaultRecipeAcceptance']=any(c['Name']=='native-defaults' and c['Passed'] for c in children)
+        report['NativeOrderedKeyAcceptance']=any(c['Name']=='tree-keys' and c['Passed'] for c in children)
         report['NativePublicBindingAcceptance']=any(c['Name']=='native-public' and c['Passed'] for c in children)
         report['UnexecutedRequirements']=[c['Name'] for c in records if c['Status']=='requires-platform']
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)

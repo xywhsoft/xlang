@@ -330,6 +330,7 @@ RUNTIME_SOURCES=(
     "$ROOT/src/runtime/xl6_array_producer.c"
     "$ROOT/src/runtime/xl6_tree_projection.c"
     "$ROOT/src/runtime/xl6_tree.c"
+    "$ROOT/src/runtime/xl6_tree_bytes_key.c"
     "$ROOT/src/runtime/xl6_semaphore.c"
     "$ROOT/src/runtime/xl6_array_semaphore_admission.c"
     "$ROOT/src/runtime/xl6_sync.c"

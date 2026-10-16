@@ -206,7 +206,7 @@ int xl6IrCgenEmitHeader(
     xl6IrCgenCollectHeaderTypeNeeds(module, &opaqueNeeds, publicTypes);
     xl6OutputPrintf(out, "#ifndef %s\n#define %s\n\n", guardName, guardName);
     xl6IrCgenEmitPublicLinkage(out);
-    xl6OutputPuts("#include <stdbool.h>\n#include <stddef.h>\n#include <stdint.h>\n#include <stdlib.h>\n#include <wchar.h>\n", out);
+    xl6OutputPuts("#include <stdbool.h>\n#include <stddef.h>\n#include <stdint.h>\n#include <limits.h>\n#include <stdlib.h>\n#include <wchar.h>\n", out);
     if ( opaqueNeeds.string )
         xl6OutputPuts("#include <__xl_runtime/xruntime_decl.h>\n"
                       "/* Data/Size are exact UTF-8 bytes; Data[Size] is a trailing NUL sentinel. */\n"

@@ -30,20 +30,20 @@ static xvalue* seed(const XL6_SequenceLayoutV1* field,unsigned rule,bool nullabl
         xl6SequencePrimitiveCreateV1(XL6_SEQUENCE_ARRAY_V1,field->identity,field->elementIdentity,
             field->transfer,field->size,field->type,rule,nullable,field->elementIdentity);
 }
-static XL6_TreeLayoutV1 tuple(unsigned keyTransfer,const xrttype* key,unsigned order,
+static XL6_TreeLayoutV2 tuple(unsigned keyTransfer,const xrttype* key,unsigned order,
     unsigned transfer,const xrttype* value)
 {
-    return (XL6_TreeLayoutV1){UINT64_C(0xD370),order,
+    return (XL6_TreeLayoutV2){UINT64_C(0xD370),order,
         {UINT64_C(0xD371),UINT64_C(0xD372),keyTransfer,key->Size,key},
-        {UINT64_C(0xD373),UINT64_C(0xD374),transfer,value->Size,value}};
+        {UINT64_C(0xD373),UINT64_C(0xD374),transfer,value->Size,value},NULL};
 }
-static xvalue* create(const XL6_TreeLayoutV1* layout,unsigned keyRule,unsigned rule,bool nullable)
+static xvalue* create(const XL6_TreeLayoutV2* layout,unsigned keyRule,unsigned rule,bool nullable)
 {
     xvalue* keys=seed(&layout->key,keyRule,false); assert(keys);
     xvalue* values=seed(&layout->value,rule,nullable); assert(values);
     xvalue* tree=xl6TreeCreateTakeV1(layout,keys,values); assert(tree); return tree;
 }
-static bool query(const xvalue* tree,const XL6_TreeLayoutV1* layout,XL6_TreeQueryV2 op,
+static bool query(const xvalue* tree,const XL6_TreeLayoutV2* layout,XL6_TreeQueryV2 op,
     const void* search,bool required,void* key,void* value,bool* found)
 {
     return xl6TreeQueryV2(tree,layout,op,search,required,
@@ -52,7 +52,7 @@ static bool query(const xvalue* tree,const XL6_TreeLayoutV1* layout,XL6_TreeQuer
 }
 static void integers(void)
 {
-    XL6_TreeLayoutV1 layout=tuple(1,xrtTypeInt64(),2,1,xrtTypeInt64());
+    XL6_TreeLayoutV2 layout=tuple(1,xrtTypeInt64(),2,1,xrtTypeInt64());
     xvalue* tree=create(&layout,XL6_VALUE_ADMIT_I64,XL6_VALUE_ADMIT_I64,false);
     int64_t search=2,key=99,value=99; bool found=false;
     for (unsigned op=0;op<=XL6_TREE_QUERY_UPPER_V2;++op) {
@@ -85,7 +85,7 @@ static void integers(void)
 }
 static void text(void)
 {
-    XL6_TreeLayoutV1 layout=tuple(2,xl6StringTypeV1(),5,2,xl6StringTypeV1());
+    XL6_TreeLayoutV2 layout=tuple(2,xl6StringTypeV1(),5,2,xl6StringTypeV1());
     xvalue* tree=create(&layout,XL6_VALUE_ADMIT_STRING,XL6_VALUE_ADMIT_STRING,false);
     xstrview key={"a\0b",3},value={"\xE4\xBD\xA0\0\xE5\xA5\xBD",7},keyOut={0},valueOut={0};
     assert(xl6TreeSetV1(tree,&layout,&key,&value)); bool found=false;
@@ -103,7 +103,7 @@ static void text(void)
 }
 static void reference(void)
 {
-    XL6_TreeLayoutV1 layout=tuple(1,xrtTypeInt64(),2,3,xrtTypeValue());
+    XL6_TreeLayoutV2 layout=tuple(1,xrtTypeInt64(),2,3,xrtTypeValue());
     xvalue* tree=create(&layout,XL6_VALUE_ADMIT_I64,XL6_VALUE_ADMIT_ANY,true);
     int64_t key=1,keyOut=0; xvalue* item=NULL; xvalue* output=NULL; bool found=false;
     assert(xl6TreeSetV1(tree,&layout,&key,&item));
@@ -122,7 +122,7 @@ static void reference(void)
 }
 static void nullable(void)
 {
-    XL6_TreeLayoutV1 layout=tuple(1,xrtTypeInt64(),2,1,xl6NullableI64TypeV1());
+    XL6_TreeLayoutV2 layout=tuple(1,xrtTypeInt64(),2,1,xl6NullableI64TypeV1());
     xvalue* tree=create(&layout,XL6_VALUE_ADMIT_I64,XL6_VALUE_ADMIT_I64,true);
     int64_t key=1; XL6_NullableI64V1 empty={0},out={.hasValue=true,.value=8}; bool found=false;
     assert(xl6TreeSetV1(tree,&layout,&key,&empty));
@@ -142,7 +142,7 @@ static void nullable(void)
 }
 static void rejected(void)
 {
-    XL6_TreeLayoutV1 layout=tuple(1,xrtTypeInt64(),2,1,xrtTypeInt64());
+    XL6_TreeLayoutV2 layout=tuple(1,xrtTypeInt64(),2,1,xrtTypeInt64());
     xvalue* tree=create(&layout,XL6_VALUE_ADMIT_I64,XL6_VALUE_ADMIT_I64,false);
     int64_t search=1,key=71,value=72; bool found=true;
     assert(xl6TreeSetV1(tree,&layout,&search,&value));
@@ -174,7 +174,7 @@ static void rejected(void)
 }
 static void fault(const char* mode,size_t point)
 {
-    XL6_TreeLayoutV1 layout=tuple(2,xl6StringTypeV1(),5,2,xl6StringTypeV1());
+    XL6_TreeLayoutV2 layout=tuple(2,xl6StringTypeV1(),5,2,xl6StringTypeV1());
     xvalue* tree=create(&layout,XL6_VALUE_ADMIT_STRING,XL6_VALUE_ADMIT_STRING,false);
     xstrview key={"a\0b",3},item={"\xE4\xBD\xA0\0b",5},keyOut={0},out={0};
     assert(xl6TreeSetV1(tree,&layout,&key,&item));
@@ -199,7 +199,7 @@ static void copyFaults(void)
 {
     for (unsigned at=1;at<=2;++at) for(unsigned reported=0;reported<=1;++reported)
     for(unsigned partial=0;partial<=1;++partial) {
-        XL6_TreeLayoutV1 layout=tuple(2,xl6StringTypeV1(),5,2,xl6StringTypeV1());
+        XL6_TreeLayoutV2 layout=tuple(2,xl6StringTypeV1(),5,2,xl6StringTypeV1());
         xvalue* tree=create(&layout,XL6_VALUE_ADMIT_STRING,XL6_VALUE_ADMIT_STRING,false);
         xstrview key={"a\0b",3},item={"v\0w",3},keyOut={0},out={0}; bool found=false;
         assert(xl6TreeSetV1(tree,&layout,&key,&item));

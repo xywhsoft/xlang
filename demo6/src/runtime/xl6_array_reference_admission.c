@@ -50,3 +50,13 @@ bool xl6SequenceReferenceAnyPolicyV1(XL6_Sequence* owner,uint64_t element)
     bool matches=xl6ReferenceAnyAdmissionV1(&admission,element);
     xl6SequenceAdmissionDropV3(&admission); return matches;
 }
+
+bool xl6ReferenceBytesAdmissionV1(const XL6_SequenceAdmissionV3* policy,uint64_t element)
+{
+    if (!policy || !element || policy->elementIdentity!=element || policy->transfer!=3 ||
+        policy->size!=sizeof(xvalue*) || policy->type!=xrtTypeValue() ||
+        policy->ops!=&bytesOps || !policy->data || policy->boxedIdentity) return false;
+    const XL6_ArrayAdmissionData* data=policy->data;
+    return data->rule==XL6_VALUE_ADMIT_BYTES && !data->nullable && data->identity==element &&
+        !data->childRole && !data->nominal.kind;
+}

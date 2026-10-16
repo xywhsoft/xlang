@@ -151,6 +151,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_array_producer.c',
     'src/runtime/xl6_tree_projection.c',
     'src/runtime/xl6_tree.c',
+    'src/runtime/xl6_tree_bytes_key.c',
     'src/runtime/xl6_tree_admission.c',
     'src/runtime/xl6_semaphore.c','src/runtime/xl6_array_semaphore_admission.c',
     'src/runtime/xl6_sync.c','src/runtime/xl6_mutex.c','src/runtime/xl6_cond.c','src/runtime/xl6_rwlock.c',

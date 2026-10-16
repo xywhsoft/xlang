@@ -15743,28 +15743,7 @@ static XL6_IrRuntimeResourceKeyOrderAbi
 xl6IrLowerRuntimeResourceKeyOrderAbiForType(
     const XL6_IrModule* module, XL6_IrTypeId typeId)
 {
-    const XL6_IrType* type = module != NULL
-        ? xl6IrTypeGet(&module->types, typeId) : NULL;
-    if ( type == NULL || type->typeValueId == 0 )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
-    if ( type->cAbi == XL6_IR_C_ABI_BOOL )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_BOOL;
-    if ( type->cAbi == XL6_IR_C_ABI_CHAR_U32 )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_CHAR;
-    if ( type->cAbi == XL6_IR_C_ABI_I64 ||
-         type->cAbi == XL6_IR_C_ABI_TIME_I64 )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_SIGNED_I64;
-    if ( type->cAbi == XL6_IR_C_ABI_U64 )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_UNSIGNED_U64;
-    if ( type->cAbi == XL6_IR_C_ABI_TYPE_ID )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_TYPE_ID;
-    if ( type->cAbi == XL6_IR_C_ABI_F64 ||
-         type->cAbi == XL6_IR_C_ABI_F32 )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_FLOAT_TOTAL;
-    if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING &&
-         type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED )
-        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_STRING;
-    return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
+    return xl6IrOrderedKeyAbi(module ? xl6IrTypeGet(&module->types,typeId) : NULL);
 }
 
 static int xl6IrLowerRuntimeResourceOpIsChannel(

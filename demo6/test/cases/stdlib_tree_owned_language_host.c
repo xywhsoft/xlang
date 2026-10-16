@@ -8,9 +8,9 @@
 #ifdef XL6_TREE_QUERY_TEST_FAULTS
 static size_t point,seen;
 static bool armed;
-extern bool __real_xl6TreeQueryV2(const xvalue*,const XL6_TreeLayoutV1*,
+extern bool __real_xl6TreeQueryV2(const xvalue*,const XL6_TreeLayoutV2*,
     XL6_TreeQueryV2,const void*,bool,XL6_TreeQuerySlotV2,XL6_TreeQuerySlotV2,bool*);
-bool __wrap_xl6TreeQueryV2(const xvalue* owner,const XL6_TreeLayoutV1* layout,
+bool __wrap_xl6TreeQueryV2(const xvalue* owner,const XL6_TreeLayoutV2* layout,
     XL6_TreeQueryV2 operation,const void* search,bool required,
     XL6_TreeQuerySlotV2 key,XL6_TreeQuerySlotV2 value,bool* found)
 {
