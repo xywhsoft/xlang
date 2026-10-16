@@ -1,4 +1,4 @@
-#include "xl6_io_private.h"
+#include "xl6_io_private.inc"
 
 static void* xlir_io_reader_snapshot(xbytesview view)
 { xbuffer* buffer = xrtBufferFrom(view); xreader* stream; xerror* error;

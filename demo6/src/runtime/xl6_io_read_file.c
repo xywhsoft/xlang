@@ -1,4 +1,4 @@
-#include "xl6_io_private.h"
+#include "xl6_io_private.inc"
 
 XL6_TEXT_API xvalue* xl6_xrt_io_read_file(xstrview path, int64_t limit)
 { const char* name; xreader* reader; xbuffer* buffer; unsigned char* data;

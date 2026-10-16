@@ -1,4 +1,4 @@
-#include "xl6_io_private.h"
+#include "xl6_io_private.inc"
 
 static int64_t xlir_io_write(void* handle, xbytesview view, int64_t limit, bool all)
 { xwriter* w; size_t count, done = 0;

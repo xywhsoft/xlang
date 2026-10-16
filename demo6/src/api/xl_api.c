@@ -1938,8 +1938,21 @@ static int xlPrepareRuntimeArg(
     *pArg = NULL;
     if ( pSuppliedArg != NULL ) {
         if ( xrtValueType(pSuppliedArg) != XVALUE_ARRAY ) {
-            xlSetError(ctx, "script arg must be array");
-            return 0;
+            /* Canonical language Arrays are resident typed carriers, not
+             * XVALUE_ARRAY wire values. Admit only a live, bound ARRAY role;
+             * the generated entry still checks/imports its element contract.
+             * Never retag another handle or probe foreign callback tables. */
+            XL6_Sequence* sequence = NULL;
+            XL6_SequenceLayoutV1 layout;
+            const xvalueconverter* converter = NULL;
+            int status = xl6SequenceBeginErasedArrayV1(pSuppliedArg, &sequence, &layout, &converter);
+            if ( status > 0 ) xl6SequenceEndV1(sequence);
+            else {
+                if ( status == 0 ) xrtSetErrorKind(XERR_TYPE);
+                xlSetError(ctx, "script arg must be an admitted array");
+                ctx->lastExitCode = 1;
+                return 0;
+            }
         }
         *pArg = xrtValueRetain(pSuppliedArg);
         return *pArg != NULL;

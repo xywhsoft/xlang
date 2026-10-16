@@ -1,4 +1,4 @@
-#include "xl6_io_private.h"
+#include "xl6_io_private.inc"
 
 XL6_TEXT_API int64_t xl6_xrt_io_copy(void* source, void* target, int64_t limit, int64_t mode)
 { xreader* r = xlir_io_reader_get(source); xwriter* w = xlir_io_writer_get(target);

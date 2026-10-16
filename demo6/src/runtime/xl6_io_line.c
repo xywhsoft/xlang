@@ -1,4 +1,4 @@
-#include "xl6_io_private.h"
+#include "xl6_io_private.inc"
 
 typedef struct xlir_io_lines { xlinereader* stream; xlineview view; bool hasLine; unsigned origin; xrtownershipref contextOwner; } xlir_io_lines;
 

@@ -24,7 +24,11 @@ static void transaction(const char* runtime,const char* source,const char* tempo
     int ok=xlRunModuleMain(context,module,NULL);
     if(!ok)fprintf(stderr,"clear main: %s\n",xlGetLastError(context));
     assert(ok && xlGetLastExitCode(context)==0 && !xrtGetError());
-    xlDestroyModule(module);xlDestroyContext(context);xlRuntimeUnit();
+    xlDestroyModule(module);xlDestroyContext(context);
+    XL_RuntimeDrainResult drained=xlRuntimeDrainRetiringChecked(5000);
+    if(!drained.ready || !drained.ok)fprintf(stderr,"clear drain: ready=%d ok=%d error=%s\n",drained.ready,drained.ok,xrtGetError()?xrtErrorMessage(xrtGetError()):"none");
+    assert(drained.ready && drained.ok && !xrtGetError());
+    xlRuntimeUnit();
     assert(!xrtGetError());
 }
 int main(int argc,char** argv)

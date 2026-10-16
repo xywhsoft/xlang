@@ -1,4 +1,4 @@
-#include "xl6_io_private.h"
+#include "xl6_io_private.inc"
 
 static void xlir_io_buffer_drop(void* owner) { xrtBufferDestroy((xbuffer*)owner); }
 XL6_TEXT_API void* xl6_xrt_io_writer_buffer(void)

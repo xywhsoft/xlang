@@ -33,6 +33,8 @@ require_tool "$CC"
 require_tool "$MAKE"
 require_tool "$PYTHON"
 
+"$PYTHON" "$ROOT/tools/check_stdlib_shipping_sources.py" --root "$ROOT"
+
 mkdir -p "$BUILD_DIR" "$TCC_DIST_DIR/include" "$TCC_DIST_DIR/lib" "$ROOT/release"
 
 "$PYTHON" "$ROOT/tools/sync_xrt_snapshot.py" --root "$ROOT" --check
@@ -545,6 +547,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_ownership_domain_resource_fs_lock.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_resource_fs_root.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_resource_task_group.c"
+	"$ROOT/src/runtime/xl6_ownership_domain_native_future_payload.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_resource_vfs_core.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_resource_vfs_memory.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_resource_vfs_disk.c"

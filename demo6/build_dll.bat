@@ -25,6 +25,9 @@ if not exist "%XL6_RELEASE_DIR%" mkdir "%XL6_RELEASE_DIR%"
 if not exist build mkdir build
 if not exist "%XL6_BUILD_TMP%" mkdir "%XL6_BUILD_TMP%"
 
+python tools\check_stdlib_shipping_sources.py --root "%XL6_ROOT%"
+if errorlevel 1 exit /b 1
+
 powershell -NoProfile -ExecutionPolicy Bypass -File tools\check_xrt_snapshot.ps1 -Root "%XL6_ROOT%"
 if errorlevel 1 (
     echo DEMO6 DLL build failed: XRT snapshot is stale.
@@ -129,6 +132,12 @@ if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_fs_root.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_fs_root.o"
 if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_task_group.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_task_group.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_process_future.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_process_future.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_task_group_future.c -o "%XL6_BUILD_TMP%\xl6_task_group_future.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_native_future_payload.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_native_future_payload.o"
 if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_read_file.c -o "%XL6_BUILD_TMP%\xl6_io_read_file.o"
 if errorlevel 1 exit /b 1

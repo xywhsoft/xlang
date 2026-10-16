@@ -7,7 +7,12 @@
 #include <stdio.h>
 #include <string.h>
 
-static size_t observed[11],calls;
+enum { policyGroupCount=0
+#define COUNT_POLICY(Name, Type) +1
+    XL6_OWNERSHIP_POLICY_GROUPS(COUNT_POLICY)
+#undef COUNT_POLICY
+};
+static size_t observed[policyGroupCount],calls;
 static bool inspect(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
     const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,
     const XL6_OwnershipFinishV1** completion)
@@ -30,7 +35,7 @@ static const XL6_OwnershipDomainV1* const* allDomains(size_t* count)
 #define XL6_OWNERSHIP_DOMAIN_ENTRY(Producer, Component, Getter) domains[n++]=Getter();
 #include "src/runtime/xl6_ownership_domains.inc"
 #undef XL6_OWNERSHIP_DOMAIN_ENTRY
-    assert(n==76);domains[n++]=&observer;*count=n;return domains;
+    assert(n+1==capacity);domains[n++]=&observer;*count=n;return domains;
 }
 static bool forbiddenCount(const void* data,size_t* count)
 { (void)data;(void)count;++calls;return false; }
@@ -99,7 +104,7 @@ static void basic(void)
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);size_t count=0;
     const XL6_OwnershipDomainV1* const* domains=allDomains(&count);
     XL6_OwnershipCatalog* catalog=xl6OwnershipCatalogCreateV1(domains,count);assert(catalog);admit(catalog);
-    const size_t expected[]={5,48,11,6,3,1,3,1,1,1,1};
+    const size_t expected[]={5,49,12,7,4,1,5,1,1,1,1,10};
     assert(sizeof(expected)==sizeof(observed) && !memcmp(expected,observed,sizeof(expected)));
     assert(!xl6OwnershipCatalogAddSequenceV1(catalog,xl6ArrayFutureAdmissionOpsV2Get()));xrtClearError();admit(catalog);
     xl6OwnershipCatalogDestroyV1(catalog);balanced(&before);
@@ -161,6 +166,7 @@ static void plans(void)
     assert(plan.domainCount==1 && !strcmp(plan.domains[0],"xl6OwnershipDomainSequenceV1Get"));
     assert(!xl6ArtifactRuntimeSetHas(&plan.runtime.components,XL6_ARTIFACT_NETWORK_SERVICE));
     assert(!xl6ArtifactRuntimeSetHas(&plan.runtime.components,XL6_ARTIFACT_FUTURE_PAYLOAD));
+    assert(!xl6ArtifactRuntimeSetHas(&plan.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_NATIVE_FUTURE_PAYLOAD));
     base.sources[0]="src/runtime/not_the_verified_provider.c";
     memset(&plan,0xA5,sizeof(plan));assert(!xl6ArtifactOwnershipPlanBuild(&base,&plan));
     XL6_ArtifactOwnershipPlan empty={0};assert(!memcmp(&plan,&empty,sizeof(plan)));
@@ -168,6 +174,11 @@ static void plans(void)
     base.components=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_STACK);
     memset(&plan,0xA5,sizeof(plan));assert(!xl6ArtifactOwnershipPlanBuild(&base,&plan));
     assert(!memcmp(&plan,&empty,sizeof(plan)));
+    roots=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_NATIVE_FUTURE_PAYLOAD);
+    assert(xl6ArtifactRuntimeClosePlan(&roots,&base) && xl6ArtifactOwnershipPlanBuild(&base,&plan));
+    assert(xl6ArtifactRuntimeSetHas(&plan.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_NATIVE_FUTURE_PAYLOAD));
+    assert(!xl6ArtifactRuntimeSetHas(&plan.runtime.components,XL6_ARTIFACT_FUTURE_PAYLOAD));
+    assert(!xl6ArtifactRuntimeSetHas(&plan.runtime.components,XL6_ARTIFACT_NETWORK_SERVICE));
     puts("ownership policy plan: exact closure, no fallback or network/Future over-selection, corrupt input leaves zero output");
 }
 int main(int argc,char** argv)

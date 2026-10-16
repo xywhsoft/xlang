@@ -6,6 +6,7 @@
 
 ## 当前权威设计
 
+- [真实产品与独立程序的标准库验收](stdlib53-b324-current-products.md)：普通产品源闭包、私有 SDK、原生 Future 载荷策略、Array 宿主入口和两端清单执行；保留专用宿主与平台条件。
 - [TaskGroup 原生取消与退役](stdlib53-b323-native-task-group-quiescence.md)：父取消、同步绑定、通知与监听发布的精确 BUSY；无语言 CodeScope 的宿主退役回归。
 - [TaskGroup 语言拥有域与清理合同](stdlib53-b322-task-group-catalog.md)：精确句柄域、暂态准入、统一 V4 服务退役及宿主／独立程序退出清理；发布总门继续。
 - [TaskGroup 的等待依赖与清理准备](stdlib53-b321-task-group-wait.md)：真实活动项、正常关闭、稳定完成态节点与生产等待求解器；全局语言准入继续协调。

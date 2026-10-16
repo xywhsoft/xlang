@@ -1,4 +1,4 @@
-#include "xl6_io_private.h"
+#include "xl6_io_private.inc"
 
 static bool xlir_io_reader_close(void* handle)
 {

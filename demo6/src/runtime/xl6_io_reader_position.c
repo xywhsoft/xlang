@@ -1,4 +1,4 @@
-#include "xl6_io_private.h"
+#include "xl6_io_private.inc"
 
 XL6_TEXT_API int64_t xl6_xrt_io_reader_tell(void* handle)
 { xreader* r = xlir_io_reader_get(handle); uint64_t value = 0;
