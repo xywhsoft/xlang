@@ -1,9 +1,10 @@
 #include "src/runtime/xl6_unicode_internal.h"
+#include "src/runtime/xl6_text_thread.h"
 #include "xl6_native_handle.h"
 #include "src/api/xl_foreign_error.h"
 
 typedef struct XL6_Utf8Validator {
-    uint64_t ownerThread; /* Checked before any mutable state is accessed. */
+    XL6_TextThreadOwner thread; /* Checked before any mutable state is accessed. */
     xutf8state state;
     bool finished;
 } XL6_Utf8Validator;
@@ -12,18 +13,21 @@ static XL6_Utf8Validator* xl6UnicodeValidatorCheck(void* handle)
 {
     XL6_Utf8Validator* validator = handle;
     if (!validator) { xrtSetErrorKind(XERR_ARGUMENT); return NULL; }
-    if (validator->ownerThread != xrtThreadCurrentId()) { xrtSetErrorKind(XERR_STATE); return NULL; }
+    if (!xl6TextThreadCheck(&validator->thread)) return NULL;
     return validator;
 }
 void* xl6UnicodeValidatorCreateV1(void)
 {
     XL6_Utf8Validator* validator = xrtCalloc(1, sizeof(*validator));
     if (!validator) return NULL;
-    validator->ownerThread = xrtThreadCurrentId();
+    if (!xl6TextThreadInit(&validator->thread)) { xrtFree(validator); return NULL; }
     xrtUtf8StateInit(&validator->state); return validator;
 }
 void xl6UnicodeValidatorDestroyV1(void* handle)
-{ xrtFree(handle); } /* Final retirement may occur on another thread. */
+{
+    XL6_Utf8Validator* validator=handle;
+    if (validator) { xl6TextThreadDrop(&validator->thread); xrtFree(validator); }
+} /* Final retirement may occur on another thread. */
 int64_t xl6UnicodeValidatorFeedV1(void* handle, const xvalue* data, bool final, int64_t size)
 {
     XL6_Utf8Validator* validator = xl6UnicodeValidatorCheck(handle);

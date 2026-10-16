@@ -9,7 +9,7 @@ import argparse,hashlib,json,re,sys
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def validate(body,example):
+def validate(body,example,string_functions):
     samples=re.findall(r'<!-- stdlib-guide-example: stdlib_containers_guide -->\s*```xlang\n(.*?)\n```',body,re.S)
     assert len(samples)==1 and samples[0]+'\n'==example.split('\n',1)[1], 'Guide and executed source differ'
     containers=body.split('### 原生容器\n',1)[1].split('### 模板\n',1)[0]
@@ -24,6 +24,22 @@ def validate(body,example):
     assert '并发启动真实管道' in process and '启动失败或超时返回' not in process
     assert '`regex` 已按三组标准库方案接入默认环境' in body
     assert '## 容器实现历史' in body
+    ownership=body.split('## 字符串所有权\n',1)[1].split('## 命名空间规则\n',1)[0]
+    strings=body.split('`string` 命名空间以声明',1)[1].split('`time` 是绝对',1)[0]
+    assert '双字段 ABI 已用于现行 XLIR' in ownership and '仍在迁移中' not in ownership
+    assert '小于 `-1` 的长度参数抛 RangeError' in ownership
+    assert '返回临时字符串' not in strings and '等待标准库重设计' not in strings
+    for name in string_functions:assert 'string.'+name+'(' in strings,('Missing public text method',name)
+    def row(name):
+        matches=re.findall(r'^\| `string\.'+re.escape(name)+r'\([^`]*` \|(.*)$',strings,re.M)
+        assert len(matches)==1,name
+        return matches[0]
+    assert 'array<char>' in row('chars') and 'xl6TextCharsV2' in row('chars')
+    assert '返回连续 `bytes`' in row('bytes') and 'array<int>' not in row('bytes')
+    assert 'uint8' in row('byteAt') and 'RangeError' in row('byteAt') and '越界返回' not in row('byteAt')
+    assert 'char' in row('charAt') and 'RangeError' in row('charAt')
+    assert 'array<string>' in row('join') and '只接收' in row('join')
+    assert 'ASCII' in row('lower') and '拥有字符串' in row('lower')
     return True
 
 
@@ -32,25 +48,37 @@ def main():
     parser.add_argument('--root',type=Path,required=True);parser.add_argument('--out',type=Path,required=True)
     args=parser.parse_args();assert args.root.is_dir() and not args.out.exists()
     task=Path(__file__).resolve().parents[1];guide=task/'docs/标准库设计.md';fixture=task/'test/cases/stdlib_containers_guide.xl'
-    files=[Path(__file__).resolve(),Path(sys.executable).resolve(),guide,fixture]
+    declarations=task/'src/stdlib/xl6_stdlib_data.c'
+    string_functions=sorted(set(re.findall(r'\{"string", "([^"]+)", "__xl_std_string_[^"]+",',declarations.read_text(encoding='utf-8-sig'))))
+    assert len(string_functions)>40
+    files=[Path(__file__).resolve(),Path(sys.executable).resolve(),guide,fixture,declarations]
     inputs=[dict(Path=str(f),Sha256=sha(f)) for f in files];args.out.mkdir()
     report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Scope=__doc__,Controls=[],Failures=[],Full53Acceptance=False)
     try:
         body=guide.read_text(encoding='utf-8-sig');example=fixture.read_text(encoding='utf-8-sig')
-        assert validate(body,example);report['Controls'].append(dict(Name='current-guide',Passed=True))
+        assert validate(body,example,string_functions);report['Controls'].append(dict(Name='current-guide',Passed=True))
+        report['DocumentedTextMethods']=string_functions
         mutations=[('example-change',body.replace('assert ordered.set("a\\0b", null)','assert ordered.set("wrong", null)',1)),
             ('retired-output',body.replace('`popBatch(maximum)`','`popBatchInto(output, maximum)`',1)),
             ('wrong-timeout',body.replace('process.exec/success/exitCode(command, timeoutMs = -1','process.exec/success/exitCode(command, timeoutMs = 0',1)),
             ('missing-slotmap-key',body.replace('SlotMapKey','RawSlotAddress')),
             ('old-regex-scope',body.replace('`regex` 已按三组标准库方案接入默认环境','`regex` 将仅由扩展库提供')),
-            ('wrong-stack-return',body.replace('pushBatch 返回 bool','pushBatch 返回 Array'))]
+            ('wrong-stack-return',body.replace('pushBatch 返回 bool','pushBatch 返回 Array')),
+            ('string-migration',body.replace('双字段 ABI 已用于现行 XLIR','双字段 ABI 仍在迁移中')),
+            ('string-temporary',body.replace('ASCII 转小写，返回拥有字符串','ASCII 转小写，返回临时字符串')),
+            ('string-chars',body.replace('返回真正的 typed `array<char>`','返回真正的 typed `array<string>`')),
+            ('string-bytes',body.replace('返回连续 `bytes`，不是整数数组','返回 `array<int>`')),
+            ('string-byte-bounds',body.replace('返回 `uint8`；负下标从尾部计数，越界抛 RangeError','返回 `uint8`；负下标从尾部计数，越界返回 -1')),
+            ('string-join',body.replace('只接收 `array<string>`','自动转换任意 `array`')),
+            ('string-missing-method',body.replace('string.fieldsIter(', 'string.unknownFieldsIter(')),
+            ('string-size',body.replace('小于 `-1` 的长度参数抛 RangeError','小于 `-1` 的长度参数夹紧为 0'))]
         for name,changed in mutations:
             assert changed!=body,name
-            try:validate(changed,example)
+            try:validate(changed,example,string_functions)
             except AssertionError:report['Controls'].append(dict(Name=name,Rejected=True))
             else:raise AssertionError(('Bad guide accepted',name))
         report['InputsUnchanged']=all(sha(i['Path'])==i['Sha256'] for i in inputs)
-        report['Complete']=report['InputsUnchanged'] and len(report['Controls'])==7
+        report['Complete']=report['InputsUnchanged'] and len(report['Controls'])==15
     except Exception as error:report['Failures'].append(repr(error))
     (args.out/'results.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(json.dumps({k:report[k] for k in ('Complete','Failures')},ensure_ascii=False),flush=True)

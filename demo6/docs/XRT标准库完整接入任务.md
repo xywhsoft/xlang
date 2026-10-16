@@ -2,6 +2,10 @@
 
 ## 1. 目标
 
+三类线程绑定资源与进程别名的现行合同见
+[线程绑定资源身份与进程别名合同](stdlib53-b344-resource-identity-alias-contracts.md)。
+托管创建者保留真实身份，外部宿主线程存活要求不扩大；旧产品对照与新产品分别记录。
+
 十一份语言进程故障夹具新增真实产品验收，见
 [进程语言故障前缀的真实产品验收](stdlib53-b343-process-language-product-prefixes.md)。
 生成 C 的透明观察覆盖装箱前失败；普通 JIT／AOT 与平台条件仍分别验收。
