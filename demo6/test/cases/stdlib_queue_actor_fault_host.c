@@ -15,6 +15,7 @@
 static _Thread_local bool armed;
 static _Thread_local size_t point,seen;
 static _Thread_local unsigned flavor;
+#ifndef XL6_QUEUE_PRODUCT_TEST
 extern bool __real_xrtTypeCopyValue(const xrttype*,void*,const void*);
 bool __wrap_xrtTypeCopyValue(const xrttype* type,void* out,const void* source)
 {
@@ -26,6 +27,7 @@ bool __wrap_xrtTypeCopyValue(const xrttype* type,void* out,const void* source)
     if(flavor==2){xrtSetErrorKind(XERR_MEMORY);return true;}
     return false; /* A partially initialized owning destination must be dropped. */
 }
+#endif
 static xstrview input(void){return XRT_STR_LITERAL("a\0你🙂");}
 static void check(const xstrview* out)
 {
@@ -97,6 +99,11 @@ int main(int argc,char** argv)
 {
     assert(argc==4);unsigned operation=(unsigned)strtoul(argv[1],NULL,10);assert(operation<3);
     bool oom=!strcmp(argv[2],"oom");unsigned mode=!strcmp(argv[2],"partial")?1:!strcmp(argv[2],"diagnostic")?2:0;
+#ifdef XL6_QUEUE_PRODUCT_TEST
+    /* A shared library's internal calls cannot be interposed by --wrap. Only
+     * genuine thread-local allocator failure is claimed for actual products. */
+    assert(oom);
+#endif
     assert(oom || mode || !strcmp(argv[2],"copy"));assert(oom || operation<2);
     xl6ProductMemoryBegin(SIZE_MAX);xvalue* q=create(),*peer=create();xstrview text=input();
     if(operation==2)for(unsigned i=0;i<3;++i)assert(Q(PushV1)(q,ID,ARGS,&text)==XQUEUE_OK);

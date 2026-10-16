@@ -38,6 +38,8 @@ def main():
     cases=[terminalFixtures.get(s.stem,s) for s in cases]
     if not any(s.stem==pathFixture.stem for s in cases):cases.append(pathFixture);cases.sort()
     cases=stdlib_fixture_inputs.select(cases,a.fixture_source)
+    frozenCandidateCount=len(cases)
+    cases=stdlib_fixture_inputs.extend(cases,a.additional_fixture_source,inventory.PREFIX)
     assert cases
     gates=[('headers','check_stdlib_runtime_header_vfs.py',None,True),
         ('nested','check_stdlib_nested_aot.py','results.json',True),
@@ -56,7 +58,8 @@ def main():
         ('worker-completion',task/'tools/check_stdlib_worker_completion_shipping.py','results.json',True),
         ('native-future-policy',task/'tools/check_stdlib_native_future_policy_shipping.py','results.json',True),
         ('native-defaults',task/'tools/check_stdlib_native_defaults.py','results.json',True),
-        ('tree-keys',task/'tools/check_stdlib_tree_keys_shipping.py','results.json',True)]
+        ('tree-keys',task/'tools/check_stdlib_tree_keys_shipping.py','results.json',True),
+        ('queue-stress',task/'tools/check_stdlib_queue_product_stress.py','results.json',True)]
     if not windows:
         gates.append(('elf','check_stdlib_sync_shipping_elf.py','sync.shipping.elf.json',True))
         gates.append(('native-public',task/'tools/check_stdlib_intrinsic_coverage.py','results.json',True))
@@ -100,7 +103,8 @@ def main():
     env.update(TMPDIR=str(tmp),TEMP=str(tmp),TMP=str(tmp),XL6_PRODUCT_CLI=str(isolated/'release'/products[0].name))
     rows=[];records=[];children=[];failures=[];lock=threading.Lock();rowLock=threading.Lock()
     report=dict(Complete=False,InputsUnchanged=False,Scope=__doc__,Inputs=inputs,Rows=rows,Cases=records,Children=children,Failures=failures,
-        CandidateCount=len(cases),FixtureSourceUpdates=[str(p.resolve()) for p in a.fixture_source],ExplicitSubset=False,SourceProductAcceptance=True,ProviderOverrides=False,EmbeddedVfsWithoutFallback=True,
+        CandidateCount=len(cases),FrozenCandidateCount=frozenCandidateCount,AdditionalFixtureSources=[str(p.resolve()) for p in a.additional_fixture_source],
+        FixtureSourceUpdates=[str(p.resolve()) for p in a.fixture_source],ExplicitSubset=False,SourceProductAcceptance=True,ProviderOverrides=False,EmbeddedVfsWithoutFallback=True,
         AllExecutablePassed=False,HostedProductAcceptance=False,AotGraphRetirementAcceptance=False,
         TerminalReadinessAcceptance=False,
         NativeTerminalLedgerAcceptance=False,
@@ -167,6 +171,7 @@ def main():
                         assert all(childInputs.get(f)==sha(f) for f in products),'Independent child uses different products'
                     if name=='native-public':
                         assert body.get('FixtureSourceUpdates',[])==[str(p.resolve()) for p in a.fixture_source]
+                        assert body.get('AdditionalFixtureSources',[])==[str(p.resolve()) for p in a.additional_fixture_source]
                     for r in body['Inputs']+body.get('Products',[])+body.get('Objects',[]):
                         assert sha(r['Path'])==r['Sha256'].lower(),r['Path']
                     for r in body.get('Rows',[]):
@@ -178,6 +183,7 @@ def main():
             if withBuild:command+=['--build-report',a.build_report.resolve()]
             if name=='native-public':
                 for source in a.fixture_source:command+=['--fixture-source',source.resolve()]
+                for source in a.additional_fixture_source:command+=['--additional-fixture-source',source.resolve()]
             row,data=run('gate-'+name,command,directory=root,timeout=1800)
             path=destination/result if result else destination
             if not path.is_file():return dict(Name=name,Passed=False,Exit=row['Exit'],Diagnostic=data.decode(errors='replace')[-6000:])
@@ -212,6 +218,7 @@ def main():
         report['NativeFuturePolicyAcceptance']=any(c['Name']=='native-future-policy' and c['Passed'] for c in children)
         report['NativeDefaultRecipeAcceptance']=any(c['Name']=='native-defaults' and c['Passed'] for c in children)
         report['NativeOrderedKeyAcceptance']=any(c['Name']=='tree-keys' and c['Passed'] for c in children)
+        report['NativeQueueRoleStressAcceptance']=any(c['Name']=='queue-stress' and c['Passed'] for c in children)
         report['NativePublicBindingAcceptance']=any(c['Name']=='native-public' and c['Passed'] for c in children)
         report['UnexecutedRequirements']=[c['Name'] for c in records if c['Status']=='requires-platform']
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)

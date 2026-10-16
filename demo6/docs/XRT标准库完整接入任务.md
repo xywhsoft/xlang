@@ -2,6 +2,11 @@
 
 ## 1. 目标
 
+并发队列的真实双产品角色、拥有传输与完整线程局部分配前缀见
+[并发队列真实产品验收](stdlib53-b335-queue-product-stress.md)。
+生产实现不变，SPSC／MPSC／MPMC／WaitQueue 的专项已实际执行；
+调度器全线程同时故障和整个 53 模块完成审计仍独立保留。
+
 OrderedMap 的 C ABI 标量、bytes 键与泛型逻辑合同见
 [OrderedMap 原生键域与泛型合同](stdlib53-b334-ordered-key-domains.md)。
 复用 XRT typed tree，bytes 使用独立按需 codec；统一直接／嵌套类型准入，

@@ -339,8 +339,9 @@ static void fault(unsigned family,unsigned operation,size_t point)
 }
 typedef struct Workers {
     const Family* f; xvalue* queue; unsigned producers;
-    bool text,batch;
-    xatomic32 received; xatomic32 seen[4096];
+    bool text,batch,fifo;
+    unsigned next[4];
+    xatomic32 ready,go,received; xatomic32 seen[4096];
 } Workers;
 typedef struct Lane { Workers* all; unsigned index; bool producer; } Lane;
 static xvalue* workerSchema(bool text)
@@ -351,6 +352,9 @@ static xvalue* workerSchema(bool text)
 static void record(Workers* all,int64_t value)
 {
     assert(value>=0 && (uint64_t)value<all->producers*1024);
+    /* One consumer can observe each producer's publication order directly.
+     * MPMC completion order outside pop is not its linearization order. */
+    if(all->fifo)assert((unsigned)value%1024==all->next[(unsigned)value/1024]++);
     uint32_t expected=0;
     assert(xrtAtomic32CompareExchange(&all->seen[value],&expected,1,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE));
     (void)xrtAtomic32FetchAdd(&all->received,1,XMEMORY_RELEASE);
@@ -397,6 +401,8 @@ static int32 bulkWorker(Lane* lane)
 static int32 worker(void* data)
 {
     Lane* lane=data; Workers* all=lane->all;
+    (void)xrtAtomic32FetchAdd(&all->ready,1,XMEMORY_RELEASE);
+    while(!xrtAtomic32Load(&all->go,XMEMORY_ACQUIRE))xrtThreadYield();
     if (all->batch) return bulkWorker(lane);
     if (lane->producer) for (unsigned i=0;i<1024;++i) {
         int64_t value=(int64_t)(lane->index*1024+i); xqueueresult result;
@@ -423,15 +429,21 @@ static void threads(void)
     for (unsigned family=0;family<3;++family) for (unsigned text=0;text<2;++text) for (unsigned batch=0;batch<2;++batch) {
         const Family* f=&families[family];
         xvalue* seed=workerSchema(text!=0);
-        Workers all={.f=f,.queue=f->create(ID,seed,64),.producers=family ? 4 : 1,.text=text!=0,.batch=batch!=0}; assert(all.queue);
-        xrtAtomic32Init(&all.received,0);
+        Workers all={.f=f,.queue=f->create(ID,seed,64),.producers=family ? 4 : 1,.text=text!=0,.batch=batch!=0,.fifo=family!=2}; assert(all.queue);
+        xrtAtomic32Init(&all.received,0);xrtAtomic32Init(&all.ready,0);xrtAtomic32Init(&all.go,0);
         for (size_t i=0;i<4096;++i) xrtAtomic32Init(&all.seen[i],0);
         unsigned consumers=family==2 ? 4 : 1; Lane lanes[8]; xthread* actors[8]; unsigned count=0;
         for (unsigned i=0;i<consumers;++i) { lanes[count]=(Lane){&all,i,false}; actors[count]=xrtThreadCreate(worker,&lanes[count],0); assert(actors[count]); ++count; }
         for (unsigned i=0;i<all.producers;++i) { lanes[count]=(Lane){&all,i,true}; actors[count]=xrtThreadCreate(worker,&lanes[count],0); assert(actors[count]); ++count; }
+        while(xrtAtomic32Load(&all.ready,XMEMORY_ACQUIRE)<count)xrtThreadYield();
+        xrtAtomic32Store(&all.go,1,XMEMORY_RELEASE);
         for (unsigned i=0;i<count;++i) { assert(xrtThreadWaitFor(actors[i],UINT64_C(30000000))==XWAIT_OK); xrtThreadDestroy(actors[i]); }
+        assert(xrtAtomic32Load(&all.received,XMEMORY_ACQUIRE)==all.producers*1024);
+        for(unsigned i=0;i<all.producers*1024;++i)assert(xrtAtomic32Load(&all.seen[i],XMEMORY_ACQUIRE)==1);
         assert(f->query(all.queue,ID,XL6_QUEUE_QUERY_COUNT_V1)==0 && f->close(all.queue,ID));
         xrtValueRelease(all.queue);
+        printf("transport family=%u text=%u batch=%u producers=%u consumers=%u delivered=%u fifo=%u balanced\n",
+            family,text,batch,all.producers,consumers,all.producers*1024,(unsigned)all.fifo);
     }
 }
 static unsigned dropped;
