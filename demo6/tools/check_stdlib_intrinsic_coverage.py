@@ -7,6 +7,7 @@ No compiler objects or replacement providers; no full53/runtime acceptance.
 from pathlib import Path
 import argparse,concurrent.futures,hashlib,json,os,re,shutil,subprocess,sys
 import check_stdlib_resolved_coverage as legacy
+import stdlib_fixture_inputs
 
 
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
@@ -83,6 +84,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     for n in ('root','build-report','out'):p.add_argument('--'+n,type=Path,required=True)
     p.add_argument('--jobs',type=int,default=3);p.add_argument('--fixture',action='append')
+    stdlib_fixture_inputs.add_arguments(p)
     a=p.parse_args();assert os.name!='nt','This census requires the real SO frontend exports, not Windows source substitutes'
     root,out=a.root.resolve(),a.out.resolve();assert not out.exists() and 1<=a.jobs<=4
     cc=shutil.which('gcc');assert cc;task=Path(__file__).resolve().parents[1]
@@ -93,16 +95,18 @@ def main():
     control=task/'test/cases/stdlib_intrinsic_coverage_control.xl'
     old_control=task/'test/cases/stdlib_resolved_coverage_control.xl';seed=root/'test/cases/stdlib_class_catalog.xl'
     sources=sorted(s for s in (root/'test/cases').glob('stdlib_*.xl') if legacy.PREFIX.match(s.name) or s.stem=='stdlib_crt_algorithms')
+    sources=stdlib_fixture_inputs.select(sources,a.fixture_source)
     population=len(sources)
     if a.fixture:
         wanted=set(a.fixture);sources=[s for s in sources if s.stem in wanted];assert len(sources)==len(wanted)
-    files={Path(__file__).resolve(),Path(legacy.__file__).resolve(),Path(sys.executable),Path(cc),a.build_report.resolve(),
+    files={Path(__file__).resolve(),Path(stdlib_fixture_inputs.__file__).resolve(),Path(legacy.__file__).resolve(),Path(sys.executable),Path(cc),a.build_report.resolve(),
            host,helper,control,old_control,seed,*sources}
     for r in build['Inputs']+build['Products']:assert sha(r['Path'])==r['Sha256'];files.add(Path(r['Path']))
     inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(files)]
     out.mkdir();rows=[];cases=[];failures=[];expected=native_contract(root)
     report=dict(Complete=False,DiscoveryComplete=False,InputsUnchanged=False,Scope=__doc__,Inputs=inputs,
         Rows=rows,Cases=cases,Failures=failures,CandidateCount=population,SelectedCount=len(sources),ExplicitSubset=bool(a.fixture),
+        FixtureSourceUpdates=[str(p.resolve()) for p in a.fixture_source],
         CompilerSourceObjects=False,UsesActualCompilerSO=True,RuntimeExecutionAcceptance=False,
         Full53Acceptance=False,NativeBindings=[],MissingNativeBindings=[],UnexpectedNativeBindings=[])
     env={k:v for k,v in os.environ.items() if not k.upper().startswith('XL6_') and k not in

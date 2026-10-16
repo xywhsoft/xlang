@@ -1,0 +1,6 @@
+func main(...) as int
+    auto values = OrderedMap::<int, int>()
+    assert(values.set(-1, 17) and values.set(2, 19))
+    assert(values.get(-1) == 17 and values.get(2) == 19)
+    return 0
+end

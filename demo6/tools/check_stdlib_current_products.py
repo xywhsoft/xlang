@@ -7,11 +7,13 @@ No source/provider fallback, release promotion, worker-wide OOM or full53 claim.
 """
 from pathlib import Path
 import argparse,concurrent.futures,hashlib,importlib, json,os,re,shutil,subprocess,sys,threading,time
+import stdlib_fixture_inputs
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('root','build-report','out'):p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--reuse-report',type=Path,help='Reuse only complete, unchanged child gates from the same actual products')
+    stdlib_fixture_inputs.add_arguments(p)
     p.add_argument('--jobs',type=int,default=2);a=p.parse_args()
     root,out=a.root.resolve(),a.out.resolve();assert not out.exists() and 1<=a.jobs<=4
     cc=shutil.which('gcc');assert cc;windows=os.name=='nt'
@@ -33,6 +35,7 @@ def main():
     cases=[quote if s.stem==quote.stem else s for s in cases]
     cases=[terminalFixtures.get(s.stem,s) for s in cases]
     if not any(s.stem==pathFixture.stem for s in cases):cases.append(pathFixture);cases.sort()
+    cases=stdlib_fixture_inputs.select(cases,a.fixture_source)
     assert cases
     gates=[('headers','check_stdlib_runtime_header_vfs.py',None,True),
         ('nested','check_stdlib_nested_aot.py','results.json',True),
@@ -64,7 +67,7 @@ def main():
         assert prior_inputs.get(a.build_report.resolve())==sha(a.build_report)
         assert all(prior_inputs.get(f)==sha(f) for f in products),'Reuse requires identical actual products'
         cached={r['Name']:r for r in prior['Children'] if r['Passed']}
-    files={Path(__file__).resolve(),Path(cc),Path(sys.executable),a.build_report.resolve(),host,quote,pathFixture,pathHost,
+    files={Path(__file__).resolve(),Path(stdlib_fixture_inputs.__file__).resolve(),Path(cc),Path(sys.executable),a.build_report.resolve(),host,quote,pathFixture,pathHost,
         Path(inventory.__file__),Path(execution.__file__),root/'test/cases/stdlib_string_support.c',childSource,*cases}
     files.update(root/'tools'/g[1] for g in gates)
     if a.reuse_report:files.add(a.reuse_report.resolve())
@@ -87,7 +90,7 @@ def main():
     env.update(TMPDIR=str(tmp),TEMP=str(tmp),TMP=str(tmp),XL6_PRODUCT_CLI=str(isolated/'release'/products[0].name))
     rows=[];records=[];children=[];failures=[];lock=threading.Lock();rowLock=threading.Lock()
     report=dict(Complete=False,InputsUnchanged=False,Scope=__doc__,Inputs=inputs,Rows=rows,Cases=records,Children=children,Failures=failures,
-        CandidateCount=len(cases),ExplicitSubset=False,SourceProductAcceptance=True,ProviderOverrides=False,EmbeddedVfsWithoutFallback=True,
+        CandidateCount=len(cases),FixtureSourceUpdates=[str(p.resolve()) for p in a.fixture_source],ExplicitSubset=False,SourceProductAcceptance=True,ProviderOverrides=False,EmbeddedVfsWithoutFallback=True,
         AllExecutablePassed=False,HostedProductAcceptance=False,AotGraphRetirementAcceptance=False,
         TerminalReadinessAcceptance=False,
         NativeTerminalLedgerAcceptance=False,
@@ -146,6 +149,8 @@ def main():
                     path=Path(old['Report']);assert sha(path)==old['Sha256']
                     body=json.loads(path.read_text(encoding='utf-8-sig'))
                     assert body['Complete'] and body['InputsUnchanged'] and not body.get('Failures',[]) and not body.get('Errors',[])
+                    if name=='native-public':
+                        assert body.get('FixtureSourceUpdates',[])==[str(p.resolve()) for p in a.fixture_source]
                     for r in body['Inputs']+body.get('Products',[])+body.get('Objects',[]):
                         assert sha(r['Path'])==r['Sha256'].lower(),r['Path']
                     for r in body.get('Rows',[]):
@@ -155,6 +160,8 @@ def main():
                     pass  # Never waive stale inputs or a failed child; run it below.
             command=[sys.executable,root/'tools'/script,'--root',root,'--out',destination]
             if withBuild:command+=['--build-report',a.build_report.resolve()]
+            if name=='native-public':
+                for source in a.fixture_source:command+=['--fixture-source',source.resolve()]
             row,data=run('gate-'+name,command,directory=root,timeout=1800)
             path=destination/result if result else destination
             if not path.is_file():return dict(Name=name,Passed=False,Exit=row['Exit'],Diagnostic=data.decode(errors='replace')[-6000:])

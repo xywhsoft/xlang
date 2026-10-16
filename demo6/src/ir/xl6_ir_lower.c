@@ -15749,6 +15749,8 @@ xl6IrLowerRuntimeResourceKeyOrderAbiForType(
         return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
     if ( type->cAbi == XL6_IR_C_ABI_BOOL )
         return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_BOOL;
+    if ( type->cAbi == XL6_IR_C_ABI_CHAR_U32 )
+        return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_CHAR;
     if ( type->cAbi == XL6_IR_C_ABI_I64 ||
          type->cAbi == XL6_IR_C_ABI_TIME_I64 )
         return XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_SIGNED_I64;

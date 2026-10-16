@@ -1,0 +1,32 @@
+// Native ordering is Unicode scalar order, not UTF-8 byte length or u64 load.
+func main(...) as int
+    auto values = OrderedMap::<char, string>()
+    assert(values.set('你', "C\0你") and values.set('A', "A\0"))
+    assert(values.set('\0', "zero") and values.set('🙂', "last"))
+    assert(values.count() == 4 and values.get('你') == "C\0你")
+    auto key, value = values.first()
+    assert(key == '\0' and value == "zero")
+    auto lastKey, lastValue = values.last()
+    assert(lastKey == '🙂' and lastValue == "last")
+    auto lowerKey, lowerValue = values.lowerBound('B')
+    assert(lowerKey == '你' and lowerValue == "C\0你")
+    auto upperKey, upperValue = values.upperBound('你')
+    assert(upperKey == '🙂' and upperValue == "last")
+    auto absent, missing = values.tryGet('z')
+    assert(not absent and missing == null)
+    assert(values.set('A', "changed"))
+    assert(values.get('A') == "changed" and values.count() == 4)
+    auto copy = values.clone()
+    assert(copy.equals(values))
+    assert(copy.remove('你') and not copy.contains('你'))
+    assert(values.contains('你') and copy.count() == 3)
+    assert(copy.take('🙂') == "last" and not copy.contains('🙂'))
+    auto keys = values.keys()
+    assert(keys.length == 4 and keys[0] == '\0' and keys[3] == '🙂')
+    auto texts = values.values()
+    assert(texts.length == 4 and texts[2] == "C\0你")
+    // Both order tags must coexist without confusing char and integer slots.
+    auto integers = OrderedMap::<int, int>()
+    assert(integers.set(-1, 17) and integers.get(-1) == 17)
+    return 0
+end

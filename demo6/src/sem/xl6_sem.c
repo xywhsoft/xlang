@@ -140,6 +140,7 @@ static int xl6SemCheckChannelCall(XL6_SemContext* ctx, XL6_AstNode* node);
 static const char* xl6SemChannelCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
 static XL6_AstNode* xl6SemCloneChannelReceiveReturns(XL6_SemContext*, XL6_AstNode*);
 static int xl6SemIsSpecialCollectionTypeName(const char* name);
+static int xl6SemIsSpecialQueueTypeName(const char* name);
 static int xl6SemCheckSpecialCollectionCall(XL6_SemContext* ctx, XL6_AstNode* node);
 static const char* xl6SemSpecialCollectionCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
 static XL6_AstNode* xl6SemCloneSpecialCollectionCallType(XL6_SemContext* ctx, XL6_AstNode* node);
@@ -12065,7 +12066,8 @@ static int xl6SemTypeHasImplicitDefaultInitialization(
           * storage and native status contract, not an uninitialized payload. */
          xl6TextEquals(concreteType->text, "thread") ||
          xl6SemIsContainerBaseTypeName(concreteType->text) ||
-         xl6SemIsSpecialCollectionTypeName(concreteType->text) ||
+         (xl6SemIsSpecialCollectionTypeName(concreteType->text) &&
+          !xl6SemIsSpecialQueueTypeName(concreteType->text)) ||
          xl6SemIsSyncHandleTypeName(concreteType->text) ) {
         return 1;
     }
@@ -16531,6 +16533,12 @@ static int xl6SemDeclareVarWithKind(
         xl6SemErrorNode(ctx, node, "auto 声明必须包含初始化表达式");
             ok = 0;
         }
+        if ( declaredTypeOk && initExpr == NULL &&
+             xl6SemQueueTypeRequiresInitializer(ctx, declaredType) ) {
+            xl6SemErrorNode(ctx, node,
+                "不可空队列声明必须包含初始化表达式；延迟创建请使用 nullable 队列");
+            ok = 0;
+        }
     }
     if ( !xl6ScopeAddTyped(ctx, nameNode, xl6SemVarDeclIsConst(node) ? constKind : valueKind, symbolType) ) {
         ok = 0;
@@ -20719,6 +20727,11 @@ static int xl6SemCheckField(XL6_SemContext* ctx, XL6_AstNode* field)
             xl6SemErrorNode(ctx, field->children[0], "auto 不能作为 class 字段类型");
             ok = 0;
         } else if ( !xl6SemCheckType(ctx, field->children[0]) ) {
+            ok = 0;
+        } else if ( defaultExpr == NULL &&
+                    xl6SemQueueTypeRequiresInitializer(ctx, field->children[0]) ) {
+            xl6SemErrorNode(ctx, field,
+                "不可空队列声明必须包含初始化表达式；延迟创建请使用 nullable 队列");
             ok = 0;
         }
     }

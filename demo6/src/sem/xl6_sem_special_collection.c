@@ -28,6 +28,17 @@ static int xl6SemIsSpecialCollectionTypeName(const char* name)
            xl6SemIsSpecialQueueTypeName(name);
 }
 
+/* A bounded queue has no language default capacity. Apply the same rule to
+ * bindings and fields (including aliases), before lowering storage defaults.
+ * Nullable queues retain their ordinary null default and flow narrowing. */
+static int xl6SemQueueTypeRequiresInitializer(
+    XL6_SemContext* ctx, const XL6_AstNode* typeNode)
+{
+    const XL6_AstNode* concrete = xl6SemResolveAliasType(ctx, typeNode);
+    return concrete != NULL && !xl6SemTypeIsNullable(concrete) &&
+        xl6SemIsSpecialQueueTypeName(concrete->text);
+}
+
 static int xl6SemIsSpecialCollectionGenericInstant(const XL6_AstNode* node)
 {
     const XL6_AstNode* nameNode;

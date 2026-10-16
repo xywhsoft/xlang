@@ -7,6 +7,7 @@ is inventory execution, not branch/function completeness or full53 acceptance.
 """
 from pathlib import Path
 import argparse,concurrent.futures,hashlib,importlib,json,os,re,shutil,subprocess,sys,threading,time
+import stdlib_fixture_inputs
 
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def main():
@@ -14,17 +15,19 @@ def main():
     for name in ('root','build-report','out'):parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--jobs',type=int,default=2)
     parser.add_argument('--fixture',action='append',help='Explicit subset, never complete inventory acceptance')
+    stdlib_fixture_inputs.add_arguments(parser)
     args=parser.parse_args();root,out=args.root.resolve(),args.out.resolve();assert not out.exists() and 1<=args.jobs<=4
     windows=os.name=='nt';cc=shutil.which('gcc');inspector=shutil.which('objdump' if windows else 'readelf');assert cc and inspector
     build=json.loads(args.build_report.read_text(encoding='utf-8-sig'));assert build['Complete'] and build['InputsUnchanged'] and build['Exit']==0
     sys.path.insert(0,str(root/'tools'));inventory=importlib.import_module('discover_stdlib_three_groups');execution=importlib.import_module('execute_stdlib_three_groups')
     sources=sorted(p for p in (root/'test/cases').glob('stdlib_*.xl') if inventory.PREFIX.match(p.name));candidate_count=len(sources)
+    sources=stdlib_fixture_inputs.select(sources,args.fixture_source)
     if args.fixture:
         selected=set(args.fixture);sources=[p for p in sources if p.stem in selected];assert len(sources)==len(selected)
     products=[root/'release'/name for name in (('xl.exe','xl.dll','xlc.dll') if windows else ('xl','libxl.so','libxlc.so'))]
     recorded={Path(row['Path']).resolve():row['Sha256'] for row in build['Products']}
     assert all(recorded.get(product)==sha(product) for product in products),'Root products do not match the build evidence'
-    pinned={Path(__file__).resolve(),args.build_report.resolve(),Path(sys.executable),Path(cc),Path(inspector),Path(inventory.__file__),Path(execution.__file__),*sources}
+    pinned={Path(__file__).resolve(),Path(stdlib_fixture_inputs.__file__).resolve(),args.build_report.resolve(),Path(sys.executable),Path(cc),Path(inspector),Path(inventory.__file__),Path(execution.__file__),*sources}
     pinned.update(root/'test/cases'/name for name in ('xlir_process_child.c','stdlib_string_support.c',*execution.FIXTURE_C_SUPPORT.values()))
     for row in build['Inputs']+build['Products']:assert sha(row['Path'])==row['Sha256'];pinned.add(Path(row['Path']))
     inputs=[dict(Path=str(p),Sha256=sha(p)) for p in sorted(pinned)]
@@ -38,7 +41,7 @@ def main():
     env.update(TMPDIR=str(temporary),TEMP=str(temporary),TMP=str(temporary),XL6_PRODUCT_CLI=str(release/products[0].name))
     rows=[];cases=[];mutable=threading.Lock();row_lock=threading.Lock()
     report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Rows=rows,Cases=cases,CandidateCount=candidate_count,SelectedCount=len(sources),
-        ExplicitSubset=bool(args.fixture),Scope=__doc__,AllExecutablePassed=False,RelocatedAotInventoryAcceptance=False,Full53Acceptance=False,FunctionCoverageAcceptance=False)
+        ExplicitSubset=bool(args.fixture),FixtureSourceUpdates=[str(p.resolve()) for p in args.fixture_source],Scope=__doc__,AllExecutablePassed=False,RelocatedAotInventoryAcceptance=False,Full53Acceptance=False,FunctionCoverageAcceptance=False)
     def command(name,argv,environment=env,timeout=240):
         argv=list(map(str,argv));started=time.monotonic()
         try:

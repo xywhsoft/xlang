@@ -2,6 +2,11 @@
 
 ## 1. 目标
 
+不可空队列的声明初始化与 OrderedMap 字符键合同见
+[队列初始化与字符键排序](stdlib53-b333-queue-initialization-char-keys.md)。
+按用户决定拒绝无初始化的不可空队列声明，nullable 队列保留延迟创建；
+字符键复用原生 char 比较，不在 Cgen 添加比较器。
+
 原生容器公开面与默认构造见
 [原生容器公开面与默认构造验收](stdlib53-b332-native-public-surface.md)。
 按用户决定要求显式正容量，修复 SlotMap 默认 producer／错误边与 Array

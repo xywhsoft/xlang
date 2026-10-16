@@ -1,0 +1,10 @@
+typedef RequiredQueue = Queue<int>
+RequiredQueue globalQueue
+class BareAliasedQueue
+    RequiredQueue fieldQueue
+end
+func main(...) as int
+    RequiredQueue localQueue
+    localQueue = Queue::<int>(2)
+    return 0
+end
