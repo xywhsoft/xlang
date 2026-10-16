@@ -3,6 +3,8 @@
 #include "xl6_continuation_queue.h"
 
 typedef struct XL6_ContinuationExecutor XL6_ContinuationExecutor;
+struct xrtownershipquiescencev1;
+XL6_CONTINUATION_API const struct xrtownershipquiescencev1* xl6ContinuationExecutorQuiescenceV1Get(void);
 typedef enum XL6_ContinuationBlockingAdmission {
     XL6_CONTINUATION_BLOCKING_ADMITTED = 0,
     XL6_CONTINUATION_BLOCKING_LIMIT,

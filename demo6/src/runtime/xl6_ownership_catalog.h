@@ -15,12 +15,17 @@
     X(Combine, xfuturecombineownershipv1) \
     X(Task, xtaskdataownershipv1) \
     X(QueuedStorage, XL6_ContinuationStorageV2) \
-    X(ResolverRequest, xnetresolveownershipv1)
+    X(ResolverRequest, xnetresolveownershipv1) \
+    X(Quiescence, xrtownershipquiescencev1)
 #define XL6_DECLARE_POLICY(Name, Type) struct Type;
 XL6_OWNERSHIP_POLICY_GROUPS(XL6_DECLARE_POLICY)
 #undef XL6_DECLARE_POLICY
 
 typedef struct XL6_OwnershipCatalog XL6_OwnershipCatalog;
+/* Independent exact-identity capability to recognize a valid native
+ * transition. BUSY does not grant Count/Trace or lifecycle admission.
+ * Frozen, read-only, resident, no callbacks/allocations/reference changes. */
+typedef struct xrtownershipquiescencev1 XL6_OwnershipQuiescenceV1;
 typedef struct XL6_OwnershipPoliciesV1 {
 #define XL6_POLICY_VIEW(Name, Type) const struct Type* const* Name; size_t Name##Count;
     XL6_OWNERSHIP_POLICY_GROUPS(XL6_POLICY_VIEW)
@@ -58,6 +63,9 @@ XL6_CODE_LEASE_API bool xl6OwnershipCatalogResolveV1(struct xrtownershipref,void
     const struct xrtownershipadapterv1**,const struct xrtownershippreparationv1**,
     const XL6_OwnershipFinishV1**);
 XL6_CODE_LEASE_API bool xl6OwnershipCatalogAdmitsReadV1(struct xrtownershipref,void*);
+XL6_CODE_LEASE_API XL6_OwnershipAdmissionV1 xl6OwnershipCatalogProbeV1(struct xrtownershipref,void*,
+    const struct xrtownershipadapterv1**,const struct xrtownershippreparationv1**,
+    const XL6_OwnershipFinishV1**);
 /* Only a Load callback on its unpublished catalog may append a non-NULL
  * capability. Repeated identical capabilities are deduplicated by identity. */
 #define XL6_POLICY_ADD(Name, Type) \

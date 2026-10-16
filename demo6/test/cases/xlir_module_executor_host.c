@@ -45,11 +45,12 @@ static ModuleStart start_cycle;
 static ModuleView executor_view;
 static xfuture *cycle_outputs[3], *terminal_future;
 static unsigned cycle_width, loop_start, protocol_mode, protocol_calls;
-static unsigned transactions, rooted_checks, cleanup_roots, oom_failures, protocol_refusals, readiness_retries;
+static unsigned transactions, rooted_checks, cleanup_roots, oom_failures, protocol_refusals, readiness_retries, strict_refusals;
 static atomic_uint peer_count, catches[3], finals[3], afters[3], global_drops;
-static XL6_ModuleRetirementV3 altered_contract;
+static XL6_ModuleRetirementV4 altered_contract;
+static XL6_ModuleRetirementV3 legacy_contract;
 static XL6_ModuleRetirementV1 different_graph;
-static const XL6_ModuleRetirementV3* real_contract;
+static const XL6_ModuleRetirementV4* real_contract;
 static int64_t number = 19;
 
 static xfuture* cycle_peer(int64_t id)
@@ -71,7 +72,8 @@ static void cycle_after(int64_t id)
 static void module_dropped(void)
 { assert(!atomic_load(&deleted) && atomic_load(&cleanups) == expected_cleanups); assert(!atomic_fetch_add(&global_drops, 1)); }
 static XL6_ModulePrepareResult forbidden_preflight(void) { abort(); return XL6_MODULE_PREPARE_FAILED; }
-static const XL6_ModuleRetirementV3* altered_get(void) { return protocol_mode == 5 ? NULL : &altered_contract; }
+static const XL6_ModuleRetirementV4* altered_get(void) { return protocol_mode == 15 ? NULL : &altered_contract; }
+static const XL6_ModuleRetirementV3* legacy_get(void) { return protocol_mode == 5 ? NULL : &legacy_contract; }
 static const XL6_ModuleRetirementV2* conflicting_get(void)
 {
     static XL6_ModuleRetirementV2 other;
@@ -100,13 +102,14 @@ static XL6_ModulePrepareResult checked_preflight(void)
 }
 static void* protocol_lookup(TCCState* state, const char* name)
 {
-    if (!strcmp(name, "xl_script_module_retirement_v3")) return protocol_mode == 7 ? NULL : (void*)altered_get;
+    if (!strcmp(name, "xl_script_module_retirement_v4")) return protocol_mode <= 7 ? NULL : (void*)altered_get;
+    if (!strcmp(name, "xl_script_module_retirement_v3") && protocol_mode <= 6) return (void*)legacy_get;
     if (!strcmp(name, "xl_script_module_retirement_v2") && protocol_mode == 6) return (void*)conflicting_get;
     return lookup(state, name);
 }
 static void create_cycle_module(unsigned version)
 {
-    typedef void (*Bind)(const ModuleExecutorHooks*); Bind bind; XL6_ModuleRetirementGetV3 get;
+    typedef void (*Bind)(const ModuleExecutorHooks*); Bind bind; XL6_ModuleRetirementGetV4 get;
     ModuleExecutorHooks hooks = {cycle_peer, cycle_caught, cycle_finally, cycle_after, module_dropped};
     memset(&context, 0, sizeof(context)); protocol_mode = version; protocol_calls = 0;
     atomic_store(&deleted, 0); atomic_store(&cleanups, 0); atomic_store(&global_drops, 0); atomic_store(&peer_count, 0);
@@ -115,20 +118,33 @@ static void create_cycle_module(unsigned version)
     void* symbol = lookup(compiled_state, "module_executor_bind"); memcpy(&bind, &symbol, sizeof(bind));
     symbol = lookup(compiled_state, "module_executor_start"); memcpy(&start_cycle, &symbol, sizeof(start_cycle));
     symbol = lookup(compiled_state, "module_executor_view"); memcpy(&executor_view, &symbol, sizeof(executor_view));
-    symbol = lookup(compiled_state, "xl_script_module_retirement_v3"); memcpy(&get, &symbol, sizeof(get));
+    symbol = lookup(compiled_state, "xl_script_module_retirement_v4"); memcpy(&get, &symbol, sizeof(get));
     assert(bind && start_cycle && executor_view && get && !lookup(compiled_state, "xl_script_module_retirement_v2"));
-    real_contract = get(); assert(real_contract && real_contract->abiTag == 0x584C364D525433ULL);
+    real_contract = get(); assert(real_contract && real_contract->abiTag == 0x584C364D525434ULL);
     altered_contract = *real_contract; different_graph = *real_contract->graph;
-    if (version == 1) --altered_contract.size;
-    if (version == 2) altered_contract.abiTag = 0x584C364D525432ULL;
-    if (version == 3) altered_contract.graph = &different_graph;
-    if (version == 4) altered_contract.preflight = NULL;
-    if (version >= 8) altered_contract.preflight = checked_preflight;
+    /* Keep the original legacy-V3 guarded teardown controls, rather than
+     * retagging their permissive fallback expectations as a V4 contract. */
+    legacy_contract = (XL6_ModuleRetirementV3){sizeof(legacy_contract),0x584C364D525433ULL,real_contract->graph,real_contract->preflight};
+    if (version == 1) --legacy_contract.size;
+    if (version == 2) legacy_contract.abiTag = 0x584C364D525432ULL;
+    if (version == 3) legacy_contract.graph = &different_graph;
+    if (version == 4) legacy_contract.preflight = NULL;
+    if (version >= 8 && version <= 10) altered_contract.preflight = checked_preflight;
+    if (version == 11) --altered_contract.size;
+    if (version == 12) altered_contract.abiTag = 0x584C364D525433ULL;
+    if (version == 13) altered_contract.graph = &different_graph;
+    if (version == 14) altered_contract.preflight = NULL;
+    if (version == 16) altered_contract.step = NULL;
     bind(&hooks); xl__tcc.tcc_get_symbol = version ? protocol_lookup : lookup; xl__tcc.tcc_delete = delete_state;
-    xlApiLock(); module = xlCreateModuleFromState(&context, compiled_state); xlApiUnlock(); assert(module);
+    xlApiLock(); module = xlCreateModuleFromState(&context, compiled_state); xlApiUnlock();
+    if(version>=11){
+        assert(!module && context.lastError && strstr(context.lastError,"invalid module retirement V4 contract"));
+        xl__tcc.tcc_get_symbol=lookup;return;
+    }
+    assert(module);
     assert(!module->retirementPreparation);
-    if (version >= 1 && version <= 6) assert(!module->retirementContract && !module->retirementPreflight);
-    else assert(module->retirementContract && (!!module->retirementPreflight == (version != 7)));
+    if (version >= 1 && version <= 6) assert(!module->retirementContract && !module->retirementStep);
+    else assert(module->retirementContract && (!!module->retirementStep == (version != 7)));
     xl__tcc.tcc_get_symbol = lookup;
     assert(xlActivateModule(&context, module, NULL) && !xrtGetError());
 #ifdef MODULE_EXECUTOR_CREATED
@@ -209,6 +225,9 @@ static void cycle_transaction(unsigned width, bool cleanupWait, bool nativeRoot,
         assert(!atomic_load(&deleted) && !atomic_load(&global_drops));
         for (unsigned i = 0; i < width; ++i) assert(!atomic_load(&catches[i]) && !atomic_load(&finals[i]));
         ++rooted_checks;
+#ifdef MODULE_EXECUTOR_BEFORE_UNROOTED
+        if (!nativeRoot) MODULE_EXECUTOR_BEFORE_UNROOTED();
+#endif
         if (guard) xl6CodeLeaseRelease(guard); else xrtFutureDestroy(cycle_outputs[0]);
 #ifdef MODULE_EXECUTOR_UNROOTED
         if (!nativeRoot) MODULE_EXECUTOR_UNROOTED(executor, feeder);
@@ -257,6 +276,25 @@ static void protocol_transaction(unsigned version)
     }
     balance_cycle(&before);
 }
+static void strict_protocol_transaction(unsigned version)
+{
+    xmemdebugsnapshot before,after;xrtMemDebugSnapshot(&before);expected_cleanups=0;create_cycle_module(version);
+    assert(!module && !atomic_load(&deleted) && !atomic_load(&global_drops) && !atomic_load(&cleanups));
+    /* A rejected factory leaves the real, unactivated image caller-owned.
+     * No fake module shell or runtime destructor is needed to dispose of it. */
+    MEMORY_BASIC_INFORMATION memory;
+#ifdef MODULE_EXECUTOR_DLL
+    void* address=executor_entry;
+    assert(FreeLibrary(artifact) && GetModuleHandleA(JOINT_DLL_NAME)==NULL);artifact=NULL;executor_entry=NULL;
+#else
+    void* address=relocated_entry;tcc_delete(compiled_state);relocated_entry=NULL;
+#endif
+    assert(VirtualQuery(address,&memory,sizeof(memory))==sizeof(memory) && memory.State==MEM_FREE);
+    compiled_state=NULL;atomic_fetch_add(&deleted,1);xrtFree(context.lastError);context.lastError=NULL;xrtClearError();
+    xrtMemDebugSnapshot(&after);
+    assert(before.LiveCount==after.LiveCount && before.LiveBytes==after.LiveBytes && after.AllocCount-before.AllocCount==after.FreeCount-before.FreeCount);
+    assert(before.InvalidFreeCount==after.InvalidFreeCount && before.DoubleFreeCount==after.DoubleFreeCount && before.UseAfterFreeCount==after.UseAfterFreeCount);++strict_refusals;
+}
 #ifndef MODULE_EXECUTOR_MIXED
 int main(void)
 {
@@ -272,10 +310,12 @@ int main(void)
         for (unsigned width = 1; width <= 2; ++width) for (unsigned root = 0; root < 2; ++root)
             cycle_transaction(width, false, root != 0, false, true, -1);
         for (unsigned version = 1; version <= 10; ++version) protocol_transaction(version);
+        for (unsigned version = 11; version <= 16; ++version) strict_protocol_transaction(version);
     }
     for (int budget = 0; budget < 32; ++budget) cycle_transaction(2, false, false, false, false, budget);
-    assert(transactions == 182 && rooted_checks == 112 && cleanup_roots == 40 && protocol_refusals == 35 && readiness_retries == 15 && oom_failures > 0);
+    assert(transactions == 182 && rooted_checks == 112 && cleanup_roots == 40 && protocol_refusals == 35 && readiness_retries == 15 && strict_refusals == 30 && oom_failures > 0);
     printf("Generated module executor: 182 real unloads, 60 rings, 20 feeders, 20 acyclic controls, 112 external-root checks, 40 cleanup-await roots, 30 malformed-contract refusals, 5 legacy guarded teardowns, 15 readiness retries, 32 snapshot budgets, %u actual OOM; original module executor, catch/finally/globals, MEM_FREE and exact memory balance\n", oom_failures);
+    puts("Strict V4 admission: 30 malformed contracts rejected before activation; real images retired with MEM_FREE and full allocation balance");
     return 0;
 }
 #endif

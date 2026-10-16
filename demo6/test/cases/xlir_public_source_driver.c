@@ -147,6 +147,8 @@ done:
     if (!ok) fprintf(stderr, "public source %s failed: %s\n", phase,
         xlcGetLastError(compiler) ? xlcGetLastError(compiler) : "without diagnostic");
     xlcDestroyContext(compiler);
+    { XL_RuntimeDrainResult drained=xlRuntimeDrainRetiringChecked(-1);
+      if(!drained.ready || !drained.ok){fprintf(stderr,"public source retirement incomplete or failed\n");if(!code)code=1;} }
     if (ok && code == 0) printf("public source %s complete\n", requestedMode);
     return code;
 }

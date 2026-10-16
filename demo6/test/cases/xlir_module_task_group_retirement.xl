@@ -1,0 +1,40 @@
+extern "group_boot" func boot() as future<int>
+extern "group_capture" func capture(var output)
+extern "group_entered" func entered()
+extern "group_caught" func caught()
+extern "group_finally" func finished()
+extern "group_dropped" func dropped()
+string moduleText = "task group " + "alive"
+TaskGroup group = task.group()
+class ModuleMarker
+    destroy()
+        assert moduleText == "task group alive", "Globals retired before TaskGroup finalization"
+        dropped()
+    end
+end
+ModuleMarker marker = ModuleMarker()
+async func work(future<int> start) as int
+    try
+        int ignored = await start
+        future<null> joined = group.joinAsync()
+        entered()
+        await joined
+        return 1
+    catch CancelledError failure
+        assert moduleText == "task group alive", "Globals retired before TaskGroup catch"
+        caught()
+        throw
+    finally
+        assert moduleText == "task group alive", "Globals retired before TaskGroup finally"
+        finished()
+    end
+end
+export "group_start" func start()
+    future<int> output = work(boot())
+    assert group.add(output)
+    capture(output)
+end
+func main(...) as int
+    start()
+    return 0
+end

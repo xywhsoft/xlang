@@ -174,4 +174,6 @@ XL6_CODE_LEASE_API const struct xrtownershipadapterv1* xl6TaskOwnershipAdapterV1
 XL6_CODE_LEASE_API struct xrtownershipref xl6TaskPoolOwnership(const XL6_TaskPool*);
 XL6_CODE_LEASE_API const struct xrtownershipadapterv1* xl6TaskPoolOwnershipAdapterV1(
     struct xrtownershipref, const struct xrtownershippreparationv1**);
+struct xrtownershipquiescencev1;
+XL6_CODE_LEASE_API const struct xrtownershipquiescencev1* xl6TaskPoolQuiescenceV1Get(void);
 #endif

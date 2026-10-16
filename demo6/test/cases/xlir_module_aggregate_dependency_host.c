@@ -1,9 +1,11 @@
 #include "src/runtime/xl6_future_wait.h"
 static void bind_aggregate_callbacks(void);
 static void inspect_aggregate_unrooted(struct xrtownershipref, bool);
+static void begin_aggregate_probe(void);
 #define MODULE_MIXED_CUSTOM_MAIN
 #define MODULE_MIXED_CREATED bind_aggregate_callbacks
 #define MODULE_EXECUTOR_UNROOTED inspect_aggregate_unrooted
+#define MODULE_EXECUTOR_BEFORE_UNROOTED begin_aggregate_probe
 #define JOINT_TCC_SOURCE_FILE "test/cases/xlir_module_aggregate_dependency_artifact.c"
 #include "xlir_module_mixed_dependency_host.c"
 
@@ -11,17 +13,16 @@ static unsigned aggregate_mode, proof_plans, proof_members, proof_feeders, proof
 static unsigned proof_unprepared_queries;
 static unsigned proof_native_views, late_completions;
 static unsigned proof_snapshot_deferrals;
-static bool native_pool_busy;
-static bool probe_resolve(xrtownershipref ref, void* context, const xrtownershipadapterv1** adapter, const xrtownershippreparationv1** preparation)
+static bool probe_busy;
+static XL6_OwnershipAdmissionV1 probe_resolve(xrtownershipref ref, void* context, const xrtownershipadapterv1** adapter,
+    const xrtownershippreparationv1** preparation,const xrtownershipfinishv1** completion)
 {
-    bool admitted = xlModuleResolveOwnershipV2(ref, context, adapter, preparation);
-    /* A parked native worker can wake between the executor-only idle probe
-     * and this whole-graph snapshot. Compare the exact resident native-pool
-     * identity without reading an unknown node's Data. Still REFUSE it:
-     * retrying the entire snapshot is not admission or treating it as a leaf. */
-    if (!admitted && ref.Data && ref.Ops == xrtTaskPoolOwnership(ref.Data).Ops) native_pool_busy = true;
+    XL6_OwnershipAdmissionV1 admitted=xlModuleProbeOwnershipV1(ref,context,adapter,preparation,completion);
+    if(admitted==XL6_OWNERSHIP_ADMISSION_BUSY)probe_busy=true;
     return admitted;
 }
+static bool resolve_probe_capability(xrtownershipref ref,const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation)
+{ const xrtownershipfinishv1* completion=NULL;return xlModuleResolveOwnershipV3(ref,module,adapter,preparation,&completion); }
 static xfuture* aggregate_ready_future;
 static int64_t aggregate_mode_get(void) { return aggregate_mode; }
 static xfuture* aggregate_ready_get(void) { return xrtFutureRef(aggregate_ready_future); }
@@ -47,7 +48,7 @@ static bool find_wait_queue(xrtownershipref ref, void* data)
     const xrtownershippreparationv1 *preparation = NULL, *admitted = NULL; const xrtownershipadapterv1* adapter = NULL;
     const xrtownershipadapterv1* queue = xl6ContinuationQueueOwnershipAdapterV1(ref, storage, 1, &preparation);
     if (queue) {
-        assert(xlModuleResolveOwnershipV2(ref, NULL, &adapter, &admitted) && adapter == queue && admitted == preparation);
+        assert(resolve_probe_capability(ref, &adapter, &admitted) && adapter == queue && admitted == preparation);
         if (search->edges) assert(ref.Data == search->queue.Data && ref.Ops == search->queue.Ops);
         search->queue = ref; search->preparation = preparation; ++search->edges;
     }
@@ -92,6 +93,20 @@ static void assert_untouched(void)
         for (unsigned j = 0; j < 2; ++j) assert(!atomic_load(&callback_finally[i][j]));
     }
 }
+static void begin_aggregate_probe(void)
+{
+    /* Keep the last real Future root until the normal driver's previous
+     * snapshot has aborted. Exclude that driver BEFORE dropping the root,
+     * so a worker release cannot begin semantic retirement before the
+     * independent proof obtains its own claims. No count is discounted. */
+    xdeadline deadline=xrtDeadlineAfter(5000000);
+    for(;;){
+        xlApiLock();assert(!xl__ownershipDriverRunning && !xrtGetError());
+        xlCollectRetiringModulesUnlocked();
+        if(!module->ownershipPlan){xl__ownershipDriverRunning=1;xlApiUnlock();assert_untouched();return;}
+        xlApiUnlock();assert_untouched();assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+    }
+}
 static void inspect_aggregate_unrooted(xrtownershipref executor, bool feeder)
 {
     /* Normal host admission has already run, and the final external Future
@@ -102,19 +117,17 @@ static void inspect_aggregate_unrooted(xrtownershipref executor, bool feeder)
     XL6_OwnershipPlan* plan = NULL; xrtownershipscope freeze = {0}; xmemdebugsnapshot before;
     xrtownershipref producer = {0}; const xrtownershipadapterv1* adapter = NULL;
     const xrtownershippreparationv1* preparation = NULL; xdeadline deadline = xrtDeadlineAfter(5000000);
-    assert(!module->ownershipPlan && !xl__ownershipDriverRunning && !xrtGetError());
-    xrtMemDebugSnapshot(&before); xlApiLock(); xl__ownershipDriverRunning = 1; xlApiUnlock();
+    xlApiLock();assert(!module->ownershipPlan && xl__ownershipDriverRunning && !xrtGetError());xlApiUnlock();
+    xrtMemDebugSnapshot(&before);
     for (;;) {
         quiet_executor(executor, &freeze); assert(xrtOwnershipScopeEnd(&freeze));
         xlApiLock();
-        native_pool_busy = false;
-        XL6_OwnershipPlanResult result = xl6OwnershipPlanTryCreateV2((xrtownershipref){module, &xlModuleOwnershipOps},
-            probe_resolve, NULL, &plan);
+        probe_busy = false;
+        XL6_OwnershipPlanResult result = xl6OwnershipPlanTryCreateV6((xrtownershipref){module, &xlModuleOwnershipOps},
+            probe_resolve, NULL, false, module, &plan);
         xlApiUnlock();
         if (result == XL6_OWNERSHIP_PLAN_PREPARATIONS) break;
-        if (result == XL6_OWNERSHIP_PLAN_ERROR && native_pool_busy && !plan && xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_STATE) {
-            xrtClearError(); ++proof_snapshot_deferrals; assert(!xrtDeadlineExpired(deadline)); xrtThreadYield(); continue;
-        }
+        if (result == XL6_OWNERSHIP_PLAN_BUSY && probe_busy) ++proof_snapshot_deferrals;
         if (result != XL6_OWNERSHIP_PLAN_BUSY) fprintf(stderr, "Aggregate plan refusal: mode=%u width=%u feeder=%u transaction=%u status=%d error=%s\n",
             aggregate_mode, cycle_width, feeder, transactions, (int)result, xrtGetError() ? xrtErrorMessage(xrtGetError()) : "none");
         assert(result == XL6_OWNERSHIP_PLAN_BUSY && !plan && !xrtGetError() && !xrtDeadlineExpired(deadline)); xrtThreadYield();
@@ -136,19 +149,17 @@ static void inspect_aggregate_unrooted(xrtownershipref executor, bool feeder)
     assert(queue.preparation->Prepare(queue.queue.Data, plan) == XRT_OWNERSHIP_PREPARE_READY);
     for (;;) {
         quiet_executor(executor, &freeze); assert(xrtOwnershipScopeEnd(&freeze));
-        native_pool_busy = false;
+        probe_busy = false;
         XL6_OwnershipPlanResult result = xl6OwnershipPlanTryRefresh(plan);
         if (result == XL6_OWNERSHIP_PLAN_PREPARATIONS) break;
-        if (result == XL6_OWNERSHIP_PLAN_ERROR && native_pool_busy && xrtGetError() && xrtErrorKind(xrtGetError()) == XERR_STATE) {
-            xrtClearError(); ++proof_snapshot_deferrals; assert(!xrtDeadlineExpired(deadline)); xrtThreadYield(); continue;
-        }
+        if (result == XL6_OWNERSHIP_PLAN_BUSY && probe_busy) ++proof_snapshot_deferrals;
         assert(result == XL6_OWNERSHIP_PLAN_BUSY && !xrtDeadlineExpired(deadline)); xrtThreadYield();
     }
     quiet_executor(executor, &freeze);
     for (unsigned i = 0; i < cycle_width; ++i) {
         WaitProducerSearch search = {plan, xrtFutureOwnership(cycle_outputs[i]), {0}, 0};
         assert(search.output.Ops->Trace(search.output.Data, find_wait_producer, &search) && search.found == 1);
-        assert(xlModuleResolveOwnershipV2(search.producer, NULL, &adapter, &preparation) && adapter && preparation);
+        assert(resolve_probe_capability(search.producer, &adapter, &preparation) && adapter && preparation);
         XL6_FutureWaitV1 single = {0}; assert(xl6ContinuationFutureWaitV1(search.producer, plan, &single));
         AggregateWaitSearch aggregate = {plan, xrtFutureOwnership(single.source), 0};
         assert(aggregate.output.Ops->Trace(aggregate.output.Data, check_aggregate_wait, &aggregate) && aggregate.found == 1);
@@ -182,7 +193,7 @@ static void inspect_aggregate_unrooted(xrtownershipref executor, bool feeder)
          * pure query. Failure to allocate proof scratch must return BUSY,
          * never FAILED, and must not run cancellation/finally callbacks. */
         quiet_executor(executor, &freeze);
-        assert(xlModuleResolveOwnershipV2(producer, NULL, &adapter, &preparation) && preparation);
+        assert(resolve_probe_capability(producer, &adapter, &preparation) && preparation);
         assert(xrtOwnershipScopeEnd(&freeze));
         xrtSetErrorKind(XERR_PROTOCOL); const xerror* primary = xrtGetError(); assert(primary && xrtMemDebugFailAfter(0));
         xrtownershipprepareresult result = preparation->Prepare(producer.Data, plan);
@@ -269,7 +280,7 @@ int main(void)
     assert(proof_plans == 80 && proof_members == 160 && proof_feeders == 12 && proof_budgets == 108 && proof_resources == 12 && proof_deferrals == 12 && proof_unprepared_queries == 172 && proof_native_views == 172);
     printf("Aggregate dependency modules: 170 real unloads, six literal/array ALL/RACE/ANY modes, 72 rings, 24 feeders, 24 acyclic controls, 128 external-root checks, 48 cleanup-await roots, 704 callback finally executions, 32 snapshot budgets, %u actual OOM; original async catch/finally, complete ALL results, ANY index, MEM_FREE and exact memory balance\n", oom_failures);
     printf("Aggregate wait proof: 80 actual independently admitted module plans, 160 members, 12 feeders refused, 108 diagnostic-preserving proof budgets, 12 resource failures, 12 real producer BUSY deferrals; zero premature cancellation or semantic cleanup\n");
-    printf("Aggregate snapshot admission: %u exact native-pool quiescence deferrals; every successful plan independently readmits the whole graph\n", proof_snapshot_deferrals);
+    printf("Aggregate snapshot admission: %u exact native-transition quiescence deferrals; every successful plan independently readmits the whole graph\n", proof_snapshot_deferrals);
     printf("Aggregate descriptor boundary: 172 unprepared-queue refusals and 172 wrong-claim refusals; actual queue preparation required\n");
     printf("Aggregate native input facts: 172 exact complete ordered views, duplicate and completed slots, ALL/ANY rules and Race-only loser cancellation; 18 success/failure/cancellation completions after module Close\n");
     return 0;

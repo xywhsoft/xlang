@@ -32,7 +32,7 @@ try {
         $prefix="$outputPath/emit$pass"
         & $ContractDriver "$prefix.c" "$prefix.h" "$prefix.binding.h" "$prefix.json" "$prefix.txt" *> "$prefix.log"
         $code=$LASTEXITCODE
-        $complete=$code-eq0 -and [bool](Select-String -LiteralPath "$prefix.log" -Pattern '^Module executor IR: 23 C/header-gated mutations,' -Quiet)
+        $complete=$code-eq0 -and [bool](Select-String -LiteralPath "$prefix.log" -Pattern '^Module executor IR: 29 C/header-gated mutations,' -Quiet)
         $emission+=[pscustomobject]@{Pass=$pass;Exit=$code;Complete=$complete}
     }
     $deterministic=@($emission|Where-Object {!$_.Complete}).Count-eq0
@@ -48,7 +48,7 @@ try {
         $dependencies=@($build.Objects|Where-Object {[IO.Path]::GetFileName($_.Path)-notin$excluded}|ForEach-Object Path)
         $flags=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
             '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-unused-const-variable','-Wno-pointer-sign','-Wno-format-truncation','-Wno-missing-field-initializers',
-            '-I.','-Irelease','-Ilib/tcc',"-I$outputPath")
+            '-I.','-Irelease','-Irelease/include','-Ilib/tcc',"-I$outputPath")
         $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32')
         foreach($kind in @('tcc','dll')){foreach($level in @(0,2)){
             $name="$kind-O$level";$binary="$outputPath/$name.exe";$dllExit=$null
@@ -69,7 +69,7 @@ $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingD
                 $process.Dispose()
                 $text=Get-Content "$outputPath/$name.out.log" -Raw
                 if($text-match '32 snapshot budgets, ([1-9][0-9]*) actual OOM'){$actualOom=[int]$Matches[1]}
-                $complete=$run-eq0 -and $actualOom-gt0 -and $text-match '^([\s\S]*\n)?Generated module executor: 182 real unloads, 60 rings, 20 feeders, 20 acyclic controls, 112 external-root checks, 40 cleanup-await roots, 30 malformed-contract refusals, 5 legacy guarded teardowns, 15 readiness retries, 32 snapshot budgets, [1-9][0-9]* actual OOM; original module executor, catch/finally/globals, MEM_FREE and exact memory balance'
+                $complete=$run-eq0 -and $actualOom-gt0 -and $text-match '^([\s\S]*\n)?Generated module executor: 182 real unloads, 60 rings, 20 feeders, 20 acyclic controls, 112 external-root checks, 40 cleanup-await roots, 30 malformed-contract refusals, 5 legacy guarded teardowns, 15 readiness retries, 32 snapshot budgets, [1-9][0-9]* actual OOM; original module executor, catch/finally/globals, MEM_FREE and exact memory balance' -and $text.Contains('Strict V4 admission: 30 malformed contracts rejected before activation; real images retired with MEM_FREE and full allocation balance')
             }
             $rows+=[pscustomobject]@{Lane=$name;Build=$buildExit;DllBuild=$dllExit;Run=$run;Complete=$complete;ActualOom=$actualOom}
             Write-Output "$name build=$buildExit dll=$dllExit run=$run complete=$complete"
@@ -87,7 +87,7 @@ $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingD
             $code=$LASTEXITCODE;$complete=$false
             if(!$code){
                 $ir=Get-Content "$mixed/emit$pass.json" -Raw|ConvertFrom-Json
-                $complete=$ir.asyncMachines.Count-eq1 -and $ir.moduleExecutorOwnershipAbi-eq1 -and $ir.moduleTaskPoolOwnershipAbi-eq1 -and $ir.retirementAbi-eq3 -and $ir.moduleTaskPoolAbi-eq'xrt-guarded-quiesce-before-globals'
+                $complete=$ir.asyncMachines.Count-eq1 -and $ir.moduleExecutorOwnershipAbi-eq1 -and $ir.moduleTaskPoolOwnershipAbi-eq1 -and $ir.retirementAbi-eq4 -and $ir.moduleTaskPoolAbi-eq'xrt-guarded-quiesce-before-globals'
             }
             $emission+=[pscustomobject]@{Pass="mixed$pass";Exit=$code;Complete=$complete}
             $deterministic=$deterministic -and $complete
@@ -128,7 +128,7 @@ $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingD
     $report=[pscustomobject]@{Inputs=$inputs;InputsUnchanged=$unchanged;Deterministic=$deterministic;Emission=$emission;Lanes=$rows;
         PerProgram=[pscustomobject]@{RealUnloads=182;Rings=60;Feeders=20;Acyclic=20;ExternalRoots=112;CleanupRoots=40;MalformedContracts=30;LegacyTeardowns=5;ReadinessRetries=15;AllocationBudgets=32};
         MixedPerProgram=[pscustomobject]@{RealUnloads=50;OpenOwnerCompletions=25;ClosedOwnerRefusals=25};
-        Scope='Real generated-module-owned executor, explicit IR ownership and V3 preflight, current source API/runtime, actual TCC and DLL MEM_FREE. Test-only canonical machine entry, not new public Future parameter export support. All original 28 gates remain mandatory. Mixed producer/native network, standalone CLI, platform/release acceptance and legacy retirement remain open.'}
+        Scope='Real generated-module-owned executor, explicit IR ownership and retryable-service V4 contract, current source API/runtime, actual TCC and DLL MEM_FREE. Test-only canonical machine entry, not new public Future parameter export support. All original gates remain mandatory. Network and product-wide release acceptance remain independent.'}
     [IO.File]::WriteAllText("$outputPath/results.json",($report|ConvertTo-Json -Depth 7),[Text.UTF8Encoding]::new($false))
     if(!$unchanged -or !$deterministic -or $rows.Count-ne8 -or @($rows|Where-Object {!$_.Complete}).Count){throw 'Module-executor batch collected failures'}
 } finally {Pop-Location}

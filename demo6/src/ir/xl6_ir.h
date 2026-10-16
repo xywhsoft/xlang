@@ -7545,6 +7545,7 @@ XL6_IrModuleTaskPoolAbi xl6IrModuleTaskPoolRequirement(const XL6_IrModule* modul
 XL6_IrModuleContinuationAbi xl6IrModuleContinuationRequirement(const XL6_IrModule* module);
 XL6_IrModuleExecutorOwnershipAbi xl6IrModuleExecutorOwnershipRequirement(const XL6_IrModule* module);
 XL6_IrModuleTaskPoolOwnershipAbi xl6IrModuleTaskPoolOwnershipRequirement(const XL6_IrModule* module);
+XL6_IrModuleRetirementAbi xl6IrModuleRetirementRequirement(const XL6_IrModule* module);
 XL6_IrFutureAggregateAbi xl6IrModuleFutureAggregateRequirement(const XL6_IrModule* module);
 XL6_IrNativeFutureMapAbi xl6IrModuleNativeFutureMapRequirement(const XL6_IrModule* module);
 XL6_IrModuleNetworkServiceAbi xl6IrModuleNetworkServiceRequirement(const XL6_IrModule* module);

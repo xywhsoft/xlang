@@ -1,0 +1,28 @@
+extern "pool_work" func blocked() as int
+extern "pool_wait_started" func waitStarted()
+extern "pool_finally" func finished()
+extern "pool_dropped" func dropped()
+extern "group_capture" func capture(var output)
+string moduleText = "task pool " + "alive"
+class ModuleMarker
+    destroy()
+        assert moduleText == "task pool alive", "Globals retired before task pool finalizer"
+        dropped()
+    end
+end
+ModuleMarker marker = ModuleMarker()
+func work() as int
+    try
+        return blocked()
+    finally
+        assert moduleText == "task pool alive", "Globals retired before task finally"
+        finished()
+    end
+end
+func main(...) as int
+    func() as int job = work
+    future<int> output = task.spawn(job)
+    capture(output)
+    waitStarted()
+    return 0
+end

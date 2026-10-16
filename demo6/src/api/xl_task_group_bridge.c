@@ -13,7 +13,7 @@ struct xl6_task_group {
     xtaskgroup* Group;
     xcancelwatch* ParentWatch;
     const void* Claim;
-    bool BindingParent, Closing, Cleared;
+    bool BindingParent, Preparing, Prepared, Closing, Cleared;
     uint64 Reaped;
 };
 static void begin(xl6_task_group* group,xrtownershipscope* scope)
@@ -88,7 +88,7 @@ static bool count(const void* data,size_t* result)
 {
     const xl6_task_group* group=data;
     if(!group || !result || group->References<=0 || group->Busy || group->BindingParent ||
-        group->Closing || group->Cleared || !group->Group)return false;
+        group->Cleared || !group->Group)return false;
     *result=(size_t)group->References;return true;
 }
 static bool trace(const void* data,xrtownershipvisitor visit,ptr context)
@@ -105,7 +105,7 @@ XL_API xrtownershipref xl6TaskGroupOwnershipV1(const xl6_task_group* group)
 static bool hold(const void* data)
 {
     xl6_task_group* group=(xl6_task_group*)data;xrtownershipscope scope={0};bool held;
-    begin(group,&scope);held=!group->Cleared && !group->Closing && xrtRefRetain(&group->References)>0;
+    begin(group,&scope);held=!group->Cleared && xrtRefRetain(&group->References)>0;
     end(group,&scope);return held;
 }
 static bool claim(const void* data,const void* token)
@@ -145,8 +145,52 @@ XL_API const xrtownershipadapterv1* xl6TaskGroupOwnershipAdapterV1(xrtownershipr
 {
     static const xrtownershipadapterv1 adapter={sizeof(adapter),hold,drop,claim,restore,NULL,clear,NULL};
     static const xrtownershipfinishv1 completed={sizeof(completed),&adapter,finish};size_t refs;
-    if(!completion || ref.Ops!=&ops || !count(ref.Data,&refs))return NULL;
+    if(!completion || ref.Ops!=&ops || !count(ref.Data,&refs) || ((const xl6_task_group*)ref.Data)->Closing)return NULL;
     *completion=&completed;return &adapter;
+}
+/* Preparation performs the ordinary language owner's Close/cooperative-Cancel
+ * semantics without consuming its creator right. Execution owners still drain
+ * callbacks/finally; parent registration is retired only after all items end. */
+static bool prepared(const void* data)
+{
+    const xl6_task_group* group=data;
+    return group->Prepared && !group->Busy && !group->BindingParent && !group->ParentWatch;
+}
+static xrtownershipprepareresult prepare(const void* data,const void* token)
+{
+    xl6_task_group* group=(xl6_task_group*)data;xrtownershipscope scope={0};
+    begin(group,&scope);
+    if(!token || group->Claim!=token || group->Cleared)abort();
+    if(group->Busy || group->BindingParent){end(group,&scope);return XRT_OWNERSHIP_PREPARE_BUSY;}
+    group->Preparing=true;xtaskgroup* native=group->Group;end(group,&scope);
+    (void)xrtTaskGroupClose(native);
+    xtaskgroupstats stats;
+    if(!xrtTaskGroupGet(native,&stats))return XRT_OWNERSHIP_PREPARE_FAILED;
+    if(stats.Active){
+        if(!xrtTaskGroupCancel(native) && (!xrtTaskGroupGet(native,&stats) || !stats.Cancelling))
+            return XRT_OWNERSHIP_PREPARE_FAILED;
+        return XRT_OWNERSHIP_PREPARE_BUSY;
+    }
+    begin(group,&scope);xcancelwatch* watch=group->ParentWatch;end(group,&scope);
+    if(watch){
+        if(!xrtCancelUnwatchChecked(watch))return XRT_OWNERSHIP_PREPARE_FAILED;
+        begin(group,&scope);group->ParentWatch=NULL;end(group,&scope);
+    }
+    begin(group,&scope);
+    group->Prepared=!group->Busy && !group->BindingParent && !group->ParentWatch;
+    bool ready=prepared(group);end(group,&scope);
+    return ready?XRT_OWNERSHIP_PREPARE_READY:XRT_OWNERSHIP_PREPARE_BUSY;
+}
+static void clear_prepared(const void* data,const void* token)
+{ if(!prepared(data))abort();clear(data,token); }
+XL_API const xrtownershipadapterv1* xl6TaskGroupOwnershipAdapterV2(xrtownershipref ref,
+    const xrtownershippreparationv1** preparation,const xrtownershipfinishv1** completion)
+{
+    static const xrtownershipadapterv1 adapter={sizeof(adapter),hold,drop,claim,restore,NULL,clear_prepared,NULL};
+    static const xrtownershippreparationv1 preparation_api={sizeof(preparation_api),&adapter,prepared,prepare};
+    static const xrtownershipfinishv1 completed={sizeof(completed),&adapter,finish};size_t refs;
+    if(!preparation || !completion || ref.Ops!=&ops || !count(ref.Data,&refs))return NULL;
+    *preparation=&preparation_api;*completion=&completed;return &adapter;
 }
 XL_API xl6_task_group* xl6TaskGroupCreate(void) { return wrap(xrtTaskGroupCreate(NULL)); }
 XL_API xl6_task_group* xl6TaskGroupChild(xl6_task_group* parent)
@@ -184,7 +228,7 @@ XL_API bool xl6TaskGroupBindParent(xl6_task_group* group,xfuture* parent)
     if(!parent){xrtSetErrorKind(XERR_ARGUMENT);return false;}
     if(!enter(group,true))return false;
     xrtownershipscope scope={0};begin(group,&scope);
-    bool available=!group->ParentWatch && !group->BindingParent;
+    bool available=!group->ParentWatch && !group->BindingParent && !group->Preparing;
     if(available)group->BindingParent=true;
     end(group,&scope);
     if(!available){leave(group);xrtSetErrorKind(XERR_STATE);return false;}

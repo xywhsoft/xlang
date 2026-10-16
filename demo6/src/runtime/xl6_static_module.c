@@ -15,6 +15,7 @@ enum { STATIC_START, STATIC_PREPARE, STATIC_FINALIZE, STATIC_COMMIT,
 struct XL6_StaticModule {
     XL6_CodeOwnerGraph owner;
     XL6_StaticModuleContractV1 contract;
+    XL6_OwnershipProbeV1 probe;
     xmutex* lock;
     size_t leases, pins;
     bool entry, closing, running, cleared, finished, prepared, blocked;
@@ -227,6 +228,25 @@ static bool staticDiscover(XL6_ModuleOwnershipVisit visit,void* context,void* da
     XL6_StaticModule* module=data;size_t count;
     return staticCount(data,&count) && (!module->contract.discover || module->contract.discover(&module->owner.base,visit,context));
 }
+static XL6_OwnershipAdmissionV1 staticProbe(xrtownershipref ref,void* data,
+    const xrtownershipadapterv1** adapter,const xrtownershippreparationv1** preparation,
+    const XL6_OwnershipFinishV1** completion)
+{
+    XL6_StaticModule* module=data;*adapter=NULL;*preparation=NULL;*completion=NULL;
+    if(ref.Ops==&staticOps){
+        if(ref.Data!=module)return XL6_OWNERSHIP_ADMISSION_REFUSED;
+        /* A previously admitted callback can enter between the driver's
+         * initial quiescence probe and the plan's fresh Freeze. Preserve the
+         * physical Count refusal, but classify that exact active stack here
+         * before seed Hold or discovery can mistake it for a broken graph. */
+        if((module->running && module->driverThread!=xrtThreadCurrentId()) ||
+            (xl6CodeOwnerScopeActive(&module->owner.base) && !staticReadQuiescent(module)))
+            return XL6_OWNERSHIP_ADMISSION_BUSY;
+        return staticResolve(ref,data,adapter,preparation,completion)
+            ? XL6_OWNERSHIP_ADMISSION_ADMITTED : XL6_OWNERSHIP_ADMISSION_REFUSED;
+    }
+    return module->probe(ref,module->contract.context,adapter,preparation,completion);
+}
 XL6_StaticModule* xl6StaticModuleCreateV1(const XL6_StaticModuleContractV1* contract)
 {
     if(!contract || contract->size!=sizeof(*contract) || !contract->graph ||
@@ -241,6 +261,13 @@ XL6_StaticModule* xl6StaticModuleCreateV1(const XL6_StaticModuleContractV1* cont
     module->lock=xrtMutexCreate();if(!module->lock){xrtFree(module);return NULL;}
     module->contract=*contract;module->entry=true;
     module->owner=(XL6_CodeOwnerGraph){{sizeof(module->owner),module,staticAcquire,staticRelease},0x584C36434F574E31ULL,&staticOps};
+    return module;
+}
+XL6_StaticModule* xl6StaticModuleCreateV2(const XL6_StaticModuleContractV2* contract)
+{
+    if(!contract || contract->size!=sizeof(*contract) || !contract->base || !contract->probe){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    XL6_StaticModule* module=xl6StaticModuleCreateV1(contract->base);
+    if(module)module->probe=contract->probe;
     return module;
 }
 const XL6_CodeOwner* xl6StaticModuleOwnerV1(const XL6_StaticModule* module)
@@ -262,7 +289,9 @@ static XL6_StaticModuleResultV1 staticRetire(XL6_StaticModule* module)
     xl6_error_scope scope={0};bool begun=xl6ErrorScopeBegin(&scope);
     if(begun){
         if(module->phase==STATIC_START){
-            XL6_OwnershipPlanResult status=xl6OwnershipPlanTryCreateV5(xl6StaticModuleOwnershipV1(module),staticResolve,staticDiscover,module,&module->plan);
+            XL6_OwnershipPlanResult status=module->probe
+                ? xl6OwnershipPlanTryCreateV6(xl6StaticModuleOwnershipV1(module),staticProbe,staticDiscover,true,module,&module->plan)
+                : xl6OwnershipPlanTryCreateV5(xl6StaticModuleOwnershipV1(module),staticResolve,staticDiscover,module,&module->plan);
             if(status==XL6_OWNERSHIP_PLAN_ERROR){module->blocked=true;xl6ErrorScopeCaptureFailure(&scope);goto end;}
             if(status==XL6_OWNERSHIP_PLAN_BUSY)goto end;
             if(status==XL6_OWNERSHIP_PLAN_ROOTED)module->blocked=true;
@@ -340,6 +369,23 @@ XL6_StaticModuleResultV1 xl6StaticModuleDrainV1(XL6_StaticModule* module)
         }
         XL6_StaticModuleResultV1 result=staticRetire(module);bool blocked=module->blocked;
         staticBoundaryLeave();if(result.ready || blocked)return result;
+        xrtThreadYield();
+    }
+}
+XL6_StaticModuleResultV1 xl6StaticModuleDrainForV1(XL6_StaticModule* module,long long milliseconds)
+{
+    if(!module || milliseconds< -1){xrtSetErrorKind(XERR_ARGUMENT);return (XL6_StaticModuleResultV1){false,false};}
+    uint64 timeout=milliseconds<0 || (uint64)milliseconds>UINT64_MAX/1000u ? UINT64_MAX : (uint64)milliseconds*1000u;
+    xdeadline deadline=xrtDeadlineAfter(timeout);
+    for(;;){
+        XL6_StaticModuleResultV1 result={false,!staticFailed(module)};
+        if(!staticBoundaryEnter(STATIC_BOUNDARY_RETIRE)){
+            if(xrtAtomic64Load(&staticBoundaryThread,XMEMORY_ACQUIRE)==xrtThreadCurrentId())return result;
+        }else{
+            result=staticRetire(module);bool failed=module->blocked && !result.ok;
+            staticBoundaryLeave();if(result.ready || failed)return result;
+        }
+        if(milliseconds>=0 && xrtDeadlineExpired(deadline))return result;
         xrtThreadYield();
     }
 }

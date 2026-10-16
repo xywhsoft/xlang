@@ -1,0 +1,45 @@
+string moduleText = "task group " + "alive"
+TaskGroup group = task.group()
+WaitQueue<int> enteredGate = WaitQueue::<int>(1)
+int caughtCount = 0
+int finallyCount = 0
+class ModuleMarker
+    destroy()
+        assert moduleText == "task group alive", "Globals retired before TaskGroup AOT finalizer"
+        assert caughtCount == 1 and finallyCount == 1, "TaskGroup AOT skipped catch or finally"
+        println("task-group-aot-generated-cleanup")
+    end
+end
+ModuleMarker marker = ModuleMarker()
+func boot(WaitQueue<int> gate) as int
+    auto status, value = gate.pop()
+    assert status == queueStatus.ok and value != null
+    return value as int
+end
+async func work(future<int> start) as int
+    try
+        int ignored = await start
+        future<null> joined = group.joinAsync()
+        assert enteredGate.tryPush(1) == queueStatus.ok
+        await joined
+        return 1
+    catch CancelledError failure
+        assert moduleText == "task group alive"
+        caughtCount += 1
+        throw
+    finally
+        assert moduleText == "task group alive"
+        finallyCount += 1
+    end
+end
+func main(...) as int
+    WaitQueue<int> gate = WaitQueue::<int>(1)
+    func(WaitQueue<int>) as int job = boot
+    future<int> start = task.spawn(job, gate)
+    future<int> output = work(start)
+    assert group.add(output)
+    assert gate.tryPush(1) == queueStatus.ok
+    auto status, value = enteredGate.pop()
+    assert status == queueStatus.ok and value != null
+    return 0
+end

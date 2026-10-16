@@ -9,4 +9,6 @@ XL6_OWNERSHIP_QUERY(Queue)
     *adapter=xl6ContinuationQueueOwnershipAdapterV1(ref,policies->QueuedStorage,policies->QueuedStorageCount,preparation);
     return *adapter!=NULL;
 }
-XL6_OWNERSHIP_DOMAIN(Queue,NULL,ownershipDomainQueue)
+static bool load(XL6_OwnershipCatalog* catalog)
+{ return xl6OwnershipCatalogAddQuiescenceV1(catalog,xl6ContinuationQueueQuiescenceV1Get()); }
+XL6_OWNERSHIP_DOMAIN(Queue,load,ownershipDomainQueue)

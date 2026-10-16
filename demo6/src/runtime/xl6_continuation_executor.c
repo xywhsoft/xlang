@@ -5,6 +5,7 @@
 #include "lib/xrt/xrt.h"
 #include "xl6_continuation_executor.h"
 #include "xl6_ownership_scope.h"
+#include "xl6_ownership_catalog.h"
 #include <stdlib.h>
 
 typedef struct XL6_ContinuationWorker {
@@ -322,6 +323,25 @@ static bool executor_trace(const void* data,xrtownershipvisitor visit,void* cont
     return true;
 }
 static const xrtownershipops executor_ops={executor_count,executor_trace};
+static bool executor_busy(const void* data)
+{
+    const XL6_ContinuationExecutor* executor=data;
+    if(!executor || !executor->references || !executor->initialized || executor->cleared || executor->retired)return false;
+    if(executor->entries || executor->joining || executor->destroying || executor->blockedCount)return true;
+    if(!executor->queue)return false;
+    bool busy=false;size_t workers=0;
+    for(const XL6_ContinuationWorker* worker=executor->workers;worker;worker=worker->next){
+        if(workers++==executor->workerCount || worker->executor!=executor || !worker->thread)return false;
+        if(worker->exited){if(worker->wait.queue || worker->wait.parked || worker->id)return false;}
+        else if(executor->joined)return false;
+        else if(!worker->id || worker->blockingDepth || !worker->wait.parked || worker->wait.queue!=executor->queue)busy=true;
+    }
+    return workers==executor->workerCount && busy;
+}
+const XL6_OwnershipQuiescenceV1* xl6ContinuationExecutorQuiescenceV1Get(void)
+{
+    static const XL6_OwnershipQuiescenceV1 policy={sizeof(policy),&executor_ops,executor_busy};return &policy;
+}
 xrtownershipref xl6ContinuationExecutorOwnership(const XL6_ContinuationExecutor* executor)
 {return (xrtownershipref){executor,executor?&executor_ops:NULL};}
 static bool executor_hold(const void* data)

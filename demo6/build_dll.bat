@@ -128,6 +128,8 @@ if errorlevel 1 exit /b 1
 if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_fs_root.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_fs_root.o"
 if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_task_group.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_task_group.o"
+if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_read_file.c -o "%XL6_BUILD_TMP%\xl6_io_read_file.o"
 if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_io_write_file.c -o "%XL6_BUILD_TMP%\xl6_io_write_file.o"

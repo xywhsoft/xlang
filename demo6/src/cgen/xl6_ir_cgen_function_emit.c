@@ -38,7 +38,7 @@ static int xl6IrCgenEmitFunction(
                 "  if (xlir_module_initializing) return 0;\n"
                 "  xlir_module_initializing = 1; ok = xlir_module_init_body();\n"
                 "  xlir_module_initializing = 0; return ok; }\n", out);
-        /* V3 preflight leaves graph-owned services to their exact adapters.
+        /* Preflight leaves graph-owned services to their exact adapters.
          * Checked teardown still joins them before the IR global finalizer. */
         xl6OutputPuts("static inline XL6_ModulePrepareResult xlir_module_prepare_resources(bool teardown, bool wait)\n{\n"
             "    (void)teardown; (void)wait;\n", out);
@@ -49,7 +49,10 @@ static int xl6IrCgenEmitFunction(
         if (module->abi.executorOwnershipAbi == XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN_V1)
             xl6OutputPuts("    if (teardown && !xlir_continuation_quiesce(wait)) return XL6_MODULE_PREPARE_BUSY;\n", out);
         if (module->abi.taskPoolOwnershipAbi == XL6_IR_MODULE_TASK_POOL_OWNERSHIP_RESIDENT_NATIVE_JOBS_JOIN_V1)
-            xl6OutputPuts("    if (teardown && !xlir_async_pool_quiesce()) return XL6_MODULE_PREPARE_FAILED;\n", out);
+            xl6OutputPuts("    if (teardown) {\n"
+                "        XL6_ModulePrepareResult pool = xl6TaskPoolTryQuiesceV1(xlir_async_pool);\n"
+                "        if (pool != XL6_MODULE_PREPARE_READY) return pool;\n"
+                "    }\n", out);
         xl6OutputPuts("    return XL6_MODULE_PREPARE_READY;\n}\n"
             "static inline XL6_ModulePrepareResult xlir_module_prepare_retirement(void)\n"
             "{ return xlir_module_prepare_resources(false, false); }\n", out);

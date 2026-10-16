@@ -20098,6 +20098,14 @@ XL6_IrNativeFutureMapAbi xl6IrModuleNativeFutureMapRequirement(const XL6_IrModul
     return XL6_IR_NATIVE_FUTURE_MAP_NONE;
 }
 
+XL6_IrModuleRetirementAbi xl6IrModuleRetirementRequirement(const XL6_IrModule* module)
+{
+    if(!module || module->abi.codeOwnerAbi!=XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT)return XL6_IR_MODULE_RETIREMENT_NONE;
+    return module->abi.networkServiceAbi!=XL6_IR_MODULE_NETWORK_SERVICE_NONE ||
+        module->abi.executorOwnershipAbi!=XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE ||
+        module->abi.taskPoolOwnershipAbi!=XL6_IR_MODULE_TASK_POOL_OWNERSHIP_NONE
+        ? XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4 : XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2;
+}
 XL6_IrModuleNetworkServiceAbi xl6IrModuleNetworkServiceRequirement(const XL6_IrModule* module)
 {
     if (!module || (module->callTargetCount && !module->callTargets)) return (XL6_IrModuleNetworkServiceAbi)-1;
@@ -20225,11 +20233,7 @@ static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* 
          module->abi.taskPoolOwnershipAbi != XL6_IR_MODULE_TASK_POOL_OWNERSHIP_RESIDENT_NATIVE_JOBS_JOIN_V1))
         return xl6IrDiag(diags, NULL, "XLIR module task pool ownership ABI is unresolved");
     if (module->abi.retirementAbi != (module->stage != XL6_IR_STAGE_TYPED && initializers != 0
-            ? (module->abi.networkServiceAbi != XL6_IR_MODULE_NETWORK_SERVICE_NONE
-                ? XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4 :
-               module->abi.executorOwnershipAbi == XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN_V1 ||
-               module->abi.taskPoolOwnershipAbi == XL6_IR_MODULE_TASK_POOL_OWNERSHIP_RESIDENT_NATIVE_JOBS_JOIN_V1
-                ? XL6_IR_MODULE_RETIREMENT_OWNED_SERVICES_GRAPH_V3 : XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2)
+            ? xl6IrModuleRetirementRequirement(module)
             : XL6_IR_MODULE_RETIREMENT_NONE))
         return xl6IrDiag(diags, NULL, "XLIR module retirement ABI is unresolved");
     initializers = 0;
@@ -26791,11 +26795,7 @@ int xl6IrRefreshReachability(XL6_IrModule* module)
         module->abi.nativeFutureMapAbi=xl6IrModuleNativeFutureMapRequirement(module);
         module->abi.networkServiceAbi=xl6IrModuleNetworkServiceRequirement(module);
         if (module->abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT)
-            module->abi.retirementAbi=module->abi.networkServiceAbi != XL6_IR_MODULE_NETWORK_SERVICE_NONE
-                ? XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4 :
-                (module->abi.executorOwnershipAbi != XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE ||
-                 module->abi.taskPoolOwnershipAbi != XL6_IR_MODULE_TASK_POOL_OWNERSHIP_NONE
-                    ? XL6_IR_MODULE_RETIREMENT_OWNED_SERVICES_GRAPH_V3 : XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2);
+            module->abi.retirementAbi=xl6IrModuleRetirementRequirement(module);
     }
     return 1;
 }

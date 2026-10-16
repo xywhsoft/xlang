@@ -100,7 +100,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_environment.c", D(), {"XRT_MODULE_ENVIRONMENT", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_STRING"}},
     {"src/runtime/xl6_signal_core.c", D(), {"XRT_MODULE_SIGNAL", "XRT_MODULE_STRING"}},
     {"src/runtime/xl6_signal_queue.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_SIGNAL", "XRT_MODULE_STRING", "XRT_MODULE_TIME", "XRT_MODULE_WAIT"}},
-    {"src/runtime/xl6_signal_task_group.c", D(R(TASK_GROUP),R(FOREIGN_ERROR)), {"XRT_MODULE_ERROR"}},
+    {"src/runtime/xl6_signal_task_group.c", D(R(TASK_GROUP),R(FOREIGN_ERROR),R(NATIVE_HANDLE)), {"XRT_MODULE_ERROR", "XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_process_command.c", D(R(NATIVE_HANDLE),R(ARRAY_INPUT)), {"XRT_MODULE_PROCESS", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_STRING", "XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_process_options.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_PROCESS_RUN"}},
     {"src/runtime/xl6_process_run.c", D(R(NATIVE_HANDLE),R(PROCESS_COMMAND)), {"XRT_MODULE_PROCESS_RUN", "XRT_MODULE_VALUE", "XRT_MODULE_UNICODE_TEXT", "XRT_MODULE_STRING"}},
@@ -492,7 +492,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_resource_fs_map.c",D(R(OWNERSHIP_CATALOG),R(FS_MAP_OWNER)),{NULL}},
     {"src/runtime/xl6_ownership_domain_resource_fs_lock.c",D(R(OWNERSHIP_CATALOG),R(FS_LOCK_OWNER)),{NULL}},
     {"src/runtime/xl6_ownership_domain_resource_fs_root.c",D(R(OWNERSHIP_CATALOG),R(FS_ROOT_OWNER)),{NULL}},
-    {"src/runtime/xl6_task_group_future.c",D(R(TASK_GROUP),R(FUTURE_CALLBACK)),{"XRT_MODULE_FUTURE"}}
+    {"src/runtime/xl6_task_group_future.c",D(R(TASK_GROUP),R(FUTURE_CALLBACK)),{"XRT_MODULE_FUTURE"}},
+    {"src/runtime/xl6_ownership_domain_resource_task_group.c",D(R(OWNERSHIP_CATALOG),R(SIGNAL_TASK_GROUP)),{"XRT_MODULE_TASK_GROUP"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

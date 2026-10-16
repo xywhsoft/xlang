@@ -58,7 +58,8 @@ static int xl6IrCgenEmitStaticEntry(XL6_Output* out,const XL6_IrModule* module,c
     xl6OutputPuts("        xl6OwnershipCatalogResolveV1, xlir_entry_catalog,\n"
         "        xl_script_module_ownership_read_v1(), xl6OwnershipCatalogAdmitsReadV1, ",out);
     xl6OutputPrintf(out,"%s};\n",entry->discoverSymbol ? entry->discoverSymbol : "NULL");
-    xl6OutputPuts("    xlir_entry_module = xl6StaticModuleCreateV1(&deployment);\n"
+    xl6OutputPuts("    const XL6_StaticModuleContractV2 checked_deployment = {sizeof(checked_deployment), &deployment, xl6OwnershipCatalogProbeV1};\n"
+        "    xlir_entry_module = xl6StaticModuleCreateV2(&checked_deployment);\n"
         "    if (!xlir_entry_module || !xl_script_bind_code_owner(xl6StaticModuleOwnerV1(xlir_entry_module))) goto entry_cleanup;\n",out);
     if(module->abi.readBoundaryAbi==XL6_IR_MODULE_READ_BOUNDARY_RESIDENT_HOST_BIND_V1)
         xl6OutputPuts("    const XL6_OwnershipReadBoundaryV1 read = {sizeof(read),\n"
@@ -77,7 +78,7 @@ static int xl6IrCgenEmitStaticEntry(XL6_Output* out,const XL6_IrModule* module,c
         "    xrtValueRelease(arg);\n"
         "    if (xrtGetError()) xl6ErrorScopeCaptureFailure(&cleanup);\n"
         "    if (xlir_entry_module) {\n"
-        "        XL6_StaticModuleResultV1 retired = xl6StaticModuleDrainV1(xlir_entry_module);\n"
+        "        XL6_StaticModuleResultV1 retired = xl6StaticModuleDrainForV1(xlir_entry_module, -1);\n"
         "        if (!retired.ready || !retired.ok) xl6ErrorScopeCaptureFailure(&cleanup);\n"
         "        if (retired.ready && !xl6StaticModuleDestroyV1(&xlir_entry_module)) xl6ErrorScopeCaptureFailure(&cleanup);\n"
         "    }\n"

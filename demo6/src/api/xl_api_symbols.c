@@ -202,6 +202,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if ( !xlApiAddTccSymbol(s, "xlDefaultContextOptions", (const void*)xlDefaultContextOptions) ||
          !xlApiAddTccSymbol(s, "xlRuntimeInit", (const void*)xlRuntimeInit) ||
          !xlApiAddTccSymbol(s, "xlRuntimeUnit", (const void*)xlRuntimeUnit) ||
+         !xlApiAddTccSymbol(s, "xlRuntimeDrainRetiringChecked", (const void*)xlRuntimeDrainRetiringChecked) ||
          !xlApiAddTccSymbol(s, "xlCreateContext", (const void*)xlCreateContext) ||
          !xlApiAddTccSymbol(s, "xlDestroyContext", (const void*)xlDestroyContext) ||
          !xlApiAddTccSymbol(s, "xlSetWorkDir", (const void*)xlSetWorkDir) ||
@@ -301,6 +302,9 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
         !xlApiAddTccSymbol(s, "xl6ContinuationQueueOwnershipAdapterV1", (const void*)xl6ContinuationQueueOwnershipAdapterV1) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationExecutorOwnership", (const void*)xl6ContinuationExecutorOwnership) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationExecutorOwnershipAdapterV1", (const void*)xl6ContinuationExecutorOwnershipAdapterV1) ||
+        !xlApiAddTccSymbol(s, "xl6ContinuationExecutorQuiescenceV1Get", (const void*)xl6ContinuationExecutorQuiescenceV1Get) ||
+        !xlApiAddTccSymbol(s, "xl6ContinuationQueueQuiescenceV1Get", (const void*)xl6ContinuationQueueQuiescenceV1Get) ||
+        !xlApiAddTccSymbol(s, "xl6TaskPoolQuiescenceV1Get", (const void*)xl6TaskPoolQuiescenceV1Get) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationFrameRuntimeV3Get", (const void*)xl6ContinuationFrameRuntimeV3Get) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationProducerPolicyV1Get", (const void*)xl6ContinuationProducerPolicyV1Get) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationWatchPolicyV1Get", (const void*)xl6ContinuationWatchPolicyV1Get)) return 0;
@@ -361,6 +365,8 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6ClassRuntimeV2Get", (const void*)xl6ClassRuntimeV2Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClassRuntimeV3Get", (const void*)xl6ClassRuntimeV3Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6StaticModuleCreateV1", (const void*)xl6StaticModuleCreateV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6StaticModuleCreateV2", (const void*)xl6StaticModuleCreateV2)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6StaticModuleDrainForV1", (const void*)xl6StaticModuleDrainForV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6StaticModuleOwnerV1", (const void*)xl6StaticModuleOwnerV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6StaticModuleOwnershipV1", (const void*)xl6StaticModuleOwnershipV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6StaticModuleRetireV1", (const void*)xl6StaticModuleRetireV1)) return 0;
@@ -374,6 +380,8 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogCreateV1", (const void*)xl6OwnershipCatalogCreateV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogDestroyV1", (const void*)xl6OwnershipCatalogDestroyV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogResolveV1", (const void*)xl6OwnershipCatalogResolveV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6OwnershipCatalogProbeV1", (const void*)xl6OwnershipCatalogProbeV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6OwnershipPlanTryCreateV6", (const void*)xl6OwnershipPlanTryCreateV6)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6XlangContextHandlePolicyV1Get", (const void*)xl6XlangContextHandlePolicyV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6BufferHandlePolicyV1Get", (const void*)xl6BufferHandlePolicyV1Get)) return 0;
 #define XL6_NATIVE_RESOURCE_POLICY(Owner, Component, Getter) \
@@ -448,6 +456,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if ( !xlApiAddTccSymbol(s, "xl6TaskGroupCreate", (const void*)xl6TaskGroupCreate) ||
          !xlApiAddTccSymbol(s, "xl6TaskGroupOwnershipV1", (const void*)xl6TaskGroupOwnershipV1) ||
          !xlApiAddTccSymbol(s, "xl6TaskGroupOwnershipAdapterV1", (const void*)xl6TaskGroupOwnershipAdapterV1) ||
+         !xlApiAddTccSymbol(s, "xl6TaskGroupOwnershipAdapterV2", (const void*)xl6TaskGroupOwnershipAdapterV2) ||
          !xlApiAddTccSymbol(s, "xl6TaskGroupParentPolicyV1Get", (const void*)xl6TaskGroupParentPolicyV1Get) ||
          !xlApiAddTccSymbol(s, "xl6TaskGroupChild", (const void*)xl6TaskGroupChild) ||
          !xlApiAddTccSymbol(s, "xl6TaskGroupDestroy", (const void*)xl6TaskGroupDestroy) ||
