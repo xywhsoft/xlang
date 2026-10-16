@@ -2,6 +2,17 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib53_pruning_shipping.py --root <frozen-demo6> --build-report
+<ordinary-build.json> --inventory-report <complete-products.json> --aot-report
+<complete-aot.json> --out <fresh-directory>` runs after the product/AOT receipts.
+Its independent `stdlib53_pruning_contract.py` maps exactly all 53 module roles
+to 48 actual-product configurations, including typed equivalents/internal roles.
+Saved native inputs compile at O0/O2; actual features/symbols and Linux genuine-SO
+resident plans distinguish required dependencies from unrelated families. Five
+compiled retained-code controls and a missing-implementation control must fail
+the same predicate. Inspection objects never replace the real product runtime;
+this is not function-level or stripped-executable symbol minimality/full53 proof.
+
 `check_stdlib_process_open_shipping.py --root <frozen-demo6> --build-report
 <ordinary-build.json> --out <fresh-directory>` is a required product gate.
 It uses real Windows ShellExecute or Linux XRT spawn/PATH lookup, with a headless
