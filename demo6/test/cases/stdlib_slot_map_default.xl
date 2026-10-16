@@ -1,0 +1,33 @@
+// A nonnullable collection declaration must have the same verified default
+// construction contract as its explicit empty factory, locally and globally.
+SlotMap<int> globalSlots
+class DefaultSlotItem
+    string name = "a\0你"
+end
+class DefaultSlotsOwner
+    SlotMap<string> values
+    SlotMap<DefaultSlotItem> objects
+end
+func main(...) as int
+    SlotMap<int> localSlots
+    assert(localSlots.count() == 0 and globalSlots.count() == 0)
+    auto key = localSlots.insert(41)
+    assert(localSlots.get(key) == 41 and globalSlots.count() == 0)
+    auto globalKey = globalSlots.insert(17)
+    assert(globalSlots.get(globalKey) == 17 and localSlots.count() == 1)
+    auto owner = DefaultSlotsOwner()
+    assert(owner.values.count() == 0)
+    auto text = owner.values.insert("a\0你")
+    assert(owner.values.get(text) == "a\0你")
+    auto another = DefaultSlotsOwner()
+    assert(another.values.count() == 0 and another.objects.count() == 0)
+    auto item = DefaultSlotItem()
+    auto objectKey = owner.objects.insert(item)
+    item.name = "changed\0🙂"
+    assert(owner.objects.get(objectKey).name == "changed\0🙂")
+    assert(another.objects.count() == 0)
+    SlotMap<bytes> binaries
+    auto binaryKey = binaries.insert(b"a\0b")
+    assert(binaries.get(binaryKey) == b"a\0b")
+    return 0
+end

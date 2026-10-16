@@ -1,0 +1,20 @@
+// Neither comments nor text nor a merely declared type count as bindings.
+string spellings = "stack.pop(); tree.first(); SlotMap::<int>(); values.append(1)"
+func declaredOnly(SlotMap<int> unused)
+end
+class NativeCoverageShadow
+    func reserve(int count) as bool
+        return count == 1
+    end
+    func peek() as int
+        return 17
+    end
+end
+func neverCalled(Stack<int> values) as int
+    return values.peek()
+end
+assert(NativeCoverageShadow().reserve(1))
+assert(NativeCoverageShadow().peek() == 17)
+auto selected = Stack::<int>()
+assert(selected.reserve(1))
+assert(spellings.length > 0)

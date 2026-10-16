@@ -270,8 +270,10 @@ static int xl6SemCheckSpecialCollectionCtorCall(XL6_SemContext* ctx, XL6_AstNode
     }
 
     maxArgs = nameNode != NULL && xl6SemIsSpecialQueueTypeName(nameNode->text) ? 1u : 0u;
-    if ( args != NULL && args->childCount > maxArgs ) {
-        xl6SemErrorNode(ctx, args, maxArgs == 0 ? "该构造函数不接收参数" : "队列构造函数最多接收一个容量参数");
+    if ( (maxArgs == 1u && (args == NULL || args->childCount != 1u)) ||
+         (maxArgs == 0u && args != NULL && args->childCount != 0u) ) {
+        xl6SemErrorNode(ctx, args != NULL ? args : node,
+            maxArgs == 0u ? "该构造函数不接收参数" : "队列构造函数必须显式提供一个正容量参数");
         ok = 0;
     }
     for ( i = 0; args != NULL && i < args->childCount; ++i ) {

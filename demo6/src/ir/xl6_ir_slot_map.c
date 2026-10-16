@@ -41,22 +41,36 @@ const char* xl6IrSlotMapNativeSymbol(XL6_IrRuntimeOp op)
 { const XL6_IrSlotMapMethod* s=xl6IrSlotMapSpec(xl6IrSlotMapResourceOp(op)); return s ? s->native : NULL; }
 XL6_IrCallErrorPhysicalAbi xl6IrSlotMapErrorPhysicalAbi(XL6_IrRuntimeOp op)
 { const XL6_IrSlotMapMethod* s=xl6IrSlotMapSpec(xl6IrSlotMapResourceOp(op)); return s ? s->failure : XL6_IR_CALL_ERROR_PHYSICAL_INVALID; }
-int xl6IrSlotMapConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId id,XL6_IrValueCollectionRecipe* output)
+/* Class field defaults are classified before nominal admission sets exist.
+ * Storage shape is already canonical then; executable construction additionally
+ * requires the closed admission proof below. Neither stage guesses payload ABI. */
+static int xl6IrSlotMapStorageRecipe(const XL6_IrModule* module,XL6_IrTypeId id,XL6_IrValueCollectionRecipe* output)
 {
     const XL6_IrType* t=module ? xl6IrTypeGet(&module->types,id) : NULL;
-    XL6_IrNominalIdentitySetId set=0;
     if(!t || t->kind!=XL6_IR_TYPE_GENERIC_INSTANCE || t->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_SLOT_MAP ||
         t->collectionAbi!=XL6_IR_COLLECTION_NONE || t->paramCount!=1 || !t->params || t->returnCount ||
         t->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR || t->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
         t->nullAbi!=XL6_IR_NULL_ABI_XVALUE_SENTINEL || !t->typeValueId ||
-        !t->collectionValueSchemaType || t->collectionValueSchemaType!=xl6IrValueCollectionSchemaTypeForType(&module->types,t) ||
-        !xl6IrSequenceConstructionRecipe(module,t->collectionValueSchemaType,XL6_IR_SEQUENCE_ROLE_ARRAY,&set)) return 0;
+        !t->collectionValueSchemaType || t->collectionValueSchemaType!=xl6IrValueCollectionSchemaTypeForType(&module->types,t)) return 0;
     const XL6_IrType* schema=xl6IrTypeGet(&module->types,t->collectionValueSchemaType);
-    if(!schema || schema->typeValueId==t->typeValueId || schema->sequenceLayout.codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT)
+    if(!schema || !schema->typeValueId || schema->typeValueId==t->typeValueId ||
+        schema->collectionAbi!=XL6_IR_COLLECTION_ARRAY || schema->paramCount!=1 || !schema->params ||
+        schema->params[0]!=t->params[0] || schema->sequenceLayout.codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT)
         return 0; /* Closure slot conversion needs its own explicit call plan. */
+    XL6_IrSequenceLayout expected=xl6IrSequenceLayoutForType(&module->types,schema);
+    if(!xl6IrSequenceLayoutEqual(&schema->sequenceLayout,&expected)) return 0;
     if(output) *output=(XL6_IrValueCollectionRecipe){.ownerType=id,.valueSchemaType=t->collectionValueSchemaType,
-        .elementType=t->params[0],.admissionIdentitySet=set,.slotAbi=schema->sequenceLayout.slotAbi,
+        .elementType=t->params[0],.slotAbi=schema->sequenceLayout.slotAbi,
         .codecAbi=schema->sequenceLayout.codecAbi,.transferAbi=schema->sequenceLayout.transferAbi};
+    return 1;
+}
+int xl6IrSlotMapConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId id,XL6_IrValueCollectionRecipe* output)
+{
+    XL6_IrValueCollectionRecipe recipe={0};
+    if(!xl6IrSlotMapStorageRecipe(module,id,&recipe) ||
+        !xl6IrSequenceConstructionRecipe(module,recipe.valueSchemaType,XL6_IR_SEQUENCE_ROLE_ARRAY,
+            &recipe.admissionIdentitySet)) return 0;
+    if(output) *output=recipe;
     return 1;
 }
 int xl6IrSlotMapLoopKeyType(const XL6_IrModule* m,XL6_IrTypeId id)

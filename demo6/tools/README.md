@@ -2,6 +2,26 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_native_defaults.py --root <frozen-demo6> --build-report
+<ordinary-build.json> --out <fresh-output>` checks required queue capacities,
+SlotMap local/global/field defaults and Array range removal through genuine
+source-free JIT/module/relocated-AOT products, saved strict O0/O2 C, five semantic
+negatives and Linux SO IR/C/header mutation controls. It is a required product gate.
+`check_stdlib_intrinsic_coverage.py` takes the same arguments on Linux and checks
+registered signatures/classes plus 142 native container member/arity/property
+contracts against exact source-to-Typed-IR observations. Shadow/declaration/comment,
+unreachable and legacy-observer controls prevent false bindings; dependent generic
+templates are not executable ABIs. This required Linux product gate is binding
+coverage, not runtime branch coverage. See [Native container contracts](../docs/stdlib53-b332-native-public-surface.md).
+
+`check_stdlib_current_products.py --reuse-report <prior-aggregate>` always reruns
+the complete fixture inventory. A completed child is reused only for identical
+build/products after rehashing its recorded inputs, products and logs. Failed or
+changed children run in fresh directories; reused children are explicitly marked.
+Terminal assertions use the private child's native size/input/tty exit checks,
+not contiguous size/reply text in a ConPTY VT redraw stream. Missing/wrong resize
+controls must still fail; this does not add retries or change the system backend.
+
 `check_stdlib_internal_container_closure.py --root <frozen-demo6> --build-report
 <ordinary-build.json> --out <fresh-output>` runs six source-free real-product
 JIT/module/relocated-AOT paths and strictly compiles saved production native

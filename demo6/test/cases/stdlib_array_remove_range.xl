@@ -1,0 +1,11 @@
+func main(...) as int
+    array<int> numbers = [1, 2, 3, 4]
+    assert(numbers.remove(1, 2))
+    assert(numbers.length == 2 and numbers[0] == 1 and numbers[1] == 4)
+    assert(numbers.remove(0, 2) and numbers.length == 0)
+    array<string> texts = ["keep\0你", "remove\0🙂", "tail"]
+    assert(texts.remove(1, 1))
+    assert(texts.length == 2 and texts[0] == "keep\0你" and texts[1] == "tail")
+    assert(texts.remove(0, 2) and texts.length == 0)
+    return 0
+end

@@ -89,7 +89,7 @@ def main():
                     run(name+'.build',[cc,*flags,'-O2',source,*libraries(product),'-o',binary])
                     data=run(name+'.run',[binary,child,1],reject=True)
                     assert re.search(rb'assertion.*failed|assert.*failed',data,re.I),data[-4000:]
-                    assert b'strstr(data' in data,data[-4000:]
+                    assert b'status.Code==0' in data,data[-4000:]
                     counterexamples.append(dict(Name=label,Product=product.name,AssertionRejected=True))
                 except Exception as error:failures.append(dict(Name=name,Error=repr(error)))
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)

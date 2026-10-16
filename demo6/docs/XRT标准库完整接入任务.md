@@ -2,6 +2,11 @@
 
 ## 1. 目标
 
+原生容器公开面与默认构造见
+[原生容器公开面与默认构造验收](stdlib53-b332-native-public-surface.md)。
+按用户决定要求显式正容量，修复 SlotMap 默认 producer／错误边与 Array
+区间删除合同；新增专项及公开面核对进入产品总门，完整目标继续。
+
 内部容器的实际依赖与未使用实现裁剪见
 [内部容器依赖与原生裁剪验收](stdlib53-b331-internal-container-closure.md)。
 六项纯内部待验收已有双平台实际产物和对象证明；typed Stack 不依赖旧 XRT

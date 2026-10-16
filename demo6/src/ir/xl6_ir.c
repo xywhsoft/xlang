@@ -124,6 +124,12 @@ xl6IrRuntimeResourceKeyOrderAbiForType(
     const XL6_IrModule* module, XL6_IrTypeId typeId);
 static XL6_IrRuntimeResourceOp xl6IrDefaultRuntimeResourceOp(
     const XL6_IrModule* module, XL6_IrTypeId typeId);
+static void xl6IrDefaultRuntimeResourcePayload(
+    const XL6_IrModule* module, XL6_IrTypeId owner,
+    XL6_IrRuntimeResourceOp operation, XL6_IrTypeId* payload,
+    XL6_IrRuntimeResourcePayloadAbi* transfer);
+static int xl6IrSlotMapStorageRecipe(
+    const XL6_IrModule*, XL6_IrTypeId, XL6_IrValueCollectionRecipe*);
 static XL6_IrTypeId xl6IrTreeSchemaTypeForType(const XL6_IrTypePool*, const XL6_IrType*, unsigned int);
 static XL6_IrTypeId xl6IrValueCollectionElementTypeForType(const XL6_IrTypePool*,const XL6_IrType*);
 static XL6_IrTypeId xl6IrValueCollectionSchemaTypeForType(const XL6_IrTypePool*,const XL6_IrType*);
@@ -5495,19 +5501,10 @@ static int xl6IrBuildClassLayoutAppendField(
             item->initializerAbi =
                 XL6_IR_INITIALIZER_RUNTIME_RESOURCE_DEFAULT;
             item->initializerRuntimeResourceOp = resourceOp;
-            if ( resourceOp == XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE ) {
-                item->initializerPayloadType =
-                    xl6IrRuntimeStackPayloadType(module, item->type);
-                item->initializerRuntimeResourcePayloadAbi =
-                    xl6IrRuntimeResourcePayloadAbiForType(
-                        module, item->initializerPayloadType);
-            } else if ( resourceOp ==
-                            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE ) {
-                item->initializerPayloadType =
-                    xl6IrRuntimeAvlValueType(module, item->type);
-                item->initializerRuntimeResourcePayloadAbi =
-                    xl6IrRuntimeResourcePayloadAbiForType(
-                        module, item->initializerPayloadType);
+            xl6IrDefaultRuntimeResourcePayload(
+                module, item->type, resourceOp, &item->initializerPayloadType,
+                &item->initializerRuntimeResourcePayloadAbi);
+            if ( resourceOp == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE ) {
                 item->initializerRuntimeResourceKeyType =
                     xl6IrRuntimeAvlKeyType(module, item->type);
                 item->initializerRuntimeResourceKeyPayloadAbi =
@@ -10856,6 +10853,21 @@ static int xl6IrBuildCollectionRemoveOperandCompatible(
             module, receiverTypeId, operandType);
 }
 
+int xl6IrCollectionRemoveSignatureCompatible(
+    const XL6_IrModule* module, XL6_IrTypeId receiverType,
+    XL6_IrTypeId resultType, const XL6_IrTypeId* operands, size_t count)
+{
+    const XL6_IrType* receiver = module ? xl6IrTypeGet(&module->types, receiverType) : NULL;
+    const XL6_IrType* result = module ? xl6IrTypeGet(&module->types, resultType) : NULL;
+    if (!receiver || !result || !operands || (count != 1 && count != 2) ||
+        result->cAbi != XL6_IR_C_ABI_BOOL ||
+        !xl6IrBuildCollectionRemoveOperandCompatible(module, receiverType, operands[0])) return 0;
+    if (count == 1) return 1;
+    const XL6_IrType* extent = xl6IrTypeGet(&module->types, operands[1]);
+    return receiver->collectionAbi == XL6_IR_COLLECTION_ARRAY && extent &&
+        extent->cAbi == XL6_IR_C_ABI_I64 && extent->nullAbi == XL6_IR_NULL_ABI_NONE;
+}
+
 static int xl6IrBuildIntrinsicPositionalOperands(
     const XL6_IrModule* module, const XL6_IrNode* call,
     XL6_IrNodeId** outOperands, size_t* operandCount)
@@ -14918,18 +14930,19 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         break;
     case XL6_IR_INTRINSIC_COLLECTION_REMOVE:
         intrinsic.errorAbi = XL6_IR_ERROR_ABI_MAY_RAISE;
-        if ( operandCount == 1 && result != NULL && result->cAbi == XL6_IR_C_ABI_BOOL &&
+        if ( (operandCount == 1 || operandCount == 2) && result != NULL && result->cAbi == XL6_IR_C_ABI_BOOL &&
              intrinsic.receiver != XL6_IR_NODE_INVALID &&
              intrinsic.receiverType != XL6_IR_TYPE_INVALID &&
              intrinsic.collectionAbi >= XL6_IR_COLLECTION_ARRAY &&
              intrinsic.collectionAbi <= XL6_IR_COLLECTION_DICT ) {
             const XL6_IrType* receiverType =
                 xl6IrTypeGet(&module->types, intrinsic.receiverType);
+            XL6_IrTypeId types[2] = {module->nodes[operands[0] - 1].storageType,
+                operandCount == 2 ? module->nodes[operands[1] - 1].storageType : XL6_IR_TYPE_INVALID};
             if ( receiverType != NULL &&
                  receiverType->collectionAbi == intrinsic.collectionAbi &&
-                 xl6IrBuildCollectionRemoveOperandCompatible(
-                     module, intrinsic.receiverType,
-                     module->nodes[operands[0] - 1].storageType) )
+                 xl6IrCollectionRemoveSignatureCompatible(
+                     module, intrinsic.receiverType, intrinsic.resultType, types, operandCount) )
                 intrinsic.admission = XL6_IR_INTRINSIC_ADMISSION_VERIFIED;
         }
         break;
@@ -15646,6 +15659,8 @@ static XL6_IrRuntimeResourceOp xl6IrDefaultRuntimeResourceOp(
          xl6IrRuntimeResourcePayloadAbiForType(module, type->params[1]) !=
              XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID )
         return XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE;
+    if ( xl6IrSlotMapStorageRecipe(module, typeId, NULL) )
+        return XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_CREATE;
     if ( type->kind != XL6_IR_TYPE_BUILTIN || type->paramCount != 0 )
         return XL6_IR_RUNTIME_RESOURCE_OP_INVALID;
     switch ( type->runtimeResourceAbi ) {
@@ -15660,6 +15675,32 @@ static XL6_IrRuntimeResourceOp xl6IrDefaultRuntimeResourceOp(
     default:
         return XL6_IR_RUNTIME_RESOURCE_OP_INVALID;
     }
+}
+
+/* Explicit and implicit SlotMap construction share the same closed native
+ * slot recipe. Default declarations/fields must not fall back to a boxed
+ * payload ABI merely because no source constructor expression exists. */
+static void xl6IrDefaultRuntimeResourcePayload(
+    const XL6_IrModule* module, XL6_IrTypeId owner,
+    XL6_IrRuntimeResourceOp operation, XL6_IrTypeId* payload,
+    XL6_IrRuntimeResourcePayloadAbi* transfer)
+{
+    XL6_IrValueCollectionRecipe recipe = {0};
+    *payload = XL6_IR_TYPE_INVALID;
+    *transfer = XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID;
+    if ( operation == XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_CREATE ) {
+        if ( xl6IrSlotMapStorageRecipe(module, owner, &recipe) ) {
+            *payload = recipe.elementType;
+            *transfer = recipe.transferAbi;
+        }
+        return;
+    }
+    if ( operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE )
+        *payload = xl6IrRuntimeStackPayloadType(module, owner);
+    else if ( operation == XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE )
+        *payload = xl6IrRuntimeAvlValueType(module, owner);
+    if ( *payload != XL6_IR_TYPE_INVALID )
+        *transfer = xl6IrRuntimeResourcePayloadAbiForType(module, *payload);
 }
 
 static XL6_IrInitializerAbi xl6IrDefaultValueInitializerAbi(
@@ -15917,20 +15958,11 @@ static int xl6IrBuildValueInitializers(XL6_IrModule* module)
         } else if ( abi == XL6_IR_INITIALIZER_RUNTIME_RESOURCE_DEFAULT ) {
             initializer->runtimeResourceOp = xl6IrDefaultRuntimeResourceOp(
                 module, declaration->storageType);
+            xl6IrDefaultRuntimeResourcePayload(
+                module, declaration->storageType, initializer->runtimeResourceOp,
+                &initializer->payloadType, &initializer->runtimeResourcePayloadAbi);
             if ( initializer->runtimeResourceOp ==
-                     XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE ) {
-                initializer->payloadType = xl6IrRuntimeStackPayloadType(
-                    module, declaration->storageType);
-                initializer->runtimeResourcePayloadAbi =
-                    xl6IrRuntimeResourcePayloadAbiForType(
-                        module, initializer->payloadType);
-            } else if ( initializer->runtimeResourceOp ==
-                            XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE ) {
-                initializer->payloadType = xl6IrRuntimeAvlValueType(
-                    module, declaration->storageType);
-                initializer->runtimeResourcePayloadAbi =
-                    xl6IrRuntimeResourcePayloadAbiForType(
-                        module, initializer->payloadType);
+                     XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE ) {
                 initializer->runtimeResourceKeyType =
                     xl6IrRuntimeAvlKeyType(
                         module, declaration->storageType);
@@ -23988,6 +24020,22 @@ int xl6IrCollectionMemberRuntimeInstructionCompatible(
             operands[0], instruction->type, operands + 1,
             instruction->operandCount - 1);
     }
+    if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE ) {
+        receiver = xl6IrTypeGet(&module->types, operands[0]);
+        result = xl6IrTypeGet(&module->types, instruction->type);
+        argument = xl6IrTypeGet(&module->types, operands[1]);
+        if (!receiver || !result || !argument || receiver->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
+            result->cAbi != XL6_IR_C_ABI_BOOL ||
+            instruction->typedCollectionOp != XL6_IR_TYPED_COLLECTION_INVALID ||
+            receiver->collectionAbi != instruction->collectionAbi ||
+            instruction->operandCount != (receiver->collectionAbi == XL6_IR_COLLECTION_ARRAY ? 3u : 2u)) return 0;
+        if (receiver->collectionAbi == XL6_IR_COLLECTION_SET)
+            return instruction->operandCount == 2 &&
+                argument->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+                operands[1] == xl6IrCollectionBoxedElementType(module, operands[0]);
+        return xl6IrCollectionRemoveSignatureCompatible(
+            module, operands[0], instruction->type, operands + 1, instruction->operandCount - 1);
+    }
     if ( instruction->operandCount != 2 ||
          instruction->typedCollectionOp != XL6_IR_TYPED_COLLECTION_INVALID ) return 0;
     receiver = xl6IrTypeGet(&module->types, operands[0]);
@@ -23996,15 +24044,6 @@ int xl6IrCollectionMemberRuntimeInstructionCompatible(
     if ( receiver == NULL || argument == NULL || result == NULL ||
          receiver->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
          result->cAbi != XL6_IR_C_ABI_BOOL ) return 0;
-    if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE ) {
-        if ( xl6IrCollectionElementType(module, operands[0]) == XL6_IR_TYPE_INVALID ||
-             receiver->collectionAbi != instruction->collectionAbi ) return 0;
-        if ( receiver->collectionAbi == XL6_IR_COLLECTION_SET )
-            return argument->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-                operands[1] == xl6IrCollectionBoxedElementType(module, operands[0]);
-        return xl6IrBuildCollectionRemoveOperandCompatible(
-            module, operands[0], operands[1]);
-    }
     if ( instruction->collectionAbi != XL6_IR_COLLECTION_NONE ||
          argument->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) return 0;
     if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_CONTAINS )
@@ -25600,18 +25639,11 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
                         XL6_IR_INITIALIZER_RUNTIME_RESOURCE_DEFAULT
                     ? xl6IrDefaultRuntimeResourceOp(module, item->type)
                     : XL6_IR_RUNTIME_RESOURCE_OP_INVALID;
-            XL6_IrTypeId expectedPayloadType =
-                expectedResourceOp == XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE
-                    ? xl6IrRuntimeStackPayloadType(module, item->type)
-                    : expectedResourceOp ==
-                          XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE
-                        ? xl6IrRuntimeAvlValueType(module, item->type)
-                    : XL6_IR_TYPE_INVALID;
-            XL6_IrRuntimeResourcePayloadAbi expectedPayloadAbi =
-                expectedPayloadType != XL6_IR_TYPE_INVALID
-                    ? xl6IrRuntimeResourcePayloadAbiForType(
-                        module, expectedPayloadType)
-                    : XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID;
+            XL6_IrTypeId expectedPayloadType;
+            XL6_IrRuntimeResourcePayloadAbi expectedPayloadAbi;
+            xl6IrDefaultRuntimeResourcePayload(
+                module, item->type, expectedResourceOp,
+                &expectedPayloadType, &expectedPayloadAbi);
             XL6_IrTypeId expectedKeyType =
                 expectedResourceOp ==
                         XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE
@@ -36294,7 +36326,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 }
                 break;
             case XL6_IR_INTRINSIC_COLLECTION_REMOVE:
-                if ( intrinsic->operandCount != 1 ||
+                if ( (intrinsic->operandCount != 1 && intrinsic->operandCount != 2) ||
                      intrinsic->receiver == XL6_IR_NODE_INVALID ||
                      intrinsic->receiverType == XL6_IR_TYPE_INVALID ||
                      xl6IrNodeGet(module, intrinsic->receiver) == NULL ||
@@ -36311,11 +36343,13 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 {
                     const XL6_IrType* receiver =
                         xl6IrTypeGet(&module->types, intrinsic->receiverType);
+                    XL6_IrTypeId types[2] = {
+                        module->intrinsicOperands[intrinsic->firstOperand].type,
+                        intrinsic->operandCount == 2 ? module->intrinsicOperands[intrinsic->firstOperand + 1].type : XL6_IR_TYPE_INVALID};
                     if ( receiver == NULL ||
                          receiver->collectionAbi != intrinsic->collectionAbi ||
-                         !xl6IrBuildCollectionRemoveOperandCompatible(
-                             module, intrinsic->receiverType,
-                             module->intrinsicOperands[intrinsic->firstOperand].type) )
+                         !xl6IrCollectionRemoveSignatureCompatible(
+                             module, intrinsic->receiverType, intrinsic->resultType, types, intrinsic->operandCount) )
                         return xl6IrDiag(diags, call,
                             "XLIR collection remove intrinsic has no verified index, element or key ABI");
                 }
@@ -37397,22 +37431,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         XL6_IrRuntimeResourceOp defaultResourceOp = declaration != NULL
             ? xl6IrDefaultRuntimeResourceOp(module, declaration->storageType)
             : XL6_IR_RUNTIME_RESOURCE_OP_INVALID;
-        XL6_IrTypeId expectedResourcePayloadType =
-            declaration == NULL ? XL6_IR_TYPE_INVALID
-                : defaultResourceOp ==
-                      XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE
-                    ? xl6IrRuntimeStackPayloadType(
-                        module, declaration->storageType)
-                : defaultResourceOp ==
-                      XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE
-                    ? xl6IrRuntimeAvlValueType(
-                        module, declaration->storageType)
-                : XL6_IR_TYPE_INVALID;
-        XL6_IrRuntimeResourcePayloadAbi expectedResourcePayloadAbi =
-            expectedResourcePayloadType != XL6_IR_TYPE_INVALID
-                ? xl6IrRuntimeResourcePayloadAbiForType(
-                    module, expectedResourcePayloadType)
-                : XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID;
+        XL6_IrTypeId expectedResourcePayloadType;
+        XL6_IrRuntimeResourcePayloadAbi expectedResourcePayloadAbi;
+        xl6IrDefaultRuntimeResourcePayload(
+            module, declaration != NULL ? declaration->storageType : XL6_IR_TYPE_INVALID,
+            defaultResourceOp, &expectedResourcePayloadType, &expectedResourcePayloadAbi);
         XL6_IrTypeId expectedResourceKeyType =
             defaultResourceOp ==
                     XL6_IR_RUNTIME_RESOURCE_OP_AVL_TREE_CREATE &&

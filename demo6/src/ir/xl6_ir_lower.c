@@ -1832,10 +1832,10 @@ static int xl6IrLowerWeakCreateSignature(
 /* Runtime operations are selected while lowering has resolved operand types
  * and source operators.  The C emitter receives only this fixed operation
  * ABI, never a binary-expression fallback for managed values. */
-static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
+static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadataBody(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrNodeId failureOrigin, XL6_IrTypeId type,
     XL6_IrRuntimeOp runtimeOp, const char* immediate, XL6_IrTypeId payloadType, XL6_IrTypeId identityType,
-    const XL6_IrValueId* operands, size_t operandCount)
+    const XL6_IrValueId* operands, size_t operandCount, int automaticErrorEdge)
 {
     XL6_IrValueId result = XL6_IR_VALUE_INVALID;
     XL6_IrInstruction* instruction;
@@ -1883,6 +1883,14 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
         instruction->collectionAbi=XL6_IR_COLLECTION_ARRAY;
         instruction->payloadType=element;
     }
+    if (runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_CREATE) {
+        XL6_IrValueCollectionRecipe recipe={0};
+        if (!xl6IrSlotMapConstructionRecipe(ctx->module,type,&recipe)) {
+            xl6IrLowerDiag(ctx,origin,"SlotMap construction requires a closed native slot recipe");
+            return XL6_IR_VALUE_INVALID;
+        }
+        instruction->sequenceAdmissionIdentitySet=recipe.admissionIdentitySet;
+    }
     if (runtimeOp==XL6_IR_RUNTIME_STACK_CREATE &&
         !xl6IrStackConstructionContract(ctx->module,type,&instruction->sequenceAdmissionIdentitySet)) {
         xl6IrLowerDiag(ctx,origin,"Stack construction requires a closed resident Sequence recipe; wire Array and unsupported element domains are not native slots");
@@ -1914,7 +1922,7 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
      * instruction after a checked operation belongs to its cleanup route,
      * not necessarily to the original producer. Diagnostic location and
      * evaluation failure boundary are explicit independent inputs. */
-    if ((xl6IrPersistenceInvocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
+    if (automaticErrorEdge && (xl6IrPersistenceInvocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrTreeQuerySpecRuntime(runtimeOp) ||
          xl6IrSlotMapErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
          xl6IrRuntimeStringAllocationErrorPhysicalAbi(runtimeOp) != XL6_IR_CALL_ERROR_PHYSICAL_INVALID ||
@@ -1933,6 +1941,26 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
         !xl6IrLowerEmitRuntimeErrorEdge(ctx, failureOrigin, xl6IrNodeGet(ctx->module, failureOrigin), result))
         return XL6_IR_VALUE_INVALID;
     return result;
+}
+
+static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadata(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrNodeId failureOrigin, XL6_IrTypeId type,
+    XL6_IrRuntimeOp runtimeOp, const char* immediate, XL6_IrTypeId payloadType, XL6_IrTypeId identityType,
+    const XL6_IrValueId* operands, size_t operandCount)
+{
+    return xl6IrLowerEmitRuntimeCallMetadataBody(ctx,origin,failureOrigin,type,runtimeOp,
+        immediate,payloadType,identityType,operands,operandCount,1);
+}
+
+/* Default resource declarations/fields carry their own exact cleanup plan.
+ * Keep the producer as the last instruction until that caller has bound its
+ * complete resource metadata, then require its explicit checked error edge.
+ * Ordinary calls retain automatic error splitting through the wrapper above. */
+static XL6_IrValueId xl6IrLowerEmitDefaultResourceProducer(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_IrTypeId type, XL6_IrRuntimeOp operation)
+{
+    return xl6IrLowerEmitRuntimeCallMetadataBody(ctx,origin,origin,type,operation,
+        NULL,XL6_IR_TYPE_INVALID,XL6_IR_TYPE_INVALID,NULL,0,0);
 }
 
 static XL6_IrValueId xl6IrLowerEmitRuntimeCallPayload(
@@ -10978,8 +11006,8 @@ static XL6_IrValueId xl6IrLowerDefaultClassFieldInitializer(
                  field->initializerRuntimeResourceKeyPayloadAbi,
                  field->initializerRuntimeResourceKeyOrderAbi) )
             return XL6_IR_VALUE_INVALID;
-        resource = xl6IrLowerEmitRuntimeCall(
-            ctx, origin, field->type, createOp, NULL, 0);
+        resource = xl6IrLowerEmitDefaultResourceProducer(
+            ctx, origin, field->type, createOp);
         if ( resource == XL6_IR_VALUE_INVALID ) return resource;
         instruction = &ctx->module->instructions[
             ctx->module->instructionCount - 1];
@@ -15801,6 +15829,8 @@ static int xl6IrLowerRuntimeResourceOpCreates(
 static XL6_IrRuntimeResourceAbi xl6IrLowerRuntimeResourceAbiForOp(
     XL6_IrRuntimeResourceOp operation)
 {
+    if ( xl6IrSlotMapResourceOpIs(operation) )
+        return XL6_IR_RUNTIME_RESOURCE_SLOT_MAP;
     if ( operation >= XL6_IR_RUNTIME_RESOURCE_OP_THREAD_CREATE &&
          operation <= XL6_IR_RUNTIME_RESOURCE_OP_THREAD_STOP )
         return XL6_IR_RUNTIME_RESOURCE_THREAD;
@@ -15857,6 +15887,14 @@ static int xl6IrLowerRuntimeResourceMetadataMatches(
     XL6_IrRuntimeResourcePayloadAbi keyPayloadAbi,
     XL6_IrRuntimeResourceKeyOrderAbi keyOrderAbi)
 {
+    if ( operation == XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_CREATE ) {
+        XL6_IrValueCollectionRecipe recipe = {0};
+        return xl6IrSlotMapConstructionRecipe(module, resourceType, &recipe) &&
+            payloadType == recipe.elementType && payloadAbi == recipe.transferAbi &&
+            keyType == XL6_IR_TYPE_INVALID &&
+            keyPayloadAbi == XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID &&
+            keyOrderAbi == XL6_IR_RUNTIME_RESOURCE_KEY_ORDER_INVALID;
+    }
     if ( operation == XL6_IR_RUNTIME_RESOURCE_OP_STACK_CREATE ) {
         XL6_IrTypeId expected =
             xl6IrLowerRuntimeStackPayloadType(module, resourceType);
@@ -16799,7 +16837,7 @@ static int xl6IrLowerIntrinsicAdmissionSupported(
                    xl6IrLowerTypedCollectionSignatureCompatible(ctx, intrinsic);
         }
     case XL6_IR_INTRINSIC_COLLECTION_REMOVE:
-        if ( intrinsic->operandCount == 1 && result->cAbi == XL6_IR_C_ABI_BOOL &&
+        if ( (intrinsic->operandCount == 1 || intrinsic->operandCount == 2) && result->cAbi == XL6_IR_C_ABI_BOOL &&
              intrinsic->receiver != XL6_IR_NODE_INVALID &&
              intrinsic->receiverType != XL6_IR_TYPE_INVALID &&
              intrinsic->collectionAbi >= XL6_IR_COLLECTION_ARRAY &&
@@ -16808,26 +16846,13 @@ static int xl6IrLowerIntrinsicAdmissionSupported(
                 xl6IrNodeGet(module, intrinsic->receiver);
             const XL6_IrType* receiver =
                 xl6IrTypeGet(&module->types, intrinsic->receiverType);
-            const XL6_IrType* operand = source;
-            int operandMatches = 0;
-            if ( receiver != NULL && receiver->kind == XL6_IR_TYPE_GENERIC_INSTANCE &&
-                 receiver->collectionAbi == intrinsic->collectionAbi &&
-                 receiver->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
-                 receiver->paramCount == 1 && receiver->params != NULL ) {
-                if ( intrinsic->collectionAbi == XL6_IR_COLLECTION_ARRAY ||
-                     intrinsic->collectionAbi == XL6_IR_COLLECTION_LIST )
-                    operandMatches = operand != NULL &&
-                        operand->cAbi == XL6_IR_C_ABI_I64;
-                else if ( intrinsic->collectionAbi == XL6_IR_COLLECTION_DICT )
-                    operandMatches = operand != NULL &&
-                        operand->cAbi == XL6_IR_C_ABI_MANAGED_STRING;
-                else
-                    operandMatches = xl6IrLowerClassValueAssignableTo(
-                        ctx, receiver->params[0], operands[0].type);
-            }
+            XL6_IrTypeId types[2] = {operands[0].type,
+                intrinsic->operandCount == 2 ? operands[1].type : XL6_IR_TYPE_INVALID};
             return receiverNode != NULL &&
                    receiverNode->storageType == intrinsic->receiverType &&
-                   operandMatches;
+                   receiver != NULL && receiver->collectionAbi == intrinsic->collectionAbi &&
+                   xl6IrCollectionRemoveSignatureCompatible(
+                       module, intrinsic->receiverType, intrinsic->resultType, types, intrinsic->operandCount);
         }
         return 0;
     case XL6_IR_INTRINSIC_DYNAMIC_COLLECTION_MEMBER:
@@ -24749,11 +24774,6 @@ static int xl6IrLowerIntrinsicRuntimeResource(
         intrinsic->runtimeResourceKeyPayloadAbi;
     runtimeInstruction->runtimeResourceKeyOrderAbi =
         intrinsic->runtimeResourceKeyOrderAbi;
-    if(runtimeOp==XL6_IR_RUNTIME_SLOT_MAP_CREATE) {
-        XL6_IrValueCollectionRecipe recipe={0};
-        if(!xl6IrSlotMapConstructionRecipe(ctx->module,runtimeInstruction->type,&recipe)) { ok=0; goto done; }
-        runtimeInstruction->sequenceAdmissionIdentitySet=recipe.admissionIdentitySet;
-    }
     if (runtimeOp==XL6_IR_RUNTIME_AVL_TREE_CREATE &&
         !xl6IrAvlConstructionRecipe(ctx->module,runtimeInstruction->type,NULL,NULL,NULL,
             &runtimeInstruction->sequenceAdmissionIdentitySet)) {
@@ -26734,8 +26754,8 @@ static XL6_IrValueId xl6IrLowerValueInitializer(
                   initializer->runtimeResourceKeyPayloadAbi,
                   initializer->runtimeResourceKeyOrderAbi) )
             return XL6_IR_VALUE_INVALID;
-        result = xl6IrLowerEmitRuntimeCall(
-            ctx, declarationId, initializer->type, runtimeOp, NULL, 0);
+        result = xl6IrLowerEmitDefaultResourceProducer(
+            ctx, declarationId, initializer->type, runtimeOp);
         if ( result == XL6_IR_VALUE_INVALID ) return result;
         instruction = &ctx->module->instructions[
             ctx->module->instructionCount - 1];
@@ -28023,7 +28043,7 @@ static int xl6IrLowerIntrinsicCollectionRemove(
     const XL6_IrType* receiverType;
     const XL6_IrType* operandType;
     XL6_IrNodeId operandId;
-    XL6_IrValueId operands[2];
+    XL6_IrValueId operands[3];
     XL6_SymbolId receiverTemporary = 0;
     XL6_SymbolId operandTemporary = 0;
     XL6_IrTypeId operandStorageType = XL6_IR_TYPE_INVALID;
@@ -28032,7 +28052,7 @@ static int xl6IrLowerIntrinsicCollectionRemove(
     if ( ctx == NULL || call == NULL || intrinsic == NULL || result == NULL ||
          intrinsic->admission != XL6_IR_INTRINSIC_ADMISSION_VERIFIED ||
          intrinsic->kind != XL6_IR_INTRINSIC_COLLECTION_REMOVE ||
-         intrinsic->operandCount != 1 ||
+         (intrinsic->operandCount != 1 && intrinsic->operandCount != 2) ||
          intrinsic->firstOperand >= ctx->module->intrinsicOperandCount ||
          intrinsic->receiver == XL6_IR_NODE_INVALID ||
          intrinsic->receiverType == XL6_IR_TYPE_INVALID ||
@@ -28095,9 +28115,18 @@ static int xl6IrLowerIntrinsicCollectionRemove(
     if ( operands[1] == XL6_IR_VALUE_INVALID ||
          (operandTemporary != 0 && !xl6IrLowerProtectEvaluationStorage(
              ctx, origin, operandTemporary, operands[1], 0, 0)) ) goto done;
+    if (intrinsic->collectionAbi == XL6_IR_COLLECTION_ARRAY) {
+        /* Default count is frozen here, never reconstructed by Cgen. Source
+         * evaluation order is receiver, index, then explicit count. */
+        operands[2] = intrinsic->operandCount == 2
+            ? xl6IrLowerNode(ctx, ctx->module->intrinsicOperands[intrinsic->firstOperand + 1].expression)
+            : xl6IrLowerEmitIntConst(ctx, origin, operandNode->storageType, "1");
+        if (operands[2] == XL6_IR_VALUE_INVALID) goto done;
+    }
     *result = xl6IrLowerEmitRuntimeCall(
         ctx, origin, call->storageType,
-        XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE, operands, 2);
+        XL6_IR_RUNTIME_XVALUE_COLLECTION_REMOVE, operands,
+        intrinsic->collectionAbi == XL6_IR_COLLECTION_ARRAY ? 3u : 2u);
     if ( *result == XL6_IR_VALUE_INVALID ) goto done;
     ctx->module->instructions[ctx->module->instructionCount - 1].collectionAbi =
         intrinsic->collectionAbi;

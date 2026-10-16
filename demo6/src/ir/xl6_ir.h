@@ -7334,6 +7334,9 @@ int xl6IrCollectionElementCompatible(
 int xl6IrCollectionContainsOperandCompatible(
     const XL6_IrModule* module, XL6_IrTypeId receiverType,
     XL6_IrTypeId itemType);
+int xl6IrCollectionRemoveSignatureCompatible(
+    const XL6_IrModule* module, XL6_IrTypeId receiverType,
+    XL6_IrTypeId resultType, const XL6_IrTypeId* operands, size_t count);
 int xl6IrTypedCollectionSignatureCompatible(
     const XL6_IrModule* module, XL6_IrTypedCollectionOp operation,
     XL6_IrCollectionAbi collectionAbi, XL6_IrTypeId receiverType,
