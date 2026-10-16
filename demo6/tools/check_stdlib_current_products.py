@@ -62,7 +62,9 @@ def main():
         ('native-defaults',task/'tools/check_stdlib_native_defaults.py','results.json',True),
         ('tree-keys',task/'tools/check_stdlib_tree_keys_shipping.py','results.json',True),
         ('queue-stress',task/'tools/check_stdlib_queue_product_stress.py','results.json',True),
-        ('retired-text',task/'tools/check_stdlib_retired_text_bridges.py','results.json',True)]
+        ('retired-text',task/'tools/check_stdlib_retired_text_bridges.py','results.json',True),
+        ('process-open',task/'tools/check_stdlib_process_open_shipping.py','results.json',True),
+        ('guide-contracts',task/'tools/check_stdlib_guide_contracts.py','results.json',False)]
     if not windows:
         gates.append(('elf','check_stdlib_sync_shipping_elf.py','sync.shipping.elf.json',True))
         gates.append(('native-public',task/'tools/check_stdlib_intrinsic_coverage.py','results.json',True))
@@ -114,6 +116,7 @@ def main():
         NativeTerminalLedgerAcceptance=False,
         WorkerBodyFaultPrefixAcceptance=False,
         NativeTaskWorkerCompletionAcceptance=False,NativeFuturePolicyAcceptance=False,
+        RealPlatformOpenAcceptance=False,CurrentGuideContractAcceptance=False,
         Full53Acceptance=False,FunctionCoverageAcceptance=False,WorkerWideOomAcceptance=False)
     def save():(out/'results.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     def run(name,command,directory=isolated,environment=env,timeout=180):
@@ -229,6 +232,8 @@ def main():
         report['NativeOrderedKeyAcceptance']=any(c['Name']=='tree-keys' and c['Passed'] for c in children)
         report['NativeQueueRoleStressAcceptance']=any(c['Name']=='queue-stress' and c['Passed'] for c in children)
         report['RetiredTextBridgeAcceptance']=any(c['Name']=='retired-text' and c['Passed'] for c in children)
+        report['RealPlatformOpenAcceptance']=any(c['Name']=='process-open' and c['Passed'] for c in children)
+        report['CurrentGuideContractAcceptance']=any(c['Name']=='guide-contracts' and c['Passed'] for c in children)
         report['NativePublicBindingAcceptance']=any(c['Name']=='native-public' and c['Passed'] for c in children)
         report['UnexecutedRequirements']=[c['Name'] for c in records if c['Status']=='requires-platform']
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
