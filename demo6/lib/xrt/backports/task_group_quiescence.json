@@ -1,0 +1,53 @@
+{
+  "Schema": 1,
+  "Purpose": "Exact parent-cancel, native notification and task-group admission transitions",
+  "Integration": "Reviewed canonical functions only; unrelated snapshot changes excluded",
+  "CanonicalSources": [
+    {
+      "Path": "include/xrt/cancel.h",
+      "Sha256": "4c5a4800081134f47a10ef104ec0da413de9a4f69838c966b3d17a2abfe32f9b"
+    },
+    {
+      "Path": "include/xrt/future.h",
+      "Sha256": "ae98b17c709fecdb2a780c110de89508bf7514f6ccc761539f966d3fd542c5c3"
+    },
+    {
+      "Path": "include/xrt/task.h",
+      "Sha256": "f34b951b916a35a3dab38a624d7e93cca95e7d20ea4c0d40b953b8f553e07b65"
+    },
+    {
+      "Path": "src/concurrency/cancel.c",
+      "Sha256": "8ad9d5715d5696b36f752f2596ea1816f43178addf8a4e43241522921511e64b"
+    },
+    {
+      "Path": "src/concurrency/future.c",
+      "Sha256": "f4c94c413fc65f2ad61165f6821b99e0c3cae2f4fdfeb9e3857164c17e8eeac1"
+    },
+    {
+      "Path": "src/concurrency/task_group.c",
+      "Sha256": "018dc8addb3ac296cf8f08410ed3e22248b1c3aa9f85d8969e2813fe4e188235"
+    }
+  ],
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "48deb6f78147823d45bd3afa2cf233db8e7e1f1689f0630d07f87d7ebf8b1d0e",
+      "AfterSha256": "cd42c9ef20a2407e9603ddcbaffc1aa256fb5d094142a09bd8f7c777a2440184"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "dce9a37a2ab25c7ebcf20c2ef2685fc230da74a501684911e8295f161b758e64",
+      "AfterSha256": "366a2bd6705e598769d86c0c5afe8349cd59c5fd28e948f8edb25253f8ec2b30"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "ff87c087ad95dd3f5564a193dcecee16bcb689840e44945f9f9366869c63fe2a",
+      "AfterSha256": "f715c1744ed2d25557631ebf644a43c505c938aeda4feb0ce1e30c7e182db1b1"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "67254710996e0cbb2ebf089699379a3b7f4d34c331ba69fa7b7c37864e370441",
+      "AfterSha256": "c7548167efd8b0310b81aacac5fbaf6ded03ee08841828ff93d5f1e239ff6532"
+    }
+  ]
+}

@@ -457,6 +457,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
          !xlApiAddTccSymbol(s, "xl6TaskGroupOwnershipV1", (const void*)xl6TaskGroupOwnershipV1) ||
          !xlApiAddTccSymbol(s, "xl6TaskGroupOwnershipAdapterV1", (const void*)xl6TaskGroupOwnershipAdapterV1) ||
          !xlApiAddTccSymbol(s, "xl6TaskGroupOwnershipAdapterV2", (const void*)xl6TaskGroupOwnershipAdapterV2) ||
+         !xlApiAddTccSymbol(s, "xl6TaskGroupQuiescenceV1Get", (const void*)xl6TaskGroupQuiescenceV1Get) ||
          !xlApiAddTccSymbol(s, "xl6TaskGroupParentPolicyV1Get", (const void*)xl6TaskGroupParentPolicyV1Get) ||
          !xlApiAddTccSymbol(s, "xl6TaskGroupChild", (const void*)xl6TaskGroupChild) ||
          !xlApiAddTccSymbol(s, "xl6TaskGroupDestroy", (const void*)xl6TaskGroupDestroy) ||

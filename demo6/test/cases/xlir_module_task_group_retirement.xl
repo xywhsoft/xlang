@@ -1,4 +1,6 @@
 extern "group_boot" func boot() as future<int>
+extern "group_parent" func parent() as future<int>
+extern "group_has_parent" func hasParent() as bool
 extern "group_capture" func capture(var output)
 extern "group_entered" func entered()
 extern "group_caught" func caught()
@@ -30,6 +32,9 @@ async func work(future<int> start) as int
     end
 end
 export "group_start" func start()
+    if hasParent()
+        assert group.bindParent(parent())
+    end
     future<int> output = work(boot())
     assert group.add(output)
     capture(output)

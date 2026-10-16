@@ -25,9 +25,10 @@ def main():
     standalone=root/'test/cases/xlir_task_group_aot_retirement.xl'
     pool_language=root/'test/cases/xlir_module_task_pool_retirement.xl'
     static_quiescence=root/'test/support/static_module_quiescence.c'
+    group_transient=root/'test/support/task_group_transient_admission.c'
     inspector=shutil.which('objdump' if os.name=='nt' else 'readelf');assert inspector
     runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
-    pinned.update((Path(__file__).resolve(),Path(sys.executable),Path(cc),Path(inspector),fixture,host,language,standalone,runtime,quiescence,cli,pool_language,static_quiescence))
+    pinned.update((Path(__file__).resolve(),Path(sys.executable),Path(cc),Path(inspector),fixture,host,language,standalone,runtime,quiescence,cli,pool_language,static_quiescence,group_transient))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]
     objects=[Path(row['Path']) for row in build['Objects'] if Path(row['Path']).stem not in ('xlir_public_source_driver','xlir_public_source_linux_driver')]
     flags=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include')]
@@ -74,8 +75,12 @@ def main():
             probe_target=out/('quiescence.'+opt+suffix)
             run('quiescence.'+opt+'.build',[cc,*flags,*san,'-'+opt,quiescence,*focused,*link_objects,*libraries,'-o',probe_target])
             assert b'Ownership quiescence: 64 real workers' in run('quiescence.'+opt+'.run',[probe_target])
+            transient_target=out/('group-transient.'+opt+suffix)
+            run('group-transient.'+opt+'.build',[cc,*flags,*san,'-'+opt,group_transient,*focused,*link_objects,*libraries,'-o',transient_target])
+            assert b'TaskGroup transient admission: 80 real cancel/bind/notify windows' in run('group-transient.'+opt+'.run',[transient_target])
         report['CatalogPreparationAcceptance']=True
         report['TransientAdmissionAcceptance']=True
+        report['TaskGroupNativeDispatchAcceptance']=True
         if not args.native_only:
             for opt in ('O0','O2'):
                 target=out/('static-quiescence.'+opt+suffix)
@@ -84,7 +89,7 @@ def main():
             report['StaticModuleTransientAcceptance']=True
             target=out/('language'+suffix)
             run('language.build',[cc,*flags,'-O2',host,*link_objects,*libraries,'-o',target])
-            assert b'TaskGroup language: 18 real module lifetimes' in run('language.run',[target,runtime,tcc,args.public_directory/'include',language,out/'language-temps',pool_language])
+            assert b'TaskGroup language: 24 real module lifetimes' in run('language.run',[target,runtime,tcc,args.public_directory/'include',language,out/'language-temps',pool_language])
             report['GeneratedFinallyAcceptance']=True
             generated=out/'standalone.c'
             run('standalone.cgen',[build['Driver'],standalone,'cgen-default',generated])
