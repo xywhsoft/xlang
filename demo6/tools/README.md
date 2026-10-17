@@ -2,6 +2,17 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_system_suites_shipping.py --root <frozen-demo6> --build-report
+<ordinary-build.json> --out <fresh-directory> --jobs 2` is the required
+`native-system` gate. Four original time/environment suites and a real-entry
+signal consumer run on runtime/compiler DLL/SO at O0/O2. No private signal hooks,
+recorder injection or implementation objects. Full heap ledgers, original
+logical prefixes, additional signal confirmations and warm process-resource
+baselines remain distinct. Seven compiled leak/debug/injection/provider controls
+must be rejected, including strong/weak/data definitions and COFF weak aliases.
+POSIX process-local DST cases never substitute Windows system-zone acceptance;
+language OOM, source white-box races, OS join and full53 remain separate.
+
 `check_stdlib_text_suites_shipping.py --root <frozen-demo6> --build-report
 <ordinary-build.json> --out <fresh-directory> --jobs 2` is the required
 `native-text` product gate. Fourteen unchanged native test hosts link actual
