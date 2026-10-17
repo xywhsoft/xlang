@@ -2111,6 +2111,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesTypeName(root, "PemReader") ||
         xl6StdlibFuncUsed(used, "asn1", "parse") || xl6StdlibFuncUsed(used, "pem", "parse") || xl6StdlibFuncUsed(used, "pem", "decode")) xl6StdlibBuilderAppend(&builder, xl6StdlibAsn1ClassSource);
     if (xl6StdlibHasConcurrentImport(root)) {
+        if (xl6StdlibNodeUsesTypeName(root, "Once")) xl6StdlibBuilderAppend(&builder, xl6StdlibOnceSource);
+        if (xl6StdlibNodeUsesTypeName(root, "Event")) xl6StdlibBuilderAppend(&builder, xl6StdlibEventSource);
         if (xl6StdlibNodeUsesTypeName(root, "AtomicInt32")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicInt32Source);
         if (xl6StdlibNodeUsesTypeName(root, "AtomicUInt32")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicUInt32Source);
         if (xl6StdlibNodeUsesTypeName(root, "AtomicInt64")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicInt64Source);

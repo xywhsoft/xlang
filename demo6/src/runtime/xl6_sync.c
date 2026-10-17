@@ -34,7 +34,7 @@ static void gateUnlock(_Atomic(uint32_t)* gate) { atomic_store_explicit(gate,0,m
 static SyncOwner* require(const xvalue* value,uint64_t identity,unsigned int kind)
 {
     void* raw=NULL; void* context=NULL; const xvaluehandleops* actual=NULL;
-    if (!value || !identity || kind<1 || kind>3 || xrtValueType(value)!=XVALUE_HANDLE ||
+    if (!value || !identity || kind<1 || kind>XL6_SYNC_EVENT_V1 || xrtValueType(value)!=XVALUE_HANDLE ||
         xrtValueTypeId(value)!=identity || !xrtValueGetHandle(value,&raw,&actual,&context) ||
         actual!=&handleOps || context || !raw) return NULL;
     SyncOwner* owner=raw;

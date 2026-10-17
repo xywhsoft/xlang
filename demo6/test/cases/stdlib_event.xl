@@ -1,0 +1,33 @@
+import concurrent
+
+auto event = Event()
+assert not event.tryWait()
+assert not event.wait(0)
+assert not event.wait(1), "finite timeout is normal false"
+event.set()
+assert event.tryWait(), "auto-reset consumes signal"
+assert not event.tryWait()
+event.set()
+event.reset()
+assert not event.tryWait()
+
+auto manual = Event(true, true)
+assert manual.wait(0) and manual.tryWait(), "manual reset keeps signal"
+manual.reset()
+assert not manual.tryWait()
+manual.set()
+assert manual.wait(), "infinite wait on signaled event"
+
+int rejected = 0
+try
+    event.wait(-2)
+catch RangeError
+    rejected += 1
+end
+try
+    event.wait(9223372036854775807)
+catch RangeError
+    rejected += 1
+end
+assert rejected == 2, "finite overflow must not become infinite"
+println("event states and checked deadlines ok")

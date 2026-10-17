@@ -53,6 +53,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define U XL6_IR_C_ABI_U64
 #define M XL6_IR_C_ABI_TIME_I64
 #include "xl6_ir_atomic_contracts.inc"
+#include "xl6_ir_concurrent_contracts.inc"
 #include "xl6_ir_asn1_contracts.inc"
 #include "xl6_ir_crypto_contracts.inc"
 #include "xl6_ir_compress_contracts.inc"
@@ -882,16 +883,26 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
             continue;
         }
         if (contract->parameterNullaryCallableResultAbis[i]) {
+            XL6_IrCAbi resultAbi = contract->parameterNullaryCallableResultAbis[i];
             const XL6_IrType* returned=type && type->returnCount==1 && type->returns
                 ? xl6IrTypeGet(&module->types,type->returns[0]):NULL;
+            int resultMatches = resultAbi == XL6_IR_C_ABI_VOID
+                ? type && !type->returnCount && !type->returns && type->callableResultType == XL6_IR_TYPE_INVALID
+                : returned && type->callableResultType == type->returns[0] && returned->kind == XL6_IR_TYPE_BUILTIN &&
+                  returned->cAbi == resultAbi && !returned->paramCount && !returned->returnCount &&
+                  returned->collectionAbi == XL6_IR_COLLECTION_NONE &&
+                  (resultAbi == XL6_IR_C_ABI_BOOL
+                    ? returned->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+                      returned->nullAbi == XL6_IR_NULL_ABI_NONE &&
+                      returned->integerTarget == XL6_IR_INTEGER_TARGET_INVALID
+                    : resultAbi == XL6_IR_C_ABI_MANAGED_STRING &&
+                      returned->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+                      returned->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL);
             if (!type || type->kind!=XL6_IR_TYPE_FUNCTION || type->cAbi!=XL6_IR_C_ABI_CLOSURE_PTR ||
                 type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED || type->nullAbi!=XL6_IR_NULL_ABI_POINTER_SENTINEL ||
                 type->collectionAbi!=XL6_IR_COLLECTION_NONE || type->paramCount || type->params ||
                 type->parameterAbis || type->parameterModes || type->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED ||
-                !returned || type->callableResultType!=type->returns[0] || returned->kind!=XL6_IR_TYPE_BUILTIN ||
-                returned->cAbi!=contract->parameterNullaryCallableResultAbis[i] || returned->paramCount ||
-                returned->returnCount || returned->collectionAbi!=XL6_IR_COLLECTION_NONE ||
-                returned->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED || returned->nullAbi!=XL6_IR_NULL_ABI_POINTER_SENTINEL ||
+                !resultMatches ||
                 target->parameterAbis[i]!=XL6_IR_PARAMETER_ABI_BORROW ||
                 target->parameterPhysicalAbis[i]!=XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW ||
                 target->parameterConstraintAbis[i]!=XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||

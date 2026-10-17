@@ -7,6 +7,8 @@ XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainAtomicUInt32V1
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainAtomicInt64V1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainAtomicUInt64V1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainAtomicBoolV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainOnceV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainEventV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainCodeLeaseV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainClassV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainCellV1Get(void);

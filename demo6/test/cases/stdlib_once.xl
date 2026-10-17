@@ -1,0 +1,60 @@
+import concurrent
+
+auto once = Once()
+int calls = 0
+once.run(func()
+    calls += 1
+end)
+once.run(func()
+    calls += 100
+end)
+assert calls == 1, "once runs only a successful initializer"
+
+auto retry = Once()
+assert not retry.tryRun(func() as bool
+    calls += 1
+    return false
+end), "false initializer may retry"
+assert retry.tryRun(func() as bool
+    calls += 1
+    return true
+end), "true initializer completes"
+assert retry.tryRun(func() as bool
+    calls += 100
+    return false
+end), "completed once does not invoke again"
+assert calls == 3, "tryRun uses the same native state"
+
+auto failed = Once()
+bool caught = false
+try
+    failed.run(func()
+        throw ValueError("initializer failed")
+    end)
+catch ValueError e
+    assert e.message == "initializer failed", "original initializer exception"
+    caught = true
+end
+assert caught
+failed.run(func()
+    calls += 1
+end)
+assert calls == 4, "exception leaves Once retryable"
+
+auto recursive = Once()
+caught = false
+try
+    recursive.run(func()
+        recursive.run(func()
+            calls += 100
+        end)
+    end)
+catch StateError
+    caught = true
+end
+assert caught, "reentrant Once refuses instead of deadlocking"
+recursive.run(func()
+    calls += 1
+end)
+assert calls == 5
+println("once checked callbacks ok")

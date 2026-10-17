@@ -1,0 +1,5 @@
+import concurrent
+auto once = Once()
+once.run(func() as int
+    return 0
+end)

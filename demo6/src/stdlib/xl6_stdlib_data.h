@@ -7,6 +7,8 @@
 
 #define XL6_STDLIB_CONST_COUNT 181
 #define XL6_STDLIB_FUNC_COUNT 996
+extern const char* xl6StdlibOnceSource;
+extern const char* xl6StdlibEventSource;
 extern const char* xl6StdlibTemplateBufferSource;
 extern const char* xl6StdlibTemplateWriterSource;
 extern const char* xl6StdlibTemplateFileSource;
