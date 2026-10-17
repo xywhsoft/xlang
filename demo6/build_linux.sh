@@ -564,6 +564,9 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/backend/xl6_build_backend.c"
     "$ROOT/src/compile/xl6_compile_unit.c"
     "$ROOT/src/compile/xl6_imports.c"
+    "$ROOT/src/compile/xl6_source_overlay.c"
+    "$ROOT/src/compile/xl6_source_report.c"
+    "$ROOT/src/compile/xl6_build_inputs.c"
     "$ROOT/src/compile/xl6_xrt_trim.c"
     "$ROOT/src/common/xl6_console.c"
     "$ROOT/src/common/xl6_output.c"
@@ -587,11 +590,13 @@ RUNTIME_SOURCES=(
     "$ROOT/src/sem/xl6_type_registry.c"
     "$ROOT/src/sem/xl6_sem_docs.c"
     "$ROOT/src/sem/xl6_sem_field_attrs.c"
+    "$ROOT/src/sem/xl6_completion.c"
     "$ROOT/src/sem/xl6_sem.c"
 )
 COMPILER_ONLY_SOURCES=(
     "$ROOT/src/abi/xl6_abi_dump.c"
     "$ROOT/src/ast/xl6_ast_dump.c"
+    "$ROOT/src/sem/xl6_sem_index.c"
     "$ROOT/src/ir/xl6_ir_dump.c"
     "$ROOT/src/resource/xl6_win_resource.c"
 )

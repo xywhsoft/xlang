@@ -690,11 +690,39 @@ static void xl6PFStringAdvancePosition(const char* text, size_t len, int* line, 
     }
 }
 
+static void xl6PRebaseFStringRange(
+    XL6_AstRange* range, const XL6_Token* token, const char* text,
+    size_t exprOffset, size_t exprLength, size_t prefixLength, int clip)
+{
+    size_t start, end;
+    if (!range->known) return;
+    start = range->startOffset;
+    end = range->endOffset;
+    if (!token || !text || end < prefixLength || start > prefixLength + exprLength ||
+        (!clip && (start < prefixLength || end > prefixLength + exprLength))) {
+        memset(range, 0, sizeof(*range));
+        return;
+    }
+    /* The wrapper's parentheses may widen the expression's grammar span.
+     * Clip only that known synthetic syntax, never fabricate token spans. */
+    if (start < prefixLength) start = prefixLength;
+    if (end > prefixLength + exprLength) end = prefixLength + exprLength;
+    start = exprOffset + start - prefixLength;
+    end = exprOffset + end - prefixLength;
+    range->startOffset = token->startOffset + start;
+    range->endOffset = token->startOffset + end;
+    range->startLine = range->endLine = token->startLine;
+    range->startColumn = range->endColumn = token->startColumn;
+    xl6PFStringAdvancePosition(text, start, &range->startLine, &range->startColumn);
+    xl6PFStringAdvancePosition(text, end, &range->endLine, &range->endColumn);
+}
+
 static void xl6PRebaseFStringExprPosition(
     XL6_AstNode* node,
     int exprLine,
     int exprColumn,
-    int syntheticPrefixColumns)
+    int syntheticPrefixColumns,
+    const XL6_Token* token, const char* text, size_t exprOffset, size_t exprLength)
 {
     size_t i;
 
@@ -709,8 +737,13 @@ static void xl6PRebaseFStringExprPosition(
             node->line = exprLine + node->line - 1;
         }
     }
+    xl6PRebaseFStringRange(&node->range, token, text, exprOffset, exprLength,
+                          (size_t)syntheticPrefixColumns, 1);
+    xl6PRebaseFStringRange(&node->tokenRange, token, text, exprOffset, exprLength,
+                          (size_t)syntheticPrefixColumns, 0);
     for ( i = 0; i < node->childCount; ++i ) {
-        xl6PRebaseFStringExprPosition(node->children[i], exprLine, exprColumn, syntheticPrefixColumns);
+        xl6PRebaseFStringExprPosition(node->children[i], exprLine, exprColumn,
+                                    syntheticPrefixColumns, token, text, exprOffset, exprLength);
     }
 }
 
@@ -767,7 +800,8 @@ static XL6_AstNode* xl6PParseFStringExpr(
     exprLine = token != NULL ? token->startLine : 0;
     exprColumn = token != NULL ? token->startColumn : 0;
     xl6PFStringAdvancePosition(tokenText, exprOffset, &exprLine, &exprColumn);
-    xl6PRebaseFStringExprPosition(expr, exprLine, exprColumn, (int)(sizeof(prefix) - 1));
+    xl6PRebaseFStringExprPosition(expr, exprLine, exprColumn, (int)(sizeof(prefix) - 1),
+                                token, tokenText, exprOffset, len);
     return expr;
 }
 

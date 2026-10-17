@@ -703,6 +703,7 @@ extern "C" {
   WINBASEAPI int WINAPI WideCharToMultiByte(UINT CodePage,DWORD dwFlags,LPCWSTR lpWideCharStr,int cchWideChar,LPSTR lpMultiByteStr,int cbMultiByte,LPCSTR lpDefaultChar,LPBOOL lpUsedDefaultChar);
   WINBASEAPI int WINAPI CompareStringA(LCID Locale,DWORD dwCmpFlags,LPCSTR lpString1,int cchCount1,LPCSTR lpString2,int cchCount2);
   WINBASEAPI int WINAPI CompareStringW(LCID Locale,DWORD dwCmpFlags,LPCWSTR lpString1,int cchCount1,LPCWSTR lpString2,int cchCount2);
+  WINBASEAPI int WINAPI CompareStringOrdinal(LPCWCH lpString1,int cchCount1,LPCWCH lpString2,int cchCount2,WINBOOL bIgnoreCase);
   WINBASEAPI int WINAPI LCMapStringA(LCID Locale,DWORD dwMapFlags,LPCSTR lpSrcStr,int cchSrc,LPSTR lpDestStr,int cchDest);
   WINBASEAPI int WINAPI LCMapStringW(LCID Locale,DWORD dwMapFlags,LPCWSTR lpSrcStr,int cchSrc,LPWSTR lpDestStr,int cchDest);
   WINBASEAPI int WINAPI GetLocaleInfoA(LCID Locale,LCTYPE LCType,LPSTR lpLCData,int cchData);

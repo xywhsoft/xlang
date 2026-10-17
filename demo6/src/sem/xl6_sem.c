@@ -1,4 +1,5 @@
 #include "src/sem/xl6_sem.h"
+#include "src/sem/xl6_completion.h"
 #include "src/sem/xl6_sem_docs.h"
 #include "src/sem/xl6_sem_field_attrs.h"
 #include "src/sem/xl6_protocol.h"
@@ -29,6 +30,7 @@ typedef struct XL6_Symbol {
     char* name;
     XL6_SymbolKind kind;
     XL6_AstNode* type;
+    const XL6_AstNode* declaration;
     int definitelyAssigned;
     int line;
     int column;
@@ -69,6 +71,9 @@ typedef struct XL6_SemContext {
     XL6_DiagList* diags;
     const char* moduleName;
     XL6_SymbolId nextSymbolId;
+    int captureIndex;
+    XL6_CompletionQuery* completionQuery;
+    size_t queryTypeNodes, queryTypeBytes;
     XL6_Scope* scope;
     XL6_TypeParamScope* typeParams;
     XL6_AstNode* currentReturns;
@@ -451,7 +456,7 @@ static void xl6SemErrorNode(XL6_SemContext* ctx, const XL6_AstNode* node, const 
     if ( (ctx == NULL) || (ctx->diags == NULL) ) {
         return;
     }
-    xl6DiagAdd(ctx->diags, node != NULL ? node->line : 1, node != NULL ? node->column : 1, message);
+    xl6DiagAddFile(ctx->diags, xl6AstSourcePath(node), node != NULL ? node->line : 1, node != NULL ? node->column : 1, message);
 }
 
 static XL6_SymbolId xl6SemReserveSymbolId(
@@ -513,6 +518,7 @@ static int xl6SemAssignEntitySymbolIds(
     if ( xl6SemNodeHasEntityIdentity(node) &&
          node->semanticSymbolId == XL6_SYMBOL_ID_INVALID ) {
         node->semanticSymbolId = xl6SemReserveSymbolId(ctx, node);
+        if (ctx->captureIndex) node->semanticDeclaredSymbolId = node->semanticSymbolId;
         if ( node->semanticSymbolId == XL6_SYMBOL_ID_INVALID ) {
             ok = 0;
         }
@@ -722,6 +728,21 @@ static int xl6ScopeNameIsOutsideBoundary(XL6_Scope* scope, XL6_Scope* boundary, 
     return 0;
 }
 
+/* Bound the opt-in copies before cloning temporary auto/loop/catch types. */
+static int xl6SemQueryTypeBudget(XL6_SemContext* ctx, const XL6_AstNode* type, size_t depth)
+{
+    size_t i, bytes;
+    if (!type) return 1;
+    bytes = type->text ? strlen(type->text) : 0;
+    if (depth > 128 || ctx->queryTypeNodes >= 65536 ||
+        bytes > 4u * 1024u * 1024u - ctx->queryTypeBytes) return 0;
+    ++ctx->queryTypeNodes;
+    ctx->queryTypeBytes += bytes;
+    for (i = 0; i < type->childCount; ++i)
+        if (!xl6SemQueryTypeBudget(ctx, type->children[i], depth + 1)) return 0;
+    return 1;
+}
+
 static int xl6ScopeAddTyped(XL6_SemContext* ctx, XL6_AstNode* node, XL6_SymbolKind kind, XL6_AstNode* typeNode)
 {
     XL6_Symbol* oldSym;
@@ -776,12 +797,30 @@ static int xl6ScopeAddTyped(XL6_SemContext* ctx, XL6_AstNode* node, XL6_SymbolKi
     }
     symbol->kind = kind;
     symbol->type = typeNode;
+    symbol->declaration = xl6AstSourcePath(node) ? node : NULL;
     symbol->definitelyAssigned = 1;
     symbol->line = node->line;
     symbol->column = node->column;
     node->semanticSymbolId = symbol->id;
     scope->count += 1;
     xl6ScopeIndexLastSymbol(scope);
+    if (ctx->captureIndex) {
+        node->semanticDeclaredSymbolId = symbol->id;
+        /* Implicit self uses a stack node without source, so do not attach
+         * an owned allocation to it. Source declarations retain true types. */
+        if (typeNode && xl6AstSourcePath(node)) {
+            if (!xl6SemQueryTypeBudget(ctx, typeNode, 1)) {
+                xl6SemErrorNode(ctx, node, "semantic declaration type capture exceeds limits");
+                return 0;
+            }
+            xl6AstFree(node->semanticDeclaredType);
+            node->semanticDeclaredType = xl6SemCloneTypeNode(typeNode);
+            if (!node->semanticDeclaredType) {
+                xl6SemErrorNode(ctx, node, "cannot capture semantic declaration type");
+                return 0;
+            }
+        }
+    }
     return 1;
 }
 
@@ -1512,6 +1551,7 @@ static int xl6SemCheckType(XL6_SemContext* ctx, XL6_AstNode* typeNode)
 
 static int xl6SemCheckExpr(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCheckNameExpr(XL6_SemContext* ctx, XL6_AstNode* node);
+static int xl6SemCaptureCompletion(XL6_SemContext* ctx,XL6_AstNode* node);
 static int xl6SemCheckStmt(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCheckChildrenExpr(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCheckChildrenExprFrom(XL6_SemContext* ctx, XL6_AstNode* node, size_t firstChild);
@@ -2943,7 +2983,7 @@ static int xl6SemCheckGenericConstraintDecl(XL6_SemContext* ctx, const XL6_AstNo
     constraints = xl6SemGenericConstraintList(param);
     ok = 1;
     for ( i = 0; constraints != NULL && i < constraints->childCount; ++i ) {
-        const XL6_AstNode* constraint = constraints->children[i];
+        XL6_AstNode* constraint = constraints->children[i];
         const XL6_TypeInfo* typeInfo;
         const char* name = constraint != NULL ? constraint->text : NULL;
 
@@ -2966,6 +3006,11 @@ static int xl6SemCheckGenericConstraintDecl(XL6_SemContext* ctx, const XL6_AstNo
         if ( constraint->childCount > 0 ) {
             xl6SemErrorNode(ctx, constraint, "generic class constraint cannot use type arguments in this stage");
             ok = 0;
+        } else if ( ctx->captureIndex ) {
+            /* Query provenance uses the already validated registry entry;
+             * do not allocate a runtime SymbolId for a type-only reference. */
+            constraint->semanticTypeId = typeInfo->id;
+            constraint->semanticTypeAbiId = typeInfo->abiId;
         }
     }
     return ok;
@@ -12001,6 +12046,7 @@ static XL6_AstNode* xl6SemCloneTypeNode(const XL6_AstNode* node)
     if ( copy == NULL ) {
         return NULL;
     }
+    xl6AstCopySource(copy, node);
     copy->line = node->line;
     copy->column = node->column;
     copy->flags = node->flags;
@@ -16025,6 +16071,7 @@ static int xl6SemCheckMemberExpr(XL6_SemContext* ctx, XL6_AstNode* node)
     const char* receiverTypeName;
     int ok;
 
+    if (xl6SemCaptureCompletion(ctx, node)) return 0;
     {
         int enumMemberOk = xl6SemCheckEnumVariantMember(ctx, node);
         if ( enumMemberOk >= 0 ) {
@@ -16224,6 +16271,7 @@ static int xl6SemCheckNameExpr(XL6_SemContext* ctx, XL6_AstNode* node)
     if ( ctx == NULL || node == NULL || node->kind != XL6_AST_NAME ) {
         return 1;
     }
+    if (xl6SemCaptureCompletion(ctx, node)) return 0;
     sym = xl6ScopeFind(ctx->scope, node->text);
     if ( sym != NULL ) {
         node->semanticSymbolId = sym->id;
@@ -16435,6 +16483,7 @@ static void xl6SemEndOutCallTransaction(
 
 static int xl6SemCheckExprRaw(XL6_SemContext* ctx, XL6_AstNode* node)
 {
+    if (node && node->kind == XL6_AST_SAFE_MEMBER && xl6SemCaptureCompletion(ctx, node)) return 0;
     if ( node == NULL ) {
         return 1;
     }
@@ -16570,6 +16619,16 @@ static int xl6SemDeclareVarWithKind(
                 XL6_Symbol* local=xl6ScopeFindLocal(ctx->scope,nameNode->text);
                 if(!local) return 0;
                 local->type=inferredType;
+                if(ctx->captureIndex && xl6AstSourcePath(nameNode)) {
+                    if(!xl6SemQueryTypeBudget(ctx,inferredType,1)) {
+                        xl6SemErrorNode(ctx,node,"semantic declaration type capture exceeds limits");return 0;
+                    }
+                    xl6AstFree(nameNode->semanticDeclaredType);
+                    nameNode->semanticDeclaredType=xl6SemCloneTypeNode(inferredType);
+                    if(!nameNode->semanticDeclaredType) {
+                        xl6SemErrorNode(ctx,node,"cannot capture semantic declaration type");return 0;
+                    }
+                }
             } else {xl6AstFree(inferredType);ok=0;}
         }
     }
@@ -23230,6 +23289,9 @@ static int xl6SemCheckClass(XL6_SemContext* ctx, XL6_AstNode* node)
             } else if ( baseDecl->kind != XL6_AST_CLASS ) {
                 xl6SemErrorNode(ctx, base, "class 只能继承 class");
                 ok = 0;
+            } else if ( ctx->captureIndex ) {
+                base->semanticTypeId = baseDecl->semanticTypeId;
+                base->semanticTypeAbiId = baseDecl->semanticTypeAbiId;
             }
         }
     }
@@ -24424,6 +24486,7 @@ static void xl6SemAnnotateTypeIdentities(XL6_SemContext* ctx, XL6_AstNode* node)
         }
     }
     xl6SemAnnotateTypeIdentities(ctx, node->inferredType);
+    xl6SemAnnotateTypeIdentities(ctx, node->semanticDeclaredType);
     for ( i = 0; i < node->childCount; ++i ) {
         xl6SemAnnotateTypeIdentities(ctx, node->children[i]);
     }
@@ -24849,10 +24912,114 @@ static int xl6SemCheckMainEntry(XL6_SemContext* ctx)
     return ok;
 }
 
-int xl6SemCheckModule(
+static char* xl6SemCompletionType(XL6_SemContext* ctx,const XL6_AstNode* type)
+{
+ char* text;if (!type) return NULL;
+ text=xl6TypeToCanonicalStringLimited(ctx->root,type,8192,128,65536);
+ if (!text) ctx->completionQuery->error="cannot retain bounded semantic completion type";
+ return text;
+}
+static int xl6SemCompletionSymbolAllowed(XL6_SemContext* ctx,XL6_Symbol* sym)
+{
+ if (xl6ScopeFind(ctx->scope,sym->name)!=sym) return 0;
+ if (ctx->suppressDefiniteAssignment==0&&(sym->kind==XL6_SYM_VALUE||sym->kind==XL6_SYM_CONST)&&!sym->definitelyAssigned) return 0;
+ if (!xl6ScopeNameIsOutsideBoundary(ctx->scope,ctx->captureBoundary,sym->name)||sym->kind==XL6_SYM_FUNC||xl6SemSymbolIsGlobalValue(sym)) return 1;
+ return ctx->captureBoundaryAllowsCapture&&xl6SemCurrentParamModeByName(ctx,sym->name)!=XL6_AST_FLAG_BYREF&&xl6SemCurrentParamModeByName(ctx,sym->name)!=XL6_AST_FLAG_OUT&&xl6SemTypeCanCapture(ctx,sym->type);
+}
+static void xl6SemCompletionNames(XL6_SemContext* ctx)
+{
+ XL6_Scope* scope;XL6_CompletionQuery* q=ctx->completionQuery;size_t i,j;
+ for (scope=ctx->scope;scope&&!q->error;scope=scope->parent) {
+  for (i=0;i<scope->count&&!q->error;++i) {
+   XL6_Symbol* sym=&scope->items[i];
+   if (!xl6SemCompletionSymbolAllowed(ctx,sym)) continue;
+   if (sym->kind==XL6_SYM_FUNC) {
+    for (j=0;j<ctx->root->childCount&&!q->error;++j) {
+     XL6_AstNode* func=ctx->root->children[j];XL6_AstNode* type;
+     if (!xl6SemIsFuncDecl(func)||!xl6TextEquals(xl6SemFuncName(func),sym->name)) continue;
+     type=xl6SemFunctionTypeFromCallableParts(func->childCount>1?func->children[1]:NULL,func->childCount>2?func->children[2]:NULL,func);
+     if (!type) {q->error="cannot capture callable signature";break;}
+     xl6CompletionAdd(q,sym->name,"function",func->semanticSymbolId,func->childCount?func->children[0]:NULL,xl6SemCompletionType(ctx,type));xl6AstFree(type);
+    }
+   } else {
+    XL6_AstNode* name=xl6AstNewText(XL6_AST_NAME,sym->name,strlen(sym->name),NULL);XL6_AstNode* type;
+    if (!name) {q->error="cannot capture scoped value type";break;}
+    type=xl6SemInferAutoTypeNode(ctx,name); /* Includes current flow facts. */
+    xl6CompletionAdd(q,sym->name,sym->kind==XL6_SYM_CONST||sym->kind==XL6_SYM_GLOBAL_CONST?"constant":"variable",sym->id,sym->declaration,xl6SemCompletionType(ctx,type));xl6AstFree(type);xl6AstFree(name);
+   }
+  }
+ }
+ for (i=0;i<ctx->types.count&&!q->error;++i) {
+  const XL6_TypeInfo* info=&ctx->types.items[i];XL6_AstNode* type;
+  if (xl6ScopeFind(ctx->scope,info->name)) continue;
+  type=xl6AstNewText(XL6_AST_TYPE,info->name,strlen(info->name),NULL);
+  if (!type) {q->error="cannot capture type candidate";break;}
+  xl6CompletionAdd(q,info->name,"type",info->decl?info->decl->semanticSymbolId:0,info->decl,xl6SemCompletionType(ctx,type));xl6AstFree(type);
+ }
+}
+static void xl6SemCompletionMembers(XL6_SemContext* ctx,XL6_AstNode* queryNode)
+{
+ XL6_CompletionQuery* q=ctx->completionQuery;
+ XL6_AstNode* receiver=queryNode->childCount?queryNode->children[0]:NULL;
+ XL6_AstNode *owned=NULL,*decl,*staticClass;const XL6_AstNode *concrete,*owner,*body,*args;size_t i,depth;
+ if (!receiver||!xl6SemCheckExpr(ctx,receiver)||(ctx->diags&&ctx->diags->count)) {q->error="receiver semantics are unavailable";return;}
+ staticClass=xl6SemClassDeclFromTypeMemberReceiver(ctx,queryNode);owned=xl6SemInferAutoTypeNode(ctx,receiver);concrete=xl6SemResolveAliasType(ctx,owned);
+ if (xl6SemNullableInnerType(concrete)) {
+  if (queryNode->kind!=XL6_AST_SAFE_MEMBER) {q->error="nullable receiver needs narrowing or safe member access";goto done;}
+  concrete=xl6SemNullableInnerType(concrete);
+ }
+ concrete=xl6SemClassValueType(ctx,concrete);decl=staticClass?staticClass:concrete?xl6SemFindTypeDecl(ctx,concrete->text):NULL;
+ if (!decl||decl->kind!=XL6_AST_CLASS) {q->error="receiver member completion is not supported for this semantic type";goto done;}
+ for (owner=decl,depth=0;owner&&depth<64&&!q->error;owner=xl6SemBaseClassDecl(ctx,owner),++depth) {
+  body=owner->childCount>1?owner->children[1]:NULL;args=owner==decl&&concrete?xl6SemTypeNodeGenericArgs(concrete):NULL;
+  for (i=0;body&&i<body->childCount&&!q->error;++i) {
+   const XL6_AstNode* member=body->children[i];const char* name;XL6_AstNode* type=NULL;const XL6_AstNode* selection;
+   int field=member&&member->kind==XL6_AST_FIELD;
+   int callable=member&&(member->kind==XL6_AST_FUNC||member->kind==XL6_AST_ASYNC_FUNC||member->kind==XL6_AST_EXPORT_FUNC||member->kind==XL6_AST_NATIVE_EXTERN_FUNC);
+   if ((!field&&!callable)||xl6SemAstHasFlag(member,XL6_AST_FLAG_STATIC)!=(staticClass!=NULL)||!xl6SemCanAccessClassMember(ctx,owner,member)) continue;
+   name=field?member->text:xl6SemMemberName(member);if (!name) continue;
+   if (field) {
+    const XL6_AstNode* foundOwner=NULL;
+    const XL6_AstNode* found=staticClass?xl6SemFindStaticClassFieldNode(ctx,decl,name,&foundOwner):xl6SemFindClassFieldNode(ctx,decl,name,&foundOwner);
+    if (found!=member||foundOwner!=owner) continue;
+    type=staticClass?(member->childCount?xl6SemCloneTypeNode(member->children[0]):NULL):xl6SemCloneRecordFieldType(ctx,concrete,name);selection=member;
+   } else {
+    const XL6_AstNode* nearest=xl6SemFindClassCallableMemberNode(ctx,decl,name);
+    size_t k;int sameOwner=0;
+    for (k=0;body&&k<body->childCount;++k) if (body->children[k]==nearest) sameOwner=1;
+    if (!sameOwner) continue;
+    type=xl6SemFunctionTypeFromCallableParts(member->childCount>1?member->children[1]:NULL,member->childCount>2?member->children[2]:NULL,member);
+    if (type&&args&&xl6SemClassHasTypeParams(owner)) {XL6_AstNode* replaced=xl6SemSubstituteClassType(owner,args,type);xl6AstFree(type);type=replaced;}
+    selection=member->childCount?member->children[0]:NULL;
+   }
+   if (!type) {q->error="resolved member type is unavailable";break;}
+   xl6CompletionAdd(q,name,field?"field":"method",member->semanticSymbolId,selection,xl6SemCompletionType(ctx,type));xl6AstFree(type);
+  }
+ }
+ if (owner&&!q->error) q->error="member inheritance exceeds query depth limit";
+done:
+ xl6AstFree(owned);
+}
+static int xl6SemCaptureCompletion(XL6_SemContext* ctx,XL6_AstNode* node)
+{
+ XL6_CompletionQuery* q=ctx?ctx->completionQuery:NULL;
+ if (!q||!node||!node->source||!node->source->completionQuery||!node->text||strcmp(node->text,XL6_COMPLETION_MARKER)||!node->tokenRange.known||node->tokenRange.startOffset!=node->source->completionStart||node->tokenRange.endOffset!=node->source->completionEnd) return 0;
+ q->reached++;
+ if (q->reached!=1) {q->error="query expression is checked more than once";return 1;}
+ if (q->error||(ctx->diags&&ctx->diags->count)) {if (!q->error) q->error="semantic prerequisites contain errors";return 1;}
+ if (node->kind==XL6_AST_NAME) xl6SemCompletionNames(ctx);
+ else if (node->kind==XL6_AST_MEMBER||node->kind==XL6_AST_SAFE_MEMBER) xl6SemCompletionMembers(ctx,node);
+ else q->error="query is not a value or member expression";
+ q->available=!q->error;
+ return 1; /* The query expression fails deliberately and is never lowered. */
+}
+
+int xl6SemCheckModuleWithQuery(
     XL6_AstNode* root,
     XL6_DiagList* diags,
-    const char* moduleName
+    const char* moduleName,
+    int captureIndex,
+    XL6_CompletionQuery* query
 )
 {
     XL6_SemContext ctx;
@@ -24868,6 +25035,8 @@ int xl6SemCheckModule(
     ctx.diags = diags;
     ctx.moduleName = moduleName != NULL && moduleName[0] != '\0' ? moduleName : "module";
     ctx.nextSymbolId = 1;
+    ctx.captureIndex = captureIndex;
+    ctx.completionQuery = query;
     ctx.root = root;
     xl6TypeRegistryInit(&ctx.types);
     xl6SemPushScope(&ctx, &globalScope);
@@ -24989,4 +25158,14 @@ int xl6SemCheckModule(
     xl6TypeRegistryFree(&ctx.types);
     xl6SemFreeOwnedTypeNodes(&ctx);
     return ok && (diags == NULL || diags->count == 0);
+}
+
+int xl6SemCheckModuleWithIndex(XL6_AstNode* root,XL6_DiagList* diags,const char* moduleName,int captureIndex)
+{
+ return xl6SemCheckModuleWithQuery(root,diags,moduleName,captureIndex,NULL);
+}
+
+int xl6SemCheckModule(XL6_AstNode* root, XL6_DiagList* diags, const char* moduleName)
+{
+    return xl6SemCheckModuleWithIndex(root, diags, moduleName, 0);
 }

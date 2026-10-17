@@ -1109,7 +1109,7 @@ int xl6CompileUnitLoadFile(XL6_CompileUnit* unit, const char* path, int runSem)
     unit->phase = "parse";
     xl6CompileUnitBaseNameNoExt(unit->moduleName, sizeof(unit->moduleName), path);
 
-    ok = xl6ParseFile(path, &unit->parse);
+    ok = xl6SourceOverlayParse(unit->importDeps.sourceOverlay, path, &unit->parse);
     if ( ok ) {
         unit->phase = "import";
         ok = xl6ImportsExpandModule(unit->parse.root, path, &unit->parse.diags, &unit->importDeps);
@@ -1120,10 +1120,12 @@ int xl6CompileUnitLoadFile(XL6_CompileUnit* unit, const char* path, int runSem)
     }
     if ( ok && runSem ) {
         unit->phase = "sem";
-        ok = xl6SemCheckModule(unit->parse.root, &unit->parse.diags, unit->moduleName);
+        ok = xl6SemCheckModuleWithQuery(unit->parse.root, &unit->parse.diags, unit->moduleName,
+            unit->importDeps.sourceOverlay && unit->importDeps.sourceOverlay->semanticIndex,
+            unit->importDeps.sourceOverlay ? unit->importDeps.sourceOverlay->completionQuery : NULL);
         unit->semChecked = 1;
     }
-    if ( ok && runSem ) {
+    if ( ok && runSem && !(unit->importDeps.sourceOverlay && unit->importDeps.sourceOverlay->completionQuery) ) {
         unit->phase = "ir";
         ok = xl6IrBuildModuleFromAst(&unit->ir, unit->parse.root, &unit->parse.diags);
         unit->irReady = ok;
@@ -1149,7 +1151,7 @@ int xl6CompileUnitLoadSource(XL6_CompileUnit* unit, const char* source, const ch
     unit->phase = "parse";
     xl6CompileUnitBaseNameNoExt(unit->moduleName, sizeof(unit->moduleName), path);
 
-    ok = xl6ParseSource(source, path, &unit->parse);
+    ok = xl6ParseSourceWithCompletion(source, path, &unit->parse, unit->importDeps.sourceOverlay ? unit->importDeps.sourceOverlay->completionQuery : NULL);
     if ( ok ) {
         unit->phase = "import";
         ok = xl6ImportsExpandModule(unit->parse.root, path, &unit->parse.diags, &unit->importDeps);
@@ -1160,10 +1162,12 @@ int xl6CompileUnitLoadSource(XL6_CompileUnit* unit, const char* source, const ch
     }
     if ( ok && runSem ) {
         unit->phase = "sem";
-        ok = xl6SemCheckModule(unit->parse.root, &unit->parse.diags, unit->moduleName);
+        ok = xl6SemCheckModuleWithQuery(unit->parse.root, &unit->parse.diags, unit->moduleName,
+            unit->importDeps.sourceOverlay && unit->importDeps.sourceOverlay->semanticIndex,
+            unit->importDeps.sourceOverlay ? unit->importDeps.sourceOverlay->completionQuery : NULL);
         unit->semChecked = 1;
     }
-    if ( ok && runSem ) {
+    if ( ok && runSem && !(unit->importDeps.sourceOverlay && unit->importDeps.sourceOverlay->completionQuery) ) {
         unit->phase = "ir";
         ok = xl6IrBuildModuleFromAst(&unit->ir, unit->parse.root, &unit->parse.diags);
         unit->irReady = ok;

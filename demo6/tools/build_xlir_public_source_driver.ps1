@@ -301,7 +301,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_process_terminal_config.c','src/runtime/xl6_process_terminal_live.c',
     'src/runtime/xl6_code_finalizer.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_file.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c',
     'src/abi/xl6_abi_dump.c','src/abi/xl6_abi_json.c','src/abi/xl6_callable.c',
-    'src/backend/xl6_build_backend.c','src/compile/xl6_compile_unit.c','src/compile/xl6_imports.c',
+    'src/backend/xl6_build_backend.c','src/compile/xl6_compile_unit.c','src/compile/xl6_imports.c','src/compile/xl6_source_overlay.c','src/compile/xl6_source_report.c','src/compile/xl6_build_inputs.c',
     'src/compile/xl6_xrt_trim.c','src/resource/xl6_win_resource.c','src/package/xl6_package.c',
     'src/ast/xl6_ast.c','src/ast/xl6_ast_dump.c','src/type/xl6_type_model.c',
     'src/ir/xl6_ir.c','src/ir/xl6_ir_class_identity.c','src/ir/xl6_ir_lower.c','src/ir/xl6_ir_dump.c',
@@ -310,7 +310,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/lexer/xl6_token.c','src/lexer/xl6_lexer_api.c','src/lexer/xl6_lexer_gen.c',
     'src/parser/xl6_parser.c','src/parser/xl6_parser_api.c',
     'src/sem/xl6_sem.c','src/sem/xl6_protocol.c','src/sem/xl6_type_registry.c',
-    'src/sem/xl6_sem_docs.c','src/sem/xl6_sem_field_attrs.c','src/stdlib/xl6_stdlib.c','src/stdlib/xl6_stdlib_data.c',
+    'src/sem/xl6_sem_docs.c','src/sem/xl6_sem_field_attrs.c','src/sem/xl6_sem_index.c','src/sem/xl6_completion.c','src/stdlib/xl6_stdlib.c','src/stdlib/xl6_stdlib_data.c',
     $driverSource,'lib/tcc/tcctools.c','lib/tcc/tcc_utf8_io.c')
 $files = @(@(Get-ChildItem src,lib,release/include,res/tcc -Recurse -File) +
     @(Get-Item $driverSource,$PSCommandPath,tools/xlir_c_object_cache.ps1,tools/xrt_single_header_impl.c,release/xl.dll,tools/tcc_vfs_manifest_win64_xlc.txt) +

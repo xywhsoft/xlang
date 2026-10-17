@@ -1,4 +1,5 @@
 #include "src/resource/xl6_win_resource.h"
+#include "src/compile/xl6_build_inputs.h"
 
 #include "src/common/xl6_xrt.h"
 
@@ -727,7 +728,7 @@ static int xl6LoadBinaryFile(
         return 0;
     }
     size = 0;
-    data = xrtFileReadAll(resolved, &size);
+    data = xl6BuildInputReadAll(resolved, &size);
     if ( data == NULL ) {
         xl6ResSetError(error, errorSize, "cannot read resource file: %s", resolved);
         xrtFree(resolved);
@@ -1200,7 +1201,7 @@ static xvalue* xl6ParseResourceConfig(const char* configPath, char** outText, ch
         return NULL;
     }
     size = 0;
-    text = xrtFileReadText(configPath, XENCODING_UTF8, XUTF_STRICT, &size);
+    text = xl6BuildInputReadText(configPath, &size);
     if ( text == NULL ) {
         xl6ResSetError(error, errorSize, "cannot read resource config: %s", configPath);
         return NULL;

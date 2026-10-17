@@ -95,6 +95,41 @@ const char* xl6AstKindName(XL6_AstKind kind)
     }
 }
 
+XL6_AstRange xl6AstRangeFromToken(const XL6_Token* token)
+{
+    XL6_AstRange range;
+    memset(&range, 0, sizeof(range));
+    if (token && token->startLine > 0 && token->startColumn > 0 &&
+        token->endLine >= token->startLine && token->endColumn > 0 &&
+        token->endOffset >= token->startOffset &&
+        (token->endLine != token->startLine || token->endColumn >= token->startColumn)) {
+        range.known = 1;
+        range.startOffset = token->startOffset;
+        range.endOffset = token->endOffset;
+        range.startLine = token->startLine;
+        range.startColumn = token->startColumn;
+        range.endLine = token->endLine;
+        range.endColumn = token->endColumn;
+    }
+    return range;
+}
+
+void xl6AstRangeInclude(XL6_AstRange* range, const XL6_AstRange* part)
+{
+    if (!range || !part || !part->known) return;
+    if (!range->known) { *range = *part; return; }
+    if (part->startOffset < range->startOffset) {
+        range->startOffset = part->startOffset;
+        range->startLine = part->startLine;
+        range->startColumn = part->startColumn;
+    }
+    if (part->endOffset > range->endOffset) {
+        range->endOffset = part->endOffset;
+        range->endLine = part->endLine;
+        range->endColumn = part->endColumn;
+    }
+}
+
 XL6_AstNode* xl6AstNew(XL6_AstKind kind, const XL6_Token* token)
 {
     XL6_AstNode* node;
@@ -104,6 +139,8 @@ XL6_AstNode* xl6AstNew(XL6_AstKind kind, const XL6_Token* token)
         return NULL;
     }
     node->kind = kind;
+    node->tokenRange = xl6AstRangeFromToken(token);
+    node->range = node->tokenRange;
     if ( token != NULL ) {
         node->line = token->startLine;
         node->column = token->startColumn;
@@ -230,6 +267,61 @@ void xl6AstMoveChildren(XL6_AstNode* dst, XL6_AstNode* src)
     src->childCount = 0;
 }
 
+static void xl6AstReleaseSource(XL6_AstSource* source)
+{
+    if (source && --source->references == 0) {
+        xrtFree(source->path);
+        xrtFree(source);
+    }
+}
+
+void xl6AstCopySource(XL6_AstNode* dst, const XL6_AstNode* src)
+{
+    XL6_AstSource* source = src ? src->source : NULL;
+    if (!dst) return;
+    if (src) {
+        dst->range = src->range;
+        dst->tokenRange = src->tokenRange;
+    } else {
+        memset(&dst->range, 0, sizeof(dst->range));
+        memset(&dst->tokenRange, 0, sizeof(dst->tokenRange));
+    }
+    if (dst->source == source) return;
+    if (source) source->references++;
+    xl6AstReleaseSource(dst->source);
+    dst->source = source;
+}
+
+const char* xl6AstSourcePath(const XL6_AstNode* node)
+{
+    return node && node->source ? node->source->path : NULL;
+}
+
+static void xl6AstAttachSourceTree(XL6_AstNode* node, XL6_AstSource* source)
+{
+    size_t i;
+    if (!node) return;
+    source->references++;
+    xl6AstReleaseSource(node->source);
+    node->source = source;
+    for (i = 0; i < node->childCount; ++i) xl6AstAttachSourceTree(node->children[i], source);
+    xl6AstAttachSourceTree(node->inferredType, source);
+}
+
+int xl6AstSetSourceTree(XL6_AstNode* node, const char* path)
+{
+    XL6_AstSource* source;
+    if (!node || !path || !*path) return 1;
+    source = (XL6_AstSource*)xrtCalloc(1, sizeof(*source));
+    if (!source) return 0;
+    source->path = xrtStrDupN(path, strlen(path));
+    if (!source->path) { xrtFree(source); return 0; }
+    source->references = 1;
+    xl6AstAttachSourceTree(node, source);
+    xl6AstReleaseSource(source);
+    return 1;
+}
+
 void xl6AstFree(XL6_AstNode* node)
 {
     size_t i;
@@ -242,8 +334,10 @@ void xl6AstFree(XL6_AstNode* node)
     }
     xrtFree(node->children);
     xl6AstFree(node->inferredType);
+    xl6AstFree(node->semanticDeclaredType);
     xrtFree(node->text);
     xrtFree(node->literalData);
     xrtFree(node->doc);
+    xl6AstReleaseSource(node->source);
     xrtFree(node);
 }

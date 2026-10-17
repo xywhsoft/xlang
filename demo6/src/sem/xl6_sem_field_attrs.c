@@ -18,8 +18,8 @@ static void xl6SemFieldAttrError(
     const char* message)
 {
     if ( diags != NULL ) {
-        xl6DiagAdd(
-            diags,
+        xl6DiagAddFile(
+            diags, xl6AstSourcePath(node),
             node != NULL ? node->line : 1,
             node != NULL ? node->column : 1,
             message);
@@ -361,4 +361,3 @@ int xl6SemCheckFieldAttrs(XL6_DiagList* diags, const XL6_AstNode* field)
     }
     return ok;
 }
-

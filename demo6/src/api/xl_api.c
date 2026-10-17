@@ -7,7 +7,7 @@
 #include "src/runtime/xl6_slot_map.h"
 #include "src/runtime/xl6_slot_map_key_value.h"
 #include "src/runtime/xl6_array_native_value_admission.h"
-#include "libtcc.h"
+#include "lib/tcc/libtcc.h"
 #include "src/api/xl_api_internal.h"
 #include "src/api/xl_api_path.h"
 #include "src/api/xl_foreign_error.h"
@@ -45,11 +45,14 @@
 #include "src/runtime/xl6_continuation_executor.h"
 #include "src/abi/xl6_abi_dump.h"
 #include "src/ast/xl6_ast_dump.h"
+#include "src/sem/xl6_sem_index.h"
+#include "src/sem/xl6_completion.h"
 #include "src/backend/xl6_toolchain.h"
 #include "src/cgen/xl6_ir_cgen.h"
 #include "src/common/xl6_common.h"
 #include "src/common/xl6_console.h"
 #include "src/compile/xl6_compile_unit.h"
+#include "src/compile/xl6_build_inputs.h"
 #include "src/compile/xl6_artifact_runtime.h"
 #include "src/compile/xl6_xrt_trim.h"
 #include "src/diag/xl6_diag.h"
@@ -80,7 +83,7 @@ typedef void (*XL_ScriptVoidProc)(void);
 #endif
 
 #ifdef XL_STATIC_TCC_VFS
-#include "tcc_builtin_vfs.h"
+#include "lib/tcc/tcc_builtin_vfs.h"
 #endif
 
 #ifndef XL_ENABLE_EXE_COMPILER
@@ -148,6 +151,7 @@ struct XL_Context {
     size_t loadedLibraryCount;
     unsigned int activeCalls;
     int destroyRequested;
+    XL6_BuildInputs* buildInputs; /* Borrowed from an XLC context. */
 };
 
 
@@ -168,8 +172,10 @@ typedef struct XLC_Context {
     char* sourceText;
     char* virtualPath;
     XL_StringList cSourceFiles;
+    XL6_SourceOverlay sourceOverlay;
     XL6_CompileUnit unit;
     int unitReady;
+    XL6_BuildInputs* buildInputs;
     unsigned int activeCalls;
     int destroyRequested;
 } XLC_Context;
@@ -190,10 +196,19 @@ XL_API int xlcLoadDependencyLibrary(XLC_Context* ctx, const char* path);
 XL_API int xlcRegisterCFunction(XLC_Context* ctx, const char* symbolName, void* fn);
 XL_API int xlcAddSourceFile(XLC_Context* ctx, const char* path);
 XL_API int xlcAddSourceString(XLC_Context* ctx, const char* virtualPath, const char* source);
+XL_API int xlcSetSourceOverlay(XLC_Context* ctx, const char* path, const char* source, size_t size);
+XL_API int xlcRemoveSourceOverlay(XLC_Context* ctx, const char* path);
+XL_API int xlcClearSourceOverlays(XLC_Context* ctx);
 XL_API int xlcCompile(XLC_Context* ctx);
 XL_API int xlcCheck(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+XL_API int xlcCheckWithSources(XLC_Context* ctx, const char* outputPath);
+XL_API int xlcCheckWithIndex(XLC_Context* ctx, const char* outputPath);
+XL_API int xlcCBridge(XLC_Context* ctx, const char* outputPath);
+XL_API int xlcCBridgeWithEnvironment(XLC_Context* ctx, const char* outputPath, int shared);
+XL_API int xlcComplete(XLC_Context* ctx,const char* queryPath,size_t byteOffset,const char* outputPath);
 XL_API int xlcEmitTokens(XLC_Context* ctx, const char* outputPath, int jsonOutput);
 XL_API int xlcEmitAst(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+XL_API int xlcEmitAstWithRanges(XLC_Context* ctx, const char* outputPath);
 XL_API int xlcEmitIr(XLC_Context* ctx, const char* outputPath, int jsonOutput);
 XL_API int xlcEmitLoweredIr(XLC_Context* ctx, const char* outputPath, int jsonOutput);
 XL_API int xlcEmitC(XLC_Context* ctx, const char* outputPath);
@@ -812,7 +827,7 @@ static void xlAddDefaultTccRuntime(TCCState* s, XL_Context* ctx, int outputType)
     path = ctx != NULL && ctx->tccLibtcc1Path != NULL && ctx->tccLibtcc1Path[0] != '\0' ?
            ctx->tccLibtcc1Path :
            xlDefaultTccLibtcc1Path();
-    if ( xrtFileExists((char*)path) ) {
+    if ( xl6BuildInputExists(path) ) {
         (void)xl__tcc.tcc_add_file(s, path);
         return;
     }
@@ -1023,7 +1038,17 @@ static int xlAddContextSymbols(XL_Context* ctx, TCCState* s)
     return 1;
 }
 
-static void xlAddDefaultProjectToolchainPaths(TCCState* s)
+typedef int (*XL_CEnvVisit)(void*, const char*, const char*, const char*, int);
+static int xlTccCEnvVisit(void* user, const char* kind, const char* text, const char* value, int required)
+{
+    TCCState* s = (TCCState*)user;
+    if (!strcmp(kind, "options")) { (void)xl__tcc.tcc_set_options(s, text); return 1; }
+    if (!strcmp(kind, "define")) { xl__tcc.tcc_define_symbol(s, text, value); return 1; }
+    if (!strcmp(kind, "include")) { int result = xl__tcc.tcc_add_include_path(s, text); return !required || result == 0; }
+    return 0;
+}
+
+static int xlVisitDefaultProjectToolchainPaths(XL_CEnvVisit visit, void* user, TCCState* s)
 {
     char root[512];
     char path[1024];
@@ -1033,44 +1058,79 @@ static void xlAddDefaultProjectToolchainPaths(TCCState* s)
      * host, must find its own declaration SDK without a caller-supplied -I.
      * This root belongs to the loaded compiler module (or its executable),
      * never the context work directory or an arbitrary project include path. */
-    if (s != NULL && xlGetModuleDir(moduleDir,sizeof(moduleDir)) &&
+    if (xlGetModuleDir(moduleDir,sizeof(moduleDir)) &&
         xlJoinPathBuffer(path,sizeof(path),moduleDir,"include")) {
-        (void)xl__tcc.tcc_add_include_path(s, path);
+        if(!visit(user,"include",path,NULL,1))return 0;
     }
 
-    if ( s == NULL || !xlGetProjectRoot(root, sizeof(root)) ) {
-        return;
+    if ( !xlGetProjectRoot(root, sizeof(root)) ) {
+        return 1;
     }
-    (void)xl__tcc.tcc_add_include_path(s, root);
+    if (!visit(user, "include", root, NULL, 0)) return 0;
     if ( xlJoinPathBuffer(path, sizeof(path), root, "src") ) {
-        (void)xl__tcc.tcc_add_include_path(s, path);
+        if (!visit(user, "include", path, NULL, 0)) return 0;
     }
     if ( xlJoinPathBuffer(path, sizeof(path), root, "lib/xrt") ) {
-        (void)xl__tcc.tcc_add_include_path(s, path);
+        if (!visit(user, "include", path, NULL, 0)) return 0;
     }
     if ( xlJoinPathBuffer(path, sizeof(path), root, "lib/xruntime") ) {
-        (void)xl__tcc.tcc_add_include_path(s, path);
+        if (!visit(user, "include", path, NULL, 0)) return 0;
     }
 #ifdef _WIN32
     if ( xlJoinPathBuffer(path, sizeof(path), root, "release\\tcc\\include_win") ) {
-        (void)xl__tcc.tcc_add_include_path(s, path);
+        if (!visit(user, "include", path, NULL, 0)) return 0;
     }
 #endif
     if ( xlJoinPathBuffer(path, sizeof(path), root, XL6_TCC_INCLUDE_PATH) ) {
-        (void)xl__tcc.tcc_add_include_path(s, path);
+        if (!visit(user, "include", path, NULL, 0)) return 0;
     }
     if ( xlJoinPathBuffer(path, sizeof(path), root, XL6_TCC_WIN_INCLUDE_PATH) ) {
-        (void)xl__tcc.tcc_add_include_path(s, path);
+        if (!visit(user, "include", path, NULL, 0)) return 0;
     }
     if ( xlJoinPathBuffer(path, sizeof(path), root, XL6_TCC_WINAPI_INCLUDE_PATH) ) {
-        (void)xl__tcc.tcc_add_include_path(s, path);
+        if (!visit(user, "include", path, NULL, 0)) return 0;
     }
-    if ( xlJoinPathBuffer(path, sizeof(path), root, XL6_TCC_LIB_PATH) ) {
+    if ( s != NULL && xlJoinPathBuffer(path, sizeof(path), root, XL6_TCC_LIB_PATH) ) {
         (void)xl__tcc.tcc_add_library_path(s, path);
     }
+    return 1;
 }
 
 static void xlAddDefaultTccLinkLibraries(TCCState* s);
+
+static int xlVisitDefaultCEnvironment(XL_Context* ctx, XL_CEnvVisit visit, void* user, TCCState* libraryState)
+{
+    if (!visit(user, "options", "-std=c11 -D_CRT_SECURE_NO_WARNINGS", NULL, 0)) return 0;
+#if !XL_ENABLE_EXE_COMPILER
+    if (!visit(user, "options", "-DXL_RUNTIME_ONLY_DLL", NULL, 0)) return 0;
+#endif
+#ifdef XL_STATIC_EMBED
+    if (!visit(user, "options", "-DXL_STATIC_EMBED", NULL, 0)) return 0;
+#endif
+    if (!visit(user, "include", ctx != NULL && ctx->baseDir != NULL ? ctx->baseDir : ".", NULL, 0)) return 0;
+    if (!xlVisitDefaultProjectToolchainPaths(visit, user, libraryState)) return 0;
+    if (!visit(user, "include", "src", NULL, 0)) return 0;
+    if (!visit(user, "include", "lib/xrt", NULL, 0)) return 0;
+    if (!visit(user, "include", "lib/xruntime", NULL, 0)) return 0;
+    if (!visit(user, "include", ctx != NULL && ctx->tccIncludePath != NULL ? ctx->tccIncludePath : xlDefaultTccIncludePath(), NULL, 0)) return 0;
+    if (!visit(user, "include", ctx != NULL && ctx->tccWinIncludePath != NULL ? ctx->tccWinIncludePath : xlDefaultTccWinIncludePath(), NULL, 0)) return 0;
+    if (!visit(user, "include", ctx != NULL && ctx->tccWinapiIncludePath != NULL ? ctx->tccWinapiIncludePath : xlDefaultTccWinapiIncludePath(), NULL, 0)) return 0;
+    return 1;
+}
+static int xlVisitContextCIncludes(XL_Context* ctx, XL_CEnvVisit visit, void* user)
+{
+    size_t i;
+    for (i = 0; ctx != NULL && i < ctx->includePaths.count; ++i) {
+        if (!visit(user, "include", ctx->includePaths.items[i], NULL, 1)) {
+            xlSetError2(ctx, "cannot add include path", ctx->includePaths.items[i]); return 0;
+        }
+    }
+    return 1;
+}
+static int xlVisitCOutputKind(int outputType, XL_CEnvVisit visit, void* user)
+{
+    return outputType != TCC_OUTPUT_DLL || visit(user, "define", "XL6_BUILD_SHARED", "1", 0);
+}
 
 static int xlConfigureTccStateEnvironment(XL_Context* ctx, TCCState* s, int outputType)
 {
@@ -1093,30 +1153,11 @@ static int xlConfigureTccStateEnvironment(XL_Context* ctx, TCCState* s, int outp
     }
 #endif
     xl__tcc.tcc_set_lib_path(s, tccLibPath);
-    (void)xl__tcc.tcc_set_options(s, "-std=c11 -D_CRT_SECURE_NO_WARNINGS");
-#if !XL_ENABLE_EXE_COMPILER
-    (void)xl__tcc.tcc_set_options(s, "-DXL_RUNTIME_ONLY_DLL");
-#endif
-#ifdef XL_STATIC_EMBED
-    (void)xl__tcc.tcc_set_options(s, "-DXL_STATIC_EMBED");
-#endif
-    (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->baseDir != NULL ? ctx->baseDir : ".");
-    xlAddDefaultProjectToolchainPaths(s);
-    (void)xl__tcc.tcc_add_include_path(s, "src");
-    (void)xl__tcc.tcc_add_include_path(s, "lib/xrt");
-    (void)xl__tcc.tcc_add_include_path(s, "lib/xruntime");
-    (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccIncludePath != NULL ? ctx->tccIncludePath : xlDefaultTccIncludePath());
-    (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccWinIncludePath != NULL ? ctx->tccWinIncludePath : xlDefaultTccWinIncludePath());
-    (void)xl__tcc.tcc_add_include_path(s, ctx != NULL && ctx->tccWinapiIncludePath != NULL ? ctx->tccWinapiIncludePath : xlDefaultTccWinapiIncludePath());
+    if (!xlVisitDefaultCEnvironment(ctx, xlTccCEnvVisit, s, s)) return 0;
     (void)xl__tcc.tcc_add_library_path(s, tccLibSearchPath);
     xlAddDefaultTccRuntime(s, ctx, outputType);
     xlAddDefaultTccLinkLibraries(s);
-    for ( i = 0; ctx != NULL && i < ctx->includePaths.count; ++i ) {
-        if ( xl__tcc.tcc_add_include_path(s, ctx->includePaths.items[i]) != 0 ) {
-            xlSetError2(ctx, "cannot add include path", ctx->includePaths.items[i]);
-            return 0;
-        }
-    }
+    if (!xlVisitContextCIncludes(ctx, xlTccCEnvVisit, s)) return 0;
     for ( i = 0; ctx != NULL && i < ctx->libraryPaths.count; ++i ) {
         if ( xl__tcc.tcc_add_library_path(s, ctx->libraryPaths.items[i]) != 0 ) {
             xlSetError2(ctx, "cannot add library path", ctx->libraryPaths.items[i]);
@@ -1139,9 +1180,7 @@ static TCCState* xlCreateTccState(XL_Context* ctx, int outputType)
         return NULL;
     }
     xl__tcc.tcc_set_error_func(s, ctx, xlTccError);
-    if ( outputType == TCC_OUTPUT_DLL ) {
-        xl__tcc.tcc_define_symbol(s, "XL6_BUILD_SHARED", "1");
-    }
+    (void)xlVisitCOutputKind(outputType, xlTccCEnvVisit, s);
     if ( xl__tcc.tcc_set_output_type(s, outputType) != 0 ) {
         xlSetError(ctx, "cannot set TCC output type");
         xl__tcc.tcc_delete(s);
@@ -1166,7 +1205,7 @@ static void xlSetCompileDiagError(XL_Context* ctx, const XL6_CompileUnit* unit)
 
     if ( unit != NULL && unit->parse.diags.count > 0 ) {
         const XL6_Diag* diag = &unit->parse.diags.items[0];
-        path = unit->path != NULL ? unit->path : "<memory>";
+        path = diag->file ? diag->file : (unit->path != NULL ? unit->path : "<memory>");
         phase = unit->phase != NULL ? unit->phase : "compile";
         snprintf(text,
                  sizeof(text),
@@ -1303,9 +1342,10 @@ static int xlTccCompileGeneratedModule(XL_Context* ctx, TCCState* s, const char*
     return ok;
 }
 
-static int xlLoadUnitFromSource(XL_Context* ctx, XL6_CompileUnit* unit, const char* source, const char* virtualPath)
+static int xlLoadUnitFromSource(XL_Context* ctx, XL6_CompileUnit* unit, const char* source, const char* virtualPath, const XL6_SourceOverlay* overlay)
 {
     xl6CompileUnitInit(unit);
+    unit->importDeps.sourceOverlay = overlay;
     if ( source == NULL ) {
         xlSetError(ctx, "script source is empty");
         return 0;
@@ -1317,9 +1357,10 @@ static int xlLoadUnitFromSource(XL_Context* ctx, XL6_CompileUnit* unit, const ch
     return 1;
 }
 
-static int xlLoadUnitFromFile(XL_Context* ctx, XL6_CompileUnit* unit, const char* path)
+static int xlLoadUnitFromFile(XL_Context* ctx, XL6_CompileUnit* unit, const char* path, const XL6_SourceOverlay* overlay)
 {
     xl6CompileUnitInit(unit);
+    unit->importDeps.sourceOverlay = overlay;
     if ( path == NULL || path[0] == '\0' ) {
         xlSetError(ctx, "script file path is empty");
         return 0;
@@ -1438,8 +1479,45 @@ static int xlSaveTempTextByName(XL_Context* ctx, const char* fileName, const cha
     return ok;
 }
 
-static int xlEmitUnitHeaderToMemory(XL_Context* ctx, XL6_CompileUnit* unit,
-                                    const char* guardName, char** outText)
+typedef struct XL_CHeaderBindings {
+    xvalue* records;
+    size_t namesBytes;
+    int unavailable;
+} XL_CHeaderBindings;
+
+static int xlCHeaderBinding(void* user, XL6_SymbolId symbol, const char* name,
+    const char* kind, size_t start, size_t end)
+{
+    XL_CHeaderBindings* b = (XL_CHeaderBindings*)user;
+    xvalue* row;
+    size_t size = name != NULL ? strlen(name) : 0;
+    int ok;
+    if (b->unavailable) return 1;
+    if (!b->records || !symbol || !size || size > 4u * 1024u * 1024u - b->namesBytes ||
+        xrtValueCount(b->records) >= 32768u || end < start || end - start != size) {
+        b->unavailable = 1;
+        xrtValueRelease(b->records); b->records = NULL;
+        return 1;
+    }
+    row = xrtValueObject();
+    ok = row != NULL &&
+        xrtValueObjectSetNew(row, xrtStrView("symbolId"), xrtValueInt(symbol)) &&
+        xrtValueObjectSetNew(row, xrtStrView("cName"), xrtValueString(xrtStrView(name))) &&
+        xrtValueObjectSetNew(row, xrtStrView("kind"), xrtValueString(xrtStrView(kind))) &&
+        xrtValueObjectSetNew(row, xrtStrView("startByte"), xrtValueInt((int64)start)) &&
+        xrtValueObjectSetNew(row, xrtStrView("endByte"), xrtValueInt((int64)end)) &&
+        xrtValueArrayAppend(b->records, row);
+    xrtValueRelease(row);
+    if (ok) b->namesBytes += size;
+    else {
+        b->unavailable = 1;
+        xrtValueRelease(b->records); b->records = NULL;
+    }
+    return 1;
+}
+
+static int xlEmitUnitHeaderToMemoryMapped(XL_Context* ctx, XL6_CompileUnit* unit,
+    const char* guardName, char** outText, xvalue** outBindings)
 {
     XL6_Output out;
     int ok;
@@ -1458,9 +1536,14 @@ static int xlEmitUnitHeaderToMemory(XL_Context* ctx, XL6_CompileUnit* unit,
         xlSetError(ctx, "cannot create header memory output");
         return 0;
     }
-    ok = xl6IrCgenEmitHeader(&out, &unit->ir,
-                             guardName != NULL && guardName[0] != '\0' ? guardName : "XL6_GENERATED_HEADER_H",
-                             &unit->parse.diags);
+    XL_CHeaderBindings bindings = {0};
+    if (outBindings != NULL) {
+        *outBindings = NULL;
+        bindings.records = xrtValueArray();
+    }
+    ok = xl6IrCgenEmitHeaderWithBindings(&out, &unit->ir,
+            guardName != NULL && guardName[0] != '\0' ? guardName : "XL6_GENERATED_HEADER_H",
+            &unit->parse.diags, outBindings != NULL ? xlCHeaderBinding : NULL, &bindings);
     if ( ok && !xl6OutputHasFailed(&out) ) {
         *outText = xl6OutputTakeMemoryText(&out, NULL);
     }
@@ -1474,7 +1557,18 @@ static int xlEmitUnitHeaderToMemory(XL_Context* ctx, XL6_CompileUnit* unit,
         ok = 0;
     }
     xl6OutputClose(&out);
+    if (ok && *outText != NULL && outBindings != NULL) {
+        *outBindings = bindings.records;
+        bindings.records = NULL;
+    }
+    xrtValueRelease(bindings.records);
     return ok && *outText != NULL;
+}
+
+static int xlEmitUnitHeaderToMemory(XL_Context* ctx, XL6_CompileUnit* unit,
+    const char* guardName, char** outText)
+{
+    return xlEmitUnitHeaderToMemoryMapped(ctx, unit, guardName, outText, NULL);
 }
 
 static int xlMountDynamicTccBinary(XL_Context* ctx, const char* virtualPath, const void* data, size_t size)
@@ -1519,6 +1613,9 @@ static int xlOutputNormalizedCIncludePath(XL_Context* ctx, XL6_Output* out, cons
     return 1;
 }
 
+static const char xlNativeCPreamble[] = "#include <__xl_runtime/xruntime_decl.h>\n";
+static const char xlNativeCHeaderGuard[] = "XL6_MODULE_H";
+
 static int xlBuildCSourceWrapperText(XL_Context* ctx, const char* sourcePath,
                                      const char* headerText, char** outText)
 {
@@ -1536,7 +1633,7 @@ static int xlBuildCSourceWrapperText(XL_Context* ctx, const char* sourcePath,
     /* Native implementations need declarations, not an implementation header
      * whose feature guards were fixed before the sidecar can select modules.
      * Use the same canonical, packaged declaration ABI as generated XLIR C. */
-    ok = xl6OutputPuts("#include <__xl_runtime/xruntime_decl.h>\n", &out) != EOF &&
+    ok = xl6OutputPuts(xlNativeCPreamble, &out) != EOF &&
          xl6OutputPuts(headerText, &out) != EOF &&
          xl6OutputPuts("#include \"", &out) != EOF &&
          xlOutputNormalizedCIncludePath(ctx, &out, sourcePath) &&
@@ -1577,7 +1674,7 @@ static int xlCompileUnitCSourceFiles(
         xlSetError(ctx, "too many C source files");
         return 0;
     }
-    if ( !xlEmitUnitHeaderToMemory(ctx, unit, "XL6_MODULE_H", &headerText) )
+    if ( !xlEmitUnitHeaderToMemory(ctx, unit, xlNativeCHeaderGuard, &headerText) )
         return 0;
     if ( !xlSaveTempTextByName(ctx, "module.h", headerText) ) goto cleanup;
     for ( group = 0; group < 2; ++group ) {
@@ -1688,7 +1785,7 @@ static int xlEmbeddedSourcePath(char* out, size_t outSize, const char* relativeP
     /* 开发目录存在源码时优先使用外部最新版；发布环境回落到只读静态 VFS。 */
     if ( xlGetProjectRoot(root, sizeof(root)) &&
          xlJoinPathBuffer(externalPath, sizeof(externalPath), root, relativePath) &&
-         xrtFileExists((str)externalPath) ) {
+         xl6BuildInputExists(externalPath) ) {
         return xlCopyToBuffer(out, outSize, externalPath);
     }
 
@@ -1831,8 +1928,11 @@ static int xlAddEmbeddedXlangRuntimeSources(
         "src/abi/xl6_abi_json.c",
         "src/abi/xl6_callable.c",
         "src/backend/xl6_build_backend.c",
+        "src/compile/xl6_build_inputs.c",
         "src/compile/xl6_compile_unit.c",
         "src/compile/xl6_imports.c",
+        "src/compile/xl6_source_overlay.c",
+        "src/compile/xl6_source_report.c",
         "src/compile/xl6_xrt_trim.c",
         "src/common/xl6_console.c",
         "src/common/xl6_output.c",
@@ -1856,10 +1956,12 @@ static int xlAddEmbeddedXlangRuntimeSources(
         "src/sem/xl6_type_registry.c",
         "src/sem/xl6_sem_docs.c",
         "src/sem/xl6_sem_field_attrs.c",
+        "src/sem/xl6_completion.c",
         "src/sem/xl6_sem.c"
     };
     static const char* compilerSources[] = {
         "src/resource/xl6_win_resource.c",
+        "src/sem/xl6_sem_index.c",
         "src/abi/xl6_abi_dump.c",
         "src/ast/xl6_ast_dump.c",
         "src/ir/xl6_ir_dump.c"
@@ -2068,44 +2170,41 @@ static int xlCheckScriptActiveError(XL_Context* ctx, TCCState* state)
 
 
 /* 纯 C 不经过语言调用图裁剪；声明的能力必须与宿主/独立产物的完整运行库一致。 */
+static int xlVisitFullRuntime(XL_CEnvVisit visit, void* user)
+{
+    return visit(user, "define", "XRT_MODULE_ALL", "1", 0) &&
+           visit(user, "define", "XRUNTIME_MODULE_ALL", "1", 0);
+}
 static void xlTccSelectFullRuntime(TCCState* state)
 {
-    xl__tcc.tcc_define_symbol(state, "XRT_MODULE_ALL", "1");
-    xl__tcc.tcc_define_symbol(state, "XRUNTIME_MODULE_ALL", "1");
+    (void)xlVisitFullRuntime(xlTccCEnvVisit, state);
 }
-
-/* 包与显式混编 C 共用能力判定，JIT 声明可见性和 AOT 实现选择保持一致。 */
-static int xlTccPrepareNativeSources(
-    XL_Context* ctx,
-    TCCState* state,
-    const XL6_CompileUnit* unit,
-    const XL_StringList* cSourceFiles
-)
+/* Query and real compilation share feature selection and directory order. */
+static int xlVisitNativeSources(XL_Context* ctx, XL_CEnvVisit visit, void* user,
+    const XL6_CompileUnit* unit, const XL_StringList* cSourceFiles)
 {
     size_t i;
-
-    if ( state == NULL || unit == NULL ) {
-        return 0;
-    }
-    if ( xl6XrtTrimRequiresFull(&unit->importDeps, cSourceFiles != NULL ? cSourceFiles->count : 0) ) {
-        xlTccSelectFullRuntime(state);
+    if (unit == NULL) return 0;
+    if (xl6XrtTrimRequiresFull(&unit->importDeps, cSourceFiles != NULL ? cSourceFiles->count : 0)) {
+        if (!xlVisitFullRuntime(visit, user)) return 0;
     } else {
-        for ( i = 0; i < unit->importDeps.xrtModules.count; i += 1 ) {
-            xl__tcc.tcc_define_symbol(state, unit->importDeps.xrtModules.items[i], "1");
-        }
+        for (i = 0; i < unit->importDeps.xrtModules.count; ++i)
+            if (!visit(user, "define", unit->importDeps.xrtModules.items[i], "1", 0)) return 0;
     }
-    for ( i = 0; i < unit->importDeps.includeDirs.count; i += 1 ) {
-        if ( xl__tcc.tcc_add_include_path(state, unit->importDeps.includeDirs.items[i]) != 0 ) {
-            if ( ctx != NULL && ctx->lastError == NULL ) {
-                xlSetError2(ctx, "cannot add import include directory",
-                    unit->importDeps.includeDirs.items[i]);
-            }
+    for (i = 0; i < unit->importDeps.includeDirs.count; ++i) {
+        if (!visit(user, "include", unit->importDeps.includeDirs.items[i], NULL, 1)) {
+            if (ctx != NULL && ctx->lastError == NULL)
+                xlSetError2(ctx, "cannot add import include directory", unit->importDeps.includeDirs.items[i]);
             return 0;
         }
     }
     return 1;
 }
-
+static int xlTccPrepareNativeSources(XL_Context* ctx, TCCState* state,
+    const XL6_CompileUnit* unit, const XL_StringList* cSourceFiles)
+{
+    return state != NULL && xlVisitNativeSources(ctx, xlTccCEnvVisit, state, unit, cSourceFiles);
+}
 
 
 #if XL_ENABLE_EXE_COMPILER
@@ -2220,7 +2319,7 @@ static int xlCompileUnitToExternalOutputWithC(
 	if ( !xlTccCompileSourceText(ctx, s, XL_TCC_VFS_XRT_C, runtimeSource, "cannot compile selected XRT/xruntime product") ) {
         goto cleanup;
     }
-    ok = xl__tcc.tcc_output_file(s, outputPath) == 0;
+    ok = xl6BuildInputOutputValid(outputPath) && xl__tcc.tcc_output_file(s, outputPath) == 0;
     if ( !ok ) {
         if ( ctx->lastError == NULL ) {
             xlSetError2(ctx, outputType == TCC_OUTPUT_DLL ? "cannot output shared library" : "cannot output exe", outputPath);
@@ -3579,7 +3678,7 @@ static void xlcEmitDiagText(XL6_Output* out, const XL6_DiagList* diags, const ch
         const XL6_Diag* diag = &diags->items[i];
         xl6OutputPrintf(out,
                         "%s:%d:%d: [%s] %s\n",
-                        path != NULL ? path : "<memory>",
+                        diag->file ? diag->file : (path != NULL ? path : "<memory>"),
                         diag->line,
                         diag->column,
                         phase != NULL ? phase : "compile",
@@ -3596,7 +3695,7 @@ static int xlcParseSourceUnlocked(XLC_Context* ctx, XL6_ParseResult* result)
         return 0;
     }
     if ( ctx->sourceKind == XLC_SOURCE_FILE ) {
-        ok = xl6ParseFile(ctx->sourcePath, result);
+        ok = xl6SourceOverlayParse(&ctx->sourceOverlay, ctx->sourcePath, result);
     } else if ( ctx->sourceKind == XLC_SOURCE_STRING ) {
         ok = xl6ParseSource(ctx->sourceText, ctx->virtualPath, result);
     } else {
@@ -4013,7 +4112,7 @@ int xlRunScriptStringArg(XL_Context* ctx, const char* source, xvalue* pArg)
         xlApiUnlock();
         return 0;
     }
-    ok = xlLoadUnitFromSource(ctx, &unit, source, "__xl_string.xl");
+    ok = xlLoadUnitFromSource(ctx, &unit, source, "__xl_string.xl", NULL);
     if ( ok ) {
         ok = xlCompileAndRunUnit(ctx, &unit, pArg);
     }
@@ -4049,7 +4148,7 @@ int xlRunScriptFileArg(XL_Context* ctx, const char* path, xvalue* pArg)
         xlApiUnlock();
         return 0;
     }
-    ok = xlLoadUnitFromFile(ctx, &unit, path);
+    ok = xlLoadUnitFromFile(ctx, &unit, path, NULL);
     if ( ok ) {
         ok = xlCompileAndRunUnit(ctx, &unit, pArg);
     }
@@ -4077,7 +4176,7 @@ XL_Module* xlCompileScriptStringToModule(XL_Context* ctx, const char* source)
         return NULL;
     }
     module = NULL;
-    ok = xlLoadUnitFromSource(ctx, &unit, source, "__xl_string.xl");
+    ok = xlLoadUnitFromSource(ctx, &unit, source, "__xl_string.xl", NULL);
     if ( ok ) {
         module = xlCompileUnitToModule(ctx, &unit);
     }
@@ -4104,7 +4203,7 @@ XL_Module* xlCompileScriptFileToModule(XL_Context* ctx, const char* path)
         return NULL;
     }
     module = NULL;
-    ok = xlLoadUnitFromFile(ctx, &unit, path);
+    ok = xlLoadUnitFromFile(ctx, &unit, path, NULL);
     if ( ok ) {
         module = xlCompileUnitToModule(ctx, &unit);
     }
@@ -4425,6 +4524,36 @@ XL_API int xlTccImpdef(const char* dllPath, const char* outputDef)
 }
 
 #if XL_ENABLE_EXE_COMPILER
+static int xlBeginBuildInputs(XL_Context* ctx,XL6_BuildInputs** previous)
+{
+    *previous=xl6BuildInputsActivate(ctx->buildInputs);
+    if(!ctx->buildInputs) return 1;
+    { size_t i; for(i=0;i<ctx->linkLibraries.count;++i) if(!strcmp(ctx->linkLibraries.items[i],"-")) {
+        xl6BuildInputsActivate(*previous); xlSetError(ctx,"input report cannot observe stdin link inputs"); return 0;
+    } }
+    if(ctx->loadedLibraryCount||!xl6BuildInputsValidate(ctx->buildInputs)) {
+        xl6BuildInputsActivate(*previous);
+        xlSetError(ctx,"build input report does not support loadlib or changed inputs"); return 0;
+    }
+#ifdef XL_STATIC_TCC_VFS
+    tcc_vfs_set_disk_reader(xl6BuildInputsRead,ctx->buildInputs);
+    return 1;
+#else
+    xl6BuildInputsActivate(*previous); xlSetError(ctx,"native input transport is unavailable"); return 0;
+#endif
+}
+static int xlEndBuildInputs(XL_Context* ctx,XL6_BuildInputs* previous,int ok,const char* output)
+{
+#ifdef XL_STATIC_TCC_VFS
+    if(ctx->buildInputs) tcc_vfs_set_disk_reader(NULL,NULL);
+#endif
+    if(ok&&ctx->buildInputs) ok=xl6BuildInputsBindArtifact(ctx->buildInputs,output);
+    if(!ok&&ctx->buildInputs&&!ctx->buildInputs->complete) xlSetError2(ctx,"build input validation failed",ctx->buildInputs->error);
+    xl6BuildInputsActivate(previous); return ok;
+}
+#endif
+
+#if XL_ENABLE_EXE_COMPILER
 int xlCompileScriptStringToExe(XL_Context* ctx, const char* source, const char* outputExe)
 {
     XL6_CompileUnit unit;
@@ -4440,7 +4569,7 @@ int xlCompileScriptStringToExe(XL_Context* ctx, const char* source, const char* 
         xlApiUnlock();
         return 0;
     }
-    ok = xlLoadUnitFromSource(ctx, &unit, source, "__xl_string.xl");
+    ok = xlLoadUnitFromSource(ctx, &unit, source, "__xl_string.xl", NULL);
     if ( ok ) {
         ok = xlCompileUnitToExe(ctx, &unit, outputExe);
     }
@@ -4465,7 +4594,7 @@ int xlCompileScriptFileToExe(XL_Context* ctx, const char* path, const char* outp
         xlApiUnlock();
         return 0;
     }
-    ok = xlLoadUnitFromFile(ctx, &unit, path);
+    ok = xlLoadUnitFromFile(ctx, &unit, path, NULL);
     if ( ok ) {
         ok = xlCompileUnitToExe(ctx, &unit, outputExe);
     }
@@ -4486,6 +4615,7 @@ static int xlCompileCSourceFilesToExternalOutput(
     XL_CwdScope cwd;
     TCCState* s;
     int ok;
+    XL6_BuildInputs* previous;
 
     if ( ctx == NULL ) {
         return 0;
@@ -4501,6 +4631,7 @@ static int xlCompileCSourceFilesToExternalOutput(
         xlApiUnlock();
         return 0;
     }
+    if(!xlBeginBuildInputs(ctx,&previous)) { xlLeaveWorkDir(&cwd); xlApiUnlock(); return 0; }
     s = xlCreateTccState(ctx, outputType);
     ok = s != NULL &&
          xlAddCSourceFilesToTcc(ctx, s, paths, pathCount) &&
@@ -4511,7 +4642,7 @@ static int xlCompileCSourceFilesToExternalOutput(
              "#include \"xruntime.h\"\n",
              "cannot compile XRT/xruntime single header");
     if ( ok ) {
-        ok = xl__tcc.tcc_output_file(s, outputPath) == 0;
+        ok = xl6BuildInputOutputValid(outputPath) && xl__tcc.tcc_output_file(s, outputPath) == 0;
     }
     if ( !ok && ctx->lastError == NULL ) {
         xlSetError2(ctx, outputKind != NULL ? outputKind : "cannot output C target", outputPath);
@@ -4519,6 +4650,7 @@ static int xlCompileCSourceFilesToExternalOutput(
     if ( s != NULL ) {
         xl__tcc.tcc_delete(s);
     }
+    ok=xlEndBuildInputs(ctx,previous,ok,outputPath);
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
     return ok;
@@ -4591,9 +4723,9 @@ static int xlcCompileUnlocked(XLC_Context* ctx)
         return 1;
     }
     if ( ctx->sourceKind == XLC_SOURCE_FILE ) {
-        ok = xlLoadUnitFromFile(ctx->runtime, &ctx->unit, ctx->sourcePath);
+        ok = xlLoadUnitFromFile(ctx->runtime, &ctx->unit, ctx->sourcePath, &ctx->sourceOverlay);
     } else if ( ctx->sourceKind == XLC_SOURCE_STRING ) {
-        ok = xlLoadUnitFromSource(ctx->runtime, &ctx->unit, ctx->sourceText, ctx->virtualPath);
+        ok = xlLoadUnitFromSource(ctx->runtime, &ctx->unit, ctx->sourceText, ctx->virtualPath, &ctx->sourceOverlay);
     } else {
         xlSetError(ctx->runtime, "compiler source is empty");
         return 0;
@@ -4630,6 +4762,39 @@ XL_API XLC_Context* xlcCreateContext(const XLC_ContextOptions* options)
     return ctx;
 }
 
+XL_API int xlcBeginInputReport(XLC_Context* ctx)
+{
+    int ok=0;
+    if(!ctx||!ctx->runtime) return 0;
+    xlApiLock();
+#ifdef XL_STATIC_TCC_VFS
+    if(!ctx->buildInputs&&!ctx->unitReady&&!ctx->sourceOverlay.count&&!ctx->runtime->loadedLibraryCount) {
+        ctx->buildInputs=xrtCalloc(1,sizeof(*ctx->buildInputs));
+        if(ctx->buildInputs) {
+            xl6BuildInputsInit(ctx->buildInputs);
+            ctx->sourceOverlay.report=&ctx->buildInputs->sources;
+            ctx->runtime->buildInputs=ctx->buildInputs; ok=1;
+        }
+    }
+#endif
+    if(!ok) xlSetError(ctx->runtime,"input report requires a fresh static-VFS compiler context without overlays/loadlib");
+    xlApiUnlock(); return ok;
+}
+XL_API char* xlcReadProjectInput(XLC_Context* ctx,const char* path,size_t* size)
+{
+    XL6_BuildInputs* previous; char* text;
+    if(!ctx||!ctx->runtime) return NULL;
+    xlApiLock(); previous=xl6BuildInputsActivate(ctx->buildInputs);
+    text=xl6BuildInputReadText(path,size); xl6BuildInputsActivate(previous); xlApiUnlock(); return text;
+}
+XL_API int xlcWriteInputReport(XLC_Context* ctx,const char* artifact,const char* receipt)
+{
+    int ok;
+    if(!ctx||!ctx->runtime||!ctx->buildInputs) return 0;
+    xlApiLock(); ok=xl6BuildInputsWrite(ctx->buildInputs,artifact,receipt);
+    if(!ok) xlSetError2(ctx->runtime,"build input report failed",ctx->buildInputs->error);
+    xlApiUnlock(); return ok;
+}
 static void xlcDestroyContextUnlocked(XLC_Context* ctx)
 {
     XL_Context* runtime;
@@ -4641,6 +4806,9 @@ static void xlcDestroyContextUnlocked(XLC_Context* ctx)
     ctx->runtime = NULL;
     xlcClearSourceUnlocked(ctx);
     xlStringListFree(&ctx->cSourceFiles);
+    xl6SourceOverlayClear(&ctx->sourceOverlay);
+    runtime->buildInputs=NULL;
+    xl6BuildInputsFree(ctx->buildInputs); xrtFree(ctx->buildInputs);
     xrtFree(ctx);
     xlContextRequestDestroyUnlocked(runtime);
 }
@@ -4682,7 +4850,13 @@ XL_API void xlcDestroyContext(XLC_Context* ctx)
 
 XL_API int xlcSetWorkDir(XLC_Context* ctx, const char* path)
 {
-    return ctx != NULL ? xlSetWorkDir(ctx->runtime, path) : 0;
+    int ok;
+    if (!ctx || !ctx->runtime) return 0;
+    xlApiLock();
+    ok = xlSetWorkDir(ctx->runtime, path);
+    if (ok) xlcClearUnitUnlocked(ctx);
+    xlApiUnlock();
+    return ok;
 }
 
 XL_API int xlcSetTempDir(XLC_Context* ctx, const char* path)
@@ -4824,6 +4998,51 @@ XL_API int xlcAddSourceString(XLC_Context* ctx, const char* virtualPath, const c
     return 1;
 }
 
+XL_API int xlcSetSourceOverlay(XLC_Context* ctx, const char* path, const char* source, size_t size)
+{
+    XL_CwdScope cwd;
+    int ok = 0;
+    if (!ctx || !ctx->runtime) return 0;
+    xlApiLock();
+    xlClearLastErrorUnlocked(ctx->runtime);
+    if (xlEnterWorkDir(ctx->runtime, &cwd)) {
+        ok = xl6SourceOverlaySet(&ctx->sourceOverlay, path, source, size);
+        if (ok) xlcClearUnitUnlocked(ctx);
+        else xlSetError(ctx->runtime, "invalid source overlay, allocation failure, or overlay limit exceeded");
+        xlLeaveWorkDir(&cwd);
+    }
+    xlApiUnlock();
+    return ok;
+}
+
+XL_API int xlcRemoveSourceOverlay(XLC_Context* ctx, const char* path)
+{
+    XL_CwdScope cwd;
+    int ok = 0;
+    if (!ctx || !ctx->runtime) return 0;
+    xlApiLock();
+    xlClearLastErrorUnlocked(ctx->runtime);
+    if (xlEnterWorkDir(ctx->runtime, &cwd)) {
+        ok = xl6SourceOverlayRemove(&ctx->sourceOverlay, path);
+        if (ok) xlcClearUnitUnlocked(ctx);
+        else xlSetError(ctx->runtime, "cannot remove source overlay");
+        xlLeaveWorkDir(&cwd);
+    }
+    xlApiUnlock();
+    return ok;
+}
+
+XL_API int xlcClearSourceOverlays(XLC_Context* ctx)
+{
+    if (!ctx || !ctx->runtime) return 0;
+    xlApiLock();
+    xlClearLastErrorUnlocked(ctx->runtime);
+    xl6SourceOverlayClear(&ctx->sourceOverlay);
+    xlcClearUnitUnlocked(ctx);
+    xlApiUnlock();
+    return 1;
+}
+
 XL_API int xlcCompile(XLC_Context* ctx)
 {
     XL_CwdScope cwd;
@@ -4844,11 +5063,153 @@ XL_API int xlcCompile(XLC_Context* ctx)
     return ok;
 }
 
-XL_API int xlcCheck(XLC_Context* ctx, const char* outputPath, int jsonOutput)
+typedef struct XL_CEnvCollector { xvalue* operations; size_t count, bytes; } XL_CEnvCollector;
+static int xlCEnvPut(xvalue* object, const char* key, xvalue* value)
+{
+    return value != NULL && xrtValueObjectSetNew(object, xrtStrView(key), value);
+}
+static xvalue* xlCEnvString(const char* text)
+{
+    return xrtValueString(xrtStrView(text != NULL ? text : ""));
+}
+static int xlCEnvCollect(void* user, const char* kind, const char* text, const char* value, int required)
+{
+    XL_CEnvCollector* c = (XL_CEnvCollector*)user;
+    size_t bytes = strlen(text) + (value != NULL ? strlen(value) : 0);
+    xvalue* row;
+    int ok;
+    if (c->count >= 2048 || bytes > 1024u * 1024u - c->bytes) return 0;
+    row = xrtValueObject();
+    ok = row != NULL && xlCEnvPut(row, "kind", xlCEnvString(kind)) &&
+        xlCEnvPut(row, "text", xlCEnvString(text)) &&
+        xlCEnvPut(row, "value", xlCEnvString(value)) &&
+        xlCEnvPut(row, "required", xrtValueBool(required != 0)) &&
+        xrtValueArrayAppend(c->operations, row);
+    xrtValueRelease(row);
+    if (ok) { ++c->count; c->bytes += bytes; }
+    return ok;
+}
+static char* xlBuildNativeCEnvironment(XL_Context* ctx, const XL6_CompileUnit* unit,
+    const XL_StringList* cSources, int shared)
+{
+    xvalue *root = xrtValueObject(), *operations = xrtValueArray(), *headers = xrtValueArray();
+    XL_CEnvCollector collector = {operations, 0, 0};
+    xjsonwriteconfig config;
+    xjsonwriter* writer = NULL;
+    char* text = NULL;
+    size_t count = 0, total = 0;
+    int ok = root != NULL && operations != NULL && headers != NULL &&
+        xlVisitCOutputKind(shared ? TCC_OUTPUT_DLL : TCC_OUTPUT_EXE, xlCEnvCollect, &collector) &&
+        xlVisitDefaultCEnvironment(ctx, xlCEnvCollect, &collector, NULL) &&
+        xlVisitContextCIncludes(ctx, xlCEnvCollect, &collector) &&
+        xlVisitNativeSources(ctx, xlCEnvCollect, &collector, unit, cSources);
+#ifdef XL_STATIC_TCC_VFS
+    unsigned int i;
+    for (i = 0; ok && i < tcc_builtin_resources_count; ++i) {
+        const TCCBuiltinResource* res = &tcc_builtin_resources[i];
+        size_t length = res->name != NULL ? strlen(res->name) : 0, size = 0;
+        unsigned char *data = NULL, digest[32];
+        char *encoded = NULL, hex[65];
+        xvalue* row = NULL;
+        unsigned int h;
+        if (length < 3 || strcmp(res->name + length - 2, ".h") ||
+            (strncmp(res->name, "include/", 8) && strncmp(res->name, "lib/xrt/", 8) &&
+             strncmp(res->name, "lib/xruntime/", 13))) continue;
+        ok = count < 512 && res->size <= 16u * 1024u * 1024u &&
+            res->size <= 32u * 1024u * 1024u - total &&
+            tcc_vfs_read_builtin(res->name, NULL, 0, &size) && size == res->size;
+        if (ok) { data = xrtMalloc(size ? size : 1); ok = data != NULL; }
+        if (ok) ok = tcc_vfs_read_builtin(res->name, data, size, &size) &&
+            size == res->size && xrtSha256(data, size, digest);
+        if (ok) { encoded = xrtBase64EncodeNew(data, size, NULL); row = xrtValueObject(); ok = encoded != NULL && row != NULL; }
+        if (ok) {
+            for (h = 0; h < 32; ++h) snprintf(hex + h * 2, 3, "%02x", (unsigned)digest[h]);
+            ok = xlCEnvPut(row, "name", xlCEnvString(res->name)) &&
+                xlCEnvPut(row, "size", xrtValueInt((int64)size)) &&
+                xlCEnvPut(row, "sha256", xlCEnvString(hex)) &&
+                xlCEnvPut(row, "base64", xlCEnvString(encoded)) && xrtValueArrayAppend(headers, row);
+        }
+        xrtValueRelease(row); xrtFree(encoded); xrtFree(data);
+        if (ok) { ++count; total += size; }
+    }
+#endif
+#ifdef XL_STATIC_TCC_VFS
+    if (ok) {
+        TCCXlangScalarTarget target;
+        if (tcc_xlang_scalar_target(&target)) {
+            xvalue* profile = xrtValueObject();
+            ok = profile != NULL &&
+                xlCEnvPut(profile, "schema", xrtValueInt(1)) &&
+                xlCEnvPut(profile, "scope", xlCEnvString("tcc-win64-scalar-target")) &&
+                xlCEnvPut(profile, "tinyCVersion", xrtValueInt(target.tinyc_version)) &&
+                xlCEnvPut(profile, "pointerBytes", xrtValueInt(target.pointer_bytes)) &&
+                xlCEnvPut(profile, "longBytes", xrtValueInt(target.long_bytes)) &&
+                xlCEnvPut(profile, "longDoubleBytes", xrtValueInt(target.long_double_bytes)) &&
+                xlCEnvPut(profile, "longDoubleAlign", xrtValueInt(target.long_double_align)) &&
+                xrtValueObjectSet(root, xrtStrView("scalarTarget"), profile);
+            xrtValueRelease(profile);
+        }
+    }
+#endif
+#ifdef XL_STATIC_TCC_VFS
+    if (ok) {
+        TCCState* selected = xlCreateTccState(ctx, shared ? TCC_OUTPUT_DLL : TCC_OUTPUT_EXE);
+        TCCXlangRecordLayout layout;
+        ok = selected != NULL && xlVisitNativeSources(ctx, xlTccCEnvVisit, selected, unit, cSources);
+        if (ok && tcc_xlang_record_layout(selected, &layout)) {
+            xvalue* profile = xrtValueObject();
+            ok = profile != NULL &&
+                xlCEnvPut(profile, "schema", xrtValueInt(1)) &&
+                xlCEnvPut(profile, "scope", xlCEnvString("tcc-win64-bitfield-default")) &&
+                xlCEnvPut(profile, "msBitfields", xrtValueBool(layout.ms_bitfields != 0)) &&
+                xrtValueObjectSet(root, xrtStrView("recordLayout"), profile);
+            xrtValueRelease(profile);
+        }
+        if (selected != NULL) xl__tcc.tcc_delete(selected);
+    }
+#endif
+    if (ok) ok = xlCEnvPut(root, "schema", xrtValueInt(1)) &&
+        xlCEnvPut(root, "scope", xlCEnvString("compiler-configured-native-c")) &&
+        xlCEnvPut(root, "complete", xrtValueBool(true)) &&
+        xlCEnvPut(root, "cPreprocessorGraphComplete", xrtValueBool(false)) &&
+        xlCEnvPut(root, "abiEquivalenceGuaranteed", xrtValueBool(false)) &&
+        xlCEnvPut(root, "directory", xlCEnvString(ctx->baseDir)) &&
+        xlCEnvPut(root, "outputKind", xlCEnvString(shared ? "shared" : "exe")) &&
+        xlCEnvPut(root, "builtinHeaderScope", xlCEnvString("public-tcc-runtime-headers")) &&
+        xlCEnvPut(root, "builtinBytes", xrtValueInt((int64)total)) &&
+        xlCEnvPut(root, "embeddedHeadersAvailable", xrtValueBool(
+#ifdef XL_STATIC_TCC_VFS
+            true
+#else
+            false
+#endif
+        )) && xrtValueObjectSet(root, xrtStrView("operations"), operations) &&
+        xrtValueObjectSet(root, xrtStrView("builtinHeaders"), headers);
+    if (ok) {
+        xrtJsonWriteConfigInit(&config); config.MaxOutputBytes = 64u * 1024u * 1024u;
+        writer = xrtJsonWriterCreate(&config);
+        ok = writer != NULL && xrtJsonWriterValue(writer, root) && xrtJsonWriterFinish(writer);
+        if (ok) text = xrtJsonWriterTake(writer, NULL);
+    }
+    xrtJsonWriterFree(writer);
+    xrtValueRelease(root); xrtValueRelease(operations); xrtValueRelease(headers);
+    if (!text) xlSetError(ctx, "cannot collect bounded native C configuration and builtin headers");
+    return text;
+}
+
+static int xlcCheckInternal(XLC_Context* ctx, const char* outputPath, int jsonOutput, int withSources, int withIndex, int withBridge)
 {
     XL_CwdScope cwd;
     XL6_CompileUnit unit;
     XL6_Output out;
+    XL6_SourceReport report;
+    XL6_SourceOverlay overlay;
+    char* indexJson = NULL;
+    char* headerText = NULL;
+    char* environmentJson = NULL;
+    char* mapJson = NULL;
+    xvalue* bindings = NULL;
+    char indexError[192];
     int success;
     int ok;
 
@@ -4861,30 +5222,162 @@ XL_API int xlcCheck(XLC_Context* ctx, const char* outputPath, int jsonOutput)
         xlApiUnlock();
         return 0;
     }
+    xl6SourceReportInit(&report);
+    overlay = ctx->sourceOverlay;
+    overlay.report = withSources ? &report : NULL;
+    /* Source ranges are query metadata, also needed for exact ABI bindings. */
+    overlay.semanticIndex = withIndex || withBridge;
     xl6CompileUnitInit(&unit);
     if ( ctx->sourceKind == XLC_SOURCE_FILE ) {
-        success = xlLoadUnitFromFile(ctx->runtime, &unit, ctx->sourcePath);
+        success = xlLoadUnitFromFile(ctx->runtime, &unit, ctx->sourcePath, &overlay);
     } else if ( ctx->sourceKind == XLC_SOURCE_STRING ) {
-        success = xlLoadUnitFromSource(ctx->runtime, &unit, ctx->sourceText, ctx->virtualPath);
+        success = (!withSources || xl6SourceReportText(&report, ctx->virtualPath,
+                     ctx->sourceText, strlen(ctx->sourceText), "memory")) &&
+                  xlLoadUnitFromSource(ctx->runtime, &unit, ctx->sourceText, ctx->virtualPath, &overlay);
     } else {
+        xl6SourceReportFree(&report);
         xlSetError(ctx->runtime, "compiler source is empty");
         xlLeaveWorkDir(&cwd);
         xlApiUnlock();
         return 0;
     }
+    if (withIndex && success) {
+        indexJson = xl6SemIndexJson(unit.parse.root, &report, indexError, sizeof(indexError));
+        if (!indexJson) {
+            success = 0;
+            unit.phase = "semantic-index";
+            xl6DiagAddFile(&unit.parse.diags, xlcSourceLabel(ctx), 1, 1, indexError);
+            xlSetCompileDiagError(ctx->runtime, &unit);
+        }
+    }
+    if (withBridge && success) {
+        success = xlEmitUnitHeaderToMemoryMapped(ctx->runtime, &unit, xlNativeCHeaderGuard, &headerText, &bindings);
+        if (success && strlen(headerText) > 1024u * 1024u) {
+            xlSetError(ctx->runtime, "C bridge declarations exceed the 1 MiB query limit");
+            success = 0;
+        }
+        if (!success) {
+            unit.phase = "c-bridge";
+            xl6DiagAddFile(&unit.parse.diags, xlcSourceLabel(ctx), 1, 1,
+                xlGetLastError(ctx->runtime));
+        }
+    }
+    if (withBridge && success) {
+        mapJson = xl6SemCBridgeMapJson(unit.parse.root, &report, bindings, headerText,
+                                     indexError, sizeof(indexError));
+        if (!mapJson) {
+            /* Optional navigation metadata must not narrow successful ABI
+             * queries. Failure/limits are explicit and never retain old maps. */
+            static const char unavailable[] =
+                "{\"schema\":1,\"scope\":\"lowered-public-symbol-source-bindings\","
+                "\"complete\":false,\"reason\":\"source-map-unavailable\",\"records\":[]}";
+            mapJson = (char*)xrtMalloc(sizeof(unavailable));
+            if (mapJson) memcpy(mapJson, unavailable, sizeof(unavailable));
+            else {
+                success = 0; unit.phase = "c-bridge-map";
+                xl6DiagAddFile(&unit.parse.diags, xlcSourceLabel(ctx), 1, 1, indexError);
+                xlSetCompileDiagError(ctx->runtime, &unit);
+            }
+        }
+    }
+    if (withBridge > 1 && success) {
+        environmentJson = xlBuildNativeCEnvironment(ctx->runtime, &unit, &ctx->cSourceFiles, withBridge == 3);
+        if (!environmentJson) {
+            success = 0; unit.phase = "c-environment";
+            xl6DiagAddFile(&unit.parse.diags, xlcSourceLabel(ctx), 1, 1, xlGetLastError(ctx->runtime));
+        }
+    }
+    /* Revalidate after facts/header/environment construction: one input batch. */
+    if (withSources && !xl6SourceReportValidate(&report)) {
+        success = 0;
+        unit.phase = "source-report";
+        xl6DiagAddFile(&unit.parse.diags, report.errorPath ? report.errorPath : xlcSourceLabel(ctx),
+                       1, 1, report.error[0] ? report.error : "source report is incomplete");
+        xlSetCompileDiagError(ctx->runtime, &unit);
+    }
     ok = xlcOutputOpen(ctx->runtime, &out, outputPath, "cannot open check output");
     if ( ok ) {
-        if ( jsonOutput ) {
-            xl6DiagPrintJson(&out, &unit.parse.diags, xlcSourceLabel(ctx), unit.phase, success);
+        if (withBridge) {
+            xl6DiagPrintJsonWithBridge(&out, &unit.parse.diags, xlcSourceLabel(ctx), unit.phase,
+                success, &report, success ? headerText : NULL, xlNativeCPreamble, xlNativeCHeaderGuard, environmentJson, withBridge > 1, mapJson);
+        } else if ( jsonOutput ) {
+            xl6DiagPrintJsonWithIndex(&out, &unit.parse.diags, xlcSourceLabel(ctx), unit.phase, success,
+                withSources ? &report : NULL, withIndex ? (success ? indexJson :
+                    "{\"schema\":1,\"scope\":\"checked-compilation\",\"complete\":false,\"nodes\":[]}") : NULL);
         } else {
             xlcEmitDiagText(&out, &unit.parse.diags, xlcSourceLabel(ctx), unit.phase, success);
         }
         ok = xlcOutputClose(ctx->runtime, &out, "cannot write check output");
     }
+    xrtFree(mapJson);
+    xrtValueRelease(bindings);
+    xrtFree(environmentJson);
+    xrtFree(headerText);
+    xrtFree(indexJson);
     xl6CompileUnitFree(&unit);
+    xl6SourceReportFree(&report);
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
     return ok && success;
+}
+
+XL_API int xlcCheck(XLC_Context* ctx, const char* outputPath, int jsonOutput)
+{
+    return xlcCheckInternal(ctx, outputPath, jsonOutput, 0, 0, 0);
+}
+
+XL_API int xlcCheckWithSources(XLC_Context* ctx, const char* outputPath)
+{
+    return xlcCheckInternal(ctx, outputPath, 1, 1, 0, 0);
+}
+
+XL_API int xlcCheckWithIndex(XLC_Context* ctx, const char* outputPath)
+{
+    return xlcCheckInternal(ctx, outputPath, 1, 1, 1, 0);
+}
+
+XL_API int xlcCBridge(XLC_Context* ctx, const char* outputPath)
+{
+    return xlcCheckInternal(ctx, outputPath, 1, 1, 0, 1);
+}
+XL_API int xlcCBridgeWithEnvironment(XLC_Context* ctx, const char* outputPath, int shared)
+{
+    if (shared != 0 && shared != 1) return 0;
+    return xlcCheckInternal(ctx, outputPath, 1, 1, 0, shared ? 3 : 2);
+}
+
+XL_API int xlcComplete(XLC_Context* ctx,const char* queryPath,size_t byteOffset,const char* outputPath)
+{
+    XL_CwdScope cwd;XL6_CompileUnit unit;XL6_Output out;XL6_SourceReport report;XL6_SourceOverlay overlay;XL6_CompletionQuery query;
+    char *absolute=NULL,*json=NULL;int ok=0,available=0;
+    if (!ctx||!ctx->runtime||!queryPath||!*queryPath) return 0;
+    xlApiLock();xlClearLastErrorUnlocked(ctx->runtime);
+    if (!xlEnterWorkDir(ctx->runtime,&cwd)) {xlApiUnlock();return 0;}
+    memset(&query,0,sizeof(query));xl6SourceReportInit(&report);xl6CompileUnitInit(&unit);
+    absolute=xrtPathAbs(queryPath);query.path=absolute;query.offset=byteOffset;
+    overlay=ctx->sourceOverlay;overlay.report=&report;overlay.semanticIndex=0;overlay.completionQuery=&query;
+    if (!absolute) query.error="cannot resolve completion source";
+    else if (ctx->sourceKind==XLC_SOURCE_FILE) xlLoadUnitFromFile(ctx->runtime,&unit,ctx->sourcePath,&overlay);
+    else if (ctx->sourceKind==XLC_SOURCE_STRING) {
+        if (xl6SourceReportText(&report,ctx->virtualPath,ctx->sourceText,strlen(ctx->sourceText),"memory")) xlLoadUnitFromSource(ctx->runtime,&unit,ctx->sourceText,ctx->virtualPath,&overlay);
+        else query.error="cannot retain memory completion source";
+    } else query.error="compiler source is empty";
+    if (!xl6SourceReportValidate(&report)) query.error="completion source report is incomplete or changed";
+    json=xl6CompletionJson(&query,&report);
+    /* Validate after serialization: facts and inputs are one immutable batch. */
+    if (!xl6SourceReportValidate(&report)) {
+        query.available=0;query.error="completion inputs changed during serialization";
+        xrtFree(json);json=xl6CompletionJson(&query,&report);
+    }
+    available=json&&query.available;
+    if (json&&xlcOutputOpen(ctx->runtime,&out,outputPath,"cannot open completion output")) {
+        xl6DiagPrintJsonWithCompletion(&out,&report,available,json);
+        ok=xlcOutputClose(ctx->runtime,&out,"cannot write completion output");
+    }
+    if (available && ok) xlClearLastErrorUnlocked(ctx->runtime);
+    else if (!available) xlSetError(ctx->runtime,query.error?query.error:"completion query is unavailable");
+    xrtFree(json);xl6CompletionFree(&query);xl6CompileUnitFree(&unit);xl6SourceReportFree(&report);xrtFree(absolute);
+    xlLeaveWorkDir(&cwd);xlApiUnlock();return ok&&available;
 }
 
 XL_API int xlcEmitTokens(XLC_Context* ctx, const char* outputPath, int jsonOutput)
@@ -4909,7 +5402,15 @@ XL_API int xlcEmitTokens(XLC_Context* ctx, const char* outputPath, int jsonOutpu
         return 0;
     }
     ok = xlcOutputOpen(ctx->runtime, &out, outputPath, "cannot open token output");
-    rc = ok ? xl6LexerDumpFileTo(&out, ctx->sourcePath, jsonOutput) : 1;
+    if (ok) {
+        const XL6_SourceOverlayItem* item;
+        int status = xl6SourceOverlayLookup(&ctx->sourceOverlay, ctx->sourcePath, &item);
+        if (status < 0) {
+            xl6OutputDiscard(&out); ok = 0; rc = 1;
+            xlSetError(ctx->runtime, "cannot resolve token source overlay identity");
+        } else rc = item ? xl6LexerDumpSourceTo(&out, item->text, jsonOutput) :
+                         xl6LexerDumpFileTo(&out, ctx->sourcePath, jsonOutput);
+    } else rc = 1;
     if ( ok ) {
         ok = xlcOutputClose(ctx->runtime, &out, "cannot write token output");
     }
@@ -4921,7 +5422,7 @@ XL_API int xlcEmitTokens(XLC_Context* ctx, const char* outputPath, int jsonOutpu
     return ok && rc == 0;
 }
 
-XL_API int xlcEmitAst(XLC_Context* ctx, const char* outputPath, int jsonOutput)
+static int xlcEmitAstInternal(XLC_Context* ctx, const char* outputPath, int jsonOutput, int ranges)
 {
     XL_CwdScope cwd;
     XL6_ParseResult result;
@@ -4941,18 +5442,32 @@ XL_API int xlcEmitAst(XLC_Context* ctx, const char* outputPath, int jsonOutput)
     if ( ok ) {
         ok = xlcOutputOpen(ctx->runtime, &out, outputPath, "cannot open AST output");
         if ( ok ) {
-            if ( jsonOutput ) {
+            if (ranges) {
+                ok = xl6AstDumpJsonRanges(&out, result.root);
+                if (!ok) xlSetError(ctx->runtime, "AST range output exceeds limits or cannot be written");
+            } else if ( jsonOutput ) {
                 xl6AstDumpJson(&out, result.root);
             } else {
                 xl6AstDumpTextFile(&out, result.root, 0);
             }
-            ok = xlcOutputClose(ctx->runtime, &out, "cannot write AST output");
+            if (!ok) xl6OutputDiscard(&out);
+            else ok = xlcOutputClose(ctx->runtime, &out, "cannot write AST output");
         }
     }
     xl6ParseResultFree(&result);
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
     return ok;
+}
+
+XL_API int xlcEmitAst(XLC_Context* ctx, const char* outputPath, int jsonOutput)
+{
+    return xlcEmitAstInternal(ctx, outputPath, jsonOutput, 0);
+}
+
+XL_API int xlcEmitAstWithRanges(XLC_Context* ctx, const char* outputPath)
+{
+    return xlcEmitAstInternal(ctx, outputPath, 1, 1);
 }
 
 XL_API int xlcEmitIr(XLC_Context* ctx, const char* outputPath, int jsonOutput)
@@ -5109,6 +5624,7 @@ XL_API int xlcEmitExe(XLC_Context* ctx, const char* outputExe)
 {
     XL_CwdScope cwd;
     int ok;
+    XL6_BuildInputs* previous;
 
     if ( ctx == NULL || ctx->runtime == NULL ) {
         return 0;
@@ -5119,10 +5635,12 @@ XL_API int xlcEmitExe(XLC_Context* ctx, const char* outputExe)
         xlApiUnlock();
         return 0;
     }
+    if(!xlBeginBuildInputs(ctx->runtime,&previous)) { xlLeaveWorkDir(&cwd); xlApiUnlock(); return 0; }
     ok = xlcCompileUnlocked(ctx) &&
          xlCompileUnitToExternalOutputWithC(ctx->runtime, &ctx->unit,
              outputExe, TCC_OUTPUT_EXE, "exe", NULL,
              &ctx->cSourceFiles);
+    ok=xlEndBuildInputs(ctx->runtime,previous,ok,outputExe);
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
     return ok;
@@ -5162,6 +5680,7 @@ XL_API int xlcEmitSharedLibrary(XLC_Context* ctx, const char* outputDll)
 {
     XL_CwdScope cwd;
     int ok;
+    XL6_BuildInputs* previous;
 
     if ( ctx == NULL || ctx->runtime == NULL ) {
         return 0;
@@ -5172,8 +5691,10 @@ XL_API int xlcEmitSharedLibrary(XLC_Context* ctx, const char* outputDll)
         xlApiUnlock();
         return 0;
     }
+    if(!xlBeginBuildInputs(ctx->runtime,&previous)) { xlLeaveWorkDir(&cwd); xlApiUnlock(); return 0; }
     ok = xlcCompileUnlocked(ctx) && xlCompileUnitToSharedLibraryWithC(
         ctx->runtime, &ctx->unit, outputDll, &ctx->cSourceFiles);
+    ok=xlEndBuildInputs(ctx->runtime,previous,ok,outputDll);
     xlLeaveWorkDir(&cwd);
     xlApiUnlock();
     return ok;

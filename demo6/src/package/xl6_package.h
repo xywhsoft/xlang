@@ -3,6 +3,8 @@
 
 #include <stddef.h>
 
+struct XL6_SourceReport;
+
 typedef enum XL6_PackageResolveKind {
     XL6_PACKAGE_RESOLVE_UNRESOLVED,
     XL6_PACKAGE_RESOLVE_FILE,
@@ -19,6 +21,7 @@ typedef struct XL6_PackageResolveResult {
     char* packageVersion;
     char* abiVersion;
     char* packageId;
+    struct XL6_SourceReport* sourceReport; /* Borrowed during resolution. */
 } XL6_PackageResolveResult;
 
 typedef struct XL6_PackageStringList {
@@ -70,6 +73,11 @@ void xl6PackageResolveResultInit(XL6_PackageResolveResult* result);
 void xl6PackageResolveResultFree(XL6_PackageResolveResult* result);
 const char* xl6PackageResolveKindName(XL6_PackageResolveKind kind);
 int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_PackageResolveResult* result);
+int xl6PackageLoadManifestObserved(const char* path, XL6_PackageManifest* manifest,
+                                   struct XL6_SourceReport* report);
+int xl6PackageResolveImportObserved(const char* importerPath, const char* target,
+                                    XL6_PackageResolveResult* result,
+                                    struct XL6_SourceReport* report);
 int xl6PackageJoinPath(char* out, size_t outSize, const char* a, const char* b);
 
 #endif

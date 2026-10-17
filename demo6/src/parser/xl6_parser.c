@@ -16,7 +16,7 @@
 **
 ** The "lemon" program processes an LALR(1) input grammar file, then uses
 ** this template to construct a parser.  The "lemon" program inserts text
-** at each "%%" line.  Also, any "P-a-r-s-e" identifer prefix (without the
+** at each "%%" line.  Also, any "P-a-r-s-e" identifier prefix (without the
 ** interstitial "-" characters) contained in this template is changed into
 ** the value of the %name directive from the grammar.  Otherwise, the content
 ** of this template is copied straight through into the generate parser
@@ -699,11 +699,39 @@ static void xl6PFStringAdvancePosition(const char* text, size_t len, int* line, 
     }
 }
 
+static void xl6PRebaseFStringRange(
+    XL6_AstRange* range, const XL6_Token* token, const char* text,
+    size_t exprOffset, size_t exprLength, size_t prefixLength, int clip)
+{
+    size_t start, end;
+    if (!range->known) return;
+    start = range->startOffset;
+    end = range->endOffset;
+    if (!token || !text || end < prefixLength || start > prefixLength + exprLength ||
+        (!clip && (start < prefixLength || end > prefixLength + exprLength))) {
+        memset(range, 0, sizeof(*range));
+        return;
+    }
+    /* The wrapper's parentheses may widen the expression's grammar span.
+     * Clip only that known synthetic syntax, never fabricate token spans. */
+    if (start < prefixLength) start = prefixLength;
+    if (end > prefixLength + exprLength) end = prefixLength + exprLength;
+    start = exprOffset + start - prefixLength;
+    end = exprOffset + end - prefixLength;
+    range->startOffset = token->startOffset + start;
+    range->endOffset = token->startOffset + end;
+    range->startLine = range->endLine = token->startLine;
+    range->startColumn = range->endColumn = token->startColumn;
+    xl6PFStringAdvancePosition(text, start, &range->startLine, &range->startColumn);
+    xl6PFStringAdvancePosition(text, end, &range->endLine, &range->endColumn);
+}
+
 static void xl6PRebaseFStringExprPosition(
     XL6_AstNode* node,
     int exprLine,
     int exprColumn,
-    int syntheticPrefixColumns)
+    int syntheticPrefixColumns,
+    const XL6_Token* token, const char* text, size_t exprOffset, size_t exprLength)
 {
     size_t i;
 
@@ -718,8 +746,13 @@ static void xl6PRebaseFStringExprPosition(
             node->line = exprLine + node->line - 1;
         }
     }
+    xl6PRebaseFStringRange(&node->range, token, text, exprOffset, exprLength,
+                          (size_t)syntheticPrefixColumns, 1);
+    xl6PRebaseFStringRange(&node->tokenRange, token, text, exprOffset, exprLength,
+                          (size_t)syntheticPrefixColumns, 0);
     for ( i = 0; i < node->childCount; ++i ) {
-        xl6PRebaseFStringExprPosition(node->children[i], exprLine, exprColumn, syntheticPrefixColumns);
+        xl6PRebaseFStringExprPosition(node->children[i], exprLine, exprColumn,
+                                    syntheticPrefixColumns, token, text, exprOffset, exprLength);
     }
 }
 
@@ -776,7 +809,8 @@ static XL6_AstNode* xl6PParseFStringExpr(
     exprLine = token != NULL ? token->startLine : 0;
     exprColumn = token != NULL ? token->startColumn : 0;
     xl6PFStringAdvancePosition(tokenText, exprOffset, &exprLine, &exprColumn);
-    xl6PRebaseFStringExprPosition(expr, exprLine, exprColumn, (int)(sizeof(prefix) - 1));
+    xl6PRebaseFStringExprPosition(expr, exprLine, exprColumn, (int)(sizeof(prefix) - 1),
+                                token, tokenText, exprOffset, len);
     return expr;
 }
 
@@ -999,7 +1033,7 @@ static XL6_AstNode* xl6PWithFlags(XL6_AstNode* node, unsigned int flags)
     }
     return node;
 }
-#line 1003 "xl6_parser.c"
+#line 1037 "xl6_parser.c"
 /**************** End of %include directives **********************************/
 /* These constants specify the various numeric values for terminal symbols.
 ***************** Begin token definitions *************************************/
@@ -2752,6 +2786,7 @@ struct yyStackEntry {
   YYACTIONTYPE stateno;  /* The state-number, or reduce action in SHIFTREDUCE */
   YYCODETYPE major;      /* The major token value.  This is the code
                          ** number for the token at this stack level */
+  XL6_AstRange sourceRange; /* XL6 source-range stack v1 */
   YYMINORTYPE minor;     /* The user-supplied minor token value.  This
                          ** is the value of the token  */
 };
@@ -3621,6 +3656,7 @@ void xl6ParseInit(void *yypRawParser xl6ParseCTX_PDECL){
   yypParser->yytos = yypParser->yystack;
   yypParser->yystack[0].stateno = 0;
   yypParser->yystack[0].major = 0;
+  memset(&yypParser->yystack[0].sourceRange, 0, sizeof(XL6_AstRange));
 }
 
 #ifndef xl6Parse_ENGINEALWAYSONSTACK
@@ -3969,6 +4005,7 @@ static void yy_shift(
   yytos->stateno = yyNewState;
   yytos->major = yyMajor;
   yytos->minor.yy0 = yyMinor;
+  yytos->sourceRange = xl6AstRangeFromToken(&yyMinor);
   yyTraceShift(yypParser, yyNewState, "Shift");
 }
 
@@ -4897,10 +4934,17 @@ static YYACTIONTYPE yy_reduce(
   YYACTIONTYPE yyact;             /* The next action */
   yyStackEntry *yymsp;            /* The top of the parser's stack */
   int yysize;                     /* Amount to pop the stack */
+  XL6_AstRange yySourceRange;
+  int yySourceIndex;
   xl6ParseARG_FETCH
   (void)yyLookahead;
   (void)yyLookaheadToken;
   yymsp = yypParser->yytos;
+  /* Capture spans before grammar actions reuse or destroy semantic values. */
+  memset(&yySourceRange, 0, sizeof(yySourceRange));
+  for (yySourceIndex = yyRuleInfoNRhs[yyruleno] + 1; yySourceIndex <= 0; ++yySourceIndex) {
+    xl6AstRangeInclude(&yySourceRange, &yymsp[yySourceIndex].sourceRange);
+  }
 
   switch( yyruleno ){
   /* Beginning here are the reduction cases.  A typical example
@@ -4914,31 +4958,38 @@ static YYACTIONTYPE yy_reduce(
 /********** Begin reduce actions **********************************************/
         YYMINORTYPE yylhsminor;
       case 0: /* program ::= opt_seps items */
-#line 1034 "xl6_parser.y"
+#line 1068 "xl6_parser.y"
 {
     XL6_AstNode* root = xl6AstNew(XL6_AST_MODULE, NULL);
     xl6AstMoveChildren(root, yymsp[0].minor.yy270);
     xl6AstFree(yymsp[0].minor.yy270);
     ctx->root = root;
 }
-#line 4920 "xl6_parser.c"
+#line 4954 "xl6_parser.c"
         break;
       case 1: /* items ::= */
+      case 45: /* import_alias_opt ::= */ yytestcase(yyruleno==45);
+      case 78: /* numeric_enum_body ::= */ yytestcase(yyruleno==78);
+      case 83: /* tagged_enum_body ::= */ yytestcase(yyruleno==83);
+      case 88: /* protocol_body ::= */ yytestcase(yyruleno==88);
+      case 95: /* class_extends ::= */ yytestcase(yyruleno==95);
       case 98: /* class_body ::= */ yytestcase(yyruleno==98);
+      case 162: /* union_body ::= */ yytestcase(yyruleno==162);
       case 300: /* elseif_list ::= */ yytestcase(yyruleno==300);
-#line 1041 "xl6_parser.y"
+      case 324: /* match_bindings_opt ::= */ yytestcase(yyruleno==324);
+#line 1075 "xl6_parser.y"
 {
     yymsp[1].minor.yy270 = xl6PList();
 }
-#line 4929 "xl6_parser.c"
+#line 4970 "xl6_parser.c"
         break;
       case 2: /* items ::= items item opt_seps */
-#line 1044 "xl6_parser.y"
+#line 1078 "xl6_parser.y"
 {
     yylhsminor.yy270 = yymsp[-2].minor.yy270;
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 4937 "xl6_parser.c"
+#line 4978 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 3: /* item ::= item_base */
@@ -5033,25 +5084,25 @@ static YYACTIONTYPE yy_reduce(
       case 407: /* atom ::= bracket_literal */ yytestcase(yyruleno==407);
       case 408: /* atom ::= brace_literal */ yytestcase(yyruleno==408);
       case 436: /* call_args_opt ::= call_args */ yytestcase(yyruleno==436);
-#line 1049 "xl6_parser.y"
+#line 1083 "xl6_parser.y"
 { yylhsminor.yy270 = yymsp[0].minor.yy270; }
-#line 5034 "xl6_parser.c"
+#line 5075 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 4: /* item ::= doc_block item_base */
       case 103: /* class_member ::= doc_block class_member_base */ yytestcase(yyruleno==103);
-#line 1050 "xl6_parser.y"
+#line 1084 "xl6_parser.y"
 { yylhsminor.yy270 = xl6PWithDoc(yymsp[0].minor.yy270, &yymsp[-1].minor.yy211); }
-#line 5041 "xl6_parser.c"
+#line 5082 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 27: /* item ::= TOK_ERROR */
-#line 1074 "xl6_parser.y"
+#line 1108 "xl6_parser.y"
 {
     xl6PDiag(ctx, &yymsp[0].minor.yy0, "当前语法位置不支持该 token");
     yylhsminor.yy270 = xl6AstNew(XL6_AST_LIST, NULL);
 }
-#line 5050 "xl6_parser.c"
+#line 5091 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 28: /* doc_block ::= DOC */
@@ -5078,119 +5129,127 @@ static YYACTIONTYPE yy_reduce(
       case 258: /* assign_op ::= BIT_OR_ASSIGN */ yytestcase(yyruleno==258);
       case 259: /* assign_op ::= BIT_XOR_ASSIGN */ yytestcase(yyruleno==259);
       case 260: /* assign_op ::= NULL_ASSIGN */ yytestcase(yyruleno==260);
-#line 1079 "xl6_parser.y"
+#line 1113 "xl6_parser.y"
 { yylhsminor.yy211 = yymsp[0].minor.yy0; }
-#line 5079 "xl6_parser.c"
+#line 5120 "xl6_parser.c"
   yymsp[0].minor.yy211 = yylhsminor.yy211;
         break;
       case 30: /* import_name_part ::= name_tok */
       case 32: /* member_name_tok ::= name_tok */ yytestcase(yyruleno==32);
       case 141: /* field_attr_word ::= name_tok */ yytestcase(yyruleno==141);
-#line 1083 "xl6_parser.y"
+#line 1117 "xl6_parser.y"
 { yylhsminor.yy211 = yymsp[0].minor.yy211; }
-#line 5087 "xl6_parser.c"
+#line 5128 "xl6_parser.c"
   yymsp[0].minor.yy211 = yylhsminor.yy211;
         break;
       case 41: /* import_name ::= import_name_part */
-#line 1096 "xl6_parser.y"
+#line 1130 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6PImportNameFromToken(&yymsp[0].minor.yy211);
 }
-#line 5095 "xl6_parser.c"
+#line 5136 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 42: /* import_name ::= import_name DOT import_name_part */
-#line 1099 "xl6_parser.y"
+#line 1133 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6PDottedNameAppend(ctx, yymsp[-2].minor.yy270, &yymsp[0].minor.yy211);
 }
-#line 5103 "xl6_parser.c"
+#line 5144 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 43: /* import_target ::= STRING */
-#line 1103 "xl6_parser.y"
+#line 1137 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_NAME, &yymsp[0].minor.yy0);
 }
-#line 5111 "xl6_parser.c"
+#line 5152 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 44: /* import_target ::= import_name */
       case 325: /* match_bindings_opt ::= match_bindings */ yytestcase(yyruleno==325);
-#line 1106 "xl6_parser.y"
+#line 1140 "xl6_parser.y"
 {
     yylhsminor.yy270 = yymsp[0].minor.yy270;
 }
-#line 5120 "xl6_parser.c"
+#line 5161 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
-        break;
-      case 45: /* import_alias_opt ::= */
-      case 78: /* numeric_enum_body ::= */ yytestcase(yyruleno==78);
-      case 83: /* tagged_enum_body ::= */ yytestcase(yyruleno==83);
-      case 88: /* protocol_body ::= */ yytestcase(yyruleno==88);
-      case 324: /* match_bindings_opt ::= */ yytestcase(yyruleno==324);
-#line 1110 "xl6_parser.y"
-{
-    yymsp[1].minor.yy270 = xl6PList();
-}
-#line 5132 "xl6_parser.c"
         break;
       case 46: /* import_alias_opt ::= KW_AS name_tok */
       case 96: /* class_extends ::= KW_EXTENDS name_tok */ yytestcase(yyruleno==96);
-#line 1113 "xl6_parser.y"
+#line 1147 "xl6_parser.y"
 {
     yymsp[-1].minor.yy270 = xl6AstNew(XL6_AST_NAME, &yymsp[0].minor.yy211);
 }
-#line 5140 "xl6_parser.c"
+#line 5170 "xl6_parser.c"
         break;
       case 47: /* import_select_item ::= name_tok */
-#line 1117 "xl6_parser.y"
+      case 144: /* field_attr_arg ::= field_attr_word */ yytestcase(yyruleno==144);
+#line 1151 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_NAME, &yymsp[0].minor.yy211);
 }
-#line 5147 "xl6_parser.c"
+#line 5178 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 48: /* import_select_item ::= name_tok KW_AS name_tok */
-#line 1120 "xl6_parser.y"
+#line 1154 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_NAME, &yymsp[-2].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[0].minor.yy211));
 }
-#line 5156 "xl6_parser.c"
+#line 5187 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 49: /* import_select_list ::= import_select_item */
+      case 134: /* field_attrs ::= field_attr */ yytestcase(yyruleno==134);
+      case 139: /* field_attr_args ::= field_attr_arg */ yytestcase(yyruleno==139);
+      case 170: /* generic_param_list ::= generic_param */ yytestcase(yyruleno==170);
       case 175: /* generic_constraint_list ::= type_ref */ yytestcase(yyruleno==175);
       case 176: /* generic_constraint_list ::= qualified_type_ref */ yytestcase(yyruleno==176);
+      case 181: /* param_list ::= param */ yytestcase(yyruleno==181);
       case 205: /* type_list ::= type_expr */ yytestcase(yyruleno==205);
       case 206: /* type_list ::= qualified_type_ref */ yytestcase(yyruleno==206);
+      case 227: /* func_type_params ::= func_type_param */ yytestcase(yyruleno==227);
       case 312: /* match_stmt_cases ::= match_stmt_case */ yytestcase(yyruleno==312);
       case 331: /* catch_list ::= catch_clause */ yytestcase(yyruleno==331);
+      case 337: /* expr_list ::= expr */ yytestcase(yyruleno==337);
       case 416: /* match_expr_cases ::= match_expr_case */ yytestcase(yyruleno==416);
-#line 1125 "xl6_parser.y"
+      case 428: /* value_list ::= expr */ yytestcase(yyruleno==428);
+      case 431: /* pair_list ::= pair */ yytestcase(yyruleno==431);
+      case 437: /* call_args ::= call_arg */ yytestcase(yyruleno==437);
+#line 1159 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6PList();
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 5172 "xl6_parser.c"
+#line 5212 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 50: /* import_select_list ::= import_select_list COMMA import_select_item */
+      case 140: /* field_attr_args ::= field_attr_args COMMA field_attr_arg */ yytestcase(yyruleno==140);
+      case 171: /* generic_param_list ::= generic_param_list COMMA generic_param */ yytestcase(yyruleno==171);
       case 177: /* generic_constraint_list ::= generic_constraint_list KW_AND type_ref */ yytestcase(yyruleno==177);
       case 178: /* generic_constraint_list ::= generic_constraint_list KW_AND qualified_type_ref */ yytestcase(yyruleno==178);
+      case 182: /* param_list ::= param_list COMMA param */ yytestcase(yyruleno==182);
       case 208: /* type_list ::= type_list COMMA type_expr */ yytestcase(yyruleno==208);
       case 209: /* type_list ::= type_list COMMA qualified_type_ref */ yytestcase(yyruleno==209);
-#line 1129 "xl6_parser.y"
+      case 228: /* func_type_params ::= func_type_params COMMA func_type_param */ yytestcase(yyruleno==228);
+      case 276: /* multi_assign_targets ::= multi_assign_targets COMMA postfix_expr */ yytestcase(yyruleno==276);
+      case 338: /* expr_list ::= expr_list COMMA expr */ yytestcase(yyruleno==338);
+      case 429: /* value_list ::= value_list COMMA expr */ yytestcase(yyruleno==429);
+      case 432: /* pair_list ::= pair_list COMMA pair */ yytestcase(yyruleno==432);
+      case 438: /* call_args ::= call_args COMMA call_arg */ yytestcase(yyruleno==438);
+#line 1163 "xl6_parser.y"
 {
     yylhsminor.yy270 = yymsp[-2].minor.yy270;
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 5185 "xl6_parser.c"
+#line 5234 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 51: /* import_decl ::= KW_IMPORT import_target import_alias_opt need_sep */
-#line 1134 "xl6_parser.y"
+#line 1168 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNewText(
         XL6_AST_IMPORT,
@@ -5204,11 +5263,11 @@ static YYACTIONTYPE yy_reduce(
     }
     xl6AstFree(yymsp[-2].minor.yy270);
 }
-#line 5203 "xl6_parser.c"
+#line 5252 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 52: /* import_decl ::= KW_FROM import_target KW_IMPORT import_select_list need_sep */
-#line 1147 "xl6_parser.y"
+#line 1181 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNewText(
         XL6_AST_IMPORT,
@@ -5220,11 +5279,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstFree(yymsp[-1].minor.yy270);
     xl6AstFree(yymsp[-3].minor.yy270);
 }
-#line 5219 "xl6_parser.c"
+#line 5268 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 53: /* func_decl ::= KW_FUNC name_tok generic_params_opt name_params return_sig need_sep block KW_END */
-#line 1163 "xl6_parser.y"
+#line 1197 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_FUNC, &yymsp[-7].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[-6].minor.yy211));
@@ -5233,11 +5292,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-5].minor.yy270);
 }
-#line 5232 "xl6_parser.c"
+#line 5281 "xl6_parser.c"
   yymsp[-7].minor.yy270 = yylhsminor.yy270;
         break;
       case 54: /* func_decl ::= KW_FUNC name_tok LT generic_param_list GT name_params return_sig need_sep block KW_END */
-#line 1171 "xl6_parser.y"
+#line 1205 "xl6_parser.y"
 {
     XL6_AstNode* G = xl6AstNew(XL6_AST_TYPE_PARAMS, NULL);
     xl6AstMoveChildren(G, yymsp[-6].minor.yy270);
@@ -5249,11 +5308,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, G);
 }
-#line 5248 "xl6_parser.c"
+#line 5297 "xl6_parser.c"
   yymsp[-9].minor.yy270 = yylhsminor.yy270;
         break;
       case 55: /* func_decl ::= KW_ASYNC KW_FUNC name_tok generic_params_opt name_params return_sig need_sep block KW_END */
-#line 1182 "xl6_parser.y"
+#line 1216 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ASYNC_FUNC, &yymsp[-8].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[-6].minor.yy211));
@@ -5262,11 +5321,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-5].minor.yy270);
 }
-#line 5261 "xl6_parser.c"
+#line 5310 "xl6_parser.c"
   yymsp[-8].minor.yy270 = yylhsminor.yy270;
         break;
       case 56: /* func_decl ::= KW_ASYNC KW_FUNC name_tok LT generic_param_list GT name_params return_sig need_sep block KW_END */
-#line 1190 "xl6_parser.y"
+#line 1224 "xl6_parser.y"
 {
     XL6_AstNode* G = xl6AstNew(XL6_AST_TYPE_PARAMS, NULL);
     xl6AstMoveChildren(G, yymsp[-6].minor.yy270);
@@ -5278,11 +5337,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, G);
 }
-#line 5277 "xl6_parser.c"
+#line 5326 "xl6_parser.c"
   yymsp[-10].minor.yy270 = yylhsminor.yy270;
         break;
       case 57: /* extern_func_decl ::= KW_EXTERN STRING extern_func_contract KW_FUNC name_tok name_params return_sig need_sep */
-#line 1202 "xl6_parser.y"
+#line 1236 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_EXTERN_FUNC, &yymsp[-6].minor.yy0);
     yylhsminor.yy270->flags |= yymsp[-5].minor.yy333;
@@ -5291,7 +5350,7 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
     (void)yymsp[-7].minor.yy0;
 }
-#line 5290 "xl6_parser.c"
+#line 5339 "xl6_parser.c"
   yymsp[-7].minor.yy270 = yylhsminor.yy270;
         break;
       case 58: /* export_extern_func_decl ::= KW_EXPORT extern_func_decl */
@@ -5300,16 +5359,16 @@ static YYACTIONTYPE yy_reduce(
       case 72: /* export_class_decl ::= KW_EXPORT class_decl */ yytestcase(yyruleno==72);
       case 74: /* export_protocol_decl ::= KW_EXPORT protocol_decl */ yytestcase(yyruleno==74);
       case 77: /* export_enum_decl ::= KW_EXPORT enum_decl */ yytestcase(yyruleno==77);
-#line 1211 "xl6_parser.y"
+#line 1245 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6PWithFlags(yymsp[0].minor.yy270, XL6_AST_FLAG_PUBLIC);
     (void)yymsp[-1].minor.yy0;
 }
-#line 5304 "xl6_parser.c"
+#line 5353 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 59: /* export_func_decl ::= KW_EXPORT STRING KW_FUNC name_tok name_params return_sig need_sep block KW_END */
-#line 1216 "xl6_parser.y"
+#line 1250 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_EXPORT_FUNC, &yymsp[-7].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[-5].minor.yy211));
@@ -5318,11 +5377,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
     (void)yymsp[-8].minor.yy0;
 }
-#line 5317 "xl6_parser.c"
+#line 5366 "xl6_parser.c"
   yymsp[-8].minor.yy270 = yylhsminor.yy270;
         break;
       case 60: /* export_func_decl ::= KW_EXPORT KW_FUNC name_tok name_params return_sig need_sep block KW_END */
-#line 1224 "xl6_parser.y"
+#line 1258 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_EXPORT_FUNC, NULL);
     yylhsminor.yy270->line = yymsp[-7].minor.yy0.startLine;
@@ -5332,22 +5391,22 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 5331 "xl6_parser.c"
+#line 5380 "xl6_parser.c"
   yymsp[-7].minor.yy270 = yylhsminor.yy270;
         break;
       case 61: /* extern_var_decl ::= KW_EXTERN STRING var_type_ref name_tok need_sep */
-#line 1234 "xl6_parser.y"
+#line 1268 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_EXTERN_VAR, &yymsp[-3].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[-1].minor.yy211));
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
     (void)yymsp[-4].minor.yy0;
 }
-#line 5342 "xl6_parser.c"
+#line 5391 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 62: /* export_extern_var_decl ::= KW_EXPORT KW_EXTERN STRING var_type_ref name_tok need_sep */
-#line 1241 "xl6_parser.y"
+#line 1275 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_EXTERN_VAR, &yymsp[-3].minor.yy0);
     yylhsminor.yy270->flags |= XL6_AST_FLAG_PUBLIC;
@@ -5355,11 +5414,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
     (void)yymsp[-5].minor.yy0;
 }
-#line 5354 "xl6_parser.c"
+#line 5403 "xl6_parser.c"
   yymsp[-5].minor.yy270 = yylhsminor.yy270;
         break;
       case 63: /* export_var_decl ::= KW_EXPORT var_type_ref name_tok ASSIGN expr need_sep */
-#line 1249 "xl6_parser.y"
+#line 1283 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_EXPORT_VAR, NULL);
     yylhsminor.yy270->line = yymsp[-5].minor.yy0.startLine;
@@ -5368,11 +5427,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-4].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 5367 "xl6_parser.c"
+#line 5416 "xl6_parser.c"
   yymsp[-5].minor.yy270 = yylhsminor.yy270;
         break;
       case 64: /* export_var_decl ::= KW_EXPORT STRING var_type_ref name_tok ASSIGN expr need_sep */
-#line 1257 "xl6_parser.y"
+#line 1291 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_EXPORT_VAR, &yymsp[-5].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[-3].minor.yy211));
@@ -5380,11 +5439,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
     (void)yymsp[-6].minor.yy0;
 }
-#line 5379 "xl6_parser.c"
+#line 5428 "xl6_parser.c"
   yymsp[-6].minor.yy270 = yylhsminor.yy270;
         break;
       case 65: /* export_const_decl ::= KW_EXPORT KW_CONST type_ref name_tok ASSIGN expr need_sep */
-#line 1265 "xl6_parser.y"
+#line 1299 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_EXPORT_CONST, NULL);
     yylhsminor.yy270->line = yymsp[-6].minor.yy0.startLine;
@@ -5393,11 +5452,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-4].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 5392 "xl6_parser.c"
+#line 5441 "xl6_parser.c"
   yymsp[-6].minor.yy270 = yylhsminor.yy270;
         break;
       case 66: /* export_const_decl ::= KW_EXPORT STRING KW_CONST type_ref name_tok ASSIGN expr need_sep */
-#line 1273 "xl6_parser.y"
+#line 1307 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_EXPORT_CONST, &yymsp[-6].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[-3].minor.yy211));
@@ -5405,21 +5464,21 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
     (void)yymsp[-7].minor.yy0;
 }
-#line 5404 "xl6_parser.c"
+#line 5453 "xl6_parser.c"
   yymsp[-7].minor.yy270 = yylhsminor.yy270;
         break;
       case 67: /* type_alias_decl ::= KW_TYPEDEF name_tok ASSIGN type_expr need_sep */
-#line 1281 "xl6_parser.y"
+#line 1315 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_TYPE_ALIAS, &yymsp[-3].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
     (void)yymsp[-4].minor.yy0;
 }
-#line 5414 "xl6_parser.c"
+#line 5463 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 68: /* extern_type_alias_decl ::= KW_EXTERN name_tok name_tok ASSIGN type_expr need_sep */
-#line 1287 "xl6_parser.y"
+#line 1321 "xl6_parser.y"
 {
     if ( !xl6PTokenTextEquals(&yymsp[-4].minor.yy211, "type") ) {
         xl6PDiag(ctx, &yymsp[-4].minor.yy211, "extern type alias must start with extern type");
@@ -5428,11 +5487,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
     (void)yymsp[-5].minor.yy0;
 }
-#line 5427 "xl6_parser.c"
+#line 5476 "xl6_parser.c"
   yymsp[-5].minor.yy270 = yylhsminor.yy270;
         break;
       case 71: /* class_decl ::= KW_CLASS name_tok generic_params_opt class_extends need_sep class_body KW_END */
-#line 1306 "xl6_parser.y"
+#line 1340 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_CLASS, &yymsp[-5].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
@@ -5440,22 +5499,22 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-4].minor.yy270);
     (void)yymsp[-6].minor.yy0;
 }
-#line 5439 "xl6_parser.c"
+#line 5488 "xl6_parser.c"
   yymsp[-6].minor.yy270 = yylhsminor.yy270;
         break;
       case 73: /* protocol_decl ::= KW_PROTOCOL name_tok generic_params_opt need_sep protocol_body KW_END */
-#line 1319 "xl6_parser.y"
+#line 1353 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_PROTOCOL, &yymsp[-4].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     (void)yymsp[-5].minor.yy0;
 }
-#line 5450 "xl6_parser.c"
+#line 5499 "xl6_parser.c"
   yymsp[-5].minor.yy270 = yylhsminor.yy270;
         break;
       case 75: /* enum_decl ::= KW_ENUM name_tok generic_params_opt KW_AS type_expr need_sep numeric_enum_body KW_END */
-#line 1331 "xl6_parser.y"
+#line 1365 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ENUM, &yymsp[-6].minor.yy211);
     yylhsminor.yy270->flags |= XL6_AST_FLAG_NUMERIC_ENUM;
@@ -5464,11 +5523,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-5].minor.yy270);
     (void)yymsp[-7].minor.yy0;
 }
-#line 5463 "xl6_parser.c"
+#line 5512 "xl6_parser.c"
   yymsp[-7].minor.yy270 = yylhsminor.yy270;
         break;
       case 76: /* enum_decl ::= KW_ENUM name_tok generic_params_opt need_sep tagged_enum_body KW_END */
-#line 1339 "xl6_parser.y"
+#line 1373 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ENUM, &yymsp[-4].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, xl6PList());
@@ -5476,70 +5535,80 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     (void)yymsp[-5].minor.yy0;
 }
-#line 5475 "xl6_parser.c"
+#line 5524 "xl6_parser.c"
   yymsp[-5].minor.yy270 = yylhsminor.yy270;
         break;
       case 79: /* numeric_enum_body ::= numeric_enum_body SEP */
       case 84: /* tagged_enum_body ::= tagged_enum_body SEP */ yytestcase(yyruleno==84);
       case 89: /* protocol_body ::= protocol_body SEP */ yytestcase(yyruleno==89);
-#line 1355 "xl6_parser.y"
+      case 99: /* class_body ::= class_body SEP */ yytestcase(yyruleno==99);
+      case 163: /* union_body ::= union_body SEP */ yytestcase(yyruleno==163);
+      case 235: /* block ::= block SEP */ yytestcase(yyruleno==235);
+      case 430: /* value_list ::= value_list COMMA */ yytestcase(yyruleno==430);
+      case 433: /* pair_list ::= pair_list COMMA */ yytestcase(yyruleno==433);
+#line 1389 "xl6_parser.y"
 {
     yylhsminor.yy270 = yymsp[-1].minor.yy270;
 }
-#line 5485 "xl6_parser.c"
+#line 5539 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 80: /* numeric_enum_body ::= numeric_enum_body numeric_enum_variant */
       case 85: /* tagged_enum_body ::= tagged_enum_body tagged_enum_variant */ yytestcase(yyruleno==85);
       case 90: /* protocol_body ::= protocol_body protocol_member */ yytestcase(yyruleno==90);
+      case 100: /* class_body ::= class_body class_member */ yytestcase(yyruleno==100);
+      case 135: /* field_attrs ::= field_attrs field_attr */ yytestcase(yyruleno==135);
+      case 164: /* union_body ::= union_body union_member */ yytestcase(yyruleno==164);
+      case 236: /* block ::= block stmt */ yytestcase(yyruleno==236);
+      case 301: /* elseif_list ::= elseif_list elseif_item */ yytestcase(yyruleno==301);
       case 313: /* match_stmt_cases ::= match_stmt_cases match_stmt_case */ yytestcase(yyruleno==313);
       case 332: /* catch_list ::= catch_list catch_clause */ yytestcase(yyruleno==332);
       case 417: /* match_expr_cases ::= match_expr_cases match_expr_case */ yytestcase(yyruleno==417);
-#line 1358 "xl6_parser.y"
+#line 1392 "xl6_parser.y"
 {
     yylhsminor.yy270 = yymsp[-1].minor.yy270;
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 5499 "xl6_parser.c"
+#line 5558 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 81: /* numeric_enum_variant ::= name_tok need_sep */
-#line 1363 "xl6_parser.y"
+#line 1397 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ENUM_VARIANT, &yymsp[-1].minor.yy211);
 }
-#line 5507 "xl6_parser.c"
+#line 5566 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 82: /* numeric_enum_variant ::= name_tok ASSIGN expr need_sep */
-#line 1366 "xl6_parser.y"
+#line 1400 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ENUM_VARIANT, &yymsp[-3].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 5516 "xl6_parser.c"
+#line 5575 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 86: /* tagged_enum_variant ::= name_tok need_sep */
-#line 1382 "xl6_parser.y"
+#line 1416 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ENUM_VARIANT, &yymsp[-1].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, xl6PList());
 }
-#line 5525 "xl6_parser.c"
+#line 5584 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 87: /* tagged_enum_variant ::= name_tok name_params need_sep */
-#line 1386 "xl6_parser.y"
+#line 1420 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ENUM_VARIANT, &yymsp[-2].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 5534 "xl6_parser.c"
+#line 5593 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 91: /* protocol_member ::= KW_FUNC name_tok generic_params_opt name_params return_sig need_sep */
-#line 1402 "xl6_parser.y"
+#line 1436 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_FUNC, &yymsp[-5].minor.yy0);
     yylhsminor.yy270->flags |= XL6_AST_FLAG_PROTOCOL_REQUIREMENT;
@@ -5549,11 +5618,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_BLOCK, NULL));
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
 }
-#line 5548 "xl6_parser.c"
+#line 5607 "xl6_parser.c"
   yymsp[-5].minor.yy270 = yylhsminor.yy270;
         break;
       case 92: /* protocol_member ::= KW_ASYNC KW_FUNC name_tok generic_params_opt name_params return_sig need_sep */
-#line 1411 "xl6_parser.y"
+#line 1445 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ASYNC_FUNC, &yymsp[-6].minor.yy0);
     yylhsminor.yy270->flags |= XL6_AST_FLAG_PROTOCOL_REQUIREMENT | XL6_AST_FLAG_ASYNC;
@@ -5563,11 +5632,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_BLOCK, NULL));
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
 }
-#line 5562 "xl6_parser.c"
+#line 5621 "xl6_parser.c"
   yymsp[-6].minor.yy270 = yylhsminor.yy270;
         break;
       case 93: /* protocol_member ::= KW_GET member_name_tok name_params return_sig need_sep */
-#line 1420 "xl6_parser.y"
+#line 1454 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_GET, &yymsp[-4].minor.yy0);
     yylhsminor.yy270->flags |= XL6_AST_FLAG_PROTOCOL_REQUIREMENT;
@@ -5576,11 +5645,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_BLOCK, NULL));
 }
-#line 5575 "xl6_parser.c"
+#line 5634 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 94: /* protocol_member ::= KW_LET member_name_tok name_params need_sep */
-#line 1428 "xl6_parser.y"
+#line 1462 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_LET, &yymsp[-3].minor.yy0);
     yylhsminor.yy270->flags |= XL6_AST_FLAG_PROTOCOL_REQUIREMENT;
@@ -5589,123 +5658,90 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_RETURN_TYPES, NULL));
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_BLOCK, NULL));
 }
-#line 5588 "xl6_parser.c"
+#line 5647 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
-      case 95: /* class_extends ::= */
-      case 162: /* union_body ::= */ yytestcase(yyruleno==162);
-#line 1437 "xl6_parser.y"
-{
-    yymsp[1].minor.yy270 = xl6PList();
-}
-#line 5597 "xl6_parser.c"
-        break;
       case 97: /* class_extends ::= KW_EXTENDS name_tok DOT import_name */
-#line 1443 "xl6_parser.y"
+#line 1477 "xl6_parser.y"
 {
     yymsp[-3].minor.yy270 = xl6PQualifiedType(ctx, &yymsp[-2].minor.yy211, yymsp[0].minor.yy270);
     if ( yymsp[-3].minor.yy270 != NULL ) {
         yymsp[-3].minor.yy270->kind = XL6_AST_NAME;
     }
 }
-#line 5607 "xl6_parser.c"
-        break;
-      case 99: /* class_body ::= class_body SEP */
-      case 163: /* union_body ::= union_body SEP */ yytestcase(yyruleno==163);
-      case 235: /* block ::= block SEP */ yytestcase(yyruleno==235);
-      case 430: /* value_list ::= value_list COMMA */ yytestcase(yyruleno==430);
-      case 433: /* pair_list ::= pair_list COMMA */ yytestcase(yyruleno==433);
-#line 1453 "xl6_parser.y"
-{
-    yylhsminor.yy270 = yymsp[-1].minor.yy270;
-}
-#line 5618 "xl6_parser.c"
-  yymsp[-1].minor.yy270 = yylhsminor.yy270;
-        break;
-      case 100: /* class_body ::= class_body class_member */
-      case 135: /* field_attrs ::= field_attrs field_attr */ yytestcase(yyruleno==135);
-      case 164: /* union_body ::= union_body union_member */ yytestcase(yyruleno==164);
-      case 236: /* block ::= block stmt */ yytestcase(yyruleno==236);
-      case 301: /* elseif_list ::= elseif_list elseif_item */ yytestcase(yyruleno==301);
-#line 1456 "xl6_parser.y"
-{
-    yylhsminor.yy270 = yymsp[-1].minor.yy270;
-    xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
-}
-#line 5631 "xl6_parser.c"
-  yymsp[-1].minor.yy270 = yylhsminor.yy270;
+#line 5658 "xl6_parser.c"
         break;
       case 102: /* class_member ::= class_member_mods class_member_base */
-#line 1462 "xl6_parser.y"
+#line 1496 "xl6_parser.y"
 { yylhsminor.yy270 = xl6PWithFlags(yymsp[0].minor.yy270, yymsp[-1].minor.yy333); }
-#line 5637 "xl6_parser.c"
+#line 5663 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 104: /* class_member ::= doc_block class_member_mods class_member_base */
-#line 1464 "xl6_parser.y"
+#line 1498 "xl6_parser.y"
 { yylhsminor.yy270 = xl6PWithDoc(xl6PWithFlags(yymsp[0].minor.yy270, yymsp[-1].minor.yy333), &yymsp[-2].minor.yy211); }
-#line 5643 "xl6_parser.c"
+#line 5669 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 105: /* class_member_mods ::= class_member_modifier */
-#line 1466 "xl6_parser.y"
+#line 1500 "xl6_parser.y"
 { yylhsminor.yy333 = yymsp[0].minor.yy333; }
-#line 5649 "xl6_parser.c"
+#line 5675 "xl6_parser.c"
   yymsp[0].minor.yy333 = yylhsminor.yy333;
         break;
       case 106: /* class_member_mods ::= class_member_mods class_member_modifier */
       case 149: /* extern_func_contract ::= extern_func_contract extern_func_contract_item */ yytestcase(yyruleno==149);
-#line 1467 "xl6_parser.y"
+#line 1501 "xl6_parser.y"
 { yylhsminor.yy333 = yymsp[-1].minor.yy333 | yymsp[0].minor.yy333; }
-#line 5656 "xl6_parser.c"
+#line 5682 "xl6_parser.c"
   yymsp[-1].minor.yy333 = yylhsminor.yy333;
         break;
       case 107: /* class_member_modifier ::= KW_PUBLIC */
-#line 1469 "xl6_parser.y"
+#line 1503 "xl6_parser.y"
 { yymsp[0].minor.yy333 = XL6_AST_FLAG_PUBLIC; }
-#line 5662 "xl6_parser.c"
+#line 5688 "xl6_parser.c"
         break;
       case 108: /* class_member_modifier ::= KW_PRIVATE */
-#line 1470 "xl6_parser.y"
+#line 1504 "xl6_parser.y"
 { yymsp[0].minor.yy333 = XL6_AST_FLAG_PRIVATE; }
-#line 5667 "xl6_parser.c"
+#line 5693 "xl6_parser.c"
         break;
       case 109: /* class_member_modifier ::= KW_PROTECTED */
-#line 1471 "xl6_parser.y"
+#line 1505 "xl6_parser.y"
 { yymsp[0].minor.yy333 = XL6_AST_FLAG_PROTECTED; }
-#line 5672 "xl6_parser.c"
+#line 5698 "xl6_parser.c"
         break;
       case 110: /* class_member_modifier ::= KW_STATIC */
-#line 1472 "xl6_parser.y"
+#line 1506 "xl6_parser.y"
 { yymsp[0].minor.yy333 = XL6_AST_FLAG_STATIC; }
-#line 5677 "xl6_parser.c"
+#line 5703 "xl6_parser.c"
         break;
       case 111: /* class_member_modifier ::= KW_OVERRIDE */
-#line 1473 "xl6_parser.y"
+#line 1507 "xl6_parser.y"
 { yymsp[0].minor.yy333 = XL6_AST_FLAG_OVERRIDE; }
-#line 5682 "xl6_parser.c"
+#line 5708 "xl6_parser.c"
         break;
       case 112: /* class_member_modifier ::= KW_FINAL */
-#line 1474 "xl6_parser.y"
+#line 1508 "xl6_parser.y"
 { yymsp[0].minor.yy333 = XL6_AST_FLAG_FINAL; }
-#line 5687 "xl6_parser.c"
+#line 5713 "xl6_parser.c"
         break;
       case 113: /* class_member_modifier ::= KW_VIRTUAL */
-#line 1475 "xl6_parser.y"
+#line 1509 "xl6_parser.y"
 { yymsp[0].minor.yy333 = XL6_AST_FLAG_VIRTUAL; }
-#line 5692 "xl6_parser.c"
+#line 5718 "xl6_parser.c"
         break;
       case 127: /* derive_decl ::= KW_DERIVE name_tok need_sep */
-#line 1491 "xl6_parser.y"
+#line 1525 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_DERIVE, &yymsp[-1].minor.yy211);
     (void)yymsp[-2].minor.yy0;
 }
-#line 5700 "xl6_parser.c"
+#line 5726 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 128: /* field_decl ::= var_type_ref name_tok field_attrs_opt field_default need_sep */
-#line 1496 "xl6_parser.y"
+#line 1530 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_FIELD, &yymsp[-3].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-4].minor.yy270);
@@ -5717,11 +5753,11 @@ static YYACTIONTYPE yy_reduce(
         xl6AstFree(yymsp[-2].minor.yy270);
     }
 }
-#line 5716 "xl6_parser.c"
+#line 5742 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 129: /* native_field_decl ::= KW_NATIVE native_type_ref name_tok field_attrs_opt field_default need_sep */
-#line 1508 "xl6_parser.y"
+#line 1542 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_FIELD, &yymsp[-3].minor.yy211);
     yylhsminor.yy270->flags |= XL6_AST_FLAG_NATIVE;
@@ -5735,136 +5771,94 @@ static YYACTIONTYPE yy_reduce(
     }
     (void)yymsp[-5].minor.yy0;
 }
-#line 5734 "xl6_parser.c"
+#line 5760 "xl6_parser.c"
   yymsp[-5].minor.yy270 = yylhsminor.yy270;
         break;
       case 130: /* field_default ::= */
       case 173: /* generic_constraint_opt ::= */ yytestcase(yyruleno==173);
       case 329: /* catch_opt ::= */ yytestcase(yyruleno==329);
       case 335: /* finally_opt ::= */ yytestcase(yyruleno==335);
-#line 1522 "xl6_parser.y"
+#line 1556 "xl6_parser.y"
 { yymsp[1].minor.yy270 = NULL; }
-#line 5743 "xl6_parser.c"
+#line 5769 "xl6_parser.c"
         break;
       case 131: /* field_default ::= ASSIGN expr */
-#line 1523 "xl6_parser.y"
+#line 1557 "xl6_parser.y"
 { yymsp[-1].minor.yy270 = yymsp[0].minor.yy270; }
-#line 5748 "xl6_parser.c"
+#line 5774 "xl6_parser.c"
         break;
       case 132: /* field_attrs_opt ::= */
       case 137: /* field_attr_args_opt ::= */ yytestcase(yyruleno==137);
       case 179: /* param_list_opt ::= */ yytestcase(yyruleno==179);
       case 225: /* func_type_params_opt ::= */ yytestcase(yyruleno==225);
       case 435: /* call_args_opt ::= */ yytestcase(yyruleno==435);
-#line 1525 "xl6_parser.y"
+#line 1559 "xl6_parser.y"
 { yymsp[1].minor.yy270 = xl6PList(); }
-#line 5757 "xl6_parser.c"
-        break;
-      case 134: /* field_attrs ::= field_attr */
-      case 139: /* field_attr_args ::= field_attr_arg */ yytestcase(yyruleno==139);
-      case 170: /* generic_param_list ::= generic_param */ yytestcase(yyruleno==170);
-      case 181: /* param_list ::= param */ yytestcase(yyruleno==181);
-      case 227: /* func_type_params ::= func_type_param */ yytestcase(yyruleno==227);
-      case 337: /* expr_list ::= expr */ yytestcase(yyruleno==337);
-      case 428: /* value_list ::= expr */ yytestcase(yyruleno==428);
-      case 431: /* pair_list ::= pair */ yytestcase(yyruleno==431);
-      case 437: /* call_args ::= call_arg */ yytestcase(yyruleno==437);
-#line 1528 "xl6_parser.y"
-{
-    yylhsminor.yy270 = xl6PList();
-    xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
-}
-#line 5773 "xl6_parser.c"
-  yymsp[0].minor.yy270 = yylhsminor.yy270;
+#line 5783 "xl6_parser.c"
         break;
       case 136: /* field_attr ::= AT name_tok LPAREN field_attr_args_opt RPAREN */
-#line 1537 "xl6_parser.y"
+#line 1571 "xl6_parser.y"
 {
     yymsp[-4].minor.yy270 = xl6AstNew(XL6_AST_FIELD_ATTR, &yymsp[-3].minor.yy211);
     xl6AstMoveChildren(yymsp[-4].minor.yy270, yymsp[-1].minor.yy270);
     xl6AstFree(yymsp[-1].minor.yy270);
 }
-#line 5783 "xl6_parser.c"
-        break;
-      case 140: /* field_attr_args ::= field_attr_args COMMA field_attr_arg */
-      case 171: /* generic_param_list ::= generic_param_list COMMA generic_param */ yytestcase(yyruleno==171);
-      case 182: /* param_list ::= param_list COMMA param */ yytestcase(yyruleno==182);
-      case 228: /* func_type_params ::= func_type_params COMMA func_type_param */ yytestcase(yyruleno==228);
-      case 276: /* multi_assign_targets ::= multi_assign_targets COMMA postfix_expr */ yytestcase(yyruleno==276);
-      case 338: /* expr_list ::= expr_list COMMA expr */ yytestcase(yyruleno==338);
-      case 429: /* value_list ::= value_list COMMA expr */ yytestcase(yyruleno==429);
-      case 432: /* pair_list ::= pair_list COMMA pair */ yytestcase(yyruleno==432);
-      case 438: /* call_args ::= call_args COMMA call_arg */ yytestcase(yyruleno==438);
-#line 1550 "xl6_parser.y"
-{
-    yylhsminor.yy270 = yymsp[-2].minor.yy270;
-    xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
-}
-#line 5799 "xl6_parser.c"
-  yymsp[-2].minor.yy270 = yylhsminor.yy270;
-        break;
-      case 144: /* field_attr_arg ::= field_attr_word */
-#line 1559 "xl6_parser.y"
-{
-    yylhsminor.yy270 = xl6AstNew(XL6_AST_NAME, &yymsp[0].minor.yy211);
-}
-#line 5807 "xl6_parser.c"
-  yymsp[0].minor.yy270 = yylhsminor.yy270;
+#line 5792 "xl6_parser.c"
         break;
       case 145: /* field_attr_arg ::= STRING */
-#line 1562 "xl6_parser.y"
+#line 1596 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_STRING, &yymsp[0].minor.yy0);
 }
-#line 5815 "xl6_parser.c"
+#line 5799 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 146: /* field_attr_arg ::= field_attr_word ASSIGN field_attr_word */
-#line 1565 "xl6_parser.y"
+#line 1599 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_KEY_VALUE, NULL);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[-2].minor.yy211));
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[0].minor.yy211));
 }
-#line 5825 "xl6_parser.c"
+#line 5809 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 147: /* field_attr_arg ::= field_attr_word ASSIGN STRING */
-#line 1570 "xl6_parser.y"
+#line 1604 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_KEY_VALUE, NULL);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[-2].minor.yy211));
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_STRING, &yymsp[0].minor.yy0));
 }
-#line 5835 "xl6_parser.c"
+#line 5819 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 148: /* extern_func_contract ::= */
       case 189: /* param_mode ::= */ yytestcase(yyruleno==189);
-#line 1578 "xl6_parser.y"
+#line 1612 "xl6_parser.y"
 { yymsp[1].minor.yy333 = 0; }
-#line 5842 "xl6_parser.c"
+#line 5826 "xl6_parser.c"
         break;
       case 150: /* extern_func_contract_item ::= AT name_tok */
-#line 1580 "xl6_parser.y"
+#line 1614 "xl6_parser.y"
 {
     yymsp[-1].minor.yy333 = xl6PExternContractFlag(ctx, &yymsp[0].minor.yy211);
 }
-#line 5849 "xl6_parser.c"
+#line 5833 "xl6_parser.c"
         break;
       case 152: /* native_type_ref ::= name_tok STAR */
-#line 1585 "xl6_parser.y"
+#line 1619 "xl6_parser.y"
 {
     if ( !xl6PTokenTextEquals(&yymsp[-1].minor.yy211, "void") ) {
         xl6PDiag(ctx, &yymsp[-1].minor.yy211, "native pointer type only supports void* in this stage");
     }
     yylhsminor.yy270 = xl6AstNewText(XL6_AST_TYPE, "point", 5, &yymsp[-1].minor.yy211);
 }
-#line 5859 "xl6_parser.c"
+#line 5843 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 153: /* class_extern_func ::= KW_EXTERN STRING extern_func_contract KW_FUNC name_tok name_params return_sig need_sep */
-#line 1592 "xl6_parser.y"
+#line 1626 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_NATIVE_EXTERN_FUNC, &yymsp[-6].minor.yy0);
     yylhsminor.yy270->flags |= yymsp[-5].minor.yy333;
@@ -5873,11 +5867,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
     (void)yymsp[-7].minor.yy0;
 }
-#line 5872 "xl6_parser.c"
+#line 5856 "xl6_parser.c"
   yymsp[-7].minor.yy270 = yylhsminor.yy270;
         break;
       case 154: /* class_extern_special ::= KW_EXTERN STRING extern_func_contract name_tok name_params need_sep */
-#line 1601 "xl6_parser.y"
+#line 1635 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_NATIVE_EXTERN_SPECIAL, &yymsp[-4].minor.yy0);
     yylhsminor.yy270->flags |= yymsp[-3].minor.yy333;
@@ -5885,11 +5879,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
     (void)yymsp[-5].minor.yy0;
 }
-#line 5884 "xl6_parser.c"
+#line 5868 "xl6_parser.c"
   yymsp[-5].minor.yy270 = yylhsminor.yy270;
         break;
       case 155: /* class_extern_get ::= KW_EXTERN STRING extern_func_contract KW_GET member_name_tok name_params return_sig need_sep */
-#line 1609 "xl6_parser.y"
+#line 1643 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_GET, &yymsp[-6].minor.yy0);
     yylhsminor.yy270->flags |= XL6_AST_FLAG_EXTERN | yymsp[-5].minor.yy333;
@@ -5899,11 +5893,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_BLOCK, NULL));
     (void)yymsp[-7].minor.yy0;
 }
-#line 5898 "xl6_parser.c"
+#line 5882 "xl6_parser.c"
   yymsp[-7].minor.yy270 = yylhsminor.yy270;
         break;
       case 156: /* class_extern_let ::= KW_EXTERN STRING extern_func_contract KW_LET member_name_tok name_params need_sep */
-#line 1619 "xl6_parser.y"
+#line 1653 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_LET, &yymsp[-5].minor.yy0);
     yylhsminor.yy270->flags |= XL6_AST_FLAG_EXTERN | yymsp[-4].minor.yy333;
@@ -5913,11 +5907,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_BLOCK, NULL));
     (void)yymsp[-6].minor.yy0;
 }
-#line 5912 "xl6_parser.c"
+#line 5896 "xl6_parser.c"
   yymsp[-6].minor.yy270 = yylhsminor.yy270;
         break;
       case 157: /* property_get_decl ::= KW_GET member_name_tok name_params return_sig need_sep block KW_END */
-#line 1629 "xl6_parser.y"
+#line 1663 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_GET, &yymsp[-6].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[-5].minor.yy211));
@@ -5925,11 +5919,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 5924 "xl6_parser.c"
+#line 5908 "xl6_parser.c"
   yymsp[-6].minor.yy270 = yylhsminor.yy270;
         break;
       case 158: /* property_let_decl ::= KW_LET member_name_tok name_params need_sep block KW_END */
-#line 1637 "xl6_parser.y"
+#line 1671 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_LET, &yymsp[-5].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[-4].minor.yy211));
@@ -5937,157 +5931,157 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_RETURN_TYPES, NULL));
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 5936 "xl6_parser.c"
+#line 5920 "xl6_parser.c"
   yymsp[-5].minor.yy270 = yylhsminor.yy270;
         break;
       case 159: /* union_decl ::= KW_UNION need_sep union_body KW_END */
-#line 1645 "xl6_parser.y"
+#line 1679 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_UNION, &yymsp[-3].minor.yy0);
     xrtFree(yylhsminor.yy270->text);
     yylhsminor.yy270->text = NULL;
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 5947 "xl6_parser.c"
+#line 5931 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 160: /* union_decl ::= KW_UNION name_tok need_sep union_body KW_END */
-#line 1651 "xl6_parser.y"
+#line 1685 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_UNION, &yymsp[-3].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
     (void)yymsp[-4].minor.yy0;
 }
-#line 5957 "xl6_parser.c"
+#line 5941 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 161: /* export_union_decl ::= KW_EXPORT union_decl */
-#line 1657 "xl6_parser.y"
+#line 1691 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6PWithFlags(yymsp[0].minor.yy270, XL6_AST_FLAG_PUBLIC);
     if ( yylhsminor.yy270 != NULL && yylhsminor.yy270->text == NULL ) {
         xl6PDiag(ctx, &yymsp[-1].minor.yy0, "export union requires a name");
     }
 }
-#line 5968 "xl6_parser.c"
+#line 5952 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 166: /* class_special_decl ::= name_tok name_params need_sep block KW_END */
-#line 1676 "xl6_parser.y"
+#line 1710 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_CREATE, &yymsp[-4].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 5978 "xl6_parser.c"
+#line 5962 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 167: /* name_params ::= LPAREN param_list_opt RPAREN */
       case 406: /* atom ::= LPAREN expr RPAREN */ yytestcase(yyruleno==406);
-#line 1682 "xl6_parser.y"
+#line 1716 "xl6_parser.y"
 { yymsp[-2].minor.yy270 = yymsp[-1].minor.yy270; }
-#line 5985 "xl6_parser.c"
+#line 5969 "xl6_parser.c"
         break;
       case 168: /* generic_params_opt ::= */
-#line 1684 "xl6_parser.y"
+#line 1718 "xl6_parser.y"
 {
     yymsp[1].minor.yy270 = xl6AstNew(XL6_AST_TYPE_PARAMS, NULL);
 }
-#line 5992 "xl6_parser.c"
+#line 5976 "xl6_parser.c"
         break;
       case 169: /* generic_params_opt ::= LT generic_param_list GT */
-#line 1687 "xl6_parser.y"
+#line 1721 "xl6_parser.y"
 {
     yymsp[-2].minor.yy270 = xl6AstNew(XL6_AST_TYPE_PARAMS, NULL);
     xl6AstMoveChildren(yymsp[-2].minor.yy270, yymsp[-1].minor.yy270);
     xl6AstFree(yymsp[-1].minor.yy270);
 }
-#line 6001 "xl6_parser.c"
+#line 5985 "xl6_parser.c"
         break;
       case 172: /* generic_param ::= name_tok generic_constraint_opt */
-#line 1702 "xl6_parser.y"
+#line 1736 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_NAME, &yymsp[-1].minor.yy211);
     if ( yymsp[0].minor.yy270 != NULL ) {
         xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
     }
 }
-#line 6011 "xl6_parser.c"
+#line 5995 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 174: /* generic_constraint_opt ::= KW_IS generic_constraint_list */
-#line 1710 "xl6_parser.y"
+#line 1744 "xl6_parser.y"
 {
     yymsp[-1].minor.yy270 = xl6AstNew(XL6_AST_GENERIC_CONSTRAINT, NULL);
     xl6AstMoveChildren(yymsp[-1].minor.yy270, yymsp[0].minor.yy270);
     xl6AstFree(yymsp[0].minor.yy270);
 }
-#line 6021 "xl6_parser.c"
+#line 6005 "xl6_parser.c"
         break;
       case 184: /* type_expr ::= type_ref TYPE_QUESTION */
-#line 1746 "xl6_parser.y"
+#line 1780 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6PNullableType(ctx, yymsp[-1].minor.yy270, &yymsp[0].minor.yy0);
 }
-#line 6028 "xl6_parser.c"
+#line 6012 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 186: /* type_expr ::= LPAREN function_type_ref TYPE_RPAREN TYPE_QUESTION */
-#line 1754 "xl6_parser.y"
+#line 1788 "xl6_parser.y"
 {
     yymsp[-3].minor.yy270 = xl6PNullableType(ctx, yymsp[-2].minor.yy270, &yymsp[0].minor.yy0);
 }
-#line 6036 "xl6_parser.c"
+#line 6020 "xl6_parser.c"
         break;
       case 187: /* type_expr ::= KW_ASYNC type_ref */
-#line 1757 "xl6_parser.y"
+#line 1791 "xl6_parser.y"
 {
     yymsp[0].minor.yy270->flags |= XL6_AST_FLAG_ASYNC;
     yymsp[-1].minor.yy270 = yymsp[0].minor.yy270;
 }
-#line 6044 "xl6_parser.c"
+#line 6028 "xl6_parser.c"
         break;
       case 190: /* param_mode ::= KW_C_CALLBACK */
-#line 1765 "xl6_parser.y"
+#line 1799 "xl6_parser.y"
 { yymsp[0].minor.yy333 = XL6_AST_FLAG_C_CALLBACK; }
-#line 6049 "xl6_parser.c"
+#line 6033 "xl6_parser.c"
         break;
       case 191: /* param ::= param_mode param_type_ref name_tok */
       case 193: /* param ::= param_mode qualified_type_ref name_tok */ yytestcase(yyruleno==193);
-#line 1767 "xl6_parser.y"
+#line 1801 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_PARAM, &yymsp[0].minor.yy211);
     yylhsminor.yy270->flags |= yymsp[-2].minor.yy333;
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 6059 "xl6_parser.c"
+#line 6043 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 192: /* param ::= param_mode param_type_ref name_tok ASSIGN expr */
       case 195: /* param ::= param_mode qualified_type_ref name_tok ASSIGN expr */ yytestcase(yyruleno==195);
-#line 1772 "xl6_parser.y"
+#line 1806 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_PARAM, &yymsp[-2].minor.yy211);
     yylhsminor.yy270->flags |= yymsp[-4].minor.yy333;
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6071 "xl6_parser.c"
+#line 6055 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 194: /* param ::= param_mode qualified_type_ref TYPE_QUESTION name_tok */
-#line 1783 "xl6_parser.y"
+#line 1817 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_PARAM, &yymsp[0].minor.yy211);
     yylhsminor.yy270->flags |= yymsp[-3].minor.yy333;
     yymsp[-2].minor.yy270 = xl6PNullableType(ctx, yymsp[-2].minor.yy270, &yymsp[-1].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
 }
-#line 6082 "xl6_parser.c"
+#line 6066 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 196: /* param ::= param_mode qualified_type_ref TYPE_QUESTION name_tok ASSIGN expr */
-#line 1795 "xl6_parser.y"
+#line 1829 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_PARAM, &yymsp[-2].minor.yy211);
     yylhsminor.yy270->flags |= yymsp[-5].minor.yy333;
@@ -6095,185 +6089,185 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-4].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6094 "xl6_parser.c"
+#line 6078 "xl6_parser.c"
   yymsp[-5].minor.yy270 = yylhsminor.yy270;
         break;
       case 197: /* param ::= KW_C_VARARG */
-#line 1802 "xl6_parser.y"
+#line 1836 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNewText(XL6_AST_PARAM, "arg", 3, &yymsp[0].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNewText(XL6_AST_TYPE, "c_vararg", 8, &yymsp[0].minor.yy0));
 }
-#line 6103 "xl6_parser.c"
+#line 6087 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 198: /* param ::= ELLIPSIS */
-#line 1806 "xl6_parser.y"
+#line 1840 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNewText(XL6_AST_PARAM, "arg", 3, &yymsp[0].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNewText(XL6_AST_TYPE, "array<var>", 10, &yymsp[0].minor.yy0));
 }
-#line 6112 "xl6_parser.c"
+#line 6096 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 199: /* param ::= TRIPLE_STAR */
-#line 1810 "xl6_parser.y"
+#line 1844 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNewText(XL6_AST_PARAM, "arg", 3, &yymsp[0].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNewText(XL6_AST_TYPE, "dict<var>", 9, &yymsp[0].minor.yy0));
 }
-#line 6121 "xl6_parser.c"
+#line 6105 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 200: /* return_sig ::= */
-#line 1815 "xl6_parser.y"
+#line 1849 "xl6_parser.y"
 {
     yymsp[1].minor.yy270 = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
 }
-#line 6129 "xl6_parser.c"
+#line 6113 "xl6_parser.c"
         break;
       case 201: /* return_sig ::= KW_AS return_value_type_ref */
       case 202: /* return_sig ::= KW_AS qualified_type_ref */ yytestcase(yyruleno==202);
-#line 1818 "xl6_parser.y"
+#line 1852 "xl6_parser.y"
 {
     yymsp[-1].minor.yy270 = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
     xl6AstAddChild(yymsp[-1].minor.yy270, yymsp[0].minor.yy270);
 }
-#line 6138 "xl6_parser.c"
+#line 6122 "xl6_parser.c"
         break;
       case 203: /* return_sig ::= KW_AS qualified_type_ref TYPE_QUESTION */
-#line 1826 "xl6_parser.y"
+#line 1860 "xl6_parser.y"
 {
     yymsp[-2].minor.yy270 = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
     xl6AstAddChild(yymsp[-2].minor.yy270, xl6PNullableType(ctx, yymsp[-1].minor.yy270, &yymsp[0].minor.yy0));
 }
-#line 6146 "xl6_parser.c"
+#line 6130 "xl6_parser.c"
         break;
       case 204: /* return_sig ::= KW_AS LPAREN type_list RPAREN */
-#line 1830 "xl6_parser.y"
+#line 1864 "xl6_parser.y"
 {
     yymsp[-3].minor.yy270 = xl6AstNew(XL6_AST_RETURN_TYPES, NULL);
     xl6AstMoveChildren(yymsp[-3].minor.yy270, yymsp[-1].minor.yy270);
     xl6AstFree(yymsp[-1].minor.yy270);
 }
-#line 6155 "xl6_parser.c"
+#line 6139 "xl6_parser.c"
         break;
       case 207: /* type_list ::= qualified_type_ref TYPE_QUESTION */
-#line 1844 "xl6_parser.y"
+#line 1878 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6PList();
     xl6AstAddChild(yylhsminor.yy270, xl6PNullableType(ctx, yymsp[-1].minor.yy270, &yymsp[0].minor.yy0));
 }
-#line 6163 "xl6_parser.c"
+#line 6147 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 210: /* type_list ::= type_list COMMA qualified_type_ref TYPE_QUESTION */
-#line 1856 "xl6_parser.y"
+#line 1890 "xl6_parser.y"
 {
     yylhsminor.yy270 = yymsp[-3].minor.yy270;
     xl6AstAddChild(yylhsminor.yy270, xl6PNullableType(ctx, yymsp[-1].minor.yy270, &yymsp[0].minor.yy0));
 }
-#line 6172 "xl6_parser.c"
+#line 6156 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 211: /* type_ref ::= name_tok */
-#line 1861 "xl6_parser.y"
+#line 1895 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_TYPE, &yymsp[0].minor.yy211);
+}
+#line 6164 "xl6_parser.c"
+  yymsp[0].minor.yy270 = yylhsminor.yy270;
+        break;
+      case 212: /* type_ref ::= QUALIFIED_TYPE */
+#line 1898 "xl6_parser.y"
+{
+    yylhsminor.yy270 = xl6AstNew(XL6_AST_TYPE, &yymsp[0].minor.yy0);
+}
+#line 6172 "xl6_parser.c"
+  yymsp[0].minor.yy270 = yylhsminor.yy270;
+        break;
+      case 213: /* type_ref ::= KW_VAR */
+#line 1901 "xl6_parser.y"
+{
+    yylhsminor.yy270 = xl6AstNewText(XL6_AST_TYPE, "var", 3, &yymsp[0].minor.yy0);
 }
 #line 6180 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
-      case 212: /* type_ref ::= QUALIFIED_TYPE */
-#line 1864 "xl6_parser.y"
+      case 214: /* type_ref ::= KW_NULL */
+#line 1904 "xl6_parser.y"
 {
-    yylhsminor.yy270 = xl6AstNew(XL6_AST_TYPE, &yymsp[0].minor.yy0);
+    yylhsminor.yy270 = xl6AstNewText(XL6_AST_TYPE, "null", 4, &yymsp[0].minor.yy0);
 }
 #line 6188 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
-      case 213: /* type_ref ::= KW_VAR */
-#line 1867 "xl6_parser.y"
+      case 215: /* type_ref ::= TYPE_FUNCTION */
+#line 1907 "xl6_parser.y"
 {
-    yylhsminor.yy270 = xl6AstNewText(XL6_AST_TYPE, "var", 3, &yymsp[0].minor.yy0);
+    yylhsminor.yy270 = xl6AstNewText(XL6_AST_TYPE, "function", 8, &yymsp[0].minor.yy0);
 }
 #line 6196 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
-      case 214: /* type_ref ::= KW_NULL */
-#line 1870 "xl6_parser.y"
-{
-    yylhsminor.yy270 = xl6AstNewText(XL6_AST_TYPE, "null", 4, &yymsp[0].minor.yy0);
-}
-#line 6204 "xl6_parser.c"
-  yymsp[0].minor.yy270 = yylhsminor.yy270;
-        break;
-      case 215: /* type_ref ::= TYPE_FUNCTION */
-#line 1873 "xl6_parser.y"
-{
-    yylhsminor.yy270 = xl6AstNewText(XL6_AST_TYPE, "function", 8, &yymsp[0].minor.yy0);
-}
-#line 6212 "xl6_parser.c"
-  yymsp[0].minor.yy270 = yylhsminor.yy270;
-        break;
       case 216: /* type_ref ::= name_tok LT type_list GT */
       case 217: /* type_ref ::= name_tok TYPE_LT type_list GT */ yytestcase(yyruleno==217);
-#line 1876 "xl6_parser.y"
+#line 1910 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNewGenericType(&yymsp[-3].minor.yy211, yymsp[-1].minor.yy270);
 }
-#line 6221 "xl6_parser.c"
+#line 6205 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 218: /* type_ref ::= QUALIFIED_TYPE LT type_list GT */
       case 219: /* type_ref ::= QUALIFIED_TYPE TYPE_LT type_list GT */ yytestcase(yyruleno==219);
-#line 1882 "xl6_parser.y"
+#line 1916 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNewGenericType(&yymsp[-3].minor.yy0, yymsp[-1].minor.yy270);
 }
-#line 6230 "xl6_parser.c"
+#line 6214 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 220: /* qualified_type_ref ::= name_tok DOT import_name */
-#line 1888 "xl6_parser.y"
+#line 1922 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6PQualifiedType(ctx, &yymsp[-2].minor.yy211, yymsp[0].minor.yy270);
 }
-#line 6238 "xl6_parser.c"
+#line 6222 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 221: /* qualified_type_ref ::= name_tok DOT import_name LT type_list GT */
       case 222: /* qualified_type_ref ::= name_tok DOT import_name TYPE_LT type_list GT */ yytestcase(yyruleno==222);
-#line 1891 "xl6_parser.y"
+#line 1925 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6PQualifiedType(ctx, &yymsp[-5].minor.yy211, yymsp[-3].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 6248 "xl6_parser.c"
+#line 6232 "xl6_parser.c"
   yymsp[-5].minor.yy270 = yylhsminor.yy270;
         break;
       case 224: /* function_type_ref ::= TYPE_FUNCTION LPAREN func_type_params_opt RPAREN return_sig */
-#line 1902 "xl6_parser.y"
+#line 1936 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNewText(XL6_AST_TYPE, "function", 8, &yymsp[-4].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6258 "xl6_parser.c"
+#line 6242 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 229: /* func_type_param ::= param_mode type_expr */
       case 230: /* func_type_param ::= param_mode qualified_type_ref */ yytestcase(yyruleno==230);
-#line 1920 "xl6_parser.y"
+#line 1954 "xl6_parser.y"
 {
     yymsp[0].minor.yy270->flags |= yymsp[-1].minor.yy333;
     yylhsminor.yy270 = yymsp[0].minor.yy270;
 }
-#line 6268 "xl6_parser.c"
+#line 6252 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 231: /* func_type_param ::= param_mode qualified_type_ref TYPE_QUESTION */
-#line 1928 "xl6_parser.y"
+#line 1962 "xl6_parser.y"
 {
     yymsp[-1].minor.yy270 = xl6PNullableType(ctx, yymsp[-1].minor.yy270, &yymsp[0].minor.yy0);
     if ( yymsp[-1].minor.yy270 != NULL ) {
@@ -6281,254 +6275,256 @@ static YYACTIONTYPE yy_reduce(
     }
     yylhsminor.yy270 = yymsp[-1].minor.yy270;
 }
-#line 6280 "xl6_parser.c"
+#line 6264 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 232: /* func_type_param ::= ELLIPSIS */
-#line 1935 "xl6_parser.y"
+#line 1969 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNewText(XL6_AST_TYPE, "array<var>", 10, &yymsp[0].minor.yy0);
 }
-#line 6288 "xl6_parser.c"
+#line 6272 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 233: /* func_type_param ::= TRIPLE_STAR */
-#line 1938 "xl6_parser.y"
+#line 1972 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNewText(XL6_AST_TYPE, "dict<var>", 9, &yymsp[0].minor.yy0);
 }
-#line 6296 "xl6_parser.c"
+#line 6280 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 234: /* block ::= */
       case 303: /* else_opt ::= */ yytestcase(yyruleno==303);
-#line 1942 "xl6_parser.y"
+#line 1976 "xl6_parser.y"
 {
     yymsp[1].minor.yy270 = xl6AstNew(XL6_AST_BLOCK, NULL);
 }
-#line 6305 "xl6_parser.c"
+#line 6289 "xl6_parser.c"
         break;
       case 237: /* stmt ::= simple_stmt need_sep */
-#line 1953 "xl6_parser.y"
+#line 1987 "xl6_parser.y"
 { yylhsminor.yy270 = yymsp[-1].minor.yy270; }
-#line 6310 "xl6_parser.c"
+#line 6294 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 247: /* simple_stmt ::= expr */
-#line 1964 "xl6_parser.y"
+      case 299: /* inline_stmt ::= expr */ yytestcase(yyruleno==299);
+#line 1998 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_EXPR_STMT, NULL);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6319 "xl6_parser.c"
+#line 6304 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 248: /* assign_stmt ::= postfix_expr assign_op expr */
-#line 1969 "xl6_parser.y"
+#line 2003 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ASSIGN, &yymsp[-1].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6329 "xl6_parser.c"
+#line 6314 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 249: /* assign_stmt ::= multi_assign_targets ASSIGN expr */
-#line 1974 "xl6_parser.y"
+#line 2008 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_MULTI_ASSIGN, &yymsp[-1].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6339 "xl6_parser.c"
+#line 6324 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 268: /* var_decl ::= var_type_ref name_tok */
-#line 2000 "xl6_parser.y"
+#line 2034 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_VAR_DECL, &yymsp[0].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 6348 "xl6_parser.c"
+#line 6333 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 269: /* var_decl ::= var_type_ref name_tok ASSIGN expr */
-#line 2004 "xl6_parser.y"
+#line 2038 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_VAR_DECL, &yymsp[-2].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6358 "xl6_parser.c"
+#line 6343 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 270: /* var_decl ::= KW_AUTO name_tok ASSIGN expr */
-#line 2009 "xl6_parser.y"
+#line 2043 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_VAR_DECL, &yymsp[-2].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNewText(XL6_AST_TYPE, "auto", 4, &yymsp[-3].minor.yy0));
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6368 "xl6_parser.c"
+#line 6353 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 271: /* var_decl ::= KW_AUTO multi_name_list ASSIGN expr */
-#line 2014 "xl6_parser.y"
+#line 2048 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_MULTI_VAR_DECL, &yymsp[-3].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6378 "xl6_parser.c"
+#line 6363 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 272: /* var_decl ::= KW_CONST var_type_ref name_tok ASSIGN expr */
-#line 2019 "xl6_parser.y"
+#line 2053 "xl6_parser.y"
 {
     yymsp[-4].minor.yy270 = xl6AstNew(XL6_AST_CONST_DECL, &yymsp[-2].minor.yy211);
     xl6AstAddChild(yymsp[-4].minor.yy270, yymsp[-3].minor.yy270);
     xl6AstAddChild(yymsp[-4].minor.yy270, yymsp[0].minor.yy270);
 }
-#line 6388 "xl6_parser.c"
+#line 6373 "xl6_parser.c"
         break;
       case 273: /* multi_name_list ::= name_tok COMMA name_tok */
-#line 2025 "xl6_parser.y"
+#line 2059 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6PList();
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[-2].minor.yy211));
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[0].minor.yy211));
 }
-#line 6397 "xl6_parser.c"
+#line 6382 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 274: /* multi_name_list ::= multi_name_list COMMA name_tok */
-#line 2030 "xl6_parser.y"
+      case 327: /* match_bindings ::= match_bindings COMMA name_tok */ yytestcase(yyruleno==327);
+#line 2064 "xl6_parser.y"
 {
     yylhsminor.yy270 = yymsp[-2].minor.yy270;
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[0].minor.yy211));
 }
-#line 6406 "xl6_parser.c"
+#line 6392 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 275: /* multi_assign_targets ::= postfix_expr COMMA postfix_expr */
-#line 2035 "xl6_parser.y"
+#line 2069 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6PList();
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6416 "xl6_parser.c"
+#line 6402 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 277: /* return_stmt ::= KW_RETURN */
-#line 2045 "xl6_parser.y"
+#line 2079 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_RETURN, &yymsp[0].minor.yy0);
 }
-#line 6424 "xl6_parser.c"
+#line 6410 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 278: /* return_stmt ::= KW_RETURN expr_list */
-#line 2048 "xl6_parser.y"
+#line 2082 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_RETURN, &yymsp[-1].minor.yy0);
     xl6AstMoveChildren(yylhsminor.yy270, yymsp[0].minor.yy270);
     xl6AstFree(yymsp[0].minor.yy270);
 }
-#line 6434 "xl6_parser.c"
+#line 6420 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 279: /* yield_stmt ::= KW_YIELD expr */
-#line 2054 "xl6_parser.y"
+#line 2088 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_YIELD, &yymsp[-1].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6443 "xl6_parser.c"
+#line 6429 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 280: /* break_stmt ::= KW_BREAK */
-#line 2059 "xl6_parser.y"
+#line 2093 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_BREAK, &yymsp[0].minor.yy0);
 }
-#line 6451 "xl6_parser.c"
+#line 6437 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 281: /* break_stmt ::= KW_BREAK INT */
-#line 2062 "xl6_parser.y"
+#line 2096 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_BREAK, &yymsp[-1].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_INT, &yymsp[0].minor.yy0));
 }
-#line 6460 "xl6_parser.c"
+#line 6446 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 282: /* continue_stmt ::= KW_CONTINUE */
-#line 2067 "xl6_parser.y"
+#line 2101 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_CONTINUE, &yymsp[0].minor.yy0);
 }
-#line 6468 "xl6_parser.c"
+#line 6454 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 283: /* continue_stmt ::= KW_CONTINUE INT */
-#line 2070 "xl6_parser.y"
+#line 2104 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_CONTINUE, &yymsp[-1].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_INT, &yymsp[0].minor.yy0));
 }
-#line 6477 "xl6_parser.c"
+#line 6463 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 284: /* throw_stmt ::= KW_THROW */
-#line 2075 "xl6_parser.y"
+#line 2109 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_THROW, &yymsp[0].minor.yy0);
 }
-#line 6485 "xl6_parser.c"
+#line 6471 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 285: /* throw_stmt ::= KW_THROW expr */
-#line 2078 "xl6_parser.y"
+#line 2112 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_THROW, &yymsp[-1].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6494 "xl6_parser.c"
+#line 6480 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 286: /* throw_stmt ::= KW_THROW name_tok expr */
-#line 2082 "xl6_parser.y"
+#line 2116 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_THROW, &yymsp[-2].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[-1].minor.yy211));
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6504 "xl6_parser.c"
+#line 6490 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 287: /* assert_stmt ::= KW_ASSERT expr */
-#line 2088 "xl6_parser.y"
+#line 2122 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ASSERT, &yymsp[-1].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6513 "xl6_parser.c"
+#line 6499 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 288: /* assert_stmt ::= KW_ASSERT expr COMMA expr */
-#line 2092 "xl6_parser.y"
+#line 2126 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ASSERT, &yymsp[-3].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6523 "xl6_parser.c"
+#line 6509 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 289: /* if_stmt ::= KW_IF expr if_sep block elseif_list else_opt KW_END */
-#line 2098 "xl6_parser.y"
+#line 2132 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_IF, &yymsp[-6].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-5].minor.yy270);
@@ -6536,11 +6532,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 6535 "xl6_parser.c"
+#line 6521 "xl6_parser.c"
   yymsp[-6].minor.yy270 = yylhsminor.yy270;
         break;
       case 290: /* if_stmt ::= KW_IF expr KW_THEN inline_stmt KW_END */
-#line 2106 "xl6_parser.y"
+#line 2140 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_IF, &yymsp[-4].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
@@ -6548,11 +6544,11 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, xl6PList());
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_BLOCK, NULL));
 }
-#line 6547 "xl6_parser.c"
+#line 6533 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 291: /* if_stmt ::= KW_IF expr KW_THEN inline_stmt KW_ELSE inline_stmt KW_END */
-#line 2114 "xl6_parser.y"
+#line 2148 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_IF, &yymsp[-6].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-5].minor.yy270);
@@ -6560,68 +6556,59 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, xl6PList());
     xl6AstAddChild(yylhsminor.yy270, xl6PBlockWith(yymsp[-1].minor.yy270));
 }
-#line 6559 "xl6_parser.c"
+#line 6545 "xl6_parser.c"
   yymsp[-6].minor.yy270 = yylhsminor.yy270;
         break;
-      case 299: /* inline_stmt ::= expr */
-#line 2129 "xl6_parser.y"
-{
-    yylhsminor.yy270 = xl6AstNew(XL6_AST_EXPR_STMT, NULL);
-    xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
-}
-#line 6568 "xl6_parser.c"
-  yymsp[0].minor.yy270 = yylhsminor.yy270;
-        break;
       case 302: /* elseif_item ::= KW_ELSEIF expr if_sep block */
-#line 2145 "xl6_parser.y"
+#line 2179 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ELSEIF, &yymsp[-3].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6578 "xl6_parser.c"
+#line 6555 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 304: /* else_opt ::= KW_ELSE need_sep block */
-#line 2154 "xl6_parser.y"
+#line 2188 "xl6_parser.y"
 {
     yymsp[-2].minor.yy270 = yymsp[0].minor.yy270;
 }
-#line 6586 "xl6_parser.c"
+#line 6563 "xl6_parser.c"
         break;
       case 305: /* while_stmt ::= KW_WHILE expr need_sep block KW_END */
-#line 2158 "xl6_parser.y"
+#line 2192 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_WHILE, &yymsp[-4].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 6595 "xl6_parser.c"
+#line 6572 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 306: /* do_while_stmt ::= KW_DO need_sep block POST_WHILE expr KW_END need_sep */
-#line 2164 "xl6_parser.y"
+#line 2198 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_DO_WHILE, &yymsp[-6].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-4].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
 }
-#line 6605 "xl6_parser.c"
+#line 6582 "xl6_parser.c"
   yymsp[-6].minor.yy270 = yylhsminor.yy270;
         break;
       case 307: /* for_stmt ::= KW_FOR for_targets KW_IN expr need_sep block KW_END */
-#line 2170 "xl6_parser.y"
+#line 2204 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_FOR, &yymsp[-6].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-5].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 6616 "xl6_parser.c"
+#line 6593 "xl6_parser.c"
   yymsp[-6].minor.yy270 = yylhsminor.yy270;
         break;
       case 308: /* for_stmt ::= KW_FOR KW_AWAIT for_targets KW_IN expr need_sep block KW_END */
-#line 2176 "xl6_parser.y"
+#line 2210 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_FOR, &yymsp[-7].minor.yy0);
     yylhsminor.yy270->flags |= XL6_AST_FLAG_ASYNC;
@@ -6629,150 +6616,141 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 6628 "xl6_parser.c"
+#line 6605 "xl6_parser.c"
   yymsp[-7].minor.yy270 = yylhsminor.yy270;
         break;
       case 309: /* for_targets ::= name_tok */
-#line 2184 "xl6_parser.y"
+#line 2218 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_FOR_TARGETS, &yymsp[0].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[0].minor.yy211));
 }
-#line 6637 "xl6_parser.c"
+#line 6614 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 310: /* for_targets ::= name_tok COMMA name_tok */
-#line 2188 "xl6_parser.y"
+#line 2222 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_FOR_TARGETS, &yymsp[-2].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[-2].minor.yy211));
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[0].minor.yy211));
 }
-#line 6647 "xl6_parser.c"
+#line 6624 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 311: /* match_stmt ::= STMT_MATCH expr need_sep match_stmt_cases KW_END */
-#line 2194 "xl6_parser.y"
+#line 2228 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_MATCH, &yymsp[-4].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 6657 "xl6_parser.c"
+#line 6634 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 314: /* match_stmt_case ::= KW_CASE match_pattern need_sep block */
-#line 2209 "xl6_parser.y"
+#line 2243 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_MATCH_CASE, &yymsp[-3].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6667 "xl6_parser.c"
+#line 6644 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 315: /* match_stmt_case ::= KW_ELSE need_sep block */
-#line 2214 "xl6_parser.y"
+#line 2248 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_MATCH_CASE, &yymsp[-2].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_PATTERN_ELSE, &yymsp[-2].minor.yy0));
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6677 "xl6_parser.c"
+#line 6654 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 316: /* match_pattern ::= name_tok */
-#line 2220 "xl6_parser.y"
+#line 2254 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_PATTERN_VARIANT, &yymsp[0].minor.yy211);
 }
-#line 6685 "xl6_parser.c"
+#line 6662 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 317: /* match_pattern ::= name_tok LPAREN match_bindings_opt RPAREN */
-#line 2223 "xl6_parser.y"
+#line 2257 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_PATTERN_VARIANT, &yymsp[-3].minor.yy211);
     xl6AstMoveChildren(yylhsminor.yy270, yymsp[-1].minor.yy270);
     xl6AstFree(yymsp[-1].minor.yy270);
 }
-#line 6695 "xl6_parser.c"
+#line 6672 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 318: /* match_pattern ::= INT */
-#line 2228 "xl6_parser.y"
+#line 2262 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_PATTERN_LITERAL, &yymsp[0].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_INT, &yymsp[0].minor.yy0));
 }
-#line 6704 "xl6_parser.c"
+#line 6681 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 319: /* match_pattern ::= FLOAT */
-#line 2232 "xl6_parser.y"
+#line 2266 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_PATTERN_LITERAL, &yymsp[0].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_FLOAT, &yymsp[0].minor.yy0));
 }
-#line 6713 "xl6_parser.c"
+#line 6690 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 320: /* match_pattern ::= STRING */
-#line 2236 "xl6_parser.y"
+#line 2270 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_PATTERN_LITERAL, &yymsp[0].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6PParseLiteral(ctx, &yymsp[0].minor.yy0, XL6_AST_STRING));
 }
-#line 6722 "xl6_parser.c"
+#line 6699 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 321: /* match_pattern ::= KW_TRUE */
-#line 2240 "xl6_parser.y"
+#line 2274 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_PATTERN_LITERAL, &yymsp[0].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNewText(XL6_AST_BOOL, "true", 4, &yymsp[0].minor.yy0));
 }
-#line 6731 "xl6_parser.c"
+#line 6708 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 322: /* match_pattern ::= KW_FALSE */
-#line 2244 "xl6_parser.y"
+#line 2278 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_PATTERN_LITERAL, &yymsp[0].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNewText(XL6_AST_BOOL, "false", 5, &yymsp[0].minor.yy0));
 }
-#line 6740 "xl6_parser.c"
+#line 6717 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 323: /* match_pattern ::= KW_NULL */
-#line 2248 "xl6_parser.y"
+#line 2282 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_PATTERN_LITERAL, &yymsp[0].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NULL, &yymsp[0].minor.yy0));
 }
-#line 6749 "xl6_parser.c"
+#line 6726 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 326: /* match_bindings ::= name_tok */
-#line 2259 "xl6_parser.y"
+#line 2293 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6PList();
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[0].minor.yy211));
 }
-#line 6758 "xl6_parser.c"
+#line 6735 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
-      case 327: /* match_bindings ::= match_bindings COMMA name_tok */
-#line 2263 "xl6_parser.y"
-{
-    yylhsminor.yy270 = yymsp[-2].minor.yy270;
-    xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[0].minor.yy211));
-}
-#line 6767 "xl6_parser.c"
-  yymsp[-2].minor.yy270 = yylhsminor.yy270;
-        break;
       case 328: /* try_stmt ::= KW_TRY need_sep block catch_opt finally_opt KW_END */
-#line 2268 "xl6_parser.y"
+#line 2302 "xl6_parser.y"
 {
     if ( yymsp[-2].minor.yy270 == NULL && yymsp[-1].minor.yy270 == NULL ) {
         xl6PDiag(ctx, &yymsp[-5].minor.yy0, "try 必须包含 catch 或 finally");
@@ -6782,48 +6760,48 @@ static YYACTIONTYPE yy_reduce(
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270 != NULL ? yymsp[-2].minor.yy270 : xl6PList());
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270 != NULL ? yymsp[-1].minor.yy270 : xl6AstNew(XL6_AST_BLOCK, NULL));
 }
-#line 6781 "xl6_parser.c"
+#line 6749 "xl6_parser.c"
   yymsp[-5].minor.yy270 = yylhsminor.yy270;
         break;
       case 333: /* catch_clause ::= KW_CATCH name_tok need_sep block */
-#line 2290 "xl6_parser.y"
+#line 2324 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_CATCH, &yymsp[-3].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[-2].minor.yy211));
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6791 "xl6_parser.c"
+#line 6759 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 334: /* catch_clause ::= KW_CATCH name_tok name_tok need_sep block */
-#line 2295 "xl6_parser.y"
+#line 2329 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_CATCH, &yymsp[-4].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[-3].minor.yy211));
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_NAME, &yymsp[-2].minor.yy211));
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6802 "xl6_parser.c"
+#line 6770 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 336: /* finally_opt ::= KW_FINALLY need_sep block */
-#line 2303 "xl6_parser.y"
+#line 2337 "xl6_parser.y"
 {
     yylhsminor.yy270 = yymsp[0].minor.yy270;
     (void)yymsp[-2].minor.yy0;
 }
-#line 6811 "xl6_parser.c"
+#line 6779 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 341: /* conditional_expr ::= null_expr QUESTION expr COLON conditional_expr */
-#line 2320 "xl6_parser.y"
+#line 2354 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_CONDITIONAL, &yymsp[-3].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-4].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6822 "xl6_parser.c"
+#line 6790 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 343: /* null_expr ::= null_expr NULL_COALESCE or_expr */
@@ -6848,29 +6826,29 @@ static YYACTIONTYPE yy_reduce(
       case 374: /* mul_expr ::= mul_expr SLASH pow_expr */ yytestcase(yyruleno==374);
       case 375: /* mul_expr ::= mul_expr PERCENT pow_expr */ yytestcase(yyruleno==375);
       case 377: /* pow_expr ::= unary_expr POW pow_expr */ yytestcase(yyruleno==377);
-#line 2328 "xl6_parser.y"
+#line 2362 "xl6_parser.y"
 { yylhsminor.yy270 = xl6AstNewBinary(&yymsp[-1].minor.yy0, yymsp[-2].minor.yy270, yymsp[0].minor.yy270); }
-#line 6849 "xl6_parser.c"
+#line 6817 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 364: /* compare_expr ::= compare_expr KW_IS type_expr */
-#line 2356 "xl6_parser.y"
+#line 2390 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_TYPE_IS, &yymsp[-1].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6859 "xl6_parser.c"
+#line 6827 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 365: /* compare_expr ::= compare_expr KW_AS type_expr */
-#line 2361 "xl6_parser.y"
+#line 2395 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_TYPE_AS, &yymsp[-1].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6869 "xl6_parser.c"
+#line 6837 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 379: /* unary_expr ::= PLUS unary_expr */
@@ -6878,310 +6856,310 @@ static YYACTIONTYPE yy_reduce(
       case 381: /* unary_expr ::= KW_NOT unary_expr */ yytestcase(yyruleno==381);
       case 382: /* unary_expr ::= BANG unary_expr */ yytestcase(yyruleno==382);
       case 383: /* unary_expr ::= BIT_NOT unary_expr */ yytestcase(yyruleno==383);
-#line 2384 "xl6_parser.y"
+#line 2418 "xl6_parser.y"
 { yylhsminor.yy270 = xl6AstNewUnary(&yymsp[-1].minor.yy0, yymsp[0].minor.yy270); }
-#line 6879 "xl6_parser.c"
+#line 6847 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 384: /* unary_expr ::= KW_AWAIT unary_expr */
-#line 2389 "xl6_parser.y"
+#line 2423 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_AWAIT, &yymsp[-1].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 6888 "xl6_parser.c"
+#line 6856 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 386: /* postfix_expr ::= postfix_expr LPAREN call_args_opt RPAREN */
-#line 2395 "xl6_parser.y"
+#line 2429 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNewCall(yymsp[-3].minor.yy270, yymsp[-1].minor.yy270, &yymsp[-2].minor.yy0);
 }
-#line 6896 "xl6_parser.c"
+#line 6864 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 387: /* postfix_expr ::= postfix_expr SCOPE LT type_list GT */
-#line 2398 "xl6_parser.y"
+#line 2432 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_GENERIC_INSTANT, &yymsp[-3].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-4].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 6906 "xl6_parser.c"
+#line 6874 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 388: /* postfix_expr ::= postfix_expr DOT member_name_tok */
-#line 2403 "xl6_parser.y"
+#line 2437 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_MEMBER, &yymsp[0].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
 }
-#line 6915 "xl6_parser.c"
+#line 6883 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 389: /* postfix_expr ::= postfix_expr SAFE_DOT member_name_tok */
-#line 2407 "xl6_parser.y"
+#line 2441 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_SAFE_MEMBER, &yymsp[0].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
 }
-#line 6924 "xl6_parser.c"
+#line 6892 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 390: /* postfix_expr ::= postfix_expr LBRACKET expr_list RBRACKET */
-#line 2411 "xl6_parser.y"
+#line 2445 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_INDEX, &yymsp[-2].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, xl6PIndexPayloadFromList(yymsp[-1].minor.yy270));
 }
-#line 6934 "xl6_parser.c"
+#line 6902 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 391: /* postfix_expr ::= postfix_expr SAFE_LBRACKET expr_list RBRACKET */
-#line 2416 "xl6_parser.y"
+#line 2450 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_SAFE_INDEX, &yymsp[-2].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, xl6PIndexPayloadFromList(yymsp[-1].minor.yy270));
 }
-#line 6944 "xl6_parser.c"
+#line 6912 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 392: /* atom ::= name_tok */
-#line 2422 "xl6_parser.y"
+#line 2456 "xl6_parser.y"
 { yylhsminor.yy270 = xl6AstNew(XL6_AST_NAME, &yymsp[0].minor.yy211); }
-#line 6950 "xl6_parser.c"
+#line 6918 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 393: /* atom ::= TYPE_FUNCTION */
-#line 2423 "xl6_parser.y"
+#line 2457 "xl6_parser.y"
 { yylhsminor.yy270 = xl6AstNewText(XL6_AST_NAME, "function", 8, &yymsp[0].minor.yy0); }
-#line 6956 "xl6_parser.c"
+#line 6924 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 394: /* atom ::= INT */
-#line 2424 "xl6_parser.y"
+#line 2458 "xl6_parser.y"
 { yylhsminor.yy270 = xl6AstNew(XL6_AST_INT, &yymsp[0].minor.yy0); }
-#line 6962 "xl6_parser.c"
+#line 6930 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 395: /* atom ::= FLOAT */
-#line 2425 "xl6_parser.y"
+#line 2459 "xl6_parser.y"
 { yylhsminor.yy270 = xl6AstNew(XL6_AST_FLOAT, &yymsp[0].minor.yy0); }
-#line 6968 "xl6_parser.c"
+#line 6936 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 396: /* atom ::= STRING */
-#line 2426 "xl6_parser.y"
+#line 2460 "xl6_parser.y"
 { yylhsminor.yy270 = xl6PParseLiteral(ctx, &yymsp[0].minor.yy0, XL6_AST_STRING); }
-#line 6974 "xl6_parser.c"
+#line 6942 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 397: /* atom ::= CHAR */
-#line 2427 "xl6_parser.y"
+#line 2461 "xl6_parser.y"
 { yylhsminor.yy270 = xl6PParseLiteral(ctx, &yymsp[0].minor.yy0, XL6_AST_CHAR); }
-#line 6980 "xl6_parser.c"
+#line 6948 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 398: /* atom ::= BYTES */
-#line 2428 "xl6_parser.y"
+#line 2462 "xl6_parser.y"
 { yylhsminor.yy270 = xl6PParseLiteral(ctx, &yymsp[0].minor.yy0, XL6_AST_BYTES); }
-#line 6986 "xl6_parser.c"
+#line 6954 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 399: /* atom ::= FSTRING */
-#line 2429 "xl6_parser.y"
+#line 2463 "xl6_parser.y"
 { yylhsminor.yy270 = xl6PParseFString(ctx, &yymsp[0].minor.yy0); }
-#line 6992 "xl6_parser.c"
+#line 6960 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 400: /* atom ::= TIME */
-#line 2430 "xl6_parser.y"
+#line 2464 "xl6_parser.y"
 { yylhsminor.yy270 = xl6AstNew(XL6_AST_TIME, &yymsp[0].minor.yy0); }
-#line 6998 "xl6_parser.c"
+#line 6966 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 401: /* atom ::= KW_TRUE */
-#line 2431 "xl6_parser.y"
+#line 2465 "xl6_parser.y"
 { yylhsminor.yy270 = xl6AstNewText(XL6_AST_BOOL, "true", 4, &yymsp[0].minor.yy0); }
-#line 7004 "xl6_parser.c"
+#line 6972 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 402: /* atom ::= KW_FALSE */
-#line 2432 "xl6_parser.y"
+#line 2466 "xl6_parser.y"
 { yylhsminor.yy270 = xl6AstNewText(XL6_AST_BOOL, "false", 5, &yymsp[0].minor.yy0); }
-#line 7010 "xl6_parser.c"
+#line 6978 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 403: /* atom ::= KW_NULL */
-#line 2433 "xl6_parser.y"
+#line 2467 "xl6_parser.y"
 { yylhsminor.yy270 = xl6AstNew(XL6_AST_NULL, &yymsp[0].minor.yy0); }
-#line 7016 "xl6_parser.c"
+#line 6984 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 409: /* atom ::= name_tok bracket_literal */
-#line 2439 "xl6_parser.y"
+#line 2473 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6PBracketAfterName(&yymsp[-1].minor.yy211, yymsp[0].minor.yy270);
 }
-#line 7024 "xl6_parser.c"
+#line 6992 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 410: /* atom ::= name_tok brace_literal */
-#line 2442 "xl6_parser.y"
+#line 2476 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6PBraceAfterName(&yymsp[-1].minor.yy211, yymsp[0].minor.yy270);
 }
-#line 7032 "xl6_parser.c"
+#line 7000 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 411: /* atom ::= name_tok LT type_list GT bracket_literal */
       case 412: /* atom ::= name_tok TYPE_LT type_list GT bracket_literal */ yytestcase(yyruleno==412);
       case 413: /* atom ::= name_tok LT type_list GT brace_literal */ yytestcase(yyruleno==413);
       case 414: /* atom ::= name_tok TYPE_LT type_list GT brace_literal */ yytestcase(yyruleno==414);
-#line 2445 "xl6_parser.y"
+#line 2479 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6PTypedLiteralWithType(&yymsp[-4].minor.yy211, xl6AstNewGenericType(&yymsp[-4].minor.yy211, yymsp[-2].minor.yy270), yymsp[0].minor.yy270);
 }
-#line 7043 "xl6_parser.c"
+#line 7011 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 415: /* match_expr ::= KW_MATCH expr need_sep match_expr_cases KW_END */
-#line 2458 "xl6_parser.y"
+#line 2492 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_MATCH, &yymsp[-4].minor.yy0);
     yylhsminor.yy270->flags |= XL6_AST_FLAG_MATCH_EXPR;
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 7054 "xl6_parser.c"
+#line 7022 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 418: /* match_expr_case ::= KW_CASE match_pattern KW_THEN expr need_sep */
-#line 2474 "xl6_parser.y"
+#line 2508 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_MATCH_CASE, &yymsp[-4].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 7064 "xl6_parser.c"
+#line 7032 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 419: /* match_expr_case ::= KW_ELSE KW_THEN expr need_sep */
-#line 2479 "xl6_parser.y"
+#line 2513 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_MATCH_CASE, &yymsp[-3].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, xl6AstNew(XL6_AST_PATTERN_ELSE, &yymsp[-3].minor.yy0));
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 7074 "xl6_parser.c"
+#line 7042 "xl6_parser.c"
   yymsp[-3].minor.yy270 = yylhsminor.yy270;
         break;
       case 420: /* anon_func ::= KW_FUNC name_params return_sig need_sep block KW_END */
-#line 2485 "xl6_parser.y"
+#line 2519 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ANON_FUNC, &yymsp[-5].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-4].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-1].minor.yy270);
 }
-#line 7085 "xl6_parser.c"
+#line 7053 "xl6_parser.c"
   yymsp[-5].minor.yy270 = yylhsminor.yy270;
         break;
       case 421: /* anon_func ::= KW_FUNC name_params return_sig FAT_ARROW expr */
-#line 2491 "xl6_parser.y"
+#line 2525 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ANON_FUNC, &yymsp[-4].minor.yy0);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-3].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, xl6PReturnBlock(&yymsp[-4].minor.yy0, yymsp[0].minor.yy270));
 }
-#line 7096 "xl6_parser.c"
+#line 7064 "xl6_parser.c"
   yymsp[-4].minor.yy270 = yylhsminor.yy270;
         break;
       case 422: /* bracket_literal ::= LBRACKET RBRACKET */
-#line 2498 "xl6_parser.y"
+#line 2532 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ARRAY_LITERAL, &yymsp[-1].minor.yy0);
 }
-#line 7104 "xl6_parser.c"
+#line 7072 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 423: /* bracket_literal ::= LBRACKET value_list RBRACKET */
-#line 2501 "xl6_parser.y"
+#line 2535 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ARRAY_LITERAL, &yymsp[-2].minor.yy0);
     xl6AstMoveChildren(yylhsminor.yy270, yymsp[-1].minor.yy270);
     xl6AstFree(yymsp[-1].minor.yy270);
 }
-#line 7114 "xl6_parser.c"
+#line 7082 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 424: /* bracket_literal ::= LBRACKET pair_list RBRACKET */
-#line 2506 "xl6_parser.y"
+#line 2540 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_LIST_LITERAL, &yymsp[-2].minor.yy0);
     xl6AstMoveChildren(yylhsminor.yy270, yymsp[-1].minor.yy270);
     xl6AstFree(yymsp[-1].minor.yy270);
 }
-#line 7124 "xl6_parser.c"
+#line 7092 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 425: /* brace_literal ::= LBRACE RBRACE */
-#line 2512 "xl6_parser.y"
+#line 2546 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_DICT_LITERAL, &yymsp[-1].minor.yy0);
 }
-#line 7132 "xl6_parser.c"
+#line 7100 "xl6_parser.c"
   yymsp[-1].minor.yy270 = yylhsminor.yy270;
         break;
       case 426: /* brace_literal ::= LBRACE value_list RBRACE */
-#line 2515 "xl6_parser.y"
+#line 2549 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_SET_LITERAL, &yymsp[-2].minor.yy0);
     xl6AstMoveChildren(yylhsminor.yy270, yymsp[-1].minor.yy270);
     xl6AstFree(yymsp[-1].minor.yy270);
 }
-#line 7142 "xl6_parser.c"
+#line 7110 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 427: /* brace_literal ::= LBRACE pair_list RBRACE */
-#line 2520 "xl6_parser.y"
+#line 2554 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_DICT_LITERAL, &yymsp[-2].minor.yy0);
     xl6AstMoveChildren(yylhsminor.yy270, yymsp[-1].minor.yy270);
     xl6AstFree(yymsp[-1].minor.yy270);
 }
-#line 7152 "xl6_parser.c"
+#line 7120 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 434: /* pair ::= expr COLON expr */
-#line 2550 "xl6_parser.y"
+#line 2584 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_KEY_VALUE, NULL);
     xl6AstAddChild(yylhsminor.yy270, yymsp[-2].minor.yy270);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 7162 "xl6_parser.c"
+#line 7130 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       case 439: /* call_arg ::= expr */
-#line 2568 "xl6_parser.y"
+#line 2602 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_ARG, NULL);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 7171 "xl6_parser.c"
+#line 7139 "xl6_parser.c"
   yymsp[0].minor.yy270 = yylhsminor.yy270;
         break;
       case 440: /* call_arg ::= name_tok ASSIGN expr */
-#line 2572 "xl6_parser.y"
+#line 2606 "xl6_parser.y"
 {
     yylhsminor.yy270 = xl6AstNew(XL6_AST_NAMED_ARG, &yymsp[-2].minor.yy211);
     xl6AstAddChild(yylhsminor.yy270, yymsp[0].minor.yy270);
 }
-#line 7180 "xl6_parser.c"
+#line 7148 "xl6_parser.c"
   yymsp[-2].minor.yy270 = yylhsminor.yy270;
         break;
       default:
@@ -7209,6 +7187,159 @@ static YYACTIONTYPE yy_reduce(
   yypParser->yytos = yymsp;
   yymsp->stateno = (YYACTIONTYPE)yyact;
   yymsp->major = (YYCODETYPE)yygoto;
+  yymsp->sourceRange = yySourceRange;
+  switch (yygoto) {
+    case 269: /* add_expr */
+    case 262: /* and_expr */
+    case 276: /* anon_func */
+    case 231: /* assert_stmt */
+    case 227: /* assign_stmt */
+    case 273: /* atom */
+    case 265: /* bit_and_expr */
+    case 263: /* bit_or_expr */
+    case 264: /* bit_xor_expr */
+    case 175: /* block */
+    case 278: /* brace_literal */
+    case 277: /* bracket_literal */
+    case 232: /* break_stmt */
+    case 285: /* call_arg */
+    case 284: /* call_args */
+    case 274: /* call_args_opt */
+    case 258: /* catch_clause */
+    case 257: /* catch_list */
+    case 255: /* catch_opt */
+    case 182: /* class_body */
+    case 159: /* class_decl */
+    case 181: /* class_extends */
+    case 195: /* class_extern_func */
+    case 196: /* class_extern_get */
+    case 197: /* class_extern_let */
+    case 194: /* class_extern_special */
+    case 189: /* class_member */
+    case 190: /* class_member_base */
+    case 200: /* class_special_decl */
+    case 267: /* compare_expr */
+    case 225: /* compound_stmt */
+    case 259: /* conditional_expr */
+    case 233: /* continue_stmt */
+    case 193: /* derive_decl */
+    case 238: /* do_while_stmt */
+    case 246: /* else_opt */
+    case 248: /* elseif_item */
+    case 245: /* elseif_list */
+    case 163: /* enum_decl */
+    case 266: /* equality_expr */
+    case 160: /* export_class_decl */
+    case 154: /* export_const_decl */
+    case 164: /* export_enum_decl */
+    case 149: /* export_extern_func_decl */
+    case 158: /* export_extern_type_alias_decl */
+    case 152: /* export_extern_var_decl */
+    case 150: /* export_func_decl */
+    case 162: /* export_protocol_decl */
+    case 157: /* export_type_alias_decl */
+    case 166: /* export_union_decl */
+    case 153: /* export_var_decl */
+    case 178: /* expr */
+    case 243: /* expr_list */
+    case 148: /* extern_func_decl */
+    case 156: /* extern_type_alias_decl */
+    case 151: /* extern_var_decl */
+    case 205: /* field_attr */
+    case 139: /* field_attr_arg */
+    case 207: /* field_attr_args */
+    case 206: /* field_attr_args_opt */
+    case 204: /* field_attrs */
+    case 201: /* field_attrs_opt */
+    case 191: /* field_decl */
+    case 202: /* field_default */
+    case 256: /* finally_opt */
+    case 239: /* for_stmt */
+    case 249: /* for_targets */
+    case 146: /* func_decl */
+    case 223: /* func_type_param */
+    case 222: /* func_type_params */
+    case 221: /* func_type_params_opt */
+    case 217: /* function_type_ref */
+    case 213: /* generic_constraint_list */
+    case 212: /* generic_constraint_opt */
+    case 211: /* generic_param */
+    case 176: /* generic_param_list */
+    case 172: /* generic_params_opt */
+    case 236: /* if_stmt */
+    case 168: /* import_alias_opt */
+    case 147: /* import_decl */
+    case 131: /* import_name */
+    case 169: /* import_select_item */
+    case 170: /* import_select_list */
+    case 132: /* import_target */
+    case 247: /* inline_stmt */
+    case 144: /* item */
+    case 145: /* item_base */
+    case 143: /* items */
+    case 254: /* match_bindings */
+    case 253: /* match_bindings_opt */
+    case 275: /* match_expr */
+    case 280: /* match_expr_case */
+    case 279: /* match_expr_cases */
+    case 252: /* match_pattern */
+    case 240: /* match_stmt */
+    case 251: /* match_stmt_case */
+    case 250: /* match_stmt_cases */
+    case 270: /* mul_expr */
+    case 235: /* multi_assign_targets */
+    case 242: /* multi_name_list */
+    case 173: /* name_params */
+    case 192: /* native_field_decl */
+    case 203: /* native_type_ref */
+    case 260: /* null_expr */
+    case 184: /* numeric_enum_body */
+    case 186: /* numeric_enum_variant */
+    case 261: /* or_expr */
+    case 283: /* pair */
+    case 282: /* pair_list */
+    case 216: /* param */
+    case 215: /* param_list */
+    case 210: /* param_list_opt */
+    case 218: /* param_type_ref */
+    case 234: /* postfix_expr */
+    case 271: /* pow_expr */
+    case 198: /* property_get_decl */
+    case 199: /* property_let_decl */
+    case 183: /* protocol_body */
+    case 161: /* protocol_decl */
+    case 188: /* protocol_member */
+    case 214: /* qualified_type_ref */
+    case 174: /* return_sig */
+    case 228: /* return_stmt */
+    case 219: /* return_value_type_ref */
+    case 268: /* shift_expr */
+    case 224: /* simple_stmt */
+    case 167: /* stmt */
+    case 185: /* tagged_enum_body */
+    case 187: /* tagged_enum_variant */
+    case 230: /* throw_stmt */
+    case 241: /* try_stmt */
+    case 155: /* type_alias_decl */
+    case 180: /* type_expr */
+    case 220: /* type_list */
+    case 179: /* type_ref */
+    case 272: /* unary_expr */
+    case 208: /* union_body */
+    case 165: /* union_decl */
+    case 209: /* union_member */
+    case 281: /* value_list */
+    case 226: /* var_decl */
+    case 177: /* var_type_ref */
+    case 237: /* while_stmt */
+    case 229: /* yield_stmt */
+      if (yymsp->minor.yy270) yymsp->minor.yy270->range = yySourceRange;
+      break;
+    case 141:
+      if (ctx && ctx->root) ctx->root->range = yySourceRange;
+      break;
+    default: break;
+  }
   yyTraceShift(yypParser, yyact, "... then shift");
   return yyact;
 }
@@ -7231,12 +7362,12 @@ static void yy_parse_failed(
   /* Here code is inserted which will be executed whenever the
   ** parser fails */
 /************ Begin %parse_failure code ***************************************/
-#line 999 "xl6_parser.y"
+#line 1033 "xl6_parser.y"
 
     if ( ctx != NULL ) {
         ctx->hadError = 1;
     }
-#line 7235 "xl6_parser.c"
+#line 7203 "xl6_parser.c"
 /************ End %parse_failure code *****************************************/
   xl6ParseARG_STORE /* Suppress warning about unused %extra_argument variable */
   xl6ParseCTX_STORE
@@ -7255,10 +7386,10 @@ static void yy_syntax_error(
   xl6ParseCTX_FETCH
 #define TOKEN yyminor
 /************ Begin %syntax_error code ****************************************/
-#line 995 "xl6_parser.y"
+#line 1029 "xl6_parser.y"
 
     xl6PDiag(ctx, &TOKEN, "语法错误");
-#line 7257 "xl6_parser.c"
+#line 7225 "xl6_parser.c"
 /************ End %syntax_error code ******************************************/
   xl6ParseARG_STORE /* Suppress warning about unused %extra_argument variable */
   xl6ParseCTX_STORE

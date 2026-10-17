@@ -74,6 +74,8 @@ def main():
         ('native-text',task/'tools/check_stdlib_text_suites_shipping.py','results.json',True),
         ('native-system',task/'tools/check_stdlib_system_suites_shipping.py','results.json',True),
         ('signal-language-oom',task/'tools/check_stdlib_signal_language_oom_shipping.py','results.json',True),
+        ('ide-cli',task/'tools/check_stdlib_ide_cli_shipping.py','results.json',True),
+        ('build-input-scope',task/'tools/check_stdlib_build_input_scope_shipping.py','results.json',True),
         ('guide-contracts',task/'tools/check_stdlib_guide_contracts.py','results.json',False)]
     if windows:
         gates.append(('windows-nls-sdk',task/'tools/check_stdlib_windows_nls_sdk_shipping.py','results.json',True))

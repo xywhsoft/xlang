@@ -500,6 +500,10 @@ generic var dispatch, shipping and full53 remain separate gates; see
 
 ## Guard scripts and inventory
 
+- `check_stdlib_source_identity_faults.py`: forwarding source-unit fault checks for checked overlay/report/completion/import identity; O0/O2 fixed-source and old/mutant rejection controls, not shipping compiler OOM acceptance.
+- `check_stdlib_ide_cli_shipping.py`: mandatory same-product Windows/Linux IDE CLI queries, exact snapshots and ranges, checked index/completion/C bindings, overlays and rejection controls.
+- `check_stdlib_build_input_scope_shipping.py`: mandatory actual compiler input-scope isolation; four native calling threads, eight independent AOT builds, exact input receipts and execution. TCC remains serialized by its existing API lock.
+
 B66 explicit cleanup gate: `check_stdlib_sequence_clear.py --out <fresh-directory>`
 requires `--public-directory` on Windows (first stage that directory with
 `stage_xlir_artifact_runtime_sources.ps1`) and supports Linux `--sanitize`.

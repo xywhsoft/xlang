@@ -130,7 +130,17 @@ static void xl6AstDumpJsonIndent(XL6_Output* out, int indent)
     }
 }
 
-static void xl6AstDumpJsonNode(XL6_Output* out, const XL6_AstNode* node, int indent)
+static void xl6AstDumpRange(XL6_Output* out, const XL6_AstRange* range)
+{
+    if (!range->known) { xl6OutputPuts("null", out); return; }
+    xl6OutputPrintf(out, "{\"startOffset\":%zu,\"endOffset\":%zu,"
+                   "\"startLine\":%d,\"startColumn\":%d,"
+                   "\"endLine\":%d,\"endColumn\":%d}",
+                   range->startOffset, range->endOffset, range->startLine,
+                   range->startColumn, range->endLine, range->endColumn);
+}
+
+static void xl6AstDumpJsonNode(XL6_Output* out, const XL6_AstNode* node, int indent, int ranges)
 {
     size_t i;
 
@@ -156,6 +166,24 @@ static void xl6AstDumpJsonNode(XL6_Output* out, const XL6_AstNode* node, int ind
         xl6AstDumpJsonIndent(out, indent + 1);
         xl6OutputPrintf(out, "\"column\":%d", node->column);
     }
+    if (ranges) {
+        xl6OutputPuts(",\n", out);
+        xl6AstDumpJsonIndent(out, indent + 1);
+        xl6OutputPuts("\"source\":", out);
+        if (xl6AstSourcePath(node)) {
+            xl6OutputPutc('"', out);
+            xl6AstDumpJsonEscaped(out, xl6AstSourcePath(node));
+            xl6OutputPutc('"', out);
+        } else xl6OutputPuts("null", out);
+        xl6OutputPuts(",\n", out);
+        xl6AstDumpJsonIndent(out, indent + 1);
+        xl6OutputPuts("\"range\":", out);
+        xl6AstDumpRange(out, &node->range);
+        xl6OutputPuts(",\n", out);
+        xl6AstDumpJsonIndent(out, indent + 1);
+        xl6OutputPuts("\"tokenRange\":", out);
+        xl6AstDumpRange(out, &node->tokenRange);
+    }
     if ( node->flags != 0 ) {
         xl6OutputPuts(",\n", out);
         xl6AstDumpJsonIndent(out, indent + 1);
@@ -175,7 +203,7 @@ static void xl6AstDumpJsonNode(XL6_Output* out, const XL6_AstNode* node, int ind
         xl6OutputPutc('\n', out);
         for ( i = 0; i < node->childCount; ++i ) {
             xl6AstDumpJsonIndent(out, indent + 2);
-            xl6AstDumpJsonNode(out, node->children[i], indent + 2);
+            xl6AstDumpJsonNode(out, node->children[i], indent + 2, ranges);
             if ( i + 1 < node->childCount ) {
                 xl6OutputPutc(',', out);
             }
@@ -194,6 +222,40 @@ void xl6AstDumpJson(XL6_Output* out, const XL6_AstNode* node)
     if ( out == NULL ) {
         return;
     }
-    xl6AstDumpJsonNode(out, node, 0);
+    xl6AstDumpJsonNode(out, node, 0, 0);
     xl6OutputPutc('\n', out);
+}
+
+/* Conservative upper bound includes pretty-print indentation and worst-case
+ * JSON escaping. Reject before writing anything, rather than truncate an AST. */
+static int xl6AstRangeOutputFits(const XL6_AstNode* node, size_t depth,
+                                 size_t* nodes, size_t* budget)
+{
+    const char* strings[3];
+    size_t i, charge = 1024 + depth * 96;
+    if (!node) return 1;
+    if (depth > 256 || ++*nodes > 100000 || charge > *budget) return 0;
+    *budget -= charge;
+    strings[0] = node->text; strings[1] = node->doc; strings[2] = xl6AstSourcePath(node);
+    for (i = 0; i < 3; ++i) {
+        size_t length = strings[i] ? strlen(strings[i]) : 0;
+        if (length > *budget / 6) return 0;
+        *budget -= length * 6;
+    }
+    for (i = 0; i < node->childCount; ++i)
+        if (!xl6AstRangeOutputFits(node->children[i], depth + 1, nodes, budget)) return 0;
+    return 1;
+}
+
+int xl6AstDumpJsonRanges(XL6_Output* out, const XL6_AstNode* node)
+{
+    size_t nodes = 0, budget = 16u * 1024u * 1024u;
+    if (!out || !xl6AstRangeOutputFits(node, 0, &nodes, &budget)) return 0;
+    xl6OutputPuts("{\"schema\":1,\"scope\":\"entry-syntax\","
+                 "\"offsetEncoding\":\"utf-8-after-bom\","
+                 "\"columnEncoding\":\"unicode-scalar-1-based\","
+                 "\"rangeConvention\":\"half-open\",\"ast\":", out);
+    xl6AstDumpJsonNode(out, node, 0, 1);
+    xl6OutputPuts("}\n", out);
+    return !xl6OutputHasFailed(out);
 }

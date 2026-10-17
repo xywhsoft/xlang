@@ -1,6 +1,7 @@
 #include "src/parser/xl6_parser_api.h"
 #include "src/lexer/xl6_lexer_api.h"
 #include "src/parser/xl6_parser.h"
+#include "src/sem/xl6_completion.h"
 
 #include <stdlib.h>
 
@@ -1708,7 +1709,40 @@ static int xl6ParserReadTokens(XL6_Lexer* lexer, XL6_ParseTokenStream* stream, X
     return 1;
 }
 
-int xl6ParseSource(const char* source, const char* fileName, XL6_ParseResult* result)
+/* Replace exactly one identifier or insert one zero-width member token.
+ * The original bytes and all source ranges remain unchanged. */
+static int xl6ParserCompletionToken(XL6_ParseTokenStream* stream,const char* raw,XL6_CompletionQuery* q)
+{
+ const char* text=raw;XL6_Token token;size_t i,j,size,chosen=(size_t)-1;int insert=0;
+ if (strlen(text)>=3&&(unsigned char)text[0]==0xef&&(unsigned char)text[1]==0xbb&&(unsigned char)text[2]==0xbf) text+=3;
+ size=strlen(text);
+ if (q->offset>size||(q->offset<size&&((unsigned char)text[q->offset]&0xc0)==0x80)) {q->error="cursor offset is outside a UTF-8 scalar boundary";return 0;}
+ for (i=0;i<stream->count;++i) {
+  token=stream->tokens[i];
+  if (token.kind==XL6_TK_IDENT&&token.startOffset<=q->offset&&q->offset<=token.endOffset) {chosen=i;break;}
+ }
+ if (chosen==(size_t)-1) {
+  for (i=0;i<stream->count;++i) {
+   token=stream->tokens[i];
+   if ((token.kind==XL6_TK_DOT||token.kind==XL6_TK_SAFE_DOT)&&token.endOffset==q->offset) {
+    chosen=i+1;insert=1;token.startOffset=token.endOffset;token.startLine=token.endLine;token.startColumn=token.endColumn;break;
+   }
+  }
+ } else token=stream->tokens[chosen];
+ if (chosen==(size_t)-1) {q->error="cursor is not in an identifier or immediately after a member dot";return 0;}
+ q->replacement=xl6AstRangeFromToken(&token);
+ if (!q->replacement.known||token.startOffset>q->offset||token.endOffset>size) {q->error="query token has no original source range";return 0;}
+ q->prefix=xrtStrDupN(text+token.startOffset,q->offset-token.startOffset);
+ if (!q->prefix) {q->error="cannot copy completion prefix";return 0;}
+ token.kind=XL6_TK_IDENT;token.text=XL6_COMPLETION_MARKER;token.len=strlen(token.text);token.message[0]=0;
+ if (insert) {
+  if (!xl6ParseTokenStreamAppend(stream,&token)) {q->error="cannot insert query token";return 0;}
+  for (j=stream->count-1;j>chosen;--j) {stream->tokens[j]=stream->tokens[j-1];stream->parserKinds[j]=stream->parserKinds[j-1];}
+ }
+ stream->tokens[chosen]=token;stream->parserKinds[chosen]=XL6PG_IDENT;return 1;
+}
+
+static int xl6ParseSourceInternal(const char* source,const char* fileName,XL6_ParseResult* result,XL6_CompletionQuery* query)
 {
     XL6_Lexer lexer;
     XL6_ParseTokenStream stream;
@@ -1718,10 +1752,10 @@ int xl6ParseSource(const char* source, const char* fileName, XL6_ParseResult* re
     size_t i;
     int ok;
 
-    (void)fileName;
     if ( result == NULL ) {
         return 0;
     }
+    result->diags.defaultFile = fileName;
     xl6ParseTokenStreamInit(&stream);
     if ( !xl6LexerOpen(&lexer, source) ) {
         xl6DiagAdd(&result->diags, 1, 1, "无法初始化 lexer");
@@ -1739,6 +1773,11 @@ int xl6ParseSource(const char* source, const char* fileName, XL6_ParseResult* re
     }
 
     ok = xl6ParserReadTokens(&lexer, &stream, &result->diags);
+    if (query) {
+        query->parsed++;
+        if (query->parsed != 1) { query->error = "query source is parsed more than once"; ok = 0; }
+        else if (ok) ok = xl6ParserCompletionToken(&stream, source, query);
+    }
     if ( ok ) {
         for ( i = 0; i < stream.count; ++i ) {
             if ( stream.tokens[i].kind == XL6_TK_EOF ) {
@@ -1766,10 +1805,28 @@ int xl6ParseSource(const char* source, const char* fileName, XL6_ParseResult* re
     }
 
     result->root = ctx.root;
+    if (!xl6AstSetSourceTree(result->root, fileName)) {
+        xl6DiagAdd(&result->diags, 1, 1, "cannot retain source origin");
+        ok = 0;
+    }
+    if (ok && query && result->root && result->root->source) {
+        result->root->source->completionQuery = 1;
+        result->root->source->completionStart = query->replacement.startOffset;
+        result->root->source->completionEnd = query->replacement.endOffset;
+    }
     xl6ParseFree(parser, free);
     xl6ParseTokenStreamFree(&stream);
     xl6LexerClose(&lexer);
     return ok && result->diags.count == 0;
+}
+
+int xl6ParseSource(const char* source,const char* fileName,XL6_ParseResult* result)
+{
+ return xl6ParseSourceInternal(source,fileName,result,NULL);
+}
+int xl6ParseSourceWithCompletion(const char* source,const char* fileName,XL6_ParseResult* result,XL6_CompletionQuery* q)
+{
+ return xl6ParseSourceInternal(source,fileName,result,xl6CompletionTarget(q,fileName)?q:NULL);
 }
 
 int xl6ParseFile(const char* path, XL6_ParseResult* result)
@@ -1778,6 +1835,8 @@ int xl6ParseFile(const char* path, XL6_ParseResult* result)
     size_t len;
     int ok;
 
+    if (!result || !path) return 0;
+    result->diags.defaultFile = path;
     source = xrtFileReadText(path, XENCODING_UTF8, XUTF_STRICT, &len);
     (void)len;
     if ( source == NULL ) {

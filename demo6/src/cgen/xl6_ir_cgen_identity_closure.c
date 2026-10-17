@@ -346,8 +346,9 @@ static int xl6IrCgenEmitExternGlobal(
     return !xl6OutputHasFailed(out);
 }
 
-static int xl6IrCgenEmitExternPrototype(
-    XL6_Output* out, const XL6_IrModule* module, const XL6_IrCallTarget* target, XL6_DiagList* diags)
+static int xl6IrCgenEmitExternPrototypeWithBindings(
+    XL6_Output* out, const XL6_IrModule* module, const XL6_IrCallTarget* target, XL6_DiagList* diags,
+    XL6_IrCgenHeaderBindingVisitor visitor, void* context)
 {
     const char* returnType;
     size_t i;
@@ -373,7 +374,14 @@ static int xl6IrCgenEmitExternPrototype(
     }
     if ( returnType == NULL )
         return xl6IrCgenDiag(diags, module, target->declaration, "XLIR C emitter does not support extern return ABI");
-    xl6OutputPrintf(out, "extern %s %s(", returnType, target->cName);
+    xl6OutputPrintf(out, "extern %s ", returnType);
+    size_t startByte = out->buffer.Size;
+    xl6OutputPuts(target->cName, out);
+    if (visitor != NULL && !visitor(context, target->symbol, target->cName,
+            "function", startByte, out->buffer.Size))
+        return xl6IrCgenDiag(diags, module, target->declaration,
+                             "cannot collect bounded C extern header binding");
+    xl6OutputPutc('(', out);
     if ( target->parameterCount == 0 ) xl6OutputPuts("void", out);
     for ( i = 0; i < target->parameterCount; ++i ) {
         const char* type;
@@ -395,6 +403,12 @@ static int xl6IrCgenEmitExternPrototype(
         xl6OutputPuts(", ...", out);
     xl6OutputPuts(");\n", out);
     return 1;
+}
+
+static int xl6IrCgenEmitExternPrototype(
+    XL6_Output* out, const XL6_IrModule* module, const XL6_IrCallTarget* target, XL6_DiagList* diags)
+{
+    return xl6IrCgenEmitExternPrototypeWithBindings(out, module, target, diags, NULL, NULL);
 }
 
 static int xl6IrCgenBlockReferenced(const XL6_IrModule* module, const XL6_IrFunction* function, XL6_IrBlockId blockId)

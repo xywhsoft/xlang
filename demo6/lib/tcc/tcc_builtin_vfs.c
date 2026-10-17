@@ -59,6 +59,14 @@ static TCCVfsOpenFile tcc_vfs_open_files[TCC_VFS_MAX_OPEN];
 static TCCVfsDynamicResource *tcc_vfs_dynamic_resources;
 static unsigned int tcc_vfs_dynamic_count;
 static unsigned int tcc_vfs_dynamic_capacity;
+static TCCVfsDiskReader tcc_vfs_disk_reader;
+static void *tcc_vfs_disk_reader_opaque;
+
+void tcc_vfs_set_disk_reader(TCCVfsDiskReader reader, void *opaque)
+{
+    tcc_vfs_disk_reader = reader;
+    tcc_vfs_disk_reader_opaque = opaque;
+}
 
 static int tcc_vfs_is_virtual_fd(int fd)
 {
@@ -455,6 +463,27 @@ static int tcc_vfs_materialize_resource(
     return 1;
 }
 
+int tcc_vfs_read_builtin(const char *path, void *buffer, size_t capacity, size_t *size)
+{
+    const TCCBuiltinResource *res;
+    const unsigned char *data = NULL;
+    unsigned char *owned = NULL;
+    size_t length = 0;
+    int ok;
+    if (size) *size = 0;
+    if (!path || !size || strlen(path) >= TCC_VFS_KEY_MAX || (!buffer && capacity)) { errno = EINVAL; return 0; }
+    res = tcc_vfs_lookup_resource(path);
+    if (!res) { errno = ENOENT; return 0; }
+    *size = res->size;
+    if (!buffer) return 1;
+    if (capacity < res->size) { errno = ENOSPC; return 0; }
+    ok = tcc_vfs_materialize_resource(res, &data, &owned, &length);
+    if (ok && length == res->size) { if (length) memcpy(buffer, data, length); }
+    else ok = 0;
+    free(owned);
+    return ok;
+}
+
 #ifdef _WIN32
 static int tcc_vfs_real_open(const char *path, int flags, int mode)
 {
@@ -556,6 +585,16 @@ TCC_VFS_API int tcc_vfs_open(const char *path, int flags, ...)
         dynamic_res = tcc_vfs_lookup_dynamic(path);
         if (dynamic_res)
             return tcc_vfs_alloc_dynamic_fd(dynamic_res);
+        if (tcc_vfs_disk_reader) {
+            const unsigned char *data = NULL;
+            size_t size = 0;
+            int observed = tcc_vfs_disk_reader(tcc_vfs_disk_reader_opaque, path, &data, &size);
+            if (observed < 0 || (observed > 0 && size && !data)) { errno = EIO; return -1; }
+            if (observed > 0) return tcc_vfs_alloc_materialized_fd(data, NULL, size);
+            res = tcc_vfs_lookup_resource(path);
+            if (!res) { errno = ENOENT; return -1; }
+            return tcc_vfs_alloc_fd(res);
+        }
     }
 
     fd = tcc_vfs_real_open(path, flags, mode);
@@ -654,6 +693,16 @@ TCC_VFS_API FILE *tcc_vfs_fopen(const char *path, const char *mode)
         dynamic_res = tcc_vfs_lookup_dynamic(path);
         if (dynamic_res)
             return tcc_vfs_fopen_dynamic(dynamic_res);
+        if (tcc_vfs_disk_reader) {
+            const unsigned char *data = NULL;
+            size_t size = 0;
+            int observed = tcc_vfs_disk_reader(tcc_vfs_disk_reader_opaque, path, &data, &size);
+            if (observed < 0 || (observed > 0 && size && !data)) { errno = EIO; return NULL; }
+            if (observed > 0) return tcc_vfs_fopen_bytes(data, size, NULL);
+            res = tcc_vfs_lookup_resource(path);
+            if (!res) { errno = ENOENT; return NULL; }
+            return tcc_vfs_fopen_resource(res);
+        }
     }
 
     file = tcc_vfs_real_fopen(path, mode);

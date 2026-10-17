@@ -7,5 +7,6 @@
 void xl6AstDumpText(const XL6_AstNode* node, int indent);
 void xl6AstDumpTextFile(XL6_Output* out, const XL6_AstNode* node, int indent);
 void xl6AstDumpJson(XL6_Output* out, const XL6_AstNode* node);
+int xl6AstDumpJsonRanges(XL6_Output* out, const XL6_AstNode* node);
 
 #endif

@@ -106,22 +106,35 @@ BOOL WINAPI DllMain (HINSTANCE hDll, DWORD dwReason, LPVOID lpReserved)
 static inline char *config_tccdir_w32(char *path)
 {
     char *p;
-    GetModuleFileNameA(tcc_module, path, MAX_PATH);
-    p = tcc_basename(normalize_slashes(strlwr(path)));
+    wchar_t module[4096];
+    DWORD length = GetModuleFileNameW(tcc_module, module, 4096);
+    /* Disk input callbacks use UTF-8. ANSI module paths corrupt relocated
+       toolchains under Chinese/non-BMP directories before a file is opened. */
+    if (!length || length >= 4096 ||
+        !WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, module, -1,
+                             path, 4096, NULL, NULL)) {
+        path[0] = 0;
+        return path;
+    }
+    p = tcc_basename(normalize_slashes(path));
     if (p > path)
         --p;
     *p = 0;
     return path;
 }
-#define CONFIG_TCCDIR config_tccdir_w32(alloca(MAX_PATH))
+#define CONFIG_TCCDIR config_tccdir_w32(alloca(4096))
 #endif
 
 #ifdef TCC_IS_NATIVE
 static void tcc_add_systemdir(TCCState *s)
 {
-    char buf[1000];
-    GetSystemDirectoryA(buf, sizeof buf);
-    tcc_add_library_path(s, normalize_slashes(buf));
+    wchar_t directory[4096];
+    char buf[4096];
+    UINT length = GetSystemDirectoryW(directory, 4096);
+    if (length && length < 4096 &&
+        WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, directory, -1,
+                           buf, sizeof buf, NULL, NULL))
+        tcc_add_library_path(s, normalize_slashes(buf));
 }
 #endif
 /* for tcc -E : On windows (depending on compiler) a FILE*
@@ -2263,5 +2276,43 @@ PUB_FUNC void tcc_print_stats(TCCState *s1, unsigned total_time)
     }
 #endif
     fprintf(stderr, " %d max (bytes)\n", mem_max_size);
+#endif
+}
+
+LIBTCCAPI int tcc_xlang_scalar_target(TCCXlangScalarTarget *target)
+{
+#if defined(TCC_TARGET_X86_64) && defined(TCC_TARGET_PE)
+    char version[8];
+    CType long_double_type = { 0 };
+    if (!target) return 0;
+    /* Keep the exact version encoding of tccpp.c:tcc_predefs. */
+    snprintf(version, sizeof(version), "9%.2s", &TCC_VERSION[4]);
+    target->tinyc_version = atoi(version);
+    target->pointer_bytes = PTR_SIZE;
+    target->long_bytes = LONG_SIZE;
+    /* Follow parse_btype's effective source type. On Windows the parser
+       maps long double to double, while the raw x87 type still has size 16. */
+#ifdef TCC_USING_DOUBLE_FOR_LDOUBLE
+    long_double_type.t = VT_DOUBLE | VT_LONG;
+#else
+    long_double_type.t = VT_LDOUBLE;
+#endif
+    target->long_double_bytes = type_size(&long_double_type, &target->long_double_align);
+    return 1;
+#else
+    (void)target;
+    return 0;
+#endif
+}
+
+LIBTCCAPI int tcc_xlang_record_layout(TCCState *state, TCCXlangRecordLayout *target)
+{
+#if defined(TCC_TARGET_X86_64) && defined(TCC_TARGET_PE)
+    if (!state || !target) return 0;
+    target->ms_bitfields = state->ms_bitfields != 0;
+    return 1;
+#else
+    (void)state; (void)target;
+    return 0;
 #endif
 }

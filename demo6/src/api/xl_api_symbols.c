@@ -506,8 +506,14 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
          !xlApiAddTccSymbol(s, "xlcRegisterCFunction", (const void*)xlcRegisterCFunction) ||
          !xlApiAddTccSymbol(s, "xlcAddSourceFile", (const void*)xlcAddSourceFile) ||
          !xlApiAddTccSymbol(s, "xlcAddSourceString", (const void*)xlcAddSourceString) ||
+         !xlApiAddTccSymbol(s, "xlcSetSourceOverlay", (const void*)xlcSetSourceOverlay) ||
+         !xlApiAddTccSymbol(s, "xlcRemoveSourceOverlay", (const void*)xlcRemoveSourceOverlay) ||
+         !xlApiAddTccSymbol(s, "xlcClearSourceOverlays", (const void*)xlcClearSourceOverlays) ||
          !xlApiAddTccSymbol(s, "xlcCompile", (const void*)xlcCompile) ||
          !xlApiAddTccSymbol(s, "xlcCheck", (const void*)xlcCheck) ||
+         !xlApiAddTccSymbol(s, "xlcCheckWithSources", (const void*)xlcCheckWithSources) ||
+         !xlApiAddTccSymbol(s, "xlcCheckWithIndex", (const void*)xlcCheckWithIndex) ||
+         !xlApiAddTccSymbol(s, "xlcComplete", (const void*)xlcComplete) ||
          !xlApiAddTccSymbol(s, "xlcEmitTokens", (const void*)xlcEmitTokens) ||
          !xlApiAddTccSymbol(s, "xlcEmitAst", (const void*)xlcEmitAst) ||
          !xlApiAddTccSymbol(s, "xlcEmitIr", (const void*)xlcEmitIr) ||
