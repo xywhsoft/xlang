@@ -2,6 +2,17 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_signal_language_oom_shipping.py --root <frozen-demo6> --build-report
+<ordinary-build.json> --out <fresh-directory> --jobs 2` is the required
+`signal-language-oom` gate. All eight original signal fixtures use unchanged
+actual-product emitted C and runtime/compiler DLL/SO at O0/O2. Complete
+caller-thread prefixes and full heap ledgers are mandatory. Transparent
+`xl6ForeignCallbackFail` / `xrtValueInvoke` observation proves the two optional
+diagnostic allocation fallbacks preserve the original exception; all other OOM
+must escape as MemoryError. Nine compiled leak/debug/injection/witness/provider
+controls must fail. No ChannelError waiver, runtime implementation objects,
+unobserved JIT OOM, trimmed AOT OOM or full53 claim.
+
 `check_stdlib_system_suites_shipping.py --root <frozen-demo6> --build-report
 <ordinary-build.json> --out <fresh-directory> --jobs 2` is the required
 `native-system` gate. Four original time/environment suites and a real-entry
