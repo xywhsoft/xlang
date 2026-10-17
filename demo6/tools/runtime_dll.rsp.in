@@ -47,6 +47,9 @@
     src\runtime\xl6_cancellation_source_domain.c
     src\runtime\xl6_cancellation_registration.c
     src\runtime\xl6_cancellation_registration_domain.c
+    src\runtime\xl6_future_value.c
+    src\runtime\xl6_promise.c
+    src\runtime\xl6_promise_domain.c
     src\runtime\xl6_crypto_md5.c
     src\runtime\xl6_crypto_md5_stream.c
     src\runtime\xl6_crypto_md5_domain.c

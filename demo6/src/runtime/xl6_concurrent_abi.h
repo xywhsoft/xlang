@@ -35,4 +35,14 @@ XL6_TEXT_API bool xl6CancellationRegistrationClosedV1(void*);
 XL6_TEXT_API bool xl6CancellationRegistrationTriggeredV1(void*);
 XL6_TEXT_API bool xl6CancellationRegistrationFailedV1(void*);
 XL6_TEXT_API void xl6CancellationRegistrationCheckV1(void*);
+XL6_TEXT_API void* xl6PromiseCreateV1(XL6_FutureValueProfileV1);
+XL6_TEXT_API void* xl6PromiseCreateParentV1(XL6_FutureValueProfileV1,void*);
+XL6_TEXT_API void xl6PromiseDestroyV1(void*);
+XL6_TEXT_API struct xfuture* xl6PromiseFutureV1(XL6_FutureValueProfileV1,void*);
+XL6_TEXT_API bool xl6PromiseResolveV1(XL6_FutureValueProfileV1,void*,const void*);
+XL6_TEXT_API bool xl6PromiseRejectV1(void*,const struct xerror*);
+XL6_TEXT_API bool xl6PromiseCancelV1(void*);
+XL6_TEXT_API bool xl6PromiseCloseV1(void*);
+XL6_TEXT_API bool xl6PromiseDoneV1(void*);
+XL6_TEXT_API bool xl6PromiseRequestedV1(void*);
 #endif

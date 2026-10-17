@@ -40,6 +40,14 @@ static int xl6IrCgenEmitFuturePayloadBoxer(
         xl6OutputPuts(
             "    return xrtValueFloat(*(const double*)payload);\n", out);
         break;
+    case XL6_IR_ASYNC_RESULT_COPY_F32:
+        xl6OutputPuts(
+            "    return xrtValueFloat(*(const float*)payload);\n", out);
+        break;
+    case XL6_IR_ASYNC_RESULT_COPY_TIME:
+        xl6OutputPuts(
+            "    return xrtValueTime(*(const int64_t*)payload);\n", out);
+        break;
     case XL6_IR_ASYNC_RESULT_OWNED_STRING:
         xl6OutputPuts(
             "    return ((const xlir_string*)payload)->Data != NULL ? xrtValueString(*(const xlir_string*)payload) : NULL;\n",
@@ -115,6 +123,8 @@ static const XL6_IrCgenAsyncPayloadContract* xl6IrCgenAsyncPayloadContract(
     case XL6_IR_ASYNC_RESULT_COPY_U64:
     case XL6_IR_ASYNC_RESULT_COPY_TYPE_ID:
     case XL6_IR_ASYNC_RESULT_COPY_F64:
+    case XL6_IR_ASYNC_RESULT_COPY_F32:
+    case XL6_IR_ASYNC_RESULT_COPY_TIME:
     case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
     case XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER:
         return &value;

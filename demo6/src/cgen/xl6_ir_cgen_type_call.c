@@ -474,6 +474,42 @@ static const char* xl6IrCgenDirectPlaceSuffix(
         target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ? ".Data" : "";
 }
 
+static int xl6IrCgenEmitNativeContext(XL6_Output* out,const XL6_IrModule* module,const XL6_IrCallTarget* target)
+{
+    if(target->nativeContextAbi!=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1)return 0;
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,target->nativeContextType);
+    const char* name=type?xl6IrCgenType(module,target->nativeContextType):NULL;
+    const char* kind=NULL;
+    switch(target->nativeContextPayloadAbi) {
+    case XL6_IR_ASYNC_RESULT_VOID:kind="XL6_FUTURE_VALUE_VOID";break;
+    case XL6_IR_ASYNC_RESULT_COPY_BOOL:case XL6_IR_ASYNC_RESULT_COPY_I64:
+    case XL6_IR_ASYNC_RESULT_COPY_U64:case XL6_IR_ASYNC_RESULT_COPY_TYPE_ID:
+    case XL6_IR_ASYNC_RESULT_COPY_F64:case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
+    case XL6_IR_ASYNC_RESULT_COPY_F32:case XL6_IR_ASYNC_RESULT_COPY_TIME:
+    case XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER:case XL6_IR_ASYNC_RESULT_COPY_CHAR:
+        kind="XL6_FUTURE_VALUE_TRIVIAL";break;
+    case XL6_IR_ASYNC_RESULT_OWNED_STRING:kind="XL6_FUTURE_VALUE_STRING";break;
+    case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE:kind="XL6_FUTURE_VALUE_XVALUE";break;
+    case XL6_IR_ASYNC_RESULT_RETAINED_ERROR:kind="XL6_FUTURE_VALUE_ERROR";break;
+    case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE:kind="XL6_FUTURE_VALUE_CLOSURE";break;
+    case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE:kind="XL6_FUTURE_VALUE_FUTURE";break;
+    case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR:kind="XL6_FUTURE_VALUE_GENERATOR";break;
+    case XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE:kind="XL6_FUTURE_VALUE_NATIVE";break;
+    default:return 0;
+    }
+    if(!type || !name || !kind)return 0;
+    xl6OutputPrintf(out,"(XL6_FutureValueProfileV1){ sizeof(XL6_FutureValueProfileV1), %s, ",kind);
+    if(target->nativeContextPayloadAbi==XL6_IR_ASYNC_RESULT_VOID)xl6OutputPuts("0",out);
+    else xl6OutputPrintf(out,"sizeof(%s)",name);
+    xl6OutputPrintf(out,", 0x%016llXULL, ",(unsigned long long)type->typeValueId);
+    if(target->nativeContextPayloadAbi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE) {
+        const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(type);
+        if(!native || !native->captureProfileSymbol)return 0;
+        xl6OutputPrintf(out,"%s()",native->captureProfileSymbol);
+    } else xl6OutputPuts("NULL",out);
+    xl6OutputPuts(" }",out);return !xl6OutputHasFailed(out);
+}
+
 static int xl6IrCgenEmitCallOperand(
     XL6_Output* out, const XL6_IrModule* module,
     const XL6_IrCallTarget* target, size_t parameter,
@@ -481,6 +517,9 @@ static int xl6IrCgenEmitCallOperand(
 {
     if ( target == NULL || parameter >= target->parameterCount ||
          target->parameterPhysicalAbis == NULL ) return 0;
+    if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW) {
+        xl6OutputPrintf(out,"&v%u",(unsigned int)value);return !xl6OutputHasFailed(out);
+    }
     if ( target->parameterPhysicalAbis[parameter] ==
              XL6_IR_CALL_PARAMETER_PHYSICAL_LANGUAGE_FUNCTION_VALUE ) {
         xl6OutputPrintf(out, "xlir_language_function_value_t%u(v%u)",
@@ -782,7 +821,10 @@ static int xl6IrCgenEmitDirectCall(
                         (unsigned int)instruction->targetSymbol);
     else
         xl6OutputPrintf(out, "%s(", target->cName);
-    if (target->nativeArrayResultAbi == XL6_IR_CALL_NATIVE_ARRAY_RESULT_PRIMITIVE_IDS_V1) {
+    if(target->nativeContextAbi!=XL6_IR_CALL_NATIVE_CONTEXT_NONE) {
+        if(!xl6IrCgenEmitNativeContext(out,module,target))return 0;
+        if(instruction->operandCount)xl6OutputPuts(", ",out);
+    } else if (target->nativeArrayResultAbi == XL6_IR_CALL_NATIVE_ARRAY_RESULT_PRIMITIVE_IDS_V1) {
         const XL6_IrType* owner = xl6IrTypeGet(&module->types, target->returnType);
         const XL6_IrType* item = owner && owner->params && owner->paramCount == 1
             ? xl6IrTypeGet(&module->types, owner->params[0]) : NULL;

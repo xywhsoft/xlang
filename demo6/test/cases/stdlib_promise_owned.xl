@@ -1,0 +1,27 @@
+import concurrent
+class InitializedProducer
+    Promise<int> producer = Promise::<int>()
+end
+auto initialized = InitializedProducer()
+assert initialized.producer.tryResolve(103)
+assert (await initialized.producer.future) == 103
+Promise<int>? deferred = null
+deferred = Promise::<int>()
+if deferred != null then
+    assert deferred.tryResolve(104)
+    assert (await deferred.future) == 104
+else
+    assert false
+end
+class PromiseCycle
+    Promise<PromiseCycle>? producer
+    int value = 101
+end
+auto root = PromiseCycle()
+auto producer = Promise::<PromiseCycle>()
+root.producer = producer
+assert producer.tryResolve(root)
+assert (await producer.future).value == 101
+// Keep the actual Promise -> Future -> payload -> class cycle until normal
+// module retirement. No close/cancel workaround is permitted here.
+println("resolved Promise class cycle left for checked normal retirement")

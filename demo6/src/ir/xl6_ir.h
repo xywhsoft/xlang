@@ -16,6 +16,7 @@
 #include "src/runtime/xl6_native_scalar_abi.h"
 #include "src/runtime/xl6_native_value_abi.h"
 #include "src/runtime/xl6_tree_key_abi.h"
+#include "src/abi/xl6_native_generic.h"
 
 typedef uint32 XL6_IrNodeId;
 typedef uint32 XL6_IrBlockId;
@@ -2723,7 +2724,10 @@ typedef enum XL6_IrAsyncResultAbi {
     XL6_IR_ASYNC_RESULT_COPY_CHAR,
     /* Exact closed native owning leaf, resident payload allocation/policy and
      * checked independent acquisition. Never a trivial structure copy. */
-    XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE
+    XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE,
+    /* Preserve the actual float-sized cell and the distinct time domain. */
+    XL6_IR_ASYNC_RESULT_COPY_F32,
+    XL6_IR_ASYNC_RESULT_COPY_TIME
 } XL6_IrAsyncResultAbi;
 
 /* Open dynamic invocation uses the runtime's multi-value call protocol, but a
@@ -3998,7 +4002,11 @@ typedef enum XL6_IrCallParameterPhysicalAbi {
     /* Synchronous borrowed compiler closure with its checked invoke ABI.
      * Admitted only by an exact native contract, never inferred from a
      * source function type or confused with an erased XL6_Function. */
-    XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW
+    XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW,
+    /* A synchronous const address of the exact logical value slot. Only a
+     * closed generic runtime descriptor may select this ABI; it is not user
+     * byref and grants no mutation or retention of the temporary address. */
+    XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW
 } XL6_IrCallParameterPhysicalAbi;
 
 /* A raw C callback may cross ordinary language wrapper functions before it
@@ -4042,6 +4050,11 @@ typedef enum XL6_IrCallNativeArrayResultAbi {
     XL6_IR_CALL_NATIVE_ARRAY_RESULT_NONE = 0,
     XL6_IR_CALL_NATIVE_ARRAY_RESULT_PRIMITIVE_IDS_V1
 } XL6_IrCallNativeArrayResultAbi;
+
+typedef enum XL6_IrCallNativeContextAbi {
+    XL6_IR_CALL_NATIVE_CONTEXT_NONE=0,
+    XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1
+} XL6_IrCallNativeContextAbi;
 
 /* A callable's semantic failure effect does not determine how that failure is
  * represented at the physical C boundary. Internal functions and async/generator
@@ -5349,6 +5362,13 @@ typedef struct XL6_IrCallTarget {
      * A C target has parameterCount fixed operands followed by typed native
      * operands retained in the lowered CALL instruction. */
     XL6_IrCallVariadicAbi variadicAbi;
+    /* Implicit immutable native descriptor, separate from source operands.
+     * A closed generic owner supplies T; payload ABI is the SAME contract as
+     * async producers and await. Backends emit constants/sizeof, never infer
+     * an element from the owner spelling or invent a conversion Future. */
+    XL6_IrCallNativeContextAbi nativeContextAbi;
+    XL6_IrTypeId nativeContextType;
+    XL6_IrAsyncResultAbi nativeContextPayloadAbi;
 } XL6_IrCallTarget;
 
 /* Complete physical callable envelope accepted by dynamic method adapters.
@@ -6764,6 +6784,11 @@ const char* xl6IrRuntimeDirectBridgeParameterOwner(const char* name, size_t para
 /* Borrow the exact checked compiler closure instead of erasing it to the
  * general XL6_Function foreign ABI. Signature still needs full verification. */
 int xl6IrRuntimeDirectBridgeCheckedClosureParameter(const char* name, size_t parameter);
+int xl6IrRuntimeDirectBridgeValueAddressParameter(const char* name,size_t parameter);
+/* No implicit zero-field default can create an owned native resource. */
+int xl6IrTypeRequiresExplicitNativeInitialization(const struct XL6_IrModule*,XL6_IrTypeId);
+int xl6IrRuntimeDirectBridgeContext(const struct XL6_IrModule*,const XL6_IrCallTarget*,
+    XL6_IrCallNativeContextAbi*,XL6_IrTypeId*,XL6_IrAsyncResultAbi*);
 XL6_IrRuntimeBridgeKind xl6IrRuntimeXidBridgeKind(const char* name);
 int xl6IrRuntimeXidBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);

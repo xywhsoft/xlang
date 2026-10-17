@@ -1,0 +1,80 @@
+import concurrent
+async func realReady(float32 value) as float32
+    return value
+end
+async func timeReady(time value) as time
+    return value
+end
+async func realRelay(future<float32> source) as float32
+    return await source
+end
+async func timeRelay(future<time> source) as time
+    return await source
+end
+auto real = Promise::<float32>()
+auto realPending = realRelay(real.future)
+assert real.tryResolve(float32(1.5))
+assert (await realPending) == float32(1.5)
+assert (await realReady(float32(2.5))) == float32(2.5)
+auto clock = Promise::<time>()
+auto timePending = timeRelay(clock.future)
+assert clock.tryResolve(time(123))
+assert (await timePending) == time(123)
+assert (await timeReady(time(124))) == time(124)
+auto realValues = await task.all([real.future,real.future])
+assert realValues[0] == float32(1.5) and realValues[1] == float32(1.5)
+auto timeValues = await task.all([clock.future,clock.future])
+assert timeValues[0] == time(123) and timeValues[1] == time(123)
+auto tiny = Promise::<int8>()
+assert tiny.tryResolve(int8(-128)) and (await tiny.future) == -128
+auto unsigned = Promise::<uint64>()
+assert unsigned.tryResolve(uint64(18446744073709551615))
+assert (await unsigned.future) == uint64(18446744073709551615)
+auto binary = Promise::<bytes>()
+bytes binaryInput = b"a\0\xFF"
+assert binary.tryResolve(binaryInput)
+binaryInput[0] = uint8(98)
+assert (await binary.future) == b"a\0\xFF"
+auto exactText = Promise::<string>()
+string textInput = "a\0你"
+assert exactText.tryResolve(textInput)
+textInput[0] = 'b'
+assert (await exactText.future) == "a\0你"
+auto optional = Promise::<int?>()
+assert optional.tryResolve(null) and (await optional.future) == null
+auto optionalText = Promise::<string?>()
+assert optionalText.tryResolve(null) and (await optionalText.future) == null
+auto items = Promise::<array<int>>()
+array<int> input = [31,41]
+assert items.tryResolve(input)
+auto output = await items.future
+assert output[0] == 31 and output[1] == 41
+auto nested = Promise::<future<int>>()
+auto inner = Promise::<int>()
+assert nested.tryResolve(inner.future) and inner.tryResolve(51)
+future<int> acquired = await nested.future
+assert (await acquired) == 51
+auto slots = SlotMap::<int>()
+auto key = slots.insert(71)
+auto native = Promise::<SlotMapKey>()
+assert native.tryResolve(key)
+auto independent = await native.future
+assert independent == key and (await native.future) == independent
+auto callback = Promise::<func(int) as int>()
+assert callback.tryResolve(func(int value) as int
+    return value + 1
+end)
+auto callable = await callback.future
+assert callable(81) == 82
+func sequence() as generator<int>
+    yield 83
+end
+auto iterator = Promise::<generator<int>>()
+assert iterator.tryResolve(sequence())
+auto reader = await iterator.future
+int total = 0
+for value in reader
+    total += value
+end
+assert total == 83
+println("typed Promise exact value profiles and float32/time Future paths ok")

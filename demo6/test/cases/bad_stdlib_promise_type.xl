@@ -1,0 +1,3 @@
+import concurrent
+auto source = Promise::<int>()
+source.tryResolve("not an integer")

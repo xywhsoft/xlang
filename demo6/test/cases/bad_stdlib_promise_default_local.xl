@@ -1,0 +1,6 @@
+import concurrent
+func invalid()
+    Promise<int> producer
+    producer.tryResolve(1)
+end
+invalid()

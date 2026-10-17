@@ -6,6 +6,7 @@
 #include "src/sem/xl6_type_registry.h"
 #include "src/stdlib/xl6_stdlib.h"
 #include "src/type/xl6_type_model.h"
+#include "src/abi/xl6_native_generic.h"
 
 #include <limits.h>
 #include <stddef.h>
@@ -5461,7 +5462,7 @@ static int xl6SemGenericClassCreateCandidateMatches(
     size_t i;
     int ok;
 
-    params = createNode != NULL && createNode->childCount > 0 ? createNode->children[0] : NULL;
+    params = (XL6_AstNode*)xl6SemCallableParams(createNode);
     args = call != NULL && call->childCount > 1 ? call->children[1] : NULL;
     fixedCount = xl6SemFixedParamCount(params);
     hasArrayVararg = params != NULL && params->childCount > (size_t)fixedCount && xl6SemParamIsArrayVararg(params->children[fixedCount]);
@@ -5557,7 +5558,8 @@ static XL6_AstNode* xl6SemResolveGenericClassCreate(
 
     for ( i = 0; i < body->childCount; ++i ) {
         XL6_AstNode* member = body->children[i];
-        if ( member == NULL || member->kind != XL6_AST_CREATE ||
+        if ( member == NULL ||
+             (member->kind != XL6_AST_CREATE && member->kind != XL6_AST_NATIVE_EXTERN_SPECIAL) ||
              !xl6TextEquals(xl6SemMemberName(member), "create") ) {
             continue;
         }
@@ -5646,6 +5648,7 @@ static int xl6SemCheckClassCtorCall(XL6_SemContext* ctx, XL6_AstNode* call, XL6_
             xl6SemAnnotateResolvedCallOwnership(call, selected);
             return 1;
         }
+        if ( xl6SemClassHasCreate(classNode) ) return 0;
         if ( xl6SemCallArgCount(call) == 0 ) {
             return 1;
         }
@@ -20199,6 +20202,12 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
 
     ok = 1;
 
+    /* A declared generic value input has no concrete C value ABI until
+     * specialization. Its closed descriptor selects a const slot-address
+     * boundary; typed XLIR verifies the exact owner T and complete signature.
+     * Undeclared externs keep the ordinary C ABI restrictions. */
+    if(xl6NativeGenericRole(node->text)==XL6_NATIVE_GENERIC_RESOLVE)return 1;
+
     params = node->childCount > 1 ? node->children[1] : NULL;
     if ( params != NULL ) {
         for ( i = 0; i < params->childCount; ++i ) {
@@ -22080,7 +22089,8 @@ static int xl6SemCheckClassNativeExternBase(XL6_SemContext* ctx, XL6_AstNode* cl
     int ok;
 
     ok = 1;
-    if ( xl6SemClassHasTypeParams(classNode) ) {
+    if ( xl6SemClassHasTypeParams(classNode) &&
+         xl6NativeGenericRole(node->text)==XL6_NATIVE_GENERIC_NONE ) {
         xl6SemErrorNode(ctx, node, "native-backed class extern member does not support generic class in this stage");
         ok = 0;
     }
@@ -22114,6 +22124,7 @@ static int xl6SemCheckClassExternParamsNoVararg(XL6_SemContext* ctx, XL6_AstNode
 
 static int xl6SemCheckNativeMemberDirectCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
 {
+    if(xl6NativeGenericRole(node->text)!=XL6_NATIVE_GENERIC_NONE)return 1;
     static const char* const declaredCollections[] = {
 #define XL6_NATIVE_COLLECTION_BRIDGE(Name,...) Name,
 #include "src/abi/xl6_native_collection_contracts.inc"

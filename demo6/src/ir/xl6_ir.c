@@ -2653,7 +2653,23 @@ static XL6_SymbolId xl6IrNativeHandleDestroySymbol(
             const XL6_IrNode* owner = xl6IrNodeGet(module, parent);
             if ( owner == NULL ) break;
             if ( owner->kind == XL6_IR_NODE_TYPE_DECL && owner->sourceKind == XL6_AST_CLASS &&
-                 owner->symbol != 0 && owner->symbol == type->nominalSymbol ) return node->symbol;
+                 owner->symbol != 0 && owner->symbol == type->nominalSymbol ) {
+                /* Typed layouts name the lifecycle template. The same query
+                 * resolves its exact owner-argument specialization once the
+                 * dependency graph has materialized it; no shared T receiver
+                 * is fabricated for physically pointer-shaped destructors. */
+                if(module->genericSpecializationCount>module->genericSpecializationCapacity ||
+                   (module->genericSpecializationCount && !module->genericSpecializations))return 0;
+                if(type->paramCount && type->params)
+                    for(size_t s=0;s<module->genericSpecializationCount;++s) {
+                        const XL6_IrGenericSpecialization* instance=&module->genericSpecializations[s];
+                        if(instance->sourceDeclaration==(XL6_IrNodeId)(i+1) &&
+                           instance->typeArgCount==type->paramCount && instance->typeArgs &&
+                           !memcmp(instance->typeArgs,type->params,type->paramCount*sizeof(*type->params)))
+                            return instance->symbol;
+                    }
+                return node->symbol;
+            }
             parent = owner->parent;
         }
     }
@@ -6261,6 +6277,14 @@ static int xl6IrRefreshClassLayoutsDetailed(
     module->classDestroySteps = NULL;
     module->classDestroyStepCount = 0;
     module->classDestroyStepCapacity = 0;
+    for(size_t field=0;field<module->classFieldCount;++field) {
+        const XL6_IrClassField* item=&module->classFields[field];
+        if(item->initializer==XL6_IR_NODE_INVALID &&
+           xl6IrTypeRequiresExplicitNativeInitialization(module,item->type))
+            return xl6IrClassLayoutFailure(module,failure,failureSize,
+                xl6IrNodeGet(module,item->declaration),item->type,
+                "native resource field needs explicit initialization or nullable storage");
+    }
     if ( !xl6IrBuildClassDestroyPlans(module) )
         return xl6IrClassLayoutFailure(
             module, failure, failureSize, NULL, XL6_IR_TYPE_INVALID,
@@ -10617,6 +10641,8 @@ static XL6_IrAsyncResultAbi xl6IrBuildAsyncResultAbi(
     case XL6_IR_C_ABI_U64: return XL6_IR_ASYNC_RESULT_COPY_U64;
     case XL6_IR_C_ABI_TYPE_ID: return XL6_IR_ASYNC_RESULT_COPY_TYPE_ID;
     case XL6_IR_C_ABI_F64: return XL6_IR_ASYNC_RESULT_COPY_F64;
+    case XL6_IR_C_ABI_F32: return XL6_IR_ASYNC_RESULT_COPY_F32;
+    case XL6_IR_C_ABI_TIME_I64: return XL6_IR_ASYNC_RESULT_COPY_TIME;
     case XL6_IR_C_ABI_RAW_POINTER:
         return XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER;
     case XL6_IR_C_ABI_MANAGED_STRING: return XL6_IR_ASYNC_RESULT_OWNED_STRING;
@@ -10653,6 +10679,8 @@ static int xl6IrTaskAllPayloadBoxerSupported(
     case XL6_IR_ASYNC_RESULT_COPY_U64:
     case XL6_IR_ASYNC_RESULT_COPY_TYPE_ID:
     case XL6_IR_ASYNC_RESULT_COPY_F64:
+    case XL6_IR_ASYNC_RESULT_COPY_F32:
+    case XL6_IR_ASYNC_RESULT_COPY_TIME:
     case XL6_IR_ASYNC_RESULT_OWNED_STRING:
     case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE:
     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE:
@@ -10682,6 +10710,7 @@ int xl6IrTaskSpawnParameterAbiSupported(
                type->cAbi == XL6_IR_C_ABI_U64 ||
                type->cAbi == XL6_IR_C_ABI_TYPE_ID ||
                type->cAbi == XL6_IR_C_ABI_F64 ||
+               type->cAbi == XL6_IR_C_ABI_F32 ||
                type->cAbi == XL6_IR_C_ABI_TIME_I64 ||
                type->cAbi == XL6_IR_C_ABI_RAW_POINTER ||
                type->cAbi == XL6_IR_C_ABI_NATIVE_HANDLE;
@@ -15852,6 +15881,8 @@ static XL6_IrInitializerAbi xl6IrDefaultValueInitializerAbi(
          type->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ) {
         const XL6_IrClassLayout* layout =
             xl6IrBuildClassLayoutByType(module, typeId);
+        if(xl6IrTypeRequiresExplicitNativeInitialization(module,typeId))
+            return XL6_IR_INITIALIZER_NONE;
         if ( layout != NULL )
             return layout->hasExplicitCreate
                 ? XL6_IR_INITIALIZER_CLASS_NULL
@@ -16154,6 +16185,11 @@ static const XL6_IrClassField* xl6IrManagedNativeConstructorField(
     return result;
 }
 
+int xl6IrTypeRequiresExplicitNativeInitialization(const XL6_IrModule* module,XL6_IrTypeId type)
+{
+    return xl6IrManagedNativeConstructorField(module,type)!=NULL;
+}
+
 static const XL6_IrClassField* xl6IrCallTargetNativeClassPhysicalField(
     const XL6_IrModule* module, const XL6_IrCallTarget* target,
     size_t parameter)
@@ -16229,10 +16265,15 @@ int xl6IrDynamicMethodCallTargetSupported(
                target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR &&
                target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT &&
                target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER)) ) return 0;
+    if (target->nativeContextAbi != XL6_IR_CALL_NATIVE_CONTEXT_NONE &&
+        !xl6IrRuntimeDirectBridgeTargetMatches(module,target)) return 0;
     for ( size_t p = 0; p < target->parameterCount; ++p ) {
         if ( target->parameterConstraintAbis[p] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ) return 0;
         if ( target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW ) {
             if ( xl6IrCallTargetNativeClassPhysicalField(module, target, p) == NULL ) return 0;
+        } else if (target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW) {
+            if (!p || !xl6IrRuntimeDirectBridgeValueAddressParameter(target->cName,p) ||
+                !xl6IrRuntimeDirectBridgeTargetMatches(module,target)) return 0;
         } else if ( target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW ) {
             if ( p == 0 || target->parameterAbis[p] != XL6_IR_PARAMETER_ABI_BORROW ||
                  target->parameterPhysicalFieldDeclarations[p] != XL6_IR_NODE_INVALID ||
@@ -19944,10 +19985,21 @@ const XL6_IrNode* xl6IrNodeGet(const XL6_IrModule* module, XL6_IrNodeId nodeId)
 
 const XL6_IrNode* xl6IrSymbolNodeGet(const XL6_IrModule* module, XL6_SymbolId symbol)
 {
-    if ( module == NULL || (size_t)symbol >= module->symbolNodeCapacity ) {
-        return NULL;
-    }
-    return xl6IrNodeGet(module, module->symbolNodes[symbol]);
+    if(!module || !symbol)return NULL;
+    if((size_t)symbol<module->symbolNodeCapacity && module->symbolNodes && module->symbolNodes[symbol])
+        return xl6IrNodeGet(module,module->symbolNodes[symbol]);
+    /* Specialized declaration IDs live in the sparse synthetic namespace,
+     * not the dense source-symbol arena. All consumers use one canonical
+     * declaration lookup, including lifecycle and native policy validation. */
+    if(module->genericSpecializationCount>module->genericSpecializationCapacity ||
+       (module->genericSpecializationCount && !module->genericSpecializations))return NULL;
+    XL6_IrNodeId declaration=XL6_IR_NODE_INVALID;
+    for(size_t i=0;i<module->genericSpecializationCount;++i)
+        if(module->genericSpecializations[i].symbol==symbol) {
+            if(declaration!=XL6_IR_NODE_INVALID)return NULL;
+            declaration=module->genericSpecializations[i].declaration;
+        }
+    return xl6IrNodeGet(module,declaration);
 }
 
 const XL6_IrType* xl6IrTypeGet(const XL6_IrTypePool* pool, XL6_IrTypeId typeId)
@@ -25776,6 +25828,9 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
                 : XL6_IR_TYPE_INVALID;
             size_t other;
             const XL6_IrType* fieldType = xl6IrTypeGet(&module->types, item->type);
+            if(item->initializer==XL6_IR_NODE_INVALID &&
+               xl6IrTypeRequiresExplicitNativeInitialization(module,item->type))
+                return 0;
             XL6_IrRuntimeResourceOp expectedResourceOp =
                 item->initializerAbi ==
                         XL6_IR_INITIALIZER_RUNTIME_RESOURCE_DEFAULT
@@ -31914,6 +31969,10 @@ static int xl6IrRuntimeBridgeTargetMatches(
     if ( module == NULL || target == NULL ) return 0;
     {
         const char* expected = xl6IrRuntimeNativeHandlePolicyForName(target->cName);
+        XL6_IrCallNativeContextAbi context;XL6_IrTypeId contextType;XL6_IrAsyncResultAbi payload;
+        if(!xl6IrRuntimeDirectBridgeContext(module,target,&context,&contextType,&payload) ||
+           context!=target->nativeContextAbi || contextType!=target->nativeContextType ||
+           payload!=target->nativeContextPayloadAbi)return 0;
         if (target->nativeArrayResultAbi != xl6IrRuntimeDirectBridgeNativeArrayResultAbi(target->cName)) return 0;
         if (expected != NULL) {
             if (target->nativeHandlePolicyAbi != XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1 ||
@@ -34439,7 +34498,9 @@ static int xl6IrVerifyDeclarationOwners(const XL6_IrModule* module, XL6_DiagList
                  owner->params == NULL ||
                  memcmp(owner->params, instance->typeArgs, owner->paramCount * sizeof(*owner->params)) != 0 ||
                  target == NULL ||
-                 ((node->flags & XL6_AST_FLAG_STATIC) == 0 &&
+                 (target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY
+                  ? target->returnType != node->declarationOwnerType
+                  : (node->flags & XL6_AST_FLAG_STATIC) == 0 &&
                   (target->parameterCount == 0 || target->parameterTypes == NULL ||
                    target->parameterTypes[0] != node->declarationOwnerType)) )
                 return xl6IrDiag(diags, node, "XLIR member specialization receiver disagrees with its exact type arguments");
@@ -37956,6 +38017,12 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             case XL6_IR_ASYNC_RESULT_COPY_F64:
                 resultMatches = worker != NULL && worker->cAbi == XL6_IR_C_ABI_F64;
                 break;
+            case XL6_IR_ASYNC_RESULT_COPY_F32:
+                resultMatches = worker != NULL && worker->cAbi == XL6_IR_C_ABI_F32;
+                break;
+            case XL6_IR_ASYNC_RESULT_COPY_TIME:
+                resultMatches = worker != NULL && worker->cAbi == XL6_IR_C_ABI_TIME_I64;
+                break;
             case XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER:
                 resultMatches = worker != NULL &&
                     worker->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
@@ -38081,6 +38148,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       parameterType->kind == XL6_IR_TYPE_FUNCTION) )
                     return xl6IrDiag(diags, NULL,
                         "XLIR extern function parameter cannot use the direct closure physical ABI");
+            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW) {
+                if(!xl6IrRuntimeDirectBridgeValueAddressParameter(target->cName,parameter) ||
+                   !xl6IrRuntimeDirectBridgeTargetMatches(module,target))
+                    return xl6IrDiag(diags,NULL,"XLIR generic value address lacks an exact closed descriptor contract");
             } else if (target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW) {
                 if ((target->kind!=XL6_IR_CALL_TARGET_EXTERN_C && target->kind!=XL6_IR_CALL_TARGET_NATIVE_FACTORY) ||
                     !xl6IrRuntimeDirectBridgeCheckedClosureParameter(target->cName,parameter) ||
@@ -38197,6 +38268,13 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         const XL6_IrNode* declaration = xl6IrNodeGet(module, instance->declaration);
         const XL6_IrCallTarget* target = xl6IrCallTargetGet(module, instance->symbol);
         const XL6_IrFunction* function = xl6IrFunctionBySymbol(module, instance->symbol);
+        /* Only the closed resident generic contract may specialize an extern.
+         * Such a target deliberately has no generated language function body. */
+        int resident = target != NULL &&
+            (target->kind == XL6_IR_CALL_TARGET_EXTERN_C ||
+             target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
+            xl6NativeGenericRole(target->cName) != XL6_NATIVE_GENERIC_NONE &&
+            xl6IrRuntimeDirectBridgeTargetMatches(module, target);
         size_t argument;
         size_t prior;
         if ( module->stage != XL6_IR_STAGE_LOWERED || instance->sourceDeclaration == instance->declaration ||
@@ -38205,10 +38283,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
              instance->symbol == 0 || declaration->symbol != instance->symbol ||
              instance->typeArgCount == 0 || instance->typeArgs == NULL || target == NULL ||
              target->declaration != instance->declaration ||
-             (target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
+             (!resident && target->kind != XL6_IR_CALL_TARGET_INTERNAL &&
               target->kind != XL6_IR_CALL_TARGET_INTERNAL_ASYNC &&
               target->kind != XL6_IR_CALL_TARGET_INTERNAL_GENERATOR) ||
-             function == NULL )
+             (resident ? function != NULL : function == NULL) )
             return xl6IrDiag(diags, NULL, "XLIR generic specialization has no complete monomorphic callable ABI");
         for ( argument = 0; argument < instance->typeArgCount; ++argument ) {
             if ( xl6IrTypeContainsTypeParam(&module->types, instance->typeArgs[argument], 0) )
@@ -38216,7 +38294,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         }
         if ( (target->returnType != XL6_IR_TYPE_INVALID &&
               xl6IrTypeContainsTypeParam(&module->types, target->returnType, 0)) ||
-             (function->returnType != XL6_IR_TYPE_INVALID &&
+             (function != NULL && function->returnType != XL6_IR_TYPE_INVALID &&
               xl6IrTypeContainsTypeParam(&module->types, function->returnType, 0)) )
             return xl6IrDiag(diags, NULL, "XLIR generic specialization has a non-concrete return ABI");
         for ( argument = 0; argument < target->parameterCount; ++argument ) {
@@ -45147,6 +45225,12 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     case XL6_IR_ASYNC_RESULT_COPY_F64:
                         resultMatches = resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_F64;
                         break;
+                    case XL6_IR_ASYNC_RESULT_COPY_F32:
+                        resultMatches = resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_F32;
+                        break;
+                    case XL6_IR_ASYNC_RESULT_COPY_TIME:
+                        resultMatches = resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_TIME_I64;
+                        break;
                     case XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER:
                         resultMatches = resultType != NULL &&
                             resultType->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
@@ -46377,10 +46461,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                          instruction->result == XL6_IR_VALUE_INVALID || instruction->type != callee->returnType )
                         return xl6IrDiag(diags, origin, "XLIR async start has no exact resolved launch ABI");
                     for ( operand = 0; operand < instruction->operandCount; ++operand ) {
+                        size_t argumentIndex=SIZE_MAX;
+                        char borrowFailure[256]={0};
                         const XL6_IrInstruction* argument = xl6IrValueDefinition(
-                            module, module->operands[instruction->firstOperand + operand], NULL);
-                        const XL6_IrNode* argumentNode = argument != NULL
-                            ? xl6IrNodeGet(module, argument->origin) : NULL;
+                            module, module->operands[instruction->firstOperand + operand], &argumentIndex);
                         if ( argument == NULL || argument->type != callee->parameterTypes[operand] ||
                              callee->asyncCaptureAbis == NULL ||
                               (callee->asyncCaptureAbis[operand] != XL6_IR_ASYNC_CAPTURE_COPY_VALUE &&
@@ -46392,9 +46476,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                callee->asyncCaptureAbis[operand] != XL6_IR_ASYNC_CAPTURE_COPY_NATIVE_VALUE &&
                                callee->asyncCaptureAbis[operand] != XL6_IR_ASYNC_CAPTURE_TAKE_PARAMETER) ||
                              (callee->asyncCaptureAbis[operand] == XL6_IR_ASYNC_CAPTURE_RETAIN_FUTURE &&
-                              (argumentNode == NULL ||
-                               (argumentNode->ownership != XL6_IR_OWNERSHIP_BORROW &&
-                                argumentNode->ownership != XL6_IR_OWNERSHIP_SHARED))) )
+                              !xl6IrBorrowedCallArgumentIsExplicit(module,function,j,argument,
+                                  argumentIndex,borrowFailure,sizeof(borrowFailure))) )
                         {
                             char message[256];
                             snprintf(message, sizeof(message),
@@ -47405,6 +47488,8 @@ static const char* xl6IrAsyncResultAbiName(XL6_IrAsyncResultAbi abi)
     case XL6_IR_ASYNC_RESULT_COPY_U64: return "copy-u64";
     case XL6_IR_ASYNC_RESULT_COPY_TYPE_ID: return "copy-type-id";
     case XL6_IR_ASYNC_RESULT_COPY_F64: return "copy-f64";
+    case XL6_IR_ASYNC_RESULT_COPY_F32: return "copy-f32";
+    case XL6_IR_ASYNC_RESULT_COPY_TIME: return "copy-time";
     case XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER: return "copy-raw-pointer";
     case XL6_IR_ASYNC_RESULT_OWNED_STRING: return "owned-string";
     case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE: return "retained-xvalue";
@@ -47794,6 +47879,8 @@ static const char* xl6IrCallParameterPhysicalAbiName(
         return "native-class-handle-borrow";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW:
         return "checked-closure-borrow";
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW:
+        return "generic-value-address-borrow";
     default: return "invalid";
     }
 }
@@ -49726,7 +49813,9 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
         if (target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC)
             for (parameter = 0; parameter < target->parameterCount; ++parameter)
                 xl6OutputPrintf(out, "%s%d", parameter ? "," : "", (int)target->asyncCaptureDestroyAbis[parameter]);
-        xl6OutputPrintf(out, "] async-result=%s worker=t%u worker-errors=%s dispatch=%d future-outcome=%d machine=%lu completion=%s\n",
+        xl6OutputPrintf(out, "] native-context=%d/t%u/%s async-result=%s worker=t%u worker-errors=%s dispatch=%d future-outcome=%d machine=%lu completion=%s\n",
+                        (int)target->nativeContextAbi,(unsigned)target->nativeContextType,
+                        xl6IrAsyncResultAbiName(target->nativeContextPayloadAbi),
                         xl6IrAsyncResultAbiName(target->asyncResultAbi),
                         (unsigned int)target->workerReturnType,
                         xl6IrErrorAbiName(target->workerErrorAbi),
@@ -51318,7 +51407,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
                         target->generatorCaptureAbis[parameter]));
             }
         xl6OutputPrintf(out,
-            "],\"resultCAbi\":%d,\"resultConversionAbi\":%d,\"resultConversionAbiName\":\"%s\",\"executionBoundaryAbi\":%d,\"executionBoundaryAbiName\":\"%s\",\"effectAbi\":%d,\"effectAbiName\":\"%s\",\"preparationFailureAbi\":%d,\"preparationFailureAbiName\":\"%s\"}%s\n",
+            "],\"nativeContextAbi\":%d,\"nativeContextType\":%u,\"nativeContextPayloadAbi\":%d,\"resultCAbi\":%d,\"resultConversionAbi\":%d,\"resultConversionAbiName\":\"%s\",\"executionBoundaryAbi\":%d,\"executionBoundaryAbiName\":\"%s\",\"effectAbi\":%d,\"effectAbiName\":\"%s\",\"preparationFailureAbi\":%d,\"preparationFailureAbiName\":\"%s\"}%s\n",
+            (int)target->nativeContextAbi,(unsigned)target->nativeContextType,(int)target->nativeContextPayloadAbi,
             (int)target->resultCAbi,
             (int)target->resultConversionAbi,
             xl6IrCallResultConversionAbiName(target->resultConversionAbi),

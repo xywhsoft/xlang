@@ -1,0 +1,19 @@
+import concurrent
+auto source = Promise::<int>()
+var dynamic = source
+assert dynamic.tryResolve(91)
+assert not dynamic.tryResolve(92)
+future<int> output = dynamic.future as future<int>
+assert (await output) == 91
+auto real = Promise::<float32>()
+var dynamicReal = real
+assert dynamicReal.tryResolve(float32(1.5))
+assert (await real.future) == float32(1.5)
+bool caught = false
+try
+    dynamicReal.tryResolve("wrong type")
+catch TypeError
+    caught = true
+end
+assert caught
+println("Promise erased calls preserve closed parameter/result identity")

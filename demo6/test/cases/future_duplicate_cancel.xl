@@ -1,12 +1,13 @@
-async func slowValue(int value) as int
-    time.sleep(250)
-    return value
-end
-
-future<int> source = slowValue(509)
+import concurrent
+// A pending producer makes cancellation deterministic. Blocking sleep is not
+// a language cancellation point and must not be used as a timing surrogate.
+auto producer = Promise::<int>()
+future<int> source = producer.future
 future<array<int>> combined = task.all([source, source])
 
 assert task.cancel(source), "pending duplicate source must accept cancellation"
+assert producer.isCancellationRequested and not producer.isCompleted
+assert producer.tryCancel(), "the producer publishes its selected terminal state"
 assert source.isCancelled(), "source cancellation must publish a cancelled terminal state"
 assert not combined.wait(), "task.all must report a cancelled duplicate source"
 assert combined.isCancelled(), "task.all must preserve duplicate source cancellation"

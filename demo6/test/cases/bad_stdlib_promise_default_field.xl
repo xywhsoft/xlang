@@ -1,0 +1,5 @@
+import concurrent
+class Invalid
+    Promise<int> producer
+end
+auto value = Invalid()

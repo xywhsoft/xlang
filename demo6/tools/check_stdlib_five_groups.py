@@ -22,7 +22,7 @@ def digest(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--stage', choices=('p0', 'atomic', 'once-event', 'thread-local', 'cancellation'), required=True)
+    parser.add_argument('--stage', choices=('p0', 'atomic', 'once-event', 'thread-local', 'cancellation', 'promise'), required=True)
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     args = parser.parse_args()
@@ -71,6 +71,16 @@ def main():
         negatives = ('bad_stdlib_cancellation_missing_import', 'bad_stdlib_cancellation_private',
                      'bad_stdlib_cancellation_authority')
         helpers = (*helpers[:3], 'xlir_cancellation_contract.c', 'stdlib_cancellation_native_host.c',
+                   'stdlib53_pruning_plan.c', 'stdlib_native_future_policy_product_host.c')
+    if args.stage == 'promise':
+        selected = ('stdlib_promise', 'stdlib_promise_values', 'stdlib_promise_terminal',
+                    'stdlib_promise_dynamic', 'stdlib_promise_owned', 'future_duplicate_cancel',
+                    'stdlib_cancellation', 'stdlib_task_group_methods', 'stdlib_concurrent_import_only',
+                    'stdlib_slot_map_future_keys')
+        negatives = ('bad_stdlib_promise_missing_import', 'bad_stdlib_promise_private', 'bad_stdlib_promise_type',
+                     'bad_stdlib_promise_default','bad_stdlib_promise_default_local','bad_stdlib_promise_default_field',
+                     'bad_stdlib_promise_default_generic_field')
+        helpers = (*helpers[:3], 'xlir_promise_contract.c', 'stdlib_promise_native_host.c',
                    'stdlib53_pruning_plan.c', 'stdlib_native_future_policy_product_host.c')
     inputs = {Path(__file__).resolve(), *products,
               *[cases/(name+'.xl') for name in selected+negatives],
@@ -135,15 +145,18 @@ def main():
         for binary, source in ((host, helpers[0]), (observer, helpers[1])):
             run(binary.stem+'.build', [cc, *flags, '-O2', '-I'+str(root/'release/include'),
                                       cases/source, *links(names[2]), '-o', binary])
-        if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation'):
+        if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation', 'promise'):
             family, prefix, entries = ('atomic', rb'xl6Atomic\w+V1', 50) if args.stage == 'atomic' else (
-                'concurrent', rb'xl6(?:Once|Event|ThreadLocal|Cancellation)\w+V1', None)
+                'concurrent', rb'xl6(?:Once|Event|ThreadLocal|Cancellation|Promise)\w+V1', None)
             exports = set(re.findall(r'XL6_TEXT_EXPORT\((\w+),',
                 (root/f'src/runtime/xl6_{family}_symbols.inc').read_text()))
             declarations = set(re.findall(r'XL6_TEXT_API [^;\n]*?\b(\w+)\(',
                 (root/f'src/runtime/xl6_{family}_abi.h').read_text()))
             contracts = set(re.findall(r'(?m)^\s*\{"([^"]+)"',
                 (root/f'src/ir/xl6_ir_{family}_contracts.inc').read_text()))
+            if family == 'concurrent':
+                contracts.update(re.findall(r'(?m)^XL6_NATIVE_GENERIC_BRIDGE\("([^"]+)"',
+                    (root/'src/abi/xl6_native_generic_contracts.inc').read_text()))
             assert exports == declarations == contracts
             if entries is not None: assert len(exports) == entries
             if args.stage == 'once-event': assert len([name for name in exports if name.startswith(('xl6Once','xl6Event'))]) == 10
@@ -151,6 +164,10 @@ def main():
             if args.stage == 'cancellation':
                 stage_exports = {name for name in exports if name.startswith('xl6Cancellation')}
                 assert len(stage_exports) == 16
+                report['StageEntries'] = len(stage_exports)
+            if args.stage == 'promise':
+                stage_exports = {name for name in exports if name.startswith('xl6Promise')}
+                assert len(stage_exports) == 10
                 report['StageEntries'] = len(stage_exports)
             report['ResidentEntries'] = len(exports)
             inspect = shutil.which('objdump' if win else 'nm')
@@ -173,7 +190,7 @@ def main():
                     '-I'+str(root/'release'), '-I'+str(root/'release/include'),
                     cases/helpers[4], *links(product.name), '-o', binary])
                 run(product.stem+'.oom.run', [binary])
-                if args.stage == 'cancellation':
+                if args.stage in ('cancellation','promise'):
                     binary = isolated/(product.stem+'.future-regression'+('.exe' if win else ''))
                     run(product.stem+'.future.build', [cc, *flags, '-O2', '-I'+str(root),
                         '-I'+str(root/'release/include'), '-I'+str(sdk), cases/helpers[6],
@@ -201,7 +218,8 @@ def main():
             assert first.read_bytes() == second.read_bytes()
             full = name == selected[0] or (args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation') and
                 name in selected[:(4 if args.stage in ('thread-local','cancellation') else 3)]) or (
-                args.stage == 'cancellation' and name == 'stdlib_task_group_methods')
+                args.stage == 'cancellation' and name == 'stdlib_task_group_methods') or (
+                args.stage == 'promise' and name in selected[:6])
             if not full:
                 return
             work = out/(name+'.saved')
@@ -235,7 +253,8 @@ def main():
             assert b'[ir]' in output or b'[sem]' in output or b'[checked]' in output
             assert target.read_bytes() == b'UNCHANGED\n'
             if name in ('bad_stdlib_atomic_private_handle', 'bad_stdlib_event_private_handle',
-                        'bad_stdlib_thread_local_private', 'bad_stdlib_cancellation_private'): assert b'private' in output
+                        'bad_stdlib_thread_local_private', 'bad_stdlib_cancellation_private',
+                        'bad_stdlib_promise_private'): assert b'private' in output
             if name in ('bad_xlir_atomic_product', 'bad_xlir_once_callback'): assert b'exact declared ABI' in output
         failures = []
         report['Failures'] = failures
@@ -253,8 +272,9 @@ def main():
             run('contract.run', [binary, isolated/(selected[0]+'.xl'),
                 *([isolated/(selected[1]+'.xl')] if args.stage == 'once-event' else
                   [isolated/'xlir_class_tag_vocabulary.xl', isolated/'xlir_class_tag_narrow_first.xl']
-                  if args.stage == 'cancellation' else [])])
-            if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation'):
+                  if args.stage == 'cancellation' else
+                  [isolated/(name+'.xl') for name in selected[1:3]] if args.stage == 'promise' else [])])
+            if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation', 'promise'):
                 planner = isolated/'planner'
                 run('pruning.build', [cc, *flags, '-O2', '-I'+str(root), '-I'+str(root/'release/include'),
                     '-I'+str(root/'lib/tcc'), cases/helpers[5], *links(names[2]), '-o', planner])
@@ -274,12 +294,19 @@ def main():
                                                             'xl6_cancellation_registration_domain.c'}),
                              ('stdlib_cancellation_source_only', core),
                              ('stdlib_concurrent_import_only', set()))
+                if args.stage == 'promise':
+                    core = {'xl6_promise.c','xl6_promise_domain.c','xl6_future_value.c'}
+                    plans = (('stdlib_promise', core),
+                             ('stdlib_promise_terminal', core | {'xl6_cancellation_source.c',
+                                                                'xl6_cancellation_source_domain.c','xl6_thread_exit.c'}),
+                             ('stdlib_concurrent_import_only', set()))
                 for name, expected in plans:
                     plan = json.loads(run(name+'.plan', [planner, isolated/(name+'.xl')]))
                     sources = {Path(path).name for path in plan['Sources']}
                     scoped = {path for path in sources if path.startswith(('xl6_atomic_', 'xl6_cancellation_')) or path in {
                         'xl6_once.c', 'xl6_once_domain.c', 'xl6_event.c', 'xl6_event_domain.c',
-                        'xl6_thread_exit.c', 'xl6_thread_local.c', 'xl6_thread_local_domain.c'}}
+                        'xl6_thread_exit.c', 'xl6_thread_local.c', 'xl6_thread_local_domain.c',
+                        'xl6_promise.c', 'xl6_promise_domain.c', 'xl6_future_value.c'}}
                     assert scoped == expected, (name, scoped)
         report['InputsUnchanged'] = all(digest(row['Path']) == row['Sha256'] for row in report['Inputs'])
         report['LogsUnchanged'] = all(digest(row['Log']) == row['Sha256'] for row in report['Rows'])

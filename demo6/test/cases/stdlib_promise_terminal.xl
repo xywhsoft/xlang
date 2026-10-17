@@ -1,0 +1,61 @@
+import concurrent
+auto source = CancellationSource()
+auto producer = Promise::<int>(source.token)
+auto consumer = producer.future
+assert source.cancel() and producer.isCancellationRequested
+assert not producer.isCompleted
+assert producer.tryResolve(81) and (await consumer) == 81
+auto cancelled = Promise::<int>()
+assert cancelled.tryCancel() and not cancelled.tryResolve(82)
+assert cancelled.future.isCancelled()
+auto closed = Promise::<string>()
+assert closed.close() and not closed.close()
+assert not closed.future.wait()
+auto failed = Promise::<int>()
+func originalError() as error
+    try
+        throw ValueError "original Promise error"
+    catch ValueError value
+        return value
+    end
+end
+error original = originalError()
+assert failed.tryReject(original)
+assert not failed.tryReject(original)
+bool caught = false
+try
+    int value = await failed.future
+catch ValueError
+    caught = true
+end
+assert caught
+auto errorData = Promise::<error>()
+assert errorData.tryResolve(original)
+error acquiredError = await errorData.future
+assert acquiredError.message == "original Promise error"
+func abandoned() as future<int>
+    auto local = Promise::<int>()
+    return local.future
+end
+auto orphan = abandoned()
+assert not orphan.wait() and orphan.isDone()
+auto threaded = Promise::<string>()
+auto observer = threaded.future
+auto worker = thread(func() as int
+    assert threaded.tryResolve("owned\0value")
+    return 0
+end)
+assert (await observer) == "owned\0value"
+assert worker.waitTimeout(30000) and worker.exitCode() == 0
+auto race = Promise::<int>()
+auto first = thread(func() as int
+    return race.tryResolve(1) ? 1 : 0
+end)
+auto second = thread(func() as int
+    return race.tryResolve(2) ? 1 : 0
+end)
+assert first.waitTimeout(30000) and second.waitTimeout(30000)
+assert first.exitCode() + second.exitCode() == 1
+int winner = await race.future
+assert winner == 1 or winner == 2
+println("Promise cancellation request, terminals, producer drop and thread handoff ok")

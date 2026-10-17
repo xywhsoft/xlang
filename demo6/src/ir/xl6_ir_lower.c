@@ -11503,7 +11503,7 @@ static XL6_IrValueId xl6IrLowerDefaultClassConstruct(
     if ( ctx == NULL || type == XL6_IR_TYPE_INVALID ||
          !xl6IrLowerTypeIsRuntimeXValue(ctx->module, type) ||
          (layout = xl6IrLowerClassLayoutGet(ctx->module, type)) == NULL ||
-         layout->hasExplicitCreate ) {
+         layout->hasExplicitCreate || xl6IrTypeRequiresExplicitNativeInitialization(ctx->module,type) ) {
         xl6IrLowerDiag(ctx, id, "XLIR default class constructor requires a verified zero-argument layout ABI");
         return XL6_IR_VALUE_INVALID;
     }
@@ -11936,6 +11936,8 @@ static XL6_IrAsyncResultAbi xl6IrLowerAsyncResultAbi(
     case XL6_IR_C_ABI_U64: return XL6_IR_ASYNC_RESULT_COPY_U64;
     case XL6_IR_C_ABI_TYPE_ID: return XL6_IR_ASYNC_RESULT_COPY_TYPE_ID;
     case XL6_IR_C_ABI_F64: return XL6_IR_ASYNC_RESULT_COPY_F64;
+    case XL6_IR_C_ABI_F32: return XL6_IR_ASYNC_RESULT_COPY_F32;
+    case XL6_IR_C_ABI_TIME_I64: return XL6_IR_ASYNC_RESULT_COPY_TIME;
     case XL6_IR_C_ABI_RAW_POINTER:
         return XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER;
     case XL6_IR_C_ABI_MANAGED_STRING: return XL6_IR_ASYNC_RESULT_OWNED_STRING;
@@ -11967,6 +11969,8 @@ static int xl6IrLowerTaskAllPayloadBoxerSupported(
     case XL6_IR_ASYNC_RESULT_COPY_U64:
     case XL6_IR_ASYNC_RESULT_COPY_TYPE_ID:
     case XL6_IR_ASYNC_RESULT_COPY_F64:
+    case XL6_IR_ASYNC_RESULT_COPY_F32:
+    case XL6_IR_ASYNC_RESULT_COPY_TIME:
     case XL6_IR_ASYNC_RESULT_OWNED_STRING:
     case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE:
     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE:
@@ -12107,6 +12111,9 @@ static int xl6IrLowerResolveRuntimeBridge(
     target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_NONE;
     target->runtimeBridgeOperation = XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE;
     target->nativeArrayResultAbi = xl6IrRuntimeDirectBridgeNativeArrayResultAbi(target->cName);
+    if(!xl6IrRuntimeDirectBridgeContext(ctx->module,target,&target->nativeContextAbi,
+            &target->nativeContextType,&target->nativeContextPayloadAbi))
+        return xl6IrLowerDiag(ctx,target->declaration,"XLIR native generic context requires an exact supported Future payload ABI");
     target->nativeHandlePolicyCName = xl6IrRuntimeNativeHandlePolicyForName(target->cName);
     target->nativeHandlePolicyAbi = target->nativeHandlePolicyCName != NULL
         ? XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1 : XL6_IR_NATIVE_HANDLE_POLICY_NONE;
@@ -12989,6 +12996,11 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
      * resource parameters of factories; Cgen receives the completed projection. */
     if (target->kind == XL6_IR_CALL_TARGET_EXTERN_C || target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) {
         for (i = 0; i < target->parameterCount; ++i) {
+            if(xl6IrRuntimeDirectBridgeValueAddressParameter(target->cName,i)) {
+                target->parameterPhysicalAbis[i]=XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW;
+                target->parameterPhysicalFieldDeclarations[i]=XL6_IR_NODE_INVALID;
+                continue;
+            }
             if (xl6IrRuntimeVfsBridgeParameterOwner(target->cName, i) != NULL ||
                 xl6IrRuntimeLogBridgeParameterOwner(target->cName, i) != NULL ||
                 xl6IrRuntimeDirectBridgeParameterOwner(target->cName, i) != NULL) {
@@ -17672,6 +17684,31 @@ static int xl6IrLowerMaterializeGenericClassCopyProtocols(XL6_IrLowerContext* ct
     return 1;
 }
 
+/* Native fields own the same concrete lifecycle dependency as class methods.
+ * Materialize before refreshing layouts, even when source never explicitly
+ * calls destroy. The canonical lifecycle query then seals that exact symbol. */
+static int xl6IrLowerMaterializeGenericNativeLifecycles(XL6_IrLowerContext* ctx)
+{
+    XL6_IrModule* module=ctx->module;
+    for(size_t i=0;i<module->classFieldCount;++i) {
+        const XL6_IrClassField* field=&module->classFields[i];
+        XL6_SymbolId source=field->nativeDestroySymbol;
+        const XL6_IrType* owner=xl6IrTypeGet(&module->types,field->ownerType);
+        XL6_IrNodeId declaration;
+        if(!source || source>=module->symbolNodeCapacity ||
+           !(declaration=module->symbolNodes[source]) ||
+           !xl6IrLowerIsGenericDeclaration(module,declaration))continue;
+        if(!owner || owner->kind!=XL6_IR_TYPE_CLASS || !owner->paramCount || !owner->params)
+            return xl6IrLowerDiag(ctx,field->declaration,"XLIR generic native lifecycle has no concrete owner arguments");
+        const XL6_IrTypeId* arguments=owner->params;size_t count=owner->paramCount;
+        XL6_SymbolId concrete=0;
+        if(!xl6IrLowerBuildGenericSpecialization(ctx,XL6_IR_NODE_INVALID,declaration,arguments,count,&concrete) || !concrete)
+            return xl6IrLowerDiag(ctx,declaration,"XLIR native field destructor has no monomorphic lifecycle ABI");
+        module->classFields[i].nativeDestroySymbol=concrete;
+    }
+    return 1;
+}
+
 /* Typed protocol rows may point at a generic class-member template, but a
  * lowered dispatch table must name an exact callable target.  Materialize that
  * target from the row's concrete owner type and replace the template identity
@@ -17935,6 +17972,7 @@ static int xl6IrLowerCloseGenericSpecializationGraph(XL6_IrLowerContext* ctx)
             !xl6IrLowerMaterializeGenericClassCopyProtocols(ctx) ||
             !xl6IrLowerMaterializeGenericProtocolWitnesses(ctx) ||
             !xl6IrLowerMaterializeGenericLoopProtocols(ctx) ||
+            !xl6IrLowerMaterializeGenericNativeLifecycles(ctx) ||
             !xl6IrRefreshClassLayouts(module) || !xl6IrRefreshNominalIdentitySets(module) ||
             !xl6IrLowerMaterializeGenericDynamicMethods(ctx) ) {
             if ( ctx->diags == NULL || ctx->diags->count == 0 )

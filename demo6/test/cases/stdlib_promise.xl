@@ -1,0 +1,22 @@
+import concurrent
+auto producer = Promise::<int>()
+future<int> result = producer.future
+assert not producer.isCompleted
+assert producer.tryResolve(217)
+assert producer.isCompleted and not producer.tryResolve(999)
+assert not producer.tryCancel() and not producer.close()
+int observed = await result
+assert observed == 217
+assert (await producer.future) == 217
+
+auto text = Promise::<string>()
+string input = "a\0你"
+assert text.tryResolve(input)
+assert (await text.future) == input
+auto logical = Promise::<bool>()
+assert logical.tryResolve(true)
+assert await logical.future
+auto scalar = Promise::<char>()
+assert scalar.tryResolve('你')
+assert (await scalar.future) == '你'
+println("typed Promise scalar, exact NUL text and repeated owned observer ok")

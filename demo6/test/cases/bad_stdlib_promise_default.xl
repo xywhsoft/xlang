@@ -1,0 +1,3 @@
+import concurrent
+Promise<int> producer
+producer.tryResolve(1)

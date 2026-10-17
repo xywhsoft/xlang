@@ -2116,8 +2116,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         if (xl6StdlibNodeUsesTypeName(root, "ThreadLocal")) xl6StdlibBuilderAppend(&builder, xl6StdlibThreadLocalSource);
         if (xl6StdlibNodeUsesTypeName(root, "CancellationSource") ||
             xl6StdlibNodeUsesTypeName(root, "CancellationToken") ||
-            xl6StdlibNodeUsesTypeName(root, "CancellationRegistration"))
+            xl6StdlibNodeUsesTypeName(root, "CancellationRegistration") ||
+            xl6StdlibNodeUsesTypeName(root, "Promise"))
             xl6StdlibBuilderAppend(&builder, xl6StdlibCancellationSource);
+        if(xl6StdlibNodeUsesTypeName(root,"Promise"))xl6StdlibBuilderAppend(&builder,xl6StdlibPromiseSource);
         if (xl6StdlibNodeUsesTypeName(root, "AtomicInt32")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicInt32Source);
         if (xl6StdlibNodeUsesTypeName(root, "AtomicUInt32")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicUInt32Source);
         if (xl6StdlibNodeUsesTypeName(root, "AtomicInt64")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicInt64Source);
