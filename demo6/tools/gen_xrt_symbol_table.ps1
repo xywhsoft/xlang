@@ -64,6 +64,9 @@ if ( $Check ) {
     } else {
         ""
     }
+    # Git and editors may store this generated C list as CRLF. Match the
+    # Python checker for LF/CRLF without accepting any symbol/content drift.
+    $actual = $actual.Replace("`r`n", "`n")
     if ( $actual -cne $expected ) {
         Write-Error "XRT/xruntime symbol table is stale: $outputPath"
         exit 1
