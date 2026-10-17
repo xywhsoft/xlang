@@ -26,6 +26,16 @@
     src\runtime\xl6_dynamic_fields_copy.c
     src\runtime\xl6_buffer_hex.c
     src\runtime\xl6_crc32_text.c
+    src\runtime\xl6_atomic_i32.c
+    src\runtime\xl6_atomic_i32_domain.c
+    src\runtime\xl6_atomic_u32.c
+    src\runtime\xl6_atomic_u32_domain.c
+    src\runtime\xl6_atomic_i64.c
+    src\runtime\xl6_atomic_i64_domain.c
+    src\runtime\xl6_atomic_u64.c
+    src\runtime\xl6_atomic_u64_domain.c
+    src\runtime\xl6_atomic_bool.c
+    src\runtime\xl6_atomic_bool_domain.c
     src\runtime\xl6_crypto_md5.c
     src\runtime\xl6_crypto_md5_stream.c
     src\runtime\xl6_crypto_md5_domain.c

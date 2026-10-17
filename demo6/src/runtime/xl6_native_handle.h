@@ -145,6 +145,11 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6PemBlockHandlePolicyV1Get(
 
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6PemReaderHandlePolicyV1Get(void);
 
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6AtomicInt32HandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6AtomicUInt32HandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6AtomicInt64HandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6AtomicUInt64HandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6AtomicBoolHandlePolicyV1Get(void);
 /* Used only in audited resident implementation units, with complete XRT types.
  * Keep the same explicit error boundary as a generated native destructor; a
  * callback must propagate cleanup failure without replacing an earlier one. */

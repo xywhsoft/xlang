@@ -1,0 +1,3 @@
+import concurrent
+auto value = AtomicBool()
+println(value.handle)

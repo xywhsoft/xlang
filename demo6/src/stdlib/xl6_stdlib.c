@@ -811,6 +811,16 @@ static int xl6StdlibNodeUsesTypeName(const XL6_AstNode* node, const char* typeNa
     return 0;
 }
 
+static int xl6StdlibHasConcurrentImport(const XL6_AstNode* node)
+{
+    if (!node) return 0;
+    if (node->kind == XL6_AST_IMPORT && node->text &&
+        (!strcmp(node->text, "concurrent") || !strcmp(node->text, "\"concurrent\""))) return 1;
+    for (size_t i = 0; i < node->childCount; ++i)
+        if (xl6StdlibHasConcurrentImport(node->children[i])) return 1;
+    return 0;
+}
+
 static int xl6StdlibNodeDefinesClass(const XL6_AstNode* node)
 {
     size_t i;
@@ -2100,6 +2110,13 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesTypeName(root, "PemBlock") ||
         xl6StdlibNodeUsesTypeName(root, "PemReader") ||
         xl6StdlibFuncUsed(used, "asn1", "parse") || xl6StdlibFuncUsed(used, "pem", "parse") || xl6StdlibFuncUsed(used, "pem", "decode")) xl6StdlibBuilderAppend(&builder, xl6StdlibAsn1ClassSource);
+    if (xl6StdlibHasConcurrentImport(root)) {
+        if (xl6StdlibNodeUsesTypeName(root, "AtomicInt32")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicInt32Source);
+        if (xl6StdlibNodeUsesTypeName(root, "AtomicUInt32")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicUInt32Source);
+        if (xl6StdlibNodeUsesTypeName(root, "AtomicInt64")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicInt64Source);
+        if (xl6StdlibNodeUsesTypeName(root, "AtomicUInt64")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicUInt64Source);
+        if (xl6StdlibNodeUsesTypeName(root, "AtomicBool")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicBoolSource);
+    }
     if ( needsCryptoClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibCryptoClassSource);
     }

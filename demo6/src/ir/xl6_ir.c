@@ -1390,29 +1390,53 @@ XL6_IrNativeProductAbi xl6IrNativeProductAbiForShape(const XL6_IrTypePool* pool,
     if (!pool || !type || type->kind != XL6_IR_TYPE_TUPLE || (type->paramCount != 2 && type->paramCount != 3) ||
         !type->params || type->returnCount) return XL6_IR_NATIVE_PRODUCT_NONE;
     const XL6_IrType* first = xl6IrTypeGet(pool,type->params[0]);
-    bool boolTime = type->paramCount == 2 && first && first->cAbi == XL6_IR_C_ABI_BOOL;
+    bool boolFirst = type->paramCount == 2 && first && first->cAbi == XL6_IR_C_ABI_BOOL;
+    const XL6_IrType* second = xl6IrTypeGet(pool,type->params[1]);
+    XL6_IrCAbi tail = boolFirst && second ? second->cAbi : XL6_IR_C_ABI_TIME_I64;
+    if (boolFirst && tail != XL6_IR_C_ABI_TIME_I64 && tail != XL6_IR_C_ABI_I64 &&
+        tail != XL6_IR_C_ABI_U64 && tail != XL6_IR_C_ABI_BOOL) return XL6_IR_NATIVE_PRODUCT_NONE;
     for (i=0;i<type->paramCount;++i) {
         XL6_IrCAbi expected = type->paramCount == 3 ? XL6_IR_C_ABI_I64 :
-            (boolTime && i == 0 ? XL6_IR_C_ABI_BOOL : XL6_IR_C_ABI_TIME_I64);
+            (boolFirst && i == 0 ? XL6_IR_C_ABI_BOOL : tail);
         const XL6_IrType* item = xl6IrTypeGet(pool,type->params[i]);
         if (!item || item->kind != XL6_IR_TYPE_BUILTIN || item->paramCount || item->returnCount ||
             item->collectionAbi != XL6_IR_COLLECTION_NONE || item->cAbi != expected ||
-            (expected == XL6_IR_C_ABI_I64 && item->integerTarget != XL6_IR_INTEGER_TARGET_SIGNED_64) ||
-            (expected != XL6_IR_C_ABI_I64 && item->integerTarget != XL6_IR_INTEGER_TARGET_INVALID) ||
+            (expected == XL6_IR_C_ABI_I64 && item->integerTarget != XL6_IR_INTEGER_TARGET_SIGNED_64 &&
+             !(boolFirst && i == 1 && (item->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_32 ||
+                 item->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_32))) ||
+            (expected == XL6_IR_C_ABI_U64 && item->integerTarget != XL6_IR_INTEGER_TARGET_UNSIGNED_64) ||
+            (expected != XL6_IR_C_ABI_I64 && expected != XL6_IR_C_ABI_U64 &&
+             item->integerTarget != XL6_IR_INTEGER_TARGET_INVALID) ||
             item->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL || item->nullAbi != XL6_IR_NULL_ABI_NONE)
             return XL6_IR_NATIVE_PRODUCT_NONE;
     }
-    return boolTime ? XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1 :
-        type->paramCount == 2 ? XL6_IR_NATIVE_PRODUCT_TIMEX2_V1 : XL6_IR_NATIVE_PRODUCT_I64X3_V1;
+    if (!boolFirst) return type->paramCount == 2 ? XL6_IR_NATIVE_PRODUCT_TIMEX2_V1 : XL6_IR_NATIVE_PRODUCT_I64X3_V1;
+    if (tail == XL6_IR_C_ABI_I64 && second->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_32)
+        return XL6_IR_NATIVE_PRODUCT_BOOLI32_V1;
+    if (tail == XL6_IR_C_ABI_I64 && second->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_32)
+        return XL6_IR_NATIVE_PRODUCT_BOOLU32_V1;
+    return tail == XL6_IR_C_ABI_I64 ? XL6_IR_NATIVE_PRODUCT_BOOLI64_V1 :
+        tail == XL6_IR_C_ABI_U64 ? XL6_IR_NATIVE_PRODUCT_BOOLU64_V1 :
+        tail == XL6_IR_C_ABI_BOOL ? XL6_IR_NATIVE_PRODUCT_BOOLBOOL_V1 : XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1;
 }
 const char* xl6IrNativeProductAbiCName(XL6_IrNativeProductAbi abi)
 { return abi == XL6_IR_NATIVE_PRODUCT_I64X3_V1 ? "XL6_ProductI64x3V1" :
     abi == XL6_IR_NATIVE_PRODUCT_TIMEX2_V1 ? "XL6_ProductTimeX2V1" :
-    abi == XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1 ? "XL6_ProductBoolTimeV1" : NULL; }
+    abi == XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1 ? "XL6_ProductBoolTimeV1" :
+    abi == XL6_IR_NATIVE_PRODUCT_BOOLI64_V1 ? "XL6_ProductBoolI64V1" :
+    abi == XL6_IR_NATIVE_PRODUCT_BOOLU64_V1 ? "XL6_ProductBoolU64V1" :
+    abi == XL6_IR_NATIVE_PRODUCT_BOOLBOOL_V1 ? "XL6_ProductBoolBoolV1" :
+    abi == XL6_IR_NATIVE_PRODUCT_BOOLI32_V1 ? "XL6_ProductBoolI32V1" :
+    abi == XL6_IR_NATIVE_PRODUCT_BOOLU32_V1 ? "XL6_ProductBoolU32V1" : NULL; }
 const char* xl6IrNativeProductAbiGuard(XL6_IrNativeProductAbi abi)
 { return abi == XL6_IR_NATIVE_PRODUCT_I64X3_V1 ? "XL6_PRODUCT_ABI_I64X3_V1" :
     abi == XL6_IR_NATIVE_PRODUCT_TIMEX2_V1 ? "XL6_PRODUCT_ABI_TIMEX2_V1" :
-    abi == XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1 ? "XL6_PRODUCT_ABI_BOOLTIME_V1" : NULL; }
+    abi == XL6_IR_NATIVE_PRODUCT_BOOLTIME_V1 ? "XL6_PRODUCT_ABI_BOOLTIME_V1" :
+    abi == XL6_IR_NATIVE_PRODUCT_BOOLI64_V1 ? "XL6_PRODUCT_ABI_BOOLI64_V1" :
+    abi == XL6_IR_NATIVE_PRODUCT_BOOLU64_V1 ? "XL6_PRODUCT_ABI_BOOLU64_V1" :
+    abi == XL6_IR_NATIVE_PRODUCT_BOOLBOOL_V1 ? "XL6_PRODUCT_ABI_BOOLBOOL_V1" :
+    abi == XL6_IR_NATIVE_PRODUCT_BOOLI32_V1 ? "XL6_PRODUCT_ABI_BOOLI32_V1" :
+    abi == XL6_IR_NATIVE_PRODUCT_BOOLU32_V1 ? "XL6_PRODUCT_ABI_BOOLU32_V1" : NULL; }
 
 /* Open generic products have no C carrier until specialization. Interning
  * must use the same derived ABI as representation finalization; assuming

@@ -1,0 +1,164 @@
+import concurrent
+
+auto signed32 = AtomicInt32(-1)
+assert signed32.load() == -1, "atomic contract line 4"
+int32 loadedSigned32 = signed32.load()
+assert loadedSigned32 == -1, "exact signed32 result"
+assert signed32.exchange(2147483647) == -1, "atomic contract line 7"
+assert signed32.fetchAdd(1) == 2147483647, "atomic contract line 8"
+assert signed32.load() == -2147483648, "atomic contract line 9"
+assert signed32.fetchSub(1) == -2147483648, "atomic contract line 10"
+assert signed32.load() == 2147483647, "atomic contract line 11"
+signed32.store(15, concurrent.release)
+assert signed32.fetchAnd(7) == 15, "atomic contract line 13"
+assert signed32.fetchOr(8) == 7, "atomic contract line 14"
+assert signed32.fetchXor(3) == 15, "atomic contract line 15"
+auto success32, observed32 = signed32.compareExchange(12, -42)
+assert success32 and observed32 == 12, "atomic contract line 17"
+auto failure32, current32 = signed32.compareExchange(12, 99)
+assert not failure32 and current32 == -42 and signed32.load(concurrent.acquire) == -42, "atomic contract line 19"
+
+auto unsigned32 = AtomicUInt32(4294967295)
+uint32 loadedUnsigned32 = unsigned32.load()
+assert loadedUnsigned32 == 4294967295, "exact unsigned32 result"
+assert unsigned32.fetchAdd(1) == 4294967295, "atomic contract line 24"
+assert unsigned32.load() == 0, "atomic contract line 25"
+assert unsigned32.fetchSub(1) == 0, "atomic contract line 26"
+assert unsigned32.exchange(15) == 4294967295, "atomic contract line 27"
+assert unsigned32.fetchAnd(7) == 15, "atomic contract line 28"
+assert unsigned32.fetchOr(8) == 7, "atomic contract line 29"
+assert unsigned32.fetchXor(3) == 15, "atomic contract line 30"
+auto successU32, observedU32 = unsigned32.compareExchange(12, 4294967295)
+assert successU32 and observedU32 == 12, "atomic contract line 32"
+uint32 typedObservedU32 = observedU32
+int32 typedObserved32 = observed32
+assert typedObservedU32 == 12 and typedObserved32 == 12, "exact CAS result widths"
+auto failureU32, currentU32 = unsigned32.compareExchange(0, 1)
+assert not failureU32 and currentU32 == 4294967295, "atomic contract line 37"
+
+auto signed64 = AtomicInt64(9223372036854775807)
+assert signed64.fetchAdd(1) == 9223372036854775807, "atomic contract line 40"
+assert signed64.load() == -9223372036854775807 - 1, "atomic contract line 41"
+assert signed64.fetchSub(1) == -9223372036854775807 - 1, "atomic contract line 42"
+assert signed64.exchange(15) == 9223372036854775807, "atomic contract line 43"
+assert signed64.fetchAnd(7) == 15, "atomic contract line 44"
+assert signed64.fetchOr(8) == 7, "atomic contract line 45"
+assert signed64.fetchXor(3) == 15, "atomic contract line 46"
+auto success64, observed64 = signed64.compareExchange(12, -1)
+assert success64 and observed64 == 12, "atomic contract line 48"
+auto failure64, current64 = signed64.compareExchange(0, 1)
+assert not failure64 and current64 == -1, "atomic contract line 50"
+signed64.store(7)
+assert signed64.load() == 7, "atomic contract line 52"
+signed64.store(-1)
+
+auto unsigned64 = AtomicUInt64(18446744073709551615)
+assert unsigned64.fetchAdd(1) == 18446744073709551615, "atomic contract line 56"
+assert unsigned64.load() == 0, "atomic contract line 57"
+assert unsigned64.fetchSub(1) == 0, "atomic contract line 58"
+assert unsigned64.exchange(15) == 18446744073709551615, "atomic contract line 59"
+assert unsigned64.fetchAnd(7) == 15, "atomic contract line 60"
+assert unsigned64.fetchOr(8) == 7, "atomic contract line 61"
+assert unsigned64.fetchXor(3) == 15, "atomic contract line 62"
+auto successU64, observedU64 = unsigned64.compareExchange(12, 18446744073709551615)
+assert successU64 and observedU64 == 12, "atomic contract line 64"
+auto failureU64, currentU64 = unsigned64.compareExchange(0, 1)
+assert not failureU64 and currentU64 == 18446744073709551615, "atomic contract line 66"
+unsigned64.store(7)
+assert unsigned64.load() == 7, "atomic contract line 68"
+uint64 loadedUnsigned64 = unsigned64.load()
+assert loadedUnsigned64 == 7, "exact unsigned64 result"
+
+auto flag = AtomicBool()
+assert not flag.load(), "atomic contract line 73"
+flag.store(true, concurrent.release)
+assert flag.exchange(false), "atomic contract line 75"
+auto successBool, observedBool = flag.compareExchange(false, true)
+assert successBool and not observedBool, "atomic contract line 77"
+auto failureBool, currentBool = flag.compareExchange(false, false)
+assert not failureBool and currentBool, "atomic contract line 79"
+
+int rejected = 0
+try
+    signed32.store(2147483648)
+catch RangeError
+    rejected += 1
+end
+try
+    unsigned32.store(-1)
+catch RangeError
+    rejected += 1
+end
+try
+    signed32.load(concurrent.release)
+catch ValueError
+    rejected += 1
+end
+try
+    flag.store(false, concurrent.acquire)
+catch ValueError
+    rejected += 1
+end
+try
+    signed64.compareExchange(-1, 7, concurrent.release, concurrent.acquire)
+catch ValueError
+    rejected += 1
+end
+assert rejected == 5, "atomic contract line 107"
+assert signed32.load() == -42 and unsigned32.load() == 4294967295, "atomic contract line 108"
+assert signed64.load() == -1 and flag.load(), "atomic contract line 109"
+
+// Every success/failure ordering pair is checked before changing the state.
+int successOrder = 0
+int rejectedPairs = 0
+while successOrder < 5
+    int failureOrder = 0
+    while failureOrder < 5
+        bool validPair = failureOrder == 0 or (failureOrder == 1 and (successOrder == 1 or successOrder == 3 or successOrder == 4)) or (failureOrder == 4 and successOrder == 4)
+        signed64.store(5)
+        bool completed = false
+        try
+            auto exchanged, observed = signed64.compareExchange(5, 6, successOrder, failureOrder)
+            assert validPair and exchanged and observed == 5, "atomic contract line 122"
+            completed = true
+        catch ValueError
+            assert not validPair and signed64.load() == 5, "atomic contract line 125"
+            rejectedPairs += 1
+        end
+        assert completed == validPair, "atomic contract line 128"
+        failureOrder += 1
+    end
+    successOrder += 1
+end
+assert rejectedPairs == 16, "atomic contract line 133"
+
+// Invalid narrow inputs must not be truncated or partially commit a CAS.
+int rejectedWidths = 0
+try
+    auto invalid = AtomicInt32(-2147483649)
+catch RangeError
+    rejectedWidths += 1
+end
+try
+    auto invalid = AtomicUInt32(4294967296)
+catch RangeError
+    rejectedWidths += 1
+end
+try
+    signed32.exchange(2147483648)
+catch RangeError
+    rejectedWidths += 1
+end
+try
+    unsigned32.compareExchange(-1, 0)
+catch RangeError
+    rejectedWidths += 1
+end
+try
+    unsigned32.compareExchange(4294967295, 4294967296)
+catch RangeError
+    rejectedWidths += 1
+end
+assert rejectedWidths == 5, "atomic contract line 162"
+assert signed32.load() == -42 and unsigned32.load() == 4294967295, "atomic contract line 163"
+println("resident atomics ok")

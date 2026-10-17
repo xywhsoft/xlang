@@ -1,0 +1,10 @@
+// Same destructor capability, deliberately wrong native scalar result profile.
+class AtomicAbiFixture
+    private native point handle
+    extern "xl6AtomicInt64CreateV1" @nonblocking create(int initial)
+    extern "xl6AtomicInt64DestroyV1" destroy()
+    extern "xl6AtomicInt64CompareExchangeV1" @nonblocking func compareExchange(int expected, int desired, int successOrder, int failureOrder) as (bool, time)
+end
+auto value = AtomicAbiFixture(0)
+auto exchanged, observed = value.compareExchange(0, 1, 4, 4)
+println(exchanged, observed)
