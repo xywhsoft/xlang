@@ -2,6 +2,13 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_windows_nls_sdk_shipping.py --root <frozen-demo6> --build-report
+<ordinary-build.json> --out <fresh-directory>` is the Windows-only mandatory
+`windows-nls-sdk` gate. Actual DLL/TCC/VFS consumers check strict UTF-16, NUL,
+surrogate and capacity rules; compiler output is relocated without xl imports.
+GCC O0/O2 applies to the public API hosts, not to the TCC consumer. Six controls
+and an explicit old-product missing-flag lane are separate from full53 acceptance.
+
 `check_stdlib_dll_response_helper.py --root <demo6> --out <fresh-directory>` tests
 the Windows response helper with an isolated native protocol probe, space paths,
 exact UTF-8 bytes, stderr, exit 29, launch failure and unresolved variables. It
