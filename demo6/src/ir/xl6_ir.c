@@ -17275,6 +17275,15 @@ static XL6_IrOperatorOperandAbi xl6IrClassifyOperatorOperandAbi(
            (target->cAbi == XL6_IR_C_ABI_I64 ||
             target->cAbi == XL6_IR_C_ABI_U64))) )
         return XL6_IR_OPERATOR_OPERAND_INTEGER_LITERAL;
+    /* A representable integer constant has the same contextual path here as
+     * in arguments/returns. Preserve the narrow execution TypeId selected by
+     * semantics without admitting a general narrowing scalar conversion.
+     * The shared predicate checks signedness, width and unary +/- as well as
+     * the literal magnitude; invalid values still have no operand path. */
+    if ( xl6IrContextualIntegerLiteralValue(module,
+             module->children[node->firstChild + operandIndex],
+             node->operatorExecutionType, NULL, NULL) )
+        return XL6_IR_OPERATOR_OPERAND_INTEGER_LITERAL;
 
     exact = operand->type == node->operatorExecutionType;
     conversion = xl6IrClassifyOperatorOperandConversionAbi(
