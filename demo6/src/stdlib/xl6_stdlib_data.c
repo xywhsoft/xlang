@@ -5041,6 +5041,28 @@ static const char xl6StdCodecPercentDecodeBody[] =
     "end\n";
 
 
+static const XL6_StdlibParam xl6StdCrc32TextParams[] = {{"uint64","previous"},{"string","data"},{"int","size"}};
+static const XL6_StdlibParam xl6StdCrc32BytesParams[] = {{"uint64","previous"},{"bytes","data"},{"int","size"}};
+static const XL6_StdlibParam xl6StdCrc32BufferParams[] = {{"uint64","previous"},{"Buffer","data"},{"int","size"}};
+static const char xl6StdCrc32TextBody[] =
+    "func __xl_std_crc32_checksum(string data, int size = -1) as uint32\n"
+    "    return __xl_crc32_text(uint64(0), data, size)\nend\n";
+static const char xl6StdCrc32BytesBody[] =
+    "func __xl_std_crc32_checksum(bytes data, int size = -1) as uint32\n"
+    "    return __xl_crc32_bytes(uint64(0), data, size)\nend\n";
+static const char xl6StdCrc32BufferBody[] =
+    "func __xl_std_crc32_checksum_buffer(Buffer data, int size = -1) as uint32\n"
+    "    return __xl_crc32_buffer(uint64(0), data, size)\nend\n";
+static const char xl6StdCrc32UpdateTextBody[] =
+    "func __xl_std_crc32_update(uint32 previous, string data, int size = -1) as uint32\n"
+    "    return __xl_crc32_text(uint64(previous), data, size)\nend\n";
+static const char xl6StdCrc32UpdateBytesBody[] =
+    "func __xl_std_crc32_update(uint32 previous, bytes data, int size = -1) as uint32\n"
+    "    return __xl_crc32_bytes(uint64(previous), data, size)\nend\n";
+static const char xl6StdCrc32UpdateBufferBody[] =
+    "func __xl_std_crc32_update_buffer(uint32 previous, Buffer data, int size = -1) as uint32\n"
+    "    return __xl_crc32_buffer(uint64(previous), data, size)\nend\n";
+
 static const char xl6StdHashU32Body[] =
     "func __xl_std_hash_u32(string data, int size = -1) as uint32\n"
     "    if size < -1 then throw RangeError \"hash size is invalid\" end\n"
@@ -6767,6 +6789,15 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"xlon", "valid", "__xl_std_xlon_valid", NULL, NULL, 0, "bool", xl6StdXlonValidConfiguredBody},
     {"xlon", "visit", "__xl_std_xlon_visit", NULL, NULL, 0, "int", xl6StdXlonVisitConfiguredBody},
 
+    {"__crc32", "text", "__xl_crc32_text", "xl6Crc32StringV1", xl6StdCrc32TextParams, 3, "uint32", NULL},
+    {"__crc32", "bytes", "__xl_crc32_bytes", "xl6Crc32BytesV1", xl6StdCrc32BytesParams, 3, "uint32", NULL},
+    {"__crc32", "buffer", "__xl_crc32_buffer", "xl6Crc32BufferV1", xl6StdCrc32BufferParams, 3, "uint32", NULL},
+    {"crc32", "checksum", "__xl_std_crc32_checksum", NULL, NULL, 0, "uint32", xl6StdCrc32TextBody},
+    {"crc32", "checksum", "__xl_std_crc32_checksum", NULL, NULL, 0, "uint32", xl6StdCrc32BytesBody},
+    {"crc32", "checksumBuffer", "__xl_std_crc32_checksum_buffer", NULL, NULL, 0, "uint32", xl6StdCrc32BufferBody},
+    {"crc32", "update", "__xl_std_crc32_update", NULL, NULL, 0, "uint32", xl6StdCrc32UpdateTextBody},
+    {"crc32", "update", "__xl_std_crc32_update", NULL, NULL, 0, "uint32", xl6StdCrc32UpdateBytesBody},
+    {"crc32", "updateBuffer", "__xl_std_crc32_update_buffer", NULL, NULL, 0, "uint32", xl6StdCrc32UpdateBufferBody},
     {"codec", "hexEncode", "__xl_std_codec_hex_encode", NULL, NULL, 0, "string", xl6StdCodecHexEncodeBody},
     {"codec", "hexDecode", "__xl_std_codec_hex_decode", NULL, NULL, 0, "string", xl6StdCodecHexDecodeBody},
     {"codec", "base64Encode", "__xl_std_codec_base64_encode", NULL, NULL, 0, "string", xl6StdCodecBase64EncodeBody},
@@ -6986,6 +7017,9 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
 };
 
 const XL6_StdlibForeignContract xl6StdlibForeignContracts[] = {
+    {"__xl_crc32_text", "xl6Crc32StringV1", XL6_STDLIB_FOREIGN_EFFECT_PURE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
+    {"__xl_crc32_bytes", "xl6Crc32BytesV1", XL6_STDLIB_FOREIGN_EFFECT_PURE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
+    {"__xl_crc32_buffer", "xl6Crc32BufferV1", XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING},
 #define XL6_HASH_VALUE_EFFECTS (XL6_STDLIB_FOREIGN_EFFECT_PURE | \
     XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE | XL6_STDLIB_FOREIGN_EFFECT_NONBLOCKING)
 #define XL6_HASH_BUFFER_EFFECTS (XL6_STDLIB_FOREIGN_EFFECT_NO_RAISE | \

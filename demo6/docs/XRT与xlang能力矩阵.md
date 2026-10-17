@@ -4,11 +4,11 @@
 
 ## 契约结论
 
-- XRT 核心公共函数：3210。
-- xruntime 产品公共函数：3674，其中扩展自有 464。
-- 低层能力：3674 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
+- XRT 核心公共函数：3212。
+- xruntime 产品公共函数：3676，其中扩展自有 464。
+- 低层能力：3676 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
-- 语言内核或标准库已直接使用：1814 个函数。其余 1860 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：1815 个函数。其余 1861 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -30,6 +30,7 @@
 | xrt | `include/xrt/console.h` | 22 | 22 | 0 |
 | xrt | `include/xrt/core.h` | 16 | 10 | 6 |
 | xrt | `include/xrt/coroutine.h` | 51 | 0 | 51 |
+| xrt | `include/xrt/crc32.h` | 2 | 1 | 1 |
 | xrt | `include/xrt/crypto.h` | 122 | 4 | 118 |
 | xrt | `include/xrt/environment.h` | 4 | 4 | 0 |
 | xrt | `include/xrt/error.h` | 36 | 32 | 4 |

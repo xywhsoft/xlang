@@ -1,0 +1,2 @@
+extern "xl6Crc32StringV1" @pure @no_raise @nonblocking func wrong(uint64 previous, string text, int size) as uint32
+wrong(uint64(0), "abc", -2)

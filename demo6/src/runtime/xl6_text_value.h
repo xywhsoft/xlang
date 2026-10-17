@@ -14,6 +14,9 @@
 struct xlir_closure;
 struct xfuture;
 struct XL6_NativeHandlePolicyV1;
+XL6_TEXT_API int64_t xl6Crc32StringV1(uint64_t previous, xstrview text, int64_t size);
+XL6_TEXT_API int64_t xl6Crc32BytesV1(uint64_t previous, const xvalue* value, int64_t size);
+XL6_TEXT_API int64_t xl6Crc32BufferV1(uint64_t previous, void* value, int64_t size);
 XL6_TEXT_API void* xl6_xrt_rng_create(uint64_t,uint64_t);
 XL6_TEXT_API void* xl6_xrt_rng_create_default(uint64_t);
 XL6_TEXT_API void xl6_xrt_rng_destroy(void*);

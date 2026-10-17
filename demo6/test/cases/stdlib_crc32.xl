@@ -1,0 +1,37 @@
+assert crc32.checksum("") == uint32(0)
+assert crc32.checksum(b"") == uint32(0)
+assert crc32.checksum("123456789") == uint32(0xCBF43926)
+assert crc32.checksum(b"123456789") == uint32(0xCBF43926)
+assert crc32.checksum("a\0b") == crc32.checksum(b"a\0b")
+assert crc32.checksum("你🙂") == crc32.checksum(b"\xe4\xbd\xa0\xf0\x9f\x99\x82")
+assert crc32.checksum("123456789tail", 9) == uint32(0xCBF43926)
+assert crc32.checksum(b"123456789", 999) == uint32(0xCBF43926)
+assert crc32.checksum("abc", 0) == uint32(0)
+uint32 crc = crc32.update(uint32(0), "1234")
+crc = crc32.update(crc, b"56789")
+assert crc == uint32(0xCBF43926)
+assert crc32.update(crc, b"ignored", 0) == crc
+Buffer data = Buffer(b"123456789")
+assert crc32.checksumBuffer(data) == crc
+assert crc32.checksumBuffer(data, 99) == crc
+assert crc32.updateBuffer(uint32(0), data, 4) == crc32.checksum("1234")
+assert crc32.updateBuffer(crc, data, 0) == crc
+int refused = 0
+try
+    crc32.checksum("abc", -2)
+catch RangeError
+    refused += 1
+end
+try
+    crc32.update(uint32(0), b"abc", -2)
+catch RangeError
+    refused += 1
+end
+try
+    crc32.checksumBuffer(data, -2)
+catch RangeError
+    refused += 1
+end
+assert refused == 3
+assert data.toBytes() == b"123456789"
+println("CRC32 exact bytes, prefixes, incremental state and checked errors ok")

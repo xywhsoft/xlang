@@ -18,14 +18,39 @@ from sync_xrt_snapshot import render_symbol_table, sync_capability_matrix
 import json
 
 
-SECTION = re.compile(r"^/\* =+ \*/\n/\* (public|internal|source): ([^\n]+) \*/\n/\* =+ \*/\n", re.M)
+SECTION = re.compile(r"^/\* =+ \*/\n/\* (public|internal|source|feature selection|requested feature selection): ([^\n]+) \*/\n/\* =+ \*/\n", re.M)
 TERMINAL_FOOTER = "\n#endif\n#endif\n\n#endif\n"
+
+
+def guarded_delta(text: str, old: str, new: str, label: str) -> str:
+    """Apply exact guarded edits, including duplicated declaration selectors.
+
+    Repeated contexts must have the same population as the old generator
+    output; never replace an arbitrary number of approximate occurrences.
+    """
+    left, right = old.splitlines(keepends=True), new.splitlines(keepends=True)
+    # Whole generated declarations contain tens of thousands of repeated C
+    # braces/guards. Popular-line filtering only selects anchors; application
+    # below still requires exact old bytes and exact occurrence populations.
+    for group in reversed(list(difflib.SequenceMatcher(None, left, right, autojunk=True).get_grouped_opcodes(4))):
+        needle = "".join(left[group[0][1]:group[-1][2]])
+        replacement = "".join(right[group[0][3]:group[-1][4]])
+        count = old.count(needle)
+        if text.count(needle) == 0 and text.count(replacement) == new.count(replacement):
+            continue
+        if not needle or text.count(needle) != count:
+            raise ValueError(f"changed old span differs/ambiguous in {label}; refuse import")
+        text = text.replace(needle, replacement)
+    return text
 
 
 def section(text: str, kind: str, name: str, allow_terminal: bool = False) -> tuple[int, int]:
     markers = list(SECTION.finditer(text))
     matches = [(i, marker) for i, marker in enumerate(markers)
                if marker[1] == kind and marker[2] == name]
+    if not matches and kind == "public" and name == "include/xrt/features.h":
+        matches = [(i, marker) for i, marker in enumerate(markers)
+                   if marker[1] == "feature selection" and marker[2] == name]
     if len(matches) != 1:
         raise ValueError(f"expected exactly one section {kind}: {name}, got {len(matches)}")
     i, marker = matches[0]
@@ -39,6 +64,38 @@ def section(text: str, kind: str, name: str, allow_terminal: bool = False) -> tu
 
 
 def replace(text: str, old: str, new: str, kind: str, name: str, allow_terminal: bool = False) -> str:
+    old_markers = [m for m in SECTION.finditer(old) if m[1] == kind and m[2] == name]
+    new_markers = [m for m in SECTION.finditer(new) if m[1] == kind and m[2] == name]
+    current_markers = [m for m in SECTION.finditer(text) if m[1] == kind and m[2] == name]
+    if not old_markers:
+        if len(new_markers) != 1:
+            raise ValueError(f"new section must exist exactly once: {kind}: {name}")
+        markers = list(SECTION.finditer(new))
+        index = next(i for i, marker in enumerate(markers) if marker.start() == new_markers[0].start())
+        if index + 1 == len(markers):
+            raise ValueError("new terminal section requires a product-level update")
+        block = new[new_markers[0].start():markers[index+1].start()]
+        if current_markers:
+            start, end = section(text, kind, name)
+            if len(current_markers) != 1 or text[current_markers[0].start():end] != block:
+                raise ValueError("existing inserted section differs; refuse overwrite")
+            return text
+        anchor = markers[index+1]
+        # The next section must exist in the previous product and target.
+        # Insert exactly once before its marker, without changing its body.
+        if sum(m[1] == anchor[1] and m[2] == anchor[2] for m in SECTION.finditer(old)) != 1:
+            raise ValueError("new section anchor is missing/ambiguous in previous product")
+        targets = [m for m in SECTION.finditer(text) if m[1] == anchor[1] and m[2] == anchor[2]]
+        if len(targets) != 1: raise ValueError("new section anchor is missing/ambiguous")
+        at = targets[0].start()
+        return text[:at] + block + text[at:]
+    if not new_markers:
+        if not current_markers: return text
+        start, end = section(text, kind, name)
+        old_start, old_end = section(old, kind, name)
+        if text[start:end] != old[old_start:old_end]:
+            raise ValueError("removed section differs; refuse deletion")
+        return text[:current_markers[0].start()] + text[end:]
     start, end = section(text, kind, name, allow_terminal)
     old_start, old_end = section(old, kind, name, allow_terminal)
     new_start, new_end = section(new, kind, name, allow_terminal)
@@ -69,16 +126,19 @@ def main() -> int:
     parser.add_argument("--current", type=Path, required=True, help="frozen current single/ directory")
     parser.add_argument("--public", action="append", default=[])
     parser.add_argument("--source", action="append", default=[])
+    parser.add_argument("--internal", action="append", default=[])
+    parser.add_argument("--declaration-delta", action="store_true",
+                        help="Apply the exact whole declaration delta, including feature save/restore and repeated selectors")
     parser.add_argument("--runtime-public", action="append", default=[])
     parser.add_argument("--runtime-internal", action="append", default=[])
     parser.add_argument("--runtime-source", action="append", default=[])
     args = parser.parse_args()
-    if not any((args.public,args.source,args.runtime_public,args.runtime_internal,args.runtime_source)):
+    if not any((args.public,args.internal,args.source,args.runtime_public,args.runtime_internal,args.runtime_source)):
         parser.error("name at least one explicit source or public section")
     root = args.root.resolve()
     replacements: dict[Path, bytes] = {}
     for declarations in (False, True):
-        if args.public or args.source:
+        if args.public or args.internal or args.source:
             leaf = "xrt_decl.h" if declarations else "xrt.h"
             old = (args.previous / leaf).read_text(encoding="utf-8")
             new = (args.current / leaf).read_text(encoding="utf-8")
@@ -86,8 +146,12 @@ def main() -> int:
                 root / "lib/xrt/xrt.h", root / "lib/xruntime/xruntime.h")
             for path in paths:
                 text = path.read_text(encoding="utf-8")
-                for name in args.public: text = replace(text, old, new, "public", name)
+                if declarations and args.declaration_delta:
+                    text = guarded_delta(text, old, new, "declaration selection state")
+                else:
+                    for name in args.public: text = replace(text, old, new, "public", name)
                 if not declarations:
+                    for name in args.internal: text = replace(text, old, new, "internal", name)
                     for name in args.source: text = replace(text, old, new, "source", name)
                 replacements[path] = text.encode("utf-8")
         if args.runtime_public or args.runtime_internal or args.runtime_source:
