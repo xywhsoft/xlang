@@ -1,0 +1,115 @@
+auto builder = DerBuilder()
+builder.addBool(true)
+builder.addInt(-129)
+builder.addUInt(uint64(42))
+builder.addOctets(b"a\0b")
+builder.addBits(b"\xa0", 3)
+builder.addOid("1.2.840.113549")
+builder.addNull()
+auto encoded = builder.finish()
+assert codec.hexEncode(encoded) == "0101ff0202ff7f02012a0403610062030203a006062a864886f70d0500"
+auto reader = DerReader(encoded)
+assert not reader.done
+assert reader.peek().asBool()
+assert reader.read().asBool()
+assert reader.read().asInt() == -129
+assert reader.read().asUInt() == uint64(42)
+auto octets = reader.read()
+assert octets.octets() == b"a\0b"
+assert octets.content == b"a\0b"
+auto bits = reader.read()
+assert bits.bits() == b"\xa0"
+assert bits.unusedBits == 3
+assert reader.read().oidText() == "1.2.840.113549"
+assert reader.read().tagNumber == 5
+assert reader.done
+assert reader.remaining == 0
+
+builder.reset()
+builder.addSequence(encoded)
+auto sequence = asn1.parse(builder.finish())
+assert sequence.constructed
+assert sequence.tagClass == 0
+assert sequence.tagNumber == 16
+assert sequence.reader().read().asBool()
+auto raw = sequence.raw
+raw[0] = uint8(0)
+assert sequence.raw[0] == uint8(48)
+// Native source views must not outlive bytes owned by their language input.
+encoded[0] = uint8(0)
+assert sequence.reader().read().asBool()
+
+auto text = pem.encode("TEST DATA", b"a\0b\xff")
+assert pem.decode(text) == b"a\0b\xff"
+assert pem.decode(text, "TEST DATA") == b"a\0b\xff"
+auto block = pem.parse(text)
+assert block.label == "TEST DATA"
+assert block.decode() == b"a\0b\xff"
+auto pemReader = PemReader("preamble\n" + text + pem.encode("NEXT", b"next") + "trailer\n")
+assert not pemReader.done
+assert pemReader.read().label == "TEST DATA"
+assert not pemReader.done
+assert pemReader.read().decode() == b"next"
+assert pemReader.done
+
+int rejected = 0
+try
+    asn1.parse(b"\x02\x02\x00\x01")
+catch e
+    rejected += 1
+end
+try
+    asn1.parse(b"\x05\x00\x05\x00")
+catch e
+    rejected += 1
+end
+try
+    asn1.parse(b"\x05\x00", byteLimit = 1)
+catch RangeError
+    rejected += 1
+end
+try
+    DerBuilder(1).addBool(true)
+catch RangeError
+    rejected += 1
+end
+builder.reset()
+try
+    builder.addSet(b"\x02\x01\x02\x02\x01\x01")
+catch e
+    rejected += 1
+end
+assert builder.finish() == b""
+auto exact = DerBuilder(8)
+exact.addOid("1.2.840.113549")
+assert exact.finish() == b"\x06\x06\x2a\x86\x48\x86\xf7\x0d"
+auto tooSmall = DerBuilder(7)
+bool oidBudgetRejected = false
+try
+    tooSmall.addOid("1.2.840.113549")
+catch RangeError
+    oidBudgetRejected = true
+end
+assert oidBudgetRejected
+assert tooSmall.finish() == b""
+try
+    reader.read()
+catch RangeError
+    rejected += 1
+end
+try
+    pem.decode(text, "MISSING")
+catch e
+    rejected += 1
+end
+try
+    pem.encode("BAD\0LABEL", b"x")
+catch e
+    rejected += 1
+end
+try
+    PemReader(text, byteLimit = 1)
+catch RangeError
+    rejected += 1
+end
+assert rejected == 9

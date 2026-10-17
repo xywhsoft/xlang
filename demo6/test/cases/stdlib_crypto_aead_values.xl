@@ -1,0 +1,74 @@
+// AES-GCM known-answer vector (zero 128-bit key/96-bit nonce), and RFC 8439
+// section 2.8.2. These are public test keys, never application credentials.
+auto key = codec.hexDecode("00000000000000000000000000000000")
+auto nonce = codec.hexDecode("000000000000000000000000")
+auto aes = AesGcm(key)
+assert codec.hexEncode(aes.seal(b"", nonce)) == "58e2fccefa7e3061367f1d57a4e7455a"
+auto zeros = codec.hexDecode("00000000000000000000000000000000")
+auto sealed = aes.seal(zeros, nonce)
+assert codec.hexEncode(sealed) == "0388dace60b6a392f328c2b971b2fe78ab6e47d42cec13bdf53a67b21257bddf"
+assert aes.open(sealed, nonce) == zeros
+
+// The 192/256-bit NIST CAVP cases also used by the XRT native test suite.
+auto aes192 = AesGcm(codec.hexDecode("6f44f52c2f62dae4e8684bd2bc7d16ee7c557330305a790d"))
+auto nonce192 = codec.hexDecode("9ae35825d7c7edc9a39a0732")
+auto plain192 = codec.hexDecode("37222d30895eb95884bbbbaee4d9cae1")
+auto aad192 = codec.hexDecode("1b4236b846fc2a0f782881ba48a067e9")
+assert codec.hexEncode(aes192.seal(plain192, nonce192, aad192)) == "a54b5da33fc1196a8ef31a5321bfcaeb1c198086450ae1834dd6c2636796bce2"
+auto aes256 = AesGcm(codec.hexDecode("92e11dcdaa866f5ce790fd24501f92509aacf4cb8b1339d50c9c1240935dd08b"))
+auto nonce256 = codec.hexDecode("ac93a1a6145299bde902f21a")
+auto plain256 = codec.hexDecode("2d71bcfa914e4ac045b2aa60955fad24")
+auto aad256 = codec.hexDecode("1e0889016f67601c8ebea4943bc23ad6")
+auto cipher256 = aes256.seal(plain256, nonce256, aad256)
+assert codec.hexEncode(cipher256) == "8995ae2e6df3dbf96fac7b7137bae67feca5aa77d51d4a0a14d9c51e1da474ab"
+assert aes256.open(cipher256, nonce256, aad256) == plain256
+
+auto chachaKey = codec.hexDecode("808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f")
+auto chachaNonce = codec.hexDecode("070000004041424344454647")
+auto aad = codec.hexDecode("50515253c0c1c2c3c4c5c6c7")
+auto chacha = ChaCha20Poly1305(chachaKey)
+string plain = "Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it."
+auto cipher = chacha.seal(plain, chachaNonce, aad)
+assert codec.hexEncode(cipher) == "d31a8d34648e60db7b86afbc53ef7ec2a4aded51296e08fea9e2b5a736ee62d63dbea45e8ca9671282fafb69da92728b1a71de0a9e060b2905d6a5b67ecd3b3692ddbd7f2d778b8c9803aee328091b58fab324e4fad675945585808b4831d7bc3ff4def08e4b7a9de576d26586cec64b61161ae10b594f09e26a7e902ecbd0600691"
+assert chacha.open(cipher, chachaNonce, aad) == encoding.encodeUtf8(plain)
+assert chacha.open(chacha.seal(b"a\0b", chachaNonce), chachaNonce) == b"a\0b"
+
+int rejected = 0
+try
+    AesGcm(b"short")
+catch e
+    rejected += 1
+end
+try
+    ChaCha20Poly1305(b"short")
+catch e
+    rejected += 1
+end
+try
+    aes.seal(b"abc", b"short")
+catch e
+    rejected += 1
+end
+try
+    chacha.seal(b"abc", b"1234567890123")
+catch e
+    rejected += 1
+end
+try
+    chacha.open(cipher, chachaNonce, b"bad aad")
+catch e
+    rejected += 1
+end
+try
+    aes.open(b"short", nonce)
+catch e
+    rejected += 1
+end
+// Changing even the last authentication byte must not deliver any plaintext.
+cipher[cipher.length - 1] = uint8(int(cipher[cipher.length - 1]) ^ 1)
+try
+    chacha.open(cipher, chachaNonce, aad)
+catch e
+    rejected += 1
+end
+assert rejected == 7

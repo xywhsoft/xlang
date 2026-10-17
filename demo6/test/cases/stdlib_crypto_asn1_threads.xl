@@ -1,0 +1,43 @@
+func foreignStream(Sha256 stream, DerReader reader, PemReader pemReader) as func() as int
+    return func() as int
+        int rejected = 0
+        try
+            stream.update(b"must not mutate")
+        catch StateError
+            rejected += 1
+        end
+        try
+            reader.read()
+        catch StateError
+            rejected += 1
+        end
+        try
+            pemReader.read()
+        catch StateError
+            rejected += 1
+        end
+        if rejected == 3 then return 0 end
+        return 1
+    end
+end
+func sharedKey(AesGcm key) as func() as int
+    return func() as int
+        auto nonce = b"123456789012"
+        auto encrypted = key.seal(b"a\0b", nonce)
+        if key.open(encrypted, nonce) == b"a\0b" then return 0 end
+        return 1
+    end
+end
+auto stream = crypto.sha256Stream()
+auto reader = DerReader(b"\x05\x00")
+auto pemReader = PemReader(pem.encode("TEST", b"data"))
+auto rejected = thread(foreignStream(stream, reader, pemReader))
+assert rejected.waitTimeout(30000)
+assert rejected.exitCode() == 0
+assert stream.final() == crypto.sha256(b"")
+assert reader.read().tagNumber == 5
+assert pemReader.read().decode() == b"data"
+auto key = AesGcm(b"0123456789abcdef")
+auto worker = thread(sharedKey(key))
+assert worker.waitTimeout(30000)
+assert worker.exitCode() == 0

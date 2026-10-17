@@ -111,6 +111,40 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6FsMapHandlePolicyV1Get(voi
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6FsLockHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6FsRootHandlePolicyV1Get(void);
 
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoMd5HandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoSha1HandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoSha224HandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoSha256HandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoSha384HandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoSha512HandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoSha512_256HandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoHmacSha256HandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoHmacSha384HandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoHmacSha512HandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoAesGcmHandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CryptoChaChaAeadHandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6DerValueHandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6DerReaderHandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6DerBuilderHandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6PemBlockHandlePolicyV1Get(void);
+
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6PemReaderHandlePolicyV1Get(void);
+
 /* Used only in audited resident implementation units, with complete XRT types.
  * Keep the same explicit error boundary as a generated native destructor; a
  * callback must propagate cleanup failure without replacing an earlier one. */

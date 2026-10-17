@@ -1321,24 +1321,28 @@ static int xl6StdlibNeedsCryptoClass(const XL6_AstNode* root, const int* used)
 {
     size_t index;
 
-    if ( xl6StdlibNodeUsesTypeName(root, "Sha1") ||
+    if ( xl6StdlibNodeUsesTypeName(root, "AesGcm") ||
+         xl6StdlibNodeUsesTypeName(root, "ChaCha20Poly1305") ||
+         xl6StdlibNodeUsesTypeName(root, "LegacyMd5") ||
+         xl6StdlibNodeUsesTypeName(root, "LegacySha1") ||
+         xl6StdlibNodeUsesTypeName(root, "Sha224") ||
          xl6StdlibNodeUsesTypeName(root, "Sha256") ||
          xl6StdlibNodeUsesTypeName(root, "Sha384") ||
-         xl6StdlibNodeUsesTypeName(root, "Sha512") ) {
-        return 1;
-    }
-    if ( xl6StdlibFindFunc("crypto", "sha1Stream", &index) != NULL && used[index] ) {
-        return 1;
-    }
-    if ( xl6StdlibFindFunc("crypto", "sha256Stream", &index) != NULL && used[index] ) {
-        return 1;
-    }
-    if ( xl6StdlibFindFunc("crypto", "sha384Stream", &index) != NULL && used[index] ) {
-        return 1;
-    }
-    if ( xl6StdlibFindFunc("crypto", "sha512Stream", &index) != NULL && used[index] ) {
-        return 1;
-    }
+         xl6StdlibNodeUsesTypeName(root, "Sha512") ||
+         xl6StdlibNodeUsesTypeName(root, "Sha512_256") ||
+         xl6StdlibNodeUsesTypeName(root, "HmacSha256") ||
+         xl6StdlibNodeUsesTypeName(root, "HmacSha384") ||
+         xl6StdlibNodeUsesTypeName(root, "HmacSha512") ||
+         (xl6StdlibFindFunc("cryptoLegacy", "md5Stream", &index) != NULL && used[index]) ||
+         (xl6StdlibFindFunc("cryptoLegacy", "sha1Stream", &index) != NULL && used[index]) ||
+         (xl6StdlibFindFunc("crypto", "sha224Stream", &index) != NULL && used[index]) ||
+         (xl6StdlibFindFunc("crypto", "sha256Stream", &index) != NULL && used[index]) ||
+         (xl6StdlibFindFunc("crypto", "sha384Stream", &index) != NULL && used[index]) ||
+         (xl6StdlibFindFunc("crypto", "sha512Stream", &index) != NULL && used[index]) ||
+         (xl6StdlibFindFunc("crypto", "sha512_256Stream", &index) != NULL && used[index]) ||
+         (xl6StdlibFindFunc("crypto", "hmacSha256Stream", &index) != NULL && used[index]) ||
+         (xl6StdlibFindFunc("crypto", "hmacSha384Stream", &index) != NULL && used[index]) ||
+         (xl6StdlibFindFunc("crypto", "hmacSha512Stream", &index) != NULL && used[index]) ) return 1;
     return 0;
 }
 
@@ -2090,6 +2094,12 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsCompress ) xl6StdlibBuilderAppend(&builder, xl6StdlibCompressOptionsSource);
     if ( needsDeflater ) xl6StdlibBuilderAppend(&builder, xl6StdlibDeflaterSource);
     if ( needsInflater ) xl6StdlibBuilderAppend(&builder, xl6StdlibInflaterSource);
+    if (xl6StdlibNodeUsesTypeName(root, "DerValue") ||
+        xl6StdlibNodeUsesTypeName(root, "DerReader") ||
+        xl6StdlibNodeUsesTypeName(root, "DerBuilder") ||
+        xl6StdlibNodeUsesTypeName(root, "PemBlock") ||
+        xl6StdlibNodeUsesTypeName(root, "PemReader") ||
+        xl6StdlibFuncUsed(used, "asn1", "parse") || xl6StdlibFuncUsed(used, "pem", "parse") || xl6StdlibFuncUsed(used, "pem", "decode")) xl6StdlibBuilderAppend(&builder, xl6StdlibAsn1ClassSource);
     if ( needsCryptoClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibCryptoClassSource);
     }

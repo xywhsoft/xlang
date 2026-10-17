@@ -1,0 +1,70 @@
+// Fixed expected results for exact binary inputs and state snapshots.
+func check_pbkdf2_256()
+    assert codec.hexEncode(crypto.pbkdf2Sha256(b"pass\0word", b"salt", 3, 49)) == "d6e5174ea529db1e28efd0d81e50efd88ed89505b1215b07ff0262600a1089a0cebb43066dfdb7e8d048e8c1ddf3cfad2f"
+end
+
+func check_hkdf_256()
+    auto prk = crypto.hkdfSha256Extract(b"key", b"salt")
+    assert codec.hexEncode(prk) == "95a47c9b4fdb78ca55bc2ee4423b2b0f9841e6f7143d8a9d938d2cf4790b9d9f"
+    assert codec.hexEncode(crypto.hkdfSha256Expand(prk, b"info", 73)) == "9ca0d662557439e3b83365f2da4626d35da195c6d9d1779f09838cf9e408966ece99106e2585ace6f083fa1acd5192f430fd55bc741184dbb822fc04c3ebfd3d121e15b76f251c56e8"
+    assert crypto.hkdfSha256(b"key", b"salt", b"info", 73) == crypto.hkdfSha256Expand(prk, b"info", 73)
+end
+
+func check_pbkdf2_384()
+    assert codec.hexEncode(crypto.pbkdf2Sha384(b"pass\0word", b"salt", 3, 49)) == "361189d626121af40dced83e034af6d76992b2109d0f8e43ee81094a3ce77be2242ec8fa4768f55fc47f2410935ca18d17"
+end
+
+func check_hkdf_384()
+    auto prk = crypto.hkdfSha384Extract(b"key", b"salt")
+    assert codec.hexEncode(prk) == "6b09539ab789ca72664f513bf0f8501bb1b44832e0997d022b45f01f1e338c271596ce8b59d8d69b52b25b086ae332c2"
+    assert codec.hexEncode(crypto.hkdfSha384Expand(prk, b"info", 73)) == "415163ccceef9d7e2325f45cf2c21989d3a3eb6078e7e48dc8ba6b35c8b75db92006a301c61af4564a6ce647f61e37eb6c897857a312dea7b6924f02a7e108c1a4ee3d17e5e5364bbd"
+    assert crypto.hkdfSha384(b"key", b"salt", b"info", 73) == crypto.hkdfSha384Expand(prk, b"info", 73)
+end
+
+func check_pbkdf2_512()
+    assert codec.hexEncode(crypto.pbkdf2Sha512(b"pass\0word", b"salt", 3, 49)) == "842ad52b3649a75238d16c6916875c8304b1ee60993bcf61699f949c35dfd77953d2c0dae8733cca0d26a8ab42e783a3d6"
+end
+
+func check_hkdf_512()
+    auto prk = crypto.hkdfSha512Extract(b"key", b"salt")
+    assert codec.hexEncode(prk) == "9c5248370e0e4cc7221612d1458e26490f75d763b24d105c061039943e802369b56a4454bfde99691bd5125f8bb29de8b685e1fe76b2b3be781a22bad3887cd9"
+    assert codec.hexEncode(crypto.hkdfSha512Expand(prk, b"info", 73)) == "24156e2c35525baaf3d0fbb92b734c8032a110a3f12e2596e441e1924870d84c3a500652a723738024432451046fd237efad8392fb686c5277a59e01053916536ce56ffa4036f02245"
+    assert crypto.hkdfSha512(b"key", b"salt", b"info", 73) == crypto.hkdfSha512Expand(prk, b"info", 73)
+end
+
+func check_errors()
+    int failures = 0
+    try
+        crypto.sha256("abc", -2)
+    catch RangeError
+        failures += 1
+    end
+    try
+        crypto.pbkdf2Sha256(b"pw", b"salt", 0, 32)
+    catch RangeError
+        failures += 1
+    end
+    try
+        crypto.hkdfSha256(b"key", b"salt", b"info", 8161)
+    catch RangeError
+        failures += 1
+    end
+    try
+        crypto.hkdfSha256Expand(b"short", b"info", 10)
+    catch e
+        failures += 1
+    end
+    assert failures == 4
+    assert crypto.timingSafeEqual(b"a\0b", b"a\0b")
+    assert not crypto.timingSafeEqual(b"a\0b", b"a\0c")
+    assert not crypto.timingSafeEqual(b"a", b"ab")
+    assert crypto.timingSafeEqual(b"", b"")
+end
+
+check_pbkdf2_256()
+check_hkdf_256()
+check_pbkdf2_384()
+check_hkdf_384()
+check_pbkdf2_512()
+check_hkdf_512()
+check_errors()

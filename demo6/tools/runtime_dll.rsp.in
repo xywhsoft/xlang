@@ -26,6 +26,57 @@
     src\runtime\xl6_dynamic_fields_copy.c
     src\runtime\xl6_buffer_hex.c
     src\runtime\xl6_crc32_text.c
+    src\runtime\xl6_crypto_md5.c
+    src\runtime\xl6_crypto_md5_stream.c
+    src\runtime\xl6_crypto_md5_domain.c
+    src\runtime\xl6_crypto_sha1.c
+    src\runtime\xl6_crypto_sha1_stream.c
+    src\runtime\xl6_crypto_sha1_domain.c
+    src\runtime\xl6_crypto_sha224.c
+    src\runtime\xl6_crypto_sha224_stream.c
+    src\runtime\xl6_crypto_sha224_domain.c
+    src\runtime\xl6_crypto_sha256.c
+    src\runtime\xl6_crypto_sha256_stream.c
+    src\runtime\xl6_crypto_sha256_domain.c
+    src\runtime\xl6_crypto_sha384.c
+    src\runtime\xl6_crypto_sha384_stream.c
+    src\runtime\xl6_crypto_sha384_domain.c
+    src\runtime\xl6_crypto_sha512.c
+    src\runtime\xl6_crypto_sha512_stream.c
+    src\runtime\xl6_crypto_sha512_domain.c
+    src\runtime\xl6_crypto_sha512_256.c
+    src\runtime\xl6_crypto_sha512_256_stream.c
+    src\runtime\xl6_crypto_sha512_256_domain.c
+    src\runtime\xl6_crypto_hmac_sha256.c
+    src\runtime\xl6_crypto_hmac_sha256_stream.c
+    src\runtime\xl6_crypto_hmac_sha256_domain.c
+    src\runtime\xl6_crypto_hmac_sha384.c
+    src\runtime\xl6_crypto_hmac_sha384_stream.c
+    src\runtime\xl6_crypto_hmac_sha384_domain.c
+    src\runtime\xl6_crypto_hmac_sha512.c
+    src\runtime\xl6_crypto_hmac_sha512_stream.c
+    src\runtime\xl6_crypto_hmac_sha512_domain.c
+    src\runtime\xl6_crypto_pbkdf2_sha256.c
+    src\runtime\xl6_crypto_hkdf_sha256.c
+    src\runtime\xl6_crypto_pbkdf2_sha384.c
+    src\runtime\xl6_crypto_hkdf_sha384.c
+    src\runtime\xl6_crypto_pbkdf2_sha512.c
+    src\runtime\xl6_crypto_hkdf_sha512.c
+    src\runtime\xl6_crypto_equal.c
+    src\runtime\xl6_crypto_aes_gcm.c
+    src\runtime\xl6_crypto_aes_gcm_domain.c
+    src\runtime\xl6_crypto_chacha_aead.c
+    src\runtime\xl6_crypto_chacha_aead_domain.c
+    src\runtime\xl6_der_value.c
+    src\runtime\xl6_der_value_domain.c
+    src\runtime\xl6_der_reader.c
+    src\runtime\xl6_der_reader_domain.c
+    src\runtime\xl6_der_builder.c
+    src\runtime\xl6_der_builder_domain.c
+    src\runtime\xl6_pem_block.c
+    src\runtime\xl6_pem_block_domain.c
+    src\runtime\xl6_pem_reader.c
+    src\runtime\xl6_pem_reader_domain.c
     src\runtime\xl6_codec_hex.c
     src\runtime\xl6_codec_hex_value.c
     src\runtime\xl6_codec_base64.c

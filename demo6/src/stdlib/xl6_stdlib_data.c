@@ -1,4 +1,5 @@
 #include "src/stdlib/xl6_stdlib_data.h"
+#include "src/stdlib/xl6_stdlib_asn1.inc"
 #include "src/stdlib/xl6_stdlib_io.inc"
 #include "src/stdlib/xl6_stdlib_text.inc"
 #include "src/stdlib/xl6_stdlib_unicode.inc"
@@ -342,115 +343,7 @@ const char* xl6StdlibTaskGroupClassSource =
     "    end\n"
     "end\n";
 
-const char* xl6StdlibCryptoClassSource =
-    "class Sha1\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_sha1_stream_create\" create()\n"
-    "    extern \"xl6_xrt_sha1_stream_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_sha1_stream_update\" func updateNative(string text, c_size size) as bool\n"
-    "    extern \"xl6_xrt_sha1_stream_hex\" func hexNative() as point\n"
-    "    extern \"xl6_xrt_sha1_stream_update_bytes\" func updateBytesNative(point data, c_size size) as bool\n"
-    "    extern \"xl6_xrt_sha1_stream_bytes\" func bytesNative() as point\n"
-    "\n"
-    "    func update(string text) as bool\n"
-    "        c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "        return self.updateNative(text, __xl_size_text)\n"
-    "    end\n"
-    "\n"
-    "    func update(Buffer data) as bool\n"
-    "        return self.updateBytesNative(data.data(), c_size(data.len()))\n"
-    "    end\n"
-    "\n"
-    "    func hex() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.hexNative())\n"
-    "    end\n"
-    "\n"
-    "    func bytes() as Buffer\n"
-    "        return Buffer(point(self.bytesNative()))\n"
-    "    end\n"
-    "end\n"
-    "\n"
-    "class Sha256\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_sha256_stream_create\" create()\n"
-    "    extern \"xl6_xrt_sha256_stream_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_sha256_stream_update\" func updateNative(string text, c_size size) as bool\n"
-    "    extern \"xl6_xrt_sha256_stream_hex\" func hexNative() as point\n"
-    "    extern \"xl6_xrt_sha256_stream_update_bytes\" func updateBytesNative(point data, c_size size) as bool\n"
-    "    extern \"xl6_xrt_sha256_stream_bytes\" func bytesNative() as point\n"
-    "\n"
-    "    func update(string text) as bool\n"
-    "        c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "        return self.updateNative(text, __xl_size_text)\n"
-    "    end\n"
-    "\n"
-    "    func update(Buffer data) as bool\n"
-    "        return self.updateBytesNative(data.data(), c_size(data.len()))\n"
-    "    end\n"
-    "\n"
-    "    func hex() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.hexNative())\n"
-    "    end\n"
-    "\n"
-    "    func bytes() as Buffer\n"
-    "        return Buffer(point(self.bytesNative()))\n"
-    "    end\n"
-    "end\n"
-    "\n"
-    "class Sha384\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_sha384_stream_create\" create()\n"
-    "    extern \"xl6_xrt_sha384_stream_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_sha384_stream_update\" func updateNative(string text, c_size size) as bool\n"
-    "    extern \"xl6_xrt_sha384_stream_hex\" func hexNative() as point\n"
-    "    extern \"xl6_xrt_sha384_stream_update_bytes\" func updateBytesNative(point data, c_size size) as bool\n"
-    "    extern \"xl6_xrt_sha384_stream_bytes\" func bytesNative() as point\n"
-    "\n"
-    "    func update(string text) as bool\n"
-    "        c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "        return self.updateNative(text, __xl_size_text)\n"
-    "    end\n"
-    "\n"
-    "    func update(Buffer data) as bool\n"
-    "        return self.updateBytesNative(data.data(), c_size(data.len()))\n"
-    "    end\n"
-    "\n"
-    "    func hex() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.hexNative())\n"
-    "    end\n"
-    "\n"
-    "    func bytes() as Buffer\n"
-    "        return Buffer(point(self.bytesNative()))\n"
-    "    end\n"
-    "end\n"
-    "\n"
-    "class Sha512\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_sha512_stream_create\" create()\n"
-    "    extern \"xl6_xrt_sha512_stream_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_sha512_stream_update\" func updateNative(string text, c_size size) as bool\n"
-    "    extern \"xl6_xrt_sha512_stream_hex\" func hexNative() as point\n"
-    "    extern \"xl6_xrt_sha512_stream_update_bytes\" func updateBytesNative(point data, c_size size) as bool\n"
-    "    extern \"xl6_xrt_sha512_stream_bytes\" func bytesNative() as point\n"
-    "\n"
-    "    func update(string text) as bool\n"
-    "        c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "        return self.updateNative(text, __xl_size_text)\n"
-    "    end\n"
-    "\n"
-    "    func update(Buffer data) as bool\n"
-    "        return self.updateBytesNative(data.data(), c_size(data.len()))\n"
-    "    end\n"
-    "\n"
-    "    func hex() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.hexNative())\n"
-    "    end\n"
-    "\n"
-    "    func bytes() as Buffer\n"
-    "        return Buffer(point(self.bytesNative()))\n"
-    "    end\n"
-    "end\n";
-
+#include "xl6_stdlib_crypto.inc"
 
 const char* xl6StdlibNetAddressClassSource =
     "class NetAddress\n"
@@ -2583,72 +2476,6 @@ static const XL6_StdlibParam xl6StdRuntimeStringEdgeParams[] = {
     {"string", "text"},
     {"string", "edge"},
     {"c_bool", "ignoreCase"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeCryptoTextParams[] = {
-    {"string", "text"},
-    {"c_size", "size"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeCryptoBytesParams[] = {
-    {"point", "data"},
-    {"c_size", "size"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeCryptoHmacParams[] = {
-    {"string", "key"},
-    {"c_size", "keySize"},
-    {"string", "text"},
-    {"c_size", "textSize"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeCryptoHmacBytesParams[] = {
-    {"point", "key"},
-    {"c_size", "keySize"},
-    {"point", "data"},
-    {"c_size", "dataSize"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeCryptoAeadParams[] = {
-    {"string", "key"},
-    {"c_size", "keySize"},
-    {"string", "nonce"},
-    {"c_size", "nonceSize"},
-    {"string", "text"},
-    {"c_size", "textSize"},
-    {"string", "aad"},
-    {"c_size", "aadSize"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeCryptoAeadBytesParams[] = {
-    {"point", "key"},
-    {"c_size", "keySize"},
-    {"point", "nonce"},
-    {"c_size", "nonceSize"},
-    {"point", "data"},
-    {"c_size", "dataSize"},
-    {"point", "aad"},
-    {"c_size", "aadSize"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeCryptoHkdfParams[] = {
-    {"string", "key"},
-    {"c_size", "keySize"},
-    {"string", "salt"},
-    {"c_size", "saltSize"},
-    {"string", "info"},
-    {"c_size", "infoSize"},
-    {"c_size", "outSize"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeCryptoHkdfBytesParams[] = {
-    {"point", "key"},
-    {"c_size", "keySize"},
-    {"point", "salt"},
-    {"c_size", "saltSize"},
-    {"point", "info"},
-    {"c_size", "infoSize"},
-    {"c_size", "outSize"}
 };
 
 static const XL6_StdlibParam xl6StdRuntimeCryptoChacha20Params[] = {
@@ -4961,127 +4788,6 @@ static const char xl6StdSipHasher64Body[] =
     "    return SipHasher64(key)\n"
     "end\n";
 
-static const char xl6StdCryptoSha1Body[] =
-    "func __xl_std_crypto_sha1(string text) as string\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_sha1_hex(text, __xl_size_text))\n"
-    "end\n";
-
-static const char xl6StdCryptoSha256Body[] =
-    "func __xl_std_crypto_sha256(string text) as string\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_sha256_hex(text, __xl_size_text))\n"
-    "end\n";
-
-static const char xl6StdCryptoSha384Body[] =
-    "func __xl_std_crypto_sha384(string text) as string\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_sha384_hex(text, __xl_size_text))\n"
-    "end\n";
-
-static const char xl6StdCryptoSha512Body[] =
-    "func __xl_std_crypto_sha512(string text) as string\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_sha512_hex(text, __xl_size_text))\n"
-    "end\n";
-
-static const char xl6StdCryptoHmacSha256Body[] =
-    "func __xl_std_crypto_hmac_sha256(string key, string text) as string\n"
-    "    c_size __xl_size_key = __xl_std_xrt_string_byte_len(key)\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_hmac_sha256_hex(key, __xl_size_key, text, __xl_size_text))\n"
-    "end\n";
-
-static const char xl6StdCryptoHmacSha384Body[] =
-    "func __xl_std_crypto_hmac_sha384(string key, string text) as string\n"
-    "    c_size __xl_size_key = __xl_std_xrt_string_byte_len(key)\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_hmac_sha384_hex(key, __xl_size_key, text, __xl_size_text))\n"
-    "end\n";
-
-static const char xl6StdCryptoHmacSha512Body[] =
-    "func __xl_std_crypto_hmac_sha512(string key, string text) as string\n"
-    "    c_size __xl_size_key = __xl_std_xrt_string_byte_len(key)\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_hmac_sha512_hex(key, __xl_size_key, text, __xl_size_text))\n"
-    "end\n";
-
-static const char xl6StdCryptoChaCha20Poly1305EncryptBody[] =
-    "func __xl_std_crypto_chacha20_poly1305_encrypt(string key, string nonce, string text, string aad = \"\") as string\n"
-    "    c_size __xl_size_key = __xl_std_xrt_string_byte_len(key)\n"
-    "    c_size __xl_size_nonce = __xl_std_xrt_string_byte_len(nonce)\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    c_size __xl_size_aad = __xl_std_xrt_string_byte_len(aad)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_chacha20_poly1305_encrypt_hex(key, __xl_size_key, nonce, __xl_size_nonce, text, __xl_size_text, aad, __xl_size_aad))\n"
-    "end\n";
-
-static const char xl6StdCryptoChaCha20Poly1305DecryptBody[] =
-    "func __xl_std_crypto_chacha20_poly1305_decrypt(string key, string nonce, string cipherHex, string aad = \"\") as string\n"
-    "    c_size __xl_size_key = __xl_std_xrt_string_byte_len(key)\n"
-    "    c_size __xl_size_nonce = __xl_std_xrt_string_byte_len(nonce)\n"
-    "    c_size __xl_size_cipherHex = __xl_std_xrt_string_byte_len(cipherHex)\n"
-    "    c_size __xl_size_aad = __xl_std_xrt_string_byte_len(aad)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_chacha20_poly1305_decrypt_text(key, __xl_size_key, nonce, __xl_size_nonce, cipherHex, __xl_size_cipherHex, aad, __xl_size_aad))\n"
-    "end\n";
-
-static const char xl6StdCryptoAes128GcmEncryptBody[] =
-    "func __xl_std_crypto_aes128_gcm_encrypt(string key, string nonce, string text, string aad = \"\") as string\n"
-    "    c_size __xl_size_key = __xl_std_xrt_string_byte_len(key)\n"
-    "    c_size __xl_size_nonce = __xl_std_xrt_string_byte_len(nonce)\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    c_size __xl_size_aad = __xl_std_xrt_string_byte_len(aad)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_aes128_gcm_encrypt_hex(key, __xl_size_key, nonce, __xl_size_nonce, text, __xl_size_text, aad, __xl_size_aad))\n"
-    "end\n";
-
-static const char xl6StdCryptoAes128GcmDecryptBody[] =
-    "func __xl_std_crypto_aes128_gcm_decrypt(string key, string nonce, string cipherHex, string aad = \"\") as string\n"
-    "    c_size __xl_size_key = __xl_std_xrt_string_byte_len(key)\n"
-    "    c_size __xl_size_nonce = __xl_std_xrt_string_byte_len(nonce)\n"
-    "    c_size __xl_size_cipherHex = __xl_std_xrt_string_byte_len(cipherHex)\n"
-    "    c_size __xl_size_aad = __xl_std_xrt_string_byte_len(aad)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_aes128_gcm_decrypt_text(key, __xl_size_key, nonce, __xl_size_nonce, cipherHex, __xl_size_cipherHex, aad, __xl_size_aad))\n"
-    "end\n";
-
-static const char xl6StdCryptoAes256GcmEncryptBody[] =
-    "func __xl_std_crypto_aes256_gcm_encrypt(string key, string nonce, string text, string aad = \"\") as string\n"
-    "    c_size __xl_size_key = __xl_std_xrt_string_byte_len(key)\n"
-    "    c_size __xl_size_nonce = __xl_std_xrt_string_byte_len(nonce)\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    c_size __xl_size_aad = __xl_std_xrt_string_byte_len(aad)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_aes256_gcm_encrypt_hex(key, __xl_size_key, nonce, __xl_size_nonce, text, __xl_size_text, aad, __xl_size_aad))\n"
-    "end\n";
-
-static const char xl6StdCryptoAes256GcmDecryptBody[] =
-    "func __xl_std_crypto_aes256_gcm_decrypt(string key, string nonce, string cipherHex, string aad = \"\") as string\n"
-    "    c_size __xl_size_key = __xl_std_xrt_string_byte_len(key)\n"
-    "    c_size __xl_size_nonce = __xl_std_xrt_string_byte_len(nonce)\n"
-    "    c_size __xl_size_cipherHex = __xl_std_xrt_string_byte_len(cipherHex)\n"
-    "    c_size __xl_size_aad = __xl_std_xrt_string_byte_len(aad)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_aes256_gcm_decrypt_text(key, __xl_size_key, nonce, __xl_size_nonce, cipherHex, __xl_size_cipherHex, aad, __xl_size_aad))\n"
-    "end\n";
-
-static const char xl6StdCryptoHkdfSha256Body[] =
-    "func __xl_std_crypto_hkdf_sha256(string key, string salt = \"\", string info = \"\", int len = 32) as string\n"
-    "    if len <= 0 then\n"
-    "        return \"\"\n"
-    "    end\n"
-    "    c_size __xl_size_key = __xl_std_xrt_string_byte_len(key)\n"
-    "    c_size __xl_size_salt = __xl_std_xrt_string_byte_len(salt)\n"
-    "    c_size __xl_size_info = __xl_std_xrt_string_byte_len(info)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_hkdf_sha256_hex(key, __xl_size_key, salt, __xl_size_salt, info, __xl_size_info, c_size(len)))\n"
-    "end\n";
-
-static const char xl6StdCryptoHkdfSha384Body[] =
-    "func __xl_std_crypto_hkdf_sha384(string key, string salt = \"\", string info = \"\", int len = 32) as string\n"
-    "    if len <= 0 then\n"
-    "        return \"\"\n"
-    "    end\n"
-    "    c_size __xl_size_key = __xl_std_xrt_string_byte_len(key)\n"
-    "    c_size __xl_size_salt = __xl_std_xrt_string_byte_len(salt)\n"
-    "    c_size __xl_size_info = __xl_std_xrt_string_byte_len(info)\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_runtime_hkdf_sha384_hex(key, __xl_size_key, salt, __xl_size_salt, info, __xl_size_info, c_size(len)))\n"
-    "end\n";
-
 static const char xl6StdCryptoRandomHexBody[] =
     "func __xl_std_crypto_random_hex(int byteCount) as string\n"
     "    if byteCount < 0 then throw RangeError \"secure random byte count is invalid\" end\n"
@@ -5097,26 +4803,6 @@ static const char xl6StdCryptoRandomStringBody[] =
 static const char xl6StdCryptoFillRandomBytesBody[] =
     "func __xl_std_crypto_fill_random_bytes(Buffer target)\n"
     "    if not __xl_std_xrt_secure_fill_buffer(target.nativeHandle()) then throw RuntimeError \"secure random buffer fill failed\" end\n"
-    "end\n";
-
-static const char xl6StdCryptoSha1StreamBody[] =
-    "func __xl_std_crypto_sha1_stream() as Sha1\n"
-    "    return Sha1()\n"
-    "end\n";
-
-static const char xl6StdCryptoSha256StreamBody[] =
-    "func __xl_std_crypto_sha256_stream() as Sha256\n"
-    "    return Sha256()\n"
-    "end\n";
-
-static const char xl6StdCryptoSha384StreamBody[] =
-    "func __xl_std_crypto_sha384_stream() as Sha384\n"
-    "    return Sha384()\n"
-    "end\n";
-
-static const char xl6StdCryptoSha512StreamBody[] =
-    "func __xl_std_crypto_sha512_stream() as Sha512\n"
-    "    return Sha512()\n"
     "end\n";
 
 static const char xl6StdCryptoChaCha20EncryptBody[] =
@@ -5141,93 +4827,12 @@ static const char xl6StdCryptoChaCha20DecryptBody[] =
     "    return __xl_std_runtime_take_cstr(__xl_std_runtime_chacha20_decrypt_text(key, __xl_size_key, nonce, __xl_size_nonce, cipherHex, __xl_size_cipherHex, c_uint(counter)))\n"
     "end\n";
 
-static const char xl6StdCryptoSha1BytesBody[] =
-    "func __xl_std_crypto_sha1_bytes(Buffer data) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_sha1_bytes(data.data(), c_size(data.len()))))\n"
-    "end\n";
-
-static const char xl6StdCryptoSha256BytesBody[] =
-    "func __xl_std_crypto_sha256_bytes(Buffer data) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_sha256_bytes(data.data(), c_size(data.len()))))\n"
-    "end\n";
-
-static const char xl6StdCryptoSha384BytesBody[] =
-    "func __xl_std_crypto_sha384_bytes(Buffer data) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_sha384_bytes(data.data(), c_size(data.len()))))\n"
-    "end\n";
-
-static const char xl6StdCryptoSha512BytesBody[] =
-    "func __xl_std_crypto_sha512_bytes(Buffer data) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_sha512_bytes(data.data(), c_size(data.len()))))\n"
-    "end\n";
-
-static const char xl6StdCryptoHmacSha256BytesBody[] =
-    "func __xl_std_crypto_hmac_sha256_bytes(Buffer key, Buffer data) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_hmac_sha256_bytes(key.data(), c_size(key.len()), data.data(), c_size(data.len()))))\n"
-    "end\n";
-
-static const char xl6StdCryptoHmacSha384BytesBody[] =
-    "func __xl_std_crypto_hmac_sha384_bytes(Buffer key, Buffer data) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_hmac_sha384_bytes(key.data(), c_size(key.len()), data.data(), c_size(data.len()))))\n"
-    "end\n";
-
-static const char xl6StdCryptoHmacSha512BytesBody[] =
-    "func __xl_std_crypto_hmac_sha512_bytes(Buffer key, Buffer data) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_hmac_sha512_bytes(key.data(), c_size(key.len()), data.data(), c_size(data.len()))))\n"
-    "end\n";
-
 static const char xl6StdCryptoChaCha20BytesBody[] =
     "func __xl_std_crypto_chacha20_bytes(Buffer key, Buffer nonce, Buffer data, int counter = 1) as Buffer\n"
     "    if counter < 0 then\n"
     "        return Buffer()\n"
     "    end\n"
     "    return Buffer(point(__xl_std_runtime_chacha20_bytes(key.data(), c_size(key.len()), nonce.data(), c_size(nonce.len()), data.data(), c_size(data.len()), c_uint(counter))))\n"
-    "end\n";
-
-static const char xl6StdCryptoChaCha20Poly1305EncryptBytesBody[] =
-    "func __xl_std_crypto_chacha20_poly1305_encrypt_bytes(Buffer key, Buffer nonce, Buffer data, Buffer aad) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_chacha20_poly1305_encrypt_bytes(key.data(), c_size(key.len()), nonce.data(), c_size(nonce.len()), data.data(), c_size(data.len()), aad.data(), c_size(aad.len()))))\n"
-    "end\n";
-
-static const char xl6StdCryptoChaCha20Poly1305DecryptBytesBody[] =
-    "func __xl_std_crypto_chacha20_poly1305_decrypt_bytes(Buffer key, Buffer nonce, Buffer data, Buffer aad) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_chacha20_poly1305_decrypt_bytes(key.data(), c_size(key.len()), nonce.data(), c_size(nonce.len()), data.data(), c_size(data.len()), aad.data(), c_size(aad.len()))))\n"
-    "end\n";
-
-static const char xl6StdCryptoAes128GcmEncryptBytesBody[] =
-    "func __xl_std_crypto_aes128_gcm_encrypt_bytes(Buffer key, Buffer nonce, Buffer data, Buffer aad) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_aes128_gcm_encrypt_bytes(key.data(), c_size(key.len()), nonce.data(), c_size(nonce.len()), data.data(), c_size(data.len()), aad.data(), c_size(aad.len()))))\n"
-    "end\n";
-
-static const char xl6StdCryptoAes128GcmDecryptBytesBody[] =
-    "func __xl_std_crypto_aes128_gcm_decrypt_bytes(Buffer key, Buffer nonce, Buffer data, Buffer aad) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_aes128_gcm_decrypt_bytes(key.data(), c_size(key.len()), nonce.data(), c_size(nonce.len()), data.data(), c_size(data.len()), aad.data(), c_size(aad.len()))))\n"
-    "end\n";
-
-static const char xl6StdCryptoAes256GcmEncryptBytesBody[] =
-    "func __xl_std_crypto_aes256_gcm_encrypt_bytes(Buffer key, Buffer nonce, Buffer data, Buffer aad) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_aes256_gcm_encrypt_bytes(key.data(), c_size(key.len()), nonce.data(), c_size(nonce.len()), data.data(), c_size(data.len()), aad.data(), c_size(aad.len()))))\n"
-    "end\n";
-
-static const char xl6StdCryptoAes256GcmDecryptBytesBody[] =
-    "func __xl_std_crypto_aes256_gcm_decrypt_bytes(Buffer key, Buffer nonce, Buffer data, Buffer aad) as Buffer\n"
-    "    return Buffer(point(__xl_std_runtime_aes256_gcm_decrypt_bytes(key.data(), c_size(key.len()), nonce.data(), c_size(nonce.len()), data.data(), c_size(data.len()), aad.data(), c_size(aad.len()))))\n"
-    "end\n";
-
-static const char xl6StdCryptoHkdfSha256BytesBody[] =
-    "func __xl_std_crypto_hkdf_sha256_bytes(Buffer key, Buffer salt, Buffer info, int len = 32) as Buffer\n"
-    "    if len <= 0 then\n"
-    "        return Buffer()\n"
-    "    end\n"
-    "    return Buffer(point(__xl_std_runtime_hkdf_sha256_bytes(key.data(), c_size(key.len()), salt.data(), c_size(salt.len()), info.data(), c_size(info.len()), c_size(len))))\n"
-    "end\n";
-
-static const char xl6StdCryptoHkdfSha384BytesBody[] =
-    "func __xl_std_crypto_hkdf_sha384_bytes(Buffer key, Buffer salt, Buffer info, int len = 32) as Buffer\n"
-    "    if len <= 0 then\n"
-    "        return Buffer()\n"
-    "    end\n"
-    "    return Buffer(point(__xl_std_runtime_hkdf_sha384_bytes(key.data(), c_size(key.len()), salt.data(), c_size(salt.len()), info.data(), c_size(info.len()), c_size(len))))\n"
     "end\n";
 
 static const char xl6StdCryptoRandomBytesBody[] =
@@ -5875,39 +5480,9 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "fileReadBytes", "__xl_std_runtime_file_read_bytes", "xl6_xrt_buffer_file_read_bytes", xl6StdPathUnaryParams, 1, "point", NULL},
     {"__xl_runtime", "fileWriteBytes", "__xl_std_runtime_file_write_bytes", "xl6_xrt_buffer_file_write_bytes", xl6StdRuntimeFileWriteBytesParams, 3, "c_bool", NULL},
     {"__xl_runtime", "fileAppendBytes", "__xl_std_runtime_file_append_bytes", "xl6_xrt_buffer_file_append_bytes", xl6StdRuntimeFileWriteBytesParams, 3, "c_bool", NULL},
-    {"__xl_runtime", "sha1Hex", "__xl_std_runtime_sha1_hex", "xl6_xrt_sha1_hex", xl6StdRuntimeCryptoTextParams, 2, "point", NULL},
-    {"__xl_runtime", "sha256Hex", "__xl_std_runtime_sha256_hex", "xl6_xrt_sha256_hex", xl6StdRuntimeCryptoTextParams, 2, "point", NULL},
-    {"__xl_runtime", "sha384Hex", "__xl_std_runtime_sha384_hex", "xl6_xrt_sha384_hex", xl6StdRuntimeCryptoTextParams, 2, "point", NULL},
-    {"__xl_runtime", "sha512Hex", "__xl_std_runtime_sha512_hex", "xl6_xrt_sha512_hex", xl6StdRuntimeCryptoTextParams, 2, "point", NULL},
-    {"__xl_runtime", "hmacSha256Hex", "__xl_std_runtime_hmac_sha256_hex", "xl6_xrt_hmac_sha256_hex", xl6StdRuntimeCryptoHmacParams, 4, "point", NULL},
-    {"__xl_runtime", "hmacSha384Hex", "__xl_std_runtime_hmac_sha384_hex", "xl6_xrt_hmac_sha384_hex", xl6StdRuntimeCryptoHmacParams, 4, "point", NULL},
-    {"__xl_runtime", "hmacSha512Hex", "__xl_std_runtime_hmac_sha512_hex", "xl6_xrt_hmac_sha512_hex", xl6StdRuntimeCryptoHmacParams, 4, "point", NULL},
     {"__xl_runtime", "chacha20EncryptHex", "__xl_std_runtime_chacha20_encrypt_hex", "xl6_xrt_chacha20_encrypt_hex", xl6StdRuntimeCryptoChacha20Params, 7, "point", NULL},
     {"__xl_runtime", "chacha20DecryptText", "__xl_std_runtime_chacha20_decrypt_text", "xl6_xrt_chacha20_decrypt_text", xl6StdRuntimeCryptoChacha20Params, 7, "point", NULL},
-    {"__xl_runtime", "chacha20Poly1305EncryptHex", "__xl_std_runtime_chacha20_poly1305_encrypt_hex", "xl6_xrt_chacha20_poly1305_encrypt_hex", xl6StdRuntimeCryptoAeadParams, 8, "point", NULL},
-    {"__xl_runtime", "chacha20Poly1305DecryptText", "__xl_std_runtime_chacha20_poly1305_decrypt_text", "xl6_xrt_chacha20_poly1305_decrypt_text", xl6StdRuntimeCryptoAeadParams, 8, "point", NULL},
-    {"__xl_runtime", "aes128GcmEncryptHex", "__xl_std_runtime_aes128_gcm_encrypt_hex", "xl6_xrt_aes128_gcm_encrypt_hex", xl6StdRuntimeCryptoAeadParams, 8, "point", NULL},
-    {"__xl_runtime", "aes128GcmDecryptText", "__xl_std_runtime_aes128_gcm_decrypt_text", "xl6_xrt_aes128_gcm_decrypt_text", xl6StdRuntimeCryptoAeadParams, 8, "point", NULL},
-    {"__xl_runtime", "aes256GcmEncryptHex", "__xl_std_runtime_aes256_gcm_encrypt_hex", "xl6_xrt_aes256_gcm_encrypt_hex", xl6StdRuntimeCryptoAeadParams, 8, "point", NULL},
-    {"__xl_runtime", "aes256GcmDecryptText", "__xl_std_runtime_aes256_gcm_decrypt_text", "xl6_xrt_aes256_gcm_decrypt_text", xl6StdRuntimeCryptoAeadParams, 8, "point", NULL},
-    {"__xl_runtime", "hkdfSha256Hex", "__xl_std_runtime_hkdf_sha256_hex", "xl6_xrt_hkdf_sha256_hex", xl6StdRuntimeCryptoHkdfParams, 7, "point", NULL},
-    {"__xl_runtime", "hkdfSha384Hex", "__xl_std_runtime_hkdf_sha384_hex", "xl6_xrt_hkdf_sha384_hex", xl6StdRuntimeCryptoHkdfParams, 7, "point", NULL},
-    {"__xl_runtime", "sha1Bytes", "__xl_std_runtime_sha1_bytes", "xl6_xrt_sha1_bytes", xl6StdRuntimeCryptoBytesParams, 2, "point", NULL},
-    {"__xl_runtime", "sha256Bytes", "__xl_std_runtime_sha256_bytes", "xl6_xrt_sha256_bytes", xl6StdRuntimeCryptoBytesParams, 2, "point", NULL},
-    {"__xl_runtime", "sha384Bytes", "__xl_std_runtime_sha384_bytes", "xl6_xrt_sha384_bytes", xl6StdRuntimeCryptoBytesParams, 2, "point", NULL},
-    {"__xl_runtime", "sha512Bytes", "__xl_std_runtime_sha512_bytes", "xl6_xrt_sha512_bytes", xl6StdRuntimeCryptoBytesParams, 2, "point", NULL},
-    {"__xl_runtime", "hmacSha256Bytes", "__xl_std_runtime_hmac_sha256_bytes", "xl6_xrt_hmac_sha256_bytes", xl6StdRuntimeCryptoHmacBytesParams, 4, "point", NULL},
-    {"__xl_runtime", "hmacSha384Bytes", "__xl_std_runtime_hmac_sha384_bytes", "xl6_xrt_hmac_sha384_bytes", xl6StdRuntimeCryptoHmacBytesParams, 4, "point", NULL},
-    {"__xl_runtime", "hmacSha512Bytes", "__xl_std_runtime_hmac_sha512_bytes", "xl6_xrt_hmac_sha512_bytes", xl6StdRuntimeCryptoHmacBytesParams, 4, "point", NULL},
     {"__xl_runtime", "chacha20Bytes", "__xl_std_runtime_chacha20_bytes", "xl6_xrt_chacha20_bytes", xl6StdRuntimeCryptoChacha20BytesParams, 7, "point", NULL},
-    {"__xl_runtime", "chacha20Poly1305EncryptBytes", "__xl_std_runtime_chacha20_poly1305_encrypt_bytes", "xl6_xrt_chacha20_poly1305_encrypt_bytes", xl6StdRuntimeCryptoAeadBytesParams, 8, "point", NULL},
-    {"__xl_runtime", "chacha20Poly1305DecryptBytes", "__xl_std_runtime_chacha20_poly1305_decrypt_bytes", "xl6_xrt_chacha20_poly1305_decrypt_bytes", xl6StdRuntimeCryptoAeadBytesParams, 8, "point", NULL},
-    {"__xl_runtime", "aes128GcmEncryptBytes", "__xl_std_runtime_aes128_gcm_encrypt_bytes", "xl6_xrt_aes128_gcm_encrypt_bytes", xl6StdRuntimeCryptoAeadBytesParams, 8, "point", NULL},
-    {"__xl_runtime", "aes128GcmDecryptBytes", "__xl_std_runtime_aes128_gcm_decrypt_bytes", "xl6_xrt_aes128_gcm_decrypt_bytes", xl6StdRuntimeCryptoAeadBytesParams, 8, "point", NULL},
-    {"__xl_runtime", "aes256GcmEncryptBytes", "__xl_std_runtime_aes256_gcm_encrypt_bytes", "xl6_xrt_aes256_gcm_encrypt_bytes", xl6StdRuntimeCryptoAeadBytesParams, 8, "point", NULL},
-    {"__xl_runtime", "aes256GcmDecryptBytes", "__xl_std_runtime_aes256_gcm_decrypt_bytes", "xl6_xrt_aes256_gcm_decrypt_bytes", xl6StdRuntimeCryptoAeadBytesParams, 8, "point", NULL},
-    {"__xl_runtime", "hkdfSha256Bytes", "__xl_std_runtime_hkdf_sha256_bytes", "xl6_xrt_hkdf_sha256_bytes", xl6StdRuntimeCryptoHkdfBytesParams, 7, "point", NULL},
-    {"__xl_runtime", "hkdfSha384Bytes", "__xl_std_runtime_hkdf_sha384_bytes", "xl6_xrt_hkdf_sha384_bytes", xl6StdRuntimeCryptoHkdfBytesParams, 7, "point", NULL},
     {"__xl_runtime", "ed25519Keypair", "__xl_std_runtime_ed25519_keypair", "xl6_xrt_ed25519_keypair", NULL, 0, "var", NULL},
     {"__xl_runtime", "ed25519PublicKeyHex", "__xl_std_runtime_ed25519_public_key_hex", "xl6_xrt_ed25519_public_key_hex", xl6StdRuntimeCryptoTextHexParams, 2, "point", NULL},
     {"__xl_runtime", "ed25519SignHex", "__xl_std_runtime_ed25519_sign_hex", "xl6_xrt_ed25519_sign_hex", xl6StdRuntimeCryptoSignParams, 4, "point", NULL},
@@ -6675,46 +6250,99 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"siphash", "hash64", "__xl_std_siphash64", NULL, NULL, 0, "uint64", xl6StdSipHash64BytesBody},
     {"siphash", "hash64Buffer", "__xl_std_siphash64_buffer", NULL, NULL, 0, "uint64", xl6StdSipHash64BufferBody},
     {"siphash", "hasher", "__xl_std_siphasher64", NULL, NULL, 0, "SipHasher64", xl6StdSipHasher64Body},
-    {"crypto", "sha1", "__xl_std_crypto_sha1", NULL, NULL, 0, "string", xl6StdCryptoSha1Body},
-    {"crypto", "sha256", "__xl_std_crypto_sha256", NULL, NULL, 0, "string", xl6StdCryptoSha256Body},
-    {"crypto", "sha384", "__xl_std_crypto_sha384", NULL, NULL, 0, "string", xl6StdCryptoSha384Body},
-    {"crypto", "sha512", "__xl_std_crypto_sha512", NULL, NULL, 0, "string", xl6StdCryptoSha512Body},
-    {"crypto", "hmacSha256", "__xl_std_crypto_hmac_sha256", NULL, NULL, 0, "string", xl6StdCryptoHmacSha256Body},
-    {"crypto", "hmacSha384", "__xl_std_crypto_hmac_sha384", NULL, NULL, 0, "string", xl6StdCryptoHmacSha384Body},
-    {"crypto", "hmacSha512", "__xl_std_crypto_hmac_sha512", NULL, NULL, 0, "string", xl6StdCryptoHmacSha512Body},
-    {"crypto", "sha1Stream", "__xl_std_crypto_sha1_stream", NULL, NULL, 0, "Sha1", xl6StdCryptoSha1StreamBody},
-    {"crypto", "sha256Stream", "__xl_std_crypto_sha256_stream", NULL, NULL, 0, "Sha256", xl6StdCryptoSha256StreamBody},
-    {"crypto", "sha384Stream", "__xl_std_crypto_sha384_stream", NULL, NULL, 0, "Sha384", xl6StdCryptoSha384StreamBody},
-    {"crypto", "sha512Stream", "__xl_std_crypto_sha512_stream", NULL, NULL, 0, "Sha512", xl6StdCryptoSha512StreamBody},
     {"crypto", "chacha20Encrypt", "__xl_std_crypto_chacha20_encrypt", NULL, NULL, 0, "string", xl6StdCryptoChaCha20EncryptBody},
     {"crypto", "chacha20Decrypt", "__xl_std_crypto_chacha20_decrypt", NULL, NULL, 0, "string", xl6StdCryptoChaCha20DecryptBody},
-    {"crypto", "chacha20Poly1305Encrypt", "__xl_std_crypto_chacha20_poly1305_encrypt", NULL, NULL, 0, "string", xl6StdCryptoChaCha20Poly1305EncryptBody},
-    {"crypto", "chacha20Poly1305Decrypt", "__xl_std_crypto_chacha20_poly1305_decrypt", NULL, NULL, 0, "string", xl6StdCryptoChaCha20Poly1305DecryptBody},
-    {"crypto", "aes128GcmEncrypt", "__xl_std_crypto_aes128_gcm_encrypt", NULL, NULL, 0, "string", xl6StdCryptoAes128GcmEncryptBody},
-    {"crypto", "aes128GcmDecrypt", "__xl_std_crypto_aes128_gcm_decrypt", NULL, NULL, 0, "string", xl6StdCryptoAes128GcmDecryptBody},
-    {"crypto", "aes256GcmEncrypt", "__xl_std_crypto_aes256_gcm_encrypt", NULL, NULL, 0, "string", xl6StdCryptoAes256GcmEncryptBody},
-    {"crypto", "aes256GcmDecrypt", "__xl_std_crypto_aes256_gcm_decrypt", NULL, NULL, 0, "string", xl6StdCryptoAes256GcmDecryptBody},
-    {"crypto", "hkdfSha256", "__xl_std_crypto_hkdf_sha256", NULL, NULL, 0, "string", xl6StdCryptoHkdfSha256Body},
-    {"crypto", "hkdfSha384", "__xl_std_crypto_hkdf_sha384", NULL, NULL, 0, "string", xl6StdCryptoHkdfSha384Body},
+    {"cryptoLegacy", "md5", "__xl_std_cryptoLegacy_md5", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoMd5TextV1},
+    {"cryptoLegacy", "md5Hex", "__xl_std_cryptoLegacy_md5Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoMd5TextHexV1},
+    {"cryptoLegacy", "md5", "__xl_std_cryptoLegacy_md5", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoMd5BytesV1},
+    {"cryptoLegacy", "md5Hex", "__xl_std_cryptoLegacy_md5Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoMd5BytesHexV1},
+    {"cryptoLegacy", "md5Buffer", "__xl_std_cryptoLegacy_md5Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoMd5BufferV1},
+    {"cryptoLegacy", "md5BufferHex", "__xl_std_cryptoLegacy_md5BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoMd5BufferHexV1},
+    {"cryptoLegacy", "md5Stream", "__xl_std_cryptoLegacy_md5Stream", NULL, NULL, 0, "LegacyMd5", xl6StdResidentMd5Stream},
+    {"cryptoLegacy", "sha1", "__xl_std_cryptoLegacy_sha1", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha1TextV1},
+    {"cryptoLegacy", "sha1Hex", "__xl_std_cryptoLegacy_sha1Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha1TextHexV1},
+    {"cryptoLegacy", "sha1", "__xl_std_cryptoLegacy_sha1", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha1BytesV1},
+    {"cryptoLegacy", "sha1Hex", "__xl_std_cryptoLegacy_sha1Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha1BytesHexV1},
+    {"cryptoLegacy", "sha1Buffer", "__xl_std_cryptoLegacy_sha1Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha1BufferV1},
+    {"cryptoLegacy", "sha1BufferHex", "__xl_std_cryptoLegacy_sha1BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha1BufferHexV1},
+    {"cryptoLegacy", "sha1Stream", "__xl_std_cryptoLegacy_sha1Stream", NULL, NULL, 0, "LegacySha1", xl6StdResidentSha1Stream},
+    {"crypto", "sha224", "__xl_std_crypto_sha224", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha224TextV1},
+    {"crypto", "sha224Hex", "__xl_std_crypto_sha224Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha224TextHexV1},
+    {"crypto", "sha224", "__xl_std_crypto_sha224", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha224BytesV1},
+    {"crypto", "sha224Hex", "__xl_std_crypto_sha224Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha224BytesHexV1},
+    {"crypto", "sha224Buffer", "__xl_std_crypto_sha224Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha224BufferV1},
+    {"crypto", "sha224BufferHex", "__xl_std_crypto_sha224BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha224BufferHexV1},
+    {"crypto", "sha224Stream", "__xl_std_crypto_sha224Stream", NULL, NULL, 0, "Sha224", xl6StdResidentSha224Stream},
+    {"crypto", "sha256", "__xl_std_crypto_sha256", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha256TextV1},
+    {"crypto", "sha256Hex", "__xl_std_crypto_sha256Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha256TextHexV1},
+    {"crypto", "sha256", "__xl_std_crypto_sha256", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha256BytesV1},
+    {"crypto", "sha256Hex", "__xl_std_crypto_sha256Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha256BytesHexV1},
+    {"crypto", "sha256Buffer", "__xl_std_crypto_sha256Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha256BufferV1},
+    {"crypto", "sha256BufferHex", "__xl_std_crypto_sha256BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha256BufferHexV1},
+    {"crypto", "sha256Stream", "__xl_std_crypto_sha256Stream", NULL, NULL, 0, "Sha256", xl6StdResidentSha256Stream},
+    {"crypto", "sha384", "__xl_std_crypto_sha384", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha384TextV1},
+    {"crypto", "sha384Hex", "__xl_std_crypto_sha384Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha384TextHexV1},
+    {"crypto", "sha384", "__xl_std_crypto_sha384", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha384BytesV1},
+    {"crypto", "sha384Hex", "__xl_std_crypto_sha384Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha384BytesHexV1},
+    {"crypto", "sha384Buffer", "__xl_std_crypto_sha384Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha384BufferV1},
+    {"crypto", "sha384BufferHex", "__xl_std_crypto_sha384BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha384BufferHexV1},
+    {"crypto", "sha384Stream", "__xl_std_crypto_sha384Stream", NULL, NULL, 0, "Sha384", xl6StdResidentSha384Stream},
+    {"crypto", "sha512", "__xl_std_crypto_sha512", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha512TextV1},
+    {"crypto", "sha512Hex", "__xl_std_crypto_sha512Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha512TextHexV1},
+    {"crypto", "sha512", "__xl_std_crypto_sha512", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha512BytesV1},
+    {"crypto", "sha512Hex", "__xl_std_crypto_sha512Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha512BytesHexV1},
+    {"crypto", "sha512Buffer", "__xl_std_crypto_sha512Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha512BufferV1},
+    {"crypto", "sha512BufferHex", "__xl_std_crypto_sha512BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha512BufferHexV1},
+    {"crypto", "sha512Stream", "__xl_std_crypto_sha512Stream", NULL, NULL, 0, "Sha512", xl6StdResidentSha512Stream},
+    {"crypto", "sha512_256", "__xl_std_crypto_sha512_256", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha512_256TextV1},
+    {"crypto", "sha512_256Hex", "__xl_std_crypto_sha512_256Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha512_256TextHexV1},
+    {"crypto", "sha512_256", "__xl_std_crypto_sha512_256", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha512_256BytesV1},
+    {"crypto", "sha512_256Hex", "__xl_std_crypto_sha512_256Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha512_256BytesHexV1},
+    {"crypto", "sha512_256Buffer", "__xl_std_crypto_sha512_256Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoSha512_256BufferV1},
+    {"crypto", "sha512_256BufferHex", "__xl_std_crypto_sha512_256BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoSha512_256BufferHexV1},
+    {"crypto", "sha512_256Stream", "__xl_std_crypto_sha512_256Stream", NULL, NULL, 0, "Sha512_256", xl6StdResidentSha512_256Stream},
+    {"crypto", "hmacSha256", "__xl_std_crypto_hmacSha256", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha256TextV1},
+    {"crypto", "hmacSha256Hex", "__xl_std_crypto_hmacSha256Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha256TextHexV1},
+    {"crypto", "hmacSha256", "__xl_std_crypto_hmacSha256", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha256BytesV1},
+    {"crypto", "hmacSha256Hex", "__xl_std_crypto_hmacSha256Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha256BytesHexV1},
+    {"crypto", "hmacSha256Buffer", "__xl_std_crypto_hmacSha256Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha256BufferV1},
+    {"crypto", "hmacSha256BufferHex", "__xl_std_crypto_hmacSha256BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha256BufferHexV1},
+    {"crypto", "hmacSha256Stream", "__xl_std_crypto_hmacSha256Stream", NULL, NULL, 0, "HmacSha256", xl6StdResidentHmacSha256Stream},
+    {"crypto", "hmacSha384", "__xl_std_crypto_hmacSha384", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha384TextV1},
+    {"crypto", "hmacSha384Hex", "__xl_std_crypto_hmacSha384Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha384TextHexV1},
+    {"crypto", "hmacSha384", "__xl_std_crypto_hmacSha384", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha384BytesV1},
+    {"crypto", "hmacSha384Hex", "__xl_std_crypto_hmacSha384Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha384BytesHexV1},
+    {"crypto", "hmacSha384Buffer", "__xl_std_crypto_hmacSha384Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha384BufferV1},
+    {"crypto", "hmacSha384BufferHex", "__xl_std_crypto_hmacSha384BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha384BufferHexV1},
+    {"crypto", "hmacSha384Stream", "__xl_std_crypto_hmacSha384Stream", NULL, NULL, 0, "HmacSha384", xl6StdResidentHmacSha384Stream},
+    {"crypto", "hmacSha512", "__xl_std_crypto_hmacSha512", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha512TextV1},
+    {"crypto", "hmacSha512Hex", "__xl_std_crypto_hmacSha512Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha512TextHexV1},
+    {"crypto", "hmacSha512", "__xl_std_crypto_hmacSha512", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha512BytesV1},
+    {"crypto", "hmacSha512Hex", "__xl_std_crypto_hmacSha512Hex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha512BytesHexV1},
+    {"crypto", "hmacSha512Buffer", "__xl_std_crypto_hmacSha512Buffer", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHmacSha512BufferV1},
+    {"crypto", "hmacSha512BufferHex", "__xl_std_crypto_hmacSha512BufferHex", NULL, NULL, 0, "string", xl6StdResidentxl6CryptoHmacSha512BufferHexV1},
+    {"crypto", "hmacSha512Stream", "__xl_std_crypto_hmacSha512Stream", NULL, NULL, 0, "HmacSha512", xl6StdResidentHmacSha512Stream},
+    {"crypto", "pbkdf2Sha256", "__xl_std_crypto_pbkdf2Sha256", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoPbkdf2Sha256V1},
+    {"crypto", "hkdfSha256", "__xl_std_crypto_hkdfSha256", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha256V1},
+    {"crypto", "hkdfSha256Extract", "__xl_std_crypto_hkdfSha256Extract", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha256ExtractV1},
+    {"crypto", "hkdfSha256Expand", "__xl_std_crypto_hkdfSha256Expand", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha256ExpandV1},
+    {"crypto", "pbkdf2Sha384", "__xl_std_crypto_pbkdf2Sha384", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoPbkdf2Sha384V1},
+    {"crypto", "hkdfSha384", "__xl_std_crypto_hkdfSha384", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha384V1},
+    {"crypto", "hkdfSha384Extract", "__xl_std_crypto_hkdfSha384Extract", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha384ExtractV1},
+    {"crypto", "hkdfSha384Expand", "__xl_std_crypto_hkdfSha384Expand", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha384ExpandV1},
+    {"crypto", "pbkdf2Sha512", "__xl_std_crypto_pbkdf2Sha512", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoPbkdf2Sha512V1},
+    {"crypto", "hkdfSha512", "__xl_std_crypto_hkdfSha512", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha512V1},
+    {"crypto", "hkdfSha512Extract", "__xl_std_crypto_hkdfSha512Extract", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha512ExtractV1},
+    {"crypto", "hkdfSha512Expand", "__xl_std_crypto_hkdfSha512Expand", NULL, NULL, 0, "bytes", xl6StdResidentxl6CryptoHkdfSha512ExpandV1},
+    {"crypto", "timingSafeEqual", "__xl_std_crypto_timingSafeEqual", NULL, NULL, 0, "bool", xl6StdResidentxl6CryptoTimingSafeEqualV1},
+    {"asn1", "parse", "__xl_std_asn1_parse", NULL, NULL, 0, "DerValue", xl6StdResidentxl6DerParseV1},
+    {"pem", "parse", "__xl_std_pem_parse", NULL, NULL, 0, "PemBlock", xl6StdResidentxl6PemFindV1},
+    {"pem", "encode", "__xl_std_pem_encode", NULL, NULL, 0, "string", xl6StdResidentxl6PemEncodeV1},
+    {"pem", "decode", "__xl_std_pem_decode", NULL, NULL, 0, "bytes", xl6StdResidentPemDecode},
     {"crypto", "randomHex", "__xl_std_crypto_random_hex", NULL, NULL, 0, "string", xl6StdCryptoRandomHexBody},
     {"crypto", "randomString", "__xl_std_crypto_random_string", NULL, NULL, 0, "string", xl6StdCryptoRandomStringBody},
     {"crypto", "fillRandomBytes", "__xl_std_crypto_fill_random_bytes", NULL, NULL, 0, "", xl6StdCryptoFillRandomBytesBody},
-    {"crypto", "sha1Bytes", "__xl_std_crypto_sha1_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoSha1BytesBody},
-    {"crypto", "sha256Bytes", "__xl_std_crypto_sha256_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoSha256BytesBody},
-    {"crypto", "sha384Bytes", "__xl_std_crypto_sha384_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoSha384BytesBody},
-    {"crypto", "sha512Bytes", "__xl_std_crypto_sha512_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoSha512BytesBody},
-    {"crypto", "hmacSha256Bytes", "__xl_std_crypto_hmac_sha256_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoHmacSha256BytesBody},
-    {"crypto", "hmacSha384Bytes", "__xl_std_crypto_hmac_sha384_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoHmacSha384BytesBody},
-    {"crypto", "hmacSha512Bytes", "__xl_std_crypto_hmac_sha512_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoHmacSha512BytesBody},
     {"crypto", "chacha20Bytes", "__xl_std_crypto_chacha20_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoChaCha20BytesBody},
-    {"crypto", "chacha20Poly1305EncryptBytes", "__xl_std_crypto_chacha20_poly1305_encrypt_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoChaCha20Poly1305EncryptBytesBody},
-    {"crypto", "chacha20Poly1305DecryptBytes", "__xl_std_crypto_chacha20_poly1305_decrypt_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoChaCha20Poly1305DecryptBytesBody},
-    {"crypto", "aes128GcmEncryptBytes", "__xl_std_crypto_aes128_gcm_encrypt_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoAes128GcmEncryptBytesBody},
-    {"crypto", "aes128GcmDecryptBytes", "__xl_std_crypto_aes128_gcm_decrypt_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoAes128GcmDecryptBytesBody},
-    {"crypto", "aes256GcmEncryptBytes", "__xl_std_crypto_aes256_gcm_encrypt_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoAes256GcmEncryptBytesBody},
-    {"crypto", "aes256GcmDecryptBytes", "__xl_std_crypto_aes256_gcm_decrypt_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoAes256GcmDecryptBytesBody},
-    {"crypto", "hkdfSha256Bytes", "__xl_std_crypto_hkdf_sha256_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoHkdfSha256BytesBody},
-    {"crypto", "hkdfSha384Bytes", "__xl_std_crypto_hkdf_sha384_bytes", NULL, NULL, 0, "Buffer", xl6StdCryptoHkdfSha384BytesBody},
     {"crypto", "randomBytes", "__xl_std_crypto_random_bytes", NULL, NULL, 0, "bytes", xl6StdCryptoRandomBytesBody},
     {"crypto", "ed25519Keypair", "__xl_std_crypto_ed25519_keypair", NULL, NULL, 0, "var", xl6StdCryptoEd25519KeypairBody},
     {"crypto", "ed25519PublicKey", "__xl_std_crypto_ed25519_public_key", NULL, NULL, 0, "string", xl6StdCryptoEd25519PublicKeyBody},

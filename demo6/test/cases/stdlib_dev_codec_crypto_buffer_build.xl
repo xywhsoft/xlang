@@ -3,7 +3,7 @@ assert codec.hexDecode("4142") == b"AB", "codec.hexDecode should work in xl buil
 assert codec.percentEncode("a b") == "a%20b", "codec.percentEncode should work in xl build"
 assert codec.percentDecode("a%20b") == b"a b", "codec.percentDecode should work in xl build"
 
-assert string.len(crypto.sha256("AB")) == 64, "crypto.sha256 should work with codec symbols"
+assert crypto.sha256("AB").length == 32, "crypto.sha256 should work with codec symbols"
 
 Buffer buf = Buffer()
 assert buf.append("AB"), "Buffer.append should work in xl build"

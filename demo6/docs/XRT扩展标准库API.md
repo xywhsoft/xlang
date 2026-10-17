@@ -52,42 +52,30 @@ Future、文件重定向和 PTY 会话仍待验收，不声称七个模块全部
 
 ## 二进制加密与摘要
 
-文本接口返回十六进制字符串；带 `Bytes` 后缀的接口接收并返回 `Buffer`，不会经过字符集转换。AEAD 解密校验失败时返回空 `Buffer`。
+摘要默认返回 bytes，显式 `*Hex` 返回小写十六进制；`*Buffer` 接收 Buffer。
+MD5/SHA1 仅放在 cryptoLegacy。HMAC 密钥、KDF 材料和 AEAD 的 key/nonce 均使用完整 bytes，
+不与消息的可选 size 截断混用。AEAD 认证失败是 checked 错误，不返回空 Buffer 伪装成功。
+完整签名、资源生命周期和迁移边界见 [并发与安全标准库接入](并发与安全标准库接入.md)。
 
 ```xlang
-Buffer digest1 = crypto.sha1Bytes(data)
-Buffer digest256 = crypto.sha256Bytes(data)
-Buffer digest384 = crypto.sha384Bytes(data)
-Buffer digest512 = crypto.sha512Bytes(data)
-
-Buffer mac256 = crypto.hmacSha256Bytes(key, data)
-Buffer mac384 = crypto.hmacSha384Bytes(key, data)
-Buffer mac512 = crypto.hmacSha512Bytes(key, data)
-
-Buffer key256 = crypto.hkdfSha256Bytes(key, salt, info, 32)
-Buffer key384 = crypto.hkdfSha384Bytes(key, salt, info, 32)
-Buffer random = crypto.randomBytes(32)
-
-Buffer cipher = crypto.chacha20Bytes(key32, nonce12, data, 1)
-Buffer sealed = crypto.chacha20Poly1305EncryptBytes(key32, nonce12, data, aad)
-Buffer opened = crypto.chacha20Poly1305DecryptBytes(key32, nonce12, sealed, aad)
-Buffer aes128 = crypto.aes128GcmEncryptBytes(key16, nonce12, data, aad)
-Buffer aes128Plain = crypto.aes128GcmDecryptBytes(key16, nonce12, aes128, aad)
-Buffer aes256 = crypto.aes256GcmEncryptBytes(key32, nonce12, data, aad)
-Buffer aes256Plain = crypto.aes256GcmDecryptBytes(key32, nonce12, aes256, aad)
+bytes digest = crypto.sha256(b"a\0b")
+string hexDigest = crypto.sha256Hex("a\0b")
+bytes mac = crypto.hmacSha256(key, b"a\0b")
+bytes derived = crypto.hkdfSha256(key, salt, info, 32)
+bytes random = crypto.randomBytes(32)
+auto aes = AesGcm(key)
+bytes sealed = aes.seal(b"a\0b", nonce, aad)
+bytes opened = aes.open(sealed, nonce, aad)
 ```
 
-流式 SHA 对象可多次 `update`，最后读取 `bytes()` 或 `hex()`。例如 `crypto.sha1Stream()` 创建 SHA-1 上下文。
+流式摘要/HMAC 支持 update、updateBuffer、final、hex、clone、reset；
+final/hex 不终结状态，可变状态绑定创建线程。Buffer 可用 crypto.fillRandomBytes 原地填充。
 
-椭圆曲线接口返回包含私钥、公钥的字典；共享密钥的双方结果应完全相同。
+受管理非对称密钥及 RSA/ECDSA/Ed25519/XDH/ECDH 的新接口继续开发；
+旧的十六进制字符串/动态字典声明不作为已完成、可运行的标准库依据。
 
-```xlang
-var p256 = crypto.p256Keypair()
-string p256Secret = crypto.p256SharedSecret(string(p256["privateKey"]), peerPublicKey)
-var p384 = crypto.p384Keypair()
-string p384Secret = crypto.p384SharedSecret(string(p384["privateKey"]), peerPublicKey)
-bool signatureOk = crypto.ecdsaVerify(publicKey, message, signature)
-```
+DER/PEM 使用拥有式 DerValue、DerReader、DerBuilder、PemBlock、PemReader；
+默认 16 MiB 字节预算，DER 完整规范验证，原生借用视图不外泄。
 
 ## 字符编码
 

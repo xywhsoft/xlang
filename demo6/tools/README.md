@@ -2,6 +2,12 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_crypto_asn1.py --root <fresh-demo6> --out <fresh-directory>` checks
+the first resident crypto/ASN.1/PEM subset against actual DLL/SO products:
+JIT, module relocation, standalone executables, GCC O0/O2, rejected ABI contracts,
+native allocation prefixes and SHA256-only pruning. `--group crypto` omits ASN.1.
+This is not full concurrency, asymmetric crypto, X.509, TLS or RC0 acceptance.
+
 `check_stdlib_windows_nls_sdk_shipping.py --root <frozen-demo6> --build-report
 <ordinary-build.json> --out <fresh-directory>` is the Windows-only mandatory
 `windows-nls-sdk` gate. Actual DLL/TCC/VFS consumers check strict UTF-16, NUL,

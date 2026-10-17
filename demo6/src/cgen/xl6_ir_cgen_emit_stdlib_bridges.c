@@ -126,25 +126,6 @@ static int xl6IrCgenEmitStdlibBridgeRuntime(
             "size_t xl6_xrt_string_char_len(xlir_string text)\n"
             "{ return xrtUtf8Count(text); }\n\n",
             out);
-    if ( needs->needsCryptoTextHashBridgeRuntime )
-        xl6OutputPuts(
-            "extern size_t strlen(const char*);\n"
-            "extern char* xrtStrDup(const char*);\n"
-            "extern char* xrtHexEncodeNew(const void*, size_t, uint32_t);\n",
-            out);
-    if ( needs->needsCryptoTextHashBridgeRuntime )
-        xl6OutputPuts(
-            "extern bool xrtSha1(const void*, size_t, void*);\n"
-            "extern bool xrtSha256(const void*, size_t, void*);\n"
-            "extern bool xrtSha384(const void*, size_t, void*);\n"
-            "extern bool xrtSha512(const void*, size_t, void*);\n"
-            "static void* xlir_crypto_text_hash(xlir_string text, size_t size, unsigned int algorithm)\n"
-            "{ unsigned char digest[64]; size_t digestSize; bool ok; if (text.Data == NULL) return NULL; if (size > text.Size) size = text.Size; switch (algorithm) { case 1u: digestSize = 20u; ok = xrtSha1(text.Data, size, digest); break; case 2u: digestSize = 32u; ok = xrtSha256(text.Data, size, digest); break; case 3u: digestSize = 48u; ok = xrtSha384(text.Data, size, digest); break; default: digestSize = 64u; ok = xrtSha512(text.Data, size, digest); break; } return ok ? xrtHexEncodeNew(digest, digestSize, 1u) : xrtStrDup(\"\"); }\n"
-            "void* xl6_xrt_sha1_hex(xlir_string text, size_t size) { return xlir_crypto_text_hash(text, size, 1u); }\n"
-            "void* xl6_xrt_sha256_hex(xlir_string text, size_t size) { return xlir_crypto_text_hash(text, size, 2u); }\n"
-            "void* xl6_xrt_sha384_hex(xlir_string text, size_t size) { return xlir_crypto_text_hash(text, size, 3u); }\n"
-            "void* xl6_xrt_sha512_hex(xlir_string text, size_t size) { return xlir_crypto_text_hash(text, size, 4u); }\n\n",
-            out);
     if ( needs->needsHashStringBridgeRuntime ||
          needs->needsHashBytesBridgeRuntime ||
          needs->needsHashRawBridgeRuntime ||
