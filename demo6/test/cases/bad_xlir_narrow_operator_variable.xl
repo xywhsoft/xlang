@@ -1,0 +1,5 @@
+// A runtime int is not a contextual constant, even if its value happens to fit.
+uint8 value = 1
+int mask = 1
+auto invalid = value ^ mask
+println(invalid)

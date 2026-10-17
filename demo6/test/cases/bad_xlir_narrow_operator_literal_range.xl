@@ -1,0 +1,4 @@
+// A non-representable literal is not a contextual uint8 operand.
+uint8 value = 1
+auto invalid = value ^ 256
+println(invalid)
