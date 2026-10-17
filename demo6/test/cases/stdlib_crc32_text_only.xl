@@ -1,0 +1,2 @@
+assert crc32.checksum("123456789") == uint32(0xCBF43926)
+assert crc32.update(crc32.checksum("1234"), "56789") == uint32(0xCBF43926)

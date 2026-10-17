@@ -2,6 +2,12 @@
 
 本文记录已经由 XRT 提供、并由 xlang 标准库公开的扩展能力。这里是当前口径，不承担旧版本兼容说明。
 
+## CRC32 校验和
+
+默认 `crc32.checksum/update` 支持 string 与 bytes，另有
+`checksumBuffer/updateBuffer`。六个重载均返回 `uint32`，可选 size 按字节
+截断到实际长度，保留内嵌 NUL；具体合同见 [CRC32 标准库](CRC32标准库.md)。
+
 ## 动态方法与 Stack 接收
 
 typed func 与 xcall 的 nullable 参数／返回值合同见

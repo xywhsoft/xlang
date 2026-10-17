@@ -1,0 +1,2 @@
+extern "xl6Crc32BufferV1" @pure @nonblocking func wrong(uint64 previous, Buffer data, int size) as uint32
+wrong(uint64(0), Buffer(b"abc"), -1)

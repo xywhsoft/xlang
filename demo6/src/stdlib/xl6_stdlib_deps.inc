@@ -7,6 +7,12 @@ typedef struct XL6_StdlibDependency {
 } XL6_StdlibDependency;
 
 static const XL6_StdlibDependency xl6StdlibDependencies[] = {
+    {"crc32", "checksum", "__crc32", "text"},
+    {"crc32", "checksum", "__crc32", "bytes"},
+    {"crc32", "update", "__crc32", "text"},
+    {"crc32", "update", "__crc32", "bytes"},
+    {"crc32", "checksumBuffer", "__crc32", "buffer"},
+    {"crc32", "updateBuffer", "__crc32", "buffer"},
     {"int", "parse", "__crt_number", "parseIntNative"},
     {"int", "tryParse", "int", "parse"},
     {"uint64", "parse", "__crt_number", "parseUIntNative"},

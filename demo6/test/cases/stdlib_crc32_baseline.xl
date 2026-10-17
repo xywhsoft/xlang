@@ -1,0 +1,2 @@
+uint32 value = uint32(0xCBF43926)
+assert value == uint32(0xCBF43926)

@@ -1,6 +1,6 @@
 """Checks for the conservative section-delta snapshot generator."""
 import unittest
-from sync_xrt_core_sections import replace
+from sync_xrt_core_sections import replace, guarded_delta, section
 
 
 def block(lines):
@@ -79,6 +79,38 @@ class SnapshotSectionTests(unittest.TestCase):
         self.assertEqual(replace(new,old,new,"source",name,True),new)
         with self.assertRaises(ValueError): replace(old,old,new+"product drift\n","source",name,True)
         with self.assertRaises(ValueError): replace(old.replace("old body","conflict"),old,new,"source",name,True)
+
+    def test_insert_remove_and_idempotence(self):
+        marker = ("/* ========================================================================== */\n"
+                  "/* public: include/xrt/crc32.h */\n"
+                  "/* ========================================================================== */\nCRC API\n")
+        new = self.old
+        at = new.index("/* ========================================================================== */\n/* public: include/xrt/next.h")
+        new = new[:at] + marker + new[at:]
+        self.assertEqual(replace(self.old,self.old,new,"public","include/xrt/crc32.h"),new)
+        self.assertEqual(replace(new,self.old,new,"public","include/xrt/crc32.h"),new)
+        self.assertEqual(replace(new,new,self.old,"public","include/xrt/crc32.h"),self.old)
+        self.assertEqual(replace(self.old,new,self.old,"public","include/xrt/crc32.h"),self.old)
+        with self.assertRaises(ValueError):
+            replace(new.replace("CRC API","conflict"),self.old,new,"public","include/xrt/crc32.h")
+        with self.assertRaises(ValueError):
+            replace(new.replace("CRC API","conflict"),new,self.old,"public","include/xrt/crc32.h")
+
+    def test_feature_selection_alias(self):
+        text = self.old.replace("public: include/xrt/value.h","feature selection: include/xrt/features.h")
+        start,end = section(text,"public","include/xrt/features.h")
+        self.assertEqual(text[start:end],"".join(self.lines))
+
+    def test_declaration_population_guards_and_unselected_content(self):
+        old = "unselected\n" + "\n".join(f"line {i}" for i in range(20)) + "\n"
+        new = old.replace("line 10\n","CRC declaration\n")
+        current = old.replace("unselected","local ownership comment")
+        expected = new.replace("unselected","local ownership comment")
+        self.assertEqual(guarded_delta(current,old,new,"test"),expected)
+        self.assertEqual(guarded_delta(expected,old,new,"test"),expected)
+        self.assertEqual(guarded_delta(old+old,old+old,new+new,"test"),new+new)
+        with self.assertRaises(ValueError): guarded_delta(old+old,old,new,"test")
+        with self.assertRaises(ValueError): guarded_delta(old.replace("line 9","conflict"),old,new,"test")
 
 
 if __name__ == "__main__":

@@ -52,6 +52,9 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define F XL6_IR_C_ABI_F64
 #define U XL6_IR_C_ABI_U64
 #define M XL6_IR_C_ABI_TIME_I64
+    {"xl6Crc32StringV1",T,I,3,{U,S,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},
+    {"xl6Crc32BytesV1",T,I,3,{U,Y,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},
+    {"xl6Crc32BufferV1",T,I,3,{U,V,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.parameterOwners={NULL,"xl6BufferDestroyV1"},.nonblocking=1},
     {"xl6DictValueRemoveV1",T,B,2,{V,S},.parameterDynamicBorrows={1,0}},
     /* Printing borrows one dynamic argument array and can allocate or fail I/O.
      * Checked calls propagate the original thread error before the language

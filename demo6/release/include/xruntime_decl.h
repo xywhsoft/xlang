@@ -111,6 +111,9 @@
 #if !defined(XRT_FEATURE_COROUTINE_SCHEDULER)
 #define XRT_DECLARATIONS_RESTORE_XRT_FEATURE_COROUTINE_SCHEDULER 1
 #endif
+#if !defined(XRT_FEATURE_CRC32)
+#define XRT_DECLARATIONS_RESTORE_XRT_FEATURE_CRC32 1
+#endif
 #if !defined(XRT_FEATURE_CRYPTO_AES)
 #define XRT_DECLARATIONS_RESTORE_XRT_FEATURE_CRYPTO_AES 1
 #endif
@@ -1271,6 +1274,9 @@
 #endif
 #if !defined(XRT_MODULE_COROUTINE_SCHEDULER)
 #define XRT_DECLARATIONS_RESTORE_XRT_MODULE_COROUTINE_SCHEDULER 1
+#endif
+#if !defined(XRT_MODULE_CRC32)
+#define XRT_DECLARATIONS_RESTORE_XRT_MODULE_CRC32 1
 #endif
 #if !defined(XRT_MODULE_CRYPTO_AES)
 #define XRT_DECLARATIONS_RESTORE_XRT_MODULE_CRYPTO_AES 1
@@ -4037,6 +4043,9 @@
 #ifndef XRT_MODULE_COND
 #define XRT_MODULE_COND
 #endif
+#ifndef XRT_MODULE_CRC32
+#define XRT_MODULE_CRC32
+#endif
 #endif
 
 /* vfs_disk 及其直接依赖。 */
@@ -5452,6 +5461,9 @@
 #ifndef XRT_FEATURE_DEFLATE
 #define XRT_FEATURE_DEFLATE
 #endif
+#ifndef XRT_MODULE_CRC32
+#define XRT_MODULE_CRC32
+#endif
 #endif
 
 /* websocket_inflater 及其直接依赖。 */
@@ -5471,6 +5483,16 @@
 #if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_INFLATE)
 #ifndef XRT_FEATURE_INFLATE
 #define XRT_FEATURE_INFLATE
+#endif
+#ifndef XRT_MODULE_CRC32
+#define XRT_MODULE_CRC32
+#endif
+#endif
+
+/* crc32 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_CRC32)
+#ifndef XRT_FEATURE_CRC32
+#define XRT_FEATURE_CRC32
 #endif
 #endif
 
@@ -21218,6 +21240,62 @@ XRT_API bool xrtDirEnsureEmpty(cstr sPath);
 
 XRT_EXTERN_C_END
 
+#endif
+
+
+/* ========================================================================== */
+/* public: include/xrt/crc32.h */
+/* ========================================================================== */
+
+#ifndef XRT_CRC32_H
+#define XRT_CRC32_H
+
+
+#if defined(XRT_FEATURE_CRC32) || defined(XRT_FEATURE_INFLATE) || \
+	defined(XRT_FEATURE_DEFLATE) || defined(XRT_FEATURE_VFS_PACK)
+
+XRT_EXTERN_C_BEGIN
+
+/* CRC-32/ISO-HDLC (ZIP/gzip), not CRC32C and not an authentication hash.
+ * Empty input is zero. NULL is valid only for empty input. Invalid ranges
+ * publish XERR_ARGUMENT and return zero; success preserves the current error.
+ * No allocation, initialization table, shared mutable state or alignment need. */
+XRT_API uint32 xrtCrc32(const void* pData, size_t iSize);
+
+/* Extend a FINALIZED CRC returned by either public function. Start with zero;
+ * an empty update returns iCrc unchanged. Callers never complement the state. */
+XRT_API uint32 xrtCrc32Update(uint32 iCrc, const void* pData, size_t iSize);
+
+XRT_EXTERN_C_END
+#endif
+#endif
+
+
+/* ========================================================================== */
+/* public: include/xrt/crc32.h */
+/* ========================================================================== */
+
+#ifndef XRT_CRC32_H
+#define XRT_CRC32_H
+
+
+#if defined(XRT_FEATURE_CRC32) || defined(XRT_FEATURE_INFLATE) || \
+	defined(XRT_FEATURE_DEFLATE) || defined(XRT_FEATURE_VFS_PACK)
+
+XRT_EXTERN_C_BEGIN
+
+/* CRC-32/ISO-HDLC (ZIP/gzip), not CRC32C and not an authentication hash.
+ * Empty input is zero. NULL is valid only for empty input. Invalid ranges
+ * publish XERR_ARGUMENT and return zero; success preserves the current error.
+ * No allocation, initialization table, shared mutable state or alignment need. */
+XRT_API uint32 xrtCrc32(const void* pData, size_t iSize);
+
+/* Extend a FINALIZED CRC returned by either public function. Start with zero;
+ * an empty update returns iCrc unchanged. Callers never complement the state. */
+XRT_API uint32 xrtCrc32Update(uint32 iCrc, const void* pData, size_t iSize);
+
+XRT_EXTERN_C_END
+#endif
 #endif
 
 
@@ -50163,6 +50241,10 @@ XRT_EXTERN_C_END
 #undef XRT_FEATURE_COROUTINE_SCHEDULER
 #undef XRT_DECLARATIONS_RESTORE_XRT_FEATURE_COROUTINE_SCHEDULER
 #endif
+#if defined(XRT_DECLARATIONS_RESTORE_XRT_FEATURE_CRC32)
+#undef XRT_FEATURE_CRC32
+#undef XRT_DECLARATIONS_RESTORE_XRT_FEATURE_CRC32
+#endif
 #if defined(XRT_DECLARATIONS_RESTORE_XRT_FEATURE_CRYPTO_AES)
 #undef XRT_FEATURE_CRYPTO_AES
 #undef XRT_DECLARATIONS_RESTORE_XRT_FEATURE_CRYPTO_AES
@@ -51710,6 +51792,10 @@ XRT_EXTERN_C_END
 #if defined(XRT_DECLARATIONS_RESTORE_XRT_MODULE_COROUTINE_SCHEDULER)
 #undef XRT_MODULE_COROUTINE_SCHEDULER
 #undef XRT_DECLARATIONS_RESTORE_XRT_MODULE_COROUTINE_SCHEDULER
+#endif
+#if defined(XRT_DECLARATIONS_RESTORE_XRT_MODULE_CRC32)
+#undef XRT_MODULE_CRC32
+#undef XRT_DECLARATIONS_RESTORE_XRT_MODULE_CRC32
 #endif
 #if defined(XRT_DECLARATIONS_RESTORE_XRT_MODULE_CRYPTO_AES)
 #undef XRT_MODULE_CRYPTO_AES
@@ -54903,6 +54989,9 @@ XRT_EXTERN_C_END
 #ifndef XRT_MODULE_COND
 #define XRT_MODULE_COND
 #endif
+#ifndef XRT_MODULE_CRC32
+#define XRT_MODULE_CRC32
+#endif
 #endif
 
 /* vfs_disk 及其直接依赖。 */
@@ -56318,6 +56407,9 @@ XRT_EXTERN_C_END
 #ifndef XRT_FEATURE_DEFLATE
 #define XRT_FEATURE_DEFLATE
 #endif
+#ifndef XRT_MODULE_CRC32
+#define XRT_MODULE_CRC32
+#endif
 #endif
 
 /* websocket_inflater 及其直接依赖。 */
@@ -56337,6 +56429,16 @@ XRT_EXTERN_C_END
 #if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_INFLATE)
 #ifndef XRT_FEATURE_INFLATE
 #define XRT_FEATURE_INFLATE
+#endif
+#ifndef XRT_MODULE_CRC32
+#define XRT_MODULE_CRC32
+#endif
+#endif
+
+/* crc32 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_CRC32)
+#ifndef XRT_FEATURE_CRC32
+#define XRT_FEATURE_CRC32
 #endif
 #endif
 

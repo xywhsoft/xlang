@@ -1036,6 +1036,9 @@
 #ifndef XRT_MODULE_COND
 #define XRT_MODULE_COND
 #endif
+#ifndef XRT_MODULE_CRC32
+#define XRT_MODULE_CRC32
+#endif
 #endif
 
 /* vfs_disk 及其直接依赖。 */
@@ -2451,6 +2454,9 @@
 #ifndef XRT_FEATURE_DEFLATE
 #define XRT_FEATURE_DEFLATE
 #endif
+#ifndef XRT_MODULE_CRC32
+#define XRT_MODULE_CRC32
+#endif
 #endif
 
 /* websocket_inflater 及其直接依赖。 */
@@ -2470,6 +2476,16 @@
 #if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_INFLATE)
 #ifndef XRT_FEATURE_INFLATE
 #define XRT_FEATURE_INFLATE
+#endif
+#ifndef XRT_MODULE_CRC32
+#define XRT_MODULE_CRC32
+#endif
+#endif
+
+/* crc32 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_CRC32)
+#ifndef XRT_FEATURE_CRC32
+#define XRT_FEATURE_CRC32
 #endif
 #endif
 
@@ -18217,6 +18233,34 @@ XRT_API bool xrtDirEnsureEmpty(cstr sPath);
 
 XRT_EXTERN_C_END
 
+#endif
+
+
+/* ========================================================================== */
+/* public: include/xrt/crc32.h */
+/* ========================================================================== */
+
+#ifndef XRT_CRC32_H
+#define XRT_CRC32_H
+
+
+#if defined(XRT_FEATURE_CRC32) || defined(XRT_FEATURE_INFLATE) || \
+	defined(XRT_FEATURE_DEFLATE) || defined(XRT_FEATURE_VFS_PACK)
+
+XRT_EXTERN_C_BEGIN
+
+/* CRC-32/ISO-HDLC (ZIP/gzip), not CRC32C and not an authentication hash.
+ * Empty input is zero. NULL is valid only for empty input. Invalid ranges
+ * publish XERR_ARGUMENT and return zero; success preserves the current error.
+ * No allocation, initialization table, shared mutable state or alignment need. */
+XRT_API uint32 xrtCrc32(const void* pData, size_t iSize);
+
+/* Extend a FINALIZED CRC returned by either public function. Start with zero;
+ * an empty update returns iCrc unchanged. Callers never complement the state. */
+XRT_API uint32 xrtCrc32Update(uint32 iCrc, const void* pData, size_t iSize);
+
+XRT_EXTERN_C_END
+#endif
 #endif
 
 
@@ -57599,29 +57643,33 @@ static inline void __xrtWsHandshakeWrap(
 
 
 /* ========================================================================== */
+/* internal: src/internal/xrt_crc32.h */
+/* ========================================================================== */
+
+#if defined(XRT_FEATURE_CRC32) || \
+	defined(XRT_FEATURE_VFS_PACK)
+#ifndef XRT_INTERNAL_CRC32_H
+#define XRT_INTERNAL_CRC32_H
+
+#if defined(XRT_FEATURE_CRC32) || defined(XRT_FEATURE_INFLATE) || \
+	defined(XRT_FEATURE_DEFLATE) || defined(XRT_FEATURE_VFS_PACK)
+/* Internal unchecked accumulator: initialized to UINT32_MAX, complemented on
+ * completion. Only trusted, already validated ranges may reach this entry. */
+uint32 __xrtCrc32UpdateRaw(uint32 iCrc, const void* pData, size_t iSize);
+#endif
+#endif
+#endif
+
+
+/* ========================================================================== */
 /* internal: src/internal/xrt_compress.h */
 /* ========================================================================== */
 
 #if defined(XRT_FEATURE_INFLATE) || \
-	defined(XRT_FEATURE_DEFLATE) || \
-	defined(XRT_FEATURE_VFS_PACK)
+	defined(XRT_FEATURE_DEFLATE)
 #ifndef XRT_INTERNAL_COMPRESS_H
 #define XRT_INTERNAL_COMPRESS_H
 
-
-
-
-#if defined(XRT_FEATURE_INFLATE) || defined(XRT_FEATURE_DEFLATE) || \
-	defined(XRT_FEATURE_VFS_PACK)
-
-/* 使用共享小表更新未取反的 CRC32 状态。 */
-uint32 __xrtCompressCrc32Update(
-	uint32 iCrc,
-	const void* pData,
-	size_t iSize
-);
-
-#endif
 
 
 
@@ -217716,24 +217764,16 @@ XRT_API bool xrtWsDeflateDirection(
 
 
 /* ========================================================================== */
-/* source: src/compress/checksum.c */
+/* source: src/hash/crc32.c */
 /* ========================================================================== */
 
-#if defined(XRT_FEATURE_INFLATE) || \
-	defined(XRT_FEATURE_DEFLATE) || \
-	defined(XRT_FEATURE_VFS_PACK)
+#if defined(XRT_FEATURE_CRC32)
 
+#if defined(XRT_FEATURE_CRC32) || defined(XRT_FEATURE_INFLATE) || \
+	defined(XRT_FEATURE_DEFLATE) || defined(XRT_FEATURE_VFS_PACK)
 
-
-#if defined(XRT_FEATURE_INFLATE) || defined(XRT_FEATURE_DEFLATE) || \
-	defined(XRT_FEATURE_VFS_PACK)
-
-/* Inflate 与 Deflate 共用 16 项小表，避免在两个裁剪模块中重复常量和逻辑。 */
-uint32 __xrtCompressCrc32Update(
-	uint32 iCrc,
-	const void* pData,
-	size_t iSize
-)
+/* One read-only 64-byte table, shared by public CRC32, gzip and VFS pack. */
+uint32 __xrtCrc32UpdateRaw(uint32 iCrc, const void* pData, size_t iSize)
 {
 	static const uint32 Table[16] = {
 		UINT32_C(0x00000000), UINT32_C(0x1DB71064),
@@ -217747,7 +217787,6 @@ uint32 __xrtCompressCrc32Update(
 	};
 	const uint8* pBytes = (const uint8*)pData;
 	size_t i;
-
 	for ( i = 0; i < iSize; i++ ) {
 		iCrc ^= pBytes[i];
 		iCrc = (iCrc >> 4u) ^ Table[iCrc & 15u];
@@ -217756,6 +217795,19 @@ uint32 __xrtCompressCrc32Update(
 	return iCrc;
 }
 
+XRT_API uint32 xrtCrc32Update(uint32 iCrc, const void* pData, size_t iSize)
+{
+	if ( !__xrtRangeValid(pData, iSize) ) {
+		__xrtErrorSetInvalidArgument();
+		return 0;
+	}
+	return __xrtCrc32UpdateRaw(iCrc ^ UINT32_MAX, pData, iSize) ^ UINT32_MAX;
+}
+
+XRT_API uint32 xrtCrc32(const void* pData, size_t iSize)
+{
+	return xrtCrc32Update(0, pData, iSize);
+}
 #endif
 #endif
 
@@ -218662,7 +218714,7 @@ static bool __xrtInflateEmit(
 		return false;
 	}
 	if ( pInflate->Config.Format == XINFLATE_GZIP ) {
-		pInflate->GzipDataCrc = __xrtCompressCrc32Update(
+		pInflate->GzipDataCrc = __xrtCrc32UpdateRaw(
 			pInflate->GzipDataCrc,
 			pData,
 			iSize
@@ -218917,7 +218969,7 @@ static bool __xrtInflateGzipHeaderByte(
 		return false;
 	}
 	pInflate->GzipHeaderBytes++;
-	pInflate->GzipHeaderCrc = __xrtCompressCrc32Update(
+	pInflate->GzipHeaderCrc = __xrtCrc32UpdateRaw(
 		pInflate->GzipHeaderCrc,
 		&iByte,
 		1
@@ -222094,7 +222146,7 @@ XRT_API bool xrtDeflateWrite(
 		return false;
 	}
 	if ( pDeflate->Config.Format == XDEFLATE_GZIP ) {
-		pDeflate->GzipCrc = __xrtCompressCrc32Update(
+		pDeflate->GzipCrc = __xrtCrc32UpdateRaw(
 			pDeflate->GzipCrc,
 			Input.Data,
 			Input.Size
@@ -280334,14 +280386,14 @@ static bool __xrtVfsPackAdd(uint64 iLeft, uint64 iRight, uint64* pOutput)
 
 static uint32 __xrtVfsPackCrc(const void* pData, size_t iSize)
 {
-	return __xrtCompressCrc32Update(UINT32_MAX, pData, iSize) ^ UINT32_MAX;
+	return __xrtCrc32UpdateRaw(UINT32_MAX, pData, iSize) ^ UINT32_MAX;
 }
 
 static uint32 __xrtVfsPackCrcPair(const void* pFirst, size_t iFirst,
 	const void* pSecond, size_t iSecond)
 {
-	uint32 iCrc = __xrtCompressCrc32Update(UINT32_MAX, pFirst, iFirst);
-	iCrc = __xrtCompressCrc32Update(iCrc, pSecond, iSecond);
+	uint32 iCrc = __xrtCrc32UpdateRaw(UINT32_MAX, pFirst, iFirst);
+	iCrc = __xrtCrc32UpdateRaw(iCrc, pSecond, iSecond);
 	return iCrc ^ UINT32_MAX;
 }
 
