@@ -1,7 +1,7 @@
 """Audit exact resident linkage ownership against separately compiled objects.
 Shared by Windows artifact execution and the Linux source gate. No spelling
 prefix is used for production selection. The nm family filter is only a test
-oracle and includes checked host xlSync exports as well as private xl6 exports.
+oracle and includes checked host recovery exports as well as private xl6 exports.
 This proves the resident catalog/closures, not shipping or full53 acceptance.
 """
 from pathlib import Path
@@ -13,6 +13,28 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def symbol_tables(root):
+    """Follow the production registry's modular literal symbol tables.
+
+    This is not a C preprocessor: native-policy/domain macros are read below.
+    Repeated includes remain repeated declarations, so duplicate registration
+    cannot disappear through a global visited set. Include cycles are rejected.
+    """
+    root = root.resolve()
+    def walk(path, active):
+        path = path.resolve()
+        assert path.is_relative_to(root) and path.is_file(), path
+        assert path not in active, ('symbol table include cycle', path)
+        yield path
+        active = (*active, path)
+        for reference in re.findall(r'^\s*#include\s+"([^"]+_symbols\.inc)"',
+                                     path.read_text(encoding='utf-8'), re.M):
+            child = root/reference
+            if not child.is_file(): child = path.parent/reference
+            yield from walk(child, active)
+    return list(walk(root/'src/compile/xl6_artifact_runtime_symbols.inc', ()))
+
+
 def declarations(root):
     header = (root / 'src/compile/xl6_artifact_runtime.h').read_text(encoding='utf-8')
     match = re.search(r'typedef\s+enum\s+XL6_ArtifactRuntimeId\s*\{(.*?)\}\s*XL6_ArtifactRuntimeId\s*;', header, re.S)
@@ -21,12 +43,12 @@ def declarations(root):
     assert len(names) == len(set(names)) and 'NETWORK_SERVICE' in names
     ids = {name: index for index, name in enumerate(names)}
     entries = []
-    for path, pattern in (
-        ('src/compile/xl6_artifact_runtime_symbols.inc', r'XL6_ARTIFACT_SYMBOL\("(\w+)", (\w+)\)'),
-        ('src/runtime/xl6_log_symbols.inc', r'XL6_LOG_EXPORT\((\w+), (\w+)\)'),
-        ('src/runtime/xl6_text_symbols.inc', r'XL6_TEXT_EXPORT\((\w+), (\w+)\)'),
-    ):
-        entries.extend(re.findall(pattern, (root / path).read_text(encoding='utf-8')))
+    for path in symbol_tables(root):
+        body = path.read_text(encoding='utf-8')
+        for pattern in (r'^\s*XL6_ARTIFACT_SYMBOL\("(\w+)",\s*(\w+)\)',
+                        r'^\s*XL6_LOG_EXPORT\((\w+),\s*(\w+)\)',
+                        r'^\s*XL6_TEXT_EXPORT\((\w+),\s*(\w+)\)'):
+            entries.extend(re.findall(pattern, body, re.M))
     resources=(root/'src/runtime/xl6_native_resource_policies.inc').read_text(encoding='utf-8')
     entries.extend((getter,owner) for owner,getter in re.findall(
         r'XL6_NATIVE_RESOURCE_POLICY\((?:"\w+"|NULL),(\w+),(\w+)\)',resources))
@@ -134,7 +156,8 @@ def negative_controls(ids, entries, components, host_symbols, host_abis):
     edge['Closure'] = [edge['Id']]
     reject('missing-resident-dependency', entries, mutated)
     for name in ('xlSyncRetirementSnapshotCheckedV1', 'xlSyncRetirementAcquireCheckedV1',
-                 'xlSyncRetirementUnlockCheckedV1', 'xlSyncRetirementRetryCheckedV1'):
+                 'xlSyncRetirementUnlockCheckedV1', 'xlSyncRetirementRetryCheckedV1',
+                 'xlCancellationRetirementSnapshotCheckedV1', 'xlCancellationRetirementRetryCheckedV1'):
         mutated = copy.deepcopy(components)
         next(row for row in mutated if name in row['Defined'])['Defined'].remove(name)
         reject('missing-host-' + name, entries, mutated)
@@ -275,7 +298,8 @@ def main():
         assert not report['RegistryErrors'], report['RegistryErrors']
         report['NegativeControls'] = negative_controls(ids, entries, components,host_symbols,host_abis)
         report['DependencyPairs'] = len(ids) ** 2
-        report['HostCheckedExports'] = sorted(symbol for row in components for symbol in row['Defined'] if symbol.startswith('xlSync'))
+        report['HostCheckedExports'] = sorted(symbol for row in components for symbol in row['Defined']
+            if symbol.startswith(('xlSyncRetirement', 'xlCancellationRetirement')))
         report['InputsUnchanged'] = all(sha(row['Path']) == row['Sha256'] for row in inputs + report['Objects'])
         report['Complete'] = report['InputsUnchanged'] and all(row['Exit'] == 0 for row in rows)
         assert report['Complete']
