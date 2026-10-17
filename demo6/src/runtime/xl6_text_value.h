@@ -12,6 +12,7 @@
 #endif
 
 struct xlir_closure;
+#include "xl6_future_value.h"
 #include "xl6_atomic_abi.h"
 #include "xl6_concurrent_abi.h"
 #include "xl6_asn1_abi.h"

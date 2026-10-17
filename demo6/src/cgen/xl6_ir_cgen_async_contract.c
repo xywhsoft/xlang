@@ -83,6 +83,12 @@ static int xl6IrCgenAsyncResultAbiMatches(
     case XL6_IR_ASYNC_RESULT_COPY_F64:
         return worker != NULL && worker->cAbi == XL6_IR_C_ABI_F64 &&
                future->params[0] == target->workerReturnType;
+    case XL6_IR_ASYNC_RESULT_COPY_F32:
+        return worker != NULL && worker->cAbi == XL6_IR_C_ABI_F32 &&
+               future->params[0] == target->workerReturnType;
+    case XL6_IR_ASYNC_RESULT_COPY_TIME:
+        return worker != NULL && worker->cAbi == XL6_IR_C_ABI_TIME_I64 &&
+               future->params[0] == target->workerReturnType;
     case XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER:
         return worker != NULL && worker->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
                worker->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&

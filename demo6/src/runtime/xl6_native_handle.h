@@ -48,6 +48,7 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6ProcessHandlePolicyV1Get(v
 /* Managed wrapper, native group, endpoints and owned observers are separate
  * physical nodes; this handle is not a leaf and certifies no transitive node. */
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TaskGroupHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6PromiseHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6ProcessStatusHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API struct xrtownershipref xl6ProcessLiveOwnershipV1(const void*);
 XL6_CODE_LEASE_API const struct xrtownershipadapterv1* xl6ProcessLiveOwnershipAdapterV1(struct xrtownershipref);

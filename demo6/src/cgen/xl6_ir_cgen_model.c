@@ -507,6 +507,8 @@ static const char* xl6IrCgenExternParameterType(
     if ( target->parameterPhysicalAbis[parameter] ==
              XL6_IR_CALL_PARAMETER_PHYSICAL_LANGUAGE_FUNCTION_VALUE )
         return "XL6_Function";
+    if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW)
+        return "const void*";
     if ( target->parameterPhysicalAbis[parameter] ==
              XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW )
         return xl6IrCgenNativeClassPhysicalField(

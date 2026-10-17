@@ -1155,6 +1155,10 @@ static int xl6IrCgenVerifyInstructions(
                 ? type != NULL && type->cAbi == XL6_IR_C_ABI_TYPE_ID
                 : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_F64
                 ? type != NULL && type->cAbi == XL6_IR_C_ABI_F64
+                : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_F32
+                ? type != NULL && type->cAbi == XL6_IR_C_ABI_F32
+                : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_TIME
+                ? type != NULL && type->cAbi == XL6_IR_C_ABI_TIME_I64
                 : instruction->asyncResultAbi ==
                       XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER
                 ? type != NULL && type->cAbi == XL6_IR_C_ABI_RAW_POINTER &&

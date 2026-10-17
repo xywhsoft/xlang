@@ -593,7 +593,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_resource_fs_root.c",D(R(OWNERSHIP_CATALOG),R(FS_ROOT_OWNER)),{NULL}},
     {"src/runtime/xl6_task_group_future.c",D(R(TASK_GROUP),R(FUTURE_CALLBACK)),{"XRT_MODULE_FUTURE"}},
     {"src/runtime/xl6_ownership_domain_resource_task_group.c",D(R(OWNERSHIP_CATALOG),R(SIGNAL_TASK_GROUP)),{"XRT_MODULE_TASK_GROUP"}},
-    {"src/runtime/xl6_ownership_domain_native_future_payload.c",D(R(OWNERSHIP_CATALOG),R(NATIVE_FUTURE_PAYLOAD)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_native_future_payload.c",D(R(OWNERSHIP_CATALOG),R(NATIVE_FUTURE_PAYLOAD)),{NULL}},
+    {"src/runtime/xl6_future_value.c",D(R(FUTURE_PAYLOAD),R(NATIVE_FUTURE_PAYLOAD)),{"XRT_MODULE_FUTURE","XRUNTIME_MODULE_RUNTIME_TYPE"}},
+    {"src/runtime/xl6_promise.c",D(R(NATIVE_HANDLE),R(FUTURE_VALUE),R(FOREIGN_ERROR)),{"XRT_MODULE_FUTURE","XRT_MODULE_ATOMIC","XRT_MODULE_VALUE_GRAPH"}},
+    {"src/runtime/xl6_promise_domain.c",D(R(OWNERSHIP_CATALOG),R(PROMISE),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE),R(OWNERSHIP_DOMAIN_FUTURE_PAYLOAD),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE_PAYLOAD)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

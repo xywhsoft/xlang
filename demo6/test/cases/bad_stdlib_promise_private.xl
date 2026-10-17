@@ -1,0 +1,3 @@
+import concurrent
+auto source = Promise::<int>()
+auto raw = source.handle

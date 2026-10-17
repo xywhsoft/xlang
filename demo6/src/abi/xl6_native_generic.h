@@ -1,0 +1,29 @@
+#ifndef XL6_NATIVE_GENERIC_H
+#define XL6_NATIVE_GENERIC_H
+#include <stddef.h>
+#include <string.h>
+typedef enum XL6_NativeGenericRole {
+    XL6_NATIVE_GENERIC_NONE=0,
+    XL6_NATIVE_GENERIC_CREATE, XL6_NATIVE_GENERIC_CREATE_PARENT,
+    XL6_NATIVE_GENERIC_DESTROY, XL6_NATIVE_GENERIC_FUTURE,
+    XL6_NATIVE_GENERIC_RESOLVE, XL6_NATIVE_GENERIC_REJECT,
+    XL6_NATIVE_GENERIC_CANCEL, XL6_NATIVE_GENERIC_CLOSE,
+    XL6_NATIVE_GENERIC_DONE, XL6_NATIVE_GENERIC_REQUESTED
+} XL6_NativeGenericRole;
+/* Source declarations include quotes, lowered C linkage does not. No prefix,
+ * escape interpretation, allocation or nominal class spelling is involved. */
+static inline XL6_NativeGenericRole xl6NativeGenericRole(const char* name)
+{
+    static const struct { const char* name; XL6_NativeGenericRole role; } rows[]={
+#define XL6_NATIVE_GENERIC_BRIDGE(Name,Owner,Role) {Name,XL6_NATIVE_GENERIC_##Role},
+#include "xl6_native_generic_contracts.inc"
+#undef XL6_NATIVE_GENERIC_BRIDGE
+    };
+    if (!name) return XL6_NATIVE_GENERIC_NONE;
+    size_t size=strlen(name);
+    if (size>=2 && name[0]=='"' && name[size-1]=='"') {++name;size-=2;}
+    for(size_t i=0;i<sizeof(rows)/sizeof(rows[0]);++i)
+        if(strlen(rows[i].name)==size && !memcmp(rows[i].name,name,size))return rows[i].role;
+    return XL6_NATIVE_GENERIC_NONE;
+}
+#endif

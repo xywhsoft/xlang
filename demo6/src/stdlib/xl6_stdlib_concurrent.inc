@@ -86,3 +86,18 @@ const char* xl6StdlibCancellationSource =
     "    extern \"xl6CancellationRegistrationFailedV1\" get hasFailed() as bool\n"
     "    extern \"xl6CancellationRegistrationCheckV1\" func throwIfFailed()\n"
     "end\n";
+
+const char* xl6StdlibPromiseSource =
+    "class Promise<T>\n"
+    "    private native point handle\n"
+    "    extern \"xl6PromiseCreateV1\" @nonblocking create()\n"
+    "    extern \"xl6PromiseCreateParentV1\" @nonblocking create(CancellationToken parent)\n"
+    "    extern \"xl6PromiseDestroyV1\" destroy()\n"
+    "    extern \"xl6PromiseFutureV1\" @nonblocking get future() as future<T>\n"
+    "    extern \"xl6PromiseResolveV1\" func tryResolve(T value) as bool\n"
+    "    extern \"xl6PromiseRejectV1\" func tryReject(error value) as bool\n"
+    "    extern \"xl6PromiseCancelV1\" func tryCancel() as bool\n"
+    "    extern \"xl6PromiseCloseV1\" func close() as bool\n"
+    "    extern \"xl6PromiseDoneV1\" @nonblocking get isCompleted() as bool\n"
+    "    extern \"xl6PromiseRequestedV1\" @nonblocking get isCancellationRequested() as bool\n"
+    "end\n";

@@ -74,6 +74,7 @@ static int xl6IrCgenAsyncResultDrop(XL6_IrAsyncResultAbi abi, const char** relea
     case XL6_IR_ASYNC_RESULT_COPY_BOOL: case XL6_IR_ASYNC_RESULT_COPY_CHAR:
     case XL6_IR_ASYNC_RESULT_COPY_I64:
     case XL6_IR_ASYNC_RESULT_COPY_U64: case XL6_IR_ASYNC_RESULT_COPY_F64:
+    case XL6_IR_ASYNC_RESULT_COPY_F32: case XL6_IR_ASYNC_RESULT_COPY_TIME:
     case XL6_IR_ASYNC_RESULT_COPY_TYPE_ID: case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
     case XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER: return 1;
     case XL6_IR_ASYNC_RESULT_OWNED_STRING: *release = "xlir_string_drop"; return 1;
