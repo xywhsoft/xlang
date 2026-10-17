@@ -115,33 +115,14 @@ static void xl6PrintTokenJson(XL6_Output* out, const XL6_Token* token, int comma
     }
 }
 
-int xl6LexerDumpFileTo(XL6_Output* out, const char* path, int jsonOutput)
+int xl6LexerDumpSourceTo(XL6_Output* out, const char* source, int jsonOutput)
 {
-    char* source;
-    size_t sourceLen;
     XL6_Lexer lexer;
     XL6_Token token;
     int ok;
     int first;
-
-    if ( out == NULL ) {
-        return 1;
-    }
-    if ( path == NULL ) {
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot read file: <null>\n");
-        return 1;
-    }
-
-    source = xrtFileReadText(path, XENCODING_UTF8, XUTF_STRICT, &sourceLen);
-    (void)sourceLen;
-    if ( source == NULL ) {
-        xrtFree(source);
-        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot read file: %s\n", path);
-        return 1;
-    }
-
+    if (!out || !source) return 1;
     if ( !xl6LexerOpen(&lexer, source) ) {
-        xrtFree(source);
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot open lexer\n");
         return 1;
     }
@@ -176,8 +157,23 @@ int xl6LexerDumpFileTo(XL6_Output* out, const char* path, int jsonOutput)
     }
 
     xl6LexerClose(&lexer);
-    xrtFree(source);
     return ok ? 0 : 1;
+}
+
+int xl6LexerDumpFileTo(XL6_Output* out, const char* path, int jsonOutput)
+{
+    char* source;
+    size_t sourceLen;
+    int rc;
+    if (!out || !path) return 1;
+    source = xrtFileReadText(path, XENCODING_UTF8, XUTF_STRICT, &sourceLen);
+    if (!source) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot read file: %s\n", path);
+        return 1;
+    }
+    rc = xl6LexerDumpSourceTo(out, source, jsonOutput);
+    xrtFree(source);
+    return rc;
 }
 
 int xl6LexerDumpFile(const char* path, int jsonOutput)

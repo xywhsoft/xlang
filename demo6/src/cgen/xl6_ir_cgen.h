@@ -40,6 +40,15 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
 int xl6IrCgenEmitC(XL6_Output* out, const XL6_IrModule* module, XL6_DiagList* diags);
 /* The public C surface is derived from the same lowered export ABI as the
  * implementation.  It deliberately has no AST/header-model dependency. */
+/* Reports the exact C identifier bytes at the same emission site. The symbol
+ * is the lowered declaration identity, never recovered from C spelling.
+ * A nominal public union emits both its tag and typedef as kind="type" with
+ * the same actual nominal declaration symbol and separate byte ranges. */
+typedef int (*XL6_IrCgenHeaderBindingVisitor)(void* context, XL6_SymbolId symbol,
+    const char* cName, const char* kind, size_t startByte, size_t endByte);
+int xl6IrCgenEmitHeaderWithBindings(XL6_Output* out, const XL6_IrModule* module,
+    const char* guardName, XL6_DiagList* diags,
+    XL6_IrCgenHeaderBindingVisitor visitor, void* context);
 int xl6IrCgenEmitHeader(XL6_Output* out, const XL6_IrModule* module,
                         const char* guardName, XL6_DiagList* diags);
 

@@ -11,7 +11,8 @@ $text = [System.IO.File]::ReadAllText($resolved, $encoding)
 # replace their stack engine with a newer template just to obtain this guard.
 if (!$text.Contains('YY_MIN_DSTRCTR') -and
     [regex]::Matches($text, '(?m)^  yy_destructor\(pParser, yytos->major, &yytos->minor\);\r?$').Count -eq 1) {
-    exit 0
+    & (Join-Path $PSScriptRoot "normalize_lemon_ranges.ps1") -Path $resolved
+    exit $LASTEXITCODE
 }
 $newline = if ( $text.Contains("`r`n") ) { "`r`n" } else { "`n" }
 $pattern = '(?m)^    if\( yytos->major>=YY_MIN_DSTRCTR \)\{\r?\n' +
@@ -28,7 +29,8 @@ $replacement = @(
 ) -join $newline
 
 if ( $text.Contains($replacement) ) {
-    exit 0
+    & (Join-Path $PSScriptRoot "normalize_lemon_ranges.ps1") -Path $resolved
+    exit $LASTEXITCODE
 }
 $matches = [regex]::Matches($text, $pattern)
 if ( $matches.Count -ne 1 ) {
@@ -40,3 +42,6 @@ if ( $matches.Count -ne 1 ) {
     [regex]::Replace($text, $pattern, $replacement, 1),
     $encoding
 )
+
+& (Join-Path $PSScriptRoot "normalize_lemon_ranges.ps1") -Path $resolved
+exit $LASTEXITCODE

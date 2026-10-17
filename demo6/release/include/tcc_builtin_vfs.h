@@ -45,6 +45,8 @@ TCC_VFS_API FILE* tcc_vfs_fopen(const char* path, const char* mode);
 TCC_VFS_API int tcc_vfs_fclose(FILE* file);
 TCC_VFS_API int tcc_vfs_mount_memory(const char* path, const void* data, size_t size);
 TCC_VFS_API void tcc_vfs_clear_dynamic(void);
+/* Exact builtin bytes: ignores disk/dynamic overlays, supports size query. */
+TCC_VFS_API int tcc_vfs_read_builtin(const char* path, void* buffer, size_t capacity, size_t* size);
 
 #ifdef __cplusplus
 }

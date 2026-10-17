@@ -10,4 +10,11 @@ int xl6SemCheckModule(
     const char* moduleName
 );
 
+struct XL6_CompletionQuery;
+int xl6SemCheckModuleWithQuery(XL6_AstNode* root,XL6_DiagList* diags,
+    const char* moduleName,int captureIndex,struct XL6_CompletionQuery* query);
+
+int xl6SemCheckModuleWithIndex(XL6_AstNode* root, XL6_DiagList* diags,
+    const char* moduleName, int captureIndex);
+
 #endif

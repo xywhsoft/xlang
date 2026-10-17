@@ -33,6 +33,7 @@ typedef struct XL6_TypeStringBuilder {
     size_t len;
     size_t capacity;
     int ok;
+    size_t maxBytes, maxDepth, visitsLeft, depth;
 } XL6_TypeStringBuilder;
 
 static int xl6TypeTextEquals(const char* a, const char* b)
@@ -103,6 +104,9 @@ static void xl6TypeStringBuilderInit(XL6_TypeStringBuilder* builder)
 {
     memset(builder, 0, sizeof(*builder));
     builder->ok = 1;
+    builder->maxBytes = SIZE_MAX - 1;
+    builder->maxDepth = SIZE_MAX;
+    builder->visitsLeft = SIZE_MAX;
 }
 
 static void xl6TypeStringBuilderFree(XL6_TypeStringBuilder* builder)
@@ -123,6 +127,7 @@ static int xl6TypeStringBuilderGrow(XL6_TypeStringBuilder* builder, size_t addLe
     if ( builder == NULL || !builder->ok ) {
         return 0;
     }
+    if (addLen > builder->maxBytes - builder->len) { builder->ok = 0; return 0; }
     required = builder->len + addLen + 1;
     if ( required <= builder->capacity ) {
         return 1;
@@ -184,7 +189,9 @@ static char* xl6TypeStringBuilderTake(XL6_TypeStringBuilder* builder)
     return out;
 }
 
-static void xl6TypeAppendCanonicalBody(XL6_TypeStringBuilder* builder, const XL6_AstNode* root, const XL6_AstNode* typeNode)
+static void xl6TypeAppendCanonicalBody(XL6_TypeStringBuilder* builder, const XL6_AstNode* root, const XL6_AstNode* typeNode);
+
+static void xl6TypeAppendCanonicalInner(XL6_TypeStringBuilder* builder, const XL6_AstNode* root, const XL6_AstNode* typeNode)
 {
     size_t i;
     const XL6_AstNode* args;
@@ -266,6 +273,35 @@ static void xl6TypeAppendCanonicalBody(XL6_TypeStringBuilder* builder, const XL6
         xl6TypeAppendCanonicalBody(builder, root, args->children[i]);
     }
     xl6TypeStringBuilderAppendChar(builder, '>');
+}
+
+static void xl6TypeAppendCanonicalBody(XL6_TypeStringBuilder* builder, const XL6_AstNode* root, const XL6_AstNode* typeNode)
+{
+    if (!builder->ok) return;
+    if (!builder->visitsLeft || builder->depth >= builder->maxDepth) {
+        builder->ok = 0;
+        return;
+    }
+    --builder->visitsLeft;
+    ++builder->depth;
+    xl6TypeAppendCanonicalInner(builder, root, typeNode);
+    --builder->depth;
+}
+
+char* xl6TypeToCanonicalStringLimited(const XL6_AstNode* root, const XL6_AstNode* typeNode,
+    size_t maxBytes, size_t maxDepth, size_t maxVisits)
+{
+    XL6_TypeStringBuilder builder;
+    char* out;
+    if (!maxBytes || maxBytes == SIZE_MAX || !maxDepth || !maxVisits) return NULL;
+    xl6TypeStringBuilderInit(&builder);
+    builder.maxBytes = maxBytes;
+    builder.maxDepth = maxDepth;
+    builder.visitsLeft = maxVisits;
+    xl6TypeAppendCanonicalBody(&builder, root, typeNode);
+    out = xl6TypeStringBuilderTake(&builder);
+    xl6TypeStringBuilderFree(&builder);
+    return out;
 }
 
 char* xl6TypeToCanonicalString(const XL6_AstNode* root, const XL6_AstNode* typeNode)

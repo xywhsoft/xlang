@@ -4,6 +4,7 @@
 #include "src/ast/xl6_ast.h"
 #include "src/diag/xl6_diag.h"
 #include "src/package/xl6_package.h"
+#include "src/compile/xl6_source_overlay.h"
 
 typedef struct XL6_ImportNativeItem {
     char* packageId;
@@ -19,6 +20,7 @@ enum {
 };
 
 typedef struct XL6_ImportDeps {
+    const XL6_SourceOverlay* sourceOverlay; /* Borrowed during this unit. */
     XL6_PackageStringList cSources;
     XL6_PackageStringList includeDirs;
     XL6_PackageStringList xrtModules;

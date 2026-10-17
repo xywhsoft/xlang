@@ -9,7 +9,7 @@ static void xl6SemDocsErrorNode(XL6_DiagList* diags, const XL6_AstNode* node, co
     if ( diags == NULL ) {
         return;
     }
-    xl6DiagAdd(diags, node != NULL ? node->line : 1, node != NULL ? node->column : 1, message);
+    xl6DiagAddFile(diags, xl6AstSourcePath(node), node != NULL ? node->line : 1, node != NULL ? node->column : 1, message);
 }
 
 static int xl6SemDocsTextEquals(const char* left, const char* right)

@@ -17,6 +17,20 @@ LIBTCCAPI void tcc_set_realloc(TCCReallocFunc *my_realloc);
 /*****************************/
 typedef struct TCCState TCCState;
 
+/* Private xlang query extension. These are target constants used by TCC's
+   preprocessor and type_size, independent of the compiler host's C ABI. */
+typedef struct TCCXlangScalarTarget {
+    int tinyc_version;
+    int pointer_bytes;
+    int long_bytes;
+    int long_double_bytes;
+    int long_double_align;
+} TCCXlangScalarTarget;
+LIBTCCAPI int tcc_xlang_scalar_target(TCCXlangScalarTarget *target);
+/* Private query: the configured state's default bitfield layout only. */
+typedef struct TCCXlangRecordLayout { int ms_bitfields; } TCCXlangRecordLayout;
+LIBTCCAPI int tcc_xlang_record_layout(TCCState *state, TCCXlangRecordLayout *target);
+
 /* create a new TCC compilation context */
 LIBTCCAPI TCCState *tcc_new(void);
 

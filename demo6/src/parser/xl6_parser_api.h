@@ -18,6 +18,9 @@ typedef struct XL6_ParseContext {
 void xl6ParseResultInit(XL6_ParseResult* result);
 void xl6ParseResultFree(XL6_ParseResult* result);
 int xl6ParseSource(const char* source, const char* fileName, XL6_ParseResult* result);
+struct XL6_CompletionQuery;
+int xl6ParseSourceWithCompletion(const char* source,const char* fileName,
+    XL6_ParseResult* result,struct XL6_CompletionQuery* query);
 int xl6ParseFile(const char* path, XL6_ParseResult* result);
 
 #endif

@@ -57,7 +57,7 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
         xl6OutputPuts("#include <string.h>\n", out);
         if ( !xl6IrCgenEmitDebugRuntime(out) ) return 0;
     }
-    if ( !xl6IrCgenEmitUnionTypes(out, module, NULL, diags) ) return 0;
+    if ( !xl6IrCgenEmitUnionTypes(out, module, NULL, diags, NULL, NULL) ) return 0;
     if ( !xl6IrCgenEmitProductTypes(out, module, NULL, diags) ) return 0;
     /* Adapters as well as function bodies consume the same product drop ABI. */
     for ( i = 0; i < module->types.count; ++i ) {

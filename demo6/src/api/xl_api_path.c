@@ -167,18 +167,24 @@ int xlGetModuleDir(char* out, size_t outSize)
 #ifdef _WIN32
     {
         HMODULE module = NULL;
+        wchar_t wide[512];
         DWORD len;
-        if ( !GetModuleHandleExA(
+        if ( !GetModuleHandleExW(
                  GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                 (LPCSTR)&xlGetModuleDir,
+                 (LPCWSTR)&xlGetModuleDir,
                  &module) ) {
             module = NULL;
         }
-        len = GetModuleFileNameA(module, path, (DWORD)sizeof(path));
-        if ( len == 0 || len >= sizeof(path) ) {
+        len = GetModuleFileNameW(module, wide, (DWORD)(sizeof(wide) / sizeof(wide[0])));
+        if ( len == 0 || len >= sizeof(wide) / sizeof(wide[0]) ) {
             return 0;
         }
-        path[len] = '\0';
+        /* Internal paths and VFS configuration use UTF-8, independent of the
+           Windows ANSI code page. Retain the existing bounded path budget. */
+        if ( !WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, wide, -1,
+                                  path, (int)sizeof(path), NULL, NULL) ) {
+            return 0;
+        }
     }
 #else
     {

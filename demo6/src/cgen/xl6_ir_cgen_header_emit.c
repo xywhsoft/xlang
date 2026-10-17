@@ -187,8 +187,9 @@ static void xl6IrCgenEmitHeaderOpaqueDeclarations(
  * the implementation wrappers are.  The header cannot expose an unresolved
  * source declaration: a missing C ABI is rejected by the same preflight used
  * for the generated C translation unit. */
-int xl6IrCgenEmitHeader(
-    XL6_Output* out, const XL6_IrModule* module, const char* guardName, XL6_DiagList* diags)
+int xl6IrCgenEmitHeaderWithBindings(
+    XL6_Output* out, const XL6_IrModule* module, const char* guardName, XL6_DiagList* diags,
+    XL6_IrCgenHeaderBindingVisitor visitor, void* context)
 {
     XL6_IrCgenHeaderOpaqueNeeds opaqueNeeds = {0};
     unsigned char* publicTypes = NULL;
@@ -202,6 +203,11 @@ int xl6IrCgenEmitHeader(
             return xl6IrCgenDiag(
                 diags, module, XL6_IR_NODE_INVALID,
                 "XLIR C header public type reachability allocation failed");
+    }
+    if (visitor != NULL && out->kind != XL6_OUTPUT_BUFFER_MEMORY) {
+        xrtFree(publicTypes);
+        return xl6IrCgenDiag(diags, module, XL6_IR_NODE_INVALID,
+                             "header binding queries require memory output");
     }
     xl6IrCgenCollectHeaderTypeNeeds(module, &opaqueNeeds, publicTypes);
     xl6OutputPrintf(out, "#ifndef %s\n#define %s\n\n", guardName, guardName);
@@ -231,7 +237,7 @@ int xl6IrCgenEmitHeader(
                 "/* Optional resident boundary, copied once before entry; no callbacks during binding. */\n"
                 "XLIR_C_API int xl_script_bind_ownership_read_v1(const XL6_OwnershipReadBoundaryV1*);\n\n", out);
     }
-    if ( !xl6IrCgenEmitUnionTypes(out, module, publicTypes, diags) ) {
+    if ( !xl6IrCgenEmitUnionTypes(out, module, publicTypes, diags, visitor, context) ) {
         xrtFree(publicTypes);
         return 0;
     }
@@ -268,7 +274,7 @@ int xl6IrCgenEmitHeader(
         if ( target->reachability != XL6_IR_REACHABILITY_UNREACHABLE &&
              (target->kind == XL6_IR_CALL_TARGET_EXTERN_C ||
               target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) &&
-             !xl6IrCgenEmitExternPrototype(out, module, target, diags) ) return 0;
+             !xl6IrCgenEmitExternPrototypeWithBindings(out, module, target, diags, visitor, context) ) return 0;
     }
     /* Imported storage is a private implementation dependency. Its extern
      * declaration belongs in the generated C unit, not the public export ABI. */
@@ -290,7 +296,15 @@ int xl6IrCgenEmitHeader(
                                  "XLIR C header does not support global export ABI");
         xl6OutputPuts("XLIR_C_API extern ", out);
         if ( exported->mutability == XL6_IR_GLOBAL_CONST ) xl6OutputPuts("const ", out);
-        xl6OutputPrintf(out, "%s %s;\n", type, exported->cName);
+        size_t startByte;
+        xl6OutputPrintf(out, "%s ", type);
+        startByte = out->buffer.Size;
+        xl6OutputPuts(exported->cName, out);
+        if (visitor != NULL && !visitor(context, exported->storageSymbol,
+                exported->cName, "global", startByte, out->buffer.Size))
+            return xl6IrCgenDiag(diags, module, exported->declaration,
+                                 "cannot collect bounded C header binding");
+        xl6OutputPuts(";\n", out);
     }
     if ( module->globalExportCount != 0 && module->exportCount != 0 ) xl6OutputPuts("\n", out);
     for ( i = 0; i < module->exportCount; ++i ) {
@@ -308,7 +322,15 @@ int xl6IrCgenEmitHeader(
         if ( returnType == NULL )
             return xl6IrCgenDiag(diags, module, exported->declaration,
                                  "XLIR C header does not support export return ABI");
-        xl6OutputPrintf(out, "XLIR_C_API %s %s(", returnType, exported->cName);
+        size_t startByte;
+        xl6OutputPrintf(out, "XLIR_C_API %s ", returnType);
+        startByte = out->buffer.Size;
+        xl6OutputPuts(exported->cName, out);
+        if (visitor != NULL && !visitor(context, exported->symbol,
+                exported->cName, "function", startByte, out->buffer.Size))
+            return xl6IrCgenDiag(diags, module, exported->declaration,
+                                 "cannot collect bounded C header binding");
+        xl6OutputPutc('(', out);
         if ( exported->parameterCount == 0 ) xl6OutputPuts("void", out);
         for ( parameterIndex = 0; parameterIndex < exported->parameterCount; ++parameterIndex ) {
             if ( parameterIndex > 0 ) xl6OutputPuts(", ", out);
@@ -319,4 +341,10 @@ int xl6IrCgenEmitHeader(
     }
     xl6OutputPuts("\n#ifdef __cplusplus\n}\n#endif\n\n#endif\n", out);
     return !xl6OutputHasFailed(out);
+}
+
+int xl6IrCgenEmitHeader(XL6_Output* out, const XL6_IrModule* module,
+    const char* guardName, XL6_DiagList* diags)
+{
+    return xl6IrCgenEmitHeaderWithBindings(out, module, guardName, diags, NULL, NULL);
 }

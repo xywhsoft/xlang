@@ -130,6 +130,25 @@ typedef enum XL6_AstKind {
 /* 仅供语义规范化使用，源码不能构造该标记。 */
 #define XL6_AST_FLAG_CLASS_HANDLE 0x80000000u
 
+typedef struct XL6_AstSource {
+    size_t references;
+    char* path;
+    /* Query-only token metadata, absent from ordinary parses. */
+    int completionQuery;
+    size_t completionStart, completionEnd;
+} XL6_AstSource;
+
+/* Half-open UTF-8 byte offsets after the optional BOM; line/column are
+ * one-based Unicode scalar positions. Unknown ranges have known == 0. */
+typedef struct XL6_AstRange {
+    int known;
+    size_t startOffset, endOffset;
+    int startLine, startColumn, endLine, endColumn;
+} XL6_AstRange;
+
+XL6_AstRange xl6AstRangeFromToken(const XL6_Token* token);
+void xl6AstRangeInclude(XL6_AstRange* range, const XL6_AstRange* part);
+
 typedef struct XL6_AstNode {
     XL6_AstKind kind;
     unsigned int flags;
@@ -151,6 +170,10 @@ typedef struct XL6_AstNode {
     uint32 semanticTypeId;
     uint64 semanticTypeAbiId;
     uint32 semanticSymbolId;
+    /* Opt-in query facts: name references also carry semanticSymbolId.
+     * This type is owned by the node, never borrowed from semantic temporaries. */
+    uint32 semanticDeclaredSymbolId;
+    struct XL6_AstNode* semanticDeclaredType;
     uint32 semanticTargetSymbolId;
     /* A compound assignment can name two independent callable boundaries:
      * semanticTargetSymbolId is the destination setter (when present), while
@@ -165,8 +188,13 @@ typedef struct XL6_AstNode {
     uint32 semanticTargetScopeDepth;
     uint32 semanticRegionId;
     uint32 semanticTargetRegionId;
+    XL6_AstSource* source;
     int line;
     int column;
+    /* The grammar span includes delimiters. tokenRange records the token used
+     * to construct the node; it is not automatically a declaration name. */
+    XL6_AstRange range;
+    XL6_AstRange tokenRange;
     struct XL6_AstNode** children;
     size_t childCount;
     size_t childCapacity;
@@ -183,6 +211,9 @@ XL6_AstNode* xl6AstNewGenericType(const XL6_Token* name, XL6_AstNode* args);
 void xl6AstSetDoc(XL6_AstNode* node, const XL6_Token* token);
 void xl6AstAddChild(XL6_AstNode* parent, XL6_AstNode* child);
 void xl6AstMoveChildren(XL6_AstNode* dst, XL6_AstNode* src);
+int xl6AstSetSourceTree(XL6_AstNode* node, const char* path);
+void xl6AstCopySource(XL6_AstNode* dst, const XL6_AstNode* src);
+const char* xl6AstSourcePath(const XL6_AstNode* node);
 void xl6AstFree(XL6_AstNode* node);
 
 #endif

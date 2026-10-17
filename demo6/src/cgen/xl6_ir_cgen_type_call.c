@@ -9,7 +9,8 @@ static int xl6IrCgenTypeSelected(
 
 static int xl6IrCgenEmitUnionTypes(
     XL6_Output* out, const XL6_IrModule* module,
-    const unsigned char* selectedTypes, XL6_DiagList* diags)
+    const unsigned char* selectedTypes, XL6_DiagList* diags,
+    XL6_IrCgenHeaderBindingVisitor visitor, void* context)
 {
     unsigned char* emitted;
     size_t emittedCount = 0;
@@ -65,8 +66,19 @@ static int xl6IrCgenEmitUnionTypes(
             xl6OutputPrintf(out,
                 "#ifndef XL6_ABI_DEFINED_%s\n"
                 "#define XL6_ABI_DEFINED_%s 1\n"
-                "typedef union %s {\n",
-                unionType->cName, unionType->cName, unionType->cName);
+                "typedef union ",
+                unionType->cName, unionType->cName);
+            {
+                size_t startByte = out->buffer.Size;
+                xl6OutputPuts(unionType->cName, out);
+                if (visitor != NULL && !visitor(context, unionType->nominalSymbol,
+                        unionType->cName, "type", startByte, out->buffer.Size)) {
+                    xrtFree(emitted);
+                    return xl6IrCgenDiag(diags, module, layout->declaration,
+                                         "cannot collect bounded C union tag binding");
+                }
+            }
+            xl6OutputPuts(" {\n", out);
             for ( fieldOffset = 0; fieldOffset < layout->fieldCount; ++fieldOffset ) {
                 size_t fieldIndex = layout->firstField + fieldOffset;
                 const XL6_IrUnionField* field = &module->unionFields[fieldIndex];
@@ -78,7 +90,18 @@ static int xl6IrCgenEmitUnionTypes(
                 }
                 xl6OutputPrintf(out, "    %s %s;\n", cType, field->cName);
             }
-            xl6OutputPrintf(out, "} %s;\n#endif\n", unionType->cName);
+            xl6OutputPuts("} ", out);
+            {
+                size_t startByte = out->buffer.Size;
+                xl6OutputPuts(unionType->cName, out);
+                if (visitor != NULL && !visitor(context, unionType->nominalSymbol,
+                        unionType->cName, "type", startByte, out->buffer.Size)) {
+                    xrtFree(emitted);
+                    return xl6IrCgenDiag(diags, module, layout->declaration,
+                                         "cannot collect bounded C union typedef binding");
+                }
+            }
+            xl6OutputPuts(";\n#endif\n", out);
             emitted[layoutIndex] = 1;
             emittedCount += 1;
         }

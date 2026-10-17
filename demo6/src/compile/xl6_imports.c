@@ -1,3 +1,4 @@
+#include "src/compile/xl6_build_inputs.h"
 #include "src/compile/xl6_imports.h"
 
 #include "src/common/xl6_common.h"
@@ -396,7 +397,7 @@ static void xl6ImportsAddSourceCompanionC(const char* sourcePath, XL6_ImportDeps
     memcpy(cPath, sourcePath, len + 1);
     cPath[len - 2] = 'c';
     cPath[len - 1] = '\0';
-    if ( xrtFileExists((char*)cPath) ) {
+    if ( xl6BuildInputExists(cPath) ) {
         (void)xl6ImportsStringListAppendUnique(&deps->cSources, cPath);
         deps->hasUndeclaredCSourceModules = 1;
     }
@@ -424,7 +425,6 @@ static int xl6ImportsAppendPackagePath(XL6_PackageStringList* list, const char* 
 static int xl6ImportsDepsAddPackageId(XL6_ImportDeps* deps, const char* packageId)
 {
     char** newItems;
-    size_t i;
 
     if ( deps == NULL || packageId == NULL || packageId[0] == '\0' ) {
         return 1;
@@ -471,7 +471,7 @@ static int xl6ImportsDepsAddNative(
                 return 1;
             }
             if ( diags != NULL ) {
-                xl6DiagAdd(diags,
+                xl6DiagAddFile(diags, xl6AstSourcePath(importNode),
                            importNode != NULL ? importNode->line : 1,
                            importNode != NULL ? importNode->column : 1,
                            "native singleton package conflict");
@@ -589,8 +589,8 @@ static int xl6ImportsDependencyMatches(
                      sizeof(message),
                      "package dependency version mismatch: %s",
                      dep->packageId != NULL ? dep->packageId : "");
-            xl6DiagAdd(diags,
-                       importNode != NULL ? importNode->line : 1,
+            xl6DiagAddFile(diags, xl6AstSourcePath(importNode),
+                           importNode != NULL ? importNode->line : 1,
                        importNode != NULL ? importNode->column : 1,
                        message);
         }
@@ -604,7 +604,8 @@ static int xl6ImportsResolveDependency(
     const XL6_PackageDependency* dep,
     XL6_PackageResolveResult* out,
     XL6_AstNode* importNode,
-    XL6_DiagList* diags)
+    XL6_DiagList* diags,
+    XL6_SourceReport* report)
 {
     XL6_PackageResolveResult candidate;
     char* versionedName;
@@ -615,7 +616,7 @@ static int xl6ImportsResolveDependency(
     }
     xl6PackageResolveResultInit(out);
     sawMismatchedPackage = 0;
-    xl6PackageResolveImport(manifest->dir, dep->name, &candidate);
+    xl6PackageResolveImportObserved(manifest->dir, dep->name, &candidate, report);
     if ( candidate.resolved ) {
         if ( xl6ImportsDependencyMatches(dep, &candidate, NULL, NULL) ) {
             *out = candidate;
@@ -627,8 +628,8 @@ static int xl6ImportsResolveDependency(
 
     if ( xl6ImportsTextEquals(dep->version, "*") ) {
         if ( diags != NULL ) {
-            xl6DiagAdd(diags,
-                       importNode != NULL ? importNode->line : 1,
+            xl6DiagAddFile(diags, xl6AstSourcePath(importNode),
+                           importNode != NULL ? importNode->line : 1,
                        importNode != NULL ? importNode->column : 1,
                        "package dependency is not resolved");
         }
@@ -639,7 +640,7 @@ static int xl6ImportsResolveDependency(
     if ( versionedName == NULL ) {
         return 0;
     }
-    xl6PackageResolveImport(manifest->dir, versionedName, &candidate);
+    xl6PackageResolveImportObserved(manifest->dir, versionedName, &candidate, report);
     xrtFree(versionedName);
     if ( candidate.resolved ) {
         if ( xl6ImportsDependencyMatches(dep, &candidate, importNode, diags) ) {
@@ -653,16 +654,16 @@ static int xl6ImportsResolveDependency(
 
     if ( sawMismatchedPackage ) {
         if ( diags != NULL ) {
-            xl6DiagAdd(diags,
-                       importNode != NULL ? importNode->line : 1,
+            xl6DiagAddFile(diags, xl6AstSourcePath(importNode),
+                           importNode != NULL ? importNode->line : 1,
                        importNode != NULL ? importNode->column : 1,
                        "package dependency version mismatch");
         }
         return 0;
     }
     if ( diags != NULL ) {
-        xl6DiagAdd(diags,
-                   importNode != NULL ? importNode->line : 1,
+        xl6DiagAddFile(diags, xl6AstSourcePath(importNode),
+                           importNode != NULL ? importNode->line : 1,
                    importNode != NULL ? importNode->column : 1,
                    "package dependency is not resolved");
     }
@@ -688,7 +689,8 @@ static int xl6ImportsCollectManifestDependencyGraph(
         if ( xl6ImportsDepsHasPackageId(deps, dep->packageId) ) {
             continue;
         }
-        if ( !xl6ImportsResolveDependency(manifest, dep, &resolved, importNode, diags) ) {
+        if ( !xl6ImportsResolveDependency(manifest, dep, &resolved, importNode, diags,
+                                         deps->sourceOverlay ? deps->sourceOverlay->report : NULL) ) {
             return 0;
         }
         if ( !xl6ImportsCollectResolvedPackageDeps(deps, &resolved, importNode, diags, symbols) ) {
@@ -721,11 +723,12 @@ static int xl6ImportsCollectResolvedPackageDeps(
 
     xl6PackageManifestInit(&manifest);
     hasManifest = resolved->manifestPath != NULL && resolved->manifestPath[0] != '\0' &&
-                  xl6PackageLoadManifest(resolved->manifestPath, &manifest);
+                  xl6PackageLoadManifestObserved(resolved->manifestPath, &manifest,
+                                                deps->sourceOverlay ? deps->sourceOverlay->report : NULL);
     if ( !hasManifest ) {
         if ( diags != NULL ) {
-            xl6DiagAdd(diags,
-                       importNode != NULL ? importNode->line : 1,
+            xl6DiagAddFile(diags, xl6AstSourcePath(importNode),
+                           importNode != NULL ? importNode->line : 1,
                        importNode != NULL ? importNode->column : 1,
                        "import dependency requires xlang.package.json source manifest");
         }
@@ -1870,7 +1873,7 @@ static int xl6ImportsBindSelectiveSymbols(
                      "cannot import private or missing symbol: %s.%s",
                      ns,
                      selected->text);
-            xl6DiagAdd(diags, selected->line, selected->column, message);
+            xl6DiagAddFile(diags, xl6AstSourcePath(selected), selected->line, selected->column, message);
             return 0;
         }
         if ( !symbol->supported ) {
@@ -1879,7 +1882,7 @@ static int xl6ImportsBindSelectiveSymbols(
                      "import symbol cannot enter C ABI bridge yet: %s.%s",
                      ns,
                      selected->text);
-            xl6DiagAdd(diags, selected->line, selected->column, message);
+            xl6DiagAddFile(diags, xl6AstSourcePath(selected), selected->line, selected->column, message);
             return 0;
         }
         if ( xl6ImportsNameMapFind(map, localName) != NULL ||
@@ -1890,7 +1893,7 @@ static int xl6ImportsBindSelectiveSymbols(
                      sizeof(message),
                      "selective import name conflicts with an existing declaration: %s",
                      localName);
-            xl6DiagAdd(diags, selected->line, selected->column, message);
+            xl6DiagAddFile(diags, xl6AstSourcePath(selected), selected->line, selected->column, message);
             return 0;
         }
         if ( !xl6ImportsNameMapAdd(map, localName, symbol->internalName) ) {
@@ -1978,17 +1981,20 @@ static int xl6ImportsMergePackageSources(
             }
             return 0;
         }
-        if ( !xrtFileExists((char*)sourcePath) ) {
+        int exists = xl6SourceOverlayExists(deps ? deps->sourceOverlay : NULL, sourcePath);
+        if ( exists <= 0 ) {
             if ( diags != NULL ) {
                 char message[640];
-                snprintf(message, sizeof(message), "package xlSources file is missing: %s", sourcePath);
+                snprintf(message, sizeof(message), exists < 0 ?
+                    "cannot resolve package xlSources snapshot: %s" :
+                    "package xlSources file is missing: %s", sourcePath);
                 xl6DiagAdd(diags, 1, 1, message);
             }
             return 0;
         }
 
         xl6ParseResultInit(&result);
-        ok = xl6ParseFile(sourcePath, &result);
+        ok = xl6SourceOverlayParse(deps ? deps->sourceOverlay : NULL, sourcePath, &result);
         if ( ok ) {
             ok = xl6ImportsExpandModule(result.root, sourcePath, diags, deps);
         }
@@ -2000,7 +2006,7 @@ static int xl6ImportsMergePackageSources(
         if ( result.diags.count > 0 && diags != NULL ) {
             size_t diagIndex;
             for ( diagIndex = 0; diagIndex < result.diags.count; ++diagIndex ) {
-                xl6DiagAdd(diags,
+                xl6DiagAddFile(diags, result.diags.items[diagIndex].file,
                            result.diags.items[diagIndex].line,
                            result.diags.items[diagIndex].column,
                            result.diags.items[diagIndex].message);
@@ -2022,7 +2028,7 @@ static int xl6ImportsCopySourceDiagnostics(XL6_DiagList* dst, const XL6_DiagList
         return 1;
     }
     for ( i = 0; i < src->count; ++i ) {
-        xl6DiagAdd(dst, src->items[i].line, src->items[i].column, src->items[i].message);
+        xl6DiagAddFile(dst, src->items[i].file, src->items[i].line, src->items[i].column, src->items[i].message);
     }
     return 1;
 }
@@ -2068,40 +2074,44 @@ static void xl6ImportsNamespaceFromTarget(char* out, size_t outSize, const char*
     xl6ImportsNormalizeNamespaceText(out);
 }
 
-static int xl6ImportsTrySourcePath(char* out, size_t outSize, const char* path)
+static int xl6ImportsTrySourcePath(const XL6_ImportDeps* deps, char* out, size_t outSize, const char* path)
 {
+    int exists;
     if ( out == NULL || outSize == 0 || path == NULL || path[0] == '\0' ) {
         return 0;
     }
     if ( xl6ImportsEndsWithNoCase(path, ".xl") ) {
-        if ( xrtFileExists((char*)path) ) {
+        exists = xl6SourceOverlayExists(deps ? deps->sourceOverlay : NULL, path);
+        if (exists < 0) return -1;
+        if ( exists ) {
+            if (strlen(path) >= outSize) return 0;
             snprintf(out, outSize, "%s", path);
             return 1;
         }
         return 0;
     }
+    if (strlen(path) + 3 >= outSize) return 0;
     if ( snprintf(out, outSize, "%s.xl", path) <= 0 ) {
         return 0;
     }
-    if ( xrtFileExists((char*)out) ) {
-        return 1;
-    }
-    return 0;
+    return xl6SourceOverlayExists(deps ? deps->sourceOverlay : NULL, out);
 }
 
-static int xl6ImportsResolveSourcePath(const char* sourcePath, const char* target, char* out, size_t outSize)
+static int xl6ImportsResolveSourcePath(const XL6_ImportDeps* deps, const char* sourcePath, const char* target, char* out, size_t outSize)
 {
     char importerDir[512];
     char path[512];
     char dotted[512];
     size_t i;
+    int status;
 
     if ( out == NULL || outSize == 0 || target == NULL || target[0] == '\0' ) {
         return 0;
     }
     out[0] = '\0';
+    if (strlen(target) >= sizeof(dotted)) return 0;
     if ( xl6ImportsPathIsAbsolute(target) ) {
-        return xl6ImportsTrySourcePath(out, outSize, target);
+        return xl6ImportsTrySourcePath(deps, out, outSize, target);
     }
 
     /*
@@ -2117,14 +2127,15 @@ static int xl6ImportsResolveSourcePath(const char* sourcePath, const char* targe
                 len = (size_t)(p - sourcePath + 1);
             }
         }
+        if (len >= sizeof(importerDir)) return 0;
         if ( len > 0 && len < sizeof(importerDir) ) {
             memcpy(importerDir, sourcePath, len);
             importerDir[len] = '\0';
         }
     }
-    if ( xl6PackageJoinPath(path, sizeof(path), importerDir, target) &&
-         xl6ImportsTrySourcePath(out, outSize, path) ) {
-        return 1;
+    if ( xl6PackageJoinPath(path, sizeof(path), importerDir, target) ) {
+        status = xl6ImportsTrySourcePath(deps, out, outSize, path);
+        if (status != 0) return status;
     }
     snprintf(dotted, sizeof(dotted), "%s", target);
     for ( i = 0; dotted[i] != '\0'; ++i ) {
@@ -2132,11 +2143,11 @@ static int xl6ImportsResolveSourcePath(const char* sourcePath, const char* targe
             dotted[i] = '\\';
         }
     }
-    if ( xl6PackageJoinPath(path, sizeof(path), importerDir, dotted) &&
-         xl6ImportsTrySourcePath(out, outSize, path) ) {
-        return 1;
+    if ( xl6PackageJoinPath(path, sizeof(path), importerDir, dotted) ) {
+        status = xl6ImportsTrySourcePath(deps, out, outSize, path);
+        if (status != 0) return status;
     }
-    return xl6ImportsTrySourcePath(out, outSize, target);
+    return xl6ImportsTrySourcePath(deps, out, outSize, target);
 }
 
 static int xl6ImportsMergeSourceFile(
@@ -2156,7 +2167,7 @@ static int xl6ImportsMergeSourceFile(
     }
     initialDiagCount = diags != NULL ? diags->count : 0;
     xl6ParseResultInit(&result);
-    ok = xl6ParseFile(sourcePath, &result);
+    ok = xl6SourceOverlayParse(deps ? deps->sourceOverlay : NULL, sourcePath, &result);
     if ( ok ) {
         ok = xl6ImportsExpandModule(result.root, sourcePath, diags, deps);
     }
@@ -2210,7 +2221,7 @@ static int xl6ImportsMergeManifestSourcesAsModule(
         }
         initialDiagCount = diags != NULL ? diags->count : 0;
         xl6ParseResultInit(&result);
-        ok = xl6ParseFile(path, &result);
+        ok = xl6SourceOverlayParse(deps ? deps->sourceOverlay : NULL, path, &result);
         if ( ok ) {
             ok = xl6ImportsExpandModule(result.root, path, diags, deps);
         }
@@ -2287,14 +2298,16 @@ static int xl6ImportsLoadOne(
         return 1;
     }
 
-    xl6PackageResolveImport(sourcePath, target, &resolved);
+    xl6PackageResolveImportObserved(sourcePath, target, &resolved,
+                                    deps && deps->sourceOverlay ? deps->sourceOverlay->report : NULL);
     if ( resolved.resolved ) {
         xl6PackageManifestInit(&manifest);
         hasManifest = resolved.manifestPath != NULL && resolved.manifestPath[0] != '\0' &&
-                      xl6PackageLoadManifest(resolved.manifestPath, &manifest);
+                      xl6PackageLoadManifestObserved(resolved.manifestPath, &manifest,
+                                                    deps && deps->sourceOverlay ? deps->sourceOverlay->report : NULL);
         if ( !hasManifest ) {
             if ( diags != NULL ) {
-                xl6DiagAdd(diags,
+                xl6DiagAddFile(diags, xl6AstSourcePath(importNode),
                            importNode != NULL ? importNode->line : 1,
                            importNode != NULL ? importNode->column : 1,
                            "import package requires xlang.package.json with xlSources");
@@ -2316,7 +2329,7 @@ static int xl6ImportsLoadOne(
             ok = 0;
         } else if ( manifest.xlSources.count == 0 ) {
             if ( diags != NULL ) {
-                xl6DiagAdd(diags,
+                xl6DiagAddFile(diags, xl6AstSourcePath(importNode),
                            importNode != NULL ? importNode->line : 1,
                            importNode != NULL ? importNode->column : 1,
                            "import package has no xlSources");
@@ -2344,7 +2357,15 @@ static int xl6ImportsLoadOne(
     }
     xl6PackageResolveResultFree(&resolved);
 
-    if ( xl6ImportsResolveSourcePath(sourcePath, target, xlSourcePath, sizeof(xlSourcePath)) ) {
+    int sourceStatus = xl6ImportsResolveSourcePath(deps, sourcePath, target, xlSourcePath, sizeof(xlSourcePath));
+    if (sourceStatus < 0) {
+        if (diags) xl6DiagAddFile(diags, xl6AstSourcePath(importNode),
+            importNode ? importNode->line : 1, importNode ? importNode->column : 1,
+            "cannot resolve source import snapshot identity");
+        xrtFree(target);
+        return 0;
+    }
+    if ( sourceStatus > 0 ) {
         xl6ImportsNamespaceFromTarget(nsBuffer, sizeof(nsBuffer), target);
         ns = nsBuffer[0] != '\0' ? nsBuffer : target;
         wasLoaded = xl6ImportsNamespaceIsLoaded(symbols, ns);
@@ -2380,8 +2401,8 @@ static int xl6ImportsLoadOne(
                  "cannot resolve import '%s' from '%s'",
                  target,
                  sourcePath != NULL && sourcePath[0] != '\0' ? sourcePath : "<source>");
-        xl6DiagAdd(diags,
-                   importNode != NULL ? importNode->line : 1,
+        xl6DiagAddFile(diags, xl6AstSourcePath(importNode),
+                           importNode != NULL ? importNode->line : 1,
                    importNode != NULL ? importNode->column : 1,
                    message);
     }
@@ -2450,9 +2471,7 @@ static int xl6ImportsTryRewriteQualifiedNamespaceRef(
     symbol = xl6ImportsFindSymbol(symbols, ns, parts[count - 1]);
     if ( symbol == NULL ) {
         if ( diags != NULL ) {
-            xl6DiagAdd(diags,
-                       node->line,
-                       node->column,
+            xl6DiagAddFile(diags, xl6AstSourcePath(node), node->line, node->column,
                        nsInfo->isPrivate ?
                            "private package dependency is not exported" :
                            "import package has no such exported symbol");
@@ -2469,7 +2488,7 @@ static int xl6ImportsTryRewriteQualifiedNamespaceRef(
                      "import symbol cannot enter C ABI bridge yet: %s.%s",
                      symbol->ns != NULL ? symbol->ns : "",
                      symbol->name != NULL ? symbol->name : "");
-            xl6DiagAdd(diags, node->line, node->column, message);
+            xl6DiagAddFile(diags, xl6AstSourcePath(node), node->line, node->column, message);
         }
         xrtFree(ns);
         return 0;
@@ -2516,7 +2535,7 @@ static int xl6ImportsTryRewriteQualifiedTypeRef(
     }
     if ( nsInfo->isPrivate ) {
         if ( diags != NULL ) {
-            xl6DiagAdd(diags, node->line, node->column, "private package dependency is not exported");
+            xl6DiagAddFile(diags, xl6AstSourcePath(node), node->line, node->column, "private package dependency is not exported");
         }
         xrtFree(ns);
         return 0;
@@ -2524,21 +2543,21 @@ static int xl6ImportsTryRewriteQualifiedTypeRef(
     symbol = xl6ImportsFindSymbol(symbols, ns, dot + 1);
     if ( symbol == NULL ) {
         if ( diags != NULL ) {
-            xl6DiagAdd(diags, node->line, node->column, "import package has no such exported type");
+            xl6DiagAddFile(diags, xl6AstSourcePath(node), node->line, node->column, "import package has no such exported type");
         }
         xrtFree(ns);
         return 0;
     }
     if ( !xl6ImportsSymbolIsType(symbol) ) {
         if ( diags != NULL ) {
-            xl6DiagAdd(diags, node->line, node->column, "import symbol is not a type");
+            xl6DiagAddFile(diags, xl6AstSourcePath(node), node->line, node->column, "import symbol is not a type");
         }
         xrtFree(ns);
         return 0;
     }
     if ( !symbol->supported ) {
         if ( diags != NULL ) {
-            xl6DiagAdd(diags, node->line, node->column, "import type cannot enter C ABI bridge yet");
+            xl6DiagAddFile(diags, xl6AstSourcePath(node), node->line, node->column, "import type cannot enter C ABI bridge yet");
         }
         xrtFree(ns);
         return 0;
@@ -2706,7 +2725,7 @@ static int xl6ImportsRewriteNamespaceRefsScoped(
                              "导入符号当前不能进入 C ABI bridge: %s.%s",
                              symbol->ns != NULL ? symbol->ns : "",
                              symbol->name != NULL ? symbol->name : "");
-                    xl6DiagAdd(diags, node->line, node->column, message);
+                    xl6DiagAddFile(diags, xl6AstSourcePath(node), node->line, node->column, message);
                 }
                 return 0;
             }
@@ -2716,9 +2735,7 @@ static int xl6ImportsRewriteNamespaceRefsScoped(
         if ( xl6ImportsNamespaceExists(symbols, ns) ) {
             const XL6_ImportNamespace* nsInfo = xl6ImportsFindNamespace(symbols, ns);
             if ( diags != NULL ) {
-                xl6DiagAdd(diags,
-                           node->line,
-                           node->column,
+                xl6DiagAddFile(diags, xl6AstSourcePath(node), node->line, node->column,
                            nsInfo != NULL && nsInfo->isPrivate ?
                                "private package dependency is not exported" :
                                "import package has no such exported symbol");
@@ -2866,10 +2883,13 @@ int xl6ImportsExpandModule(XL6_AstNode* root, const char* sourcePath, XL6_DiagLi
     int ownsDeps;
     int activeSourcePushed;
     int ok;
+    const char* previousFile;
 
     if ( root == NULL ) {
         return 1;
     }
+    previousFile = diags ? diags->defaultFile : NULL;
+    if (diags) diags->defaultFile = sourcePath;
     ownsDeps = 0;
     activeSourcePushed = 0;
     activeSource = NULL;
@@ -2887,6 +2907,7 @@ int xl6ImportsExpandModule(XL6_AstNode* root, const char* sourcePath, XL6_DiagLi
             if ( ownsDeps ) {
                 xl6ImportDepsFree(deps);
             }
+            if (diags) diags->defaultFile = previousFile;
             return 0;
         }
         if ( xl6ImportsPathListContains(&deps->activeSources, activeSource) ) {
@@ -2897,6 +2918,7 @@ int xl6ImportsExpandModule(XL6_AstNode* root, const char* sourcePath, XL6_DiagLi
             if ( ownsDeps ) {
                 xl6ImportDepsFree(deps);
             }
+            if (diags) diags->defaultFile = previousFile;
             return 0;
         }
         if ( !xl6PackageStringListAppend(&deps->activeSources, activeSource) ) {
@@ -2907,6 +2929,7 @@ int xl6ImportsExpandModule(XL6_AstNode* root, const char* sourcePath, XL6_DiagLi
             if ( ownsDeps ) {
                 xl6ImportDepsFree(deps);
             }
+            if (diags) diags->defaultFile = previousFile;
             return 0;
         }
         activeSourcePushed = 1;
@@ -2940,9 +2963,7 @@ int xl6ImportsExpandModule(XL6_AstNode* root, const char* sourcePath, XL6_DiagLi
                 ok = 0;
             } else if ( selective ) {
                 if ( builtin ) {
-                    xl6DiagAdd(diags,
-                               child->line,
-                               child->column,
+                    xl6DiagAddFile(diags, xl6AstSourcePath(child), child->line, child->column,
                                "selective import requires a source or package module");
                     ok = 0;
                 } else if ( !xl6ImportsBindSelectiveSymbols(
@@ -2959,9 +2980,7 @@ int xl6ImportsExpandModule(XL6_AstNode* root, const char* sourcePath, XL6_DiagLi
                      xl6ImportsNamespaceIsPublic(&symbols, alias) ||
                      xl6TypeRegistryIsBuiltinName(alias) ||
                      xl6ImportsModuleHasNaturalDeclName(root, alias) ) {
-                    xl6DiagAdd(diags,
-                               aliasNode->line,
-                               aliasNode->column,
+                    xl6DiagAddFile(diags, xl6AstSourcePath(aliasNode), aliasNode->line, aliasNode->column,
                                "import alias conflicts with an existing declaration");
                     ok = 0;
                 } else if ( builtin ) {
@@ -2969,18 +2988,14 @@ int xl6ImportsExpandModule(XL6_AstNode* root, const char* sourcePath, XL6_DiagLi
                         ok = 0;
                     }
                 } else if ( !xl6ImportsPublishNamespaceAlias(&symbols, canonicalNs, alias) ) {
-                    xl6DiagAdd(diags,
-                               aliasNode->line,
-                               aliasNode->column,
+                    xl6DiagAddFile(diags, xl6AstSourcePath(aliasNode), aliasNode->line, aliasNode->column,
                                "import alias conflicts with an existing namespace");
                     ok = 0;
                 }
             } else if ( xl6ImportsNameMapFind(&directImports, canonicalNs) != NULL ||
                         xl6TypeRegistryIsBuiltinName(canonicalNs) ||
                         xl6ImportsModuleHasNaturalDeclName(root, canonicalNs) ) {
-                xl6DiagAdd(diags,
-                           child->line,
-                           child->column,
+                xl6DiagAddFile(diags, xl6AstSourcePath(child), child->line, child->column,
                            "import namespace conflicts with an existing declaration");
                 ok = 0;
             }
@@ -3005,5 +3020,6 @@ int xl6ImportsExpandModule(XL6_AstNode* root, const char* sourcePath, XL6_DiagLi
     if ( ownsDeps ) {
         xl6ImportDepsFree(deps);
     }
+    if (diags) diags->defaultFile = previousFile;
     return ok;
 }

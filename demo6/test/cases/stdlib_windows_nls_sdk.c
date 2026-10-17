@@ -14,11 +14,19 @@
 
 long long xl6StdlibWinNlsProbe(void)
 {
+    /* Taking the address requires the real SDK declaration; an implicit C
+     * function declaration cannot accidentally satisfy this ABI check. */
+    int (WINAPI *ordinal)(LPCWCH, int, LPCWCH, int, WINBOOL) = CompareStringOrdinal;
     const WCHAR text[] = {'A', 0, 0x4f60, 0xd83d, 0xde42};
+    const WCHAR upper[] = {'A', 0, 'B'}, lower[] = {'a', 0, 'b'}, next[] = {'A', 0, 'C'};
     const unsigned char expected[] = {'A', 0, 0xe4, 0xbd, 0xa0,
         0xf0, 0x9f, 0x99, 0x82};
     const WCHAR invalid[][2] = {{0xd800, 'A'}, {0xdc00, 'A'}, {'A', 0xd800}};
     unsigned char output[sizeof expected + 2];
+    CHECK(ordinal(upper, 3, lower, 3, TRUE) == CSTR_EQUAL);
+    CHECK(ordinal(upper, 3, lower, 3, FALSE) == CSTR_LESS_THAN);
+    CHECK(ordinal(upper, 3, next, 3, FALSE) == CSTR_LESS_THAN);
+    CHECK(ordinal(upper, 1, next, 1, FALSE) == CSTR_EQUAL);
     CHECK(WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, text, 5,
         NULL, 0, NULL, NULL) == (int)sizeof expected);
     memset(output, 0xcc, sizeof output);

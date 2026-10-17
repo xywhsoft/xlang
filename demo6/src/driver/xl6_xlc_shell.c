@@ -1,4 +1,5 @@
 #include "include/xlc.h"
+#include "src/compile/xl6_build_inputs.h"
 #include "src/common/xl6_xrt.h"
 #include "src/common/xl6_console.h"
 
@@ -26,13 +27,16 @@ static void xlcShellPrintHelp(void)
 {
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "Usage:\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl lex <file.xl> [--format text|json] [--emit output.tokens]\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl parse <file.xl> [--format tree|json] [--emit output.ast]\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl check <file.xl> [--json]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl parse <file.xl> [--format tree|json] [--source-ranges --json] [--emit output.ast]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl check <file.xl> [--json [--source-report] [--semantic-index] [--completion-at source.xl byteOffset]] [--source-overlay source.xl snapshot.utf8 ...]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  --completion-at <source.xl> <byteOffset> queries scope/members; UTF-8 offset after BOM; requires check --json\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  --source-overlay <source.xl> <snapshot.utf8> overrides entry/import text without saving; repeat up to 64 times\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl c-bridge <file.xl|file.xlp> --json [--c-environment [-shared]] [--source-overlay source.xl snapshot.utf8 ...]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl ir <file.xl> [--lowered] [--format text|json] [--emit output.xlir]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl cgen <file.xl> [--backend xlir] [--emit output.c] [--emit-header output.h] [--dump-dir dir]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl abi <file.xl> [--json] [--emit output.abi.txt]\n");
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl run <file.xl|file.c|file.xlp> [helper.c ...] [--backend xlir] [--save-temps] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib library] [-- <args>...]\n");
-    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c|file.xlp> [helper.c ...] [-o output] [-shared] [--backend xlir] [--res file.json|file.xlon] [--save-temps] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib library]\n");
+    xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl build <file.xl|file.c|file.xlp> [helper.c ...] [-o output] [-shared] [--backend xlir] [--res file.json|file.xlon] [--save-temps] [--input-report receipt.json] [--emit-header output.h] [--inc-path dir] [--lib-path dir] [--link lib] [--loadlib library]\n");
 #ifdef _WIN32
     xl6ConsolePuts(XL6_CONSOLE_STDOUT, "  xl impdef <file.dll> -o <output.def>\n");
 #endif
@@ -53,6 +57,8 @@ static int xlcShellHasJson(int argc, char** argv)
     int i;
 
     for ( i = 3; i < argc; ++i ) {
+        if (xlcShellTextEquals(argv[i], "--source-overlay") || xlcShellTextEquals(argv[i], "--completion-at")) { i += 2; continue; }
+        if (xlcShellTextEquals(argv[i], "--input-report")) { ++i; continue; }
         if ( xlcShellTextEquals(argv[i], "--json") ) {
             return 1;
         }
@@ -68,6 +74,8 @@ static int xlcShellHasFlag(int argc, char** argv, const char* flag)
     int i;
 
     for ( i = 3; i < argc; ++i ) {
+        if (xlcShellTextEquals(argv[i], "--source-overlay") || xlcShellTextEquals(argv[i], "--completion-at")) { i += 2; continue; }
+        if (xlcShellTextEquals(argv[i], "--input-report")) { ++i; continue; }
         if ( xlcShellTextEquals(argv[i], "--") ) {
             break;
         }
@@ -83,6 +91,8 @@ static const char* xlcShellFindValue(int argc, char** argv, const char* option, 
     int i;
 
     for ( i = start; i < argc; ++i ) {
+        if (xlcShellTextEquals(argv[i], "--source-overlay") || xlcShellTextEquals(argv[i], "--completion-at")) { i += 2; continue; }
+        if (xlcShellTextEquals(argv[i], "--input-report") && !xlcShellTextEquals(option, "--input-report")) { ++i; continue; }
         if ( xlcShellTextEquals(argv[i], "--") ) {
             break;
         }
@@ -98,6 +108,8 @@ static int xlcShellFindArgSplit(int argc, char** argv)
     int i;
 
     for ( i = 3; i < argc; ++i ) {
+        if (xlcShellTextEquals(argv[i], "--source-overlay") || xlcShellTextEquals(argv[i], "--completion-at")) { i += 2; continue; }
+        if (xlcShellTextEquals(argv[i], "--input-report")) { ++i; continue; }
         if ( xlcShellTextEquals(argv[i], "--") ) {
             return i + 1;
         }
@@ -857,7 +869,7 @@ static int xlcShellProjectResolvePath(char* out, size_t outSize, const XLC_Shell
     return xlcShellJoinDirPath(out, outSize, project->dir[0] != '\0' ? project->dir : ".", path);
 }
 
-static int xlcShellProjectLoad(const char* path, XLC_ShellProject* project)
+static int xlcShellProjectLoad(XLC_Context* ctx, const char* path, XLC_ShellProject* project)
 {
     char* text;
     size_t textLen;
@@ -870,7 +882,7 @@ static int xlcShellProjectLoad(const char* path, XLC_ShellProject* project)
     xlcShellProjectFree(project);
     xlcShellProjectInit(project);
     textLen = 0;
-    text = xrtFileReadText(path, XENCODING_UTF8, XUTF_STRICT, &textLen);
+    text = xlcReadProjectInput(ctx, path, &textLen);
     if ( text == NULL ) {
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot read xlp: %s\n", path);
         return 0;
@@ -928,6 +940,10 @@ static int xlcShellCollectCInputs(int argc, char** argv, const char** inputs, in
 
         if ( xlcShellTextEquals(arg, "--") ) {
             break;
+        }
+        if ( xlcShellTextEquals(arg, "--source-overlay") ) {
+            xl6ConsolePuts(XL6_CONSOLE_STDERR, "source overlays require an xlang input\n");
+            return 0;
         }
         if ( xlcShellOptionTakesValue(arg) ) {
             i += 1;
@@ -1035,7 +1051,8 @@ static int xlcShellDefaultBuildOutput(char* out, size_t outSize, const char* inp
 
 static int xlcShellOptionTakesValue(const char* arg)
 {
-    return xlcShellTextEquals(arg, "--emit") ||
+    return xlcShellTextEquals(arg, "--input-report") ||
+           xlcShellTextEquals(arg, "--emit") ||
            xlcShellTextEquals(arg, "--backend") ||
            xlcShellTextEquals(arg, "--emit-header") ||
            xlcShellTextEquals(arg, "--dump-dir") ||
@@ -1048,6 +1065,69 @@ static int xlcShellOptionTakesValue(const char* arg)
            xlcShellTextEquals(arg, "--break") ||
            xlcShellTextEquals(arg, "--commands") ||
            xlcShellTextEquals(arg, "-o");
+}
+
+/* Snapshot/source paths are values, even when named like an option. */
+static int xlcShellJsonFlagOptions(int argc, char** argv, const char* flag, int* json)
+{
+    int report = 0, wantsJson = 0, i;
+    for (i = 3; i < argc; ++i) {
+        if (xlcShellTextEquals(argv[i], "--")) break;
+        if (xlcShellTextEquals(argv[i], "--source-overlay") || xlcShellTextEquals(argv[i], "--completion-at")) { i += 2; continue; }
+        if (xlcShellTextEquals(argv[i], "--input-report")) { ++i; continue; }
+        if (xlcShellTextEquals(argv[i], flag)) report = 1;
+        else if (xlcShellTextEquals(argv[i], "--json")) wantsJson = 1;
+        else if (xlcShellTextEquals(argv[i], "--format") && i + 1 < argc) {
+            if (xlcShellTextEquals(argv[i + 1], "json")) wantsJson = 1;
+            ++i;
+        } else if (xlcShellOptionTakesValue(argv[i])) ++i;
+    }
+    if (json) *json = wantsJson;
+    return report;
+}
+
+/* Query values are opaque paths and a strict size_t decimal, not flags. */
+static int xlcShellCompletionOptions(int argc,char** argv,const char** path,size_t* offset,int* json)
+{
+    int i,found=0,wantsJson=0;
+    const char* target=NULL;
+    size_t value=0;
+    for (i=3;i<argc;++i) {
+        if (xlcShellTextEquals(argv[i],"--")) break;
+        if (xlcShellTextEquals(argv[i],"--source-overlay")) {i+=2;continue;}
+        if (xlcShellTextEquals(argv[i],"--completion-at")) {
+            const unsigned char* digit;
+            if (found || i+2>=argc || !argv[i+1][0] || !argv[i+2][0]) return -1;
+            found=1;target=argv[i+1];value=0;
+            for (digit=(const unsigned char*)argv[i+2];*digit;++digit) {
+                if (*digit<'0'||*digit>'9'||value>((size_t)-1-(size_t)(*digit-'0'))/10) return -1;
+                value=value*10+(size_t)(*digit-'0');
+            }
+            i+=2;continue;
+        }
+        if (xlcShellTextEquals(argv[i],"--json")) wantsJson=1;
+        else if (xlcShellTextEquals(argv[i],"--format")&&i+1<argc) {if (xlcShellTextEquals(argv[i+1],"json")) wantsJson=1;++i;}
+        else if (xlcShellOptionTakesValue(argv[i])) ++i;
+    }
+    if (path) *path=target;
+    if (offset) *offset=value;
+    if (json) *json=wantsJson;
+    return found;
+}
+
+static int xlcShellSemanticIndexOptions(int argc, char** argv, int* json)
+{
+    return xlcShellJsonFlagOptions(argc, argv, "--semantic-index", json);
+}
+
+static int xlcShellSourceReportOptions(int argc, char** argv, int* json)
+{
+    return xlcShellJsonFlagOptions(argc, argv, "--source-report", json);
+}
+
+static int xlcShellSourceRangesOptions(int argc, char** argv, int* json)
+{
+    return xlcShellJsonFlagOptions(argc, argv, "--source-ranges", json);
 }
 
 static int xlcShellApplyContextOptions(XLC_Context* ctx, int argc, char** argv)
@@ -1076,7 +1156,27 @@ static int xlcShellApplyContextOptions(XLC_Context* ctx, int argc, char** argv)
         if ( xlcShellTextEquals(argv[i], "--") ) {
             break;
         }
-        if ( i + 1 < argc && xlcShellTextEquals(argv[i], "--inc-path") ) {
+        if (xlcShellTextEquals(argv[i], "--completion-at")) { i += 2; continue; }
+        if ( xlcShellTextEquals(argv[i], "--source-overlay") ) {
+            char* text;
+            size_t size;
+            int ok;
+            if (i + 2 >= argc || xlcShellTextEquals(argv[i + 1], "--") ||
+                xlcShellTextEquals(argv[i + 2], "--")) {
+                xl6ConsolePuts(XL6_CONSOLE_STDERR, "--source-overlay requires source path and UTF-8 snapshot path\n");
+                return 0;
+            }
+            text = xrtFileReadTextLimit(argv[i + 2], XENCODING_UTF8, XUTF_STRICT,
+                                        8u * 1024u * 1024u, &size);
+            if (!text) {
+                xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot read UTF-8 source overlay: %s\n", argv[i + 2]);
+                return 0;
+            }
+            ok = xlcSetSourceOverlay(ctx, argv[i + 1], text, size);
+            xrtFree(text);
+            if (!ok) return 0;
+            i += 2;
+        } else if ( i + 1 < argc && xlcShellTextEquals(argv[i], "--inc-path") ) {
             if ( !xlcAddIncludePath(ctx, argv[++i]) ) {
                 return 0;
             }
@@ -1152,6 +1252,9 @@ static XLC_Context* xlcShellCreateContext(int argc, char** argv)
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "cannot create xlc context\n");
         return NULL;
     }
+    if (xlcShellFindValue(argc,argv,"--input-report",3) && !xlcBeginInputReport(ctx)) {
+        xl6ConsolePrintf(XL6_CONSOLE_STDERR,"%s\n",xlcGetLastError(ctx)); xlcDestroyContext(ctx); return NULL;
+    }
     if ( !xlcShellApplyContextOptions(ctx, argc, argv) ) {
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "%s\n", xlcGetLastError(ctx));
         xlcDestroyContext(ctx);
@@ -1185,7 +1288,7 @@ static int xlcShellAddProject(XLC_Context* ctx, const char* file)
         return 0;
     }
     xlcShellProjectInit(&project);
-    if ( !xlcShellProjectLoad(file, &project) ) {
+    if ( !xlcShellProjectLoad(ctx, file, &project) ) {
         xlcShellProjectFree(&project);
         return 0;
     }
@@ -1269,6 +1372,8 @@ static int xlcShellDoLex(XLC_Context* ctx, int argc, char** argv)
 
 static int xlcShellDoParse(XLC_Context* ctx, int argc, char** argv)
 {
+    if (xlcShellSourceRangesOptions(argc, argv, NULL))
+        return xlcEmitAstWithRanges(ctx, xlcShellFindValue(argc, argv, "--emit", 3));
     return xlcEmitAst(ctx, xlcShellFindValue(argc, argv, "--emit", 3), xlcShellHasJson(argc, argv));
 }
 
@@ -1298,7 +1403,25 @@ static int xlcShellDoCheck(XLC_Context* ctx, int argc, char** argv)
     char outputPath[512];
     int ok;
 
-    (void)argv;
+    int wantsJson;
+    const char* queryPath;
+    size_t queryOffset;
+    if (xlcShellCompletionOptions(argc, argv, &queryPath, &queryOffset, &wantsJson) == 1)
+        return xlcComplete(ctx, queryPath, queryOffset, NULL);
+    if (xlcShellSemanticIndexOptions(argc, argv, &wantsJson)) {
+        if (!wantsJson) {
+            xl6ConsolePuts(XL6_CONSOLE_STDERR, "--semantic-index requires check --json\n");
+            return 0;
+        }
+        return xlcCheckWithIndex(ctx, NULL);
+    }
+    if (xlcShellSourceReportOptions(argc, argv, &wantsJson)) {
+        if (!wantsJson) {
+            xl6ConsolePuts(XL6_CONSOLE_STDERR, "--source-report requires check --json\n");
+            return 0;
+        }
+        return xlcCheckWithSources(ctx, NULL);
+    }
     if ( xlcShellHasJson(argc, argv) ) {
         return xlcCheck(ctx, NULL, 1);
     }
@@ -1502,6 +1625,27 @@ cleanup:
     return ok;
 }
 
+static int xlcShellSelectSharedOutput(int argc, char** argv, int* shared)
+{
+    int cliShared = xlcShellHasFlag(argc, argv, "-shared") || xlcShellHasFlag(argc, argv, "--shared");
+    *shared = cliShared;
+    if (xlcShellProjectKind[0] != '\0') {
+        *shared = xlcShellProjectIsSharedKind(xlcShellProjectKind);
+        if (cliShared && !*shared) {
+            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp kind conflicts with -shared: %s\n", xlcShellFileArg(argc, argv));
+            return 0;
+        }
+    }
+    return 1;
+}
+static int xlcShellDoCBridge(XLC_Context* ctx, int argc, char** argv)
+{
+    int shared = 0;
+    if (!xlcShellJsonFlagOptions(argc, argv, "--c-environment", NULL)) return xlcCBridge(ctx, NULL);
+    if (!xlcShellSelectSharedOutput(argc, argv, &shared)) return 0;
+    return xlcCBridgeWithEnvironment(ctx, NULL, shared);
+}
+
 static int xlcShellDoCgen(XLC_Context* ctx, int argc, char** argv)
 {
     const char* backend;
@@ -1543,19 +1687,10 @@ static int xlcShellDoBuild(XLC_Context* ctx, int argc, char** argv)
     const char* output;
     const char* emitHeader;
     char defaultOutput[512];
-    int cliShared;
     int buildShared;
     int ok;
 
-    cliShared = xlcShellHasFlag(argc, argv, "-shared") || xlcShellHasFlag(argc, argv, "--shared");
-    buildShared = cliShared;
-    if ( xlcShellProjectKind[0] != '\0' ) {
-        buildShared = xlcShellProjectIsSharedKind(xlcShellProjectKind);
-        if ( cliShared && !buildShared ) {
-            xl6ConsolePrintf(XL6_CONSOLE_STDERR, "xlp kind conflicts with -shared: %s\n", xlcShellFileArg(argc, argv));
-            return 0;
-        }
-    }
+    if (!xlcShellSelectSharedOutput(argc, argv, &buildShared)) return 0;
     output = xlcShellFindValue(argc, argv, "-o", 3);
     if ( output == NULL ) {
         if ( buildShared ) {
@@ -1577,6 +1712,8 @@ static int xlcShellDoBuild(XLC_Context* ctx, int argc, char** argv)
     } else {
         ok = xlcEmitExe(ctx, output);
     }
+    if (ok && xlcShellFindValue(argc,argv,"--input-report",3))
+        ok=xlcWriteInputReport(ctx,output,xlcShellFindValue(argc,argv,"--input-report",3));
     if ( ok && xlcShellHasFlag(argc, argv, "--save-temps") && xlcShellKeptTempDir[0] != '\0' ) {
         xl6ConsolePrintf(XL6_CONSOLE_STDERR, "temporary files kept: %s\n", xlcShellKeptTempDir);
     }
@@ -1620,6 +1757,8 @@ static int xlcShellBuildC(int argc, char** argv)
     } else {
         ok = runtime != NULL && xlCompileCSourceFilesToExe(runtime, cInputs, cInputCount, output);
     }
+    if(ok && xlcShellFindValue(argc,argv,"--input-report",3))
+        ok=xlcWriteInputReport(ctx,output,xlcShellFindValue(argc,argv,"--input-report",3));
     if ( !ok ) {
         const char* errorText = runtime != NULL ? xlGetLastError(runtime) : xlcGetLastError(ctx);
         if ( errorText != NULL && errorText[0] != '\0' ) {
@@ -1654,7 +1793,57 @@ static int xlcShellImpdef(int argc, char** argv)
 int xlcShellMain(int argc, char** argv)
 {
     const char* cmd;
+    {
+        int wantsJson = 0;
+        if (xlcShellJsonFlagOptions(argc, argv, "--c-environment", &wantsJson) &&
+            (argc < 2 || !xlcShellTextEquals(argv[1], "c-bridge") || !wantsJson)) {
+            xl6ConsolePuts(XL6_CONSOLE_STDERR, "--c-environment requires c-bridge --json\n");
+            return 1;
+        }
+    }
+    {
+        int wantsJson, query=xlcShellCompletionOptions(argc,argv,NULL,NULL,&wantsJson);
+        if (query<0 || (query && (argc<2 || !xlcShellTextEquals(argv[1],"check") || !wantsJson || xlcShellSemanticIndexOptions(argc,argv,NULL)))) {
+            xl6ConsolePuts(XL6_CONSOLE_STDERR,"--completion-at requires check --json, one path/decimal-offset pair, and no --semantic-index\n");
+            return 1;
+        }
+    }
+    { int wantsJson;
+      if (xlcShellSourceRangesOptions(argc, argv, &wantsJson) &&
+          (argc < 2 || !xlcShellTextEquals(argv[1], "parse") || !wantsJson)) {
+          xl6ConsolePuts(XL6_CONSOLE_STDERR, "--source-ranges requires parse --json\n");
+          return 1;
+      }
+    }
 
+    { int wantsJson;
+      if (xlcShellSemanticIndexOptions(argc, argv, &wantsJson) &&
+          (argc < 2 || !xlcShellTextEquals(argv[1], "check") || !wantsJson)) {
+          xl6ConsolePuts(XL6_CONSOLE_STDERR, "--semantic-index requires check --json\n");
+          return 1;
+      }
+    }
+    {
+        int reports=0,overlays=0,i;
+        for(i=3;i<argc;++i) {
+            if(xlcShellTextEquals(argv[i],"--")) break;
+            if(xlcShellTextEquals(argv[i],"--source-overlay")||xlcShellTextEquals(argv[i],"--completion-at")) { overlays+=xlcShellTextEquals(argv[i],"--source-overlay"); i+=2; continue; }
+            if(xlcShellTextEquals(argv[i],"--input-report")) {
+                if(++reports>1||i+1>=argc||!argv[i+1][0]||argv[i+1][0]=='-'||argc<2||!xlcShellTextEquals(argv[1],"build")) {
+                    xl6ConsolePuts(XL6_CONSOLE_STDERR,"--input-report requires build and one non-option receipt path\n"); return 1;
+                }
+                ++i;
+            } else if(xlcShellOptionTakesValue(argv[i])) ++i;
+        }
+        if(reports && (overlays||xlcShellFindValue(argc,argv,"--loadlib",3)||xlcShellFindValue(argc,argv,"--emit-header",3)||xlcShellHasFlag(argc,argv,"--save-temps"))) {
+            xl6ConsolePuts(XL6_CONSOLE_STDERR,"--input-report requires disk inputs without overlays, --loadlib, --emit-header or --save-temps\n"); return 1;
+        }
+    }
+    if (xlcShellSourceReportOptions(argc, argv, NULL) &&
+        (argc < 2 || !xlcShellTextEquals(argv[1], "check"))) {
+        xl6ConsolePuts(XL6_CONSOLE_STDERR, "--source-report is available only for check --json\n");
+        return 1;
+    }
     if ( argc < 2 ) {
         xlcShellPrintHelp();
         return 0;
@@ -1678,6 +1867,15 @@ int xlcShellMain(int argc, char** argv)
     }
     if ( xlcShellTextEquals(cmd, "ir") ) {
         return xlcShellRunWithFile(argc, argv, xlcShellDoIr);
+    }
+    if ( xlcShellTextEquals(cmd, "c-bridge") ) {
+        int wantsJson = 0;
+        (void)xlcShellSourceReportOptions(argc, argv, &wantsJson);
+        if (!wantsJson) {
+            xl6ConsolePuts(XL6_CONSOLE_STDERR, "c-bridge requires --json\n");
+            return 1;
+        }
+        return xlcShellRunWithFileEx(argc, argv, xlcShellDoCBridge, 0);
     }
     if ( xlcShellTextEquals(cmd, "cgen") ) {
         return xlcShellRunWithFile(argc, argv, xlcShellDoCgen);

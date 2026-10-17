@@ -2,6 +2,7 @@
 #define XLC_PUBLIC_API_H
 
 #include "xl.h"
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,10 +47,42 @@ XLC_API int xlcRegisterCFunction(XLC_Context* ctx, const char* symbolName, void*
 
 XLC_API int xlcAddSourceFile(XLC_Context* ctx, const char* path);
 XLC_API int xlcAddSourceString(XLC_Context* ctx, const char* virtualPath, const char* source);
+/* Context-owned UTF-8 snapshots for entry and recursive .xl imports. Input
+ * is copied; no NUL, malformed UTF-8, >8 MiB/file, >32 MiB total or >64 files.
+ * Relative paths resolve against workDir at registration, using lexical
+ * absolute paths and Windows case-insensitive comparison. String entry text
+ * remains authoritative; overlays apply to its imports. Failed updates retain
+ * the previous snapshot and compiled unit. Remove/clear restore disk fallback.
+ * These APIs do not override C sources, manifests or resource files. */
+XLC_API int xlcSetSourceOverlay(XLC_Context* ctx, const char* path, const char* source, size_t size);
+XLC_API int xlcRemoveSourceOverlay(XLC_Context* ctx, const char* path);
+XLC_API int xlcClearSourceOverlays(XLC_Context* ctx);
 XLC_API int xlcCompile(XLC_Context* ctx);
 XLC_API int xlcCheck(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+/* JSON diagnostics plus schema-1 snapshots of loaded source/manifest files.
+ * This opt-in check is bounded and rejects unstable or non-UTF-8 inputs.
+ * It does not observe resolution candidates, native ABI files, or C inputs. */
+XLC_API int xlcCheckWithSources(XLC_Context* ctx, const char* outputPath);
+/* Same validated check + source/resolution reports, with opt-in semantic facts. */
+XLC_API int xlcCheckWithIndex(XLC_Context* ctx, const char* outputPath);
+/* Fresh verified/lowered native C declarations with the same source/resolution
+ * batch. Schema-1 cBridge; failed queries contain no stale declarations.
+ * Query header is capped at 1 MiB. Does not observe the C preprocessor graph
+ * or export a complete TCC environment. Inputs/outputs follow check APIs. */
+XLC_API int xlcCBridge(XLC_Context* ctx, const char* outputPath);
+/* Opt-in configuration operations shared with TCC and exact builtin header
+ * bytes. shared is 0 or 1. Does not prove a complete preprocessing graph or
+ * Clang/TCC equivalence; failure clears both declarations and environment. */
+XLC_API int xlcCBridgeWithEnvironment(XLC_Context* ctx, const char* outputPath, int shared);
+/* Query-only completion at a UTF-8 byte offset after the optional BOM.
+ * JSON includes query completeness and exact source/resolution reports.
+ * Success does not claim the input compilation is valid. */
+XLC_API int xlcComplete(XLC_Context* ctx,const char* queryPath,size_t byteOffset,const char* outputPath);
 XLC_API int xlcEmitTokens(XLC_Context* ctx, const char* outputPath, int jsonOutput);
 XLC_API int xlcEmitAst(XLC_Context* ctx, const char* outputPath, int jsonOutput);
+/* Bounded schema-1 JSON for the entry syntax tree, with real grammar/token
+ * ranges. This is a parser API, not a semantic symbol/dependency query. */
+XLC_API int xlcEmitAstWithRanges(XLC_Context* ctx, const char* outputPath);
 XLC_API int xlcEmitIr(XLC_Context* ctx, const char* outputPath, int jsonOutput);
 /* Emits only verified CFG-lowered XLIR; useful for inspecting the Cgen input. */
 XLC_API int xlcEmitLoweredIr(XLC_Context* ctx, const char* outputPath, int jsonOutput);

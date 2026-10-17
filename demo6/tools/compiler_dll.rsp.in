@@ -261,6 +261,11 @@
     src\backend\xl6_build_backend.c
     src\compile\xl6_compile_unit.c
     src\compile\xl6_imports.c
+    src\compile\xl6_build_inputs.c
+    src\compile\xl6_source_overlay.c
+    src\compile\xl6_source_report.c
+    src\sem\xl6_completion.c
+    src\sem\xl6_sem_index.c
     src\compile\xl6_xrt_trim.c
     src\common\xl6_console.c
     src\common\xl6_output.c

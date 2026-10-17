@@ -1,4 +1,5 @@
 #include "src/package/xl6_package.h"
+#include "src/compile/xl6_source_report.h"
 #include "src/common/xl6_common.h"
 
 #include <stdio.h>
@@ -454,6 +455,12 @@ static int xl6PackageManifestReadXrtValue(const xvalue* root, XL6_PackageManifes
 
 int xl6PackageLoadManifest(const char* path, XL6_PackageManifest* manifest)
 {
+    return xl6PackageLoadManifestObserved(path, manifest, NULL);
+}
+
+int xl6PackageLoadManifestObserved(const char* path, XL6_PackageManifest* manifest,
+                                  XL6_SourceReport* report)
+{
     char* text;
     char* dir;
     char* fallbackName;
@@ -468,7 +475,7 @@ int xl6PackageLoadManifest(const char* path, XL6_PackageManifest* manifest)
     xl6PackageManifestFree(manifest);
     xl6PackageManifestInit(manifest);
 
-    text = xrtFileReadText(path, XENCODING_UTF8, XUTF_STRICT, &textLen);
+    text = xl6SourceReportReadText(report, path, XL6_SOURCE_REPORT_MANIFEST, &textLen);
     if ( text == NULL ) {
         xrtFree(text);
         return 0;
@@ -525,7 +532,7 @@ static int xl6PackageFinalizeManifestResult(XL6_PackageResolveResult* result)
     char* packageId;
 
     xl6PackageManifestInit(&manifest);
-    if ( !xl6PackageLoadManifest(result->manifestPath, &manifest) ) {
+    if ( !xl6PackageLoadManifestObserved(result->manifestPath, &manifest, result->sourceReport) ) {
         xl6PackageManifestFree(&manifest);
         return 0;
     }
@@ -578,7 +585,7 @@ static int xl6PackageTryManifest(XL6_PackageResolveResult* result, const char* p
     if ( result == NULL || path == NULL ) {
         return 0;
     }
-    if ( !xrtFileExists((char*)path) ) {
+    if ( !xl6SourceReportExists(result->sourceReport, path) ) {
         return 0;
     }
     result->manifestPath = xl6PackageDupText(path);
@@ -683,7 +690,7 @@ static int xl6PackageTryEnvPackagePath(XL6_PackageResolveResult* result, const c
     const char sep = ':';
 #endif
 
-    env = (char*)xrtEnvGet((str)"XLANG_PACKAGE_PATH");
+    env = xl6SourceReportPackagePath(result->sourceReport);
     if ( env == NULL || env[0] == '\0' ) {
         xrtFree(env);
         return 0;
@@ -818,6 +825,12 @@ const char* xl6PackageResolveKindName(XL6_PackageResolveKind kind)
 
 int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_PackageResolveResult* result)
 {
+    return xl6PackageResolveImportObserved(importerPath, target, result, NULL);
+}
+
+int xl6PackageResolveImportObserved(const char* importerPath, const char* target,
+                                   XL6_PackageResolveResult* result, XL6_SourceReport* report)
+{
     char* importerDir;
     char* path;
     int ok;
@@ -826,6 +839,7 @@ int xl6PackageResolveImport(const char* importerPath, const char* target, XL6_Pa
         return 0;
     }
     xl6PackageResolveResultInit(result);
+    result->sourceReport = report;
     if ( target == NULL || target[0] == '\0' ) {
         return 0;
     }
