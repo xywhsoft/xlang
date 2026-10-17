@@ -6,6 +6,7 @@
 
 ## 当前权威设计
 
+- [DLL 构建响应文件与失败状态](stdlib53-b348-build-response-prerequisites.md)：必要构建前置等价拆分、去重、可靠退出码与 LF／CRLF 检查；保留工作区编译器增量与新产品验收边界。
 - [Signal 语言故障前缀的真实产品验收](stdlib53-b347-signal-language-product-prefixes.md)：八份原语言夹具使用实际双产品；完整 OOM 前缀、原异常优先的两层诊断降级及反向控制分别验证。
 - [系统原生接口的真实产品验收](stdlib53-b346-system-native-product-suites.md)：四份原时间／环境 C 宿主和无私有注入的 signal 消费者直接链接实际产品；保留 POSIX 与 Windows DST、白盒与产品、原生与语言故障层的边界。
 - [文本原生测试的真实产品验收](stdlib53-b345-text-native-product-suites.md)：十四份原 C 宿主直接链接双端实际产品，保留断言并检查清零前后堆账本；物理、逻辑前缀与单点故障分别计数。

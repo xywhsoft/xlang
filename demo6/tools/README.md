@@ -2,6 +2,13 @@
 
 This directory contains DEMO6 toolchain setup scripts and engineering guard checks.
 
+`check_stdlib_dll_response_helper.py --root <demo6> --out <fresh-directory>` tests
+the Windows response helper with an isolated native protocol probe, space paths,
+exact UTF-8 bytes, stderr, exit 29, launch failure and unresolved variables. It
+does not compile a DLL. `check_stdlib_symbol_table_line_endings.py` checks LF/CRLF
+acceptance and renamed/duplicate/lone-CR rejection without relaxing snapshot
+header hashes. Both are build prerequisites, not runtime or full53 acceptance.
+
 `check_stdlib_signal_language_oom_shipping.py --root <frozen-demo6> --build-report
 <ordinary-build.json> --out <fresh-directory> --jobs 2` is the required
 `signal-language-oom` gate. All eight original signal fixtures use unchanged
