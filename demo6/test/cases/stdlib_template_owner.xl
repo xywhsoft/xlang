@@ -1,0 +1,32 @@
+class TemplateResourceOwner
+    Stack<TemplateResourceOwner> cycle
+    string title = "owned"
+    TemplateEngine engine = TemplateEngine()
+    Template? program = null
+    Deflater encoder = Deflater()
+    Inflater decoder = Inflater()
+    create()
+        TemplateResourceOwner owner = self
+        self.engine.registerFunction("title", func(TemplateCall call) as bool
+            return call.write(owner.title)
+        end)
+        self.program = self.engine.compile("{@title}")
+    end
+    func link()
+        self.cycle.push(self)
+    end
+    destroy()
+        auto program = self.program
+        assert program != null
+        if program != null then assert program.nodeCount > 0 end
+        assert not self.encoder.closed and not self.decoder.closed
+        self.encoder.close()
+        self.decoder.close()
+        println("native-template-owner-finalized")
+    end
+end
+TemplateResourceOwner root = TemplateResourceOwner()
+root.link()
+auto program = root.program
+if program == null then throw RuntimeError "template missing" end
+assert program.render() == "owned"

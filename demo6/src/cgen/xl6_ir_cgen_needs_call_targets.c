@@ -375,13 +375,6 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
             needs->needsTakeCstrBridgeRuntime = 1;
             needs->needsStringRuntime = 1;
         } else if ( target->runtimeBridge ==
-                        XL6_IR_RUNTIME_BRIDGE_TEMPLATE ) {
-            needs->needsTemplateBridgeRuntime = 1;
-            needs->needsStringRuntime = 1;
-            needs->needsStringViews = 1;
-            needs->needsXValueRuntime = 1;
-            needs->needsErrorRuntime = 1;
-        } else if ( target->runtimeBridge ==
                         XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_LEN ) {
             needs->needsStringCharLenBridgeRuntime = 1;
             needs->needsStringViews = 1;
@@ -417,19 +410,6 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
                 break;
             default: return 0;
             }
-        } else if ( target->runtimeBridge ==
-                        XL6_IR_RUNTIME_BRIDGE_TEXT_CODEC ) {
-            needs->needsTextCodecBridgeRuntime = 1;
-            needs->needsStringViews = 1;
-        } else if ( target->runtimeBridge ==
-                        XL6_IR_RUNTIME_BRIDGE_BASE64_TEXT_CODEC ) {
-            needs->needsBase64TextCodecBridgeRuntime = 1;
-        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_HEX_BYTES_CODEC ) {
-            needs->needsHexBytesCodecBridgeRuntime = 1;
-            needs->needsStringViews = 1;
-        } else if ( target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_BASE64_BYTES_CODEC ) {
-            needs->needsBase64BytesCodecBridgeRuntime = 1;
-            needs->needsStringViews = 1;
         } else if ( target->runtimeBridge ==
                         XL6_IR_RUNTIME_BRIDGE_CRYPTO_TEXT_HASH ) {
             needs->needsCryptoTextHashBridgeRuntime = 1;

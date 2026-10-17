@@ -1,0 +1,2 @@
+extern "xl6TemplateCallEvalV1" func wrong(point context, int index) as var
+auto value = wrong(null, 0)

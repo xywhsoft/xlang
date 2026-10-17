@@ -1,2 +1,2 @@
-extern "xl6_xrt_buffer_from_base64" func bad(string text, c_size size) as point
-point result = bad("QQ==", c_size(4))
+extern "xl6CodecBase64BytesV1" func bad(bytes data, int size, int flags) as string
+auto result = bad(b"x", -1, 0)

@@ -1,0 +1,49 @@
+string directory = "build/test/template-resident"
+string path = directory + "/page.txt"
+dir.createAll(directory)
+assert file.writeText(path, "File {$name}\0", encoding = 2, bom = true)
+assert template.compileFile(path).render({"name": "Ada"}) == "File Ada\0"
+assert template.renderFile(path, {"name": "Lin"}) == "File Lin\0"
+auto engine = template.engine()
+engine.registerFunction("name", func(TemplateCall call) as bool
+    return call.write("Ada")
+end)
+assert file.writeText(path, "Hello {@name}")
+assert engine.compileFile(path).render() == "Hello Ada"
+auto filesystem = vfs.create()
+auto resources = vfs.memory()
+assert resources.put("page.txt", encoding.encodeUtf16LE("Vfs {$name}\0", bom = true))
+assert resources.put("custom.txt", "Hello {@name}")
+assert resources.seal()
+auto mount = filesystem.mount("/app", resources)
+assert template.compileFileIn(filesystem, "/app/page.txt").render({"name": "Ada"}) == "Vfs Ada\0"
+assert template.renderFileIn(filesystem, "/app/page.txt", {"name": "Lin"}) == "Vfs Lin\0"
+assert engine.compileFileIn(filesystem, "/app/custom.txt").render() == "Hello Ada"
+int refused = 0
+try
+    template.compileFile(path + "\0suffix")
+catch failure
+    refused += 1
+end
+try
+    template.compileFile(path, maxInputBytes = 1)
+catch failure
+    refused += 1
+end
+try
+    template.compileFileIn(filesystem, "/app/page.txt", maxInputBytes = 1)
+catch failure
+    refused += 1
+end
+auto limited = TemplateCompileOptions()
+limited.maxSourceBytes = 3
+try
+    template.compileFile(path, limited)
+catch failure
+    refused += 1
+end
+assert refused == 4
+assert mount.unmount()
+file.delete(path)
+dir.delete(directory)
+println("template files, encoding, VFS, limits and exact lengths passed")

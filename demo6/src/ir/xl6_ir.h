@@ -1749,6 +1749,7 @@ typedef enum XL6_IrRuntimeOp {
        * returns an owned managed JSON string.  payloadType names the verified
        * class persistence schema consumed mechanically by Cgen. */
        XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY,
+       XL6_IR_RUNTIME_PUBLIC_DATA_PROJECT,
        XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT,
        XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT,
        /* Closed configured encoders consume only a verified wire value and
@@ -2513,6 +2514,7 @@ typedef enum XL6_IrIntrinsicKind {
      * class TypeId and field schema are owned by XLIR; lowering and Cgen do
      * not recover derive declarations, attributes, or the runtime callee
      * spelling. */
+    XL6_IR_INTRINSIC_PUBLIC_DATA_PROJECT,
     XL6_IR_INTRINSIC_PERSISTENCE_JSON_STRINGIFY,
     /* Generic json.parse<T> fixes T as the result and schema TypeId.  Its sole
      * source operand is borrowed text; lowering materializes the default T
@@ -4087,7 +4089,6 @@ typedef enum XL6_IrRuntimeBridgeKind {
     /* Public-XRT-backed Template native-class component.  The exact symbol
      * selects factory, borrowed-handle operation, or destroy semantics during
      * lowering; Cgen only observes the verified component marker. */
-    XL6_IR_RUNTIME_BRIDGE_TEMPLATE,
     /* Public-XRT-backed Buffer/BufferIter native-class component. */
     XL6_IR_RUNTIME_BRIDGE_BUFFER,
     XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_LEN,
@@ -4100,7 +4101,6 @@ typedef enum XL6_IrRuntimeBridgeKind {
     XL6_IR_RUNTIME_BRIDGE_STRING_STARTS_WITH,
     XL6_IR_RUNTIME_BRIDGE_STRING_ENDS_WITH,
     XL6_IR_RUNTIME_BRIDGE_STRING_SPLIT,
-    XL6_IR_RUNTIME_BRIDGE_TEXT_CODEC,
     XL6_IR_RUNTIME_BRIDGE_CRYPTO_TEXT_HASH,
     /* Variadic path.join facade: two borrowed strings plus the boxed rest
      * array, returning an owned raw C string consumed by TAKE_CSTR. */
@@ -4144,9 +4144,6 @@ typedef enum XL6_IrRuntimeBridgeKind {
     XL6_IR_RUNTIME_BRIDGE_LAST_ERROR_TEXT,
     /* Borrowed managed text + exact size + optional alphabet pointer -> owned
      * raw C text consumed by TAKE_CSTR; independent of Buffer admission. */
-    XL6_IR_RUNTIME_BRIDGE_BASE64_TEXT_CODEC,
-    XL6_IR_RUNTIME_BRIDGE_HEX_BYTES_CODEC,
-    XL6_IR_RUNTIME_BRIDGE_BASE64_BYTES_CODEC,
     /* JSON value operations have exact borrowed-input/owned-result contracts.
      * Separate identities keep validation-only programs free of DOM/writer
      * dependencies; JSON_PARSE retains its existing identity. */
@@ -5876,6 +5873,9 @@ typedef struct XL6_IrClassField {
     /* Exact structural `derive equals` / `derive hash` field partition.  Both
      * protocols share @compare(skip), so equality and hashing cannot drift. */
     int compareDeriveIncluded;
+    /* Stored public fields only; independent of JSON/XLON attributes/getters.
+     * Typed construction resolves visibility, verification rechecks it. */
+    int publicDataIncluded;
 } XL6_IrClassField;
 
 /* One materialization of a field declaration at a construction invocation.
@@ -5905,7 +5905,10 @@ typedef struct XL6_IrInstantiation {
 #define XL6_IR_PERSIST_FORMAT_VALUE 0x00000001u
 #define XL6_IR_PERSIST_FORMAT_JSON  0x00000002u
 #define XL6_IR_PERSIST_FORMAT_XLON  0x00000004u
+#define XL6_IR_PERSIST_FORMAT_PUBLIC 0x00000008u
 #define XL6_IR_PERSIST_FORMAT_ALL   0x00000007u
+
+int xl6IrPublicDataIntrinsicAbi(const struct XL6_IrModule*,const XL6_IrIntrinsicCall*);
 
 /* Persistence must distinguish a closed class schema from the language's
  * open `object` storage.  OPEN_DYNAMIC_SCHEMA means the serialized value owns

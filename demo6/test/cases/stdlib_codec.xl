@@ -1,40 +1,17 @@
-extern "expect_i64" func expect(int actual, int expected)
-extern "expect_str" func expectStr(string actual, string expected)
-
-expectStr(codec.hexEncode("xlang"), "786C616E67")
-expectStr(codec.hexDecode("786C616E67"), "xlang")
-expectStr(codec.hexDecode("786c616e67"), "xlang")
-
-expectStr(codec.base64Encode("xlang"), "eGxhbmc=")
-expectStr(codec.base64Decode("eGxhbmc="), "xlang")
-expectStr(codec.percentEncode("alice bob/ok"), "alice%20bob%2Fok")
-expectStr(codec.percentDecode("alice%20bob%2Fok"), "alice bob/ok")
-expectStr(codec.percentDecode("alice+bob%2Fok"), "alice+bob/ok")
-
-expectStr(codec.hexDecode(codec.hexEncode("hello")), "hello")
-expectStr(codec.base64Decode(codec.base64Encode("hello")), "hello")
-expectStr(codec.percentDecode(codec.percentEncode("hello world")), "hello world")
-
-expect(string.len(codec.hexEncode("abc")), 6)
-expect(string.len(codec.base64Encode("abc")), 4)
-
-Buffer raw = Buffer()
-expect(raw.appendByte(0), 1)
-expect(raw.appendByte(255), 1)
-expect(raw.append("AZ"), 1)
-
-expectStr(codec.hexEncodeBytes(raw.data(), c_size(raw.len())), "00FF415A")
-Buffer fromHex = codec.hexDecodeBytes("00FF415A")
-expect(fromHex.len(), 4)
-expect(fromHex.byteAt(0), 0)
-expect(fromHex.byteAt(1), 255)
-expect(fromHex.byteAt(2), 65)
-expect(fromHex.byteAt(3), 90)
-
-expectStr(codec.base64EncodeBytes(raw.data(), c_size(raw.len())), "AP9BWg==")
-Buffer fromBase64 = codec.base64DecodeBytes("AP9BWg==")
-expect(fromBase64.len(), 4)
-expect(fromBase64.byteAt(0), 0)
-expect(fromBase64.byteAt(1), 255)
-expect(fromBase64.byteAt(2), 65)
-expect(fromBase64.byteAt(3), 90)
+assert codec.hexEncode("xlang") == "786c616e67"
+assert codec.hexDecode("786C616E67") == b"xlang"
+assert codec.base64Encode("xlang") == "eGxhbmc="
+assert codec.base64Decode("eGxhbmc=") == b"xlang"
+assert codec.percentEncode("alice bob/ok") == "alice%20bob%2Fok"
+assert codec.percentDecode("alice+bob%2Fok") == b"alice+bob/ok"
+assert codec.hexDecode(codec.hexEncode("a\0b")) == b"a\0b"
+assert codec.base64Decode(codec.base64Encode("a\0b")) == b"a\0b"
+assert codec.percentDecode(codec.percentEncode("a\0b")) == b"a\0b"
+bytes raw = b"\0\xffAZ"
+assert codec.hexEncode(raw) == "00ff415a"
+assert codec.hexDecode("00FF415A") == raw
+assert codec.base64Encode(raw) == "AP9BWg=="
+assert codec.base64Decode("AP9BWg==") == raw
+assert codec.percentDecode(codec.percentEncode(raw)) == raw
+assert encoding.decodeUtf8(codec.hexDecode("786c616e67")) == "xlang"
+println("codec safe value interfaces passed")

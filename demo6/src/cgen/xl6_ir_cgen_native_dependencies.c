@@ -864,11 +864,11 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
                 instruction->typedCollectionOp==XL6_IR_TYPED_COLLECTION_TRIM_TO ? "xl6ListValueTrimV1" : NULL;
             if (listMethod && !visitor(context,listMethod)) return 0;
         }
-        if ((instruction->runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
+        if ((instruction->runtimeOp == XL6_IR_RUNTIME_PUBLIC_DATA_PROJECT || instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
              instruction->runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT) &&
             (!xl6IrPersistenceProjectInstructionAbi(module,instruction) ||
              !visitor(context,xl6IrCgenPersistenceProjectSymbol(module,instruction)))) return 0;
-        if (instruction->runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
+        if (instruction->runtimeOp == XL6_IR_RUNTIME_PUBLIC_DATA_PROJECT || instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
             instruction->runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT) {
             if (!xl6IrCgenVisitValueGraphProviders(
                 xl6IrValueGraphProvidersForType(module,instruction->payloadType),1,visitor,context)) return 0;

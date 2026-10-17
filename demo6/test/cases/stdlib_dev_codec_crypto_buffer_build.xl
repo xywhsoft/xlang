@@ -1,7 +1,7 @@
 assert codec.hexEncode("AB") == "4142", "codec.hexEncode should work in xl build"
-assert codec.hexDecode("4142") == "AB", "codec.hexDecode should work in xl build"
+assert codec.hexDecode("4142") == b"AB", "codec.hexDecode should work in xl build"
 assert codec.percentEncode("a b") == "a%20b", "codec.percentEncode should work in xl build"
-assert codec.percentDecode("a%20b") == "a b", "codec.percentDecode should work in xl build"
+assert codec.percentDecode("a%20b") == b"a b", "codec.percentDecode should work in xl build"
 
 assert string.len(crypto.sha256("AB")) == 64, "crypto.sha256 should work with codec symbols"
 

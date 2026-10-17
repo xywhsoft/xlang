@@ -181,6 +181,7 @@ static uint32 xl6IrCgenPersistenceRuntimeFormat(XL6_IrRuntimeOp operation)
     const XL6_IrPersistenceInvocationContract* configured = xl6IrPersistenceInvocationRuntime(operation);
     if (configured != NULL) return configured->projectionFormat;
     switch ( operation ) {
+    case XL6_IR_RUNTIME_PUBLIC_DATA_PROJECT: return XL6_IR_PERSIST_FORMAT_PUBLIC;
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT:
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_STRINGIFY:
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE:

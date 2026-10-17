@@ -1,11 +1,16 @@
 /* Exact resident resource declarations. A non-NULL owner also has a checked
  * XLIR direct-bridge contract. NULL is the private Pattern publication token.
  * Native payload storage and owning edges are audited in each provider. */
+XL6_NATIVE_RESOURCE_POLICY("xl6TemplateDestroyV1",TEMPLATE_CORE,xl6TemplateHandlePolicyV1Get)
+XL6_NATIVE_RESOURCE_POLICY("xl6TemplateCallDestroyV1",TEMPLATE_RENDER,xl6TemplateCallHandlePolicyV1Get)
+XL6_NATIVE_RESOURCE_POLICY("xl6TemplateEngineGuardDestroyV1",TEMPLATE_EXTENSION,xl6TemplateEngineGuardHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6DateTimeDestroyV1",TIME_DATETIME,xl6DateTimeHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6UnicodeValidatorDestroyV1",UNICODE_VALIDATOR,xl6UnicodeValidatorHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6TextIteratorDestroyV1",TEXT_ITERATOR,xl6TextIteratorHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6PatternDestroyV1",PATTERN_CORE,xl6PatternHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6PatternOptionsDestroyV1",PATTERN_OPTIONS,xl6PatternOptionsHandlePolicyV1Get)
+XL6_NATIVE_RESOURCE_POLICY("xl6DeflaterDestroyV1",COMPRESS_DEFLATER,xl6DeflaterHandlePolicyV1Get)
+XL6_NATIVE_RESOURCE_POLICY("xl6InflaterDestroyV1",COMPRESS_INFLATER,xl6InflaterHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6PatternMatchDestroyV1",PATTERN_MATCH,xl6PatternMatchHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6PatternBuilderDestroyV1",PATTERN_BUILDER,xl6PatternBuilderHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6PatternEditDestroyV1",PATTERN_BUILDER,xl6PatternEditHandlePolicyV1Get)

@@ -1,0 +1,2 @@
+extern "xl6TemplateRenderV1" func wrong(Template source, var data, var options, func() as bool callback) as string
+auto value = wrong(template.compile("a"), null, null, func() as bool => true)

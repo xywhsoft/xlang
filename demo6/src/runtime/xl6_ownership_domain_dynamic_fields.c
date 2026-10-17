@@ -10,7 +10,7 @@ XL6_OWNERSHIP_QUERY(DynamicFields)
     (void)policies;(void)preparation;(void)completion;
     *adapter=xrtDynamicFieldsOwnershipAdapterV1(ref);return *adapter!=NULL;
 }
-const XL6_OwnershipDomainV1* xl6OwnershipDomainDynamicFieldsV1Get(void)
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainDynamicFieldsV1Get(void)
 {
     static const XL6_OwnershipDomainV1 domain={sizeof(domain),ownershipLoadDynamicFields,
         ownershipDomainDynamicFields,xl6DynamicFieldsReadAdmitsV1};return &domain;

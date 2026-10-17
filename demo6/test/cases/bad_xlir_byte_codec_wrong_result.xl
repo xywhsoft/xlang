@@ -1,2 +1,2 @@
-extern "xl6_xrt_buffer_from_hex" func bad(string text, c_size size) as int
-int result = bad("41", c_size(2))
+extern "xl6CodecHexDecodeV1" func bad(string text, int size, int flags) as int
+auto result = bad("41", -1, 0)

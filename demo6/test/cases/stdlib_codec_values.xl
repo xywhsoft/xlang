@@ -1,0 +1,38 @@
+assert codec.hexEncode("a\0b") == "610062"
+assert codec.hexEncode(b"\x00\xff") == "00ff"
+assert codec.hexDecode("6100ff") == b"a\0\xff"
+assert codec.hexEncode(b"\xff", flags = codec.hexUpper) == "FF"
+assert codec.hexDecode("61 00 ff", flags = codec.hexIgnoreSpace) == b"a\0\xff"
+assert codec.hexEncode("abc", 1) == "61"
+assert codec.hexEncode("a\0b", 99) == "610062"
+assert codec.base64Encode("a\0b") == "YQBi"
+assert codec.base64Encode(b"\xff", flags = codec.base64Url + codec.base64NoPadding) == "_w"
+assert codec.base64Decode("_w", flags = codec.base64Url + codec.base64OptionalPadding) == b"\xff"
+assert codec.base64Decode("YQBi") == b"a\0b"
+assert codec.percentEncode("a +\0") == "a%20%2B%00"
+assert codec.percentEncode(b"a +\0", safe = "+", form = true) == "a+%2B%00"
+assert codec.percentDecode("a+%2B%00", form = true) == b"a +\0"
+assert codec.percentDecode("a+b") == b"a+b"
+int rejected = 0
+try
+    codec.hexEncode("x", -2)
+catch RangeError
+    rejected += 1
+end
+try
+    codec.hexDecode("0x")
+catch e
+    rejected += 1
+end
+try
+    codec.base64Decode("/x==")
+catch e
+    rejected += 1
+end
+try
+    codec.percentDecode("%")
+catch e
+    rejected += 1
+end
+assert rejected == 4
+println("codec values passed")

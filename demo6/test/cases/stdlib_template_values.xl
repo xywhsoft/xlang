@@ -1,0 +1,88 @@
+var data = {"title": "xlang", "show": true, "users": [{"name": "Ada"}, {"name": "Lin"}]}
+string source = "<h1>{$title}</h1>{#if:show}Y{#else}N{#end}:{#foreach:users}{$name};{#end}"
+auto compiled = template.compile(source)
+assert compiled.render(data) == "<h1>xlang</h1>Y:Ada;Lin;"
+assert compiled.source == source and compiled.nodeCount > 0
+assert compiled.node(0).type > 0 and compiled.node(0).line == 1
+assert template.render("Hello {$title}", data) == "Hello xlang"
+auto delimiters = TemplateCompileOptions()
+delimiters.open = "<"
+delimiters.close = ">"
+assert template.compile("<$title>", delimiters).render(data) == "xlang"
+assert template.compile("a\0b").source == "a\0b"
+assert template.render("a\0b") == "a\0b"
+assert template.compile("abcTAIL", size = 3).render() == "abc"
+assert template.compile("abc", size = 99).render() == "abc"
+assert template.render("{#define:'row'}{$title}{#end}{#include:'row'}", data) == "xlang"
+auto html = TemplateRenderOptions()
+html.escapeHtml = true
+assert template.render("<p>{$value}</p>", {"value": "<&"}, html) == "<p>&lt;&amp;</p>"
+auto nonStrict = TemplateRenderOptions()
+nonStrict.strictUndefined = false
+assert template.render("A{$missing}B", data, nonStrict) == "AB"
+class TemplatePerson
+    string name = "Ada"
+end
+auto person = TemplatePerson()
+assert template.render("{$name}", {"name": person.name}) == "Ada"
+assert template.render("{$name}", person) == "Ada"
+auto scope = TemplateRenderOptions()
+scope.root = {"root": "R"}
+scope.current = {"name": "C"}
+scope.global = {"global": "G"}
+assert template.compile("{$name}").render(null, scope) == "C"
+auto budget = TemplateRenderOptions()
+budget.maxOutputBytes = 2
+int refused = 0
+try
+    template.render("{$missing}", data)
+catch failure
+    assert failure.domain == "xrt.template"
+    auto location = template.errorLocation(failure)
+    if location == null then throw RuntimeError "template error location missing" end
+    assert location.offset >= 0 and location.line == 1 and location.column >= 1
+    refused += 1
+end
+try
+    template.compile("{#if:}")
+catch failure
+    assert failure.domain == "xrt.template"
+    refused += 1
+end
+try
+    template.render("abc", options = budget)
+catch failure
+    refused += 1
+end
+try
+    template.compile("你", size = 1)
+catch failure
+    refused += 1
+end
+try
+    TemplateCall()
+catch failure
+    refused += 1
+end
+assert refused == 5
+Buffer output = Buffer("prefix:")
+assert compiled.appendTo(output, data) > 0
+assert output.toBytes() == b"prefix:<h1>xlang</h1>Y:Ada;Lin;"
+bytes before = output.toBytes()
+try
+    compiled.appendTo(output, data, budget)
+catch failure
+    refused += 1
+end
+assert refused == 6 and output.toBytes() == before
+auto writer = io.bufferWriter()
+assert template.compile("a\0b").writeTo(writer) == uint64(3)
+assert writer.toBytes() == b"a\0b"
+writer.close()
+try
+    compiled.writeTo(writer, data)
+catch failure
+    refused += 1
+end
+assert refused == 7
+println("template values, budgets, snapshots and output passed")

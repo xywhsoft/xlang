@@ -1,0 +1,2 @@
+extern "xl6CodecHexDecodeV1" func wrong(string text, int size, int flags) as string
+auto value = wrong("61", -1, 0)

@@ -8846,6 +8846,28 @@ static XL6_IrValueId xl6IrLowerTruthValue(
     return result;
 }
 
+static int xl6IrLowerPublicDataProject(XL6_IrLowerContext* ctx,XL6_IrNodeId id,
+    const XL6_IrIntrinsicCall* intrinsic,XL6_IrValueId* result)
+{
+    *result=XL6_IR_VALUE_INVALID;
+    if (!xl6IrPublicDataIntrinsicAbi(ctx->module,intrinsic)) return 0;
+    const XL6_IrIntrinsicOperand* binding=&ctx->module->intrinsicOperands[intrinsic->firstOperand];
+    const XL6_IrNode* sourceNode=xl6IrNodeGet(ctx->module,binding->expression);
+    size_t first=ctx->evaluationOwnerCount;XL6_SymbolId temporary=0;
+    XL6_IrTypeId temporaryType=XL6_IR_TYPE_INVALID;
+    XL6_IrValueId source=xl6IrLowerNode(ctx,binding->expression);
+    if (source==XL6_IR_VALUE_INVALID) return 1;
+    source=xl6IrLowerBorrowDynamicOperand(ctx,id,sourceNode,source,
+        intrinsic->resultType,&temporary,&temporaryType);
+    if (source==XL6_IR_VALUE_INVALID || (temporary &&
+        !xl6IrLowerProtectEvaluationStorage(ctx,id,temporary,source,0,0))) return 1;
+    *result=xl6IrLowerEmitRuntimeCallPayload(ctx,id,id,intrinsic->resultType,
+        XL6_IR_RUNTIME_PUBLIC_DATA_PROJECT,NULL,intrinsic->payloadType,&source,1);
+    if (*result!=XL6_IR_VALUE_INVALID && !xl6IrLowerCompleteEvaluationBorrows(ctx,id,first,result))
+        *result=XL6_IR_VALUE_INVALID;
+    return 1;
+}
+
 static XL6_IrValueId xl6IrLowerPersistenceProject(
     XL6_IrLowerContext* ctx, XL6_IrNodeId id, XL6_IrValueId source,
     XL6_IrTypeId payload, uint32 format)
@@ -12249,66 +12271,6 @@ static int xl6IrLowerResolveRuntimeBridge(
         target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_STRING_CHAR_LEN;
         return 1;
     }
-    if ( strcmp(target->cName, "xl6_xrt_hex_encode_text") == 0 ||
-         strcmp(target->cName, "xl6_xrt_hex_decode_text") == 0 ||
-         strcmp(target->cName, "xl6_xrt_percent_encode_text") == 0 ||
-         strcmp(target->cName, "xl6_xrt_percent_decode_text") == 0 ||
-         strcmp(target->cName, "xl6_xrt_base64_encode_text") == 0 ||
-         strcmp(target->cName, "xl6_xrt_base64_decode_text") == 0 ) {
-        int base64 = strcmp(target->cName, "xl6_xrt_base64_encode_text") == 0 ||
-            strcmp(target->cName, "xl6_xrt_base64_decode_text") == 0;
-        int configurable = base64 || strstr(target->cName, "percent_") != NULL;
-        result = xl6IrTypeGet(&ctx->module->types, target->returnType);
-        if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
-             target->parameterCount != (configurable ? 3u : 2u) || result == NULL ||
-             result->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
-             result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-             result->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ||
-             target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
-             !xl6IrLowerBufferBridgeParameterMatches(
-                 ctx->module, target, 0, XL6_IR_C_ABI_MANAGED_STRING,
-                 XL6_IR_PARAMETER_ABI_BORROW,
-                 XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ||
-             !xl6IrLowerBufferBridgeParameterMatches(
-                 ctx->module, target, 1, XL6_IR_C_ABI_C_SIZE,
-                 XL6_IR_PARAMETER_ABI_VALUE,
-                 XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ||
-             (configurable && !xl6IrLowerBufferBridgeParameterMatches(
-                 ctx->module, target, 2, XL6_IR_C_ABI_RAW_POINTER,
-                 XL6_IR_PARAMETER_ABI_VALUE,
-                 XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT)) )
-            return xl6IrLowerDiag(ctx, target->declaration,
-                "XLIR text codec runtime bridge has no exact ABI");
-        target->runtimeBridge = base64 ? XL6_IR_RUNTIME_BRIDGE_BASE64_TEXT_CODEC
-                                      : XL6_IR_RUNTIME_BRIDGE_TEXT_CODEC;
-        return 1;
-    }
-    if ( strcmp(target->cName, "xl6_xrt_hex_encode_bytes") == 0 ||
-         strcmp(target->cName, "xl6_xrt_base64_encode_bytes") == 0 ) {
-        int base64 = strcmp(target->cName, "xl6_xrt_base64_encode_bytes") == 0;
-        result = xl6IrTypeGet(&ctx->module->types, target->returnType);
-        if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
-             target->parameterCount != (base64 ? 3u : 2u) || result == NULL ||
-             result->cAbi != XL6_IR_C_ABI_RAW_POINTER ||
-             result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-             result->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ||
-             target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
-             !xl6IrLowerBufferBridgeParameterMatches(
-                 ctx->module, target, 0,
-                 XL6_IR_C_ABI_RAW_POINTER, XL6_IR_PARAMETER_ABI_VALUE,
-                 XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ||
-             !xl6IrLowerBufferBridgeParameterMatches(
-                 ctx->module, target, 1, XL6_IR_C_ABI_C_SIZE,
-                 XL6_IR_PARAMETER_ABI_VALUE, XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT) ||
-             (base64 && !xl6IrLowerBufferBridgeParameterMatches(
-                 ctx->module, target, 2, XL6_IR_C_ABI_RAW_POINTER,
-                 XL6_IR_PARAMETER_ABI_VALUE, XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT)) )
-            return xl6IrLowerDiag(ctx, target->declaration,
-                "XLIR byte codec runtime bridge has no exact ABI");
-        target->runtimeBridge = base64 ? XL6_IR_RUNTIME_BRIDGE_BASE64_BYTES_CODEC
-                                      : XL6_IR_RUNTIME_BRIDGE_HEX_BYTES_CODEC;
-        return 1;
-    }
     if ( strcmp(target->cName, "xl6_xrt_sha1_hex") == 0 ||
          strcmp(target->cName, "xl6_xrt_sha256_hex") == 0 ||
          strcmp(target->cName, "xl6_xrt_sha384_hex") == 0 ||
@@ -12356,70 +12318,6 @@ static int xl6IrLowerResolveRuntimeBridge(
             return xl6IrLowerDiag(ctx, target->declaration,
                 "XLIR path-join runtime bridge has no exact strings/rest/result ABI");
         target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_PATH_JOIN;
-        return 1;
-    }
-    if ( strcmp(target->cName, "xl6_xrt_template_parse") == 0 ) {
-        first = target->parameterCount == 3 && target->parameterTypes != NULL
-            ? xl6IrTypeGet(&ctx->module->types, target->parameterTypes[0]) : NULL;
-        second = target->parameterCount == 3 && target->parameterTypes != NULL
-            ? xl6IrTypeGet(&ctx->module->types, target->parameterTypes[1]) : NULL;
-        third = target->parameterCount == 3 && target->parameterTypes != NULL
-            ? xl6IrTypeGet(&ctx->module->types, target->parameterTypes[2]) : NULL;
-        if ( target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY ||
-             target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-             target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
-             first == NULL || second == NULL || third == NULL ||
-             first->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
-             second->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
-             third->cAbi != XL6_IR_C_ABI_MANAGED_STRING ||
-             target->parameterAbis == NULL || target->parameterPhysicalAbis == NULL ||
-             target->parameterAbis[0] != XL6_IR_PARAMETER_ABI_BORROW ||
-             target->parameterAbis[1] != XL6_IR_PARAMETER_ABI_BORROW ||
-             target->parameterAbis[2] != XL6_IR_PARAMETER_ABI_BORROW ||
-             target->parameterPhysicalAbis[0] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
-             target->parameterPhysicalAbis[1] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
-             target->parameterPhysicalAbis[2] != XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT )
-            return xl6IrLowerDiag(ctx, target->declaration,
-                "XLIR template parse runtime bridge has no exact native factory ABI");
-        target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_TEMPLATE;
-        return 1;
-    }
-    if ( strcmp(target->cName, "xl6_xrt_template_render") == 0 ||
-         strcmp(target->cName, "xl6_xrt_template_destroy") == 0 ) {
-        int destroy = strcmp(target->cName, "xl6_xrt_template_destroy") == 0;
-        result = target->returnType != XL6_IR_TYPE_INVALID
-            ? xl6IrTypeGet(&ctx->module->types, target->returnType) : NULL;
-        first = target->parameterCount == (destroy ? 1u : 2u) &&
-                target->parameterTypes != NULL
-            ? xl6IrTypeGet(&ctx->module->types, target->parameterTypes[0]) : NULL;
-        second = !destroy && target->parameterTypes != NULL
-            ? xl6IrTypeGet(&ctx->module->types, target->parameterTypes[1]) : NULL;
-        if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ||
-             target->variadicAbi != XL6_IR_CALL_VARIADIC_NONE ||
-             target->errorAbi != XL6_IR_ERROR_ABI_NO_RAISE || first == NULL ||
-             first->kind != XL6_IR_TYPE_CLASS ||
-             first->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-             target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
-             target->parameterAbis == NULL || target->parameterPhysicalAbis == NULL ||
-             target->parameterAbis[0] != XL6_IR_PARAMETER_ABI_BORROW ||
-             target->parameterPhysicalAbis[0] !=
-                 XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW ||
-             target->parameterPhysicalFieldDeclarations == NULL ||
-             target->parameterPhysicalFieldDeclarations[0] == XL6_IR_NODE_INVALID ||
-             (destroy && result != NULL) ||
-             (!destroy && (result == NULL || second == NULL ||
-                 result->cAbi != XL6_IR_C_ABI_RAW_POINTER ||
-                 result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL ||
-                 result->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL ||
-                 second->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-                 second->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-                 second->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL ||
-                 target->parameterAbis[1] != XL6_IR_PARAMETER_ABI_BORROW ||
-                 target->parameterPhysicalAbis[1] !=
-                     XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT)) )
-            return xl6IrLowerDiag(ctx, target->declaration,
-                "XLIR template runtime bridge has no exact borrowed native handle ABI");
-        target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_TEMPLATE;
         return 1;
     }
     if ( target->kind != XL6_IR_CALL_TARGET_EXTERN_C ) return 1;
@@ -30296,6 +30194,9 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                     return XL6_IR_VALUE_INVALID;
                 }
                  switch ( intrinsic->kind ) {
+                case XL6_IR_INTRINSIC_PUBLIC_DATA_PROJECT:
+                    builtinLowered=xl6IrLowerPublicDataProject(ctx,id,intrinsic,&result);
+                    break;
                 case XL6_IR_INTRINSIC_WEAK_LOCK:
                     builtinLowered = xl6IrLowerIntrinsicWeakLock(
                         ctx, id, node, intrinsic, &result);

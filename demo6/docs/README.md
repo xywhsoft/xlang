@@ -6,6 +6,8 @@
 
 ## 当前权威设计
 
+- [编码、压缩与模板标准库](编码压缩与模板标准库.md)：X06/X24 的驻留接口、精确长度、流式寿命、安全回调和 public 字段投影；Windows 269、Linux 283 阶段实际新候选专项通过。
+
 - [IDE 编译前置与源码快照错误传播](stdlib53-b350-ide-prerequisites.md)：五个编译单元与必要依赖闭合、查找失败不回退磁盘、Windows 嵌套程序 TLS 修复及有界构建记录；双端完整产品、AOT、严格 C、裁剪和公开签名用例关联通过。
 - [Windows 内嵌 SDK 的严格 Unicode 转换](stdlib53-b349-windows-strict-unicode-sdk.md)：补齐严格转换常量，以实际双 DLL 的 VFS、模块和独立程序验证；IDE 前置与完整工作区验收另行处理。
 - [DLL 构建响应文件与失败状态](stdlib53-b348-build-response-prerequisites.md)：必要构建前置等价拆分、去重、可靠退出码与 LF／CRLF 检查；保留工作区编译器增量与新产品验收边界。

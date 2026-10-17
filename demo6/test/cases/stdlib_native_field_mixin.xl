@@ -1,0 +1,12 @@
+class NativeTemplateProbe
+    string label = "managed before native"
+    private native point handle
+    bytes marker = b"\0\xff"
+    extern "xl6TemplateCreateV1" create(string source, var options = null, int size = -1)
+    extern "xl6TemplateDestroyV1" destroy()
+    extern "xl6TemplateSourceV1" get source() as string
+end
+auto probe = NativeTemplateProbe("a\0b")
+assert probe.source == "a\0b"
+assert probe.label == "managed before native" and probe.marker == b"\0\xff"
+println("explicit native field works between independent managed fields")

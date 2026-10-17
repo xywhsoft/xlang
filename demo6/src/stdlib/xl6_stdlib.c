@@ -1289,7 +1289,11 @@ static int xl6StdlibNeedsTemplateClass(const XL6_AstNode* root, const int* used)
     size_t index;
 
     if ( xl6StdlibNodeUsesTypeName(root, "Template") ||
-         xl6StdlibNodeUsesTypeName(root, "TemplateEngine") ) {
+         xl6StdlibNodeUsesTypeName(root, "TemplateEngine") || xl6StdlibNodeUsesTypeName(root,"TemplateCall") ||
+         xl6StdlibNodeUsesTypeName(root,"TemplateNode") || xl6StdlibNodeUsesTypeName(root,"TemplateArgument") ||
+         xl6StdlibNodeUsesTypeName(root,"TemplateCompileOptions") || xl6StdlibNodeUsesTypeName(root,"TemplateRenderOptions") ||
+         xl6StdlibNodeUsesTypeName(root,"TemplateLocation") || xl6StdlibFuncUsed(used,"template","errorLocation") ||
+         xl6StdlibFuncUsed(used,"template","compileFileIn") || xl6StdlibFuncUsed(used,"template","renderFileIn") ) {
         return 1;
     }
     if ( used == NULL ) {
@@ -1630,6 +1634,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsSignalClass;
     int needsSignalHandleClass;
     int needsTemplateClass;
+    int needsTemplateEngine, needsTemplateFile, needsTemplateVfs, needsTemplateBuffer, needsTemplateWriter;
+    int needsCompress, needsDeflater, needsInflater;
     int needsCryptoClass;
     int needsTccClass;
     int needsXlangClass;
@@ -1809,12 +1815,28 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsSignalClass = xl6StdlibNeedsSignalClass(root, used);
     needsSignalHandleClass = xl6StdlibNeedsSignalHandleClass(root, used);
     needsTemplateClass = xl6StdlibNeedsTemplateClass(root, used);
+    needsTemplateEngine = xl6StdlibFuncUsed(used,"template","engine") || xl6StdlibNodeUsesTypeName(root,"TemplateEngine");
+    needsTemplateFile = xl6StdlibFuncUsed(used,"template","compileFile") || xl6StdlibFuncUsed(used,"template","renderFile") ||
+        (needsTemplateEngine && xl6StdlibNodeUsesMemberName(root,"compileFile"));
+    needsTemplateVfs = xl6StdlibFuncUsed(used,"template","compileFileIn") || xl6StdlibFuncUsed(used,"template","renderFileIn") ||
+        (needsTemplateEngine && xl6StdlibNodeUsesMemberName(root,"compileFileIn"));
+    needsVfs = needsVfs || needsTemplateVfs;
+    needsTemplateBuffer = needsTemplateClass && xl6StdlibNodeUsesMemberName(root,"appendTo");
+    needsTemplateWriter = needsTemplateClass && xl6StdlibNodeUsesMemberName(root,"writeTo");
+    needsIoWriter = needsIoWriter || needsTemplateWriter;
+    needsDeflater = xl6StdlibFuncUsed(used, "compress", "deflater") || xl6StdlibNodeUsesTypeName(root, "Deflater");
+    needsInflater = xl6StdlibFuncUsed(used, "compress", "inflater") || xl6StdlibNodeUsesTypeName(root, "Inflater");
+    needsCompress = needsDeflater || needsInflater || xl6StdlibNodeUsesTypeName(root, "DeflateOptions") ||
+        xl6StdlibNodeUsesTypeName(root, "InflateOptions") || xl6StdlibFuncUsed(used, "compress", "encode") ||
+        xl6StdlibFuncUsed(used, "compress", "encodeBuffer") || xl6StdlibFuncUsed(used, "compress", "decode") ||
+        xl6StdlibFuncUsed(used, "compress", "decodeBuffer");
     needsCryptoClass = xl6StdlibNeedsCryptoClass(root, used);
     /*
         只有公开面真正交换字节容器时才注入 Buffer。同步地址解析等纯网络
         能力不依赖 Buffer，不能因为同属网络体系就拉入文件和二进制运行时。
     */
-    needsBufferClass = needsRegexBuffer || xl6StdlibFuncUsed(used, "io", "writeFile") || (needsIoBuffer && (needsIoReader || needsIoWriter)) || needsRandomBufferMethods || xl6StdlibNeedsBufferClass(root, used) ||
+    needsBufferClass = needsTemplateBuffer || needsDeflater || needsInflater || xl6StdlibFuncUsed(used, "compress", "encodeBuffer") ||
+        xl6StdlibFuncUsed(used, "compress", "decodeBuffer") || needsRegexBuffer || xl6StdlibFuncUsed(used, "io", "writeFile") || (needsIoBuffer && (needsIoReader || needsIoWriter)) || needsRandomBufferMethods || xl6StdlibNeedsBufferClass(root, used) ||
         needsNetInterfaceClass || needsNetBytesClass ||
         needsTcpStreamClass || needsUdpClass ||
         needsTlsSessionClass || needsHttp1Class || needsHttpDecoderClass ||
@@ -1832,7 +1854,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( xl6StdlibFuncUsed(used, "signal", "cancelOn") ) {
         needsTaskGroupClass = 1;
     }
-    needsCoreClass = needsCoreClass || needsDateTime || needsConsoleOptions || needsIoReader || needsIoWriter || needsIoLines || needsStringIterator || needsUtf8Validator || needsRegex || needsRandomClass || needsSipHasher64Class || needsXidClass ||
+    needsCoreClass = needsCoreClass || needsCompress || needsDateTime || needsConsoleOptions || needsIoReader || needsIoWriter || needsIoLines || needsStringIterator || needsUtf8Validator || needsRegex || needsRandomClass || needsSipHasher64Class || needsXidClass ||
         needsBufferClass || needsNetAddressClass || needsNetInterfaceClass ||
         needsNetBytesClass ||
         needsNetEngineStatsClass || needsNetResolverStatsClass ||
@@ -1853,7 +1875,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
          needsWsHandshakeClass || needsWsUpgradeClass || needsWebSocketClass ||
          needsWebSocketConfigClass || needsFileClass ||
          needsJsonClass ||
-         needsTemplateClass || needsCryptoClass || needsXlangClass ) {
+         needsCryptoClass || needsXlangClass ) {
         xl6StdlibMarkFuncUsed(used, "__xl_runtime", "takeCstr");
     }
     if ( needsRandomClass || needsSipHasher64Class )
@@ -2050,8 +2072,24 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder, xl6StdlibTaskGroupClassSource);
     }
     if ( needsTemplateClass ) {
+        if (needsTemplateFile) xl6StdlibBuilderAppend(&builder,xl6StdlibTemplateReadFileSource);
+        if (needsTemplateVfs) xl6StdlibBuilderAppend(&builder,xl6StdlibTemplateReadVfsSource);
         xl6StdlibBuilderAppend(&builder, xl6StdlibTemplateClassSource);
+        if (needsTemplateBuffer) xl6StdlibBuilderAppend(&builder,xl6StdlibTemplateBufferSource);
+        if (needsTemplateWriter) xl6StdlibBuilderAppend(&builder,xl6StdlibTemplateWriterSource);
+        if (needsTemplateFile) xl6StdlibBuilderAppend(&builder,xl6StdlibTemplateFileSource);
+        if (needsTemplateVfs) xl6StdlibBuilderAppend(&builder,xl6StdlibTemplateVfsSource);
+        xl6StdlibBuilderAppend(&builder,xl6StdlibTemplateEndSource);
+        if (needsTemplateEngine) {
+            xl6StdlibBuilderAppend(&builder,xl6StdlibTemplateEngineSource);
+            if (needsTemplateFile) xl6StdlibBuilderAppend(&builder,xl6StdlibTemplateEngineFileSource);
+            if (needsTemplateVfs) xl6StdlibBuilderAppend(&builder,xl6StdlibTemplateEngineVfsSource);
+            xl6StdlibBuilderAppend(&builder,xl6StdlibTemplateEngineEndSource);
+        }
     }
+    if ( needsCompress ) xl6StdlibBuilderAppend(&builder, xl6StdlibCompressOptionsSource);
+    if ( needsDeflater ) xl6StdlibBuilderAppend(&builder, xl6StdlibDeflaterSource);
+    if ( needsInflater ) xl6StdlibBuilderAppend(&builder, xl6StdlibInflaterSource);
     if ( needsCryptoClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibCryptoClassSource);
     }

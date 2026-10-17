@@ -1,0 +1,82 @@
+TemplateCall? saved = null
+TemplateArgument? savedArgument = null
+func joinArgs(TemplateCall call) as bool
+    saved = call
+    savedArgument = call.argument(0)
+    assert call.argumentCount >= 1
+    assert call.argument(0).source.length > 0
+    assert call.find("missing") == -1
+    int i = 0
+    while i < call.argumentCount
+        call.write(string(call.eval(i)))
+        i += 1
+    end
+    return true
+end
+func upperRaw(TemplateCall call) as bool
+    return call.write(string.upper(string(call.eval(0)) + call.raw))
+end
+func mark(TemplateCall call) as bool
+    return call.write("M")
+end
+func enabled(TemplateCall call) as bool
+    if bool(call.eval(0)) then return call.renderBody() end
+    return true
+end
+func makeCustomTemplate() as Template
+    auto engine = template.engine()
+    assert engine.registerFunction("join", joinArgs, 1, 4)
+    assert engine.registerStatement("mark", mark, 0, 0)
+    assert engine.registerBlock("enabled", enabled, 1, 1)
+    assert engine.registerRawBlock("upperraw", upperRaw, 1, 1)
+    return engine.compile("{@join:'A':'B'}|{#upperraw:'x'}hello{#end}|{#mark}|{#enabled:true}Y{#end}")
+end
+auto custom = makeCustomTemplate()
+assert custom.render() == "AB|XHELLO|M|Y"
+assert saved != null and savedArgument != null
+auto argumentSnapshot = savedArgument
+if argumentSnapshot == null then throw RuntimeError "argument snapshot missing" end
+assert argumentSnapshot.index == 0 and argumentSnapshot.source.length > 0
+int refused = 0
+try
+    auto expired = saved
+    if expired == null then throw RuntimeError "expired call missing" end
+    auto ignored = expired.name
+catch failure
+    refused += 1
+end
+try
+    custom.__bindHandlers([])
+catch failure
+    refused += 1
+end
+auto root = template.compile("A{#include:'child'}B")
+auto options = TemplateRenderOptions()
+options.resolver = func(string name) as Template?
+    if name == "child" then return custom end
+    return null
+end
+assert root.render(options = options) == "AAB|XHELLO|M|YB"
+auto throwing = template.engine()
+throwing.registerFunction("fail", func(TemplateCall call) as bool
+    throw RangeError "template callback original"
+    return false
+end)
+try
+    throwing.compile("{@fail}").render()
+catch RangeError failure
+    assert failure.message == "template callback original"
+    refused += 1
+end
+try
+    throwing.registerFunction("fail", mark)
+catch ValueError
+    refused += 1
+end
+assert refused == 4
+auto changing = template.engine()
+changing.registerFunction("mark", mark)
+auto frozen = changing.compile("{@mark}")
+changing.registerFunction("later", mark)
+assert frozen.render() == "M"
+println("template extensions, snapshots, resolver and checked callbacks passed")

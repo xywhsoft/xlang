@@ -1,0 +1,44 @@
+bytes source = b"abc\0\xffabc"
+for format in [compress.raw, compress.zlib, compress.gzip]
+    auto encodeOptions = DeflateOptions()
+    encodeOptions.format = format
+    auto decodeOptions = InflateOptions()
+    decodeOptions.format = format
+    auto encoded = compress.encode(source, encodeOptions)
+    assert compress.decode(encoded, decodeOptions) == source
+end
+assert compress.decode(compress.encode("a\0b")) == b"a\0b"
+assert compress.decode(compress.encode(b"")) == b""
+auto encoder = compress.deflater()
+auto output = Buffer()
+assert encoder.write("a\0", output, compress.flushSync)
+assert encoder.write(b"b\xff", output)
+assert encoder.finish(output)
+assert encoder.done
+assert encoder.outputSize == uint64(output.length)
+auto decoder = compress.inflater()
+auto decoded = Buffer()
+assert decoder.writeBuffer(output, decoded)
+assert decoder.finish(decoded)
+assert decoder.done
+assert decoded.toBytes() == b"a\0b\xff"
+assert decoder.reset()
+assert encoder.reset()
+assert not encoder.done
+assert encoder.close() and encoder.closed
+assert decoder.close() and decoder.closed
+int rejected = 0
+try
+    encoder.finish(output)
+catch e
+    rejected += 1
+end
+auto limited = InflateOptions()
+limited.outputLimit = 2
+try
+    compress.decode(compress.encode(source), limited)
+catch e
+    rejected += 1
+end
+assert rejected == 2
+println("compress values passed")
