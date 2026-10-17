@@ -2113,6 +2113,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if (xl6StdlibHasConcurrentImport(root)) {
         if (xl6StdlibNodeUsesTypeName(root, "Once")) xl6StdlibBuilderAppend(&builder, xl6StdlibOnceSource);
         if (xl6StdlibNodeUsesTypeName(root, "Event")) xl6StdlibBuilderAppend(&builder, xl6StdlibEventSource);
+        if (xl6StdlibNodeUsesTypeName(root, "ThreadLocal")) xl6StdlibBuilderAppend(&builder, xl6StdlibThreadLocalSource);
         if (xl6StdlibNodeUsesTypeName(root, "AtomicInt32")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicInt32Source);
         if (xl6StdlibNodeUsesTypeName(root, "AtomicUInt32")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicUInt32Source);
         if (xl6StdlibNodeUsesTypeName(root, "AtomicInt64")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicInt64Source);

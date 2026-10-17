@@ -138,6 +138,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_once_domain.c", D(R(OWNERSHIP_CATALOG),R(ONCE)), {NULL}},
     {"src/runtime/xl6_event.c", D(R(NATIVE_HANDLE),R(SYNC_CORE)), {"XRT_MODULE_EVENT", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
     {"src/runtime/xl6_event_domain.c", D(R(OWNERSHIP_CATALOG),R(EVENT),R(OWNERSHIP_DOMAIN_SYNC)), {NULL}},
+    {"src/runtime/xl6_thread_exit.c", D(), {NULL}},
+    {"src/runtime/xl6_thread_local.c", D(R(NATIVE_HANDLE),R(THREAD_EXIT),R(FOREIGN_ERROR)), {"XRT_MODULE_THREAD_KEY", "XRT_MODULE_INT_MAP", "XRT_MODULE_THREAD", "XRT_MODULE_VALUE_CONTAINER"}},
+    {"src/runtime/xl6_thread_local_domain.c", D(R(OWNERSHIP_CATALOG),R(THREAD_LOCAL)), {NULL}},
     {"src/runtime/xl6_crypto_md5.c", D(), {"XRT_MODULE_CRYPTO_MD5", "XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_crypto_md5_stream.c", D(R(NATIVE_HANDLE)), {"XRT_MODULE_CRYPTO_MD5", "XRT_MODULE_VALUE", "XRT_MODULE_THREAD"}},
     {"src/runtime/xl6_crypto_md5_domain.c", D(R(OWNERSHIP_CATALOG),R(CRYPTO_MD5_STREAM)), {NULL}},
@@ -357,7 +360,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_cond.c", D(R(SYNC_CORE)), {"XRT_MODULE_COND", "XRT_MODULE_MUTEX", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
     {"src/runtime/xl6_rwlock.c", D(R(SYNC_CORE)), {"XRT_MODULE_RWLOCK", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
     {"src/runtime/xl6_array_sync_admission.c", D(R(SEQUENCE),R(SYNC_CORE)), {NULL}},
-    {"src/runtime/xl6_thread.c", D(R(CLOSURE),R(FOREIGN_ERROR)), {"XRT_MODULE_THREAD", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
+    {"src/runtime/xl6_thread.c", D(R(CLOSURE),R(FOREIGN_ERROR),R(THREAD_EXIT)), {"XRT_MODULE_THREAD", "XRUNTIME_MODULE_RUNTIME_VALUE_TYPE"}},
     {"src/runtime/xl6_array_thread_admission.c", D(R(SEQUENCE),R(THREAD)), {NULL}},
     {"src/runtime/xl6_dynamic_fields.c", D(R(FOREIGN_ERROR)),
         {"XRUNTIME_MODULE_RUNTIME_DYNAMIC_FIELD"}},
@@ -1006,6 +1009,22 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
             }
         }
         switch (instruction->runtimeOp) {
+        case XL6_IR_RUNTIME_XVALUE_CAST_CHECKED: {
+            const XL6_IrType* target = xl6IrTypeGet(&module->types, instruction->type);
+            if (target && target->kind == XL6_IR_TYPE_BUILTIN &&
+                (target->cAbi == XL6_IR_C_ABI_I64 || target->cAbi == XL6_IR_C_ABI_U64))
+                REQUIRE(R(VALUE_ADMISSION));
+            break;
+        }
+        case XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_BYTES:
+            REQUIRE(R(VALUE_ADMISSION)); break;
+        case XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_TAGGED: {
+            const XL6_IrType* element = xl6IrTypeGet(&module->types, instruction->payloadType);
+            if (element && element->kind == XL6_IR_TYPE_BUILTIN &&
+                (element->cAbi == XL6_IR_C_ABI_I64 || element->cAbi == XL6_IR_C_ABI_U64))
+                REQUIRE(R(VALUE_ADMISSION));
+            break;
+        }
         case XL6_IR_RUNTIME_XVALUE_PROJECT_XVALUE_RETAIN:
             if (xl6IrTypeGet(&module->types,instruction->type)->cAbi==XL6_IR_C_ABI_MANAGED_BYTES) REQUIRE(R(VALUE_ADMISSION));
             break;

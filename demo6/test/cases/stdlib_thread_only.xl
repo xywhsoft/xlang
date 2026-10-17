@@ -1,0 +1,5 @@
+auto worker = thread(func() as int
+    return 0
+end)
+assert worker.waitTimeout(30000) and worker.exitCode() == 0
+println("plain thread without thread-local provider")

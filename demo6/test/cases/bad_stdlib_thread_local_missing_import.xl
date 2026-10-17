@@ -1,0 +1,2 @@
+auto local = ThreadLocal::<int>()
+println(local)

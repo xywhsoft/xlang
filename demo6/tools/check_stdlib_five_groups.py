@@ -22,7 +22,7 @@ def digest(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--stage', choices=('p0', 'atomic', 'once-event'), required=True)
+    parser.add_argument('--stage', choices=('p0', 'atomic', 'once-event', 'thread-local'), required=True)
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     args = parser.parse_args()
@@ -51,6 +51,15 @@ def main():
         negatives = ('bad_stdlib_once_missing_import', 'bad_stdlib_once_callback',
                      'bad_stdlib_event_private_handle', 'bad_xlir_once_callback')
         helpers = (*helpers[:3], 'xlir_once_event_contract.c', 'stdlib_once_event_oom_host.c',
+                   'stdlib53_pruning_plan.c', 'stdlib_sync_native_host.c')
+    if args.stage == 'thread-local':
+        selected = ('stdlib_thread_local', 'stdlib_thread_local_threads', 'stdlib_thread_local_owned',
+                    'xlir_generic_dynamic_cast', 'xlir_nullable_bytes_cast', 'stdlib_once',
+                    'stdlib_event', 'stdlib_atomic_bool_only', 'stdlib_concurrent_import_only',
+                    'stdlib_thread_only', 'stdlib_nullable_numeric_enum', 'stdlib_nullable_projection_f32')
+        negatives = ('bad_stdlib_thread_local_type', 'bad_stdlib_thread_local_private',
+                     'bad_stdlib_thread_local_missing_import')
+        helpers = (*helpers[:3], 'xlir_thread_local_contract.c', 'stdlib_thread_local_native_host.c',
                    'stdlib53_pruning_plan.c', 'stdlib_sync_native_host.c')
     inputs = {Path(__file__).resolve(), *products,
               *[cases/(name+'.xl') for name in selected+negatives],
@@ -115,16 +124,17 @@ def main():
         for binary, source in ((host, helpers[0]), (observer, helpers[1])):
             run(binary.stem+'.build', [cc, *flags, '-O2', '-I'+str(root/'release/include'),
                                       cases/source, *links(names[2]), '-o', binary])
-        if args.stage in ('atomic', 'once-event'):
+        if args.stage in ('atomic', 'once-event', 'thread-local'):
             family, prefix, entries = ('atomic', rb'xl6Atomic\w+V1', 50) if args.stage == 'atomic' else (
-                'concurrent', rb'xl6(?:Once|Event)\w+V1', 10)
+                'concurrent', rb'xl6(?:Once|Event|ThreadLocal)\w+V1', 19)
             exports = set(re.findall(r'XL6_TEXT_EXPORT\((\w+),',
                 (root/f'src/runtime/xl6_{family}_symbols.inc').read_text()))
             declarations = set(re.findall(r'XL6_TEXT_API [^;\n]*?\b(\w+)\(',
                 (root/f'src/runtime/xl6_{family}_abi.h').read_text()))
             contracts = set(re.findall(r'(?m)^\s*\{"([^"]+)"',
                 (root/f'src/ir/xl6_ir_{family}_contracts.inc').read_text()))
-            assert exports == declarations == contracts and len(exports) == entries
+            assert exports == declarations == contracts
+            assert len(exports) == entries or (args.stage == 'once-event' and len(exports) == 10)
             report['ResidentEntries'] = len(exports)
             inspect = shutil.which('objdump' if win else 'nm')
             assert inspect
@@ -133,12 +143,16 @@ def main():
                     [inspect, '-D', '--defined-only', product])
                 actual = {name.decode() for name in re.findall(rb'\b'+prefix+rb'\b', body)}
                 assert exports <= actual
+                if args.stage == 'thread-local':
+                    for projection in (b'xl6ValueTryBytesV1', b'xl6ValueTryReadIntegerV1'):
+                        assert re.search(rb'\b'+projection+rb'\b', body), projection
+                    report['ProjectionEntries'] = 2
                 binary = isolated/(product.stem+'.oom'+('.exe' if win else ''))
                 run(product.stem+'.oom.build', [cc, *flags, '-O2', '-I'+str(root),
                     '-I'+str(root/'release'), '-I'+str(root/'release/include'),
                     cases/helpers[4], *links(product.name), '-o', binary])
                 run(product.stem+'.oom.run', [binary])
-                if args.stage == 'once-event':
+                if args.stage in ('once-event', 'thread-local'):
                     binary = isolated/(product.stem+'.sync-regression'+('.exe' if win else ''))
                     run(product.stem+'.sync.build', [cc, *flags, '-O2', '-I'+str(root),
                         '-I'+str(root/'release'), '-I'+str(root/'release/include'),
@@ -158,7 +172,8 @@ def main():
             run(name+'.cgen', [cli, 'cgen', source, '--emit', first])
             run(name+'.repeat', [cli, 'cgen', source, '--emit', second])
             assert first.read_bytes() == second.read_bytes()
-            full = name == selected[0] or (args.stage in ('atomic', 'once-event') and name in selected[:3])
+            full = name == selected[0] or (args.stage in ('atomic', 'once-event', 'thread-local') and
+                name in selected[:(4 if args.stage == 'thread-local' else 3)])
             if not full:
                 return
             work = out/(name+'.saved')
@@ -191,7 +206,8 @@ def main():
             output = run(name+'.reject', [cli, 'cgen', source, '--emit', target], negative=True)
             assert b'[ir]' in output or b'[sem]' in output or b'[checked]' in output
             assert target.read_bytes() == b'UNCHANGED\n'
-            if name in ('bad_stdlib_atomic_private_handle', 'bad_stdlib_event_private_handle'): assert b'private' in output
+            if name in ('bad_stdlib_atomic_private_handle', 'bad_stdlib_event_private_handle',
+                        'bad_stdlib_thread_local_private'): assert b'private' in output
             if name in ('bad_xlir_atomic_product', 'bad_xlir_once_callback'): assert b'exact declared ABI' in output
         failures = []
         report['Failures'] = failures
@@ -208,7 +224,7 @@ def main():
                 '-I'+str(root/'lib/tcc'), cases/helpers[3], *links(names[2]), '-o', binary])
             run('contract.run', [binary, isolated/(selected[0]+'.xl'),
                 *([isolated/(selected[1]+'.xl')] if args.stage == 'once-event' else [])])
-            if args.stage in ('atomic', 'once-event'):
+            if args.stage in ('atomic', 'once-event', 'thread-local'):
                 planner = isolated/'planner'
                 run('pruning.build', [cc, *flags, '-O2', '-I'+str(root), '-I'+str(root/'release/include'),
                     '-I'+str(root/'lib/tcc'), cases/helpers[5], *links(names[2]), '-o', planner])
@@ -217,11 +233,17 @@ def main():
                          ('stdlib_once', {'xl6_once.c', 'xl6_once_domain.c'}),
                          ('stdlib_event', {'xl6_event.c', 'xl6_event_domain.c'}),
                          ('stdlib_concurrent_import_only', set()))
+                if args.stage == 'thread-local':
+                    plans = (('stdlib_thread_local', {'xl6_thread_exit.c', 'xl6_thread_local.c',
+                                                     'xl6_thread_local_domain.c'}),
+                             ('stdlib_thread_only', {'xl6_thread_exit.c'}),
+                             ('stdlib_concurrent_import_only', set()))
                 for name, expected in plans:
                     plan = json.loads(run(name+'.plan', [planner, isolated/(name+'.xl')]))
                     sources = {Path(path).name for path in plan['Sources']}
                     scoped = {path for path in sources if path.startswith('xl6_atomic_') or path in {
-                        'xl6_once.c', 'xl6_once_domain.c', 'xl6_event.c', 'xl6_event_domain.c'}}
+                        'xl6_once.c', 'xl6_once_domain.c', 'xl6_event.c', 'xl6_event_domain.c',
+                        'xl6_thread_exit.c', 'xl6_thread_local.c', 'xl6_thread_local_domain.c'}}
                     assert scoped == expected, (name, scoped)
         report['InputsUnchanged'] = all(digest(row['Path']) == row['Sha256'] for row in report['Inputs'])
         report['LogsUnchanged'] = all(digest(row['Log']) == row['Sha256'] for row in report['Rows'])

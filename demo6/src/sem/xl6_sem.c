@@ -7452,6 +7452,10 @@ static int xl6SemRuntimeCastTargetSupported(XL6_SemContext* ctx, const XL6_AstNo
     if ( name == NULL ) {
         return 0;
     }
+    /* A scoped generic cast is checked again after concrete specialization
+     * by typed XLIR. Do not guess a C carrier or widen the closed concrete
+     * runtime-cast target set while checking the open generic body. */
+    if (concreteType->childCount == 0 && xl6SemFindTypeParam(ctx, name)) return 1;
     if ( xl6SemClassHandleTargetType(ctx, concreteType) != NULL ) {
         return 1;
     }

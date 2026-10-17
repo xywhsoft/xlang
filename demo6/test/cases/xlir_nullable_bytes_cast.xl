@@ -1,0 +1,13 @@
+var value = b"a\0\xFF"
+bytes? present = value as bytes?
+assert present != null
+assert (present ?? b"") == b"a\0\xFF"
+var text = "a"
+assert (text as bytes?) == null
+var empty = null
+assert (empty as bytes?) == null
+if value is bytes then
+    bytes? refined = value as bytes?
+    assert (refined ?? b"") == b"a\0\xFF"
+end
+println("nullable bytes exact owned projection ok")

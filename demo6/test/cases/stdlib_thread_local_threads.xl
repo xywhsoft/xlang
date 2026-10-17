@@ -1,0 +1,45 @@
+import concurrent
+
+func worker(ThreadLocal<int> local, int value, Event ready, Event release, bool closed) as func() as int
+    return func() as int
+        assert not local.hasValue()
+        local.set(value)
+        ready.set()
+        if not release.wait(10000) then return 1 end
+        if closed
+            bool caught = false
+            try
+                local.get()
+            catch StateError
+                caught = true
+            end
+            return caught ? 0 : 2
+        end
+        if (local.get() ?? 0) != value then return 3 end
+        return 0
+    end
+end
+
+auto local = ThreadLocal::<int>()
+local.set(100)
+auto readyA = Event()
+auto readyB = Event()
+auto release = Event(true)
+auto first = thread(worker(local, 7, readyA, release, false))
+auto second = thread(worker(local, 9, readyB, release, false))
+bool ready = readyA.wait(10000) and readyB.wait(10000)
+assert (local.get() ?? 0) == 100
+release.set()
+bool joined = first.waitTimeout(30000) and second.waitTimeout(30000)
+assert ready and joined and first.exitCode() == 0 and second.exitCode() == 0
+assert (local.get() ?? 0) == 100
+
+auto remoteReady = Event()
+auto remoteRelease = Event(true)
+auto remote = thread(worker(local, 11, remoteReady, remoteRelease, true))
+ready = remoteReady.wait(10000)
+local.close()
+remoteRelease.set()
+joined = remote.waitTimeout(30000)
+assert ready and joined and remote.exitCode() == 0
+println("thread local isolation and remote close ok")

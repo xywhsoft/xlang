@@ -7,6 +7,12 @@
  * error-context changes, including mismatch/invalid arguments. */
 XL6_TEXT_API bool xl6ValueAdmitsV1(const xvalue*, unsigned int, bool, uint64_t);
 XL6_TEXT_API xvalue* xl6ValueCheckedRetainV1(const xvalue*, unsigned int, bool, uint64_t);
+/* Non-throwing nullable bytes projection. Mismatch returns the immutable null
+ * singleton; success owns one reference. No allocation or error mutation. */
+XL6_TEXT_API xvalue* xl6ValueTryBytesV1(const xvalue*, uint64_t);
+/* No-raise nullable integer projection, with the same exact domain/range
+ * admission as typed container reads. Mismatch leaves the output untouched. */
+XL6_TEXT_API bool xl6ValueTryReadIntegerV1(const xvalue*, unsigned int, uint64_t, void*);
 /* Status/output contract; a failed projection leaves output untouched. */
 XL6_TEXT_API bool xl6ValueReadF32V1(const xvalue*, uint64_t, float*);
 /* Checked operation status is independent of ordinary type mismatch. Present

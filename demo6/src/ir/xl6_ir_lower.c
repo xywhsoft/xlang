@@ -7631,7 +7631,9 @@ static int xl6IrLowerNullableCastShape(
         element->cAbi == nullable->cAbi &&
         element->nullAbi == nullable->nullAbi &&
         element->ownershipAbi == nullable->ownershipAbi;
-    if ( !((abi == XL6_IR_CAST_XVALUE_TO_NULLABLE_BOOL_TRY && tagged &&
+    if ( !((abi == XL6_IR_CAST_XVALUE_TO_NULLABLE_CHAR_TRY && tagged &&
+            element->cAbi == XL6_IR_C_ABI_CHAR_U32) ||
+           (abi == XL6_IR_CAST_XVALUE_TO_NULLABLE_BOOL_TRY && tagged &&
              element->cAbi == XL6_IR_C_ABI_BOOL) ||
             (abi == XL6_IR_CAST_XVALUE_TO_NULLABLE_I64_TRY && tagged &&
              element->cAbi == XL6_IR_C_ABI_I64) ||
@@ -8222,6 +8224,30 @@ static XL6_IrValueId xl6IrLowerCast(
     XL6_IrLowerContext* ctx, XL6_IrNodeId id, const XL6_IrNode* node)
 {
     switch ( node != NULL ? node->castAbi : XL6_IR_CAST_INVALID ) {
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_BYTES_TRY: {
+        const XL6_IrNode* source = xl6IrNodeGet(ctx->module, ctx->module->children[node->firstChild]);
+        const XL6_IrType* nullable = xl6IrTypeGet(&ctx->module->types, node->storageType);
+        if (!source || !nullable || nullable->kind != XL6_IR_TYPE_NULLABLE ||
+            nullable->paramCount != 1 || !nullable->params ||
+            !xl6IrNullableManagedRepresentationCompatible(&ctx->module->types,
+                node->storageType, nullable->params[0])) return XL6_IR_VALUE_INVALID;
+        XL6_IrTypeId elementType = nullable->params[0];
+        XL6_IrNode sourceCopy = *source;
+        XL6_SymbolId temporary = 0;
+        XL6_IrValueId value = sourceCopy.kind == XL6_IR_NODE_NAME &&
+            sourceCopy.type != XL6_IR_TYPE_INVALID && sourceCopy.type != sourceCopy.storageType
+            ? xl6IrLowerNamePhysicalStorageValue(ctx, id, ctx->module->children[node->firstChild], &sourceCopy)
+            : xl6IrLowerNode(ctx, ctx->module->children[node->firstChild]);
+        value = xl6IrLowerBorrowRuntimeXValueOperand(ctx, id, &sourceCopy, value, &temporary);
+        XL6_IrValueId projected = value ? xl6IrLowerEmitRuntimeCall(ctx, id, node->storageType,
+            XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_BYTES, &value, 1) : XL6_IR_VALUE_INVALID;
+        if (!projected) return projected;
+        XL6_IrInstruction* call = &ctx->module->instructions[ctx->module->instructionCount-1];
+        call->castAbi = node->castAbi; call->payloadType = elementType;
+        if (temporary && !xl6IrLowerEmit(ctx, XL6_IR_INSTR_RELEASE, id,
+            sourceCopy.storageType, temporary, NULL, 0, NULL)) return XL6_IR_VALUE_INVALID;
+        return projected;
+    }
     case XL6_IR_CAST_XVALUE_TO_NATIVE_SCALAR_CHECKED:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_SCALAR_TRY: {
         XL6_IrTypeId base=xl6IrNativeScalarAsIdentity(ctx->module,node->storageType);
@@ -8274,6 +8300,7 @@ static XL6_IrValueId xl6IrLowerCast(
     case XL6_IR_CAST_XVALUE_TO_NATIVE_VALUE_CHECKED:
         return xl6IrLowerCheckedXValueCast(ctx, id, node);
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_BOOL_TRY:
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_CHAR_TRY:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_I64_TRY:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_U64_TRY:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_F64_TRY:

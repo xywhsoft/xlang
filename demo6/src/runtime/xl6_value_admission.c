@@ -3,6 +3,28 @@
 #include "src/runtime/xl6_value_domain.h"
 #include <string.h>
 
+xvalue* xl6ValueTryBytesV1(const xvalue* value, uint64_t identity)
+{
+    return xl6ValueAdmitsV1(value, XL6_VALUE_ADMIT_BYTES, false, identity)
+        ? xrtValueRetain(value) : xrtValueNull();
+}
+
+bool xl6ValueTryReadIntegerV1(const xvalue* source, unsigned int rule, uint64_t identity, void* output)
+{
+    if (!output || !identity || rule < XL6_VALUE_ADMIT_I8 || rule > XL6_VALUE_ADMIT_U64 ||
+        !xl6ValueAdmitsV1(source, rule, false, identity)) return false;
+    if (rule == XL6_VALUE_ADMIT_U64) {
+        uint64_t value;
+        if (!xrtValueGetUInt(source, &value)) return false;
+        memcpy(output, &value, sizeof(value));
+    } else {
+        int64_t value;
+        if (!xrtValueGetInt(source, &value)) return false;
+        memcpy(output, &value, sizeof(value));
+    }
+    return true;
+}
+
 bool xl6ValueAdmitsV1(const xvalue* value, unsigned int rule, bool nullable, uint64_t identity)
 {
     if (!value || rule <= XL6_VALUE_ADMIT_NONE || rule > XL6_VALUE_ADMIT_TIME) return false;
