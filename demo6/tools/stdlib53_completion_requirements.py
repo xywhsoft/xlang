@@ -134,13 +134,13 @@ behavior('C09', 'SlotMap 实例+代际键、失效拒绝、独立 keys/values、
     ('stdlib_slot_map_snapshots_language', 'assert(keys[0] == first and keys[1] == last)', 'assert(sum == 24)'),
     ('stdlib_slot_map_loop', 'assert(slots.contains(key))'),
     ('stdlib_slot_map_task_keys', 'assert(await asyncResult == original)'))
-behavior('C10', 'Buffer 容量/范围/字节操作、值复制构造、NUL 文本/bytes 出口与独立 uint8 迭代', '',
+behavior('C10', 'Buffer 容量/范围/字节操作、值复制构造、NUL 文本/bytes 出口与独立 uint8 迭代', 'buffer-native',
     ('stdlib_buffer_core', 'assert b.clear() and b.len() == 0 and b.capacity() == capacity', 'assert refused == 7'),
     ('stdlib_buffer_value', r'assert source.text() == "a\0你b"', 'assert rejected == 6'),
     ('stdlib_buffer_snapshot', 'assert count == 3'))
-behavior('C11', 'Buffer Hex 的任意字节、flags、精确 size、严格格式和错误码', '',
+behavior('C11', 'Buffer Hex 的任意字节、flags、精确 size、严格格式和错误码', 'buffer-native',
     ('stdlib_buffer_hex', r'assert raw.hex() == "00ff415a"', 'assert failure.code == 902', 'assert refused == 6'))
-behavior('C12', 'Buffer Base64 的 padding/URL/自定义表、精确 size、严格配置/尾位与错误码', '',
+behavior('C12', 'Buffer Base64 的 padding/URL/自定义表、精确 size、严格配置/尾位与错误码', 'buffer-native',
     ('stdlib_buffer_base64', r'assert raw.base64() == "AP9BWg=="', 'assert failure.code == 1002', 'assert refused == 6'))
 behavior('C13', 'typed SPSC/MPSC/MPMC/Queue 别名、显式正容量/初始化、状态、batch、owned 值与真实拓扑', 'queue-stress native-defaults graphs worker-completion',
     ('stdlib_concurrent_queue_owned', 'assert(s.reset() and not s.isClosed())', 'assert(nullStatus == queueStatus.ok and none == null)', 'assert(bytesStatus == queueStatus.ok'),

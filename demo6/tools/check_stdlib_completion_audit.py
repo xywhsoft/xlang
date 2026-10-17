@@ -7,8 +7,9 @@ Assertion markers are reviewed traceability, not runtime branch instrumentation.
 Pending evidence remains pending even if every existing report is green.
 """
 from pathlib import Path
-import argparse,copy,hashlib,json,os,re,sys,traceback
+import argparse,ast,copy,hashlib,json,os,re,sys,traceback
 import check_stdlib_product_witnesses as witnesses
+import check_stdlib_buffer_suites_shipping as buffers
 from stdlib53_pruning_contract import MODULES,PROFILES
 from stdlib53_completion_requirements import BEHAVIORS,MODULE_BEHAVIORS
 
@@ -32,7 +33,9 @@ class Evidence:
             self.files[key]=current;return path
         # Preserve the exact historical test definition, not a changed current
         # definition with a backdated green result. No production fallback.
-        relative=path.relative_to(self.task);assert relative.parts[0] in ('tools','docs'),key
+        relative=path.relative_to(self.task)
+        assert relative.as_posix() in ('docs/标准库设计.md','tools/check_stdlib_guide_contracts.py',
+                                      'tools/check_stdlib_current_products.py'),key
         row=self.allowed[key,expected];assert row['Sha256']==expected
         recovered=Path(row['RecoveredPath']);assert recovered.parent==self.history
         assert digest(recovered.read_bytes())==expected,key
@@ -61,20 +64,98 @@ def fixture_proof(name,markers,task,products,aot,product_inputs,aot_inputs,evide
                 ProductRows=products[name]['Rows'],AotRows=aot[name]['Rows'])
 
 
+def buffer_shape(body,products):
+    assert body['Complete'] and body['InputsUnchanged'] and not body['Failures']
+    assert body['NativeBufferSuiteProductAcceptance'] and body['SuiteCount']==3
+    assert body['LogicalPrefixModes']==12 and body['PhysicalPrefixModes']==15
+    assert not any(body[k] for k in ('ExplicitSubset','CompilerSourceObjects','RuntimeImplementationObjects','ProviderOverrides'))
+    assert body['ConsumerResetObservation']
+    expected={(p,o,s) for p in products for o in ('O0','O2') for s in buffers.SUITES}
+    assert len(body['Proofs'])==12 and {(p['Product'],p['Optimization'],p['Suite']) for p in body['Proofs']}==expected
+    for proof in body['Proofs']:
+        model,modes=buffers.SUITES[proof['Suite']]
+        assert len(proof['Prefixes'])==len(modes) and {p['Mode'] for p in proof['Prefixes']}==set(modes)
+        assert proof['VectorLedger']['Allocations']>0 and proof['VectorLedger']['Allocations']==proof['VectorLedger']['Frees']
+        for prefix in proof['Prefixes']:
+            point=prefix['FirstNoHit'];assert prefix['Confirmation']==point+1
+            assert prefix['FailurePoints']==point-(1 if model=='physical' else 0)
+            assert prefix['Model']==('persistent-physical-allocator' if model=='physical' else 'caller-thread-one-shot-logical')
+            assert prefix['AllocationFree']==(prefix['Mode']=='self-assign')
+            buffers.require_prefix(model,prefix['Mode'],point,prefix['CallsAtSuccess'])
+        reentry=proof['SeparateAllocatorReentry']
+        if proof['Suite']=='stdlib_buffer_value_host':
+            assert reentry and reentry['OriginalAssertionsPassed'] and not reentry['HeapLedgerAcceptance'] and not reentry['DebugQuarantine']
+        else:assert reentry is None
+    expected_controls={Path(p).stem+'.control.'+mode for p in products for mode in
+                       ('LEAK_AT_END','LEAK_BEFORE_RESET','DISABLE_DEBUG','NO_PHYSICAL_INJECTION','NO_LOGICAL_INJECTION')}|{'fake-provider'}
+    assert len(body['Controls'])==11 and {c['Name'] for c in body['Controls']}==expected_controls
+    assert all(c.get('AssertionRejected') or c.get('MissingInjectionRejected') or c.get('StrongWeakDataRejected') for c in body['Controls'])
+
+
+def buffer_evidence(path,e,task,build_receipt,build,win):
+    body=e.read(path);products=('xl.dll','xlc.dll') if win else ('libxl.so','libxlc.so')
+    buffer_shape(body,products)
+    pins={str(Path(r['Path'])):r['Sha256'] for r in body['Inputs']}
+    assert pins.get(str(Path(build_receipt['Path'])))==build_receipt['Sha256'],'Buffer gate used another build'
+    assert all(pins.get(str(Path(r['Path'])))==r['Sha256'] for r in build['Products']),'Buffer gate used another product'
+    for row in body['Inputs']+body['Products']:e.record(row['Path'],row['Sha256'])
+    # Unlike historical assertion recovery, this new receipt must name the
+    # current tool and unchanged original consumers, not just a same-named file.
+    for file in (task/'tools/check_stdlib_buffer_suites_shipping.py',task/'test/support/stdlib_native_suite_observer.c',
+                 *(task/'test/cases'/(s+'.c') for s in buffers.SUITES)):
+        assert pins.get(str(file))==digest(file.read_bytes()),str(file)
+    rows={r['Name']:r for r in body['Rows']};assert len(rows)==len(body['Rows'])==body['PhaseCount']
+    for row in rows.values():
+        e.record(row['Log'],row['LogSha256']);assert row['Exit']==row['ExpectedExit']
+    def log(name):return Path(rows[name]['Log']).read_bytes()
+    for proof in body['Proofs']:
+        tag=proof['Name'];model,modes=buffers.SUITES[proof['Suite']]
+        vector=buffers.LEDGER.findall(log(tag+'.vectors'));assert len(vector)==1
+        assert dict(zip(('Resets','Allocations','Frees'),map(int,vector[0])))==proof['VectorLedger']
+        image=proof['Image'];e.record(image['Path'],image['Sha256'])
+        imports=log(tag+'.imports')
+        imported=re.findall(rb'DLL Name:\s*([^\s]+)',imports) if win else re.findall(rb'Shared library:\s*\[([^\]]+)\]',imports)
+        assert {n.decode().lower() for n in imported}&set(products)=={proof['Product']}
+        for prefix in proof['Prefixes']:
+            mode=prefix['Mode'];point=prefix['FirstNoHit'];start=1 if model=='physical' else 0
+            for current in range(start,point+1):
+                data=log(tag+'.'+mode+'.'+str(current));hit,calls=buffers.prefix_event(data,model,mode,current)
+                assert hit==(current<point)
+                ledger=buffers.LEDGER.findall(data);assert len(ledger)==1 and ledger[0][1]==ledger[0][2]
+            assert calls==prefix['CallsAtSuccess']
+            data=log(tag+'.'+mode+'.confirmed');hit,calls=buffers.prefix_event(data,model,mode,point+1)
+            assert not hit and (model!='physical' or calls==prefix['CallsAtSuccess'])
+            ledger=buffers.LEDGER.findall(data);assert len(ledger)==1 and ledger[0][1]==ledger[0][2]
+        if proof['SeparateAllocatorReentry']:
+            data=log(tag+'.reentry')
+            assert b'buffer close reentry detached state, balanced' in data and not buffers.LEDGER.findall(data)
+            assert b'debug-quarantine=0 ledger-acceptance=0 caller-error=0' in data
+    # Inspect required parent wiring without falsely claiming the old parent
+    # report executed this newly added child.
+    parent=task/'tools/check_stdlib_current_products.py';e.record(parent)
+    source=parent.read_text(encoding='utf-8-sig');tree=ast.parse(source)
+    nodes=[n for n in ast.walk(tree) if isinstance(n,ast.Tuple) and len(n.elts)==4 and isinstance(n.elts[0],ast.Constant) and n.elts[0].value=='buffer-native']
+    assert len(nodes)==1;node=nodes[0]
+    assert node.elts[1].right.value=='tools/check_stdlib_buffer_suites_shipping.py'
+    assert node.elts[2].value=='results.json' and node.elts[3].value is True
+    assert "report['NativeBufferSuiteProductAcceptance']=any(c['Name']=='buffer-native' and c['Passed'] for c in children)" in source
+    return body,products
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    for name in ('root','product-certificate','guide-certificate','abi-certificate','history-root','out'):
+    for name in ('root','product-certificate','guide-certificate','abi-certificate','buffer-report','history-root','out'):
         parser.add_argument('--'+name,type=Path,required=True)
     args=parser.parse_args();assert not args.out.exists()
     task=Path(__file__).resolve().parents[1];root=args.root.resolve();assert root.is_dir();win=os.name=='nt'
     if win:witnesses.physical=lambda value:Path(value)
     e=Evidence(task,args.history_root.resolve());failures=[];controls=[];out=args.out.resolve();out.mkdir(parents=True)
     for file in (Path(__file__).resolve(),task/'tools/stdlib53_completion_requirements.py',task/'tools/stdlib53_pruning_contract.py',
-                 task/'tools/check_stdlib_product_witnesses.py',task/'docs/标准库设计.md'):
+                 task/'tools/check_stdlib_product_witnesses.py',task/'tools/check_stdlib_buffer_suites_shipping.py',task/'docs/标准库设计.md'):
         e.record(file)
     report=dict(Complete=False,InputsUnchanged=False,Scope=__doc__,Platform='windows' if win else 'linux',
         Modules=[],Behaviors=[],Controls=controls,Failures=failures,PendingEvidence=[],
-        RuntimeBranchInstrumentation=False,NewCompilerProductRun=False,Full53Acceptance=False)
+        RuntimeBranchInstrumentation=False,NewCompilerProductRun=False,Full53Acceptance=False,ApprovedScopeAcceptance=False)
     try:
         product_certificate=e.certificate(args.product_certificate.resolve())
         assert product_certificate['NativeFileSystemEvidenceValidation'] and product_certificate['CandidateCount']==328
@@ -92,6 +173,7 @@ def main():
             pins={str(Path(r['Path'])):r['Sha256'] for r in later['VerifiedFiles']}
             assert pins.get(str(Path(build_receipt['Path'])))==build_receipt['Sha256'],'Later gate used another build'
             assert all(pins.get(str(Path(r['Path'])))==r['Sha256'] for r in old['build']['Products']),'Later gate used another product'
+        buffer_report,buffer_products=buffer_evidence(args.buffer_report.resolve(),e,task,build_receipt,old['build'],win)
         product,aot,strict,pruning=[old[n] for n in ('products','aot','strict','pruning')]
         assert all(d['Complete'] and d['InputsUnchanged'] and not d.get('Failures') for d in (product,aot,strict,pruning))
         assert product['AllExecutablePassed'] and product['SourceProductAcceptance'] and product['EmbeddedVfsWithoutFallback']
@@ -108,6 +190,7 @@ def main():
         # Do not rewrite the old parent to pretend it executed the new runner.
         gates['guide-contracts']=dict(Passed=True,Certificate=str(args.guide_certificate.resolve()),CurrentGuideControls=33)
         gates['abi-rejection']=dict(Passed=True,Certificate=str(args.abi_certificate.resolve()),RejectionPhases=426)
+        gates['buffer-native']=dict(Passed=True,Report=str(args.buffer_report.resolve()),Configurations=12,Controls=11)
         assert pruning['NativeModuleRoleAcceptance'] and pruning['ModuleCount']==53 and len(pruning['Proofs'])==48
         assert len(pruning['NativeObjects'])==53 and len(pruning['Controls'])==6
         assert all({o['Optimization'] for o in n['Objects']}=={'O0','O2'} for n in pruning['NativeObjects'])
@@ -129,13 +212,10 @@ def main():
             report['Modules'].append(dict(Name=name,ApprovedPurpose=purposes[name],Role=roles[name]['Mode'],
                 PruningProfiles=roles[name]['Profiles'],NativeRoleEvidenceVerified=True,Behaviors=refs.split(),
                 AssertionEvidenceVerified=all(b in BEHAVIORS for b in refs.split()),
-                PendingEvidence=['buffer-native-suites'] if name in ('buffer','buffer_hex','buffer_base64') else []))
-        # Positive functional cases do not replace the original three Buffer
-        # native fault/reentry/thread suites. No current direct-product receipt
-        # for those suites is part of the existing certificates being audited.
-        report['PendingEvidence']=[dict(Id='buffer-native-suites',Modules=['buffer','buffer_hex','buffer_base64'],
-            Requirement='当前 DLL/SO 直接执行三份既有 Buffer 原生核心/值迭代器/codec 故障、线程和重入专项',
-            Sources=['stdlib_buffer_core_host.c','stdlib_buffer_value_host.c','stdlib_buffer_codec_host.c'])]
+                PendingEvidence=[]))
+        report['BufferNativeEvidence']=dict(Report=str(args.buffer_report.resolve()),Configurations=12,Controls=11,
+            OriginalSuites=3,LogicalModes=12,PhysicalModes=15,SeparateReentryConfigurations=4,
+            MandatoryParentWiringInspected=True,FullParentRerun=False)
         report['DeferredByUser']=[dict(Id='windows-dst',Requirement='隔离 Windows DST gap/fold 实测',Passed=False)]
         # Audit-oracle controls, not additional compiler executions.
         def control(name,operation):
@@ -151,8 +231,22 @@ def main():
         control('different-source',lambda:fixture_proof('stdlib_time_core',['assert caught == 8'],task,passed,aot_passed,wrong,aot_inputs,e))
         control('old-guide-is-not-current',lambda:assertion(15==guide_certificate['GuideControls']))
         control('missing-pruning-role',lambda:assertion(len(roles)-1==53))
+        for label,mutate in (
+            ('buffer-missing-configuration',lambda d:d['Proofs'].pop()),
+            ('buffer-missing-prefix-mode',lambda d:d['Proofs'][0]['Prefixes'].pop()),
+            ('buffer-provider-object',lambda d:d.update(ProviderOverrides=True)),
+            ('buffer-missing-controls',lambda d:d['Controls'].pop()),
+            ('buffer-zero-allocating-failures',lambda d:d['Proofs'][0]['Prefixes'][0].update(FirstNoHit=0,Confirmation=1,FailurePoints=0)),
+            ('buffer-reentry-is-not-ledger',lambda d:next(p for p in d['Proofs'] if p['SeparateAllocatorReentry'])['SeparateAllocatorReentry'].update(HeapLedgerAcceptance=True)),
+        ):
+            changed=copy.deepcopy(buffer_report);mutate(changed)
+            control(label,lambda:buffer_shape(changed,buffer_products))
         report['InputsUnchanged']=e.unchanged()
-        report['Complete']=report['InputsUnchanged'] and len(report['Modules'])==53 and len(controls)==7
+        report['Complete']=report['InputsUnchanged'] and len(report['Modules'])==53 and len(controls)==13
+        report['ApprovedScopeAcceptance']=report['Complete'] and not report['PendingEvidence'] and not failures
+        # Explicitly deferred environment acceptance remains visible. Completing
+        # the user-approved scope must not turn that unexecuted test into a pass.
+        report['Full53Acceptance']=report['ApprovedScopeAcceptance'] and not report['DeferredByUser']
         report['HistoricalInputsRecovered']=list(e.recovered.values())
         report['EvidenceFilesVerified']=len(e.files)
         report['FixtureCount']=len({f['Name'] for r in report['Behaviors'] for f in r['Fixtures']})

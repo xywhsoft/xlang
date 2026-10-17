@@ -72,6 +72,7 @@ def main():
         ('process-language-oom',task/'tools/check_stdlib_process_language_oom_shipping.py','results.json',True),
         ('resource-identity',task/'tools/check_stdlib_resource_identity_shipping.py','results.json',True),
         ('native-text',task/'tools/check_stdlib_text_suites_shipping.py','results.json',True),
+        ('buffer-native',task/'tools/check_stdlib_buffer_suites_shipping.py','results.json',True),
         ('native-system',task/'tools/check_stdlib_system_suites_shipping.py','results.json',True),
         ('abi-rejection',task/'tools/check_stdlib_abi_rejection_shipping.py','results.json',True),
         ('signal-language-oom',task/'tools/check_stdlib_signal_language_oom_shipping.py','results.json',True),
@@ -260,6 +261,7 @@ def main():
         report['EmittedLanguageProcessPrefixAcceptance']=any(c['Name']=='process-language-oom' and c['Passed'] for c in children)
         report['RetainedResourceCreatorIdentityAcceptance']=any(c['Name']=='resource-identity' and c['Passed'] for c in children)
         report['NativeTextSuiteProductAcceptance']=any(c['Name']=='native-text' and c['Passed'] for c in children)
+        report['NativeBufferSuiteProductAcceptance']=any(c['Name']=='buffer-native' and c['Passed'] for c in children)
         report['NativeSystemSuiteProductAcceptance']=any(c['Name']=='native-system' and c['Passed'] for c in children)
         report['NativeAbiRejectionAcceptance']=any(c['Name']=='abi-rejection' and c['Passed'] for c in children)
         report['EmittedLanguageSignalPrefixAcceptance']=any(c['Name']=='signal-language-oom' and c['Passed'] for c in children)
