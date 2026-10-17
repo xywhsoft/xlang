@@ -1,0 +1,3 @@
+import concurrent
+auto local = ThreadLocal::<int>()
+println(local.values)

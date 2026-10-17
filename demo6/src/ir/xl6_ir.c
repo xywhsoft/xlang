@@ -17476,6 +17476,9 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
         element = xl6IrTypeGet(&module->types, elementType);
         if ( element == NULL || element->typeValueId == 0 )
             return XL6_IR_CAST_INVALID;
+        if (element->kind == XL6_IR_TYPE_BUILTIN && element->cAbi == XL6_IR_C_ABI_MANAGED_BYTES &&
+            xl6IrNullableManagedRepresentationCompatible(&module->types, node->storageType, elementType))
+            return XL6_IR_CAST_XVALUE_TO_NULLABLE_BYTES_TRY;
         if(xl6IrNullableNativeValuePlan(&module->types,target))return XL6_IR_CAST_XVALUE_TO_NULLABLE_NATIVE_VALUE_TRY;
         taggedNullable = target->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
             target->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
@@ -17491,6 +17494,8 @@ static XL6_IrCastAbi xl6IrClassifyCastAbi(
             switch ( element->cAbi ) {
             case XL6_IR_C_ABI_BOOL:
                 return XL6_IR_CAST_XVALUE_TO_NULLABLE_BOOL_TRY;
+            case XL6_IR_C_ABI_CHAR_U32:
+                return XL6_IR_CAST_XVALUE_TO_NULLABLE_CHAR_TRY;
             case XL6_IR_C_ABI_I64:
                 return XL6_IR_CAST_XVALUE_TO_NULLABLE_I64_TRY;
             case XL6_IR_C_ABI_U64:
@@ -17617,9 +17622,12 @@ static XL6_IrErrorAbi xl6IrClassifyCastErrorAbi(
         return XL6_IR_ERROR_ABI_INVALID;
     abi = xl6IrClassifyCastAbi(module, node);
     switch ( abi ) {
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_BYTES_TRY:
+        return XL6_IR_ERROR_ABI_NO_RAISE;
     case XL6_IR_CAST_IDENTITY:
     case XL6_IR_CAST_NULL_TO_NULLABLE:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_BOOL_TRY:
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_CHAR_TRY:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_I64_TRY:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_U64_TRY:
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_F64_TRY:
@@ -18161,7 +18169,8 @@ int xl6IrRefreshConversionAbis(XL6_IrModule* module)
             intrinsic->errorAbi = xl6IrCopyIntrinsicErrorAbi(module, intrinsic->resultType, intrinsic->kind);
     }
     return xl6IrBuildValueInitializers(module) &&
-           xl6IrBuildImplicitConversionAbis(module);
+           xl6IrBuildImplicitConversionAbis(module) &&
+           xl6IrBuildCastAbis(module);
 }
 
 static int xl6IrBuildMemberAbis(XL6_IrModule* module)
@@ -21598,7 +21607,10 @@ static XL6_IrCallErrorPhysicalAbi xl6IrRuntimeInstructionErrorPhysicalAbi(
          instruction->integerTarget==XL6_IR_INTEGER_TARGET_UNICODE_SCALAR &&
          instruction->integerSourceAbi==XL6_IR_INTEGER_SOURCE_XVALUE) ||
         (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_CAST_CHECKED &&
-         instruction->castAbi==XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED))
+         (instruction->castAbi==XL6_IR_CAST_XVALUE_TO_CHAR_CHECKED ||
+          (projectionType && projectionType->kind==XL6_IR_TYPE_BUILTIN &&
+           (instruction->castAbi==XL6_IR_CAST_XVALUE_TO_I64_CHECKED ||
+            instruction->castAbi==XL6_IR_CAST_XVALUE_TO_U64_CHECKED)))))
         return XL6_IR_CALL_ERROR_PHYSICAL_STATUS_OUTPUT;
     if (instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_PROJECT_TAGGED_NULLABLE_COPY &&
         xl6IrNativeScalarProfileForCAbi(xl6IrNullableScalarElementAbi(module,instruction->type))!=
@@ -39745,6 +39757,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                            instruction->runtimeOp ==
                                XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_STRING ||
                            instruction->runtimeOp ==
+                               XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_BYTES ||
+                           instruction->runtimeOp ==
                                XL6_IR_RUNTIME_XVALUE_NOMINAL_TEST ||
                            instruction->runtimeOp ==
                                XL6_IR_RUNTIME_XVALUE_NOMINAL_CAST_CHECKED ||
@@ -41694,6 +41708,27 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             return xl6IrDiag(diags, origin,
                                 "XLIR checked xvalue cast has no exact source, target identity, representation, ownership and failure ABI");
                     } else if ( instruction->runtimeOp ==
+                                    XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_BYTES ) {
+                        const XL6_IrType* nullable = xl6IrTypeGet(&module->types, instruction->type);
+                        const XL6_IrType* bytes = xl6IrTypeGet(&module->types, instruction->payloadType);
+                        const XL6_IrNode* origin = xl6IrNodeGet(module, instruction->origin);
+                        if (instruction->operandCount != 1 || !left ||
+                            !xl6IrTypeIsDynamicXValueBuiltin(module, left->type) ||
+                            !nullable || !bytes || bytes->kind != XL6_IR_TYPE_BUILTIN ||
+                            bytes->cAbi != XL6_IR_C_ABI_MANAGED_BYTES || !bytes->typeValueId ||
+                            !xl6IrNullableManagedRepresentationCompatible(&module->types,
+                                instruction->type, instruction->payloadType) ||
+                            instruction->castAbi != XL6_IR_CAST_XVALUE_TO_NULLABLE_BYTES_TRY ||
+                            !origin || origin->sourceKind != XL6_AST_TYPE_AS ||
+                            origin->storageType != instruction->type ||
+                            origin->castAbi != instruction->castAbi ||
+                            origin->castErrorAbi != XL6_IR_ERROR_ABI_NO_RAISE ||
+                            instruction->targetSymbol || instruction->targetValue ||
+                            instruction->opcode != XL6_IR_OPCODE_INVALID || instruction->immediateText ||
+                            instruction->calleeType || instruction->runtimeIdentityType ||
+                            instruction->collectionAdmissionAbi != XL6_IR_COLLECTION_ADMISSION_NONE)
+                            return xl6IrDiag(diags, NULL, "XLIR nullable bytes cast lacks its exact owned no-raise projection ABI");
+                    } else if ( instruction->runtimeOp ==
                                     XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_TAGGED ||
                                 instruction->runtimeOp ==
                                     XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_STRING ) {
@@ -41712,6 +41747,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_TAGGED;
                         int matchingCast = element != NULL &&
                             ((instruction->castAbi ==
+                                  XL6_IR_CAST_XVALUE_TO_NULLABLE_CHAR_TRY &&
+                              element->cAbi == XL6_IR_C_ABI_CHAR_U32) ||
+                             (instruction->castAbi ==
                                   XL6_IR_CAST_XVALUE_TO_NULLABLE_BOOL_TRY &&
                               element->cAbi == XL6_IR_C_ABI_BOOL) ||
                              (instruction->castAbi ==
@@ -45004,6 +45042,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_TAGGED ||
                         instruction->runtimeOp ==
+                            XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_BYTES ||
+                        instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_STRING ||
                         instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_NOMINAL_CAST_CHECKED ||
@@ -45025,6 +45065,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         instruction->runtimeOp != XL6_IR_RUNTIME_NATIVE_VALUE_PROJECT_TRY &&
                         instruction->runtimeOp !=
                             XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_TAGGED &&
+                        instruction->runtimeOp !=
+                            XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_BYTES &&
                         instruction->runtimeOp !=
                             XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_STRING &&
                         instruction->runtimeOp !=
@@ -46691,6 +46733,8 @@ static const char* xl6IrCastAbiName(XL6_IrCastAbi abi)
         return "xvalue-to-bytes-checked";
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_BOOL_TRY:
         return "xvalue-to-nullable-bool-try";
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_CHAR_TRY:
+        return "xvalue-to-nullable-char-try";
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_I64_TRY:
         return "xvalue-to-nullable-i64-try";
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_U64_TRY:
@@ -46701,6 +46745,8 @@ static const char* xl6IrCastAbiName(XL6_IrCastAbi abi)
         return "xvalue-to-nullable-time-try";
     case XL6_IR_CAST_XVALUE_TO_NULLABLE_STRING_TRY:
         return "xvalue-to-nullable-string-try";
+    case XL6_IR_CAST_XVALUE_TO_NULLABLE_BYTES_TRY:
+        return "xvalue-to-nullable-bytes-try";
     case XL6_IR_CAST_VALUE_TO_TAGGED_NULLABLE:
         return "value-to-tagged-nullable";
     case XL6_IR_CAST_MANAGED_TO_POINTER_NULLABLE:
@@ -48803,6 +48849,8 @@ case XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_OR_NULL: return "xvalue-int-map-at-i64
         return "xvalue-cast-nullable-tagged";
     case XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_STRING:
         return "xvalue-cast-nullable-string";
+    case XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_BYTES:
+        return "xvalue-cast-nullable-bytes";
     case XL6_IR_RUNTIME_XVALUE_NOMINAL_TEST:
         return "xvalue-nominal-test";
     case XL6_IR_RUNTIME_XVALUE_NOMINAL_CAST_CHECKED:

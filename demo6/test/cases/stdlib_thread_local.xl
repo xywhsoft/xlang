@@ -1,0 +1,58 @@
+import concurrent
+
+auto local = ThreadLocal::<int>()
+assert not local.hasValue() and local.get() == null
+local.set(7)
+assert local.hasValue() and (local.get() ?? 0) == 7
+assert (local.take() ?? 0) == 7 and not local.hasValue()
+local.set(9)
+assert local.remove() and not local.remove()
+assert not local.isClosed()
+local.close()
+assert local.isClosed()
+local.close()
+bool caught = false
+try
+    local.get()
+catch StateError
+    caught = true
+end
+assert caught
+
+auto text = ThreadLocal::<string>()
+text.set("a\0你")
+assert (text.get() ?? "") == "a\0你"
+auto binary = ThreadLocal::<bytes>()
+binary.set(b"a\0\xFF")
+assert (binary.get() ?? b"") == b"a\0\xFF"
+auto narrow = ThreadLocal::<int32>()
+narrow.set(-42)
+assert (narrow.get() ?? int32(0)) == -42
+auto tiny = ThreadLocal::<int8>()
+tiny.set(-128)
+assert (tiny.get() ?? int8(0)) == -128
+auto small = ThreadLocal::<uint16>()
+small.set(65535)
+assert (small.take() ?? uint16(0)) == 65535
+auto flag = ThreadLocal::<bool>()
+flag.set(false)
+assert flag.hasValue() and (flag.get() ?? true) == false
+auto nullable = ThreadLocal::<string?>()
+nullable.set(null)
+assert nullable.hasValue() and nullable.take() == null and not nullable.hasValue()
+auto unsigned = ThreadLocal::<uint64>()
+unsigned.set(18446744073709551615)
+assert (unsigned.get() ?? uint64(0)) == 18446744073709551615
+auto real = ThreadLocal::<float32>()
+real.set(float32(1.5))
+assert (real.get() ?? float32(0)) == float32(1.5)
+auto letter = ThreadLocal::<char>()
+letter.set('你')
+assert (letter.get() ?? 'a') == '你'
+auto clock = ThreadLocal::<time>()
+clock.set(time(123))
+assert (clock.get() ?? time(0)) == time(123)
+auto items = ThreadLocal::<array<int>>()
+items.set([1, 2])
+assert items.get() != null
+println("typed thread local values ok")

@@ -309,7 +309,8 @@ static int xl6IrCgenEmitTaggedNullableXValueRuntime(
                 tagged->cName, tagged->cName, elementType, zero,
                 tagged->cName, getter, tagged->cName);
         }
-        if ( needsCast ) {
+        if ( needsCast && !(element->kind == XL6_IR_TYPE_BUILTIN &&
+            (element->cAbi == XL6_IR_C_ABI_I64 || element->cAbi == XL6_IR_C_ABI_U64)) ) {
             xl6OutputPrintf(out,
                 "static %s xlir_xvalue_try_cast_%s(const xvalue* item, uint64_t exactTypeId)\n"
                 "{\n"

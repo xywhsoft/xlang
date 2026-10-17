@@ -2,6 +2,7 @@
 #define XRUNTIME_MODULE_RUNTIME_VALUE_TYPE
 #include "lib/xruntime/xruntime.h"
 #include "src/runtime/xl6_thread.h"
+#include "src/runtime/xl6_thread_exit.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdatomic.h>
 #include <stdlib.h>
@@ -174,6 +175,10 @@ static int32_t entry(void* raw)
         XL6_ClosureScope scope={0}; runtime->Enter(&scope,callable);
         ok=((bool (*)(void*,int64_t*))callable->invoke)(callable->environment,&value);
         if (!ok) xl6ErrorScopeCaptureFailure(&work);
+        /* Optional resident TLS duties run while the checked language scope,
+         * callable and source lease still exist. No ThreadLocal algorithm or
+         * source-module callback is linked by this small lifecycle hook. */
+        if (!xl6ThreadExitCurrentV1()) { ok=false; xl6ErrorScopeCaptureFailure(&work); }
         runtime->Leave(&scope);
     }
     /* Publish removal of the actual owning edge before arbitrary captures
@@ -181,6 +186,9 @@ static int32_t entry(void* raw)
     xrtownershipscope mutation={0}; mutationBegin(&mutation); lock(owner);
     owner->callable=NULL; unlock(owner); mutationEnd(&mutation);
     runtime->Release(callable);
+      /* Releasing the last capture may run user destructors which create TLS
+       * values. Drain those too before leaving the checked thread boundary. */
+      if (begun && !xl6ThreadExitCurrentV1()) { ok=false; xl6ErrorScopeCaptureFailure(&work); }
     if (begun) {
         xl6_error_result result=xl6ErrorScopeEnd(&work);
         ok=ok && result.ok; xrtErrorFree(result.error);

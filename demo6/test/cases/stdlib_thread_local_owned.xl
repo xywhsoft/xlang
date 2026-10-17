@@ -1,0 +1,76 @@
+import concurrent
+
+auto dropped = AtomicInt64()
+class TrackedLocal
+    bool fail = false
+    create(bool fail = false)
+        self.fail = fail
+    end
+    destroy()
+        dropped.fetchAdd(1)
+        if self.fail then throw ValueError("thread local cleanup") end
+    end
+end
+func put(ThreadLocal<TrackedLocal> local)
+    auto value = TrackedLocal()
+    local.set(value)
+end
+auto local = ThreadLocal::<TrackedLocal>()
+put(local)
+assert dropped.load() == 0
+local.close()
+assert dropped.load() == 1
+
+auto workerLocal = ThreadLocal::<TrackedLocal>()
+auto worker = thread(func() as int
+    workerLocal.set(TrackedLocal(true))
+    return 0
+end)
+assert worker.waitTimeout(30000)
+assert worker.exitCode() == 1, "language thread exit includes checked TLS cleanup"
+assert dropped.load() == 2
+
+class CaptureCreatesLocal
+    func touch() as bool
+        return true
+    end
+    destroy()
+        workerLocal.set(TrackedLocal(true))
+    end
+end
+func exitCleanup(Event gate) as func() as int
+    auto capture = CaptureCreatesLocal()
+    return func() as int
+        if not gate.wait(10000) then return 2 end
+        return capture.touch() ? 0 : 2
+    end
+end
+auto captureGate = Event(true)
+auto late = thread(exitCleanup(captureGate))
+captureGate.set() // Caller temporary is gone before worker releases its last capture.
+assert late.waitTimeout(30000)
+assert late.exitCode() == 1, "capture retirement TLS is inside checked thread exit"
+assert dropped.load() == 3
+
+auto replacement = ThreadLocal::<TrackedLocal>()
+replacement.set(TrackedLocal(true))
+bool replacedError = false
+try
+    replacement.set(TrackedLocal())
+catch ValueError
+    replacedError = true
+end
+assert replacedError and replacement.hasValue()
+assert dropped.load() == 4
+replacement.close()
+assert dropped.load() == 5
+
+// Keep a genuine module-owned cycle for the normal module retirement path.
+class LocalCycle
+    ThreadLocal<LocalCycle>? local
+end
+auto cycleLocal = ThreadLocal::<LocalCycle>()
+auto cycle = LocalCycle()
+cycle.local = cycleLocal
+cycleLocal.set(cycle)
+println("thread local owned cleanup and language exit status ok")

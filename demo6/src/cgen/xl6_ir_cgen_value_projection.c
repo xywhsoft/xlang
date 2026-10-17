@@ -279,6 +279,7 @@ static int xl6IrCgenXValueProjectionRuntimeOpIs(
            operation == XL6_IR_RUNTIME_XVALUE_CLOSURE_CAST_CHECKED ||
            operation == XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_TAGGED ||
            operation == XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_STRING ||
+           operation == XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_BYTES ||
            operation == XL6_IR_RUNTIME_XVALUE_NOMINAL_TEST ||
            operation == XL6_IR_RUNTIME_XVALUE_NOMINAL_CAST_CHECKED ||
            operation == XL6_IR_RUNTIME_XVALUE_NOMINAL_CAST_NULLABLE ||
@@ -590,6 +591,16 @@ static int xl6IrCgenEmitXValueProjectionInstruction(
         if ( instruction->payloadType != instruction->type ||
              result->kind == XL6_IR_TYPE_NULLABLE ||
              result->typeValueId == 0 || !matchingResult ) return 0;
+        if (result->kind == XL6_IR_TYPE_BUILTIN &&
+            (result->cAbi == XL6_IR_C_ABI_I64 || result->cAbi == XL6_IR_C_ABI_U64)) {
+            xl6OutputPrintf(out,
+                "    extern bool xl6ValueReadIntegerV1(const xvalue*, unsigned int, uint64_t, bool, void*);\n"
+                "    bool projection_ok_%u = xl6ValueReadIntegerV1(v%u, %u, 0x%016llXULL, false, &v%u);\n",
+                (unsigned int)instruction->result, (unsigned int)operand,
+                (unsigned int)xl6IrValueAdmissionAbiForType(&module->types, result),
+                (unsigned long long)result->typeValueId, (unsigned int)instruction->result);
+            return !xl6OutputHasFailed(out);
+        }
         xl6OutputPrintf(out,
             "    (void)xlir_xvalue_cast_checked(v%u, 0x%016llXULL, %d, &v%u);\n",
             (unsigned int)operand,
@@ -629,10 +640,28 @@ static int xl6IrCgenEmitXValueProjectionInstruction(
              result->nullAbi != XL6_IR_NULL_ABI_TAGGED_VALUE ||
              result->cName[0] == '\0' || identity == NULL ||
              identity->typeValueId == 0 ) return 0;
-        xl6OutputPrintf(out,
-            "    v%u = xlir_xvalue_try_cast_%s(v%u, 0x%016llXULL);\n",
-            (unsigned int)instruction->result, result->cName,
-            (unsigned int)operand,
+        if (identity->kind == XL6_IR_TYPE_BUILTIN &&
+            (identity->cAbi == XL6_IR_C_ABI_I64 || identity->cAbi == XL6_IR_C_ABI_U64)) {
+            xl6OutputPrintf(out,
+                "    extern bool xl6ValueTryReadIntegerV1(const xvalue*, unsigned int, uint64_t, void*);\n"
+                "    v%u = (%s){0};\n"
+                "    v%u.hasValue = xl6ValueTryReadIntegerV1(v%u, %u, 0x%016llXULL, &v%u.value);\n",
+                (unsigned int)instruction->result, result->cName,
+                (unsigned int)instruction->result, (unsigned int)operand,
+                (unsigned int)xl6IrValueAdmissionAbiForType(&module->types, identity),
+                (unsigned long long)identity->typeValueId, (unsigned int)instruction->result);
+        } else xl6OutputPrintf(out,
+                "    v%u = xlir_xvalue_try_cast_%s(v%u, 0x%016llXULL);\n",
+                (unsigned int)instruction->result, result->cName,
+                (unsigned int)operand,
+                (unsigned long long)identity->typeValueId);
+    } else if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_BYTES) {
+        identity = xl6IrTypeGet(&module->types, instruction->payloadType);
+        if (!identity || identity->cAbi != XL6_IR_C_ABI_MANAGED_BYTES ||
+            !xl6IrNullableManagedRepresentationCompatible(&module->types,
+                instruction->type, instruction->payloadType)) return 0;
+        xl6OutputPrintf(out, "    v%u = xl6ValueTryBytesV1(v%u, 0x%016llXULL);\n",
+            (unsigned int)instruction->result, (unsigned int)operand,
             (unsigned long long)identity->typeValueId);
     } else if ( instruction->runtimeOp ==
                 XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_STRING ) {

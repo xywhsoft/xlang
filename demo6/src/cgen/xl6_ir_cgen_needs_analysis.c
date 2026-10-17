@@ -378,6 +378,11 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
             needs->needsXValueTypeIdentityRuntime = 1;
             needs->needsXValueRuntime = 1;
         }
+        if (module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
+            module->instructions[i].runtimeOp == XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_BYTES) {
+            needs->needsXValueRetainProjectionRuntime = 1;
+            needs->needsXValueRuntime = 1;
+        }
         if ( module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
              module->instructions[i].runtimeOp ==
                  XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_STRING ) {

@@ -1,0 +1,34 @@
+class CheckedBox<T>
+    var value
+    create(var value)
+        self.value = value
+    end
+    func get() as T?
+        return self.value as T?
+    end
+end
+auto number = CheckedBox::<int>(17)
+assert (number.get() ?? 0) == 17
+auto binary = CheckedBox::<bytes>(b"a\0\xFF")
+assert (binary.get() ?? b"") == b"a\0\xFF"
+auto mismatch = CheckedBox::<bytes>("text")
+assert mismatch.get() == null
+auto narrow = CheckedBox::<int8>(-128)
+assert (narrow.get() ?? int8(0)) == -128
+auto overflow = CheckedBox::<int8>(128)
+assert overflow.get() == null
+auto signedMismatch = CheckedBox::<uint8>(-1)
+assert signedMismatch.get() == null
+auto floatMismatch = CheckedBox::<int32>(1.0)
+assert floatMismatch.get() == null
+var canonical = int32(7)
+assert (canonical as int32) == 7
+bool rejected = false
+var tooWideBox = 128
+try
+    int8 tooWide = tooWideBox as int8
+catch TypeError
+    rejected = true
+end
+assert rejected
+println("generic checked casts recomputed after specialization")

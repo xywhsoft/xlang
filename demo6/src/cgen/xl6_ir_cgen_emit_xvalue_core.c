@@ -469,7 +469,8 @@ static int xl6IrCgenEmitXValueCoreRuntime(
                 "extern xvalue* xl6CollectionCheckedTakeV1(xvalue*, int, unsigned int, bool, uint64_t);\n",
                 out);
         if (needs->needsXValueRetainProjectionRuntime)
-            xl6OutputPuts("extern xvalue* xl6ValueCheckedRetainV1(const xvalue*, unsigned int, bool, uint64_t);\n",out);
+            xl6OutputPuts("extern xvalue* xl6ValueCheckedRetainV1(const xvalue*, unsigned int, bool, uint64_t);\n"
+                "extern xvalue* xl6ValueTryBytesV1(const xvalue*, uint64_t);\n",out);
         if (needs->needsXValueScalarProjectionRuntime)
             xl6OutputPuts("extern bool xl6ValueReadF32V1(const xvalue*, uint64_t, float*);\n",out);
         if ( needs->needsXValueRuntime )

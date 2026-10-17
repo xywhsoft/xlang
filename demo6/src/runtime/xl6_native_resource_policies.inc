@@ -5,6 +5,7 @@ XL6_NATIVE_RESOURCE_POLICY("xl6AtomicUInt64DestroyV1",ATOMIC_U64,xl6AtomicUInt64
 XL6_NATIVE_RESOURCE_POLICY("xl6AtomicBoolDestroyV1",ATOMIC_BOOL,xl6AtomicBoolHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6OnceDestroyV1",ONCE,xl6OnceHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6EventDestroyV1",EVENT,xl6EventHandlePolicyV1Get)
+XL6_NATIVE_RESOURCE_POLICY("xl6ThreadLocalDestroyV1",THREAD_LOCAL,xl6ThreadLocalHandlePolicyV1Get)
 /* Exact resident resource declarations. A non-NULL owner also has a checked
  * XLIR direct-bridge contract. NULL is the private Pattern publication token.
  * Native payload storage and owning edges are audited in each provider. */
