@@ -73,6 +73,7 @@ def main():
         ('resource-identity',task/'tools/check_stdlib_resource_identity_shipping.py','results.json',True),
         ('native-text',task/'tools/check_stdlib_text_suites_shipping.py','results.json',True),
         ('native-system',task/'tools/check_stdlib_system_suites_shipping.py','results.json',True),
+        ('abi-rejection',task/'tools/check_stdlib_abi_rejection_shipping.py','results.json',True),
         ('signal-language-oom',task/'tools/check_stdlib_signal_language_oom_shipping.py','results.json',True),
         ('ide-cli',task/'tools/check_stdlib_ide_cli_shipping.py','results.json',True),
         ('build-input-scope',task/'tools/check_stdlib_build_input_scope_shipping.py','results.json',True),
@@ -131,7 +132,7 @@ def main():
         NativeTerminalLedgerAcceptance=False,
         WorkerBodyFaultPrefixAcceptance=False,
         NativeTaskWorkerCompletionAcceptance=False,NativeFuturePolicyAcceptance=False,
-        RealPlatformOpenAcceptance=False,CurrentGuideContractAcceptance=False,
+        RealPlatformOpenAcceptance=False,CurrentGuideContractAcceptance=False,NativeAbiRejectionAcceptance=False,
         WindowsNlsSdkRequired=windows,EmbeddedWindowsNlsSdkAcceptance=False,
         Full53Acceptance=False,FunctionCoverageAcceptance=False,WorkerWideOomAcceptance=False)
     def save():(out/'results.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
@@ -260,6 +261,7 @@ def main():
         report['RetainedResourceCreatorIdentityAcceptance']=any(c['Name']=='resource-identity' and c['Passed'] for c in children)
         report['NativeTextSuiteProductAcceptance']=any(c['Name']=='native-text' and c['Passed'] for c in children)
         report['NativeSystemSuiteProductAcceptance']=any(c['Name']=='native-system' and c['Passed'] for c in children)
+        report['NativeAbiRejectionAcceptance']=any(c['Name']=='abi-rejection' and c['Passed'] for c in children)
         report['EmittedLanguageSignalPrefixAcceptance']=any(c['Name']=='signal-language-oom' and c['Passed'] for c in children)
         report['CurrentGuideContractAcceptance']=any(c['Name']=='guide-contracts' and c['Passed'] for c in children)
         report['NativePublicBindingAcceptance']=any(c['Name']=='native-public' and c['Passed'] for c in children)
