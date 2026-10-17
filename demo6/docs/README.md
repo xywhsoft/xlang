@@ -6,6 +6,7 @@
 
 ## 当前权威设计
 
+- [系统原生接口的真实产品验收](stdlib53-b346-system-native-product-suites.md)：四份原时间／环境 C 宿主和无私有注入的 signal 消费者直接链接实际产品；保留 POSIX 与 Windows DST、白盒与产品、原生与语言故障层的边界。
 - [文本原生测试的真实产品验收](stdlib53-b345-text-native-product-suites.md)：十四份原 C 宿主直接链接双端实际产品，保留断言并检查清零前后堆账本；物理、逻辑前缀与单点故障分别计数。
 - [线程绑定资源身份与进程别名合同](stdlib53-b344-resource-identity-alias-contracts.md)：三类资源复用托管创建者身份，os.exec/run 同步默认超时和长度；真实旧产品、双端新产品与源码 sanitizer 分别验收。
 - [进程语言故障前缀的真实产品验收](stdlib53-b343-process-language-product-prefixes.md)：十一份原语言夹具用实际产品完成双端 44 配置的装箱与清理故障前缀；透明调用点观察、取消诊断回退与普通 JIT／AOT 分别记录。
