@@ -1,6 +1,7 @@
 /* Exact resident TaskGroup policy population and independent physical nodes. */
 #include "include/xruntime_decl.h"
 #include "xl6_ownership_domain_impl.h"
+#include "xl6_ownership_cancel.h"
 #include "xl6_native_handle.h"
 #include "src/api/xl_task_group_bridge.h"
 static bool load(XL6_OwnershipCatalog* catalog)
@@ -29,8 +30,7 @@ XL6_OWNERSHIP_QUERY(ResourceTaskGroup)
         policies->Watch,policies->WatchCount,policies->ProjectedWatch,policies->ProjectedWatchCount,
         policies->CancelWatch,policies->CancelWatchCount};
     if(!*adapter)*adapter=xrtFutureOwnershipAdapterV4(ref,&admission,preparation);
-    if(!*adapter)*adapter=xrtCancelWatchOwnershipAdapterV1(ref,policies->CancelWatch,policies->CancelWatchCount,preparation);
-    if(!*adapter)*adapter=xrtCancelOwnershipAdapterV2(ref,policies->CancelWatch,policies->CancelWatchCount,preparation);
+    if(!*adapter)(void)xl6OwnershipResolveCancelV1(ref,policies,adapter,completion);
     return *adapter!=NULL;
 }
 XL6_OWNERSHIP_DOMAIN(ResourceTaskGroup,load,ownershipDomainResourceTaskGroup)

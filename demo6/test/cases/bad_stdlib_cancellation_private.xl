@@ -1,0 +1,3 @@
+import concurrent
+auto source = CancellationSource()
+println(source.handle)

@@ -1,0 +1,32 @@
+import concurrent
+auto source = CancellationSource()
+auto token = source.token
+auto child = CancellationSource(token)
+auto childToken = child.token
+int calls = 0
+auto listener = childToken.onCancel(func()
+    calls += 1
+end)
+assert not source.isCancellationRequested and not token.isCancellationRequested
+assert not child.isCancellationRequested and not listener.wasTriggered
+token.throwIfCancelled()
+assert source.cancel()
+assert source.isCancellationRequested and token.isCancellationRequested
+assert childToken.isCancellationRequested and child.isCancellationRequested
+assert calls == 1 and listener.wasTriggered and not listener.hasFailed
+assert not source.cancel() and calls == 1
+listener.throwIfFailed()
+listener.close()
+assert listener.isClosed
+listener.close()
+
+auto independent = CancellationSource()
+auto independentChild = CancellationSource(independent.token)
+assert independentChild.cancel() and not independent.isCancellationRequested
+int after = 0
+auto immediate = source.token.onCancel(func()
+    after += 1
+end)
+assert after == 1 and immediate.wasTriggered
+immediate.close()
+println("managed cancellation source, token, parent chain and once notification ok")

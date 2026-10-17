@@ -19830,7 +19830,12 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
      * Append after source types, retaining their source-visible TypeIds. */
     static const struct { const char* name; const char* abi; } vocabulary[]={
         {"var","xlang.var"},{"array","xlang.array"},{"list","xlang.list"},
-        {"dict","xlang.dict"},{"set","xlang.set"}
+        {"dict","xlang.dict"},{"set","xlang.set"},
+        /* Class runtime tags and other hidden ordinal producers use the
+         * canonical signed-64 domain even in programs with no integer syntax.
+         * This is typed IR vocabulary, not a source/library dummy variable or
+         * a backend fallback. Append without renumbering existing source IDs. */
+        {"int","xrt.int64"}
     };
     for(size_t i=0;ok && module->root!=XL6_IR_NODE_INVALID &&
         i<sizeof(vocabulary)/sizeof(vocabulary[0]);++i) {

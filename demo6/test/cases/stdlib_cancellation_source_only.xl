@@ -1,0 +1,6 @@
+import concurrent
+auto source = CancellationSource()
+auto token = source.token
+assert not token.isCancellationRequested
+assert source.cancel() and token.isCancellationRequested
+println("cancellation polling without a callback provider")

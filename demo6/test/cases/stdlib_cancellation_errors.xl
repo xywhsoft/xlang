@@ -1,0 +1,57 @@
+import concurrent
+auto source = CancellationSource()
+auto token = source.token
+int completed = 0
+auto survivor = token.onCancel(func()
+    completed += 1
+end)
+auto listener = token.onCancel(func()
+    throw ValueError("cancellation callback marker")
+end)
+bool caught = false
+try
+    source.cancel()
+catch ValueError error
+    assert error.message == "cancellation callback marker"
+    caught = true
+end
+assert caught and source.isCancellationRequested and listener.hasFailed and completed == 1
+caught = false
+try
+    listener.throwIfFailed()
+catch ValueError error
+    assert error.message == "cancellation callback marker"
+    caught = true
+end
+assert caught
+listener.close()
+survivor.close()
+caught = false
+try
+    token.onCancel(func()
+        throw ValueError("already-cancelled constructor rollback")
+    end)
+catch ValueError
+    caught = true
+end
+assert caught
+bool cancelled = false
+try
+    token.throwIfCancelled()
+catch CancelledError
+    cancelled = true
+end
+assert cancelled
+
+auto selfSource = CancellationSource()
+CancellationRegistration? selfListener = null
+selfListener = selfSource.token.onCancel(func()
+    if selfListener != null then selfListener.close() end
+end)
+assert selfSource.cancel()
+if selfListener != null
+    assert selfListener.isClosed and selfListener.wasTriggered
+else
+    assert false
+end
+println("checked callback failure, constructor rollback and self-unwatch ok")

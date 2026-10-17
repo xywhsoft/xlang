@@ -25,6 +25,7 @@
 #include "src/runtime/xl6_network_service.h"
 #include "src/runtime/xl6_log.h"
 #include "src/runtime/xl6_text_value.h"
+#include "xl_cancellation_retirement.h"
 #include "src/runtime/xl6_stack.h"
 #include "src/runtime/xl6_stack_erased.h"
 #include "src/runtime/xl6_stack_erased_methods.h"

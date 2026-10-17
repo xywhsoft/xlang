@@ -1,0 +1,16 @@
+import concurrent
+class CancellationCycle
+    CancellationRegistration? listener
+    func accept()
+        assert true
+    end
+end
+auto source = CancellationSource()
+auto value = CancellationCycle()
+auto listener = source.token.onCancel(func()
+    value.accept()
+end)
+value.listener = listener
+// No cancel/close shortcut: normal module retirement must close the real cycle
+// after semantic finalization, consuming the owner registration right once.
+println("owned cancellation callback cycle left for normal retirement")

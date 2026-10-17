@@ -1,0 +1,7 @@
+// uint8 uses the same I64 carrier but is not the class tag domain.
+uint8 small = uint8(7)
+class NarrowFirstClass
+end
+auto first = NarrowFirstClass()
+assert first != null and small == uint8(7)
+println("class runtime tag retains canonical signed64 after narrow source types")
