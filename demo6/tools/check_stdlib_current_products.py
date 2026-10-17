@@ -75,6 +75,8 @@ def main():
         ('native-system',task/'tools/check_stdlib_system_suites_shipping.py','results.json',True),
         ('signal-language-oom',task/'tools/check_stdlib_signal_language_oom_shipping.py','results.json',True),
         ('guide-contracts',task/'tools/check_stdlib_guide_contracts.py','results.json',False)]
+    if windows:
+        gates.append(('windows-nls-sdk',task/'tools/check_stdlib_windows_nls_sdk_shipping.py','results.json',True))
     if not windows:
         gates.append(('elf','check_stdlib_sync_shipping_elf.py','sync.shipping.elf.json',True))
         gates.append(('native-public',task/'tools/check_stdlib_intrinsic_coverage.py','results.json',True))
@@ -128,6 +130,7 @@ def main():
         WorkerBodyFaultPrefixAcceptance=False,
         NativeTaskWorkerCompletionAcceptance=False,NativeFuturePolicyAcceptance=False,
         RealPlatformOpenAcceptance=False,CurrentGuideContractAcceptance=False,
+        WindowsNlsSdkRequired=windows,EmbeddedWindowsNlsSdkAcceptance=False,
         Full53Acceptance=False,FunctionCoverageAcceptance=False,WorkerWideOomAcceptance=False)
     def save():(out/'results.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     def run(name,command,directory=isolated,environment=env,timeout=180):
@@ -258,6 +261,7 @@ def main():
         report['EmittedLanguageSignalPrefixAcceptance']=any(c['Name']=='signal-language-oom' and c['Passed'] for c in children)
         report['CurrentGuideContractAcceptance']=any(c['Name']=='guide-contracts' and c['Passed'] for c in children)
         report['NativePublicBindingAcceptance']=any(c['Name']=='native-public' and c['Passed'] for c in children)
+        report['EmbeddedWindowsNlsSdkAcceptance']=any(c['Name']=='windows-nls-sdk' and c['Passed'] for c in children)
         report['UnexecutedRequirements']=[c['Name'] for c in records if c['Status']=='requires-platform']
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
         report['Complete']=report['InputsUnchanged'] and report['AllExecutablePassed'] and len(children)==len(gates) and not failures

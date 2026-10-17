@@ -6,6 +6,7 @@
 
 ## 当前权威设计
 
+- [Windows 内嵌 SDK 的严格 Unicode 转换](stdlib53-b349-windows-strict-unicode-sdk.md)：补齐严格转换常量，以实际双 DLL 的 VFS、模块和独立程序验证；IDE 前置与完整工作区验收另行处理。
 - [DLL 构建响应文件与失败状态](stdlib53-b348-build-response-prerequisites.md)：必要构建前置等价拆分、去重、可靠退出码与 LF／CRLF 检查；保留工作区编译器增量与新产品验收边界。
 - [Signal 语言故障前缀的真实产品验收](stdlib53-b347-signal-language-product-prefixes.md)：八份原语言夹具使用实际双产品；完整 OOM 前缀、原异常优先的两层诊断降级及反向控制分别验证。
 - [系统原生接口的真实产品验收](stdlib53-b346-system-native-product-suites.md)：四份原时间／环境 C 宿主和无私有注入的 signal 消费者直接链接实际产品；保留 POSIX 与 Windows DST、白盒与产品、原生与语言故障层的边界。
