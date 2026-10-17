@@ -11909,7 +11909,14 @@ static XL6_IrTypeId xl6IrLowerFindTypeByCAbi(const XL6_IrModule* module, XL6_IrC
     size_t i;
     if ( module == NULL ) return XL6_IR_TYPE_INVALID;
     for ( i = 0; i < module->types.count; ++i ) {
-        if ( module->types.items[i].cAbi == cAbi ) return (XL6_IrTypeId)(i + 1);
+        const XL6_IrType* type=&module->types.items[i];
+        /* I8..U32 and numeric enums share the I64 execution carrier. Hidden
+         * runtime tag/index producers need canonical int64, not whichever
+         * source spelling happened to be interned first. */
+        if ( type->cAbi == cAbi && (cAbi != XL6_IR_C_ABI_I64 ||
+             (type->kind == XL6_IR_TYPE_BUILTIN &&
+              type->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_64)) )
+            return (XL6_IrTypeId)(i + 1);
     }
     return XL6_IR_TYPE_INVALID;
 }

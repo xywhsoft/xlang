@@ -1,0 +1,29 @@
+import concurrent
+auto source = CancellationSource()
+auto entered = Event()
+auto release = Event(true)
+auto closing = Event()
+auto closed = Event()
+auto listener = source.token.onCancel(func()
+    entered.set()
+    assert release.wait(10000)
+end)
+auto requester = thread(func() as int
+    source.cancel()
+    return 0
+end)
+bool started = entered.wait(10000)
+auto disposer = thread(func() as int
+    closing.set()
+    listener.close()
+    closed.set()
+    return 0
+end)
+bool closeStarted = closing.wait(10000)
+assert not closed.tryWait()
+release.set()
+bool requested = requester.waitTimeout(30000)
+bool disposed = disposer.waitTimeout(30000)
+assert started and closeStarted and requested and disposed
+assert requester.exitCode() == 0 and disposer.exitCode() == 0 and listener.isClosed
+println("cross-thread cancellation and checked unregister wait ok")

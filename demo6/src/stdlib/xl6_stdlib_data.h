@@ -10,6 +10,7 @@
 extern const char* xl6StdlibOnceSource;
 extern const char* xl6StdlibEventSource;
 extern const char* xl6StdlibThreadLocalSource;
+extern const char* xl6StdlibCancellationSource;
 extern const char* xl6StdlibTemplateBufferSource;
 extern const char* xl6StdlibTemplateWriterSource;
 extern const char* xl6StdlibTemplateFileSource;

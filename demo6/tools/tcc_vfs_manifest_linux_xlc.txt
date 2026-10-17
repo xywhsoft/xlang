@@ -8,6 +8,7 @@ dir|include/__xl_runtime|%XL6_ROOT%/src/runtime|*.h
 
 file|include/xl.h|%XL6_ROOT%/release/include/xl.h
 file|include/xl_sync_retirement.h|%XL6_ROOT%/release/include/xl_sync_retirement.h
+file|include/xl_cancellation_retirement.h|%XL6_ROOT%/release/include/xl_cancellation_retirement.h
 file|include/xlc.h|%XL6_ROOT%/release/include/xlc.h
 file|include/__xl_runtime/xl_runtime.h|%XL6_ROOT%/release/include/xl_runtime.h
 file|include/__xl_runtime/xl_extlib_abi.h|%XL6_ROOT%/release/include/xl_extlib_abi.h
@@ -16,6 +17,7 @@ file|include/__xl_runtime/xruntime_decl.h|%XL6_ROOT%/release/include/xruntime_de
 # 该私有根只服务于 __xl_compiler/src，不影响用户 C 源的公开头文件布局。
 file|__xl_compiler/include/xl.h|%XL6_ROOT%/release/include/xl.h
 file|__xl_compiler/include/xl_sync_retirement.h|%XL6_ROOT%/release/include/xl_sync_retirement.h
+file|__xl_compiler/include/xl_cancellation_retirement.h|%XL6_ROOT%/release/include/xl_cancellation_retirement.h
 file|__xl_compiler/include/xl_runtime.h|%XL6_ROOT%/release/include/xl_runtime.h
 file|__xl_compiler/include/xl_extlib_abi.h|%XL6_ROOT%/release/include/xl_extlib_abi.h
 file|__xl_compiler/include/xruntime_decl.h|%XL6_ROOT%/release/include/xruntime_decl.h

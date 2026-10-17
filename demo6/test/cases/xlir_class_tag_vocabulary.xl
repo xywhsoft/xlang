@@ -1,0 +1,6 @@
+// No int declaration: runtime class tags must own their canonical vocabulary.
+class EmptyClass
+end
+auto first = EmptyClass()
+assert first != null
+println("class runtime tag without source integer syntax")

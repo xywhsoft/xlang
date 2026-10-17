@@ -30,6 +30,12 @@ XL6_ARTIFACT_SYMBOL("xl6OwnershipCatalogAddCombineV1", OWNERSHIP_CATALOG)
 XL6_ARTIFACT_SYMBOL("xl6OwnershipCatalogAddTaskV1", OWNERSHIP_CATALOG)
 XL6_ARTIFACT_SYMBOL("xl6OwnershipCatalogAddQueuedStorageV1", OWNERSHIP_CATALOG)
 XL6_ARTIFACT_SYMBOL("xl6OwnershipCatalogAddResolverRequestV1", OWNERSHIP_CATALOG)
+XL6_ARTIFACT_SYMBOL("xl6ThreadExitRegisterLocalV1", THREAD_EXIT)
+XL6_ARTIFACT_SYMBOL("xl6ThreadExitCurrentV1", THREAD_EXIT)
+XL6_ARTIFACT_SYMBOL("xl6ThreadLocalOwnershipAdapterV1", THREAD_LOCAL)
+XL6_ARTIFACT_SYMBOL("xl6CancellationWatchPolicyV1Get", CANCELLATION_REGISTRATION)
+XL6_ARTIFACT_SYMBOL("xl6CancellationRegistrationAdapterV1", CANCELLATION_REGISTRATION)
+XL6_ARTIFACT_SYMBOL("xl6CancellationRegistrationQuiescenceV1Get", CANCELLATION_REGISTRATION)
 #define XL6_OWNERSHIP_DOMAIN_ENTRY(Producer, Component, Getter) XL6_ARTIFACT_SYMBOL(#Getter, Component)
 #include "src/runtime/xl6_ownership_domains.inc"
 #undef XL6_OWNERSHIP_DOMAIN_ENTRY
