@@ -22,7 +22,7 @@ def digest(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--stage', choices=('p0',), required=True)
+    parser.add_argument('--stage', choices=('p0', 'atomic'), required=True)
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     args = parser.parse_args()
@@ -40,6 +40,11 @@ def main():
                  'sem_numeric_narrowing_int')
     helpers = ('stdlib_product_fixture_host.c', 'stdlib_pruning_product_host.c',
                'stdlib_codec_template_language_host.c', 'xlir_narrow_operator_contract.c')
+    if args.stage == 'atomic':
+        selected = ('stdlib_atomics', 'stdlib_atomic_bool_only', 'stdlib_atomic_threads',
+                    'stdlib_concurrent_import_only', 'stdlib_time_text_only', 'xlir_narrow_operator_literals')
+        negatives = ('bad_stdlib_atomic_missing_import', 'bad_stdlib_atomic_private_handle', 'bad_xlir_atomic_product')
+        helpers = (*helpers[:3], 'xlir_atomic_contract.c', 'stdlib_atomic_oom_host.c', 'stdlib53_pruning_plan.c')
     inputs = {Path(__file__).resolve(), *products,
               *[cases/(name+'.xl') for name in selected+negatives],
               *[cases/name for name in helpers],
@@ -103,12 +108,32 @@ def main():
         for binary, source in ((host, helpers[0]), (observer, helpers[1])):
             run(binary.stem+'.build', [cc, *flags, '-O2', '-I'+str(root/'release/include'),
                                       cases/source, *links(names[2]), '-o', binary])
+        if args.stage == 'atomic':
+            exports = set(re.findall(r'XL6_TEXT_EXPORT\((\w+),',
+                (root/'src/runtime/xl6_atomic_symbols.inc').read_text()))
+            declarations = set(re.findall(r'XL6_TEXT_API [^;\n]*?\b(\w+)\(',
+                (root/'src/runtime/xl6_atomic_abi.h').read_text()))
+            contracts = set(re.findall(r'(?m)^\s*\{"([^"]+)"',
+                (root/'src/ir/xl6_ir_atomic_contracts.inc').read_text()))
+            assert exports == declarations == contracts and len(exports) == 50
+            report['ResidentEntries'] = len(exports)
+            inspect = shutil.which('objdump' if win else 'nm')
+            assert inspect
+            for product in products[1:]:
+                body = run(product.stem+'.exports', [inspect, '-p', product] if win else
+                    [inspect, '-D', '--defined-only', product])
+                actual = {name.decode() for name in re.findall(rb'\bxl6Atomic\w+V1\b', body)}
+                assert exports <= actual
+                binary = isolated/(product.stem+'.oom'+('.exe' if win else ''))
+                run(product.stem+'.oom.build', [cc, *flags, '-O2', '-I'+str(root),
+                    '-I'+str(root/'release'), cases/helpers[4], *links(product.name), '-o', binary])
+                run(product.stem+'.oom.run', [binary])
         strict = [*flags, '-Wno-unused-function', '-Wno-unused-parameter', '-Wno-unused-variable',
                   '-Wno-unused-label', '-Wno-unused-const-variable', '-Wno-unused-but-set-variable',
                   '-Wno-missing-field-initializers', '-I'+str(task), '-I'+str(root),
                   '-I'+str(root/'release'), '-I'+str(sdk)]
         cli = release/names[0]
-        for name in selected:
+        def positive(name):
             source = isolated/(name+'.xl')
             shutil.copy2(cases/source.name, source)
             run(name+'.jit', [cli, 'run', source])
@@ -116,8 +141,9 @@ def main():
             run(name+'.cgen', [cli, 'cgen', source, '--emit', first])
             run(name+'.repeat', [cli, 'cgen', source, '--emit', second])
             assert first.read_bytes() == second.read_bytes()
-            if name != selected[0]:
-                continue
+            full = name == selected[0] or (args.stage == 'atomic' and name in selected[:3])
+            if not full:
+                return
             work = out/(name+'.saved')
             work.mkdir()
             image = work/('program.exe' if win else 'program')
@@ -140,29 +166,51 @@ def main():
                     '-DXLIR_GENERATED_MODULE="'+module.as_posix()+'"', cases/helpers[2],
                     task/'test/support/module_product_memory.c', *links(names[2]), '-o', binary])
                 run(name+'.'+opt+'.run', [binary])
-        for name in negatives:
+        def negative(name):
             source = isolated/(name+'.xl')
             shutil.copy2(cases/source.name, source)
             target = out/(name+'.c')
             target.write_bytes(b'UNCHANGED\n')
             output = run(name+'.reject', [cli, 'cgen', source, '--emit', target], negative=True)
-            assert b'[ir]' in output or b'[sem]' in output
+            assert b'[ir]' in output or b'[sem]' in output or b'[checked]' in output
             assert target.read_bytes() == b'UNCHANGED\n'
-        if not win:
+            if name == 'bad_stdlib_atomic_private_handle': assert b'private' in output
+            if name == 'bad_xlir_atomic_product': assert b'exact declared ABI' in output
+        failures = []
+        report['Failures'] = failures
+        for names_, check in ((selected, positive), (negatives, negative)):
+            for name in names_:
+                try:
+                    check(name)
+                except Exception as error:
+                    failures.append(dict(Name=name, Error=repr(error)))
+                    save()
+        if not win and not failures:
             binary = isolated/'literal-contract'
             run('contract.build', [cc, *flags, '-O2', '-I'+str(root), '-I'+str(root/'release/include'),
                 '-I'+str(root/'lib/tcc'), cases/helpers[3], *links(names[2]), '-o', binary])
             run('contract.run', [binary, isolated/(selected[0]+'.xl')])
+            if args.stage == 'atomic':
+                planner = isolated/'planner'
+                run('pruning.build', [cc, *flags, '-O2', '-I'+str(root), '-I'+str(root/'release/include'),
+                    '-I'+str(root/'lib/tcc'), cases/helpers[5], *links(names[2]), '-o', planner])
+                for name, expected in (('stdlib_atomic_bool_only', {'xl6_atomic_bool.c', 'xl6_atomic_bool_domain.c'}),
+                                       ('stdlib_concurrent_import_only', set())):
+                    plan = json.loads(run(name+'.plan', [planner, isolated/(name+'.xl')]))
+                    sources = {Path(path).name for path in plan['Sources']}
+                    atomic = {path for path in sources if path.startswith('xl6_atomic_')}
+                    assert atomic == expected, (name, atomic)
         report['InputsUnchanged'] = all(digest(row['Path']) == row['Sha256'] for row in report['Inputs'])
         report['LogsUnchanged'] = all(digest(row['Log']) == row['Sha256'] for row in report['Rows'])
         assert report['InputsUnchanged'] and report['LogsUnchanged']
+        assert not failures, failures
         report['Complete'] = True
     except Exception as error:
         report['Error'] = repr(error)
         raise
     finally:
         save()
-    print(f"P0 offline acceptance passed: {len(report['Rows'])} phases; no network tests", flush=True)
+    print(f"{args.stage} offline acceptance passed: {len(report['Rows'])} phases; no network tests", flush=True)
 
 
 if __name__ == '__main__':

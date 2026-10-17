@@ -1,4 +1,5 @@
 XL6_TEXT_EXPORT(xl6TextLowerV1, TEXT_VALUE)
+#include "xl6_atomic_symbols.inc"
 #include "xl6_asn1_symbols.inc"
 #include "xl6_crypto_symbols.inc"
 #include "xl6_compress_symbols.inc"

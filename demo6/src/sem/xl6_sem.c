@@ -20140,7 +20140,7 @@ static int xl6SemIsInternalStdRuntimeExtern(const XL6_AstNode* node)
 }
 
 /* The native product ABI is closed: three language signed 64-bit values or
- * two absolute time values, or a bool followed by absolute time,
+ * two absolute times, or bool followed by time/int/int32/uint32/uint64/bool,
  * in declaration order. Resolve aliases here; Typed XLIR independently
  * verifies the exact physical carrier, ownership and representation. C
  * integer aliases are deliberately not admitted based on host sizeof. */
@@ -20149,13 +20149,19 @@ static int xl6SemIsCAbiPrimitiveProductReturns(XL6_SemContext* ctx,
 {
     size_t i;
     if (returns == NULL || (returns->childCount != 2 && returns->childCount != 3)) return 0;
+    const XL6_AstNode* first = xl6SemResolveAliasType(ctx, returns->children[0]);
+    int boolFirst = first && xl6TextEquals(first->text, "bool");
     for (i = 0; i < returns->childCount; ++i) {
         const XL6_AstNode* type = xl6SemResolveAliasType(ctx, returns->children[i]);
-        if (type == NULL || type->childCount != 0 ||
-            (returns->childCount == 2 ? (!xl6TextEquals(type->text, "time") &&
-                !(i == 0 && xl6TextEquals(type->text, "bool"))) :
-             (!xl6TextEquals(type->text, "int") && !xl6TextEquals(type->text, "int64"))))
-            return 0;
+        if (type == NULL || type->childCount != 0) return 0;
+        if (returns->childCount == 3) {
+            if (!xl6TextEquals(type->text, "int") && !xl6TextEquals(type->text, "int64")) return 0;
+        } else if (i == 0) {
+            if (!boolFirst && !xl6TextEquals(type->text, "time")) return 0;
+        } else if (!xl6TextEquals(type->text, "time") && !(boolFirst &&
+            (xl6TextEquals(type->text, "int") || xl6TextEquals(type->text, "int64") ||
+             xl6TextEquals(type->text, "int32") || xl6TextEquals(type->text, "uint32") ||
+             xl6TextEquals(type->text, "uint64") || xl6TextEquals(type->text, "bool")))) return 0;
     }
     return 1;
 }

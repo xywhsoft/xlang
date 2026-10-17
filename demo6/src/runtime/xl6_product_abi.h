@@ -34,4 +34,25 @@ typedef struct XL6_ProductTimeX2V1 { int64_t e0; int64_t e1; } XL6_ProductTimeX2
 #define XL6_PRODUCT_ABI_BOOLTIME_V1
 typedef struct XL6_ProductBoolTimeV1 { bool e0; int64_t e1; } XL6_ProductBoolTimeV1;
 #endif
+#ifndef XL6_PRODUCT_ABI_BOOLI64_V1
+#define XL6_PRODUCT_ABI_BOOLI64_V1
+typedef struct XL6_ProductBoolI64V1 { bool e0; int64_t e1; } XL6_ProductBoolI64V1;
+#endif
+/* Logical i32/u32 stay distinct while using xlang's normalized I64 carrier. */
+#ifndef XL6_PRODUCT_ABI_BOOLI32_V1
+#define XL6_PRODUCT_ABI_BOOLI32_V1
+typedef struct XL6_ProductBoolI32V1 { bool e0; int64_t e1; } XL6_ProductBoolI32V1;
+#endif
+#ifndef XL6_PRODUCT_ABI_BOOLU32_V1
+#define XL6_PRODUCT_ABI_BOOLU32_V1
+typedef struct XL6_ProductBoolU32V1 { bool e0; int64_t e1; } XL6_ProductBoolU32V1;
+#endif
+#ifndef XL6_PRODUCT_ABI_BOOLU64_V1
+#define XL6_PRODUCT_ABI_BOOLU64_V1
+typedef struct XL6_ProductBoolU64V1 { bool e0; uint64_t e1; } XL6_ProductBoolU64V1;
+#endif
+#ifndef XL6_PRODUCT_ABI_BOOLBOOL_V1
+#define XL6_PRODUCT_ABI_BOOLBOOL_V1
+typedef struct XL6_ProductBoolBoolV1 { bool e0; bool e1; } XL6_ProductBoolBoolV1;
+#endif
 #endif

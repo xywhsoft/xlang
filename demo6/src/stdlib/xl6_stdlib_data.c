@@ -1,4 +1,5 @@
 #include "src/stdlib/xl6_stdlib_data.h"
+#include "src/stdlib/xl6_stdlib_atomic.inc"
 #include "src/stdlib/xl6_stdlib_asn1.inc"
 #include "src/stdlib/xl6_stdlib_io.inc"
 #include "src/stdlib/xl6_stdlib_text.inc"
@@ -5256,6 +5257,11 @@ static const char xl6StdXlangRunFileBody[] =
     "end\n";
 
 const XL6_StdlibConst xl6StdlibConsts[] = {
+    {"concurrent", "relaxed", XL6_AST_INT, "0"},
+    {"concurrent", "acquire", XL6_AST_INT, "1"},
+    {"concurrent", "release", XL6_AST_INT, "2"},
+    {"concurrent", "acqRel", XL6_AST_INT, "3"},
+    {"concurrent", "seqCst", XL6_AST_INT, "4"},
     {"codec", "hexUpper", XL6_AST_INT, "1"},
     {"compress", "raw", XL6_AST_INT, "0"},
     {"compress", "zlib", XL6_AST_INT, "1"},

@@ -1,0 +1,5 @@
+import concurrent
+auto value = AtomicBool()
+auto exchanged, observed = value.compareExchange(false, true)
+assert exchanged and not observed and value.load()
+println("atomic bool only ok")

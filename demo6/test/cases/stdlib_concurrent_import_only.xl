@@ -1,0 +1,3 @@
+import concurrent
+assert concurrent.relaxed == 0 and concurrent.seqCst == 4
+println("concurrent import has no runtime roots")

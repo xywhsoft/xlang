@@ -183,6 +183,9 @@ static int xl6ImportsTryBuiltinFeatureImport(const char* target, XL6_ImportDeps*
         deps->features |= XL6_IMPORT_FEATURE_XLANG_RUNTIME | XL6_IMPORT_FEATURE_XLANG_COMPILER;
         return 1;
     }
+    /* Resident advanced declarations are selected by explicit import; actual
+     * native source dependencies are derived from verified IR, not this name. */
+    if ( xl6ImportsTextEquals(target, "concurrent") ) return 1;
     return 0;
 }
 
