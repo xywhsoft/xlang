@@ -1,0 +1,3 @@
+assert codec.hexEncode("a\0b") == "610062"
+assert codec.hexEncode("x", size = 0) == ""
+println("hex text only passed")

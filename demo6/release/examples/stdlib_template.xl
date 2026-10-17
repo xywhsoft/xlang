@@ -18,9 +18,15 @@ var data = {
 
 Template compiled = template.compile("<h1>{$title}</h1>{#if:show}Y{#else}N{#end}:{#foreach:users}{$name};{#end}")
 requireLine("basic", compiled.render(data) == "<h1>xlang</h1>Y:Ada;Lin;")
-requireLine("inspect", compiled.valid and compiled.nodeCount > 0 and int(compiled.node(0)["type"]) > 0)
+requireLine("inspect", compiled.nodeCount > 0 and compiled.node(0).type > 0)
 requireLine("render", template.render("Hello {$title}", data) == "Hello xlang")
-requireLine("bracket", template.render("{{$title}}", data, "{{", "}}") == "xlang" and template.render("<$title>", data, "<", ">") == "xlang")
+auto delimiters = TemplateCompileOptions()
+delimiters.open = "{{"
+delimiters.close = "}}"
+bool braces = template.compile("{{$title}}", delimiters).render(data) == "xlang"
+delimiters.open = "<"
+delimiters.close = ">"
+requireLine("bracket", braces and template.compile("<$title>", delimiters).render(data) == "xlang")
 
 dir.createAll("examples_out/stdlib_template_example")
 file.writeText("examples_out/stdlib_template_example/page.xte", "File {$title}")

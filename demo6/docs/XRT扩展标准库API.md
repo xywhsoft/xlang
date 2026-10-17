@@ -8,6 +8,16 @@
 `checksumBuffer/updateBuffer`。六个重载均返回 `uint32`，可选 size 按字节
 截断到实际长度，保留内嵌 NUL；具体合同见 [CRC32 标准库](CRC32标准库.md)。
 
+## 编码、压缩与模板
+
+本轮源代码合同见 [编码、压缩与模板标准库](编码压缩与模板标准库.md)：
+codec 的 string/bytes 编码及 bytes 解码、完整 Base64/Percent 配置；
+compress 的整块／流式 raw/zlib/gzip；template 的预算、扩展回调、
+include 解析器、Buffer/IoWriter 输出与有界宿主／VFS 输入。
+旧裸指针 codec 与生成式模板桥退出；类实例数据只投影 public 存储字段，
+不执行 getter、不采用持久化属性、不暴露私有字段。两端实际新候选专项已通过，
+没有覆盖 release 中的现有二进制。
+
 ## 动态方法与 Stack 接收
 
 typed func 与 xcall 的 nullable 参数／返回值合同见
@@ -147,7 +157,6 @@ XsonOptions options = xson.options(true, false, false)
 
 TemplateEngine engine = template.engine()
 Template compiled = engine.compile(source)
-Template loaded = template.load(path)
 Template fileCompiled = template.compileFile(path)
 ```
 

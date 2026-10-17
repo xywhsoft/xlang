@@ -115,12 +115,6 @@ static int xl6IrCgenEmitStdlibBridgeRuntime(
             "    xrtErrorFree(failure); xrtSetErrorTake(prior); return valid;\n"
             "  }\n"
             "  xrtErrorFree(prior); xrtSetErrorTake(failure); return false; }\n\n", out);
-    if ( needs->needsBase64TextCodecBridgeRuntime )
-        xl6CgenEmitBase64TextCodecRuntime(out, xl6IrCgenNeedsXrtDeclarations(needs));
-    if ( needs->needsHexBytesCodecBridgeRuntime )
-        xl6CgenEmitHexBytesCodecRuntime(out, xl6IrCgenNeedsXrtDeclarations(needs));
-    if ( needs->needsBase64BytesCodecBridgeRuntime )
-        xl6CgenEmitBase64BytesCodecRuntime(out, xl6IrCgenNeedsXrtDeclarations(needs));
     if ( needs->needsLastErrorTextBridgeRuntime )
         xl6OutputPuts(
             "xlir_string xl6_xrt_last_error_text(void)\n"
@@ -132,26 +126,11 @@ static int xl6IrCgenEmitStdlibBridgeRuntime(
             "size_t xl6_xrt_string_char_len(xlir_string text)\n"
             "{ return xrtUtf8Count(text); }\n\n",
             out);
-    if ( needs->needsTextCodecBridgeRuntime ||
-         needs->needsCryptoTextHashBridgeRuntime )
+    if ( needs->needsCryptoTextHashBridgeRuntime )
         xl6OutputPuts(
             "extern size_t strlen(const char*);\n"
             "extern char* xrtStrDup(const char*);\n"
             "extern char* xrtHexEncodeNew(const void*, size_t, uint32_t);\n",
-            out);
-    if ( needs->needsTextCodecBridgeRuntime )
-        xl6OutputPuts(
-            "extern unsigned char* xrtHexDecodeNew(xstrview, size_t*, uint32_t);\n"
-            "extern char* xrtPercentEncodeNew(const void*, size_t, xstrview, size_t*);\n"
-            "extern unsigned char* xrtPercentDecodeNew(xstrview, size_t*);\n"
-            "xlir_string xl6_xrt_hex_encode_text(xlir_string text, size_t size)\n"
-            "{ char* output; if (size > text.Size) size = text.Size; if (size > SIZE_MAX / 2u) { xrtSetErrorKind(XERR_RANGE); return (xlir_string){0}; } output = xrtHexEncodeNew(text.Data, size, 1u); return xlir_string_take_known(output, output != NULL ? size * 2u : 0u); }\n"
-            "xlir_string xl6_xrt_hex_decode_text(xlir_string text, size_t size)\n"
-            "{ size_t outputSize = 0u; unsigned char* output; if (size > text.Size) size = text.Size; output = xrtHexDecodeNew((xstrview){ text.Data, size }, &outputSize, 0u); return xlir_string_take_known((char*)output, outputSize); }\n"
-            "xlir_string xl6_xrt_percent_encode_text(xlir_string text, size_t size, void* outSize)\n"
-            "{ size_t outputSize = 0u; char* output; if (size > text.Size) size = text.Size; output = xrtPercentEncodeNew(text.Data, size, (xstrview){ NULL, 0u }, &outputSize); if (outSize != NULL) *(size_t*)outSize = outputSize; return xlir_string_take_known(output, outputSize); }\n"
-            "xlir_string xl6_xrt_percent_decode_text(xlir_string text, size_t size, void* outSize)\n"
-            "{ size_t outputSize = 0u; unsigned char* output; if (size > text.Size) size = text.Size; output = xrtPercentDecodeNew((xstrview){ text.Data, size }, &outputSize); if (outSize != NULL) *(size_t*)outSize = outputSize; return xlir_string_take_known((char*)output, outputSize); }\n\n",
             out);
     if ( needs->needsCryptoTextHashBridgeRuntime )
         xl6OutputPuts(

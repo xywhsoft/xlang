@@ -1,6 +1,3 @@
-extern "expect_i64" func expect(int actual, int expected)
-extern "expect_str" func expectStr(string actual, string expected)
-
 var data = {
     "title": "xlang",
     "show": true,
@@ -11,20 +8,24 @@ var data = {
 }
 
 Template compiled = template.compile("<h1>{$title}</h1>{#if:show}Y{#else}N{#end}:{#foreach:users}{$name};{#end}")
-expectStr(compiled.render(data), "<h1>xlang</h1>Y:Ada;Lin;")
-expect(compiled.nodeCount > 0, 1)
-expect(compiled.valid, 1)
-expectStr(compiled.source, "<h1>{$title}</h1>{#if:show}Y{#else}N{#end}:{#foreach:users}{$name};{#end}")
-expect(int(compiled.node(0)["type"]) > 0, 1)
+assert compiled.render(data) == "<h1>xlang</h1>Y:Ada;Lin;"
+assert compiled.nodeCount > 0
+assert compiled.source == "<h1>{$title}</h1>{#if:show}Y{#else}N{#end}:{#foreach:users}{$name};{#end}"
+assert compiled.node(0).type > 0
 
-expectStr(template.render("Hello {$title}", data), "Hello xlang")
-expectStr(template.render("{{$title}}", data, "{{", "}}"), "xlang")
-expectStr(template.render("<$title>", data, "<", ">"), "xlang")
+assert template.render("Hello {$title}", data) == "Hello xlang"
+auto delimiters = TemplateCompileOptions()
+delimiters.open = "{{"
+delimiters.close = "}}"
+assert template.compile("{{$title}}", delimiters).render(data) == "xlang"
+delimiters.open = "<"
+delimiters.close = ">"
+assert template.compile("<$title>", delimiters).render(data) == "xlang"
 
 dir.createAll("build/test/stdlib_template")
 file.writeText("build/test/stdlib_template/page.xte", "File {$title}")
-expectStr(template.renderFile("build/test/stdlib_template/page.xte", data), "File xlang")
+assert template.renderFile("build/test/stdlib_template/page.xte", data) == "File xlang"
 Template fromFile = template.compileFile("build/test/stdlib_template/page.xte")
-expectStr(fromFile.render(data), "File xlang")
+assert fromFile.render(data) == "File xlang"
 file.delete("build/test/stdlib_template/page.xte")
 dir.delete("build/test/stdlib_template")

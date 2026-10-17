@@ -1,2 +1,2 @@
-extern "xl6_xrt_base64_decode_text" func decode(string text, c_size size) as point
-point result = decode("eGxhbmc=", c_size(8))
+extern "xl6CodecBase64DecodeV1" func decode(string text, int size, int flags) as bytes
+auto result = decode("eGxhbmc=", -1, 0)

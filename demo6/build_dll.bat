@@ -47,6 +47,16 @@ call tools\build_xrt_obj.bat
 if errorlevel 1 exit /b 1
 
 rem Safe native constructors are separate from lossless read/box providers.
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_template.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_template.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_template_call.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_template_call.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_template_engine.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_template_engine.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_deflater.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_deflater.o"
+if errorlevel 1 exit /b 1
+"%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_inflater.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_inflater.o"
+if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_time_date_time.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_time_date_time.o"
 if errorlevel 1 exit /b 1
 "%XL6_RELEASE_CC%" %XL6_RELEASE_CFLAGS% -DXL_BUILD_DLL -I. -Irelease -Isrc -c src\runtime\xl6_ownership_domain_resource_unicode_validator.c -o "%XL6_BUILD_TMP%\xl6_ownership_domain_resource_unicode_validator.o"

@@ -1,0 +1,102 @@
+int getterCalls = 0
+class TemplatePublicBase
+    derive json
+    string inherited = "base"
+    private string baseSecret = "base private"
+end
+class TemplatePrivateInput extends TemplatePublicBase
+    derive json
+    string name @json("wire_name") = "public"
+    string visible @persist(skip) = "stored public"
+    private string secret @persist(include) = "not exported"
+    private Buffer resource = Buffer("private resource")
+    get computed() as string
+        getterCalls += 1
+        return "getter must not run"
+    end
+end
+auto input = TemplatePrivateInput()
+assert template.render("{$name}:{$inherited}", input) == "public:base"
+assert template.render("{$visible}", input) == "stored public"
+assert template.render("{#foreach:items}{$name};{#end}", {"items": [input, input]}) == "public;public;"
+int refused = 0
+try
+    template.render("{$secret}", input)
+catch failure
+    refused += 1
+end
+try
+    template.render("{$baseSecret}", input)
+catch failure
+    refused += 1
+end
+try
+    template.render("{$computed}", input)
+catch failure
+    refused += 1
+end
+try
+    template.render("{#foreach:items}{$secret}{#end}", {"items": [input]})
+catch failure
+    refused += 1
+end
+assert refused == 4 and getterCalls == 0
+assert template.render("{$name}", {"name": input.name}) == "public"
+auto scopes = TemplateRenderOptions()
+scopes.root = input
+scopes.current = input
+assert template.render("{$name}", null, scopes) == "public"
+assert getterCalls == 0
+class PublicStorageBase
+    string aliased = "base public"
+end
+class PrivateStorageChild extends PublicStorageBase
+    private string aliased = "private must not leak"
+    string visible = "child public"
+end
+class ProtectedStorageChild extends PublicStorageBase
+    protected string aliased = "protected must not leak"
+end
+class PublicStorageChild extends PublicStorageBase
+    string aliased = "child public"
+end
+auto hidden = PrivateStorageChild()
+auto relaxed = TemplateRenderOptions()
+relaxed.strictUndefined = false
+assert template.render("{$aliased}|{$visible}", hidden, relaxed) == "|child public"
+assert template.render("{$aliased}", ProtectedStorageChild(), relaxed) == ""
+assert template.render("{$aliased}", PublicStorageChild()) == "child public"
+assert template.render("{#foreach:items}{$aliased}{#end}", {"items": [hidden]}, relaxed) == ""
+func renderBaseView(PublicStorageBase input, TemplateRenderOptions options) as string
+    return template.render("{$aliased}", input, options)
+end
+PublicStorageBase baseView = hidden
+assert renderBaseView(baseView, relaxed) == ""
+class GenericPublicStorage<T>
+    T payload
+    private string hidden = "generic private"
+end
+GenericPublicStorage<string> generic = GenericPublicStorage::<string>()
+generic.payload = "generic public"
+assert template.render("{$payload}|{$hidden}", generic, relaxed) == "generic public|"
+class PublicOpenStorage extends object
+    string declared = "declared public"
+end
+auto opened = PublicOpenStorage()
+opened.extra = "dynamic not implicitly exported"
+assert template.render("{$declared}|{$extra}", opened, relaxed) == "declared public|"
+class UserStorageSpelling
+    string __fields = "ordinary public field"
+end
+assert template.render("{$__fields}", UserStorageSpelling()) == "ordinary public field"
+class UnsupportedPublicStorage
+    point raw = null
+end
+bool rejectedNative = false
+try
+    template.render("{$raw}", UnsupportedPublicStorage(), relaxed)
+catch failure
+    rejectedNative = true
+end
+assert rejectedNative
+println("template public stored fields, inheritance and nested values; no private fields or getter calls")

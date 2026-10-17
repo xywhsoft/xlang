@@ -1,0 +1,13 @@
+func main(...) as int
+    string value = "owned"
+    auto engine = template.engine()
+    engine.registerFunction("value", func(TemplateCall call) as bool
+        return call.write(value)
+    end)
+    auto compiled = engine.compile("{@value}\0{$title}")
+    assert compiled.render({"title": "T"}) == "owned\0T"
+    auto output = Buffer("prefix")
+    compiled.appendTo(output, {"title": "T"})
+    assert output.toBytes() == b"prefixowned\0T"
+    return 0
+end

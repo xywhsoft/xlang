@@ -23,7 +23,7 @@ static int xl6IrCgenEmitPersistenceProjectPlans(
     unsigned graphProviders=0;
     for (s=0;s<module->instructionCount;++s)
         if (xl6IrCgenInstructionIsReachable(module,s) &&
-            (module->instructions[s].runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
+            (module->instructions[s].runtimeOp == XL6_IR_RUNTIME_PUBLIC_DATA_PROJECT || module->instructions[s].runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
              module->instructions[s].runtimeOp==XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT)) {
             graphProviders|=xl6IrValueGraphProvidersForType(module,module->instructions[s].payloadType);
         }

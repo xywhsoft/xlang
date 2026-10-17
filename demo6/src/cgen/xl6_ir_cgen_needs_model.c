@@ -38,7 +38,7 @@ static int xl6IrCgenNeedsXrtDeclarations(const XL6_IrCgenNeeds* needs)
          needs->textOutputBridgeOperations != 0 ||
          needs->needsXlangRuntime ||
          needs->needsXValueDynamicFieldRuntime ||
-         needs->needsXValueUnionRuntime || needs->needsTemplateBridgeRuntime ||
+         needs->needsXValueUnionRuntime ||
          needs->needsCollectionAlgebraRuntime ||
          needs->needsNetTcpRuntime || needs->needsNetTlsRuntime || needs->needsNetDatagramRuntime ||
          needs->dirBridgeOperations != 0 ||

@@ -289,27 +289,22 @@ if not errorlevel 1 (
     echo stdlib_codec.c unexpectedly imports the legacy private runtime header.
     exit /b 1
 )
-findstr /C:"xl6_xrt_base64_encode_text" build\test\stdlib_codec.c >nul
+findstr /C:"xl6CodecBase64TextV1" build\test\stdlib_codec.c >nul
 if errorlevel 1 (
     echo stdlib_codec.c missing base64 runtime adapter.
     exit /b 1
 )
-findstr /C:"xl6_xrt_percent_encode_text" build\test\stdlib_codec.c >nul
+findstr /C:"xl6CodecPercentTextV1" build\test\stdlib_codec.c >nul
 if errorlevel 1 (
     echo stdlib_codec.c missing percent runtime adapter.
     exit /b 1
 )
-findstr /C:"xl6_xrt_buffer_from_hex" build\test\stdlib_codec.c >nul
+findstr /C:"xl6CodecHexDecodeV1" build\test\stdlib_codec.c >nul
 if errorlevel 1 (
-    echo stdlib_codec.c missing buffer hex runtime adapter.
+    echo stdlib_codec.c missing resident byte-result hex adapter.
     exit /b 1
 )
-findstr /C:"if (handle != NULL) xl6_xrt_buffer_destroy(handle);" build\test\stdlib_codec.c >nul
-if errorlevel 1 (
-    echo stdlib_codec.c missing managed Buffer handle cleanup.
-    exit /b 1
-)
-findstr /C:"= xl6_xrt_base64_decode_text(" build\test\stdlib_codec.c >nul
+findstr /C:"= xl6CodecBase64DecodeV1(" build\test\stdlib_codec.c >nul
 if errorlevel 1 (
     echo stdlib_codec.c missing resolved base64 decode call.
     exit /b 1
@@ -503,17 +498,17 @@ if not errorlevel 1 (
     echo stdlib_template.c still contains removed XTE compatibility symbols.
     exit /b 1
 )
-findstr /C:"void* xl6_xrt_template_parse" build\test\stdlib_template.c >nul
+findstr /C:"xl6TemplateCreateV1" build\test\stdlib_template.c >nul
 if errorlevel 1 (
-    echo stdlib_template.c missing template parse helper.
+    echo stdlib_template.c missing resident template constructor.
     exit /b 1
 )
-findstr /C:"void* xl6_xrt_template_render" build\test\stdlib_template.c >nul
+findstr /C:"xl6TemplateRenderV1" build\test\stdlib_template.c >nul
 if errorlevel 1 (
-    echo stdlib_template.c missing template render helper.
+    echo stdlib_template.c missing checked resident render declaration.
     exit /b 1
 )
-findstr /C:"xl6_xrt_template_node_count" build\test\stdlib_template.c >nul
+findstr /C:"xl6TemplateNodeCountV1" build\test\stdlib_template.c >nul
 if errorlevel 1 (
     echo stdlib_template.c missing stable template node view helper.
     exit /b 1
@@ -530,6 +525,16 @@ release\xl.exe build test\cases\stdlib_template_engine.xl -o build\test\stdlib_t
 if errorlevel 1 exit /b 1
 build\test\stdlib_template_engine.exe
 if errorlevel 1 exit /b 1
+for %%F in (stdlib_compress_values stdlib_template_values stdlib_template_privacy stdlib_template_engine_values stdlib_template_files stdlib_native_field_mixin) do (
+    release\xl.exe check test\cases\%%F.xl
+    if errorlevel 1 exit /b 1
+    release\xl.exe run test\cases\%%F.xl
+    if errorlevel 1 exit /b 1
+    release\xl.exe build test\cases\%%F.xl -o build\test\%%F.exe
+    if errorlevel 1 exit /b 1
+    build\test\%%F.exe
+    if errorlevel 1 exit /b 1
+)
 release\xl.exe run release\examples\stdlib_template.xl %XL6_XL_DEFAULT_LINK_ARGS% > build\test\stdlib_template_xlang.out.txt
 if errorlevel 1 exit /b 1
 "%XL6_CGEN_CC%" %XL6_CGEN_FLAGS% %XL6_CGEN_INCLUDES% release\examples\stdlib_template_c.c %XL6_CGEN_LINKS% -o build\test\stdlib_template_c.exe

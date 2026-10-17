@@ -1,0 +1,2 @@
+extern "xl6CodecBase64TextV1" @pure @no_raise @nonblocking func wrong(string text, int size, int flags, string alphabet, int alphabetSize) as string
+auto value = wrong("a", -1, 0, "", -1)

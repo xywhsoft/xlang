@@ -1,0 +1,2 @@
+extern "xl6DeflaterDoneV1" func wrong(Buffer source) as bool
+auto value = wrong(Buffer())

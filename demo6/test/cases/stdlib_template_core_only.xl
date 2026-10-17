@@ -1,0 +1,3 @@
+auto source = template.compile("hello {$name}")
+assert source.render({"name": "Ada"}) == "hello Ada"
+println("template core only passed")

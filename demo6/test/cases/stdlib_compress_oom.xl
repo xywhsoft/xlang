@@ -1,0 +1,12 @@
+func main(...) as int
+    auto output = Buffer()
+    auto encoder = compress.deflater()
+    encoder.write(b"a\0b", output)
+    encoder.finish(output)
+    assert compress.decode(output.toBytes()) == b"a\0b"
+    auto decoder = compress.inflater()
+    auto bytes = Buffer()
+    decoder.writeBuffer(output, bytes, final = true)
+    assert bytes.toBytes() == b"a\0b"
+    return 0
+end

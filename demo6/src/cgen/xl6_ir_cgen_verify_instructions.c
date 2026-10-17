@@ -498,7 +498,7 @@ static int xl6IrCgenVerifyInstructions(
                    !xl6IrCgenRuntimeTimeApproxAbi(module, instruction)) ||
                   (xl6IrPersistenceInvocationRuntime(instruction->runtimeOp) != NULL &&
                    !xl6IrPersistenceInvocationInstructionAbi(module, instruction)) ||
-                  ((instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
+                  ((instruction->runtimeOp == XL6_IR_RUNTIME_PUBLIC_DATA_PROJECT || instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
                     instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT) &&
                    !xl6IrPersistenceProjectInstructionAbi(module, instruction)) ||
                   ((instruction->runtimeOp ==
@@ -669,7 +669,7 @@ static int xl6IrCgenVerifyInstructions(
                    instruction->runtimeOp != XL6_IR_RUNTIME_BYTES_RETAIN &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_CLONE &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_DEEP_CLONE &&
-                   instruction->runtimeOp != XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT &&
+                   instruction->runtimeOp != XL6_IR_RUNTIME_PUBLIC_DATA_PROJECT && instruction->runtimeOp != XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT &&
                    instruction->runtimeOp != XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT &&
                    instruction->runtimeOp !=
                        XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_CAST &&

@@ -73,7 +73,6 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
     if ( !xl6IrCgenEmitXValueCoreRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitXValueContainerRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitXValueOperationRuntime(out, module, &needs, diags) ) return 0;
-    if ( !xl6IrCgenEmitTemplateRuntime(out, &needs) ) return 0;
     if ( !xl6IrCgenEmitStdlibBridgeRuntime(out, module, &needs, diags) ) return 0;
     if ( !xl6IrCgenEmitStringBridgeRuntime(out, &needs) ) return 0;
     if ( needs.needsFileBridgeRuntime )

@@ -12,6 +12,9 @@
 #endif
 
 struct xlir_closure;
+#include "xl6_codec_abi.h"
+#include "xl6_compress_abi.h"
+#include "xl6_template_abi.h"
 struct xfuture;
 struct XL6_NativeHandlePolicyV1;
 XL6_TEXT_API int64_t xl6Crc32StringV1(uint64_t previous, xstrview text, int64_t size);

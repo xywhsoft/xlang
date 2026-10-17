@@ -5,8 +5,22 @@
 
 #include "src/ast/xl6_ast.h"
 
-#define XL6_STDLIB_CONST_COUNT 157
-#define XL6_STDLIB_FUNC_COUNT 972
+#define XL6_STDLIB_CONST_COUNT 176
+#define XL6_STDLIB_FUNC_COUNT 973
+extern const char* xl6StdlibTemplateBufferSource;
+extern const char* xl6StdlibTemplateWriterSource;
+extern const char* xl6StdlibTemplateFileSource;
+extern const char* xl6StdlibTemplateVfsSource;
+extern const char* xl6StdlibTemplateEndSource;
+extern const char* xl6StdlibTemplateEngineSource;
+extern const char* xl6StdlibTemplateEngineFileSource;
+extern const char* xl6StdlibTemplateEngineVfsSource;
+extern const char* xl6StdlibTemplateEngineEndSource;
+extern const char* xl6StdlibTemplateReadFileSource;
+extern const char* xl6StdlibTemplateReadVfsSource;
+extern const char* xl6StdlibCompressOptionsSource;
+extern const char* xl6StdlibDeflaterSource;
+extern const char* xl6StdlibInflaterSource;
 extern const char* xl6StdlibNumberParseFlagsSource;
 extern const char* xl6StdlibIntegerTextFlagsSource;
 extern const char* xl6StdlibFloatTextFlagsSource;

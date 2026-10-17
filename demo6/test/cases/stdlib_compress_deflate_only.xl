@@ -1,0 +1,3 @@
+bytes encoded = compress.encode("a\0b")
+assert encoded.length > 3
+println("deflate only passed")

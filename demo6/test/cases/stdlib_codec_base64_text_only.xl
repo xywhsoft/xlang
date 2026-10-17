@@ -1,8 +1,8 @@
 string encoded = codec.base64Encode("xlang")
 assert encoded == "eGxhbmc="
-assert codec.base64Decode(encoded) == "xlang"
+assert codec.base64Decode(encoded) == b"xlang"
 assert codec.base64Encode("") == ""
-assert codec.base64Decode("") == ""
-assert codec.base64Decode(codec.base64Encode("中文 UTF-8")) == "中文 UTF-8"
+assert codec.base64Decode("") == b""
+assert encoding.decodeUtf8(codec.base64Decode(codec.base64Encode("中文 UTF-8"))) == "中文 UTF-8"
 
 println("base64 text trim ok")

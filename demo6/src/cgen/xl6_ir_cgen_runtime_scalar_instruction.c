@@ -251,7 +251,7 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                             instruction->firstOperand],
                         (unsigned int)module->operands[
                             instruction->firstOperand + 1]);
-                } else if (instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
+                } else if (instruction->runtimeOp == XL6_IR_RUNTIME_PUBLIC_DATA_PROJECT || instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_JSON_PROJECT ||
                            instruction->runtimeOp == XL6_IR_RUNTIME_PERSISTENCE_XLON_PROJECT) {
                     const char* symbol=xl6IrCgenPersistenceProjectSymbol(module,instruction);
                     if (!symbol)

@@ -52,7 +52,18 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define F XL6_IR_C_ABI_F64
 #define U XL6_IR_C_ABI_U64
 #define M XL6_IR_C_ABI_TIME_I64
+#include "xl6_ir_compress_contracts.inc"
+#include "xl6_ir_template_contracts.inc"
     {"xl6Crc32StringV1",T,I,3,{U,S,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},
+    {"xl6CodecHexTextV1",T,S,3,{S,I,I},.pure=1,.nonblocking=1},
+    {"xl6CodecHexBytesV1",T,S,3,{Y,I,I},.pure=1,.nonblocking=1},
+    {"xl6CodecHexDecodeV1",T,Y,3,{S,I,I},.pure=1,.nonblocking=1},
+    {"xl6CodecBase64TextV1",T,S,5,{S,I,I,S,I},.pure=1,.nonblocking=1},
+    {"xl6CodecBase64BytesV1",T,S,5,{Y,I,I,S,I},.pure=1,.nonblocking=1},
+    {"xl6CodecBase64DecodeV1",T,Y,5,{S,I,I,S,I},.pure=1,.nonblocking=1},
+    {"xl6CodecPercentTextV1",T,S,6,{S,I,S,B,B,I},.pure=1,.nonblocking=1},
+    {"xl6CodecPercentBytesV1",T,S,6,{Y,I,S,B,B,I},.pure=1,.nonblocking=1},
+    {"xl6CodecPercentDecodeV1",T,Y,3,{S,I,B},.pure=1,.nonblocking=1},
     {"xl6Crc32BytesV1",T,I,3,{U,Y,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.pure=1,.nonblocking=1},
     {"xl6Crc32BufferV1",T,I,3,{U,V,I},.resultIntegerTarget=XL6_IR_INTEGER_TARGET_UNSIGNED_32,.parameterOwners={NULL,"xl6BufferDestroyV1"},.nonblocking=1},
     {"xl6DictValueRemoveV1",T,B,2,{V,S},.parameterDynamicBorrows={1,0}},
@@ -706,8 +717,20 @@ static int xl6IrDirectBridgeResourceMatches(const XL6_IrModule* module,
         type->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL || fieldId == XL6_IR_NODE_INVALID) return 0;
     if (module->stage == XL6_IR_STAGE_LOWERED) {
         const XL6_IrClassLayout* layout = xl6IrBuildClassLayoutByType(module, id);
-        if (!layout || layout->fieldCount != 1) return 0;
-        const XL6_IrClassField* field = &module->classFields[layout->firstField];
+        if (!layout || layout->firstField>module->classFieldCount ||
+            layout->fieldCount>module->classFieldCount-layout->firstField) return 0;
+        /* The physical contract selects ONE native field, not a one-field
+         * language class. Other managed fields retain their own ordinary
+         * layout/trace/destruction contracts; the payload's leaf policy does
+         * not certify or hide them. No name/order/first-field inference. */
+        const XL6_IrClassField* field = NULL;
+        for (size_t i=0;i<layout->fieldCount;++i) {
+            const XL6_IrClassField* candidate=&module->classFields[layout->firstField+i];
+            if (candidate->declaration!=fieldId) continue;
+            if (field) return 0;
+            field=candidate;
+        }
+        if (!field) return 0;
         const XL6_IrCallTarget* destroy = xl6IrCallTargetGet(module, field->nativeDestroySymbol);
         if (field->declaration != fieldId || !destroy || !destroy->cName ||
             strcmp(destroy->cName, owner) || (destroyId && destroyId != field->nativeDestroySymbol)) return 0;

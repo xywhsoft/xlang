@@ -1,0 +1,2 @@
+extern "xl6DeflateTextV1" @pure @no_raise @nonblocking func wrong(string text, int size, int format, int level, int strategy, int limit, int windowBits) as bytes
+auto value = wrong("a", -1, 2, 6, 0, -1, 15)

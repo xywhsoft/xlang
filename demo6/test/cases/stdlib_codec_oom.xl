@@ -1,0 +1,10 @@
+func main(...) as int
+    bytes data = b"a\0\xff"
+    auto hex = codec.hexEncode(data)
+    assert codec.hexDecode(hex) == data
+    auto base64 = codec.base64Encode(data)
+    assert codec.base64Decode(base64) == data
+    auto percent = codec.percentEncode(data)
+    assert codec.percentDecode(percent) == data
+    return 0
+end

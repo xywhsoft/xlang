@@ -12,6 +12,7 @@
 #include "src/stdlib/xl6_stdlib_fs_walk.inc"
 #include "src/stdlib/xl6_stdlib_fs_async.inc"
 #include "src/stdlib/xl6_stdlib_fixed_stack.inc"
+#include "src/stdlib/xl6_stdlib_compress.inc"
 
 const char* xl6StdlibFloatClassSource =
     "enum FloatClass as int32\n"
@@ -301,64 +302,7 @@ const char* xl6StdlibXidClassSource =
 
 #include "src/stdlib/xl6_stdlib_signal.inc"
 
-const char* xl6StdlibTemplateClassSource =
-    "class Template\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_template_parse\" create(string text, string open, string close)\n"
-    "    extern \"xl6_xrt_template_wrap_handle\" create(point handle)\n"
-    "    extern \"xl6_xrt_template_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_template_valid\" get valid() as bool\n"
-    "    extern \"xl6_xrt_template_source\" func sourceNative() as point\n"
-    "    extern \"xl6_xrt_template_node_count\" get nodeCount() as uint32\n"
-    "    extern \"xl6_xrt_template_render\" func renderNative(var data) as point\n"
-    "    extern \"xl6_xrt_template_error\" func error() as var\n"
-    "    extern \"xl6_xrt_template_node\" func node(int index) as var\n"
-    "\n"
-    "    get source() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.sourceNative())\n"
-    "    end\n"
-    "\n"
-    "    func render(var data = null) as string\n"
-    "        return __xl_std_runtime_take_cstr(self.renderNative(data))\n"
-    "    end\n"
-    "end\n"
-    "\n"
-    "class TemplateEngine\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_template_engine_create\" create()\n"
-    "    extern \"xl6_xrt_template_engine_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_template_engine_register_function\" func __xl_std_runtime_template_register_function(string name, func(array<var>) as var handler, int minArgs, int maxArgs) as bool\n"
-    "    extern \"xl6_xrt_template_engine_register_statement\" func __xl_std_runtime_template_register_statement(string name, func(array<var>) as var handler, int minArgs, int maxArgs) as bool\n"
-    "    extern \"xl6_xrt_template_engine_register_block\" func __xl_std_runtime_template_register_block(string name, func(array<var>) as bool handler, int minArgs, int maxArgs) as bool\n"
-    "    extern \"xl6_xrt_template_engine_register_raw_block\" func __xl_std_runtime_template_register_raw_block(string name, func(array<var>, string) as string handler, int minArgs, int maxArgs) as bool\n"
-    "    extern \"xl6_xrt_template_engine_compile\" func compileNative(string text, string open, string close) as point\n"
-    "    extern \"xl6_xrt_template_engine_compile_file\" func compileFileNative(string path, string open, string close) as point\n"
-    "    extern \"xl6_xrt_template_engine_error\" func error() as var\n"
-    "\n"
-    "    func registerFunction(string name, func(array<var>) as var handler, int minArgs = 0, int maxArgs = 65535) as bool\n"
-    "        return self.__xl_std_runtime_template_register_function(name, handler, minArgs, maxArgs)\n"
-    "    end\n"
-    "\n"
-    "    func registerStatement(string name, func(array<var>) as var handler, int minArgs = 0, int maxArgs = 65535) as bool\n"
-    "        return self.__xl_std_runtime_template_register_statement(name, handler, minArgs, maxArgs)\n"
-    "    end\n"
-    "\n"
-    "    func registerBlock(string name, func(array<var>) as bool handler, int minArgs = 0, int maxArgs = 65535) as bool\n"
-    "        return self.__xl_std_runtime_template_register_block(name, handler, minArgs, maxArgs)\n"
-    "    end\n"
-    "\n"
-    "    func registerRawBlock(string name, func(array<var>, string) as string handler, int minArgs = 0, int maxArgs = 65535) as bool\n"
-    "        return self.__xl_std_runtime_template_register_raw_block(name, handler, minArgs, maxArgs)\n"
-    "    end\n"
-    "\n"
-    "    func compile(string text, string open = \"{\", string close = \"}\") as Template\n"
-    "        return Template(self.compileNative(text, open, close))\n"
-    "    end\n"
-    "\n"
-    "    func compileFile(string path, string open = \"{\", string close = \"}\") as Template\n"
-    "        return Template(self.compileFileNative(path, open, close))\n"
-    "    end\n"
-    "end\n";
+#include "src/stdlib/xl6_stdlib_template.inc"
 
 const char* xl6StdlibTaskGroupClassSource =
     "class TaskGroup\n"
@@ -2770,32 +2714,6 @@ static const XL6_StdlibParam xl6StdRuntimeLogLevelParams[] = {
     {"int", "level"}
 };
 
-static const XL6_StdlibParam xl6StdTemplateCompileParams[] = {
-    {"string", "text"},
-    {"string", "open"},
-    {"string", "close"}
-};
-
-static const XL6_StdlibParam xl6StdTemplateCompileFileParams[] = {
-    {"string", "path"},
-    {"string", "open"},
-    {"string", "close"}
-};
-
-static const XL6_StdlibParam xl6StdTemplateRenderParams[] = {
-    {"string", "text"},
-    {"var", "data"},
-    {"string", "open"},
-    {"string", "close"}
-};
-
-static const XL6_StdlibParam xl6StdTemplateRenderFileParams[] = {
-    {"string", "path"},
-    {"var", "data"},
-    {"string", "open"},
-    {"string", "close"}
-};
-
 static const XL6_StdlibParam xl6StdRuntimeDirListParams[] = {
     {"string", "path"},
     {"c_bool", "recursive"},
@@ -3237,34 +3155,6 @@ static const XL6_StdlibParam xl6StdXlonWriteOptionsRuntimeParams[] = {
     {"bool", "pretty"},
     {"bool", "ignoreUnsupportedEncode"},
     {"bool", "ignoreUnsupportedDecode"}
-};
-
-static const XL6_StdlibParam xl6StdXrtCodecTextParams[] = {
-    {"string", "text"},
-    {"c_size", "size"}
-};
-
-static const XL6_StdlibParam xl6StdXrtCodecBytesParams[] = {
-    {"point", "data"},
-    {"c_size", "size"}
-};
-
-static const XL6_StdlibParam xl6StdXrtCodecBase64Params[] = {
-    {"string", "text"},
-    {"c_size", "size"},
-    {"point", "table"}
-};
-
-static const XL6_StdlibParam xl6StdXrtCodecBase64BytesParams[] = {
-    {"point", "data"},
-    {"c_size", "size"},
-    {"point", "table"}
-};
-
-static const XL6_StdlibParam xl6StdXrtCodecPercentParams[] = {
-    {"string", "text"},
-    {"c_size", "size"},
-    {"point", "outSize"}
 };
 
 
@@ -3985,29 +3875,6 @@ static const char xl6StdSignalCancelOnBody[] =
     "    return SignalHandle(SignalSubscription(code, false, capacity), func(SignalEvent event) as bool\n"
     "        group.cancel()\n        return true\n    end, false)\nend\n";
 
-static const char xl6StdTemplateCompileBody[] =
-    "func __xl_std_template_compile(string text, string open = \"{\", string close = \"}\") as Template\n"
-    "    return Template(text, open, close)\n"
-    "end\n";
-
-static const char xl6StdTemplateCompileFileBody[] =
-    "func __xl_std_template_compile_file(string path, string open = \"{\", string close = \"}\") as Template\n"
-    "    TemplateEngine engine = TemplateEngine()\n"
-    "    return engine.compileFile(path, open, close)\n"
-    "end\n";
-
-static const char xl6StdTemplateRenderBody[] =
-    "func __xl_std_template_render(string text, var data = null, string open = \"{\", string close = \"}\") as string\n"
-    "    Template tpl = Template(text, open, close)\n"
-    "    return tpl.render(data)\n"
-    "end\n";
-
-static const char xl6StdTemplateRenderFileBody[] =
-    "func __xl_std_template_render_file(string path, var data = null, string open = \"{\", string close = \"}\") as string\n"
-    "    Template tpl = __xl_std_template_compile_file(path, open, close)\n"
-    "    return tpl.render(data)\n"
-    "end\n";
-
 static const char xl6StdTimeFromDateTimeBody[] =
     "extern \"xl6TimeFromDateTimeV1\" func __xl_std_time_from_datetime(int year, int month, int day, int hour = 0, int minute = 0, int second = 0, int microsecond = 0, int offset = 0) as time\n";
 
@@ -4628,11 +4495,6 @@ static const char xl6StdTaskGroupBody[] =
     "    return TaskGroup()\n"
     "end\n";
 
-static const char xl6StdTemplateEngineBody[] =
-    "func __xl_std_template_engine() as TemplateEngine\n"
-    "    return TemplateEngine()\n"
-    "end\n";
-
 static const char xl6StdFileReadBytesBody[] =
     "extern \"xl6_xrt_fs_whole_read\" func __xl_fs_file_read_bytes(string p0, int p1) as bytes\n"
     "func __xl_std_file_read_bytes(string path, int maxBytes = 67108864) as bytes\n"
@@ -4984,61 +4846,7 @@ static const char xl6StdXlonOptionsBody[] =
     "    return XlonOptions(pretty, ignoreUnsupportedEncode, ignoreUnsupportedDecode)\n"
     "end\n";
 
-static const char xl6StdCodecHexEncodeBody[] =
-    "func __xl_std_codec_hex_encode(string text) as string\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_xrt_hex_encode(text, __xl_size_text)\n"
-    "end\n";
-
-static const char xl6StdCodecHexDecodeBody[] =
-    "func __xl_std_codec_hex_decode(string text) as string\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_xrt_hex_decode(text, __xl_size_text)\n"
-    "end\n";
-
-static const char xl6StdCodecBase64EncodeBody[] =
-    "func __xl_std_codec_base64_encode(string text) as string\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_xrt_base64_encode(text, __xl_size_text, null)\n"
-    "end\n";
-
-static const char xl6StdCodecBase64DecodeBody[] =
-    "func __xl_std_codec_base64_decode(string text) as string\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_xrt_base64_decode(text, __xl_size_text, null)\n"
-    "end\n";
-
-static const char xl6StdCodecHexEncodeBytesBody[] =
-    "func __xl_std_codec_hex_encode_bytes(point data, c_size size) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_hex_encode_bytes(data, size))\n"
-    "end\n";
-
-static const char xl6StdCodecHexDecodeBytesBody[] =
-    "func __xl_std_codec_hex_decode_bytes(string text) as Buffer\n"
-    "    return Buffer.fromHex(text)\n"
-    "end\n";
-
-static const char xl6StdCodecBase64EncodeBytesBody[] =
-    "func __xl_std_codec_base64_encode_bytes(point data, c_size size) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_base64_encode_bytes(data, size, null))\n"
-    "end\n";
-
-static const char xl6StdCodecBase64DecodeBytesBody[] =
-    "func __xl_std_codec_base64_decode_bytes(string text) as Buffer\n"
-    "    return Buffer.fromBase64(text)\n"
-    "end\n";
-
-static const char xl6StdCodecPercentEncodeBody[] =
-    "func __xl_std_codec_percent_encode(string text) as string\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_xrt_percent_encode(text, __xl_size_text, null)\n"
-    "end\n";
-
-static const char xl6StdCodecPercentDecodeBody[] =
-    "func __xl_std_codec_percent_decode(string text) as string\n"
-    "    c_size __xl_size_text = __xl_std_xrt_string_byte_len(text)\n"
-    "    return __xl_std_xrt_percent_decode(text, __xl_size_text, null)\n"
-    "end\n";
+#include "xl6_stdlib_codec.inc"
 
 
 static const XL6_StdlibParam xl6StdCrc32TextParams[] = {{"uint64","previous"},{"string","data"},{"int","size"}};
@@ -5843,6 +5651,25 @@ static const char xl6StdXlangRunFileBody[] =
     "end\n";
 
 const XL6_StdlibConst xl6StdlibConsts[] = {
+    {"codec", "hexUpper", XL6_AST_INT, "1"},
+    {"compress", "raw", XL6_AST_INT, "0"},
+    {"compress", "zlib", XL6_AST_INT, "1"},
+    {"compress", "gzip", XL6_AST_INT, "2"},
+    {"compress", "httpDeflate", XL6_AST_INT, "3"},
+    {"compress", "flushNone", XL6_AST_INT, "0"},
+    {"compress", "flushSync", XL6_AST_INT, "1"},
+    {"compress", "flushFull", XL6_AST_INT, "2"},
+    {"compress", "flushFinish", XL6_AST_INT, "3"},
+    {"compress", "strategyDefault", XL6_AST_INT, "0"},
+    {"compress", "strategyFiltered", XL6_AST_INT, "1"},
+    {"compress", "strategyHuffman", XL6_AST_INT, "2"},
+    {"compress", "strategyRle", XL6_AST_INT, "3"},
+    {"compress", "strategyFixed", XL6_AST_INT, "4"},
+    {"codec", "hexIgnoreSpace", XL6_AST_INT, "2"},
+    {"codec", "base64Url", XL6_AST_INT, "1"},
+    {"codec", "base64NoPadding", XL6_AST_INT, "2"},
+    {"codec", "base64IgnoreSpace", XL6_AST_INT, "4"},
+    {"codec", "base64OptionalPadding", XL6_AST_INT, "8"},
     {"unicode", "complete", XL6_AST_INT, "0"},
     {"unicode", "more", XL6_AST_INT, "1"},
     {"unicode", "invalid", XL6_AST_INT, "2"},
@@ -6220,14 +6047,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__runtime", "xlonStringifyOptions", "__xl_std_runtime_xlon_stringify_options", "xl6_xrt_xlon_stringify_options", xl6StdXlonValueOptionsRuntimeParams, 4, "point", NULL},
     {"__runtime", "xlonWriteOptions", "__xl_std_runtime_xlon_write_options", "xl6_xrt_xlon_write_options", xl6StdXlonWriteOptionsRuntimeParams, 5, "bool", NULL},
     {"__runtime", "xlonVisitOptions", "__xl_std_runtime_xlon_visit_options", "xl6_xrt_xlon_visit_options", xl6StdXlonVisitOptionsRuntimeParams, 5, "c_int", NULL},
-    {"__xrt_codec", "hexEncode", "__xl_std_xrt_hex_encode", "xl6_xrt_hex_encode_text", xl6StdXrtCodecTextParams, 2, "string", NULL},
-    {"__xrt_codec", "hexDecode", "__xl_std_xrt_hex_decode", "xl6_xrt_hex_decode_text", xl6StdXrtCodecTextParams, 2, "string", NULL},
-    {"__xrt_codec", "base64Encode", "__xl_std_xrt_base64_encode", "xl6_xrt_base64_encode_text", xl6StdXrtCodecBase64Params, 3, "string", NULL},
-    {"__xrt_codec", "base64Decode", "__xl_std_xrt_base64_decode", "xl6_xrt_base64_decode_text", xl6StdXrtCodecBase64Params, 3, "string", NULL},
-    {"__xrt_codec", "hexEncodeBytes", "__xl_std_xrt_hex_encode_bytes", "xl6_xrt_hex_encode_bytes", xl6StdXrtCodecBytesParams, 2, "point", NULL},
-    {"__xrt_codec", "base64EncodeBytes", "__xl_std_xrt_base64_encode_bytes", "xl6_xrt_base64_encode_bytes", xl6StdXrtCodecBase64BytesParams, 3, "point", NULL},
-    {"__xrt_codec", "percentEncode", "__xl_std_xrt_percent_encode", "xl6_xrt_percent_encode_text", xl6StdXrtCodecPercentParams, 3, "string", NULL},
-    {"__xrt_codec", "percentDecode", "__xl_std_xrt_percent_decode", "xl6_xrt_percent_decode_text", xl6StdXrtCodecPercentParams, 3, "string", NULL},
     {"__xrt_hash", "u32", "__xl_std_xrt_hash32", "xl6_xrt_hash32_string", xl6StdHashStringParams, 2, "c_uint", NULL},
     {"__xrt_hash", "u32WithSeed", "__xl_std_xrt_hash32_seed", "xl6_xrt_hash32_string_seed", xl6StdHashStringSeed32Params, 3, "c_uint", NULL},
     {"__xrt_hash", "u64", "__xl_std_xrt_hash64", "xl6_xrt_hash64_string", xl6StdHashStringParams, 2, "c_ulonglong", NULL},
@@ -6799,15 +6618,21 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"crc32", "update", "__xl_std_crc32_update", NULL, NULL, 0, "uint32", xl6StdCrc32UpdateBytesBody},
     {"crc32", "updateBuffer", "__xl_std_crc32_update_buffer", NULL, NULL, 0, "uint32", xl6StdCrc32UpdateBufferBody},
     {"codec", "hexEncode", "__xl_std_codec_hex_encode", NULL, NULL, 0, "string", xl6StdCodecHexEncodeBody},
-    {"codec", "hexDecode", "__xl_std_codec_hex_decode", NULL, NULL, 0, "string", xl6StdCodecHexDecodeBody},
+    {"compress", "encode", "__xl_std_compress_encode", NULL, NULL, 0, "bytes", xl6StdCompressEncodeBody},
+    {"compress", "encode", "__xl_std_compress_encode", NULL, NULL, 0, "bytes", xl6StdCompressEncodeBytesBody},
+    {"compress", "encodeBuffer", "__xl_std_compress_encodeBuffer", NULL, NULL, 0, "bytes", xl6StdCompressEncodeBufferBody},
+    {"compress", "decode", "__xl_std_compress_decode", NULL, NULL, 0, "bytes", xl6StdCompressDecodeBody},
+    {"compress", "decodeBuffer", "__xl_std_compress_decodeBuffer", NULL, NULL, 0, "bytes", xl6StdCompressDecodeBufferBody},
+    {"compress", "deflater", "__xl_std_compress_deflater", NULL, NULL, 0, "Deflater", xl6StdCompressDeflaterBody},
+    {"compress", "inflater", "__xl_std_compress_inflater", NULL, NULL, 0, "Inflater", xl6StdCompressInflaterBody},
+    {"codec", "hexEncode", "__xl_std_codec_hex_encode", NULL, NULL, 0, "string", xl6StdCodecHexEncodeValueBody},
+    {"codec", "hexDecode", "__xl_std_codec_hex_decode", NULL, NULL, 0, "bytes", xl6StdCodecHexDecodeBody},
     {"codec", "base64Encode", "__xl_std_codec_base64_encode", NULL, NULL, 0, "string", xl6StdCodecBase64EncodeBody},
-    {"codec", "base64Decode", "__xl_std_codec_base64_decode", NULL, NULL, 0, "string", xl6StdCodecBase64DecodeBody},
-    {"codec", "hexEncodeBytes", "__xl_std_codec_hex_encode_bytes", NULL, NULL, 0, "string", xl6StdCodecHexEncodeBytesBody},
-    {"codec", "hexDecodeBytes", "__xl_std_codec_hex_decode_bytes", NULL, NULL, 0, "Buffer", xl6StdCodecHexDecodeBytesBody},
-    {"codec", "base64EncodeBytes", "__xl_std_codec_base64_encode_bytes", NULL, NULL, 0, "string", xl6StdCodecBase64EncodeBytesBody},
-    {"codec", "base64DecodeBytes", "__xl_std_codec_base64_decode_bytes", NULL, NULL, 0, "Buffer", xl6StdCodecBase64DecodeBytesBody},
+    {"codec", "base64Encode", "__xl_std_codec_base64_encode", NULL, NULL, 0, "string", xl6StdCodecBase64EncodeValueBody},
+    {"codec", "base64Decode", "__xl_std_codec_base64_decode", NULL, NULL, 0, "bytes", xl6StdCodecBase64DecodeBody},
     {"codec", "percentEncode", "__xl_std_codec_percent_encode", NULL, NULL, 0, "string", xl6StdCodecPercentEncodeBody},
-    {"codec", "percentDecode", "__xl_std_codec_percent_decode", NULL, NULL, 0, "string", xl6StdCodecPercentDecodeBody},
+    {"codec", "percentEncode", "__xl_std_codec_percent_encode", NULL, NULL, 0, "string", xl6StdCodecPercentEncodeValueBody},
+    {"codec", "percentDecode", "__xl_std_codec_percent_decode", NULL, NULL, 0, "bytes", xl6StdCodecPercentDecodeBody},
 
     {"encoding", "encode", "__xl_std_encoding_encode", NULL, NULL, 0, "bytes", xl6StdEncodingEncodeBody},
     {"encoding", "decode", "__xl_std_encoding_decode", NULL, NULL, 0, "string", xl6StdEncodingDecodeBody},
@@ -7009,11 +6834,14 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"signal", "sendTo", "__xl_std_signal_send_to", NULL, NULL, 0, "SignalHandle", xl6StdSignalSendToBody},
     {"signal", "cancelOn", "__xl_std_signal_cancel_on", NULL, NULL, 0, "SignalHandle", xl6StdSignalCancelOnBody},
 
-    {"template", "compile", "__xl_std_template_compile", NULL, xl6StdTemplateCompileParams, 3, "Template", xl6StdTemplateCompileBody},
-    {"template", "compileFile", "__xl_std_template_compile_file", NULL, xl6StdTemplateCompileFileParams, 3, "Template", xl6StdTemplateCompileFileBody},
+    {"template", "compile", "__xl_std_template_compile", NULL, NULL, 0, "Template", xl6StdTemplateCompileBody},
+    {"template", "compileFile", "__xl_std_template_compile_file", NULL, NULL, 0, "Template", xl6StdTemplateCompileFileBody},
     {"template", "engine", "__xl_std_template_engine", NULL, NULL, 0, "TemplateEngine", xl6StdTemplateEngineBody},
-    {"template", "render", "__xl_std_template_render", NULL, xl6StdTemplateRenderParams, 4, "string", xl6StdTemplateRenderBody},
-    {"template", "renderFile", "__xl_std_template_render_file", NULL, xl6StdTemplateRenderFileParams, 4, "string", xl6StdTemplateRenderFileBody}
+    {"template", "render", "__xl_std_template_render", NULL, NULL, 0, "string", xl6StdTemplateRenderBody},
+    {"template", "renderFile", "__xl_std_template_render_file", NULL, NULL, 0, "string", xl6StdTemplateRenderFileBody},
+    {"template", "compileFileIn", "__xl_std_template_compile_file_in", NULL, NULL, 0, "Template", xl6StdTemplateCompileVfsBody},
+    {"template", "renderFileIn", "__xl_std_template_render_file_in", NULL, NULL, 0, "string", xl6StdTemplateRenderVfsBody},
+    {"template", "errorLocation", "__xl_std_template_error_location", NULL, NULL, 0, "TemplateLocation?", xl6StdTemplateErrorLocationBody},
 };
 
 const XL6_StdlibForeignContract xl6StdlibForeignContracts[] = {

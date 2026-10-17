@@ -1,2 +1,2 @@
-extern "xl6_xrt_hex_encode_bytes" func bad(string data, c_size size) as point
-point result = bad("x", c_size(1))
+extern "xl6CodecHexBytesV1" func bad(string data, int size, int flags) as string
+auto result = bad("x", -1, 0)
