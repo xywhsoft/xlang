@@ -2,6 +2,10 @@
 
 ## 1. 目标
 
+八份 signal 语言夹具的当前双产品故障验收见
+[Signal 语言故障前缀的真实产品验收](stdlib53-b347-signal-language-product-prefixes.md)。
+原异常优先的两层可选诊断有精确见证，其余分配失败必须传播 MemoryError。
+
 时间／环境变量和 signal 驻留入口的当前双产品证据见
 [系统原生接口的真实产品验收](stdlib53-b346-system-native-product-suites.md)。
 保留原断言；真实 signal 事件、资源基线和完整堆账本分别检查，不把 POSIX TZ 当作 Windows DST。
