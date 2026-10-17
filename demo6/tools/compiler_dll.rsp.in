@@ -36,6 +36,10 @@
     src\runtime\xl6_atomic_u64_domain.c
     src\runtime\xl6_atomic_bool.c
     src\runtime\xl6_atomic_bool_domain.c
+    src\runtime\xl6_once.c
+    src\runtime\xl6_once_domain.c
+    src\runtime\xl6_event.c
+    src\runtime\xl6_event_domain.c
     src\runtime\xl6_crypto_md5.c
     src\runtime\xl6_crypto_md5_stream.c
     src\runtime\xl6_crypto_md5_domain.c

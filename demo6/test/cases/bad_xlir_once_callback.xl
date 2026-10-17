@@ -1,0 +1,10 @@
+class OnceAbiFixture
+    private native point handle
+    extern "xl6OnceCreateV1" @nonblocking create()
+    extern "xl6OnceDestroyV1" destroy()
+    extern "xl6OnceRunV1" func run(func() as string initializer)
+end
+auto once = OnceAbiFixture()
+once.run(func() as string
+    return "wrong physical checked callback signature"
+end)

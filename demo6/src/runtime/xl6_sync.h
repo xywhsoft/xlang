@@ -6,7 +6,7 @@
 struct xvalue;
 struct xrtownershipref;
 struct xrtownershipadapterv1;
-enum { XL6_SYNC_MUTEX_V1=1, XL6_SYNC_COND_V1=2, XL6_SYNC_RWLOCK_V1=3 };
+enum { XL6_SYNC_MUTEX_V1=1, XL6_SYNC_COND_V1=2, XL6_SYNC_RWLOCK_V1=3, XL6_SYNC_EVENT_V1=4 };
 /* Resident reference owners. Bool methods preserve the incoming error and
  * never publish normal status failure. All native calls have activity pins;
  * metadata gates and world mutations end BEFORE blocking native calls. */

@@ -1,7 +1,7 @@
 #ifndef XL6_SYNC_INTERNAL_H
 #define XL6_SYNC_INTERNAL_H
 /* Private resident-provider ABI, not host registration or a language callback
- * API. Only the three compiled native providers construct this prefix. Their
+ * API. Only the four compiled native providers construct this prefix. Their
  * physical Unit/Unlock functions and ops are resident, with no source-module
  * semantic callback, owner data or extensible admission registration. */
 #include "xl6_sync.h"

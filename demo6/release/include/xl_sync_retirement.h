@@ -14,7 +14,7 @@ typedef struct XL_SyncRetirementV1 {
     uint64_t token, identity;
     unsigned int kind, errorKind;
 } XL_SyncRetirementV1;
-enum { XL_SYNC_MUTEX_V1=1, XL_SYNC_COND_V1=2, XL_SYNC_RWLOCK_V1=3 };
+enum { XL_SYNC_MUTEX_V1=1, XL_SYNC_COND_V1=2, XL_SYNC_RWLOCK_V1=3, XL_SYNC_EVENT_V1=4 };
 enum { XL_SYNC_UNLOCK_MUTEX_V1=1, XL_SYNC_UNLOCK_READ_V1=2, XL_SYNC_UNLOCK_WRITE_V1=3 };
 
 /* Every Checked call returns 1/0 independently of diagnostic availability.

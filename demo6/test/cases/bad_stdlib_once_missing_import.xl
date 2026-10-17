@@ -1,0 +1,2 @@
+auto once = Once()
+println(once)
