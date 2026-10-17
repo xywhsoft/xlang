@@ -1,0 +1,47 @@
+#ifndef XL6_ASN1_ABI_H
+#define XL6_ASN1_ABI_H
+XL6_TEXT_API void xl6DerValueDestroyV1(void*);
+XL6_TEXT_API int64_t xl6DerTagClassV1(void*);
+XL6_TEXT_API int64_t xl6DerTagNumberV1(void*);
+XL6_TEXT_API bool xl6DerConstructedV1(void*);
+XL6_TEXT_API xvalue* xl6DerRawV1(void*);
+XL6_TEXT_API xvalue* xl6DerContentV1(void*);
+XL6_TEXT_API bool xl6DerBooleanV1(void*);
+XL6_TEXT_API int64_t xl6DerInt64V1(void*);
+XL6_TEXT_API uint64_t xl6DerUInt64V1(void*);
+XL6_TEXT_API xvalue* xl6DerUnsignedV1(void*);
+XL6_TEXT_API xvalue* xl6DerOctetsV1(void*);
+XL6_TEXT_API xvalue* xl6DerBitsV1(void*);
+XL6_TEXT_API int64_t xl6DerUnusedBitsV1(void*);
+XL6_TEXT_API xstrview xl6DerOidTextV1(void*);
+XL6_TEXT_API void* xl6DerValueReaderV1(void*);
+XL6_TEXT_API void xl6DerReaderDestroyV1(void*);
+XL6_TEXT_API void* xl6DerReaderCreateV1(const xvalue*,int64_t,int64_t);
+XL6_TEXT_API bool xl6DerReaderDoneV1(void*);
+XL6_TEXT_API int64_t xl6DerReaderRemainingV1(void*);
+XL6_TEXT_API void* xl6DerReaderReadV1(void*);
+XL6_TEXT_API void* xl6DerReaderPeekV1(void*);
+XL6_TEXT_API void xl6DerBuilderDestroyV1(void*);
+XL6_TEXT_API void* xl6DerBuilderCreateV1(int64_t);
+XL6_TEXT_API void xl6DerBuilderBooleanV1(void*,bool);
+XL6_TEXT_API void xl6DerBuilderInt64V1(void*,int64_t);
+XL6_TEXT_API void xl6DerBuilderUInt64V1(void*,uint64_t);
+XL6_TEXT_API void xl6DerBuilderNullV1(void*);
+XL6_TEXT_API void xl6DerBuilderOidV1(void*,xstrview,int64_t);
+XL6_TEXT_API void xl6DerBuilderTagV1(void*,int64_t,int64_t,bool,const xvalue*,int64_t);
+XL6_TEXT_API void xl6DerBuilderBitsV1(void*,const xvalue*,int64_t,int64_t);
+XL6_TEXT_API void xl6DerBuilderRawV1(void*,const xvalue*,int64_t);
+XL6_TEXT_API xvalue* xl6DerBuilderFinishV1(void*);
+XL6_TEXT_API void xl6DerBuilderResetV1(void*);
+XL6_TEXT_API void xl6PemBlockDestroyV1(void*);
+XL6_TEXT_API xstrview xl6PemBlockLabelV1(void*);
+XL6_TEXT_API xstrview xl6PemBlockRawV1(void*);
+XL6_TEXT_API xvalue* xl6PemBlockDecodeV1(void*);
+XL6_TEXT_API void xl6PemReaderDestroyV1(void*);
+XL6_TEXT_API void* xl6PemReaderCreateV1(xstrview,int64_t,int64_t);
+XL6_TEXT_API bool xl6PemReaderDoneV1(void*);
+XL6_TEXT_API void* xl6PemReaderReadV1(void*);
+XL6_TEXT_API void* xl6DerParseV1(const xvalue*,int64_t,int64_t);
+XL6_TEXT_API void* xl6PemFindV1(xstrview,xstrview,int64_t,int64_t);
+XL6_TEXT_API xstrview xl6PemEncodeV1(xstrview,const xvalue*,int64_t);
+#endif

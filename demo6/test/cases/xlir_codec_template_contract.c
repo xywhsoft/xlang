@@ -50,7 +50,8 @@ int main(int argc,char** argv)
         XL6_IrCallTarget* target=&ir->callTargets[i];
         if(!target->cName || (strncmp(target->cName,"xl6Codec",8) &&
             strncmp(target->cName,"xl6Template",11) && strncmp(target->cName,"xl6Deflat",9) &&
-            strncmp(target->cName,"xl6Inflat",9)))continue;
+            strncmp(target->cName,"xl6Inflat",9) && strncmp(target->cName,"xl6Crypto",9) &&
+            strncmp(target->cName,"xl6Der",6) && strncmp(target->cName,"xl6Pem",6)))continue;
         assert(xl6IrRuntimeDirectBridgeTargetMatches(ir,target));XL6_IrCallTarget saved=*target;
 #define MUTATE(Field,Value) do {target->Field=(Value);rejected(ir);*target=saved;}while(0)
         MUTATE(errorAbi,saved.errorAbi==XL6_IR_ERROR_ABI_MAY_RAISE?XL6_IR_ERROR_ABI_NO_RAISE:XL6_IR_ERROR_ABI_MAY_RAISE);

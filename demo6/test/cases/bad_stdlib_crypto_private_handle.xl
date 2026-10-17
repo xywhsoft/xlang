@@ -1,0 +1,2 @@
+auto key = AesGcm(b"0123456789abcdef")
+auto raw = key.handle

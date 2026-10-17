@@ -8,7 +8,7 @@
 - xruntime 产品公共函数：3676，其中扩展自有 464。
 - 低层能力：3676 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
-- 语言内核或标准库已直接使用：1815 个函数。其余 1861 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：1936 个函数。其余 1740 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -18,20 +18,20 @@
 | 产品 | 公共头 | API | 语言抽象/内核使用 | 仅低层 |
 | --- | --- | ---: | ---: | ---: |
 | xrt | `include/xrt/array.h` | 50 | 0 | 50 |
-| xrt | `include/xrt/asn1.h` | 27 | 0 | 27 |
+| xrt | `include/xrt/asn1.h` | 27 | 21 | 6 |
 | xrt | `include/xrt/atomic.h` | 29 | 17 | 12 |
 | xrt | `include/xrt/avl.h` | 43 | 1 | 42 |
 | xrt | `include/xrt/buffer.h` | 23 | 20 | 3 |
 | xrt | `include/xrt/cancel.h` | 20 | 14 | 6 |
 | xrt | `include/xrt/channel.h` | 42 | 15 | 27 |
 | xrt | `include/xrt/charset.h` | 72 | 36 | 36 |
-| xrt | `include/xrt/codec.h` | 20 | 8 | 12 |
-| xrt | `include/xrt/compress.h` | 18 | 0 | 18 |
+| xrt | `include/xrt/codec.h` | 20 | 11 | 9 |
+| xrt | `include/xrt/compress.h` | 18 | 18 | 0 |
 | xrt | `include/xrt/console.h` | 22 | 22 | 0 |
 | xrt | `include/xrt/core.h` | 16 | 10 | 6 |
 | xrt | `include/xrt/coroutine.h` | 51 | 0 | 51 |
 | xrt | `include/xrt/crc32.h` | 2 | 1 | 1 |
-| xrt | `include/xrt/crypto.h` | 122 | 4 | 118 |
+| xrt | `include/xrt/crypto.h` | 122 | 59 | 63 |
 | xrt | `include/xrt/environment.h` | 4 | 4 | 0 |
 | xrt | `include/xrt/error.h` | 36 | 32 | 4 |
 | xrt | `include/xrt/error_format.h` | 1 | 0 | 1 |
@@ -70,7 +70,7 @@
 | xrt | `include/xrt/number.h` | 18 | 14 | 4 |
 | xrt | `include/xrt/path.h` | 32 | 29 | 3 |
 | xrt | `include/xrt/pattern.h` | 47 | 34 | 13 |
-| xrt | `include/xrt/pem.h` | 7 | 3 | 4 |
+| xrt | `include/xrt/pem.h` | 7 | 6 | 1 |
 | xrt | `include/xrt/pool.h` | 58 | 0 | 58 |
 | xrt | `include/xrt/process.h` | 40 | 29 | 11 |
 | xrt | `include/xrt/proxy.h` | 23 | 0 | 23 |
@@ -89,7 +89,7 @@
 | xrt | `include/xrt/tcp.h` | 63 | 39 | 24 |
 | xrt | `include/xrt/tcp_server.h` | 15 | 0 | 15 |
 | xrt | `include/xrt/temp.h` | 17 | 1 | 16 |
-| xrt | `include/xrt/template.h` | 32 | 4 | 28 |
+| xrt | `include/xrt/template.h` | 32 | 25 | 7 |
 | xrt | `include/xrt/thread.h` | 23 | 13 | 10 |
 | xrt | `include/xrt/time.h` | 58 | 46 | 12 |
 | xrt | `include/xrt/tls.h` | 140 | 4 | 136 |

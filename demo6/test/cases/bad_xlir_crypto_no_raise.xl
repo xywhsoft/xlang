@@ -1,0 +1,2 @@
+extern "xl6CryptoSha256BytesV1" @pure @nonblocking @no_raise func wrong(bytes data, int size) as bytes
+auto value = wrong(b"abc", -1)

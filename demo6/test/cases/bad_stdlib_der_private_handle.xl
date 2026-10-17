@@ -1,0 +1,2 @@
+auto value = asn1.parse(b"\x05\x00")
+auto raw = value.handle

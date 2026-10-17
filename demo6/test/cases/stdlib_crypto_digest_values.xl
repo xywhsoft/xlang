@@ -1,0 +1,186 @@
+// Fixed expected results for exact binary inputs and state snapshots.
+func check_md5()
+    assert cryptoLegacy.md5Hex("a\0b") == "70350f6027bce3713f6b76473084309b"
+    assert cryptoLegacy.md5(b"a\0b") == codec.hexDecode("70350f6027bce3713f6b76473084309b")
+    assert cryptoLegacy.md5Hex("a\0b", 999) == "70350f6027bce3713f6b76473084309b"
+    assert cryptoLegacy.md5("a\0b", 1) == cryptoLegacy.md5("a")
+    auto stream = cryptoLegacy.md5Stream()
+    stream.update("a")
+    auto clone = stream.clone()
+    stream.update(b"\0b")
+    assert stream.hex() == "70350f6027bce3713f6b76473084309b"
+    assert stream.final() == cryptoLegacy.md5(b"a\0b")
+    clone.update("c")
+    assert clone.final() == cryptoLegacy.md5("ac")
+    stream.reset()
+    assert stream.final() == cryptoLegacy.md5(b"")
+    auto buffer = Buffer("a\0b")
+    assert cryptoLegacy.md5Buffer(buffer) == cryptoLegacy.md5(b"a\0b")
+end
+
+func check_sha1()
+    assert cryptoLegacy.sha1Hex("a\0b") == "4a3dec2d1f8245280855c42db0ee4239f917fdb8"
+    assert cryptoLegacy.sha1(b"a\0b") == codec.hexDecode("4a3dec2d1f8245280855c42db0ee4239f917fdb8")
+    assert cryptoLegacy.sha1Hex("a\0b", 999) == "4a3dec2d1f8245280855c42db0ee4239f917fdb8"
+    assert cryptoLegacy.sha1("a\0b", 1) == cryptoLegacy.sha1("a")
+    auto stream = cryptoLegacy.sha1Stream()
+    stream.update("a")
+    auto clone = stream.clone()
+    stream.update(b"\0b")
+    assert stream.hex() == "4a3dec2d1f8245280855c42db0ee4239f917fdb8"
+    assert stream.final() == cryptoLegacy.sha1(b"a\0b")
+    clone.update("c")
+    assert clone.final() == cryptoLegacy.sha1("ac")
+    stream.reset()
+    assert stream.final() == cryptoLegacy.sha1(b"")
+    auto buffer = Buffer("a\0b")
+    assert cryptoLegacy.sha1Buffer(buffer) == cryptoLegacy.sha1(b"a\0b")
+end
+
+func check_sha224()
+    assert crypto.sha224Hex("a\0b") == "ae34ddad87465d32c8b179d811015ee23ef83620db929564d68d2991"
+    assert crypto.sha224(b"a\0b") == codec.hexDecode("ae34ddad87465d32c8b179d811015ee23ef83620db929564d68d2991")
+    assert crypto.sha224Hex("a\0b", 999) == "ae34ddad87465d32c8b179d811015ee23ef83620db929564d68d2991"
+    assert crypto.sha224("a\0b", 1) == crypto.sha224("a")
+    auto stream = crypto.sha224Stream()
+    stream.update("a")
+    auto clone = stream.clone()
+    stream.update(b"\0b")
+    assert stream.hex() == "ae34ddad87465d32c8b179d811015ee23ef83620db929564d68d2991"
+    assert stream.final() == crypto.sha224(b"a\0b")
+    clone.update("c")
+    assert clone.final() == crypto.sha224("ac")
+    stream.reset()
+    assert stream.final() == crypto.sha224(b"")
+    auto buffer = Buffer("a\0b")
+    assert crypto.sha224Buffer(buffer) == crypto.sha224(b"a\0b")
+end
+
+func check_sha256()
+    assert crypto.sha256Hex("a\0b") == "59b271ae1bbcb1d31d41929817f4b16fb439eb4f31520b5ad1d5ce98920a7138"
+    assert crypto.sha256(b"a\0b") == codec.hexDecode("59b271ae1bbcb1d31d41929817f4b16fb439eb4f31520b5ad1d5ce98920a7138")
+    assert crypto.sha256Hex("a\0b", 999) == "59b271ae1bbcb1d31d41929817f4b16fb439eb4f31520b5ad1d5ce98920a7138"
+    assert crypto.sha256("a\0b", 1) == crypto.sha256("a")
+    auto stream = crypto.sha256Stream()
+    stream.update("a")
+    auto clone = stream.clone()
+    stream.update(b"\0b")
+    assert stream.hex() == "59b271ae1bbcb1d31d41929817f4b16fb439eb4f31520b5ad1d5ce98920a7138"
+    assert stream.final() == crypto.sha256(b"a\0b")
+    clone.update("c")
+    assert clone.final() == crypto.sha256("ac")
+    stream.reset()
+    assert stream.final() == crypto.sha256(b"")
+    auto buffer = Buffer("a\0b")
+    assert crypto.sha256Buffer(buffer) == crypto.sha256(b"a\0b")
+end
+
+func check_sha384()
+    assert crypto.sha384Hex("a\0b") == "5fd7a99c35c0967bb32c5aa842080dfaf74e65f268751387f23272b9506b887a21947a61896b588eececbb9c5d09c15e"
+    assert crypto.sha384(b"a\0b") == codec.hexDecode("5fd7a99c35c0967bb32c5aa842080dfaf74e65f268751387f23272b9506b887a21947a61896b588eececbb9c5d09c15e")
+    assert crypto.sha384Hex("a\0b", 999) == "5fd7a99c35c0967bb32c5aa842080dfaf74e65f268751387f23272b9506b887a21947a61896b588eececbb9c5d09c15e"
+    assert crypto.sha384("a\0b", 1) == crypto.sha384("a")
+    auto stream = crypto.sha384Stream()
+    stream.update("a")
+    auto clone = stream.clone()
+    stream.update(b"\0b")
+    assert stream.hex() == "5fd7a99c35c0967bb32c5aa842080dfaf74e65f268751387f23272b9506b887a21947a61896b588eececbb9c5d09c15e"
+    assert stream.final() == crypto.sha384(b"a\0b")
+    clone.update("c")
+    assert clone.final() == crypto.sha384("ac")
+    stream.reset()
+    assert stream.final() == crypto.sha384(b"")
+    auto buffer = Buffer("a\0b")
+    assert crypto.sha384Buffer(buffer) == crypto.sha384(b"a\0b")
+end
+
+func check_sha512()
+    assert crypto.sha512Hex("a\0b") == "48dd66f05b49586e072c9f3485a10982231e246b46fd5eb1765721c855610c5a81744d49b1cc7ffeeed783f6819fd3702d659ce14b5b9b4f5d14f2e05cc375b5"
+    assert crypto.sha512(b"a\0b") == codec.hexDecode("48dd66f05b49586e072c9f3485a10982231e246b46fd5eb1765721c855610c5a81744d49b1cc7ffeeed783f6819fd3702d659ce14b5b9b4f5d14f2e05cc375b5")
+    assert crypto.sha512Hex("a\0b", 999) == "48dd66f05b49586e072c9f3485a10982231e246b46fd5eb1765721c855610c5a81744d49b1cc7ffeeed783f6819fd3702d659ce14b5b9b4f5d14f2e05cc375b5"
+    assert crypto.sha512("a\0b", 1) == crypto.sha512("a")
+    auto stream = crypto.sha512Stream()
+    stream.update("a")
+    auto clone = stream.clone()
+    stream.update(b"\0b")
+    assert stream.hex() == "48dd66f05b49586e072c9f3485a10982231e246b46fd5eb1765721c855610c5a81744d49b1cc7ffeeed783f6819fd3702d659ce14b5b9b4f5d14f2e05cc375b5"
+    assert stream.final() == crypto.sha512(b"a\0b")
+    clone.update("c")
+    assert clone.final() == crypto.sha512("ac")
+    stream.reset()
+    assert stream.final() == crypto.sha512(b"")
+    auto buffer = Buffer("a\0b")
+    assert crypto.sha512Buffer(buffer) == crypto.sha512(b"a\0b")
+end
+
+func check_sha512_256()
+    assert crypto.sha512_256Hex("a\0b") == "7119d75b273848aba0dbe35dfb6e5234eddb6bb7bd3af80b900c716098b9ef9e"
+    assert crypto.sha512_256(b"a\0b") == codec.hexDecode("7119d75b273848aba0dbe35dfb6e5234eddb6bb7bd3af80b900c716098b9ef9e")
+    assert crypto.sha512_256Hex("a\0b", 999) == "7119d75b273848aba0dbe35dfb6e5234eddb6bb7bd3af80b900c716098b9ef9e"
+    assert crypto.sha512_256("a\0b", 1) == crypto.sha512_256("a")
+    auto stream = crypto.sha512_256Stream()
+    stream.update("a")
+    auto clone = stream.clone()
+    stream.update(b"\0b")
+    assert stream.hex() == "7119d75b273848aba0dbe35dfb6e5234eddb6bb7bd3af80b900c716098b9ef9e"
+    assert stream.final() == crypto.sha512_256(b"a\0b")
+    clone.update("c")
+    assert clone.final() == crypto.sha512_256("ac")
+    stream.reset()
+    assert stream.final() == crypto.sha512_256(b"")
+    auto buffer = Buffer("a\0b")
+    assert crypto.sha512_256Buffer(buffer) == crypto.sha512_256(b"a\0b")
+end
+
+func check_hmacSha256()
+    assert crypto.hmacSha256Hex(b"key", "a\0b") == "29c5f0eea2d0a51b661193b3a56191192b2861f543ea0499a7f9725f7e7062fc"
+    assert crypto.hmacSha256(b"key", b"a\0b") == codec.hexDecode("29c5f0eea2d0a51b661193b3a56191192b2861f543ea0499a7f9725f7e7062fc")
+    auto stream = crypto.hmacSha256Stream(b"key")
+    stream.update("a")
+    auto clone = stream.clone()
+    stream.update(b"\0b")
+    assert stream.hex() == "29c5f0eea2d0a51b661193b3a56191192b2861f543ea0499a7f9725f7e7062fc"
+    clone.update("c")
+    assert clone.final() == crypto.hmacSha256(b"key", "ac")
+    stream.reset()
+    assert stream.final() == crypto.hmacSha256(b"key", b"")
+end
+
+func check_hmacSha384()
+    assert crypto.hmacSha384Hex(b"key", "a\0b") == "a721e53df2e42ad151d5f0a03a809233550e446524ed637a2f76bbcf3c8db14412cf91fe6020cbb11f4828143ec6395e"
+    assert crypto.hmacSha384(b"key", b"a\0b") == codec.hexDecode("a721e53df2e42ad151d5f0a03a809233550e446524ed637a2f76bbcf3c8db14412cf91fe6020cbb11f4828143ec6395e")
+    auto stream = crypto.hmacSha384Stream(b"key")
+    stream.update("a")
+    auto clone = stream.clone()
+    stream.update(b"\0b")
+    assert stream.hex() == "a721e53df2e42ad151d5f0a03a809233550e446524ed637a2f76bbcf3c8db14412cf91fe6020cbb11f4828143ec6395e"
+    clone.update("c")
+    assert clone.final() == crypto.hmacSha384(b"key", "ac")
+    stream.reset()
+    assert stream.final() == crypto.hmacSha384(b"key", b"")
+end
+
+func check_hmacSha512()
+    assert crypto.hmacSha512Hex(b"key", "a\0b") == "9a2a9ad5fdae649a896fe0c09184a9770a8f69222da6bab62053425a801afa12e3de0bef66098380a1f05771a6ec5317feaf625e44d17599c4603f9b4dc9f85f"
+    assert crypto.hmacSha512(b"key", b"a\0b") == codec.hexDecode("9a2a9ad5fdae649a896fe0c09184a9770a8f69222da6bab62053425a801afa12e3de0bef66098380a1f05771a6ec5317feaf625e44d17599c4603f9b4dc9f85f")
+    auto stream = crypto.hmacSha512Stream(b"key")
+    stream.update("a")
+    auto clone = stream.clone()
+    stream.update(b"\0b")
+    assert stream.hex() == "9a2a9ad5fdae649a896fe0c09184a9770a8f69222da6bab62053425a801afa12e3de0bef66098380a1f05771a6ec5317feaf625e44d17599c4603f9b4dc9f85f"
+    clone.update("c")
+    assert clone.final() == crypto.hmacSha512(b"key", "ac")
+    stream.reset()
+    assert stream.final() == crypto.hmacSha512(b"key", b"")
+end
+
+check_md5()
+check_sha1()
+check_sha224()
+check_sha256()
+check_sha384()
+check_sha512()
+check_sha512_256()
+check_hmacSha256()
+check_hmacSha384()
+check_hmacSha512()

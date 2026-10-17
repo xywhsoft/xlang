@@ -12,6 +12,8 @@
 #endif
 
 struct xlir_closure;
+#include "xl6_asn1_abi.h"
+#include "xl6_crypto_abi.h"
 #include "xl6_codec_abi.h"
 #include "xl6_compress_abi.h"
 #include "xl6_template_abi.h"
