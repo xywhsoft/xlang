@@ -8,7 +8,7 @@ typedef struct xrttype xrttype;
 /* Declaration-only ABI shared by resident providers and standalone C. */
 typedef enum XL6_ChannelStatusV1 {
     XL6_CHANNEL_OK_V1=0, XL6_CHANNEL_EMPTY_V1=1, XL6_CHANNEL_FULL_V1=2,
-    XL6_CHANNEL_CLOSED_V1=3, XL6_CHANNEL_TIMEOUT_V1=4
+    XL6_CHANNEL_CLOSED_V1=3, XL6_CHANNEL_TIMEOUT_V1=4, XL6_CHANNEL_CANCELLED_V1=5
 } XL6_ChannelStatusV1;
 typedef enum XL6_ChannelWaitV1 {
     XL6_CHANNEL_TRY_V1=0, XL6_CHANNEL_WAIT_V1=1, XL6_CHANNEL_FOR_V1=2
