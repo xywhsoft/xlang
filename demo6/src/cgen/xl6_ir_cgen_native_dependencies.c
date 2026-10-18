@@ -414,7 +414,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     for(size_t t=0;t<module->callTargetCount;++t) {
         const XL6_IrCallTarget* target=&module->callTargets[t];
         if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
-        if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_CLASS_FIELD_V1) {
+        if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1) {
             const XL6_IrClassField* field=xl6IrNativeClassContextField(module,target);
             if(!field || !visitor(context,field->nativeHandlePolicyCName))return 0;
             continue;

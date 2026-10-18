@@ -33,16 +33,22 @@ int main(int argc,char** argv)
     assert(module->abi.continuationAbi==XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1);
     for(size_t i=0;i<module->callTargetCount;++i){
         XL6_IrCallTarget* target=module->callTargets+i;XL6_IrCallTarget saved=*target;
-        if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_V1){
+        if(target->nativeServicesRequired && target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_NONE){
+            assert(target->nativeServicesRequired==XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1);
             assert(!target->nativeContextType&&target->nativeContextPayloadAbi==XL6_IR_ASYNC_RESULT_INVALID);
-            target->nativeContextAbi=XL6_IR_CALL_NATIVE_CONTEXT_NONE;reject(module,target);*target=saved;
+            assert(xl6IrDynamicMethodCallTargetSupported(module,target));
+            target->nativeServicesRequired=0;assert(!xl6IrDynamicMethodCallTargetSupported(module,target));
+            reject(module,target);*target=saved;
+            target->nativeServicesRequired=~0u;assert(!xl6IrDynamicMethodCallTargetSupported(module,target));
+            reject(module,target);*target=saved;
+            target->nativeContextAbi=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1;reject(module,target);*target=saved;
             target->nativeContextType=small;reject(module,target);*target=saved;
             XL6_IrType* future=(XL6_IrType*)xl6IrTypeGet(&module->types,target->returnType);
             assert(future&&future->paramCount==1&&future->params);XL6_IrTypeId element=future->params[0];
             future->params[0]=small;reject(module,target);future->params[0]=element;++sends;
             for(size_t j=0;j<module->callTargetCount;++j){
                 const XL6_IrCallTarget* other=module->callTargets+j;
-                if(other->nativeContextAbi!=XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_CLASS_FIELD_V1)continue;
+                if(other->nativeContextAbi!=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1)continue;
                 XL6_IrTypeId receiving=other->parameterTypes[0];
                 const XL6_IrClassField* field=xl6IrResidentNativeResourceField(module,receiving,"xl6ChannelReceiveFutureBuilderDestroyV1");
                 if(!field)continue;
@@ -52,7 +58,15 @@ int main(int argc,char** argv)
                 ++directions;break;
             }
         }
-        if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_CLASS_FIELD_V1){
+        if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1){
+            XL6_IrType* owner=(XL6_IrType*)xl6IrTypeGet(&module->types,target->nativeContextType);
+            assert(owner && owner->paramCount==1);
+            owner->paramCount=0;reject(module,target);owner->paramCount=1;
+            assert(target->nativeServicesRequired==XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1);
+            assert(xl6IrDynamicMethodCallTargetSupported(module,target));
+            target->nativeServicesRequired=0;assert(!xl6IrDynamicMethodCallTargetSupported(module,target));
+            reject(module,target);*target=saved;
+            target->nativeServicesRequired=~0u;reject(module,target);*target=saved;
             assert(xl6IrNativeClassContextField(module,target));
             target->nativeContextAbi=XL6_IR_CALL_NATIVE_CONTEXT_NONE;reject(module,target);*target=saved;
             target->nativeContextPayloadAbi=XL6_IR_ASYNC_RESULT_INVALID;reject(module,target);*target=saved;

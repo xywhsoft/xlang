@@ -23,6 +23,7 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
         xl6OutputPuts(
             "#define XLIR_RUNTIME_CONTINUATION 1\n"
             "#include <__xl_runtime/xl6_continuation_executor.h>\n"
+            "#include <__xl_runtime/xl6_runtime_services.h>\n"
             "#include <__xl_runtime/xl6_continuation_future.h>\n"
             "/* Deployment resource policy, not a language type/effect inference. */\n"
             "#ifndef XLIR_CONTINUATION_CAPACITY\n#define XLIR_CONTINUATION_CAPACITY 256\n#endif\n"

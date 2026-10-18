@@ -16337,6 +16337,8 @@ int xl6IrDynamicMethodCallTargetSupported(
          target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_DIRECT ||
          target->nativeArrayResultAbi != XL6_IR_CALL_NATIVE_ARRAY_RESULT_NONE ||
          target->parameterAbis[0] != XL6_IR_PARAMETER_ABI_BORROW ) return 0;
+    if(target->nativeServicesRequired!=xl6IrRuntimeDirectBridgeServices(target->cName))return 0;
+    if(target->nativeServicesRequired && target->kind!=XL6_IR_CALL_TARGET_EXTERN_C)return 0;
     if ( target->kind == XL6_IR_CALL_TARGET_INTERNAL ||
          target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC )
         return target->errorAbi == XL6_IR_ERROR_ABI_NO_RAISE
@@ -16353,7 +16355,7 @@ int xl6IrDynamicMethodCallTargetSupported(
                target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_XRT_THREAD_ERROR &&
                target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT &&
                target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER)) ) return 0;
-    if (target->nativeContextAbi != XL6_IR_CALL_NATIVE_CONTEXT_NONE &&
+    if ((target->nativeContextAbi != XL6_IR_CALL_NATIVE_CONTEXT_NONE || target->nativeServicesRequired) &&
         !xl6IrRuntimeDirectBridgeTargetMatches(module,target)) return 0;
     for ( size_t p = 0; p < target->parameterCount; ++p ) {
         if ( target->parameterConstraintAbis[p] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ) return 0;
@@ -20333,8 +20335,7 @@ XL6_IrModuleContinuationAbi xl6IrModuleContinuationRequirement(const XL6_IrModul
         const XL6_IrInstruction* instruction=&module->instructions[i];
         const XL6_IrCallTarget* target=instruction->kind==XL6_IR_INSTR_CALL
             ? xl6IrCallTargetGet(module,instruction->targetSymbol):NULL;
-        if(target && (target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_CLASS_FIELD_V1 ||
-                target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_V1) &&
+        if(target && (target->nativeServicesRequired & XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1) &&
             (module->stage!=XL6_IR_STAGE_LOWERED || target->reachability!=XL6_IR_REACHABILITY_UNREACHABLE))
             return XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1;
     }
@@ -32077,6 +32078,7 @@ static int xl6IrRuntimeBridgeTargetMatches(
     if ( module == NULL || target == NULL ) return 0;
     {
         const char* expected = xl6IrRuntimeNativeHandlePolicyForName(target->cName);
+        if(target->nativeServicesRequired!=xl6IrRuntimeDirectBridgeServices(target->cName))return 0;
         XL6_IrCallNativeContextAbi context;XL6_IrTypeId contextType;XL6_IrAsyncResultAbi payload;
         if(!xl6IrRuntimeDirectBridgeContext(module,target,&context,&contextType,&payload) ||
            context!=target->nativeContextAbi || contextType!=target->nativeContextType ||
@@ -49914,7 +49916,8 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
         if (target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC)
             for (parameter = 0; parameter < target->parameterCount; ++parameter)
                 xl6OutputPrintf(out, "%s%d", parameter ? "," : "", (int)target->asyncCaptureDestroyAbis[parameter]);
-        xl6OutputPrintf(out, "] native-context=%d/t%u/%s native-result=%d async-result=%s worker=t%u worker-errors=%s dispatch=%d future-outcome=%d machine=%lu completion=%s\n",
+        xl6OutputPrintf(out, "] native-services=%u native-context=%d/t%u/%s native-result=%d async-result=%s worker=t%u worker-errors=%s dispatch=%d future-outcome=%d machine=%lu completion=%s\n",
+                        target->nativeServicesRequired,
                         (int)target->nativeContextAbi,(unsigned)target->nativeContextType,
                         xl6IrAsyncResultAbiName(target->nativeContextPayloadAbi),
                         (int)target->nativeResultAbi,
@@ -51509,7 +51512,8 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
                         target->generatorCaptureAbis[parameter]));
             }
         xl6OutputPrintf(out,
-            "],\"nativeContextAbi\":%d,\"nativeContextType\":%u,\"nativeContextPayloadAbi\":%d,\"nativeResultAbi\":%d,\"resultCAbi\":%d,\"resultConversionAbi\":%d,\"resultConversionAbiName\":\"%s\",\"executionBoundaryAbi\":%d,\"executionBoundaryAbiName\":\"%s\",\"effectAbi\":%d,\"effectAbiName\":\"%s\",\"preparationFailureAbi\":%d,\"preparationFailureAbiName\":\"%s\"}%s\n",
+            "],\"nativeServicesRequired\":%u,\"nativeContextAbi\":%d,\"nativeContextType\":%u,\"nativeContextPayloadAbi\":%d,\"nativeResultAbi\":%d,\"resultCAbi\":%d,\"resultConversionAbi\":%d,\"resultConversionAbiName\":\"%s\",\"executionBoundaryAbi\":%d,\"executionBoundaryAbiName\":\"%s\",\"effectAbi\":%d,\"effectAbiName\":\"%s\",\"preparationFailureAbi\":%d,\"preparationFailureAbiName\":\"%s\"}%s\n",
+            target->nativeServicesRequired,
             (int)target->nativeContextAbi,(unsigned)target->nativeContextType,(int)target->nativeContextPayloadAbi,
             (int)target->nativeResultAbi,
             (int)target->resultCAbi,

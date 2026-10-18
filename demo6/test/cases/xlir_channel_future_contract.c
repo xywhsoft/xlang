@@ -38,7 +38,12 @@ int main(int argc,char** argv)
             target->resultPhysicalFieldDeclaration=0;reject(module);*target=saved;
             ++adopted;
         }
-        if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_CLASS_FIELD_V1){
+        if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1){
+            assert(target->nativeServicesRequired==XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1);
+            assert(xl6IrDynamicMethodCallTargetSupported(module,target));
+            target->nativeServicesRequired=0;assert(!xl6IrDynamicMethodCallTargetSupported(module,target));
+            reject(module);*target=saved;
+            target->nativeServicesRequired=~0u;reject(module);*target=saved;
             assert(xl6IrNativeClassContextField(module,target));
             assert(target->nativeContextPayloadAbi==XL6_IR_ASYNC_RESULT_RETAINED_XVALUE);
             target->nativeContextAbi=XL6_IR_CALL_NATIVE_CONTEXT_NONE;reject(module);*target=saved;

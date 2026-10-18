@@ -480,6 +480,8 @@ def main():
                         plan=json.loads(run(name+'.channel-future-plan',[planner,isolated/(name+'.xl')]))
                         actual={Path(path).name for path in plan['Sources']}
                         assert (required<=actual) if name.startswith('stdlib_channel_future') else not (required&actual),(name,plan)
+                        assert not ({'xl6_deadline_service.c','xl6_channel_future_deadline.c',
+                            'xl6_channel_direct_deadline.c','xl6_channel_select_deadline.c'}&actual),(name,plan)
                         assert not any(m.startswith(('XRT_MODULE_NET','XRT_MODULE_TLS','XRT_MODULE_COROUTINE')) for m in plan['NativeModules'])
                         report.setdefault('ChannelFutureLanguagePlans',{})[name]=plan
                 if args.stage=='channel-direct':
@@ -488,11 +490,15 @@ def main():
                         'xl6_channel_future_core.c','xl6_ownership_domain_channel_direct_future.c',
                         'xl6_continuation_executor.c','xl6_continuation_queue.c'}
                     forbidden={'xl6_channel_case.c','xl6_channel_select.c','xl6_channel_case_array.c',
-                        'xl6_channel_future.c','xl6_channel_future_language.c'}
+                        'xl6_channel_future.c','xl6_channel_future_language.c',
+                        'xl6_deadline_service.c','xl6_channel_future_deadline.c',
+                        'xl6_channel_direct_deadline.c','xl6_channel_select_deadline.c'}
                     for name in ('stdlib_channel_direct_future','stdlib_channel_direct_ready',
                                  'stdlib_channel_direct_factory','stdlib_channel_direct_shadow','stdlib_channel_cases','stdlib_concurrent_import_only'):
                         plan=json.loads(run(name+'.channel-direct-plan',[planner,isolated/(name+'.xl')]))
                         actual={Path(path).name for path in plan['Sources']}
+                        assert not ({'xl6_deadline_service.c','xl6_channel_future_deadline.c',
+                            'xl6_channel_direct_deadline.c','xl6_channel_select_deadline.c'}&actual),(name,plan)
                         if name.startswith('stdlib_channel_direct') and name!='stdlib_channel_direct_shadow':
                             assert direct<=actual and not (forbidden&actual),(name,plan)
                         else:assert not (direct&actual),(name,plan)

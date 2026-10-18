@@ -20,19 +20,19 @@ void* xl6ChannelFutureBuilderCreateLanguageV1(XL6_ChannelCaseArrayContextV1 cont
     if(!result.ok){xl6ErrorScopePropagateFailure(result);return NULL;}
     xrtErrorFree(result.error);return frame;
 }
-xfuture* xl6ChannelFutureBuilderStartCancelLanguageV1(XL6_ChannelFutureContextV1 context,
+xfuture* xl6ChannelFutureBuilderStartCancelLanguageV1(XL6_RuntimeServicesV1 services,XL6_ChannelResultFieldContextV1 context,
     void* frame,const xvalue* owner,xcancel* parent)
 {
-    if(!context.executor || !context.fieldName || !context.fieldSize ||
+    if(!services.executor || !context.fieldName || !context.fieldSize ||
         context.policy!=xl6ChannelSelectionHandlePolicyV1Get()){
         xrtSetErrorKind(XERR_ARGUMENT);
         xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});return NULL;
     }
-    xfuture* result=xl6ChannelFutureBuilderStartV1(context.executor,frame,owner,
+    xfuture* result=xl6ChannelFutureBuilderStartV1(services.executor,frame,owner,
         context.fieldName,context.fieldSize,parent);
     if(!result)xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});
     return result;
 }
-xfuture* xl6ChannelFutureBuilderStartLanguageV1(XL6_ChannelFutureContextV1 context,
+xfuture* xl6ChannelFutureBuilderStartLanguageV1(XL6_RuntimeServicesV1 services,XL6_ChannelResultFieldContextV1 context,
     void* frame,const xvalue* owner)
-{return xl6ChannelFutureBuilderStartCancelLanguageV1(context,frame,owner,NULL);}
+{return xl6ChannelFutureBuilderStartCancelLanguageV1(services,context,frame,owner,NULL);}

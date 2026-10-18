@@ -4079,9 +4079,16 @@ typedef enum XL6_IrCallNativeContextAbi {
     XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,
     XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,
     XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1,
-    XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_CLASS_FIELD_V1,
-    XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_V1
+    XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1
 } XL6_IrCallNativeContextAbi;
+
+/* Orthogonal to the immutable native descriptor shape. Only canonical
+ * resident entries may request module-owned services; arbitrary externs
+ * cannot acquire them by choosing a context or a common C pointer type. */
+typedef enum XL6_IrCallNativeService {
+    XL6_IR_CALL_NATIVE_SERVICE_NONE = 0,
+    XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1 = 1u << 0
+} XL6_IrCallNativeService;
 
 /* A checked resident entry may publish one owned generic result into the
  * CALL's fresh private SSA slot. The C return is void; failure leaves the
@@ -5410,6 +5417,9 @@ typedef struct XL6_IrCallTarget {
      * Backends emit constants/sizeof, never infer a source spelling or invent
      * a conversion, output borrow or retained module-local descriptor. */
     XL6_IrCallNativeContextAbi nativeContextAbi;
+    /* Exact borrowed service view, physically before descriptor/operands.
+     * The aggregate does not create an owning edge or extend module lifetime. */
+    unsigned nativeServicesRequired;
     XL6_IrTypeId nativeContextType;
     XL6_IrAsyncResultAbi nativeContextPayloadAbi;
     XL6_IrCallNativeResultAbi nativeResultAbi;
@@ -6840,6 +6850,7 @@ const XL6_IrClassField* xl6IrNativeClassContextField(const XL6_IrModule*,const X
 int xl6IrTypeRequiresExplicitNativeInitialization(const struct XL6_IrModule*,XL6_IrTypeId);
 int xl6IrRuntimeDirectBridgeContext(const struct XL6_IrModule*,const XL6_IrCallTarget*,
     XL6_IrCallNativeContextAbi*,XL6_IrTypeId*,XL6_IrAsyncResultAbi*);
+unsigned xl6IrRuntimeDirectBridgeServices(const char*);
 XL6_IrRuntimeBridgeKind xl6IrRuntimeXidBridgeKind(const char* name);
 int xl6IrRuntimeXidBridgeTargetMatches(
     const XL6_IrModule* module, const XL6_IrCallTarget* target);
