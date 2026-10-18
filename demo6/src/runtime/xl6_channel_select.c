@@ -49,6 +49,26 @@ bool xl6ChannelSelectPrepareV1(const XL6_ChannelCaseV1* cases,size_t count,
     }
     return true;
 }
+bool xl6ChannelSelectParkV1(XL6_ChannelSelectFrameV1* frame)
+{
+    if (!frame || !frame->count || !frame->operations || !frame->native) { xrtSetErrorKind(XERR_STATE); return false; }
+    /* Validate the entire private preparation before returning ANY activity. */
+    for (size_t i=0;i<frame->count;++i)
+        if (!frame->operations[i].owner || frame->operations[i].parked) { xrtSetErrorKind(XERR_STATE); return false; }
+    for (size_t i=0;i<frame->count;++i)
+        if (!xl6ChannelOperationParkV1(frame->operations+i)) abort();
+    return true;
+}
+bool xl6ChannelSelectTraceV1(const XL6_ChannelSelectFrameV1* frame,xrtownershipvisitor visit,ptr context)
+{
+    if (!frame || !visit || (frame->count && !frame->operations)) return false;
+    for (size_t i=0;i<frame->count;++i) {
+        const XL6_ChannelOperationV1* operation=frame->operations+i;
+        if (!operation->owner || !operation->parked ||
+            !visit(xl6ChannelOperationOwnershipV1(operation),context)) return false;
+    }
+    return true;
+}
 bool xl6ChannelSelectCompleteV1(XL6_ChannelSelectFrameV1* frame,xchannelselectresult native,
     XL6_ChannelSelectionV1* output)
 {
