@@ -34462,6 +34462,20 @@ typedef struct xchannelsubscribepolicyv1 {
 	void (*Drop)(const void* pData);
 } xchannelsubscribepolicyv1;
 
+/* Explicit resident ownership contract, not an extension of the raw policy.
+ * ONE real Data reference is consumed on success. Ops describes that same
+ * physical owner and all its owning children; no trace-only callback is opted
+ * in. Drop mechanically returns that reference, without starting a new semantic
+ * finalizer after graph Clear. Notify/Drop coordinate their own mutation/code
+ * lifetime and must return normally. Both execute outside API-owned scopes.
+ * Channels and messages remain BORROWED, never synthetic graph edges. */
+typedef struct xchannelsubscribeownershipv1 {
+	size_t size;
+	void (*Notify)(xchannelsubscription* pSubscription, ptr pData);
+	void (*Drop)(const void* pData);
+	const xrtownershipops* Ops;
+} xchannelsubscribeownershipv1;
+
 XRT_EXTERN_C_BEGIN
 
 /* All storage and case validation precede publication. No Channel operation,
@@ -34469,6 +34483,25 @@ XRT_EXTERN_C_BEGIN
 XRT_API xchannelsubscription* xrtChannelSubscribeCreateV1(
 	const xchannelsubscribecase* pCases, size_t iCount,
 	ptr pData, const xchannelsubscribepolicyv1* pPolicy);
+
+XRT_API xchannelsubscription* xrtChannelSubscribeCreateOwnedV1(
+	const xchannelsubscribecase* pCases, size_t iCount,
+	ptr pData, const xchannelsubscribeownershipv1* pPolicy);
+
+/* Read-only physical views under independently held whole-graph freeze.
+ * A live registration owns ONE execution credit in addition to external
+ * handles. It is an actual pending-work root, not an incoming edge invented
+ * for each borrowed Channel/case. No collection API cancels accepted work.
+ * Raw-policy contexts are refused. Adapter admission matches the exact policy
+ * identity before reading it; its Data remains independently admitted.
+ * Active dispatch/publication refuses inspection. Clear is legal only before
+ * Start or after completion; Finish returns the Data reference outside freeze.
+ * Ref/Start/Stop quarantine new admission while claimed, Restore reopens it. */
+XRT_API xrtownershipref xrtChannelSubscribeOwnership(const xchannelsubscription* pSubscription);
+XRT_API const xrtownershipquiescencev1* xrtChannelSubscribeOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtChannelSubscribeOwnershipAdapterV1(
+	xrtownershipref Reference,
+	const xchannelsubscribeownershipv1* const* pPolicies, size_t iPolicyCount);
 
 /* Admit once. May complete and notify inline before returning. On success no
  * allocation is needed to wait, wake, select, stop or unlink. */
