@@ -54,6 +54,10 @@
     src\runtime\xl6_channel_cancel.c
     src\runtime\xl6_channel_select.c
     src\runtime\xl6_channel_select_cancel.c
+    src\runtime\xl6_channel_case.c
+    src\runtime\xl6_channel_cases_select.c
+    src\runtime\xl6_channel_cases_select_cancel.c
+    src\runtime\xl6_ownership_domain_channel_case.c
     src\runtime\xl6_crypto_md5.c
     src\runtime\xl6_crypto_md5_stream.c
     src\runtime\xl6_crypto_md5_domain.c
