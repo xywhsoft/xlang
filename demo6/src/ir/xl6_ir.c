@@ -20331,7 +20331,7 @@ XL6_IrModuleContinuationAbi xl6IrModuleContinuationRequirement(const XL6_IrModul
             return (XL6_IrModuleContinuationAbi)-1;
         for (j = function->firstInstruction; j < function->firstInstruction + function->instructionCount; ++j)
             if (module->instructions[j].kind == XL6_IR_INSTR_AWAIT)
-                return XL6_IR_MODULE_CONTINUATION_GUARANTEED_WORKERS;
+                return XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1;
     }
     return XL6_IR_MODULE_CONTINUATION_NONE;
 }
@@ -20342,7 +20342,7 @@ XL6_IrModuleExecutorOwnershipAbi xl6IrModuleExecutorOwnershipRequirement(const X
      * ABI when verifying a possibly corrupt ownership/retirement contract. */
     switch (xl6IrModuleContinuationRequirement(module)) {
     case XL6_IR_MODULE_CONTINUATION_NONE: return XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE;
-    case XL6_IR_MODULE_CONTINUATION_GUARANTEED_WORKERS:
+    case XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1:
         return XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN_V1;
     default: return (XL6_IrModuleExecutorOwnershipAbi)-1;
     }
@@ -20546,7 +20546,7 @@ static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* 
     initializers = 0;
     if (module->abi.continuationAbi != xl6IrModuleContinuationRequirement(module) ||
         (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE &&
-         module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_GUARANTEED_WORKERS))
+         module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1))
         return xl6IrDiag(diags, NULL, "XLIR module continuation service ABI is unresolved");
     if ( module->stage == XL6_IR_STAGE_TYPED ) return 1;
     if (module->abi.codeOwnerAbi == XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT) {
@@ -28555,7 +28555,7 @@ static int xl6IrBuildAsyncFunctionMachine(
     machine->transportAbi = XL6_IR_CALLBACK_TRANSPORT_FUTURE_WATCH;
     machine->cancellationAbi = XL6_IR_ASYNC_CANCELLATION_RESIDENT_AWAIT_ONCE_V2;
     machine->sourceLeaseAbi = XL6_IR_ASYNC_SOURCE_LEASE_CAPTURE_THEN_RELEASE;
-    machine->executionAbi = XL6_IR_ASYNC_EXECUTION_GUARANTEED_RESUME;
+    machine->executionAbi = XL6_IR_ASYNC_EXECUTION_READY_QUEUE_V1;
     machine->ownershipAbi = XL6_IR_ASYNC_OWNERSHIP_STABLE_PRODUCER_WATCH_V1;
     machine->firstSuspension = module->asyncSuspensionCount;
     module->asyncMachineCount += 1;
@@ -29367,8 +29367,8 @@ static int xl6IrVerifyAsyncMachines(const XL6_IrModule* module, XL6_DiagList* di
             return xl6IrDiag(diags, NULL, "XLIR async source lease lifetime is unresolved");
         if (machine->ownershipAbi != XL6_IR_ASYNC_OWNERSHIP_STABLE_PRODUCER_WATCH_V1)
             return xl6IrDiag(diags, NULL, "XLIR async producer/Watch ownership ABI is unresolved");
-        if (machine->executionAbi != XL6_IR_ASYNC_EXECUTION_GUARANTEED_RESUME ||
-            module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_GUARANTEED_WORKERS)
+        if (machine->executionAbi != XL6_IR_ASYNC_EXECUTION_READY_QUEUE_V1 ||
+            module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1)
             return xl6IrDiag(diags, NULL, "XLIR async execution domain/root admission ABI is unresolved");
         if ( target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL )
             return xl6IrDiag(diags, NULL, "XLIR async machine does not match its dispatch role");

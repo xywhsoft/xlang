@@ -618,7 +618,7 @@ if (!$header.Contains('XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR')
     (Read-Utf8 'src/cgen/xl6_ir_cgen_emit_prelude.c').Contains('xlir_future_await_')) {
     throw 'Await needs one verified status/diagnostic acquisition contract, including source cleanup, without ambiguous per-type wrappers'
 }
-foreach ($required in @('XL6_IR_ASYNC_EXECUTION_GUARANTEED_RESUME', 'XL6_IR_MODULE_CONTINUATION_GUARANTEED_WORKERS')) {
+foreach ($required in @('XL6_IR_ASYNC_EXECUTION_READY_QUEUE_V1', 'XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1')) {
     if (!$header.Contains($required) -or !$source.Contains($required)) {
         throw "Async execution/module service requires a verified IR ABI: $required"
     }
@@ -630,7 +630,7 @@ foreach ($required in @('machine->executionAbi','xl6ContinuationExecutorReserveO
 if ($asyncMachineEmitter.Contains('xrtFutureWatchAdd') -or $asyncMachineEmitter.Contains('xrtFutureWatchInit') -or
     !(Read-Utf8 'src/cgen/xl6_ir_cgen_async_instruction.c').Contains('xl6ContinuationCommit') -or
     !(Read-Utf8 'src/cgen/xl6_ir_cgen_async_instruction.c').Contains('xl6ContinuationComplete(&frame->ticket)') -or
-    !(Read-Utf8 'src/cgen/xl6_ir_cgen_function_emit.c').Contains('xl6ContinuationExecutorCreateGuaranteed') -or
+    !(Read-Utf8 'src/cgen/xl6_ir_cgen_function_emit.c').Contains('xl6ContinuationExecutorCreateFixedV1') -or
     !(Read-Utf8 'src/cgen/xl6_ir_cgen_module_emit.c').Contains('xl6ContinuationExecutorDestroy')) {
     throw 'Generated async must use resident ticket transport and a fallible module-owned executor, never inline Future callbacks'
 }

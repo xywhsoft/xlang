@@ -184,18 +184,22 @@ int main(int argc, char** argv)
         if (ir.asyncMachineCount != 0) {
             XL6_IrModuleContinuationAbi saved = ir.abi.continuationAbi;
             XL6_IrAsyncMachine* machine = &ir.asyncMachines[0];
-            assert(saved == XL6_IR_MODULE_CONTINUATION_GUARANTEED_WORKERS);
-            assert(machine->executionAbi == XL6_IR_ASYNC_EXECUTION_GUARANTEED_RESUME);
+            assert(saved == XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1);
+            assert(machine->executionAbi == XL6_IR_ASYNC_EXECUTION_READY_QUEUE_V1);
             machine->executionAbi = XL6_IR_ASYNC_EXECUTION_INVALID;
             reject(&ir, "missing resume execution ABI", 0);
             machine->executionAbi = (XL6_IrAsyncExecutionAbi)99;
             reject(&ir, "invalid resume execution ABI", 0);
-            machine->executionAbi = XL6_IR_ASYNC_EXECUTION_GUARANTEED_RESUME;
+            machine->executionAbi = (XL6_IrAsyncExecutionAbi)1;
+            reject(&ir, "retired guaranteed resume ABI", 0);
+            machine->executionAbi = XL6_IR_ASYNC_EXECUTION_READY_QUEUE_V1;
             ir.abi.continuationAbi = XL6_IR_MODULE_CONTINUATION_NONE;
             reject(&ir, "missing module execution service", 0);
             ir.abi.continuationAbi = (XL6_IrModuleContinuationAbi)99;
             reject(&ir, "invalid module execution service", 0);
-            ir.abi.continuationAbi = saved; executionMutations += 4;
+            ir.abi.continuationAbi = (XL6_IrModuleContinuationAbi)1;
+            reject(&ir, "retired guaranteed workers ABI", 0);
+            ir.abi.continuationAbi = saved; executionMutations += 6;
         }
         if (n == 0) {
             char* saved = ir.exports[0].cName;
@@ -224,7 +228,7 @@ int main(int argc, char** argv)
         assert(found); reject(&ir, "reserved source linkage", 0);
         xl6IrModuleFree(&ir); xl6ParseResultFree(&parse);
     }
-    assert(rejected == 15 + executionMutations + awaitMutations && executionMutations == 8 && awaitMutations >= 12);
+    assert(rejected == 15 + executionMutations + awaitMutations && executionMutations == 12 && awaitMutations >= 12);
     printf("code-owner/execution IR: 21 + %zu await mutations + 2 source linkages rejected, C/header preflight and text/JSON\n", awaitMutations);
     return 0;
 }

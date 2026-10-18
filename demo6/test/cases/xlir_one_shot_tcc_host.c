@@ -70,7 +70,7 @@ static void load_artifact(void)
     xl__tcc.ready = 1;
     assert(xlApiAddDefaultRuntimeSymbols(compiled_state));
 #endif
-    BIND(xl6ContinuationExecutorCreateGuaranteed);
+    BIND(xl6ContinuationExecutorCreateFixedV1);
     BIND(xl6ContinuationExecutorReserveOwned);
     BIND(xl6ContinuationExecutorClose);
     BIND(xl6ContinuationExecutorDestroy);
