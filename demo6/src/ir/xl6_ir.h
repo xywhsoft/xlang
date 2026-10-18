@@ -5146,10 +5146,13 @@ typedef enum XL6_IrAsyncSourceLeaseAbi {
 /* The launch prefix stays on the caller. A suspension reserves an owned root
  * execution credit before Watch registration; later suspensions inherit it.
  * Commit follows frame handoff. Run AND physical release execute in the
- * module's guaranteed-worker domain, never on a Future producer. */
+ * module's fixed-worker ready queue, never on a Future producer. Synchronous
+ * blocking/long CPU work needs an independent task pool or explicit thread;
+ * this domain does not promise progress for arbitrary blocking callbacks. */
 typedef enum XL6_IrAsyncExecutionAbi {
     XL6_IR_ASYNC_EXECUTION_INVALID = 0,
-    XL6_IR_ASYNC_EXECUTION_GUARANTEED_RESUME
+    /* Value 1 was the retired guaranteed-worker language contract. */
+    XL6_IR_ASYNC_EXECUTION_READY_QUEUE_V1 = 2
 } XL6_IrAsyncExecutionAbi;
 
 /* One stable, real producer owns the current heap frame across suspensions.
@@ -5713,7 +5716,8 @@ typedef enum XL6_IrClassIdentityAbi {
 
 typedef enum XL6_IrModuleContinuationAbi {
     XL6_IR_MODULE_CONTINUATION_NONE = 0,
-    XL6_IR_MODULE_CONTINUATION_GUARANTEED_WORKERS
+    /* Value 1 is deliberately not admitted by the current verifier. */
+    XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1 = 2
 } XL6_IrModuleContinuationAbi;
 
 /* Distinct from execution strategy: the module owns one resident executor,

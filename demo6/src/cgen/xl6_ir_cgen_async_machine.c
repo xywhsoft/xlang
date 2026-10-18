@@ -132,7 +132,7 @@ static int xl6IrCgenEmitAsyncMachine(
     if (machine->sourceLeaseAbi != XL6_IR_ASYNC_SOURCE_LEASE_CAPTURE_THEN_RELEASE)
         return xl6IrCgenDiag(diags, module, target->declaration,
             "XLIR async source lease lifetime is unresolved");
-    if (machine->executionAbi != XL6_IR_ASYNC_EXECUTION_GUARANTEED_RESUME)
+    if (machine->executionAbi != XL6_IR_ASYNC_EXECUTION_READY_QUEUE_V1)
         return xl6IrCgenDiag(diags, module, target->declaration,
             "XLIR async execution domain/root admission ABI is unresolved");
     if (machine->ownershipAbi != XL6_IR_ASYNC_OWNERSHIP_STABLE_PRODUCER_WATCH_V1)

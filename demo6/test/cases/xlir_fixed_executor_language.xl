@@ -1,0 +1,45 @@
+import concurrent
+
+async func resumeTwice(int index, future<int> first, future<int> second, AtomicInt32 cleaned) as int
+    try
+        int left = await first
+        int right = await second
+        return index + left + right
+    finally
+        cleaned.fetchAdd(1)
+    end
+end
+
+func explicitBlocking(int value) as int
+    time.sleep(20)
+    return value + 1
+end
+
+async func isolateBlocking(future<int> gate) as int
+    int value = await gate
+    // The synchronous call runs in the independent task pool, not in the
+    // continuation worker. This must also complete with exactly one worker.
+    return await task.spawn(explicitBlocking, value)
+end
+
+auto first = Promise::<int>()
+auto second = Promise::<int>()
+auto cleaned = AtomicInt32(0)
+array<future<int>> jobs = []
+int index = 0
+while index < 192
+    assert jobs.push(resumeTwice(index, first.future, second.future, cleaned))
+    index += 1
+end
+auto isolated = isolateBlocking(first.future)
+assert cleaned.load() == 0
+assert first.tryResolve(19)
+assert second.tryResolve(23)
+index = 0
+while index < 192
+    assert (await jobs[index]) == index + 42
+    index += 1
+end
+assert (await isolated) == 20
+assert cleaned.load() == 192
+println("fixed ready queue: 192 two-await roots, explicit blocking task, exact finally count")

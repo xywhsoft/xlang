@@ -16,8 +16,8 @@ try {
     $ir = Get-Content "$prefix.json" -Raw | ConvertFrom-Json
     $awaits = @($ir.instructions | Where-Object kindName -eq 'await')
     if ($awaits.Count -ne 3 -or @($awaits | Where-Object awaitOutcomeAbi -ne 1).Count) { throw 'Dispatch await status carrier missing' }
-    if ($ir.moduleContinuationAbi -ne 1 -or $ir.asyncMachines.Count -ne 1 -or
-        $ir.asyncMachines[0].executionAbi -ne 1 -or $ir.asyncMachines[0].suspensionCount -ne 2) { throw 'Dispatch IR contract missing' }
+    if ($ir.moduleContinuationAbi -ne 2 -or $ir.asyncMachines.Count -ne 1 -or
+        $ir.asyncMachines[0].executionAbi -ne 2 -or $ir.asyncMachines[0].suspensionCount -ne 2) { throw 'Fixed-worker dispatch IR contract missing' }
     $binding = "#define XLIR_DISPATCH_CHAIN xlir_async_start_$($ir.asyncMachines[0].targetSymbol)`n"
     [IO.File]::WriteAllText((Join-Path (Get-Location) "$prefix.binding.h"), $binding, [Text.UTF8Encoding]::new($false))
     $flags = @('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-label','-Wno-unused-variable',

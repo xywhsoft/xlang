@@ -262,7 +262,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
          !xlApiAddTccSymbol(s, "xl6ProtocolLookup", (const void*)xl6ProtocolLookup) ) {
         return 0;
     }
-    if (!xlApiAddTccSymbol(s, "xl6ContinuationExecutorCreateGuaranteed", (const void*)xl6ContinuationExecutorCreateGuaranteed) ||
+    if (!xlApiAddTccSymbol(s, "xl6ContinuationExecutorCreateFixedV1", (const void*)xl6ContinuationExecutorCreateFixedV1) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationExecutorReserveOwned", (const void*)xl6ContinuationExecutorReserveOwned) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationExecutorClose", (const void*)xl6ContinuationExecutorClose) ||
         !xlApiAddTccSymbol(s, "xl6ContinuationExecutorDestroy", (const void*)xl6ContinuationExecutorDestroy) ||

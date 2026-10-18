@@ -137,6 +137,11 @@ bool xl6ContinuationExecutorIsIdle(XL6_ContinuationExecutor* executor)
     if(!executor_enter(executor))return true;
     bool idle=xl6ContinuationQueueIsIdle(executor->queue);executor_leave(executor);return idle;
 }
+XL6_ContinuationExecutor* xl6ContinuationExecutorCreateFixedV1(size_t capacity, size_t workers)
+{
+    if (workers == 0) workers = capacity < 4 ? capacity : 4;
+    return xl6ContinuationExecutorCreate(capacity, workers, workers);
+}
 XL6_ContinuationExecutor* xl6ContinuationExecutorCreateGuaranteed(size_t capacity, size_t initialWorkers)
 {
     XL6_ContinuationExecutor* executor = xl6ContinuationExecutorCreate(capacity, initialWorkers, capacity);

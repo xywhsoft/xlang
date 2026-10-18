@@ -19,13 +19,14 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
         xl6OutputPuts("#include <__xl_runtime/xl6_text_value.h>\n", out);
     xl6IrCgenEmitPublicLinkage(out);
     xl6IrCgenEmitCodeOwnerBinding(out, module);
-    if (module->abi.continuationAbi == XL6_IR_MODULE_CONTINUATION_GUARANTEED_WORKERS)
+    if (module->abi.continuationAbi == XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1)
         xl6OutputPuts(
             "#define XLIR_RUNTIME_CONTINUATION 1\n"
             "#include <__xl_runtime/xl6_continuation_executor.h>\n"
             "#include <__xl_runtime/xl6_continuation_future.h>\n"
             "/* Deployment resource policy, not a language type/effect inference. */\n"
             "#ifndef XLIR_CONTINUATION_CAPACITY\n#define XLIR_CONTINUATION_CAPACITY 256\n#endif\n"
+            "#ifndef XLIR_CONTINUATION_WORKERS\n#define XLIR_CONTINUATION_WORKERS 0\n#endif\n"
             "static XL6_ContinuationExecutor* xlir_continuation_executor;\n"
             "static int xlir_continuation_quiesce(bool wait)\n"
             "{\n"

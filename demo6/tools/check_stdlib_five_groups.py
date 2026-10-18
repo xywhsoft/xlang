@@ -23,7 +23,7 @@ def digest(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--stage', choices=('p0', 'atomic', 'once-event', 'thread-local', 'cancellation', 'promise', *CHANNEL_STAGES), required=True)
+    parser.add_argument('--stage', choices=('p0', 'fixed-executor', 'atomic', 'once-event', 'thread-local', 'cancellation', 'promise', *CHANNEL_STAGES), required=True)
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--native-factory-inheritance',action='store_true',
@@ -47,6 +47,9 @@ def main():
                  'sem_numeric_narrowing_int')
     helpers = ('stdlib_product_fixture_host.c', 'stdlib_pruning_product_host.c',
                'stdlib_codec_template_language_host.c', 'xlir_narrow_operator_contract.c')
+    if args.stage == 'fixed-executor':
+        selected = ('xlir_fixed_executor_language', 'stdlib_promise', 'stdlib_promise_values',
+                    'stdlib_promise_terminal', 'xlir_narrow_operator_literals')
     if args.stage == 'atomic':
         selected = ('stdlib_atomics', 'stdlib_atomic_bool_only', 'stdlib_atomic_threads',
                     'stdlib_concurrent_import_only', 'stdlib_time_text_only', 'xlir_narrow_operator_literals')
@@ -282,6 +285,8 @@ def main():
                   '-Wno-unused-label', '-Wno-unused-const-variable', '-Wno-unused-but-set-variable',
                   '-Wno-missing-field-initializers', '-I'+str(task), '-I'+str(root),
                   '-I'+str(root/'release'), '-I'+str(sdk)]
+        if args.stage == 'fixed-executor':
+            strict += ['-DXLIR_CONTINUATION_WORKERS=1']
         cli = release/names[0]
         def positive(name):
             source = isolated/(name+'.xl')
@@ -291,6 +296,10 @@ def main():
             run(name+'.cgen', [cli, 'cgen', source, '--emit', first])
             run(name+'.repeat', [cli, 'cgen', source, '--emit', second])
             assert first.read_bytes() == second.read_bytes()
+            if args.stage == 'fixed-executor' and name == selected[0]:
+                generated = first.read_text(encoding='utf-8')
+                assert 'xl6ContinuationExecutorCreateFixedV1(' in generated
+                assert 'xl6ContinuationExecutorCreateGuaranteed(' not in generated
             full = name == selected[0] or (args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation') and
                 name in selected[:(4 if args.stage in ('thread-local','cancellation') else 3)]) or (
                 args.stage == 'cancellation' and name == 'stdlib_task_group_methods') or (
@@ -400,7 +409,7 @@ def main():
             binary = isolated/'literal-contract'
             run('contract.build', [cc, *flags, '-O2', '-I'+str(root), '-I'+str(root/'release/include'),
                 '-I'+str(root/'lib/tcc'), cases/helpers[3], *links(names[2]), '-o', binary])
-            run('contract.run', [binary, isolated/(selected[0]+'.xl'),
+            run('contract.run', [binary, isolated/((selected[-1] if args.stage == 'fixed-executor' else selected[0])+'.xl'),
                 *([isolated/(selected[1]+'.xl')] if args.stage == 'once-event' else
                   [isolated/'xlir_class_tag_vocabulary.xl', isolated/'xlir_class_tag_narrow_first.xl']
                   if args.stage == 'cancellation' else

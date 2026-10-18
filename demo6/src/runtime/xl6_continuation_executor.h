@@ -15,7 +15,20 @@ typedef enum XL6_ContinuationBlockingAdmission {
  * ticket admission and OS-thread high-water use, not language value types. */
 XL6_ContinuationExecutor* xl6ContinuationExecutorCreate(
     size_t capacity, size_t initialWorkers, size_t maxWorkers);
-/* General-language strategy: at least one provisioned worker per accepted
+/* Default language strategy: exactly workers OS threads, all provisioned
+ * before publication. Zero selects min(capacity, 4), a portable deployment
+ * default, NOT a processor-count or task-count inference. Explicit positive
+ * worker counts are independent of activation capacity. Reserve and ready
+ * delivery never grow this pool; waiting tickets occupy no worker.
+ * Run/release/host-drop callbacks must not synchronously wait for work on this
+ * same pool. Isolate blocking/long CPU work in a task pool or explicit thread.
+ * The existing BlockingEnter guard refuses the last runnable worker instead
+ * of compensating beyond this fixed limit. Unannotated blocking has no
+ * starvation guarantee. Failure leaves no live workers or executor owner. */
+XL6_CONTINUATION_API XL6_ContinuationExecutor* xl6ContinuationExecutorCreateFixedV1(
+    size_t capacity, size_t workers);
+/* Explicit host-only strategy, NOT the default language execution contract:
+ * at least one provisioned worker per accepted
  * root activation. Root admission provisions before publication; resource
  * failure aborts the private reservation and releases its code pin. Accepted
  * run/release/host-drop callbacks may block WITHOUT fallible call-site guards.

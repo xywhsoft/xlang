@@ -273,6 +273,9 @@ continuation 的生产派发已接入。
 
 ### 2026-09-11：生产状态机接入 Guaranteed 派发（4494EF34）
 
+> 2026-10-18 更新：本节描述的是历史策略。默认语言执行合同现已改为下述
+> fixed-workers/ready-queue V1，不能继续引用本节的任意阻塞进展保证。
+
 本节更新上文“生产尚未选择”的阶段状态，不改变未完成的整体准入要求。
 AsyncMachine.executionAbi 明确 guaranteed-resume，ModuleAbi.continuationAbi
 明确 guaranteed-workers 服务；lowering 建立、verifier 重算、文本/JSON 输出，
@@ -507,3 +510,28 @@ one-shot 七场景 175 次、原 async 六场景 150 次，共 325 个实际执�
 这补足现用 TCC 快照的编译、重定位和页删除联合证据，不是从公开 xlRunScript*
 开始的完整前端/编译上下文路径验收，也不是同源 release 重新发布。对象代码
 身份、模块自持环、完整 async/网络门及 Linux/发布准入仍然开放。
+
+### 2026-10-18：默认固定工作线程与就绪队列
+
+用户批准默认执行器从“每并存根 activation 预备 worker”切换为固定线程。
+当前 `AsyncExecutionAbi=READY_QUEUE_V1`、`ModuleContinuationAbi=FIXED_WORKERS_V1`
+的数值均为 2；已退役的数值 1 不得冒充新合同。lowering 建立、verifier 重算，
+Cgen 仅按已封闭合同调用驻留 `xl6ContinuationExecutorCreateFixedV1`。
+
+- `XLIR_CONTINUATION_WORKERS` 控制固定线程数；默认 0 交由 runtime 选择
+  `min(capacity, 4)`，是可配置的保守部署默认值，不宣称探测了 CPU 数量。
+- `XLIR_CONTINUATION_CAPACITY` 仍独立限制并存根任务（默认 256），不是
+  worker 数。需要更高的任务容量时显式调大；挂起任务只保留帧和 ticket，
+  不因此扩充 OS 线程。首个 `await` 前的同步启动前缀仍在调用者执行。
+- `Commit`、`Ready`、`TransportReleased` 全到齐才进入既有就绪队列；
+  producer 只通知，不执行 await 恢复 CFG。后继复用原根准入，Close 后仍可
+  完成已经接受的任务。所有物理 cleanup/code-owner 尾部保持 checked join。
+- 同步阻塞／长计算必须使用独立 `task.spawn` 任务池或显式线程。异步函数
+  中直接调用同步函数不会自动卸载。固定模式的 `BlockingEnter` 到最后一个
+  runnable worker 时拒绝，不扩容；未标注的任意阻塞不再享有防饥饿保证。
+- 旧 `CreateGuaranteed` 仅是显式原生宿主策略及其独立合同测试，不再由语言
+  IR、Cgen、默认 JIT registrar 或新生成模块选择，不能据其测试声称默认语义。
+
+这次不暗中改变 `.then/.catch/.finally` 现有 inline callback ABI。其统一的
+owned-ready 派发，以及 Channel Future 的 native completion/cancel 交付，仍须
+作为后续明确的 ABI/生命周期迁移完成；不能把本节当成五组接入已全部完成。
