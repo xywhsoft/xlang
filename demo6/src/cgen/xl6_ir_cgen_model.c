@@ -362,40 +362,7 @@ static const XL6_IrClassField* xl6IrCgenNativeClassPhysicalField(
     const XL6_IrModule* module, const XL6_IrCallTarget* target,
     size_t parameter)
 {
-    const XL6_IrType* owner;
-    size_t i;
-    if ( module == NULL || target == NULL ||
-         parameter >= target->parameterCount ||
-         target->parameterTypes == NULL || target->parameterAbis == NULL ||
-         target->parameterPhysicalAbis == NULL ||
-         target->parameterPhysicalFieldDeclarations == NULL ||
-         (target->kind != XL6_IR_CALL_TARGET_EXTERN_C &&
-          target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) ||
-         target->parameterAbis[parameter] != XL6_IR_PARAMETER_ABI_BORROW ||
-         target->parameterPhysicalAbis[parameter] !=
-             XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW ||
-         (owner = xl6IrTypeGet(
-              &module->types, target->parameterTypes[parameter])) == NULL ||
-         owner->kind != XL6_IR_TYPE_CLASS ||
-         owner->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-         owner->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED )
-        return NULL;
-    for ( i = 0; i < module->classFieldCount; ++i ) {
-        const XL6_IrClassField* field = &module->classFields[i];
-        const XL6_IrNode* declaration;
-        const XL6_IrType* type;
-        if ( field->ownerType != target->parameterTypes[parameter] ||
-             field->declaration !=
-                 target->parameterPhysicalFieldDeclarations[parameter] )
-            continue;
-        declaration = xl6IrNodeGet(module, field->declaration);
-        type = xl6IrTypeGet(&module->types, field->type);
-        return declaration != NULL &&
-               declaration->kind == XL6_IR_NODE_FIELD_DECL &&
-               type != NULL && type->cAbi == XL6_IR_C_ABI_RAW_POINTER
-            ? field : NULL;
-    }
-    return NULL;
+    return xl6IrCallTargetNativeClassPhysicalField(module, target, parameter);
 }
 
 /* The protocol table may select an extern C class method.  Its CallTarget is
@@ -431,37 +398,7 @@ static const XL6_IrClassField* xl6IrCgenProtocolExternReceiverField(
 static const XL6_IrClassField* xl6IrCgenNativeClassResultField(
     const XL6_IrModule* module, const XL6_IrCallTarget* target)
 {
-    const XL6_IrType* owner;
-    size_t i;
-    if ( module == NULL || target == NULL ||
-         target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY ||
-         (target->resultPhysicalAbi !=
-              XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_BORROW &&
-          target->resultPhysicalAbi !=
-              XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE) ||
-         (owner = xl6IrTypeGet(&module->types, target->returnType)) == NULL ||
-         owner->kind != XL6_IR_TYPE_CLASS ||
-         owner->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-         owner->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED )
-        return NULL;
-    for ( i = 0; i < module->classFieldCount; ++i ) {
-        const XL6_IrClassField* field = &module->classFields[i];
-        const XL6_IrType* type;
-        if ( field->ownerType != target->returnType ||
-             field->declaration != target->resultPhysicalFieldDeclaration )
-            continue;
-        type = xl6IrTypeGet(&module->types, field->type);
-        if ( type == NULL || type->cAbi != XL6_IR_C_ABI_RAW_POINTER )
-            return NULL;
-        if ( target->resultPhysicalAbi ==
-                 XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_BORROW )
-            return field->nativeDestroySymbol == 0 &&
-                   target->resultPhysicalDestroySymbol == 0 ? field : NULL;
-        return field->nativeDestroySymbol != 0 &&
-               field->nativeDestroySymbol == target->resultPhysicalDestroySymbol
-            ? field : NULL;
-    }
-    return NULL;
+    return xl6IrCallTargetNativeClassResultField(module, target);
 }
 
 static XL6_IrTypeId xl6IrCgenPhysicalResultType(

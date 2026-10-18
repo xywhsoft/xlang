@@ -6490,9 +6490,6 @@ static int xl6IrBuildPersistenceXlonLayoutSupported(
         module, typeId, XL6_IR_PERSIST_FORMAT_XLON, 0);
 }
 
-static const XL6_IrClassField* xl6IrManagedNativeConstructorField(
-    const XL6_IrModule*, XL6_IrTypeId);
-
 static const XL6_IrPersistenceInvocationContract xl6IrPersistenceInvocations[] = {
     {XL6_IR_INTRINSIC_PERSISTENCE_JSON_CONFIG_STRINGIFY,
      XL6_IR_RUNTIME_PERSISTENCE_JSON_CONFIG_STRINGIFY, XL6_IR_PERSIST_FORMAT_JSON, XL6_IR_PERSISTENCE_INVOKE_ENCODE, 0,
@@ -16168,45 +16165,77 @@ static int xl6IrBuildValueInitializers(XL6_IrModule* module)
 
 /* A native-backed class uses the ordinary managed object model and may also
  * contain language-level state.  Its factory result is unambiguous when the
- * concrete class owns exactly one native raw-pointer field; record that field
- * identity instead of requiring the entire class layout to contain one field. */
-static const XL6_IrClassField* xl6IrManagedNativeConstructorField(
-    const XL6_IrModule* module, XL6_IrTypeId typeId)
+ * complete class hierarchy owns exactly one native raw-pointer field; record
+ * that field identity instead of requiring a one-field language layout. */
+static const XL6_IrClassField* xl6IrManagedNativeField(
+    const XL6_IrModule* module, XL6_IrTypeId typeId, int requireUnique)
 {
     const XL6_IrType* type = module != NULL
         ? xl6IrTypeGet(&module->types, typeId) : NULL;
     const XL6_IrClassLayout* layout = module != NULL
         ? xl6IrBuildClassLayoutByType(module, typeId) : NULL;
     const XL6_IrClassField* result = NULL;
-    size_t i;
+    size_t i, depth;
     if ( type == NULL || type->kind != XL6_IR_TYPE_CLASS ||
          type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
          type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
          layout == NULL || layout->firstField > module->classFieldCount ||
          layout->fieldCount > module->classFieldCount - layout->firstField )
         return NULL;
-    for ( i = 0; i < layout->fieldCount; ++i ) {
-        const XL6_IrClassField* field =
-            &module->classFields[layout->firstField + i];
-        const XL6_IrNode* declaration =
-            xl6IrNodeGet(module, field->declaration);
-        const XL6_IrType* fieldType =
-            xl6IrTypeGet(&module->types, field->type);
-        if ( field->ownerType != typeId || declaration == NULL ||
-             declaration->kind != XL6_IR_NODE_FIELD_DECL ||
-             (declaration->flags & XL6_AST_FLAG_NATIVE) == 0 ||
-             fieldType == NULL || fieldType->cAbi != XL6_IR_C_ABI_RAW_POINTER ||
-             fieldType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL )
-            continue;
-        if ( result != NULL ) return NULL;
-        result = field;
+    for ( depth = 0; layout != NULL && depth < module->classLayoutCount; ++depth ) {
+        if ( layout->firstField > module->classFieldCount ||
+             layout->fieldCount > module->classFieldCount - layout->firstField ) return NULL;
+        for ( i = 0; i < layout->fieldCount; ++i ) {
+            const XL6_IrClassField* field =
+                &module->classFields[layout->firstField + i];
+            const XL6_IrNode* declaration =
+                xl6IrNodeGet(module, field->declaration);
+            const XL6_IrType* fieldType =
+                xl6IrTypeGet(&module->types, field->type);
+            if ( field->ownerType != layout->type || declaration == NULL ||
+                 declaration->kind != XL6_IR_NODE_FIELD_DECL ||
+                 (declaration->flags & XL6_AST_FLAG_NATIVE) == 0 ||
+                 fieldType == NULL || fieldType->cAbi != XL6_IR_C_ABI_RAW_POINTER ||
+                 fieldType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL )
+                continue;
+            if ( result != NULL ) return NULL;
+            result = field;
+            if ( !requireUnique ) return result;
+        }
+        if ( layout->baseType == XL6_IR_TYPE_INVALID ) return result;
+        layout = xl6IrBuildClassLayoutByType(module, layout->baseType);
     }
-    return result;
+    return NULL;
+}
+
+const XL6_IrClassField* xl6IrManagedNativeConstructorField(
+    const XL6_IrModule* module, XL6_IrTypeId typeId)
+{
+    const XL6_IrClassField* result = xl6IrManagedNativeField(module, typeId, 1);
+    const XL6_IrClassLayout* layout = result != NULL
+        ? xl6IrBuildClassLayoutByType(module, typeId) : NULL;
+    size_t depth, i;
+    if ( result == NULL || result->name == NULL ) return NULL;
+    /* The object uses canonical field keys across the whole hierarchy. A
+     * language field shadowing this native slot is not a valid projection,
+     * even though it does not add a second native pointer. */
+    for ( depth = 0; layout != NULL && depth < module->classLayoutCount; ++depth ) {
+        for ( i = 0; i < layout->fieldCount; ++i ) {
+            const XL6_IrClassField* field = &module->classFields[layout->firstField + i];
+            if ( field != result && field->name != NULL && !strcmp(field->name, result->name) )
+                return NULL;
+        }
+        if ( layout->baseType == XL6_IR_TYPE_INVALID ) return result;
+        layout = xl6IrBuildClassLayoutByType(module, layout->baseType);
+    }
+    return NULL;
 }
 
 int xl6IrTypeRequiresExplicitNativeInitialization(const XL6_IrModule* module,XL6_IrTypeId type)
 {
-    return xl6IrManagedNativeConstructorField(module,type)!=NULL;
+    /* An ambiguous factory must not accidentally enable implicit zero/default
+     * construction of a non-null native resource. */
+    return xl6IrManagedNativeField(module,type,0)!=NULL;
 }
 const XL6_IrClassField* xl6IrResidentNativeResourceField(const XL6_IrModule* module,
     XL6_IrTypeId type,const char* destroyName)
@@ -16220,7 +16249,7 @@ const XL6_IrClassField* xl6IrResidentNativeResourceField(const XL6_IrModule* mod
         field->nativeHandlePolicyCName && !strcmp(expected,field->nativeHandlePolicyCName) ? field : NULL;
 }
 
-static const XL6_IrClassField* xl6IrCallTargetNativeClassPhysicalField(
+const XL6_IrClassField* xl6IrCallTargetNativeClassPhysicalField(
     const XL6_IrModule* module, const XL6_IrCallTarget* target,
     size_t parameter)
 {
@@ -16244,7 +16273,7 @@ static const XL6_IrClassField* xl6IrCallTargetNativeClassPhysicalField(
         ? field : NULL;
 }
 
-static const XL6_IrClassField* xl6IrCallTargetNativeClassResultField(
+const XL6_IrClassField* xl6IrCallTargetNativeClassResultField(
     const XL6_IrModule* module, const XL6_IrCallTarget* target)
 {
     const XL6_IrClassField* field;

@@ -11228,10 +11228,13 @@ static XL6_IrValueId xl6IrLowerDefaultClassFieldInitializer(
 static int xl6IrLowerDefaultClassInitialize(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrClassLayout* layout,
     XL6_IrValueId* object, size_t depth);
+static int xl6IrLowerDefaultClassInitializeExcept(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrClassLayout* layout,
+    XL6_IrValueId* object, size_t depth, size_t initializedField);
 
 static int xl6IrLowerDefaultClassInitializeBody(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrClassLayout* layout,
-    XL6_IrValueId* object, size_t depth)
+    XL6_IrValueId* object, size_t depth, size_t initializedField)
 {
     const XL6_IrModule* module = ctx != NULL ? ctx->module : NULL;
     XL6_IrTypeId boolType;
@@ -11244,7 +11247,7 @@ static int xl6IrLowerDefaultClassInitializeBody(
     if ( layout->baseType != XL6_IR_TYPE_INVALID ) {
         const XL6_IrClassLayout* base = xl6IrLowerClassLayoutGet(module, layout->baseType);
         if ( base == NULL ||
-             !xl6IrLowerDefaultClassInitialize(ctx, origin, base, object, depth + 1) ) {
+             !xl6IrLowerDefaultClassInitializeExcept(ctx, origin, base, object, depth + 1, initializedField) ) {
             xl6IrLowerDiag(ctx, origin, "XLIR default class constructor has no verified base-layout ABI");
             return 0;
         }
@@ -11260,6 +11263,7 @@ static int xl6IrLowerDefaultClassInitializeBody(
         XL6_IrValueId stored;
         char* keyLiteral;
         size_t instanceId;
+        if ( layout->firstField + i == initializedField ) continue;
         if ( field->initializerAbi == XL6_IR_INITIALIZER_EXPLICIT &&
              (field->initializer == XL6_IR_NODE_INVALID || initializer == NULL) ) {
             xl6IrLowerDiag(ctx, field->declaration,
@@ -11315,9 +11319,9 @@ static int xl6IrLowerDefaultClassInitializeBody(
     return 1;
 }
 
-static int xl6IrLowerDefaultClassInitialize(
+static int xl6IrLowerDefaultClassInitializeExcept(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrClassLayout* layout,
-    XL6_IrValueId* object, size_t depth)
+    XL6_IrValueId* object, size_t depth, size_t initializedField)
 {
     XL6_IrNodeId previous;
     size_t previousInstance;
@@ -11326,10 +11330,18 @@ static int xl6IrLowerDefaultClassInitialize(
     previous = ctx->declarationExitOrigin;
     previousInstance = ctx->instantiation;
     if (previous == XL6_IR_NODE_INVALID) ctx->declarationExitOrigin = origin;
-    result = xl6IrLowerDefaultClassInitializeBody(ctx, origin, layout, object, depth);
+    result = xl6IrLowerDefaultClassInitializeBody(ctx, origin, layout, object, depth, initializedField);
     ctx->declarationExitOrigin = previous;
     ctx->instantiation = previousInstance;
     return result;
+}
+
+static int xl6IrLowerDefaultClassInitialize(
+    XL6_IrLowerContext* ctx, XL6_IrNodeId origin, const XL6_IrClassLayout* layout,
+    XL6_IrValueId* object, size_t depth)
+{
+    return xl6IrLowerDefaultClassInitializeExcept(ctx, origin, layout, object,
+        depth, XL6_IR_CLASS_FIELD_INDEX_INVALID);
 }
 
 /* This reserved key is produced solely by lowering.  It is not a user field,
@@ -23621,37 +23633,9 @@ static const XL6_IrClassField* xl6IrLowerManagedNativeConstructorField(
     const XL6_IrModule* module, XL6_IrTypeId typeId,
     XL6_IrNodeId fieldDeclaration)
 {
-    const XL6_IrType* type = module != NULL
-        ? xl6IrTypeGet(&module->types, typeId) : NULL;
-    const XL6_IrClassLayout* layout = module != NULL
-        ? xl6IrLowerClassLayoutGet(module, typeId) : NULL;
-    const XL6_IrClassField* result = NULL;
-    size_t i;
-    if ( type == NULL || type->kind != XL6_IR_TYPE_CLASS ||
-         type->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-         type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
-         layout == NULL || layout->firstField > module->classFieldCount ||
-         layout->fieldCount > module->classFieldCount - layout->firstField )
-        return NULL;
-    for ( i = 0; i < layout->fieldCount; ++i ) {
-        const XL6_IrClassField* field =
-            &module->classFields[layout->firstField + i];
-        const XL6_IrNode* declaration =
-            xl6IrNodeGet(module, field->declaration);
-        const XL6_IrType* fieldType =
-            xl6IrTypeGet(&module->types, field->type);
-        if ( field->ownerType != typeId ||
-             (fieldDeclaration != XL6_IR_NODE_INVALID &&
-              field->declaration != fieldDeclaration) ||
-             declaration == NULL || declaration->kind != XL6_IR_NODE_FIELD_DECL ||
-             (declaration->flags & XL6_AST_FLAG_NATIVE) == 0 ||
-             fieldType == NULL || fieldType->cAbi != XL6_IR_C_ABI_RAW_POINTER ||
-             fieldType->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL )
-            continue;
-        if ( result != NULL ) return NULL;
-        result = field;
-    }
-    return result;
+    const XL6_IrClassField* field = xl6IrManagedNativeConstructorField(module, typeId);
+    return field != NULL && (fieldDeclaration == XL6_IR_NODE_INVALID ||
+        field->declaration == fieldDeclaration) ? field : NULL;
 }
 
 static const XL6_IrClassField* xl6IrLowerCallTargetNativeClassPhysicalField(
@@ -23755,7 +23739,8 @@ static XL6_IrValueId xl6IrLowerManagedNativeObjectFromRaw(
     XL6_SymbolId objectStorage = 0, boxStorage = 0;
     size_t first = ctx->evaluationOwnerCount;
     char* keyLiteral;
-    if ( layout == NULL || field == NULL || field->ownerType != targetType ||
+    if ( layout == NULL || field == NULL ||
+         field != xl6IrManagedNativeConstructorField(ctx->module, targetType) ||
          xl6IrLowerValueType(ctx, raw) != field->type ||
          erasedType == XL6_IR_TYPE_INVALID || boolType == XL6_IR_TYPE_INVALID ||
          destroySymbol != field->nativeDestroySymbol ) {
@@ -23800,7 +23785,7 @@ static XL6_IrValueId xl6IrLowerManagedNativeObjectFromRaw(
     operands[1] = boxed;
     {
     size_t parentInstance = ctx->instantiation;
-    size_t instanceId = xl6IrLowerBeginInstantiation(ctx, origin, layout->type,
+    size_t instanceId = xl6IrLowerBeginInstantiation(ctx, origin, field->ownerType,
         (size_t)(field - ctx->module->classFields));
     if (instanceId == 0) { xrtFree(keyLiteral); return XL6_IR_VALUE_INVALID; }
     stored = xl6IrLowerEmitRuntimeLiteralCall(
@@ -23816,25 +23801,12 @@ static XL6_IrValueId xl6IrLowerManagedNativeObjectFromRaw(
     }
     if (!xl6IrLowerEndInstantiation(ctx, instanceId, result, stored)) return XL6_IR_VALUE_INVALID;
     }
-    {
-        XL6_IrClassLayout fields = *layout;
-        size_t nativeIndex = (size_t)(field - ctx->module->classFields);
-        size_t end = layout->firstField + layout->fieldCount;
-        /* C 句柄已经接管；其余字段复用普通 class 的初始化与失败回滚。
-         * 首段保留基类边；仅无独立 TypeId 的基类已经展开为本布局前缀。 */
-        fields.fieldCount = nativeIndex - fields.firstField;
-        if (!xl6IrLowerDefaultClassInitialize(ctx, origin, &fields, &result, 0))
-            return XL6_IR_VALUE_INVALID;
-        /* 后半段只初始化本类剩余字段，不能重复基类或已接管的原生字段。 */
-        fields.baseType = XL6_IR_TYPE_INVALID;
-        fields.baseDeclaration = XL6_IR_NODE_INVALID;
-        fields.hasExplicitCreate = 0;
-        fields.inheritedFieldCount = 0;
-        fields.firstField = nativeIndex + 1;
-        fields.fieldCount = end - fields.firstField;
-        if (!xl6IrLowerDefaultClassInitialize(ctx, origin, &fields, &result, 0))
-            return XL6_IR_VALUE_INVALID;
-    }
+    /* The verified native field already owns the factory result. Initialize
+     * all remaining fields through the normal hierarchy/rollback path; a
+     * base layout may own that field instead of the concrete layout slice. */
+    if (!xl6IrLowerDefaultClassInitializeExcept(ctx, origin, layout, &result, 0,
+            (size_t)(field - ctx->module->classFields)))
+        return XL6_IR_VALUE_INVALID;
     return xl6IrLowerCommitClassConstruction(
         ctx, origin, layout, objectStorage, first);
 }

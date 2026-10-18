@@ -26,6 +26,8 @@ def main():
     parser.add_argument('--stage', choices=('p0', 'atomic', 'once-event', 'thread-local', 'cancellation', 'promise', *CHANNEL_STAGES), required=True)
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--native-factory-inheritance',action='store_true',
+        help='Add offline inherited native resource contracts and complete language allocation prefixes')
     parser.add_argument('--native-plan-report',type=Path,
         help='Windows native-only pruning: sealed Linux actual-plan receipt with identical source graph')
     args = parser.parse_args()
@@ -108,6 +110,12 @@ def main():
             negatives=(*negatives,'bad_channel_cancel_source','bad_channel_cancel_null',
                        'bad_channel_cancel_arity','bad_channel_cancel_named','bad_channel_cancel_authority')
             helpers=(*helpers,'xlir_channel_cancel_contract.c')
+    if args.native_factory_inheritance:
+        assert args.stage=='channel-cancel'
+        selected=(*selected,'xlir_native_factory_inherited','xlir_native_static_factory','xlir_native_factory_ordinary_inheritance')
+        negatives=(*negatives,'bad_xlir_native_inherited_default','bad_xlir_native_ambiguous_default',
+                   'bad_xlir_native_factory_ambiguous','bad_xlir_native_factory_shadow','bad_xlir_native_generic_inheritance')
+        helpers=(*helpers,'xlir_native_factory_inherited_contract.c','xlir_native_factory_inherited_host.c')
     inputs = {Path(__file__).resolve(), *products,
               *[cases/(name+'.xl') for name in selected+negatives],
               *[cases/name for name in helpers],
@@ -145,6 +153,7 @@ def main():
         if win and product.suffix == '.dll':
             shutil.copy2(product, isolated/product.name)
     report = dict(Stage=args.stage, Complete=False, InputsUnchanged=False, LogsUnchanged=False,
+                  NativeFactoryInheritance=args.native_factory_inheritance,
                   NetworkTests=False, NetworkSecurityTests=False, FullFiveGroupAcceptance=False,
                   Inputs=[dict(Path=str(path), Sha256=digest(path)) for path in sorted(inputs)], Rows=[])
     env = {key.upper(): value for key, value in os.environ.items()
@@ -278,7 +287,9 @@ def main():
                 args.stage in CHANNEL_STAGES and
                 (name in selected[:3] or name in ('stdlib_channel_deadlines','stdlib_channel_deadline_only',
                                                  'stdlib_channel_cancellation','stdlib_channel_cancel_only','stdlib_channel_cancel_flow',
-                                                 'stdlib_channel_materialization')))
+                                                 'stdlib_channel_materialization'))) or (
+                args.native_factory_inheritance and name in ('xlir_native_factory_inherited',
+                    'xlir_native_static_factory','xlir_native_factory_ordinary_inheritance'))
             if not full:
                 return
             work = out/(name+'.saved')
@@ -324,7 +335,31 @@ def main():
                 except Exception as error:
                     failures.append(dict(Name=name, Error=repr(error)))
                     save()
+        if args.native_factory_inheritance and not failures:
+            module=out/'xlir_native_factory_inherited.saved/module.c'
+            report['NativeFactoryPrefixes']={}
+            for product in products[1:]:
+                for opt in ('O0','O2'):
+                    lane=product.stem+'.native-factory.'+opt
+                    binary=isolated/(lane+('.exe' if win else ''))
+                    run(lane+'.build',[cc,*strict,'-'+opt,
+                        '-DXLIR_GENERATED_MODULE="'+module.as_posix()+'"',cases/'xlir_native_factory_inherited_host.c',
+                        task/'test/support/module_product_memory.c',*links(product.name),'-o',binary])
+                    recovered=[]
+                    for point in range(4097):
+                        body=run(lane+'.'+str(point),[binary,point])
+                        if b'recovered=1' in body:recovered.append(point)
+                        if b'hit=0 complete-prefix balanced' in body:break
+                    else:raise AssertionError('Inherited native language allocation prefix did not close')
+                    report['NativeFactoryPrefixes'][lane]=dict(FirstNoHit=point,RecoveredRetirement=recovered)
+                    save()
         if not win and not failures:
+            if args.native_factory_inheritance:
+                contract=isolated/'native-factory-contract'
+                run('native-factory-contract.build',[cc,*flags,'-O2','-I'+str(root),
+                    '-I'+str(root/'release/include'),'-I'+str(root/'lib/tcc'),cases/'xlir_native_factory_inherited_contract.c',
+                    *links(names[2]),'-o',contract])
+                run('native-factory-contract.run',[contract,isolated/'xlir_native_factory_inherited.xl'])
             binary = isolated/'literal-contract'
             run('contract.build', [cc, *flags, '-O2', '-I'+str(root), '-I'+str(root/'release/include'),
                 '-I'+str(root/'lib/tcc'), cases/helpers[3], *links(names[2]), '-o', binary])

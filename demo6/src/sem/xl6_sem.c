@@ -1930,30 +1930,33 @@ static int xl6SemClassDeclHasDestroy(const XL6_AstNode* classNode)
 
 static int xl6SemClassDeclHasNativeHandle(XL6_SemContext* ctx, const XL6_AstNode* classNode)
 {
-    const XL6_AstNode* body;
-    size_t i;
-
-    if ( classNode == NULL || classNode->kind != XL6_AST_CLASS || classNode->childCount < 2 ) {
-        return 0;
-    }
-    body = classNode->children[1];
-    for ( i = 0; body != NULL && i < body->childCount; ++i ) {
-        const XL6_AstNode* member = body->children[i];
-        const XL6_AstNode* typeNode;
-
-        if ( member == NULL ||
-             member->kind != XL6_AST_FIELD ||
-             !xl6SemAstHasFlag(member, XL6_AST_FLAG_NATIVE) ||
-             xl6SemAstHasFlag(member, XL6_AST_FLAG_STATIC) ||
-             !xl6TextEquals(member->text, "handle") ||
-             member->childCount == 0 ) {
-            continue;
+    const XL6_AstNode* owner = classNode;
+    int found = 0;
+    size_t depth;
+    if ( ctx == NULL ) return 0;
+    /* One unambiguous native field across the complete inheritance chain.
+     * Bound traversal by the registered declarations so malformed cycles do
+     * not turn this capability query into unbounded recursion. */
+    for ( depth = 0; owner != NULL && depth <= ctx->types.count; ++depth ) {
+        const XL6_AstNode* body;
+        size_t i;
+        if ( owner->kind != XL6_AST_CLASS || owner->childCount < 2 ) return 0;
+        body = owner->children[1];
+        for ( i = 0; body != NULL && i < body->childCount; ++i ) {
+            const XL6_AstNode* member = body->children[i];
+            const XL6_AstNode* typeNode;
+            if ( member == NULL || member->kind != XL6_AST_FIELD ||
+                 !xl6SemAstHasFlag(member, XL6_AST_FLAG_NATIVE) ||
+                 xl6SemAstHasFlag(member, XL6_AST_FLAG_STATIC) ) continue;
+            if ( found || !xl6TextEquals(member->text, "handle") ||
+                 member->childCount == 0 ) return 0;
+            typeNode = xl6SemResolveAliasType(ctx, member->children[0]);
+            if ( typeNode == NULL || !xl6TextEquals(typeNode->text, "point") ) return 0;
+            found = 1;
         }
-        typeNode = member->children[0];
-        typeNode = xl6SemResolveAliasType(ctx, typeNode);
-        return typeNode != NULL && typeNode->text != NULL && xl6TextEquals(typeNode->text, "point");
+        owner = xl6SemBaseClassDecl(ctx, owner);
     }
-    return 0;
+    return owner == NULL && found;
 }
 
 static int xl6SemBodyHasDerive(const XL6_AstNode* body, const char* ability)
