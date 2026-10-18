@@ -12396,8 +12396,13 @@ static int xl6IrRuntimeResourceInputCompatible(
     XL6_IrTypeId sourceType, XL6_IrNodeId expression)
 {
     const XL6_IrType* target = xl6IrTypeGet(&module->types, targetType);
-    const XL6_IrType* source = xl6IrTypeGet(&module->types, sourceType);
     const XL6_IrNode* input = xl6IrNodeGet(module, expression);
+    /* Inputs observe an evaluated value, not the nullable/erased declaration
+     * slot which backs a flow-refined NAME. All resource families replay the
+     * same materialization proof; storage-reference outputs remain separate. */
+    if (input && sourceType==input->storageType)
+        sourceType=xl6IrNodeMaterializedValueType(module,input);
+    const XL6_IrType* source = xl6IrTypeGet(&module->types, sourceType);
     /* A resource input is an expected-type boundary, just like a parameter
      * or initializer. Preserve the exact nullable destination TypeId while
      * allowing the existing scalar conversion followed by NULLABLE_WRAP.
@@ -14774,7 +14779,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
             if ( operandCount <= 4 ) {
                 for ( i = 0; i < operandCount; ++i )
                     operandTypes[i] = i==0 && intrinsic.receiver!=XL6_IR_NODE_INVALID
-                        ? intrinsic.receiverType : module->nodes[operands[i] - 1].storageType;
+                        ? intrinsic.receiverType : xl6IrNodeMaterializedValueType(module,&module->nodes[operands[i] - 1]);
                 for ( i = 0; compatible && i < operandCount; ++i ) {
                     XL6_IrTypeId inputTarget =
                         xl6IrRuntimeResourceInputTargetType(
@@ -15651,8 +15656,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                 ? xl6IrPersistenceInvocationInputType(module, &module->nodes[operandExpressions[i] - 1])
              : (intrinsic.kind == XL6_IR_INTRINSIC_ARRAY_APPEND ||
               intrinsic.kind == XL6_IR_INTRINSIC_SET_ADD ||
-              (intrinsic.kind == XL6_IR_INTRINSIC_RUNTIME_RESOURCE &&
-               i==0 && operandExpressions[i]==intrinsic.receiver))
+              intrinsic.kind == XL6_IR_INTRINSIC_RUNTIME_RESOURCE)
                 ? xl6IrNodeMaterializedValueType(
                     module, &module->nodes[operandExpressions[i] - 1])
                 : module->nodes[operandExpressions[i] - 1].storageType;
@@ -16203,6 +16207,17 @@ static const XL6_IrClassField* xl6IrManagedNativeConstructorField(
 int xl6IrTypeRequiresExplicitNativeInitialization(const XL6_IrModule* module,XL6_IrTypeId type)
 {
     return xl6IrManagedNativeConstructorField(module,type)!=NULL;
+}
+const XL6_IrClassField* xl6IrResidentNativeResourceField(const XL6_IrModule* module,
+    XL6_IrTypeId type,const char* destroyName)
+{
+    const XL6_IrClassField* field=xl6IrManagedNativeConstructorField(module,type);
+    const XL6_IrNode* destroy=field ? xl6IrSymbolNodeGet(module,field->nativeDestroySymbol) : NULL;
+    const char* expected=xl6IrRuntimeNativeHandlePolicyForName(destroyName);
+    const char* actual=destroy ? xl6IrRuntimeNativeHandlePolicyForName(destroy->text) : NULL;
+    return field && destroy && expected && actual && !strcmp(expected,actual) &&
+        field->nativeHandlePolicyAbi==XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1 &&
+        field->nativeHandlePolicyCName && !strcmp(expected,field->nativeHandlePolicyCName) ? field : NULL;
 }
 
 static const XL6_IrClassField* xl6IrCallTargetNativeClassPhysicalField(
@@ -35375,8 +35390,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      operand->type == xl6IrPersistenceInvocationInputType(module, expression)) ||
                     ((intrinsic->kind == XL6_IR_INTRINSIC_ARRAY_APPEND ||
                      intrinsic->kind == XL6_IR_INTRINSIC_SET_ADD ||
-                     (intrinsic->kind == XL6_IR_INTRINSIC_RUNTIME_RESOURCE &&
-                      operandIndex==0 && operand->expression==intrinsic->receiver)) &&
+                     intrinsic->kind == XL6_IR_INTRINSIC_RUNTIME_RESOURCE) &&
                     operand->type == xl6IrNodeMaterializedValueType(
                         module, expression));
                 if ( expression == NULL || operand->type == XL6_IR_TYPE_INVALID ||
@@ -43377,6 +43391,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 }
                             }
                         }
+                        if (xl6IrChannelCancellationProjectionCompatible(module,instruction))
+                            exactPhysicalProjection = 1;
                         exactInlineUnionProjection = originNode != NULL &&
                             originNode->kind == XL6_IR_NODE_MEMBER &&
                             originNode->sourceKind == XL6_AST_MEMBER &&
@@ -47194,7 +47210,7 @@ static const char* xl6IrRuntimeResourceOpName(
     case XL6_IR_RUNTIME_RESOURCE_OP_THREAD_STATE: return "thread-state";
     case XL6_IR_RUNTIME_RESOURCE_OP_THREAD_STOP: return "thread-stop";
     case XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CREATE: return "channel-create";
-#define XL6_CHANNEL_SEND_OP(Id,Name,Mode,Timed,Label) case XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_##Id: return "channel-" Label;
+#define XL6_CHANNEL_SEND_OP(Id,Name,Mode,Timed,Cancelled,Label) case XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_##Id: return "channel-" Label;
 #include "src/abi/xl6_channel_send_ops.inc"
 #undef XL6_CHANNEL_SEND_OP
     case XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECV_INTO:
@@ -48969,7 +48985,7 @@ case XL6_IR_RUNTIME_XVALUE_INT_MAP_AT_I64_OR_NULL: return "xvalue-int-map-at-i64
     case XL6_IR_RUNTIME_THREAD_STATE: return "thread-state";
     case XL6_IR_RUNTIME_THREAD_STOP: return "thread-stop";
     case XL6_IR_RUNTIME_CHANNEL_CREATE: return "channel-create";
-#define XL6_CHANNEL_SEND_OP(Id,Name,Mode,Timed,Label) case XL6_IR_RUNTIME_CHANNEL_##Id: return "channel-" Label;
+#define XL6_CHANNEL_SEND_OP(Id,Name,Mode,Timed,Cancelled,Label) case XL6_IR_RUNTIME_CHANNEL_##Id: return "channel-" Label;
 #include "src/abi/xl6_channel_send_ops.inc"
 #undef XL6_CHANNEL_SEND_OP
     case XL6_IR_RUNTIME_CHANNEL_RECV_INTO: return "channel-recv-into";

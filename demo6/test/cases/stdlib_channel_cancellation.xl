@@ -1,0 +1,99 @@
+import concurrent
+func sendWith<T>(channel<T> pipe, T value, CancellationToken token) as int
+    return pipe.sendCancel(value, token)
+end
+func receiveWith<T>(channel<T> pipe, CancellationToken token) as (int, T?)
+    return pipe.recvCancel(token)
+end
+func cancelledToken() as CancellationToken
+    auto source = CancellationSource()
+    assert source.cancel()
+    return source.token
+end
+func states()
+    auto source = CancellationSource()
+    auto token = source.token
+    channel<int> pipe = channel::<int>(1)
+    auto timeoutStatus, absent = pipe.recvTimeoutCancel(0, token)
+    assert timeoutStatus == channelStatus.timeout and absent == null
+    auto deadlineStatus, expired = pipe.recvUntilCancel(0, token)
+    assert deadlineStatus == channelStatus.timeout and expired == null
+    assert pipe.sendTimeoutCancel(41, 0, token) == channelStatus.ok
+    assert pipe.sendUntilCancel(42, 0, token) == channelStatus.timeout
+    assert source.cancel()
+    assert sendWith::<int>(pipe, 43, token) == channelStatus.cancelled
+    // Buffered and closed operations win over cancellation/expiration.
+    auto readyStatus, ready = receiveWith::<int>(pipe, token)
+    assert readyStatus == channelStatus.ok and ready != null and ready == 41
+    auto cancelledStatus, cancelled = pipe.recvCancel(token)
+    assert cancelledStatus == channelStatus.cancelled and cancelled == null
+    assert pipe.sendUntilCancel(44, 0, token) == channelStatus.ok
+    auto moreStatus, more = pipe.recvUntilCancel(0, token)
+    assert moreStatus == channelStatus.ok and more != null and more == 44
+    assert pipe.sendTimeoutCancel(45, 0, token) == channelStatus.ok
+    assert pipe.sendTimeoutCancel(46, 0, token) == channelStatus.cancelled
+    auto bufferedStatus, buffered = pipe.recvTimeoutCancel(0, token)
+    assert bufferedStatus == channelStatus.ok and buffered != null and buffered == 45
+    auto noneStatus, none = pipe.recvTimeoutCancel(0, token)
+    assert noneStatus == channelStatus.cancelled and none == null
+    pipe.close()
+    assert pipe.sendCancel(47, token) == channelStatus.closed
+    auto closedStatus, closed = pipe.recvCancel(token)
+    assert closedStatus == channelStatus.closed and closed == null
+
+    channel<string> text = channel::<string>(1)
+    string input = "a\0你🙂"
+    assert sendWith::<string>(text, input, cancelledToken()) == channelStatus.ok
+    input = "different"
+    auto textStatus, receivedText = receiveWith::<string>(text, cancelledToken())
+    assert textStatus == channelStatus.ok and receivedText != null and receivedText == "a\0你🙂"
+    text.close()
+
+    channel<bytes> binary = channel::<bytes>(1)
+    bytes data = b"a\0b"
+    assert binary.sendCancel(data, token) == channelStatus.ok
+    data[0] = 99
+    auto byteStatus, receivedBytes = binary.recvCancel(token)
+    assert byteStatus == channelStatus.ok and receivedBytes != null and receivedBytes == b"a\0b"
+    binary.close()
+
+    channel<int?> nullable = channel::<int?>(1)
+    assert sendWith::<int?>(nullable, null, token) == channelStatus.ok
+    auto nullStatus, nullValue = receiveWith::<int?>(nullable, token)
+    assert nullStatus == channelStatus.ok and nullValue == null
+    nullable.close()
+end
+func waitingReceive()
+    auto source = CancellationSource()
+    auto token = source.token
+    auto started = Event(false)
+    channel<int> pipe = channel::<int>(1)
+    auto worker = thread(func() as int
+        started.set()
+        auto status, value = pipe.recvCancel(token)
+        assert status == channelStatus.cancelled and value == null
+        return 51
+    end)
+    assert started.wait(5000)
+    assert source.cancel()
+    assert worker.waitTimeout(5000) and worker.exitCode() == 51
+    pipe.close()
+end
+func waitingSend()
+    auto source = CancellationSource()
+    auto token = source.token
+    auto started = Event(false)
+    channel<int> pipe = channel::<int>(0)
+    auto worker = thread(func() as int
+        started.set()
+        assert pipe.sendUntilCancel(52, time.monotonic() + uint64(5000000), token) == channelStatus.cancelled
+        return 53
+    end)
+    assert started.wait(5000)
+    assert source.cancel()
+    assert worker.waitTimeout(5000) and worker.exitCode() == 53
+    pipe.close()
+end
+states()
+waitingReceive()
+waitingSend()

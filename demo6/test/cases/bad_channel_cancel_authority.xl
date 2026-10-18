@@ -1,0 +1,7 @@
+// A nominal spelling is not a resident Token capability.
+class CancellationToken
+    int value = 1
+end
+channel<int> pipe = channel::<int>(1)
+auto counterfeit = CancellationToken()
+pipe.recvCancel(counterfeit)

@@ -256,6 +256,12 @@ typedef enum XL6_IrRuntimeResourceOp {
     XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND_TIMEOUT,
     XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND_UNTIL,
     XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_UNTIL,
+    XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND_CANCEL,
+    XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND_TIMEOUT_CANCEL,
+    XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND_UNTIL_CANCEL,
+    XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_CANCEL,
+    XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_FOR_CANCEL,
+    XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_UNTIL_CANCEL,
 } XL6_IrRuntimeResourceOp;
 
 /* Runtime resources with generic payloads carry an explicit transfer ABI in
@@ -2157,6 +2163,12 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_CHANNEL_SEND_TIMEOUT,
     XL6_IR_RUNTIME_CHANNEL_SEND_UNTIL,
     XL6_IR_RUNTIME_CHANNEL_RECEIVE_UNTIL,
+    XL6_IR_RUNTIME_CHANNEL_SEND_CANCEL,
+    XL6_IR_RUNTIME_CHANNEL_SEND_TIMEOUT_CANCEL,
+    XL6_IR_RUNTIME_CHANNEL_SEND_UNTIL_CANCEL,
+    XL6_IR_RUNTIME_CHANNEL_RECEIVE_CANCEL,
+    XL6_IR_RUNTIME_CHANNEL_RECEIVE_FOR_CANCEL,
+    XL6_IR_RUNTIME_CHANNEL_RECEIVE_UNTIL_CANCEL,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -7221,6 +7233,7 @@ typedef struct XL6_IrChannelSendSpec {
     const char* name;
     unsigned int waitMode;
     bool timed;
+    bool cancelled; /* Mandatory Token input; send returns an explicit status. */
     const char* nativeSymbol;
 } XL6_IrChannelSendSpec;
 const XL6_IrChannelSendSpec* xl6IrChannelSendMethod(const char*);
@@ -7245,6 +7258,7 @@ typedef struct XL6_IrChannelReceiveSpec {
     const char* name;
     unsigned int waitMode;
     bool timed;
+    bool cancelled;
     const char* nativeSymbol;
 } XL6_IrChannelReceiveSpec;
 typedef struct XL6_IrChannelReceivePlan {
@@ -7265,6 +7279,12 @@ XL6_IrCallErrorPhysicalAbi xl6IrChannelReceiveErrorPhysicalAbi(XL6_IrRuntimeOp);
 int xl6IrChannelRuntimeOpIs(XL6_IrRuntimeOp);
 XL6_IrTypeId xl6IrChannelInstructionType(const XL6_IrModule*,const XL6_IrInstruction*);
 int xl6IrChannelInstructionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
+/* A managed native capability is selected by its registered destruction and
+ * field policy, never by a nominal source name or layout field position. */
+const XL6_IrClassField* xl6IrResidentNativeResourceField(const XL6_IrModule*,XL6_IrTypeId,const char*);
+const XL6_IrClassField* xl6IrChannelCancellationField(const XL6_IrModule*,XL6_IrTypeId);
+int xl6IrChannelCancellationOperand(XL6_IrRuntimeResourceOp,size_t);
+int xl6IrChannelCancellationProjectionCompatible(const XL6_IrModule*,const XL6_IrInstruction*);
 XL6_IrCallErrorPhysicalAbi xl6IrChannelInstructionErrorPhysicalAbi(XL6_IrRuntimeOp);
 /* Logical payload identity may be dependent. It is never a physical slot or
  * permission to emit native code before specialization closes the recipe. */

@@ -12414,7 +12414,7 @@ static XL6_AstNode* xl6SemCloneChannelReceiverType(XL6_SemContext* ctx, XL6_AstN
 static int xl6SemChannelSendMode(const char* name)
 {
     if (!name) return -1;
-#define XL6_CHANNEL_SEND_OP(Id,Name,Mode,Timed,Label) if (!strcmp(name,Name)) return Mode;
+#define XL6_CHANNEL_SEND_OP(Id,Name,Mode,Timed,Cancelled,Label) if (!strcmp(name,Name)) return Mode;
 #include "src/abi/xl6_channel_send_ops.inc"
 #undef XL6_CHANNEL_SEND_OP
     return -1;
@@ -12422,10 +12422,45 @@ static int xl6SemChannelSendMode(const char* name)
 static int xl6SemChannelReceiveMode(const char* name)
 {
     if (!name) return -1;
-#define XL6_CHANNEL_RECEIVE_OP(Id,Name,Mode,Timed) if (!strcmp(name,Name)) return Mode;
+#define XL6_CHANNEL_RECEIVE_OP(Id,Name,Mode,Timed,Cancelled) if (!strcmp(name,Name)) return Mode;
 #include "src/abi/xl6_channel_receive_ops.inc"
 #undef XL6_CHANNEL_RECEIVE_OP
     return -1;
+}
+static int xl6SemChannelSendCancelled(const char* name)
+{
+    if (!name) return 0;
+#define XL6_CHANNEL_SEND_OP(Id,Name,Mode,Timed,Cancelled,Label) if (!strcmp(name,Name)) return Cancelled;
+#include "src/abi/xl6_channel_send_ops.inc"
+#undef XL6_CHANNEL_SEND_OP
+    return 0;
+}
+static int xl6SemChannelReceiveCancelled(const char* name)
+{
+    if (!name) return 0;
+#define XL6_CHANNEL_RECEIVE_OP(Id,Name,Mode,Timed,Cancelled) if (!strcmp(name,Name)) return Cancelled;
+#include "src/abi/xl6_channel_receive_ops.inc"
+#undef XL6_CHANNEL_RECEIVE_OP
+    return 0;
+}
+static int xl6SemCheckChannelCancellation(XL6_SemContext* ctx,XL6_AstNode* node,
+    XL6_AstNode* args,size_t index)
+{
+    XL6_AstNode* arg=args && index<args->childCount ? args->children[index] : NULL;
+    XL6_AstNode* value=arg && arg->childCount ? arg->children[0] : NULL;
+    const XL6_TypeInfo* token=xl6TypeRegistryFind(&ctx->types,"CancellationToken");
+    XL6_AstNode* inferred=value ? xl6SemInferAutoTypeNode(ctx,value) : NULL;
+    const XL6_AstNode* concrete=xl6SemClassValueType(ctx,inferred);
+    /* Class values have already been normalized to private handle carriers.
+     * Compare their canonical frontend identity, not a synthetic unnormalized
+     * nominal AST or its spelling. The native capability is checked in XLIR. */
+    int valid=arg && arg->kind==XL6_AST_ARG && token && token->kind==XL6_TYPE_CLASS &&
+        inferred && !xl6SemTypeIsNullable(inferred) && concrete && concrete->semanticTypeId==token->id;
+    xl6AstFree(inferred);
+    if (!valid) {
+        xl6SemErrorNode(ctx,node,"cancellable channel wait requires a final positional CancellationToken"); return 0;
+    }
+    return 1;
 }
 static XL6_AstNode* xl6SemCloneChannelReceiveReturns(XL6_SemContext* ctx, XL6_AstNode* call)
 {
@@ -12494,7 +12529,8 @@ static int xl6SemCheckChannelMethodCall(XL6_SemContext* ctx, XL6_AstNode* node)
 
     int sendMode=xl6SemChannelSendMode(member->text);
     if (sendMode>=0) {
-        size_t expectedCount=sendMode>=2 ? 2u : 1u;
+        int cancelled=xl6SemChannelSendCancelled(member->text);
+        size_t expectedCount=(sendMode>=2 ? 2u : 1u)+(cancelled ? 1u : 0u);
         XL6_AstNode* arg = argCount == expectedCount ? args->children[0] : NULL;
         XL6_AstNode* expr = arg != NULL && arg->childCount > 0 ? arg->children[0] : NULL;
         itemType = xl6SemCloneSingleGenericArgType(ctx, receiverType, "channel");
@@ -12520,6 +12556,8 @@ static int xl6SemCheckChannelMethodCall(XL6_SemContext* ctx, XL6_AstNode* node)
                     "channel.sendTimeout requires one positional int timeoutMs after value"); ok=0;
             }
         }
+        if (cancelled && argCount==expectedCount &&
+            !xl6SemCheckChannelCancellation(ctx,node,args,expectedCount-1)) ok=0;
         xl6AstFree(itemType);
         xl6AstFree(receiverType);
         return ok;
@@ -12527,17 +12565,21 @@ static int xl6SemCheckChannelMethodCall(XL6_SemContext* ctx, XL6_AstNode* node)
 
     int receiveMode=xl6SemChannelReceiveMode(member->text);
     if (receiveMode>=0) {
-        size_t expectedCount=receiveMode>=2 ? 1u : 0u;
-        XL6_AstNode* arg=argCount==1 ? args->children[0] : NULL;
+        int cancelled=xl6SemChannelReceiveCancelled(member->text);
+        size_t timeCount=receiveMode>=2 ? 1u : 0u;
+        size_t expectedCount=timeCount+(cancelled ? 1u : 0u);
+        XL6_AstNode* arg=argCount==expectedCount && timeCount ? args->children[0] : NULL;
         XL6_AstNode* expr=arg && arg->childCount ? arg->children[0] : NULL;
         XL6_AstNode intType={0}; intType.kind=XL6_AST_TYPE; intType.text=receiveMode==3 ? "uint64" : "int";
-        if (argCount!=expectedCount || (expectedCount && (!arg || arg->kind!=XL6_AST_ARG || !expr))) {
+        if (argCount!=expectedCount || (timeCount && (!arg || arg->kind!=XL6_AST_ARG || !expr))) {
             xl6SemErrorNode(ctx,node,"channel receive takes no output variable; recvTimeout/recvUntil require one positional time argument");
             ok=0;
-        } else if (expectedCount && !xl6SemExprCanMatchParamType(ctx,expr,&intType)) {
+        } else if (timeCount && !xl6SemExprCanMatchParamType(ctx,expr,&intType)) {
             xl6SemErrorNode(ctx,expr,receiveMode==3 ? "channel.recvUntil deadlineUs must be uint64" :
                 "channel.recvTimeout timeoutMs must be int"); ok=0;
         }
+        if (cancelled && argCount==expectedCount &&
+            !xl6SemCheckChannelCancellation(ctx,node,args,expectedCount-1)) ok=0;
         xl6AstFree(receiverType); return ok;
     }
     if (xl6TextEquals(member->text,"recvInto") || xl6TextEquals(member->text,"tryRecvInto") ||
@@ -12584,7 +12626,9 @@ static const char* xl6SemChannelCallResultTypeName(XL6_SemContext* ctx, XL6_AstN
     }
 
     result = NULL;
-    if ( xl6SemChannelSendMode(member->text)>=0 ||
+    if (xl6SemChannelSendCancelled(member->text)) {
+        result = "int";
+    } else if ( xl6SemChannelSendMode(member->text)>=0 ||
          xl6TextEquals(member->text, "isClosed") ) {
         result = "bool";
     } else if ( xl6TextEquals(member->text, "count") ) {

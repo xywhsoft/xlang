@@ -5303,6 +5303,7 @@ const XL6_StdlibConst xl6StdlibConsts[] = {
     {"channelStatus", "full", XL6_AST_INT, "2"},
     {"channelStatus", "closed", XL6_AST_INT, "3"},
     {"channelStatus", "timeout", XL6_AST_INT, "4"},
+    {"channelStatus", "cancelled", XL6_AST_INT, "5"},
     {"console", "stderrStream", XL6_AST_INT, "2"},
     {"console", "colorNone", XL6_AST_INT, "0"},
     {"console", "colorBasic", XL6_AST_INT, "1"},
