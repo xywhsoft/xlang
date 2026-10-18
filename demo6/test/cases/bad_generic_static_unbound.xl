@@ -1,0 +1,6 @@
+class StaticIdentity<T>
+    static func identity(T value) as T
+        return value
+    end
+end
+auto result = StaticIdentity.identity(1)

@@ -9618,6 +9618,15 @@ static XL6_IrNodeId xl6IrLowerEnclosingClass(
 static int xl6IrLowerTypeContainsTypeParam(
     const XL6_IrModule* module, XL6_IrTypeId typeId, size_t depth);
 
+static int xl6IrLowerIsStaticClassMethod(const XL6_IrModule* module,
+    XL6_IrNodeId declaration,const XL6_IrNode* node)
+{
+    return node && node->kind==XL6_IR_NODE_FUNC_DECL &&
+        (node->sourceKind==XL6_AST_FUNC || node->sourceKind==XL6_AST_ASYNC_FUNC) &&
+        (node->flags & XL6_AST_FLAG_STATIC)!=0 &&
+        xl6IrLowerEnclosingClass(module,declaration)!=XL6_IR_NODE_INVALID;
+}
+
 static XL6_IrTypeId xl6IrLowerClassReceiverType(
     const XL6_IrModule* module, XL6_IrNodeId declaration)
 {
@@ -12129,6 +12138,7 @@ static int xl6IrLowerResolveRuntimeBridge(
     target->runtimeBridge = XL6_IR_RUNTIME_BRIDGE_NONE;
     target->runtimeBridgeOperation = XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE;
     target->nativeArrayResultAbi = xl6IrRuntimeDirectBridgeNativeArrayResultAbi(target->cName);
+    target->nativeResultAbi=xl6IrRuntimeDirectBridgeNativeResultAbi(target->cName);
     if(!xl6IrRuntimeDirectBridgeContext(ctx->module,target,&target->nativeContextAbi,
             &target->nativeContextType,&target->nativeContextPayloadAbi))
         return xl6IrLowerDiag(ctx,target->declaration,"XLIR native generic context requires an exact supported Future payload ABI");
@@ -13844,9 +13854,7 @@ static int xl6IrLowerRegisterModuleCallTargets(XL6_IrLowerContext* ctx)
     for ( i = 0; i < ctx->module->nodeCount; ++i ) {
         XL6_IrNodeId declaration = (XL6_IrNodeId)(i + 1);
         const XL6_IrNode* node = &ctx->module->nodes[i];
-        if ( node->kind == XL6_IR_NODE_FUNC_DECL && node->sourceKind == XL6_AST_FUNC &&
-             (node->flags & XL6_AST_FLAG_STATIC) != 0 &&
-             xl6IrLowerEnclosingClass(ctx->module, declaration) != XL6_IR_NODE_INVALID &&
+        if ( xl6IrLowerIsStaticClassMethod(ctx->module,declaration,node) &&
              !xl6IrLowerIsGenericDeclaration(ctx->module, declaration) &&
              !xl6IrLowerRegisterCallTarget(ctx, declaration) ) return 0;
     }
@@ -17381,6 +17389,11 @@ static XL6_IrTypeId xl6IrLowerConcreteGenericClassType(
     size_t i;
     if ( classNode == NULL || classNode->text == NULL || typeArgs == NULL || typeArgCount == 0 )
         return XL6_IR_TYPE_INVALID;
+    const XL6_IrType* family=xl6IrTypeGet(&module->types,classNode->declarationOwnerType);
+    /* A generic MEMBER of a nongeneric class specializes its own signature,
+     * not the containing class. There is no class argument vector to apply. */
+    if(family && family->kind==XL6_IR_TYPE_CLASS && !family->paramCount)
+        return classNode->declarationOwnerType;
     for ( i = 0; i < module->types.count; ++i ) {
         const XL6_IrType* type = &module->types.items[i];
         if ( type->kind == XL6_IR_TYPE_CLASS && classNode->symbol != 0 &&
@@ -32940,14 +32953,12 @@ int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags)
             ? xl6IrLowerCreateSignaturePart(module, candidate, XL6_IR_NODE_BLOCK)
             : ((classProperty ||
                 xl6IrLowerIsInstanceClassMethod(module, candidate, node) ||
-                (node->sourceKind == XL6_AST_FUNC && (node->flags & XL6_AST_FLAG_STATIC) != 0 &&
-                  xl6IrLowerEnclosingClass(module, candidate) != XL6_IR_NODE_INVALID)) && node->childCount > 3
+                xl6IrLowerIsStaticClassMethod(module,candidate,node)) && node->childCount > 3
                 ? module->children[node->firstChild + 3] : XL6_IR_NODE_INVALID);
         if ( node->kind == XL6_IR_NODE_FUNC_DECL &&
             (node->sourceKind == XL6_AST_CREATE || classProperty ||
               xl6IrLowerIsInstanceClassMethod(module, candidate, node) ||
-              (node->sourceKind == XL6_AST_FUNC && (node->flags & XL6_AST_FLAG_STATIC) != 0 &&
-               xl6IrLowerEnclosingClass(module, candidate) != XL6_IR_NODE_INVALID)) &&
+              xl6IrLowerIsStaticClassMethod(module,candidate,node)) &&
               body != XL6_IR_NODE_INVALID &&
               !xl6IrLowerIsGenericDeclaration(module, candidate) ) {
             const XL6_IrCallTarget* callable =

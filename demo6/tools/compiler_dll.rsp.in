@@ -55,6 +55,10 @@
     src\runtime\xl6_channel_select.c
     src\runtime\xl6_channel_select_cancel.c
     src\runtime\xl6_channel_case.c
+    src\runtime\xl6_channel_case_language.c
+    src\runtime\xl6_channel_case_array.c
+    src\runtime\xl6_channel_select_language.c
+    src\runtime\xl6_channel_select_cancel_language.c
     src\runtime\xl6_channel_cases_select.c
     src\runtime\xl6_channel_cases_select_cancel.c
     src\runtime\xl6_ownership_domain_channel_case.c

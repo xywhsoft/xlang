@@ -1,0 +1,134 @@
+import concurrent
+
+func typedCases<T>(T value) as T
+    channel<T> pipe = channel::<T>(1)
+    auto sending = ChannelCase.send(pipe, value)
+    auto sent = ChannelSelection.select([sending])
+    assert sent.status == channelStatus.ok and sent.index == 0
+    auto receiving = ChannelCase.receive(pipe)
+    auto selected = ChannelSelection.selectUntil([receiving], 0)
+    assert selected.status == channelStatus.ok and selected.index == 0
+    return selected.value(receiving, pipe)
+end
+
+func states()
+    channel<int> pipe = channel::<int>(1)
+    auto receiving = ChannelCase.receive(pipe)
+    array<ChannelCase> cases = [receiving]
+    auto empty = ChannelSelection.trySelect(cases)
+    assert empty.status == channelStatus.timeout and empty.index == -1
+    auto expired = ChannelSelection.selectUntil(cases, 0)
+    assert expired.status == channelStatus.timeout and expired.index == -1
+    auto timed = ChannelSelection.selectTimeout(cases, 0)
+    assert timed.status == channelStatus.timeout and timed.index == -1
+    auto shortWait = ChannelSelection.selectTimeout(cases, 1)
+    assert shortWait.status == channelStatus.timeout
+    auto source = CancellationSource()
+    auto token = source.token
+    assert source.cancel()
+    auto cancelled = ChannelSelection.selectCancel(cases, token)
+    assert cancelled.status == channelStatus.cancelled and cancelled.index == -1
+    auto cancelledFor = ChannelSelection.selectTimeoutCancel(cases, 0, token)
+    assert cancelledFor.status == channelStatus.cancelled
+    auto cancelledUntil = ChannelSelection.selectUntilCancel(cases, 0, token)
+    assert cancelledUntil.status == channelStatus.cancelled
+    // Ready and closed cases win over cancellation and expiration.
+    assert pipe.send(41)
+    auto ready = ChannelSelection.selectUntilCancel(cases, 0, token)
+    assert ready.status == channelStatus.ok and ready.value(receiving, pipe) == 41
+    // A result owns its own value; reusing the case never overwrites it.
+    assert pipe.send(42)
+    auto again = ChannelSelection.trySelect([receiving, receiving])
+    assert again.status == channelStatus.ok and again.index >= 0 and again.index < 2
+    assert again.value(receiving, pipe) == 42 and ready.value(receiving, pipe) == 41
+    pipe.close()
+    auto closed = ChannelSelection.select(cases)
+    assert closed.status == channelStatus.closed and closed.index == 0
+    bool refused = false
+    try
+        closed.value(receiving, pipe)
+    catch Error
+        refused = true
+    end
+    assert refused
+end
+
+func snapshotsAndTypes()
+    string text = "a\0你🙂"
+    assert typedCases(text) == text
+    assert typedCases(b"a\0b") == b"a\0b"
+    assert typedCases(float32(1.25)) == float32(1.25)
+    assert typedCases::<int?>(null) == null
+    assert typedCases::<string?>(null) == null
+    bytes? expectedBytes = b"a\0b"
+    assert typedCases(expectedBytes) == expectedBytes
+    assert typedCases('你') == '你'
+    channel<string> pipe = channel::<string>(1)
+    auto sending = ChannelCase.send(pipe, text)
+    text = "changed"
+    auto sent = ChannelSelection.trySelect([sending])
+    auto receiving = ChannelCase.receive(pipe)
+    auto got = ChannelSelection.trySelect([receiving])
+    assert got.value(receiving, pipe) == "a\0你🙂"
+    assert sent.status == channelStatus.ok
+
+    channel<int> numbers = channel::<int>(1)
+    auto other = ChannelCase.receive(numbers)
+    assert numbers.send(71)
+    auto many = ChannelSelection.trySelect([receiving, receiving, receiving,
+        receiving, receiving, receiving, receiving, receiving, receiving, other])
+    assert many.index == 9 and many.value(other, numbers) == 71
+    bool refused = false
+    try
+        many.value(receiving, pipe)
+    catch Error
+        refused = true
+    end
+    assert refused
+    refused = false
+    try
+        many.value(other, pipe)
+    catch Error
+        refused = true
+    end
+    assert refused
+    channel<int> different = channel::<int>(1)
+    refused = false
+    try
+        many.value(other, different)
+    catch Error
+        refused = true
+    end
+    assert refused
+end
+
+func invalidInputs()
+    channel<int> pipe = channel::<int>(1)
+    auto receiving = ChannelCase.receive(pipe)
+    array<ChannelCase> empty = []
+    bool refused = false
+    try
+        ChannelSelection.trySelect(empty)
+    catch Error
+        refused = true
+    end
+    assert refused
+    refused = false
+    try
+        ChannelSelection.selectTimeout([receiving], -1)
+    catch Error
+        refused = true
+    end
+    assert refused
+    refused = false
+    try
+        ChannelSelection.selectUntil([receiving], 18446744073709551615)
+    catch Error
+        refused = true
+    end
+    assert refused
+end
+
+states()
+snapshotsAndTypes()
+invalidInputs()

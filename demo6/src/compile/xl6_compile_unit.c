@@ -604,7 +604,11 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_channel_case.c",D(R(TYPED_CHANNEL),R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{"XRT_MODULE_ATOMIC","XRT_MODULE_THREAD","XRT_MODULE_VALUE_GRAPH"}},
     {"src/runtime/xl6_channel_cases_select.c",D(R(CHANNEL_CASE),R(TYPED_CHANNEL_SELECT)),{NULL}},
     {"src/runtime/xl6_channel_cases_select_cancel.c",D(R(CHANNEL_CASE),R(TYPED_CHANNEL_SELECT_CANCEL)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_channel_case.c",D(R(OWNERSHIP_CATALOG),R(CHANNEL_CASE)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_channel_case.c",D(R(OWNERSHIP_CATALOG),R(CHANNEL_CASE)),{NULL}},
+    {"src/runtime/xl6_channel_case_language.c",D(R(CHANNEL_CASE)),{NULL}},
+    {"src/runtime/xl6_channel_case_array.c",D(R(CHANNEL_CASE),R(SEQUENCE)),{NULL}},
+    {"src/runtime/xl6_channel_select_language.c",D(R(CHANNEL_CASE_ARRAY),R(CHANNEL_CASE_SELECT)),{NULL}},
+    {"src/runtime/xl6_channel_select_cancel_language.c",D(R(CHANNEL_CASE_ARRAY),R(CHANNEL_CASE_SELECT_CANCEL)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

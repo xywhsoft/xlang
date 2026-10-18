@@ -1,5 +1,6 @@
 #ifndef XL6_SEQUENCE_H
 #define XL6_SEQUENCE_H
+#include "xl6_sequence_abi.h"
 #include "xl6_text_value.h"
 #include "xl6_native_value_abi.h"
 
@@ -102,12 +103,6 @@ typedef struct XL6_CollectionIdentityFrameV1 {
 } XL6_CollectionIdentityFrameV1;
 XL6_TEXT_API bool xl6CollectionIdentityEnterV1(XL6_CollectionIdentityFrameV1*);
 XL6_TEXT_API void xl6CollectionIdentityLeaveV1(XL6_CollectionIdentityFrameV1*);
-typedef struct XL6_SequenceLayoutV1 {
-    uint64_t identity, elementIdentity;
-    unsigned int transfer;
-    size_t size;
-    const xrttype* type;
-} XL6_SequenceLayoutV1;
 /* Native-only cursor state belongs to the counted Sequence wrapper, not a
  * second owning node. Access is valid only inside a Begin/End operation pin.
  * No slot pointer is cached: snapshot storage is the sole element owner. */

@@ -2111,13 +2111,16 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesTypeName(root, "PemReader") ||
         xl6StdlibFuncUsed(used, "asn1", "parse") || xl6StdlibFuncUsed(used, "pem", "parse") || xl6StdlibFuncUsed(used, "pem", "decode")) xl6StdlibBuilderAppend(&builder, xl6StdlibAsn1ClassSource);
     if (xl6StdlibHasConcurrentImport(root)) {
+        bool needsChannelCases=xl6StdlibNodeUsesTypeName(root,"ChannelCase") ||
+            xl6StdlibNodeUsesTypeName(root,"ChannelSelection");
+        if(needsChannelCases)xl6StdlibBuilderAppend(&builder,xl6StdlibChannelCaseSource);
         if (xl6StdlibNodeUsesTypeName(root, "Once")) xl6StdlibBuilderAppend(&builder, xl6StdlibOnceSource);
         if (xl6StdlibNodeUsesTypeName(root, "Event")) xl6StdlibBuilderAppend(&builder, xl6StdlibEventSource);
         if (xl6StdlibNodeUsesTypeName(root, "ThreadLocal")) xl6StdlibBuilderAppend(&builder, xl6StdlibThreadLocalSource);
         if (xl6StdlibNodeUsesTypeName(root, "CancellationSource") ||
             xl6StdlibNodeUsesTypeName(root, "CancellationToken") ||
             xl6StdlibNodeUsesTypeName(root, "CancellationRegistration") ||
-            xl6StdlibNodeUsesTypeName(root, "Promise"))
+            xl6StdlibNodeUsesTypeName(root, "Promise") || needsChannelCases)
             xl6StdlibBuilderAppend(&builder, xl6StdlibCancellationSource);
         if(xl6StdlibNodeUsesTypeName(root,"Promise"))xl6StdlibBuilderAppend(&builder,xl6StdlibPromiseSource);
         if (xl6StdlibNodeUsesTypeName(root, "AtomicInt32")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicInt32Source);

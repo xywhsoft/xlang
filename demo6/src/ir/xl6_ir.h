@@ -4072,8 +4072,18 @@ typedef enum XL6_IrCallNativeArrayResultAbi {
 
 typedef enum XL6_IrCallNativeContextAbi {
     XL6_IR_CALL_NATIVE_CONTEXT_NONE=0,
-    XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1
+    XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,
+    XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,
+    XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1
 } XL6_IrCallNativeContextAbi;
+
+/* A checked resident entry may publish one owned generic result into the
+ * CALL's fresh private SSA slot. The C return is void; failure leaves the
+ * output empty. This is not a source out/byref parameter or boxed Value ABI. */
+typedef enum XL6_IrCallNativeResultAbi {
+    XL6_IR_CALL_NATIVE_RESULT_NONE=0,
+    XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1
+} XL6_IrCallNativeResultAbi;
 
 /* A callable's semantic failure effect does not determine how that failure is
  * represented at the physical C boundary. Internal functions and async/generator
@@ -5382,12 +5392,14 @@ typedef struct XL6_IrCallTarget {
      * operands retained in the lowered CALL instruction. */
     XL6_IrCallVariadicAbi variadicAbi;
     /* Implicit immutable native descriptor, separate from source operands.
-     * A closed generic owner supplies T; payload ABI is the SAME contract as
-     * async producers and await. Backends emit constants/sizeof, never infer
-     * an element from the owner spelling or invent a conversion Future. */
+     * FUTURE_VALUE closes T with the common async/await payload ABI;
+     * CHANNEL_SCHEMA and CLASS_ARRAY name their exact verified carrier type.
+     * Backends emit constants/sizeof, never infer a source spelling or invent
+     * a conversion, output borrow or retained module-local descriptor. */
     XL6_IrCallNativeContextAbi nativeContextAbi;
     XL6_IrTypeId nativeContextType;
     XL6_IrAsyncResultAbi nativeContextPayloadAbi;
+    XL6_IrCallNativeResultAbi nativeResultAbi;
 } XL6_IrCallTarget;
 
 /* Complete physical callable envelope accepted by dynamic method adapters.
@@ -6804,6 +6816,9 @@ const char* xl6IrRuntimeDirectBridgeParameterOwner(const char* name, size_t para
  * general XL6_Function foreign ABI. Signature still needs full verification. */
 int xl6IrRuntimeDirectBridgeCheckedClosureParameter(const char* name, size_t parameter);
 int xl6IrRuntimeDirectBridgeValueAddressParameter(const char* name,size_t parameter);
+XL6_IrCallNativeResultAbi xl6IrRuntimeDirectBridgeNativeResultAbi(const char*);
+XL6_IrTypeId xl6IrNativeContextElementType(const XL6_IrModule*,const XL6_IrCallTarget*);
+const XL6_IrClassField* xl6IrNativeClassArrayContextField(const XL6_IrModule*,const XL6_IrCallTarget*);
 /* No implicit zero-field default can create an owned native resource. */
 int xl6IrTypeRequiresExplicitNativeInitialization(const struct XL6_IrModule*,XL6_IrTypeId);
 int xl6IrRuntimeDirectBridgeContext(const struct XL6_IrModule*,const XL6_IrCallTarget*,

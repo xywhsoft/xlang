@@ -63,7 +63,7 @@ def main():
     try:
         symbols=re.findall(r'XL6_TEXT_EXPORT\((\w+), CHANNEL_CASE(?:_SELECT(?:_CANCEL)?)?\)',
             (root/'src/runtime/xl6_text_symbols.inc').read_text(encoding='utf8'))
-        assert len(symbols)==15
+        assert len(symbols)==17
         report['Exports']={}
         for product in products:
             library=ctypes.CDLL(str(product)); assert all(getattr(library,name,None) for name in symbols)

@@ -1,0 +1,32 @@
+class StaticIdentity<T>
+    static func identity(T value) as T
+        return value
+    end
+    static async func later(T value) as T
+        return value
+    end
+end
+class StaticMethods
+    static func identity<T>(T value) as T
+        return StaticIdentity::<T>.identity(value)
+    end
+    func same<T>(T value) as T
+        return StaticIdentity::<T>.identity(value)
+    end
+end
+func makeChannel<T>() as channel<T>
+    return channel::<T>(1)
+end
+func check()
+    assert StaticIdentity::<int>.identity(61) == 61
+    assert StaticIdentity::<string>.identity("a\0你") == "a\0你"
+    assert StaticMethods.identity(b"a\0b") == b"a\0b"
+    auto methods = StaticMethods()
+    assert methods.same(float32(1.25)) == float32(1.25)
+    auto pipe = makeChannel::<string>()
+    assert pipe.send("a\0你")
+    auto status, value = pipe.recv()
+    assert status == channelStatus.ok and value != null and value == "a\0你"
+end
+check()
+assert (await StaticIdentity::<string>.later("future\0你")) == "future\0你"

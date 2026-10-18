@@ -11438,8 +11438,17 @@ static XL6_IrTypeId xl6IrRuntimeChannelPayloadType(
     const XL6_IrModule* module, XL6_IrTypeId resourceType)
 {
     XL6_IrTypeId schemaId=0;
-    return xl6IrChannelConstructionRecipe(module,resourceType,&schemaId,NULL)
-        ? xl6IrTypeGet(&module->types,schemaId)->sequenceLayout.elementType : XL6_IR_TYPE_INVALID;
+    if(xl6IrChannelConstructionRecipe(module,resourceType,&schemaId,NULL))
+        return xl6IrTypeGet(&module->types,schemaId)->sequenceLayout.elementType;
+    const XL6_IrType* owner=module ? xl6IrTypeGet(&module->types,resourceType) : NULL;
+    /* Logical templates can name their element, but cannot authorize an
+     * executable slot or the VERIFIED admission used by concrete calls. */
+    return owner && owner->kind==XL6_IR_TYPE_GENERIC_INSTANCE &&
+        owner->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_CHANNEL &&
+        owner->paramCount==1 && owner->params &&
+        xl6IrBuildTypeContainsTypeParam(module,owner->params[0],0) &&
+        owner->messageSchemaType && owner->messageSchemaType==xl6IrMessageSchemaTypeForType(&module->types,owner)
+        ? owner->params[0] : XL6_IR_TYPE_INVALID;
 }
 
 static XL6_IrTypeId xl6IrRuntimeSpecialQueuePayloadType(
@@ -11861,6 +11870,20 @@ int xl6IrStackTryResultCompatible(const XL6_IrModule* module,XL6_IrTypeId result
 
 #include "src/ir/xl6_ir_concurrent_queue.c"
 #include "src/ir/xl6_ir_channel_receive.c"
+
+static int xl6IrChannelCreateDependentSignatureCompatible(const XL6_IrModule* module,
+    XL6_IrNodeId origin,XL6_IrRuntimeResourceOp op,XL6_IrTypeId receiver,
+    XL6_IrTypeId result,const XL6_IrTypeId* operands,size_t count)
+{
+    if(op!=XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CREATE || receiver || count>1 ||
+        (count && !operands))return 0;
+    XL6_IrTypeId payload=xl6IrRuntimeChannelPayloadType(module,result);
+    const XL6_IrType* capacity=count ? xl6IrTypeGet(&module->types,operands[0]) : NULL;
+    return payload && xl6IrBuildTypeContainsTypeParam(module,payload,0) &&
+        (!count || (capacity && capacity->cAbi==XL6_IR_C_ABI_I64 &&
+            capacity->integerTarget==XL6_IR_INTEGER_TARGET_SIGNED_64)) &&
+        xl6IrChannelDependentDeclaration(module,origin);
+}
 
 XL6_IrRuntimeResourceKeyOrderAbi xl6IrAvlKeyOrderAbi(const XL6_IrModule* module,XL6_IrTypeId id)
 {
@@ -14814,6 +14837,8 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                     operandTypes, operandCount) || xl6IrGenericTreeSignatureCompatible(module,origin,
                     intrinsic.runtimeResourceOp,intrinsic.receiverType,intrinsic.resultType,operandTypes,operandCount) ||
                     xl6IrGenericConcurrentQueueSignatureCompatible(module,origin,
+                    intrinsic.runtimeResourceOp,intrinsic.receiverType,intrinsic.resultType,operandTypes,operandCount) ||
+                    xl6IrChannelCreateDependentSignatureCompatible(module,origin,
                     intrinsic.runtimeResourceOp,intrinsic.receiverType,intrinsic.resultType,operandTypes,operandCount) ||
                     xl6IrChannelSendDependentSignatureCompatible(module,origin,
                     intrinsic.runtimeResourceOp,intrinsic.receiverType,intrinsic.resultType,operandTypes,operandCount) ||
@@ -32036,6 +32061,7 @@ static int xl6IrRuntimeBridgeTargetMatches(
            context!=target->nativeContextAbi || contextType!=target->nativeContextType ||
            payload!=target->nativeContextPayloadAbi)return 0;
         if (target->nativeArrayResultAbi != xl6IrRuntimeDirectBridgeNativeArrayResultAbi(target->cName)) return 0;
+        if (target->nativeResultAbi != xl6IrRuntimeDirectBridgeNativeResultAbi(target->cName)) return 0;
         if (expected != NULL) {
             if (target->nativeHandlePolicyAbi != XL6_IR_NATIVE_HANDLE_POLICY_RESIDENT_V1 ||
                 target->nativeHandlePolicyCName == NULL ||
@@ -34555,12 +34581,14 @@ static int xl6IrVerifyDeclarationOwners(const XL6_IrModule* module, XL6_DiagList
             const XL6_IrType* family = xl6IrTypeGet(&module->types, classNode->declarationOwnerType);
             const XL6_IrCallTarget* target = xl6IrCallTargetGet(module, instance->symbol);
             if ( source == NULL || source->declarationOwnerType != classNode->declarationOwnerType ||
-                 family == NULL || family->paramCount != instance->typeArgCount ||
-                 owner->paramCount != instance->typeArgCount || instance->typeArgs == NULL ||
-                 owner->params == NULL ||
-                 memcmp(owner->params, instance->typeArgs, owner->paramCount * sizeof(*owner->params)) != 0 ||
+                 family == NULL || owner->paramCount != family->paramCount || instance->typeArgs == NULL ||
+                 (family->paramCount ?
+                    (family->paramCount != instance->typeArgCount || !owner->params ||
+                     memcmp(owner->params,instance->typeArgs,owner->paramCount*sizeof(*owner->params))!=0) :
+                    node->declarationOwnerType!=classNode->declarationOwnerType) ||
                  target == NULL ||
-                 (target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY
+                   (target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY &&
+                    node->sourceKind == XL6_AST_NATIVE_EXTERN_SPECIAL
                   ? target->returnType != node->declarationOwnerType
                   : (node->flags & XL6_AST_FLAG_STATIC) == 0 &&
                   (target->parameterCount == 0 || target->parameterTypes == NULL ||
@@ -36603,6 +36631,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             intrinsic->runtimeResourceOp,intrinsic->receiverType,intrinsic->resultType,
                             operandTypes,intrinsic->operandCount) ||
                         xl6IrGenericConcurrentQueueSignatureCompatible(module,intrinsic->origin,
+                            intrinsic->runtimeResourceOp,intrinsic->receiverType,intrinsic->resultType,
+                            operandTypes,intrinsic->operandCount) ||
+                        xl6IrChannelCreateDependentSignatureCompatible(module,intrinsic->origin,
                             intrinsic->runtimeResourceOp,intrinsic->receiverType,intrinsic->resultType,
                             operandTypes,intrinsic->operandCount) ||
                         xl6IrChannelSendDependentSignatureCompatible(module,intrinsic->origin,
@@ -49860,9 +49891,10 @@ static void xl6IrDumpText(const XL6_IrModule* module, XL6_Output* out)
         if (target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC)
             for (parameter = 0; parameter < target->parameterCount; ++parameter)
                 xl6OutputPrintf(out, "%s%d", parameter ? "," : "", (int)target->asyncCaptureDestroyAbis[parameter]);
-        xl6OutputPrintf(out, "] native-context=%d/t%u/%s async-result=%s worker=t%u worker-errors=%s dispatch=%d future-outcome=%d machine=%lu completion=%s\n",
+        xl6OutputPrintf(out, "] native-context=%d/t%u/%s native-result=%d async-result=%s worker=t%u worker-errors=%s dispatch=%d future-outcome=%d machine=%lu completion=%s\n",
                         (int)target->nativeContextAbi,(unsigned)target->nativeContextType,
                         xl6IrAsyncResultAbiName(target->nativeContextPayloadAbi),
+                        (int)target->nativeResultAbi,
                         xl6IrAsyncResultAbiName(target->asyncResultAbi),
                         (unsigned int)target->workerReturnType,
                         xl6IrErrorAbiName(target->workerErrorAbi),
@@ -51454,8 +51486,9 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
                         target->generatorCaptureAbis[parameter]));
             }
         xl6OutputPrintf(out,
-            "],\"nativeContextAbi\":%d,\"nativeContextType\":%u,\"nativeContextPayloadAbi\":%d,\"resultCAbi\":%d,\"resultConversionAbi\":%d,\"resultConversionAbiName\":\"%s\",\"executionBoundaryAbi\":%d,\"executionBoundaryAbiName\":\"%s\",\"effectAbi\":%d,\"effectAbiName\":\"%s\",\"preparationFailureAbi\":%d,\"preparationFailureAbiName\":\"%s\"}%s\n",
+            "],\"nativeContextAbi\":%d,\"nativeContextType\":%u,\"nativeContextPayloadAbi\":%d,\"nativeResultAbi\":%d,\"resultCAbi\":%d,\"resultConversionAbi\":%d,\"resultConversionAbiName\":\"%s\",\"executionBoundaryAbi\":%d,\"executionBoundaryAbiName\":\"%s\",\"effectAbi\":%d,\"effectAbiName\":\"%s\",\"preparationFailureAbi\":%d,\"preparationFailureAbiName\":\"%s\"}%s\n",
             (int)target->nativeContextAbi,(unsigned)target->nativeContextType,(int)target->nativeContextPayloadAbi,
+            (int)target->nativeResultAbi,
             (int)target->resultCAbi,
             (int)target->resultConversionAbi,
             xl6IrCallResultConversionAbiName(target->resultConversionAbi),

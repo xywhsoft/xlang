@@ -265,7 +265,8 @@ static int xl6IrCgenEmitDynamicNativeWitness(
     xl6OutputPuts("      ", out);
     if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
         xl6OutputPuts("callResult = ", out);
-    else if ( target->returnType != XL6_IR_TYPE_INVALID ) xl6OutputPuts("callResult.value = ", out);
+    else if ( target->returnType != XL6_IR_TYPE_INVALID && target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_NONE )
+        xl6OutputPuts("callResult.value = ", out);
     if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY )
         xl6OutputPuts("xlir_string_from_cstr(", out);
     xl6OutputPrintf(out, "%s(", target->cName);
@@ -281,6 +282,10 @@ static int xl6IrCgenEmitDynamicNativeWitness(
             xl6OutputPrintf(out,"&a%lu",(unsigned long)(p-1));
         else if ( p == 0 ) xl6OutputPuts("receiver", out);
         else xl6OutputPrintf(out, "a%lu%s", (unsigned long)(p - 1), xl6IrCgenDirectPlaceSuffix(module, target, p));
+    }
+    if(target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1) {
+        if(target->parameterCount || target->nativeContextAbi)xl6OutputPuts(", ",out);
+        xl6OutputPuts("&callResult.value",out);
     }
     xl6OutputPuts(")", out);
     if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY ) xl6OutputPuts(")", out);
