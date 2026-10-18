@@ -25,6 +25,7 @@ XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainErrorValueV1Ge
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainSlotMapKeyV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainChannelV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainChannelCaseV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainChannelFutureV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainSequenceV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainListV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainSetV1Get(void);

@@ -15,6 +15,7 @@
     X(Combine, xfuturecombineownershipv1) \
     X(Task, xtaskdataownershipv1) \
     X(QueuedStorage, XL6_ContinuationStorageV2) \
+    X(ChannelSubscription, xchannelsubscribeownershipv1) \
     X(ResolverRequest, xnetresolveownershipv1) \
     X(Quiescence, xrtownershipquiescencev1)
 #define XL6_DECLARE_POLICY(Name, Type) struct Type;
