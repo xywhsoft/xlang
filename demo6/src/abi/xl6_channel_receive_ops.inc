@@ -3,3 +3,4 @@
 XL6_CHANNEL_RECEIVE_OP(WAIT, "recv", 1, false)
 XL6_CHANNEL_RECEIVE_OP(TRY, "tryRecv", 0, false)
 XL6_CHANNEL_RECEIVE_OP(FOR, "recvTimeout", 2, true)
+XL6_CHANNEL_RECEIVE_OP(UNTIL, "recvUntil", 3, true)

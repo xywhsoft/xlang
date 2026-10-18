@@ -1,0 +1,22 @@
+// Minimal deadline closure: no thread, cancellation, selection or wall clock.
+func widened(uint64 value) as uint64
+    return value
+end
+uint8 small = 255
+uint16 medium = 65535
+uint32 largest = 4294967295
+assert widened(small) == uint64(255)
+assert widened(medium) == uint64(65535)
+assert widened(largest) == uint64(4294967295)
+channel<int> pipe = channel::<int>(1)
+uint32 expired = 0
+assert pipe.sendUntil(61, expired)
+auto status, value = pipe.recvUntil(expired)
+assert status == channelStatus.ok and value != null and value == 61
+auto timeoutStatus, absent = pipe.recvUntil(0)
+assert timeoutStatus == channelStatus.timeout and absent == null
+int32 timeoutMs = 0
+assert pipe.sendTimeout(62, timeoutMs)
+auto relativeStatus, relative = pipe.recvTimeout(timeoutMs)
+assert relativeStatus == channelStatus.ok and relative != null and relative == 62
+pipe.close()

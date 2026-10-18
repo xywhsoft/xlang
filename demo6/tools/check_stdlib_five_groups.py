@@ -87,14 +87,18 @@ def main():
     if args.stage in ('channel-waits','channel-select-native'):
         selected = ('stdlib_channel_timeout', 'stdlib_channel_owned', 'stdlib_channel_owned_wait',
                     'stdlib_channel_recipes', 'stdlib_promise', 'stdlib_cancellation',
-                    'stdlib_concurrent_import_only', 'stdlib_channel_pruned')
+                    'stdlib_concurrent_import_only', 'stdlib_channel_pruned', 'stdlib_channel_deadlines',
+                    'stdlib_channel_deadline_only')
         negatives = ('bad_channel_send_timeout_type', 'bad_channel_send_timeout_named',
-                     'bad_channel_send_timeout_value', 'bad_channel_send_timeout_arity')
+                     'bad_channel_send_timeout_value', 'bad_channel_send_timeout_arity',
+                     'bad_channel_deadline_type', 'bad_channel_deadline_receive_type',
+                     'bad_channel_deadline_named', 'bad_channel_deadline_arity')
         helpers = (*helpers[:3], 'xlir_channel_send_contract.c', 'stdlib_channel_native.c',
                    'stdlib53_pruning_plan.c')
         if args.stage=='channel-select-native':
             helpers=(*helpers[:4],'stdlib_channel_select_native.c',*helpers[5:],
                      'stdlib_channel_select_native_plan.c','stdlib_channel_select_pruned.c')
+        helpers=(*helpers,'xlir_channel_deadline_contract.c')
     inputs = {Path(__file__).resolve(), *products,
               *[cases/(name+'.xl') for name in selected+negatives],
               *[cases/name for name in helpers],
@@ -262,7 +266,8 @@ def main():
                 name in selected[:(4 if args.stage in ('thread-local','cancellation') else 3)]) or (
                 args.stage == 'cancellation' and name == 'stdlib_task_group_methods') or (
                 args.stage == 'promise' and name in selected[:6]) or (
-                args.stage in ('channel-waits','channel-select-native') and name in selected[:3])
+                args.stage in ('channel-waits','channel-select-native') and
+                (name in selected[:3] or name in ('stdlib_channel_deadlines','stdlib_channel_deadline_only')))
             if not full:
                 return
             work = out/(name+'.saved')
@@ -317,6 +322,13 @@ def main():
                   [isolated/'xlir_class_tag_vocabulary.xl', isolated/'xlir_class_tag_narrow_first.xl']
                   if args.stage == 'cancellation' else
                   [isolated/(name+'.xl') for name in selected[1:3]] if args.stage == 'promise' else [])])
+            if args.stage in ('channel-waits','channel-select-native'):
+                deadline = isolated/'deadline-contract'
+                run('deadline-contract.build',[cc,*flags,'-O2','-I'+str(root),
+                    '-I'+str(root/'release/include'),'-I'+str(root/'lib/tcc'),cases/helpers[-1],
+                    *links(names[2]),'-o',deadline])
+                run('deadline-contract.run',[deadline,isolated/'stdlib_channel_deadlines.xl'])
+                run('deadline-only-contract.run',[deadline,isolated/'stdlib_channel_deadline_only.xl','--minimal'])
             if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation', 'promise', 'channel-waits', 'channel-select-native'):
                 planner = isolated/'planner'
                 run('pruning.build', [cc, *flags, '-O2', '-I'+str(root), '-I'+str(root/'release/include'),
@@ -349,6 +361,8 @@ def main():
                     # factory must stay absent from this executable closure.
                     core={'xl6_channel.c','xl6_ownership_domain_channel.c'}
                     plans=(('stdlib_channel_timeout',core|{'xl6_thread_exit.c'}),
+                           ('stdlib_channel_deadlines',core|{'xl6_channel_wait.c','xl6_thread_exit.c'}),
+                           ('stdlib_channel_deadline_only',core|{'xl6_channel_wait.c'}),
                            ('stdlib_concurrent_import_only',set()),('stdlib_channel_pruned',set()))
                 for name, expected in plans:
                     plan = json.loads(run(name+'.plan', [planner, isolated/(name+'.xl')]))
