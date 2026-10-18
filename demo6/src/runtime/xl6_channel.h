@@ -12,6 +12,12 @@
  * Capacity is exact; zero uses XRT rendezvous, not a hidden minimum capacity. */
 XL6_TEXT_API bool xl6ChannelAdmitsSchemaV1(const xvalue*,uint64_t,
     const XL6_SequenceLayoutV1*,const XL6_SequenceAdmissionV3*);
+/* Capture immutable resident metadata without opening an operation or pinning
+ * the Channel BUSY. Both outputs start empty and stay unchanged on failure.
+ * The caller owns one admission reference; no channel/storage/code borrow is
+ * retained. Concurrent waits are permitted; retirement is still refused. */
+XL6_TEXT_API bool xl6ChannelSchemaCopyV1(const xvalue*,uint64_t,
+    XL6_SequenceLayoutV1*,XL6_SequenceAdmissionV3*);
 /* bool reports actual operation/cleanup failure independently of allocating
  * an error. Status is only published on normal flow; absence leaves the fresh
  * private output slot unchanged. OK with a NULL nullable payload is distinct

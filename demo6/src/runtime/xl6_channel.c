@@ -212,6 +212,25 @@ bool xl6ChannelAdmitsSchemaV1(const xvalue* value,uint64_t identity,
     }
     mutationEnd(&scope); return admitted;
 }
+bool xl6ChannelSchemaCopyV1(const xvalue* value,uint64_t identity,
+    XL6_SequenceLayoutV1* layout,XL6_SequenceAdmissionV3* admission)
+{
+    uintptr_t left=(uintptr_t)layout,right=(uintptr_t)admission;
+    if (!layout || !admission || left%_Alignof(XL6_SequenceLayoutV1) || right%_Alignof(XL6_SequenceAdmissionV3) ||
+        left>UINTPTR_MAX-sizeof(*layout) || right>UINTPTR_MAX-sizeof(*admission) ||
+        (left<right+sizeof(*admission) && right<left+sizeof(*layout)) ||
+        layout->identity || layout->elementIdentity ||
+        layout->transfer || layout->size || layout->type || admission->ops || admission->data ||
+        admission->elementIdentity || admission->transfer || admission->size || admission->type ||
+        admission->boxedIdentity) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    xrtownershipscope scope={0}; mutationBegin(&scope);
+    ChannelOwner* owner=borrow(value,identity);
+    bool ok=owner && !owner->claim && owner->admission.ops && owner->admission.data &&
+        owner->admission.ops->Retain(owner->admission.data);
+    if (ok) { *layout=owner->layout; *admission=owner->admission; }
+    else if (owner && !xrtGetError()) xrtSetErrorKind(XERR_STATE);
+    mutationEnd(&scope); return ok;
+}
 xvalue* xl6ChannelCreateTakeV1(uint64_t identity,xvalue* schema,int64_t capacity)
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
