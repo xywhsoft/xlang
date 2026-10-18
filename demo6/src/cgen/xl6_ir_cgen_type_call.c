@@ -474,8 +474,36 @@ static const char* xl6IrCgenDirectPlaceSuffix(
         target->runtimeBridge == XL6_IR_RUNTIME_BRIDGE_NONE ? ".Data" : "";
 }
 
+static const char* xl6IrCgenNativeSlotTypeExpr(XL6_IrNativeSlotAbi);
+static const char* xl6IrCgenSequenceTransferAbiToken(XL6_IrRuntimeResourcePayloadAbi);
 static int xl6IrCgenEmitNativeContext(XL6_Output* out,const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
+    if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1) {
+        const XL6_IrClassField* field=xl6IrNativeClassArrayContextField(module,target);
+        const XL6_IrType* owner=xl6IrTypeGet(&module->types,target->nativeContextType);
+        const XL6_IrType* element=owner && owner->params ? xl6IrTypeGet(&module->types,owner->params[0]) : NULL;
+        const char* slot=owner ? xl6IrCgenNativeSlotTypeExpr(owner->sequenceLayout.slotAbi) : NULL;
+        if(!field || !element || !slot || !field->nativeHandlePolicyCName)return 0;
+        xl6OutputPrintf(out,"(XL6_ChannelCaseArrayContextV1){{0x%016llXULL, 0x%016llXULL, 3, sizeof(xvalue*), %s}, ",
+            (unsigned long long)owner->typeValueId,(unsigned long long)element->typeValueId,slot);
+        xl6IrCgenEmitCStringLiteral(out,field->name);
+        xl6OutputPrintf(out,", %lu, %s()}",(unsigned long)strlen(field->name),field->nativeHandlePolicyCName);
+        return !xl6OutputHasFailed(out);
+    }
+    if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1) {
+        XL6_IrTypeId schemaId=0;
+        if(!xl6IrChannelConstructionRecipe(module,target->nativeContextType,&schemaId,NULL))return 0;
+        const XL6_IrType* owner=xl6IrTypeGet(&module->types,target->nativeContextType);
+        const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
+        const XL6_IrType* element=xl6IrTypeGet(&module->types,owner->params[0]);
+        const char* type=xl6IrCgenType(module,owner->params[0]);
+        const char* slot=xl6IrCgenNativeSlotTypeExpr(schema->sequenceLayout.slotAbi);
+        const char* transfer=xl6IrCgenSequenceTransferAbiToken(schema->sequenceLayout.transferAbi);
+        if(!type || !slot || !transfer || !element)return 0;
+        xl6OutputPrintf(out,"(XL6_SequenceLayoutV1){0x%016llXULL, 0x%016llXULL, %s, sizeof(%s), %s}",
+            (unsigned long long)owner->typeValueId,(unsigned long long)element->typeValueId,transfer,type,slot);
+        return !xl6OutputHasFailed(out);
+    }
     if(target->nativeContextAbi!=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1)return 0;
     const XL6_IrType* type=xl6IrTypeGet(&module->types,target->nativeContextType);
     const char* name=type?xl6IrCgenType(module,target->nativeContextType):NULL;
@@ -765,7 +793,8 @@ static int xl6IrCgenEmitDirectCall(
             unresolvedDiagnostic);
     /* A failed scope entry skips the native call, so its owned physical
      * result must be empty on every invocation, not merely at function entry. */
-    if (target->preparationFailureAbi == XL6_IR_CALL_PREPARATION_RETIRE_OWNED_REVERSE &&
+    if ((target->preparationFailureAbi == XL6_IR_CALL_PREPARATION_RETIRE_OWNED_REVERSE ||
+         target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1) &&
         instruction->result != XL6_IR_VALUE_INVALID &&
         !xl6IrCgenIsControlCarrier(module, instruction) &&
         !xl6IrCgenResultStorageOmitted(module, instruction)) {
@@ -809,7 +838,8 @@ static int xl6IrCgenEmitDirectCall(
         xl6OutputPrintf(out, "    %s r%lu = ",
             xl6IrCgenErrorResultType(module, target->returnType),
             (unsigned long)instructionIndex);
-    else if ( instruction->result != XL6_IR_VALUE_INVALID &&
+    else if ( target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_NONE &&
+              instruction->result != XL6_IR_VALUE_INVALID &&
               !xl6IrCgenIsControlCarrier(module, instruction) )
         xl6OutputPrintf(out, "    v%u = ", (unsigned int)instruction->result);
     else
@@ -847,6 +877,10 @@ static int xl6IrCgenEmitDirectCall(
                 xl6OutputPrintf(out, "ct%lu_%lu", (unsigned long)instructionIndex, (unsigned long)argument);
             else xl6OutputPrintf(out, "v%u", (unsigned int)value->result);
         }
+    }
+    if(target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1) {
+        if(instruction->operandCount || target->nativeContextAbi)xl6OutputPuts(", ",out);
+        xl6OutputPrintf(out,"&v%u",(unsigned)instruction->result);
     }
     if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY )
         xl6OutputPuts(")", out);

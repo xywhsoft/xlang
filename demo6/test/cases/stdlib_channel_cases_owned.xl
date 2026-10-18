@@ -1,0 +1,20 @@
+import concurrent
+func ownedCases()
+    channel<string> pipe = channel::<string>(1)
+    string input = "owned\0你"
+    auto sending = ChannelCase.send(pipe, input)
+    input = "changed"
+    auto sent = ChannelSelection.trySelect([sending])
+    assert sent.status == channelStatus.ok
+    auto receiving = ChannelCase.receive(pipe)
+    array<ChannelCase> cases = [receiving, receiving, receiving, receiving,
+        receiving, receiving, receiving, receiving, receiving]
+    auto result = ChannelSelection.trySelect(cases)
+    cases.clear()
+    assert result.status == channelStatus.ok
+    string first = result.value(receiving, pipe)
+    string second = result.value(receiving, pipe)
+    first = "different"
+    assert second == "owned\0你"
+end
+ownedCases()

@@ -3,6 +3,8 @@
 #include "xl6_channel.h"
 #include "xl6_channel_case_abi.h"
 #include "xl6_native_handle.h"
+XL6_TEXT_API bool xl6ChannelCaseMatchesSchemaV1(const XL6_ChannelCaseOwnerV1*,const xvalue*,XL6_SequenceLayoutV1);
+XL6_TEXT_API XL6_ChannelCaseOwnerV1* xl6ChannelCaseCreateSchemaV1(XL6_SequenceLayoutV1,const xvalue*,const void*,bool);
 XL6_TEXT_API xrtownershipref xl6ChannelCaseOwnershipV1(const XL6_ChannelCaseOwnerV1*);
 XL6_TEXT_API xrtownershipref xl6ChannelSelectionOwnershipV1(const XL6_ChannelSelectionOwnerV1*);
 XL6_TEXT_API const xrtownershipadapterv1* xl6ChannelCaseOwnershipAdapterV1(xrtownershipref);

@@ -143,7 +143,7 @@ void xl6ChannelSelectionDestroyV1(XL6_ChannelSelectionOwnerV1* item)
 { destroy(item ? &item->node : NULL,SELECTION_NODE); }
 
 static XL6_ChannelCaseOwnerV1* create(const xvalue* channel,uint64_t identity,uint64_t element,
-    const xrttype* type,XL6_ChannelSlotV1 slot,bool sending)
+    const xrttype* type,XL6_ChannelSlotV1 slot,bool sending,const XL6_SequenceLayoutV1* expected)
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
     XL6_SequenceLayoutV1 layout={0}; XL6_SequenceAdmissionV3 admission={0};
@@ -151,6 +151,9 @@ static XL6_ChannelCaseOwnerV1* create(const xvalue* channel,uint64_t identity,ui
     if (!xl6ChannelSchemaCopyV1(channel,identity,&layout,&admission)) goto fail;
     if (layout.elementIdentity!=element || layout.type!=type || layout.size!=slot.size) {
         xrtSetErrorKind(XERR_TYPE); goto fail;
+    }
+    if(expected && (expected->identity!=layout.identity || expected->transfer!=layout.transfer)) {
+        xrtSetErrorKind(XERR_TYPE);goto fail;
     }
     if (!alignedSize(sizeof(*item),_Alignof(max_align_t),&offset) || layout.transfer<1 || layout.transfer>3 ||
         !type->Align || type->Align>_Alignof(max_align_t) || (type->Align&(type->Align-1)) ||
@@ -178,10 +181,14 @@ done:
 }
 XL6_ChannelCaseOwnerV1* xl6ChannelSendCaseCreateV1(const xvalue* channel,uint64_t identity,
     uint64_t element,const xrttype* type,XL6_ChannelSlotV1 slot)
-{ return create(channel,identity,element,type,slot,true); }
+{ return create(channel,identity,element,type,slot,true,NULL); }
 XL6_ChannelCaseOwnerV1* xl6ChannelReceiveCaseCreateV1(const xvalue* channel,uint64_t identity,
     uint64_t element,const xrttype* type,size_t size)
-{ return create(channel,identity,element,type,(XL6_ChannelSlotV1){NULL,size},false); }
+{ return create(channel,identity,element,type,(XL6_ChannelSlotV1){NULL,size},false,NULL); }
+XL6_ChannelCaseOwnerV1* xl6ChannelCaseCreateSchemaV1(XL6_SequenceLayoutV1 layout,const xvalue* channel,
+    const void* value,bool sending)
+{ return create(channel,layout.identity,layout.elementIdentity,layout.type,
+    (XL6_ChannelSlotV1){(void*)value,layout.size},sending,&layout); }
 
 bool xl6ChannelOwnedSelectPrepareV1(XL6_ChannelCaseOwnerV1* const* inputs,size_t count,
     XL6_ChannelWaitOptionsV2* options,XL6_ChannelOwnedSelectFrameV1* frame)
@@ -281,6 +288,25 @@ XL6_ChannelSelectionOwnerV1* xl6ChannelOwnedSelectDiscardV1(XL6_ChannelOwnedSele
     return result;
 }
 
+bool xl6ChannelCaseMatchesSchemaV1(const XL6_ChannelCaseOwnerV1* raw,const xvalue* channel,XL6_SequenceLayoutV1 layout)
+{
+    Node* node=begin(raw ? &raw->node : NULL,CASE_NODE); if(!node)return false;
+    xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))abort();
+    void *left=NULL,*right=NULL,*leftUser=NULL,*rightUser=NULL;
+    const xvaluehandleops *leftOps=NULL,*rightOps=NULL;
+    bool ok=raw->layout.identity==layout.identity && raw->layout.elementIdentity==layout.elementIdentity &&
+        raw->layout.transfer==layout.transfer && raw->layout.size==layout.size && raw->layout.type==layout.type &&
+        xrtValueGetHandle(raw->channel,&left,&leftOps,&leftUser) &&
+        xrtValueGetHandle(channel,&right,&rightOps,&rightUser) &&
+        left && left==right && leftOps==rightOps && leftUser==rightUser;
+    if(!ok && !xrtGetError())xrtSetErrorKind(XERR_TYPE);
+    if(!ok || xrtGetError() || scope.failed)xl6ErrorScopeCaptureFailure(&scope);
+    end(node,false);
+    if(xrtGetError() || scope.failed)xl6ErrorScopeCaptureFailure(&scope);
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    if(!outcome.ok){xl6ErrorScopePropagateFailure(outcome);return false;}
+    xrtErrorFree(outcome.error);return true;
+}
 bool xl6ChannelSelectionInfoV1(const XL6_ChannelSelectionOwnerV1* raw,XL6_ChannelSelectionV1* output)
 {
     if (!output || (uintptr_t)output%_Alignof(XL6_ChannelSelectionV1) || !region(output,sizeof(*output)) ||

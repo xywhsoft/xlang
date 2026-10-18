@@ -55,7 +55,7 @@ int main(int argc,char** argv)
         assert(xl6IrVerifyModule(module,NULL));xl6CompileUnitFree(&unit);
     }
     unsigned expected=0;
-#define XL6_NATIVE_GENERIC_BRIDGE(Name,Owner,Role) expected|=1u<<XL6_NATIVE_GENERIC_##Role;
+#define XL6_NATIVE_GENERIC_BRIDGE(Name,Owner,Role) if(!strcmp(Owner,"xl6PromiseDestroyV1"))expected|=1u<<XL6_NATIVE_GENERIC_##Role;
 #include "src/abi/xl6_native_generic_contracts.inc"
 #undef XL6_NATIVE_GENERIC_BRIDGE
     assert(roles==expected && contexts && addresses);

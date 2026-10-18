@@ -1,0 +1,48 @@
+import concurrent
+
+func rendezvous()
+    channel<string> pipe = channel::<string>(0)
+    auto receiving = ChannelCase.receive(pipe)
+    auto sending = ChannelCase.send(pipe, "rendezvous\0你")
+    auto worker = thread(func() as int
+        auto result = ChannelSelection.selectTimeout([receiving], 5000)
+        assert result.status == channelStatus.ok
+        assert result.value(receiving, pipe) == "rendezvous\0你"
+        return 19
+    end)
+    auto sent = ChannelSelection.selectTimeout([sending], 5000)
+    assert sent.status == channelStatus.ok and sent.index == 0
+    assert worker.waitTimeout(5000) and worker.exitCode() == 19
+end
+
+func concurrentReuse()
+    channel<int> pipe = channel::<int>(2)
+    auto receiving = ChannelCase.receive(pipe)
+    assert pipe.send(21) and pipe.send(22)
+    auto first = thread(func() as int
+        auto result = ChannelSelection.selectTimeout([receiving], 5000)
+        assert result.status == channelStatus.ok
+        return result.value(receiving, pipe)
+    end)
+    auto second = thread(func() as int
+        auto result = ChannelSelection.selectTimeout([receiving], 5000)
+        assert result.status == channelStatus.ok
+        return result.value(receiving, pipe)
+    end)
+    assert first.waitTimeout(5000) and second.waitTimeout(5000)
+    assert first.exitCode() + second.exitCode() == 43
+    auto source = CancellationSource()
+    auto token = source.token
+    auto started = Event(false)
+    auto waiter = thread(func() as int
+        started.set()
+        auto result = ChannelSelection.selectCancel([receiving], token)
+        assert result.status == channelStatus.cancelled and result.index == -1
+        return 29
+    end)
+    assert started.wait(5000) and source.cancel()
+    assert waiter.waitTimeout(5000) and waiter.exitCode() == 29
+end
+
+rendezvous()
+concurrentReuse()

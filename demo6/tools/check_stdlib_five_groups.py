@@ -28,6 +28,8 @@ def main():
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--native-factory-inheritance',action='store_true',
         help='Add offline inherited native resource contracts and complete language allocation prefixes')
+    parser.add_argument('--channel-case-language',action='store_true',
+        help='Add public Channel case/select, typed private-result contracts and allocation prefixes')
     parser.add_argument('--native-plan-report',type=Path,
         help='Windows native-only pruning: sealed Linux actual-plan receipt with identical source graph')
     args = parser.parse_args()
@@ -116,6 +118,14 @@ def main():
         negatives=(*negatives,'bad_xlir_native_inherited_default','bad_xlir_native_ambiguous_default',
                    'bad_xlir_native_factory_ambiguous','bad_xlir_native_factory_shadow','bad_xlir_native_generic_inheritance')
         helpers=(*helpers,'xlir_native_factory_inherited_contract.c','xlir_native_factory_inherited_host.c')
+    if args.channel_case_language:
+        assert args.stage=='channel-cancel'
+        selected=(*selected,'stdlib_channel_cases','stdlib_channel_cases_threads','stdlib_channel_cases_owned',
+            'xlir_generic_static_calls','stdlib_channel_cases_receive_only')
+        negatives=(*negatives,'bad_channel_cases_missing_import','bad_channel_cases_private',
+            'bad_channel_cases_send_type','bad_channel_cases_array','bad_channel_cases_null_token',
+            'bad_generic_static_unbound','bad_generic_channel_unsupported')
+        helpers=(*helpers,'xlir_channel_cases_contract.c','stdlib_channel_cases_oom_host.c')
     inputs = {Path(__file__).resolve(), *products,
               *[cases/(name+'.xl') for name in selected+negatives],
               *[cases/name for name in helpers],
@@ -154,6 +164,7 @@ def main():
             shutil.copy2(product, isolated/product.name)
     report = dict(Stage=args.stage, Complete=False, InputsUnchanged=False, LogsUnchanged=False,
                   NativeFactoryInheritance=args.native_factory_inheritance,
+                  PublicChannelCaseLanguage=args.channel_case_language,
                   NetworkTests=False, NetworkSecurityTests=False, FullFiveGroupAcceptance=False,
                   Inputs=[dict(Path=str(path), Sha256=digest(path)) for path in sorted(inputs)], Rows=[])
     env = {key.upper(): value for key, value in os.environ.items()
@@ -208,7 +219,7 @@ def main():
             contracts = set(re.findall(r'(?m)^\s*\{"([^"]+)"',
                 (root/f'src/ir/xl6_ir_{family}_contracts.inc').read_text()))
             if family == 'concurrent':
-                contracts.update(re.findall(r'(?m)^XL6_NATIVE_GENERIC_BRIDGE\("([^"]+)"',
+                contracts.update(re.findall(r'(?m)^XL6_NATIVE_GENERIC_BRIDGE\("([^"]+)"\s*,\s*"xl6PromiseDestroyV1"\s*,',
                     (root/'src/abi/xl6_native_generic_contracts.inc').read_text()))
             assert exports == declarations == contracts
             if entries is not None: assert len(exports) == entries
@@ -289,7 +300,9 @@ def main():
                                                  'stdlib_channel_cancellation','stdlib_channel_cancel_only','stdlib_channel_cancel_flow',
                                                  'stdlib_channel_materialization'))) or (
                 args.native_factory_inheritance and name in ('xlir_native_factory_inherited',
-                    'xlir_native_static_factory','xlir_native_factory_ordinary_inheritance'))
+                    'xlir_native_static_factory','xlir_native_factory_ordinary_inheritance')) or (
+                args.channel_case_language and name in ('stdlib_channel_cases','stdlib_channel_cases_threads',
+                    'stdlib_channel_cases_owned','xlir_generic_static_calls','stdlib_channel_cases_receive_only'))
             if not full:
                 return
             work = out/(name+'.saved')
@@ -324,7 +337,7 @@ def main():
             assert target.read_bytes() == b'UNCHANGED\n'
             if name in ('bad_stdlib_atomic_private_handle', 'bad_stdlib_event_private_handle',
                         'bad_stdlib_thread_local_private', 'bad_stdlib_cancellation_private',
-                        'bad_stdlib_promise_private'): assert b'private' in output
+                        'bad_stdlib_promise_private','bad_channel_cases_private'): assert b'private' in output
             if name in ('bad_xlir_atomic_product', 'bad_xlir_once_callback'): assert b'exact declared ABI' in output
         failures = []
         report['Failures'] = failures
@@ -353,7 +366,31 @@ def main():
                     else:raise AssertionError('Inherited native language allocation prefix did not close')
                     report['NativeFactoryPrefixes'][lane]=dict(FirstNoHit=point,RecoveredRetirement=recovered)
                     save()
+        if args.channel_case_language and not failures:
+            module=out/'stdlib_channel_cases_owned.saved/module.c'
+            report['ChannelCaseLanguagePrefixes']={}
+            for product in products[1:]:
+                for opt in ('O0','O2'):
+                    lane=product.stem+'.channel-cases.'+opt
+                    binary=isolated/(lane+('.exe' if win else ''))
+                    run(lane+'.build',[cc,*strict,'-'+opt,
+                        '-DXLIR_GENERATED_MODULE="'+module.as_posix()+'"',cases/'stdlib_channel_cases_oom_host.c',
+                        task/'test/support/module_product_memory.c',*links(product.name),'-o',binary])
+                    recovered=[]
+                    for point in range(4097):
+                        body=run(lane+'.'+str(point),[binary,point])
+                        if b'recovered=1' in body:recovered.append(point)
+                        if b'hit=0 complete-prefix balanced' in body:break
+                    else:raise AssertionError('Public Channel case allocation prefix did not close')
+                    report['ChannelCaseLanguagePrefixes'][lane]=dict(FirstNoHit=point,RecoveredRetirement=recovered)
+                    save()
         if not win and not failures:
+            if args.channel_case_language:
+                contract=isolated/'channel-cases-contract'
+                run('channel-cases-contract.build',[cc,*flags,'-O2','-I'+str(root),
+                    '-I'+str(root/'release/include'),'-I'+str(root/'lib/tcc'),cases/'xlir_channel_cases_contract.c',
+                    *links(names[2]),'-o',contract])
+                run('channel-cases-contract.run',[contract,isolated/'stdlib_channel_cases.xl'])
             if args.native_factory_inheritance:
                 contract=isolated/'native-factory-contract'
                 run('native-factory-contract.build',[cc,*flags,'-O2','-I'+str(root),
@@ -432,6 +469,17 @@ def main():
                         'xl6_channel.c','xl6_channel_admission.c','xl6_ownership_domain_channel.c',
                         'xl6_channel_wait.c','xl6_channel_cancel.c','xl6_channel_select.c','xl6_channel_select_cancel.c'}}
                     assert scoped == expected, (name, scoped)
+                if args.channel_case_language:
+                    case_sources={'xl6_channel_case.c','xl6_channel_cases_select.c','xl6_channel_cases_select_cancel.c',
+                        'xl6_ownership_domain_channel_case.c','xl6_channel_case_language.c','xl6_channel_case_array.c',
+                        'xl6_channel_select_language.c','xl6_channel_select_cancel_language.c'}
+                    for name,expected in (('stdlib_channel_cases',case_sources),
+                        ('stdlib_channel_cases_receive_only',{'xl6_channel_case.c','xl6_ownership_domain_channel_case.c',
+                            'xl6_channel_case_language.c'}),('stdlib_concurrent_import_only',set())):
+                        plan=json.loads(run(name+'.cases-plan',[planner,isolated/(name+'.xl')]))
+                        assert {Path(path).name for path in plan['Sources']} & case_sources == expected,(name,plan)
+                        if name!='stdlib_channel_cases':
+                            assert not {'XRT_MODULE_CHANNEL_SELECT','XRT_MODULE_CHANNEL_SELECT_CANCEL'} & set(plan['NativeModules'])
         if args.stage=='channel-select-native':
             # Native-only symbol-root plans. These do NOT certify a source
             # Channel select surface before its independent typed IR cutover.

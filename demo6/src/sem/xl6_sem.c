@@ -7088,6 +7088,23 @@ static XL6_AstNode* xl6SemCloneInvocationReturnTypes(
     return returns;
 }
 
+/* A static invocation has the same two substitutions as an instance call:
+ * concrete owner arguments and inferred/explicit method arguments. Return
+ * queries stay pure and never write a move/borrow plan. */
+static XL6_AstNode* xl6SemCloneStaticInvocationReturns(XL6_SemContext* ctx,
+    XL6_AstNode* call,XL6_AstNode* method)
+{
+    const XL6_AstNode* member=call && call->childCount ? call->children[0] : NULL;
+    if(!member || !member->childCount || !method || method->childCount<=2)return NULL;
+    XL6_AstNode* owner=xl6SemInferAutoTypeNode(ctx,member->children[0]);
+    const XL6_AstNode* concrete=xl6SemClassValueType(ctx,owner);
+    XL6_AstNode* declaration=concrete && concrete->text ? xl6SemFindTypeDecl(ctx,concrete->text) : NULL;
+    XL6_AstNode* args=xl6SemInferCallTypeArgs(ctx,call,method);
+    XL6_AstNode* result=xl6SemCloneInvocationReturnTypes(ctx,declaration,
+        xl6SemTypeNodeGenericArgs(concrete),method,args,call);
+    xl6AstFree(args);xl6AstFree(owner);return result;
+}
+
 static XL6_AstNode* xl6SemCallReturnTypesEx(XL6_SemContext* ctx, XL6_AstNode* expr, XL6_AstNode** ownedType)
 {
     XL6_AstNode* callee;
@@ -7181,8 +7198,8 @@ static XL6_AstNode* xl6SemCallReturnTypesEx(XL6_SemContext* ctx, XL6_AstNode* ex
         }
         XL6_AstNode* staticMethod = xl6SemResolveStaticClassFuncCall(ctx, expr, 0);
         if ( staticMethod != NULL && staticMethod->childCount > 2 ) {
-            if (ownedType != NULL && staticMethod->kind == XL6_AST_ASYNC_FUNC) {
-                *ownedType = xl6SemCloneInvocationReturnTypes(ctx, NULL, NULL, staticMethod, NULL, expr);
+            if (ownedType != NULL) {
+                *ownedType = xl6SemCloneStaticInvocationReturns(ctx,expr,staticMethod);
                 return *ownedType;
             }
             return staticMethod->children[2];
@@ -11081,30 +11098,31 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
          xl6SemClassDeclFromTypeMemberReceiver(ctx, node->children[0]) != NULL ) {
         XL6_AstNode* staticClass =
             xl6SemClassDeclFromTypeMemberReceiver(ctx, node->children[0]);
+        XL6_AstNode* staticOwner=xl6SemInferAutoTypeNode(ctx,node->children[0]->children[0]);
+        const XL6_AstNode* staticArgs=xl6SemTypeNodeGenericArgs(staticOwner);
+        XL6_AstNode* concreteStatic=NULL;
         func = xl6SemResolveStaticClassFuncCall(ctx, node, 1);
         if ( func != NULL ) {
             xl6SemSetCallPlan(node, XL6_SEM_CALL_STATIC_METHOD, func);
-            if ( func->kind == XL6_AST_ASYNC_FUNC ) {
-                XL6_AstNode* resultType = xl6SemCloneAsyncMemberCallResultType(
-                    ctx,
-                    node,
-                    staticClass,
-                    NULL,
-                    func);
-
-                if ( resultType == NULL ) {
-                    xl6SemErrorNode(
-                        ctx,
-                        node,
-                        "out of memory while recording async static method result type");
-                    ok = 0;
-                } else {
-                    xl6AstFree(node->inferredType);
-                    node->inferredType = resultType;
+            if(staticArgs && xl6SemClassHasTypeParams(staticClass)) {
+                concreteStatic=xl6SemSubstituteClassType(staticClass,staticArgs,func);
+                if(!concreteStatic) {
+                    xl6SemErrorNode(ctx,node,"cannot close static generic class callable");ok=0;
                 }
             }
+            XL6_AstNode* returns=xl6SemCloneStaticInvocationReturns(ctx,node,func);
+            if(!returns) {
+                xl6SemErrorNode(ctx,node,"cannot close static invocation result types");ok=0;
+            } else if(returns->childCount==1) {
+                XL6_AstNode* resultType=xl6SemCloneTypeNode(returns->children[0]);
+                if(!resultType){xl6SemErrorNode(ctx,node,"cannot record static invocation result type");ok=0;}
+                else {
+                    xl6AstFree(node->inferredType);node->inferredType=resultType;
+                }
+            }
+            xl6AstFree(returns);
         }
-        if ( func != NULL && !xl6SemCheckKnownCall(ctx, node, func) ) {
+        if ( func != NULL && !xl6SemCheckKnownCall(ctx, node, concreteStatic ? concreteStatic : func) ) {
             ok = 0;
         } else if ( func == NULL ) {
             XL6_AstNode* memberType = xl6SemCloneMemberFieldType(ctx, node->children[0]);
@@ -11114,6 +11132,7 @@ static int xl6SemCheckCall(XL6_SemContext* ctx, XL6_AstNode* node)
             }
             xl6AstFree(memberType);
         }
+        xl6AstFree(concreteStatic);xl6AstFree(staticOwner);
         return ok;
     }
 
@@ -11945,10 +11964,10 @@ static const char* xl6SemExprStaticTypeName(XL6_SemContext* ctx, XL6_AstNode* ex
             }
             XL6_AstNode* staticMethod = xl6SemResolveStaticClassFuncCall(ctx, expr, 0);
             if ( staticMethod != NULL && staticMethod->childCount > 2 ) {
-                const XL6_AstNode* staticReturns = staticMethod->children[2];
-                if ( staticReturns != NULL && staticReturns->childCount == 1 ) {
-                    return xl6SemResolveAliasTypeName(ctx, staticReturns->children[0]);
-                }
+                XL6_AstNode* returns=xl6SemCloneStaticInvocationReturns(ctx,expr,staticMethod);
+                const char* name=returns && returns->childCount==1 ?
+                    xl6SemStaticTypeNameFromTypeNode(ctx,returns->children[0]) : NULL;
+                xl6AstFree(returns);return name;
             }
             {
             XL6_AstNode* classReturnType = xl6SemCloneClassMemberCallReturnType(ctx, expr);
@@ -12324,6 +12343,11 @@ static int xl6SemChannelElementTypeIsMessageSafe(XL6_SemContext* ctx, const XL6_
     concreteType = xl6SemResolveAliasType(ctx, typeNode);
     name = concreteType != NULL ? concreteType->text : NULL;
     if ( name == NULL ) return 0;
+    if(xl6SemTypeIsNullable(concreteType))
+        return xl6SemChannelElementTypeIsMessageSafe(ctx,xl6SemNullableInnerType(concreteType));
+    /* A template has no executable message representation. Its concrete
+     * specialization must still close the resident Channel recipe in XLIR. */
+    if(!concreteType->childCount && xl6SemFindTypeParam(ctx,name))return 1;
     if (xl6TextEquals(name, "var") || xl6SemChannelElementTypeIsFirstStageSafe(ctx, typeNode)) return 1;
     /* Nominal classes already have the managed xvalue retain/move/drop ABI
      * proved by XLIR. Sending shares that object, not its caller's variable
@@ -20272,7 +20296,7 @@ static int xl6SemCheckExternCAbi(XL6_SemContext* ctx, XL6_AstNode* node)
      * specialization. Its closed descriptor selects a const slot-address
      * boundary; typed XLIR verifies the exact owner T and complete signature.
      * Undeclared externs keep the ordinary C ABI restrictions. */
-    if(xl6NativeGenericRole(node->text)==XL6_NATIVE_GENERIC_RESOLVE)return 1;
+    if(xl6NativeGenericRole(node->text)!=XL6_NATIVE_GENERIC_NONE)return 1;
 
     params = node->childCount > 1 ? node->children[1] : NULL;
     if ( params != NULL ) {
@@ -22165,7 +22189,11 @@ static int xl6SemCheckClassNativeExternBase(XL6_SemContext* ctx, XL6_AstNode* cl
         xl6SemErrorNode(ctx, node, "native-backed class extern member cannot be static");
         ok = 0;
     }
-    if ( !xl6SemClassDeclHasNativeHandle(ctx, classNode) ) {
+    /* Static native functions have no receiver to project. Their complete C
+     * signature is checked independently; requiring an unused instance field
+     * would add storage without granting any physical capability. */
+    if ( !xl6SemAstHasFlag(node, XL6_AST_FLAG_STATIC) &&
+         !xl6SemClassDeclHasNativeHandle(ctx, classNode) ) {
         xl6SemErrorNode(ctx, node, "native-backed class extern member requires native point handle field");
         ok = 0;
     }
@@ -22465,6 +22493,8 @@ static XL6_AstNode* xl6SemClassDeclFromTypeMemberReceiver(XL6_SemContext* ctx, X
         return NULL;
     }
     receiver = member->children[0];
+    if ( receiver != NULL && receiver->kind == XL6_AST_GENERIC_INSTANT && receiver->childCount > 0 )
+        receiver = receiver->children[0];
     if ( receiver == NULL || receiver->kind != XL6_AST_NAME || receiver->text == NULL ) {
         return NULL;
     }
@@ -22555,7 +22585,15 @@ static XL6_AstNode* xl6SemResolveStaticClassFuncCall(
     if ( classNode == NULL ) {
         return NULL;
     }
-    return xl6SemResolveStaticClassFuncEx(ctx, call, classNode, callee->text, report);
+    if(!xl6SemClassHasTypeParams(classNode))
+        return xl6SemResolveStaticClassFuncEx(ctx,call,classNode,callee->text,report);
+    XL6_AstNode* ownerType=xl6SemInferAutoTypeNode(ctx,callee->children[0]);
+    if(!xl6SemTypeNodeGenericArgs(ownerType)) {
+        if(report)xl6SemErrorNode(ctx,callee,"generic static owner requires explicit type arguments");
+        xl6AstFree(ownerType);return NULL;
+    }
+    XL6_AstNode* result=xl6SemResolveClassFuncExMode(ctx,call,classNode,ownerType,callee->text,1,report);
+    xl6AstFree(ownerType);return result;
 }
 
 static XL6_AstNode* xl6SemCloneRecordFieldType(

@@ -1,0 +1,4 @@
+import concurrent
+channel<int> pipe = channel::<int>(1)
+auto receiving = ChannelCase.receive(pipe)
+auto raw = receiving.handle

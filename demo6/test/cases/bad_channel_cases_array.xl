@@ -1,0 +1,2 @@
+import concurrent
+auto selected = ChannelSelection.trySelect([1, 2, 3])

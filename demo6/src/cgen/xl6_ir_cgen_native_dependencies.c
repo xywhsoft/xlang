@@ -411,6 +411,22 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             module->callTargets[t].runtimeBridge==XL6_IR_RUNTIME_BRIDGE_FS_PATH_BUILD &&
             !visitor(context,"xl6_xrt_fs_path_build"))return 0;
     if(needs.needsNativeFuturePayloadRuntime && !visitor(context,"xl6NativeFuturePayloadRuntimeV1Get"))return 0;
+    for(size_t t=0;t<module->callTargetCount;++t) {
+        const XL6_IrCallTarget* target=&module->callTargets[t];
+        if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1) {
+            const XL6_IrClassField* field=xl6IrNativeClassArrayContextField(module,target);
+            const XL6_IrType* array=xl6IrTypeGet(&module->types,target->nativeContextType);
+            if(!field || !array || !visitor(context,field->nativeHandlePolicyCName) ||
+                !xl6IrCgenVisitSlotProviders(array->sequenceLayout.slotAbi,0,visitor,context))return 0;
+            continue;
+        }
+        if(target->nativeContextAbi!=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1)continue;
+        XL6_IrTypeId schemaId=0;
+        if(!xl6IrChannelConstructionRecipe(module,target->nativeContextType,&schemaId,NULL))return 0;
+        const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
+        if(!schema || !xl6IrCgenVisitSlotProviders(schema->sequenceLayout.slotAbi,0,visitor,context))return 0;
+    }
     for(size_t t=0;t<module->closureTargetCount;++t){
         const XL6_IrClosureTarget* target=&module->closureTargets[t];
         if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
