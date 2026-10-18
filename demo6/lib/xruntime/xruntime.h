@@ -3213,6 +3213,16 @@
 #endif
 #endif
 
+/* channel_subscribe 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_CHANNEL_SUBSCRIBE)
+#ifndef XRT_FEATURE_CHANNEL_SUBSCRIBE
+#define XRT_FEATURE_CHANNEL_SUBSCRIBE
+#endif
+#ifndef XRT_MODULE_CHANNEL_SELECT
+#define XRT_MODULE_CHANNEL_SELECT
+#endif
+#endif
+
 /* channel_select 及其直接依赖。 */
 #if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_CHANNEL_SELECT)
 #ifndef XRT_FEATURE_CHANNEL_SELECT
@@ -31846,6 +31856,80 @@ XRT_EXTERN_C_END
 
 #endif
 
+#endif
+
+
+/* ========================================================================== */
+/* public: include/xrt/channel_subscribe.h */
+/* ========================================================================== */
+
+#ifndef XRT_CHANNEL_SUBSCRIBE_H
+#define XRT_CHANNEL_SUBSCRIBE_H
+
+
+#if defined(XRT_FEATURE_CHANNEL_SUBSCRIBE) && !defined(XRT_FEATURE_CHANNEL_SELECT)
+	#error "XRT_FEATURE_CHANNEL_SUBSCRIBE requires XRT_FEATURE_CHANNEL_SELECT"
+#endif
+
+#if defined(XRT_FEATURE_CHANNEL_SUBSCRIBE)
+
+typedef struct xchannelsubscription xchannelsubscription;
+
+/* Copied at Create: no caller output address is retained. Channel and payload
+ * remain caller-owned, as for ChannelSelect. Keep every Channel alive until
+ * completion and until all concurrent originating Channel calls have returned. */
+typedef struct xchannelsubscribecase {
+	xchannel* Channel;
+	xchannelop Operation;
+	ptr Value;
+} xchannelsubscribecase;
+
+/* Success consumes ONE real Data reference, failure none. Notify borrows it
+ * and runs exactly once, after physical unlink, on Start/Stop or a Channel
+ * caller's thread, OUTSIDE all Channel locks. It may reenter and release the
+ * subscription's external reference. Drop returns Data exactly once, after all
+ * dispatch/call tails and the last external reference retire. Policy and code
+ * must outlive that Drop. This raw observer is opaque to ownership collection;
+ * merely registering it does not certify its context or invent graph edges. */
+typedef struct xchannelsubscribepolicyv1 {
+	size_t size;
+	void (*Notify)(xchannelsubscription* pSubscription, ptr pData);
+	void (*Drop)(const void* pData);
+} xchannelsubscribepolicyv1;
+
+XRT_EXTERN_C_BEGIN
+
+/* All storage and case validation precede publication. No Channel operation,
+ * callback, worker, coroutine stack or timer is started here. */
+XRT_API xchannelsubscription* xrtChannelSubscribeCreateV1(
+	const xchannelsubscribecase* pCases, size_t iCount,
+	ptr pData, const xchannelsubscribepolicyv1* pPolicy);
+
+/* Admit once. May complete and notify inline before returning. On success no
+ * allocation is needed to wait, wake, select, stop or unlink. */
+XRT_API bool xrtChannelSubscribeStart(xchannelsubscription* pSubscription);
+
+XRT_API xchannelsubscription* xrtChannelSubscribeRef(xchannelsubscription* pSubscription);
+
+/* Consume one external reference. Last release requests cancellation of a
+ * pending operation, but does not undo a committed send/receive. Never waits
+ * for a callback; internal dispatch credits delay physical destruction. */
+XRT_API void xrtChannelSubscribeDestroy(xchannelsubscription* pSubscription);
+
+/* Record the first CANCELLED/TIMEOUT/ERROR stop request; true means recorded,
+ * not that it beat a ready case. Can be requested before Start. Runtime timers
+ * call this API: this module does not allocate a per-wait timer/worker/thread. */
+XRT_API bool xrtChannelSubscribeStop(xchannelsubscription* pSubscription, xwaitresult iReason);
+
+/* false while pending; outputs remain unchanged. After Ready, copies the
+ * immutable result and received raw pointer (NULL also is a valid message).
+ * Output addresses are used only during this call, never retained. */
+XRT_API bool xrtChannelSubscribeResult(const xchannelsubscription* pSubscription,
+	xchannelselectresult* pResult, ptr* pValue);
+
+XRT_EXTERN_C_END
+
+#endif
 #endif
 
 
@@ -61241,6 +61325,14 @@ int __xrtFormatWrite(
 
 typedef struct xrt_channel_select_state xrt_channel_select_state;
 typedef struct xrt_channel_select_waiter xrt_channel_select_waiter;
+
+#if defined(XRT_FEATURE_CHANNEL_SUBSCRIBE)
+/* Preallocated, coalesced work; Dispatch never runs under a Channel mutex. */
+typedef struct xrt_channel_deferred {
+	struct xrt_channel_deferred* Next;
+	void (*Dispatch)(struct xrt_channel_deferred* pWork);
+} xrt_channel_deferred;
+#endif
 typedef void (*xrt_channel_select_wake_proc)(ptr pData);
 typedef bool (*xrt_channel_select_prepare_proc)(ptr pData);
 typedef xwaitresult (*xrt_channel_select_wait_proc)(
@@ -61256,6 +61348,9 @@ struct xrt_channel_select_state {
 	xrt_channel_select_wake_proc Wake;
 	ptr WakeData;
 	xwaitresult StopResult;
+	#if defined(XRT_FEATURE_CHANNEL_SUBSCRIBE)
+		xrt_channel_deferred* Deferred;
+	#endif
 };
 
 
@@ -61301,6 +61396,10 @@ typedef struct xrt_channel_impl {
 		ptr SelectWaiters;
 	#endif
 	uint64 Epoch;
+	#if defined(XRT_FEATURE_CHANNEL_SUBSCRIBE)
+		xrt_channel_deferred* DeferredHead;
+		xrt_channel_deferred* DeferredTail;
+	#endif
 } xrt_channel_impl;
 
 
@@ -61356,6 +61455,19 @@ xchannelresult __xrtChannelTryRecvLocked(
 
 
 #if defined(XRT_INTERNAL_CHANNEL_WAIT)
+
+/* Shared split-phase engine: subscriptions own their nodes and private output
+ * until physical unlink; synchronous drivers alone use stack waiters. */
+bool __xrtChannelSelectCasesValid(const xchannelcase*,size_t);
+size_t __xrtChannelSelectStartIndex(size_t);
+xchannelselectresult __xrtChannelSelectTryCases(const xchannelcase*,size_t,size_t);
+bool __xrtChannelSelectRegister(xrt_channel_select_waiter*);
+void __xrtChannelSelectUnregisterAll(xrt_channel_select_waiter*,size_t);
+void __xrtChannelSelectTryWaiters(xrt_channel_select_waiter*,size_t,size_t);
+bool __xrtChannelSelectStop(xrt_channel_select_state*,xwaitresult);
+#if defined(XRT_FEATURE_CHANNEL_SUBSCRIBE)
+void __xrtChannelSubscriptionWakeLocked(xrt_channel_impl*,xrt_channel_deferred*);
+#endif
 
 /* 用调用方提供的等待驱动完成一次同步或协程 Select。 */
 xchannelselectresult __xrtChannelSelectWait(
@@ -206801,7 +206913,21 @@ xrt_channel_impl* __xrtChannelLock(xchannel* pChannel)
 /* 解锁已经验证的 Channel。 */
 void __xrtChannelUnlock(xrt_channel_impl* pImpl)
 {
+	#if defined(XRT_FEATURE_CHANNEL_SUBSCRIBE)
+		xrt_channel_deferred* pWork=pImpl->DeferredHead;
+		pImpl->DeferredHead=NULL;
+		pImpl->DeferredTail=NULL;
+	#endif
 	(void)xrtMutexUnlock(&pImpl->Mutex);
+	#if defined(XRT_FEATURE_CHANNEL_SUBSCRIBE)
+		/* Dispatch may destroy a now-idle Channel; do not access pImpl again. */
+		while(pWork) {
+			xrt_channel_deferred* pNext=pWork->Next;
+			pWork->Next=NULL;
+			pWork->Dispatch(pWork);
+			pWork=pNext;
+		}
+	#endif
 }
 
 
@@ -207156,14 +207282,24 @@ static xwaitresult __xrtChannelStop(
 
 /* 等待指定条件变量，并保留锁内重新检查谓词的机会。 */
 static xwaitresult __xrtChannelWaitCondition(
+	xrt_channel_impl* pImpl,
 	xcond* pCond,
-	xmutex* pMutex,
 	xdeadline iDeadline
 )
 {
+	#if defined(XRT_FEATURE_CHANNEL_SUBSCRIBE)
+		/* An offer/reader registration can make a subscription ready. Dispatch
+		 * it BEFORE sleeping: cond-wait's implicit unlock cannot drain our
+		 * queue. Recheck the predicate after reacquiring, never sleep on a
+		 * notification already delivered by that synchronous dispatch. */
+		if(pImpl->DeferredHead) {
+			__xrtChannelUnlock(pImpl);
+			return xrtMutexLock(&pImpl->Mutex) ? XWAIT_OK : XWAIT_ERROR;
+		}
+	#endif
 	return iDeadline == XRT_DEADLINE_NEVER ?
-		xrtCondWait(pCond, pMutex) :
-		xrtCondWaitUntil(pCond, pMutex, iDeadline);
+		xrtCondWait(pCond, &pImpl->Mutex) :
+		xrtCondWaitUntil(pCond, &pImpl->Mutex, iDeadline);
 }
 
 
@@ -207266,8 +207402,8 @@ static xwaitresult __xrtChannelSendWait(
 			}
 		}
 		iResult = __xrtChannelWaitCondition(
+			pImpl,
 			&pImpl->Writable,
-			&pImpl->Mutex,
 			iDeadline
 		);
 		if ( iResult == XWAIT_ERROR ) {
@@ -207335,8 +207471,8 @@ static xwaitresult __xrtChannelRecvWait(
 			break;
 		}
 		iResult = __xrtChannelWaitCondition(
+			pImpl,
 			&pImpl->Readable,
-			&pImpl->Mutex,
 			iDeadline
 		);
 		if ( iResult == XWAIT_ERROR ) {
@@ -208365,6 +208501,26 @@ XRT_API bool xrtEventReset(xevent* pEvent)
 /* 全局轮转票据避免固定从第一个 case 开始造成长期偏置。 */
 static xatomic32 __xrtChannelSelectTicket = XRT_ATOMIC32_INIT(0);
 
+size_t __xrtChannelSelectStartIndex(size_t iCount)
+{
+	return iCount==1u ? 0 : xrtAtomic32FetchAdd(
+		&__xrtChannelSelectTicket,1u,XMEMORY_RELAXED)%iCount;
+}
+
+static void __xrtChannelSelectNotifyLocked(xrt_channel_impl* pImpl,
+	xrt_channel_select_state* pSelect)
+{
+	#if defined(XRT_FEATURE_CHANNEL_SUBSCRIBE)
+		if(pSelect->Deferred) {
+			__xrtChannelSubscriptionWakeLocked(pImpl,pSelect->Deferred);
+			return;
+		}
+	#else
+		(void)pImpl;
+	#endif
+	pSelect->Wake(pSelect->WakeData);
+}
+
 
 
 /* 构造一个没有 case 被选中的结果。 */
@@ -208411,7 +208567,7 @@ static uint32 __xrtChannelSelectWinner(
 
 
 /* 把未提交的 Select 固定为超时、取消或平台错误。 */
-static bool __xrtChannelSelectStop(
+bool __xrtChannelSelectStop(
 	xrt_channel_select_state* pSelect,
 	xwaitresult iResult
 )
@@ -208464,7 +208620,7 @@ static xwaitresult __xrtChannelSelectStopReason(
 
 
 /* 检查 case 数组、操作、对象、输出和跨 Channel 别名。 */
-static bool __xrtChannelSelectCasesValid(
+bool __xrtChannelSelectCasesValid(
 	const xchannelcase* pCases,
 	size_t iCount
 )
@@ -208610,7 +208766,7 @@ static xchannelresult __xrtChannelSelectTryCase(
 
 
 /* 按轮转起点尝试全部未注册 case。 */
-static xchannelselectresult __xrtChannelSelectTryCases(
+xchannelselectresult __xrtChannelSelectTryCases(
 	const xchannelcase* pCases,
 	size_t iCount,
 	size_t iStart
@@ -208637,7 +208793,7 @@ static xchannelselectresult __xrtChannelSelectTryCases(
 
 
 /* 把一个等待节点追加到 Channel，保持同类选择者的注册顺序。 */
-static bool __xrtChannelSelectRegister(
+bool __xrtChannelSelectRegister(
 	xrt_channel_select_waiter* pWaiter
 )
 {
@@ -208693,7 +208849,7 @@ static void __xrtChannelSelectUnregister(
 
 
 /* 依次移除当前 Select 已经注册的全部节点。 */
-static void __xrtChannelSelectUnregisterAll(
+void __xrtChannelSelectUnregisterAll(
 	xrt_channel_select_waiter* pWaiters,
 	size_t iCount
 )
@@ -208759,7 +208915,7 @@ static void __xrtChannelSelectTryWaiter(
 
 
 /* 按轮转起点尝试全部已注册 case。 */
-static void __xrtChannelSelectTryWaiters(
+void __xrtChannelSelectTryWaiters(
 	xrt_channel_select_waiter* pWaiters,
 	size_t iCount,
 	size_t iStart
@@ -208833,12 +208989,7 @@ xchannelselectresult __xrtChannelSelectWait(
 	if ( !__xrtChannelSelectCasesValid(pCases, iCount) ) {
 		return __xrtChannelSelectEmpty(XWAIT_ERROR);
 	}
-	iStart = iCount == 1u ? 0 :
-		xrtAtomic32FetchAdd(
-			&__xrtChannelSelectTicket,
-			1u,
-			XMEMORY_RELAXED
-		) % iCount;
+	iStart=__xrtChannelSelectStartIndex(iCount);
 	tTry = __xrtChannelSelectTryCases(
 		pCases,
 		iCount,
@@ -209018,7 +209169,7 @@ void __xrtChannelNotifySelectLocked(xrt_channel_impl* pImpl)
 	}
 	pWaiter = pImpl->SelectWaiters;
 	while ( pWaiter != NULL ) {
-		pWaiter->Select->Wake(pWaiter->Select->WakeData);
+		__xrtChannelSelectNotifyLocked(pImpl,pWaiter->Select);
 		pWaiter = pWaiter->Next;
 	}
 }
@@ -209055,7 +209206,7 @@ void __xrtChannelSelectCommit(
 		pWaiter->Index,
 		XMEMORY_RELEASE
 	);
-	pWaiter->Select->Wake(pWaiter->Select->WakeData);
+	__xrtChannelSelectNotifyLocked((xrt_channel_impl*)pWaiter->Channel,pWaiter->Select);
 }
 
 
@@ -209119,12 +209270,7 @@ static xchannelselectresult __xrtChannelSelectTry(
 	if ( !__xrtChannelSelectCasesValid(pCases, iCount) ) {
 		return __xrtChannelSelectEmpty(XWAIT_ERROR);
 	}
-	iStart = iCount == 1u ? 0 :
-		xrtAtomic32FetchAdd(
-			&__xrtChannelSelectTicket,
-			1u,
-			XMEMORY_RELAXED
-		) % iCount;
+	iStart=__xrtChannelSelectStartIndex(iCount);
 	return __xrtChannelSelectTryCases(
 		pCases,
 		iCount,
@@ -209305,6 +209451,317 @@ XRT_API xchannelselectresult xrtChannelSelectUntilCancel(
 #endif
 
 #endif
+
+#endif
+#endif
+
+
+/* ========================================================================== */
+/* source: src/concurrency/channel_subscribe.c */
+/* ========================================================================== */
+
+#if defined(XRT_FEATURE_CHANNEL_SUBSCRIBE)
+
+#if defined(XRT_FEATURE_CHANNEL_SUBSCRIBE)
+
+#define XRT_CHANNEL_SUB_DRIVER 1u
+#define XRT_CHANNEL_SUB_DIRTY 2u
+
+struct xchannelsubscription {
+	/* External refs and admitted public calls leave two credits for the one
+	 * registration and the one coalesced dispatcher. Never wrap a counter. */
+	xatomic32 References;
+	xatomic32 External;
+	xatomic32 Started;
+	xatomic32 Ready;
+	xatomic32 Stop;
+	xatomic32 Dispatch;
+	xrt_channel_deferred Work;
+	xrt_channel_select_state Select;
+	size_t Count;
+	size_t Start;
+	ptr Received;
+	ptr Data;
+	const xchannelsubscribepolicyv1* Policy;
+	xchannelselectresult Result;
+	xrt_channel_select_waiter Waiters[];
+};
+
+static void __xrtChannelSubscriptionDrive(xchannelsubscription* pSubscription);
+
+static bool __xrtChannelSubscriptionRetain(xchannelsubscription* pSubscription,
+	uint32 iReserve)
+{
+	uint32 iRefs=xrtAtomic32Load(&pSubscription->References,XMEMORY_RELAXED);
+	while(iRefs && iRefs<UINT32_MAX-iReserve) {
+		if(xrtAtomic32CompareExchange(&pSubscription->References,&iRefs,iRefs+1u,
+			XMEMORY_RELAXED,XMEMORY_RELAXED)) return true;
+	}
+	__xrtErrorSetSizeOverflow();
+	return false;
+}
+
+static void __xrtChannelSubscriptionRelease(xchannelsubscription* pSubscription)
+{
+	if(xrtAtomic32FetchSub(&pSubscription->References,1u,XMEMORY_ACQ_REL)==1u) {
+		/* No mutex or public mutation scope is held across owner code. */
+		pSubscription->Policy->Drop(pSubscription->Data);
+		xrtFree(pSubscription);
+	}
+}
+
+/* Claim a single dispatcher before publishing its intrusive node. All wakes
+ * during registration/dispatch only set DIRTY; the final CAS closes the lost-
+ * wake window. The caller already owns a registration or external credit. */
+static bool __xrtChannelSubscriptionSchedule(xchannelsubscription* pSubscription)
+{
+	uint32 iFlags=xrtAtomic32FetchOr(&pSubscription->Dispatch,
+		XRT_CHANNEL_SUB_DIRTY,XMEMORY_ACQ_REL)|XRT_CHANNEL_SUB_DIRTY;
+	while(!(iFlags&XRT_CHANNEL_SUB_DRIVER)) {
+		if(xrtAtomic32CompareExchange(&pSubscription->Dispatch,&iFlags,
+			iFlags|XRT_CHANNEL_SUB_DRIVER,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE)) {
+			/* Reserved internal credit: at most one dispatcher per subscription. */
+			(void)__xrtChannelSubscriptionRetain(pSubscription,0u);
+			return true;
+		}
+	}
+	return false;
+}
+
+static xchannelsubscription* __xrtChannelSubscriptionFromWork(xrt_channel_deferred* pWork)
+{
+	return (xchannelsubscription*)((uint8*)pWork-
+		offsetof(xchannelsubscription,Work));
+}
+
+static void __xrtChannelSubscriptionDispatch(xrt_channel_deferred* pWork)
+{
+	xchannelsubscription* pSubscription=__xrtChannelSubscriptionFromWork(pWork);
+	__xrtChannelSubscriptionDrive(pSubscription);
+	__xrtChannelSubscriptionRelease(pSubscription);
+}
+
+void __xrtChannelSubscriptionWakeLocked(xrt_channel_impl* pImpl,
+	xrt_channel_deferred* pWork)
+{
+	xchannelsubscription* pSubscription=__xrtChannelSubscriptionFromWork(pWork);
+	if(!__xrtChannelSubscriptionSchedule(pSubscription)) return;
+	pWork->Next=NULL;
+	if(pImpl->DeferredTail) pImpl->DeferredTail->Next=pWork;
+	else pImpl->DeferredHead=pWork;
+	pImpl->DeferredTail=pWork;
+}
+
+static void __xrtChannelSubscriptionWake(ptr pData)
+{
+	xchannelsubscription* pSubscription=(xchannelsubscription*)pData;
+	if(__xrtChannelSubscriptionSchedule(pSubscription))
+		__xrtChannelSubscriptionDispatch(&pSubscription->Work);
+}
+
+static void __xrtChannelSubscriptionComplete(xchannelsubscription* pSubscription,
+	uint32 iWinner)
+{
+	__xrtChannelSelectUnregisterAll(pSubscription->Waiters,pSubscription->Count);
+	pSubscription->Result.Index=XCHANNEL_SELECT_NONE;
+	pSubscription->Result.Result=XCHANNEL_ERROR;
+	if(iWinner<=XRT_CHANNEL_SELECT_MAX_INDEX) {
+		pSubscription->Result.Index=iWinner;
+		pSubscription->Result.Result=pSubscription->Waiters[iWinner].Result;
+		pSubscription->Result.Wait=pSubscription->Result.Result==XCHANNEL_ERROR ?
+			XWAIT_ERROR : XWAIT_OK;
+	} else pSubscription->Result.Wait=pSubscription->Select.StopResult;
+	xrtAtomic32Store(&pSubscription->Ready,1u,XMEMORY_RELEASE);
+	/* Return the physical registration credit before Notify; the dispatcher
+	 * still protects the complete object, including reentrant last Destroy. */
+	__xrtChannelSubscriptionRelease(pSubscription);
+	pSubscription->Policy->Notify(pSubscription,pSubscription->Data);
+}
+
+static void __xrtChannelSubscriptionDrive(xchannelsubscription* pSubscription)
+{
+	for(;;) {
+		uint32 iExpected;
+		xrtAtomic32FetchAnd(&pSubscription->Dispatch,~XRT_CHANNEL_SUB_DIRTY,
+			XMEMORY_ACQ_REL);
+		if(!xrtAtomic32Load(&pSubscription->Ready,XMEMORY_ACQUIRE)) {
+			uint32 iWinner=xrtAtomic32Load(&pSubscription->Select.Winner,XMEMORY_ACQUIRE);
+			if(iWinner==XRT_CHANNEL_SELECT_NONE) {
+				uint32 iStop;
+				/* A currently ready/closed case gets the same first chance as in
+				 * synchronous Select, before a cancellation/deadline request. */
+				__xrtChannelSelectTryWaiters(pSubscription->Waiters,pSubscription->Count,
+					pSubscription->Start);
+				iStop=xrtAtomic32Load(&pSubscription->Stop,XMEMORY_ACQUIRE);
+				if(iStop) (void)__xrtChannelSelectStop(&pSubscription->Select,
+					(xwaitresult)(int32)iStop);
+				iWinner=xrtAtomic32Load(&pSubscription->Select.Winner,XMEMORY_ACQUIRE);
+			}
+			/* CLAIMING is owned by a live committer. Its release publication
+			 * always wakes us; never spin or overwrite an in-flight transfer. */
+			if(iWinner!=XRT_CHANNEL_SELECT_NONE && iWinner!=XRT_CHANNEL_SELECT_CLAIMING)
+				__xrtChannelSubscriptionComplete(pSubscription,iWinner);
+		}
+		iExpected=XRT_CHANNEL_SUB_DRIVER;
+		if(xrtAtomic32CompareExchange(&pSubscription->Dispatch,&iExpected,0u,
+			XMEMORY_RELEASE,XMEMORY_RELAXED)) return;
+	}
+}
+
+XRT_API xchannelsubscription* xrtChannelSubscribeCreateV1(
+	const xchannelsubscribecase* pCases,size_t iCount,
+	ptr pData,const xchannelsubscribepolicyv1* pPolicy)
+{
+	xchannelsubscription* pSubscription;
+	xchannelcase* pValidation;
+	size_t iBytes;
+	if(!pPolicy || pPolicy->size!=sizeof(*pPolicy) || !pPolicy->Notify ||
+		!pPolicy->Drop || !pCases || !iCount ||
+		((uintptr_t)pCases&(sizeof(ptr)-1u)) ||
+		iCount>((size_t)XRT_CHANNEL_SELECT_MAX_INDEX+1u) ||
+		iCount>(SIZE_MAX-sizeof(*pSubscription))/sizeof(xrt_channel_select_waiter) ||
+		iCount>SIZE_MAX/sizeof(xchannelcase) ||
+		(uintptr_t)pCases>UINTPTR_MAX-iCount*sizeof(*pCases)) {
+		__xrtErrorSetInvalidArgument();
+		return NULL;
+	}
+	iBytes=sizeof(*pSubscription)+iCount*sizeof(xrt_channel_select_waiter);
+	pSubscription=(xchannelsubscription*)xrtMalloc(iBytes);
+	if(!pSubscription) return NULL;
+	memset(pSubscription,0,iBytes);
+	pValidation=(xchannelcase*)xrtMalloc(iCount*sizeof(xchannelcase));
+	if(!pValidation) { xrtFree(pSubscription); return NULL; }
+	for(size_t i=0;i<iCount;i++) {
+		pValidation[i].Channel=pCases[i].Channel;
+		pValidation[i].Operation=pCases[i].Operation;
+		pValidation[i].Value=pCases[i].Value;
+		pValidation[i].Output=&pSubscription->Received;
+	}
+	if(!__xrtChannelSelectCasesValid(pValidation,iCount)) {
+		xrtFree(pValidation);
+		xrtFree(pSubscription);
+		return NULL;
+	}
+	for(size_t i=0;i<iCount;i++) {
+		xrt_channel_select_waiter* pWaiter=&pSubscription->Waiters[i];
+		pWaiter->Select=&pSubscription->Select;
+		pWaiter->Channel=pValidation[i].Channel;
+		pWaiter->Value=pValidation[i].Value;
+		pWaiter->Output=&pSubscription->Received;
+		pWaiter->Index=(uint32)i;
+		pWaiter->Operation=pValidation[i].Operation;
+		pWaiter->Result=XCHANNEL_ERROR;
+	}
+	xrtFree(pValidation);
+	xrtAtomic32Init(&pSubscription->References,1u);
+	xrtAtomic32Init(&pSubscription->External,1u);
+	xrtAtomic32Init(&pSubscription->Started,0u);
+	xrtAtomic32Init(&pSubscription->Ready,0u);
+	xrtAtomic32Init(&pSubscription->Stop,0u);
+	/* Start owns the dormant dispatcher; no partially registered set can run. */
+	xrtAtomic32Init(&pSubscription->Dispatch,XRT_CHANNEL_SUB_DRIVER);
+	xrtAtomic32Init(&pSubscription->Select.Winner,XRT_CHANNEL_SELECT_NONE);
+	pSubscription->Select.Wake=__xrtChannelSubscriptionWake;
+	pSubscription->Select.WakeData=pSubscription;
+	pSubscription->Select.Deferred=&pSubscription->Work;
+	pSubscription->Select.StopResult=XWAIT_ERROR;
+	pSubscription->Work.Dispatch=__xrtChannelSubscriptionDispatch;
+	pSubscription->Count=iCount;
+	pSubscription->Start=__xrtChannelSelectStartIndex(iCount);
+	pSubscription->Data=pData;
+	pSubscription->Policy=pPolicy;
+	return pSubscription;
+}
+
+XRT_API bool xrtChannelSubscribeStart(xchannelsubscription* pSubscription)
+{
+	uint32 iExpected=0u;
+	if(!pSubscription) { __xrtErrorSetInvalidArgument(); return false; }
+	if(!__xrtChannelSubscriptionRetain(pSubscription,2u)) return false;
+	if(!xrtAtomic32CompareExchange(&pSubscription->Started,&iExpected,1u,
+		XMEMORY_ACQ_REL,XMEMORY_ACQUIRE)) {
+		__xrtChannelSubscriptionRelease(pSubscription);
+		__xrtErrorSetInvalidState();
+		return false;
+	}
+	(void)__xrtChannelSubscriptionRetain(pSubscription,1u); /* registration */
+	for(size_t i=0;i<pSubscription->Count;i++) {
+		uint32 iWinner;
+		if(!__xrtChannelSelectRegister(&pSubscription->Waiters[i])) {
+			(void)__xrtChannelSelectStop(&pSubscription->Select,XWAIT_ERROR);
+			break;
+		}
+		iWinner=xrtAtomic32Load(&pSubscription->Select.Winner,XMEMORY_ACQUIRE);
+		if(iWinner!=XRT_CHANNEL_SELECT_NONE) break;
+	}
+	/* The admitted Start call's credit serves as the initial dispatch credit. */
+	__xrtChannelSubscriptionDispatch(&pSubscription->Work);
+	return true;
+}
+
+XRT_API xchannelsubscription* xrtChannelSubscribeRef(xchannelsubscription* pSubscription)
+{
+	if(!pSubscription) { __xrtErrorSetInvalidArgument(); return NULL; }
+	if(!__xrtChannelSubscriptionRetain(pSubscription,4u)) return NULL;
+	xrtAtomic32FetchAdd(&pSubscription->External,1u,XMEMORY_RELAXED);
+	return pSubscription;
+}
+
+XRT_API void xrtChannelSubscribeDestroy(xchannelsubscription* pSubscription)
+{
+	if(!pSubscription) return;
+	if(xrtAtomic32FetchSub(&pSubscription->External,1u,XMEMORY_ACQ_REL)==1u) {
+		uint32 iExpected=0u;
+		(void)xrtAtomic32CompareExchange(&pSubscription->Stop,&iExpected,
+			(uint32)XWAIT_CANCELLED,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE);
+		if(xrtAtomic32Load(&pSubscription->Started,XMEMORY_ACQUIRE))
+			__xrtChannelSubscriptionWake(pSubscription);
+	}
+	__xrtChannelSubscriptionRelease(pSubscription);
+}
+
+XRT_API bool xrtChannelSubscribeStop(xchannelsubscription* pSubscription,xwaitresult iReason)
+{
+	uint32 iExpected=0u;
+	bool bRecorded;
+	if(!pSubscription || (iReason!=XWAIT_CANCELLED && iReason!=XWAIT_TIMEOUT &&
+		iReason!=XWAIT_ERROR)) {
+		__xrtErrorSetInvalidArgument();
+		return false;
+	}
+	if(!__xrtChannelSubscriptionRetain(pSubscription,2u)) return false;
+	bRecorded=xrtAtomic32CompareExchange(&pSubscription->Stop,&iExpected,
+		(uint32)iReason,XMEMORY_ACQ_REL,XMEMORY_ACQUIRE);
+	if(xrtAtomic32Load(&pSubscription->Started,XMEMORY_ACQUIRE))
+		__xrtChannelSubscriptionWake(pSubscription);
+	__xrtChannelSubscriptionRelease(pSubscription);
+	return bRecorded;
+}
+
+XRT_API bool xrtChannelSubscribeResult(const xchannelsubscription* pSubscription,
+	xchannelselectresult* pResult,ptr* pValue)
+{
+	size_t iBytes;
+	if(!pSubscription || !pResult || !pValue ||
+		((uintptr_t)pResult&(sizeof(size_t)-1u)) ||
+		((uintptr_t)pValue&(sizeof(ptr)-1u))) {
+		__xrtErrorSetInvalidArgument();
+		return false;
+	}
+	iBytes=sizeof(*pSubscription)+pSubscription->Count*sizeof(xrt_channel_select_waiter);
+	if((uintptr_t)pResult>UINTPTR_MAX-sizeof(*pResult) ||
+		(uintptr_t)pValue>UINTPTR_MAX-sizeof(*pValue) ||
+		__xrtRangesOverlap(pResult,sizeof(*pResult),pValue,sizeof(*pValue)) ||
+		__xrtRangesOverlap(pSubscription,iBytes,pResult,sizeof(*pResult)) ||
+		__xrtRangesOverlap(pSubscription,iBytes,pValue,sizeof(*pValue))) {
+		__xrtErrorSetInvalidArgument();
+		return false;
+	}
+	if(!xrtAtomic32Load(&pSubscription->Ready,XMEMORY_ACQUIRE)) return false;
+	*pResult=pSubscription->Result;
+	*pValue=pSubscription->Received;
+	return true;
+}
 
 #endif
 #endif
