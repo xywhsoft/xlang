@@ -14,6 +14,8 @@ struct XL6_ChannelFutureFrameV1 {
     bool committed,publishing,bound,retiring,retired,cleared;
     XL6_ContinuationTicket ticket;
     const XL6_ChannelFutureProviderV1* provider;
+    const XL6_ChannelFutureWakeV1* wake;
+    void* wakeData;
     xchannelselectresult nativeResult;
     xchannelsubscription *subscription,*cancelSubscription;
     xcancelwatch* cancelWatch;
@@ -49,9 +51,12 @@ static void release(const void* data)
     bool last=--frame->references==0;
     if(last&&(!frame->retired||frame->active||frame->subscription||frame->cancelSubscription||
         frame->cancelWatch||frame->cancel||frame->promise||frame->handle||frame->payload||frame->ticket.queue||
+        (frame->wake&&!frame->wake->Empty(frame->wakeData))||
         !frame->provider->Empty(frame->state)))abort();
-    leave(frame,&mutation);if(last)xrtFree(frame);
+    leave(frame,&mutation);
+    if(last){if(frame->wake)frame->wake->Drop(frame->wakeData);xrtFree(frame);}
 }
+bool xl6ChannelFutureCoreRetainV1(Frame* frame) {return hold(frame);}
 xrtownershipref xl6ChannelFutureCoreOwnershipV1(const Frame* frame)
 {return (xrtownershipref){frame,frame?frame->provider->ops:NULL};}
 static xrtownershipref storage_ownership(const void* data) {return xl6ChannelFutureCoreOwnershipV1(data);}
@@ -82,6 +87,7 @@ void xl6ChannelFutureCoreNotifyV1(xchannelsubscription* subscription,void* data)
     xchannelsubscription* owner=frame->subscription;frame->subscription=NULL;
     xcancelwatch* watch=frame->cancelWatch;frame->cancelWatch=NULL;
     leave(frame,&mutation);
+    if(frame->wake)frame->wake->Detach(frame->wakeData);
     xrtCancelUnwatch(watch);xrtChannelSubscribeDestroy(owner);
     enter(frame,&mutation);--frame->active;leave(frame,&mutation);
     xrtClearError();xrtSetErrorTake(previous);
@@ -115,6 +121,7 @@ static void capture_failure(xl6_error_scope* scope)
 {if(xrtGetError()||scope->failed)xl6ErrorScopeCaptureFailure(scope);}
 static void cleanup_values(Frame* frame,xl6_error_scope* scope)
 {
+    if(frame->wake){frame->wake->Cleanup(frame->wakeData);capture_failure(scope);}
     frame->provider->Cleanup(frame->state);capture_failure(scope);
     xvalue* handle=frame->handle;frame->handle=NULL;xrtValueRelease(handle);capture_failure(scope);
     xcancel* cancel=frame->cancel;frame->cancel=NULL;xrtCancelDestroy(cancel);capture_failure(scope);
@@ -124,14 +131,18 @@ void xl6ChannelFutureCoreDiscardV1(Frame* frame)
     if(!frame)return;
     if(frame->committed||frame->publishing||frame->bound||frame->ticket.queue)abort();
     xl6_error_scope scope={0};if(!xl6ErrorScopeBeginCleanup(&scope,false))abort();
-    xcancelwatch* watch=frame->cancelWatch;frame->cancelWatch=NULL;xrtCancelUnwatch(watch);capture_failure(&scope);
+    xrtownershipscope mutation={0};enter(frame,&mutation);
+    xcancelwatch* watch=frame->cancelWatch;frame->cancelWatch=NULL;
     xchannelsubscription* subscription=frame->subscription;frame->subscription=NULL;
+    leave(frame,&mutation);
+    if(frame->wake)frame->wake->Detach(frame->wakeData);
+    xrtCancelUnwatch(watch);capture_failure(&scope);
     xrtChannelSubscribeDestroy(subscription);capture_failure(&scope);
     cleanup_values(frame,&scope);
     void* payload=frame->payload;frame->payload=NULL;
     xl6PayloadDropGet(frame->provider->payloadKind)(payload,NULL);capture_failure(&scope);
     xpromise* promise=frame->promise;frame->promise=NULL;xrtPromiseDestroy(promise);capture_failure(&scope);
-    xrtownershipscope mutation={0};enter(frame,&mutation);frame->retired=true;leave(frame,&mutation);
+    enter(frame,&mutation);frame->retired=true;leave(frame,&mutation);
     xl6_error_result result=xl6ErrorScopeEnd(&scope);release(frame);
     if(!result.ok)xl6ErrorScopePropagateFailure(result);else xrtErrorFree(result.error);
 }
@@ -150,6 +161,37 @@ Frame* xl6ChannelFutureCoreCreateV1(const XL6_ChannelFutureProviderV1* provider)
 void* xl6ChannelFutureCoreStateV1(const Frame* frame) {return frame?(void*)frame->state:NULL;}
 const XL6_ChannelFutureProviderV1* xl6ChannelFutureCoreProviderV1(const Frame* frame)
 {return frame?frame->provider:NULL;}
+bool xl6ChannelFutureCoreWakeTakeV1(Frame* frame,const XL6_ChannelFutureWakeV1* wake,void** input)
+{
+    if(!frame||!wake||wake->size!=sizeof(*wake)||!wake->Arm||!wake->Detach||!wake->RecordFailure||
+        !wake->TakeFailure||!wake->Cleanup||!wake->Trace||!wake->Empty||!wake->Drop||!input||!*input||
+        frame->wake||frame->committed||frame->publishing||frame->bound||!frame->subscription){
+        xrtSetErrorKind(XERR_ARGUMENT);return false;
+    }
+    frame->wake=wake;frame->wakeData=*input;*input=NULL;return true;
+}
+const XL6_ChannelFutureWakeV1* xl6ChannelFutureCoreWakePolicyV1(const Frame* frame)
+{return frame?frame->wake:NULL;}
+void* xl6ChannelFutureCoreWakeDataV1(const Frame* frame) {return frame?frame->wakeData:NULL;}
+xchannelsubscription* xl6ChannelFutureCoreSubscriptionRefV1(Frame* frame)
+{
+    if(!frame){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    xrtownershipscope mutation={0};enter(frame,&mutation);
+    xchannelsubscription* result=frame->subscription?xrtChannelSubscribeRef(frame->subscription):NULL;
+    leave(frame,&mutation);if(!result&&!xrtGetError())xrtSetErrorKind(XERR_STATE);return result;
+}
+void xl6ChannelFutureCoreStopV1(Frame* frame,xchannelsubscription* subscription,xwaitresult reason,
+    bool failed,const xerror* error)
+{
+    if(!frame||!subscription||(reason!=XWAIT_TIMEOUT&&reason!=XWAIT_CANCELLED&&reason!=XWAIT_ERROR))abort();
+    xerror* previous=xrtTakeError();xrtownershipscope mutation={0};enter(frame,&mutation);++frame->active;
+    bool pending=frame->bound&&frame->subscription==subscription;
+    if(pending&&failed){if(!frame->wake)abort();frame->wake->RecordFailure(frame->wakeData,error);}
+    leave(frame,&mutation);
+    if(pending)(void)xrtChannelSubscribeStop(subscription,reason);
+    enter(frame,&mutation);--frame->active;leave(frame,&mutation);
+    xrtClearError();xrtSetErrorTake(previous);
+}
 bool xl6ChannelFutureCoreHandleTakeV1(Frame* frame,xvalue** handle)
 {
     if(!frame || !handle || !*handle || frame->handle || frame->subscription || frame->committed ||
@@ -180,7 +222,8 @@ static void run(void* data)
     enter(frame,&mutation);++frame->active;leave(frame,&mutation);
     xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))abort();
     int64_t scalar=0;
-    bool ok=frame->provider->Complete(frame->state,frame->nativeResult,&scalar);
+    bool ok=!frame->wake||frame->wake->TakeFailure(frame->wakeData,frame->nativeResult);
+    if(ok)ok=frame->provider->Complete(frame->state,frame->nativeResult,&scalar);
     if(ok&&frame->provider->payloadKind==XL6_FUTURE_PAYLOAD_VALUE)*(int64_t*)frame->payload=scalar;
     if(!ok)xl6ErrorScopeCaptureFailure(&scope);
     cleanup_values(frame,&scope);
@@ -208,11 +251,12 @@ static void retire(void* data)
     enter(frame,&mutation);frame->retired=true;frame->retiring=false;--frame->active;leave(frame,&mutation);
     xrtClearError();xrtSetErrorTake(previous);
 }
-xfuture* xl6ChannelFutureCoreStartV1(XL6_ContinuationExecutor* executor,Frame* frame,const xvalue* owner,
-    const char* field,size_t fieldSize,xcancel* parent)
+static xfuture* start(XL6_ContinuationExecutor* executor,Frame* frame,const xvalue* owner,
+    const char* field,size_t fieldSize,xcancel* parent,const void* wakeContext)
 {
     if(!executor||!frame||frame->committed||frame->publishing||frame->bound||!frame->subscription||
-        frame->payload||frame->promise||((field==NULL)!=(fieldSize==0))){
+        frame->payload||frame->promise||((field==NULL)!=(fieldSize==0))||
+        ((frame->wake==NULL)!=(wakeContext==NULL))){
         xrtSetErrorKind(XERR_ARGUMENT);return NULL;
     }
     bool boxed=frame->provider->payloadKind==XL6_FUTURE_PAYLOAD_XVALUE;
@@ -243,6 +287,10 @@ xfuture* xl6ChannelFutureCoreStartV1(XL6_ContinuationExecutor* executor,Frame* f
     }
     xrtownershipscope mutation={0};enter(frame,&mutation);
     frame->ticket.storage=&storage;frame->publishing=true;frame->bound=true;leave(frame,&mutation);
+    if(frame->wake&&!frame->wake->Arm(frame->wakeData,wakeContext)){
+        if(!xl6ContinuationAbort(&frame->ticket))abort();
+        enter(frame,&mutation);frame->publishing=false;frame->bound=false;leave(frame,&mutation);goto failed;
+    }
     if(!xrtChannelSubscribeStart(frame->subscription)){
         if(!xl6ContinuationAbort(&frame->ticket))abort();
         enter(frame,&mutation);frame->publishing=false;frame->bound=false;leave(frame,&mutation);goto failed;
@@ -252,6 +300,15 @@ xfuture* xl6ChannelFutureCoreStartV1(XL6_ContinuationExecutor* executor,Frame* f
 failed:;
     xerror* error=xrtTakeError();xrtFutureDestroy(future);xrtClearError();
     if(error)xrtSetErrorTake(error);else xrtSetErrorKind(XERR_INTERNAL);return NULL;
+}
+xfuture* xl6ChannelFutureCoreStartV1(XL6_ContinuationExecutor* executor,Frame* frame,const xvalue* owner,
+    const char* field,size_t size,xcancel* parent)
+{return start(executor,frame,owner,field,size,parent,NULL);}
+xfuture* xl6ChannelFutureCoreStartWakeV1(XL6_ContinuationExecutor* executor,Frame* frame,const xvalue* owner,
+    const char* field,size_t size,xcancel* parent,const void* context)
+{
+    if(!frame||!frame->wake||!context){xrtSetErrorKind(XERR_TYPE);return NULL;}
+    return start(executor,frame,owner,field,size,parent,context);
 }
 bool xl6ChannelFutureCoreCountV1(const void* data,const XL6_ChannelFutureProviderV1* expected,size_t* count)
 {
@@ -271,7 +328,7 @@ bool xl6ChannelFutureCoreTraceV1(const void* data,const XL6_ChannelFutureProvide
         visit(xrtCancelWatchOwnership(frame->cancelWatch),context)&&visit(xrtCancelOwnership(frame->cancel),context)&&
         visit(xrtPromiseOwnership(frame->promise),context)&&visit(xrtValueOwnership(frame->handle),context)&&
         visit(xrtValueOwnership(frame->payload&&expected->payloadKind==XL6_FUTURE_PAYLOAD_XVALUE?*(xvalue**)frame->payload:NULL),context)&&
-        expected->Trace(frame->state,visit,context);
+        expected->Trace(frame->state,visit,context)&&(!frame->wake||frame->wake->Trace(frame->wakeData,visit,context));
 }
 static bool claim(const void* data,const void* token)
 {Frame* frame=(Frame*)data;if(!token||frame->cleared||(frame->claim&&frame->claim!=token))return false;frame->claim=token;return true;}
@@ -282,7 +339,7 @@ static bool prepared(const void* data)
     const Frame* frame=data;
     return frame->retired&&!frame->active&&!frame->ticket.queue&&!frame->subscription&&
         !frame->cancelSubscription&&!frame->cancelWatch&&!frame->cancel&&!frame->promise&&!frame->handle&&!frame->payload&&
-        frame->provider->Empty(frame->state);
+        frame->provider->Empty(frame->state)&&(!frame->wake||frame->wake->Empty(frame->wakeData));
 }
 static xrtownershipprepareresult prepare_drop(const void* data,const void* token)
 {

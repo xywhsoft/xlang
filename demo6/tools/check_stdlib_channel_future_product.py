@@ -15,6 +15,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('root','out'):parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--direct',action='store_true',help='Exercise the direct typed send/receive provider')
+    parser.add_argument('--deadline',action='store_true',help='Finite provider with shared source; no source-only fault injection')
     args=parser.parse_args();root,out=args.root.resolve(),args.out.resolve();assert not out.exists()
     win=os.name=='nt';names=('xl.dll','xlc.dll') if win else ('libxl.so','libxlc.so')
     products=[root/'release'/name for name in names];assert all(path.is_file() for path in products)
@@ -22,13 +23,14 @@ def main():
     for path in products:shutil.copy2(path,release/path.name)
     if win:
         for path in products:shutil.copy2(path,out/path.name)
-    fixture='stdlib_channel_direct_future_native.c' if args.direct else 'stdlib_channel_future_native.c'
+    fixture='stdlib_channel_deadline_native.c' if args.deadline else 'stdlib_channel_direct_future_native.c' if args.direct else 'stdlib_channel_future_native.c'
     inputs={Path(__file__).resolve(),Path(cc).resolve(),*products,root/'test/cases'/fixture}
     for folder in ('src','lib/xrt','lib/xruntime','release/include'):
         inputs.update(path for path in (root/folder).rglob('*') if path.is_file())
     def seal():return {str(path):hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(inputs)}
     before=seal();report={'Complete':False,'Scope':__doc__,'Inputs':before,'Rows':[],
-        'NetworkTests':False,'NetworkSecurityTests':False,'LanguageChannelFutureAcceptance':False,'DirectProvider':args.direct}
+        'NetworkTests':False,'NetworkSecurityTests':False,'LanguageChannelFutureAcceptance':False,
+        'DirectProvider':args.direct,'DeadlineProvider':args.deadline,'PublicFiniteMethodsAccepted':False}
     def save():(out/'report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')
     env={key:value for key,value in os.environ.items() if not key.upper().startswith('XL6_') and
         key.upper() not in ('LD_LIBRARY_PATH','LD_PRELOAD','LD_AUDIT','CPATH','C_INCLUDE_PATH','LIBRARY_PATH')}
@@ -39,6 +41,7 @@ def main():
         assert result.returncode==0,(name,log.read_bytes()[-2200:])
     flags=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-Wno-unused-function',
         '-Wno-unused-parameter','-Wno-missing-field-initializers','-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include')]
+    if args.deadline:flags+=['-DTEST_SELECT='+str(int(not args.direct))]
     try:
         for product in products:
             links=[release/product.name] if win else ['-L'+str(release),'-l:'+product.name,'-Wl,-rpath,$ORIGIN/release','-pthread','-ldl','-lm']
