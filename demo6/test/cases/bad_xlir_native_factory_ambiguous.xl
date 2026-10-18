@@ -1,0 +1,9 @@
+class AmbiguousNativeRoot
+    private native point handle
+    extern "xl6OnceDestroyV1" @no_raise destroy()
+end
+class AmbiguousNativeLeaf extends AmbiguousNativeRoot
+    private native point second
+    extern "xl6OnceCreateV1" @nonblocking create()
+end
+auto item = AmbiguousNativeLeaf()

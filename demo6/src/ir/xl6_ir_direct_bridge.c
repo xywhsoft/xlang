@@ -769,20 +769,11 @@ static int xl6IrDirectBridgeResourceMatches(const XL6_IrModule* module,
         type->ownershipAbi != XL6_IR_OWNERSHIP_ABI_MANAGED ||
         type->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL || fieldId == XL6_IR_NODE_INVALID) return 0;
     if (module->stage == XL6_IR_STAGE_LOWERED) {
-        const XL6_IrClassLayout* layout = xl6IrBuildClassLayoutByType(module, id);
-        if (!layout || layout->firstField>module->classFieldCount ||
-            layout->fieldCount>module->classFieldCount-layout->firstField) return 0;
         /* The physical contract selects ONE native field, not a one-field
          * language class. Other managed fields retain their own ordinary
          * layout/trace/destruction contracts; the payload's leaf policy does
          * not certify or hide them. No name/order/first-field inference. */
-        const XL6_IrClassField* field = NULL;
-        for (size_t i=0;i<layout->fieldCount;++i) {
-            const XL6_IrClassField* candidate=&module->classFields[layout->firstField+i];
-            if (candidate->declaration!=fieldId) continue;
-            if (field) return 0;
-            field=candidate;
-        }
+        const XL6_IrClassField* field = xl6IrManagedNativeConstructorField(module, id);
         if (!field) return 0;
         const XL6_IrCallTarget* destroy = xl6IrCallTargetGet(module, field->nativeDestroySymbol);
         if (field->declaration != fieldId || !destroy || !destroy->cName ||

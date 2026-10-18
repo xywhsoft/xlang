@@ -6909,6 +6909,14 @@ XL6_IrErrorAbi xl6IrCopyIntrinsicErrorAbi(const XL6_IrModule* module,
  * XLIR construction.  Append exactly the missing runtime layouts and rebuild
  * their derived destruction/persistence contracts before body lowering. */
 int xl6IrRefreshClassLayouts(XL6_IrModule* module);
+/* Exact unique native field in the complete concrete class layout, including
+ * inherited storage. Shared by construction, projection and verification. */
+const XL6_IrClassField* xl6IrManagedNativeConstructorField(
+    const XL6_IrModule* module, XL6_IrTypeId type);
+const XL6_IrClassField* xl6IrCallTargetNativeClassPhysicalField(
+    const XL6_IrModule* module, const XL6_IrCallTarget* target, size_t parameter);
+const XL6_IrClassField* xl6IrCallTargetNativeClassResultField(
+    const XL6_IrModule* module, const XL6_IrCallTarget* target);
 /* All stages own the same closed identity data. Rebuild is transactional,
  * including OOM; verification allocates nothing and checks canonical order,
  * complete coverage, exact nominal domain and independent protocol targets. */

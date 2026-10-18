@@ -1,0 +1,77 @@
+// One canonical native field may be inherited; language state is independent.
+int nativeFactoryRetired = 0
+int nativeFactoryInitialized = 0
+func nativeFactoryText(string value) as string
+    nativeFactoryInitialized += 1
+    return value
+end
+func nativeFactoryFailField() as string
+    throw ValueError("native field initialization failed")
+end
+class NativeFactoryRoot
+    private native point handle
+    string rootText = nativeFactoryText("root\0你")
+    extern "xl6OnceCreateV1" @nonblocking create()
+    extern "xl6OnceDestroyV1" @no_raise destroy()
+    extern "xl6OnceRunV1" func run(func() initializer)
+end
+class NativeFactoryMiddle extends NativeFactoryRoot
+    bytes middleBytes = b"\0\xff"
+    destroy()
+        nativeFactoryRetired += 1
+    end
+end
+class NativeFactoryLeaf extends NativeFactoryMiddle
+    string label = nativeFactoryText("leaf")
+    extern "xl6OnceCreateV1" @nonblocking create()
+    extern "xl6OnceRunV1" func runLeaf(func() initializer)
+    destroy()
+        nativeFactoryRetired += 10
+    end
+end
+class NativeFactoryFailure extends NativeFactoryRoot
+    string rejected = nativeFactoryFailField()
+    extern "xl6OnceCreateV1" @nonblocking create()
+    destroy()
+        nativeFactoryRetired += 1000
+    end
+end
+extern "xl6OnceCreateV1" @nonblocking func newNativeFactoryLeaf() as NativeFactoryLeaf
+func checkNativeFactory()
+    auto item = NativeFactoryLeaf()
+    assert item.rootText == "root\0你" and item.middleBytes == b"\0\xff"
+    assert item.label == "leaf"
+    int called = 0
+    item.run(func()
+        called += 1
+    end)
+    item.run(func()
+        called += 100
+    end)
+    item.runLeaf(func()
+        called += 100
+    end)
+    assert called == 1
+    NativeFactoryRoot baseAlias = item
+    baseAlias.run(func()
+        called += 100
+    end)
+    assert called == 1
+    auto second = newNativeFactoryLeaf()
+    assert second.rootText == "root\0你" and second.label == "leaf"
+    assert nativeFactoryInitialized == 4, "each normal field initializes exactly once"
+end
+checkNativeFactory()
+NativeFactoryLeaf? deferred = null
+assert deferred == null
+assert nativeFactoryRetired == 22, "derived and base cleanup each run once"
+bool failed = false
+try
+    auto rejected = NativeFactoryFailure()
+catch ValueError e
+    assert e.message == "native field initialization failed"
+    failed = true
+end
+assert failed and nativeFactoryInitialized == 5
+assert nativeFactoryRetired == 22, "rollback does not arm user destruction"
+println("inherited native factory ownership ok")

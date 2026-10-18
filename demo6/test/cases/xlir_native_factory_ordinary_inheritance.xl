@@ -1,0 +1,31 @@
+// Shared native capability changes must leave ordinary inheritance untouched.
+int ordinaryFactoryRetired = 0
+class OrdinaryFactoryRoot
+    int seed = 0
+    string rootText = "ordinary\0root"
+    create(int value)
+        self.seed = value
+    end
+    destroy()
+        ordinaryFactoryRetired += 1
+    end
+end
+class OrdinaryFactoryLeaf extends OrdinaryFactoryRoot
+    bytes binary = b"\0\xff"
+    create(int value)
+        base(value)
+    end
+    destroy()
+        ordinaryFactoryRetired += 10
+    end
+end
+func checkOrdinaryFactory()
+    auto item = OrdinaryFactoryLeaf(31)
+    assert item.seed == 31 and item.rootText == "ordinary\0root"
+    assert item.binary == b"\0\xff"
+    OrdinaryFactoryRoot alias = item
+    assert alias.seed == 31
+end
+checkOrdinaryFactory()
+assert ordinaryFactoryRetired == 11
+println("ordinary class inheritance remains intact")

@@ -1,0 +1,8 @@
+// Native slot inheritance must not silently enable generic class inheritance.
+class NativeGenericRoot
+    private native point handle
+    extern "xl6PromiseDestroyV1" destroy()
+end
+class NativeGenericPromise<T> extends NativeGenericRoot
+    extern "xl6PromiseCreateV1" @nonblocking create()
+end

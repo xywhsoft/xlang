@@ -1,0 +1,7 @@
+class NativeDefaultRoot
+    private native point handle
+    extern "xl6OnceDestroyV1" @no_raise destroy()
+end
+class NativeDefaultLeaf extends NativeDefaultRoot
+end
+NativeDefaultLeaf item

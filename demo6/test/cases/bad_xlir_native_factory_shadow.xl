@@ -1,0 +1,10 @@
+class NativeShadowRoot
+    private native point handle
+    extern "xl6OnceCreateV1" @nonblocking create()
+    extern "xl6OnceDestroyV1" @no_raise destroy()
+end
+class NativeShadowLeaf extends NativeShadowRoot
+    string handle = "not a handle"
+    extern "xl6OnceCreateV1" @nonblocking create()
+end
+auto item = NativeShadowLeaf()

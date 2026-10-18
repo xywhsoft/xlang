@@ -1,0 +1,5 @@
+class NativeAmbiguousDefault
+    private native point handle
+    private native point second
+end
+NativeAmbiguousDefault item
