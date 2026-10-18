@@ -1,0 +1,11 @@
+import concurrent
+auto source = CancellationSource()
+auto token = source.token
+channel<int> pipe = channel::<int>(1)
+assert source.cancel()
+assert pipe.sendCancel(61, token) == channelStatus.ok
+auto status, value = pipe.recvCancel(token)
+assert status == channelStatus.ok and value != null and value == 61
+auto cancelledStatus, cancelled = pipe.recvCancel(token)
+assert cancelledStatus == channelStatus.cancelled and cancelled == null
+pipe.close()

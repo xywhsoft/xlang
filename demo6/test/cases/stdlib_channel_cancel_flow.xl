@@ -1,0 +1,27 @@
+import concurrent
+typedef TokenAlias = CancellationToken
+auto source = CancellationSource()
+TokenAlias aliased = source.token
+CancellationToken? maybe = source.token
+channel<string> pipe = channel::<string>(1)
+assert source.cancel()
+if maybe != null
+    string? input = "flow\0你"
+    if input != null
+        assert pipe.sendCancel(input, maybe) == channelStatus.ok
+    end
+    auto status, value = pipe.recvCancel(maybe)
+    assert status == channelStatus.ok and value != null and value == "flow\0你"
+end
+auto cancelledStatus, cancelled = pipe.recvCancel(aliased)
+assert cancelledStatus == channelStatus.cancelled and cancelled == null
+pipe.close()
+
+channel<int> numbers = channel::<int>(1)
+int? interval = 0
+if interval != null
+    assert numbers.sendTimeout(72, interval)
+    auto status, value = numbers.recvTimeout(interval)
+    assert status == channelStatus.ok and value != null and value == 72
+end
+numbers.close()

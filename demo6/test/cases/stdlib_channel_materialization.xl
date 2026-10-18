@@ -1,0 +1,39 @@
+import concurrent
+class MaterializedChannelItem
+    int number = 19
+end
+auto source = CancellationSource()
+auto token = source.token
+assert source.cancel()
+channel<var> pipe = channel::<var>(1)
+var text = "erased\0你"
+if text is string
+    assert pipe.sendCancel(text, token) == channelStatus.ok
+end
+auto s0, v0 = pipe.recvCancel(token)
+assert s0 == channelStatus.ok and string(v0) == "erased\0你", "string roundtrip"
+var number = 17
+if number is int
+    assert pipe.sendCancel(number, token) == channelStatus.ok
+end
+auto s1, v1 = pipe.recvCancel(token)
+assert s1 == channelStatus.ok and int(v1) == 17, "integer roundtrip"
+var binary = b"a\0b"
+if binary is bytes
+    assert pipe.sendCancel(binary, token) == channelStatus.ok
+end
+auto s2, v2 = pipe.recvCancel(token)
+assert s2 == channelStatus.ok and (v2 as bytes) == b"a\0b", "bytes roundtrip"
+var object = MaterializedChannelItem()
+if object is MaterializedChannelItem
+    assert pipe.sendCancel(object, token) == channelStatus.ok
+end
+auto s3, v3 = pipe.recvCancel(token)
+assert s3 == channelStatus.ok and (v3 as MaterializedChannelItem).number == 19, "class roundtrip"
+var real = 1.5
+if real is float
+    assert pipe.sendCancel(real, token) == channelStatus.ok
+end
+auto s4, v4 = pipe.recvCancel(token)
+assert s4 == channelStatus.ok and (v4 as float) == 1.5, "float roundtrip"
+pipe.close()

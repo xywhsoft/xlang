@@ -1,0 +1,4 @@
+import concurrent
+channel<int> pipe = channel::<int>(1)
+auto source = CancellationSource()
+pipe.recvCancel(token = source.token)

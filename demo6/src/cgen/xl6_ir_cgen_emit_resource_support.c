@@ -36,7 +36,8 @@ static int xl6IrCgenEmitResourceRuntime(
         if (!xl6IrCgenInstructionIsReachable(module,i)) continue;
         const XL6_IrChannelSendSpec* send=xl6IrChannelSendSpecRuntime(module->instructions[i].runtimeOp);
         const XL6_IrChannelReceiveSpec* receive=xl6IrChannelReceiveSpecRuntime(module->instructions[i].runtimeOp);
-        if ((send && send->waitMode==3) || (receive && receive->waitMode==3)) {
+        if ((send && (send->waitMode==3 || send->cancelled)) ||
+            (receive && (receive->waitMode==3 || receive->cancelled))) {
             xl6OutputPuts("#include <__xl_runtime/xl6_channel_wait_abi.h>\n",out); break;
         }
     }

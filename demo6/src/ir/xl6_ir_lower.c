@@ -4443,6 +4443,12 @@ static XL6_IrValueId xl6IrLowerNodeAsRuntimeXValue(
                                                  XL6_IR_RUNTIME_XVALUE_NULL,
                                                  "null", NULL, 0);
     }
+    /* A refined var already owns the exact erased representation requested
+     * here. Load that declared carrier instead of projecting and re-boxing
+     * its narrower view (which can allocate or require a new copy effect). */
+    if (source->kind==XL6_IR_NODE_NAME && source->storageType==targetType &&
+        source->type!=source->storageType && xl6IrLowerTypeIsDynamicXValueBuiltin(ctx->module,targetType))
+        return xl6IrLowerNamePhysicalStorageValue(ctx,origin,sourceId,source);
     /* An explicit generic collection literal owns its resolved representation even
      * when a call/container slot immediately erases it to var. Construct that
      * exact type first, then apply the ordinary owned xvalue widening. Using
@@ -24627,7 +24633,8 @@ static int xl6IrLowerIntrinsicRuntimeResource(
         }
         /* Contextual null has the destination TypeId already, but still
          * needs the expected-type NULL operation, never a literal token. */
-        operands[i] = bindings[i].type == source->storageType && source->sourceKind != XL6_AST_NULL
+        operands[i] = bindings[i].type == xl6IrNodeMaterializedValueType(ctx->module,source) &&
+            source->sourceKind != XL6_AST_NULL
             ? xl6IrLowerNode(ctx, bindings[i].expression)
             : xl6IrLowerNodeAsType(ctx, id, bindings[i].expression, source, bindings[i].type);
         if ( operands[i] == XL6_IR_VALUE_INVALID ) {
@@ -24647,6 +24654,15 @@ static int xl6IrLowerIntrinsicRuntimeResource(
                 ok = 0;
                 break;
             }
+        }
+        if (xl6IrChannelCancellationOperand(intrinsic->runtimeResourceOp,i)) {
+            const XL6_IrClassField* field=xl6IrChannelCancellationField(ctx->module,bindings[i].type);
+            char* literal=field ? xl6IrCanonicalCStringBytes(field->name) : NULL;
+            if (!literal) { ok=0; break; }
+            operands[i]=xl6IrLowerEmitRuntimeLiteralCall(ctx,id,field->type,
+                XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_NATIVE_HANDLE_BORROW,literal,&operands[i],1);
+            xrtFree(literal);
+            if (operands[i]==XL6_IR_VALUE_INVALID) { ok=0; break; }
         }
     }
     if ( !ok ) goto done;

@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 
+CHANNEL_STAGES=('channel-waits','channel-select-native','channel-cancel')
 
 def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -22,7 +23,7 @@ def digest(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--stage', choices=('p0', 'atomic', 'once-event', 'thread-local', 'cancellation', 'promise', 'channel-waits', 'channel-select-native'), required=True)
+    parser.add_argument('--stage', choices=('p0', 'atomic', 'once-event', 'thread-local', 'cancellation', 'promise', *CHANNEL_STAGES), required=True)
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--native-plan-report',type=Path,
@@ -84,7 +85,7 @@ def main():
                      'bad_stdlib_promise_default_generic_field')
         helpers = (*helpers[:3], 'xlir_promise_contract.c', 'stdlib_promise_native_host.c',
                    'stdlib53_pruning_plan.c', 'stdlib_native_future_policy_product_host.c')
-    if args.stage in ('channel-waits','channel-select-native'):
+    if args.stage in CHANNEL_STAGES:
         selected = ('stdlib_channel_timeout', 'stdlib_channel_owned', 'stdlib_channel_owned_wait',
                     'stdlib_channel_recipes', 'stdlib_promise', 'stdlib_cancellation',
                     'stdlib_concurrent_import_only', 'stdlib_channel_pruned', 'stdlib_channel_deadlines',
@@ -95,10 +96,18 @@ def main():
                      'bad_channel_deadline_named', 'bad_channel_deadline_arity')
         helpers = (*helpers[:3], 'xlir_channel_send_contract.c', 'stdlib_channel_native.c',
                    'stdlib53_pruning_plan.c')
+        if args.stage in ('channel-select-native','channel-cancel'):
+            helpers=(*helpers[:4],'stdlib_channel_select_native.c',*helpers[5:])
         if args.stage=='channel-select-native':
-            helpers=(*helpers[:4],'stdlib_channel_select_native.c',*helpers[5:],
-                     'stdlib_channel_select_native_plan.c','stdlib_channel_select_pruned.c')
+            helpers=(*helpers,'stdlib_channel_select_native_plan.c','stdlib_channel_select_pruned.c')
         helpers=(*helpers,'xlir_channel_deadline_contract.c')
+        if args.stage=='channel-cancel':
+            selected=(*selected,'stdlib_channel_cancellation','stdlib_channel_cancel_only','stdlib_channel_cancel_flow',
+                      'stdlib_thread_only','stdlib_concurrent_queue_owned','stdlib_stack_try_owned','stdlib_tree_query_selection',
+                      'stdlib_channel_materialization')
+            negatives=(*negatives,'bad_channel_cancel_source','bad_channel_cancel_null',
+                       'bad_channel_cancel_arity','bad_channel_cancel_named','bad_channel_cancel_authority')
+            helpers=(*helpers,'xlir_channel_cancel_contract.c')
     inputs = {Path(__file__).resolve(), *products,
               *[cases/(name+'.xl') for name in selected+negatives],
               *[cases/name for name in helpers],
@@ -180,7 +189,7 @@ def main():
         for binary, source in ((host, helpers[0]), (observer, helpers[1])):
             run(binary.stem+'.build', [cc, *flags, '-O2', '-I'+str(root/'release/include'),
                                       cases/source, *links(names[2]), '-o', binary])
-        if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation', 'promise', 'channel-waits', 'channel-select-native'):
+        if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation', 'promise', *CHANNEL_STAGES):
             family, prefix, entries = ('atomic', rb'xl6Atomic\w+V1', 50) if args.stage == 'atomic' else (
                 'concurrent', rb'xl6(?:Once|Event|ThreadLocal|Cancellation|Promise)\w+V1', None)
             exports = set(re.findall(r'XL6_TEXT_EXPORT\((\w+),',
@@ -223,13 +232,13 @@ def main():
                 binary = isolated/(product.stem+'.oom'+('.exe' if win else ''))
                 run(product.stem+'.oom.build', [cc, *flags, '-O2', '-I'+str(root),
                     '-I'+str(root/'release'), '-I'+str(root/'release/include'),
-                    cases/helpers[4], *([task/'test/support/module_product_memory.c'] if args.stage in ('channel-waits','channel-select-native') else []),
+                    cases/helpers[4], *([task/'test/support/module_product_memory.c'] if args.stage in CHANNEL_STAGES else []),
                     *links(product.name), '-o', binary])
                 run(product.stem+'.oom.run', [binary])
-                if args.stage in ('channel-waits','channel-select-native'):
+                if args.stage in CHANNEL_STAGES:
                     run(product.stem+'.channel.lifetimes', [binary,'repeat'])
                     prefixes=[]
-                    for operation in (('small','large','cancel') if args.stage=='channel-select-native' else ('create','send','send-timeout')):
+                    for operation in (('small','large','cancel') if args.stage in ('channel-select-native','channel-cancel') else ('create','send','send-timeout')):
                         for point in range(4097):
                             output=run(product.stem+'.channel.'+operation+'.'+str(point),[binary,operation,point])
                             if b'hit=0 complete-prefix balanced' in output:
@@ -266,8 +275,10 @@ def main():
                 name in selected[:(4 if args.stage in ('thread-local','cancellation') else 3)]) or (
                 args.stage == 'cancellation' and name == 'stdlib_task_group_methods') or (
                 args.stage == 'promise' and name in selected[:6]) or (
-                args.stage in ('channel-waits','channel-select-native') and
-                (name in selected[:3] or name in ('stdlib_channel_deadlines','stdlib_channel_deadline_only')))
+                args.stage in CHANNEL_STAGES and
+                (name in selected[:3] or name in ('stdlib_channel_deadlines','stdlib_channel_deadline_only',
+                                                 'stdlib_channel_cancellation','stdlib_channel_cancel_only','stdlib_channel_cancel_flow',
+                                                 'stdlib_channel_materialization')))
             if not full:
                 return
             work = out/(name+'.saved')
@@ -322,14 +333,21 @@ def main():
                   [isolated/'xlir_class_tag_vocabulary.xl', isolated/'xlir_class_tag_narrow_first.xl']
                   if args.stage == 'cancellation' else
                   [isolated/(name+'.xl') for name in selected[1:3]] if args.stage == 'promise' else [])])
-            if args.stage in ('channel-waits','channel-select-native'):
+            if args.stage in CHANNEL_STAGES:
                 deadline = isolated/'deadline-contract'
                 run('deadline-contract.build',[cc,*flags,'-O2','-I'+str(root),
-                    '-I'+str(root/'release/include'),'-I'+str(root/'lib/tcc'),cases/helpers[-1],
+                    '-I'+str(root/'release/include'),'-I'+str(root/'lib/tcc'),cases/'xlir_channel_deadline_contract.c',
                     *links(names[2]),'-o',deadline])
                 run('deadline-contract.run',[deadline,isolated/'stdlib_channel_deadlines.xl'])
                 run('deadline-only-contract.run',[deadline,isolated/'stdlib_channel_deadline_only.xl','--minimal'])
-            if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation', 'promise', 'channel-waits', 'channel-select-native'):
+            if args.stage=='channel-cancel':
+                contract=isolated/'channel-cancel-contract'
+                run('channel-cancel-contract.build',[cc,*flags,'-O2','-I'+str(root),
+                    '-I'+str(root/'release/include'),'-I'+str(root/'lib/tcc'),cases/'xlir_channel_cancel_contract.c',
+                    *links(names[2]),'-o',contract])
+                run('channel-cancel-contract.run',[contract,isolated/'stdlib_channel_cancellation.xl',
+                    isolated/'stdlib_channel_cancel_flow.xl'])
+            if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation', 'promise', *CHANNEL_STAGES):
                 planner = isolated/'planner'
                 run('pruning.build', [cc, *flags, '-O2', '-I'+str(root), '-I'+str(root/'release/include'),
                     '-I'+str(root/'lib/tcc'), cases/helpers[5], *links(names[2]), '-o', planner])
@@ -355,7 +373,7 @@ def main():
                              ('stdlib_promise_terminal', core | {'xl6_cancellation_source.c',
                                                                 'xl6_cancellation_source_domain.c','xl6_thread_exit.c'}),
                              ('stdlib_concurrent_import_only', set()))
-                if args.stage in ('channel-waits','channel-select-native'):
+                if args.stage in CHANNEL_STAGES:
                     # Direct Channel operations do not erase/project Channel
                     # as a typed container element; that optional admission
                     # factory must stay absent from this executable closure.
@@ -364,6 +382,11 @@ def main():
                            ('stdlib_channel_deadlines',core|{'xl6_channel_wait.c','xl6_thread_exit.c'}),
                            ('stdlib_channel_deadline_only',core|{'xl6_channel_wait.c'}),
                            ('stdlib_concurrent_import_only',set()),('stdlib_channel_pruned',set()))
+                    if args.stage=='channel-cancel':
+                        cancellation=core|{'xl6_channel_cancel.c','xl6_cancellation_source.c','xl6_cancellation_source_domain.c'}
+                        plans=(*plans,('stdlib_channel_cancel_only',cancellation),
+                            ('stdlib_channel_cancel_flow',cancellation),
+                            ('stdlib_channel_cancellation',cancellation|{'xl6_event.c','xl6_event_domain.c','xl6_thread_exit.c'}))
                 for name, expected in plans:
                     plan = json.loads(run(name+'.plan', [planner, isolated/(name+'.xl')]))
                     sources = {Path(path).name for path in plan['Sources']}

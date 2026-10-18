@@ -29,10 +29,26 @@ static int xl6IrChannelWaitTimeCompatible(const XL6_IrModule* module,unsigned mo
         type->integerTarget==XL6_IR_INTEGER_TARGET_UNSIGNED_64 &&
         type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && type->nullAbi==XL6_IR_NULL_ABI_NONE;
 }
+const XL6_IrClassField* xl6IrChannelCancellationField(const XL6_IrModule* module,XL6_IrTypeId type)
+{
+    return xl6IrResidentNativeResourceField(module,type,"xl6CancellationTokenDestroyV1");
+}
+static size_t xl6IrChannelSendCount(const XL6_IrChannelSendSpec* spec)
+{ return 2u+(spec->timed ? 1u : 0u)+(spec->cancelled ? 1u : 0u); }
+static size_t xl6IrChannelReceiveCount(const XL6_IrChannelReceiveSpec* spec)
+{ return 1u+(spec->timed ? 1u : 0u)+(spec->cancelled ? 1u : 0u); }
+static int xl6IrChannelSendResultCompatible(const XL6_IrModule* module,
+    const XL6_IrChannelSendSpec* spec,XL6_IrTypeId id)
+{
+    const XL6_IrType* result=module ? xl6IrTypeGet(&module->types,id) : NULL;
+    return spec->cancelled ? xl6IrConcurrentQueueIntegerType(module,id) :
+        result && result->kind==XL6_IR_TYPE_BUILTIN && result->cAbi==XL6_IR_C_ABI_BOOL &&
+        result->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && result->nullAbi==XL6_IR_NULL_ABI_NONE;
+}
 static const XL6_IrChannelSendSpec xl6ChannelSendSpecs[]={
-#define XL6_CHANNEL_SEND_OP(Id,Name,Mode,Timed,Label) \
-    {XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_##Id,XL6_IR_RUNTIME_CHANNEL_##Id,Name,Mode,Timed, \
-        Mode==3 ? "xl6ChannelSendWaitV2" : "xl6ChannelSendV1"},
+#define XL6_CHANNEL_SEND_OP(Id,Name,Mode,Timed,Cancelled,Label) \
+    {XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_##Id,XL6_IR_RUNTIME_CHANNEL_##Id,Name,Mode,Timed,Cancelled, \
+        Cancelled ? "xl6ChannelSendCancelV2" : Mode==3 ? "xl6ChannelSendWaitV2" : "xl6ChannelSendV1"},
 #include "src/abi/xl6_channel_send_ops.inc"
 #undef XL6_CHANNEL_SEND_OP
 };
@@ -58,24 +74,23 @@ int xl6IrChannelSendSignatureCompatible(const XL6_IrModule* module,const XL6_IrC
     XL6_IrTypeId owner,XL6_IrTypeId result,const XL6_IrTypeId* args,size_t count)
 {
     XL6_IrTypeId schemaId=0;
-    const XL6_IrType* output=module ? xl6IrTypeGet(&module->types,result) : NULL;
     if (!spec || spec!=xl6IrChannelSendSpecResource(spec->source) || !args ||
-        count!=(spec->timed ? 3u : 2u) || args[0]!=owner ||
+        count!=xl6IrChannelSendCount(spec) || args[0]!=owner ||
         !xl6IrChannelConstructionRecipe(module,owner,&schemaId,NULL) ||
-        !output || output->kind!=XL6_IR_TYPE_BUILTIN || output->cAbi!=XL6_IR_C_ABI_BOOL ||
-        output->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL || output->nullAbi!=XL6_IR_NULL_ABI_NONE) return 0;
+        !xl6IrChannelSendResultCompatible(module,spec,result)) return 0;
     const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
     return args[1]==schema->sequenceLayout.elementType &&
-        (!spec->timed || xl6IrChannelWaitTimeCompatible(module,spec->waitMode,args[2]));
+        (!spec->timed || xl6IrChannelWaitTimeCompatible(module,spec->waitMode,args[2])) &&
+        (!spec->cancelled || xl6IrChannelCancellationField(module,args[count-1]));
 }
 int xl6IrChannelSendIntrinsicCompatible(const XL6_IrModule* module,const XL6_IrIntrinsicCall* call,
     const XL6_IrIntrinsicOperand* args)
 {
     const XL6_IrChannelSendSpec* spec=call ? xl6IrChannelSendSpecResource(call->runtimeResourceOp) : NULL;
-    XL6_IrTypeId types[3]={0},schemaId=0;
+    XL6_IrTypeId types[4]={0},schemaId=0;
     if (!module || !spec || !args || call->kind!=XL6_IR_INTRINSIC_RUNTIME_RESOURCE ||
         call->admission!=XL6_IR_INTRINSIC_ADMISSION_VERIFIED || !call->receiver ||
-        call->operandCount!=(spec->timed ? 3u : 2u) || args[0].expression!=call->receiver ||
+        call->operandCount!=xl6IrChannelSendCount(spec) || args[0].expression!=call->receiver ||
         call->runtimeResourceKeyType || call->runtimeResourceKeyPayloadAbi || call->runtimeResourceKeyOrderAbi ||
         call->collectionAbi || call->integerTarget || call->payloadAbi ||
         call->errorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE || call->resultAbi!=XL6_IR_INTRINSIC_RESULT_VALUE ||
@@ -95,19 +110,18 @@ int xl6IrChannelSendDependentSignatureCompatible(const XL6_IrModule* module,XL6_
 {
     const XL6_IrChannelSendSpec* spec=xl6IrChannelSendSpecResource(op);
     XL6_IrTypeId payload=xl6IrChannelReceivePayloadType(module,owner);
-    const XL6_IrType* output=module ? xl6IrTypeGet(&module->types,result) : NULL;
     return spec && payload && xl6IrBuildTypeContainsTypeParam(module,payload,0) && args &&
-        count==(spec->timed ? 3u : 2u) && args[0]==owner && args[1]==payload &&
+        count==xl6IrChannelSendCount(spec) && args[0]==owner && args[1]==payload &&
         (!spec->timed || xl6IrChannelWaitTimeCompatible(module,spec->waitMode,args[2])) &&
-        output && output->kind==XL6_IR_TYPE_BUILTIN && output->cAbi==XL6_IR_C_ABI_BOOL &&
-        output->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && output->nullAbi==XL6_IR_NULL_ABI_NONE &&
+        (!spec->cancelled || xl6IrChannelCancellationField(module,args[count-1])) &&
+        xl6IrChannelSendResultCompatible(module,spec,result) &&
         xl6IrChannelDependentDeclaration(module,origin);
 }
 static const XL6_IrChannelReceiveSpec xl6ChannelReceiveSpecs[]={
-#define XL6_CHANNEL_RECEIVE_OP(Id,Name,Mode,Timed) \
+#define XL6_CHANNEL_RECEIVE_OP(Id,Name,Mode,Timed,Cancelled) \
     {XL6_IR_CHANNEL_RECEIVE_##Id,XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_##Id, \
-        XL6_IR_RUNTIME_CHANNEL_RECEIVE_##Id,Name,Mode,Timed, \
-        Mode==3 ? "xl6ChannelReceiveWaitV2" : "xl6ChannelReceiveV1"},
+        XL6_IR_RUNTIME_CHANNEL_RECEIVE_##Id,Name,Mode,Timed,Cancelled, \
+        Cancelled ? "xl6ChannelReceiveCancelV2" : Mode==3 ? "xl6ChannelReceiveWaitV2" : "xl6ChannelReceiveV1"},
 #include "src/abi/xl6_channel_receive_ops.inc"
 #undef XL6_CHANNEL_RECEIVE_OP
 };
@@ -117,6 +131,13 @@ const XL6_IrChannelReceiveSpec* xl6IrChannelReceiveSpec(XL6_IrChannelReceiveKind
     for (size_t i=0;i<sizeof(xl6ChannelReceiveSpecs)/sizeof(*xl6ChannelReceiveSpecs);++i)
         if (xl6ChannelReceiveSpecs[i].kind==kind) return &xl6ChannelReceiveSpecs[i];
     return NULL;
+}
+int xl6IrChannelCancellationOperand(XL6_IrRuntimeResourceOp op,size_t index)
+{
+    const XL6_IrChannelSendSpec* send=xl6IrChannelSendSpecResource(op);
+    const XL6_IrChannelReceiveSpec* receive=xl6IrChannelReceiveSpecResource(op);
+    return (send && send->cancelled && index+1==xl6IrChannelSendCount(send)) ||
+        (receive && receive->cancelled && index+1==xl6IrChannelReceiveCount(receive));
 }
 const XL6_IrChannelReceiveSpec* xl6IrChannelReceiveMethod(const char* name)
 {
@@ -178,8 +199,9 @@ int xl6IrChannelReceiveSignatureCompatible(const XL6_IrModule* module,XL6_IrChan
 {
     XL6_IrChannelReceivePlan plan={0};
     return xl6IrChannelReceivePlanBuild(module,kind,owner,result,&plan) && args &&
-        count==(plan.spec->timed ? 2u : 1u) && args[0]==owner &&
-        (!plan.spec->timed || xl6IrChannelWaitTimeCompatible(module,plan.spec->waitMode,args[1]));
+        count==xl6IrChannelReceiveCount(plan.spec) && args[0]==owner &&
+        (!plan.spec->timed || xl6IrChannelWaitTimeCompatible(module,plan.spec->waitMode,args[1])) &&
+        (!plan.spec->cancelled || xl6IrChannelCancellationField(module,args[count-1]));
 }
 
 /* This contract deliberately has no transfer/slot ABI. Only the declaration
@@ -193,8 +215,9 @@ int xl6IrChannelReceiveDependentSignatureCompatible(const XL6_IrModule* module,X
     XL6_IrTypeId element=xl6IrChannelReceivePayloadType(module,owner);
     const XL6_IrType* tuple=module ? xl6IrTypeGet(&module->types,result) : NULL;
     if (!spec || !element || !xl6IrBuildTypeContainsTypeParam(module,element,0) || !args ||
-        count!=(spec->timed ? 2u : 1u) || args[0]!=owner ||
+        count!=xl6IrChannelReceiveCount(spec) || args[0]!=owner ||
         (spec->timed && !xl6IrChannelWaitTimeCompatible(module,spec->waitMode,args[1])) ||
+        (spec->cancelled && !xl6IrChannelCancellationField(module,args[count-1])) ||
         !tuple || tuple->kind!=XL6_IR_TYPE_TUPLE || tuple->paramCount!=2 || !tuple->params ||
         tuple->returnCount || tuple->nullAbi!=XL6_IR_NULL_ABI_NONE ||
         !xl6IrConcurrentQueueIntegerType(module,tuple->params[0])) return 0;
@@ -209,10 +232,10 @@ int xl6IrChannelReceiveIntrinsicCompatible(const XL6_IrModule* module,const XL6_
     const XL6_IrIntrinsicOperand* args)
 {
     const XL6_IrChannelReceiveSpec* spec=call ? xl6IrChannelReceiveSpecResource(call->runtimeResourceOp) : NULL;
-    XL6_IrTypeId types[2]={0}; XL6_IrChannelReceivePlan plan={0};
+    XL6_IrTypeId types[3]={0}; XL6_IrChannelReceivePlan plan={0};
     if (!module || !spec || !args || call->kind!=XL6_IR_INTRINSIC_RUNTIME_RESOURCE ||
         call->admission!=XL6_IR_INTRINSIC_ADMISSION_VERIFIED || !call->receiver ||
-        call->operandCount!=(spec->timed ? 2u : 1u) || args[0].expression!=call->receiver ||
+        call->operandCount!=xl6IrChannelReceiveCount(spec) || args[0].expression!=call->receiver ||
         call->runtimeResourceKeyType || call->runtimeResourceKeyPayloadAbi || call->runtimeResourceKeyOrderAbi ||
         call->collectionAbi || call->integerTarget || call->payloadAbi ||
         !xl6IrChannelReceivePlanBuild(module,spec->kind,call->receiverType,call->resultType,&plan)) return 0;
@@ -227,23 +250,74 @@ int xl6IrChannelReceiveIntrinsicCompatible(const XL6_IrModule* module,const XL6_
         call->resultAbi==xl6IrRuntimeResourceResultAbiForType(spec->source,xl6IrTypeGet(&module->types,plan.resultType));
 }
 
+/* A private physical loan has exactly one use: the final Token input of this
+ * verified synchronous wait. It cannot be stored, returned, or reused as an
+ * arbitrary point value. The logical object remains the borrowed owner. */
+int xl6IrChannelCancellationProjectionCompatible(const XL6_IrModule* module,const XL6_IrInstruction* getter)
+{
+    const XL6_IrIntrinsicCall* call=module && getter ? xl6IrIntrinsicCallGet(module,getter->origin) : NULL;
+    const XL6_IrChannelSendSpec* send=call ? xl6IrChannelSendSpecResource(call->runtimeResourceOp) : NULL;
+    const XL6_IrChannelReceiveSpec* receive=call ? xl6IrChannelReceiveSpecResource(call->runtimeResourceOp) : NULL;
+    if (!call || !getter->result || getter->kind!=XL6_IR_INSTR_RUNTIME_CALL ||
+        getter->runtimeOp!=XL6_IR_RUNTIME_XVALUE_OBJECT_GET_LITERAL_NATIVE_HANDLE_BORROW ||
+        getter->operandCount!=1 || getter->firstOperand>=module->operandCount ||
+        getter->immediateData || getter->immediateSize || getter->opcode || getter->targetSymbol ||
+        getter->targetValue || getter->calleeType || getter->payloadType || getter->runtimeIdentityType ||
+        getter->runtimeResourcePayloadAbi || getter->runtimeResourceKeyType ||
+        getter->runtimeResourceKeyPayloadAbi || getter->runtimeResourceKeyOrderAbi ||
+        getter->sequenceAdmissionIdentitySet || getter->collectionAbi || getter->integerTarget ||
+        getter->integerSourceAbi || getter->scalarConversionAbi || getter->castAbi ||
+        !((send && send->cancelled) || (receive && receive->cancelled)) ||
+        call->firstOperand>module->intrinsicOperandCount ||
+        call->operandCount>module->intrinsicOperandCount-call->firstOperand || !call->operandCount) return 0;
+    const XL6_IrIntrinsicOperand* args=module->intrinsicOperands+call->firstOperand;
+    if (!(send ? xl6IrChannelSendIntrinsicCompatible(module,call,args) :
+        xl6IrChannelReceiveIntrinsicCompatible(module,call,args))) return 0;
+    const XL6_IrInstruction* owner=xl6IrValueDefinition(module,module->operands[getter->firstOperand],NULL);
+    const XL6_IrClassField* field=owner ? xl6IrChannelCancellationField(module,owner->type) : NULL;
+    if (!field || owner->type!=args[call->operandCount-1].type || getter->type!=field->type ||
+        !xl6IrCanonicalCStringLiteralMatchesText(getter->immediateText,field->name)) return 0;
+    size_t uses=0;
+    for (size_t i=0;i<module->instructionCount;++i) {
+        const XL6_IrInstruction* use=&module->instructions[i];
+        if (use->targetValue==getter->result || use->firstOperand>module->operandCount ||
+            use->operandCount>module->operandCount-use->firstOperand) return 0;
+        for (size_t j=0;j<use->operandCount;++j) if (module->operands[use->firstOperand+j]==getter->result) {
+            if (use->kind!=XL6_IR_INSTR_RUNTIME_CALL || use->origin!=getter->origin ||
+                use->runtimeOp!=(send ? send->runtime : receive->runtime) ||
+                use->operandCount!=call->operandCount || j+1!=use->operandCount) return 0;
+            ++uses;
+        }
+    }
+    return uses==1;
+}
+static int xl6IrChannelPhysicalArgumentTypes(const XL6_IrModule* module,const XL6_IrInstruction* ins,
+    bool cancelled,XL6_IrTypeId* args)
+{
+    for (size_t i=0;i<ins->operandCount;++i) {
+        const XL6_IrInstruction* def=xl6IrValueDefinition(module,module->operands[ins->firstOperand+i],NULL);
+        if (!def) return 0;
+        args[i]=def->type;
+        if (cancelled && i+1==ins->operandCount) {
+            if (def->origin!=ins->origin || !xl6IrChannelCancellationProjectionCompatible(module,def)) return 0;
+            args[i]=xl6IrValueDefinition(module,module->operands[def->firstOperand],NULL)->type;
+        }
+    }
+    return 1;
+}
 int xl6IrChannelReceiveInstructionPlan(const XL6_IrModule* module,const XL6_IrInstruction* ins,
     XL6_IrChannelReceivePlan* output)
 {
     const XL6_IrChannelReceiveSpec* spec=ins ? xl6IrChannelReceiveSpecRuntime(ins->runtimeOp) : NULL;
-    XL6_IrTypeId args[2]={0}; XL6_IrChannelReceivePlan plan={0};
+    XL6_IrTypeId args[3]={0}; XL6_IrChannelReceivePlan plan={0};
     if (!module || !spec || ins->kind!=XL6_IR_INSTR_RUNTIME_CALL || !ins->result ||
-        ins->operandCount!=(spec->timed ? 2u : 1u) || ins->firstOperand>module->operandCount ||
+        ins->operandCount!=xl6IrChannelReceiveCount(spec) || ins->firstOperand>module->operandCount ||
         ins->operandCount>module->operandCount-ins->firstOperand ||
         ins->immediateText || ins->immediateData || ins->immediateSize || ins->opcode || ins->targetSymbol ||
         ins->targetValue || ins->calleeType || ins->runtimeIdentityType || ins->sequenceAdmissionIdentitySet ||
         ins->runtimeResourceKeyType || ins->runtimeResourceKeyPayloadAbi || ins->runtimeResourceKeyOrderAbi ||
         ins->collectionAbi) return 0;
-    for (size_t i=0;i<ins->operandCount;++i) {
-        const XL6_IrInstruction* def=xl6IrValueDefinition(module,module->operands[ins->firstOperand+i],NULL);
-        if (!def) return 0;
-        args[i]=def->type;
-    }
+    if (!xl6IrChannelPhysicalArgumentTypes(module,ins,spec->cancelled,args)) return 0;
     if (!xl6IrChannelReceiveSignatureCompatible(module,spec->kind,args[0],ins->type,args,ins->operandCount) ||
         !xl6IrChannelReceivePlanBuild(module,spec->kind,args[0],ins->type,&plan) ||
         ins->payloadType!=plan.elementType || ins->runtimeResourcePayloadAbi!=plan.transferAbi) return 0;
@@ -293,18 +367,14 @@ int xl6IrChannelInstructionCompatible(const XL6_IrModule* module,const XL6_IrIns
     }
     if (ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_COUNT)
         return ins->operandCount==1 && xl6IrConcurrentQueueIntegerType(module,ins->type);
-    if (result->kind!=XL6_IR_TYPE_BUILTIN || result->cAbi!=XL6_IR_C_ABI_BOOL ||
-        result->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL || result->nullAbi!=XL6_IR_NULL_ABI_NONE) return 0;
     const XL6_IrChannelSendSpec* send=xl6IrChannelSendSpecRuntime(ins->runtimeOp);
     if (send) {
-        XL6_IrTypeId args[3]={0};
-        if (ins->operandCount!=(send->timed ? 3u : 2u)) return 0;
-        for (size_t i=0;i<ins->operandCount;++i) {
-            const XL6_IrInstruction* value=xl6IrValueDefinition(module,module->operands[ins->firstOperand+i],NULL);
-            if (!value) return 0;
-            args[i]=value->type;
-        }
+        XL6_IrTypeId args[4]={0};
+        if (ins->operandCount!=xl6IrChannelSendCount(send) ||
+            !xl6IrChannelPhysicalArgumentTypes(module,ins,send->cancelled,args)) return 0;
         return xl6IrChannelSendSignatureCompatible(module,send,owner,ins->type,args,ins->operandCount);
     }
+    if (result->kind!=XL6_IR_TYPE_BUILTIN || result->cAbi!=XL6_IR_C_ABI_BOOL ||
+        result->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL || result->nullAbi!=XL6_IR_NULL_ABI_NONE) return 0;
     return ins->operandCount==1 && (ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_CLOSE || ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_IS_CLOSED);
 }

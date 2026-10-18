@@ -1,16 +1,34 @@
 /* Mechanical emission from a closed Channel plan. The resident provider owns
  * transport, message boxes, metadata and graph/lifetime synchronization. */
 static void xl6IrCgenEmitChannelWaitArguments(XL6_Output* out,const XL6_IrModule* module,
-    const XL6_IrInstruction* ins,unsigned mode,bool timed,size_t timeOperand)
+    const XL6_IrInstruction* ins,unsigned mode,bool timed,bool cancelled,size_t timeOperand)
 {
-    if (mode==3) {
+    if (mode==3 || cancelled) {
         xl6OutputPrintf(out,"(XL6_ChannelWaitOptionsV2){sizeof(XL6_ChannelWaitOptionsV2), "
-            "XL6_CHANNEL_UNTIL_V2, 0, v%u}",(unsigned)module->operands[ins->firstOperand+timeOperand]);
+            "%u, ",mode);
+        if (mode==2) xl6OutputPrintf(out,"v%u",(unsigned)module->operands[ins->firstOperand+timeOperand]);
+        else xl6OutputPuts("0",out);
+        xl6OutputPuts(", ",out);
+        if (mode==3) xl6OutputPrintf(out,"v%u",(unsigned)module->operands[ins->firstOperand+timeOperand]);
+        else xl6OutputPuts("0",out);
+        xl6OutputPuts("}",out);
     } else {
         xl6OutputPrintf(out,"(XL6_ChannelWaitV1)%u, ",mode);
         if (timed) xl6OutputPrintf(out,"v%u",(unsigned)module->operands[ins->firstOperand+timeOperand]);
         else xl6OutputPuts("0",out);
     }
+    if (cancelled) xl6OutputPrintf(out,", v%u",(unsigned)module->operands[ins->firstOperand+ins->operandCount-1]);
+}
+static void xl6IrCgenEmitChannelCallPrefix(XL6_Output* out,const XL6_IrModule* module,
+    const XL6_IrInstruction* ins,const char* symbol,bool cancelled)
+{
+    xl6OutputPuts("      bool channel_ok = ",out);
+    /* Source requires a Token; the lower-level native ABI also permits NULL
+     * to mean no cancellation. A failed/empty physical loan must not silently
+     * turn a cancellable wait into an unbounded uncancellable operation. */
+    if (cancelled) xl6OutputPrintf(out,"v%u != NULL && ",
+        (unsigned)module->operands[ins->firstOperand+ins->operandCount-1]);
+    xl6OutputPrintf(out,"%s(",symbol);
 }
 static int xl6IrCgenEmitChannelRuntime(XL6_Output* out,const XL6_IrModule* module,
     const XL6_IrInstruction* ins)
@@ -52,25 +70,27 @@ static int xl6IrCgenEmitChannelRuntime(XL6_Output* out,const XL6_IrModule* modul
          * normal flow. Never address a caller variable or an int64 status as
          * the native enum's four-byte output slot. */
         if (receive.valueTagged) xl6OutputPrintf(out,"      v%u.e1.hasValue = true;\n",output);
-        xl6OutputPrintf(out,"      XL6_ChannelStatusV1 channel_status = XL6_CHANNEL_EMPTY_V1;\n"
-            "      bool channel_ok = %s(v%u, 0x%016llXULL, 0x%016llXULL, %s,\n"
+        xl6OutputPuts("      XL6_ChannelStatusV1 channel_status = XL6_CHANNEL_EMPTY_V1;\n",out);
+        xl6IrCgenEmitChannelCallPrefix(out,module,ins,spec->nativeSymbol,spec->cancelled);
+        xl6OutputPrintf(out,"v%u, 0x%016llXULL, 0x%016llXULL, %s,\n"
             "          (XL6_ChannelSlotV1){&v%u.e1%s, sizeof(%s)}, ",
-            spec->nativeSymbol,first,identity,element,descriptor,output,receive.valueTagged ? ".value" : "",slotType);
-        xl6IrCgenEmitChannelWaitArguments(out,module,ins,spec->waitMode,spec->timed,1);
+            first,identity,element,descriptor,output,receive.valueTagged ? ".value" : "",slotType);
+        xl6IrCgenEmitChannelWaitArguments(out,module,ins,spec->waitMode,spec->timed,spec->cancelled,1);
         xl6OutputPrintf(out,", &channel_status);\n"
             "      if (!channel_ok) xl6ErrorScopeCaptureFailure(&channel_scope);\n"
             "      v%u.e0 = (int64_t)channel_status;\n",output);
     } else if (send) {
         unsigned second=(unsigned)module->operands[ins->firstOperand+1];
-        xl6OutputPrintf(out,"      XL6_ChannelStatusV1 channel_status = XL6_CHANNEL_FULL_V1;\n"
-            "      bool channel_ok = %s(v%u, 0x%016llXULL, 0x%016llXULL, %s,\n"
+        xl6OutputPuts("      XL6_ChannelStatusV1 channel_status = XL6_CHANNEL_FULL_V1;\n",out);
+        xl6IrCgenEmitChannelCallPrefix(out,module,ins,send->nativeSymbol,send->cancelled);
+        xl6OutputPrintf(out,"v%u, 0x%016llXULL, 0x%016llXULL, %s,\n"
             "          (XL6_ChannelSlotV1){&v%u, sizeof(%s)}, ",
-            send->nativeSymbol,first,identity,element,descriptor,second,slotType);
-        xl6IrCgenEmitChannelWaitArguments(out,module,ins,send->waitMode,send->timed,2);
-        xl6OutputPrintf(out,", &channel_status);\n"
-            "      if (!channel_ok) xl6ErrorScopeCaptureFailure(&channel_scope);\n"
-            "      v%u = channel_ok && channel_status == XL6_CHANNEL_OK_V1;\n",
-            output);
+            first,identity,element,descriptor,second,slotType);
+        xl6IrCgenEmitChannelWaitArguments(out,module,ins,send->waitMode,send->timed,send->cancelled,2);
+        xl6OutputPuts(", &channel_status);\n"
+            "      if (!channel_ok) xl6ErrorScopeCaptureFailure(&channel_scope);\n",out);
+        if (send->cancelled) xl6OutputPrintf(out,"      v%u = (int64_t)channel_status;\n",output);
+        else xl6OutputPrintf(out,"      v%u = channel_ok && channel_status == XL6_CHANNEL_OK_V1;\n",output);
     } else if (ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_CLOSE) {
         xl6OutputPrintf(out,"      v%u = xl6ChannelCloseV1(v%u, 0x%016llXULL);\n"
             "      if (!v%u) xl6ErrorScopeCaptureFailure(&channel_scope);\n",output,first,identity,output);
