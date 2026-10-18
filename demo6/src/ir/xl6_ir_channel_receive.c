@@ -18,9 +18,21 @@ static int xl6IrChannelDependentDeclaration(const XL6_IrModule* module,XL6_IrNod
     }
     return 0;
 }
+/* Relative time is a checked signed millisecond span. An absolute deadline
+ * uses the unsigned microsecond clock exposed by time.monotonic(). Neither
+ * semantic acceptance nor a generic clone may silently change the unit. */
+static int xl6IrChannelWaitTimeCompatible(const XL6_IrModule* module,unsigned mode,XL6_IrTypeId id)
+{
+    if (mode!=3) return xl6IrConcurrentQueueIntegerType(module,id);
+    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,id) : NULL;
+    return type && type->kind==XL6_IR_TYPE_BUILTIN && type->cAbi==XL6_IR_C_ABI_U64 &&
+        type->integerTarget==XL6_IR_INTEGER_TARGET_UNSIGNED_64 &&
+        type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && type->nullAbi==XL6_IR_NULL_ABI_NONE;
+}
 static const XL6_IrChannelSendSpec xl6ChannelSendSpecs[]={
 #define XL6_CHANNEL_SEND_OP(Id,Name,Mode,Timed,Label) \
-    {XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_##Id,XL6_IR_RUNTIME_CHANNEL_##Id,Name,Mode,Timed},
+    {XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_##Id,XL6_IR_RUNTIME_CHANNEL_##Id,Name,Mode,Timed, \
+        Mode==3 ? "xl6ChannelSendWaitV2" : "xl6ChannelSendV1"},
 #include "src/abi/xl6_channel_send_ops.inc"
 #undef XL6_CHANNEL_SEND_OP
 };
@@ -54,7 +66,7 @@ int xl6IrChannelSendSignatureCompatible(const XL6_IrModule* module,const XL6_IrC
         output->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL || output->nullAbi!=XL6_IR_NULL_ABI_NONE) return 0;
     const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
     return args[1]==schema->sequenceLayout.elementType &&
-        (!spec->timed || xl6IrConcurrentQueueIntegerType(module,args[2]));
+        (!spec->timed || xl6IrChannelWaitTimeCompatible(module,spec->waitMode,args[2]));
 }
 int xl6IrChannelSendIntrinsicCompatible(const XL6_IrModule* module,const XL6_IrIntrinsicCall* call,
     const XL6_IrIntrinsicOperand* args)
@@ -86,7 +98,7 @@ int xl6IrChannelSendDependentSignatureCompatible(const XL6_IrModule* module,XL6_
     const XL6_IrType* output=module ? xl6IrTypeGet(&module->types,result) : NULL;
     return spec && payload && xl6IrBuildTypeContainsTypeParam(module,payload,0) && args &&
         count==(spec->timed ? 3u : 2u) && args[0]==owner && args[1]==payload &&
-        (!spec->timed || xl6IrConcurrentQueueIntegerType(module,args[2])) &&
+        (!spec->timed || xl6IrChannelWaitTimeCompatible(module,spec->waitMode,args[2])) &&
         output && output->kind==XL6_IR_TYPE_BUILTIN && output->cAbi==XL6_IR_C_ABI_BOOL &&
         output->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && output->nullAbi==XL6_IR_NULL_ABI_NONE &&
         xl6IrChannelDependentDeclaration(module,origin);
@@ -94,7 +106,8 @@ int xl6IrChannelSendDependentSignatureCompatible(const XL6_IrModule* module,XL6_
 static const XL6_IrChannelReceiveSpec xl6ChannelReceiveSpecs[]={
 #define XL6_CHANNEL_RECEIVE_OP(Id,Name,Mode,Timed) \
     {XL6_IR_CHANNEL_RECEIVE_##Id,XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_##Id, \
-        XL6_IR_RUNTIME_CHANNEL_RECEIVE_##Id,Name,Mode,Timed},
+        XL6_IR_RUNTIME_CHANNEL_RECEIVE_##Id,Name,Mode,Timed, \
+        Mode==3 ? "xl6ChannelReceiveWaitV2" : "xl6ChannelReceiveV1"},
 #include "src/abi/xl6_channel_receive_ops.inc"
 #undef XL6_CHANNEL_RECEIVE_OP
 };
@@ -166,7 +179,7 @@ int xl6IrChannelReceiveSignatureCompatible(const XL6_IrModule* module,XL6_IrChan
     XL6_IrChannelReceivePlan plan={0};
     return xl6IrChannelReceivePlanBuild(module,kind,owner,result,&plan) && args &&
         count==(plan.spec->timed ? 2u : 1u) && args[0]==owner &&
-        (!plan.spec->timed || xl6IrConcurrentQueueIntegerType(module,args[1]));
+        (!plan.spec->timed || xl6IrChannelWaitTimeCompatible(module,plan.spec->waitMode,args[1]));
 }
 
 /* This contract deliberately has no transfer/slot ABI. Only the declaration
@@ -181,7 +194,7 @@ int xl6IrChannelReceiveDependentSignatureCompatible(const XL6_IrModule* module,X
     const XL6_IrType* tuple=module ? xl6IrTypeGet(&module->types,result) : NULL;
     if (!spec || !element || !xl6IrBuildTypeContainsTypeParam(module,element,0) || !args ||
         count!=(spec->timed ? 2u : 1u) || args[0]!=owner ||
-        (spec->timed && !xl6IrConcurrentQueueIntegerType(module,args[1])) ||
+        (spec->timed && !xl6IrChannelWaitTimeCompatible(module,spec->waitMode,args[1])) ||
         !tuple || tuple->kind!=XL6_IR_TYPE_TUPLE || tuple->paramCount!=2 || !tuple->params ||
         tuple->returnCount || tuple->nullAbi!=XL6_IR_NULL_ABI_NONE ||
         !xl6IrConcurrentQueueIntegerType(module,tuple->params[0])) return 0;

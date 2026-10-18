@@ -32,6 +32,14 @@ static int xl6IrCgenEmitResourceRuntime(
     if (nativeQueue) xl6OutputPuts("#include <__xl_runtime/xl6_concurrent_queue_abi.h>\n",out);
     if(needs->needsWaitQueueRuntime)xl6OutputPuts("#include <__xl_runtime/xl6_wait_queue_abi.h>\n",out);
     if (needs->needsNativeChannelRuntime) xl6OutputPuts("#include <__xl_runtime/xl6_channel_abi.h>\n",out);
+    for (i=0;i<module->instructionCount;++i) {
+        if (!xl6IrCgenInstructionIsReachable(module,i)) continue;
+        const XL6_IrChannelSendSpec* send=xl6IrChannelSendSpecRuntime(module->instructions[i].runtimeOp);
+        const XL6_IrChannelReceiveSpec* receive=xl6IrChannelReceiveSpecRuntime(module->instructions[i].runtimeOp);
+        if ((send && send->waitMode==3) || (receive && receive->waitMode==3)) {
+            xl6OutputPuts("#include <__xl_runtime/xl6_channel_wait_abi.h>\n",out); break;
+        }
+    }
     if ( needs->needsThreadResourceRuntime )
         xl6OutputPuts(
             "extern xvalue* xl6ThreadCreateV1(xlir_closure*, uint64_t);\n"

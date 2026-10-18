@@ -1,0 +1,80 @@
+func sendBy<T>(channel<T> pipe, T value, uint64 deadlineUs) as bool
+    return pipe.sendUntil(value, deadlineUs)
+end
+func receiveBy<T>(channel<T> pipe, uint64 deadlineUs) as (int, T?)
+    return pipe.recvUntil(deadlineUs)
+end
+func deadlines()
+    channel<int> pipe = channel::<int>(1)
+    // A ready operation wins even when the deadline is already expired.
+    assert pipe.sendUntil(7, 0)
+    assert not pipe.sendUntil(8, 0)
+    auto status, value = pipe.recvUntil(0)
+    assert status == channelStatus.ok and value != null and value == 7
+    auto expiredStatus, expired = pipe.recvUntil(0)
+    assert expiredStatus == channelStatus.timeout and expired == null
+    uint64 shortly = time.monotonic() + uint64(1000)
+    auto timedStatus, timed = pipe.recvUntil(shortly)
+    assert timedStatus == channelStatus.timeout and timed == null
+    bool refused = false
+    uint64 never = 18446744073709551615
+    try
+        pipe.sendUntil(9, never)
+    catch Error
+        refused = true
+    end
+    assert refused and pipe.count() == 0
+    refused = false
+    try
+        pipe.recvUntil(never)
+    catch Error
+        refused = true
+    end
+    assert refused and pipe.count() == 0
+    assert sendBy::<int>(pipe, 10, uint64(0))
+    pipe.close()
+    assert not pipe.sendUntil(11, 0)
+    auto drainedStatus, drained = receiveBy::<int>(pipe, uint64(0))
+    assert drainedStatus == channelStatus.ok and drained != null and drained == 10
+    auto closedStatus, closed = pipe.recvUntil(0)
+    assert closedStatus == channelStatus.closed and closed == null
+
+    channel<string> text = channel::<string>(1)
+    string original = "a\0你🙂"
+    assert sendBy::<string>(text, original, uint64(0))
+    original = "different"
+    auto textStatus, received = receiveBy::<string>(text, uint64(0))
+    assert textStatus == channelStatus.ok and received != null and received == "a\0你🙂"
+    int32 zeroMs = 0
+    assert text.sendTimeout(original, zeroMs)
+    auto relativeStatus, relativeText = text.recvTimeout(zeroMs)
+    assert relativeStatus == channelStatus.ok and relativeText != null and relativeText == original
+    text.close()
+
+    channel<bytes> binary = channel::<bytes>(1)
+    bytes data = b"a\0b"
+    assert binary.sendUntil(data, 0)
+    data[0] = 99
+    auto byteStatus, receivedBytes = binary.recvUntil(0)
+    assert byteStatus == channelStatus.ok and receivedBytes != null and receivedBytes == b"a\0b"
+    binary.close()
+
+    channel<int?> nullable = channel::<int?>(1)
+    assert nullable.sendUntil(null, 0)
+    auto nullStatus, nullValue = nullable.recvUntil(0)
+    assert nullStatus == channelStatus.ok and nullValue == null
+    nullable.close()
+end
+func rendezvous()
+    channel<int> pipe = channel::<int>(0)
+    auto consumer = thread(func() as int
+        auto status, value = pipe.recvUntil(time.monotonic() + uint64(5000000))
+        assert status == channelStatus.ok and value != null and value == 31
+        return 32
+    end)
+    assert pipe.sendUntil(31, time.monotonic() + uint64(5000000))
+    assert consumer.waitTimeout(5000) and consumer.exitCode() == 32
+    pipe.close()
+end
+deadlines()
+rendezvous()

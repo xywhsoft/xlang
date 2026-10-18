@@ -249,10 +249,13 @@ typedef enum XL6_IrRuntimeResourceOp {
 #define XL6_TREE_QUERY_OP(id,name,search,pair,required,native) XL6_IR_RUNTIME_RESOURCE_OP_TREE_QUERY_##id,
 #include "../abi/xl6_tree_query_ops.inc"
 #undef XL6_TREE_QUERY_OP
-#define XL6_CHANNEL_RECEIVE_OP(Id,...) XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_##Id,
-#include "../abi/xl6_channel_receive_ops.inc"
-#undef XL6_CHANNEL_RECEIVE_OP
+    /* Historical identities stay fixed when the shared method table grows. */
+    XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_WAIT,
+    XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_TRY,
+    XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_FOR,
     XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND_TIMEOUT,
+    XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND_UNTIL,
+    XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_UNTIL,
 } XL6_IrRuntimeResourceOp;
 
 /* Runtime resources with generic payloads carry an explicit transfer ABI in
@@ -2122,9 +2125,9 @@ typedef enum XL6_IrRuntimeOp {
 #define XL6_TREE_QUERY_OP(id,name,search,pair,required,native) XL6_IR_RUNTIME_TREE_QUERY_##id,
 #include "../abi/xl6_tree_query_ops.inc"
 #undef XL6_TREE_QUERY_OP
-#define XL6_CHANNEL_RECEIVE_OP(Id,...) XL6_IR_RUNTIME_CHANNEL_RECEIVE_##Id,
-#include "../abi/xl6_channel_receive_ops.inc"
-#undef XL6_CHANNEL_RECEIVE_OP
+    XL6_IR_RUNTIME_CHANNEL_RECEIVE_WAIT,
+    XL6_IR_RUNTIME_CHANNEL_RECEIVE_TRY,
+    XL6_IR_RUNTIME_CHANNEL_RECEIVE_FOR,
     /* Exact literal spans and owned named records, distinct from known-class
      * borrowed field storage. A write consumes item but observes receiver. */
     XL6_IR_RUNTIME_NAMED_READ_LITERAL_COPY,
@@ -2152,6 +2155,8 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED,
     XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_BYTES,
     XL6_IR_RUNTIME_CHANNEL_SEND_TIMEOUT,
+    XL6_IR_RUNTIME_CHANNEL_SEND_UNTIL,
+    XL6_IR_RUNTIME_CHANNEL_RECEIVE_UNTIL,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -7216,6 +7221,7 @@ typedef struct XL6_IrChannelSendSpec {
     const char* name;
     unsigned int waitMode;
     bool timed;
+    const char* nativeSymbol;
 } XL6_IrChannelSendSpec;
 const XL6_IrChannelSendSpec* xl6IrChannelSendMethod(const char*);
 const XL6_IrChannelSendSpec* xl6IrChannelSendSpecResource(XL6_IrRuntimeResourceOp);
@@ -7239,6 +7245,7 @@ typedef struct XL6_IrChannelReceiveSpec {
     const char* name;
     unsigned int waitMode;
     bool timed;
+    const char* nativeSymbol;
 } XL6_IrChannelReceiveSpec;
 typedef struct XL6_IrChannelReceivePlan {
     const XL6_IrChannelReceiveSpec* spec;

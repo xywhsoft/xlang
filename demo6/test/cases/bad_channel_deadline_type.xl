@@ -1,0 +1,3 @@
+channel<int> pipe = channel::<int>(1)
+int milliseconds = 1
+pipe.sendUntil(7, milliseconds)

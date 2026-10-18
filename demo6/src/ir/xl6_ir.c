@@ -10424,13 +10424,18 @@ static int xl6IrBuildCanWidenLanguageInteger(
     int resultSigned;
     if ( source == NULL || result == NULL ||
          source->cAbi != XL6_IR_C_ABI_I64 ||
-         result->cAbi != XL6_IR_C_ABI_I64 ) return 0;
+         (result->cAbi != XL6_IR_C_ABI_I64 && result->cAbi != XL6_IR_C_ABI_U64) ) return 0;
     sourceWidth = xl6IrBuildIntegerTargetWidth(source->integerTarget);
     resultWidth = xl6IrBuildIntegerTargetWidth(result->integerTarget);
     if ( sourceWidth == 0 || resultWidth == 0 ||
          resultWidth < sourceWidth ) return 0;
     sourceSigned = xl6IrBuildIntegerTargetSigned(source->integerTarget);
     resultSigned = xl6IrBuildIntegerTargetSigned(result->integerTarget);
+    /* uint8/16/32 are normalized in I64 slots, but their full unsigned range
+     * is losslessly representable by uint64's distinct U64 carrier. Use the
+     * canonical scalar conversion, not a library-specific cast exemption. */
+    if (result->cAbi==XL6_IR_C_ABI_U64)
+        return result->integerTarget==XL6_IR_INTEGER_TARGET_UNSIGNED_64 && !sourceSigned && sourceWidth<64;
     if ( sourceSigned == resultSigned ) return 1;
     return !sourceSigned && resultSigned && resultWidth > sourceWidth;
 }
@@ -12329,9 +12334,24 @@ static int xl6IrRuntimeResourceSignatureCompatible(
  * resource arguments.  They make value conversion and addressable output
  * positions explicit before the IntrinsicOperand arena is committed. */
 static XL6_IrTypeId xl6IrRuntimeResourceInputTargetType(
-    XL6_IrRuntimeResourceOp operation, size_t operandIndex,
+    const XL6_IrModule* module, XL6_IrRuntimeResourceOp operation, size_t operandIndex,
     XL6_IrTypeId keyType, XL6_IrTypeId payloadType)
 {
+    const XL6_IrChannelSendSpec* send=xl6IrChannelSendSpecResource(operation);
+    const XL6_IrChannelReceiveSpec* receive=xl6IrChannelReceiveSpecResource(operation);
+    if ((send && send->timed && operandIndex==2) ||
+        (receive && receive->timed && operandIndex==1)) {
+        bool absolute=send ? send->waitMode==3 : receive->waitMode==3;
+        for (size_t i=0;module && i<module->types.count;++i) {
+            const XL6_IrType* type=&module->types.items[i];
+            if (type->kind==XL6_IR_TYPE_BUILTIN &&
+                type->cAbi==(absolute ? XL6_IR_C_ABI_U64 : XL6_IR_C_ABI_I64) &&
+                type->integerTarget==(absolute ? XL6_IR_INTEGER_TARGET_UNSIGNED_64 : XL6_IR_INTEGER_TARGET_SIGNED_64) &&
+                type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && type->nullAbi==XL6_IR_NULL_ABI_NONE)
+                return (XL6_IrTypeId)(i+1);
+        }
+        return XL6_IR_TYPE_INVALID;
+    }
     const XL6_IrTreeQuerySpec* query=xl6IrTreeQuerySpecResource(operation);
     if(query && query->search && operandIndex==1) return keyType;
     if((operation==XL6_IR_RUNTIME_RESOURCE_OP_SLOT_MAP_INSERT && operandIndex==1) ||
@@ -14758,7 +14778,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                 for ( i = 0; compatible && i < operandCount; ++i ) {
                     XL6_IrTypeId inputTarget =
                         xl6IrRuntimeResourceInputTargetType(
-                            runtimeResourceOp, i,
+                            module, runtimeResourceOp, i,
                             intrinsic.runtimeResourceKeyType,
                             intrinsic.payloadType);
                     XL6_IrTypeId storageTarget =
@@ -15615,7 +15635,7 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
         XL6_IrTypeId resourceInputTarget =
             intrinsic.kind == XL6_IR_INTRINSIC_RUNTIME_RESOURCE
                 ? xl6IrRuntimeResourceInputTargetType(
-                    intrinsic.runtimeResourceOp, i,
+                    module, intrinsic.runtimeResourceOp, i,
                     intrinsic.runtimeResourceKeyType,
                     intrinsic.payloadType)
                 : XL6_IR_TYPE_INVALID;
@@ -19871,7 +19891,10 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
          * canonical signed-64 domain even in programs with no integer syntax.
          * This is typed IR vocabulary, not a source/library dummy variable or
          * a backend fallback. Append without renumbering existing source IDs. */
-        {"int","xrt.int64"}
+        {"int","xrt.int64"},
+        /* Native absolute deadlines use the monotonic unsigned microsecond
+         * domain, including calls whose only time operand is a literal. */
+        {"uint64","xrt.uint64"}
     };
     for(size_t i=0;ok && module->root!=XL6_IR_NODE_INVALID &&
         i<sizeof(vocabulary)/sizeof(vocabulary[0]);++i) {
@@ -35339,7 +35362,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 XL6_IrTypeId resourceInputTarget =
                     intrinsic->kind == XL6_IR_INTRINSIC_RUNTIME_RESOURCE
                         ? xl6IrRuntimeResourceInputTargetType(
-                            intrinsic->runtimeResourceOp, operandIndex,
+                            module, intrinsic->runtimeResourceOp, operandIndex,
                             intrinsic->runtimeResourceKeyType,
                             intrinsic->payloadType)
                         : XL6_IR_TYPE_INVALID;
@@ -36571,26 +36594,17 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             xl6IrTypeGet(&module->types, operand->type);
                         XL6_IrTypeId inputTarget =
                             xl6IrRuntimeResourceInputTargetType(
-                                intrinsic->runtimeResourceOp, operandIndex,
+                                module, intrinsic->runtimeResourceOp, operandIndex,
                                 intrinsic->runtimeResourceKeyType,
                                 intrinsic->payloadType);
                         XL6_IrTypeId storageTarget =
                             xl6IrRuntimeResourceStorageTargetType(
                                 intrinsic->runtimeResourceOp, operandIndex,
                                 intrinsic->payloadType);
-                        XL6_IrRuntimeResourcePayloadAbi transferAbi =
-                            inputTarget == intrinsic->runtimeResourceKeyType
-                                ? intrinsic->runtimeResourceKeyPayloadAbi
-                                : intrinsic->runtimeResourcePayloadAbi;
                         XL6_IrIntrinsicOperandAbi expectedAbi =
                             storageTarget != XL6_IR_TYPE_INVALID
                                 ? XL6_IR_INTRINSIC_OPERAND_STORAGE_REF
-                                : inputTarget != XL6_IR_TYPE_INVALID
-                                    ? (transferAbi ==
-                                           XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY
-                                          ? XL6_IR_INTRINSIC_OPERAND_VALUE
-                                          : XL6_IR_INTRINSIC_OPERAND_BORROW)
-                                    : operandType != NULL &&
+                                : operandType != NULL &&
                                       operandType->ownershipAbi ==
                                           XL6_IR_OWNERSHIP_ABI_MANAGED
                                         ? XL6_IR_INTRINSIC_OPERAND_BORROW
