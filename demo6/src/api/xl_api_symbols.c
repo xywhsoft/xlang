@@ -345,6 +345,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV1Get", (const void*)xl6FutureCallbackRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV2Get", (const void*)xl6FutureCallbackRuntimeV2Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV4Get", (const void*)xl6FutureCallbackRuntimeV4Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV5Get", (const void*)xl6FutureCallbackRuntimeV5Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV3Get", (const void*)xl6FutureCallbackRuntimeV3Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackCancelPolicyV1Get", (const void*)xl6FutureCallbackCancelPolicyV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureAggregateAllV2", (const void*)xl6FutureAggregateAllV2)) return 0;

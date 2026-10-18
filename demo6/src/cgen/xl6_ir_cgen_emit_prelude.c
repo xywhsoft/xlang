@@ -458,7 +458,7 @@ static int xl6IrCgenEmitRuntimePrelude(
             ? "#define xlir_future_callback_owner (xlir_code_owner.size != 0 ? &xlir_code_owner : NULL)\n"
             : "#define xlir_future_callback_owner NULL\n",out);
         xl6OutputPuts(
-            "#define xlir_future_callback_allocate(...) (xl6FutureCallbackRuntimeV4Get()->Allocate)(xlir_future_callback_owner, __VA_ARGS__)\n"
+            "#define xlir_future_callback_allocate(...) (xl6FutureCallbackRuntimeV5Get()->Allocate)(xlir_future_callback_owner, __VA_ARGS__)\n"
             "#define xlir_future_callback_discard (xl6FutureCallbackRuntimeV1Get()->Discard)\n",out);
     }
     if (needs->needsAsyncTaskRuntime) {

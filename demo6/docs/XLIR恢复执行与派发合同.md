@@ -535,3 +535,31 @@ Cgen 仅按已封闭合同调用驻留 `xl6ContinuationExecutorCreateFixedV1`。
 这次不暗中改变 `.then/.catch/.finally` 现有 inline callback ABI。其统一的
 owned-ready 派发，以及 Channel Future 的 native completion/cancel 交付，仍须
 作为后续明确的 ABI/生命周期迁移完成；不能把本节当成五组接入已全部完成。
+
+### Future 回调的 owned-ready 合同（2026-10-18）
+
+语言 `.then/.catch/.finally` 的新封闭合同为 transport=3、storage=7、
+cleanup=2、error=3，驻留 ABI 使用 `XL6_FutureCallbackRuntimeV5`。
+即使输入 Future 已完成，也只能把工作投递到模块固定执行器，不能借用注册／
+完成调用栈内联执行语言 CFG；注册者本身是 worker 时也必须排队。只有这些
+回调、没有 async 函数的模块
+也必须申请固定执行器；缺失或退役的 ABI 在 C/header 输出前拒绝。
+
+同一个帧同时承担捕获、实际 producer／Watch／队列拥有和代码租约；ticket
+位于同一次分配的对齐尾部，不创建第二个拥有节点。所有可能失败的准入、
+Promise 和取消准备均先于 Watch 注册；失败保留 builder 的 Discard 责任。
+Commit 后 builder 引用转交队列，不再访问可能已经退休的帧。原生通知仅设置
+Ready／TransportReleased，三条件齐备后才可排队，不申请线程、协程栈或新票据。
+
+回调先构造结果，再按 V2 捕获布局清理，并显式传递 `(ok, owned error)`：
+首个失败即使没有诊断对象也不能被后续错误替换，更不能误判为成功。
+清理后提交逻辑 Complete，然后发布结果；执行器仍等待物理尾部和代码租约
+回收。只有最终 Future 发布边界才把无诊断失败规范化为静态 InternalError，
+不在清理中额外分配错误。源 Future 已有失败／取消／关闭时沿用原有终态优先规则。
+生成 C 先用独立语句取走诊断，再用稳定的局部值构造 outcome；不把读取错误
+与消费错误放在同一个初始化列表中，不依赖 C 未保证的求值顺序。
+
+已有 V1—V4 原生 inline 适配仍供显式内部转换使用，不代表新语言回调合同。
+queued transport 及其所有权 domain 是独立可裁剪组件；仅使用旧原生转换
+不能因此强行拉入固定执行器。Close 拒绝新回调根，但不取消已接受的回调；
+回调内同步阻塞仍须显式卸载到 task／线程，不承诺自动补偿固定 worker。

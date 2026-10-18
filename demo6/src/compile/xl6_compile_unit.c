@@ -608,7 +608,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_channel_case_language.c",D(R(CHANNEL_CASE)),{NULL}},
     {"src/runtime/xl6_channel_case_array.c",D(R(CHANNEL_CASE),R(SEQUENCE)),{NULL}},
     {"src/runtime/xl6_channel_select_language.c",D(R(CHANNEL_CASE_ARRAY),R(CHANNEL_CASE_SELECT)),{NULL}},
-    {"src/runtime/xl6_channel_select_cancel_language.c",D(R(CHANNEL_CASE_ARRAY),R(CHANNEL_CASE_SELECT_CANCEL)),{NULL}}
+    {"src/runtime/xl6_channel_select_cancel_language.c",D(R(CHANNEL_CASE_ARRAY),R(CHANNEL_CASE_SELECT_CANCEL)),{NULL}},
+    {"src/runtime/xl6_future_callback_queue.c",D(R(FUTURE_CALLBACK),R(EXECUTOR),R(CONTINUATION_FUTURE)),{"XRT_MODULE_FUTURE"}},
+    {"src/runtime/xl6_ownership_domain_future_callback_queue.c",D(R(OWNERSHIP_CATALOG),R(FUTURE_CALLBACK_QUEUE)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -1062,7 +1064,7 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         case XL6_IR_RUNTIME_FUTURE_ALL_XVALUES_ARRAY: case XL6_IR_RUNTIME_FUTURE_RACE_ARRAY:
         case XL6_IR_RUNTIME_FUTURE_WHEN_ANY_INDEX_ARRAY:
             REQUIRE(R(FUTURE_AGGREGATE_ARRAY)); break;
-        case XL6_IR_RUNTIME_FUTURE_CONTINUE_CLOSURE: REQUIRE(R(FUTURE_CALLBACK),R(FUTURE_PAYLOAD)); break;
+        case XL6_IR_RUNTIME_FUTURE_CONTINUE_CLOSURE: REQUIRE(R(FUTURE_CALLBACK_QUEUE),R(FUTURE_PAYLOAD)); break;
         case XL6_IR_RUNTIME_TASK_SPAWN_CLOSURE: REQUIRE(R(TASK)); break;
         case XL6_IR_RUNTIME_FUTURE_SET_DEBUG_NAME: case XL6_IR_RUNTIME_FUTURE_DEBUG_NAME_COPY:
         case XL6_IR_RUNTIME_FUTURE_CREATE_TIME_MS: case XL6_IR_RUNTIME_FUTURE_COMPLETE_TIME_MS:
