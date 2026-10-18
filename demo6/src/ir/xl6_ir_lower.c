@@ -15693,7 +15693,7 @@ xl6IrLowerRuntimeResourceKeyOrderAbiForType(
 static int xl6IrLowerRuntimeResourceOpIsChannel(
     XL6_IrRuntimeResourceOp operation)
 {
-    return xl6IrChannelReceiveSpecResource(operation) ||
+    return xl6IrChannelSendSpecResource(operation) || xl6IrChannelReceiveSpecResource(operation) ||
         (operation >= XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CREATE &&
          operation <= XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_COUNT);
 }
@@ -15888,6 +15888,8 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
         return xl6IrTreeQueryIntrinsicCompatible(module,intrinsic,operands);
     if(xl6IrChannelReceiveSpecResource(intrinsic->runtimeResourceOp))
         return xl6IrChannelReceiveIntrinsicCompatible(module,intrinsic,operands);
+    if(xl6IrChannelSendSpecResource(intrinsic->runtimeResourceOp))
+        return xl6IrChannelSendIntrinsicCompatible(module,intrinsic,operands);
     result = xl6IrTypeGet(&module->types, intrinsic->resultType);
     if ( intrinsic->operandCount > 0 )
         first = xl6IrTypeGet(&module->types, operands[0].type);
@@ -16378,16 +16380,6 @@ static int xl6IrLowerRuntimeResourceSignatureCompatible(
              intrinsic->runtimeResourcePayloadAbi ==
                  XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID ) return 0;
         switch ( intrinsic->runtimeResourceOp ) {
-        case XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND:
-        case XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_TRY_SEND:
-            return intrinsic->operandCount == 2 && result != NULL &&
-                operands[1].type == payloadType &&
-                operands[1].abi ==
-                    (intrinsic->runtimeResourcePayloadAbi ==
-                         XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY
-                        ? XL6_IR_INTRINSIC_OPERAND_VALUE
-                        : XL6_IR_INTRINSIC_OPERAND_BORROW) &&
-                result->cAbi == XL6_IR_C_ABI_BOOL;
         case XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECV_INTO:
         case XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_TRY_RECV_INTO:
             return intrinsic->operandCount == 2 && result != NULL &&
@@ -24187,6 +24179,8 @@ static XL6_IrRuntimeOp xl6IrLowerRuntimeResourceOp(
     if(xl6IrSlotMapResourceOpIs(operation)) return xl6IrSlotMapRuntimeOp(operation);
     const XL6_IrChannelReceiveSpec* receive=xl6IrChannelReceiveSpecResource(operation);
     if(receive) return receive->runtime;
+    const XL6_IrChannelSendSpec* send=xl6IrChannelSendSpecResource(operation);
+    if(send) return send->runtime;
     const XL6_IrTreeQuerySpec* query=xl6IrTreeQuerySpecResource(operation);
     if(query) return query->runtime;
     switch ( operation ) {
@@ -24204,10 +24198,6 @@ static XL6_IrRuntimeOp xl6IrLowerRuntimeResourceOp(
         return XL6_IR_RUNTIME_THREAD_STOP;
     case XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CREATE:
         return XL6_IR_RUNTIME_CHANNEL_CREATE;
-    case XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND:
-        return XL6_IR_RUNTIME_CHANNEL_SEND;
-    case XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_TRY_SEND:
-        return XL6_IR_RUNTIME_CHANNEL_TRY_SEND;
     case XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECV_INTO:
         return XL6_IR_RUNTIME_CHANNEL_RECV_INTO;
     case XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_TRY_RECV_INTO:

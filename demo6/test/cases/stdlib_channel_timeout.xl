@@ -1,0 +1,77 @@
+func sendGeneric<T>(channel<T> pipe, T value) as bool
+    return pipe.sendTimeout(value, 0)
+end
+func timeouts()
+    channel<int> pipe = channel::<int>(1)
+    assert pipe.sendTimeout(7, 0)
+    assert not pipe.trySend(8)
+    assert not pipe.sendTimeout(8, 0)
+    assert not pipe.sendTimeout(9, 1)
+    auto status, value = pipe.recv()
+    assert status == channelStatus.ok and value != null and value == 7
+    auto absentStatus, absent = pipe.recvTimeout(0)
+    assert absentStatus == channelStatus.timeout and absent == null
+    for bad in [-1, 9223372036854775807]
+        bool refused = false
+        try
+            pipe.sendTimeout(10, bad)
+        catch Error
+            refused = true
+        end
+        assert refused and pipe.count() == 0
+        refused = false
+        try
+            pipe.recvTimeout(bad)
+        catch Error
+            refused = true
+        end
+        assert refused and pipe.count() == 0
+    end
+    assert sendGeneric::<int>(pipe, 11)
+    assert not sendGeneric::<int>(pipe, 12)
+    pipe.close()
+    assert not pipe.sendTimeout(13, 0)
+    auto bufferedStatus, buffered = pipe.recvTimeout(0)
+    assert bufferedStatus == channelStatus.ok and buffered != null and buffered == 11
+    auto closedStatus, closed = pipe.recvTimeout(0)
+    assert closedStatus == channelStatus.closed and closed == null
+    channel<int> ordinary = channel::<int>(1)
+    assert ordinary.send(12)
+    ordinary.close()
+
+    channel<string> text = channel::<string>(1)
+    string original = "a\0你🙂"
+    assert sendGeneric::<string>(text, original)
+    original = "different"
+    assert not text.sendTimeout("not published", 0)
+    auto textStatus, receivedText = text.recv()
+    assert textStatus == channelStatus.ok and receivedText != null and receivedText == "a\0你🙂"
+    text.close()
+
+    channel<bytes> binary = channel::<bytes>(1)
+    bytes data = b"a\0b"
+    assert sendGeneric::<bytes>(binary, data)
+    data[0] = 99
+    auto byteStatus, receivedBytes = binary.recv()
+    assert byteStatus == channelStatus.ok and receivedBytes != null and receivedBytes == b"a\0b"
+    binary.close()
+
+    channel<int?> nullable = channel::<int?>(1)
+    assert sendGeneric::<int?>(nullable, null)
+    auto nullStatus, nullValue = nullable.recvTimeout(0)
+    assert nullStatus == channelStatus.ok and nullValue == null
+    nullable.close()
+end
+func waitingSend()
+    channel<int> rendezvous = channel::<int>(0)
+    auto consumer = thread(func() as int
+        auto status, value = rendezvous.recv()
+        assert status == channelStatus.ok and value != null and value == 31
+        return 32
+    end)
+    assert rendezvous.sendTimeout(31, 5000)
+    assert consumer.waitTimeout(5000) and consumer.exitCode() == 32
+    rendezvous.close()
+end
+timeouts()
+waitingSend()

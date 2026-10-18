@@ -1,5 +1,6 @@
 #include "xl6_channel.h"
 #include "src/api/xl_foreign_error.h"
+#include "xl6_concurrent_deadline.h"
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
@@ -259,8 +260,6 @@ static bool request(ChannelOwner* owner,uint64_t element,const xrttype* type,XL6
     }
     return true;
 }
-static uint64_t microseconds(int64_t milliseconds)
-{ return (uint64_t)milliseconds>UINT64_MAX/1000 ? UINT64_MAX : (uint64_t)milliseconds*1000; }
 static bool statusFromTry(xchannelresult result,XL6_ChannelStatusV1* status)
 {
     switch (result) {
@@ -304,14 +303,16 @@ bool xl6ChannelSendV1(const xvalue* value,uint64_t identity,uint64_t element,con
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
     ChannelOwner* owner=begin(value,identity); bool ok=false; ChannelBox* box=NULL;
+    xdeadline deadline=XRT_DEADLINE_NEVER;
     XL6_ChannelStatusV1 actual=XL6_CHANNEL_OK_V1;
-    if (owner && request(owner,element,type,slot,mode,milliseconds,status,false)) {
+    if (owner && request(owner,element,type,slot,mode,milliseconds,status,false) &&
+        (mode!=XL6_CHANNEL_FOR_V1 || xl6ConcurrentDeadline(milliseconds,&deadline))) {
         box=copyBox(owner,slot.data);
         if (box) {
             linkBox(owner,box);
             ok=mode==XL6_CHANNEL_TRY_V1 ? statusFromTry(xrtChannelTrySend(&owner->channel,box),&actual) :
                 statusFromWait(mode==XL6_CHANNEL_WAIT_V1 ? xrtChannelSend(&owner->channel,box) :
-                    xrtChannelSendFor(&owner->channel,box,microseconds(milliseconds)),&actual);
+                    xrtChannelSendUntil(&owner->channel,box,deadline),&actual);
             /* After publication a receiver may already have freed the box.
              * The successful sender must not read even one of its fields. */
             if (ok && actual==XL6_CHANNEL_OK_V1) box=NULL;
@@ -329,11 +330,13 @@ bool xl6ChannelReceiveV1(const xvalue* value,uint64_t identity,uint64_t element,
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
     ChannelOwner* owner=begin(value,identity); bool ok=false; void* raw=NULL;
+    xdeadline deadline=XRT_DEADLINE_NEVER;
     XL6_ChannelStatusV1 actual=XL6_CHANNEL_OK_V1;
-    if (owner && request(owner,element,type,slot,mode,milliseconds,status,true)) {
+    if (owner && request(owner,element,type,slot,mode,milliseconds,status,true) &&
+        (mode!=XL6_CHANNEL_FOR_V1 || xl6ConcurrentDeadline(milliseconds,&deadline))) {
         ok=mode==XL6_CHANNEL_TRY_V1 ? statusFromTry(xrtChannelTryRecv(&owner->channel,&raw),&actual) :
             statusFromWait(mode==XL6_CHANNEL_WAIT_V1 ? xrtChannelRecv(&owner->channel,&raw) :
-                xrtChannelRecvFor(&owner->channel,&raw,microseconds(milliseconds)),&actual);
+                xrtChannelRecvUntil(&owner->channel,&raw,deadline),&actual);
         if (ok && actual==XL6_CHANNEL_OK_V1) {
             ChannelBox* box=raw; if (!box) { xrtSetErrorKind(XERR_STATE); ok=false; }
             else {

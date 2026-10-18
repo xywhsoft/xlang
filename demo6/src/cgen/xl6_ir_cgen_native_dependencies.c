@@ -649,7 +649,7 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             const XL6_IrChannelReceiveSpec* receive=xl6IrChannelReceiveSpecRuntime(instruction->runtimeOp);
             const char* method=receive ? "xl6ChannelReceiveV1" :
                 instruction->runtimeOp==XL6_IR_RUNTIME_CHANNEL_CREATE ? "xl6ChannelCreateTakeV1" :
-                instruction->runtimeOp==XL6_IR_RUNTIME_CHANNEL_SEND || instruction->runtimeOp==XL6_IR_RUNTIME_CHANNEL_TRY_SEND ? "xl6ChannelSendV1" :
+                xl6IrChannelSendSpecRuntime(instruction->runtimeOp) ? "xl6ChannelSendV1" :
                 instruction->runtimeOp==XL6_IR_RUNTIME_CHANNEL_CLOSE ? "xl6ChannelCloseV1" : "xl6ChannelQueryV1";
             if (!xl6IrChannelInstructionCompatible(module,instruction) ||
                 !xl6IrChannelConstructionRecipe(module,channelId,&schemaId,NULL) || !visitor(context,method)) return 0;

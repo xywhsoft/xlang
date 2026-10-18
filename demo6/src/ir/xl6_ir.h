@@ -252,6 +252,7 @@ typedef enum XL6_IrRuntimeResourceOp {
 #define XL6_CHANNEL_RECEIVE_OP(Id,...) XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_##Id,
 #include "../abi/xl6_channel_receive_ops.inc"
 #undef XL6_CHANNEL_RECEIVE_OP
+    XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_SEND_TIMEOUT,
 } XL6_IrRuntimeResourceOp;
 
 /* Runtime resources with generic payloads carry an explicit transfer ABI in
@@ -2150,6 +2151,7 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_NATIVE_SCALAR_AS_CHECKED,
     XL6_IR_RUNTIME_NATIVE_SCALAR_CONVERT_CHECKED,
     XL6_IR_RUNTIME_XVALUE_CAST_NULLABLE_BYTES,
+    XL6_IR_RUNTIME_CHANNEL_SEND_TIMEOUT,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -7208,6 +7210,22 @@ int xl6IrConcurrentQueueConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
  * This prerequisite does not authorize legacy Into calls as owned receives. */
 int xl6IrChannelConstructionRecipe(const XL6_IrModule*,XL6_IrTypeId,
     XL6_IrTypeId* schemaOut,XL6_IrNominalIdentitySetId* admissionSetOut);
+typedef struct XL6_IrChannelSendSpec {
+    XL6_IrRuntimeResourceOp source;
+    XL6_IrRuntimeOp runtime;
+    const char* name;
+    unsigned int waitMode;
+    bool timed;
+} XL6_IrChannelSendSpec;
+const XL6_IrChannelSendSpec* xl6IrChannelSendMethod(const char*);
+const XL6_IrChannelSendSpec* xl6IrChannelSendSpecResource(XL6_IrRuntimeResourceOp);
+const XL6_IrChannelSendSpec* xl6IrChannelSendSpecRuntime(XL6_IrRuntimeOp);
+int xl6IrChannelSendSignatureCompatible(const XL6_IrModule*,const XL6_IrChannelSendSpec*,
+    XL6_IrTypeId,XL6_IrTypeId,const XL6_IrTypeId*,size_t);
+int xl6IrChannelSendIntrinsicCompatible(const XL6_IrModule*,const XL6_IrIntrinsicCall*,
+    const XL6_IrIntrinsicOperand*);
+int xl6IrChannelSendDependentSignatureCompatible(const XL6_IrModule*,XL6_IrNodeId,
+    XL6_IrRuntimeResourceOp,XL6_IrTypeId,XL6_IrTypeId,const XL6_IrTypeId*,size_t);
 typedef enum XL6_IrChannelReceiveKind {
     XL6_IR_CHANNEL_RECEIVE_INVALID=0,
 #define XL6_CHANNEL_RECEIVE_OP(Id,...) XL6_IR_CHANNEL_RECEIVE_##Id,

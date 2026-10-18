@@ -19,8 +19,10 @@ XL6_TEXT_API bool xl6ChannelAdmitsSchemaV1(const xvalue*,uint64_t,
  * A managed target must be empty, with exact size/alignment and no overlap with
  * the status slot. This is a private result acquisition slot, never byref.
  * The caller owns it on EVERY path, including failure after a committed move.
- * timeoutMs must be zero outside FOR; FOR rejects negatives and saturates a
- * positive conversion to XRT microseconds. Send does not consume its input. */
+ * timeoutMs must be zero outside FOR; FOR rejects negatives and finite
+ * overflow instead of converting it into the native infinite sentinel.
+ * The absolute deadline is fixed before copying a message; copy/allocation
+ * time is part of the timeout. Send does not consume its input. */
 /* Close may run concurrently with waits; it wakes them and preserves queued
  * ownership for draining. An active operation pins the native owner. Graph
  * observation refuses BUSY instead of waiting under the frozen world gate.

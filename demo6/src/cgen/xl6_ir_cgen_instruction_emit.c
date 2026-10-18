@@ -391,9 +391,7 @@ static int xl6IrCgenEmitInstruction(
                                  source->runtimeOp == XL6_IR_RUNTIME_XVALUE_BINARY_SHR ||
                                  source->runtimeOp == XL6_IR_RUNTIME_XVALUE_WEAK_CREATE ||
                                  source->runtimeOp == XL6_IR_RUNTIME_CHANNEL_CREATE ||
-                                  source->runtimeOp == XL6_IR_RUNTIME_CHANNEL_SEND ||
-                                 source->runtimeOp ==
-                                      XL6_IR_RUNTIME_CHANNEL_TRY_SEND ||
+                                 xl6IrChannelSendSpecRuntime(source->runtimeOp) ||
                                  source->runtimeOp ==
                                       XL6_IR_RUNTIME_SPECIAL_QUEUE_CREATE ||
                                   source->runtimeOp ==

@@ -12411,6 +12411,14 @@ static XL6_AstNode* xl6SemCloneChannelReceiverType(XL6_SemContext* ctx, XL6_AstN
 }
 
 /* Shared names with typed and lowered IR; SEM constructs only logical types. */
+static int xl6SemChannelSendMode(const char* name)
+{
+    if (!name) return -1;
+#define XL6_CHANNEL_SEND_OP(Id,Name,Mode,Timed,Label) if (!strcmp(name,Name)) return Mode;
+#include "src/abi/xl6_channel_send_ops.inc"
+#undef XL6_CHANNEL_SEND_OP
+    return -1;
+}
 static int xl6SemChannelReceiveMode(const char* name)
 {
     if (!name) return -1;
@@ -12484,13 +12492,14 @@ static int xl6SemCheckChannelMethodCall(XL6_SemContext* ctx, XL6_AstNode* node)
         return ok;
     }
 
-    if ( xl6TextEquals(member->text, "send") ||
-         xl6TextEquals(member->text, "trySend") ) {
-        XL6_AstNode* arg = argCount == 1 ? args->children[0] : NULL;
+    int sendMode=xl6SemChannelSendMode(member->text);
+    if (sendMode>=0) {
+        size_t expectedCount=sendMode==2 ? 2u : 1u;
+        XL6_AstNode* arg = argCount == expectedCount ? args->children[0] : NULL;
         XL6_AstNode* expr = arg != NULL && arg->childCount > 0 ? arg->children[0] : NULL;
         itemType = xl6SemCloneSingleGenericArgType(ctx, receiverType, "channel");
-        if ( argCount != 1 || arg == NULL || arg->kind != XL6_AST_ARG ) {
-            xl6SemErrorNode(ctx, node, "channel.send 必须传入一个位置参数");
+        if ( argCount != expectedCount || arg == NULL || arg->kind != XL6_AST_ARG || !expr ) {
+            xl6SemErrorNode(ctx, node, "channel send requires positional value, and sendTimeout also requires timeoutMs");
             ok = 0;
         } else if ( itemType == NULL || !xl6SemExprCanMatchParamType(ctx, expr, itemType) ) {
             xl6SemTypeMismatchError(
@@ -12500,6 +12509,14 @@ static int xl6SemCheckChannelMethodCall(XL6_SemContext* ctx, XL6_AstNode* node)
                 itemType,
                 xl6SemExprStaticTypeName(ctx, expr));
             ok = 0;
+        }
+        if (sendMode==2 && argCount==expectedCount) {
+            XL6_AstNode* timeout=args->children[1];
+            XL6_AstNode* value=timeout && timeout->childCount ? timeout->children[0] : NULL;
+            XL6_AstNode intType={0}; intType.kind=XL6_AST_TYPE; intType.text="int";
+            if (!timeout || timeout->kind!=XL6_AST_ARG || !value || !xl6SemExprCanMatchParamType(ctx,value,&intType)) {
+                xl6SemErrorNode(ctx,node,"channel.sendTimeout requires one positional int timeoutMs after value"); ok=0;
+            }
         }
         xl6AstFree(itemType);
         xl6AstFree(receiverType);
@@ -12564,8 +12581,7 @@ static const char* xl6SemChannelCallResultTypeName(XL6_SemContext* ctx, XL6_AstN
     }
 
     result = NULL;
-    if ( xl6TextEquals(member->text, "send") ||
-         xl6TextEquals(member->text, "trySend") ||
+    if ( xl6SemChannelSendMode(member->text)>=0 ||
          xl6TextEquals(member->text, "isClosed") ) {
         result = "bool";
     } else if ( xl6TextEquals(member->text, "count") ) {
