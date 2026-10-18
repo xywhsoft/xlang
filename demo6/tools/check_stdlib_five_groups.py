@@ -22,9 +22,11 @@ def digest(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--stage', choices=('p0', 'atomic', 'once-event', 'thread-local', 'cancellation', 'promise', 'channel-waits'), required=True)
+    parser.add_argument('--stage', choices=('p0', 'atomic', 'once-event', 'thread-local', 'cancellation', 'promise', 'channel-waits', 'channel-select-native'), required=True)
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--native-plan-report',type=Path,
+        help='Windows native-only pruning: sealed Linux actual-plan receipt with identical source graph')
     args = parser.parse_args()
     root, out = args.root.resolve(), args.out.resolve()
     task = Path(__file__).resolve().parents[1]
@@ -82,7 +84,7 @@ def main():
                      'bad_stdlib_promise_default_generic_field')
         helpers = (*helpers[:3], 'xlir_promise_contract.c', 'stdlib_promise_native_host.c',
                    'stdlib53_pruning_plan.c', 'stdlib_native_future_policy_product_host.c')
-    if args.stage == 'channel-waits':
+    if args.stage in ('channel-waits','channel-select-native'):
         selected = ('stdlib_channel_timeout', 'stdlib_channel_owned', 'stdlib_channel_owned_wait',
                     'stdlib_channel_recipes', 'stdlib_promise', 'stdlib_cancellation',
                     'stdlib_concurrent_import_only', 'stdlib_channel_pruned')
@@ -90,10 +92,31 @@ def main():
                      'bad_channel_send_timeout_value', 'bad_channel_send_timeout_arity')
         helpers = (*helpers[:3], 'xlir_channel_send_contract.c', 'stdlib_channel_native.c',
                    'stdlib53_pruning_plan.c')
+        if args.stage=='channel-select-native':
+            helpers=(*helpers[:4],'stdlib_channel_select_native.c',*helpers[5:],
+                     'stdlib_channel_select_native_plan.c','stdlib_channel_select_pruned.c')
     inputs = {Path(__file__).resolve(), *products,
               *[cases/(name+'.xl') for name in selected+negatives],
               *[cases/name for name in helpers],
               task/'test/support/module_product_memory.c', task/'test/support/module_product_memory.h'}
+    donor=None
+    if args.native_plan_report:
+        assert win and args.stage=='channel-select-native'
+        donor=json.loads(args.native_plan_report.read_text(encoding='utf8'))
+        assert donor['Complete'] and donor['InputsUnchanged'] and donor['LogsUnchanged'] and not donor['Failures']
+        assert donor['Stage']=='channel-select-native' and donor['NativeChannelPlanOrigin']=='actual-linux-compiler'
+        rows=donor['NativeChannelPlanInputs']
+        relative={row['RelativePath']:row['NormalizedSha256'] for row in rows}
+        sources={path.relative_to(root).as_posix():path for path in (root/'src').rglob('*') if path.is_file()}
+        assert sources.keys()==relative.keys()
+        for path,source in sources.items():
+            assert hashlib.sha256(source.read_bytes().replace(b'\r\n',b'\n')).hexdigest()==relative[path],path
+        inputs.add(args.native_plan_report.resolve())
+        for symbol,plan in donor['NativeChannelPlans'].items():
+            row=next(row for row in donor['Rows'] if row['Name']==symbol+'.native-plan')
+            log=args.native_plan_report.parent/(symbol+'.native-plan.log')
+            assert digest(log)==row['Sha256'] and json.loads(log.read_bytes())==plan
+            inputs.add(log.resolve())
     for folder in ('src', 'lib', 'tools'):
         inputs.update(path for path in (root/folder).rglob('*') if path.is_file())
     cc = shutil.which('gcc')
@@ -153,7 +176,7 @@ def main():
         for binary, source in ((host, helpers[0]), (observer, helpers[1])):
             run(binary.stem+'.build', [cc, *flags, '-O2', '-I'+str(root/'release/include'),
                                       cases/source, *links(names[2]), '-o', binary])
-        if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation', 'promise', 'channel-waits'):
+        if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation', 'promise', 'channel-waits', 'channel-select-native'):
             family, prefix, entries = ('atomic', rb'xl6Atomic\w+V1', 50) if args.stage == 'atomic' else (
                 'concurrent', rb'xl6(?:Once|Event|ThreadLocal|Cancellation|Promise)\w+V1', None)
             exports = set(re.findall(r'XL6_TEXT_EXPORT\((\w+),',
@@ -196,13 +219,13 @@ def main():
                 binary = isolated/(product.stem+'.oom'+('.exe' if win else ''))
                 run(product.stem+'.oom.build', [cc, *flags, '-O2', '-I'+str(root),
                     '-I'+str(root/'release'), '-I'+str(root/'release/include'),
-                    cases/helpers[4], *([task/'test/support/module_product_memory.c'] if args.stage=='channel-waits' else []),
+                    cases/helpers[4], *([task/'test/support/module_product_memory.c'] if args.stage in ('channel-waits','channel-select-native') else []),
                     *links(product.name), '-o', binary])
                 run(product.stem+'.oom.run', [binary])
-                if args.stage == 'channel-waits':
+                if args.stage in ('channel-waits','channel-select-native'):
                     run(product.stem+'.channel.lifetimes', [binary,'repeat'])
                     prefixes=[]
-                    for operation in ('create','send','send-timeout'):
+                    for operation in (('small','large','cancel') if args.stage=='channel-select-native' else ('create','send','send-timeout')):
                         for point in range(4097):
                             output=run(product.stem+'.channel.'+operation+'.'+str(point),[binary,operation,point])
                             if b'hit=0 complete-prefix balanced' in output:
@@ -239,7 +262,7 @@ def main():
                 name in selected[:(4 if args.stage in ('thread-local','cancellation') else 3)]) or (
                 args.stage == 'cancellation' and name == 'stdlib_task_group_methods') or (
                 args.stage == 'promise' and name in selected[:6]) or (
-                args.stage == 'channel-waits' and name in selected[:3])
+                args.stage in ('channel-waits','channel-select-native') and name in selected[:3])
             if not full:
                 return
             work = out/(name+'.saved')
@@ -294,7 +317,7 @@ def main():
                   [isolated/'xlir_class_tag_vocabulary.xl', isolated/'xlir_class_tag_narrow_first.xl']
                   if args.stage == 'cancellation' else
                   [isolated/(name+'.xl') for name in selected[1:3]] if args.stage == 'promise' else [])])
-            if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation', 'promise', 'channel-waits'):
+            if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation', 'promise', 'channel-waits', 'channel-select-native'):
                 planner = isolated/'planner'
                 run('pruning.build', [cc, *flags, '-O2', '-I'+str(root), '-I'+str(root/'release/include'),
                     '-I'+str(root/'lib/tcc'), cases/helpers[5], *links(names[2]), '-o', planner])
@@ -320,7 +343,7 @@ def main():
                              ('stdlib_promise_terminal', core | {'xl6_cancellation_source.c',
                                                                 'xl6_cancellation_source_domain.c','xl6_thread_exit.c'}),
                              ('stdlib_concurrent_import_only', set()))
-                if args.stage == 'channel-waits':
+                if args.stage in ('channel-waits','channel-select-native'):
                     # Direct Channel operations do not erase/project Channel
                     # as a typed container element; that optional admission
                     # factory must stay absent from this executable closure.
@@ -334,8 +357,60 @@ def main():
                         'xl6_once.c', 'xl6_once_domain.c', 'xl6_event.c', 'xl6_event_domain.c',
                         'xl6_thread_exit.c', 'xl6_thread_local.c', 'xl6_thread_local_domain.c',
                         'xl6_promise.c', 'xl6_promise_domain.c', 'xl6_future_value.c',
-                        'xl6_channel.c','xl6_channel_admission.c','xl6_ownership_domain_channel.c'}}
+                        'xl6_channel.c','xl6_channel_admission.c','xl6_ownership_domain_channel.c',
+                        'xl6_channel_wait.c','xl6_channel_cancel.c','xl6_channel_select.c','xl6_channel_select_cancel.c'}}
                     assert scoped == expected, (name, scoped)
+        if args.stage=='channel-select-native':
+            # Native-only symbol-root plans. These do NOT certify a source
+            # Channel select surface before its independent typed IR cutover.
+            if not win:
+                planner=isolated/'native-planner'
+                run('channel.native-plan.build',[cc,*flags,'-O2','-I'+str(root),'-I'+str(root/'release/include'),
+                    '-I'+str(root/'lib/tcc'),cases/helpers[6],*links(names[2]),'-o',planner])
+                report['NativeChannelPlanOrigin']='actual-linux-compiler'
+            else:
+                assert donor,'Private planner is not a Windows DLL API; supply the actual portable-plan receipt'
+                report['NativeChannelPlanOrigin']='actual-linux-compiler+identical-planning-sources'
+                report['NativeChannelPlanDonorSha256']=digest(args.native_plan_report)
+            # The registry/closure algorithm is platform-neutral data/code.
+            # Pin ALL source bytes, not just four convenient component rows.
+            # Actual per-platform native implementations are compiled/run below.
+            report['NativeChannelPlanInputs']=[dict(RelativePath=path.relative_to(root).as_posix(),
+                NormalizedSha256=hashlib.sha256(path.read_bytes().replace(b'\r\n',b'\n')).hexdigest())
+                for path in sorted((root/'src').rglob('*')) if path.is_file()]
+            report['NativeChannelPlans']={}
+            native_cases=(('xl6ChannelReceiveWaitV2',{'xl6_channel_wait.c'},'XRT_MODULE_CHANNEL'),
+                ('xl6ChannelReceiveCancelV2',{'xl6_channel_cancel.c'},'XRT_MODULE_CHANNEL_CANCEL'),
+                ('xl6ChannelSelectV1',{'xl6_channel_select.c'},'XRT_MODULE_CHANNEL_SELECT'),
+                ('xl6ChannelSelectCancelV1',{'xl6_channel_select.c','xl6_channel_select_cancel.c'},'XRT_MODULE_CHANNEL_SELECT_CANCEL'))
+            selected_sources={'xl6_channel_wait.c','xl6_channel_cancel.c','xl6_channel_select.c','xl6_channel_select_cancel.c'}
+            registry=(root/'src/compile/xl6_compile_unit.c').read_text(encoding='utf8').split('xl6ArtifactComponents[] = {',1)[1].split('\n};',1)[0]
+            catalog=set(re.findall(r'^\s*\{\s*"([^"\n]+\.c)"',registry,re.M))
+            for kind,(symbol,expected,module) in enumerate(native_cases,1):
+                plan=donor['NativeChannelPlans'][symbol] if win else json.loads(run(symbol+'.native-plan',[planner,symbol]))
+                report['NativeChannelPlans'][symbol]=plan
+                assert all(re.fullmatch(r'(?:XRT|XRUNTIME)_MODULE_[A-Z0-9_]+',name) for name in plan['NativeModules'])
+                assert all(path in catalog and (root/path).resolve().is_relative_to(root/'src') and
+                    Path(path).suffix=='.c' for path in plan['Sources'])
+                assert {Path(p).name for p in plan['Sources']} & selected_sources == expected
+                assert module in plan['NativeModules']
+                allowed={module}|({'XRT_MODULE_CHANNEL_SELECT'} if module=='XRT_MODULE_CHANNEL_SELECT_CANCEL' else set())
+                forbidden={'XRT_MODULE_CHANNEL_CANCEL','XRT_MODULE_CHANNEL_SELECT','XRT_MODULE_CHANNEL_SELECT_CANCEL'}-allowed
+                assert not forbidden & set(plan['NativeModules'])
+                native=out/(symbol+'.native.c')
+                native.write_text(''.join('#define '+name+'\n' for name in plan['NativeModules'])+
+                    '#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8')
+                binary=isolated/(symbol+'.pruned'+('.exe' if win else ''))
+                systems=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if win else ['-pthread','-ldl','-lm']
+                run(symbol+'.pruned.build',[cc,*flags,'-O2','-DTEST_KIND='+str(kind),'-I'+str(root),'-I'+str(root/'release'),
+                    '-I'+str(root/'release/include'),*([] if win else ['-D_GNU_SOURCE']),
+                    cases/helpers[7],native,*[root/p for p in plan['Sources']],*systems,'-o',binary])
+                run(symbol+'.pruned.run',[binary])
+                imports=run(symbol+'.pruned.imports',[shutil.which('objdump' if win else 'readelf'),'-p' if win else '-d',binary])
+                assert not re.search(rb'(?:libxlc?\.so|\bxlc?\.dll)',imports,re.I)
+                report.setdefault('NativeChannelProducts',[]).append(dict(Symbol=symbol,
+                    NativeSource=str(native),NativeSourceSha256=digest(native),Binary=str(binary),BinarySha256=digest(binary)))
+            report['PublicChannelSelectCutover']=False
         report['InputsUnchanged'] = all(digest(row['Path']) == row['Sha256'] for row in report['Inputs'])
         report['LogsUnchanged'] = all(digest(row['Log']) == row['Sha256'] for row in report['Rows'])
         assert report['InputsUnchanged'] and report['LogsUnchanged']

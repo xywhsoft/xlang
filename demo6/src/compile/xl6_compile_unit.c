@@ -596,7 +596,11 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_native_future_payload.c",D(R(OWNERSHIP_CATALOG),R(NATIVE_FUTURE_PAYLOAD)),{NULL}},
     {"src/runtime/xl6_future_value.c",D(R(FUTURE_PAYLOAD),R(NATIVE_FUTURE_PAYLOAD)),{"XRT_MODULE_FUTURE","XRUNTIME_MODULE_RUNTIME_TYPE"}},
     {"src/runtime/xl6_promise.c",D(R(NATIVE_HANDLE),R(FUTURE_VALUE),R(FOREIGN_ERROR)),{"XRT_MODULE_FUTURE","XRT_MODULE_ATOMIC","XRT_MODULE_VALUE_GRAPH"}},
-    {"src/runtime/xl6_promise_domain.c",D(R(OWNERSHIP_CATALOG),R(PROMISE),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE),R(OWNERSHIP_DOMAIN_FUTURE_PAYLOAD),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE_PAYLOAD)),{NULL}}
+    {"src/runtime/xl6_promise_domain.c",D(R(OWNERSHIP_CATALOG),R(PROMISE),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE),R(OWNERSHIP_DOMAIN_FUTURE_PAYLOAD),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE_PAYLOAD)),{NULL}},
+    {"src/runtime/xl6_channel_wait.c",D(R(TYPED_CHANNEL),R(FOREIGN_ERROR)),{"XRT_MODULE_CHANNEL"}},
+    {"src/runtime/xl6_channel_cancel.c",D(R(TYPED_CHANNEL),R(FOREIGN_ERROR)),{"XRT_MODULE_CHANNEL_CANCEL"}},
+    {"src/runtime/xl6_channel_select.c",D(R(TYPED_CHANNEL),R(FOREIGN_ERROR)),{"XRT_MODULE_CHANNEL_SELECT"}},
+    {"src/runtime/xl6_channel_select_cancel.c",D(R(TYPED_CHANNEL_SELECT),R(FOREIGN_ERROR)),{"XRT_MODULE_CHANNEL_SELECT_CANCEL"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

@@ -1,4 +1,4 @@
-#include "xl6_channel.h"
+#include "xl6_channel_internal.h"
 #include "src/api/xl_foreign_error.h"
 #include "xl6_concurrent_deadline.h"
 #include <limits.h>
@@ -298,62 +298,79 @@ static ChannelBox* copyBox(ChannelOwner* owner,const void* item)
     }
     return box;
 }
+bool xl6ChannelOperationOpenV1(const xvalue* value,uint64_t identity,uint64_t element,const xrttype* type,
+    XL6_ChannelSlotV1 slot,bool sending,XL6_ChannelStatusV1* status,XL6_ChannelOperationV1* output)
+{
+    if (!output || output->owner || output->native || output->message || output->received ||
+        output->target.data || output->target.size || output->sending) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+    ChannelOwner* owner=begin(value,identity);
+    if (!owner) return false;
+    if (!request(owner,element,type,slot,XL6_CHANNEL_TRY_V1,0,status,!sending)) { end(owner); return false; }
+    ChannelBox* box=sending ? copyBox(owner,slot.data) : NULL;
+    if (sending && !box) { end(owner); return false; }
+    if (box) linkBox(owner,box);
+    *output=(XL6_ChannelOperationV1){.owner=owner,.native=&owner->channel,.message=box,
+        .target=sending ? (XL6_ChannelSlotV1){0} : slot,.sending=sending};
+    return true;
+}
+bool xl6ChannelOperationCommitV1(XL6_ChannelOperationV1* operation)
+{
+    if (!operation || !operation->owner) { xrtSetErrorKind(XERR_STATE); return false; }
+    ChannelOwner* owner=operation->owner;
+    if (operation->sending) {
+        /* A concurrent receiver may already have freed this box. */
+        if (!operation->message) { xrtSetErrorKind(XERR_STATE); return false; }
+        operation->message=NULL; return true;
+    }
+    ChannelBox* box=operation->received;
+    if (!box) { xrtSetErrorKind(XERR_STATE); return false; }
+    operation->received=NULL; unlinkBox(owner,box);
+    memcpy(operation->target.data,box->slot,operation->target.size);
+    memset(box->slot,0,operation->target.size); xrtFree(box); return true;
+}
+void xl6ChannelOperationCloseV1(XL6_ChannelOperationV1* operation)
+{
+    if (!operation) return;
+    ChannelOwner* owner=operation->owner;
+    ChannelBox* unsent=operation->message; ChannelBox* acquired=operation->received;
+    memset(operation,0,sizeof(*operation));
+    if (!owner) return;
+    if (unsent) { unlinkBox(owner,unsent); dropBox(owner,unsent); }
+    if (acquired) { unlinkBox(owner,acquired); dropBox(owner,acquired); }
+    end(owner);
+}
+static bool legacyOperation(const xvalue* value,uint64_t identity,uint64_t element,const xrttype* type,
+    XL6_ChannelSlotV1 slot,XL6_ChannelWaitV1 mode,int64_t milliseconds,XL6_ChannelStatusV1* status,bool sending)
+{
+    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
+    XL6_ChannelOperationV1 operation={0}; bool ok=false;
+    xdeadline deadline=XRT_DEADLINE_NEVER;
+    XL6_ChannelStatusV1 actual=XL6_CHANNEL_OK_V1;
+    bool valid=mode>=XL6_CHANNEL_TRY_V1 && mode<=XL6_CHANNEL_FOR_V1 && milliseconds>=0 &&
+        (mode==XL6_CHANNEL_FOR_V1 || !milliseconds);
+    if (!valid) xrtSetErrorKind(XERR_ARGUMENT);
+    if (valid &&
+        (mode!=XL6_CHANNEL_FOR_V1 || xl6ConcurrentDeadline(milliseconds,&deadline))) {
+        if (xl6ChannelOperationOpenV1(value,identity,element,type,slot,sending,status,&operation)) {
+            ok=mode==XL6_CHANNEL_TRY_V1 ? statusFromTry(sending ?
+                xrtChannelTrySend(operation.native,operation.message) : xrtChannelTryRecv(operation.native,&operation.received),&actual) :
+                statusFromWait(sending ? xrtChannelSendUntil(operation.native,operation.message,deadline) :
+                    xrtChannelRecvUntil(operation.native,&operation.received,deadline),&actual);
+            if (ok && actual==XL6_CHANNEL_OK_V1) ok=xl6ChannelOperationCommitV1(&operation);
+        }
+    }
+    if (!ok || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
+    xl6ChannelOperationCloseV1(&operation);
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return false; }
+    *status=actual; return true;
+}
 bool xl6ChannelSendV1(const xvalue* value,uint64_t identity,uint64_t element,const xrttype* type,
     XL6_ChannelSlotV1 slot,XL6_ChannelWaitV1 mode,int64_t milliseconds,XL6_ChannelStatusV1* status)
-{
-    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
-    ChannelOwner* owner=begin(value,identity); bool ok=false; ChannelBox* box=NULL;
-    xdeadline deadline=XRT_DEADLINE_NEVER;
-    XL6_ChannelStatusV1 actual=XL6_CHANNEL_OK_V1;
-    if (owner && request(owner,element,type,slot,mode,milliseconds,status,false) &&
-        (mode!=XL6_CHANNEL_FOR_V1 || xl6ConcurrentDeadline(milliseconds,&deadline))) {
-        box=copyBox(owner,slot.data);
-        if (box) {
-            linkBox(owner,box);
-            ok=mode==XL6_CHANNEL_TRY_V1 ? statusFromTry(xrtChannelTrySend(&owner->channel,box),&actual) :
-                statusFromWait(mode==XL6_CHANNEL_WAIT_V1 ? xrtChannelSend(&owner->channel,box) :
-                    xrtChannelSendUntil(&owner->channel,box,deadline),&actual);
-            /* After publication a receiver may already have freed the box.
-             * The successful sender must not read even one of its fields. */
-            if (ok && actual==XL6_CHANNEL_OK_V1) box=NULL;
-            else { unlinkBox(owner,box); dropBox(owner,box); box=NULL; }
-        }
-    }
-    if (!ok || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
-    if (owner) end(owner);
-    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
-    if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return false; }
-    *status=actual; return true;
-}
+{ return legacyOperation(value,identity,element,type,slot,mode,milliseconds,status,true); }
 bool xl6ChannelReceiveV1(const xvalue* value,uint64_t identity,uint64_t element,const xrttype* type,
     XL6_ChannelSlotV1 slot,XL6_ChannelWaitV1 mode,int64_t milliseconds,XL6_ChannelStatusV1* status)
-{
-    xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
-    ChannelOwner* owner=begin(value,identity); bool ok=false; void* raw=NULL;
-    xdeadline deadline=XRT_DEADLINE_NEVER;
-    XL6_ChannelStatusV1 actual=XL6_CHANNEL_OK_V1;
-    if (owner && request(owner,element,type,slot,mode,milliseconds,status,true) &&
-        (mode!=XL6_CHANNEL_FOR_V1 || xl6ConcurrentDeadline(milliseconds,&deadline))) {
-        ok=mode==XL6_CHANNEL_TRY_V1 ? statusFromTry(xrtChannelTryRecv(&owner->channel,&raw),&actual) :
-            statusFromWait(mode==XL6_CHANNEL_WAIT_V1 ? xrtChannelRecv(&owner->channel,&raw) :
-                xrtChannelRecvUntil(&owner->channel,&raw,deadline),&actual);
-        if (ok && actual==XL6_CHANNEL_OK_V1) {
-            ChannelBox* box=raw; if (!box) { xrtSetErrorKind(XERR_STATE); ok=false; }
-            else {
-                unlinkBox(owner,box);
-                /* The admitted V1 types have relocatable C slots. This is an
-                 * allocation-free move to a checked empty acquisition slot,
-                 * not a fallible copy after the queue has consumed the item. */
-                memcpy(slot.data,box->slot,slot.size); memset(box->slot,0,slot.size); xrtFree(box);
-            }
-        }
-    }
-    if (!ok || xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
-    if (owner) end(owner);
-    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
-    if (!outcome.ok) { xl6ErrorScopePropagateFailure(outcome); return false; }
-    *status=actual; return true;
-}
+{ return legacyOperation(value,identity,element,type,slot,mode,milliseconds,status,false); }
 int64_t xl6ChannelQueryV1(const xvalue* value,uint64_t identity,unsigned query)
 {
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBegin(&scope)) abort();
