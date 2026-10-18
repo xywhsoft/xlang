@@ -8,6 +8,8 @@ XL6_IrOperandOwnership xl6IrRuntimeOperandOwnership(
         return XL6_IR_OPERAND_OWNERSHIP_OBSERVE;
     if(xl6IrSlotMapIteratorOpIs(operation))
         return XL6_IR_OPERAND_OWNERSHIP_OBSERVE;
+    if(xl6IrChannelSendSpecRuntime(operation))
+        return XL6_IR_OPERAND_OWNERSHIP_OBSERVE;
     switch (operation) {
     case XL6_IR_RUNTIME_PERSISTENCE_JSON_PARSE:
     case XL6_IR_RUNTIME_PERSISTENCE_XLON_PARSE:
@@ -335,8 +337,6 @@ XL6_IrOperandOwnership xl6IrRuntimeOperandOwnership(
     case XL6_IR_RUNTIME_THREAD_STATE:
     case XL6_IR_RUNTIME_THREAD_STOP:
     case XL6_IR_RUNTIME_CHANNEL_CREATE:
-    case XL6_IR_RUNTIME_CHANNEL_SEND:
-    case XL6_IR_RUNTIME_CHANNEL_TRY_SEND:
     case XL6_IR_RUNTIME_CHANNEL_RECV_INTO:
     case XL6_IR_RUNTIME_CHANNEL_TRY_RECV_INTO:
     case XL6_IR_RUNTIME_CHANNEL_RECV_TIMEOUT_INTO:

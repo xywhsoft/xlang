@@ -72,8 +72,14 @@ static void vectors(void)
     assert(status==XL6_CHANNEL_EMPTY_V1 && output==99 && !xrtGetError());
     assert(receive(q,xrtTypeInt64(),SLOT(output),XL6_CHANNEL_FOR_V1,0,&status));
     assert(status==XL6_CHANNEL_TIMEOUT_V1 && output==99);
+    status=XL6_CHANNEL_FULL_V1;
+    assert(!receive(q,xrtTypeInt64(),SLOT(output),XL6_CHANNEL_FOR_V1,INT64_MAX,&status)); checkedError();
+    assert(status==XL6_CHANNEL_FULL_V1 && output==99 && xl6ChannelQueryV1(q,ID,0)==0);
+    assert(!send(q,xrtTypeInt64(),SLOT(input),XL6_CHANNEL_FOR_V1,INT64_MAX,&status)); checkedError();
+    assert(status==XL6_CHANNEL_FULL_V1 && xl6ChannelQueryV1(q,ID,0)==0);
     assert(send(q,xrtTypeInt64(),SLOT(input),XL6_CHANNEL_TRY_V1,0,&status) && status==XL6_CHANNEL_OK_V1);
     assert(send(q,xrtTypeInt64(),SLOT(input),XL6_CHANNEL_TRY_V1,0,&status) && status==XL6_CHANNEL_FULL_V1);
+    assert(send(q,xrtTypeInt64(),SLOT(input),XL6_CHANNEL_FOR_V1,0,&status) && status==XL6_CHANNEL_TIMEOUT_V1);
     assert(send(q,xrtTypeInt64(),SLOT(input),XL6_CHANNEL_FOR_V1,1,&status) && status==XL6_CHANNEL_TIMEOUT_V1);
     status=XL6_CHANNEL_EMPTY_V1;
     assert(!receive(q,xrtTypeInt64(),SLOT(output),XL6_CHANNEL_FOR_V1,-1,&status)); checkedError();
@@ -293,7 +299,8 @@ static void fault(const char* operation,size_t point)
     if (strcmp(operation,"create")) q=create(2,false,1);
     assert(xrtMemDebugFailAfter(point)); xl6_error_scope scope={0}; assert(xl6ErrorScopeBegin(&scope));
     if (!strcmp(operation,"create")) { q=xl6ChannelCreateTakeV1(ID,seed(2,false),1); ok=q!=NULL; }
-    else ok=send(q,xl6StringTypeV1(),SLOT(text),XL6_CHANNEL_TRY_V1,0,&status);
+    else ok=send(q,xl6StringTypeV1(),SLOT(text),!strcmp(operation,"send-timeout") ?
+        XL6_CHANNEL_FOR_V1 : XL6_CHANNEL_TRY_V1,0,&status);
     bool hit=xl6ProductMemoryEnd(); xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
     assert(ok==outcome.ok); xrtErrorFree(outcome.error); assert(!xrtGetError());
     if (strcmp(operation,"create")) {

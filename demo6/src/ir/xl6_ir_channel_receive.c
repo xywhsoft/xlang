@@ -1,6 +1,96 @@
 /* Included after canonical message construction and owning optional results.
  * Shared contract for the public Channel cutover. No AST chase, output
  * variable or payload-codec guess is permitted in this plan. */
+static int xl6IrChannelDependentDeclaration(const XL6_IrModule* module,XL6_IrNodeId origin)
+{
+    const XL6_IrNode* declaration=xl6IrNodeGet(module,origin); size_t depth=0;
+    while (declaration && declaration->kind!=XL6_IR_NODE_FUNC_DECL && ++depth<=module->nodeCount)
+        declaration=xl6IrNodeGet(module,declaration->parent);
+    if (!declaration || declaration->kind!=XL6_IR_NODE_FUNC_DECL) return 0;
+    if (xl6IrBuildTypeContainsTypeParam(module,declaration->declarationOwnerType,0)) return 1;
+    /* Uncalled generic free functions have no interned callable storage yet.
+     * Their declaration, not an incidental caller type, is the authority. */
+    if (declaration->firstChild>module->childCount ||
+        declaration->childCount>module->childCount-declaration->firstChild) return 0;
+    for (size_t i=0;i<declaration->childCount;++i) {
+        const XL6_IrNode* parameters=xl6IrNodeGet(module,module->children[declaration->firstChild+i]);
+        if (parameters && parameters->sourceKind==XL6_AST_TYPE_PARAMS && parameters->childCount) return 1;
+    }
+    return 0;
+}
+static const XL6_IrChannelSendSpec xl6ChannelSendSpecs[]={
+#define XL6_CHANNEL_SEND_OP(Id,Name,Mode,Timed,Label) \
+    {XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_##Id,XL6_IR_RUNTIME_CHANNEL_##Id,Name,Mode,Timed},
+#include "src/abi/xl6_channel_send_ops.inc"
+#undef XL6_CHANNEL_SEND_OP
+};
+const XL6_IrChannelSendSpec* xl6IrChannelSendMethod(const char* name)
+{
+    for (size_t i=0;name && i<sizeof(xl6ChannelSendSpecs)/sizeof(*xl6ChannelSendSpecs);++i)
+        if (!strcmp(name,xl6ChannelSendSpecs[i].name)) return &xl6ChannelSendSpecs[i];
+    return NULL;
+}
+const XL6_IrChannelSendSpec* xl6IrChannelSendSpecResource(XL6_IrRuntimeResourceOp op)
+{
+    for (size_t i=0;i<sizeof(xl6ChannelSendSpecs)/sizeof(*xl6ChannelSendSpecs);++i)
+        if (op==xl6ChannelSendSpecs[i].source) return &xl6ChannelSendSpecs[i];
+    return NULL;
+}
+const XL6_IrChannelSendSpec* xl6IrChannelSendSpecRuntime(XL6_IrRuntimeOp op)
+{
+    for (size_t i=0;i<sizeof(xl6ChannelSendSpecs)/sizeof(*xl6ChannelSendSpecs);++i)
+        if (op==xl6ChannelSendSpecs[i].runtime) return &xl6ChannelSendSpecs[i];
+    return NULL;
+}
+int xl6IrChannelSendSignatureCompatible(const XL6_IrModule* module,const XL6_IrChannelSendSpec* spec,
+    XL6_IrTypeId owner,XL6_IrTypeId result,const XL6_IrTypeId* args,size_t count)
+{
+    XL6_IrTypeId schemaId=0;
+    const XL6_IrType* output=module ? xl6IrTypeGet(&module->types,result) : NULL;
+    if (!spec || spec!=xl6IrChannelSendSpecResource(spec->source) || !args ||
+        count!=(spec->timed ? 3u : 2u) || args[0]!=owner ||
+        !xl6IrChannelConstructionRecipe(module,owner,&schemaId,NULL) ||
+        !output || output->kind!=XL6_IR_TYPE_BUILTIN || output->cAbi!=XL6_IR_C_ABI_BOOL ||
+        output->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL || output->nullAbi!=XL6_IR_NULL_ABI_NONE) return 0;
+    const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
+    return args[1]==schema->sequenceLayout.elementType &&
+        (!spec->timed || xl6IrConcurrentQueueIntegerType(module,args[2]));
+}
+int xl6IrChannelSendIntrinsicCompatible(const XL6_IrModule* module,const XL6_IrIntrinsicCall* call,
+    const XL6_IrIntrinsicOperand* args)
+{
+    const XL6_IrChannelSendSpec* spec=call ? xl6IrChannelSendSpecResource(call->runtimeResourceOp) : NULL;
+    XL6_IrTypeId types[3]={0},schemaId=0;
+    if (!module || !spec || !args || call->kind!=XL6_IR_INTRINSIC_RUNTIME_RESOURCE ||
+        call->admission!=XL6_IR_INTRINSIC_ADMISSION_VERIFIED || !call->receiver ||
+        call->operandCount!=(spec->timed ? 3u : 2u) || args[0].expression!=call->receiver ||
+        call->runtimeResourceKeyType || call->runtimeResourceKeyPayloadAbi || call->runtimeResourceKeyOrderAbi ||
+        call->collectionAbi || call->integerTarget || call->payloadAbi ||
+        call->errorAbi!=XL6_IR_ERROR_ABI_MAY_RAISE || call->resultAbi!=XL6_IR_INTRINSIC_RESULT_VALUE ||
+        !xl6IrChannelConstructionRecipe(module,call->receiverType,&schemaId,NULL)) return 0;
+    const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
+    if (call->payloadType!=schema->sequenceLayout.elementType ||
+        call->runtimeResourcePayloadAbi!=schema->sequenceLayout.transferAbi) return 0;
+    for (size_t i=0;i<call->operandCount;++i) {
+        const XL6_IrType* type=xl6IrTypeGet(&module->types,args[i].type); types[i]=args[i].type;
+        if (!type || !args[i].expression || args[i].abi!=(type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED ?
+            XL6_IR_INTRINSIC_OPERAND_BORROW : XL6_IR_INTRINSIC_OPERAND_VALUE)) return 0;
+    }
+    return xl6IrChannelSendSignatureCompatible(module,spec,call->receiverType,call->resultType,types,call->operandCount);
+}
+int xl6IrChannelSendDependentSignatureCompatible(const XL6_IrModule* module,XL6_IrNodeId origin,
+    XL6_IrRuntimeResourceOp op,XL6_IrTypeId owner,XL6_IrTypeId result,const XL6_IrTypeId* args,size_t count)
+{
+    const XL6_IrChannelSendSpec* spec=xl6IrChannelSendSpecResource(op);
+    XL6_IrTypeId payload=xl6IrChannelReceivePayloadType(module,owner);
+    const XL6_IrType* output=module ? xl6IrTypeGet(&module->types,result) : NULL;
+    return spec && payload && xl6IrBuildTypeContainsTypeParam(module,payload,0) && args &&
+        count==(spec->timed ? 3u : 2u) && args[0]==owner && args[1]==payload &&
+        (!spec->timed || xl6IrConcurrentQueueIntegerType(module,args[2])) &&
+        output && output->kind==XL6_IR_TYPE_BUILTIN && output->cAbi==XL6_IR_C_ABI_BOOL &&
+        output->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && output->nullAbi==XL6_IR_NULL_ABI_NONE &&
+        xl6IrChannelDependentDeclaration(module,origin);
+}
 static const XL6_IrChannelReceiveSpec xl6ChannelReceiveSpecs[]={
 #define XL6_CHANNEL_RECEIVE_OP(Id,Name,Mode,Timed) \
     {XL6_IR_CHANNEL_RECEIVE_##Id,XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECEIVE_##Id, \
@@ -99,21 +189,7 @@ int xl6IrChannelReceiveDependentSignatureCompatible(const XL6_IrModule* module,X
     const XL6_IrType* value=xl6IrTypeGet(&module->types,tuple->params[1]);
     if (!payload || !value || !((tuple->params[1]==element && payload->kind==XL6_IR_TYPE_NULLABLE) ||
         (value->kind==XL6_IR_TYPE_NULLABLE && value->paramCount==1 && value->params && value->params[0]==element))) return 0;
-    const XL6_IrNode* declaration=xl6IrNodeGet(module,origin); size_t depth=0;
-    while (declaration && declaration->kind!=XL6_IR_NODE_FUNC_DECL && ++depth<=module->nodeCount)
-        declaration=xl6IrNodeGet(module,declaration->parent);
-    if (!declaration || declaration->kind!=XL6_IR_NODE_FUNC_DECL) return 0;
-    if (xl6IrBuildTypeContainsTypeParam(module,declaration->declarationOwnerType,0)) return 1;
-    /* Uncalled free-function declarations do not yet have an interned
-     * callable storage type. Their explicit type-parameter declaration is
-     * the authority; a caller's incidental signature must not decide it. */
-    if (declaration->firstChild>module->childCount ||
-        declaration->childCount>module->childCount-declaration->firstChild) return 0;
-    for (size_t i=0;i<declaration->childCount;++i) {
-        const XL6_IrNode* parameters=xl6IrNodeGet(module,module->children[declaration->firstChild+i]);
-        if (parameters && parameters->sourceKind==XL6_AST_TYPE_PARAMS && parameters->childCount) return 1;
-    }
-    return 0;
+    return xl6IrChannelDependentDeclaration(module,origin);
 }
 
 int xl6IrChannelReceiveIntrinsicCompatible(const XL6_IrModule* module,const XL6_IrIntrinsicCall* call,
@@ -165,7 +241,7 @@ int xl6IrChannelReceiveInstructionPlan(const XL6_IrModule* module,const XL6_IrIn
 int xl6IrChannelRuntimeOpIs(XL6_IrRuntimeOp op)
 {
     return (op>=XL6_IR_RUNTIME_CHANNEL_CREATE && op<=XL6_IR_RUNTIME_CHANNEL_COUNT) ||
-        xl6IrChannelReceiveSpecRuntime(op)!=NULL;
+        xl6IrChannelReceiveSpecRuntime(op)!=NULL || xl6IrChannelSendSpecRuntime(op)!=NULL;
 }
 XL6_IrCallErrorPhysicalAbi xl6IrChannelInstructionErrorPhysicalAbi(XL6_IrRuntimeOp op)
 {
@@ -206,10 +282,16 @@ int xl6IrChannelInstructionCompatible(const XL6_IrModule* module,const XL6_IrIns
         return ins->operandCount==1 && xl6IrConcurrentQueueIntegerType(module,ins->type);
     if (result->kind!=XL6_IR_TYPE_BUILTIN || result->cAbi!=XL6_IR_C_ABI_BOOL ||
         result->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL || result->nullAbi!=XL6_IR_NULL_ABI_NONE) return 0;
-    if (ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_SEND || ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_TRY_SEND) {
-        const XL6_IrInstruction* value=ins->operandCount==2 ?
-            xl6IrValueDefinition(module,module->operands[ins->firstOperand+1],NULL) : NULL;
-        return value && value->type==ins->payloadType;
+    const XL6_IrChannelSendSpec* send=xl6IrChannelSendSpecRuntime(ins->runtimeOp);
+    if (send) {
+        XL6_IrTypeId args[3]={0};
+        if (ins->operandCount!=(send->timed ? 3u : 2u)) return 0;
+        for (size_t i=0;i<ins->operandCount;++i) {
+            const XL6_IrInstruction* value=xl6IrValueDefinition(module,module->operands[ins->firstOperand+i],NULL);
+            if (!value) return 0;
+            args[i]=value->type;
+        }
+        return xl6IrChannelSendSignatureCompatible(module,send,owner,ins->type,args,ins->operandCount);
     }
     return ins->operandCount==1 && (ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_CLOSE || ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_IS_CLOSED);
 }

@@ -22,6 +22,7 @@ static int xl6IrCgenEmitChannelRuntime(XL6_Output* out,const XL6_IrModule* modul
     unsigned long long element=(unsigned long long)payload->typeValueId;
     XL6_IrChannelReceivePlan receive={0};
     const XL6_IrChannelReceiveSpec* spec=xl6IrChannelReceiveSpecRuntime(ins->runtimeOp);
+    const XL6_IrChannelSendSpec* send=xl6IrChannelSendSpecRuntime(ins->runtimeOp);
     if (spec && !xl6IrChannelReceiveInstructionPlan(module,ins,&receive)) return -1;
     xl6OutputPrintf(out,"    v%u = (%s){0};\n    bool projection_ok_%u = false;\n"
         "    { xl6_error_scope channel_scope = {0};\n"
@@ -48,15 +49,18 @@ static int xl6IrCgenEmitChannelRuntime(XL6_Output* out,const XL6_IrModule* modul
         xl6OutputPrintf(out,", &channel_status);\n"
             "      if (!channel_ok) xl6ErrorScopeCaptureFailure(&channel_scope);\n"
             "      v%u.e0 = (int64_t)channel_status;\n",output);
-    } else if (ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_SEND || ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_TRY_SEND) {
+    } else if (send) {
         unsigned second=(unsigned)module->operands[ins->firstOperand+1];
         xl6OutputPrintf(out,"      XL6_ChannelStatusV1 channel_status = XL6_CHANNEL_FULL_V1;\n"
             "      bool channel_ok = xl6ChannelSendV1(v%u, 0x%016llXULL, 0x%016llXULL, %s,\n"
-            "          (XL6_ChannelSlotV1){&v%u, sizeof(%s)}, %s, 0, &channel_status);\n"
+            "          (XL6_ChannelSlotV1){&v%u, sizeof(%s)}, (XL6_ChannelWaitV1)%u, ",
+            first,identity,element,descriptor,second,slotType,send->waitMode);
+        if (send->timed) xl6OutputPrintf(out,"v%u",(unsigned)module->operands[ins->firstOperand+2]);
+        else xl6OutputPuts("0",out);
+        xl6OutputPrintf(out,", &channel_status);\n"
             "      if (!channel_ok) xl6ErrorScopeCaptureFailure(&channel_scope);\n"
             "      v%u = channel_ok && channel_status == XL6_CHANNEL_OK_V1;\n",
-            first,identity,element,descriptor,second,slotType,
-            ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_TRY_SEND ? "XL6_CHANNEL_TRY_V1" : "XL6_CHANNEL_WAIT_V1",output);
+            output);
     } else if (ins->runtimeOp==XL6_IR_RUNTIME_CHANNEL_CLOSE) {
         xl6OutputPrintf(out,"      v%u = xl6ChannelCloseV1(v%u, 0x%016llXULL);\n"
             "      if (!v%u) xl6ErrorScopeCaptureFailure(&channel_scope);\n",output,first,identity,output);

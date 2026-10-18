@@ -22,7 +22,7 @@ def digest(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--stage', choices=('p0', 'atomic', 'once-event', 'thread-local', 'cancellation', 'promise'), required=True)
+    parser.add_argument('--stage', choices=('p0', 'atomic', 'once-event', 'thread-local', 'cancellation', 'promise', 'channel-waits'), required=True)
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     args = parser.parse_args()
@@ -82,6 +82,14 @@ def main():
                      'bad_stdlib_promise_default_generic_field')
         helpers = (*helpers[:3], 'xlir_promise_contract.c', 'stdlib_promise_native_host.c',
                    'stdlib53_pruning_plan.c', 'stdlib_native_future_policy_product_host.c')
+    if args.stage == 'channel-waits':
+        selected = ('stdlib_channel_timeout', 'stdlib_channel_owned', 'stdlib_channel_owned_wait',
+                    'stdlib_channel_recipes', 'stdlib_promise', 'stdlib_cancellation',
+                    'stdlib_concurrent_import_only', 'stdlib_channel_pruned')
+        negatives = ('bad_channel_send_timeout_type', 'bad_channel_send_timeout_named',
+                     'bad_channel_send_timeout_value', 'bad_channel_send_timeout_arity')
+        helpers = (*helpers[:3], 'xlir_channel_send_contract.c', 'stdlib_channel_native.c',
+                   'stdlib53_pruning_plan.c')
     inputs = {Path(__file__).resolve(), *products,
               *[cases/(name+'.xl') for name in selected+negatives],
               *[cases/name for name in helpers],
@@ -145,7 +153,7 @@ def main():
         for binary, source in ((host, helpers[0]), (observer, helpers[1])):
             run(binary.stem+'.build', [cc, *flags, '-O2', '-I'+str(root/'release/include'),
                                       cases/source, *links(names[2]), '-o', binary])
-        if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation', 'promise'):
+        if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation', 'promise', 'channel-waits'):
             family, prefix, entries = ('atomic', rb'xl6Atomic\w+V1', 50) if args.stage == 'atomic' else (
                 'concurrent', rb'xl6(?:Once|Event|ThreadLocal|Cancellation|Promise)\w+V1', None)
             exports = set(re.findall(r'XL6_TEXT_EXPORT\((\w+),',
@@ -188,8 +196,19 @@ def main():
                 binary = isolated/(product.stem+'.oom'+('.exe' if win else ''))
                 run(product.stem+'.oom.build', [cc, *flags, '-O2', '-I'+str(root),
                     '-I'+str(root/'release'), '-I'+str(root/'release/include'),
-                    cases/helpers[4], *links(product.name), '-o', binary])
+                    cases/helpers[4], *([task/'test/support/module_product_memory.c'] if args.stage=='channel-waits' else []),
+                    *links(product.name), '-o', binary])
                 run(product.stem+'.oom.run', [binary])
+                if args.stage == 'channel-waits':
+                    run(product.stem+'.channel.lifetimes', [binary,'repeat'])
+                    prefixes=[]
+                    for operation in ('create','send','send-timeout'):
+                        for point in range(4097):
+                            output=run(product.stem+'.channel.'+operation+'.'+str(point),[binary,operation,point])
+                            if b'hit=0 complete-prefix balanced' in output:
+                                prefixes.append(dict(Operation=operation,FirstNoHit=point)); break
+                        else: raise AssertionError('Channel allocation prefix did not close')
+                    report.setdefault('ChannelPrefixes',{})[product.name]=prefixes
                 if args.stage in ('cancellation','promise'):
                     binary = isolated/(product.stem+'.future-regression'+('.exe' if win else ''))
                     run(product.stem+'.future.build', [cc, *flags, '-O2', '-I'+str(root),
@@ -219,7 +238,8 @@ def main():
             full = name == selected[0] or (args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation') and
                 name in selected[:(4 if args.stage in ('thread-local','cancellation') else 3)]) or (
                 args.stage == 'cancellation' and name == 'stdlib_task_group_methods') or (
-                args.stage == 'promise' and name in selected[:6])
+                args.stage == 'promise' and name in selected[:6]) or (
+                args.stage == 'channel-waits' and name in selected[:3])
             if not full:
                 return
             work = out/(name+'.saved')
@@ -274,7 +294,7 @@ def main():
                   [isolated/'xlir_class_tag_vocabulary.xl', isolated/'xlir_class_tag_narrow_first.xl']
                   if args.stage == 'cancellation' else
                   [isolated/(name+'.xl') for name in selected[1:3]] if args.stage == 'promise' else [])])
-            if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation', 'promise'):
+            if args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation', 'promise', 'channel-waits'):
                 planner = isolated/'planner'
                 run('pruning.build', [cc, *flags, '-O2', '-I'+str(root), '-I'+str(root/'release/include'),
                     '-I'+str(root/'lib/tcc'), cases/helpers[5], *links(names[2]), '-o', planner])
@@ -300,13 +320,21 @@ def main():
                              ('stdlib_promise_terminal', core | {'xl6_cancellation_source.c',
                                                                 'xl6_cancellation_source_domain.c','xl6_thread_exit.c'}),
                              ('stdlib_concurrent_import_only', set()))
+                if args.stage == 'channel-waits':
+                    # Direct Channel operations do not erase/project Channel
+                    # as a typed container element; that optional admission
+                    # factory must stay absent from this executable closure.
+                    core={'xl6_channel.c','xl6_ownership_domain_channel.c'}
+                    plans=(('stdlib_channel_timeout',core|{'xl6_thread_exit.c'}),
+                           ('stdlib_concurrent_import_only',set()),('stdlib_channel_pruned',set()))
                 for name, expected in plans:
                     plan = json.loads(run(name+'.plan', [planner, isolated/(name+'.xl')]))
                     sources = {Path(path).name for path in plan['Sources']}
                     scoped = {path for path in sources if path.startswith(('xl6_atomic_', 'xl6_cancellation_')) or path in {
                         'xl6_once.c', 'xl6_once_domain.c', 'xl6_event.c', 'xl6_event_domain.c',
                         'xl6_thread_exit.c', 'xl6_thread_local.c', 'xl6_thread_local_domain.c',
-                        'xl6_promise.c', 'xl6_promise_domain.c', 'xl6_future_value.c'}}
+                        'xl6_promise.c', 'xl6_promise_domain.c', 'xl6_future_value.c',
+                        'xl6_channel.c','xl6_channel_admission.c','xl6_ownership_domain_channel.c'}}
                     assert scoped == expected, (name, scoped)
         report['InputsUnchanged'] = all(digest(row['Path']) == row['Sha256'] for row in report['Inputs'])
         report['LogsUnchanged'] = all(digest(row['Log']) == row['Sha256'] for row in report['Rows'])
