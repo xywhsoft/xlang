@@ -26,7 +26,10 @@ int main(int argc,char** argv)
     assert(xl6CompileUnitLoadFile(&unit,argv[1],1));
     assert(xl6IrLowerModule(&unit.ir,&unit.parse.diags));
     XL6_IrModule* module=&unit.ir;assert(xl6IrVerifyModule(module,NULL));
-    size_t channels=0,arrays=0,slots=0;unsigned roles=0;
+    size_t channels=0,arrays=0,slots=0;unsigned roles=0,arrayCoverage=0;
+    static const char* const coreArrays[]={"xl6ChannelCasesWaitLanguageV1","xl6ChannelCasesTryLanguageV1",
+        "xl6ChannelCasesForLanguageV1","xl6ChannelCasesUntilLanguageV1","xl6ChannelCasesWaitCancelLanguageV1",
+        "xl6ChannelCasesForCancelLanguageV1","xl6ChannelCasesUntilCancelLanguageV1"};
     for(size_t i=0;i<module->callTargetCount;++i) {
         XL6_IrCallTarget* target=&module->callTargets[i];
         if(target->nativeContextAbi!=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1 &&
@@ -42,6 +45,8 @@ int main(int argc,char** argv)
         target->cName="xl6ChannelCasesUnknownV1";refuse(module);*target=saved;
         if(saved.nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1) {
             ++arrays;assert(xl6IrNativeClassArrayContextField(module,target));
+            for(size_t entry=0;entry<sizeof(coreArrays)/sizeof(*coreArrays);++entry)
+                if(!strcmp(target->cName,coreArrays[entry]))arrayCoverage|=1u<<entry;
             XL6_IrTypeId savedType=target->parameterTypes[0];
             target->parameterTypes[0]=target->returnType;refuse(module);target->parameterTypes[0]=savedType;
         } else {
@@ -58,15 +63,24 @@ int main(int argc,char** argv)
             target->resultPhysicalFieldDeclaration=XL6_IR_NODE_INVALID;refuse(module);*target=saved;
         }
     }
-    assert(channels>=3 && arrays==7 && slots && roles==(
+    const unsigned requiredRoles=(
         (1u<<XL6_NATIVE_GENERIC_CHANNEL_CASE_RECEIVE)|(1u<<XL6_NATIVE_GENERIC_CHANNEL_CASE_SEND)|
-        (1u<<XL6_NATIVE_GENERIC_CHANNEL_SELECTION_VALUE)));
+        (1u<<XL6_NATIVE_GENERIC_CHANNEL_SELECTION_VALUE));
+    const unsigned permittedRoles=requiredRoles|(1u<<XL6_NATIVE_GENERIC_CHANNEL_SEND_CREATE)|
+        (1u<<XL6_NATIVE_GENERIC_CHANNEL_RECEIVE_CREATE);
+    /* New canonical async builders must not invalidate coverage of the seven
+     * existing selector entries, or make a missing core entry go unnoticed. */
+    assert(channels>=3 && arrays>=7 && arrayCoverage==0x7fu && slots &&
+        (roles&requiredRoles)==requiredRoles && !(roles&~permittedRoles));
     /* Even an ordinary internal target must not acquire a private native
      * output convention by mutating one otherwise unused metadata field. */
     bool ordinary=false;
     for(size_t i=0;i<module->callTargetCount;++i) {
         XL6_IrCallTarget* target=&module->callTargets[i];
         if(target->kind==XL6_IR_CALL_TARGET_INTERNAL && !target->nativeContextAbi) {
+            assert(!target->nativeServicesRequired);
+            target->nativeServicesRequired=XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1;refuse(module);
+            target->nativeServicesRequired=0;
             target->nativeResultAbi=XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1;refuse(module);
             target->nativeResultAbi=XL6_IR_CALL_NATIVE_RESULT_NONE;ordinary=true;break;
         }

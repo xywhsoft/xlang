@@ -42,30 +42,30 @@ xvalue* xl6ChannelReceiveFutureResultLanguageV1(void* frame)
     }
     xvalue* result=xrtValueRetain(value);if(!result)failed();return result;
 }
-xfuture* xl6ChannelDirectSendStartCancelLanguageV1(XL6_ContinuationExecutor* executor,void* frame,xcancel* parent)
+xfuture* xl6ChannelDirectSendStartCancelLanguageV1(XL6_RuntimeServicesV1 services,void* frame,xcancel* parent)
 {
     /* NULL carrier requires the scalar/send profile. Retained Start gives the
      * queue its own credit before publication, preserving lexical destruction. */
-    xfuture* result=xl6ChannelFutureBuilderStartV1(executor,frame,NULL,NULL,0,parent);
+    xfuture* result=xl6ChannelFutureBuilderStartV1(services.executor,frame,NULL,NULL,0,parent);
     if(!result)failed();
     return result;
 }
-xfuture* xl6ChannelDirectSendStartLanguageV1(XL6_ContinuationExecutor* executor,void* frame)
-{return xl6ChannelDirectSendStartCancelLanguageV1(executor,frame,NULL);}
-xfuture* xl6ChannelDirectReceiveStartCancelLanguageV1(XL6_ChannelFutureContextV1 context,
+xfuture* xl6ChannelDirectSendStartLanguageV1(XL6_RuntimeServicesV1 services,void* frame)
+{return xl6ChannelDirectSendStartCancelLanguageV1(services,frame,NULL);}
+xfuture* xl6ChannelDirectReceiveStartCancelLanguageV1(XL6_RuntimeServicesV1 services,XL6_ChannelResultFieldContextV1 context,
     void* frame,const xvalue* owner,xcancel* parent)
 {
-    if(!context.executor || !context.fieldName || !context.fieldSize ||
+    if(!services.executor || !context.fieldName || !context.fieldSize ||
         context.policy!=xl6ChannelReceiveResultHandlePolicyV1Get()) {
         xrtSetErrorKind(XERR_ARGUMENT);failed();return NULL;
     }
-    xfuture* result=xl6ChannelFutureBuilderStartV1(context.executor,frame,owner,
+    xfuture* result=xl6ChannelFutureBuilderStartV1(services.executor,frame,owner,
         context.fieldName,context.fieldSize,parent);
     if(!result)failed();
     return result;
 }
-xfuture* xl6ChannelDirectReceiveStartLanguageV1(XL6_ChannelFutureContextV1 context,void* frame,const xvalue* owner)
-{return xl6ChannelDirectReceiveStartCancelLanguageV1(context,frame,owner,NULL);}
+xfuture* xl6ChannelDirectReceiveStartLanguageV1(XL6_RuntimeServicesV1 services,XL6_ChannelResultFieldContextV1 context,void* frame,const xvalue* owner)
+{return xl6ChannelDirectReceiveStartCancelLanguageV1(services,context,frame,owner,NULL);}
 int64_t xl6ChannelReceiveResultStatusLanguageV1(const void* source)
 {
     int64_t status=-1;if(!xl6ChannelReceiveResultInfoV1(source,&status))failed();return status;

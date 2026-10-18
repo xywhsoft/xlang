@@ -476,15 +476,19 @@ static const char* xl6IrCgenDirectPlaceSuffix(
 
 static const char* xl6IrCgenNativeSlotTypeExpr(XL6_IrNativeSlotAbi);
 static const char* xl6IrCgenSequenceTransferAbiToken(XL6_IrRuntimeResourcePayloadAbi);
+static int xl6IrCgenEmitNativeServices(XL6_Output* out,const XL6_IrCallTarget* target)
+{
+    if(target->nativeServicesRequired!=XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1)return 0;
+    xl6OutputPuts("(XL6_RuntimeServicesV1){ .executor = xlir_continuation_executor }",out);
+    return !xl6OutputHasFailed(out);
+}
+
 static int xl6IrCgenEmitNativeContext(XL6_Output* out,const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
-    if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_V1) {
-        xl6OutputPuts("xlir_continuation_executor",out);return !xl6OutputHasFailed(out);
-    }
-    if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_CLASS_FIELD_V1) {
+    if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1) {
         const XL6_IrClassField* field=xl6IrNativeClassContextField(module,target);
         if(!field || !field->nativeHandlePolicyCName)return 0;
-        xl6OutputPuts("(XL6_ChannelFutureContextV1){xlir_continuation_executor, ",out);
+        xl6OutputPuts("(XL6_ChannelResultFieldContextV1){",out);
         xl6IrCgenEmitCStringLiteral(out,field->name);
         xl6OutputPrintf(out,", %lu, %s()}",(unsigned long)strlen(field->name),field->nativeHandlePolicyCName);
         return !xl6OutputHasFailed(out);
@@ -862,6 +866,10 @@ static int xl6IrCgenEmitDirectCall(
                         (unsigned int)instruction->targetSymbol);
     else
         xl6OutputPrintf(out, "%s(", target->cName);
+    if(target->nativeServicesRequired) {
+        if(!xl6IrCgenEmitNativeServices(out,target))return 0;
+        if(target->nativeContextAbi || instruction->operandCount)xl6OutputPuts(", ",out);
+    }
     if(target->nativeContextAbi!=XL6_IR_CALL_NATIVE_CONTEXT_NONE) {
         if(!xl6IrCgenEmitNativeContext(out,module,target))return 0;
         if(instruction->operandCount)xl6OutputPuts(", ",out);
@@ -890,7 +898,7 @@ static int xl6IrCgenEmitDirectCall(
         }
     }
     if(target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1) {
-        if(instruction->operandCount || target->nativeContextAbi)xl6OutputPuts(", ",out);
+        if(instruction->operandCount || target->nativeContextAbi || target->nativeServicesRequired)xl6OutputPuts(", ",out);
         xl6OutputPrintf(out,"&v%u",(unsigned)instruction->result);
     }
     if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY )

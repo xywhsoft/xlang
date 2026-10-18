@@ -270,6 +270,10 @@ static int xl6IrCgenEmitDynamicNativeWitness(
     if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY )
         xl6OutputPuts("xlir_string_from_cstr(", out);
     xl6OutputPrintf(out, "%s(", target->cName);
+    if(target->nativeServicesRequired) {
+        if(!xl6IrCgenEmitNativeServices(out,target))return 0;
+        if(target->nativeContextAbi || target->parameterCount)xl6OutputPuts(", ",out);
+    }
     if(target->nativeContextAbi!=XL6_IR_CALL_NATIVE_CONTEXT_NONE) {
         if(!xl6IrCgenEmitNativeContext(out,module,target))return 0;
         if(target->parameterCount)xl6OutputPuts(", ",out);
@@ -284,7 +288,7 @@ static int xl6IrCgenEmitDynamicNativeWitness(
         else xl6OutputPrintf(out, "a%lu%s", (unsigned long)(p - 1), xl6IrCgenDirectPlaceSuffix(module, target, p));
     }
     if(target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1) {
-        if(target->parameterCount || target->nativeContextAbi)xl6OutputPuts(", ",out);
+        if(target->parameterCount || target->nativeContextAbi || target->nativeServicesRequired)xl6OutputPuts(", ",out);
         xl6OutputPuts("&callResult.value",out);
     }
     xl6OutputPuts(")", out);

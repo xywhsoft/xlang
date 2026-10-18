@@ -12141,6 +12141,7 @@ static int xl6IrLowerResolveRuntimeBridge(
     target->runtimeBridgeOperation = XL6_IR_RUNTIME_BRIDGE_OPERATION_NONE;
     target->nativeArrayResultAbi = xl6IrRuntimeDirectBridgeNativeArrayResultAbi(target->cName);
     target->nativeResultAbi=xl6IrRuntimeDirectBridgeNativeResultAbi(target->cName);
+    target->nativeServicesRequired=xl6IrRuntimeDirectBridgeServices(target->cName);
     if(!xl6IrRuntimeDirectBridgeContext(ctx->module,target,&target->nativeContextAbi,
             &target->nativeContextType,&target->nativeContextPayloadAbi))
         return xl6IrLowerDiag(ctx,target->declaration,"XLIR native generic context requires an exact supported Future payload ABI");
