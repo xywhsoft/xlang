@@ -14,6 +14,7 @@ import subprocess
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('root','out'):parser.add_argument('--'+name,type=Path,required=True)
+    parser.add_argument('--direct',action='store_true',help='Exercise the direct typed send/receive provider')
     args=parser.parse_args();root,out=args.root.resolve(),args.out.resolve();assert not out.exists()
     win=os.name=='nt';names=('xl.dll','xlc.dll') if win else ('libxl.so','libxlc.so')
     products=[root/'release'/name for name in names];assert all(path.is_file() for path in products)
@@ -21,12 +22,13 @@ def main():
     for path in products:shutil.copy2(path,release/path.name)
     if win:
         for path in products:shutil.copy2(path,out/path.name)
-    inputs={Path(__file__).resolve(),Path(cc).resolve(),*products,root/'test/cases/stdlib_channel_future_native.c'}
+    fixture='stdlib_channel_direct_future_native.c' if args.direct else 'stdlib_channel_future_native.c'
+    inputs={Path(__file__).resolve(),Path(cc).resolve(),*products,root/'test/cases'/fixture}
     for folder in ('src','lib/xrt','lib/xruntime','release/include'):
         inputs.update(path for path in (root/folder).rglob('*') if path.is_file())
     def seal():return {str(path):hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(inputs)}
     before=seal();report={'Complete':False,'Scope':__doc__,'Inputs':before,'Rows':[],
-        'NetworkTests':False,'NetworkSecurityTests':False,'LanguageChannelFutureAcceptance':False}
+        'NetworkTests':False,'NetworkSecurityTests':False,'LanguageChannelFutureAcceptance':False,'DirectProvider':args.direct}
     def save():(out/'report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')
     env={key:value for key,value in os.environ.items() if not key.upper().startswith('XL6_') and
         key.upper() not in ('LD_LIBRARY_PATH','LD_PRELOAD','LD_AUDIT','CPATH','C_INCLUDE_PATH','LIBRARY_PATH')}
@@ -42,7 +44,7 @@ def main():
             links=[release/product.name] if win else ['-L'+str(release),'-l:'+product.name,'-Wl,-rpath,$ORIGIN/release','-pthread','-ldl','-lm']
             for level in ('O0','O2'):
                 lane=product.stem+'.'+level;binary=out/(lane+('.exe' if win else ''))
-                run(lane+'.build',[cc,*flags,'-'+level,root/'test/cases/stdlib_channel_future_native.c',*links,'-o',binary])
+                run(lane+'.build',[cc,*flags,'-'+level,root/'test/cases'/fixture,*links,'-o',binary])
                 run(lane+'.run',[binary])
         report['InputsUnchanged']=seal()==before;assert report['InputsUnchanged']
         report['LogsUnchanged']=all(hashlib.sha256((out/(row['Name']+'.log')).read_bytes()).hexdigest()==row['Sha256'] for row in report['Rows'])

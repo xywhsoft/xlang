@@ -131,6 +131,7 @@
 #include "src/runtime/xl6_array_value_iterator.h"
 #include "src/runtime/xl6_future_callback.h"
 #include "src/runtime/xl6_channel_future.h"
+#include "src/runtime/xl6_channel_direct_future.h"
 #include "src/runtime/xl6_future_aggregate.h"
 #include "src/runtime/xl6_future_metadata.h"
 #include "src/runtime/xl6_future_payload.h"
@@ -348,6 +349,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV4Get", (const void*)xl6FutureCallbackRuntimeV4Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV5Get", (const void*)xl6FutureCallbackRuntimeV5Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ChannelFutureRuntimeV1Get", (const void*)xl6ChannelFutureRuntimeV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ChannelDirectFutureRuntimeV1Get", (const void*)xl6ChannelDirectFutureRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV3Get", (const void*)xl6FutureCallbackRuntimeV3Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackCancelPolicyV1Get", (const void*)xl6FutureCallbackCancelPolicyV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureAggregateAllV2", (const void*)xl6FutureAggregateAllV2)) return 0;

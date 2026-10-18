@@ -22,6 +22,11 @@ typedef struct XL6_ChannelOperationV1 {
 } XL6_ChannelOperationV1;
 XL6_TEXT_API bool xl6ChannelOperationOpenV1(const xvalue*,uint64_t,uint64_t,const xrttype*,
     XL6_ChannelSlotV1,bool,XL6_ChannelStatusV1*,XL6_ChannelOperationV1*);
+/* Exact schema variant validates transfer as well as identity/type/size before
+ * copying a message. It acquires the SAME single operation owner, not a second
+ * schema lease or a temporary public Case. */
+XL6_TEXT_API bool xl6ChannelOperationOpenSchemaV1(XL6_SequenceLayoutV1,const xvalue*,
+    XL6_ChannelSlotV1,bool,XL6_ChannelStatusV1*,XL6_ChannelOperationV1*);
 XL6_TEXT_API bool xl6ChannelOperationCommitV1(XL6_ChannelOperationV1*);
 XL6_TEXT_API void xl6ChannelOperationCloseV1(XL6_ChannelOperationV1*);
 XL6_TEXT_API bool xl6ChannelOperationParkV1(XL6_ChannelOperationV1*);

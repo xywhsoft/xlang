@@ -318,13 +318,18 @@ static ChannelBox* copyBox(ChannelOwner* owner,const void* item)
     }
     return box;
 }
-bool xl6ChannelOperationOpenV1(const xvalue* value,uint64_t identity,uint64_t element,const xrttype* type,
-    XL6_ChannelSlotV1 slot,bool sending,XL6_ChannelStatusV1* status,XL6_ChannelOperationV1* output)
+static bool operationOpen(const xvalue* value,uint64_t identity,uint64_t element,const xrttype* type,
+    XL6_ChannelSlotV1 slot,bool sending,XL6_ChannelStatusV1* status,XL6_ChannelOperationV1* output,
+    const XL6_SequenceLayoutV1* expected)
 {
     if (!output || output->owner || output->native || output->message || output->received ||
         output->target.data || output->target.size || output->sending || output->parked) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
     ChannelOwner* owner=begin(value,identity);
     if (!owner) return false;
+    if(expected && (expected->identity!=owner->layout.identity||expected->elementIdentity!=owner->layout.elementIdentity||
+        expected->transfer!=owner->layout.transfer||expected->size!=owner->layout.size||expected->type!=owner->layout.type)){
+        xrtSetErrorKind(XERR_TYPE);end(owner);return false;
+    }
     if (!request(owner,element,type,slot,XL6_CHANNEL_TRY_V1,0,status,!sending)) { end(owner); return false; }
     ChannelBox* box=sending ? copyBox(owner,slot.data) : NULL;
     if (sending && !box) { end(owner); return false; }
@@ -333,6 +338,12 @@ bool xl6ChannelOperationOpenV1(const xvalue* value,uint64_t identity,uint64_t el
         .target=sending ? (XL6_ChannelSlotV1){0} : slot,.sending=sending};
     return true;
 }
+bool xl6ChannelOperationOpenV1(const xvalue* value,uint64_t identity,uint64_t element,const xrttype* type,
+    XL6_ChannelSlotV1 slot,bool sending,XL6_ChannelStatusV1* status,XL6_ChannelOperationV1* output)
+{return operationOpen(value,identity,element,type,slot,sending,status,output,NULL);}
+bool xl6ChannelOperationOpenSchemaV1(XL6_SequenceLayoutV1 layout,const xvalue* value,
+    XL6_ChannelSlotV1 slot,bool sending,XL6_ChannelStatusV1* status,XL6_ChannelOperationV1* output)
+{return operationOpen(value,layout.identity,layout.elementIdentity,layout.type,slot,sending,status,output,&layout);}
 bool xl6ChannelOperationParkV1(XL6_ChannelOperationV1* operation)
 {
     if (!operation || !operation->owner || operation->parked) { xrtSetErrorKind(XERR_STATE); return false; }
