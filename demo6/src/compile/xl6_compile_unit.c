@@ -618,7 +618,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_channel_direct_future.c",D(R(CHANNEL_FUTURE_CORE),R(TYPED_CHANNEL),R(NATIVE_HANDLE)),{NULL}},
     {"src/runtime/xl6_ownership_domain_channel_direct_future.c",D(R(OWNERSHIP_CATALOG),R(CHANNEL_DIRECT_FUTURE)),{NULL}},
     {"src/runtime/xl6_channel_direct_language.c",D(R(CHANNEL_DIRECT_FUTURE)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_channel_direct_language.c",D(R(OWNERSHIP_CATALOG),R(CHANNEL_DIRECT_LANGUAGE)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_channel_direct_language.c",D(R(OWNERSHIP_CATALOG),R(CHANNEL_DIRECT_LANGUAGE)),{NULL}},
+    {"src/runtime/xl6_deadline_service.c",D(R(FOREIGN_ERROR)),{"XRT_MODULE_MEMORY","XRT_MODULE_ERROR","XRT_MODULE_THREAD","XRT_MODULE_COND","XRT_MODULE_ATOMIC","XRT_MODULE_TIME"}},
+    {"src/runtime/xl6_ownership_domain_deadline_service.c",D(R(OWNERSHIP_CATALOG),R(DEADLINE_SERVICE)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

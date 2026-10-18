@@ -560,6 +560,8 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_channel_future_core.c"
 	"$ROOT/src/runtime/xl6_channel_direct_future.c"
 	"$ROOT/src/runtime/xl6_channel_direct_language.c"
+	"$ROOT/src/runtime/xl6_deadline_service.c"
+	"$ROOT/src/runtime/xl6_ownership_domain_deadline_service.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_channel_direct_language.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_channel_direct_future.c"
 	"$ROOT/src/runtime/xl6_channel_future_language.c"
