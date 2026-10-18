@@ -1,0 +1,86 @@
+import concurrent
+
+int ownerDrops = 0
+class CapturedOwner
+    string text = "owned\0你"
+    bytes binary = b"a\0\xFF"
+    destroy()
+        ownerDrops += 1
+    end
+end
+
+// No async function: callback continuations alone must request the module's
+// fixed ready-queue executor. No synchronous wait inside a callback.
+func mapped(future<int> source, int offset) as future<int>
+    return source.then(func(int value) as int => value + offset)
+end
+
+func exactCaptures(future<int> source, string text, bytes binary) as future<string>
+    return source.then(func(int value) as string
+        assert value == 40
+        assert binary == b"a\0\xFF"
+        return text
+    end)
+end
+
+func originalError() as error
+    try
+        throw ValueError "ready queue failure"
+    catch ValueError value
+        return value
+    end
+end
+
+func ownedCapture(future<int> source) as future<int>
+    auto owner = CapturedOwner()
+    return source.then(func(int value) as int
+        assert owner.text == "owned\0你"
+        assert owner.binary == b"a\0\xFF"
+        return value + 2
+    end)
+end
+
+auto gate = Promise::<int>()
+array<future<int>> jobs = []
+int index = 0
+while index < 192
+    assert jobs.push(mapped(gate.future, index))
+    index += 1
+end
+assert gate.tryResolve(40)
+index = 0
+while index < 192
+    assert (await jobs[index]) == index + 40
+    index += 1
+end
+
+string text = "a\0你"
+bytes binary = b"a\0\xFF"
+auto exact = exactCaptures(gate.future, text, binary)
+text[0] = 'b'
+binary[0] = uint8(98)
+assert (await exact) == "a\0你"
+
+auto owned = Promise::<int>()
+auto ownedResult = ownedCapture(owned.future)
+assert ownerDrops == 0
+assert owned.tryResolve(40)
+assert (await ownedResult) == 42
+assert ownerDrops == 1
+
+int cleaned = 0
+auto finalized = gate.future.finally(func()
+    cleaned += 1
+end)
+assert (await finalized) == 40
+assert cleaned == 1
+
+auto bad = Promise::<int>()
+auto recovered = bad.future.catch(func(error failure) as int
+    assert failure.message == "ready queue failure"
+    return 73
+end)
+assert bad.tryReject(originalError())
+assert (await recovered) == 73
+
+println("queued Future callbacks: 192 pending roots, ready input, exact and class captures, cleanup-before-publication, catch and finally")

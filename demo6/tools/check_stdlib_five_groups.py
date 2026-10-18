@@ -23,7 +23,7 @@ def digest(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--stage', choices=('p0', 'fixed-executor', 'atomic', 'once-event', 'thread-local', 'cancellation', 'promise', *CHANNEL_STAGES), required=True)
+    parser.add_argument('--stage', choices=('p0', 'fixed-executor', 'future-ready', 'atomic', 'once-event', 'thread-local', 'cancellation', 'promise', *CHANNEL_STAGES), required=True)
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--native-factory-inheritance',action='store_true',
@@ -50,6 +50,14 @@ def main():
     if args.stage == 'fixed-executor':
         selected = ('xlir_fixed_executor_language', 'stdlib_promise', 'stdlib_promise_values',
                     'stdlib_promise_terminal', 'xlir_narrow_operator_literals')
+    if args.stage == 'future-ready':
+        selected = ('xlir_future_ready_language', 'stdlib_future_continuation',
+                    'xlir_fixed_executor_language', 'stdlib_promise', 'stdlib_promise_values',
+                    'stdlib_promise_terminal', 'stdlib_concurrent_import_only', 'xlir_narrow_operator_literals')
+        helpers = (*helpers, 'xlir_future_callback_queue_native.c',
+                   'xlir_future_callback_storage_contract.c', 'xlir_callback_boundary_contract.c',
+                   'xlir_code_owner_binding_contract.c', 'stdlib53_pruning_plan.c',
+                   'xlir_fixture_runtime_closure.c')
     if args.stage == 'atomic':
         selected = ('stdlib_atomics', 'stdlib_atomic_bool_only', 'stdlib_atomic_threads',
                     'stdlib_concurrent_import_only', 'stdlib_time_text_only', 'xlir_narrow_operator_literals')
@@ -133,6 +141,11 @@ def main():
               *[cases/(name+'.xl') for name in selected+negatives],
               *[cases/name for name in helpers],
               task/'test/support/module_product_memory.c', task/'test/support/module_product_memory.h'}
+    if args.stage == 'future-ready':
+        # The IR drivers load their own fixed fixtures, and C probes include
+        # shared test headers. Seal those actual inputs, not just top-level C.
+        for folder in (cases, root/'test/cases'):
+            inputs.update(path for path in folder.rglob('*') if path.is_file())
     donor=None
     if args.native_plan_report:
         assert win and args.stage=='channel-select-native'
@@ -281,11 +294,19 @@ def main():
                         cases/helpers[6], task/'test/support/module_product_memory.c',
                         *links(product.name), '-o', binary])
                     run(product.stem+'.sync.run', [binary])
+        if args.stage == 'future-ready':
+            for product in products[1:]:
+                binary = isolated/(product.stem+'.future-ready'+('.exe' if win else ''))
+                run(product.stem+'.future-ready.build', [cc, *flags, '-O2',
+                    '-DTEST_PRODUCT_CATALOG', '-I'+str(root), '-I'+str(root/'release'),
+                    '-I'+str(root/'release/include'), cases/helpers[4],
+                    *links(product.name), '-o', binary])
+                run(product.stem+'.future-ready.run', [binary])
         strict = [*flags, '-Wno-unused-function', '-Wno-unused-parameter', '-Wno-unused-variable',
                   '-Wno-unused-label', '-Wno-unused-const-variable', '-Wno-unused-but-set-variable',
                   '-Wno-missing-field-initializers', '-I'+str(task), '-I'+str(root),
                   '-I'+str(root/'release'), '-I'+str(sdk)]
-        if args.stage == 'fixed-executor':
+        if args.stage in ('fixed-executor', 'future-ready'):
             strict += ['-DXLIR_CONTINUATION_WORKERS=1']
         cli = release/names[0]
         def positive(name):
@@ -296,11 +317,17 @@ def main():
             run(name+'.cgen', [cli, 'cgen', source, '--emit', first])
             run(name+'.repeat', [cli, 'cgen', source, '--emit', second])
             assert first.read_bytes() == second.read_bytes()
-            if args.stage == 'fixed-executor' and name == selected[0]:
+            if args.stage in ('fixed-executor', 'future-ready') and name == selected[0]:
                 generated = first.read_text(encoding='utf-8')
                 assert 'xl6ContinuationExecutorCreateFixedV1(' in generated
                 assert 'xl6ContinuationExecutorCreateGuaranteed(' not in generated
-            full = name == selected[0] or (args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation') and
+                if args.stage == 'future-ready':
+                    assert 'xl6FutureCallbackRuntimeV5Get()->Start(xlir_continuation_executor,' in generated
+                    assert 'xl6FutureCallbackRuntimeV4Get()->Start(' not in generated
+                    assert 'xerror* callbackError = xrtTakeError();' in generated
+                    assert 'xl6_error_result outcome = { ok && !callbackError, callbackError };' in generated
+                    assert '{ ok && !xrtGetError(), xrtTakeError() }' not in generated
+            full = name == selected[0] or (args.stage == 'future-ready' and name in selected[:3]) or (args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation') and
                 name in selected[:(4 if args.stage in ('thread-local','cancellation') else 3)]) or (
                 args.stage == 'cancellation' and name == 'stdlib_task_group_methods') or (
                 args.stage == 'promise' and name in selected[:6]) or (
@@ -394,6 +421,37 @@ def main():
                     report['ChannelCaseLanguagePrefixes'][lane]=dict(FirstNoHit=point,RecoveredRetirement=recovered)
                     save()
         if not win and not failures:
+            if args.stage == 'future-ready':
+                for name in helpers[5:8]:
+                    emitted=[]
+                    for level in ('O0','O2'):
+                        lane=Path(name).stem+'.'+level;binary=isolated/lane
+                        run(lane+'.build',[cc,*strict,'-'+level,'-I'+str(root/'lib/tcc'),
+                            cases/name,*links(names[2]),'-o',binary])
+                        outputs=[] if name=='xlir_code_owner_binding_contract.c' else [out/(lane+suffix) for suffix in ('.c','.h','.json')]
+                        run(lane+'.run',[binary,*outputs],cwd=root)
+                        emitted.append([path.read_bytes() for path in outputs])
+                    assert emitted[0]==emitted[1]
+                planner=isolated/'future-ready-language-plan'
+                run('future-ready-language-plan.build',[cc,*flags,'-O2','-I'+str(root),
+                    '-I'+str(root/'release/include'),'-I'+str(root/'lib/tcc'),
+                    cases/helpers[8],*links(names[2]),'-o',planner])
+                queued={'xl6_future_callback_queue.c','xl6_ownership_domain_future_callback_queue.c',
+                        'xl6_continuation_executor.c','xl6_continuation_queue.c'}
+                for name in (selected[0],'stdlib_concurrent_import_only'):
+                    plan=json.loads(run(name+'.actual-plan',[planner,isolated/(name+'.xl')]))
+                    actual={Path(path).name for path in plan['Sources']}
+                    assert (queued<=actual) if name==selected[0] else not (queued&actual),(name,plan)
+                    report.setdefault('FutureReadyLanguagePlans',{})[name]=plan
+                planner=isolated/'future-ready-native-plan'
+                run('future-ready-native-plan.build',[cc,*flags,'-O2','-I'+str(root),
+                    '-I'+str(root/'release/include'),cases/helpers[9],*links(names[2]),'-o',planner])
+                for symbol in ('xl6FutureCallbackRuntimeV5Get','xl6FutureCallbackRuntimeV4Get'):
+                    plan=json.loads(run(symbol+'.actual-plan',[planner,symbol]))
+                    actual={Path(path).name for path in plan['Sources']}
+                    required=queued-{'xl6_ownership_domain_future_callback_queue.c'}
+                    assert (required<=actual) if 'V5' in symbol else not (queued&actual),(symbol,plan)
+                    report.setdefault('FutureReadyNativePlans',{})[symbol]=plan
             if args.channel_case_language:
                 contract=isolated/'channel-cases-contract'
                 run('channel-cases-contract.build',[cc,*flags,'-O2','-I'+str(root),
@@ -409,7 +467,7 @@ def main():
             binary = isolated/'literal-contract'
             run('contract.build', [cc, *flags, '-O2', '-I'+str(root), '-I'+str(root/'release/include'),
                 '-I'+str(root/'lib/tcc'), cases/helpers[3], *links(names[2]), '-o', binary])
-            run('contract.run', [binary, isolated/((selected[-1] if args.stage == 'fixed-executor' else selected[0])+'.xl'),
+            run('contract.run', [binary, isolated/((selected[-1] if args.stage in ('fixed-executor','future-ready') else selected[0])+'.xl'),
                 *([isolated/(selected[1]+'.xl')] if args.stage == 'once-event' else
                   [isolated/'xlir_class_tag_vocabulary.xl', isolated/'xlir_class_tag_narrow_first.xl']
                   if args.stage == 'cancellation' else

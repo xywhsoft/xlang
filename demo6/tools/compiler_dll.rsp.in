@@ -309,6 +309,7 @@
     src\runtime\xl6_capture.c
     src\runtime\xl6_value_iterator.c
     src\runtime\xl6_future_callback.c
+    src\runtime\xl6_future_callback_queue.c
     src\runtime\xl6_ownership_plan.c
     src\runtime\xl6_static_module.c
     src\runtime\xl6_ownership_catalog.c
@@ -348,6 +349,7 @@
     src\runtime\xl6_ownership_domain_queue.c
     src\runtime\xl6_ownership_domain_frame.c
     src\runtime\xl6_ownership_domain_future_callback.c
+    src\runtime\xl6_ownership_domain_future_callback_queue.c
     src\runtime\xl6_ownership_domain_task.c
     src\runtime\xl6_ownership_domain_future_payload.c
     src\runtime\xl6_ownership_domain_native_future.c

@@ -67,6 +67,36 @@ typedef struct XL6_FutureCallbackRuntimeV4 {
     void (*Cleanup)(void*);
 } XL6_FutureCallbackRuntimeV4;
 XL6_CODE_LEASE_API const XL6_FutureCallbackRuntimeV4* xl6FutureCallbackRuntimeV4Get(void);
+struct XL6_ContinuationExecutor;
+struct XL6_ContinuationStorageV2;
+struct xl6_foreign_error_result;
+struct xerror;
+/* Explicit ready-queue language contract. Allocate owns the same closed V2
+ * capture layout, code pin and physical frame as V4. Start reserves execution
+ * BEFORE registering its Watch; NULL leaves a private frame for V1 Discard.
+ * Success transfers that reference to the fixed executor. Source completion
+ * only signals preallocated events; language invocation AND cleanup run on a
+ * worker, including already-ready sources. Cleanup is called exactly once by
+ * that active callback, after its last language invocation and BEFORE publishing
+ * output: it cleans captures and commits logical completion. Private rollback
+ * and physical fallback use V1 Discard/shared cleanup instead, not this barrier.
+ * Close rejects NEW callback roots;
+ * already accepted callbacks finish normally. No blocking task/stack per wait.
+ * V1-4 remain explicit inline native transports, not this language contract. */
+typedef struct XL6_FutureCallbackRuntimeV5 {
+    void* (*Allocate)(const XL6_CodeOwner*,size_t,XL6_FutureCallbackProc,const XL6_CaptureLayoutV2*);
+    /* Consumes incoming.error; preserves the FIRST failure, including a false
+     * status with no diagnostic. Returns an owned diagnostic, never an ambient
+     * error-pointer success inference. */
+    struct xl6_foreign_error_result (*Cleanup)(void*,struct xl6_foreign_error_result);
+    struct xfuture* (*Start)(struct XL6_ContinuationExecutor*,void*,struct xfuture*);
+    /* Consumes the owned diagnostic on every path. Diagnostic-free failure is
+     * normalized to static INTERNAL only at this native Future boundary. */
+    void (*Fail)(struct xpromise*,struct xerror*);
+} XL6_FutureCallbackRuntimeV5;
+XL6_CODE_LEASE_API const XL6_FutureCallbackRuntimeV5* xl6FutureCallbackRuntimeV5Get(void);
+XL6_CODE_LEASE_API const struct xfuturewatchownershipv1* xl6FutureCallbackQueuedWatchPolicyV1Get(void);
+XL6_CODE_LEASE_API const struct XL6_ContinuationStorageV2* xl6FutureCallbackQueuedStorageV2Get(void);
 /* Immutable identity for the real output-Future -> producer-frame reference.
  * Recognition of this policy alone does not admit the frame, Watch or captures
  * to collection; every physical child still requires its own full protocol. */

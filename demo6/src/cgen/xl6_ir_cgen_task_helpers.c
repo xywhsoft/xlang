@@ -229,7 +229,11 @@ static int xl6IrCgenEmitCallbackFrame(XL6_Output* out, const XL6_IrModule* modul
     const XL6_IrCallbackBoundary* boundary, const char* prefix, size_t index)
 {
     size_t i;
-    if (!boundary || boundary->cleanupAbi != XL6_IR_CALLBACK_CLEANUP_TRANSACTIONAL) return 0;
+    if (!boundary) return 0;
+    int task = boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3;
+    int queued = boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_QUEUED_FUTURE_FRAME_V1;
+    if ((!task && !queued) || boundary->cleanupAbi != (task
+        ? XL6_IR_CALLBACK_CLEANUP_TRANSACTIONAL : XL6_IR_CALLBACK_CLEANUP_COMPLETE_BEFORE_PUBLISH_V1)) return 0;
     xl6OutputPrintf(out, "typedef struct %s_frame_%lu {\n", prefix, (unsigned long)index);
     for (i = 0; i < boundary->captureCount; ++i) {
         const XL6_IrCallbackCapture* c = &module->callbackCaptures[boundary->firstCapture + i];
@@ -250,16 +254,18 @@ static int xl6IrCgenEmitCallbackFrame(XL6_Output* out, const XL6_IrModule* modul
     xl6OutputPrintf(out,
         "};\nstatic const XL6_CaptureLayoutV2 %s_layout_%lu = {\n"
         "    sizeof(XL6_CaptureLayoutV2), sizeof(%s_frame_%lu), %lu, %s_slots_%lu\n};\n"
-        "#define %s_frame_cleanup_%lu(frame) (%s()->Cleanup)(frame)\n",
+        "#define %s_frame_cleanup_%lu(%s) (%s()->Cleanup)(%s)\n",
         prefix, (unsigned long)index, prefix, (unsigned long)index,
         (unsigned long)boundary->captureCount, prefix, (unsigned long)index,
         prefix, (unsigned long)index,
+        boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3 ? "frame" : "frame, outcome",
         boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3
-            ? "xl6TaskRuntimeV3Get" : "xl6FutureCallbackRuntimeV4Get");
+            ? "xl6TaskRuntimeV3Get" : "xl6FutureCallbackRuntimeV5Get",
+        boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3 ? "frame" : "frame, outcome");
     xl6OutputPrintf(out, "static void %s_frame_free_%lu(void* data, void* user)\n{ ", prefix, (unsigned long)index);
     if (boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3)
         xl6OutputPuts("(void)user; xlir_task_discard(data);",out);
-    else if (boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_FUTURE_FRAME_V3)
+    else if (boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_QUEUED_FUTURE_FRAME_V1)
         xl6OutputPuts("(void)user; xlir_future_callback_discard(data);",out);
     else return 0;
     xl6OutputPuts(" }\n",out);
@@ -273,7 +279,7 @@ static int xl6IrCgenEmitCallbackCapture(XL6_Output* out, const XL6_IrModule* mod
         xl6OutputPrintf(out,
             "    frame = (%s_frame_%lu*)(xl6TaskRuntimeV3Get()->Allocate)(xlir_task_owner, sizeof(*frame), %s_task_%lu, &%s_layout_%lu);\n",
             prefix, (unsigned long)index, prefix, (unsigned long)index, prefix, (unsigned long)index);
-    else if (boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_FUTURE_FRAME_V3)
+    else if (boundary->storageAbi == XL6_IR_CALLBACK_STORAGE_RESIDENT_QUEUED_FUTURE_FRAME_V1)
         xl6OutputPrintf(out,
             "    frame = (%s_frame_%lu*)xlir_future_callback_allocate(sizeof(*frame), %s_proc_%lu, &%s_layout_%lu);\n",
             prefix, (unsigned long)index, prefix, (unsigned long)index, prefix, (unsigned long)index);
@@ -460,8 +466,9 @@ static int xl6IrCgenEmitFutureContinuationHelper(
     int isCatch = instruction->futureContinuationKind == XL6_IR_FUTURE_CONTINUATION_CATCH;
     int isFinally = instruction->futureContinuationKind == XL6_IR_FUTURE_CONTINUATION_FINALLY;
     if (!xl6IrCgenRuntimeFutureContinuationAbi(module, instruction) || !boundary ||
-        boundary->transportAbi != XL6_IR_CALLBACK_TRANSPORT_FUTURE_WATCH ||
-        boundary->errorAbi != XL6_IR_CALLBACK_ERROR_PRESERVE ||
+        boundary->transportAbi != XL6_IR_CALLBACK_TRANSPORT_FUTURE_READY_QUEUE_V1 ||
+        boundary->cleanupAbi != XL6_IR_CALLBACK_CLEANUP_COMPLETE_BEFORE_PUBLISH_V1 ||
+        boundary->errorAbi != XL6_IR_CALLBACK_ERROR_PRESERVE_STATUS_DIAGNOSTIC_V1 ||
         boundary->forwardAbi != XL6_IR_CALLBACK_FORWARD_SOURCE_OWNER ||
         !sourceType || !outputType || !destroy)
         return xl6IrCgenDiag(diags, module, instruction->origin, "XLIR continuation callback boundary is unresolved");
@@ -505,26 +512,27 @@ static int xl6IrCgenEmitFutureContinuationHelper(
     }
     xl6OutputPrintf(out,
         "complete:\n"
-        "    if (!ok && !xrtGetError()) xrtSetErrorTake(xlir_error_create(\"AsyncError\", \"Future callback failed\"));\n"
         "    terminal = cancelled || (forward && input && input->State != XFUTURE_RESOLVED && ok && !xrtGetError());\n"
         "    if (forward && frame) { source = frame->source; frame->source = NULL; }\n"
-        "    if (frame) xlir_future_continue_frame_cleanup_%lu(frame);\n"
-        "    if (terminal) xrtClearError();\n"
+        "    xerror* callbackError = xrtTakeError();\n"
+        "    xl6_error_result outcome = { ok && !callbackError, callbackError };\n"
+        "    if (frame) outcome = xlir_future_continue_frame_cleanup_%lu(frame, outcome);\n"
+        "    if (terminal) { xrtErrorFree(outcome.error); outcome = (xl6_error_result){ true, NULL }; }\n"
+        "    ok = outcome.ok; xrtSetErrorTake(outcome.error);\n"
         "    if (cancelled) { (void)xrtPromiseCancel(output); }\n"
         "    else if (!ok || xrtGetError() != NULL) {\n"
         "        xerror* primary = xrtTakeError();\n"
         "        if (value) { %s(value, NULL); value = NULL; }\n"
         "        xrtFutureDestroy(source); source = NULL; xrtClearError();\n"
-        "        if (primary) (void)xrtPromiseReject(output, primary); else (void)xrtPromiseClose(output);\n"
-        "        xrtErrorFree(primary);\n"
+        "        xl6FutureCallbackRuntimeV5Get()->Fail(output, primary);\n"
         "    } else if (forward) {\n"
-        "        (void)xrtPromiseForward(output, source);\n"
+        "        if (!xrtPromiseForward(output, source)) xl6FutureCallbackRuntimeV5Get()->Fail(output, xrtTakeError());\n"
         "    } else {\n"
         "        if (!",
         (unsigned long)instructionIndex, destroy);
     if (!xl6IrCgenEmitAsyncPayloadPublish(out, instruction->asyncResultAbi, "output", "value")) return 0;
     xl6OutputPrintf(out,
-        ") %s(value, NULL);\n"
+        ") { xerror* primary = xrtTakeError(); %s(value, NULL); xrtClearError(); xl6FutureCallbackRuntimeV5Get()->Fail(output, primary); }\n"
         "    }\n"
         "    xrtFutureDestroy(source); xrtClearError(); xrtSetErrorTake(saved);\n"
         "}\n"
@@ -536,7 +544,7 @@ static int xl6IrCgenEmitFutureContinuationHelper(
         (unsigned long)instructionIndex, (unsigned long)instructionIndex);
     if (!xl6IrCgenEmitCallbackCapture(out, module, boundary, "xlir_future_continue", instructionIndex)) return 0;
     xl6OutputPrintf(out,
-        "    future = xl6FutureCallbackRuntimeV1Get()->Start(frame, source);\n"
+        "    future = xl6FutureCallbackRuntimeV5Get()->Start(xlir_continuation_executor, frame, source);\n"
         "    if (future == NULL) xlir_future_continue_frame_free_%lu(frame, NULL);\n"
         "    return future;\n"
         "}\n\n",

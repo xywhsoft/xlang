@@ -20323,6 +20323,10 @@ XL6_IrModuleContinuationAbi xl6IrModuleContinuationRequirement(const XL6_IrModul
 {
     size_t i, j;
     if (module == NULL) return XL6_IR_MODULE_CONTINUATION_NONE;
+    for(i=0;i<module->instructionCount;++i)
+        if(module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            module->instructions[i].runtimeOp==XL6_IR_RUNTIME_FUTURE_CONTINUE_CLOSURE)
+            return XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1;
     for (i = 0; i < module->functionCount; ++i) {
         const XL6_IrFunction* function = &module->functions[i];
         if (function->kind != XL6_IR_FUNCTION_ASYNC_WORKER) continue;
@@ -27248,10 +27252,10 @@ int xl6IrBuildCallbackBoundaries(XL6_IrModule* module, XL6_DiagList* diags)
         boundary->instruction = i;
         boundary->firstCapture = module->callbackCaptureCount;
         boundary->captureCount = instruction->operandCount;
-        boundary->transportAbi = continuation ? XL6_IR_CALLBACK_TRANSPORT_FUTURE_WATCH : XL6_IR_CALLBACK_TRANSPORT_TASK_POOL;
-        boundary->storageAbi = continuation ? XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_FUTURE_FRAME_V3 : XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3;
-        boundary->cleanupAbi = XL6_IR_CALLBACK_CLEANUP_TRANSACTIONAL;
-        boundary->errorAbi = continuation ? XL6_IR_CALLBACK_ERROR_PRESERVE : XL6_IR_CALLBACK_ERROR_ASYNC_CAUSE;
+        boundary->transportAbi = continuation ? XL6_IR_CALLBACK_TRANSPORT_FUTURE_READY_QUEUE_V1 : XL6_IR_CALLBACK_TRANSPORT_TASK_POOL;
+        boundary->storageAbi = continuation ? XL6_IR_CALLBACK_STORAGE_RESIDENT_QUEUED_FUTURE_FRAME_V1 : XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3;
+        boundary->cleanupAbi = continuation ? XL6_IR_CALLBACK_CLEANUP_COMPLETE_BEFORE_PUBLISH_V1 : XL6_IR_CALLBACK_CLEANUP_TRANSACTIONAL;
+        boundary->errorAbi = continuation ? XL6_IR_CALLBACK_ERROR_PRESERVE_STATUS_DIAGNOSTIC_V1 : XL6_IR_CALLBACK_ERROR_ASYNC_CAUSE;
         boundary->forwardAbi = continuation ? XL6_IR_CALLBACK_FORWARD_SOURCE_OWNER : XL6_IR_CALLBACK_FORWARD_NONE;
         instruction->callbackBoundary = module->callbackBoundaryCount;
         if (instruction->firstOperand > module->operandCount ||
@@ -27312,10 +27316,10 @@ static int xl6IrVerifyCallbackBoundaries(const XL6_IrModule* module, XL6_DiagLis
         if (boundary->instruction != i || boundary->firstCapture != nextCapture ||
             boundary->captureCount != instruction->operandCount ||
             boundary->captureCount > module->callbackCaptureCount - nextCapture ||
-            boundary->transportAbi != (continuation ? XL6_IR_CALLBACK_TRANSPORT_FUTURE_WATCH : XL6_IR_CALLBACK_TRANSPORT_TASK_POOL) ||
-            boundary->storageAbi != (continuation ? XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_FUTURE_FRAME_V3 : XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3) ||
-            boundary->cleanupAbi != XL6_IR_CALLBACK_CLEANUP_TRANSACTIONAL ||
-            boundary->errorAbi != (continuation ? XL6_IR_CALLBACK_ERROR_PRESERVE : XL6_IR_CALLBACK_ERROR_ASYNC_CAUSE) ||
+            boundary->transportAbi != (continuation ? XL6_IR_CALLBACK_TRANSPORT_FUTURE_READY_QUEUE_V1 : XL6_IR_CALLBACK_TRANSPORT_TASK_POOL) ||
+            boundary->storageAbi != (continuation ? XL6_IR_CALLBACK_STORAGE_RESIDENT_QUEUED_FUTURE_FRAME_V1 : XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3) ||
+            boundary->cleanupAbi != (continuation ? XL6_IR_CALLBACK_CLEANUP_COMPLETE_BEFORE_PUBLISH_V1 : XL6_IR_CALLBACK_CLEANUP_TRANSACTIONAL) ||
+            boundary->errorAbi != (continuation ? XL6_IR_CALLBACK_ERROR_PRESERVE_STATUS_DIAGNOSTIC_V1 : XL6_IR_CALLBACK_ERROR_ASYNC_CAUSE) ||
             boundary->forwardAbi != (continuation ? XL6_IR_CALLBACK_FORWARD_SOURCE_OWNER : XL6_IR_CALLBACK_FORWARD_NONE))
             goto malformed;
         for (operand = 0; operand < boundary->captureCount; ++operand) {
