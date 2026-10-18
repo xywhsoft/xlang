@@ -195,6 +195,7 @@ bool xl6ChannelOwnedSelectPrepareV1(XL6_ChannelCaseOwnerV1* const* inputs,size_t
 {
     xdeadline deadline=0;
     if (!frame || frame->count || frame->cases || frame->pins || frame->slots || frame->result ||
+        frame->parked || frame->resultBorrowed ||
         !options || !count || count>=UINT32_MAX || count>SIZE_MAX/sizeof(*inputs) ||
         count>SIZE_MAX/sizeof(*frame->cases) || !region(inputs,count*sizeof(*inputs)) ||
         (uintptr_t)inputs%_Alignof(XL6_ChannelCaseOwnerV1*)) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
@@ -240,6 +241,41 @@ bool xl6ChannelOwnedSelectPrepareV1(XL6_ChannelCaseOwnerV1* const* inputs,size_t
     }
     return true;
 }
+xvalue* xl6ChannelOwnedSelectResultHandleV1(XL6_ChannelOwnedSelectFrameV1* frame)
+{
+    if (!frame || !frame->result || !frame->count || frame->resultBorrowed || frame->result->selected) {
+        xrtSetErrorKind(XERR_STATE); return NULL;
+    }
+    /* Detach before a fallible factory which consumes on BOTH outcomes. No
+     * half-constructed handle can leave a dangling owning frame slot. The
+     * containing asynchronous producer is private/uninspectable throughout. */
+    XL6_ChannelSelectionOwnerV1* result=frame->result;
+    xrtownershipscope mutation={0}; enter(&mutation);
+    frame->result=NULL; frame->resultBorrowed=true; leave(&mutation);
+    void* owned=result;
+    xvalue* value=xl6NativeHandleTakeV1(&owned,xl6ChannelSelectionHandlePolicyV1Get());
+    if (value) { enter(&mutation); frame->result=result; leave(&mutation); }
+    return value;
+}
+bool xl6ChannelOwnedSelectParkV1(XL6_ChannelOwnedSelectFrameV1* frame)
+{
+    if (!frame || !frame->count || !frame->cases || !frame->pins || !frame->result || frame->parked) {
+        xrtSetErrorKind(XERR_STATE); return false;
+    }
+    xrtownershipscope mutation={0}; enter(&mutation);
+    for (size_t i=0;i<frame->count;++i)
+        if (!frame->pins[i] || !frame->pins[i]->node.active) abort();
+    for (size_t i=0;i<frame->count;++i) --frame->pins[i]->node.active;
+    frame->parked=true;
+    leave(&mutation); return true;
+}
+bool xl6ChannelOwnedSelectTraceV1(const XL6_ChannelOwnedSelectFrameV1* frame,xrtownershipvisitor visit,ptr context)
+{
+    if (!frame || !visit || (frame->count && (!frame->pins || !frame->parked))) return false;
+    for (size_t i=0;i<frame->count;++i)
+        if (frame->pins[i] && !visit(xl6ChannelCaseOwnershipV1(frame->pins[i]),context)) return false;
+    return frame->resultBorrowed || !frame->result || visit(xl6ChannelSelectionOwnershipV1(frame->result),context);
+}
 bool xl6ChannelOwnedSelectCompleteV1(XL6_ChannelOwnedSelectFrameV1* frame,XL6_ChannelSelectionV1 info)
 {
     if (!frame || !frame->result || frame->result->selected ||
@@ -247,6 +283,7 @@ bool xl6ChannelOwnedSelectCompleteV1(XL6_ChannelOwnedSelectFrameV1* frame,XL6_Ch
          info.index>=frame->count || (info.status!=XL6_CHANNEL_OK_V1 && info.status!=XL6_CHANNEL_CLOSED_V1))) {
         xrtSetErrorKind(XERR_STATE); return false;
     }
+    xrtownershipscope mutation={0}; enter(&mutation);
     XL6_ChannelSelectionOwnerV1* result=frame->result; result->info=info;
     if (info.index!=SIZE_MAX) {
         XL6_ChannelCaseOwnerV1* item=frame->pins[info.index]; result->layout=item->layout;
@@ -256,12 +293,13 @@ bool xl6ChannelOwnedSelectCompleteV1(XL6_ChannelOwnedSelectFrameV1* frame,XL6_Ch
         }
         /* Transfer the selected operation's real reference, never allocate or
          * perform a fallible post-commit retain. Other case credits end below. */
-        xrtownershipscope mutation={0}; enter(&mutation);
         result->selected=item; frame->pins[info.index]=NULL;
-        if (!item->node.active) abort();
-        --item->node.active; leave(&mutation);
+        if (!frame->parked) {
+            if (!item->node.active) abort();
+            --item->node.active;
+        }
     }
-    return true;
+    leave(&mutation); return true;
 }
 XL6_ChannelSelectionOwnerV1* xl6ChannelOwnedSelectDiscardV1(XL6_ChannelOwnedSelectFrameV1* frame,bool success)
 {
@@ -274,14 +312,18 @@ XL6_ChannelSelectionOwnerV1* xl6ChannelOwnedSelectDiscardV1(XL6_ChannelOwnedSele
                 frame->result->layout.transfer,item->type),item->slot.data);
             if (xrtGetError() || scope.failed) xl6ErrorScopeCaptureFailure(&scope);
         }
-        if (frame->pins[i]) end(&frame->pins[i]->node,false);
+        if (frame->pins[i]) {
+            if (frame->parked) release(&frame->pins[i]->node);
+            else end(&frame->pins[i]->node,false);
+        }
         if (xrtGetError() || scope.failed) xl6ErrorScopeCaptureFailure(&scope);
     }
     if (frame->slots && frame->slots!=frame->inlineSlots) xrtFree(frame->slots);
     if (frame->pins && frame->pins!=frame->inlinePins) xrtFree(frame->pins);
     if (frame->cases && frame->cases!=frame->inlineCases) xrtFree(frame->cases);
     XL6_ChannelSelectionOwnerV1* result=frame->result;
-    if (!success) { xl6ChannelSelectionDestroyV1(result); result=NULL; }
+    if (frame->resultBorrowed) result=NULL;
+    else if (!success) { xl6ChannelSelectionDestroyV1(result); result=NULL; }
     memset(frame,0,sizeof(*frame));
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
     if (!outcome.ok) xl6ErrorScopePropagateFailure(outcome); else xrtErrorFree(outcome.error);

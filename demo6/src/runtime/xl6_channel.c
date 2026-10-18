@@ -112,8 +112,9 @@ static bool trace(const void* data,xrtownershipvisitor visit,void* context)
     const ChannelOwner* owner=data; size_t count;
     if (!visit || !countReferences(owner,&count) || !owner->initialized) return false;
     if (owner->layout.transfer!=3) return true;
-    /* Activity refusal includes pending sends, obtained receives, copies and
-     * cleanup. At quiescence this resident intrusive ownership list is exact;
+    /* Activity refusal includes transfers, copies and cleanup. A parked async
+     * wait changes only native BORROWED queue pointers; all boxes remain in
+     * this exact resident ownership list, including unsent/obtained boxes.
      * it does not peek into XRT's opaque ring or infer edges from Count(). */
     for (const ChannelBox* box=owner->boxes;box;box=box->next)
         if (!visit(xrtValueOwnership(*(xvalue* const*)box->slot),context)) return false;
@@ -321,7 +322,7 @@ bool xl6ChannelOperationOpenV1(const xvalue* value,uint64_t identity,uint64_t el
     XL6_ChannelSlotV1 slot,bool sending,XL6_ChannelStatusV1* status,XL6_ChannelOperationV1* output)
 {
     if (!output || output->owner || output->native || output->message || output->received ||
-        output->target.data || output->target.size || output->sending) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+        output->target.data || output->target.size || output->sending || output->parked) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
     ChannelOwner* owner=begin(value,identity);
     if (!owner) return false;
     if (!request(owner,element,type,slot,XL6_CHANNEL_TRY_V1,0,status,!sending)) { end(owner); return false; }
@@ -332,6 +333,28 @@ bool xl6ChannelOperationOpenV1(const xvalue* value,uint64_t identity,uint64_t el
         .target=sending ? (XL6_ChannelSlotV1){0} : slot,.sending=sending};
     return true;
 }
+bool xl6ChannelOperationParkV1(XL6_ChannelOperationV1* operation)
+{
+    if (!operation || !operation->owner || operation->parked) { xrtSetErrorKind(XERR_STATE); return false; }
+    ChannelOwner* owner=operation->owner;
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    if (owner->cleared || owner->claim || !xrtAtomic32FetchSub(&owner->activity,1,XMEMORY_RELEASE)) abort();
+    operation->parked=true;
+    mutationEnd(&mutation); return true;
+}
+xrtownershipref xl6ChannelOperationOwnershipV1(const XL6_ChannelOperationV1* operation)
+{ return (xrtownershipref){operation ? operation->owner : NULL,operation && operation->owner ? &ownerOps : NULL}; }
+/* The caller marks the containing frame active before ending a parked wait.
+ * No reference is acquired here: the original operation owner is still real.
+ * These leases cannot remain in a collectible settled frame after Clear. */
+static void reactivate(XL6_ChannelOperationV1* operation)
+{
+    if (!operation->parked) return;
+    ChannelOwner* owner=operation->owner;
+    if (owner->cleared || owner->claim ||
+        xrtAtomic32FetchAdd(&owner->activity,1,XMEMORY_ACQ_REL)==UINT32_MAX) abort();
+    operation->parked=false;
+}
 bool xl6ChannelOperationCommitV1(XL6_ChannelOperationV1* operation)
 {
     if (!operation || !operation->owner) { xrtSetErrorKind(XERR_STATE); return false; }
@@ -339,20 +362,27 @@ bool xl6ChannelOperationCommitV1(XL6_ChannelOperationV1* operation)
     if (operation->sending) {
         /* A concurrent receiver may already have freed this box. */
         if (!operation->message) { xrtSetErrorKind(XERR_STATE); return false; }
-        operation->message=NULL; return true;
+        xrtownershipscope mutation={0}; mutationBegin(&mutation);
+        reactivate(operation); operation->message=NULL;
+        mutationEnd(&mutation); return true;
     }
     ChannelBox* box=operation->received;
     if (!box) { xrtSetErrorKind(XERR_STATE); return false; }
+    xrtownershipscope mutation={0}; mutationBegin(&mutation); reactivate(operation);
     operation->received=NULL; unlinkBox(owner,box);
     memcpy(operation->target.data,box->slot,operation->target.size);
-    memset(box->slot,0,operation->target.size); xrtFree(box); return true;
+    memset(box->slot,0,operation->target.size); xrtFree(box);
+    mutationEnd(&mutation); return true;
 }
 void xl6ChannelOperationCloseV1(XL6_ChannelOperationV1* operation)
 {
     if (!operation) return;
     ChannelOwner* owner=operation->owner;
+    xrtownershipscope mutation={0}; mutationBegin(&mutation);
+    if (owner) reactivate(operation);
     ChannelBox* unsent=operation->message; ChannelBox* acquired=operation->received;
     memset(operation,0,sizeof(*operation));
+    mutationEnd(&mutation);
     if (!owner) return;
     if (unsent) { unlinkBox(owner,unsent); dropBox(owner,unsent); }
     if (acquired) { unlinkBox(owner,acquired); dropBox(owner,acquired); }
