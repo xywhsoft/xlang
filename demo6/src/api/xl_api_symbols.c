@@ -132,6 +132,7 @@
 #include "src/runtime/xl6_future_callback.h"
 #include "src/runtime/xl6_channel_future.h"
 #include "src/runtime/xl6_channel_direct_future.h"
+#include "src/runtime/xl6_deadline_service.h"
 #include "src/runtime/xl6_future_aggregate.h"
 #include "src/runtime/xl6_future_metadata.h"
 #include "src/runtime/xl6_future_payload.h"
@@ -350,6 +351,21 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV5Get", (const void*)xl6FutureCallbackRuntimeV5Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ChannelFutureRuntimeV1Get", (const void*)xl6ChannelFutureRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ChannelDirectFutureRuntimeV1Get", (const void*)xl6ChannelDirectFutureRuntimeV1Get)) return 0;
+#define XL6_DEADLINE_SYMBOL(Name) if(!xlApiAddTccSymbol(s,#Name,(const void*)Name))return 0;
+    XL6_DEADLINE_SYMBOL(xl6DeadlineServiceCreateV1)
+    XL6_DEADLINE_SYMBOL(xl6DeadlineBindTakeV1)
+    XL6_DEADLINE_SYMBOL(xl6DeadlineDetachV1)
+    XL6_DEADLINE_SYMBOL(xl6DeadlineTicketIsIdleV1)
+    XL6_DEADLINE_SYMBOL(xl6DeadlineTicketServiceOwnershipV1)
+    XL6_DEADLINE_SYMBOL(xl6DeadlineServiceCloseV1)
+    XL6_DEADLINE_SYMBOL(xl6DeadlineServiceDestroyV1)
+    XL6_DEADLINE_SYMBOL(xl6DeadlineServiceDestroyCompletedV1)
+    XL6_DEADLINE_SYMBOL(xl6DeadlineServiceCheckV1)
+    XL6_DEADLINE_SYMBOL(xl6DeadlineFromMillisecondsV1)
+    XL6_DEADLINE_SYMBOL(xl6DeadlineServiceOwnershipV1)
+    XL6_DEADLINE_SYMBOL(xl6DeadlineServiceOwnershipAdapterV1)
+    XL6_DEADLINE_SYMBOL(xl6DeadlineServiceQuiescenceV1Get)
+#undef XL6_DEADLINE_SYMBOL
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV3Get", (const void*)xl6FutureCallbackRuntimeV3Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackCancelPolicyV1Get", (const void*)xl6FutureCallbackCancelPolicyV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureAggregateAllV2", (const void*)xl6FutureAggregateAllV2)) return 0;
