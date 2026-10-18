@@ -4044,7 +4044,11 @@ typedef enum XL6_IrCallResultPhysicalAbi {
     XL6_IR_CALL_RESULT_PHYSICAL_INVALID = 0,
     XL6_IR_CALL_RESULT_PHYSICAL_DIRECT,
     XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_BORROW,
-    XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE
+    XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE,
+    /* Resident factory returns an ALREADY managed native handle. Its exact
+     * resource policy is sealed by the registry and destination field. Adopt
+     * the owned xvalue without boxing its address as another native pointer. */
+    XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_HANDLE_VALUE_TAKE
 } XL6_IrCallResultPhysicalAbi;
 
 /* The C prototype's pointer type is independent of the language storage and
@@ -4074,7 +4078,8 @@ typedef enum XL6_IrCallNativeContextAbi {
     XL6_IR_CALL_NATIVE_CONTEXT_NONE=0,
     XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,
     XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,
-    XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1
+    XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1,
+    XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_CLASS_FIELD_V1
 } XL6_IrCallNativeContextAbi;
 
 /* A checked resident entry may publish one owned generic result into the
@@ -6825,8 +6830,11 @@ const char* xl6IrRuntimeDirectBridgeParameterOwner(const char* name, size_t para
 int xl6IrRuntimeDirectBridgeCheckedClosureParameter(const char* name, size_t parameter);
 int xl6IrRuntimeDirectBridgeValueAddressParameter(const char* name,size_t parameter);
 XL6_IrCallNativeResultAbi xl6IrRuntimeDirectBridgeNativeResultAbi(const char*);
+int xl6IrRuntimeDirectBridgeManagedHandleResult(const char*);
+XL6_IrTypeId xl6IrCallTargetPhysicalResultType(const XL6_IrModule*,const XL6_IrCallTarget*);
 XL6_IrTypeId xl6IrNativeContextElementType(const XL6_IrModule*,const XL6_IrCallTarget*);
 const XL6_IrClassField* xl6IrNativeClassArrayContextField(const XL6_IrModule*,const XL6_IrCallTarget*);
+const XL6_IrClassField* xl6IrNativeClassContextField(const XL6_IrModule*,const XL6_IrCallTarget*);
 /* No implicit zero-field default can create an owned native resource. */
 int xl6IrTypeRequiresExplicitNativeInitialization(const struct XL6_IrModule*,XL6_IrTypeId);
 int xl6IrRuntimeDirectBridgeContext(const struct XL6_IrModule*,const XL6_IrCallTarget*,

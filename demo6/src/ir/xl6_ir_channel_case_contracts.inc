@@ -2,3 +2,5 @@
 {"xl6ChannelSelectionDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ChannelSelectionDestroyV1"},.nativeHandlePolicy="xl6ChannelSelectionHandlePolicyV1Get",.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
 {"xl6ChannelSelectionIndexLanguageV1",T,I,1,{V},.parameterOwners={"xl6ChannelSelectionDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
 {"xl6ChannelSelectionStatusLanguageV1",T,I,1,{V},.parameterOwners={"xl6ChannelSelectionDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE},
+{"xl6ChannelFutureBuilderDestroyV1",T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={"xl6ChannelFutureBuilderDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeHandlePolicy="xl6ChannelFutureBuilderHandlePolicyV1Get"},
+{"xl6ChannelFutureBuilderResultV1",T,V,1,{V},.resultOwner="xl6ChannelSelectionDestroyV1",.parameterOwners={"xl6ChannelFutureBuilderDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.managedHandleResult=1},

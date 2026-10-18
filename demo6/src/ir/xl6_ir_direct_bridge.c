@@ -44,6 +44,9 @@ typedef struct XL6_IrDirectBridgeContract {
     unsigned char nativeClassArrayParameter;
     const char* nativeClassArrayOwner;
     XL6_IrCallNativeResultAbi nativeResultAbi;
+    unsigned char managedHandleResult;
+    unsigned char nativeClassParameter;
+    const char* nativeClassOwner;
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -759,6 +762,11 @@ XL6_IrCallNativeResultAbi xl6IrRuntimeDirectBridgeNativeResultAbi(const char* na
     const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(name);
     return c ? c->nativeResultAbi : XL6_IR_CALL_NATIVE_RESULT_NONE;
 }
+int xl6IrRuntimeDirectBridgeManagedHandleResult(const char* name)
+{
+    const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(name);
+    return c && c->resultOwner && c->managedHandleResult;
+}
 XL6_IrTypeId xl6IrNativeContextElementType(const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
     if (!module || !target) return XL6_IR_TYPE_INVALID;
@@ -778,6 +786,14 @@ const XL6_IrClassField* xl6IrNativeClassArrayContextField(const XL6_IrModule* mo
         !xl6IrSequenceConstructionRecipe(module,id,XL6_IR_SEQUENCE_ROLE_ARRAY,NULL))return NULL;
     return xl6IrResidentNativeResourceField(module,array->params[0],c->nativeClassArrayOwner);
 }
+const XL6_IrClassField* xl6IrNativeClassContextField(const XL6_IrModule* module,const XL6_IrCallTarget* target)
+{
+    const XL6_IrDirectBridgeContract* c=target?xl6IrDirectBridgeContract(target->cName):NULL;
+    if(!module || !c || !c->nativeClassOwner || !c->nativeClassParameter ||
+        c->nativeClassParameter>target->parameterCount || !target->parameterTypes)return NULL;
+    return xl6IrResidentNativeResourceField(module,
+        target->parameterTypes[c->nativeClassParameter-1],c->nativeClassOwner);
+}
 int xl6IrRuntimeDirectBridgeContext(const XL6_IrModule* module,const XL6_IrCallTarget* target,
     XL6_IrCallNativeContextAbi* context,XL6_IrTypeId* type,XL6_IrAsyncResultAbi* payload)
 {
@@ -785,6 +801,12 @@ int xl6IrRuntimeDirectBridgeContext(const XL6_IrModule* module,const XL6_IrCallT
     *context=XL6_IR_CALL_NATIVE_CONTEXT_NONE;*type=XL6_IR_TYPE_INVALID;*payload=XL6_IR_ASYNC_RESULT_INVALID;
     const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(target->cName);
     if(!c || !c->nativeContext)return 1;
+    if(c->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_CLASS_FIELD_V1) {
+        if(!xl6IrNativeClassContextField(module,target))return 0;
+        *context=c->nativeContext;*type=target->parameterTypes[c->nativeClassParameter-1];
+        *payload=xl6IrBuildAsyncResultAbi(module,*type);
+        return *payload==XL6_IR_ASYNC_RESULT_RETAINED_XVALUE;
+    }
     if(c->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1) {
         if(!xl6IrNativeClassArrayContextField(module,target))return 0;
         *context=c->nativeContext;*type=target->parameterTypes[c->nativeClassArrayParameter-1];return 1;
@@ -868,7 +890,9 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
         (target->errorPhysicalAbi != XL6_IR_CALL_ERROR_PHYSICAL_INVALID &&
          target->errorPhysicalAbi != xl6IrRuntimeDirectBridgeErrorPhysicalAbi(contract->name)) ||
         (contract->resultOwner
-            ? (target->resultPhysicalAbi != XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE ||
+            ? (target->resultPhysicalAbi != (contract->managedHandleResult
+                    ? XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_HANDLE_VALUE_TAKE
+                    : XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE) ||
                !target->resultPhysicalDestroySymbol ||
                !xl6IrDirectBridgeResourceMatches(module, target->returnType,
                     target->resultPhysicalFieldDeclaration, target->resultPhysicalDestroySymbol, contract->resultOwner))
@@ -995,6 +1019,15 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
         if(contract->nativeClassArrayParameter==i+1) {
             if(!type || target->parameterTypes[i]!=target->nativeContextType ||
                 !xl6IrNativeClassArrayContextField(module,target) ||
+                target->parameterAbis[i]!=XL6_IR_PARAMETER_ABI_BORROW ||
+                target->parameterPhysicalAbis[i]!=XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
+                target->parameterConstraintAbis[i]!=XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
+                target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID)return 0;
+            continue;
+        }
+        if(contract->nativeClassParameter==i+1) {
+            if(!type || target->parameterTypes[i]!=target->nativeContextType ||
+                !xl6IrNativeClassContextField(module,target) ||
                 target->parameterAbis[i]!=XL6_IR_PARAMETER_ABI_BORROW ||
                 target->parameterPhysicalAbis[i]!=XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
                 target->parameterConstraintAbis[i]!=XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||

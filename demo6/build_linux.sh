@@ -557,6 +557,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_future_callback.c"
 	"$ROOT/src/runtime/xl6_future_callback_queue.c"
 	"$ROOT/src/runtime/xl6_channel_future.c"
+	"$ROOT/src/runtime/xl6_channel_future_language.c"
 	"$ROOT/src/runtime/xl6_ownership_plan.c"
 	"$ROOT/src/runtime/xl6_static_module.c"
 	"$ROOT/src/runtime/xl6_ownership_catalog.c"

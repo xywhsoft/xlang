@@ -1,0 +1,64 @@
+import concurrent
+
+async func selectOne<T>(T value) as T
+    channel<T> pipe = channel::<T>(1)
+    auto receiving = ChannelCase.receive(pipe)
+    auto pending = ChannelSelection.selectAsync([receiving])
+    assert pipe.send(value)
+    auto result = await pending
+    assert result.status == channelStatus.ok and result.index == 0
+    return result.value(receiving, pipe)
+end
+
+async func checks()
+    assert await selectOne::<int>(42) == 42
+    assert await selectOne::<string>("a\0你🙂") == "a\0你🙂"
+    assert await selectOne::<bytes>(b"a\0b") == b"a\0b"
+    assert await selectOne::<int?>(null) == null
+
+    channel<int> pipe = channel::<int>(1)
+    auto receiving = ChannelCase.receive(pipe)
+    auto source = CancellationSource()
+    auto pending = ChannelSelection.selectAsyncCancel([receiving], source.token)
+    assert source.cancel()
+    auto cancelled = await pending
+    assert cancelled.status == channelStatus.cancelled and cancelled.index == -1
+
+    // The existing native ready-before-stop rule also holds for async starts.
+    assert pipe.send(71)
+    auto ready = await ChannelSelection.selectAsyncCancel([receiving], source.token)
+    assert ready.status == channelStatus.ok and ready.value(receiving, pipe) == 71
+
+    auto outputCancel = ChannelSelection.selectAsync([receiving])
+    outputCancel.cancel()
+    auto stopped = await outputCancel
+    assert stopped.status == channelStatus.cancelled
+    pipe.close()
+    auto closed = await ChannelSelection.selectAsync([receiving])
+    assert closed.status == channelStatus.closed and closed.index == 0
+
+    // All 192 subscriptions are pending together; only readiness uses workers.
+    channel<int> many = channel::<int>(192)
+    auto one = ChannelCase.receive(many)
+    array<future<ChannelSelection>> jobs = []
+    int index = 0
+    while index < 192
+        assert jobs.push(ChannelSelection.selectAsync([one]))
+        index += 1
+    end
+    index = 0
+    while index < 192
+        assert many.send(index)
+        index += 1
+    end
+    index = 0
+    while index < 192
+        auto selected = await jobs[index]
+        assert selected.status == channelStatus.ok
+        assert selected.value(one, many) == index
+        index += 1
+    end
+end
+
+await checks()
+println("channel future language ok")

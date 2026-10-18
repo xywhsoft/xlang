@@ -304,3 +304,34 @@ const XL6_ChannelFutureRuntimeV1* xl6ChannelFutureRuntimeV1Get(void)
 {
     static const XL6_ChannelFutureRuntimeV1 api={prepare,result_handle,start,discard,ownership};return &api;
 }
+
+void xl6ChannelFutureBuilderDestroyV1(void* data)
+{
+    Frame* frame=data;if(!frame)return;
+    if(frame->committed)release(frame);else discard(frame);
+}
+xvalue* xl6ChannelFutureBuilderResultV1(void* data)
+{
+    const xvalue* handle=result_handle(data);
+    if(!handle)xrtSetErrorKind(XERR_STATE);
+    xvalue* result=handle?xrtValueRetain(handle):NULL;
+    if(!result)xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});
+    return result;
+}
+xfuture* xl6ChannelFutureBuilderStartV1(XL6_ContinuationExecutor* executor,void* data,
+    const xvalue* owner,const char* field,size_t size,xcancel* parent)
+{
+    Frame* frame=data;
+    if(!frame || frame->committed || frame->publishing || frame->bound){xrtSetErrorKind(XERR_STATE);return NULL;}
+    if(!hold(frame)){xrtSetErrorKind(XERR_STATE);return NULL;}
+    xfuture* result=start(executor,frame,owner,field,size,parent);
+    if(!result)release(frame);
+    return result;
+}
+static bool builder_trace(const xvalue* value,xrtownershipvisitor visit,void* context)
+{
+    void* data=NULL;const xvaluehandleops* ops=NULL;void* user=NULL;
+    return visit && xrtValueGetHandle(value,&data,&ops,&user) && data && !user &&
+        ops==xl6ChannelFutureBuilderHandlePolicyV1Get()->Ops && visit(ownership(data),context);
+}
+XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6ChannelFutureBuilderHandlePolicyV1Get,xl6ChannelFutureBuilderDestroyV1,builder_trace)

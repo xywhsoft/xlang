@@ -28,4 +28,17 @@ XL6_TEXT_API void* xl6ChannelCasesUntilLanguageV1(XL6_ChannelCaseArrayContextV1,
 XL6_TEXT_API void* xl6ChannelCasesWaitCancelLanguageV1(XL6_ChannelCaseArrayContextV1,const xvalue*,xcancel*);
 XL6_TEXT_API void* xl6ChannelCasesForCancelLanguageV1(XL6_ChannelCaseArrayContextV1,const xvalue*,int64_t,xcancel*);
 XL6_TEXT_API void* xl6ChannelCasesUntilCancelLanguageV1(XL6_ChannelCaseArrayContextV1,const xvalue*,uint64_t,xcancel*);
+struct XL6_ContinuationExecutor;
+typedef struct XL6_ChannelFutureContextV1 {
+    struct XL6_ContinuationExecutor* executor;
+    const char* fieldName;
+    size_t fieldSize;
+    const struct XL6_NativeHandlePolicyV1* policy;
+} XL6_ChannelFutureContextV1;
+XL6_TEXT_API void* xl6ChannelFutureBuilderCreateLanguageV1(XL6_ChannelCaseArrayContextV1,const xvalue*);
+XL6_TEXT_API void xl6ChannelFutureBuilderDestroyV1(void*);
+XL6_TEXT_API xvalue* xl6ChannelFutureBuilderResultV1(void*);
+XL6_TEXT_API const struct XL6_NativeHandlePolicyV1* xl6ChannelFutureBuilderHandlePolicyV1Get(void);
+XL6_TEXT_API xfuture* xl6ChannelFutureBuilderStartLanguageV1(XL6_ChannelFutureContextV1,void*,const xvalue*);
+XL6_TEXT_API xfuture* xl6ChannelFutureBuilderStartCancelLanguageV1(XL6_ChannelFutureContextV1,void*,const xvalue*,xcancel*);
 #endif

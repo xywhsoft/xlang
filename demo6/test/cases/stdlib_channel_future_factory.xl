@@ -1,0 +1,62 @@
+import concurrent
+
+int initializations = 0
+func initializeResult() as string
+    initializations += 1
+    return "normal\0result"
+end
+func failResult() as string
+    throw ValueError("result initialization failed before publication")
+end
+class NamedSelection extends ChannelSelection
+    string label = initializeResult()
+    bytes binary = b"\0\xff"
+end
+class FailedSelection extends ChannelSelection
+    string label = failResult()
+end
+// Exercise the closed compiler-private recipe with inherited fields and
+// ordinary language initializers. No result construction callback is retained.
+class NamedBuilder
+    private native point handle
+    extern "xl6ChannelFutureBuilderCreateLanguageV1" create(array<ChannelCase> cases)
+    extern "xl6ChannelFutureBuilderDestroyV1" destroy()
+    extern "xl6ChannelFutureBuilderResultV1" @nonblocking func result() as NamedSelection
+    extern "xl6ChannelFutureBuilderStartLanguageV1" @nonblocking func start(NamedSelection result) as future<NamedSelection>
+end
+class FailedBuilder
+    private native point handle
+    extern "xl6ChannelFutureBuilderCreateLanguageV1" create(array<ChannelCase> cases)
+    extern "xl6ChannelFutureBuilderDestroyV1" destroy()
+    extern "xl6ChannelFutureBuilderResultV1" @nonblocking func result() as FailedSelection
+end
+async func checkNormalConstruction()
+    channel<int> pipe = channel::<int>(1)
+    auto receiving = ChannelCase.receive(pipe)
+    auto builder = NamedBuilder([receiving])
+    auto result = builder.result()
+    assert initializations == 1 and result.label == "normal\0result" and result.binary == b"\0\xff"
+    auto future = builder.start(result)
+    assert pipe.send(57)
+    auto completed = await future
+    assert completed.label == "normal\0result" and initializations == 1
+    assert completed.status == channelStatus.ok and completed.value(receiving, pipe) == 57
+end
+func checkFailureBeforePublication()
+    channel<int> pipe = channel::<int>(1)
+    assert pipe.send(93)
+    auto receiving = ChannelCase.receive(pipe)
+    auto builder = FailedBuilder([receiving])
+    bool failed = false
+    try
+        auto rejected = builder.result()
+    catch e
+        failed = e.message == "result initialization failed before publication"
+    end
+    assert failed and pipe.count() == 1
+    auto status, value = pipe.tryRecv()
+    assert status == channelStatus.ok and value != null and value == 93
+end
+await checkNormalConstruction()
+checkFailureBeforePublication()
+println("managed-handle adoption uses normal class construction and fails before native transfer")
