@@ -1,0 +1,3 @@
+import concurrent
+ChannelReceiveResult<int> result
+auto illegal = result.handle

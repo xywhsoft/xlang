@@ -13,6 +13,7 @@ extern const char* xl6StdlibThreadLocalSource;
 extern const char* xl6StdlibCancellationSource;
 extern const char* xl6StdlibPromiseSource;
 extern const char* xl6StdlibChannelCaseSource;
+extern const char* xl6StdlibChannelDirectFutureSource;
 extern const char* xl6StdlibTemplateBufferSource;
 extern const char* xl6StdlibTemplateWriterSource;
 extern const char* xl6StdlibTemplateFileSource;

@@ -1,0 +1,78 @@
+import concurrent
+
+async func roundtrip<T>(T value) as T?
+    channel<T> pipe = channel::<T>(0)
+    auto receiving = pipe.recvAsync()
+    assert await pipe.sendAsync(value) == channelStatus.ok
+    auto result = await receiving
+    assert result.status == channelStatus.ok and result.hasValue
+    return result.value
+end
+
+func readyOutside() as future<ChannelReceiveResult<string>>
+    channel<string> pipe = channel::<string>(1)
+    assert pipe.send("owned\0outside")
+    return pipe.recvAsync()
+end
+
+async func checks()
+    assert ((await roundtrip::<int>(42)) ?? -1) == 42
+    assert ((await roundtrip::<string>("a\0你🙂")) ?? "bad") == "a\0你🙂"
+    assert ((await roundtrip::<bytes>(b"a\0b")) ?? b"bad") == b"a\0b"
+    assert await roundtrip::<int?>(null) == null
+    assert ((await roundtrip::<int8>(int8(-7))) ?? int8(0)) == int8(-7)
+    assert ((await roundtrip::<float32>(float32(1.25))) ?? float32(0)) == float32(1.25)
+    assert ((await roundtrip::<char>('你')) ?? 'A') == '你'
+    assert ((await roundtrip::<bool>(false)) ?? true) == false
+    auto outside = await readyOutside()
+    assert outside.hasValue and (outside.value ?? "bad") == "owned\0outside"
+    channel<int> pipe = channel::<int>(1)
+    auto source = CancellationSource()
+    auto pending = pipe.recvAsyncCancel(source.token)
+    assert source.cancel()
+    auto cancelled = await pending
+    assert cancelled.status == channelStatus.cancelled and not cancelled.hasValue
+    assert cancelled.value == null
+    assert pipe.send(71)
+    auto ready = await pipe.recvAsyncCancel(source.token)
+    assert ready.hasValue and (ready.value ?? -1) == 71
+    auto sending = pipe.sendAsyncCancel(72, source.token)
+    assert await sending == channelStatus.ok
+    auto status, value = pipe.recv()
+    assert status == channelStatus.ok and (value ?? -1) == 72
+    assert pipe.send(74)
+    auto full = pipe.sendAsyncCancel(75, source.token)
+    assert await full == channelStatus.cancelled
+    auto oldStatus, oldValue = pipe.recv()
+    assert oldStatus == channelStatus.ok and (oldValue ?? -1) == 74
+    auto output = pipe.recvAsync()
+    output.cancel()
+    auto stopped = await output
+    assert stopped.status == channelStatus.cancelled
+    pipe.close()
+    auto closed = await pipe.recvAsync()
+    assert closed.status == channelStatus.closed and not closed.hasValue and closed.value == null
+    assert await pipe.sendAsync(73) == channelStatus.closed
+
+    channel<int> many = channel::<int>(192)
+    array<future<ChannelReceiveResult<int>>> jobs = []
+    int index = 0
+    while index < 192
+        assert jobs.push(many.recvAsync())
+        index += 1
+    end
+    index = 0
+    while index < 192
+        assert many.send(index)
+        index += 1
+    end
+    index = 0
+    while index < 192
+        auto item = await jobs[index]
+        assert item.hasValue and (item.value ?? -1) == index
+        index += 1
+    end
+end
+
+await checks()
+println("direct Channel Future language ok")

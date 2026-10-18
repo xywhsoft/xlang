@@ -1,0 +1,10 @@
+import concurrent
+class WrongDirectBuilder<T>
+    private native point handle
+    extern "xl6ChannelDirectReceiveCreateLanguageV1" create(channel<T> source)
+    extern "xl6ChannelReceiveFutureBuilderDestroyV1" destroy()
+    extern "xl6ChannelReceiveFutureResultLanguageV1" @nonblocking func result() as ChannelReceiveResult<string>
+end
+channel<int> pipe = channel::<int>(1)
+auto builder = WrongDirectBuilder::<int>(pipe)
+auto result = builder.result()

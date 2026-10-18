@@ -1,0 +1,13 @@
+import concurrent
+
+class ApplicationMethods
+    func recvAsync() as int
+        return 40
+    end
+    func sendAsync(int value) as int
+        return value + 2
+    end
+end
+auto methods = ApplicationMethods()
+assert methods.recvAsync() == 40 and methods.sendAsync(40) == 42
+println("ordinary class methods are not Channel intrinsics")

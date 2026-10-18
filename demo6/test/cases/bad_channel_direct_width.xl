@@ -1,0 +1,10 @@
+import concurrent
+class BadSendWidth<T>
+    private native point handle
+    extern "xl6ChannelDirectSendCreateLanguageV1" create(channel<T> source, T value)
+    extern "xl6ChannelSendFutureBuilderDestroyV1" destroy()
+    extern "xl6ChannelDirectSendStartLanguageV1" @nonblocking func start() as future<int8>
+end
+channel<int> pipe = channel::<int>(1)
+auto builder = BadSendWidth::<int>(pipe, 42)
+auto result = builder.start()

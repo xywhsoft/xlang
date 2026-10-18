@@ -1,0 +1,11 @@
+import concurrent
+// The shared producer implementation does not erase source resource direction.
+class WrongDirectDirection<T>
+    private native point handle
+    extern "xl6ChannelDirectReceiveCreateLanguageV1" create(channel<T> source)
+    extern "xl6ChannelReceiveFutureBuilderDestroyV1" destroy()
+    extern "xl6ChannelDirectSendStartLanguageV1" @nonblocking func start() as future<int>
+end
+channel<int> pipe = channel::<int>(1)
+auto builder = WrongDirectDirection::<int>(pipe)
+auto result = builder.start()

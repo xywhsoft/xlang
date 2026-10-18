@@ -1,0 +1,2 @@
+channel<int> pipe = channel::<int>(1)
+auto pending = pipe.recvAsync()
