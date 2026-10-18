@@ -27,6 +27,14 @@ static struct {
     __typeof__(&xrtChannelSubscribeDestroy) Destroy;
     __typeof__(&xrtChannelSubscribeStop) Stop;
     __typeof__(&xrtChannelSubscribeResult) Result;
+    __typeof__(&xrtChannelSubscribeCreateOwnedV1) CreateOwned;
+    __typeof__(&xrtChannelSubscribeOwnership) Ownership;
+    __typeof__(&xrtChannelSubscribeOwnershipQuiescenceV1Get) Quiescence;
+    __typeof__(&xrtChannelSubscribeOwnershipAdapterV1) Adapter;
+    __typeof__(&xrtOwnershipFreezeTryBegin) Freeze;
+    __typeof__(&xrtOwnershipMutationBegin) Mutation;
+    __typeof__(&xrtOwnershipScopeEnd) ScopeEnd;
+    __typeof__(&xrtOwnershipInspectReachable) Inspect;
     __typeof__(&xrtMemDebugFailAfter) FailAfter;
     __typeof__(&xrtMemDebugFailClear) FailClear;
     __typeof__(&xrtMemDebugFailTriggered) FailTriggered;
@@ -41,6 +49,12 @@ typedef struct Context {
     xchannelselectresult selected;
     ptr value;
 } Context;
+
+typedef struct OwnedContext {
+    Context base;
+    xchannelsubscription* subscription;
+    int refs;
+} OwnedContext;
 
 static void require(bool condition,const char* message)
 {
@@ -69,6 +83,112 @@ static void drop(const void* data)
 }
 
 static const xchannelsubscribepolicyv1 policy={sizeof(policy),notify,drop};
+
+static bool owned_count(const void* data,size_t* count)
+{
+    const OwnedContext* context=data;
+    if(!context || context->refs<=0) return false;
+    *count=(size_t)context->refs;
+    return true;
+}
+static bool owned_trace(const void* data,xrtownershipvisitor visit,ptr opaque)
+{
+    const OwnedContext* context=data;
+    return !context->subscription || visit(api.Ownership(context->subscription),opaque);
+}
+static const xrtownershipops owned_ops={owned_count,owned_trace};
+static void owned_notify(xchannelsubscription* subscription,ptr data)
+{
+    OwnedContext* context=data;
+    xrtownershipscope freeze={0};
+    const xrtownershipquiescencev1* quiescence=api.Quiescence();
+    require(api.Freeze(&freeze),"owned callback inherited API mutation");
+    require(quiescence->Busy(subscription),"active callback not reported busy");
+    require(api.ScopeEnd(&freeze),"owned callback freeze end failed");
+    notify(subscription,&context->base);
+}
+static void owned_drop(const void* data)
+{
+    OwnedContext* context=(OwnedContext*)data;
+    xrtownershipscope freeze={0},mutation={0};
+    require(api.Freeze(&freeze) && api.ScopeEnd(&freeze),"owned Drop inherited API mutation");
+    require(api.Mutation(&mutation) && context->refs>0,"owned Data reference invalid");
+    --context->refs;
+    ++context->base.dropped;
+    require(api.ScopeEnd(&mutation),"owned Drop scope end failed");
+}
+static const xchannelsubscribeownershipv1 owned_policy={sizeof(owned_policy),owned_notify,owned_drop,&owned_ops};
+
+static void inspect_owned(OwnedContext* context,bool rooted)
+{
+    xrtownershipscope freeze={0};
+    xrtownershipref anchor=api.Ownership(context->subscription);
+    const xchannelsubscribeownershipv1* allowed[]={&owned_policy};
+    xrtownershipresult result={0};
+    bool reachable=false;
+    require(api.Freeze(&freeze),"owned graph freeze failed");
+    require(api.Adapter(anchor,allowed,1u)!=NULL,"resident owned policy not admitted");
+    require(api.Inspect(&anchor,1u,NULL,0u,&reachable,&result,NULL,NULL) &&
+        result.NodeCount==2u && result.EdgeCount==2u && result.ExternalRootCount==(rooted?1u:0u) &&
+        reachable==rooted,"actual product graph does not match real Data/registration rights");
+    require(api.ScopeEnd(&freeze),"owned graph freeze end failed");
+}
+
+static void probe_owned(void)
+{
+    xchannel channel;
+    OwnedContext context={.base.channel=&channel,.refs=1};
+    xchannelsubscribecase item={&channel,XCHANNEL_OP_RECV,NULL};
+    xmemdebugsnapshot before,after;
+    require(api.Init(&channel,0u),"owned channel init failed");
+    api.Snapshot(&before);
+    for(uint64 i=0;i<2u;i++) {
+        require(api.FailAfter(i),"owned constructor allocation injection unavailable");
+        require(!api.CreateOwned(&item,1u,&context,&owned_policy) && api.FailTriggered() &&
+            context.refs==1 && !context.base.dropped,"owned allocation failure consumed Data");
+        api.FailClear(); api.ClearError();
+    }
+    context.subscription=api.CreateOwned(&item,1u,&context,&owned_policy);
+    require(context.subscription!=NULL,"owned create failed");
+    inspect_owned(&context,false);
+    require(api.Start(context.subscription),"owned Start failed");
+    inspect_owned(&context,true);
+    {
+        xrtownershipscope freeze={0};
+        const xchannelsubscribeownershipv1* allowed[]={&owned_policy};
+        int token=0;
+        require(api.Freeze(&freeze),"pending graph claim probe failed");
+        const xrtownershipadapterv1* adapter=api.Adapter(api.Ownership(context.subscription),allowed,1u);
+        require(adapter && !adapter->Claim(context.subscription,&token),"collector cancelled accepted pending work");
+        require(api.ScopeEnd(&freeze),"pending graph probe end failed");
+    }
+    require(api.Send(&channel,(ptr)(uintptr_t)91u)==XCHANNEL_OK && context.base.notified==1 &&
+        context.base.value==(ptr)(uintptr_t)91u,"owned completion mismatch");
+    inspect_owned(&context,false);
+    {
+        xrtownershipscope freeze={0};
+        const xchannelsubscribeownershipv1* allowed[]={&owned_policy};
+        xrtownershipref ref=api.Ownership(context.subscription);
+        int token=0;
+        require(api.Freeze(&freeze),"settled cycle freeze failed");
+        const xrtownershipadapterv1* adapter=api.Adapter(ref,allowed,1u);
+        require(adapter && adapter->Hold(ref.Data) && adapter->Claim(ref.Data,&token),"settled native cycle claim failed");
+        ++context.refs; /* The actual independent planner pin on the context. */
+        adapter->Clear(ref.Data,&token);
+        require(context.refs==2 && !context.base.dropped,"Clear ran Data Drop early");
+        require(api.ScopeEnd(&freeze),"settled clear end failed");
+        require(adapter->Finish(ref.Data,&token) && adapter->Finish(ref.Data,&token) &&
+            context.refs==1 && context.base.dropped==1,"settled Finish not exact/idempotent");
+        xchannelsubscription* subscription=context.subscription;
+        context.subscription=NULL;
+        api.Destroy(subscription);
+        adapter->Drop(ref.Data);
+        --context.refs; /* Return the planner's context pin; no extra Data Drop. */
+    }
+    require(!context.refs && context.base.dropped==1 && api.Unit(&channel),"settled native cycle leaked");
+    api.Snapshot(&after);
+    require(before.LiveCount==after.LiveCount && before.LiveBytes==after.LiveBytes,"owned provider retained live storage");
+}
 
 static void probe(void)
 {
@@ -137,10 +257,15 @@ int main(int argc,char** argv)
     IMPORT(Create,xrtChannelSubscribeCreateV1); IMPORT(Start,xrtChannelSubscribeStart);
     IMPORT(Ref,xrtChannelSubscribeRef); IMPORT(Destroy,xrtChannelSubscribeDestroy);
     IMPORT(Stop,xrtChannelSubscribeStop); IMPORT(Result,xrtChannelSubscribeResult);
+    IMPORT(CreateOwned,xrtChannelSubscribeCreateOwnedV1); IMPORT(Ownership,xrtChannelSubscribeOwnership);
+    IMPORT(Quiescence,xrtChannelSubscribeOwnershipQuiescenceV1Get); IMPORT(Adapter,xrtChannelSubscribeOwnershipAdapterV1);
+    IMPORT(Freeze,xrtOwnershipFreezeTryBegin); IMPORT(Mutation,xrtOwnershipMutationBegin);
+    IMPORT(ScopeEnd,xrtOwnershipScopeEnd); IMPORT(Inspect,xrtOwnershipInspectReachable);
     IMPORT(FailAfter,xrtMemDebugFailAfter); IMPORT(FailClear,xrtMemDebugFailClear);
     IMPORT(FailTriggered,xrtMemDebugFailTriggered); IMPORT(Snapshot,xrtMemDebugSnapshot);
     IMPORT(ClearError,xrtClearError);
     probe();
+    probe_owned();
     puts("[PASS] actual product subscription ABI, allocation prefix, reentry and physical retirement");
     return 0;
 }
