@@ -71,6 +71,9 @@
 #if !defined(XRT_FEATURE_CHANNEL_SELECT_CANCEL)
 #define XRT_DECLARATIONS_RESTORE_XRT_FEATURE_CHANNEL_SELECT_CANCEL 1
 #endif
+#if !defined(XRT_FEATURE_CHANNEL_SUBSCRIBE)
+#define XRT_DECLARATIONS_RESTORE_XRT_FEATURE_CHANNEL_SUBSCRIBE 1
+#endif
 #if !defined(XRT_FEATURE_CHARSET)
 #define XRT_DECLARATIONS_RESTORE_XRT_FEATURE_CHARSET 1
 #endif
@@ -1234,6 +1237,9 @@
 #endif
 #if !defined(XRT_MODULE_CHANNEL_SELECT_CANCEL)
 #define XRT_DECLARATIONS_RESTORE_XRT_MODULE_CHANNEL_SELECT_CANCEL 1
+#endif
+#if !defined(XRT_MODULE_CHANNEL_SUBSCRIBE)
+#define XRT_DECLARATIONS_RESTORE_XRT_MODULE_CHANNEL_SUBSCRIBE 1
 #endif
 #if !defined(XRT_MODULE_CHARSET)
 #define XRT_DECLARATIONS_RESTORE_XRT_MODULE_CHARSET 1
@@ -5048,6 +5054,16 @@
 #endif
 #ifndef XRT_MODULE_CANCEL
 #define XRT_MODULE_CANCEL
+#endif
+#endif
+
+/* channel_subscribe 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_CHANNEL_SUBSCRIBE)
+#ifndef XRT_FEATURE_CHANNEL_SUBSCRIBE
+#define XRT_FEATURE_CHANNEL_SUBSCRIBE
+#endif
+#ifndef XRT_MODULE_CHANNEL_SELECT
+#define XRT_MODULE_CHANNEL_SELECT
 #endif
 #endif
 
@@ -33716,6 +33732,80 @@ XRT_EXTERN_C_END
 
 
 /* ========================================================================== */
+/* public: include/xrt/channel_subscribe.h */
+/* ========================================================================== */
+
+#ifndef XRT_CHANNEL_SUBSCRIBE_H
+#define XRT_CHANNEL_SUBSCRIBE_H
+
+
+#if defined(XRT_FEATURE_CHANNEL_SUBSCRIBE) && !defined(XRT_FEATURE_CHANNEL_SELECT)
+	#error "XRT_FEATURE_CHANNEL_SUBSCRIBE requires XRT_FEATURE_CHANNEL_SELECT"
+#endif
+
+#if defined(XRT_FEATURE_CHANNEL_SUBSCRIBE)
+
+typedef struct xchannelsubscription xchannelsubscription;
+
+/* Copied at Create: no caller output address is retained. Channel and payload
+ * remain caller-owned, as for ChannelSelect. Keep every Channel alive until
+ * completion and until all concurrent originating Channel calls have returned. */
+typedef struct xchannelsubscribecase {
+	xchannel* Channel;
+	xchannelop Operation;
+	ptr Value;
+} xchannelsubscribecase;
+
+/* Success consumes ONE real Data reference, failure none. Notify borrows it
+ * and runs exactly once, after physical unlink, on Start/Stop or a Channel
+ * caller's thread, OUTSIDE all Channel locks. It may reenter and release the
+ * subscription's external reference. Drop returns Data exactly once, after all
+ * dispatch/call tails and the last external reference retire. Policy and code
+ * must outlive that Drop. This raw observer is opaque to ownership collection;
+ * merely registering it does not certify its context or invent graph edges. */
+typedef struct xchannelsubscribepolicyv1 {
+	size_t size;
+	void (*Notify)(xchannelsubscription* pSubscription, ptr pData);
+	void (*Drop)(const void* pData);
+} xchannelsubscribepolicyv1;
+
+XRT_EXTERN_C_BEGIN
+
+/* All storage and case validation precede publication. No Channel operation,
+ * callback, worker, coroutine stack or timer is started here. */
+XRT_API xchannelsubscription* xrtChannelSubscribeCreateV1(
+	const xchannelsubscribecase* pCases, size_t iCount,
+	ptr pData, const xchannelsubscribepolicyv1* pPolicy);
+
+/* Admit once. May complete and notify inline before returning. On success no
+ * allocation is needed to wait, wake, select, stop or unlink. */
+XRT_API bool xrtChannelSubscribeStart(xchannelsubscription* pSubscription);
+
+XRT_API xchannelsubscription* xrtChannelSubscribeRef(xchannelsubscription* pSubscription);
+
+/* Consume one external reference. Last release requests cancellation of a
+ * pending operation, but does not undo a committed send/receive. Never waits
+ * for a callback; internal dispatch credits delay physical destruction. */
+XRT_API void xrtChannelSubscribeDestroy(xchannelsubscription* pSubscription);
+
+/* Record the first CANCELLED/TIMEOUT/ERROR stop request; true means recorded,
+ * not that it beat a ready case. Can be requested before Start. Runtime timers
+ * call this API: this module does not allocate a per-wait timer/worker/thread. */
+XRT_API bool xrtChannelSubscribeStop(xchannelsubscription* pSubscription, xwaitresult iReason);
+
+/* false while pending; outputs remain unchanged. After Ready, copies the
+ * immutable result and received raw pointer (NULL also is a valid message).
+ * Output addresses are used only during this call, never retained. */
+XRT_API bool xrtChannelSubscribeResult(const xchannelsubscription* pSubscription,
+	xchannelselectresult* pResult, ptr* pValue);
+
+XRT_EXTERN_C_END
+
+#endif
+#endif
+
+
+/* ========================================================================== */
 /* public: include/xrt/memory_stats.h */
 /* ========================================================================== */
 
@@ -45609,6 +45699,10 @@ XRT_EXTERN_C_END
 #undef XRT_FEATURE_CHANNEL_SELECT_CANCEL
 #undef XRT_DECLARATIONS_RESTORE_XRT_FEATURE_CHANNEL_SELECT_CANCEL
 #endif
+#if defined(XRT_DECLARATIONS_RESTORE_XRT_FEATURE_CHANNEL_SUBSCRIBE)
+#undef XRT_FEATURE_CHANNEL_SUBSCRIBE
+#undef XRT_DECLARATIONS_RESTORE_XRT_FEATURE_CHANNEL_SUBSCRIBE
+#endif
 #if defined(XRT_DECLARATIONS_RESTORE_XRT_FEATURE_CHARSET)
 #undef XRT_FEATURE_CHARSET
 #undef XRT_DECLARATIONS_RESTORE_XRT_FEATURE_CHARSET
@@ -47160,6 +47254,10 @@ XRT_EXTERN_C_END
 #if defined(XRT_DECLARATIONS_RESTORE_XRT_MODULE_CHANNEL_SELECT_CANCEL)
 #undef XRT_MODULE_CHANNEL_SELECT_CANCEL
 #undef XRT_DECLARATIONS_RESTORE_XRT_MODULE_CHANNEL_SELECT_CANCEL
+#endif
+#if defined(XRT_DECLARATIONS_RESTORE_XRT_MODULE_CHANNEL_SUBSCRIBE)
+#undef XRT_MODULE_CHANNEL_SUBSCRIBE
+#undef XRT_DECLARATIONS_RESTORE_XRT_MODULE_CHANNEL_SUBSCRIBE
 #endif
 #if defined(XRT_DECLARATIONS_RESTORE_XRT_MODULE_CHARSET)
 #undef XRT_MODULE_CHARSET
@@ -51347,6 +51445,16 @@ XRT_EXTERN_C_END
 #endif
 #ifndef XRT_MODULE_CANCEL
 #define XRT_MODULE_CANCEL
+#endif
+#endif
+
+/* channel_subscribe 及其直接依赖。 */
+#if defined(XRT_MODULE_ALL) || defined(XRT_MODULE_CHANNEL_SUBSCRIBE)
+#ifndef XRT_FEATURE_CHANNEL_SUBSCRIBE
+#define XRT_FEATURE_CHANNEL_SUBSCRIBE
+#endif
+#ifndef XRT_MODULE_CHANNEL_SELECT
+#define XRT_MODULE_CHANNEL_SELECT
 #endif
 #endif
 

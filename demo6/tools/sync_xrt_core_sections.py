@@ -28,6 +28,27 @@ def guarded_delta(text: str, old: str, new: str, label: str) -> str:
     Repeated contexts must have the same population as the old generator
     output; never replace an arbitrary number of approximate occurrences.
     """
+    # A new public section may end with the same guard/blank lines as the
+    # preceding old section. Its tail can therefore still match an insertion's
+    # OLD context after the insertion was applied. Validate and temporarily
+    # remove already-present new sections, then apply the guarded delta once;
+    # never append a second identical section on a retry.
+    old_keys = {(marker[1], marker[2]) for marker in SECTION.finditer(old)}
+    new_markers = list(SECTION.finditer(new))
+    for index, marker in enumerate(new_markers):
+        key = (marker[1], marker[2])
+        if key in old_keys:
+            continue
+        present = [item for item in SECTION.finditer(text) if (item[1], item[2]) == key]
+        if not present:
+            continue
+        if len(present) != 1 or index + 1 == len(new_markers):
+            raise ValueError(f"new section differs/ambiguous in {label}; refuse retry")
+        expected = new[marker.start():new_markers[index + 1].start()]
+        start, end = section(text, *key)
+        if text[present[0].start():end] != expected:
+            raise ValueError(f"new section differs/ambiguous in {label}; refuse overwrite")
+        text = text[:present[0].start()] + text[end:]
     left, right = old.splitlines(keepends=True), new.splitlines(keepends=True)
     # Whole generated declarations contain tens of thousands of repeated C
     # braces/guards. Popular-line filtering only selects anchors; application
