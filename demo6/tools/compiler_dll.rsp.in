@@ -315,6 +315,9 @@
     src\runtime\xl6_channel_direct_future.c
     src\runtime\xl6_channel_direct_language.c
     src\runtime\xl6_deadline_service.c
+    src\runtime\xl6_channel_future_deadline.c
+    src\runtime\xl6_channel_direct_deadline.c
+    src\runtime\xl6_channel_select_deadline.c
     src\runtime\xl6_ownership_domain_deadline_service.c
     src\runtime\xl6_ownership_domain_channel_direct_language.c
     src\runtime\xl6_ownership_domain_channel_direct_future.c

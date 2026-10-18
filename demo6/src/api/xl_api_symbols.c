@@ -133,6 +133,9 @@
 #include "src/runtime/xl6_channel_future.h"
 #include "src/runtime/xl6_channel_direct_future.h"
 #include "src/runtime/xl6_deadline_service.h"
+#include "src/runtime/xl6_channel_future_deadline.h"
+#include "src/runtime/xl6_channel_direct_deadline.h"
+#include "src/runtime/xl6_channel_select_deadline.h"
 #include "src/runtime/xl6_future_aggregate.h"
 #include "src/runtime/xl6_future_metadata.h"
 #include "src/runtime/xl6_future_payload.h"
@@ -366,6 +369,20 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     XL6_DEADLINE_SYMBOL(xl6DeadlineServiceOwnershipAdapterV1)
     XL6_DEADLINE_SYMBOL(xl6DeadlineServiceQuiescenceV1Get)
 #undef XL6_DEADLINE_SYMBOL
+#define XL6_CHANNEL_DEADLINE_SYMBOL(Name) if(!xlApiAddTccSymbol(s,#Name,(const void*)Name))return 0;
+    XL6_CHANNEL_DEADLINE_SYMBOL(xl6ChannelFutureCoreWakeTakeV1)
+    XL6_CHANNEL_DEADLINE_SYMBOL(xl6ChannelFutureCoreWakePolicyV1)
+    XL6_CHANNEL_DEADLINE_SYMBOL(xl6ChannelFutureCoreWakeDataV1)
+    XL6_CHANNEL_DEADLINE_SYMBOL(xl6ChannelFutureCoreStartWakeV1)
+    XL6_CHANNEL_DEADLINE_SYMBOL(xl6ChannelFutureCoreRetainV1)
+    XL6_CHANNEL_DEADLINE_SYMBOL(xl6ChannelFutureCoreSubscriptionRefV1)
+    XL6_CHANNEL_DEADLINE_SYMBOL(xl6ChannelFutureCoreStopV1)
+    XL6_CHANNEL_DEADLINE_SYMBOL(xl6ChannelFutureDeadlineAttachV1)
+    XL6_CHANNEL_DEADLINE_SYMBOL(xl6ChannelFutureDeadlineMatchesV1)
+    XL6_CHANNEL_DEADLINE_SYMBOL(xl6ChannelFutureDeadlineStartV1)
+    XL6_CHANNEL_DEADLINE_SYMBOL(xl6ChannelDirectDeadlineRuntimeV1Get)
+    XL6_CHANNEL_DEADLINE_SYMBOL(xl6ChannelSelectDeadlineRuntimeV1Get)
+#undef XL6_CHANNEL_DEADLINE_SYMBOL
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV3Get", (const void*)xl6FutureCallbackRuntimeV3Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackCancelPolicyV1Get", (const void*)xl6FutureCallbackCancelPolicyV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureAggregateAllV2", (const void*)xl6FutureAggregateAllV2)) return 0;

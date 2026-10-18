@@ -25,6 +25,27 @@ typedef struct XL6_ChannelFutureProviderV1 {
     bool (*Trace)(const void*,xrtownershipvisitor,void*);
     bool (*Empty)(const void*);
 } XL6_ChannelFutureProviderV1;
+/* Optional uniquely-contained resident interruption transport, not a language
+ * callback or native-leaf certificate. Infinite producers retain no instance
+ * and introduce no timer dependency. Arm runs after admission/before native
+ * Start. Detach never waits for a physical notification tail. RecordFailure
+ * is mechanical and runs under the core gate, only before native Notify.
+ * TakeFailure receives the immutable native arbitration result: an auxiliary
+ * stop cannot retroactively replace a ready commit or an earlier stop.
+ * TakeFailure/Cleanup run on the worker or private rollback, consume every
+ * semantic duty and preserve rich false/NULL. Drop is mechanical allocation
+ * release only; the independent transport owner keeps all storage alive. */
+typedef struct XL6_ChannelFutureWakeV1 {
+    size_t size;
+    bool (*Arm)(void*,const void*);
+    void (*Detach)(void*);
+    void (*RecordFailure)(void*,const xerror*);
+    bool (*TakeFailure)(void*,xchannelselectresult);
+    void (*Cleanup)(void*);
+    bool (*Trace)(const void*,xrtownershipvisitor,void*);
+    bool (*Empty)(const void*);
+    void (*Drop)(void*);
+} XL6_ChannelFutureWakeV1;
 XL6_CONTINUATION_API XL6_ChannelFutureFrameV1* xl6ChannelFutureCoreCreateV1(const XL6_ChannelFutureProviderV1*);
 XL6_CONTINUATION_API void* xl6ChannelFutureCoreStateV1(const XL6_ChannelFutureFrameV1*);
 XL6_CONTINUATION_API const XL6_ChannelFutureProviderV1* xl6ChannelFutureCoreProviderV1(const XL6_ChannelFutureFrameV1*);
@@ -33,6 +54,20 @@ XL6_CONTINUATION_API bool xl6ChannelFutureCoreSubscribeV1(XL6_ChannelFutureFrame
 XL6_CONTINUATION_API const xvalue* xl6ChannelFutureCoreResultHandleV1(const XL6_ChannelFutureFrameV1*);
 XL6_CONTINUATION_API xfuture* xl6ChannelFutureCoreStartV1(XL6_ContinuationExecutor*,XL6_ChannelFutureFrameV1*,
     const xvalue*,const char*,size_t,xcancel*);
+XL6_CONTINUATION_API bool xl6ChannelFutureCoreWakeTakeV1(XL6_ChannelFutureFrameV1*,
+    const XL6_ChannelFutureWakeV1*,void**);
+XL6_CONTINUATION_API const XL6_ChannelFutureWakeV1* xl6ChannelFutureCoreWakePolicyV1(const XL6_ChannelFutureFrameV1*);
+XL6_CONTINUATION_API void* xl6ChannelFutureCoreWakeDataV1(const XL6_ChannelFutureFrameV1*);
+XL6_CONTINUATION_API xfuture* xl6ChannelFutureCoreStartWakeV1(XL6_ContinuationExecutor*,XL6_ChannelFutureFrameV1*,
+    const xvalue*,const char*,size_t,xcancel*,const void*);
+/* Preparation takes an actual reference before publication; notification
+ * borrows that independently owned reference, never fallibly retains then.
+ * Caller must trace/drop it and keep both frame/subscription alive through
+ * Stop. A source failure is recorded only while the native result is pending. */
+XL6_CONTINUATION_API bool xl6ChannelFutureCoreRetainV1(XL6_ChannelFutureFrameV1*);
+XL6_CONTINUATION_API xchannelsubscription* xl6ChannelFutureCoreSubscriptionRefV1(XL6_ChannelFutureFrameV1*);
+XL6_CONTINUATION_API void xl6ChannelFutureCoreStopV1(XL6_ChannelFutureFrameV1*,xchannelsubscription*,
+    xwaitresult,bool,const xerror*);
 XL6_CONTINUATION_API void xl6ChannelFutureCoreDiscardV1(XL6_ChannelFutureFrameV1*);
 XL6_CONTINUATION_API xrtownershipref xl6ChannelFutureCoreOwnershipV1(const XL6_ChannelFutureFrameV1*);
 XL6_CONTINUATION_API bool xl6ChannelFutureCoreCountV1(const void*,const XL6_ChannelFutureProviderV1*,size_t*);
