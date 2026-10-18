@@ -16,6 +16,9 @@ import subprocess
 import sys
 
 CHANNEL_STAGES=('channel-waits','channel-select-native','channel-cancel')
+QUEUED_FUTURE_STAGES=('future-ready','channel-future','channel-direct')
+FIXED_FUTURE_STAGES=('fixed-executor',*QUEUED_FUTURE_STAGES)
+CHANNEL_FUTURE_STAGES=('channel-future','channel-direct')
 
 def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -23,7 +26,7 @@ def digest(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--stage', choices=('p0', 'fixed-executor', 'future-ready', 'channel-future', 'atomic', 'once-event', 'thread-local', 'cancellation', 'promise', *CHANNEL_STAGES), required=True)
+    parser.add_argument('--stage', choices=('p0', *FIXED_FUTURE_STAGES, 'atomic', 'once-event', 'thread-local', 'cancellation', 'promise', *CHANNEL_STAGES), required=True)
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--native-factory-inheritance',action='store_true',
@@ -50,7 +53,7 @@ def main():
     if args.stage == 'fixed-executor':
         selected = ('xlir_fixed_executor_language', 'stdlib_promise', 'stdlib_promise_values',
                     'stdlib_promise_terminal', 'xlir_narrow_operator_literals')
-    if args.stage in ('future-ready','channel-future'):
+    if args.stage in QUEUED_FUTURE_STAGES:
         selected = ('xlir_future_ready_language', 'stdlib_future_continuation',
                     'xlir_fixed_executor_language', 'stdlib_promise', 'stdlib_promise_values',
                     'stdlib_promise_terminal', 'stdlib_concurrent_import_only', 'xlir_narrow_operator_literals')
@@ -58,10 +61,16 @@ def main():
                    'xlir_future_callback_storage_contract.c', 'xlir_callback_boundary_contract.c',
                    'xlir_code_owner_binding_contract.c', 'stdlib53_pruning_plan.c',
                    'xlir_fixture_runtime_closure.c')
-        if args.stage=='channel-future':
+        if args.stage in CHANNEL_FUTURE_STAGES:
             selected=(selected[0],'stdlib_channel_future','stdlib_channel_future_ready',
                 'stdlib_channel_future_factory','stdlib_channel_cases','xlir_native_factory_inherited',*selected[1:])
             helpers=(*helpers,'xlir_channel_future_contract.c','stdlib_channel_cases_oom_host.c')
+        if args.stage=='channel-direct':
+            selected=(*selected[:-1],'stdlib_channel_direct_future','stdlib_channel_direct_ready',
+                'stdlib_channel_direct_factory','stdlib_channel_direct_shadow',selected[-1])
+            negatives=(*negatives,'bad_channel_direct_import','bad_channel_direct_private',
+                'bad_channel_direct_readonly','bad_channel_direct_width','bad_channel_direct_generic','bad_channel_direct_direction')
+            helpers=(*helpers,'xlir_channel_direct_contract.c')
     if args.stage == 'atomic':
         selected = ('stdlib_atomics', 'stdlib_atomic_bool_only', 'stdlib_atomic_threads',
                     'stdlib_concurrent_import_only', 'stdlib_time_text_only', 'xlir_narrow_operator_literals')
@@ -145,7 +154,7 @@ def main():
               *[cases/(name+'.xl') for name in selected+negatives],
               *[cases/name for name in helpers],
               task/'test/support/module_product_memory.c', task/'test/support/module_product_memory.h'}
-    if args.stage in ('future-ready','channel-future'):
+    if args.stage in QUEUED_FUTURE_STAGES:
         # The IR drivers load their own fixed fixtures, and C probes include
         # shared test headers. Seal those actual inputs, not just top-level C.
         for folder in (cases, root/'test/cases'):
@@ -298,7 +307,7 @@ def main():
                         cases/helpers[6], task/'test/support/module_product_memory.c',
                         *links(product.name), '-o', binary])
                     run(product.stem+'.sync.run', [binary])
-        if args.stage in ('future-ready','channel-future'):
+        if args.stage in QUEUED_FUTURE_STAGES:
             for product in products[1:]:
                 binary = isolated/(product.stem+'.future-ready'+('.exe' if win else ''))
                 run(product.stem+'.future-ready.build', [cc, *flags, '-O2',
@@ -310,7 +319,7 @@ def main():
                   '-Wno-unused-label', '-Wno-unused-const-variable', '-Wno-unused-but-set-variable',
                   '-Wno-missing-field-initializers', '-I'+str(task), '-I'+str(root),
                   '-I'+str(root/'release'), '-I'+str(sdk)]
-        if args.stage in ('fixed-executor', 'future-ready','channel-future'):
+        if args.stage in FIXED_FUTURE_STAGES:
             strict += ['-DXLIR_CONTINUATION_WORKERS=1']
         cli = release/names[0]
         def positive(name):
@@ -321,17 +330,17 @@ def main():
             run(name+'.cgen', [cli, 'cgen', source, '--emit', first])
             run(name+'.repeat', [cli, 'cgen', source, '--emit', second])
             assert first.read_bytes() == second.read_bytes()
-            if args.stage in ('fixed-executor', 'future-ready','channel-future') and name == selected[0]:
+            if args.stage in FIXED_FUTURE_STAGES and name == selected[0]:
                 generated = first.read_text(encoding='utf-8')
                 assert 'xl6ContinuationExecutorCreateFixedV1(' in generated
                 assert 'xl6ContinuationExecutorCreateGuaranteed(' not in generated
-                if args.stage in ('future-ready','channel-future'):
+                if args.stage in QUEUED_FUTURE_STAGES:
                     assert 'xl6FutureCallbackRuntimeV5Get()->Start(xlir_continuation_executor,' in generated
                     assert 'xl6FutureCallbackRuntimeV4Get()->Start(' not in generated
                     assert 'xerror* callbackError = xrtTakeError();' in generated
                     assert 'xl6_error_result outcome = { ok && !callbackError, callbackError };' in generated
                     assert '{ ok && !xrtGetError(), xrtTakeError() }' not in generated
-            full = name == selected[0] or (args.stage in ('future-ready','channel-future') and name in selected[:3]) or (args.stage=='channel-future' and name in ('stdlib_channel_future_factory','stdlib_channel_cases','xlir_native_factory_inherited')) or (args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation') and
+            full = name == selected[0] or (args.stage in QUEUED_FUTURE_STAGES and name in selected[:3]) or (args.stage in CHANNEL_FUTURE_STAGES and name in ('stdlib_channel_future_factory','stdlib_channel_cases','xlir_native_factory_inherited','stdlib_channel_direct_future','stdlib_channel_direct_ready','stdlib_channel_direct_factory')) or (args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation') and
                 name in selected[:(4 if args.stage in ('thread-local','cancellation') else 3)]) or (
                 args.stage == 'cancellation' and name == 'stdlib_task_group_methods') or (
                 args.stage == 'promise' and name in selected[:6]) or (
@@ -388,9 +397,10 @@ def main():
                 except Exception as error:
                     failures.append(dict(Name=name, Error=repr(error)))
                     save()
-        if args.stage=='channel-future' and not failures:
-            module=out/'stdlib_channel_future_ready.saved/module.c'
-            report['ChannelFutureAllocationPrefixes']={}
+        if args.stage in CHANNEL_FUTURE_STAGES and not failures:
+            module=out/('stdlib_channel_direct_ready.saved/module.c' if args.stage=='channel-direct' else 'stdlib_channel_future_ready.saved/module.c')
+            prefixKey='ChannelDirectAllocationPrefixes' if args.stage=='channel-direct' else 'ChannelFutureAllocationPrefixes'
+            report[prefixKey]={}
             for product in products[1:]:
                 lane=product.stem+'.channel-future.oom';binary=isolated/(lane+('.exe' if win else ''))
                 run(lane+'.build',[cc,*strict,'-O2','-DXLIR_GENERATED_MODULE="'+module.as_posix()+'"',
@@ -401,7 +411,7 @@ def main():
                     if b'recovered=1' in body:recovered.append(point)
                     if b'hit=0 complete-prefix balanced' in body:break
                 else:raise AssertionError('Channel Future allocation prefix did not close')
-                report['ChannelFutureAllocationPrefixes'][lane]=dict(FirstNoHit=point,RecoveredRetirement=recovered)
+                report[prefixKey][lane]=dict(FirstNoHit=point,RecoveredRetirement=recovered)
                 save()
         if args.native_factory_inheritance and not failures:
             module=out/'xlir_native_factory_inherited.saved/module.c'
@@ -440,7 +450,7 @@ def main():
                     report['ChannelCaseLanguagePrefixes'][lane]=dict(FirstNoHit=point,RecoveredRetirement=recovered)
                     save()
         if not win and not failures:
-            if args.stage in ('future-ready','channel-future'):
+            if args.stage in QUEUED_FUTURE_STAGES:
                 for name in helpers[5:8]:
                     emitted=[]
                     for level in ('O0','O2'):
@@ -462,7 +472,7 @@ def main():
                     actual={Path(path).name for path in plan['Sources']}
                     assert (queued<=actual) if name==selected[0] else not (queued&actual),(name,plan)
                     report.setdefault('FutureReadyLanguagePlans',{})[name]=plan
-                if args.stage=='channel-future':
+                if args.stage in CHANNEL_FUTURE_STAGES:
                     required={'xl6_channel_future.c','xl6_channel_future_language.c',
                         'xl6_ownership_domain_channel_future.c','xl6_continuation_executor.c','xl6_continuation_queue.c'}
                     for name in ('stdlib_channel_future','stdlib_channel_future_ready',
@@ -472,6 +482,22 @@ def main():
                         assert (required<=actual) if name.startswith('stdlib_channel_future') else not (required&actual),(name,plan)
                         assert not any(m.startswith(('XRT_MODULE_NET','XRT_MODULE_TLS','XRT_MODULE_COROUTINE')) for m in plan['NativeModules'])
                         report.setdefault('ChannelFutureLanguagePlans',{})[name]=plan
+                if args.stage=='channel-direct':
+                    direct={'xl6_channel_direct_language.c','xl6_channel_direct_future.c',
+                        'xl6_ownership_domain_channel_direct_language.c',
+                        'xl6_channel_future_core.c','xl6_ownership_domain_channel_direct_future.c',
+                        'xl6_continuation_executor.c','xl6_continuation_queue.c'}
+                    forbidden={'xl6_channel_case.c','xl6_channel_select.c','xl6_channel_case_array.c',
+                        'xl6_channel_future.c','xl6_channel_future_language.c'}
+                    for name in ('stdlib_channel_direct_future','stdlib_channel_direct_ready',
+                                 'stdlib_channel_direct_factory','stdlib_channel_direct_shadow','stdlib_channel_cases','stdlib_concurrent_import_only'):
+                        plan=json.loads(run(name+'.channel-direct-plan',[planner,isolated/(name+'.xl')]))
+                        actual={Path(path).name for path in plan['Sources']}
+                        if name.startswith('stdlib_channel_direct') and name!='stdlib_channel_direct_shadow':
+                            assert direct<=actual and not (forbidden&actual),(name,plan)
+                        else:assert not (direct&actual),(name,plan)
+                        assert not any(m.startswith(('XRT_MODULE_NET','XRT_MODULE_TLS','XRT_MODULE_COROUTINE')) for m in plan['NativeModules'])
+                        report.setdefault('ChannelDirectLanguagePlans',{})[name]=plan
                 planner=isolated/'future-ready-native-plan'
                 run('future-ready-native-plan.build',[cc,*flags,'-O2','-I'+str(root),
                     '-I'+str(root/'release/include'),cases/helpers[9],*links(names[2]),'-o',planner])
@@ -496,12 +522,18 @@ def main():
             binary = isolated/'literal-contract'
             run('contract.build', [cc, *flags, '-O2', '-I'+str(root), '-I'+str(root/'release/include'),
                 '-I'+str(root/'lib/tcc'), cases/helpers[3], *links(names[2]), '-o', binary])
-            if args.stage=='channel-future':
+            if args.stage in CHANNEL_FUTURE_STAGES:
                 contract=isolated/'channel-future-contract'
                 run('channel-future-contract.build',[cc,*strict,'-O2','-I'+str(root/'lib/tcc'),
                     cases/'xlir_channel_future_contract.c',*links(names[2]),'-o',contract])
                 run('channel-future-contract.run',[contract,isolated/'stdlib_channel_future.xl',isolated/'stdlib_channel_future_ready.xl',isolated/'stdlib_channel_cases.xl'])
-            run('contract.run', [binary, isolated/((selected[-1] if args.stage in ('fixed-executor','future-ready','channel-future') else selected[0])+'.xl'),
+            if args.stage=='channel-direct':
+                contract=isolated/'channel-direct-contract'
+                run('channel-direct-contract.build',[cc,*strict,'-O2','-I'+str(root/'lib/tcc'),
+                    cases/'xlir_channel_direct_contract.c',*links(names[2]),'-o',contract])
+                run('channel-direct-contract.run',[contract,isolated/'stdlib_channel_direct_future.xl',
+                    isolated/'stdlib_channel_direct_ready.xl',isolated/'stdlib_concurrent_import_only.xl'])
+            run('contract.run', [binary, isolated/((selected[-1] if args.stage in FIXED_FUTURE_STAGES else selected[0])+'.xl'),
                 *([isolated/(selected[1]+'.xl')] if args.stage == 'once-event' else
                   [isolated/'xlir_class_tag_vocabulary.xl', isolated/'xlir_class_tag_narrow_first.xl']
                   if args.stage == 'cancellation' else

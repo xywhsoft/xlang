@@ -478,6 +478,9 @@ static const char* xl6IrCgenNativeSlotTypeExpr(XL6_IrNativeSlotAbi);
 static const char* xl6IrCgenSequenceTransferAbiToken(XL6_IrRuntimeResourcePayloadAbi);
 static int xl6IrCgenEmitNativeContext(XL6_Output* out,const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
+    if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_V1) {
+        xl6OutputPuts("xlir_continuation_executor",out);return !xl6OutputHasFailed(out);
+    }
     if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_CLASS_FIELD_V1) {
         const XL6_IrClassField* field=xl6IrNativeClassContextField(module,target);
         if(!field || !field->nativeHandlePolicyCName)return 0;

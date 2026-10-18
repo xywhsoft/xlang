@@ -1,0 +1,66 @@
+import concurrent
+
+int initializations = 0
+func initializeDirect() as string
+    initializations += 1
+    return "direct\0result"
+end
+func failDirect() as string
+    throw ValueError("direct result initialization failed before publication")
+end
+// Native generic inheritance stays out of scope. Ordinary fields and generic
+// native result T are explicit; the same handle is adopted before Start.
+class NamedDirect<T>
+    private native point handle
+    string label = initializeDirect()
+    bytes binary = b"\0\xff"
+    extern "xl6ChannelReceiveResultDestroyV1" destroy()
+    extern "xl6ChannelReceiveResultStatusLanguageV1" @nonblocking get status() as int
+    extern "xl6ChannelReceiveResultValueLanguageV1" @nonblocking func read() as T
+end
+class FailedDirect<T>
+    private native point handle
+    string label = failDirect()
+    extern "xl6ChannelReceiveResultDestroyV1" destroy()
+end
+class NamedDirectBuilder<T>
+    private native point handle
+    extern "xl6ChannelDirectReceiveCreateLanguageV1" create(channel<T> source)
+    extern "xl6ChannelReceiveFutureBuilderDestroyV1" destroy()
+    extern "xl6ChannelReceiveFutureResultLanguageV1" @nonblocking func result() as NamedDirect<T>
+    extern "xl6ChannelDirectReceiveStartLanguageV1" @nonblocking func start(NamedDirect<T> result) as future<NamedDirect<T>>
+end
+class FailedDirectBuilder<T>
+    private native point handle
+    extern "xl6ChannelDirectReceiveCreateLanguageV1" create(channel<T> source)
+    extern "xl6ChannelReceiveFutureBuilderDestroyV1" destroy()
+    extern "xl6ChannelReceiveFutureResultLanguageV1" @nonblocking func result() as FailedDirect<T>
+end
+async func checkNormal()
+    channel<string> pipe = channel::<string>(1)
+    auto builder = NamedDirectBuilder::<string>(pipe)
+    auto result = builder.result()
+    assert initializations == 1 and result.label == "direct\0result" and result.binary == b"\0\xff"
+    auto pending = builder.start(result)
+    assert pipe.send("a\0你🙂")
+    auto completed = await pending
+    assert completed.label == "direct\0result" and initializations == 1
+    assert completed.status == channelStatus.ok and completed.read() == "a\0你🙂"
+end
+func checkFailure()
+    channel<int> pipe = channel::<int>(1)
+    assert pipe.send(93)
+    auto builder = FailedDirectBuilder::<int>(pipe)
+    bool failed = false
+    try
+        auto result = builder.result()
+    catch e
+        failed = e.message == "direct result initialization failed before publication"
+    end
+    assert failed and pipe.count() == 1
+    auto status, value = pipe.tryRecv()
+    assert status == channelStatus.ok and (value ?? -1) == 93
+end
+await checkNormal()
+checkFailure()
+println("direct Channel native factory constructs exact generic result before publication")

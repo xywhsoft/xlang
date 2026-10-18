@@ -167,6 +167,8 @@ typedef struct XL6_StdlibImplicitMethod {
     const char* typeName;
     const char* methodName;
     const char* functionName;
+    /* Ordinary generic source helper, not a second native implementation. */
+    const char* sourceName;
 } XL6_StdlibImplicitMethod;
 
 /*
@@ -204,7 +206,11 @@ static const XL6_StdlibImplicitMethod xl6StdlibImplicitMethods[] = {
     {"string", "mid", "mid"},
     {"string", "charAt", "charAt"},
     {"string", "byteAt", "byteAt"},
-    {"string", "repeat", "repeat"}
+    {"string", "repeat", "repeat"},
+    {"channel", "sendAsync", NULL, "__xl_channel_send_async"},
+    {"channel", "sendAsyncCancel", NULL, "__xl_channel_send_async_cancel"},
+    {"channel", "recvAsync", NULL, "__xl_channel_recv_async"},
+    {"channel", "recvAsyncCancel", NULL, "__xl_channel_recv_async_cancel"}
 };
 
 static const XL6_StdlibImplicitMethod* xl6StdlibFindImplicitMethod(
@@ -230,6 +236,7 @@ const char* xl6StdlibImplicitMethodInternalName(const char* typeName, const char
     if ( method == NULL ) {
         return NULL;
     }
+    if(method->sourceName)return method->sourceName;
     func = xl6StdlibFindFunc(method->typeName, method->functionName, NULL);
     return func != NULL ? func->internalName : NULL;
 }
@@ -2113,14 +2120,18 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if (xl6StdlibHasConcurrentImport(root)) {
         bool needsChannelCases=xl6StdlibNodeUsesTypeName(root,"ChannelCase") ||
             xl6StdlibNodeUsesTypeName(root,"ChannelSelection");
+        bool needsChannelDirect=xl6StdlibNodeUsesTypeName(root,"ChannelReceiveResult") ||
+            xl6StdlibNodeUsesMemberName(root,"sendAsync") || xl6StdlibNodeUsesMemberName(root,"sendAsyncCancel") ||
+            xl6StdlibNodeUsesMemberName(root,"recvAsync") || xl6StdlibNodeUsesMemberName(root,"recvAsyncCancel");
         if(needsChannelCases)xl6StdlibBuilderAppend(&builder,xl6StdlibChannelCaseSource);
+        if(needsChannelDirect)xl6StdlibBuilderAppend(&builder,xl6StdlibChannelDirectFutureSource);
         if (xl6StdlibNodeUsesTypeName(root, "Once")) xl6StdlibBuilderAppend(&builder, xl6StdlibOnceSource);
         if (xl6StdlibNodeUsesTypeName(root, "Event")) xl6StdlibBuilderAppend(&builder, xl6StdlibEventSource);
         if (xl6StdlibNodeUsesTypeName(root, "ThreadLocal")) xl6StdlibBuilderAppend(&builder, xl6StdlibThreadLocalSource);
         if (xl6StdlibNodeUsesTypeName(root, "CancellationSource") ||
             xl6StdlibNodeUsesTypeName(root, "CancellationToken") ||
             xl6StdlibNodeUsesTypeName(root, "CancellationRegistration") ||
-            xl6StdlibNodeUsesTypeName(root, "Promise") || needsChannelCases)
+            xl6StdlibNodeUsesTypeName(root, "Promise") || needsChannelCases || needsChannelDirect)
             xl6StdlibBuilderAppend(&builder, xl6StdlibCancellationSource);
         if(xl6StdlibNodeUsesTypeName(root,"Promise"))xl6StdlibBuilderAppend(&builder,xl6StdlibPromiseSource);
         if (xl6StdlibNodeUsesTypeName(root, "AtomicInt32")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicInt32Source);

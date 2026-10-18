@@ -1,0 +1,11 @@
+import concurrent
+
+// The sealed native executor context alone must request fixed workers.
+// There is no async function, await, task or Future continuation wrapper.
+channel<bytes> pipe = channel::<bytes>(1)
+auto sending = pipe.sendAsync(b"a\0\xff")
+assert sending.wait()
+auto receiving = pipe.recvAsync()
+assert receiving.wait()
+pipe.close()
+println("direct Channel Futures require fixed workers without async syntax")

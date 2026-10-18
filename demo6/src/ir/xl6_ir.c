@@ -20333,7 +20333,8 @@ XL6_IrModuleContinuationAbi xl6IrModuleContinuationRequirement(const XL6_IrModul
         const XL6_IrInstruction* instruction=&module->instructions[i];
         const XL6_IrCallTarget* target=instruction->kind==XL6_IR_INSTR_CALL
             ? xl6IrCallTargetGet(module,instruction->targetSymbol):NULL;
-        if(target && target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_CLASS_FIELD_V1 &&
+        if(target && (target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_CLASS_FIELD_V1 ||
+                target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_V1) &&
             (module->stage!=XL6_IR_STAGE_LOWERED || target->reachability!=XL6_IR_REACHABILITY_UNREACHABLE))
             return XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1;
     }
