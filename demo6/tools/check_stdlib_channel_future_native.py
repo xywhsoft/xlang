@@ -18,6 +18,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('root','out'):parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--sanitize',choices=('address,undefined','thread'))
+    parser.add_argument('--direct',action='store_true',help='Direct single Channel provider, no public Case or select adapter')
     args=parser.parse_args();root,out=args.root.resolve(),args.out.resolve()
     assert not out.exists();out.mkdir(parents=True);cc=shutil.which('gcc');assert cc
     report={'Complete':False,'Scope':__doc__,'Rows':[],'NetworkTests':False,'NetworkSecurityTests':False}
@@ -32,7 +33,8 @@ def main():
         '-Wno-unused-parameter','-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
         '-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include')]
     if os.name!='nt':flags+=['-D_GNU_SOURCE','-pthread']
-    inputs={Path(__file__).resolve(),Path(cc).resolve(),root/'test/cases/xlir_fixture_runtime_closure.c',root/'test/cases/stdlib_channel_future_native.c'}
+    fixture='stdlib_channel_direct_future_native.c' if args.direct else 'stdlib_channel_future_native.c'
+    inputs={Path(__file__).resolve(),Path(cc).resolve(),root/'test/cases/xlir_fixture_runtime_closure.c',root/'test/cases'/fixture}
     for folder in ('src','lib/xrt','lib/xruntime','release/include'):
         inputs.update(path for path in (root/folder).rglob('*') if path.is_file())
     def seal():return {str(path):hashlib.sha256(path.read_bytes()).hexdigest() for path in sorted(inputs)}
@@ -49,10 +51,17 @@ def main():
         # The fixture constructs its own scalar schema. This extra root is NOT
         # an inferred requirement of the producer or a public pruning claim.
         report['FixtureRoots']=['xl6SequencePrimitiveCreateV1','xl6SequenceReferenceCreateV1']
-        plan=json.loads(run('catalog.run',[catalog,'xl6ChannelFutureRuntimeV1Get','xl6OwnershipDomainChannelFutureV1Get',
+        if args.direct:report['FixtureRoots'].append('xl6StringTypeV1')
+        provider='xl6ChannelDirectFutureRuntimeV1Get' if args.direct else 'xl6ChannelFutureRuntimeV1Get'
+        domain='xl6OwnershipDomainChannelDirectFutureV1Get' if args.direct else 'xl6OwnershipDomainChannelFutureV1Get'
+        plan=json.loads(run('catalog.run',[catalog,provider,domain,
             *report['FixtureRoots']]))
         report['Closure']=plan;sources=plan['Sources']
-        assert len(sources)==len(set(sources)) and 'src/runtime/xl6_channel_future.c' in sources
+        assert len(sources)==len(set(sources)) and 'src/runtime/xl6_channel_future_core.c' in sources
+        assert ('src/runtime/xl6_channel_direct_future.c' if args.direct else 'src/runtime/xl6_channel_future.c') in sources
+        if args.direct:
+            assert not {'src/runtime/xl6_channel_case.c','src/runtime/xl6_channel_select.c',
+                'src/runtime/xl6_channel_future.c','src/runtime/xl6_channel_case_array.c'}&set(sources)
         modules=set(plan['NativeModules'])|{'XRT_MODULE_MEMORY_DEBUG'}
         assert 'XRT_MODULE_CHANNEL_SUBSCRIBE' in modules
         assert all(re.fullmatch(r'(?:XRT|XRUNTIME)_MODULE_[A-Z0-9_]+',name) for name in modules)
@@ -69,7 +78,7 @@ def main():
                 lane='o'+level+'_'+path.stem;obj=out/(lane+'.o')
                 run(lane,[cc,*flags,'-O'+level,'-c',path,'-o',obj]);objects.append(obj)
             binary=out/('future-o'+level+('.exe' if os.name=='nt' else ''))
-            run('o'+level+'.link',[cc,*flags,'-O'+level,root/'test/cases/stdlib_channel_future_native.c',*objects,*libraries,'-o',binary])
+            run('o'+level+'.link',[cc,*flags,'-O'+level,root/'test/cases'/fixture,*objects,*libraries,'-o',binary])
             run('o'+level+'.run',[binary])
         report['InputsUnchanged']=seal()==before;assert report['InputsUnchanged'];report['Complete']=True
     except Exception as error:report['Error']=repr(error);raise
