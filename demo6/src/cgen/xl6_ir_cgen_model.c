@@ -404,12 +404,7 @@ static const XL6_IrClassField* xl6IrCgenNativeClassResultField(
 static XL6_IrTypeId xl6IrCgenPhysicalResultType(
     const XL6_IrModule* module, const XL6_IrCallTarget* target)
 {
-    const XL6_IrClassField* field;
-    if ( target == NULL ) return XL6_IR_TYPE_INVALID;
-    if ( target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_DIRECT )
-        return target->returnType;
-    field = xl6IrCgenNativeClassResultField(module, target);
-    return field != NULL ? field->type : XL6_IR_TYPE_INVALID;
+    return xl6IrCallTargetPhysicalResultType(module,target);
 }
 
 /* CALL result identity is completely described by its verified CallTarget.

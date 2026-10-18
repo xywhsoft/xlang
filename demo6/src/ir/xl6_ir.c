@@ -16307,7 +16307,9 @@ const XL6_IrClassField* xl6IrCallTargetNativeClassResultField(
          (target->resultPhysicalAbi !=
               XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_BORROW &&
           target->resultPhysicalAbi !=
-              XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE) )
+              XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE &&
+          target->resultPhysicalAbi !=
+              XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_HANDLE_VALUE_TAKE) )
         return NULL;
     field = xl6IrManagedNativeConstructorField(module, target->returnType);
     if ( field == NULL ||
@@ -16317,6 +16319,8 @@ const XL6_IrClassField* xl6IrCallTargetNativeClassResultField(
              XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_BORROW )
         return field->nativeDestroySymbol == 0 &&
                target->resultPhysicalDestroySymbol == 0 ? field : NULL;
+    if ((target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_HANDLE_VALUE_TAKE) !=
+        !!xl6IrRuntimeDirectBridgeManagedHandleResult(target->cName)) return NULL;
     return field->nativeDestroySymbol != 0 &&
            field->nativeDestroySymbol == target->resultPhysicalDestroySymbol
         ? field : NULL;
@@ -16369,7 +16373,7 @@ int xl6IrDynamicMethodCallTargetSupported(
     return 1;
 }
 
-static XL6_IrTypeId xl6IrCallTargetPhysicalResultType(
+XL6_IrTypeId xl6IrCallTargetPhysicalResultType(
     const XL6_IrModule* module, const XL6_IrCallTarget* target)
 {
     const XL6_IrClassField* field;
@@ -16377,6 +16381,8 @@ static XL6_IrTypeId xl6IrCallTargetPhysicalResultType(
     if ( target->resultPhysicalAbi == XL6_IR_CALL_RESULT_PHYSICAL_DIRECT )
         return target->returnType;
     field = xl6IrCallTargetNativeClassResultField(module, target);
+    if(field && target->resultPhysicalAbi==XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_HANDLE_VALUE_TAKE)
+        return xl6IrFindDynamicXValueBuiltinType(module);
     return field != NULL ? field->type : XL6_IR_TYPE_INVALID;
 }
 
@@ -20323,6 +20329,14 @@ XL6_IrModuleContinuationAbi xl6IrModuleContinuationRequirement(const XL6_IrModul
 {
     size_t i, j;
     if (module == NULL) return XL6_IR_MODULE_CONTINUATION_NONE;
+    for(i=0;i<module->instructionCount;++i) {
+        const XL6_IrInstruction* instruction=&module->instructions[i];
+        const XL6_IrCallTarget* target=instruction->kind==XL6_IR_INSTR_CALL
+            ? xl6IrCallTargetGet(module,instruction->targetSymbol):NULL;
+        if(target && target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_EXECUTOR_CLASS_FIELD_V1 &&
+            (module->stage!=XL6_IR_STAGE_LOWERED || target->reachability!=XL6_IR_REACHABILITY_UNREACHABLE))
+            return XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1;
+    }
     for(i=0;i<module->instructionCount;++i)
         if(module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
             module->instructions[i].runtimeOp==XL6_IR_RUNTIME_FUTURE_CONTINUE_CLOSURE)
@@ -27111,6 +27125,8 @@ int xl6IrRefreshReachability(XL6_IrModule* module)
     if (module->stage == XL6_IR_STAGE_LOWERED) {
         module->abi.taskPoolAbi=xl6IrModuleTaskPoolRequirement(module);
         module->abi.taskPoolOwnershipAbi=xl6IrModuleTaskPoolOwnershipRequirement(module);
+        module->abi.continuationAbi=xl6IrModuleContinuationRequirement(module);
+        module->abi.executorOwnershipAbi=xl6IrModuleExecutorOwnershipRequirement(module);
         if (module->abi.finalizerFunction != 0 && module->abi.finalizerFunction <= module->functionCount)
             module->functions[module->abi.finalizerFunction-1].errorAbi =
                 xl6IrModuleHasFinalizerWork(module) ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
@@ -47986,6 +48002,8 @@ static const char* xl6IrCallResultPhysicalAbiName(
         return "native-class-field-borrow";
     case XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_FIELD_TAKE:
         return "native-class-field-take";
+    case XL6_IR_CALL_RESULT_PHYSICAL_NATIVE_CLASS_HANDLE_VALUE_TAKE:
+        return "native-class-handle-value-take";
     default: return "invalid";
     }
 }

@@ -1,0 +1,11 @@
+import concurrent
+
+// No async function, await, task or .then. The native call's sealed executor
+// context alone must request fixed workers and their module lifetime contract.
+channel<int> pipe = channel::<int>(1)
+assert pipe.send(23)
+auto receiving = ChannelCase.receive(pipe)
+auto pending = ChannelSelection.selectAsync([receiving])
+assert pending.wait()
+pipe.close()
+println("native Channel Future requests module executor without async syntax")

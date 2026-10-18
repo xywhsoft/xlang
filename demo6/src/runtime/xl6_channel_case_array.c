@@ -6,14 +6,8 @@
 #include "src/api/xl_foreign_error.h"
 #include <limits.h>
 
-typedef struct Cases {
-    size_t count;
-    xvalue** owners;
-    XL6_ChannelCaseOwnerV1** values;
-    xvalue* inlineOwners[8];
-    XL6_ChannelCaseOwnerV1* inlineValues[8];
-} Cases;
-static bool capture(Cases* frame,XL6_ChannelCaseArrayContextV1 context,const xvalue* input)
+typedef XL6_ChannelCasesSnapshotV1 Cases;
+bool xl6ChannelCasesSnapshotCaptureV1(Cases* frame,XL6_ChannelCaseArrayContextV1 context,const xvalue* input)
 {
     xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))abort();
     XL6_Sequence* owner=NULL;XL6_SequenceAdmissionV3 admission={0};bool ok=false;
@@ -57,7 +51,7 @@ done:
     if(!result.ok){xl6ErrorScopePropagateFailure(result);return false;}
     xrtErrorFree(result.error);return true;
 }
-static void discard(Cases* frame)
+void xl6ChannelCasesSnapshotDiscardV1(Cases* frame)
 {
     xl6_error_scope scope={0};if(!xl6ErrorScopeBeginCleanup(&scope,false))abort();
     for(size_t i=frame->count;i>0;--i) {
@@ -78,10 +72,10 @@ void* xl6ChannelCasesLanguageInvokeV1(XL6_ChannelCaseArrayContextV1 context,cons
     bool ok=invoke && xl6ChannelWaitDeadline(options,&deadline);
     if(ok && options.mode==XL6_CHANNEL_FOR_V1)
         options=(XL6_ChannelWaitOptionsV2){sizeof(options),XL6_CHANNEL_UNTIL_V2,0,deadline};
-    if(ok)ok=capture(&frame,context,input);
+    if(ok)ok=xl6ChannelCasesSnapshotCaptureV1(&frame,context,input);
     if(ok){result=invoke(frame.values,frame.count,options,token);ok=result!=NULL;}
     if(!ok || xrtGetError() || scope.failed)xl6ErrorScopeCaptureFailure(&scope);
-    discard(&frame);
+    xl6ChannelCasesSnapshotDiscardV1(&frame);
     if(xrtGetError() || scope.failed)xl6ErrorScopeCaptureFailure(&scope);
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
     if(!outcome.ok){xl6ChannelSelectionDestroyV1(result);xl6ErrorScopePropagateFailure(outcome);return NULL;}

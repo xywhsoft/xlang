@@ -9,6 +9,7 @@ struct xrtownershippreparationv1;
 struct xchannelsubscribeownershipv1;
 struct xfutureproducerownershipv1;
 struct xcancelwatchownershipv1;
+struct XL6_NativeHandlePolicyV1;
 typedef struct XL6_ChannelFutureFrameV1 XL6_ChannelFutureFrameV1;
 
 /* Resident-only unbounded subscription producer, not the public language
@@ -36,6 +37,14 @@ typedef struct XL6_ChannelFutureRuntimeV1 {
     struct xrtownershipref (*Ownership)(const XL6_ChannelFutureFrameV1*);
 } XL6_ChannelFutureRuntimeV1;
 XL6_CONTINUATION_API const XL6_ChannelFutureRuntimeV1* xl6ChannelFutureRuntimeV1Get(void);
+/* Compiler-private single-owner builder. StartRetained adds the queue's own
+ * reference BEFORE publication, leaving the builder's handle valid for its
+ * ordinary lexical destructor. Calls on the private builder are serialized. */
+XL6_CONTINUATION_API void xl6ChannelFutureBuilderDestroyV1(void*);
+XL6_CONTINUATION_API struct xvalue* xl6ChannelFutureBuilderResultV1(void*);
+XL6_CONTINUATION_API struct xfuture* xl6ChannelFutureBuilderStartV1(
+    XL6_ContinuationExecutor*,void*,const struct xvalue*,const char*,size_t,struct xcancel*);
+XL6_CONTINUATION_API const struct XL6_NativeHandlePolicyV1* xl6ChannelFutureBuilderHandlePolicyV1Get(void);
 XL6_CONTINUATION_API const struct xchannelsubscribeownershipv1* xl6ChannelFutureSubscriptionPolicyV1Get(void);
 XL6_CONTINUATION_API const struct xfutureproducerownershipv1* xl6ChannelFutureProducerPolicyV1Get(void);
 XL6_CONTINUATION_API const struct xcancelwatchownershipv1* xl6ChannelFutureCancelPolicyV1Get(void);

@@ -612,7 +612,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_future_callback_queue.c",D(R(FUTURE_CALLBACK),R(EXECUTOR),R(CONTINUATION_FUTURE)),{"XRT_MODULE_FUTURE"}},
     {"src/runtime/xl6_ownership_domain_future_callback_queue.c",D(R(OWNERSHIP_CATALOG),R(FUTURE_CALLBACK_QUEUE)),{NULL}},
     {"src/runtime/xl6_channel_future.c",D(R(CHANNEL_CASE),R(TYPED_CHANNEL_SELECT),R(EXECUTOR),R(FUTURE_PAYLOAD)),{"XRT_MODULE_CHANNEL_SUBSCRIBE","XRT_MODULE_FUTURE"}},
-    {"src/runtime/xl6_ownership_domain_channel_future.c",D(R(OWNERSHIP_CATALOG),R(CHANNEL_FUTURE)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_channel_future.c",D(R(OWNERSHIP_CATALOG),R(CHANNEL_FUTURE)),{NULL}},
+    {"src/runtime/xl6_channel_future_language.c",D(R(CHANNEL_FUTURE),R(CHANNEL_CASE_ARRAY)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

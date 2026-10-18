@@ -252,6 +252,27 @@ int main(void)
             assert(value==(int64_t)i);xrtFutureDestroy(futures[i]);}
         idle(executor);xl6ChannelCaseDestroyV1(item);xrtValueRelease(q);assert(xl6ContinuationExecutorDestroy(executor));balanced(&before);
     }
-    printf("resident Channel Future: ready/pending/closed/output-parent-pre-cancel, handle/object payloads, real catalog/pins/graph, 50 async rendezvous pairs, 200 concurrent producer/register races, 20 duplicate cases with worker-only success/false-NULL/Range cleanup, 512 waits on one worker, full/Close rollback, zero late allocation, full prepare/start/large OOM prefixes %u/%u/%u; balanced\n",createPrefix,startPrefix,largePrefix);
+    for(unsigned mode=0;mode<3;++mode){
+        xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
+        XL6_ContinuationExecutor* executor=xl6ContinuationExecutorCreateFixedV1(1,1);assert(executor);
+        xvalue* q=channel(1);
+        XL6_ChannelCaseOwnerV1* item=xl6ChannelReceiveCaseCreateV1(q,ID,ELEMENT,xrtTypeInt64(),sizeof(int64_t));assert(item);
+        XL6_ChannelFutureFrameV1* frame=api->Prepare(&item,1);assert(frame);
+        xvalue* handle=xl6ChannelFutureBuilderResultV1(frame);assert(handle==api->ResultHandle(frame));
+        xvalue* owner=xrtValueObject();assert(owner);
+        assert(xrtValueObjectSet(owner,XRT_STR_LITERAL("native"),handle));xrtValueRelease(handle);
+        if(mode==2){xl6ChannelFutureBuilderDestroyV1(frame);xrtValueRelease(owner);}
+        else {
+            xfuture* future=xl6ChannelFutureBuilderStartV1(executor,frame,owner,"native",6,NULL);assert(future);
+            if(!mode)xl6ChannelFutureBuilderDestroyV1(frame);
+            xrtValueRelease(owner);send(q,91);
+            int64_t value=0;
+            assert(xl6ChannelSelectionValueV1(selection(outcome(future),true),item,ELEMENT,xrtTypeInt64(),SLOT(value)) && value==91);
+            if(mode)xl6ChannelFutureBuilderDestroyV1(frame);
+            xrtFutureDestroy(future);
+        }
+        idle(executor);xl6ChannelCaseDestroyV1(item);xrtValueRelease(q);finish(executor);balanced(&before);
+    }
+    printf("resident Channel Future: ready/pending/closed/output-parent-pre-cancel, handle/object payloads, real catalog/pins/graph, 50 async rendezvous pairs, 200 concurrent producer/register races, 20 duplicate cases with worker-only success/false-NULL/Range cleanup, 512 waits on one worker, retained builder early/late/unused destruction, full/Close rollback, zero late allocation, full prepare/start/large OOM prefixes %u/%u/%u; balanced\n",createPrefix,startPrefix,largePrefix);
     return 0;
 }
