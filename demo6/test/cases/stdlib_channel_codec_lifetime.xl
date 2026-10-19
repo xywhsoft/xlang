@@ -1,0 +1,38 @@
+import concurrent
+
+auto dropped = AtomicInt64()
+class ChannelCapture
+    bool fail = false
+    int value = 42
+    create(bool fail)
+        self.fail = fail
+    end
+    destroy()
+        dropped.fetchAdd(1)
+        if self.fail then throw ValueError("channel capture cleanup") end
+    end
+end
+
+func discardQueued(bool fail)
+    auto capture = ChannelCapture(fail)
+    auto pipe = channel::<func() as int>(1)
+    auto work = func() as int
+        return capture.value
+    end
+    assert pipe.trySend(work)
+    assert pipe.count() == 1 and not pipe.isClosed()
+    pipe.close()
+    assert pipe.isClosed()
+end
+
+discardQueued(false)
+assert dropped.load() == 1
+bool caught = false
+try
+    discardQueued(true)
+catch ValueError e
+    assert e.message == "channel capture cleanup"
+    caught = true
+end
+assert caught and dropped.load() == 2
+println("Channel codec queued capture cleanup and checked destructor error ok")

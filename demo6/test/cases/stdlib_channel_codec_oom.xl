@@ -1,0 +1,59 @@
+// Test-only explicit C APIs: production Channel programs do not select these.
+extern "xrtMemDebugFailAfter" @no_raise @nonblocking func memFailAfter(uint64 budget) as bool
+extern "xrtMemDebugFailTriggered" @no_raise @nonblocking func memWasTriggered() as bool
+extern "xrtMemDebugFailClear" @no_raise @nonblocking func memClearFailure()
+
+union OOMCodecBits
+    int number
+    c_double real
+end
+
+func attempt<T>(T input, int budget) as bool
+    auto pipe = channel::<T>(1)
+    bool sent = false
+    bool caught = false
+    bool hit = false
+    assert memFailAfter(uint64(budget)), "arm the actual allocation budget"
+    try
+        sent = pipe.trySend(input)
+    catch error
+        caught = true
+    finally
+        hit = memWasTriggered()
+        memClearFailure()
+    end
+    if hit
+        assert caught, "a failed encoding must produce a checked error"
+        assert not sent, "a failed encoding cannot report a successful send"
+        assert pipe.count() == 0, "a failed encoding cannot publish a message"
+    else
+        assert sent and not caught and pipe.count() == 1, "complete allocation prefix must succeed"
+        auto status, value = pipe.tryRecv()
+        assert status == channelStatus.ok and value != null
+    end
+    pipe.close()
+    return hit
+end
+
+func sweep<T>(T input) as int
+    int point = 0
+    bool completed = false
+    while point < 64 and not completed
+        completed = not attempt(input, point)
+        if not completed then point += 1 end
+    end
+    assert completed and point > 0, "allocation sweep must fail before its successful prefix"
+    return point
+end
+
+int base = 40
+auto callback = func(int value) as int
+    return base + value
+end
+int closurePoints = sweep(callback)
+assert callback(3) == 43, "failed encoding preserves the source closure"
+OOMCodecBits bits
+bits.number = 42
+int unionPoints = sweep(bits)
+assert bits.number == 42, "failed encoding preserves the source union"
+println("Channel codec actual allocation prefixes: closure=" + string(closurePoints) + ", union=" + string(unionPoints) + "; checked rollback and independent sources ok")

@@ -130,7 +130,8 @@ int main(int argc,char** argv)
         BAD_LAYOUT(role,XL6_IR_SEQUENCE_ROLE_STACK); BAD_LAYOUT(slotAbi,XL6_IR_NATIVE_SLOT_NONE);
         BAD_LAYOUT(transferAbi,XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF);
         BAD_LAYOUT(transferAbi,XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY);
-        BAD_LAYOUT(codecAbi,XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1);
+        BAD_LAYOUT(codecAbi,original.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1?
+            XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1:XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1);
         BAD_LAYOUT(nullable,!original.nullable); BAD_LAYOUT(admissionAbi,XL6_VALUE_ADMIT_NONE);
 #undef BAD_LAYOUT
         XL6_IrTypeId other=0;
@@ -143,14 +144,15 @@ int main(int argc,char** argv)
         assert(!xl6IrVerifyModule(ir,NULL)); *owner=saved;
         assert(xl6IrVerifyModule(ir,NULL));
     }
-    assert(recipes>=17 && pending && unsupported>=1 && plans==recipes*3);
+    assert(recipes>=18 && pending && unsupported==0 && plans==recipes*3);
     XL6_Output out; assert(xl6OutputOpenFile(&out,argv[2]));
     xl6OutputPuts("#include <__xl_runtime/xruntime_decl.h>\n"
         "#include <__xl_runtime/xl6_channel.h>\n#include <__xl_runtime/xl6_array_admission.h>\n"
         "#include <__xl_runtime/xl6_nullable_string.h>\n#include <assert.h>\n#include <string.h>\n"
         "#include <__xl_runtime/xl6_slot_map_key_abi.h>\n"
         "#include <__xl_runtime/xl6_nullable_slot_map_key_abi.h>\n"
-        "typedef xstrview xlir_string;\n",&out);
+        "typedef xstrview xlir_string;\n"
+        "typedef struct XL6_Closure xlir_closure;\n",&out);
     assert(xl6IrCgenEmitProductTypes(&out,ir,NULL,&unit.parse.diags)); nominalSets(&out,ir);
     xl6OutputPuts("int main(void) { xmemdebugsnapshot before={0},after={0};\n"
         "assert(xrtMemDebugEnable(true)); xrtClearError(); xrtMemDebugSnapshot(&before);\n",&out);
@@ -159,12 +161,15 @@ int main(int argc,char** argv)
         XL6_IrTypeId result=resultFor(ir,id);
         if(!result || !xl6IrChannelReceivePlanBuild(ir,XL6_IR_CHANNEL_RECEIVE_TRY,id,result,&p)) continue;
         const XL6_IrType* owner=xl6IrTypeGet(&ir->types,id);
+        XL6_IrChannelValuePlan message={0};assert(xl6IrChannelValuePlanBuild(ir,id,&message));
+        bool encoded=message.codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT;
         xl6OutputPuts("{ xvalue* schema=NULL;\n",&out);
         assert(xl6IrCgenEmitSequenceCreateDepth(&out,ir,p.schemaType,"schema",p.admissionIdentitySet,0,NULL,0,false,true)>0);
         xl6OutputPrintf(&out,"xvalue* channel=xl6ChannelCreateTakeV1(0x%016llXULL,schema,1); assert(channel);\n"
             "%s result={0}; XL6_ChannelStatusV1 status=XL6_CHANNEL_TIMEOUT_V1;\n",
             (unsigned long long)owner->typeValueId,xl6IrCgenType(ir,result));
         const char* place=p.valueTagged ? "result.e1.value" : "result.e1";
+        if(encoded){xl6OutputPuts("xvalue* encoded_slot=NULL;\n",&out);place="encoded_slot";}
         xl6OutputPrintf(&out,"assert(xl6ChannelReceiveV1(channel,0x%016llXULL,0x%016llXULL,%s,"
             "(XL6_ChannelSlotV1){&%s,sizeof(%s)},XL6_CHANNEL_TRY_V1,0,&status));\n"
             "assert(status==XL6_CHANNEL_EMPTY_V1);\n",
@@ -172,9 +177,9 @@ int main(int argc,char** argv)
             xl6IrCgenNativeSlotTypeExpr(p.slotAbi),place,place);
         const XL6_IrType* element=xl6IrTypeGet(&ir->types,p.elementType);
         const char* descriptor=xl6IrCgenNativeSlotTypeExpr(p.slotAbi);
-        if(p.transferAbi>=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF) {
+        if(encoded || p.transferAbi>=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF) {
             /* Empty-schema factory/receive acceptance only here. Genuine
-             * owned Future/key transport, detached results and graph edges
+             * owned codec/Future/key transport, detached results and graph edges
              * are exercised by the owned-profile language/native fixtures;
              * a zero carrier is not a valid nonnullable input. */
             xl6OutputPrintf(&out,"assert(xl6ChannelCloseV1(channel,0x%016llXULL));\n"

@@ -1,0 +1,52 @@
+import concurrent
+
+auto strings = channel::<func(string) as string>(1)
+auto append = func(string value) as string
+    return value + "!"
+end
+assert strings.trySend(append)
+auto textStatus, textFunction = strings.tryRecv()
+assert textStatus == channelStatus.ok and textFunction != null
+if textFunction != null
+    string value = textFunction("a\0b")
+    assert string.byteLen(value) == 4 and string.byteAt(value, 1) == 0
+    assert string.byteAt(value, 3) == 33
+end
+strings.close()
+
+auto runs = AtomicInt64()
+auto procedures = channel::<func()>(1)
+assert procedures.trySend(func()
+    runs.fetchAdd(1)
+end)
+auto procedureStatus, procedure = procedures.tryRecv()
+assert procedureStatus == channelStatus.ok and procedure != null
+if procedure != null then procedure() end
+assert runs.load() == 1
+procedures.close()
+
+auto native = channel::<func(c_int) as c_int>(1)
+assert native.trySend(func(c_int value) as c_int
+    return c_int(int(value) + 1)
+end)
+auto nativeStatus, nativeFunction = native.tryRecv()
+assert nativeStatus == channelStatus.ok and nativeFunction != null
+if nativeFunction != null then assert int(nativeFunction(c_int(41))) == 42 end
+native.close()
+
+auto errors = channel::<func() as int>(1)
+assert errors.trySend(func() as int
+    throw ValueError("received callback failure")
+end)
+auto errorStatus, failing = errors.tryRecv()
+assert errorStatus == channelStatus.ok and failing != null
+bool caught = false
+try
+    if failing != null then failing() end
+catch ValueError e
+    assert e.message == "received callback failure"
+    caught = true
+end
+assert caught
+errors.close()
+println("Channel callable signatures: exact string length, void, C scalar and checked callback errors ok")

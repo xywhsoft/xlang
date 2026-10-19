@@ -81,6 +81,14 @@ static int xl6IrCgenRuntimeCallableAdapterDirectlyNeeded(
         int aggregateClosure;
         if ( !xl6IrCgenInstructionIsReachable(module, i) ||
              instruction->kind != XL6_IR_INSTR_RUNTIME_CALL ) continue;
+        XL6_IrTypeId channelId=xl6IrChannelInstructionType(module,instruction);
+        if (channelId) {
+            XL6_IrChannelValuePlan message={0};
+            if (xl6IrChannelValuePlanBuild(module,channelId,&message) &&
+                message.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1 && message.baseElementType==type &&
+                (reverse ? xl6IrChannelReceiveSpecRuntime(instruction->runtimeOp)!=NULL :
+                    xl6IrChannelSendSpecRuntime(instruction->runtimeOp)!=NULL)) return 1;
+        }
         XL6_IrTypeId queueId=xl6IrConcurrentQueueInstructionType(module,instruction);
         if (queueId) {
             const XL6_IrType* queue=xl6IrTypeGet(&module->types,queueId);

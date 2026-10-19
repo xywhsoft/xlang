@@ -976,11 +976,16 @@ int xl6IrRuntimeDirectBridgeContext(const XL6_IrModule* module,const XL6_IrCallT
         *context=c->nativeContext;*type=target->parameterTypes[c->nativeClassArrayParameter-1];return 1;
     }
     if(c->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1) {
-        XL6_IrTypeId schema; XL6_IrNominalIdentitySetId set;
         if(!c->genericChannelParameter || c->genericChannelParameter>target->parameterCount || !target->parameterTypes)
             return 0;
         XL6_IrTypeId owner=target->parameterTypes[c->genericChannelParameter-1];
-        if(!xl6IrChannelConstructionRecipe(module,owner,&schema,&set))return 0;
+        XL6_IrChannelValuePlan message={0};
+        /* V1 native generic calls still expose language slots directly.
+         * A separately proven message codec is not permission to reinterpret
+         * one of those slots. Keep this boundary closed until its marshalling
+         * plan is explicitly recorded, including dynamic method adapters. */
+        if(!xl6IrChannelValuePlanBuild(module,owner,&message) ||
+            message.codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT)return 0;
         *context=c->nativeContext;*type=owner;return 1;
     }
     XL6_IrTypeId ownerId=c->resultOwner?target->returnType:

@@ -1,0 +1,65 @@
+import concurrent
+
+union CodecBits
+    int number
+    c_double real
+end
+
+func exchange<T>(T input, int sendMode, int receiveMode) as T
+    channel<T> pipe = channel::<T>(1)
+    auto source = CancellationSource()
+    auto token = source.token
+    auto emptyStatus, empty = pipe.recvTimeout(0)
+    assert emptyStatus == channelStatus.timeout and empty == null
+    if sendMode == 0 then assert pipe.send(input) end
+    if sendMode == 1 then assert pipe.trySend(input) end
+    if sendMode == 2 then assert pipe.sendTimeout(input, 0) end
+    if sendMode == 3 then assert pipe.sendUntil(input, 0) end
+    if sendMode == 4 then assert pipe.sendCancel(input, token) == channelStatus.ok end
+    if sendMode == 5 then assert pipe.sendTimeoutCancel(input, 0, token) == channelStatus.ok end
+    if sendMode == 6 then assert pipe.sendUntilCancel(input, 0, token) == channelStatus.ok end
+    assert pipe.count() == 1 and not pipe.isClosed()
+    assert not pipe.trySend(input) and not pipe.sendTimeout(input, 0)
+    assert pipe.sendUntilCancel(input, 0, token) == channelStatus.timeout
+    if receiveMode == 0 then emptyStatus, empty = pipe.recv() end
+    if receiveMode == 1 then emptyStatus, empty = pipe.tryRecv() end
+    if receiveMode == 2 then emptyStatus, empty = pipe.recvTimeout(0) end
+    if receiveMode == 3 then emptyStatus, empty = pipe.recvUntil(0) end
+    if receiveMode == 4 then emptyStatus, empty = pipe.recvCancel(token) end
+    if receiveMode == 5 then emptyStatus, empty = pipe.recvTimeoutCancel(0, token) end
+    if receiveMode == 6 then emptyStatus, empty = pipe.recvUntilCancel(0, token) end
+    assert emptyStatus == channelStatus.ok
+    assert source.cancel()
+    auto cancelledStatus, cancelled = pipe.recvCancel(token)
+    assert cancelledStatus == channelStatus.cancelled and cancelled == null
+    pipe.close()
+    assert pipe.count() == 0 and pipe.isClosed()
+    auto closedStatus, closed = pipe.tryRecv()
+    assert closedStatus == channelStatus.closed and closed == null
+    return empty ?? input
+end
+
+int capture = 40
+auto callback = func(int value) as int
+    return capture + value
+end
+CodecBits bits
+bits.number = 42
+int mode = 0
+while mode < 7
+    auto restored = exchange(callback, mode, 6 - mode)
+    assert restored(2) == 42
+    auto optional = exchange::<(func(int) as int)?>(callback, mode, mode)
+    assert optional != null
+    if optional != null then assert optional(3) == 43 end
+    assert exchange::<(func(int) as int)?>(null, mode, mode) == null
+    CodecBits decoded = exchange(bits, mode, mode)
+    assert decoded.number == 42
+    CodecBits? nullable = exchange::<CodecBits?>(bits, mode, mode)
+    assert nullable != null
+    CodecBits projected = nullable ?? bits
+    assert projected.number == 42
+    assert exchange::<CodecBits?>(null, mode, mode) == null
+    mode += 1
+end
+println("Channel codecs: 42 owned generic roundtrips, seven send/receive modes, full/timeout/cancel/closed and nullable null ok")

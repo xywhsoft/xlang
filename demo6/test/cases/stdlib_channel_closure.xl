@@ -1,0 +1,17 @@
+import concurrent
+
+func adder(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+
+channel<func(int) as int> pipe = channel::<func(int) as int>(2)
+assert pipe.trySend(adder(40))
+auto status, received = pipe.tryRecv()
+assert status == 0 and received != null
+func(int) as int result = received ?? adder(0)
+assert result(2) == 42
+pipe.close()
+assert result(3) == 43, "closure result independently owns its capture and code"
+println("Channel closure owned roundtrip ok")
