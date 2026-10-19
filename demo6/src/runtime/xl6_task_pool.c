@@ -207,6 +207,17 @@ static bool pool_destroy_body(XL6_TaskPool* pool)
     unlock_pool(pool);if(owner)xl6TaskPoolDropInternalV1(pool);mutation_end(&mutation);xl6TaskPoolLeaveInternalV1(pool);return ready;
 }
 bool xl6TaskPoolDestroyInternalV1(XL6_TaskPool* pool) { XL6_OWNERSHIP_RETURN(bool,pool_destroy_body(pool)); }
+bool xl6TaskPoolReleaseClearedOwnerV1(XL6_TaskPool* pool)
+{
+    if(!pool){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    xl6TaskPoolEnterInternalV1(pool);xrtownershipscope mutation={0};mutation_begin(&mutation);lock_pool(pool);
+    bool ready=pool->claim&&pool->cleared&&pool->ownerHeld&&pool->references>=3&&pool->entries==1&&
+        !pool->activities&&!pool->submitting&&!pool->controls&&!pool->creating&&!pool->quiescing&&!pool->retiring;
+    if(ready)pool->ownerHeld=false;
+    unlock_pool(pool);mutation_end(&mutation);
+    if(ready)xl6TaskPoolDropInternalV1(pool);else xrtSetErrorKind(XERR_STATE);
+    xl6TaskPoolLeaveInternalV1(pool);return ready;
+}
 static bool pool_count(const void* data,size_t* count)
 {
     const XL6_TaskPool* pool=data;
