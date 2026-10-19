@@ -5,7 +5,14 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
+#include <limits.h>
 static size_t refusals;
+static uint64_t roleBit(XL6_NativeGenericRole role)
+{
+    assert(role > XL6_NATIVE_GENERIC_NONE && (unsigned)role < sizeof(uint64_t) * CHAR_BIT);
+    return UINT64_C(1) << (unsigned)role;
+}
 static void refuse(XL6_IrModule* module)
 {
     assert(!xl6IrVerifyModule(module,NULL));
@@ -21,7 +28,7 @@ static void refuse(XL6_IrModule* module)
 }
 int main(int argc,char** argv)
 {
-    assert(argc==4);size_t targets=0,contexts=0,addresses=0;unsigned roles=0;
+    assert(argc==4);size_t targets=0,contexts=0,addresses=0;uint64_t roles=0;
     for(int input=1;input<argc;++input) {
         XL6_CompileUnit unit;xl6CompileUnitInit(&unit);
         assert(xl6CompileUnitLoadFile(&unit,argv[input],1));
@@ -31,7 +38,7 @@ int main(int argc,char** argv)
             XL6_IrCallTarget* target=&module->callTargets[i];
             XL6_NativeGenericRole role=xl6NativeGenericRole(target->cName);
             if(!role)continue;
-            roles|=1u<<role;++targets;XL6_IrCallTarget saved=*target;
+            roles|=roleBit(role);++targets;XL6_IrCallTarget saved=*target;
             assert(xl6IrRuntimeDirectBridgeTargetMatches(module,target));
             assert(xl6ArtifactRuntimeSymbolOwner(target->cName)==XL6_ARTIFACT_PROMISE);
             target->nativeContextType=XL6_IR_TYPE_INVALID;target->nativeContextAbi=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1;
@@ -54,8 +61,8 @@ int main(int argc,char** argv)
         }
         assert(xl6IrVerifyModule(module,NULL));xl6CompileUnitFree(&unit);
     }
-    unsigned expected=0;
-#define XL6_NATIVE_GENERIC_BRIDGE(Name,Owner,Role) if(!strcmp(Owner,"xl6PromiseDestroyV1"))expected|=1u<<XL6_NATIVE_GENERIC_##Role;
+    uint64_t expected=0;
+#define XL6_NATIVE_GENERIC_BRIDGE(Name,Owner,Role) if(!strcmp(Owner,"xl6PromiseDestroyV1"))expected|=roleBit(XL6_NATIVE_GENERIC_##Role);
 #include "src/abi/xl6_native_generic_contracts.inc"
 #undef XL6_NATIVE_GENERIC_BRIDGE
     assert(roles==expected && contexts && addresses);

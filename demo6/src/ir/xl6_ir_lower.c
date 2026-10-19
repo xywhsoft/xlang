@@ -4523,6 +4523,9 @@ static XL6_IrValueId xl6IrLowerNodeAsType(
         return XL6_IR_VALUE_INVALID;
     }
     if ( source->sourceKind == XL6_AST_NULL ) {
+        if (xl6IrTypeIsZeroPayload(ctx->module, targetType))
+            return xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULL, sourceId,
+                targetType, 0, NULL, 0, &result) ? result : XL6_IR_VALUE_INVALID;
         if ( target->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE ) {
             if ( target->cAbi != XL6_IR_C_ABI_TAGGED_NULLABLE &&
                  !xl6IrNullableNativeValuePlan(&ctx->module->types,target) ) {
@@ -13029,7 +13032,7 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
     if (target->kind == XL6_IR_CALL_TARGET_EXTERN_C || target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) {
         for (i = 0; i < target->parameterCount; ++i) {
             if(xl6IrRuntimeDirectBridgeValueAddressParameter(target->cName,i)) {
-                target->parameterPhysicalAbis[i]=XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW;
+                target->parameterPhysicalAbis[i]=xl6IrNativeValueParameterPhysicalAbi(module,target->parameterTypes[i]);
                 target->parameterPhysicalFieldDeclarations[i]=XL6_IR_NODE_INVALID;
                 continue;
             }

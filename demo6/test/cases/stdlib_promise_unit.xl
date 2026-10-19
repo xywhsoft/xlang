@@ -1,0 +1,30 @@
+import concurrent
+
+async func resolveEmpty(Promise<null> producer)
+    assert producer.tryResolve(null)
+end
+
+auto producer = Promise::<null>()
+future<null> completion = producer.future
+assert not producer.isCompleted
+assert producer.tryResolve(null)
+assert producer.isCompleted and not producer.tryResolve(null)
+await completion
+await producer.future
+
+auto cancelled = Promise::<null>()
+assert cancelled.tryCancel()
+assert not cancelled.tryResolve(null)
+
+auto closed = Promise::<null>()
+assert closed.close()
+assert not closed.tryResolve(null)
+println("Promise<null>: logical completion, duplicate resolution, cancellation and close")
+
+auto queued = Promise::<null>()
+future<null> queuedCompletion = queued.future
+future<null> worker = resolveEmpty(queued)
+await queuedCompletion
+await worker
+assert queued.isCompleted
+println("Promise<null>: fixed-ready-queue root resolves empty payload")

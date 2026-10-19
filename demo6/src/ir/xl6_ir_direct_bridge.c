@@ -1138,7 +1138,7 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
         if(contract->genericValueParameter==i+1) {
             if(!type || target->parameterTypes[i]!=xl6IrNativeContextElementType(module,target) ||
                target->parameterAbis[i]!=xl6IrParameterAbiForMode(type,XL6_IR_PARAMETER_MODE_DEFAULT) ||
-               target->parameterPhysicalAbis[i]!=XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW ||
+               target->parameterPhysicalAbis[i]!=xl6IrNativeValueParameterPhysicalAbi(module,target->parameterTypes[i]) ||
                target->parameterConstraintAbis[i]!=XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
                target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID)return 0;
             continue;

@@ -72,6 +72,7 @@ static int xl6IrCgenNullInstructionAbi(
          instruction->result == XL6_IR_VALUE_INVALID ||
          instruction->operandCount != 0 || instruction->immediateText != NULL ) return 0;
     type = xl6IrTypeGet(&module->types, instruction->type);
+    if (xl6IrInstructionIsZeroPayload(module, instruction)) return 1;
     return type != NULL && xl6IrCgenType(module, instruction->type) != NULL &&
         (type->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL ||
          (type->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
@@ -90,6 +91,7 @@ static int xl6IrCgenEmitNullInstruction(
         return xl6IrCgenDiag(diags, module,
             instruction != NULL ? instruction->origin : XL6_IR_NODE_INVALID,
             "XLIR C emitter null ABI is unresolved");
+    if (xl6IrInstructionIsZeroPayload(module, instruction)) return 1;
     type = xl6IrTypeGet(&module->types, instruction->type);
     if ( type->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL )
         xl6OutputPrintf(out, "    v%u = xrtValueRetain(xrtValueNull());\n",

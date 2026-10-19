@@ -284,6 +284,8 @@ static int xl6IrCgenEmitDynamicNativeWitness(
             xl6OutputPrintf(out, "native%lu", (unsigned long)p);
         else if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW)
             xl6OutputPrintf(out,"&a%lu",(unsigned long)(p-1));
+        else if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD)
+            xl6OutputPuts("NULL",out);
         else if ( p == 0 ) xl6OutputPuts("receiver", out);
         else xl6OutputPrintf(out, "a%lu%s", (unsigned long)(p - 1), xl6IrCgenDirectPlaceSuffix(module, target, p));
     }
