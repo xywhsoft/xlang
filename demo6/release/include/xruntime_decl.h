@@ -38196,6 +38196,23 @@ typedef struct xexecutoritem {
 	ptr DestroyContext;
 } xexecutoritem;
 
+/* Resident contract for the ONE Data reference transferred on acceptance.
+ * Proc borrows Data; Drop(Data,NULL) consumes it exactly once outside mutation
+ * and all native locks. Ops identifies that same physical Data node. Descriptor,
+ * Ops and callbacks outlive every accepted slot, including collector pins after
+ * work completes. A failed submission does not consume Data. */
+typedef struct xexecutordataownershipv1 {
+	size_t size;
+	xexecutorproc Proc;
+	xexecutorfreeproc Drop;
+	const xrtownershipops* Ops;
+} xexecutordataownershipv1;
+
+typedef struct xexecutorowneditemv1 {
+	ptr Data;
+	const xexecutordataownershipv1* Policy;
+} xexecutorowneditemv1;
+
 
 
 /* QueueLimit 是每个 Worker 的硬队列上限；总排队容量等于 Threads 乘 QueueLimit。 */
@@ -38261,6 +38278,32 @@ XRT_API bool xrtExecutorSubmitBatch(
 /* 停止受理新工作，并让已经受理的工作自然排空。 */
 XRT_API bool xrtExecutorClose(xexecutor* pExecutor);
 
+/* Same bounded, allocation-free admission as Submit/SubmitBatch. Batch is
+ * all-or-nothing; each item transfers a separate actual Data reference. */
+XRT_API bool xrtExecutorSubmitOwnedV1(xexecutor* pExecutor, ptr pData,
+	const xexecutordataownershipv1* pPolicy);
+XRT_API bool xrtExecutorSubmitOwnedBatchV1(xexecutor* pExecutor,
+	const xexecutorowneditemv1* pItems, size_t iCount);
+
+/* Read under the entire graph's exclusive ownership freeze. Queued slots own
+ * their actual Data and one containing Executor reference. Active callbacks,
+ * cleanup tails and native entries refuse Count. Legacy opaque queued items
+ * refuse admission; worker/control allocations are uniquely contained, not
+ * fabricated reference-counted nodes. Preparation closes admission and drains
+ * original work, then joins at zero timeout outside freeze; it never cancels
+ * work to manufacture readiness. Clear requires physical join. */
+XRT_API xrtownershipref xrtExecutorOwnership(const xexecutor* pExecutor);
+XRT_API const xrtownershipadapterv1* xrtExecutorOwnershipAdapterV1(
+	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
+/* Match an admitted resident Data policy identity BEFORE following its fields.
+ * A pinned completed slot is not reused and keeps its containing allocation
+ * alive, even after Executor destruction. Outputs change only on success. */
+XRT_API const xrtownershipadapterv1* xrtExecutorJobOwnershipAdapterV1(
+	xrtownershipref Reference, const xexecutordataownershipv1* const* pPolicies,
+	size_t iPolicyCount, const xrtownershippreparationv1** ppPreparation);
+XRT_API const xrtownershipquiescencev1* xrtExecutorOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtExecutorJobOwnershipQuiescenceV1Get(void);
+
 
 
 /* 停止受理，丢弃尚未开始的工作并执行其数据析构；运行中工作不会被强停。 */
@@ -38268,7 +38311,8 @@ XRT_API bool xrtExecutorCancel(xexecutor* pExecutor);
 
 
 
-/* 永久等待已经关闭的执行器排空；Executor Worker 不能等待自身。 */
+/* Wait includes execution AND cancelled-item cleanup tails. A worker or a
+ * cancellation cleanup callback cannot wait for its own executor. */
 XRT_API xwaitresult xrtExecutorWait(xexecutor* pExecutor);
 
 
@@ -38294,7 +38338,10 @@ XRT_API bool xrtExecutorGet(
 
 
 
-/* 关闭、排空、停止 Worker 并释放执行器；Worker 不能销毁自身执行器。 */
+/* Close, drain and join. Caller must stop concurrent access; reentrant or
+ * overlapping native entries refuse before releasing ownership. Worker/cleanup
+ * callbacks cannot destroy their own executor. Only the original owner is
+ * consumed; explicit pins may keep the retired shell/slot allocation alive. */
 XRT_API bool xrtExecutorDestroy(xexecutor* pExecutor);
 
 #endif
