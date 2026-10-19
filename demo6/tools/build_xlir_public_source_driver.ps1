@@ -62,6 +62,8 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_ownership_domain_task.c',
     'src/runtime/xl6_ownership_domain_task_pool.c',
     'src/runtime/xl6_ownership_domain_native_executor.c',
+    'src/runtime/xl6_ownership_domain_executor_jobs.c',
+    'src/runtime/xl6_executor_jobs.c',
     'src/runtime/xl6_ownership_domain_future_payload.c',
     'src/runtime/xl6_ownership_domain_native_future.c',
     'src/runtime/xl6_ownership_domain_future_aggregate.c',

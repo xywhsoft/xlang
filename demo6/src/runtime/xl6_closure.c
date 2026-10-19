@@ -6,6 +6,7 @@
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #include "lib/xruntime/xruntime.h"
 #include "xl6_closure.h"
+#include "src/api/xl_foreign_error.h"
 #include "xl6_cell.h"
 #include "xl6_ownership_scope.h"
 #include <stdlib.h>
@@ -209,7 +210,15 @@ static void closure_release(XL6_Closure* closure)
     /* The real code lease/scope protects descriptor reads and every return
      * tail. The zero-count closure no longer exposes a live graph node. */
     if (coordinated && !xrtOwnershipScopeEnd(&mutation)) abort();
-    if(environmentOps){if(!environmentOps->Drop(environmentLayout,environment,environmentBytes) && !xrtGetError())xrtSetErrorKind(XERR_STATE);}
+    if(environmentOps){
+        if(!environmentOps->Drop(environmentLayout,environment,environmentBytes)){
+            /* Do not manufacture StateError to encode a false result. A
+             * checked cleanup may fail without a diagnostic; Release is a
+             * void boundary, so publish its independent failure bit to the
+             * immediate scope and preserve the original (possibly NULL) error. */
+            xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});
+        }
+    }
     else if (coordinated) environment_drop_body(layout, environment);
     else if (drop != NULL) drop(environment);
     xl6CodeLeaseRelease(lease);

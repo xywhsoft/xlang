@@ -81,8 +81,8 @@ Windows 定点检查不把 PE 下无法独立裁除整个 compile_unit 的试验
 abort，也不静默丢弃错误。原生 Executor 仍是不返回 Future 的脱离式执行器，
 不能冒充 TaskPool 的 Future 提交接口。
 
-这是已决定、仍待高层实现和语言验收的合同，不等于当前已经存在这两个语言方法。
-首错存储、并发发布、代码拥有者、回调释放和最后一个语言引用的退休须一起完成。
+这不等于当前已经存在这两个语言方法。下文的常驻 producer 已实现首错存储、并发
+发布、代码租约和回调释放；公开类、最后一个语言引用的退休与语言验收仍待接入。
 
 ## 显式 TaskPool 的常驻控制前置
 
@@ -145,3 +145,68 @@ Linux 61 阶段／32 产物，输入与日志封印一致、无失败。Linux �
 四种普通源码清单门各包含 559 个必需 provider，无缺失或重复，五个负控制均拒绝。
 旧脚本的变更仅补拆分依赖；49 个相关 PowerShell 入口通过语法解析，两个受影响的
 Shell 入口及 Linux 构建脚本通过 bash 语法检查，不表示已经执行所有这些测试。
+
+## 常驻 detached 回调 producer 与错误账本
+
+`xl6_executor_jobs.c` 复用 XRT 的 SubmitOwned／原子 SubmitOwnedBatch，不增加
+第二套队列、工作线程、Future 或默认 async 回退。入口接收编译器验证过的
+零形参 void 语言闭包，对应精确 C ABI `bool invoke(void* environment)`；这里
+不能从 erased C 函数指针推断签名，未来公开语言接入仍须提供 XLIR 签名合同。
+
+每个被受理作业拥有一个独立的真实 Data record，分别持有闭包与失败账本；闭包
+持有代码租约和捕获。准备失败／原生拒绝仍由调用者拥有输入；逆序撤销已准备记录，
+不运行 body，不当成取消或作业失败。批量受理保持原生的整组成功或整组失败，
+不会把一个批次改成多次单项提交。单项提交不创建临时批量数组。
+
+body 使用独立 checked 作用域调用。其结果保留到 Drop，先从元数据中拆出拥有槽，
+再在锁和 mutation 外释放捕获；body 与捕获析构的失败合并为一个作业失败。直到
+Drop 完成才登记账本，原生 Outstanding 继续覆盖这个尾部；仅返回 body 不算完成。
+取消的排队作业不运行 body；正常清理不计失败，清理自身抛错则计一次。
+没有改变 ThreadLocal 为“每作业清空”，也没有偷偷执行线程退出 hook。
+
+账本锁内只做引用／计数发布，锁外释放错误；首错使用原始 Error 的实际引用，
+不重新包装或复制消息。first 按完整作业清理后的登记顺序，而非提交顺序；并行
+作业自然可能以不同顺序完成。首错可以没有诊断对象，这时仍返回 false 并计数，
+后续已分配的错误不能替换它。uint64 计数溢出采用饱和且有独立 saturated 标志。
+Snapshot 和 ThrowIfFailed 不清空历史；每次显式报告取得独立的错误引用。
+
+`xl6ExecutorWaitV1` 先验证有限毫秒期限，原生关闭／等待合同不变。READY 描述
+物理完成，即使账本错误导致 bool=false；TIMEOUT 不等于成功完成，不提前报告
+尚未结束的 body／析构。普通 checked bool 调用把诊断交给语言错误边，不擅自污染
+外层异常作用域。void 清理回调才使用显式失败传播。
+
+共享的 `closure_release` 原来把 resident 环境 Drop 的 false 强制变成 StateError。
+现在将原始 bool 失败（包括 NULL 诊断）传播到直接外层 checked 作用域，不伪造
+一个错误来代替它；Closure 部署显式依赖 FOREIGN_ERROR，不靠其他组件偶然带入。
+XRT 的 SetErrorKind 本来是静态、无分配诊断；不把它误当作分配型 fallback。
+
+producer domain 精确登记 `xexecutordataownershipv1` 和 Data BUSY 能力，分别解析
+账本与作业节点。运行和 Drop 尾部拒绝读取；排队记录可读，Prepare 不取消原作业，
+只有完整清理后才 READY。检查 pin 使真正 Data allocation 在原生 Executor 已销毁
+后仍存活；释放 pin 才回收，不制造假的 RC 节点。相同内容的 policy 副本不能代替
+原 policy 身份。默认 async 不隐含拉入此 producer；它也不依赖 TaskPool。
+
+维护入口：`tools/check_stdlib_executor_jobs.py --out <新目录> --compiler <cc>`，
+可重复指定编译器；Linux 可加 `--sanitize`。原生实现和全部 provider 来自真正
+部署／拥有计划，不使用 release DLL 或 ALL kernel 替代最小闭包。专项检查：
+
+- GCC/TCC、O0/O2 的最小实际链接及 body／析构、首错、原子批量回滚、取消、
+  期限、实际代码租约、读取方提前释放和精确分配账本。
+- 每次运行保留 64 个 checked body／Drop／租约用例、8 个真实 pin 图、264 个
+  多工作线程作业、24 个取消捕获、8 轮拒绝／放弃读取方及 8 个调用线程分配预算。
+- 恢复旧 cleanup false 丢失、用 error 指针代替 first-failure bit、把未执行的取消
+  误计为失败，三种实际错误实现均须编译成功并被断言拒绝。
+- Linux 对所选原生实现、provider 和夹具整体运行 ASan／UBSan／泄漏检查。
+
+`p1-executor-jobs/win-r1` 为 29 阶段／17 产物，`linux-r1` 为 31 阶段／18 产物；
+三个非零退出都是有标记的预期负控制。四种 shipping 源码清单各需 561 provider。
+输入／日志封印一致，没有网络或安全性质专项。个别清理用例固定注入一次 worker
+分配失败，用于检查无诊断失败；这不代表完整 worker 分配失败前缀已经认证。
+共享闭包改动另以 `legacy-win-r1`／`legacy-linux-r1` 各 33 阶段回归：GCC
+O0/O2、两种实际单头、既有 280 次生命周期／240 个排队拥有图／520 次准备及
+400 个 outcome 回调仍通过。它们是原生／常驻源码回归，不是公开执行器的语言验收。
+
+该层借用 native Executor，其创建者仍须保证原生实例活到全部受理作业结束；没有
+宣称解决在自身回调中释放最后一个语言拥有者的 join 问题。后续公开类必须组合
+真正受管理的资源退休、配置／统计、批量公开面、错误账本和普通 DLL/JIT/AOT，
+不能把这套 C producer 直接包装成无清理责任的 pointer 类。

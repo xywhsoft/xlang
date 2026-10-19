@@ -22,6 +22,7 @@
 #include "src/runtime/xl6_list_value_iterator.h"
 #include "src/runtime/xl6_frame_storage.h"
 #include "src/runtime/xl6_task.h"
+#include "src/runtime/xl6_executor_jobs.h"
 #include "src/runtime/xl6_network_service.h"
 #include "src/runtime/xl6_log.h"
 #include "src/runtime/xl6_text_value.h"
@@ -323,6 +324,18 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6FrameStorageRuntimeV1Get", (const void*)xl6FrameStorageRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskRuntimeV1Get", (const void*)xl6TaskRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskPoolControlV1Get", (const void*)xl6TaskPoolControlV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorFailuresCreateV1", (const void*)xl6ExecutorFailuresCreateV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorFailuresRetainV1", (const void*)xl6ExecutorFailuresRetainV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorFailuresReleaseV1", (const void*)xl6ExecutorFailuresReleaseV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorFailuresSnapshotV1", (const void*)xl6ExecutorFailuresSnapshotV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorThrowIfFailedV1", (const void*)xl6ExecutorThrowIfFailedV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSubmitClosureV1", (const void*)xl6ExecutorSubmitClosureV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSubmitClosuresV1", (const void*)xl6ExecutorSubmitClosuresV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorWaitV1", (const void*)xl6ExecutorWaitV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorFailuresOwnershipV1", (const void*)xl6ExecutorFailuresOwnershipV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorClosureDataPolicyV1Get", (const void*)xl6ExecutorClosureDataPolicyV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorClosureQuiescenceV1Get", (const void*)xl6ExecutorClosureQuiescenceV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorJobsOwnershipAdapterV1", (const void*)xl6ExecutorJobsOwnershipAdapterV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskResourceInitV1", (const void*)xl6TaskResourceInitV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskResourceRemoveV1", (const void*)xl6TaskResourceRemoveV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskResourceReleaseV1", (const void*)xl6TaskResourceReleaseV1)) return 0;

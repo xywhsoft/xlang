@@ -14,7 +14,7 @@
 static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_slot.c", NULL, 0, {"XRT_MODULE_MEMORY"}},
     {"src/runtime/xl6_code_lease.c", NULL, 0, {"XRT_MODULE_MEMORY", "XRT_MODULE_ATOMIC", "XRT_MODULE_THREAD"}},
-    {"src/runtime/xl6_closure.c", D(R(CODE_LEASE),R(CELL)),
+    {"src/runtime/xl6_closure.c", D(R(CODE_LEASE),R(CELL),R(FOREIGN_ERROR)),
         {"XRT_MODULE_FUTURE", "XRUNTIME_MODULE_RUNTIME_CALL", "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"}},
     {"src/runtime/xl6_cell.c", NULL, 0, {"XRT_MODULE_MEMORY", "XRT_MODULE_ATOMIC", "XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_frame_storage.c", NULL, 0, {"XRT_MODULE_MEMORY"}},
@@ -631,7 +631,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_task_group_start.c",D(R(TASK_GROUP),R(CLOSURE),R(FUTURE_VALUE),R(FOREIGN_ERROR)),{"XRT_MODULE_TASK_GROUP"}},
     {"src/runtime/xl6_ownership_domain_native_executor.c",D(R(OWNERSHIP_CATALOG)),{"XRT_MODULE_EXECUTOR"}},
     {"src/runtime/xl6_task_pool.c",NULL,0,{"XRT_MODULE_TASK_POOL","XRT_MODULE_ATOMIC"}},
-    {"src/runtime/xl6_ownership_domain_task_pool.c",D(R(OWNERSHIP_CATALOG),R(TASK_POOL)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_task_pool.c",D(R(OWNERSHIP_CATALOG),R(TASK_POOL)),{NULL}},
+    {"src/runtime/xl6_executor_jobs.c",D(R(CLOSURE),R(FOREIGN_ERROR)),{"XRT_MODULE_EXECUTOR"}},
+    {"src/runtime/xl6_ownership_domain_executor_jobs.c",D(R(OWNERSHIP_CATALOG),R(EXECUTOR_JOBS),R(OWNERSHIP_DOMAIN_NATIVE_EXECUTOR)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
