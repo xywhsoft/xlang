@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "xlir_owner_fault_runtime.h"
-extern void worker_completion_prepare(void), worker_completion_finish(void);
+extern void worker_completion_prepare(void), worker_completion_finish(void), worker_completion_drain_discarded(void);
 extern xfuture* worker_completion_launch(unsigned, int);
 extern void worker_completion_check(unsigned, xfuture*);
 static xsem *entered, *proceed, *dropEntered, *dropProceed, *observed, *watchFinished, *resultFinished, *inputsFinished;
@@ -17,8 +17,8 @@ static uint64 mainThread;
 static unsigned kind, executions, faultExecutions, observations, lateCancels, discarded;
 static int bodyMode, firstMode, unusedMode, resultMode, cancelPoint, boxFault, smoke;
 static xfuture* activeOutput;
-/* Added lane: arm the REAL worker's allocation budget at its exact generated
- * payload-allocation entry, and leave it armed through body/retirement/publication.
+/* Arm the REAL queued worker's allocation budget at its body-entry barrier,
+ * and leave it armed through body/retirement/publication.
  * The completion observer clears that same worker's TLS before bookkeeping. */
 static bool scanFault;
 static unsigned scanBudget,scanRuns,scanHits;
@@ -32,18 +32,20 @@ static void worker_entry(void)
 {
     if (xrtAtomic32FetchAdd(&entries, 1, XMEMORY_SEQ_CST) == 0) {
         assert(xrtSemPost(entered)); assert(xrtSemWaitFor(proceed, 15000000) == XWAIT_OK);
+        if(scanFault)assert(xrtMemDebugFailAfter(scanBudget));
     }
 }
 void* worker_completion_malloc(size_t size)
 {
-    if (xrtThreadCurrentId() != mainThread && count(&entries) == 0) {
-        void* value; worker_entry();
-        if (scanFault) assert(xrtMemDebugFailAfter(scanBudget));
-        else if (boxFault) {
-            assert(xrtMemDebugFailAfter(0)); value = xrtMalloc(size);
-            assert(value == NULL && xrtMemDebugFailTriggered()); xrtMemDebugFailClear();
-            assert(xrtAtomic32FetchAdd(&boxFailures, 1, XMEMORY_SEQ_CST) == 0); return value;
-        }
+    /* The frame computes its owned result before boxing. Fault the first
+     * real generated result-construction/box allocation after body entry;
+     * closure construction can itself allocate. Complete TLS prefix scans
+     * below independently reach EVERY later allocation, including its box.
+     * No fake pointer or skipped body side effect stands in for an OOM. */
+    if(boxFault&&!scanFault&&xrtThreadCurrentId()!=mainThread&&count(&bodies)==1&&!count(&boxFailures)){
+        assert(xrtMemDebugFailAfter(0));void* value=xrtMalloc(size);
+        assert(value==NULL&&xrtMemDebugFailTriggered());xrtMemDebugFailClear();
+        assert(xrtAtomic32FetchAdd(&boxFailures,1,XMEMORY_SEQ_CST)==0);return value;
     }
     return xrtMalloc(size);
 }
@@ -95,7 +97,7 @@ static void observe(void* data)
         }else assert(xrtFutureState(activeOutput)==XFUTURE_RESOLVED && !error);
     }else check_outcome();
     assert(count(&firstDrops) == 1 && count(&unusedDrops) == 1);
-    if (!scanFault && (kind == 3 || kind == 4) && !bodyMode && !boxFault)
+    if (!scanFault && (kind == 3 || kind == 4) && !bodyMode)
         assert(count(&resultDrops) == (expectedState == XFUTURE_RESOLVED ? 0u : 1u));
     assert(xrtAtomic32FetchAdd(&publications, 1, XMEMORY_SEQ_CST) == 0); assert(xrtSemPost(observed));
 }
@@ -181,12 +183,12 @@ static void run_case(void)
     // A successful managed result may raise when its final Future owner is
     // released. That is not a retroactive change to the published outcome.
     xrtClearError();
-    if ((kind == 3 || kind == 4) && !bodyMode && !boxFault)
+    if ((kind == 3 || kind == 4) && !bodyMode)
         assert(xrtSemWaitFor(resultFinished, 15000000) == XWAIT_OK);
     for (i = 0; i < 2; ++i) assert(xrtSemWaitFor(inputsFinished, 15000000) == XWAIT_OK);
-    assert(count(&bodies) == (boxFault ? 0u : 1u) && count(&boxFailures) == (unsigned)boxFault);
+    assert(count(&bodies) == 1 && count(&boxFailures) == (unsigned)boxFault);
     assert(count(&firstDrops) == 1 && count(&unusedDrops) == 1 && count(&publications) == 1 && count(&watchDrops) == 1);
-    assert(count(&resultDrops) == ((kind == 3 || kind == 4) && !bodyMode && !boxFault ? 1u : 0u));
+    assert(count(&resultDrops) == ((kind == 3 || kind == 4) && !bodyMode ? 1u : 0u));
     xrtErrorFree(ambient); assert(!xrtGetError()); ++executions; ++observations; if (boxFault) ++faultExecutions;
 }
 static void run_discarded(void)
@@ -222,16 +224,20 @@ static void cycle(void)
     for (unusedMode = 0; unusedMode < 3; ++unusedMode) {
         bodyMode = resultMode = cancelPoint = 0; boxFault = 1; run_case();
     }
+    /* These Futures HAVE published their terminal result. Keep the direct
+     * checked retirement assertion, including its physical release tail. */
+    worker_completion_finish();worker_completion_prepare();
     boxFault = cancelPoint = 0;
     for (kind = 0; kind < 6; ++kind)
     for (bodyMode = 0; bodyMode < 3; ++bodyMode)
     for (firstMode = 0; firstMode < 3; ++firstMode)
     for (unusedMode = 0; unusedMode < 3; ++unusedMode)
     for (resultMode = 0; resultMode < (smoke ? 1 : 3); ++resultMode) run_discarded();
-    // Module quiescence drains worker callbacks and all task job frees.
-    // An open pool's Wait API is not an idle barrier. Memory is measured after
-    // logical completion, while each case awaits all its test callbacks.
-    boxFault = 0; worker_completion_finish();
+    /* This cohort deliberately has NO Future/observer completion owner.
+     * Its cleanup semaphores precede Complete. Use the actual executor's
+     * explicit idle observation with serialized producers, not a fake
+     * completion signal or a retry of a failed module retirement. */
+    boxFault = 0;worker_completion_drain_discarded();worker_completion_finish();
 }
 int main(int argc, char** argv)
 {

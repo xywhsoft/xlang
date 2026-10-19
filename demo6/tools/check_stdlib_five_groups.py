@@ -133,11 +133,16 @@ def main():
     if args.stage == 'task-group':
         selected=('stdlib_task_group_configured','stdlib_task_group_methods','stdlib_task_group_sync_only',
             'stdlib_task_group','stdlib_task_group_allocations','xlir_fixed_executor_language',
-            'stdlib_promise','stdlib_promise_terminal','stdlib_concurrent_import_only')
+            'stdlib_promise','stdlib_promise_terminal','stdlib_concurrent_import_only',
+            'stdlib_task_group_start','stdlib_task_group_start_types','stdlib_task_group_start_async',
+            'xlir_nested_callable_type_context','xlir_static_method_value','xlir_zero_suspend_async')
         negatives=('sem_task_group_private_handle','sem_task_group_raw_construct',
-            'sem_task_group_snapshot_default','xlir_task_group_bad_future','xlir_task_group_bad_effect')
+            'sem_task_group_snapshot_default','xlir_task_group_bad_future','xlir_task_group_bad_effect',
+            'bad_task_group_start_return','bad_task_group_start_arity','bad_task_group_start_width',
+            'bad_task_group_start_no_raise','bad_static_method_value_private')
         helpers=(*helpers[:3],'xlir_task_group_configured_contract.c','stdlib_task_group_configured_native.c',
-            'stdlib53_pruning_plan.c','stdlib_task_group_entry_host.c')
+            'stdlib53_pruning_plan.c','stdlib_task_group_entry_host.c',
+            'xlir_task_group_start_contract.c','stdlib_task_group_start_native.c','xlir_zero_suspend_async_contract.c')
     if args.stage in CHANNEL_STAGES:
         selected = ('stdlib_channel_timeout', 'stdlib_channel_owned', 'stdlib_channel_owned_wait',
                     'stdlib_channel_recipes', 'stdlib_promise', 'stdlib_cancellation',
@@ -179,6 +184,7 @@ def main():
               *[cases/(name+'.xl') for name in selected+negatives],
               *[cases/name for name in helpers],
               task/'test/support/module_product_memory.c', task/'test/support/module_product_memory.h'}
+    if args.stage=='task-group':inputs.add(task/'test/support/static_module_quiescence.c')
     if args.stage in QUEUED_FUTURE_STAGES:
         # The IR drivers load their own fixed fixtures, and C probes include
         # shared test headers. Seal those actual inputs, not just top-level C.
@@ -349,9 +355,11 @@ def main():
                 (root/'src/runtime/xl6_text_value.h').read_text()))
             contracts=set(re.findall(r'\{"(xl6TaskGroup\w+)"',
                 (root/'src/ir/xl6_ir_direct_bridge.c').read_text()))
+            contracts.update(re.findall(r'XL6_NATIVE_GENERIC_BRIDGE\("(xl6TaskGroup\w+)"',
+                (root/'src/abi/xl6_native_generic_contracts.inc').read_text()))
             exports=set(re.findall(r'XL6_TEXT_EXPORT\((xl6TaskGroup\w+),',
                 (root/'src/runtime/xl6_text_symbols.inc').read_text()))
-            assert len(declared)==28 and declared==contracts and declared<=exports
+            assert len(declared)==29 and declared==contracts and declared<=exports
             inspect=shutil.which('objdump' if win else 'nm');assert inspect
             for product in products[1:]:
                 body=run(product.stem+'.group.exports',[inspect,'-p',product] if win else
@@ -362,6 +370,10 @@ def main():
                     lane=product.stem+'.group.native.'+opt;binary=isolated/(lane+('.exe' if win else ''))
                     run(lane+'.build',[cc,*strict,'-'+opt,cases/helpers[4],*links(product.name),'-o',binary])
                     run(lane+'.run',[binary])
+                    tail=isolated/(lane+'.failed-tail'+('.exe' if win else ''))
+                    run(lane+'.tail.build',[cc,*strict,'-'+opt,
+                        task/'test/support/static_module_quiescence.c',*links(product.name),'-o',tail])
+                    run(lane+'.tail.run',[tail])
             report['TaskGroupResidentEntries']=len(declared)
         if args.stage in FIXED_FUTURE_STAGES:
             strict += ['-DXLIR_CONTINUATION_WORKERS=1']
@@ -398,7 +410,7 @@ def main():
                     'stdlib_channel_cases_owned','xlir_generic_static_calls','stdlib_channel_cases_receive_only'))
             if args.channel_finite_language and name.startswith('stdlib_channel_finite_'):full=True
             if args.channel_owned_profiles and name.startswith('stdlib_channel_owned_'):full=True
-            if args.stage=='task-group' and name in selected[:5]:full=True
+            if args.stage=='task-group' and name in (*selected[:5],*selected[9:]):full=True
             if not full:
                 return
             work = out/(name+'.saved')
@@ -419,7 +431,8 @@ def main():
             for opt in ('O0', 'O2'):
                 binary = isolated/(name+'.'+opt+('.exe' if win else ''))
                 module = work/'module.c'
-                run(name+'.'+opt+'.build', [cc, *strict, '-'+opt,
+                worker_flags=['-DXLIR_CONTINUATION_WORKERS=1'] if args.stage=='task-group' and name in (*selected[9:12],'xlir_zero_suspend_async') else []
+                run(name+'.'+opt+'.build', [cc, *strict, *worker_flags, '-'+opt,
                     '-DXLIR_GENERATED_MODULE="'+module.as_posix()+'"', cases/helpers[2],
                     task/'test/support/module_product_memory.c', *links(names[2]), '-o', binary])
                 run(name+'.'+opt+'.run', [binary])
@@ -445,6 +458,25 @@ def main():
                     failures.append(dict(Name=name, Error=repr(error)))
                     save()
         if args.stage=='task-group' and not failures:
+            for product in products[1:]:
+                for optimization in ('O0','O2'):
+                    lane=product.stem+'.group.start.'+optimization
+                    binary=isolated/(lane+('.exe' if win else ''))
+                    run(lane+'.build',[cc,*strict,'-'+optimization,cases/helpers[8],*links(product.name),'-o',binary])
+                    run(lane+'.run',[binary])
+                # Internal IR is not a runtime-DLL ABI. Windows keeps those
+                # compiler internals private (the exact source gate probes
+                # them); the ordinary Linux compiler exports permit this
+                # additional actual-product mutation check.
+                if not win and product==products[2]:
+                    lane=product.stem+'.group.start.contract';binary=isolated/lane
+                    run(lane+'.build',[cc,*strict,'-O2','-I'+str(root/'lib/tcc'),
+                        cases/helpers[7],*links(product.name),'-o',binary])
+                    run(lane+'.run',[binary,*[isolated/(name+'.xl') for name in selected[9:12]]])
+                    lane=product.stem+'.zero-suspension.contract';binary=isolated/lane
+                    run(lane+'.build',[cc,*strict,'-O2','-I'+str(root/'lib/tcc'),
+                        cases/helpers[9],*links(product.name),'-o',binary])
+                    run(lane+'.run',[binary,isolated/'xlir_zero_suspend_async.xl'])
             module=out/'stdlib_task_group_configured.saved/module.c'
             report['TaskGroupAllocationPrefixes']={}
             for product in products[1:]:
@@ -458,6 +490,20 @@ def main():
                     if b'hit=0 complete-prefix balanced' in body:break
                 else:raise AssertionError('TaskGroup allocation prefix did not close')
                 report['TaskGroupAllocationPrefixes'][lane]=dict(FirstNoHit=point,RecoveredRetirement=recovered)
+                save()
+            module=out/'stdlib_task_group_start.saved/module.c'
+            report['TaskGroupStartAllocationPrefixes']={}
+            for product in products[1:]:
+                lane=product.stem+'.group.start.oom';binary=isolated/(lane+('.exe' if win else ''))
+                run(lane+'.build',[cc,*strict,'-O2','-DXLIR_GENERATED_MODULE="'+module.as_posix()+'"',
+                    cases/helpers[6],task/'test/support/module_product_memory.c',*links(product.name),'-o',binary])
+                recovered=[]
+                for point in range(8193):
+                    body=run(lane+'.'+str(point),[binary,point])
+                    if b'recovered=1' in body:recovered.append(point)
+                    if b'hit=0 complete-prefix balanced' in body:break
+                else:raise AssertionError('TaskGroup start allocation prefix did not close')
+                report['TaskGroupStartAllocationPrefixes'][lane]=dict(FirstNoHit=point,RecoveredRetirement=recovered)
                 save()
         if args.stage in CHANNEL_FUTURE_STAGES and not failures:
             module=out/('stdlib_channel_direct_ready.saved/module.c' if args.stage=='channel-direct' else 'stdlib_channel_future_ready.saved/module.c')
@@ -563,16 +609,24 @@ def main():
                 run('group.pruning.build',[cc,*strict,'-O2','-I'+str(root/'lib/tcc'),
                     cases/helpers[5],*links(names[2]),'-o',planner])
                 report['TaskGroupPlans']={}
-                for name in selected[:3]+('stdlib_concurrent_import_only',):
+                for name in selected[:3]+selected[9:12]+('stdlib_concurrent_import_only',):
                     plan=json.loads(run(name+'.group.plan',[planner,isolated/(name+'.xl')]))
                     sources={Path(path).name for path in plan['Sources']}
                     if name!='stdlib_concurrent_import_only':
                         assert {'xl6_signal_task_group.c','xl6_ownership_domain_resource_task_group.c'}<=sources
-                        assert ('xl6_task_group_future.c' in sources)==(name=='stdlib_task_group_methods')
+                        assert ('xl6_task_group_future.c' in sources)==(name in ('stdlib_task_group_methods','stdlib_task_group_start_async'))
+                        assert ('xl6_task_group_start.c' in sources)==name.startswith('stdlib_task_group_start')
                     else:assert 'xl6_signal_task_group.c' not in sources
                     assert not any(m.startswith(('XRT_MODULE_NET','XRT_MODULE_TLS','XRT_MODULE_COROUTINE',
                         'XRT_MODULE_TASK_POOL','XRT_MODULE_TASK_GROUP_POOL')) for m in plan['NativeModules'])
                     report['TaskGroupPlans'][name]=plan
+                plan=json.loads(run('zero-suspension.plan',[planner,isolated/'xlir_zero_suspend_async.xl']))
+                sources={Path(path).name for path in plan['Sources']}
+                assert {'xl6_continuation_frame.c','xl6_continuation_executor.c'}<=sources
+                assert not {'xl6_task.c','xl6_task_group_start.c'}&sources
+                assert not any(m.startswith(('XRT_MODULE_NET','XRT_MODULE_TLS','XRT_MODULE_COROUTINE',
+                    'XRT_MODULE_TASK_POOL','XRT_MODULE_TASK_GROUP_POOL')) for m in plan['NativeModules'])
+                report['ZeroSuspensionPlan']=plan
             if args.stage in QUEUED_FUTURE_STAGES:
                 for name in helpers[5:8]:
                     emitted=[]

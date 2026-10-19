@@ -4,6 +4,7 @@
 #define XRT_MODULE_FUTURE
 #include "lib/xrt/xrt.h"
 #include "xl6_continuation_future.h"
+#include "xl6_continuation_executor.h"
 #include "xl6_future_wait.h"
 #include "xl6_ownership_scope.h"
 #include "../api/xl_foreign_error.h"
@@ -409,6 +410,44 @@ static bool bind_produced_body(void* data)
 static bool bind_produced(void* data) {XL6_OWNERSHIP_RETURN(bool,bind_produced_body(data));}
 const XL6_ContinuationFrameRuntimeV3* xl6ContinuationFrameRuntimeV3Get(void)
 {static const XL6_ContinuationFrameRuntimeV3 api={bind_produced};return &api;}
+xfuture* xl6ContinuationFrameLaunchV1(void* data,XL6_ContinuationExecutor* executor,
+    XL6_ContinuationProc run,const XL6_CodeOwner* owner)
+{
+    if(!data){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    ContinuationFrame* frame=header(data);XL6_ContinuationTicket* ticket=frame_ticket(frame);
+    xfuture* output=NULL;
+    if(!executor||!run){xrtSetErrorKind(XERR_ARGUMENT);goto failed;}
+    *frame_outer(frame)=xrtPromiseCreate(&output,NULL);
+    if(!*frame_outer(frame))goto failed;
+    XL6_ContinuationAdmission status=xl6ContinuationExecutorReserveOwned(executor,ticket,run,retire,data,owner);
+    if(status!=XL6_CONTINUATION_ADMITTED){
+        if(xrtGetError()==NULL)xrtSetErrorKind(status==XL6_CONTINUATION_RESOURCE_FAILURE?XERR_MEMORY:
+            status==XL6_CONTINUATION_FULL?XERR_RANGE:XERR_STATE);
+        goto failed;
+    }
+    if(!bind_produced(data))goto failed;
+    /* No source transport exists for entry. Commit is LAST: its publication
+     * handshake may hand the frame to a worker and retire it before returning.
+     * The locally owned output is the only object touched afterwards. */
+    frame_ready(frame);
+    xl6ContinuationTransportReleased(ticket);
+    xl6ContinuationCommit(ticket);
+    return output;
+failed:
+    {
+        xl6_error_scope cleanupScope={0};xl6_error_result outcome;
+        xerror* primary=xrtTakeError();
+        if(!xl6ErrorScopeBegin(&cleanupScope))abort();
+        xrtSetErrorTake(primary);xl6ErrorScopeCaptureFailure(&cleanupScope);
+        if(ticket->queue&&!xl6ContinuationAbort(ticket))abort();
+        discard(data);
+        if(xrtGetError())xl6ErrorScopeCaptureFailure(&cleanupScope);
+        xrtFutureDestroy(output);
+        if(xrtGetError())xl6ErrorScopeCaptureFailure(&cleanupScope);
+        outcome=xl6ErrorScopeEnd(&cleanupScope);xl6ErrorScopePropagateFailure(outcome);
+    }
+    return NULL;
+}
 static bool observe(void* data,xfutureresult* output)
 {
     ContinuationFrame* frame=header(data);xfutureresult input={0};xrtownershipscope mutation={0};
@@ -496,6 +535,28 @@ static void producer_published(const void* data)
 }
 const XL6_ContinuationFrameRuntimeV4* xl6ContinuationFrameRuntimeV4Get(void)
 {static const XL6_ContinuationFrameRuntimeV4 api={observe,cancel_wait};return &api;}
+xl6_error_result xl6ContinuationFrameFinishV1(void* data,xl6_error_result incoming,bool* cancelled)
+{
+    if(!data||!cancelled)abort(); /* initialized, running frame contract */
+    ContinuationFrame* frame=header(data);ContinuationProducer* producer=frame->producer;
+    *cancelled=false;
+    if(incoming.ok&&producer){
+        xcancel* token=xrtPromiseCancelToken(*frame_outer(frame));
+        bool requested=token&&xrtCancelRequested(token);xrtCancelDestroy(token);
+        xrtownershipscope mutation={0};
+        producer_begin(producer,&mutation);
+        if(!producer->cancelObserved&&(requested||producer->cancelRequested)){
+            producer->cancelObserved=true;*cancelled=true;
+        }
+        producer_end(producer,&mutation);
+        if(*cancelled){
+            /* No synthetic Error allocation: the explicit false/NULL primary
+             * already protects cancellation against any destructor failure. */
+            xrtErrorFree(incoming.error);incoming=(xl6_error_result){false,NULL};
+        }
+    }
+    return cleanup(data,incoming);
+}
 static bool producer_claim(const void* data,const void* token)
 {
     ContinuationProducer* producer=(ContinuationProducer*)data;

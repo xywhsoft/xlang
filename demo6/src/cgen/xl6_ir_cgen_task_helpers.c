@@ -175,13 +175,12 @@ static int xl6IrCgenEmitAsyncPayloadAllocation(XL6_Output* out,const XL6_IrModul
     return !xl6OutputHasFailed(out);
 }
 
-static void xl6IrCgenEmitAsyncTaskSubmission(XL6_Output* out,XL6_IrAsyncResultAbi abi,int language)
+static void xl6IrCgenEmitAsyncTaskSubmission(XL6_Output* out,XL6_IrAsyncResultAbi abi)
 {
     if(abi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)
-        xl6OutputPrintf(out,"    future = xl6TaskSubmitOwnedPolicyV1(xlir_async_pool, frame, NULL, xl6NativeFuturePayloadRuntimeV1Get()->Policy(), %s);\n",
-            language ? "true" : "false");
-    else xl6OutputPrintf(out,"    future = %s(frame, NULL, %s);\n",
-        language ? "xlir_async_pool_submit_language" : "xlir_async_pool_submit",xl6IrCgenAsyncPayloadKind(abi));
+        xl6OutputPuts("    future = xl6TaskSubmitOwnedPolicyV1(xlir_async_pool, frame, NULL, xl6NativeFuturePayloadRuntimeV1Get()->Policy(), false);\n",out);
+    else xl6OutputPrintf(out,"    future = xlir_async_pool_submit(frame, NULL, %s);\n",
+        xl6IrCgenAsyncPayloadKind(abi));
 }
 
 /* Callback frames are emitted from the verified activation capture program.
@@ -437,7 +436,7 @@ static int xl6IrCgenEmitTaskSpawnHelper(
         "    }\n",
         (unsigned long)instructionIndex);
     if (!xl6IrCgenEmitCallbackCapture(out, module, boundary, "xlir_task_spawn", instructionIndex)) return 0;
-    xl6IrCgenEmitAsyncTaskSubmission(out,instruction->asyncResultAbi,0);
+    xl6IrCgenEmitAsyncTaskSubmission(out,instruction->asyncResultAbi);
     xl6OutputPrintf(out,
         "    if (future == NULL) {\n"
         "        if (!xrtGetError()) xrtSetErrorTake(xlir_error_create(\"TaskError\", \"task.spawn submission failed\"));\n"

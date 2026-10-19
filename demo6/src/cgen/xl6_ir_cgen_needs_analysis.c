@@ -1258,10 +1258,6 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
                  * this dependency belongs to the machine admission itself. */
                 needs->needsErrorRuntime = 1;
             }
-            if ( module->callTargets[i].asyncDispatch ==
-                     XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL &&
-                 xl6IrCgenAsyncMachine(module, &module->callTargets[i]) == NULL )
-                needs->needsAsyncTaskRuntime = 1;
             if ( module->callTargets[i].asyncDispatch == XL6_IR_ASYNC_DISPATCH_XRT_READY_FUTURE ) {
                 needs->needsAsyncReadyRuntime = 1;
                 if ( module->callTargets[i].workerErrorAbi == XL6_IR_ERROR_ABI_MAY_RAISE )

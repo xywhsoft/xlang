@@ -1,0 +1,45 @@
+import concurrent
+
+async func empty()
+end
+
+async func sum(int count) as int
+    int result = 0
+    for i in range(count)
+        result += i
+    end
+    return result
+end
+
+async func text(string value) as string
+    try
+        return value + "\0tail"
+    finally
+        assert value.length >= 0
+    end
+end
+
+async func fail() as int
+    try
+        throw ValueError "zero-suspension original"
+    finally
+        assert true
+    end
+end
+
+async func immediate() as int
+    return 42
+end
+
+await empty()
+assert (await sum(100)) == 4950
+assert (await text("a\0你")) == "a\0你\0tail"
+bool caught = false
+try
+    auto result = await fail()
+catch ValueError error
+    assert error.message == "zero-suspension original"
+    caught = true
+end
+assert caught and (await immediate()) == 42
+println("zero-suspension async: fixed ready queue, owned text, finally and original error ok")

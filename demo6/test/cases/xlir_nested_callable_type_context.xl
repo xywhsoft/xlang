@@ -1,0 +1,18 @@
+func nested() as array<array<int>>
+    array<int> row = [3, 4]
+    array<array<int>> result = [row]
+    return result
+end
+auto produce = func() as array<array<int>>
+    return nested()
+end
+auto echo = func(array<array<int>> value) as array<array<int>>
+    return value
+end
+var erased = produce()
+assert erased is array<array<int>>
+array<array<int>> acquired = erased as array<array<int>>
+assert echo(acquired)[0][1] == 4
+int shifted = 64
+assert ((shifted as int) >> 2) == 16 and (shifted >> 3) == 8
+println("nested lambda return/cast/is type contexts preserve real right shifts")

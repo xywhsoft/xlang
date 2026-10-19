@@ -49,8 +49,8 @@ int main(void)
     assert(xrtMemDebugEnable(true));xrtSetErrorKind(XERR_STATE);xrtClearError();
     xl6_error_scope warm={0};assert(xl6ErrorScopeBegin(&warm));assert(xl6ErrorScopeEnd(&warm).ok);
     assert(CLOSED_CAPTURE_LAYOUT.count==6);for(unsigned i=0;i<6;++i){
-        assert(CLOSED_CAPTURE_LAYOUT.slots[i].value.kind==(XL6_CaptureKind)(i+1));
-        assert(!CLOSED_CAPTURE_LAYOUT.slots[i].native);
+        assert(CLOSED_CAPTURE_LAYOUT.slots[i].value.value.kind==(XL6_CaptureKind)(i+1));
+        assert(!CLOSED_CAPTURE_LAYOUT.slots[i].value.native);
     }
     for(unsigned n=0;n<50;++n){transaction(0,-1);transaction(1,-1);}
     for(int fault=0;fault<24;++fault)transaction(0,fault);

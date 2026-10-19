@@ -1,0 +1,38 @@
+import concurrent
+async func noResult()
+end
+async func runChecks() as int
+    auto group = task.group()
+    auto text = Promise::<string>()
+    auto data = Promise::<bytes>()
+    auto nullable = Promise::<int?>()
+    auto values = Promise::<array<int>>()
+    auto textResult = group.start(func() as future<string>
+        return text.future
+    end)
+    auto bytesResult = group.start(func() as future<bytes>
+        return data.future
+    end)
+    auto nullResult = group.start(func() as future<null>
+        return noResult()
+    end)
+    auto optionalResult = group.start(func() as future<int?>
+        return nullable.future
+    end)
+    auto arrayResult = group.start(func() as future<array<int>>
+        return values.future
+    end)
+    assert group.snapshot().added == 5
+    assert text.tryResolve("a\0你") and data.tryResolve(b"a\0\xff")
+    assert nullable.tryResolve(null)
+    array<int> original = [7, 8]
+    await nullResult
+    assert values.tryResolve(original) and group.join()
+    assert (await textResult) == "a\0你" and (await bytesResult) == b"a\0\xff"
+    assert (await optionalResult) == null
+    array<int> acquired = await arrayResult
+    assert acquired[0] == 7 and acquired[1] == 8
+    println("TaskGroup typed start: owned text/bytes/array and nullable/void Futures ok")
+    return 0
+end
+assert (await runChecks()) == 0

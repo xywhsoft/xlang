@@ -1,0 +1,45 @@
+import concurrent
+async func make(future<int> source, int offset) as int
+    return (await source) + offset
+end
+class Factory
+    Promise<int> producer = Promise::<int>()
+    func createFuture() as future<int>
+        return make(self.producer.future, 5)
+    end
+end
+class GenericFactory<T>
+    future<T> source
+    create(future<T> source)
+        self.source = source
+    end
+    func createFuture() as future<T>
+        return self.source
+    end
+end
+async func runChecks() as int
+    auto group = task.group()
+    auto factory = Factory()
+    func() as future<int> starter = factory.createFuture
+    array<future<int>> results = []
+    for i in range(64)
+        assert results.push(group.start(starter))
+    end
+    assert factory.producer.tryResolve(10)
+    await group.joinAsync()
+    for result in results
+        assert (await result) == 15
+    end
+    assert group.snapshot().succeeded == 64
+    auto genericProducer = Promise::<string>()
+    auto genericFactory = GenericFactory::<string>(genericProducer.future)
+    func() as future<string> genericStarter = genericFactory.createFuture
+    auto genericGroup = task.group()
+    auto genericResult = genericGroup.start(genericStarter)
+    assert genericProducer.tryResolve("generic\0value")
+    await genericGroup.joinAsync()
+    assert (await genericResult) == "generic\0value"
+    println("TaskGroup start: bound checked Future producer and fixed-ready async roots ok")
+    return 0
+end
+assert (await runChecks()) == 0

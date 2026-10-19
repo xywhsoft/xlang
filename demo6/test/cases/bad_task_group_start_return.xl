@@ -1,0 +1,4 @@
+auto group = task.group()
+auto value = group.start(func() as int
+    return 1
+end)

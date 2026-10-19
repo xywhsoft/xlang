@@ -1,7 +1,13 @@
 #include <assert.h>
 #include <stdio.h>
-#include "../../build/test/xlir_owned_activation.c"
-#include "../../build/test/xlir_owned_activation.bind.h"
+#ifndef XLIR_OWNED_ACTIVATION_SOURCE
+#define XLIR_OWNED_ACTIVATION_SOURCE "../../build/test/xlir_owned_activation.c"
+#endif
+#include XLIR_OWNED_ACTIVATION_SOURCE
+#ifndef XLIR_OWNED_ACTIVATION_BINDING
+#define XLIR_OWNED_ACTIVATION_BINDING "../../build/test/xlir_owned_activation.bind.h"
+#endif
+#include XLIR_OWNED_ACTIVATION_BINDING
 #define XLIR_TEST_LAUNCH_FUTURE
 #define XLIR_TEST_LAUNCH_GENERATOR
 #include "xlir_launch_test.h"
@@ -19,6 +25,8 @@ extern unsigned owned_capture_drop_count(void);
 static unsigned faults, suspensions;
 static int raisingDrop, raisingBody;
 static int64_t payload = 3;
+/* The generated ABI is an exact byte-counted value, not a C string pointer. */
+static const xlir_string key={"key",3};
 void owned_capture_drop(int64_t id)
 {
     owned_capture_record_drop();
@@ -58,14 +66,14 @@ void owned_capture_prepare(void) { assert(xlir_module_init() && !xrtGetError());
 static void restart_module(void)
 {
     xlir_module_fini(); assert(!xrtGetError());
-    assert(xlir_async_pool == NULL);
+    assert(xlir_continuation_executor == NULL);
     assert(xlir_module_initialized == 0);
     owned_capture_prepare();
 }
 void owned_capture_finish(void)
 {
     xlir_module_fini(); assert(!xrtGetError());
-    assert(xlir_async_pool == NULL);
+    assert(xlir_continuation_executor == NULL);
     assert(xlir_module_initialized == 0);
 }
 void owned_capture_cycle(int smoke)
@@ -74,7 +82,7 @@ void owned_capture_cycle(int smoke)
     for (mode = 0; mode < 4; ++mode) {
         xlir_generator* generator; xlir_generator_step step; int64_t value;
         before = drops; raisingBody = mode == 2; raisingDrop = mode >= 2;
-        generator = xlir_test_observe_generator_launch(CAPTURE_ownedGenerator("key", owned_capture_new(4), owned_capture_new(5)));
+        generator = xlir_test_observe_generator_launch(CAPTURE_ownedGenerator(key, owned_capture_new(4), owned_capture_new(5)));
         assert(generator && drops == before && !xrtGetError());
         if (mode != 1) {
             step = xlir_generator_next(generator);
@@ -101,8 +109,8 @@ void owned_capture_cycle(int smoke)
         xvalue *first = owned_capture_new(4), *unused = owned_capture_new(5);
         xfuture* result;
         before = drops; raisingDrop = mode;
-        assert(xl6TaskRuntimeV1Get()->PoolIsQuiescent(xlir_async_pool) && xrtMemDebugFailAfter(0));
-        result = xlir_test_observe_future_launch(CAPTURE_ownedPool("key", first, unused, false));
+        assert(xl6ContinuationExecutorIsIdle(xlir_continuation_executor) && xrtMemDebugFailAfter(0));
+        result = xlir_test_observe_future_launch(CAPTURE_ownedPool(key, first, unused, false));
         assert(xrtMemDebugFailTriggered()); xrtMemDebugFailClear(); ++faults;
         assert(!result && drops == before + 2 && xrtGetError());
         assert(xrtErrorCode(xrtGetError()) != 104 && xrtErrorCode(xrtGetError()) != 105);
@@ -111,7 +119,7 @@ void owned_capture_cycle(int smoke)
     for (mode = 0; mode < 3; ++mode) {
         xfuture* result;
         before = drops; raisingDrop = mode != 0;
-        result = xlir_test_observe_future_launch(CAPTURE_ownedPool("key", owned_capture_new(4), owned_capture_new(5), mode == 2));
+        result = xlir_test_observe_future_launch(CAPTURE_ownedPool(key, owned_capture_new(4), owned_capture_new(5), mode == 2));
         assert(result && xrtFutureWait(result) == 0);
         future_result(result, mode ? XFUTURE_FAILED : XFUTURE_RESOLVED, mode == 2 ? 81 : mode ? 105 : 0, -1);
         assert(drops == before + 2); raisingDrop = 0;
@@ -119,7 +127,7 @@ void owned_capture_cycle(int smoke)
     for (mode = 0; mode < 6; ++mode) {
         xfuture *input = NULL, *result; xpromise* promise = xrtPromiseCreate(&input, NULL);
         before = drops; assert(promise && input);
-        result = xlir_test_observe_future_launch(CAPTURE_ownedMachine("key", owned_capture_new(4), owned_capture_new(5), input, mode == 1));
+        result = xlir_test_observe_future_launch(CAPTURE_ownedMachine(key, owned_capture_new(4), owned_capture_new(5), input, mode == 1));
         assert(result && !xrtFutureDone(result) && drops == before && !xrtGetError()); ++suspensions;
         raisingDrop = mode == 1 || mode == 5;
         if (mode == 2) {
@@ -135,11 +143,18 @@ void owned_capture_cycle(int smoke)
     }
     /* The source call-site must also perform the transfer correctly. */
     before = drops; owned_capture_keep(); assert(!xrtGetError());
+    /* Source calls deliberately discard their Future owners. Those drops do
+     * not await completion; serialized, finite test producers explicitly
+     * observe actual idle before retirement, not a retry after failed fini. */
+    xdeadline idleDeadline=xrtDeadlineAfter(15000000);
+    while(!xl6ContinuationExecutorIsIdle(xlir_continuation_executor)){
+        assert(!xrtDeadlineExpired(idleDeadline));xrtThreadYield();
+    }
     restart_module(); assert(drops == before + 8);
     if (!smoke) {
         unsigned family, failIndex, destruct;
         /* Warm the lazy pool through a real accepted language activation. */
-        future_result(xlir_test_observe_future_launch(CAPTURE_ownedPool("key", owned_capture_new(4), owned_capture_new(5), false)),
+        future_result(xlir_test_observe_future_launch(CAPTURE_ownedPool(key, owned_capture_new(4), owned_capture_new(5), false)),
             XFUTURE_RESOLVED, 0, -1);
         for (family = 0; family < 4; ++family) for (failIndex = 0; failIndex < (family <= 1 ? 3u : 2u); ++failIndex)
         for (destruct = 0; destruct < 2; ++destruct) {
@@ -148,10 +163,10 @@ void owned_capture_cycle(int smoke)
             if (family == 3) { promise = xrtPromiseCreate(&input, NULL); assert(promise && input); }
             before = drops; raisingDrop = (int)destruct;
             assert(first && unused && xrtMemDebugFailAfter(failIndex));
-            if (family == 0) generator = xlir_test_observe_generator_launch(CAPTURE_ownedGenerator("key", first, unused));
+            if (family == 0) generator = xlir_test_observe_generator_launch(CAPTURE_ownedGenerator(key, first, unused));
             else if (family == 1) result = xlir_test_observe_future_launch(CAPTURE_ownedReady(first, unused));
-            else if (family == 2) result = xlir_test_observe_future_launch(CAPTURE_ownedPool("key", first, unused, false));
-            else result = xlir_test_observe_future_launch(CAPTURE_ownedMachine("key", first, unused, input, false));
+            else if (family == 2) result = xlir_test_observe_future_launch(CAPTURE_ownedPool(key, first, unused, false));
+            else result = xlir_test_observe_future_launch(CAPTURE_ownedMachine(key, first, unused, input, false));
             assert(xrtMemDebugFailTriggered()); xrtMemDebugFailClear(); ++faults;
             assert(!generator && !result && drops == before + 2);
             assert(xrtGetError() && xrtErrorCode(xrtGetError()) != 104 && xrtErrorCode(xrtGetError()) != 105);

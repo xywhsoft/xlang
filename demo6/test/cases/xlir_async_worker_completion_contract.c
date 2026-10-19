@@ -11,7 +11,7 @@ int main(int argc, char** argv)
         for (i = 0; i < parse.diags.count; ++i) fprintf(stderr, "%s\n", parse.diags.items[i].message);
         return 2;
     }
-    verify(&ir); assert(ir.asyncMachineCount == 0 && ir.asyncSuspensionCount == 0);
+    verify(&ir); assert(ir.asyncMachineCount == 6 && ir.asyncSuspensionCount == 0);
     for (i = 0; i < ir.callTargetCount; ++i) {
         XL6_IrCallTarget* target = &ir.callTargets[i];
         XL6_IrAsyncCompletionAbi completion = target->asyncCompletionAbi;
@@ -23,7 +23,7 @@ int main(int argc, char** argv)
         }
         ++workers;
         assert(completion == XL6_IR_ASYNC_COMPLETION_RETIRE_BEFORE_PUBLISH &&
-            target->asyncDispatch == XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL && target->asyncMachine == SIZE_MAX);
+            target->asyncDispatch == XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE && target->asyncMachine < ir.asyncMachineCount);
         assert(target->parameterCount == 3 && target->workerErrorAbi == XL6_IR_ERROR_ABI_MAY_RAISE);
         target->asyncCompletionAbi = XL6_IR_ASYNC_COMPLETION_INVALID; reject(&ir, "completion cleanup barrier");
         target->asyncCompletionAbi = (XL6_IrAsyncCompletionAbi)99; reject(&ir, "completion cleanup barrier");

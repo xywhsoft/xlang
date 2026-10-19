@@ -12627,7 +12627,7 @@ static int xl6IrLowerMarkAsyncReadyFuture(
     const XL6_IrNode* returned;
     size_t statement;
     if ( declaration == NULL || target == NULL || target->kind != XL6_IR_CALL_TARGET_INTERNAL_ASYNC ||
-         target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL ||
+         target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE ||
          declaration->childCount <= 3 ) return 1;
     body = xl6IrNodeGet(module, module->children[declaration->firstChild + 3]);
     if ( body == NULL || body->kind != XL6_IR_NODE_BLOCK || body->childCount == 0 ||
@@ -12760,7 +12760,7 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
     target->errorPhysicalAbi = XL6_IR_CALL_ERROR_PHYSICAL_INVALID;
     target->workerErrorAbi = XL6_IR_ERROR_ABI_NO_RAISE;
     target->asyncDispatch = target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC
-        ? XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL : XL6_IR_ASYNC_DISPATCH_NONE;
+        ? XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE : XL6_IR_ASYNC_DISPATCH_NONE;
     target->asyncMachine = SIZE_MAX;
     target->generatorMachine = SIZE_MAX;
     target->parameterCount = parameterOffset + physicalParameterCount;

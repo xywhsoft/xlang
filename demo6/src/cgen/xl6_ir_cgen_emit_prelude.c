@@ -477,7 +477,6 @@ static int xl6IrCgenEmitRuntimePrelude(
             "static bool xlir_async_pool_activate(void)\n"
             "{ return (xlir_async_pool = xl6TaskRuntimeV1Get()->PoolCreate(NULL)) != NULL; }\n"
             "#define xlir_async_pool_submit(frame, cancel, kind) xl6TaskSubmitPayloadV1(xlir_async_pool, frame, cancel, kind, false)\n"
-            "#define xlir_async_pool_submit_language(frame, cancel, kind) xl6TaskSubmitPayloadV1(xlir_async_pool, frame, cancel, kind, true)\n"
             "static bool xlir_async_pool_quiesce(void)\n"
             "{ return xl6TaskRuntimeV1Get()->PoolQuiesce(xlir_async_pool); }\n"
             "static void xlir_async_pool_release(void)\n"

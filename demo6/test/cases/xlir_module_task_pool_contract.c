@@ -75,8 +75,9 @@ static void check(const char* text, const char* path, int expected, int emit, ch
         assert((strstr(generated,"visit(xl6TaskPoolOwnership(xlir_async_pool), context)")!=NULL)==(expected!=0));
         assert(!strstr(generated,"if (!xl6TaskRuntimeV1Get()->PoolIsClosing(xlir_async_pool) ||"));
         if(expected)assert(ir.abi.taskPoolOwnershipAbi==XL6_IR_MODULE_TASK_POOL_OWNERSHIP_RESIDENT_NATIVE_JOBS_JOIN_V1&&
-            ir.abi.retirementAbi==XL6_IR_MODULE_RETIREMENT_OWNED_SERVICES_GRAPH_V3&&
-            strstr(generated,"if (teardown && !xlir_async_pool_quiesce())"));
+            ir.abi.retirementAbi==XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4&&
+            strstr(generated,"? (xlir_async_pool_quiesce() ? XL6_MODULE_PREPARE_READY : XL6_MODULE_PREPARE_FAILED)")&&
+            strstr(generated,": xl6TaskPoolTryQuiesceV1(xlir_async_pool)"));
         xrtFree(generated);
     }
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse); return;
@@ -90,10 +91,10 @@ int main(int argc, char** argv)
     check("int value = 1\n", "pool_none.xl", 0, 0, argv);
     check("async func ready() as int\nreturn 7\nend\nauto result = ready()\n", "pool_ready.xl", 0, 0, argv);
     check("async func waiting(future<int> input) as int\nreturn await input\nend\n", "pool_machine.xl", 0, 0, argv);
-    check("extern \"observe\" func observe()\nasync func worker()\nobserve()\nend\nauto result = worker()\n", "pool_worker.xl", 1, 0, argv);
-    check("extern \"observe\" func observe()\nasync func deadWorker()\nobserve()\nend\n", "pool_dead.xl", 1, 0, argv);
+    check("extern \"observe\" func observe()\nasync func worker()\nobserve()\nend\nauto result = worker()\n", "pool_worker.xl", 0, 0, argv);
+    check("extern \"observe\" func observe()\nasync func deadWorker()\nobserve()\nend\n", "pool_dead.xl", 0, 0, argv);
     check("async func unusedReady() as int\nreturn 7\nend\n", "pool_unused_ready.xl", 0, 0, argv);
-    check("extern \"observe\" func observe()\nclass Worker\nvirtual async func run()\nobserve()\nend\nend\n", "pool_unused_virtual_void.xl", 1, 0, argv);
+    check("extern \"observe\" func observe()\nclass Worker\nvirtual async func run()\nobserve()\nend\nend\n", "pool_unused_virtual_void.xl", 0, 0, argv);
     check("func work() as int\nreturn 7\nend\nfunc() as int job = work\nauto result = task.spawn(job)\n", "pool_spawn.xl", 1, 0, argv);
     check(NULL, "test/cases/xlir_module_task_pool.xl", 1, 1, argv);
     printf("module pool: 9 ABI partitions, %llu rejected IR mutations, canonical resource dump\n", (unsigned long long)mutations);

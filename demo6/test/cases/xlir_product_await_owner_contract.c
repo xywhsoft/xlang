@@ -59,7 +59,20 @@ int main(int argc, char** argv)
     for (m = 0; m < ir.asyncMachineCount; ++m) {
         XL6_IrAsyncMachine* machine = &ir.asyncMachines[m];
         if (!machine->suspensionCount) continue;
-        assert(machine->suspensionCount == 2 && machine->initBitCount == 4);
+        /* Both Future parameters now belong to the queued root at birth;
+         * the first is used before the first suspension but cannot be borrowed
+         * from a caller which has already returned. Three local owners remain. */
+        assert(machine->suspensionCount == 2 && machine->initBitCount == 5);
+        size_t parameters=0;
+        for(i=0;i<machine->frameSlotCount;++i){
+            const XL6_IrAsyncMachineFrameSlot* frame=&ir.asyncMachineFrameSlots[machine->firstFrameSlot+i];
+            if(frame->residence==XL6_IR_ASYNC_FRAME_RESIDENCE_LAUNCH_PARAMETER){
+                assert(frame->parameter<2&&frame->transferAbi==XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_FUTURE&&
+                    frame->destroyAbi==XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_FUTURE&&frame->initBit<machine->initBitCount);
+                ++parameters;
+            }
+        }
+        assert(parameters==2);
         awaits += machine->suspensionCount;
         for (i = machine->firstFrameSlot; i < machine->firstFrameSlot + machine->frameSlotCount; ++i) {
             XL6_IrAsyncMachineFrameSlot *frame = &ir.asyncMachineFrameSlots[i], saved;

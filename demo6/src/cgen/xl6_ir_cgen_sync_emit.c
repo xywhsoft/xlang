@@ -603,9 +603,9 @@ static const XL6_IrAsyncMachine* xl6IrCgenAsyncMachine(
     if ( machine->status != XL6_IR_ASYNC_MACHINE_ANALYZED ||
          machine->targetSymbol != target->symbol || function == NULL ||
          function->kind != XL6_IR_FUNCTION_ASYNC_WORKER ||
-         target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL ||
+         target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE ||
          function->symbol != target->symbol ||
-         machine->suspensionCount == 0 || machine->entryCount == 0 ||
+         machine->entryCount == 0 ||
          machine->firstEntry >= module->asyncMachineEntryCount ||
          machine->entryCount > module->asyncMachineEntryCount - machine->firstEntry ||
          machine->blockCount == 0 || machine->firstBlock >= module->asyncMachineBlockCount ||

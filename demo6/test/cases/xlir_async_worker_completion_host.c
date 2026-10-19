@@ -1,5 +1,7 @@
 #include <assert.h>
 #include <stddef.h>
+#define XRT_DECLARATIONS 1
+#include "src/common/xl6_xrt.h"
 extern void* worker_completion_malloc(size_t);
 // Use the real allocator after the worker-entry barrier. Fault cases arm XRT's
 // thread-local allocation failure, never synthesize a NULL allocation result.
@@ -37,10 +39,25 @@ void worker_completion_drop(int64_t id)
     }
 }
 void worker_completion_prepare(void) { assert(xlir_module_init() && !xrtGetError()); }
+void worker_completion_drain_discarded(void)
+{
+    /* ONLY the no-observer cohort: producers are serialized and every body
+     * has completed its tested lexical cleanup. Dropping a Future is not an
+     * await or a terminal publication barrier. Wait for actual idle before
+     * requesting module retirement; never retry a failed checked teardown. */
+    xdeadline deadline=xrtDeadlineAfter(15000000);
+    while(!xl6ContinuationExecutorIsIdle(xlir_continuation_executor)){
+        assert(!xrtDeadlineExpired(deadline));xrtThreadYield();
+    }
+}
 void worker_completion_finish(void)
 {
     xl6_error_scope scope = {0}; xl6_error_result outcome;
     assert(xl6ErrorScopeBegin(&scope)); xlir_module_fini(); outcome = xl6ErrorScopeEnd(&scope);
+    if(!outcome.ok||outcome.error||xlir_module_initialized!=0||xrtGetError())
+        fprintf(stderr,"queued worker fini: ok=%d kind=%d code=%d initialized=%d ambient=%d message=%s\n",
+            (int)outcome.ok,(int)xrtErrorKind(outcome.error),xrtErrorCode(outcome.error),xlir_module_initialized,
+            (int)xrtErrorKind(xrtGetError()),outcome.error?xrtErrorMessage(outcome.error):"none");
     /* A diagnostic-free failure is still a failure. Do not silently proceed
      * into a second cycle with an admission-closed, unretired module pool. */
     assert(outcome.ok && !outcome.error && xlir_module_initialized == 0 && !xrtGetError());

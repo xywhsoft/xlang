@@ -14240,6 +14240,17 @@ static XL6_AstNode* xl6SemInferAutoTypeNodeRaw(XL6_SemContext* ctx, XL6_AstNode*
         if ( expr->childCount > 0 ) {
             XL6_AstNode* receiverType = xl6SemInferAutoTypeNode(ctx, expr->children[0]);
             int dynamicReceiver = xl6SemSafeMemberKeyReceiverIsDynamic(ctx, receiverType);
+            if(!dynamicReceiver && expr!=ctx->directCallCallee){
+                const XL6_AstNode* concrete=xl6SemClassValueType(ctx,receiverType);
+                const XL6_AstNode* owner=concrete?xl6SemFindTypeDecl(ctx,concrete->text):NULL;
+                /* A method/overload group is the existing runtime callable
+                 * value, even for a statically typed receiver. It is not an
+                 * untyped IR hole or an invented direct closure pointer.
+                 * A func destination still performs the ordinary checked
+                 * complete-signature projection before it can be invoked. */
+                dynamicReceiver=owner && owner->kind==XL6_AST_CLASS &&
+                    xl6SemClassHasCallableMember(ctx,owner,expr->text);
+            }
             /* Flow knowledge can identify a class without changing a var
              * storage's erased representation. An unresolved member value
              * (including an overload group) still has the dynamic value ABI;

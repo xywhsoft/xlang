@@ -12898,6 +12898,17 @@ int xl6IrCheckedFloatConversionSignature(const XL6_IrModule* module,
          (cast == XL6_IR_CAST_XVALUE_TO_F64_CHECKED && dynamic));
 }
 
+static int xl6IrDynamicMemberReadReceiver(const XL6_IrModule* module,const XL6_IrType* type)
+{
+    /* A nominal method value uses the same checked, receiver-retaining
+     * dispatcher as an erased method value. This does not make class fields
+     * open or admit a nominal receiver to dynamic function invocation. */
+    return xl6IrTypeIsOpenDynamicBuiltin(module,type) ||
+        (type && type->kind==XL6_IR_TYPE_CLASS && type->cAbi==XL6_IR_C_ABI_RUNTIME_XVALUE_PTR &&
+         type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED && type->nullAbi==XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
+         type->nominalSymbol!=XL6_SYMBOL_ID_INVALID && type->typeValueId);
+}
+
 int xl6IrNodeIsDynamicMemberRead(const XL6_IrModule* module, XL6_IrNodeId id)
 {
     const XL6_IrNode* node = xl6IrNodeGet(module, id);
@@ -12909,7 +12920,7 @@ int xl6IrNodeIsDynamicMemberRead(const XL6_IrModule* module, XL6_IrNodeId id)
         node->callKind != XL6_SEM_CALL_NONE || node->text == NULL || node->text[0] == '\0' ||
         !xl6IrTypeIsOpenDynamicBuiltin(module, xl6IrTypeGet(&module->types, node->storageType))) return 0;
     receiver = xl6IrNodeGet(module, module->children[node->firstChild]);
-    if (receiver == NULL || !xl6IrTypeIsOpenDynamicBuiltin(module,
+    if (receiver == NULL || !xl6IrDynamicMemberReadReceiver(module,
             xl6IrTypeGet(&module->types, receiver->storageType))) return 0;
     parent = xl6IrNodeGet(module, node->parent);
     /* A call's member name and an assignment's destination are not reads. */
@@ -20292,26 +20303,15 @@ XL6_IrModuleTaskPoolAbi xl6IrModuleTaskPoolRequirement(const XL6_IrModule* modul
             target->runtimeBridge <= XL6_IR_RUNTIME_BRIDGE_FS_ASYNC_TREE_ENSURE)
             return XL6_IR_MODULE_TASK_POOL_XRT_GUARDED_QUIESCE;
     }
-    size_t i, j;
+    size_t i;
     if (module == NULL) return (XL6_IrModuleTaskPoolAbi)-1;
     for (i = 0; i < module->instructionCount; ++i)
         if (module->instructions[i].kind == XL6_IR_INSTR_RUNTIME_CALL &&
             module->instructions[i].runtimeOp == XL6_IR_RUNTIME_TASK_SPAWN_CLOSURE)
             return XL6_IR_MODULE_TASK_POOL_XRT_GUARDED_QUIESCE;
-    for (i = 0; i < module->functionCount; ++i) {
-        const XL6_IrFunction* function = &module->functions[i];
-        const XL6_IrCallTarget* target;
-        int awaits = 0;
-        if (function->kind != XL6_IR_FUNCTION_ASYNC_WORKER) continue;
-        target = xl6IrCallTargetGet(module, function->symbol);
-        if (target == NULL || function->firstInstruction > module->instructionCount ||
-            function->instructionCount > module->instructionCount - function->firstInstruction)
-            return (XL6_IrModuleTaskPoolAbi)-1;
-        if (target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL) continue;
-        for (j = function->firstInstruction; j < function->firstInstruction + function->instructionCount; ++j)
-            awaits |= module->instructions[j].kind == XL6_IR_INSTR_AWAIT;
-        if (!awaits) return XL6_IR_MODULE_TASK_POOL_XRT_GUARDED_QUIESCE;
-    }
+    /* Language async bodies always use the fixed ready domain, regardless of
+     * whether this particular CFG suspends. Only explicit blocking/task/native
+     * operations above request the separate module task pool. */
     return XL6_IR_MODULE_TASK_POOL_NONE;
 }
 
@@ -20364,6 +20364,10 @@ XL6_IrModuleContinuationAbi xl6IrModuleContinuationRequirement(const XL6_IrModul
     for (i = 0; i < module->functionCount; ++i) {
         const XL6_IrFunction* function = &module->functions[i];
         if (function->kind != XL6_IR_FUNCTION_ASYNC_WORKER) continue;
+        const XL6_IrCallTarget* target=xl6IrCallTargetGet(module,function->symbol);
+        if(!target)return (XL6_IrModuleContinuationAbi)-1;
+        if(target->asyncDispatch==XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE)
+            return XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1;
         if (function->firstInstruction > module->instructionCount ||
             function->instructionCount > module->instructionCount - function->firstInstruction)
             return (XL6_IrModuleContinuationAbi)-1;
@@ -28236,26 +28240,16 @@ static void xl6IrAsyncMarkSuccessors(
     }
 }
 
-/* A parameter binding written by the lowered program needs owned activation
- * storage even when its last use precedes the first suspension. Read-only
- * launch parameters may remain borrowed arguments until they actually spill. */
+/* Every scheduled async parameter is born in the owned activation before
+ * publication. Even read-only, pre-await uses execute after the caller may
+ * have released its arguments. Read liveness cannot substitute for this
+ * launch lifetime; the verified transfer still distinguishes take/copy/ref. */
 static int xl6IrAsyncParameterNeedsStorage(
     const XL6_IrModule* module, const XL6_IrFunction* function, XL6_SymbolId symbol)
 {
     size_t i;
-    const XL6_IrCallTarget* target = xl6IrCallTargetGet(module, function->symbol);
-    if (target != NULL && target->parameterAbis != NULL) {
-        for (i = 0; i < function->parameterCount && i < target->parameterCount; ++i)
-            if (module->functionParameters[function->firstParameter + i] == symbol &&
-                target->parameterAbis[i] == XL6_IR_PARAMETER_ABI_OWNED) return 1;
-    }
-    for (i = 0; i < function->instructionCount; ++i) {
-        const XL6_IrInstruction* instruction = &module->instructions[function->firstInstruction + i];
-        int useStorage, defineStorage;
-        if (instruction->targetSymbol != symbol) continue;
-        xl6IrAsyncStorageEffect(instruction->kind, &useStorage, &defineStorage);
-        if (defineStorage || instruction->kind == XL6_IR_INSTR_STORAGE_ADDRESS) return 1;
-    }
+    for (i = 0; i < function->parameterCount; ++i)
+        if (module->functionParameters[function->firstParameter + i] == symbol) return 1;
     return 0;
 }
 
@@ -28584,7 +28578,10 @@ static int xl6IrBuildAsyncFunctionMachine(
               instruction < block->firstInstruction + block->instructionCount; ++instruction )
             if ( module->instructions[instruction].kind == XL6_IR_INSTR_AWAIT ) awaitCount += 1;
     }
-    if ( awaitCount == 0 ) return 1;
+    if(target->asyncDispatch==XL6_IR_ASYNC_DISPATCH_XRT_READY_FUTURE) {
+        if(awaitCount)goto done;
+        return 1;
+    }
     if (awaitCount > UINT32_MAX ||
         !xl6IrContinuationLivenessInit(&liveness, module, function)) goto done;
     liveValue = liveness.liveValue; liveStorage = liveness.liveStorage;
@@ -28610,7 +28607,7 @@ static int xl6IrBuildAsyncFunctionMachine(
     machine->transportAbi = XL6_IR_CALLBACK_TRANSPORT_FUTURE_WATCH;
     machine->cancellationAbi = XL6_IR_ASYNC_CANCELLATION_RESIDENT_AWAIT_ONCE_V2;
     machine->sourceLeaseAbi = XL6_IR_ASYNC_SOURCE_LEASE_CAPTURE_THEN_RELEASE;
-    machine->executionAbi = XL6_IR_ASYNC_EXECUTION_READY_QUEUE_V1;
+    machine->executionAbi = XL6_IR_ASYNC_EXECUTION_READY_QUEUE_ROOT_V2;
     machine->ownershipAbi = XL6_IR_ASYNC_OWNERSHIP_STABLE_PRODUCER_WATCH_V1;
     machine->firstSuspension = module->asyncSuspensionCount;
     module->asyncMachineCount += 1;
@@ -29404,7 +29401,7 @@ static int xl6IrVerifyAsyncMachines(const XL6_IrModule* module, XL6_DiagList* di
              machine->targetSymbol == 0 || machine->targetSymbol != function->symbol ||
              target->asyncMachine != machineIndex ||
              machine->entryBlock != function->entryBlock ||
-             machine->firstSuspension != expectedSuspension || machine->suspensionCount == 0 ||
+             machine->firstSuspension != expectedSuspension ||
              expectedSuspension > module->asyncSuspensionCount ||
              machine->suspensionCount > module->asyncSuspensionCount - expectedSuspension )
             return xl6IrDiag(diags, NULL, "XLIR async machine has no canonical function/target ABI");
@@ -29422,10 +29419,10 @@ static int xl6IrVerifyAsyncMachines(const XL6_IrModule* module, XL6_DiagList* di
             return xl6IrDiag(diags, NULL, "XLIR async source lease lifetime is unresolved");
         if (machine->ownershipAbi != XL6_IR_ASYNC_OWNERSHIP_STABLE_PRODUCER_WATCH_V1)
             return xl6IrDiag(diags, NULL, "XLIR async producer/Watch ownership ABI is unresolved");
-        if (machine->executionAbi != XL6_IR_ASYNC_EXECUTION_READY_QUEUE_V1 ||
+        if (machine->executionAbi != XL6_IR_ASYNC_EXECUTION_READY_QUEUE_ROOT_V2 ||
             module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1)
             return xl6IrDiag(diags, NULL, "XLIR async execution domain/root admission ABI is unresolved");
-        if ( target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL )
+        if ( target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE )
             return xl6IrDiag(diags, NULL, "XLIR async machine does not match its dispatch role");
         if ( machine->suspensionCount > (SIZE_MAX - 1) / XL6_IR_ASYNC_RESUME_ENTRY_COUNT ||
              machine->firstEntry != expectedEntry ||
@@ -29836,8 +29833,12 @@ static int xl6IrVerifyAsyncMachines(const XL6_IrModule* module, XL6_DiagList* di
             if ( module->instructions[instruction].kind == XL6_IR_INSTR_AWAIT ) awaitCount += 1;
         for ( machineIndex = 0; machineIndex < module->asyncMachineCount; ++machineIndex )
             if ( module->asyncMachines[machineIndex].function == functionIndex ) matchingMachines += 1;
-        if ( (awaitCount == 0 && matchingMachines != 0) ||
-             (awaitCount != 0 && matchingMachines != 1) )
+        const XL6_IrCallTarget* target=xl6IrCallTargetGet(module,function->symbol);
+        bool scheduled=target && target->asyncDispatch==XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE;
+        bool immediate=target && target->asyncDispatch==XL6_IR_ASYNC_DISPATCH_XRT_READY_FUTURE;
+        if ((!scheduled && !immediate) ||
+            (scheduled && matchingMachines!=1) ||
+            (immediate && (awaitCount || matchingMachines)))
             return xl6IrDiag(diags, NULL, "XLIR async CFG has no exact suspension-machine coverage");
     }
     return 1;
@@ -35210,6 +35211,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       ? XL6_IR_DYNAMIC_CALL_ARGUMENTS_FIRST : XL6_IR_DYNAMIC_CALL_SUBJECT_FIRST) ||
                   site->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
                  !(xl6IrTypeIsOpenDynamicBuiltin(module, subjectType) ||
+                   (site->kind==XL6_IR_DYNAMIC_CALL_MEMBER_GET && xl6IrDynamicMemberReadReceiver(module,subjectType)) ||
                    xl6IrTypeIsErasedCallable(subjectType)) ||
                  !(xl6IrTypeIsOpenDynamicBuiltin(module, resultType) ||
                    (site->resultAbi==XL6_IR_DYNAMIC_CALL_RESULT_OWNED_PRODUCT && xl6IrDynamicProductType(module,site->resultType))) )
@@ -38206,10 +38208,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                  target->errorAbi != XL6_IR_ERROR_ABI_MAY_RAISE ||
                  (target->workerErrorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
                   target->workerErrorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) ||
-                  (target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL &&
+                  (target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE &&
                    target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_READY_FUTURE) ||
                   (target->asyncResultAbi == XL6_IR_ASYNC_RESULT_VOID &&
-                   target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL) ||
+                   target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE) ||
                   target->generatorItemType != XL6_IR_TYPE_INVALID ||
                   target->generatorYieldAbi != XL6_IR_GENERATOR_YIELD_INVALID ||
                   target->generatorCaptureAbis != NULL ||

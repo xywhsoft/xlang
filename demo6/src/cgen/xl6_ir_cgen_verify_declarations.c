@@ -123,10 +123,12 @@ static int xl6IrCgenVerifyDeclarations(
                target->workerErrorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) ||
               (target->workerErrorAbi == XL6_IR_ERROR_ABI_MAY_RAISE &&
                xl6IrCgenErrorResultType(module, target->workerReturnType) == NULL) ||
-               (target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL &&
+               (target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE &&
                 target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_READY_FUTURE) ||
+              (target->asyncDispatch == XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE &&
+               xl6IrCgenAsyncMachine(module,target) == NULL) ||
               (target->asyncResultAbi == XL6_IR_ASYNC_RESULT_VOID &&
-               target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL) ||
+               target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE) ||
                (target->parameterCount != 0 && target->asyncCaptureAbis == NULL)))
             return xl6IrCgenDiag(diags, module, target->declaration,
                                  "XLIR C emitter async target ABI is not implemented");
