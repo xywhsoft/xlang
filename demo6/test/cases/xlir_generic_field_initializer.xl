@@ -1,0 +1,75 @@
+import concurrent
+
+int serial = 0
+int live = 0
+bool fail = false
+
+func nextSerial() as int
+    serial += 1
+    return serial
+end
+
+class TrackedDefault
+    create()
+        live += 1
+    end
+    destroy()
+        live -= 1
+    end
+end
+
+func makeProducer<T>() as Promise<T>
+    if fail then
+        throw ValueError "generic field failure"
+    end
+    return Promise::<T>()
+end
+
+class Pair<A, B>
+    TrackedDefault owned = TrackedDefault()
+    int sequence = nextSerial()
+    Promise<A> first = makeProducer::<A>()
+    Promise<B> second = makeProducer::<B>()
+    string label = "a\0你"
+    string empty = ""
+    bytes raw = b"\0\xff"
+    func(int) as int increment = func(int n) as int
+        int step = 1
+        return n + step
+    end
+end
+
+async func exercise()
+    auto first = Pair::<int, string>()
+    auto second = Pair::<string, bytes>()
+    auto another = Pair::<int, string>()
+    assert live == 3 and serial == 3
+    assert first.sequence == 1 and second.sequence == 2 and another.sequence == 3
+    assert first.first.tryResolve(41) and first.second.tryResolve("a\0你")
+    assert second.first.tryResolve("other") and second.second.tryResolve(b"a\0b")
+    assert (await first.first.future) == 41 and (await first.second.future) == "a\0你"
+    assert (await second.first.future) == "other" and (await second.second.future) == b"a\0b"
+    assert not another.first.isCompleted and not another.second.isCompleted
+    assert first.increment(41) == 42 and second.increment(8) == 9
+    assert first.label == second.label and first.label == "a\0你"
+    assert first.empty == "" and second.raw.length == 2 and second.raw[0] == 0 and second.raw[1] == 255
+end
+
+await exercise()
+assert live == 0
+fail = true
+int caught = 0
+for i in range(8)
+    try
+        auto failed = Pair::<int, string>()
+    catch ValueError value
+        assert value.message == "generic field failure"
+        caught += 1
+    end
+end
+assert caught == 8 and live == 0 and serial == 11
+fail = false
+auto recovered = Pair::<int, string>()
+assert recovered.first.tryResolve(99)
+assert (await recovered.first.future) == 99 and recovered.sequence == 12
+println("generic initializer graphs: nested calls, closure locals, effects, failure cleanup")
