@@ -7057,7 +7057,7 @@ static const XL6_IrUnionField* xl6IrLowerUnionField(
          member->unionField >= module->unionFieldCount ) return NULL;
     receiver = xl6IrNodeGet(module, module->children[member->firstChild]);
     field = &module->unionFields[member->unionField];
-    if ( receiver == NULL || receiver->storageType != field->ownerType ||
+    if ( xl6IrUnionReceiverType(module,receiver) != field->ownerType ||
          member->storageType != field->type ) return NULL;
     if ( outReceiver != NULL ) *outReceiver = receiver;
     return field;
@@ -7079,7 +7079,7 @@ static XL6_IrValueId xl6IrLowerUnionFieldProject(
         return XL6_IR_VALUE_INVALID;
     }
     source = xl6IrLowerNode(ctx, ctx->module->children[member->firstChild]);
-    if ( source == XL6_IR_VALUE_INVALID ||
+    if ( source == XL6_IR_VALUE_INVALID || xl6IrLowerValueType(ctx,source)!=field->ownerType ||
          !xl6IrLowerEmit(ctx, XL6_IR_INSTR_UNION_GET, origin, field->type,
                           0, &source, 1, &result) ) return XL6_IR_VALUE_INVALID;
     ctx->module->instructions[ctx->module->instructionCount - 1].elementIndex =
@@ -7201,7 +7201,8 @@ static int xl6IrLowerUnionFieldSet(
         storageSymbol = xl6IrLowerPromotedParameterStorage(ctx, receiver->targetSymbol);
     if ( storageSymbol == 0 ) storageSymbol = receiver->targetSymbol;
     storage = xl6IrStorageGet(ctx->module, storageSymbol);
-    if ( storage == NULL || storage->type != field->ownerType ) {
+    if ( storage == NULL || (storage->type != field->ownerType &&
+         xl6IrNullableUnionElementType(ctx->module,storage->type)!=field->ownerType) ) {
         xl6IrLowerDiag(ctx, origin,
             "XLIR union field write target does not match its union storage ABI");
         return -1;
@@ -7209,12 +7210,20 @@ static int xl6IrLowerUnionFieldSet(
     source = xl6IrLowerNode(ctx, ctx->module->children[lhs->firstChild]);
     operands[0] = source;
     operands[1] = rhsValue;
-    if ( source == XL6_IR_VALUE_INVALID ||
+    if ( source == XL6_IR_VALUE_INVALID || xl6IrLowerValueType(ctx,source)!=field->ownerType ||
          !xl6IrLowerEmit(ctx, XL6_IR_INSTR_UNION_SET, origin,
                           field->ownerType, 0, operands, 2, &updated) ) return -1;
     ctx->module->instructions[ctx->module->instructionCount - 1].elementIndex =
         lhs->unionField;
-    if (!xl6IrLowerReplaceStorageValue(ctx, origin, storageSymbol, field->ownerType, updated)) return -1;
+    /* Preserve the declared nullable cell; the proven expression is the
+     * unwrapped union, not permission to store that union into its wrapper. */
+    if (storage->type!=field->ownerType) {
+        XL6_IrValueId wrapped;
+        if (!xl6IrLowerEmit(ctx,XL6_IR_INSTR_NULLABLE_WRAP,origin,storage->type,
+                0,&updated,1,&wrapped)) return -1;
+        updated=wrapped;
+    }
+    if (!xl6IrLowerReplaceStorageValue(ctx, origin, storageSymbol, storage->type, updated)) return -1;
     return 1;
 }
 

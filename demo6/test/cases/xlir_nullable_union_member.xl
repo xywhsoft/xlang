@@ -1,0 +1,70 @@
+union FlowBits
+    int number
+    c_double real
+end
+
+union OtherBits
+    int number
+    c_double real
+end
+OtherBits unrelated
+unrelated.number = 9
+assert unrelated.number == 9
+
+FlowBits? globalBits = null
+
+func mutate(FlowBits? value) as FlowBits?
+    if value != null then
+        assert value.number == 42
+        value.number = 43
+        assert value.number == 43
+    end
+    return value
+end
+
+func produce() as FlowBits
+    FlowBits value
+    value.number = 77
+    return value
+end
+
+FlowBits original
+original.number = 42
+FlowBits? optional = original
+if optional != null then
+    assert optional.number == 42
+    optional.number = 44
+    assert optional.number == 44
+end
+assert original.number == 42
+FlowBits? changed = mutate(original)
+if changed != null then assert changed.number == 43 end
+assert original.number == 42
+assert mutate(null) == null
+
+globalBits = original
+if globalBits != null then
+    globalBits.number = 45
+    assert globalBits.number == 45
+end
+assert original.number == 42
+
+FlowBits? captured = original
+func() as int update = func() as int
+    if captured != null then
+        captured.number = captured.number + 4
+        return captured.number
+    end
+    return -1
+end
+assert update() == 46
+if captured != null then assert captured.number == 46 end
+assert original.number == 42
+assert produce().number == 77
+FlowBits? absent = null
+if absent == null then
+    assert true
+else
+    assert absent.number == 0
+end
+println("nullable union member explicit unwrap/wrap and value independence ok")
