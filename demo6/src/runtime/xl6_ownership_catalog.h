@@ -17,7 +17,8 @@
     X(QueuedStorage, XL6_ContinuationStorageV2) \
     X(ChannelSubscription, xchannelsubscribeownershipv1) \
     X(ResolverRequest, xnetresolveownershipv1) \
-    X(Quiescence, xrtownershipquiescencev1)
+    X(Quiescence, xrtownershipquiescencev1) \
+    X(Executor, xexecutordataownershipv1)
 #define XL6_DECLARE_POLICY(Name, Type) struct Type;
 XL6_OWNERSHIP_POLICY_GROUPS(XL6_DECLARE_POLICY)
 #undef XL6_DECLARE_POLICY

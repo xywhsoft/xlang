@@ -609,6 +609,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_ownership_domain_closure.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_dynamic_fields.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_executor.c"
+	"$ROOT/src/runtime/xl6_ownership_domain_native_executor.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_generator.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_queue.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_frame.c"

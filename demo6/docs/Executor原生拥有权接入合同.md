@@ -47,6 +47,29 @@ DEMO6 的维护入口为 `tools/check_stdlib_executor_native.py --out <新证据
 `maintained-win-tcc-r2/results.json`（实际两种快照、四次构建及四次运行）。
 两份报告均为 Complete，输入及日志哈希保持一致；不重跑已通过的 GCC/Linux 通道。
 
-下一步仍须把明确准入的 Data policy 接入常驻 runtime domain/catalog，建立高层执行
-资源及 callback/code-lease 合同、语言类和方法、可达性裁剪与 JIT/AOT 验收。不能仅因
-这七个原生符号已可链接，就把公开执行器或整个长期任务改成完成。
+## 常驻 catalog 准入增量
+
+`xl6OwnershipCatalogAddExecutorV1` 使用独立的 `xexecutordataownershipv1` 指针组，
+不转换 TaskPool 的 descriptor 或函数指针；新增视图追加在现有 policy 组之后，
+不移动原有组的字段。只有常驻 producer 的 Load 可登记，发布后的 catalog 不可追加。
+
+`xl6OwnershipDomainNativeExecutorV1Get` 独立登记 shell／slot 的两个静止能力，
+先拒绝运行与析构尾部，再按原生 Ops 和已登记 policy 的精确身份解析。内容相同但
+地址不同的 policy 不被自动认可，旧 opaque 作业不被视为 leaf，不猜测 Data 的布局。
+此域目前只作为显式部署根；默认 async 的 `xl6OwnershipDomainExecutorV1Get` 不变，
+不会因语言已有 async 而拉入 detached Executor 的原生实现。未来受管理 producer
+接入时须显式关联此域，而非改变默认执行服务。
+
+维护入口 `tools/check_stdlib_executor_catalog.py --out <新目录> --compiler <编译器>`
+支持多次指定编译器；ELF 环境可加 `--plan`。Windows 16、Linux 20 个阶段通过，
+覆盖两种实际快照、GCC/TCC 和 O0/O2。每次运行检查 64 个排队图、32 个运行／析构
+BUSY 阶段、错误类型及 policy 身份拒绝、封闭登记与 16 个分配预算，核对精确内存账本。
+两个 ELF 源计划证明显式域要求原生 Executor、但不引入默认执行器或 TaskPool；
+默认 async 的计划也不引入原生 Executor。
+Windows 定点检查不把 PE 下无法独立裁除整个 compile_unit 的试验链接当作产品失败，
+也不冒充完整 Windows 产品裁剪验收。报告在 `p1-executor-catalog/win-r2` 和
+`p1-executor-catalog/linux-r2`，输入及日志哈希均未改变，没有网络／安全性质测试。
+
+下一步仍须建立高层执行资源及 callback/code-lease 合同、语言类和方法、可达性裁剪
+与真实 DLL/JIT/AOT 验收。此次只验证所选原生与常驻源码，未重建普通产品；不能仅因
+原生符号和 catalog 能工作，就把公开执行器或整个长期任务改成完成。

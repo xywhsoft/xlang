@@ -53,6 +53,9 @@ XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainSequenceSlotMa
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainClosureV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainDynamicFieldsV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainExecutorV1Get(void);
+/* Detached native Executor, not the default continuation service. Data policies
+ * are explicitly supplied by their resident producer's catalog Load. */
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNativeExecutorV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainGeneratorV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainQueueV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainFrameV1Get(void);
