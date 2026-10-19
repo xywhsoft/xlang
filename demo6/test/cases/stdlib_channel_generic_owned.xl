@@ -1,0 +1,10 @@
+// Formerly-negative Future construction is now a real supported recipe.
+// A generic factory must close both native-reference and owning-record slots.
+func createChannel<T>() as channel<T>
+    return channel::<T>(1)
+end
+
+auto futures = createChannel::<future<int>>()
+auto keys = createChannel::<SlotMapKey>()
+assert futures.count() == 0 and keys.count() == 0
+println("generic owned Channel factories")

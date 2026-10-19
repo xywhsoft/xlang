@@ -1,4 +1,4 @@
 func createChannel<T>() as channel<T>
     return channel::<T>(1)
 end
-auto pipe = createChannel::<future<int>>()
+auto pipe = createChannel::<generator<int>>()

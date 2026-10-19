@@ -12349,6 +12349,16 @@ static int xl6SemChannelElementTypeIsMessageSafe(XL6_SemContext* ctx, const XL6_
      * specialization must still close the resident Channel recipe in XLIR. */
     if(!concreteType->childCount && xl6SemFindTypeParam(ctx,name))return 1;
     if (xl6TextEquals(name, "var") || xl6SemChannelElementTypeIsFirstStageSafe(ctx, typeNode)) return 1;
+    const XL6_TypeInfo* builtin=xl6TypeRegistryFind(&ctx->types,name);
+    if(builtin && builtin->kind==XL6_TYPE_BUILTIN){
+        /* Source legality is not a physical pointer certificate. Typed XLIR
+         * independently closes the resident schema and message transfer. */
+        if(!concreteType->childCount && xl6TypeRegistryIsNativeValueAbi(builtin->abiId))return 1;
+        if(xl6TextEquals(name,"future") || xl6TextEquals(name,"task")){
+            const XL6_AstNode* arguments=xl6SemTypeNodeGenericArgs(concreteType);
+            if(arguments && arguments->childCount==1)return 1;
+        }
+    }
     /* Nominal classes already have the managed xvalue retain/move/drop ABI
      * proved by XLIR. Sending shares that object, not its caller's variable
      * slot. Thread-confined methods still enforce their owner contract. */
@@ -12370,7 +12380,7 @@ static int xl6SemCheckChannelTypeArg(XL6_SemContext* ctx, const XL6_AstNode* cal
     typeArgs = callee->childCount > 1 ? callee->children[1] : NULL;
     itemType = typeArgs != NULL && typeArgs->childCount == 1 ? typeArgs->children[0] : NULL;
     if ( itemType == NULL || !xl6SemChannelElementTypeIsMessageSafe(ctx, itemType) ) {
-        xl6SemErrorNode(ctx, itemType != NULL ? itemType : callee, "channel<T> 要求基础值、var 或无继承且仅含基础字段的非泛型 class；对象图消息尚无队列 trace 合同");
+        xl6SemErrorNode(ctx, itemType != NULL ? itemType : callee, "channel<T> 消息类型尚无完整的驻留槽位、拥有图与投影合同");
         return 0;
     }
     return 1;

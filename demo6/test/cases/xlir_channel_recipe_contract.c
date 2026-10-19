@@ -26,7 +26,12 @@ static void planRefused(const XL6_IrModule* ir,XL6_IrChannelReceiveKind kind,
 {
     XL6_IrChannelReceivePlan plan,saved;
     memset(&plan,0xA5,sizeof(plan)); memcpy(&saved,&plan,sizeof(saved));
-    assert(!xl6IrChannelReceivePlanBuild(ir,kind,owner,result,&plan));
+    if(xl6IrChannelReceivePlanBuild(ir,kind,owner,result,&plan)) {
+        fprintf(stderr,"Unexpected receive plan owner=%s result=%s element=%s transfer=%u\n",
+            xl6IrTypeGet(&ir->types,owner)->name,xl6IrTypeGet(&ir->types,result)->name,
+            xl6IrTypeGet(&ir->types,plan.elementType)->name,(unsigned)plan.transferAbi);
+        assert(false);
+    }
     assert(!memcmp(&plan,&saved,sizeof(plan))); ++mutations;
 }
 static XL6_IrTypeId resultFor(const XL6_IrModule* ir,XL6_IrTypeId owner)
@@ -124,6 +129,7 @@ int main(int argc,char** argv)
         BAD_LAYOUT(elementType,0); BAD_LAYOUT(baseElementType,0);
         BAD_LAYOUT(role,XL6_IR_SEQUENCE_ROLE_STACK); BAD_LAYOUT(slotAbi,XL6_IR_NATIVE_SLOT_NONE);
         BAD_LAYOUT(transferAbi,XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF);
+        BAD_LAYOUT(transferAbi,XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY);
         BAD_LAYOUT(codecAbi,XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1);
         BAD_LAYOUT(nullable,!original.nullable); BAD_LAYOUT(admissionAbi,XL6_VALUE_ADMIT_NONE);
 #undef BAD_LAYOUT
@@ -137,11 +143,13 @@ int main(int argc,char** argv)
         assert(!xl6IrVerifyModule(ir,NULL)); *owner=saved;
         assert(xl6IrVerifyModule(ir,NULL));
     }
-    assert(recipes>=13 && pending && unsupported>=3 && plans==recipes*3);
+    assert(recipes>=17 && pending && unsupported>=1 && plans==recipes*3);
     XL6_Output out; assert(xl6OutputOpenFile(&out,argv[2]));
     xl6OutputPuts("#include <__xl_runtime/xruntime_decl.h>\n"
         "#include <__xl_runtime/xl6_channel.h>\n#include <__xl_runtime/xl6_array_admission.h>\n"
         "#include <__xl_runtime/xl6_nullable_string.h>\n#include <assert.h>\n#include <string.h>\n"
+        "#include <__xl_runtime/xl6_slot_map_key_abi.h>\n"
+        "#include <__xl_runtime/xl6_nullable_slot_map_key_abi.h>\n"
         "typedef xstrview xlir_string;\n",&out);
     assert(xl6IrCgenEmitProductTypes(&out,ir,NULL,&unit.parse.diags)); nominalSets(&out,ir);
     xl6OutputPuts("int main(void) { xmemdebugsnapshot before={0},after={0};\n"
@@ -164,6 +172,16 @@ int main(int argc,char** argv)
             xl6IrCgenNativeSlotTypeExpr(p.slotAbi),place,place);
         const XL6_IrType* element=xl6IrTypeGet(&ir->types,p.elementType);
         const char* descriptor=xl6IrCgenNativeSlotTypeExpr(p.slotAbi);
+        if(p.transferAbi>=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF) {
+            /* Empty-schema factory/receive acceptance only here. Genuine
+             * owned Future/key transport, detached results and graph edges
+             * are exercised by the owned-profile language/native fixtures;
+             * a zero carrier is not a valid nonnullable input. */
+            xl6OutputPrintf(&out,"assert(xl6ChannelCloseV1(channel,0x%016llXULL));\n"
+                "xrtValueRelease(channel); assert(!xrtGetError()); }\n",
+                (unsigned long long)owner->typeValueId);
+            continue;
+        }
         xl6OutputPrintf(&out,"assert(xl6ChannelReceiveV1(channel,0x%016llXULL,0x%016llXULL,%s,"
             "(XL6_ChannelSlotV1){&%s,sizeof(%s)},XL6_CHANNEL_FOR_V1,0,&status));\n"
             "assert(status==XL6_CHANNEL_TIMEOUT_V1);\n"

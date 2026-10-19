@@ -22,6 +22,13 @@ static XL6_IrTypeId narrow(const XL6_IrModule* module)
     for(size_t i=0;i<module->types.count;++i)
         if(module->types.items[i].kind==XL6_IR_TYPE_BUILTIN&&
             module->types.items[i].integerTarget==XL6_IR_INTEGER_TARGET_SIGNED_8)return (XL6_IrTypeId)(i+1);
+    /* Owning-message fixtures need no narrow integer in their real pool.
+     * Bool is likewise incompatible with the exact int64 send status and
+     * every Future/native-record message tested here. Do not fabricate a
+     * type merely to run the same negative metadata mutations. */
+    for(size_t i=0;i<module->types.count;++i)
+        if(module->types.items[i].kind==XL6_IR_TYPE_BUILTIN &&
+            module->types.items[i].cAbi==XL6_IR_C_ABI_BOOL)return (XL6_IrTypeId)(i+1);
     return XL6_IR_TYPE_INVALID;
 }
 int main(int argc,char** argv)
@@ -60,8 +67,15 @@ int main(int argc,char** argv)
         }
         if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1){
             XL6_IrType* owner=(XL6_IrType*)xl6IrTypeGet(&module->types,target->nativeContextType);
-            assert(owner && owner->paramCount==1);
-            owner->paramCount=0;reject(module,target);owner->paramCount=1;
+            assert(owner);
+            if(owner->paramCount==1){
+                owner->paramCount=0;reject(module,target);owner->paramCount=1;
+            }else{
+                /* Heterogeneous selection has a nongeneric resident owner.
+                 * Its class-field context still requires the exact owner ABI. */
+                assert(!owner->paramCount);XL6_IrCAbi abi=owner->cAbi;
+                owner->cAbi=XL6_IR_C_ABI_I64;reject(module,target);owner->cAbi=abi;
+            }
             assert(target->nativeServicesRequired==xl6IrRuntimeDirectBridgeServices(target->cName));
             assert(xl6IrDynamicMethodCallTargetSupported(module,target));
             target->nativeServicesRequired=0;assert(!xl6IrDynamicMethodCallTargetSupported(module,target));
@@ -95,6 +109,8 @@ int main(int argc,char** argv)
             }
         }
     }
+    fprintf(stderr,"Direct coverage sends=%zu receives=%zu adoptions=%zu reads=%zu typed=%zu directions=%zu refusals=%zu\n",
+        sends,receives,adopted,reads,typed,directions,refusals);
     assert(sends>=2&&receives>=2&&adopted&&reads&&typed&&directions&&refusals>=15);
     assert(xl6IrVerifyModule(module,NULL));xl6CompileUnitFree(&unit);
     xl6CompileUnitInit(&unit);assert(xl6CompileUnitLoadFile(&unit,argv[2],1)&&xl6IrLowerModule(&unit.ir,&unit.parse.diags));

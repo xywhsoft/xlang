@@ -2,6 +2,7 @@
 #include "xl6_channel_future_core.h"
 #include "xl6_channel_direct_future.h"
 #include "xl6_channel_internal.h"
+#include "xl6_channel_slot.h"
 #include "xl6_native_handle.h"
 #include "src/api/xl_foreign_error.h"
 #include <string.h>
@@ -13,6 +14,7 @@ struct XL6_ChannelReceiveResultV1 {
     const void* claim;
     bool creator,cleared,dropping,dropped,ready,initialized;
     XL6_SequenceLayoutV1 layout;
+    XL6_SequenceAdmissionV3 admission;
     XL6_ChannelStatusV1 status;
     _Alignas(max_align_t) unsigned char value[];
 };
@@ -36,10 +38,12 @@ static bool dispose(Result* result)
     if(result->active||result->dropping)abort();
     result->dropped=true;result->dropping=true;
     bool initialized=result->initialized;result->initialized=false;
-    XL6_SequenceLayoutV1 layout=result->layout;leave(&mutation);
+    XL6_SequenceLayoutV1 layout=result->layout;XL6_SequenceAdmissionV3 admission=result->admission;
+    memset(&result->admission,0,sizeof(result->admission));leave(&mutation);
     xl6_error_scope scope={0};if(!xl6ErrorScopeBeginCleanup(&scope,false))abort();
-    if(initialized)xrtTypeDropValue(xl6SequenceStorageTypeV1(layout.transfer,layout.type),result->value);
-    capture(&scope);enter(&mutation);result->dropping=false;leave(&mutation);
+    if(initialized)xl6ChannelSlotDropV1(layout,result->value);
+    capture(&scope);xl6SequenceAdmissionDropV3(&admission);capture(&scope);
+    enter(&mutation);result->dropping=false;leave(&mutation);
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
     if(!outcome.ok)xl6ErrorScopePropagateFailure(outcome);else xrtErrorFree(outcome.error);
     return outcome.ok;
@@ -80,8 +84,8 @@ static bool result_count(const void* data,size_t* count)
 static bool result_trace(const void* data,xrtownershipvisitor visit,void* context)
 {
     const Result* result=data;size_t count;
-    return visit&&result_count(data,&count)&&(!result->initialized||result->layout.transfer!=3||
-        visit(xrtValueOwnership(*(xvalue* const*)result->value),context));
+    return visit&&result_count(data,&count)&&(!result->initialized||
+        xl6ChannelSlotTraceV1(result->layout,&result->admission,result->value,visit,context));
 }
 static const xrtownershipops resultOps={result_count,result_trace};
 static xrtownershipref result_ownership(const Result* result)
@@ -115,17 +119,38 @@ static bool busy(const void* data)
 {const Result* result=data;return result&&result->refs&&(result->active||result->dropping);}
 const xrtownershipquiescencev1* xl6ChannelReceiveResultQuiescenceV1Get(void)
 {static const xrtownershipquiescencev1 policy={sizeof(policy),&resultOps,busy};return &policy;}
-static xvalue* create_result(XL6_SequenceLayoutV1 layout,Result** output)
+static xvalue* create_result(XL6_SequenceLayoutV1 layout,const xvalue* channel,Result** output)
 {
     if(!output||!layout.type||!layout.elementIdentity||!layout.size||layout.size!=layout.type->Size||
         !layout.type->Align||layout.type->Align>_Alignof(max_align_t)||
         (layout.type->Align&(layout.type->Align-1))||layout.size>SIZE_MAX-sizeof(Result)||
-        layout.transfer<1||layout.transfer>3){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
-    Result* result=xrtCalloc(1,sizeof(*result)+layout.size);if(!result)return NULL;
-    result->refs=1;result->creator=true;result->allocation=sizeof(*result)+layout.size;result->layout=layout;
-    void* raw=result;xvalue* handle=xl6NativeHandleTakeV1(&raw,xl6ChannelReceiveResultHandlePolicyV1Get());
-    if(!handle)return NULL;
-    *output=result;return handle;
+        layout.transfer<1||layout.transfer>XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))return NULL;
+    XL6_SequenceLayoutV1 actual={0};XL6_SequenceAdmissionV3 admission={0};xvalue* handle=NULL;Result* result=NULL;
+    bool ok=xl6ChannelSchemaCopyV1(channel,layout.identity,&actual,&admission);
+    if(ok && (actual.identity!=layout.identity||actual.elementIdentity!=layout.elementIdentity||
+        actual.transfer!=layout.transfer||actual.size!=layout.size||actual.type!=layout.type||
+        !xl6ChannelSlotPolicyV1(layout,&admission))){xrtSetErrorKind(XERR_TYPE);ok=false;}
+    if(ok){result=xrtCalloc(1,sizeof(*result)+layout.size);ok=result!=NULL;}
+    if(ok){
+        result->refs=1;result->creator=true;result->allocation=sizeof(*result)+layout.size;result->layout=layout;
+        result->admission=admission;memset(&admission,0,sizeof(admission));
+        void* raw=result;handle=xl6NativeHandleTakeV1(&raw,xl6ChannelReceiveResultHandlePolicyV1Get());ok=handle!=NULL;
+    }
+    if(!ok)xl6ErrorScopeCaptureFailure(&scope);
+    xl6SequenceAdmissionDropV3(&admission);capture(&scope);
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    if(!outcome.ok){xrtValueRelease(handle);xl6ErrorScopePropagateFailure(outcome);return NULL;}
+    xrtErrorFree(outcome.error);*output=result;return handle;
+}
+static bool profile_matches(XL6_FutureValueProfileV1 profile,XL6_SequenceLayoutV1 layout)
+{
+    if(profile.size!=sizeof(profile)||profile.type!=layout.elementIdentity||profile.valueSize!=layout.size)return false;
+    if(layout.transfer==XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1)
+        return profile.kind==XL6_FUTURE_VALUE_NATIVE&&xl6NativeCaptureProfileValidV1(profile.native)&&profile.native->Type()==layout.type;
+    if(profile.native)return false;
+    return profile.kind==(layout.transfer==1?XL6_FUTURE_VALUE_TRIVIAL:layout.transfer==2?XL6_FUTURE_VALUE_STRING:
+        layout.transfer==3?XL6_FUTURE_VALUE_XVALUE:XL6_FUTURE_VALUE_FUTURE);
 }
 bool xl6ChannelReceiveResultInfoV1(const Result* source,int64_t* output)
 {
@@ -151,18 +176,17 @@ bool xl6ChannelReceiveResultReadV1(XL6_FutureValueProfileV1 profile,const Result
     _Alignas(max_align_t) unsigned char local[64]={0};void* copy=NULL;
     if(result){layout=result->layout;
         if(!result->ready||result->status!=XL6_CHANNEL_OK_V1||!result->initialized)xrtSetErrorKind(XERR_STATE);
-        else if(profile.size!=sizeof(profile)||profile.native||profile.type!=layout.elementIdentity||profile.valueSize!=layout.size||
-            profile.kind!=(layout.transfer==1?XL6_FUTURE_VALUE_TRIVIAL:layout.transfer==2?XL6_FUTURE_VALUE_STRING:XL6_FUTURE_VALUE_XVALUE))xrtSetErrorKind(XERR_TYPE);
+        else if(!profile_matches(profile,layout))xrtSetErrorKind(XERR_TYPE);
         else if(!output||(uintptr_t)output%layout.type->Align||(uintptr_t)output>UINTPTR_MAX-layout.size||
             ((uintptr_t)output<(uintptr_t)result+result->allocation&&(uintptr_t)result<(uintptr_t)output+layout.size)||
-            (layout.transfer==3&&*(xvalue**)output)||(layout.transfer==2&&(((xstrview*)output)->Data||((xstrview*)output)->Size)))xrtSetErrorKind(XERR_ARGUMENT);
+            !xl6ChannelSlotEmptyV1(layout,&result->admission,output))xrtSetErrorKind(XERR_ARGUMENT);
         else {copy=layout.size<=sizeof(local)?local:xrtCalloc(1,layout.size);
-            if(copy)ok=xrtTypeCopyValue(xl6SequenceStorageTypeV1(layout.transfer,layout.type),copy,result->value);}
+            if(copy)ok=xl6ChannelSlotCopyV1(layout,&result->admission,copy,result->value);}
     }
     if(!ok)xl6ErrorScopeCaptureFailure(&scope);
     if(result)end(result);
     capture(&scope);
-    if(copy&&scope.failed){xrtTypeDropValue(xl6SequenceStorageTypeV1(layout.transfer,layout.type),copy);capture(&scope);memset(copy,0,layout.size);}
+    if(copy&&scope.failed){xl6ChannelSlotDropV1(layout,copy);capture(&scope);memset(copy,0,layout.size);}
     xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
     if(outcome.ok&&copy){memcpy(output,copy,layout.size);memset(copy,0,layout.size);}
     if(copy&&copy!=local)xrtFree(copy);
@@ -239,7 +263,7 @@ static Frame* prepare(XL6_SequenceLayoutV1 layout,const xvalue* channel,const vo
     Frame* frame=xl6ChannelFutureCoreCreateV1(sending?&sendProvider:&receiveProvider);xvalue* handle=NULL;bool ok=false;
     if(frame){DirectState* state=xl6ChannelFutureCoreStateV1(frame);
         XL6_ChannelSlotV1 slot={(void*)value,layout.size};
-        if(!sending){handle=create_result(layout,&state->result);if(!handle)goto done;
+        if(!sending){handle=create_result(layout,channel,&state->result);if(!handle)goto done;
             slot.data=state->result->value;if(!xl6ChannelFutureCoreHandleTakeV1(frame,&handle))goto done;}
         XL6_ChannelStatusV1 status;
         if(!xl6ChannelOperationOpenSchemaV1(layout,channel,slot,sending,&status,&state->operation))goto done;

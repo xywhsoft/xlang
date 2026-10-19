@@ -1,4 +1,5 @@
 #include "xl6_channel_internal.h"
+#include "xl6_channel_slot.h"
 #include "src/api/xl_foreign_error.h"
 #include "xl6_concurrent_deadline.h"
 #include <limits.h>
@@ -46,7 +47,7 @@ static void unlinkBox(ChannelOwner* owner,ChannelBox* box)
 static void dropBox(ChannelOwner* owner,ChannelBox* box)
 {
     if (!box) return;
-    xrtTypeDropValue(xl6SequenceStorageTypeV1(owner->layout.transfer,owner->layout.type),box->slot);
+    xl6ChannelSlotDropV1(owner->layout,box->slot);
     xrtFree(box);
 }
 /* Quiescent cleanup, including graph retirement. Embedding the channel avoids
@@ -111,13 +112,13 @@ static bool trace(const void* data,xrtownershipvisitor visit,void* context)
 {
     const ChannelOwner* owner=data; size_t count;
     if (!visit || !countReferences(owner,&count) || !owner->initialized) return false;
-    if (owner->layout.transfer!=3) return true;
+    if(owner->layout.transfer<3)return true;
     /* Activity refusal includes transfers, copies and cleanup. A parked async
      * wait changes only native BORROWED queue pointers; all boxes remain in
      * this exact resident ownership list, including unsent/obtained boxes.
      * it does not peek into XRT's opaque ring or infer edges from Count(). */
     for (const ChannelBox* box=owner->boxes;box;box=box->next)
-        if (!visit(xrtValueOwnership(*(xvalue* const*)box->slot),context)) return false;
+        if (!xl6ChannelSlotTraceV1(owner->layout,&owner->admission,box->slot,visit,context)) return false;
     return true;
 }
 static const xrtownershipops ownerOps={countReferences,trace};
@@ -240,7 +241,7 @@ xvalue* xl6ChannelCreateTakeV1(uint64_t identity,xvalue* schema,int64_t capacity
     owner=xrtCalloc(1,sizeof(*owner)); if (!owner) goto fail;
     owner->refs=1; xrtAtomic32Init(&owner->activity,0);
     if (!xrtSpinInit(&owner->boxesLock) || !xl6SequenceSchemaCopyV1(schema,&role,&owner->layout,&owner->admission)) goto fail;
-    if (owner->layout.transfer<1 || owner->layout.transfer>3) { xrtSetErrorKind(XERR_UNSUPPORTED); goto fail; }
+    if (!xl6ChannelSlotPolicyV1(owner->layout,&owner->admission)) { xrtSetErrorKind(XERR_UNSUPPORTED); goto fail; }
     owner->schemaIdentity=owner->layout.identity; owner->layout.identity=identity;
     if (!xrtChannelInit(&owner->channel,(size_t)capacity)) goto fail;
     owner->initialized=true;
@@ -272,8 +273,7 @@ static bool request(ChannelOwner* owner,uint64_t element,const xrttype* type,XL6
         mode<XL6_CHANNEL_TRY_V1 || mode>XL6_CHANNEL_FOR_V1 || milliseconds<0 ||
         (mode!=XL6_CHANNEL_FOR_V1 && milliseconds)) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
     if (receive) {
-        bool empty=owner->layout.transfer==3 ? *(xvalue* const*)slot.data==NULL :
-            owner->layout.transfer==2 ? ((const xstrview*)slot.data)->Data==NULL && ((const xstrview*)slot.data)->Size==0 : true;
+        bool empty=xl6ChannelSlotEmptyV1(owner->layout,&owner->admission,slot.data);
         if (!empty) { xrtSetErrorKind(XERR_STATE); return false; }
     } else if (!owner->admission.ops->Slot(owner->admission.data,slot.data)) {
         xrtSetErrorKind(XERR_TYPE); return false;
@@ -309,7 +309,7 @@ static ChannelBox* copyBox(ChannelOwner* owner,const void* item)
     if (offset>SIZE_MAX-type->Size) { xrtSetErrorKind(XERR_RANGE); return NULL; }
     ChannelBox* box=xrtCalloc(1,offset+type->Size); if (!box) return NULL;
     box->slot=(unsigned char*)box+offset;
-    if (!xrtTypeCopyValue(type,box->slot,item)) {
+    if (!xl6ChannelSlotCopyV1(owner->layout,&owner->admission,box->slot,item)) {
         xl6_error_scope cleanup={0}; if (!xl6ErrorScopeBeginCleanup(&cleanup,true)) abort();
         dropBox(owner,box);
         xl6_error_result outcome=xl6ErrorScopeEnd(&cleanup);

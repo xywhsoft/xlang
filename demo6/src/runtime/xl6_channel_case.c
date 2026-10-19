@@ -1,5 +1,6 @@
 #include "xl6_channel_case_internal.h"
 #include "xl6_channel_wait_common.h"
+#include "xl6_channel_slot.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdatomic.h>
 #include <limits.h>
@@ -61,11 +62,6 @@ static bool slotMatches(XL6_SequenceLayoutV1 layout,XL6_ChannelSlotV1 slot)
     return layout.type && layout.size==slot.size && region(slot.data,slot.size) &&
         layout.type->Align && (uintptr_t)slot.data%layout.type->Align==0;
 }
-static bool emptySlot(XL6_SequenceLayoutV1 layout,const void* slot)
-{
-    return layout.transfer==3 ? *(xvalue* const*)slot==NULL : layout.transfer==2 ?
-        !((const xstrview*)slot)->Data && !((const xstrview*)slot)->Size : true;
-}
 static Node* begin(const Node* raw,unsigned kind)
 {
     Node* node=(Node*)raw; xrtownershipscope mutation={0}; enter(&mutation);
@@ -105,7 +101,7 @@ static bool dispose(Node* node)
     } else abort();
     leave(&mutation);
     xl6_error_scope scope={0}; if (!xl6ErrorScopeBeginCleanup(&scope,false)) abort();
-    if (value) xrtTypeDropValue(xl6SequenceStorageTypeV1(layout.transfer,layout.type),value);
+    if (value) xl6ChannelSlotDropV1(layout,value);
     if (xrtGetError() || scope.failed) xl6ErrorScopeCaptureFailure(&scope);
     xrtValueRelease(channel);
     if (xrtGetError() || scope.failed) xl6ErrorScopeCaptureFailure(&scope);
@@ -155,7 +151,7 @@ static XL6_ChannelCaseOwnerV1* create(const xvalue* channel,uint64_t identity,ui
     if(expected && (expected->identity!=layout.identity || expected->transfer!=layout.transfer)) {
         xrtSetErrorKind(XERR_TYPE);goto fail;
     }
-    if (!alignedSize(sizeof(*item),_Alignof(max_align_t),&offset) || layout.transfer<1 || layout.transfer>3 ||
+    if (!alignedSize(sizeof(*item),_Alignof(max_align_t),&offset) || !xl6ChannelSlotPolicyV1(layout,&admission) ||
         !type->Align || type->Align>_Alignof(max_align_t) || (type->Align&(type->Align-1)) ||
         (sending && (!slotMatches(layout,slot) || !admission.ops->Slot(admission.data,slot.data))) ||
         (sending && offset>SIZE_MAX-layout.size)) { xrtSetErrorKind(XERR_ARGUMENT); goto fail; }
@@ -167,7 +163,7 @@ static XL6_ChannelCaseOwnerV1* create(const xvalue* channel,uint64_t identity,ui
     item->operation=sending ? XL6_CHANNEL_CASE_SEND_V1 : XL6_CHANNEL_CASE_RECEIVE_V1;
     if (sending) {
         item->value=(unsigned char*)item+offset; item->valueInitialized=true;
-        if (!xrtTypeCopyValue(xl6SequenceStorageTypeV1(layout.transfer,type),item->value,slot.data)) goto fail;
+        if (!xl6ChannelSlotCopyV1(layout,&item->admission,item->value,slot.data)) goto fail;
     }
     goto done;
 fail:
@@ -308,8 +304,8 @@ XL6_ChannelSelectionOwnerV1* xl6ChannelOwnedSelectDiscardV1(XL6_ChannelOwnedSele
     for (size_t i=0;i<frame->count;++i) {
         XL6_ChannelCaseV1* item=frame->cases+i;
         if (item->operation==XL6_CHANNEL_CASE_RECEIVE_V1 && item->slot.data) {
-            xrtTypeDropValue(xl6SequenceStorageTypeV1(frame->pins[i] ? frame->pins[i]->layout.transfer :
-                frame->result->layout.transfer,item->type),item->slot.data);
+            const XL6_SequenceLayoutV1* layout=frame->pins[i] ? &frame->pins[i]->layout : &frame->result->layout;
+            xl6ChannelSlotDropV1(*layout,item->slot.data);
             if (xrtGetError() || scope.failed) xl6ErrorScopeCaptureFailure(&scope);
         }
         if (frame->pins[i]) {
@@ -370,11 +366,12 @@ bool xl6ChannelSelectionValueV1(const XL6_ChannelSelectionOwnerV1* raw,const XL6
     else if (raw->layout.elementIdentity!=element || raw->layout.type!=type || output.size!=raw->layout.size)
         xrtSetErrorKind(XERR_TYPE);
     else if (!slotMatches(raw->layout,output) || overlaps(output.data,output.size,raw,raw->node.allocation) ||
-        overlaps(output.data,output.size,expected,expected->node.allocation) || !emptySlot(raw->layout,output.data))
+        overlaps(output.data,output.size,expected,expected->node.allocation) ||
+        !xl6ChannelSlotEmptyV1(raw->layout,&expected->admission,output.data))
         xrtSetErrorKind(XERR_ARGUMENT);
     else {
         copy=output.size<=sizeof(inlineCopy) ? inlineCopy : xrtCalloc(1,output.size);
-        if (copy && xrtTypeCopyValue(xl6SequenceStorageTypeV1(raw->layout.transfer,type),copy,raw->value)) {
+        if (copy && xl6ChannelSlotCopyV1(raw->layout,&expected->admission,copy,raw->value)) {
             ok=true;
         }
     }
@@ -384,7 +381,7 @@ bool xl6ChannelSelectionValueV1(const XL6_ChannelSelectionOwnerV1* raw,const XL6
     /* Last-creator cleanup can fail too. Publish only AFTER that tail; false
      * never leaks an already-written owned value to a caller's result slot. */
     if (copy && scope.failed) {
-        xrtTypeDropValue(xl6SequenceStorageTypeV1(layout.transfer,layout.type),copy);
+        xl6ChannelSlotDropV1(layout,copy);
         memset(copy,0,output.size);
         if (xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);
     }
@@ -407,12 +404,13 @@ static bool trace(const void* raw,xrtownershipvisitor visit,void* context)
     if (node->kind==CASE_NODE) {
         const XL6_ChannelCaseOwnerV1* item=raw;
         return (!item->channel || visit(xrtValueOwnership(item->channel),context)) &&
-            (!item->valueInitialized || item->layout.transfer!=3 || visit(xrtValueOwnership(*(xvalue**)item->value),context));
+            (!item->valueInitialized || xl6ChannelSlotTraceV1(item->layout,&item->admission,item->value,visit,context));
     }
     if (node->kind==SELECTION_NODE) {
         const XL6_ChannelSelectionOwnerV1* item=raw;
         return (!item->selected || visit(xl6ChannelCaseOwnershipV1(item->selected),context)) &&
-            (!item->valueInitialized || item->layout.transfer!=3 || visit(xrtValueOwnership(*(xvalue**)item->value),context));
+            (!item->valueInitialized || (item->selected &&
+                xl6ChannelSlotTraceV1(item->layout,&item->selected->admission,item->value,visit,context)));
     }
     return false;
 }

@@ -52,12 +52,18 @@ end
 func pendingNullableReceive<T>(channel<T?> c) as (int, T?)
     return 0, null
 end
-func unsupportedFuture(channel<future<int>> c) as int
-    return 0
+func futureChannel(channel<future<int>> c) as (int, future<int>?)
+    return 0, null
+end
+func nullableFutureChannel(channel<future<int>?> c) as (int, future<int>?)
+    return 0, null
 end
 func unsupportedClosure(channel<func(int) as int> c) as int
     return 0
 end
-func unsupportedNativeRecord(channel<SlotMapKey> c) as int
-    return 0
+func nativeRecordChannel(channel<SlotMapKey> c) as (int, SlotMapKey?)
+    return 0, null
+end
+func nullableNativeRecordChannel(channel<SlotMapKey?> c) as (int, SlotMapKey?)
+    return 0, null
 end

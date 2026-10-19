@@ -7,8 +7,10 @@
  * native foundation, not the public WaitQueue/Channel language cutover.
  * A consumed admitted Array/Stack supplies immutable resident metadata. No
  * source-module callback, schema storage or language output borrow is kept.
- * V1 admits transfers 1..3 (trivial, exact string, retained xvalue reference).
- * Other transfers are checked refusals, not silently degraded representations.
+ * Owned DIRECT slots reuse transfers 1..5 (trivial, exact string, retained
+ * xvalue, native Future reference, resident native leaf record), with complete
+ * admission and graph duties. Invocation/boxed codecs are separate contracts,
+ * not authorized merely because their representation is also a pointer.
  * Capacity is exact; zero uses XRT rendezvous, not a hidden minimum capacity. */
 XL6_TEXT_API bool xl6ChannelAdmitsSchemaV1(const xvalue*,uint64_t,
     const XL6_SequenceLayoutV1*,const XL6_SequenceAdmissionV3*);

@@ -35,6 +35,8 @@ def main():
         help='Add public Channel case/select, typed private-result contracts and allocation prefixes')
     parser.add_argument('--channel-finite-language',action='store_true',
         help='Add finite Channel public methods, ordinary products and typed service contracts')
+    parser.add_argument('--channel-owned-profiles',action='store_true',
+        help='Add real Future/native-record message slots, detached results and allocation prefixes')
     parser.add_argument('--native-plan-report',type=Path,
         help='Windows native-only pruning: sealed Linux actual-plan receipt with identical source graph')
     args = parser.parse_args()
@@ -81,6 +83,11 @@ def main():
         negatives=(*negatives,*('bad_channel_finite_'+name for name in (
             'timeout_type','until_type','send_type','cancel_type','private','select_array','status_width')))
         helpers=(*helpers,'xlir_channel_finite_contract.c','stdlib_channel_frame_quiescence.c')
+    if args.channel_owned_profiles:
+        assert args.stage=='channel-direct'
+        selected=(*selected[:-1],'stdlib_channel_owned_future','stdlib_channel_owned_native',
+            'stdlib_concurrent_queue_callable_future',selected[-1])
+        helpers=(*helpers,'stdlib_channel_owned_profiles_native.c')
     if args.stage == 'atomic':
         selected = ('stdlib_atomics', 'stdlib_atomic_bool_only', 'stdlib_atomic_threads',
                     'stdlib_concurrent_import_only', 'stdlib_time_text_only', 'xlir_narrow_operator_literals')
@@ -363,6 +370,7 @@ def main():
                 args.channel_case_language and name in ('stdlib_channel_cases','stdlib_channel_cases_threads',
                     'stdlib_channel_cases_owned','xlir_generic_static_calls','stdlib_channel_cases_receive_only'))
             if args.channel_finite_language and name.startswith('stdlib_channel_finite_'):full=True
+            if args.channel_owned_profiles and name.startswith('stdlib_channel_owned_'):full=True
             if not full:
                 return
             work = out/(name+'.saved')
@@ -424,6 +432,28 @@ def main():
                 else:raise AssertionError('Channel Future allocation prefix did not close')
                 report[prefixKey][lane]=dict(FirstNoHit=point,RecoveredRetirement=recovered)
                 save()
+        if args.channel_owned_profiles and not failures:
+            for product in products[1:]:
+                for opt in ('O0','O2'):
+                    lane=product.stem+'.owned-profiles.'+opt;binary=isolated/(lane+('.exe' if win else ''))
+                    run(lane+'.build',[cc,*strict,'-'+opt,cases/'stdlib_channel_owned_profiles_native.c',
+                        *links(product.name),'-o',binary]);run(lane+'.run',[binary])
+            report['OwnedChannelAllocationPrefixes']={}
+            for name in ('stdlib_channel_owned_future','stdlib_channel_owned_native'):
+                module=out/(name+'.saved/module.c')
+                for product in products[1:]:
+                    lane=product.stem+'.owned-'+name;binary=isolated/(lane+('.exe' if win else ''))
+                    run(lane+'.build',[cc,*strict,'-O2','-DXLIR_GENERATED_MODULE="'+module.as_posix()+'"',
+                        cases/'stdlib_channel_cases_oom_host.c',task/'test/support/module_product_memory.c',
+                        *links(product.name),'-o',binary])
+                    recovered=[]
+                    for point in range(4097):
+                        body=run(lane+'.'+str(point),[binary,point])
+                        if b'recovered=1' in body:recovered.append(point)
+                        if b'hit=0 complete-prefix balanced' in body:break
+                    else:raise AssertionError('Owned Channel allocation prefix did not close')
+                    report['OwnedChannelAllocationPrefixes'][lane]=dict(FirstNoHit=point,RecoveredRetirement=recovered)
+                    save()
         if args.native_factory_inheritance and not failures:
             module=out/'xlir_native_factory_inherited.saved/module.c'
             report['NativeFactoryPrefixes']={}
@@ -584,6 +614,10 @@ def main():
                     cases/'xlir_channel_direct_contract.c',*links(names[2]),'-o',contract])
                 run('channel-direct-contract.run',[contract,isolated/'stdlib_channel_direct_future.xl',
                     isolated/'stdlib_channel_direct_ready.xl',isolated/'stdlib_concurrent_import_only.xl'])
+                if args.channel_owned_profiles:
+                    for name in ('stdlib_channel_owned_future','stdlib_channel_owned_native'):
+                        run(name+'.direct-contract.run',[contract,isolated/(name+'.xl'),
+                            isolated/'stdlib_channel_direct_ready.xl',isolated/'stdlib_concurrent_import_only.xl'])
             if args.channel_finite_language:
                 contract=isolated/'channel-finite-contract'
                 run('channel-finite-contract.build',[cc,*strict,'-O2','-I'+str(root/'lib/tcc'),
