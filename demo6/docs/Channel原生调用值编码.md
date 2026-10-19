@@ -70,7 +70,8 @@ O0、O2 各拒绝 138 个损坏的 canonical 事实，并完成 276 次 C/header
 
 本批不等于 P1 或五组目标完成。source message legality／复杂拥有图及完整
 新产品联合验收仍开放。另保留一个旧源码同样失败的基线：flow-narrowed
-nullable 实参进入推断式泛型 async 返回 T? 的投影还未完整闭合，见外部
+nullable 实参进入推断式泛型 async 返回 T? 的投影在本批时尚未完整闭合，见外部
 `nullable_inference_probe.xl`、`inference-before.log` 和 `inference-probe.log`。
-该问题不得因本批采用显式类型实参验证 nullable 编码而标成解决；后续应在
-共用语义实例化／IR 事实层修复，不能添加 Channel 或 Cgen 特判。
+本批采用显式类型实参验证 nullable 编码，不据此声称修复了泛型推断。
+随后独立的 [泛型调用值推断合同](泛型调用值推断合同.md) 在共用 IR 层修复
+该基线；不是 Channel 或 Cgen 特判，也不代表其余核心问题已经封板。

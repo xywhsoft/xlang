@@ -15387,9 +15387,11 @@ static int xl6IrLowerUnifyGenericType(
 }
 
 static int xl6IrLowerInferGenericCallTypeArgs(
-    const XL6_IrModule* module, const XL6_IrNode* call, XL6_IrNodeId declaration,
+    XL6_IrLowerContext* ctx, const XL6_IrNode* call, XL6_IrNodeId declaration,
     XL6_IrTypeId** outTypes, size_t* outCount)
 {
+    XL6_IrModule* module = ctx != NULL ? ctx->module : NULL;
+    XL6_IrLowerSpecializationBuild resultProof = {.ctx = ctx};
     XL6_IrTypeId* parameters = NULL;
     XL6_IrTypeId* resolved = NULL;
     const XL6_IrNode* declarationNode;
@@ -15418,9 +15420,15 @@ static int xl6IrLowerInferGenericCallTypeArgs(
         const XL6_IrNode* actual = xl6IrNodeGet(module, binding->expression);
         XL6_IrTypeId actualType;
         if ( formal == NULL || actual == NULL || binding->parameter != i ) goto done;
-        actualType = actual->storageType != XL6_IR_TYPE_INVALID ? actual->storageType : actual->type;
+        /* Infer from the exact value at the call boundary, not a NAME's wider
+         * nullable storage. Lowering already materializes that flow projection. */
+        actualType = xl6IrNodeMaterializedValueType(module, actual);
         if ( !xl6IrLowerUnifyGenericType(module, formal->storageType, actualType,
                                           parameters, parameterCount, resolved, 0) ) goto done;
+    }
+    for ( i = 0; i < parameterCount; ++i ) {
+        if ( resolved[i] == XL6_IR_TYPE_INVALID ||
+             xl6IrLowerTypeContainsTypeParam(module, resolved[i], 0) ) goto done;
     }
     if ( formalReturns->childCount == 1 ) {
         const XL6_IrNode* formalReturn = xl6IrNodeGet(module, module->children[formalReturns->firstChild]);
@@ -15434,28 +15442,36 @@ static int xl6IrLowerInferGenericCallTypeArgs(
                 future->paramCount!=1 || !future->params) goto done;
             actualReturn=future->params[0];
         }
+        /* The result validates argument inference; it does not infer T again.
+         * Substitution is canonical and idempotent: when T is already nullable,
+         * T? is T, not another wrapper whose inner type may rebind T. Share the
+         * same substitution used to build the actual monomorphic declaration. */
         if ( formalReturn == NULL || actualReturn == XL6_IR_TYPE_INVALID ||
-             !xl6IrLowerUnifyGenericType(module, formalReturn->type, actualReturn,
-                                          parameters, parameterCount, resolved, 0) ) goto done;
-    }
-    for ( i = 0; i < parameterCount; ++i ) {
-        if ( resolved[i] == XL6_IR_TYPE_INVALID ||
-             xl6IrLowerTypeContainsTypeParam(module, resolved[i], 0) ) goto done;
+             (resultProof.types = (XL6_IrLowerTypeMap*)xrtCalloc(
+                 parameterCount, sizeof(*resultProof.types))) == NULL ) goto done;
+        resultProof.typeCount = parameterCount;
+        for ( i = 0; i < parameterCount; ++i ) {
+            resultProof.types[i].source = parameters[i];
+            resultProof.types[i].target = resolved[i];
+        }
+        if ( xl6IrLowerSpecializationSubstituteType(&resultProof, formalReturn->type) != actualReturn ) goto done;
     }
     *outTypes = resolved;
     *outCount = parameterCount;
     resolved = NULL;
     ok = 1;
 done:
+    xrtFree(resultProof.types);
     xrtFree(parameters);
     xrtFree(resolved);
     return ok;
 }
 
 static int xl6IrLowerGenericCallTypeArgs(
-    const XL6_IrModule* module, const XL6_IrNode* call, XL6_IrNodeId declaration,
+    XL6_IrLowerContext* ctx, const XL6_IrNode* call, XL6_IrNodeId declaration,
     XL6_IrTypeId** outTypes, size_t* outCount)
 {
+    const XL6_IrModule* module = ctx != NULL ? ctx->module : NULL;
     const XL6_IrNode* instant;
     const XL6_IrNode* args;
     XL6_IrTypeId* types;
@@ -15467,7 +15483,7 @@ static int xl6IrLowerGenericCallTypeArgs(
          instant->sourceKind != XL6_AST_GENERIC_INSTANT || instant->childCount < 2 ||
          (args = xl6IrNodeGet(module, module->children[instant->firstChild + 1])) == NULL ||
          args->kind != XL6_IR_NODE_LIST || args->childCount == 0 )
-        return xl6IrLowerInferGenericCallTypeArgs(module, call, declaration, outTypes, outCount);
+        return xl6IrLowerInferGenericCallTypeArgs(ctx, call, declaration, outTypes, outCount);
     types = (XL6_IrTypeId*)xrtCalloc(args->childCount, sizeof(*types));
     if ( types == NULL ) return 0;
     for ( i = 0; i < args->childCount; ++i ) {
@@ -17702,7 +17718,7 @@ static int xl6IrLowerMaterializeGenericSpecializations(XL6_IrLowerContext* ctx)
             }
         }
         if ( typeArgs == NULL &&
-             !xl6IrLowerGenericCallTypeArgs(module, call, declaration, &typeArgs, &typeArgCount) ) {
+             !xl6IrLowerGenericCallTypeArgs(ctx, call, declaration, &typeArgs, &typeArgCount) ) {
             return xl6IrLowerDiag(ctx, (XL6_IrNodeId)id,
                                    "XLIR generic call requires resolved concrete type arguments before lowering");
         }

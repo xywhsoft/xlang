@@ -1,0 +1,36 @@
+import concurrent
+union AsyncInferenceBits
+    int number
+end
+
+async func optionalAsync<T>(T value) as T?
+    auto gate = Promise::<int>()
+    assert gate.tryResolve(1)
+    assert await gate.future == 1
+    return value
+end
+async func fromNullableAsync(AsyncInferenceBits? value) as AsyncInferenceBits?
+    return await optionalAsync(value)
+end
+async func nestedAsync<T>(T value) as T?
+    return await optionalAsync(value)
+end
+async func chooseAsync<T,U>(U ignored, T value, int tag = 7) as T?
+    assert tag == 7
+    return value
+end
+
+AsyncInferenceBits original
+original.number = 42
+AsyncInferenceBits? stored = original
+AsyncInferenceBits? first = await optionalAsync(stored)
+if first != null then assert first.number == 42 end
+AsyncInferenceBits? unknown = await fromNullableAsync(original)
+if unknown != null then assert unknown.number == 42 end
+assert await fromNullableAsync(null) == null
+AsyncInferenceBits? nested = await nestedAsync(stored)
+if nested != null then assert nested.number == 42 end
+AsyncInferenceBits? named = await chooseAsync(value = stored, ignored = "unused")
+if named != null then assert named.number == 42 end
+assert original.number == 42
+println("generic async inferred worker result and idempotent nullable identity ok")
