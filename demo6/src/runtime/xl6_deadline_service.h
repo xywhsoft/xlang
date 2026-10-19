@@ -1,8 +1,7 @@
 #ifndef XL6_DEADLINE_SERVICE_H
 #define XL6_DEADLINE_SERVICE_H
 #include "include/xruntime_decl.h"
-#include "xl6_code_lease.h"
-typedef struct XL6_DeadlineServiceV1 XL6_DeadlineServiceV1;
+#include "xl6_deadline_module_abi.h"
 typedef struct XL6_DeadlineTicketV1 XL6_DeadlineTicketV1;
 typedef enum XL6_DeadlineResultV1 {
     XL6_DEADLINE_EXPIRED_V1=0,
@@ -40,7 +39,6 @@ struct XL6_DeadlineTicketV1 {
     const void* data;
     bool bound,dispatching,fired;
 };
-XL6_CODE_LEASE_API XL6_DeadlineServiceV1* xl6DeadlineServiceCreateV1(size_t);
 /* Takes *data on success ONLY. Failure leaves ticket idle and input unchanged.
  * Capacity counts logical accepted bindings, not independent physical tails.
  * All allocation/admission precedes dispatch; NEVER schedules via Net engine. */
@@ -56,13 +54,9 @@ XL6_CODE_LEASE_API xrtownershipref xl6DeadlineTicketServiceOwnershipV1(const XL6
  * serialized terminal owners; failure does not consume the creator. A claimed
  * source refuses ordinary destruction until that plan's Clear. Native
  * callbacks cannot destroy their own worker. Pins preserve retired allocation. */
-XL6_CODE_LEASE_API void xl6DeadlineServiceCloseV1(XL6_DeadlineServiceV1*);
-XL6_CODE_LEASE_API bool xl6DeadlineServiceDestroyV1(XL6_DeadlineServiceV1*);
-XL6_CODE_LEASE_API bool xl6DeadlineServiceDestroyCompletedV1(XL6_DeadlineServiceV1*);
 /* False is authoritative even if diagnostic allocation failed. */
 XL6_CODE_LEASE_API bool xl6DeadlineServiceCheckV1(XL6_DeadlineServiceV1*);
 XL6_CODE_LEASE_API bool xl6DeadlineFromMillisecondsV1(int64_t,xdeadline*);
-XL6_CODE_LEASE_API xrtownershipref xl6DeadlineServiceOwnershipV1(const XL6_DeadlineServiceV1*);
 XL6_CODE_LEASE_API const xrtownershipadapterv1* xl6DeadlineServiceOwnershipAdapterV1(
     xrtownershipref,const xrtownershippreparationv1**);
 XL6_CODE_LEASE_API const xrtownershipquiescencev1* xl6DeadlineServiceQuiescenceV1Get(void);

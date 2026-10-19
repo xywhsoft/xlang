@@ -19,7 +19,7 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
         xl6OutputPuts("#include <__xl_runtime/xl6_text_value.h>\n", out);
     xl6IrCgenEmitPublicLinkage(out);
     xl6IrCgenEmitCodeOwnerBinding(out, module);
-    if (module->abi.continuationAbi == XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1)
+    if (module->abi.continuationAbi == XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1) {
         xl6OutputPuts(
             "#define XLIR_RUNTIME_CONTINUATION 1\n"
             "#include <__xl_runtime/xl6_continuation_executor.h>\n"
@@ -28,14 +28,27 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
             "/* Deployment resource policy, not a language type/effect inference. */\n"
             "#ifndef XLIR_CONTINUATION_CAPACITY\n#define XLIR_CONTINUATION_CAPACITY 256\n#endif\n"
             "#ifndef XLIR_CONTINUATION_WORKERS\n#define XLIR_CONTINUATION_WORKERS 0\n#endif\n"
-            "static XL6_ContinuationExecutor* xlir_continuation_executor;\n"
+            "static XL6_ContinuationExecutor* xlir_continuation_executor;\n",out);
+        if(module->abi.deadlineOwnershipAbi==XL6_IR_MODULE_DEADLINE_OWNERSHIP_RESIDENT_BINDINGS_JOIN_V1)
+            xl6OutputPuts("#include <__xl_runtime/xl6_deadline_module_abi.h>\n"
+                "#ifndef XLIR_DEADLINE_CAPACITY\n#define XLIR_DEADLINE_CAPACITY XLIR_CONTINUATION_CAPACITY\n#endif\n"
+                "static XL6_DeadlineServiceV1* xlir_deadline_source;\n",out);
+        xl6OutputPuts(
             "static int xlir_continuation_quiesce(bool wait)\n"
-            "{\n"
+            "{\n",out);
+        if(module->abi.deadlineOwnershipAbi==XL6_IR_MODULE_DEADLINE_OWNERSHIP_RESIDENT_BINDINGS_JOIN_V1)
+            xl6OutputPuts("    xl6DeadlineServiceCloseV1(xlir_deadline_source);\n",out);
+        xl6OutputPuts(
             "    xl6ContinuationExecutorClose(xlir_continuation_executor);\n"
             "    if (!(wait ? xl6ContinuationExecutorDestroyCompleted(xlir_continuation_executor)\n"
             "               : xl6ContinuationExecutorDestroy(xlir_continuation_executor))) return 0;\n"
-            "    xlir_continuation_executor = NULL; return 1;\n"
-            "}\n", out);
+            "    xlir_continuation_executor = NULL;\n",out);
+        if(module->abi.deadlineOwnershipAbi==XL6_IR_MODULE_DEADLINE_OWNERSHIP_RESIDENT_BINDINGS_JOIN_V1)
+            xl6OutputPuts("    if (!(wait ? xl6DeadlineServiceDestroyCompletedV1(xlir_deadline_source)\n"
+                "               : xl6DeadlineServiceDestroyV1(xlir_deadline_source))) return 0;\n"
+                "    xlir_deadline_source = NULL;\n",out);
+        xl6OutputPuts("    return 1;\n}\n",out);
+    }
     if ( !xl6IrCgenNeedsXrtDeclarations(&needs) &&
          (needs.needsXValueRuntime ||
          module->abi.entryKind == XL6_IR_MODULE_ENTRY_XLANG_MAIN ||

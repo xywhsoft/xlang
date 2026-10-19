@@ -16,6 +16,10 @@ static bool count_frame(const void* frame,size_t* count)
 static bool trace_frame(const void* frame,xrtownershipvisitor visit,void* context)
 {return xl6ChannelFutureCoreTraceV1(frame,&provider,visit,context);}
 static const xrtownershipops frameOps={count_frame,trace_frame};
+static bool frame_busy(const void* frame)
+{return xl6ChannelFutureCoreBusyV1(frame,&provider);}
+const xrtownershipquiescencev1* xl6ChannelFutureQuiescenceV1Get(void)
+{static const xrtownershipquiescencev1 policy={sizeof(policy),&frameOps,frame_busy};return &policy;}
 static const xchannelsubscribeownershipv1 subscriptionPolicy={sizeof(subscriptionPolicy),
     xl6ChannelFutureCoreNotifyV1,xl6ChannelFutureCoreDataDropV1,&frameOps};
 static const xcancelwatchownershipv1 cancelPolicy={sizeof(cancelPolicy),
@@ -35,10 +39,11 @@ static bool complete(void* data,xchannelselectresult result,int64_t* unused)
     return xl6ChannelSelectCompleteV1(&state->operations,result,&state->selected)&&
         xl6ChannelOwnedSelectCompleteV1(&state->owned,state->selected);
 }
-static void cleanup(void* data)
+static void cleanup(void* data,const void* token)
 {
     SelectState* state=data;xl6_error_scope scope={0};if(!xl6ErrorScopeBeginCleanup(&scope,false))abort();
-    xl6ChannelSelectDiscardV1(&state->operations);
+    if(token)xl6ChannelSelectDiscardClaimedV1(&state->operations,token);
+    else xl6ChannelSelectDiscardV1(&state->operations);
     if(xrtGetError()||scope.failed)xl6ErrorScopeCaptureFailure(&scope);
     (void)xl6ChannelOwnedSelectDiscardV1(&state->owned,false);
     if(xrtGetError()||scope.failed)xl6ErrorScopeCaptureFailure(&scope);

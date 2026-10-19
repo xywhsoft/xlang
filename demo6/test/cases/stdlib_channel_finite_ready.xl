@@ -1,0 +1,7 @@
+import concurrent
+func ready() as future<ChannelReceiveResult<string>>
+    channel<string> pipe = channel::<string>(1)
+    assert pipe.send("finite\0ready")
+    return pipe.recvAsyncUntil(uint64(0))
+end
+auto saved = ready()

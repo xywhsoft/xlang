@@ -29,6 +29,10 @@ XL6_TEXT_API bool xl6ChannelOperationOpenSchemaV1(XL6_SequenceLayoutV1,const xva
     XL6_ChannelSlotV1,bool,XL6_ChannelStatusV1*,XL6_ChannelOperationV1*);
 XL6_TEXT_API bool xl6ChannelOperationCommitV1(XL6_ChannelOperationV1*);
 XL6_TEXT_API void xl6ChannelOperationCloseV1(XL6_ChannelOperationV1*);
+/* Private unstarted builder rollback only, outside Freeze. The token is the
+ * enclosing frame's exact ownership claim; it never bypasses another plan's
+ * claim or permits accepted work to run under a claim. */
+XL6_TEXT_API void xl6ChannelOperationCloseClaimedV1(XL6_ChannelOperationV1*,const void*);
 XL6_TEXT_API bool xl6ChannelOperationParkV1(XL6_ChannelOperationV1*);
 XL6_TEXT_API xrtownershipref xl6ChannelOperationOwnershipV1(const XL6_ChannelOperationV1*);
 typedef struct XL6_ChannelSelectFrameV1 {
@@ -45,6 +49,7 @@ XL6_TEXT_API bool xl6ChannelSelectPrepareV1(const XL6_ChannelCaseV1*,size_t,
 XL6_TEXT_API bool xl6ChannelSelectCompleteV1(XL6_ChannelSelectFrameV1*,xchannelselectresult,
     XL6_ChannelSelectionV1*);
 XL6_TEXT_API void xl6ChannelSelectDiscardV1(XL6_ChannelSelectFrameV1*);
+XL6_TEXT_API void xl6ChannelSelectDiscardClaimedV1(XL6_ChannelSelectFrameV1*,const void*);
 /* Infallible after successful preparation, before native publication. The
  * caller serializes the containing frame and supplies whole-graph freeze for
  * Trace. Only the actual operation owners are edges; messages are borrowed

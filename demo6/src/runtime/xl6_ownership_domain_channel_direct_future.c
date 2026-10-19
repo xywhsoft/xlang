@@ -10,6 +10,7 @@ static bool load(XL6_OwnershipCatalog* catalog)
         xl6OwnershipCatalogAddChannelSubscriptionV1(catalog,xl6ChannelDirectFutureSubscriptionPolicyV1Get())&&
         xl6OwnershipCatalogAddHandleV1(catalog,xl6ChannelReceiveResultHandlePolicyV1Get())&&
         xl6OwnershipCatalogAddQuiescenceV1(catalog,xl6ChannelReceiveResultQuiescenceV1Get())&&
+        xl6OwnershipCatalogAddQuiescenceV1(catalog,xl6ChannelDirectFutureQuiescenceV1Get())&&
         xl6OwnershipCatalogAddQuiescenceV1(catalog,xrtChannelSubscribeOwnershipQuiescenceV1Get());
 }
 XL6_OWNERSHIP_QUERY(ChannelDirectFuture)

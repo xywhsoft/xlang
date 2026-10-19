@@ -39,7 +39,7 @@ int main(int argc,char** argv)
             ++adopted;
         }
         if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1){
-            assert(target->nativeServicesRequired==XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1);
+            assert(target->nativeServicesRequired==xl6IrRuntimeDirectBridgeServices(target->cName));
             assert(xl6IrDynamicMethodCallTargetSupported(module,target));
             target->nativeServicesRequired=0;assert(!xl6IrDynamicMethodCallTargetSupported(module,target));
             reject(module);*target=saved;

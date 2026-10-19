@@ -20324,21 +20324,35 @@ int xl6IrModuleHasFinalizerWork(const XL6_IrModule* module)
 {
     return module->abi.finalizerCleanupCount != 0 ||
         module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE ||
+        module->abi.deadlineOwnershipAbi != XL6_IR_MODULE_DEADLINE_OWNERSHIP_NONE ||
         module->abi.taskPoolAbi != XL6_IR_MODULE_TASK_POOL_NONE;
 }
 
+static unsigned xl6IrModuleNativeServices(const XL6_IrModule* module)
+{
+    unsigned services=0;
+    if(!module)return 0;
+    if(module->stage==XL6_IR_STAGE_LOWERED) {
+        /* Dynamic native method witnesses are executable targets too, even
+         * without a direct CALL instruction. Reachability has already closed
+         * their descriptor/code edges; unused declarations remain zero. */
+        for(size_t i=0;i<module->callTargetCount;++i)
+            if(module->callTargets[i].reachability!=XL6_IR_REACHABILITY_UNREACHABLE)
+                services|=module->callTargets[i].nativeServicesRequired;
+    } else for(size_t i=0;i<module->instructionCount;++i) {
+        const XL6_IrInstruction* instruction=&module->instructions[i];
+        const XL6_IrCallTarget* target=instruction->kind==XL6_IR_INSTR_CALL
+            ? xl6IrCallTargetGet(module,instruction->targetSymbol):NULL;
+        if(target)services|=target->nativeServicesRequired;
+    }
+    return services;
+}
 XL6_IrModuleContinuationAbi xl6IrModuleContinuationRequirement(const XL6_IrModule* module)
 {
     size_t i, j;
     if (module == NULL) return XL6_IR_MODULE_CONTINUATION_NONE;
-    for(i=0;i<module->instructionCount;++i) {
-        const XL6_IrInstruction* instruction=&module->instructions[i];
-        const XL6_IrCallTarget* target=instruction->kind==XL6_IR_INSTR_CALL
-            ? xl6IrCallTargetGet(module,instruction->targetSymbol):NULL;
-        if(target && (target->nativeServicesRequired & XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1) &&
-            (module->stage!=XL6_IR_STAGE_LOWERED || target->reachability!=XL6_IR_REACHABILITY_UNREACHABLE))
-            return XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1;
-    }
+    if(xl6IrModuleNativeServices(module)&XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1)
+        return XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1;
     for(i=0;i<module->instructionCount;++i)
         if(module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
             module->instructions[i].runtimeOp==XL6_IR_RUNTIME_FUTURE_CONTINUE_CLOSURE)
@@ -20366,6 +20380,14 @@ XL6_IrModuleExecutorOwnershipAbi xl6IrModuleExecutorOwnershipRequirement(const X
         return XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN_V1;
     default: return (XL6_IrModuleExecutorOwnershipAbi)-1;
     }
+}
+
+XL6_IrModuleDeadlineOwnershipAbi xl6IrModuleDeadlineOwnershipRequirement(const XL6_IrModule* module)
+{
+    if(!module || module->stage!=XL6_IR_STAGE_LOWERED)return XL6_IR_MODULE_DEADLINE_OWNERSHIP_NONE;
+    if(xl6IrModuleNativeServices(module)&XL6_IR_CALL_NATIVE_SERVICE_DEADLINE_V1)
+        return XL6_IR_MODULE_DEADLINE_OWNERSHIP_RESIDENT_BINDINGS_JOIN_V1;
+    return XL6_IR_MODULE_DEADLINE_OWNERSHIP_NONE;
 }
 
 XL6_IrModuleTaskPoolOwnershipAbi xl6IrModuleTaskPoolOwnershipRequirement(const XL6_IrModule* module)
@@ -20430,6 +20452,7 @@ XL6_IrModuleRetirementAbi xl6IrModuleRetirementRequirement(const XL6_IrModule* m
     if(!module || module->abi.codeOwnerAbi!=XL6_IR_MODULE_CODE_OWNER_BIND_BEFORE_INIT)return XL6_IR_MODULE_RETIREMENT_NONE;
     return module->abi.networkServiceAbi!=XL6_IR_MODULE_NETWORK_SERVICE_NONE ||
         module->abi.executorOwnershipAbi!=XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE ||
+        module->abi.deadlineOwnershipAbi!=XL6_IR_MODULE_DEADLINE_OWNERSHIP_NONE ||
         module->abi.taskPoolOwnershipAbi!=XL6_IR_MODULE_TASK_POOL_OWNERSHIP_NONE
         ? XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4 : XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2;
 }
@@ -20554,6 +20577,11 @@ static int xl6IrVerifyModuleFinalizer(const XL6_IrModule* module, XL6_DiagList* 
         (module->abi.executorOwnershipAbi != XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE &&
          module->abi.executorOwnershipAbi != XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN_V1))
         return xl6IrDiag(diags, NULL, "XLIR module executor ownership ABI is unresolved");
+    if(module->abi.deadlineOwnershipAbi!=xl6IrModuleDeadlineOwnershipRequirement(module) ||
+        (module->abi.deadlineOwnershipAbi!=XL6_IR_MODULE_DEADLINE_OWNERSHIP_NONE &&
+         (module->abi.deadlineOwnershipAbi!=XL6_IR_MODULE_DEADLINE_OWNERSHIP_RESIDENT_BINDINGS_JOIN_V1 ||
+          module->abi.executorOwnershipAbi!=XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN_V1)))
+        return xl6IrDiag(diags,NULL,"XLIR module deadline ownership ABI is unresolved");
     if (module->abi.taskPoolOwnershipAbi != (module->stage == XL6_IR_STAGE_TYPED
             ? XL6_IR_MODULE_TASK_POOL_OWNERSHIP_NONE : xl6IrModuleTaskPoolOwnershipRequirement(module)) ||
         (module->abi.taskPoolOwnershipAbi != XL6_IR_MODULE_TASK_POOL_OWNERSHIP_NONE &&
@@ -27129,6 +27157,7 @@ int xl6IrRefreshReachability(XL6_IrModule* module)
         module->abi.taskPoolOwnershipAbi=xl6IrModuleTaskPoolOwnershipRequirement(module);
         module->abi.continuationAbi=xl6IrModuleContinuationRequirement(module);
         module->abi.executorOwnershipAbi=xl6IrModuleExecutorOwnershipRequirement(module);
+        module->abi.deadlineOwnershipAbi=xl6IrModuleDeadlineOwnershipRequirement(module);
         if (module->abi.finalizerFunction != 0 && module->abi.finalizerFunction <= module->functionCount)
             module->functions[module->abi.finalizerFunction-1].errorAbi =
                 xl6IrModuleHasFinalizerWork(module) ? XL6_IR_ERROR_ABI_MAY_RAISE : XL6_IR_ERROR_ABI_NO_RAISE;
@@ -50632,6 +50661,7 @@ void xl6IrDumpModuleText(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPrintf(out, "class-identity: %d\n", (int)module->abi.classIdentityAbi);
     xl6OutputPrintf(out, "module-continuation: %d\n", (int)module->abi.continuationAbi);
     xl6OutputPrintf(out, "module-executor-ownership: %d\n", (int)module->abi.executorOwnershipAbi);
+    xl6OutputPrintf(out, "module-deadline-ownership: %d\n", (int)module->abi.deadlineOwnershipAbi);
     xl6OutputPrintf(out, "module-task-pool-ownership: %d\n", (int)module->abi.taskPoolOwnershipAbi);
     xl6OutputPrintf(out, "future-aggregate: %d\n", (int)module->abi.futureAggregateAbi);
     xl6OutputPrintf(out, "native-future-map: %d\n", (int)module->abi.nativeFutureMapAbi);
@@ -50719,6 +50749,7 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
         (unsigned)module->abi.entryArgumentType,(int)module->abi.entryArgumentCarrierAbi,
         (unsigned long long)module->abi.entryArgumentElementIdentity);
     xl6OutputPrintf(out, "  \"moduleExecutorOwnershipAbi\": %d,\n", (int)module->abi.executorOwnershipAbi);
+    xl6OutputPrintf(out, "  \"moduleDeadlineOwnershipAbi\": %d,\n", (int)module->abi.deadlineOwnershipAbi);
     xl6OutputPrintf(out, "  \"moduleTaskPoolOwnershipAbi\": %d,\n", (int)module->abi.taskPoolOwnershipAbi);
     xl6OutputPrintf(out, "  \"futureAggregateAbi\": %d,\n", (int)module->abi.futureAggregateAbi);
     xl6OutputPrintf(out, "  \"nativeFutureMapAbi\": %d,\n", (int)module->abi.nativeFutureMapAbi);

@@ -21,7 +21,10 @@ typedef struct XL6_ChannelFutureProviderV1 {
     const xcancelwatchownershipv1* cancellation;
     void (*Notify)(void*,xchannelselectresult,void*);
     bool (*Complete)(void*,xchannelselectresult,int64_t*);
-    void (*Cleanup)(void*);
+    /* A non-NULL token is ONLY the claimed, unstarted builder's rollback.
+     * Accepted worker completion always passes NULL; it cannot operate on a
+     * claimed channel. Rollback may release edges claimed by the SAME plan. */
+    void (*Cleanup)(void*,const void*);
     bool (*Trace)(const void*,xrtownershipvisitor,void*);
     bool (*Empty)(const void*);
 } XL6_ChannelFutureProviderV1;
@@ -47,6 +50,12 @@ typedef struct XL6_ChannelFutureWakeV1 {
     void (*Drop)(void*);
 } XL6_ChannelFutureWakeV1;
 XL6_CONTINUATION_API XL6_ChannelFutureFrameV1* xl6ChannelFutureCoreCreateV1(const XL6_ChannelFutureProviderV1*);
+/* Publish a fully prepared, still private builder to a managed handle. Raw
+ * construction remains uninspectable. The caller serializes preparation and
+ * Start; a claimed private builder cannot Start. Its ownership preparation
+ * may perform the same private rollback outside Freeze, without consuming
+ * the builder's creator credit. Accepted work is NEVER rolled back by GC. */
+XL6_CONTINUATION_API bool xl6ChannelFutureCorePublishBuilderV1(XL6_ChannelFutureFrameV1*);
 XL6_CONTINUATION_API void* xl6ChannelFutureCoreStateV1(const XL6_ChannelFutureFrameV1*);
 XL6_CONTINUATION_API const XL6_ChannelFutureProviderV1* xl6ChannelFutureCoreProviderV1(const XL6_ChannelFutureFrameV1*);
 XL6_CONTINUATION_API bool xl6ChannelFutureCoreHandleTakeV1(XL6_ChannelFutureFrameV1*,xvalue**);
@@ -71,6 +80,8 @@ XL6_CONTINUATION_API void xl6ChannelFutureCoreStopV1(XL6_ChannelFutureFrameV1*,x
 XL6_CONTINUATION_API void xl6ChannelFutureCoreDiscardV1(XL6_ChannelFutureFrameV1*);
 XL6_CONTINUATION_API xrtownershipref xl6ChannelFutureCoreOwnershipV1(const XL6_ChannelFutureFrameV1*);
 XL6_CONTINUATION_API bool xl6ChannelFutureCoreCountV1(const void*,const XL6_ChannelFutureProviderV1*,size_t*);
+/* Frozen, read-only transient classification, NOT Count/Trace admission. */
+XL6_CONTINUATION_API bool xl6ChannelFutureCoreBusyV1(const void*,const XL6_ChannelFutureProviderV1*);
 XL6_CONTINUATION_API bool xl6ChannelFutureCoreTraceV1(const void*,const XL6_ChannelFutureProviderV1*,xrtownershipvisitor,void*);
 XL6_CONTINUATION_API const xrtownershipadapterv1* xl6ChannelFutureCoreAdapterV1(xrtownershipref,
     const XL6_ChannelFutureProviderV1*,const xrtownershippreparationv1**);

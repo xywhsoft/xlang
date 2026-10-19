@@ -183,6 +183,10 @@ static bool count_frame(const void* frame,size_t* count)
 static bool trace_frame(const void* frame,xrtownershipvisitor visit,void* context)
 {return xl6ChannelFutureCoreTraceV1(frame,accepted(frame),visit,context);}
 static const xrtownershipops frameOps={count_frame,trace_frame};
+static bool frame_busy(const void* frame)
+{return xl6ChannelFutureCoreBusyV1(frame,accepted(frame));}
+const xrtownershipquiescencev1* xl6ChannelDirectFutureQuiescenceV1Get(void)
+{static const xrtownershipquiescencev1 policy={sizeof(policy),&frameOps,frame_busy};return &policy;}
 static const xchannelsubscribeownershipv1 subscriptionPolicy={sizeof(subscriptionPolicy),
     xl6ChannelFutureCoreNotifyV1,xl6ChannelFutureCoreDataDropV1,&frameOps};
 static const xcancelwatchownershipv1 cancelPolicy={sizeof(cancelPolicy),
@@ -212,8 +216,12 @@ static bool complete(void* data,xchannelselectresult native,int64_t* scalar)
         result->status=status;result->initialized=status==XL6_CHANNEL_OK_V1;result->ready=true;leave(&mutation);}
     return true;
 }
-static void cleanup(void* data)
-{DirectState* state=data;state->result=NULL;xl6ChannelOperationCloseV1(&state->operation);}
+static void cleanup(void* data,const void* token)
+{
+    DirectState* state=data;state->result=NULL;
+    if(token)xl6ChannelOperationCloseClaimedV1(&state->operation,token);
+    else xl6ChannelOperationCloseV1(&state->operation);
+}
 static bool trace_state(const void* data,xrtownershipvisitor visit,void* context)
 {
     const DirectState* state=data;

@@ -11,7 +11,7 @@ struct XL6_ChannelFutureFrameV1 {
     xatomic64 gate;
     size_t references,active;
     const void* claim;
-    bool committed,publishing,bound,retiring,retired,cleared;
+    bool builderPublished,committed,publishing,bound,retiring,retired,cleared;
     XL6_ContinuationTicket ticket;
     const XL6_ChannelFutureProviderV1* provider;
     const XL6_ChannelFutureWakeV1* wake;
@@ -122,16 +122,18 @@ static void capture_failure(xl6_error_scope* scope)
 static void cleanup_values(Frame* frame,xl6_error_scope* scope)
 {
     if(frame->wake){frame->wake->Cleanup(frame->wakeData);capture_failure(scope);}
-    frame->provider->Cleanup(frame->state);capture_failure(scope);
+    frame->provider->Cleanup(frame->state,frame->claim);capture_failure(scope);
     xvalue* handle=frame->handle;frame->handle=NULL;xrtValueRelease(handle);capture_failure(scope);
     xcancel* cancel=frame->cancel;frame->cancel=NULL;xrtCancelDestroy(cancel);capture_failure(scope);
 }
-void xl6ChannelFutureCoreDiscardV1(Frame* frame)
+static bool discard_contents(Frame* frame)
 {
-    if(!frame)return;
     if(frame->committed||frame->publishing||frame->bound||frame->ticket.queue)abort();
+    if(frame->retired)return true;
     xl6_error_scope scope={0};if(!xl6ErrorScopeBeginCleanup(&scope,false))abort();
     xrtownershipscope mutation={0};enter(frame,&mutation);
+    if(frame->retiring)abort();
+    frame->retiring=true;
     xcancelwatch* watch=frame->cancelWatch;frame->cancelWatch=NULL;
     xchannelsubscription* subscription=frame->subscription;frame->subscription=NULL;
     leave(frame,&mutation);
@@ -142,9 +144,26 @@ void xl6ChannelFutureCoreDiscardV1(Frame* frame)
     void* payload=frame->payload;frame->payload=NULL;
     xl6PayloadDropGet(frame->provider->payloadKind)(payload,NULL);capture_failure(&scope);
     xpromise* promise=frame->promise;frame->promise=NULL;xrtPromiseDestroy(promise);capture_failure(&scope);
-    enter(frame,&mutation);frame->retired=true;leave(frame,&mutation);
-    xl6_error_result result=xl6ErrorScopeEnd(&scope);release(frame);
+    enter(frame,&mutation);frame->retired=true;frame->retiring=false;leave(frame,&mutation);
+    xl6_error_result result=xl6ErrorScopeEnd(&scope);
     if(!result.ok)xl6ErrorScopePropagateFailure(result);else xrtErrorFree(result.error);
+    return result.ok;
+}
+void xl6ChannelFutureCoreDiscardV1(Frame* frame)
+{
+    if(!frame)return;
+    (void)discard_contents(frame);release(frame);
+}
+bool xl6ChannelFutureCorePublishBuilderV1(Frame* frame)
+{
+    if(!frame){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    xrtownershipscope mutation={0};enter(frame,&mutation);
+    bool ok=frame->references&&!frame->builderPublished&&!frame->claim&&!frame->committed&&
+        !frame->publishing&&!frame->bound&&!frame->active&&!frame->retiring&&!frame->retired&&
+        !frame->cleared&&!frame->ticket.queue&&frame->subscription&&!frame->cancelSubscription&&
+        !frame->cancelWatch&&!frame->cancel&&!frame->promise&&!frame->payload;
+    if(ok)frame->builderPublished=true;
+    leave(frame,&mutation);if(!ok)xrtSetErrorKind(XERR_STATE);return ok;
 }
 Frame* xl6ChannelFutureCoreCreateV1(const XL6_ChannelFutureProviderV1* provider)
 {
@@ -254,17 +273,25 @@ static void retire(void* data)
 static xfuture* start(XL6_ContinuationExecutor* executor,Frame* frame,const xvalue* owner,
     const char* field,size_t fieldSize,xcancel* parent,const void* wakeContext)
 {
-    if(!executor||!frame||frame->committed||frame->publishing||frame->bound||!frame->subscription||
-        frame->payload||frame->promise||((field==NULL)!=(fieldSize==0))||
-        ((frame->wake==NULL)!=(wakeContext==NULL))){
+    if(!executor||!frame||((field==NULL)!=(fieldSize==0))){
         xrtSetErrorKind(XERR_ARGUMENT);return NULL;
     }
+    xrtownershipscope mutation={0};enter(frame,&mutation);
+    if(frame->claim||frame->retired||frame->active||frame->retiring||frame->committed||frame->publishing||
+        frame->bound||!frame->subscription||frame->payload||frame->promise||
+        ((frame->wake==NULL)!=(wakeContext==NULL))){
+        leave(frame,&mutation);xrtSetErrorKind(XERR_STATE);return NULL;
+    }
+    /* Admission and the inspection barrier are one mutation, before argument
+     * projection or fallible allocation. Claim cannot slip between them. */
+    ++frame->active;leave(frame,&mutation);
+    xfuture* future=NULL;
     bool boxed=frame->provider->payloadKind==XL6_FUTURE_PAYLOAD_XVALUE;
     if(boxed){
         const xvalue* handle=owner?(field?xrtValueObjectGet(owner,(xstrview){field,fieldSize}):owner):NULL;
-        if(!frame->handle || handle!=frame->handle){xrtSetErrorKind(XERR_TYPE);return NULL;}
-    }else if(owner||field||fieldSize||frame->handle){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
-    xfuture* future=NULL;frame->payload=xrtCalloc(1,boxed?sizeof(xvalue*):sizeof(int64_t));if(!frame->payload)return NULL;
+        if(!frame->handle || handle!=frame->handle){xrtSetErrorKind(XERR_TYPE);goto failed;}
+    }else if(owner||field||fieldSize||frame->handle){xrtSetErrorKind(XERR_ARGUMENT);goto failed;}
+    frame->payload=xrtCalloc(1,boxed?sizeof(xvalue*):sizeof(int64_t));if(!frame->payload)goto failed;
     if(boxed){
         *(xvalue**)frame->payload=xrtValueRetain(owner);if(!*(xvalue**)frame->payload)goto failed;
         xvalue* initial=frame->handle;frame->handle=NULL;xrtValueRelease(initial);
@@ -285,7 +312,7 @@ static xfuture* start(XL6_ContinuationExecutor* executor,Frame* frame,const xval
         if(!xrtGetError())xrtSetErrorKind(admission==XL6_CONTINUATION_FULL?XERR_RANGE:
             admission==XL6_CONTINUATION_RESOURCE_FAILURE?XERR_MEMORY:XERR_STATE);goto failed;
     }
-    xrtownershipscope mutation={0};enter(frame,&mutation);
+    enter(frame,&mutation);
     frame->ticket.storage=&storage;frame->publishing=true;frame->bound=true;leave(frame,&mutation);
     if(frame->wake&&!frame->wake->Arm(frame->wakeData,wakeContext)){
         if(!xl6ContinuationAbort(&frame->ticket))abort();
@@ -295,10 +322,12 @@ static xfuture* start(XL6_ContinuationExecutor* executor,Frame* frame,const xval
         if(!xl6ContinuationAbort(&frame->ticket))abort();
         enter(frame,&mutation);frame->publishing=false;frame->bound=false;leave(frame,&mutation);goto failed;
     }
+    enter(frame,&mutation);--frame->active;leave(frame,&mutation);
     xl6ContinuationCommit(&frame->ticket); /* final transfer; no frame access */
     return future;
 failed:;
     xerror* error=xrtTakeError();xrtFutureDestroy(future);xrtClearError();
+    enter(frame,&mutation);--frame->active;leave(frame,&mutation);
     if(error)xrtSetErrorTake(error);else xrtSetErrorKind(XERR_INTERNAL);return NULL;
 }
 xfuture* xl6ChannelFutureCoreStartV1(XL6_ContinuationExecutor* executor,Frame* frame,const xvalue* owner,
@@ -313,12 +342,21 @@ xfuture* xl6ChannelFutureCoreStartWakeV1(XL6_ContinuationExecutor* executor,Fram
 bool xl6ChannelFutureCoreCountV1(const void* data,const XL6_ChannelFutureProviderV1* expected,size_t* count)
 {
     const Frame* frame=data;
-    if(!frame||!expected||frame->provider!=expected||!count||!frame->references||!frame->committed||frame->publishing||frame->active||frame->retiring||frame->cleared)return false;
+    if(!frame||!expected||frame->provider!=expected||!count||!frame->references||frame->publishing||frame->active||frame->retiring||frame->cleared)return false;
+    /* Only explicitly published stable builders gain a private rollback
+     * preparation. Raw half-built frames remain BUSY, not graph-admitted. */
+    if(!frame->committed&&(!frame->builderPublished||frame->bound||frame->ticket.queue))return false;
     if(frame->ticket.queue&&(frame->ticket.ownershipRefs!=1||frame->ticket.transportOwned||
         frame->ticket.predecessor||frame->ticket.successor||
         (frame->ticket.flags!=XL6_CONTINUATION_COMMITTED&&frame->ticket.flags!=
             (XL6_CONTINUATION_COMMITTED|XL6_CONTINUATION_READY|XL6_CONTINUATION_TRANSPORT_RELEASED))))return false;
     *count=frame->references;return true;
+}
+bool xl6ChannelFutureCoreBusyV1(const void* data,const XL6_ChannelFutureProviderV1* expected)
+{
+    const Frame* frame=data;size_t count;
+    return frame&&expected&&frame->provider==expected&&frame->references&&!frame->cleared&&
+        !xl6ChannelFutureCoreCountV1(data,expected,&count);
 }
 bool xl6ChannelFutureCoreTraceV1(const void* data,const XL6_ChannelFutureProviderV1* expected,xrtownershipvisitor visit,void* context)
 {
@@ -331,7 +369,15 @@ bool xl6ChannelFutureCoreTraceV1(const void* data,const XL6_ChannelFutureProvide
         expected->Trace(frame->state,visit,context)&&(!frame->wake||frame->wake->Trace(frame->wakeData,visit,context));
 }
 static bool claim(const void* data,const void* token)
-{Frame* frame=(Frame*)data;if(!token||frame->cleared||(frame->claim&&frame->claim!=token))return false;frame->claim=token;return true;}
+{
+    Frame* frame=(Frame*)data;
+    /* Accepted work must finish before ANY of its collectible descendants
+     * stay claimed across Freeze. Otherwise the worker cannot reactivate a
+     * parked Channel operation while the module plan waits for that worker. */
+    if(!token||frame->cleared||frame->active||frame->publishing||frame->retiring||
+        (frame->committed&&!frame->retired)||(frame->claim&&frame->claim!=token))return false;
+    frame->claim=token;return true;
+}
 static void restore(const void* data,const void* token)
 {Frame* frame=(Frame*)data;if(!token||frame->claim!=token||frame->cleared)abort();frame->claim=NULL;}
 static bool prepared(const void* data)
@@ -346,7 +392,16 @@ static xrtownershipprepareresult prepare_drop(const void* data,const void* token
     Frame* frame=(Frame*)data;xrtownershipscope mutation={0};enter(frame,&mutation);
     if(!token||frame->claim!=token||frame->cleared)abort();
     bool ready=prepared(frame);
-    leave(frame,&mutation);return ready?XRT_OWNERSHIP_PREPARE_READY:XRT_OWNERSHIP_PREPARE_BUSY;
+    bool rollback=!ready&&frame->builderPublished&&!frame->committed&&!frame->publishing&&
+        !frame->bound&&!frame->ticket.queue&&!frame->active&&!frame->retiring;
+    leave(frame,&mutation);
+    /* Preparation runs outside Freeze and only for a claimed private builder.
+     * It consumes semantic duties, not the language handle's creator credit. */
+    if(rollback){
+        if(!discard_contents(frame))return XRT_OWNERSHIP_PREPARE_FAILED;
+        ready=prepared(frame);
+    }
+    return ready?XRT_OWNERSHIP_PREPARE_READY:XRT_OWNERSHIP_PREPARE_BUSY;
 }
 static void clear(const void* data,const void* token)
 {Frame* frame=(Frame*)data;if(!token||frame->claim!=token||!prepared(frame))abort();frame->cleared=true;}

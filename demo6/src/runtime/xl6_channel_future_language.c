@@ -1,6 +1,7 @@
 #include "xl6_text_value.h"
 #include "xl6_channel_case_array.h"
 #include "xl6_channel_future.h"
+#include "xl6_channel_future_core.h"
 #include "src/api/xl_foreign_error.h"
 
 void* xl6ChannelFutureBuilderCreateLanguageV1(XL6_ChannelCaseArrayContextV1 context,const xvalue* input)
@@ -10,7 +11,7 @@ void* xl6ChannelFutureBuilderCreateLanguageV1(XL6_ChannelCaseArrayContextV1 cont
     const XL6_ChannelFutureRuntimeV1* api=xl6ChannelFutureRuntimeV1Get();
     XL6_ChannelFutureFrameV1* frame=NULL;
     bool ok=xl6ChannelCasesSnapshotCaptureV1(&cases,context,input);
-    if(ok){frame=api->Prepare(cases.values,cases.count);ok=frame!=NULL;}
+    if(ok){frame=api->Prepare(cases.values,cases.count);ok=frame&&xl6ChannelFutureCorePublishBuilderV1(frame);}
     if(!ok || xrtGetError() || scope.failed)xl6ErrorScopeCaptureFailure(&scope);
     xl6ChannelCasesSnapshotDiscardV1(&cases);
     if(xrtGetError() || scope.failed)xl6ErrorScopeCaptureFailure(&scope);

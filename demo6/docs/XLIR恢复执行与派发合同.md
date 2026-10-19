@@ -671,3 +671,39 @@ Cgen 不追溯方法名、不生成计时或收发算法。
 本批不改变默认固定 worker 数、取消及模块清理规则；无限期 Channel 的
 实际独立产物计划不得含 deadline 组件。尚未新增公共有限期方法或模块期限
 源槽，不能将已有原生期限能力表述为语言接入完成。
+
+### 2026-10-19：公共有限期调用与模块期限源
+
+本节取代以上历史批次中“尚未公开”的状态说明。服务位现在明确区分
+EXECUTOR=1 与 DEADLINE=2；有限期 Start 的规范合同恰为 3，不允许漏位、
+多位或用字段/描述符推断服务。`XL6_RuntimeServicesV1` 按值借用两个指针，
+不得保留视图或把它额外算作拥有边。有限与无限 builder、收发和选择器
+角色、结果字段/policy、泛型 T 及 Future 状态宽度均独立验证。
+
+Lowered 模块在可达性闭合后从全部保留目标聚合服务需求，包括动态原生
+方法见证；仅扫描直接 CALL 会漏掉动态调用。Typed 阶段不拥有服务。
+`deadlineOwnershipAbi` 独立表达 resident bindings/join，只有真实可达的
+期限服务需求才启用；finalizer、退休标志、artifact 与拥有域使用同一事实。
+后端只输出服务字面量和普通调用，不生成计时/收发/选择算法。
+
+生成模块通过 `xl6_deadline_module_abi.h` 的 opaque 声明持有源，不包含
+原生 ticket、atomic 布局或实现根路径。创建顺序为执行器、期限源、其他
+模块服务；源容量默认为 continuation 容量，可由部署宏单独指定。
+Close 禁止新增绑定而不取消已接受项。清理先 Close 两个服务，再收拢执行器，
+最后 join 期限源；每个槽只有成功销毁后才清空，任何 BUSY/错误均保持剩余
+槽和首个失败，允许宿主 checked 重试。创建源失败也遵守该回滚合同。
+
+有限期语言桥接复用同一个 native producer/结果记录。发布前为就绪队列
+取得真实 frame 引用；失败 Start 撤回该引用，词法 builder 仍履行自己的
+Destroy/私有 Discard 义务。直接与选择器语言 handle/domain 精确分开。
+
+原始半构造、活动通知或发布中的 frame 不能 Count/Trace；独立精确 frameOps quiescence 能力
+报告 BUSY，所有 probe 输出保持空；这不授权任意回调或未知 provider。
+活动通知屏障属于源级测试，普通 DLL/SO 不因测试而注入内部拦截器。
+
+稳定 builder 必须显式发布后才可作为私有拥有节点进入计划。其 Start 状态
+检查和活动信用在同一次 mutation 内建立；claim 或私有退休后拒绝 Start。
+未启动节点的同计划准备在 Freeze 外执行私有回滚，保留 creator 信用；
+准确 token 只允许关闭该计划认领的 parked operation，不授权工作线程在
+claim 下继续运行。已接受 frame 在逻辑退休前拒绝 Claim，计划回滚已取得
+的子对象 claim 后再让 worker 前进，不能一边认领 Channel 一边等待它完成。

@@ -1,0 +1,96 @@
+import concurrent
+
+async func roundTrip<T>(T value) as T?
+    channel<T> pipe = channel::<T>(0)
+    auto receiving = pipe.recvAsyncTimeout(30000)
+    assert await pipe.sendAsyncTimeout(value, 30000) == channelStatus.ok
+    auto result = await receiving
+    assert result.status == channelStatus.ok and result.hasValue
+    return result.value
+end
+
+async func checks()
+    assert ((await roundTrip::<int>(42)) ?? -1) == 42
+    assert ((await roundTrip::<string>("a\0你🙂")) ?? "bad") == "a\0你🙂"
+    assert ((await roundTrip::<bytes>(b"a\0b")) ?? b"bad") == b"a\0b"
+    assert await roundTrip::<int?>(null) == null
+    assert ((await roundTrip::<int8>(int8(-7))) ?? int8(0)) == int8(-7)
+    assert ((await roundTrip::<float32>(float32(1.25))) ?? float32(0)) == float32(1.25)
+    assert ((await roundTrip::<char>('你')) ?? 'A') == '你'
+    assert ((await roundTrip::<bool>(false)) ?? true) == false
+    channel<int> pipe = channel::<int>(1)
+    auto empty = await pipe.recvAsyncTimeout(0)
+    assert empty.status == channelStatus.timeout and not empty.hasValue and empty.value == null
+    empty = await pipe.recvAsyncUntil(uint64(0))
+    assert empty.status == channelStatus.timeout and not empty.hasValue
+    // A ready operation wins even when the supplied deadline has expired.
+    assert await pipe.sendAsyncUntil(71, uint64(0)) == channelStatus.ok
+    auto ready = await pipe.recvAsyncUntil(uint64(0))
+    assert ready.status == channelStatus.ok and (ready.value ?? -1) == 71
+    auto source = CancellationSource()
+    auto pending = pipe.recvAsyncTimeoutCancel(30000, source.token)
+    assert source.cancel()
+    auto cancelled = await pending
+    assert cancelled.status == channelStatus.cancelled and not cancelled.hasValue
+    assert await pipe.sendAsyncUntilCancel(72, uint64(0), source.token) == channelStatus.ok
+    ready = await pipe.recvAsyncUntilCancel(uint64(0), source.token)
+    assert ready.status == channelStatus.ok and (ready.value ?? -1) == 72
+    assert pipe.send(73)
+    assert await pipe.sendAsyncTimeoutCancel(74, 30000, source.token) == channelStatus.cancelled
+    ready = await pipe.recvAsyncTimeout(0)
+    assert (ready.value ?? -1) == 73
+    pending = pipe.recvAsyncTimeout(30000)
+    pending.cancel()
+    assert (await pending).status == channelStatus.cancelled
+    for bad in [-1, 9223372036854775807]
+        bool refused = false
+        try
+            pipe.recvAsyncTimeout(bad)
+        catch Error
+            refused = true
+        end
+        assert refused and pipe.count() == 0
+        refused = false
+        try
+            pipe.sendAsyncTimeout(75, bad)
+        catch Error
+            refused = true
+        end
+        assert refused and pipe.count() == 0
+    end
+    bool refused = false
+    try
+        pipe.recvAsyncUntil(uint64(18446744073709551615))
+    catch Error
+        refused = true
+    end
+    assert refused
+    pipe.close()
+    assert (await pipe.recvAsyncTimeout(30000)).status == channelStatus.closed
+    assert await pipe.sendAsyncTimeout(76, 30000) == channelStatus.closed
+    channel<int> closing = channel::<int>(0)
+    auto closePending = closing.recvAsyncTimeout(30000)
+    closing.close()
+    assert (await closePending).status == channelStatus.closed
+    // Pending subscriptions do not reserve one worker or stack per wait.
+    channel<int> many = channel::<int>(192)
+    array<future<ChannelReceiveResult<int>>> jobs = []
+    int index = 0
+    while index < 192
+        assert jobs.push(many.recvAsyncTimeout(30000))
+        index += 1
+    end
+    index = 0
+    while index < 192
+        assert many.send(index)
+        index += 1
+    end
+    index = 0
+    while index < 192
+        auto item = await jobs[index]
+        assert item.hasValue and (item.value ?? -1) == index
+        index += 1
+    end
+end
+await checks()
+println("finite direct Channel Future language ok")

@@ -358,11 +358,11 @@ xrtownershipref xl6ChannelOperationOwnershipV1(const XL6_ChannelOperationV1* ope
 /* The caller marks the containing frame active before ending a parked wait.
  * No reference is acquired here: the original operation owner is still real.
  * These leases cannot remain in a collectible settled frame after Clear. */
-static void reactivate(XL6_ChannelOperationV1* operation)
+static void reactivate(XL6_ChannelOperationV1* operation,const void* token)
 {
     if (!operation->parked) return;
     ChannelOwner* owner=operation->owner;
-    if (owner->cleared || owner->claim ||
+    if (owner->cleared || (owner->claim && owner->claim!=token) ||
         xrtAtomic32FetchAdd(&owner->activity,1,XMEMORY_ACQ_REL)==UINT32_MAX) abort();
     operation->parked=false;
 }
@@ -374,23 +374,23 @@ bool xl6ChannelOperationCommitV1(XL6_ChannelOperationV1* operation)
         /* A concurrent receiver may already have freed this box. */
         if (!operation->message) { xrtSetErrorKind(XERR_STATE); return false; }
         xrtownershipscope mutation={0}; mutationBegin(&mutation);
-        reactivate(operation); operation->message=NULL;
+        reactivate(operation,NULL); operation->message=NULL;
         mutationEnd(&mutation); return true;
     }
     ChannelBox* box=operation->received;
     if (!box) { xrtSetErrorKind(XERR_STATE); return false; }
-    xrtownershipscope mutation={0}; mutationBegin(&mutation); reactivate(operation);
+    xrtownershipscope mutation={0}; mutationBegin(&mutation); reactivate(operation,NULL);
     operation->received=NULL; unlinkBox(owner,box);
     memcpy(operation->target.data,box->slot,operation->target.size);
     memset(box->slot,0,operation->target.size); xrtFree(box);
     mutationEnd(&mutation); return true;
 }
-void xl6ChannelOperationCloseV1(XL6_ChannelOperationV1* operation)
+static void operationClose(XL6_ChannelOperationV1* operation,const void* token)
 {
     if (!operation) return;
     ChannelOwner* owner=operation->owner;
     xrtownershipscope mutation={0}; mutationBegin(&mutation);
-    if (owner) reactivate(operation);
+    if (owner) reactivate(operation,token);
     ChannelBox* unsent=operation->message; ChannelBox* acquired=operation->received;
     memset(operation,0,sizeof(*operation));
     mutationEnd(&mutation);
@@ -399,6 +399,10 @@ void xl6ChannelOperationCloseV1(XL6_ChannelOperationV1* operation)
     if (acquired) { unlinkBox(owner,acquired); dropBox(owner,acquired); }
     end(owner);
 }
+void xl6ChannelOperationCloseV1(XL6_ChannelOperationV1* operation)
+{operationClose(operation,NULL);}
+void xl6ChannelOperationCloseClaimedV1(XL6_ChannelOperationV1* operation,const void* token)
+{if(!token)abort();operationClose(operation,token);}
 static bool legacyOperation(const xvalue* value,uint64_t identity,uint64_t element,const xrttype* type,
     XL6_ChannelSlotV1 slot,XL6_ChannelWaitV1 mode,int64_t milliseconds,XL6_ChannelStatusV1* status,bool sending)
 {

@@ -67,7 +67,9 @@ int main(int argc,char** argv)
         (1u<<XL6_NATIVE_GENERIC_CHANNEL_CASE_RECEIVE)|(1u<<XL6_NATIVE_GENERIC_CHANNEL_CASE_SEND)|
         (1u<<XL6_NATIVE_GENERIC_CHANNEL_SELECTION_VALUE));
     const unsigned permittedRoles=requiredRoles|(1u<<XL6_NATIVE_GENERIC_CHANNEL_SEND_CREATE)|
-        (1u<<XL6_NATIVE_GENERIC_CHANNEL_RECEIVE_CREATE);
+        (1u<<XL6_NATIVE_GENERIC_CHANNEL_RECEIVE_CREATE)|(1u<<XL6_NATIVE_GENERIC_CHANNEL_DEADLINE_SEND_FOR)|
+        (1u<<XL6_NATIVE_GENERIC_CHANNEL_DEADLINE_SEND_UNTIL)|(1u<<XL6_NATIVE_GENERIC_CHANNEL_DEADLINE_RECEIVE_FOR)|
+        (1u<<XL6_NATIVE_GENERIC_CHANNEL_DEADLINE_RECEIVE_UNTIL);
     /* New canonical async builders must not invalidate coverage of the seven
      * existing selector entries, or make a missing core entry go unnoticed. */
     assert(channels>=3 && arrays>=7 && arrayCoverage==0x7fu && slots &&

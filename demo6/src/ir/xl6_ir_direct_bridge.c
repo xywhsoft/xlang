@@ -96,8 +96,32 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define XL6_GENERIC_CHANNEL_RECEIVE_START(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeServicesRequired=XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1,.nativeClassParameter=2,.nativeClassOwner="xl6ChannelReceiveResultDestroyV1",.genericFutureResult=1,.genericResourceParameter=1}
 #define XL6_GENERIC_CHANNEL_RECEIVE_START_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,3,{V,V,V},.parameterOwners={Owner,NULL,"xl6CancellationTokenDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeServicesRequired=XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1,.nativeClassParameter=2,.nativeClassOwner="xl6ChannelReceiveResultDestroyV1",.genericFutureResult=1,.genericResourceParameter=1}
 #define XL6_NATIVE_GENERIC_BRIDGE(Name,Owner,Role) XL6_GENERIC_##Role(Name,Owner),
+#define XL6_GENERIC_CHANNEL_DEADLINE_SEND_FOR(Name,Owner) {Name,T,V,3,{V,0,I},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1,.genericValueParameter=2,.genericResourceResult=1}
+#define XL6_GENERIC_CHANNEL_DEADLINE_SEND_UNTIL(Name,Owner) {Name,T,V,3,{V,0,U},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1,.genericValueParameter=2,.genericResourceResult=1}
+#define XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_FOR(Name,Owner) {Name,T,V,2,{V,I},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1,.genericResourceResult=1}
+#define XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_UNTIL(Name,Owner) {Name,T,V,2,{V,U},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1,.genericResourceResult=1}
+#define XL6_GENERIC_CHANNEL_DEADLINE_SEND_DESTROY(Name,Owner) {Name,T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeHandlePolicy="xl6ChannelDeadlineSendBuilderHandlePolicyV1Get"}
+#define XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_DESTROY(Name,Owner) {Name,T,XL6_IR_C_ABI_VOID,1,{V},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeHandlePolicy="xl6ChannelDeadlineReceiveBuilderHandlePolicyV1Get"}
+#define XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_HANDLE(Name,Owner) {Name,T,V,1,{V},.resultOwner=Owner,.parameterOwners={"xl6ChannelDeadlineReceiveBuilderDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.managedHandleResult=1,.genericResourceResult=1,.genericResourceParameter=1}
+#define XL6_FINITE_SERVICES (XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1|XL6_IR_CALL_NATIVE_SERVICE_DEADLINE_V1)
+#define XL6_GENERIC_CHANNEL_DEADLINE_SEND_START(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,1,{V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeServicesRequired=XL6_FINITE_SERVICES,.resultFutureElementAbi=I,.genericResourceParameter=1}
+#define XL6_GENERIC_CHANNEL_DEADLINE_SEND_START_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,V},.parameterOwners={Owner,"xl6CancellationTokenDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeServicesRequired=XL6_FINITE_SERVICES,.resultFutureElementAbi=I,.genericResourceParameter=1}
+#define XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_START(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeServicesRequired=XL6_FINITE_SERVICES,.nativeClassParameter=2,.nativeClassOwner="xl6ChannelReceiveResultDestroyV1",.genericFutureResult=1,.genericResourceParameter=1}
+#define XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_START_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,3,{V,V,V},.parameterOwners={Owner,NULL,"xl6CancellationTokenDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeServicesRequired=XL6_FINITE_SERVICES,.nativeClassParameter=2,.nativeClassOwner="xl6ChannelReceiveResultDestroyV1",.genericFutureResult=1,.genericResourceParameter=1}
 #include "src/abi/xl6_native_generic_contracts.inc"
 #undef XL6_NATIVE_GENERIC_BRIDGE
+#undef XL6_GENERIC_CHANNEL_DEADLINE_SEND_FOR
+#undef XL6_GENERIC_CHANNEL_DEADLINE_SEND_UNTIL
+#undef XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_FOR
+#undef XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_UNTIL
+#undef XL6_GENERIC_CHANNEL_DEADLINE_SEND_DESTROY
+#undef XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_DESTROY
+#undef XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_HANDLE
+#undef XL6_GENERIC_CHANNEL_DEADLINE_SEND_START
+#undef XL6_GENERIC_CHANNEL_DEADLINE_SEND_START_CANCEL
+#undef XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_START
+#undef XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_START_CANCEL
+#undef XL6_FINITE_SERVICES
 #undef XL6_GENERIC_CREATE
 #undef XL6_GENERIC_CREATE_PARENT
 #undef XL6_GENERIC_DESTROY

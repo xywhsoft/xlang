@@ -210,7 +210,15 @@ static const XL6_StdlibImplicitMethod xl6StdlibImplicitMethods[] = {
     {"channel", "sendAsync", NULL, "__xl_channel_send_async"},
     {"channel", "sendAsyncCancel", NULL, "__xl_channel_send_async_cancel"},
     {"channel", "recvAsync", NULL, "__xl_channel_recv_async"},
-    {"channel", "recvAsyncCancel", NULL, "__xl_channel_recv_async_cancel"}
+    {"channel", "recvAsyncCancel", NULL, "__xl_channel_recv_async_cancel"},
+    {"channel", "sendAsyncTimeout", NULL, "__xl_channel_send_async_timeout"},
+    {"channel", "sendAsyncUntil", NULL, "__xl_channel_send_async_until"},
+    {"channel", "sendAsyncTimeoutCancel", NULL, "__xl_channel_send_async_timeout_cancel"},
+    {"channel", "sendAsyncUntilCancel", NULL, "__xl_channel_send_async_until_cancel"},
+    {"channel", "recvAsyncTimeout", NULL, "__xl_channel_recv_async_timeout"},
+    {"channel", "recvAsyncUntil", NULL, "__xl_channel_recv_async_until"},
+    {"channel", "recvAsyncTimeoutCancel", NULL, "__xl_channel_recv_async_timeout_cancel"},
+    {"channel", "recvAsyncUntilCancel", NULL, "__xl_channel_recv_async_until_cancel"}
 };
 
 static const XL6_StdlibImplicitMethod* xl6StdlibFindImplicitMethod(
@@ -2122,7 +2130,11 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
             xl6StdlibNodeUsesTypeName(root,"ChannelSelection");
         bool needsChannelDirect=xl6StdlibNodeUsesTypeName(root,"ChannelReceiveResult") ||
             xl6StdlibNodeUsesMemberName(root,"sendAsync") || xl6StdlibNodeUsesMemberName(root,"sendAsyncCancel") ||
-            xl6StdlibNodeUsesMemberName(root,"recvAsync") || xl6StdlibNodeUsesMemberName(root,"recvAsyncCancel");
+            xl6StdlibNodeUsesMemberName(root,"recvAsync") || xl6StdlibNodeUsesMemberName(root,"recvAsyncCancel") ||
+            xl6StdlibNodeUsesMemberName(root,"sendAsyncTimeout") || xl6StdlibNodeUsesMemberName(root,"sendAsyncUntil") ||
+            xl6StdlibNodeUsesMemberName(root,"sendAsyncTimeoutCancel") || xl6StdlibNodeUsesMemberName(root,"sendAsyncUntilCancel") ||
+            xl6StdlibNodeUsesMemberName(root,"recvAsyncTimeout") || xl6StdlibNodeUsesMemberName(root,"recvAsyncUntil") ||
+            xl6StdlibNodeUsesMemberName(root,"recvAsyncTimeoutCancel") || xl6StdlibNodeUsesMemberName(root,"recvAsyncUntilCancel");
         if(needsChannelCases)xl6StdlibBuilderAppend(&builder,xl6StdlibChannelCaseSource);
         if(needsChannelDirect)xl6StdlibBuilderAppend(&builder,xl6StdlibChannelDirectFutureSource);
         if (xl6StdlibNodeUsesTypeName(root, "Once")) xl6StdlibBuilderAppend(&builder, xl6StdlibOnceSource);
