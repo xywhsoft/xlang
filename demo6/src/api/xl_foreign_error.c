@@ -162,10 +162,13 @@ XL6_FOREIGN_API void xl6ForeignCallbackFail(void)
     xerror* diagnostic;
     xerrordescview description;
     xerrorlocationview location;
+    /* The checked result is authoritative, including a missing diagnostic.
+     * A fallback helps bare C callers, but cannot become the first semantic
+     * error of an already active checked transaction. */
+    xl6ErrorScopeObserveFailure(original);
     if (original == NULL)
         original = xrtErrorCreate(XERR_STATE, "xlang", 0,
             "language callback failed without an error");
-    xl6ErrorScopeObserveFailure(original);
     if (original == NULL) return;
     description.Kind = xrtErrorKind(original);
     description.Code = xrtErrorCode(original);

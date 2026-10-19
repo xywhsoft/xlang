@@ -496,6 +496,14 @@ static int xl6IrCgenEmitNativeServices(XL6_Output* out,const XL6_IrCallTarget* t
 
 static int xl6IrCgenEmitNativeContext(XL6_Output* out,const XL6_IrModule* module,const XL6_IrCallTarget* target)
 {
+    if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_NULLARY_VOID_ARRAY_V1){
+        const XL6_IrType* array=xl6IrTypeGet(&module->types,target->nativeContextType);
+        const XL6_IrType* callback=array&&array->paramCount==1&&array->params?xl6IrTypeGet(&module->types,array->params[0]):NULL;
+        if(!array||!callback)return 0;
+        xl6OutputPrintf(out,"(XL6_NullaryVoidArrayContextV1){0x%016llXULL, 0x%016llXULL}",
+            (unsigned long long)array->typeValueId,(unsigned long long)callback->typeValueId);
+        return !xl6OutputHasFailed(out);
+    }
     if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1) {
         const XL6_IrClassField* field=xl6IrNativeClassContextField(module,target);
         if(!field || !field->nativeHandlePolicyCName)return 0;

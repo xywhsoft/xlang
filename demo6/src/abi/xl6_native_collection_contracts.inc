@@ -1,6 +1,7 @@
 /* One closed collection registry shared by source admission and typed XLIR.
  * Macro consumers may select just names; physical types, item widths and
  * ownership remain verified from these same descriptors before emission. */
+XL6_NATIVE_COLLECTION_BRIDGE("xl6ExecutorSubmitBatchLanguageV1",T,XL6_IR_C_ABI_VOID,2,{V,V},.parameterOwners={"xl6ExecutorDestroyLanguageV1"},.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_NULLARY_VOID_ARRAY_V1,.nativeVoidCallbackArrayParameter=2,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE)
 XL6_NATIVE_COLLECTION_BRIDGE("xl6ProcessCommandDirectV1",T,V,4,{S,V,I,I},.resultOwner="xl6ProcessCommandDestroyV1",.parameterArrayItemAbis={0,S})
 XL6_NATIVE_COLLECTION_BRIDGE("xl6TextCharsV2",T,V,2,{S,I},C,.nativeArrayResultAbi=XL6_IR_CALL_NATIVE_ARRAY_RESULT_PRIMITIVE_IDS_V1)
 XL6_NATIVE_COLLECTION_BRIDGE("xl6TextSplitV2",T,V,4,{S,S,I,I},S,.nativeArrayResultAbi=XL6_IR_CALL_NATIVE_ARRAY_RESULT_PRIMITIVE_IDS_V1)

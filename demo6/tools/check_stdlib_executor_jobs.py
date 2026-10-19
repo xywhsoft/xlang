@@ -63,18 +63,26 @@ def main():
                     run(name+'.build',common(cc)+['-'+opt,root/('test/support/executor_jobs_'+fixture+'.c'),*providers,*libs,'-o',binary]);product(binary)
                     run(name+'.run',[binary],expected)
         controls=[('cleanup-bool-lost','xl6_closure.c',
-            'xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});',
-            'if(!xrtGetError())xrtSetErrorKind(XERR_STATE);'),
+            '            xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});',
+            '            if(!xrtGetError())xrtSetErrorKind(XERR_STATE);'),
             ('null-first-replaced','xl6_executor_jobs.c','if(!state->count){state->error=result.error;result.error=NULL;}',
             'if(!state->error){state->error=result.error;result.error=NULL;}'),
-            ('cancel-counted-as-failure','xl6_executor_jobs.c','job->references=1;job->body.ok=true;',
-            'job->references=1;job->body.ok=false;')]
+            ('cancel-counted-as-failure','xl6_executor_jobs.c','job->references=1;job->body.ok=true;job->callback=',
+            'job->references=1;job->body.ok=false;job->callback='),
+            ('boxed-null-captured-late','xl6_closure.c','if(!ok)xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});',
+             '(void)ok;'),
+            ('boxed-cancel-counted-as-failure','xl6_executor_jobs.c','job->references=1;job->body.ok=true;job->boxed=',
+             'job->references=1;job->body.ok=false;job->boxed='),
+            ('callback-null-observed-late','src/api/xl_foreign_error.c',
+             '    xl6ErrorScopeObserveFailure(original);\n    if (original == NULL)\n        original = xrtErrorCreate(XERR_STATE, "xlang", 0,\n            "language callback failed without an error");',
+             '    if (original == NULL)\n        original = xrtErrorCreate(XERR_STATE, "xlang", 0,\n            "language callback failed without an error");\n    xl6ErrorScopeObserveFailure(original);')]
         report['NegativeControls']=[]
         for name,filename,old,new in controls:
-            source=root/'src/runtime'/filename;body=source.read_text(encoding='utf-8-sig');assert body.count(old)==1,(name,'mutation not exact')
+            source=root/filename if '/' in filename else root/'src/runtime'/filename
+            body=source.read_text(encoding='utf-8-sig');assert body.count(old)==1,(name,'mutation not exact')
             mutant=out/(name+'.c');mutant.write_text(body.replace(old,new),encoding='utf8');product(mutant)
             selected=[mutant if path==source else path for path in providers];binary=out/(name+ext)
-            run(name+'.build',common(gcc)+['-O0','-I'+str(root/'src/runtime'),root/'test/support/executor_jobs_native.c',*selected,*libs,'-o',binary]);product(binary)
+            run(name+'.build',common(gcc)+['-O0','-I'+str(source.parent),root/'test/support/executor_jobs_native.c',*selected,*libs,'-o',binary]);product(binary)
             run(name+'.refused',[binary],reject=True);report['NegativeControls'].append(name);save()
         if a.sanitize:
             binary=out/'instrumented'

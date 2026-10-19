@@ -5,10 +5,10 @@
 ## 契约结论
 
 - XRT 核心公共函数：3231。
-- xruntime 产品公共函数：3695，其中扩展自有 464。
-- 低层能力：3695 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
+- xruntime 产品公共函数：3696，其中扩展自有 465。
+- 低层能力：3696 个函数全部进入 TCC 符号面，可通过显式 `extern "xrt..."` 使用。
 - 头文件内联辅助函数单独记录于 `headerInlineReferences`，不增加外部符号数量；未声明的新引用仍报错。
-- 语言内核或标准库已直接使用：1995 个函数。其余 1700 个保留为低层能力，不视为功能丢失。
+- 语言内核或标准库已直接使用：1996 个函数。其余 1700 个保留为低层能力，不视为功能丢失。
 - 已迁出核心但尚待扩展库适配的旧引用：0，仅包含 xhttp=0、xws=0、xregex=0。
 
 逐 API 详情可执行 `python tools/gen_xrt_xlang_matrix.py --report build/reports/xrt_xlang_api_matrix.json` 生成。
@@ -112,7 +112,7 @@
 | xrt | `include/xrt/xid.h` | 11 | 8 | 3 |
 | xrt | `include/xrt/xlon.h` | 36 | 34 | 2 |
 | xrt | `include/xrt/xlonl.h` | 12 | 11 | 1 |
-| xruntime | `extlibs/xruntime/include/xrt/runtime_call.h` | 25 | 25 | 0 |
+| xruntime | `extlibs/xruntime/include/xrt/runtime_call.h` | 26 | 26 | 0 |
 | xruntime | `extlibs/xruntime/include/xrt/runtime_convert.h` | 6 | 6 | 0 |
 | xruntime | `extlibs/xruntime/include/xrt/runtime_field.h` | 44 | 44 | 0 |
 | xruntime | `extlibs/xruntime/include/xrt/runtime_object.h` | 20 | 20 | 0 |
@@ -136,7 +136,7 @@
 
 | 公共头 | 语言能力 | 归属 | 后端状态 | API | 直接调用 | 见证 |
 | --- | --- | --- | --- | ---: | ---: | --- |
-| `extlibs/xruntime/include/xrt/runtime_call.h` | function values, call frames, and dynamic invocation | kernel | direct | 25 | 16 | `test/cases/cgen_function_named_value.xl` |
+| `extlibs/xruntime/include/xrt/runtime_call.h` | function values, call frames, and dynamic invocation | kernel | direct | 26 | 17 | `test/cases/cgen_function_named_value.xl` |
 | `extlibs/xruntime/include/xrt/runtime_convert.h` | checked runtime conversion for is/as and var | kernel | direct | 6 | 3 | `test/cases/cgen_runtime_is_as.xl` |
 | `extlibs/xruntime/include/xrt/runtime_field.h` | DynamicFields and class dynamic-field storage | language-type | direct | 44 | 27 | `test/cases/xruntime_dynamic_fields.xl` |
 | `extlibs/xruntime/include/xrt/runtime_object.h` | class instance identity, payload, and weak ownership | kernel | direct | 20 | 11 | `test/cases/weak_class_lifecycle.xl`, `test/cases/weak_async_lifecycle.xl`, `test/cases/async_class_receiver_lifetime.xl` |

@@ -642,7 +642,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_execution_pool.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_POOL)),{NULL}},
     {"src/runtime/xl6_execution_module.c",D(R(EXECUTION_SOURCE)),{NULL}},
     {"src/runtime/xl6_executor_language.c",D(R(EXECUTION_EXECUTOR),R(NATIVE_HANDLE)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_executor_language.c",D(R(OWNERSHIP_CATALOG),R(EXECUTOR_LANGUAGE),R(OWNERSHIP_DOMAIN_EXECUTION_EXECUTOR)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_executor_language.c",D(R(OWNERSHIP_CATALOG),R(EXECUTOR_LANGUAGE),R(OWNERSHIP_DOMAIN_EXECUTION_EXECUTOR)),{NULL}},
+    {"src/runtime/xl6_executor_batch.c",D(R(EXECUTION_EXECUTOR),R(ARRAY_CALLABLE_ADMISSION)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

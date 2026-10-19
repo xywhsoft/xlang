@@ -21,6 +21,7 @@ const char* xl6StdlibExecutorSource =
     "    extern \"xl6ExecutorCreateLanguageV1\" create(int threads = 0, int queueLimit = 1024, int stackBytes = 0)\n"
     "    extern \"xl6ExecutorDestroyLanguageV1\" @no_raise destroy()\n"
     "    extern \"xl6ExecutorSubmitLanguageV1\" func submit(func() work)\n"
+    "    extern \"xl6ExecutorSubmitBatchLanguageV1\" func submitBatch(array<func()> work)\n"
     "    extern \"xl6ExecutorCloseLanguageV1\" func close()\n"
     "    extern \"xl6ExecutorCancelLanguageV1\" func cancel()\n"
     "    extern \"xl6ExecutorWaitLanguageV1\" func wait(int timeoutMillis = -1) as bool\n"

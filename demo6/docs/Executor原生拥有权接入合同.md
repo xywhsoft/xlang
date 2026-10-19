@@ -151,7 +151,7 @@ Shell 入口及 Linux 构建脚本通过 bash 语法检查，不表示已经执�
 `xl6_executor_jobs.c` 复用 XRT 的 SubmitOwned／原子 SubmitOwnedBatch，不增加
 第二套队列、工作线程、Future 或默认 async 回退。入口接收编译器验证过的
 零形参 void 语言闭包，对应精确 C ABI `bool invoke(void* environment)`；这里
-不能从 erased C 函数指针推断签名，未来公开语言接入仍须提供 XLIR 签名合同。
+不能从 erased C 函数指针推断签名。公开语言接入已提供独立校验的 XLIR 签名合同。
 
 每个被受理作业拥有一个独立的真实 Data record，分别持有闭包与失败账本；闭包
 持有代码租约和捕获。准备失败／原生拒绝仍由调用者拥有输入；逆序撤销已准备记录，
@@ -211,7 +211,30 @@ producer domain 精确登记 `xexecutordataownershipv1` 和 Data BUSY 能力，�
 O0/O2、两种实际单头、既有 280 次生命周期／240 个排队拥有图／520 次准备及
 400 个 outcome 回调仍通过。它们是原生／常驻源码回归，不是公开执行器的语言验收。
 
-该层借用 native Executor，其创建者仍须保证原生实例活到全部受理作业结束；没有
-宣称解决在自身回调中释放最后一个语言拥有者的 join 问题。后续公开类必须组合
-真正受管理的资源退休、配置／统计、批量公开面、错误账本和普通 DLL/JIT/AOT，
-不能把这套 C producer 直接包装成无清理责任的 pointer 类。
+该层借用 native Executor，其创建者仍须保证原生实例活到全部受理作业结束。
+公开类现已组合受管理资源退休、配置／统计、单项／原子批量、错误账本和
+JIT／模块／独立 AOT；自身回调释放最后语言引用由资源退休合同处理，不在 producer
+内部自行 join。完整新 shipping DLL／SO／VFS 验收仍另列，不能用源码驱动冒充。
+
+## 拥有 callable box 的批量入口
+
+语言 `array<func()>` 的物理槽是 `xvalue*`，不是 `XL6_Closure*`。批量入口先验证
+精确 resident Array policy 和稳定 callable 签名，再逐项创建独立 Data record。
+每个 record 持有实际 Value → callable → Closure 拥有链与失败账本；没有投影出
+另一套 Closure 拥有者，也没有伪造引用计数。源 Array pin 在原生准入之前释放。
+
+`xl6ExecutorPrepareBoxedBatchV1` 不执行工作，成功才交付完整 prepared frame；
+失败逆序回滚，frame 保持空。Commit 用一次 native 原子批量准入并消费 frame，
+拒绝和 Discard 也消费全部准备记录。该 frame 是线性内部载体，拥有 items 时不得
+复制；公开语言只看见安全的 submitBatch，不导出这些两阶段函数。
+
+immutable policy 身份检查不执行 Trace／Drop／用户回调，不要求 callable 静止，
+所以合法的活动闭包可重复提交。但它不是图准入或环境借用能力；真正图检查仍须
+完整 BUSY／准备／静止合同。内容相同的 policy 副本、外来 callable、旧式缺少
+协调生命周期的 V1 opaque box，均不能凭相同 typeId 获取新的 producer 能力。
+
+boxed 调用返回 false 时，在动态调用装饰诊断之前登记原始 checked 失败。即使
+没有诊断对象，独立失败 bit 仍保留；后备诊断仅服务裸 C 调用者，不能抢占语义首错。
+body、结果清理、捕获清理仍合并为一个作业失败，正常取消不计失败。
+新增故障注入、实际 queued 图与双平台结果见
+[Executor 原子批量提交验收](Executor原子批量提交验收.md)。

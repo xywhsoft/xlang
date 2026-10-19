@@ -1,0 +1,6 @@
+import concurrent
+
+export func submitBorrowed(Executor executor, array<func()> work)
+    executor.submitBatch(work)
+end
+// The caller owns the receiver; this module must not create a local Source.

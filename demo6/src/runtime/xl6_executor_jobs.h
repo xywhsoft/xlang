@@ -4,6 +4,7 @@
 struct xexecutor;
 struct xexecutordataownershipv1;
 struct xexecutorworkerexitownershipv1;
+struct xexecutorowneditemv1;
 struct xrtownershipquiescencev1;
 struct xrtownershippreparationv1;
 typedef struct XL6_ExecutorFailuresV1 XL6_ExecutorFailuresV1;
@@ -50,6 +51,24 @@ XL6_CODE_LEASE_API bool xl6ExecutorUnreportedCheckV1(XL6_ExecutorFailuresV1*);
  * does NOT implement a managed Executor's final-owner retirement. */
 XL6_CODE_LEASE_API bool xl6ExecutorSubmitClosureV1(struct xexecutor*,XL6_ExecutorFailuresV1*,XL6_Closure*);
 XL6_CODE_LEASE_API bool xl6ExecutorSubmitClosuresV1(struct xexecutor*,XL6_ExecutorFailuresV1*,XL6_Closure* const*,size_t);
+/* Compiler-private prepared owned records, not language Closure* storage.
+ * The caller verifies a nonnullable array<func()> exact signature and pins
+ * the source while Prepare reads its xvalue* slots. Prepare never starts work.
+ * End that source pin BEFORE Commit: callbacks must not inherit an Array pin.
+ * Commit performs ONE native atomic batch admission and consumes every record
+ * on both acceptance and rejection. Discard also consumes a valid batch.
+ * No semantic cleanup remains after successful admission. Empty is a no-op;
+ * receiver/open admission is the caller's responsibility, before Prepare.
+ * The stack record cannot be copied while it owns items. False may have no
+ * allocated diagnostic; no rejected job body or failure-count notification. */
+typedef struct XL6_ExecutorPreparedBatchV1 {
+    struct xexecutorowneditemv1* items;
+    size_t count;
+} XL6_ExecutorPreparedBatchV1;
+XL6_CODE_LEASE_API bool xl6ExecutorPrepareBoxedBatchV1(XL6_ExecutorFailuresV1*,
+    struct xvalue* const*,size_t,uint64_t,XL6_ExecutorPreparedBatchV1*);
+XL6_CODE_LEASE_API bool xl6ExecutorCommitBoxedBatchV1(struct xexecutor*,XL6_ExecutorPreparedBatchV1*);
+XL6_CODE_LEASE_API bool xl6ExecutorDiscardBoxedBatchV1(XL6_ExecutorPreparedBatchV1*);
 /* Close separately, as with native Executor. -1 infinite, 0 poll, positive
  * finite milliseconds. READY describes physical completion even if false
  * reports a recorded callback failure. Timeout does not report incomplete

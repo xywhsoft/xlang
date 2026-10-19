@@ -1,0 +1,30 @@
+import concurrent
+
+auto count = AtomicInt64()
+auto executor = Executor(1, 8)
+array<func()> jobs = []
+jobs.push(func()
+    throw ValueError("batch original")
+end)
+jobs.push(func()
+    count.fetchAdd(1)
+end)
+executor.submitBatch(jobs)
+jobs.clear()
+executor.close()
+bool caught = false
+try
+    executor.wait(10000)
+catch ValueError e
+    assert e.message == "batch original"
+    caught = true
+end
+assert caught and count.load() == 1 and executor.failureCount == 1
+caught = false
+try
+    executor.throwIfFailed()
+catch ValueError e
+    caught = e.message == "batch original"
+end
+assert caught
+println("Executor batch original checked error and remaining jobs ok")

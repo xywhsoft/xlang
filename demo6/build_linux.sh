@@ -159,6 +159,7 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_execution_pool.c"
 	"$ROOT/src/runtime/xl6_execution_module.c"
 	"$ROOT/src/runtime/xl6_executor_language.c"
+	"$ROOT/src/runtime/xl6_executor_batch.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_executor_language.c"
 	"$ROOT/src/runtime/xl6_task_file.c"
 	"$ROOT/src/runtime/xl6_text_value.c"

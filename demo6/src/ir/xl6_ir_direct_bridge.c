@@ -44,6 +44,7 @@ typedef struct XL6_IrDirectBridgeContract {
     unsigned char genericChannelParameter;
     unsigned char nativeClassArrayParameter;
     const char* nativeClassArrayOwner;
+    unsigned char nativeVoidCallbackArrayParameter;
     XL6_IrCallNativeResultAbi nativeResultAbi;
     unsigned char managedHandleResult;
     unsigned char nativeClassParameter;
@@ -901,6 +902,31 @@ unsigned xl6IrRuntimeDirectBridgeServices(const char* name)
     return c ? c->nativeServicesRequired : XL6_IR_CALL_NATIVE_SERVICE_NONE;
 }
 
+static const XL6_IrType* xl6IrNativeVoidCallbackArrayType(const XL6_IrModule* module,
+    const XL6_IrCallTarget* target,const XL6_IrDirectBridgeContract* contract)
+{
+    if(!module||!target||!contract||!contract->nativeVoidCallbackArrayParameter||!target->parameterTypes||
+        contract->nativeVoidCallbackArrayParameter>target->parameterCount)return NULL;
+    XL6_IrTypeId id=target->parameterTypes[contract->nativeVoidCallbackArrayParameter-1];
+    const XL6_IrType* array=xl6IrTypeGet(&module->types,id);
+    if(!array||array->kind!=XL6_IR_TYPE_GENERIC_INSTANCE||array->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR||
+        array->collectionAbi!=XL6_IR_COLLECTION_ARRAY||array->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED||
+        array->nullAbi!=XL6_IR_NULL_ABI_XVALUE_SENTINEL||array->paramCount!=1||!array->params||
+        array->returnCount||array->returns||!array->typeValueId)return NULL;
+    const XL6_IrType* callback=xl6IrTypeGet(&module->types,array->params[0]);
+    if(!callback||callback->kind!=XL6_IR_TYPE_FUNCTION||callback->cAbi!=XL6_IR_C_ABI_CLOSURE_PTR||
+        callback->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED||callback->nullAbi!=XL6_IR_NULL_ABI_POINTER_SENTINEL||
+        callback->collectionAbi!=XL6_IR_COLLECTION_NONE||callback->paramCount||callback->params||
+        callback->parameterAbis||callback->parameterModes||callback->returnCount||callback->returns||
+        callback->callableResultType||callback->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED||!callback->typeValueId)return NULL;
+    XL6_IrSequenceLayout expected=xl6IrSequenceLayoutForType(&module->types,array);
+    if(expected.abi!=XL6_IR_SEQUENCE_LAYOUT_CALLABLE_REFERENCE_V1||expected.nullable||
+        expected.elementType!=array->params[0]||expected.slotAbi!=XL6_IR_NATIVE_SLOT_XVALUE_CARRIER||
+        expected.codecAbi!=XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1||
+        !xl6IrSequenceLayoutEqual(&array->sequenceLayout,&expected)||
+        !xl6IrSequenceConstructionRecipe(module,id,XL6_IR_SEQUENCE_ROLE_ARRAY,NULL))return NULL;
+    return array;
+}
 int xl6IrRuntimeDirectBridgeContext(const XL6_IrModule* module,const XL6_IrCallTarget* target,
     XL6_IrCallNativeContextAbi* context,XL6_IrTypeId* type,XL6_IrAsyncResultAbi* payload)
 {
@@ -908,6 +934,10 @@ int xl6IrRuntimeDirectBridgeContext(const XL6_IrModule* module,const XL6_IrCallT
     *context=XL6_IR_CALL_NATIVE_CONTEXT_NONE;*type=XL6_IR_TYPE_INVALID;*payload=XL6_IR_ASYNC_RESULT_INVALID;
     const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(target->cName);
     if(!c || !c->nativeContext)return 1;
+    if(c->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_NULLARY_VOID_ARRAY_V1){
+        if(!xl6IrNativeVoidCallbackArrayType(module,target,c))return 0;
+        *context=c->nativeContext;*type=target->parameterTypes[c->nativeVoidCallbackArrayParameter-1];return 1;
+    }
     if(c->genericFutureStarterParameter) {
         const XL6_IrType* future=xl6IrTypeGet(&module->types,target->returnType);
         if(c->nativeContext!=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1 || !c->genericFutureResult ||
@@ -1162,6 +1192,15 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 target->parameterAbis[i]!=XL6_IR_PARAMETER_ABI_BORROW ||
                 target->parameterPhysicalAbis[i]!=XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT ||
                 target->parameterConstraintAbis[i]!=XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ||
+                target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID)return 0;
+            continue;
+        }
+        if(contract->nativeVoidCallbackArrayParameter==i+1){
+            if(!type||target->parameterTypes[i]!=target->nativeContextType||
+                !xl6IrNativeVoidCallbackArrayType(module,target,contract)||
+                target->parameterAbis[i]!=XL6_IR_PARAMETER_ABI_BORROW||
+                target->parameterPhysicalAbis[i]!=XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT||
+                target->parameterConstraintAbis[i]!=XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE||
                 target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID)return 0;
             continue;
         }

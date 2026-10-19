@@ -1,0 +1,117 @@
+import concurrent
+
+func ordinaryBatch()
+    auto count = AtomicInt64()
+    auto executor = Executor(2, 16)
+    array<func()> jobs = []
+    int i = 0
+    while i < 8
+        jobs.push(func()
+            count.fetchAdd(1)
+        end)
+        i += 1
+    end
+    executor.submitBatch(jobs)
+    jobs.clear()
+    array<func()> empty = []
+    executor.submitBatch(empty)
+    executor.close()
+    assert executor.wait(10000)
+    assert count.load() == 8 and executor.failureCount == 0
+    assert executor.snapshot().submitted == 8
+    bool caught = false
+    try
+        executor.submitBatch(empty)
+    catch StateError
+        caught = true
+    end
+    assert caught, "even an empty batch checks receiver admission"
+end
+
+func rejectEntireBatch()
+    auto executor = Executor(1, 1)
+    auto started = Event(true)
+    auto resume = Event(true)
+    auto count = AtomicInt64()
+    executor.submit(func()
+        started.set()
+        assert resume.wait(10000)
+        count.fetchAdd(1)
+    end)
+    assert started.wait(10000)
+    array<func()> jobs = []
+    auto work = func()
+        count.fetchAdd(100)
+    end
+    jobs.push(work)
+    jobs.push(work)
+    bool caught = false
+    try
+        executor.submitBatch(jobs)
+    catch Error
+        caught = true
+    end
+    assert caught and executor.snapshot().submitted == 1
+    resume.set()
+    executor.close()
+    assert executor.wait(10000)
+    assert count.load() == 1 and executor.failureCount == 0
+end
+
+func reuseActiveBox()
+    auto executor = Executor(1, 4)
+    auto started = Event(true)
+    auto resume = Event(true)
+    auto count = AtomicInt64()
+    array<func()> jobs = []
+    jobs.push(func()
+        started.set()
+        assert resume.wait(10000)
+        count.fetchAdd(1)
+    end)
+    executor.submitBatch(jobs)
+    assert started.wait(10000)
+    executor.submitBatch(jobs)
+    jobs.clear()
+    resume.set()
+    executor.close()
+    assert executor.wait(10000) and count.load() == 2
+end
+
+func callbackMayClearSource()
+    auto executor = Executor(1, 8)
+    auto cleared = Event(true)
+    array<func()> jobs = []
+    jobs.push(func()
+        jobs.clear()
+        cleared.set()
+    end)
+    executor.submitBatch(jobs)
+    assert cleared.wait(10000)
+    executor.close()
+    assert executor.wait(10000)
+    assert jobs.length == 0
+end
+
+func dynamicBatch()
+    auto count = AtomicInt64()
+    auto executor = Executor(1, 8)
+    array<func()> jobs = []
+    jobs.push(func()
+        count.fetchAdd(1)
+    end)
+    var dynamicExecutor = executor
+    dynamicExecutor.submitBatch(jobs)
+    executor.close()
+    assert executor.wait(10000) and count.load() == 1
+end
+
+ordinaryBatch()
+println("batch ordinary done")
+rejectEntireBatch()
+println("batch rejection done")
+reuseActiveBox()
+println("batch active reuse done")
+callbackMayClearSource()
+dynamicBatch()
+println("Executor atomic batch: owned boxes, no prefix on rejection, active reuse and unpinned callback ok")

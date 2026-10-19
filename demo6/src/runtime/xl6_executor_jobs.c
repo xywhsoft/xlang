@@ -1,5 +1,7 @@
 #define XRT_MODULE_EXECUTOR
-#include "lib/xrt/xrt.h"
+#define XRUNTIME_MODULE_RUNTIME_CALL
+#define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+#include "lib/xruntime/xruntime.h"
 #include "xl6_executor_jobs.h"
 #include "xl6_concurrent_deadline.h"
 #include "xl6_thread_exit.h"
@@ -18,6 +20,7 @@ typedef struct ExecutorJob {
     xatomic64 gate;
     size_t references;
     XL6_Closure* callback;
+    xvalue* boxed;
     XL6_ExecutorFailuresV1* failures;
     xl6_error_result body;
     const void* claim;
@@ -96,22 +99,30 @@ static void jobRelease(const void* raw)
     ExecutorJob* job=(ExecutorJob*)raw;xrtownershipscope mutation={0};begin(&job->gate,&mutation);
     if(!job->references)abort();
     bool last=--job->references==0;
-    if(last&&(job->active||!job->finished||job->callback||job->failures||job->body.error||
+    if(last&&(job->active||!job->finished||job->callback||job->boxed||job->failures||job->body.error||
         (job->claim&&!job->cleared)))abort();
     end(&job->gate,&mutation);if(last)xrtFree(job);
 }
 static void invoke(void* raw)
 {
     ExecutorJob* job=raw;xrtownershipscope mutation={0};begin(&job->gate,&mutation);
-    if(job->active||job->finished||!job->callback||job->cleared)abort();
-    job->active=true;XL6_Closure* callback=job->callback;end(&job->gate,&mutation);
+    if(job->active||job->finished||(!!job->callback==!!job->boxed)||job->cleared)abort();
+    job->active=true;XL6_Closure* callback=job->callback;xvalue* boxed=job->boxed;end(&job->gate,&mutation);
     xerror* previous=xrtTakeError();xl6_error_scope work={0};bool begun=xl6ErrorScopeBegin(&work);
     xl6_error_result result={false,NULL};
     if(begun){
-        XL6_ClosureScope scope={0};const XL6_ClosureRuntimeV1* api=xl6ClosureRuntimeV1Get();
-        api->Enter(&scope,callback);
-        if(!((bool (*)(void*))callback->invoke)(callback->environment))xl6ErrorScopeCaptureFailure(&work);
-        api->Leave(&scope);result=xl6ErrorScopeEnd(&work);
+        if(boxed){
+            xrtcallframe frame={0};xrtcallresult values=XRT_CALL_RESULT_INIT;
+            if(!xrtValueInvoke(boxed,&frame,&values))xl6ErrorScopeCaptureFailure(&work);
+            else if(xrtCallResultCount(&values)){xrtSetErrorKind(XERR_TYPE);xl6ErrorScopeCaptureFailure(&work);}
+            xrtCallResultUnit(&values);
+        }else{
+            XL6_ClosureScope scope={0};const XL6_ClosureRuntimeV1* api=xl6ClosureRuntimeV1Get();
+            api->Enter(&scope,callback);
+            if(!((bool (*)(void*))callback->invoke)(callback->environment))xl6ErrorScopeCaptureFailure(&work);
+            api->Leave(&scope);
+        }
+        result=xl6ErrorScopeEnd(&work);
     }else result.error=xrtTakeError();
     begin(&job->gate,&mutation);job->body=result;end(&job->gate,&mutation);
     xrtClearError();xrtSetErrorTake(previous);
@@ -121,19 +132,20 @@ static void dispose(void* raw,void* context)
 {
     if(context)abort();
     ExecutorJob* job=raw;xrtownershipscope mutation={0};begin(&job->gate,&mutation);
-    if(job->finished||job->cleared||!job->callback||!job->failures)abort();
+    if(job->finished||job->cleared||(!!job->callback==!!job->boxed)||!job->failures)abort();
     job->active=true;XL6_Closure* callback=job->callback;job->callback=NULL;
+    xvalue* boxed=job->boxed;job->boxed=NULL;
     XL6_ExecutorFailuresV1* state=job->failures;job->failures=NULL;
     xl6_error_result body=job->body;job->body=(xl6_error_result){true,NULL};end(&job->gate,&mutation);
     xerror* previous=xrtTakeError();xl6_error_scope cleanup={0};bool begun=xl6ErrorScopeBegin(&cleanup);
     xl6_error_result result={false,NULL};
     if(begun){
         if(!body.ok){xrtSetErrorTake(body.error);body.error=NULL;xl6ErrorScopeCaptureFailure(&cleanup);}
-        xl6ClosureRuntimeV1Get()->Release(callback);result=xl6ErrorScopeEnd(&cleanup);
+        xl6ClosureRuntimeV1Get()->Release(callback);xrtValueRelease(boxed);result=xl6ErrorScopeEnd(&cleanup);
     }else{
         result.error=xrtTakeError();
         if(!body.ok){xrtErrorFree(result.error);result=body;body.error=NULL;}
-        xl6ClosureRuntimeV1Get()->Release(callback);
+        xl6ClosureRuntimeV1Get()->Release(callback);xrtValueRelease(boxed);
     }
     xrtErrorFree(body.error);record(state,result);xl6ExecutorFailuresReleaseV1(state);
     begin(&job->gate,&mutation);job->active=false;job->finished=true;end(&job->gate,&mutation);
@@ -156,11 +168,64 @@ static ExecutorJob* prepare(XL6_ExecutorFailuresV1* state,XL6_Closure* callback)
  * rolling back a borrowed capture is not a failed/cancelled executor job. */
 static void abortPrepared(ExecutorJob* job)
 {
-    XL6_Closure* callback=job->callback;XL6_ExecutorFailuresV1* state=job->failures;
+    XL6_Closure* callback=job->callback;xvalue* boxed=job->boxed;XL6_ExecutorFailuresV1* state=job->failures;
     xrtownershipscope mutation={0};begin(&job->gate,&mutation);
-    job->callback=NULL;job->failures=NULL;job->finished=true;end(&job->gate,&mutation);
-    xl6ClosureRuntimeV1Get()->Release(callback);xl6ExecutorFailuresReleaseV1(state);jobRelease(job);
+    job->callback=NULL;job->boxed=NULL;job->failures=NULL;job->finished=true;end(&job->gate,&mutation);
+    xl6ClosureRuntimeV1Get()->Release(callback);xrtValueRelease(boxed);xl6ExecutorFailuresReleaseV1(state);jobRelease(job);
 }
+static ExecutorJob* prepareBoxed(XL6_ExecutorFailuresV1* state,const xvalue* boxed,uint64_t signature)
+{
+    if(!boxed||!signature||xrtValueTypeId(boxed)!=signature||!xl6ClosureBoxAdmittedV1(boxed)){
+        xrtSetErrorKind(XERR_TYPE);return NULL;}
+    ExecutorJob* job=xrtCalloc(1,sizeof(*job));if(!job)return NULL;
+    job->references=1;job->body.ok=true;job->boxed=xrtValueRetain(boxed);
+    job->failures=xl6ExecutorFailuresRetainV1(state);
+    if(!job->boxed||!job->failures){
+        xerror* error=xrtTakeError();xrtValueRelease(job->boxed);xl6ExecutorFailuresReleaseV1(job->failures);
+        xrtFree(job);xrtClearError();xrtSetErrorTake(error);return NULL;
+    }
+    return job;
+}
+bool xl6ExecutorPrepareBoxedBatchV1(XL6_ExecutorFailuresV1* state,xvalue* const* values,
+    size_t count,uint64_t signature,XL6_ExecutorPreparedBatchV1* output)
+{
+    if(!state||!signature||!output||output->items||output->count||(count&&!values)||
+        count>SIZE_MAX/sizeof(xexecutorowneditemv1)){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    if(!count)return true;
+    xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))return false;
+    xexecutorowneditemv1* items=xrtCalloc(count,sizeof(*items));size_t prepared=0;
+    if(items)for(;prepared<count;++prepared){
+        ExecutorJob* job=prepareBoxed(state,values[prepared],signature);if(!job)break;
+        items[prepared]=(xexecutorowneditemv1){job,xl6ExecutorClosureDataPolicyV1Get()};
+    }
+    bool ok=items&&prepared==count&&!scope.failed&&!xrtGetError();
+    if(!ok){
+        xl6ErrorScopeCaptureFailure(&scope);
+        for(size_t i=prepared;i>0;--i)abortPrepared(items[i-1].Data);
+        xrtFree(items);
+    }
+    xl6_error_result result=xl6ErrorScopeEnd(&scope);
+    if(!result.ok){xrtSetErrorTake(result.error);return false;}
+    xrtErrorFree(result.error);*output=(XL6_ExecutorPreparedBatchV1){items,count};return true;
+}
+static bool finishBoxedBatch(xexecutor* executor,XL6_ExecutorPreparedBatchV1* batch,bool submit)
+{
+    if(!batch||(batch->count&&!batch->items)||(!batch->count&&batch->items)||(submit&&!executor)){
+        xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    xl6_error_scope scope={0};bool begun=xl6ErrorScopeBegin(&scope);
+    xl6_error_result outcome={false,NULL};if(!begun)outcome.error=xrtTakeError();
+    bool accepted=begun&&submit&&(!batch->count||xrtExecutorSubmitOwnedBatchV1(executor,batch->items,batch->count));
+    if(begun&&submit&&!accepted)xl6ErrorScopeCaptureFailure(&scope);
+    if(!accepted)for(size_t i=batch->count;i>0;--i)abortPrepared(batch->items[i-1].Data);
+    xrtFree(batch->items);*batch=(XL6_ExecutorPreparedBatchV1){0};
+    if(begun)outcome=xl6ErrorScopeEnd(&scope);
+    if(!outcome.ok){xrtClearError();xrtSetErrorTake(outcome.error);return false;}
+    xrtErrorFree(outcome.error);return true;
+}
+bool xl6ExecutorCommitBoxedBatchV1(xexecutor* executor,XL6_ExecutorPreparedBatchV1* batch)
+{return finishBoxedBatch(executor,batch,true);}
+bool xl6ExecutorDiscardBoxedBatchV1(XL6_ExecutorPreparedBatchV1* batch)
+{return finishBoxedBatch(NULL,batch,false);}
 bool xl6ExecutorSubmitClosuresV1(xexecutor* executor,XL6_ExecutorFailuresV1* state,XL6_Closure* const* callbacks,size_t count)
 {
     if(!executor||!state||(count&&!callbacks)||count>SIZE_MAX/sizeof(xexecutorowneditemv1)){
@@ -222,6 +287,7 @@ static bool jobTrace(const void* raw,xrtownershipvisitor visit,void* context)
 {
     const ExecutorJob* job=raw;size_t count;if(!visit||!jobCount(raw,&count))return false;
     return (!job->callback||visit(xl6ClosureRuntimeV1Get()->Ownership(job->callback),context))&&
+        (!job->boxed||visit(xrtValueOwnership(job->boxed),context))&&
         (!job->failures||visit(xl6ExecutorFailuresOwnershipV1(job->failures),context))&&
         (!job->body.error||visit(xrtErrorOwnership(job->body.error),context));
 }
@@ -263,7 +329,7 @@ static bool jobClaim(const void* raw,const void* token)
 static void jobRestore(const void* raw,const void* token)
 {ExecutorJob* j=(ExecutorJob*)raw;if(!token||j->claim!=token||j->cleared)abort();j->claim=NULL;}
 static bool jobPrepared(const void* raw)
-{const ExecutorJob* j=raw;return j->finished&&!j->active&&!j->callback&&!j->failures&&!j->body.error;}
+{const ExecutorJob* j=raw;return j->finished&&!j->active&&!j->callback&&!j->boxed&&!j->failures&&!j->body.error;}
 static xrtownershipprepareresult jobPrepare(const void* raw,const void* token)
 {
     ExecutorJob* j=(ExecutorJob*)raw;xrtownershipscope mutation={0};begin(&j->gate,&mutation);
