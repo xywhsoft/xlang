@@ -628,7 +628,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_channel_direct_deadline_language.c",D(R(OWNERSHIP_CATALOG),R(CHANNEL_DIRECT_DEADLINE_LANGUAGE)),{NULL}},
     {"src/runtime/xl6_channel_select_deadline_language.c",D(R(CHANNEL_SELECT_DEADLINE),R(CHANNEL_CASE_ARRAY)),{NULL}},
     {"src/runtime/xl6_ownership_domain_channel_select_deadline_language.c",D(R(OWNERSHIP_CATALOG),R(CHANNEL_SELECT_DEADLINE_LANGUAGE)),{NULL}},
-    {"src/runtime/xl6_task_group_start.c",D(R(TASK_GROUP),R(CLOSURE),R(FUTURE_VALUE),R(FOREIGN_ERROR)),{"XRT_MODULE_TASK_GROUP"}}
+    {"src/runtime/xl6_task_group_start.c",D(R(TASK_GROUP),R(CLOSURE),R(FUTURE_VALUE),R(FOREIGN_ERROR)),{"XRT_MODULE_TASK_GROUP"}},
+    {"src/runtime/xl6_ownership_domain_native_executor.c",D(R(OWNERSHIP_CATALOG)),{"XRT_MODULE_EXECUTOR"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

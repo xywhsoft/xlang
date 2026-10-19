@@ -361,6 +361,7 @@
     src\runtime\xl6_ownership_domain_closure.c
     src\runtime\xl6_ownership_domain_dynamic_fields.c
     src\runtime\xl6_ownership_domain_executor.c
+    src\runtime\xl6_ownership_domain_native_executor.c
     src\runtime\xl6_ownership_domain_generator.c
     src\runtime\xl6_ownership_domain_queue.c
     src\runtime\xl6_ownership_domain_frame.c
