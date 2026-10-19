@@ -129,4 +129,5 @@ XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainExecutorJobsV1
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainExecutionSourceV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainExecutionExecutorV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainExecutionPoolV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainExecutorLanguageV1Get(void);
 #endif

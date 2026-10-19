@@ -15,6 +15,7 @@ struct xlir_closure;
 #include "xl6_future_value.h"
 #include "xl6_atomic_abi.h"
 #include "xl6_concurrent_abi.h"
+#include "xl6_execution_language.h"
 #include "xl6_channel_wait_abi.h"
 #include "xl6_channel_case_abi.h"
 #include "xl6_channel_language_abi.h"

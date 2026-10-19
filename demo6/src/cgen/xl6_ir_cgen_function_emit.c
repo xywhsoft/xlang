@@ -49,6 +49,9 @@ static int xl6IrCgenEmitFunction(
             "    if (xlir_module_initialized != 1 && xlir_module_initialized != 2) return XL6_MODULE_PREPARE_BUSY;\n", out);
         if (module->abi.executorOwnershipAbi == XL6_IR_MODULE_EXECUTOR_OWNERSHIP_RESIDENT_WAIT_SLOTS_JOIN_V1)
             xl6OutputPuts("    if (teardown && !xlir_continuation_quiesce(wait)) return XL6_MODULE_PREPARE_BUSY;\n", out);
+        if(module->abi.executionOwnershipAbi==XL6_IR_MODULE_EXECUTION_OWNERSHIP_RESIDENT_SOURCE_V1)
+            xl6OutputPuts("    if (teardown) { XL6_ModulePrepareResult source = xl6ExecutionModulePrepareV1(xlir_execution_source);\n"
+                "        if (source != XL6_MODULE_PREPARE_READY) return source; }\n",out);
         if (module->abi.taskPoolOwnershipAbi == XL6_IR_MODULE_TASK_POOL_OWNERSHIP_RESIDENT_NATIVE_JOBS_JOIN_V1)
             xl6OutputPuts("    if (teardown) {\n"
                 "        XL6_ModulePrepareResult pool = wait\n"
@@ -94,6 +97,9 @@ static int xl6IrCgenEmitFunction(
         }
         if ( module->abi.finalizerFunction != 0 )
             xl6OutputPuts("    xlir_module_initialized = 1;\n", out);
+        if(module->abi.executionOwnershipAbi==XL6_IR_MODULE_EXECUTION_OWNERSHIP_RESIDENT_SOURCE_V1)
+            xl6OutputPuts("    if (!xl6ExecutionModuleInitializeV1(&xlir_execution_source)) {\n"
+                "        xlir_module_initialized = 1; return 0; }\n",out);
     } else {
         if ( !xl6IrCgenEmitPrototype(out, module, function, diags) ) return 0;
         xl6OutputPuts("\n{\n", out);
@@ -105,7 +111,8 @@ static int xl6IrCgenEmitFunction(
                     xl6IrCgenErrorResultType(module, XL6_IR_TYPE_INVALID));
             else xl6OutputPuts("return;\n", out);
             if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE ||
-                module->abi.taskPoolAbi != XL6_IR_MODULE_TASK_POOL_NONE)
+                module->abi.taskPoolAbi != XL6_IR_MODULE_TASK_POOL_NONE ||
+                module->abi.executionOwnershipAbi!=XL6_IR_MODULE_EXECUTION_OWNERSHIP_NONE)
                 xl6OutputPrintf(out, "    if (xlir_module_prepare_resources(true, true) != XL6_MODULE_PREPARE_READY) return (%s){ false };\n",
                     xl6IrCgenErrorResultType(module, XL6_IR_TYPE_INVALID));
             xl6OutputPuts("    xlir_module_initialized = 3;\n", out);

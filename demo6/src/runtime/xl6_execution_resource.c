@@ -150,10 +150,13 @@ Source* xl6ExecutionSourceCreateV1(void)
 }
 bool xl6ExecutionSourceCloseV1(Source* source)
 {
-    xrtownershipscope mutation={0};begin(&mutation);bool ok=sourceEnterLocked(source,false);
+    xrtownershipscope mutation={0};begin(&mutation);bool ok=sourceEnterLocked(source,true);
     if(ok)source->closed=true;
+    bool wake=ok&&!source->cleared&&!source->retired&&!source->graphStop&&!source->exited;
     end(&mutation);
-    if(!ok){xrtSetErrorKind(XERR_STATE);return false;}wakeDrop(source);return true;
+    if(!ok){xrtSetErrorKind(XERR_STATE);return false;}
+    if(wake)wakeDrop(source);else sourceLeave(source);
+    return true;
 }
 bool xl6ExecutionSourceCheckV1(Source* source)
 {

@@ -1,0 +1,28 @@
+import concurrent
+
+func exerciseExecutor()
+    auto count = AtomicInt64()
+    auto executor = Executor(2, 64)
+    int i = 0
+    while i < 32
+        executor.submit(func()
+            count.fetchAdd(1)
+        end)
+        i += 1
+    end
+    executor.close()
+    assert executor.wait(10000)
+    assert count.load() == 32
+    assert executor.failureCount == 0
+    assert not executor.failureCountSaturated
+    executor.throwIfFailed()
+    auto snapshot = executor.snapshot()
+    assert snapshot.threads == 2 and snapshot.queueLimit == 64
+    assert snapshot.submitted == 32 and snapshot.completed == 32
+    assert snapshot.executed == 32 and snapshot.cancelled == 0
+    assert snapshot.queued == 0 and snapshot.running == 0
+    assert snapshot.closed and not snapshot.cancelling
+end
+
+exerciseExecutor()
+println("managed Executor normal completion ok")

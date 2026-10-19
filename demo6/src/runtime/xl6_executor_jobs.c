@@ -11,7 +11,7 @@ struct XL6_ExecutorFailuresV1 {
     uint64_t count;
     xerror* error;
     const void* claim;
-    bool saturated,cleared;
+    bool saturated,cleared,unreported;
 };
 typedef struct ExecutorJob {
     xatomic64 gate;
@@ -64,6 +64,7 @@ static void record(XL6_ExecutorFailuresV1* state,xl6_error_result result)
     if(!state->references||state->cleared)abort();
     if(!state->count){state->error=result.error;result.error=NULL;}
     if(state->count==UINT64_MAX)state->saturated=true;else ++state->count;
+    state->unreported=true;
     end(&state->gate,&mutation);xrtErrorFree(result.error);
 }
 bool xl6ExecutorFailuresSnapshotV1(XL6_ExecutorFailuresV1* state,XL6_ExecutorFailureSnapshotV1* output)
@@ -74,17 +75,21 @@ bool xl6ExecutorFailuresSnapshotV1(XL6_ExecutorFailuresV1* state,XL6_ExecutorFai
     if(ok)*output=(XL6_ExecutorFailureSnapshotV1){sizeof(*output),state->count,state->saturated};
     end(&state->gate,&mutation);if(!ok)xrtSetErrorKind(XERR_STATE);return ok;
 }
-bool xl6ExecutorThrowIfFailedV1(XL6_ExecutorFailuresV1* state)
+static bool checkFailure(XL6_ExecutorFailuresV1* state,bool retirement)
 {
     if(!state){xrtSetErrorKind(XERR_ARGUMENT);return false;}
     xrtownershipscope mutation={0};begin(&state->gate,&mutation);
-    bool valid=state->references&&!state->cleared,ok=valid&&!state->count;
-    xerror* error=valid&&state->count?xrtErrorRef(state->error):NULL;
+    bool valid=state->references&&!state->cleared;
+    bool pending=valid&&state->count&&(!retirement||state->unreported),ok=valid&&!pending;
+    xerror* error=pending?xrtErrorRef(state->error):NULL;
+    if(pending&&!retirement)state->unreported=false;
     end(&state->gate,&mutation);
     if(!valid){xrtSetErrorKind(XERR_STATE);return false;}
     if(!ok)xrtSetErrorTake(error);
     return ok;
 }
+bool xl6ExecutorThrowIfFailedV1(XL6_ExecutorFailuresV1* state){return checkFailure(state,false);}
+bool xl6ExecutorUnreportedCheckV1(XL6_ExecutorFailuresV1* state){return checkFailure(state,true);}
 static void jobRelease(const void* raw)
 {
     ExecutorJob* job=(ExecutorJob*)raw;xrtownershipscope mutation={0};begin(&job->gate,&mutation);
@@ -220,6 +225,18 @@ static void failuresRestore(const void* raw,const void* token)
 {XL6_ExecutorFailuresV1* s=(XL6_ExecutorFailuresV1*)raw;if(!token||s->claim!=token||s->cleared)abort();s->claim=NULL;}
 static void failuresClear(const void* raw,const void* token)
 {XL6_ExecutorFailuresV1* s=(XL6_ExecutorFailuresV1*)raw;if(!token||s->claim!=token||s->cleared)abort();s->cleared=true;}
+static bool failuresFinish(const void* raw,const void* token)
+{
+    XL6_ExecutorFailuresV1* s=(XL6_ExecutorFailuresV1*)raw;xrtownershipscope mutation={0};begin(&s->gate,&mutation);
+    if(!token||s->claim!=token||!s->cleared)abort();
+    bool pending=s->unreported;xerror* error=pending?xrtErrorRef(s->error):NULL;s->unreported=false;end(&s->gate,&mutation);
+    /* The complete graph has prepared ALL native work before Clear. Report
+     * unobserved failures before plan pins disappear. A failed physical duty
+     * can be retried without repeating this notification; the host retains
+     * its checked first-failure outcome independently of physical readiness. */
+    if(pending)xrtSetErrorTake(error);
+    return !pending;
+}
 static bool jobHold(const void* raw)
 {
     ExecutorJob* job=(ExecutorJob*)raw;xrtownershipscope mutation={0};begin(&job->gate,&mutation);
@@ -242,7 +259,7 @@ static void jobClear(const void* raw,const void* token)
 {ExecutorJob* j=(ExecutorJob*)raw;if(!token||j->claim!=token||j->cleared||!jobPrepared(j))abort();j->cleared=true;}
 const xrtownershipadapterv1* xl6ExecutorJobsOwnershipAdapterV1(xrtownershipref ref,const xrtownershippreparationv1** preparation)
 {
-    static const xrtownershipadapterv1 failures={sizeof(failures),failuresHold,failuresDrop,failuresClaim,failuresRestore,NULL,failuresClear,NULL};
+    static const xrtownershipadapterv1 failures={sizeof(failures),failuresHold,failuresDrop,failuresClaim,failuresRestore,NULL,failuresClear,failuresFinish};
     static const xrtownershipadapterv1 jobs={sizeof(jobs),jobHold,jobRelease,jobClaim,jobRestore,NULL,jobClear,NULL};
     static const xrtownershippreparationv1 policy={sizeof(policy),&jobs,jobPrepared,jobPrepare};
     size_t count;if(!preparation)return NULL;

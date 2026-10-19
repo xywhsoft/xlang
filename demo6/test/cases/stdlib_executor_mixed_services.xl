@@ -1,0 +1,18 @@
+import concurrent
+
+async func mixed()
+    auto executor = Executor(1, 8)
+    auto count = AtomicInt64()
+    executor.submit(func()
+        count.fetchAdd(1)
+    end)
+    channel<int> pipe = channel::<int>(1)
+    assert await pipe.sendAsyncTimeout(42, 10000) == channelStatus.ok
+    auto result = await pipe.recvAsyncTimeout(10000)
+    assert result.hasValue and (result.value ?? -1) == 42
+    executor.close()
+    assert executor.wait(10000) and count.load() == 1
+end
+
+await mixed()
+println("explicit Executor and continuation/deadline sources remain independent")

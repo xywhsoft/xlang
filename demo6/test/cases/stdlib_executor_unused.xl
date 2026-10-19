@@ -1,0 +1,9 @@
+import concurrent
+
+func unusedExecutor()
+    auto executor = Executor(1, 8)
+    executor.close()
+end
+
+assert 6 * 7 == 42
+println("unused Executor remains pruned")

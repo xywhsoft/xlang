@@ -113,7 +113,14 @@ static void xl6IrCgenEmitRetireSteps(XL6_Output* out, const XL6_IrModule* module
         "    if (prepared != XL6_MODULE_PREPARE_READY) return XL6_MODULE_RETIRE_FAILED;\n"
         "    if (!xl6ErrorScopeBeginCleanup(&cleanup, false)) abort();\n"
         "    xlir_module_fini();\n",out);
-    xl6OutputPuts(module->abi.networkServiceAbi!=XL6_IR_MODULE_NETWORK_SERVICE_NONE
+    if(module->abi.executionOwnershipAbi==XL6_IR_MODULE_EXECUTION_OWNERSHIP_RESIDENT_SOURCE_V1){
+        xl6OutputPuts("    retired = xlir_module_initialized == 0\n"
+            "        ? xl6ExecutionModuleRetireV1(&xlir_execution_source, wait) : XL6_MODULE_RETIRE_BUSY;\n",out);
+        if(module->abi.networkServiceAbi!=XL6_IR_MODULE_NETWORK_SERVICE_NONE)
+            xl6OutputPuts("    if (retired == XL6_MODULE_RETIRE_FAILED) xl6ErrorScopeCaptureFailure(&cleanup);\n"
+                "    if (xlir_module_initialized == 0 && xlir_execution_source == NULL)\n"
+                "        retired = xlir_net_runtime_retire(wait);\n",out);
+    }else xl6OutputPuts(module->abi.networkServiceAbi!=XL6_IR_MODULE_NETWORK_SERVICE_NONE
         ? "    retired = xlir_module_initialized == 0 ? xlir_net_runtime_retire(wait) : XL6_MODULE_RETIRE_BUSY;\n"
         : "    retired = xlir_module_initialized == 0 ? XL6_MODULE_RETIRE_READY : XL6_MODULE_RETIRE_BUSY;\n",out);
     xl6OutputPuts(

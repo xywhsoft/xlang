@@ -1,0 +1,28 @@
+import concurrent
+
+func errorsAreExplicit()
+    auto executor = Executor(1, 8)
+    executor.submit(func()
+        throw ValueError("detached original")
+    end)
+    executor.close()
+    bool caught = false
+    try
+        executor.wait(10000)
+    catch ValueError e
+        assert e.message == "detached original"
+        caught = true
+    end
+    assert caught and executor.failureCount == 1
+    caught = false
+    try
+        executor.throwIfFailed()
+    catch ValueError e
+        assert e.message == "detached original"
+        caught = true
+    end
+    assert caught and executor.failureCount == 1
+end
+
+errorsAreExplicit()
+println("managed Executor explicit first error ok")

@@ -1,0 +1,11 @@
+import concurrent
+
+func abandonFailedExecutor()
+    auto executor = Executor(1, 8)
+    executor.submit(func()
+        throw ValueError("unobserved detached failure")
+    end)
+    executor.close()
+end
+
+abandonFailedExecutor()

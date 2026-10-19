@@ -1,0 +1,24 @@
+import concurrent
+
+class ExecutorHolder
+    Executor? value
+end
+
+func launch(ExecutorHolder holder, Event start, Event done)
+    auto executor = Executor(1, 8)
+    holder.value = executor
+    executor.submit(func()
+        assert start.wait(10000)
+        holder.value = null
+        done.set()
+    end)
+end
+
+auto holder = ExecutorHolder()
+auto start = Event(true)
+auto done = Event(true)
+launch(holder, start, done)
+start.set()
+assert done.wait(10000)
+assert holder.value == null
+println("managed Executor worker releases final language owner ok")

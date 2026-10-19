@@ -30,6 +30,11 @@ XL6_CODE_LEASE_API bool xl6ExecutorFailuresSnapshotV1(XL6_ExecutorFailuresV1*,XL
 /* Checked BOOL carrier, including failure without a diagnostic. Does not
  * propagate to an enclosing scope: the caller owns its ordinary error edge. */
 XL6_CODE_LEASE_API bool xl6ExecutorThrowIfFailedV1(XL6_ExecutorFailuresV1*);
+/* Retirement check reports only failures not yet observed by an explicit
+ * Wait/ThrowIfFailed. Those explicit reports never clear first error/count;
+ * a later failed job makes retirement notification pending again, even after
+ * counter saturation. Resident retirement is not another ordinary wait. */
+XL6_CODE_LEASE_API bool xl6ExecutorUnreportedCheckV1(XL6_ExecutorFailuresV1*);
 
 /* Compiler-private exact callback ABI: bool invoke(void* environment). The
  * compiler must verify a zero-argument void language closure before calling.
