@@ -4106,7 +4106,8 @@ typedef enum XL6_IrCallNativeContextAbi {
 typedef enum XL6_IrCallNativeService {
     XL6_IR_CALL_NATIVE_SERVICE_NONE = 0,
     XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1 = 1u << 0,
-    XL6_IR_CALL_NATIVE_SERVICE_DEADLINE_V1 = 1u << 1
+    XL6_IR_CALL_NATIVE_SERVICE_DEADLINE_V1 = 1u << 1,
+    XL6_IR_CALL_NATIVE_SERVICE_EXECUTION_SOURCE_V1 = 1u << 2
 } XL6_IrCallNativeService;
 
 /* A checked resident entry may publish one owned generic result into the
@@ -5775,6 +5776,13 @@ typedef enum XL6_IrModuleDeadlineOwnershipAbi {
     XL6_IR_MODULE_DEADLINE_OWNERSHIP_RESIDENT_BINDINGS_JOIN_V1
 } XL6_IrModuleDeadlineOwnershipAbi;
 
+/* Explicit user-created execution resources, NOT the default async executor.
+ * The source owns native creators until all callback/cleanup tails settle. */
+typedef enum XL6_IrModuleExecutionOwnershipAbi {
+    XL6_IR_MODULE_EXECUTION_OWNERSHIP_NONE=0,
+    XL6_IR_MODULE_EXECUTION_OWNERSHIP_RESIDENT_SOURCE_V1
+} XL6_IrModuleExecutionOwnershipAbi;
+
 /* Separate from scheduling/quiescence: one module-owned wrapper traces its
  * actual native pool owner. Accepted frames own the wrapper; native queued
  * Jobs and all transitive Data policies must be independently certified. */
@@ -5839,6 +5847,7 @@ typedef struct XL6_IrModuleAbi {
     XL6_IrFutureAggregateAbi futureAggregateAbi;
     XL6_IrNativeFutureMapAbi nativeFutureMapAbi;
     XL6_IrModuleNetworkServiceAbi networkServiceAbi;
+    XL6_IrModuleExecutionOwnershipAbi executionOwnershipAbi;
 } XL6_IrModuleAbi;
 
 typedef enum XL6_IrStorageKind {
@@ -7712,6 +7721,7 @@ XL6_IrModuleTaskPoolAbi xl6IrModuleTaskPoolRequirement(const XL6_IrModule* modul
 XL6_IrModuleContinuationAbi xl6IrModuleContinuationRequirement(const XL6_IrModule* module);
 XL6_IrModuleExecutorOwnershipAbi xl6IrModuleExecutorOwnershipRequirement(const XL6_IrModule* module);
 XL6_IrModuleDeadlineOwnershipAbi xl6IrModuleDeadlineOwnershipRequirement(const XL6_IrModule* module);
+XL6_IrModuleExecutionOwnershipAbi xl6IrModuleExecutionOwnershipRequirement(const XL6_IrModule* module);
 XL6_IrModuleTaskPoolOwnershipAbi xl6IrModuleTaskPoolOwnershipRequirement(const XL6_IrModule* module);
 XL6_IrModuleRetirementAbi xl6IrModuleRetirementRequirement(const XL6_IrModule* module);
 XL6_IrFutureAggregateAbi xl6IrModuleFutureAggregateRequirement(const XL6_IrModule* module);

@@ -19,6 +19,10 @@ int xl6IrCgenEmitCEx(XL6_Output* out, const XL6_IrModule* module,
         xl6OutputPuts("#include <__xl_runtime/xl6_text_value.h>\n", out);
     xl6IrCgenEmitPublicLinkage(out);
     xl6IrCgenEmitCodeOwnerBinding(out, module);
+    if(module->abi.executionOwnershipAbi==XL6_IR_MODULE_EXECUTION_OWNERSHIP_RESIDENT_SOURCE_V1)
+        xl6OutputPuts("#include <__xl_runtime/xl6_execution_module_abi.h>\n"
+            "#include <__xl_runtime/xl6_execution_language.h>\n"
+            "static XL6_ExecutionSourceV1* xlir_execution_source;\n",out);
     if (module->abi.continuationAbi == XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1) {
         xl6OutputPuts(
             "#define XLIR_RUNTIME_CONTINUATION 1\n"

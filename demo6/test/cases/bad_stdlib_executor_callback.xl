@@ -1,0 +1,5 @@
+import concurrent
+auto executor = Executor(1, 8)
+executor.submit(func() as int
+    return 1
+end)

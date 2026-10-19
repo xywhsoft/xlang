@@ -13,6 +13,10 @@ static int xl6IrCgenEmitModuleOwnershipTrace(XL6_Output* out,
     if (module->abi.networkServiceAbi == XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1)
         xl6OutputPuts("    if (!xl6NetworkServiceRuntimeV2Get()->Trace(\n"
             "        &xlir_network_services, visit, context)) return false;\n", out);
+    if(module->abi.executionOwnershipAbi==XL6_IR_MODULE_EXECUTION_OWNERSHIP_RESIDENT_SOURCE_V1)
+        xl6OutputPuts("    if (xlir_execution_source != NULL &&\n"
+            "        !visit(xl6ExecutionSourceOwnershipV1(xlir_execution_source), context)) return false;\n",out);
+    else if(module->abi.executionOwnershipAbi!=XL6_IR_MODULE_EXECUTION_OWNERSHIP_NONE)return 0;
     xl6OutputPuts("    if (xlir_module_initialized == 0) return true;\n", out);
     if (module->abi.finalizerFunction != 0)
         /* After the initializer callback returns, phase 1 is a stable partial

@@ -22,7 +22,7 @@ static XL6_ModulePrepareResult retire(Resource* r)
      * consumes its actual native creator even when a detached callback failed,
      * and its enclosing checked cleanup scope latches the original outcome.
      * In particular, NULL is a valid first failed diagnostic, not success. */
-    if(!xl6ExecutorThrowIfFailedV1(r->failures))
+    if(!xl6ExecutorUnreportedCheckV1(r->failures))
         xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});
     return XL6_MODULE_PREPARE_READY;
 }

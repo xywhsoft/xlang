@@ -2139,6 +2139,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         if(needsChannelCases)xl6StdlibBuilderAppend(&builder,xl6StdlibChannelCaseSource);
         if(needsChannelDirect)xl6StdlibBuilderAppend(&builder,xl6StdlibChannelDirectFutureSource);
         if (xl6StdlibNodeUsesTypeName(root, "Once")) xl6StdlibBuilderAppend(&builder, xl6StdlibOnceSource);
+        if (xl6StdlibNodeUsesTypeName(root,"Executor") || xl6StdlibNodeUsesTypeName(root,"ExecutorSnapshot"))
+            xl6StdlibBuilderAppend(&builder,xl6StdlibExecutorSource);
         if (xl6StdlibNodeUsesTypeName(root, "Event")) xl6StdlibBuilderAppend(&builder, xl6StdlibEventSource);
         if (xl6StdlibNodeUsesTypeName(root, "ThreadLocal")) xl6StdlibBuilderAppend(&builder, xl6StdlibThreadLocalSource);
         if (xl6StdlibNodeUsesTypeName(root, "CancellationSource") ||

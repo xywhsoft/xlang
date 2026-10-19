@@ -639,7 +639,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_execution_pool.c",D(R(EXECUTION_SOURCE),R(TASK_POOL)),{NULL}},
     {"src/runtime/xl6_ownership_domain_execution_source.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_SOURCE)),{NULL}},
     {"src/runtime/xl6_ownership_domain_execution_executor.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_EXECUTOR)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_execution_pool.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_POOL)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_execution_pool.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_POOL)),{NULL}},
+    {"src/runtime/xl6_execution_module.c",D(R(EXECUTION_SOURCE)),{NULL}},
+    {"src/runtime/xl6_executor_language.c",D(R(EXECUTION_EXECUTOR),R(NATIVE_HANDLE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_executor_language.c",D(R(OWNERSHIP_CATALOG),R(EXECUTOR_LANGUAGE),R(OWNERSHIP_DOMAIN_EXECUTION_EXECUTOR)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -852,6 +855,8 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
         REQUIRE(R(EXECUTOR),R(CONTINUATION_FUTURE),R(CONTINUATION_FRAME));
     if(module->abi.deadlineOwnershipAbi!=XL6_IR_MODULE_DEADLINE_OWNERSHIP_NONE)
         REQUIRE(R(DEADLINE_SERVICE),R(OWNERSHIP_DOMAIN_DEADLINE_SERVICE));
+    if(module->abi.executionOwnershipAbi!=XL6_IR_MODULE_EXECUTION_OWNERSHIP_NONE)
+        REQUIRE(R(EXECUTION_MODULE),R(OWNERSHIP_DOMAIN_EXECUTION_SOURCE));
     if (module->abi.taskPoolAbi != XL6_IR_MODULE_TASK_POOL_NONE) REQUIRE(R(TASK));
     for (size_t i=0;i<module->callTargetCount;++i)
         if (module->callTargets[i].reachability != XL6_IR_REACHABILITY_UNREACHABLE &&

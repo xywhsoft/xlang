@@ -1,0 +1,43 @@
+import concurrent
+
+func controls()
+    bool caught = false
+    try
+        auto invalid = Executor(1, 0)
+    catch RangeError e
+        caught = true
+    end
+    assert caught
+    auto executor = Executor(1, 8)
+    auto started = Event(true)
+    auto resume = Event(true)
+    auto count = AtomicInt64()
+    executor.submit(func()
+        started.set()
+        assert resume.wait(10000)
+        count.fetchAdd(1)
+    end)
+    assert started.wait(10000)
+    executor.submit(func()
+        count.fetchAdd(100)
+    end)
+    executor.close()
+    assert not executor.wait(0)
+    caught = false
+    try
+        executor.wait(-2)
+    catch RangeError e
+        caught = true
+    end
+    assert caught
+    executor.cancel()
+    resume.set()
+    assert executor.wait(10000)
+    auto stats = executor.snapshot()
+    assert stats.completed == 2 and stats.executed == 1 and stats.cancelled == 1
+    assert stats.closed and stats.cancelling and count.load() == 1
+    assert executor.failureCount == 0
+end
+
+controls()
+println("managed Executor bounded admission, timeout and cancellation ok")

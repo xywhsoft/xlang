@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 static xatomic64 allocationThread={0};
 static xatomic32 allocationArmed={0},allocationSeen={0},allocationResume={0};
 static void waitFor(xatomic32*,uint32_t);
@@ -73,6 +74,7 @@ static bool body(void* raw)
     Coordination* c=((Environment*)raw)->coordination;c->bodyThread=xrtThreadCurrentId();
     xrtAtomic32Store(&c->bodyStarted,1,XMEMORY_RELEASE);waitFor(&c->bodyResume,1);
     if(c->failure==1)xrtSetErrorKind(XERR_ARGUMENT);
+    if(c->failure==3)xrtSetErrorTake(xrtErrorCreate(XERR_ARGUMENT,"executor-graph",901,"graph first failure"));
     return !c->failure;
 }
 static xtaskoutcome taskBody(xcancel* cancel,void* raw,xtaskvalue* result)
@@ -269,8 +271,52 @@ static void graphRound(XL6_OwnershipCatalog* catalog,bool pool,unsigned empty,un
     /* Restore must leave the controller able to retire the same actual
      * native instance after the last user release (without a new thread). */
     xl6ExecutionResourceReleaseV1(r);if(restore)drain(source);
+    assert(xl6ExecutionSourceCloseV1(source));
     destroyClosed(&source,true);
     for(size_t step=0;step<g.count;++step){size_t i=(order&4)?g.count-1-step:step;g.nodes[i].adapter->Drop(g.nodes[i].ref.Data);}
+    balanced(&before);
+}
+static void failureGraphRound(XL6_OwnershipCatalog* catalog,bool nullError,bool observed,bool graph)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_ExecutionSourceV1* source=xl6ExecutionSourceCreateV1();assert(source);
+    XL6_ExecutionResourceV1* r=createResource(source,false);Coordination c={0};c.failure=nullError?2:3;
+    xrtAtomic32Store(&c.bodyResume,1,XMEMORY_RELEASE);xrtAtomic32Store(&c.dropResume,1,XMEMORY_RELEASE);
+    Environment* env=xrtMalloc(sizeof(*env));assert(env);*env=(Environment){xl6ExecutionResourceRetainV1(r),&c};assert(env->owned);
+    XL6_Closure* callback=xl6ClosureCreateEnvironmentV1(NULL,(void (*)(void))body,NULL,env,sizeof(*env),&layout,&environmentOps,NULL,NULL,0);assert(callback);
+    assert(xl6ExecutionExecutorSubmitV1(r,callback));xl6ClosureRuntimeV1Get()->Release(callback);
+    /* Wait on native physical completion only: this is deliberately NOT an
+     * explicit language failure report, so an unobserved error stays pending. */
+    assert(xl6ExecutionResourceCloseV1(r));
+    XL6_ExecutionScopeV1 entry={0};assert(xl6ExecutionResourceEnterV1(r,false,&entry));
+    assert(xrtExecutorWaitFor(entry.executor,UINT64_C(5000000))==XWAIT_OK);xl6ExecutionResourceLeaveV1(&entry);
+    if(observed){assert(!xl6ExecutionExecutorThrowIfFailedV1(r));
+        assert(nullError?!xrtGetError():xrtErrorKind(xrtGetError())==XERR_ARGUMENT);xrtClearError();}
+    XL6_ExecutorFailureSnapshotV1 failure={.size=sizeof(failure)};assert(xl6ExecutionExecutorFailuresV1(r,&failure)&&failure.count==1);
+    if(!graph){
+        xl6ExecutionResourceReleaseV1(r);drain(source);assert(xl6ExecutionSourceCheckV1(source)==observed);
+        if(!observed){assert(nullError?!xrtGetError():xrtErrorKind(xrtGetError())==XERR_ARGUMENT);
+            if(!nullError)assert(xrtErrorCode(xrtGetError())==901&&!strcmp(xrtErrorMessage(xrtGetError()),"graph first failure"));}
+        xrtClearError();destroy(&source,observed);balanced(&before);return;
+    }
+    Graph g;xrtownershipscope frozen={0};xdeadline deadline=xrtDeadlineAfter(UINT64_C(5000000));
+    for(;;){freeze(&frozen);if(collect(&g,catalog,source))break;
+        assert(xrtOwnershipScopeEnd(&frozen)&&!xrtDeadlineExpired(deadline));xrtThreadYield();}
+    int token=0;for(size_t i=0;i<g.count;++i){Node* n=&g.nodes[i];assert(n->adapter->Hold(n->ref.Data)&&n->adapter->Claim(n->ref.Data,&token));}
+    assert(xrtOwnershipScopeEnd(&frozen));
+    for(size_t i=0;i<g.count;++i){Node* n=&g.nodes[i];if(n->preparation)for(;;){
+        xrtownershipprepareresult result=n->preparation->Prepare(n->ref.Data,&token);
+        if(result==XRT_OWNERSHIP_PREPARE_READY)break;
+        assert(result==XRT_OWNERSHIP_PREPARE_BUSY&&!xrtDeadlineExpired(deadline));xrtThreadYield();}}
+    freeze(&frozen);for(size_t i=0;i<g.count;++i)g.nodes[i].adapter->Clear(g.nodes[i].ref.Data,&token);
+    assert(xrtOwnershipScopeEnd(&frozen));unsigned reported=0;
+    for(unsigned pass=0;pass<2;++pass)for(size_t i=0;i<g.count;++i){Node* n=&g.nodes[i];
+        if(n->adapter->Finish&&!n->adapter->Finish(n->ref.Data,&token)){
+            assert(!pass&&!observed&&++reported==1);
+            assert(nullError?!xrtGetError():xrtErrorKind(xrtGetError())==XERR_ARGUMENT);
+            if(!nullError)assert(xrtErrorCode(xrtGetError())==901&&!strcmp(xrtErrorMessage(xrtGetError()),"graph first failure"));
+            xrtClearError();}}
+    assert(reported==!observed);xl6ExecutionResourceReleaseV1(r);assert(xl6ExecutionSourceCloseV1(source));destroyClosed(&source,true);
+    for(size_t i=g.count;i>0;--i)g.nodes[i-1].adapter->Drop(g.nodes[i-1].ref.Data);
     balanced(&before);
 }
 int main(void)
@@ -287,6 +333,8 @@ int main(void)
     for(unsigned order=0;order<8;++order){
         for(unsigned pool=0;pool<2;++pool){graphRound(catalog,pool!=0,0,order,false);graphRound(catalog,pool!=0,0,order,true);}
         for(unsigned empty=1;empty<3;++empty){graphRound(catalog,false,empty,order,false);graphRound(catalog,false,empty,order,true);}}
+    for(unsigned i=0;i<8;++i)for(unsigned flags=0;flags<8;++flags)failureGraphRound(catalog,(flags&1)!=0,(flags&2)!=0,(flags&4)!=0);
+    puts("Execution resource error retirement: 64 observed/unobserved and NULL/allocated first failures; graph and ordinary checked notifications, no repeated handled error");
     xl6OwnershipCatalogDestroyV1(catalog);
     allocationPrefixes();
     puts("Execution resources: 32 worker last-owner tails (16 failed), 16 held entries, 16 owned close/waits, 16 real creation-close races, 8 explicit retries, 64 exact graphs (32 empty) with restore/arbitrary finish order, 120 allocation prefixes, identity refusal and balanced lifetimes");return 0;

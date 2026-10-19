@@ -24,6 +24,7 @@
 #include "src/runtime/xl6_task.h"
 #include "src/runtime/xl6_executor_jobs.h"
 #include "src/runtime/xl6_execution_resource.h"
+#include "src/runtime/xl6_execution_module_abi.h"
 #include "src/runtime/xl6_network_service.h"
 #include "src/runtime/xl6_log.h"
 #include "src/runtime/xl6_text_value.h"
@@ -325,6 +326,32 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6FrameStorageRuntimeV1Get", (const void*)xl6FrameStorageRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskRuntimeV1Get", (const void*)xl6TaskRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskPoolControlV1Get", (const void*)xl6TaskPoolControlV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorCreateLanguageV1", (const void*)xl6ExecutorCreateLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorDestroyLanguageV1", (const void*)xl6ExecutorDestroyLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSubmitLanguageV1", (const void*)xl6ExecutorSubmitLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorCloseLanguageV1", (const void*)xl6ExecutorCloseLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorCancelLanguageV1", (const void*)xl6ExecutorCancelLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorWaitLanguageV1", (const void*)xl6ExecutorWaitLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorThrowLanguageV1", (const void*)xl6ExecutorThrowLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorFailureCountLanguageV1", (const void*)xl6ExecutorFailureCountLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorFailureSaturatedLanguageV1", (const void*)xl6ExecutorFailureSaturatedLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSnapshotLanguageV1", (const void*)xl6ExecutorSnapshotLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSnapshotDestroyLanguageV1", (const void*)xl6ExecutorSnapshotDestroyLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSnapshotClosedLanguageV1", (const void*)xl6ExecutorSnapshotClosedLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSnapshotCancellingLanguageV1", (const void*)xl6ExecutorSnapshotCancellingLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSnapshotThreadsLanguageV1", (const void*)xl6ExecutorSnapshotThreadsLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSnapshotQueueLimitLanguageV1", (const void*)xl6ExecutorSnapshotQueueLimitLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSnapshotQueuedLanguageV1", (const void*)xl6ExecutorSnapshotQueuedLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSnapshotRunningLanguageV1", (const void*)xl6ExecutorSnapshotRunningLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSnapshotSubmittedLanguageV1", (const void*)xl6ExecutorSnapshotSubmittedLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSnapshotCompletedLanguageV1", (const void*)xl6ExecutorSnapshotCompletedLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSnapshotExecutedLanguageV1", (const void*)xl6ExecutorSnapshotExecutedLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSnapshotStolenLanguageV1", (const void*)xl6ExecutorSnapshotStolenLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSnapshotCancelledLanguageV1", (const void*)xl6ExecutorSnapshotCancelledLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSnapshotRejectedLanguageV1", (const void*)xl6ExecutorSnapshotRejectedLanguageV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionModuleInitializeV1", (const void*)xl6ExecutionModuleInitializeV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionModulePrepareV1", (const void*)xl6ExecutionModulePrepareV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionModuleRetireV1", (const void*)xl6ExecutionModuleRetireV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutionSourceCreateV1", (const void*)xl6ExecutionSourceCreateV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutionSourceCloseV1", (const void*)xl6ExecutionSourceCloseV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutionSourceCheckV1", (const void*)xl6ExecutionSourceCheckV1)) return 0;
@@ -360,6 +387,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6ExecutorFailuresReleaseV1", (const void*)xl6ExecutorFailuresReleaseV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorFailuresSnapshotV1", (const void*)xl6ExecutorFailuresSnapshotV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorThrowIfFailedV1", (const void*)xl6ExecutorThrowIfFailedV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorUnreportedCheckV1", (const void*)xl6ExecutorUnreportedCheckV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorSubmitClosureV1", (const void*)xl6ExecutorSubmitClosureV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorSubmitClosuresV1", (const void*)xl6ExecutorSubmitClosuresV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorWaitV1", (const void*)xl6ExecutorWaitV1)) return 0;

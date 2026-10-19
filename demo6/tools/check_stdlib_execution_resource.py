@@ -67,7 +67,8 @@ def main():
                     for symbol in absent:assert not any(line.split() and line.split()[-1]==symbol for line in symbols.splitlines()),(choice,symbol)
                 name=str(index)+'.'+opt+'.native';binary=out/(name+suffix);sources=[root/s for s in report['Plans']['both']['Sources']]
                 run(name+'.build',flags(cc,out/'both')+['-'+opt,root/'test/support/execution_resource_native.c',*sources,*libs,'-o',binary]);product(binary)
-                run(name+'.run',[binary],proof)
+                output=run(name+'.run',[binary],proof)
+                assert 'Execution resource error retirement: 64 observed/unobserved' in output
         run('api.syntax',flags(gcc,out)+['-DXL_BUILD_DLL','-Wno-missing-field-initializers','-fsyntax-only',
             root/'src/api/xl_api_symbols.c',root/'src/compile/xl6_compile_unit.c'])
         providers=[root/s for s in report['Plans']['both']['Sources']]
@@ -77,7 +78,9 @@ def main():
             ('restore-stranded','xl6_execution_resource.c','s->claim=NULL;s->graphStop=false;','s->claim=NULL;s->graphStop=true;'),
             ('pool-finish-order','xl6_execution_pool.c','xl6TaskPoolReleaseClearedOwnerV1(r->pool)','xl6TaskPoolControlV1Get()->Destroy(r->pool)'),
             ('exited-source-never-ready','xl6_execution_resource.c','s->joined||s->exited||(s->graphStop&&s->parked)',
-             's->joined||(s->graphStop&&s->parked)')]
+             's->joined||(s->graphStop&&s->parked)'),
+            ('graph-notification-lost','xl6_executor_jobs.c','bool pending=s->unreported;','bool pending=false;'),
+            ('observed-notification-repeated','xl6_executor_jobs.c','if(pending&&!retirement)state->unreported=false;','(void)retirement;')]
         report['NegativeControls']=[]
         for name,filename,old,new in controls:
             original=root/'src/runtime'/filename;body=original.read_text(encoding='utf-8-sig');assert body.count(old)==1,(name,'inexact mutation')
@@ -89,7 +92,8 @@ def main():
             binary=out/'instrumented';sources=[root/s for s in report['Plans']['both']['Sources']]
             run('instrumented.build',flags(gcc,out/'both')+['-O1','-g','-fno-omit-frame-pointer','-fsanitize=address,undefined','-fno-pie','-no-pie',
                 root/'test/support/execution_resource_native.c',*sources,*libs,'-o',binary]);product(binary)
-            run('instrumented.run',[binary],proof,True);report['InstrumentedSelectedClosure']=True
+            output=run('instrumented.run',[binary],proof,True);assert 'Execution resource error retirement: 64 observed/unobserved' in output
+            report['InstrumentedSelectedClosure']=True
         report['ShippingSources']=json.loads(run('shipping-sources',['python' if os.name=='nt' else 'python3',root/'tools/check_stdlib_shipping_sources.py','--root',root]));assert report['ShippingSources']['Complete']
         report['InputsUnchanged']=all(sha(path)==digest for path,digest in inputs.items());report['LogsUnchanged']=all(sha(row['Log'])==row['Sha256'] for row in rows)
         assert report['InputsUnchanged'] and report['LogsUnchanged'];report['Complete']=True;save()
