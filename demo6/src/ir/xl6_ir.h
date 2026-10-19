@@ -65,6 +65,15 @@ typedef enum XL6_IrTypeKind {
     XL6_IR_TYPE_PERSISTENCE_WIRE
 } XL6_IrTypeKind;
 
+/* These shapes are identified by their canonical element/return TypeIds and
+ * callable convention, not by a cached frontend ABI label. Every interner,
+ * substitution lookup and verifier must use the same identity rule. */
+static inline int xl6IrTypeIgnoresFrontendAbiId(XL6_IrTypeKind kind)
+{
+    return kind == XL6_IR_TYPE_FUNCTION || kind == XL6_IR_TYPE_TUPLE ||
+        kind == XL6_IR_TYPE_NULLABLE;
+}
+
 /* Canonical collection identity.  All current containers share the erased
  * xvalue C ABI, so this discriminator prevents lowering and verification from
  * recovering array/list/set/dict semantics from diagnostic type names. */

@@ -125,14 +125,15 @@ def main():
                     'stdlib_promise_dynamic', 'stdlib_promise_owned', 'future_duplicate_cancel',
                     'stdlib_cancellation', 'stdlib_task_group_methods', 'stdlib_concurrent_import_only',
                     'stdlib_slot_map_future_keys', 'stdlib_promise_unit', 'stdlib_promise_dynamic_null',
-                    'stdlib_promise_generic_field', 'xlir_generic_field_initializer')
+                    'stdlib_promise_generic_field', 'xlir_generic_field_initializer',
+                    'xlir_generic_closure_field', 'xlir_generic_callable_convention')
         negatives = ('bad_stdlib_promise_missing_import', 'bad_stdlib_promise_private', 'bad_stdlib_promise_type',
                      'bad_stdlib_promise_default','bad_stdlib_promise_default_local','bad_stdlib_promise_default_field',
                      'bad_stdlib_promise_default_generic_field')
         helpers = (*helpers[:3], 'xlir_promise_contract.c', 'stdlib_promise_native_host.c',
                    'stdlib53_pruning_plan.c', 'stdlib_native_future_policy_product_host.c',
                    'xlir_promise_zero_payload_contract.c', 'xlir_promise_dynamic_null_contract.c',
-                   'xlir_generic_field_initializer_contract.c')
+                   'xlir_generic_field_initializer_contract.c', 'xlir_generic_callable_identity_contract.c')
     if args.stage == 'task-group':
         selected=('stdlib_task_group_configured','stdlib_task_group_methods','stdlib_task_group_sync_only',
             'stdlib_task_group','stdlib_task_group_allocations','xlir_fixed_executor_language',
@@ -403,7 +404,8 @@ def main():
                 name in selected[:(4 if args.stage in ('thread-local','cancellation') else 3)]) or (
                 args.stage == 'cancellation' and name == 'stdlib_task_group_methods') or (
                 args.stage == 'promise' and (name in selected[:6] or name in ('stdlib_promise_unit','stdlib_promise_dynamic_null',
-                    'stdlib_promise_generic_field','xlir_generic_field_initializer'))) or (
+                    'stdlib_promise_generic_field','xlir_generic_field_initializer',
+                    'xlir_generic_closure_field','xlir_generic_callable_convention'))) or (
                 args.stage in CHANNEL_STAGES and
                 (name in selected[:3] or name in ('stdlib_channel_deadlines','stdlib_channel_deadline_only',
                                                  'stdlib_channel_cancellation','stdlib_channel_cancel_only','stdlib_channel_cancel_flow',
@@ -763,6 +765,12 @@ def main():
                     *links(names[2]), '-o', fields])
                 run('generic-field-contract.run', [fields, isolated/'stdlib_promise_generic_field.xl',
                     isolated/'xlir_generic_field_initializer.xl'])
+                identity = isolated/'generic-callable-identity-contract'
+                run('generic-callable-identity-contract.build', [cc, *strict, '-O2',
+                    '-I'+str(root/'lib/tcc'), cases/'xlir_generic_callable_identity_contract.c',
+                    *links(names[2]), '-o', identity])
+                run('generic-callable-identity-contract.run', [identity, isolated/'xlir_generic_closure_field.xl',
+                    isolated/'xlir_generic_callable_convention.xl'])
             if args.stage in CHANNEL_STAGES:
                 deadline = isolated/'deadline-contract'
                 run('deadline-contract.build',[cc,*flags,'-O2','-I'+str(root),

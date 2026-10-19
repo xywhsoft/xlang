@@ -2835,7 +2835,7 @@ static XL6_IrTypeId xl6IrInternAstType(XL6_IrModule* module, const XL6_AstNode* 
              item->collectionAbi == collectionAbi &&
              item->runtimeResourceAbi == runtimeResourceAbi &&
              (kind != XL6_IR_TYPE_TYPE_PARAM || item->sourceTypeId == type->semanticTypeId) &&
-             (kind == XL6_IR_TYPE_FUNCTION || kind == XL6_IR_TYPE_TUPLE || kind == XL6_IR_TYPE_NULLABLE ||
+             (xl6IrTypeIgnoresFrontendAbiId(kind) ||
               item->abiId == type->semanticTypeAbiId) &&
              /* A valid frontend ABI id is the canonical identity shared by
               * spelling aliases such as int/int64.  Builtins without one are
@@ -4587,8 +4587,9 @@ static XL6_IrTypeId xl6IrBuildClassSubstituteTypeDepth(
         if ( candidate->kind == source->kind &&
              ((source->kind == XL6_IR_TYPE_NULLABLE || source->kind == XL6_IR_TYPE_TUPLE) ||
               (candidate->cAbi == source->cAbi && candidate->ownershipAbi == source->ownershipAbi)) &&
-             ((source->kind == XL6_IR_TYPE_NULLABLE || source->kind == XL6_IR_TYPE_TUPLE) ||
+             (xl6IrTypeIgnoresFrontendAbiId(source->kind) ||
               candidate->abiId == source->abiId) &&
+             candidate->callableErasureAbi == source->callableErasureAbi &&
              candidate->paramCount == source->paramCount && candidate->returnCount == source->returnCount &&
              ((candidate->name == NULL && source->name == NULL) ||
               (candidate->name != NULL && source->name != NULL &&
@@ -22516,8 +22517,7 @@ static int xl6IrTypesShareCanonicalKey(
          left->runtimeResourceAbi != right->runtimeResourceAbi ||
          (left->kind == XL6_IR_TYPE_TYPE_PARAM &&
           left->sourceTypeId != right->sourceTypeId) ||
-         ((left->kind != XL6_IR_TYPE_FUNCTION &&
-           left->kind != XL6_IR_TYPE_TUPLE && left->kind != XL6_IR_TYPE_NULLABLE) &&
+         (!xl6IrTypeIgnoresFrontendAbiId(left->kind) &&
           left->abiId != right->abiId) ||
          (left->kind != XL6_IR_TYPE_TUPLE &&
           left->abiId == XL6_TYPE_ABI_ID_INVALID &&
@@ -26063,8 +26063,7 @@ static int xl6IrVerifyInitializerType(
         source->paramCount != target->paramCount || source->returnCount != target->returnCount ||
         source->collectionAbi != target->collectionAbi || source->runtimeResourceAbi != target->runtimeResourceAbi ||
         source->integerTarget != target->integerTarget || source->callableErasureAbi != target->callableErasureAbi ||
-        (source->kind != XL6_IR_TYPE_FUNCTION && source->kind != XL6_IR_TYPE_TUPLE &&
-         source->kind != XL6_IR_TYPE_NULLABLE && source->abiId != target->abiId) ||
+        (!xl6IrTypeIgnoresFrontendAbiId(source->kind) && source->abiId != target->abiId) ||
         (source->kind != XL6_IR_TYPE_NULLABLE && source->kind != XL6_IR_TYPE_TUPLE &&
          (source->cAbi != target->cAbi || source->ownershipAbi != target->ownershipAbi)) ||
         (source->name == NULL ? target->name != NULL : target->name == NULL || strcmp(source->name, target->name)))

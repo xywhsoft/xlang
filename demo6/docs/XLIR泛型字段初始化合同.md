@@ -36,6 +36,18 @@ SSA/初始化/清理合同。交换 int/string owner 的图、退回共享模板
 用例：`stdlib_promise_generic_field.xl`、`xlir_generic_field_initializer.xl`、
 `xlir_generic_field_initializer_contract.c`。后者执行元数据变异并检查零输出拒绝。
 
-本批不宣称所有泛型语言能力完成。带外层泛型类型形参的匿名函数，另有在
-Typed TypePool 验证前就存在的失败用例；它与普通具体签名闭包的图克隆不同，
-仍须单独修复和验收。异步多返回值等已决策限制也不在此扩展。
+## 函数签名的结构身份
+
+函数、tuple 和 nullable 的前端 ABI 标签只保留来源信息，不构成另一个类型身份。
+类型驻留、类成员类型闭包、泛型专化和验证共享 `xl6IrTypeIgnoresFrontendAbiId`
+规则；不能为具有相同参数、返回值和调用约定的函数签名创建第二个 TypeId。
+名义类及正式类型参数的身份规则不变。
+
+函数的固定／位置可变／命名可变约定仍是身份的一部分。单个 Array 参数与可变
+参数打包可能具有相同物理载体，但不能因此合并。类字段类型闭包也必须保留该约定。
+这些事实在 Typed/Lowered XLIR 中完成，Cgen 不恢复前端标签或补做泛型转换。
+
+`xlir_generic_closure_field.xl` 覆盖泛型匿名字段、交换参数顺序、捕获和嵌套工厂；
+`xlir_generic_callable_convention.xl` 与 `xlir_generic_callable_identity_contract.c`
+检查约定区分、清空前端标签后的完整降低/生成，以及重复类型和错配约定的零输出拒绝。
+这不扩展异步多返回值等已决策的语言限制，也不宣称所有泛型能力已全面验收。

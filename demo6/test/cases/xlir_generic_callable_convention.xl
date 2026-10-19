@@ -1,0 +1,18 @@
+func countVariadic(...) as int
+    return arg.length
+end
+
+func(...) as int variadic = countVariadic
+
+class Fixed<T>
+    func(T) as int count = func(T ignored) as int
+        return 17
+    end
+end
+
+auto fixed = Fixed::<array>()
+array values = [1, "two"]
+assert fixed.count(values) == 17
+assert variadic(1, "two", 3) == 3
+assert variadic() == 0
+println("generic callable convention: fixed Array argument remains distinct from variadic packing")

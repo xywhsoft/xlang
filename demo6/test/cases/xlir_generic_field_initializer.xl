@@ -37,6 +37,9 @@ class Pair<A, B>
         int step = 1
         return n + step
     end
+    func(A) as A identity = func(A value) as A
+        return value
+    end
 end
 
 async func exercise()
@@ -51,6 +54,7 @@ async func exercise()
     assert (await second.first.future) == "other" and (await second.second.future) == b"a\0b"
     assert not another.first.isCompleted and not another.second.isCompleted
     assert first.increment(41) == 42 and second.increment(8) == 9
+    assert first.identity(71) == 71 and second.identity("owned\0text") == "owned\0text"
     assert first.label == second.label and first.label == "a\0你"
     assert first.empty == "" and second.raw.length == 2 and second.raw[0] == 0 and second.raw[1] == 255
 end
