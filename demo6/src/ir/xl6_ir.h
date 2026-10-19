@@ -7638,6 +7638,9 @@ int xl6IrTaggedNullableScalarSupported(XL6_IrCAbi abi);
 XL6_IrCAbi xl6IrNullableScalarElementAbi(const XL6_IrModule* module, XL6_IrTypeId type);
 /* Exact tagged optional of a concrete trivial union; never a scalar slot. */
 XL6_IrTypeId xl6IrNullableUnionElementType(const XL6_IrModule* module, XL6_IrTypeId type);
+/* Union expression identity; nullable backing storage is permitted only for
+ * an exact, already-narrowed NAME. Lowering still emits the explicit unwrap. */
+XL6_IrTypeId xl6IrUnionReceiverType(const XL6_IrModule* module, const XL6_IrNode* receiver);
 /* Fitting literals may choose a narrower expected integer TypeId;
  * nonliteral inputs still require a lossless scalar conversion. */
 int xl6IrContextualIntegerLiteralValue(const XL6_IrModule* module, XL6_IrNodeId expression,

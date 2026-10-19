@@ -69,7 +69,8 @@ DIRECT。新增 boxed codec 不是把这些槽强制转换为 xvalue 的许可�
 参数、返回的物理编码与逻辑投影纳入共用 native-call 计划，再接入同步选择、
 有限／无限期 Future 及动态方法适配，不能按库名另写转接实现。
 
-另有一个实测基线缺陷：`if optionalUnion != null` 后直接读 union 字段仍报
+本批另记录了实测基线缺陷：`if optionalUnion != null` 后直接读 union 字段曾报
 “dynamic member expression has no resolved object result ABI”。旧编译器也失败，
 证据为 `nullable-union-member-before.log`；本批通过已支持的 `??` 取得值验证
-消息内容，未把该成员访问问题标成解决，须在 P0/P1 核心收口继续修复。
+消息内容，当时未把该成员访问问题标成解决。后续独立共用层修复与证据见
+[Nullable union 字段投影](NullableUnion字段投影.md)，不归入本同步编码批次。

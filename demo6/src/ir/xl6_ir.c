@@ -16878,6 +16878,19 @@ static const XL6_IrClassField* xl6IrSafeClassFieldForMemberAbi(
     }
 }
 
+XL6_IrTypeId xl6IrUnionReceiverType(const XL6_IrModule* module,const XL6_IrNode* receiver)
+{
+    if (!module || !receiver) return XL6_IR_TYPE_INVALID;
+    XL6_IrTypeId type=receiver->storageType;
+    if (receiver->type && receiver->type!=type) {
+        if (receiver->kind!=XL6_IR_NODE_NAME ||
+            receiver->type!=xl6IrNullableUnionElementType(module,type))
+            return XL6_IR_TYPE_INVALID;
+        type=receiver->type;
+    }
+    return xl6IrUnionLayoutGet(module,type) ? type : XL6_IR_TYPE_INVALID;
+}
+
 static const XL6_IrUnionField* xl6IrUnionFieldForMemberAbi(
     const XL6_IrModule* module, const XL6_IrNode* member, size_t* outIndex)
 {
@@ -16889,11 +16902,12 @@ static const XL6_IrUnionField* xl6IrUnionFieldForMemberAbi(
          member->sourceKind != XL6_AST_MEMBER || member->childCount != 1 ||
          member->text == NULL || member->text[0] == '\0' ) return NULL;
     receiver = xl6IrNodeGet(module, module->children[member->firstChild]);
-    if ( receiver == NULL ) return NULL;
+    XL6_IrTypeId receiverType=xl6IrUnionReceiverType(module,receiver);
+    if ( receiverType == XL6_IR_TYPE_INVALID ) return NULL;
     for ( layoutIndex = 0; layoutIndex < module->unionLayoutCount; ++layoutIndex ) {
         const XL6_IrUnionLayout* layout = &module->unionLayouts[layoutIndex];
         size_t fieldIndex;
-        if ( layout->type != receiver->storageType ) continue;
+        if ( layout->type != receiverType ) continue;
         for ( fieldIndex = layout->firstField;
               fieldIndex < layout->firstField + layout->fieldCount;
               ++fieldIndex ) {
