@@ -174,7 +174,11 @@ XL6_ModulePrepareResult xl6TaskPoolTryQuiesceV1(XL6_TaskPool* pool)
     if(native) {
         if(!xrtTaskPoolClose(native))result=XL6_MODULE_PREPARE_FAILED;
         else {
-            xwaitresult state=xrtTaskPoolWaitFor(native,0);
+            /* Job drain is not thread completion: the native thread wrapper
+             * can still run ThreadKey destructors after the worker body.
+             * TryJoin also waits for actual resource credits without making
+             * this single resource-control thread block in Destroy. */
+            xwaitresult state=xrtTaskPoolTryJoinV1(native);
             if(state==XWAIT_TIMEOUT)result=XL6_MODULE_PREPARE_BUSY;
             else if(state!=XWAIT_OK || !xrtTaskPoolGet(native,&stats) || !xrtTaskPoolDestroy(native))result=XL6_MODULE_PREPARE_FAILED;
         }

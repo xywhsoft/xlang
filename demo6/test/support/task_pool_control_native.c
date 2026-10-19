@@ -2,6 +2,7 @@
 #define XRT_MODULE_TASK_POOL
 #define XRT_MODULE_ATOMIC
 #define XRT_MODULE_ONCE
+#define XRT_MODULE_THREAD_KEY
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_VALUE_GRAPH
 #define XRT_MODULE_VALUE_CONTAINER
@@ -228,6 +229,65 @@ static void allocation_prefixes(void)
     }
     assert(failed&&succeeded);
 }
+
+typedef struct NativeTail {
+    XL6_TaskPool* pool;
+    xthreadkey* key;
+    xatomic32 entered,resume,finished,returned;
+} NativeTail;
+static void native_tail_cleanup(ptr raw)
+{
+    NativeTail* tail=raw;
+    xrtAtomic32Store(&tail->entered,1,XMEMORY_RELEASE);
+    wait_value(&tail->resume,1);
+    xrtAtomic32Store(&tail->finished,1,XMEMORY_RELEASE);
+}
+static xtaskoutcome native_tail_job(xcancel* cancel,ptr raw,xtaskvalue* result)
+{
+    NativeTail* tail=raw;(void)cancel;(void)result;
+    assert(!xrtThreadKeyGet(tail->key)&&xrtThreadKeySet(tail->key,tail));
+    return XTASK_SUCCESS;
+}
+static int32 native_tail_retire(ptr raw)
+{
+    NativeTail* tail=raw;xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
+    do {
+        assert(api->TryQuiesce(tail->pool)==XL6_MODULE_PREPARE_BUSY);
+        assert(!xrtDeadlineExpired(end));xrtThreadYield();
+    }while(!xrtAtomic32Load(&tail->entered,XMEMORY_ACQUIRE));
+    /* It must RETURN while the actual native wrapper is still in cleanup.
+     * A zero-time job drain followed by blocking Destroy cannot do that. */
+    xrtAtomic32Store(&tail->returned,1,XMEMORY_RELEASE);return 0;
+}
+static void native_tail_round(void)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
+    NativeTail tail={.pool=create()};tail.key=xrtThreadKeyCreate(native_tail_cleanup);assert(tail.key);
+    XL6_TaskNativeScopeV1 scope={0};assert(xl6TaskNativeBeginV1(tail.pool,&scope));
+    xfuture* future=xrtTaskSubmit(scope.native,native_tail_job,&tail,NULL);assert(future);xl6TaskNativeEndV1(&scope);
+    assert(xrtFutureWaitFor(future,UINT64_C(5000000))==XWAIT_OK);xrtFutureDestroy(future);
+    XL6_TaskPoolWaitStatusV1 status;assert(api->Close(tail.pool));
+    assert(api->WaitFor(tail.pool,5000,NULL,&status)&&status==XL6_TASK_POOL_READY_V1);
+    assert(!xrtAtomic32Load(&tail.entered,XMEMORY_ACQUIRE)); /* drain is not join */
+    xthread* controller=xrtThreadCreate(native_tail_retire,&tail,0);assert(controller);
+    wait_value(&tail.entered,1);
+    xdeadline end=xrtDeadlineAfter(UINT64_C(1000000));
+    while(!xrtAtomic32Load(&tail.returned,XMEMORY_ACQUIRE)){
+        assert(!xrtDeadlineExpired(end)&&"nonblocking retirement must return before native ThreadKey cleanup");xrtThreadYield();
+    }
+    join(controller);assert(!xrtAtomic32Load(&tail.finished,XMEMORY_ACQUIRE));
+    XL6_TaskPoolStatsV1 stats=snapshot(tail.pool);assert(stats.initialized&&stats.submitted==1&&stats.completed==1&&stats.succeeded==1);
+    assert(api->TryQuiesce(tail.pool)==XL6_MODULE_PREPARE_BUSY);
+    assert(xrtMemDebugFailAfter(0));xrtAtomic32Store(&tail.resume,1,XMEMORY_RELEASE);
+    end=xrtDeadlineAfter(UINT64_C(5000000));
+    for(;;){XL6_ModulePrepareResult state=api->TryQuiesce(tail.pool);if(state==XL6_MODULE_PREPARE_READY)break;
+        assert(state==XL6_MODULE_PREPARE_BUSY&&!xrtDeadlineExpired(end));xrtThreadYield();}
+    assert(!xrtMemDebugFailTriggered());xrtMemDebugFailClear();
+    assert(xrtAtomic32Load(&tail.finished,XMEMORY_ACQUIRE));stats=snapshot(tail.pool);
+    assert(stats.initialized&&stats.submitted==1&&stats.completed==1&&stats.succeeded==1&&stats.closed);
+    assert(api->TryQuiesce(tail.pool)==XL6_MODULE_PREPARE_READY&&api->Destroy(tail.pool));
+    assert(xrtThreadKeyDestroy(tail.key));balanced(&before);
+}
 int main(void)
 {
     const xallocator allocator={NULL,allocate,resize,release};assert(xrtSetAllocator(&allocator));
@@ -235,9 +295,9 @@ int main(void)
     xrtSetErrorKind(XERR_STATE);xrtClearError();assert(xrtTemp(8)&&xrtTempClear());
     const XL6_OwnershipDomainV1* domains[]={xl6OwnershipDomainTaskPoolV1Get()};
     catalog=xl6OwnershipCatalogCreateV1(domains,1);assert(catalog);
-    for(unsigned i=0;i<16;++i){empty_round();jobs_round(false);jobs_round(true);reservation_round();creation_cancel_round();}
+    for(unsigned i=0;i<16;++i){empty_round();jobs_round(false);jobs_round(true);reservation_round();creation_cancel_round();native_tail_round();}
     allocation_prefixes();
     xl6OwnershipCatalogDestroyV1(catalog);
-    puts("Task pool control: 80 balanced lifetimes, 32 run/drop barriers, 16 real creating-cancel races, 16 control-retirement handoffs, 32 allocation prefixes, no hidden pool on read");
+    puts("Task pool control: 96 balanced lifetimes, 32 run/drop barriers, 16 real creating-cancel races, 16 control-retirement handoffs, 16 nonblocking native ThreadKey tails, 32 allocation prefixes, no hidden pool on read");
     return 0;
 }
