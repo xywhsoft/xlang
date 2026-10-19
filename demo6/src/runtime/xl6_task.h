@@ -111,6 +111,48 @@ typedef struct XL6_TaskRuntimeV1 {
     struct xfuture* (*Submit)(XL6_TaskPool*, void*, struct xcancel*, XL6_FuturePayloadTrace, bool languageOutcome);
 } XL6_TaskRuntimeV1;
 XL6_CODE_LEASE_API const XL6_TaskRuntimeV1* xl6TaskRuntimeV1Get(void);
+/* Additive control ABI for explicit pools. V1 execution/frame layout is not
+ * extended or reinterpreted. Close stops new wrapper admission; reservations
+ * acquired earlier keep their right to settle. Cancel also closes admission
+ * and reaches a native pool even if its lazy creation is still in flight.
+ * Wait requires Close/Cancel first, covers those reservation and cleanup tails,
+ * and rejects the pool's own callbacks before waiting. No gate/mutation spans
+ * an arbitrary callback, condition wait or native join. */
+typedef enum XL6_TaskPoolWaitStatusV1 {
+    XL6_TASK_POOL_READY_V1=0,
+    XL6_TASK_POOL_TIMEOUT_V1=1,
+    XL6_TASK_POOL_CANCELLED_V1=2
+} XL6_TaskPoolWaitStatusV1;
+typedef struct XL6_TaskPoolStatsV1 {
+    size_t size;
+    uint64_t threads,queueLimit,queued,running;
+    uint64_t submitted,completed,succeeded,failed,cancelled,rejected;
+    bool initialized,closed,cancelling;
+} XL6_TaskPoolStatsV1;
+typedef struct XL6_TaskPoolControlV1 {
+    size_t size;
+    XL6_TaskPool* (*Create)(const XL6_TaskPoolConfig*);
+    bool (*Start)(XL6_TaskPool*);
+    bool (*Close)(XL6_TaskPool*);
+    bool (*Cancel)(XL6_TaskPool*);
+    /* False is an operational failure, independently of error allocation.
+     * True reports READY/TIMEOUT/CANCELLED separately. Output starts TIMEOUT
+     * even on failure; no partial stats are returned. -1 waits indefinitely,
+     * 0 polls, positive milliseconds are finite and checked for overflow.
+     * Until is an absolute finite pinned microsecond deadline, never MAX. */
+    bool (*WaitFor)(XL6_TaskPool*,int64_t,struct xcancel*,XL6_TaskPoolWaitStatusV1*);
+    bool (*WaitUntil)(XL6_TaskPool*,uint64_t,struct xcancel*,XL6_TaskPoolWaitStatusV1*);
+    /* Caller supplies size==sizeof(Stats). Never creates a native pool;
+     * initialized=false denotes no actual worker/configuration yet. Native
+     * counters come from one Get, not an inferred sum of Future states.
+     * Successful quiescence retains the final native counters for later reads.
+     * Admission flags and counters are not one cross-provider transaction. */
+    bool (*Snapshot)(XL6_TaskPool*,XL6_TaskPoolStatsV1*);
+    bool (*Quiesce)(XL6_TaskPool*);
+    XL6_ModulePrepareResult (*TryQuiesce)(XL6_TaskPool*);
+    bool (*Destroy)(XL6_TaskPool*);
+} XL6_TaskPoolControlV1;
+XL6_CODE_LEASE_API const XL6_TaskPoolControlV1* xl6TaskPoolControlV1Get(void);
 /* Closed capture storage for verified callback activations. V1 allocation is
  * retained for other frame families until their own complete layout migration;
  * V2 does not certify the task pool, Watch or active worker as a graph leaf. */

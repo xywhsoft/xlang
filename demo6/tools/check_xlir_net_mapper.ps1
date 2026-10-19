@@ -14,7 +14,7 @@ try {
     $buildExit=Invoke-XlirNativeToLog gcc ($flags+@('-include',"$prefix.c",'-c','test/cases/xlir_net_mapper.c','-o',"$prefix.o")) "$prefix.build.log"
     if ($buildExit -ne 0) { throw 'Mapper strict C build failed' }
     $linkSources=@("$prefix.o",'src/runtime/xl6_code_lease.c','src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c',
-        'src/runtime/xl6_continuation_future.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c','src/runtime/xl6_future_payload.c','release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-o',"$prefix.exe")
+        'src/runtime/xl6_continuation_future.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_slot.c','src/runtime/xl6_frame_storage.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c','src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c','src/runtime/xl6_future_payload.c','release/xl.dll','-lWs2_32','-lIPHLPAPI','-lShell32','-o',"$prefix.exe")
     $linkExit=Invoke-XlirNativeToLog gcc ($flags+$linkSources) "$prefix.link.log"
     if ($linkExit -ne 0) { throw 'Mapper resident link failed' }
 $process = Start-Process -FilePath (Join-Path (Get-Location) "$prefix.exe") -WindowStyle Hidden -PassThru `

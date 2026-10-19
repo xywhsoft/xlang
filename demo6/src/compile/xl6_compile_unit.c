@@ -18,7 +18,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
         {"XRT_MODULE_FUTURE", "XRUNTIME_MODULE_RUNTIME_CALL", "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"}},
     {"src/runtime/xl6_cell.c", NULL, 0, {"XRT_MODULE_MEMORY", "XRT_MODULE_ATOMIC", "XRT_MODULE_VALUE_CONTAINER"}},
     {"src/runtime/xl6_frame_storage.c", NULL, 0, {"XRT_MODULE_MEMORY"}},
-    {"src/runtime/xl6_task.c", D(R(CAPTURE_V2),R(CODE_LEASE),R(FUTURE_PAYLOAD)), {"XRT_MODULE_TASK_POOL"}},
+    {"src/runtime/xl6_task.c", D(R(TASK_POOL),R(CAPTURE_V2),R(CODE_LEASE),R(FUTURE_PAYLOAD)), {"XRT_MODULE_TASK_POOL"}},
     {"src/runtime/xl6_continuation_queue.c", D(R(CODE_LEASE)),
         {"XRT_MODULE_MUTEX", "XRT_MODULE_COND", "XRT_MODULE_ERROR"}},
     {"src/runtime/xl6_continuation_executor.c", D(R(QUEUE)), {"XRT_MODULE_THREAD", "XRT_MODULE_ERROR"}},
@@ -629,7 +629,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_channel_select_deadline_language.c",D(R(CHANNEL_SELECT_DEADLINE),R(CHANNEL_CASE_ARRAY)),{NULL}},
     {"src/runtime/xl6_ownership_domain_channel_select_deadline_language.c",D(R(OWNERSHIP_CATALOG),R(CHANNEL_SELECT_DEADLINE_LANGUAGE)),{NULL}},
     {"src/runtime/xl6_task_group_start.c",D(R(TASK_GROUP),R(CLOSURE),R(FUTURE_VALUE),R(FOREIGN_ERROR)),{"XRT_MODULE_TASK_GROUP"}},
-    {"src/runtime/xl6_ownership_domain_native_executor.c",D(R(OWNERSHIP_CATALOG)),{"XRT_MODULE_EXECUTOR"}}
+    {"src/runtime/xl6_ownership_domain_native_executor.c",D(R(OWNERSHIP_CATALOG)),{"XRT_MODULE_EXECUTOR"}},
+    {"src/runtime/xl6_task_pool.c",NULL,0,{"XRT_MODULE_TASK_POOL","XRT_MODULE_ATOMIC"}},
+    {"src/runtime/xl6_ownership_domain_task_pool.c",D(R(OWNERSHIP_CATALOG),R(TASK_POOL)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

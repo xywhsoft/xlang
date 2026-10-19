@@ -18,7 +18,7 @@ try {
     $resident=@('src/runtime/xl6_code_lease.c','src/runtime/xl6_code_finalizer.c','src/runtime/xl6_continuation_queue.c',
         'src/runtime/xl6_continuation_executor.c','src/runtime/xl6_continuation_future.c','src/runtime/xl6_continuation_frame.c',
         'src/runtime/xl6_future_wait.c','src/runtime/xl6_closure.c','src/runtime/xl6_cell.c','src/runtime/xl6_slot.c',
-        'src/runtime/xl6_frame_storage.c','src/runtime/xl6_task.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c',
+        'src/runtime/xl6_frame_storage.c','src/runtime/xl6_task.c','src/runtime/xl6_task_pool.c','src/runtime/xl6_capture.c','src/runtime/xl6_value_iterator.c',
         'src/runtime/xl6_future_callback.c','src/runtime/xl6_generator.c','src/runtime/xl6_future_payload.c')
     $extra=@($PSCommandPath,'tools/check_xlir_future_cancel_core.sh','tools/extlib_smoke_process.ps1',
         'test/cases/xlir_future_producer_cancel.c','test/cases/xlir_continuation_publication_contract.c',

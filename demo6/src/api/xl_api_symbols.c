@@ -322,6 +322,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6ContinuationExecutorIsIdle", (const void*)xl6ContinuationExecutorIsIdle)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FrameStorageRuntimeV1Get", (const void*)xl6FrameStorageRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskRuntimeV1Get", (const void*)xl6TaskRuntimeV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6TaskPoolControlV1Get", (const void*)xl6TaskPoolControlV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskResourceInitV1", (const void*)xl6TaskResourceInitV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskResourceRemoveV1", (const void*)xl6TaskResourceRemoveV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskResourceReleaseV1", (const void*)xl6TaskResourceReleaseV1)) return 0;

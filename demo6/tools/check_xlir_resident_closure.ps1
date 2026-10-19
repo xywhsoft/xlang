@@ -18,7 +18,7 @@ try {
         @{Name='cgen_optional_nullable_function_default';Native=''},
         @{Name='cgen_function_value_error_propagation';Native=''}
     )
-    $files=@(Get-Item $PSCommandPath,src/runtime/xl6_closure.c,src/runtime/xl6_cell.c,src/runtime/xl6_slot.c,src/runtime/xl6_frame_storage.c,src/runtime/xl6_continuation_frame.c,src/runtime/xl6_future_wait.c,src/runtime/xl6_task.c,src/runtime/xl6_capture.c,src/runtime/xl6_value_iterator.c,src/runtime/xl6_future_callback.c,src/runtime/xl6_generator.c,src/runtime/xl6_closure.h,
+    $files=@(Get-Item $PSCommandPath,src/runtime/xl6_closure.c,src/runtime/xl6_cell.c,src/runtime/xl6_slot.c,src/runtime/xl6_frame_storage.c,src/runtime/xl6_continuation_frame.c,src/runtime/xl6_future_wait.c,src/runtime/xl6_task.c,src/runtime/xl6_task_pool.c,src/runtime/xl6_capture.c,src/runtime/xl6_value_iterator.c,src/runtime/xl6_future_callback.c,src/runtime/xl6_generator.c,src/runtime/xl6_closure.h,
         src/runtime/xl6_code_lease.c,src/runtime/xl6_code_lease.h,
         test/cases/xlir_resident_closure_contract.c,test/cases/xlir_resident_closure_dll.c,
         test/cases/xlir_resident_closure_dll.h,test/cases/xlir_closure_storage_contract.c,
@@ -40,7 +40,7 @@ try {
             if ($LASTEXITCODE -ne 0) { throw 'Resident closure DLL build failed' }
         }
         $lane="$outputPath/closure-O$level"
-        & gcc @strict "-O$level" test/cases/xlir_resident_closure_contract.c src/runtime/xl6_closure.c src/runtime/xl6_cell.c src/runtime/xl6_slot.c src/runtime/xl6_frame_storage.c src/runtime/xl6_continuation_frame.c src/runtime/xl6_future_wait.c src/runtime/xl6_task.c src/runtime/xl6_capture.c src/runtime/xl6_value_iterator.c src/runtime/xl6_future_callback.c src/runtime/xl6_generator.c src/runtime/xl6_code_lease.c src/runtime/xl6_future_payload.c src/runtime/xl6_continuation_queue.c $runtime[0].Path @libs -o "$lane.exe" *> "$lane.build.log"
+        & gcc @strict "-O$level" test/cases/xlir_resident_closure_contract.c src/runtime/xl6_closure.c src/runtime/xl6_cell.c src/runtime/xl6_slot.c src/runtime/xl6_frame_storage.c src/runtime/xl6_continuation_frame.c src/runtime/xl6_future_wait.c src/runtime/xl6_task.c src/runtime/xl6_task_pool.c src/runtime/xl6_capture.c src/runtime/xl6_value_iterator.c src/runtime/xl6_future_callback.c src/runtime/xl6_generator.c src/runtime/xl6_code_lease.c src/runtime/xl6_future_payload.c src/runtime/xl6_continuation_queue.c $runtime[0].Path @libs -o "$lane.exe" *> "$lane.build.log"
         $buildExit=$LASTEXITCODE; $runExit=$null; $complete=$false; $oomComplete=$false
         if ($buildExit -eq 0) {
 $process=Start-Process -FilePath "$lane.exe" -WindowStyle Hidden -PassThru -ArgumentList @('"'+"$outputPath/producer-O$level.dll"+'"','"'+"$outputPath/adapter-O$level.dll"+'"') -RedirectStandardOutput "$lane.out.log" -RedirectStandardError "$lane.err.log"
