@@ -470,8 +470,6 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
             target->asyncResultAbi!=XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)continue;
         const XL6_IrNativeValuePlan* native=xl6IrNativeValuePlanForType(xl6IrTypeGet(&module->types,target->workerReturnType));
         if(!native || !visitor(context,native->captureProfileSymbol) || !visitor(context,native->dropSymbol))return 0;
-        if(target->asyncDispatch==XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL && target->asyncMachine==SIZE_MAX &&
-            !visitor(context,"xl6TaskSubmitOwnedPolicyV1"))return 0;
     }
     for(size_t i=0;i<module->instructionCount;++i) {
         const XL6_IrInstruction* instruction=&module->instructions[i];

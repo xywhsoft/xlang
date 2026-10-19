@@ -29,7 +29,7 @@ try {
         @($files | ForEach-Object {[pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}})
     if(@($inputs | Where-Object {(Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256}).Count){throw 'Stale async-storage inputs'}
     New-Item -ItemType Directory -Path $outputPath | Out-Null
-    $marker='Async storage IR: 5 fixtures, 30 rejected C/header-gated mutations, 3 machine fixtures, 1 pool frame, 1 frame-free ready future; explicit text/JSON ABI'
+    $marker='Async storage IR: 5 fixtures, 30 rejected C/header-gated mutations, 4 queued frame fixtures, 3 resumable, 1 root-only, 1 frame-free ready future; explicit text/JSON ABI'
     $emission=@();$deterministic=$true
     foreach($repeat in @('','.repeat')){
         $prefix="$outputPath/xlir_async_storage$repeat"

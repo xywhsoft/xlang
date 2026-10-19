@@ -1,0 +1,6 @@
+import concurrent
+auto group = task.group()
+auto producer = Promise::<int>()
+auto value = group.start(func(int ignored) as future<int>
+    return producer.future
+end)

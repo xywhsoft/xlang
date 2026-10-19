@@ -1,0 +1,22 @@
+class Methods
+    int base = 40
+    func add(int value) as int
+        return self.base + value
+    end
+    private func secret() as int
+        return 1
+    end
+end
+auto object = Methods()
+func(int) as int bound = object.add
+assert bound(2) == 42
+var open = object.add
+assert int(open(3)) == 43
+bool caught = false
+try
+    func(string) as int wrong = object.add
+catch TypeError
+    caught = true
+end
+assert caught
+println("static class method values use the complete checked callable projection")

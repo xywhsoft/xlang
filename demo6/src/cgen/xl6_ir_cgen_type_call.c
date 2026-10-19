@@ -544,7 +544,9 @@ static int xl6IrCgenEmitNativeContext(XL6_Output* out,const XL6_IrModule* module
     case XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE:kind="XL6_FUTURE_VALUE_NATIVE";break;
     default:return 0;
     }
-    if(!type || !name || !kind)return 0;
+    /* A void Future has a logical null TypeId but no material C value slot.
+     * Its descriptor still carries identity; no C type name is required. */
+    if(!type || !kind || (!name && target->nativeContextPayloadAbi!=XL6_IR_ASYNC_RESULT_VOID))return 0;
     xl6OutputPrintf(out,"(XL6_FutureValueProfileV1){ sizeof(XL6_FutureValueProfileV1), %s, ",kind);
     if(target->nativeContextPayloadAbi==XL6_IR_ASYNC_RESULT_VOID)xl6OutputPuts("0",out);
     else xl6OutputPrintf(out,"sizeof(%s)",name);

@@ -51,6 +51,10 @@ typedef struct XL6_IrDirectBridgeContract {
     /* Exact generic resource T, not just its common xvalue* representation. */
     unsigned char genericResourceResult;
     unsigned char genericResourceParameter;
+    /* Nullary checked callable returns precisely this call's Future<T>.
+     * Its one-based parameter selects a structural relation, not a pointer
+     * ABI or a nominal class-name exception. No temporary resource for T. */
+    unsigned char genericFutureStarterParameter;
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -80,6 +84,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define XL6_GENERIC_CLOSE(Name,Owner) XL6_GENERIC_CANCEL(Name,Owner)
 #define XL6_GENERIC_DONE(Name,Owner) {Name,T,B,1,{V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE}
 #define XL6_GENERIC_REQUESTED(Name,Owner) XL6_GENERIC_DONE(Name,Owner)
+#define XL6_GENERIC_TASK_GROUP_START(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,XL6_IR_C_ABI_CLOSURE_PTR},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureStarterParameter=2}
 #define XL6_GENERIC_CHANNEL_CASE_RECEIVE(Name,Owner) {Name,T,V,1,{V},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1}
 #define XL6_GENERIC_CHANNEL_CASE_SEND(Name,Owner) {Name,T,V,2,{V,0},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1,.genericValueParameter=2}
 #define XL6_GENERIC_CHANNEL_SELECTION_VALUE(Name,Owner) {Name,T,0,3,{V,V,V},.parameterOwners={Owner,"xl6ChannelCaseDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=3,.nativeResultAbi=XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1}
@@ -110,6 +115,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_START_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,3,{V,V,V},.parameterOwners={Owner,NULL,"xl6CancellationTokenDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeServicesRequired=XL6_FINITE_SERVICES,.nativeClassParameter=2,.nativeClassOwner="xl6ChannelReceiveResultDestroyV1",.genericFutureResult=1,.genericResourceParameter=1}
 #include "src/abi/xl6_native_generic_contracts.inc"
 #undef XL6_NATIVE_GENERIC_BRIDGE
+#undef XL6_GENERIC_TASK_GROUP_START
 #undef XL6_GENERIC_CHANNEL_DEADLINE_SEND_FOR
 #undef XL6_GENERIC_CHANNEL_DEADLINE_SEND_UNTIL
 #undef XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_FOR
@@ -830,7 +836,8 @@ const char* xl6IrRuntimeDirectBridgeParameterOwner(const char* name, size_t inde
 int xl6IrRuntimeDirectBridgeCheckedClosureParameter(const char* name,size_t index)
 {
     const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(name);
-    return c && index<c->parameterCount && c->parameterNullaryCallableResultAbis[index]!=0;
+    return c && index<c->parameterCount &&
+        (c->parameterNullaryCallableResultAbis[index]!=0 || c->genericFutureStarterParameter==index+1);
 }
 int xl6IrRuntimeDirectBridgeValueAddressParameter(const char* name,size_t index)
 {
@@ -887,6 +894,20 @@ int xl6IrRuntimeDirectBridgeContext(const XL6_IrModule* module,const XL6_IrCallT
     *context=XL6_IR_CALL_NATIVE_CONTEXT_NONE;*type=XL6_IR_TYPE_INVALID;*payload=XL6_IR_ASYNC_RESULT_INVALID;
     const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(target->cName);
     if(!c || !c->nativeContext)return 1;
+    if(c->genericFutureStarterParameter) {
+        const XL6_IrType* future=xl6IrTypeGet(&module->types,target->returnType);
+        if(c->nativeContext!=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1 || !c->genericFutureResult ||
+           !future || future->kind!=XL6_IR_TYPE_GENERIC_INSTANCE ||
+           future->cAbi!=XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
+           future->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
+           future->nullAbi!=XL6_IR_NULL_ABI_POINTER_SENTINEL ||
+           future->collectionAbi!=XL6_IR_COLLECTION_NONE || future->returnCount ||
+           future->paramCount!=1 || !future->params)return 0;
+        const XL6_IrType* value=xl6IrTypeGet(&module->types,future->params[0]);
+        XL6_IrAsyncResultAbi abi=xl6IrBuildAsyncResultAbi(module,future->params[0]);
+        if(!value || !value->typeValueId || abi==XL6_IR_ASYNC_RESULT_INVALID)return 0;
+        *context=c->nativeContext;*type=future->params[0];*payload=abi;return 1;
+    }
     if(c->nativeContext==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1) {
         if(!xl6IrNativeClassContextField(module,target))return 0;
         *context=c->nativeContext;*type=target->parameterTypes[c->nativeClassParameter-1];
@@ -1159,11 +1180,14 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 contract->parameterArrayItemAbis[i] || contract->parameterNullaryCallableResultAbis[i]) return 0;
             continue;
         }
-        if (contract->parameterNullaryCallableResultAbis[i]) {
+        if (contract->parameterNullaryCallableResultAbis[i] || contract->genericFutureStarterParameter==i+1) {
             XL6_IrCAbi resultAbi = contract->parameterNullaryCallableResultAbis[i];
             const XL6_IrType* returned=type && type->returnCount==1 && type->returns
                 ? xl6IrTypeGet(&module->types,type->returns[0]):NULL;
-            int resultMatches = resultAbi == XL6_IR_C_ABI_VOID
+            int resultMatches = contract->genericFutureStarterParameter==i+1
+                ? returned && type->callableResultType==target->returnType &&
+                    type->returns[0]==target->returnType && !contract->parameterNullaryCallableResultAbis[i]
+                : resultAbi == XL6_IR_C_ABI_VOID
                 ? type && !type->returnCount && !type->returns && type->callableResultType == XL6_IR_TYPE_INVALID
                 : returned && type->callableResultType == type->returns[0] && returned->kind == XL6_IR_TYPE_BUILTIN &&
                   returned->cAbi == resultAbi && !returned->paramCount && !returned->returnCount &&

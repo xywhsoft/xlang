@@ -45,4 +45,9 @@ const char* xl6StdlibTaskGroupClassSource =
     "    func waitUntil(uint64 deadlineUs) as bool\n"
     "        return self.joinUntil(deadlineUs)\n    end\n"
     "    extern \"xl6_xrt_task_group_join_async\" func joinAsync() as future<null>\n"
+    "    func start<T>(func() as future<T> starter) as future<T>\n"
+    "        return __TaskGroupBindings::<T>.start(self, starter)\n    end\n"
+    "end\n"
+    "class __TaskGroupBindings<T>\n"
+    "    static extern \"xl6TaskGroupStartLanguageV1\" func start(TaskGroup group, func() as future<T> starter) as future<T>\n"
     "end\n";

@@ -6,7 +6,7 @@ int main(int argc,char** argv)
     const char* fixtures[]={"test/cases/xlir_async_storage.xl","test/cases/xlir_frame_ownership.xl",
         "test/cases/xlir_cell_continuation_outcome.xl","test/cases/xlir_async_pool_launch_allocation.xl",
         "test/cases/xlir_async_launch_allocation.xl"};
-    size_t machines=0,pools=0,ready=0;
+    size_t machines=0,resumable=0,queued=0,ready=0;
     assert(argc==4);
     for(size_t n=0;n<5;++n) {
         XL6_ParseResult parse; XL6_IrModule ir; XL6_Output out; char* text;
@@ -31,12 +31,11 @@ int main(int argc,char** argv)
                     machine->destroyActionCount?ir.asyncFrameActions+machine->firstDestroyAction:NULL,machine->destroyActionCount);}
             assert(strstr(text,"__xl_runtime/xl6_continuation_future.h") && strstr(text,"xl6ContinuationFrameRuntimeV2Get()->Discard") &&
                 strstr(text,"xlir_async_frame_allocate(sizeof(*frame), &xlir_async_machine_storage_") && strstr(text,"xlir_async_frame_dispose(data);"));
-            if(ir.asyncMachineCount) { ++machines; assert(strstr(text,"xlir_async_frame_allocate(sizeof(*next), &xlir_async_machine_storage_") &&
-                strstr(text,"xlir_async_frame_dispose(next);")); }
-        } else if(n==3) {
-            ++pools; assert(strstr(text,"__xl_runtime/xl6_task.h") && strstr(text,"xl6TaskRuntimeV3Get()->Allocate") &&
-                strstr(text,"XL6_CaptureLayoutV2") && strstr(text,"(xl6TaskRuntimeV3Get()->Cleanup)(frame)") &&
-                strstr(text,"xlir_task_allocate(sizeof(*frame),") && strstr(text,"xlir_task_discard(data);"));
+            ++machines;
+            assert(strstr(text,"xl6ContinuationFrameLaunchV1(frame,")&&!strstr(text,"__xl_runtime/xl6_task.h"));
+            if(ir.asyncSuspensionCount){++resumable;assert(strstr(text,"xlir_async_frame_allocate(sizeof(*next), &xlir_async_machine_storage_") &&
+                strstr(text,"xlir_async_frame_dispose(next);")&&strstr(text,"xl6ContinuationFrameRuntimeV2Get()->Retire"));}
+            else{++queued;assert(!strstr(text,"xl6ContinuationWatchRegister("));}
         } else ++ready;
         xrtFree(text);
         assert(xl6OutputOpenMemory(&out)); xl6IrDumpModuleText(&out,&ir); text=xl6OutputTakeMemoryText(&out,NULL);
@@ -58,7 +57,7 @@ int main(int argc,char** argv)
         }
         xl6IrModuleFree(&ir); xl6ParseResultFree(&parse);
     }
-    assert(mutations==30 && machines==3 && pools==1 && ready==1);
-    puts("Async storage IR: 5 fixtures, 30 rejected C/header-gated mutations, 3 machine fixtures, 1 pool frame, 1 frame-free ready future; explicit text/JSON ABI");
+    assert(mutations==30 && machines==4 && resumable==3 && queued==1 && ready==1);
+    puts("Async storage IR: 5 fixtures, 30 rejected C/header-gated mutations, 4 queued frame fixtures, 3 resumable, 1 root-only, 1 frame-free ready future; explicit text/JSON ABI");
     return 0;
 }

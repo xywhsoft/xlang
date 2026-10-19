@@ -70,6 +70,24 @@ typedef struct XL6_ContinuationFrameRuntimeV5 {
     struct xrtownershipref (*Ownership)(const void*);
 } XL6_ContinuationFrameRuntimeV5;
 XL6_CONTINUATION_API const XL6_ContinuationFrameRuntimeV5* xl6ContinuationFrameRuntimeV5Get(void);
+struct XL6_ContinuationExecutor;
+/* Consume one private initialized frame on both success and failure. Create
+ * its fresh output pair, reserve a root credit and bind the stable producer
+ * before publishing the entry callback. No language body runs on this caller.
+ * The entry has no source Watch; its transport is already released. On
+ * failure Abort/Discard run checked capture rollback under the entering code
+ * scope and preserve the primary error, including diagnostic-free failure.
+ * Success returns the owned Future; only its queued callback may Complete. */
+XL6_CONTINUATION_API xfuture* xl6ContinuationFrameLaunchV1(void*,
+    struct XL6_ContinuationExecutor*, XL6_ContinuationProc, const XL6_CodeOwner*);
+/* Terminal lexical barrier. Before capture cleanup, an otherwise successful
+ * body observes one as-yet-unconsumed logical cancellation request. Explicit
+ * status is separate from diagnostics, so cancellation survives diagnostic
+ * allocation failure and cleanup cannot replace it. A body failure wins;
+ * cancellation already delivered to an await is never injected twice.
+ * cancelled is required. This does not publish or cross ticket Complete. */
+XL6_CONTINUATION_API struct xl6_foreign_error_result xl6ContinuationFrameFinishV1(
+    void*, struct xl6_foreign_error_result, bool* cancelled);
 /* Explicit produced-activation binding, additive to V2 physical storage.
  * Root requires a fresh private outer Promise/Future pair, including a retry
  * after Abort: the old pair's bind-once producer association is not replaced.

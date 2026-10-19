@@ -1,0 +1,9 @@
+import concurrent
+class Unsafe<T>
+    static extern "xl6TaskGroupStartLanguageV1" @no_raise func start(TaskGroup group, func() as future<T> starter) as future<T>
+end
+auto group = task.group()
+auto producer = Promise::<int>()
+auto value = Unsafe::<int>.start(group, func() as future<int>
+    return producer.future
+end)

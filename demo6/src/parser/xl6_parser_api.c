@@ -1529,7 +1529,12 @@ static int xl6ParserSplitNestedGenericShr(XL6_ParseTokenStream* stream)
         if ( xl6ParserVMatchTypeExpr(stream, start, &next) &&
              !next.secondGt &&
              next.index < stream->count &&
-             xl6ParserTypeRefFollowerKind(stream->tokens[next.index].kind) ) {
+             (xl6ParserTypeRefFollowerKind(stream->tokens[next.index].kind) ||
+              (i>0 && (stream->tokens[i-1].kind==XL6_KW_AS ||
+                       stream->tokens[i-1].kind==XL6_KW_IS))) ) {
+            /* Explicit type contexts include lambda results whose following
+             * body keyword has no synthetic SEP yet. Only split the matched
+             * type range; a real shift after the type stays an expression. */
             xl6ParserMarkShrRange(stream, i, next.index, splitShr);
         }
 

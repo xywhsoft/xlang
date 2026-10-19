@@ -29,7 +29,8 @@ typedef enum XL6_NativeGenericRole {
     XL6_NATIVE_GENERIC_CHANNEL_DEADLINE_SEND_START,
     XL6_NATIVE_GENERIC_CHANNEL_DEADLINE_SEND_START_CANCEL,
     XL6_NATIVE_GENERIC_CHANNEL_DEADLINE_RECEIVE_START,
-    XL6_NATIVE_GENERIC_CHANNEL_DEADLINE_RECEIVE_START_CANCEL
+    XL6_NATIVE_GENERIC_CHANNEL_DEADLINE_RECEIVE_START_CANCEL,
+    XL6_NATIVE_GENERIC_TASK_GROUP_START
 } XL6_NativeGenericRole;
 /* Source declarations include quotes, lowered C linkage does not. No prefix,
  * escape interpretation, allocation or nominal class spelling is involved. */

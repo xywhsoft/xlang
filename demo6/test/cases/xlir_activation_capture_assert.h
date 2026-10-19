@@ -22,7 +22,7 @@ static void assert_activation_layout(const char* text,const char* prefix,XL6_Sym
         snprintf(expected,sizeof(expected),"sizeof(XL6_ContinuationFrameLayoutV3), &%s_layout_%u",prefix,symbol);assert(strstr(text,expected));
         snprintf(expected,sizeof(expected),"xlir_async_frame_allocate(sizeof(*frame), &xlir_async_machine_storage_%u)",symbol);assert(strstr(text,expected));
         assert(strstr(text,"xl6ContinuationFrameRuntimeV2Get()->Cleanup(frame, outcome)")&&
-            strstr(text,"xl6ContinuationFrameRuntimeV2Get()->Retire")&&!strstr(text,"xlir_async_machine_frame_trace_"));
+            strstr(text,"xl6ContinuationFrameLaunchV1(frame,")&&!strstr(text,"xlir_async_machine_frame_trace_"));
     }
     for(size_t i=0;i<count;++i){
         assert(slots[i].destroyAbi>0&&slots[i].destroyAbi<sizeof(kinds)/sizeof(*kinds));

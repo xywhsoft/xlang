@@ -8,27 +8,33 @@ int main(int argc,char** argv)
         !xl6IrVerifyModule(&ir,&parse.diags)||!xl6IrLowerModule(&ir,&parse.diags)||!xl6IrVerifyModule(&ir,&parse.diags)){
         xl6DiagPrintText(&parse.diags,"closed capture");return 1;}
     for(size_t i=0;i<ir.callTargetCount;++i)if(ir.callTargets[i].kind==XL6_IR_CALL_TARGET_INTERNAL_ASYNC){assert(!target);target=&ir.callTargets[i];}
-    assert(target&&target->parameterCount==6&&target->asyncMachine==SIZE_MAX&&target->asyncDispatch==XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL);
+    assert(target&&target->parameterCount==6&&target->asyncMachine<ir.asyncMachineCount&&target->asyncDispatch==XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE);
     const XL6_IrAsyncFrameDestroyAbi expected[]={XL6_IR_ASYNC_FRAME_DESTROY_NONE,XL6_IR_ASYNC_FRAME_DESTROY_FREE_STRING,
         XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_XVALUE,XL6_IR_ASYNC_FRAME_DESTROY_DESTROY_FUTURE,
         XL6_IR_ASYNC_FRAME_DESTROY_RELEASE_CLOSURE,XL6_IR_ASYNC_FRAME_DESTROY_FREE_ERROR};
+    const XL6_IrAsyncMachine* machine=&ir.asyncMachines[target->asyncMachine];
+    assert(machine->executionAbi==XL6_IR_ASYNC_EXECUTION_READY_QUEUE_ROOT_V2 &&
+        !machine->suspensionCount && machine->frameSlotCount==6 && machine->prologueActionCount==6);
     for(size_t p=0;p<6;++p){assert(target->asyncCaptureDestroyAbis[p]==expected[p]);
+        const XL6_IrAsyncMachineFrameSlot* frame=&ir.asyncMachineFrameSlots[machine->firstFrameSlot+p];
+        assert(frame->residence==XL6_IR_ASYNC_FRAME_RESIDENCE_LAUNCH_PARAMETER && frame->parameter==p &&
+            frame->type==target->parameterTypes[p] && frame->destroyAbi==expected[p]);
         target->asyncCaptureDestroyAbis[p]=XL6_IR_ASYNC_FRAME_DESTROY_INVALID;reject(&ir,"exact destroy ABI");
         target->asyncCaptureDestroyAbis[p]=expected[p];}
     verify(&ir);
     assert(xl6OutputOpenMemory(&out)&&xl6IrCgenEmitC(&out,&ir,&parse.diags));
     generated=xl6OutputTakeMemoryText(&out,NULL);assert(generated);
-    assert(snprintf(marker,sizeof(marker),"static XL6_TaskOutcome xlir_async_task_%u(",(unsigned)target->symbol)>0);
+    assert(snprintf(marker,sizeof(marker),"static void xlir_async_machine_entry_%u(",(unsigned)target->symbol)>0);
     assert(strstr(generated,marker));
-    assert(snprintf(marker,sizeof(marker),"&xlir_async_layout_%u",(unsigned)target->symbol)>0);
-    assert(strstr(generated,marker)&&strstr(generated,"xl6TaskRuntimeV3Get()->Allocate")&&
-        strstr(generated,"xl6TaskRuntimeV3Get()->Cleanup")&&!strstr(generated,"xlir_async_frame_drop_")&&
-        !strstr(generated,"xlir_async_frame_trace_"));
+    assert(snprintf(marker,sizeof(marker),"&xlir_async_machine_layout_%u",(unsigned)target->symbol)>0);
+    assert(strstr(generated,marker)&&strstr(generated,"xl6ContinuationFrameLaunchV1(frame,")&&
+        strstr(generated,"xl6ContinuationFrameRuntimeV2Get()->Cleanup")&&!strstr(generated,"xl6TaskRuntimeV3Get()")&&
+        !strstr(generated,"xlir_async_frame_drop_")&&!strstr(generated,"xlir_async_frame_trace_"));
     assert(xl6OutputOpenFile(&out,argv[1]));xl6OutputPrintf(&out,"%s",generated);xl6OutputClose(&out);xrtFree(generated);
     assert(xl6OutputOpenFile(&out,argv[2])&&xl6IrCgenEmitHeader(&out,&ir,"CLOSED_CAPTURE",&parse.diags));xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out,argv[3]));xl6IrDumpModuleJson(&out,&ir);xl6OutputClose(&out);
     assert(snprintf(path,sizeof(path),"%s.bind.h",argv[2])>0&&xl6OutputOpenFile(&out,path));
-    xl6OutputPrintf(&out,"#define CLOSED_CAPTURE_START xlir_async_start_%u\n#define CLOSED_CAPTURE_LAYOUT xlir_async_layout_%u\n",(unsigned)target->symbol,(unsigned)target->symbol);
+    xl6OutputPrintf(&out,"#define CLOSED_CAPTURE_START xlir_async_start_%u\n#define CLOSED_CAPTURE_LAYOUT xlir_async_machine_layout_%u\n",(unsigned)target->symbol,(unsigned)target->symbol);
     xl6OutputClose(&out);xl6IrModuleFree(&ir);xl6ParseResultFree(&parse);
-    printf("Closed async capture IR: 6 exact physical captures, no state-machine fallback, 6 C/header-gated destroy mutations\n");return 0;
+    printf("Closed async capture IR: 6 exact physical captures, queued root frame, 6 C/header-gated destroy mutations\n");return 0;
 }

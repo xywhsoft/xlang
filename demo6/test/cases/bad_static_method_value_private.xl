@@ -1,0 +1,7 @@
+class Hidden
+    private func secret() as int
+        return 1
+    end
+end
+auto object = Hidden()
+auto value = object.secret

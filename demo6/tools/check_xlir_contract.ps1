@@ -93,7 +93,7 @@ if (!$taskValueGate.Contains('--admission') -or
     throw 'Task types need language admission and a deterministic cross-thread runtime ownership contract'
 }
 $callbackEmitter = Read-Utf8 'src\cgen\xl6_ir_cgen_task_helpers.c'
-foreach ($required in @('callbackBoundary', 'callbackCaptures', 'invokeAbi', 'XL6_IR_CALLBACK_TRANSPORT_FUTURE_WATCH', 'XL6_IR_CALLBACK_CLEANUP_TRANSACTIONAL')) {
+foreach ($required in @('callbackBoundary', 'callbackCaptures', 'invokeAbi', 'XL6_IR_CALLBACK_TRANSPORT_FUTURE_READY_QUEUE_V1', 'XL6_IR_CALLBACK_CLEANUP_TRANSACTIONAL')) {
     if (!$header.Contains($required) -or !$source.Contains($required) -or !$callbackEmitter.Contains($required)) {
         throw "Callback activations require explicit capture and completion contracts: $required"
     }
@@ -101,18 +101,18 @@ foreach ($required in @('callbackBoundary', 'callbackCaptures', 'invokeAbi', 'XL
 $futureCallbackRuntime = Read-Utf8 'src/runtime/xl6_future_callback.c'
 if (!$lower.Contains('xl6IrBuildCallbackBoundaries') -or !$source.Contains('xl6IrVerifyCallbackBoundaries') -or
     !$futureCallbackRuntime.Contains('xrtFutureWatchInitPhased') -or !$futureCallbackRuntime.Contains('xrtFutureWatchAdd') -or
-    !$callbackEmitter.Contains('xl6FutureCallbackRuntimeV1Get()->Start') -or !$callbackEmitter.Contains('xrtPromiseForward') -or
+    !$callbackEmitter.Contains('xl6FutureCallbackRuntimeV5Get()->Start') -or !$callbackEmitter.Contains('xrtPromiseForward') -or
     $callbackEmitter.Contains('xrtFutureWatchAdd') -or $callbackEmitter.Contains('xfuturewatch watch;') -or
     $callbackEmitter.Contains('future = xrtFutureContinueOwned(')) {
     throw 'A runtime continuation adapter must not bypass the language capture cleanup/publication barrier'
 }
-foreach ($required in @('XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3','XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_FUTURE_FRAME_V3','storageAbi')) {
+foreach ($required in @('XL6_IR_CALLBACK_STORAGE_RESIDENT_LAYOUT_TASK_FRAME_V3','XL6_IR_CALLBACK_STORAGE_RESIDENT_QUEUED_FUTURE_FRAME_V1','storageAbi')) {
     if (!$header.Contains($required) -or !$source.Contains($required) -or !$callbackEmitter.Contains($required)) {
         throw "Callback physical storage must be an exact verified IR contract: $required"
     }
 }
 if (!$callbackEmitter.Contains('XL6_CaptureLayoutV2') -or !$callbackEmitter.Contains('xl6IrCgenEmitCaptureSlotV2') -or
-    !$callbackEmitter.Contains('xl6TaskRuntimeV3Get') -or !$callbackEmitter.Contains('xl6FutureCallbackRuntimeV4Get') -or
+    !$callbackEmitter.Contains('xl6TaskRuntimeV3Get') -or !$callbackEmitter.Contains('xl6FutureCallbackRuntimeV5Get') -or
     $callbackEmitter.Contains('static void %s_frame_drop_') -or $callbackEmitter.Contains('static bool %s_frame_trace_')) {
     throw 'Callback captures must use closed resident layouts, not generated Drop/Trace functions'
 }
@@ -207,14 +207,14 @@ foreach ($required in @('xrtFutureWatchInitPhased', 'xrtFutureWatchAdd', 'xrtPro
     'xrtTaskSubmitTraced','xrtTaskPoolCreate','xrtTaskPoolDestroy','xl6CodeScopeEnter','xl6CodeScopeLeave','frame_ops','submitting')) {
     if (!$taskResident.Contains($required)) { throw "Resident task completion requires the preallocated scoped ownership/cancellation bridge: $required" }
 }
-foreach ($required in @('taskStorageAbi','XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V2','asyncCaptureTraceAbis','asyncCaptureDestroyAbis',
+foreach ($required in @('taskStorageAbi','XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V3','asyncCaptureTraceAbis','asyncCaptureDestroyAbis',
     'valueIteratorStorageAbi','XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_CHECKED_SNAPSHOT_V2')) {
     if (!$header.Contains($required) -or !$source.Contains($required) -or !$lower.Contains($required)) { throw "Task activation IR lacks exact resident storage/trace ABI: $required" }
 }
 $taskLauncher=Read-Utf8 'src/cgen/xl6_ir_cgen_async_machine.c'
 $iteratorEmitter=Read-Utf8 'src/cgen/xl6_ir_cgen_emit_xvalue_core.c'
-if (!$taskLauncher.Contains('xl6IrCgenEmitCaptureSlotV2(out,module,target->parameterTypes[parameter]') -or
-    !$taskLauncher.Contains('(xl6TaskRuntimeV3Get()->Cleanup)(frame)') -or
+if (!$taskLauncher.Contains('xl6IrCgenEmitActivationLayout') -or
+    !$taskLauncher.Contains('xl6ContinuationFrameLaunchV1(frame,') -or
     $taskLauncher.Contains('static bool xlir_async_frame_trace_') -or $taskLauncher.Contains('static void xlir_async_frame_drop_') -or
     $iteratorEmitter.Contains('state->cursor') -or $iteratorEmitter.Contains('xlir_xvalue_iterator_ownership_ops') -or
     !$iteratorEmitter.Contains('xl6ValueIteratorRuntimeV2Get()->View') -or
@@ -259,10 +259,10 @@ if (!$taskOwnershipHost.Contains('xrtTaskProducerPolicyV1Get') -or !$taskOwnersh
     throw 'Pending native jobs need real producer/data edges and a complete Plan lifecycle test with executor-root deferral'
 }
 if (!$source.Contains('XLIR async target has no exact Future completion outcome ABI') -or
-    !(Read-Utf8 'src\cgen\xl6_ir_cgen_async_machine.c').Contains('xlir_async_pool_submit_language') -or
+    !(Read-Utf8 'src\cgen\xl6_ir_cgen_async_machine.c').Contains('XLIR scheduled async target has no verified ready-queue machine') -or
     !(Read-Utf8 'src\cgen\xl6_ir_cgen_async_contract.c').Contains('xlir_future_complete_error') -or
     !(Read-Utf8 'tools\check_xlir_async_pool_outcome.ps1').Contains('test/cases/xlir_async_pool_outcome_runtime.c')) {
-    throw 'Every async dispatch needs a verified completion ABI with real pool lifetime/fault coverage'
+    throw 'Every async dispatch needs a verified completion ABI and an exact frame program'
 }
 foreach ($required in @('taskPoolAbi', 'XL6_IR_MODULE_TASK_POOL_XRT_GUARDED_QUIESCE')) {
     if (!$header.Contains($required) -or !$source.Contains($required) -or !$lower.Contains($required)) {
@@ -274,7 +274,7 @@ if (!$source.Contains('xl6IrModuleTaskPoolRequirement') -or
     !(Read-Utf8 'src\cgen\xl6_ir_cgen_function_emit.c').Contains('xlir_async_pool_quiesce')) {
     throw 'Module global cleanup must follow canonical task resource quiescence'
 }
-foreach ($renderer in @('async_machine', 'task_helpers')) {
+foreach ($renderer in @('task_helpers')) {
     $body = Read-Utf8 "src\cgen\xl6_ir_cgen_$renderer.c"
     if (!$body.Contains('xlir_async_pool_submit') -or $body.Contains('xlir_async_pool_once') -or
         $body.Contains('xrtTaskSubmit(xlir_async_pool,')) {
@@ -618,12 +618,12 @@ if (!$header.Contains('XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR')
     (Read-Utf8 'src/cgen/xl6_ir_cgen_emit_prelude.c').Contains('xlir_future_await_')) {
     throw 'Await needs one verified status/diagnostic acquisition contract, including source cleanup, without ambiguous per-type wrappers'
 }
-foreach ($required in @('XL6_IR_ASYNC_EXECUTION_READY_QUEUE_V1', 'XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1')) {
+foreach ($required in @('XL6_IR_ASYNC_EXECUTION_READY_QUEUE_ROOT_V2', 'XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1')) {
     if (!$header.Contains($required) -or !$source.Contains($required)) {
         throw "Async execution/module service requires a verified IR ABI: $required"
     }
 }
-foreach ($required in @('machine->executionAbi','xl6ContinuationExecutorReserveOwned',
+foreach ($required in @('machine->executionAbi','xl6ContinuationFrameLaunchV1',
     'xl6ContinuationReserveSuccessor','xl6ContinuationAbort','xl6ContinuationWatchRegister')) {
     if (!$asyncMachineEmitter.Contains($required)) { throw "Async owned admission is missing: $required" }
 }
@@ -3028,20 +3028,20 @@ foreach ( $forbidden in @(
 }
 if (!$header.Contains('XL6_IrAsyncCompletionAbi asyncCompletionAbi;') -or
     !$source.Contains('XLIR async target has no verified completion cleanup barrier') -or
-    !$cEmitter.Contains('outcome = xlir_async_frame_retire_%u(frame, outcome)') -or
+    !$cEmitter.Contains('xl6ContinuationFrameFinishV1(frame, retired, &cancelled)') -or
     !(Read-Utf8 'test/suites/03_core_function_abi.bat').Contains('check_xlir_async_worker_completion.ps1') -or
-    !(Read-Utf8 'test/cases/xlir_async_worker_completion_contract.c').Contains('ir.asyncMachineCount == 0') -or
+    !(Read-Utf8 'test/cases/xlir_async_worker_completion_contract.c').Contains('ir.asyncMachineCount == 6') -or
     !(Read-Utf8 'test/cases/xlir_async_worker_completion_runtime.c').Contains('xrtMemDebugFailAfter(0)')) {
-    throw 'No-await task workers require verified pre-publication retirement and real failure regression'
+    throw 'No-await queued frames require verified pre-publication retirement/cancellation and real failure regression'
 }
 $readyLauncherIndex = $cEmitter.IndexOf(
     "target->asyncDispatch == XL6_IR_ASYNC_DISPATCH_XRT_READY_FUTURE")
 $machineLauncherIndex = $cEmitter.IndexOf("if ( machine != NULL )", $readyLauncherIndex)
-$taskPoolFallbackIndex = $cEmitter.IndexOf(
-    "if ( xl6IrCgenFindFunction(module, target->symbol) == NULL )", $machineLauncherIndex)
+$missingMachineIndex = $cEmitter.IndexOf(
+    "XLIR scheduled async target has no verified ready-queue machine", $machineLauncherIndex)
 if ( $readyLauncherIndex -lt 0 -or $machineLauncherIndex -le $readyLauncherIndex -or
-     $taskPoolFallbackIndex -le $machineLauncherIndex ) {
-    throw "XLIR async launcher does not give every analyzed machine canonical execution precedence"
+     $missingMachineIndex -le $machineLauncherIndex ) {
+    throw "XLIR async launcher must execute an exact verified frame or reject, without a task-pool fallback"
 }
 
 foreach ( $required in @(
@@ -3321,7 +3321,7 @@ foreach ( $required in @(
     "XL6_IrAsyncCaptureAbi",
     "XL6_IR_ASYNC_CAPTURE_COPY_VALUE",
     "XL6_IR_ASYNC_FRAME_TRANSFER_RETAIN_FUTURE",
-    "XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL",
+    "XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE",
     "XL6_IrNode",
     "XL6_IrModule"
 ) ) {

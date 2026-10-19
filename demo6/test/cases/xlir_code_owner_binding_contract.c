@@ -185,14 +185,14 @@ int main(int argc, char** argv)
             XL6_IrModuleContinuationAbi saved = ir.abi.continuationAbi;
             XL6_IrAsyncMachine* machine = &ir.asyncMachines[0];
             assert(saved == XL6_IR_MODULE_CONTINUATION_FIXED_WORKERS_V1);
-            assert(machine->executionAbi == XL6_IR_ASYNC_EXECUTION_READY_QUEUE_V1);
+            assert(machine->executionAbi == XL6_IR_ASYNC_EXECUTION_READY_QUEUE_ROOT_V2);
             machine->executionAbi = XL6_IR_ASYNC_EXECUTION_INVALID;
             reject(&ir, "missing resume execution ABI", 0);
             machine->executionAbi = (XL6_IrAsyncExecutionAbi)99;
             reject(&ir, "invalid resume execution ABI", 0);
             machine->executionAbi = (XL6_IrAsyncExecutionAbi)1;
             reject(&ir, "retired guaranteed resume ABI", 0);
-            machine->executionAbi = XL6_IR_ASYNC_EXECUTION_READY_QUEUE_V1;
+            machine->executionAbi = XL6_IR_ASYNC_EXECUTION_READY_QUEUE_ROOT_V2;
             ir.abi.continuationAbi = XL6_IR_MODULE_CONTINUATION_NONE;
             reject(&ir, "missing module execution service", 0);
             ir.abi.continuationAbi = (XL6_IrModuleContinuationAbi)99;

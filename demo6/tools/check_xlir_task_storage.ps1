@@ -25,7 +25,7 @@ try {
     New-Item -ItemType Directory -Path $outputPath | Out-Null
     $cases=@(
         @{Name='xlir_task_storage';Pattern='Task storage IR: 8 fixtures, [1-9][0-9]* rejected C/header-gated mutations, [1-9][0-9]* async parameter traces, [1-9][0-9]* callback capture traces, [1-9][0-9]* task pool modules; exact storage/text/JSON ABI'},
-        @{Name='xlir_task_closed_capture';Pattern='Closed async capture IR: 6 exact physical captures, no state-machine fallback, 6 C/header-gated destroy mutations'},
+        @{Name='xlir_task_closed_capture';Pattern='Closed async capture IR: 6 exact physical captures, queued root frame, 6 C/header-gated destroy mutations'},
         @{Name='xlir_dynamic_iteration_allocation';Pattern='dynamic iteration: 4 key \+ 1 logical checked projections, 2 cells, 6 construction effects, [1-9][0-9]* exit prefixes, two resident cursors, [1-9][0-9]* C/header-gated mutations'},
         @{Name='xlir_module_task_pool';Pattern='module pool: 9 ABI partitions, [1-9][0-9]* rejected IR mutations, canonical resource dump'},
         @{Name='xlir_async_pool_outcome';Pattern='pool outcome contract:'},
@@ -61,7 +61,7 @@ try {
         @{Name='closed-layout';Sources=@('test/cases/xlir_task_capture_layout_runtime.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c');
             Pattern='Closed task captures: 9 physical kinds, 100 reverse cleanups and cross-thread freezes, 400 resident iterator snapshots, 12 OOM budgets; exact borrowed views, real pins and balanced allocations'},
         @{Name='generated-closed';Sources=@('test/cases/xlir_task_closed_capture_host.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c');
-            Pattern='Generated closed async captures: 100 success/failure transactions and 24 OOM budgets; actual six-slot V2 layout, pre-publication cleanup and balanced allocations'},
+            Pattern='Generated closed async captures: 100 success/failure transactions and 24 OOM budgets; actual six-slot CaptureV2 layout, pre-publication cleanup and balanced allocations'},
         @{Name='dynamic-iteration';Sources=@('test/cases/xlir_dynamic_iteration_allocation_runtime.c','test/cases/xlir_dynamic_iteration_allocation_host.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c');
             Pattern='dynamic iteration: [1-9][0-9]* executions, [1-9][0-9]* real projection/cell allocation faults \([1-9][0-9]* after pending resume\), [1-9][0-9]* generator early/exhausted closes, [1-9][0-9]* balanced allocations'},
         @{Name='iterator-cycle';Sources=@('test/cases/xlir_value_iterator_cycle.c','src/runtime/xl6_continuation_frame.c','src/runtime/xl6_future_wait.c','src/runtime/xl6_task.c','src/runtime/xl6_ownership_plan.c');

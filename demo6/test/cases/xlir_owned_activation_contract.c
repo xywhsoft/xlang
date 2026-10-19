@@ -66,7 +66,7 @@ int main(int argc, char** argv)
             target->kind != XL6_IR_CALL_TARGET_INTERNAL_ASYNC) continue;
         if (target->kind == XL6_IR_CALL_TARGET_INTERNAL_ASYNC) {
             ready += target->asyncDispatch == XL6_IR_ASYNC_DISPATCH_XRT_READY_FUTURE;
-            pool += target->asyncDispatch == XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL;
+            pool += target->asyncDispatch == XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE;
         }
         for (p = 0; p < target->parameterCount; ++p) {
             if (target->parameterAbis[p] != XL6_IR_PARAMETER_ABI_OWNED) continue;
@@ -84,7 +84,7 @@ int main(int argc, char** argv)
             target->parameterAbis[p] = XL6_IR_PARAMETER_ABI_OWNED;
         }
     }
-    assert(captures == 8 && ready == 1 && pool == 2 && ir.asyncMachineCount == 1 && ir.generatorMachineCount == 1);
+    assert(captures == 8 && ready == 1 && pool == 2 && ir.asyncMachineCount == 2 && ir.generatorMachineCount == 1);
     frame_contract(&ir, ir.asyncMachineFrameSlots, ir.asyncMachineFrameSlotCount, ir.asyncFrameActions,
         ir.asyncMachines[0].firstPrologueAction, ir.asyncMachines[0].prologueActionCount);
     frame_contract(&ir, ir.generatorFrameSlots, ir.generatorFrameSlotCount, ir.generatorFrameActions,

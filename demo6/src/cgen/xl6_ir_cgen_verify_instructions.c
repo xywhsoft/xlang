@@ -1040,7 +1040,7 @@ static int xl6IrCgenVerifyInstructions(
             {
                 const XL6_IrCallTarget* callee = xl6IrCallTargetGet(module, instruction->targetSymbol);
                 if ( callee == NULL || callee->kind != XL6_IR_CALL_TARGET_INTERNAL_ASYNC ||
-                     (callee->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL &&
+                     (callee->asyncDispatch != XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE &&
                       callee->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_READY_FUTURE) ||
                      callee->parameterCount != instruction->operandCount ||
                      instruction->result == XL6_IR_VALUE_INVALID || instruction->type != callee->returnType )

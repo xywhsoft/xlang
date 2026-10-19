@@ -36,9 +36,11 @@ int main(int argc, char** argv)
             target->futureOutcomeAbi = XL6_IR_FUTURE_OUTCOME_INVALID; reject(&ir);
             target->futureOutcomeAbi = (XL6_IrFutureOutcomeAbi)99; reject(&ir);
             target->futureOutcomeAbi = XL6_IR_FUTURE_OUTCOME_XRT_ERROR_KIND;
-            assert(target->asyncMachine == SIZE_MAX);
-            if (target->asyncDispatch == XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL) ++poolTargets;
-            else if (target->asyncDispatch == XL6_IR_ASYNC_DISPATCH_XRT_READY_FUTURE) ++readyTargets;
+            if (target->asyncDispatch == XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE) {
+                assert(target->asyncMachine<ir.asyncMachineCount);++poolTargets;
+            } else if (target->asyncDispatch == XL6_IR_ASYNC_DISPATCH_XRT_READY_FUTURE) {
+                assert(target->asyncMachine==SIZE_MAX);++readyTargets;
+            }
             ++asyncTargets;
         } else {
             assert(target->futureOutcomeAbi == XL6_IR_FUTURE_OUTCOME_INVALID);
@@ -47,7 +49,7 @@ int main(int argc, char** argv)
         }
     }
     assert(asyncTargets == 4 && poolTargets == 3 && readyTargets == 1 && nonAsyncTargets >= 3);
-    assert(ir.asyncMachineCount == 0 && xl6IrVerifyModule(&ir, &parse.diags));
+    assert(ir.asyncMachineCount == 3 && xl6IrVerifyModule(&ir, &parse.diags));
     assert(xl6OutputOpenFile(&out, argv[1])); assert(xl6IrCgenEmitC(&out, &ir, &parse.diags)); xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out, argv[2])); assert(xl6IrCgenEmitHeader(&out, &ir, "POOL_OUTCOME", &parse.diags)); xl6OutputClose(&out);
     assert(xl6OutputOpenFile(&out, argv[3])); xl6IrDumpModuleJson(&out, &ir); xl6OutputClose(&out);

@@ -319,6 +319,7 @@ XL6_TEXT_API bool xl6_xrt_task_group_wait_timeout(void* group,int64_t millisecon
 XL6_TEXT_API bool xl6_xrt_task_group_wait_until(void* group,int64_t milliseconds);
 XL6_TEXT_API xfuture* xl6_xrt_task_group_join_async(void* group);
 XL6_TEXT_API void* xl6TaskGroupCreateLanguageV1(int64_t,int64_t);
+XL6_TEXT_API xfuture* xl6TaskGroupStartLanguageV1(XL6_FutureValueProfileV1,void*,struct xlir_closure*);
 XL6_TEXT_API void* xl6TaskGroupCreateCancelLanguageV1(void*,int64_t,int64_t);
 XL6_TEXT_API void* xl6TaskGroupChildLanguageV1(void*,int64_t,int64_t);
 XL6_TEXT_API bool xl6TaskGroupValidLanguageV1(void*);

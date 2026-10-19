@@ -1,0 +1,49 @@
+import concurrent
+async func runChecks() as int
+    auto group = TaskGroup(1)
+    auto producer = Promise::<int>()
+    int calls = 0
+    auto starter = func() as future<int>
+        calls += 1
+        assert group.snapshot().active == 1
+        return producer.future
+    end
+    future<int> first = group.start(starter)
+    assert calls == 1 and group.count == 1
+    bool rejected = false
+    try
+        auto other = group.start(starter)
+    catch failure
+        rejected = true
+    end
+    assert rejected and calls == 1 and group.snapshot().rejected == 1
+    assert producer.tryResolve(42) and group.join() and (await first) == 42
+    rejected = false
+    try
+        auto other = group.start(starter)
+    catch failure
+        rejected = true
+    end
+    assert rejected and calls == 1
+
+    auto retry = task.group()
+    bool caught = false
+    try
+        auto failed = retry.start(func() as future<int>
+            throw ValueError "starter original"
+        end)
+    catch ValueError failure
+        assert failure.message == "starter original"
+        caught = true
+    end
+    assert caught and retry.count == 0 and retry.snapshot().accepting
+    auto ready = Promise::<int>()
+    assert ready.tryResolve(51)
+    auto result = retry.start(func() as future<int>
+        return ready.future
+    end)
+    assert retry.join() and (await result) == 51
+    println("TaskGroup atomic start: admission before invocation, original error, rollback and retry ok")
+    return 0
+end
+assert (await runChecks()) == 0

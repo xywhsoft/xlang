@@ -4498,7 +4498,9 @@ typedef enum XL6_IrCallTargetLifecycleAbi {
  * coroutine after lowering has completed. */
 typedef enum XL6_IrAsyncDispatchKind {
     XL6_IR_ASYNC_DISPATCH_NONE = 0,
-    XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL,
+    /* Every scheduled async body has one verified frame program, including
+     * zero-suspension CFGs. Explicit blocking tasks use a separate ABI. */
+    XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE,
     /* A verified immediate worker with no suspension settles its result into
      * a fresh Future at launch time.  A no-raise worker resolves; a may-raise
      * worker consumes its explicit result carrier and rejects.  It has no
@@ -5161,16 +5163,17 @@ typedef enum XL6_IrAsyncSourceLeaseAbi {
     XL6_IR_ASYNC_SOURCE_LEASE_CAPTURE_THEN_RELEASE
 } XL6_IrAsyncSourceLeaseAbi;
 
-/* The launch prefix stays on the caller. A suspension reserves an owned root
- * execution credit before Watch registration; later suspensions inherit it.
+/* The root is admitted with owned parameters before any body instruction.
+ * Launch and every resume execute on the same fixed-worker ready queue;
+ * every suspension inherits that logical execution credit.
  * Commit follows frame handoff. Run AND physical release execute in the
  * module's fixed-worker ready queue, never on a Future producer. Synchronous
  * blocking/long CPU work needs an independent task pool or explicit thread;
  * this domain does not promise progress for arbitrary blocking callbacks. */
 typedef enum XL6_IrAsyncExecutionAbi {
     XL6_IR_ASYNC_EXECUTION_INVALID = 0,
-    /* Value 1 was the retired guaranteed-worker language contract. */
-    XL6_IR_ASYNC_EXECUTION_READY_QUEUE_V1 = 2
+    /* Values 1/2 were the retired guaranteed-worker/eager-prefix contracts. */
+    XL6_IR_ASYNC_EXECUTION_READY_QUEUE_ROOT_V2 = 3
 } XL6_IrAsyncExecutionAbi;
 
 /* One stable, real producer owns the current heap frame across suspensions.

@@ -399,18 +399,6 @@ static int xl6IrCgenEmitAsyncReadyLauncher(
     return !xl6OutputHasFailed(out);
 }
 
-static size_t xl6IrCgenAsyncParameterIndex(
-    const XL6_IrModule* module, const XL6_IrFunction* function,
-    XL6_SymbolId storageSymbol)
-{
-    size_t parameter;
-    if ( module == NULL || function == NULL ) return SIZE_MAX;
-    for ( parameter = 0; parameter < function->parameterCount; ++parameter )
-        if ( module->functionParameters[function->firstParameter + parameter] == storageSymbol )
-            return parameter;
-    return SIZE_MAX;
-}
-
 static size_t xl6IrCgenAsyncFrameStorageSlot(
     const XL6_IrModule* module, const XL6_IrAsyncMachine* machine,
     XL6_SymbolId storageSymbol)
@@ -600,7 +588,7 @@ static int xl6IrCgenAsyncStartAbi(
          instruction->kind != XL6_IR_INSTR_ASYNC_START ||
          (callee = xl6IrCallTargetGet(module, instruction->targetSymbol)) == NULL ||
          callee->kind != XL6_IR_CALL_TARGET_INTERNAL_ASYNC ||
-         (callee->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL &&
+         (callee->asyncDispatch != XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE &&
           callee->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_READY_FUTURE) ||
          !xl6IrCgenAsyncResultAbiMatches(module, callee) ||
          instruction->result == XL6_IR_VALUE_INVALID ||
@@ -628,7 +616,7 @@ static int xl6IrCgenAsyncMachineProgramSupported(
     size_t action;
     if ( unsupportedReason != NULL ) *unsupportedReason = NULL;
     if ( !xl6IrCgenAsyncResultAbiMatches(module, target) ||
-         function == NULL || machine->suspensionCount == 0 ||
+         function == NULL ||
          (target->workerErrorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
           target->workerErrorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) ||
          machine->prologueActionCount > machine->frameSlotCount ||
@@ -842,9 +830,6 @@ static int xl6IrCgenAsyncMachineProgramSupported(
             case XL6_IR_INSTR_LOAD:
                 if ( xl6IrCgenAsyncFrameStorageSlot(
                         module, machine, instruction->targetSymbol) == SIZE_MAX &&
-                     !(launchBlocks[local] &&
-                       xl6IrCgenAsyncParameterIndex(module, function,
-                         instruction->targetSymbol) != SIZE_MAX) &&
                      xl6IrCgenAsyncLocalStorage(
                          module, machine, function, instruction->targetSymbol) == NULL &&
                      xl6IrCgenSharedStorage(

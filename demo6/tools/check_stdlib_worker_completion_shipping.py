@@ -1,4 +1,4 @@
-"""Full task-worker completion population against genuine resident DLL/SO products.
+"""Full queued-root worker completion population against genuine resident DLL/SO products.
 The shipping CLI emits C and lowered IR; the observer does not rebuild compiler
 objects or native providers. Preserve 3978 executions, 90 real worker result
 allocation faults, 972 discarded Futures and five complete allocation prefixes.
@@ -32,7 +32,7 @@ def main():
     windows = os.name == 'nt'
     cc, inspector = shutil.which('gcc'), shutil.which('objdump' if windows else 'readelf')
     assert cc and inspector
-    task = Path(__file__).resolve().parents[1]
+    task = root
     sys.path.insert(0, str(root / 'tools'))
     from gen_tcc_vfs_resources import load_resources
 
@@ -40,6 +40,7 @@ def main():
     fixture, host, runtime = [task / 'test/cases' / (name + suffix)
                               for suffix in ('.xl', '_host.c', '_runtime.c')]
     helpers = [task / 'test/cases' / h for h in ('xlir_launch_test.h', 'xlir_owner_fault_runtime.h')]
+    root_native=task/'test/cases/xlir_async_root_launch_native.c'
     build = json.loads(args.build_report.read_text(encoding='utf-8-sig'))
     assert build['Complete'] and build['InputsUnchanged'] and build['Exit'] == 0
     products = [root / 'release' / n for n in
@@ -47,7 +48,7 @@ def main():
     recorded = {Path(row['Path']).resolve(): row['Sha256'] for row in build['Products']}
     assert all(recorded.get(p) == sha(p) for p in products)
     files = {Path(__file__).resolve(), Path(sys.executable), Path(cc), Path(inspector),
-             args.build_report.resolve(), fixture, host, runtime, *helpers}
+             args.build_report.resolve(), fixture, host, runtime, root_native, *helpers}
     for row in build['Inputs'] + build['Products']:
         assert sha(row['Path']) == row['Sha256'], row['Path']
         files.add(Path(row['Path']))
@@ -78,9 +79,10 @@ def main():
     env = {k: v for k, v in os.environ.items() if not k.upper().startswith('XL6_') and k not in
            ('LD_LIBRARY_PATH', 'LD_PRELOAD', 'LD_AUDIT', 'CPATH', 'C_INCLUDE_PATH', 'LIBRARY_PATH')}
     env.update(TMPDIR=str(temporary), TEMP=str(temporary), TMP=str(temporary))
-    rows, proofs, controls, failures = [], [], [], []
+    rows, proofs, controls, failures, root_proofs = [], [], [], [], []
     report = dict(Complete=False, InputsUnchanged=False, Scope=__doc__, Inputs=inputs, Rows=rows,
                   Proofs=proofs, Counterexamples=controls, Failures=failures, ShippingArtifact=True,
+                  RootLaunchProofs=root_proofs,
                   RuntimeInstrumented=False, GeneratedAllocationEntryObserver=True,
                   ProviderOverrides=False, CompilerSourceObjects=False, NativeProductCompletionAcceptance=False,
                   IrMutationAcceptance=False, WorkerWideOomAcceptance=False, OsThreadJoinAcceptance=False,
@@ -128,11 +130,14 @@ def main():
             assert sha(generated / ('worker.' + suffix)) == sha(out / 'repeat' / ('worker.' + suffix))
         ir = json.loads((generated / 'worker.json').read_text())
         workers = [t for t in ir['callTargets'] if t['asyncCompletionAbiName'] == 'retire-before-publish']
-        assert len(workers) == 6 and ir['asyncMachineCount'] == ir['asyncSuspensionCount'] == 0
+        assert len(workers) == ir['asyncMachineCount'] == 6 and ir['asyncSuspensionCount'] == 0
+        assert all(m['executionAbi'] == 3 and m['suspensionCount'] == 0 for m in ir['asyncMachines'])
+        generated_text = (generated / 'worker.c').read_text()
+        assert 'xl6ContinuationFrameLaunchV1(frame,' in generated_text and 'xlir_async_pool' not in generated_text
         assert [t['asyncResultAbiName'] for t in workers] == [
             'copy-i64', 'void', 'owned-string', 'retained-xvalue', 'retained-closure', 'copy-i64']
         for worker in workers:
-            assert worker['asyncDispatch'] == 1 and worker['parameterCount'] == 3
+            assert worker['asyncDispatch'] == 1 and worker['parameterCount'] == 3 and worker['asyncMachine'] < 6
             assert worker['workerErrorAbiName'] == 'may-raise'
             assert worker['asyncCaptureAbis'] == ['retain-xvalue', 'retain-xvalue', 'copy-value']
         binding = generated / 'worker.h.bind.h'
@@ -145,6 +150,12 @@ def main():
                 tag = product.stem + '.' + opt
                 binary = isolated / (tag + ('.exe' if windows else ''))
                 try:
+                    root_binary=isolated/(tag+'.root'+('.exe' if windows else ''))
+                    run(tag+'.root.build',[cc,*flags,'-'+opt,root_native,*libraries(product),'-o',root_binary])
+                    root_output=run(tag+'.root.run',[root_binary])
+                    prefix=re.search(rb'queued root launch: (\d+) complete allocation prefixes',root_output)
+                    assert prefix and b'32 real single-worker barriers' in root_output and b'exact memory balance' in root_output
+                    root_proofs.append(dict(Product=product.name,HostOptimization=opt,Barriers=32,PrefixRuns=int(prefix[1])))
                     run(tag + '.build', [cc, *flags, *generated_compat, '-' + opt, *definitions,
                                         host, runtime, *libraries(product), '-o', binary])
                     imports = run(tag + '.imports', [inspector, '-p' if windows else '-d', binary])
@@ -186,14 +197,14 @@ def main():
                                         *sources, *libraries(product), '-o', binary])
                     output = run(tag + '.run', [binary], reject=True)
                     assert re.search(rb'assertion.*failed|assert.*failed', output, re.I), output[-4000:]
-                    expected = b'worker outcome' if label == 'missing-body-failure' else b'value == NULL'
-                    assert expected in output, output[-4000:]
+                    if label == 'missing-body-failure':assert b'worker outcome' in output,output[-4000:]
+                    else:assert re.search(rb'value\s*==\s*NULL',output),output[-4000:]
                     controls.append(dict(Name=label, Product=product.name, AssertionRejected=True))
                 except Exception as error:
                     failures.append(dict(Name=tag, Error=repr(error)))
         report['InputsUnchanged'] = all(sha(row['Path']) == row['Sha256'] for row in inputs)
         assert all(sha(release / p.name) == sha(p) for p in products)
-        report['NativeProductCompletionAcceptance'] = len(proofs) == len(controls) == 4 and not failures
+        report['NativeProductCompletionAcceptance'] = len(proofs) == len(controls) == len(root_proofs) == 4 and not failures
         report['Complete'] = report['InputsUnchanged'] and report['NativeProductCompletionAcceptance']
     except Exception as error:
         failures.append(dict(Name='gate', Error=repr(error)))

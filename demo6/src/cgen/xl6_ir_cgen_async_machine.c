@@ -37,10 +37,7 @@ static int xl6IrCgenEmitAsyncMachineWatch(
     (void)xl6IrCgenEmitSlotCommit(out,"xfuture*","frame->source","xrtFutureRef(source)",NULL);
     xl6OutputPuts(
         "    if (frame->source == NULL) return 0;\n"
-        "    status = predecessor != NULL\n"
-        "        ? xl6ContinuationReserveSuccessor(predecessor, &frame->ticket, run, release, frame)\n"
-        "        : xl6ContinuationExecutorReserveOwned(xlir_continuation_executor, &frame->ticket, run, release, frame,\n"
-        "            xlir_code_owner.size != 0 ? &xlir_code_owner : NULL);\n"
+        "    status = xl6ContinuationReserveSuccessor(predecessor, &frame->ticket, run, release, frame);\n"
         "    if (status != XL6_CONTINUATION_ADMITTED) goto failed;\n", out);
     xl6OutputPuts("    if (!xl6ContinuationFrameRuntimeV3Get()->Bind(frame)) goto failed;\n",out);
     xl6OutputPuts(
@@ -132,7 +129,7 @@ static int xl6IrCgenEmitAsyncMachine(
     if (machine->sourceLeaseAbi != XL6_IR_ASYNC_SOURCE_LEASE_CAPTURE_THEN_RELEASE)
         return xl6IrCgenDiag(diags, module, target->declaration,
             "XLIR async source lease lifetime is unresolved");
-    if (machine->executionAbi != XL6_IR_ASYNC_EXECUTION_READY_QUEUE_V1)
+    if (machine->executionAbi != XL6_IR_ASYNC_EXECUTION_READY_QUEUE_ROOT_V2)
         return xl6IrCgenDiag(diags, module, target->declaration,
             "XLIR async execution domain/root admission ABI is unresolved");
     if (machine->ownershipAbi != XL6_IR_ASYNC_OWNERSHIP_STABLE_PRODUCER_WATCH_V1)
@@ -290,12 +287,44 @@ static int xl6IrCgenEmitAsyncMachine(
                   ++instructionIndex )
                 if ( !xl6IrCgenEmitAsyncMachineInstruction(
                         out, module, target, machine, function, block,
-                        &module->instructions[instructionIndex], state, diags) ) goto done;
+                        &module->instructions[instructionIndex], diags) ) goto done;
         }
         xl6OutputPuts("}\n", out);
         if (!xl6IrCgenEmitAsyncMachineWatch(
                 out, module, suspension, target->symbol, state)) goto done;
     }
+
+    /* Launch is an ordinary queued entry, not a second execution model. The
+     * constructor below only captures inputs and calls resident admission. */
+    xl6OutputPrintf(out,
+        "static void xlir_async_machine_entry_body_%u(xlir_async_machine_frame_%u* frame)\n{\n"
+        "    xpromise* destination = frame->outer;\n",
+        (unsigned int)target->symbol, (unsigned int)target->symbol);
+    xl6IrCgenDeclareUnwindScope(out, module, function);
+    if ( !xl6IrCgenAsyncDeclareMachineProgramValues(
+            out, module, machine, function, launchBlocks, SIZE_MAX, diags) ) goto done;
+    if ( !xl6IrCgenAsyncDeclareMachineProgramStorages(
+            out, module, machine, function, launchBlocks, diags) ) goto done;
+    xl6OutputPrintf(out, "    goto ap%lu;\n", (unsigned long)launchEntry->programBlock);
+    for ( local = 0; local < machine->blockCount; ++local ) {
+        const XL6_IrAsyncMachineBlock* block;
+        size_t instructionIndex;
+        if ( !launchBlocks[local] ) continue;
+        block = &module->asyncMachineBlocks[machine->firstBlock + local];
+        xl6OutputPrintf(out, "ap%lu:;\n", (unsigned long)(machine->firstBlock + local));
+        for ( instructionIndex = block->firstInstruction;
+              instructionIndex < block->firstInstruction + block->instructionCount;
+              ++instructionIndex )
+            if ( !xl6IrCgenEmitAsyncMachineInstruction(
+                    out, module, target, machine, function, block,
+                    &module->instructions[instructionIndex], diags) ) goto done;
+    }
+    xl6OutputPrintf(out,
+        "}\nstatic void xlir_async_machine_entry_%u(void* data)\n{\n"
+        "    xerror* saved = xrtTakeError();\n"
+        "    xlir_async_machine_entry_body_%u((xlir_async_machine_frame_%u*)data);\n"
+        "    xrtClearError(); xrtSetErrorTake(saved);\n}\n",
+        (unsigned int)target->symbol, (unsigned int)target->symbol, (unsigned int)target->symbol);
 
     xl6OutputPrintf(out, "static xfuture* xlir_async_start_raw_%u(",
                     (unsigned int)target->symbol);
@@ -309,7 +338,6 @@ static int xl6IrCgenEmitAsyncMachine(
     xl6OutputPrintf(out,
         ")\n{\n"
         "    xlir_async_machine_frame_%u* frame = (xlir_async_machine_frame_%u*)xlir_async_frame_allocate(sizeof(*frame), &xlir_async_machine_storage_%u);\n"
-        "    xfuture* output;\n"
         "    if (frame == NULL) {\n",
         (unsigned int)target->symbol, (unsigned int)target->symbol, (unsigned int)target->symbol);
     if (!xl6IrCgenEmitActivationInputRollback(out, module, target, diags)) goto done;
@@ -345,25 +373,10 @@ static int xl6IrCgenEmitAsyncMachine(
                     frame->initBit == SIZE_MAX ? NULL : initialized, rollback)) goto done;
         } else goto done;
     }
-    xl6IrCgenDeclareUnwindScope(out, module, function);
-    if ( !xl6IrCgenAsyncDeclareMachineProgramValues(
-            out, module, machine, function, launchBlocks, SIZE_MAX, diags) ) goto done;
-    if ( !xl6IrCgenAsyncDeclareMachineProgramStorages(
-            out, module, machine, function, launchBlocks, diags) ) goto done;
-    xl6OutputPrintf(out, "    goto ap%lu;\n", (unsigned long)launchEntry->programBlock);
-    for ( local = 0; local < machine->blockCount; ++local ) {
-        const XL6_IrAsyncMachineBlock* block;
-        size_t instructionIndex;
-        if ( !launchBlocks[local] ) continue;
-        block = &module->asyncMachineBlocks[machine->firstBlock + local];
-        xl6OutputPrintf(out, "ap%lu:;\n", (unsigned long)(machine->firstBlock + local));
-        for ( instructionIndex = block->firstInstruction;
-              instructionIndex < block->firstInstruction + block->instructionCount;
-              ++instructionIndex )
-            if ( !xl6IrCgenEmitAsyncMachineInstruction(
-                    out, module, target, machine, function, block,
-                    &module->instructions[instructionIndex], SIZE_MAX, diags) ) goto done;
-    }
+    xl6OutputPrintf(out,
+        "    return xl6ContinuationFrameLaunchV1(frame, xlir_continuation_executor, xlir_async_machine_entry_%u,\n"
+        "        xlir_code_owner.size != 0 ? &xlir_code_owner : NULL);\n",
+        (unsigned int)target->symbol);
     xl6OutputPuts("}\n\n", out);
     if ( xl6OutputHasFailed(out) ) goto done;
     *emitted = 1;
@@ -376,10 +389,8 @@ done:
     return ok;
 }
 
-/* The worker/launcher split below is driven entirely by a verified async
- * target ABI. No source AST, type spelling, or secondary async emitter is
- * consulted here. The shared pool outlives individual calls and their Futures;
- * its module-resource unload action remains a separate lifecycle obligation. */
+/* Dispatch only the verified frame program or the proved immediate Future.
+ * There is no implicit blocking-pool fallback for a language async body. */
 static int xl6IrCgenEmitAsyncLauncher(
     XL6_Output* out, const XL6_IrModule* module, const XL6_IrCallTarget* target,
     XL6_DiagList* diags)
@@ -390,11 +401,10 @@ static int xl6IrCgenEmitAsyncLauncher(
     const char* workerResultType;
     const char* valueDestroy;
     int workerMayRaise;
-    size_t parameter;
     if ( target == NULL || target->kind != XL6_IR_CALL_TARGET_INTERNAL_ASYNC ||
          target->futureOutcomeAbi != XL6_IR_FUTURE_OUTCOME_XRT_ERROR_KIND ||
          target->asyncCompletionAbi != XL6_IR_ASYNC_COMPLETION_RETIRE_BEFORE_PUBLISH ||
-         (target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_MODULE_TASK_POOL &&
+         (target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_FIXED_READY_QUEUE &&
           target->asyncDispatch != XL6_IR_ASYNC_DISPATCH_XRT_READY_FUTURE) ||
          (target->workerErrorAbi != XL6_IR_ERROR_ABI_NO_RAISE &&
           target->workerErrorAbi != XL6_IR_ERROR_ABI_MAY_RAISE) ||
@@ -427,174 +437,11 @@ static int xl6IrCgenEmitAsyncLauncher(
                                  "XLIR verified async machine produced no C program");
         return 1;
     }
-    if ( xl6IrCgenFindFunction(module, target->symbol) == NULL )
-        return xl6IrCgenDiag(diags, module, target->declaration,
-                             "XLIR C emitter async worker has no lowered body ABI");
-    if ( target->parameterCount != 0 &&
-         (target->asyncCaptureAbis == NULL || target->asyncCaptureDestroyAbis == NULL) )
-        return xl6IrCgenDiag(diags, module, target->declaration,
-                             "XLIR C emitter async task frame ABI is unresolved");
-    xl6OutputPrintf(out, "typedef struct xlir_async_frame_%u {\n", (unsigned int)target->symbol);
-    for ( parameter = 0; parameter < target->parameterCount; ++parameter ) {
-        const char* type = xl6IrCgenType(module, target->parameterTypes[parameter]);
-        const XL6_IrType* parameterType = xl6IrTypeGet(&module->types, target->parameterTypes[parameter]);
-        if (type == NULL || parameterType == NULL ||
-            target->asyncCaptureAbis[parameter] == XL6_IR_ASYNC_CAPTURE_INVALID)
-            return xl6IrCgenDiag(diags, module, target->declaration,
-                                 "XLIR C emitter async task frame capture ABI is unresolved");
-        xl6OutputPrintf(out, "    %s p%lu;\n", type, (unsigned long)parameter);
-    }
-    if ( target->parameterCount == 0 )
-        xl6OutputPuts("    unsigned char reserved;\n", out);
-    xl6OutputPrintf(out, "} xlir_async_frame_%u;\n", (unsigned int)target->symbol);
-    if (target->parameterCount) {
-        xl6OutputPrintf(out, "static const XL6_CaptureSlotV2 xlir_async_slots_%u[] = {\n", (unsigned int)target->symbol);
-        for (parameter = 0; parameter < target->parameterCount; ++parameter) {
-            char frameType[64],field[64];
-            snprintf(frameType,sizeof(frameType),"xlir_async_frame_%u",(unsigned)target->symbol);
-            snprintf(field,sizeof(field),"p%lu",(unsigned long)parameter);
-            if(!xl6IrCgenEmitCaptureSlotV2(out,module,target->parameterTypes[parameter],
-                target->asyncCaptureDestroyAbis[parameter],frameType,field))return 0;
-        }
-        xl6OutputPuts("};\n", out);
-    }
-    xl6OutputPrintf(out, "static const XL6_CaptureLayoutV2 xlir_async_layout_%u = {sizeof(XL6_CaptureLayoutV2), sizeof(xlir_async_frame_%u), %lu, ",
-        (unsigned int)target->symbol, (unsigned int)target->symbol, (unsigned long)target->parameterCount);
-    if (target->parameterCount) xl6OutputPrintf(out, "xlir_async_slots_%u", (unsigned int)target->symbol);
-    else xl6OutputPuts("NULL", out);
-    xl6OutputPuts("};\n", out);
-    xl6OutputPrintf(out,
-                    "static xl6_error_result xlir_async_frame_retire_%u(xlir_async_frame_%u* frame, xl6_error_result outcome)\n"
-                    "{\n"
-                    "    xl6_error_scope capture_cleanup = {0};\n"
-                    "    if (frame == NULL) return outcome;\n"
-                    "    if (!xl6ErrorScopeBegin(&capture_cleanup)) abort();\n"
-                    "    xrtSetErrorTake(outcome.error);\n"
-                    "    if (!outcome.ok) xl6ErrorScopeCaptureFailure(&capture_cleanup);\n",
-                    (unsigned int)target->symbol, (unsigned int)target->symbol);
-    xl6OutputPuts("    (xl6TaskRuntimeV3Get()->Cleanup)(frame);\n", out);
-    xl6IrCgenEmitActivationCleanupObserve(out);
-    xl6OutputPuts("    return xl6ErrorScopeEnd(&capture_cleanup);\n", out);
-    xl6OutputPrintf(out, "}\nstatic void xlir_async_frame_free_%u(void* data, void* user)\n"
-        "{ (void)user; xlir_task_discard(data); }\n", (unsigned int)target->symbol);
-
-    xl6OutputPrintf(out,
-                    "static XL6_TaskOutcome xlir_async_task_%u(xcancel* cancel, void* data, XL6_TaskResult* result)\n"
-                    "{\n"
-                    "    xlir_async_frame_%u* frame = (xlir_async_frame_%u*)data;\n"
-                    "    xl6_error_result outcome = {true, NULL};\n"
-                    "    bool cancelled = false;\n",
-                    (unsigned int)target->symbol, (unsigned int)target->symbol,
-                    (unsigned int)target->symbol);
-    if ( target->asyncResultAbi != XL6_IR_ASYNC_RESULT_VOID )
-        xl6OutputPrintf(out, "    %s* value = NULL;\n", resultType);
-    xl6OutputPuts("    if (frame == NULL || result == NULL) { xrtSetErrorKind(XERR_INTERNAL); outcome.ok = false; goto complete; }\n", out);
-    if ( target->asyncResultAbi != XL6_IR_ASYNC_RESULT_VOID ) {
-        if(!xl6IrCgenEmitAsyncPayloadAllocation(out,module,target->workerReturnType,target->asyncResultAbi,"value"))return 0;
-        xl6OutputPrintf(out,
-                        "    if (value == NULL) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); outcome.ok = false; goto complete; }\n"
-                        "    *value = (%s){0};\n", resultType);
-    }
-    /* Detach consuming inputs before calling the worker. Borrowed captures
-     * remain owned by the frame's verified pre-publication retirement. */
-    for (parameter = 0; parameter < target->parameterCount; ++parameter) {
-        if (target->asyncCaptureAbis[parameter] != XL6_IR_ASYNC_CAPTURE_TAKE_PARAMETER) continue;
-        xl6OutputPrintf(out, "    %s a%lu = frame->p%lu; frame->p%lu = NULL;\n",
-            xl6IrCgenType(module, target->parameterTypes[parameter]),
-            (unsigned long)parameter, (unsigned long)parameter, (unsigned long)parameter);
-    }
-    if ( workerMayRaise ) {
-        xl6OutputPrintf(out,
-                        "    %s worker;\n"
-                        "    worker = xlir_fn_%u(",
-                        workerResultType, (unsigned int)target->symbol);
-    } else if ( target->asyncResultAbi == XL6_IR_ASYNC_RESULT_VOID )
-        xl6OutputPrintf(out, "    xlir_fn_%u(", (unsigned int)target->symbol);
-    else
-        xl6OutputPrintf(out, "    *value = xlir_fn_%u(", (unsigned int)target->symbol);
-    for ( parameter = 0; parameter < target->parameterCount; ++parameter ) {
-        if ( parameter > 0 ) xl6OutputPuts(", ", out);
-        xl6OutputPrintf(out, target->asyncCaptureAbis[parameter] == XL6_IR_ASYNC_CAPTURE_TAKE_PARAMETER
-            ? "a%lu" : "frame->p%lu", (unsigned long)parameter);
-    }
-    xl6OutputPuts(");\n", out);
-    if ( workerMayRaise ) {
-        if ( target->asyncResultAbi == XL6_IR_ASYNC_RESULT_VOID )
-            xl6OutputPuts("    outcome.ok = worker.ok;\n", out);
-        else
-            xl6OutputPuts("    outcome.ok = worker.ok;\n"
-                          "    if (worker.ok) *value = worker.value;\n", out);
-    }
-    xl6OutputPrintf(out,
-        "complete:\n"
-        "    outcome.error = xrtTakeError();\n"
-        "    if (outcome.error != NULL) outcome.ok = false;\n"
-        "    cancelled = outcome.ok && xrtCancelRequested(cancel);\n"
-        "    if (cancelled) outcome.ok = false;\n"
-        "    outcome = xlir_async_frame_retire_%u(frame, outcome);\n"
-        "    if (!outcome.ok) {\n"
-        "        xl6_error_scope capture_cleanup = {0};\n"
-        "        if (!xl6ErrorScopeBegin(&capture_cleanup)) abort();\n"
-        "        xrtSetErrorTake(outcome.error); xl6ErrorScopeCaptureFailure(&capture_cleanup);\n",
-        (unsigned int)target->symbol);
-    if (target->asyncResultAbi != XL6_IR_ASYNC_RESULT_VOID)
-        xl6OutputPrintf(out, "        if (value) %s(value, NULL);\n", valueDestroy);
-    xl6IrCgenEmitActivationCleanupObserve(out);
-    xl6OutputPuts(
-        "        outcome = xl6ErrorScopeEnd(&capture_cleanup);\n"
-        "        xrtSetErrorTake(outcome.error);\n"
-        "        if (cancelled) { xrtClearError(); return XL6_TASK_CANCELLED; }\n"
-        "        if (!xrtGetError()) xrtSetErrorKind(XERR_INTERNAL);\n"
-        "        return XL6_TASK_FAILED;\n"
-        "    }\n", out);
-    if ( target->asyncResultAbi == XL6_IR_ASYNC_RESULT_VOID )
-        xl6OutputPuts("    result->Value = NULL; result->Destroy = NULL; result->DestroyData = NULL;\n"
-                      "    return XL6_TASK_SUCCESS;\n"
-                      "}\n", out);
-    else
-        xl6OutputPrintf(out,
-                        "    result->Value = value; result->Destroy = %s; result->DestroyData = NULL;\n"
-                        "    return XL6_TASK_SUCCESS;\n"
-                        "}\n", valueDestroy);
-    xl6OutputPrintf(out, "static xfuture* xlir_async_start_raw_%u(", (unsigned int)target->symbol);
-    if ( target->parameterCount == 0 ) xl6OutputPuts("void", out);
-    for ( parameter = 0; parameter < target->parameterCount; ++parameter ) {
-        const char* type = xl6IrCgenType(module, target->parameterTypes[parameter]);
-        if ( parameter > 0 ) xl6OutputPuts(", ", out);
-        xl6OutputPrintf(out, "%s a%lu", type, (unsigned long)parameter);
-    }
-    xl6OutputPrintf(out,
-        ")\n{\n"
-        "    xfuture* future;\n"
-        "    xlir_async_frame_%u* frame;\n"
-        "    frame = (xlir_async_frame_%u*)xlir_task_allocate(sizeof(*frame), xlir_async_task_%u, &xlir_async_layout_%u);\n"
-        "    if (frame == NULL) {\n", (unsigned int)target->symbol, (unsigned int)target->symbol,
-        (unsigned int)target->symbol, (unsigned int)target->symbol);
-    if (!xl6IrCgenEmitActivationInputRollback(out, module, target, diags)) return 0;
-    xl6OutputPuts("    return NULL; }\n", out);
-    xl6OutputPrintf(out, "    *frame = (xlir_async_frame_%u){0};\n", (unsigned int)target->symbol);
-    /* The target capture vector gives a canonical two-phase acquisition:
-     * take every incoming owner before the first fallible copy/retain. */
-    for (size_t capturePhase = 0; capturePhase < 2; ++capturePhase)
-    for (parameter = 0; parameter < target->parameterCount; ++parameter) {
-        char place[64], input[32], rollback[128];
-        XL6_IrAsyncFrameTransferAbi transfer = xl6IrCgenAsyncCaptureTransfer(target->asyncCaptureAbis[parameter]);
-        if ((transfer == XL6_IR_ASYNC_FRAME_TRANSFER_TAKE_PARAMETER ? 0u : 1u) != capturePhase) continue;
-        snprintf(place, sizeof(place), "frame->p%lu", (unsigned long)parameter);
-        snprintf(input, sizeof(input), "a%lu", (unsigned long)parameter);
-        snprintf(rollback, sizeof(rollback), "xlir_async_frame_free_%u(frame, NULL);",
-            (unsigned int)target->symbol);
-        if (!xl6IrCgenEmitActivationCapture(out, module,target->parameterTypes[parameter], transfer, place, input, NULL, rollback))
-            return xl6IrCgenDiag(diags, module, target->declaration,
-                "XLIR C emitter async task frame capture ABI is unresolved");
-    }
-    xl6IrCgenEmitAsyncTaskSubmission(out,target->asyncResultAbi,1);
-    xl6OutputPuts("    if (future == NULL) {\n",out);
-    xl6IrCgenEmitActivationFailure(out);
-    xl6OutputPrintf(out, "    xlir_async_frame_free_%u(frame, NULL); }\n"
-        "    return future;\n}\n\n", (unsigned int)target->symbol);
-    return !xl6OutputHasFailed(out);
+    return xl6IrCgenDiag(diags,module,target->declaration,
+        "XLIR scheduled async target has no verified ready-queue machine");
 }
+
+
 
 /* Synchronous generators use the same verified continuation-frame vocabulary
  * as async machines, but their resume edge is an ordinary call.  Keep the

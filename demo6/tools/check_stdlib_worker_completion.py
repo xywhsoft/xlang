@@ -1,4 +1,4 @@
-"""Current-IR real task workers: preserve the full completion/cancellation/
+"""Current-IR real queued async workers: preserve the full completion/cancellation/
 destructor/error populations, actual worker result-allocation faults, exact
 string/NUL results and module logical quiescence/memory balance. Windows/Linux O0/O2 plus
 optional selected Linux ASan/UBSan. Not worker-wide OOM or full53 acceptance.
@@ -18,6 +18,7 @@ def main():
     name='xlir_async_worker_completion';files=pinned|{Path(__file__).resolve(),Path(cc),runtime,root/'test/cases/xlir_artifact_runtime_contract.c'}
     files.update(root/'test/cases'/f for f in (name+'.xl',name+'_contract.c',name+'_host.c',name+'_runtime.c'))
     files.update((root/'test/cases').glob('xlir_*.h'))
+    root_native=root/'test/cases/xlir_async_root_launch_native.c';files.add(root_native)
     inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(files)]
     out.mkdir();rows=[];products=[];proofs=[];env=dict(os.environ)
     if os.name=='nt':shutil.copy2(runtime,out/'xl.dll')
@@ -26,9 +27,15 @@ def main():
         ComparedSourceInputs=compared,SelectedClosureSanitized=a.sanitize,SourceProviderOverrides=False,
         Full53Acceptance=False,ShippingArtifact=False,WorkerWideOomAcceptance=False,ModuleUnmapAcceptance=False)
     def run(label,command):
-        r=subprocess.run(list(map(str,command)),cwd=root,env=env,capture_output=True,timeout=600)
+        command=list(map(str,command));actual=command;response=None
+        if command[0]==cc:
+            response=out/(label+'.rsp')
+            response.write_text(''.join('"'+v.replace('\\','/').replace('"','\\"')+'"\n' for v in command[1:]),encoding='utf8')
+            actual=[cc,'@'+str(response)]
+        r=subprocess.run(actual,cwd=root,env=env,capture_output=True,timeout=600)
         data=r.stdout+r.stderr;log=out/(label+'.log');log.write_bytes(data)
-        rows.append(dict(Name=label,Command=list(map(str,command)),Exit=r.returncode,Log=str(log),LogSha256=sha(log)))
+        rows.append(dict(Name=label,Command=command,ActualCommand=actual,ResponseSha256=sha(response) if response else None,
+            Exit=r.returncode,Log=str(log),LogSha256=sha(log)))
         assert r.returncode==0,(label,data[-6000:]);return data.decode(errors='replace')
     def product(path):products.append(dict(Path=str(path),Sha256=sha(path)))
     flags=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-I'+str(root),'-I'+str(root/'release'),
@@ -57,6 +64,10 @@ def main():
             providers=[]
             for i,s in enumerate([native,*[root/f for f in sources]]):
                 obj=out/(opt+'-provider-'+str(i)+'.o');run(opt+'-provider-'+str(i),[cc,*flags,*extra,level,'-c',s,'-o',obj]);providers.append(obj);product(obj)
+            root_binary=out/('root-'+opt+ext)
+            run(opt+'-root-build',[cc,*flags,*extra,level,root_native,*providers,*systems,*sanlinks,'-o',root_binary]);product(root_binary)
+            root_text=run(opt+'-root-execute',[root_binary])
+            assert '32 real single-worker barriers' in root_text and 'complete allocation prefixes' in root_text and 'exact memory balance' in root_text
             binary=out/('worker-'+opt+ext)
             definitions=['-DXLIR_WORKER_COMPLETION_SOURCE="'+(out/'worker.c').as_posix()+'"',
                 '-DXLIR_WORKER_COMPLETION_BINDING="'+(out/'worker.h.bind.h').as_posix()+'"']

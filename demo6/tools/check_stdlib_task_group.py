@@ -18,14 +18,22 @@ def main():
     planner=root/'test/support/container_projection_artifact.c'
     configured=root/'test/cases/stdlib_task_group_configured_native.c'
     contract=root/'test/cases/xlir_task_group_configured_contract.c'
+    starter=root/'test/cases/stdlib_task_group_start_native.c'
+    starter_contract=root/'test/cases/xlir_task_group_start_contract.c'
+    quiescence=root/'test/support/static_module_quiescence.c'
+    zero_contract=root/'test/cases/xlir_zero_suspend_async_contract.c'
     fixtures=[root/'test/cases'/(name+'.xl') for name in (
         'stdlib_task_group','stdlib_task_group_methods','stdlib_task_group_allocations','stdlib_task_group_sync_only',
-        'stdlib_task_group_configured')]
+        'stdlib_task_group_configured','stdlib_task_group_start','stdlib_task_group_start_types',
+        'stdlib_task_group_start_async','xlir_nested_callable_type_context','xlir_static_method_value',
+        'xlir_zero_suspend_async')]
     negatives=[root/'test/cases'/(name+'.xl') for name in ('xlir_task_group_bad_future','xlir_task_group_bad_effect',
-        'sem_task_group_private_handle','sem_task_group_raw_construct','sem_task_group_snapshot_default')]
+        'sem_task_group_private_handle','sem_task_group_raw_construct','sem_task_group_snapshot_default',
+        'bad_task_group_start_return','bad_task_group_start_arity','bad_task_group_start_width',
+        'bad_task_group_start_no_raise','bad_static_method_value_private')]
     runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
     pinned.update((Path(__file__).resolve(),Path(sys.executable),Path(cc),Path(inspector),native,lifetime,planner,
-        configured,contract,runtime,*fixtures,*negatives))
+        configured,contract,starter,starter_contract,quiescence,zero_contract,runtime,*fixtures,*negatives))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]
     objects=[Path(row['Path']) for row in build['Objects'] if Path(row['Path']).stem not in ('xlir_public_source_driver','xlir_public_source_linux_driver')]
     flags=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include')]
@@ -70,6 +78,14 @@ def main():
             run(optimization+'.configured.build',[cc,*flags,'-'+optimization,configured,*objects,*libraries,'-o',configured_image])
             output=run(optimization+'.configured.run',[configured_image])
             assert 'operation=0 prefix=6 balanced' in output and 'operation=1 prefix=7 balanced' in output and 'operation=2 prefix=1 balanced' in output
+            start_image=out/('start.'+optimization+suffix)
+            run(optimization+'.start.build',[cc,*flags,'-'+optimization,starter,*objects,*libraries,'-o',start_image])
+            output=run(optimization+'.start.run',[start_image])
+            assert 'TaskGroup starter: actual code scope' in output
+            tail_image=out/('failed-tail.'+optimization+suffix)
+            run(optimization+'.tail.build',[cc,*flags,'-'+optimization,quiescence,*objects,*libraries,'-o',tail_image])
+            output=run(optimization+'.tail.run',[tail_image])
+            assert '192 real finalizer-to-worker handoffs' in output
         strict=['-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-label',
             '-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign']
         for fixture in fixtures:
@@ -86,6 +102,14 @@ def main():
         run('contract.build',[cc,*flags,'-I'+str(root/'lib/tcc'),'-O2',contract,*objects,*libraries,'-o',contract_image])
         output=run('contract.run',[contract_image,fixtures[4]])
         assert 'pre-emission refusals' in output
+        start_contract_image=out/('start-contract'+suffix)
+        run('start.contract.build',[cc,*flags,'-I'+str(root/'lib/tcc'),'-O2',starter_contract,*objects,*libraries,'-o',start_contract_image])
+        output=run('start.contract.run',[start_contract_image,*fixtures[5:8]])
+        assert 'zero-C/header refusals' in output
+        zero_image=out/('zero-contract'+suffix)
+        run('zero.contract.build',[cc,*flags,'-I'+str(root/'lib/tcc'),'-O2',zero_contract,*objects,*libraries,'-o',zero_image])
+        output=run('zero.contract.run',[zero_image,fixtures[10]])
+        assert 'no implicit task pool' in output
         host=out/('public-lifetime'+suffix)
         run('lifetime.build',[cc,*flags,'-O2',lifetime,*objects,*libraries,'-o',host])
         tcc=str(root/'res/tcc/win64/x86_64') if os.name=='nt' else str(Path(build['NativeRoot'])/'build/linux/tcc-dist')
@@ -93,10 +117,12 @@ def main():
         assert output.count('task-group-resident-methods')==5 and 'complete XRT release ledger balanced' in output
         artifact=out/('artifact-plan'+suffix)
         run('artifact.build',[cc,*flags,'-O0',planner,*objects,*libraries,'-o',artifact])
-        for fixture,asynchronous in ((fixtures[3],False),(fixtures[1],True)):
+        for fixture,asynchronous in ((fixtures[3],False),(fixtures[1],True),(fixtures[5],False),
+            (fixtures[6],False),(fixtures[7],True),(fixtures[10],False)):
             prefix=out/(fixture.stem+'.plan');run(fixture.stem+'.plan',[artifact,fixture,prefix])
             plan=json.loads(Path(str(prefix)+'.plan.json').read_text());sources={Path(path).name for path in plan['Sources']}
             assert ('xl6_task_group_future.c' in sources)==asynchronous
+            assert ('xl6_task_group_start.c' in sources)==(fixture in fixtures[5:8])
             assert not {'XRT_MODULE_TASK_GROUP_POOL','XRT_MODULE_TASK_GROUP_COROUTINE','XRT_MODULE_TASK_POOL','XRT_MODULE_COROUTINE'}&set(plan['NativeModules'])
         image=out/('task-group.aot'+suffix);run('owner.aot.build',[build['Driver'],fixtures[1],'exe',image])
         actual=Path(str(image)+'.exe') if os.name=='nt' and not image.exists() else image
