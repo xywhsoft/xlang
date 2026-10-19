@@ -26,7 +26,7 @@ def digest(path):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--stage', choices=('p0', *FIXED_FUTURE_STAGES, 'atomic', 'once-event', 'thread-local', 'cancellation', 'promise', *CHANNEL_STAGES), required=True)
+    parser.add_argument('--stage', choices=('p0', *FIXED_FUTURE_STAGES, 'atomic', 'once-event', 'thread-local', 'cancellation', 'promise', 'task-group', *CHANNEL_STAGES), required=True)
     parser.add_argument('--root', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--native-factory-inheritance',action='store_true',
@@ -130,6 +130,14 @@ def main():
                      'bad_stdlib_promise_default_generic_field')
         helpers = (*helpers[:3], 'xlir_promise_contract.c', 'stdlib_promise_native_host.c',
                    'stdlib53_pruning_plan.c', 'stdlib_native_future_policy_product_host.c')
+    if args.stage == 'task-group':
+        selected=('stdlib_task_group_configured','stdlib_task_group_methods','stdlib_task_group_sync_only',
+            'stdlib_task_group','stdlib_task_group_allocations','xlir_fixed_executor_language',
+            'stdlib_promise','stdlib_promise_terminal','stdlib_concurrent_import_only')
+        negatives=('sem_task_group_private_handle','sem_task_group_raw_construct',
+            'sem_task_group_snapshot_default','xlir_task_group_bad_future','xlir_task_group_bad_effect')
+        helpers=(*helpers[:3],'xlir_task_group_configured_contract.c','stdlib_task_group_configured_native.c',
+            'stdlib53_pruning_plan.c','stdlib_task_group_entry_host.c')
     if args.stage in CHANNEL_STAGES:
         selected = ('stdlib_channel_timeout', 'stdlib_channel_owned', 'stdlib_channel_owned_wait',
                     'stdlib_channel_recipes', 'stdlib_promise', 'stdlib_cancellation',
@@ -336,6 +344,25 @@ def main():
                   '-Wno-unused-label', '-Wno-unused-const-variable', '-Wno-unused-but-set-variable',
                   '-Wno-missing-field-initializers', '-I'+str(task), '-I'+str(root),
                   '-I'+str(root/'release'), '-I'+str(sdk)]
+        if args.stage=='task-group':
+            declared=set(re.findall(r'XL6_TEXT_API [^;\n]*?\b(xl6TaskGroup\w+)\(',
+                (root/'src/runtime/xl6_text_value.h').read_text()))
+            contracts=set(re.findall(r'\{"(xl6TaskGroup\w+)"',
+                (root/'src/ir/xl6_ir_direct_bridge.c').read_text()))
+            exports=set(re.findall(r'XL6_TEXT_EXPORT\((xl6TaskGroup\w+),',
+                (root/'src/runtime/xl6_text_symbols.inc').read_text()))
+            assert len(declared)==28 and declared==contracts and declared<=exports
+            inspect=shutil.which('objdump' if win else 'nm');assert inspect
+            for product in products[1:]:
+                body=run(product.stem+'.group.exports',[inspect,'-p',product] if win else
+                    [inspect,'-D','--defined-only',product])
+                actual={name.decode() for name in re.findall(rb'\bxl6TaskGroup\w+\b',body)}
+                assert exports<=actual
+                for opt in ('O0','O2'):
+                    lane=product.stem+'.group.native.'+opt;binary=isolated/(lane+('.exe' if win else ''))
+                    run(lane+'.build',[cc,*strict,'-'+opt,cases/helpers[4],*links(product.name),'-o',binary])
+                    run(lane+'.run',[binary])
+            report['TaskGroupResidentEntries']=len(declared)
         if args.stage in FIXED_FUTURE_STAGES:
             strict += ['-DXLIR_CONTINUATION_WORKERS=1']
         cli = release/names[0]
@@ -371,6 +398,7 @@ def main():
                     'stdlib_channel_cases_owned','xlir_generic_static_calls','stdlib_channel_cases_receive_only'))
             if args.channel_finite_language and name.startswith('stdlib_channel_finite_'):full=True
             if args.channel_owned_profiles and name.startswith('stdlib_channel_owned_'):full=True
+            if args.stage=='task-group' and name in selected[:5]:full=True
             if not full:
                 return
             work = out/(name+'.saved')
@@ -416,6 +444,21 @@ def main():
                 except Exception as error:
                     failures.append(dict(Name=name, Error=repr(error)))
                     save()
+        if args.stage=='task-group' and not failures:
+            module=out/'stdlib_task_group_configured.saved/module.c'
+            report['TaskGroupAllocationPrefixes']={}
+            for product in products[1:]:
+                lane=product.stem+'.group.oom';binary=isolated/(lane+('.exe' if win else ''))
+                run(lane+'.build',[cc,*strict,'-O2','-DXLIR_GENERATED_MODULE="'+module.as_posix()+'"',
+                    cases/helpers[6],task/'test/support/module_product_memory.c',*links(product.name),'-o',binary])
+                recovered=[]
+                for point in range(4097):
+                    body=run(lane+'.'+str(point),[binary,point])
+                    if b'recovered=1' in body:recovered.append(point)
+                    if b'hit=0 complete-prefix balanced' in body:break
+                else:raise AssertionError('TaskGroup allocation prefix did not close')
+                report['TaskGroupAllocationPrefixes'][lane]=dict(FirstNoHit=point,RecoveredRetirement=recovered)
+                save()
         if args.stage in CHANNEL_FUTURE_STAGES and not failures:
             module=out/('stdlib_channel_direct_ready.saved/module.c' if args.stage=='channel-direct' else 'stdlib_channel_future_ready.saved/module.c')
             prefixKey='ChannelDirectAllocationPrefixes' if args.stage=='channel-direct' else 'ChannelFutureAllocationPrefixes'
@@ -515,6 +558,21 @@ def main():
                     report['ChannelCaseLanguagePrefixes'][lane]=dict(FirstNoHit=point,RecoveredRetirement=recovered)
                     save()
         if not win and not failures:
+            if args.stage=='task-group':
+                planner=isolated/'task-group-planner'
+                run('group.pruning.build',[cc,*strict,'-O2','-I'+str(root/'lib/tcc'),
+                    cases/helpers[5],*links(names[2]),'-o',planner])
+                report['TaskGroupPlans']={}
+                for name in selected[:3]+('stdlib_concurrent_import_only',):
+                    plan=json.loads(run(name+'.group.plan',[planner,isolated/(name+'.xl')]))
+                    sources={Path(path).name for path in plan['Sources']}
+                    if name!='stdlib_concurrent_import_only':
+                        assert {'xl6_signal_task_group.c','xl6_ownership_domain_resource_task_group.c'}<=sources
+                        assert ('xl6_task_group_future.c' in sources)==(name=='stdlib_task_group_methods')
+                    else:assert 'xl6_signal_task_group.c' not in sources
+                    assert not any(m.startswith(('XRT_MODULE_NET','XRT_MODULE_TLS','XRT_MODULE_COROUTINE',
+                        'XRT_MODULE_TASK_POOL','XRT_MODULE_TASK_GROUP_POOL')) for m in plan['NativeModules'])
+                    report['TaskGroupPlans'][name]=plan
             if args.stage in QUEUED_FUTURE_STAGES:
                 for name in helpers[5:8]:
                     emitted=[]

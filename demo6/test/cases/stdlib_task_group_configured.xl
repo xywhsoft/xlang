@@ -1,0 +1,101 @@
+import concurrent
+
+func detachedSnapshot() as TaskGroupSnapshot
+    auto group = task.group()
+    return group.snapshot()
+end
+func detachedToken() as CancellationToken
+    auto group = task.group()
+    return group.cancellationToken()
+end
+
+func main(...) as int
+    auto detached = detachedSnapshot()
+    assert detached.active == 0 and detached.accepting
+    assert not detachedToken().isCancellationRequested
+    TaskGroup group = task.group(1, taskGroupCancelOn.none)
+    auto first = Promise::<int>()
+    auto second = Promise::<int>()
+    assert group.valid and group.add(first.future)
+    assert not group.add(second.future)
+    TaskGroupSnapshot before = group.snapshot()
+    assert before.active == 1 and before.added == 1 and before.rejected == 1
+    assert before.completed == 0 and before.accepting and not before.cancelling
+    assert not before.hasFirst and before.firstIndex == 0
+    assert first.tryResolve(7) and second.tryResolve(8)
+    assert group.join() and group.count == 0
+    auto after = group.snapshot()
+    assert before.active == 1 and after.active == 0
+    assert after.completed == 1 and after.succeeded == 1 and after.failed == 0
+    assert after.cancelled == 0 and after.closed == 0 and not after.accepting
+    assert group.reapCompleted() == 1 and group.reapCompleted() == 0
+    group.throwIfFailed()
+
+    auto policies = TaskGroup(0, taskGroupCancelOn.failed)
+    auto failing = Promise::<int>()
+    auto pending = Promise::<int>()
+    assert policies.add(failing.future) and policies.add(pending.future)
+    error original = null
+    try
+        throw ValueError "group first error"
+    catch ValueError failure
+        original = failure
+    end
+    assert failing.tryReject(original)
+    auto failed = policies.snapshot()
+    assert failed.failed == 1 and failed.active == 1 and failed.cancelling
+    assert failed.hasFirst and failed.firstIndex == 0 and failed.firstState == taskGroupState.failed
+    assert pending.isCancellationRequested and pending.tryCancel()
+    assert policies.join() and policies.snapshot().cancelled == 1
+    bool caught = false
+    try
+        policies.throwIfFailed()
+    catch ValueError failure
+        assert failure.message == "group first error"
+        caught = true
+    end
+    assert caught
+
+    auto source = CancellationSource()
+    auto parent = TaskGroup(source.token, 2, taskGroupCancelOn.stopped)
+    auto token = parent.cancellationToken()
+    assert not token.isCancellationRequested
+    assert source.cancel() and token.isCancellationRequested
+    auto children = task.group()
+    auto child = children.child(1, taskGroupCancelOn.closed)
+    assert children.count == 1 and child.close() and children.join()
+    assert children.reapCompleted() == 1
+
+    auto waiting = task.group()
+    auto work = Promise::<int>()
+    auto waiter = CancellationSource()
+    assert waiting.add(work.future)
+    assert waiter.cancel() and not waiting.joinCancel(waiter.token)
+    assert not waiting.cancellationToken().isCancellationRequested
+    assert not work.isCancellationRequested and work.tryResolve(9)
+    assert waiting.joinUntil(uint64(0))
+    assert waiting.joinTimeoutCancel(0, waiter.token)
+    bool invalid = false
+    try
+        waiting.joinTimeout(-1)
+    catch RangeError
+        invalid = true
+    end
+    assert invalid
+    invalid = false
+    try
+        auto bad = TaskGroup(-1)
+    catch RangeError
+        invalid = true
+    end
+    assert invalid
+    invalid = false
+    try
+        auto bad = TaskGroup(0, 8)
+    catch RangeError
+        invalid = true
+    end
+    assert invalid
+    println("managed TaskGroup config, snapshot, policies, cancellation and owned error ok")
+    return 0
+end

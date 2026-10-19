@@ -1,0 +1,2 @@
+TaskGroup group = task.group()
+auto raw = group.handle

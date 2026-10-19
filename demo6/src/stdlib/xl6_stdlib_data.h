@@ -5,7 +5,7 @@
 
 #include "src/ast/xl6_ast.h"
 
-#define XL6_STDLIB_CONST_COUNT 182
+#define XL6_STDLIB_CONST_COUNT 192
 #define XL6_STDLIB_FUNC_COUNT 996
 extern const char* xl6StdlibOnceSource;
 extern const char* xl6StdlibEventSource;

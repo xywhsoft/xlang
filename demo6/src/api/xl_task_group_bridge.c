@@ -201,11 +201,96 @@ XL_API const xrtownershipadapterv1* xl6TaskGroupOwnershipAdapterV2(xrtownershipr
     if(!preparation || !completion || ref.Ops!=&ops || !count(ref.Data,&refs))return NULL;
     *preparation=&preparation_api;*completion=&completed;return &adapter;
 }
-XL_API xl6_task_group* xl6TaskGroupCreate(void) { return wrap(xrtTaskGroupCreate(NULL)); }
-XL_API xl6_task_group* xl6TaskGroupChild(xl6_task_group* parent)
+static bool config(const XL6_TaskGroupConfigV1* input,xtaskgroupconfig* output)
 {
+    *output=(xtaskgroupconfig){0};
+    if(!input)return true;
+    if(input->size!=sizeof(*input) || input->limit>SIZE_MAX ||
+        (input->cancelOn&~XRT_TASK_GROUP_CANCEL_ON_STOPPED)) {
+        xrtSetErrorKind(XERR_ARGUMENT);return false;
+    }
+    output->Cancel=input->cancel;output->Limit=(size_t)input->limit;output->CancelOn=input->cancelOn;
+    return true;
+}
+XL_API xl6_task_group* xl6TaskGroupCreateConfiguredV1(const XL6_TaskGroupConfigV1* input)
+{
+    xtaskgroupconfig native;
+    return config(input,&native)?wrap(xrtTaskGroupCreate(&native)):NULL;
+}
+XL_API xl6_task_group* xl6TaskGroupCreate(void) { return xl6TaskGroupCreateConfiguredV1(NULL); }
+XL_API xl6_task_group* xl6TaskGroupChildConfiguredV1(xl6_task_group* parent,const XL6_TaskGroupConfigV1* input)
+{
+    xtaskgroupconfig options;if(!config(input,&options))return NULL;
     xtaskgroup* native=enter(parent,true);if(!native)return NULL;
-    xl6_task_group* child=wrap(xrtTaskGroupChild(native,NULL));leave(parent);return child;
+    xl6_task_group* child=wrap(xrtTaskGroupChild(native,&options));leave(parent);return child;
+}
+XL_API xl6_task_group* xl6TaskGroupChild(xl6_task_group* parent)
+{ return xl6TaskGroupChildConfiguredV1(parent,NULL); }
+XL_API xfuture* xl6TaskGroupStartV1(xl6_task_group* group,XL6_TaskGroupStartProcV1 start,void* data)
+{
+    if(!start){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    xtaskgroup* native=enter(group,true);if(!native)return NULL;
+    xfuture* future=xrtTaskGroupStart(native,start,data);leave(group);return future;
+}
+static bool output_slot(const xl6_task_group* group,const void* output,size_t bytes,size_t align)
+{
+    uintptr_t address=(uintptr_t)output;
+    if(!output || address%align || address>UINTPTR_MAX-bytes ||
+        (group && address<(uintptr_t)group+sizeof(*group) && (uintptr_t)group<address+bytes)) {
+        xrtSetErrorKind(XERR_ARGUMENT);return false;
+    }
+    return true;
+}
+XL_API bool xl6TaskGroupGetV1(xl6_task_group* group,XL6_TaskGroupStatsV1* output)
+{
+    if(!output_slot(group,output,sizeof(*output),_Alignof(XL6_TaskGroupStatsV1)))return false;
+    xtaskgroup* native=enter(group,true);if(!native)return false;
+    xtaskgroupstats stats;bool ok=xrtTaskGroupGet(native,&stats);
+    XL6_TaskGroupStatsV1 value={0};
+    if(ok){
+        value=(XL6_TaskGroupStatsV1){stats.Active,stats.Added,stats.Completed,stats.Succeeded,
+            stats.Failed,stats.Cancelled,stats.Closed,stats.Rejected,
+            stats.FirstIndex==SIZE_MAX?0:stats.FirstIndex,(int32_t)stats.FirstState,
+            stats.FirstIndex!=SIZE_MAX,stats.Accepting,stats.Cancelling};
+    }
+    leave(group);if(ok)*output=value;return ok;
+}
+XL_API bool xl6TaskGroupErrorCopyV1(xl6_task_group* group,xerror** output)
+{
+    if(!output_slot(group,output,sizeof(*output),_Alignof(xerror*)) || *output){
+        xrtSetErrorKind(XERR_ARGUMENT);return false;
+    }
+    xtaskgroup* native=enter(group,true);if(!native)return false;
+    const xerror* borrowed=xrtTaskGroupError(native);xerror* error=borrowed?xrtErrorRef((xerror*)borrowed):NULL;
+    bool ok=!borrowed||error;leave(group);if(ok)*output=error;return ok;
+}
+XL_API bool xl6TaskGroupCancellationV1(xl6_task_group* group,xcancel** output)
+{
+    if(!output_slot(group,output,sizeof(*output),_Alignof(xcancel*)) || *output){
+        xrtSetErrorKind(XERR_ARGUMENT);return false;
+    }
+    xtaskgroup* native=enter(group,true);if(!native)return false;
+    xcancel* token=xrtTaskGroupCancelToken(native);leave(group);
+    if(!token)return false;
+    *output=token;return true;
+}
+XL_API bool xl6TaskGroupReapV1(xl6_task_group* group,uint64_t* output)
+{
+    if(!output_slot(group,output,sizeof(*output),_Alignof(uint64_t)))return false;
+    xtaskgroup* native=enter(group,true);if(!native)return false;
+    xtaskgroupstats stats;bool ok=xrtTaskGroupGet(native,&stats);uint64_t completed=0;
+    if(ok){
+        xrtownershipscope scope={0};begin(group,&scope);
+        if(stats.Completed>=group->Reaped){completed=stats.Completed-group->Reaped;group->Reaped=stats.Completed;}
+        end(group,&scope);
+    }
+    leave(group);if(ok)*output=completed;return ok;
+}
+XL_API int32_t xl6TaskGroupWaitV1(xl6_task_group* group,uint64_t deadline,xcancel* cancel)
+{
+    xtaskgroup* native=enter(group,true);if(!native)return XWAIT_ERROR;
+    xwaitresult result=xrtTaskGroupWaitUntilCancel(native,(xdeadline)deadline,cancel);
+    leave(group);return (int32_t)result;
 }
 XL_API void xl6TaskGroupDestroy(xl6_task_group* group)
 {
