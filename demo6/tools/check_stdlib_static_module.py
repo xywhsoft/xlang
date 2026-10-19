@@ -58,7 +58,7 @@ def main():
             prefixes.append(dict(Optimization=opt,Runs=runs,FirstNoHit=first))
             binary=out/('quiescence.'+opt+suffix)
             run('quiescence.'+opt+'.build',[cc,*flags,'-'+opt,quiescence,*[root/name for name in SOURCES[1:]],*libs,'-o',binary])
-            assert b'64 real finalizer-to-worker handoffs' in run('quiescence.'+opt+'.run',[binary])
+            assert b'192 real finalizer-to-worker handoffs' in run('quiescence.'+opt+'.run',[binary])
         original=(root/'src/runtime/xl6_static_module.c').read_text(encoding='utf-8-sig')
         mutants=[
             ('missing-root-pin','xl6OwnershipPlanTryCreateV5(','xl6OwnershipPlanTryCreateV4(',22),
@@ -82,6 +82,13 @@ def main():
         selected=[source if path=='src/runtime/xl6_static_module.c' else root/path for path in SOURCES[1:]]
         run('active-scope-refusal.build',[cc,*flags,'-O0','-I'+str(root/'src/runtime'),quiescence,*selected,*libs,'-o',binary])
         assert b'assert' in run('active-scope-refusal.reject',[binary],True).lower();controls.append('active-scope-refusal')
+        old='bool failed=false;result=staticRetire(module,&failed);';assert original.count(old)==1
+        source=out/'sticky-failure-early-return.c'
+        source.write_text(original.replace(old,old+' failed=module->blocked && !result.ok;'),encoding='utf-8')
+        binary=out/('sticky-failure-early-return'+suffix)
+        selected=[source if path=='src/runtime/xl6_static_module.c' else root/path for path in SOURCES[1:]]
+        run('sticky-failure.build',[cc,*flags,'-O0','-I'+str(root/'src/runtime'),quiescence,*selected,*libs,'-o',binary])
+        assert b'assert' in run('sticky-failure.reject',[binary],True).lower();controls.append('sticky-failure-early-return')
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs);assert report['InputsUnchanged']
         report.update(Complete=True,NativeFoundationAcceptance=True,StaticModuleTransientAcceptance=True,PhaseCount=len(rows))
     except Exception as error:report['Error']=repr(error);print(repr(error),flush=True)
