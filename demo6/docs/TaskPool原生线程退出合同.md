@@ -72,7 +72,18 @@ LogsUnchanged 为 true、Failures 为空；提交前再次核对输入、日志�
 的那一份引用；共享精简的 checked 错误账本，不为此拉入 detached Executor 调度。
 语言 body/捕获错误仍由各自 Future 报告，退出清理错误单独 checked 交付。
 
-wrapper 的非阻塞退休必须先改用真正 TryJoin，不能在 Wait(0) 后直接阻塞 Destroy。
+wrapper 的非阻塞退休已改用真正 TryJoin，只有真实线程完成后才 Destroy；不再在
+Wait(0) 之后假定销毁不会阻塞。新回归在真实 ThreadKey 析构中设屏障，验证控制
+线程必须在屏障释放前返回 BUSY；释放后再验证真实完成、保留统计及完整账本。
+旧 drain-before-Destroy 实现先编译成功，再被该非阻塞断言拒绝。该回归仅显式
+增加测试用 ThreadKey 模块；无特性增量的最小部署仍使用实际裁剪计划。
+
+后续 wrapper 批次使用同一证据目录下的 `wrapper-win-final`／`wrapper-linux-final`：
+61／63 阶段通过，含两次旧实现的预期运行断言拒绝；两套头、GCC/TCC、O0/O2、
+最小部署及旧任务图/结果运输保持，Linux 增加所选闭包 sanitizer。每个实际原生
+控制 profile 保留 96 轮生命周期、16 轮 ThreadKey 阻塞尾部及 32 个分配预算。
+两报告 Complete／InputsUnchanged／LogsUnchanged 为 true，Failures 为空。
+
 同池异步资源必须按既有注册资源协议关闭并归还信用，不可跳过信用或强行丢资源，
 也不能让“TLS 拥有资源、资源阻止线程退出”的依赖环永久悬挂。该语言集成及其
 JIT/module/AOT、模块退休和 shipping DLL/SO/VFS 验收不能用本批原生结果代替。

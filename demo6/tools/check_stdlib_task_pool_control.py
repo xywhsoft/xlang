@@ -35,6 +35,7 @@ def main():
     report=dict(Complete=False,InputsUnchanged=False,LogsUnchanged=False,Inputs=inputs,Rows=rows,Products=products,
         Failures=failures,TaskSources=[],PoolSources=[],NativeControlAccepted=False,PlanAccepted=False,MinimalDeploymentAccepted=False,
         LegacyGraphAccepted=False,LegacyOutcomeAccepted=False,
+        NativeTailNegativeControl=False,
         InstrumentedSelectedNativeControl=False,PublicLanguageApiAccepted=False,DllJitAotAccepted=False,
         NetworkTests=False,NetworkSecurityTests=False,Scope=__doc__)
     env=dict(os.environ)
@@ -52,6 +53,15 @@ def main():
         if proof and proof not in value:raise RuntimeError('Missing proof '+name)
         return value
     def product(path):products.append(dict(Path=str(path),Sha256=sha(path)));save()
+    def refuse(name,args,proof):
+        log=out/(name+'.log');start=time.monotonic()
+        with log.open('wb') as stream:
+            result=subprocess.run(list(map(str,args)),cwd=root,stdout=stream,stderr=subprocess.STDOUT,timeout=30,env=env)
+        digest=sha(log);logs.append((log,digest));value=log.read_text(encoding='utf8',errors='replace')
+        rows.append(dict(Name=name,Command=list(map(str,args)),Exit=result.returncode,Sha256=digest,
+            Seconds=time.monotonic()-start,ExpectedRejection=True));save()
+        print(name+': '+str(result.returncode)+' (expected runtime assertion)',flush=True)
+        if not result.returncode or proof not in value:raise RuntimeError('Missing actual bad-implementation refusal '+name)
     def common(compiler):
         flags=[str(compiler),'-std=c11','-Wall','-Werror','-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include')]
         if compiler.stem.lower()!='tcc':flags+=['-Wextra']
@@ -62,7 +72,7 @@ def main():
     native_sources=[root/('src/'+name) for name in ('runtime/xl6_task_pool.c','runtime/xl6_ownership_domain_task_pool.c',
         'runtime/xl6_ownership_catalog.c','api/xl_foreign_error.c')]
     native_fixture=root/'test/support/task_pool_control_native.c'
-    native_proof='Task pool control: 80 balanced lifetimes, 32 run/drop barriers, 16 real creating-cancel races, 16 control-retirement handoffs, 32 allocation prefixes, no hidden pool on read'
+    native_proof='Task pool control: 96 balanced lifetimes, 32 run/drop barriers, 16 real creating-cancel races, 16 control-retirement handoffs, 16 nonblocking native ThreadKey tails, 32 allocation prefixes, no hidden pool on read'
     graph_proof='Task pool wrapper: 280 balanced lifetimes, 240 exact queued raw/language graphs, 520 real preparations, accepted execution, joined native owner and both Finish orders'
     save()
     try:
@@ -125,6 +135,18 @@ def main():
                 run(name+'.outcome.run',[outcome],'Legacy task outcome: 400 isolated ready/registration callbacks, exact memory balance');product(outcome)
         report['NativeControlAccepted']=True;report['MinimalDeploymentAccepted']=True
         report['LegacyGraphAccepted']=True;report['LegacyOutcomeAccepted']=True
+        # Restore only the old drain-before-Destroy decision. The actual native
+        # implementation, worker ThreadKey cleanup and all other providers stay
+        # unchanged; this must COMPILE and then fail the nonblocking assertion.
+        old=(root/'src/runtime/xl6_task_pool.c').read_text(encoding='utf8')
+        needle='xwaitresult state=xrtTaskPoolTryJoinV1(native);'
+        if old.count(needle)!=1:raise RuntimeError('Native tail decision no longer unique')
+        bad=out/'bad-drain-before-destroy.c';bad.write_text(old.replace(needle,'xwaitresult state=xrtTaskPoolWaitFor(native,0);'),encoding='utf8');product(bad)
+        binary=out/('bad-drain-before-destroy'+suffix)
+        providers=[bad if path.name=='xl6_task_pool.c' else path for path in native_sources]
+        run('bad-drain-before-destroy.build',common(gcc)+['-O0','-I'+str(root/'src/runtime'),native_fixture,*providers,*libs,'-o',binary]);product(binary)
+        refuse('bad-drain-before-destroy.refused',[binary],'nonblocking retirement must return before native ThreadKey cleanup')
+        report['NativeTailNegativeControl']=True
         if a.sanitize:
             binary=out/'instrumented.control'
             run('instrumented.control.build',common(gcc)+['-O1','-g','-fno-omit-frame-pointer','-fsanitize=address,undefined',
