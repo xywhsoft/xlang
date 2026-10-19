@@ -2241,6 +2241,7 @@ void xl6IrModuleFree(XL6_IrModule* module)
     xrtFree(module->nodes);
     xrtFree(module->children);
     xrtFree(module->symbolNodes);
+    xrtFree(module->specializedSymbols);
     xrtFree(module->blocks);
     for (i = 0; i < module->functionCount; ++i) xrtFree(module->functions[i].parameterCells);
     xrtFree(module->functions);
@@ -5461,6 +5462,41 @@ static XL6_IrInitializerAbi xl6IrNullDefaultInitializerAbi(const XL6_IrType* typ
         type->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL)
         return XL6_IR_INITIALIZER_XVALUE_NULL;
     return XL6_IR_INITIALIZER_NONE;
+}
+
+int xl6IrFieldDeclarationInitializer(
+    const XL6_IrModule* module, XL6_IrNodeId declaration, XL6_IrNodeId* output)
+{
+    const XL6_IrNode* field = xl6IrNodeGet(module, declaration);
+    XL6_IrNodeId expression = XL6_IR_NODE_INVALID;
+    if (!module || !output || !field || field->kind != XL6_IR_NODE_FIELD_DECL ||
+        field->firstChild > module->childCount ||
+        field->childCount > module->childCount - field->firstChild ||
+        (field->childCount && !module->children)) return 0;
+    for (size_t i = 0; i < field->childCount; ++i) {
+        XL6_IrNodeId id = module->children[field->firstChild + i];
+        const XL6_IrNode* child = xl6IrNodeGet(module, id);
+        if (!child) return 0;
+        if (child->sourceKind == XL6_AST_TYPE || child->sourceKind == XL6_AST_FIELD_ATTR) continue;
+        if (expression) return 0;
+        expression = id;
+    }
+    *output = expression;
+    return 1;
+}
+
+size_t xl6IrClassInitializerSpecializationCount(const XL6_IrModule* module)
+{
+    size_t count = 0;
+    if (!module || module->classFieldCount > module->classFieldCapacity ||
+        (module->classFieldCount && !module->classFields)) return SIZE_MAX;
+    for (size_t i = 0; i < module->classFieldCount; ++i) {
+        const XL6_IrClassField* field = &module->classFields[i];
+        XL6_IrNodeId source;
+        if (!xl6IrFieldDeclarationInitializer(module, field->declaration, &source)) return SIZE_MAX;
+        count += field->initializer != source;
+    }
+    return count;
 }
 
 static int xl6IrBuildClassLayoutAppendField(
@@ -20200,11 +20236,44 @@ const XL6_IrNode* xl6IrNodeGet(const XL6_IrModule* module, XL6_IrNodeId nodeId)
     return index < module->nodeCount ? &module->nodes[index] : NULL;
 }
 
+int xl6IrBindSpecializedSymbol(XL6_IrModule* module, XL6_SymbolId symbol, XL6_IrNodeId declaration)
+{
+    const XL6_IrNode* node = xl6IrNodeGet(module, declaration);
+    if (!module || !node || node->symbol != symbol || !symbol || symbol < module->symbolNodeCapacity ||
+        module->specializedSymbolCount > module->specializedSymbolCapacity ||
+        (module->specializedSymbolCount && !module->specializedSymbols)) return 0;
+    size_t low = 0, high = module->specializedSymbolCount;
+    while (low < high) {
+        size_t mid = low + (high - low) / 2;
+        if (module->specializedSymbols[mid].symbol > symbol) low = mid + 1;
+        else high = mid;
+    }
+    if (low < module->specializedSymbolCount && module->specializedSymbols[low].symbol == symbol)
+        return module->specializedSymbols[low].declaration == declaration;
+    if (!xl6IrGrow((void**)&module->specializedSymbols, &module->specializedSymbolCapacity,
+            module->specializedSymbolCount, sizeof(*module->specializedSymbols))) return 0;
+    memmove(module->specializedSymbols + low + 1, module->specializedSymbols + low,
+        (module->specializedSymbolCount - low) * sizeof(*module->specializedSymbols));
+    module->specializedSymbols[low] = (XL6_IrSymbolBinding){symbol, declaration};
+    ++module->specializedSymbolCount;
+    return 1;
+}
+
 const XL6_IrNode* xl6IrSymbolNodeGet(const XL6_IrModule* module, XL6_SymbolId symbol)
 {
     if(!module || !symbol)return NULL;
     if((size_t)symbol<module->symbolNodeCapacity && module->symbolNodes && module->symbolNodes[symbol])
         return xl6IrNodeGet(module,module->symbolNodes[symbol]);
+    if (module->specializedSymbolCount > module->specializedSymbolCapacity ||
+        (module->specializedSymbolCount && !module->specializedSymbols)) return NULL;
+    size_t low = 0, high = module->specializedSymbolCount;
+    while (low < high) {
+        size_t mid = low + (high - low) / 2;
+        const XL6_IrSymbolBinding* item = &module->specializedSymbols[mid];
+        if (item->symbol == symbol) return xl6IrNodeGet(module, item->declaration);
+        if (item->symbol > symbol) low = mid + 1;
+        else high = mid;
+    }
     /* Specialized declaration IDs live in the sparse synthetic namespace,
      * not the dense source-symbol arena. All consumers use one canonical
      * declaration lookup, including lifecycle and native policy validation. */
@@ -25970,6 +26039,109 @@ invalid:
     return xl6IrDiag(diags, NULL, "XLIR persistence default factory binding is not canonical");
 }
 
+/* Read-only replay of a class initializer's canonical owner substitution.
+ * Match formal TypeIds, never spelling: a local type parameter can shadow an
+ * outer name. Unchanged leaves retain identity; composite representation is
+ * separately checked by the TypePool verifier. No interning during proof. */
+static int xl6IrVerifyInitializerType(
+    const XL6_IrModule* module, const XL6_IrType* family, const XL6_IrType* owner,
+    XL6_IrTypeId sourceId, XL6_IrTypeId targetId, size_t depth)
+{
+    if (!sourceId) return !targetId;
+    if (depth > module->types.count) return 0;
+    for (size_t i = 0; i < family->paramCount; ++i)
+        if (sourceId == family->params[i]) return targetId == owner->params[i];
+    const XL6_IrType* source = xl6IrTypeGet(&module->types, sourceId);
+    const XL6_IrType* target = xl6IrTypeGet(&module->types, targetId);
+    if (!source || !target) return 0;
+    if (source->kind == XL6_IR_TYPE_NULLABLE && source->paramCount == 1 &&
+        (target->kind == XL6_IR_TYPE_NULLABLE ||
+         (target->kind == XL6_IR_TYPE_BUILTIN && target->name && !strcmp(target->name, "var"))) &&
+        xl6IrVerifyInitializerType(module, family, owner, source->params[0], targetId, depth + 1))
+        return 1; /* Optional substitution is idempotent. */
+    if (source->kind != target->kind || source->nominalSymbol != target->nominalSymbol ||
+        source->paramCount != target->paramCount || source->returnCount != target->returnCount ||
+        source->collectionAbi != target->collectionAbi || source->runtimeResourceAbi != target->runtimeResourceAbi ||
+        source->integerTarget != target->integerTarget || source->callableErasureAbi != target->callableErasureAbi ||
+        (source->kind != XL6_IR_TYPE_FUNCTION && source->kind != XL6_IR_TYPE_TUPLE &&
+         source->kind != XL6_IR_TYPE_NULLABLE && source->abiId != target->abiId) ||
+        (source->kind != XL6_IR_TYPE_NULLABLE && source->kind != XL6_IR_TYPE_TUPLE &&
+         (source->cAbi != target->cAbi || source->ownershipAbi != target->ownershipAbi)) ||
+        (source->name == NULL ? target->name != NULL : target->name == NULL || strcmp(source->name, target->name)))
+        return 0;
+    int changed = 0;
+    for (size_t i = 0; i < source->paramCount; ++i) {
+        if (!xl6IrVerifyInitializerType(module, family, owner, source->params[i], target->params[i], depth + 1)) return 0;
+        changed |= source->params[i] != target->params[i];
+        if (source->kind == XL6_IR_TYPE_FUNCTION &&
+            (!source->parameterModes || !target->parameterModes || source->parameterModes[i] != target->parameterModes[i])) return 0;
+    }
+    for (size_t i = 0; i < source->returnCount; ++i) {
+        if (!xl6IrVerifyInitializerType(module, family, owner, source->returns[i], target->returns[i], depth + 1)) return 0;
+        changed |= source->returns[i] != target->returns[i];
+    }
+    if (!xl6IrVerifyInitializerType(module, family, owner, source->callableResultType, target->callableResultType, depth + 1)) return 0;
+    changed |= source->callableResultType != target->callableResultType;
+    return changed || sourceId == targetId;
+}
+
+static int xl6IrVerifyInitializerGraph(
+    const XL6_IrModule* module, const XL6_IrType* family, const XL6_IrType* owner,
+    XL6_IrNodeId sourceId, XL6_IrNodeId targetId, size_t* remaining)
+{
+    const XL6_IrNode* source = xl6IrNodeGet(module, sourceId);
+    const XL6_IrNode* target = xl6IrNodeGet(module, targetId);
+    if (!*remaining || !source || !target || sourceId == targetId) return 0;
+    --*remaining;
+    if (source->kind != target->kind || source->sourceKind != target->sourceKind ||
+        source->flags != target->flags || source->childCount != target->childCount ||
+        source->span.line != target->span.line || source->span.column != target->span.column ||
+        source->literalSize != target->literalSize || source->literalScalar != target->literalScalar ||
+        source->literalDecoded != target->literalDecoded ||
+        (source->literalData && source->literalData == target->literalData) ||
+        (source->text == NULL ? target->text != NULL : target->text == NULL || strcmp(source->text, target->text)) ||
+        (source->literalSize && (!source->literalData || !target->literalData ||
+            memcmp(source->literalData, target->literalData, source->literalSize)))) return 0;
+    if (source->symbol && xl6IrSymbolNodeGet(module, source->symbol) == source &&
+        xl6IrSymbolNodeGet(module, target->symbol) != target) return 0;
+    const XL6_IrTypeId sourceTypes[] = {source->type, source->storageType, source->declarationOwnerType,
+        source->implicitReceiverType, source->typeValueTarget, source->namedCallableSignatureType};
+    const XL6_IrTypeId targetTypes[] = {target->type, target->storageType, target->declarationOwnerType,
+        target->implicitReceiverType, target->typeValueTarget, target->namedCallableSignatureType};
+    for (size_t i = 0; i < sizeof(sourceTypes) / sizeof(sourceTypes[0]); ++i)
+        if (!xl6IrVerifyInitializerType(module, family, owner, sourceTypes[i], targetTypes[i], 0)) return 0;
+    for (size_t i = 0; i < source->childCount; ++i)
+        if (!xl6IrVerifyInitializerGraph(module, family, owner,
+                module->children[source->firstChild + i], module->children[target->firstChild + i], remaining)) return 0;
+    return 1;
+}
+
+static int xl6IrVerifyClassFieldInitializer(
+    const XL6_IrModule* module, const XL6_IrClassField* field)
+{
+    XL6_IrNodeId source;
+    if (!xl6IrFieldDeclarationInitializer(module, field->declaration, &source)) return 0;
+    XL6_IrNodeId classId = xl6IrBuildEnclosingClass(module, field->declaration);
+    const XL6_IrNode* declaration = xl6IrNodeGet(module, classId);
+    const XL6_IrType* family = declaration ? xl6IrTypeGet(&module->types, declaration->declarationOwnerType) : NULL;
+    const XL6_IrType* owner = xl6IrTypeGet(&module->types, field->ownerType);
+    if (module->stage != XL6_IR_STAGE_LOWERED || field->initializerAbi != XL6_IR_INITIALIZER_EXPLICIT ||
+        !family || !family->paramCount) return source == field->initializer;
+    const XL6_IrNode* target = xl6IrNodeGet(module, field->initializer);
+    const XL6_IrNode* original = xl6IrNodeGet(module, field->declaration);
+    const XL6_IrNode* parent = original ? xl6IrNodeGet(module, original->parent) : NULL;
+    if (!source || !target || !parent || parent->kind != XL6_IR_NODE_LIST || target->parent != original->parent ||
+        !owner || owner->kind != XL6_IR_TYPE_CLASS || owner->nominalSymbol != family->nominalSymbol ||
+        owner->paramCount != family->paramCount || !family->params || !owner->params ||
+        xl6IrTypeContainsTypeParam(&module->types, field->ownerType, 0)) return 0;
+    /* Each closed program is owned by exactly one ClassField row, even if
+     * this particular expression does not mention the owner's type formals. */
+    for (size_t i = 0; i < module->classFieldCount; ++i)
+        if (&module->classFields[i] != field && module->classFields[i].initializer == field->initializer) return 0;
+    size_t remaining = module->nodeCount;
+    return xl6IrVerifyInitializerGraph(module, family, owner, source, field->initializer, &remaining);
+}
+
 static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
 {
     size_t i;
@@ -25994,6 +26166,11 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
          (module->protocolDispatchSlotCount != 0 && module->protocolDispatchSlots == NULL) ||
          module->protocolDispatchImplCount > module->protocolDispatchImplCapacity ||
          (module->protocolDispatchImplCount != 0 && module->protocolDispatchImpls == NULL) ) return 0;
+    if (module->stage == XL6_IR_STAGE_LOWERED) {
+        size_t initializers = xl6IrClassInitializerSpecializationCount(module);
+        if (initializers > XL6_IR_GENERIC_SPECIALIZATION_LIMIT ||
+            module->genericSpecializationCount > XL6_IR_GENERIC_SPECIALIZATION_LIMIT - initializers) return 0;
+    }
     hasOpenObjectStorage = xl6IrBuildOpenObjectStorageFields(
         module, &expectedDynamicField, &expectedDynamicHandleField);
     for ( i = 0; i < module->classLayoutCount; ++i ) {
@@ -26078,6 +26255,7 @@ static int xl6IrVerifyClassLayouts(const XL6_IrModule* module)
                 : XL6_IR_TYPE_INVALID;
             size_t other;
             const XL6_IrType* fieldType = xl6IrTypeGet(&module->types, item->type);
+            if (!xl6IrVerifyClassFieldInitializer(module, item)) return 0;
             if(item->initializer==XL6_IR_NODE_INVALID &&
                xl6IrTypeRequiresExplicitNativeInitialization(module,item->type))
                 return 0;
@@ -29977,7 +30155,9 @@ static XL6_IrNodeId xl6IrInstantiationExecutionOrigin(const XL6_IrModule* module
         if (instance->parent >= context || instance->field == 0 ||
             instance->field > module->classFieldCount || module->classFields == NULL) return 0;
         field = &module->classFields[instance->field - 1];
-        if (xl6IrInstantiationContainsOrigin(module, field->declaration, origin)) origin = instance->site;
+        if (xl6IrInstantiationContainsOrigin(module, field->declaration, origin) ||
+            (field->initializer && xl6IrInstantiationContainsOrigin(module, field->initializer, origin)))
+            origin = instance->site;
         context = instance->parent;
     }
     return origin;
@@ -34738,7 +34918,19 @@ static int xl6IrVerifyDeclarationOwners(const XL6_IrModule* module, XL6_DiagList
                 instance = &module->genericSpecializations[specialization];
             }
         if ( instance == NULL ) {
-            if ( node->declarationOwnerType != classNode->declarationOwnerType )
+            XL6_IrTypeId expectedOwner = classNode->declarationOwnerType;
+            if (node->sourceKind == XL6_AST_ANON_FUNC)
+                for (size_t f = 0; f < module->classFieldCount; ++f) {
+                    const XL6_IrClassField* field = &module->classFields[f];
+                    XL6_IrNodeId source;
+                    if (xl6IrFieldDeclarationInitializer(module, field->declaration, &source) &&
+                        field->initializer != source &&
+                        xl6IrInstantiationContainsOrigin(module, field->initializer, (XL6_IrNodeId)(i + 1))) {
+                        expectedOwner = field->ownerType;
+                        break;
+                    }
+                }
+            if ( node->declarationOwnerType != expectedOwner )
                 return xl6IrDiag(diags, node, "XLIR unspecialized member does not retain its declared owner");
         } else {
             const XL6_IrNode* source = xl6IrNodeGet(module, instance->sourceDeclaration);
@@ -34819,6 +35011,17 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
         return xl6IrDiag(diags, NULL, "XLIR module is not initialized");
     }
     if (!xl6IrVerifyNodeTopology(module, diags)) return 0;
+    if (module->specializedSymbolCount > module->specializedSymbolCapacity ||
+        (module->specializedSymbolCount && !module->specializedSymbols))
+        return xl6IrDiag(diags, NULL, "XLIR specialized symbol index is malformed");
+    for (i = 0; i < module->specializedSymbolCount; ++i) {
+        const XL6_IrSymbolBinding* item = &module->specializedSymbols[i];
+        const XL6_IrNode* node = xl6IrNodeGet(module, item->declaration);
+        if (!item->symbol || item->symbol < module->symbolNodeCapacity || !node ||
+            node->symbol != item->symbol ||
+            (i && module->specializedSymbols[i - 1].symbol <= item->symbol))
+            return xl6IrDiag(diags, node, "XLIR specialized symbol has no unique canonical declaration");
+    }
     {
         size_t invalidIndex;
         if ( !xl6IrVerifyTypePool(&module->types, &invalidIndex) ) {
@@ -51213,10 +51416,13 @@ void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module)
     xl6OutputPuts("  ],\n  \"classFields\": [\n", out);
     for ( i = 0; i < module->classFieldCount; ++i ) {
         const XL6_IrClassField* field = &module->classFields[i];
+        XL6_IrNodeId initializerTemplate = XL6_IR_NODE_INVALID;
+        xl6IrFieldDeclarationInitializer(module, field->declaration, &initializerTemplate);
         xl6OutputPrintf(out,
-            "    {\"id\":%lu,\"ownerType\":%u,\"type\":%u,\"declaration\":%u,\"initializer\":%u,\"nativeDestroySymbol\":%u,\"initializerAbi\":%d,\"initializerAbiName\":\"%s\",\"initializerRuntimeResourceOp\":%d,\"initializerRuntimeResourceOpName\":\"%s\",\"initializerPayloadType\":%u,\"initializerRuntimeResourcePayloadAbi\":%d,\"initializerRuntimeResourcePayloadAbiName\":\"%s\",\"initializerRuntimeResourceKeyType\":%u,\"initializerRuntimeResourceKeyPayloadAbi\":%d,\"initializerRuntimeResourceKeyPayloadAbiName\":\"%s\",\"initializerRuntimeResourceKeyOrderAbi\":%d,\"initializerRuntimeResourceKeyOrderAbiName\":\"%s\",\"initializerErrorAbi\":%d,\"initializerErrorAbiName\":\"%s\",\"jsonPersistenceFlags\":%u,\"jsonRenamed\":%d,\"xlonPersistenceFlags\":%u,\"xlonRenamed\":%d,\"stringDeriveIncluded\":%d,\"compareDeriveIncluded\":%d}%s\n",
+            "    {\"id\":%lu,\"ownerType\":%u,\"type\":%u,\"declaration\":%u,\"initializer\":%u,\"initializerTemplate\":%u,\"nativeDestroySymbol\":%u,\"initializerAbi\":%d,\"initializerAbiName\":\"%s\",\"initializerRuntimeResourceOp\":%d,\"initializerRuntimeResourceOpName\":\"%s\",\"initializerPayloadType\":%u,\"initializerRuntimeResourcePayloadAbi\":%d,\"initializerRuntimeResourcePayloadAbiName\":\"%s\",\"initializerRuntimeResourceKeyType\":%u,\"initializerRuntimeResourceKeyPayloadAbi\":%d,\"initializerRuntimeResourceKeyPayloadAbiName\":\"%s\",\"initializerRuntimeResourceKeyOrderAbi\":%d,\"initializerRuntimeResourceKeyOrderAbiName\":\"%s\",\"initializerErrorAbi\":%d,\"initializerErrorAbiName\":\"%s\",\"jsonPersistenceFlags\":%u,\"jsonRenamed\":%d,\"xlonPersistenceFlags\":%u,\"xlonRenamed\":%d,\"stringDeriveIncluded\":%d,\"compareDeriveIncluded\":%d}%s\n",
             (unsigned long)i, (unsigned int)field->ownerType, (unsigned int)field->type,
             (unsigned int)field->declaration, (unsigned int)field->initializer,
+             (unsigned int)initializerTemplate,
              (unsigned int)field->nativeDestroySymbol,
              (int)field->initializerAbi, xl6IrInitializerAbiName(field->initializerAbi),
              (int)field->initializerRuntimeResourceOp,

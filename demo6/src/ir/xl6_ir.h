@@ -18,6 +18,9 @@
 #include "src/runtime/xl6_tree_key_abi.h"
 #include "src/abi/xl6_native_generic.h"
 
+/* One finite closure budget, shared by callable and field initializer graphs. */
+enum { XL6_IR_GENERIC_SPECIALIZATION_LIMIT = 1024 };
+
 typedef uint32 XL6_IrNodeId;
 typedef uint32 XL6_IrBlockId;
 typedef uint32 XL6_IrValueId;
@@ -5941,6 +5944,8 @@ typedef struct XL6_IrClassField {
     XL6_IrTypeId ownerType;
     XL6_IrTypeId type;
     XL6_IrNodeId declaration;
+    /* Typed: declaration expression. Lowered: the owner-closed expression
+     * program; declaration retains the original template and field identity. */
     XL6_IrNodeId initializer;
     XL6_IrInitializerAbi initializerAbi;
     /* A default resource field is a constructor operation, not an erased-null
@@ -6556,6 +6561,11 @@ typedef struct XL6_IrStats {
     size_t functionCount;
 } XL6_IrStats;
 
+typedef struct XL6_IrSymbolBinding {
+    XL6_SymbolId symbol;
+    XL6_IrNodeId declaration;
+} XL6_IrSymbolBinding;
+
 typedef struct XL6_IrModule {
     XL6_IrStage stage;
     XL6_IrTypePool types;
@@ -6568,6 +6578,12 @@ typedef struct XL6_IrModule {
     size_t childCapacity;
     XL6_IrNodeId* symbolNodes;
     size_t symbolNodeCapacity;
+    /* Descending synthetic IDs cannot index the dense frontend arena.
+     * This sorted canonical index includes cloned parameters/local bindings,
+     * not only the root generic callable. */
+    XL6_IrSymbolBinding* specializedSymbols;
+    size_t specializedSymbolCount;
+    size_t specializedSymbolCapacity;
     XL6_IrBlock* blocks;
     size_t blockCount;
     size_t blockCapacity;
@@ -6973,6 +6989,11 @@ XL6_IrErrorAbi xl6IrCopyIntrinsicErrorAbi(const XL6_IrModule* module,
  * XLIR construction.  Append exactly the missing runtime layouts and rebuild
  * their derived destruction/persistence contracts before body lowering. */
 int xl6IrRefreshClassLayouts(XL6_IrModule* module);
+/* Source expression is recoverable from the immutable declaration identity;
+ * INVALID output denotes no initializer, false denotes malformed structure. */
+int xl6IrFieldDeclarationInitializer(
+    const XL6_IrModule* module, XL6_IrNodeId declaration, XL6_IrNodeId* output);
+size_t xl6IrClassInitializerSpecializationCount(const XL6_IrModule* module);
 /* Exact unique native field in the complete concrete class layout, including
  * inherited storage. Shared by construction, projection and verification. */
 const XL6_IrClassField* xl6IrManagedNativeConstructorField(
@@ -7096,6 +7117,8 @@ void xl6IrBindModuleStorageTrace(XL6_IrModule* module);
 int xl6IrLowerModule(XL6_IrModule* module, XL6_DiagList* diags);
 const XL6_IrNode* xl6IrNodeGet(const XL6_IrModule* module, XL6_IrNodeId nodeId);
 const XL6_IrNode* xl6IrSymbolNodeGet(const XL6_IrModule* module, XL6_SymbolId symbol);
+int xl6IrBindSpecializedSymbol(
+    XL6_IrModule* module, XL6_SymbolId symbol, XL6_IrNodeId declaration);
 const XL6_IrType* xl6IrTypeGet(const XL6_IrTypePool* pool, XL6_IrTypeId typeId);
 /* One closed payload transfer contract shared by Typed IR, lowering and Cgen.
  * Bytes use the language's existing read-sharing/write-copy discipline;

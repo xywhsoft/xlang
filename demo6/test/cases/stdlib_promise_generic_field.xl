@@ -1,0 +1,26 @@
+import concurrent
+
+class Completion<T>
+    Promise<T> producer = Promise::<T>()
+
+    func resolve(T value) as bool
+        return self.producer.tryResolve(value)
+    end
+
+    func observe() as future<T>
+        return self.producer.future
+    end
+end
+
+auto integer = Completion::<int>()
+auto text = Completion::<string>()
+assert integer.resolve(719)
+assert text.resolve("a\0你")
+assert (await integer.observe()) == 719
+assert (await text.observe()) == "a\0你"
+
+auto another = Completion::<int>()
+assert not another.producer.isCompleted
+assert another.resolve(223)
+assert (await another.observe()) == 223
+println("generic fields: exact Promise<int>/Promise<string>, independent instances")

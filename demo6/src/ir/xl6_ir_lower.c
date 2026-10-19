@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 
-enum { XL6_IR_GENERIC_SPECIALIZATION_LIMIT = 1024 };
 
 typedef struct XL6_IrLowerContext {
     XL6_IrModule* module;
@@ -13943,10 +13942,13 @@ static int xl6IrLowerRegisterModuleCallTargets(XL6_IrLowerContext* ctx)
         const XL6_IrNode* parameters;
         XL6_IrClosureTarget* closure;
         if ( node->kind != XL6_IR_NODE_FUNC_DECL || node->sourceKind != XL6_AST_ANON_FUNC ) continue;
+        /* An anonymous function in a generic source initializer is a
+         * template, just like an ordinary generic member. Its owner-closed
+         * clone is registered independently; the source has no runtime ABI. */
+        if (xl6IrLowerIsGenericDeclaration(ctx->module, declaration)) continue;
         signature = xl6IrTypeGet(&ctx->module->types, node->storageType);
         if ( signature == NULL || signature->kind != XL6_IR_TYPE_FUNCTION ||
              signature->cAbi != XL6_IR_C_ABI_CLOSURE_PTR ||
-             xl6IrLowerIsGenericDeclaration(ctx->module, declaration) ||
              !xl6IrLowerRegisterCallTarget(ctx, declaration) )
             return xl6IrLowerDiag(ctx, declaration, "XLIR closure target has no canonical function signature ABI");
         target = xl6IrCallTargetGet(ctx->module, node->symbol);
@@ -14939,8 +14941,7 @@ static int xl6IrLowerSpecializationCollectSymbol(
     if ( build == NULL || id == XL6_IR_NODE_INVALID ) return 0;
     node = xl6IrNodeGet(build->ctx->module, id);
     if ( node == NULL ) return 0;
-    if ( node->symbol != 0 && (size_t)node->symbol < build->ctx->module->symbolNodeCapacity &&
-         build->ctx->module->symbolNodes[node->symbol] == id ) {
+    if ( node->symbol != 0 && xl6IrSymbolNodeGet(build->ctx->module, node->symbol) == node ) {
         XL6_SymbolId mapped = xl6IrLowerSpecializationSymbolMapGet(build, node->symbol);
         if ( mapped == node->symbol ) {
             XL6_IrLowerSymbolMap* grown = (XL6_IrLowerSymbolMap*)xrtRealloc(
@@ -15133,8 +15134,19 @@ static XL6_IrNodeId xl6IrLowerSpecializationCloneNode(
     id = (XL6_IrNodeId)(module->nodeCount + 1);
     target = &module->nodes[module->nodeCount++];
     *target = source;
+    /* The module destroys every node's owned payload independently. A
+     * specialized graph must not share the source literal allocation. Clear
+     * both owners before any fallible allocation so partial clones are safe. */
+    target->text = NULL;
+    target->literalData = NULL;
     target->text = source.text != NULL ? xrtStrDupN(source.text, strlen(source.text)) : NULL;
     if ( source.text != NULL && target->text == NULL ) return 0;
+    if (source.literalData != NULL) {
+        if (source.literalSize == SIZE_MAX ||
+            (target->literalData = (unsigned char*)xrtMalloc(source.literalSize + 1)) == NULL) return 0;
+        memcpy(target->literalData, source.literalData, source.literalSize);
+        target->literalData[source.literalSize] = 0;
+    }
     target->type = xl6IrLowerSpecializationSubstituteType(build, source.type);
     target->storageType = xl6IrLowerSpecializationSubstituteType(build, source.storageType);
     target->declarationOwnerType =
@@ -15193,6 +15205,9 @@ static XL6_IrNodeId xl6IrLowerSpecializationCloneNode(
         }
     }
     xrtFree(children);
+    const XL6_IrNode* canonical = xl6IrSymbolNodeGet(module, source.symbol);
+    if (canonical && (XL6_IrNodeId)(canonical - module->nodes + 1) == sourceId &&
+        !xl6IrBindSpecializedSymbol(module, module->nodes[id - 1].symbol, id)) return 0;
     return id;
 }
 
@@ -17455,7 +17470,9 @@ static int xl6IrLowerBuildGenericSpecialization(
     }
     /* The one graph budget is shared by every root producer. Cached instances
      * above remain available after reaching the limit. */
-    if ( module->genericSpecializationCount >= XL6_IR_GENERIC_SPECIALIZATION_LIMIT ) {
+    size_t initializerCount = xl6IrClassInitializerSpecializationCount(module);
+    if ( initializerCount >= XL6_IR_GENERIC_SPECIALIZATION_LIMIT ||
+         module->genericSpecializationCount >= XL6_IR_GENERIC_SPECIALIZATION_LIMIT - initializerCount ) {
         xrtFree(typeParams);
         return xl6IrLowerDiag(ctx, callId ? callId : sourceDeclaration,
             "XLIR generic specialization graph exceeds its finite lowering limit");
@@ -17545,6 +17562,64 @@ cleanup:
     return 1;
 }
 
+/* ClassField owns the concrete initializer program, while its declaration
+ * remains the single source template/field identity. Attach each graph to the
+ * normalized class-body list; class execution still consumes only ClassField
+ * plans, not arbitrary syntax children. No Cgen-side substitution is needed. */
+static int xl6IrLowerMaterializeClassInitializers(XL6_IrLowerContext* ctx)
+{
+    XL6_IrModule* module = ctx->module;
+    for (size_t f = 0; f < module->classFieldCount; ++f) {
+        XL6_IrClassField* field = &module->classFields[f];
+        XL6_IrNodeId source;
+        XL6_IrNodeId classId = xl6IrLowerEnclosingClass(module, field->declaration);
+        const XL6_IrNode* classNode = xl6IrNodeGet(module, classId);
+        const XL6_IrType* family = classNode
+            ? xl6IrTypeGet(&module->types, classNode->declarationOwnerType) : NULL;
+        const XL6_IrType* owner = xl6IrTypeGet(&module->types, field->ownerType);
+        if (!xl6IrFieldDeclarationInitializer(module, field->declaration, &source)) return 0;
+        if (!source || field->initializer != source || field->initializerAbi != XL6_IR_INITIALIZER_EXPLICIT ||
+            !family || !family->paramCount) continue;
+        if (!owner || owner->kind != XL6_IR_TYPE_CLASS || owner->nominalSymbol != family->nominalSymbol ||
+            owner->paramCount != family->paramCount || !owner->params || !family->params ||
+            xl6IrLowerTypeContainsTypeParam(module, field->ownerType, 0))
+            return xl6IrLowerDiag(ctx, field->declaration, "XLIR field initializer has no concrete owner substitution");
+        size_t count = xl6IrClassInitializerSpecializationCount(module);
+        if (count >= XL6_IR_GENERIC_SPECIALIZATION_LIMIT ||
+            module->genericSpecializationCount >= XL6_IR_GENERIC_SPECIALIZATION_LIMIT - count)
+            return xl6IrLowerDiag(ctx, field->declaration, "XLIR initializer graph exceeds the shared finite specialization limit");
+        XL6_IrLowerSpecializationBuild build = {0};
+        XL6_IrNodeId expression = XL6_IR_NODE_INVALID;
+        XL6_IrNodeId parent = xl6IrNodeGet(module, field->declaration)->parent;
+        build.ctx = ctx; build.typeCount = family->paramCount + 1;
+        build.types = (XL6_IrLowerTypeMap*)xrtCalloc(build.typeCount, sizeof(*build.types));
+        build.nodeLimit = module->nodeCount;
+        build.nodes = (XL6_IrNodeId*)xrtCalloc(build.nodeLimit + 1, sizeof(*build.nodes));
+        int ok = build.types && build.nodes;
+        for (size_t p = 0; ok && p < family->paramCount; ++p) {
+            build.types[p].source = family->params[p];
+            build.types[p].target = owner->params[p];
+        }
+        if (ok) {
+            build.types[build.typeCount - 1].source = classNode->declarationOwnerType;
+            build.types[build.typeCount - 1].target = field->ownerType;
+            ok = xl6IrLowerSpecializationCollectSymbol(&build, source) &&
+                (expression = xl6IrLowerSpecializationCloneNode(&build, source)) != XL6_IR_NODE_INVALID &&
+                xl6IrLowerSpecializationCloneCallSites(&build) &&
+                xl6IrLowerSpecializationCloneIntrinsicCalls(&build) &&
+                xl6IrLowerSpecializationCloneValueInitializers(&build) &&
+                xl6IrLowerSpecializationCloneNativeHandleBinds(&build) &&
+                xl6IrLowerSpecializationCloneNativeHandleProjects(&build) &&
+                xl6IrLowerSpecializationCloneExitPlans(&build) &&
+                xl6IrLowerAppendSpecializationChild(module, parent, expression);
+        }
+        xrtFree(build.types); xrtFree(build.nodes); xrtFree(build.symbols);
+        if (!ok) return xl6IrLowerDiag(ctx, field->declaration, "XLIR field initializer cannot materialize its complete owner-closed graph");
+        module->classFields[f].initializer = expression;
+    }
+    return 1;
+}
+
 static int xl6IrLowerMaterializeGenericSpecializations(XL6_IrLowerContext* ctx)
 {
     XL6_IrModule* module = ctx->module;
@@ -17552,18 +17627,40 @@ static int xl6IrLowerMaterializeGenericSpecializations(XL6_IrLowerContext* ctx)
     for ( id = 1; id <= module->nodeCount; ++id ) {
         const XL6_IrNode* call = xl6IrNodeGet(module, (XL6_IrNodeId)id);
         XL6_IrNodeId owner = call != NULL
-            ? call->parent : XL6_IR_NODE_INVALID;
+            ? (XL6_IrNodeId)id : XL6_IR_NODE_INVALID;
         XL6_IrNodeId declaration;
         XL6_IrTypeId* typeArgs = NULL;
         size_t typeArgCount = 0;
         XL6_IrNodeId enclosingClass;
         int insideGenericDeclaration = 0;
+        if (call == NULL || call->kind != XL6_IR_NODE_CALL || call->sourceKind != XL6_AST_CALL ||
+            call->callKind == XL6_SEM_CALL_WITNESS || call->targetSymbol == 0 ||
+            (size_t)call->targetSymbol >= module->symbolNodeCapacity ||
+            (declaration = module->symbolNodes[call->targetSymbol]) == XL6_IR_NODE_INVALID ||
+            !xl6IrLowerIsGenericDeclaration(module, declaration)) continue;
         while ( owner != XL6_IR_NODE_INVALID ) {
             const XL6_IrNode* ownerNode = xl6IrNodeGet(module, owner);
             if ( ownerNode == NULL ) break;
+            const XL6_IrNode* parentNode = xl6IrNodeGet(module, ownerNode->parent);
+            int concreteInitializer = 0;
+            /* Only an expression directly attached to a class-body list can
+             * be an initializer program. Do not scan the field arena for
+             * every node in every ordinary function's ancestry. */
+            for (size_t f = 0; parentNode && parentNode->kind == XL6_IR_NODE_LIST &&
+                    ownerNode->kind != XL6_IR_NODE_FUNC_DECL && f < module->classFieldCount; ++f) {
+                XL6_IrNodeId source;
+                if (module->classFields[f].initializer == owner &&
+                    xl6IrFieldDeclarationInitializer(module, module->classFields[f].declaration, &source) &&
+                    source != owner) { concreteInitializer = 1; break; }
+            }
+            if (concreteInitializer) break;
             if ( ownerNode->kind == XL6_IR_NODE_FUNC_DECL ) {
                 insideGenericDeclaration =
                     xl6IrLowerIsGenericDeclaration(module, owner);
+                break;
+            }
+            if (ownerNode->kind == XL6_IR_NODE_TYPE_DECL && ownerNode->sourceKind == XL6_AST_CLASS) {
+                insideGenericDeclaration = xl6IrLowerTypeContainsTypeParam(module, ownerNode->declarationOwnerType, 0);
                 break;
             }
             owner = ownerNode->parent;
@@ -17575,13 +17672,7 @@ static int xl6IrLowerMaterializeGenericSpecializations(XL6_IrLowerContext* ctx)
          * lowering can select its witness ABI.  A call inside any other generic
          * template is likewise deferred until its monomorphic owner clone has
          * substituted the receiver and explicit type arguments. */
-        if ( call == NULL || insideGenericDeclaration ||
-             call->kind != XL6_IR_NODE_CALL || call->sourceKind != XL6_AST_CALL ||
-             call->callKind == XL6_SEM_CALL_WITNESS ||
-             call->targetSymbol == 0 ||
-             (size_t)call->targetSymbol >= module->symbolNodeCapacity ||
-             (declaration = module->symbolNodes[call->targetSymbol]) == XL6_IR_NODE_INVALID ||
-             !xl6IrLowerIsGenericDeclaration(module, declaration) ) continue;
+        if (insideGenericDeclaration) continue;
         enclosingClass = xl6IrLowerEnclosingClass(module, declaration);
         if ( enclosingClass != XL6_IR_NODE_INVALID && call->childCount != 0 ) {
             const XL6_IrNode* callee = xl6IrNodeGet(module, module->children[call->firstChild]);
@@ -17997,7 +18088,8 @@ static int xl6IrLowerCloseGenericSpecializationGraph(XL6_IrLowerContext* ctx)
     for ( size_t round = 0; round <= XL6_IR_GENERIC_SPECIALIZATION_LIMIT; ++round ) {
         size_t nodes = module->nodeCount, types = module->types.count;
         size_t instances = module->genericSpecializationCount, layouts = module->classLayoutCount;
-        if ( !xl6IrLowerMaterializeGenericSpecializations(ctx) ||
+        if ( !xl6IrLowerMaterializeClassInitializers(ctx) ||
+            !xl6IrLowerMaterializeGenericSpecializations(ctx) ||
             !xl6IrLowerMaterializeGenericClassSyntaxUses(ctx) ||
             !xl6IrLowerMaterializeGenericClassCopyProtocols(ctx) ||
             !xl6IrLowerMaterializeGenericProtocolWitnesses(ctx) ||
