@@ -23,6 +23,10 @@ static int xl6IrCgenEmitModuleOwnershipTrace(XL6_Output* out,
         xl6OutputPuts("    if (xlir_continuation_executor != NULL &&\n"
             "        !visit(xl6ContinuationExecutorOwnership(xlir_continuation_executor), context)) return false;\n", out);
     else if (module->abi.executorOwnershipAbi != XL6_IR_MODULE_EXECUTOR_OWNERSHIP_NONE) return 0;
+    if(module->abi.deadlineOwnershipAbi==XL6_IR_MODULE_DEADLINE_OWNERSHIP_RESIDENT_BINDINGS_JOIN_V1)
+        xl6OutputPuts("    if (xlir_deadline_source != NULL &&\n"
+            "        !visit(xl6DeadlineServiceOwnershipV1(xlir_deadline_source), context)) return false;\n",out);
+    else if(module->abi.deadlineOwnershipAbi!=XL6_IR_MODULE_DEADLINE_OWNERSHIP_NONE)return 0;
     if (module->abi.taskPoolOwnershipAbi == XL6_IR_MODULE_TASK_POOL_OWNERSHIP_RESIDENT_NATIVE_JOBS_JOIN_V1)
         xl6OutputPuts("    if (xlir_async_pool != NULL &&\n"
             "        !visit(xl6TaskPoolOwnership(xlir_async_pool), context)) return false;\n", out);

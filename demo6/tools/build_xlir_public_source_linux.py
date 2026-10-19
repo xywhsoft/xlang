@@ -20,6 +20,11 @@ def main():
     # native UTF-8 paths, as build_linux.sh does, and must not compile the shim.
     sources=[root/path for path in re.findall(r"'((?:src|tools|lib)/[^']+\.c)'",body)
         if path!='lib/tcc/tcc_utf8_io.c']
+    runtime_manifests=[root/'tools/compiler_dll.rsp.in',root/'build_dll.bat']
+    for manifest in runtime_manifests:
+        for name in re.findall(r'\bsrc/runtime/[A-Za-z0-9_]+\.c\b',manifest.read_text(encoding='utf-8-sig').replace('\\','/')):
+            path=root/name
+            if path not in sources:sources.append(path)
     sources.append(project/'test/cases/xlir_public_source_linux_driver.c')
     assert len({path.stem for path in sources})==len(sources)
     required={'xl_api','xl_api_symbols','xrt_single_header_impl','xl6_ir','xl6_ir_lower',
@@ -29,7 +34,7 @@ def main():
         'xl6_queue_mpmc_admission','xl6_thread','xl6_array_thread_admission'}
     assert required.issubset({path.stem for path in sources})
     runtime=native/'release/libxl.so'; assert runtime.is_file()
-    files={Path(__file__).resolve(),source_list,Path(cc),runtime,*sources}
+    files={Path(__file__).resolve(),source_list,Path(cc),runtime,*sources,*runtime_manifests}
     for folder in ('src','lib','res/tcc','release/include'):
         files.update(path for path in (root/folder).rglob('*') if path.is_file())
     files.update(path for path in (native/'build/linux/tcc-dist').rglob('*') if path.is_file())

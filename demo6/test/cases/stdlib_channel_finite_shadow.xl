@@ -1,0 +1,12 @@
+import concurrent
+class NotAChannel
+    func recvAsyncTimeout(int milliseconds) as int
+        return milliseconds + 7
+    end
+    func sendAsyncUntil(int value, uint64 deadline) as int
+        return value + 9
+    end
+end
+auto own = NotAChannel()
+assert own.recvAsyncTimeout(0) == 7
+assert own.sendAsyncUntil(1, uint64(0)) == 10

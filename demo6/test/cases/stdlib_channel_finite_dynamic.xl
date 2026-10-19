@@ -1,0 +1,15 @@
+import concurrent
+class DynamicDeadline<T>
+    private native point handle
+    static extern "xl6ChannelDeadlineReceiveForLanguageV1" func prepare(channel<T> pipe, int milliseconds) as DynamicDeadline<T>
+    extern "xl6ChannelDeadlineReceiveBuilderDestroyV1" destroy()
+    extern "xl6ChannelDeadlineReceiveResultLanguageV1" @nonblocking func result() as ChannelReceiveResult<T>
+    extern "xl6ChannelDeadlineReceiveStartLanguageV1" @nonblocking func start(ChannelReceiveResult<T> result) as future<ChannelReceiveResult<T>>
+end
+channel<string> pipe = channel::<string>(1)
+assert pipe.send("dynamic\0value")
+auto builder = DynamicDeadline::<string>.prepare(pipe, 30000)
+auto result = builder.result()
+var boxed = builder
+var pending = boxed.start(result)
+println("finite dynamic native invocation returned")

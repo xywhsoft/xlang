@@ -32,6 +32,7 @@ XL6_CONTINUATION_API const struct XL6_NativeHandlePolicyV1* xl6ChannelReceiveRes
 XL6_CONTINUATION_API const struct xchannelsubscribeownershipv1* xl6ChannelDirectFutureSubscriptionPolicyV1Get(void);
 XL6_CONTINUATION_API const struct xcancelwatchownershipv1* xl6ChannelDirectFutureCancelPolicyV1Get(void);
 XL6_CONTINUATION_API const struct xrtownershipquiescencev1* xl6ChannelReceiveResultQuiescenceV1Get(void);
+XL6_CONTINUATION_API const struct xrtownershipquiescencev1* xl6ChannelDirectFutureQuiescenceV1Get(void);
 XL6_CONTINUATION_API const struct xrtownershipadapterv1* xl6ChannelDirectFutureOwnershipAdapterV1(
     struct xrtownershipref,const struct xrtownershippreparationv1**);
 #endif

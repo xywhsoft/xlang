@@ -6,6 +6,7 @@ struct xfuture;
 struct xrtownershipref;
 struct xrtownershipadapterv1;
 struct xrtownershippreparationv1;
+struct xrtownershipquiescencev1;
 struct xchannelsubscribeownershipv1;
 struct xfutureproducerownershipv1;
 struct xcancelwatchownershipv1;
@@ -49,6 +50,7 @@ XL6_CONTINUATION_API const struct xchannelsubscribeownershipv1* xl6ChannelFuture
 XL6_CONTINUATION_API const struct xfutureproducerownershipv1* xl6ChannelFutureProducerPolicyV1Get(void);
 XL6_CONTINUATION_API const struct xcancelwatchownershipv1* xl6ChannelFutureCancelPolicyV1Get(void);
 XL6_CONTINUATION_API const XL6_ContinuationStorageV2* xl6ChannelFutureStorageV2Get(void);
+XL6_CONTINUATION_API const struct xrtownershipquiescencev1* xl6ChannelFutureQuiescenceV1Get(void);
 XL6_CONTINUATION_API const struct xrtownershipadapterv1* xl6ChannelFutureOwnershipAdapterV1(
     struct xrtownershipref,const struct xrtownershippreparationv1**);
 #endif

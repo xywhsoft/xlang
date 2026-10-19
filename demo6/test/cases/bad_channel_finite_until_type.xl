@@ -1,0 +1,4 @@
+import concurrent
+channel<int> pipe = channel::<int>(1)
+int deadline = 0
+auto result = pipe.recvAsyncUntil(deadline)

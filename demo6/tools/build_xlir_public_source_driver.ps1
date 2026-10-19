@@ -312,8 +312,17 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/sem/xl6_sem.c','src/sem/xl6_protocol.c','src/sem/xl6_type_registry.c',
     'src/sem/xl6_sem_docs.c','src/sem/xl6_sem_field_attrs.c','src/sem/xl6_sem_index.c','src/sem/xl6_completion.c','src/stdlib/xl6_stdlib.c','src/stdlib/xl6_stdlib_data.c',
     $driverSource,'lib/tcc/tcctools.c','lib/tcc/tcc_utf8_io.c')
+# Close the resident population from ordinary explicit build manifests, not a
+# second stale hand-maintained list, directory glob, or alternate provider.
+$runtimeManifests=@('tools/compiler_dll.rsp.in','build_dll.bat')
+foreach($runtimeManifest in $runtimeManifests) {
+    $runtimeText=[IO.File]::ReadAllText((Join-Path $rootPath $runtimeManifest)).Replace('\','/')
+    foreach($runtimeMatch in [regex]::Matches($runtimeText,'\bsrc/runtime/[A-Za-z0-9_]+\.c\b')) {
+        if($sources -notcontains $runtimeMatch.Value){$sources += $runtimeMatch.Value}
+    }
+}
 $files = @(@(Get-ChildItem src,lib,release/include,res/tcc -Recurse -File) +
-    @(Get-Item $driverSource,$PSCommandPath,tools/xlir_c_object_cache.ps1,tools/xrt_single_header_impl.c,release/xl.dll,tools/tcc_vfs_manifest_win64_xlc.txt) +
+    @(Get-Item $driverSource,$PSCommandPath,tools/xlir_c_object_cache.ps1,tools/xrt_single_header_impl.c,release/xl.dll,tools/tcc_vfs_manifest_win64_xlc.txt,tools/compiler_dll.rsp.in,build_dll.bat) +
     @(Get-Item -LiteralPath $buildContext.Toolchain.Path)) | Sort-Object FullName -Unique
 $records = @($files | ForEach-Object { [pscustomobject]@{Path=$_.FullName;Sha256=(Get-FileHash -LiteralPath $_.FullName).Hash} })
 New-Item -ItemType Directory -Force -Path $batchPath | Out-Null
@@ -390,7 +399,15 @@ for ($index = 0; $index -lt $sources.Count; ++$index) {
 }
 Push-Location $batchPath
 try {
-    & $buildContext.Compiler @flags @objects (Join-Path $rootPath 'release/xl.dll') -lWs2_32 -lIPHLPAPI -lShell32 -lOle32 -lAdvapi32 -o $binaryName *> link.log
+    # Hundreds of absolute object paths exceed the Windows native command
+    # limit in external evidence directories. GCC's response grammar owns
+    # quoting; keep every argument and the actual consumed bytes in the receipt.
+    $linkArguments=@($flags)+@($objects)+@((Join-Path $rootPath 'release/xl.dll'),
+        '-lWs2_32','-lIPHLPAPI','-lShell32','-lOle32','-lAdvapi32','-o',$binaryName)
+    $linkResponse=Join-Path $batchPath 'link.rsp'
+    $linkRows=@($linkArguments|ForEach-Object{'"'+$_.Replace('\','/').Replace('"','\"')+'"'})
+    [IO.File]::WriteAllText($linkResponse,($linkRows -join "`n")+"`n",[Text.UTF8Encoding]::new($false))
+    & $buildContext.Compiler ('@'+$linkResponse) *> link.log
     if ($LASTEXITCODE -ne 0) { Get-Content link.log -Tail 40; throw 'Public source compiler link failed' }
 } finally { Pop-Location }
 if (@($records | Where-Object { (Get-FileHash -LiteralPath $_.Path).Hash -ne $_.Sha256 }).Count) { throw 'Build inputs changed' }
@@ -398,6 +415,7 @@ Assert-XlirCToolchainUnchanged $buildContext
 $manifest = [pscustomobject]@{RecordedAt=(Get-Date).ToString('o');Inputs=$records;Sources=$sources;RuntimeOnly=[bool]$RuntimeOnly;EnableExeCompiler=$enableExe;
     Driver=(Join-Path $batchPath $binaryName);DriverSha256=(Get-FileHash (Join-Path $batchPath $binaryName)).Hash;Headers=$headers;
     Objects=$objectRecords;ToolchainSha256=$buildContext.ToolchainSha256;
+    LinkResponse=$linkResponse;LinkResponseSha256=(Get-FileHash -LiteralPath $linkResponse).Hash;
     CacheHits=@($objectRecords | Where-Object CacheHit).Count;CacheMisses=@($objectRecords | Where-Object {!$_.CacheHit}).Count;
     BuildSeconds=[Math]::Round($buildTimer.Elapsed.TotalSeconds,3);
     RuntimeSha256=(Get-FileHash release/xl.dll).Hash;

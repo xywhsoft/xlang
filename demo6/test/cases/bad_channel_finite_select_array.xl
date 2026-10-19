@@ -1,0 +1,2 @@
+import concurrent
+auto result = ChannelSelection.selectAsyncTimeout([1, 2], 0)

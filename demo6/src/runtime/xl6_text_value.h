@@ -18,6 +18,7 @@ struct xlir_closure;
 #include "xl6_channel_wait_abi.h"
 #include "xl6_channel_case_abi.h"
 #include "xl6_channel_language_abi.h"
+#include "xl6_channel_deadline_language.h"
 #include "xl6_asn1_abi.h"
 #include "xl6_crypto_abi.h"
 #include "xl6_codec_abi.h"

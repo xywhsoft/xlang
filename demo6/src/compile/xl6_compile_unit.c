@@ -623,7 +623,11 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_deadline_service.c",D(R(OWNERSHIP_CATALOG),R(DEADLINE_SERVICE)),{NULL}},
     {"src/runtime/xl6_channel_future_deadline.c",D(R(CHANNEL_FUTURE_CORE),R(DEADLINE_SERVICE)),{NULL}},
     {"src/runtime/xl6_channel_direct_deadline.c",D(R(CHANNEL_DIRECT_FUTURE),R(CHANNEL_FUTURE_DEADLINE)),{NULL}},
-    {"src/runtime/xl6_channel_select_deadline.c",D(R(CHANNEL_FUTURE),R(CHANNEL_FUTURE_DEADLINE)),{NULL}}
+    {"src/runtime/xl6_channel_select_deadline.c",D(R(CHANNEL_FUTURE),R(CHANNEL_FUTURE_DEADLINE)),{NULL}},
+    {"src/runtime/xl6_channel_direct_deadline_language.c",D(R(CHANNEL_DIRECT_DEADLINE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_channel_direct_deadline_language.c",D(R(OWNERSHIP_CATALOG),R(CHANNEL_DIRECT_DEADLINE_LANGUAGE)),{NULL}},
+    {"src/runtime/xl6_channel_select_deadline_language.c",D(R(CHANNEL_SELECT_DEADLINE),R(CHANNEL_CASE_ARRAY)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_channel_select_deadline_language.c",D(R(OWNERSHIP_CATALOG),R(CHANNEL_SELECT_DEADLINE_LANGUAGE)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
@@ -834,6 +838,8 @@ int xl6ArtifactRuntimePlanBuild(const XL6_IrModule* module, XL6_ArtifactEntryAbi
     if (module->abi.codeOwnerAbi != XL6_IR_MODULE_CODE_OWNER_NONE) REQUIRE(R(CODE_LEASE));
     if (module->abi.continuationAbi != XL6_IR_MODULE_CONTINUATION_NONE)
         REQUIRE(R(EXECUTOR),R(CONTINUATION_FUTURE),R(CONTINUATION_FRAME));
+    if(module->abi.deadlineOwnershipAbi!=XL6_IR_MODULE_DEADLINE_OWNERSHIP_NONE)
+        REQUIRE(R(DEADLINE_SERVICE),R(OWNERSHIP_DOMAIN_DEADLINE_SERVICE));
     if (module->abi.taskPoolAbi != XL6_IR_MODULE_TASK_POOL_NONE) REQUIRE(R(TASK));
     for (size_t i=0;i<module->callTargetCount;++i)
         if (module->callTargets[i].reachability != XL6_IR_REACHABILITY_UNREACHABLE &&

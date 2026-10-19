@@ -1,0 +1,59 @@
+import concurrent
+
+async func roundTrip<T>(T value) as T
+    channel<T> pipe = channel::<T>(1)
+    auto receiving = ChannelCase.receive(pipe)
+    auto pending = ChannelSelection.selectAsyncTimeout([receiving], 30000)
+    assert pipe.send(value)
+    auto result = await pending
+    assert result.status == channelStatus.ok and result.index == 0
+    return result.value(receiving, pipe)
+end
+async func checks()
+    assert await roundTrip::<int>(42) == 42
+    assert await roundTrip::<string>("a\0你🙂") == "a\0你🙂"
+    assert await roundTrip::<bytes>(b"a\0b") == b"a\0b"
+    assert await roundTrip::<int?>(null) == null
+    channel<int> pipe = channel::<int>(1)
+    auto receiving = ChannelCase.receive(pipe)
+    auto empty = await ChannelSelection.selectAsyncTimeout([receiving], 0)
+    assert empty.status == channelStatus.timeout and empty.index == -1
+    empty = await ChannelSelection.selectAsyncUntil([receiving], uint64(0))
+    assert empty.status == channelStatus.timeout and empty.index == -1
+    assert pipe.send(71)
+    auto ready = await ChannelSelection.selectAsyncUntil([receiving], uint64(0))
+    assert ready.status == channelStatus.ok and ready.value(receiving, pipe) == 71
+    auto source = CancellationSource()
+    auto pending = ChannelSelection.selectAsyncTimeoutCancel([receiving], 30000, source.token)
+    assert source.cancel()
+    auto cancelled = await pending
+    assert cancelled.status == channelStatus.cancelled and cancelled.index == -1
+    assert pipe.send(72)
+    ready = await ChannelSelection.selectAsyncUntilCancel([receiving], uint64(0), source.token)
+    assert ready.status == channelStatus.ok and ready.value(receiving, pipe) == 72
+    pending = ChannelSelection.selectAsyncTimeout([receiving], 30000)
+    pending.cancel()
+    assert (await pending).status == channelStatus.cancelled
+    for bad in [-1, 9223372036854775807]
+        bool refused = false
+        try
+            ChannelSelection.selectAsyncTimeout([receiving], bad)
+        catch Error
+            refused = true
+        end
+        assert refused and pipe.count() == 0
+    end
+    bool refused = false
+    try
+        ChannelSelection.selectAsyncUntil([receiving], uint64(18446744073709551615))
+    catch Error
+        refused = true
+    end
+    assert refused
+    pending = ChannelSelection.selectAsyncTimeout([receiving], 30000)
+    pipe.close()
+    assert (await pending).status == channelStatus.closed
+    assert (await ChannelSelection.selectAsyncTimeout([receiving], 30000)).status == channelStatus.closed
+end
+await checks()
+println("finite select Channel Future language ok")

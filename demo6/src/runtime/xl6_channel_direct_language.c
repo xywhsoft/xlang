@@ -1,10 +1,21 @@
 #include "xl6_text_value.h"
 #include "xl6_channel_direct_future.h"
+#include "xl6_channel_future_core.h"
 #include "xl6_native_handle.h"
 #include "src/api/xl_foreign_error.h"
+#include <stdlib.h>
 
 static void failed(void)
 {xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});}
+static void* publish(void* frame)
+{
+    if(frame&&!xl6ChannelFutureCorePublishBuilderV1(frame)){
+        xl6_error_scope scope={0};if(!xl6ErrorScopeBeginCleanup(&scope,true))abort();
+        xl6ChannelFutureCoreDiscardV1(frame);frame=NULL;
+        xl6_error_result result=xl6ErrorScopeEnd(&scope);xl6ErrorScopePropagateFailure(result);
+    }
+    if(!frame)failed();return frame;
+}
 void xl6ChannelSendFutureBuilderDestroyV1(void* frame) {xl6ChannelFutureBuilderDestroyV1(frame);}
 void xl6ChannelReceiveFutureBuilderDestroyV1(void* frame) {xl6ChannelFutureBuilderDestroyV1(frame);}
 static bool trace_builder(const xvalue* value,const XL6_NativeHandlePolicyV1* policy,
@@ -23,14 +34,12 @@ XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6ChannelReceiveFutureBuilderHandlePolicyV1Get,
 void* xl6ChannelDirectSendCreateLanguageV1(XL6_SequenceLayoutV1 layout,const xvalue* channel,const void* value)
 {
     void* frame=xl6ChannelDirectFutureRuntimeV1Get()->PrepareSend(layout,channel,value);
-    if(!frame)failed();
-    return frame;
+    return publish(frame);
 }
 void* xl6ChannelDirectReceiveCreateLanguageV1(XL6_SequenceLayoutV1 layout,const xvalue* channel)
 {
     void* frame=xl6ChannelDirectFutureRuntimeV1Get()->PrepareReceive(layout,channel);
-    if(!frame)failed();
-    return frame;
+    return publish(frame);
 }
 xvalue* xl6ChannelReceiveFutureResultLanguageV1(void* frame)
 {

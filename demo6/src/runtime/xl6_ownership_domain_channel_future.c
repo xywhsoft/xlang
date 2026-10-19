@@ -8,6 +8,7 @@ static bool load(XL6_OwnershipCatalog* catalog)
         xl6OwnershipCatalogAddCancelWatchV1(catalog,xl6ChannelFutureCancelPolicyV1Get())&&
         xl6OwnershipCatalogAddQueuedStorageV1(catalog,xl6ChannelFutureStorageV2Get())&&
         xl6OwnershipCatalogAddChannelSubscriptionV1(catalog,xl6ChannelFutureSubscriptionPolicyV1Get())&&
+        xl6OwnershipCatalogAddQuiescenceV1(catalog,xl6ChannelFutureQuiescenceV1Get())&&
         xl6OwnershipCatalogAddQuiescenceV1(catalog,xrtChannelSubscribeOwnershipQuiescenceV1Get());
 }
 XL6_OWNERSHIP_QUERY(ChannelFuture)

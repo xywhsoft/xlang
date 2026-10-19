@@ -34,7 +34,7 @@ int main(int argc,char** argv)
     for(size_t i=0;i<module->callTargetCount;++i){
         XL6_IrCallTarget* target=module->callTargets+i;XL6_IrCallTarget saved=*target;
         if(target->nativeServicesRequired && target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_NONE){
-            assert(target->nativeServicesRequired==XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1);
+            assert(target->nativeServicesRequired==xl6IrRuntimeDirectBridgeServices(target->cName));
             assert(!target->nativeContextType&&target->nativeContextPayloadAbi==XL6_IR_ASYNC_RESULT_INVALID);
             assert(xl6IrDynamicMethodCallTargetSupported(module,target));
             target->nativeServicesRequired=0;assert(!xl6IrDynamicMethodCallTargetSupported(module,target));
@@ -62,7 +62,7 @@ int main(int argc,char** argv)
             XL6_IrType* owner=(XL6_IrType*)xl6IrTypeGet(&module->types,target->nativeContextType);
             assert(owner && owner->paramCount==1);
             owner->paramCount=0;reject(module,target);owner->paramCount=1;
-            assert(target->nativeServicesRequired==XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1);
+            assert(target->nativeServicesRequired==xl6IrRuntimeDirectBridgeServices(target->cName));
             assert(xl6IrDynamicMethodCallTargetSupported(module,target));
             target->nativeServicesRequired=0;assert(!xl6IrDynamicMethodCallTargetSupported(module,target));
             reject(module,target);*target=saved;

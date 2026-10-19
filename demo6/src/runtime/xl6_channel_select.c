@@ -94,17 +94,24 @@ bool xl6ChannelSelectCompleteV1(XL6_ChannelSelectFrameV1* frame,xchannelselectre
     }
     *output=result; return true;
 }
-void xl6ChannelSelectDiscardV1(XL6_ChannelSelectFrameV1* frame)
+static void discard(XL6_ChannelSelectFrameV1* frame,const void* token)
 {
     if (!frame) return;
     size_t count=frame->count; XL6_ChannelOperationV1* operations=frame->operations;
     xchannelcase* native=frame->native;
     frame->count=0; frame->operations=NULL; frame->native=NULL;
-    for (size_t i=0;i<count;++i) xl6ChannelOperationCloseV1(operations+i);
+    for (size_t i=0;i<count;++i) {
+        if(token)xl6ChannelOperationCloseClaimedV1(operations+i,token);
+        else xl6ChannelOperationCloseV1(operations+i);
+    }
     if (native!=frame->inlineNative) xrtFree(native);
     if (operations!=frame->inlineOperations) xrtFree(operations);
     memset(frame,0,sizeof(*frame));
 }
+void xl6ChannelSelectDiscardV1(XL6_ChannelSelectFrameV1* frame)
+{discard(frame,NULL);}
+void xl6ChannelSelectDiscardClaimedV1(XL6_ChannelSelectFrameV1* frame,const void* token)
+{if(!token)abort();discard(frame,token);}
 bool xl6ChannelSelectV1(const XL6_ChannelCaseV1* cases,size_t count,XL6_ChannelWaitOptionsV2 options,
     XL6_ChannelSelectionV1* output)
 {

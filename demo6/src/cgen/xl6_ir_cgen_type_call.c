@@ -478,8 +478,12 @@ static const char* xl6IrCgenNativeSlotTypeExpr(XL6_IrNativeSlotAbi);
 static const char* xl6IrCgenSequenceTransferAbiToken(XL6_IrRuntimeResourcePayloadAbi);
 static int xl6IrCgenEmitNativeServices(XL6_Output* out,const XL6_IrCallTarget* target)
 {
-    if(target->nativeServicesRequired!=XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1)return 0;
-    xl6OutputPuts("(XL6_RuntimeServicesV1){ .executor = xlir_continuation_executor }",out);
+    const unsigned mask=target->nativeServicesRequired;
+    if(mask!=XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1 && mask!=(XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1|
+        XL6_IR_CALL_NATIVE_SERVICE_DEADLINE_V1))return 0;
+    xl6OutputPuts("(XL6_RuntimeServicesV1){ .executor = xlir_continuation_executor",out);
+    if(mask&XL6_IR_CALL_NATIVE_SERVICE_DEADLINE_V1)xl6OutputPuts(", .deadline = xlir_deadline_source",out);
+    xl6OutputPuts(" }",out);
     return !xl6OutputHasFailed(out);
 }
 
