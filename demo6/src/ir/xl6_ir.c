@@ -13552,6 +13552,8 @@ static XL6_IrDynamicMethodMatchAbi xl6IrDynamicMethodMatchAbiForType(
 {
     const XL6_IrType* type = xl6IrTypeGet(&module->types, typeId);
     if ( type == NULL ) return XL6_IR_DYNAMIC_METHOD_MATCH_INVALID;
+    if (xl6IrTypeIsZeroPayload(module, typeId))
+        return XL6_IR_DYNAMIC_METHOD_MATCH_ZERO_PAYLOAD;
     if (xl6IrDynamicMethodScalarPlanForType(module,typeId,NULL))
         return XL6_IR_DYNAMIC_METHOD_MATCH_SCALAR_CODEC;
     const XL6_IrType* domain = type;
@@ -13755,6 +13757,19 @@ int xl6IrDynamicMethodSourceSupported(const XL6_IrModule* module, const XL6_IrDy
     if ( typeParameters && typeParameters->childCount ) return 0;
     for ( size_t p = 0; p < row->parameterCount; ++p ) {
         const XL6_IrDynamicMethodParameter* item = &module->dynamicMethodParameters[row->firstParameter + p];
+        if (item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_ZERO_PAYLOAD) {
+            const XL6_IrType* owner = xl6IrTypeGet(&module->types, method->declarationOwnerType);
+            if (method->sourceKind != XL6_AST_NATIVE_EXTERN_FUNC ||
+                !xl6IrRuntimeDirectBridgeValueAddressParameter(method->text, p + 1) ||
+                !owner || owner->kind != XL6_IR_TYPE_CLASS || owner->paramCount != 1 || !owner->params ||
+                owner->params[0] != item->type ||
+                !xl6IrBuildClassDerivesFrom(module, row->ownerType, method->declarationOwnerType) ||
+                !xl6IrTypeIsZeroPayload(module, item->type) ||
+                item->abi != XL6_IR_PARAMETER_ABI_VALUE ||
+                item->variadicAbi != XL6_IR_CALL_VARIADIC_NONE || item->defaultExpression)
+                return 0;
+            continue;
+        }
         if ( !xl6IrDynamicMethodParameterAbiSupported(module, item->type, item->abi, item->variadicAbi) ||
              item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_INVALID ||
              !xl6IrDynamicMethodAdapterTypeSupported(module, item->type, 0) ||
@@ -47277,6 +47292,7 @@ static const char* xl6IrDynamicMethodMatchAbiName(
     case XL6_IR_DYNAMIC_METHOD_MATCH_CALLABLE: return "callable-signature";
     case XL6_IR_DYNAMIC_METHOD_MATCH_FUTURE: return "future-identity";
     case XL6_IR_DYNAMIC_METHOD_MATCH_SCALAR_CODEC: return "scalar-codec";
+    case XL6_IR_DYNAMIC_METHOD_MATCH_ZERO_PAYLOAD: return "zero-payload";
     default: return "invalid";
     }
 }

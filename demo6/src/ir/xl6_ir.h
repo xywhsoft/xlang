@@ -3694,7 +3694,10 @@ typedef enum XL6_IrDynamicMethodMatchAbi {
     /* Callable shape plus exact canonical signature, without conversion. */
     XL6_IR_DYNAMIC_METHOD_MATCH_CALLABLE,
     XL6_IR_DYNAMIC_METHOD_MATCH_FUTURE,
-    XL6_IR_DYNAMIC_METHOD_MATCH_SCALAR_CODEC
+    XL6_IR_DYNAMIC_METHOD_MATCH_SCALAR_CODEC,
+    /* Exact boxed null input for a sealed native empty-payload parameter.
+     * No scalar codec, addressable local, conversion or owned payload exists. */
+    XL6_IR_DYNAMIC_METHOD_MATCH_ZERO_PAYLOAD
 } XL6_IrDynamicMethodMatchAbi;
 
 typedef struct XL6_IrDynamicMethodParameter {

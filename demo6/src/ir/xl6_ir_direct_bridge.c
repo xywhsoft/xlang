@@ -842,6 +842,19 @@ int xl6IrRuntimeDirectBridgeCheckedClosureParameter(const char* name,size_t inde
 int xl6IrRuntimeDirectBridgeValueAddressParameter(const char* name,size_t index)
 {
     const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(name);
+    /* Typed native declarations retain their quoted linkage literal. Match
+     * the same exact descriptor without decoding escapes or guessing names. */
+    if (!c && name) {
+        size_t length = strlen(name);
+        if (length >= 2 && name[0] == '"' && name[length - 1] == '"')
+            for (size_t i = 0; i < sizeof(xl6IrDirectBridgeContracts) / sizeof(xl6IrDirectBridgeContracts[0]); ++i) {
+                const XL6_IrDirectBridgeContract* candidate = &xl6IrDirectBridgeContracts[i];
+                if (strlen(candidate->name) == length - 2 && !memcmp(name + 1, candidate->name, length - 2)) {
+                    c = candidate;
+                    break;
+                }
+            }
+    }
     return c && c->genericValueParameter==index+1;
 }
 XL6_IrCallNativeResultAbi xl6IrRuntimeDirectBridgeNativeResultAbi(const char* name)

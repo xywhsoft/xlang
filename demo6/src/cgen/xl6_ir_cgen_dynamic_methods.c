@@ -49,7 +49,12 @@ static int xl6IrCgenEmitDynamicArgumentAdmission(
 {
     const XL6_IrType* type = xl6IrTypeGet(&module->types, item->type);
     if ( type == NULL ) return 0;
-    if (item->matchAbi==XL6_IR_DYNAMIC_METHOD_MATCH_SCALAR_CODEC) {
+    if (item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_ZERO_PAYLOAD) {
+        xl6OutputPrintf(out,
+            "(xrtValueType(bound%lu) == XVALUE_NULL && (!xrtValueTypeId(bound%lu) || xrtValueTypeId(bound%lu) == 0x%016llXULL))",
+            (unsigned long)parameter, (unsigned long)parameter, (unsigned long)parameter,
+            (unsigned long long)type->typeValueId);
+    } else if (item->matchAbi==XL6_IR_DYNAMIC_METHOD_MATCH_SCALAR_CODEC) {
         const XL6_IrCallableBridgeResult* codec=xl6IrDynamicMethodScalarCodecGet(module,item->scalarCodec);
         const XL6_IrType* value=codec ? xl6IrTypeGet(&module->types,codec->valueType) : NULL;
         if(!codec || !value || codec->type!=item->type)return 0;
@@ -407,13 +412,14 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
                 method->firstParameter + parameter];
         const XL6_IrType* type = xl6IrTypeGet(&module->types, item->type);
         const char* cType = xl6IrCgenType(module, item->type);
-        if ( type == NULL || cType == NULL )
+        if ( type == NULL || (cType == NULL && item->matchAbi != XL6_IR_DYNAMIC_METHOD_MATCH_ZERO_PAYLOAD) )
             return xl6IrCgenDiag(diags, module, method->declaration,
                 "XLIR C emitter dynamic method parameter type is unresolved");
         if ( parameter < method->fixedParameterCount )
             xl6OutputPrintf(out,
                 "    xvalue* bound%lu = NULL; bool has%lu = false;\n",
                 (unsigned long)parameter, (unsigned long)parameter);
+        if (item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_ZERO_PAYLOAD) continue;
         xl6OutputPrintf(out, "    %s a%lu = (%s){0};\n",
                         cType, (unsigned long)parameter, cType);
         if ( type->cAbi == XL6_IR_C_ABI_MANAGED_STRING )
@@ -541,7 +547,11 @@ static int xl6IrCgenEmitDynamicMethodAdapter(
                 "dynamic method argument is outside its declared value domain");
             xl6OutputPuts(" }\n", out);
         }
-        if (item->matchAbi==XL6_IR_DYNAMIC_METHOD_MATCH_SCALAR_CODEC) {
+        if (item->matchAbi == XL6_IR_DYNAMIC_METHOD_MATCH_ZERO_PAYLOAD) {
+            /* Admission consumed the complete logical input. The exact native
+             * physical parameter supplies NULL; there is no local to decode. */
+            if (item->defaultAbi != XL6_IR_DYNAMIC_METHOD_DEFAULT_NONE) return 0;
+        } else if (item->matchAbi==XL6_IR_DYNAMIC_METHOD_MATCH_SCALAR_CODEC) {
             const XL6_IrCallableBridgeResult* codec=xl6IrDynamicMethodScalarCodecGet(module,item->scalarCodec);
             char place[48],source[48]; snprintf(place,sizeof(place),"a%lu",(unsigned long)parameter);
             snprintf(source,sizeof(source),"bound%lu",(unsigned long)parameter);
@@ -1092,6 +1102,7 @@ static unsigned xl6IrCgenDynamicArgumentAdmissionNeeds(const XL6_IrModule* modul
             if(abi==XL6_IR_DYNAMIC_METHOD_MATCH_SCALAR_CODEC)needs|=3u;
             else if ( abi == XL6_IR_DYNAMIC_METHOD_MATCH_EXACT_IDENTITY ) needs |= 2u;
             else if ( abi != XL6_IR_DYNAMIC_METHOD_MATCH_ANY_XVALUE &&
+                      abi != XL6_IR_DYNAMIC_METHOD_MATCH_ZERO_PAYLOAD &&
                       abi != XL6_IR_DYNAMIC_METHOD_MATCH_NOMINAL ) needs |= 1u;
         }
     }
