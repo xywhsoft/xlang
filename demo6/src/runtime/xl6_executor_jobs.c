@@ -2,6 +2,7 @@
 #include "lib/xrt/xrt.h"
 #include "xl6_executor_jobs.h"
 #include "xl6_concurrent_deadline.h"
+#include "xl6_thread_exit.h"
 #include "src/api/xl_foreign_error.h"
 #include <stdlib.h>
 
@@ -199,6 +200,20 @@ static bool failuresCount(const void* raw,size_t* count)
 static bool failuresTrace(const void* raw,xrtownershipvisitor visit,void* context)
 {const XL6_ExecutorFailuresV1* state=raw;size_t count;return visit&&failuresCount(raw,&count)&&(!state->error||visit(xrtErrorOwnership(state->error),context));}
 static const xrtownershipops failureOps={failuresCount,failuresTrace};
+static void workerExit(void* raw)
+{
+    XL6_ExecutorFailuresV1* state=raw;
+    xerror* previous=xrtTakeError();xl6_error_scope cleanup={0};xl6_error_result outcome={false,NULL};
+    if(xl6ErrorScopeBegin(&cleanup)){
+        if(!xl6ThreadExitCurrentV1())xl6ErrorScopeCaptureFailure(&cleanup);
+        outcome=xl6ErrorScopeEnd(&cleanup);
+    }else outcome.error=xrtTakeError();
+    record(state,outcome);xrtClearError();xrtSetErrorTake(previous);
+}
+static void workerExitDrop(void* raw,void* context)
+{if(context)abort();xl6ExecutorFailuresReleaseV1(raw);}
+const xexecutorworkerexitownershipv1* xl6ExecutorWorkerExitPolicyV1Get(void)
+{static const xexecutorworkerexitownershipv1 policy={sizeof(policy),workerExit,workerExitDrop,&failureOps};return &policy;}
 xrtownershipref xl6ExecutorFailuresOwnershipV1(const XL6_ExecutorFailuresV1* state)
 {return (xrtownershipref){state,state?&failureOps:NULL};}
 static bool jobCount(const void* raw,size_t* count)

@@ -10,7 +10,7 @@ static bool load(XL6_OwnershipCatalog* catalog)
 XL6_OWNERSHIP_QUERY(NativeExecutor)
 {
     (void)completion;
-    *adapter=xrtExecutorOwnershipAdapterV1(ref,preparation);
+    *adapter=xrtExecutorOwnershipAdapterV2(ref,policies->ExecutorExit,policies->ExecutorExitCount,preparation);
     if(!*adapter)*adapter=xrtExecutorJobOwnershipAdapterV1(ref,
         policies->Executor,policies->ExecutorCount,preparation);
     return *adapter!=NULL;

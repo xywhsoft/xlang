@@ -1,5 +1,6 @@
 #include "execution-resource-modules.h"
 #define XRT_MODULE_MEMORY_DEBUG
+#define XRT_MODULE_THREAD_KEY
 #define XRUNTIME_IMPLEMENTATION
 #include "lib/xruntime/xruntime.h"
 #include "src/runtime/xl6_execution_resource.h"
@@ -7,6 +8,7 @@
 #include "src/api/xl_foreign_error.h"
 #include "src/runtime/xl6_ownership_catalog.h"
 #include "src/runtime/xl6_ownership_domains.h"
+#include "src/runtime/xl6_thread_exit.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,7 +42,7 @@ static void balanced(const xmemdebugsnapshot* before)
 static XL6_ExecutionSourceSnapshotV1 snapshot(XL6_ExecutionSourceV1* source)
 {XL6_ExecutionSourceSnapshotV1 result={.size=sizeof(result)};assert(xl6ExecutionSourceSnapshotV1Get(source,&result));return result;}
 static void drain(XL6_ExecutionSourceV1* source)
-{xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));while(snapshot(source).resources){assert(!xrtDeadlineExpired(end));xrtThreadYield();}}
+{xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));for(;;){XL6_ExecutionSourceSnapshotV1 state=snapshot(source);if(!state.resources&&!state.active)break;assert(!xrtDeadlineExpired(end));xrtThreadYield();}}
 static void destroyClosed(XL6_ExecutionSourceV1** source,bool success)
 {
     xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
@@ -119,11 +121,12 @@ static void stalledRound(void)
     xexecutor* native=entry.executor;xl6ExecutionResourceLeaveV1(&entry);
     const xrtownershipadapterv1* adapter=NULL;const xrtownershippreparationv1* prepare=NULL;xrtownershipscope frozen={0};
     int token=0;xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
-    while(!adapter){freeze(&frozen);adapter=xrtExecutorOwnershipAdapterV1(xrtExecutorOwnership(native),&prepare);
+    const xexecutorworkerexitownershipv1* known[]={xl6ExecutorWorkerExitPolicyV1Get()};
+    while(!adapter){freeze(&frozen);adapter=xrtExecutorOwnershipAdapterV2(xrtExecutorOwnership(native),known,1,&prepare);
         if(adapter)assert(adapter->Hold(native)&&adapter->Claim(native,&token));
         assert(xrtOwnershipScopeEnd(&frozen)&&!xrtDeadlineExpired(end));xrtThreadYield();}
     xl6ExecutionResourceReleaseV1(r);XL6_ExecutionResourceSnapshotV1 state={.size=sizeof(state)};
-    do{assert(xl6ExecutionResourceSnapshotV1Get(r,&state)&&!xrtDeadlineExpired(end));xrtThreadYield();}while(!state.stalled);
+    do{assert(xl6ExecutionResourceSnapshotV1Get(r,&state)&&!xrtDeadlineExpired(end));xrtThreadYield();}while(!state.stalled||snapshot(source).active);
     assert(state.nativePresent&&snapshot(source).resources==1&&!xl6ExecutionSourceCheckV1(source));
     assert(xrtErrorKind(xrtGetError())==XERR_STATE);xrtClearError();
     freeze(&frozen);adapter->Restore(native,&token);assert(xrtOwnershipScopeEnd(&frozen));adapter->Drop(native);
@@ -319,6 +322,37 @@ static void failureGraphRound(XL6_OwnershipCatalog* catalog,bool nullError,bool 
     for(size_t i=g.count;i>0;--i)g.nodes[i-1].adapter->Drop(g.nodes[i-1].ref.Data);
     balanced(&before);
 }
+static xthreadkey* exitModeKey;
+static xatomic32 exitCalls;
+static bool checkedWorkerExit(void)
+{
+    (void)xrtAtomic32FetchAdd(&exitCalls,1,XMEMORY_RELEASE);
+    const unsigned* mode=xrtThreadKeyGet(exitModeKey);assert(mode);
+    if(*mode==2)xrtSetErrorTake(xrtErrorCreate(XERR_ARGUMENT,"worker-exit",902,"original exit failure"));
+    return *mode==0;
+}
+static void markWorkerExit(void* raw){assert(xrtThreadKeySet(exitModeKey,raw));}
+static void exitFailureRound(unsigned mode,bool observed)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);uint32_t calls=xrtAtomic32Load(&exitCalls,XMEMORY_ACQUIRE);
+    XL6_ExecutionSourceV1* source=xl6ExecutionSourceCreateV1();assert(source);
+    XL6_ExecutionResourceV1* r=createResource(source,false);XL6_ExecutionScopeV1 entry={0};
+    assert(xl6ExecutionResourceEnterV1(r,true,&entry));
+    assert(xrtExecutorSubmit(entry.executor,markWorkerExit,&mode,NULL,NULL));xl6ExecutionResourceLeaveV1(&entry);
+    assert(xl6ExecutionResourceCloseV1(r)&&xl6ExecutionResourceEnterV1(r,false,&entry));
+    assert(xrtExecutorWaitFor(entry.executor,UINT64_C(5000000))==XWAIT_OK);xl6ExecutionResourceLeaveV1(&entry);
+    assert(xrtAtomic32Load(&exitCalls,XMEMORY_ACQUIRE)==calls+1);
+    XL6_ExecutorFailureSnapshotV1 state={.size=sizeof(state)};
+    assert(xl6ExecutionExecutorFailuresV1(r,&state)&&state.count==(mode?1u:0u));
+    if(observed){XL6_ExecutorWaitStatusV1 status=XL6_EXECUTOR_TIMEOUT_V1;
+        assert(xl6ExecutionExecutorWaitV1(r,0,&status)==!mode&&status==XL6_EXECUTOR_READY_V1);
+        if(mode)assert(mode==1?!xrtGetError():xrtErrorCode(xrtGetError())==902);
+        xrtClearError();assert(xl6ExecutionExecutorThrowIfFailedV1(r)==!mode);xrtClearError();}
+    xl6ExecutionResourceReleaseV1(r);drain(source);
+    bool ok=!mode||observed;assert(xl6ExecutionSourceCheckV1(source)==ok);
+    if(!ok)assert(mode==1?!xrtGetError():xrtErrorCode(xrtGetError())==902);
+    xrtClearError();destroy(&source,ok);balanced(&before);
+}
 int main(void)
 {
     const xallocator allocator={NULL,allocate,resize,release};assert(xrtSetAllocator(&allocator));
@@ -337,5 +371,9 @@ int main(void)
     puts("Execution resource error retirement: 64 observed/unobserved and NULL/allocated first failures; graph and ordinary checked notifications, no repeated handled error");
     xl6OwnershipCatalogDestroyV1(catalog);
     allocationPrefixes();
+    exitModeKey=xrtThreadKeyCreate(NULL);assert(exitModeKey&&xl6ThreadExitRegisterLocalV1(checkedWorkerExit));
+    for(unsigned i=0;i<8;++i)for(unsigned mode=0;mode<3;++mode){exitFailureRound(mode,false);exitFailureRound(mode,true);}
+    assert(xrtThreadKeyDestroy(exitModeKey));
+    puts("Executor worker exit: 48 real-thread normal/NULL/allocated failures; explicit wait/history and unobserved checked retirement, exact allocation balance");
     puts("Execution resources: 32 worker last-owner tails (16 failed), 16 held entries, 16 owned close/waits, 16 real creation-close races, 8 explicit retries, 64 exact graphs (32 empty) with restore/arbitrary finish order, 120 allocation prefixes, identity refusal and balanced lifetimes");return 0;
 }

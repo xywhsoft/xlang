@@ -162,7 +162,12 @@ body 使用独立 checked 作用域调用。其结果保留到 Drop，先从元�
 再在锁和 mutation 外释放捕获；body 与捕获析构的失败合并为一个作业失败。直到
 Drop 完成才登记账本，原生 Outstanding 继续覆盖这个尾部；仅返回 body 不算完成。
 取消的排队作业不运行 body；正常清理不计失败，清理自身抛错则计一次。
-没有改变 ThreadLocal 为“每作业清空”，也没有偷偷执行线程退出 hook。
+没有改变 ThreadLocal 为“每作业清空”。受管理 Executor 另外显式安装驻留的
+真实线程退出合同，复用同一失败账本；普通裸 Executor 不自动安装语言 hook。
+其 native owning slot 持有一个真实账本引用，与 Resource 的引用分别追踪。
+NativeExecutor 域按已封存 ExecutorExit 合同身份准入，然后才遍历上下文；
+退出 callback 活动期间为 BUSY。线程全部完成退出 hook 后 Wait 才 READY，
+全部 join 后才释放这个 native owning slot。图 Prepare 完成全部线程后才能 Clear。
 
 账本锁内只做引用／计数发布，锁外释放错误；首错使用原始 Error 的实际引用，
 不重新包装或复制消息。first 按完整作业清理后的登记顺序，而非提交顺序；并行

@@ -1,0 +1,51 @@
+import concurrent
+
+auto dropped = AtomicInt64()
+class ExecutorLocal
+    bool fail = false
+    create(bool fail = false)
+        self.fail = fail
+    end
+    destroy()
+        dropped.fetchAdd(1)
+        if self.fail then throw ValueError("executor thread exit") end
+    end
+end
+
+func checkExit(bool fail)
+    auto local = ThreadLocal::<ExecutorLocal>()
+    auto counter = ThreadLocal::<int>()
+    auto first = Event(true)
+    auto second = Event(true)
+    auto executor = Executor(1, 8)
+    executor.submit(func()
+        assert not local.hasValue()
+        local.set(ExecutorLocal(fail))
+        counter.set(41)
+        first.set()
+    end)
+    assert first.wait(10000)
+    executor.submit(func()
+        assert local.hasValue() and (counter.get() ?? 0) == 41
+        counter.set(42)
+        second.set()
+    end)
+    assert second.wait(10000)
+    assert dropped.load() == (fail ? 1 : 0), "no per-job ThreadLocal cleanup"
+    executor.close()
+    bool caught = false
+    try
+        assert executor.wait(10000)
+    catch ValueError e
+        assert e.message == "executor thread exit"
+        caught = true
+    end
+    assert caught == fail
+    assert executor.failureCount == (fail ? 1 : 0)
+    assert not local.hasValue() and not counter.hasValue()
+end
+checkExit(false)
+assert dropped.load() == 1
+checkExit(true)
+assert dropped.load() == 2, "wait covers checked real-thread cleanup"
+println("Executor real-thread local persistence and checked exit ok")
