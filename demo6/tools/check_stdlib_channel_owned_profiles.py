@@ -29,12 +29,16 @@ def main():
     for folder in ('src','lib/xrt','lib/xruntime','release/include'):
         inputs.update(p for p in (root/folder).rglob('*') if p.is_file())
     before={str(p):sha(p) for p in sorted(inputs)}
-    report=dict(Complete=False,Inputs=before,Rows=[],Scope=__doc__,NormalProductAcceptance=not source,
+    artifacts=[]
+    report=dict(Complete=False,Inputs=before,Rows=[],Products=artifacts,Scope=__doc__,NormalProductAcceptance=not source,
         NetworkTests=False,NetworkSecurityTests=False)
     env=dict(os.environ)
     if win:
         for product in products:shutil.copy2(product,out/product.name)
     def save():(out/'report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')
+    def record_product(path):artifacts.append(dict(Path=str(path),Sha256=sha(path)));save()
+    if win:
+        for library in products:record_product(out/library.name)
     def run(name,command):
         result=subprocess.run(list(map(str,command)),cwd=root,env=env,capture_output=True,timeout=180)
         log=out/(name+'.log');log.write_bytes(result.stdout+result.stderr)
@@ -50,7 +54,8 @@ def main():
                 links=[str(product),*systems]+([] if win else ['-Wl,-rpath,'+str(product.parent)])
                 command=[*flags,'-'+opt,root/'test/cases/stdlib_channel_owned_profiles_native.c',*objects,*links,'-o',binary]
                 response.write_text(''.join('"'+str(v).replace('\\','/').replace('"','\\"')+'"\n' for v in command),encoding='utf8')
-                run(name+'.build',[cc,'@'+str(response)]);run(name+'.run',[binary])
+                record_product(response);run(name+'.build',[cc,'@'+str(response)]);record_product(binary);run(name+'.run',[binary])
+        assert products and len(report['Rows'])==len(products)*4,'Every selected library must execute both real optimization lanes'
         report['InputsUnchanged']=all(sha(p)==h for p,h in before.items())
         report['LogsUnchanged']=all(sha(out/(row['Name']+'.log'))==row['Sha256'] for row in report['Rows'])
         assert report['InputsUnchanged'] and report['LogsUnchanged'];report['Complete']=True

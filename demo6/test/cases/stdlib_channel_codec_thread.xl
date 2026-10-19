@@ -1,0 +1,19 @@
+channel<func(string) as string> pipe = channel::<func(string) as string>(1)
+auto producer = thread(func() as int
+    string prefix = "a\0b"
+    auto callback = func(string suffix) as string
+        return prefix + suffix
+    end
+    assert pipe.send(callback)
+    return 17
+end)
+assert producer.waitTimeout(5000) and producer.exitCode() == 17
+auto status, callback = pipe.recv()
+assert status == channelStatus.ok and callback != null
+pipe.close()
+if callback != null
+    string text = callback("!")
+    assert string.byteLen(text) == 4 and string.byteAt(text, 1) == 0
+    assert string.byteAt(text, 3) == 33
+end
+println("Channel codec cross-thread closure survives producer thread exit and channel close")

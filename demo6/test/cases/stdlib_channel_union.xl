@@ -1,0 +1,19 @@
+import concurrent
+
+union ChannelBits
+    int number
+    c_double real
+end
+
+ChannelBits source
+source.number = 42
+channel<ChannelBits> pipe = channel::<ChannelBits>(2)
+assert pipe.trySend(source)
+source.number = 81
+auto status, received = pipe.tryRecv()
+assert status == 0 and received != null
+ChannelBits result = received ?? source
+assert result.number == 42 and source.number == 81
+pipe.close()
+assert result.number == 42, "union message is an independent value"
+println("Channel union value roundtrip ok")

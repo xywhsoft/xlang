@@ -80,7 +80,7 @@ def main():
             log=run(opt+'-contracts',[contract,root/'test/cases/stdlib_channel_recipes.xl',generated]); product(generated)
             proof=re.search(r'Channel recipes=(\d+) plans=(\d+) pending=(\d+) unsupported=(\d+) mutations=(\d+)',log)
             assert proof,log
-            counts=list(map(int,proof.groups())); assert counts[0]>=17 and counts[1]==counts[0]*3 and counts[2] and counts[3]>=1
+            counts=list(map(int,proof.groups())); assert counts[0]>=18 and counts[1]==counts[0]*3 and counts[2] and counts[3]==0
             report['Proof']=dict(zip(('Recipes','Plans','Pending','Unsupported','RefusedChecks'),counts))
             text=generated.read_text(encoding='utf-8')
             assert 'xl6ChannelCreateTakeV1(' in text and 'xl6ChannelReceiveV1(' in text

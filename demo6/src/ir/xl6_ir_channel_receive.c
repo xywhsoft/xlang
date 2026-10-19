@@ -18,6 +18,28 @@ static int xl6IrChannelDependentDeclaration(const XL6_IrModule* module,XL6_IrNod
     }
     return 0;
 }
+static int xl6IrChannelControlDependentSignatureCompatible(const XL6_IrModule* module,
+    XL6_IrNodeId origin,XL6_IrRuntimeResourceOp op,XL6_IrTypeId owner,
+    XL6_IrTypeId result,const XL6_IrTypeId* args,size_t count)
+{
+    const XL6_IrType* type=module?xl6IrTypeGet(&module->types,owner):NULL;
+    const XL6_IrType* output=module?xl6IrTypeGet(&module->types,result):NULL;
+    if (!type || !args || count!=1 || args[0]!=owner ||
+        type->kind!=XL6_IR_TYPE_GENERIC_INSTANCE || type->paramCount!=1 || !type->params ||
+        type->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_CHANNEL ||
+        !xl6IrBuildTypeContainsTypeParam(module,type->params[0],0) || !type->messageSchemaType ||
+        type->messageSchemaType!=xl6IrMessageSchemaTypeForType(&module->types,type) ||
+        !xl6IrChannelDependentDeclaration(module,origin)) return 0;
+    if (op==XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CLOSE) return result==XL6_IR_TYPE_INVALID;
+    if (!output) return 0;
+    if (op==XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_COUNT)
+        return output->kind==XL6_IR_TYPE_BUILTIN && output->cAbi==XL6_IR_C_ABI_I64 &&
+            output->integerTarget==XL6_IR_INTEGER_TARGET_SIGNED_64 && output->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+            output->nullAbi==XL6_IR_NULL_ABI_NONE;
+    return op==XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_IS_CLOSED &&
+        output->kind==XL6_IR_TYPE_BUILTIN && output->cAbi==XL6_IR_C_ABI_BOOL &&
+        output->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL && output->nullAbi==XL6_IR_NULL_ABI_NONE;
+}
 /* Relative time is a checked signed millisecond span. An absolute deadline
  * uses the unsigned microsecond clock exposed by time.monotonic(). Neither
  * semantic acceptance nor a generic clone may silently change the unit. */

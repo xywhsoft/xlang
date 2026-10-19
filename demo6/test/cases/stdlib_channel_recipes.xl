@@ -58,7 +58,10 @@ end
 func nullableFutureChannel(channel<future<int>?> c) as (int, future<int>?)
     return 0, null
 end
-func unsupportedClosure(channel<func(int) as int> c) as int
+func closureChannel(channel<func(int) as int> c) as (int, (func(int) as int)?)
+    return 0, null
+end
+func pendingGenerator(channel<generator<int>> c) as int
     return 0
 end
 func nativeRecordChannel(channel<SlotMapKey> c) as (int, SlotMapKey?)

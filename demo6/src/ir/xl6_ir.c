@@ -8767,9 +8767,11 @@ static int xl6IrMessageConstructionRecipeDepth(const XL6_IrModule* module, XL6_I
             xl6IrMessageSchemaTypeForType(&module->types, type) ||
         !xl6IrSequenceConstructionRecipeDepth(module, type->messageSchemaType,
             XL6_IR_SEQUENCE_ROLE_ARRAY, &set,depth+1)) return 0;
-    /* A collection codec does not authorize the separate message ABI. */
+    /* A collection codec alone does not authorize another transport. Channel
+     * additionally closes its bidirectional language/storage value plan. */
     const XL6_IrType* schema=xl6IrTypeGet(&module->types,type->messageSchemaType);
-    if (!schema || schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1) return 0;
+    if (!schema || (schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1 &&
+        type->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_CHANNEL)) return 0;
     if (familyOut) *familyOut = type->runtimeResourceAbi;
     if (schemaOut) *schemaOut = type->messageSchemaType;
     if (admissionSetOut) *admissionSetOut = set;
@@ -8787,24 +8789,14 @@ int xl6IrConcurrentQueueConstructionRecipe(const XL6_IrModule* module,XL6_IrType
     XL6_IrRuntimeResourceAbi* familyOut,XL6_IrTypeId* schemaOut,XL6_IrNominalIdentitySetId* setOut)
 { return xl6IrConcurrentQueueConstructionRecipeDepth(module,typeId,familyOut,schemaOut,setOut,0); }
 
+#include "src/ir/xl6_ir_channel_value.c"
 int xl6IrChannelConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId owner,
     XL6_IrTypeId* schemaOut,XL6_IrNominalIdentitySetId* setOut)
 {
-    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,owner) : NULL;
-    XL6_IrTypeId schemaId=0; XL6_IrNominalIdentitySetId set=0;
-    if (!type || type->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_CHANNEL ||
-        !xl6IrMessageConstructionRecipeDepth(module,owner,NULL,&schemaId,&set,0)) return 0;
-    const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
-    const XL6_IrSequenceLayout* layout=&schema->sequenceLayout;
-    /* DIRECT messages use the same closed owned slot/policy as their schema,
-     * including real Future references and resident native records. Closure
-     * and union projection remain separate codecs: a pointer-shaped invocation
-     * ABI never certifies a resident message slot. */
-    if (layout->codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT ||
-        layout->transferAbi<XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY ||
-        layout->transferAbi>XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY) return 0;
-    if (schemaOut) *schemaOut=schemaId;
-    if (setOut) *setOut=set;
+    XL6_IrChannelValuePlan plan={0};
+    if (!xl6IrChannelValuePlanBuild(module,owner,&plan)) return 0;
+    if (schemaOut) *schemaOut=plan.schemaType;
+    if (setOut) *setOut=plan.admissionIdentitySet;
     return 1;
 }
 
@@ -11898,7 +11890,8 @@ static int xl6IrOptionalOwnedResultCompatible(const XL6_IrModule* module,
         ((value->cAbi==payload->cAbi && value->nullAbi==payload->nullAbi &&
           (value->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL || value->nullAbi==XL6_IR_NULL_ABI_XVALUE_SENTINEL)) ||
          (value->cAbi==XL6_IR_C_ABI_TAGGED_NULLABLE && value->nullAbi==XL6_IR_NULL_ABI_TAGGED_VALUE &&
-          xl6IrNullableScalarElementAbi(module,valueId)==payload->cAbi) ||
+          (xl6IrNullableScalarElementAbi(module,valueId)==payload->cAbi ||
+           xl6IrNullableUnionElementType(module,valueId)==payloadId)) ||
          (xl6IrNullableNativeValuePlan(&module->types,value)!=NULL &&
           xl6IrNativeValuePlanForType(payload)!=NULL));
 }
@@ -12090,6 +12083,10 @@ static int xl6IrRuntimeResourceSignatureCompatible(
     const XL6_IrChannelSendSpec* send=xl6IrChannelSendSpecResource(operation);
     if (send)
         return xl6IrChannelSendSignatureCompatible(module,send,receiverType,resultType,operandTypes,operandCount);
+    if ((operation==XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_CLOSE ||
+         operation==XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_COUNT ||
+         operation==XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_IS_CLOSED) &&
+        !xl6IrChannelConstructionRecipe(module,receiverType,NULL,NULL)) return 0;
     if(xl6IrSlotMapResourceOpIs(operation))
         return xl6IrSlotMapSignatureCompatible(module,operation,receiverType,resultType,operandTypes,operandCount);
     if(xl6IrTreeQuerySpecResource(operation))
@@ -15016,6 +15013,8 @@ static int xl6IrBuildIntrinsicCall(XL6_IrModule* module, XL6_IrNodeId origin)
                     xl6IrChannelSendDependentSignatureCompatible(module,origin,
                     intrinsic.runtimeResourceOp,intrinsic.receiverType,intrinsic.resultType,operandTypes,operandCount) ||
                     xl6IrChannelReceiveDependentSignatureCompatible(module,origin,
+                    intrinsic.runtimeResourceOp,intrinsic.receiverType,intrinsic.resultType,operandTypes,operandCount) ||
+                    xl6IrChannelControlDependentSignatureCompatible(module,origin,
                     intrinsic.runtimeResourceOp,intrinsic.receiverType,intrinsic.resultType,operandTypes,operandCount)))
                     intrinsic.admission = XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT;
             }
@@ -37041,6 +37040,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             intrinsic->runtimeResourceOp,intrinsic->receiverType,intrinsic->resultType,
                             operandTypes,intrinsic->operandCount) ||
                         xl6IrChannelReceiveDependentSignatureCompatible(module,intrinsic->origin,
+                            intrinsic->runtimeResourceOp,intrinsic->receiverType,intrinsic->resultType,
+                            operandTypes,intrinsic->operandCount) ||
+                        xl6IrChannelControlDependentSignatureCompatible(module,intrinsic->origin,
                             intrinsic->runtimeResourceOp,intrinsic->receiverType,intrinsic->resultType,
                             operandTypes,intrinsic->operandCount);
                     if (intrinsic->admission == XL6_IR_INTRINSIC_ADMISSION_GENERIC_DEPENDENT ? !dependent :

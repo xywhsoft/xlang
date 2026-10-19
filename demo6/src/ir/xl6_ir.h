@@ -7343,9 +7343,19 @@ int xl6IrTypeInternGenericDependencies(XL6_IrTypePool*, XL6_IrCollectionAbi,
 int xl6IrConcurrentQueueConstructionRecipe(const XL6_IrModule*, XL6_IrTypeId,
     XL6_IrRuntimeResourceAbi* familyOut, XL6_IrTypeId* schemaOut,
     XL6_IrNominalIdentitySetId* admissionSetOut);
-/* Resident Channel V1 uses direct trivial/string/xvalue transfers only.
- * Unsupported concrete and dependent schemas fail without publishing outputs.
- * This prerequisite does not authorize legacy Into calls as owned receives. */
+/* A message's language value and storage slot are separate contracts. Only
+ * this closed plan authorizes a bidirectional codec; pointer size never does.
+ * Derive from canonical types/schema, without publishing partial outputs. */
+typedef struct XL6_IrChannelValuePlan {
+    XL6_IrTypeId ownerType,schemaType,elementType,baseElementType;
+    XL6_IrNominalIdentitySetId admissionIdentitySet;
+    XL6_IrSequenceCodecAbi codecAbi;
+    XL6_IrRuntimeResourcePayloadAbi transferAbi;
+    XL6_IrNativeSlotAbi slotAbi;
+    bool nullable,logicalTagged;
+} XL6_IrChannelValuePlan;
+int xl6IrChannelValuePlanBuild(const XL6_IrModule*,XL6_IrTypeId,XL6_IrChannelValuePlan*);
+/* This prerequisite does not authorize legacy Into calls as owned receives. */
 int xl6IrChannelConstructionRecipe(const XL6_IrModule*,XL6_IrTypeId,
     XL6_IrTypeId* schemaOut,XL6_IrNominalIdentitySetId* admissionSetOut);
 typedef struct XL6_IrChannelSendSpec {

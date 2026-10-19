@@ -12349,7 +12349,11 @@ static int xl6SemChannelElementTypeIsMessageSafe(XL6_SemContext* ctx, const XL6_
      * specialization must still close the resident Channel recipe in XLIR. */
     if(!concreteType->childCount && xl6SemFindTypeParam(ctx,name))return 1;
     if (xl6TextEquals(name, "var") || xl6SemChannelElementTypeIsFirstStageSafe(ctx, typeNode)) return 1;
+    /* Source value legality is not a transport-slot certificate. XLIR closes
+     * the callable/nominal-bytes codec independently before execution. */
+    if (xl6TextEquals(name,"function") && concreteType->childCount==2) return 1;
     const XL6_TypeInfo* builtin=xl6TypeRegistryFind(&ctx->types,name);
+    if (builtin && builtin->kind==XL6_TYPE_UNION && !concreteType->childCount) return 1;
     if(builtin && builtin->kind==XL6_TYPE_BUILTIN){
         /* Source legality is not a physical pointer certificate. Typed XLIR
          * independently closes the resident schema and message transfer. */
