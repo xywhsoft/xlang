@@ -128,6 +128,7 @@ static const XL6_IrCgenAsyncPayloadContract* xl6IrCgenAsyncPayloadContract(
     case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
     case XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER:
     case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR:
+    case XL6_IR_ASYNC_RESULT_COPY_UNION:
         return &value;
     default:
         return NULL;

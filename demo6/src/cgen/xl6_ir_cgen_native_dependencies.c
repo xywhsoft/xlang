@@ -16,6 +16,10 @@ static int xl6IrCgenBuildNeeds(const XL6_IrModule* module, XL6_IrCgenNeeds* need
     if (!xl6IrCgenVerifyEmittable(module,diags)) return 0;
     if (!xl6IrCgenAnalyzePrimaryNeeds(module,needs,diags) ||
         !xl6IrCgenAnalyzeRuntimeNeeds(module,needs,diags)) return 0;
+    /* The shared union boxer binds a nominal identity even in a read-only
+     * consumer. Close its helper dependency once, not via incidental channel
+     * construction or a library-specific call-site exception. */
+    if (needs->needsXValueUnionRuntime) needs->needsXValueTypeIdentityRuntime=1;
     needs->needsDebugConsoleRuntime = options != NULL && options->debugMode;
     needs->needsNetLifecycleRuntime=needs->needsNetTcpRuntime || needs->needsNetTlsRuntime || needs->needsNetDatagramRuntime;
     if (!!(needs->needsNetTcpRuntime || needs->needsNetDatagramRuntime ||

@@ -1,0 +1,77 @@
+import concurrent
+extern "xrtMemDebugFailAfter" @no_raise @nonblocking func memFailAfter(uint64 budget) as bool
+extern "xrtMemDebugFailTriggered" @no_raise @nonblocking func memWasTriggered() as bool
+extern "xrtMemDebugFailClear" @no_raise @nonblocking func memClearFailure()
+class ProjectionView<T>
+    private native point handle
+    extern "xl6ChannelReceiveResultDestroyV1" destroy()
+    extern "xl6ChannelReceiveResultValueLanguageV1" @nonblocking func read() as T
+end
+class ProjectionBuilder<T>
+    private native point handle
+    extern "xl6ChannelDirectReceiveCreateLanguageV1" create(channel<T> source)
+    extern "xl6ChannelReceiveFutureBuilderDestroyV1" destroy()
+    extern "xl6ChannelReceiveFutureResultLanguageV1" @nonblocking func result() as ProjectionView<T>
+    extern "xl6ChannelDirectReceiveStartLanguageV1" @nonblocking func start(ProjectionView<T> result) as future<ProjectionView<T>>
+end
+func readErased(var source) as func(int) as int
+    return source.read() as func(int) as int
+end
+func attempt(ProjectionView<func(int) as int> source, int point, bool dynamicCall) as bool
+    (func(int) as int)? output = null
+    bool completed = false
+    bool caught = false
+    bool hit = false
+    assert memFailAfter(uint64(point))
+    try
+        if dynamicCall
+            var erased = source
+            output = readErased(erased)
+        else
+            output = source.read()
+        end
+        completed = true
+    catch error
+        caught = true
+    finally
+        hit = memWasTriggered()
+        memClearFailure()
+    end
+    if hit
+        assert caught and not completed and output == null
+    else
+        assert completed and not caught and output != null
+        if output != null then assert output(2) == 42 end
+    end
+    auto original = source.read()
+    assert original(3) == 43, "failed projection preserves the stored callable"
+    return hit
+end
+async func check()
+    int base = 40
+    string text = "a\0你"
+    auto callback = func(int value) as int
+        assert text == "a\0你"
+        return base + value
+    end
+    channel<func(int) as int> pipe = channel::<func(int) as int>(1)
+    assert pipe.send(callback)
+    auto builder = ProjectionBuilder::<func(int) as int>(pipe)
+    auto result = builder.result()
+    auto ready = await builder.start(result)
+    pipe.close()
+    int mode = 0
+    while mode < 2
+        int point = 0
+        bool done = false
+        while point < 128 and not done
+            done = not attempt(ready, point, mode != 0)
+            if not done then point += 1 end
+        end
+        assert done and point > 0
+        println("native Channel projection actual prefixes mode=" + string(mode) + ": " + string(point))
+        mode += 1
+    end
+end
+await check()
+println("native Channel direct/dynamic projection OOM checked cleanup ok")

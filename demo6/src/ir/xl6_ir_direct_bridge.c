@@ -59,6 +59,9 @@ typedef struct XL6_IrDirectBridgeContract {
     /* Nullary checked callback produces Future<T>'s exact T, directly into
      * its owned result slot, rather than returning an existing Future<T>. */
     unsigned char genericFutureValueCallbackParameter;
+    /* Resident result stores a Sequence representation, not a Future<T>'s
+     * logical invocation representation. This selects the shared codec plan. */
+    unsigned char sequenceValueResult;
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -105,7 +108,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define XL6_GENERIC_CHANNEL_SEND_START_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,V},.parameterOwners={Owner,"xl6CancellationTokenDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeServicesRequired=XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1,.resultFutureElementAbi=I,.genericResourceParameter=1}
 #define XL6_GENERIC_CHANNEL_RECEIVE_HANDLE(Name,Owner) {Name,T,V,1,{V},.resultOwner=Owner,.parameterOwners={"xl6ChannelReceiveFutureBuilderDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.managedHandleResult=1,.genericResourceResult=1,.genericResourceParameter=1}
 #define XL6_GENERIC_CHANNEL_RECEIVE_STATUS(Name,Owner) {Name,T,I,1,{V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE}
-#define XL6_GENERIC_CHANNEL_RECEIVE_VALUE(Name,Owner) {Name,T,0,1,{V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.nativeResultAbi=XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1}
+#define XL6_GENERIC_CHANNEL_RECEIVE_VALUE(Name,Owner) {Name,T,0,1,{V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.nativeResultAbi=XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1,.sequenceValueResult=1}
 #define XL6_GENERIC_CHANNEL_RECEIVE_START(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeServicesRequired=XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1,.nativeClassParameter=2,.nativeClassOwner="xl6ChannelReceiveResultDestroyV1",.genericFutureResult=1,.genericResourceParameter=1}
 #define XL6_GENERIC_CHANNEL_RECEIVE_START_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,3,{V,V,V},.parameterOwners={Owner,NULL,"xl6CancellationTokenDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1,.nativeServicesRequired=XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1,.nativeClassParameter=2,.nativeClassOwner="xl6ChannelReceiveResultDestroyV1",.genericFutureResult=1,.genericResourceParameter=1}
 #define XL6_NATIVE_GENERIC_BRIDGE(Name,Owner,Role) XL6_GENERIC_##Role(Name,Owner),
@@ -777,6 +780,47 @@ static const XL6_IrDirectBridgeContract* xl6IrDirectBridgeContract(const char* n
     return NULL;
 }
 
+/* Typed declarations retain a quoted linkage token; Lowered targets already
+ * carry the canonical identifier. Both select the same exact registry row. */
+static const XL6_IrDirectBridgeContract* xl6IrDirectBridgeContractSpelling(const char* name)
+{
+    const XL6_IrDirectBridgeContract* result=xl6IrDirectBridgeContract(name);
+    if (result || !name) return result;
+    size_t length=strlen(name);
+    if (length>=2 && name[0]=='"' && name[length-1]=='"')
+        for(size_t i=0;i<sizeof(xl6IrDirectBridgeContracts)/sizeof(xl6IrDirectBridgeContracts[0]);++i) {
+            const XL6_IrDirectBridgeContract* row=&xl6IrDirectBridgeContracts[i];
+            if(strlen(row->name)==length-2 && !memcmp(name+1,row->name,length-2))return row;
+        }
+    return NULL;
+}
+static int xl6IrInternNativeCallValueSchemas(XL6_IrModule* module)
+{
+    if (!module) return 0;
+    for(size_t n=0;n<module->nodeCount;++n) {
+        const XL6_IrNode* method=&module->nodes[n];
+        if(method->kind!=XL6_IR_NODE_FUNC_DECL)continue;
+        const XL6_IrDirectBridgeContract* row=xl6IrDirectBridgeContractSpelling(method->text);
+        if(!row || !row->sequenceValueResult)continue;
+        XL6_IrNodeId owner=method->parent;
+        while(owner) {
+            const XL6_IrNode* node=xl6IrNodeGet(module,owner);
+            if(!node)return 0;
+            if(node->kind==XL6_IR_NODE_TYPE_DECL && node->sourceKind==XL6_AST_CLASS)break;
+            owner=node->parent;
+        }
+        if(!owner)continue; /* invalid free-function signatures are rejected separately */
+        for(size_t i=0;i<module->types.count;++i) {
+            const XL6_IrType* type=&module->types.items[i];
+            if(type->kind!=XL6_IR_TYPE_CLASS || type->paramCount!=1 || !type->params ||
+                !xl6IrBuildClassTypeIsConcreteInstance(module,owner,(XL6_IrTypeId)(i+1)))continue;
+            XL6_IrTypeId element=type->params[0];
+            if(!xl6IrTypeInternArray(&module->types,element))return 0;
+        }
+    }
+    return 1;
+}
+
 XL6_IrRuntimeBridgeKind xl6IrRuntimeDirectBridgeKind(const char* name)
 {
     const XL6_IrDirectBridgeContract* contract = xl6IrDirectBridgeContract(name);
@@ -856,20 +900,7 @@ int xl6IrRuntimeDirectBridgeResultClosureParameter(const char* name,size_t index
 }
 int xl6IrRuntimeDirectBridgeValueAddressParameter(const char* name,size_t index)
 {
-    const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(name);
-    /* Typed native declarations retain their quoted linkage literal. Match
-     * the same exact descriptor without decoding escapes or guessing names. */
-    if (!c && name) {
-        size_t length = strlen(name);
-        if (length >= 2 && name[0] == '"' && name[length - 1] == '"')
-            for (size_t i = 0; i < sizeof(xl6IrDirectBridgeContracts) / sizeof(xl6IrDirectBridgeContracts[0]); ++i) {
-                const XL6_IrDirectBridgeContract* candidate = &xl6IrDirectBridgeContracts[i];
-                if (strlen(candidate->name) == length - 2 && !memcmp(name + 1, candidate->name, length - 2)) {
-                    c = candidate;
-                    break;
-                }
-            }
-    }
+    const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContractSpelling(name);
     return c && c->genericValueParameter==index+1;
 }
 XL6_IrCallNativeResultAbi xl6IrRuntimeDirectBridgeNativeResultAbi(const char* name)
@@ -940,6 +971,34 @@ static const XL6_IrType* xl6IrNativeVoidCallbackArrayType(const XL6_IrModule* mo
         !xl6IrSequenceConstructionRecipe(module,id,XL6_IR_SEQUENCE_ROLE_ARRAY,NULL))return NULL;
     return array;
 }
+int xl6IrNativeCallValuePlanBuild(const XL6_IrModule* module,const XL6_IrCallTarget* target,
+    XL6_IrNativeCallValuePlan* output)
+{
+    if (!module || !target) return 0;
+    XL6_IrNativeCallValuePlan plan={0};
+    const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(target->cName);
+    if (c && (c->genericChannelParameter || c->sequenceValueResult)) {
+        if (!target->parameterTypes || target->parameterCount!=c->parameterCount ||
+            c->errorPhysicalAbi!=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE) return 0;
+        if (c->genericChannelParameter) {
+            if (c->genericChannelParameter>target->parameterCount ||
+                !xl6IrChannelValuePlanBuild(module,target->parameterTypes[c->genericChannelParameter-1],&plan.value)) return 0;
+        } else {
+            const XL6_IrType* owner=xl6IrTypeGet(&module->types,target->parameterTypes[0]);
+            if (!owner || owner->kind!=XL6_IR_TYPE_CLASS || owner->paramCount!=1 || !owner->params ||
+                !xl6IrChannelValuePlanFromSchema(module,
+                    xl6IrArraySchemaTypeForElement(&module->types,owner->params[0]),&plan.value)) return 0;
+        }
+        plan.inputParameter=c->genericValueParameter;
+        plan.output=c->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1;
+        if ((plan.inputParameter && (plan.inputParameter>target->parameterCount ||
+             target->parameterTypes[plan.inputParameter-1]!=plan.value.elementType)) ||
+            (plan.output && target->returnType!=plan.value.elementType)) return 0;
+    }
+    if (output) *output=plan;
+    return 1;
+}
+
 int xl6IrRuntimeDirectBridgeContext(const XL6_IrModule* module,const XL6_IrCallTarget* target,
     XL6_IrCallNativeContextAbi* context,XL6_IrTypeId* type,XL6_IrAsyncResultAbi* payload)
 {
@@ -979,13 +1038,8 @@ int xl6IrRuntimeDirectBridgeContext(const XL6_IrModule* module,const XL6_IrCallT
         if(!c->genericChannelParameter || c->genericChannelParameter>target->parameterCount || !target->parameterTypes)
             return 0;
         XL6_IrTypeId owner=target->parameterTypes[c->genericChannelParameter-1];
-        XL6_IrChannelValuePlan message={0};
-        /* V1 native generic calls still expose language slots directly.
-         * A separately proven message codec is not permission to reinterpret
-         * one of those slots. Keep this boundary closed until its marshalling
-         * plan is explicitly recorded, including dynamic method adapters. */
-        if(!xl6IrChannelValuePlanBuild(module,owner,&message) ||
-            message.codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT)return 0;
+        XL6_IrNativeCallValuePlan message={0};
+        if(!xl6IrNativeCallValuePlanBuild(module,target,&message))return 0;
         *context=c->nativeContext;*type=owner;return 1;
     }
     XL6_IrTypeId ownerId=c->resultOwner?target->returnType:
@@ -995,6 +1049,12 @@ int xl6IrRuntimeDirectBridgeContext(const XL6_IrModule* module,const XL6_IrCallT
     const XL6_IrType* value=xl6IrTypeGet(&module->types,owner->params[0]);
     if(!value || !value->typeValueId)return 0;
     XL6_IrAsyncResultAbi abi=xl6IrBuildAsyncResultAbi(module,owner->params[0]);
+    if (c->sequenceValueResult) {
+        XL6_IrNativeCallValuePlan message={0};
+        if (!xl6IrNativeCallValuePlanBuild(module,target,&message)) return 0;
+        if (message.value.codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT)
+            abi=XL6_IR_ASYNC_RESULT_RETAINED_XVALUE;
+    }
     if(abi==XL6_IR_ASYNC_RESULT_INVALID)return 0;
     *context=c->nativeContext;*type=owner->params[0];*payload=abi;return 1;
 }

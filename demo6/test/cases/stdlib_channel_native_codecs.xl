@@ -1,0 +1,91 @@
+import concurrent
+
+union NativeBits
+    int number
+    c_double real
+end
+
+func plus(int base) as func(int) as int
+    return func(int value) as int
+        return base + value
+    end
+end
+
+func selected<T>(T value) as T
+    channel<T> pipe = channel::<T>(1)
+    auto sending = ChannelCase.send(pipe, value)
+    auto sent = ChannelSelection.select([sending])
+    assert sent.status == channelStatus.ok
+    auto receiving = ChannelCase.receive(pipe)
+    auto result = ChannelSelection.trySelect([receiving])
+    assert result.status == channelStatus.ok
+    T independent = result.value(receiving, pipe)
+    pipe.close()
+    return independent
+end
+
+async func exchanged<T>(T value) as T?
+    channel<T> pipe = channel::<T>(0)
+    auto pending = pipe.recvAsync()
+    assert await pipe.sendAsync(value) == channelStatus.ok
+    auto received = await pending
+    assert received.hasValue
+    pipe.close()
+    return received.value
+end
+
+async func finite<T>(T value) as T?
+    channel<T> pipe = channel::<T>(0)
+    auto pending = pipe.recvAsyncTimeout(30000)
+    assert await pipe.sendAsyncUntil(value, time.monotonic() + uint64(30000000)) == channelStatus.ok
+    auto received = await pending
+    assert received.hasValue
+    return received.value
+end
+
+NativeBits original
+original.number = 42
+NativeBits copy = selected(original)
+copy.number = 99
+assert original.number == 42 and copy.number == 99
+func(int) as int callback = selected(plus(40))
+assert callback(2) == 42
+assert selected::<NativeBits?>(null) == null
+assert selected::<(func(int) as int)?>(null) == null
+NativeBits? optionalCopy = selected::<NativeBits?>(original)
+assert optionalCopy != null
+if optionalCopy != null then assert optionalCopy.number == 42 end
+(func(int) as int)? optionalCallback = selected::<(func(int) as int)?>(plus(40))
+assert optionalCallback != null
+if optionalCallback != null then assert optionalCallback(2) == 42 end
+
+async func checks()
+    NativeBits? bits = await exchanged(original)
+    if bits != null then assert bits.number == 42 end
+    assert bits != null
+    func(int) as int got = (await exchanged(plus(40))) ?? plus(0)
+    assert got(3) == 43
+    assert await exchanged::<NativeBits?>(null) == null
+    assert await exchanged::<(func(int) as int)?>(null) == null
+    NativeBits? nullableValue = await exchanged::<NativeBits?>(original)
+    assert nullableValue != null
+    if nullableValue != null then assert nullableValue.number == 42 end
+    (func(int) as int)? nullableAction = await exchanged::<(func(int) as int)?>(plus(40))
+    assert nullableAction != null
+    if nullableAction != null then assert nullableAction(3) == 43 end
+    bits = await finite(original)
+    assert bits != null
+    if bits != null then assert bits.number == 42 end
+    got = (await finite(plus(40))) ?? plus(0)
+    assert got(4) == 44
+    assert await finite::<NativeBits?>(null) == null
+    assert await finite::<(func(int) as int)?>(null) == null
+    nullableValue = await finite::<NativeBits?>(original)
+    assert nullableValue != null
+    if nullableValue != null then assert nullableValue.number == 42 end
+    nullableAction = await finite::<(func(int) as int)?>(plus(40))
+    assert nullableAction != null
+    if nullableAction != null then assert nullableAction(4) == 44 end
+end
+await checks()
+println("native Channel Case/Selection/direct/finite codecs owned roundtrip ok")

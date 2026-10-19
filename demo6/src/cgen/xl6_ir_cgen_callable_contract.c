@@ -59,6 +59,15 @@ static int xl6IrCgenRuntimeCallableAdapterDirectlyNeeded(
     size_t i;
     const XL6_IrType* signature = module != NULL ? xl6IrTypeGet(&module->types, type) : NULL;
     if ( signature == NULL || signature->kind != XL6_IR_TYPE_FUNCTION ) return 0;
+    for (i=0;i<module->callTargetCount;++i) {
+        const XL6_IrCallTarget* target=&module->callTargets[i];
+        if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+        XL6_IrNativeCallValuePlan value={0};
+        if(xl6IrNativeCallValuePlanBuild(module,target,&value) &&
+            value.value.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1 &&
+            value.value.baseElementType==type &&
+            (reverse ? value.output : value.inputParameter!=0))return 1;
+    }
     /* Dynamic adapters are producers/consumers of the same callable codec.
      * Reachability, not all declared function types, selects either bridge. */
     for ( i = 0; i < module->dynamicMethodCount; ++i ) {

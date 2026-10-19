@@ -1,14 +1,12 @@
 /* Included after canonical message-schema construction. A logical callable
  * or union is not its boxed storage slot. All users share this exact proof. */
-int xl6IrChannelValuePlanBuild(const XL6_IrModule* module,XL6_IrTypeId owner,
+int xl6IrChannelValuePlanFromSchema(const XL6_IrModule* module,XL6_IrTypeId schemaId,
     XL6_IrChannelValuePlan* output)
 {
-    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,owner) : NULL;
-    XL6_IrChannelValuePlan plan={.ownerType=owner};
-    if (!type || type->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_CHANNEL ||
-        !xl6IrMessageConstructionRecipeDepth(module,owner,NULL,&plan.schemaType,
-            &plan.admissionIdentitySet,0)) return 0;
-    const XL6_IrType* schema=xl6IrTypeGet(&module->types,plan.schemaType);
+    XL6_IrChannelValuePlan plan={.schemaType=schemaId};
+    if (!xl6IrSequenceConstructionRecipe(module,schemaId,XL6_IR_SEQUENCE_ROLE_ARRAY,
+            &plan.admissionIdentitySet)) return 0;
+    const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
     const XL6_IrSequenceLayout* layout=&schema->sequenceLayout;
     const XL6_IrType* element=xl6IrTypeGet(&module->types,layout->elementType);
     const XL6_IrType* base=xl6IrTypeGet(&module->types,layout->baseElementType);
@@ -29,6 +27,18 @@ int xl6IrChannelValuePlanBuild(const XL6_IrModule* module,XL6_IrTypeId owner,
     plan.elementType=layout->elementType;plan.baseElementType=layout->baseElementType;
     plan.codecAbi=layout->codecAbi;plan.transferAbi=layout->transferAbi;plan.slotAbi=layout->slotAbi;
     plan.nullable=layout->nullable;plan.logicalTagged=element->nullAbi==XL6_IR_NULL_ABI_TAGGED_VALUE;
+    if (output) *output=plan;
+    return 1;
+}
+int xl6IrChannelValuePlanBuild(const XL6_IrModule* module,XL6_IrTypeId owner,
+    XL6_IrChannelValuePlan* output)
+{
+    const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,owner) : NULL;
+    XL6_IrTypeId schema=0;XL6_IrChannelValuePlan plan={0};
+    if (!type || type->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_CHANNEL ||
+        !xl6IrMessageConstructionRecipeDepth(module,owner,NULL,&schema,NULL,0) ||
+        !xl6IrChannelValuePlanFromSchema(module,schema,&plan)) return 0;
+    plan.ownerType=owner;
     if (output) *output=plan;
     return 1;
 }

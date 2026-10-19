@@ -24,6 +24,7 @@
  * module owns one verified IR or generated-runtime concern. */
 #include "src/cgen/xl6_ir_cgen_model.c"
 #include "src/cgen/xl6_ir_cgen_code_owner.c"
+#include "src/cgen/xl6_ir_cgen_channel_value.c"
 #include "src/cgen/xl6_ir_cgen_type_call.c"
 #include "src/cgen/xl6_ir_cgen_instruction_contract.c"
 #include "src/cgen/xl6_ir_cgen_scalar_conversion.c"

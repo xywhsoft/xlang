@@ -64,10 +64,13 @@ nullable 消息传入原生入口，结果投影失败必须保持 checked 错�
 
 ## 下一步，不能假装已经完成
 
-V1 generic native 调用仍直接接收语言槽；其 Channel schema 边界继续只接受
-DIRECT。新增 boxed codec 不是把这些槽强制转换为 xvalue 的许可。下一批须将
+本同步批次封板时，V1 generic native 调用仍直接接收语言槽，其 Channel schema
+边界只接受 DIRECT。新增 boxed codec 不是把这些槽强制转换为 xvalue 的许可，须将
 参数、返回的物理编码与逻辑投影纳入共用 native-call 计划，再接入同步选择、
 有限／无限期 Future 及动态方法适配，不能按库名另写转接实现。
+
+后续共享计划实现与单独验收见 [Channel 原生调用值编码](Channel原生调用值编码.md)。
+这不追溯扩大本同步批次的验收范围，也不代表其余 P0/P1 或新产品验收完成。
 
 本批另记录了实测基线缺陷：`if optionalUnion != null` 后直接读 union 字段曾报
 “dynamic member expression has no resolved object result ABI”。旧编译器也失败，

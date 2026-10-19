@@ -138,6 +138,7 @@ static XL6_IrSetKeyAbi xl6IrSetKeyAbiForType(const XL6_IrTypePool*,const XL6_IrT
 static int xl6IrRuntimeResourceAbiIsConcurrentQueue(XL6_IrRuntimeResourceAbi);
 static int xl6IrRuntimeResourceAbiIsMessageTransport(XL6_IrRuntimeResourceAbi);
 static XL6_IrTypeId xl6IrMessageSchemaTypeForType(const XL6_IrTypePool*,const XL6_IrType*);
+static int xl6IrInternNativeCallValueSchemas(XL6_IrModule*);
 static int xl6IrConcurrentQueueConstructionRecipeDepth(const XL6_IrModule*,XL6_IrTypeId,
     XL6_IrRuntimeResourceAbi*,XL6_IrTypeId*,XL6_IrNominalIdentitySetId*,size_t);
 static int xl6IrAvlConstructionRecipeDepth(const XL6_IrModule*,XL6_IrTypeId,
@@ -1241,13 +1242,10 @@ static int xl6IrRuntimeResourceAbiIsMessageTransport(XL6_IrRuntimeResourceAbi ab
         abi==XL6_IR_RUNTIME_RESOURCE_CHANNEL;
 }
 
-static XL6_IrTypeId xl6IrMessageSchemaTypeForType(
-    const XL6_IrTypePool* pool, const XL6_IrType* type)
+static XL6_IrTypeId xl6IrArraySchemaTypeForElement(
+    const XL6_IrTypePool* pool,XL6_IrTypeId element)
 {
-    if (!pool || !type || type->kind != XL6_IR_TYPE_GENERIC_INSTANCE ||
-        !xl6IrRuntimeResourceAbiIsMessageTransport(type->runtimeResourceAbi) ||
-        type->paramCount != 1 || !type->params || type->returnCount)
-        return XL6_IR_TYPE_INVALID;
+    if (!pool || !element) return XL6_IR_TYPE_INVALID;
     for (size_t i = 0; i < pool->count; ++i) {
         const XL6_IrType* schema = &pool->items[i];
         if (schema->kind == XL6_IR_TYPE_GENERIC_INSTANCE &&
@@ -1255,10 +1253,19 @@ static XL6_IrTypeId xl6IrMessageSchemaTypeForType(
             schema->runtimeResourceAbi == XL6_IR_RUNTIME_RESOURCE_NONE &&
             schema->abiId == xl6TypeAbiIdText("xlang.array") &&
             schema->paramCount == 1 && schema->params && !schema->returnCount &&
-            schema->params[0] == type->params[0])
+            schema->params[0] == element)
             return (XL6_IrTypeId)(i + 1);
     }
     return XL6_IR_TYPE_INVALID;
+}
+
+static XL6_IrTypeId xl6IrMessageSchemaTypeForType(
+    const XL6_IrTypePool* pool,const XL6_IrType* type)
+{
+    return type && type->kind==XL6_IR_TYPE_GENERIC_INSTANCE &&
+        xl6IrRuntimeResourceAbiIsMessageTransport(type->runtimeResourceAbi) &&
+        type->paramCount==1 && type->params && !type->returnCount
+        ? xl6IrArraySchemaTypeForElement(pool,type->params[0]) : XL6_IR_TYPE_INVALID;
 }
 
 static XL6_IrTypeId xl6IrTreeSchemaTypeForType(const XL6_IrTypePool* pool,
@@ -1958,8 +1965,9 @@ static int xl6IrInternProjectionDomains(XL6_IrModule* module)
     }
     return 1;
 }
-static int xl6IrTypePoolFinalizeCallableResults(XL6_IrTypePool* pool)
+static int xl6IrTypePoolFinalizeCallableResults(XL6_IrModule* module)
 {
+    XL6_IrTypePool* pool=module ? &module->types : NULL;
     size_t i;
     if ( pool == NULL ) return 0;
     for ( i = 0; i < pool->count; ++i ) {
@@ -1982,6 +1990,7 @@ static int xl6IrTypePoolFinalizeCallableResults(XL6_IrTypePool* pool)
         if ( type->returnCount != 0 &&
              type->callableResultType == XL6_IR_TYPE_INVALID ) return 0;
     }
+    if (!xl6IrInternNativeCallValueSchemas(module)) return 0;
     /* Default List/Set/Dict close their value witnesses after the builtin map is
      * complete. Explicit/specialized owners normally intern them earlier. Do
      * not retain a pool pointer across interning, which may grow the pool. */
@@ -10698,6 +10707,10 @@ XL6_IrAsyncResultAbi xl6IrAsyncResultAbiForType(const XL6_IrType* type)
     case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_XVALUE;
     case XL6_IR_C_ABI_CLOSURE_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE;
     case XL6_IR_C_ABI_TAGGED_NULLABLE: return XL6_IR_ASYNC_RESULT_COPY_TAGGED;
+    case XL6_IR_C_ABI_UNION:
+        return type->kind==XL6_IR_TYPE_UNION && type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+            type->nullAbi==XL6_IR_NULL_ABI_NONE && type->typeValueId
+            ? XL6_IR_ASYNC_RESULT_COPY_UNION : XL6_IR_ASYNC_RESULT_INVALID;
     case XL6_IR_C_ABI_RUNTIME_ERROR_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_ERROR;
     case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_FUTURE;
     case XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR;
@@ -13861,7 +13874,7 @@ int xl6IrBuildDynamicBoundSignatures(XL6_IrModule* module,XL6_DiagList* diags)
             !(method->boundSignatureType=xl6IrInternNamedCallableSignature(module,parameters,returns,erasure)))
             return xl6IrDiag(diags,NULL,"XLIR unique bound method has no exact public signature");
     }
-    return xl6IrTypePoolFinalizeCallableResults(&module->types) ||
+    return (xl6IrTypePoolFinalizeCallableResults(module) && xl6IrRefreshPersistenceTypeAbis(module)) ||
         xl6IrDiag(diags,NULL,"XLIR bound signature has no finalized result representation");
 }
 
@@ -20182,7 +20195,7 @@ int xl6IrBuildModuleFromAst(XL6_IrModule* module, const XL6_AstNode* root, XL6_D
         buildFailure = "cannot build XLIR named-callable ABIs";
     else if ( !xl6IrInternProjectionDomains(module) )
         buildFailure = "cannot intern complete resident projection domains";
-    else if ( !xl6IrTypePoolFinalizeCallableResults(&module->types) )
+    else if ( !xl6IrTypePoolFinalizeCallableResults(module) )
         buildFailure = "cannot finalize XLIR callable result types";
     else if ( !xl6IrBuildOwnedReadResults(module) )
         buildFailure = "cannot normalize XLIR managed read result ownership";
@@ -38560,6 +38573,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR:
                 resultMatches = xl6IrAsyncResultAbiForType(worker)==XL6_IR_ASYNC_RESULT_COPY_C_SCALAR;
                 break;
+            case XL6_IR_ASYNC_RESULT_COPY_UNION:
+                resultMatches = xl6IrAsyncResultAbiForType(worker)==XL6_IR_ASYNC_RESULT_COPY_UNION &&
+                    xl6IrUnionLayoutGet(module,target->workerReturnType)!=NULL;
+                break;
             default: break;
             }
             if ( target->asyncResultAbi != XL6_IR_ASYNC_RESULT_VOID )
@@ -45780,6 +45797,10 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR:
                         resultMatches = xl6IrAsyncResultAbiForType(resultType)==XL6_IR_ASYNC_RESULT_COPY_C_SCALAR;
                         break;
+                    case XL6_IR_ASYNC_RESULT_COPY_UNION:
+                        resultMatches = xl6IrAsyncResultAbiForType(resultType)==XL6_IR_ASYNC_RESULT_COPY_UNION &&
+                            xl6IrUnionLayoutGet(module,instruction->type)!=NULL;
+                        break;
                     default: break;
                     }
                     if ( instruction->asyncResultAbi != XL6_IR_ASYNC_RESULT_VOID )
@@ -48012,6 +48033,7 @@ static const char* xl6IrAsyncResultAbiName(XL6_IrAsyncResultAbi abi)
     case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE: return "retained-closure";
     case XL6_IR_ASYNC_RESULT_COPY_TAGGED: return "copy-tagged";
     case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR: return "copy-c-scalar";
+    case XL6_IR_ASYNC_RESULT_COPY_UNION: return "copy-union";
     case XL6_IR_ASYNC_RESULT_RETAINED_ERROR: return "retained-error";
     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE: return "retained-future";
     case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR: return "retained-generator";

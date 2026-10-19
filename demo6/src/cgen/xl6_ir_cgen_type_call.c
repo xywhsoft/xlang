@@ -530,7 +530,9 @@ static int xl6IrCgenEmitNativeContext(XL6_Output* out,const XL6_IrModule* module
         const XL6_IrType* owner=xl6IrTypeGet(&module->types,target->nativeContextType);
         const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
         const XL6_IrType* element=xl6IrTypeGet(&module->types,owner->params[0]);
-        const char* type=xl6IrCgenType(module,owner->params[0]);
+        XL6_IrNativeCallValuePlan value={0};
+        if (!xl6IrNativeCallValuePlanBuild(module,target,&value)) return 0;
+        const char* type=xl6IrCgenNativeCallValueEncoded(&value)?"xvalue*":xl6IrCgenType(module,owner->params[0]);
         const char* slot=xl6IrCgenNativeSlotTypeExpr(schema->sequenceLayout.slotAbi);
         const char* transfer=xl6IrCgenSequenceTransferAbiToken(schema->sequenceLayout.transferAbi);
         if(!type || !slot || !transfer || !element)return 0;
@@ -539,8 +541,11 @@ static int xl6IrCgenEmitNativeContext(XL6_Output* out,const XL6_IrModule* module
         return !xl6OutputHasFailed(out);
     }
     if(target->nativeContextAbi!=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1)return 0;
+    XL6_IrNativeCallValuePlan value={0};
+    if (!xl6IrNativeCallValuePlanBuild(module,target,&value)) return 0;
     const XL6_IrType* type=xl6IrTypeGet(&module->types,target->nativeContextType);
-    const char* name=type?xl6IrCgenType(module,target->nativeContextType):NULL;
+    const char* name=xl6IrCgenNativeCallValueEncoded(&value)?"xvalue*":
+        type?xl6IrCgenType(module,target->nativeContextType):NULL;
     const char* kind=NULL;
     switch(target->nativeContextPayloadAbi) {
     case XL6_IR_ASYNC_RESULT_VOID:kind="XL6_FUTURE_VALUE_VOID";break;
@@ -550,6 +555,7 @@ static int xl6IrCgenEmitNativeContext(XL6_Output* out,const XL6_IrModule* module
     case XL6_IR_ASYNC_RESULT_COPY_F32:case XL6_IR_ASYNC_RESULT_COPY_TIME:
     case XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER:case XL6_IR_ASYNC_RESULT_COPY_CHAR:
     case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR:
+    case XL6_IR_ASYNC_RESULT_COPY_UNION:
         kind="XL6_FUTURE_VALUE_TRIVIAL";break;
     case XL6_IR_ASYNC_RESULT_OWNED_STRING:kind="XL6_FUTURE_VALUE_STRING";break;
     case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE:kind="XL6_FUTURE_VALUE_XVALUE";break;
@@ -834,10 +840,19 @@ static int xl6IrCgenEmitDirectCall(
         ? xl6IrCallTargetGet(module, instruction->targetSymbol) : NULL;
     size_t argument;
     size_t textCount = 0;
+    XL6_IrNativeCallValuePlan nativeValue={0};
     if ( !xl6IrCgenDirectCallAbiSupported(module, target, instruction) )
         return xl6IrCgenDiag(diags, module,
             instruction != NULL ? instruction->origin : XL6_IR_NODE_INVALID,
             unresolvedDiagnostic);
+    if (!xl6IrNativeCallValuePlanBuild(module,target,&nativeValue))
+        return xl6IrCgenDiag(diags,module,instruction->origin,"XLIR native call has no closed logical/storage value plan");
+    bool encoded=xl6IrCgenNativeCallValueEncoded(&nativeValue);
+    char nativeScope[48],nativeInput[48],nativeResult[48];
+    snprintf(nativeScope,sizeof(nativeScope),"fs%lu",(unsigned long)instructionIndex);
+    snprintf(nativeResult,sizeof(nativeResult),"v%u",(unsigned)instruction->result);
+    if (nativeValue.inputParameter) snprintf(nativeInput,sizeof(nativeInput),"v%u",
+        (unsigned)module->operands[instruction->firstOperand+nativeValue.inputParameter-1]);
     /* A failed scope entry skips the native call, so its owned physical
      * result must be empty on every invocation, not merely at function entry. */
     if ((target->preparationFailureAbi == XL6_IR_CALL_PREPARATION_RETIRE_OWNED_REVERSE ||
@@ -880,6 +895,8 @@ static int xl6IrCgenEmitDirectCall(
         }
         xl6OutputPuts(") {\n", out);
     }
+    if (!xl6IrCgenNativeCallValueBegin(out,module,&nativeValue,
+            nativeValue.inputParameter?nativeInput:NULL,nativeScope)) return 0;
     if ( target->errorPhysicalAbi ==
              XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
         xl6OutputPrintf(out, "    %s r%lu = ",
@@ -916,7 +933,9 @@ static int xl6IrCgenEmitDirectCall(
     for ( argument = 0; argument < instruction->operandCount; ++argument ) {
         if ( argument != 0 ) xl6OutputPuts(", ", out);
         if ( argument < target->parameterCount ) {
-            if ( !xl6IrCgenEmitCallOperand(
+            if (encoded && nativeValue.inputParameter==argument+1)
+                xl6OutputPuts("&native_value_input",out);
+            else if ( !xl6IrCgenEmitCallOperand(
                      out, module, target, argument,
                      module->operands[instruction->firstOperand + argument]) )
                 return xl6IrCgenDiag(diags, module, instruction->origin,
@@ -931,11 +950,13 @@ static int xl6IrCgenEmitDirectCall(
     }
     if(target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1) {
         if(instruction->operandCount || target->nativeContextAbi || target->nativeServicesRequired)xl6OutputPuts(", ",out);
-        xl6OutputPrintf(out,"&v%u",(unsigned)instruction->result);
+        if (encoded && nativeValue.output) xl6OutputPuts("&native_value_output",out);
+        else xl6OutputPrintf(out,"&v%u",(unsigned)instruction->result);
     }
     if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY )
         xl6OutputPuts(")", out);
     xl6OutputPuts(");\n", out);
+    if (!xl6IrCgenNativeCallValueEnd(out,module,&nativeValue,nativeResult,nativeScope)) return 0;
     if (textCount != 0) xl6OutputPuts("    }\n", out);
     if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE ) {
         int owned = 0;

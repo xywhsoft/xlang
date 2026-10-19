@@ -1182,7 +1182,10 @@ static int xl6IrCgenVerifyInstructions(
                 : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_TAGGED
                 ? type != NULL && type->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE
                 : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_C_SCALAR
-                ? xl6IrAsyncResultAbiForType(type)==XL6_IR_ASYNC_RESULT_COPY_C_SCALAR : 0;
+                ? xl6IrAsyncResultAbiForType(type)==XL6_IR_ASYNC_RESULT_COPY_C_SCALAR
+                : instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_COPY_UNION
+                ? xl6IrAsyncResultAbiForType(type)==XL6_IR_ASYNC_RESULT_COPY_UNION &&
+                    xl6IrUnionLayoutGet(module,instruction->type)!=NULL : 0;
             if ( instruction->operandCount != 1 || instruction->result == XL6_IR_VALUE_INVALID || !matches )
                 return xl6IrCgenDiag(diags, module, instruction->origin,
                                      "XLIR C emitter await result ABI is not implemented");

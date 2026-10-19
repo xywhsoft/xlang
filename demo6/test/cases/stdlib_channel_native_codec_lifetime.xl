@@ -1,0 +1,60 @@
+import concurrent
+auto dropped = AtomicInt64()
+class NativeMessageCapture
+    bool fail
+    create(bool fail)
+        self.fail = fail
+    end
+    destroy()
+        dropped.fetchAdd(1)
+        if self.fail then throw ValueError("native channel capture cleanup") end
+    end
+end
+class RetireSend<T>
+    private native point handle
+    extern "xl6ChannelDirectSendCreateLanguageV1" create(channel<T> source, T value)
+    extern "xl6ChannelSendFutureBuilderDestroyV1" destroy()
+end
+func makeCase(bool fail) as ChannelCase
+    auto capture = NativeMessageCapture(fail)
+    auto pipe = channel::<func() as int>(0)
+    auto callback = func() as int
+        assert capture != null
+        return 42
+    end
+    return ChannelCase.send(pipe, callback)
+end
+func makeBuilder(bool fail) as RetireSend<func() as int>
+    auto capture = NativeMessageCapture(fail)
+    auto pipe = channel::<func() as int>(0)
+    auto callback = func() as int
+        assert capture != null
+        return 42
+    end
+    return RetireSend::<func() as int>(pipe, callback)
+end
+func retire(int mode, bool fail)
+    int before = dropped.load()
+    if mode == 0
+        auto owner = makeCase(fail)
+        assert dropped.load() == before, "Case is now the only owner of its source capture"
+    else
+        auto owner = makeBuilder(fail)
+        assert dropped.load() == before, "Builder is now the only owner of its source capture"
+    end
+end
+int mode = 0
+while mode < 2
+    retire(mode, false)
+    assert dropped.load() == mode * 2 + 1
+    bool caught = false
+    try
+        retire(mode, true)
+    catch ValueError e
+        assert e.message == "native channel capture cleanup"
+        caught = true
+    end
+    assert caught and dropped.load() == mode * 2 + 2
+    mode += 1
+end
+println("native Channel Case/Builder sole-owner capture graph and checked destructor cleanup ok")

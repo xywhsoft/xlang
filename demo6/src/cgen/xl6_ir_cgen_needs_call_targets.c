@@ -38,6 +38,18 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
     for ( i = 0; i < module->callTargetCount; ++i ) {
         const XL6_IrCallTarget* target = &module->callTargets[i];
         if ( target->reachability == XL6_IR_REACHABILITY_UNREACHABLE ) continue;
+        XL6_IrNativeCallValuePlan value={0};
+        if (!xl6IrNativeCallValuePlanBuild(module,target,&value)) return 0;
+        if (xl6IrCgenNativeCallValueEncoded(&value) && (value.inputParameter || value.output)) {
+            needs->needsXValueRuntime=1;
+            if (value.value.codecAbi==XL6_IR_SEQUENCE_CODEC_CLOSURE_VALUE_V1) {
+                if(value.inputParameter)needs->needsXValueClosureBridgeRuntime=1;
+                if(value.output)needs->needsXValueClosureProjectionRuntime=1;
+                needs->needsClosureRuntime=1;needs->needsXCallRuntime=1;
+            } else if(value.value.codecAbi==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1) {
+                needs->needsXValueUnionRuntime=1;needs->needsRuntimeTrap=1;
+            }
+        }
         if(target->runtimeBridge==XL6_IR_RUNTIME_BRIDGE_TEXT_VALUE && target->cName &&
             strcmp(target->cName,"xl6DictValueRemoveV1")==0)needs->needsDictMethodsRuntime=1;
         if(target->asyncResultAbi==XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE)

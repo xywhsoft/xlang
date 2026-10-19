@@ -96,7 +96,8 @@ static int xl6IrCgenEmitChannelRuntime(XL6_Output* out,const XL6_IrModule* modul
         unsigned second=(unsigned)module->operands[ins->firstOperand+1];
         xl6OutputPuts("      XL6_ChannelStatusV1 channel_status = XL6_CHANNEL_FULL_V1;\n",out);
         if (encoded) {
-            if (xl6IrCgenChannelValueEncode(out,module,&valuePlan,second,"channel_slot")<0) return -1;
+            char source[40];snprintf(source,sizeof(source),"v%u",second);
+            if (xl6IrCgenChannelValueEncode(out,module,&valuePlan,source,"channel_slot")<0) return -1;
             xl6OutputPuts("      if (!channel_slot) xl6ErrorScopeCaptureFailure(&channel_scope);\n",out);
         }
         /* Encoding failure is a failed operation, never a nullable message. */
