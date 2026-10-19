@@ -1,0 +1,88 @@
+"""Offline real TaskPool checked body/capture outcome acceptance.
+
+Actual plan-selected providers and native implementation, plus an explicit
+memory-debug test profile. No shipping/public TaskPool API or network claim.
+"""
+from pathlib import Path
+import argparse,hashlib,json,os,shutil,subprocess,time
+
+def main():
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1])
+ p.add_argument('--out',type=Path,required=True);p.add_argument('--compiler',action='append',required=True);p.add_argument('--sanitize',action='store_true')
+ a=p.parse_args();root=a.root.resolve();out=a.out.resolve();assert not out.exists(),'Preserve evidence; choose a fresh output'
+ compilers=[Path(shutil.which(c) or c).resolve() for c in a.compiler];gcc=next(c for c in compilers if c.stem.lower()!='tcc')
+ def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+ files={Path(__file__).resolve(),*compilers,root/'test/support/task_checked_outcome_native.c',
+  root/'test/support/task_checked_outcome_plan.c',root/'test/support/executor_catalog_plan.c'}
+ for folder in ('src','lib/xrt','lib/xruntime','release/include'):
+  files.update(f for f in (root/folder).rglob('*') if f.is_file() and f.suffix in ('.h','.c','.inc'))
+ inputs={str(f):sha(f) for f in sorted(files)};out.mkdir(parents=True);rows=[];products=[];failures=[]
+ report=dict(Complete=False,InputsUnchanged=False,LogsUnchanged=False,Inputs=inputs,Rows=rows,Products=products,Failures=failures,
+  Sources=[],Modules=[],PublicTaskPoolAccepted=False,ShippingAcceptance=False,InstrumentedSelectedClosure=False,
+  NetworkTests=False,NetworkSecurityTests=False,Scope=__doc__)
+ def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')
+ def product(path):products.append(dict(Path=str(path),Sha256=sha(path)));save()
+ def run(name,args,proof=None,reject=False,instrumented=False):
+  log=out/(name+'.log');env=dict(os.environ);started=time.monotonic()
+  if instrumented:env.update(ASAN_OPTIONS='detect_leaks=1:detect_stack_use_after_return=1:halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1')
+  with log.open('wb') as stream:r=subprocess.run(list(map(str,args)),cwd=root,env=env,stdout=stream,stderr=subprocess.STDOUT,timeout=180)
+  rows.append(dict(Name=name,Command=list(map(str,args)),Exit=r.returncode,ExpectedRejection=reject,Log=str(log),Sha256=sha(log),Seconds=time.monotonic()-started));save()
+  print(name+': '+str(r.returncode),flush=True);assert (r.returncode!=0 if reject else r.returncode==0),(name,str(log))
+  text=log.read_text(encoding='utf8',errors='replace')
+  if proof:assert proof in text,(name,'missing proof')
+  if reject:assert 'assert' in text.lower(),(name,'unexpected rejection')
+  return text
+ def flags(cc):
+  return [cc,'-std=c11','-Wall','-Werror',*(['-Wextra'] if cc.stem.lower()!='tcc' else []),
+   *(['-D_GNU_SOURCE'] if os.name!='nt' else []),'-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include'),'-I'+str(out)]
+ libs=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-pthread','-ldl','-lm'];ext='.exe' if os.name=='nt' else ''
+ save()
+ try:
+  plan=out/('plan'+ext)
+  run('plan.build',flags(gcc)+['-O2','-Wno-missing-field-initializers','-ffunction-sections','-fdata-sections',
+   '-fno-asynchronous-unwind-tables','-fno-unwind-tables',*(['-fno-jump-tables'] if os.name=='nt' else []),
+   root/'test/support/task_checked_outcome_plan.c',root/'src/compile/xl6_compile_unit.c','-Wl,--gc-sections','-o',plan]);product(plan)
+  run('plan.run',[plan],'Task checked plan: actual task/pool/capture sources and native selectors')
+  names=run('sources',[plan,'--sources']).splitlines();assert len(names)==len(set(names)) and 'src/runtime/xl6_task.c' in names
+  modules=run('modules',[plan,'--modules']);assert '_MODULE_ALL' not in modules
+  report['Sources']=names;report['Modules']=modules.splitlines();save()
+  header=out/'task-modules.h';header.write_text(modules,encoding='utf8');product(header)
+  kernel=out/'native.c';kernel.write_text('#include "task-modules.h"\n#ifndef XL6_TASK_CHECKED_MINIMAL\n#define XRT_MODULE_MEMORY_DEBUG\n#endif\n#define XRUNTIME_IMPLEMENTATION\n#include "lib/xruntime/xruntime.h"\n',encoding='utf8');product(kernel)
+  providers=[root/n for n in names];fixture=root/'test/support/task_checked_outcome_native.c'
+  for index,cc in enumerate(compilers):
+   for opt in ('O0','O2'):
+    for minimal in (False,True):
+     name=str(index)+'.'+opt+('.minimal' if minimal else '.checked');binary=out/(name+ext)
+     run(name+'.build',flags(cc)+['-'+opt,*(['-DXL6_TASK_CHECKED_MINIMAL'] if minimal else []),fixture,*providers,kernel,*libs,'-o',binary]);product(binary)
+     run(name+'.run',[binary],'Task checked minimal: 193' if minimal else 'Task checked outcome: 193')
+  original=(root/'src/runtime/xl6_task.c').read_text(encoding='utf-8-sig')
+  controls=(
+   ('cleanup-outcome-lost','frame_checked_cleanup(frame,outcome);','xrtErrorFree(outcome.error);'),
+   ('cleanup-null-is-success','}else if(cleanupFailed&&input.State==XFUTURE_RESOLVED)',
+    '}else if(cleanupFailed&&cleanupError&&input.State==XFUTURE_RESOLVED)'),
+   ('native-failure-precedence-lost','}else if(cleanupFailed&&input.State==XFUTURE_RESOLVED)',
+    '}else if(cleanupFailed&&(input.State==XFUTURE_RESOLVED||input.State==XFUTURE_FAILED))'),
+   ('cancel-precedence-lost','}else if(cleanupFailed&&input.State==XFUTURE_RESOLVED)',
+    '}else if(cleanupFailed&&(input.State==XFUTURE_RESOLVED||input.State==XFUTURE_CANCELLED))'),
+   ('checked-body-is-success','if(outcome!=XL6_TASK_CANCELLED&&!checked.ok)',
+    'if(outcome!=XL6_TASK_CANCELLED&&!checked.ok&&outcome==XL6_TASK_FAILED)'),
+  )
+  for name,old,new in controls:
+   assert original.count(old)==1,(name,'not exact')
+   text=original.replace(old,new)
+   if name=='cleanup-outcome-lost':
+    # Keep the unused helper warning from substituting for a runtime rejection.
+    text=text.replace('static void frame_checked_cleanup(', 'void frame_checked_cleanup(')
+   mutant=out/(name+'.c');mutant.write_text(text,encoding='utf8');product(mutant)
+   selected=[mutant if path==root/'src/runtime/xl6_task.c' else path for path in providers];binary=out/(name+ext)
+   run(name+'.build',flags(gcc)+['-O0','-I'+str(root/'src/runtime'),fixture,*selected,kernel,*libs,'-o',binary]);product(binary)
+   run(name+'.refused',[binary],reject=True)
+  if a.sanitize:
+   assert os.name!='nt';binary=out/'instrumented'
+   run('instrumented.build',flags(gcc)+['-O1','-g','-fno-omit-frame-pointer','-fsanitize=address,undefined','-fno-pie','-no-pie',fixture,*providers,kernel,*libs,'-o',binary]);product(binary)
+   run('instrumented.run',[binary],'Task checked outcome: 193',instrumented=True);report['InstrumentedSelectedClosure']=True
+  report['InputsUnchanged']=all(sha(f)==h for f,h in inputs.items());report['LogsUnchanged']=all(sha(r['Log'])==r['Sha256'] for r in rows)
+  assert report['InputsUnchanged'] and report['LogsUnchanged'];report['Complete']=True;save()
+ except BaseException as error:failures.append(repr(error));save();raise
+
+if __name__=='__main__':main()

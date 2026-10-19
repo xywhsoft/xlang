@@ -24,6 +24,11 @@ typedef struct TaskFrame {
     xfuturewatch watch;
     xfuture* source;
     xpromise* output;
+    /* Native completion already preserves the body outcome before data Drop.
+     * Language capture cleanup has a separate checked result. It may replace
+     * RESOLVED, never an earlier native failure/cancellation/close. */
+    xerror* cleanupError;
+    bool languageOutcome,cleanupFailed;
     max_align_t alignment;
     unsigned char data[];
 } TaskFrame;
@@ -50,6 +55,13 @@ static void frame_mutation_begin(TaskFrame* frame,xrtownershipscope* mutation)
 static void frame_unlock(TaskFrame* frame) { xrtAtomic64Store(&frame->gate,0,XMEMORY_RELEASE); }
 static void frame_mutation_end(TaskFrame* frame,xrtownershipscope* mutation)
 { frame_unlock(frame);mutation_end(mutation); }
+static void frame_checked_cleanup(TaskFrame* frame,xl6_error_result outcome)
+{
+    if(outcome.ok){xrtErrorFree(outcome.error);return;}
+    xrtownershipscope mutation={0};frame_mutation_begin(frame,&mutation);
+    if(!frame->cleanupFailed){frame->cleanupFailed=true;frame->cleanupError=outcome.error;outcome.error=NULL;}
+    frame_mutation_end(frame,&mutation);xrtErrorFree(outcome.error);
+}
 static bool frame_count(const void* data,size_t* count)
 {
     const TaskFrame* frame=data;
@@ -136,7 +148,8 @@ static void frame_release(TaskFrame* frame)
     if(!frame->references)abort();
     if(--frame->references){frame_mutation_end(frame,&mutation);return;}
     if(frame->payloadLive || frame->active || frame->source || frame->output)abort();
-    lease=frame->lease;pool=frame->pool;frame_unlock(frame);xrtFree(frame);
+    lease=frame->lease;pool=frame->pool;xerror* cleanupError=frame->cleanupError;frame_unlock(frame);xrtFree(frame);
+    xrtErrorFree(cleanupError);
     xl6TaskPoolDropInternalV1(pool);mutation_end(&mutation);xl6CodeLeaseRelease(lease);
 }
 static void producer_drop(const void* data) { frame_release((TaskFrame*)data); }
@@ -159,7 +172,15 @@ static void frame_drop_payload(TaskFrame* frame)
     frame_mutation_begin(frame,&mutation);
     if(!frame->payloadLive)abort();
     ++frame->active; drop=frame->drop; frame_mutation_end(frame,&mutation);
-    if(frame_has_layout(frame)){
+    if(frame->languageOutcome){
+        xerror* previous=xrtTakeError();xl6_error_scope errors={0};
+        bool begun=xl6ErrorScopeBegin(&errors);xl6_error_result outcome={false,NULL};
+        if(!begun)outcome.error=xrtTakeError();
+        if(frame_has_layout(frame))frame_cleanup(frame->data);else drop(frame->data,NULL);
+        if(begun)outcome=xl6ErrorScopeEnd(&errors);
+        frame_checked_cleanup(frame,outcome);
+        xrtClearError();xrtSetErrorTake(previous);
+    }else if(frame_has_layout(frame)){
         xerror* previous=xrtTakeError();frame_cleanup(frame->data);
         xrtClearError();xrtSetErrorTake(previous);
     }else drop(frame->data,NULL);
@@ -180,16 +201,33 @@ static xtaskoutcome task_run(xcancel* cancel,void* data,xtaskvalue* result)
 {
     TaskFrame* frame=data; XL6_TaskResult value={0}; XL6_TaskOutcome outcome; XL6_CodeScope code={0};
     TaskActivity activity={0}; xrtownershipscope mutation={0};
+    xl6_error_scope errors={0};bool begun=false;xl6_error_result checked={true,NULL};
+    if(frame->languageOutcome){
+        begun=xl6ErrorScopeBegin(&errors);
+        if(!begun)checked=(xl6_error_result){false,xrtTakeError()};
+    }
     xl6CodeScopeEnter(&code,frame->lease); xl6TaskActivityEnterInternalV1(&activity,frame->pool);
     frame_mutation_begin(frame,&mutation);++frame->active;frame->runEntered=true;frame_mutation_end(frame,&mutation);
-    outcome=frame->run(cancel,frame->data,&value);
+    outcome=frame->languageOutcome&&!begun?XL6_TASK_FAILED:frame->run(cancel,frame->data,&value);
+    if(outcome!=XL6_TASK_SUCCESS&&outcome!=XL6_TASK_FAILED&&outcome!=XL6_TASK_CANCELLED){
+        xrtSetErrorKind(XERR_INTERNAL);outcome=XL6_TASK_FAILED;}
+    if(begun&&(outcome==XL6_TASK_FAILED||(outcome==XL6_TASK_SUCCESS&&(errors.failed||xrtGetError()))))
+        xl6ErrorScopeCaptureFailure(&errors);
     /* Keep busy through the separate job-data release, including the worker's
      * return gap. Results and partially retired captures must not be traced. */
     result->Value=value.Value;result->Destroy=value.Destroy;result->DestroyData=value.DestroyData;
     xl6CodeScopeLeave(&code);xl6TaskActivityLeaveInternalV1(&activity);
+    if(frame->languageOutcome){
+        if(begun)checked=xl6ErrorScopeEnd(&errors);
+        if(outcome!=XL6_TASK_CANCELLED&&!checked.ok){
+            /* XRT converts a diagnosticless FAILED to its allocation-free
+             * INTERNAL at the strict native boundary, before any capture Drop.
+             * Later cleanup errors cannot replace that already selected body. */
+            outcome=XL6_TASK_FAILED;xrtSetErrorTake(checked.error);
+        }else xrtErrorFree(checked.error);
+    }
     if(outcome==XL6_TASK_SUCCESS)return XTASK_SUCCESS;
     if(outcome==XL6_TASK_CANCELLED)return XTASK_CANCELLED;
-    if(outcome!=XL6_TASK_FAILED)xrtSetErrorKind(XERR_INTERNAL);
     return XTASK_FAILED;
 }
 static void task_drop(void* data,void* unused) { (void)unused;frame_drop_payload(data); }
@@ -197,7 +235,9 @@ static const xtaskdataownershipv1 native_data_policy={sizeof(native_data_policy)
 const xtaskdataownershipv1* xl6TaskNativeDataPolicyV1Get(void) { return &native_data_policy; }
 static bool complete_error(xpromise* promise,const xerror* error)
 {
-    if(!error)return xrtPromiseClose(promise);
+    /* Native Reject requires a diagnostic. Materialize its allocation-free
+     * fallback ONLY after the original checked failure has been selected. */
+    if(!error){xrtSetErrorKind(XERR_INTERNAL);return xrtPromiseReject(promise,xrtGetError());}
     switch(xrtErrorKind(error)){
     case XERR_CANCELLED:return xrtPromiseCancel(promise);
     case XERR_CLOSED:return xrtPromiseClose(promise);
@@ -209,12 +249,21 @@ static void outcome_notify(void* data)
     TaskFrame* frame=data; xfutureresult input={0}; bool completed;
     xerror* previous=xrtTakeError(); xrtownershipscope mutation={0}; XL6_CodeScope code={0}; TaskActivity activity={0};
     xl6CodeScopeEnter(&code,frame->lease);xl6TaskActivityEnterInternalV1(&activity,frame->pool);
-    frame_mutation_begin(frame,&mutation);++frame->active;frame_mutation_end(frame,&mutation);
+    frame_mutation_begin(frame,&mutation);++frame->active;
+    bool cleanupFailed=frame->cleanupFailed;
+    xerror* cleanupError=frame->cleanupError?xrtErrorRef(frame->cleanupError):NULL;
+    frame_mutation_end(frame,&mutation);
     if(!xrtFutureResult(frame->source,&input)){
         if(!xrtGetError())xrtSetErrorKind(XERR_INTERNAL);
         completed=complete_error(frame->output,xrtGetError());
-    }else if(input.State==XFUTURE_FAILED)completed=complete_error(frame->output,input.Error);
+    }else if(cleanupFailed&&input.State==XFUTURE_RESOLVED)
+        completed=complete_error(frame->output,cleanupError);
+    else if(input.State==XFUTURE_FAILED)completed=complete_error(frame->output,input.Error);
     else completed=xrtPromiseForward(frame->output,frame->source);
+    /* Native pre-run/body/payload-contract failures precede capture cleanup;
+     * cancellation/close likewise keeps its established priority. A successful
+     * native body cannot hide a later checked capture failure as RESOLVED. */
+    xrtErrorFree(cleanupError);
     if(!completed && !xrtPromiseDone(frame->output)){
         xrtSetErrorKind(XERR_INTERNAL);(void)xrtPromiseReject(frame->output,xrtGetError());
     }
@@ -317,7 +366,7 @@ static xfuture* task_submit_body(XL6_TaskPool* pool,void* data,xcancel* cancel,
     frame_mutation_begin(frame,&mutation);frame->pool=pool;frame->publishing=true;
     /* One provisional job reference is returned without payload destruction
      * on rejection. The registration reference is committed to Watch later. */
-    ++frame->references;if(language)++frame->references;frame_mutation_end(frame,&mutation);
+    ++frame->references;if(language)++frame->references;frame->languageOutcome=language;frame_mutation_end(frame,&mutation);
     args.Cancel=language?token:cancel;args.Destroy=task_drop;
     source=policy?xrtTaskSubmitOwnedJobV1(native,frame,args.Cancel,&native_data_policy,policy):
         trace?xrtTaskSubmitTraced(native,task_run,frame,&args,trace):xrtTaskSubmit(native,task_run,frame,&args);
@@ -326,7 +375,7 @@ static xfuture* task_submit_body(XL6_TaskPool* pool,void* data,xcancel* cancel,
         frame_mutation_begin(frame,&mutation);if(frame->references!=(language?4u:2u) || !frame->payloadLive)abort();
         /* Return the provisional job/registration references, not the output's
          * actual producer owner. Closing that private output returns it below. */
-        frame->references-=language?2u:1u;frame->publishing=false;frame->pool=NULL;
+        frame->references-=language?2u:1u;frame->publishing=false;frame->pool=NULL;frame->languageOutcome=false;
         frame_unlock(frame);xl6TaskPoolDropInternalV1(pool);mutation_end(&mutation);
         xl6TaskActivityLeaveInternalV1(&activity);xl6TaskSubmitEndInternalV1(pool);goto preparation_failed;
     }

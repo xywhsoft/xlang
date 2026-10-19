@@ -105,6 +105,11 @@ typedef struct XL6_TaskRuntimeV1 {
      * Every bridge allocation precedes executor admission. Language mode maps
      * error kinds to Future outcomes and forwards owned payloads without copy;
      * raw task.spawn keeps its already-verified task outcome semantics.
+     * Language completion also includes checked capture cleanup. A native
+     * success becomes a language failure if that cleanup fails; an earlier
+     * body/native failure or cancellation keeps priority. A diagnosticless
+     * failure remains failed and materializes the native allocation-free
+     * INTERNAL only at its strict non-null Reject boundary, never CLOSED.
      * Result destructors/traces must be resident for the RESULT lifetime; the
      * task's code lease cannot serve as a hidden pin for an escaped result.
      * No resource gate or ownership mutation spans user callbacks or Submit. */
