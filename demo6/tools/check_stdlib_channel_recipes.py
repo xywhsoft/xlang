@@ -45,7 +45,14 @@ def main():
     objects=[row['Path'] for row in build['Objects'] if Path(row['Path']).name not in
         ('xlir_public_source_driver.o','xlir_public_source_linux_driver.o')]
     def run(name,command):
-        command=list(map(str,command)); result=subprocess.run(command,cwd=root,env=env,capture_output=True,timeout=600)
+        command=list(map(str,command)); execution=command
+        # Normal source manifests now contain hundreds of real units. Keep
+        # GCC's actual arguments intact without Windows command-line limits.
+        if command[0]==cc:
+            response=out/(name+'.rsp')
+            response.write_text(''.join('"'+v.replace('\\','/').replace('"','\\"')+'"\n' for v in command[1:]),encoding='utf8')
+            execution=[cc,'@'+str(response)]
+        result=subprocess.run(execution,cwd=root,env=env,capture_output=True,timeout=600)
         data=result.stdout+result.stderr; log=out/(name+'.log'); log.write_bytes(data)
         rows.append(dict(Name=name,Command=command,Exit=result.returncode,Log=str(log),LogSha256=sha(log)))
         assert result.returncode==0,(name,data[-8000:]); return data.decode(errors='replace')
@@ -73,7 +80,7 @@ def main():
             log=run(opt+'-contracts',[contract,root/'test/cases/stdlib_channel_recipes.xl',generated]); product(generated)
             proof=re.search(r'Channel recipes=(\d+) plans=(\d+) pending=(\d+) unsupported=(\d+) mutations=(\d+)',log)
             assert proof,log
-            counts=list(map(int,proof.groups())); assert counts[0]>=13 and counts[1]==counts[0]*3 and counts[2] and counts[3]>=3
+            counts=list(map(int,proof.groups())); assert counts[0]>=17 and counts[1]==counts[0]*3 and counts[2] and counts[3]>=1
             report['Proof']=dict(zip(('Recipes','Plans','Pending','Unsupported','RefusedChecks'),counts))
             text=generated.read_text(encoding='utf-8')
             assert 'xl6ChannelCreateTakeV1(' in text and 'xl6ChannelReceiveV1(' in text
@@ -95,7 +102,7 @@ def main():
         log=run('queue-contracts',[queue,root/'test/cases/stdlib_concurrent_queue_recipes.xl',generated]); product(generated)
         proof=re.search(r'Queue recipes: (\d+) complete, (\d+) rejected mutations, (\d+) pending, (\d+) descendant rejections, layouts=(\d+) families=(\d+)',log)
         assert proof,log
-        counts=list(map(int,proof.groups())); assert counts[0]>=60 and counts[1]==counts[0]*16 and counts[2]>=3 and counts[3] and counts[5]==7
+        counts=list(map(int,proof.groups())); assert counts[0]>=61 and counts[1]==counts[0]*16 and counts[2]>=3 and counts[3] and counts[5]==15
         report['QueueRegression']=dict(zip(('Recipes','Mutations','Pending','DescendantRejections','Layouts','Families'),counts))
         report['Complete']=True
     finally:

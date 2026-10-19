@@ -1,0 +1,71 @@
+import concurrent
+
+func savedFuture(future<int> input) as future<ChannelReceiveResult<future<int>>>
+    channel<future<int>> pipe = channel::<future<int>>(1)
+    assert pipe.send(input)
+    return pipe.recvAsyncTimeout(30000)
+end
+func selectedFuture(future<int> input) as future<int>
+    channel<future<int>> pipe = channel::<future<int>>(1)
+    auto receiving = ChannelCase.receive(pipe)
+    assert pipe.send(input)
+    auto selected = ChannelSelection.select([receiving])
+    assert selected.status == channelStatus.ok
+    return selected.value(receiving, pipe)
+end
+async func checks()
+    auto producer = Promise::<int>()
+    future<int> input = producer.future
+    channel<future<int>> pipe = channel::<future<int>>(1)
+    assert pipe.send(input)
+    auto status, acquired = pipe.recv()
+    assert status == channelStatus.ok
+    future<int> held = acquired ?? input
+    assert (await pipe.sendAsyncTimeout(input, 30000)) == channelStatus.ok
+    auto timed = await pipe.recvAsyncTimeout(30000)
+    assert timed.hasValue
+    future<int> timedMessage = timed.value ?? input
+    auto detached = await savedFuture(input)
+    assert detached.hasValue
+    future<int> first = detached.value ?? input
+    future<int> second = detached.value ?? input
+    future<int> selected = selectedFuture(input)
+    assert producer.tryResolve(37)
+    assert (await held) == 37 and (await timedMessage) == 37 and (await first) == 37 and (await second) == 37 and (await selected) == 37
+
+    channel<future<int>> rendezvous = channel::<future<int>>(0)
+    auto waiting = rendezvous.recvAsync()
+    assert (await rendezvous.sendAsync(input)) == channelStatus.ok
+    auto delivered = await waiting
+    assert (await (delivered.value ?? input)) == 37
+
+    channel<future<int>?> optional = channel::<future<int>?>(1)
+    assert optional.send(null)
+    auto emptyValue = await optional.recvAsyncTimeout(30000)
+    assert emptyValue.hasValue and emptyValue.value == null
+    auto timeout = await optional.recvAsyncTimeout(0)
+    assert timeout.status == channelStatus.timeout and not timeout.hasValue
+    assert optional.send(input)
+    auto receiving = ChannelCase.receive(optional)
+    auto choice = await ChannelSelection.selectAsyncTimeout([receiving], 30000)
+    future<int> present = choice.value(receiving, optional) ?? input
+    assert (await present) == 37
+    optional.close()
+    assert (await optional.recvAsync()).status == channelStatus.closed
+end
+await checks()
+// Real module-owned cycles: no artificial incoming count or temporary Value
+// shell may replace the Future reference stored in the Channel/result slot.
+auto cycleProducer = Promise::<var>()
+channel<future<var>> cyclePipe = channel::<future<var>>(1)
+assert cyclePipe.send(cycleProducer.future)
+var cycleAlias = cyclePipe
+assert cycleProducer.tryResolve(cycleAlias)
+
+auto resultProducer = Promise::<var>()
+channel<future<var>> resultPipe = channel::<future<var>>(1)
+assert resultPipe.send(resultProducer.future)
+auto cyclicResult = await resultPipe.recvAsyncTimeout(30000)
+assert cyclicResult.hasValue
+assert resultProducer.tryResolve(cyclicResult)
+println("owned Future Channel messages retain the native control block")

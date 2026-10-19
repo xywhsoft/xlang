@@ -478,6 +478,10 @@ bool XL6_Q_PUBLIC(ReceiveV1)(const xvalue* value,uint64_t identity,uint64_t elem
         (owner->layout.transfer==2 && (((xstrview*)slot.data)->Data || ((xstrview*)slot.data)->Size))) {
         xrtSetErrorKind(XERR_STATE);goto done;
     }
+    if(owner->layout.transfer==XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1){
+        const XL6_SequenceNativeValuePolicyV1* native=xl6SequenceNativeValuePolicyV1(&owner->admission);
+        if(!native || !native->Empty(slot.data)){xrtSetErrorKind(XERR_STATE);goto done;}
+    }
     uint64_t micros=(uint64_t)milliseconds>UINT64_MAX/1000?UINT64_MAX:(uint64_t)milliseconds*1000;
     xdeadline deadline=mode==XL6_CHANNEL_FOR_V1?xrtDeadlineAfter(micros):0;
     if(!xl6MutexLockV1(owner->waitMutex,identity))goto done;

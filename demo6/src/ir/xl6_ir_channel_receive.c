@@ -189,8 +189,7 @@ int xl6IrChannelReceivePlanBuild(const XL6_IrModule* module,XL6_IrChannelReceive
     const XL6_IrType* tuple=xl6IrTypeGet(&module->types,result);
     if (!xl6IrConcurrentQueueIntegerType(module,tuple->params[0])) return 0;
     plan.resultValueType=tuple->params[1];
-    const XL6_IrType* value=xl6IrTypeGet(&module->types,plan.resultValueType);
-    plan.valueTagged=plan.resultValueType!=plan.elementType && value->cAbi==XL6_IR_C_ABI_TAGGED_NULLABLE;
+    plan.valueTagged=xl6IrOptionalResultPayloadTagged(module,plan.resultValueType,plan.elementType);
     if (output) *output=plan;
     return 1;
 }

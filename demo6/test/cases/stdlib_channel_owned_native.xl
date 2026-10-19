@@ -1,0 +1,68 @@
+import concurrent
+
+func savedKey(SlotMapKey key) as future<ChannelReceiveResult<SlotMapKey>>
+    channel<SlotMapKey> pipe = channel::<SlotMapKey>(1)
+    assert pipe.send(key)
+    return pipe.recvAsyncTimeout(30000)
+end
+func selectedKey(SlotMapKey key) as SlotMapKey
+    channel<SlotMapKey> pipe = channel::<SlotMapKey>(1)
+    auto receiving = ChannelCase.receive(pipe)
+    assert pipe.send(key)
+    auto selected = ChannelSelection.select([receiving])
+    return selected.value(receiving, pipe)
+end
+async func checks()
+    auto slots = SlotMap::<int>()
+    auto key = slots.insert(71)
+    // The shared optional-result contract must cover owning native records,
+    // not only the scalar TAGGED_NULLABLE representation.
+    auto queue = SpscQueue::<SlotMapKey>(2)
+    assert queue.tryPush(key) == queueStatus.ok
+    auto keyStatus, queuedKey = queue.tryPop()
+    assert keyStatus == queueStatus.ok and (queuedKey ?? key) == key
+    auto missingStatus, missingKey = queue.tryPop()
+    assert missingStatus == queueStatus.empty and missingKey == null
+    auto waitingKeys = WaitQueue::<SlotMapKey>(2)
+    assert waitingKeys.tryPush(key) == queueStatus.ok
+    auto waitStatus, waitKey = waitingKeys.tryPop()
+    assert waitStatus == queueStatus.ok and (waitKey ?? key) == key
+    auto absentStatus, absentKey = waitingKeys.tryPop()
+    assert absentStatus == queueStatus.empty and absentKey == null
+    auto optionalKeys = WaitQueue::<SlotMapKey?>(2)
+    assert optionalKeys.tryPush(null) == queueStatus.ok
+    auto nullStatus, nullKey = optionalKeys.tryPop()
+    assert nullStatus == queueStatus.ok and nullKey == null
+    channel<SlotMapKey> pipe = channel::<SlotMapKey>(1)
+    assert pipe.send(key)
+    auto status, acquired = pipe.recv()
+    assert status == channelStatus.ok and (acquired ?? key) == key
+    assert (await pipe.sendAsyncTimeout(key, 30000)) == channelStatus.ok
+    auto timed = await pipe.recvAsyncTimeout(30000)
+    assert timed.hasValue and (timed.value ?? key) == key
+    auto snapshot = await savedKey(key)
+    assert snapshot.hasValue and (snapshot.value ?? key) == key
+    assert (snapshot.value ?? key) == key
+    assert selectedKey(key) == key
+
+    channel<SlotMapKey> rendezvous = channel::<SlotMapKey>(0)
+    auto pending = rendezvous.recvAsync()
+    assert (await rendezvous.sendAsync(key)) == channelStatus.ok
+    auto delivered = await pending
+    assert delivered.hasValue and (delivered.value ?? key) == key
+
+    channel<SlotMapKey?> optional = channel::<SlotMapKey?>(1)
+    assert optional.send(null)
+    auto emptyValue = await optional.recvAsyncTimeout(30000)
+    assert emptyValue.hasValue and emptyValue.value == null
+    auto missing = await optional.recvAsyncTimeout(0)
+    assert missing.status == channelStatus.timeout and not missing.hasValue
+    assert optional.send(key)
+    auto receiving = ChannelCase.receive(optional)
+    auto choice = await ChannelSelection.selectAsyncTimeout([receiving], 30000)
+    assert (choice.value(receiving, optional) ?? key) == key
+    optional.close()
+    assert (await optional.recvAsync()).status == channelStatus.closed
+end
+await checks()
+println("owned native Channel records preserve checked copy and optional presence")

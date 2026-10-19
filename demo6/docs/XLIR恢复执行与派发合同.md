@@ -707,3 +707,32 @@ Destroy/私有 Discard 义务。直接与选择器语言 handle/domain 精确分
 准确 token 只允许关闭该计划认领的 parked operation，不授权工作线程在
 claim 下继续运行。已接受 frame 在逻辑退休前拒绝 Claim，计划回滚已取得
 的子对象 claim 后再让 worker 前进，不能一边认领 Channel 一边等待它完成。
+
+### 2026-10-19：Channel DIRECT 拥有槽与 presence
+
+Channel 使用完整的 Sequence schema/owned admission 证明消息布局，现支持
+DIRECT 的 1—5 号 transfer：平凡值、显式长度 string、xvalue、真实 Future
+引用、封闭驻留原生叶记录。闭包与 union 的 codec 仍独立，不能只放宽一个
+指针类型或 transfer 数值上限就宣称支持。构造、源调用、降低与 lowered
+验证均以 owner recipe 校验；裸类型的全局标量规则不能覆盖 owner 合同。
+
+可空 Future 的外层 cAbi/ownership/nullAbi 也必须与其子类型一致；不能只看
+子类型就缓存一个可执行槽。非空原生记录的可空返回使用共享的
+`xl6IrOptionalResultPayloadTagged` 事实，Channel 和并发队列都依此取物理
+输出地址及维护 presence。Cgen 不检查库名、猜测指针或追溯 AST。
+
+同步、Case、Selection、直接 Future 结果共享驻留的空槽/Copy/Drop/Trace
+合同。Future 的真实控制块直接进入拥有图；原生叶记录只使用其已声明的
+驻留能力，不能假造 Value 节点或外部 incoming count。直接结果独立拥有
+admission，先释放 payload、再释放策略，所以结果可以安全离开原 Channel。
+选择结果已有的 selected Case 引用提供同样的策略生命周期，不增加一次借用。
+
+失败仍是 checked outcome，包括 false/NULL；私有复制、清理尾部与输出发布
+保持原有事务边界。WaitQueue 的原生记录输出在取队列元素前检查 Empty，
+不会覆盖已有拥有值。没有新增算法、生成回调、调度模型或等待线程兜底。
+
+本批最终普通产物证据为 `p1-channel-owned-profiles` 的 Windows 3007／
+Linux 2954 阶段，构建／验收输入与日志封条一致。实际编译器 SO 另对两份
+新消息源完成 92／81 次直接调用合同的零 C/header 输出拒绝。四个实际
+DLL/SO 的新语言分配前缀、原生槽位失败事务、真实边与模块退休均通过；
+源码专用工具和普通产品证据分开记录，不替换现有 release，不触及网络测试。

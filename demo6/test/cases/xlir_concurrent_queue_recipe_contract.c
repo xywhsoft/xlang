@@ -104,7 +104,11 @@ int main(int argc, char** argv)
         }
         assert(xl6IrVerifyModule(&ir,NULL));
     }
-    assert(recipes>=60 && families==7 && pending>=3 && nested>0 && sameSlot>0);
+    /* WaitQueue is now an admitted fourth family, not an unsupported
+     * pointer-shaped placeholder. Preserve all pending/mutation coverage. */
+    fprintf(stderr,"Queue coverage recipes=%u families=%u pending=%u nested=%u sameSlot=%u\n",
+        recipes,families,pending,nested,sameSlot);
+    assert(recipes>=61 && families==15 && pending>=3 && nested>0 && sameSlot>0);
     unsigned creates=0,instructionMutations=0;
     for (size_t i=0;i<ir.instructionCount;++i) {
         XL6_IrInstruction* instruction=&ir.instructions[i];
@@ -136,7 +140,7 @@ int main(int argc, char** argv)
         "typedef xstrview xlir_string;\n"
         "typedef struct xlir_closure xlir_closure;\n"
         "typedef struct xlir_generator xlir_generator;\n",&out);
-    if (!xl6IrCgenEmitUnionTypes(&out,&ir,NULL,&parse.diags) ||
+    if (!xl6IrCgenEmitUnionTypes(&out,&ir,NULL,&parse.diags,NULL,NULL) ||
         !xl6IrCgenEmitProductTypes(&out,&ir,NULL,&parse.diags)) {
         xl6OutputClose(&out); goto done;
     }

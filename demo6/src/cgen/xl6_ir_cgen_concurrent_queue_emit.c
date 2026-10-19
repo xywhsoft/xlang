@@ -133,8 +133,7 @@ static int xl6IrCgenEmitConcurrentQueueRuntime(XL6_Output* out,const XL6_IrModul
     case XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP:
     case XL6_IR_RUNTIME_WAIT_QUEUE_POP:
     case XL6_IR_RUNTIME_WAIT_QUEUE_POP_TIMEOUT: {
-        const XL6_IrType* optional=xl6IrTypeGet(&module->types,result->params[1]);
-        bool tagged=optional->cAbi==XL6_IR_C_ABI_TAGGED_NULLABLE && result->params[1]!=instruction->payloadType;
+        bool tagged=xl6IrOptionalResultPayloadTagged(module,result->params[1],instruction->payloadType)!=0;
         if(tagged)xl6OutputPrintf(out,"      v%u.e1.hasValue = true;\n",output);
         if (closure) xl6OutputPuts("      xvalue* queue_slot = NULL;\n",out);
         if(family==XL6_IR_RUNTIME_RESOURCE_WAIT_QUEUE) {
@@ -203,9 +202,9 @@ static int xl6IrCgenEmitConcurrentQueueRuntime(XL6_Output* out,const XL6_IrModul
     xl6OutputPuts(
         "      if (xrtGetError() != NULL) xl6ErrorScopeCaptureFailure(&queue_scope);\n"
         "      xl6_error_result queue_outcome = xl6ErrorScopeEnd(&queue_scope);\n",out);
-    if(xl6IrWaitQueueReceiveRuntime(instruction->runtimeOp) && result->kind==XL6_IR_TYPE_TUPLE &&
-        result->params[1]!=instruction->payloadType &&
-        xl6IrTypeGet(&module->types,result->params[1])->cAbi==XL6_IR_C_ABI_TAGGED_NULLABLE)
+    if((instruction->runtimeOp==XL6_IR_RUNTIME_CONCURRENT_QUEUE_TRY_POP ||
+        xl6IrWaitQueueReceiveRuntime(instruction->runtimeOp)) && result->kind==XL6_IR_TYPE_TUPLE &&
+        xl6IrOptionalResultPayloadTagged(module,result->params[1],instruction->payloadType))
         xl6OutputPrintf(out,"      if (queue_outcome.ok) v%u.e1.hasValue = v%u.e0 == XQUEUE_OK;\n",output,output);
     /* STATUS_OUTPUT promises an empty owner on failure. Native pop can still
      * return an owned prefix after a cleanup failure, so retire it exactly

@@ -964,7 +964,9 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
     } else if (base->cAbi==XL6_IR_C_ABI_RUNTIME_FUTURE_PTR &&
         base->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
         base->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL && base->paramCount==1 &&
-        base->params && xl6IrTypeGet(pool,base->params[0]) && base->typeValueId) {
+        base->params && xl6IrTypeGet(pool,base->params[0]) && base->typeValueId &&
+        element->cAbi==base->cAbi && element->ownershipAbi==base->ownershipAbi &&
+        element->nullAbi==base->nullAbi) {
         result.abi=XL6_IR_SEQUENCE_LAYOUT_FUTURE_REFERENCE_V1;
         result.slotAbi=XL6_IR_NATIVE_SLOT_FUTURE_PTR;
         result.transferAbi=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF;
@@ -1073,7 +1075,7 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
         XL6_IrSequenceLayout child=xl6IrSequenceLayoutForTypeDepth(pool,xl6IrTypeGet(pool,schema),depth+1);
         bool channel=base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_CHANNEL;
         result.abi=xl6IrSequenceLayoutComplete(child.abi) && child.codecAbi==XL6_IR_SEQUENCE_CODEC_DIRECT &&
-            (!channel || child.transferAbi<=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN)
+            (!channel || child.transferAbi<=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY)
             ? (channel ? XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1 : XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1)
             : XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN;
     } else if (result.slotAbi==XL6_IR_NATIVE_SLOT_XVALUE_CARRIER &&
@@ -8619,7 +8621,7 @@ static int xl6IrSequenceConstructionRecipeDepth(const XL6_IrModule* module,
             base->runtimeResourceAbi==(channel ? XL6_IR_RUNTIME_RESOURCE_CHANNEL : XL6_IR_RUNTIME_RESOURCE_SLOT_MAP) &&
             child==(channel ? xl6IrMessageSchemaTypeForType(&module->types,base) : xl6IrValueCollectionSchemaTypeForType(&module->types,base)) &&
             schema && schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_DIRECT &&
-            (!channel || schema->sequenceLayout.transferAbi<=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN) &&
+            (!channel || schema->sequenceLayout.transferAbi<=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY) &&
             xl6IrSequenceConstructionRecipeDepth(module,child,XL6_IR_SEQUENCE_ROLE_ARRAY,NULL,depth+1);
     }
     case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1:
@@ -8753,11 +8755,13 @@ int xl6IrChannelConstructionRecipe(const XL6_IrModule* module,XL6_IrTypeId owner
         !xl6IrMessageConstructionRecipeDepth(module,owner,NULL,&schemaId,&set,0)) return 0;
     const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
     const XL6_IrSequenceLayout* layout=&schema->sequenceLayout;
-    /* Native V1 has no closure projection, Future retain or native record
-     * codec. A pointer-shaped invocation ABI is not a resident message slot. */
+    /* DIRECT messages use the same closed owned slot/policy as their schema,
+     * including real Future references and resident native records. Closure
+     * and union projection remain separate codecs: a pointer-shaped invocation
+     * ABI never certifies a resident message slot. */
     if (layout->codecAbi!=XL6_IR_SEQUENCE_CODEC_DIRECT ||
         layout->transferAbi<XL6_IR_RUNTIME_RESOURCE_PAYLOAD_TRIVIAL_COPY ||
-        layout->transferAbi>XL6_IR_RUNTIME_RESOURCE_PAYLOAD_XVALUE_RETAIN) return 0;
+        layout->transferAbi>XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY) return 0;
     if (schemaOut) *schemaOut=schemaId;
     if (setOut) *setOut=set;
     return 1;
@@ -12068,7 +12072,7 @@ static int xl6IrRuntimeResourceSignatureCompatible(
         payloadType = xl6IrRuntimeChannelPayloadType(module, resultType);
         return receiverType == XL6_IR_TYPE_INVALID && result != NULL &&
             payloadType != XL6_IR_TYPE_INVALID &&
-            xl6IrRuntimeResourcePayloadAbiForType(module, payloadType) !=
+            xl6IrRuntimeResourcePayloadAbiForOwnerType(module, resultType, payloadType) !=
                 XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID &&
             (operandCount == 0 ||
              (operandCount == 1 && first != NULL &&
@@ -12266,7 +12270,7 @@ static int xl6IrRuntimeResourceSignatureCompatible(
     if ( xl6IrRuntimeResourceOpIsChannel(operation) ) {
         payloadType = xl6IrRuntimeChannelPayloadType(module, receiverType);
         if ( payloadType == XL6_IR_TYPE_INVALID ||
-             xl6IrRuntimeResourcePayloadAbiForType(module, payloadType) ==
+             xl6IrRuntimeResourcePayloadAbiForOwnerType(module, receiverType, payloadType) ==
                  XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID ) return 0;
         switch ( operation ) {
         case XL6_IR_RUNTIME_RESOURCE_OP_CHANNEL_RECV_INTO:
@@ -40078,12 +40082,15 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      instruction->runtimeResourcePayloadAbi <
                          XL6_IR_RUNTIME_RESOURCE_PAYLOAD_INVALID ||
                      instruction->runtimeResourcePayloadAbi >
-                         (xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp)) ||
+                         (xl6IrChannelRuntimeOpIs(instruction->runtimeOp) ||
+                          xl6IrConcurrentQueueInstructionType(module,instruction) ||
+                          xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp)) ||
                           (instruction->runtimeOp>=XL6_IR_RUNTIME_STACK_CREATE &&
                            instruction->runtimeOp<=XL6_IR_RUNTIME_STACK_CAPACITY)
                              ? XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY : XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF) ||
                      (instruction->runtimeResourcePayloadAbi==XL6_IR_RUNTIME_RESOURCE_PAYLOAD_FUTURE_REF &&
                       !xl6IrConcurrentQueueInstructionType(module,instruction) &&
+                      !xl6IrChannelRuntimeOpIs(instruction->runtimeOp) &&
                       !xl6IrSlotMapResourceOpIs(xl6IrSlotMapResourceOp(instruction->runtimeOp)) &&
                       !(instruction->runtimeOp>=XL6_IR_RUNTIME_STACK_CREATE &&
                         instruction->runtimeOp<=XL6_IR_RUNTIME_STACK_CAPACITY)) )
