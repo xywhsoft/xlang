@@ -35155,6 +35155,23 @@ typedef struct xexecutoritem {
 	ptr DestroyContext;
 } xexecutoritem;
 
+/* Resident contract for the ONE Data reference transferred on acceptance.
+ * Proc borrows Data; Drop(Data,NULL) consumes it exactly once outside mutation
+ * and all native locks. Ops identifies that same physical Data node. Descriptor,
+ * Ops and callbacks outlive every accepted slot, including collector pins after
+ * work completes. A failed submission does not consume Data. */
+typedef struct xexecutordataownershipv1 {
+	size_t size;
+	xexecutorproc Proc;
+	xexecutorfreeproc Drop;
+	const xrtownershipops* Ops;
+} xexecutordataownershipv1;
+
+typedef struct xexecutorowneditemv1 {
+	ptr Data;
+	const xexecutordataownershipv1* Policy;
+} xexecutorowneditemv1;
+
 
 
 /* QueueLimit 是每个 Worker 的硬队列上限；总排队容量等于 Threads 乘 QueueLimit。 */
@@ -35220,6 +35237,32 @@ XRT_API bool xrtExecutorSubmitBatch(
 /* 停止受理新工作，并让已经受理的工作自然排空。 */
 XRT_API bool xrtExecutorClose(xexecutor* pExecutor);
 
+/* Same bounded, allocation-free admission as Submit/SubmitBatch. Batch is
+ * all-or-nothing; each item transfers a separate actual Data reference. */
+XRT_API bool xrtExecutorSubmitOwnedV1(xexecutor* pExecutor, ptr pData,
+	const xexecutordataownershipv1* pPolicy);
+XRT_API bool xrtExecutorSubmitOwnedBatchV1(xexecutor* pExecutor,
+	const xexecutorowneditemv1* pItems, size_t iCount);
+
+/* Read under the entire graph's exclusive ownership freeze. Queued slots own
+ * their actual Data and one containing Executor reference. Active callbacks,
+ * cleanup tails and native entries refuse Count. Legacy opaque queued items
+ * refuse admission; worker/control allocations are uniquely contained, not
+ * fabricated reference-counted nodes. Preparation closes admission and drains
+ * original work, then joins at zero timeout outside freeze; it never cancels
+ * work to manufacture readiness. Clear requires physical join. */
+XRT_API xrtownershipref xrtExecutorOwnership(const xexecutor* pExecutor);
+XRT_API const xrtownershipadapterv1* xrtExecutorOwnershipAdapterV1(
+	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
+/* Match an admitted resident Data policy identity BEFORE following its fields.
+ * A pinned completed slot is not reused and keeps its containing allocation
+ * alive, even after Executor destruction. Outputs change only on success. */
+XRT_API const xrtownershipadapterv1* xrtExecutorJobOwnershipAdapterV1(
+	xrtownershipref Reference, const xexecutordataownershipv1* const* pPolicies,
+	size_t iPolicyCount, const xrtownershippreparationv1** ppPreparation);
+XRT_API const xrtownershipquiescencev1* xrtExecutorOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtExecutorJobOwnershipQuiescenceV1Get(void);
+
 
 
 /* 停止受理，丢弃尚未开始的工作并执行其数据析构；运行中工作不会被强停。 */
@@ -35227,7 +35270,8 @@ XRT_API bool xrtExecutorCancel(xexecutor* pExecutor);
 
 
 
-/* 永久等待已经关闭的执行器排空；Executor Worker 不能等待自身。 */
+/* Wait includes execution AND cancelled-item cleanup tails. A worker or a
+ * cancellation cleanup callback cannot wait for its own executor. */
 XRT_API xwaitresult xrtExecutorWait(xexecutor* pExecutor);
 
 
@@ -35253,7 +35297,10 @@ XRT_API bool xrtExecutorGet(
 
 
 
-/* 关闭、排空、停止 Worker 并释放执行器；Worker 不能销毁自身执行器。 */
+/* Close, drain and join. Caller must stop concurrent access; reentrant or
+ * overlapping native entries refuse before releasing ownership. Worker/cleanup
+ * callbacks cannot destroy their own executor. Only the original owner is
+ * consumed; explicit pins may keep the retired shell/slot allocation alive. */
 XRT_API bool xrtExecutorDestroy(xexecutor* pExecutor);
 
 #endif
@@ -48644,6 +48691,123 @@ static inline uint32 __xrtCharsetRead32(
 
 #endif
 
+#endif
+#endif
+
+
+/* ========================================================================== */
+/* internal: src/internal/xrt_executor.h */
+/* ========================================================================== */
+
+#if defined(XRT_FEATURE_EXECUTOR)
+#ifndef XRT_INTERNAL_EXECUTOR_H
+#define XRT_INTERNAL_EXECUTOR_H
+
+
+#if defined(XRT_FEATURE_EXECUTOR)
+
+typedef struct xrt_executor_worker xrt_executor_worker;
+
+/* Slots stay inside the containing allocation. The queue/worker transfers ONE
+ * reference; collector pins delay reuse. Each live slot owns one real shell
+ * reference, so that its identity and spinlock survive thread retirement. */
+typedef struct xrt_executor_job {
+	struct xrt_executor_job* Previous;
+	struct xrt_executor_job* Next;
+	xrt_executor_worker* Owner;
+	xexecutorproc Proc;
+	ptr Data;
+	xexecutorfreeproc Destroy;
+	ptr DestroyContext;
+	const xexecutordataownershipv1* DataPolicy;
+	volatile int32 RefCount;
+	const void* OwnershipClaim;
+	bool Active;
+	bool Finished;
+	bool OwnershipCleared;
+} xrt_executor_job;
+
+struct xrt_executor_worker {
+	xexecutor* Executor;
+	xthread* Thread;
+	xrt_spinlock Lock;
+	xrt_executor_job* Free;
+	xrt_executor_job* Head;
+	xrt_executor_job* Tail;
+	size_t FreeCount;
+	size_t Queued;
+	uint32 Index;
+	bool Parked;
+	bool Exited;
+};
+
+/* A stack-only record for cancellation cleanup on a non-worker thread. Native
+ * callback reentry can submit but must not wait for or destroy its own tail. */
+typedef struct xrt_executor_callback {
+	struct xrt_executor_callback* Next;
+	uint64 Thread;
+} xrt_executor_callback;
+
+struct xexecutor {
+	xmutex SleepLock;
+	xmutex OwnershipLock;
+	xcond Work;
+	xcond Idle;
+	xrt_executor_worker* Workers;
+	xrt_executor_job* Jobs;
+	uint32 ThreadCount;
+	uint32 StartedThreads;
+	size_t QueueLimit;
+	size_t StackSize;
+	size_t SlotCount;
+	xatomic32 Closed;
+	xatomic32 Cancelling;
+	xatomic32 Shutdown;
+	xatomic32 Submitters;
+	xatomic32 Sleepers;
+	xatomic32 Queued;
+	xatomic32 Running;
+	/* One accepted-work credit, unchanged by queue/worker/cancel-list transfer.
+	 * Released only AFTER Proc, Drop and completion statistics are finished. */
+	xatomic32 Outstanding;
+	xatomic64 NextWorker;
+	xatomic64 Submitted;
+	xatomic64 Completed;
+	xatomic64 Executed;
+	xatomic64 Stolen;
+	xatomic64 Cancelled;
+	xatomic64 Rejected;
+	size_t References;
+	size_t Entries;
+	size_t LiveJobs;
+	xrt_executor_callback* Callbacks;
+	const void* OwnershipClaim;
+	bool Initialized;
+	bool OwnerHeld;
+	bool Destroying;
+	bool Joining;
+	bool Joined;
+	bool Retiring;
+	bool Retired;
+	bool OwnershipCleared;
+};
+
+void __xrtExecutorMutationBegin(xrtownershipscope* pScope);
+void __xrtExecutorMutationEnd(xrtownershipscope* pScope);
+void __xrtExecutorOwnershipBegin(xexecutor* pExecutor, xrtownershipscope* pScope);
+void __xrtExecutorOwnershipEnd(xexecutor* pExecutor, xrtownershipscope* pScope);
+bool __xrtExecutorEnter(xexecutor* pExecutor, bool bTerminal);
+void __xrtExecutorLeave(xexecutor* pExecutor);
+void __xrtExecutorRelease(const void* pData);
+bool __xrtExecutorReserveJobs(xexecutor* pExecutor, size_t iCount);
+void __xrtExecutorUnreserveJobs(xexecutor* pExecutor, size_t iCount);
+void __xrtExecutorJobRelease(const void* pData);
+xrtownershipref __xrtExecutorJobOwnership(const xrt_executor_job* pJob);
+bool __xrtExecutorIdle(const xexecutor* pExecutor);
+void __xrtExecutorWake(xexecutor* pExecutor, bool bBatch);
+bool __xrtExecutorRetire(xexecutor* pExecutor, size_t iEntries);
+
+#endif
 #endif
 #endif
 
@@ -119194,6 +119358,379 @@ XRT_API xjsonvisitresult xrtJsonVisit(
 		true
 	);
 	return (xjsonvisitresult)Result;
+}
+
+#endif
+#endif
+
+
+/* ========================================================================== */
+/* source: src/concurrency/executor_ownership.c */
+/* ========================================================================== */
+
+#if defined(XRT_FEATURE_EXECUTOR)
+
+#if defined(XRT_FEATURE_EXECUTOR)
+
+void __xrtExecutorMutationBegin(xrtownershipscope* pScope)
+{ if (!xrtOwnershipMutationBegin(pScope)) abort(); }
+void __xrtExecutorMutationEnd(xrtownershipscope* pScope)
+{ if (!xrtOwnershipScopeEnd(pScope)) abort(); }
+void __xrtExecutorOwnershipBegin(xexecutor* pExecutor, xrtownershipscope* pScope)
+{
+	__xrtExecutorMutationBegin(pScope);
+	if (!xrtMutexLock(&pExecutor->OwnershipLock)) abort();
+}
+void __xrtExecutorOwnershipEnd(xexecutor* pExecutor, xrtownershipscope* pScope)
+{
+	if (!xrtMutexUnlock(&pExecutor->OwnershipLock)) abort();
+	__xrtExecutorMutationEnd(pScope);
+}
+
+/* OwnershipLock never encloses a queue lock, wait, or user callback. API
+ * entries keep a real reference until their LAST access, including notify. */
+bool __xrtExecutorEnter(xexecutor* pExecutor, bool bTerminal)
+{
+	xrtownershipscope Mutation = {0}; bool bEntered = false;
+	if (!pExecutor) { __xrtErrorSetInvalidArgument(); return false; }
+	__xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+	if (pExecutor->Initialized && pExecutor->References && pExecutor->References < SIZE_MAX &&
+		pExecutor->Entries < SIZE_MAX && !pExecutor->Retiring && !pExecutor->Joining &&
+		(!pExecutor->Retired || bTerminal) && (!pExecutor->OwnershipCleared || bTerminal)) {
+		++pExecutor->References; ++pExecutor->Entries; bEntered = true;
+	}
+	__xrtExecutorOwnershipEnd(pExecutor, &Mutation);
+	if (!bEntered) __xrtErrorSetInvalidState();
+	return bEntered;
+}
+static void __xrtExecutorDropLocked(xexecutor* pExecutor, xrtownershipscope* pScope)
+{
+	if (!pExecutor->References) abort();
+	bool bLast = --pExecutor->References == 0;
+	if (bLast && (!pExecutor->Retired || pExecutor->OwnerHeld || pExecutor->Entries ||
+		pExecutor->LiveJobs || pExecutor->Callbacks || pExecutor->StartedThreads)) abort();
+	if (!xrtMutexUnlock(&pExecutor->OwnershipLock)) abort();
+	if (bLast) {
+		for (uint32 i = 0; i < pExecutor->ThreadCount; ++i)
+			__xrtSpinUnit(&pExecutor->Workers[i].Lock);
+		if (!xrtCondUnit(&pExecutor->Idle) || !xrtCondUnit(&pExecutor->Work) ||
+			!xrtMutexUnit(&pExecutor->SleepLock) || !xrtMutexUnit(&pExecutor->OwnershipLock)) abort();
+		xrtFree(pExecutor);
+	}
+	__xrtExecutorMutationEnd(pScope);
+}
+void __xrtExecutorRelease(const void* pData)
+{
+	xexecutor* pExecutor = (xexecutor*)pData; xrtownershipscope Mutation = {0};
+	__xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+	__xrtExecutorDropLocked(pExecutor, &Mutation);
+}
+void __xrtExecutorLeave(xexecutor* pExecutor)
+{
+	xrtownershipscope Mutation = {0}; __xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+	if (!pExecutor->Entries) abort();
+	--pExecutor->Entries; __xrtExecutorDropLocked(pExecutor, &Mutation);
+}
+bool __xrtExecutorReserveJobs(xexecutor* pExecutor, size_t iCount)
+{
+	xrtownershipscope Mutation = {0}; bool bHeld = false;
+	__xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+	if (iCount <= SIZE_MAX - pExecutor->References && iCount <= SIZE_MAX - pExecutor->LiveJobs) {
+		pExecutor->References += iCount; pExecutor->LiveJobs += iCount; bHeld = true;
+	}
+	__xrtExecutorOwnershipEnd(pExecutor, &Mutation);
+	if (!bHeld) __xrtErrorSetSizeOverflow();
+	return bHeld;
+}
+void __xrtExecutorUnreserveJobs(xexecutor* pExecutor, size_t iCount)
+{
+	xrtownershipscope Mutation = {0}; __xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+	/* The active submit entry still holds the shell; no final disposal here. */
+	if (pExecutor->LiveJobs < iCount || pExecutor->References <= iCount) abort();
+	pExecutor->LiveJobs -= iCount; pExecutor->References -= iCount;
+	__xrtExecutorOwnershipEnd(pExecutor, &Mutation);
+}
+
+void __xrtExecutorJobRelease(const void* pData)
+{
+	xrt_executor_job* pJob = (xrt_executor_job*)pData; xrtownershipscope Mutation = {0};
+	__xrtExecutorMutationBegin(&Mutation);
+	int32 iRefs = xrtRefRelease(&pJob->RefCount);
+	if (iRefs < 0) abort();
+	if (iRefs == 0) {
+		xrt_executor_worker* pOwner = pJob->Owner; xexecutor* pExecutor = pOwner->Executor;
+		if (!pJob->Finished || pJob->Active || pJob->Data || pJob->Destroy || pJob->DestroyContext) abort();
+		/* The last pin, not just execution completion, permits slot reuse. Keep
+		 * embedded locks alive until this slot's real containing ref is dropped. */
+		pJob->Proc = NULL; pJob->DataPolicy = NULL; pJob->OwnershipClaim = NULL;
+		pJob->OwnershipCleared = false; pJob->Finished = false; pJob->Previous = NULL;
+		__xrtSpinLock(&pOwner->Lock);
+		pJob->Next = pOwner->Free; pOwner->Free = pJob; ++pOwner->FreeCount;
+		__xrtSpinUnlock(&pOwner->Lock);
+		xrtownershipscope Ownership = {0}; __xrtExecutorOwnershipBegin(pExecutor, &Ownership);
+		if (!pExecutor->LiveJobs) abort();
+		--pExecutor->LiveJobs; __xrtExecutorDropLocked(pExecutor, &Ownership);
+	}
+	__xrtExecutorMutationEnd(&Mutation);
+}
+
+bool __xrtExecutorIdle(const xexecutor* pExecutor)
+{ return xrtAtomic32Load(&pExecutor->Outstanding, XMEMORY_ACQUIRE) == 0; }
+
+bool __xrtExecutorRetire(xexecutor* pExecutor, size_t iEntries)
+{
+	xrtownershipscope Mutation = {0}; __xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+	if (pExecutor->Retired) { __xrtExecutorOwnershipEnd(pExecutor, &Mutation); return true; }
+	if (!pExecutor->Joined || pExecutor->Joining || pExecutor->Retiring || pExecutor->Entries != iEntries ||
+		pExecutor->Callbacks || !__xrtExecutorIdle(pExecutor)) {
+		__xrtExecutorOwnershipEnd(pExecutor, &Mutation); return false;
+	}
+	pExecutor->Retiring = true; uint32 iThreads = pExecutor->StartedThreads;
+	__xrtExecutorOwnershipEnd(pExecutor, &Mutation);
+	for (uint32 i = 0; i < iThreads; ++i) {
+		xrt_executor_worker* pWorker = &pExecutor->Workers[i];
+		if (!pWorker->Exited || pWorker->Parked) abort();
+		xrtThreadDestroy(pWorker->Thread); pWorker->Thread = NULL;
+	}
+	__xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+	pExecutor->StartedThreads = 0; pExecutor->Retired = true; pExecutor->Retiring = false;
+	__xrtExecutorOwnershipEnd(pExecutor, &Mutation); return true;
+}
+
+static bool __xrtExecutorOwnershipCount(const void* pData, size_t* pCount)
+{
+	const xexecutor* pExecutor = pData;
+	if (!pExecutor || !pCount || !pExecutor->Initialized || !pExecutor->References ||
+		pExecutor->Entries || pExecutor->Callbacks || pExecutor->Destroying || pExecutor->Joining ||
+		pExecutor->Retiring || pExecutor->OwnershipCleared || pExecutor->LiveJobs > pExecutor->SlotCount ||
+		pExecutor->References < pExecutor->LiveJobs ||
+		xrtAtomic32Load(&pExecutor->Running, XMEMORY_ACQUIRE) ||
+		xrtAtomic32Load(&pExecutor->Submitters, XMEMORY_ACQUIRE)) return false;
+	size_t iQueued = xrtAtomic32Load(&pExecutor->Queued, XMEMORY_ACQUIRE);
+	if (iQueued != xrtAtomic32Load(&pExecutor->Outstanding, XMEMORY_ACQUIRE)) return false;
+	if (pExecutor->Retired) {
+		if (!pExecutor->Joined || pExecutor->StartedThreads || iQueued ||
+			!xrtAtomic32Load(&pExecutor->Closed, XMEMORY_ACQUIRE)) return false;
+	} else if (pExecutor->StartedThreads != pExecutor->ThreadCount) return false;
+	size_t iSeen = 0;
+	for (uint32 i = 0; i < pExecutor->ThreadCount; ++i) {
+		const xrt_executor_worker* pWorker = &pExecutor->Workers[i];
+		if (pWorker->Executor != pExecutor || (pExecutor->Retired ? pWorker->Thread != NULL : pWorker->Thread == NULL) ||
+			(pWorker->Exited ? pWorker->Parked : pExecutor->Joined)) return false;
+		size_t iJobs = 0; const xrt_executor_job* pTail = NULL;
+		for (const xrt_executor_job* pJob = pWorker->Head; pJob; pJob = pJob->Next) {
+			if (iJobs++ == pWorker->Queued || pJob->Owner != pWorker || pJob->Active ||
+				pJob->Finished || pJob->OwnershipCleared || pJob->Previous != pTail ||
+				__xrtAtomicRefLoad(&pJob->RefCount) <= 0) return false;
+			pTail = pJob;
+		}
+		if (iJobs != pWorker->Queued || pTail != pWorker->Tail || iJobs > iQueued - iSeen) return false;
+		iSeen += iJobs;
+	}
+	if (iSeen != iQueued) return false;
+	*pCount = pExecutor->References; return true;
+}
+static bool __xrtExecutorOwnershipTrace(const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{
+	const xexecutor* pExecutor = pData; size_t iCount;
+	if (!pVisit || !__xrtExecutorOwnershipCount(pData, &iCount)) return false;
+	for (uint32 i = 0; i < pExecutor->ThreadCount; ++i)
+		for (const xrt_executor_job* pJob = pExecutor->Workers[i].Head; pJob; pJob = pJob->Next)
+			if (!pVisit(__xrtExecutorJobOwnership(pJob), pContext)) return false;
+	return true;
+}
+static const xrtownershipops __xrtExecutorOwnershipOps = {
+	__xrtExecutorOwnershipCount, __xrtExecutorOwnershipTrace
+};
+XRT_API xrtownershipref xrtExecutorOwnership(const xexecutor* pExecutor)
+{ return (xrtownershipref){pExecutor, pExecutor ? &__xrtExecutorOwnershipOps : NULL}; }
+static bool __xrtExecutorOwnershipBusy(const void* pData)
+{
+	const xexecutor* pExecutor = pData;
+	return pExecutor && pExecutor->Initialized && pExecutor->References &&
+		!pExecutor->OwnershipCleared && !pExecutor->Retired &&
+		(pExecutor->Entries || pExecutor->Callbacks || pExecutor->Destroying || pExecutor->Joining ||
+		 pExecutor->Retiring || xrtAtomic32Load(&pExecutor->Running, XMEMORY_ACQUIRE));
+}
+XRT_API const xrtownershipquiescencev1* xrtExecutorOwnershipQuiescenceV1Get(void)
+{
+	static const xrtownershipquiescencev1 Policy = {sizeof(Policy), &__xrtExecutorOwnershipOps, __xrtExecutorOwnershipBusy};
+	return &Policy;
+}
+static bool __xrtExecutorHold(const void* pData)
+{
+	xexecutor* pExecutor = (xexecutor*)pData; xrtownershipscope Mutation = {0}; bool bHeld = false;
+	__xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+	if (pExecutor->References && pExecutor->References < SIZE_MAX && !pExecutor->OwnershipCleared) {
+		++pExecutor->References; bHeld = true;
+	}
+	__xrtExecutorOwnershipEnd(pExecutor, &Mutation); return bHeld;
+}
+static bool __xrtExecutorClaim(const void* pData, const void* pToken)
+{
+	xexecutor* pExecutor = (xexecutor*)pData;
+	if (!pToken || pExecutor->OwnershipCleared ||
+		(pExecutor->OwnershipClaim && pExecutor->OwnershipClaim != pToken)) return false;
+	pExecutor->OwnershipClaim = pToken; return true;
+}
+static void __xrtExecutorRestore(const void* pData, const void* pToken)
+{
+	xexecutor* pExecutor = (xexecutor*)pData;
+	if (!pToken || pExecutor->OwnershipClaim != pToken || pExecutor->OwnershipCleared) abort();
+	pExecutor->OwnershipClaim = NULL;
+}
+static bool __xrtExecutorPreparationReady(const void* pData)
+{
+	const xexecutor* pExecutor = pData;
+	return pExecutor->Joined && !pExecutor->Joining && !pExecutor->Destroying && !pExecutor->Retiring &&
+		!pExecutor->Entries && !pExecutor->Callbacks && __xrtExecutorIdle(pExecutor) &&
+		xrtAtomic32Load(&pExecutor->Closed, XMEMORY_ACQUIRE);
+}
+static xrtownershipprepareresult __xrtExecutorPrepare(const void* pData, const void* pToken)
+{
+	xexecutor* pExecutor = (xexecutor*)pData; xrtownershipscope Freeze = {0}, Mutation = {0};
+	if (!xrtOwnershipFreezeTryBegin(&Freeze)) return XRT_OWNERSHIP_PREPARE_BUSY;
+	if (!pToken || pExecutor->OwnershipClaim != pToken || pExecutor->OwnershipCleared) abort();
+	bool bReady = __xrtExecutorPreparationReady(pData);
+	bool bJoin = !pExecutor->Entries && !pExecutor->Callbacks && !pExecutor->Destroying &&
+		!pExecutor->Joining && !pExecutor->Retiring;
+	if (!bReady && bJoin) {
+		xrtAtomic32Store(&pExecutor->Closed, 1, XMEMORY_SEQ_CST);
+		bJoin = __xrtExecutorIdle(pExecutor);
+		if (bJoin) xrtAtomic32Store(&pExecutor->Shutdown, 1, XMEMORY_RELEASE);
+		__xrtExecutorWake(pExecutor, true);
+		for (uint32 i = 0; i < pExecutor->StartedThreads; ++i)
+			if (!pExecutor->Workers[i].Exited || pExecutor->Workers[i].Parked) bJoin = false;
+		if (bJoin) pExecutor->Joining = true;
+	}
+	__xrtExecutorMutationEnd(&Freeze);
+	if (bReady) return XRT_OWNERSHIP_PREPARE_READY;
+	if (!bJoin) return XRT_OWNERSHIP_PREPARE_BUSY;
+	bool bJoined = true, bFailed = false;
+	for (uint32 i = 0; i < pExecutor->StartedThreads; ++i) {
+		xwaitresult Result = xrtThreadWaitFor(pExecutor->Workers[i].Thread, 0);
+		if (Result != XWAIT_OK) { bJoined = false; if (Result != XWAIT_TIMEOUT) bFailed = true; }
+	}
+	__xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+	pExecutor->Joining = false; pExecutor->Joined = bJoined;
+	__xrtExecutorOwnershipEnd(pExecutor, &Mutation);
+	return bFailed ? XRT_OWNERSHIP_PREPARE_FAILED : bJoined ? XRT_OWNERSHIP_PREPARE_READY : XRT_OWNERSHIP_PREPARE_BUSY;
+}
+static void __xrtExecutorClear(const void* pData, const void* pToken)
+{
+	xexecutor* pExecutor = (xexecutor*)pData;
+	if (!pToken || pExecutor->OwnershipClaim != pToken || pExecutor->OwnershipCleared ||
+		!__xrtExecutorPreparationReady(pData)) abort();
+	pExecutor->OwnershipCleared = true;
+}
+static bool __xrtExecutorFinish(const void* pData, const void* pToken)
+{
+	xexecutor* pExecutor = (xexecutor*)pData;
+	if (!pToken || pExecutor->OwnershipClaim != pToken || !pExecutor->OwnershipCleared) abort();
+	return __xrtExecutorRetire(pExecutor, 0);
+}
+XRT_API const xrtownershipadapterv1* xrtExecutorOwnershipAdapterV1(
+	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation)
+{
+	static const xrtownershipadapterv1 Adapter = {sizeof(Adapter), __xrtExecutorHold, __xrtExecutorRelease,
+		__xrtExecutorClaim, __xrtExecutorRestore, NULL, __xrtExecutorClear, __xrtExecutorFinish};
+	static const xrtownershippreparationv1 Preparation = {sizeof(Preparation), &Adapter,
+		__xrtExecutorPreparationReady, __xrtExecutorPrepare};
+	size_t iCount;
+	if (!ppPreparation || Reference.Ops != &__xrtExecutorOwnershipOps ||
+		!__xrtExecutorOwnershipCount(Reference.Data, &iCount)) return NULL;
+	*ppPreparation = &Preparation; return &Adapter;
+}
+
+static bool __xrtExecutorJobCount(const void* pData, size_t* pCount)
+{
+	const xrt_executor_job* pJob = pData; int32 iRefs;
+	if (!pJob || !pCount || !pJob->DataPolicy || pJob->Active || pJob->OwnershipCleared) return false;
+	iRefs = __xrtAtomicRefLoad(&pJob->RefCount);
+	if (iRefs <= 0) return false;
+	*pCount = (size_t)iRefs; return true;
+}
+static bool __xrtExecutorJobTrace(const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{
+	const xrt_executor_job* pJob = pData; size_t iCount;
+	return pVisit && __xrtExecutorJobCount(pData, &iCount) &&
+		pVisit(xrtExecutorOwnership(pJob->Owner->Executor), pContext) &&
+		(!pJob->Data || pVisit((xrtownershipref){pJob->Data, pJob->DataPolicy->Ops}, pContext));
+}
+static const xrtownershipops __xrtExecutorJobOps = {__xrtExecutorJobCount, __xrtExecutorJobTrace};
+xrtownershipref __xrtExecutorJobOwnership(const xrt_executor_job* pJob)
+{ return (xrtownershipref){pJob, pJob ? &__xrtExecutorJobOps : NULL}; }
+static bool __xrtExecutorJobBusy(const void* pData)
+{
+	const xrt_executor_job* pJob = pData;
+	return pJob && __xrtAtomicRefLoad(&pJob->RefCount) > 0 && !pJob->OwnershipCleared && pJob->Active;
+}
+XRT_API const xrtownershipquiescencev1* xrtExecutorJobOwnershipQuiescenceV1Get(void)
+{
+	static const xrtownershipquiescencev1 Policy = {sizeof(Policy), &__xrtExecutorJobOps, __xrtExecutorJobBusy};
+	return &Policy;
+}
+static bool __xrtExecutorJobHold(const void* pData)
+{
+	xrt_executor_job* pJob = (xrt_executor_job*)pData; xrtownershipscope Mutation = {0};
+	__xrtExecutorMutationBegin(&Mutation);
+	bool bHeld = !pJob->OwnershipCleared && xrtRefRetain(&pJob->RefCount) >= 0;
+	__xrtExecutorMutationEnd(&Mutation); return bHeld;
+}
+static bool __xrtExecutorJobClaim(const void* pData, const void* pToken)
+{
+	xrt_executor_job* pJob = (xrt_executor_job*)pData;
+	if (!pToken || pJob->OwnershipCleared || (pJob->OwnershipClaim && pJob->OwnershipClaim != pToken)) return false;
+	pJob->OwnershipClaim = pToken; return true;
+}
+static void __xrtExecutorJobRestore(const void* pData, const void* pToken)
+{
+	xrt_executor_job* pJob = (xrt_executor_job*)pData;
+	if (!pToken || pJob->OwnershipClaim != pToken || pJob->OwnershipCleared) abort();
+	pJob->OwnershipClaim = NULL;
+}
+static bool __xrtExecutorJobReady(const void* pData)
+{ const xrt_executor_job* pJob = pData; return pJob->Finished && !pJob->Active; }
+static xrtownershipprepareresult __xrtExecutorJobPrepare(const void* pData, const void* pToken)
+{
+	const xrt_executor_job* pJob = pData; xrtownershipscope Freeze = {0};
+	if (!xrtOwnershipFreezeTryBegin(&Freeze)) return XRT_OWNERSHIP_PREPARE_BUSY;
+	if (!pToken || pJob->OwnershipClaim != pToken || pJob->OwnershipCleared) abort();
+	bool bReady = __xrtExecutorJobReady(pData); __xrtExecutorMutationEnd(&Freeze);
+	return bReady ? XRT_OWNERSHIP_PREPARE_READY : XRT_OWNERSHIP_PREPARE_BUSY;
+}
+static void __xrtExecutorJobClear(const void* pData, const void* pToken)
+{
+	xrt_executor_job* pJob = (xrt_executor_job*)pData;
+	if (!pToken || pJob->OwnershipClaim != pToken || pJob->OwnershipCleared || !__xrtExecutorJobReady(pData) ||
+		pJob->Data || pJob->Destroy || pJob->DestroyContext) abort();
+	pJob->OwnershipCleared = true;
+}
+static bool __xrtExecutorJobFinish(const void* pData, const void* pToken)
+{
+	const xrt_executor_job* pJob = pData;
+	if (!pToken || pJob->OwnershipClaim != pToken || !pJob->OwnershipCleared) abort();
+	return true;
+}
+XRT_API const xrtownershipadapterv1* xrtExecutorJobOwnershipAdapterV1(
+	xrtownershipref Reference, const xexecutordataownershipv1* const* pPolicies,
+	size_t iPolicyCount, const xrtownershippreparationv1** ppPreparation)
+{
+	static const xrtownershipadapterv1 Adapter = {sizeof(Adapter), __xrtExecutorJobHold, __xrtExecutorJobRelease,
+		__xrtExecutorJobClaim, __xrtExecutorJobRestore, NULL, __xrtExecutorJobClear, __xrtExecutorJobFinish};
+	static const xrtownershippreparationv1 Preparation = {sizeof(Preparation), &Adapter,
+		__xrtExecutorJobReady, __xrtExecutorJobPrepare};
+	if (!Reference.Data || Reference.Ops != &__xrtExecutorJobOps || !ppPreparation ||
+		(iPolicyCount && !pPolicies)) return NULL;
+	const xrt_executor_job* pJob = Reference.Data;
+	const xexecutordataownershipv1* pPolicy = pJob->DataPolicy; bool bKnown = false;
+	for (size_t i = 0; i < iPolicyCount; ++i) if (pPolicies[i] && pPolicies[i] == pPolicy) { bKnown = true; break; }
+	if (!bKnown || pPolicy->size != sizeof(*pPolicy) || !pPolicy->Proc || !pPolicy->Drop ||
+		!pPolicy->Ops || !pPolicy->Ops->Count || !pPolicy->Ops->Trace || pJob->Proc != pPolicy->Proc ||
+		pJob->Active || pJob->OwnershipCleared || __xrtAtomicRefLoad(&pJob->RefCount) <= 0) return NULL;
+	if (pJob->Finished ? (pJob->Data || pJob->Destroy || pJob->DestroyContext) :
+		(!pJob->Data || pJob->Destroy != pPolicy->Drop || pJob->DestroyContext)) return NULL;
+	*ppPreparation = &Preparation; return &Adapter;
 }
 
 #endif
@@ -247718,67 +248255,6 @@ XRT_API bool xrtTaskGroupWaitV1(xrtownershipref Reference, const void* pToken,
 
 #if defined(XRT_FEATURE_EXECUTOR)
 
-typedef struct xrt_executor_worker xrt_executor_worker;
-
-
-
-/* 作业槽在创建时预分配，提交和执行热路径不再申请通用堆内存。 */
-typedef struct xrt_executor_job {
-	struct xrt_executor_job* Previous;
-	struct xrt_executor_job* Next;
-	xrt_executor_worker* Owner;
-	xexecutorproc Proc;
-	ptr Data;
-	xexecutorfreeproc Destroy;
-	ptr DestroyContext;
-} xrt_executor_job;
-
-
-
-/* 每个 Worker 独占一个有界双端队列；其他 Worker 只从队首窃取。 */
-struct xrt_executor_worker {
-	struct xexecutor* Executor;
-	xthread* Thread;
-	xrt_spinlock Lock;
-	xrt_executor_job* Free;
-	xrt_executor_job* Head;
-	xrt_executor_job* Tail;
-	size_t FreeCount;
-	size_t Queued;
-	uint32 Index;
-};
-
-
-
-/* 唤醒和排空条件使用冷锁，提交队列自身只经过目标 Worker 的短自旋锁。 */
-struct xexecutor {
-	xmutex SleepLock;
-	xcond Work;
-	xcond Idle;
-	xrt_executor_worker* Workers;
-	xrt_executor_job* Jobs;
-	uint32 ThreadCount;
-	uint32 StartedThreads;
-	size_t QueueLimit;
-	size_t StackSize;
-	xatomic32 Closed;
-	xatomic32 Cancelling;
-	xatomic32 Shutdown;
-	xatomic32 Submitters;
-	xatomic32 Sleepers;
-	xatomic32 Queued;
-	xatomic32 Running;
-	xatomic64 NextWorker;
-	xatomic64 Submitted;
-	xatomic64 Completed;
-	xatomic64 Executed;
-	xatomic64 Stolen;
-	xatomic64 Cancelled;
-	xatomic64 Rejected;
-};
-
-
-
 #if defined(XRT_THREAD_LOCAL)
 static XRT_THREAD_LOCAL xrt_executor_worker* __xrtExecutorCurrentWorker;
 #endif
@@ -247824,25 +248300,6 @@ static xrt_executor_job* __xrtExecutorJobTakeLocked(
 		pJob->Next = NULL;
 	}
 	return pJob;
-}
-
-
-
-/* 把已经完成析构的作业槽归还给创建它的 Worker。 */
-static void __xrtExecutorJobReturn(xrt_executor_job* pJob)
-{
-	xrt_executor_worker* pOwner = pJob->Owner;
-
-	pJob->Proc = NULL;
-	pJob->Data = NULL;
-	pJob->Destroy = NULL;
-	pJob->DestroyContext = NULL;
-	pJob->Previous = NULL;
-	__xrtSpinLock(&pOwner->Lock);
-	pJob->Next = pOwner->Free;
-	pOwner->Free = pJob;
-	pOwner->FreeCount++;
-	__xrtSpinUnlock(&pOwner->Lock);
 }
 
 
@@ -247924,6 +248381,8 @@ static xrt_executor_job* __xrtExecutorTake(
 		pJob = __xrtExecutorSteal(pWorker);
 	}
 	if ( pJob != NULL ) {
+		if (pJob->Active || pJob->Finished || __xrtAtomicRefLoad(&pJob->RefCount) <= 0) abort();
+		pJob->Active = true;
 		(void)xrtAtomic32FetchSub(
 			&pWorker->Executor->Queued,
 			1,
@@ -247943,13 +248402,7 @@ static xrt_executor_job* __xrtExecutorTake(
 /* 工作排空后在冷路径唤醒全部等待者。 */
 static void __xrtExecutorNotifyIdle(xexecutor* pExecutor)
 {
-	if ( (xrtAtomic32Load(
-		&pExecutor->Queued,
-		XMEMORY_ACQUIRE
-	) != 0) || (xrtAtomic32Load(
-		&pExecutor->Running,
-		XMEMORY_ACQUIRE
-	) != 0) ) {
+	if ( !__xrtExecutorIdle(pExecutor) ) {
 		return;
 	}
 	(void)xrtMutexLock(&pExecutor->SleepLock);
@@ -247960,7 +248413,7 @@ static void __xrtExecutorNotifyIdle(xexecutor* pExecutor)
 
 
 /* 唤醒一个或全部休眠 Worker；批量工作允许多个 Worker 立即窃取。 */
-static void __xrtExecutorWake(xexecutor* pExecutor, bool bBatch)
+void __xrtExecutorWake(xexecutor* pExecutor, bool bBatch)
 {
 	if ( xrtAtomic32Load(
 		&pExecutor->Sleepers,
@@ -247979,37 +248432,31 @@ static void __xrtExecutorWake(xexecutor* pExecutor, bool bBatch)
 
 
 
-/* 在隔离的错误和临时内存上下文中执行一项 detached 工作。 */
-static void __xrtExecutorRun(
-	xrt_executor_worker* pWorker,
-	xrt_executor_job* pJob
-)
+/* Completion credit survives queue/worker/cancel-list transfers AND the user
+ * cleanup tail. Only the last pin may recycle the physical slot. */
+static void __xrtExecutorComplete(xexecutor* pExecutor, xrt_executor_job* pJob, bool bCancelled)
 {
-	xexecutor* pExecutor = pWorker->Executor;
+	xrtownershipscope Mutation = {0}; __xrtExecutorMutationBegin(&Mutation);
+	if (!pJob->Active || pJob->Finished) abort();
+	pJob->Data = NULL; pJob->Destroy = NULL; pJob->DestroyContext = NULL;
+	pJob->Active = false; pJob->Finished = true;
+	(void)xrtAtomic64FetchAdd(bCancelled ? &pExecutor->Cancelled : &pExecutor->Executed, 1, XMEMORY_RELAXED);
+	(void)xrtAtomic64FetchAdd(&pExecutor->Completed, 1, XMEMORY_RELAXED);
+	(void)xrtAtomic32FetchSub(&pExecutor->Running, 1, XMEMORY_ACQ_REL);
+	__xrtExecutorJobRelease(pJob);
+	(void)xrtAtomic32FetchSub(&pExecutor->Outstanding, 1, XMEMORY_RELEASE);
+	__xrtExecutorMutationEnd(&Mutation);
+	__xrtExecutorNotifyIdle(pExecutor);
+}
 
+/* No mutation scope or native lock encloses Proc, Drop or thread-local cleanup. */
+static void __xrtExecutorRun(xrt_executor_worker* pWorker, xrt_executor_job* pJob)
+{
 	pJob->Proc(pJob->Data);
-	if ( pJob->Destroy != NULL ) {
-		pJob->Destroy(pJob->Data, pJob->DestroyContext);
-	}
+	if (pJob->Destroy) pJob->Destroy(pJob->Data, pJob->DestroyContext);
 	xrtClearError();
 	(void)xrtTempClear();
-	__xrtExecutorJobReturn(pJob);
-	(void)xrtAtomic32FetchSub(
-		&pExecutor->Running,
-		1,
-		XMEMORY_ACQ_REL
-	);
-	(void)xrtAtomic64FetchAdd(
-		&pExecutor->Executed,
-		1,
-		XMEMORY_RELAXED
-	);
-	(void)xrtAtomic64FetchAdd(
-		&pExecutor->Completed,
-		1,
-		XMEMORY_RELEASE
-	);
-	__xrtExecutorNotifyIdle(pExecutor);
+	__xrtExecutorComplete(pWorker->Executor, pJob, false);
 }
 
 
@@ -248024,12 +248471,14 @@ static int32 __xrtExecutorWorker(ptr pData)
 		__xrtExecutorCurrentWorker = pWorker;
 	#endif
 	for ( ;; ) {
+		xrtownershipscope Mutation = {0}; __xrtExecutorMutationBegin(&Mutation);
 		xrt_executor_job* pJob = __xrtExecutorTake(pWorker);
-
+		__xrtExecutorMutationEnd(&Mutation);
 		if ( pJob != NULL ) {
 			__xrtExecutorRun(pWorker, pJob);
 			continue;
 		}
+		__xrtExecutorMutationBegin(&Mutation);
 		(void)xrtMutexLock(&pExecutor->SleepLock);
 		(void)xrtAtomic32FetchAdd(
 			&pExecutor->Sleepers,
@@ -248041,10 +248490,18 @@ static int32 __xrtExecutorWorker(ptr pData)
 			&pExecutor->Shutdown,
 			XMEMORY_ACQUIRE
 		) ) {
+			pWorker->Parked = true;
+			/* CondWait returns with SleepLock held. Release it BEFORE asking
+			 * for mutation again, so an exclusive freeze never inverts locks. */
+			__xrtExecutorMutationEnd(&Mutation);
 			(void)xrtCondWait(
 				&pExecutor->Work,
 				&pExecutor->SleepLock
 			);
+			(void)xrtMutexUnlock(&pExecutor->SleepLock);
+			__xrtExecutorMutationBegin(&Mutation);
+			(void)xrtMutexLock(&pExecutor->SleepLock);
+			pWorker->Parked = false;
 			pJob = __xrtExecutorTake(pWorker);
 		}
 		(void)xrtAtomic32FetchSub(
@@ -248052,15 +248509,15 @@ static int32 __xrtExecutorWorker(ptr pData)
 			1,
 			XMEMORY_RELEASE
 		);
+		bool bExit = pJob == NULL && xrtAtomic32Load(&pExecutor->Shutdown, XMEMORY_ACQUIRE);
+		if (bExit) pWorker->Exited = true;
 		(void)xrtMutexUnlock(&pExecutor->SleepLock);
+		__xrtExecutorMutationEnd(&Mutation);
 		if ( pJob != NULL ) {
 			__xrtExecutorRun(pWorker, pJob);
 			continue;
 		}
-		if ( xrtAtomic32Load(
-			&pExecutor->Shutdown,
-			XMEMORY_ACQUIRE
-		) ) {
+		if ( bExit ) {
 			break;
 		}
 	}
@@ -248091,6 +248548,7 @@ static void __xrtExecutorCreateCleanup(xexecutor* pExecutor)
 	(void)xrtCondUnit(&pExecutor->Idle);
 	(void)xrtCondUnit(&pExecutor->Work);
 	(void)xrtMutexUnit(&pExecutor->SleepLock);
+	(void)xrtMutexUnit(&pExecutor->OwnershipLock);
 	xrtFree(pExecutor);
 }
 
@@ -248121,7 +248579,7 @@ XRT_API xexecutor* xrtExecutorCreate(const xexecutorconfig* pConfig)
 		(Config.Threads > XRT_EXECUTOR_THREAD_LIMIT) ||
 		(Config.QueueLimit > UINT32_MAX) ||
 		(Config.QueueLimit > (SIZE_MAX / Config.Threads)) ||
-		(Config.QueueLimit > (UINT32_MAX / Config.Threads)) ) {
+		(Config.QueueLimit > ((UINT32_MAX - Config.Threads) / Config.Threads)) ) {
 		__xrtErrorSetInvalidArgument();
 		return NULL;
 	}
@@ -248158,6 +248616,9 @@ XRT_API xexecutor* xrtExecutorCreate(const xexecutorconfig* pConfig)
 	pExecutor->ThreadCount = Config.Threads;
 	pExecutor->QueueLimit = Config.QueueLimit;
 	pExecutor->StackSize = Config.StackSize;
+	pExecutor->SlotCount = iJobCount;
+	pExecutor->References = 1;
+	pExecutor->OwnerHeld = true;
 	xrtAtomic32Init(&pExecutor->Closed, 0);
 	xrtAtomic32Init(&pExecutor->Cancelling, 0);
 	xrtAtomic32Init(&pExecutor->Shutdown, 0);
@@ -248165,6 +248626,7 @@ XRT_API xexecutor* xrtExecutorCreate(const xexecutorconfig* pConfig)
 	xrtAtomic32Init(&pExecutor->Sleepers, 0);
 	xrtAtomic32Init(&pExecutor->Queued, 0);
 	xrtAtomic32Init(&pExecutor->Running, 0);
+	xrtAtomic32Init(&pExecutor->Outstanding, 0);
 	xrtAtomic64Init(&pExecutor->NextWorker, 0);
 	xrtAtomic64Init(&pExecutor->Submitted, 0);
 	xrtAtomic64Init(&pExecutor->Completed, 0);
@@ -248172,18 +248634,25 @@ XRT_API xexecutor* xrtExecutorCreate(const xexecutorconfig* pConfig)
 	xrtAtomic64Init(&pExecutor->Stolen, 0);
 	xrtAtomic64Init(&pExecutor->Cancelled, 0);
 	xrtAtomic64Init(&pExecutor->Rejected, 0);
+	if ( !xrtMutexInit(&pExecutor->OwnershipLock) ) {
+		xrtFree(pExecutor);
+		return NULL;
+	}
 	if ( !xrtMutexInit(&pExecutor->SleepLock) ) {
+		(void)xrtMutexUnit(&pExecutor->OwnershipLock);
 		xrtFree(pExecutor);
 		return NULL;
 	}
 	if ( !xrtCondInit(&pExecutor->Work) ) {
 		(void)xrtMutexUnit(&pExecutor->SleepLock);
+		(void)xrtMutexUnit(&pExecutor->OwnershipLock);
 		xrtFree(pExecutor);
 		return NULL;
 	}
 	if ( !xrtCondInit(&pExecutor->Idle) ) {
 		(void)xrtCondUnit(&pExecutor->Work);
 		(void)xrtMutexUnit(&pExecutor->SleepLock);
+		(void)xrtMutexUnit(&pExecutor->OwnershipLock);
 		xrtFree(pExecutor);
 		return NULL;
 	}
@@ -248222,6 +248691,8 @@ XRT_API xexecutor* xrtExecutorCreate(const xexecutorconfig* pConfig)
 		}
 		pExecutor->StartedThreads++;
 	}
+	xrtownershipscope Mutation = {0}; __xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+	pExecutor->Initialized = true; __xrtExecutorOwnershipEnd(pExecutor, &Mutation);
 	return pExecutor;
 }
 
@@ -248232,6 +248703,7 @@ static bool __xrtExecutorSubmitTo(
 	xexecutor* pExecutor,
 	xrt_executor_worker* pWorker,
 	const xexecutoritem* pItems,
+	const xexecutorowneditemv1* pOwned,
 	size_t iCount
 )
 {
@@ -248247,11 +248719,13 @@ static bool __xrtExecutorSubmitTo(
 	}
 	for ( size_t i = 0; i < iCount; i++ ) {
 		xrt_executor_job* pJob = __xrtExecutorJobTakeLocked(pWorker);
-
-		pJob->Proc = pItems[i].Proc;
-		pJob->Data = pItems[i].Data;
-		pJob->Destroy = pItems[i].Destroy;
-		pJob->DestroyContext = pItems[i].DestroyContext;
+		if (__xrtAtomicRefLoad(&pJob->RefCount) != 0) abort();
+		pJob->RefCount = 1;
+		pJob->DataPolicy = pOwned ? pOwned[i].Policy : NULL;
+		pJob->Proc = pOwned ? pOwned[i].Policy->Proc : pItems[i].Proc;
+		pJob->Data = pOwned ? pOwned[i].Data : pItems[i].Data;
+		pJob->Destroy = pOwned ? pOwned[i].Policy->Drop : pItems[i].Destroy;
+		pJob->DestroyContext = pOwned ? NULL : pItems[i].DestroyContext;
 		pJob->Previous = pLast;
 		if ( pLast == NULL ) {
 			pFirst = pJob;
@@ -248269,6 +248743,7 @@ static bool __xrtExecutorSubmitTo(
 	}
 	pWorker->Tail = pLast;
 	pWorker->Queued += iCount;
+	(void)xrtAtomic32FetchAdd(&pExecutor->Outstanding, (uint32)iCount, XMEMORY_RELEASE);
 	(void)xrtAtomic32FetchAdd(
 		&pExecutor->Queued,
 		(uint32)iCount,
@@ -248322,24 +248797,29 @@ static void __xrtExecutorSubmitLeave(xexecutor* pExecutor)
 
 
 /* 验证批量描述符并选择本地或轮转起始 Worker。 */
-static bool __xrtExecutorSubmitItems(
+static bool __xrtExecutorSubmitItemsBody(
 	xexecutor* pExecutor,
 	const xexecutoritem* pItems,
+	const xexecutorowneditemv1* pOwned,
 	size_t iCount
 )
 {
 	xrt_executor_worker* pCurrent;
 	uint32 iStart;
 
-	if ( (pExecutor == NULL) || (pItems == NULL) ||
+	size_t iItemSize = pOwned ? sizeof(*pOwned) : sizeof(*pItems);
+	if ( ((pItems == NULL) == (pOwned == NULL)) ||
 		(iCount == 0) || (iCount > UINT32_MAX) ||
-		(iCount > (SIZE_MAX / sizeof(*pItems))) ||
-		!__xrtRangeValid(pItems, iCount * sizeof(*pItems)) ) {
+		(iCount > (SIZE_MAX / iItemSize)) ||
+		!__xrtRangeValid(pOwned ? (const void*)pOwned : (const void*)pItems, iCount * iItemSize) ) {
 		__xrtErrorSetInvalidArgument();
 		return false;
 	}
 	for ( size_t i = 0; i < iCount; i++ ) {
-		if ( pItems[i].Proc == NULL ) {
+		const xexecutordataownershipv1* pPolicy = pOwned ? pOwned[i].Policy : NULL;
+		if ( pOwned ? (!pOwned[i].Data || !pPolicy || pPolicy->size != sizeof(*pPolicy) ||
+			!pPolicy->Proc || !pPolicy->Drop || !pPolicy->Ops || !pPolicy->Ops->Count || !pPolicy->Ops->Trace) :
+			pItems[i].Proc == NULL ) {
 			__xrtErrorSetInvalidArgument();
 			return false;
 		}
@@ -248362,6 +248842,9 @@ static bool __xrtExecutorSubmitItems(
 		__xrtErrorSetClosed();
 		return false;
 	}
+	if (!__xrtExecutorReserveJobs(pExecutor, iCount)) {
+		__xrtExecutorSubmitLeave(pExecutor); return false;
+	}
 	pCurrent = __xrtExecutorCurrent(pExecutor);
 	iStart = pCurrent != NULL ? pCurrent->Index :
 		(uint32)(xrtAtomic64FetchAdd(
@@ -248374,12 +248857,16 @@ static bool __xrtExecutorSubmitItems(
 			(iStart + i) % pExecutor->ThreadCount
 		];
 
-		if ( __xrtExecutorSubmitTo(
+		xrtownershipscope Mutation = {0}; __xrtExecutorMutationBegin(&Mutation);
+		bool bAccepted = __xrtExecutorSubmitTo(
 			pExecutor,
 			pWorker,
 			pItems,
+			pOwned,
 			iCount
-		) ) {
+		);
+		__xrtExecutorMutationEnd(&Mutation);
+		if ( bAccepted ) {
 			__xrtExecutorSubmitLeave(pExecutor);
 			__xrtExecutorWake(pExecutor, iCount > 1);
 			return true;
@@ -248390,9 +248877,18 @@ static bool __xrtExecutorSubmitItems(
 		(uint64)iCount,
 		XMEMORY_RELAXED
 	);
+	__xrtExecutorUnreserveJobs(pExecutor, iCount);
 	__xrtExecutorSubmitLeave(pExecutor);
 	__xrtErrorSetAgain();
 	return false;
+}
+
+static bool __xrtExecutorSubmitItems(xexecutor* pExecutor, const xexecutoritem* pItems,
+	const xexecutorowneditemv1* pOwned, size_t iCount)
+{
+	if (!__xrtExecutorEnter(pExecutor, false)) return false;
+	bool bAccepted = __xrtExecutorSubmitItemsBody(pExecutor, pItems, pOwned, iCount);
+	__xrtExecutorLeave(pExecutor); return bAccepted;
 }
 
 
@@ -248413,7 +248909,7 @@ XRT_API bool xrtExecutorSubmit(
 		pDestroyContext
 	};
 
-	return __xrtExecutorSubmitItems(pExecutor, &Item, 1);
+	return __xrtExecutorSubmitItems(pExecutor, &Item, NULL, 1);
 }
 
 
@@ -248425,13 +248921,23 @@ XRT_API bool xrtExecutorSubmitBatch(
 	size_t iCount
 )
 {
-	return __xrtExecutorSubmitItems(pExecutor, pItems, iCount);
+	return __xrtExecutorSubmitItems(pExecutor, pItems, NULL, iCount);
 }
+
+XRT_API bool xrtExecutorSubmitOwnedV1(xexecutor* pExecutor, ptr pData,
+	const xexecutordataownershipv1* pPolicy)
+{
+	const xexecutorowneditemv1 Item = {pData, pPolicy};
+	return __xrtExecutorSubmitItems(pExecutor, NULL, &Item, 1);
+}
+XRT_API bool xrtExecutorSubmitOwnedBatchV1(xexecutor* pExecutor,
+	const xexecutorowneditemv1* pItems, size_t iCount)
+{ return __xrtExecutorSubmitItems(pExecutor, NULL, pItems, iCount); }
 
 
 
 /* 停止受理新工作，并让已经受理的工作自然排空。 */
-XRT_API bool xrtExecutorClose(xexecutor* pExecutor)
+static bool __xrtExecutorCloseBody(xexecutor* pExecutor)
 {
 	if ( pExecutor == NULL ) {
 		__xrtErrorSetInvalidArgument();
@@ -248449,10 +248955,42 @@ XRT_API bool xrtExecutorClose(xexecutor* pExecutor)
 	return true;
 }
 
+XRT_API bool xrtExecutorClose(xexecutor* pExecutor)
+{
+	if (!__xrtExecutorEnter(pExecutor, false)) return false;
+	bool bClosed = __xrtExecutorCloseBody(pExecutor);
+	__xrtExecutorLeave(pExecutor); return bClosed;
+}
+
+static bool __xrtExecutorInCallback(xexecutor* pExecutor)
+{
+	if (__xrtExecutorCurrent(pExecutor)) return true;
+	uint64 iThread = xrtThreadCurrentId(); bool bFound = false; xrtownershipscope Mutation = {0};
+	__xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+	for (const xrt_executor_callback* pCallback = pExecutor->Callbacks; pCallback; pCallback = pCallback->Next)
+		if (pCallback->Thread == iThread) { bFound = true; break; }
+	__xrtExecutorOwnershipEnd(pExecutor, &Mutation); return bFound;
+}
+static void __xrtExecutorCallbackBegin(xexecutor* pExecutor, xrt_executor_callback* pCallback)
+{
+	xrtownershipscope Mutation = {0}; pCallback->Thread = xrtThreadCurrentId();
+	__xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+	pCallback->Next = pExecutor->Callbacks; pExecutor->Callbacks = pCallback;
+	__xrtExecutorOwnershipEnd(pExecutor, &Mutation);
+}
+static void __xrtExecutorCallbackEnd(xexecutor* pExecutor, xrt_executor_callback* pCallback)
+{
+	xrtownershipscope Mutation = {0}; __xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+	xrt_executor_callback** ppCallback = &pExecutor->Callbacks;
+	while (*ppCallback && *ppCallback != pCallback) ppCallback = &(*ppCallback)->Next;
+	if (!*ppCallback) abort();
+	*ppCallback = pCallback->Next; __xrtExecutorOwnershipEnd(pExecutor, &Mutation);
+}
+
 
 
 /* 在锁内摘除所有尚未开始的工作，锁外执行数据析构。 */
-XRT_API bool xrtExecutorCancel(xexecutor* pExecutor)
+static bool __xrtExecutorCancelBody(xexecutor* pExecutor)
 {
 	xrt_executor_job* pHead = NULL;
 	xrt_executor_job* pTail = NULL;
@@ -248462,7 +249000,8 @@ XRT_API bool xrtExecutorCancel(xexecutor* pExecutor)
 		__xrtErrorSetInvalidArgument();
 		return false;
 	}
-	(void)xrtExecutorClose(pExecutor);
+	(void)__xrtExecutorCloseBody(pExecutor);
+	xrtownershipscope Mutation = {0}; __xrtExecutorMutationBegin(&Mutation);
 	xrtAtomic32Store(&pExecutor->Cancelling, 1, XMEMORY_RELEASE);
 	for ( uint32 i = 0; i < pExecutor->ThreadCount; i++ ) {
 		xrt_executor_worker* pWorker = &pExecutor->Workers[i];
@@ -248478,6 +249017,8 @@ XRT_API bool xrtExecutorCancel(xexecutor* pExecutor)
 			pTail = pWorker->Tail;
 			for ( xrt_executor_job* pJob = pWorker->Head;
 				pJob != NULL; pJob = pJob->Next ) {
+				if (pJob->Active || pJob->Finished) abort();
+				pJob->Active = true;
 				iCancelled++;
 			}
 			pWorker->Head = NULL;
@@ -248487,12 +249028,15 @@ XRT_API bool xrtExecutorCancel(xexecutor* pExecutor)
 		__xrtSpinUnlock(&pWorker->Lock);
 	}
 	if ( iCancelled != 0 ) {
+		(void)xrtAtomic32FetchAdd(&pExecutor->Running, iCancelled, XMEMORY_ACQ_REL);
 		(void)xrtAtomic32FetchSub(
 			&pExecutor->Queued,
 			iCancelled,
 			XMEMORY_ACQ_REL
 		);
 	}
+	__xrtExecutorMutationEnd(&Mutation);
+	xrt_executor_callback Callback = {0}; __xrtExecutorCallbackBegin(pExecutor, &Callback);
 	while ( pHead != NULL ) {
 		xrt_executor_job* pJob = pHead;
 
@@ -248500,29 +249044,25 @@ XRT_API bool xrtExecutorCancel(xexecutor* pExecutor)
 		if ( pJob->Destroy != NULL ) {
 			pJob->Destroy(pJob->Data, pJob->DestroyContext);
 		}
-		__xrtExecutorJobReturn(pJob);
+		__xrtExecutorComplete(pExecutor, pJob, true);
 	}
-	if ( iCancelled != 0 ) {
-		(void)xrtAtomic64FetchAdd(
-			&pExecutor->Cancelled,
-			iCancelled,
-			XMEMORY_RELAXED
-		);
-		(void)xrtAtomic64FetchAdd(
-			&pExecutor->Completed,
-			iCancelled,
-			XMEMORY_RELEASE
-		);
-	}
+	__xrtExecutorCallbackEnd(pExecutor, &Callback);
 	__xrtExecutorWake(pExecutor, true);
 	__xrtExecutorNotifyIdle(pExecutor);
 	return true;
 }
 
+XRT_API bool xrtExecutorCancel(xexecutor* pExecutor)
+{
+	if (!__xrtExecutorEnter(pExecutor, false)) return false;
+	bool bCancelled = __xrtExecutorCancelBody(pExecutor);
+	__xrtExecutorLeave(pExecutor); return bCancelled;
+}
+
 
 
 /* 等待已经关闭的执行器排空到指定截止时间。 */
-XRT_API xwaitresult xrtExecutorWaitUntil(
+static xwaitresult __xrtExecutorWaitUntilBody(
 	xexecutor* pExecutor,
 	xdeadline iDeadline
 )
@@ -248533,7 +249073,7 @@ XRT_API xwaitresult xrtExecutorWaitUntil(
 		__xrtErrorSetInvalidArgument();
 		return XWAIT_ERROR;
 	}
-	if ( __xrtExecutorCurrent(pExecutor) != NULL ) {
+	if ( __xrtExecutorInCallback(pExecutor) ) {
 		__xrtErrorSetInvalidState();
 		return XWAIT_ERROR;
 	}
@@ -248542,13 +249082,7 @@ XRT_API xwaitresult xrtExecutorWaitUntil(
 		return XWAIT_ERROR;
 	}
 	(void)xrtMutexLock(&pExecutor->SleepLock);
-	while ( (xrtAtomic32Load(
-		&pExecutor->Queued,
-		XMEMORY_ACQUIRE
-	) != 0) || (xrtAtomic32Load(
-		&pExecutor->Running,
-		XMEMORY_ACQUIRE
-	) != 0) ) {
+	while ( !__xrtExecutorIdle(pExecutor) ) {
 		if ( xrtDeadlineExpired(iDeadline) ) {
 			Result = XWAIT_TIMEOUT;
 			break;
@@ -248562,13 +249096,7 @@ XRT_API xwaitresult xrtExecutorWaitUntil(
 			break;
 		}
 		if ( Result == XWAIT_TIMEOUT ) {
-			if ( (xrtAtomic32Load(
-				&pExecutor->Queued,
-				XMEMORY_ACQUIRE
-			) == 0) && (xrtAtomic32Load(
-				&pExecutor->Running,
-				XMEMORY_ACQUIRE
-			) == 0) ) {
+			if ( __xrtExecutorIdle(pExecutor) ) {
 				Result = XWAIT_OK;
 			}
 			break;
@@ -248576,6 +249104,13 @@ XRT_API xwaitresult xrtExecutorWaitUntil(
 	}
 	(void)xrtMutexUnlock(&pExecutor->SleepLock);
 	return Result;
+}
+
+XRT_API xwaitresult xrtExecutorWaitUntil(xexecutor* pExecutor, xdeadline iDeadline)
+{
+	if (!__xrtExecutorEnter(pExecutor, false)) return XWAIT_ERROR;
+	xwaitresult Result = __xrtExecutorWaitUntilBody(pExecutor, iDeadline);
+	__xrtExecutorLeave(pExecutor); return Result;
 }
 
 
@@ -248603,7 +249138,7 @@ XRT_API xwaitresult xrtExecutorWaitFor(
 
 
 /* 复制当前负载和累计统计快照。 */
-XRT_API bool xrtExecutorGet(
+static bool __xrtExecutorGetBody(
 	const xexecutor* pExecutor,
 	xexecutorstats* pStats
 )
@@ -248658,6 +249193,13 @@ XRT_API bool xrtExecutorGet(
 	return true;
 }
 
+XRT_API bool xrtExecutorGet(const xexecutor* pExecutor, xexecutorstats* pStats)
+{
+	if (!__xrtExecutorEnter((xexecutor*)pExecutor, false)) return false;
+	bool bGot = __xrtExecutorGetBody(pExecutor, pStats);
+	__xrtExecutorLeave((xexecutor*)pExecutor); return bGot;
+}
+
 
 
 /* 关闭、排空、停止 Worker 并释放执行器。 */
@@ -248666,30 +249208,38 @@ XRT_API bool xrtExecutorDestroy(xexecutor* pExecutor)
 	if ( pExecutor == NULL ) {
 		return true;
 	}
-	if ( __xrtExecutorCurrent(pExecutor) != NULL ) {
-		__xrtErrorSetInvalidState();
-		return false;
-	}
-	if ( !xrtExecutorClose(pExecutor) ||
-		(xrtExecutorWait(pExecutor) != XWAIT_OK) ) {
-		return false;
-	}
-	xrtAtomic32Store(&pExecutor->Shutdown, 1, XMEMORY_RELEASE);
-	__xrtExecutorWake(pExecutor, true);
-	for ( uint32 i = 0; i < pExecutor->StartedThreads; i++ ) {
-		if ( xrtThreadWait(pExecutor->Workers[i].Thread) != XWAIT_OK ) {
-			return false;
+	if (!__xrtExecutorEnter(pExecutor, true)) return false;
+	xrtownershipscope Mutation = {0}; __xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+	bool bReady = pExecutor->Entries == 1 && !pExecutor->Destroying && !pExecutor->Joining && !pExecutor->Retiring &&
+		(!pExecutor->OwnershipClaim || pExecutor->OwnershipCleared) && !__xrtExecutorCurrent(pExecutor);
+	bool bRetired = pExecutor->Retired;
+	if (bReady) pExecutor->Destroying = true;
+	__xrtExecutorOwnershipEnd(pExecutor, &Mutation);
+	if (!bReady) { __xrtExecutorLeave(pExecutor); __xrtErrorSetInvalidState(); return false; }
+	if (!bRetired) {
+		bReady = __xrtExecutorCloseBody(pExecutor) && __xrtExecutorWaitUntilBody(pExecutor, XRT_DEADLINE_NEVER) == XWAIT_OK;
+		__xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+		bReady = bReady && pExecutor->Entries == 1;
+		if (bReady) pExecutor->Joining = true;
+		__xrtExecutorOwnershipEnd(pExecutor, &Mutation);
+		if (bReady) {
+			xrtAtomic32Store(&pExecutor->Shutdown, 1, XMEMORY_RELEASE);
+			__xrtExecutorWake(pExecutor, true);
+			for (uint32 i = 0; i < pExecutor->StartedThreads; ++i)
+				if (xrtThreadWait(pExecutor->Workers[i].Thread) != XWAIT_OK) bReady = false;
+			__xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+			pExecutor->Joining = false; pExecutor->Joined = bReady;
+			__xrtExecutorOwnershipEnd(pExecutor, &Mutation);
+			if (bReady) bReady = __xrtExecutorRetire(pExecutor, 1);
 		}
 	}
-	for ( uint32 i = 0; i < pExecutor->StartedThreads; i++ ) {
-		xrtThreadDestroy(pExecutor->Workers[i].Thread);
-		__xrtSpinUnit(&pExecutor->Workers[i].Lock);
-	}
-	(void)xrtCondUnit(&pExecutor->Idle);
-	(void)xrtCondUnit(&pExecutor->Work);
-	(void)xrtMutexUnit(&pExecutor->SleepLock);
-	xrtFree(pExecutor);
-	return true;
+	__xrtExecutorOwnershipBegin(pExecutor, &Mutation);
+	bool bOwner = bReady && pExecutor->OwnerHeld;
+	if (bOwner) pExecutor->OwnerHeld = false;
+	pExecutor->Destroying = false;
+	__xrtExecutorOwnershipEnd(pExecutor, &Mutation);
+	if (bOwner) __xrtExecutorRelease(pExecutor);
+	__xrtExecutorLeave(pExecutor); return bReady;
 }
 
 #endif
