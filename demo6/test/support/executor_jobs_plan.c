@@ -20,7 +20,7 @@ int main(int argc,char** argv)
     }
     assert(argc==1&&executor_catalog_plan_main()==0);
     assert(xl6ArtifactRuntimeSymbolOwner("xl6ExecutorSubmitClosureV1")==XL6_ARTIFACT_EXECUTOR_JOBS);
-    assert(xl6ArtifactRuntimeSymbolOwner("xl6ExecutorThrowIfFailedV1")==XL6_ARTIFACT_EXECUTOR_JOBS);
+    assert(xl6ArtifactRuntimeSymbolOwner("xl6ExecutionFailuresCheckV1")==XL6_ARTIFACT_EXECUTION_FAILURES);
     assert(has_module(&closed.runtime,"XRT_MODULE_EXECUTOR"));
     assert(xl6ArtifactRuntimeSetHas(&closed.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_EXECUTOR_JOBS));
     assert(xl6ArtifactRuntimeSetHas(&closed.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_NATIVE_EXECUTOR));

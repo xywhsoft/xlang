@@ -1,0 +1,61 @@
+import concurrent
+
+auto dropped = AtomicInt64()
+class PoolLocal
+    bool fail = false
+    create(bool fail = false)
+        self.fail = fail
+    end
+    destroy()
+        dropped.fetchAdd(1)
+        if self.fail then throw ValueError("task pool thread exit") end
+    end
+end
+
+func checkExit(bool fail)
+    auto local = ThreadLocal::<PoolLocal>()
+    auto counter = ThreadLocal::<int>()
+    auto first = Event(true)
+    auto second = Event(true)
+    auto pool = TaskPool(1, 8)
+    auto firstResult = pool.submit(func()
+        assert not local.hasValue()
+        local.set(PoolLocal(fail))
+        counter.set(41)
+        first.set()
+    end)
+    assert first.wait(10000)
+    auto secondResult = pool.submit(func()
+        assert local.hasValue() and (counter.get() ?? 0) == 41
+        counter.set(42)
+        second.set()
+    end)
+    assert second.wait(10000)
+    assert dropped.load() == (fail ? 1 : 0), "no per-job ThreadLocal cleanup"
+    pool.close()
+    bool caught = false
+    try
+        assert pool.wait(10000)
+    catch ValueError e
+        assert e.message == "task pool thread exit"
+        caught = true
+    end
+    assert caught == fail and pool.exitFailureCount == (fail ? 1 : 0)
+    assert not pool.exitFailureSaturated
+    caught = false
+    try
+        pool.throwIfFailed()
+    catch ValueError e
+        assert e.message == "task pool thread exit"
+        caught = true
+    end
+    assert caught == fail, "exit history survives explicit report"
+    assert not local.hasValue() and not counter.hasValue()
+    auto stats = pool.snapshot()
+    assert stats.completed == 2 and stats.succeeded == 2 and stats.failed == 0
+end
+checkExit(false)
+assert dropped.load() == 1
+checkExit(true)
+assert dropped.load() == 2, "wait covers checked real-thread cleanup"
+println("TaskPool real-thread local persistence and checked exit ok")

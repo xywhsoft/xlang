@@ -22,6 +22,8 @@
 #include "src/runtime/xl6_list_value_iterator.h"
 #include "src/runtime/xl6_frame_storage.h"
 #include "src/runtime/xl6_task.h"
+#include "src/runtime/xl6_task_pool_exit.h"
+#include "src/runtime/xl6_execution_worker_exit.h"
 #include "src/runtime/xl6_executor_jobs.h"
 #include "src/runtime/xl6_execution_resource.h"
 #include "src/runtime/xl6_execution_module_abi.h"
@@ -383,12 +385,12 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6ExecutionExecutorFamilyV1Get", (const void*)xl6ExecutionExecutorFamilyV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutionTaskPoolFamilyV1Get", (const void*)xl6ExecutionTaskPoolFamilyV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskPoolReleaseClearedOwnerV1", (const void*)xl6TaskPoolReleaseClearedOwnerV1)) return 0;
-    if (!xlApiAddTccSymbol(s, "xl6ExecutorFailuresCreateV1", (const void*)xl6ExecutorFailuresCreateV1)) return 0;
-    if (!xlApiAddTccSymbol(s, "xl6ExecutorFailuresRetainV1", (const void*)xl6ExecutorFailuresRetainV1)) return 0;
-    if (!xlApiAddTccSymbol(s, "xl6ExecutorFailuresReleaseV1", (const void*)xl6ExecutorFailuresReleaseV1)) return 0;
-    if (!xlApiAddTccSymbol(s, "xl6ExecutorFailuresSnapshotV1", (const void*)xl6ExecutorFailuresSnapshotV1)) return 0;
-    if (!xlApiAddTccSymbol(s, "xl6ExecutorThrowIfFailedV1", (const void*)xl6ExecutorThrowIfFailedV1)) return 0;
-    if (!xlApiAddTccSymbol(s, "xl6ExecutorUnreportedCheckV1", (const void*)xl6ExecutorUnreportedCheckV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionFailuresCreateV1", (const void*)xl6ExecutionFailuresCreateV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionFailuresRetainV1", (const void*)xl6ExecutionFailuresRetainV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionFailuresReleaseV1", (const void*)xl6ExecutionFailuresReleaseV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionFailuresSnapshotV1", (const void*)xl6ExecutionFailuresSnapshotV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionFailuresCheckV1", (const void*)xl6ExecutionFailuresCheckV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionFailuresUnreportedV1", (const void*)xl6ExecutionFailuresUnreportedV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorSubmitClosureV1", (const void*)xl6ExecutorSubmitClosureV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorSubmitClosuresV1", (const void*)xl6ExecutorSubmitClosuresV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorPrepareBoxedBatchV1", (const void*)xl6ExecutorPrepareBoxedBatchV1)) return 0;
@@ -396,7 +398,16 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6ExecutorDiscardBoxedBatchV1", (const void*)xl6ExecutorDiscardBoxedBatchV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorSubmitBatchLanguageV1", (const void*)xl6ExecutorSubmitBatchLanguageV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorWaitV1", (const void*)xl6ExecutorWaitV1)) return 0;
-    if (!xlApiAddTccSymbol(s, "xl6ExecutorFailuresOwnershipV1", (const void*)xl6ExecutorFailuresOwnershipV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionFailuresOwnershipV1", (const void*)xl6ExecutionFailuresOwnershipV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionFailuresRecordV1", (const void*)xl6ExecutionFailuresRecordV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionFailuresAdapterV1", (const void*)xl6ExecutionFailuresAdapterV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionWorkerExitV1", (const void*)xl6ExecutionWorkerExitV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionWorkerExitDropV1", (const void*)xl6ExecutionWorkerExitDropV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6TaskPoolCreateManagedV1", (const void*)xl6TaskPoolCreateManagedV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6TaskPoolWorkerExitPolicyV1Get", (const void*)xl6TaskPoolWorkerExitPolicyV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6TaskPoolOwnershipAdapterV2", (const void*)xl6TaskPoolOwnershipAdapterV2)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionTaskPoolCheckExitV1", (const void*)xl6ExecutionTaskPoolCheckExitV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionTaskPoolExitFailuresV1", (const void*)xl6ExecutionTaskPoolExitFailuresV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorClosureDataPolicyV1Get", (const void*)xl6ExecutorClosureDataPolicyV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorWorkerExitPolicyV1Get", (const void*)xl6ExecutorWorkerExitPolicyV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorClosureQuiescenceV1Get", (const void*)xl6ExecutorClosureQuiescenceV1Get)) return 0;

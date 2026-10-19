@@ -632,11 +632,11 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_native_executor.c",D(R(OWNERSHIP_CATALOG)),{"XRT_MODULE_EXECUTOR"}},
     {"src/runtime/xl6_task_pool.c",NULL,0,{"XRT_MODULE_TASK_POOL","XRT_MODULE_ATOMIC"}},
     {"src/runtime/xl6_ownership_domain_task_pool.c",D(R(OWNERSHIP_CATALOG),R(TASK_POOL)),{NULL}},
-    {"src/runtime/xl6_executor_jobs.c",D(R(CLOSURE),R(FOREIGN_ERROR),R(THREAD_EXIT)),{"XRT_MODULE_EXECUTOR"}},
+    {"src/runtime/xl6_executor_jobs.c",D(R(CLOSURE),R(FOREIGN_ERROR),R(EXECUTION_WORKER_EXIT)),{"XRT_MODULE_EXECUTOR"}},
     {"src/runtime/xl6_ownership_domain_executor_jobs.c",D(R(OWNERSHIP_CATALOG),R(EXECUTOR_JOBS),R(OWNERSHIP_DOMAIN_NATIVE_EXECUTOR)),{NULL}},
     {"src/runtime/xl6_execution_resource.c",D(R(FOREIGN_ERROR)),{"XRT_MODULE_EVENT","XRT_MODULE_ATOMIC","XRT_MODULE_THREAD"}},
     {"src/runtime/xl6_execution_executor.c",D(R(EXECUTION_SOURCE),R(EXECUTOR_JOBS)),{NULL}},
-    {"src/runtime/xl6_execution_pool.c",D(R(EXECUTION_SOURCE),R(TASK_POOL)),{NULL}},
+    {"src/runtime/xl6_execution_pool.c",D(R(EXECUTION_SOURCE),R(TASK_POOL_EXIT)),{NULL}},
     {"src/runtime/xl6_ownership_domain_execution_source.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_SOURCE)),{NULL}},
     {"src/runtime/xl6_ownership_domain_execution_executor.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_EXECUTOR)),{NULL}},
     {"src/runtime/xl6_ownership_domain_execution_pool.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_POOL)),{NULL}},
@@ -647,7 +647,12 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_task_submit_closure.c",D(R(TASK),R(FUTURE_VALUE),R(CLOSURE)),{NULL}},
     {"src/runtime/xl6_task_pool_language.c",D(R(EXECUTION_POOL),R(NATIVE_HANDLE)),{NULL}},
     {"src/runtime/xl6_task_pool_submit_language.c",D(R(EXECUTION_POOL),R(TASK_SUBMIT_CLOSURE)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_task_pool_language.c",D(R(OWNERSHIP_CATALOG),R(TASK_POOL_LANGUAGE),R(OWNERSHIP_DOMAIN_EXECUTION_POOL)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_task_pool_language.c",D(R(OWNERSHIP_CATALOG),R(TASK_POOL_LANGUAGE),R(OWNERSHIP_DOMAIN_EXECUTION_POOL)),{NULL}},
+    {"src/runtime/xl6_execution_failures.c",D(R(FOREIGN_ERROR)),{"XRT_MODULE_MEMORY","XRT_MODULE_ATOMIC","XRT_MODULE_THREAD"}},
+    {"src/runtime/xl6_execution_worker_exit.c",D(R(EXECUTION_FAILURES),R(THREAD_EXIT),R(FOREIGN_ERROR)),{NULL}},
+    {"src/runtime/xl6_task_pool_exit.c",D(R(TASK_POOL),R(EXECUTION_WORKER_EXIT)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_task_pool_exit.c",D(R(OWNERSHIP_CATALOG),R(TASK_POOL_EXIT)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_execution_failures.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_FAILURES)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

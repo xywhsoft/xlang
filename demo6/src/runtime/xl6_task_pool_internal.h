@@ -11,6 +11,12 @@
 #endif
 typedef XL6_TaskNativeScopeV1 TaskActivity;
 XL6_TASK_POOL_INTERNAL XL6_TaskPool* xl6TaskPoolCreateInternalV1(const XL6_TaskPoolConfig*);
+struct xtaskpoolworkerexitownershipv1;
+/* Success consumes one real context ref, failure consumes none. Only this
+ * owned factory makes Wait include resource close and actual worker exit;
+ * ordinary legacy pools keep their drain-only Wait contract. */
+XL6_TASK_POOL_INTERNAL XL6_TaskPool* xl6TaskPoolCreateOwnedExitInternalV1(
+    const XL6_TaskPoolConfig*,void*,const struct xtaskpoolworkerexitownershipv1*);
 XL6_TASK_POOL_INTERNAL bool xl6TaskPoolQuiesceInternalV1(XL6_TaskPool*);
 XL6_TASK_POOL_INTERNAL bool xl6TaskPoolDestroyInternalV1(XL6_TaskPool*);
 XL6_TASK_POOL_INTERNAL bool xl6TaskPoolIsQuiescentInternalV1(const XL6_TaskPool*);

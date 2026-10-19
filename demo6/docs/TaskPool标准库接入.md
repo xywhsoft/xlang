@@ -35,8 +35,15 @@ assert (await result) == "a\0你"
 submitted、completed、succeeded、failed、cancelled、rejected、initialized、
 closed、cancelling。计数来自实际原生统计，不根据 Future 状态猜测。
 
-body／捕获析构失败由各自 Future 报告；不复制脱离式 Executor 的全局失败账本。
-Executor 继续使用用户批准的首错＋失败计数、`wait/throwIfFailed` checked 报告。
+body／捕获析构失败由各自 Future 报告，不计入退出失败。真实工作线程退出时的
+ThreadLocal 清理另用共享的精简首错＋失败计数账本，由 `wait/throwIfFailed`
+checked 报告；`exitFailureCount/exitFailureSaturated` 查询稳定历史。它不改变
+Snapshot 中仅统计任务的 succeeded/failed，也不引入 detached Executor 调度。
+
+语言 TaskPool 的成功等待包含已受理任务／捕获尾部、已注册异步资源的关闭和
+真实原生线程退出。超时不意味着已完成退出；取消等待不强制终止析构；同一对象
+可继续等待。完成优先于已请求的取消。原始非拥有 wrapper／XRT Wait 仍仅排空，
+不把这两种层次的合同混为一谈。详情见 [线程退出验收](TaskPool线程退出验收.md)。
 
 ## 精确结果与拥有权
 
@@ -66,10 +73,8 @@ ISO C 存储类型／平台宽度／对齐，不归一化为 int64 或 double。
 
 ## 尚未封板的边界
 
-- `wait()` 目前排空任务及捕获清理，不承诺真正原生 worker join。native Close
-  不会立即销毁线程，因为已有异步资源仍可能需要执行额度。下一批需增补真实
-  worker-exit／checked ThreadLocal 清理和非阻塞退休准备，不能每任务重置 TLS，
-  也不能让资源控制线程无限阻塞在用户线程退出析构中。
+- 受管理 worker-exit／checked ThreadLocal 已接通。用户析构仍可能阻塞，显式
+  无限等待承担该阻塞；期限／取消等待和模块退休的非阻塞准备不会偷偷阻塞 join。
 - 普通同步函数按值返回 generator 的现有非复制限制保持。TaskPool 不添加特殊
   clone／move 规则；Future 底层能够保存 generator 不等于该回调签名合法。
 - 显式 `func() as null` 的零 payload RETURN 是已有未封板核心问题，本批保留
@@ -101,3 +106,6 @@ LogsUnchanged 为 true、Failures 为空，提交前复核实际输入／日志�
 八份测试报告共 408 阶段，含 20 个预期拒绝；两端语言各 92 阶段、各 47 个
 输出前错误 IR 拒绝。Linux 的三种选定原生闭包均通过 sanitizer／泄漏检查。
 源码构建只复用真实发布 TCC core，不复用旧测试结果；提交前再次核对证据哈希。
+
+以上 408 阶段属于前一批结果接口证据，不代替线程退出批次；后续批次及其
+完整源码构建、当前验收与边界单列在 [线程退出验收](TaskPool线程退出验收.md)。

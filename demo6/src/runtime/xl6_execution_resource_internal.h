@@ -28,7 +28,7 @@ struct XL6_ExecutionResourceV1 {
     XL6_ExecutionResourceV1 *previous,*next;
     xexecutor* executor;
     XL6_TaskPool* pool;
-    XL6_ExecutorFailuresV1* failures;
+    XL6_ExecutionFailuresV1* failures;
     xexecutorstats stats;
     size_t references,owners,entries;
     uint64_t cycle;

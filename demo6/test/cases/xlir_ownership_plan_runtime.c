@@ -13,6 +13,7 @@ typedef struct Node {
     struct Node *first,*second;
     const XL6_OwnershipPlan* claim;
     unsigned kind;
+    unsigned preparationPhase,preparationCalls;
     bool finalized,cleared;
 } Node;
 static Node* escaped;
@@ -129,6 +130,76 @@ static unsigned fault_sweep(void)
     }
     return faults;
 }
+/* A pinned/claimed asynchronous preparation can make its own read admission
+ * BUSY until a continuation polls it. Real TaskPool/TLS join exercises this
+ * transition too; this small physical self-cycle makes it deterministic. */
+static bool transition_trace(const void*,xrtownershipvisitor,void*);
+static bool transition_count(const void* raw,size_t* output)
+{const Node* node=raw;return node->preparationPhase!=1&&count_node(raw,output);}
+static const xrtownershipops transition_ops={transition_count,transition_trace};
+static xrtownershipref transition_view(const Node* node)
+{return (xrtownershipref){node,node?&transition_ops:NULL};}
+static bool transition_trace(const void* raw,xrtownershipvisitor visit,void* context)
+{const Node* node=raw;size_t count;return transition_count(raw,&count)&&visit(transition_view(node->first),context)&&visit(transition_view(node->second),context);}
+static bool transition_ready(const void* raw){return ((const Node*)raw)->preparationPhase==2;}
+static xrtownershipprepareresult transition_prepare(const void* raw,const void* token)
+{
+    Node* node=(Node*)raw;xrtownershipscope proof={0},mutation={0};
+    assert(node->claim==token&&xrtOwnershipFreezeTryBegin(&proof));mutation_end(&proof);
+    mutation_begin(&mutation);++node->preparationCalls;
+    node->preparationPhase=node->preparationPhase?2:1;
+    mutation_end(&mutation);
+    return node->preparationPhase==2?XRT_OWNERSHIP_PREPARE_READY:XRT_OWNERSHIP_PREPARE_BUSY;
+}
+static bool transition_probe(xrtownershipref ref,void* context,const xrtownershipadapterv1** selected,
+    const xrtownershippreparationv1** preparation,const XL6_OwnershipFinishV1** completion);
+static XL6_OwnershipAdmissionV1 transition_admit(xrtownershipref ref,void* context,const xrtownershipadapterv1** selected,
+    const xrtownershippreparationv1** preparation,const XL6_OwnershipFinishV1** completion)
+{
+    *selected=NULL;*preparation=NULL;*completion=NULL;
+    const Node* node=ref.Data;
+    if(ref.Ops!=&transition_ops||!node||node->kind==99)return XL6_OWNERSHIP_ADMISSION_REFUSED;
+    if(node->preparationPhase==1)return XL6_OWNERSHIP_ADMISSION_BUSY;
+    return transition_probe(ref,context,selected,preparation,completion)?XL6_OWNERSHIP_ADMISSION_ADMITTED:XL6_OWNERSHIP_ADMISSION_REFUSED;
+}
+static bool transition_probe(xrtownershipref ref,void* context,const xrtownershipadapterv1** selected,
+    const xrtownershippreparationv1** preparation,const XL6_OwnershipFinishV1** completion)
+{
+    static const xrtownershipadapterv1 lifecycle={sizeof(lifecycle),hold,drop,claim,restore,finalize,clear,finish};
+    static const xrtownershippreparationv1 policy={sizeof(policy),&lifecycle,transition_ready,transition_prepare};
+    (void)context;(void)completion;
+    if(ref.Ops!=&transition_ops)return false;
+    *selected=&lifecycle;*preparation=&policy;return true;
+}
+static void transition_round(unsigned change)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);Node* root=make(0);
+    root->first=retain(root);drop(root);XL6_OwnershipPlan* plan=NULL;
+    assert(xl6OwnershipPlanTryCreateV6(transition_view(root),transition_admit,NULL,false,NULL,&plan)==XL6_OWNERSHIP_PLAN_PREPARATIONS);
+    xrtownershipscope mutation={0};mutation_begin(&mutation);root->preparationPhase=1;mutation_end(&mutation);
+    assert(xl6OwnershipPlanPrepare(plan)==XL6_OWNERSHIP_STEP_BUSY&&root->preparationCalls==0); /* BUSY grants no NEW duty */
+    mutation_begin(&mutation);root->preparationPhase=0;mutation_end(&mutation);
+    assert(xl6OwnershipPlanPrepare(plan)==XL6_OWNERSHIP_STEP_BUSY&&root->preparationPhase==1&&root->preparationCalls==1);
+    assert(!root->cleared&&xl6OwnershipPlanTryCommit(plan)==XL6_OWNERSHIP_PLAN_BUSY);
+    if(change==1)escaped=retain(root); /* a real external root, not a guessed RC */
+    if(change==2){mutation_begin(&mutation);root->second=make(99);mutation_end(&mutation);}
+    XL6_OwnershipStepResult resumed=xl6OwnershipPlanPrepare(plan);
+    assert(root->preparationPhase==2&&root->preparationCalls==2); /* continuation must run despite prior BUSY */
+    if(change==2){
+        assert(resumed==XL6_OWNERSHIP_STEP_ERROR&&!root->cleared);xrtClearError();end_plan(plan);
+        mutation_begin(&mutation);Node* unknown=root->second;root->second=NULL;mutation_end(&mutation);drop(unknown);
+    }else if(change==1){
+        assert(resumed==XL6_OWNERSHIP_STEP_READY&&xl6OwnershipPlanTryCommit(plan)==XL6_OWNERSHIP_PLAN_ROOTED&&!root->cleared);
+        end_plan(plan);drop(escaped);escaped=NULL;
+    }else{
+        assert(resumed==XL6_OWNERSHIP_STEP_READY&&xl6OwnershipPlanFinalize(plan));
+        assert(xl6OwnershipPlanTryCommit(plan)==XL6_OWNERSHIP_PLAN_READY&&xl6OwnershipPlanFinish(plan));end_plan(plan);check_balance(&before);return;
+    }
+    plan=NULL;
+    assert(xl6OwnershipPlanTryCreateV6(transition_view(root),transition_admit,NULL,false,NULL,&plan)==XL6_OWNERSHIP_PLAN_FINALIZERS);
+    assert(xl6OwnershipPlanFinalize(plan)&&xl6OwnershipPlanTryCommit(plan)==XL6_OWNERSHIP_PLAN_READY&&xl6OwnershipPlanFinish(plan));
+    end_plan(plan);check_balance(&before);
+}
 int main(void)
 {
     xmemdebugsnapshot before;unsigned faults;assert(xrtMemDebugEnable(true));xrtSetErrorKind(XERR_STATE);xrtClearError();xrtMemDebugSnapshot(&before);
@@ -138,7 +209,9 @@ int main(void)
         mutation_begin(&busy);assert(xl6OwnershipPlanTryCreate(view(root),resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_BUSY && !plan);mutation_end(&busy);
         deny=true;assert(xl6OwnershipPlanTryCreate(view(root),resolve,NULL,&plan)==XL6_OWNERSHIP_PLAN_ERROR && !plan);deny=false;xrtClearError();mode=0;collect(root);
     }
+    for(unsigned n=0;n<32;++n)for(unsigned change=0;change<3;++change)transition_round(change);
     faults=fault_sweep();check_balance(&before);assert(allocations==frees && clears==finishes);
+    puts("Ownership preparation continuation: 96 real self-cycles across BUSY-to-ready, late external root and unknown child; fresh graph proof still rejects Clear");
     printf("Ownership plans: 400 physical cycles across commit/resurrection/new-node/finalizer-error paths, 100 busy and 100 admission refusals, %u real preparation faults; %u allocations retired, zero live delta; adapter engine, not module acceptance\n",faults,frees);
     return 0;
 }

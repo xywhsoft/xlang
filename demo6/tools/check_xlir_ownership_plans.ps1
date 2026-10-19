@@ -18,7 +18,7 @@ try {
         @{Name='preparation';Source='test/cases/xlir_ownership_preparation_runtime.c';Runtime='src/runtime/xl6_ownership_plan.c';
             Marker='Ownership preparation: 150 actual cycles, 600 pre-trace descriptor refusals, 150 busy paths, 50 explicit preparation failures, 25 resurrections, 50 new preparation duties, 200 notifications before 300 finalizers, 200 cross-thread freezes and zero live delta'},
         @{Name='plan';Source='test/cases/xlir_ownership_plan_runtime.c';Runtime='src/runtime/xl6_ownership_plan.c';
-            Marker='Ownership plans: 400 physical cycles across commit/resurrection/new-node/finalizer-error paths, 100 busy and 100 admission refusals, 140 real preparation faults; 1420 allocations retired, zero live delta; adapter engine, not module acceptance'},
+            Marker='Ownership plans: 400 physical cycles across commit/resurrection/new-node/finalizer-error paths, 100 busy and 100 admission refusals, 140 real preparation faults; 1548 allocations retired, zero live delta; adapter engine, not module acceptance'},
         @{Name='value';Source='test/cases/xlir_ownership_value_plan_runtime.c';Runtime='src/runtime/xl6_ownership_plan.c';
             Marker='Value ownership plans: 1600 physical Array/IntMap/Object/Set COW transactions, 40000 concurrent quarantined promotions, 84 preparation/refresh/commit faults, 1696 real native owners retired; zero live delta; custom policies remain refused'},
         @{Name='tail';Source='test/cases/xlir_code_lease_retirement_tail.c';Runtime='src/runtime/xl6_code_lease.c';
@@ -46,6 +46,9 @@ $process=Start-Process -FilePath $binary -WindowStyle Hidden -PassThru -WorkingD
                 $process.Dispose();$complete=$run -eq 0 -and [regex]::Matches([IO.File]::ReadAllText("$outputPath/$name.out.log"),[regex]::Escape($program.Marker)).Count -eq 1
                 if($program.Name -eq 'preparation'){
                     $complete=$complete -and [bool](Select-String -LiteralPath "$outputPath/$name.out.log" -SimpleMatch -Pattern 'Preparation snapshot recovery: 25 real allocation failures after completed notification, distinct infrastructure outcome, no repeated semantic duty' -Quiet)
+                }
+                if($program.Name -eq 'plan'){
+                    $complete=$complete -and [bool](Select-String -LiteralPath "$outputPath/$name.out.log" -SimpleMatch -Pattern 'Ownership preparation continuation: 96 real self-cycles' -Quiet)
                 }
             }
             $timer.Stop();$rows += [pscustomobject]@{Name=$name;Build=$buildExit;Run=$run;Complete=$complete;Seconds=[Math]::Round($timer.Elapsed.TotalSeconds,3)}

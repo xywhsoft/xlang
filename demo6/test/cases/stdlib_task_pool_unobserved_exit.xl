@@ -1,0 +1,16 @@
+import concurrent
+class UnobservedPoolLocal
+    destroy()
+        throw ValueError("unobserved task pool exit")
+    end
+end
+auto local = ThreadLocal::<UnobservedPoolLocal>()
+auto ready = Event(true)
+auto pool = TaskPool(1, 8)
+auto result = pool.submit(func()
+    local.set(UnobservedPoolLocal())
+    ready.set()
+end)
+assert ready.wait(10000)
+pool.close()
+// No explicit report: checked module cleanup must not silently drop failure.

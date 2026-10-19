@@ -139,9 +139,9 @@ def main():
         # implementation, worker ThreadKey cleanup and all other providers stay
         # unchanged; this must COMPILE and then fail the nonblocking assertion.
         old=(root/'src/runtime/xl6_task_pool.c').read_text(encoding='utf8')
-        needle='xwaitresult state=xrtTaskPoolTryJoinV1(native);'
+        needle='            xwaitresult state=xrtTaskPoolTryJoinV1(native);'
         if old.count(needle)!=1:raise RuntimeError('Native tail decision no longer unique')
-        bad=out/'bad-drain-before-destroy.c';bad.write_text(old.replace(needle,'xwaitresult state=xrtTaskPoolWaitFor(native,0);'),encoding='utf8');product(bad)
+        bad=out/'bad-drain-before-destroy.c';bad.write_text(old.replace(needle,'            xwaitresult state=xrtTaskPoolWaitFor(native,0);'),encoding='utf8');product(bad)
         binary=out/('bad-drain-before-destroy'+suffix)
         providers=[bad if path.name=='xl6_task_pool.c' else path for path in native_sources]
         run('bad-drain-before-destroy.build',common(gcc)+['-O0','-I'+str(root/'src/runtime'),native_fixture,*providers,*libs,'-o',binary]);product(binary)

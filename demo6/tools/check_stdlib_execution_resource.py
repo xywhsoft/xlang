@@ -40,7 +40,7 @@ def main():
     libs=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-pthread','-ldl','-lm'];suffix='.exe' if os.name=='nt' else ''
     save()
     try:
-        proof='Execution resources: 32 worker last-owner tails (16 failed), 16 held entries, 16 owned close/waits, 16 real creation-close races, 8 explicit retries, 64 exact graphs (32 empty) with restore/arbitrary finish order, 120 allocation prefixes, identity refusal and balanced lifetimes'
+        proof='Execution resources: 32 worker last-owner tails (16 failed), 16 held entries, 16 owned close/waits, 16 real creation-close races, 8 explicit retries, 80 exact graphs (32 empty) with restore/arbitrary finish order, 120 allocation prefixes, identity refusal and balanced lifetimes'
         for opt in ('O0','O2'):
             binary=out/('plan.'+opt+suffix);extra=['-fno-jump-tables'] if os.name=='nt' else []
             run('plan.'+opt+'.build',flags(gcc,out)+['-'+opt,'-Wno-missing-field-initializers','-ffunction-sections','-fdata-sections',
@@ -69,6 +69,8 @@ def main():
                 run(name+'.build',flags(cc,out/'both')+['-'+opt,root/'test/support/execution_resource_native.c',*sources,*libs,'-o',binary]);product(binary)
                 output=run(name+'.run',[binary],proof)
                 assert 'Execution resource error retirement: 64 observed/unobserved' in output
+                assert 'TaskPool worker exit: 48 real-thread normal/NULL/allocated failures, 144 persistent jobs, 16 lazy owned graphs, 32 lazy start prefixes' in output
+                assert 'TaskPool resource-before-exit: 16 actual asynchronous files retained across join' in output
         run('api.syntax',flags(gcc,out)+['-DXL_BUILD_DLL','-Wno-missing-field-initializers','-fsyntax-only',
             root/'src/api/xl_api_symbols.c',root/'src/compile/xl6_compile_unit.c'])
         providers=[root/s for s in report['Plans']['both']['Sources']]
@@ -79,10 +81,19 @@ def main():
             ('pool-finish-order','xl6_execution_pool.c','xl6TaskPoolReleaseClearedOwnerV1(r->pool)','xl6TaskPoolControlV1Get()->Destroy(r->pool)'),
             ('exited-source-never-ready','xl6_execution_resource.c','s->joined||s->exited||(s->graphStop&&s->parked)',
              's->joined||(s->graphStop&&s->parked)'),
-            ('graph-notification-lost','xl6_executor_jobs.c','bool pending=s->unreported;','bool pending=false;'),
-            ('observed-notification-repeated','xl6_executor_jobs.c','if(pending&&!retirement)state->unreported=false;','(void)retirement;'),
-            ('worker-exit-failure-lost','xl6_executor_jobs.c','record(state,outcome);xrtClearError();xrtSetErrorTake(previous);',
-             '(void)state;xrtErrorFree(outcome.error);xrtClearError();xrtSetErrorTake(previous);')]
+            ('graph-notification-lost','xl6_execution_failures.c','bool pending=s->unreported;','bool pending=false;'),
+            ('observed-notification-repeated','xl6_execution_failures.c','if(pending&&!retirement)state->unreported=false;','(void)retirement;'),
+            ('worker-exit-failure-lost','xl6_execution_worker_exit.c','xl6ExecutionFailuresRecordV1(raw,outcome.ok,outcome.error);xrtClearError();xrtSetErrorTake(previous);',
+             '(void)raw;xrtErrorFree(outcome.error);xrtClearError();xrtSetErrorTake(previous);'),
+            ('owned-wait-drains-only','xl6_task_pool.c','if(result==XWAIT_OK&&ownedExit)result=control_join(pool,native,deadline,cancel);',
+             '(void)control_join;(void)ownedExit;'),
+            ('pending-exit-ref-lost','xl6_task_pool.c','if(native)pool->exitData=NULL; /* successful native ownership transfer */',
+             'pool->exitData=NULL; /* incorrect consumption on failed creation */'),
+            ('unregistered-lazy-exit','xl6_task_pool.c','if(!known)return NULL;','(void)known;'),
+            ('unobserved-pool-exit-lost','xl6_execution_pool.c','if(!xl6ExecutionFailuresUnreportedV1(r->failures))','if(false)'),
+            ('resource-credit-stranded','xl6_task_pool.c',
+             '    pool_close_resources(pool);\n    for(;;){\n        xwaitresult state=xrtTaskPoolTryJoinV1(native);',
+             '    /* incorrect: leave accepted native resource credits alive */\n    for(;;){\n        xwaitresult state=xrtTaskPoolTryJoinV1(native);')]
         report['NegativeControls']=[]
         for name,filename,old,new in controls:
             original=root/'src/runtime'/filename;body=original.read_text(encoding='utf-8-sig');assert body.count(old)==1,(name,'inexact mutation')
