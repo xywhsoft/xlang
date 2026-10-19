@@ -35,6 +35,7 @@ static bool waitFor(void* raw,bool absolute,uint64_t until,int64_t timeout,void*
     bool ok=enter(raw,false,&scope);
     if(ok)ok=absolute?xl6TaskPoolControlV1Get()->WaitUntil(scope.pool,until,cancel,&status):
         xl6TaskPoolControlV1Get()->WaitFor(scope.pool,timeout,cancel,&status);
+    if(ok&&status==XL6_TASK_POOL_READY_V1)ok=xl6ExecutionTaskPoolCheckExitV1(scope.resource);
     if(scope.resource)xl6ExecutionResourceLeaveV1(&scope);
     if(ok&&status==XL6_TASK_POOL_CANCELLED_V1){xrtSetErrorKind(XERR_CANCELLED);ok=false;}
     if(!ok){failed();return false;}return status==XL6_TASK_POOL_READY_V1;
@@ -43,6 +44,20 @@ bool xl6TaskPoolWaitLanguageV1(void* raw,int64_t timeout){return waitFor(raw,fal
 bool xl6TaskPoolWaitUntilLanguageV1(void* raw,uint64_t until){return waitFor(raw,true,until,0,NULL);}
 bool xl6TaskPoolWaitCancelLanguageV1(void* raw,void* cancel,int64_t timeout){return waitFor(raw,false,0,timeout,cancel);}
 bool xl6TaskPoolWaitUntilCancelLanguageV1(void* raw,uint64_t until,void* cancel){return waitFor(raw,true,until,0,cancel);}
+void xl6TaskPoolThrowIfFailedLanguageV1(void* raw)
+{if(!xl6ExecutionTaskPoolCheckExitV1(raw))failed();}
+uint64_t xl6TaskPoolExitFailureCountLanguageV1(void* raw)
+{
+    XL6_ExecutionFailureSnapshotV1 snapshot={.size=sizeof(snapshot)};
+    if(!xl6ExecutionTaskPoolExitFailuresV1(raw,&snapshot))failed();
+    return snapshot.count;
+}
+bool xl6TaskPoolExitFailureSaturatedLanguageV1(void* raw)
+{
+    XL6_ExecutionFailureSnapshotV1 snapshot={.size=sizeof(snapshot)};
+    if(!xl6ExecutionTaskPoolExitFailuresV1(raw,&snapshot))failed();
+    return snapshot.saturated;
+}
 void* xl6TaskPoolSnapshotLanguageV1(void* raw)
 {
     XL6_ExecutionScopeV1 scope={0};XL6_TaskPoolStatsV1 stats={.size=sizeof(stats)};

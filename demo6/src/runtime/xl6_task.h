@@ -158,6 +158,12 @@ typedef struct XL6_TaskPoolControlV1 {
     bool (*Destroy)(XL6_TaskPool*);
 } XL6_TaskPoolControlV1;
 XL6_CODE_LEASE_API const XL6_TaskPoolControlV1* xl6TaskPoolControlV1Get(void);
+struct xtaskpoolworkerexitownershipv1;
+/* Exact registered policy authority for a still-lazy owned exit context.
+ * Plain V1 admission does not grant arbitrary context Drop/Trace authority. */
+XL6_CODE_LEASE_API const struct xrtownershipadapterv1* xl6TaskPoolOwnershipAdapterV2(
+    struct xrtownershipref,const struct xtaskpoolworkerexitownershipv1* const*,size_t,
+    const struct xrtownershippreparationv1**);
 /* Whole-graph Finish only: the pool wrapper is already cleared and has a real
  * inspection hold. Consume its original creator slot without demanding that
  * its independently cleared native child has already run Finish. The wrapper

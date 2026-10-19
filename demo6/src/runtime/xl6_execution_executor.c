@@ -4,13 +4,13 @@
 typedef XL6_ExecutionResourceV1 Resource;
 static bool create(Resource* r,uint32_t threads,size_t limit,size_t stack)
 {
-    r->failures=xl6ExecutorFailuresCreateV1();
+    r->failures=xl6ExecutionFailuresCreateV1();
     if(r->failures){
-        XL6_ExecutorFailuresV1* owned=xl6ExecutorFailuresRetainV1(r->failures);
+        XL6_ExecutionFailuresV1* owned=xl6ExecutionFailuresRetainV1(r->failures);
         if(owned){
             xexecutorconfig config={threads,limit,stack};
             r->executor=xrtExecutorCreateOwnedExitV1(&config,owned,xl6ExecutorWorkerExitPolicyV1Get());
-            if(!r->executor){xerror* error=xrtTakeError();xl6ExecutorFailuresReleaseV1(owned);xrtClearError();xrtSetErrorTake(error);}
+            if(!r->executor){xerror* error=xrtTakeError();xl6ExecutionFailuresReleaseV1(owned);xrtClearError();xrtSetErrorTake(error);}
         }
     }
     return r->executor!=NULL;
@@ -29,15 +29,15 @@ static XL6_ModulePrepareResult retire(Resource* r)
      * consumes its actual native creator even when a detached callback failed,
      * and its enclosing checked cleanup scope latches the original outcome.
      * In particular, NULL is a valid first failed diagnostic, not success. */
-    if(!xl6ExecutorUnreportedCheckV1(r->failures))
+    if(!xl6ExecutionFailuresUnreportedV1(r->failures))
         xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});
     return XL6_MODULE_PREPARE_READY;
 }
 static bool finish(Resource* r){return !r->executor||xrtExecutorDestroy(r->executor);}
-static void drop(Resource* r){xl6ExecutorFailuresReleaseV1(r->failures);r->failures=NULL;}
+static void drop(Resource* r){xl6ExecutionFailuresReleaseV1(r->failures);r->failures=NULL;}
 static bool trace(const Resource* r,xrtownershipvisitor visit,void* context)
 {return (!r->executor||visit(xrtExecutorOwnership(r->executor),context))&&
-    (!r->failures||visit(xl6ExecutorFailuresOwnershipV1(r->failures),context));}
+    (!r->failures||visit(xl6ExecutionFailuresOwnershipV1(r->failures),context));}
 static bool cancel(Resource* r){return !r->executor||xrtExecutorCancel(r->executor);}
 static bool close(Resource* r){return !r->executor||xrtExecutorClose(r->executor);}
 const XL6_ExecutionFamilyV1* xl6ExecutionExecutorFamilyV1Get(void)
@@ -61,14 +61,14 @@ bool xl6ExecutionExecutorSubmitV1(Resource* resource,XL6_Closure* callback)
 bool xl6ExecutionExecutorThrowIfFailedV1(Resource* resource)
 {
     XL6_ExecutionScopeV1 scope={0};if(!xl6ExecutionResourceEnterV1(resource,false,&scope))return false;
-    bool ok=resource->kind==XL6_EXECUTION_EXECUTOR_V1&&xl6ExecutorThrowIfFailedV1(resource->failures);
+    bool ok=resource->kind==XL6_EXECUTION_EXECUTOR_V1&&xl6ExecutionFailuresCheckV1(resource->failures);
     if(resource->kind!=XL6_EXECUTION_EXECUTOR_V1)xrtSetErrorKind(XERR_TYPE);
     xl6ExecutionResourceLeaveV1(&scope);return ok;
 }
-bool xl6ExecutionExecutorFailuresV1(Resource* resource,XL6_ExecutorFailureSnapshotV1* snapshot)
+bool xl6ExecutionExecutorFailuresV1(Resource* resource,XL6_ExecutionFailureSnapshotV1* snapshot)
 {
     XL6_ExecutionScopeV1 scope={0};if(!xl6ExecutionResourceEnterV1(resource,false,&scope))return false;
-    bool ok=resource->kind==XL6_EXECUTION_EXECUTOR_V1&&xl6ExecutorFailuresSnapshotV1(resource->failures,snapshot);
+    bool ok=resource->kind==XL6_EXECUTION_EXECUTOR_V1&&xl6ExecutionFailuresSnapshotV1(resource->failures,snapshot);
     if(resource->kind!=XL6_EXECUTION_EXECUTOR_V1)xrtSetErrorKind(XERR_TYPE);
     xl6ExecutionResourceLeaveV1(&scope);return ok;
 }
@@ -95,9 +95,9 @@ bool xl6ExecutionExecutorWaitV1(Resource* resource,int64_t ms,XL6_ExecutorWaitSt
         if(xrtExecutorClose(scope.executor)){
             xwaitresult waited=xrtExecutorWaitUntil(scope.executor,deadline);
             if(waited==XWAIT_TIMEOUT)ok=true;
-            else if(waited==XWAIT_OK){*status=XL6_EXECUTOR_READY_V1;ok=xl6ExecutorThrowIfFailedV1(resource->failures);}
+            else if(waited==XWAIT_OK){*status=XL6_EXECUTOR_READY_V1;ok=xl6ExecutionFailuresCheckV1(resource->failures);}
         }
     }
-    else {*status=XL6_EXECUTOR_READY_V1;ok=xl6ExecutorThrowIfFailedV1(resource->failures);}
+    else {*status=XL6_EXECUTOR_READY_V1;ok=xl6ExecutionFailuresCheckV1(resource->failures);}
     xl6ExecutionResourceLeaveV1(&scope);return ok;
 }

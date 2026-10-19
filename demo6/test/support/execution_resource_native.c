@@ -1,6 +1,7 @@
 #include "execution-resource-modules.h"
 #define XRT_MODULE_MEMORY_DEBUG
 #define XRT_MODULE_THREAD_KEY
+#define XRT_MODULE_FILE_TEMP
 #define XRUNTIME_IMPLEMENTATION
 #include "lib/xruntime/xruntime.h"
 #include "src/runtime/xl6_execution_resource.h"
@@ -9,6 +10,8 @@
 #include "src/runtime/xl6_ownership_catalog.h"
 #include "src/runtime/xl6_ownership_domains.h"
 #include "src/runtime/xl6_thread_exit.h"
+#include "src/runtime/xl6_task_pool_exit.h"
+#include "src/runtime/xl6_task_pool_internal.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -243,7 +246,8 @@ static bool collect(Graph* g,XL6_OwnershipCatalog* catalog,XL6_ExecutionSourceV1
 static void graphRound(XL6_OwnershipCatalog* catalog,bool pool,unsigned empty,unsigned order,bool restore)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_ExecutionSourceV1* source=xl6ExecutionSourceCreateV1();assert(source);
-    XL6_ExecutionResourceV1* r=empty?NULL:createResource(source,pool);
+    bool noResource=empty==1||empty==2;
+    XL6_ExecutionResourceV1* r=noResource?NULL:createResource(source,pool);
     if(empty==2){assert(xl6ExecutionSourceCloseV1(source));xdeadline exited=xrtDeadlineAfter(UINT64_C(5000000));
         while(!snapshot(source).exited){assert(!xrtDeadlineExpired(exited));xrtThreadYield();}}
     if(pool&&!empty){XL6_ExecutionScopeV1 entry={0};assert(xl6ExecutionResourceEnterV1(r,true,&entry));
@@ -252,7 +256,15 @@ static void graphRound(XL6_OwnershipCatalog* catalog,bool pool,unsigned empty,un
     Graph g;xrtownershipscope frozen={0};xdeadline end=xrtDeadlineAfter(UINT64_C(5000000));
     for(;;){freeze(&frozen);if(collect(&g,catalog,source))break;
         assert(xrtOwnershipScopeEnd(&frozen)&&!xrtDeadlineExpired(end));xrtThreadYield();}
-    assert(g.count==(empty?1u:4u));int token=0,conflict=1;
+    assert(g.count==(noResource?1u:pool?(empty==3?4u:5u):4u));
+    if(pool&&!noResource){
+        xrtownershipref failures=xl6ExecutionFailuresOwnershipV1(r->failures);size_t i=0;
+        while(i<g.count&&(g.nodes[i].ref.Data!=failures.Data||g.nodes[i].ref.Ops!=failures.Ops))++i;
+        /* Exactly the resource and the lazy wrapper OR real native pool own
+         * this ledger. Native creation transfers, never duplicates, that ref. */
+        assert(i<g.count&&g.nodes[i].refs==2&&g.nodes[i].incoming==2);
+    }
+    int token=0,conflict=1;
     for(size_t i=0;i<g.count;++i){Node* n=&g.nodes[i];assert(n->adapter->Hold(n->ref.Data)&&n->adapter->Claim(n->ref.Data,&token));
         assert(!n->adapter->Claim(n->ref.Data,&conflict));}
     assert(xrtOwnershipScopeEnd(&frozen));
@@ -294,7 +306,7 @@ static void failureGraphRound(XL6_OwnershipCatalog* catalog,bool nullError,bool 
     assert(xrtExecutorWaitFor(entry.executor,UINT64_C(5000000))==XWAIT_OK);xl6ExecutionResourceLeaveV1(&entry);
     if(observed){assert(!xl6ExecutionExecutorThrowIfFailedV1(r));
         assert(nullError?!xrtGetError():xrtErrorKind(xrtGetError())==XERR_ARGUMENT);xrtClearError();}
-    XL6_ExecutorFailureSnapshotV1 failure={.size=sizeof(failure)};assert(xl6ExecutionExecutorFailuresV1(r,&failure)&&failure.count==1);
+    XL6_ExecutionFailureSnapshotV1 failure={.size=sizeof(failure)};assert(xl6ExecutionExecutorFailuresV1(r,&failure)&&failure.count==1);
     if(!graph){
         xl6ExecutionResourceReleaseV1(r);drain(source);assert(xl6ExecutionSourceCheckV1(source)==observed);
         if(!observed){assert(nullError?!xrtGetError():xrtErrorKind(xrtGetError())==XERR_ARGUMENT);
@@ -323,6 +335,68 @@ static void failureGraphRound(XL6_OwnershipCatalog* catalog,bool nullError,bool 
     balanced(&before);
 }
 static xthreadkey* exitModeKey;
+static bool forbiddenExitCount(const void* raw,size_t* count)
+{(void)raw;(void)count;abort();}
+static bool forbiddenExitTrace(const void* raw,xrtownershipvisitor visit,void* context)
+{(void)raw;(void)visit;(void)context;abort();}
+static void lazyExitIdentity(XL6_OwnershipCatalog* catalog)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
+    XL6_ExecutionFailuresV1* failures=xl6ExecutionFailuresCreateV1();assert(failures);
+    xtaskpoolworkerexitownershipv1 copy=*xl6TaskPoolWorkerExitPolicyV1Get();
+    const xrtownershipops forbidden={forbiddenExitCount,forbiddenExitTrace};copy.Ops=&forbidden;
+    XL6_TaskPoolConfig config={1,8,0};assert(xl6ExecutionFailuresRetainV1(failures));
+    XL6_TaskPool* pool=xl6TaskPoolCreateOwnedExitInternalV1(&config,failures,&copy);assert(pool);
+    xrtownershipscope frozen={0};freeze(&frozen);
+    const xrtownershipadapterv1* adapter=NULL;const xrtownershippreparationv1* preparation=NULL;
+    const XL6_OwnershipFinishV1* finish=NULL;xrtownershipref ref=xl6TaskPoolOwnership(pool);
+    assert(xl6OwnershipCatalogProbeV1(ref,catalog,&adapter,&preparation,&finish)==XL6_OWNERSHIP_ADMISSION_REFUSED);
+    assert(!adapter&&!preparation&&!finish);
+    preparation=(const void*)pool;
+    assert(!xl6TaskPoolOwnershipAdapterV1(ref,&preparation)&&preparation==(const void*)pool);
+    assert(xrtOwnershipScopeEnd(&frozen));
+    /* Known Drop is safe, but unknown Ops must NEVER have been executed. */
+    assert(xl6TaskPoolControlV1Get()->Destroy(pool));xl6ExecutionFailuresReleaseV1(failures);balanced(&before);
+}
+static void lazyStartPrefixes(void)
+{
+    unsigned failed=0,succeeded=0;
+    for(unsigned budget=0;budget<32;++budget){
+        xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
+        XL6_ExecutionSourceV1* source=xl6ExecutionSourceCreateV1();assert(source);
+        XL6_ExecutionResourceV1* resource=createResource(source,true);XL6_ExecutionScopeV1 entry={0};
+        assert(xl6ExecutionResourceEnterV1(resource,true,&entry));
+        assert(xrtMemDebugFailAfter(budget));bool ok=xl6TaskPoolControlV1Get()->Start(entry.pool);
+        bool injected=xrtMemDebugFailTriggered();xrtMemDebugFailClear();xrtClearError();
+        if(ok){assert(!injected);++succeeded;}else{assert(injected);++failed;}
+        xl6ExecutionResourceLeaveV1(&entry);
+        xrtownershipscope frozen={0};freeze(&frozen);xrtownershipref ledger=xl6ExecutionFailuresOwnershipV1(resource->failures);size_t refs;
+        assert(ledger.Ops->Count(ledger.Data,&refs)&&refs==2);assert(xrtOwnershipScopeEnd(&frozen));
+        xl6ExecutionResourceReleaseV1(resource);drain(source);destroy(&source,true);balanced(&before);
+    }
+    assert(failed&&succeeded);
+}
+static void registeredResourceTail(void)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
+    XL6_ExecutionSourceV1* source=xl6ExecutionSourceCreateV1();assert(source);
+    XL6_ExecutionResourceV1* r=createResource(source,true);XL6_ExecutionScopeV1 entry={0};
+    assert(xl6ExecutionResourceEnterV1(r,true,&entry));
+    str path=NULL;xfile raw=xrtFileTemp(NULL,"xl6-pool-exit-",".bin",&path);assert(raw&&path);
+    XL6_AsyncFile* file=xl6AsyncFileAdoptV1(entry.pool,raw);assert(file);
+    xfuture* write=xl6AsyncFileWriteV1(file,0,(const uint8*)"a\0b",3);assert(write);
+    xl6ExecutionResourceLeaveV1(&entry);assert(xl6ExecutionResourceCloseV1(r));
+    assert(xl6ExecutionResourceEnterV1(r,false,&entry));XL6_TaskPoolWaitStatusV1 status=XL6_TASK_POOL_TIMEOUT_V1;
+    /* Keep the FILE OWNER alive through actual worker exit. Only the real
+     * registry close protocol can release its native credit before join. */
+    assert(xl6TaskPoolControlV1Get()->WaitFor(entry.pool,5000,NULL,&status)&&status==XL6_TASK_POOL_READY_V1);
+    assert(xl6AsyncFileClosedV1(file));xl6ExecutionResourceLeaveV1(&entry);
+    assert(xrtFutureWaitFor(write,0)==XWAIT_OK);xfutureresult result={0};assert(xrtFutureResult(write,&result));
+    assert(result.State==XFUTURE_RESOLVED&&((xfilechange*)result.Value)->Size==3);
+    xrtFutureDestroy(write);xl6AsyncFileDestroyV1(file);
+    assert(xrtFileDelete(path));xrtFree(path);
+    xl6ExecutionResourceReleaseV1(r);drain(source);destroy(&source,true);balanced(&before);
+}
 static xatomic32 exitCalls;
 static bool checkedWorkerExit(void)
 {
@@ -332,22 +406,41 @@ static bool checkedWorkerExit(void)
     return *mode==0;
 }
 static void markWorkerExit(void* raw){assert(xrtThreadKeySet(exitModeKey,raw));}
-static void exitFailureRound(unsigned mode,bool observed)
+static xtaskoutcome markPoolWorkerExit(xcancel* cancel,void* raw,xtaskvalue* output)
+{(void)cancel;(void)output;markWorkerExit(raw);return XTASK_SUCCESS;}
+static void exitFailureRound(bool pool,unsigned mode,bool observed)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);uint32_t calls=xrtAtomic32Load(&exitCalls,XMEMORY_ACQUIRE);
     XL6_ExecutionSourceV1* source=xl6ExecutionSourceCreateV1();assert(source);
-    XL6_ExecutionResourceV1* r=createResource(source,false);XL6_ExecutionScopeV1 entry={0};
+    XL6_ExecutionResourceV1* r=createResource(source,pool);XL6_ExecutionScopeV1 entry={0};
     assert(xl6ExecutionResourceEnterV1(r,true,&entry));
-    assert(xrtExecutorSubmit(entry.executor,markWorkerExit,&mode,NULL,NULL));xl6ExecutionResourceLeaveV1(&entry);
+    if(pool){
+        XL6_TaskNativeScopeV1 native={0};assert(xl6TaskNativeBeginV1(entry.pool,&native));
+        for(unsigned i=0;i<3;++i){
+            xfuture* future=xrtTaskSubmit(native.native,markPoolWorkerExit,&mode,NULL);assert(future);
+            assert(xrtFutureWaitFor(future,UINT64_C(5000000))==XWAIT_OK);xrtFutureDestroy(future);
+            assert(xrtAtomic32Load(&exitCalls,XMEMORY_ACQUIRE)==calls); /* not per-job */
+        }
+        xl6TaskNativeEndV1(&native);
+    }else assert(xrtExecutorSubmit(entry.executor,markWorkerExit,&mode,NULL,NULL));
+    xl6ExecutionResourceLeaveV1(&entry);
     assert(xl6ExecutionResourceCloseV1(r)&&xl6ExecutionResourceEnterV1(r,false,&entry));
-    assert(xrtExecutorWaitFor(entry.executor,UINT64_C(5000000))==XWAIT_OK);xl6ExecutionResourceLeaveV1(&entry);
+    if(pool){
+        XL6_TaskPoolWaitStatusV1 status=XL6_TASK_POOL_TIMEOUT_V1;
+        assert(xl6TaskPoolControlV1Get()->WaitFor(entry.pool,5000,NULL,&status)&&status==XL6_TASK_POOL_READY_V1);
+        XL6_TaskPoolStatsV1 stats={.size=sizeof(stats)};assert(xl6TaskPoolControlV1Get()->Snapshot(entry.pool,&stats));
+        assert(stats.submitted==3&&stats.succeeded==3&&!stats.failed); /* exit != task failure */
+    }else assert(xrtExecutorWaitFor(entry.executor,UINT64_C(5000000))==XWAIT_OK);
+    xl6ExecutionResourceLeaveV1(&entry);
     assert(xrtAtomic32Load(&exitCalls,XMEMORY_ACQUIRE)==calls+1);
-    XL6_ExecutorFailureSnapshotV1 state={.size=sizeof(state)};
-    assert(xl6ExecutionExecutorFailuresV1(r,&state)&&state.count==(mode?1u:0u));
-    if(observed){XL6_ExecutorWaitStatusV1 status=XL6_EXECUTOR_TIMEOUT_V1;
-        assert(xl6ExecutionExecutorWaitV1(r,0,&status)==!mode&&status==XL6_EXECUTOR_READY_V1);
+    XL6_ExecutionFailureSnapshotV1 state={.size=sizeof(state)};
+    assert((pool?xl6ExecutionTaskPoolExitFailuresV1(r,&state):xl6ExecutionExecutorFailuresV1(r,&state))&&state.count==(mode?1u:0u));
+    if(observed){
+        if(pool)assert(xl6ExecutionTaskPoolCheckExitV1(r)==!mode);
+        else {XL6_ExecutorWaitStatusV1 status=XL6_EXECUTOR_TIMEOUT_V1;
+            assert(xl6ExecutionExecutorWaitV1(r,0,&status)==!mode&&status==XL6_EXECUTOR_READY_V1);}
         if(mode)assert(mode==1?!xrtGetError():xrtErrorCode(xrtGetError())==902);
-        xrtClearError();assert(xl6ExecutionExecutorThrowIfFailedV1(r)==!mode);xrtClearError();}
+        xrtClearError();assert((pool?xl6ExecutionTaskPoolCheckExitV1(r):xl6ExecutionExecutorThrowIfFailedV1(r))==!mode);xrtClearError();}
     xl6ExecutionResourceReleaseV1(r);drain(source);
     bool ok=!mode||observed;assert(xl6ExecutionSourceCheckV1(source)==ok);
     if(!ok)assert(mode==1?!xrtGetError():xrtErrorCode(xrtGetError())==902);
@@ -361,19 +454,29 @@ int main(void)
     for(unsigned i=0;i<8;++i)for(unsigned pool=0;pool<2;++pool){selfReleaseRound(pool!=0,0);entryRound(pool!=0);closedRound(pool!=0);creationCloseRound(pool!=0);}
     for(unsigned i=0;i<8;++i){selfReleaseRound(false,1);selfReleaseRound(false,2);stalledRound();}
     const XL6_OwnershipDomainV1* domains[]={xl6OwnershipDomainExecutionSourceV1Get(),xl6OwnershipDomainExecutionExecutorV1Get(),
-        xl6OwnershipDomainExecutionPoolV1Get(),xl6OwnershipDomainNativeExecutorV1Get(),xl6OwnershipDomainTaskPoolV1Get(),xl6OwnershipDomainExecutorJobsV1Get()};
+        xl6OwnershipDomainExecutionPoolV1Get(),xl6OwnershipDomainNativeExecutorV1Get(),xl6OwnershipDomainTaskPoolV1Get(),xl6OwnershipDomainExecutorJobsV1Get(),
+        xl6OwnershipDomainExecutionFailuresV1Get(),xl6OwnershipDomainTaskPoolExitV1Get()};
     XL6_OwnershipCatalog* catalog=xl6OwnershipCatalogCreateV1(domains,sizeof(domains)/sizeof(*domains));assert(catalog);
     identityRefusal(catalog,false);identityRefusal(catalog,true);
+    lazyExitIdentity(catalog);
     for(unsigned order=0;order<8;++order){
         for(unsigned pool=0;pool<2;++pool){graphRound(catalog,pool!=0,0,order,false);graphRound(catalog,pool!=0,0,order,true);}
+        graphRound(catalog,true,3,order,false);graphRound(catalog,true,3,order,true);
         for(unsigned empty=1;empty<3;++empty){graphRound(catalog,false,empty,order,false);graphRound(catalog,false,empty,order,true);}}
     for(unsigned i=0;i<8;++i)for(unsigned flags=0;flags<8;++flags)failureGraphRound(catalog,(flags&1)!=0,(flags&2)!=0,(flags&4)!=0);
     puts("Execution resource error retirement: 64 observed/unobserved and NULL/allocated first failures; graph and ordinary checked notifications, no repeated handled error");
     xl6OwnershipCatalogDestroyV1(catalog);
     allocationPrefixes();
+    lazyStartPrefixes();
+    for(unsigned i=0;i<16;++i)registeredResourceTail();
     exitModeKey=xrtThreadKeyCreate(NULL);assert(exitModeKey&&xl6ThreadExitRegisterLocalV1(checkedWorkerExit));
-    for(unsigned i=0;i<8;++i)for(unsigned mode=0;mode<3;++mode){exitFailureRound(mode,false);exitFailureRound(mode,true);}
+    for(unsigned i=0;i<8;++i)for(unsigned mode=0;mode<3;++mode){
+        exitFailureRound(false,mode,false);exitFailureRound(false,mode,true);
+        exitFailureRound(true,mode,false);exitFailureRound(true,mode,true);
+    }
     assert(xrtThreadKeyDestroy(exitModeKey));
     puts("Executor worker exit: 48 real-thread normal/NULL/allocated failures; explicit wait/history and unobserved checked retirement, exact allocation balance");
-    puts("Execution resources: 32 worker last-owner tails (16 failed), 16 held entries, 16 owned close/waits, 16 real creation-close races, 8 explicit retries, 64 exact graphs (32 empty) with restore/arbitrary finish order, 120 allocation prefixes, identity refusal and balanced lifetimes");return 0;
+    puts("TaskPool worker exit: 48 real-thread normal/NULL/allocated failures, 144 persistent jobs, 16 lazy owned graphs, 32 lazy start prefixes, unknown exit Ops refused before execution; exact context transfer, checked history/retirement and native stats");
+    puts("TaskPool resource-before-exit: 16 actual asynchronous files retained across join, accepted writes delivered, registry released native credits, exact memory balance");
+    puts("Execution resources: 32 worker last-owner tails (16 failed), 16 held entries, 16 owned close/waits, 16 real creation-close races, 8 explicit retries, 80 exact graphs (32 empty) with restore/arbitrary finish order, 120 allocation prefixes, identity refusal and balanced lifetimes");return 0;
 }

@@ -39,7 +39,10 @@ XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreate(
     struct xrtownershipref, XL6_OwnershipResolve, void*, XL6_OwnershipPlan**);
 XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV2(
     struct xrtownershipref, XL6_OwnershipResolveV2, void*, XL6_OwnershipPlan**);
-/* Rebuild before each preparation, outside freeze for its actual invocation.
+/* Rebuild before starting each preparation, outside freeze for its invocation.
+ * An already-started, held/claimed duty may continue through its own temporary
+ * read refusal, using only the exact frozen Ready/Prepare capability. READY
+ * forces a fresh whole graph before any different duty or semantic Finalize.
  * BUSY participants may be skipped only under their no-side-effect contract.
  * A turn is bounded by the initial participant count; new work or a busy
  * dependency may require retry, preserving the actual plan and completed work.
@@ -99,6 +102,10 @@ XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV5(
 XL6_CODE_LEASE_API XL6_OwnershipPlanResult xl6OwnershipPlanTryCreateV6(
     struct xrtownershipref,XL6_OwnershipProbeV1,XL6_OwnershipDiscoverV1,
     bool pinRoot,void*,XL6_OwnershipPlan**);
+/* Continue only actual held+claimed immutable preparation capabilities even
+ * while their asynchronous transition temporarily refuses Count/Trace.
+ * Every ready/commit decision still rebuilds the whole graph; this grants no
+ * read/admission exception and cannot clear a resurrected or unknown child. */
 XL6_CODE_LEASE_API XL6_OwnershipStepResult xl6OwnershipPlanPrepare(XL6_OwnershipPlan*);
 XL6_CODE_LEASE_API XL6_OwnershipStepResult xl6OwnershipPlanFinalizeV2(XL6_OwnershipPlan*);
 /* Rebuild from EVERY real plan-held node, subtracting exactly those holds as

@@ -49,6 +49,8 @@ XL6_CODE_LEASE_API XL6_ExecutionRetireResultV1 xl6ExecutionSourceDestroyV1(XL6_E
  * Inspection holds are NOT user owners and cannot delay automatic close. */
 XL6_CODE_LEASE_API XL6_ExecutionResourceV1* xl6ExecutionExecutorCreateV1(XL6_ExecutionSourceV1*,uint32_t,size_t,size_t);
 XL6_CODE_LEASE_API XL6_ExecutionResourceV1* xl6ExecutionTaskPoolCreateV1(XL6_ExecutionSourceV1*,uint32_t,size_t,size_t);
+XL6_CODE_LEASE_API bool xl6ExecutionTaskPoolCheckExitV1(XL6_ExecutionResourceV1*);
+XL6_CODE_LEASE_API bool xl6ExecutionTaskPoolExitFailuresV1(XL6_ExecutionResourceV1*,XL6_ExecutionFailureSnapshotV1*);
 XL6_CODE_LEASE_API XL6_ExecutionResourceV1* xl6ExecutionResourceRetainV1(XL6_ExecutionResourceV1*);
 XL6_CODE_LEASE_API void xl6ExecutionResourceReleaseV1(XL6_ExecutionResourceV1*);
 XL6_CODE_LEASE_API bool xl6ExecutionResourceCloseV1(XL6_ExecutionResourceV1*);
@@ -73,7 +75,7 @@ XL6_CODE_LEASE_API bool xl6ExecutionExecutorSubmitV1(XL6_ExecutionResourceV1*,XL
 XL6_CODE_LEASE_API bool xl6ExecutionExecutorSubmitBatchV1(XL6_ExecutionResourceV1*,XL6_Closure* const*,size_t);
 XL6_CODE_LEASE_API bool xl6ExecutionExecutorWaitV1(XL6_ExecutionResourceV1*,int64_t,XL6_ExecutorWaitStatusV1*);
 XL6_CODE_LEASE_API bool xl6ExecutionExecutorThrowIfFailedV1(XL6_ExecutionResourceV1*);
-XL6_CODE_LEASE_API bool xl6ExecutionExecutorFailuresV1(XL6_ExecutionResourceV1*,XL6_ExecutorFailureSnapshotV1*);
+XL6_CODE_LEASE_API bool xl6ExecutionExecutorFailuresV1(XL6_ExecutionResourceV1*,XL6_ExecutionFailureSnapshotV1*);
 XL6_CODE_LEASE_API bool xl6ExecutionExecutorStatsV1(XL6_ExecutionResourceV1*,struct xexecutorstats*);
 XL6_CODE_LEASE_API bool xl6ExecutionResourceCancelV1(XL6_ExecutionResourceV1*);
 

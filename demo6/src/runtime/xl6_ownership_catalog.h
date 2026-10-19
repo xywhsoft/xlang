@@ -20,7 +20,8 @@
     X(Quiescence, xrtownershipquiescencev1) \
     X(Executor, xexecutordataownershipv1) \
     X(ExecutionFamily, XL6_ExecutionFamilyV1) \
-    X(ExecutorExit, xexecutorworkerexitownershipv1)
+    X(ExecutorExit, xexecutorworkerexitownershipv1) \
+    X(TaskPoolExit, xtaskpoolworkerexitownershipv1)
 #define XL6_DECLARE_POLICY(Name, Type) struct Type;
 XL6_OWNERSHIP_POLICY_GROUPS(XL6_DECLARE_POLICY)
 #undef XL6_DECLARE_POLICY

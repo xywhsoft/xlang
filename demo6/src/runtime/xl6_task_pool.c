@@ -14,6 +14,8 @@ struct XL6_TaskPool {
     xmutex* gate;
     xcond* changed;
     xtaskpool* native;
+    void* exitData; /* one real owner until native lazy creation succeeds */
+    const xtaskpoolworkerexitownershipv1* exitPolicy; /* immutable resident */
     xtaskpoolconfig config;
     XL6_TaskResourceV1* resources;
     size_t references, entries, activities, submitting, controls;
@@ -44,7 +46,7 @@ void xl6TaskPoolDropInternalV1(const void* data)
     if(!pool->references)abort();
     bool last=--pool->references==0;
     if(last && (pool->ownerHeld||pool->native||pool->entries||pool->activities||
-        pool->submitting||pool->controls||pool->creating||pool->quiescing||pool->retiring||pool->resources))abort();
+        pool->submitting||pool->controls||pool->creating||pool->quiescing||pool->retiring||pool->resources||pool->exitData))abort();
     unlock_pool(pool);
     if(last){
         if(!xrtCondDestroy(pool->changed)||!xrtMutexDestroy(pool->gate))abort();
@@ -118,6 +120,15 @@ static XL6_TaskPool* pool_create_body(const XL6_TaskPoolConfig* config)
     return pool;
 }
 XL6_TaskPool* xl6TaskPoolCreateInternalV1(const XL6_TaskPoolConfig* config) { XL6_OWNERSHIP_RETURN(XL6_TaskPool*,pool_create_body(config)); }
+XL6_TaskPool* xl6TaskPoolCreateOwnedExitInternalV1(const XL6_TaskPoolConfig* config,void* data,
+    const xtaskpoolworkerexitownershipv1* policy)
+{
+    if(!data||!policy||policy->size!=sizeof(*policy)||!policy->Exit||!policy->Drop||
+        !policy->Ops||!policy->Ops->Count||!policy->Ops->Trace){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+    XL6_TaskPool* pool=xl6TaskPoolCreateInternalV1(config);
+    if(pool){pool->exitData=data;pool->exitPolicy=policy;} /* private, unpublished */
+    return pool;
+}
 bool xl6TaskPoolQuiesceInternalV1(XL6_TaskPool* pool)
 {
     xrtownershipscope mutation={0}; xtaskpool* native; bool ok;xtaskpoolstats stats={0};
@@ -206,11 +217,14 @@ static bool pool_destroy_body(XL6_TaskPool* pool)
     xl6TaskPoolEnterInternalV1(pool);xrtownershipscope mutation={0};mutation_begin(&mutation);lock_pool(pool);
     bool ready=pool->entries==1&&!pool->native&&!pool->submitting&&!pool->controls&&!pool->creating&&!pool->activities&&
         !pool->quiescing&&!pool->retiring&&(!pool->claim||pool->cleared);
-    bool owner=ready&&pool->ownerHeld;
-    if(owner){pool->ownerHeld=false;pool->closing=true;}
-    unlock_pool(pool);if(owner)xl6TaskPoolDropInternalV1(pool);mutation_end(&mutation);xl6TaskPoolLeaveInternalV1(pool);return ready;
+    bool owner=ready&&pool->ownerHeld;void* exitData=owner?pool->exitData:NULL;
+    const xtaskpoolworkerexitownershipv1* policy=pool->exitPolicy;
+    if(owner){pool->ownerHeld=false;pool->closing=true;pool->exitData=NULL;}
+    unlock_pool(pool);if(owner)xl6TaskPoolDropInternalV1(pool);mutation_end(&mutation);
+    if(exitData)policy->Drop(exitData,NULL);
+    xl6TaskPoolLeaveInternalV1(pool);return ready;
 }
-bool xl6TaskPoolDestroyInternalV1(XL6_TaskPool* pool) { XL6_OWNERSHIP_RETURN(bool,pool_destroy_body(pool)); }
+bool xl6TaskPoolDestroyInternalV1(XL6_TaskPool* pool) { return pool_destroy_body(pool); }
 bool xl6TaskPoolReleaseClearedOwnerV1(XL6_TaskPool* pool)
 {
     if(!pool){xrtSetErrorKind(XERR_ARGUMENT);return false;}
@@ -232,7 +246,8 @@ static bool pool_count(const void* data,size_t* count)
 static bool pool_trace(const void* data,xrtownershipvisitor visit,void* context)
 {
     const XL6_TaskPool* pool=data;size_t count;
-    return visit&&pool_count(data,&count)&&(!pool->native||visit(xrtTaskPoolOwnership(pool->native),context));
+    return visit&&pool_count(data,&count)&&(!pool->native||visit(xrtTaskPoolOwnership(pool->native),context))&&
+        (!pool->exitData||visit((xrtownershipref){pool->exitData,pool->exitPolicy->Ops},context));
 }
 static const xrtownershipops pool_ops={pool_count,pool_trace};
 static bool pool_busy(const void* data)
@@ -294,19 +309,31 @@ static bool pool_finish(const void* data,const void* token)
      * outside freeze. Its plan pin survives either Finish ordering. */
     bool ready=xrtTaskPoolDestroy(native);
     mutation_begin(&mutation);lock_pool(pool);
-    if(ready)pool->native=NULL;
-    pool->retiring=false;unlock_pool(pool);mutation_end(&mutation);return ready;
+    void* exitData=ready?pool->exitData:NULL;const xtaskpoolworkerexitownershipv1* policy=pool->exitPolicy;
+    if(ready){pool->native=NULL;pool->exitData=NULL;}
+    pool->retiring=false;unlock_pool(pool);mutation_end(&mutation);
+    if(exitData)policy->Drop(exitData,NULL);
+    return ready;
 }
-const xrtownershipadapterv1* xl6TaskPoolOwnershipAdapterV1(xrtownershipref ref,
-    const xrtownershippreparationv1** preparation)
+const xrtownershipadapterv1* xl6TaskPoolOwnershipAdapterV2(xrtownershipref ref,
+    const xtaskpoolworkerexitownershipv1* const* policies,size_t policyCount,const xrtownershippreparationv1** preparation)
 {
     static const xrtownershipadapterv1 adapter={sizeof(adapter),xl6TaskPoolHoldInternalV1,xl6TaskPoolDropInternalV1,
         pool_claim,pool_restore,NULL,pool_clear,pool_finish};
     static const xrtownershippreparationv1 prepare={sizeof(prepare),&adapter,pool_prepared,pool_prepare};
     size_t count;
-    if(!preparation||ref.Ops!=&pool_ops||!pool_count(ref.Data,&count))return NULL;
+    if(!preparation||ref.Ops!=&pool_ops||!ref.Data||(policyCount&&!policies))return NULL;
+    const XL6_TaskPool* pool=ref.Data;
+    if(pool->exitData){
+        bool known=false;for(size_t i=0;i<policyCount;++i)if(policies[i]==pool->exitPolicy){known=true;break;}
+        if(!known)return NULL;
+    }
+    if(!pool_count(ref.Data,&count))return NULL;
     *preparation=&prepare;return &adapter;
 }
+const xrtownershipadapterv1* xl6TaskPoolOwnershipAdapterV1(xrtownershipref ref,
+    const xrtownershippreparationv1** preparation)
+{return xl6TaskPoolOwnershipAdapterV2(ref,NULL,0,preparation);}
 xtaskpool* xl6TaskSubmitBeginInternalV1(XL6_TaskPool* pool)
 {
     xrtownershipscope mutation={0};xtaskpool* native;
@@ -324,9 +351,11 @@ xtaskpool* xl6TaskSubmitBeginInternalV1(XL6_TaskPool* pool)
         if(pool->native){native=pool->native;unlock_pool(pool);mutation_end(&mutation);return native;}
         if(!pool->creating){
             pool->creating=true;unlock_pool(pool);mutation_end(&mutation);
-            native=xrtTaskPoolCreate(&pool->config);
+            native=pool->exitData?xrtTaskPoolCreateOwnedExitV1(&pool->config,pool->exitData,pool->exitPolicy):
+                xrtTaskPoolCreate(&pool->config);
             mutation_begin(&mutation);lock_pool(pool);
             if(!pool->creating||pool->native||!pool->submitting)abort();
+            if(native)pool->exitData=NULL; /* successful native ownership transfer */
             /* Cancel can linearize while creation is outside the wrapper gate.
              * Keep the native pointer PRIVATE until the latch is applied, so
              * another reserved caller cannot receive an uncancelled pool.
@@ -453,6 +482,27 @@ static void control_wake(void* data)
     if(!xrtCondBroadcast(pool->changed))abort();
     unlock_pool(pool);
 }
+static xwaitresult control_join(XL6_TaskPool* pool,xtaskpool* native,xdeadline deadline,xcancel* cancel)
+{
+    /* Work and accepted capture tails are already drained. Close registered
+     * asynchronous resources BEFORE requesting native stop, so a TLS value
+     * owning such a resource cannot deadlock its worker's exit. Close is the
+     * existing allocation-free registry protocol, not arbitrary resource loss. */
+    pool_close_resources(pool);
+    for(;;){
+        xwaitresult state=xrtTaskPoolTryJoinV1(native);
+        if(state!=XWAIT_TIMEOUT)return state;
+        if(cancel&&xrtCancelRequested(cancel))return XWAIT_CANCELLED;
+        if(xrtDeadlineExpired(deadline))return XWAIT_TIMEOUT;
+        /* Explicit synchronous wait only. The native zero-time join remains
+         * nonblocking for the resource source. A bounded cond heartbeat avoids
+         * spinning on TLS/native wrapper tails without adding a new timer,
+         * thread or callback ownership edge. Completion wins the next probe. */
+        xdeadline heartbeat=xrtDeadlineAfter(1000);if(deadline<heartbeat)heartbeat=deadline;
+        lock_pool(pool);state=xrtCondWaitUntil(pool->changed,pool->gate,heartbeat);unlock_pool(pool);
+        if(state==XWAIT_ERROR)return state;
+    }
+}
 static bool control_wait(XL6_TaskPool* pool,xdeadline deadline,xcancel* cancel,XL6_TaskPoolWaitStatusV1* status)
 {
     if(!status){xrtSetErrorKind(XERR_ARGUMENT);return false;}
@@ -489,11 +539,12 @@ static bool control_wait(XL6_TaskPool* pool,xdeadline deadline,xcancel* cancel,X
         if(result!=XWAIT_OK)break;
     }
     if(result==XWAIT_TIMEOUT&&!pool->submitting)result=XWAIT_OK;
-    native=pool->native;unlock_pool(pool);xrtCancelUnwatch(watch);
+    native=pool->native;bool ownedExit=pool->exitPolicy!=NULL;unlock_pool(pool);xrtCancelUnwatch(watch);
     if(result==XWAIT_OK){
         if(native){
             if(!xrtTaskPoolClose(native))result=XWAIT_ERROR;
             else result=xrtTaskPoolWaitUntilCancel(native,deadline,cancel);
+            if(result==XWAIT_OK&&ownedExit)result=control_join(pool,native,deadline,cancel);
         }
     }
     control_end(pool,&activity);

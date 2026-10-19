@@ -1,6 +1,6 @@
 """Offline public-source TaskPool ABI/JIT/module/standalone acceptance.
-Does not certify real TaskPool worker-exit, fresh shipping DLL/SO/VFS or the
-whole concurrency/five-group goal. Uses genuine TCC core, no network tests.
+Includes actual managed TaskPool ThreadLocal exit, but not fresh shipping
+DLL/SO/VFS or the whole five-group goal. Uses genuine TCC core, no network tests.
 """
 from pathlib import Path
 import argparse,hashlib,json,os,shutil,subprocess,time
@@ -16,12 +16,14 @@ def main():
  assert sha(build['Driver'])==build['DriverSha256'].lower()
  cc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve();driver=Path(build['Driver']);sdk=driver.parent/'include';ext='.exe' if os.name=='nt' else ''
  cases=('stdlib_task_pool','stdlib_task_pool_results','stdlib_task_pool_control','stdlib_task_pool_errors',
-  'stdlib_task_pool_self_release','stdlib_task_pool_unused','stdlib_task_pool_borrowed','stdlib_future_c_scalars')
+  'stdlib_task_pool_self_release','stdlib_task_pool_unused','stdlib_task_pool_borrowed','stdlib_future_c_scalars',
+  'stdlib_task_pool_thread_local','stdlib_task_pool_exit_wait')
  negatives=('bad_stdlib_task_pool_missing_import','bad_stdlib_task_pool_callback','bad_stdlib_task_pool_multi_result',
   'bad_stdlib_task_pool_generator_result','bad_stdlib_task_pool_explicit_null_result')
- regression=('stdlib_promise_values','stdlib_promise_terminal','stdlib_task_group_start','stdlib_executor','stdlib_executor_errors')
+ regression=('stdlib_promise_values','stdlib_promise_terminal','stdlib_task_group_start','stdlib_executor','stdlib_executor_errors','stdlib_executor_thread_local')
+ unobserved='stdlib_task_pool_unobserved_exit'
  files={Path(__file__).resolve(),manifest,cc,driver,root/'test/cases/xlir_task_pool_language_contract.c',
-  *[root/('test/cases/'+n+'.xl') for n in cases+negatives+regression]}
+  *[root/('test/cases/'+n+'.xl') for n in cases+negatives+regression+(unobserved,)]}
  inputs={str(path):sha(path) for path in sorted(files)};out.mkdir(parents=True);rows=[];products=[];failures=[];env=dict(os.environ)
  if os.name!='nt':assert a.native_root;env['XL6_SOURCE_NATIVE_ROOT']=str(a.native_root.resolve())
  report=dict(Complete=False,InputsUnchanged=False,LogsUnchanged=False,SourceBuild=str(manifest),SourceBuildSha256=sha(manifest),Inputs=inputs,
@@ -71,6 +73,11 @@ def main():
    for mode in ('run','module'):run(case+'.'+mode,[driver,source,mode,out/(case+'.'+mode)])
    prefix=out/(case+'.aot');exe=Path(str(prefix)+('.exe' if os.name=='nt' else '.out'))
    run(case+'.aot.build',[driver,source,'exe',prefix if os.name=='nt' else exe]);product(exe);run(case+'.aot.run',[exe])
+  for mode in ('run','module'):
+   run(unobserved+'.'+mode,[driver,root/('test/cases/'+unobserved+'.xl'),mode,out/(unobserved+'.'+mode)],proof='exit',reject=True)
+  prefix=out/(unobserved+'.aot');exe=Path(str(prefix)+('.exe' if os.name=='nt' else '.out'))
+  run(unobserved+'.aot.build',[driver,root/('test/cases/'+unobserved+'.xl'),'exe',prefix if os.name=='nt' else exe]);product(exe)
+  run(unobserved+'.aot.refused',[exe],proof='exit',reject=True)
   obj=out/'contract.o';run('contract.build',[cc,*flags,'-O0','-c',root/'test/cases/xlir_task_pool_language_contract.c','-o',obj]);product(obj)
   objects=[row['Path'] for row in build['Objects'] if Path(row['Source']).name not in ('xlir_public_source_driver.c','xlir_public_source_linux_driver.c')]
   assert len(objects)==len(build['Objects'])-1;binary=out/('contract'+ext)
@@ -83,6 +90,6 @@ def main():
   run('contract.run',[binary,*[root/('test/cases/'+n+'.xl') for n in ('stdlib_task_pool','stdlib_task_pool_unused','stdlib_task_pool_borrowed')]],proof='TaskPool XLIR:')
   report['InputsUnchanged']=all(sha(path)==digest for path,digest in inputs.items()) and all(sha(row['Path'])==row['Sha256'].lower() for row in build['Inputs'])
   report['LogsUnchanged']=all(sha(row['Log'])==row['Sha256'] for row in rows)
-  assert report['InputsUnchanged'] and report['LogsUnchanged'];report['Complete']=True;save()
+  assert report['InputsUnchanged'] and report['LogsUnchanged'];report['WorkerExitAccepted']=True;report['Complete']=True;save()
  except BaseException as error:failures.append(repr(error));save();raise
 if __name__=='__main__':main()

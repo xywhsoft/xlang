@@ -1,0 +1,47 @@
+import concurrent
+
+auto entered = Event(true)
+auto resume = Event(true)
+auto dropped = AtomicInt64()
+class SlowPoolLocal
+    destroy()
+        entered.set()
+        assert resume.wait(10000)
+        dropped.fetchAdd(1)
+    end
+end
+
+auto local = ThreadLocal::<SlowPoolLocal>()
+auto ready = Event(true)
+auto pool = TaskPool(1, 8)
+auto result = pool.submit(func()
+    local.set(SlowPoolLocal())
+    ready.set()
+end)
+assert ready.wait(10000)
+pool.close()
+assert not pool.wait(0)
+int attempts = 0
+while not entered.wait(0) and attempts < 10000
+    // ready was signalled INSIDE the job; its capture tail may not yet have
+    // drained at the first poll. Keep driving the explicit join, not a sleep.
+    assert not pool.wait(1)
+    attempts += 1
+end
+assert entered.wait(0), "worker actually entered ThreadLocal destruction"
+assert not pool.wait(0) and not pool.wait(2)
+assert dropped.load() == 0 and pool.exitFailureCount == 0
+auto cancelled = CancellationSource()
+assert cancelled.cancel()
+bool caught = false
+try
+    pool.waitCancel(cancelled.token, 10000)
+catch CancelledError
+    caught = true
+end
+assert caught, "cancellation observes a still-busy exit, not job-idle success"
+resume.set()
+assert pool.wait(10000) and dropped.load() == 1
+assert pool.wait(0) and pool.waitCancel(cancelled.token, 0), "physical completion wins cancellation"
+assert pool.snapshot().completed == 1
+println("TaskPool actual exit timeout/cancellation/completion priority ok")

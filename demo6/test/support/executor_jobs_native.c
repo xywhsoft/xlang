@@ -12,7 +12,7 @@
 typedef struct Context {
     xatomic32 runs,drops,started,resume,dropStarted,dropResume,hostAcquires,hostReleases;
     int mode,dropMode;
-    XL6_ExecutorFailuresV1* borrowedState;
+    XL6_ExecutionFailuresV1* borrowedState;
     xrtownershipref inspectedJob,inspectedSlot;
 } Context;
 typedef struct Environment {Context* context;} Environment;
@@ -88,7 +88,7 @@ static bool body(void* raw)
     Context* c=((Environment*)raw)->context;(void)xrtAtomic32FetchAdd(&c->runs,1,XMEMORY_ACQ_REL);
     xrtAtomic32Store(&c->started,1,XMEMORY_RELEASE);waitFor(&c->resume,1);
     callbackFreeze(c);
-    if(c->borrowedState){XL6_ExecutorFailureSnapshotV1 state={.size=sizeof(state)};assert(xl6ExecutorFailuresSnapshotV1(c->borrowedState,&state));}
+    if(c->borrowedState){XL6_ExecutionFailureSnapshotV1 state={.size=sizeof(state)};assert(xl6ExecutionFailuresSnapshotV1(c->borrowedState,&state));}
     if(c->mode==1){xrtSetErrorTake(xrtErrorCreate(XERR_ARGUMENT,"executor-fixture",901,"body first"));return false;}
     if(c->mode==2)return false;
     if(c->mode==3){xrtSetErrorKind(XERR_INTERNAL);xrtClearError();}
@@ -103,8 +103,8 @@ static XL6_Closure* make(Context* context,CodeHost* host)
 }
 static xexecutor* create(unsigned threads,size_t capacity)
 {xexecutorconfig config={threads,capacity,0};xexecutor* executor=xrtExecutorCreate(&config);assert(executor);return executor;}
-static uint64_t failures(XL6_ExecutorFailuresV1* state)
-{XL6_ExecutorFailureSnapshotV1 result={.size=sizeof(result)};assert(xl6ExecutorFailuresSnapshotV1(state,&result)&&!result.saturated);return result.count;}
+static uint64_t failures(XL6_ExecutionFailuresV1* state)
+{XL6_ExecutionFailureSnapshotV1 result={.size=sizeof(result)};assert(xl6ExecutionFailuresSnapshotV1(state,&result)&&!result.saturated);return result.count;}
 static void balanced(const xmemdebugsnapshot* before)
 {
     xrtClearError();xmemdebugsnapshot after;xrtMemDebugSnapshot(&after);
@@ -113,9 +113,9 @@ static void balanced(const xmemdebugsnapshot* before)
         after.InvalidFreeCount==before->InvalidFreeCount&&after.DoubleFreeCount==before->DoubleFreeCount&&
         after.UseAfterFreeCount==before->UseAfterFreeCount);
 }
-static bool report(XL6_ExecutorFailuresV1* state,int code,bool diagnostic)
+static bool report(XL6_ExecutionFailuresV1* state,int code,bool diagnostic)
 {
-    xl6_error_scope scope={0};assert(xl6ErrorScopeBegin(&scope));bool ok=xl6ExecutorThrowIfFailedV1(state);
+    xl6_error_scope scope={0};assert(xl6ErrorScopeBegin(&scope));bool ok=xl6ExecutionFailuresCheckV1(state);
     if(!ok)xl6ErrorScopeCaptureFailure(&scope);
     xl6_error_result result=xl6ErrorScopeEnd(&scope);assert(result.ok==ok);
     if(!ok){
@@ -129,7 +129,7 @@ static void outcomeRound(int mode,int dropMode)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);Context context;contextInit(&context,mode,dropMode);
     CodeHost* host=xrtCalloc(1,sizeof(*host));assert(host);host->context=&context;xrtAtomic32Init(&host->references,1);
-    XL6_Closure* callback=make(&context,host);XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);
+    XL6_Closure* callback=make(&context,host);XL6_ExecutionFailuresV1* state=xl6ExecutionFailuresCreateV1();assert(state);
     xexecutor* executor=create(1,8);xrtownershipscope frozen={0};freeze(&frozen);
     assert(xl6ExecutorSubmitClosureV1(executor,state,callback));xl6ClosureRuntimeV1Get()->Release(callback);
     xrtAtomic32Store(&host->closed,1,XMEMORY_RELEASE);assert(xrtOwnershipScopeEnd(&frozen));assert(xrtExecutorClose(executor));
@@ -140,7 +140,7 @@ static void outcomeRound(int mode,int dropMode)
     int code=mode==1?901:902;
     assert(report(state,code,diagnostic)==expected);
     assert(report(state,code,diagnostic)==expected);
-    assert(xrtExecutorDestroy(executor));xl6ExecutorFailuresReleaseV1(state);
+    assert(xrtExecutorDestroy(executor));xl6ExecutionFailuresReleaseV1(state);
     assert(xrtAtomic32Load(&context.runs,XMEMORY_ACQUIRE)==1&&xrtAtomic32Load(&context.drops,XMEMORY_ACQUIRE)==1);
     assert(xrtAtomic32Load(&context.hostAcquires,XMEMORY_ACQUIRE)==1&&xrtAtomic32Load(&context.hostReleases,XMEMORY_ACQUIRE)==1);
     assert(xrtAtomic32Load(&host->references,XMEMORY_ACQUIRE)==1);xrtFree(host);balanced(&before);
@@ -154,7 +154,7 @@ static void graphRound(void)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);Context context;contextInit(&context,1,1);
     xrtAtomic32Store(&context.resume,0,XMEMORY_RELEASE);xrtAtomic32Store(&context.dropResume,0,XMEMORY_RELEASE);
-    XL6_Closure* callback=make(&context,NULL);XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);
+    XL6_Closure* callback=make(&context,NULL);XL6_ExecutionFailuresV1* state=xl6ExecutionFailuresCreateV1();assert(state);
     const XL6_OwnershipDomainV1* copyDomains[]={xl6OwnershipDomainNativeExecutorV1Get(),&copiedDomain};
     XL6_OwnershipCatalog* copied=xl6OwnershipCatalogCreateV1(copyDomains,2);assert(copied);
     xexecutor* executor=create(1,8);xrtownershipscope frozen={0};freeze(&frozen);
@@ -187,11 +187,11 @@ static void graphRound(void)
     assert(preparation->Ready(job.Data));assert(xrtOwnershipScopeEnd(&frozen));
     assert(preparation->Prepare(job.Data,&token)==XRT_OWNERSHIP_PREPARE_READY);
     freeze(&frozen);adapter->Clear(job.Data,&token);assert(xrtOwnershipScopeEnd(&frozen));adapter->Drop(job.Data);
-    xl6ExecutorFailuresReleaseV1(state);xl6OwnershipCatalogDestroyV1(copied);balanced(&before);
+    xl6ExecutionFailuresReleaseV1(state);xl6OwnershipCatalogDestroyV1(copied);balanced(&before);
 }
 static void parallelRound(void)
 {
-    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_ExecutionFailuresV1* state=xl6ExecutionFailuresCreateV1();assert(state);
     Context first;contextInit(&first,2,0);XL6_Closure* callback=make(&first,NULL);xexecutor* executor=create(1,8);
     assert(xl6ExecutorSubmitClosureV1(executor,state,callback));xl6ClosureRuntimeV1Get()->Release(callback);assert(xrtExecutorClose(executor));
     XL6_ExecutorWaitStatusV1 status;assert(!xl6ExecutorWaitV1(executor,state,5000,&status)&&status==XL6_EXECUTOR_READY_V1);xrtClearError();
@@ -203,11 +203,11 @@ static void parallelRound(void)
     assert(xrtExecutorClose(executor));assert(!xl6ExecutorWaitV1(executor,state,5000,&status)&&status==XL6_EXECUTOR_READY_V1);xrtClearError();
     assert(failures(state)==25&&!report(state,0,false));assert(xrtExecutorDestroy(executor));
     for(size_t i=0;i<N;++i)assert(xrtAtomic32Load(&contexts[i].runs,XMEMORY_ACQUIRE)==1&&xrtAtomic32Load(&contexts[i].drops,XMEMORY_ACQUIRE)==1);
-    xl6ExecutorFailuresReleaseV1(state);balanced(&before);
+    xl6ExecutionFailuresReleaseV1(state);balanced(&before);
 }
 static void cancellationRound(void)
 {
-    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_ExecutionFailuresV1* state=xl6ExecutionFailuresCreateV1();assert(state);
     Context running;contextInit(&running,0,0);xrtAtomic32Store(&running.resume,0,XMEMORY_RELEASE);
     XL6_Closure* callback=make(&running,NULL);xexecutor* executor=create(1,8);
     assert(xl6ExecutorSubmitClosureV1(executor,state,callback));xl6ClosureRuntimeV1Get()->Release(callback);waitFor(&running.started,1);
@@ -221,13 +221,13 @@ static void cancellationRound(void)
     for(size_t i=0;i<3;++i)assert(!xrtAtomic32Load(&queued[i].runs,XMEMORY_ACQUIRE)&&xrtAtomic32Load(&queued[i].drops,XMEMORY_ACQUIRE)==1);
     xrtAtomic32Store(&running.resume,1,XMEMORY_RELEASE);XL6_ExecutorWaitStatusV1 status;
     assert(!xl6ExecutorWaitV1(executor,state,5000,&status)&&status==XL6_EXECUTOR_READY_V1);xrtClearError();
-    assert(failures(state)==1&&xrtExecutorDestroy(executor));xl6ExecutorFailuresReleaseV1(state);balanced(&before);
+    assert(failures(state)==1&&xrtExecutorDestroy(executor));xl6ExecutionFailuresReleaseV1(state);balanced(&before);
 }
 static void callerPrefixes(void)
 {
     unsigned failed=0,succeeded=0;
     for(unsigned budget=0;budget<8;++budget){
-        xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);
+        xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_ExecutionFailuresV1* state=xl6ExecutionFailuresCreateV1();assert(state);
         Context contexts[3];XL6_Closure* callbacks[3];xexecutor* executor=create(1,8);
         for(size_t i=0;i<3;++i){contextInit(&contexts[i],0,0);callbacks[i]=make(&contexts[i],NULL);}
         assert(xrtMemDebugFailAfter(budget));bool accepted=xl6ExecutorSubmitClosuresV1(executor,state,callbacks,3),injected=xrtMemDebugFailTriggered();
@@ -235,7 +235,7 @@ static void callerPrefixes(void)
         for(size_t i=0;i<3;++i)xl6ClosureRuntimeV1Get()->Release(callbacks[i]);
         assert(xrtExecutorClose(executor));XL6_ExecutorWaitStatusV1 status;
         assert(xl6ExecutorWaitV1(executor,state,5000,&status)&&status==XL6_EXECUTOR_READY_V1&&failures(state)==0);
-        assert(xrtExecutorDestroy(executor));xl6ExecutorFailuresReleaseV1(state);
+        assert(xrtExecutorDestroy(executor));xl6ExecutionFailuresReleaseV1(state);
         for(size_t i=0;i<3;++i)assert(xrtAtomic32Load(&contexts[i].runs,XMEMORY_ACQUIRE)==(accepted?1u:0u)&&xrtAtomic32Load(&contexts[i].drops,XMEMORY_ACQUIRE)==1);
         balanced(&before);
     }
@@ -243,7 +243,7 @@ static void callerPrefixes(void)
 }
 static void rejectionRound(void)
 {
-    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_ExecutionFailuresV1* state=xl6ExecutionFailuresCreateV1();assert(state);
     Context contexts[2];XL6_Closure* callbacks[2];xexecutor* executor=create(1,1);
     for(size_t i=0;i<2;++i){contextInit(&contexts[i],0,0);callbacks[i]=make(&contexts[i],NULL);}
     XL6_Closure* invalid[]={callbacks[0],NULL};assert(!xl6ExecutorSubmitClosuresV1(executor,state,invalid,2));xrtClearError();
@@ -252,7 +252,7 @@ static void rejectionRound(void)
     assert(!xl6ExecutorSubmitClosuresV1(executor,state,callbacks,2));xrtClearError();
     assert(!xl6ExecutorSubmitClosureV1(executor,state,callbacks[1]));xrtClearError();
     xexecutorstats stats;assert(xrtExecutorGet(executor,&stats)&&stats.Submitted==1&&stats.Queued==1);
-    xrtownershipref ledger=xl6ExecutorFailuresOwnershipV1(state);size_t refs;assert(ledger.Ops->Count(ledger.Data,&refs)&&refs==2);
+    xrtownershipref ledger=xl6ExecutionFailuresOwnershipV1(state);size_t refs;assert(ledger.Ops->Count(ledger.Data,&refs)&&refs==2);
     assert(!xrtAtomic32Load(&contexts[0].runs,XMEMORY_ACQUIRE)&&!xrtAtomic32Load(&contexts[1].runs,XMEMORY_ACQUIRE));
     XL6_ExecutorWaitStatusV1 status=XL6_EXECUTOR_READY_V1;
     assert(!xl6ExecutorWaitV1(executor,state,-2,&status)&&status==XL6_EXECUTOR_TIMEOUT_V1);xrtClearError();
@@ -262,15 +262,15 @@ static void rejectionRound(void)
     assert(xl6ExecutorWaitV1(executor,state,5000,&status)&&status==XL6_EXECUTOR_READY_V1&&failures(state)==0);
     assert(xrtExecutorDestroy(executor));for(size_t i=0;i<2;++i)xl6ClosureRuntimeV1Get()->Release(callbacks[i]);
     assert(xrtAtomic32Load(&contexts[0].runs,XMEMORY_ACQUIRE)==1&&!xrtAtomic32Load(&contexts[1].runs,XMEMORY_ACQUIRE));
-    xl6ExecutorFailuresReleaseV1(state);balanced(&before);
+    xl6ExecutionFailuresReleaseV1(state);balanced(&before);
 }
 static void abandonedReaderRound(void)
 {
-    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);XL6_ExecutionFailuresV1* state=xl6ExecutionFailuresCreateV1();assert(state);
     Context context;contextInit(&context,0,0);context.borrowedState=state;XL6_Closure* callback=make(&context,NULL);
     xexecutor* executor=create(1,8);xrtownershipscope frozen={0};freeze(&frozen);
-    assert(xl6ExecutorSubmitClosureV1(executor,state,callback));xl6ClosureRuntimeV1Get()->Release(callback);xl6ExecutorFailuresReleaseV1(state);
-    xrtownershipref ledger=xl6ExecutorFailuresOwnershipV1(state);size_t refs;assert(ledger.Ops->Count(ledger.Data,&refs)&&refs==1);
+    assert(xl6ExecutorSubmitClosureV1(executor,state,callback));xl6ClosureRuntimeV1Get()->Release(callback);xl6ExecutionFailuresReleaseV1(state);
+    xrtownershipref ledger=xl6ExecutionFailuresOwnershipV1(state);size_t refs;assert(ledger.Ops->Count(ledger.Data,&refs)&&refs==1);
     assert(xrtOwnershipScopeEnd(&frozen));assert(xrtExecutorClose(executor));
     assert(xrtExecutorWaitFor(executor,UINT64_C(5000000))==XWAIT_OK&&xrtExecutorDestroy(executor));
     assert(xrtAtomic32Load(&context.runs,XMEMORY_ACQUIRE)==1&&xrtAtomic32Load(&context.drops,XMEMORY_ACQUIRE)==1);balanced(&before);
@@ -292,7 +292,7 @@ static xvalue* makeBox(Context* context,bool badResult)
 static void boxedOutcome(unsigned bodyMode,unsigned dropMode,bool badResult)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);Context context;contextInit(&context,(int)bodyMode,(int)dropMode);
-    XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);xexecutor* executor=create(1,8);
+    XL6_ExecutionFailuresV1* state=xl6ExecutionFailuresCreateV1();assert(state);xexecutor* executor=create(1,8);
     xvalue* value=makeBox(&context,badResult);XL6_ExecutorPreparedBatchV1 prepared={0};
     assert(xl6ExecutorPrepareBoxedBatchV1(state,&value,1,boxedSignature,&prepared));
     xrtValueRelease(value); /* Accepted records become the actual last owners. */
@@ -301,7 +301,7 @@ static void boxedOutcome(unsigned bodyMode,unsigned dropMode,bool badResult)
     bool failed=bodyMode||dropMode||badResult;assert(failures(state)==(failed?1u:0u));
     if(failed){
         bool diagnostic=bodyMode!=2&&(bodyMode==1||badResult||dropMode==1);
-        xl6_error_scope scope={0};assert(xl6ErrorScopeBegin(&scope));assert(!xl6ExecutorThrowIfFailedV1(state));
+        xl6_error_scope scope={0};assert(xl6ErrorScopeBegin(&scope));assert(!xl6ExecutionFailuresCheckV1(state));
         xl6ErrorScopeCaptureFailure(&scope);xl6_error_result error=xl6ErrorScopeEnd(&scope);assert(!error.ok);
         if((error.error!=NULL)!=diagnostic)fprintf(stderr,"boxed outcome body=%u drop=%u result=%d expectedDiagnostic=%d actualKind=%d code=%d\n",
             bodyMode,dropMode,badResult,diagnostic,error.error?(int)xrtErrorKind(error.error):-1,error.error?(int)xrtErrorCode(error.error):-1);
@@ -311,14 +311,14 @@ static void boxedOutcome(unsigned bodyMode,unsigned dropMode,bool badResult)
         else if(dropMode==1&&bodyMode!=2)assert(xrtErrorCode(error.error)==902);
         xrtErrorFree(error.error);
     }
-    assert(xrtExecutorDestroy(executor));xl6ExecutorFailuresReleaseV1(state);
+    assert(xrtExecutorDestroy(executor));xl6ExecutionFailuresReleaseV1(state);
     assert(xrtAtomic32Load(&context.runs,XMEMORY_ACQUIRE)==1&&xrtAtomic32Load(&context.drops,XMEMORY_ACQUIRE)==1);
     balanced(&before);
 }
 static void boxedGraph(void)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);Context context;contextInit(&context,0,0);
-    XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);xexecutor* executor=create(1,8);
+    XL6_ExecutionFailuresV1* state=xl6ExecutionFailuresCreateV1();assert(state);xexecutor* executor=create(1,8);
     xvalue* value=makeBox(&context,false);XL6_ExecutorPreparedBatchV1 prepared={0};
     assert(xl6ExecutorPrepareBoxedBatchV1(state,&value,1,boxedSignature,&prepared));
     xrtownershipscope frozen={0};freeze(&frozen);assert(xl6ExecutorCommitBoxedBatchV1(executor,&prepared));
@@ -327,21 +327,21 @@ static void boxedGraph(void)
     assert(graph.NodeCount==7&&graph.EdgeCount==7&&graph.ExternalRootCount==3);
     xrtValueRelease(value);assert(xrtOwnershipScopeEnd(&frozen));
     assert(xrtExecutorClose(executor)&&xrtExecutorWaitFor(executor,UINT64_C(5000000))==XWAIT_OK&&xrtExecutorDestroy(executor));
-    xl6ExecutorFailuresReleaseV1(state);balanced(&before);
+    xl6ExecutionFailuresReleaseV1(state);balanced(&before);
 }
 static void boxedPrefixes(void)
 {
     bool complete=false;unsigned budgets=0;
     for(unsigned budget=0;budget<16;++budget){
         xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);Context context;contextInit(&context,0,0);
-        XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);xvalue* value=makeBox(&context,false);
+        XL6_ExecutionFailuresV1* state=xl6ExecutionFailuresCreateV1();assert(state);xvalue* value=makeBox(&context,false);
         xvalue* values[]={value,value,value};XL6_ExecutorPreparedBatchV1 prepared={0};
         assert(xrtMemDebugFailAfter(budget));bool ready=xl6ExecutorPrepareBoxedBatchV1(state,values,3,boxedSignature,&prepared);
         bool triggered=xrtMemDebugFailTriggered();xrtMemDebugFailClear();
         if(ready)assert(xl6ExecutorDiscardBoxedBatchV1(&prepared));
         else assert(!prepared.items&&!prepared.count);
         assert(!prepared.items&&!prepared.count&&!failures(state)&&!xrtAtomic32Load(&context.runs,XMEMORY_ACQUIRE));
-        xrtClearError();xrtValueRelease(value);xl6ExecutorFailuresReleaseV1(state);
+        xrtClearError();xrtValueRelease(value);xl6ExecutionFailuresReleaseV1(state);
         assert(xrtAtomic32Load(&context.drops,XMEMORY_ACQUIRE)==1);balanced(&before);++budgets;
         if(ready&&!triggered){complete=true;break;}
     }
@@ -353,7 +353,7 @@ static bool legacyBody(void* raw){(void)raw;assert(!"legacy entry must not run")
 static void boxedRejections(void)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);Context context;contextInit(&context,0,0);
-    XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);xvalue* good=makeBox(&context,false);
+    XL6_ExecutionFailuresV1* state=xl6ExecutionFailuresCreateV1();assert(state);xvalue* good=makeBox(&context,false);
     xrtcallable* foreign=xrtCallableCreate(NULL,foreignEntry,NULL,NULL);assert(foreign);
     xvalue* bad=xrtValueCallableTake(&foreign);assert(bad&&!foreign&&xrtValueTypeIdBind(bad,boxedSignature));
     assert(!xl6ClosureBoxAdmittedV1(bad));xvalue* values[]={good,bad};XL6_ExecutorPreparedBatchV1 prepared={0};
@@ -369,13 +369,13 @@ static void boxedRejections(void)
     xexecutor* executor=create(1,8);assert(xrtExecutorClose(executor));
     assert(!xl6ExecutorCommitBoxedBatchV1(executor,&prepared)&&!prepared.items&&!prepared.count);
     assert(!failures(state)&&!xrtAtomic32Load(&context.runs,XMEMORY_ACQUIRE));xrtClearError();
-    assert(xrtExecutorDestroy(executor));xrtValueRelease(good);xrtValueRelease(bad);xl6ExecutorFailuresReleaseV1(state);balanced(&before);
+    assert(xrtExecutorDestroy(executor));xrtValueRelease(good);xrtValueRelease(bad);xl6ExecutionFailuresReleaseV1(state);balanced(&before);
 }
 static void boxedCancellation(void)
 {
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);Context running;contextInit(&running,0,0);
     xrtAtomic32Store(&running.resume,0,XMEMORY_RELEASE);xexecutor* executor=create(1,8);
-    XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);XL6_Closure* callback=make(&running,NULL);
+    XL6_ExecutionFailuresV1* state=xl6ExecutionFailuresCreateV1();assert(state);XL6_Closure* callback=make(&running,NULL);
     assert(xl6ExecutorSubmitClosureV1(executor,state,callback));xl6ClosureRuntimeV1Get()->Release(callback);waitFor(&running.started,1);
     Context queued[3];xvalue* values[3];for(unsigned i=0;i<3;++i){contextInit(&queued[i],1,(int)i);values[i]=makeBox(&queued[i],false);}
     XL6_ExecutorPreparedBatchV1 prepared={0};assert(xl6ExecutorPrepareBoxedBatchV1(state,values,3,boxedSignature,&prepared));
@@ -385,7 +385,7 @@ static void boxedCancellation(void)
     for(unsigned i=0;i<3;++i)assert(!xrtAtomic32Load(&queued[i].runs,XMEMORY_ACQUIRE)&&xrtAtomic32Load(&queued[i].drops,XMEMORY_ACQUIRE)==1);
     xrtAtomic32Store(&running.resume,1,XMEMORY_RELEASE);
     assert(xrtExecutorWaitFor(executor,UINT64_C(5000000))==XWAIT_OK&&xrtExecutorDestroy(executor));
-    xl6ExecutorFailuresReleaseV1(state);balanced(&before);
+    xl6ExecutionFailuresReleaseV1(state);balanced(&before);
 }
 static void foreignCallbackCarrier(void)
 {
@@ -400,8 +400,9 @@ int main(void)
     assert(xrtMemDebugEnable(true));xrtSetErrorKind(XERR_STATE);xrtClearError();assert(xrtTemp(8)&&xrtTempClear());
     xl6_error_scope warm={0};assert(xl6ErrorScopeBegin(&warm));xl6_error_result ready=xl6ErrorScopeEnd(&warm);assert(ready.ok);xrtErrorFree(ready.error);
     const XL6_OwnershipDomainV1* domains[]={xl6OwnershipDomainExecutorJobsV1Get(),xl6OwnershipDomainNativeExecutorV1Get(),
-        xl6OwnershipDomainClosureV1Get(),xl6OwnershipDomainCodeLeaseV1Get(),xl6OwnershipDomainCellV1Get()};
-    catalog=xl6OwnershipCatalogCreateV1(domains,5);assert(catalog);
+        xl6OwnershipDomainClosureV1Get(),xl6OwnershipDomainCodeLeaseV1Get(),xl6OwnershipDomainCellV1Get(),
+        xl6OwnershipDomainExecutionFailuresV1Get()};
+    catalog=xl6OwnershipCatalogCreateV1(domains,sizeof(domains)/sizeof(*domains));assert(catalog);
     copiedPolicy=*xl6ExecutorClosureDataPolicyV1Get();
     for(unsigned i=0;i<8;++i){outcomeRound(0,0);outcomeRound(1,0);outcomeRound(2,0);outcomeRound(3,0);
         outcomeRound(1,1);outcomeRound(2,1);outcomeRound(0,1);outcomeRound(0,2);

@@ -10,9 +10,9 @@ static bool load(XL6_OwnershipCatalog* catalog)
 }
 XL6_OWNERSHIP_QUERY(TaskPool)
 {
-    (void)policies;(void)completion;
-    *adapter=xl6TaskPoolOwnershipAdapterV1(ref,preparation);
-    if(!*adapter)*adapter=xrtTaskPoolOwnershipAdapterV1(ref,preparation);
+    (void)completion;
+    *adapter=xl6TaskPoolOwnershipAdapterV2(ref,policies->TaskPoolExit,policies->TaskPoolExitCount,preparation);
+    if(!*adapter)*adapter=xrtTaskPoolOwnershipAdapterV2(ref,policies->TaskPoolExit,policies->TaskPoolExitCount,preparation);
     return *adapter!=NULL;
 }
 XL6_OWNERSHIP_DOMAIN(TaskPool,load,ownershipDomainTaskPool)

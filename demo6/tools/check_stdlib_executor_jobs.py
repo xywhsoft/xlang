@@ -65,7 +65,7 @@ def main():
         controls=[('cleanup-bool-lost','xl6_closure.c',
             '            xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});',
             '            if(!xrtGetError())xrtSetErrorKind(XERR_STATE);'),
-            ('null-first-replaced','xl6_executor_jobs.c','if(!state->count){state->error=result.error;result.error=NULL;}',
+            ('null-first-replaced','xl6_execution_failures.c','if(!state->count){state->error=result.error;result.error=NULL;}',
             'if(!state->error){state->error=result.error;result.error=NULL;}'),
             ('cancel-counted-as-failure','xl6_executor_jobs.c','job->references=1;job->body.ok=true;job->callback=',
             'job->references=1;job->body.ok=false;job->callback='),

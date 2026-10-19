@@ -9,7 +9,7 @@ typedef struct PlanNode {
     const XL6_OwnershipAdapterV1* adapter;
     const xrtownershippreparationv1* preparation;
     const XL6_OwnershipFinishV1* completion;
-    bool held, claimed, finalized, finished, reachable, newClaim, prepared;
+    bool held, claimed, finalized, finished, reachable, newClaim, prepared, preparationStarted;
 } PlanNode;
 struct XL6_OwnershipPlan {
     xrtownershipref root;
@@ -76,6 +76,7 @@ static bool admit(xrtownershipref ref,void* context)
         node=*old;node.newClaim=false;
     }
     node.prepared=!preparation || preparation->Ready(ref.Data);
+    if(node.prepared)node.preparationStarted=false;
     if(build->count==build->capacity){
         size_t capacity=build->capacity?build->capacity*2:16;
         PlanNode* nodes;
@@ -256,23 +257,43 @@ XL6_OwnershipStepResult xl6OwnershipPlanPrepare(XL6_OwnershipPlan* plan)
     for(size_t step=0;step<=budget;++step){
         xrtownershipscope freeze={0};XL6_OwnershipPlanResult result;bool progressed=false;
         if(!xrtOwnershipFreezeTryBegin(&freeze))return XL6_OWNERSHIP_STEP_BUSY;
-        result=rebuild(plan);freeze_end(&freeze);
+        result=rebuild(plan);
+        /* An already authorized asynchronous preparation can itself make
+         * Count/Trace BUSY until its continuation completes. Its REAL pin,
+         * claim and immutable preparation capability survive that temporary
+         * read refusal. Only its separate read-only Ready predicate is queried
+         * here, under freeze; no Count/Trace/admission exception is granted. */
+        bool continuing=result==XL6_OWNERSHIP_PLAN_BUSY;
+        if(continuing)for(size_t i=0;i<plan->count;++i){PlanNode* node=&plan->nodes[i];
+            if(node->held&&node->claimed&&node->preparationStarted&&!node->prepared&&node->preparation&&
+                node->preparation->Ready(node->ref.Data)){
+                node->prepared=true;node->preparationStarted=false;progressed=true;
+            }
+        }
+        freeze_end(&freeze);
         if(result==XL6_OWNERSHIP_PLAN_ERROR)return XL6_OWNERSHIP_STEP_ERROR;
-        if(result==XL6_OWNERSHIP_PLAN_BUSY)return XL6_OWNERSHIP_STEP_BUSY;
-        if(result!=XL6_OWNERSHIP_PLAN_PREPARATIONS)return XL6_OWNERSHIP_STEP_READY;
+        if(!continuing&&result!=XL6_OWNERSHIP_PLAN_PREPARATIONS)return XL6_OWNERSHIP_STEP_READY;
         if(step==budget)return XL6_OWNERSHIP_STEP_BUSY;
         plan->running=true;
         for(size_t i=0;i<plan->count;++i){PlanNode* node=&plan->nodes[i];
-            if(node->claimed && !node->prepared){
+            /* A BUSY snapshot never authorizes a NEW preparation. Resume only
+             * a duty begun after a previously complete unreachable graph proof. */
+            if(node->held&&node->claimed&&!node->prepared&&node->preparation&&(!continuing||node->preparationStarted)){
+                node->preparationStarted=true;
                 xrtownershipprepareresult status=node->preparation->Prepare(node->ref.Data,plan);
                 if(status==XRT_OWNERSHIP_PREPARE_BUSY)continue;
-                if(status==XRT_OWNERSHIP_PREPARE_READY){progressed=true;break;}
+                if(status==XRT_OWNERSHIP_PREPARE_READY){
+                    node->prepared=true;node->preparationStarted=false;progressed=true;break;
+                }
                 plan->running=false;
                 if(status!=XRT_OWNERSHIP_PREPARE_FAILED)xrtSetErrorKind(XERR_INTERNAL);
                 return XL6_OWNERSHIP_STEP_FAILED;
             }
         }
         plan->running=false;
+        /* Refresh before ANY further semantic duty, after a READY callback may
+         * have changed edges/resurrected roots. Completed work is not repeated
+         * even if that refresh fails allocation. Commit still needs full proof. */
         if(!progressed)return XL6_OWNERSHIP_STEP_BUSY;
     }
     return XL6_OWNERSHIP_STEP_BUSY;

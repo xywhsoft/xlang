@@ -17,7 +17,7 @@ PROGRAMS=(
     ('preparation','xlir_ownership_preparation_runtime','xl6_ownership_plan',
         'Ownership preparation: 150 actual cycles, 600 pre-trace descriptor refusals, 150 busy paths, 50 explicit preparation failures, 25 resurrections, 50 new preparation duties, 200 notifications before 300 finalizers, 200 cross-thread freezes and zero live delta'),
     ('plan','xlir_ownership_plan_runtime','xl6_ownership_plan',
-        'Ownership plans: 400 physical cycles across commit/resurrection/new-node/finalizer-error paths, 100 busy and 100 admission refusals, 140 real preparation faults; 1420 allocations retired, zero live delta; adapter engine, not module acceptance'),
+        'Ownership plans: 400 physical cycles across commit/resurrection/new-node/finalizer-error paths, 100 busy and 100 admission refusals, 140 real preparation faults; 1548 allocations retired, zero live delta; adapter engine, not module acceptance'),
     ('value','xlir_ownership_value_plan_runtime','xl6_ownership_plan',
         'Value ownership plans: 1600 physical Array/IntMap/Object/Set COW transactions, 40000 concurrent quarantined promotions, 84 preparation/refresh/commit faults, 1696 real native owners retired; zero live delta; custom policies remain refused'),
     ('tail','xlir_code_lease_retirement_tail','xl6_code_lease',
@@ -46,19 +46,21 @@ def main():
     report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Rows=rows,Products=products,
         ComparedSources=compared,CanonicalCompletionAcceptance=False,PlanRegressionAcceptance=False,
         AllFocusedProvidersInstrumented=args.sanitize,TaskGroupGraphAcceptance=False,
-        ShippingLibraryAcceptance=False,Full53Acceptance=False,Scope=__doc__)
+        ShippingLibraryAcceptance=False,Full53Acceptance=False,ContinuationAccepted=False,ContinuationNegativeAccepted=False,Scope=__doc__)
     flags=['-std=c11','-Wall','-Wextra','-Werror','-I'+str(root)]
     systems=['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-pthread','-ldl','-lm']
     if os.name!='nt':flags+=['-D_GNU_SOURCE']
     san=['-g','-fsanitize=address,undefined','-fno-omit-frame-pointer','-fno-pie','-no-pie'] if args.sanitize else []
     if args.sanitize:env.update(ASAN_OPTIONS='detect_leaks=1:detect_stack_use_after_return=1:halt_on_error=1',
         UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1')
-    def run(name,command):
+    def run(name,command,reject=False,refusal=None):
         command=list(map(str,command));process=subprocess.run(command,cwd=root,env=env,capture_output=True,timeout=180)
         data=process.stdout+process.stderr;log=out/(name+'.log');log.write_bytes(data)
-        rows.append(dict(Name=name,Command=command,Exit=process.returncode,Log=str(log),LogSha256=sha(log)))
+        rows.append(dict(Name=name,Command=command,Exit=process.returncode,ExpectedRejection=reject,Log=str(log),LogSha256=sha(log)))
         print(name+': '+str(process.returncode),flush=True)
-        assert process.returncode==0,(name,data[-5000:].decode(errors='replace'))
+        if reject:
+            assert process.returncode!=0 and refusal and refusal.encode() in data,(name,'not the actual continuation assertion')
+        else:assert process.returncode==0,(name,data[-5000:].decode(errors='replace'))
         return data.decode(errors='replace').replace('\r\n','\n')
     try:
         if args.sanitize:
@@ -78,8 +80,23 @@ def main():
                 run(name+'.'+lane+'.build',command)
                 output=run(name+'.'+lane+'.run',[target]);assert output.count(marker)==1,(name,output)
                 if name=='preparation':assert '25 real allocation failures after completed notification' in output
+                if name=='plan':assert 'Ownership preparation continuation: 96 real self-cycles' in output
                 products.append(dict(Path=str(target),Sha256=sha(target)))
-        report.update(CanonicalCompletionAcceptance=True,PlanRegressionAcceptance=True,Complete=True)
+        # Restore the old snapshot-BUSY early return. This must compile, then
+        # strand the already-started phase-1 continuation at its second poll.
+        body=(root/'src/runtime/xl6_ownership_plan.c').read_text(encoding='utf8')
+        variants=(('read-before-continuation','        bool continuing=result==XL6_OWNERSHIP_PLAN_BUSY;',
+            '        bool continuing=false;\n        if(result==XL6_OWNERSHIP_PLAN_BUSY){freeze_end(&freeze);return XL6_OWNERSHIP_STEP_BUSY;}',
+            'root->preparationPhase==2&&root->preparationCalls==2'),
+            ('unstarted-duty-on-busy','(!continuing||node->preparationStarted)','true','root->preparationCalls==0'))
+        for name,old,new,proof in variants:
+            assert body.count(old)==1
+            mutant=out/('bad-'+name+'.c');mutant.write_text(body.replace(old,new,1),encoding='utf8');products.append(dict(Path=str(mutant),Sha256=sha(mutant)))
+            target=out/('bad-'+name+('.exe' if os.name=='nt' else ''))
+            run('bad-'+name+'.build',[cc,*flags,*san,'-O0','-I'+str(root/'src/runtime'),root/'test/cases/xlir_ownership_plan_runtime.c',mutant,*native,*systems,'-o',target])
+            products.append(dict(Path=str(target),Sha256=sha(target)))
+            run('bad-'+name+'.refused',[target],True,proof)
+        report.update(CanonicalCompletionAcceptance=True,PlanRegressionAcceptance=True,ContinuationAccepted=True,ContinuationNegativeAccepted=True,Complete=True)
     finally:
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
         (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')

@@ -31,13 +31,13 @@ void xl6ExecutorThrowLanguageV1(void* resource)
 {if(!xl6ExecutionExecutorThrowIfFailedV1(resource))failed();}
 uint64_t xl6ExecutorFailureCountLanguageV1(void* resource)
 {
-    XL6_ExecutorFailureSnapshotV1 snapshot={.size=sizeof(snapshot)};
+    XL6_ExecutionFailureSnapshotV1 snapshot={.size=sizeof(snapshot)};
     if(!xl6ExecutionExecutorFailuresV1(resource,&snapshot))failed();
     return snapshot.count;
 }
 bool xl6ExecutorFailureSaturatedLanguageV1(void* resource)
 {
-    XL6_ExecutorFailureSnapshotV1 snapshot={.size=sizeof(snapshot)};
+    XL6_ExecutionFailureSnapshotV1 snapshot={.size=sizeof(snapshot)};
     if(!xl6ExecutionExecutorFailuresV1(resource,&snapshot))failed();
     return snapshot.saturated;
 }

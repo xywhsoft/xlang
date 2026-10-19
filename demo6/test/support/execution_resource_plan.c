@@ -8,6 +8,10 @@ static XL6_ArtifactOwnershipPlan selectPlan(const char* choice)
     if(!strcmp(choice,"both")){
         XL6_ArtifactRuntimeSet pool=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_EXECUTION_POOL);
         for(size_t i=0;i<XL6_ARTIFACT_RUNTIME_WORD_COUNT;++i)roots.words[i]|=pool.words[i];
+        /* Native resource-tail fixtures only; the three minimal family plans
+         * above remain independently pruned, without this asynchronous file. */
+        XL6_ArtifactRuntimeSet file=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_FILE_ASYNC);
+        for(size_t i=0;i<XL6_ARTIFACT_RUNTIME_WORD_COUNT;++i)roots.words[i]|=file.words[i];
     }
     XL6_ArtifactRuntimePlan base;XL6_ArtifactOwnershipPlan result;
     assert(xl6ArtifactRuntimeClosePlan(&roots,&base)&&xl6ArtifactOwnershipPlanBuild(&base,&result));return result;
