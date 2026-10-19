@@ -298,10 +298,13 @@ static int xl6IrCgenIsVoidErrorCarrierCall(
            target->errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE;
 }
 
+/* These SSA markers have no addressable payload: checked void outcomes,
+ * void await outcomes, and descriptor-bound logical empty arguments. */
 static int xl6IrCgenIsControlCarrier(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
 {
     return xl6IrCgenIsVoidErrorCarrierCall(module, instruction) ||
+           xl6IrInstructionIsZeroPayload(module, instruction) ||
            (instruction != NULL && instruction->kind == XL6_IR_INSTR_AWAIT &&
             instruction->asyncResultAbi == XL6_IR_ASYNC_RESULT_VOID &&
             instruction->type == XL6_IR_TYPE_INVALID &&
@@ -566,6 +569,12 @@ static int xl6IrCgenEmitCallOperand(
 {
     if ( target == NULL || parameter >= target->parameterCount ||
          target->parameterPhysicalAbis == NULL ) return 0;
+    if (target->parameterPhysicalAbis[parameter] == XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD) {
+        const XL6_IrInstruction* definition = xl6IrCgenValueDefinition(module, value, NULL);
+        if (!xl6IrInstructionIsZeroPayload(module, definition) ||
+            definition->type != target->parameterTypes[parameter]) return 0;
+        xl6OutputPuts("NULL", out); return !xl6OutputHasFailed(out);
+    }
     if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW) {
         xl6OutputPrintf(out,"&v%u",(unsigned int)value);return !xl6OutputHasFailed(out);
     }

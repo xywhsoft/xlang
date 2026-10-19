@@ -4025,7 +4025,10 @@ typedef enum XL6_IrCallParameterPhysicalAbi {
     /* A synchronous const address of the exact logical value slot. Only a
      * closed generic runtime descriptor may select this ABI; it is not user
      * byref and grants no mutation or retention of the temporary address. */
-    XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW
+    XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW,
+    /* The exact logical null payload has no addressable value slot. The
+     * closed native descriptor receives NULL, never a fabricated C value. */
+    XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD
 } XL6_IrCallParameterPhysicalAbi;
 
 /* A raw C callback may cross ordinary language wrapper functions before it
@@ -6851,6 +6854,10 @@ const char* xl6IrRuntimeDirectBridgeParameterOwner(const char* name, size_t para
  * general XL6_Function foreign ABI. Signature still needs full verification. */
 int xl6IrRuntimeDirectBridgeCheckedClosureParameter(const char* name, size_t parameter);
 int xl6IrRuntimeDirectBridgeValueAddressParameter(const char* name,size_t parameter);
+int xl6IrTypeIsZeroPayload(const XL6_IrModule*, XL6_IrTypeId);
+int xl6IrInstructionIsZeroPayload(const XL6_IrModule*, const XL6_IrInstruction*);
+XL6_IrCallParameterPhysicalAbi xl6IrNativeValueParameterPhysicalAbi(
+    const XL6_IrModule*, XL6_IrTypeId);
 XL6_IrCallNativeResultAbi xl6IrRuntimeDirectBridgeNativeResultAbi(const char*);
 int xl6IrRuntimeDirectBridgeManagedHandleResult(const char*);
 XL6_IrTypeId xl6IrCallTargetPhysicalResultType(const XL6_IrModule*,const XL6_IrCallTarget*);

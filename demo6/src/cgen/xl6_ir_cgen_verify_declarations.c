@@ -54,7 +54,8 @@ static int xl6IrCgenVerifyDeclarations(
                       parameterType->kind == XL6_IR_TYPE_FUNCTION) )
                     return xl6IrCgenCallParameterDiag(diags, module, target,
                         parameter, "uses a direct closure at an extern boundary");
-            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW) {
+            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW ||
+                      target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD) {
                 if(!xl6IrRuntimeDirectBridgeValueAddressParameter(target->cName,parameter) ||
                    !xl6IrRuntimeDirectBridgeTargetMatches(module,target))
                     return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no sealed native value-address ABI");
@@ -103,6 +104,7 @@ static int xl6IrCgenVerifyDeclarations(
                     parameter, "has no canonical physical ABI");
             }
             if ( !xl6IrCgenIsEntryParameter(module, target->symbol, parameter) &&
+                 target->parameterPhysicalAbis[parameter] != XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD &&
                  xl6IrCgenType(module, target->parameterTypes[parameter]) == NULL )
                 return xl6IrCgenCallParameterDiag(diags, module, target, parameter,
                                                    "has no supported C value ABI");

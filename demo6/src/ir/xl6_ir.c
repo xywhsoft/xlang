@@ -334,6 +334,10 @@ static XL6_IrCAbi xl6IrCAbiFromFrontend(XL6_TypeAbiId abiId, const char* canonic
 static XL6_IrOwnershipAbi xl6IrOwnershipAbiFromFrontend(
     XL6_TypeAbiId abiId, const char* canonicalName)
 {
+    /* Logical null is an empty payload, not an undisclosed managed owner.
+     * It still has no standalone material C representation. */
+    if (abiId == xl6TypeAbiIdText("xrt.null"))
+        return XL6_IR_OWNERSHIP_ABI_TRIVIAL;
     XL6_IrCAbi cAbi = xl6IrCAbiFromFrontend(abiId, canonicalName);
     return (cAbi == XL6_IR_C_ABI_NATIVE_VALUE || cAbi == XL6_IR_C_ABI_MANAGED_STRING || cAbi == XL6_IR_C_ABI_MANAGED_BYTES ||
             cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
@@ -12853,6 +12857,93 @@ int xl6IrTypeCanBoxRuntimeXValue(
 /* Direct null is a canonical literal producer, not a stored C value. Its
  * explicit runtime-null lowering is valid at dynamic argument boundaries;
  * INVALID C ABI alone must never admit an arbitrary non-literal operand. */
+int xl6IrTypeIsZeroPayload(const XL6_IrModule* module, XL6_IrTypeId id)
+{
+    const XL6_IrType* type = module != NULL ? xl6IrTypeGet(&module->types, id) : NULL;
+    return type != NULL && type->kind == XL6_IR_TYPE_BUILTIN &&
+        type->cAbi == XL6_IR_C_ABI_UNSUPPORTED &&
+        type->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+        type->nullAbi == XL6_IR_NULL_ABI_NONE &&
+        type->paramCount == 0 && type->returnCount == 0 &&
+        type->nominalSymbol == XL6_SYMBOL_ID_INVALID &&
+        module->runtimeTypeMap.nullTypeValueId != 0 &&
+        type->typeValueId == module->runtimeTypeMap.nullTypeValueId;
+}
+
+XL6_IrCallParameterPhysicalAbi xl6IrNativeValueParameterPhysicalAbi(
+    const XL6_IrModule* module, XL6_IrTypeId id)
+{
+    return xl6IrTypeIsZeroPayload(module, id)
+        ? XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD
+        : XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW;
+}
+
+int xl6IrInstructionIsZeroPayload(
+    const XL6_IrModule* module, const XL6_IrInstruction* instruction)
+{
+    const XL6_IrNode* source;
+    return instruction != NULL && instruction->kind == XL6_IR_INSTR_NULL &&
+        instruction->result != XL6_IR_VALUE_INVALID &&
+        instruction->operandCount == 0 && instruction->targetSymbol == 0 &&
+        instruction->targetValue == XL6_IR_VALUE_INVALID &&
+        instruction->calleeType == XL6_IR_TYPE_INVALID &&
+        instruction->opcode == XL6_IR_OPCODE_INVALID &&
+        instruction->runtimeOp == XL6_IR_RUNTIME_NONE &&
+        instruction->trueTarget == XL6_IR_BLOCK_INVALID &&
+        instruction->falseTarget == XL6_IR_BLOCK_INVALID &&
+        instruction->immediateText == NULL &&
+        xl6IrTypeIsZeroPayload(module, instruction->type) &&
+        (source = xl6IrNodeGet(module, instruction->origin)) != NULL &&
+        source->kind == XL6_IR_NODE_LITERAL && source->sourceKind == XL6_AST_NULL &&
+        source->storageType == instruction->type && source->childCount == 0;
+}
+
+/* Empty SSA values are logical call operands only. They cannot be stored,
+ * captured, suspended, returned, merged or used as an error/control carrier.
+ * Check this at the IR boundary, before either C or header bytes are emitted. */
+static int xl6IrZeroPayloadHasOnlyNativeUses(
+    const XL6_IrModule* module, const XL6_IrInstruction* definition)
+{
+    XL6_IrValueId value = definition->result;
+    for (size_t i = 0; i < module->instructionCount; ++i) {
+        const XL6_IrInstruction* use = &module->instructions[i];
+        if (use->targetValue == value || use->pendingFailure == value ||
+            use->firstOperand > module->operandCount ||
+            use->operandCount > module->operandCount - use->firstOperand) return 0;
+        for (size_t p = 0; p < use->operandCount; ++p) {
+            const XL6_IrCallTarget* target;
+            if (module->operands[use->firstOperand + p] != value) continue;
+            target = use->kind == XL6_IR_INSTR_CALL
+                ? xl6IrCallTargetGet(module, use->targetSymbol) : NULL;
+            if (target == NULL || p >= target->parameterCount ||
+                target->parameterTypes == NULL || target->parameterPhysicalAbis == NULL ||
+                target->parameterTypes[p] != definition->type ||
+                target->parameterPhysicalAbis[p] != XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD ||
+                !xl6IrRuntimeDirectBridgeTargetMatches(module, target)) return 0;
+        }
+    }
+#define XL6_IR_REJECT_EMPTY_CAPTURE(table, count, capacity, member) \
+    do { \
+        if (module->count > module->capacity || \
+            (module->count != 0 && module->table == NULL)) return 0; \
+        for (size_t i = 0; i < module->count; ++i) \
+            if (module->table[i].member == value) return 0; \
+    } while (0)
+    XL6_IR_REJECT_EMPTY_CAPTURE(callbackCaptures, callbackCaptureCount, callbackCaptureCapacity, value);
+    XL6_IR_REJECT_EMPTY_CAPTURE(asyncMachineFrameSlots, asyncMachineFrameSlotCount, asyncMachineFrameSlotCapacity, value);
+    XL6_IR_REJECT_EMPTY_CAPTURE(asyncLiveSlots, asyncLiveSlotCount, asyncLiveSlotCapacity, value);
+    XL6_IR_REJECT_EMPTY_CAPTURE(asyncFrameActions, asyncFrameActionCount, asyncFrameActionCapacity, value);
+    XL6_IR_REJECT_EMPTY_CAPTURE(asyncSuspensions, asyncSuspensionCount, asyncSuspensionCapacity, inputValue);
+    XL6_IR_REJECT_EMPTY_CAPTURE(asyncSuspensions, asyncSuspensionCount, asyncSuspensionCapacity, resultValue);
+    XL6_IR_REJECT_EMPTY_CAPTURE(generatorFrameSlots, generatorFrameSlotCount, generatorFrameSlotCapacity, value);
+    XL6_IR_REJECT_EMPTY_CAPTURE(generatorLiveSlots, generatorLiveSlotCount, generatorLiveSlotCapacity, value);
+    XL6_IR_REJECT_EMPTY_CAPTURE(generatorFrameActions, generatorFrameActionCount, generatorFrameActionCapacity, value);
+    XL6_IR_REJECT_EMPTY_CAPTURE(generatorSuspensions, generatorSuspensionCount, generatorSuspensionCapacity, itemValue);
+    XL6_IR_REJECT_EMPTY_CAPTURE(instantiations, instantiationCount, instantiationCapacity, receiver);
+#undef XL6_IR_REJECT_EMPTY_CAPTURE
+    return 1;
+}
+
 int xl6IrDynamicCallArgumentCanBox(const XL6_IrModule* module, const XL6_IrNode* expression)
 {
     if (!expression) return 0;
@@ -16376,7 +16467,8 @@ int xl6IrDynamicMethodCallTargetSupported(
         if ( target->parameterConstraintAbis[p] != XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE ) return 0;
         if ( target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW ) {
             if ( xl6IrCallTargetNativeClassPhysicalField(module, target, p) == NULL ) return 0;
-        } else if (target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW) {
+        } else if (target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW ||
+                   target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD) {
             if (!p || !xl6IrRuntimeDirectBridgeValueAddressParameter(target->cName,p) ||
                 !xl6IrRuntimeDirectBridgeTargetMatches(module,target)) return 0;
         } else if ( target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW ) {
@@ -38292,7 +38384,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       parameterType->kind == XL6_IR_TYPE_FUNCTION) )
                     return xl6IrDiag(diags, NULL,
                         "XLIR extern function parameter cannot use the direct closure physical ABI");
-            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW) {
+            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW ||
+                      target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD) {
                 if(!xl6IrRuntimeDirectBridgeValueAddressParameter(target->cName,parameter) ||
                    !xl6IrRuntimeDirectBridgeTargetMatches(module,target))
                     return xl6IrDiag(diags,NULL,"XLIR generic value address lacks an exact closed descriptor contract");
@@ -39777,6 +39870,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 }
                 if (instruction->sequenceResultArrayType && instruction->runtimeOp!=XL6_IR_RUNTIME_STACK_ERASE)
                     return xl6IrDiag(diags,instructionOrigin,"XLIR non-Stack erasure carries a result Array identity");
+                if (xl6IrTypeIsZeroPayload(module, instruction->type) &&
+                    (!xl6IrInstructionIsZeroPayload(module, instruction) ||
+                     !xl6IrZeroPayloadHasOnlyNativeUses(module, instruction)))
+                    return xl6IrDiag(diags, instructionOrigin,
+                        "XLIR zero payload requires an exact empty producer and synchronous native consumer");
                 if (instruction->runtimeOp==XL6_IR_RUNTIME_STACK_ERASE &&
                     !xl6IrStackErasureInstructionCompatible(module,instruction))
                     return xl6IrDiag(diags,instructionOrigin,"XLIR Stack erasure has no exact role, payload, consumed-source and owned-result ABI");
@@ -40253,7 +40351,8 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     if ( instruction->result == XL6_IR_VALUE_INVALID || nullType == NULL ||
                          instruction->operandCount != 0 || instruction->targetSymbol != 0 ||
                          instruction->calleeType != XL6_IR_TYPE_INVALID ||
-                         (nullType->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL &&
+                         (!xl6IrInstructionIsZeroPayload(module, instruction) &&
+                          nullType->nullAbi != XL6_IR_NULL_ABI_POINTER_SENTINEL &&
                           nullType->nullAbi != XL6_IR_NULL_ABI_XVALUE_SENTINEL &&
                           !(nullType->nullAbi == XL6_IR_NULL_ABI_TAGGED_VALUE &&
                             (nullType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE ||
@@ -48019,6 +48118,8 @@ static const char* xl6IrCallParameterPhysicalAbiName(
         return "checked-closure-borrow";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW:
         return "generic-value-address-borrow";
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD:
+        return "generic-zero-payload";
     default: return "invalid";
     }
 }

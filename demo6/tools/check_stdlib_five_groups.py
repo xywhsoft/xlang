@@ -124,12 +124,13 @@ def main():
         selected = ('stdlib_promise', 'stdlib_promise_values', 'stdlib_promise_terminal',
                     'stdlib_promise_dynamic', 'stdlib_promise_owned', 'future_duplicate_cancel',
                     'stdlib_cancellation', 'stdlib_task_group_methods', 'stdlib_concurrent_import_only',
-                    'stdlib_slot_map_future_keys')
+                    'stdlib_slot_map_future_keys', 'stdlib_promise_unit')
         negatives = ('bad_stdlib_promise_missing_import', 'bad_stdlib_promise_private', 'bad_stdlib_promise_type',
                      'bad_stdlib_promise_default','bad_stdlib_promise_default_local','bad_stdlib_promise_default_field',
                      'bad_stdlib_promise_default_generic_field')
         helpers = (*helpers[:3], 'xlir_promise_contract.c', 'stdlib_promise_native_host.c',
-                   'stdlib53_pruning_plan.c', 'stdlib_native_future_policy_product_host.c')
+                   'stdlib53_pruning_plan.c', 'stdlib_native_future_policy_product_host.c',
+                   'xlir_promise_zero_payload_contract.c')
     if args.stage == 'task-group':
         selected=('stdlib_task_group_configured','stdlib_task_group_methods','stdlib_task_group_sync_only',
             'stdlib_task_group','stdlib_task_group_allocations','xlir_fixed_executor_language',
@@ -399,7 +400,7 @@ def main():
             full = name == selected[0] or (args.stage in QUEUED_FUTURE_STAGES and name in selected[:3]) or (args.stage in CHANNEL_FUTURE_STAGES and name in ('stdlib_channel_future_factory','stdlib_channel_cases','xlir_native_factory_inherited','stdlib_channel_direct_future','stdlib_channel_direct_ready','stdlib_channel_direct_factory')) or (args.stage in ('atomic', 'once-event', 'thread-local', 'cancellation') and
                 name in selected[:(4 if args.stage in ('thread-local','cancellation') else 3)]) or (
                 args.stage == 'cancellation' and name == 'stdlib_task_group_methods') or (
-                args.stage == 'promise' and name in selected[:6]) or (
+                args.stage == 'promise' and (name in selected[:6] or name == 'stdlib_promise_unit')) or (
                 args.stage in CHANNEL_STAGES and
                 (name in selected[:3] or name in ('stdlib_channel_deadlines','stdlib_channel_deadline_only',
                                                  'stdlib_channel_cancellation','stdlib_channel_cancel_only','stdlib_channel_cancel_flow',
@@ -742,6 +743,12 @@ def main():
                   [isolated/'xlir_class_tag_vocabulary.xl', isolated/'xlir_class_tag_narrow_first.xl']
                   if args.stage == 'cancellation' else
                   [isolated/(name+'.xl') for name in selected[1:3]] if args.stage == 'promise' else [])])
+            if args.stage == 'promise':
+                empty = isolated/'promise-zero-payload-contract'
+                run('promise-zero-payload-contract.build', [cc, *strict, '-O2',
+                    '-I'+str(root/'lib/tcc'), cases/'xlir_promise_zero_payload_contract.c',
+                    *links(names[2]), '-o', empty])
+                run('promise-zero-payload-contract.run', [empty, isolated/'stdlib_promise_unit.xl'])
             if args.stage in CHANNEL_STAGES:
                 deadline = isolated/'deadline-contract'
                 run('deadline-contract.build',[cc,*flags,'-O2','-I'+str(root),
