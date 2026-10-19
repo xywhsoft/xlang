@@ -153,6 +153,12 @@ typedef struct XL6_TaskPoolControlV1 {
     bool (*Destroy)(XL6_TaskPool*);
 } XL6_TaskPoolControlV1;
 XL6_CODE_LEASE_API const XL6_TaskPoolControlV1* xl6TaskPoolControlV1Get(void);
+/* Whole-graph Finish only: the pool wrapper is already cleared and has a real
+ * inspection hold. Consume its original creator slot without demanding that
+ * its independently cleared native child has already run Finish. The wrapper
+ * retains that child's actual owner until its own Finish; pins survive either
+ * ordering. Not an ordinary drop or a substitute for Quiesce/Destroy. */
+XL6_CODE_LEASE_API bool xl6TaskPoolReleaseClearedOwnerV1(XL6_TaskPool*);
 /* Closed capture storage for verified callback activations. V1 allocation is
  * retained for other frame families until their own complete layout migration;
  * V2 does not certify the task pool, Watch or active worker as a graph leaf. */
