@@ -32,13 +32,20 @@ join，Finish 退役线程资源。被 pin 的已完成槽位延迟复用，并�
 上游 `executor_ownership_tests` 检查模块化与单头、真实节点和边、错误合同拒绝、
 并行回调、取消清理屏障、pin 阻止 ABA 复用、两种销毁顺序及调用线程的创建／快照
 分配失败前缀，核对真实存活数量、字节和分配／释放账本。调用线程注入不等于 Worker
-OOM 已认证。Windows GCC 与 Linux GCC/TCC 的 O0/O2 已通过；Windows TCC 的测试
-执行被 Defender 的 WinError 225 拦截，仍待验收，没有修改防护设置或绕过拦截。
+OOM 已认证。Windows 与 Linux 的 GCC/TCC 模块化及单头 O0/O2 均已通过。
+Windows TCC 初次执行被 Defender 的 WinError 225 拦截；用户恢复并允许原路径
+测试文件后，先运行恢复的原产物，再完成缺失的 TCC 两个优化级别。未修改防护
+设置或绕过拦截。旧失败报告保留；此前没有隔离前的产物哈希，不能声称做过该比对。
 
 DEMO6 的维护入口为 `tools/check_stdlib_executor_native.py --out <新证据目录>`，
 支持 `--compiler`；实际 XRT／xruntime 两种单头和 O0/O2 都须通过七个 API、五个物理
 节点、六条边及精确清理账本检查。另以同一上游完整夹具和仅测试侧时间单位适配器
 检查两个实际快照。全部为普通离线 ABI／生命周期测试，没有网络或安全性质测试。
+
+本次恢复验收在 `F:/xlang-validation/five-groups-20261019/p1-public-executor/`
+的 `native-win-tcc-r3/results.json`（原产物及八个测试进程）和
+`maintained-win-tcc-r2/results.json`（实际两种快照、四次构建及四次运行）。
+两份报告均为 Complete，输入及日志哈希保持一致；不重跑已通过的 GCC/Linux 通道。
 
 下一步仍须把明确准入的 Data policy 接入常驻 runtime domain/catalog，建立高层执行
 资源及 callback/code-lease 合同、语言类和方法、可达性裁剪与 JIT/AOT 验收。不能仅因
