@@ -85,7 +85,7 @@ def main():
             for opt in ('O0','O2'):
                 target=out/('static-quiescence.'+opt+suffix)
                 run('static-quiescence.'+opt+'.build',[cc,*flags,'-'+opt,static_quiescence,*link_objects,*libraries,'-o',target])
-                assert b'Static module quiescence: 64 real finalizer-to-worker handoffs' in run('static-quiescence.'+opt+'.run',[target])
+                assert b'Static module quiescence: 192 real finalizer-to-worker handoffs' in run('static-quiescence.'+opt+'.run',[target])
             report['StaticModuleTransientAcceptance']=True
             target=out/('language'+suffix)
             run('language.build',[cc,*flags,'-O2',host,*link_objects,*libraries,'-o',target])

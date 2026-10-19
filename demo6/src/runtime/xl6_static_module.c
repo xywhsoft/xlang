@@ -274,8 +274,12 @@ const XL6_CodeOwner* xl6StaticModuleOwnerV1(const XL6_StaticModule* module)
 { return module ? &module->owner.base : NULL; }
 xrtownershipref xl6StaticModuleOwnershipV1(const XL6_StaticModule* module)
 { return (xrtownershipref){module,module ? &staticOps : NULL}; }
-static XL6_StaticModuleResultV1 staticRetire(XL6_StaticModule* module)
+static XL6_StaticModuleResultV1 staticRetire(XL6_StaticModule* module,bool* blockedFailure)
 {
+    /* A sticky semantic failure is independent of THIS driver's physical
+     * progress. In particular ROOTED may only be a genuine native/code tail
+     * which DrainFor must keep waiting for, even after an earlier failure. */
+    if(blockedFailure)*blockedFailure=false;
     if(!module){xrtSetErrorKind(XERR_ARGUMENT);return (XL6_StaticModuleResultV1){false,false};}
     xrtownershipscope freeze={0};
     if(!xrtOwnershipFreezeTryBegin(&freeze))return (XL6_StaticModuleResultV1){false,!staticFailed(module)};
@@ -329,6 +333,7 @@ static XL6_StaticModuleResultV1 staticRetire(XL6_StaticModule* module)
     }
     if(!begun)module->blocked=true;
     xl6_error_result outcome=begun ? xl6ErrorScopeEnd(&scope) : (xl6_error_result){false,xrtTakeError()};
+    if(blockedFailure)*blockedFailure=module->blocked && !outcome.ok;
     xrtownershipscope mutation={0};if(!xrtOwnershipMutationBegin(&mutation))abort();
     if(!outcome.ok && !staticFailed(module)){
         module->firstError=xrtErrorRef(outcome.error);
@@ -356,7 +361,7 @@ XL6_StaticModuleResultV1 xl6StaticModuleRetireV1(XL6_StaticModule* module)
 {
     if(!module){xrtSetErrorKind(XERR_ARGUMENT);return (XL6_StaticModuleResultV1){false,false};}
     if(!staticBoundaryEnter(STATIC_BOUNDARY_RETIRE))return (XL6_StaticModuleResultV1){false,!staticFailed(module)};
-    XL6_StaticModuleResultV1 result=staticRetire(module);staticBoundaryLeave();return result;
+    XL6_StaticModuleResultV1 result=staticRetire(module,NULL);staticBoundaryLeave();return result;
 }
 XL6_StaticModuleResultV1 xl6StaticModuleDrainV1(XL6_StaticModule* module)
 {
@@ -367,7 +372,7 @@ XL6_StaticModuleResultV1 xl6StaticModuleDrainV1(XL6_StaticModule* module)
                 return (XL6_StaticModuleResultV1){false,!staticFailed(module)};
             xrtThreadYield();continue;
         }
-        XL6_StaticModuleResultV1 result=staticRetire(module);bool blocked=module->blocked;
+        XL6_StaticModuleResultV1 result=staticRetire(module,NULL);bool blocked=module->blocked;
         staticBoundaryLeave();if(result.ready || blocked)return result;
         xrtThreadYield();
     }
@@ -382,7 +387,7 @@ XL6_StaticModuleResultV1 xl6StaticModuleDrainForV1(XL6_StaticModule* module,long
         if(!staticBoundaryEnter(STATIC_BOUNDARY_RETIRE)){
             if(xrtAtomic64Load(&staticBoundaryThread,XMEMORY_ACQUIRE)==xrtThreadCurrentId())return result;
         }else{
-            result=staticRetire(module);bool failed=module->blocked && !result.ok;
+            bool failed=false;result=staticRetire(module,&failed);
             staticBoundaryLeave();if(result.ready || failed)return result;
         }
         if(milliseconds>=0 && xrtDeadlineExpired(deadline))return result;
