@@ -21,6 +21,7 @@ typedef struct xlir_call_default {
     bool (*program)(void* environment, void* output, const void* const* prefix);
 } xlir_call_default;
 typedef struct xlir_closure XL6_Closure;
+struct xvalue;
 struct xlir_closure {
     volatile int32_t refs;
     void (*invoke)(void);
@@ -63,6 +64,10 @@ typedef struct XL6_ClosureRuntimeV1 {
 /* Return actual resident callback addresses, not producer-side PE import
  * thunks. The embedding runtime must outlive every accepted closure/box. */
 XL6_CODE_LEASE_API const XL6_ClosureRuntimeV1* xl6ClosureRuntimeV1Get(void);
+/* Borrowed, allocation/error-transparent owned-schema language-box probe.
+ * Active invocations are legal; legacy V1/opaque closures are refused.
+ * This is not a whole-graph lifecycle admission of all captured children. */
+XL6_CODE_LEASE_API bool xl6ClosureBoxAdmittedV1(const struct xvalue*);
 
 /* V2 replaces producer-owned trace/drop callbacks with a closed physical
  * capture layout. The immutable descriptor has the same lifetime as invoke;

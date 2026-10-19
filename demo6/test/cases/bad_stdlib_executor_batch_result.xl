@@ -1,0 +1,7 @@
+import concurrent
+auto executor = Executor(1, 8)
+array<func() as int> jobs = []
+jobs.push(func() as int
+    return 1
+end)
+executor.submitBatch(jobs)

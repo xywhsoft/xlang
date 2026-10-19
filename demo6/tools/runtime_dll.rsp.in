@@ -23,6 +23,7 @@
     src\runtime\xl6_execution_pool.c
     src\runtime\xl6_execution_module.c
     src\runtime\xl6_executor_language.c
+    src\runtime\xl6_executor_batch.c
     src\runtime\xl6_ownership_domain_executor_language.c
     src\runtime\xl6_task_file.c
     src\runtime\xl6_text_value.c

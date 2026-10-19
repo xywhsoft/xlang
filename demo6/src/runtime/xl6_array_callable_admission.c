@@ -12,6 +12,16 @@ static bool admitted(const void* opaque,const xvalue* value)
     if (!value || xrtValueType(value)==XVALUE_NULL) return data->nullable;
     return xrtValueTypeId(value)==data->identity && xrtValueIsCallable(value);
 }
+bool xl6SequenceCallablePolicyV1(XL6_Sequence* owner,uint64_t signature)
+{
+    XL6_SequenceAdmissionV3 admission={0};if(!xl6SequenceAdmissionCopyV3(owner,&admission))return false;
+    bool ok=signature&&admission.elementIdentity==signature&&admission.transfer==3&&
+        admission.size==sizeof(xvalue*)&&admission.type==xrtTypeValue()&&admission.ops==&policyOps&&
+        admission.data&&!admission.boxedIdentity;
+    if(ok){const XL6_ArrayAdmissionData* data=admission.data;
+        ok=!data->nullable&&data->identity==signature&&!data->rule&&!data->childRole&&!data->nominal.kind;}
+    xl6SequenceAdmissionDropV3(&admission);return ok;
+}
 xvalue* xl6SequenceCallableCreateV1(unsigned int role,uint64_t identity,uint64_t element,
     uint64_t signature,bool nullable)
 {

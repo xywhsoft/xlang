@@ -2,7 +2,7 @@
 
 Uses a sealed full current-source compiler/runtime driver, genuine TCC core
 and staged physical headers. Does not certify fresh shipping DLL/SO/VFS or
-complete TaskPool/batch surface/five-group acceptance. No network tests.
+complete TaskPool/five-group acceptance. No network tests.
 """
 from pathlib import Path
 import argparse,hashlib,json,os,shutil,subprocess,time
@@ -18,8 +18,9 @@ def main():
  assert sha(build['Driver'])==build['DriverSha256'].lower()
  assert all(sha(row['Path'])==row['Sha256'].lower() for row in build['Objects']+build['Headers'])
  cc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve();driver=Path(build['Driver']);sdk=driver.parent/'include';ext='.exe' if os.name=='nt' else ''
- cases=('stdlib_executor','stdlib_executor_errors','stdlib_executor_control','stdlib_executor_self_release','stdlib_executor_unused','stdlib_executor_mixed_services','stdlib_executor_thread_local')
- negatives=('bad_stdlib_executor_missing_import','bad_stdlib_executor_callback')
+ cases=('stdlib_executor','stdlib_executor_errors','stdlib_executor_control','stdlib_executor_self_release','stdlib_executor_unused','stdlib_executor_mixed_services','stdlib_executor_thread_local',
+  'stdlib_executor_batch','stdlib_executor_batch_errors','stdlib_executor_batch_borrowed')
+ negatives=('bad_stdlib_executor_missing_import','bad_stdlib_executor_callback','bad_stdlib_executor_batch_result','bad_stdlib_executor_batch_parameter')
  files={Path(__file__).resolve(),manifest,cc,driver,root/'test/cases/xlir_executor_contract.c',
   *[root/('test/cases/'+name+'.xl') for name in cases+negatives+('stdlib_executor_unobserved_error','stdlib_executor_unobserved_exit',
    'stdlib_thread_local','stdlib_thread_local_threads','stdlib_thread_local_owned')]}
@@ -47,10 +48,14 @@ def main():
    source=root/('test/cases/'+case+'.xl');generated=out/(case+'.c');ir=out/(case+'.json')
    run(case+'.emit',[driver,source,'cgen-default',generated]);product(generated)
    run(case+'.ir',[driver,source,'ir-lowered',ir]);product(ir)
-   data=json.loads(ir.read_text());assert data['moduleExecutionOwnershipAbi']==(0 if case.endswith('_unused') else 1)
+   ownsSource=not case.endswith(('_unused','_borrowed'))
+   data=json.loads(ir.read_text());assert data['moduleExecutionOwnershipAbi']==int(ownsSource)
    mixed=case.endswith('_mixed_services')
    assert data['moduleContinuationAbi']==(2 if mixed else 0) and data['moduleTaskPoolAbi']=='none'
-   text=generated.read_text();assert ('static XL6_ExecutionSourceV1* xlir_execution_source;' in text)==(not case.endswith('_unused'))
+   text=generated.read_text();assert ('static XL6_ExecutionSourceV1* xlir_execution_source;' in text)==ownsSource
+   if '_batch' in case:
+    assert 'xl6ExecutorSubmitBatchLanguageV1((XL6_NullaryVoidArrayContextV1)' in text
+    assert 'xl6ExecutorPrepareBoxedBatchV1' not in text and 'xrtExecutorSubmitOwnedBatchV1' not in text
    assert ('xlir_continuation_executor' in text)==mixed and 'xlir_async_pool' not in text
    for opt in ('O0','O2'):
     obj=out/(case+'.'+opt+'.o');run(case+'.'+opt, [cc,*flags,*compat,'-'+opt,'-c',generated,'-o',obj]);product(obj)
@@ -86,9 +91,11 @@ def main():
   response=out/'contract.rsp';response.write_text('\n'.join('"'+str(arg).replace('\\','/')+'"' for arg in link[1:])+'\n',encoding='utf8');product(response)
   run('contract.link',[cc,'@'+str(response)]);product(binary)
   if os.name=='nt':shutil.copy2(root/'release/xl.dll',out/'xl.dll');product(out/'xl.dll')
-  run('contract.run',[binary,root/'test/cases/stdlib_executor.xl',root/'test/cases/stdlib_executor_unused.xl'],'Executor XLIR: 15 pre-emission refusals')
+  text=run('contract.run',[binary,root/'test/cases/stdlib_executor.xl',root/'test/cases/stdlib_executor_unused.xl',
+   root/'test/cases/stdlib_executor_batch.xl'],'Executor XLIR: 15 pre-emission refusals')
+  assert 'Executor batch XLIR:' in text
   report['InputsUnchanged']=all(sha(path)==digest for path,digest in inputs.items()) and all(sha(row['Path'])==row['Sha256'].lower() for row in build['Inputs'])
   report['LogsUnchanged']=all(sha(row['Log'])==row['Sha256'] for row in rows)
-  assert report['InputsUnchanged'] and report['LogsUnchanged'];report['Complete']=True;save()
+  assert report['InputsUnchanged'] and report['LogsUnchanged'];report['BatchSurfaceAccepted']=True;report['Complete']=True;save()
  except BaseException as error:failures.append(repr(error));save();raise
 if __name__=='__main__':main()

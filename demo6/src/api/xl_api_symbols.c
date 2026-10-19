@@ -292,6 +292,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
         !xlApiAddTccSymbol(s, "xl6PayloadResolveOwned", (const void*)xl6PayloadResolveOwned) ||
         !xlApiAddTccSymbol(s, "xl6PayloadObserveOutcome", (const void*)xl6PayloadObserveOutcome)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClosureRuntimeV1Get", (const void*)xl6ClosureRuntimeV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ClosureBoxAdmittedV1", (const void*)xl6ClosureBoxAdmittedV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClosureRuntimeV2Get", (const void*)xl6ClosureRuntimeV2Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClosureCreateEnvironmentV1", (const void*)xl6ClosureCreateEnvironmentV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClosureRuntimeV3Get", (const void*)xl6ClosureRuntimeV3Get)) return 0;
@@ -390,6 +391,10 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6ExecutorUnreportedCheckV1", (const void*)xl6ExecutorUnreportedCheckV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorSubmitClosureV1", (const void*)xl6ExecutorSubmitClosureV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorSubmitClosuresV1", (const void*)xl6ExecutorSubmitClosuresV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorPrepareBoxedBatchV1", (const void*)xl6ExecutorPrepareBoxedBatchV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorCommitBoxedBatchV1", (const void*)xl6ExecutorCommitBoxedBatchV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorDiscardBoxedBatchV1", (const void*)xl6ExecutorDiscardBoxedBatchV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorSubmitBatchLanguageV1", (const void*)xl6ExecutorSubmitBatchLanguageV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorWaitV1", (const void*)xl6ExecutorWaitV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorFailuresOwnershipV1", (const void*)xl6ExecutorFailuresOwnershipV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorClosureDataPolicyV1Get", (const void*)xl6ExecutorClosureDataPolicyV1Get)) return 0;

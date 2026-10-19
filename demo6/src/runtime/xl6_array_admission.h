@@ -70,6 +70,9 @@ XL6_TEXT_API xvalue* xl6SequenceNumericEnumCreateV1(unsigned int, uint64_t, uint
  * slots have a default. This policy owns scalar metadata, no module callback,
  * and does not independently certify a callback's ownership/retirement graph. */
 XL6_TEXT_API xvalue* xl6SequenceCallableCreateV1(unsigned int, uint64_t, uint64_t, uint64_t, bool);
+/* Exact resident, nonnullable callable slot schema on an operation pin.
+ * Does not certify the callback signature shape or its ownership graph. */
+XL6_TEXT_API bool xl6SequenceCallablePolicyV1(XL6_Sequence*,uint64_t);
 /* Actual xfuture* slots copy the native consumer reference. The owned policy
  * traces those control blocks, not temporary boxes, and erased writes require
  * the exact base Future identity and genuine runtime Future Value family.

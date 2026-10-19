@@ -302,6 +302,10 @@ static bool box_invoke(void* data, const xrtcallframe* frame, xrtcallresult* res
     xl6CodeScopeEnter(&adapter, box->adapter);
     closure_enter(&invocation, box->closure);
     ok = box->entry(box->closure, frame, result);
+    /* Publish the checked outcome BEFORE XRT decorates a dynamic-call error
+     * or scope retirement can add cleanup diagnostics. False without an Error
+     * is still the first failure, including resident native Box entries. */
+    if(!ok)xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});
     closure_leave(&invocation); xl6CodeScopeLeave(&adapter);
     return ok;
 }
@@ -319,6 +323,17 @@ static void box_drop(void* data)
 static const xrtcallableownershipv1 box_ownership_policy = {
     sizeof(xrtcallableownershipv1), box_trace, box_drop
 };
+/* Legacy V1 closures remain callable/traceable, but do not have the
+ * coordinated lifecycle protocol required by a managed detached producer.
+ * Distinct permanent identity carries that fact without borrowing Box data. */
+static const xrtcallableownershipv1 legacy_box_ownership_policy = {
+    sizeof(xrtcallableownershipv1), box_trace, box_drop
+};
+bool xl6ClosureBoxAdmittedV1(const xvalue* value)
+{
+    xrtcallable* callable=value&&xrtValueIsCallable(value)?xrtValueGetCallable(value):NULL;
+    return xrtCallableAdmitsOwnershipPolicyV1(callable,&box_ownership_policy);
+}
 static xvalue* xl6OwnershipBody_closure_box(const XL6_CodeOwner* owner, XL6_Closure* closure, XL6_ClosureBoxEntry entry, uint64_t typeId, bool erased)
 {
     XL6_CodeLease* lease = NULL; XL6_CodeLeaseAdmission admission;
@@ -335,7 +350,9 @@ static xvalue* xl6OwnershipBody_closure_box(const XL6_CodeOwner* owner, XL6_Clos
     box->closure = closure_retain(closure); box->adapter = lease; box->entry = entry;
     callable = xrtCallableCreate(NULL, box_invoke, box, box_drop);
     if (callable == NULL) { box_drop(box); goto done; }
-    if (!xrtCallableOwnershipBindV1(callable, &box_ownership_policy)) {
+    const xrtcallableownershipv1* policy=((const ClosureStorage*)closure)->coordinated
+        ? &box_ownership_policy : &legacy_box_ownership_policy;
+    if (!xrtCallableOwnershipBindV1(callable, policy)) {
         xerror* failure = xrtTakeError(); xrtCallableUnref(callable); xrtClearError(); xrtSetErrorTake(failure); goto done;
     }
     value = xrtValueCallableTake(&callable);
@@ -408,7 +425,10 @@ const xrtownershipadapterv1* xl6ClosureOwnershipAdapterV1(xrtownershipref ref)
         closure_claim, closure_restore, NULL, closure_clear, closure_finish};
     const ClosureStorage* storage;
     if (!ref.Data) return NULL;
-    if (ref.Ops != &closure_ops) return xrtCallableOwnershipAdapterV1(ref, &box_ownership_policy);
+    if (ref.Ops != &closure_ops) {
+        const xrtownershipadapterv1* adapter=xrtCallableOwnershipAdapterV1(ref,&box_ownership_policy);
+        return adapter ? adapter : xrtCallableOwnershipAdapterV1(ref,&legacy_box_ownership_policy);
+    }
     storage = ref.Data;
     return storage->coordinated && !storage->cleared && storage->base.refs > 0 ? &adapter : NULL;
 }

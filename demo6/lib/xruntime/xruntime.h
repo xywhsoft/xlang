@@ -44764,6 +44764,13 @@ XRT_EXTERN_C_BEGIN
 XRT_API xrtownershipref xrtCallableOwnership(const xrtcallable* pCallable);
 XRT_API bool xrtCallableOwnershipTraceBind(xrtcallable* pCallable, xrtownershiptrace pTrace);
 XRT_API bool xrtCallableOwnershipBindV1(xrtcallable* pCallable, const xrtcallableownershipv1* pPolicy);
+/* Immutable resident-policy identity probe on a borrowed LIVE callable.
+ * Active invocation is allowed; no Count/Trace/drop/user callback is called.
+ * The caller owns a reference and provides a known permanent policy. This is
+ * NOT graph lifecycle/quiescence admission and grants no environment borrow.
+ * False leaves the diagnostic unchanged. Equal policy copies are not identity. */
+XRT_API bool xrtCallableAdmitsOwnershipPolicyV1(const xrtcallable* pCallable,
+    const xrtcallableownershipv1* pExpectedPolicy);
 XRT_API const xrtownershipadapterv1* xrtCallableOwnershipAdapterV1(
 	xrtownershipref Reference, const xrtcallableownershipv1* pExpectedPolicy);
 
@@ -343144,6 +343151,15 @@ static bool __xrtCallableAdapterFinish(const void* pData, const void* pToken)
 	if (pDrop != NULL) pDrop(pEnvironment);
 	return true;
 }
+XRT_API bool xrtCallableAdmitsOwnershipPolicyV1(const xrtcallable* pCallable,
+    const xrtcallableownershipv1* pExpectedPolicy)
+{
+    return pCallable && pExpectedPolicy && pCallable->OwnershipPolicy == pExpectedPolicy &&
+        pExpectedPolicy->size == sizeof(*pExpectedPolicy) && !pCallable->OwnershipCleared &&
+        pCallable->TraceEnvironment == pExpectedPolicy->Trace &&
+        pCallable->DropEnvironment == pExpectedPolicy->Drop &&
+        __xrtAtomicRefLoad(&pCallable->RefCount) > 0;
+}
 XRT_API const xrtownershipadapterv1* xrtCallableOwnershipAdapterV1(
 	xrtownershipref Reference, const xrtcallableownershipv1* pExpectedPolicy)
 {
@@ -343154,9 +343170,8 @@ XRT_API const xrtownershipadapterv1* xrtCallableOwnershipAdapterV1(
 	if (Reference.Data == NULL || Reference.Ops != &__xrtCallableOwnershipOps ||
 		pExpectedPolicy == NULL || pExpectedPolicy->size != sizeof(*pExpectedPolicy)) return NULL;
 	pCallable = (const xrtcallable*)Reference.Data;
-	if (pCallable->OwnershipPolicy != pExpectedPolicy || pCallable->OwnershipCleared ||
-		pCallable->TraceEnvironment != pExpectedPolicy->Trace || pCallable->DropEnvironment != pExpectedPolicy->Drop ||
-		__xrtAtomicRefLoad(&pCallable->RefCount) <= 0 || __xrtAtomicRefLoad(&pCallable->ActiveReferences) != 1) return NULL;
+	if (!xrtCallableAdmitsOwnershipPolicyV1(pCallable, pExpectedPolicy) ||
+		__xrtAtomicRefLoad(&pCallable->ActiveReferences) != 1) return NULL;
 	return &Adapter;
 }
 

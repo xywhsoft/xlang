@@ -275,6 +275,126 @@ static void abandonedReaderRound(void)
     assert(xrtExecutorWaitFor(executor,UINT64_C(5000000))==XWAIT_OK&&xrtExecutorDestroy(executor));
     assert(xrtAtomic32Load(&context.runs,XMEMORY_ACQUIRE)==1&&xrtAtomic32Load(&context.drops,XMEMORY_ACQUIRE)==1);balanced(&before);
 }
+static const uint64_t boxedSignature=UINT64_C(0x4e554c4c564f4944);
+static bool boxedEntry(void* raw,const xrtcallframe* frame,xrtcallresult* result)
+{
+    XL6_Closure* callback=raw;assert(frame&&!frame->ArgumentCount&&!frame->KeywordCount&&result);
+    return ((bool (*)(void*))callback->invoke)(callback->environment);
+}
+static bool boxedBadResult(void* raw,const xrtcallframe* frame,xrtcallresult* result)
+{return boxedEntry(raw,frame,result)&&xrtCallResultPush(result,xrtValueBool(true));}
+static xvalue* makeBox(Context* context,bool badResult)
+{
+    XL6_Closure* callback=make(context,NULL);
+    xvalue* box=xl6ClosureRuntimeV1Get()->Box(NULL,callback,badResult?boxedBadResult:boxedEntry,boxedSignature);
+    assert(box&&xl6ClosureBoxAdmittedV1(box));xl6ClosureRuntimeV1Get()->Release(callback);return box;
+}
+static void boxedOutcome(unsigned bodyMode,unsigned dropMode,bool badResult)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);Context context;contextInit(&context,(int)bodyMode,(int)dropMode);
+    XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);xexecutor* executor=create(1,8);
+    xvalue* value=makeBox(&context,badResult);XL6_ExecutorPreparedBatchV1 prepared={0};
+    assert(xl6ExecutorPrepareBoxedBatchV1(state,&value,1,boxedSignature,&prepared));
+    xrtValueRelease(value); /* Accepted records become the actual last owners. */
+    assert(xl6ExecutorCommitBoxedBatchV1(executor,&prepared)&&!prepared.items&&!prepared.count);
+    assert(xrtExecutorClose(executor)&&xrtExecutorWaitFor(executor,UINT64_C(5000000))==XWAIT_OK);
+    bool failed=bodyMode||dropMode||badResult;assert(failures(state)==(failed?1u:0u));
+    if(failed){
+        bool diagnostic=bodyMode!=2&&(bodyMode==1||badResult||dropMode==1);
+        xl6_error_scope scope={0};assert(xl6ErrorScopeBegin(&scope));assert(!xl6ExecutorThrowIfFailedV1(state));
+        xl6ErrorScopeCaptureFailure(&scope);xl6_error_result error=xl6ErrorScopeEnd(&scope);assert(!error.ok);
+        if((error.error!=NULL)!=diagnostic)fprintf(stderr,"boxed outcome body=%u drop=%u result=%d expectedDiagnostic=%d actualKind=%d code=%d\n",
+            bodyMode,dropMode,badResult,diagnostic,error.error?(int)xrtErrorKind(error.error):-1,error.error?(int)xrtErrorCode(error.error):-1);
+        assert((error.error!=NULL)==diagnostic);
+        if(bodyMode==1)assert(xrtErrorCode(error.error)==901);
+        else if(badResult)assert(xrtErrorKind(error.error)==XERR_TYPE);
+        else if(dropMode==1&&bodyMode!=2)assert(xrtErrorCode(error.error)==902);
+        xrtErrorFree(error.error);
+    }
+    assert(xrtExecutorDestroy(executor));xl6ExecutorFailuresReleaseV1(state);
+    assert(xrtAtomic32Load(&context.runs,XMEMORY_ACQUIRE)==1&&xrtAtomic32Load(&context.drops,XMEMORY_ACQUIRE)==1);
+    balanced(&before);
+}
+static void boxedGraph(void)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);Context context;contextInit(&context,0,0);
+    XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);xexecutor* executor=create(1,8);
+    xvalue* value=makeBox(&context,false);XL6_ExecutorPreparedBatchV1 prepared={0};
+    assert(xl6ExecutorPrepareBoxedBatchV1(state,&value,1,boxedSignature,&prepared));
+    xrtownershipscope frozen={0};freeze(&frozen);assert(xl6ExecutorCommitBoxedBatchV1(executor,&prepared));
+    xrtownershipref root=xrtExecutorOwnership(executor);xrtownershipresult graph={0};
+    assert(xrtOwnershipInspect(&root,1,NULL,0,&graph));
+    assert(graph.NodeCount==7&&graph.EdgeCount==7&&graph.ExternalRootCount==3);
+    xrtValueRelease(value);assert(xrtOwnershipScopeEnd(&frozen));
+    assert(xrtExecutorClose(executor)&&xrtExecutorWaitFor(executor,UINT64_C(5000000))==XWAIT_OK&&xrtExecutorDestroy(executor));
+    xl6ExecutorFailuresReleaseV1(state);balanced(&before);
+}
+static void boxedPrefixes(void)
+{
+    bool complete=false;unsigned budgets=0;
+    for(unsigned budget=0;budget<16;++budget){
+        xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);Context context;contextInit(&context,0,0);
+        XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);xvalue* value=makeBox(&context,false);
+        xvalue* values[]={value,value,value};XL6_ExecutorPreparedBatchV1 prepared={0};
+        assert(xrtMemDebugFailAfter(budget));bool ready=xl6ExecutorPrepareBoxedBatchV1(state,values,3,boxedSignature,&prepared);
+        bool triggered=xrtMemDebugFailTriggered();xrtMemDebugFailClear();
+        if(ready)assert(xl6ExecutorDiscardBoxedBatchV1(&prepared));
+        else assert(!prepared.items&&!prepared.count);
+        assert(!prepared.items&&!prepared.count&&!failures(state)&&!xrtAtomic32Load(&context.runs,XMEMORY_ACQUIRE));
+        xrtClearError();xrtValueRelease(value);xl6ExecutorFailuresReleaseV1(state);
+        assert(xrtAtomic32Load(&context.drops,XMEMORY_ACQUIRE)==1);balanced(&before);++budgets;
+        if(ready&&!triggered){complete=true;break;}
+    }
+    assert(complete&&budgets>=5);
+}
+static bool foreignEntry(void* raw,const xrtcallframe* frame,xrtcallresult* result)
+{(void)raw;(void)frame;(void)result;assert(!"foreign entry must not run");return false;}
+static bool legacyBody(void* raw){(void)raw;assert(!"legacy entry must not run");return true;}
+static void boxedRejections(void)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);Context context;contextInit(&context,0,0);
+    XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);xvalue* good=makeBox(&context,false);
+    xrtcallable* foreign=xrtCallableCreate(NULL,foreignEntry,NULL,NULL);assert(foreign);
+    xvalue* bad=xrtValueCallableTake(&foreign);assert(bad&&!foreign&&xrtValueTypeIdBind(bad,boxedSignature));
+    assert(!xl6ClosureBoxAdmittedV1(bad));xvalue* values[]={good,bad};XL6_ExecutorPreparedBatchV1 prepared={0};
+    assert(!xl6ExecutorPrepareBoxedBatchV1(state,values,2,boxedSignature,&prepared));
+    assert(!prepared.items&&!prepared.count&&!failures(state)&&!xrtAtomic32Load(&context.drops,XMEMORY_ACQUIRE));xrtClearError();
+    XL6_Closure* opaque=xl6ClosureRuntimeV1Get()->Create(NULL,(void (*)(void))legacyBody,NULL,NULL,NULL,NULL,NULL,0,NULL);assert(opaque);
+    xvalue* legacy=xl6ClosureRuntimeV1Get()->Box(NULL,opaque,boxedEntry,boxedSignature);assert(legacy);
+    xl6ClosureRuntimeV1Get()->Release(opaque);assert(!xl6ClosureBoxAdmittedV1(legacy));
+    assert(!xl6ExecutorPrepareBoxedBatchV1(state,&legacy,1,boxedSignature,&prepared));xrtClearError();xrtValueRelease(legacy);
+    assert(!xl6ExecutorPrepareBoxedBatchV1(state,&good,1,boxedSignature+1,&prepared));xrtClearError();
+    assert(!xl6ExecutorPrepareBoxedBatchV1(state,&good,SIZE_MAX,boxedSignature,&prepared));xrtClearError();
+    assert(xl6ExecutorPrepareBoxedBatchV1(state,&good,1,boxedSignature,&prepared));
+    xexecutor* executor=create(1,8);assert(xrtExecutorClose(executor));
+    assert(!xl6ExecutorCommitBoxedBatchV1(executor,&prepared)&&!prepared.items&&!prepared.count);
+    assert(!failures(state)&&!xrtAtomic32Load(&context.runs,XMEMORY_ACQUIRE));xrtClearError();
+    assert(xrtExecutorDestroy(executor));xrtValueRelease(good);xrtValueRelease(bad);xl6ExecutorFailuresReleaseV1(state);balanced(&before);
+}
+static void boxedCancellation(void)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);Context running;contextInit(&running,0,0);
+    xrtAtomic32Store(&running.resume,0,XMEMORY_RELEASE);xexecutor* executor=create(1,8);
+    XL6_ExecutorFailuresV1* state=xl6ExecutorFailuresCreateV1();assert(state);XL6_Closure* callback=make(&running,NULL);
+    assert(xl6ExecutorSubmitClosureV1(executor,state,callback));xl6ClosureRuntimeV1Get()->Release(callback);waitFor(&running.started,1);
+    Context queued[3];xvalue* values[3];for(unsigned i=0;i<3;++i){contextInit(&queued[i],1,(int)i);values[i]=makeBox(&queued[i],false);}
+    XL6_ExecutorPreparedBatchV1 prepared={0};assert(xl6ExecutorPrepareBoxedBatchV1(state,values,3,boxedSignature,&prepared));
+    for(unsigned i=0;i<3;++i)xrtValueRelease(values[i]);
+    assert(xl6ExecutorCommitBoxedBatchV1(executor,&prepared)&&xrtExecutorCancel(executor));
+    assert(failures(state)==2&&!report(state,902,true));xrtClearError();
+    for(unsigned i=0;i<3;++i)assert(!xrtAtomic32Load(&queued[i].runs,XMEMORY_ACQUIRE)&&xrtAtomic32Load(&queued[i].drops,XMEMORY_ACQUIRE)==1);
+    xrtAtomic32Store(&running.resume,1,XMEMORY_RELEASE);
+    assert(xrtExecutorWaitFor(executor,UINT64_C(5000000))==XWAIT_OK&&xrtExecutorDestroy(executor));
+    xl6ExecutorFailuresReleaseV1(state);balanced(&before);
+}
+static void foreignCallbackCarrier(void)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);xl6_error_scope scope={0};
+    assert(xl6ErrorScopeBegin(&scope));xl6ForeignCallbackFail();
+    assert(xrtGetError()); /* Bare C still gets an advisory fallback. */
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);assert(!outcome.ok&&!outcome.error);
+    xl6ForeignCallbackFail();assert(xrtGetError());xrtClearError();balanced(&before);
+}
 int main(void)
 {
     assert(xrtMemDebugEnable(true));xrtSetErrorKind(XERR_STATE);xrtClearError();assert(xrtTemp(8)&&xrtTempClear());
@@ -287,6 +407,13 @@ int main(void)
         outcomeRound(1,1);outcomeRound(2,1);outcomeRound(0,1);outcomeRound(0,2);
         graphRound();parallelRound();cancellationRound();rejectionRound();abandonedReaderRound();}
     callerPrefixes();
+    for(unsigned round=0;round<8;++round){
+        boxedOutcome(0,0,false);boxedOutcome(1,0,false);boxedOutcome(2,0,false);
+        boxedOutcome(0,1,false);boxedOutcome(0,2,false);boxedOutcome(1,1,false);boxedOutcome(2,1,false);
+        boxedOutcome(0,0,true);boxedGraph();boxedRejections();boxedCancellation();foreignCallbackCarrier();
+    }
+    boxedPrefixes();
+    puts("Executor boxed jobs: 64 checked outcomes, 8 exact 7-node/7-edge graphs, prepared atomic records, NULL first error preserved and all allocation-prefix rollbacks balanced");
     xl6OwnershipCatalogDestroyV1(catalog);
     puts("Executor jobs: 64 checked body/drop and code-lease outcomes, 8 pinned graphs, 264 parallel jobs, 24 cancelled captures, 8 rejection/abandoned-reader rounds, 8 caller fault prefixes; exact memory balance");return 0;
 }

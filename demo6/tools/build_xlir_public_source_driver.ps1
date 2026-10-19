@@ -69,6 +69,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_execution_pool.c',
     'src/runtime/xl6_execution_module.c',
     'src/runtime/xl6_executor_language.c',
+    'src/runtime/xl6_executor_batch.c',
     'src/runtime/xl6_ownership_domain_executor_language.c',
     'src/runtime/xl6_ownership_domain_execution_source.c',
     'src/runtime/xl6_ownership_domain_execution_executor.c',
