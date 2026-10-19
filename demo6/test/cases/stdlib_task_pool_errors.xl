@@ -1,0 +1,29 @@
+import concurrent
+auto pool = TaskPool(1, 16)
+auto failed = pool.submit(func() as string
+    throw ValueError("original pool body")
+end)
+auto stop = CancellationSource()
+assert stop.cancel()
+auto cancelled = pool.submitCancel(func() as int
+    assert false
+    return 3
+end, stop.token)
+auto recovered = pool.submit(func() as string
+    return "after failure\0你"
+end)
+pool.close()
+assert pool.wait(10000)
+bool caught = false
+try
+    auto result = await failed
+catch ValueError value
+    assert value.message == "original pool body"
+    caught = true
+end
+assert caught
+assert cancelled.isCancelled()
+assert (await recovered) == "after failure\0你"
+auto stats = pool.snapshot()
+assert stats.failed == 1 and stats.cancelled == 1 and stats.succeeded == 1
+println("TaskPool checked body error and pre-cancellation ok")

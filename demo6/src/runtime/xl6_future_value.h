@@ -21,6 +21,14 @@ typedef struct XL6_FutureValueProfileV1 {
     const XL6_NativeCaptureProfileV1* native;
 } XL6_FutureValueProfileV1;
 XL6_CODE_LEASE_API bool xl6FutureValueProfileValidV1(XL6_FutureValueProfileV1);
+/* Allocate one typed-empty owned result cell, or success/NULL for VOID. The
+ * producer may move exactly the verified value into it; Drop is valid for a
+ * partial/empty cell. Failure leaves output empty. No second value copy. */
+XL6_CODE_LEASE_API bool xl6FutureValueAllocateV1(XL6_FutureValueProfileV1,void**);
+/* Permanent resident ownership policy for an accepted typed producer. VOID
+ * uses the trivial policy and publishes no payload. Invalid profile returns
+ * NULL without changing the diagnostic. No module-owned descriptor retained. */
+XL6_CODE_LEASE_API const struct xfuturepayloadownershipv1* xl6FutureValuePolicyV1(XL6_FutureValueProfileV1);
 /* Copy borrows one initialized C payload slot. False is authoritative even
  * when diagnostics cannot allocate. Output starts NULL and remains NULL on
  * failure. VOID succeeds with NULL; all other kinds own an independent cell. */

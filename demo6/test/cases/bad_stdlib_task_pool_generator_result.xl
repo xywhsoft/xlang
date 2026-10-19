@@ -1,0 +1,10 @@
+import concurrent
+func numbers() as generator<int>
+    yield 1
+end
+auto pool = TaskPool(1)
+// Existing language rule: an ordinary synchronous callback cannot copy-return
+// a noncopyable generator. TaskPool must not introduce a semantic exception.
+auto task = pool.submit(func() as generator<int>
+    return numbers()
+end)

@@ -10674,10 +10674,8 @@ static int xl6IrContextualCheckedIntegerConversionRequired(
 static int xl6IrCallableTypesCompatible(
     const XL6_IrModule* module, XL6_IrTypeId left, XL6_IrTypeId right);
 
-static XL6_IrAsyncResultAbi xl6IrBuildAsyncResultAbi(
-    const XL6_IrModule* module, XL6_IrTypeId typeId)
+XL6_IrAsyncResultAbi xl6IrAsyncResultAbiForType(const XL6_IrType* type)
 {
-    const XL6_IrType* type = xl6IrTypeGet(&module->types, typeId);
     if ( type == NULL ) return XL6_IR_ASYNC_RESULT_INVALID;
     if ( type->abiId == xl6TypeAbiIdText("xrt.null") )
         return XL6_IR_ASYNC_RESULT_VOID;
@@ -10690,6 +10688,17 @@ static XL6_IrAsyncResultAbi xl6IrBuildAsyncResultAbi(
     case XL6_IR_C_ABI_F64: return XL6_IR_ASYNC_RESULT_COPY_F64;
     case XL6_IR_C_ABI_F32: return XL6_IR_ASYNC_RESULT_COPY_F32;
     case XL6_IR_C_ABI_TIME_I64: return XL6_IR_ASYNC_RESULT_COPY_TIME;
+    case XL6_IR_C_ABI_C_CHAR: case XL6_IR_C_ABI_C_SCHAR: case XL6_IR_C_ABI_C_UCHAR:
+    case XL6_IR_C_ABI_C_SHORT: case XL6_IR_C_ABI_C_USHORT:
+    case XL6_IR_C_ABI_C_INT: case XL6_IR_C_ABI_C_UINT:
+    case XL6_IR_C_ABI_C_LONG: case XL6_IR_C_ABI_C_ULONG:
+    case XL6_IR_C_ABI_C_LONGLONG: case XL6_IR_C_ABI_C_ULONGLONG:
+    case XL6_IR_C_ABI_C_SIZE: case XL6_IR_C_ABI_C_SSIZE:
+    case XL6_IR_C_ABI_C_PTRDIFF: case XL6_IR_C_ABI_C_INTPTR: case XL6_IR_C_ABI_C_UINTPTR:
+    case XL6_IR_C_ABI_C_BOOL: case XL6_IR_C_ABI_C_FLOAT: case XL6_IR_C_ABI_C_DOUBLE:
+    case XL6_IR_C_ABI_C_WCHAR:
+        return type->ownershipAbi==XL6_IR_OWNERSHIP_ABI_TRIVIAL &&
+            type->nullAbi==XL6_IR_NULL_ABI_NONE ? XL6_IR_ASYNC_RESULT_COPY_C_SCALAR : XL6_IR_ASYNC_RESULT_INVALID;
     case XL6_IR_C_ABI_RAW_POINTER:
         return XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER;
     case XL6_IR_C_ABI_MANAGED_STRING: return XL6_IR_ASYNC_RESULT_OWNED_STRING;
@@ -10704,6 +10713,12 @@ static XL6_IrAsyncResultAbi xl6IrBuildAsyncResultAbi(
         return xl6IrNativeValuePlanForType(type) ? XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE : XL6_IR_ASYNC_RESULT_INVALID;
     default: return XL6_IR_ASYNC_RESULT_INVALID;
     }
+}
+
+static XL6_IrAsyncResultAbi xl6IrBuildAsyncResultAbi(
+    const XL6_IrModule* module, XL6_IrTypeId typeId)
+{
+    return xl6IrAsyncResultAbiForType(xl6IrTypeGet(&module->types,typeId));
 }
 
 /* task.all materializes every Future payload as an xvalue array element.  Its
@@ -16523,6 +16538,11 @@ int xl6IrDynamicMethodCallTargetSupported(
                    target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD) {
             if (!p || !xl6IrRuntimeDirectBridgeValueAddressParameter(target->cName,p) ||
                 !xl6IrRuntimeDirectBridgeTargetMatches(module,target)) return 0;
+        } else if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW){
+            if(!p||target->parameterAbis[p]!=XL6_IR_PARAMETER_ABI_BORROW||
+                target->parameterPhysicalFieldDeclarations[p]!=XL6_IR_NODE_INVALID||
+                !xl6IrRuntimeDirectBridgeResultClosureParameter(target->cName,p)||
+                !xl6IrRuntimeDirectBridgeTargetMatches(module,target))return 0;
         } else if ( target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW ) {
             if ( p == 0 || target->parameterAbis[p] != XL6_IR_PARAMETER_ABI_BORROW ||
                  target->parameterPhysicalFieldDeclarations[p] != XL6_IR_NODE_INVALID ||
@@ -38521,6 +38541,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
             case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
                 resultMatches = worker != NULL && worker->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE;
                 break;
+            case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR:
+                resultMatches = xl6IrAsyncResultAbiForType(worker)==XL6_IR_ASYNC_RESULT_COPY_C_SCALAR;
+                break;
             default: break;
             }
             if ( target->asyncResultAbi != XL6_IR_ASYNC_RESULT_VOID )
@@ -38620,6 +38643,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                 if(!xl6IrRuntimeDirectBridgeValueAddressParameter(target->cName,parameter) ||
                    !xl6IrRuntimeDirectBridgeTargetMatches(module,target))
                     return xl6IrDiag(diags,NULL,"XLIR generic value address lacks an exact closed descriptor contract");
+            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW){
+                if((target->kind!=XL6_IR_CALL_TARGET_EXTERN_C&&target->kind!=XL6_IR_CALL_TARGET_NATIVE_FACTORY)||
+                    !xl6IrRuntimeDirectBridgeResultClosureParameter(target->cName,parameter)||
+                    !xl6IrRuntimeDirectBridgeTargetMatches(module,target))
+                    return xl6IrDiag(diags,NULL,"XLIR checked result callback lacks an exact owned-result contract");
             } else if (target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW) {
                 if ((target->kind!=XL6_IR_CALL_TARGET_EXTERN_C && target->kind!=XL6_IR_CALL_TARGET_NATIVE_FACTORY) ||
                     !xl6IrRuntimeDirectBridgeCheckedClosureParameter(target->cName,parameter) ||
@@ -45733,6 +45761,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                     case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
                         resultMatches = resultType != NULL && resultType->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE;
                         break;
+                    case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR:
+                        resultMatches = xl6IrAsyncResultAbiForType(resultType)==XL6_IR_ASYNC_RESULT_COPY_C_SCALAR;
+                        break;
                     default: break;
                     }
                     if ( instruction->asyncResultAbi != XL6_IR_ASYNC_RESULT_VOID )
@@ -47964,6 +47995,7 @@ static const char* xl6IrAsyncResultAbiName(XL6_IrAsyncResultAbi abi)
     case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE: return "retained-xvalue";
     case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE: return "retained-closure";
     case XL6_IR_ASYNC_RESULT_COPY_TAGGED: return "copy-tagged";
+    case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR: return "copy-c-scalar";
     case XL6_IR_ASYNC_RESULT_RETAINED_ERROR: return "retained-error";
     case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE: return "retained-future";
     case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR: return "retained-generator";
@@ -48352,6 +48384,8 @@ static const char* xl6IrCallParameterPhysicalAbiName(
         return "generic-value-address-borrow";
     case XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD:
         return "generic-zero-payload";
+    case XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW:
+        return "checked-result-closure-borrow";
     default: return "invalid";
     }
 }

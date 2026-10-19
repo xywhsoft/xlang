@@ -2141,12 +2141,14 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         if (xl6StdlibNodeUsesTypeName(root, "Once")) xl6StdlibBuilderAppend(&builder, xl6StdlibOnceSource);
         if (xl6StdlibNodeUsesTypeName(root,"Executor") || xl6StdlibNodeUsesTypeName(root,"ExecutorSnapshot"))
             xl6StdlibBuilderAppend(&builder,xl6StdlibExecutorSource);
+        int needsTaskPoolClass=xl6StdlibNodeUsesTypeName(root,"TaskPool")||xl6StdlibNodeUsesTypeName(root,"TaskPoolSnapshot");
+        if(needsTaskPoolClass)xl6StdlibBuilderAppend(&builder,xl6StdlibTaskPoolSource);
         if (xl6StdlibNodeUsesTypeName(root, "Event")) xl6StdlibBuilderAppend(&builder, xl6StdlibEventSource);
         if (xl6StdlibNodeUsesTypeName(root, "ThreadLocal")) xl6StdlibBuilderAppend(&builder, xl6StdlibThreadLocalSource);
         if (xl6StdlibNodeUsesTypeName(root, "CancellationSource") ||
             xl6StdlibNodeUsesTypeName(root, "CancellationToken") ||
             xl6StdlibNodeUsesTypeName(root, "CancellationRegistration") ||
-            xl6StdlibNodeUsesTypeName(root, "Promise") || needsTaskGroupClass || needsChannelCases || needsChannelDirect)
+            xl6StdlibNodeUsesTypeName(root, "Promise") || needsTaskGroupClass || needsChannelCases || needsChannelDirect || needsTaskPoolClass)
             xl6StdlibBuilderAppend(&builder, xl6StdlibCancellationSource);
         if(xl6StdlibNodeUsesTypeName(root,"Promise"))xl6StdlibBuilderAppend(&builder,xl6StdlibPromiseSource);
         if (xl6StdlibNodeUsesTypeName(root, "AtomicInt32")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicInt32Source);

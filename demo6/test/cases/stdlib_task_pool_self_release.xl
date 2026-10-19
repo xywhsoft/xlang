@@ -1,0 +1,20 @@
+import concurrent
+class PoolHolder
+    TaskPool? value
+end
+func launch(PoolHolder holder, Event start) as future<int>
+    auto pool = TaskPool(1, 8)
+    holder.value = pool
+    return pool.submit(func() as int
+        assert start.wait(10000)
+        holder.value = null
+        return 71
+    end)
+end
+auto holder = PoolHolder()
+auto start = Event(true)
+auto done = launch(holder, start)
+start.set()
+assert (await done) == 71
+assert holder.value == null
+println("TaskPool task releases final language owner ok")

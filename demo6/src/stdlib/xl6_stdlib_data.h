@@ -9,6 +9,7 @@
 #define XL6_STDLIB_FUNC_COUNT 996
 extern const char* xl6StdlibOnceSource;
 extern const char* xl6StdlibExecutorSource;
+extern const char* xl6StdlibTaskPoolSource;
 extern const char* xl6StdlibEventSource;
 extern const char* xl6StdlibThreadLocalSource;
 extern const char* xl6StdlibCancellationSource;

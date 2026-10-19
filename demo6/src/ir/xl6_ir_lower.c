@@ -11955,34 +11955,8 @@ static XL6_IrTypeId xl6IrLowerFindTypeByCAbi(const XL6_IrModule* module, XL6_IrC
 static XL6_IrAsyncResultAbi xl6IrLowerAsyncResultAbi(
     const XL6_IrModule* module, XL6_IrTypeId resultType)
 {
-    const XL6_IrType* type;
     if ( resultType == XL6_IR_TYPE_INVALID ) return XL6_IR_ASYNC_RESULT_VOID;
-    type = xl6IrTypeGet(&module->types, resultType);
-    if ( type == NULL ) return XL6_IR_ASYNC_RESULT_INVALID;
-    if ( type->abiId == xl6TypeAbiIdText("xrt.null") ) return XL6_IR_ASYNC_RESULT_VOID;
-    switch ( type->cAbi ) {
-    case XL6_IR_C_ABI_BOOL: return XL6_IR_ASYNC_RESULT_COPY_BOOL;
-    case XL6_IR_C_ABI_CHAR_U32: return XL6_IR_ASYNC_RESULT_COPY_CHAR;
-    case XL6_IR_C_ABI_I64: return XL6_IR_ASYNC_RESULT_COPY_I64;
-    case XL6_IR_C_ABI_U64: return XL6_IR_ASYNC_RESULT_COPY_U64;
-    case XL6_IR_C_ABI_TYPE_ID: return XL6_IR_ASYNC_RESULT_COPY_TYPE_ID;
-    case XL6_IR_C_ABI_F64: return XL6_IR_ASYNC_RESULT_COPY_F64;
-    case XL6_IR_C_ABI_F32: return XL6_IR_ASYNC_RESULT_COPY_F32;
-    case XL6_IR_C_ABI_TIME_I64: return XL6_IR_ASYNC_RESULT_COPY_TIME;
-    case XL6_IR_C_ABI_RAW_POINTER:
-        return XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER;
-    case XL6_IR_C_ABI_MANAGED_STRING: return XL6_IR_ASYNC_RESULT_OWNED_STRING;
-    case XL6_IR_C_ABI_MANAGED_BYTES:
-    case XL6_IR_C_ABI_RUNTIME_XVALUE_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_XVALUE;
-    case XL6_IR_C_ABI_CLOSURE_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE;
-    case XL6_IR_C_ABI_TAGGED_NULLABLE: return XL6_IR_ASYNC_RESULT_COPY_TAGGED;
-    case XL6_IR_C_ABI_RUNTIME_ERROR_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_ERROR;
-    case XL6_IR_C_ABI_RUNTIME_FUTURE_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_FUTURE;
-    case XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR: return XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR;
-    case XL6_IR_C_ABI_NATIVE_VALUE:
-        return xl6IrNativeValuePlanForType(type) ? XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE : XL6_IR_ASYNC_RESULT_INVALID;
-    default: return XL6_IR_ASYNC_RESULT_INVALID;
-    }
+    return xl6IrAsyncResultAbiForType(xl6IrTypeGet(&module->types,resultType));
 }
 
 static int xl6IrLowerTaskAllPayloadBoxerSupported(
@@ -12845,7 +12819,10 @@ static int xl6IrLowerRegisterCallTarget(XL6_IrLowerContext* ctx, XL6_IrNodeId de
                      XL6_IR_PARAMETER_ABI_BORROW )
                 return xl6IrLowerDiag(ctx, declaration,
                     "XLIR foreign C function parameter has no borrowed callback ABI");
-            if ((parameter->flags & XL6_AST_FLAG_C_CALLBACK)==0 &&
+            if((parameter->flags&XL6_AST_FLAG_C_CALLBACK)==0&&
+                xl6IrRuntimeDirectBridgeResultClosureParameter(target->cName,parameterOffset+i)){
+                target->parameterPhysicalAbis[parameterOffset+i]=XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW;
+            }else if ((parameter->flags & XL6_AST_FLAG_C_CALLBACK)==0 &&
                 xl6IrRuntimeDirectBridgeCheckedClosureParameter(target->cName,parameterOffset+i)) {
                 /* The closed registry carries an exact checked closure
                  * signature. Keep its borrowed physical pointer; no erased

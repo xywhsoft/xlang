@@ -1,0 +1,25 @@
+import concurrent
+
+auto pool = TaskPool(2, 16)
+assert not pool.snapshot().initialized
+pool.start()
+assert pool.snapshot().initialized
+auto integer = pool.submit(func() as int
+    return 42
+end)
+auto text = pool.submit(func() as string
+    return "a\0b"
+end)
+auto count = AtomicInt64()
+auto empty = pool.submit(func()
+    count.fetchAdd(1)
+end)
+pool.close()
+assert pool.wait(10000)
+assert (await integer) == 42
+assert (await text) == "a\0b"
+await empty
+assert count.load() == 1
+auto stats = pool.snapshot()
+assert stats.submitted == 3 and stats.completed == 3 and stats.succeeded == 3
+println("TaskPool: typed owned integer/string/void results, explicit instance and statistics ok")

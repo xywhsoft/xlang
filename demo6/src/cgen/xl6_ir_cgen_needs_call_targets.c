@@ -182,6 +182,8 @@ static int xl6IrCgenAnalyzeCallTargetNeeds(
                     needs->needsStringRuntime = 1;
                     needs->needsStringViews = 1;
                 }
+            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW){
+                needs->needsClosureRuntime=1;
             } else if ( target->parameterPhysicalAbis[parameter] ==
                             XL6_IR_CALL_PARAMETER_PHYSICAL_RAW_C_CALLBACK ) {
                 needs->needsRawCallbackRuntime = 1;

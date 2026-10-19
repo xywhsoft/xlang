@@ -56,6 +56,9 @@ typedef struct XL6_IrDirectBridgeContract {
      * Its one-based parameter selects a structural relation, not a pointer
      * ABI or a nominal class-name exception. No temporary resource for T. */
     unsigned char genericFutureStarterParameter;
+    /* Nullary checked callback produces Future<T>'s exact T, directly into
+     * its owned result slot, rather than returning an existing Future<T>. */
+    unsigned char genericFutureValueCallbackParameter;
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -75,6 +78,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "xl6_ir_atomic_contracts.inc"
 #include "xl6_ir_concurrent_contracts.inc"
 #include "xl6_ir_executor_contracts.inc"
+#include "xl6_ir_task_pool_contracts.inc"
 #include "xl6_ir_channel_case_contracts.inc"
 #define XL6_GENERIC_CREATE(Name,Owner) {Name,T,V,0,{0},.resultOwner=Owner,.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1}
 #define XL6_GENERIC_CREATE_PARENT(Name,Owner) {Name,T,V,1,{V},.resultOwner=Owner,.parameterOwners={"xl6CancellationTokenDestroyV1"},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1}
@@ -87,6 +91,8 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define XL6_GENERIC_DONE(Name,Owner) {Name,T,B,1,{V},.parameterOwners={Owner},.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE}
 #define XL6_GENERIC_REQUESTED(Name,Owner) XL6_GENERIC_DONE(Name,Owner)
 #define XL6_GENERIC_TASK_GROUP_START(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,XL6_IR_C_ABI_CLOSURE_PTR},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureStarterParameter=2}
+#define XL6_GENERIC_TASK_POOL_SUBMIT(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,2,{V,XL6_IR_C_ABI_CLOSURE_PTR},.parameterOwners={Owner},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=2}
+#define XL6_GENERIC_TASK_POOL_SUBMIT_CANCEL(Name,Owner) {Name,T,XL6_IR_C_ABI_RUNTIME_FUTURE_PTR,3,{V,XL6_IR_C_ABI_CLOSURE_PTR,V},.parameterOwners={Owner,NULL,"xl6CancellationTokenDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1,.genericFutureResult=1,.genericFutureValueCallbackParameter=2}
 #define XL6_GENERIC_CHANNEL_CASE_RECEIVE(Name,Owner) {Name,T,V,1,{V},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1}
 #define XL6_GENERIC_CHANNEL_CASE_SEND(Name,Owner) {Name,T,V,2,{V,0},.resultOwner=Owner,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=1,.genericValueParameter=2}
 #define XL6_GENERIC_CHANNEL_SELECTION_VALUE(Name,Owner) {Name,T,0,3,{V,V,V},.parameterOwners={Owner,"xl6ChannelCaseDestroyV1"},.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CHANNEL_SCHEMA_V1,.genericChannelParameter=3,.nativeResultAbi=XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1}
@@ -118,6 +124,8 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "src/abi/xl6_native_generic_contracts.inc"
 #undef XL6_NATIVE_GENERIC_BRIDGE
 #undef XL6_GENERIC_TASK_GROUP_START
+#undef XL6_GENERIC_TASK_POOL_SUBMIT
+#undef XL6_GENERIC_TASK_POOL_SUBMIT_CANCEL
 #undef XL6_GENERIC_CHANNEL_DEADLINE_SEND_FOR
 #undef XL6_GENERIC_CHANNEL_DEADLINE_SEND_UNTIL
 #undef XL6_GENERIC_CHANNEL_DEADLINE_RECEIVE_FOR
@@ -841,6 +849,11 @@ int xl6IrRuntimeDirectBridgeCheckedClosureParameter(const char* name,size_t inde
     return c && index<c->parameterCount &&
         (c->parameterNullaryCallableResultAbis[index]!=0 || c->genericFutureStarterParameter==index+1);
 }
+int xl6IrRuntimeDirectBridgeResultClosureParameter(const char* name,size_t index)
+{
+    const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(name);
+    return c&&index<c->parameterCount&&c->genericFutureValueCallbackParameter==index+1;
+}
 int xl6IrRuntimeDirectBridgeValueAddressParameter(const char* name,size_t index)
 {
     const XL6_IrDirectBridgeContract* c=xl6IrDirectBridgeContract(name);
@@ -938,7 +951,7 @@ int xl6IrRuntimeDirectBridgeContext(const XL6_IrModule* module,const XL6_IrCallT
         if(!xl6IrNativeVoidCallbackArrayType(module,target,c))return 0;
         *context=c->nativeContext;*type=target->parameterTypes[c->nativeVoidCallbackArrayParameter-1];return 1;
     }
-    if(c->genericFutureStarterParameter) {
+    if(c->genericFutureStarterParameter||c->genericFutureValueCallbackParameter) {
         const XL6_IrType* future=xl6IrTypeGet(&module->types,target->returnType);
         if(c->nativeContext!=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1 || !c->genericFutureResult ||
            !future || future->kind!=XL6_IR_TYPE_GENERIC_INSTANCE ||
@@ -1231,6 +1244,24 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 target->parameterPhysicalFieldDeclarations[i] != XL6_IR_NODE_INVALID ||
                 contract->parameterOwners[i] || contract->parameterDynamicBorrows[i] ||
                 contract->parameterArrayItemAbis[i] || contract->parameterNullaryCallableResultAbis[i]) return 0;
+            continue;
+        }
+        if(contract->genericFutureValueCallbackParameter==i+1){
+            const XL6_IrType* future=xl6IrTypeGet(&module->types,target->returnType);
+            XL6_IrTypeId element=future&&future->paramCount==1&&future->params?future->params[0]:XL6_IR_TYPE_INVALID;
+            int returnsValue=type&&type->returnCount==1&&type->returns&&type->returns[0]==element&&
+                type->callableResultType==element;
+            int returnsVoid=type&&!type->returnCount&&!type->returns&&!type->callableResultType&&
+                target->nativeContextPayloadAbi==XL6_IR_ASYNC_RESULT_VOID;
+            if(!element||target->nativeContextType!=element||!type||type->kind!=XL6_IR_TYPE_FUNCTION||
+                type->cAbi!=XL6_IR_C_ABI_CLOSURE_PTR||type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED||
+                type->nullAbi!=XL6_IR_NULL_ABI_POINTER_SENTINEL||!type->typeValueId||
+                type->collectionAbi!=XL6_IR_COLLECTION_NONE||type->paramCount||type->params||type->parameterAbis||
+                type->parameterModes||type->callableErasureAbi!=XL6_IR_CALLABLE_ERASURE_FIXED||
+                (!returnsValue&&!returnsVoid)||target->parameterAbis[i]!=XL6_IR_PARAMETER_ABI_BORROW||
+                target->parameterPhysicalAbis[i]!=XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW||
+                target->parameterConstraintAbis[i]!=XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE||
+                target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID)return 0;
             continue;
         }
         if (contract->parameterNullaryCallableResultAbis[i] || contract->genericFutureStarterParameter==i+1) {

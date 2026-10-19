@@ -549,6 +549,7 @@ static int xl6IrCgenEmitNativeContext(XL6_Output* out,const XL6_IrModule* module
     case XL6_IR_ASYNC_RESULT_COPY_F64:case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
     case XL6_IR_ASYNC_RESULT_COPY_F32:case XL6_IR_ASYNC_RESULT_COPY_TIME:
     case XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER:case XL6_IR_ASYNC_RESULT_COPY_CHAR:
+    case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR:
         kind="XL6_FUTURE_VALUE_TRIVIAL";break;
     case XL6_IR_ASYNC_RESULT_OWNED_STRING:kind="XL6_FUTURE_VALUE_STRING";break;
     case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE:kind="XL6_FUTURE_VALUE_XVALUE";break;
@@ -586,6 +587,10 @@ static int xl6IrCgenEmitCallOperand(
         if (!xl6IrInstructionIsZeroPayload(module, definition) ||
             definition->type != target->parameterTypes[parameter]) return 0;
         xl6OutputPuts("NULL", out); return !xl6OutputHasFailed(out);
+    }
+    if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW){
+        xl6OutputPrintf(out,"(XL6_CheckedResultClosureBorrowV1){v%u, xlir_checked_result_t%u, xlir_closure_owner}",
+            (unsigned)value,(unsigned)target->parameterTypes[parameter]);return !xl6OutputHasFailed(out);
     }
     if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW) {
         xl6OutputPrintf(out,"&v%u",(unsigned int)value);return !xl6OutputHasFailed(out);

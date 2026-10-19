@@ -59,6 +59,10 @@ static int xl6IrCgenVerifyDeclarations(
                 if(!xl6IrRuntimeDirectBridgeValueAddressParameter(target->cName,parameter) ||
                    !xl6IrRuntimeDirectBridgeTargetMatches(module,target))
                     return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no sealed native value-address ABI");
+            } else if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW){
+                if(!xl6IrRuntimeDirectBridgeResultClosureParameter(target->cName,parameter)||
+                    !xl6IrRuntimeDirectBridgeTargetMatches(module,target))
+                    return xl6IrCgenCallParameterDiag(diags,module,target,parameter,"has no exact owned-result callback ABI");
             } else if (target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW) {
                 if ((target->kind!=XL6_IR_CALL_TARGET_EXTERN_C && target->kind!=XL6_IR_CALL_TARGET_NATIVE_FACTORY) ||
                     target->parameterAbis[parameter]!=XL6_IR_PARAMETER_ABI_BORROW ||
