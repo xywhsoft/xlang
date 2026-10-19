@@ -1,0 +1,55 @@
+union InferredBits
+    int number
+end
+
+func identity<T>(T value) as T
+    return value
+end
+func optional<T>(T value) as T?
+    return value
+end
+func fromNullable(InferredBits? value) as InferredBits?
+    // T is nullable here; substituting T? must not introduce another tag.
+    return optional(value)
+end
+func nested<T>(T value) as T?
+    return optional(value)
+end
+func choose<T,U>(U ignored, T value, int tag = 7) as T?
+    assert tag == 7
+    return value
+end
+func scalar(int? value) as int?
+    return optional(value)
+end
+func text(string? value) as string?
+    return optional(value)
+end
+
+InferredBits original
+original.number = 42
+InferredBits? stored = original
+// The expression is flow-proven nonnull, but stored remains a nullable place.
+InferredBits? copied = optional(stored)
+assert copied != null
+if copied != null then assert copied.number == 42 end
+InferredBits? unknown = fromNullable(original)
+if unknown != null then assert unknown.number == 42 end
+assert fromNullable(null) == null
+InferredBits? returned = nested(stored)
+if returned != null then assert returned.number == 42 end
+InferredBits? named = choose(value = stored, ignored = "unused")
+if named != null then assert named.number == 42 end
+if stored != null
+    InferredBits independent = identity(stored)
+    independent.number = 91
+end
+assert original.number == 42
+assert scalar(null) == null and text(null) == null
+int? zero = scalar(0)
+assert zero != null
+if zero != null then assert zero == 0 end
+string? nulText = text("a\0b")
+assert nulText != null
+if nulText != null then assert nulText == "a\0b" end
+println("generic materialized values, nullable substitution, named/default binding and independent union copies ok")

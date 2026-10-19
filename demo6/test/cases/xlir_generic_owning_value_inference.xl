@@ -1,0 +1,52 @@
+int live = 0
+class InferenceToken
+    int number
+    create(int value)
+        self.number = value
+        live += 1
+    end
+    destroy()
+        live -= 1
+    end
+end
+func optional<T>(T value) as T?
+    return value
+end
+func unknownToken(InferenceToken? value) as InferenceToken?
+    return optional(value)
+end
+func unknownBytes(bytes? value) as bytes?
+    return optional(value)
+end
+func unknownClosure((func(int) as int)? value) as (func(int) as int)?
+    return optional(value)
+end
+func exercise()
+    InferenceToken? stored = InferenceToken(42)
+    auto retained = optional(stored)
+    if retained != null then assert retained.number == 42 end
+    auto unknown = unknownToken(stored)
+    if unknown != null then assert unknown.number == 42 end
+    assert unknownToken(null) == null
+    bytes original = b"a\0b"
+    bytes? bytesCopy = unknownBytes(original)
+    assert bytesCopy != null
+    if bytesCopy != null
+        bytes independent = bytesCopy
+        independent[0] = 66
+        assert independent[0] == 66 and original[0] == 97
+    end
+    assert unknownBytes(null) == null
+    int base = 40
+    (func(int) as int)? callback = func(int n) as int
+        return base + n
+    end
+    auto inferred = optional(callback)
+    if inferred != null then assert inferred(2) == 42 end
+    auto recovered = unknownClosure(callback)
+    if recovered != null then assert recovered(3) == 43 end
+    assert unknownClosure(null) == null
+end
+exercise()
+assert live == 0
+println("generic nullable managed values preserve byte copies, closure capture and class lifetime ok")
