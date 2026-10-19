@@ -1,0 +1,48 @@
+import concurrent
+
+auto producer = Promise::<null>()
+var erased = producer
+bool caught = false
+try
+    erased.tryResolve(false)
+catch TypeError
+    caught = true
+end
+assert caught and not producer.isCompleted
+
+caught = false
+try
+    erased.tryResolve(0)
+catch TypeError
+    caught = true
+end
+assert caught and not producer.isCompleted
+
+caught = false
+try
+    erased.tryResolve("")
+catch TypeError
+    caught = true
+end
+assert caught and not producer.isCompleted
+
+assert erased.tryResolve(value=null)
+future<null> completion = erased.future as future<null>
+await completion
+assert not erased.tryResolve(null)
+
+auto second = Promise::<null>()
+var receiver = second
+var resolve = receiver.tryResolve
+caught = false
+try
+    resolve(false)
+catch TypeError
+    caught = true
+end
+assert caught and not second.isCompleted
+int? empty = null
+assert resolve(empty)
+await second.future
+assert not resolve(null)
+println("erased Promise<null>: exact null domain, keywords, bound method, nullable input and failed-call recovery")
