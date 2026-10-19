@@ -307,43 +307,7 @@ const char* xl6StdlibXidClassSource =
 
 #include "src/stdlib/xl6_stdlib_template.inc"
 
-const char* xl6StdlibTaskGroupClassSource =
-    "class TaskGroup\n"
-    "    native point handle\n"
-    "    extern \"xl6SignalTaskGroupCreateV1\" create()\n"
-    "    extern \"xl6_xrt_task_group_wrap\" create(point handle)\n"
-    "    extern \"xl6SignalTaskGroupDestroyV1\" destroy()\n"
-    "    extern \"xl6_xrt_task_group_child\" func childNative() as point\n"
-    "    extern \"xl6_xrt_task_group_add\" func add(var task) as bool\n"
-    "    extern \"xl6_xrt_task_group_bind_parent\" func bindParent(var task) as bool\n"
-    "    extern \"xl6SignalTaskGroupCloseV1\" func close() as bool\n"
-    "    extern \"xl6SignalTaskGroupCancelV1\" func cancel() as bool\n"
-    "    extern \"xl6_xrt_task_group_count\" func countNative() as c_int\n"
-    "    extern \"xl6_xrt_task_group_reap\" func reapNative() as c_int\n"
-    "    extern \"xl6_xrt_task_group_join\" func join() as bool\n"
-    "    extern \"xl6_xrt_task_group_join_timeout\" func joinTimeout(int timeoutMs) as bool\n"
-    "    extern \"xl6_xrt_task_group_join_until\" func joinUntil(int deadlineMs) as bool\n"
-    "    extern \"xl6_xrt_task_group_wait\" func wait() as bool\n"
-    "    extern \"xl6_xrt_task_group_wait_timeout\" func waitTimeout(int timeoutMs) as bool\n"
-    "    extern \"xl6_xrt_task_group_wait_until\" func waitUntil(int deadlineMs) as bool\n"
-    "    extern \"xl6_xrt_task_group_join_async\" func joinAsync() as future<null>\n"
-    "\n"
-    "    get valid() as bool\n"
-    "        return self.handle != null\n"
-    "    end\n"
-    "\n"
-    "    get count() as int\n"
-    "        return int(self.countNative())\n"
-    "    end\n"
-    "\n"
-    "    func child() as TaskGroup\n"
-    "        return TaskGroup(self.childNative())\n"
-    "    end\n"
-    "\n"
-    "    func reapCompleted() as int\n"
-    "        return int(self.reapNative())\n"
-    "    end\n"
-    "end\n";
+#include "src/stdlib/xl6_stdlib_task_group.inc"
 
 #include "xl6_stdlib_crypto.inc"
 
@@ -4320,8 +4284,8 @@ static const char xl6StdFileReadTextBody[] =
     "end\n";
 
 static const char xl6StdTaskGroupBody[] =
-    "func __xl_std_task_group() as TaskGroup\n"
-    "    return TaskGroup()\n"
+    "func __xl_std_task_group(int limit = 0, int cancelOn = 0) as TaskGroup\n"
+    "    return TaskGroup(limit, cancelOn)\n"
     "end\n";
 
 static const char xl6StdFileReadBytesBody[] =
@@ -5304,6 +5268,16 @@ const XL6_StdlibConst xl6StdlibConsts[] = {
     {"channelStatus", "closed", XL6_AST_INT, "3"},
     {"channelStatus", "timeout", XL6_AST_INT, "4"},
     {"channelStatus", "cancelled", XL6_AST_INT, "5"},
+    {"taskGroupCancelOn", "none", XL6_AST_INT, "0"},
+    {"taskGroupCancelOn", "failed", XL6_AST_INT, "1"},
+    {"taskGroupCancelOn", "cancelled", XL6_AST_INT, "2"},
+    {"taskGroupCancelOn", "closed", XL6_AST_INT, "4"},
+    {"taskGroupCancelOn", "stopped", XL6_AST_INT, "7"},
+    {"taskGroupState", "pending", XL6_AST_INT, "0"},
+    {"taskGroupState", "resolved", XL6_AST_INT, "1"},
+    {"taskGroupState", "failed", XL6_AST_INT, "2"},
+    {"taskGroupState", "cancelled", XL6_AST_INT, "3"},
+    {"taskGroupState", "closed", XL6_AST_INT, "4"},
     {"console", "stderrStream", XL6_AST_INT, "2"},
     {"console", "colorNone", XL6_AST_INT, "0"},
     {"console", "colorBasic", XL6_AST_INT, "1"},

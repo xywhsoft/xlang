@@ -16,11 +16,16 @@ def main():
     cc=shutil.which('gcc');inspector=shutil.which('objdump' if os.name=='nt' else 'readelf');assert cc and inspector
     native=root/'test/support/task_group_resident_native.c';lifetime=root/'test/support/process_ownership_public.c'
     planner=root/'test/support/container_projection_artifact.c'
+    configured=root/'test/cases/stdlib_task_group_configured_native.c'
+    contract=root/'test/cases/xlir_task_group_configured_contract.c'
     fixtures=[root/'test/cases'/(name+'.xl') for name in (
-        'stdlib_task_group','stdlib_task_group_methods','stdlib_task_group_allocations','stdlib_task_group_sync_only')]
-    negatives=[root/'test/cases'/(name+'.xl') for name in ('xlir_task_group_bad_future','xlir_task_group_bad_effect')]
+        'stdlib_task_group','stdlib_task_group_methods','stdlib_task_group_allocations','stdlib_task_group_sync_only',
+        'stdlib_task_group_configured')]
+    negatives=[root/'test/cases'/(name+'.xl') for name in ('xlir_task_group_bad_future','xlir_task_group_bad_effect',
+        'sem_task_group_private_handle','sem_task_group_raw_construct','sem_task_group_snapshot_default')]
     runtime=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so'
-    pinned.update((Path(__file__).resolve(),Path(sys.executable),Path(cc),Path(inspector),native,lifetime,planner,runtime,*fixtures,*negatives))
+    pinned.update((Path(__file__).resolve(),Path(sys.executable),Path(cc),Path(inspector),native,lifetime,planner,
+        configured,contract,runtime,*fixtures,*negatives))
     inputs=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(pinned)]
     objects=[Path(row['Path']) for row in build['Objects'] if Path(row['Path']).stem not in ('xlir_public_source_driver','xlir_public_source_linux_driver')]
     flags=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include')]
@@ -36,9 +41,18 @@ def main():
         TaskGroupGraphAcceptance=False,ShippingAcceptance=False,Full53Acceptance=False,ProvidersInstrumented=False)
     suffix='.exe' if os.name=='nt' else ''
     def run(name,command,directory=root,reject=False):
-        command=list(map(str,command));process=subprocess.run(command,cwd=directory,env=environment,capture_output=True,timeout=300)
+        command=list(map(str,command));actual=command
+        # Hundreds of exact source-object paths exceed Windows' command limit.
+        # Preserve the logical argv and hash the response bytes GCC consumes.
+        response=None
+        if command[0]==cc:
+            response=out/(name+'.rsp')
+            response.write_text('\n'.join('"'+v.replace('\\','/').replace('"','\\"')+'"' for v in command[1:])+'\n',encoding='utf-8')
+            actual=[cc,'@'+str(response)]
+        process=subprocess.run(actual,cwd=directory,env=environment,capture_output=True,timeout=300)
         data=process.stdout+process.stderr;log=out/(name+'.log');log.write_bytes(data)
-        rows.append(dict(Name=name,Command=command,Exit=process.returncode,ExpectedRejection=reject,Log=str(log),LogSha256=sha(log)))
+        rows.append(dict(Name=name,Command=command,ActualCommand=actual,ResponseSha256=sha(response) if response else None,
+            Exit=process.returncode,ExpectedRejection=reject,Log=str(log),LogSha256=sha(log)))
         assert process.returncode!=0 if reject else process.returncode==0,(name,data[-5000:].decode(errors='replace'))
         print(name+': '+str(process.returncode),flush=True);return data.decode(errors='replace')
     try:
@@ -52,6 +66,10 @@ def main():
             for operation,runs,first in matches:
                 runs,first=int(runs),int(first);assert runs==first+1
                 prefixes.append(dict(Optimization=optimization,Operation=operation,Runs=runs,FirstNoHit=first))
+            configured_image=out/('configured.'+optimization+suffix)
+            run(optimization+'.configured.build',[cc,*flags,'-'+optimization,configured,*objects,*libraries,'-o',configured_image])
+            output=run(optimization+'.configured.run',[configured_image])
+            assert 'operation=0 prefix=6 balanced' in output and 'operation=1 prefix=7 balanced' in output and 'operation=2 prefix=1 balanced' in output
         strict=['-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-label',
             '-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign']
         for fixture in fixtures:
@@ -61,7 +79,13 @@ def main():
         for fixture in negatives:
             generated=out/(fixture.stem+'.invalid.c')
             output=run(fixture.stem+'.reject',[build['Driver'],fixture,'cgen-default',generated],reject=True)
-            assert 'XLIR' in output and (not generated.exists() or not generated.stat().st_size)
+            assert ('XLIR' in output if fixture.stem.startswith('xlir_') else
+                '[sem]' in output or '[checked]' in output)
+            assert not generated.exists() or not generated.stat().st_size
+        contract_image=out/('configured-contract'+suffix)
+        run('contract.build',[cc,*flags,'-I'+str(root/'lib/tcc'),'-O2',contract,*objects,*libraries,'-o',contract_image])
+        output=run('contract.run',[contract_image,fixtures[4]])
+        assert 'pre-emission refusals' in output
         host=out/('public-lifetime'+suffix)
         run('lifetime.build',[cc,*flags,'-O2',lifetime,*objects,*libraries,'-o',host])
         tcc=str(root/'res/tcc/win64/x86_64') if os.name=='nt' else str(Path(build['NativeRoot'])/'build/linux/tcc-dist')

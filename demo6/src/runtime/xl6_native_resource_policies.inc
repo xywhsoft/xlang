@@ -16,6 +16,7 @@ XL6_NATIVE_RESOURCE_POLICY("xl6CancellationSourceDestroyV1",CANCELLATION_SOURCE,
 XL6_NATIVE_RESOURCE_POLICY("xl6CancellationTokenDestroyV1",CANCELLATION_SOURCE,xl6CancellationTokenHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6CancellationRegistrationDestroyV1",CANCELLATION_REGISTRATION,xl6CancellationRegistrationHandlePolicyV1Get)
 XL6_NATIVE_RESOURCE_POLICY("xl6PromiseDestroyV1",PROMISE,xl6PromiseHandlePolicyV1Get)
+XL6_NATIVE_RESOURCE_POLICY("xl6TaskGroupSnapshotDestroyV1",SIGNAL_TASK_GROUP,xl6TaskGroupSnapshotHandlePolicyV1Get)
 /* Exact resident resource declarations. A non-NULL owner also has a checked
  * XLIR direct-bridge contract. NULL is the private Pattern publication token.
  * Native payload storage and owning edges are audited in each provider. */

@@ -13,6 +13,7 @@ static bool load(XL6_OwnershipCatalog* catalog)
         xl6OwnershipCatalogAddQuiescenceV1(catalog,xrtCancelOwnershipQuiescenceV1Get()) &&
         xl6OwnershipCatalogAddQuiescenceV1(catalog,xrtCancelWatchOwnershipQuiescenceV1Get()) &&
         xl6OwnershipCatalogAddHandleV1(catalog,xl6TaskGroupHandlePolicyV1Get()) &&
+        xl6OwnershipCatalogAddHandleV1(catalog,xl6TaskGroupSnapshotHandlePolicyV1Get()) &&
         xl6OwnershipCatalogAddProducerV1(catalog,xrtTaskGroupProducerPolicyV1Get()) &&
         xl6OwnershipCatalogAddWatchV1(catalog,xrtTaskGroupWatchPolicyV1Get()) &&
         xl6OwnershipCatalogAddCancelWatchV1(catalog,xrtTaskGroupCancelPolicyV1Get()) &&
