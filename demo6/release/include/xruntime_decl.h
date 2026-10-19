@@ -32541,6 +32541,18 @@ XRT_EXTERN_C_END
 /* 任务池对外保持不透明；销毁期间调用方必须停止其他并发访问。 */
 typedef struct xtaskpool xtaskpool;
 
+/* One pool-owned context reference, shared by all workers. Exit borrows it
+ * once on each REAL worker, after accepted work/finalizer tails and outside
+ * locks or ownership mutation. Drop(Data,NULL) consumes it once after actual
+ * thread joins. Policy/ Ops are immutable resident code. The context's own
+ * graph node still requires independent admission; it is never an RC guess. */
+typedef struct xtaskpoolworkerexitownershipv1 {
+	size_t size;
+	void (*Exit)(ptr pData);
+	xfuturefreeproc Drop;
+	const xrtownershipops* Ops;
+} xtaskpoolworkerexitownershipv1;
+
 
 
 /* 全零配置使用逻辑处理器数量、默认队列上限和平台默认线程栈。 */
@@ -32577,6 +32589,25 @@ XRT_EXTERN_C_BEGIN
 /* 创建有界工作线程池；配置为空或字段为零时使用对应默认值。 */
 XRT_API xtaskpool* xrtTaskPoolCreate(const xtaskpoolconfig* pConfig);
 
+/* Success consumes one existing Data reference. Failure consumes none and
+ * invokes neither Exit nor Drop, including partial native-thread startup.
+ * Close/Wait retain their original DRAIN semantics; they do not stop workers
+ * needed by accepted native resources. Exit errors belong to the context's
+ * checked reporting protocol, not the job counters or physical join status. */
+XRT_API xtaskpool* xrtTaskPoolCreateOwnedExitV1(const xtaskpoolconfig* pConfig,
+	ptr pData, const xtaskpoolworkerexitownershipv1* pPolicy);
+
+/* Nonblocking, resource-aware stop/join after Close/Cancel. OK means actual
+ * thread joins, TIMEOUT means busy (including accepted resources, entries and
+ * exit callbacks), ERROR means invalid state/operational failure. Busy does
+ * not set an error. Stop starts only after all accepted work/drop/finalizer
+ * tails AND resource credits drain, then forbids NEW resource credits. It
+ * never cancels work or consumes the creator. Native Get/Wait and Destroy
+ * remain available after join. Same-pool workers cannot join themselves.
+ * Poll outside ownership freeze/mutation; concurrent control polls may be
+ * conservatively busy. The caller owns a real reference through return. */
+XRT_API xwaitresult xrtTaskPoolTryJoinV1(xtaskpool* pPool);
+
 /* A borrowed view of the real pool owner slot. Create contributes one actual
  * reference; successful Destroy consumes it once. Collector Hold/Release pins
  * keep the terminal shell alive after joined worker resources are retired.
@@ -32597,6 +32628,12 @@ XRT_API xrtownershipref xrtTaskPoolOwnership(const xtaskpool* pPool);
  * caller's owner reference. ppPreparation changes only on success. */
 XRT_API const xrtownershipadapterv1* xrtTaskPoolOwnershipAdapterV1(
     xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
+/* V1 refuses a live exit context. V2 matches its exact registered policy
+ * identity BEFORE Count/Trace. Equal policy copies are not authority. On
+ * unknown/busy input ppPreparation is unchanged; plain pools still work. */
+XRT_API const xrtownershipadapterv1* xrtTaskPoolOwnershipAdapterV2(
+	xrtownershipref Reference, const xtaskpoolworkerexitownershipv1* const* pPolicies,
+	size_t iPolicyCount, const xrtownershippreparationv1** ppPreparation);
 /* Exact native transition capability; does not relax Count/Trace admission.
  * Queued opaque jobs and retained resources still require their own policies.
  * The immutable descriptor and callback reside with this XRT instance. */
