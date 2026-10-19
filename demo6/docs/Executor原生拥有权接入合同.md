@@ -73,3 +73,75 @@ Windows 定点检查不把 PE 下无法独立裁除整个 compile_unit 的试验
 下一步仍须建立高层执行资源及 callback/code-lease 合同、语言类和方法、可达性裁剪
 与真实 DLL/JIT/AOT 验收。此次只验证所选原生与常驻源码，未重建普通产品；不能仅因
 原生符号和 catalog 能工作，就把公开执行器或整个长期任务改成完成。
+
+## 已批准的语言回调错误策略
+
+2026-10-19 用户确认：脱离式 Executor 的语言回调抛错时，保留首个错误和失败
+计数，由 `wait()`／`throwIfFailed()` 显式 checked 报告；工作线程不因用户抛错
+abort，也不静默丢弃错误。原生 Executor 仍是不返回 Future 的脱离式执行器，
+不能冒充 TaskPool 的 Future 提交接口。
+
+这是已决定、仍待高层实现和语言验收的合同，不等于当前已经存在这两个语言方法。
+首错存储、并发发布、代码拥有者、回调释放和最后一个语言引用的退休须一起完成。
+
+## 显式 TaskPool 的常驻控制前置
+
+池控制从 `xl6_task.c` 拆到 `xl6_task_pool.c`。前者仅负责语言任务帧、捕获与
+结果转发；后者独立拥有不透明池布局、入口／activity 引用、提交信用、原生池和
+资源登记。跨单元只使用私有 `xl6_task_pool_internal.h`，不共享布局或 include C
+文件。现有 `XL6_TaskRuntimeV1` 不扩字段，也不重新解释旧函数指针。
+
+新增独立 `XL6_TaskPoolControlV1` 描述符：Create、Start、Close、Cancel、
+WaitFor、WaitUntil、Snapshot、Quiesce、TryQuiesce、Destroy。
+
+- Create 只建 wrapper；Start 显式初始化。读取、关闭、等待空池不偷偷创建工作线程。
+- Close 停止新的 wrapper 提交；此前取得的信用必须完成结算。它不销毁池，也不
+  保证尚未进入原生 Submit 的旧信用一定被原生池接受。
+- Cancel 同时关闭提交并锁存取消。延迟创建在锁外发生；创建者必须在发布原生
+  指针前应用取消锁存，不能让另一条旧信用先拿到未取消的池。
+- 等待必须先 Close／Cancel，包含提交信用及原生析构尾部。同池工作线程、同步
+  取消析构和仍持有原生提交 scope 的调用者不能等待自身。
+- 每个控制调用持有真实 wrapper 入口与控制信用，阻止原生池在调用期间被销毁。
+  Quiesce 先关闭、等提交结算和登记资源关闭，再等控制信用及原生尾部，最后 join／
+  destroy；TryQuiesce 对忙资源返回 BUSY，不在冻结或 wrapper 锁内等待。
+- WaitFor 使用毫秒：-1 无限、0 轮询、正值有限；拒绝负值及溢出，不能把有限值
+  饱和成无限哨兵。WaitUntil 是原生微秒时钟的绝对有限期限，拒绝 UINT64_MAX。
+- bool 单独报告操作失败；成功时另行输出 READY／TIMEOUT／CANCELLED，不能用
+  是否成功分配诊断对象判断操作成功。等待输出在失败前也初始化为 TIMEOUT。
+- Snapshot 要求精确描述符大小；计数来自一次原生 Get，不从 Future 状态推算。
+  显式成功 Quiesce 后保留最终统计。wrapper admission 标志与原生计数不承诺跨
+  提供者的同一原子快照；没有原生实例时 initialized=false，不虚构配置已生效。
+
+`TASK_POOL` 和 `OWNERSHIP_DOMAIN_TASK_POOL` 追加在部署 ID 表尾。控制根明确要求
+TASK_POOL 与 ATOMIC；XRT TASK_POOL 自身不隐含公开 Atomic API 实现。独立拥有域
+登记 wrapper／原生池的静止能力和适配器；旧 TASK 根依赖它，仍取得任务与池两个域。
+仅控制池不引入语言帧、Capture、默认 async Executor 或脱离式原生 Executor。
+动态导入的完整宿主继续消费同一部署表；VFS 的已有 runtime 头目录规则自然包含
+新私有头，不新增第二份手工源码包。
+
+维护入口为 `tools/check_stdlib_task_pool_control.py --out <新目录> --compiler <cc>`，
+可重复指定编译器；Linux 可加 `--sanitize`。它分别检查：
+
+- 真正部署／拥有计划产生的源码和 selector 独立编译，不加 ALL 或测试 feature
+  掩盖缺失依赖；以及所选符号的准确归属和控制／帧分离。
+- 两个实际单头、GCC/TCC、O0/O2 的取消／创建竞态、真实信用／控制退休交接、
+  Run／Drop 屏障、32 个调用线程分配预算和精确内存账本。
+- 真正 TASK 计划闭包和当前完整原生实现下，既有 280 次生命周期、240 个精确
+  排队拥有图、520 次准备；白盒 outcome 的 400 个通知／释放／登记失败回调。
+- Linux 所选控制闭包的 ASan／UBSan／泄漏检查。调用线程分配注入不代表 Worker
+  OOM 已验收；全原生内核仅用于既有帧回归，没有执行网络或安全性质测试。
+
+Windows 源计划测试关闭 unwind 表，并仅在该独立测试关闭 switch jump table：
+MinGW 的共享 `.rdata` 中跳转表会反向保留无关的 IR planner，阻止独立链接；仍保留
+O2，不改生产构建、不补假符号或替代实现。该检查不是完整产品的裁剪验收。
+
+本批仅为常驻控制和原生生命周期前置；未新增公开语言 Executor／TaskPool 类，
+未重建发布 DLL，也没有据此认定普通 DLL/JIT/AOT 或整个长期任务完成。
+
+本批最终证据为 `F:/xlang-validation/five-groups-20261019/p1-task-pool-control/`
+中的 `win-r5/results.json` 和 `linux-r5/results.json`：Windows 59 阶段／31 产物、
+Linux 61 阶段／32 产物，输入与日志封印一致、无失败。Linux 原始执行目录为
+`/var/tmp/xlang-task-pool-control-r5`，归档不修改报告中的原执行路径。
+四种普通源码清单门各包含 559 个必需 provider，无缺失或重复，五个负控制均拒绝。
+旧脚本的变更仅补拆分依赖；49 个相关 PowerShell 入口通过语法解析，两个受影响的
+Shell 入口及 Linux 构建脚本通过 bash 语法检查，不表示已经执行所有这些测试。

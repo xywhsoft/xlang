@@ -12,6 +12,7 @@ function Get-XlirArtifactRuntimeSources {
         'src/runtime/xl6_continuation_frame.c',
         'src/runtime/xl6_future_wait.c',
         'src/runtime/xl6_task.c',
+        'src/runtime/xl6_task_pool.c',
         'src/runtime/xl6_capture.c',
         'src/runtime/xl6_value_iterator.c',
         'src/runtime/xl6_array_value_iterator.c',

@@ -7,18 +7,8 @@
 #include "src/api/xl_foreign_error.h"
 #include <stddef.h>
 
-struct XL6_TaskPool {
-    xmutex* gate;
-    xcond* changed;
-    xtaskpool* native;
-    xtaskpoolconfig config;
-    XL6_TaskResourceV1* resources;
-    size_t references, entries, activities, submitting;
-    const void* claim;
-    bool ownerHeld, closing, quiescing, creating, retiring, cleared;
-};
-typedef XL6_TaskNativeScopeV1 TaskActivity;
-static void pool_close_resources(XL6_TaskPool*);
+#include "xl6_task_pool_internal.h"
+
 typedef struct TaskFrame {
     xatomic64 gate;
     XL6_CodeLease* lease;
@@ -37,270 +27,13 @@ typedef struct TaskFrame {
     max_align_t alignment;
     unsigned char data[];
 } TaskFrame;
-static xatomic64 activity_lock={0};
-static TaskActivity* activities;
-static void lock_activity(void)
-{
-    for(;;) { uint64 expected=0;
-        if(xrtAtomic64CompareExchange(&activity_lock,&expected,1,XMEMORY_ACQUIRE,XMEMORY_RELAXED))return;
-        xrtThreadYield();
-    }
-}
-static void unlock_activity(void) { xrtAtomic64Store(&activity_lock,0,XMEMORY_RELEASE); }
 static void mutation_begin(xrtownershipscope* scope) { if(!xrtOwnershipMutationBegin(scope))abort(); }
 static void mutation_end(xrtownershipscope* scope) { if(!xrtOwnershipScopeEnd(scope))abort(); }
-static void lock_pool(const XL6_TaskPool* pool) { if(!xrtMutexLock(pool->gate))abort(); }
-static void unlock_pool(const XL6_TaskPool* pool) { if(!xrtMutexUnlock(pool->gate))abort(); }
-static void pool_drop(const void* data)
-{
-    XL6_TaskPool* pool=(XL6_TaskPool*)data; xrtownershipscope mutation={0};
-    if(!pool)return;
-    mutation_begin(&mutation);lock_pool(pool);
-    if(!pool->references)abort();
-    bool last=--pool->references==0;
-    if(last && (pool->ownerHeld||pool->native||pool->entries||pool->activities||
-        pool->submitting||pool->creating||pool->quiescing||pool->retiring||pool->resources))abort();
-    unlock_pool(pool);
-    if(last){
-        if(!xrtCondDestroy(pool->changed)||!xrtMutexDestroy(pool->gate))abort();
-        xrtFree(pool);
-    }
-    mutation_end(&mutation);
-}
-static bool pool_hold(const void* data)
-{
-    XL6_TaskPool* pool=(XL6_TaskPool*)data;xrtownershipscope mutation={0};bool held=false;
-    if(!pool)return false;
-    mutation_begin(&mutation);lock_pool(pool);
-    if(pool->references&&pool->references<SIZE_MAX&&!pool->cleared){++pool->references;held=true;}
-    unlock_pool(pool);mutation_end(&mutation);return held;
-}
-/* Callers already own the receiver. An entry protects the complete native
- * call, including private bridge allocation and callback/rollback tails. */
-static void pool_enter(XL6_TaskPool* pool)
-{
-    xrtownershipscope mutation={0};mutation_begin(&mutation);lock_pool(pool);
-    if(!pool->references||pool->references==SIZE_MAX||pool->entries==SIZE_MAX)abort();
-    ++pool->references;++pool->entries;unlock_pool(pool);mutation_end(&mutation);
-}
-static void pool_leave(XL6_TaskPool* pool)
-{
-    xrtownershipscope mutation={0};mutation_begin(&mutation);lock_pool(pool);
-    if(!pool->entries)abort();
-    --pool->entries;unlock_pool(pool);pool_drop(pool);mutation_end(&mutation);
-}
-static void activity_enter(TaskActivity* activity,XL6_TaskPool* pool)
-{
-    xrtownershipscope mutation={0}; mutation_begin(&mutation);
-    lock_pool(pool);
-    if(!pool->references||pool->references==SIZE_MAX||pool->activities==SIZE_MAX||pool->cleared)abort();
-    ++pool->references;++pool->activities;unlock_pool(pool);
-    activity->pool=pool; activity->thread=xrtThreadCurrentId(); lock_activity();
-    activity->next=activities; if(activities)activities->previous=activity; activities=activity;
-    unlock_activity(); mutation_end(&mutation);
-}
-static void activity_leave(TaskActivity* activity)
-{
-    xrtownershipscope mutation={0}; mutation_begin(&mutation); lock_activity();
-    if(activity->previous)activity->previous->next=activity->next;else activities=activity->next;
-    if(activity->next)activity->next->previous=activity->previous;
-    unlock_activity();XL6_TaskPool* pool=activity->pool;*activity=(TaskActivity){0};
-    lock_pool(pool);if(!pool->activities)abort();--pool->activities;unlock_pool(pool);
-    pool_drop(pool);mutation_end(&mutation);
-}
-static bool activity_current(const XL6_TaskPool* pool)
-{
-    uint64 thread=xrtThreadCurrentId(); bool found=false; lock_activity();
-    for(TaskActivity* item=activities;item;item=item->next)if(item->pool==pool && item->thread==thread){found=true;break;}
-    unlock_activity(); return found;
-}
 static void error_set(xerrkind kind,const char* name,const char* message)
 {
     if(xrtGetError())return;
     xerrordesc desc={kind,0,0,"xlang","throw",message,name,NULL};
     xerror* error=xrtErrorBuild(&desc); if(error)xrtSetErrorTake(error);else xrtSetErrorKind(kind);
-}
-static XL6_TaskPool* pool_create_body(const XL6_TaskPoolConfig* config)
-{
-    XL6_TaskPool* pool=xrtMalloc(sizeof(*pool));
-    if(!pool)return NULL;
-    *pool=(XL6_TaskPool){0};
-    if(config)pool->config=(xtaskpoolconfig){config->threads,config->queueLimit,config->stackSize};
-    pool->gate=xrtMutexCreate(); if(!pool->gate){xrtFree(pool);return NULL;}
-    pool->changed=xrtCondCreate();
-    if(!pool->changed){xrtMutexDestroy(pool->gate);xrtFree(pool);return NULL;}
-    pool->references=1;pool->ownerHeld=true;
-    return pool;
-}
-static XL6_TaskPool* pool_create(const XL6_TaskPoolConfig* config) { XL6_OWNERSHIP_RETURN(XL6_TaskPool*,pool_create_body(config)); }
-static bool pool_quiesce(XL6_TaskPool* pool)
-{
-    xrtownershipscope mutation={0}; xtaskpool* native; bool ok;
-    if(!pool)return true;
-    pool_enter(pool);
-    mutation_begin(&mutation); bool self=activity_current(pool); lock_pool(pool);
-    if(pool->retiring||(pool->claim&&!pool->cleared)){
-        unlock_pool(pool);mutation_end(&mutation);pool_leave(pool);return false;
-    }
-    /* Preserve V1: a self-quiesce closes new admission but never joins itself. */
-    pool->closing=true;
-    if(pool->quiescing || self) {
-        unlock_pool(pool); mutation_end(&mutation);
-        error_set(XERR_STATE,"StateError",self?"task activity cannot join its own module pool":"module task quiescence is already running");
-        pool_leave(pool);return false;
-    }
-    pool->quiescing=true; unlock_pool(pool); mutation_end(&mutation);
-    /* A synchronous cancellation/pruning callback can still be returning from
-     * Submit. Wait for its real submission credit, with no mutation held. */
-    lock_pool(pool);
-    while(pool->submitting)if(xrtCondWait(pool->changed,pool->gate)!=XWAIT_OK)abort();
-    native=pool->native; unlock_pool(pool);
-    pool_close_resources(pool);
-    /* Native finalizers may still be inside a pool resource-release entry.
-     * Destroy requires exclusive external entry, so settle native jobs and
-     * finalizer tails before requesting destruction, never by retrying it. */
-    ok=!native || (xrtTaskPoolClose(native) && xrtTaskPoolWait(native)==XWAIT_OK &&
-        xrtTaskPoolDestroy(native));
-    mutation_begin(&mutation); lock_pool(pool);
-    if(ok)pool->native=NULL;
-    pool->quiescing=false; unlock_pool(pool); mutation_end(&mutation);pool_leave(pool);return ok;
-}
-XL6_ModulePrepareResult xl6TaskPoolTryQuiesceV1(XL6_TaskPool* pool)
-{
-    xrtownershipscope mutation={0}; xtaskpool* native;
-    XL6_ModulePrepareResult result=XL6_MODULE_PREPARE_READY;
-    if(!pool)return result;
-    pool_enter(pool);
-    mutation_begin(&mutation); bool self=activity_current(pool); lock_pool(pool);
-    if(pool->retiring||(pool->claim&&!pool->cleared)){
-        unlock_pool(pool);mutation_end(&mutation);pool_leave(pool);return XL6_MODULE_PREPARE_BUSY;
-    }
-    pool->closing=true;
-    if(pool->quiescing || pool->submitting || self) {
-        unlock_pool(pool); mutation_end(&mutation);pool_leave(pool);return XL6_MODULE_PREPARE_BUSY;
-    }
-    pool->quiescing=true; native=pool->native; unlock_pool(pool); mutation_end(&mutation);
-    pool_close_resources(pool);
-    if(native) {
-        if(!xrtTaskPoolClose(native))result=XL6_MODULE_PREPARE_FAILED;
-        else {
-            xwaitresult state=xrtTaskPoolWaitFor(native,0);
-            if(state==XWAIT_TIMEOUT)result=XL6_MODULE_PREPARE_BUSY;
-            else if(state!=XWAIT_OK || !xrtTaskPoolDestroy(native))result=XL6_MODULE_PREPARE_FAILED;
-        }
-    }
-    mutation_begin(&mutation); lock_pool(pool);
-    if(result==XL6_MODULE_PREPARE_READY)pool->native=NULL;
-    pool->quiescing=false; unlock_pool(pool); mutation_end(&mutation);pool_leave(pool);return result;
-}
-static bool pool_is_quiescent(const XL6_TaskPool* pool)
-{
-    bool ok; if(!pool)return true;
-    pool_enter((XL6_TaskPool*)pool);
-    lock_pool(pool);ok=!pool->native&&!pool->submitting&&!pool->creating&&!pool->quiescing&&!pool->retiring;
-    unlock_pool(pool);pool_leave((XL6_TaskPool*)pool);return ok;
-}
-static bool pool_is_closing(const XL6_TaskPool* pool)
-{
-    bool closing; if(!pool)return true;
-    pool_enter((XL6_TaskPool*)pool);lock_pool(pool);closing=pool->closing;
-    unlock_pool(pool);pool_leave((XL6_TaskPool*)pool);return closing;
-}
-static bool pool_destroy_body(XL6_TaskPool* pool)
-{
-    if(!pool)return true;
-    pool_enter(pool);xrtownershipscope mutation={0};mutation_begin(&mutation);lock_pool(pool);
-    bool ready=pool->entries==1&&!pool->native&&!pool->submitting&&!pool->creating&&!pool->activities&&
-        !pool->quiescing&&!pool->retiring&&(!pool->claim||pool->cleared);
-    bool owner=ready&&pool->ownerHeld;
-    if(owner){pool->ownerHeld=false;pool->closing=true;}
-    unlock_pool(pool);if(owner)pool_drop(pool);mutation_end(&mutation);pool_leave(pool);return ready;
-}
-static bool pool_destroy(XL6_TaskPool* pool) { XL6_OWNERSHIP_RETURN(bool,pool_destroy_body(pool)); }
-static bool pool_count(const void* data,size_t* count)
-{
-    const XL6_TaskPool* pool=data;
-    if(!pool||!count||!pool->references||pool->entries||pool->activities||pool->submitting||
-        pool->creating||pool->quiescing||pool->retiring||pool->cleared||pool->resources)return false;
-    *count=pool->references;return true;
-}
-static bool pool_trace(const void* data,xrtownershipvisitor visit,void* context)
-{
-    const XL6_TaskPool* pool=data;size_t count;
-    return visit&&pool_count(data,&count)&&(!pool->native||visit(xrtTaskPoolOwnership(pool->native),context));
-}
-static const xrtownershipops pool_ops={pool_count,pool_trace};
-static bool pool_busy(const void* data)
-{
-    const XL6_TaskPool* pool=data;
-    if(!pool || !pool->references || pool->cleared)return false;
-    return pool->entries || pool->activities || pool->submitting || pool->creating || pool->quiescing || pool->retiring;
-}
-const xrtownershipquiescencev1* xl6TaskPoolQuiescenceV1Get(void)
-{
-    static const xrtownershipquiescencev1 policy={sizeof(policy),&pool_ops,pool_busy};return &policy;
-}
-xrtownershipref xl6TaskPoolOwnership(const XL6_TaskPool* pool)
-{return (xrtownershipref){pool,pool?&pool_ops:NULL};}
-static bool pool_claim(const void* data,const void* token)
-{
-    XL6_TaskPool* pool=(XL6_TaskPool*)data;
-    if(!token||pool->cleared||(pool->claim&&pool->claim!=token))return false;
-    pool->claim=token;return true;
-}
-static void pool_restore(const void* data,const void* token)
-{
-    XL6_TaskPool* pool=(XL6_TaskPool*)data;
-    if(!token||pool->claim!=token||pool->cleared)abort();
-    pool->claim=NULL;
-}
-static bool pool_prepared(const void* data)
-{
-    const XL6_TaskPool* pool=data;
-    /* Only this wrapper's admission/entries settle here. The independently
-     * traced native pool MUST be resolved and prepared (including join) by
-     * the same whole graph before ANY node may Clear/Finish. */
-    return pool->closing&&!pool->entries&&!pool->activities&&!pool->submitting&&
-        !pool->creating&&!pool->quiescing&&!pool->retiring&&!pool->resources;
-}
-static xrtownershipprepareresult pool_prepare(const void* data,const void* token)
-{
-    XL6_TaskPool* pool=(XL6_TaskPool*)data;xrtownershipscope mutation={0};
-    mutation_begin(&mutation);lock_pool(pool);
-    if(!token||pool->claim!=token||pool->cleared)abort();
-    pool->closing=true;bool ready=pool_prepared(pool);
-    unlock_pool(pool);mutation_end(&mutation);
-    return ready?XRT_OWNERSHIP_PREPARE_READY:XRT_OWNERSHIP_PREPARE_BUSY;
-}
-static void pool_clear(const void* data,const void* token)
-{
-    XL6_TaskPool* pool=(XL6_TaskPool*)data;
-    if(!token||pool->claim!=token||pool->cleared||!pool_prepared(pool))abort();
-    pool->cleared=true;
-}
-static bool pool_finish(const void* data,const void* token)
-{
-    XL6_TaskPool* pool=(XL6_TaskPool*)data;xrtownershipscope mutation={0};
-    mutation_begin(&mutation);lock_pool(pool);
-    if(!token||pool->claim!=token||!pool->cleared)abort();
-    if(pool->entries||pool->activities||pool->retiring){unlock_pool(pool);mutation_end(&mutation);return false;}
-    xtaskpool* native=pool->native;pool->retiring=true;unlock_pool(pool);mutation_end(&mutation);
-    /* All participants are already cleared; consume the actual native owner
-     * outside freeze. Its plan pin survives either Finish ordering. */
-    bool ready=xrtTaskPoolDestroy(native);
-    mutation_begin(&mutation);lock_pool(pool);
-    if(ready)pool->native=NULL;
-    pool->retiring=false;unlock_pool(pool);mutation_end(&mutation);return ready;
-}
-const xrtownershipadapterv1* xl6TaskPoolOwnershipAdapterV1(xrtownershipref ref,
-    const xrtownershippreparationv1** preparation)
-{
-    static const xrtownershipadapterv1 adapter={sizeof(adapter),pool_hold,pool_drop,
-        pool_claim,pool_restore,NULL,pool_clear,pool_finish};
-    static const xrtownershippreparationv1 prepare={sizeof(prepare),&adapter,pool_prepared,pool_prepare};
-    size_t count;
-    if(!preparation||ref.Ops!=&pool_ops||!pool_count(ref.Data,&count))return NULL;
-    *preparation=&prepare;return &adapter;
 }
 static TaskFrame* frame_header(const void* data)
 { return data?(TaskFrame*)((unsigned char*)data - offsetof(TaskFrame,data)):NULL; }
@@ -404,7 +137,7 @@ static void frame_release(TaskFrame* frame)
     if(--frame->references){frame_mutation_end(frame,&mutation);return;}
     if(frame->payloadLive || frame->active || frame->source || frame->output)abort();
     lease=frame->lease;pool=frame->pool;frame_unlock(frame);xrtFree(frame);
-    pool_drop(pool);mutation_end(&mutation);xl6CodeLeaseRelease(lease);
+    xl6TaskPoolDropInternalV1(pool);mutation_end(&mutation);xl6CodeLeaseRelease(lease);
 }
 static void producer_drop(const void* data) { frame_release((TaskFrame*)data); }
 static const xfutureproducerownershipv1 producer_policy={sizeof(producer_policy),producer_drop};
@@ -422,7 +155,7 @@ static void frame_drop_payload(TaskFrame* frame)
     xrtownershipscope mutation={0}; XL6_CodeScope code={0}; XL6_TaskDrop drop;
     TaskActivity activity={0};
     xl6CodeScopeEnter(&code,frame->lease);
-    if(frame->pool)activity_enter(&activity,frame->pool);
+    if(frame->pool)xl6TaskActivityEnterInternalV1(&activity,frame->pool);
     frame_mutation_begin(frame,&mutation);
     if(!frame->payloadLive)abort();
     ++frame->active; drop=frame->drop; frame_mutation_end(frame,&mutation);
@@ -435,7 +168,7 @@ static void frame_drop_payload(TaskFrame* frame)
     frame_mutation_end(frame,&mutation);
     frame_release(frame); /* The code scope survives freeing this allocation. */
     xl6CodeScopeLeave(&code);
-    if(activity.pool)activity_leave(&activity);
+    if(activity.pool)xl6TaskActivityLeaveInternalV1(&activity);
 }
 static void frame_discard(void* data)
 {
@@ -447,13 +180,13 @@ static xtaskoutcome task_run(xcancel* cancel,void* data,xtaskvalue* result)
 {
     TaskFrame* frame=data; XL6_TaskResult value={0}; XL6_TaskOutcome outcome; XL6_CodeScope code={0};
     TaskActivity activity={0}; xrtownershipscope mutation={0};
-    xl6CodeScopeEnter(&code,frame->lease); activity_enter(&activity,frame->pool);
+    xl6CodeScopeEnter(&code,frame->lease); xl6TaskActivityEnterInternalV1(&activity,frame->pool);
     frame_mutation_begin(frame,&mutation);++frame->active;frame->runEntered=true;frame_mutation_end(frame,&mutation);
     outcome=frame->run(cancel,frame->data,&value);
     /* Keep busy through the separate job-data release, including the worker's
      * return gap. Results and partially retired captures must not be traced. */
     result->Value=value.Value;result->Destroy=value.Destroy;result->DestroyData=value.DestroyData;
-    xl6CodeScopeLeave(&code);activity_leave(&activity);
+    xl6CodeScopeLeave(&code);xl6TaskActivityLeaveInternalV1(&activity);
     if(outcome==XL6_TASK_SUCCESS)return XTASK_SUCCESS;
     if(outcome==XL6_TASK_CANCELLED)return XTASK_CANCELLED;
     if(outcome!=XL6_TASK_FAILED)xrtSetErrorKind(XERR_INTERNAL);
@@ -475,7 +208,7 @@ static void outcome_notify(void* data)
 {
     TaskFrame* frame=data; xfutureresult input={0}; bool completed;
     xerror* previous=xrtTakeError(); xrtownershipscope mutation={0}; XL6_CodeScope code={0}; TaskActivity activity={0};
-    xl6CodeScopeEnter(&code,frame->lease);activity_enter(&activity,frame->pool);
+    xl6CodeScopeEnter(&code,frame->lease);xl6TaskActivityEnterInternalV1(&activity,frame->pool);
     frame_mutation_begin(frame,&mutation);++frame->active;frame_mutation_end(frame,&mutation);
     if(!xrtFutureResult(frame->source,&input)){
         if(!xrtGetError())xrtSetErrorKind(XERR_INTERNAL);
@@ -487,7 +220,7 @@ static void outcome_notify(void* data)
     }
     xrtClearError();xrtSetErrorTake(previous);
     frame_mutation_begin(frame,&mutation);--frame->active;frame_mutation_end(frame,&mutation);
-    xl6CodeScopeLeave(&code);activity_leave(&activity);
+    xl6CodeScopeLeave(&code);xl6TaskActivityLeaveInternalV1(&activity);
 }
 static void outcome_detach(TaskFrame* frame)
 {
@@ -500,9 +233,9 @@ static void outcome_detach(TaskFrame* frame)
 static void outcome_release(void* data)
 {
     TaskFrame* frame=data; XL6_CodeScope code={0}; TaskActivity activity={0};
-    xl6CodeScopeEnter(&code,frame->lease);activity_enter(&activity,frame->pool);
+    xl6CodeScopeEnter(&code,frame->lease);xl6TaskActivityEnterInternalV1(&activity,frame->pool);
     outcome_detach(frame);frame_release(frame);
-    xl6CodeScopeLeave(&code);activity_leave(&activity);
+    xl6CodeScopeLeave(&code);xl6TaskActivityLeaveInternalV1(&activity);
 }
 static bool outcome_trace(const void* data,xrtownershipvisitor visit,void* context)
 { return visit((xrtownershipref){data,&frame_ops},context); }
@@ -563,95 +296,6 @@ static void outcome_registration_failed(TaskFrame* frame,xfuture* future)
     xerror* error=xrtTakeError();if(!error){xrtSetErrorKind(XERR_INTERNAL);error=xrtTakeError();}
     (void)xrtFutureCancel(future);(void)complete_error(frame->output,error);xrtErrorFree(error);outcome_release(frame);
 }
-static xtaskpool* submit_begin(XL6_TaskPool* pool)
-{
-    xrtownershipscope mutation={0};xtaskpool* native;
-    mutation_begin(&mutation);lock_pool(pool);
-    if(pool->closing||pool->submitting==SIZE_MAX){
-        unlock_pool(pool);mutation_end(&mutation);
-        error_set(XERR_STATE,"StateError","module task resource is closing");return NULL;
-    }
-    ++pool->submitting;unlock_pool(pool);mutation_end(&mutation);
-    /* Reserve admission before lazy creation. Quiesce waits for every real
-     * reservation. Creation/failed-create worker joins and condition waits
-     * are outside both ownership mutation and the wrapper resource gate. */
-    for(;;){
-        mutation_begin(&mutation);lock_pool(pool);
-        if(pool->native){native=pool->native;unlock_pool(pool);mutation_end(&mutation);return native;}
-        if(!pool->creating){
-            pool->creating=true;unlock_pool(pool);mutation_end(&mutation);
-            native=xrtTaskPoolCreate(&pool->config);
-            mutation_begin(&mutation);lock_pool(pool);
-            if(!pool->creating||pool->native||!pool->submitting)abort();
-            pool->native=native;pool->creating=false;
-            if(!native)--pool->submitting;
-            if(!xrtCondBroadcast(pool->changed))abort();
-            unlock_pool(pool);mutation_end(&mutation);return native;
-        }
-        unlock_pool(pool);mutation_end(&mutation);
-        lock_pool(pool);
-        while(pool->creating)if(xrtCondWait(pool->changed,pool->gate)!=XWAIT_OK)abort();
-        unlock_pool(pool);
-    }
-}
-static void submit_end(XL6_TaskPool* pool)
-{
-    xrtownershipscope mutation={0};mutation_begin(&mutation);lock_pool(pool);
-    if(!pool->submitting)abort();
-    --pool->submitting;
-    if(!pool->submitting && !xrtCondBroadcast(pool->changed))abort();
-    unlock_pool(pool);mutation_end(&mutation);
-}
-bool xl6TaskNativeBeginV1(XL6_TaskPool* pool, XL6_TaskNativeScopeV1* scope)
-{
-    if(!pool || !scope){xrtSetErrorKind(XERR_ARGUMENT);return false;}
-    *scope=(XL6_TaskNativeScopeV1){0};pool_enter(pool);
-    xtaskpool* native=submit_begin(pool);
-    if(!native){pool_leave(pool);return false;}
-    activity_enter(scope,pool);scope->native=native;return true;
-}
-void xl6TaskNativeEndV1(XL6_TaskNativeScopeV1* scope)
-{
-    if(!scope || !scope->pool || scope->thread!=xrtThreadCurrentId())abort();
-    XL6_TaskPool* pool=scope->pool;activity_leave(scope);submit_end(pool);pool_leave(pool);
-}
-void xl6TaskResourceInitV1(XL6_TaskResourceV1* resource,const XL6_TaskNativeScopeV1* scope,
-    void* context,void (*close)(void*),void (*drop)(void*))
-{
-    if(!resource || !scope || !scope->pool || !scope->native ||
-        scope->thread!=xrtThreadCurrentId() || !close || !drop)abort();
-    XL6_TaskPool* pool=scope->pool;
-    *resource=(XL6_TaskResourceV1){0};resource->pool=pool;resource->context=context;
-    resource->Close=close;resource->Drop=drop;if(!pool_hold(pool))abort();
-    xrtownershipscope mutation={0};mutation_begin(&mutation);lock_pool(pool);
-    resource->next=pool->resources;if(resource->next)resource->next->previous=resource;
-    pool->resources=resource;resource->registered=true;unlock_pool(pool);mutation_end(&mutation);
-}
-bool xl6TaskResourceRemoveV1(XL6_TaskResourceV1* resource)
-{
-    XL6_TaskPool* pool=resource->pool;xrtownershipscope mutation={0};
-    mutation_begin(&mutation);lock_pool(pool);bool removed=resource->registered;
-    if(removed){
-        if(resource->previous)resource->previous->next=resource->next;else pool->resources=resource->next;
-        if(resource->next)resource->next->previous=resource->previous;
-        resource->previous=resource->next=NULL;resource->registered=false;
-    }
-    unlock_pool(pool);mutation_end(&mutation);return removed;
-}
-void xl6TaskResourceReleaseV1(XL6_TaskResourceV1* resource)
-{ if(!resource || !resource->pool || resource->registered)abort();pool_drop(resource->pool);*resource=(XL6_TaskResourceV1){0}; }
-static void pool_close_resources(XL6_TaskPool* pool)
-{
-    for(;;){
-        xrtownershipscope mutation={0};mutation_begin(&mutation);lock_pool(pool);
-        XL6_TaskResourceV1* resource=pool->resources;
-        if(resource){pool->resources=resource->next;if(resource->next)resource->next->previous=NULL;
-            resource->previous=resource->next=NULL;resource->registered=false;}
-        unlock_pool(pool);mutation_end(&mutation);
-        if(!resource)return;
-        resource->Close(resource->context);resource->Drop(resource->context);
-    }
-}
 static xfuture* task_submit_body(XL6_TaskPool* pool,void* data,xcancel* cancel,
     XL6_FuturePayloadTrace trace,const xfuturepayloadownershipv1* policy,bool language)
 {
@@ -667,9 +311,9 @@ static xfuture* task_submit_body(XL6_TaskPool* pool,void* data,xcancel* cancel,
         }else if(!xrtFutureWatchInitPhased(&frame->watch,outcome_notify,outcome_release,frame,outcome_trace))goto preparation_failed;
         token=xrtPromiseCancelToken(frame->output);if(!token)goto preparation_failed;
     }
-    native=submit_begin(pool);if(!native)goto preparation_failed;
-    activity_enter(&activity,pool);
-    if(!pool_hold(pool))abort(); /* frame owner, separate from Submit/activity */
+    xl6TaskActivityEnterInternalV1(&activity,pool);
+    native=xl6TaskSubmitBeginInternalV1(pool);if(!native){xl6TaskActivityLeaveInternalV1(&activity);goto preparation_failed;}
+    if(!xl6TaskPoolHoldInternalV1(pool))abort(); /* frame owner, separate from Submit/activity */
     frame_mutation_begin(frame,&mutation);frame->pool=pool;frame->publishing=true;
     /* One provisional job reference is returned without payload destruction
      * on rejection. The registration reference is committed to Watch later. */
@@ -683,8 +327,8 @@ static xfuture* task_submit_body(XL6_TaskPool* pool,void* data,xcancel* cancel,
         /* Return the provisional job/registration references, not the output's
          * actual producer owner. Closing that private output returns it below. */
         frame->references-=language?2u:1u;frame->publishing=false;frame->pool=NULL;
-        frame_unlock(frame);pool_drop(pool);mutation_end(&mutation);
-        activity_leave(&activity);submit_end(pool);goto preparation_failed;
+        frame_unlock(frame);xl6TaskPoolDropInternalV1(pool);mutation_end(&mutation);
+        xl6TaskActivityLeaveInternalV1(&activity);xl6TaskSubmitEndInternalV1(pool);goto preparation_failed;
     }
     if(language){
         frame_mutation_begin(frame,&mutation);frame->source=source;frame_mutation_end(frame,&mutation);
@@ -694,7 +338,7 @@ static xfuture* task_submit_body(XL6_TaskPool* pool,void* data,xcancel* cancel,
         xrtClearError();xrtSetErrorTake(previous);
     }else future=source;
     frame_mutation_begin(frame,&mutation);frame->committed=true;frame->publishing=false;frame_mutation_end(frame,&mutation);
-    frame_release(frame);activity_leave(&activity);submit_end(pool);return future;
+    frame_release(frame);xl6TaskActivityLeaveInternalV1(&activity);xl6TaskSubmitEndInternalV1(pool);return future;
 preparation_failed:
     previous=xrtTakeError();xrtCancelDestroy(token);
     if(language){outcome_detach(frame);xrtFutureDestroy(future);}
@@ -705,8 +349,8 @@ static xfuture* task_submit_policy(XL6_TaskPool* pool,void* data,xcancel* cancel
     XL6_FuturePayloadTrace trace,const xfuturepayloadownershipv1* policy,bool language)
 {
     if(!pool){error_set(XERR_STATE,"StateError","module task resource is inactive");return NULL;}
-    pool_enter(pool);xfuture* future=task_submit_body(pool,data,cancel,trace,policy,language);
-    pool_leave(pool);return future;
+    xl6TaskPoolEnterInternalV1(pool);xfuture* future=task_submit_body(pool,data,cancel,trace,policy,language);
+    xl6TaskPoolLeaveInternalV1(pool);return future;
 }
 static xfuture* task_submit(XL6_TaskPool* pool,void* data,xcancel* cancel,XL6_FuturePayloadTrace trace,bool language)
 { return task_submit_policy(pool,data,cancel,trace,NULL,language); }
@@ -726,6 +370,6 @@ xfuture* xl6TaskSubmitOwnedPolicyV1(XL6_TaskPool* pool,void* data,xcancel* cance
 }
 const XL6_TaskRuntimeV1* xl6TaskRuntimeV1Get(void)
 {
-    static const XL6_TaskRuntimeV1 api={pool_create,pool_quiesce,pool_destroy,pool_is_quiescent,pool_is_closing,
+    static const XL6_TaskRuntimeV1 api={xl6TaskPoolCreateInternalV1,xl6TaskPoolQuiesceInternalV1,xl6TaskPoolDestroyInternalV1,xl6TaskPoolIsQuiescentInternalV1,xl6TaskPoolIsClosingInternalV1,
         frame_allocate,frame_discard,frame_ownership,task_submit};return &api;
 }

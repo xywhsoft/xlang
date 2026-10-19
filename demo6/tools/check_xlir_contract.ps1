@@ -203,9 +203,13 @@ if (!$poolPrelude.Contains('xl6PayloadObserveOutcome') -or
     throw 'Future callbacks and blocking awaits need shared terminal observation and a current-source runtime gate'
 }
 $taskResident=Read-Utf8 'src/runtime/xl6_task.c'
+$taskPoolResident=Read-Utf8 'src/runtime/xl6_task_pool.c'
 foreach ($required in @('xrtFutureWatchInitPhased', 'xrtFutureWatchAdd', 'xrtPromiseForward', 'xrtPromiseCancelToken',
-    'xrtTaskSubmitTraced','xrtTaskPoolCreate','xrtTaskPoolDestroy','xl6CodeScopeEnter','xl6CodeScopeLeave','frame_ops','submitting')) {
+    'xrtTaskSubmitTraced','xl6CodeScopeEnter','xl6CodeScopeLeave','frame_ops')) {
     if (!$taskResident.Contains($required)) { throw "Resident task completion requires the preallocated scoped ownership/cancellation bridge: $required" }
+}
+foreach ($required in @('xrtTaskPoolCreate','xrtTaskPoolDestroy','submitting','xl6TaskPoolControlV1Get')) {
+    if (!$taskPoolResident.Contains($required)) { throw "Resident task pool lifetime/control provider is incomplete: $required" }
 }
 foreach ($required in @('taskStorageAbi','XL6_IR_TASK_STORAGE_RESIDENT_LAYOUT_FRAME_POOL_V3','asyncCaptureTraceAbis','asyncCaptureDestroyAbis',
     'valueIteratorStorageAbi','XL6_IR_VALUE_ITERATOR_STORAGE_RESIDENT_CHECKED_SNAPSHOT_V2')) {

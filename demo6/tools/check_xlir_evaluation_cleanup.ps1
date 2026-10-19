@@ -71,7 +71,7 @@ try {
         'src/runtime/xl6_continuation_queue.c',
         'src/runtime/xl6_continuation_frame.c',
         'src/runtime/xl6_future_wait.c', 'src/runtime/xl6_future_payload.c',
-        'src/runtime/xl6_task.c')
+        'src/runtime/xl6_task.c','src/runtime/xl6_task_pool.c')
     & release/xl.exe build test/cases/xlir_evaluation_cleanup_tasks_runtime.c test/cases/xlir_evaluation_cleanup_tasks_host.c @taskArtifactRuntimeSources src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$tasks.aot.exe"
     if ($LASTEXITCODE -ne 0) { throw 'Task operand C-host AOT build failed' }
     & "$tasks.aot.exe" --smoke

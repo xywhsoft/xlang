@@ -7,9 +7,9 @@ static TaskFrame* probe_watch(void)
 {
     TaskFrame* frame=xrtCalloc(1,sizeof(*frame)); assert(frame);
     frame->references=1; /* one real direct notification/release caller */
-    XL6_TaskPool* pool=pool_create(NULL);assert(pool&&pool_hold(pool));
+    XL6_TaskPool* pool=xl6TaskPoolCreateInternalV1(NULL);assert(pool&&xl6TaskPoolHoldInternalV1(pool));
     frame->pool=pool; /* actual frame owner, including after physical release */
-    assert(pool_destroy(pool)); /* consume Create's owner of this idle shell */
+    assert(xl6TaskPoolDestroyInternalV1(pool)); /* consume Create's owner of this idle shell */
     return frame;
 }
 static unsigned watch_drops;
