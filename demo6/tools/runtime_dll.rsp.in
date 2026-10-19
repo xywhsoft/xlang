@@ -17,6 +17,7 @@
     src\runtime\xl6_frame_storage.c
     src\runtime\xl6_task.c
     src\runtime\xl6_task_pool.c
+    src\runtime\xl6_executor_jobs.c
     src\runtime\xl6_task_file.c
     src\runtime\xl6_text_value.c
     src\runtime\xl6_text_query.c
@@ -371,6 +372,7 @@
     src\runtime\xl6_ownership_domain_channel_future.c
     src\runtime\xl6_ownership_domain_task.c
     src\runtime\xl6_ownership_domain_task_pool.c
+    src\runtime\xl6_ownership_domain_executor_jobs.c
     src\runtime\xl6_ownership_domain_future_payload.c
     src\runtime\xl6_ownership_domain_native_future.c
     src\runtime\xl6_ownership_domain_future_aggregate.c
