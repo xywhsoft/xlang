@@ -1,0 +1,55 @@
+class Identity<T>
+    func(T) as T identity = func(T value) as T
+        return value
+    end
+end
+
+class Select<A, B>
+    func(B, A) as A second = func(B ignored, A selected) as A
+        return selected
+    end
+end
+
+func makeConstant<T>(T value) as func() as T
+    return func() as T
+        return value
+    end
+end
+
+func makeNested<T>(T value) as func() as func() as T
+    return func() as func() as T
+        return func() as T
+            return value
+        end
+    end
+end
+
+auto integer = Identity::<int>()
+auto text = Identity::<string>()
+auto data = Identity::<bytes>()
+auto scalar = Identity::<char>()
+assert integer.identity(41) == 41
+assert text.identity("a\0你") == "a\0你"
+assert data.identity(b"a\0\xff") == b"a\0\xff"
+assert scalar.identity('你') == '你'
+
+auto left = Select::<int, string>()
+auto right = Select::<string, int>()
+assert left.second("ignored", 42) == 42
+assert right.second(7, "selected\0text") == "selected\0text"
+func(int) as int saved = integer.identity
+assert saved(17) == 17
+integer.identity = func(int value) as int
+    return value + 1
+end
+auto independent = Identity::<int>()
+assert integer.identity(17) == 18 and independent.identity(17) == 17 and saved(17) == 17
+
+auto integerConstant = makeConstant::<int>(73)
+auto textConstant = makeConstant::<string>("held\0text")
+auto dataConstant = makeConstant::<bytes>(b"held\0data")
+assert integerConstant() == 73 and textConstant() == "held\0text" and dataConstant() == b"held\0data"
+auto outer = makeNested::<string>("nested\0value")
+auto inner = outer()
+assert inner() == "nested\0value"
+println("generic closure identities: fields, captures, nested factories and independent instances")

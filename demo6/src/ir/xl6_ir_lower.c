@@ -15039,8 +15039,7 @@ static XL6_IrTypeId xl6IrLowerSpecializationSubstituteType(
              /* Callable, tuple and nullable identities are structural in the XLIR
               * TypePool. A concrete source type may carry a frontend ABI ID
               * while the equivalent specialized shape does not. */
-             ((original->kind == XL6_IR_TYPE_FUNCTION ||
-               original->kind == XL6_IR_TYPE_TUPLE || original->kind == XL6_IR_TYPE_NULLABLE) ||
+             (xl6IrTypeIgnoresFrontendAbiId(original->kind) ||
               candidate->abiId == original->abiId) &&
              (original->abiId != XL6_TYPE_ABI_ID_INVALID ||
               (candidate->name != NULL && original->name != NULL &&
