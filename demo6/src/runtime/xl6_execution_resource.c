@@ -118,21 +118,26 @@ static int32_t worker(void* raw)
         if(selected){
             end(&mutation);XL6_ModulePrepareResult result=XL6_MODULE_PREPARE_FAILED;
             xl6_error_scope cleanup={0};xl6_error_result outcome={false,NULL};
-            if(xl6ErrorScopeBegin(&cleanup)){
+            bool begun=xl6ErrorScopeBegin(&cleanup);
+            if(begun){
                 result=selected->family->Retire(selected);
                 if(result==XL6_MODULE_PREPARE_FAILED)xl6ErrorScopeCaptureFailure(&cleanup);
-                outcome=xl6ErrorScopeEnd(&cleanup);
             }else outcome.error=xrtTakeError();
-            xerror* error=outcome.error;
             begin(&mutation);Source* detached=NULL;
-            if(!outcome.ok)sourceFailureLocked(source,&error);
             if(result==XL6_MODULE_PREPARE_READY){
                 selected->executor=NULL;selected->pool=NULL;detached=unregisterLocked(selected);
-            }else if(result==XL6_MODULE_PREPARE_FAILED){selected->stalled=true;sourceFailureLocked(source,&error);}
+            }else if(result==XL6_MODULE_PREPARE_FAILED)selected->stalled=true;
             else busy=true;
-            selected->retiring=false;end(&mutation);xrtErrorFree(error);
+            selected->retiring=false;end(&mutation);
+            /* Registry removal is not the end of cleanup. The actual last
+             * resource/ledger/error-context release can still run language
+             * destructors; keep the checked scope and active tail through it.
+             * A separate inspection pin may defer its own final drop. */
             if(detached){sourceDrop(detached);resourceDrop(selected);}
-            begin(&mutation);source->active=false;end(&mutation);continue;
+            if(begun)outcome=xl6ErrorScopeEnd(&cleanup);
+            xerror* error=outcome.error;begin(&mutation);
+            if(!outcome.ok)sourceFailureLocked(source,&error);
+            source->active=false;end(&mutation);xrtErrorFree(error);continue;
         }
         source->parked=true;end(&mutation);cycle=0;
         if(!waitChanged(source,busy))return 1;

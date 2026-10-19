@@ -1,0 +1,17 @@
+import concurrent
+
+class UnobservedExecutorLocal
+    destroy()
+        throw ValueError("unobserved executor exit")
+    end
+end
+auto local = ThreadLocal::<UnobservedExecutorLocal>()
+auto ready = Event(true)
+auto executor = Executor(1, 8)
+executor.submit(func()
+    local.set(UnobservedExecutorLocal())
+    ready.set()
+end)
+assert ready.wait(10000)
+executor.close()
+// No explicit report: module retirement must deliver the cleanup failure.

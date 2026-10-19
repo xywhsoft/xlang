@@ -18,10 +18,11 @@ def main():
  assert sha(build['Driver'])==build['DriverSha256'].lower()
  assert all(sha(row['Path'])==row['Sha256'].lower() for row in build['Objects']+build['Headers'])
  cc=Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve();driver=Path(build['Driver']);sdk=driver.parent/'include';ext='.exe' if os.name=='nt' else ''
- cases=('stdlib_executor','stdlib_executor_errors','stdlib_executor_control','stdlib_executor_self_release','stdlib_executor_unused','stdlib_executor_mixed_services')
+ cases=('stdlib_executor','stdlib_executor_errors','stdlib_executor_control','stdlib_executor_self_release','stdlib_executor_unused','stdlib_executor_mixed_services','stdlib_executor_thread_local')
  negatives=('bad_stdlib_executor_missing_import','bad_stdlib_executor_callback')
  files={Path(__file__).resolve(),manifest,cc,driver,root/'test/cases/xlir_executor_contract.c',
-  *[root/('test/cases/'+name+'.xl') for name in cases+negatives+('stdlib_executor_unobserved_error',)]}
+  *[root/('test/cases/'+name+'.xl') for name in cases+negatives+('stdlib_executor_unobserved_error','stdlib_executor_unobserved_exit',
+   'stdlib_thread_local','stdlib_thread_local_threads','stdlib_thread_local_owned')]}
  inputs={str(path):sha(path) for path in sorted(files)};out.mkdir(parents=True);rows=[];products=[];failures=[];env=dict(os.environ)
  if os.name!='nt':assert a.native_root;env['XL6_SOURCE_NATIVE_ROOT']=str(a.native_root.resolve())
  report=dict(Complete=False,InputsUnchanged=False,LogsUnchanged=False,SourceBuild=str(manifest),SourceBuildSha256=sha(manifest),Inputs=inputs,
@@ -35,7 +36,7 @@ def main():
   rows.append(dict(Name=name,Command=command,Exit=r.returncode,ExpectedRejection=reject,Log=str(log),Sha256=sha(log),Seconds=time.monotonic()-started));save()
   print(name+': '+str(r.returncode),flush=True);assert (r.returncode!=0 if reject else r.returncode==0),(name,str(log))
   text=log.read_text(encoding='utf8',errors='replace')
-  if proof:assert proof in text,(name,'missing proof')
+  if proof:assert any(expected in text for expected in ((proof,) if isinstance(proof,str) else proof)),(name,'missing proof')
   return text
  flags=['-std=c11','-Wall','-Wextra','-Werror','-I'+str(root),'-I'+str(root/'release'),'-I'+str(root/'release/include'),'-I'+str(sdk)]
  if os.name!='nt':flags+=['-D_GNU_SOURCE']
@@ -67,6 +68,14 @@ def main():
    assert not (out/(case+'.c')).exists()
   for i in range(8):
    run('unobserved.'+str(i),[driver,root/'test/cases/stdlib_executor_unobserved_error.xl','run',out/('unobserved.'+str(i))],proof='retirement',reject=True)
+   run('unobserved-exit.'+str(i),[driver,root/'test/cases/stdlib_executor_unobserved_exit.xl','run',out/('unobserved-exit.'+str(i))],
+    proof=('retirement','unobserved executor exit'),reject=True)
+   assert rows[-1]['Exit']==1,'Expected checked failure, not abnormal process termination'
+  for case in ('stdlib_thread_local','stdlib_thread_local_threads','stdlib_thread_local_owned'):
+   source=root/('test/cases/'+case+'.xl')
+   for mode in ('run','module'):run(case+'.'+mode,[driver,source,mode,out/(case+'.'+mode)])
+   prefix=out/(case+'.aot');exe=Path(str(prefix)+('.exe' if os.name=='nt' else '.out'))
+   run(case+'.aot.build',[driver,source,'exe',prefix if os.name=='nt' else exe]);product(exe);run(case+'.aot.run',[exe])
   obj=out/'contract.o';run('contract.build',[cc,*flags,'-O0','-c',root/'test/cases/xlir_executor_contract.c','-o',obj]);product(obj)
   objects=[row['Path'] for row in build['Objects'] if Path(row['Source']).name not in ('xlir_public_source_driver.c','xlir_public_source_linux_driver.c')]
   assert len(objects)==len(build['Objects'])-1

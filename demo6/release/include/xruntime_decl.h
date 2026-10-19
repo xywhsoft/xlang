@@ -38213,6 +38213,19 @@ typedef struct xexecutorowneditemv1 {
 	const xexecutordataownershipv1* Policy;
 } xexecutorowneditemv1;
 
+/* One actual executor-owned context reference, shared by its workers. Exit
+ * borrows it on each REAL worker exactly once, after all accepted work/drop
+ * tails, outside native locks/mutation and before publishing worker exit.
+ * Drop(Data,NULL) consumes it once AFTER every worker has joined. Callbacks,
+ * Ops and policy are immutable resident code; no generated descriptor/code
+ * lifetime is inferred. Context nodes require independent graph admission. */
+typedef struct xexecutorworkerexitownershipv1 {
+	size_t size;
+	xexecutorproc Exit;
+	xexecutorfreeproc Drop;
+	const xrtownershipops* Ops;
+} xexecutorworkerexitownershipv1;
+
 
 
 /* QueueLimit 是每个 Worker 的硬队列上限；总排队容量等于 Threads 乘 QueueLimit。 */
@@ -38252,6 +38265,15 @@ XRT_EXTERN_C_BEGIN
 
 /* 创建预分配作业槽、Worker 本地队列和工作窃取线程。 */
 XRT_API xexecutor* xrtExecutorCreate(const xexecutorconfig* pConfig);
+
+/* Success consumes ONE Data reference. Failure consumes none and invokes no
+ * Exit/Drop, including partial native-thread creation rollback. Unlike plain
+ * Create, Close+drain stops these workers; Wait includes every Exit tail.
+ * Native queue statistics still count jobs only. Exit records semantic errors
+ * in its owned context; it cannot change physical completion into a lost
+ * native creator. NULL Data/policy are invalid; use plain Create without it. */
+XRT_API xexecutor* xrtExecutorCreateOwnedExitV1(const xexecutorconfig* pConfig,
+	ptr pData, const xexecutorworkerexitownershipv1* pPolicy);
 
 
 
@@ -38295,6 +38317,12 @@ XRT_API bool xrtExecutorSubmitOwnedBatchV1(xexecutor* pExecutor,
 XRT_API xrtownershipref xrtExecutorOwnership(const xexecutor* pExecutor);
 XRT_API const xrtownershipadapterv1* xrtExecutorOwnershipAdapterV1(
 	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
+/* V1 refuses a live owned exit context. V2 matches its exact registered policy
+ * identity BEFORE Count/Trace. Equal descriptor copies are not authority.
+ * Unknown/BUSY leaves output unchanged; plain executors are still admitted. */
+XRT_API const xrtownershipadapterv1* xrtExecutorOwnershipAdapterV2(
+	xrtownershipref Reference, const xexecutorworkerexitownershipv1* const* pPolicies,
+	size_t iPolicyCount, const xrtownershippreparationv1** ppPreparation);
 /* Match an admitted resident Data policy identity BEFORE following its fields.
  * A pinned completed slot is not reused and keeps its containing allocation
  * alive, even after Executor destruction. Outputs change only on success. */

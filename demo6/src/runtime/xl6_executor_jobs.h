@@ -3,6 +3,7 @@
 #include "xl6_closure.h"
 struct xexecutor;
 struct xexecutordataownershipv1;
+struct xexecutorworkerexitownershipv1;
 struct xrtownershipquiescencev1;
 struct xrtownershippreparationv1;
 typedef struct XL6_ExecutorFailuresV1 XL6_ExecutorFailuresV1;
@@ -57,6 +58,9 @@ XL6_CODE_LEASE_API bool xl6ExecutorWaitV1(struct xexecutor*,XL6_ExecutorFailures
 
 XL6_CODE_LEASE_API struct xrtownershipref xl6ExecutorFailuresOwnershipV1(const XL6_ExecutorFailuresV1*);
 XL6_CODE_LEASE_API const struct xexecutordataownershipv1* xl6ExecutorClosureDataPolicyV1Get(void);
+/* Native-owned ledger reference. Exit runs once per actual worker, not job;
+ * checked ThreadLocal cleanup failures use the same first-error ledger. */
+XL6_CODE_LEASE_API const struct xexecutorworkerexitownershipv1* xl6ExecutorWorkerExitPolicyV1Get(void);
 XL6_CODE_LEASE_API const struct xrtownershipquiescencev1* xl6ExecutorClosureQuiescenceV1Get(void);
 XL6_CODE_LEASE_API const struct xrtownershipadapterv1* xl6ExecutorJobsOwnershipAdapterV1(
     struct xrtownershipref,const struct xrtownershippreparationv1**);

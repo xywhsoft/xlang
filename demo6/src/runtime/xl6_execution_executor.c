@@ -5,7 +5,14 @@ typedef XL6_ExecutionResourceV1 Resource;
 static bool create(Resource* r,uint32_t threads,size_t limit,size_t stack)
 {
     r->failures=xl6ExecutorFailuresCreateV1();
-    if(r->failures){xexecutorconfig config={threads,limit,stack};r->executor=xrtExecutorCreate(&config);}
+    if(r->failures){
+        XL6_ExecutorFailuresV1* owned=xl6ExecutorFailuresRetainV1(r->failures);
+        if(owned){
+            xexecutorconfig config={threads,limit,stack};
+            r->executor=xrtExecutorCreateOwnedExitV1(&config,owned,xl6ExecutorWorkerExitPolicyV1Get());
+            if(!r->executor){xerror* error=xrtTakeError();xl6ExecutorFailuresReleaseV1(owned);xrtClearError();xrtSetErrorTake(error);}
+        }
+    }
     return r->executor!=NULL;
 }
 static bool rollback(Resource* r)

@@ -4,6 +4,7 @@
 static bool load(XL6_OwnershipCatalog* catalog)
 {
     return xl6OwnershipCatalogAddExecutorV1(catalog,xl6ExecutorClosureDataPolicyV1Get())&&
+        xl6OwnershipCatalogAddExecutorExitV1(catalog,xl6ExecutorWorkerExitPolicyV1Get())&&
         xl6OwnershipCatalogAddQuiescenceV1(catalog,xl6ExecutorClosureQuiescenceV1Get());
 }
 XL6_OWNERSHIP_QUERY(ExecutorJobs)

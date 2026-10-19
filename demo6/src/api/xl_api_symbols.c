@@ -393,6 +393,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6ExecutorWaitV1", (const void*)xl6ExecutorWaitV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorFailuresOwnershipV1", (const void*)xl6ExecutorFailuresOwnershipV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorClosureDataPolicyV1Get", (const void*)xl6ExecutorClosureDataPolicyV1Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutorWorkerExitPolicyV1Get", (const void*)xl6ExecutorWorkerExitPolicyV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorClosureQuiescenceV1Get", (const void*)xl6ExecutorClosureQuiescenceV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ExecutorJobsOwnershipAdapterV1", (const void*)xl6ExecutorJobsOwnershipAdapterV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskResourceInitV1", (const void*)xl6TaskResourceInitV1)) return 0;

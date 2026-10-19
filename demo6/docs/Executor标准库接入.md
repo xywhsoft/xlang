@@ -2,8 +2,8 @@
 
 `import concurrent` 按需提供受管理 `Executor` 与不可变 `ExecutorSnapshot`。
 本批接通单项提交、配置、关闭／取消、等待、首错／计数和统计的实际语言路径。
-原子批量提交的公开载体、公开 TaskPool、原生工作线程的 ThreadLocal 退出清理
-及 checked 错误归属联合验收与后续五组工作仍未完成，不能据此
+原子批量提交的公开载体、公开 TaskPool、完整 shipping DLL／SO／VFS
+联合验收与后续五组工作仍未完成，不能据此
 宣称完整并发接入或整个长期任务完成。
 
 ```xl
@@ -35,6 +35,11 @@ assert count.load() == 1
 不强杀正在运行的回调。关闭可重复，仍可读统计、等待和报告错误。`wait(ms)`
 要求先关闭／取消，-1 无限、0 轮询、正数为有限毫秒；真正完成返回 true，
 超时返回 false，错误仍抛出。原生完成包含捕获清理和错误登记，不只 body 返回。
+
+ThreadLocal 跨同一真实工作线程上的多次作业保留，不按作业清空。关闭并排空后，
+线程退出使用驻留 checked 清理入口；`wait()` 包含这段尾部。每个失败的线程退出
+记一次失败，和作业共用首错／计数账本；原生 submitted／completed 等仍只计作业。
+没有选择 ThreadLocal 的程序仅携带可选退出分派，不因此拉入 ThreadLocal 实现。
 
 `failureCount`／`failureCountSaturated` 保留全部历史失败；首错按完整作业结束
 后的登记顺序，未必是提交顺序。正常取消不算失败，取消时的捕获清理失败仍算。

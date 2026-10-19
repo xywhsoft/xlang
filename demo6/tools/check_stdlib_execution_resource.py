@@ -80,7 +80,9 @@ def main():
             ('exited-source-never-ready','xl6_execution_resource.c','s->joined||s->exited||(s->graphStop&&s->parked)',
              's->joined||(s->graphStop&&s->parked)'),
             ('graph-notification-lost','xl6_executor_jobs.c','bool pending=s->unreported;','bool pending=false;'),
-            ('observed-notification-repeated','xl6_executor_jobs.c','if(pending&&!retirement)state->unreported=false;','(void)retirement;')]
+            ('observed-notification-repeated','xl6_executor_jobs.c','if(pending&&!retirement)state->unreported=false;','(void)retirement;'),
+            ('worker-exit-failure-lost','xl6_executor_jobs.c','record(state,outcome);xrtClearError();xrtSetErrorTake(previous);',
+             '(void)state;xrtErrorFree(outcome.error);xrtClearError();xrtSetErrorTake(previous);')]
         report['NegativeControls']=[]
         for name,filename,old,new in controls:
             original=root/'src/runtime'/filename;body=original.read_text(encoding='utf-8-sig');assert body.count(old)==1,(name,'inexact mutation')
