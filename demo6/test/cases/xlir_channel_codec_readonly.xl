@@ -1,0 +1,27 @@
+// No channel<T> expression or import: a native read closes T's own witness.
+union ReadBits
+    int number
+    c_double real
+end
+class ForeignRead<T>
+    private native point handle
+    extern "xl6ChannelReceiveResultDestroyV1" destroy()
+    extern "xl6ChannelReceiveResultValueLanguageV1" @nonblocking func read() as T
+end
+export "readonly_union" func readUnion(ForeignRead<ReadBits> source) as ReadBits
+    return source.read()
+end
+export "readonly_closure" func readClosure(ForeignRead<func(int) as int> source) as int
+    auto callback = source.read()
+    return callback(1)
+end
+export "readonly_optional_union" func readOptionalUnion(ForeignRead<ReadBits?> source) as int
+    auto value = source.read()
+    if value != null then return value.number end
+    return -1
+end
+export "readonly_optional_closure" func readOptionalClosure(ForeignRead<(func(int) as int)?> source) as int
+    auto callback = source.read()
+    if callback != null then return callback(1) end
+    return -1
+end

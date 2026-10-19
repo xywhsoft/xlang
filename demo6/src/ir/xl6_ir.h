@@ -2761,7 +2761,10 @@ typedef enum XL6_IrAsyncResultAbi {
     XL6_IR_ASYNC_RESULT_COPY_TIME,
     /* Exact ISO C scalar cell. Its concrete type, width and alignment remain
      * on the payload TypeId; never normalize it to I64/F64 storage. */
-    XL6_IR_ASYNC_RESULT_COPY_C_SCALAR
+    XL6_IR_ASYNC_RESULT_COPY_C_SCALAR,
+    /* Exact compiler-owned, reference-free nominal union. Its canonical
+     * layout and TypeId stay on the payload; not a boxed message slot. */
+    XL6_IR_ASYNC_RESULT_COPY_UNION
 } XL6_IrAsyncResultAbi;
 
 /* Open dynamic invocation uses the runtime's multi-value call protocol, but a
@@ -4040,9 +4043,10 @@ typedef enum XL6_IrCallParameterPhysicalAbi {
      * Admitted only by an exact native contract, never inferred from a
      * source function type or confused with an erased XL6_Function. */
     XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_CLOSURE_BORROW,
-    /* A synchronous const address of the exact logical value slot. Only a
-     * closed generic runtime descriptor may select this ABI; it is not user
-     * byref and grants no mutation or retention of the temporary address. */
+    /* A synchronous const address in the closed native value representation.
+     * Without a NativeCallValuePlan this is the exact logical value slot;
+     * an explicit codec plan instead supplies its private owned physical slot.
+     * This is not user byref and grants no retention of the temporary address. */
     XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW,
     /* The exact logical null payload has no addressable value slot. The
      * closed native descriptor receives NULL, never a fabricated C value. */
@@ -7355,6 +7359,16 @@ typedef struct XL6_IrChannelValuePlan {
     bool nullable,logicalTagged;
 } XL6_IrChannelValuePlan;
 int xl6IrChannelValuePlanBuild(const XL6_IrModule*,XL6_IrTypeId,XL6_IrChannelValuePlan*);
+/* Shared representation proof, independent of a transport owner. */
+int xl6IrChannelValuePlanFromSchema(const XL6_IrModule*,XL6_IrTypeId,XL6_IrChannelValuePlan*);
+typedef struct XL6_IrNativeCallValuePlan {
+    XL6_IrChannelValuePlan value;
+    unsigned inputParameter; /* one-based; zero means no input conversion */
+    bool output;
+} XL6_IrNativeCallValuePlan;
+/* Empty success for ordinary calls. Registered value-slot calls close both
+ * language identity and stored representation, with no source-name inference. */
+int xl6IrNativeCallValuePlanBuild(const XL6_IrModule*,const XL6_IrCallTarget*,XL6_IrNativeCallValuePlan*);
 /* This prerequisite does not authorize legacy Into calls as owned receives. */
 int xl6IrChannelConstructionRecipe(const XL6_IrModule*,XL6_IrTypeId,
     XL6_IrTypeId* schemaOut,XL6_IrNominalIdentitySetId* admissionSetOut);

@@ -1,0 +1,82 @@
+import concurrent
+extern "xrtMemDebugFailAfter" @no_raise @nonblocking func memFailAfter(uint64 budget) as bool
+extern "xrtMemDebugFailTriggered" @no_raise @nonblocking func memWasTriggered() as bool
+extern "xrtMemDebugFailClear" @no_raise @nonblocking func memClearFailure()
+
+class InputBuilder<T>
+    private native point handle
+    extern "xl6ChannelDirectSendCreateLanguageV1" create(channel<T> source, T value)
+    extern "xl6ChannelSendFutureBuilderDestroyV1" destroy()
+end
+class TimedInputBuilder<T>
+    private native point handle
+    static extern "xl6ChannelDeadlineSendForLanguageV1" func createWithTimeout(channel<T> source, T value, int milliseconds) as TimedInputBuilder<T>
+    extern "xl6ChannelDeadlineSendBuilderDestroyV1" destroy()
+end
+union InputBits
+    int number
+    c_double real
+end
+
+func attempt<T>(T input, int point, int mode) as bool
+    auto pipe = channel::<T>(1)
+    ChannelCase? selected = null
+    InputBuilder<T>? direct = null
+    TimedInputBuilder<T>? timed = null
+    bool made = false
+    bool caught = false
+    bool hit = false
+    assert memFailAfter(uint64(point))
+    try
+        if mode == 0
+            selected = ChannelCase.send(pipe, input)
+        elseif mode == 1
+            direct = InputBuilder::<T>(pipe, input)
+        else
+            timed = TimedInputBuilder::<T>.createWithTimeout(pipe, input, 0)
+        end
+        made = true
+    catch error
+        caught = true
+    finally
+        hit = memWasTriggered()
+        memClearFailure()
+    end
+    assert pipe.count() == 0
+    if hit
+        assert caught and not made, "encoding/factory OOM must not expose a result"
+        assert selected == null and direct == null and timed == null
+    else
+        assert made and not caught
+    end
+    selected = null
+    direct = null
+    timed = null
+    pipe.close()
+    return hit
+end
+func sweep<T>(T input, int mode) as int
+    int point = 0
+    while point < 128
+        if not attempt(input, point, mode) then return point end
+        point += 1
+    end
+    assert false, "a successful complete allocation prefix must be reached"
+    return -1
+end
+int base = 40
+auto callback = func(int value) as int
+    return base + value
+end
+InputBits bits
+bits.number = 42
+int mode = 0
+while mode < 3
+    int closures = sweep(callback, mode)
+    int unions = sweep(bits, mode)
+    assert closures > 0 and unions > 0
+    assert callback(2) == 42 and bits.number == 42
+    println("native Channel input actual prefixes mode=" + string(mode) + ": closure=" + string(closures) + ", union=" + string(unions))
+    mode += 1
+end
+println("native Channel codec input OOM checked rollback ok")

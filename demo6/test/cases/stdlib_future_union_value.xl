@@ -1,0 +1,34 @@
+import concurrent
+union FutureBits
+    int number
+    c_double real
+end
+async func unionEcho<T>(T value) as T
+    auto gate = Promise::<int>()
+    assert gate.tryResolve(1)
+    assert await gate.future == 1
+    return value
+end
+func optional<T>(T value) as T?
+    return value
+end
+FutureBits original
+original.number = 42
+auto pending = unionEcho(original)
+FutureBits copied = await pending
+copied.number = 99
+assert original.number == 42 and copied.number == 99
+auto maybe = optional(original)
+if maybe != null then assert maybe.number == 42 end
+auto promise = Promise::<FutureBits>()
+auto promised = promise.future
+assert promise.tryResolve(original)
+FutureBits first = await promised
+first.number = 71
+FutureBits second = await promised
+assert second.number == 42 and original.number == 42
+auto nullable = Promise::<FutureBits?>()
+auto absence = nullable.future
+assert nullable.tryResolve(null)
+assert await absence == null
+println("plain union async/Future/Promise preserve exact trivial nominal value and copy independence ok")

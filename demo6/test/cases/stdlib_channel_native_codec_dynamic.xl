@@ -1,0 +1,43 @@
+import concurrent
+
+class ReceivedView<T>
+    private native point handle
+    extern "xl6ChannelReceiveResultDestroyV1" destroy()
+    extern "xl6ChannelReceiveResultValueLanguageV1" @nonblocking func read() as T
+end
+class ReceiveViewBuilder<T>
+    private native point handle
+    extern "xl6ChannelDirectReceiveCreateLanguageV1" create(channel<T> source)
+    extern "xl6ChannelReceiveFutureBuilderDestroyV1" destroy()
+    extern "xl6ChannelReceiveFutureResultLanguageV1" @nonblocking func result() as ReceivedView<T>
+    extern "xl6ChannelDirectReceiveStartLanguageV1" @nonblocking func start(ReceivedView<T> result) as future<ReceivedView<T>>
+end
+
+func callback(int base) as func(int) as int
+    string retained = "a\0你"
+    return func(int value) as int
+        assert retained == "a\0你"
+        return base + value
+    end
+end
+
+func readErased(var source) as func(int) as int
+    return source.read() as func(int) as int
+end
+async func check() as func(int) as int
+    channel<func(int) as int> pipe = channel::<func(int) as int>(1)
+    assert pipe.send(callback(40))
+    auto builder = ReceiveViewBuilder::<func(int) as int>(pipe)
+    auto result = builder.result()
+    auto ready = await builder.start(result)
+    var erased = ready
+    func(int) as int output = readErased(erased)
+    pipe.close()
+    assert output(2) == 42
+    func(int) as int second = readErased(erased)
+    assert second(3) == 43 and output(4) == 44
+    return output
+end
+auto independent = await check()
+assert independent(5) == 45
+println("native Channel dynamic witness owns projected closure and code lease ok")

@@ -246,6 +246,12 @@ static int xl6IrCgenEmitDynamicNativeWitness(
     XL6_Output* out, const XL6_IrModule* module, const XL6_IrCallTarget* target,
     XL6_DiagList* diags)
 {
+    XL6_IrNativeCallValuePlan valuePlan={0};
+    if (!xl6IrNativeCallValuePlanBuild(module,target,&valuePlan)) return 0;
+    bool encoded=xl6IrCgenNativeCallValueEncoded(&valuePlan);
+    char input[40];
+    if (valuePlan.inputParameter>1)snprintf(input,sizeof(input),"a%u",valuePlan.inputParameter-2);
+    else snprintf(input,sizeof(input),"receiver");
     xl6OutputPuts("    { xl6_foreign_error_scope nativeScope = {0}; xl6_foreign_error_result nativeOutcome;\n", out);
     for ( size_t p = 0; p < target->parameterCount; ++p )
         if ( target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW )
@@ -267,6 +273,7 @@ static int xl6IrCgenEmitDynamicNativeWitness(
             field->nativeDestroySymbol != 0 ? "xrtValueGetHandle" : "xrtValueGetPointer",
             (unsigned long)p, field->nativeDestroySymbol != 0 ? ", NULL, NULL" : "");
     }
+    if (!xl6IrCgenNativeCallValueBegin(out,module,&valuePlan,input,"nativeScope")) return 0;
     xl6OutputPuts("      ", out);
     if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
         xl6OutputPuts("callResult = ", out);
@@ -285,7 +292,9 @@ static int xl6IrCgenEmitDynamicNativeWitness(
     }
     for ( size_t p = 0; p < target->parameterCount; ++p ) {
         if ( p ) xl6OutputPuts(", ", out);
-        if ( target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW )
+        if (encoded && valuePlan.inputParameter==p+1)
+            xl6OutputPuts("&native_value_input",out);
+        else if ( target->parameterPhysicalAbis[p] == XL6_IR_CALL_PARAMETER_PHYSICAL_NATIVE_CLASS_HANDLE_BORROW )
             xl6OutputPrintf(out, "native%lu", (unsigned long)p);
         else if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW)
             xl6OutputPrintf(out,"&a%lu",(unsigned long)(p-1));
@@ -296,7 +305,7 @@ static int xl6IrCgenEmitDynamicNativeWitness(
     }
     if(target->nativeResultAbi==XL6_IR_CALL_NATIVE_RESULT_VALUE_SLOT_V1) {
         if(target->parameterCount || target->nativeContextAbi || target->nativeServicesRequired)xl6OutputPuts(", ",out);
-        xl6OutputPuts("&callResult.value",out);
+        xl6OutputPuts(encoded&&valuePlan.output?"&native_value_output":"&callResult.value",out);
     }
     xl6OutputPuts(")", out);
     if ( target->resultConversionAbi == XL6_IR_CALL_RESULT_CONVERSION_BORROWED_STRING_COPY ) xl6OutputPuts(")", out);
@@ -306,6 +315,7 @@ static int xl6IrCgenEmitDynamicNativeWitness(
     for ( size_t p = 1; p < target->parameterCount; ++p )
         if ( target->parameterAbis[p] == XL6_IR_PARAMETER_ABI_OWNED )
             xl6OutputPrintf(out, "      a%lu = (%s){0};\n", (unsigned long)(p - 1), xl6IrCgenType(module, target->parameterTypes[p]));
+    if (!xl6IrCgenNativeCallValueEnd(out,module,&valuePlan,"callResult.value","nativeScope")) return 0;
     if ( target->errorPhysicalAbi == XL6_IR_CALL_ERROR_PHYSICAL_RESULT_CARRIER )
         xl6OutputPuts("      if (!callResult.ok) { xl6_error_result failure = {false, xrtTakeError()}; xl6ErrorScopePropagateFailure(failure); }\n", out);
     xl6OutputPuts("native_done:\n      if (nativeScope.failed || xrtGetError() != NULL) {\n"

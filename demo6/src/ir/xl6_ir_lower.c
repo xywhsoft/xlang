@@ -15365,9 +15365,15 @@ static int xl6IrLowerUnifyGenericType(
         }
         return resolved[index] == actualId;
     }
-    if ( formal->kind != actual->kind || formal->cAbi != actual->cAbi ||
-         formal->callableErasureAbi != actual->callableErasureAbi ||
-         formal->ownershipAbi != actual->ownershipAbi || formal->paramCount != actual->paramCount ||
+    /* T? has no fixed physical ABI before substitution: e.g. closure? is a
+     * pointer sentinel while union? is a trivial tagged value. Unify that
+     * logical wrapper, then require the exact resolved T below. */
+    bool dependentNullable=formal->kind==XL6_IR_TYPE_NULLABLE &&
+        formal->paramCount==1 && formal->params &&
+        xl6IrLowerTypeContainsTypeParam(module,formalId,0);
+    if ( formal->kind != actual->kind || (!dependentNullable &&
+         (formal->cAbi != actual->cAbi || formal->ownershipAbi != actual->ownershipAbi)) ||
+         formal->callableErasureAbi != actual->callableErasureAbi || formal->paramCount != actual->paramCount ||
          formal->returnCount != actual->returnCount ) return 0;
     for ( i = 0; i < formal->paramCount; ++i ) {
         if ( !xl6IrLowerUnifyGenericType(module, formal->params[i], actual->params[i],
@@ -15419,6 +15425,15 @@ static int xl6IrLowerInferGenericCallTypeArgs(
     if ( formalReturns->childCount == 1 ) {
         const XL6_IrNode* formalReturn = xl6IrNodeGet(module, module->children[formalReturns->firstChild]);
         XL6_IrTypeId actualReturn = call->storageType != XL6_IR_TYPE_INVALID ? call->storageType : call->type;
+        /* An async declaration writes worker T, while its CALL is future<T>.
+         * Return-side inference must compare the same semantic result layer. */
+        if (declarationNode->sourceKind==XL6_AST_ASYNC_FUNC) {
+            const XL6_IrType* future=xl6IrTypeGet(&module->types,actualReturn);
+            if (!future || future->kind!=XL6_IR_TYPE_GENERIC_INSTANCE ||
+                future->cAbi!=XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
+                future->paramCount!=1 || !future->params) goto done;
+            actualReturn=future->params[0];
+        }
         if ( formalReturn == NULL || actualReturn == XL6_IR_TYPE_INVALID ||
              !xl6IrLowerUnifyGenericType(module, formalReturn->type, actualReturn,
                                           parameters, parameterCount, resolved, 0) ) goto done;

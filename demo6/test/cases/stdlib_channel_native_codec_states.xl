@@ -1,0 +1,70 @@
+import concurrent
+union StateBits
+    int number
+    c_double real
+end
+union OtherStateBits
+    int number
+    c_double real
+end
+async func states<T>(T input) as T
+    channel<T> pipe = channel::<T>(1)
+    auto source = CancellationSource()
+    auto token = source.token
+    assert source.cancel()
+    auto empty = await pipe.recvAsyncTimeout(0)
+    assert empty.status == channelStatus.timeout and not empty.hasValue and empty.value == null
+    auto cancelled = await pipe.recvAsyncCancel(token)
+    assert cancelled.status == channelStatus.cancelled and not cancelled.hasValue
+    assert await pipe.sendAsyncUntilCancel(input, uint64(0), token) == channelStatus.ok
+    assert await pipe.sendAsyncTimeoutCancel(input, 0, token) == channelStatus.cancelled
+    auto ready = await pipe.recvAsyncUntilCancel(uint64(0), token)
+    assert ready.hasValue and ready.status == channelStatus.ok
+    T received = ready.value ?? input
+    auto receiving = ChannelCase.receive(pipe)
+    auto timed = await ChannelSelection.selectAsyncTimeout([receiving], 0)
+    assert timed.status == channelStatus.timeout
+    auto sending = ChannelCase.send(pipe, input)
+    auto published = await ChannelSelection.selectAsyncUntilCancel([sending], uint64(0), token)
+    assert published.status == channelStatus.ok
+    auto selected = await ChannelSelection.selectAsyncTimeoutCancel([receiving], 0, token)
+    assert selected.status == channelStatus.ok
+    T selectedValue = selected.value(receiving, pipe)
+    // Reusing the case and result must not borrow overwritten storage.
+    assert await pipe.sendAsyncTimeout(input, 0) == channelStatus.ok
+    auto second = await pipe.recvAsyncUntil(uint64(0))
+    assert second.hasValue
+    pipe.close()
+    auto closed = await pipe.recvAsyncUntilCancel(uint64(0), token)
+    assert closed.status == channelStatus.closed and not closed.hasValue and closed.value == null
+    assert await pipe.sendAsyncCancel(input, token) == channelStatus.closed
+    bool refused = false
+    try
+        timed.value(receiving, pipe)
+    catch error
+        refused = true
+    end
+    assert refused
+    return selectedValue
+end
+StateBits bits
+bits.number = 42
+OtherStateBits unrelated
+unrelated.number = 7
+assert unrelated.number == 7
+int base = 40
+auto callback = func(int value) as int
+    return base + value
+end
+async func check()
+    auto returned = await states(callback)
+    assert returned(2) == 42
+    StateBits returnedBits = await states(bits)
+    assert returnedBits.number == 42
+    returnedBits.number = 99
+    assert bits.number == 42
+    assert await states::<StateBits?>(null) == null
+    assert await states::<(func(int) as int)?>(null) == null
+end
+await check()
+println("native Channel codecs preserve ready/null/timeout/cancel/closed and async selection states ok")

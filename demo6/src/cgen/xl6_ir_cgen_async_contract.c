@@ -122,6 +122,10 @@ static int xl6IrCgenAsyncResultAbiMatches(
     case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR:
         return xl6IrAsyncResultAbiForType(worker)==XL6_IR_ASYNC_RESULT_COPY_C_SCALAR &&
                future->params[0] == target->workerReturnType;
+    case XL6_IR_ASYNC_RESULT_COPY_UNION:
+        return xl6IrAsyncResultAbiForType(worker)==XL6_IR_ASYNC_RESULT_COPY_UNION &&
+               xl6IrUnionLayoutGet(module,target->workerReturnType)!=NULL &&
+               future->params[0] == target->workerReturnType;
     default: return 0;
     }
 }
