@@ -109,51 +109,11 @@ static int xl6IrCgenEmitFutureMemberRuntime(
 static int xl6IrCgenAsyncPayloadAbiMatches(
     const XL6_IrType* payload, XL6_IrAsyncResultAbi abi)
 {
-    if ( payload == NULL ) return 0;
-    switch ( abi ) {
-    case XL6_IR_ASYNC_RESULT_VOID:
-        return payload->cAbi == XL6_IR_C_ABI_UNSUPPORTED &&
-               payload->name != NULL && strcmp(payload->name, "null") == 0;
-    case XL6_IR_ASYNC_RESULT_COPY_BOOL:
-        return payload->cAbi == XL6_IR_C_ABI_BOOL;
-    case XL6_IR_ASYNC_RESULT_COPY_CHAR:
-        return payload->cAbi == XL6_IR_C_ABI_CHAR_U32;
-    case XL6_IR_ASYNC_RESULT_COPY_I64:
-        return payload->cAbi == XL6_IR_C_ABI_I64;
-    case XL6_IR_ASYNC_RESULT_COPY_U64:
-        return payload->cAbi == XL6_IR_C_ABI_U64;
-    case XL6_IR_ASYNC_RESULT_COPY_TYPE_ID:
-        return payload->cAbi == XL6_IR_C_ABI_TYPE_ID;
-    case XL6_IR_ASYNC_RESULT_COPY_F64:
-        return payload->cAbi == XL6_IR_C_ABI_F64;
-    case XL6_IR_ASYNC_RESULT_COPY_F32:
-        return payload->cAbi == XL6_IR_C_ABI_F32;
-    case XL6_IR_ASYNC_RESULT_COPY_TIME:
-        return payload->cAbi == XL6_IR_C_ABI_TIME_I64;
-    case XL6_IR_ASYNC_RESULT_COPY_RAW_POINTER:
-        return payload->cAbi == XL6_IR_C_ABI_RAW_POINTER &&
-               payload->ownershipAbi == XL6_IR_OWNERSHIP_ABI_TRIVIAL;
-    case XL6_IR_ASYNC_RESULT_OWNED_STRING:
-        return payload->cAbi == XL6_IR_C_ABI_MANAGED_STRING;
-    case XL6_IR_ASYNC_RESULT_RETAINED_XVALUE:
-        return payload->cAbi == XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
-               payload->cAbi == XL6_IR_C_ABI_MANAGED_BYTES;
-    case XL6_IR_ASYNC_RESULT_RETAINED_CLOSURE:
-        return payload->cAbi == XL6_IR_C_ABI_CLOSURE_PTR;
-    case XL6_IR_ASYNC_RESULT_RETAINED_ERROR:
-        return payload->cAbi == XL6_IR_C_ABI_RUNTIME_ERROR_PTR &&
-               payload->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
-               payload->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL &&
-               payload->typeValueId != 0;
-    case XL6_IR_ASYNC_RESULT_RETAINED_FUTURE:
-        return payload->cAbi == XL6_IR_C_ABI_RUNTIME_FUTURE_PTR;
-    case XL6_IR_ASYNC_RESULT_RETAINED_GENERATOR:
-        return payload->cAbi == XL6_IR_C_ABI_RUNTIME_GENERATOR_PTR;
-    case XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE:
-        return xl6IrNativeValuePlanForType(payload) != NULL;
-    default:
-        return 0;
-    }
+    if (payload==NULL || abi==XL6_IR_ASYNC_RESULT_INVALID ||
+        xl6IrAsyncResultAbiForType(payload)!=abi) return 0;
+    return abi!=XL6_IR_ASYNC_RESULT_RETAINED_ERROR ||
+        (payload->ownershipAbi==XL6_IR_OWNERSHIP_ABI_MANAGED &&
+         payload->nullAbi==XL6_IR_NULL_ABI_POINTER_SENTINEL && payload->typeValueId!=0);
 }
 
 /* AWAIT already carries its concrete Future payload transfer contract in

@@ -119,6 +119,9 @@ static int xl6IrCgenAsyncResultAbiMatches(
     case XL6_IR_ASYNC_RESULT_COPY_TAGGED:
         return worker != NULL && worker->cAbi == XL6_IR_C_ABI_TAGGED_NULLABLE &&
                future->params[0] == target->workerReturnType;
+    case XL6_IR_ASYNC_RESULT_COPY_C_SCALAR:
+        return xl6IrAsyncResultAbiForType(worker)==XL6_IR_ASYNC_RESULT_COPY_C_SCALAR &&
+               future->params[0] == target->workerReturnType;
     default: return 0;
     }
 }

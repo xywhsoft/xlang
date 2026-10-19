@@ -38,6 +38,30 @@ static XL6_FuturePayloadKind policyKind(XL6_FutureValueKindV1 kind)
     default:return XL6_FUTURE_PAYLOAD_INVALID;
     }
 }
+static void* allocateCell(XL6_FutureValueProfileV1 profile)
+{
+    return profile.kind==XL6_FUTURE_VALUE_NATIVE?
+        xl6NativeFuturePayloadRuntimeV1Get()->Allocate(profile.native):xrtCalloc(1,profile.valueSize);
+}
+const xfuturepayloadownershipv1* xl6FutureValuePolicyV1(XL6_FutureValueProfileV1 profile)
+{
+    if(!xl6FutureValueProfileValidV1(profile))return NULL;
+    if(profile.kind==XL6_FUTURE_VALUE_NATIVE)return xl6NativeFuturePayloadRuntimeV1Get()->Policy();
+    return xl6PayloadPolicyGet(profile.kind==XL6_FUTURE_VALUE_VOID?XL6_FUTURE_PAYLOAD_VALUE:policyKind(profile.kind));
+}
+bool xl6FutureValueAllocateV1(XL6_FutureValueProfileV1 profile,void** output)
+{
+    if(!output||*output||!xl6FutureValueProfileValidV1(profile)){xrtSetErrorKind(XERR_ARGUMENT);return false;}
+    if(profile.kind==XL6_FUTURE_VALUE_VOID)return true;
+    xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))return false;
+    void* value=allocateCell(profile);
+    if(!value||scope.failed||xrtGetError()){
+        xl6ErrorScopeCaptureFailure(&scope);xl6FutureValueDropV1(profile,value);value=NULL;
+    }
+    xl6_error_result outcome=xl6ErrorScopeEnd(&scope);
+    if(!outcome.ok){xrtSetErrorTake(outcome.error);return false;}
+    xrtErrorFree(outcome.error);*output=value;return true;
+}
 void xl6FutureValueDropV1(XL6_FutureValueProfileV1 profile,void* value)
 {
     if(!value)return;
@@ -58,8 +82,7 @@ bool xl6FutureValueCopyV1(XL6_FutureValueProfileV1 profile,const void* source,vo
     if(profile.kind==XL6_FUTURE_VALUE_VOID)return true;
     xl6_error_scope scope={0};
     if(!xl6ErrorScopeBegin(&scope))return false;
-    void* value=profile.kind==XL6_FUTURE_VALUE_NATIVE?
-        xl6NativeFuturePayloadRuntimeV1Get()->Allocate(profile.native):xrtCalloc(1,profile.valueSize);
+    void* value=allocateCell(profile);
     bool ok=value!=NULL;
     if(value)switch(profile.kind) {
     case XL6_FUTURE_VALUE_TRIVIAL:memcpy(value,source,profile.valueSize);break;

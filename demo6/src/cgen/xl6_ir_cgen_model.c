@@ -439,6 +439,8 @@ static const char* xl6IrCgenExternParameterType(
     if ( target->parameterPhysicalAbis[parameter] ==
              XL6_IR_CALL_PARAMETER_PHYSICAL_LANGUAGE_FUNCTION_VALUE )
         return "XL6_Function";
+    if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW)
+        return "XL6_CheckedResultClosureBorrowV1";
     if(target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW ||
        target->parameterPhysicalAbis[parameter]==XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD)
         return "const void*";

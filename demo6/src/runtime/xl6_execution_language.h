@@ -1,6 +1,7 @@
 #ifndef XL6_EXECUTION_LANGUAGE_H
 #define XL6_EXECUTION_LANGUAGE_H
 #include "xl6_code_lease.h"
+#include "xl6_checked_result_closure.h"
 struct XL6_ExecutionSourceV1;
 struct xlir_closure;
 struct xvalue;

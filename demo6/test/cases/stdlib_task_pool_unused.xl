@@ -1,0 +1,5 @@
+import concurrent
+func unused()
+    auto pool = TaskPool(1)
+end
+println("unused TaskPool creates no execution source")

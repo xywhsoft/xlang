@@ -1,0 +1,5 @@
+import concurrent
+auto pool = TaskPool(1)
+auto result = pool.submit(func(int value) as int
+    return value
+end)

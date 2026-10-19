@@ -2,6 +2,7 @@
 #include "src/stdlib/xl6_stdlib_atomic.inc"
 #include "src/stdlib/xl6_stdlib_concurrent.inc"
 #include "src/stdlib/xl6_stdlib_executor.inc"
+#include "src/stdlib/xl6_stdlib_task_pool.inc"
 #include "src/stdlib/xl6_stdlib_asn1.inc"
 #include "src/stdlib/xl6_stdlib_io.inc"
 #include "src/stdlib/xl6_stdlib_text.inc"

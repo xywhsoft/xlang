@@ -2758,7 +2758,10 @@ typedef enum XL6_IrAsyncResultAbi {
     XL6_IR_ASYNC_RESULT_OWNED_NATIVE_VALUE,
     /* Preserve the actual float-sized cell and the distinct time domain. */
     XL6_IR_ASYNC_RESULT_COPY_F32,
-    XL6_IR_ASYNC_RESULT_COPY_TIME
+    XL6_IR_ASYNC_RESULT_COPY_TIME,
+    /* Exact ISO C scalar cell. Its concrete type, width and alignment remain
+     * on the payload TypeId; never normalize it to I64/F64 storage. */
+    XL6_IR_ASYNC_RESULT_COPY_C_SCALAR
 } XL6_IrAsyncResultAbi;
 
 /* Open dynamic invocation uses the runtime's multi-value call protocol, but a
@@ -4043,7 +4046,10 @@ typedef enum XL6_IrCallParameterPhysicalAbi {
     XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW,
     /* The exact logical null payload has no addressable value slot. The
      * closed native descriptor receives NULL, never a fabricated C value. */
-    XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD
+    XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_ZERO_PAYLOAD,
+    /* Exact nullary checked result-slot adapter + its code owner, borrowed
+     * only for this call. The resident producer owns both leases separately. */
+    XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW
 } XL6_IrCallParameterPhysicalAbi;
 
 /* A raw C callback may cross ordinary language wrapper functions before it
@@ -6891,6 +6897,7 @@ const char* xl6IrRuntimeDirectBridgeParameterOwner(const char* name, size_t para
 /* Borrow the exact checked compiler closure instead of erasing it to the
  * general XL6_Function foreign ABI. Signature still needs full verification. */
 int xl6IrRuntimeDirectBridgeCheckedClosureParameter(const char* name, size_t parameter);
+int xl6IrRuntimeDirectBridgeResultClosureParameter(const char* name,size_t parameter);
 int xl6IrRuntimeDirectBridgeValueAddressParameter(const char* name,size_t parameter);
 int xl6IrTypeIsZeroPayload(const XL6_IrModule*, XL6_IrTypeId);
 int xl6IrInstructionIsZeroPayload(const XL6_IrModule*, const XL6_IrInstruction*);
@@ -7793,6 +7800,9 @@ XL6_IrRuntimeOp xl6IrAllocatingBoxOpForType(const XL6_IrModule* module, XL6_IrTy
 void xl6IrDumpModuleText(XL6_Output* out, const XL6_IrModule* module);
 void xl6IrDumpModuleJson(XL6_Output* out, const XL6_IrModule* module);
 const XL6_IrNativeValuePlan* xl6IrNativeValuePlanForType(const XL6_IrType*);
+/* Canonical result representation, shared by lowering, verification and C
+ * emission. It does not decide which aggregate/boxing operations admit T. */
+XL6_IrAsyncResultAbi xl6IrAsyncResultAbiForType(const XL6_IrType*);
 XL6_IrClosureStorageAbi xl6IrClosureEnvironmentAbi(const XL6_IrModule*,const XL6_IrClosureTarget*);
 XL6_IrClosureStorageAbi xl6IrModuleClosureStorageRequirement(const XL6_IrModule*);
 XL6_IrCellStorageAbi xl6IrModuleCellStorageRequirement(const XL6_IrModule*);

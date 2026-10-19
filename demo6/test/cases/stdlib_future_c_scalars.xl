@@ -1,0 +1,88 @@
+import concurrent
+
+async func nativeReady(c_short value) as c_short
+    return value
+end
+async func nativeRelay(future<c_short> value) as c_short
+    return await value
+end
+auto pool = TaskPool(2, 64)
+auto a = pool.submit(func() as c_char
+    return c_char(65)
+end)
+auto b = pool.submit(func() as c_schar
+    return c_schar(-127)
+end)
+auto c = pool.submit(func() as c_uchar
+    return c_uchar(255)
+end)
+auto d = pool.submit(func() as c_short
+    return c_short(-32767)
+end)
+auto e = pool.submit(func() as c_ushort
+    return c_ushort(65535)
+end)
+auto f = pool.submit(func() as c_int
+    return c_int(-2147483647)
+end)
+auto g = pool.submit(func() as c_uint
+    return c_uint(4294967295)
+end)
+auto h = pool.submit(func() as c_long
+    return c_long(-12345)
+end)
+auto i = pool.submit(func() as c_ulong
+    return c_ulong(12345)
+end)
+auto j = pool.submit(func() as c_longlong
+    return c_longlong(-9223372036854775807)
+end)
+auto k = pool.submit(func() as c_ulonglong
+    return c_ulonglong(uint64(18446744073709551615))
+end)
+auto l = pool.submit(func() as c_size
+    return c_size(123)
+end)
+auto m = pool.submit(func() as c_ssize
+    return c_ssize(-123)
+end)
+auto n = pool.submit(func() as c_ptrdiff
+    return c_ptrdiff(-17)
+end)
+auto o = pool.submit(func() as c_intptr
+    return c_intptr(-19)
+end)
+auto p = pool.submit(func() as c_uintptr
+    return c_uintptr(23)
+end)
+auto q = pool.submit(func() as c_bool
+    return c_bool(true)
+end)
+auto r = pool.submit(func() as c_float
+    return c_float(1.5)
+end)
+auto s = pool.submit(func() as c_double
+    return c_double(2.5)
+end)
+auto t = pool.submit(func() as c_wchar
+    return c_wchar(65)
+end)
+pool.close()
+assert pool.wait(10000)
+assert (await a) == c_char(65) and (await b) == c_schar(-127)
+assert (await c) == c_uchar(255) and (await d) == c_short(-32767)
+assert (await e) == c_ushort(65535) and (await f) == c_int(-2147483647)
+assert (await g) == c_uint(4294967295) and (await h) == c_long(-12345)
+assert (await i) == c_ulong(12345) and (await j) == c_longlong(-9223372036854775807)
+assert (await k) == c_ulonglong(uint64(18446744073709551615))
+assert (await l) == c_size(123) and (await m) == c_ssize(-123)
+assert (await n) == c_ptrdiff(-17) and (await o) == c_intptr(-19)
+assert (await p) == c_uintptr(23) and (await q) == c_bool(true)
+assert (await r) == c_float(1.5) and (await s) == c_double(2.5)
+assert (await t) == c_wchar(65)
+auto promise = Promise::<c_short>()
+auto relay = nativeRelay(promise.future)
+assert promise.tryResolve(c_short(-71))
+assert (await relay) == c_short(-71)
+assert (await nativeReady(c_short(-73))) == c_short(-73)
+println("20 exact C scalar TaskPool results, Promise and resumed async ok")

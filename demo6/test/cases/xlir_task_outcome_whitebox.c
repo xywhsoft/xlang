@@ -19,9 +19,35 @@ static void pool_watch_value_free(void* value, void* data)
     (void)data; ++watch_drops; xrtFree(value);
     if (watch_drop_raises) xrtSetErrorKind(XERR_INTERNAL);
 }
+typedef struct CleanupEdge {xrtownershipref error;unsigned count;} CleanupEdge;
+static bool cleanup_edge(xrtownershipref edge,void* raw)
+{
+    CleanupEdge* expected=raw;
+    if(edge.Data==expected->error.Data){assert(edge.Ops==expected->error.Ops);++expected->count;}
+    return true;
+}
+static void cleanup_error_owner_probe(void)
+{
+    TaskFrame* frame=probe_watch();xfuture *source=NULL,*output=NULL;
+    xpromise* producer=xrtPromiseCreate(&source,NULL);assert(producer&&xrtPromiseResolve(producer,NULL));
+    xrtPromiseDestroy(producer);frame->source=source;frame->output=xrtPromiseCreate(&output,NULL);assert(frame->output);
+    frame->committed=true;frame->cleanupFailed=true;
+    frame->cleanupError=xrtErrorCreate(XERR_STATE,"task.checked",902,"checked cleanup owner");assert(frame->cleanupError);
+    CleanupEdge expected={xrtErrorOwnership(frame->cleanupError),0};assert(hold_frame(frame));
+    xrtownershipscope frozen={0};while(!xrtOwnershipFreezeTryBegin(&frozen))xrtThreadYield();
+    size_t count=0;assert(frame_count(frame,&count)&&count==2&&frame_trace(frame,cleanup_edge,&expected)&&expected.count==1);
+    assert(xrtOwnershipScopeEnd(&frozen));
+    outcome_notify(frame);assert(!frame->cleanupError&&xrtFutureState(output)==XFUTURE_FAILED);
+    assert(xrtErrorCode(xrtFutureError(output))==902);outcome_release(frame);
+    /* Only the genuine inspection pin remains; a retired frame cannot keep
+     * an untraced error owner or require that pin's own release to prepare. */
+    assert(frame->references==1&&prepared_frame(frame)&&!frame->cleanupError);
+    xrtFutureDestroy(output);producer_drop(frame);xrtClearError();
+}
 unsigned pool_outcome_ready_watch_probe(void)
 {
     unsigned mode, early, raises, count = 0;
+    cleanup_error_owner_probe();
     {
         TaskFrame* watch = probe_watch();
         xfuture *source = NULL, *output = NULL;

@@ -59,7 +59,10 @@ static void frame_checked_cleanup(TaskFrame* frame,xl6_error_result outcome)
 {
     if(outcome.ok){xrtErrorFree(outcome.error);return;}
     xrtownershipscope mutation={0};frame_mutation_begin(frame,&mutation);
-    if(!frame->cleanupFailed){frame->cleanupFailed=true;frame->cleanupError=outcome.error;outcome.error=NULL;}
+    if(!frame->cleanupFailed){
+        frame->cleanupFailed=true;
+        if(frame->output){frame->cleanupError=outcome.error;outcome.error=NULL;}
+    }
     frame_mutation_end(frame,&mutation);xrtErrorFree(outcome.error);
 }
 static bool frame_count(const void* data,size_t* count)
@@ -83,6 +86,7 @@ static bool frame_trace(const void* data,xrtownershipvisitor visit,void* context
     if(!visit || !frame_count(data,&count))return false;
     return (!frame->lease || visit(xl6CodeLeaseOwnership(frame->lease),context)) &&
         (!frame->pool || visit(xl6TaskPoolOwnership(frame->pool),context)) &&
+        (!frame->cleanupError || visit(xrtErrorOwnership(frame->cleanupError),context)) &&
         visit(xrtFutureOwnership(frame->source),context) && visit(xrtPromiseOwnership(frame->output),context) &&
         (!frame->payloadLive || (frame->layoutV2
             ? xl6CaptureRuntimeV2Get()->Trace(frame->layoutV2,frame->data,frame->dataSize,visit,context) : frame->layout
@@ -251,7 +255,9 @@ static void outcome_notify(void* data)
     xl6CodeScopeEnter(&code,frame->lease);xl6TaskActivityEnterInternalV1(&activity,frame->pool);
     frame_mutation_begin(frame,&mutation);++frame->active;
     bool cleanupFailed=frame->cleanupFailed;
-    xerror* cleanupError=frame->cleanupError?xrtErrorRef(frame->cleanupError):NULL;
+    /* Move the actual owner into this notification, not a shadow error ref
+     * retained for the lifetime of an otherwise empty collector-pinned frame. */
+    xerror* cleanupError=frame->cleanupError;frame->cleanupError=NULL;
     frame_mutation_end(frame,&mutation);
     if(!xrtFutureResult(frame->source,&input)){
         if(!xrtGetError())xrtSetErrorKind(XERR_INTERNAL);
@@ -274,8 +280,10 @@ static void outcome_notify(void* data)
 static void outcome_detach(TaskFrame* frame)
 {
     xrtownershipscope mutation={0}; xfuture* source; xpromise* output; xerror* previous=xrtTakeError();
-    frame_mutation_begin(frame,&mutation);++frame->active;source=frame->source;output=frame->output;frame->source=NULL;frame->output=NULL;frame_mutation_end(frame,&mutation);
-    xrtPromiseDestroy(output);xrtFutureDestroy(source);
+    frame_mutation_begin(frame,&mutation);++frame->active;source=frame->source;output=frame->output;
+    xerror* cleanupError=frame->cleanupError;frame->cleanupError=NULL;
+    frame->source=NULL;frame->output=NULL;frame_mutation_end(frame,&mutation);
+    xrtPromiseDestroy(output);xrtFutureDestroy(source);xrtErrorFree(cleanupError);
     frame_mutation_begin(frame,&mutation);--frame->active;frame_mutation_end(frame,&mutation);
     xrtClearError();xrtSetErrorTake(previous);
 }
@@ -312,7 +320,7 @@ static void restore_frame(const void* data,const void* token)
 static bool prepared_frame(const void* data)
 {
     const TaskFrame* frame=data;
-    return !frame->payloadLive&&!frame->active&&!frame->runEntered&&!frame->source&&!frame->output;
+    return !frame->payloadLive&&!frame->active&&!frame->runEntered&&!frame->source&&!frame->output&&!frame->cleanupError;
 }
 static xrtownershipprepareresult prepare_frame(const void* data,const void* token)
 {

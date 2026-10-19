@@ -1,0 +1,75 @@
+import concurrent
+
+func controls() as future<int>
+    bool caught = false
+    try
+        auto invalid = TaskPool(1, 0)
+    catch RangeError
+        caught = true
+    end
+    assert caught
+    auto pool = TaskPool(1, 1)
+    auto started = Event(true)
+    auto resume = Event(true)
+    auto count = AtomicInt64()
+    auto first = pool.submit(func() as int
+        started.set()
+        assert resume.wait(10000)
+        count.fetchAdd(1)
+        return 17
+    end)
+    assert started.wait(10000)
+    auto second = pool.submit(func() as int
+        count.fetchAdd(100)
+        return 19
+    end)
+    caught = false
+    try
+        auto full = pool.submit(func() as int
+            return 21
+        end)
+    catch BusyError
+        caught = true
+    end
+    assert caught
+    pool.close()
+    assert not pool.wait(0)
+    caught = false
+    try
+        pool.wait(-2)
+    catch RangeError
+        caught = true
+    end
+    assert caught
+    auto stop = CancellationSource()
+    assert stop.cancel()
+    caught = false
+    try
+        pool.waitCancel(stop.token, 10000)
+    catch CancelledError
+        caught = true
+    end
+    assert caught
+    pool.cancel()
+    resume.set()
+    assert pool.wait(10000)
+    assert second.isCancelled()
+    assert count.load() == 1
+    auto stats = pool.snapshot()
+    assert stats.closed and stats.cancelling
+    assert stats.completed == 2 and stats.succeeded == 1 and stats.cancelled == 1
+    assert stats.rejected == 1
+    caught = false
+    try
+        auto closed = pool.submit(func() as int
+            return 23
+        end)
+    catch ClosedError
+        caught = true
+    end
+    assert caught
+    return first
+end
+auto completed = controls()
+assert (await completed) == 17
+println("TaskPool bounded admission, deadline, cancellation and close ok")

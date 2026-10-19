@@ -1,0 +1,7 @@
+import concurrent
+export func schedule(TaskPool pool) as future<int>
+    return pool.submit(func() as int
+        return 31
+    end)
+end
+println("borrowed-only TaskPool has no owning execution source")

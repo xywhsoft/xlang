@@ -453,6 +453,27 @@ static int xl6IrCgenEmitAsyncAndCallableRuntime(
         }
         xl6OutputPuts("\n", out);
     }
+    /* One representation thunk per explicitly requested callback signature.
+     * The IR fixes the exact T; there is no result allocation, ownership or
+     * TaskPool algorithm here, only the verified bool(env,T*) call ABI. */
+    for(size_t type=1;type<module->types.count;++type){
+        int requested=0;
+        for(size_t call=0;call<module->callTargetCount&&!requested;++call){
+            const XL6_IrCallTarget* target=&module->callTargets[call];
+            if(target->reachability==XL6_IR_REACHABILITY_UNREACHABLE)continue;
+            for(size_t p=0;p<target->parameterCount;++p)
+                if(target->parameterPhysicalAbis[p]==XL6_IR_CALL_PARAMETER_PHYSICAL_CHECKED_RESULT_CLOSURE_BORROW&&
+                    target->parameterTypes[p]==type){requested=1;break;}
+        }
+        if(!requested)continue;
+        const XL6_IrType* signature=xl6IrTypeGet(&module->types,(XL6_IrTypeId)type);
+        const char* result=signature->callableResultType?xl6IrCgenType(module,signature->callableResultType):NULL;
+        if(signature->callableResultType&&!result)return 0;
+        xl6OutputPrintf(out,"static bool xlir_checked_result_t%u(XL6_Closure* closure, void* output)\n{\n",(unsigned)type);
+        if(result)xl6OutputPrintf(out,"    return ((bool (*)(void*, %s*))closure->invoke)(closure->environment, (%s*)output);\n",result,result);
+        else xl6OutputPuts("    (void)output; return ((bool (*)(void*))closure->invoke)(closure->environment);\n",out);
+        xl6OutputPuts("}\n",out);
+    }
     for ( i = 0; i < module->callTargetCount; ++i ) {
         if ( module->callTargets[i].reachability != XL6_IR_REACHABILITY_UNREACHABLE &&
              (module->callTargets[i].kind == XL6_IR_CALL_TARGET_EXTERN_C ||

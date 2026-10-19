@@ -1,0 +1,12 @@
+import concurrent
+/* Existing synchronous zero-payload return limitation; use func() for a
+ * public Future<null>. This fixture must not silently manufacture a C slot. */
+auto pool = TaskPool(1, 8)
+auto task = pool.submit(func() as null
+    return null
+end)
+pool.close()
+assert pool.wait(10000)
+await task
+assert task.isDone() and not task.isFailed()
+println("TaskPool explicit null result has no owned payload cell")
