@@ -1,7 +1,7 @@
 # TaskPool 标准库接入
 
-2026-10-20，五组长期任务 P1 的同步闭包拥有结果批次。它不关闭 P1、整个五组
-任务或发布验收；真实工作线程退出的 checked 清理仍是下一项前置工作。
+2026-10-20，五组长期任务 P1。同步闭包拥有结果、真实工作线程 checked 退出及
+完成等待增量已接通；不据此关闭 P1、整个五组任务或发布验收。
 
 ## 公开接口
 
@@ -46,6 +46,10 @@ Snapshot 中仅统计任务的 succeeded/failed，也不引入 detached Executor
 不把这两种层次的合同混为一谈。详情见 [线程退出验收](TaskPool线程退出验收.md)。
 
 ## 精确结果与拥有权
+
+TaskGroup 可通过原子 `group.start` 同步调用 `pool.submit` 组合已有生产者，
+无需再提供 group 专用池或提交后 add。拥有结果、拒绝回滚及真实 JIT/module/AOT
+组合用例见 [模块服务图与 Catalog 验收](模块服务图与Catalog验收.md)。
 
 IR 的新 call-only 借用表示包含原始 Closure、精确结果入口和适配器 CodeOwner。
 IR 必须证明固定 nullary 同步回调、回调返回 T 与目标 future<T> 完全相同、精确

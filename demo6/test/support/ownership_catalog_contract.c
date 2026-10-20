@@ -1,6 +1,10 @@
 #include "release/include/xruntime_decl.h"
 #include "src/runtime/xl6_ownership_domains.h"
 #include "src/runtime/xl6_array_admission.h"
+#include "src/runtime/xl6_task.h"
+#include "src/runtime/xl6_executor_jobs.h"
+#include "src/runtime/xl6_task_pool_exit.h"
+#include "src/runtime/xl6_execution_resource.h"
 #include "src/api/xl_foreign_error.h"
 #include "src/compile/xl6_artifact_runtime.h"
 #include <assert.h>
@@ -21,6 +25,15 @@ static bool inspect(xrtownershipref ref,const XL6_OwnershipPoliciesV1* policies,
 #define OBSERVE(Name, Type) observed[at++]=policies->Name##Count;
     XL6_OWNERSHIP_POLICY_GROUPS(OBSERVE)
 #undef OBSERVE
+    /* Independent exact capabilities for the P1 execution families. Counts
+     * alone cannot prove that a same-shaped replacement was not registered. */
+    assert(policies->TaskCount==1 && policies->Task[0]==xl6TaskNativeDataPolicyV1Get());
+    assert(policies->ExecutorCount==1 && policies->Executor[0]==xl6ExecutorClosureDataPolicyV1Get());
+    assert(policies->ExecutorExitCount==1 && policies->ExecutorExit[0]==xl6ExecutorWorkerExitPolicyV1Get());
+    assert(policies->TaskPoolExitCount==1 && policies->TaskPoolExit[0]==xl6TaskPoolWorkerExitPolicyV1Get());
+    assert(policies->ExecutionFamilyCount==2 &&
+        ((policies->ExecutionFamily[0]==xl6ExecutionExecutorFamilyV1Get() && policies->ExecutionFamily[1]==xl6ExecutionTaskPoolFamilyV1Get()) ||
+         (policies->ExecutionFamily[1]==xl6ExecutionExecutorFamilyV1Get() && policies->ExecutionFamily[0]==xl6ExecutionTaskPoolFamilyV1Get())));
     return false;
 }
 static const XL6_OwnershipDomainV1 observer={sizeof(observer),NULL,inspect,NULL};
@@ -55,6 +68,8 @@ static void balanced(const xmemdebugsnapshot* before)
 static void admit(XL6_OwnershipCatalog* catalog)
 {
     xvalue* value=xrtValueInt(7);assert(value);
+    xvalue* array=xrtValueArray();assert(array && xrtValueArrayAppend(array,value));
+    xvaluecursor* cursor=xrtValueCursorCreate(array);assert(cursor);
     /* Read certification is independent of retirement adapter discovery.
      * A normal value resolves in the empty catalog but is not thereby given
      * an opaque read capability. A read-only domain need not load policies. */
@@ -72,11 +87,17 @@ static void admit(XL6_OwnershipCatalog* catalog)
     xrtownershipscope freeze={0};assert(xrtOwnershipFreezeTryBegin(&freeze));
     assert(xl6OwnershipCatalogResolveV1(xrtValueOwnership(value),catalog,&adapter,&preparation,&completion));
     assert(adapter==xrtValueOwnershipAdapterV1(xrtValueOwnership(value)) && !preparation && !completion);
+    /* Cursor is an independently admitted native child, including in the
+     * empty catalog. It must not depend on a private producer/domain or on
+     * inspecting an unknown object's callbacks to guess its kind. */
+    xrtownershipref cursorRef=xrtValueCursorOwnership(cursor);
+    assert(xl6OwnershipCatalogResolveV1(cursorRef,catalog,&adapter,&preparation,&completion));
+    assert(adapter==xrtValueCursorOwnershipAdapterV1(cursorRef) && !preparation && !completion);
     calls=0;adapter=NULL;
     assert(!xl6OwnershipCatalogResolveV1((xrtownershipref){(void*)(uintptr_t)1,&forbidden},catalog,&adapter,&preparation,&completion));
     assert(!calls && !adapter && !preparation && !completion);
     assert(xrtOwnershipScopeEnd(&freeze));
-    xrtValueRelease(value);
+    xrtValueCursorRelease(cursor);xrtValueRelease(array);xrtValueRelease(value);
 }
 static bool swallowedLoad(XL6_OwnershipCatalog* catalog)
 {
@@ -104,7 +125,15 @@ static void basic(void)
     xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);size_t count=0;
     const XL6_OwnershipDomainV1* const* domains=allDomains(&count);
     XL6_OwnershipCatalog* catalog=xl6OwnershipCatalogCreateV1(domains,count);assert(catalog);admit(catalog);
-    const size_t expected[]={5,49,12,7,4,1,5,1,1,1,1,10};
+    /* Current complete registry snapshot, reviewed together with domains.inc;
+     * execution capability identities above are checked independently. */
+    const size_t expected[]={5,97,12,8,5,1,8,1,1,3,2,1,24,1,2,1,1};
+    if(sizeof(expected)!=sizeof(observed) || memcmp(expected,observed,sizeof(expected))){
+        size_t at=0;
+#define SHOW_POLICY(Name, Type) fprintf(stderr,"catalog %s: %zu\n",#Name,observed[at++]);
+        XL6_OWNERSHIP_POLICY_GROUPS(SHOW_POLICY)
+#undef SHOW_POLICY
+    }
     assert(sizeof(expected)==sizeof(observed) && !memcmp(expected,observed,sizeof(expected)));
     assert(!xl6OwnershipCatalogAddSequenceV1(catalog,xl6ArrayFutureAdmissionOpsV2Get()));xrtClearError();admit(catalog);
     xl6OwnershipCatalogDestroyV1(catalog);balanced(&before);

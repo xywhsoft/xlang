@@ -22,7 +22,7 @@ $inputs=@($public.Inputs)+@($public.Headers)+@($runtime)+@($contracts.Inputs)+@(
 foreach($row in $inputs){if((Get-FileHash -LiteralPath $row.Path).Hash-ne$row.Sha256){throw "Stale task-pool graph input: $($row.Path)"}}
 New-Item -ItemType Directory -Path $outputPath|Out-Null
 & $driver *> "$outputPath/ir.log";$irExit=$LASTEXITCODE
-$irComplete=$irExit-eq0-and[bool](Select-String -LiteralPath "$outputPath/ir.log" -SimpleMatch 'Task pool graph IR: 4 partitions, 24 C/header-gated mutations' -Quiet)
+$irComplete=$irExit-eq0-and[bool](Select-String -LiteralPath "$outputPath/ir.log" -SimpleMatch 'Task pool graph IR: 4 independent Pool/Executor partitions, 32 C/header-gated mutations' -Quiet)
 $strict=@('-std=c11','-Wall','-Wextra','-Werror','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter',
     '-Wno-unused-label','-Wno-unused-but-set-variable','-Wno-missing-field-initializers','-Wno-pointer-sign','-Wno-format-truncation','-I.')
 $libs=@('-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32');$lanes=@()
