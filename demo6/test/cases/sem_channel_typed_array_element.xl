@@ -1,1 +1,12 @@
 channel<array<int>> ch = channel::<array<int>>(1)
+array<int> sent = [1, 2, 3]
+assert ch.send(sent)
+auto status, received = ch.recv()
+assert status == channelStatus.ok and received != null
+ch.close()
+if received != null
+    assert received[0] == 1 and received[2] == 3
+    received[1] = 42
+    assert sent[1] == 42
+end
+println("Channel typed array element owned roundtrip ok")

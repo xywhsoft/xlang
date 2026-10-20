@@ -3,3 +3,9 @@ func inc(int value) as int
 end
 
 channel<func(int) as int> ch = channel::<func(int) as int>(1)
+assert ch.send(inc)
+auto status, received = ch.recv()
+assert status == channelStatus.ok and received != null
+ch.close()
+if received != null then assert received(41) == 42 end
+println("Channel function element owned roundtrip ok")

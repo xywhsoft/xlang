@@ -1,0 +1,29 @@
+class SignalCounter
+ int calls = 0
+end
+
+auto count = SignalCounter()
+auto source = SignalSubscription(signal.INT, false, 2)
+auto handle = SignalHandle(source, func(SignalEvent event) as bool
+ count.calls += 1
+ return event.code == signal.INT
+end, true)
+assert handle.code == source.code and handle.active and not handle.closed
+assert signal.raise(signal.INT)
+assert handle.dispatchFor(1000) == 1 and count.calls == 1
+assert handle.pending == 0 and source.pending == 0
+assert handle.close() and source.closed and handle.closed
+assert handle.dispatch() == 0 and handle.code == signal.INT
+handle.close()
+
+auto otherSource = SignalSubscription(signal.INT, false, 2)
+auto other = SignalHandle(otherSource, func(SignalEvent event) as bool
+ count.calls += 10
+ return true
+end, true)
+// Closing the facade must not replace or mutate a distinct subscription.
+assert other.active and not other.closed and otherSource.active
+assert other.close() and otherSource.closed
+assert count.calls == 1
+signal.reset()
+println("signal facade explicit resource initialization: ok")
