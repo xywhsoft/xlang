@@ -1,0 +1,331 @@
+// Generic nominal bitwise rules, all integer backing widths; no network dependency.
+enum S8 as int8
+    zero = 0
+    one = 1
+    high = -128
+    full = -1
+end
+
+const S8 globalS8 = S8.one | S8.high
+
+func combineS8(S8 a, S8 b) as S8
+    return a | b
+end
+
+func checkS8(S8 a, S8 b)
+    auto combined = combineS8(a, b)
+    assert globalS8 == combined
+    assert int(combined) == -127
+    assert (combined & a) == a
+    assert (combined ^ a) == b
+    auto inverted = ~a
+    assert int(inverted) == -2
+    assert (~S8.zero) == S8.full
+    assert (~S8.full) == S8.zero
+    assert ((~a) & a) == S8.zero
+    assert (~(~a)) == a
+    S8 changed = a
+    changed |= b
+    assert changed == combined
+    changed &= a
+    assert changed == a
+    changed ^= a
+    assert changed == S8.zero
+    var boxed = combined
+    assert (boxed as S8) == combined
+    array<S8> values = [combined, ~a]
+    assert values[0] == combined and values[1] == inverted
+    const S8 constant = S8.one | S8.high
+    assert constant == combined
+end
+
+enum U8 as uint8
+    zero = 0
+    one = 1
+    high = 128
+    full = 255
+end
+
+const U8 globalU8 = U8.one | U8.high
+
+func combineU8(U8 a, U8 b) as U8
+    return a | b
+end
+
+func checkU8(U8 a, U8 b)
+    auto combined = combineU8(a, b)
+    assert globalU8 == combined
+    assert uint64(combined) == 129
+    assert (combined & a) == a
+    assert (combined ^ a) == b
+    auto inverted = ~a
+    assert uint64(inverted) == 254
+    assert (~U8.zero) == U8.full
+    assert (~U8.full) == U8.zero
+    assert ((~a) & a) == U8.zero
+    assert (~(~a)) == a
+    U8 changed = a
+    changed |= b
+    assert changed == combined
+    changed &= a
+    assert changed == a
+    changed ^= a
+    assert changed == U8.zero
+    var boxed = combined
+    assert (boxed as U8) == combined
+    array<U8> values = [combined, ~a]
+    assert values[0] == combined and values[1] == inverted
+    const U8 constant = U8.one | U8.high
+    assert constant == combined
+end
+
+enum S16 as int16
+    zero = 0
+    one = 1
+    high = -32768
+    full = -1
+end
+
+const S16 globalS16 = S16.one | S16.high
+
+func combineS16(S16 a, S16 b) as S16
+    return a | b
+end
+
+func checkS16(S16 a, S16 b)
+    auto combined = combineS16(a, b)
+    assert globalS16 == combined
+    assert int(combined) == -32767
+    assert (combined & a) == a
+    assert (combined ^ a) == b
+    auto inverted = ~a
+    assert int(inverted) == -2
+    assert (~S16.zero) == S16.full
+    assert (~S16.full) == S16.zero
+    assert ((~a) & a) == S16.zero
+    assert (~(~a)) == a
+    S16 changed = a
+    changed |= b
+    assert changed == combined
+    changed &= a
+    assert changed == a
+    changed ^= a
+    assert changed == S16.zero
+    var boxed = combined
+    assert (boxed as S16) == combined
+    array<S16> values = [combined, ~a]
+    assert values[0] == combined and values[1] == inverted
+    const S16 constant = S16.one | S16.high
+    assert constant == combined
+end
+
+enum U16 as uint16
+    zero = 0
+    one = 1
+    high = 32768
+    full = 65535
+end
+
+const U16 globalU16 = U16.one | U16.high
+
+func combineU16(U16 a, U16 b) as U16
+    return a | b
+end
+
+func checkU16(U16 a, U16 b)
+    auto combined = combineU16(a, b)
+    assert globalU16 == combined
+    assert uint64(combined) == 32769
+    assert (combined & a) == a
+    assert (combined ^ a) == b
+    auto inverted = ~a
+    assert uint64(inverted) == 65534
+    assert (~U16.zero) == U16.full
+    assert (~U16.full) == U16.zero
+    assert ((~a) & a) == U16.zero
+    assert (~(~a)) == a
+    U16 changed = a
+    changed |= b
+    assert changed == combined
+    changed &= a
+    assert changed == a
+    changed ^= a
+    assert changed == U16.zero
+    var boxed = combined
+    assert (boxed as U16) == combined
+    array<U16> values = [combined, ~a]
+    assert values[0] == combined and values[1] == inverted
+    const U16 constant = U16.one | U16.high
+    assert constant == combined
+end
+
+enum S32 as int32
+    zero = 0
+    one = 1
+    high = -2147483648
+    full = -1
+end
+
+const S32 globalS32 = S32.one | S32.high
+
+func combineS32(S32 a, S32 b) as S32
+    return a | b
+end
+
+func checkS32(S32 a, S32 b)
+    auto combined = combineS32(a, b)
+    assert globalS32 == combined
+    assert int(combined) == -2147483647
+    assert (combined & a) == a
+    assert (combined ^ a) == b
+    auto inverted = ~a
+    assert int(inverted) == -2
+    assert (~S32.zero) == S32.full
+    assert (~S32.full) == S32.zero
+    assert ((~a) & a) == S32.zero
+    assert (~(~a)) == a
+    S32 changed = a
+    changed |= b
+    assert changed == combined
+    changed &= a
+    assert changed == a
+    changed ^= a
+    assert changed == S32.zero
+    var boxed = combined
+    assert (boxed as S32) == combined
+    array<S32> values = [combined, ~a]
+    assert values[0] == combined and values[1] == inverted
+    const S32 constant = S32.one | S32.high
+    assert constant == combined
+end
+
+enum U32 as uint32
+    zero = 0
+    one = 1
+    high = 2147483648
+    full = 4294967295
+end
+
+const U32 globalU32 = U32.one | U32.high
+
+func combineU32(U32 a, U32 b) as U32
+    return a | b
+end
+
+func checkU32(U32 a, U32 b)
+    auto combined = combineU32(a, b)
+    assert globalU32 == combined
+    assert uint64(combined) == 2147483649
+    assert (combined & a) == a
+    assert (combined ^ a) == b
+    auto inverted = ~a
+    assert uint64(inverted) == 4294967294
+    assert (~U32.zero) == U32.full
+    assert (~U32.full) == U32.zero
+    assert ((~a) & a) == U32.zero
+    assert (~(~a)) == a
+    U32 changed = a
+    changed |= b
+    assert changed == combined
+    changed &= a
+    assert changed == a
+    changed ^= a
+    assert changed == U32.zero
+    var boxed = combined
+    assert (boxed as U32) == combined
+    array<U32> values = [combined, ~a]
+    assert values[0] == combined and values[1] == inverted
+    const U32 constant = U32.one | U32.high
+    assert constant == combined
+end
+
+enum S64 as int64
+    zero = 0
+    one = 1
+    high = -9223372036854775808
+    full = -1
+end
+
+const S64 globalS64 = S64.one | S64.high
+
+func combineS64(S64 a, S64 b) as S64
+    return a | b
+end
+
+func checkS64(S64 a, S64 b)
+    auto combined = combineS64(a, b)
+    assert globalS64 == combined
+    assert int(combined) == -9223372036854775807
+    assert (combined & a) == a
+    assert (combined ^ a) == b
+    auto inverted = ~a
+    assert int(inverted) == -2
+    assert (~S64.zero) == S64.full
+    assert (~S64.full) == S64.zero
+    assert ((~a) & a) == S64.zero
+    assert (~(~a)) == a
+    S64 changed = a
+    changed |= b
+    assert changed == combined
+    changed &= a
+    assert changed == a
+    changed ^= a
+    assert changed == S64.zero
+    var boxed = combined
+    assert (boxed as S64) == combined
+    array<S64> values = [combined, ~a]
+    assert values[0] == combined and values[1] == inverted
+    const S64 constant = S64.one | S64.high
+    assert constant == combined
+end
+
+enum U64 as uint64
+    zero = 0
+    one = 1
+    high = 9223372036854775808
+    full = 18446744073709551615
+end
+
+const U64 globalU64 = U64.one | U64.high
+
+func combineU64(U64 a, U64 b) as U64
+    return a | b
+end
+
+func checkU64(U64 a, U64 b)
+    auto combined = combineU64(a, b)
+    assert globalU64 == combined
+    assert uint64(combined) == 9223372036854775809
+    assert (combined & a) == a
+    assert (combined ^ a) == b
+    auto inverted = ~a
+    assert uint64(inverted) == 18446744073709551614
+    assert (~U64.zero) == U64.full
+    assert (~U64.full) == U64.zero
+    assert ((~a) & a) == U64.zero
+    assert (~(~a)) == a
+    U64 changed = a
+    changed |= b
+    assert changed == combined
+    changed &= a
+    assert changed == a
+    changed ^= a
+    assert changed == U64.zero
+    var boxed = combined
+    assert (boxed as U64) == combined
+    array<U64> values = [combined, ~a]
+    assert values[0] == combined and values[1] == inverted
+    const U64 constant = U64.one | U64.high
+    assert constant == combined
+end
+
+checkS8(S8.one, S8.high)
+checkU8(U8.one, U8.high)
+checkS16(S16.one, S16.high)
+checkU16(U16.one, U16.high)
+checkS32(S32.one, S32.high)
+checkU32(U32.one, U32.high)
+checkS64(S64.one, S64.high)
+checkU64(U64.one, U64.high)
+println("numeric enum bitwise: eight backing widths, nominal return, const, arrays, box and compound assignment ok")
+

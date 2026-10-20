@@ -1,0 +1,20 @@
+enum Flags as uint8
+    none = 0
+    read = 1
+    write = 2
+end
+enum Other as uint8
+    none = 0
+    read = 1
+end
+Flags a = Flags.read
+Flags b = Flags.write
+Other other = Other.read
+auto both = a | b
+auto intersection = a & b
+auto difference = a ^ b
+auto inverted = ~a
+a |= b
+a &= b
+a ^= b
+assert int(other) == 1 and int(both) == 3 and int(inverted) == 254

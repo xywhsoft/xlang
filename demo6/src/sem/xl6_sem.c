@@ -14934,6 +14934,13 @@ static int xl6SemExprClassHasDeriveEquals(XL6_SemContext* ctx, XL6_AstNode* left
     return result;
 }
 
+static int xl6SemTypeNameIsNumericEnum(XL6_SemContext* ctx, const char* name)
+{
+    const XL6_TypeInfo* type = name != NULL
+        ? xl6TypeRegistryFind(&ctx->types, name) : NULL;
+    return type != NULL && type->kind == XL6_TYPE_NUMERIC_ENUM;
+}
+
 static int xl6SemCheckUnaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
 {
     const char* operandType;
@@ -14966,8 +14973,10 @@ static int xl6SemCheckUnaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
         operandType = xl6SemExprStaticTypeName(ctx, node->children[0]);
         if ( operandType != NULL ) {
             if ( xl6TextEquals(node->text, "~") ) {
-                if ( !xl6TextEquals(operandType, "var") && !xl6SemIsIntegerTypeName(operandType) ) {
-                    xl6SemErrorNode(ctx, node, "bitwise not operand must be integer");
+                if ( !xl6TextEquals(operandType, "var") &&
+                     !xl6SemIsIntegerTypeName(operandType) &&
+                     !xl6SemTypeNameIsNumericEnum(ctx, operandType) ) {
+                    xl6SemErrorNode(ctx, node, "bitwise not operand must be integer or numeric enum");
                     ok = 0;
                 }
             } else if ( !xl6TextEquals(operandType, "var") && !xl6SemIsNumericTypeName(operandType) ) {
@@ -15296,7 +15305,20 @@ static int xl6SemCheckBinaryExpr(XL6_SemContext* ctx, XL6_AstNode* node)
         leftType = node->childCount > 0 ? xl6SemExprStaticTypeName(ctx, node->children[0]) : NULL;
         rightType = node->childCount > 1 ? xl6SemExprStaticTypeName(ctx, node->children[1]) : NULL;
         if ( !containerOp && leftType != NULL && rightType != NULL ) {
-            if ( !xl6TextEquals(leftType, "var") && !xl6TextEquals(rightType, "var") &&
+            int enumOperand = xl6SemTypeNameIsNumericEnum(ctx, leftType) ||
+                              xl6SemTypeNameIsNumericEnum(ctx, rightType);
+            int enumBitwise =
+                (xl6TextEquals(node->text, "&") ||
+                 xl6TextEquals(node->text, "|") ||
+                 xl6TextEquals(node->text, "^")) &&
+                xl6SemTypeNameIsNumericEnum(ctx, leftType) &&
+                xl6TextEquals(leftType, rightType);
+            if ( enumOperand && !enumBitwise ) {
+                xl6SemErrorNode(ctx, node,
+                    "numeric enum bitwise operands must have the same enum type; shifts and modulo are not supported");
+                ok = 0;
+            } else if ( !enumBitwise &&
+                 !xl6TextEquals(leftType, "var") && !xl6TextEquals(rightType, "var") &&
                  (!xl6SemIsIntegerTypeName(leftType) || !xl6SemIsIntegerTypeName(rightType)) ) {
                 xl6SemErrorNode(ctx, node, "integer operator operands must be integer");
                 ok = 0;
@@ -17419,6 +17441,17 @@ static int xl6SemCheckCompoundAssignTypes(
     }
 
     if ( xl6SemCompoundAssignIsIntegerOp(op) ) {
+        if ( xl6SemTypeNameIsNumericEnum(ctx, leftType) ||
+             xl6SemTypeNameIsNumericEnum(ctx, rightType) ) {
+            if ( (xl6TextEquals(op, "&=") || xl6TextEquals(op, "|=") ||
+                  xl6TextEquals(op, "^=")) &&
+                 xl6SemTypeNameIsNumericEnum(ctx, leftType) &&
+                 xl6TextEquals(leftType, rightType) ) return 1;
+            xl6SemCompoundAssignError(ctx, node,
+                "numeric enum bitwise operands must have the same enum type",
+                op, leftType, rightType);
+            return 0;
+        }
         if ( !xl6SemIsIntegerTypeName(leftType) ||
              (!xl6SemIsIntegerTypeName(rightType) && !dynamicRightForTypedIndex) ) {
             xl6SemCompoundAssignError(ctx, node, "integer compound assignment operands must be integer", op, leftType, rightType);

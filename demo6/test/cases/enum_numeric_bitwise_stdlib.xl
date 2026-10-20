@@ -1,0 +1,12 @@
+// Public numeric flag enums use the generic operator rules; no socket is opened.
+auto metadata = NetDatagramMetadata.destination | NetDatagramMetadata.interfaceIndex
+metadata |= NetDatagramMetadata.hopLimit
+assert int(metadata) == 7
+assert (metadata & NetDatagramMetadata.destination) == NetDatagramMetadata.destination
+assert (metadata ^ NetDatagramMetadata.interfaceIndex) == (NetDatagramMetadata.destination | NetDatagramMetadata.hopLimit)
+assert ((~metadata) & metadata) == NetDatagramMetadata.none
+auto controls = NetDatagramControlFlags.source | NetDatagramControlFlags.hopLimit
+assert int(controls) == 5
+auto capabilities = NetDatagramCapabilities.pathMtuMode | NetDatagramCapabilities.errorQueue
+assert int(capabilities) == 5
+println("numeric enum standard flag composition: no socket or endpoint opened")

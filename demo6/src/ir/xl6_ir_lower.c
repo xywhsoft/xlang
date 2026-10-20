@@ -28387,6 +28387,14 @@ static XL6_IrValueId xl6IrLowerScalarCompoundValue(
             result = xl6IrLowerEmitCheckedIntegerArithmetic(
                 ctx, origin, node, type, node->opcode, previous, rhs);
         valid = valid && result != XL6_IR_VALUE_INVALID;
+    } else if ( valid && targetType->kind == XL6_IR_TYPE_NUMERIC_ENUM &&
+                (node->opcode == XL6_IR_OPCODE_BIT_AND ||
+                 node->opcode == XL6_IR_OPCODE_BIT_OR ||
+                 node->opcode == XL6_IR_OPCODE_BIT_XOR) ) {
+        valid = xl6IrLowerValueType(ctx, rhs) == type;
+        if ( valid ) result = xl6IrLowerEmitBinary(
+            ctx, origin, type, node->opcode, previous, rhs);
+        valid = valid && result != XL6_IR_VALUE_INVALID;
     } else if ( valid && targetType->integerTarget >=
                           XL6_IR_INTEGER_TARGET_SIGNED_8 &&
                 targetType->integerTarget <=
@@ -31706,6 +31714,24 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 return XL6_IR_VALUE_INVALID;
             }
             return result;
+        }
+        {
+            const XL6_IrType* type = xl6IrTypeGet(&ctx->module->types, node->storageType);
+            if ( node->opcode == XL6_IR_OPCODE_BIT_NOT && type != NULL &&
+                 type->kind == XL6_IR_TYPE_NUMERIC_ENUM ) {
+                const char* mask = type->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_8 ? "255" :
+                    type->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_16 ? "65535" :
+                    type->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_32 ? "4294967295" : NULL;
+                /* Narrow unsigned enums live in the i64 register ABI. Flip
+                 * only the declared backing bits; never inherit C's promoted
+                 * complement or manufacture an out-of-domain enum value. */
+                if ( mask != NULL ) {
+                    XL6_IrValueId bits = xl6IrLowerEmitIntConst(ctx, id, node->storageType, mask);
+                    if ( bits == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
+                    return xl6IrLowerEmitBinary(ctx, id, node->storageType,
+                        XL6_IR_OPCODE_BIT_XOR, values[0], bits);
+                }
+            }
         }
         if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_UNARY, id, node->storageType, 0, values, 1, &result) ) return 0;
         ctx->module->instructions[ctx->module->instructionCount - 1].opcode = node->opcode;
