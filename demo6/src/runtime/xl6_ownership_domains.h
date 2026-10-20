@@ -133,4 +133,5 @@ XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainExecutorLangua
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainTaskPoolLanguageV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainTaskPoolExitV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainExecutionFailuresV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetAddressV1Get(void);
 #endif

@@ -79,6 +79,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #define U XL6_IR_C_ABI_U64
 #define M XL6_IR_C_ABI_TIME_I64
 #include "xl6_ir_atomic_contracts.inc"
+#include "xl6_ir_net_address_contracts.inc"
 #include "xl6_ir_concurrent_contracts.inc"
 #include "xl6_ir_executor_contracts.inc"
 #include "xl6_ir_task_pool_contracts.inc"

@@ -69,6 +69,7 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6XlangContextHandlePolicyV1
 /* Prototypes are physical SDK declarations. The .inc export table belongs
  * to resident source units, never to a generated header's sibling closure. */
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6DateTimeHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetAddressHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6UnicodeValidatorHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6TextIteratorHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6PatternHandlePolicyV1Get(void);

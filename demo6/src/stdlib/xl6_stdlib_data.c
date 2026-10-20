@@ -313,22 +313,8 @@ const char* xl6StdlibXidClassSource =
 
 #include "xl6_stdlib_crypto.inc"
 
-const char* xl6StdlibNetAddressClassSource =
-    "class NetAddress\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_net_address_create\" create()\n"
-    "    extern \"xl6_xrt_net_address_resolve\" create(string host, int port)\n"
-    "    extern \"xl6_xrt_net_address_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_net_address_text\" func textNative() as point\n"
-    "    extern \"xl6_xrt_net_address_family\" get family() as int\n"
-    "    extern \"xl6_xrt_net_address_port\" get port() as int\n"
-    "    extern \"xl6_xrt_net_address_scope\" get scope() as int\n"
-    "\n"
-    "    func text() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.textNative())\n"
-    "    end\n"
-    "end\n"
-    "\n"
+#include "xl6_stdlib_net_address.inc"
+const char* xl6StdlibNetAddressListClassSource =
     "class NetAddressList\n"
     "    native point handle\n"
     "    extern \"xl6_xrt_net_address_list_resolve\" create(string host, int port, int family)\n"
