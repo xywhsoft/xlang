@@ -3,7 +3,8 @@
 #undef main
 static XL6_ArtifactOwnershipPlan plan(const char* choice)
 {
-    XL6_ArtifactRuntimeSet roots=xl6ArtifactRuntimeSetSingleton(!strcmp(choice,"buffer-native")?XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_BUFFER_NATIVE:
+    XL6_ArtifactRuntimeSet roots=xl6ArtifactRuntimeSetSingleton(!strcmp(choice,"tcp-native")?XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_TCP_NATIVE:
+        !strcmp(choice,"buffer-native")?XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_BUFFER_NATIVE:
         !strcmp(choice,"config")?XL6_ARTIFACT_NET_ENGINE_CONFIG:
         !strcmp(choice,"stats")?XL6_ARTIFACT_NET_ENGINE_STATS:XL6_ARTIFACT_NET_ENGINE_LANGUAGE);
     if(!strcmp(choice,"all")){
@@ -28,6 +29,13 @@ int main(int argc,char** argv)
     assert(has_module(&buffer.runtime,"XRT_MODULE_NET_BUFFER")&&!has_module(&buffer.runtime,"XRT_MODULE_NET_ENGINE"));
     assert(!xl6ArtifactRuntimeSetHas(&buffer.runtime.components,XL6_ARTIFACT_EXECUTION_NET_ENGINE));
     assert(xl6ArtifactRuntimeSymbolOwner("xl6OwnershipDomainNetBufferNativeV1Get")==XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_BUFFER_NATIVE);
+    XL6_ArtifactOwnershipPlan tcp=plan("tcp-native");
+    assert(has_module(&tcp.runtime,"XRT_MODULE_NET_TCP_FUTURE"));
+    assert(xl6ArtifactRuntimeSymbolOwner("xl6OwnershipDomainNetTcpNativeV1Get")==XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_TCP_NATIVE);
+    assert(xl6ArtifactRuntimeSymbolOwner("xl6OwnershipCatalogAddNetRuntimeV1")==XL6_ARTIFACT_OWNERSHIP_CATALOG);
+    assert(xl6ArtifactRuntimeSetHas(&tcp.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_NATIVE_FUTURE));
+    assert(xl6ArtifactRuntimeSetHas(&tcp.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_BUFFER_NATIVE));
+    assert(!has_module(&tcp.runtime,"XRT_MODULE_NET_RESOLVER")&&!has_module(&tcp.runtime,"XRT_MODULE_TASK_POOL"));
     XL6_ArtifactOwnershipPlan config=plan("config"),engine=plan("engine"),stats=plan("stats");
     assert(!xl6ArtifactRuntimeSetHas(&config.runtime.components,XL6_ARTIFACT_EXECUTION_SOURCE));
     assert(!xl6ArtifactRuntimeSetHas(&config.runtime.components,XL6_ARTIFACT_CLOSURE));
@@ -43,6 +51,7 @@ int main(int argc,char** argv)
     assert(!xl6ArtifactRuntimeSetHas(&engine.runtime.components,XL6_ARTIFACT_TASK));
     assert(!has_module(&engine.runtime,"XRT_MODULE_EXECUTOR")&&!has_module(&engine.runtime,"XRT_MODULE_TASK_POOL"));
     assert(!has_module(&engine.runtime,"XRT_MODULE_NET_RESOLVER")&&!has_module(&engine.runtime,"XRT_MODULE_NET_TCP"));
+    assert(!xl6ArtifactRuntimeSetHas(&engine.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_TCP_NATIVE));
     assert(xl6ArtifactRuntimeSymbolOwner("xl6NetEngineCreateV1")==XL6_ARTIFACT_NET_ENGINE_LANGUAGE);
     assert(xl6ArtifactRuntimeSymbolOwner("xl6NetEngineConfigWithWorkersV1")==XL6_ARTIFACT_NET_ENGINE_CONFIG);
     assert(xl6ArtifactRuntimeSymbolOwner("xl6NetEngineSnapshotPostsAcceptedV1")==XL6_ARTIFACT_NET_ENGINE_STATS);

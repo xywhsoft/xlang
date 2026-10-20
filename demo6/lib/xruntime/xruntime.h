@@ -19535,6 +19535,17 @@ XRT_API bool xrtNetListenerStats(
 
 
 #if defined(XRT_FEATURE_NET_TCP_FUTURE)
+/* Exact resident waiter/producer/cancel and terminal payload capabilities.
+ * Frozen queries; the collector must independently admit every child. The
+ * waiter preparation waits for its actual source's normal close/notification,
+ * never turns Drop into cancellation or a synthetic Future completion. */
+XRT_API const xfutureproducerownershipv1* xrtNetTcpFutureProducerPolicyV1Get(void);
+XRT_API const xcancelwatchownershipv1* xrtNetTcpFutureCancelPolicyV1Get(void);
+XRT_API const xfuturepayloadownershipv1* xrtNetTcpFutureBytesPayloadPolicyV1Get(void);
+XRT_API const xfuturepayloadownershipv1* xrtNetTcpFutureStreamPayloadPolicyV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtNetTcpFutureOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtNetTcpFutureOwnershipAdapterV1(xrtownershipref Reference,
+	const xrtownershippreparationv1** ppPreparation);
 /* 拉取模式下异步接受一个连接；成功值由 Future 持有一个 Stream 引用。 */
 XRT_API xfuture* xrtNetListenerAcceptAsync(xnetlistener* pListener);
 
@@ -54451,6 +54462,8 @@ xnetstream* __xrtNetListenerTakeQueued(xnetlistener* pListener);
 
 
 #if defined(XRT_FEATURE_NET_TCP_FUTURE)
+bool __xrtNetStreamWaitOwnershipWalk(const xnetstream*, xrtownershipvisitor, ptr);
+bool __xrtNetListenerWaitOwnershipWalk(const xnetlistener*, xrtownershipvisitor, ptr);
 /* 在所属 Worker 上推进已经登记的 Stream Future。 */
 void __xrtNetStreamFutureNotify(xnetstream* pStream, bool bDriveRead);
 
@@ -143092,30 +143105,36 @@ typedef enum __xrt_net_stream_wait_result {
 
 
 
-/* 一个等待节点持有 Stream 和 Promise，直到唯一终态完成。 */
-struct __xrt_net_stream_wait {
-	__xrt_net_stream_wait* Next;
-	xnetstream* Stream;
-	xnetworker* CacheWorker;
+/* One physical activation: the source list/constructor, Future producer and
+ * cancellation Watch each own a real reference. Source/cache/Promise/Watch
+ * are actual contained slots, not per-reference child estimates. */
+typedef struct __xrt_net_tcp_wait {
+	volatile int32 References, Active;
+	const void* Claim;
 	xpromise* Promise;
 	xcancelwatch* Watch;
+	xatomicptr CacheWorker;
+	union { xnetstream* Stream; xnetlistener* Listener; } Owner;
+	xatomic32 Done;
+	bool Listener, Publishing, Cleared, Linked;
+} __xrt_net_tcp_wait;
+
+/* 一个等待节点持有 Stream 和 Promise，直到唯一终态完成。 */
+struct __xrt_net_stream_wait {
+	__xrt_net_tcp_wait Base;
+	__xrt_net_stream_wait* Next;
 	xnetstreamwait Wait;
+	bool Receive;
 	size_t MaxBytes;
 	size_t MinimumBytes;
-	bool Receive;
-	bool Linked;
 };
 
 
 
 /* Listener 等待节点持有 Listener 和 Promise，直到唯一终态完成。 */
 struct __xrt_net_listener_wait {
+	__xrt_net_tcp_wait Base;
 	__xrt_net_listener_wait* Next;
-	xnetlistener* Listener;
-	xnetworker* CacheWorker;
-	xpromise* Promise;
-	xcancelwatch* Watch;
-	bool Linked;
 };
 
 _Static_assert(
@@ -143145,33 +143164,14 @@ static __xrt_net_listener_wait* __xrtNetListenerWaitAlloc(
 		);
 
 	if ( pWaiter != NULL ) {
-		pWaiter->CacheWorker = pWorker;
+		xrtAtomicPtrInit(&pWaiter->Base.CacheWorker, pWorker);
+		xrtAtomic32Init(&pWaiter->Base.Done, 0);
+		pWaiter->Base.References = 1; pWaiter->Base.Active = 1;
+		pWaiter->Base.Publishing = true; pWaiter->Base.Listener = true;
 	} else if ( pWorker != NULL ) {
 		__xrtNetEngineObjectRelease(pWorker->Engine);
 	}
 	return pWaiter;
-}
-
-
-
-/* 在 Listener 引用释放前归还等待节点。 */
-static void __xrtNetListenerWaitRecycle(
-	xnetlistener* pListener,
-	__xrt_net_listener_wait* pWaiter
-)
-{
-	xnetworker* pWorker = pWaiter->CacheWorker;
-
-	(void)pListener;
-	if ( pWorker != NULL ) {
-		__xrtNetWorkerNodeRecycleHeld(
-			pWorker,
-			pWaiter,
-			sizeof(*pWaiter)
-		);
-	} else {
-		xrtFree(pWaiter);
-	}
 }
 
 
@@ -143191,33 +143191,14 @@ static __xrt_net_stream_wait* __xrtNetStreamWaitAlloc(
 		);
 
 	if ( pWaiter != NULL ) {
-		pWaiter->CacheWorker = pWorker;
+		xrtAtomicPtrInit(&pWaiter->Base.CacheWorker, pWorker);
+		xrtAtomic32Init(&pWaiter->Base.Done, 0);
+		pWaiter->Base.References = 1; pWaiter->Base.Active = 1;
+		pWaiter->Base.Publishing = true;
 	} else if ( pWorker != NULL ) {
 		__xrtNetEngineObjectRelease(pWorker->Engine);
 	}
 	return pWaiter;
-}
-
-
-
-/* 在 Stream 引用释放前归还等待节点。 */
-static void __xrtNetStreamWaitRecycle(
-	xnetstream* pStream,
-	__xrt_net_stream_wait* pWaiter
-)
-{
-	xnetworker* pWorker = pWaiter->CacheWorker;
-
-	(void)pStream;
-	if ( pWorker != NULL ) {
-		__xrtNetWorkerNodeRecycleHeld(
-			pWorker,
-			pWaiter,
-			sizeof(*pWaiter)
-		);
-	} else {
-		xrtFree(pWaiter);
-	}
 }
 
 
@@ -143236,6 +143217,219 @@ static void __xrtNetListenerStreamFree(ptr pValue, ptr pData)
 {
 	(void)pData;
 	xrtNetStreamDestroy((xnetstream*)pValue);
+}
+
+static void __xrtNetStreamWaitCancel(ptr pData);
+static void __xrtNetListenerWaitCancel(ptr pData);
+static void __xrtNetTcpWaitEnter(__xrt_net_tcp_wait* pWait)
+{
+	xrtownershipscope Scope = {0};
+	if (!xrtOwnershipMutationBegin(&Scope)) abort();
+	int32 iActive = __xrtAtomicRefLoad(&pWait->Active);
+	for (;;) {
+		if (iActive < 0 || iActive == INT32_MAX || pWait->Cleared) abort();
+		int32 iPrevious = __xrtAtomicRefCompareExchange(&pWait->Active, iActive + 1, iActive);
+		if (iPrevious == iActive) break;
+		iActive = iPrevious;
+	}
+	if (!xrtOwnershipScopeEnd(&Scope)) abort();
+}
+static void __xrtNetTcpWaitLeave(__xrt_net_tcp_wait* pWait)
+{
+	xrtownershipscope Scope = {0};
+	if (!xrtOwnershipMutationBegin(&Scope)) abort();
+	if (xrtRefRelease(&pWait->Active) < 0) abort();
+	if (!xrtOwnershipScopeEnd(&Scope)) abort();
+}
+static bool __xrtNetTcpWaitHold(const void* pData)
+{
+	__xrt_net_tcp_wait* pWait = (__xrt_net_tcp_wait*)pData; xrtownershipscope Scope = {0};
+	if (!xrtOwnershipMutationBegin(&Scope)) return false;
+	bool bHeld = !pWait->Cleared && xrtRefRetain(&pWait->References) >= 0;
+	if (!xrtOwnershipScopeEnd(&Scope)) abort();
+	return bHeld;
+}
+static void __xrtNetTcpWaitDrop(const void* pData)
+{
+	__xrt_net_tcp_wait* pWait = (__xrt_net_tcp_wait*)pData; xrtownershipscope Scope = {0};
+	if (!xrtOwnershipMutationBegin(&Scope)) abort();
+	xnetworker* pWorker = NULL;
+	size_t iSize = pWait->Listener ? sizeof(__xrt_net_listener_wait) : sizeof(__xrt_net_stream_wait);
+	if (xrtAtomic32Load(&pWait->Done, XMEMORY_ACQUIRE) && !__xrtAtomicRefLoad(&pWait->Active)) {
+		/* Ordinary completion returns the same small allocation to its cache.
+		 * If real pins survive, detach the allocator lease NOW: native Engine
+		 * retirement must not wait for a collector pin on an inert shell. */
+		if (__xrtAtomicRefCompareExchange(&pWait->References, 0, 1) == 1) {
+			pWorker = xrtAtomicPtrExchange(&pWait->CacheWorker, NULL, XMEMORY_ACQ_REL);
+			if (!xrtOwnershipScopeEnd(&Scope)) abort();
+			if (pWorker) __xrtNetWorkerNodeRecycleHeld(pWorker, pWait, iSize);
+			else xrtFree(pWait);
+			return;
+		}
+		pWorker = xrtAtomicPtrExchange(&pWait->CacheWorker, NULL, XMEMORY_ACQ_REL);
+	}
+	int32 iLeft = xrtRefRelease(&pWait->References);
+	if (iLeft < 0) abort();
+	/* After a non-last release another thread may already free the shell.
+	 * Only the final owner may inspect its fields below. */
+	if (!iLeft) {
+		bool bOwner = pWait->Listener ? pWait->Owner.Listener != NULL : pWait->Owner.Stream != NULL;
+		if (!xrtAtomic32Load(&pWait->Done, XMEMORY_ACQUIRE) || pWait->Publishing || pWait->Linked ||
+			pWait->Promise || pWait->Watch || bOwner || __xrtAtomicRefLoad(&pWait->Active) ||
+			xrtAtomicPtrLoad(&pWait->CacheWorker, XMEMORY_ACQUIRE)) abort();
+	}
+	if (!xrtOwnershipScopeEnd(&Scope)) abort();
+	if (!iLeft) xrtFree(pWait);
+	if (pWorker) __xrtNetEngineObjectRelease(pWorker->Engine); /* last access to Worker */
+}
+static bool __xrtNetTcpWaitBusy(const void* pData)
+{
+	const __xrt_net_tcp_wait* pWait = pData;
+	if (!pWait || pWait->Cleared) return false;
+	if (pWait->Publishing || __xrtAtomicRefLoad(&pWait->Active)) return true;
+	if (xrtAtomic32Load(&pWait->Done, XMEMORY_ACQUIRE)) return false;
+	return pWait->Listener ? xrtNetListenerOwnershipQuiescenceV1Get()->Busy(pWait->Owner.Listener) :
+		xrtNetStreamOwnershipQuiescenceV1Get()->Busy(pWait->Owner.Stream);
+}
+static bool __xrtNetTcpWaitCount(const void* pData, size_t* pCount)
+{
+	const __xrt_net_tcp_wait* pWait = pData;
+	if (!pWait || !pCount || pWait->Cleared || __xrtNetTcpWaitBusy(pWait)) return false;
+	bool bOwner = pWait->Listener ? pWait->Owner.Listener != NULL : pWait->Owner.Stream != NULL;
+	bool bDone = xrtAtomic32Load(&pWait->Done, XMEMORY_ACQUIRE) != 0;
+	if (bDone && (pWait->Promise || pWait->Watch || bOwner || pWait->Linked ||
+		xrtAtomicPtrLoad(&pWait->CacheWorker, XMEMORY_ACQUIRE))) return false;
+	if (!bDone && (!pWait->Linked || !pWait->Promise || !pWait->Watch || !bOwner)) return false;
+	int32 iReferences = __xrtAtomicRefLoad(&pWait->References);
+	if (iReferences <= 0) return false;
+	*pCount = (size_t)iReferences; return true;
+}
+static bool __xrtNetTcpWaitTrace(const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{
+	const __xrt_net_tcp_wait* pWait = pData; size_t iCount;
+	if (!pVisit || !__xrtNetTcpWaitCount(pData, &iCount)) return false;
+	if (!xrtAtomic32Load(&pWait->Done, XMEMORY_ACQUIRE) && !pVisit(pWait->Listener ? xrtNetListenerOwnership(pWait->Owner.Listener) :
+		xrtNetStreamOwnership(pWait->Owner.Stream), pContext)) return false;
+	xnetworker* pWorker = xrtAtomicPtrLoad(&pWait->CacheWorker, XMEMORY_ACQUIRE);
+	if (pWorker && !pVisit(xrtNetEngineOwnership(pWorker->Engine), pContext)) return false;
+	if (pWait->Promise && !pVisit(xrtPromiseOwnership(pWait->Promise), pContext)) return false;
+	return !pWait->Watch || pVisit(xrtCancelWatchOwnership(pWait->Watch), pContext);
+}
+static const xrtownershipops __xrtNetTcpWaitOps = {__xrtNetTcpWaitCount, __xrtNetTcpWaitTrace};
+static xrtownershipref __xrtNetTcpWaitOwnership(const __xrt_net_tcp_wait* pWait)
+{ return (xrtownershipref){pWait, pWait ? &__xrtNetTcpWaitOps : NULL}; }
+static void __xrtNetTcpWaitCancel(ptr pData)
+{
+	__xrt_net_tcp_wait* pWait = pData; __xrtNetTcpWaitEnter(pWait);
+	if (pWait->Listener) __xrtNetListenerWaitCancel(pData); else __xrtNetStreamWaitCancel(pData);
+	__xrtNetTcpWaitLeave(pWait);
+}
+static const xfutureproducerownershipv1 __xrtNetTcpWaitProducer = {sizeof(xfutureproducerownershipv1), __xrtNetTcpWaitDrop};
+static const xcancelwatchownershipv1 __xrtNetTcpWaitCancelPolicy = {
+	sizeof(xcancelwatchownershipv1), __xrtNetTcpWaitCancel, __xrtNetTcpWaitDrop, &__xrtNetTcpWaitOps};
+static bool __xrtNetTcpBytesTrace(const void* pValue, const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{ return pValue && !pData && pVisit && pVisit(xrtNetBytesOwnership(pValue), pContext); }
+static bool __xrtNetTcpStreamTrace(const void* pValue, const void* pData, xrtownershipvisitor pVisit, ptr pContext)
+{ return pValue && !pData && pVisit && pVisit(xrtNetStreamOwnership(pValue), pContext); }
+static const xfuturepayloadownershipv1 __xrtNetTcpBytesPayload = {
+	sizeof(xfuturepayloadownershipv1), __xrtNetStreamBytesFree, __xrtNetTcpBytesTrace};
+static const xfuturepayloadownershipv1 __xrtNetTcpStreamPayload = {
+	sizeof(xfuturepayloadownershipv1), __xrtNetListenerStreamFree, __xrtNetTcpStreamTrace};
+XRT_API const xfutureproducerownershipv1* xrtNetTcpFutureProducerPolicyV1Get(void) { return &__xrtNetTcpWaitProducer; }
+XRT_API const xcancelwatchownershipv1* xrtNetTcpFutureCancelPolicyV1Get(void) { return &__xrtNetTcpWaitCancelPolicy; }
+XRT_API const xfuturepayloadownershipv1* xrtNetTcpFutureBytesPayloadPolicyV1Get(void) { return &__xrtNetTcpBytesPayload; }
+XRT_API const xfuturepayloadownershipv1* xrtNetTcpFutureStreamPayloadPolicyV1Get(void) { return &__xrtNetTcpStreamPayload; }
+XRT_API const xrtownershipquiescencev1* xrtNetTcpFutureOwnershipQuiescenceV1Get(void)
+{
+	static const xrtownershipquiescencev1 Policy = {sizeof(Policy), &__xrtNetTcpWaitOps, __xrtNetTcpWaitBusy};
+	return &Policy;
+}
+static bool __xrtNetTcpWaitClaim(const void* pData, const void* pToken)
+{
+	__xrt_net_tcp_wait* pWait = (__xrt_net_tcp_wait*)pData; size_t iCount;
+	if (!pToken || (pWait->Claim && pWait->Claim != pToken) || !__xrtNetTcpWaitCount(pData, &iCount)) return false;
+	pWait->Claim = pToken; return true;
+}
+static void __xrtNetTcpWaitRestore(const void* pData, const void* pToken)
+{
+	__xrt_net_tcp_wait* pWait = (__xrt_net_tcp_wait*)pData;
+	if (!pToken || pWait->Claim != pToken || pWait->Cleared) abort();
+	pWait->Claim = NULL;
+}
+static bool __xrtNetTcpWaitReady(const void* pData)
+{ const __xrt_net_tcp_wait* pWait = pData; size_t iCount;
+	return __xrtNetTcpWaitCount(pData, &iCount) && xrtAtomic32Load(&pWait->Done, XMEMORY_ACQUIRE); }
+static xrtownershipprepareresult __xrtNetTcpWaitPrepare(const void* pData, const void* pToken)
+{
+	const __xrt_net_tcp_wait* pWait = pData; xrtownershipscope Freeze = {0};
+	if (!xrtOwnershipFreezeTryBegin(&Freeze)) return XRT_OWNERSHIP_PREPARE_BUSY;
+	if (!pToken || pWait->Claim != pToken || pWait->Cleared) abort();
+	bool bReady = __xrtNetTcpWaitReady(pData);
+	if (!xrtOwnershipScopeEnd(&Freeze)) abort();
+	/* The actual source performs normal close/notification. Never close a
+	 * produced Future early or cancel accepted work through an adapter Drop. */
+	return bReady ? XRT_OWNERSHIP_PREPARE_READY : XRT_OWNERSHIP_PREPARE_BUSY;
+}
+static void __xrtNetTcpWaitClear(const void* pData, const void* pToken)
+{
+	__xrt_net_tcp_wait* pWait = (__xrt_net_tcp_wait*)pData;
+	if (!pToken || pWait->Claim != pToken || pWait->Cleared || !__xrtNetTcpWaitReady(pData)) abort();
+	pWait->Cleared = true;
+}
+XRT_API const xrtownershipadapterv1* xrtNetTcpFutureOwnershipAdapterV1(xrtownershipref Reference,
+	const xrtownershippreparationv1** ppPreparation)
+{
+	static const xrtownershipadapterv1 Adapter = {sizeof(Adapter), __xrtNetTcpWaitHold, __xrtNetTcpWaitDrop,
+		__xrtNetTcpWaitClaim, __xrtNetTcpWaitRestore, NULL, __xrtNetTcpWaitClear, NULL};
+	static const xrtownershippreparationv1 Preparation = {sizeof(Preparation), &Adapter, __xrtNetTcpWaitReady, __xrtNetTcpWaitPrepare};
+	size_t iCount;
+	if (!ppPreparation || Reference.Ops != &__xrtNetTcpWaitOps || !__xrtNetTcpWaitCount(Reference.Data, &iCount)) return NULL;
+	*ppPreparation = &Preparation; return &Adapter;
+}
+static bool __xrtNetTcpWaitSetup(__xrt_net_tcp_wait* pWait, xfuture** ppFuture)
+{
+	pWait->Promise = xrtPromiseCreate(ppFuture, NULL);
+	if (!pWait->Promise) return false;
+	if (!__xrtNetTcpWaitHold(pWait)) return false;
+	if (!xrtPromiseProducerBindTakeV1(pWait->Promise, __xrtNetTcpWaitOwnership(pWait), &__xrtNetTcpWaitProducer)) {
+		__xrtNetTcpWaitDrop(pWait); return false;
+	}
+	xcancel* pCancel = xrtPromiseCancelToken(pWait->Promise);
+	if (!pCancel) return false;
+	if (!__xrtNetTcpWaitHold(pWait)) { xrtCancelDestroy(pCancel); return false; }
+	pWait->Watch = xrtCancelWatchOwnedV1(pCancel, pWait, &__xrtNetTcpWaitCancelPolicy);
+	xrtCancelDestroy(pCancel);
+	if (!pWait->Watch) { __xrtNetTcpWaitDrop(pWait); return false; }
+	return true;
+}
+/* Exactly one unlink winner owns the original constructor/list reference.
+ * Watch retirement precedes removing the source slot: a concurrent callback
+ * still borrows that source until Unwatch has synchronized its return. */
+static void __xrtNetTcpWaitRetire(__xrt_net_tcp_wait* pWait)
+{
+	xrtownershipscope Scope = {0};
+	if (!xrtOwnershipMutationBegin(&Scope)) abort();
+	if (pWait->Promise || pWait->Watch || pWait->Linked || xrtAtomic32Load(&pWait->Done, XMEMORY_ACQUIRE)) abort();
+	bool bListener = pWait->Listener;
+	xnetlistener* pListener = bListener ? pWait->Owner.Listener : NULL;
+	xnetstream* pStream = bListener ? NULL : pWait->Owner.Stream;
+	if (bListener) pWait->Owner.Listener = NULL; else pWait->Owner.Stream = NULL;
+	pWait->Publishing = false;
+	/* A late cancellation dispatch can drop its real Watch.Data reference
+	 * concurrently. Publish terminal slots before that owner's acquire load. */
+	xrtAtomic32Store(&pWait->Done, 1, XMEMORY_RELEASE);
+	if (!xrtOwnershipScopeEnd(&Scope)) abort();
+	if (bListener) xrtNetListenerDestroy(pListener); else xrtNetStreamDestroy(pStream);
+	__xrtNetTcpWaitLeave(pWait); __xrtNetTcpWaitDrop(pWait);
+}
+static void __xrtNetTcpWaitDiscard(__xrt_net_tcp_wait* pWait, xfuture* pFuture)
+{
+	xerror* pError = xrtTakeError();
+	xcancelwatch* pWatch = pWait->Watch; pWait->Watch = NULL;
+	xpromise* pPromise = pWait->Promise; pWait->Promise = NULL;
+	xrtCancelUnwatch(pWatch); xrtPromiseDestroy(pPromise); xrtFutureDestroy(pFuture);
+	__xrtNetTcpWaitRetire(pWait);
+	xrtClearError(); xrtSetErrorTake(pError);
 }
 
 
@@ -143261,7 +143455,7 @@ static bool __xrtNetListenerWaitRemove(
 		pListener->WaitTail = pPrevious;
 	}
 	pWaiter->Next = NULL;
-	pWaiter->Linked = false;
+	pWaiter->Base.Linked = false;
 	(void)xrtAtomic32FetchSub(
 		&pListener->AcceptWaiters,
 		1,
@@ -143279,22 +143473,20 @@ static void __xrtNetListenerWaitFinish(
 	bool bCancelled
 )
 {
-	xnetlistener* pListener = pWaiter->Listener;
-	xpromise* pPromise = pWaiter->Promise;
+	xnetlistener* pListener = pWaiter->Base.Owner.Listener;
+	xpromise* pPromise = pWaiter->Base.Promise;
+	__xrtNetTcpWaitEnter(&pWaiter->Base);
 	if (!__xrtNetListenerOwnershipEnter(pListener, false)) abort();
 
-	xrtCancelUnwatch(pWaiter->Watch);
-	pWaiter->Watch = NULL;
-	pWaiter->Promise = NULL;
-	__xrtNetListenerWaitRecycle(pListener, pWaiter);
+	xrtCancelUnwatch(pWaiter->Base.Watch);
+	pWaiter->Base.Watch = NULL;
+	pWaiter->Base.Promise = NULL;
 	__xrtNetListenerOwnershipLeave(pListener);
-	xrtNetListenerDestroy(pListener);
 	if ( pStream != NULL ) {
-		if ( !xrtPromiseResolveOwned(
+		if ( !xrtPromiseResolveOwnedPolicyV1(
 			pPromise,
 			pStream,
-			__xrtNetListenerStreamFree,
-			NULL
+			&__xrtNetTcpStreamPayload
 		) ) {
 			xrtNetStreamDestroy(pStream);
 		}
@@ -143304,6 +143496,7 @@ static void __xrtNetListenerWaitFinish(
 		(void)xrtPromiseClose(pPromise);
 	}
 	xrtPromiseDestroy(pPromise);
+	__xrtNetTcpWaitRetire(&pWaiter->Base);
 }
 
 
@@ -143337,12 +143530,12 @@ static void __xrtNetListenerWaitCancel(ptr pData)
 {
 	__xrt_net_listener_wait* pWaiter =
 		(__xrt_net_listener_wait*)pData;
-	xnetlistener* pListener = pWaiter->Listener;
+	xnetlistener* pListener = pWaiter->Base.Owner.Listener;
 	bool bRemoved;
 
 	if (!__xrtNetListenerOwnershipEnter(pListener, false)) abort();
 	__xrtSpinLock(&pListener->AcceptLock);
-	bRemoved = pWaiter->Linked &&
+	bRemoved = pWaiter->Base.Linked &&
 		__xrtNetListenerWaitRemove(pListener, pWaiter);
 	__xrtSpinUnlock(&pListener->AcceptLock);
 	__xrtNetListenerOwnershipLeave(pListener);
@@ -143398,8 +143591,6 @@ static xfuture* __xrtNetListenerAcceptAsync(xnetlistener* pListener)
 	__xrt_net_listener_wait* pWaiter;
 	xnetlistener* pOwned;
 	xfuture* pFuture = NULL;
-	xcancel* pCancel;
-	xerror* pError;
 	xnetstream* pStream = NULL;
 	xnetworker* pCacheWorker = NULL;
 	bool bClosed = false;
@@ -143437,34 +143628,11 @@ static xfuture* __xrtNetListenerAcceptAsync(xnetlistener* pListener)
 		xrtNetListenerDestroy(pOwned);
 		return NULL;
 	}
-	pWaiter->Listener = pOwned;
-	pWaiter->Promise = xrtPromiseCreate(&pFuture, NULL);
-	if ( pWaiter->Promise == NULL ) {
-		__xrtNetListenerWaitRecycle(pListener, pWaiter);
-		xrtNetListenerDestroy(pListener);
-		return NULL;
+	pWaiter->Base.Owner.Listener = pOwned;
+	if (!__xrtNetTcpWaitSetup(&pWaiter->Base, &pFuture)) {
+		__xrtNetTcpWaitDiscard(&pWaiter->Base, pFuture); return NULL;
 	}
-	pCancel = xrtPromiseCancelToken(pWaiter->Promise);
-	if ( pCancel != NULL ) {
-		pWaiter->Watch = xrtCancelWatch(
-			pCancel,
-			__xrtNetListenerWaitCancel,
-			pWaiter
-		);
-		xrtCancelDestroy(pCancel);
-	}
-	if ( pWaiter->Watch == NULL ) {
-		pError = xrtTakeError();
-		xrtFutureDestroy(pFuture);
-		xrtPromiseDestroy(pWaiter->Promise);
-		__xrtNetListenerWaitRecycle(pListener, pWaiter);
-		xrtNetListenerDestroy(pListener);
-		if ( pError != NULL ) {
-			xrtSetError(pError);
-			xrtErrorFree(pError);
-		}
-		return NULL;
-	}
+	xrtownershipscope Publish = {0}; if (!xrtOwnershipMutationBegin(&Publish)) abort();
 	__xrtSpinLock(&pListener->AcceptLock);
 	if ( xrtNetListenerState(pListener) != XNET_LISTENER_OPEN ) {
 		bClosed = true;
@@ -143473,7 +143641,7 @@ static xfuture* __xrtNetListenerAcceptAsync(xnetlistener* pListener)
 			pStream = __xrtNetListenerTakeQueued(pListener);
 		}
 		if ( pStream == NULL ) {
-			pWaiter->Linked = true;
+			pWaiter->Base.Linked = true;
 			if ( pListener->WaitTail != NULL ) {
 				pListener->WaitTail->Next = pWaiter;
 			} else {
@@ -143487,7 +143655,10 @@ static xfuture* __xrtNetListenerAcceptAsync(xnetlistener* pListener)
 			);
 		}
 	}
+	pWaiter->Base.Publishing = false;
+	if (xrtRefRelease(&pWaiter->Base.Active) != 0) abort();
 	__xrtSpinUnlock(&pListener->AcceptLock);
+	if (!xrtOwnershipScopeEnd(&Publish)) abort();
 	if ( (pStream != NULL) || bClosed ) {
 		__xrtNetListenerWaitFinish(
 			pWaiter,
@@ -143530,7 +143701,7 @@ static __xrt_net_stream_wait_result __xrtNetStreamWaitResult(
 	const __xrt_net_stream_wait* pWaiter
 )
 {
-	const xnetstream* pStream = pWaiter->Stream;
+	const xnetstream* pStream = pWaiter->Base.Owner.Stream;
 	xnetstreamstate State = xrtNetStreamState(pStream);
 	size_t iQueued = xrtNetStreamPending(pStream);
 
@@ -143616,7 +143787,7 @@ static xerror* __xrtNetStreamWaitError(
 	const __xrt_net_stream_wait* pWaiter
 )
 {
-	const xnetstream* pStream = pWaiter->Stream;
+	const xnetstream* pStream = pWaiter->Base.Owner.Stream;
 	int32 iCode;
 	cstr sMessage;
 
@@ -143669,7 +143840,7 @@ static bool __xrtNetStreamWaitRemove(
 		pStream->WaitTail = pPrevious;
 	}
 	pWaiter->Next = NULL;
-	pWaiter->Linked = false;
+	pWaiter->Base.Linked = false;
 	if ( pWaiter->Wait == XNET_STREAM_WAIT_READ ) {
 		pStream->ReadWaiters--;
 	}
@@ -143734,7 +143905,7 @@ static xnetbytes* __xrtNetStreamWaitReceive(
 	xerror** ppError
 )
 {
-	xnetstream* pStream = pWaiter->Stream;
+	xnetstream* pStream = pWaiter->Base.Owner.Stream;
 	size_t iSize = xrtNetBufSize(&pStream->ReadBuffer);
 	xnetbytes* pBytes;
 	xnetwspan Span;
@@ -143779,12 +143950,13 @@ static bool __xrtNetStreamWaitFinish(
 	__xrt_net_stream_wait_result Result
 )
 {
-	xnetstream* pStream = pWaiter->Stream;
-	xpromise* pPromise = pWaiter->Promise;
+	xnetstream* pStream = pWaiter->Base.Owner.Stream;
+	xpromise* pPromise = pWaiter->Base.Promise;
 	xnetbytes* pBytes = NULL;
 	xerror* pError = NULL;
 	bool bConsumed = false;
 
+	__xrtNetTcpWaitEnter(&pWaiter->Base);
 	if (!__xrtNetStreamOwnershipEnter(pStream, false)) abort();
 	if ( Result == __XRT_NET_STREAM_WAIT_RECEIVE ) {
 		pBytes = __xrtNetStreamWaitReceive(
@@ -143795,21 +143967,18 @@ static bool __xrtNetStreamWaitFinish(
 	} else if ( Result == __XRT_NET_STREAM_WAIT_FAILED ) {
 		pError = __xrtNetStreamWaitError(pWaiter);
 	}
-	xrtCancelUnwatch(pWaiter->Watch);
-	pWaiter->Watch = NULL;
-	pWaiter->Promise = NULL;
-	__xrtNetStreamWaitRecycle(pStream, pWaiter);
+	xrtCancelUnwatch(pWaiter->Base.Watch);
+	pWaiter->Base.Watch = NULL;
+	pWaiter->Base.Promise = NULL;
 	__xrtNetStreamOwnershipLeave(pStream);
-	xrtNetStreamDestroy(pStream);
 	if ( Result == __XRT_NET_STREAM_WAIT_READY ) {
 		(void)xrtPromiseResolve(pPromise, NULL);
 	} else if ( Result == __XRT_NET_STREAM_WAIT_RECEIVE ) {
 		if ( pBytes != NULL ) {
-			if ( xrtPromiseResolveOwned(
+			if ( xrtPromiseResolveOwnedPolicyV1(
 				pPromise,
 				pBytes,
-				__xrtNetStreamBytesFree,
-				NULL
+				&__xrtNetTcpBytesPayload
 			) ) {
 				pBytes = NULL;
 			}
@@ -143829,9 +143998,10 @@ static bool __xrtNetStreamWaitFinish(
 	} else {
 		(void)xrtPromiseClose(pPromise);
 	}
-	xrtFree(pBytes);
+	xrtNetBytesDestroy(pBytes);
 	xrtErrorFree(pError);
 	xrtPromiseDestroy(pPromise);
+	__xrtNetTcpWaitRetire(&pWaiter->Base);
 	return bConsumed;
 }
 
@@ -143842,12 +144012,12 @@ static void __xrtNetStreamWaitCancel(ptr pData)
 {
 	__xrt_net_stream_wait* pWaiter =
 		(__xrt_net_stream_wait*)pData;
-	xnetstream* pStream = pWaiter->Stream;
+	xnetstream* pStream = pWaiter->Base.Owner.Stream;
 	bool bRemoved;
 
 	if (!__xrtNetStreamOwnershipEnter(pStream, false)) abort();
 	__xrtSpinLock(&pStream->WaitLock);
-	bRemoved = pWaiter->Linked &&
+	bRemoved = pWaiter->Base.Linked &&
 		__xrtNetStreamWaitRemove(pStream, pWaiter);
 	__xrtSpinUnlock(&pStream->WaitLock);
 	__xrtNetStreamOwnershipLeave(pStream);
@@ -143917,8 +144087,6 @@ static xfuture* __xrtNetStreamWaitCreateImpl(
 	__xrt_net_stream_wait* pWaiter;
 	xnetstream* pOwned;
 	xfuture* pFuture = NULL;
-	xcancel* pCancel;
-	xerror* pError;
 	xnetworker* pCacheWorker = NULL;
 	__xrt_net_stream_wait_result Immediate =
 		__XRT_NET_STREAM_WAIT_PENDING;
@@ -143958,47 +144126,20 @@ static xfuture* __xrtNetStreamWaitCreateImpl(
 		xrtNetStreamDestroy(pOwned);
 		return NULL;
 	}
-	pWaiter->Stream = pOwned;
+	pWaiter->Base.Owner.Stream = pOwned;
 	pWaiter->Wait = Wait;
 	pWaiter->Receive = bReceive;
 	pWaiter->MaxBytes = iMaxBytes;
 	pWaiter->MinimumBytes = iMinimumBytes;
-	pWaiter->Promise = xrtPromiseCreate(&pFuture, NULL);
-	if ( pWaiter->Promise == NULL ) {
-		__xrtNetStreamWaitRecycle(pStream, pWaiter);
-		xrtNetStreamDestroy(pStream);
-		return NULL;
+	if (!__xrtNetTcpWaitSetup(&pWaiter->Base, &pFuture)) {
+		__xrtNetTcpWaitDiscard(&pWaiter->Base, pFuture); return NULL;
 	}
-	pCancel = xrtPromiseCancelToken(pWaiter->Promise);
-	if ( pCancel != NULL ) {
-		pWaiter->Watch = xrtCancelWatch(
-			pCancel,
-			__xrtNetStreamWaitCancel,
-			pWaiter
-		);
-		xrtCancelDestroy(pCancel);
-	}
-	if ( pWaiter->Watch == NULL ) {
-		pError = xrtTakeError();
-		xrtFutureDestroy(pFuture);
-		xrtPromiseDestroy(pWaiter->Promise);
-		__xrtNetStreamWaitRecycle(pStream, pWaiter);
-		xrtNetStreamDestroy(pStream);
-		if ( pError != NULL ) {
-			xrtSetError(pError);
-			xrtErrorFree(pError);
-		}
-		return NULL;
-	}
+	xrtownershipscope Publish = {0}; if (!xrtOwnershipMutationBegin(&Publish)) abort();
 	__xrtSpinLock(&pStream->WaitLock);
 	if ( (Wait == XNET_STREAM_WAIT_READ) && pStream->ReadPush ) {
 		__xrtSpinUnlock(&pStream->WaitLock);
-		xrtCancelUnwatch(pWaiter->Watch);
-		pWaiter->Watch = NULL;
-		xrtFutureDestroy(pFuture);
-		xrtPromiseDestroy(pWaiter->Promise);
-		__xrtNetStreamWaitRecycle(pStream, pWaiter);
-		xrtNetStreamDestroy(pStream);
+		if (!xrtOwnershipScopeEnd(&Publish)) abort();
+		__xrtNetTcpWaitDiscard(&pWaiter->Base, pFuture);
 		__xrtNetSetError(
 			XERR_STATE,
 			XNET_ERROR_STREAM_READ,
@@ -144008,7 +144149,7 @@ static xfuture* __xrtNetStreamWaitCreateImpl(
 		);
 		return NULL;
 	}
-	pWaiter->Linked = true;
+	pWaiter->Base.Linked = true;
 	if ( Wait == XNET_STREAM_WAIT_READ ) {
 		pStream->ReadWaiters++;
 	}
@@ -144032,7 +144173,10 @@ static xfuture* __xrtNetStreamWaitCreateImpl(
 	} else {
 		__xrtNetStreamWaitSchedule(pStream);
 	}
+	pWaiter->Base.Publishing = false;
+	if (xrtRefRelease(&pWaiter->Base.Active) != 0) abort();
 	__xrtSpinUnlock(&pStream->WaitLock);
+	if (!xrtOwnershipScopeEnd(&Publish)) abort();
 	if ( Immediate != __XRT_NET_STREAM_WAIT_PENDING ) {
 		(void)__xrtNetStreamWaitFinish(pWaiter, Immediate);
 	}
@@ -144096,6 +144240,45 @@ XRT_API xfuture* xrtNetStreamRecvAsync(
 		iMaxBytes,
 		1u
 	);
+}
+
+/* These chains own the original activation reference; Next is structural.
+ * Read only after the source quiescence gate, with independent child admission. */
+bool __xrtNetStreamWaitOwnershipWalk(const xnetstream* pStream, xrtownershipvisitor pVisit, ptr pContext)
+{
+	if (pStream->WaitPosted) return false;
+	const __xrt_net_stream_wait *pSlow = pStream->WaitHead, *pFast = pSlow, *pTail = NULL;
+	while (pFast && pFast->Next) {
+		pSlow = pSlow->Next; pFast = pFast->Next->Next; if (pSlow == pFast) return false;
+	}
+	size_t iReads = 0;
+	for (const __xrt_net_stream_wait* pWait = pStream->WaitHead; pWait; pWait = pWait->Next) {
+		if (pWait->Base.Listener || !pWait->Base.Linked || xrtAtomic32Load(&pWait->Base.Done, XMEMORY_ACQUIRE) || pWait->Base.Publishing ||
+			pWait->Base.Owner.Stream != pStream || !pWait->Base.Promise || !pWait->Base.Watch ||
+			__xrtAtomicRefLoad(&pWait->Base.References) <= 0 || pWait->Wait < XNET_STREAM_WAIT_OPEN ||
+			pWait->Wait > XNET_STREAM_WAIT_CLOSE) return false;
+		if (pWait->Wait == XNET_STREAM_WAIT_READ) ++iReads;
+		if (pVisit && !pVisit(__xrtNetTcpWaitOwnership(&pWait->Base), pContext)) return false;
+		pTail = pWait;
+	}
+	return pTail == pStream->WaitTail && iReads == pStream->ReadWaiters;
+}
+bool __xrtNetListenerWaitOwnershipWalk(const xnetlistener* pListener, xrtownershipvisitor pVisit, ptr pContext)
+{
+	const __xrt_net_listener_wait *pSlow = pListener->WaitHead, *pFast = pSlow, *pTail = NULL;
+	while (pFast && pFast->Next) {
+		pSlow = pSlow->Next; pFast = pFast->Next->Next; if (pSlow == pFast) return false;
+	}
+	size_t iCount = 0;
+	for (const __xrt_net_listener_wait* pWait = pListener->WaitHead; pWait; pWait = pWait->Next) {
+		if (!pWait->Base.Listener || !pWait->Base.Linked || xrtAtomic32Load(&pWait->Base.Done, XMEMORY_ACQUIRE) || pWait->Base.Publishing ||
+			pWait->Base.Owner.Listener != pListener || !pWait->Base.Promise || !pWait->Base.Watch ||
+			__xrtAtomicRefLoad(&pWait->Base.References) <= 0) return false;
+		++iCount;
+		if (pVisit && !pVisit(__xrtNetTcpWaitOwnership(&pWait->Base), pContext)) return false;
+		pTail = pWait;
+	}
+	return pTail == pListener->WaitTail && iCount == xrtAtomic32Load(&pListener->AcceptWaiters, XMEMORY_ACQUIRE);
 }
 
 #endif
@@ -231305,7 +231488,7 @@ static bool __xrtNetStreamCount(const void* pData, size_t* pCount)
 			pStream->Control.Release || pStream->Control.Data) return false;
 	#endif
 	#if defined(XRT_FEATURE_NET_TCP_FUTURE)
-		if (pStream->WaitHead || pStream->WaitTail || pStream->WaitPosted || pStream->ReadWaiters) return false;
+		if (!__xrtNetStreamWaitOwnershipWalk(pStream, NULL, NULL)) return false;
 	#endif
 	if (__xrtNetStreamPrepared(pData)) {
 		if (pStream->RuntimeHeld || pStream->EngineHeld || pStream->RuntimeOwner.Data || pStream->RuntimeOwner.Previous ||
@@ -231323,6 +231506,9 @@ static bool __xrtNetStreamTrace(const void* pData, xrtownershipvisitor pVisit, p
 	if (!pVisit || !__xrtNetStreamCount(pData, &iCount) ||
 		(pStream->EngineHeld && !pVisit(xrtNetEngineOwnership(pStream->Engine), pContext))) return false;
 	if (!__xrtNetStreamBuffersOwnership(pStream, pVisit, pContext)) return false;
+	#if defined(XRT_FEATURE_NET_TCP_FUTURE)
+		if (!__xrtNetStreamWaitOwnershipWalk(pStream, pVisit, pContext)) return false;
+	#endif
 	/* Diagnostics are real immutable Error/Cause owners too. Static errors
 	 * have an empty view; ordinary errors must not become unreported roots.
 	 * This DAG cannot point back to a stream and remains owned until last Drop,
@@ -231340,7 +231526,7 @@ static bool __xrtNetListenerCount(const void* pData, size_t* pCount)
 		!__xrtNetTcpEventsEmpty(&pListener->StreamEvents) || pListener->StartPending ||
 		xrtAtomic32Load(&pListener->ActiveDispatches, XMEMORY_ACQUIRE)) return false;
 	#if defined(XRT_FEATURE_NET_TCP_FUTURE)
-		if (pListener->WaitHead || pListener->WaitTail || xrtAtomic32Load(&pListener->AcceptWaiters, XMEMORY_ACQUIRE)) return false;
+		if (!__xrtNetListenerWaitOwnershipWalk(pListener, NULL, NULL)) return false;
 	#endif
 	size_t iQueued = xrtAtomic32Load(&pListener->QueuedAccepts, XMEMORY_ACQUIRE), iSeen = 0;
 	const xnetstream* pTail = NULL;
@@ -231368,6 +231554,9 @@ static bool __xrtNetListenerTrace(const void* pData, xrtownershipvisitor pVisit,
 	 * link between those slots, never a second strong edge between streams. */
 	for (const xnetstream* pStream = pListener->AcceptHead; pStream; pStream = pStream->AcceptNext)
 		if (!pVisit(xrtNetStreamOwnership(pStream), pContext)) return false;
+	#if defined(XRT_FEATURE_NET_TCP_FUTURE)
+		if (!__xrtNetListenerWaitOwnershipWalk(pListener, pVisit, pContext)) return false;
+	#endif
 	return true;
 }
 const xrtownershipops __xrtNetListenerOwnershipOps = {__xrtNetListenerCount, __xrtNetListenerTrace};

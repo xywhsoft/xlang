@@ -1,4 +1,4 @@
-/* Native fixture: XRT 67f4f38b TCP runtime/pool/bytes/buffer ownership.
+/* Native fixture: XRT 40704d47 TCP runtime/pool/bytes/buffer ownership.
  * Adapted ONLY for the pinned microsecond/xdeadline ABI and standalone include.
  * Actual RC, queue, payload, preparation and OOM semantics are unchanged. */
 #define XRT_IMPLEMENTATION
@@ -140,7 +140,8 @@ static void create(TcpGraph* graph, xnetportbackend backend, bool future)
 			CHECK(xrtOwnershipScopeEnd(&freeze)); CHECK(!xrtDeadlineExpired(deadline)); xrtThreadYield();
 		}
 		xrtownershipref ref = xrtNetListenerOwnership(graph->listener); size_t count = 123;
-		CHECK(!ref.Ops->Count(ref.Data, &count) && count == 123);
+		CHECK(ref.Ops->Count(ref.Data, &count) && count == 3);
+		CHECK(!xrtFutureOwnershipAdapterV1(xrtFutureOwnership(pending), NULL, 0));
 		CHECK(xrtOwnershipScopeEnd(&freeze));
 		CHECK(xrtFutureCancel(pending)); xrtFutureDestroy(pending); ++future_cases;
 	}
@@ -282,9 +283,10 @@ static void lifecycle(xnetportbackend backend, bool timers, bool future, bool er
 			CHECK(xrtOwnershipScopeEnd(&freeze)); CHECK(!xrtDeadlineExpired(deadline)); xrtThreadYield();
 		}
 		size_t count = 123;
-		CHECK(!graph.refs[2].Ops->Count(graph.refs[2].Data, &count) && count == 123);
+		CHECK(graph.refs[2].Ops->Count(graph.refs[2].Data, &count) && count == 3);
 		const xrtownershippreparationv1* unchanged = (const xrtownershippreparationv1*)&graph;
-		CHECK(!xrtNetStreamOwnershipAdapterV1(graph.refs[2], &unchanged) && unchanged == (const xrtownershippreparationv1*)&graph);
+		CHECK(xrtNetStreamOwnershipAdapterV1(graph.refs[2], &unchanged) && unchanged != (const xrtownershippreparationv1*)&graph);
+		CHECK(!xrtFutureOwnershipAdapterV1(xrtFutureOwnership(pending), NULL, 0));
 		CHECK(xrtOwnershipScopeEnd(&freeze));
 		CHECK(xrtFutureCancel(pending)); xrtFutureDestroy(pending); ++future_cases;
 	}
