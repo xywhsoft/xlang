@@ -12945,6 +12945,53 @@ XL6_IrCallParameterPhysicalAbi xl6IrNativeValueParameterPhysicalAbi(
         : XL6_IR_CALL_PARAMETER_PHYSICAL_GENERIC_VALUE_ADDRESS_BORROW;
 }
 
+int xl6IrNullOperandPlanBuild(const XL6_IrModule* module,XL6_IrNodeId origin,
+    XL6_IrNullOperandAbi* output)
+{
+    XL6_IrNullOperandAbi plan=XL6_IR_NULL_OPERAND_NONE;
+    const XL6_IrNode* value=xl6IrNodeGet(module,origin);
+    const XL6_IrType* type=value ? xl6IrTypeGet(&module->types,value->storageType) : NULL;
+    if (!type) return 0;
+    bool empty=xl6IrTypeIsZeroPayload(module,value->storageType);
+    if (value->kind==XL6_IR_NODE_LITERAL && value->sourceKind==XL6_AST_NULL) {
+        if (value->childCount || (!empty && type->nullAbi==XL6_IR_NULL_ABI_NONE)) return 0;
+        plan=XL6_IR_NULL_OPERAND_LITERAL;
+    } else if (empty) {
+        const XL6_IrNode* input=value->childCount==1 && value->firstChild<module->childCount && module->children
+            ? xl6IrNodeGet(module,module->children[value->firstChild]) : NULL;
+        const XL6_IrType* future=input ? xl6IrTypeGet(&module->types,input->type) : NULL;
+        if (value->kind!=XL6_IR_NODE_AWAIT || !future ||
+            future->kind!=XL6_IR_TYPE_GENERIC_INSTANCE || future->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_MANAGED ||
+            future->nullAbi!=XL6_IR_NULL_ABI_POINTER_SENTINEL ||
+            future->cAbi!=XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
+            future->paramCount!=1 || !future->params || future->params[0]!=value->storageType) return 0;
+        plan=XL6_IR_NULL_OPERAND_EMPTY_AWAIT;
+    }
+    if (output) *output=plan;
+    return 1;
+}
+
+int xl6IrNullComparisonPlanBuild(const XL6_IrModule* module,XL6_IrNodeId origin,
+    XL6_IrNullComparisonPlan* output)
+{
+    XL6_IrNullComparisonPlan plan={0};
+    const XL6_IrNode* node=xl6IrNodeGet(module,origin);
+    if (!node) return 0;
+    if (node->kind==XL6_IR_NODE_BINARY &&
+        (node->opcode==XL6_IR_OPCODE_EQ || node->opcode==XL6_IR_OPCODE_NE)) {
+        const XL6_IrType* result=xl6IrTypeGet(&module->types,node->storageType);
+        if (node->childCount!=2 || node->firstChild>module->childCount ||
+            2>module->childCount-node->firstChild || !module->children ||
+            !result || result->cAbi!=XL6_IR_C_ABI_BOOL ||
+            result->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL) return 0;
+        for (size_t i=0;i<2;++i) {
+            if (!xl6IrNullOperandPlanBuild(module,module->children[node->firstChild+i],&plan.operands[i])) return 0;
+        }
+    }
+    if (output) *output=plan;
+    return 1;
+}
+
 int xl6IrInstructionIsZeroPayload(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
 {

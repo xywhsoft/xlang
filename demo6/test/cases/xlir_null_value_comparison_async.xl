@@ -1,0 +1,58 @@
+import concurrent
+auto prefixes = AtomicInt64()
+func observe(future<null> value, Promise<int> entered, int ordinal) as future<null>
+    prefixes.fetchAdd(1)
+    assert entered.tryResolve(ordinal)
+    return value
+end
+async func equal(future<null> left, future<null> right, Promise<int> first, Promise<int> second) as bool
+    return (await observe(left, first, 1)) == (await observe(right, second, 2))
+end
+async func nil()
+    prefixes.fetchAdd(1)
+end
+func primaryError() as error
+    try
+        throw ValueError("failed null operand")
+    catch ValueError failure
+        return failure
+    end
+end
+int mode = 0
+while mode < 3
+    prefixes.store(0)
+    auto left = Promise::<null>()
+    auto right = Promise::<null>()
+    auto first = Promise::<int>()
+    auto second = Promise::<int>()
+    auto result = equal(left.future, right.future, first, second)
+    auto enteredFirst = first.future
+    assert enteredFirst.waitTimeout(5000) and (await enteredFirst) == 1
+    assert prefixes.load() == 1 and not result.isDone()
+    bool caught = false
+    if mode == 1
+        assert left.tryReject(primaryError())
+    else
+        assert left.tryResolve(null)
+        auto enteredSecond = second.future
+        assert enteredSecond.waitTimeout(5000) and (await enteredSecond) == 2
+        assert prefixes.load() == 2 and not result.isDone()
+        if mode == 2 then assert right.tryCancel() else assert right.tryResolve(null) end
+    end
+    try
+        assert await result
+    catch ValueError failure
+        assert mode == 1 and failure.message == "failed null operand"
+        caught = true
+    catch CancelledError
+        assert mode == 2
+        caught = true
+    end
+    assert caught == (mode != 0)
+    if mode == 1 then assert prefixes.load() == 1 and not second.isCompleted end
+    mode += 1
+end
+prefixes.store(0)
+assert (await nil()) == (await nil())
+assert prefixes.load() == 2
+println("null equality preserves real suspension, left-before-right failure, cancellation and void async effects ok")

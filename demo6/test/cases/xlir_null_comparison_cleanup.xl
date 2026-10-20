@@ -1,0 +1,53 @@
+import concurrent
+auto drops = AtomicInt64()
+class ComparisonSnapshot
+    bool fail
+    create(bool fail)
+        self.fail = fail
+    end
+    destroy()
+        drops.fetchAdd(1)
+        if self.fail then throw ValueError("snapshot cleanup") end
+    end
+end
+ComparisonSnapshot? observed = null
+func observe(future<null> value, Promise<int> entered) as future<null>
+    assert entered.tryResolve(1)
+    return value
+end
+async func compare(future<null> ready, Promise<int> entered) as bool
+    // Hold the actual left operand value across evaluation/suspension of right.
+    return observed == await observe(ready, entered)
+end
+func primaryError() as error
+    try
+        throw TypeError("primary null await")
+    catch TypeError failure
+        return failure
+    end
+end
+int mode = 0
+while mode < 3
+    observed = ComparisonSnapshot(mode != 0)
+    auto gate = Promise::<null>()
+    auto entered = Promise::<int>()
+    auto result = compare(gate.future, entered)
+    auto signal = entered.future
+    assert signal.waitTimeout(5000) and (await signal) == 1
+    observed = null
+    assert drops.load() == mode, "left operand must survive until right completes"
+    if mode == 2 then assert gate.tryReject(primaryError()) else assert gate.tryResolve(null) end
+    bool caught = false
+    try
+        assert not (await result)
+    catch ValueError failure
+        assert mode == 1 and failure.message == "snapshot cleanup"
+        caught = true
+    catch TypeError failure
+        assert mode == 2 and failure.message == "primary null await"
+        caught = true
+    end
+    assert caught == (mode != 0) and drops.load() == mode + 1
+    mode += 1
+end
+println("nullable left snapshot survives suspension, checked cleanup and primary await failure ok")

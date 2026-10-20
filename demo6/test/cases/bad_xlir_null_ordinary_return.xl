@@ -1,0 +1,4 @@
+func empty() as null
+    return null
+end
+empty()

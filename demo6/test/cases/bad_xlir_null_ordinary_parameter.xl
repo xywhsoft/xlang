@@ -1,0 +1,4 @@
+func identity<T>(T value) as T
+    return value
+end
+identity(null)
