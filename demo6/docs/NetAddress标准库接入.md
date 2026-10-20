@@ -52,8 +52,8 @@ checked 错误。控制字段完整处理，嵌入 NUL 被拒绝，不提供截�
 完整当前源码 driver：Windows `source-win-r1` 627 个编译单元、Linux
 `source-linux-r1` 626 个。仅复用真实 TCC 核心，不替换编译器／runtime 对象。
 
-最终报告：Windows `address-win-r4/results.json`、Linux
-`address-linux-r2/results.json`，两端各 24 阶段、各 2 个预期语义拒绝：
+最终报告：Windows `address-win-r5/results.json`、Linux
+`address-linux-r3/results.json`，两端各 24 阶段、各 2 个预期语义拒绝：
 
 - 数字 IPv4／IPv6、端点、scope、映射／unmap、分类、端口和字节副本；
   负例包括 NUL、主机名误用、接口名 zone 与数值越界。
@@ -67,8 +67,13 @@ checked 错误。控制字段完整处理，嵌入 NUL 被拒绝，不提供截�
   不依赖 xl／xlc DLL／SO。输入、对象、头、产物与日志摘要在封存时复核。
 
 早期失败轮次保留，但不计入通过；Linux 第一轮因测试输入发生变化而作废，
-由冻结后的第二轮替代。不宣称 shipping DLL／SO／VFS 提升、总 RC0、全部
+由冻结输入后的轮次替代。不宣称 shipping DLL／SO／VFS 提升、总 RC0、全部
 网络功能或网络安全审计通过。没有连接任何其他本机服务或外部目标。
+
+提交后补审纠正了裸句柄负例：早期 `point(0)` 会先触发不相关的整数到 point
+转换错误，不能证明禁止 adopt。最终使用合法 `point raw = null` 后调用构造器，
+并断言诊断为“没有匹配的 create 重载”；隐私负例亦核对具体拒绝原因。
+修正测试后的全矩阵以以上 Windows 第五轮／Linux 第三轮为准，生产源码未改。
 
 复跑：`python tools/check_stdlib_net_address.py --source-build <完整源码构建/build.json>
 --out <全新目录>`；Linux 另传 `--native-root <匹配的原生 TCC 产品目录>`。

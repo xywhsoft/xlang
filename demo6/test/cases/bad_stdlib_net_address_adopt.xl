@@ -1,1 +1,2 @@
-auto forbidden = NetAddress(point(0))
+point raw = null
+auto forbidden = NetAddress(raw)
