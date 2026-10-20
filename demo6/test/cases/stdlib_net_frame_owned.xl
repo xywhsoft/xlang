@@ -1,0 +1,24 @@
+func lineFrame() as NetFrameResult
+ auto line = NetLineFramer()
+ line.append("a\0你\n")
+ return line.next()
+end
+func lengthFrame() as NetFrameResult
+ auto length = NetLengthFramer()
+ auto input = NetBuffer()
+ input.append(b"\x00\x00\x00\x03a\x00b")
+ length.appendMove(input)
+ assert input.length == 0
+ return length.next()
+end
+array<NetFrameResult> saved = [lineFrame(), lengthFrame()]
+assert saved[0].text() == "a\0你" and saved[1].bytes() == b"a\x00b"
+auto output = Buffer("prefix")
+saved[0].copyInto(output)
+assert output.toBytes() == b"prefixa\x00\xe4\xbd\xa0"
+auto empty = NetLineFramer()
+auto more = empty.next()
+assert more.status == NetFrameStatus.more
+auto chunks = NetBuffer()
+chunks.append("x\0y")
+assert chunks.read() == b"x\x00y"

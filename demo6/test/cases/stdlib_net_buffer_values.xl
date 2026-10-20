@@ -1,0 +1,25 @@
+auto input = NetBuffer(100)
+assert input.length == 0 and input.spanCount == 0 and input.maxBytes == 100
+input.append("a\0你", 100)
+input.append(b"\xffz", 1)
+input.prepend(b"xy", 1)
+assert input.peek() == b"xa\x00\xe4\xbd\xa0\xff"
+assert input.peek(1, 999) == b"a\x00\xe4\xbd\xa0\xff" and input.find(0) == 2
+auto tail = NetBuffer()
+tail.append("end")
+input.appendMove(tail)
+assert tail.length == 0 and input.length == 10
+input.compact()
+assert input.spanCount == 1 and input.read(2) == b"xa" and input.length == 8
+auto output = Buffer("prefix")
+assert input.peekInto(output, 1, 3) == 3
+assert output.toBytes() == b"prefix\xe4\xbd\xa0" and input.length == 8
+assert input.readInto(output, 2) == 2 and input.length == 6
+assert input.consume(1000) == 6 and input.read() == b""
+input.append(Buffer("ok"))
+input.prepend("begin")
+assert input.read() == b"beginok"
+input.clear()
+input.compact()
+assert input.length == 0
+println("owned chunked NetBuffer values: ok")

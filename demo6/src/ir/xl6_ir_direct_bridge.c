@@ -54,6 +54,7 @@ static int xl6IrDirectNumericEnumMatches(const XL6_IrModule* module,
 #include "xl6_ir_net_backend_enum.inc"
 #include "xl6_ir_net_engine_state_enum.inc"
 #include "xl6_ir_net_socket_enums.inc"
+#include "xl6_ir_net_frame_status_enum.inc"
 typedef struct XL6_IrDirectBridgeContract {
     const char* name;
     XL6_IrRuntimeBridgeKind kind;
@@ -137,6 +138,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "xl6_ir_atomic_contracts.inc"
 #include "xl6_ir_net_address_contracts.inc"
 #include "xl6_ir_net_resolver_contracts.inc"
+#include "xl6_ir_net_buffer_contracts.inc"
 #include "xl6_ir_net_interfaces_contracts.inc"
 #include "xl6_ir_net_backends_contracts.inc"
 #include "xl6_ir_concurrent_contracts.inc"
