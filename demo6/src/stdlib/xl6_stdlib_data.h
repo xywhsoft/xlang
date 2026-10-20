@@ -5,8 +5,9 @@
 
 #include "src/ast/xl6_ast.h"
 
-#define XL6_STDLIB_CONST_COUNT 192
-#define XL6_STDLIB_FUNC_COUNT 996
+#define XL6_STDLIB_CONST_COUNT 205
+#define XL6_STDLIB_FUNC_COUNT 1000
+extern const char* xl6StdlibNetBackendSource;
 extern const char* xl6StdlibOnceSource;
 extern const char* xl6StdlibExecutorSource;
 extern const char* xl6StdlibTaskPoolSource;

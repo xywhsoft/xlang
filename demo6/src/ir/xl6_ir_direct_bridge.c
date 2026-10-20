@@ -1,6 +1,57 @@
 /* Included by xl6_ir.c after the canonical ABI predicates. Both lowering and
  * verification consume these closed value/resource descriptors. Cgen receives
  * explicit native-field projections, never symbol-dependent algorithms. */
+typedef struct XL6_IrNumericEnumMemberContract {
+    const char* name;
+    uint64 magnitude;
+    int negative;
+} XL6_IrNumericEnumMemberContract;
+typedef struct XL6_IrNumericEnumContract {
+    const char* declarationName;
+    XL6_IrCAbi cAbi;
+    XL6_IrIntegerTarget integerTarget;
+    const XL6_IrNumericEnumMemberContract* members;
+    size_t memberCount;
+} XL6_IrNumericEnumContract;
+
+/* Opt-in nominal scalar contracts, not a general permission to substitute
+ * enums for integers. Canonical declaration/layout identity, representation
+ * and the complete closed member vocabulary are checked before emission. */
+static int xl6IrDirectNumericEnumMatches(const XL6_IrModule* module,
+    XL6_IrTypeId id,const XL6_IrNumericEnumContract* expected)
+{
+    if(!module||!expected)return 0;
+    const XL6_IrType* type=xl6IrTypeGet(&module->types,id);
+    if(!type||type->kind!=XL6_IR_TYPE_NUMERIC_ENUM||
+        type->cAbi!=expected->cAbi||type->integerTarget!=expected->integerTarget||
+        type->ownershipAbi!=XL6_IR_OWNERSHIP_ABI_TRIVIAL||type->nullAbi!=XL6_IR_NULL_ABI_NONE||
+        type->collectionAbi!=XL6_IR_COLLECTION_NONE||type->paramCount||type->returnCount||
+        !type->nominalSymbol||!type->typeValueId||
+        module->enumLayoutCount>module->enumLayoutCapacity||
+        (module->enumLayoutCount&&!module->enumLayouts)||
+        module->enumVariantCount>module->enumVariantCapacity||
+        (module->enumVariantCount&&!module->enumVariants))return 0;
+    const XL6_IrEnumLayout* layout=xl6IrEnumLayoutGet(module,id);
+    const XL6_IrNode* declaration=layout?xl6IrNodeGet(module,layout->declaration):NULL;
+    if(!layout||layout->type!=id||!declaration||declaration->kind!=XL6_IR_NODE_ENUM_DECL||
+        declaration->sourceKind!=XL6_AST_ENUM||!(declaration->flags&XL6_AST_FLAG_NUMERIC_ENUM)||
+        declaration->symbol!=type->nominalSymbol||!declaration->text||
+        strcmp(declaration->text,expected->declarationName)||layout->variantCount!=expected->memberCount||
+        layout->firstVariant>module->enumVariantCount||
+        layout->variantCount>module->enumVariantCount-layout->firstVariant)return 0;
+    for(size_t n=0;n<expected->memberCount;++n){
+        const XL6_IrEnumVariant* item=&module->enumVariants[layout->firstVariant+n];
+        const XL6_IrNode* member=xl6IrNodeGet(module,item->declaration);
+        uint64 magnitude=0;int negative=0;
+        if(item->ownerType!=id||item->payloadCount||!item->name||strcmp(item->name,expected->members[n].name)||
+            !member||member->kind!=XL6_IR_NODE_ENUM_VARIANT||member->sourceKind!=XL6_AST_ENUM_VARIANT||
+            !item->symbol||member->symbol!=item->symbol||item->tag!=n+1||
+            !xl6IrContextualIntegerLiteralValue(module,item->valueExpression,id,&magnitude,&negative)||
+            magnitude!=expected->members[n].magnitude||negative!=expected->members[n].negative)return 0;
+    }
+    return 1;
+}
+#include "xl6_ir_net_backend_enum.inc"
 typedef struct XL6_IrDirectBridgeContract {
     const char* name;
     XL6_IrRuntimeBridgeKind kind;
@@ -62,6 +113,8 @@ typedef struct XL6_IrDirectBridgeContract {
     /* Resident result stores a Sequence representation, not a Future<T>'s
      * logical invocation representation. This selects the shared codec plan. */
     unsigned char sequenceValueResult;
+    const XL6_IrNumericEnumContract* resultEnum;
+    const XL6_IrNumericEnumContract* parameterEnums[8];
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -81,6 +134,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "xl6_ir_atomic_contracts.inc"
 #include "xl6_ir_net_address_contracts.inc"
 #include "xl6_ir_net_interfaces_contracts.inc"
+#include "xl6_ir_net_backends_contracts.inc"
 #include "xl6_ir_concurrent_contracts.inc"
 #include "xl6_ir_executor_contracts.inc"
 #include "xl6_ir_task_pool_contracts.inc"
@@ -1194,7 +1248,13 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     } else if (contract->result == XL6_IR_C_ABI_VOID) {
         if (target->returnType != XL6_IR_TYPE_INVALID) return 0;
     } else if (!contract->resultOwner) {
-        if (contract->resultNativeValueAbi) {
+        if(contract->resultEnum) {
+            if(contract->nullableResult||contract->resultProductAbi||contract->resultArrayItemAbi||
+                contract->resultFutureElementAbi||contract->resultFutureAbi||
+                contract->resultNativeValueAbi||contract->resultEnum->cAbi!=contract->result||
+                !xl6IrDirectNumericEnumMatches(module,target->returnType,contract->resultEnum)||
+                !xl6IrBufferRuntimeBridgeResultMatches(result,contract->result))return 0;
+        } else if (contract->resultNativeValueAbi) {
             if (contract->result != XL6_IR_C_ABI_NATIVE_VALUE ||
                 !xl6IrNativeValuePlanForType(result) ||
                 result->nativeValueAbi != contract->resultNativeValueAbi ||
@@ -1259,6 +1319,15 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
     for (i = 0; i < contract->parameterCount; ++i) {
         const XL6_IrType* type = xl6IrTypeGet(&module->types, target->parameterTypes[i]);
         XL6_IrCAbi abi = contract->parameters[i];
+        if(contract->parameterEnums[i]) {
+            if(contract->parameterEnums[i]->cAbi!=abi||
+                !xl6IrDirectNumericEnumMatches(module,target->parameterTypes[i],contract->parameterEnums[i])||
+                target->parameterConstraintAbis[i]!=XL6_IR_CALL_PARAMETER_CONSTRAINT_NONE||
+                target->parameterPhysicalFieldDeclarations[i]!=XL6_IR_NODE_INVALID||
+                !xl6IrBufferRuntimeBridgeParameterMatches(module,target,i,abi,
+                    XL6_IR_PARAMETER_ABI_VALUE,XL6_IR_CALL_PARAMETER_PHYSICAL_DIRECT))return 0;
+            continue;
+        }
         if(contract->genericValueParameter==i+1) {
             if(!type || target->parameterTypes[i]!=xl6IrNativeContextElementType(module,target) ||
                target->parameterAbis[i]!=xl6IrParameterAbiForMode(type,XL6_IR_PARAMETER_MODE_DEFAULT) ||

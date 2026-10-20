@@ -531,6 +531,8 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_time_datetime.c"
 	"$ROOT/src/runtime/xl6_net_address.c"
 	"$ROOT/src/runtime/xl6_net_interfaces.c"
+	"$ROOT/src/runtime/xl6_net_backends.c"
+	"$ROOT/src/runtime/xl6_net_backend_text.c"
 	"$ROOT/src/runtime/xl6_net_interfaces_text.c"
 	"$ROOT/src/runtime/xl6_net_interface_query.c"
 	"$ROOT/src/runtime/xl6_net_interface_local.c"

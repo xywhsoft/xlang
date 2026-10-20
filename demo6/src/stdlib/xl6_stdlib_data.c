@@ -18,6 +18,7 @@
 #include "src/stdlib/xl6_stdlib_fs_async.inc"
 #include "src/stdlib/xl6_stdlib_fixed_stack.inc"
 #include "src/stdlib/xl6_stdlib_compress.inc"
+#include "src/stdlib/xl6_stdlib_net_backends.inc"
 
 const char* xl6StdlibFloatClassSource =
     "enum FloatClass as int32\n"
@@ -5100,6 +5101,19 @@ static const char xl6StdXlangRunFileBody[] =
     "end\n";
 
 const XL6_StdlibConst xl6StdlibConsts[] = {
+    {"net.capability","none",XL6_AST_INT,"0"},
+    {"net.capability","readiness",XL6_AST_INT,"1"},
+    {"net.capability","completion",XL6_AST_INT,"2"},
+    {"net.capability","oneShot",XL6_AST_INT,"4"},
+    {"net.capability","edge",XL6_AST_INT,"8"},
+    {"net.capability","batch",XL6_AST_INT,"16"},
+    {"net.capability","wake",XL6_AST_INT,"32"},
+    {"net.capability","post",XL6_AST_INT,"64"},
+    {"net.capability","cancel",XL6_AST_INT,"128"},
+    {"net.capability","readProbe",XL6_AST_INT,"256"},
+    {"net.capability","datagramError",XL6_AST_INT,"512"},
+    {"net.capability","sendFile",XL6_AST_INT,"1024"},
+    {"net.capability","fileIO",XL6_AST_INT,"2048"},
     {"concurrent", "relaxed", XL6_AST_INT, "0"},
     {"concurrent", "acquire", XL6_AST_INT, "1"},
     {"concurrent", "release", XL6_AST_INT, "2"},
@@ -5295,6 +5309,10 @@ const XL6_StdlibConst xl6StdlibConsts[] = {
 };
 
 const XL6_StdlibFunc xl6StdlibFuncs[] = {
+    {"net","backendCompiled","__xl_std_net_backend_compiled",NULL,NULL,0,"bool",xl6StdNetBackendCompiledSource},
+    {"net","backendCapabilities","__xl_std_net_backend_capabilities",NULL,NULL,0,"int",xl6StdNetBackendCapabilitiesSource},
+    {"net","backendName","__xl_std_net_backend_name",NULL,NULL,0,"string",xl6StdNetBackendNameSource},
+    {"net","defaultBackend","__xl_std_net_default_backend","xl6NetDefaultBackendV1",NULL,0,"NetBackend",NULL},
     {"unicode", "isScalar", "__xl_std_unicode_scalar", NULL, NULL, 0, "bool", xl6StdUnicodeScalarBody},
     {"unicode", "toString", "__xl_std_unicode_char_string", NULL, NULL, 0, "string", xl6StdUnicodeCharStringBody},
     {"unicode", "byteOffset", "__xl_std_unicode_byte_offset", NULL, NULL, 0, "int", xl6StdUnicodeByteOffsetBody},

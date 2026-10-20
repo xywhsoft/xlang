@@ -1,0 +1,23 @@
+auto selected = net.defaultBackend()
+assert selected != NetBackend.automatic
+assert net.backendCompiled(selected)
+assert net.backendCompiled(NetBackend.automatic)
+assert net.backendCompiled(NetBackend.select)
+assert net.backendName(NetBackend.select) == "select"
+assert net.backendName(selected).length > 0
+assert net.backendName(NetBackend.automatic) == net.backendName(selected)
+auto capabilities = net.backendCapabilities(selected)
+assert capabilities != net.capability.none
+assert (capabilities & net.capability.wake) == net.capability.wake
+assert (capabilities & net.capability.post) == net.capability.post
+assert net.backendCapabilities(NetBackend.automatic) == capabilities
+if not net.backendCompiled(NetBackend.kqueue) then
+    assert net.backendCapabilities(NetBackend.kqueue) == net.capability.none
+    auto rejected = false
+    try
+        net.backendName(NetBackend.kqueue)
+    catch LookupError
+        rejected = true
+    end
+    assert rejected
+end
