@@ -1,0 +1,45 @@
+// Offline values only: must not root a native socket, Buffer or executor.
+auto info = NetDatagramInfo()
+assert not info.hasPacket and info.metadata == NetDatagramMetadata.none
+bool missing = false
+try
+    auto address = info.remote
+catch Error
+    missing = true
+end
+assert missing
+info.clear()
+auto base = NetDatagramControl()
+auto control = base.withSource(NetAddress.loopback()).withHopLimit(19).withTrafficClass(8).withInterface(0).withSegmentSize(512)
+assert base.flags == NetDatagramControlFlags.none
+assert int(control.flags) == 31
+auto reset = control.without(NetDatagramControlFlags.source).without(NetDatagramControlFlags.hopLimit)
+assert int(reset.flags) == 26 and int(control.flags) == 31
+int bad = 0
+try
+    auto value = base.withSource(NetAddress.loopback(4,1))
+catch Error
+    bad += 1
+end
+try
+    auto value = base.withHopLimit(256)
+catch Error
+    bad += 1
+end
+try
+    auto value = base.withTrafficClass(-1)
+catch Error
+    bad += 1
+end
+try
+    auto value = base.withInterface(4294967296)
+catch Error
+    bad += 1
+end
+try
+    auto value = base.withSegmentSize(0)
+catch Error
+    bad += 1
+end
+assert bad == 5
+println("Datagram offline values: ok")

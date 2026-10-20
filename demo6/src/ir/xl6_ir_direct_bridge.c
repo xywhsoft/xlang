@@ -142,6 +142,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "xl6_ir_executor_contracts.inc"
 #include "xl6_ir_net_engine_contracts.inc"
 #include "xl6_ir_net_socket_contracts.inc"
+#include "xl6_ir_net_datagram_direct_contracts.inc"
 #include "xl6_ir_task_pool_contracts.inc"
 #include "xl6_ir_channel_case_contracts.inc"
 #define XL6_GENERIC_CREATE(Name,Owner) {Name,T,V,0,{0},.resultOwner=Owner,.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1}

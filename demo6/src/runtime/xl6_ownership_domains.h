@@ -145,4 +145,6 @@ XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetEngineConfi
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetEngineStatsV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetSocketOwnerV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetSocketV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetDatagramInfoV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetDatagramControlV1Get(void);
 #endif

@@ -1779,7 +1779,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetAddressClass = xl6StdlibNeedsNetAddressClass(root, used);
     needsNetSocketClass=xl6StdlibNodeUsesTypeName(root,"NetSocket")||xl6StdlibNodeUsesTypeName(root,"NetStatus")||
         xl6StdlibNodeUsesTypeName(root,"NetSocketKind")||xl6StdlibNodeUsesTypeName(root,"NetSocketOption")||
-        xl6StdlibNodeUsesTypeName(root,"NetShutdown");
+        xl6StdlibNodeUsesTypeName(root,"NetShutdown")||xl6StdlibNodeUsesTypeName(root,"NetDatagramInfo")||
+        xl6StdlibNodeUsesTypeName(root,"NetDatagramControl")||xl6StdlibNodeUsesTypeName(root,"NetDatagramMetadata")||
+        xl6StdlibNodeUsesTypeName(root,"NetDatagramControlFlags")||xl6StdlibNodeUsesTypeName(root,"NetDatagramCapabilities");
     if(needsNetSocketClass)needsNetAddressClass=1;
     needsNetInterfaceClass = xl6StdlibNeedsNetInterfaceClass(root, used);
     needsNetBytesClass = xl6StdlibNodeUsesTypeName(root, "NetBytes");
