@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_native_scalar_profile.h"
+#include "src/runtime/xl6_scalar_domain_abi.h"
+
 
 bool xl6ValueReadNativeScalarV1(const xvalue* source, unsigned int profile, uint64_t identity, void* output)
 {
@@ -36,6 +38,8 @@ xvalue* xl6ValueBoxNativeScalarV1(const void* source, unsigned int profile, uint
     if (!xl6CScalarSlotV1(type, source)) { xrtSetErrorKind(XERR_TYPE); return NULL; }
     XL6_NativeScalarScratchV1 temporary = {0}; memcpy(&temporary, source, type->Size);
     xvalue* value = xrtValueFromTyped(type, &temporary, NULL);
-    if (!value || xrtValueType(value) == XVALUE_BOOL || xrtValueTypeIdBind(value, identity)) return value;
+    uint32_t domain=xl6CScalarDomainTagV1(type);
+    if (!value || xrtValueType(value) == XVALUE_BOOL || (domain?
+        xrtValueScalarDomainBindV1(value,identity,domain):xrtValueTypeIdBind(value, identity))) return value;
     xerror* error = xrtTakeError(); xrtValueRelease(value); xrtClearError(); xrtSetErrorTake(error); return NULL;
 }

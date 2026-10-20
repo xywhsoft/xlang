@@ -49,7 +49,7 @@ static xvalue* seed(Gate** out,uint64_t discriminator,bool pause)
     Gate* gate=xrtCalloc(1,sizeof(*gate)); assert(gate);
     *gate=(Gate){.refs=1,.discriminator=discriminator,.pause=pause};
     xrtAtomic32Init(&gate->entered,0); xrtAtomic32Init(&gate->leave,0);
-    XL6_SequenceAdmissionV3 policy={&ops,gate,ELEMENT,1,sizeof(int64_t),xrtTypeInt64(),ELEMENT};
+    XL6_SequenceAdmissionV3 policy={&ops,gate,ELEMENT,1,0,sizeof(int64_t),xrtTypeInt64(),ELEMENT};
     xvalue* result=xl6SequenceCreateAdmittedV1(XL6_SEQUENCE_ARRAY_V1,SEED,&policy);
     assert(result); *out=gate; return result;
 }

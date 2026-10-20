@@ -1,0 +1,46 @@
+// Preserve established primitive behavior while nominal operators get domains.
+var a = 100
+var b = 3
+assert int(a + b) == 103
+assert int(a - b) == 97
+assert int(a * b) == 300
+assert int(a / b) == 33
+assert int(a % b) == 1
+assert int(a & b) == 0
+assert int(a | b) == 103
+assert int(a ^ b) == 103
+assert int(a << b) == 800
+assert int(a >> b) == 12
+assert int(+a) == 100
+assert int(-a) == -100
+assert int(~a) == -101
+var u = uint64(18446744073709551615)
+assert uint64(+u) == 18446744073709551615
+assert uint64(-u) == 1
+assert uint64(~u) == 0
+var f = 5.0
+assert type(f % b) == null
+var zero = 0.0
+assert type(f / zero) == null
+var left = "a\0b"
+var right = "cd"
+assert string(left + right) == "a\0bcd"
+var arrayLeft = [1, 2]
+var arrayRight = [3]
+var combined = arrayLeft + arrayRight
+assert int(combined[2]) == 3
+int caught = 0
+var integerZero = 0
+var wide = 64
+try
+ var ignored = a / integerZero
+catch ZeroDivisionError error
+ caught += 1
+end
+try
+ var ignored = a << wide
+catch RangeError error
+ caught += 1
+end
+assert caught == 2
+println("dynamic primitive operators: scalar/native widths and existing null/error/concat contracts ok")

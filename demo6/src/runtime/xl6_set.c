@@ -2,6 +2,7 @@
 #include "src/runtime/xl6_set_graph_access.h"
 #include "src/runtime/xl6_set_key_policy.h"
 #include "src/runtime/xl6_array_admission.h"
+#include "src/runtime/xl6_scalar_domain.h"
 #include "src/runtime/xl6_array_reference_value.h"
 #include "src/api/xl_foreign_error.h"
 #include <limits.h>
@@ -43,10 +44,10 @@ static bool samePolicy(const XL6_SequenceAdmissionV3* a,const XL6_SequenceAdmiss
 {
     return a && b && a->ops && a->ops==b->ops && a->elementIdentity==b->elementIdentity &&
         a->transfer==b->transfer && a->size==b->size && a->type==b->type &&
-        a->boxedIdentity==b->boxedIdentity && (a->data==b->data || a->ops->Equivalent(a->data,b->data));
+        a->boxedIdentity==b->boxedIdentity && a->scalarDomain==b->scalarDomain && (a->data==b->data || a->ops->Equivalent(a->data,b->data));
 }
 static bool emptyPolicy(const XL6_SequenceAdmissionV3* p)
-{ return p && !p->ops && !p->data && !p->elementIdentity && !p->transfer && !p->size && !p->type && !p->boxedIdentity; }
+{ return p && !p->ops && !p->data && !p->elementIdentity && !p->transfer && !p->size && !p->type && !p->boxedIdentity && !p->scalarDomain; }
 static bool layoutValid(const XL6_SetLayoutV1* layout)
 {
     if (!layout || !layout->identity || layout->identity==layout->value.identity) {
@@ -696,7 +697,7 @@ static xvalue* admitProjection(const SetOwner* owner,xvalue* result,xl6_error_sc
 {
     if (result) {
         uint64_t identity=owner->policy.boxedIdentity; xvaluetype tag=xrtValueType(result);
-        if ((identity && tag!=XVALUE_NULL && tag!=XVALUE_BOOL && !xrtValueTypeIdBind(result,identity)) ||
+        if ((identity && tag!=XVALUE_NULL && tag!=XVALUE_BOOL && !xl6ScalarIdentityBindV1(result,identity,owner->policy.scalarDomain)) ||
             !admitsValue(owner,result)) xl6ErrorScopeCaptureFailure(scope);
     }
     if (!result || xrtGetError() || scope->failed) { xl6ErrorScopeCaptureFailure(scope); discard(result); return NULL; }

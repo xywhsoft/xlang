@@ -1,8 +1,22 @@
 #ifndef XL6_C_SCALAR_DOMAIN_H
 #define XL6_C_SCALAR_DOMAIN_H
 #include "xl6_value_domain.h"
+#include "xl6_scalar_domain_abi.h"
 #include <string.h>
 /* Closed builtin native scalars; never dereference an unrecognized pointer. */
+static inline uint32_t xl6CScalarDomainTagV1(const xrttype* type)
+{
+    if(!type)return 0;
+    unsigned rule=0;
+    if(type->Kind==XRT_TYPE_FLOAT) rule=type->Size==4?XL6_VALUE_ADMIT_F32:type->Size==8?XL6_VALUE_ADMIT_F64:0;
+    else if(type->Kind==XRT_TYPE_SIGNED_INT || type->Kind==XRT_TYPE_UNSIGNED_INT) {
+        static const unsigned signedRules[]={XL6_VALUE_ADMIT_I8,XL6_VALUE_ADMIT_I16,XL6_VALUE_ADMIT_I32,XL6_VALUE_ADMIT_I64};
+        static const unsigned unsignedRules[]={XL6_VALUE_ADMIT_U8,XL6_VALUE_ADMIT_U16,XL6_VALUE_ADMIT_U32,XL6_VALUE_ADMIT_U64};
+        unsigned at=type->Size==1?0:type->Size==2?1:type->Size==4?2:type->Size==8?3:4;
+        if(at<4)rule=type->Kind==XRT_TYPE_SIGNED_INT?signedRules[at]:unsignedRules[at];
+    }
+    return rule?XL6_SCALAR_DOMAIN_NATIVE_V1|rule:0;
+}
 static inline bool xl6CScalarTypeV1(const xrttype* type)
 {
     return type && (type==xrtTypeBool() || type==xrtTypeInt8() || type==xrtTypeUInt8() ||
@@ -45,6 +59,7 @@ static inline bool xl6CScalarValueV1(const xrttype* type,uint64_t identity,const
     if (!item) return false;
     uint64_t actual=xrtValueTypeId(item);
     if (actual && actual!=identity) return false;
+    if(actual && xrtValueScalarDomainV1(item)!=xl6CScalarDomainTagV1(type)) return false;
     xvaluetype tag=xrtValueType(item);
     switch (type->Kind) {
     case XRT_TYPE_BOOL: return tag==XVALUE_BOOL;

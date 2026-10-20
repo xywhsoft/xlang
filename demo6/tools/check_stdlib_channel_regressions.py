@@ -30,7 +30,9 @@ NEGATIVE={
     'try_recv_target_type':'target string, value nullable<int>',
     'typed_array_element':'channel<T>','unknown_method':'unknown channel method'}
 
-def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+def sha(path):
+    with Path(path).open('rb') as stream:
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 def receive_ir(ir,typed):
     types={t['id']:t for t in ir['types']}
@@ -90,24 +92,31 @@ def main():
         assert sha(row['Path'])==row['Sha256'].lower(); inputs.add(Path(row['Path']))
     assert sha(driver)==build['DriverSha256'].lower()
     recorded=[dict(Path=str(p),Sha256=sha(p)) for p in sorted(inputs)]
-    out.mkdir(); rows=[]; products=[]; env=dict(os.environ)
+    out.mkdir(); rows=[]; products=[]; failures=[]; env=dict(os.environ)
     if os.name=='nt': shutil.copy2(runtime,out/'xl.dll')
     else:
         env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
         env['XL6_TCC_LIB']=str(Path(build['NativeRoot'])/'build/linux/tcc-dist')
-    report=dict(Complete=False,InputsUnchanged=False,Inputs=recorded,Rows=rows,Products=products,
+    report=dict(Complete=False,InputsUnchanged=False,Inputs=recorded,Rows=rows,Products=products,Failures=failures,
         PositiveFixtures=CASES,NegativeFixtures=NEGATIVE,Scope=__doc__,WaitQueueComplete=False,
         Full53Acceptance=False,ShippingArtifact=False,NativeGraphPrefixSweeps=[],CompileOnly=[])
     def run(name,command,success=True):
         command=list(map(str,command))
-        try: result=subprocess.run(command,cwd=root,env=env,capture_output=True,timeout=180)
+        invocation=command
+        if command[0]==cc:
+            response=out/(name+'.rsp')
+            response.write_text('\n'.join('"'+item.replace('\\','/').replace('"','\\"')+'"'
+                for item in command[1:])+'\n',encoding='utf-8')
+            invocation=[cc,'@'+str(response)]
+            products.append(dict(Path=str(response),Sha256=sha(response)))
+        try: result=subprocess.run(invocation,cwd=root,env=env,capture_output=True,timeout=180)
         except subprocess.TimeoutExpired as failure:
             log=out/(name+'.log'); log.write_bytes((failure.stdout or b'')+(failure.stderr or b''))
-            rows.append(dict(Name=name,Command=command,Exit=None,TimedOut=True,ExpectedSuccess=success,
+            rows.append(dict(Name=name,Command=command,Invocation=invocation,Exit=None,TimedOut=True,ExpectedSuccess=success,
                 Log=str(log),LogSha256=sha(log)))
             raise
         log=out/(name+'.log'); log.write_bytes(result.stdout+result.stderr)
-        rows.append(dict(Name=name,Command=command,Exit=result.returncode,ExpectedSuccess=success,
+        rows.append(dict(Name=name,Command=command,Invocation=invocation,Exit=result.returncode,ExpectedSuccess=success,
             Log=str(log),LogSha256=sha(log)))
         assert (result.returncode==0)==success,(name,log.read_bytes()[-8000:])
         print(name+' verified',flush=True)
@@ -154,11 +163,18 @@ def main():
             for n in range(5): run(name+'-repeat-'+str(n),[executable])
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as pool:
-            list(pool.map(positive,CASES))
+            pending={pool.submit(positive,name):name for name in CASES}
+            for future in concurrent.futures.as_completed(pending):
+                try: future.result()
+                except Exception as error:
+                    failures.append(dict(Name=pending[future],Error=repr(error)))
         for name,marker in NEGATIVE.items():
-            output=out/('negative-'+name+'.c')
-            text=run('negative-'+name,[driver,root/'test/cases'/('sem_channel_'+name+'.xl'),'cgen-default',output],False)
-            assert marker in text and not output.exists(),(name,text)
+            try:
+                output=out/('negative-'+name+'.c')
+                text=run('negative-'+name,[driver,root/'test/cases'/('sem_channel_'+name+'.xl'),'cgen-default',output],False)
+                assert marker in text and not output.exists(),(name,text)
+            except Exception as error:
+                failures.append(dict(Name='negative-'+name,Error=repr(error)))
         # These mixed fixtures retain their unrelated coverage. Compile them
         # here; their external host/template runtime gates remain separate.
         for name in ('cgen_dev_handfeel_regression',):
@@ -178,7 +194,7 @@ def main():
             proof=re.search(r'prefixes=(\d+) first-no-hit=(\d+) balanced',text); assert proof,text
             count,last=map(int,proof.groups()); assert count==last+1 and last>0
             report['NativeGraphPrefixSweeps'].append(dict(Optimization=opt,Prefixes=count,FirstNoHit=last))
-        report['Complete']=True
+        report['Complete']=not failures
     finally:
         report['InputsUnchanged']=all(sha(r['Path'])==r['Sha256'] for r in recorded)
         (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')

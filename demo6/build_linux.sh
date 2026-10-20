@@ -141,6 +141,8 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/api/xl_channel_bridge.c"
 	"$ROOT/src/api/xl_future_bridge.c"
 	"$ROOT/src/api/xl_task_group_bridge.c"
+	"$ROOT/src/runtime/xl6_value_numeric.c"
+	"$ROOT/src/runtime/xl6_value_add.c"
 	"$ROOT/src/runtime/xl6_continuation_queue.c"
 	"$ROOT/src/runtime/xl6_continuation_executor.c"
 	"$ROOT/src/runtime/xl6_continuation_future.c"

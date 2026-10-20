@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_array_admission.h"
+#include "src/runtime/xl6_scalar_domain.h"
+#include "src/runtime/xl6_c_scalar_domain.h"
 #include "src/runtime/xl6_array_erased.h"
 #include "src/runtime/xl6_array_value.h"
 #include "src/runtime/xl6_array_iterator.h"
@@ -55,7 +57,7 @@ static xvalue* encoded(const Spec* s,uint64_t identity)
     default: abort();
     }
     assert(value);
-    if (s->base!=xrtTypeBool() && identity) assert(xrtValueTypeIdBind(value,identity));
+    if (s->base!=xrtTypeBool() && identity) assert(xl6ScalarIdentityBindV1(value,identity,xl6CScalarDomainTagV1(s->base)));
     return value;
 }
 static void observed(const Spec* s,xvalue* owner,int64_t at,const xvalue* expected)

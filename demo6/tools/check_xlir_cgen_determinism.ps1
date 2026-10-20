@@ -555,7 +555,7 @@ foreach ( $required in @(
 $asyncXValueFixture = "xlir_async_future_xvalue_differential"
 $asyncXValueGenerated = Join-Path $outputDir "$asyncXValueFixture.determinism-a.c"
 $text = [System.IO.File]::ReadAllText($asyncXValueGenerated, [System.Text.Encoding]::UTF8)
-foreach ( $required in @("xlir_async_machine_frame_", "xrtValueRetain(a1)", "xlir_xvalue_binary(", "xlir_async_machine_resume_") ) {
+foreach ( $required in @("xlir_async_machine_frame_", "xrtValueRetain(a1)", "xl6ValueAddV1(", "xlir_async_machine_resume_") ) {
     if ( ! $text.Contains($required) ) {
         throw "generated C async dynamic continuation is missing its verified frame/runtime ABI: $required"
     }
@@ -851,7 +851,7 @@ if ( $json.asyncMachineCount -ne 1 -or $json.asyncMachineFrameSlotCount -ne 2 -o
     throw "lowered XLIR JSON dynamic capture chain is missing its canonical owned machine ABI"
 }
 $text = [System.IO.File]::ReadAllText($asyncXValueCaptureChainGenerated, [System.Text.Encoding]::UTF8)
-foreach ( $required in @("xlir_async_machine_frame_", "xrtValueRetain(a1)", "xrtValueRetain(a2)", "xlir_xvalue_binary(", "xlir_async_machine_resume_") ) {
+foreach ( $required in @("xlir_async_machine_frame_", "xrtValueRetain(a1)", "xrtValueRetain(a2)", "xl6ValueAddV1(", "xlir_async_machine_resume_") ) {
     if ( ! $text.Contains($required) ) {
         throw "generated C async dynamic capture chain is missing its ordered retained frame ABI: $required"
     }

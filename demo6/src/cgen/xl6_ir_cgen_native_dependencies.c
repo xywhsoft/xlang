@@ -608,6 +608,8 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
     }
     for (size_t i=0;i<module->instructionCount;++i) {
         const XL6_IrInstruction* instruction=&module->instructions[i];
+        if(instruction->kind==XL6_IR_INSTR_RUNTIME_CALL&&instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_ENUM_BIND&&
+            xl6IrCgenInstructionIsReachable(module,i)&&!visitor(context,"xl6ValueEnumBindTakeV1")) return 0;
         const XL6_IrPersistenceInvocationContract* configured=instruction->kind==XL6_IR_INSTR_RUNTIME_CALL
             ? xl6IrPersistenceInvocationRuntime(instruction->runtimeOp) : NULL;
         if (configured && !configured->nativePretty && !xl6IrPersistenceInvocationIsWriter(configured) &&
@@ -1007,8 +1009,9 @@ int xl6IrCgenVisitResidentSymbols(const XL6_IrModule* module, XL6_DiagList* diag
          !visitor(context,"xl6ValueObjectFieldSetTakeV1"))) return 0;
     if (needs.needsXValueErrorBoxRuntime && !visitor(context,"xl6ErrorValueRefV1")) return 0;
     if (needs.needsXValueAddRuntime &&
-        (!visitor(context,"xl6ArrayIsValueV1") || !visitor(context,"xl6ArrayConcatDynamicV1") ||
-         !visitor(context,"xl6ValueStringConcatV1"))) return 0;
+        !visitor(context,"xl6ValueAddV1")) return 0;
+    if(needs.needsXValueBinaryRuntime && (!visitor(context,"xl6ValueNumericBinaryV1")||
+        !visitor(context,"xl6ValueNumericUnaryV1"))) return 0;
     if (needs.needsXValueFutureRuntime && !visitor(context,"xl6PayloadBoxFutureV1")) return 0;
     if (needs.needsXValueFutureReader && !visitor(context,"xl6PayloadReadFutureV1")) return 0;
     if ((needs.needsXValueErrorProjectionRuntime || needs.needsXValueCheckedCastRuntime) &&

@@ -1,0 +1,18 @@
+// Offline source for corrupt enum boxing and canonical iteration contracts.
+enum Flags as uint8
+ none = 0
+ one = 1
+end
+enum Other as uint8
+ none = 0
+ one = 1
+end
+var flag = Flags.one
+var other = Other.one
+assert (flag as Flags) == Flags.one
+assert (other as Other) == Other.one
+array<Flags> flags = [Flags.one]
+for index, value in flags
+ assert index == 0
+ assert value == Flags.one
+end

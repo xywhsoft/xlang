@@ -1845,6 +1845,12 @@ static XL6_IrValueId xl6IrLowerEmitRuntimeCallMetadataBody(
     instruction->runtimeOp = runtimeOp;
     instruction->payloadType = payloadType;
     instruction->runtimeIdentityType = identityType;
+    if(runtimeOp==XL6_IR_RUNTIME_XVALUE_ENUM_BIND) {
+        const XL6_IrType* enumeration=xl6IrTypeGet(&ctx->module->types,identityType);
+        if(!enumeration||enumeration->kind!=XL6_IR_TYPE_NUMERIC_ENUM) return XL6_IR_VALUE_INVALID;
+        instruction->integerTarget=enumeration->integerTarget;
+        if(!xl6IrEnumBindAdmission(ctx->module,instruction)) return XL6_IR_VALUE_INVALID;
+    }
     if (runtimeOp==XL6_IR_RUNTIME_STACK_ERASE) {
         const XL6_IrType* stack=xl6IrTypeGet(&ctx->module->types,identityType);
         if (!stack || stack->paramCount!=1 || !stack->params) return XL6_IR_VALUE_INVALID;
@@ -2527,6 +2533,9 @@ static XL6_IrValueId xl6IrLowerBindRuntimeTypeIdentity(
          resultInfo->cAbi != XL6_IR_C_ABI_RUNTIME_XVALUE_PTR ||
          identityInfo == NULL || identityInfo->typeValueId == 0 )
         return XL6_IR_VALUE_INVALID;
+    if(identityInfo->kind==XL6_IR_TYPE_NUMERIC_ENUM)
+        return xl6IrLowerEmitRuntimeCallMetadata(ctx,origin,origin,resultType,XL6_IR_RUNTIME_XVALUE_ENUM_BIND,
+            NULL,XL6_IR_TYPE_INVALID,identityType,&owned,1);
     /* Every language List producer owns its immutable nominal/schema binding.
      * Erasing an already typed value must never retag its shared wrapper. */
     if (resultType==identityType && identityInfo->collectionAbi==XL6_IR_COLLECTION_LIST &&
@@ -20703,6 +20712,7 @@ static XL6_IrValueId xl6IrLowerArrayI64For(
     XL6_IrNodeId valueTargetId;
     XL6_IrNodeId indexTargetId = XL6_IR_NODE_INVALID;
     XL6_IrTypeId itemTypeId;
+    XL6_IrTypeId positionType;
     XL6_IrTypeId boolType;
     XL6_SymbolId snapshotSymbol;
     XL6_SymbolId countSymbol;
@@ -20769,6 +20779,8 @@ static XL6_IrValueId xl6IrLowerArrayI64For(
         return 0;
     }
     itemTypeId = iteratorType->params[0];
+    /* Cardinality and ordinal are canonical int64, never the element domain. */
+    positionType = xl6IrLowerFindTypeByCAbi(ctx->module, XL6_IR_C_ABI_I64);
     itemType = xl6IrTypeGet(&ctx->module->types, itemTypeId);
     boolType = xl6IrLowerFindTypeByCAbi(
         ctx->module, XL6_IR_C_ABI_BOOL);
@@ -20778,15 +20790,15 @@ static XL6_IrValueId xl6IrLowerArrayI64For(
         indexTarget = xl6IrNodeGet(ctx->module, indexTargetId);
     } else valueTargetId = ctx->module->children[targets->firstChild];
     valueTarget = xl6IrNodeGet(ctx->module, valueTargetId);
-    if ( itemType == NULL || itemType->cAbi != XL6_IR_C_ABI_I64 ||
+    if ( itemType == NULL || itemType->cAbi != XL6_IR_C_ABI_I64 || positionType == XL6_IR_TYPE_INVALID ||
          boolType == XL6_IR_TYPE_INVALID || valueTarget == NULL ||
          valueTarget->kind != XL6_IR_NODE_NAME || valueTarget->symbol == 0 ||
          valueTarget->storageType != itemTypeId ||
          (hasIndex &&
           (indexTarget == NULL || indexTarget->kind != XL6_IR_NODE_NAME ||
-           indexTarget->symbol == 0 || indexTarget->storageType != itemTypeId)) ||
+           indexTarget->symbol == 0 || indexTarget->storageType != positionType)) ||
          (hasIndex && !xl6IrLowerRegisterStorage(
-              ctx, XL6_IR_STORAGE_LOCAL, indexTarget->symbol, itemTypeId,
+              ctx, XL6_IR_STORAGE_LOCAL, indexTarget->symbol, positionType,
               indexTargetId,
               ctx->module->functions[ctx->functionIndex].declaration)) ||
          !xl6IrLowerRegisterStorage(
@@ -20795,8 +20807,8 @@ static XL6_IrValueId xl6IrLowerArrayI64For(
               ctx->module->functions[ctx->functionIndex].declaration) ||
          (snapshotSymbol = xl6IrLowerNewHiddenLocalStorage(
               ctx, iterator->storageType, id)) == 0 ||
-         (countSymbol = xl6IrLowerNewTempStorage(ctx, itemTypeId, id)) == 0 ||
-         (positionSymbol = xl6IrLowerNewTempStorage(ctx, itemTypeId, id)) == 0 ) {
+         (countSymbol = xl6IrLowerNewTempStorage(ctx, positionType, id)) == 0 ||
+         (positionSymbol = xl6IrLowerNewTempStorage(ctx, positionType, id)) == 0 ) {
         xl6IrLowerDiag(ctx, id,
             "XLIR array loop has no exact target, snapshot or index storage ABI");
         return 0;
@@ -20821,16 +20833,16 @@ static XL6_IrValueId xl6IrLowerArrayI64For(
     size_t setupFirst=ctx->evaluationOwnerCount;
     if ( snapshot == XL6_IR_VALUE_INVALID ||
          (snapshot=xl6IrLowerProtectEvaluationValue(ctx,id,iterator->storageType,snapshot))==XL6_IR_VALUE_INVALID ||
-         (count=xl6IrLowerEmitRuntimeCall(ctx,id,itemTypeId,XL6_IR_RUNTIME_XVALUE_COUNT,&snapshot,1))==XL6_IR_VALUE_INVALID ||
+         (count=xl6IrLowerEmitRuntimeCall(ctx,id,positionType,XL6_IR_RUNTIME_XVALUE_COUNT,&snapshot,1))==XL6_IR_VALUE_INVALID ||
          !xl6IrLowerCommitEvaluationOwners(ctx,id,setupFirst) ||
          !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, id,
                           iterator->storageType, snapshotSymbol,
                           &snapshot, 1, NULL) ||
-         (zero = xl6IrLowerEmitIntConst(ctx, id, itemTypeId, "0")) ==
+         (zero = xl6IrLowerEmitIntConst(ctx, id, positionType, "0")) ==
               XL6_IR_VALUE_INVALID ||
-         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, id, itemTypeId,
+         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, id, positionType,
                           countSymbol, &count, 1, NULL) ||
-         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, id, itemTypeId,
+         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, id, positionType,
                           positionSymbol, &zero, 1, NULL) ||
          !xl6IrLowerNewBlock(ctx, &conditionBlock) ||
          !xl6IrLowerNewBlock(ctx, &bodyBlock) ||
@@ -20840,9 +20852,9 @@ static XL6_IrValueId xl6IrLowerArrayI64For(
          !xl6IrLowerEmitJump(ctx, id, conditionBlock) ) return 0;
 
     xl6IrLowerEnterBlock(ctx, conditionBlock);
-    if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, id, itemTypeId,
+    if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, id, positionType,
                           positionSymbol, NULL, 0, &operands[0]) ||
-         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, id, itemTypeId,
+         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, id, positionType,
                           countSymbol, NULL, 0, &operands[1]) ||
          (condition = xl6IrLowerEmitBinary(
               ctx, id, boolType, XL6_IR_OPCODE_LT,
@@ -20858,7 +20870,7 @@ static XL6_IrValueId xl6IrLowerArrayI64For(
     if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, id,
                           iterator->storageType, snapshotSymbol,
                           NULL, 0, &operands[0]) ||
-         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, id, itemTypeId,
+         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, id, positionType,
                           positionSymbol, NULL, 0, &operands[1]) ) return 0;
     position = operands[1];
     if ( !xl6IrLowerPushLoop(
@@ -20888,14 +20900,14 @@ static XL6_IrValueId xl6IrLowerArrayI64For(
          !xl6IrLowerEmitJump(ctx, id, incrementBlock) ) return 0;
 
     xl6IrLowerEnterBlock(ctx, incrementBlock);
-    if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, id, itemTypeId,
+    if ( !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, id, positionType,
                           positionSymbol, NULL, 0, &position) ||
-         (one = xl6IrLowerEmitIntConst(ctx, id, itemTypeId, "1")) ==
+         (one = xl6IrLowerEmitIntConst(ctx, id, positionType, "1")) ==
               XL6_IR_VALUE_INVALID ||
          (next = xl6IrLowerEmitBinary(
-              ctx, id, itemTypeId, XL6_IR_OPCODE_ADD,
+              ctx, id, positionType, XL6_IR_OPCODE_ADD,
               position, one)) == XL6_IR_VALUE_INVALID ||
-         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, id, itemTypeId,
+         !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, id, positionType,
                           positionSymbol, &next, 1, NULL) ||
          !xl6IrLowerEmitJump(ctx, id, conditionBlock) ) return 0;
 

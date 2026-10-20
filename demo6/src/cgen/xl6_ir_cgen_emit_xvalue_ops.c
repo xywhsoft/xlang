@@ -4,6 +4,8 @@ static int xl6IrCgenEmitXValueOperationRuntime(
 {
     size_t i;
     size_t parameter;
+    if(needs->needsXValueEnumBindRuntime)
+        xl6OutputPuts("extern xvalue* xl6ValueEnumBindTakeV1(xvalue*, unsigned int, uint64_t);\n",out);
     if(needs->needsNativeScalarAs)
         xl6OutputPuts("extern bool xl6ValueReadNativeScalarV1(const xvalue*, unsigned int, uint64_t, void*);\n"
             "extern bool xl6ValueTryReadNativeScalarV1(const xvalue*, unsigned int, uint64_t, bool*, void*);\n",out);
@@ -59,7 +61,7 @@ static int xl6IrCgenEmitXValueOperationRuntime(
                 "extern xvalue* xl6ValueBoxNativeScalarV1(const void*, unsigned int, uint64_t);\n", out);
         if ( needs->needsXValueTaggedNullableRuntime &&
              !xl6IrCgenEmitTaggedNullableXValueRuntime(out, module, diags) ) return 0;
-        if ( needs->needsXValueBinaryRuntime || needs->needsXValueCompareRuntime ) {
+        if ( needs->needsXValueCompareRuntime ) {
             xl6OutputPuts(
                 "#ifndef XLIR_XRT_DECLARATIONS\nextern int xrtValueType(const xvalue*);\n#endif\n"
                 "extern bool xrtValueGetBool(const xvalue*, bool*);\n"
@@ -84,96 +86,11 @@ static int xl6IrCgenEmitXValueOperationRuntime(
                 "  if (xrtValueType(value) == XVALUE_UINT) { (void)xrtValueGetUInt(value, &result); return result; }\n"
                 "  return (uint64_t)xlir_xvalue_i64(value); }\n", out);
         }
-        if ( needs->needsXValueBinaryRuntime ) {
-            if ( needs->needsErrorRuntime )
-                xl6OutputPuts(
-                    "static xvalue* xlir_xvalue_binary_failure(const char* kind, const char* message)\n"
-                    "{ xrtSetErrorTake(xlir_error_create(kind, message)); return NULL; }\n",
-                    out);
-            else
-                xl6OutputPuts(
-                    "static xvalue* xlir_xvalue_binary_failure(const char* kind, const char* message)\n"
-                    "{ (void)kind; (void)message; return xrtValueNull(); }\n",
-                    out);
-            if (needs->needsXValueAddRuntime)
-                xl6OutputPuts(
-                    "extern bool xl6ArrayIsValueV1(const xvalue*);\n"
-                    "extern xvalue* xl6ArrayConcatDynamicV1(const xvalue*, const xvalue*);\n"
-                    "extern xvalue* xl6ValueStringConcatV1(const xvalue*, const xvalue*);\n", out);
-            xl6OutputPuts(
-                "static xvalue* xlir_xvalue_binary(const xvalue* left, const xvalue* right, int op)\n"
-                "{\n"
-                "    int leftType = xrtValueType(left); int rightType = xrtValueType(right);\n", out);
-            if (needs->needsXValueAddRuntime)
-                xl6OutputPuts(
-                "    if (op == 0 && leftType == XVALUE_STRING && rightType == XVALUE_STRING) {\n"
-                "        return xl6ValueStringConcatV1(left, right);\n"
-                "    }\n"
-                "    if (op == 0 && xl6ArrayIsValueV1(left) && xl6ArrayIsValueV1(right))\n"
-                "        return xl6ArrayConcatDynamicV1(left, right);\n", out);
-            xl6OutputPuts(
-                "    if (!xlir_xvalue_is_numeric(leftType) || !xlir_xvalue_is_numeric(rightType)) return xrtValueNull();\n"
-                "    if (op >= 5) {\n"
-                "        if (leftType == XVALUE_FLOAT || rightType == XVALUE_FLOAT) return xrtValueNull();\n"
-                "        if (leftType == XVALUE_UINT || rightType == XVALUE_UINT) {\n"
-                "            uint64_t a = xlir_xvalue_u64(left); uint64_t b = xlir_xvalue_u64(right);\n"
-                "            if (op == 5) return xrtValueUInt(a & b);\n"
-                "            if (op == 6) return xrtValueUInt(a | b);\n"
-                "            if (op == 7) return xrtValueUInt(a ^ b);\n"
-                "            if (b >= 64u) return xlir_xvalue_binary_failure(\"RangeError\", \"shift count is outside the left operand width\");\n"
-                "            return op == 8 ? xrtValueUInt(a << (uint32_t)b) : xrtValueUInt(a >> (uint32_t)b);\n"
-                "        }\n"
-                "        { int64_t a = xlir_xvalue_i64(left); int64_t b = xlir_xvalue_i64(right);\n"
-                "          if (op == 5) return xrtValueInt(a & b);\n"
-                "          if (op == 6) return xrtValueInt(a | b);\n"
-                "          if (op == 7) return xrtValueInt(a ^ b);\n"
-                "          if (b < 0 || b >= 64) return xlir_xvalue_binary_failure(\"RangeError\", \"shift count is outside the left operand width\");\n"
-                "          return op == 8 ? xrtValueInt((int64_t)((uint64_t)a << (uint32_t)b)) :\n"
-                "                           xrtValueInt((int64_t)((uint64_t)a >> (uint32_t)b)); }\n"
-                "    }\n"
-                "    if (leftType == XVALUE_FLOAT || rightType == XVALUE_FLOAT) {\n"
-                "        double a = xlir_xvalue_f64(left); double b = xlir_xvalue_f64(right);\n"
-                "        return op == 0 ? xrtValueFloat(a + b) : op == 1 ? xrtValueFloat(a - b) :\n"
-                "               op == 2 ? xrtValueFloat(a * b) : op == 3 && b != 0.0 ? xrtValueFloat(a / b) : xrtValueNull();\n"
-                "    }\n"
-                "    if (leftType == XVALUE_UINT || rightType == XVALUE_UINT) {\n"
-                "        uint64_t a = xlir_xvalue_u64(left); uint64_t b = xlir_xvalue_u64(right);\n"
-                "        if (op == 0) return xrtValueUInt(a + b);\n"
-                "        if (op == 1) return xrtValueUInt(a - b);\n"
-                "        if (op == 2) return xrtValueUInt(a * b);\n"
-                "        if (op == 3) return b != 0 ? xrtValueUInt(a / b) : xlir_xvalue_binary_failure(\"ZeroDivisionError\", \"integer division by zero\");\n"
-                "        if (op == 4) return b != 0 ? xrtValueUInt(a % b) : xlir_xvalue_binary_failure(\"ZeroDivisionError\", \"integer modulo by zero\");\n"
-                "        return xrtValueNull();\n"
-                "    }\n"
-                "    { int64_t a = xlir_xvalue_i64(left); int64_t b = xlir_xvalue_i64(right);\n"
-                "      if (op == 0) return xrtValueInt((int64_t)((uint64_t)a + (uint64_t)b));\n"
-                "      if (op == 1) return xrtValueInt((int64_t)((uint64_t)a - (uint64_t)b));\n"
-                "      if (op == 2) return xrtValueInt((int64_t)((uint64_t)a * (uint64_t)b));\n"
-                "      if (op == 3) {\n"
-                "          if (b == 0) return xlir_xvalue_binary_failure(\"ZeroDivisionError\", \"integer division by zero\");\n"
-                "          if (a == INT64_MIN && b == -1) return xlir_xvalue_binary_failure(\"OverflowError\", \"integer division overflow\");\n"
-                "          return xrtValueInt(a / b);\n"
-                "      }\n"
-                "      if (op == 4) {\n"
-                "          if (b == 0) return xlir_xvalue_binary_failure(\"ZeroDivisionError\", \"integer modulo by zero\");\n"
-                "          if (a == INT64_MIN && b == -1) return xlir_xvalue_binary_failure(\"OverflowError\", \"integer modulo overflow\");\n"
-                "          return xrtValueInt(a % b);\n"
-                "      }\n"
-                "      return xrtValueNull(); }\n"
-                "}\n", out);
-            xl6OutputPuts(
-                "static xvalue* xlir_xvalue_unary(const xvalue* value, int op)\n"
-                "{\n"
-                "    int type = value != NULL ? xrtValueType(value) : XVALUE_NULL;\n"
-                "    if (!xlir_xvalue_is_numeric(type)) return xrtValueNull();\n"
-                "    if (type == XVALUE_FLOAT) {\n"
-                "        double v = xlir_xvalue_f64(value);\n"
-                "        return op == 0 ? xrtValueFloat(v) : op == 1 ? xrtValueFloat(-v) : xrtValueNull();\n"
-                "    }\n"
-                "    { int64_t v = type == XVALUE_UINT ? (int64_t)xlir_xvalue_u64(value) : xlir_xvalue_i64(value);\n"
-                "      return op == 0 ? xrtValueInt(v) : op == 1 ? xrtValueInt(v == INT64_MIN ? INT64_MIN : -v) : xrtValueInt(~v); }\n"
-                "}\n", out);
-        }
+        if (needs->needsXValueBinaryRuntime)
+            xl6OutputPuts("extern xvalue* xl6ValueNumericBinaryV1(const xvalue*, const xvalue*, unsigned int);\n"
+                "extern xvalue* xl6ValueNumericUnaryV1(const xvalue*, unsigned int);\n",out);
+        if (needs->needsXValueAddRuntime)
+            xl6OutputPuts("extern xvalue* xl6ValueAddV1(const xvalue*, const xvalue*);\n",out);
         if ( needs->needsXValueCompareRuntime )
             xl6OutputPuts(
                 "extern bool xrtValueEqual(const xvalue*, const xvalue*);\n"

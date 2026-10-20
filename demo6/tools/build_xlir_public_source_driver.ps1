@@ -16,6 +16,7 @@ $binaryName = if ($RuntimeOnly) { 'runtime_source.exe' } else { 'public_source.e
 $enableExe = if ($RuntimeOnly) { 0 } else { 1 }
 $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.c',
     'tools/xrt_single_header_impl.c','src/api/xl_protocol_registry.c','src/api/xl_channel_bridge.c',
+    'src/runtime/xl6_value_numeric.c','src/runtime/xl6_value_add.c',
     'src/api/xl_future_bridge.c','src/api/xl_task_group_bridge.c',
     'src/runtime/xl6_continuation_queue.c','src/runtime/xl6_continuation_executor.c',
     'src/runtime/xl6_continuation_future.c','src/runtime/xl6_code_lease.c','src/runtime/xl6_future_payload.c',

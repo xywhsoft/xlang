@@ -1,4 +1,6 @@
 #include "src/runtime/xl6_array_admission.h"
+#include "src/runtime/xl6_scalar_domain.h"
+#include "src/runtime/xl6_c_scalar_domain.h"
 #include "src/runtime/xl6_array.h"
 #include "src/runtime/xl6_array_erased.h"
 #include "src/runtime/xl6_array_iterator.h"
@@ -46,7 +48,7 @@ static xvalue* encoded(const Spec* s,uint64_t identity)
     default: abort();
     }
     assert(result);
-    if (s->type!=xrtTypeBool() && identity) assert(xrtValueTypeIdBind(result,identity));
+    if (s->type!=xrtTypeBool() && identity) assert(xl6ScalarIdentityBindV1(result,identity,xl6CScalarDomainTagV1(s->type)));
     return result;
 }
 static xvalue* element(const Spec* s) { return encoded(s,s->element); }
@@ -138,7 +140,7 @@ static void vectors(const Spec* s)
      * leave the other bytes as padding. Define the full native zero payload. */
     Slot empty; memset(&empty,0,sizeof(empty));
     xvalue* expected=xrtValueFromTyped(s->type,&empty,NULL); assert(expected);
-    if (s->type!=xrtTypeBool()) assert(xrtValueTypeIdBind(expected,s->element));
+    if (s->type!=xrtTypeBool()) assert(xl6ScalarIdentityBindV1(expected,s->element,xl6CScalarDomainTagV1(s->type)));
     if (!xrtValueEqual(zero,expected)) {
         Slot raw={0}; assert(xl6ArrayReadV1(clone,LAYOUT(s),1,&raw));
         fprintf(stderr,"zero mismatch owner=%llu kind=%d size=%zu raw=%llu tags=%d/%d ids=%llu/%llu\n",

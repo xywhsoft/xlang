@@ -58,7 +58,7 @@ static bool sequenceEquivalent(const void* left,const void* right)
         x->identity==y->identity && x->elementIdentity==y->elementIdentity && x->transfer==y->transfer &&
         x->size==y->size && x->type==y->type && p->ops==q->ops &&
         p->elementIdentity==q->elementIdentity && p->transfer==q->transfer &&
-        p->size==q->size && p->type==q->type && p->boxedIdentity==q->boxedIdentity &&
+        p->size==q->size && p->type==q->type && p->boxedIdentity==q->boxedIdentity && p->scalarDomain==q->scalarDomain &&
         (p->data==q->data || p->ops->Equivalent(p->data,q->data));
 }
 static bool defaultable(const void* opaque) { return ((const NestedPolicy*)opaque)->nullable; }
@@ -98,7 +98,7 @@ xvalue* xl6SequenceResidentReferenceCreateTakeV1(unsigned int role,uint64_t iden
         owned.ops->Drop(owned.data); return NULL;
     }
     *data=(NestedPolicy){.refs=1,.nullable=nullable,.schema=owned};
-    XL6_SequenceAdmissionV3 admission={&policyOps,data,element,3,sizeof(xvalue*),xrtTypeValue(),0};
+    XL6_SequenceAdmissionV3 admission={&policyOps,data,element,3,0,sizeof(xvalue*),xrtTypeValue(),0};
     return xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role,identity,&admission);
 }
 bool xl6SequenceNestedChildCheckV1(XL6_Sequence* parent,const xvalue* child)

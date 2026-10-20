@@ -36,7 +36,7 @@ static bool equivalent(const void* left,const void* right)
         a->layout.elementIdentity==b->layout.elementIdentity && a->layout.transfer==b->layout.transfer &&
         a->layout.size==b->layout.size && a->layout.type==b->layout.type && p->ops==q->ops &&
         p->elementIdentity==q->elementIdentity && p->transfer==q->transfer && p->size==q->size &&
-        p->type==q->type && p->boxedIdentity==q->boxedIdentity &&
+        p->type==q->type && p->boxedIdentity==q->boxedIdentity && p->scalarDomain==q->scalarDomain &&
         (p->data==q->data || p->ops->Equivalent(p->data,q->data));
 }
 static const XL6_ResidentReferenceSchemaOpsV1 schemaOps={drop,admits,equivalent};

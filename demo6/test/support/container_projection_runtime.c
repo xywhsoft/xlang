@@ -22,7 +22,7 @@ static xvalue* factory(unsigned family,unsigned keyRule,unsigned valueRule)
     case 0:{ XL6_ListLayoutV1 layout={7001,value}; return xl6ListCreateTakeV1(&layout,witness); }
     case 1:{ XL6_SetLayoutV1 layout={7001,value}; return xl6SetCreateTakeV1(&layout,witness); }
     case 2:{ XL6_DictLayoutV1 layout={7001,value}; return xl6DictCreateTakeV1(&layout,witness); }
-    default:{ XL6_TreeLayoutV1 layout={7001,2,keyLayout,value}; layout.key.type=xrtTypeInt64();
+    default:{ XL6_TreeLayoutV2 layout={7001,2,keyLayout,value,NULL}; layout.key.type=xrtTypeInt64();
         xvalue* keys=seed(layout.key.identity,layout.key.elementIdentity,keyRule);
         if(!keys){ xrtValueRelease(witness); return NULL; }
         return xl6TreeCreateTakeV1(&layout,keys,witness); }
@@ -72,7 +72,7 @@ int main(void)
             wrong=factory(family,XL6_VALUE_ADMIT_I64,XL6_VALUE_ADMIT_I8); assert(wrong);
             assert(project[family](factory(family,XL6_VALUE_ADMIT_I8,XL6_VALUE_ADMIT_I8),wrong,true,&output));
             assert(xrtValueType(output)==XVALUE_NULL); xrtValueRelease(output); xrtValueRelease(wrong);
-            XL6_TreeLayoutV1 layout={0}; XL6_SequenceAdmissionV3 key={0},value={0};
+            XL6_TreeLayoutV2 layout={0}; XL6_SequenceAdmissionV3 key={0},value={0};
             assert(xl6TreeSchemaCopyV1(source,&layout,&key,&value));
             xrtValueRelease(source); source=NULL; /* Independent dual metadata. */
             xvalue* second=factory(family,XL6_VALUE_ADMIT_I8,XL6_VALUE_ADMIT_I8); assert(second);

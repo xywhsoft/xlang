@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_sequence.h"
+#include "src/runtime/xl6_scalar_domain_abi.h"
 #include "src/runtime/xl6_ownership_scope.h"
 #include "src/runtime/xl6_nullable_string.h"
 #include "src/runtime/xl6_string_type.h"
@@ -163,9 +164,10 @@ const XL6_SequenceNativeValuePolicyV1* xl6SequenceNativeValuePolicyV1(const XL6_
 static bool policyValid(const XL6_SequenceAdmissionV3* policy)
 {
     return policy && ((!policy->ops && !policy->data && !policy->elementIdentity && !policy->transfer &&
-        !policy->size && !policy->type && !policy->boxedIdentity) || (policy->ops && policy->data && policy->elementIdentity &&
+        !policy->size && !policy->type && !policy->boxedIdentity && !policy->scalarDomain) || (policy->ops && policy->data && policy->elementIdentity &&
         policy->transfer>=1 && policy->transfer<=XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 && policy->size && policy->type &&
         ((policy->transfer==3)==(!policy->boxedIdentity)) &&
+        (!policy->scalarDomain || (policy->transfer<3 && xl6ScalarDomainTagValidV1(policy->scalarDomain))) &&
         ((policy->transfer>=XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1)==(policy->ops->TraceSlot!=NULL)) &&
         (policy->transfer!=XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1 || xl6SequenceNativeValuePolicyV1(policy)) &&
         policy->ops->Retain && policy->ops->Drop && policy->ops->Slot && policy->ops->Value &&
@@ -227,6 +229,7 @@ bool xl6SequenceAdmissionEquivalentV1(XL6_Sequence* left, XL6_Sequence* right)
     if (!pinned(left) || !pinned(right)) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
     if (left->admission.ops!=right->admission.ops ||
         left->admission.boxedIdentity!=right->admission.boxedIdentity ||
+        left->admission.scalarDomain!=right->admission.scalarDomain ||
         (left->admission.ops && !left->admission.ops->Equivalent(left->admission.data,right->admission.data))) {
         xrtSetErrorKind(XERR_TYPE); return false;
     }
@@ -237,6 +240,8 @@ uint64_t xl6SequenceBoxedIdentityV1(XL6_Sequence* owner)
     if (!pinned(owner)) abort();
     return owner->admission.boxedIdentity;
 }
+uint32_t xl6SequenceScalarDomainV1(XL6_Sequence* owner)
+{if(!pinned(owner))abort();return owner->admission.scalarDomain;}
 bool xl6SequenceAdmissionDefaultableV1(XL6_Sequence* owner)
 {
     if (!pinned(owner)) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
@@ -352,6 +357,7 @@ static bool samePolicy(const XL6_SequenceAdmissionV3* left,const XL6_SequenceAdm
         left->elementIdentity==right->elementIdentity && left->transfer==right->transfer &&
         left->size==right->size && left->type==right->type &&
         left->boxedIdentity==right->boxedIdentity &&
+        left->scalarDomain==right->scalarDomain &&
         (left->data==right->data || left->ops->Equivalent(left->data,right->data));
 }
 bool xl6SequenceSchemaCopyV1(const xvalue* value,XL6_SequenceRoleV1* role,
@@ -928,7 +934,10 @@ bool xl6SequenceEqualsRoleV1(const xvalue* left, const xvalue* right, XL6_Sequen
     xerror* prior = xrtTakeError();
     XL6_Sequence* a = xl6SequenceBeginRoleV1(left,role,identity,elementIdentity,transfer,size,type);
     XL6_Sequence* b = a ? xl6SequenceBeginOtherV1(right,identity,elementIdentity,transfer,size,type,a) : NULL;
-    bool equal = b && equalPinned(a,b);
+    /* Explicit typed equality requires compatible declared policies. The
+     * separate dynamic identity callback may simply return false for two
+     * different domains; it must not weaken this checked language boundary. */
+    bool equal = b && xl6SequenceAdmissionEquivalentV1(a,b) && equalPinned(a,b);
     xerror* failure = xrtTakeError();
     if (b && b != a) xl6SequenceEndV1(b);
     if (a) xl6SequenceEndV1(a);

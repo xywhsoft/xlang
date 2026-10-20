@@ -1,6 +1,7 @@
 #include "src/runtime/xl6_array_admission.h"
 #include "src/runtime/xl6_value_admission.h"
 #include "src/runtime/xl6_value_domain.h"
+#include "src/runtime/xl6_scalar_domain_abi.h"
 #include "src/runtime/xl6_scalar_type_abi.h"
 #include "src/runtime/xl6_string_type.h"
 #include "src/runtime/xl6_nullable_string.h"
@@ -86,6 +87,6 @@ xvalue* xl6SequencePrimitiveCreateV1(unsigned int role,uint64_t identity, uint64
     PrimitivePolicy* data=xrtMalloc(sizeof(*data));
     if (!data) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }
     *data=(PrimitivePolicy){.refs=1,.rule=rule,.nullable=nullable,.identity=valueIdentity};
-    XL6_SequenceAdmissionV3 admission={&ops,data,element,transfer,size,type,valueIdentity};
+    XL6_SequenceAdmissionV3 admission={&ops,data,element,transfer,xl6ScalarPrimitiveDomainV1(rule),size,type,valueIdentity};
     return xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role,identity,&admission);
 }

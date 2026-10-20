@@ -4,7 +4,9 @@ Not all resource casts, full53 or shipping library acceptance.
 from pathlib import Path
 import argparse,hashlib,json,os,re,shutil,subprocess,sys
 from xlir_public_build_inputs import verify_public_build
-def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+def sha(path):
+    with Path(path).open('rb') as stream:
+        return hashlib.file_digest(stream, 'sha256').hexdigest()
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('root','public-directory','out'):parser.add_argument('--'+name,type=Path,required=True)
@@ -41,9 +43,19 @@ def main():
     links=[row['Path'] for row in build['Objects'] if Path(row['Path']).stem not in ('xlir_public_source_driver','xlir_public_source_linux_driver')]
     links += [str(native),*(['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else ['-pthread','-ldl','-lm','-Wl,-rpath,'+str(native.parent)])]
     def run(name,command,reject=False):
-        result=subprocess.run(list(map(str,command)),cwd=root,env=env,capture_output=True,timeout=600)
+        command=list(map(str,command))
+        invocation=command
+        # Full-source object paths exceed CreateProcess's Windows command-line
+        # limit. Use the compiler's native response-file ABI, never a shell.
+        if command[0]==cc:
+            response=out/(name+'.rsp')
+            response.write_text('\n'.join('"'+item.replace('\\','/').replace('"','\\"')+'"'
+                for item in command[1:])+'\n',encoding='utf-8')
+            invocation=[cc,'@'+str(response)]
+            products.append(dict(Path=str(response),Sha256=sha(response)))
+        result=subprocess.run(invocation,cwd=root,env=env,capture_output=True,timeout=600)
         data=result.stdout+result.stderr; (out/(name+'.log')).write_bytes(data)
-        rows.append(dict(Name=name,Command=list(map(str,command)),Exit=result.returncode,ExpectedRejection=reject))
+        rows.append(dict(Name=name,Command=command,Invocation=invocation,Exit=result.returncode,ExpectedRejection=reject))
         print(name+': '+str(result.returncode),flush=True)
         assert result.returncode!=0 if reject else result.returncode==0,(name,data[-5000:].decode(errors='replace'))
         return data.decode(errors='replace').replace('\r\n','\n')

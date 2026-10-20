@@ -121,6 +121,7 @@
 #include "src/runtime/xl6_array_methods.h"
 #include "src/runtime/xl6_array_extract.h"
 #include "src/runtime/xl6_value_admission.h"
+#include "src/runtime/xl6_value_numeric.h"
 #include "src/runtime/xl6_float_convert.h"
 #include "src/runtime/xl6_integer_convert.h"
 #include "src/runtime/xl6_sequence_projection_schema.h"

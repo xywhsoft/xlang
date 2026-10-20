@@ -517,6 +517,10 @@ static int xl6IrCgenAnalyzePrimaryNeeds(
             needs->needsRuntimeTrap = 1;
         }
         if ( module->instructions[i].kind == XL6_IR_INSTR_TRAP_IF_FALSE ) needs->needsRuntimeTrap = 1;
+        if(module->instructions[i].kind==XL6_IR_INSTR_RUNTIME_CALL &&
+            module->instructions[i].runtimeOp==XL6_IR_RUNTIME_XVALUE_ENUM_BIND) {
+            needs->needsXValueEnumBindRuntime=1;needs->needsXValueRuntime=1;
+        }
         if ( module->instructions[i].kind == XL6_IR_INSTR_VIRTUAL_CALL ||
              module->instructions[i].kind == XL6_IR_INSTR_PROTOCOL_CALL ) {
             needs->needsRuntimeTrap = 1;

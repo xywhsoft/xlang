@@ -178,7 +178,7 @@ foreach ( $token in $requiredTokens ) {
     }
 }
 foreach ( $forbidden in @(
-    "xlir_xvalue_binary(", "xl6TypedArrayConcat(",
+    "xlir_xvalue_binary(", "xl6ValueAddV1(", "xl6ValueNumericBinaryV1(", "xl6TypedArrayConcat(",
     "xl6_xrt_typed_list_concat(", "xl6_xrt_typed_dict_concat(",
     "xl6TypedSetUnion(", "xl6_xrt_typed_set_relation("
 ) ) {

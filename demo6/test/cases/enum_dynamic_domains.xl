@@ -1,0 +1,433 @@
+// Offline dynamic nominal operator contracts; no network.
+enum S8 as int8
+ none = 0
+ one = 1
+ two = 2
+ three = 3
+end
+
+func boxedS8(S8 value) as var
+ return value
+end
+
+func checkS8()
+ var a = S8.one
+ var b = S8.two
+ var joined = a | b
+ var intersected = joined & a
+ var difference = joined ^ a
+ var inverted = ~a
+ assert (joined as S8) == S8.three
+ assert (intersected as S8) == S8.one
+ assert (difference as S8) == S8.two
+ assert type(joined) == type(S8.one)
+ assert int8(inverted as S8) == -2
+ var twice = ~inverted
+ assert (twice as S8) == S8.one
+ a = a | b
+ assert (a as S8) == S8.three
+ a = a & b
+ assert (a as S8) == S8.two
+ a = a ^ b
+ assert (a as S8) == S8.none
+ S8? maybe = S8.one
+ var nullableBox = maybe
+ assert ((~nullableBox) as S8) == (inverted as S8)
+ array<S8> values = [S8.one, S8.two]
+ for value in values
+  var item = value
+  var zero = item ^ item
+  assert (zero as S8) == S8.none
+ end
+ func(S8) as var typed = boxedS8
+ var erased = xcall(typed)
+ var called = erased(S8.one)
+ assert ((~called) as S8) == (inverted as S8)
+end
+checkS8()
+
+enum S16 as int16
+ none = 0
+ one = 1
+ two = 2
+ three = 3
+end
+
+func boxedS16(S16 value) as var
+ return value
+end
+
+func checkS16()
+ var a = S16.one
+ var b = S16.two
+ var joined = a | b
+ var intersected = joined & a
+ var difference = joined ^ a
+ var inverted = ~a
+ assert (joined as S16) == S16.three
+ assert (intersected as S16) == S16.one
+ assert (difference as S16) == S16.two
+ assert type(joined) == type(S16.one)
+ assert int16(inverted as S16) == -2
+ var twice = ~inverted
+ assert (twice as S16) == S16.one
+ a = a | b
+ assert (a as S16) == S16.three
+ a = a & b
+ assert (a as S16) == S16.two
+ a = a ^ b
+ assert (a as S16) == S16.none
+ S16? maybe = S16.one
+ var nullableBox = maybe
+ assert ((~nullableBox) as S16) == (inverted as S16)
+ array<S16> values = [S16.one, S16.two]
+ for value in values
+  var item = value
+  var zero = item ^ item
+  assert (zero as S16) == S16.none
+ end
+ func(S16) as var typed = boxedS16
+ var erased = xcall(typed)
+ var called = erased(S16.one)
+ assert ((~called) as S16) == (inverted as S16)
+end
+checkS16()
+
+enum S32 as int32
+ none = 0
+ one = 1
+ two = 2
+ three = 3
+end
+
+func boxedS32(S32 value) as var
+ return value
+end
+
+func checkS32()
+ var a = S32.one
+ var b = S32.two
+ var joined = a | b
+ var intersected = joined & a
+ var difference = joined ^ a
+ var inverted = ~a
+ assert (joined as S32) == S32.three
+ assert (intersected as S32) == S32.one
+ assert (difference as S32) == S32.two
+ assert type(joined) == type(S32.one)
+ assert int32(inverted as S32) == -2
+ var twice = ~inverted
+ assert (twice as S32) == S32.one
+ a = a | b
+ assert (a as S32) == S32.three
+ a = a & b
+ assert (a as S32) == S32.two
+ a = a ^ b
+ assert (a as S32) == S32.none
+ S32? maybe = S32.one
+ var nullableBox = maybe
+ assert ((~nullableBox) as S32) == (inverted as S32)
+ array<S32> values = [S32.one, S32.two]
+ for value in values
+  var item = value
+  var zero = item ^ item
+  assert (zero as S32) == S32.none
+ end
+ func(S32) as var typed = boxedS32
+ var erased = xcall(typed)
+ var called = erased(S32.one)
+ assert ((~called) as S32) == (inverted as S32)
+end
+checkS32()
+
+enum S64 as int64
+ none = 0
+ one = 1
+ two = 2
+ three = 3
+end
+
+func boxedS64(S64 value) as var
+ return value
+end
+
+func checkS64()
+ var a = S64.one
+ var b = S64.two
+ var joined = a | b
+ var intersected = joined & a
+ var difference = joined ^ a
+ var inverted = ~a
+ assert (joined as S64) == S64.three
+ assert (intersected as S64) == S64.one
+ assert (difference as S64) == S64.two
+ assert type(joined) == type(S64.one)
+ assert int64(inverted as S64) == -2
+ var twice = ~inverted
+ assert (twice as S64) == S64.one
+ a = a | b
+ assert (a as S64) == S64.three
+ a = a & b
+ assert (a as S64) == S64.two
+ a = a ^ b
+ assert (a as S64) == S64.none
+ S64? maybe = S64.one
+ var nullableBox = maybe
+ assert ((~nullableBox) as S64) == (inverted as S64)
+ array<S64> values = [S64.one, S64.two]
+ for value in values
+  var item = value
+  var zero = item ^ item
+  assert (zero as S64) == S64.none
+ end
+ func(S64) as var typed = boxedS64
+ var erased = xcall(typed)
+ var called = erased(S64.one)
+ assert ((~called) as S64) == (inverted as S64)
+end
+checkS64()
+
+enum U8 as uint8
+ none = 0
+ one = 1
+ two = 2
+ three = 3
+end
+
+func boxedU8(U8 value) as var
+ return value
+end
+
+func checkU8()
+ var a = U8.one
+ var b = U8.two
+ var joined = a | b
+ var intersected = joined & a
+ var difference = joined ^ a
+ var inverted = ~a
+ assert (joined as U8) == U8.three
+ assert (intersected as U8) == U8.one
+ assert (difference as U8) == U8.two
+ assert type(joined) == type(U8.one)
+ assert uint8(inverted as U8) == 254
+ var twice = ~inverted
+ assert (twice as U8) == U8.one
+ a = a | b
+ assert (a as U8) == U8.three
+ a = a & b
+ assert (a as U8) == U8.two
+ a = a ^ b
+ assert (a as U8) == U8.none
+ U8? maybe = U8.one
+ var nullableBox = maybe
+ assert ((~nullableBox) as U8) == (inverted as U8)
+ array<U8> values = [U8.one, U8.two]
+ for value in values
+  var item = value
+  var zero = item ^ item
+  assert (zero as U8) == U8.none
+ end
+ func(U8) as var typed = boxedU8
+ var erased = xcall(typed)
+ var called = erased(U8.one)
+ assert ((~called) as U8) == (inverted as U8)
+end
+checkU8()
+
+enum U16 as uint16
+ none = 0
+ one = 1
+ two = 2
+ three = 3
+end
+
+func boxedU16(U16 value) as var
+ return value
+end
+
+func checkU16()
+ var a = U16.one
+ var b = U16.two
+ var joined = a | b
+ var intersected = joined & a
+ var difference = joined ^ a
+ var inverted = ~a
+ assert (joined as U16) == U16.three
+ assert (intersected as U16) == U16.one
+ assert (difference as U16) == U16.two
+ assert type(joined) == type(U16.one)
+ assert uint16(inverted as U16) == 65534
+ var twice = ~inverted
+ assert (twice as U16) == U16.one
+ a = a | b
+ assert (a as U16) == U16.three
+ a = a & b
+ assert (a as U16) == U16.two
+ a = a ^ b
+ assert (a as U16) == U16.none
+ U16? maybe = U16.one
+ var nullableBox = maybe
+ assert ((~nullableBox) as U16) == (inverted as U16)
+ array<U16> values = [U16.one, U16.two]
+ for value in values
+  var item = value
+  var zero = item ^ item
+  assert (zero as U16) == U16.none
+ end
+ func(U16) as var typed = boxedU16
+ var erased = xcall(typed)
+ var called = erased(U16.one)
+ assert ((~called) as U16) == (inverted as U16)
+end
+checkU16()
+
+enum U32 as uint32
+ none = 0
+ one = 1
+ two = 2
+ three = 3
+end
+
+func boxedU32(U32 value) as var
+ return value
+end
+
+func checkU32()
+ var a = U32.one
+ var b = U32.two
+ var joined = a | b
+ var intersected = joined & a
+ var difference = joined ^ a
+ var inverted = ~a
+ assert (joined as U32) == U32.three
+ assert (intersected as U32) == U32.one
+ assert (difference as U32) == U32.two
+ assert type(joined) == type(U32.one)
+ assert uint32(inverted as U32) == 4294967294
+ var twice = ~inverted
+ assert (twice as U32) == U32.one
+ a = a | b
+ assert (a as U32) == U32.three
+ a = a & b
+ assert (a as U32) == U32.two
+ a = a ^ b
+ assert (a as U32) == U32.none
+ U32? maybe = U32.one
+ var nullableBox = maybe
+ assert ((~nullableBox) as U32) == (inverted as U32)
+ array<U32> values = [U32.one, U32.two]
+ for value in values
+  var item = value
+  var zero = item ^ item
+  assert (zero as U32) == U32.none
+ end
+ func(U32) as var typed = boxedU32
+ var erased = xcall(typed)
+ var called = erased(U32.one)
+ assert ((~called) as U32) == (inverted as U32)
+end
+checkU32()
+
+enum U64 as uint64
+ none = 0
+ one = 1
+ two = 2
+ three = 3
+end
+
+func boxedU64(U64 value) as var
+ return value
+end
+
+func checkU64()
+ var a = U64.one
+ var b = U64.two
+ var joined = a | b
+ var intersected = joined & a
+ var difference = joined ^ a
+ var inverted = ~a
+ assert (joined as U64) == U64.three
+ assert (intersected as U64) == U64.one
+ assert (difference as U64) == U64.two
+ assert type(joined) == type(U64.one)
+ assert uint64(inverted as U64) == 18446744073709551614
+ var twice = ~inverted
+ assert (twice as U64) == U64.one
+ a = a | b
+ assert (a as U64) == U64.three
+ a = a & b
+ assert (a as U64) == U64.two
+ a = a ^ b
+ assert (a as U64) == U64.none
+ U64? maybe = U64.one
+ var nullableBox = maybe
+ assert ((~nullableBox) as U64) == (inverted as U64)
+ array<U64> values = [U64.one, U64.two]
+ for value in values
+  var item = value
+  var zero = item ^ item
+  assert (zero as U64) == U64.none
+ end
+ func(U64) as var typed = boxedU64
+ var erased = xcall(typed)
+ var called = erased(U64.one)
+ assert ((~called) as U64) == (inverted as U64)
+end
+checkU64()
+
+var first = U8.one
+var other = S8.one
+var ordinary = 1
+int caught = 0
+try
+ var invalid = first | other
+catch TypeError error
+ caught += 1
+end
+try
+ var invalid = first & ordinary
+catch TypeError error
+ caught += 1
+end
+try
+ var invalid = first + first
+catch TypeError error
+ caught += 1
+end
+try
+ var invalid = first << first
+catch TypeError error
+ caught += 1
+end
+try
+ var invalid = -first
+catch TypeError error
+ caught += 1
+end
+assert caught == 5
+
+class Holder
+ U8 value = U8.one
+end
+auto holder = Holder()
+var field = holder.value
+assert uint8((~field) as U8) == 254
+
+func sequence() as generator<var>
+ yield U8.one
+ yield U8.two
+end
+for value in sequence()
+ var zero = value ^ value
+ assert (zero as U8) == U8.none
+end
+async func produce() as var
+ return U8.one
+end
+async func inspect() as int
+ var value = await produce()
+ assert uint8((~value) as U8) == 254
+ return 0
+end
+assert await inspect() == 0
+println("dynamic enum domains: all widths, nullable, array, callable, fields, generator, async and rejection ok")

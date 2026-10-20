@@ -146,6 +146,7 @@ bool xl6SlotMapAdmitsSchemaV1(const xvalue* value,const XL6_SlotMapLayoutV1* lay
         admitted=!owner->cleared && sameLayout(&owner->layout,layout) && domain->ops==policy->ops &&
             domain->elementIdentity==policy->elementIdentity && domain->transfer==policy->transfer &&
             domain->size==policy->size && domain->type==policy->type && domain->boxedIdentity==policy->boxedIdentity &&
+            domain->scalarDomain==policy->scalarDomain &&
             (domain->data==policy->data || domain->ops->Equivalent(domain->data,policy->data));
     }
     mutationEnd(&scope); return admitted;

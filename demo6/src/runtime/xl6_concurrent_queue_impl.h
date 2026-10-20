@@ -102,6 +102,7 @@ bool XL6_Q_PUBLIC(AdmitsSchemaV1)(const xvalue* value,uint64_t identity,
             domain->elementIdentity==policy->elementIdentity && domain->transfer==policy->transfer &&
             domain->size==policy->size && domain->type==policy->type &&
             domain->boxedIdentity==policy->boxedIdentity &&
+            domain->scalarDomain==policy->scalarDomain &&
             (domain->data==policy->data || domain->ops->Equivalent(domain->data,policy->data));
     }
     mutationEnd(&scope); return admitted;

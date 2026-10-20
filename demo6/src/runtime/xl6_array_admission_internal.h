@@ -55,7 +55,7 @@ static bool defaultable(const void* opaque)
 static const XL6_SequenceAdmissionOpsV2 policyOps={policyRetain,policyDrop,slotAdmitted,admitted,equivalent,defaultable,NULL,NULL};
 static xvalue* create(unsigned int role,uint64_t identity,uint64_t element,XL6_ArrayAdmissionData* data,const XL6_SequenceAdmissionOpsV2* ops)
 {
-    XL6_SequenceAdmissionV3 admission={ops,data,element,3,sizeof(xvalue*),xrtTypeValue(),0};
+    XL6_SequenceAdmissionV3 admission={ops,data,element,3,0,sizeof(xvalue*),xrtTypeValue(),0};
     return xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role,identity,&admission);
 }
 #endif

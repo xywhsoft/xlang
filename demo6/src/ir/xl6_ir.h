@@ -2182,6 +2182,10 @@ typedef enum XL6_IrRuntimeOp {
     XL6_IR_RUNTIME_CHANNEL_RECEIVE_CANCEL,
     XL6_IR_RUNTIME_CHANNEL_RECEIVE_FOR_CANCEL,
     XL6_IR_RUNTIME_CHANNEL_RECEIVE_UNTIL_CANCEL,
+    /* Checked consuming bind of a freshly boxed numeric enum. Identity and
+     * integerTarget explicitly fix nominal type and complete backing domain;
+     * failure releases the scalar and returns NULL for the immediate error edge. */
+    XL6_IR_RUNTIME_XVALUE_ENUM_BIND,
     XL6_IR_RUNTIME_COUNT
 } XL6_IrRuntimeOp;
 
@@ -3358,7 +3362,8 @@ typedef struct XL6_IrInstruction {
      * signature remains in calleeType; this field fixes its erased/canonical
      * frame binding rather than asking Cgen to recover variadic syntax. */
     XL6_IrCallableErasureAbi callableErasureAbi;
-    /* Valid only for INTEGER_CONVERT_CHECKED/WRAPPING. */
+    /* Exact target for checked/wrapping integer conversion, checked integer
+     * arithmetic, and XVALUE_ENUM_BIND. integerSourceAbi is conversion-only. */
     XL6_IrIntegerTarget integerTarget;
     XL6_IrIntegerSourceAbi integerSourceAbi;
     /* A checked integer conversion introduced by an expected-type boundary
@@ -7831,6 +7836,7 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeStringAllocationErrorPhysicalAbi(XL6_IrRu
 /* Allocating scalar/string/union erasure produces an owned xvalue. Language
  * null is the non-NULL XRT singleton; NULL always denotes boxing failure. */
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeBoxingErrorPhysicalAbi(XL6_IrRuntimeOp operation);
+XL6_ValueAdmissionV1 xl6IrEnumBindAdmission(const XL6_IrModule*,const XL6_IrInstruction*);
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeContainerAllocationErrorPhysicalAbi(XL6_IrRuntimeOp operation);
 /* Resident class identity binding/publication both consume the input owner
  * and return NULL on failure, rather than acting as infallible type casts. */

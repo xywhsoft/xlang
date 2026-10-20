@@ -56,6 +56,7 @@ static int xl6IrCgenSharedXValueRuntimeOpIs(XL6_IrRuntimeOp operation)
            operation == XL6_IR_RUNTIME_XVALUE_RETAIN ||
            operation == XL6_IR_RUNTIME_BYTES_RETAIN ||
            operation == XL6_IR_RUNTIME_XVALUE_TYPE_BIND ||
+           operation == XL6_IR_RUNTIME_XVALUE_ENUM_BIND ||
            operation == XL6_IR_RUNTIME_XVALUE_TYPE_REBIND_OWNED ||
            operation == XL6_IR_RUNTIME_XVALUE_STRING_COPY ||
            operation == XL6_IR_RUNTIME_XVALUE_WEAK_CREATE ||
@@ -170,6 +171,8 @@ static int xl6IrCgenSharedXValueRuntimeAbi(
     case XL6_IR_RUNTIME_XVALUE_RETAIN:
     case XL6_IR_RUNTIME_BYTES_RETAIN:
         return xl6IrCgenRuntimeManagedXValueRetainAbi(module, instruction);
+    case XL6_IR_RUNTIME_XVALUE_ENUM_BIND:
+        return xl6IrEnumBindAdmission(module,instruction)!=XL6_VALUE_ADMIT_NONE;
     case XL6_IR_RUNTIME_XVALUE_TYPE_BIND:
     case XL6_IR_RUNTIME_XVALUE_TYPE_REBIND_OWNED:
         {
@@ -417,6 +420,12 @@ static int xl6IrCgenEmitSharedXValueRuntime(
         xl6OutputPrintf(out, "    v%u = v%u != NULL ? xrtValueRetain(v%u) : NULL;\n",
             (unsigned)instruction->result, (unsigned)module->operands[instruction->firstOperand],
             (unsigned)module->operands[instruction->firstOperand]);
+        break;
+    case XL6_IR_RUNTIME_XVALUE_ENUM_BIND:
+        xl6OutputPrintf(out,"    v%u = xl6ValueEnumBindTakeV1(v%u, %u, 0x%016llXULL);\n",
+            (unsigned)instruction->result,(unsigned)module->operands[instruction->firstOperand],
+            (unsigned)xl6IrEnumBindAdmission(module,instruction),
+            (unsigned long long)xl6IrTypeGet(&module->types,instruction->runtimeIdentityType)->typeValueId);
         break;
     case XL6_IR_RUNTIME_XVALUE_TYPE_BIND:
     case XL6_IR_RUNTIME_XVALUE_TYPE_REBIND_OWNED:

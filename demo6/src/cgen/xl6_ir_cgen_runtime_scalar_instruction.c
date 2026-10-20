@@ -374,7 +374,11 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                     if ( instruction->immediateText != NULL || instruction->operandCount != 2 )
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                                              "XLIR C emitter dynamic arithmetic ABI is unresolved");
-                    xl6OutputPrintf(out, "    v%u = xlir_xvalue_binary(v%u, v%u, %d);\n",
+                    if(instruction->runtimeOp==XL6_IR_RUNTIME_XVALUE_BINARY_ADD)
+                        xl6OutputPrintf(out,"    v%u = xl6ValueAddV1(v%u, v%u);\n",
+                            (unsigned)instruction->result,(unsigned)module->operands[instruction->firstOperand],
+                            (unsigned)module->operands[instruction->firstOperand+1]);
+                    else xl6OutputPrintf(out, "    v%u = xl6ValueNumericBinaryV1(v%u, v%u, %d);\n",
                                     (unsigned int)instruction->result,
                                     (unsigned int)module->operands[instruction->firstOperand],
                                     (unsigned int)module->operands[instruction->firstOperand + 1],
@@ -387,7 +391,7 @@ static int xl6IrCgenEmitScalarRuntimeInstruction(
                     if ( instruction->immediateText != NULL || instruction->operandCount != 1 )
                         return xl6IrCgenRuntimeEmitDiag(diags, module, instruction->origin,
                             "XLIR C emitter dynamic unary ABI is unresolved");
-                    xl6OutputPrintf(out, "    v%u = xlir_xvalue_unary(v%u, %d);\n",
+                    xl6OutputPrintf(out, "    v%u = xl6ValueNumericUnaryV1(v%u, %d);\n",
                         (unsigned int)instruction->result,
                         (unsigned int)module->operands[instruction->firstOperand], mode);
                 } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_I64_APPROX ||
