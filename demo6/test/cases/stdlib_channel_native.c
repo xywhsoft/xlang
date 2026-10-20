@@ -1,3 +1,4 @@
+#define XRUNTIME_MODULE_RUNTIME_TYPE_FUTURE
 #include "src/runtime/xl6_channel.h"
 #include "src/runtime/xl6_array_admission.h"
 #include "src/runtime/xl6_ownership_plan.h"
@@ -135,9 +136,22 @@ static void vectors(void)
     xl6_error_scope failure={0}; assert(xl6ErrorScopeBegin(&failure));
     assert(!xl6ChannelCreateTakeV1(ID,seed(1,false),-1)); xl6_error_result outcome=xl6ErrorScopeEnd(&failure);
     assert(!outcome.ok); xrtErrorFree(outcome.error);
-    assert(xl6ErrorScopeBegin(&failure));
-    assert(!xl6ChannelCreateTakeV1(ID,xl6SequenceFutureCreateV1(1,123,ELEMENT,ELEMENT,false),1));
-    outcome=xl6ErrorScopeEnd(&failure); assert(!outcome.ok); xrtErrorFree(outcome.error);
+    /* Future references are a supported physical message profile. Keep the
+     * strict identity/non-null/empty-destination checks, then prove that the
+     * received reference survives both Channel and producer retirement. */
+    q=xl6ChannelCreateTakeV1(ID,xl6SequenceFutureCreateV1(1,123,ELEMENT,ELEMENT,false),1);assert(q);
+    xfuture *future=NULL,*received=NULL,*absent=NULL;
+    xpromise* promise=xrtPromiseCreate(&future,NULL);assert(promise&&future);
+    assert(!send(q,xrtTypeFuture(),SLOT(absent),XL6_CHANNEL_TRY_V1,0,&status));checkedError();
+    assert(!xl6ChannelSendV1(q,ID,ELEMENT+1,xrtTypeFuture(),SLOT(future),XL6_CHANNEL_TRY_V1,0,&status));checkedError();
+    assert(send(q,xrtTypeFuture(),SLOT(future),XL6_CHANNEL_TRY_V1,0,&status)&&status==XL6_CHANNEL_OK_V1);
+    assert(!receive(q,xrtTypeFuture(),SLOT(future),XL6_CHANNEL_TRY_V1,0,&status));checkedError();
+    assert(xl6ChannelQueryV1(q,ID,0)==1);
+    assert(receive(q,xrtTypeFuture(),SLOT(received),XL6_CHANNEL_TRY_V1,0,&status)&&status==XL6_CHANNEL_OK_V1&&received==future);
+    assert(receive(q,xrtTypeFuture(),SLOT(absent),XL6_CHANNEL_TRY_V1,0,&status)&&status==XL6_CHANNEL_EMPTY_V1&&!absent);
+    assert(xl6ChannelCloseV1(q,ID));xrtValueRelease(q);xrtFutureDestroy(future);xrtPromiseDestroy(promise);
+    xfutureresult terminal={0};assert(xrtFutureResult(received,&terminal)&&terminal.State==XFUTURE_CLOSED);
+    xrtFutureDestroy(received);
 }
 static void cycles(void)
 {

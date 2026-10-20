@@ -25,15 +25,18 @@ def main():
     files.add(root/'test/cases/stdlib_concurrent_queue_tcc_host.c')
     if args.public:
         build=json.loads((args.public/'build.json').read_text(encoding='utf-8-sig'))
-        assert build['SourceXrt'] and not build['RuntimeOnly']
+        assert build.get('Complete',os.name=='nt') and build['SourceXrt'] and not build['RuntimeOnly']
+        files.add(args.public/'build.json')
         for row in build['Inputs']+build['Headers']+build['Objects']:
             assert sha(row['Path'])==row['Sha256'].lower(); files.add(Path(row['Path']))
-        exclude={Path(f).with_suffix('.o').name for f in PROVIDERS}|{'xlir_public_source_driver.o'}
+        exclude={Path(f).with_suffix('.o').name for f in PROVIDERS}|{'xlir_public_source_driver.o','xlir_public_source_linux_driver.o'}
         objects=[row['Path'] for row in build['Objects'] if Path(row['Path']).name not in exclude]
         # Fresh providers are compiled at each optimization, never hidden by an
         # older source build or a DLL exporting another implementation.
-        dll=root/'release/xl.dll'; files.add(dll)
-        links=[str(dll),'-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32']; suffix='.exe'
+        dll=root/'release/xl.dll' if os.name=='nt' else Path(build['NativeRoot'])/'release/libxl.so';files.add(dll)
+        links=[str(dll),*(['-lws2_32','-liphlpapi','-lshell32','-lole32','-ladvapi32'] if os.name=='nt' else
+            ['-Wl,--export-dynamic','-Wl,-rpath,'+str(dll.parent),'-pthread','-ldl','-lm'])]
+        suffix='.exe' if os.name=='nt' else ''
     else:
         assert sys.platform=='linux'
         runtime=args.runtime.resolve(); objects=[]; suffix=''
@@ -41,23 +44,33 @@ def main():
         links=['-L'+str(runtime),'-lxlc','-lxl','-Wl,-rpath,'+str(runtime),'-pthread','-ldl','-lm']
     inputs=[{'Path':str(f),'Sha256':sha(f)} for f in sorted(files)]
     out.mkdir(parents=True)
-    if args.public: shutil.copy2(dll,out/'xl.dll')
+    if args.public and os.name=='nt': shutil.copy2(dll,out/'xl.dll')
+    env=dict(os.environ)
+    if args.public and os.name!='nt':
+        env.update(XL6_SOURCE_NATIVE_ROOT=build['NativeRoot'],XL6_TCC_DLL=str(dll),
+            XL6_TCC_LIB=str(Path(build['NativeRoot'])/'build/linux/tcc-dist'))
     rows=[]; sweeps=[]; selections=[]
     report={'Complete':False,'LanguageQueueMigrationComplete':False,'Full53Complete':False,
             'InputsUnchanged':False,'Scope':__doc__,'Platform':sys.platform,
             'Inputs':inputs,'Rows':rows,'Sweeps':sweeps,'Selections':selections}
+    def save(): (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     def run(name,command):
-        command=list(map(str,command)); start=time.monotonic()
-        result=subprocess.run(command,cwd=root,capture_output=True,timeout=180)
+        command=list(map(str,command));start=time.monotonic();invocation=command
+        if command[0]==cc:
+            response=out/(name+'.rsp')
+            response.write_text('\n'.join('"'+token.replace('\\','/').replace('"','\\"')+'"' for token in command[1:])+'\n',encoding='utf-8')
+            invocation=[cc,'@'+str(response)]
+        result=subprocess.run(invocation,cwd=root,env=env,capture_output=True,timeout=180)
         data=result.stdout+result.stderr; (out/(name+'.log')).write_bytes(data)
-        rows.append({'Name':name,'Command':command,'Exit':result.returncode,'Seconds':time.monotonic()-start})
+        rows.append({'Name':name,'Command':command,'Invocation':invocation,'Exit':result.returncode,'Seconds':time.monotonic()-start,
+            'Log':str(out/(name+'.log')),'LogSha256':sha(out/(name+'.log'))});save()
         if result.returncode: raise RuntimeError(name+': '+data[-5000:].decode(errors='replace'))
         return data.decode(errors='replace')
     flags=['-std=c11','-Wall','-Wextra','-Werror','-DXL_STATIC_EMBED','-I.','-Irelease','-Irelease/include',
            '-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-label',
            '-Wno-unused-const-variable','-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
            '-Wno-pointer-sign','-Wno-format-truncation']
-    if not args.public: flags+=['-D_GNU_SOURCE']
+    if os.name!='nt': flags+=['-D_GNU_SOURCE']
     def vectors_and_faults(lane,binary):
         run(lane+'.vectors',[binary]); run(lane+'.threads',[binary,'threads'])
         for family in range(3):
@@ -117,8 +130,11 @@ def main():
     except Exception as error:
         report['Failure']=type(error).__name__+': '+str(error); print(report['Failure'],file=sys.stderr)
     finally:
-        report['Outputs']=[{'Path':str(f),'Sha256':sha(f)} for f in sorted(out.rglob('*')) if f.is_file()]
-        (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+        # Progress saves already created this report. Never hash the report
+        # into itself: the final save necessarily changes its own contents.
+        report['Outputs']=[{'Path':str(f),'Sha256':sha(f)} for f in sorted(out.rglob('*'))
+            if f.is_file() and f!=out/'results.json']
+        save()
     print(f'Typed queue kernel: {len(rows)} phases; complete={report["Complete"]}',flush=True)
     return 0 if report['Complete'] else 1
 if __name__=='__main__': raise SystemExit(main())
