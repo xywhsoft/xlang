@@ -1,0 +1,2 @@
+auto options = TcpStreamOptions()
+assert options.readSize == 2048 and options.connectTimeoutMillis == 30000

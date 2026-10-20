@@ -1,0 +1,18 @@
+auto original = TcpListenOptions()
+assert original.address().isUnspecified and original.address().port == 0
+assert original.affinity == 0 and original.acceptConcurrency == 16 and original.acceptQueueLimit == 256
+assert original.backlog == 256 and original.distribution == TcpAcceptDistribution.roundRobin
+assert not (original.exclusiveAddress and (original.reuseAddress or original.reusePort))
+auto address = NetAddress.loopback(6, 4321)
+auto changed = TcpListenOptions(address).withAcceptQueue(4, 12).withBacklog(32).withAffinity(9)
+changed = changed.withDistribution(TcpAcceptDistribution.local).withBinding(false, false, true, true)
+changed = changed.withStreamOptions(TcpStreamOptions().withKeepAlive(true))
+assert changed.address().family == 6 and changed.address().port == 4321
+assert changed.acceptConcurrency == 4 and changed.acceptQueueLimit == 12 and changed.backlog == 32 and changed.affinity == 9
+assert changed.distribution == TcpAcceptDistribution.local
+assert not changed.reuseAddress and not changed.reusePort and changed.exclusiveAddress and changed.ipv6Only
+assert changed.streamOptions().keepAlive and not original.streamOptions().keepAlive
+auto other = changed.withAddress(NetAddress.loopback(4, 7890))
+assert other.address().family == 4 and other.address().port == 7890
+assert changed.address().family == 6 and original.address().port == 0
+println("immutable listener policy and independent addresses: ok")

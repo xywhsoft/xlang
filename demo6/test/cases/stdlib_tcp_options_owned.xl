@@ -1,0 +1,24 @@
+func makeStream() as TcpStreamOptions
+    auto input = TcpStreamOptions().withReadBuffer(3, 13).withConnectTimeoutMillis(17)
+    auto owner = TcpDialOptions().withStreamOptions(input)
+    return owner.streamOptions()
+end
+func makeListener() as TcpListenOptions
+    auto input = NetAddress.loopback(6, 4321)
+    auto owner = TcpListenOptions(input).withStreamOptions(makeStream())
+    return owner.withBinding(false, false, true, true).withAcceptQueue(2, 9)
+end
+func makeAddress() as NetAddress
+    auto owner = makeListener()
+    return owner.address()
+end
+auto stream = makeStream()
+auto listener = makeListener()
+auto address = makeAddress()
+assert stream.readSize == 3 and stream.readLimit == 13 and stream.connectTimeoutMillis == 17
+assert listener.address().family == 6 and listener.address().port == 4321
+assert listener.streamOptions().readSize == 3 and listener.acceptQueueLimit == 9
+assert address.family == 6 and address.port == 4321
+auto changed = listener.withAddress(NetAddress.loopback(4, 17))
+assert changed.address().family == 4 and address.family == 6
+println("TCP option snapshots survive source destruction: ok")
