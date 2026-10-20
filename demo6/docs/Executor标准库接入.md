@@ -2,9 +2,9 @@
 
 `import concurrent` 按需提供受管理 `Executor` 与不可变 `ExecutorSnapshot`。
 已接通单项与原子批量提交、配置、关闭／取消、等待、首错／计数和统计的实际语言路径。
-公开 TaskPool、完整 shipping DLL／SO／VFS
-联合验收与后续五组工作仍未完成，不能据此
-宣称完整并发接入或整个长期任务完成。
+公开 TaskPool 已另批接入，见 [TaskPool 标准库](TaskPool标准库接入.md)。完整
+shipping DLL／SO／VFS 联合验收与后续五组工作仍未完成，不能据此宣称完整
+并发接入或整个长期任务完成。
 
 ```xl
 import concurrent

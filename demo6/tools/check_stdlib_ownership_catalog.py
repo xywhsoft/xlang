@@ -12,6 +12,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     for name in ('root','public-directory','out'):p.add_argument('--'+name,type=Path,required=True)
     p.add_argument('--jobs',type=int,default=1,help='Bound simultaneous source-JIT processes; assertions are unchanged')
+    p.add_argument('--native-only',action='store_true',help='Only typed catalog/native controls; do not claim source-JIT graph acceptance')
     a=p.parse_args();root,out=a.root.resolve(),a.out.resolve();assert not out.exists()
     assert 1<=a.jobs<=8
     build,pinned,compared=verify_public_build(root,a.public_directory);cc=shutil.which('gcc');assert cc
@@ -37,9 +38,17 @@ def main():
     if not windows:env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
     report=dict(Complete=False,InputsUnchanged=False,Inputs=inputs,Rows=rows,ClosedPrefixes=prefixes,Proofs=proofs,
         ComparedSources=compared,Scope=__doc__,NativeCatalogAcceptance=False,SourceJitGraphAcceptance=False,
-        AotGraphRetirementAcceptance=False,ShippingLibraryAcceptance=False,RuntimeInstrumented=False,Full53Acceptance=False)
+        AotGraphRetirementAcceptance=False,ShippingLibraryAcceptance=False,RuntimeInstrumented=False,Full53Acceptance=False,
+        NativeOnly=a.native_only,LogsUnchanged=False)
     def run(name,command,reject=False):
-        command=list(map(str,command));start=time.monotonic()
+        expanded=list(map(str,command));command=expanded;start=time.monotonic()
+        # Current complete builds exceed Windows' process argument limit. Keep
+        # actual GCC response bytes beside the command and final artifact log.
+        response=None
+        if expanded[0]==cc:
+            response=out/(name+'.rsp')
+            response.write_text('\n'.join('"'+v.replace('\\','/').replace('"','\\"')+'"' for v in expanded[1:])+'\n',encoding='utf8')
+            command=[cc,'@'+str(response)]
         try:
             process=subprocess.run(command,cwd=root,env=env,capture_output=True,timeout=300)
             data,code=process.stdout+process.stderr,process.returncode
@@ -47,6 +56,7 @@ def main():
         log=out/(name+'.log');log.write_bytes(data)
         row=dict(Name=name,Command=command,Exit=code,ExpectedRejection=reject,Seconds=time.monotonic()-start,
             Log=str(log),LogSha256=sha(log))
+        if response:row.update(ExpandedCommand=expanded,Response=str(response),ResponseSha256=sha(response))
         assert code not in (0,'timeout') if reject else code==0,(name,data[-5000:].decode(errors='replace'))
         return row,data
     def check(name,command,reject=False):
@@ -59,13 +69,38 @@ def main():
         actual=(root/'src/runtime/xl6_ownership_domains.h').read_text(encoding='utf-8')
         assert closed_headers(actual) and not closed_headers(actual+'\n#include "xl6_ownership_domains.inc"\n')
         domains=sorted((root/'src/runtime').glob('xl6_ownership_domain_*.c'))
-        entries=re.findall(r'^XL6_OWNERSHIP_DOMAIN_ENTRY\(', (root/'src/runtime/xl6_ownership_domains.inc').read_text(),re.M)
-        assert len(domains)==len(entries)==78
+        entries=re.findall(r'^XL6_OWNERSHIP_DOMAIN_ENTRY\([^,]+,[^,]+,([^)]+)\)',
+            (root/'src/runtime/xl6_ownership_domains.inc').read_text(),re.M)
+        # One provider TU can declare several typed domains. Compiled contract
+        # construction references every getter; counting source files is not
+        # evidence that the actual registry is complete or unique.
+        assert entries and len(entries)==len(set(entries))
+        report['DomainCount']=len(entries);report['DomainSourceCount']=len(domains)
+        def has_native_declarations(path,seen=None):
+            seen=set() if seen is None else seen
+            if path in seen:return False
+            seen.add(path)
+            includes=re.findall(r'^#\s*include "([^"]+)"',path.read_text(encoding='utf-8-sig'),re.M)
+            if 'include/xruntime_decl.h' in includes:return True
+            for name in includes:
+                for target in (path.parent/name,root/name,root/'release'/name):
+                    if target.is_file() and has_native_declarations(target,seen):return True
+            return False
+        report['OpaqueDeclarationProviders']=[]
         for source in domains:
             includes=re.findall(r'^#\s*include "([^"]+)"',source.read_text(encoding='utf-8'),re.M)
-            assert 'include/xruntime_decl.h' in includes and not any(name.startswith('release/') for name in includes),source
+            assert not any(name.startswith('release/') for name in includes),source
+            assert not any(name.endswith('.c') or name in ('lib/xrt/xrt.h','lib/xruntime/xruntime.h') for name in includes),source
+            if not has_native_declarations(source):
+                # A loader using only opaque policy pointers legitimately
+                # needs no complete native struct. It cannot define guessed
+                # native layouts or a by-value ownership-query trampoline.
+                text=source.read_text(encoding='utf-8-sig')
+                assert not re.search(r'\b(?:struct|union)\s*(?:\w+\s*)?\{|XL6_OWNERSHIP_(?:QUERY|DOMAIN_SIMPLE|DOMAIN_PREPARED|DOMAIN_SEQUENCE)\(',text),source
+                report['OpaqueDeclarationProviders'].append(str(source.relative_to(root)))
         report['PrivateSourceDeclarationIncludeAcceptance']=True
         report['DeclarationSiblingClosureAcceptance']=True
+        check('domain.declarations',[cc,*flags,'-fsyntax-only',*domains])
         for opt in ('O0','O2'):
             check(opt+'.declarations',[cc,*flags,'-'+opt,'-fsyntax-only',declarations])
             binary=out/('contract.'+opt+suffix)
@@ -94,7 +129,7 @@ def main():
             data=check(name+'.reject',[binary,mode],True);assert b'assert' in data.lower()
         report['NativeCatalogAcceptance']=True;jobs=[]
         report['DeclarationSdkSyntaxAcceptance']=True
-        for (family,stem,size,lifetimes),fixture,host in zip(families,fixtures,hosts):
+        for (family,stem,size,lifetimes),fixture,host in ([] if a.native_only else zip(families,fixtures,hosts)):
             for opt in ('O0','O2'):
                 binary=out/(family+'.'+opt+suffix)
                 check(family+'.'+opt+'.build',[cc,*flags,'-'+opt,host,*objects,*links,'-o',binary])
@@ -110,9 +145,12 @@ def main():
             return row,dict(Name=name,MeasuredLifetimes=lifetimes)
         with concurrent.futures.ThreadPoolExecutor(max_workers=a.jobs) as executor:
             for row,proof in executor.map(graph,jobs):rows.append(row);proofs.append(proof)
-        assert len(proofs)==78 and sum(p['MeasuredLifetimes'] for p in proofs)==1534
-        report['SourceJitGraphAcceptance']=True
+        if not a.native_only:
+            assert len(proofs)==78 and sum(p['MeasuredLifetimes'] for p in proofs)==1534
+            report['SourceJitGraphAcceptance']=True
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs);assert report['InputsUnchanged']
+        report['LogsUnchanged']=all(sha(row['Log'])==row['LogSha256'] for row in rows)
+        assert report['LogsUnchanged']
         report.update(Complete=True,PhaseCount=len(rows))
     except Exception as error:report['Error']=repr(error);print(repr(error),flush=True)
     report['Products']=[dict(Path=str(path),Sha256=sha(path)) for path in sorted(out.rglob('*')) if path.is_file()]

@@ -1,0 +1,59 @@
+import concurrent
+
+// task_group_pool is expressed through atomic TaskGroup.start and the existing
+// owned TaskPool producer, not a parallel group-specific submission backend.
+auto pool = TaskPool(2, 16)
+auto group = TaskGroup(4)
+auto calls = AtomicInt64()
+future<int> number = group.start(func() as future<int>
+    return pool.submit(func() as int
+        calls.fetchAdd(1)
+        return 42
+    end)
+end)
+future<string> text = group.start(func() as future<string>
+    return pool.submit(func() as string
+        calls.fetchAdd(1)
+        return "a\0你"
+    end)
+end)
+future<null> empty = group.start(func() as future<null>
+    return pool.submit(func()
+        calls.fetchAdd(1)
+    end)
+end)
+assert group.joinTimeout(10000)
+group.throwIfFailed()
+assert group.snapshot().added == 3 and group.snapshot().succeeded == 3
+assert (await number) == 42 and (await text) == "a\0你"
+await empty
+assert calls.load() == 3
+
+// A producer rejected after group reservation must restore capacity and keep
+// the original checked failure, without inventing an accepted group member.
+auto closed = TaskPool(1, 8)
+closed.close()
+auto retry = TaskGroup(1)
+bool rejected = false
+try
+    auto invalid = retry.start(func() as future<int>
+        return closed.submit(func() as int
+            return 1
+        end)
+    end)
+catch failure
+    rejected = true
+end
+assert rejected and retry.count == 0 and retry.snapshot().accepting
+future<int> recovered = retry.start(func() as future<int>
+    return pool.submit(func() as int
+        return 19
+    end)
+end)
+assert retry.joinTimeout(10000) and (await recovered) == 19
+retry.throwIfFailed()
+assert closed.wait(10000)
+pool.close()
+assert pool.wait(10000)
+assert pool.snapshot().submitted == 4 and pool.snapshot().succeeded == 4
+println("TaskGroup/TaskPool composition: owned integer/string/void, atomic reservation rollback and retry, no implicit ready executor")

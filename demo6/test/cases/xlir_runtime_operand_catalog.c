@@ -23,6 +23,11 @@ static XL6_IrOperandOwnership expected(XL6_IrRuntimeOp op,size_t operand)
     case XL6_IR_RUNTIME_NAMED_SET_LITERAL_TAKE:
         return operand==1 ? XL6_IR_OPERAND_OWNERSHIP_CONSUME : XL6_IR_OPERAND_OWNERSHIP_OBSERVE;
     case XL6_IR_RUNTIME_XVALUE_NATIVE_HANDLE_TAKE:
+    /* Erasure transfers a typed Stack owner even on failure. Projection
+     * consumes its separate witness; its second/source operand is borrowed.
+     * Checked against the resident Take ABI, not derived from this function. */
+    case XL6_IR_RUNTIME_STACK_ERASE:
+    case XL6_IR_RUNTIME_NATIVE_CONTAINER_PROJECT_CHECKED:
     case XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_CAST:
     case XL6_IR_RUNTIME_XVALUE_COLLECTION_CHECKED_REBIND:
     case XL6_IR_RUNTIME_ARRAY_IMPORT_CHAIN:

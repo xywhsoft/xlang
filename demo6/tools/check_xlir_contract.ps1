@@ -230,7 +230,9 @@ $managedIterator=Read-Utf8 'src/runtime/xl6_value_iterator.c'
 foreach($required in @('xrtValueCursorCreate','xrtValueCursorAdvance','xrtValueCursorRelease','xrtValueCursorOwnership')) {
     if(!$managedIterator.Contains($required)){throw "Language iterator lacks managed native cursor lifecycle: $required"}
 }
-if(!(Read-Utf8 'src/api/xl_api.c').Contains('xrtValueCursorOwnershipAdapterV1(ref)')) {
+$ownershipCatalog = Read-Utf8 'src/runtime/xl6_ownership_catalog.c'
+if(!(Read-Utf8 'src/api/xl_api.c').Contains('xl6OwnershipCatalogResolveV1(ref,module->ownershipCatalog,') -or
+    !$ownershipCatalog.Contains('xrtValueCursorOwnershipAdapterV1(ref)')) {
     throw 'Module resolver must independently admit the actual managed cursor child'
 }
 if (!$poolPrelude.Contains('xl6TaskSubmitPayloadV1') -or $poolPrelude.Contains('xl6TaskRuntimeV1Get()->Submit') -or $poolPrelude.Contains('xlir_task_outcome_watch') -or
@@ -245,9 +247,9 @@ if (!$taskResident.Contains('xrtTaskSubmitOwnedJobV1(native,frame,args.Cancel,&n
     $payloadEmitter.Contains('xrtPromiseResolveOwnedTraced') -or $poolPrelude.Contains('xlir_async_closure_trace')) {
     throw 'Verified result ABIs must select one closed resident lifecycle before publication or executor admission'
 }
-$taskOwnershipHost=Read-Utf8 'src/api/xl_api.c'
+$taskOwnershipDomain=Read-Utf8 'src/runtime/xl6_ownership_domain_task.c'
 foreach ($required in @('xl6TaskNativeDataPolicyV1Get','xl6TaskWatchPolicyV1Get','xl6TaskOwnershipAdapterV1')) {
-    if (!$taskResident.Contains($required) -or !$taskOwnershipHost.Contains($required) -or
+    if (!$taskResident.Contains($required) -or !$taskOwnershipDomain.Contains($required) -or
         !(Read-Utf8 'src/api/xl_api_symbols.c').Contains($required) -or
         !(Read-Utf8 'test/cases/xlir_one_shot_tcc_host.c').Contains($required)) {
         throw "Task lifecycle identities must reach the actual runtime, collector and source TCC hosts: $required"
@@ -257,7 +259,7 @@ foreach ($required in @('xrtFutureWatchInitOwnershipV1','!frame->layout',
     'Validate(frame->layout,frame->dataSize)','!frame->payloadLive&&!frame->active&&!frame->runEntered&&!frame->source&&!frame->output')) {
     if (!$taskResident.Contains($required)) { throw "Task graph admission must validate closed layout and preserve pending duties: $required" }
 }
-if (!$taskOwnershipHost.Contains('xrtTaskProducerPolicyV1Get') -or !$taskOwnershipHost.Contains('xrtTaskOwnershipAdapterV1') -or
+if (!$taskOwnershipDomain.Contains('xrtTaskProducerPolicyV1Get') -or !$taskOwnershipDomain.Contains('xrtTaskOwnershipAdapterV1') -or
     !(Read-Utf8 'tools/check_xlir_task_storage.ps1').Contains('xlir_task_storage_ownership.c') -or
     !(Read-Utf8 'test/cases/xlir_task_storage_ownership.c').Contains('xl6OwnershipPlanTryCommit(plan)==XL6_OWNERSHIP_PLAN_ROOTED')) {
     throw 'Pending native jobs need real producer/data edges and a complete Plan lifecycle test with executor-root deferral'
@@ -274,8 +276,8 @@ foreach ($required in @('taskPoolAbi', 'XL6_IR_MODULE_TASK_POOL_XRT_GUARDED_QUIE
     }
 }
 if (!$source.Contains('xl6IrModuleTaskPoolRequirement') -or
-    !$poolPrelude.Contains('xlir_async_pool_quiesce') -or !$poolPrelude.Contains('xl6TaskRuntimeV1Get()->PoolQuiesce') -or
-    !(Read-Utf8 'src\cgen\xl6_ir_cgen_function_emit.c').Contains('xlir_async_pool_quiesce')) {
+    !(Read-Utf8 'src/runtime/xl6_task_pool.c').Contains('XL6_ModulePrepareResult xl6TaskPoolModulePrepareV1(') -or
+    !(Read-Utf8 'src/cgen/xl6_ir_cgen_function_emit.c').Contains('xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, wait)')) {
     throw 'Module global cleanup must follow canonical task resource quiescence'
 }
 foreach ($renderer in @('task_helpers')) {
@@ -4627,7 +4629,7 @@ if (!$header.Contains('XL6_IR_MODULE_RETIREMENT_PREPARED_GRAPH_V2') -or
     !$source.Contains('xl_script_module_retirement_v2') -or
     !$cEmitter.Contains('xl_script_module_retirement_v2(void)') -or
     !$cEmitter.Contains('xlir_module_prepare_resources') -or
-    !$cEmitter.Contains('if (teardown && !xlir_async_pool_quiesce())') -or
+    !$cEmitter.Contains('xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, wait)') -or
     !$cEmitter.Contains('xlir_module_prepare_resources(false, false)') -or
     !$cEmitter.Contains('xlir_module_prepare_resources(true, wait)') -or
     !$cEmitter.Contains('xlir_module_prepare_resources(true, true)')) {
@@ -4658,16 +4660,16 @@ if (!$header.Contains('XL6_IR_MODULE_NETWORK_SERVICE_RESIDENT_RETRYABLE_V1') -or
     !$source.Contains('xl6IrModuleNetworkServiceRequirement(module)') -or
     !$source.Contains('XLIR module network service ABI is unresolved') -or
     !$cEmitter.Contains('xl_script_module_retirement_v4(void)') -or
-    !$cEmitter.Contains('xl_script_module_retire_step(void)') -or
+    !(Read-Utf8 'src/cgen/xl6_ir_cgen_function_shell.c').Contains('xlir_script_module_retire_step(void)') -or
     !$cEmitter.Contains('xl6NetworkServiceRuntimeV2Get()->Retire') -or
     !$moduleTrace.Contains('xl6NetworkServiceRuntimeV2Get()->Trace') -or
     $moduleTrace.IndexOf('xl6NetworkServiceRuntimeV2Get()->Trace') -gt $moduleTrace.IndexOf('xlir_module_initialized == 0') -or
     !$api.Contains('invalid module retirement V4 contract') -or
-    !$api.Contains('xl6OwnershipPlanTryCreateV4') -or !$api.Contains('xl6OwnershipPlanFinishV2') -or
+    !$api.Contains('xl6OwnershipPlanTryCreateV6') -or !$api.Contains('xl6OwnershipPlanFinishV2') -or
     !$api.Contains('retired == XL6_MODULE_RETIRE_BUSY') -or
     !$ownershipPlanHeader.Contains('XL6_OwnershipFinishV1') -or
     !$ownershipPlanSource.Contains('old->completion!=completion') -or
-    !$ownershipPlanSource.Contains('status==XL6_OWNERSHIP_STEP_READY)node->finished=true') -or
+    !$ownershipPlanSource.Contains('status==XRT_OWNERSHIP_FINISH_READY)node->finished=true') -or
     !$retryableServices.Contains('xrtNetEngineTryDestroy') -or !$retryableServices.Contains('xrtNetResolverTryDestroy') -or
     !$retryableServices.Contains('if (result != XNET_RETIRE_READY) return translate(result);')) {
     throw 'Retryable services need verified IR, retained physical slots, pre-trace Finish admission and typed host completion; phase zero and BUSY do not permit unloading'
@@ -4679,9 +4681,9 @@ if (!$header.Contains('XL6_IR_MODULE_TASK_POOL_OWNERSHIP_RESIDENT_NATIVE_JOBS_JO
     $cEmitter.Contains('xl6TaskPoolTryQuiesceV1(xlir_async_pool)') -or
     !$cEmitter.Contains('xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, wait)') -or
     $cEmitter.Contains('if (!xl6TaskRuntimeV1Get()->PoolIsClosing(xlir_async_pool) ||') -or
-    !$api.Contains('xl6TaskPoolOwnershipAdapterV1(ref,preparation)') -or
-    !$api.Contains('xrtTaskPoolOwnershipAdapterV1(ref,preparation)')) {
-    throw 'Task-pool ownership requires independently verified IR, actual wrapper/native edges and non-draining V3 preflight'
+    !(Read-Utf8 'src/runtime/xl6_ownership_domain_task_pool.c').Contains('xl6TaskPoolOwnershipAdapterV2(ref,policies->TaskPoolExit,policies->TaskPoolExitCount,preparation)') -or
+    !(Read-Utf8 'src/runtime/xl6_ownership_domain_task_pool.c').Contains('xrtTaskPoolOwnershipAdapterV2(ref,policies->TaskPoolExit,policies->TaskPoolExitCount,preparation)')) {
+    throw 'Task-pool ownership requires independently verified IR, actual wrapper/native edges, typed exit policies and non-draining V4 preflight'
 }
 foreach ( $required in @(
     "XL6_IR_INSTR_RETAIN",
