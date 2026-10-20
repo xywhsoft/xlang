@@ -1,0 +1,2 @@
+auto mode = TcpReadMode.direct
+assert mode != TcpReadMode.adaptive

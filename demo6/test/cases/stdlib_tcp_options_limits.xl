@@ -1,0 +1,54 @@
+auto stream = TcpStreamOptions()
+int errors = 0
+try
+    auto invalid = stream.withReadBuffer(0, 4)
+catch Error
+    errors += 1
+end
+try
+    auto invalid = stream.withWriteWatermarks(10, 11, 20)
+catch Error
+    errors += 1
+end
+try
+    auto invalid = stream.withConnectTimeoutMillis(0)
+catch Error
+    errors += 1
+end
+try
+    auto invalid = stream.withConnectTimeoutMillis(9223372036854775807)
+catch Error
+    errors += 1
+end
+try
+    auto invalid = TcpDialOptions().withFamily(5)
+catch Error
+    errors += 1
+end
+try
+    auto invalid = TcpDialOptions().withFallbackDelayMillis(-1)
+catch Error
+    errors += 1
+end
+try
+    auto invalid = TcpDialOptions().withMaxAttempts(65)
+catch Error
+    errors += 1
+end
+try
+    auto invalid = TcpListenOptions().withAcceptQueue(1025, 2)
+catch Error
+    errors += 1
+end
+try
+    auto invalid = TcpListenOptions().withBinding(true, false, true, false)
+catch Error
+    errors += 1
+end
+try
+    auto invalid = TcpListenOptions().withBacklog(2147483648)
+catch Error
+    errors += 1
+end
+assert errors == 10 and stream.readSize == 2048 and stream.connectTimeoutMillis == 30000
+println("TCP option range and relational validation: ok")

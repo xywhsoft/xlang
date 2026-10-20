@@ -1646,6 +1646,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsNetResolverStatsClass;
     int needsNetProxyClass;
     int needsNetProxyHandshake;
+    int needsTcpStreamOptions,needsTcpDialOptions,needsTcpListenOptions;
     int needsNetEngineClass;
     int needsTcpStreamStatsClass;
     int needsTcpServerStatsClass;
@@ -1788,7 +1789,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
 	needsTlsSessionClass = xl6StdlibNeedsTlsSessionClass(root) ||
 		needsTlsStreamClass || needsTlsServerClass;
-    needsNetAddressClass = xl6StdlibNeedsNetAddressClass(root, used);
+    needsTcpDialOptions=xl6StdlibNodeUsesTypeName(root,"TcpDialOptions");
+    needsTcpListenOptions=xl6StdlibNodeUsesTypeName(root,"TcpListenOptions")||xl6StdlibNodeUsesTypeName(root,"TcpAcceptDistribution");
+    needsTcpStreamOptions=needsTcpDialOptions||needsTcpListenOptions||xl6StdlibNodeUsesTypeName(root,"TcpStreamOptions")||xl6StdlibNodeUsesTypeName(root,"TcpReadMode");
+    needsNetAddressClass = needsTcpListenOptions || xl6StdlibNeedsNetAddressClass(root, used);
     needsNetDefaultResolver=xl6StdlibFuncUsed(used,"net","resolveAsync")||xl6StdlibFuncUsed(used,"net","resolverStats");
     needsNetProxyHandshake=xl6StdlibNodeUsesTypeName(root,"NetProxyHandshake");
     if(needsNetProxyHandshake)needsNetAddressClass=1;
@@ -1920,7 +1924,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( xl6StdlibFuncUsed(used, "signal", "cancelOn") ) {
         needsTaskGroupClass = 1;
     }
-    needsCoreClass = needsCoreClass || needsNetResolverOptionsClass || needsCompress || needsDateTime || needsConsoleOptions || needsIoReader || needsIoWriter || needsIoLines || needsStringIterator || needsUtf8Validator || needsRegex || needsRandomClass || needsSipHasher64Class || needsXidClass ||
+    needsCoreClass = needsCoreClass || needsTcpStreamOptions || needsNetResolverOptionsClass || needsCompress || needsDateTime || needsConsoleOptions || needsIoReader || needsIoWriter || needsIoLines || needsStringIterator || needsUtf8Validator || needsRegex || needsRandomClass || needsSipHasher64Class || needsXidClass ||
         needsBufferClass || needsNetAddressClass || needsNetInterfaceClass ||
         needsNetBytesClass ||
         needsNetEngineStatsClass || needsNetResolverStatsClass ||
@@ -2077,6 +2081,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetProxyClassSource);
     }
     if(needsNetProxyHandshake)xl6StdlibBuilderAppend(&builder,xl6StdlibNetProxyHandshakeSource);
+    if(needsTcpStreamOptions)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpStreamOptionsSource);
+    if(needsTcpDialOptions)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpDialOptionsSource);
+    if(needsTcpListenOptions)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpListenOptionsSource);
     if ( needsNetEngineClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetEngineOptionsSource);
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetEngineClassSource);

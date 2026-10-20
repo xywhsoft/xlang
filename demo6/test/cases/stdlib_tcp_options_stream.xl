@@ -1,0 +1,14 @@
+auto original = TcpStreamOptions()
+assert original.readSize == 2048 and original.readLimit == 1048576
+assert original.writeHighWater == 262144 and original.writeLowWater == 65536 and original.writeLimit == 1048576
+assert original.connectTimeoutMillis == 30000 and original.noDelay and not original.keepAlive
+assert original.readMode == TcpReadMode.adaptive
+auto changed = original.withReadBuffer(4096, 65536).withWriteWatermarks(8192, 1024, 32768)
+changed = changed.withConnectTimeoutMillis(7).withReadMode(TcpReadMode.probe).withNoDelay(false).withKeepAlive(true)
+assert changed.readSize == 4096 and changed.readLimit == 65536
+assert changed.writeHighWater == 8192 and changed.writeLowWater == 1024 and changed.writeLimit == 32768
+assert changed.connectTimeoutMillis == 7 and changed.readMode == TcpReadMode.probe
+assert not changed.noDelay and changed.keepAlive
+assert original.connectTimeoutMillis == 30000 and original.readSize == 2048 and original.noDelay
+assert changed.withConnectTimeoutMillis(-1).connectTimeoutMillis == -1
+println("immutable stream configuration: ok")

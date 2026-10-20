@@ -745,7 +745,14 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_net_proxy_handshake_text.c",D(R(NET_PROXY_HANDSHAKE)),{"XRT_MODULE_STRING"}},
     {"src/runtime/xl6_net_proxy_handshake_address.c",D(R(NET_PROXY_HANDSHAKE),R(NET_ADDRESS)),{NULL}},
     {"src/runtime/xl6_ownership_domain_net_proxy.c",D(R(OWNERSHIP_CATALOG),R(NET_PROXY)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_net_proxy_handshake.c",D(R(OWNERSHIP_CATALOG),R(NET_PROXY_HANDSHAKE)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_net_proxy_handshake.c",D(R(OWNERSHIP_CATALOG),R(NET_PROXY_HANDSHAKE)),{NULL}},
+    {"src/runtime/xl6_tcp_stream_options.c",D(R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{"XRT_MODULE_NET_TCP"}},
+    {"src/runtime/xl6_tcp_dial_options.c",D(R(TCP_STREAM_OPTIONS)),{"XRT_MODULE_NET_TCP_DIAL"}},
+    {"src/runtime/xl6_tcp_listen_options.c",D(R(TCP_STREAM_OPTIONS)),{"XRT_MODULE_NET_TCP"}},
+    {"src/runtime/xl6_tcp_listen_options_address.c",D(R(TCP_LISTEN_OPTIONS),R(NET_ADDRESS)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_tcp_stream_options.c",D(R(OWNERSHIP_CATALOG),R(TCP_STREAM_OPTIONS)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_tcp_dial_options.c",D(R(OWNERSHIP_CATALOG),R(TCP_DIAL_OPTIONS)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_tcp_listen_options.c",D(R(OWNERSHIP_CATALOG),R(TCP_LISTEN_OPTIONS)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

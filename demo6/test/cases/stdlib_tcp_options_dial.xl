@@ -1,0 +1,15 @@
+auto original = TcpDialOptions()
+assert original.family == 0 and original.affinity == 0
+assert original.timeoutMillis == 30000 and original.fallbackDelayMillis == 250 and original.maxAttempts == 8
+auto stream = TcpStreamOptions().withReadBuffer(512, 4096).withConnectTimeoutMillis(17)
+auto changed = original.withStreamOptions(stream).withFamily(6).withAffinity(37)
+changed = changed.withTimeoutMillis(73).withFallbackDelayMillis(0).withMaxAttempts(4)
+assert changed.family == 6 and changed.affinity == 37 and changed.timeoutMillis == 73
+assert changed.fallbackDelayMillis == 0 and changed.maxAttempts == 4
+auto snapshot = changed.streamOptions()
+assert snapshot.readSize == 512 and snapshot.readLimit == 4096 and snapshot.connectTimeoutMillis == 17
+stream = stream.withReadBuffer(1, 2)
+assert snapshot.readSize == 512 and changed.streamOptions().readSize == 512
+assert original.family == 0 and original.maxAttempts == 8 and original.streamOptions().readSize == 2048
+assert changed.withTimeoutMillis(-1).timeoutMillis == -1
+println("immutable dial policy and nested stream copy: ok")
