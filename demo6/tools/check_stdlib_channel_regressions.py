@@ -11,12 +11,13 @@ CASES=('cgen_channel','cgen_channel_string','xlir_channel_resource_abi',
     'stdlib_signal_dispatch_routes','sem_channel_receiver_expr','sem_channel_recv_captured_target',
     'sem_channel_try_recv_captured_target','stdlib_channel_global_absence',
     'stdlib_channel_owned','stdlib_channel_owned_wait','xlir_module_product_globals',
-    'cgen_auto_inference_matrix')
+    'cgen_auto_inference_matrix','sem_channel_class_graph_element','sem_channel_function_element',
+    'sem_channel_generic_class_element','sem_channel_typed_array_element')
 NEGATIVE={
-    'capacity_type':'channel','class_graph_element':'channel<T>',
+    'capacity_type':'channel',
     'ctor_arg_count_many':'channel','ctor_named_argument':'channel',
-    'function_element':'channel<T>','generator_element':'channel<T>',
-    'generic_arity':'expected 1, actual 2','generic_class_element':'channel<T>',
+    'generator_element':'[ir] XLIR runtime resource intrinsic has no canonical constructor/member identity ABI',
+    'generic_arity':'expected 1, actual 2',
     'owned_extra':'channel receive takes no output variable',
     'owned_retired':'Into methods are retired','owned_timeout_named':'[parse]',
     'owned_timeout_type':'timeoutMs must be int','recv_const_target':'const',
@@ -24,11 +25,11 @@ NEGATIVE={
     'recv_target_type':'target string, value nullable<int>',
     'recv_timeout_named_argument':'channel receive takes no output variable',
     'recv_timeout_target_type':'target string, value nullable<int>',
-    'recv_timeout_type':'timeoutMs must be int','send_named_argument':'channel.send',
+    'recv_timeout_type':'timeoutMs must be int','send_named_argument':'[sem] channel send requires positional value',
     'send_type':'target int, value string','try_recv_const_target':'const',
     'try_recv_named_argument':'channel receive takes no output variable',
     'try_recv_target_type':'target string, value nullable<int>',
-    'typed_array_element':'channel<T>','unknown_method':'unknown channel method'}
+    'unknown_method':'unknown channel method'}
 
 def sha(path):
     with Path(path).open('rb') as stream:
