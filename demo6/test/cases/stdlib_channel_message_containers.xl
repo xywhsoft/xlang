@@ -1,0 +1,33 @@
+func exchange<T>(channel<T> pipe, T value) as T
+    assert pipe.send(value)
+    auto status, result = pipe.recv()
+    assert status == channelStatus.ok
+    return result ?? value
+end
+array<string> words = array["a\0你", "second"]
+auto arrays = channel::<array<string>>(1)
+auto restored = exchange(arrays, words)
+assert restored[0] == "a\0你" and restored[1] == "second"
+list<int> sparse = list[-7: 41, 7: 42]
+auto lists = channel::<list<int>>(1)
+auto copiedList = exchange(lists, sparse)
+assert copiedList[-7] == 41 and copiedList[7] == 42
+dict<string> names = dict{"key\0name": "a\0b"}
+auto dicts = channel::<dict<string>>(1)
+auto copiedDict = exchange(dicts, names)
+assert copiedDict["key\0name"] == "a\0b"
+set<string> labels = set{"a\0b", "second"}
+auto sets = channel::<set<string>>(1)
+auto copiedSet = exchange(sets, labels)
+assert "a\0b" in copiedSet and "second" in copiedSet
+auto stack = Stack::<int>()
+assert stack.push(42)
+auto stacks = channel::<Stack<int>>(1)
+auto copiedStack = exchange(stacks, stack)
+assert copiedStack.count() == 1
+auto slots = SlotMap::<string>()
+auto key = slots.insert("slot\0text")
+auto maps = channel::<SlotMap<string>>(1)
+auto copiedSlots = exchange(maps, slots)
+assert copiedSlots.get(key) == "slot\0text"
+println("Channel typed Array/List/Dict/Set/Stack/SlotMap messages preserve resident domains ok")

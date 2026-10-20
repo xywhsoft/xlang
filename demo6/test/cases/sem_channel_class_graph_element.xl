@@ -1,4 +1,20 @@
 class Cycle
-    channel<int> back
+    channel<int>? back = null
+    create(channel<int> source)
+        self.back = source
+    end
 end
 channel<Cycle> ch = channel::<Cycle>(2)
+auto back = channel::<int>(1)
+assert ch.send(Cycle(back))
+auto status, received = ch.recv()
+assert status == channelStatus.ok and received != null
+if received != null
+    auto restored = received.back ?? back
+    assert restored.send(42)
+end
+auto backStatus, answer = back.recv()
+assert backStatus == channelStatus.ok and answer != null
+if answer != null then assert answer == 42 end
+ch.close()
+back.close()

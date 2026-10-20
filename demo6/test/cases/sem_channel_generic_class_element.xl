@@ -1,4 +1,13 @@
 class Box<T>
     T value
+    create(T value)
+        self.value = value
+    end
 end
 channel<Box<int>> ch = channel::<Box<int>>(2)
+auto sent = Box::<int>(42)
+assert ch.send(sent)
+auto status, received = ch.recv()
+assert status == channelStatus.ok and received != null
+if received != null then assert received.value == 42 end
+ch.close()

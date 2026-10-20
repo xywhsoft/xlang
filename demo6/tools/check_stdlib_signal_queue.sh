@@ -87,14 +87,8 @@ done
 run example-run "$CLI" run release/examples/stdlib_signal.xl
 run example-build "$CLI" build release/examples/stdlib_signal.xl -o "$OUT/example"
 run example-execute "$OUT/example"
-if "$CLI" cgen test/cases/sem_channel_generic_class_element.xl --emit "$OUT/generic-class-reject.c" >"$OUT/generic-class-reject.log" 2>&1; then exit 1; fi
-grep -Fq 'channel<T>' "$OUT/generic-class-reject.log"
-[[ ! -e "$OUT/generic-class-reject.c" ]]
-checks=$((checks+1))
-if "$CLI" cgen test/cases/sem_channel_class_graph_element.xl --emit "$OUT/class-graph-reject.c" >"$OUT/class-graph-reject.log" 2>&1; then exit 1; fi
-grep -Fq 'channel<T>' "$OUT/class-graph-reject.log"
-[[ ! -e "$OUT/class-graph-reject.c" ]]
-checks=$((checks+1))
+run generic-class-message "$CLI" run test/cases/sem_channel_generic_class_element.xl
+run class-graph-message "$CLI" run test/cases/sem_channel_class_graph_element.xl
 sha256sum --quiet -c "$OUT/inputs.sha256"
-printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Owner-thread explicit signal queue/pump, twenty-four exact managed bridges, allocation-free bounded recorder, coalescing/saturation and immutable snapshots with OOM retry. Nine owner guards, once/close retirement races, 10000 concurrent records and global disposition/absolute-timeout waits. Eight strict shared CLI/JIT/AOT cases and eight actual generated XRT/resident/program closures under ASan/UBSan/leaks. Three shared signal memory-kind ledgers plus one legacy channel rejection/ownership ledger (ChannelError replaces native OOM kind/cause). Generic/object-graph class messages rejected. Full TaskGroup/channel and 53-module completion not claimed."}\n' "$checks" >"$OUT/results.json"
+printf '{"Complete":true,"Checks":%d,"InputsUnchanged":true,"Scope":"Owner-thread explicit signal queue/pump, twenty-four exact managed bridges, allocation-free bounded recorder, coalescing/saturation and immutable snapshots with OOM retry. Nine owner guards, once/close retirement races, 10000 concurrent records and global disposition/absolute-timeout waits. Eight strict shared CLI/JIT/AOT cases and eight actual generated XRT/resident/program closures under ASan/UBSan/leaks. Three shared signal memory-kind ledgers plus one legacy channel rejection/ownership ledger (ChannelError replaces native OOM kind/cause). Generic/object-graph class messages have positive runtime regressions; graph retirement is verified by the dedicated Channel message gate. Full TaskGroup/channel and 53-module completion not claimed."}\n' "$checks" >"$OUT/results.json"
 printf 'Signal queue Linux checks: %d\n' "$checks"

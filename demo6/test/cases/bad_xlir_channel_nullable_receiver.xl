@@ -1,0 +1,2 @@
+channel<int>? pipe = null
+pipe.send(42)

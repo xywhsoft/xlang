@@ -1,0 +1,75 @@
+import concurrent
+
+class MessageBox<T>
+    T value
+    create(T value)
+        self.value = value
+    end
+end
+class MessageBase
+    int number = 42
+    func read() as int
+        return self.number
+    end
+end
+class MessageDerived extends MessageBase
+    array<string> words = array["a\0你", "second"]
+end
+protocol MessageView
+    func read() as int
+end
+class CompositeMessage
+    MessageBox<string> nested = MessageBox::<string>("owned\0text")
+    array<int> numbers = array[1, 2]
+end
+
+func exchange<T>(T value) as T
+    auto pipe = channel::<T>(1)
+    assert pipe.send(value)
+    auto status, result = pipe.recv()
+    assert status == channelStatus.ok
+    pipe.close()
+    return result ?? value
+end
+async func exchangeAsync<T>(T value) as T?
+    auto pipe = channel::<T>(0)
+    auto receiving = pipe.recvAsyncTimeout(30000)
+    assert await pipe.sendAsyncTimeout(value, 30000) == channelStatus.ok
+    auto result = await receiving
+    assert result.hasValue
+    return result.value
+end
+func exchangeSelected<T>(T value) as T
+    auto pipe = channel::<T>(1)
+    auto sending = ChannelCase.send(pipe, value)
+    assert ChannelSelection.select([sending]).status == channelStatus.ok
+    auto receiving = ChannelCase.receive(pipe)
+    auto result = ChannelSelection.select([receiving])
+    assert result.status == channelStatus.ok
+    return result.value(receiving, pipe)
+end
+
+auto box = MessageBox::<int>(42)
+auto direct = channel::<MessageBox<int>>(1)
+assert direct.send(box)
+auto directStatus, directCopy = direct.recv()
+assert directStatus == channelStatus.ok and directCopy != null
+direct.close()
+auto shared = exchange(box)
+shared.value = 43
+assert box.value == 43
+auto composite = exchange(CompositeMessage())
+assert composite.nested.value == "owned\0text"
+assert composite.numbers[1] == 2
+auto derived = MessageDerived()
+MessageBase base = exchange::<MessageBase>(derived)
+assert base.read() == 42
+MessageView viewed = exchange::<MessageView>(derived)
+assert viewed.read() == 42
+MessageView selected = exchangeSelected::<MessageView>(derived)
+assert selected.read() == 42
+auto later = await exchangeAsync(box)
+assert later != null
+if later != null then assert later.value == 43 end
+assert await exchangeAsync::<MessageBox<int>?>(null) == null
+println("Channel generic/composite/inherited/protocol messages share exact managed identities ok")

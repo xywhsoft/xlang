@@ -85,14 +85,14 @@ try {
         $null=Check 'example-run' 'release/xl.exe' @('run','release/examples/stdlib_signal.xl')
         $null=Check 'example-build' 'release/xl.exe' @('build','release/examples/stdlib_signal.xl','-o',"$work/example.exe")
         $null=Check 'example-execute' "$work/example.exe" @()
-        $null=Check 'generic-class-reject' $build.Driver @('test/cases/sem_channel_generic_class_element.xl','emit',"$work/generic-class-reject") 'channel<T>'
-        $null=Check 'class-graph-reject' $build.Driver @('test/cases/sem_channel_class_graph_element.xl','emit',"$work/class-graph-reject") 'channel<T>'
+        $null=Check 'generic-class-message' $build.Driver @('test/cases/sem_channel_generic_class_element.xl','run',"$work/generic-class-message")
+        $null=Check 'class-graph-message' $build.Driver @('test/cases/sem_channel_class_graph_element.xl','run',"$work/class-graph-message")
         $complete=$true
     } finally {
         $changed=@($inputs.Keys|Where-Object {(Get-FileHash $_).Hash-ne$inputs[$_]})
         if($changed.Count){$complete=$false}
         [IO.File]::WriteAllText("$work/results.json",([ordered]@{Complete=$complete;Checks=$rows.Count;Cases=$cases;Negatives=$negatives;
-            ChangedInputs=$changed;Inputs=$inputs;Results=$rows;Scope='Owner-thread explicit signal queue/pump: twenty-four closed managed bridges, allocation-free bounded recorder, coalescing/saturation, immutable prepare/snapshot/consume, constructor OOM, nine owner guards, once/close retirement and global disposition waits. Eight strict current-source/formal JIT/AOT cases cover typed/nullary on/once, closure self-close/reentrancy/errors, flat class channel backpressure and TaskGroup cancel entry. Three signal memory-kind logical ledgers plus one legacy channel rejection/ownership ledger (ChannelError may replace native OOM kind/cause). Generic and object-graph class messages rejected. No full TaskGroup/channel or 53-module completion claim.'}|ConvertTo-Json -Depth 10),$utf8)
+            ChangedInputs=$changed;Inputs=$inputs;Results=$rows;Scope='Owner-thread explicit signal queue/pump: twenty-four closed managed bridges, allocation-free bounded recorder, coalescing/saturation, immutable prepare/snapshot/consume, constructor OOM, nine owner guards, once/close retirement and global disposition waits. Eight strict current-source/formal JIT/AOT cases cover typed/nullary on/once, closure self-close/reentrancy/errors, flat class channel backpressure and TaskGroup cancel entry. Three signal memory-kind logical ledgers plus one legacy channel rejection/ownership ledger (ChannelError may replace native OOM kind/cause). Generic and object-graph class messages have positive runtime regressions; graph retirement is verified by the dedicated Channel message gate. No full TaskGroup/channel or 53-module completion claim.'}|ConvertTo-Json -Depth 10),$utf8)
         if($changed.Count){throw 'Frozen signal_queue inputs changed'}
     }
     Write-Output "Signal queue Windows checks: $($rows.Count)"
