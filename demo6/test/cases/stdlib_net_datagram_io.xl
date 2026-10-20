@@ -1,0 +1,76 @@
+// Own loopback only. Explicit integer inspection uses existing syntax;
+// this fixture does not decide numeric-enum bitwise-composition semantics.
+func receivePacket(NetSocket receiver, Buffer output, NetDatagramInfo info, int maxBytes, NetStatus expected, uint64 expectedCount)
+    int rounds = 0
+    while true
+        auto status, count = receiver.receiveFromInto(output,info,maxBytes)
+        if status != NetStatus.again
+            assert status == expected and count == expectedCount and info.hasPacket
+            return
+        end
+        rounds += 1
+        assert rounds < 100000
+    end
+end
+
+func exercise(int family)
+    auto receiver = NetSocket(NetSocketKind.datagram, family)
+    auto sender = NetSocket(NetSocketKind.datagram, family)
+    receiver.bind(NetAddress.loopback(family))
+    sender.bind(NetAddress.loopback(family))
+    auto target = receiver.localAddress()
+    auto available = receiver.metadataAvailable()
+    receiver.enableMetadata(available)
+    assert receiver.metadataEnabled() == available
+    auto control = NetDatagramControl()
+    auto supported = sender.controlAvailable()
+    if (int(supported) & int(NetDatagramControlFlags.hopLimit)) != 0
+        control = control.withHopLimit(37)
+    end
+    assert int(sender.datagramCapabilities()) >= 0
+    auto info = NetDatagramInfo()
+    auto output = Buffer(b"prefix")
+    auto status, count = receiver.receiveFromInto(output,info,16)
+    assert status == NetStatus.again and count == 0 and not info.hasPacket
+    auto sent, written = sender.sendMessage("a\0你",target,control,99)
+    assert sent == NetStatus.ok and written == 5
+    receivePacket(receiver,output,info,16,NetStatus.ok,5)
+    assert output.length == 11 and output[7] == 0 and info.remote.equals(sender.localAddress())
+    if (int(info.metadata) & int(NetDatagramMetadata.destination)) != 0
+        assert info.destination.port == 0 and info.destination.isLoopback and info.destination.family == family
+    end
+    if (int(info.metadata) & int(NetDatagramMetadata.interfaceIndex)) != 0
+        assert info.interfaceIndex > 0
+    end
+    if (int(info.metadata) & int(NetDatagramMetadata.hopLimit)) != 0 and int(control.flags) != 0
+        assert info.hopLimit == 37
+    end
+    auto again, empty = receiver.receiveFromInto(output,info,16)
+    assert again == NetStatus.again and empty == 0 and output.length == 11 and info.remote.equals(sender.localAddress())
+    auto sentBytes, byteCount = sender.sendMessage(b"abcdef",target,NetDatagramControl(),3)
+    assert sentBytes == NetStatus.ok and byteCount == 3
+    receivePacket(receiver,output,info,1,NetStatus.truncated,1)
+    assert output.length == 12
+    auto input = Buffer(b"a\0bc")
+    auto sentBuffer, bufferCount = sender.sendMessage(input,target,NetDatagramControl(),99)
+    assert sentBuffer == NetStatus.ok and bufferCount == 4
+    receivePacket(receiver,output,info,16,NetStatus.ok,4)
+    assert sender.connect(target) == NetStatus.ok
+    auto connectedText, textCount = sender.sendMessage("a\0b",NetDatagramControl(),2)
+    assert connectedText == NetStatus.ok and textCount == 2
+    receivePacket(receiver,output,info,16,NetStatus.ok,2)
+    auto connectedBytes, bytesCount = sender.sendMessage(b"xyz",NetDatagramControl(),1)
+    assert connectedBytes == NetStatus.ok and bytesCount == 1
+    receivePacket(receiver,output,info,16,NetStatus.ok,1)
+    auto connectedBuffer, finalCount = sender.sendMessage(input,NetDatagramControl(),0)
+    assert connectedBuffer == NetStatus.ok and finalCount == 0
+    receivePacket(receiver,output,info,0,NetStatus.ok,0)
+    assert output.length == 19
+    info.clear()
+    assert not info.hasPacket and info.metadata == NetDatagramMetadata.none
+    sender.close()
+    receiver.close()
+end
+exercise(4)
+exercise(6)
+println("Datagram language: own IPv4/IPv6 metadata, six send forms, NUL, truncation and empty packet ok")

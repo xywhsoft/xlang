@@ -19,4 +19,17 @@ XL6_SOCKET_ENUM(NetStatus)
 XL6_SOCKET_ENUM(NetSocketKind)
 XL6_SOCKET_ENUM(NetShutdown)
 XL6_SOCKET_ENUM(NetSocketOption)
+static const XL6_IrNumericEnumMemberContract xl6IrNetDatagramMetadataMembers[]={
+    {"none",0,0},{"destination",1,0},{"interfaceIndex",2,0},{"hopLimit",4,0},
+    {"trafficClass",8,0},{"segmentSize",16,0},{"truncated",1073741824,0}
+};
+static const XL6_IrNumericEnumMemberContract xl6IrNetDatagramControlFlagsMembers[]={
+    {"none",0,0},{"source",1,0},{"interfaceIndex",2,0},{"hopLimit",4,0},{"trafficClass",8,0},{"segmentSize",16,0}
+};
+static const XL6_IrNumericEnumMemberContract xl6IrNetDatagramCapabilitiesMembers[]={
+    {"none",0,0},{"pathMtuMode",1,0},{"pathMtuQuery",2,0},{"errorQueue",4,0},{"segmentSend",8,0},{"segmentReceive",16,0}
+};
+XL6_SOCKET_ENUM(NetDatagramMetadata)
+XL6_SOCKET_ENUM(NetDatagramControlFlags)
+XL6_SOCKET_ENUM(NetDatagramCapabilities)
 #undef XL6_SOCKET_ENUM

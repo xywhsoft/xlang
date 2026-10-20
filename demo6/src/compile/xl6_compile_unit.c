@@ -682,7 +682,12 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_net_socket_language.c",D(R(NET_SOCKET_OWNER),R(NATIVE_HANDLE),R(NET_ADDRESS)),{NULL}},
     {"src/runtime/xl6_net_socket_io.c",D(R(NET_SOCKET_LANGUAGE)),{"XRT_MODULE_BUFFER","XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_ownership_domain_net_socket_owner.c",D(R(OWNERSHIP_CATALOG),R(NET_SOCKET_OWNER)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_net_socket.c",D(R(OWNERSHIP_CATALOG),R(NET_SOCKET_LANGUAGE)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_net_socket.c",D(R(OWNERSHIP_CATALOG),R(NET_SOCKET_LANGUAGE)),{NULL}},
+    {"src/runtime/xl6_net_datagram_values.c",D(R(NATIVE_HANDLE),R(FOREIGN_ERROR),R(NET_ADDRESS)),{"XRT_MODULE_NET","XRT_MODULE_MEMORY"}},
+    {"src/runtime/xl6_net_socket_datagram_control.c",D(R(NET_SOCKET_LANGUAGE)),{NULL}},
+    {"src/runtime/xl6_net_socket_datagram_io.c",D(R(NET_SOCKET_LANGUAGE),R(NET_DATAGRAM_VALUES)),{"XRT_MODULE_BUFFER","XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_ownership_domain_net_datagram_info.c",D(R(OWNERSHIP_CATALOG),R(NET_DATAGRAM_VALUES)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_datagram_control.c",D(R(OWNERSHIP_CATALOG),R(NET_DATAGRAM_VALUES)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

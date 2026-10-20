@@ -192,4 +192,6 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CancellationRegistrationHa
     }
 #define XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(Getter, Destroy) \
     XL6_DEFINE_NATIVE_HANDLE_POLICY(Getter, Destroy, xl6NativeHandleTraceLeaf)
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetDatagramInfoHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetDatagramControlHandlePolicyV1Get(void);
 #endif
