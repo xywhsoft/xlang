@@ -1,0 +1,2 @@
+auto socket = NetSocket(NetSocketKind.datagram)
+socket.setPathMtuMode(NetDatagramErrorOrigin.local)

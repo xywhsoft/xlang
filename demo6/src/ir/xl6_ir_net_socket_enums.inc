@@ -32,4 +32,16 @@ static const XL6_IrNumericEnumMemberContract xl6IrNetDatagramCapabilitiesMembers
 XL6_SOCKET_ENUM(NetDatagramMetadata)
 XL6_SOCKET_ENUM(NetDatagramControlFlags)
 XL6_SOCKET_ENUM(NetDatagramCapabilities)
+static const XL6_IrNumericEnumMemberContract xl6IrNetPathMtuModeMembers[]={
+    {"system",0,0},{"discover",1,0},{"fragment",2,0},{"probe",3,0}
+};
+static const XL6_IrNumericEnumMemberContract xl6IrNetDatagramErrorOriginMembers[]={
+    {"unknown",0,0},{"local",1,0},{"icmp",2,0},{"icmp6",3,0}
+};
+static const XL6_IrNumericEnumMemberContract xl6IrNetDatagramErrorFlagsMembers[]={
+    {"none",0,0},{"remote",1,0},{"offender",2,0},{"pathMtu",4,0},{"payloadTruncated",8,0},{"metadataTruncated",16,0}
+};
+XL6_SOCKET_ENUM(NetPathMtuMode)
+XL6_SOCKET_ENUM(NetDatagramErrorOrigin)
+XL6_SOCKET_ENUM(NetDatagramErrorFlags)
 #undef XL6_SOCKET_ENUM

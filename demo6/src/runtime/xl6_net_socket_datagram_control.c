@@ -63,3 +63,36 @@ static void multicastInterface(void* raw,const void* iface)
 }
 void xl6NetSocketMulticastInterfaceV1(void* raw,const void* iface) { multicastInterface(raw,iface); }
 void xl6NetSocketMulticastInterfaceDefaultV1(void* raw) { multicastInterface(raw,NULL); }
+void xl6NetSocketPathMtuModeSetV1(void* raw,int64_t mode)
+{
+    if(mode<XNET_PMTU_SYSTEM||mode>XNET_PMTU_PROBE){xrtSetErrorKind(XERR_VALUE);failed();return;}
+    XL6_NetSocketScopeV1 scope={0};if(!enter(raw,&scope))return;
+    if(!xrtNetSocketSet(scope.native,XNET_OPTION_PATH_MTU_MODE,mode))failed();
+    xl6NetSocketOwnerLeaveV1(&scope);
+}
+static bool get(void* raw,xnetoption option,int64* value)
+{
+    XL6_NetSocketScopeV1 scope={0};
+    if(!xl6NetSocketOwnerEnterV1(raw,&scope)){failed();return false;}
+    bool ok=xrtNetSocketGet(scope.native,option,value);if(!ok)failed();
+    xl6NetSocketOwnerLeaveV1(&scope);return ok;
+}
+int64_t xl6NetSocketPathMtuModeV1(void* raw)
+{
+    int64 value=0;if(!get(raw,XNET_OPTION_PATH_MTU_MODE,&value))return 0;
+    if(value<XNET_PMTU_SYSTEM||value>XNET_PMTU_PROBE){xrtSetErrorKind(XERR_STATE);failed();return 0;}
+    return value;
+}
+uint64_t xl6NetSocketPathMtuV1(void* raw)
+{
+    int64 value=0;if(!get(raw,XNET_OPTION_PATH_MTU,&value))return 0;
+    if(value<0){xrtSetErrorKind(XERR_STATE);failed();return 0;}return (uint64_t)value;
+}
+void xl6NetSocketDatagramErrorsSetV1(void* raw,bool enabled)
+{
+    XL6_NetSocketScopeV1 scope={0};if(!enter(raw,&scope))return;
+    if(!xrtNetSocketSet(scope.native,XNET_OPTION_DGRAM_ERRORS,enabled))failed();
+    xl6NetSocketOwnerLeaveV1(&scope);
+}
+bool xl6NetSocketDatagramErrorsV1(void* raw)
+{int64 value=0;return get(raw,XNET_OPTION_DGRAM_ERRORS,&value)&&value!=0;}

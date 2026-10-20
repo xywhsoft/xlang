@@ -8,7 +8,9 @@ def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1])
  p.add_argument('--source-build',type=Path,required=True);p.add_argument('--out',type=Path,required=True);p.add_argument('--native-root',type=Path)
  p.add_argument('--datagram',action='store_true',help='Include independent datagram values, integration and closed ABI contracts')
+ p.add_argument('--datagram-errors',action='store_true',help='Also include offline error values, typed PMTU and empty error queues')
  a=p.parse_args();root=a.root.resolve();out=a.out.resolve();manifest=a.source_build.resolve()
+ if a.datagram_errors:a.datagram=True
  def sha(f):return hashlib.sha256(Path(f).read_bytes()).hexdigest()
  build=json.loads(manifest.read_text(encoding='utf-8-sig'));assert not out.exists() and build['SourceXrt'] and not build['RuntimeOnly'] and build['EnableExeCompiler']==1
  assert all(sha(row['Path'])==row['Sha256'].lower() for row in build['Inputs']+build['Objects']+build['Headers'])
@@ -18,8 +20,12 @@ def main():
  if a.datagram:
   cases=('stdlib_net_datagram_values','stdlib_net_datagram_io',*cases)
   negatives=(*negatives,'bad_stdlib_net_datagram_flags','bad_stdlib_net_datagram_info')
+ if a.datagram_errors:
+  cases=('stdlib_net_datagram_error_values','stdlib_net_socket_error_queue',*cases)
+  negatives=(*negatives,'bad_stdlib_net_path_mtu_mode','bad_stdlib_net_error_info')
  contracts=[root/'test/cases/xlir_net_socket_contract.c']
  if a.datagram:contracts.append(root/'test/cases/xlir_net_datagram_contract.c')
+ if a.datagram_errors:contracts.append(root/'test/cases/xlir_net_datagram_error_contract.c')
  inputs={str(f):sha(f) for f in (Path(__file__).resolve(),manifest,driver,cc,*contracts,*[root/('test/cases/'+n+'.xl') for n in cases+negatives])}
  out.mkdir(parents=True);rows=[];products=[];failures=[];env=dict(os.environ)
  if os.name!='nt':assert a.native_root;env['XL6_SOURCE_NATIVE_ROOT']=str(a.native_root.resolve())
@@ -52,7 +58,7 @@ def main():
    for mod in ('NET_ENGINE','NET_DNS','NET_RESOLVER','EXECUTOR','TASK_POOL','TLS','NET_TCP','NET_UDP'):
     assert '#define XRT_MODULE_'+mod+'\n' not in nativeText,mod
    assert ('#define XRT_MODULE_NET_SOCKET\n' in nativeText)==(case.startswith('stdlib_net_socket') or case=='stdlib_net_datagram_io')
-   assert '#define XRT_MODULE_BUFFER\n' not in nativeText or case in ('stdlib_net_socket_tcp','stdlib_net_socket_udp','stdlib_net_datagram_io')
+   assert '#define XRT_MODULE_BUFFER\n' not in nativeText or case in ('stdlib_net_socket_tcp','stdlib_net_socket_udp','stdlib_net_datagram_io','stdlib_net_socket_error_queue')
    imports=run(case+'.imports',['E:/software/w64devkit/bin/objdump.exe','-p',exe] if os.name=='nt' else ['readelf','-d',exe])
    assert not any(name in imports.lower() for name in ('xl.dll','xlc.dll','libxl.so','libxlc.so'))
   for case in negatives:
@@ -60,6 +66,8 @@ def main():
    reason='C ABI extern product requires a closed primitive product profile' if case.startswith('bad_native_product_') else \
     "no matching callable class member 'NetSocket.enableMetadata'" if case.endswith('datagram_flags') else \
     "no matching callable class member 'NetSocket.receiveFromInto'" if case.endswith('datagram_info') else \
+    "no matching callable class member 'NetSocket.setPathMtuMode'" if case.endswith('mtu_mode') else \
+    "no matching callable class member 'NetSocket.receiveErrorInto'" if case.endswith('error_info') else \
     "no matching callable class member 'NetSocket.setOption'" if case.endswith('_option') else '没有匹配的 create 重载'
    assert reason in text,text
    assert not (out/(case+'.c')).exists()
@@ -76,7 +84,9 @@ def main():
     response=out/(label+'.rsp');response.write_text('\n'.join('"'+str(x).replace('\\','/')+'"' for x in link)+'\n',encoding='utf8');product(response)
     run(label+'.link',[cc,'@'+str(response)]);product(binary)
     if os.name=='nt' and not (out/'xl.dll').exists():shutil.copy2(root/'release/xl.dll',out/'xl.dll');product(out/'xl.dll')
-    proof=run(label+'.run',[binary,root/('test/cases/stdlib_net_datagram_io.xl' if contract.stem=='xlir_net_datagram_contract' else 'test/cases/stdlib_net_socket_tcp.xl')]);assert 'XLIR:' in proof
+    fixture='stdlib_net_socket_error_queue' if contract.stem=='xlir_net_datagram_error_contract' else \
+     'stdlib_net_datagram_io' if contract.stem=='xlir_net_datagram_contract' else 'stdlib_net_socket_tcp'
+    proof=run(label+'.run',[binary,root/('test/cases/'+fixture+'.xl')]);assert 'XLIR:' in proof
   report['InputsUnchanged']=all(sha(f)==h for f,h in inputs.items()) and all(sha(row['Path'])==row['Sha256'].lower() for row in build['Inputs'])
   report['LogsUnchanged']=all(sha(row['Log'])==row['Sha256'] for row in rows);assert report['InputsUnchanged'] and report['LogsUnchanged'];report['Complete']=True;save()
  except BaseException as error:failures.append(repr(error));save();raise

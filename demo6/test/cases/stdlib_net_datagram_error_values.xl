@@ -1,0 +1,30 @@
+// Offline only. Queue errors are data, not a thrown Error subclass.
+auto info = NetDatagramErrorInfo()
+assert not info.hasError and info.flags == NetDatagramErrorFlags.none
+int missing = 0
+try
+    auto origin = info.origin
+catch Error
+    missing += 1
+end
+try
+    auto remote = info.remote
+catch Error
+    missing += 1
+end
+try
+    auto offender = info.offender
+catch Error
+    missing += 1
+end
+try
+    auto size = info.pathMtu
+catch Error
+    missing += 1
+end
+assert missing == 4
+info.clear()
+assert not info.hasError and int(info.flags) == 0
+assert int(NetDatagramErrorOrigin.icmp6) == 3
+assert int(NetPathMtuMode.fragment) == 2
+println("Datagram error offline values and exact enums: ok")
