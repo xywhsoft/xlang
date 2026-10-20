@@ -1,0 +1,44 @@
+// Only this program's own IPv4 loopback listener and ephemeral port.
+auto listener = NetSocket(NetSocketKind.stream)
+listener.bind(NetAddress.loopback())
+listener.listen()
+auto address = listener.localAddress()
+assert address.isLoopback and address.port > 0
+auto client = NetSocket(NetSocketKind.stream)
+auto accepted = NetSocket()
+auto status = client.connect(address)
+assert status == NetStatus.ok or status == NetStatus.again
+int rounds = 0
+while listener.acceptInto(accepted) == NetStatus.again
+    rounds += 1
+    assert rounds < 100000
+end
+assert not accepted.isClosed
+assert client.finishConnect() == NetStatus.ok
+auto sentStatus, sent = client.send("a\0b", 99)
+assert sentStatus == NetStatus.ok and sent == 3
+auto data = Buffer()
+rounds = 0
+while data.length < 3
+    auto readStatus, count = accepted.receiveInto(data, 16)
+    assert readStatus == NetStatus.ok or readStatus == NetStatus.again
+    assert count <= 16
+    rounds += 1
+    assert rounds < 100000
+end
+assert data.length == 3 and data[1] == 0
+auto again, count = accepted.receiveInto(data,16)
+assert again == NetStatus.again and count == 0 and data.length == 3
+client.shutdown(NetShutdown.write)
+rounds = 0
+while true
+    auto closed, size = accepted.receiveInto(data, 16)
+    if closed == NetStatus.closed then break end
+    assert closed == NetStatus.again and size == 0
+    rounds += 1
+    assert rounds < 100000
+end
+accepted.close()
+client.close()
+listener.close()
+println("Socket own loopback TCP, status/count, NUL and EOF: ok")

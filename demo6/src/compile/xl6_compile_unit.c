@@ -677,7 +677,12 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_net_engine_stats.c",D(R(NATIVE_HANDLE)),{NULL}},
     {"src/runtime/xl6_ownership_domain_net_engine_config.c",D(R(OWNERSHIP_CATALOG),R(NET_ENGINE_CONFIG)),{NULL}},
     {"src/runtime/xl6_ownership_domain_net_engine_language.c",D(R(OWNERSHIP_CATALOG),R(NET_ENGINE_LANGUAGE),R(OWNERSHIP_DOMAIN_EXECUTION_NET_ENGINE),R(OWNERSHIP_DOMAIN_NET_ENGINE_NATIVE)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_net_engine_stats.c",D(R(OWNERSHIP_CATALOG),R(NET_ENGINE_STATS)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_net_engine_stats.c",D(R(OWNERSHIP_CATALOG),R(NET_ENGINE_STATS)),{NULL}},
+    {"src/runtime/xl6_net_socket_owner.c",D(R(FOREIGN_ERROR)),{"XRT_MODULE_NET_SOCKET","XRT_MODULE_MEMORY","XRT_MODULE_ATOMIC","XRT_MODULE_THREAD"}},
+    {"src/runtime/xl6_net_socket_language.c",D(R(NET_SOCKET_OWNER),R(NATIVE_HANDLE),R(NET_ADDRESS)),{NULL}},
+    {"src/runtime/xl6_net_socket_io.c",D(R(NET_SOCKET_LANGUAGE)),{"XRT_MODULE_BUFFER","XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_ownership_domain_net_socket_owner.c",D(R(OWNERSHIP_CATALOG),R(NET_SOCKET_OWNER)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_socket.c",D(R(OWNERSHIP_CATALOG),R(NET_SOCKET_LANGUAGE)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

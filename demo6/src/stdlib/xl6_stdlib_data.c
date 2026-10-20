@@ -496,6 +496,7 @@ const char* xl6StdlibLengthFramerClassSource =
 
 
 #include "xl6_stdlib_net_engine.inc"
+#include "xl6_stdlib_net_socket.inc"
 
 
 

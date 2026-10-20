@@ -1,0 +1,2 @@
+auto socket = NetSocket(NetSocketKind.stream)
+socket.setOption(1,1)

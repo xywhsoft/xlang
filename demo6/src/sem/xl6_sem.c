@@ -20208,7 +20208,8 @@ static int xl6SemIsInternalStdRuntimeExtern(const XL6_AstNode* node)
 }
 
 /* The native product ABI is closed: three language signed 64-bit values or
- * two absolute times, or bool followed by time/int/int32/uint32/uint64/bool,
+ * two absolute times, bool followed by time/int/int32/uint32/uint64/bool,
+ * or signed64 (including a nominal signed64 enum) followed by uint64,
  * in declaration order. Resolve aliases here; Typed XLIR independently
  * verifies the exact physical carrier, ownership and representation. C
  * integer aliases are deliberately not admitted based on host sizeof. */
@@ -20218,6 +20219,15 @@ static int xl6SemIsCAbiPrimitiveProductReturns(XL6_SemContext* ctx,
     size_t i;
     if (returns == NULL || (returns->childCount != 2 && returns->childCount != 3)) return 0;
     const XL6_AstNode* first = xl6SemResolveAliasType(ctx, returns->children[0]);
+    if(returns->childCount==2&&first&&first->text&&!first->childCount){
+        const XL6_AstNode* head=first;
+        const XL6_TypeInfo* info=xl6TypeRegistryFind(&ctx->types,first->text);
+        if(info&&info->kind==XL6_TYPE_NUMERIC_ENUM&&info->decl&&info->decl->childCount)
+            head=xl6SemResolveAliasType(ctx,info->decl->children[0]);
+        const XL6_AstNode* tail=xl6SemResolveAliasType(ctx,returns->children[1]);
+        if(head&&!head->childCount&&(xl6TextEquals(head->text,"int")||xl6TextEquals(head->text,"int64"))&&
+            tail&&!tail->childCount&&xl6TextEquals(tail->text,"uint64"))return 1;
+    }
     int boolFirst = first && xl6TextEquals(first->text, "bool");
     for (i = 0; i < returns->childCount; ++i) {
         const XL6_AstNode* type = xl6SemResolveAliasType(ctx, returns->children[i]);

@@ -1,0 +1,4 @@
+enum UnsignedStatus as uint64
+    ok = 0
+end
+extern "unregistered_unsigned_pair" func invalid() as (UnsignedStatus,uint64)

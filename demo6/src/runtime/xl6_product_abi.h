@@ -55,4 +55,8 @@ typedef struct XL6_ProductBoolU64V1 { bool e0; uint64_t e1; } XL6_ProductBoolU64
 #define XL6_PRODUCT_ABI_BOOLBOOL_V1
 typedef struct XL6_ProductBoolBoolV1 { bool e0; bool e1; } XL6_ProductBoolBoolV1;
 #endif
+#ifndef XL6_PRODUCT_ABI_I64U64_V1
+#define XL6_PRODUCT_ABI_I64U64_V1
+typedef struct XL6_ProductI64U64V1 { int64_t e0; uint64_t e1; } XL6_ProductI64U64V1;
+#endif
 #endif

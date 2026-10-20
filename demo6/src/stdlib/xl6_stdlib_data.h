@@ -10,6 +10,7 @@
 extern const char* xl6StdlibNetBackendSource;
 extern const char* xl6StdlibNetEngineStateSource;
 extern const char* xl6StdlibNetEngineOptionsSource;
+extern const char* xl6StdlibNetSocketSource;
 extern const char* xl6StdlibOnceSource;
 extern const char* xl6StdlibExecutorSource;
 extern const char* xl6StdlibTaskPoolSource;

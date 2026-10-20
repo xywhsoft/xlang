@@ -29,6 +29,11 @@
     src\runtime\xl6_ownership_domain_net_engine_config.c
     src\runtime\xl6_ownership_domain_net_engine_language.c
     src\runtime\xl6_ownership_domain_net_engine_stats.c
+    src\runtime\xl6_net_socket_owner.c
+    src\runtime\xl6_net_socket_language.c
+    src\runtime\xl6_net_socket_io.c
+    src\runtime\xl6_ownership_domain_net_socket_owner.c
+    src\runtime\xl6_ownership_domain_net_socket.c
     src\runtime\xl6_execution_failures.c
     src\runtime\xl6_ownership_domain_execution_failures.c
     src\runtime\xl6_execution_worker_exit.c

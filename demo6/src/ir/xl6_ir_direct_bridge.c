@@ -53,6 +53,7 @@ static int xl6IrDirectNumericEnumMatches(const XL6_IrModule* module,
 }
 #include "xl6_ir_net_backend_enum.inc"
 #include "xl6_ir_net_engine_state_enum.inc"
+#include "xl6_ir_net_socket_enums.inc"
 typedef struct XL6_IrDirectBridgeContract {
     const char* name;
     XL6_IrRuntimeBridgeKind kind;
@@ -116,6 +117,7 @@ typedef struct XL6_IrDirectBridgeContract {
     unsigned char sequenceValueResult;
     const XL6_IrNumericEnumContract* resultEnum;
     const XL6_IrNumericEnumContract* parameterEnums[8];
+    const XL6_IrNumericEnumContract* resultProductEnums[3];
 } XL6_IrDirectBridgeContract;
 
 static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
@@ -139,6 +141,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "xl6_ir_concurrent_contracts.inc"
 #include "xl6_ir_executor_contracts.inc"
 #include "xl6_ir_net_engine_contracts.inc"
+#include "xl6_ir_net_socket_contracts.inc"
 #include "xl6_ir_task_pool_contracts.inc"
 #include "xl6_ir_channel_case_contracts.inc"
 #define XL6_GENERIC_CREATE(Name,Owner) {Name,T,V,0,{0},.resultOwner=Owner,.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1}
@@ -1268,6 +1271,15 @@ int xl6IrRuntimeDirectBridgeTargetMatches(
                 xl6IrNativeProductAbiForShape(&module->types,result) != contract->resultProductAbi ||
                 result->ownershipAbi != XL6_IR_OWNERSHIP_ABI_TRIVIAL || result->nullAbi != XL6_IR_NULL_ABI_NONE ||
                 strcmp(result->cName,xl6IrNativeProductAbiCName(contract->resultProductAbi)) != 0) return 0;
+            for(size_t p=0;p<3;++p){
+                const XL6_IrNumericEnumContract* expected=contract->resultProductEnums[p];
+                if(expected){
+                    if(p>=result->paramCount||!xl6IrDirectNumericEnumMatches(module,result->params[p],expected))return 0;
+                }else if(p<result->paramCount){
+                    const XL6_IrType* item=xl6IrTypeGet(&module->types,result->params[p]);
+                    if(!item||item->kind!=XL6_IR_TYPE_BUILTIN)return 0;
+                }
+            }
         } else if(contract->genericFutureResult) {
             if(!result || result->kind!=XL6_IR_TYPE_GENERIC_INSTANCE ||
                result->cAbi!=XL6_IR_C_ABI_RUNTIME_FUTURE_PTR ||
