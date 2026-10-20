@@ -1,0 +1,100 @@
+// Only self-owned UDP loopback endpoints; no external peers or induced errors.
+func receiveBatchRange(NetSocket socket, array<NetDatagramPacket> output, int first, int count, int limit, NetBatchProgress progress)
+ int done = 0
+ int rounds = 0
+ while done < count
+  auto status, received = socket.receiveBatch(output, progress, limit, first + done, count - done)
+  assert status == NetStatus.ok or status == NetStatus.again
+  assert progress.attempted and progress.status == status
+  assert progress.completedCount == received and progress.startIndex == uint64(first + done)
+  assert received <= uint64(count - done)
+  done += int(received)
+  rounds += 1
+  assert rounds < 100000
+ end
+end
+
+func exerciseBatch(int family)
+ auto receiver = NetSocket(NetSocketKind.datagram, family)
+ auto sender = NetSocket(NetSocketKind.datagram, family)
+ receiver.bind(NetAddress.loopback(family))
+ sender.bind(NetAddress.loopback(family))
+ auto target = receiver.localAddress()
+ auto progress = NetBatchProgress()
+ array<NetDatagramPacket> outgoing = [NetDatagramPacket("ignored"), NetDatagramPacket("a\0b"), NetDatagramPacket(b"next"), NetDatagramPacket("ignored")]
+ outgoing[1].setTarget(target)
+ outgoing[2].setTarget(target)
+ auto status, sent = sender.sendBatch(outgoing, progress, 1, 2)
+ assert status == NetStatus.ok and sent == 2
+ assert progress.attempted and progress.status == status
+ assert progress.startIndex == 1 and progress.completedCount == 2
+
+ array<NetDatagramPacket> incoming = [NetDatagramPacket("left"), NetDatagramPacket("old"), NetDatagramPacket("old"), NetDatagramPacket("right")]
+ receiveBatchRange(receiver, incoming, 1, 2, 16, progress)
+ assert incoming[0].shareBuffer().toBytes() == b"left" and not incoming[0].hasPacket
+ assert incoming[3].shareBuffer().toBytes() == b"right" and not incoming[3].hasPacket
+ assert incoming[1].shareBuffer().toBytes() == b"a\0b"
+ assert incoming[2].shareBuffer().toBytes() == b"next"
+ assert incoming[1].hasPacket and incoming[2].hasPacket
+ assert incoming[1].status == NetStatus.ok and incoming[2].status == NetStatus.ok
+ auto snapshot = incoming[1].info
+ assert snapshot.hasPacket and snapshot.remote.equals(sender.localAddress())
+
+ auto emptyState, emptyCount = receiver.receiveBatch(incoming, progress, 16, 1, 2)
+ assert emptyState == NetStatus.again and emptyCount == 0
+ assert progress.attempted and progress.completedCount == 0 and progress.startIndex == 1
+ assert incoming[1].hasPacket and incoming[1].shareBuffer().toBytes() == b"a\0b"
+ incoming[1].clear()
+ assert not incoming[1].hasPacket and incoming[1].shareBuffer().length == 0
+ assert snapshot.hasPacket and snapshot.remote.equals(sender.localAddress())
+
+ // Connected destinations and receive replacement/truncation are independent
+ // of the previous explicit-target packets and old Buffer sizes.
+ assert sender.connect(target) == NetStatus.ok
+ array<NetDatagramPacket> next = [NetDatagramPacket(b"abc")]
+ auto nextState, nextCount = sender.sendBatch(next, progress)
+ assert nextState == NetStatus.ok and nextCount == 1
+ receiveBatchRange(receiver, incoming, 2, 1, 1, progress)
+ assert incoming[2].hasPacket and incoming[2].status == NetStatus.truncated
+ assert incoming[2].shareBuffer().toBytes() == b"a"
+
+ auto zeroState, zeroCount = sender.sendBatch(next, progress, 1, 0)
+ assert zeroState == NetStatus.ok and zeroCount == 0
+ assert progress.attempted and progress.startIndex == 1 and progress.completedCount == 0
+ try
+  auto invalidState, invalidCount = receiver.receiveBatch(incoming, progress, 8, -1)
+  assert false, "invalid range must be checked before I/O"
+ catch RangeError e
+ end
+ assert not progress.attempted and progress.completedCount == 0 and progress.status == NetStatus.failed
+
+ // Two distinct packet wrappers sharing one native Buffer are also aliases.
+ auto shared = Buffer(b"unchanged")
+ array<NetDatagramPacket> aliases = [NetDatagramPacket(shared), NetDatagramPacket(shared)]
+ array<NetDatagramPacket> queued = [NetDatagramPacket(b"queued")]
+ auto queuedState, queuedCount = sender.sendBatch(queued, progress)
+ assert queuedState == NetStatus.ok and queuedCount == 1
+ try
+  auto invalidState, invalidCount = receiver.receiveBatch(aliases, progress, 8)
+  assert false, "alias storage must not be reserved or consumed twice"
+ catch ValueError e
+ end
+ assert not progress.attempted and shared.toBytes() == b"unchanged"
+ receiveBatchRange(receiver, incoming, 1, 1, 16, progress)
+ assert incoming[1].shareBuffer().toBytes() == b"queued"
+
+ // Requested count clamps to the actual suffix, including an empty payload.
+ array<NetDatagramPacket> suffix = [NetDatagramPacket("skip"), NetDatagramPacket(b"")]
+ auto suffixState, suffixCount = sender.sendBatch(suffix, progress, 1, 99)
+ assert suffixState == NetStatus.ok and suffixCount == 1 and progress.startIndex == 1
+ receiveBatchRange(receiver, incoming, 2, 1, 0, progress)
+ assert incoming[2].hasPacket and incoming[2].status == NetStatus.ok
+ assert incoming[2].shareBuffer().length == 0
+ progress.clear()
+ assert not progress.attempted and progress.completedCount == 0 and progress.startIndex == 0
+ sender.close()
+ receiver.close()
+end
+exerciseBatch(4)
+exerciseBatch(6)
+println("Socket batches: ranges, completed prefix, packet snapshots, Buffer aliases, replacement, truncation and empty datagram: ok")

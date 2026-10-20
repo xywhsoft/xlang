@@ -1,6 +1,8 @@
 #ifndef XL6_NET_SOCKET_ABI_H
 #define XL6_NET_SOCKET_ABI_H
 #include "xl6_product_abi.h"
+#include "xl6_net_vector_abi.h"
+#include "xl6_net_batch_abi.h"
 XL6_TEXT_API void* xl6NetSocketEmptyV1(void);
 XL6_TEXT_API void* xl6NetSocketCreateV1(int64_t kind,int64_t family,bool nonblocking);
 XL6_TEXT_API void xl6NetSocketDestroyV1(void*);

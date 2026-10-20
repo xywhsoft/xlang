@@ -144,6 +144,7 @@ static const XL6_IrDirectBridgeContract xl6IrDirectBridgeContracts[] = {
 #include "xl6_ir_net_socket_contracts.inc"
 #include "xl6_ir_net_datagram_direct_contracts.inc"
 #include "xl6_ir_net_datagram_error_contracts.inc"
+#include "xl6_ir_net_batch_contracts.inc"
 #include "xl6_ir_task_pool_contracts.inc"
 #include "xl6_ir_channel_case_contracts.inc"
 #define XL6_GENERIC_CREATE(Name,Owner) {Name,T,V,0,{0},.resultOwner=Owner,.nonblocking=1,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE,.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_FUTURE_VALUE_V1}
@@ -1161,6 +1162,9 @@ static int xl6IrDirectBridgeCollectionMatches(const XL6_IrModule* module,
     if (itemAbi == XL6_IR_C_ABI_MANAGED_STRING)
         return item->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
             item->nullAbi == XL6_IR_NULL_ABI_POINTER_SENTINEL;
+    if (itemAbi == XL6_IR_C_ABI_MANAGED_BYTES)
+        return item->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
+            item->nullAbi == XL6_IR_NULL_ABI_XVALUE_SENTINEL;
     if (itemAbi == XL6_IR_C_ABI_I64 && item->integerTarget != XL6_IR_INTEGER_TARGET_SIGNED_64) return 0;
     if (itemAbi == XL6_IR_C_ABI_U64 && item->integerTarget != XL6_IR_INTEGER_TARGET_UNSIGNED_64) return 0;
     return xl6IrBufferRuntimeBridgeResultMatches(item, itemAbi);

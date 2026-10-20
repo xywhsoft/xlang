@@ -63,12 +63,12 @@ xfuture* xl6ChannelDeadlineSendStartCancelLanguageV1(XL6_RuntimeServicesV1 servi
 xfuture* xl6ChannelDeadlineSendStartLanguageV1(XL6_RuntimeServicesV1 services,void* frame)
 {return xl6ChannelDeadlineSendStartCancelLanguageV1(services,frame,NULL);}
 xfuture* xl6ChannelDeadlineReceiveStartCancelLanguageV1(XL6_RuntimeServicesV1 services,
-    XL6_ChannelResultFieldContextV1 context,void* frame,const xvalue* owner,xcancel* parent)
+    XL6_NativeClassFieldContextV1 context,void* frame,const xvalue* owner,xcancel* parent)
 {
     if(!context.fieldName||!context.fieldSize||context.policy!=xl6ChannelReceiveResultHandlePolicyV1Get()){
         xrtSetErrorKind(XERR_ARGUMENT);failed();return NULL;}
     return start(services,frame,owner,context.fieldName,context.fieldSize,parent,false);
 }
 xfuture* xl6ChannelDeadlineReceiveStartLanguageV1(XL6_RuntimeServicesV1 services,
-    XL6_ChannelResultFieldContextV1 context,void* frame,const xvalue* owner)
+    XL6_NativeClassFieldContextV1 context,void* frame,const xvalue* owner)
 {return xl6ChannelDeadlineReceiveStartCancelLanguageV1(services,context,frame,owner,NULL);}

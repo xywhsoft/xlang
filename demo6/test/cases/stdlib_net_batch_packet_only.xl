@@ -1,0 +1,5 @@
+auto packet = NetDatagramPacket(b"a\0b", 99)
+auto buffer = packet.shareBuffer()
+assert buffer.toBytes() == b"a\0b"
+packet.clear()
+assert buffer.length == 0

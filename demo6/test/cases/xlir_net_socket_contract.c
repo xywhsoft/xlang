@@ -52,6 +52,6 @@ int main(int argc,char** argv)
         XL6_IrEnumVariant* member=&m->enumVariants[layout->firstVariant+1];char* name=member->name;
         member->name="different";refused(m,t);member->name=name;
     }
-    assert(targets==51&&products==15&&refusals>350&&xl6IrVerifyModule(m,NULL));xl6CompileUnitFree(&u);
+    assert(targets==67&&products==31&&refusals>350&&xl6IrVerifyModule(m,NULL));xl6CompileUnitFree(&u);
     printf("Socket XLIR: %zu refusals, %zu direct targets, %zu nominal status/count products; no C/header on corrupt contracts\n",refusals,targets,products);return 0;
 }

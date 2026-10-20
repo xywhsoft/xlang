@@ -14,7 +14,7 @@ static bool trace_builder(const xvalue* value,xrtownershipvisitor visit,void* co
         ops==xl6ChannelDeadlineSelectBuilderHandlePolicyV1Get()->Ops&&visit(xl6ChannelFutureCoreOwnershipV1(frame),context);
 }
 XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6ChannelDeadlineSelectBuilderHandlePolicyV1Get,xl6ChannelDeadlineSelectBuilderDestroyV1,trace_builder)
-static void* prepare(XL6_ChannelCaseArrayContextV1 context,const xvalue* input,bool relative,int64_t ms,uint64_t until)
+static void* prepare(XL6_NativeClassArrayContextV1 context,const xvalue* input,bool relative,int64_t ms,uint64_t until)
 {
     xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))return NULL;
     XL6_ChannelCasesSnapshotV1 cases={0};XL6_ChannelFutureFrameV1* frame=NULL;xdeadline due=until;bool ok=false;
@@ -33,9 +33,9 @@ done:
     xl6_error_result result=xl6ErrorScopeEnd(&scope);
     if(!result.ok){xl6ErrorScopePropagateFailure(result);return NULL;}xrtErrorFree(result.error);return frame;
 }
-void* xl6ChannelDeadlineSelectForLanguageV1(XL6_ChannelCaseArrayContextV1 context,const xvalue* input,int64_t ms)
+void* xl6ChannelDeadlineSelectForLanguageV1(XL6_NativeClassArrayContextV1 context,const xvalue* input,int64_t ms)
 {return prepare(context,input,true,ms,0);}
-void* xl6ChannelDeadlineSelectUntilLanguageV1(XL6_ChannelCaseArrayContextV1 context,const xvalue* input,uint64_t due)
+void* xl6ChannelDeadlineSelectUntilLanguageV1(XL6_NativeClassArrayContextV1 context,const xvalue* input,uint64_t due)
 {return prepare(context,input,false,0,due);}
 xvalue* xl6ChannelDeadlineSelectResultLanguageV1(void* frame)
 {
@@ -46,7 +46,7 @@ xvalue* xl6ChannelDeadlineSelectResultLanguageV1(void* frame)
     xvalue* result=xrtValueRetain(value);if(!result)failed();return result;
 }
 xfuture* xl6ChannelDeadlineSelectStartCancelLanguageV1(XL6_RuntimeServicesV1 services,
-    XL6_ChannelResultFieldContextV1 context,void* frame,const xvalue* owner,xcancel* parent)
+    XL6_NativeClassFieldContextV1 context,void* frame,const xvalue* owner,xcancel* parent)
 {
     if(!services.executor||!services.deadline||!context.fieldName||!context.fieldSize||
         context.policy!=xl6ChannelSelectionHandlePolicyV1Get()){
@@ -57,5 +57,5 @@ xfuture* xl6ChannelDeadlineSelectStartCancelLanguageV1(XL6_RuntimeServicesV1 ser
     if(!result){xl6ChannelFutureCoreDataDropV1(frame);failed();}return result;
 }
 xfuture* xl6ChannelDeadlineSelectStartLanguageV1(XL6_RuntimeServicesV1 services,
-    XL6_ChannelResultFieldContextV1 context,void* frame,const xvalue* owner)
+    XL6_NativeClassFieldContextV1 context,void* frame,const xvalue* owner)
 {return xl6ChannelDeadlineSelectStartCancelLanguageV1(services,context,frame,owner,NULL);}

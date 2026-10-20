@@ -1,6 +1,9 @@
 #include "xl6_stdlib_net_datagram.inc"
+#include "xl6_stdlib_net_vector.inc"
+#include "xl6_stdlib_net_batch.inc"
 const char* xl6StdlibNetSocketSource=
     XL6_NET_DATAGRAM_SOURCE
+    XL6_NET_BATCH_SOURCE
     "enum NetStatus as int\n    failed = -1\n    ok = 0\n    again = 1\n    closed = 2\n"
     "    truncated = 3\n    timeout = 4\n    cancelled = 5\nend\n"
     "enum NetSocketKind as int\n    stream = 1\n    datagram = 2\nend\n"
@@ -37,8 +40,14 @@ const char* xl6StdlibNetSocketSource=
     "    extern \"xl6NetSocketSendToBufferV1\" func sendTo(Buffer data, NetAddress target, int size = -1) as (NetStatus, uint64)\n"
     "    extern \"xl6NetSocketReceiveIntoV1\" func receiveInto(Buffer output, int maxBytes = 65536) as (NetStatus, uint64)\n"
     XL6_NET_SOCKET_DATAGRAM_METHODS
+    XL6_NET_SOCKET_VECTOR_METHODS
+    XL6_NET_SOCKET_BATCH_METHODS
     "end\n";
 #undef XL6_NET_DATAGRAM_SOURCE
 #undef XL6_NET_SOCKET_DATAGRAM_METHODS
 #undef XL6_NET_DATAGRAM_ERROR_SOURCE
 #undef XL6_NET_SOCKET_DATAGRAM_ERROR_METHODS
+#undef XL6_NET_SOCKET_VECTOR_METHODS
+#undef XL6_NET_VECTOR_OVERLOADS
+#undef XL6_NET_BATCH_SOURCE
+#undef XL6_NET_SOCKET_BATCH_METHODS

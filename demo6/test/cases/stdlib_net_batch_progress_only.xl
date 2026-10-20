@@ -1,0 +1,5 @@
+auto progress = NetBatchProgress()
+assert not progress.attempted and progress.completedCount == 0
+assert progress.status == NetStatus.failed
+progress.clear()
+assert progress.startIndex == 0

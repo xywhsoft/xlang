@@ -21,6 +21,10 @@ static bool selected(const char* name)
     if(!strncmp(name,"xl6NetDatagramErrorInfo",23))return true;
     const char* socketNames[]={"ReceiveErrorInto","PathMtuModeSet","PathMtuMode","PathMtu","DatagramErrorsSet","DatagramErrors"};
     #else
+    /* Packet has an independent complete vector/batch contract gate. Keep
+     * this legacy value/control/IO selection exact rather than silently
+     * counting new Packet methods as already covered by this gate. */
+    if(!strncmp(name,"xl6NetDatagramPacket",20))return false;
     if(!strncmp(name,"xl6NetDatagram",14))return true;
     const char* socketNames[]={"MetadataAvailable","MetadataEnabled","ControlAvailable","DatagramCapabilities","MetadataSet",
         "MulticastJoin","MulticastJoinOn","MulticastLeave","MulticastLeaveOn","MulticastLoop","MulticastHopLimit",

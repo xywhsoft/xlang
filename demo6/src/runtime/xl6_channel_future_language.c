@@ -4,7 +4,7 @@
 #include "xl6_channel_future_core.h"
 #include "src/api/xl_foreign_error.h"
 
-void* xl6ChannelFutureBuilderCreateLanguageV1(XL6_ChannelCaseArrayContextV1 context,const xvalue* input)
+void* xl6ChannelFutureBuilderCreateLanguageV1(XL6_NativeClassArrayContextV1 context,const xvalue* input)
 {
     xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))return NULL;
     XL6_ChannelCasesSnapshotV1 cases={0};
@@ -21,7 +21,7 @@ void* xl6ChannelFutureBuilderCreateLanguageV1(XL6_ChannelCaseArrayContextV1 cont
     if(!result.ok){xl6ErrorScopePropagateFailure(result);return NULL;}
     xrtErrorFree(result.error);return frame;
 }
-xfuture* xl6ChannelFutureBuilderStartCancelLanguageV1(XL6_RuntimeServicesV1 services,XL6_ChannelResultFieldContextV1 context,
+xfuture* xl6ChannelFutureBuilderStartCancelLanguageV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,
     void* frame,const xvalue* owner,xcancel* parent)
 {
     if(!services.executor || !context.fieldName || !context.fieldSize ||
@@ -34,6 +34,6 @@ xfuture* xl6ChannelFutureBuilderStartCancelLanguageV1(XL6_RuntimeServicesV1 serv
     if(!result)xl6ErrorScopePropagateFailure((xl6_error_result){false,xrtTakeError()});
     return result;
 }
-xfuture* xl6ChannelFutureBuilderStartLanguageV1(XL6_RuntimeServicesV1 services,XL6_ChannelResultFieldContextV1 context,
+xfuture* xl6ChannelFutureBuilderStartLanguageV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,
     void* frame,const xvalue* owner)
 {return xl6ChannelFutureBuilderStartCancelLanguageV1(services,context,frame,owner,NULL);}

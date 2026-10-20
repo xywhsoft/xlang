@@ -1,0 +1,25 @@
+// Offline owning graph and allocation-prefix fixture; no intentional failures.
+func preserveNativeBuffer() as Buffer
+ auto original = Buffer(b"a\0b")
+ auto packet = NetDatagramPacket(original)
+ auto view = packet.shareBuffer()
+ assert view.append(b"c")
+ assert original.toBytes() == b"a\0bc"
+ return view
+end
+auto saved = preserveNativeBuffer()
+assert saved.toBytes() == b"a\0bc"
+auto packet = NetDatagramPacket(saved)
+array<NetDatagramPacket> packets = [packet, NetDatagramPacket("text"), NetDatagramPacket(b"raw")]
+auto shared = packets[0].shareBuffer()
+assert shared.append(b"d") and saved.toBytes() == b"a\0bcd"
+packets[1].setTarget(NetAddress.loopback(4))
+auto target = packets[1].target
+assert packets[1].hasTarget and target.family == 4
+packets[1].clear()
+assert packets[1].hasTarget and packets[1].shareBuffer().length == 0
+packets[1].clearTarget()
+assert not packets[1].hasTarget
+auto progress = NetBatchProgress()
+progress.clear()
+assert not progress.attempted and progress.status == NetStatus.failed
