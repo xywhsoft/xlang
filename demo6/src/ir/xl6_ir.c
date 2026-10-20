@@ -34867,9 +34867,21 @@ int xl6IrGetPropertyAccessorSignature(const XL6_IrModule* module,
     } else {
         const XL6_IrCallTarget* target = xl6IrCallTargetGet(module, site->targetSymbol);
         if (target == NULL ||
-            (target->kind != XL6_IR_CALL_TARGET_INTERNAL && target->kind != XL6_IR_CALL_TARGET_EXTERN_C) ||
+            (target->kind != XL6_IR_CALL_TARGET_INTERNAL && target->kind != XL6_IR_CALL_TARGET_EXTERN_C &&
+             target->kind != XL6_IR_CALL_TARGET_NATIVE_FACTORY) ||
             target->parameterCount == 0 || target->parameterTypes == NULL || target->parameterAbis == NULL ||
             target->parameterAbis[0] != XL6_IR_PARAMETER_ABI_BORROW) return 0;
+        /* Factory describes physical native-result publication, not create
+         * syntax. A synchronous getter may return the same canonical owner.
+         * It must still be a GET, use direct C dispatch and carry the exact
+         * result field/destructor contract; constructors/setters do not enter
+         * this property path merely by sharing the factory target kind. */
+        if (target->kind == XL6_IR_CALL_TARGET_NATIVE_FACTORY) {
+            const XL6_IrNode* nativeGetter=xl6IrNodeGet(module,target->declaration);
+            if (site->dispatchKind != XL6_IR_CALL_DISPATCH_DIRECT || nativeGetter == NULL ||
+                nativeGetter->sourceKind != XL6_AST_GET ||
+                xl6IrCallTargetNativeClassResultField(module,target) == NULL) return 0;
+        }
         signature->declaration = target->declaration;
         signature->receiverType = target->parameterTypes[0];
         signature->resultType = target->returnType;

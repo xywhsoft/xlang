@@ -28799,8 +28799,16 @@ static int xl6IrLowerEmitPropertyAccessor(
     if (target != NULL &&
         !xl6IrLowerProjectCallTargetPhysicalOperands(ctx, origin, target, plan->operands, count)) return 0;
     target = kind != XL6_IR_INSTR_PROTOCOL_CALL ? xl6IrCallTargetGet(ctx->module, symbol) : NULL;
+    /* Keep semantic getter results separate from the emitted C result. As
+     * for ordinary/resolved syntax calls, a native factory first produces its
+     * raw field/value; CompleteCall publishes the owner before retiring the
+     * receiver/indices and handles rollback on either failure path. */
+    XL6_IrTypeId physicalResult = kind == XL6_IR_INSTR_CALL
+        ? xl6IrCallTargetPhysicalResultType(ctx->module,target) : signature.resultType;
+    if (signature.resultType != XL6_IR_TYPE_INVALID && physicalResult == XL6_IR_TYPE_INVALID)
+        return xl6IrLowerDiag(ctx,origin,"XLIR property accessor has no exact physical result ABI");
     if (!xl6IrLowerCommitEvaluationOwners(ctx, origin, consumingFirst) ||
-        !xl6IrLowerEmit(ctx, kind, origin, signature.resultType,
+        !xl6IrLowerEmit(ctx, kind, origin, physicalResult,
             kind == XL6_IR_INSTR_CALL ? symbol : 0, plan->operands, count,
             !setter || signature.errorAbi == XL6_IR_ERROR_ABI_MAY_RAISE ? result : NULL)) return 0;
     if (kind != XL6_IR_INSTR_CALL)
