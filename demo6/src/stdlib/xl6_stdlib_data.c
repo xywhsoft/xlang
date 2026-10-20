@@ -702,25 +702,7 @@ const char* xl6StdlibUdpStatsClassSource =
 
 
 
-const char* xl6StdlibNetProxyClassSource =
-    "class NetProxy\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_net_proxy_create\" create(int type, string host, int port, string user, string password)\n"
-    "    extern \"xl6_xrt_net_proxy_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_net_proxy_type\" get type() as int\n"
-    "    extern \"xl6_xrt_net_proxy_port\" get port() as int\n"
-    "    extern \"xl6_xrt_net_proxy_native\" func nativeHandle() as point\n"
-    "    extern \"xl6_xrt_net_proxy_host\" func hostNative() as point\n"
-    "    extern \"xl6_xrt_net_proxy_user\" func userNative() as point\n"
-    "\n"
-    "    func host() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.hostNative())\n"
-    "    end\n"
-    "\n"
-    "    func user() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.userNative())\n"
-    "    end\n"
-    "end\n";
+#include "src/stdlib/xl6_stdlib_net_proxy.inc"
 
 
 
@@ -1807,11 +1789,11 @@ const char* xl6StdlibTcpConnectConfigClassSource =
     "    extern \"xl6_xrt_tcp_connect_config_timeout\" func timeout(int timeoutMs) as bool\n"
     "    extern \"xl6_xrt_tcp_connect_config_water\" func watermarks(int high, int low) as bool\n"
     "    extern \"xl6_xrt_tcp_connect_config_recv_limit\" func recvLimit(int size) as bool\n"
-    "    extern \"xl6_xrt_tcp_connect_config_proxy\" func proxyNative(point proxy) as bool\n"
+    "    extern \"xl6_xrt_tcp_connect_config_proxy\" func proxyNative(NetProxy proxy) as bool\n"
     "    extern \"xl6_xrt_tcp_connect_config_connect\" func connectNative() as point\n"
     "\n"
     "    func proxy(NetProxy proxy) as bool\n"
-    "        return self.proxyNative(proxy.nativeHandle())\n"
+    "        return self.proxyNative(proxy)\n"
     "    end\n"
     "\n"
     "    func connect() as TcpStream\n"
@@ -4654,8 +4636,11 @@ static const char xl6StdNetResolverStatsBody[] =
     "end\n";
 
 static const char xl6StdNetProxyBody[] =
-    "func __xl_std_net_proxy(int type, string host, int port, string user = \"\", string password = \"\") as NetProxy\n"
-    "    return NetProxy(type, host, port, user, password)\n"
+    "func __xl_std_net_proxy(NetProxyType type, string host, int port, string user = \"\", string password = \"\", NetProxyAuth auth = NetProxyAuth.automatic) as NetProxy\n"
+    "    return NetProxy(type, host, port, user, password, auth)\n"
+    "end\n"
+    "func __xl_std_net_proxy(NetProxyType type, string host, int port, bytes user, bytes password, NetProxyAuth auth = NetProxyAuth.automatic) as NetProxy\n"
+    "    return NetProxy(type, host, port, user, password, auth)\n"
     "end\n";
 
 static const char xl6StdNetEngineBody[] =
@@ -5075,9 +5060,6 @@ const XL6_StdlibConst xl6StdlibConsts[] = {
     {"tcc", "OBJ", XL6_AST_INT, "3"},
     {"tcc", "DLL", XL6_AST_INT, "4"},
     {"tcc", "PREPROCESS", XL6_AST_INT, "5"},
-    {"net", "proxyNone", XL6_AST_INT, "0"},
-    {"net", "proxySocks5", XL6_AST_INT, "1"},
-    {"net", "proxyHttpConnect", XL6_AST_INT, "2"},
     {"net", "familyAny", XL6_AST_INT, "0"},
     {"net", "familyIPv4", XL6_AST_INT, "4"},
     {"net", "familyIPv6", XL6_AST_INT, "6"},

@@ -1,0 +1,15 @@
+auto anonymous = net.proxy(NetProxyType.socks5, "127.0.0.1", 1080)
+assert anonymous.type == NetProxyType.socks5 and anonymous.port == 1080
+assert anonymous.authentication == NetProxyAuth.none
+assert anonymous.host() == "127.0.0.1" and anonymous.username() == b"" and anonymous.password() == b""
+auto text = NetProxy(NetProxyType.socks5, "127.0.0.1", 1080, "u\0你", "p\0x")
+assert text.authentication == NetProxyAuth.required
+assert text.username() == b"u\x00\xe4\xbd\xa0" and text.password() == b"p\x00x"
+auto binary = net.proxy(NetProxyType.socks5, "127.0.0.1", 1080, b"\xff\x00u", b"p\x00\xfe", NetProxyAuth.required)
+assert binary.username() == b"\xff\x00u" and binary.password() == b"p\x00\xfe"
+auto copy = binary.clone()
+assert copy.type == binary.type and copy.port == binary.port and copy.host() == binary.host()
+assert copy.username() == binary.username() and copy.password() == binary.password()
+auto http = NetProxy(NetProxyType.httpConnect, "127.0.0.1", 3128, "u", "p", NetProxyAuth.optional)
+assert http.type == NetProxyType.httpConnect and http.authentication == NetProxyAuth.optional
+println("immutable owned proxy endpoints and exact credentials: ok")

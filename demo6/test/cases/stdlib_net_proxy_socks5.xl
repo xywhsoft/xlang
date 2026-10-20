@@ -1,0 +1,31 @@
+auto proxy = NetProxy(NetProxyType.socks5, "127.0.0.1", 1080)
+auto h = NetProxyHandshake(proxy, "127.0.0.1", 443)
+assert h.state == NetProxyHandshakeState.write and h.maxBufferedBytes == 67108864
+auto present, initialCode = h.replyCode()
+assert not present and initialCode == 0
+assert h.output() == b"\x05\x01\x00"
+auto saved = h.output()
+assert h.sent(1) == 1 and h.output() == b"\x01\x00"
+assert h.sent(2) == 2 and h.state == NetProxyHandshakeState.read and h.output() == b""
+h.append(b"\x05")
+assert h.step() == NetProxyHandshakeState.read
+h.append(b"\x00")
+assert h.step() == NetProxyHandshakeState.write
+assert h.output() == b"\x05\x01\x00\x01\x7f\x00\x00\x01\x01\xbb"
+assert h.sent(10) == 10
+h.append(b"\x05\x00\x00\x01\x7f\x00\x00\x01\x1f\x90app\x00data")
+assert h.step() == NetProxyHandshakeState.ready and h.buffered == 8
+auto hasCode, code = h.replyCode()
+assert hasCode and code == 0
+assert h.boundHost() == "127.0.0.1" and h.boundFamily() == 4 and h.boundPort() == 8080
+assert h.boundHostBytes() == b""
+auto address = h.boundAddress()
+assert address.text() == "127.0.0.1" and address.port == 8080
+assert h.readRemaining(4) == b"app\x00"
+auto tail = NetBuffer()
+tail.append("head")
+h.moveRemaining(tail)
+assert h.buffered == 0 and tail.read() == b"headdata"
+assert h.step() == NetProxyHandshakeState.ready and saved == b"\x05\x01\x00"
+h.throwIfFailed()
+println("offline SOCKS5 incremental negotiation and application tail: ok")

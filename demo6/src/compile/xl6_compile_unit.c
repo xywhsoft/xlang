@@ -735,7 +735,17 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_net_buffer.c",D(R(OWNERSHIP_CATALOG),R(NET_BUFFER_CORE)),{NULL}},
     {"src/runtime/xl6_ownership_domain_net_frame_result.c",D(R(OWNERSHIP_CATALOG),R(NET_FRAME_RESULT)),{NULL}},
     {"src/runtime/xl6_ownership_domain_net_line_framer.c",D(R(OWNERSHIP_CATALOG),R(NET_FRAME_LINE)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_net_length_framer.c",D(R(OWNERSHIP_CATALOG),R(NET_FRAME_LENGTH)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_net_length_framer.c",D(R(OWNERSHIP_CATALOG),R(NET_FRAME_LENGTH)),{NULL}},
+    {"src/runtime/xl6_net_proxy.c",D(R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{"XRT_MODULE_NET_PROXY","XRT_MODULE_VALUE","XRT_MODULE_UNICODE_TEXT"}},
+    {"src/runtime/xl6_net_proxy_value.c",D(R(NET_PROXY)),{NULL}},
+    {"src/runtime/xl6_net_proxy_text.c",D(R(NET_PROXY)),{"XRT_MODULE_STRING"}},
+    {"src/runtime/xl6_net_proxy_handshake.c",D(R(NET_PROXY),R(NET_BUFFER_CORE)),{"XRT_MODULE_NET_PROXY_HANDSHAKE","XRT_MODULE_NET_PROXY_SOCKS5","XRT_MODULE_NET_PROXY_HTTP_CONNECT"}},
+    {"src/runtime/xl6_net_proxy_handshake_value.c",D(R(NET_PROXY_HANDSHAKE),R(NET_BUFFER_VALUE)),{NULL}},
+    {"src/runtime/xl6_net_proxy_handshake_buffer.c",D(R(NET_PROXY_HANDSHAKE),R(NET_BUFFER_BUFFER)),{NULL}},
+    {"src/runtime/xl6_net_proxy_handshake_text.c",D(R(NET_PROXY_HANDSHAKE)),{"XRT_MODULE_STRING"}},
+    {"src/runtime/xl6_net_proxy_handshake_address.c",D(R(NET_PROXY_HANDSHAKE),R(NET_ADDRESS)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_proxy.c",D(R(OWNERSHIP_CATALOG),R(NET_PROXY)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_proxy_handshake.c",D(R(OWNERSHIP_CATALOG),R(NET_PROXY_HANDSHAKE)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

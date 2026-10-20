@@ -1,0 +1,5 @@
+auto h = NetProxyHandshake(NetProxy(NetProxyType.httpConnect, "127.0.0.1", 3128), "127.0.0.1", 443)
+assert h.state == NetProxyHandshakeState.write and h.buffered == 0
+assert h.step() == NetProxyHandshakeState.write and h.maxBufferedBytes == 67108864
+auto present, code = h.replyCode()
+assert not present and code == 0

@@ -1,0 +1,3 @@
+auto p = NetProxy(NetProxyType.socks5, "127.0.0.1", 1080)
+assert p.port == 1080 and p.type == NetProxyType.socks5
+assert p.clone().authentication == NetProxyAuth.none

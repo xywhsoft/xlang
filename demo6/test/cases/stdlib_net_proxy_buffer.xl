@@ -1,0 +1,15 @@
+auto h = NetProxyHandshake(NetProxy(NetProxyType.socks5, "127.0.0.1", 1080), "127.0.0.1", 80)
+auto out = Buffer("prefix")
+assert h.outputInto(out, 2) == 2 and out.toBytes() == b"prefix\x05\x01"
+assert h.output() == b"\x05\x01\x00"
+assert h.sent(3) == 3
+auto input = Buffer(b"\x05\x00ignored")
+h.append(input, 2)
+assert h.step() == NetProxyHandshakeState.write
+assert h.sent(10) == 10
+auto moved = NetBuffer()
+moved.append(b"\x05\x00\x00\x01\x7f\x00\x00\x01\x00\x50binary\x00tail")
+h.appendMove(moved)
+assert moved.length == 0 and h.step() == NetProxyHandshakeState.ready
+assert h.readRemaining() == b"binary\x00tail"
+println("proxy negotiation copied Buffer and moved NetBuffer inputs: ok")

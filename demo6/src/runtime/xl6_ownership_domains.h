@@ -161,4 +161,6 @@ XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetBufferV1Get
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetFrameResultV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetLineFramerV1Get(void);
 XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetLengthFramerV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetProxyV1Get(void);
+XL6_CODE_LEASE_API const XL6_OwnershipDomainV1* xl6OwnershipDomainNetProxyHandshakeV1Get(void);
 #endif
