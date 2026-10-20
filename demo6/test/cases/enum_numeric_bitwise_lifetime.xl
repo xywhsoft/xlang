@@ -1,0 +1,68 @@
+enum Flags as uint8
+    none = 0
+    read = 1
+    write = 2
+    all = 255
+end
+
+typedef Permissions = Flags
+
+class Holder
+    Flags value = Flags.none
+end
+
+func reflect(Flags value) as Flags
+    return ~value
+end
+
+func masks(Flags value) as generator<Flags>
+    yield ~value
+    yield value | Flags.write
+end
+
+async func invert(Flags value) as Flags
+    return ~value
+end
+
+async func exercise() as int
+    Flags value = await invert(Flags.read)
+    assert int(value) == 254
+    value &= Flags.write
+    assert value == Flags.write
+    return 0
+end
+
+Permissions alias = Flags.read
+auto nested = (alias | Flags.write) & ~(alias ^ Flags.write)
+assert nested == Flags.none
+auto holder = Holder()
+holder.value |= Flags.read
+holder.value ^= Flags.write
+assert int(holder.value) == 3
+holder.value &= Flags.read
+assert holder.value == Flags.read
+Flags? maybe = Flags.write
+Flags? absent = null
+Flags fallback = absent ?? Flags.read
+assert fallback == Flags.read
+array<Flags> members = [Flags.read, Flags.write]
+assert Flags.read in members
+if maybe != null
+    Flags projected = maybe as Flags
+    assert int(~projected) == 253
+end
+func(Flags) as Flags callback = reflect
+assert callback(Flags.none) == Flags.all
+int count = 0
+for value in masks(Flags.read)
+    if count == 0
+        assert int(value) == 254
+    end
+    if count == 1
+        assert int(value) == 3
+    end
+    count += 1
+end
+assert count == 2
+assert await exercise() == 0
+println("numeric enum bitwise: alias, fields, nullable projection, callable, generator and async ok")

@@ -25135,9 +25135,55 @@ static int xl6IrVerifyRuntimeSafeIntegerIndexRead(
 }
 
 
-/* C operators are only a spelling target.  Their operand/result ABI is
- * validated here so the emitter cannot accidentally inherit C promotions or
- * comparisons from an under-specified XLIR instruction. */
+/* Enum bitwise operators preserve nominal identity in both the logical and
+ * physical result. Physical representation alone is not language permission. */
+static int xl6IrNumericEnumOperatorValid(
+    const XL6_IrModule* module, const XL6_IrNode* node)
+{
+    const XL6_IrNode* left;
+    const XL6_IrNode* right = NULL;
+    const XL6_IrType* leftType;
+    const XL6_IrType* rightType = NULL;
+    const XL6_IrType* resultType;
+    XL6_IrTypeId result;
+    int unary = node->sourceKind == XL6_AST_UNARY;
+    if ( node->callKind == XL6_SEM_CALL_PROTOCOL ||
+         node->opcode == XL6_IR_OPCODE_INVALID ||
+         (!unary && node->sourceKind != XL6_AST_BINARY &&
+          node->sourceKind != XL6_AST_ASSIGN) ) return 1;
+    /* Value selection and membership have independent representation-aware
+     * contracts. This check only governs the numeric operator domain. */
+    if ( !unary &&
+         !((node->opcode >= XL6_IR_OPCODE_ADD && node->opcode <= XL6_IR_OPCODE_MOD) ||
+           (node->opcode >= XL6_IR_OPCODE_BIT_AND && node->opcode <= XL6_IR_OPCODE_SHR) ||
+           node->opcode == XL6_IR_OPCODE_POW) ) return 1;
+    if ( node->childCount != (unary ? 1u : 2u) ||
+         node->firstChild > module->childCount ||
+         node->childCount > module->childCount - node->firstChild ) return 0;
+    left = xl6IrNodeGet(module, module->children[node->firstChild]);
+    if ( !unary ) right = xl6IrNodeGet(
+        module, module->children[node->firstChild + 1]);
+    leftType = left != NULL ? xl6IrTypeGet(&module->types, left->type) : NULL;
+    rightType = right != NULL ? xl6IrTypeGet(&module->types, right->type) : NULL;
+    result = node->sourceKind == XL6_AST_ASSIGN && left != NULL
+        ? left->type : node->storageType;
+    resultType = xl6IrTypeGet(&module->types, result);
+    if ( leftType == NULL || resultType == NULL || (!unary && rightType == NULL) ) return 0;
+    if ( leftType->kind != XL6_IR_TYPE_NUMERIC_ENUM &&
+         resultType->kind != XL6_IR_TYPE_NUMERIC_ENUM &&
+         (rightType == NULL || rightType->kind != XL6_IR_TYPE_NUMERIC_ENUM) ) return 1;
+    if ( node->sourceKind != XL6_AST_ASSIGN && node->type != node->storageType ) return 0;
+    if ( unary ) return node->opcode == XL6_IR_OPCODE_BIT_NOT && left->type == result;
+    if ( node->opcode == XL6_IR_OPCODE_BIT_AND ||
+         node->opcode == XL6_IR_OPCODE_BIT_OR ||
+         node->opcode == XL6_IR_OPCODE_BIT_XOR )
+        return left->type == right->type && left->type == result;
+    /* No arithmetic, shift, or implicit integer-to-enum path is introduced. */
+    return 0;
+}
+
+/* C operators are only a spelling target. Validate operand/result ABI here
+ * rather than inheriting C promotions or implicit nominal conversions. */
 static int xl6IrVerifyOperatorAbi(
     const XL6_IrModule* module, const XL6_IrInstruction* instruction)
 {
@@ -25157,13 +25203,18 @@ static int xl6IrVerifyOperatorAbi(
         switch ( instruction->opcode ) {
         case XL6_IR_OPCODE_POS:
         case XL6_IR_OPCODE_NEG:
-            return left->type == instruction->type &&
+            return result->kind != XL6_IR_TYPE_NUMERIC_ENUM &&
+                   left->type == instruction->type &&
                    xl6IrCAbiIsNumericScalar(result->cAbi);
         case XL6_IR_OPCODE_NOT:
             return leftType->cAbi == XL6_IR_C_ABI_BOOL && result->cAbi == XL6_IR_C_ABI_BOOL;
         case XL6_IR_OPCODE_BIT_NOT:
             return left->type == instruction->type &&
-                   xl6IrCAbiIsIntegerScalar(result->cAbi);
+                   xl6IrCAbiIsIntegerScalar(result->cAbi) &&
+                   !(result->kind == XL6_IR_TYPE_NUMERIC_ENUM &&
+                     (result->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_8 ||
+                      result->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_16 ||
+                      result->integerTarget == XL6_IR_INTEGER_TARGET_UNSIGNED_32));
         default:
             return 0;
         }
@@ -25178,14 +25229,17 @@ static int xl6IrVerifyOperatorAbi(
     case XL6_IR_OPCODE_SUB:
     case XL6_IR_OPCODE_MUL:
     case XL6_IR_OPCODE_DIV:
-        return left->type == right->type && left->type == instruction->type &&
+        return result->kind != XL6_IR_TYPE_NUMERIC_ENUM &&
+               left->type == right->type && left->type == instruction->type &&
                xl6IrCAbiIsNumericScalar(result->cAbi);
     case XL6_IR_OPCODE_MOD:
+    case XL6_IR_OPCODE_SHL:
+    case XL6_IR_OPCODE_SHR:
+        if ( result->kind == XL6_IR_TYPE_NUMERIC_ENUM ) return 0;
+        /* fall through */
     case XL6_IR_OPCODE_BIT_AND:
     case XL6_IR_OPCODE_BIT_OR:
     case XL6_IR_OPCODE_BIT_XOR:
-    case XL6_IR_OPCODE_SHL:
-    case XL6_IR_OPCODE_SHR:
         return left->type == right->type && left->type == instruction->type &&
                xl6IrCAbiIsIntegerScalar(result->cAbi);
     case XL6_IR_OPCODE_EQ:
@@ -39670,6 +39724,11 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                         "typed XLIR operator operand has no canonical physical-to-execution path");
                 }
             }
+        }
+        if ( !xl6IrNumericEnumOperatorValid(module, node) ) {
+            xrtFree(incoming);
+            return xl6IrDiag(diags, node,
+                "typed XLIR numeric enum operator requires an exact nominal bitwise contract");
         }
         if ( node->castAbi != expectedCastAbi ||
              node->castErrorAbi != expectedCastErrorAbi ) {
