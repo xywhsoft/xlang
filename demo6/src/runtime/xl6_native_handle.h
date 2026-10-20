@@ -195,4 +195,6 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6CancellationRegistrationHa
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetDatagramInfoHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetDatagramControlHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetDatagramErrorInfoHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetDatagramPacketHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetBatchProgressHandlePolicyV1Get(void);
 #endif

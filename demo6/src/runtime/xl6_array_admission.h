@@ -18,6 +18,7 @@ XL6_TEXT_API bool xl6SequenceReferenceAnyPolicyV1(XL6_Sequence*, uint64_t);
  * No allocation, slot access, borrowed policy retention or error changes. */
 XL6_TEXT_API bool xl6ReferenceAnyAdmissionV1(const XL6_SequenceAdmissionV3*,uint64_t);
 XL6_TEXT_API bool xl6ReferenceBytesAdmissionV1(const XL6_SequenceAdmissionV3*,uint64_t);
+XL6_TEXT_API bool xl6StringArrayAdmissionV1(const XL6_SequenceAdmissionV3*,uint64_t);
 XL6_TEXT_API xvalue* xl6SequenceNominalCreateV1(unsigned int, uint64_t, uint64_t, const XL6_NominalAdmissionV1*, bool, uint64_t);
 /* Untagged trivial union object representations, exact nominal identity and
  * sizeof(C union). Physical slots own boxed bytes, not raw union pointers.

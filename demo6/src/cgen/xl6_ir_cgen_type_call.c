@@ -507,7 +507,7 @@ static int xl6IrCgenEmitNativeContext(XL6_Output* out,const XL6_IrModule* module
     if(target->nativeContextAbi==XL6_IR_CALL_NATIVE_CONTEXT_CLASS_FIELD_V1) {
         const XL6_IrClassField* field=xl6IrNativeClassContextField(module,target);
         if(!field || !field->nativeHandlePolicyCName)return 0;
-        xl6OutputPuts("(XL6_ChannelResultFieldContextV1){",out);
+        xl6OutputPuts("(XL6_NativeClassFieldContextV1){",out);
         xl6IrCgenEmitCStringLiteral(out,field->name);
         xl6OutputPrintf(out,", %lu, %s()}",(unsigned long)strlen(field->name),field->nativeHandlePolicyCName);
         return !xl6OutputHasFailed(out);
@@ -518,7 +518,7 @@ static int xl6IrCgenEmitNativeContext(XL6_Output* out,const XL6_IrModule* module
         const XL6_IrType* element=owner && owner->params ? xl6IrTypeGet(&module->types,owner->params[0]) : NULL;
         const char* slot=owner ? xl6IrCgenNativeSlotTypeExpr(owner->sequenceLayout.slotAbi) : NULL;
         if(!field || !element || !slot || !field->nativeHandlePolicyCName)return 0;
-        xl6OutputPrintf(out,"(XL6_ChannelCaseArrayContextV1){{0x%016llXULL, 0x%016llXULL, 3, sizeof(xvalue*), %s}, ",
+        xl6OutputPrintf(out,"(XL6_NativeClassArrayContextV1){{0x%016llXULL, 0x%016llXULL, 3, sizeof(xvalue*), %s}, ",
             (unsigned long long)owner->typeValueId,(unsigned long long)element->typeValueId,slot);
         xl6IrCgenEmitCStringLiteral(out,field->name);
         xl6OutputPrintf(out,", %lu, %s()}",(unsigned long)strlen(field->name),field->nativeHandlePolicyCName);

@@ -42,6 +42,17 @@
     src\runtime\xl6_net_datagram_error_values.c
     src\runtime\xl6_net_socket_datagram_error_io.c
     src\runtime\xl6_ownership_domain_net_datagram_error_info.c
+    src\runtime\xl6_net_socket_vector.c
+    src\runtime\xl6_net_socket_vector_text.c
+    src\runtime\xl6_net_socket_vector_bytes.c
+    src\runtime\xl6_net_socket_vector_buffer.c
+    src\runtime\xl6_net_socket_vector_receive.c
+    src\runtime\xl6_net_datagram_packet.c
+    src\runtime\xl6_net_datagram_packet_info.c
+    src\runtime\xl6_net_batch_progress.c
+    src\runtime\xl6_net_socket_batch.c
+    src\runtime\xl6_ownership_domain_net_datagram_packet.c
+    src\runtime\xl6_ownership_domain_net_batch_progress.c
     src\runtime\xl6_ownership_domain_net_socket_owner.c
     src\runtime\xl6_ownership_domain_net_socket.c
     src\runtime\xl6_execution_failures.c

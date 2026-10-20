@@ -7,7 +7,7 @@
 #include <limits.h>
 
 typedef XL6_ChannelCasesSnapshotV1 Cases;
-bool xl6ChannelCasesSnapshotCaptureV1(Cases* frame,XL6_ChannelCaseArrayContextV1 context,const xvalue* input)
+bool xl6ChannelCasesSnapshotCaptureV1(Cases* frame,XL6_NativeClassArrayContextV1 context,const xvalue* input)
 {
     xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))abort();
     XL6_Sequence* owner=NULL;XL6_SequenceAdmissionV3 admission={0};bool ok=false;
@@ -63,7 +63,7 @@ void xl6ChannelCasesSnapshotDiscardV1(Cases* frame)
     xl6_error_result result=xl6ErrorScopeEnd(&scope);
     if(!result.ok)xl6ErrorScopePropagateFailure(result);else xrtErrorFree(result.error);
 }
-void* xl6ChannelCasesLanguageInvokeV1(XL6_ChannelCaseArrayContextV1 context,const xvalue* input,
+void* xl6ChannelCasesLanguageInvokeV1(XL6_NativeClassArrayContextV1 context,const xvalue* input,
     XL6_ChannelWaitOptionsV2 options,XL6_ChannelCasesInvokeV1 invoke,xcancel* token)
 {
     xl6_error_scope scope={0};if(!xl6ErrorScopeBegin(&scope))abort();

@@ -1,0 +1,148 @@
+// Ordinary unicast only, using this program's own loopback ephemeral sockets.
+func receiveVectorFrame(NetSocket socket, bytes expected, bool withInfo)
+ auto first = Buffer(b"L")
+ auto second = Buffer(b"R")
+ array<Buffer> output = [first, second]
+ auto information = NetDatagramInfo()
+ int rounds = 0
+ while true
+  if withInfo
+   auto status, count = socket.receiveFromVectorInto(output, information, 3)
+   if status == NetStatus.ok
+    assert count == uint64(expected.length) and information.hasPacket
+    break
+   end
+   assert status == NetStatus.again and count == 0
+  else
+   auto status, count = socket.receiveVectorInto(output, 3)
+   if status == NetStatus.ok
+    assert count == uint64(expected.length)
+    break
+   end
+   assert status == NetStatus.again and count == 0
+  end
+  rounds += 1
+  assert rounds < 100000
+ end
+ assert first[0] == 76 and second[0] == 82
+ int left = 0
+ while left < 3 and left < expected.length
+  assert first[left + 1] == expected[left]
+  left += 1
+ end
+ int right = 0
+ while left + right < expected.length
+  assert second[right + 1] == expected[left + right]
+  right += 1
+ end
+ assert first.length == left + 1 and second.length == right + 1
+end
+
+func exerciseVector(int family)
+ auto receiver = NetSocket(NetSocketKind.datagram, family)
+ auto sender = NetSocket(NetSocketKind.datagram, family)
+ receiver.bind(NetAddress.loopback(family))
+ sender.bind(NetAddress.loopback(family))
+ auto target = receiver.localAddress()
+ assert sender.connect(target) == NetStatus.ok
+ auto control = NetDatagramControl()
+ array<string> texts = ["a\0", "你"]
+ array<bytes> chunks = [b"a\0", b"\xe4\xbd\xa0"]
+ array<Buffer> buffers = [Buffer(b"a\0"), Buffer(b"\xe4\xbd\xa0")]
+ bytes full = b"a\0\xe4\xbd\xa0"
+
+ auto state0, sent0 = sender.sendVector(texts, 99)
+ assert state0 == NetStatus.ok and sent0 == 5
+ receiveVectorFrame(receiver, full, false)
+ auto state1, sent1 = sender.sendVectorTo(texts, target, 3)
+ assert state1 == NetStatus.ok and sent1 == 3
+ receiveVectorFrame(receiver, b"a\0\xe4", true)
+ auto state2, sent2 = sender.sendMessageVector(texts, target, control)
+ assert state2 == NetStatus.ok and sent2 == 5
+ receiveVectorFrame(receiver, full, true)
+ auto state3, sent3 = sender.sendMessageVector(texts, control, 0)
+ assert state3 == NetStatus.ok and sent3 == 0
+ receiveVectorFrame(receiver, b"", false)
+
+ auto state4, sent4 = sender.sendVector(chunks)
+ assert state4 == NetStatus.ok and sent4 == 5
+ receiveVectorFrame(receiver, full, true)
+ auto state5, sent5 = sender.sendVectorTo(chunks, target, 99)
+ assert state5 == NetStatus.ok and sent5 == 5
+ receiveVectorFrame(receiver, full, false)
+ auto state6, sent6 = sender.sendMessageVector(chunks, target, control, 2)
+ assert state6 == NetStatus.ok and sent6 == 2
+ receiveVectorFrame(receiver, b"a\0", true)
+ auto state7, sent7 = sender.sendMessageVector(chunks, control)
+ assert state7 == NetStatus.ok and sent7 == 5
+ receiveVectorFrame(receiver, full, true)
+
+ auto state8, sent8 = sender.sendVector(buffers)
+ assert state8 == NetStatus.ok and sent8 == 5
+ receiveVectorFrame(receiver, full, false)
+ auto state9, sent9 = sender.sendVectorTo(buffers, target, 4)
+ assert state9 == NetStatus.ok and sent9 == 4
+ receiveVectorFrame(receiver, b"a\0\xe4\xbd", true)
+ auto state10, sent10 = sender.sendMessageVector(buffers, target, control)
+ assert state10 == NetStatus.ok and sent10 == 5
+ receiveVectorFrame(receiver, full, true)
+ auto state11, sent11 = sender.sendMessageVector(buffers, control, 99)
+ assert state11 == NetStatus.ok and sent11 == 5
+ receiveVectorFrame(receiver, full, false)
+
+ auto againFirst = Buffer(b"unchanged")
+ array<Buffer> idle = [againFirst]
+ auto idleInfo = NetDatagramInfo()
+ auto idleState, idleCount = receiver.receiveFromVectorInto(idle, idleInfo, 4)
+ assert idleState == NetStatus.again and idleCount == 0 and not idleInfo.hasPacket
+ assert againFirst.toBytes() == b"unchanged"
+ try
+  auto badState, badCount = sender.sendVector(chunks, -2)
+  assert false, "invalid size must not enter native send"
+ catch RangeError e
+ end
+ array<bytes> excessive = []
+ int i = 0
+ while i < 65
+  excessive.push(b"x")
+  i += 1
+ end
+ try
+  auto badState, badCount = sender.sendVector(excessive)
+  assert false, "vector count is bounded"
+ catch RangeError e
+ end
+
+ // A duplicate output is refused before consuming the queued datagram.
+ auto queued, queuedCount = sender.sendVector(chunks)
+ assert queued == NetStatus.ok and queuedCount == 5
+ auto alias = Buffer(b"old")
+ array<Buffer> duplicate = [alias, alias]
+ try
+  auto badState, badCount = receiver.receiveVectorInto(duplicate, 8)
+  assert false, "duplicate underlying storage is not a scatter target"
+ catch ValueError e
+ end
+ assert alias.toBytes() == b"old"
+ receiveVectorFrame(receiver, full, true)
+
+ auto truncatedSent, truncatedSize = sender.sendVector(chunks)
+ assert truncatedSent == NetStatus.ok and truncatedSize == 5
+ array<Buffer> shortOutput = [Buffer(), Buffer()]
+ int rounds = 0
+ while true
+  auto status, count = receiver.receiveVectorInto(shortOutput, 1)
+  if status == NetStatus.truncated
+   assert count == 2 and shortOutput[0].toBytes() == b"a" and shortOutput[1].toBytes() == b"\0"
+   break
+  end
+  assert status == NetStatus.again
+  rounds += 1
+  assert rounds < 100000
+ end
+ sender.close()
+ receiver.close()
+end
+exerciseVector(4)
+exerciseVector(6)
+println("Socket vectors: all text/bytes/Buffer overloads, owned scatter, prefixes, NUL, truncation and empty datagram: ok")

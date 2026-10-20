@@ -61,6 +61,15 @@ static bool equivalent(const void* left, const void* right)
 }
 static bool defaultable(const void* opaque) { (void)opaque; return true; }
 static const XL6_SequenceAdmissionOpsV2 ops={retain,drop,slot,value,equivalent,defaultable,NULL,NULL};
+bool xl6StringArrayAdmissionV1(const XL6_SequenceAdmissionV3* policy,uint64_t element)
+{
+    if(!policy||!element||policy->ops!=&ops||!policy->data||policy->elementIdentity!=element||
+        policy->boxedIdentity!=element||policy->scalarDomain!=xl6ScalarPrimitiveDomainV1(XL6_VALUE_ADMIT_STRING)||
+        policy->transfer!=2||policy->size!=sizeof(xstrview)||
+        !xl6StringTypeAbiV1(policy->type))return false;
+    const PrimitivePolicy* data=policy->data;
+    return data->rule==XL6_VALUE_ADMIT_STRING&&!data->nullable&&data->identity==element;
+}
 
 static bool physical(const xrttype* type, unsigned int transfer, unsigned int rule, bool nullable)
 {

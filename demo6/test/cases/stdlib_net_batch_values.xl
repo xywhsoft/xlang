@@ -1,0 +1,60 @@
+// Offline values/ownership only: no Socket, DNS or network traffic.
+auto progress = NetBatchProgress()
+assert not progress.attempted and progress.completedCount == 0 and progress.startIndex == 0
+assert progress.status == NetStatus.failed
+progress.clear()
+assert not progress.attempted and progress.status == NetStatus.failed
+
+auto empty = NetDatagramPacket(16)
+assert not empty.hasTarget and not empty.hasPacket
+assert empty.shareBuffer().length == 0 and empty.shareBuffer().capacity() >= 16
+try
+ auto invalid = empty.status
+ assert false, "status requires a completed receive"
+catch RuntimeError e
+end
+try
+ auto invalid = empty.info
+ assert false, "info requires an actual datagram"
+catch RuntimeError e
+end
+try
+ auto invalid = empty.target
+ assert false, "target must be explicitly set"
+catch RuntimeError e
+end
+
+auto text = NetDatagramPacket("a\0你", 99)
+assert text.shareBuffer().toBytes() == b"a\0\xe4\xbd\xa0"
+auto prefix = NetDatagramPacket(b"a\0b", 2)
+assert prefix.shareBuffer().toBytes() == b"a\0"
+auto address = NetAddress.loopback(6)
+text.setTarget(address)
+assert text.hasTarget and text.target.equals(address)
+auto savedTarget = text.target
+text.clear()
+assert text.hasTarget and text.target.equals(savedTarget)
+assert not text.hasPacket and text.shareBuffer().length == 0
+text.clearTarget()
+assert not text.hasTarget and savedTarget.equals(address)
+try
+ auto invalid = NetDatagramPacket(b"data", -2)
+ assert false, "invalid prefix must be checked"
+catch RangeError e
+end
+
+func retainedBuffer() as Buffer
+ auto original = Buffer(b"shared\0")
+ auto packet = NetDatagramPacket(original)
+ auto first = packet.shareBuffer()
+ assert first.append(b"x")
+ assert original.toBytes() == b"shared\0x"
+ auto second = packet.shareBuffer()
+ assert second.append(b"y")
+ assert first.toBytes() == b"shared\0xy"
+ return second
+end
+auto retained = retainedBuffer()
+assert retained.toBytes() == b"shared\0xy" and retained.append(b"z")
+assert retained.toBytes() == b"shared\0xyz"
+println("Datagram packet/progress values, exact prefixes, target snapshots and native Buffer sharing: ok")

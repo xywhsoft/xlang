@@ -692,7 +692,18 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_net_socket_datagram_error_io.c",D(R(NET_SOCKET_LANGUAGE),R(NET_DATAGRAM_ERROR_VALUES)),{"XRT_MODULE_BUFFER"}},
     {"src/runtime/xl6_ownership_domain_net_datagram_error_info.c",D(R(OWNERSHIP_CATALOG),R(NET_DATAGRAM_ERROR_VALUES)),{NULL}},
     {"src/runtime/xl6_value_numeric.c",D(R(ERROR_TEXT)),{"XRT_MODULE_VALUE"}},
-    {"src/runtime/xl6_value_add.c",D(R(VALUE_NUMERIC),R(ARRAY_ALGEBRA),R(STRING_VALUE)),{NULL}}
+    {"src/runtime/xl6_value_add.c",D(R(VALUE_NUMERIC),R(ARRAY_ALGEBRA),R(STRING_VALUE)),{NULL}},
+    {"src/runtime/xl6_net_socket_vector.c",D(R(NET_SOCKET_LANGUAGE),R(SEQUENCE)),{NULL}},
+    {"src/runtime/xl6_net_socket_vector_text.c",D(R(NET_VECTOR_CORE),R(ARRAY_PRIMITIVE_ADMISSION)),{NULL}},
+    {"src/runtime/xl6_net_socket_vector_bytes.c",D(R(NET_VECTOR_CORE),R(ARRAY_REFERENCE_ADMISSION)),{NULL}},
+    {"src/runtime/xl6_net_socket_vector_buffer.c",D(R(NET_VECTOR_CORE),R(BUFFER_CORE)),{NULL}},
+    {"src/runtime/xl6_net_socket_vector_receive.c",D(R(NET_VECTOR_BUFFER),R(NET_DATAGRAM_VALUES)),{NULL}},
+    {"src/runtime/xl6_net_datagram_packet.c",D(R(BUFFER_CORE),R(NATIVE_HANDLE),R(NET_ADDRESS),R(FOREIGN_ERROR)),{NULL}},
+    {"src/runtime/xl6_net_datagram_packet_info.c",D(R(NET_DATAGRAM_PACKET),R(NET_DATAGRAM_VALUES)),{NULL}},
+    {"src/runtime/xl6_net_batch_progress.c",D(R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{"XRT_MODULE_MEMORY"}},
+    {"src/runtime/xl6_net_socket_batch.c",D(R(NET_SOCKET_LANGUAGE),R(NET_DATAGRAM_PACKET),R(NET_BATCH_PROGRESS),R(SEQUENCE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_datagram_packet.c",D(R(OWNERSHIP_CATALOG),R(NET_DATAGRAM_PACKET)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_batch_progress.c",D(R(OWNERSHIP_CATALOG),R(NET_BATCH_PROGRESS)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

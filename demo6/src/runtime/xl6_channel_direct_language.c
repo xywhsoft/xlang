@@ -61,7 +61,7 @@ xfuture* xl6ChannelDirectSendStartCancelLanguageV1(XL6_RuntimeServicesV1 service
 }
 xfuture* xl6ChannelDirectSendStartLanguageV1(XL6_RuntimeServicesV1 services,void* frame)
 {return xl6ChannelDirectSendStartCancelLanguageV1(services,frame,NULL);}
-xfuture* xl6ChannelDirectReceiveStartCancelLanguageV1(XL6_RuntimeServicesV1 services,XL6_ChannelResultFieldContextV1 context,
+xfuture* xl6ChannelDirectReceiveStartCancelLanguageV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,
     void* frame,const xvalue* owner,xcancel* parent)
 {
     if(!services.executor || !context.fieldName || !context.fieldSize ||
@@ -73,7 +73,7 @@ xfuture* xl6ChannelDirectReceiveStartCancelLanguageV1(XL6_RuntimeServicesV1 serv
     if(!result)failed();
     return result;
 }
-xfuture* xl6ChannelDirectReceiveStartLanguageV1(XL6_RuntimeServicesV1 services,XL6_ChannelResultFieldContextV1 context,void* frame,const xvalue* owner)
+xfuture* xl6ChannelDirectReceiveStartLanguageV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* frame,const xvalue* owner)
 {return xl6ChannelDirectReceiveStartCancelLanguageV1(services,context,frame,owner,NULL);}
 int64_t xl6ChannelReceiveResultStatusLanguageV1(const void* source)
 {
