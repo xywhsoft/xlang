@@ -1197,7 +1197,12 @@ static TCCState* xlCreateTccState(XL_Context* ctx, int outputType)
     return s;
 }
 
-static void xlSetCompileDiagError(XL_Context* ctx, const XL6_CompileUnit* unit)
+/* A failed internal stage may be unable to allocate a diagnostic (or may
+ * have an incomplete diagnostic path). Preserve an existing source diagnostic
+ * verbatim, otherwise retain the exact caller stage instead of collapsing
+ * verification/emission failures into an unlocatable "compile failed". */
+static void xlSetCompileStageError(XL_Context* ctx, const XL6_CompileUnit* unit,
+                                   const char* failedStage)
 {
     char text[1200];
     const char* path;
@@ -1206,7 +1211,7 @@ static void xlSetCompileDiagError(XL_Context* ctx, const XL6_CompileUnit* unit)
     if ( unit != NULL && unit->parse.diags.count > 0 ) {
         const XL6_Diag* diag = &unit->parse.diags.items[0];
         path = diag->file ? diag->file : (unit->path != NULL ? unit->path : "<memory>");
-        phase = unit->phase != NULL ? unit->phase : "compile";
+        phase = unit->phase != NULL ? unit->phase : failedStage;
         snprintf(text,
                  sizeof(text),
                  "%s:%d:%d: [%s] %s",
@@ -1217,8 +1222,15 @@ static void xlSetCompileDiagError(XL_Context* ctx, const XL6_CompileUnit* unit)
                  diag->message != NULL ? diag->message : "compile error");
         xlSetError(ctx, text);
     } else {
-        xlSetError(ctx, "xlang compile failed");
+        path = unit != NULL && unit->path != NULL ? unit->path : "<memory>";
+        snprintf(text, sizeof(text), "%s: [%s] compiler stage failed without a diagnostic",
+                 path, failedStage != NULL ? failedStage : "compile");
+        xlSetError(ctx, text);
     }
+}
+static void xlSetCompileDiagError(XL_Context* ctx, const XL6_CompileUnit* unit)
+{
+    xlSetCompileStageError(ctx, unit, unit != NULL && unit->phase != NULL ? unit->phase : "compile");
 }
 
 static int xlEnsureUnitXlirLowered(XL_Context* ctx, XL6_CompileUnit* unit)
@@ -1230,14 +1242,14 @@ static int xlEnsureUnitXlirLowered(XL_Context* ctx, XL6_CompileUnit* unit)
     if ( unit->ir.stage == XL6_IR_STAGE_TYPED ) {
         if ( !xl6IrLowerModule(&unit->ir, &unit->parse.diags) ) {
             unit->irReady = 0;
-            xlSetCompileDiagError(ctx, unit);
+            xlSetCompileStageError(ctx, unit, "ir-lower");
             return 0;
         }
     }
     if ( unit->ir.stage != XL6_IR_STAGE_LOWERED ||
          !xl6IrVerifyModule(&unit->ir, &unit->parse.diags) ) {
         unit->irReady = 0;
-        xlSetCompileDiagError(ctx, unit);
+        xlSetCompileStageError(ctx, unit, "ir-verify");
         return 0;
     }
     return 1;
@@ -1253,10 +1265,9 @@ static int xlCgenToMemory(XL_Context* ctx, XL6_CompileUnit* unit,
 
     if ( outText == NULL ) return 0;
     *outText = NULL;
-    if ( !xlEnsureUnitXlirLowered(ctx, unit) ||
-         !xl6IrCgenVerifyEmittable(&unit->ir, &unit->parse.diags) ) {
-        if ( ctx != NULL && ctx->lastError == NULL )
-            xlSetCompileDiagError(ctx, unit);
+    if ( !xlEnsureUnitXlirLowered(ctx, unit) ) return 0;
+    if ( !xl6IrCgenVerifyEmittable(&unit->ir, &unit->parse.diags) ) {
+        xlSetCompileStageError(ctx, unit, "cgen-verify");
         return 0;
     }
     if ( !xl6OutputOpenMemory(&out) ) {
@@ -1271,7 +1282,7 @@ static int xlCgenToMemory(XL_Context* ctx, XL6_CompileUnit* unit,
         xlSetError2(ctx, "cannot generate XLIR C code", xl6OutputError(&out));
         ok = 0;
     } else if ( !ok ) {
-        xlSetCompileDiagError(ctx, unit);
+        xlSetCompileStageError(ctx, unit, "cgen-emit");
     } else if ( *outText == NULL ) {
         xlSetError(ctx, "cannot copy generated XLIR C code");
         ok = 0;
@@ -3552,12 +3563,12 @@ static int xlEmitUnitCToFile(XL_Context* ctx, XL6_CompileUnit* unit,
     int ok;
     if ( outputPath == NULL || outputPath[0] == '\0' ) { xlSetError(ctx, "output C path is empty"); return 0; }
     if ( !xlEnsureUnitXlirLowered(ctx, unit) ) return 0;
-    if ( !xl6IrCgenVerifyEmittable(&unit->ir, &unit->parse.diags) ) { xlSetCompileDiagError(ctx, unit); return 0; }
+    if ( !xl6IrCgenVerifyEmittable(&unit->ir, &unit->parse.diags) ) { xlSetCompileStageError(ctx, unit, "cgen-verify"); return 0; }
     if ( !xl6OutputOpenFile(&out, outputPath) ) { xlSetError2(ctx, "cannot open XLIR C output", outputPath); return 0; }
     if ( requestedOptions != NULL ) options = *requestedOptions;
     ok = xl6IrCgenEmitCEx(&out, &unit->ir, &unit->parse.diags, &options);
     if ( xl6OutputHasFailed(&out) ) { xlSetError2(ctx, "cannot write XLIR C output", xl6OutputError(&out)); ok = 0; }
-    else if ( !ok ) xlSetCompileDiagError(ctx, unit);
+    else if ( !ok ) xlSetCompileStageError(ctx, unit, "cgen-emit");
     if ( !ok ) {
         xl6OutputDiscard(&out);
         return 0;
