@@ -1,0 +1,17 @@
+{
+  "Schema": 1,
+  "Purpose": "Interlocked publication of per-socket Windows receive/send Provider entry caches",
+  "CanonicalCommit": "296927fcf7cd7d68b3d525b69cda5f05d2625173",
+  "CanonicalSources": [
+    {"Path": "src/internal/xrt_net_socket.h", "Sha256": "0af82a6398af674db1aae5daef4aa34450f76e77aa7650b703f0b7752fd2f741"},
+    {"Path": "src/network/socket.c", "Sha256": "583bc67480f409a1c43d9e5bd13f400b78430ceead438841773bcddb2141c61c"}
+  ],
+  "CanonicalFixture": "tests/network/test_net_socket_message_cache.c",
+  "NormalizedFixtureSha256": "10515e7ea9bc94fb39d4fb0fb37feed263a0e67ac6b1756354bee25b6bfb75bd",
+  "FixtureNormalization": "UTF-8, CRLF to LF, trailing whitespace stripped and one final LF",
+  "Integration": "Only two private cache fields and one loader function; no public API, deadline ABI, module dependency or other generated section changes",
+  "Consumers": [
+    {"Path": "lib/xrt/xrt.h", "BeforeSha256": "44d4c1970c4a5fecdc78739a3838c109d88a561cc7afe0329bd737f7f6184279", "AfterSha256": "11aaa22bd37de9f0f0ef2f4bc07a0a0f321dad8503f0efd08b00c435cac191b0"},
+    {"Path": "lib/xruntime/xruntime.h", "BeforeSha256": "c682dae7e1f5a263a3af4f7a9e324aa3eae7a6707afde3a0ed24fd06804ad345", "AfterSha256": "b82d6d5b149876c47516387487e1c4a180639abff116623487d572e851c0828f"}
+  ]
+}

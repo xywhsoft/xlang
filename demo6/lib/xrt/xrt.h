@@ -44512,9 +44512,9 @@ struct xnetsocket_impl {
 	/* Windows Socket 只能永久关联一个完成端口；唯一标识不受上下文地址复用影响。 */
 	uint64 CompletionOwner;
 	/* WSARecvMsg 在显式启用元数据时加载；其他平台恒为零。 */
-	uintptr_t ReceiveMessage;
+	ptr volatile ReceiveMessage;
 	/* WSASendMsg 只在逐数据报控制路径使用；其他平台恒为零。 */
-	uintptr_t SendMessage;
+	ptr volatile SendMessage;
 };
 
 
@@ -69548,7 +69548,7 @@ void __xrtNetSocketDgramMetaParse(
 /* 延迟加载一个 Winsock 扩展入口，并以整数保存函数指针的原始位。 */
 static uintptr_t __xrtNetSocketMessageLoad(
 	xnetsocket Socket,
-	uintptr_t* pCached,
+	ptr volatile* pCached,
 	const void* pId,
 	size_t iIdSize,
 	bool bReport,
@@ -69559,8 +69559,12 @@ static uintptr_t __xrtNetSocketMessageLoad(
 	uintptr_t iFunction = 0;
 	DWORD iBytes = 0;
 
-	if ( *pCached != 0 ) {
-		return *pCached;
+	/* All accesses use the same interlocked pointer representation. Concurrent
+	 * first users may query the provider independently; only the first result
+	 * is published. No lock spans WSAIoctl and a failed query remains retryable. */
+	ptr pPublished = InterlockedCompareExchangePointer(pCached, NULL, NULL);
+	if ( pPublished != NULL ) {
+		return (uintptr_t)pPublished;
 	}
 	if ( WSAIoctl(
 		__xrtNetSocketHandle(Socket),
@@ -69585,8 +69589,8 @@ static uintptr_t __xrtNetSocketMessageLoad(
 		}
 		return 0;
 	}
-	*pCached = iFunction;
-	return iFunction;
+	pPublished = InterlockedCompareExchangePointer(pCached, (ptr)iFunction, NULL);
+	return pPublished != NULL ? (uintptr_t)pPublished : iFunction;
 }
 
 #endif
