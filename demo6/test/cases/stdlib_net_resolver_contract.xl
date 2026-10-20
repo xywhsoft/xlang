@@ -1,0 +1,7 @@
+// Compile/lower only. Merely select all five declaration classes; never query names.
+auto resolver = NetResolver(NetResolverOptions().withWorkers(1))
+array<NetAddress> addresses = [NetAddress.loopback(4, 12)]
+auto list = NetAddressList(addresses)
+auto snapshot = resolver.snapshot()
+resolver.close()
+assert resolver.wait(5000)

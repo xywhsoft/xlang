@@ -1,0 +1,30 @@
+// Immutable options only, no resolver workers or name queries.
+auto base = NetResolverOptions()
+assert base.workers > 0 and base.requestLimit > 0 and base.queryLimit > 0 and base.hostLimit > 0
+auto changed = base.withWorkers(1).withRequestLimit(12).withQueryLimit(6).withCacheEntries(0).withHostLimit(128).withThreadStack(0).withSuccessTtlMillis(25).withFailureTtlMillis(0)
+assert changed.workers == 1 and changed.requestLimit == 12 and changed.queryLimit == 6
+assert changed.cacheEntries == 0 and changed.hostLimit == 128 and changed.threadStackBytes == 0
+assert changed.successTtlMillis == 25 and changed.failureTtlMillis == 0
+assert base.requestLimit != changed.requestLimit and base.queryLimit != changed.queryLimit
+bool rejected = false
+try
+ auto invalid = base.withWorkers(0)
+catch RangeError
+ rejected = true
+end
+assert rejected
+rejected = false
+try
+ auto invalid = base.withHostLimit(0)
+catch RangeError
+ rejected = true
+end
+assert rejected
+rejected = false
+try
+ auto invalid = base.withSuccessTtlMillis(uint64(18446744073709551615))
+catch RangeError
+ rejected = true
+end
+assert rejected
+println("Resolver immutable configuration: ok")

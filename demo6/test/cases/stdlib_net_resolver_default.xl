@@ -1,0 +1,10 @@
+// Literal numeric only. One shared module-owned resolver across calls.
+async func check() as int
+ auto first = await net.resolveAsync("127.0.0.1", 70, 4)
+ auto second = await net.resolveAsync("::1", 80, 6)
+ assert first.port(0) == 70 and second.port(0) == 80
+ assert net.resolverStats().submitted == 2
+ return 0
+end
+assert await check() == 0
+println("Module-owned default resolver numeric path: ok")

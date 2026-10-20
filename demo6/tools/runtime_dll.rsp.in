@@ -53,6 +53,21 @@
     src\runtime\xl6_net_socket_batch.c
     src\runtime\xl6_ownership_domain_net_datagram_packet.c
     src\runtime\xl6_ownership_domain_net_batch_progress.c
+    src\runtime\xl6_net_address_list.c
+    src\runtime\xl6_net_address_list_array.c
+    src\runtime\xl6_net_address_list_resolve.c
+    src\runtime\xl6_net_resolver_config.c
+    src\runtime\xl6_net_resolver_stats.c
+    src\runtime\xl6_execution_net_resolver.c
+    src\runtime\xl6_net_resolver_language.c
+    src\runtime\xl6_net_resolve_operation.c
+    src\runtime\xl6_ownership_domain_net_address_list.c
+    src\runtime\xl6_ownership_domain_net_resolver_config.c
+    src\runtime\xl6_ownership_domain_net_resolver_stats.c
+    src\runtime\xl6_ownership_domain_net_resolver_language.c
+    src\runtime\xl6_ownership_domain_net_resolve_operation.c
+    src\runtime\xl6_ownership_domain_execution_net_resolver.c
+    src\runtime\xl6_ownership_domain_net_resolver_native.c
     src\runtime\xl6_ownership_domain_net_socket_owner.c
     src\runtime\xl6_ownership_domain_net_socket.c
     src\runtime\xl6_execution_failures.c

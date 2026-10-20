@@ -71,6 +71,9 @@ struct XL6_ContinuationExecutor;
 struct XL6_ContinuationStorageV2;
 struct xl6_foreign_error_result;
 struct xerror;
+/* Shared terminal failure normalization; no ready-queue dependency. Consumes
+ * the diagnostic and preserves the caller's ambient diagnostic independently. */
+XL6_CODE_LEASE_API void xl6FutureCallbackFailV1(struct xpromise*,struct xerror*);
 /* Explicit ready-queue language contract. Allocate owns the same closed V2
  * capture layout, code pin and physical frame as V4. Start reserves execution
  * BEFORE registering its Watch; NULL leaves a private frame for V1 Discard.

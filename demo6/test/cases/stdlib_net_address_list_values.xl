@@ -1,0 +1,47 @@
+// Entirely offline: immutable copies, complete endpoints and exact native fields.
+func makeList() as NetAddressList
+ auto first = NetAddress.parse("127.0.0.1", 10)
+ auto second = NetAddress.loopback(6, 20)
+ array<NetAddress> data = [first, second, first, first.withPort(30)]
+ return NetAddressList(data)
+end
+auto original = makeList()
+assert original.count() == 3 and original.length == 3
+assert original.at(0).equals(NetAddress.loopback(4, 10))
+assert original[1].equals(NetAddress.loopback(6, 20))
+assert original.family(2) == 4 and original.port(2) == 30
+assert original.text(0) == "127.0.0.1" and original.text(1) == "::1"
+auto copy = original.clone()
+auto remapped = original.withPort(9000)
+assert remapped.count() == 2 and remapped.port(0) == 9000 and remapped.port(1) == 9000
+assert original.port(0) == 10 and copy.port(2) == 30
+bool range = false
+try
+ auto invalid = original.at(-1)
+catch RangeError
+ range = true
+end
+assert range
+range = false
+try
+ auto invalid = original[original.length]
+catch RangeError
+ range = true
+end
+assert range
+range = false
+try
+ auto invalid = original.withPort(65536)
+catch RangeError
+ range = true
+end
+assert range
+bool empty = false
+try
+ array<NetAddress> none = []
+ auto invalid = NetAddressList(none)
+catch ValueError
+ empty = true
+end
+assert empty
+println("Offline address list values: ok")

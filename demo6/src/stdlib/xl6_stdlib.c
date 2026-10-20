@@ -1628,6 +1628,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsXidClass;
     int needsBufferClass;
     int needsNetAddressClass;
+    int needsNetAddressListClass;
+    int needsNetResolverClass;
+    int needsNetResolverOptionsClass;
+    int needsNetDefaultResolver;
     int needsNetSocketClass;
     int needsNetInterfaceClass;
     int needsNetBytesClass;
@@ -1777,6 +1781,13 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
 	needsTlsSessionClass = xl6StdlibNeedsTlsSessionClass(root) ||
 		needsTlsStreamClass || needsTlsServerClass;
     needsNetAddressClass = xl6StdlibNeedsNetAddressClass(root, used);
+    needsNetDefaultResolver=xl6StdlibFuncUsed(used,"net","resolveAsync")||xl6StdlibFuncUsed(used,"net","resolverStats");
+    needsNetResolverClass=needsNetDefaultResolver||xl6StdlibNodeUsesTypeName(root,"NetResolver")||
+        xl6StdlibNodeUsesTypeName(root,"NetResolveOperation");
+    needsNetResolverOptionsClass=needsNetResolverClass||xl6StdlibNodeUsesTypeName(root,"NetResolverOptions");
+    needsNetAddressListClass=needsNetResolverClass||xl6StdlibNodeUsesTypeName(root,"NetAddressList")||
+        xl6StdlibFuncUsed(used,"net","resolveAll");
+    if(needsNetAddressListClass)needsNetAddressClass=1;
     needsNetSocketClass=xl6StdlibNodeUsesTypeName(root,"NetSocket")||xl6StdlibNodeUsesTypeName(root,"NetStatus")||
         xl6StdlibNodeUsesTypeName(root,"NetSocketKind")||xl6StdlibNodeUsesTypeName(root,"NetSocketOption")||
         xl6StdlibNodeUsesTypeName(root,"NetShutdown")||xl6StdlibNodeUsesTypeName(root,"NetDatagramInfo")||
@@ -1790,6 +1801,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetBytesClass = xl6StdlibNodeUsesTypeName(root, "NetBytes");
     needsNetEngineStatsClass = xl6StdlibNeedsNetEngineStatsClass(root, used);
     needsNetResolverStatsClass = xl6StdlibNeedsNetResolverStatsClass(root, used);
+    needsNetResolverStatsClass=needsNetResolverStatsClass||needsNetResolverClass;
     needsNetProxyClass = xl6StdlibNeedsNetProxyClass(root, used);
     needsNetEngineClass = xl6StdlibNeedsNetEngineClass(root, used);
     needsTcpStreamStatsClass = xl6StdlibNodeUsesTypeName(root, "TcpStreamStats");
@@ -1894,7 +1906,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( xl6StdlibFuncUsed(used, "signal", "cancelOn") ) {
         needsTaskGroupClass = 1;
     }
-    needsCoreClass = needsCoreClass || needsCompress || needsDateTime || needsConsoleOptions || needsIoReader || needsIoWriter || needsIoLines || needsStringIterator || needsUtf8Validator || needsRegex || needsRandomClass || needsSipHasher64Class || needsXidClass ||
+    needsCoreClass = needsCoreClass || needsNetResolverOptionsClass || needsCompress || needsDateTime || needsConsoleOptions || needsIoReader || needsIoWriter || needsIoLines || needsStringIterator || needsUtf8Validator || needsRegex || needsRandomClass || needsSipHasher64Class || needsXidClass ||
         needsBufferClass || needsNetAddressClass || needsNetInterfaceClass ||
         needsNetBytesClass ||
         needsNetEngineStatsClass || needsNetResolverStatsClass ||
@@ -2018,10 +2030,15 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if ( needsNetAddressClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetAddressClassSource);
-        if(xl6StdlibNodeUsesTypeName(root,"NetAddressList") || xl6StdlibFuncUsed(used,"net","resolveAll") ||
-            xl6StdlibFuncUsed(used,"net","resolveAsync"))
+        if(needsNetAddressListClass)
             xl6StdlibBuilderAppend(&builder,xl6StdlibNetAddressListClassSource);
     }
+    if(needsNetResolverOptionsClass)xl6StdlibBuilderAppend(&builder,xl6StdlibNetResolverOptionsSource);
+    if(needsNetResolverClass){
+        xl6StdlibBuilderAppend(&builder,xl6StdlibNetResolveOperationSource);
+        xl6StdlibBuilderAppend(&builder,xl6StdlibNetResolverSource);
+    }
+    if(needsNetDefaultResolver)xl6StdlibBuilderAppend(&builder,xl6StdlibNetDefaultResolverSource);
     if ( needsNetInterfaceClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetInterfaceClassSource);
     }
@@ -2154,7 +2171,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesTypeName(root, "PemBlock") ||
         xl6StdlibNodeUsesTypeName(root, "PemReader") ||
         xl6StdlibFuncUsed(used, "asn1", "parse") || xl6StdlibFuncUsed(used, "pem", "parse") || xl6StdlibFuncUsed(used, "pem", "decode")) xl6StdlibBuilderAppend(&builder, xl6StdlibAsn1ClassSource);
-    if (needsTaskGroupClass || xl6StdlibHasConcurrentImport(root)) {
+    if (needsNetResolverClass || needsTaskGroupClass || xl6StdlibHasConcurrentImport(root)) {
         bool needsChannelCases=xl6StdlibNodeUsesTypeName(root,"ChannelCase") ||
             xl6StdlibNodeUsesTypeName(root,"ChannelSelection");
         bool needsChannelDirect=xl6StdlibNodeUsesTypeName(root,"ChannelReceiveResult") ||
@@ -2176,7 +2193,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         if (xl6StdlibNodeUsesTypeName(root, "CancellationSource") ||
             xl6StdlibNodeUsesTypeName(root, "CancellationToken") ||
             xl6StdlibNodeUsesTypeName(root, "CancellationRegistration") ||
-            xl6StdlibNodeUsesTypeName(root, "Promise") || needsTaskGroupClass || needsChannelCases || needsChannelDirect || needsTaskPoolClass)
+            xl6StdlibNodeUsesTypeName(root, "Promise") || needsNetResolverClass || needsTaskGroupClass || needsChannelCases || needsChannelDirect || needsTaskPoolClass)
             xl6StdlibBuilderAppend(&builder, xl6StdlibCancellationSource);
         if(xl6StdlibNodeUsesTypeName(root,"Promise"))xl6StdlibBuilderAppend(&builder,xl6StdlibPromiseSource);
         if (xl6StdlibNodeUsesTypeName(root, "AtomicInt32")) xl6StdlibBuilderAppend(&builder, xl6StdlibAtomicInt32Source);

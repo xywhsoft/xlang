@@ -9,6 +9,14 @@
 #include "xl6_ownership_scope.h"
 #include "src/api/xl_foreign_error.h"
 
+void xl6FutureCallbackFailV1(xpromise* output,xerror* error)
+{
+    xerror* previous=xrtTakeError();
+    if(!error){xrtSetErrorKind(XERR_INTERNAL);error=xrtTakeError();}
+    (void)xrtPromiseReject(output,error);xrtErrorFree(error);
+    xrtClearError();xrtSetErrorTake(previous);
+}
+
 typedef XL6_FutureCallbackFrameV1 FutureCallback;
 static void mutation_begin(xrtownershipscope* scope) { if(!xrtOwnershipMutationBegin(scope))abort(); }
 static void mutation_end(xrtownershipscope* scope) { if(!xrtOwnershipScopeEnd(scope))abort(); }

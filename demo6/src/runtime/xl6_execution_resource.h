@@ -5,12 +5,14 @@
 struct xexecutorstats;
 struct XL6_ExecutionFamilyV1;
 struct xnetengine;
+struct xnetresolver;
 typedef struct XL6_ExecutionSourceV1 XL6_ExecutionSourceV1;
 typedef struct XL6_ExecutionResourceV1 XL6_ExecutionResourceV1;
 typedef enum XL6_ExecutionKindV1 {
     XL6_EXECUTION_EXECUTOR_V1=1,
     XL6_EXECUTION_TASK_POOL_V1=2,
-    XL6_EXECUTION_NET_ENGINE_V1=3
+    XL6_EXECUTION_NET_ENGINE_V1=3,
+    XL6_EXECUTION_NET_RESOLVER_V1=4
 } XL6_ExecutionKindV1;
 typedef struct XL6_ExecutionSourceSnapshotV1 {
     size_t size,resources,entries;
@@ -71,6 +73,7 @@ typedef struct XL6_ExecutionScopeV1 {
     XL6_TaskPool* pool;
     uint64_t thread;
     struct xnetengine* engine;
+    struct xnetresolver* resolver;
     bool control;
 } XL6_ExecutionScopeV1;
 XL6_CODE_LEASE_API bool xl6ExecutionResourceEnterV1(XL6_ExecutionResourceV1*,bool,XL6_ExecutionScopeV1*);

@@ -12287,6 +12287,13 @@ XRT_API const xrtownershipadapterv1* xrtNetResolveOpOwnershipAdapterV1(xrtowners
 	const xnetresolveownershipv1* const* pPolicies, size_t iPolicyCount,
 	const xrtownershippreparationv1** ppPreparation);
 
+/* Read-only under ownership Freeze. BUSY describes executing native bodies,
+ * publication or thread/TLS exit tails, not unsupported callback policies.
+ * A false Busy result is not admission: Count/Trace and exact policy adapters
+ * must still certify the node. Neither query closes/cancels/joins the service. */
+XRT_API const xrtownershipquiescencev1* xrtNetResolverOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtNetResolveOpOwnershipQuiescenceV1Get(void);
+
 
 
 /* 清空成功和失败缓存；已经运行或排队的查询不受影响。 */
@@ -12363,6 +12370,7 @@ XRT_API const xnetresolveownershipv1* xrtNetResolverFutureRequestPolicyV1Get(voi
 XRT_API const xfuturepayloadownershipv1* xrtNetResolverFuturePayloadPolicyV1Get(void);
 XRT_API const xrtownershipadapterv1* xrtNetResolverFutureOwnershipAdapterV1(xrtownershipref Reference,
 	const xrtownershippreparationv1** ppPreparation);
+XRT_API const xrtownershipquiescencev1* xrtNetResolverFutureOwnershipQuiescenceV1Get(void);
 
 #endif
 

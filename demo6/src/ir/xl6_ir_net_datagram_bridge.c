@@ -16,13 +16,7 @@ typedef struct XL6_IrNetDatagramContract {
 #define NET_ROW(name, role, args, result) { "xl6_xrt_" name, XL6_IR_RUNTIME_BRIDGE_NET_##role, args, result, XL6_IR_RUNTIME_BRIDGE_NET_##role }
 #define NET_SOCKET_ROW(name, role, args, result) { "xl6_xrt_" name, XL6_IR_RUNTIME_BRIDGE_NET_##role, args, result, XL6_IR_RUNTIME_BRIDGE_NET_UDP_SOCKET }
 static const XL6_IrNetDatagramContract xl6IrNetDatagramContracts[] = {
-    NET_ROW("net_address_list_resolve", ADDRESS_LIST, "SII", 'C'),
-    NET_ROW("net_address_list_destroy", ADDRESS_LIST, "H", 'V'),
-    NET_ROW("net_address_list_count", ADDRESS_LIST, "H", 'I'),
-    NET_ROW("net_address_list_port", ADDRESS_LIST, "HI", 'I'),
-    NET_ROW("net_resolve_async", RESOLVE_ASYNC, "SII", 'F'),
     NET_ROW("net_runtime_stats", ENGINE_STATS, "", 'P'),
-    NET_ROW("net_resolver_stats", RESOLVER_STATS, "", 'P'),
     NET_ROW("udp_bind", UDP_SOCKET, "SU", 'P'),
     NET_ROW("udp_destroy", UDP_SOCKET, "H", 'V'),
     NET_ROW("udp_local_port", UDP_SOCKET, "H", 'I'),

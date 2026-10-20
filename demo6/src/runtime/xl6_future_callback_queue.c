@@ -24,13 +24,6 @@ static xl6_error_result cleanup(void* data,xl6_error_result incoming)
     if(!xl6ContinuationComplete(frame->ticket))abort();
     return outcome;
 }
-static void fail(xpromise* output,xerror* error)
-{
-    xerror* previous=xrtTakeError();
-    if(!error){xrtSetErrorKind(XERR_INTERNAL);error=xrtTakeError();}
-    (void)xrtPromiseReject(output,error);xrtErrorFree(error);
-    xrtClearError();xrtSetErrorTake(previous);
-}
 static bool hold(const void* data)
 {
     Frame* frame=xl6CallbackFrameHeaderV1(data);xrtownershipscope mutation={0};bool held=false;
@@ -101,5 +94,5 @@ static xfuture* start(XL6_ContinuationExecutor* executor,void* data,xfuture* sou
 {XL6_OWNERSHIP_RETURN(xfuture*,start_body(executor,data,source));}
 const XL6_FutureCallbackRuntimeV5* xl6FutureCallbackRuntimeV5Get(void)
 {
-    static const XL6_FutureCallbackRuntimeV5 api={allocate,cleanup,start,fail};return &api;
+    static const XL6_FutureCallbackRuntimeV5 api={allocate,cleanup,start,xl6FutureCallbackFailV1};return &api;
 }

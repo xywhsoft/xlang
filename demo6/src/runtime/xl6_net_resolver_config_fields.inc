@@ -1,0 +1,5 @@
+XL6_NET_RESOLVER_CONFIG_SIZE(RequestLimit,requestLimit,1)
+XL6_NET_RESOLVER_CONFIG_SIZE(QueryLimit,queryLimit,1)
+XL6_NET_RESOLVER_CONFIG_SIZE(CacheEntries,cacheEntries,0)
+XL6_NET_RESOLVER_CONFIG_SIZE(HostLimit,hostLimit,1)
+XL6_NET_RESOLVER_CONFIG_SIZE(ThreadStack,threadStackBytes,0)

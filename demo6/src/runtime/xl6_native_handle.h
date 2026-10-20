@@ -70,6 +70,11 @@ XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6XlangContextHandlePolicyV1
  * to resident source units, never to a generated header's sibling closure. */
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6DateTimeHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetAddressHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetAddressListHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetResolverConfigHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetResolverSnapshotHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetResolverHandlePolicyV1Get(void);
+XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetResolveOperationHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetInterfacesHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetInterfaceHandlePolicyV1Get(void);
 XL6_CODE_LEASE_API const XL6_NativeHandlePolicyV1* xl6NetInterfaceAddressHandlePolicyV1Get(void);

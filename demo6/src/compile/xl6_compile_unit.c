@@ -703,7 +703,22 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_net_batch_progress.c",D(R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{"XRT_MODULE_MEMORY"}},
     {"src/runtime/xl6_net_socket_batch.c",D(R(NET_SOCKET_LANGUAGE),R(NET_DATAGRAM_PACKET),R(NET_BATCH_PROGRESS),R(SEQUENCE)),{NULL}},
     {"src/runtime/xl6_ownership_domain_net_datagram_packet.c",D(R(OWNERSHIP_CATALOG),R(NET_DATAGRAM_PACKET)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_net_batch_progress.c",D(R(OWNERSHIP_CATALOG),R(NET_BATCH_PROGRESS)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_net_batch_progress.c",D(R(OWNERSHIP_CATALOG),R(NET_BATCH_PROGRESS)),{NULL}},
+    {"src/runtime/xl6_net_address_list.c",D(R(NATIVE_HANDLE),R(NET_ADDRESS),R(FOREIGN_ERROR)),{"XRT_MODULE_NET_DNS"}},
+    {"src/runtime/xl6_net_address_list_array.c",D(R(NET_ADDRESS_LIST),R(SEQUENCE)),{NULL}},
+    {"src/runtime/xl6_net_address_list_resolve.c",D(R(NET_ADDRESS_LIST)),{"XRT_MODULE_STRING","XRT_MODULE_UNICODE_TEXT"}},
+    {"src/runtime/xl6_net_resolver_config.c",D(R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{"XRT_MODULE_NET_RESOLVER"}},
+    {"src/runtime/xl6_net_resolver_stats.c",D(R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{"XRT_MODULE_MEMORY"}},
+    {"src/runtime/xl6_execution_net_resolver.c",D(R(EXECUTION_SOURCE),R(OWNERSHIP_DOMAIN_NET_RESOLVER_NATIVE)),{"XRT_MODULE_NET_RESOLVER_FUTURE"}},
+    {"src/runtime/xl6_net_resolver_language.c",D(R(EXECUTION_NET_RESOLVER),R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{"XRT_MODULE_STRING","XRT_MODULE_UNICODE_TEXT"}},
+    {"src/runtime/xl6_net_resolve_operation.c",D(R(NATIVE_HANDLE),R(FUTURE_CALLBACK),R(FUTURE_PAYLOAD),R(OWNERSHIP_DOMAIN_NET_RESOLVER_NATIVE)),{"XRT_MODULE_NET_RESOLVER_FUTURE"}},
+    {"src/runtime/xl6_ownership_domain_net_address_list.c",D(R(OWNERSHIP_CATALOG),R(NET_ADDRESS_LIST)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_resolver_config.c",D(R(OWNERSHIP_CATALOG),R(NET_RESOLVER_CONFIG)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_resolver_stats.c",D(R(OWNERSHIP_CATALOG),R(NET_RESOLVER_STATS)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_resolver_language.c",D(R(OWNERSHIP_CATALOG),R(NET_RESOLVER_LANGUAGE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_resolve_operation.c",D(R(OWNERSHIP_CATALOG),R(NET_RESOLVE_OPERATION)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_execution_net_resolver.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_NET_RESOLVER)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_resolver_native.c",D(R(OWNERSHIP_CATALOG)),{"XRT_MODULE_NET_RESOLVER_FUTURE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

@@ -3,16 +3,6 @@
 void xl6CgenEmitNetDatagramComponent(XL6_Output* out, const XL6_CgenNetDatagramNeeds* needs)
 {
     if (out == NULL || needs == NULL) return;
-    if (needs->addressList) xl6OutputPuts(
-        "void* xl6_xrt_net_address_list_resolve(xlir_string host, int64_t port, int64_t family)\n"
-        "{ const char* chost = xlir_string_cstr(host); if (chost == NULL || !chost[0] || port < 0 || port > 65535 || (family != 0 && family != 4 && family != 6)) return NULL; return xrtNetResolve(chost, (uint16_t)port, (xnetfamily)family); }\n"
-        "void xl6_xrt_net_address_list_destroy(void* raw) { xrtNetAddrListDestroy((xnetaddrlist*)raw); }\n"
-        "int64_t xl6_xrt_net_address_list_count(void* raw) { return raw != NULL ? (int64_t)xrtNetAddrListCount((xnetaddrlist*)raw) : 0; }\n"
-        "int64_t xl6_xrt_net_address_list_port(void* raw, int64_t index)\n"
-        "{ const xnetaddr* address = raw != NULL && index >= 0 ? xrtNetAddrListGet((xnetaddrlist*)raw, (size_t)index) : NULL; return address != NULL ? address->Port : 0; }\n", out);
-    if (needs->resolveAsync) xl6OutputPuts(
-        "xfuture* xl6_xrt_net_resolve_async(xlir_string host, int64_t port, int64_t family)\n"
-        "{ const char* chost = xlir_string_cstr(host); if (chost == NULL || !chost[0] || port < 0 || port > 65535 || (family != 0 && family != 4 && family != 6)) return NULL; return xlir_datagram_future_map(xrtNetResolveAsync(xl6_net_resolver, chost, (xnetfamily)family), xlir_datagram_map_addresses, (void*)(uintptr_t)(uint16_t)port); }\n", out);
     if (needs->socket) xl6OutputPuts(
         "void* xl6_xrt_udp_bind(xlir_string host, int64_t port)\n"
         "{ xnetaddr address; xnetudpconfig config; const char* chost = xlir_string_cstr(host); if (xl6_net_engine == NULL || chost == NULL || !xl6_net_address_parse(&address, chost, (uint16_t)port, true)) return NULL; xrtNetUdpConfigInit(&config); return xrtNetUdpBind(xl6_net_engine, &address, 0u, &config, NULL, NULL); }\n"
@@ -62,15 +52,13 @@ void xl6CgenEmitNetDatagramComponent(XL6_Output* out, const XL6_CgenNetDatagramN
         "void xl6_xrt_udp_batch_destroy(void* raw) { xrtNetUdpBatchDestroy((xnetudpbatch*)raw); }\n"
         "int64_t xl6_xrt_udp_batch_count(void* raw) { return raw != NULL ? (int64_t)xrtNetUdpBatchCount((xnetudpbatch*)raw) : 0; }\n"
         "void* xl6_xrt_udp_batch_take(void* raw, int64_t index) { return raw != NULL && index >= 0 ? xrtNetUdpBatchTake((xnetudpbatch*)raw, (size_t)index) : NULL; }\n", out);
-    if (needs->engineStats || needs->resolverStats || needs->udpStats) {
+    if (needs->engineStats || needs->udpStats) {
         XL6_CgenNetNeeds common = {0}; common.stats = 1;
         xl6CgenEmitNetTcpStatsComponent(out, &common);
         xl6OutputPuts("static void* xlir_datagram_stats(const uint64_t* values, size_t count) { xl6_net_stats_snapshot* snapshot = xl6_net_stats_create(count); if (snapshot != NULL) memcpy(snapshot->Values, values, count * sizeof(*values)); return snapshot; }\n", out);
     }
     if (needs->engineStats) xl6OutputPuts(
         "void* xl6_xrt_net_runtime_stats(void) { xnetenginestats v; if (xl6_net_engine == NULL || !xrtNetEngineStats(xl6_net_engine, &v)) return NULL; { const uint64_t a[] = {v.State,v.Workers,v.PostsAccepted,v.PostsRejected,v.PostsExecuted,v.TimersAccepted,v.TimersRejected,v.TimersFired,v.TimersCancelled,v.TimersClosed,v.TimerErrors,v.Events,v.WaitErrors,v.NodeCacheHits,v.NodeCacheMisses,v.PendingCommands,v.ActiveTimers,v.NodeCachedBytes,v.LiveObjects}; return xlir_datagram_stats(a, sizeof(a)/sizeof(a[0])); } }\n", out);
-    if (needs->resolverStats) xl6OutputPuts(
-        "void* xl6_xrt_net_resolver_stats(void) { xnetresolverstats v; if (xl6_net_resolver == NULL || !xrtNetResolverStats(xl6_net_resolver, &v)) return NULL; { const uint64_t a[] = {v.Workers,v.Submitted,v.Rejected,v.CacheHits,v.CacheMisses,v.Coalesced,v.QueriesStarted,v.Resolved,v.Failed,v.Cancelled,v.Outstanding,v.ActiveQueries,v.QueuedQueries,v.RunningQueries,v.ReadyCallbacks,v.CachedResults}; return xlir_datagram_stats(a, sizeof(a)/sizeof(a[0])); } }\n", out);
     if (needs->udpStats) xl6OutputPuts(
         "void* xl6_xrt_udp_stats(void* raw) { xnetudpstats v; if (raw == NULL || !xrtNetUdpStats((xnetudp*)raw, &v)) return NULL; { const uint64_t a[] = {v.State,v.ReceivedPackets,v.ReceivedBytes,v.SentPackets,v.SentBytes,v.Truncated,v.TruncatedDropped,v.DroppedNewest,v.DroppedOldest,v.ReceiveErrors,v.SendErrors,v.SendRejected,v.DatagramErrors,v.DatagramErrorsDropped,v.PathMtuUpdates,v.PathMtu,v.QueuedBytes,v.PeakQueuedBytes,v.QueuedPackets,v.PeakQueuedPackets,v.ReceiveQueued,v.PeakReceiveQueued,v.ReceiveQueuedBytes,v.PeakReceiveQueuedBytes,v.ErrorQueued,v.PeakErrorQueued,v.ErrorQueuedBytes,v.PeakErrorQueuedBytes,v.ReceiveWaiters,v.ErrorWaiters,v.ActiveReceives,v.ActiveSends,v.PeakActiveSends,v.Connected}; return xlir_datagram_stats(a, sizeof(a)/sizeof(a[0])); } }\n", out);
 }
