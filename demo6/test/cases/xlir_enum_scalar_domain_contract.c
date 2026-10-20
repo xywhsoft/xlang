@@ -42,6 +42,7 @@ int main(int argc, char** argv)
     assert(xl6CompileUnitLoadFile(&unit, argv[1], 1));
     XL6_IrModule* ir = &unit.ir;
     XL6_IrTypeId other = XL6_IR_TYPE_INVALID, integer = XL6_IR_TYPE_INVALID;
+    XL6_IrTypeId array = XL6_IR_TYPE_INVALID;
     for (size_t i = 0; i < ir->types.count; ++i) {
         const XL6_IrType* type = &ir->types.items[i];
         if (type->kind == XL6_IR_TYPE_NUMERIC_ENUM && !strcmp(type->name, "Other"))
@@ -49,8 +50,10 @@ int main(int argc, char** argv)
         if (type->kind == XL6_IR_TYPE_BUILTIN && type->cAbi == XL6_IR_C_ABI_I64 &&
             type->integerTarget == XL6_IR_INTEGER_TARGET_SIGNED_64)
             integer = (XL6_IrTypeId)i + 1;
+        if (type->collectionAbi == XL6_IR_COLLECTION_ARRAY)
+            array = (XL6_IrTypeId)i + 1;
     }
-    assert(other && integer);
+    assert(other && integer && array);
     assert(xl6IrLowerModule(ir, &unit.parse.diags));
     assert(xl6IrVerifyModule(ir, NULL));
     size_t binds = 0, counts = 0;
@@ -82,6 +85,7 @@ int main(int argc, char** argv)
         BAD(runtimeIdentityType, integer);
         if (saved.runtimeIdentityType != other) BAD(runtimeIdentityType, other);
         BAD(type, integer);
+        BAD(type, array);
         BAD(payloadType, other);
         BAD(calleeType, other);
         BAD(immediateText, (char*)"1");
