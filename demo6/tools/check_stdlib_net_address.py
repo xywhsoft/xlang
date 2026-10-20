@@ -60,7 +60,9 @@ def main():
     assert '#define XRT_MODULE_'+module+'\n' not in nativeText,module
    assert ('#define XRT_MODULE_NET_DNS\n' in nativeText)==case.endswith('_numeric')
   for case in negatives:
-   run(case+'.refused',[driver,root/('test/cases/'+case+'.xl'),'cgen-default',out/(case+'.c')],True)
+   diagnostic=run(case+'.refused',[driver,root/('test/cases/'+case+'.xl'),'cgen-default',out/(case+'.c')],True)
+   expected='private class member is not accessible' if case.endswith('_handle') else '没有匹配的 create 重载'
+   assert '[sem]' in diagnostic and expected in diagnostic,(case,'wrong rejection reason')
    assert not (out/(case+'.c')).exists()
   objects=[row['Path'] for row in build['Objects'] if Path(row['Source']).name not in ('xlir_public_source_driver.c','xlir_public_source_linux_driver.c')]
   assert len(objects)==len(build['Objects'])-1
