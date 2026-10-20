@@ -1,0 +1,19 @@
+auto socket = NetSocket(NetSocketKind.stream)
+assert not socket.isClosed
+assert socket.kind == NetSocketKind.stream and socket.family == 4
+assert socket.getOption(NetSocketOption.nonblocking) == 1
+socket.setOption(NetSocketOption.noDelay, 1)
+assert socket.getOption(NetSocketOption.noDelay) == 1
+socket.close()
+assert socket.isClosed
+socket.close()
+bool closedError = false
+try
+    auto family = socket.family
+catch Error
+    closedError = true
+end
+assert closedError
+auto empty = NetSocket()
+assert empty.isClosed
+println("Socket lifecycle and typed options: ok")

@@ -1,0 +1,49 @@
+// Only this program's own IPv4 loopback socket and ephemeral port.
+auto receiver = NetSocket(NetSocketKind.datagram)
+auto sender = NetSocket(NetSocketKind.datagram)
+receiver.bind(NetAddress.loopback())
+auto target = receiver.localAddress()
+auto sent, count = sender.sendTo(b"a\0b", target, 99)
+assert sent == NetStatus.ok and count == 3
+auto output = Buffer()
+int rounds = 0
+while true
+    auto status, size = receiver.receiveInto(output,2)
+    if status == NetStatus.truncated
+        assert size == 2 and output.length == 2 and output[1] == 0
+        break
+    end
+    assert status == NetStatus.again and size == 0
+    rounds += 1
+    assert rounds < 100000
+end
+auto data = Buffer(b"xyz")
+auto next, size = sender.sendTo(data,target,2)
+assert next == NetStatus.ok and size == 2
+rounds = 0
+while true
+    auto status, length = receiver.receiveInto(output,16)
+    if status == NetStatus.ok
+        assert length == 2 and output.length == 4
+        break
+    end
+    assert status == NetStatus.again
+    rounds += 1
+    assert rounds < 100000
+end
+auto empty, length = sender.sendTo("",target)
+assert empty == NetStatus.ok and length == 0
+rounds = 0
+while true
+    auto status, size = receiver.receiveInto(output,0)
+    if status == NetStatus.ok
+        assert size == 0 and output.length == 4
+        break
+    end
+    assert status == NetStatus.again
+    rounds += 1
+    assert rounds < 100000
+end
+receiver.close()
+sender.close()
+println("Socket own loopback UDP, truncation and empty datagram: ok")

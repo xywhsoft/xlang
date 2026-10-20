@@ -1,0 +1,6 @@
+func pair(int head, uint64 tail) as (int, uint64)
+    return head, tail
+end
+auto head, tail = pair(-7, uint64(9))
+assert head == -7 and tail == 9
+println("closed primitive signed/unsigned scalar product: ok")

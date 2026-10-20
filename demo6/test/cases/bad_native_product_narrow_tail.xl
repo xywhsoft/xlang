@@ -1,0 +1,1 @@
+extern "unregistered_narrow_pair" func invalid() as (int,uint32)

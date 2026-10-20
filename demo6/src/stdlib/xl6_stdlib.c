@@ -1628,6 +1628,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsXidClass;
     int needsBufferClass;
     int needsNetAddressClass;
+    int needsNetSocketClass;
     int needsNetInterfaceClass;
     int needsNetBytesClass;
     int needsNetEngineStatsClass;
@@ -1776,6 +1777,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
 	needsTlsSessionClass = xl6StdlibNeedsTlsSessionClass(root) ||
 		needsTlsStreamClass || needsTlsServerClass;
     needsNetAddressClass = xl6StdlibNeedsNetAddressClass(root, used);
+    needsNetSocketClass=xl6StdlibNodeUsesTypeName(root,"NetSocket")||xl6StdlibNodeUsesTypeName(root,"NetStatus")||
+        xl6StdlibNodeUsesTypeName(root,"NetSocketKind")||xl6StdlibNodeUsesTypeName(root,"NetSocketOption")||
+        xl6StdlibNodeUsesTypeName(root,"NetShutdown");
+    if(needsNetSocketClass)needsNetAddressClass=1;
     needsNetInterfaceClass = xl6StdlibNeedsNetInterfaceClass(root, used);
     needsNetBytesClass = xl6StdlibNodeUsesTypeName(root, "NetBytes");
     needsNetEngineStatsClass = xl6StdlibNeedsNetEngineStatsClass(root, used);
@@ -1869,7 +1874,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         只有公开面真正交换字节容器时才注入 Buffer。同步地址解析等纯网络
         能力不依赖 Buffer，不能因为同属网络体系就拉入文件和二进制运行时。
     */
-    needsBufferClass = needsTemplateBuffer || needsDeflater || needsInflater || xl6StdlibFuncUsed(used, "compress", "encodeBuffer") ||
+    needsBufferClass = needsNetSocketClass || needsTemplateBuffer || needsDeflater || needsInflater || xl6StdlibFuncUsed(used, "compress", "encodeBuffer") ||
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer") || needsRegexBuffer || xl6StdlibFuncUsed(used, "io", "writeFile") || (needsIoBuffer && (needsIoReader || needsIoWriter)) || needsRandomBufferMethods || xl6StdlibNeedsBufferClass(root, used) ||
         needsNetBytesClass ||
         needsTcpStreamClass || needsUdpClass ||
@@ -2015,6 +2020,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsNetInterfaceClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetInterfaceClassSource);
     }
+    if(needsNetSocketClass)xl6StdlibBuilderAppend(&builder,xl6StdlibNetSocketSource);
     if ( needsNetBytesClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetBytesClassSource);
     }
