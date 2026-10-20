@@ -1,0 +1,14 @@
+auto h = NetProxyHandshake(NetProxy(NetProxyType.socks5, "127.0.0.1", 1080, "u", "p"), "127.0.0.1", 80)
+assert h.output() == b"\x05\x01\x02" and h.sent(3) == 3
+h.append(b"\x05\x02")
+assert h.step() == NetProxyHandshakeState.write and h.output() == b"\x01\x01u\x01p"
+assert h.sent(5) == 5
+h.append(b"\x01\x00")
+assert h.step() == NetProxyHandshakeState.write
+assert h.sent(10) == 10
+h.append(b"\x05\x00\x00\x03\x03abc\x00\x50tail")
+assert h.step() == NetProxyHandshakeState.ready
+assert h.boundHost() == "abc" and h.boundHostBytes() == b"abc"
+assert h.boundFamily() == 0 and h.boundPort() == 80
+assert h.readRemaining() == b"tail"
+println("offline SOCKS5 normal credential negotiation and domain bound endpoint: ok")

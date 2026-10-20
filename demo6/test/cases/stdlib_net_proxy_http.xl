@@ -1,0 +1,14 @@
+auto h = NetProxyHandshake(NetProxy(NetProxyType.httpConnect, "127.0.0.1", 3128, "u", "p"), "127.0.0.1", 443)
+auto expected = b"CONNECT 127.0.0.1:443 HTTP/1.1\r\nHost: 127.0.0.1:443\r\nProxy-Authorization: Basic dTpw\r\n\r\n"
+assert h.output() == expected
+assert h.sent(7) == 7
+auto rest = h.output()
+assert h.sent(rest.length) == rest.length
+h.append("HTTP/1.1 200 Connection Established\r\n")
+assert h.step() == NetProxyHandshakeState.read
+h.append("\r\na\0b")
+assert h.step() == NetProxyHandshakeState.ready
+auto hasCode, code = h.replyCode()
+assert hasCode and code == 200 and h.buffered == 3
+assert h.readRemaining(20) == b"a\x00b" and h.buffered == 0
+println("offline HTTP CONNECT exact request, incremental success and NUL tail: ok")

@@ -1,0 +1,28 @@
+func endpoint() as NetProxy
+    return NetProxy(NetProxyType.socks5, "127.0.0.1", 1080, "u\0v", "p").clone()
+end
+auto returned = endpoint()
+assert returned.username() == b"u\x00v" and returned.password() == b"p"
+func outputSnapshot() as bytes
+    auto h = NetProxyHandshake(endpoint(), "127.0.0.1", 80)
+    return h.output()
+end
+auto snapshot = outputSnapshot()
+assert snapshot == b"\x05\x01\x02"
+func completedTail() as NetBuffer
+    auto h = NetProxyHandshake(NetProxy(NetProxyType.socks5, "127.0.0.1", 1080), "127.0.0.1", 80)
+    h.sent(3)
+    h.append(b"\x05\x00")
+    h.step()
+    h.sent(10)
+    h.append(b"\x05\x00\x00\x01\x7f\x00\x00\x01\x00\x50a\x00b")
+    h.step()
+    auto first = h.readRemaining(1)
+    auto result = NetBuffer()
+    result.append(first)
+    h.moveRemaining(result)
+    return result
+end
+auto tail = completedTail()
+assert tail.read() == b"a\x00b" and snapshot == b"\x05\x01\x02"
+println("proxy endpoints, output snapshots and application tail survive source destruction: ok")

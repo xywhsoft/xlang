@@ -990,6 +990,9 @@ static int xl6StdlibNeedsNetResolverStatsClass(const XL6_AstNode* root, const in
 static int xl6StdlibNeedsNetProxyClass(const XL6_AstNode* root, const int* used)
 {
     return xl6StdlibNodeUsesTypeName(root, "NetProxy") ||
+           xl6StdlibNodeUsesTypeName(root, "NetProxyType") ||
+           xl6StdlibNodeUsesTypeName(root, "NetProxyAuth") ||
+           xl6StdlibNodeUsesTypeName(root, "NetProxyHandshakeState") ||
            xl6StdlibFuncUsed(used, "net", "proxy");
 }
 
@@ -1642,6 +1645,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsNetEngineStatsClass;
     int needsNetResolverStatsClass;
     int needsNetProxyClass;
+    int needsNetProxyHandshake;
     int needsNetEngineClass;
     int needsTcpStreamStatsClass;
     int needsTcpServerStatsClass;
@@ -1786,10 +1790,12 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
 		needsTlsStreamClass || needsTlsServerClass;
     needsNetAddressClass = xl6StdlibNeedsNetAddressClass(root, used);
     needsNetDefaultResolver=xl6StdlibFuncUsed(used,"net","resolveAsync")||xl6StdlibFuncUsed(used,"net","resolverStats");
+    needsNetProxyHandshake=xl6StdlibNodeUsesTypeName(root,"NetProxyHandshake");
+    if(needsNetProxyHandshake)needsNetAddressClass=1;
     needsNetLineFramer=xl6StdlibNodeUsesTypeName(root,"NetLineFramer");
     needsNetLengthFramer=xl6StdlibNodeUsesTypeName(root,"NetLengthFramer");
     needsNetFrameResult=needsNetLineFramer||needsNetLengthFramer||xl6StdlibNodeUsesTypeName(root,"NetFrameResult")||xl6StdlibNodeUsesTypeName(root,"NetFrameStatus");
-    needsNetBuffer=needsNetLineFramer||needsNetLengthFramer||xl6StdlibNodeUsesTypeName(root,"NetBuffer");
+    needsNetBuffer=needsNetProxyHandshake||needsNetLineFramer||needsNetLengthFramer||xl6StdlibNodeUsesTypeName(root,"NetBuffer");
     needsNetResolverClass=needsNetDefaultResolver||xl6StdlibNodeUsesTypeName(root,"NetResolver")||
         xl6StdlibNodeUsesTypeName(root,"NetResolveOperation");
     needsNetResolverOptionsClass=needsNetResolverClass||xl6StdlibNodeUsesTypeName(root,"NetResolverOptions");
@@ -1810,7 +1816,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetEngineStatsClass = xl6StdlibNeedsNetEngineStatsClass(root, used);
     needsNetResolverStatsClass = xl6StdlibNeedsNetResolverStatsClass(root, used);
     needsNetResolverStatsClass=needsNetResolverStatsClass||needsNetResolverClass;
-    needsNetProxyClass = xl6StdlibNeedsNetProxyClass(root, used);
+    needsNetProxyClass = needsNetProxyHandshake || xl6StdlibNeedsNetProxyClass(root, used);
     needsNetEngineClass = xl6StdlibNeedsNetEngineClass(root, used);
     needsTcpStreamStatsClass = xl6StdlibNodeUsesTypeName(root, "TcpStreamStats");
     needsTcpServerStatsClass = xl6StdlibNodeUsesTypeName(root, "TcpServerStats");
@@ -1843,7 +1849,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsNetRuntime = needsNetAddressClass || needsNetInterfaceClass ||
         needsNetBytesClass ||
         needsNetEngineStatsClass || needsNetResolverStatsClass ||
-        needsNetProxyClass || needsNetEngineClass ||
+        needsNetEngineClass ||
         needsTcpStreamStatsClass || needsTcpServerStatsClass ||
         needsTcpStreamClass || needsTcpServerClass ||
         needsTcpConnectConfigClass || needsTcpListenConfigClass ||
@@ -2070,6 +2076,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsNetProxyClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetProxyClassSource);
     }
+    if(needsNetProxyHandshake)xl6StdlibBuilderAppend(&builder,xl6StdlibNetProxyHandshakeSource);
     if ( needsNetEngineClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetEngineOptionsSource);
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetEngineClassSource);

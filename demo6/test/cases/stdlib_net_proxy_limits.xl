@@ -1,0 +1,30 @@
+bool rejected = false
+try
+    auto bad = NetProxy(NetProxyType.socks5, "127.0.0.1", 0)
+catch RangeError
+    rejected = true
+end
+assert rejected
+auto h = NetProxyHandshake(NetProxy(NetProxyType.socks5, "127.0.0.1", 1080), "127.0.0.1", 80, 65536, 4)
+rejected = false
+try
+    h.append(b"abcde")
+catch RangeError
+    rejected = true
+end
+assert rejected and h.buffered == 0
+rejected = false
+try
+    auto bad = h.readRemaining()
+catch RuntimeError
+    rejected = true
+end
+assert rejected and h.state == NetProxyHandshakeState.write
+rejected = false
+try
+    h.append("x", -2)
+catch RangeError
+    rejected = true
+end
+assert rejected and h.buffered == 0
+println("proxy normal capacity and operation-state checks: ok")

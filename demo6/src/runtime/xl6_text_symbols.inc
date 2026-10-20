@@ -891,6 +891,7 @@ XL6_TEXT_EXPORT(xl6DateTimeSplitV1, TIME_DATETIME)
 #include "xl6_net_address_symbols.inc"
 #include "xl6_net_resolver_symbols.inc"
 #include "xl6_net_buffer_symbols.inc"
+#include "xl6_net_proxy_symbols.inc"
 #include "xl6_net_interfaces_symbols.inc"
 #include "xl6_net_backends_symbols.inc"
 #include "xl6_net_engine_symbols.inc"
