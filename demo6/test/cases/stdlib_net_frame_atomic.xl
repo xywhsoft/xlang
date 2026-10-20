@@ -1,0 +1,26 @@
+// The host injects allocation failure only during take(), after preparation.
+// A failed language result construction must leave the complete frame queued.
+NetLineFramer atomicLines = NetLineFramer()
+NetLengthFramer atomicLengths = NetLengthFramer()
+export "xl_frame_prepare" func prepareFrame(int kind) as int
+ atomicLines.clear()
+ atomicLengths.clear()
+ if kind == 0
+  atomicLines.append("abc\n")
+ else
+  atomicLengths.append(b"\x00\x00\x00\x03a\x00b")
+ end
+ return 1
+end
+export "xl_frame_take" func takeFrame(int kind) as int
+ if kind == 0
+  auto frame = atomicLines.next()
+  return frame.payloadSize
+ end
+ auto frame = atomicLengths.next()
+ return frame.payloadSize
+end
+export "xl_frame_remaining" func frameRemaining(int kind) as int
+ if kind == 0 then return atomicLines.buffered end
+ return atomicLengths.buffered
+end

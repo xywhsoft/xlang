@@ -1,0 +1,2 @@
+auto length = NetLengthFramer()
+assert length.next().more and length.buffered == 0

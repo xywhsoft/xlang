@@ -1,0 +1,55 @@
+bool rejected = false
+try
+ auto invalid = NetLineFramer("")
+catch RangeError
+ rejected = true
+end
+assert rejected
+rejected = false
+try
+ auto invalid = NetLengthFramer(0, 0)
+catch RangeError
+ rejected = true
+end
+assert rejected
+auto decoder = NetLineFramer("\n", 3)
+decoder.append("toolong\n")
+rejected = false
+try
+ auto invalid = decoder.next()
+catch RangeError
+ rejected = true
+end
+assert rejected and decoder.failed and decoder.buffered == 8
+rejected = false
+try
+ decoder.append("more")
+catch RuntimeError
+ rejected = true
+end
+assert rejected and decoder.buffered == 8
+decoder.clear()
+assert not decoder.failed and decoder.buffered == 0
+decoder.append("a\n")
+assert decoder.next().text() == "a"
+auto waiting = decoder.next()
+assert waiting.more
+rejected = false
+try
+ auto invalid = waiting.payloadSize
+catch RuntimeError
+ rejected = true
+end
+assert rejected
+auto binary = NetLineFramer()
+binary.append(b"\xff\x0a")
+auto frame = binary.next()
+assert frame.bytes() == b"\xff"
+rejected = false
+try
+ auto invalid = frame.text()
+catch ValueError
+ rejected = true
+end
+assert rejected and frame.bytes() == b"\xff"
+println("Framer checked states and explicit UTF-8: ok")

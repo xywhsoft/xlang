@@ -1,0 +1,2 @@
+auto line = NetLineFramer()
+assert line.next().more and line.buffered == 0

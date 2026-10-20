@@ -1,0 +1,42 @@
+auto buffer = NetBuffer(4)
+buffer.append("a\0b", 99)
+bool rejected = false
+try
+ buffer.append("cd")
+catch RangeError
+ rejected = true
+end
+assert rejected and buffer.peek() == b"a\x00b"
+auto source = NetBuffer()
+source.append("xy")
+rejected = false
+try
+ buffer.appendMove(source)
+catch RangeError
+ rejected = true
+end
+assert rejected and source.length == 2 and buffer.length == 3
+for size in [-2, -3]
+ rejected = false
+ try
+  buffer.read(size)
+ catch RangeError
+  rejected = true
+ end
+ assert rejected and buffer.length == 3
+end
+rejected = false
+try
+ buffer.peek(4)
+catch RangeError
+ rejected = true
+end
+assert rejected and buffer.length == 3
+rejected = false
+try
+ buffer.find(256)
+catch RangeError
+ rejected = true
+end
+assert rejected
+println("NetBuffer checked bounds preserve input: ok")

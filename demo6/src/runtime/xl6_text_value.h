@@ -28,6 +28,7 @@ struct xlir_closure;
 #include "xl6_codec_abi.h"
 #include "xl6_net_address_abi.h"
 #include "xl6_net_resolver_abi.h"
+#include "xl6_net_buffer_abi.h"
 #include "xl6_net_interfaces_abi.h"
 #include "xl6_net_backends_abi.h"
 #include "xl6_compress_abi.h"

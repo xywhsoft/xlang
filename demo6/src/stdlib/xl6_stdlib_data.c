@@ -316,6 +316,7 @@ const char* xl6StdlibXidClassSource =
 
 #include "xl6_stdlib_net_address.inc"
 #include "xl6_stdlib_net_resolver.inc"
+#include "xl6_stdlib_net_buffer.inc"
 
 const char* xl6StdlibSipHasher64ClassSource =
     "class SipHasher64\n"

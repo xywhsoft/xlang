@@ -1,0 +1,31 @@
+auto input = NetBuffer()
+input.append(b"a\x00")
+auto lines = NetLineFramer(b"\x00\xff", 20)
+lines.appendMove(input)
+assert input.length == 0 and lines.next().more and lines.buffered == 2
+lines.append(b"\xfftail\x00\xff")
+auto first = lines.next(false)
+assert first.ready and first.status == NetFrameStatus.ready
+assert first.payloadOffset == 0 and first.payloadSize == 1 and first.frameSize == 3 and first.declared == 1
+assert first.bytes() == b"a" and first.text() == "a" and lines.buffered == 9
+auto output = Buffer("start")
+assert lines.nextInto(output) and output.toBytes() == b"starta"
+auto second = lines.next()
+assert second.bytes() == b"tail" and lines.next().more
+lines.clear()
+assert first.bytes() == b"a" and second.bytes() == b"tail" and lines.buffered == 0
+auto included = NetLineFramer("\n", 0, true)
+included.append("\n")
+assert included.next().bytes() == b"\x0a"
+auto lengths = NetLengthFramer()
+lengths.append(b"\x00\x00")
+assert lengths.next().more
+lengths.append(b"\x00\x03a\x00b\x00\x00\x00\x00")
+auto frame = lengths.next()
+assert frame.ready and frame.payloadOffset == 4 and frame.payloadSize == 3 and frame.frameSize == 7 and frame.declared == 3
+assert frame.bytes() == b"a\x00b" and frame.text() == "a\0b"
+assert lengths.next().ready and lengths.next().more and frame.bytes() == b"a\x00b"
+auto little = NetLengthFramer(1, 2, 0, 3, 100, true)
+little.append(b"\xff\x02\x00AB")
+assert little.next().bytes() == b"AB"
+println("incremental owned line/length frames: ok")

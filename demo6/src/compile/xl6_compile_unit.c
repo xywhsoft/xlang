@@ -718,7 +718,24 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_net_resolver_language.c",D(R(OWNERSHIP_CATALOG),R(NET_RESOLVER_LANGUAGE)),{NULL}},
     {"src/runtime/xl6_ownership_domain_net_resolve_operation.c",D(R(OWNERSHIP_CATALOG),R(NET_RESOLVE_OPERATION)),{NULL}},
     {"src/runtime/xl6_ownership_domain_execution_net_resolver.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_NET_RESOLVER)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_net_resolver_native.c",D(R(OWNERSHIP_CATALOG)),{"XRT_MODULE_NET_RESOLVER_FUTURE"}}
+    {"src/runtime/xl6_ownership_domain_net_resolver_native.c",D(R(OWNERSHIP_CATALOG)),{"XRT_MODULE_NET_RESOLVER_FUTURE"}},
+    {"src/runtime/xl6_net_buffer.c",D(R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{"XRT_MODULE_NET_BUFFER","XRT_MODULE_ATOMIC"}},
+    {"src/runtime/xl6_net_buffer_value.c",D(R(NET_BUFFER_CORE)),{"XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_net_buffer_buffer.c",D(R(NET_BUFFER_CORE),R(BUFFER_CORE)),{NULL}},
+    {"src/runtime/xl6_net_frame_result.c",D(R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{"XRT_MODULE_NET_FRAME","XRT_MODULE_ATOMIC"}},
+    {"src/runtime/xl6_net_frame_value.c",D(R(NET_FRAME_RESULT)),{"XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_net_frame_buffer.c",D(R(NET_FRAME_RESULT),R(BUFFER_CORE)),{NULL}},
+    {"src/runtime/xl6_net_frame_text.c",D(R(NET_FRAME_RESULT)),{"XRT_MODULE_STRING","XRT_MODULE_UNICODE_TEXT"}},
+    {"src/runtime/xl6_net_frame_line.c",D(R(NET_BUFFER_CORE),R(NET_FRAME_RESULT)),{"XRT_MODULE_NET_FRAME_LINE","XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_net_frame_line_value.c",D(R(NET_FRAME_LINE),R(NET_BUFFER_VALUE)),{NULL}},
+    {"src/runtime/xl6_net_frame_line_buffer.c",D(R(NET_FRAME_LINE),R(NET_BUFFER_BUFFER)),{NULL}},
+    {"src/runtime/xl6_net_frame_length.c",D(R(NET_BUFFER_CORE),R(NET_FRAME_RESULT)),{"XRT_MODULE_NET_FRAME_LENGTH"}},
+    {"src/runtime/xl6_net_frame_length_value.c",D(R(NET_FRAME_LENGTH),R(NET_BUFFER_VALUE)),{NULL}},
+    {"src/runtime/xl6_net_frame_length_buffer.c",D(R(NET_FRAME_LENGTH),R(NET_BUFFER_BUFFER)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_buffer.c",D(R(OWNERSHIP_CATALOG),R(NET_BUFFER_CORE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_frame_result.c",D(R(OWNERSHIP_CATALOG),R(NET_FRAME_RESULT)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_line_framer.c",D(R(OWNERSHIP_CATALOG),R(NET_FRAME_LINE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_length_framer.c",D(R(OWNERSHIP_CATALOG),R(NET_FRAME_LENGTH)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

@@ -1632,6 +1632,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsNetResolverClass;
     int needsNetResolverOptionsClass;
     int needsNetDefaultResolver;
+    int needsNetBuffer;
+    int needsNetFrameResult;
+    int needsNetLineFramer;
+    int needsNetLengthFramer;
     int needsNetSocketClass;
     int needsNetInterfaceClass;
     int needsNetBytesClass;
@@ -1782,6 +1786,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
 		needsTlsStreamClass || needsTlsServerClass;
     needsNetAddressClass = xl6StdlibNeedsNetAddressClass(root, used);
     needsNetDefaultResolver=xl6StdlibFuncUsed(used,"net","resolveAsync")||xl6StdlibFuncUsed(used,"net","resolverStats");
+    needsNetLineFramer=xl6StdlibNodeUsesTypeName(root,"NetLineFramer");
+    needsNetLengthFramer=xl6StdlibNodeUsesTypeName(root,"NetLengthFramer");
+    needsNetFrameResult=needsNetLineFramer||needsNetLengthFramer||xl6StdlibNodeUsesTypeName(root,"NetFrameResult")||xl6StdlibNodeUsesTypeName(root,"NetFrameStatus");
+    needsNetBuffer=needsNetLineFramer||needsNetLengthFramer||xl6StdlibNodeUsesTypeName(root,"NetBuffer");
     needsNetResolverClass=needsNetDefaultResolver||xl6StdlibNodeUsesTypeName(root,"NetResolver")||
         xl6StdlibNodeUsesTypeName(root,"NetResolveOperation");
     needsNetResolverOptionsClass=needsNetResolverClass||xl6StdlibNodeUsesTypeName(root,"NetResolverOptions");
@@ -1891,7 +1899,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         只有公开面真正交换字节容器时才注入 Buffer。同步地址解析等纯网络
         能力不依赖 Buffer，不能因为同属网络体系就拉入文件和二进制运行时。
     */
-    needsBufferClass = needsNetSocketClass || needsTemplateBuffer || needsDeflater || needsInflater || xl6StdlibFuncUsed(used, "compress", "encodeBuffer") ||
+    needsBufferClass = needsNetBuffer || needsNetFrameResult || needsNetSocketClass || needsTemplateBuffer || needsDeflater || needsInflater || xl6StdlibFuncUsed(used, "compress", "encodeBuffer") ||
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer") || needsRegexBuffer || xl6StdlibFuncUsed(used, "io", "writeFile") || (needsIoBuffer && (needsIoReader || needsIoWriter)) || needsRandomBufferMethods || xl6StdlibNeedsBufferClass(root, used) ||
         needsNetBytesClass ||
         needsTcpStreamClass || needsUdpClass ||
@@ -2039,6 +2047,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder,xl6StdlibNetResolverSource);
     }
     if(needsNetDefaultResolver)xl6StdlibBuilderAppend(&builder,xl6StdlibNetDefaultResolverSource);
+    if(needsNetBuffer)xl6StdlibBuilderAppend(&builder,xl6StdlibNetBufferSource);
+    if(needsNetFrameResult)xl6StdlibBuilderAppend(&builder,xl6StdlibNetFrameResultSource);
+    if(needsNetLineFramer)xl6StdlibBuilderAppend(&builder,xl6StdlibNetLineFramerSource);
+    if(needsNetLengthFramer)xl6StdlibBuilderAppend(&builder,xl6StdlibNetLengthFramerSource);
     if ( needsNetInterfaceClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetInterfaceClassSource);
     }

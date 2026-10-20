@@ -1,0 +1,9 @@
+class FrameDefaults
+ NetBuffer buffer = NetBuffer()
+ NetLineFramer line = NetLineFramer()
+ NetLengthFramer length = NetLengthFramer()
+end
+auto value = FrameDefaults()
+value.buffer.append("abc")
+assert value.buffer.length == 3 and value.line.next().more and value.length.next().more
+println("network buffer/framer language defaults: ok")
