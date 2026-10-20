@@ -1,0 +1,57 @@
+// Only local OS metadata queries, no external DNS/network activity.
+assert net.hostName().length > 0 and net.localName().length > 0
+auto snapshot = net.interfaces()
+int matched = 0
+int at = 0
+while at < snapshot.count()
+    auto item = snapshot.get(at)
+    if item.ipv4Index > 0 then
+        assert net.interfaceIndex(item.name(), net.familyIPv4) == item.ipv4Index
+        assert net.interfaceName(item.ipv4Index, net.familyIPv4) == item.name()
+        matched += 1
+    end
+    if item.ipv6Index > 0 then
+        assert net.interfaceIndex(item.name(), net.familyIPv6) == item.ipv6Index
+        assert net.interfaceName(item.ipv6Index, net.familyIPv6) == item.name()
+        matched += 1
+    end
+    at += 1
+end
+assert matched > 0
+int rejected = 0
+try
+    auto invalid = net.interfaceIndex("a\0b")
+catch failure
+    assert failure.kind == "ValueError"
+    rejected += 1
+end
+try
+    auto invalid = net.interfaceName(0)
+catch failure
+    assert failure.kind == "RangeError"
+    rejected += 1
+end
+try
+    auto invalid = net.interfaceName(4294967296)
+catch failure
+    assert failure.kind == "RangeError"
+    rejected += 1
+end
+try
+    auto invalid = net.interfaceIndex("lo", 5)
+catch failure
+    assert failure.kind == "ValueError"
+    rejected += 1
+end
+assert rejected == 4
+auto local = net.localAddress()
+assert local.port == 0 and local.family != 0 and not local.isUnspecified
+assert NetAddress.parse(net.localIP()).port == 0
+try
+    auto hardware = net.localHardware()
+    assert hardware.length > 0
+    assert net.localMAC().length > 0
+catch failure
+    // A loopback-only host may have no usable hardware address.
+    assert failure.kind == "LookupError"
+end

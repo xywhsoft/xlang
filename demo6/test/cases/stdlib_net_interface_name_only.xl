@@ -1,0 +1,1 @@
+assert net.hostName().length > 0

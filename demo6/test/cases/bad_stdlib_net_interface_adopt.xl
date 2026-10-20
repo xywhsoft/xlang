@@ -1,0 +1,2 @@
+point raw = null
+auto forbidden = NetInterface(raw)

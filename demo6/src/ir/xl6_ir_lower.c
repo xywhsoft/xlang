@@ -10721,11 +10721,21 @@ static XL6_IrValueId xl6IrLowerResolvedSyntaxCall(
             return XL6_IR_VALUE_INVALID;
         }
     }
+    /* Syntax protocols use the same physical result contract as ordinary
+     * calls. A native factory returns its raw field/value first; the common
+     * completion transaction publishes the managed owner before cleanup. */
+    XL6_IrTypeId physicalReturnType = dispatchSlot != SIZE_MAX ? returnType :
+        xl6IrCallTargetPhysicalResultType(ctx->module,target);
+    if (returnType != XL6_IR_TYPE_INVALID && physicalReturnType == XL6_IR_TYPE_INVALID) {
+        xrtFree(operands);xrtFree(temporaries);
+        xl6IrLowerDiag(ctx,id,"XLIR resolved syntax call has no exact physical result ABI");
+        return XL6_IR_VALUE_INVALID;
+    }
     emitted = xl6IrLowerCommitEvaluationOwners(ctx, id, evaluationFirst) && xl6IrLowerEmit(
         ctx,
         dispatchSlot != SIZE_MAX ? XL6_IR_INSTR_VIRTUAL_CALL
                                  : XL6_IR_INSTR_CALL,
-        id, returnType, dispatchSlot != SIZE_MAX ? 0 : site->targetSymbol,
+        id, physicalReturnType, dispatchSlot != SIZE_MAX ? 0 : site->targetSymbol,
         operands, target->parameterCount,
         returnType == XL6_IR_TYPE_INVALID &&
         xl6IrLowerSelectedCallErrorAbi(ctx->module, target, dispatchSlot) != XL6_IR_ERROR_ABI_MAY_RAISE

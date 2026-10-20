@@ -939,6 +939,11 @@ static int xl6StdlibNeedsNetAddressClass(const XL6_AstNode* root, const int* use
 {
     return xl6StdlibNodeUsesTypeName(root, "NetAddress") ||
            xl6StdlibNodeUsesTypeName(root, "NetAddressList") ||
+           xl6StdlibNodeUsesTypeName(root, "NetInterface") ||
+           xl6StdlibNodeUsesTypeName(root, "NetInterfaceList") ||
+           xl6StdlibNodeUsesTypeName(root, "NetInterfaceAddress") ||
+           xl6StdlibFuncUsed(used, "net", "interfaces") ||
+           xl6StdlibFuncUsed(used, "net", "localAddress") ||
            xl6StdlibFuncUsed(used, "net", "resolve") ||
            xl6StdlibFuncUsed(used, "net", "resolveAll") ||
            xl6StdlibFuncUsed(used, "net", "resolveAsync");
@@ -952,9 +957,7 @@ static int xl6StdlibNeedsNetInterfaceClass(const XL6_AstNode* root, const int* u
     return xl6StdlibNodeUsesTypeName(root, "NetInterfaceList") ||
            xl6StdlibNodeUsesTypeName(root, "NetInterface") ||
            xl6StdlibNodeUsesTypeName(root, "NetInterfaceAddress") ||
-           xl6StdlibFuncUsed(used, "net", "interfaces") ||
-           xl6StdlibFuncUsed(used, "net", "interfaceIndex") ||
-           xl6StdlibFuncUsed(used, "net", "interfaceName");
+           xl6StdlibFuncUsed(used, "net", "interfaces");
 }
 
 
@@ -1867,7 +1870,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     */
     needsBufferClass = needsTemplateBuffer || needsDeflater || needsInflater || xl6StdlibFuncUsed(used, "compress", "encodeBuffer") ||
         xl6StdlibFuncUsed(used, "compress", "decodeBuffer") || needsRegexBuffer || xl6StdlibFuncUsed(used, "io", "writeFile") || (needsIoBuffer && (needsIoReader || needsIoWriter)) || needsRandomBufferMethods || xl6StdlibNeedsBufferClass(root, used) ||
-        needsNetInterfaceClass || needsNetBytesClass ||
+        needsNetBytesClass ||
         needsTcpStreamClass || needsUdpClass ||
         needsTlsSessionClass || needsHttp1Class || needsHttpDecoderClass ||
         needsWsFrameClass || needsWebSocketClass || needsFileClass ||

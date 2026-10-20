@@ -1,112 +1,69 @@
-func require(string name, bool condition)
-    if not condition then
-        println("FAILED: " + name)
-        assert false
-    end
-end
-
-
-
+// Local adapter metadata only; no DNS, sockets or other network service.
 func detachedInterface() as NetInterface
-    NetInterfaceList interfaces = net.interfaces()
-
-    require("detached_source", interfaces.count() > 0)
-    return interfaces[0]
+    auto snapshot = net.interfaces()
+    assert snapshot.count() > 0
+    return snapshot.get(0)
 end
-
-
-
-func detachedAddress() as NetInterfaceAddress
-    NetInterfaceList interfaces = net.interfaces()
-    int i = 0
-
-    while i < interfaces.count()
-        NetInterface value = interfaces[i]
-        if value.addressCount() > 0 then
-            return value.address(0)
-        end
-        i = i + 1
-    end
-    assert false, "at least one local interface address is required"
-    return interfaces[0].address(0)
+auto held = detachedInterface()
+assert held.name().length > 0
+auto hardware = held.hardwareAddress()
+if hardware.length > 0 then
+    auto original = hardware[0]
+    if original == 0 then hardware[0] = 1 else hardware[0] = 0 end
+    assert held.hardwareAddress()[0] == original
 end
-
-
-
-require("flag_up", net.interfaceUp == 1)
-require("flag_running", net.interfaceRunning == 2)
-require("flag_loopback", net.interfaceLoopback == 4)
-require("flag_broadcast", net.interfaceBroadcast == 8)
-require("flag_point_to_point", net.interfacePointToPoint == 16)
-require("flag_multicast", net.interfaceMulticast == 32)
-
-NetInterfaceList interfaces = net.interfaces()
-require("interface_count", interfaces.count() > 0)
-
-bool foundIndex = false
-bool foundAddress = false
-int i = 0
-while i < interfaces.count()
-    NetInterface value = interfaces[i]
-    string name = value.name()
-
-    require("name", name != "")
-    require("display_name", value.displayName() != "")
-    require("mtu", value.mtu >= 0)
-    require("hardware", value.hardwareAddress().len() >= 0)
-    require("known_flags", value.flags >= 0 and value.flags <= 63)
-    require("up_property", value.isUp == value.hasFlag(net.interfaceUp))
-    require("running_property", value.isRunning == value.hasFlag(net.interfaceRunning))
-    require("loopback_property", value.isLoopback == value.hasFlag(net.interfaceLoopback))
-    require("broadcast_property", value.supportsBroadcast == value.hasFlag(net.interfaceBroadcast))
-    require("point_property", value.isPointToPoint == value.hasFlag(net.interfacePointToPoint))
-    require("multicast_property", value.supportsMulticast == value.hasFlag(net.interfaceMulticast))
-
-    int family = 0
-    int index = 0
-    if value.ipv6Index > 0 then
-        family = 6
-        index = value.ipv6Index
-    elseif value.ipv4Index > 0 then
-        family = 4
-        index = value.ipv4Index
-    end
-    if index > 0 then
-        require("name_to_index", net.interfaceIndex(name, family) == index)
-        require("index_to_name", net.interfaceName(index, family) == name)
-        foundIndex = true
-    end
-
-    int j = 0
-    while j < value.addressCount()
-        NetInterfaceAddress address = value.address(j)
-        int maxPrefix = 128
-
-        require("address_family", address.family == 4 or address.family == 6)
-        require("address_text", address.text() != "")
-        require("address_scope", address.scope >= 0)
-        if address.family == 4 then
-            maxPrefix = 32
+auto snapshot = NetInterfaceList()
+assert snapshot.count() > 0
+assert snapshot.length == snapshot.count()
+assert snapshot[0].name() == snapshot.get(0).name()
+assert net.interfaces()[0].name().length > 0
+int items = 0
+int addresses = 0
+while items < snapshot.count()
+    auto item = snapshot.get(items)
+    assert item.name().length > 0 and item.ipv4Index >= 0 and item.ipv6Index >= 0
+    assert item.mtu >= 0 and item.flags >= 0
+    assert item.hasFlag(0) and not item.hasFlag(-1) and not item.hasFlag(4294967296)
+    assert item.isUp == item.hasFlag(net.interfaceUp)
+    assert item.isRunning == item.hasFlag(net.interfaceRunning)
+    assert item.isLoopback == item.hasFlag(net.interfaceLoopback)
+    assert item.supportsBroadcast == item.hasFlag(net.interfaceBroadcast)
+    assert item.isPointToPoint == item.hasFlag(net.interfacePointToPoint)
+    assert item.supportsMulticast == item.hasFlag(net.interfaceMulticast)
+    int at = 0
+    while at < item.addressCount()
+        auto entry = item.address(at)
+        auto address = entry.address()
+        assert entry.family == address.family and entry.scope == address.scope
+        assert entry.text() == address.text() and address.port == 0
+        assert entry.prefixKnown == (entry.prefixLength != 255)
+        if entry.prefixKnown then
+            assert entry.prefixLength >= 0
+            if entry.family == 4 then assert entry.prefixLength <= 32 else assert entry.prefixLength <= 128 end
         end
-        if address.prefixKnown then
-            require("address_prefix", address.prefixLength >= 0 and address.prefixLength <= maxPrefix)
-        else
-            require("unknown_prefix", address.prefixLength == 255)
-        end
-        foundAddress = true
-        j = j + 1
+        addresses += 1
+        at += 1
     end
-    i = i + 1
+    items += 1
 end
-
-require("indexed_interface", foundIndex)
-require("addressed_interface", foundAddress)
-require("invalid_index", net.interfaceIndex("", 0) == 0)
-require("invalid_name", net.interfaceName(0, 0) == "")
-
-NetInterface retainedInterface = detachedInterface()
-require("retained_interface", retainedInterface.name() != "")
-NetInterfaceAddress retainedAddress = detachedAddress()
-require("retained_address", retainedAddress.text() != "")
-
-println("stdlib net interfaces ok")
+assert items == snapshot.count() and addresses > 0
+int rejected = 0
+try
+    auto invalid = snapshot.get(-1)
+catch failure
+    assert failure.kind == "RangeError"
+    rejected += 1
+end
+try
+    auto invalid = snapshot.get(snapshot.count())
+catch failure
+    assert failure.kind == "RangeError"
+    rejected += 1
+end
+try
+    auto invalid = held.address(held.addressCount())
+catch failure
+    assert failure.kind == "RangeError"
+    rejected += 1
+end
+assert rejected == 3

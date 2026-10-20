@@ -1,0 +1,16 @@
+import concurrent
+func detached() as NetInterface
+    auto list = net.interfaces()
+    assert list.count() > 0
+    return list.get(0)
+end
+auto pool = TaskPool(1, 8)
+future<NetInterface> pending = pool.submit(detached)
+auto result = await pending
+pool.close()
+assert pool.wait(10000)
+assert result.name().length > 0 and result.ipv4Index >= 0
+if result.addressCount() > 0 then
+    auto address = result.address(0).address()
+    assert address.port == 0 and address.family != 0
+end

@@ -373,100 +373,7 @@ const char* xl6StdlibSipHasher64ClassEndSource = "end\n";
 
 
 
-const char* xl6StdlibNetInterfaceClassSource =
-    "class NetInterfaceAddress\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_net_interface_address_wrap\" create(point handle)\n"
-    "    extern \"xl6_xrt_net_interface_address_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_net_interface_address_text\" func textNative() as point\n"
-    "    extern \"xl6_xrt_net_interface_address_family\" get family() as int\n"
-    "    extern \"xl6_xrt_net_interface_address_prefix\" get prefixLength() as int\n"
-    "    extern \"xl6_xrt_net_interface_address_scope\" get scope() as int\n"
-    "\n"
-    "    func text() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.textNative())\n"
-    "    end\n"
-    "\n"
-    "    get prefixKnown() as bool\n"
-    "        return self.prefixLength != 255\n"
-    "    end\n"
-    "end\n"
-    "\n"
-    "class NetInterface\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_net_interface_wrap\" create(point handle)\n"
-    "    extern \"xl6_xrt_net_interface_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_net_interface_name\" func nameNative() as point\n"
-    "    extern \"xl6_xrt_net_interface_display_name\" func displayNameNative() as point\n"
-    "    extern \"xl6_xrt_net_interface_ipv4_index\" get ipv4Index() as int\n"
-    "    extern \"xl6_xrt_net_interface_ipv6_index\" get ipv6Index() as int\n"
-    "    extern \"xl6_xrt_net_interface_flags\" get flags() as int\n"
-    "    extern \"xl6_xrt_net_interface_mtu\" get mtu() as int\n"
-    "    extern \"xl6_xrt_net_interface_hardware\" func hardwareNative() as point\n"
-    "    extern \"xl6_xrt_net_interface_address_count\" func addressCount() as int\n"
-    "    extern \"xl6_xrt_net_interface_address\" func addressNative(int index) as point\n"
-    "    extern \"xl6_xrt_net_interface_has_flag\" func hasFlag(int flag) as bool\n"
-    "\n"
-    "    func name() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.nameNative())\n"
-    "    end\n"
-    "\n"
-    "    func displayName() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.displayNameNative())\n"
-    "    end\n"
-    "\n"
-    "    func hardwareAddress() as Buffer\n"
-    "        return Buffer(point(self.hardwareNative()))\n"
-    "    end\n"
-    "\n"
-    "    func address(int index) as NetInterfaceAddress\n"
-    "        return NetInterfaceAddress(point(self.addressNative(index)))\n"
-    "    end\n"
-    "\n"
-    "    get isUp() as bool\n"
-    "        return self.hasFlag(1)\n"
-    "    end\n"
-    "\n"
-    "    get isRunning() as bool\n"
-    "        return self.hasFlag(2)\n"
-    "    end\n"
-    "\n"
-    "    get isLoopback() as bool\n"
-    "        return self.hasFlag(4)\n"
-    "    end\n"
-    "\n"
-    "    get supportsBroadcast() as bool\n"
-    "        return self.hasFlag(8)\n"
-    "    end\n"
-    "\n"
-    "    get isPointToPoint() as bool\n"
-    "        return self.hasFlag(16)\n"
-    "    end\n"
-    "\n"
-    "    get supportsMulticast() as bool\n"
-    "        return self.hasFlag(32)\n"
-    "    end\n"
-    "end\n"
-    "\n"
-    "class NetInterfaceList\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_net_interfaces_create\" create()\n"
-    "    extern \"xl6_xrt_net_interfaces_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_net_interfaces_count\" func count() as int\n"
-    "    extern \"xl6_xrt_net_interfaces_get\" func getNative(int index) as point\n"
-    "\n"
-    "    func get(int index) as NetInterface\n"
-    "        return NetInterface(point(self.getNative(index)))\n"
-    "    end\n"
-    "\n"
-    "    func __len__() as int\n"
-    "        return self.count()\n"
-    "    end\n"
-    "\n"
-    "    func __item__(int index) as NetInterface\n"
-    "        return self.get(index)\n"
-    "    end\n"
-    "end\n";
+#include "xl6_stdlib_net_interfaces.inc"
 
 
 
@@ -2992,9 +2899,6 @@ static const XL6_StdlibParam xl6StdSipHashRawParams[] = {
     {"point", "data"}, {"c_size", "actualSize"}, {"bytes", "key"}, {"int", "size"}
 };
 
-static const XL6_StdlibParam xl6StdXrtNetFamilyParams[] = {
-    {"c_int", "family"}
-};
 
 static const char xl6StdMathSignBody[] =
     "func __xl_std_math_sign(float x) as int\n"
@@ -4906,36 +4810,22 @@ static const char xl6StdIdTryParseBody[] =
     "end\n";
 
 static const char xl6StdNetLocalIPBody[] =
-    "func __xl_std_net_local_ip() as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_get_local_ip(c_int(0)))\n"
-    "end\n";
+    "extern \"xl6NetLocalIPV1\" func __xl_std_net_local_ip(int family = 0) as string\n";
+static const char xl6StdNetLocalAddressBody[] =
+    "extern \"xl6NetLocalAddressV1\" func __xl_std_net_local_address(int family = 0) as NetAddress\n";
 
 static const char xl6StdNetLocalMACBody[] =
-    "func __xl_std_net_local_mac() as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_get_local_mac())\n"
-    "end\n";
+    "extern \"xl6NetLocalMACV1\" func __xl_std_net_local_mac() as string\n";
 
 static const char xl6StdNetLocalNameBody[] =
-    "func __xl_std_net_local_name() as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_xrt_get_local_name())\n"
-    "end\n";
+    "extern \"xl6NetHostNameV1\" func __xl_std_net_local_name() as string\n";
 
-static const char xl6StdNetInterfacesBody[] =
-    "func __xl_std_net_interfaces() as NetInterfaceList\n"
-    "    return NetInterfaceList()\n"
-    "end\n";
 
 static const char xl6StdNetInterfaceIndexBody[] =
-    "extern \"xl6_xrt_net_interface_index\" func __xl_std_net_interface_index_native(string name, int family) as int\n"
-    "func __xl_std_net_interface_index(string name, int family = 0) as int\n"
-    "    return __xl_std_net_interface_index_native(name, family)\n"
-    "end\n";
+    "extern \"xl6NetInterfaceIndexV1\" func __xl_std_net_interface_index(string name, int family = 0) as int\n";
 
 static const char xl6StdNetInterfaceNameBody[] =
-    "extern \"xl6_xrt_net_interface_name_by_index\" func __xl_std_net_interface_name_native(int index, int family) as point\n"
-    "func __xl_std_net_interface_name(int index, int family = 0) as string\n"
-    "    return __xl_std_runtime_take_cstr(__xl_std_net_interface_name_native(index, family))\n"
-    "end\n";
+    "extern \"xl6NetInterfaceNameByIndexV1\" func __xl_std_net_interface_name(int index, int family = 0) as string\n";
 
 static const char xl6StdNetResolveBody[] =
     "func __xl_std_net_resolve(string host, int port = 0) as NetAddress\n"
@@ -5613,9 +5503,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xrt_id", "compare", "__xl_std_xrt_xid_compare", "xl6_xrt_xid_compare", xl6StdXidPairParams, 2, "int", NULL},
     {"__xrt_id", "equal", "__xl_std_xrt_xid_equal", "xl6_xrt_xid_equal", xl6StdXidPairParams, 2, "bool", NULL},
     {"__xrt_id", "isZero", "__xl_std_xrt_xid_is_zero", "xl6_xrt_xid_is_zero", xl6StdXidValueParams, 1, "bool", NULL},
-    {"__xrt_net", "localIP", "__xl_std_xrt_get_local_ip", "xrtNetLocalAddressString", xl6StdXrtNetFamilyParams, 1, "point", NULL},
-    {"__xrt_net", "localMAC", "__xl_std_xrt_get_local_mac", "xrtNetLocalHardwareString", NULL, 0, "point", NULL},
-    {"__xrt_net", "localName", "__xl_std_xrt_get_local_name", "xrtNetHostNameString", NULL, 0, "point", NULL},
     {"__xrt_tcp", "connect", "__xl_std_xrt_tcp_connect", "xl6_xrt_tcp_connect", xl6StdTcpConnectParams, 3, "point", NULL},
     {"__xrt_tcp", "connectAsync", "__xl_std_xrt_tcp_connect_async", "xl6_xrt_tcp_connect_async", xl6StdTcpConnectParams, 3, "future<TcpStream>", NULL},
     {"__xrt_tcp", "listen", "__xl_std_xrt_tcp_listen", "xl6_xrt_tcp_listen", xl6StdTcpListenParams, 3, "point", NULL},
@@ -6340,7 +6227,10 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"net", "localIP", "__xl_std_net_local_ip", NULL, NULL, 0, "string", xl6StdNetLocalIPBody},
     {"net", "localMAC", "__xl_std_net_local_mac", NULL, NULL, 0, "string", xl6StdNetLocalMACBody},
     {"net", "localName", "__xl_std_net_local_name", NULL, NULL, 0, "string", xl6StdNetLocalNameBody},
-    {"net", "interfaces", "__xl_std_net_interfaces", NULL, NULL, 0, "NetInterfaceList", xl6StdNetInterfacesBody},
+    {"net", "hostName", "__xl_std_net_host_name", "xl6NetHostNameV1", NULL, 0, "string", NULL},
+    {"net", "localAddress", "__xl_std_net_local_address", NULL, NULL, 0, "NetAddress", xl6StdNetLocalAddressBody},
+    {"net", "localHardware", "__xl_std_net_local_hardware", "xl6NetLocalHardwareV1", NULL, 0, "bytes", NULL},
+    {"net", "interfaces", "__xl_std_net_interfaces", "xl6NetInterfacesCreateV1", NULL, 0, "NetInterfaceList", NULL},
     {"net", "interfaceIndex", "__xl_std_net_interface_index", NULL, NULL, 0, "int", xl6StdNetInterfaceIndexBody},
     {"net", "interfaceName", "__xl_std_net_interface_name", NULL, NULL, 0, "string", xl6StdNetInterfaceNameBody},
     {"net", "resolve", "__xl_std_net_resolve", NULL, NULL, 0, "NetAddress", xl6StdNetResolveBody},
