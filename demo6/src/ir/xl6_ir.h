@@ -6904,6 +6904,21 @@ int xl6IrRuntimeDirectBridgeCheckedClosureParameter(const char* name, size_t par
 int xl6IrRuntimeDirectBridgeResultClosureParameter(const char* name,size_t parameter);
 int xl6IrRuntimeDirectBridgeValueAddressParameter(const char* name,size_t parameter);
 int xl6IrTypeIsZeroPayload(const XL6_IrModule*, XL6_IrTypeId);
+/* Null equality observes a logical value domain, not source spelling or a
+ * material pointer. EMPTY_AWAIT executes the checked await but has no payload.
+ * This does not authorize null storage, capture or ordinary callable ABIs. */
+typedef enum XL6_IrNullOperandAbi {
+    XL6_IR_NULL_OPERAND_NONE = 0,
+    XL6_IR_NULL_OPERAND_LITERAL,
+    XL6_IR_NULL_OPERAND_EMPTY_AWAIT
+} XL6_IrNullOperandAbi;
+typedef struct XL6_IrNullComparisonPlan {
+    XL6_IrNullOperandAbi operands[2];
+} XL6_IrNullComparisonPlan;
+int xl6IrNullOperandPlanBuild(const XL6_IrModule*, XL6_IrNodeId,
+    XL6_IrNullOperandAbi*);
+int xl6IrNullComparisonPlanBuild(const XL6_IrModule*, XL6_IrNodeId,
+    XL6_IrNullComparisonPlan*);
 int xl6IrInstructionIsZeroPayload(const XL6_IrModule*, const XL6_IrInstruction*);
 XL6_IrCallParameterPhysicalAbi xl6IrNativeValueParameterPhysicalAbi(
     const XL6_IrModule*, XL6_IrTypeId);

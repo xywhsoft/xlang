@@ -1,0 +1,66 @@
+import concurrent
+int trace = 0
+int finalized = 0
+func sourceError() as error
+    try
+        throw ValueError("null source failed")
+    catch ValueError failure
+        return failure
+    end
+end
+func ready(int digit) as future<null>
+    trace = trace * 10 + digit
+    auto promise = Promise::<null>()
+    assert promise.tryResolve(null)
+    return promise.future
+end
+func rejected(int digit) as future<null>
+    trace = trace * 10 + digit
+    auto promise = Promise::<null>()
+    assert promise.tryReject(sourceError())
+    return promise.future
+end
+assert null == null and not (null != null)
+assert await ready(1) == null
+assert trace == 1
+assert null == await ready(2)
+assert trace == 12
+trace = 0
+assert (await ready(1)) == (await ready(2))
+assert trace == 12
+trace = 0
+assert not ((await ready(1)) != (await ready(2)))
+assert trace == 12
+trace = 0
+assert type(await ready(1)) == type(null)
+assert type(await ready(2)) != int
+assert trace == 12
+trace = 0
+int? number = 0
+assert number != await ready(1)
+number = null
+assert await ready(2) == number
+assert trace == 12
+trace = 0
+bool caught = false
+try
+    assert (await rejected(1)) == (await ready(2))
+catch ValueError failure
+    assert failure.message == "null source failed"
+    caught = true
+finally
+    finalized += 1
+end
+assert caught and trace == 1 and finalized == 1
+trace = 0
+caught = false
+try
+    assert (await ready(1)) != (await rejected(2))
+catch ValueError failure
+    assert failure.message == "null source failed"
+    caught = true
+finally
+    finalized += 1
+end
+assert caught and trace == 12 and finalized == 2
+println("null-valued equality preserves order, type identities, nullable tests and checked failures ok")

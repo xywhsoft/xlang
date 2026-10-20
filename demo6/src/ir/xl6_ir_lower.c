@@ -1738,6 +1738,7 @@ static int xl6IrLowerCanRawPointerNullConvert(
 
 static XL6_IrTypeId xl6IrLowerFindTypeByCAbi(const XL6_IrModule* module, XL6_IrCAbi cAbi);
 static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id);
+static int xl6IrLowerNullOperand(XL6_IrLowerContext*,XL6_IrNodeId,XL6_IrNodeId,XL6_IrNullOperandAbi);
 static int xl6IrLowerReplaceStorageValue(
     XL6_IrLowerContext* ctx, XL6_IrNodeId origin, XL6_SymbolId symbol,
     XL6_IrTypeId typeId, XL6_IrValueId value);
@@ -3431,7 +3432,11 @@ static int xl6IrLowerIntrinsicTypeOf(
     /* null has no standalone physical value ABI, but evaluating its literal
      * is side-effect free.  Every other admitted expression must lower so a
      * call/constructor or owned temporary cannot disappear. */
-    if ( source->sourceKind != XL6_AST_NULL ) {
+    if (xl6IrTypeIsZeroPayload(ctx->module,source->storageType)) {
+        XL6_IrNullOperandAbi empty;
+        if (!xl6IrNullOperandPlanBuild(ctx->module,binding->expression,&empty) ||
+            !xl6IrLowerNullOperand(ctx,id,binding->expression,empty)) return 1;
+    } else if ( source->sourceKind != XL6_AST_NULL ) {
         observed = xl6IrLowerNode(ctx, binding->expression);
         if ( observed == XL6_IR_VALUE_INVALID ) return 1;
         if ( sourceType->ownershipAbi == XL6_IR_OWNERSHIP_ABI_MANAGED &&
@@ -29382,6 +29387,94 @@ done:
     return ok;
 }
 
+/* Completion success is separate from the presence of a language value.
+ * A VOID await still emits its checked CFG and cleanup, with no payload SSA. */
+static int xl6IrLowerAwait(XL6_IrLowerContext* ctx,XL6_IrNodeId id,
+    const XL6_IrNode* node,XL6_IrValueId* output)
+{
+    const XL6_IrNode* futureNode;
+    const XL6_IrType* futureType;
+    const XL6_IrExitPlan* errorPlan;
+    XL6_IrAsyncResultAbi resultAbi;
+    XL6_IrTypeId awaitResultType;
+    XL6_IrValueId future,result=XL6_IR_VALUE_INVALID;
+    XL6_SymbolId futureTemporary=0;
+    XL6_IrBlockId successBlock,failureBlock;
+    XL6_IrInstruction* test;
+    size_t awaitInstruction;
+    if (!output || !node || node->childCount!=1 || node->storageType==XL6_IR_TYPE_INVALID ||
+        !(futureNode=xl6IrNodeGet(ctx->module,ctx->module->children[node->firstChild])) ||
+        !(futureType=xl6IrTypeGet(&ctx->module->types,futureNode->type)) ||
+        futureType->cAbi!=XL6_IR_C_ABI_RUNTIME_FUTURE_PTR || futureType->paramCount!=1 || !futureType->params ||
+        !(errorPlan=xl6IrLowerExitPlan(ctx,id,XL6_SEM_EXIT_THROW))) {
+        xl6IrLowerDiag(ctx,id,"XLIR await requires an exact resolved future result ABI");return 0;
+    }
+    awaitResultType=futureType->params[0];
+    resultAbi=xl6IrLowerAsyncResultAbi(ctx->module,awaitResultType);
+    if (resultAbi==XL6_IR_ASYNC_RESULT_INVALID ||
+        (awaitResultType!=node->storageType &&
+         !xl6IrLowerCallableTypesCompatible(ctx->module,awaitResultType,node->storageType))) {
+        xl6IrLowerDiag(ctx,id,"XLIR await requires an exact or structurally compatible Future payload ABI");return 0;
+    }
+    if (futureNode->kind==XL6_IR_NODE_CONDITIONAL)
+        future=xl6IrLowerConditionalFutureOwned(ctx,id,futureNode,&futureTemporary);
+    else if (futureNode->kind==XL6_IR_NODE_NAME)
+        future=xl6IrLowerNode(ctx,ctx->module->children[node->firstChild]);
+    else {
+        future=xl6IrLowerFutureOwned(ctx,id,ctx->module->children[node->firstChild],futureNode);
+        XL6_IrValueId loaded;
+        futureTemporary=xl6IrLowerNewTempStorage(ctx,futureNode->storageType,id);
+        if (!future || !futureTemporary ||
+            !xl6IrLowerEmit(ctx,XL6_IR_INSTR_STORE,id,futureNode->storageType,futureTemporary,&future,1,NULL) ||
+            !xl6IrLowerEmit(ctx,XL6_IR_INSTR_LOAD,id,futureNode->storageType,futureTemporary,NULL,0,&loaded)) return 0;
+        future=loaded;
+    }
+    awaitInstruction=ctx->module->instructionCount;
+    if (!future || !xl6IrLowerEmit(ctx,XL6_IR_INSTR_AWAIT,id,
+            resultAbi==XL6_IR_ASYNC_RESULT_VOID ? XL6_IR_TYPE_INVALID : awaitResultType,0,&future,1,&result) ||
+        !xl6IrLowerNewBlock(ctx,&failureBlock) || !xl6IrLowerNewBlock(ctx,&successBlock) ||
+        !xl6IrLowerEmit(ctx,XL6_IR_INSTR_ERROR_TEST,id,XL6_IR_TYPE_INVALID,0,&result,1,NULL)) {
+        xl6IrLowerDiag(ctx,id,"XLIR await has no explicit success or failure CFG ABI");return 0;
+    }
+    /* VOID's result is an ERROR_TEST dependency, never a language payload. */
+    ctx->module->instructions[awaitInstruction].asyncResultAbi=resultAbi;
+    ctx->module->instructions[awaitInstruction].futureOutcomeAbi=XL6_IR_FUTURE_OUTCOME_XRT_ERROR_KIND;
+    ctx->module->instructions[awaitInstruction].awaitOutcomeAbi=XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR;
+    test=&ctx->module->instructions[ctx->module->instructionCount-1];
+    test->trueTarget=successBlock;test->falseTarget=failureBlock;
+    xl6IrLowerEnterBlock(ctx,failureBlock);
+    /* Select failure before operand destruction; its cleanup cannot replace
+     * the await outcome or escape into a producer's stack. */
+    if (futureTemporary && (!xl6IrLowerBeginErrorUnwind(ctx,id) ||
+        !xl6IrLowerReleaseCallOwner(ctx,id,futureTemporary,0))) return 0;
+    if (!xl6IrLowerEmitExceptionTransfer(ctx,id,node,errorPlan,0)) return 0;
+    xl6IrLowerEnterBlock(ctx,successBlock);
+    if (futureTemporary) {
+        XL6_IrLowerCallCleanup cleanup={0};
+        cleanup.temporaries=&futureTemporary;cleanup.temporaryCount=1;
+        if (!xl6IrLowerCompleteOwnedCleanup(ctx,id,node,&result,
+            resultAbi==XL6_IR_ASYNC_RESULT_VOID ? XL6_IR_TYPE_INVALID : awaitResultType,errorPlan,&cleanup)) return 0;
+    }
+    if (resultAbi!=XL6_IR_ASYNC_RESULT_VOID && awaitResultType!=node->storageType) {
+        result=xl6IrLowerEmitValueCopy(ctx,id,node->storageType,result);
+        if (!result) return 0;
+    }
+    *output=resultAbi==XL6_IR_ASYNC_RESULT_VOID ? XL6_IR_VALUE_INVALID : result;
+    return 1;
+}
+
+static int xl6IrLowerNullOperand(XL6_IrLowerContext* ctx,XL6_IrNodeId origin,
+    XL6_IrNodeId expression,XL6_IrNullOperandAbi abi)
+{
+    if (abi==XL6_IR_NULL_OPERAND_LITERAL) return 1;
+    XL6_IrValueId value=XL6_IR_VALUE_INVALID;
+    if (abi==XL6_IR_NULL_OPERAND_EMPTY_AWAIT &&
+        xl6IrLowerAwait(ctx,expression,xl6IrNodeGet(ctx->module,expression),&value) &&
+        value==XL6_IR_VALUE_INVALID) return 1;
+    if (!ctx->failed) xl6IrLowerDiag(ctx,origin,"XLIR null operand has no completed zero-payload effect ABI");
+    return 0;
+}
+
 static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
 {
     const XL6_IrNode* node = xl6IrNodeGet(ctx->module, id);
@@ -31005,103 +31098,7 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
             return callEmitted && returnType != XL6_IR_TYPE_INVALID ? result : 0;
         }
     case XL6_IR_NODE_AWAIT:
-        {
-            const XL6_IrNode* futureNode;
-            const XL6_IrType* futureType;
-            const XL6_IrExitPlan* errorPlan;
-            XL6_IrAsyncResultAbi resultAbi;
-            XL6_IrTypeId awaitResultType;
-            XL6_IrValueId future;
-            XL6_SymbolId futureTemporary = 0;
-            XL6_IrBlockId successBlock;
-            XL6_IrBlockId failureBlock;
-            XL6_IrInstruction* test;
-            size_t awaitInstruction;
-            if ( node->childCount != 1 || node->storageType == XL6_IR_TYPE_INVALID ||
-                  (futureNode = xl6IrNodeGet(ctx->module, ctx->module->children[node->firstChild])) == NULL ||
-                  (futureType = xl6IrTypeGet(&ctx->module->types, futureNode->type)) == NULL ||
-                  futureType->cAbi != XL6_IR_C_ABI_RUNTIME_FUTURE_PTR || futureType->paramCount != 1 ||
-                  (errorPlan = xl6IrLowerExitPlan(ctx, id, XL6_SEM_EXIT_THROW)) == NULL ) {
-                xl6IrLowerDiag(ctx, id,
-                                "XLIR await requires an exact resolved future result ABI");
-                return XL6_IR_VALUE_INVALID;
-            }
-            awaitResultType = futureType->params[0];
-            resultAbi = xl6IrLowerAsyncResultAbi(ctx->module, awaitResultType);
-            if ( resultAbi == XL6_IR_ASYNC_RESULT_INVALID ||
-                 (awaitResultType != node->storageType &&
-                  !xl6IrLowerCallableTypesCompatible(
-                      ctx->module, awaitResultType, node->storageType)) ) {
-                xl6IrLowerDiag(ctx, id,
-                                "XLIR await requires an exact or structurally compatible Future payload ABI");
-                return XL6_IR_VALUE_INVALID;
-            }
-            if ( futureNode->kind == XL6_IR_NODE_CONDITIONAL ) {
-                future = xl6IrLowerConditionalFutureOwned(ctx, id, futureNode, &futureTemporary);
-            } else if (futureNode->kind==XL6_IR_NODE_NAME) {
-                future = xl6IrLowerNode(ctx, ctx->module->children[node->firstChild]);
-            } else {
-                future=xl6IrLowerFutureOwned(ctx,id,ctx->module->children[node->firstChild],futureNode);
-                XL6_IrValueId loaded;
-                futureTemporary = xl6IrLowerNewTempStorage(ctx, futureNode->storageType, id);
-                if ( future == XL6_IR_VALUE_INVALID || futureTemporary == 0 ||
-                     !xl6IrLowerEmit(ctx, XL6_IR_INSTR_STORE, id, futureNode->storageType,
-                                     futureTemporary, &future, 1, NULL) ||
-                     !xl6IrLowerEmit(ctx, XL6_IR_INSTR_LOAD, id, futureNode->storageType,
-                                     futureTemporary, NULL, 0, &loaded) ) return XL6_IR_VALUE_INVALID;
-                future = loaded;
-            }
-            awaitInstruction = ctx->module->instructionCount;
-            if ( future == XL6_IR_VALUE_INVALID ||
-                  !xl6IrLowerEmit(ctx, XL6_IR_INSTR_AWAIT, id,
-                                  resultAbi == XL6_IR_ASYNC_RESULT_VOID
-                                      ? XL6_IR_TYPE_INVALID : awaitResultType, 0,
-                                 &future, 1, &result) ||
-                 !xl6IrLowerNewBlock(ctx, &failureBlock) || !xl6IrLowerNewBlock(ctx, &successBlock) ||
-                 !xl6IrLowerEmit(ctx, XL6_IR_INSTR_ERROR_TEST, id, XL6_IR_TYPE_INVALID,
-                                 0, &result, 1, NULL) ) {
-                xl6IrLowerDiag(ctx, id, "XLIR await has no explicit success or failure CFG ABI");
-                return XL6_IR_VALUE_INVALID;
-            }
-            /* The result ABI is a first-class instruction fact.  In
-             * particular VOID's result id is only an ERROR_TEST dependency
-             * token and is never a language value. */
-            ctx->module->instructions[awaitInstruction].asyncResultAbi = resultAbi;
-            ctx->module->instructions[awaitInstruction].futureOutcomeAbi = XL6_IR_FUTURE_OUTCOME_XRT_ERROR_KIND;
-            ctx->module->instructions[awaitInstruction].awaitOutcomeAbi =
-                XL6_IR_AWAIT_OUTCOME_STATUS_DIAGNOSTIC_NULL_STATE_ERROR;
-            test = &ctx->module->instructions[ctx->module->instructionCount - 1];
-            test->trueTarget = successBlock;
-            test->falseTarget = failureBlock;
-            xl6IrLowerEnterBlock(ctx, failureBlock);
-            /* Await failure is selected before destroying its operand. The
-             * temporary's release cannot replace that outcome or escape into
-             * whichever producer stack happens to run this continuation. */
-            if (futureTemporary != 0 &&
-                (!xl6IrLowerBeginErrorUnwind(ctx, id) ||
-                 !xl6IrLowerReleaseCallOwner(ctx, id, futureTemporary, 0)))
-                return XL6_IR_VALUE_INVALID;
-            if ( !xl6IrLowerEmitExceptionTransfer(ctx, id, node, errorPlan, 0) )
-                return XL6_IR_VALUE_INVALID;
-            xl6IrLowerEnterBlock(ctx, successBlock);
-            if (futureTemporary != 0) {
-                XL6_IrLowerCallCleanup cleanup = {0};
-                cleanup.temporaries = &futureTemporary; cleanup.temporaryCount = 1;
-                /* Successful await acquisition and expression completion are
-                 * separate. Reuse the same owned-result transaction as calls
-                 * and projections, including rollback and the full failure bit. */
-                if (!xl6IrLowerCompleteOwnedCleanup(ctx, id, node, &result,
-                        resultAbi == XL6_IR_ASYNC_RESULT_VOID ? XL6_IR_TYPE_INVALID : awaitResultType,
-                        errorPlan, &cleanup)) return XL6_IR_VALUE_INVALID;
-            }
-            if ( resultAbi != XL6_IR_ASYNC_RESULT_VOID &&
-                 awaitResultType != node->storageType ) {
-                result = xl6IrLowerEmitValueCopy(
-                    ctx, id, node->storageType, result);
-                if ( result == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
-            }
-            return resultAbi == XL6_IR_ASYNC_RESULT_VOID ? XL6_IR_VALUE_INVALID : result;
-        }
+        return xl6IrLowerAwait(ctx,id,node,&result) ? result : XL6_IR_VALUE_INVALID;
     case XL6_IR_NODE_BINARY:
         {
         XL6_IrOpcode opcode;
@@ -31402,12 +31399,18 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
             }
         }
         if ( opcode == XL6_IR_OPCODE_EQ || opcode == XL6_IR_OPCODE_NE ) {
-            int leftNull = operandNodes[0] != NULL &&
-                operandNodes[0]->sourceKind == XL6_AST_NULL;
-            int rightNull = operandNodes[1] != NULL &&
-                operandNodes[1]->sourceKind == XL6_AST_NULL;
+            XL6_IrNullComparisonPlan empty={0};
+            if (!xl6IrNullComparisonPlanBuild(ctx->module,id,&empty)) {
+                xl6IrLowerDiag(ctx,id,"XLIR null comparison has no exact logical operand/effect plan");
+                return XL6_IR_VALUE_INVALID;
+            }
+            bool leftNull=empty.operands[0]!=XL6_IR_NULL_OPERAND_NONE;
+            bool rightNull=empty.operands[1]!=XL6_IR_NULL_OPERAND_NONE;
             if ( leftNull && rightNull ) {
                 XL6_IrInstruction* constant;
+                for (size_t i=0;i<2;++i)
+                    if (!xl6IrLowerNullOperand(ctx,id,ctx->module->children[node->firstChild+i],empty.operands[i]))
+                        return XL6_IR_VALUE_INVALID;
                 if ( !xl6IrLowerTypeIsBool(ctx->module, node->storageType) ||
                      !xl6IrLowerEmit(ctx, XL6_IR_INSTR_CONST, id, node->storageType,
                                       0, NULL, 0, &result) ) return XL6_IR_VALUE_INVALID;
@@ -31441,11 +31444,19 @@ static XL6_IrValueId xl6IrLowerNode(XL6_IrLowerContext* ctx, XL6_IrNodeId id)
                 /* Null testing observes the slot sentinel itself. A narrowed
                  * NAME projection would create an unnecessary owned copy and
                  * can even erase the absence this predicate must observe. */
-                values[0] = other->kind == XL6_IR_NODE_NAME
-                    ? xl6IrLowerNamePhysicalStorageValue(ctx, id, otherId, other)
-                    : xl6IrLowerNodeAsType(ctx, id, otherId, other, other->storageType);
-                if ( values[0] == XL6_IR_VALUE_INVALID ) return XL6_IR_VALUE_INVALID;
-                values[0] = xl6IrLowerProtectOwnedBorrow(ctx, id, values[0]);
+                for (size_t i=0;i<2;++i) {
+                    if (i!=otherIndex) {
+                        if (!xl6IrLowerNullOperand(ctx,id,ctx->module->children[node->firstChild+i],empty.operands[i]))
+                            return XL6_IR_VALUE_INVALID;
+                    } else {
+                        values[0] = other->kind == XL6_IR_NODE_NAME
+                            ? xl6IrLowerNamePhysicalStorageValue(ctx, id, otherId, other)
+                            : xl6IrLowerNodeAsType(ctx, id, otherId, other, other->storageType);
+                        if (values[0]==XL6_IR_VALUE_INVALID) return XL6_IR_VALUE_INVALID;
+                        values[0]=xl6IrLowerProtectOwnedBorrow(ctx,id,values[0]);
+                        if (values[0]==XL6_IR_VALUE_INVALID) return XL6_IR_VALUE_INVALID;
+                    }
+                }
                 if (values[0] == XL6_IR_VALUE_INVALID ||
                     !xl6IrLowerEmit(ctx, XL6_IR_INSTR_NULL_TEST, id, node->storageType,
                         0, values, 1, &tested) ||
