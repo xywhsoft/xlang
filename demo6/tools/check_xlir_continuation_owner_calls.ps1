@@ -1,52 +1,22 @@
-param([string]$Root = '')
+param([string]$Root = '', [string]$PublicDirectory = '',
+    [string]$Out = '', [string]$Compiler = 'gcc')
 $ErrorActionPreference = 'Stop'
 if ($Root -eq '') { $Root = Split-Path -Parent $PSScriptRoot }
+$Root = [IO.Path]::GetFullPath($Root)
+# Complete-source receipts replace the old partial source + shipping-DLL hybrid.
+# Never overwrite shared build/test products or a loaded DLL.
 Push-Location $Root
 try {
-    if (!(Test-Path -LiteralPath test/cases/xlir_continuation_owner_test.h -PathType Leaf)) {
-        throw 'Continuation owner test helpers are missing'
+    if (!$Out) { $Out = Join-Path $Root ('build/test/owner-calls-' + [guid]::NewGuid().ToString('N')) }
+    $Out = [IO.Path]::GetFullPath($Out)
+    if (Test-Path -LiteralPath $Out) { throw 'Choose fresh owner-call evidence; prior artifacts must be preserved' }
+    if (!$PublicDirectory) {
+        $PublicDirectory = $Out + '-source'
+        & "$PSScriptRoot/build_xlir_public_source_driver.ps1" -Directory $PublicDirectory
+        if (!$?) { throw 'Complete-source owner-call compiler build failed' }
     }
-    $prefix = 'build/test/xlir_continuation_owner_calls'
-    New-Item -ItemType Directory -Force -Path build/test | Out-Null
-    if (!(Test-Path -LiteralPath build/test/xl.dll) -or
-        (Get-FileHash release/xl.dll).Hash -ne (Get-FileHash build/test/xl.dll).Hash) {
-        Copy-Item -LiteralPath release/xl.dll -Destination build/test/xl.dll -Force
-    }
-    $compilerSources = @('src/ast/xl6_ast.c','src/type/xl6_type_model.c',
-        'src/ir/xl6_ir.c','src/ir/xl6_ir_lower.c',
-        'src/cgen/xl6_ir_cgen.c','src/cgen/xl6_cgen_shared_runtime.c',
-        'src/diag/xl6_diag.c','src/common/xl6_output.c','src/common/xl6_console.c',
-        'src/lexer/xl6_token.c','src/lexer/xl6_lexer_api.c','src/lexer/xl6_lexer_gen.c',
-        'src/parser/xl6_parser.c','src/parser/xl6_parser_api.c',
-        'src/sem/xl6_sem.c','src/sem/xl6_protocol.c','src/sem/xl6_type_registry.c',
-        'src/sem/xl6_sem_docs.c','src/sem/xl6_sem_field_attrs.c',
-        'src/stdlib/xl6_stdlib.c','src/stdlib/xl6_stdlib_data.c')
-    $strict = @('-std=c11','-Wall','-Wextra','-Werror','-O0','-Wno-unused-function','-Wno-unused-label',
-        '-Wno-unused-variable','-Wno-unused-parameter','-Wno-unused-const-variable',
-        '-Wno-unused-but-set-variable','-Wno-missing-field-initializers',
-        '-Wno-pointer-sign','-Wno-format-truncation','-I.','-Ibuild/test')
-    & gcc @strict test/cases/xlir_continuation_owner_calls_contract.c @compilerSources release/xl.dll -o "$prefix.contract.exe"
-    if ($LASTEXITCODE -ne 0) { throw 'Continuation owner calls source contract build failed' }
-    & "$prefix.contract.exe" "$prefix.c" "$prefix.h" "$prefix.json"
-    if ($LASTEXITCODE -ne 0) { throw 'Continuation owner calls mutation/verification contract failed' }
-    & "$prefix.contract.exe" "$prefix.repeat.c" "$prefix.repeat.h" "$prefix.repeat.json"
-    if ($LASTEXITCODE -ne 0) { throw 'Continuation owner calls repeated verification failed' }
-    foreach ($suffix in @('c','h','json','h.bind.h')) {
-        if ([IO.File]::ReadAllText("$prefix.$suffix") -cne [IO.File]::ReadAllText("$prefix.repeat.$suffix")) {
-            throw "Continuation owner calls nondeterministic $suffix"
-        }
-    }
-    $hostSource = 'test/cases/xlir_continuation_owner_calls_host.c'
-    & gcc @strict test/cases/xlir_continuation_owner_calls_runtime.c $hostSource release/xl.dll -o "$prefix.strict.exe"
-    if ($LASTEXITCODE -ne 0) { throw 'Continuation owner calls strict C build failed' }
-    & "$prefix.strict.exe"
-    if ($LASTEXITCODE -ne 0) { throw 'Continuation owner calls runtime/memory failed' }
-    & release/xl.exe run test/cases/xlir_continuation_owner_calls_runtime.c $hostSource --inc-path . --inc-path build/test -- --smoke
-    if ($LASTEXITCODE -ne 0) { throw 'Continuation owner calls C-host JIT failed' }
-    & release/xl.exe build test/cases/xlir_continuation_owner_calls_runtime.c $hostSource src/api/xl_foreign_error.c --inc-path . --inc-path build/test -o "$prefix.aot.exe"
-    if ($LASTEXITCODE -ne 0) { throw 'Continuation owner calls C-host AOT build failed' }
-    & "$prefix.aot.exe" --smoke
-    if ($LASTEXITCODE -ne 0) { throw 'Continuation owner calls C-host AOT runtime failed' }
+    & python (Join-Path $Root 'tools/check_xlir_continuation_owner_calls.py') `
+        --root $Root --public-directory $PublicDirectory --out $Out --compiler $Compiler
+    if ($LASTEXITCODE -ne 0) { throw 'Current-source continuation owner-call contract failed' }
 } finally { Pop-Location }
-Write-Output 'XLIR continuation owner calls passed: async aliases, unique physical handoff, single-instruction multi-owner transfer, all input outcomes, consuming call failure and generator close, IR mutation rejection, strict C memory and C-host JIT/AOT, deterministic C/header/JSON/binding.'
-exit 0
+Write-Output 'Current-source owner-call contract passed (strict C/queued runtime; not shipping or JIT/AOT acceptance).'
