@@ -16503,6 +16503,20 @@ XRT_API xvaluetype xrtValueType(const xvalue* pValue);
 /* 返回调用者绑定的不透明语义类型身份；未绑定或空指针返回零。 */
 XRT_API uint64 xrtValueTypeId(const xvalue* pValue);
 
+/* Optional caller-defined scalar domain, zero when absent (or pValue is NULL).
+ * XRT does not interpret the tag or change equality/hash/wire semantics. It is
+ * immutable POD, retained by Clone/DeepClone, not a registry or code pointer.
+ * Binding is atomic as a semantic transaction: both nonzero TypeId and Domain
+ * are committed only on success. Only non-static scalar shells are eligible;
+ * containers and opaque handles are refused. First binding requires a unique,
+ * unpublished shell (the caller synchronizes publication); repeating the exact
+ * pair is idempotent even after sharing. A prior equal TypeId is allowed.
+ * Conflicting pairs and TypeIdRebind to another identity are refused. No
+ * allocation or callback; success preserves the prior error. BUSY reads fail
+ * with XERR_STATE, like TypeId. A null query returns zero without an error. */
+XRT_API uint32 xrtValueScalarDomainV1(const xvalue* pValue);
+XRT_API bool xrtValueScalarDomainBindV1(xvalue* pValue, uint64 iTypeId, uint32 iDomain);
+
 
 
 /*
@@ -16515,7 +16529,7 @@ XRT_API bool xrtValueTypeIdBind(xvalue* pValue, uint64 iTypeId);
 
 
 
-/* 仅在值外壳唯一拥有时，把既有语义类型身份替换为新的非零身份。 */
+/* 仅在值外壳唯一拥有且未绑定标量域时，替换为新的非零身份。 */
 XRT_API bool xrtValueTypeIdRebind(xvalue* pValue, uint64 iTypeId);
 
 

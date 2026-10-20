@@ -13490,6 +13490,20 @@ XRT_API xvaluetype xrtValueType(const xvalue* pValue);
 /* 返回调用者绑定的不透明语义类型身份；未绑定或空指针返回零。 */
 XRT_API uint64 xrtValueTypeId(const xvalue* pValue);
 
+/* Optional caller-defined scalar domain, zero when absent (or pValue is NULL).
+ * XRT does not interpret the tag or change equality/hash/wire semantics. It is
+ * immutable POD, retained by Clone/DeepClone, not a registry or code pointer.
+ * Binding is atomic as a semantic transaction: both nonzero TypeId and Domain
+ * are committed only on success. Only non-static scalar shells are eligible;
+ * containers and opaque handles are refused. First binding requires a unique,
+ * unpublished shell (the caller synchronizes publication); repeating the exact
+ * pair is idempotent even after sharing. A prior equal TypeId is allowed.
+ * Conflicting pairs and TypeIdRebind to another identity are refused. No
+ * allocation or callback; success preserves the prior error. BUSY reads fail
+ * with XERR_STATE, like TypeId. A null query returns zero without an error. */
+XRT_API uint32 xrtValueScalarDomainV1(const xvalue* pValue);
+XRT_API bool xrtValueScalarDomainBindV1(xvalue* pValue, uint64 iTypeId, uint32 iDomain);
+
 
 
 /*
@@ -13502,7 +13516,7 @@ XRT_API bool xrtValueTypeIdBind(xvalue* pValue, uint64 iTypeId);
 
 
 
-/* 仅在值外壳唯一拥有时，把既有语义类型身份替换为新的非零身份。 */
+/* 仅在值外壳唯一拥有且未绑定标量域时，替换为新的非零身份。 */
 XRT_API bool xrtValueTypeIdRebind(xvalue* pValue, uint64 iTypeId);
 
 
@@ -46944,6 +46958,9 @@ struct xvalue {
 	volatile int32 WeakCount;
 	uint16 Type;
 	uint16 Flags;
+	/* Caller-defined immutable scalar domain. Uses the 64-bit ABI alignment
+	 * gap before TypeId; no registry, callback or separately owned metadata. */
+	uint32 ScalarDomain;
 	/* 调用者可选绑定的不可变语义类型身份；零表示未绑定。 */
 	uint64 TypeId;
 	/* 可选语义值身份策略；函数和用户数据随外壳 Clone 传播。 */
@@ -97636,6 +97653,48 @@ XRT_API uint64 xrtValueTypeId(const xvalue* pValue)
 	return pValue->TypeId;
 }
 
+XRT_API uint32 xrtValueScalarDomainV1(const xvalue* pValue)
+{
+	if (pValue == NULL) return 0;
+	if ((pValue->Flags & XRT_VALUE_FLAG_BUSY) != 0) {
+		__xrtErrorSetInvalidState(); return 0;
+	}
+	return pValue->ScalarDomain;
+}
+
+static bool __xrtOwnershipBody_ValueScalarDomainBindV1(
+	xvalue* pValue, uint64 iTypeId, uint32 iDomain)
+{
+	if (pValue == NULL || iTypeId == 0 || iDomain == 0) {
+		__xrtErrorSetInvalidArgument(); return false;
+	}
+	if ((pValue->Flags & (XRT_VALUE_FLAG_STATIC | XRT_VALUE_FLAG_BUSY |
+		XRT_VALUE_FLAG_FINALIZING | XRT_VALUE_FLAG_OWNERSHIP_CLEARED)) != 0 ||
+		pValue->OwnershipClaim != NULL) {
+		__xrtErrorSetInvalidState(); return false;
+	}
+	if (__xrtValueContainerType((xvaluetype)pValue->Type) || pValue->Type == XVALUE_HANDLE) {
+		__xrtErrorSetType(); return false;
+	}
+	if (pValue->ScalarDomain != 0) {
+		if (pValue->ScalarDomain == iDomain && pValue->TypeId == iTypeId) return true;
+		__xrtErrorSetInvalidState(); return false;
+	}
+	if (__xrtAtomicRefLoad(&pValue->RefCount) != 1 ||
+		(pValue->TypeId != 0 && pValue->TypeId != iTypeId)) {
+		__xrtErrorSetInvalidState(); return false;
+	}
+	pValue->TypeId = iTypeId;
+	pValue->ScalarDomain = iDomain;
+	return true;
+}
+
+XRT_API bool xrtValueScalarDomainBindV1(xvalue* pValue, uint64 iTypeId, uint32 iDomain)
+{
+	XRT_VALUE_MUTATION_RETURN(bool,
+		__xrtOwnershipBody_ValueScalarDomainBindV1(pValue, iTypeId, iDomain));
+}
+
 
 
 /* 一次性绑定非零语义类型身份，禁止共享值被重新解释。 */
@@ -97678,7 +97737,8 @@ static bool __xrtOwnershipBody_ValueTypeIdRebind(xvalue* pValue, uint64 iTypeId)
 	if ( pValue->TypeId == iTypeId ) {
 		return true;
 	}
-	if ( (pValue->IdentityHash != NULL) || (pValue->IdentityEqual != NULL) ) {
+	if ( pValue->ScalarDomain != 0 ||
+		 (pValue->IdentityHash != NULL) || (pValue->IdentityEqual != NULL) ) {
 		__xrtErrorSetInvalidState();
 		return false;
 	}
