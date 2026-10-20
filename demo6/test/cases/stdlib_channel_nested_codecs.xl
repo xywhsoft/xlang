@@ -1,0 +1,50 @@
+union NestedBits
+    int number
+end
+func tunnel<T>(channel<T> inner) as channel<T>
+    auto outer = channel::<channel<T>>(1)
+    assert outer.send(inner)
+    auto status, carried = outer.recv()
+    assert status == channelStatus.ok
+    outer.close()
+    return carried ?? inner
+end
+func nestedCallback() as func(int) as int
+    auto inner = channel::<func(int) as int>(1)
+    int base = 40
+    assert inner.send(func(int value) as int
+        return base + value
+    end)
+    auto restored = tunnel(inner)
+    auto status, callback = restored.recv()
+    assert status == channelStatus.ok and callback != null
+    inner.close()
+    return callback ?? func(int value) as int
+        return value
+    end
+end
+auto callback = nestedCallback()
+assert callback(2) == 42
+auto inner = channel::<NestedBits>(1)
+NestedBits value
+value.number = 42
+assert inner.send(value)
+auto restored = tunnel(inner)
+auto status, copied = restored.recv()
+assert status == channelStatus.ok and copied != null
+if copied != null then assert copied.number == 42 end
+auto middle = channel::<channel<NestedBits>>(1)
+assert middle.send(inner)
+auto third = tunnel(middle)
+auto thirdStatus, leaf = third.recv()
+assert thirdStatus == channelStatus.ok and leaf != null
+if leaf != null then assert leaf.send(value) end
+auto leafStatus, leafValue = inner.recv()
+assert leafStatus == channelStatus.ok and leafValue != null
+if leafValue != null then assert leafValue.number == 42 end
+auto nullable = channel::<NestedBits?>(1)
+assert nullable.send(null)
+auto carriedNull = tunnel(nullable)
+auto nullStatus, absent = carriedNull.recv()
+assert nullStatus == channelStatus.ok and absent == null
+println("nested Channel retains independently proven closure/union storage codecs ok")

@@ -140,8 +140,7 @@ static void xl6SemCountMismatchError(XL6_SemContext* ctx, XL6_AstNode* node, con
 static int xl6SemCheckKnownCall(XL6_SemContext* ctx, XL6_AstNode* call, XL6_AstNode* func);
 static int xl6SemExprFunctionValueMatchAlreadyDiagnosed(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode);
 static int xl6SemCheckChannelTypeArg(XL6_SemContext* ctx, const XL6_AstNode* callee);
-static int xl6SemChannelElementTypeIsFirstStageSafe(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
-static int xl6SemChannelElementTypeIsMessageSafe(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
+static int xl6SemTypeCanBeMessageValue(XL6_SemContext* ctx, const XL6_AstNode* typeNode);
 static int xl6SemCheckChannelCall(XL6_SemContext* ctx, XL6_AstNode* node);
 static const char* xl6SemChannelCallResultTypeName(XL6_SemContext* ctx, XL6_AstNode* node);
 static XL6_AstNode* xl6SemCloneChannelReceiveReturns(XL6_SemContext*, XL6_AstNode*);
@@ -12284,28 +12283,6 @@ static int xl6SemIsChannelGenericInstant(const XL6_AstNode* node)
            typeArgs->childCount == 1;
 }
 
-static int xl6SemChannelElementTypeIsFirstStageSafe(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
-{
-    const XL6_AstNode* concreteType;
-    const char* name;
-
-    concreteType = xl6SemResolveAliasType(ctx, typeNode);
-    if (xl6SemTypeIsNullable(concreteType))
-        return xl6SemChannelElementTypeIsFirstStageSafe(ctx, xl6SemNullableInnerType(concreteType));
-    name = concreteType != NULL ? concreteType->text : NULL;
-    if ( name == NULL || (concreteType != NULL && concreteType->childCount > 0) ) {
-        return 0;
-    }
-    return xl6TextEquals(name, "bool") ||
-           xl6SemIsIntegerTypeName(name) ||
-           xl6SemIsFloatTypeName(name) ||
-           xl6TextEquals(name, "string") ||
-           xl6TextEquals(name, "bytes") ||
-           xl6TextEquals(name, "char") ||
-           xl6TextEquals(name, "time") ||
-           xl6TextEquals(name, "point");
-}
-
 /* A suspended activation owns parameter values, not aliases to caller
  * storage. Value legality is a language rule; XLIR separately proves the
  * parameter's copy/retain/take transfer and destruction ABI. */
@@ -12316,61 +12293,19 @@ static int xl6SemGeneratorParamTypeIsFrameSafe(
     return xl6SemTypeCanBeFunctionResult(ctx, typeNode);
 }
 
-/* The existing opaque transport retains payloads but does not expose queued
- * object-graph edges to the collector. Do not admit a class that can point
- * back to its channel through containers, other objects or a captured closure.
- * Flat data/snapshot classes need only the existing retain/move/drop codec. */
-static int xl6SemChannelClassFieldsAreMessageSafe(XL6_SemContext* ctx, const XL6_AstNode* declaration)
+/* Copy/share legality is a language rule, not a partial backend whitelist.
+ * XLIR separately closes the exact resident schema, codec, nominal admission
+ * and traced ownership plan before a concrete Channel can be constructed. */
+static int xl6SemTypeCanBeMessageValue(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
 {
-    const XL6_AstNode* body=declaration && declaration->childCount>1 ? declaration->children[1] : NULL;
-    if(!body || xl6SemClassHasTypeParams(declaration) || xl6SemBaseClassDecl(ctx,declaration))return 0;
-    for(size_t i=0;i<body->childCount;++i) {
-        const XL6_AstNode* field=body->children[i];
-        if(field && field->kind==XL6_AST_FIELD &&
-           (!field->childCount || !xl6SemChannelElementTypeIsFirstStageSafe(ctx,field->children[0])))return 0;
-    }
-    return 1;
-}
-
-static int xl6SemChannelElementTypeIsMessageSafe(XL6_SemContext* ctx, const XL6_AstNode* typeNode)
-{
-    const XL6_AstNode* concreteType;
-    const XL6_AstNode* classType;
-    const XL6_AstNode* declaration;
-    const XL6_AstNode* typeArgs;
-    const char* name;
-
-    concreteType = xl6SemResolveAliasType(ctx, typeNode);
-    name = concreteType != NULL ? concreteType->text : NULL;
-    if ( name == NULL ) return 0;
+    const XL6_AstNode* concreteType = xl6SemResolveAliasType(ctx, typeNode);
+    if (!concreteType || !concreteType->text) return 0;
     if(xl6SemTypeIsNullable(concreteType))
-        return xl6SemChannelElementTypeIsMessageSafe(ctx,xl6SemNullableInnerType(concreteType));
+        return xl6SemTypeCanBeMessageValue(ctx,xl6SemNullableInnerType(concreteType));
     /* A template has no executable message representation. Its concrete
      * specialization must still close the resident Channel recipe in XLIR. */
-    if(!concreteType->childCount && xl6SemFindTypeParam(ctx,name))return 1;
-    if (xl6TextEquals(name, "var") || xl6SemChannelElementTypeIsFirstStageSafe(ctx, typeNode)) return 1;
-    /* Source value legality is not a transport-slot certificate. XLIR closes
-     * the callable/nominal-bytes codec independently before execution. */
-    if (xl6TextEquals(name,"function") && concreteType->childCount==2) return 1;
-    const XL6_TypeInfo* builtin=xl6TypeRegistryFind(&ctx->types,name);
-    if (builtin && builtin->kind==XL6_TYPE_UNION && !concreteType->childCount) return 1;
-    if(builtin && builtin->kind==XL6_TYPE_BUILTIN){
-        /* Source legality is not a physical pointer certificate. Typed XLIR
-         * independently closes the resident schema and message transfer. */
-        if(!concreteType->childCount && xl6TypeRegistryIsNativeValueAbi(builtin->abiId))return 1;
-        if(xl6TextEquals(name,"future") || xl6TextEquals(name,"task")){
-            const XL6_AstNode* arguments=xl6SemTypeNodeGenericArgs(concreteType);
-            if(arguments && arguments->childCount==1)return 1;
-        }
-    }
-    /* Nominal classes already have the managed xvalue retain/move/drop ABI
-     * proved by XLIR. Sending shares that object, not its caller's variable
-     * slot. Thread-confined methods still enforce their owner contract. */
-    classType=xl6SemClassValueType(ctx,concreteType);
-    declaration=classType ? xl6SemFindTypeDecl(ctx,classType->text) : NULL;
-    typeArgs=xl6SemTypeNodeGenericArgs(classType);
-    return declaration != NULL && declaration->kind == XL6_AST_CLASS &&
-        (!typeArgs || !typeArgs->childCount) && xl6SemChannelClassFieldsAreMessageSafe(ctx,declaration);
+    if(!concreteType->childCount && xl6SemFindTypeParam(ctx,concreteType->text))return 1;
+    return xl6SemTypeCanBeFunctionResult(ctx,concreteType);
 }
 
 static int xl6SemCheckChannelTypeArg(XL6_SemContext* ctx, const XL6_AstNode* callee)
@@ -12383,8 +12318,8 @@ static int xl6SemCheckChannelTypeArg(XL6_SemContext* ctx, const XL6_AstNode* cal
     }
     typeArgs = callee->childCount > 1 ? callee->children[1] : NULL;
     itemType = typeArgs != NULL && typeArgs->childCount == 1 ? typeArgs->children[0] : NULL;
-    if ( itemType == NULL || !xl6SemChannelElementTypeIsMessageSafe(ctx, itemType) ) {
-        xl6SemErrorNode(ctx, itemType != NULL ? itemType : callee, "channel<T> 消息类型尚无完整的驻留槽位、拥有图与投影合同");
+    if ( itemType == NULL || !xl6SemTypeCanBeMessageValue(ctx, itemType) ) {
+        xl6SemErrorNode(ctx, itemType != NULL ? itemType : callee, "channel<T> 消息必须支持语言值复制或对象共享；驻留槽位和拥有图由 XLIR 证明");
         return 0;
     }
     return 1;
@@ -12434,21 +12369,12 @@ static int xl6SemCheckChannelCtorCall(XL6_SemContext* ctx, XL6_AstNode* node)
 
 static XL6_AstNode* xl6SemCloneChannelReceiverType(XL6_SemContext* ctx, XL6_AstNode* member)
 {
-    XL6_AstNode* receiver;
-    XL6_Symbol* sym;
-
     if ( member == NULL || member->kind != XL6_AST_MEMBER || member->childCount == 0 ) {
         return NULL;
     }
-    receiver = member->children[0];
-    if ( receiver == NULL || receiver->kind != XL6_AST_NAME ) {
-        return xl6SemInferAutoTypeNode(ctx, receiver);
-    }
-    sym = xl6ScopeFind(ctx->scope, receiver->text);
-    if ( sym == NULL || sym->type == NULL ) {
-        return NULL;
-    }
-    return xl6SemCloneTypeNode(sym->type);
+    /* Resource methods consume the same flow-proven receiver value as every
+     * other member call, not the variable's wider nullable declaration. */
+    return xl6SemCloneMemberReceiverType(ctx,member);
 }
 
 /* Shared names with typed and lowered IR; SEM constructs only logical types. */

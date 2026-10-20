@@ -1,0 +1,42 @@
+extern "message_graph_fail" func shouldFail() as bool
+extern "message_graph_drop" func dropped(int kind)
+extern "message_graph_capture" func capture(var value)
+
+class GraphMessage
+    int kind
+    channel<GraphMessage>? back = null
+    array<var> links = array[]
+    (func() as int)? callback = null
+    bool fail
+    create(int kind, bool fail)
+        self.kind = kind
+        self.fail = fail
+    end
+    destroy()
+        dropped(self.kind)
+        if self.fail then throw ValueError("message graph cleanup") end
+    end
+end
+
+func retire(int mode, bool fail)
+    auto pipe = channel::<GraphMessage>(1)
+    auto message = GraphMessage(mode, fail)
+    if mode == 0 then message.back = pipe end
+    if mode == 1 then assert message.links.append(pipe) end
+    if mode == 2
+        message.callback = func() as int
+            return pipe.count()
+        end
+    end
+    assert pipe.send(message)
+    assert pipe.count() == 1
+    if mode == 0 then capture(message) end
+    // No close/receive/manual edge clearing. Host checked module retirement
+    // proves disposal; the language does not promise eager cyclic collection.
+end
+int mode = 0
+while mode < 3
+    retire(mode, shouldFail())
+    mode += 1
+end
+println("Channel class/array/capture back-edge cycles created for checked host retirement")

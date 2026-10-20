@@ -1,11 +1,11 @@
 /* Included after canonical message-schema construction. A logical callable
  * or union is not its boxed storage slot. All users share this exact proof. */
-int xl6IrChannelValuePlanFromSchema(const XL6_IrModule* module,XL6_IrTypeId schemaId,
-    XL6_IrChannelValuePlan* output)
+/* Pure representation proof, after the caller has closed its recursive schema
+ * using one depth budget. It never restarts that recursive construction. */
+static int xl6IrChannelValuePlanDescribe(const XL6_IrModule* module,XL6_IrTypeId schemaId,
+    XL6_IrNominalIdentitySetId admission,XL6_IrChannelValuePlan* output)
 {
-    XL6_IrChannelValuePlan plan={.schemaType=schemaId};
-    if (!xl6IrSequenceConstructionRecipe(module,schemaId,XL6_IR_SEQUENCE_ROLE_ARRAY,
-            &plan.admissionIdentitySet)) return 0;
+    XL6_IrChannelValuePlan plan={.schemaType=schemaId,.admissionIdentitySet=admission};
     const XL6_IrType* schema=xl6IrTypeGet(&module->types,schemaId);
     const XL6_IrSequenceLayout* layout=&schema->sequenceLayout;
     const XL6_IrType* element=xl6IrTypeGet(&module->types,layout->elementType);
@@ -30,14 +30,22 @@ int xl6IrChannelValuePlanFromSchema(const XL6_IrModule* module,XL6_IrTypeId sche
     if (output) *output=plan;
     return 1;
 }
+int xl6IrChannelValuePlanFromSchema(const XL6_IrModule* module,XL6_IrTypeId schemaId,
+    XL6_IrChannelValuePlan* output)
+{
+    XL6_IrNominalIdentitySetId admission=0;
+    return xl6IrSequenceConstructionRecipe(module,schemaId,XL6_IR_SEQUENCE_ROLE_ARRAY,&admission) &&
+        xl6IrChannelValuePlanDescribe(module,schemaId,admission,output);
+}
 int xl6IrChannelValuePlanBuild(const XL6_IrModule* module,XL6_IrTypeId owner,
     XL6_IrChannelValuePlan* output)
 {
     const XL6_IrType* type=module ? xl6IrTypeGet(&module->types,owner) : NULL;
     XL6_IrTypeId schema=0;XL6_IrChannelValuePlan plan={0};
+    XL6_IrNominalIdentitySetId admission=0;
     if (!type || type->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_CHANNEL ||
-        !xl6IrMessageConstructionRecipeDepth(module,owner,NULL,&schema,NULL,0) ||
-        !xl6IrChannelValuePlanFromSchema(module,schema,&plan)) return 0;
+        !xl6IrMessageConstructionRecipeDepth(module,owner,NULL,&schema,&admission,0) ||
+        !xl6IrChannelValuePlanDescribe(module,schema,admission,&plan)) return 0;
     plan.ownerType=owner;
     if (output) *output=plan;
     return 1;

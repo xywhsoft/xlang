@@ -1,0 +1,21 @@
+class ThreadPacket<T>
+    T payload
+    array<string> words = array["a\0你", "second"]
+    create(T payload)
+        self.payload = payload
+    end
+end
+auto pipe = channel::<ThreadPacket<bytes>>(1)
+auto producer = thread(func() as int
+    auto packet = ThreadPacket::<bytes>(b"a\0b")
+    assert pipe.send(packet)
+    return 17
+end)
+assert producer.waitTimeout(5000) and producer.exitCode() == 17
+auto status, packet = pipe.recv()
+assert status == channelStatus.ok and packet != null
+pipe.close()
+if packet != null
+    assert packet.payload == b"a\0b" and packet.words[0] == "a\0你"
+end
+println("generic class message and owned typed field survive real producer-thread exit ok")

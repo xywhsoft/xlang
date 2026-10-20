@@ -139,6 +139,10 @@ static int xl6IrRuntimeResourceAbiIsConcurrentQueue(XL6_IrRuntimeResourceAbi);
 static int xl6IrRuntimeResourceAbiIsMessageTransport(XL6_IrRuntimeResourceAbi);
 static XL6_IrTypeId xl6IrMessageSchemaTypeForType(const XL6_IrTypePool*,const XL6_IrType*);
 static int xl6IrInternNativeCallValueSchemas(XL6_IrModule*);
+static int xl6IrMessageConstructionRecipeDepth(const XL6_IrModule*,XL6_IrTypeId,
+    XL6_IrRuntimeResourceAbi*,XL6_IrTypeId*,XL6_IrNominalIdentitySetId*,size_t);
+static int xl6IrChannelValuePlanDescribe(const XL6_IrModule*,XL6_IrTypeId,
+    XL6_IrNominalIdentitySetId,XL6_IrChannelValuePlan*);
 static int xl6IrConcurrentQueueConstructionRecipeDepth(const XL6_IrModule*,XL6_IrTypeId,
     XL6_IrRuntimeResourceAbi*,XL6_IrTypeId*,XL6_IrNominalIdentitySetId*,size_t);
 static int xl6IrAvlConstructionRecipeDepth(const XL6_IrModule*,XL6_IrTypeId,
@@ -1079,7 +1083,7 @@ static XL6_IrSequenceLayout xl6IrSequenceLayoutForTypeDepth(const XL6_IrTypePool
             ? xl6IrMessageSchemaTypeForType(pool,base) : xl6IrValueCollectionSchemaTypeForType(pool,base);
         XL6_IrSequenceLayout child=xl6IrSequenceLayoutForTypeDepth(pool,xl6IrTypeGet(pool,schema),depth+1);
         bool channel=base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_CHANNEL;
-        result.abi=xl6IrSequenceLayoutComplete(child.abi) && child.codecAbi==XL6_IR_SEQUENCE_CODEC_DIRECT &&
+        result.abi=xl6IrSequenceLayoutComplete(child.abi) && (channel || child.codecAbi==XL6_IR_SEQUENCE_CODEC_DIRECT) &&
             (!channel || child.transferAbi<=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY)
             ? (channel ? XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1 : XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1)
             : XL6_IR_SEQUENCE_LAYOUT_PENDING_DOMAIN;
@@ -8663,15 +8667,15 @@ static int xl6IrSequenceConstructionRecipeDepth(const XL6_IrModule* module,
     case XL6_IR_SEQUENCE_LAYOUT_QUEUE_REFERENCE_V1:
         return xl6IrConcurrentQueueConstructionRecipeDepth(module,plan->baseElementType,NULL,NULL,NULL,depth+1);
     case XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1:
+        return xl6IrMessageConstructionRecipeDepth(module,plan->baseElementType,
+            NULL,NULL,NULL,depth+1);
     case XL6_IR_SEQUENCE_LAYOUT_SLOT_MAP_REFERENCE_V1: {
-        bool channel=plan->abi==XL6_IR_SEQUENCE_LAYOUT_CHANNEL_REFERENCE_V1;
-        XL6_IrTypeId child=channel ? base->messageSchemaType : base->collectionValueSchemaType;
+        XL6_IrTypeId child=base->collectionValueSchemaType;
         const XL6_IrType* schema=xl6IrTypeGet(&module->types,child);
         return base->kind==XL6_IR_TYPE_GENERIC_INSTANCE && base->paramCount==1 && base->params &&
-            base->runtimeResourceAbi==(channel ? XL6_IR_RUNTIME_RESOURCE_CHANNEL : XL6_IR_RUNTIME_RESOURCE_SLOT_MAP) &&
-            child==(channel ? xl6IrMessageSchemaTypeForType(&module->types,base) : xl6IrValueCollectionSchemaTypeForType(&module->types,base)) &&
+            base->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_SLOT_MAP &&
+            child==xl6IrValueCollectionSchemaTypeForType(&module->types,base) &&
             schema && schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_DIRECT &&
-            (!channel || schema->sequenceLayout.transferAbi<=XL6_IR_RUNTIME_RESOURCE_PAYLOAD_NATIVE_VALUE_COPY) &&
             xl6IrSequenceConstructionRecipeDepth(module,child,XL6_IR_SEQUENCE_ROLE_ARRAY,NULL,depth+1);
     }
     case XL6_IR_SEQUENCE_LAYOUT_LIST_REFERENCE_V1:
@@ -8779,8 +8783,9 @@ static int xl6IrMessageConstructionRecipeDepth(const XL6_IrModule* module, XL6_I
     /* A collection codec alone does not authorize another transport. Channel
      * additionally closes its bidirectional language/storage value plan. */
     const XL6_IrType* schema=xl6IrTypeGet(&module->types,type->messageSchemaType);
-    if (!schema || (schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1 &&
-        type->runtimeResourceAbi!=XL6_IR_RUNTIME_RESOURCE_CHANNEL)) return 0;
+    if (!schema || (type->runtimeResourceAbi==XL6_IR_RUNTIME_RESOURCE_CHANNEL
+        ? !xl6IrChannelValuePlanDescribe(module,type->messageSchemaType,set,NULL)
+        : schema->sequenceLayout.codecAbi==XL6_IR_SEQUENCE_CODEC_UNION_VALUE_V1)) return 0;
     if (familyOut) *familyOut = type->runtimeResourceAbi;
     if (schemaOut) *schemaOut = type->messageSchemaType;
     if (admissionSetOut) *admissionSetOut = set;

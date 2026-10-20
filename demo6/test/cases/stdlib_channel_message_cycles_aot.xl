@@ -1,0 +1,2 @@
+import "../fixtures/channel_message_graph_aot"
+import "./stdlib_channel_message_cycles.xl"

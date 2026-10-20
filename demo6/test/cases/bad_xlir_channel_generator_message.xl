@@ -1,0 +1,4 @@
+func values() as generator<int>
+    yield 42
+end
+auto pipe = channel::<generator<int>>(1)
