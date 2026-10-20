@@ -13205,6 +13205,7 @@ XRT_EXTERN_C_BEGIN
 
 
 /* 增加拥有型网络字节结果的引用并返回原指针。 */
+XRT_API xnetbytes* xrtNetBytesCopy(const void* pData, size_t iSize);
 XRT_API xnetbytes* xrtNetBytesRef(xnetbytes* pBytes);
 
 
@@ -13216,6 +13217,10 @@ XRT_API void xrtNetBytesDestroy(xnetbytes* pBytes);
 
 /* 返回拥有型网络字节结果的借用视图。 */
 XRT_API xbytesview xrtNetBytesView(const xnetbytes* pBytes);
+
+/* Immutable owned bytes: actual physical references, no callbacks/children. */
+XRT_API xrtownershipref xrtNetBytesOwnership(const xnetbytes* pBytes);
+XRT_API const xrtownershipadapterv1* xrtNetBytesOwnershipAdapterV1(xrtownershipref Reference);
 
 
 
@@ -13231,6 +13236,14 @@ XRT_API xnetbufpool* xrtNetBufPoolCreate(const xnetbufpoolconfig* pConfig);
 
 /* 销毁没有实时块的缓冲池；仍有块时失败且保持池有效。 */
 XRT_API bool xrtNetBufPoolDestroy(xnetbufpool* pPool);
+
+/* Pool creator/block leases and the active native Engine owner are actual
+ * graph edges. Views are borrowed and require whole-domain freeze. Prepare
+ * never waits and is ready only after every real block lease has ended. */
+XRT_API xrtownershipref xrtNetBufPoolOwnership(const xnetbufpool* pPool);
+XRT_API const xrtownershipquiescencev1* xrtNetBufPoolOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtNetBufPoolOwnershipAdapterV1(
+	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
 
 
 
@@ -13281,6 +13294,11 @@ XRT_API bool xrtNetBufFront(const xnetbuf* pBuffer, xnetspan* pSpan);
 
 /* 原子追加一份数据副本，失败时缓冲内容保持不变。 */
 XRT_API bool xrtNetBufAppend(xnetbuf* pBuffer, const void* pData, size_t iSize);
+
+/* Retain an immutable byte owner without copying. The exact subrange must fit;
+ * failure consumes no reference. Empty input does not retain a byte owner. */
+XRT_API bool xrtNetBufAppendBytes(xnetbuf* pBuffer, xnetbytes* pBytes,
+	size_t iOffset, size_t iSize);
 
 
 
@@ -21885,6 +21903,9 @@ XRT_API xnetresult xrtNetStreamSendRefs(
 
 
 /* 有界接管非空数据；NULL,0 是无操作，非空指针配零长度是参数错误。 */
+XRT_API xnetresult xrtNetStreamSendBytes(xnetstream* pStream, xnetbytes* pBytes,
+	size_t iOffset, size_t iSize);
+
 XRT_API xnetresult xrtNetStreamSendTake(
 	xnetstream* pStream,
 	ptr pData,

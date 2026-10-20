@@ -69,7 +69,9 @@ def main():
             ('copied-family-admitted','xl6_execution_resource.c','families[i]==r->family','families[i]->kind==r->family->kind'),
             ('lost-producer-failure','xl6_detached_work.c','job->body=(xl6_error_result){false,error};','job->body=(xl6_error_result){true,error};'),
             ('control-read-overlap','xl6_execution_resource.c','!resource->retiring&&!resource->control&&','!resource->retiring&&'),
-            ('native-busy-refused','xl6_ownership_domain_net_engine_native.c','return xl6OwnershipCatalogAddQuiescenceV1(catalog,xrtNetEngineOwnershipQuiescenceV1Get());','(void)catalog;return true;'))
+            ('native-busy-refused','xl6_ownership_domain_net_engine_native.c','return xl6OwnershipCatalogAddQuiescenceV1(catalog,xrtNetEngineOwnershipQuiescenceV1Get());','(void)catalog;return true;'),
+            ('pool-busy-refused','xl6_ownership_domain_net_buffer_native.c','return xl6OwnershipCatalogAddQuiescenceV1(catalog,xrtNetBufPoolOwnershipQuiescenceV1Get());','(void)catalog;return true;'),
+            ('pool-owner-refused','xl6_ownership_domain_net_buffer_native.c','*adapter=xrtNetBufPoolOwnershipAdapterV1(ref,preparation);','*adapter=NULL;(void)preparation;'))
         for name,filename,old,new in controls:
             original=root/'src/runtime'/filename;body=original.read_text(encoding='utf8');assert body.count(old)==1,(name,'inexact control')
             mutant=out/(name+'.c');mutant.write_text(body.replace(old,new),encoding='utf8');product(mutant)
