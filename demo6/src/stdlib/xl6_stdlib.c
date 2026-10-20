@@ -1964,6 +1964,13 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if (needsRegexSet) xl6StdlibBuilderAppend(&builder, xl6StdlibRegexSetSource);
     if (needsPattern) xl6StdlibBuilderAppend(&builder, xl6StdlibPatternSource);
     if (needsDateTime) xl6StdlibBuilderAppend(&builder, xl6StdlibDateTimeSource);
+    if (xl6StdlibNodeUsesTypeName(root,"NetBackend") ||
+        xl6StdlibFuncUsed(used,"net","backendCompiled") ||
+        xl6StdlibFuncUsed(used,"net","backendCapabilities") ||
+        xl6StdlibFuncUsed(used,"net","backendName") ||
+        xl6StdlibFuncUsed(used,"net","defaultBackend")) {
+        xl6StdlibBuilderAppend(&builder,xl6StdlibNetBackendSource);
+    }
     if (needsDateTime || xl6StdlibNodeUsesTypeName(root, "TimeFold"))
         xl6StdlibBuilderAppend(&builder, xl6StdlibTimeFoldSource);
     if (xl6StdlibNodeUsesTypeName(root, "RegexSplitFlags"))

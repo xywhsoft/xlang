@@ -9601,6 +9601,22 @@ XRT_API xnetresult xrtNetSocketSendBatch(xnetsocket Socket,
 */
 
 /* 初始化网络端口默认配置。 */
+/* Immutable metadata for a backend compiled into this product. The Name is
+ * resident static text, not owned by the caller. AUTO resolves the same driver
+ * preference as Create, without initializing a port or probing the OS. */
+typedef struct xnetportbackendinfo {
+	xnetportbackend Backend;
+	cstr Name;
+	uint32 Capabilities;
+} xnetportbackendinfo;
+
+/* False for an unknown/uncompiled backend or NULL output. Failure leaves the
+ * output unchanged. Both outcomes preserve the ambient error, allocate no
+ * memory and perform no OS calls. Compiled support is NOT runtime availability
+ * (kernel version, permissions and resource limits are checked by Create). */
+XRT_API bool xrtNetPortBackendInfo(xnetportbackend Backend,
+	xnetportbackendinfo* pInfo);
+
 XRT_API void xrtNetPortConfigInit(xnetportconfig* pConfig);
 
 
@@ -75455,6 +75471,23 @@ static const __xrt_net_port_driver* __xrtNetPortDriver(
 }
 
 
+
+XRT_API bool xrtNetPortBackendInfo(xnetportbackend Backend,
+	xnetportbackendinfo* pInfo)
+{
+	const __xrt_net_port_driver* pDriver;
+	if ((pInfo == NULL) || !__xrtNetPortBackendValid(Backend)) {
+		return false;
+	}
+	pDriver = __xrtNetPortDriver(Backend);
+	if (pDriver == NULL) {
+		return false;
+	}
+	*pInfo = (xnetportbackendinfo){
+		pDriver->Backend, pDriver->Name, pDriver->Capabilities
+	};
+	return true;
+}
 
 /* 把零值容量解析为实际后端适合的默认值，并保留显式硬边界。 */
 static void __xrtNetPortConfigResolve(

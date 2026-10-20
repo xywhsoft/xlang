@@ -1,0 +1,2 @@
+assert net.backendCompiled(NetBackend.select)
+assert net.backendCapabilities(NetBackend.select) != net.capability.none

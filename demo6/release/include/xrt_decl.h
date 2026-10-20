@@ -11921,6 +11921,22 @@ XRT_API xnetresult xrtNetSocketSendBatch(xnetsocket Socket,
 */
 
 /* 初始化网络端口默认配置。 */
+/* Immutable metadata for a backend compiled into this product. The Name is
+ * resident static text, not owned by the caller. AUTO resolves the same driver
+ * preference as Create, without initializing a port or probing the OS. */
+typedef struct xnetportbackendinfo {
+	xnetportbackend Backend;
+	cstr Name;
+	uint32 Capabilities;
+} xnetportbackendinfo;
+
+/* False for an unknown/uncompiled backend or NULL output. Failure leaves the
+ * output unchanged. Both outcomes preserve the ambient error, allocate no
+ * memory and perform no OS calls. Compiled support is NOT runtime availability
+ * (kernel version, permissions and resource limits are checked by Create). */
+XRT_API bool xrtNetPortBackendInfo(xnetportbackend Backend,
+	xnetportbackendinfo* pInfo);
+
 XRT_API void xrtNetPortConfigInit(xnetportconfig* pConfig);
 
 

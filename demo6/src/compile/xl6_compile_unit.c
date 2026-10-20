@@ -662,7 +662,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_net_interface_local.c",D(R(NET_ADDRESS)),{"XRT_MODULE_NET_INTERFACE_TEXT","XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_ownership_domain_net_interfaces.c",D(R(OWNERSHIP_CATALOG),R(NET_INTERFACES)),{NULL}},
     {"src/runtime/xl6_ownership_domain_net_interface.c",D(R(OWNERSHIP_CATALOG),R(NET_INTERFACES)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_net_interface_address.c",D(R(OWNERSHIP_CATALOG),R(NET_INTERFACES)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_net_interface_address.c",D(R(OWNERSHIP_CATALOG),R(NET_INTERFACES)),{NULL}},
+    {"src/runtime/xl6_net_backends.c",NULL,0,{"XRT_MODULE_NET_PORT_SELECT","XRT_MODULE_NET_PORT_IOCP",
+        "XRT_MODULE_NET_PORT_EPOLL","XRT_MODULE_NET_PORT_URING","XRT_MODULE_NET_PORT_KQUEUE"}},
+    {"src/runtime/xl6_net_backend_text.c",D(R(NET_BACKENDS)),{"XRT_MODULE_STRING"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

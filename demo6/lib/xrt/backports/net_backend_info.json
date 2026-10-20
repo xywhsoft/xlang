@@ -1,0 +1,38 @@
+{
+  "Schema": 1,
+  "Purpose": "Expose compiled driver metadata using the existing selector, without OS initialization",
+  "Integration": "Exact reviewed net.h/port.c delta only; fixed network timeout and other ABI sections unchanged",
+  "CanonicalCommit": "470dc51d3ffebd6e746c0bd472c85e715a7057f2",
+  "CanonicalSources": [
+    {
+      "Path": "include/xrt/net.h",
+      "Sha256": "f355ac93de00ce0a23a6279a41e0255b4edc7614ed82201cf69198ef8e54d836"
+    },
+    {
+      "Path": "src/network/port.c",
+      "Sha256": "6dec268b190e06a230a0a42191566c67f7f321003ea8c717c1da1eff0616a8a4"
+    }
+  ],
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "6f3e3c63eefa8917b73c44ec60c8d1d204fccac9562825c0cadc7466821aa89d",
+      "AfterSha256": "89da2b3c52825a6d40750c2a30eeb651345093c5589ed531e5748a2f4b109705"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "8a79558478fde027b43659e6cb4b6ddf8accaae016ea0c86a4cc35599c0952b8",
+      "AfterSha256": "caf256efcccaaa51a342b23a25b5122434645e31c91c7a08f1fb3ce0f11542c1"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "c700d4283ab293b5edb9623793dc13975fbd300e7b477a746b7b9331f70a7060",
+      "AfterSha256": "731fa391768181004b7d93ca681ebda1b36964b9a87198f8a3e354aaf92ba982"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "0189256e199b329be79a488791590c71fddf68609f39d661e60cb5cdedd5efcd",
+      "AfterSha256": "38abfb3aef10c9de5dba3562e02dea264f47f8475b9130d4034e825398b78df7"
+    }
+  ]
+}
