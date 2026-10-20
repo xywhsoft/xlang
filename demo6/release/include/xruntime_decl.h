@@ -22100,6 +22100,17 @@ XRT_API bool xrtNetListenerStats(
 
 
 #if defined(XRT_FEATURE_NET_TCP_FUTURE)
+/* Exact resident waiter/producer/cancel and terminal payload capabilities.
+ * Frozen queries; the collector must independently admit every child. The
+ * waiter preparation waits for its actual source's normal close/notification,
+ * never turns Drop into cancellation or a synthetic Future completion. */
+XRT_API const xfutureproducerownershipv1* xrtNetTcpFutureProducerPolicyV1Get(void);
+XRT_API const xcancelwatchownershipv1* xrtNetTcpFutureCancelPolicyV1Get(void);
+XRT_API const xfuturepayloadownershipv1* xrtNetTcpFutureBytesPayloadPolicyV1Get(void);
+XRT_API const xfuturepayloadownershipv1* xrtNetTcpFutureStreamPayloadPolicyV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtNetTcpFutureOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtNetTcpFutureOwnershipAdapterV1(xrtownershipref Reference,
+	const xrtownershippreparationv1** ppPreparation);
 /* 拉取模式下异步接受一个连接；成功值由 Future 持有一个 Stream 引用。 */
 XRT_API xfuture* xrtNetListenerAcceptAsync(xnetlistener* pListener);
 
