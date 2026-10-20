@@ -22,6 +22,9 @@ struct XL6_TaskPool {
     xtaskpoolstats retiredStats;
     const void* claim;
     bool ownerHeld, closing, cancelling, quiescing, creating, retiring, cleared, retiredStatsValid;
+    /* A nonblocking stop owns a pending duty even before a graph can admit
+     * the native pool. Joined completion is monotonic after closed admission. */
+    bool quiescencePending, exitComplete;
 };
 static void pool_close_resources(XL6_TaskPool*);
 static xatomic64 activity_lock={0};
@@ -145,7 +148,7 @@ bool xl6TaskPoolQuiesceInternalV1(XL6_TaskPool* pool)
         error_set(XERR_STATE,"StateError",self?"task activity cannot join its own module pool":"module task quiescence is already running");
         xl6TaskPoolLeaveInternalV1(pool);return false;
     }
-    pool->quiescing=true; unlock_pool(pool); mutation_end(&mutation);
+    pool->quiescing=true; pool->quiescencePending=true; unlock_pool(pool); mutation_end(&mutation);
     /* A synchronous cancellation/pruning callback can still be returning from
      * Submit. Wait for its real submission credit, with no mutation held. */
     lock_pool(pool);
@@ -163,7 +166,7 @@ bool xl6TaskPoolQuiesceInternalV1(XL6_TaskPool* pool)
         ok=!native || (xrtTaskPoolWait(native)==XWAIT_OK && xrtTaskPoolGet(native,&stats) && xrtTaskPoolDestroy(native));
     }
     mutation_begin(&mutation); lock_pool(pool);
-    if(ok){pool->native=NULL;if(native){pool->retiredStats=stats;pool->retiredStatsValid=true;}}
+    if(ok){pool->native=NULL;pool->quiescencePending=false;if(native){pool->retiredStats=stats;pool->retiredStatsValid=true;}}
     pool->quiescing=false; unlock_pool(pool); mutation_end(&mutation);xl6TaskPoolLeaveInternalV1(pool);return ok;
 }
 XL6_ModulePrepareResult xl6TaskPoolTryQuiesceV1(XL6_TaskPool* pool)
@@ -180,7 +183,7 @@ XL6_ModulePrepareResult xl6TaskPoolTryQuiesceV1(XL6_TaskPool* pool)
     if(pool->quiescing || pool->submitting || pool->controls || self) {
         unlock_pool(pool); mutation_end(&mutation);xl6TaskPoolLeaveInternalV1(pool);return XL6_MODULE_PREPARE_BUSY;
     }
-    pool->quiescing=true; native=pool->native; unlock_pool(pool); mutation_end(&mutation);
+    pool->quiescing=true; pool->quiescencePending=true; native=pool->native; unlock_pool(pool); mutation_end(&mutation);
     pool_close_resources(pool);
     if(native) {
         if(!xrtTaskPoolClose(native))result=XL6_MODULE_PREPARE_FAILED;
@@ -195,8 +198,28 @@ XL6_ModulePrepareResult xl6TaskPoolTryQuiesceV1(XL6_TaskPool* pool)
         }
     }
     mutation_begin(&mutation); lock_pool(pool);
-    if(result==XL6_MODULE_PREPARE_READY){pool->native=NULL;if(native){pool->retiredStats=stats;pool->retiredStatsValid=true;}}
+    if(result==XL6_MODULE_PREPARE_READY){pool->native=NULL;pool->quiescencePending=false;if(native){pool->retiredStats=stats;pool->retiredStatsValid=true;}}
     pool->quiescing=false; unlock_pool(pool); mutation_end(&mutation);xl6TaskPoolLeaveInternalV1(pool);return result;
+}
+XL6_ModulePrepareResult xl6TaskPoolModulePrepareV1(XL6_TaskPool* pool,bool teardown,bool wait)
+{
+    if(!pool)return XL6_MODULE_PREPARE_READY;
+    /* Preflight must not start draining graph-owned work. It does, however,
+     * finish a stop that earlier one-shot teardown already requested. Native
+     * Count/Trace correctly stays BUSY until its physical join is complete;
+     * no snapshot can be used to resume a duty that prevents that snapshot. */
+    xl6TaskPoolEnterInternalV1(pool);
+    lock_pool(pool);bool pending=pool->quiescencePending,cleared=pool->claim&&pool->cleared;unlock_pool(pool);
+    /* Commit already proved every physical preparation. The graph owns
+     * native Finish now; normal native control on a cleared node is invalid.
+     * Keep this observation separate from initiating/retrying a stop. */
+    if(cleared){xl6TaskPoolLeaveInternalV1(pool);return XL6_MODULE_PREPARE_READY;}
+    if(teardown&&wait){
+        xl6TaskPoolLeaveInternalV1(pool);
+        return xl6TaskPoolQuiesceInternalV1(pool)?XL6_MODULE_PREPARE_READY:XL6_MODULE_PREPARE_FAILED;
+    }
+    XL6_ModulePrepareResult result=teardown||pending?xl6TaskPoolTryQuiesceV1(pool):XL6_MODULE_PREPARE_READY;
+    xl6TaskPoolLeaveInternalV1(pool);return result;
 }
 bool xl6TaskPoolIsQuiescentInternalV1(const XL6_TaskPool* pool)
 {
@@ -211,31 +234,28 @@ bool xl6TaskPoolIsClosingInternalV1(const XL6_TaskPool* pool)
     xl6TaskPoolEnterInternalV1((XL6_TaskPool*)pool);lock_pool(pool);closing=pool->closing;
     unlock_pool(pool);xl6TaskPoolLeaveInternalV1((XL6_TaskPool*)pool);return closing;
 }
-static bool pool_destroy_body(XL6_TaskPool* pool)
+static bool pool_release_owner(XL6_TaskPool* pool,bool clearedOnly)
 {
-    if(!pool)return true;
+    if(!pool){if(clearedOnly)xrtSetErrorKind(XERR_ARGUMENT);return !clearedOnly;}
     xl6TaskPoolEnterInternalV1(pool);xrtownershipscope mutation={0};mutation_begin(&mutation);lock_pool(pool);
-    bool ready=pool->entries==1&&!pool->native&&!pool->submitting&&!pool->controls&&!pool->creating&&!pool->activities&&
-        !pool->quiescing&&!pool->retiring&&(!pool->claim||pool->cleared);
-    bool owner=ready&&pool->ownerHeld;void* exitData=owner?pool->exitData:NULL;
+    bool graph=pool->claim&&pool->cleared;
+    bool ready=pool->entries==1&&!pool->submitting&&!pool->controls&&!pool->creating&&!pool->activities&&
+        !pool->quiescing&&!pool->retiring&&(graph ? pool->ownerHeld&&pool->references>=3 :
+            !clearedOnly&&!pool->claim&&!pool->cleared&&!pool->native);
+    bool owner=ready&&pool->ownerHeld;void* exitData=owner&&!graph?pool->exitData:NULL;
     const xtaskpoolworkerexitownershipv1* policy=pool->exitPolicy;
-    if(owner){pool->ownerHeld=false;pool->closing=true;pool->exitData=NULL;}
+    /* An ordinary owner released after graph Commit consumes only its own
+     * reference. The actual plan pin and outgoing native/exit owners survive
+     * until shared Finish, irrespective of parent-before-child ordering. */
+    if(owner){pool->ownerHeld=false;pool->closing=true;if(!graph)pool->exitData=NULL;}
     unlock_pool(pool);if(owner)xl6TaskPoolDropInternalV1(pool);mutation_end(&mutation);
     if(exitData)policy->Drop(exitData,NULL);
+    if(clearedOnly&&!ready)xrtSetErrorKind(XERR_STATE);
     xl6TaskPoolLeaveInternalV1(pool);return ready;
 }
-bool xl6TaskPoolDestroyInternalV1(XL6_TaskPool* pool) { return pool_destroy_body(pool); }
+bool xl6TaskPoolDestroyInternalV1(XL6_TaskPool* pool) { return pool_release_owner(pool,false); }
 bool xl6TaskPoolReleaseClearedOwnerV1(XL6_TaskPool* pool)
-{
-    if(!pool){xrtSetErrorKind(XERR_ARGUMENT);return false;}
-    xl6TaskPoolEnterInternalV1(pool);xrtownershipscope mutation={0};mutation_begin(&mutation);lock_pool(pool);
-    bool ready=pool->claim&&pool->cleared&&pool->ownerHeld&&pool->references>=3&&pool->entries==1&&
-        !pool->activities&&!pool->submitting&&!pool->controls&&!pool->creating&&!pool->quiescing&&!pool->retiring;
-    if(ready)pool->ownerHeld=false;
-    unlock_pool(pool);mutation_end(&mutation);
-    if(ready)xl6TaskPoolDropInternalV1(pool);else xrtSetErrorKind(XERR_STATE);
-    xl6TaskPoolLeaveInternalV1(pool);return ready;
-}
+{ return pool_release_owner(pool,true); }
 static bool pool_count(const void* data,size_t* count)
 {
     const XL6_TaskPool* pool=data;
@@ -491,7 +511,15 @@ static xwaitresult control_join(XL6_TaskPool* pool,xtaskpool* native,xdeadline d
     pool_close_resources(pool);
     for(;;){
         xwaitresult state=xrtTaskPoolTryJoinV1(native);
-        if(state!=XWAIT_TIMEOUT)return state;
+        if(state!=XWAIT_TIMEOUT){
+            if(state==XWAIT_OK){
+                xrtownershipscope mutation={0};mutation_begin(&mutation);lock_pool(pool);
+                pool->exitComplete=true;unlock_pool(pool);mutation_end(&mutation);
+            }
+            return state;
+        }
+        lock_pool(pool);bool complete=pool->exitComplete;unlock_pool(pool);
+        if(complete)return XWAIT_OK; /* another waiter published physical completion */
         if(cancel&&xrtCancelRequested(cancel))return XWAIT_CANCELLED;
         if(xrtDeadlineExpired(deadline))return XWAIT_TIMEOUT;
         /* Explicit synchronous wait only. The native zero-time join remains
@@ -513,8 +541,13 @@ static bool control_wait(XL6_TaskPool* pool,xdeadline deadline,xcancel* cancel,X
     if(activity_current(pool)){error_set(XERR_STATE,"StateError","task pool activity cannot wait on itself");return false;}
     TaskActivity activity={0};xtaskpool* native=NULL;
     if(!control_begin(pool,&activity,&native))return false;
-    lock_pool(pool);bool closed=pool->closing,submitting=pool->submitting!=0;unlock_pool(pool);
+    lock_pool(pool);bool closed=pool->closing,submitting=pool->submitting!=0,complete=pool->exitComplete;unlock_pool(pool);
     if(!closed){error_set(XERR_STATE,"StateError","close the task pool before waiting");control_end(pool,&activity);return false;}
+    /* Only a successful full native join publishes this fact. Closed wrapper
+     * admission cannot restart it. A later exclusive TryJoin may be BUSY due
+     * to unrelated ownership mutation/control; that is not an undone exit.
+     * This proves wait completion only, never permission to retire or trace. */
+    if(complete){*status=XL6_TASK_POOL_READY_V1;control_end(pool,&activity);return true;}
     /* Trusted native scope users can submit callbacks without language-frame
      * activity metadata. The native zero-time probe rejects their own worker
      * before we could wait for that worker's still-live submitting scope. */

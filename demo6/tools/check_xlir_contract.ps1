@@ -4676,6 +4676,7 @@ if (!$header.Contains('XL6_IR_MODULE_TASK_POOL_OWNERSHIP_RESIDENT_NATIVE_JOBS_JO
     !$source.Contains('XLIR module task pool ownership ABI is unresolved') -or
     !$cEmitter.Contains('visit(xl6TaskPoolOwnership(xlir_async_pool), context)') -or
     $cEmitter.Contains('xl6TaskPoolTryQuiesceV1(xlir_async_pool)') -or
+    !$cEmitter.Contains('xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, wait)') -or
     $cEmitter.Contains('if (!xl6TaskRuntimeV1Get()->PoolIsClosing(xlir_async_pool) ||') -or
     !$api.Contains('xl6TaskPoolOwnershipAdapterV1(ref,preparation)') -or
     !$api.Contains('xrtTaskPoolOwnershipAdapterV1(ref,preparation)')) {

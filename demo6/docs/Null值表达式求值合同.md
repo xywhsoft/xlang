@@ -68,3 +68,9 @@ JIT／模块／独立 AOT、严格 C 和两种优化的 IR 合同均通过；输
 `source-*-r1` 和 `language-*-r2` 是本批限定验收，`language-*-r1` 是未通过的
 扩大回归发现，`baseline-observations.json` 保留旧编译器对照与后续可通过的
 重复窗口，不据此关闭时序问题。
+
+### 后续运行时收口
+
+上述两个旧基线随后在驻留 TaskPool 收尾与完成合同中修复，并补齐独立 AOT 的
+Commit 后释放边界，见 [TaskPool 收尾完成合同](TaskPool收尾完成合同.md)。新批次
+单独验收；不回写本页原失败发现记录，也不扩大原 null 专项报告的证明范围。

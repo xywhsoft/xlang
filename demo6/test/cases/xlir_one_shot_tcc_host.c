@@ -129,6 +129,7 @@ static void load_artifact(void)
     BIND(xl6TaskPoolOwnershipAdapterV1);
     BIND(xl6TaskSubmitPayloadV1);
     BIND(xl6TaskPoolTryQuiesceV1);
+    BIND(xl6TaskPoolModulePrepareV1);
     BIND(xl6FutureCallbackRuntimeV1Get);
     BIND(xl6FutureCallbackRuntimeV2Get);
     BIND(xl6FutureCallbackRuntimeV4Get);

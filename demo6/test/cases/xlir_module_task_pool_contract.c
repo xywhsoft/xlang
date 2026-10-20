@@ -76,8 +76,7 @@ static void check(const char* text, const char* path, int expected, int emit, ch
         assert(!strstr(generated,"if (!xl6TaskRuntimeV1Get()->PoolIsClosing(xlir_async_pool) ||"));
         if(expected)assert(ir.abi.taskPoolOwnershipAbi==XL6_IR_MODULE_TASK_POOL_OWNERSHIP_RESIDENT_NATIVE_JOBS_JOIN_V1&&
             ir.abi.retirementAbi==XL6_IR_MODULE_RETIREMENT_RETRYABLE_SERVICES_V4&&
-            strstr(generated,"? (xlir_async_pool_quiesce() ? XL6_MODULE_PREPARE_READY : XL6_MODULE_PREPARE_FAILED)")&&
-            strstr(generated,": xl6TaskPoolTryQuiesceV1(xlir_async_pool)"));
+            strstr(generated,"xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, wait)"));
         xrtFree(generated);
     }
     xl6IrModuleFree(&ir); xl6ParseResultFree(&parse); return;

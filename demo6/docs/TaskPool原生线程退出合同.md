@@ -91,3 +91,7 @@ JIT/module/AOT、模块退休和 shipping DLL/SO/VFS 验收不能用本批原生
 后续受管理接入已实现，当前合同、共享账本、异步资源关闭次序和源码验收独立
 记录于 [TaskPool 线程退出验收](TaskPool线程退出验收.md)。上文原生报告仅证明
 本文件描述的原生底座；shipping 产品和整组验收仍未由这些专项代替。
+
+后续模块 pending stop 的续跑、Commit 后的 owner release，以及已经确认完成后的
+重复等待合同，见 [TaskPool 收尾完成合同](TaskPool收尾完成合同.md)。它们在驻留
+适配层闭合，不把 native 排他 TryJoin 的一次 BUSY 当作已完成状态被撤销。
