@@ -9817,6 +9817,9 @@ XRT_API xnetresult xrtNetPortWait(xnetport* pPort,
 
 /* 初始化兼顾吞吐与内存占用的 Engine 默认配置。 */
 XRT_API void xrtNetEngineConfigInit(xnetengineconfig* pConfig);
+/* Validate the same scalar/capacity/buffer constraints as Create, without
+ * allocation, port initialization or retaining caller storage. NULL is invalid. */
+XRT_API bool xrtNetEngineConfigValidate(const xnetengineconfig* pConfig);
 
 
 
@@ -9878,6 +9881,10 @@ XRT_API bool xrtNetEngineDestroy(xnetengine* pEngine);
  * Native OS exit/code-unload proof remains a separate host responsibility.
  * Rejection leaves the preparation output and ambient error unchanged. */
 XRT_API xrtownershipref xrtNetEngineOwnership(const xnetengine* pEngine);
+/* Frozen exact-identity transition capability, no context-policy dispatch.
+ * BUSY covers active workers/submissions, lifecycle joins and native exit
+ * tails. It does not admit borrowed work, raw ports or opaque buffer owners. */
+XRT_API const xrtownershipquiescencev1* xrtNetEngineOwnershipQuiescenceV1Get(void);
 XRT_API const xrtownershipadapterv1* xrtNetEngineOwnershipAdapterV1(
 	xrtownershipref Reference,
 	const xnettaskownershipv1* const* pTaskPolicies, size_t iTaskPolicyCount,
@@ -86115,6 +86122,11 @@ static bool __xrtNetEngineConfigValid(const xnetengineconfig* pConfig)
 
 
 
+XRT_API bool xrtNetEngineConfigValidate(const xnetengineconfig* pConfig)
+{
+	if (!pConfig) { __xrtErrorSetInvalidArgument(); return false; }
+	return __xrtNetEngineConfigValid(pConfig);
+}
 /* 初始化兼顾吞吐与内存占用的 Engine 默认配置。 */
 XRT_API void xrtNetEngineConfigInit(xnetengineconfig* pConfig)
 {
@@ -87512,12 +87524,29 @@ static bool __xrtNetEngineTimerView(const __xrt_net_engine_timer* pTimer,
 		!pPolicy->Drop || !pPolicy->Ops || !pPolicy->Ops->Count || !pPolicy->Ops->Trace) return false;
 	return !pVisit || pVisit((xrtownershipref){pTimer->Data, pPolicy->Ops}, pContext);
 }
+static bool __xrtNetEngineOwnershipBusy(const void* pData)
+{
+	const xnetengine* pEngine = pData;
+	if (!pEngine || pEngine->OwnershipCleared || __xrtAtomicRefLoad(&pEngine->RefCount) <= 0) return false;
+	if (pEngine->Joining || pEngine->Retiring || xrtNetEngineState(pEngine) == XNET_ENGINE_STARTING) return true;
+	for (uint32 i = 0; i < pEngine->WorkerCount; ++i) {
+		const xnetworker* pWorker = &pEngine->Workers[i];
+		if ((xrtAtomic32Load(&pWorker->Submitters, XMEMORY_ACQUIRE) & XRT_NET_ENGINE_SUBMIT_COUNT) ||
+			xrtAtomic32Load(&pWorker->InternalPending, XMEMORY_ACQUIRE)) return true;
+		if (pWorker->Thread && !pWorker->OwnershipParked) {
+			xthreadstate State;
+			if (xrtAtomic32Load(&pWorker->Running, XMEMORY_ACQUIRE) ||
+				!xrtThreadStateTry(pWorker->Thread, &State) || State != XTHREAD_FINISHED) return true;
+		}
+	}
+	return false;
+}
 static bool __xrtNetEngineOwnershipWalk(const xnetengine* pEngine,
 	const xnettaskownershipv1* const* pTasks, size_t iTaskCount,
 	const xnettimerownershipv1* const* pTimers, size_t iTimerCount, bool bAdmit,
 	xrtownershipvisitor pVisit, ptr pContext)
 {
-	if (!pEngine || pEngine->Joining || pEngine->Retiring || pEngine->OwnershipCleared ||
+	if (!pEngine || pEngine->OwnershipCleared || __xrtNetEngineOwnershipBusy(pEngine) ||
 		((pEngine->ExitData == NULL) != (pEngine->ExitPolicy == NULL))) return false;
 	if (pEngine->ExitPolicy) {
 		const xnetengineworkerexitownershipv1* pPolicy = pEngine->ExitPolicy;
@@ -87525,20 +87554,11 @@ static bool __xrtNetEngineOwnershipWalk(const xnetengine* pEngine,
 			!pPolicy->Ops->Count || !pPolicy->Ops->Trace) return false;
 		if (pVisit && !pVisit((xrtownershipref){pEngine->ExitData,pPolicy->Ops},pContext)) return false;
 	}
-	xnetenginestate State = xrtNetEngineState(pEngine);
 	/* A pending nonwaiting stop is stable BETWEEN exclusive joining steps.
 	 * The same parked/FINISHED, queue, timer and pool checks below still apply.
 	 * Synchronous Stop holds Joining while it releases native run resources. */
-	if (State == XNET_ENGINE_STARTING) return false;
 	for (uint32 i = 0; i < pEngine->WorkerCount; ++i) {
 		const xnetworker* pWorker = &pEngine->Workers[i];
-		if ((xrtAtomic32Load(&pWorker->Submitters, XMEMORY_ACQUIRE) & XRT_NET_ENGINE_SUBMIT_COUNT) ||
-			xrtAtomic32Load(&pWorker->InternalPending, XMEMORY_ACQUIRE)) return false;
-		if (pWorker->Thread && !pWorker->OwnershipParked) {
-			xthreadstate ThreadState;
-			if (xrtAtomic32Load(&pWorker->Running, XMEMORY_ACQUIRE) ||
-				!xrtThreadStateTry(pWorker->Thread, &ThreadState) || ThreadState != XTHREAD_FINISHED) return false;
-		}
 		if (pWorker->Port && pWorker->OwnershipPortExposed) return false;
 		if (pWorker->BufferPool && pWorker->BufferPool->Info.LiveBlocks) return false;
 		size_t iQueued = 0, iReserved = pWorker->Timers.Count;
@@ -87597,6 +87617,11 @@ static bool __xrtNetEngineOwnershipTrace(const void* pData, xrtownershipvisitor 
 		__xrtNetEngineOwnershipWalk(pData, NULL, 0, NULL, 0, false, pVisit, pContext);
 }
 static const xrtownershipops __xrtNetEngineOwnershipOps = {__xrtNetEngineOwnershipCount, __xrtNetEngineOwnershipTrace};
+XRT_API const xrtownershipquiescencev1* xrtNetEngineOwnershipQuiescenceV1Get(void)
+{
+	static const xrtownershipquiescencev1 Policy = {sizeof(Policy), &__xrtNetEngineOwnershipOps, __xrtNetEngineOwnershipBusy};
+	return &Policy;
+}
 XRT_API xrtownershipref xrtNetEngineOwnership(const xnetengine* pEngine)
 {
 	return (xrtownershipref){pEngine, pEngine ? &__xrtNetEngineOwnershipOps : NULL};

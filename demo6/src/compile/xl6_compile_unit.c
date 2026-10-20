@@ -668,7 +668,16 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_net_backend_text.c",D(R(NET_BACKENDS)),{"XRT_MODULE_STRING"}},
     {"src/runtime/xl6_detached_work.c",D(R(CLOSURE),R(FOREIGN_ERROR),R(EXECUTION_FAILURES)),
         {"XRT_MODULE_MEMORY","XRT_MODULE_ATOMIC","XRT_MODULE_THREAD","XRUNTIME_MODULE_RUNTIME_CALL","XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"}},
-    {"src/runtime/xl6_ownership_domain_detached_work.c",D(R(OWNERSHIP_CATALOG),R(DETACHED_WORK)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_detached_work.c",D(R(OWNERSHIP_CATALOG),R(DETACHED_WORK)),{NULL}},
+    {"src/runtime/xl6_execution_net_engine.c",D(R(EXECUTION_SOURCE),R(DETACHED_WORK),R(EXECUTION_WORKER_EXIT),R(NET_BACKENDS)),{"XRT_MODULE_NET_ENGINE"}},
+    {"src/runtime/xl6_ownership_domain_execution_net_engine.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_NET_ENGINE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_engine_native.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_NET_ENGINE)),{NULL}},
+    {"src/runtime/xl6_net_engine_config.c",D(R(NATIVE_HANDLE),R(FOREIGN_ERROR)),{"XRT_MODULE_NET_ENGINE"}},
+    {"src/runtime/xl6_net_engine_language.c",D(R(EXECUTION_NET_ENGINE),R(NATIVE_HANDLE)),{NULL}},
+    {"src/runtime/xl6_net_engine_stats.c",D(R(NATIVE_HANDLE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_engine_config.c",D(R(OWNERSHIP_CATALOG),R(NET_ENGINE_CONFIG)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_engine_language.c",D(R(OWNERSHIP_CATALOG),R(NET_ENGINE_LANGUAGE),R(OWNERSHIP_DOMAIN_EXECUTION_NET_ENGINE),R(OWNERSHIP_DOMAIN_NET_ENGINE_NATIVE)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_engine_stats.c",D(R(OWNERSHIP_CATALOG),R(NET_ENGINE_STATS)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

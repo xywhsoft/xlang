@@ -20,7 +20,7 @@ typedef struct ClosureStorage {
     size_t environmentBytes;
     const void* claim;
     void* retiredEnvironment;
-    bool coordinated, cleared;
+    bool coordinated, cleared, environmentFinished;
 } ClosureStorage;
 static void closure_release(XL6_Closure*);
 static xrtownershipref closure_ownership(const XL6_Closure*);
@@ -201,9 +201,9 @@ static void closure_release(XL6_Closure* closure)
     if (refs < 0) abort();
     if (refs != 0) { if (!xrtOwnershipScopeEnd(&mutation)) abort(); return; }
     lease = closure->lease; environment = closure->environment; drop = closure->environment_free;
-    if (storage->retiredEnvironment != NULL) abort(); /* Finish must precede final unpin. */
+    if (storage->retiredEnvironment!=NULL||(storage->cleared&&!storage->environmentFinished)) abort(); /* Finish must precede final unpin, including NULL environments. */
     layout = storage->layout; coordinated = storage->coordinated;
-    environmentOps=storage->environmentOps;environmentLayout=storage->environmentLayout;
+    environmentOps=storage->environmentFinished?NULL:storage->environmentOps;environmentLayout=storage->environmentLayout;
     environmentBytes=storage->environmentBytes;
     xl6CodeScopeEnter(&scope, lease);
     xrtFree(closure);
@@ -415,7 +415,12 @@ static bool closure_finish(const void* data, const void* token)
 {
     ClosureStorage* storage = (ClosureStorage*)data; void* environment;
     if (storage->claim != token || !storage->cleared) abort();
+    if (storage->environmentFinished) return true;
     environment = storage->retiredEnvironment; storage->retiredEnvironment = NULL;
+    /* Drop consumes its environment even when it reports checked failure.
+     * Mark consumption BEFORE arbitrary cleanup/reentry; repeated Finish and
+     * final unpin must not invoke Drop again, even for a valid NULL payload. */
+    storage->environmentFinished = true;
     if(storage->environmentOps)return storage->environmentOps->Drop(storage->environmentLayout,environment,storage->environmentBytes);
     environment_drop_body(storage->layout, environment);return true;
 }

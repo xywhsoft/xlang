@@ -16,6 +16,7 @@ struct xlir_closure;
 #include "xl6_atomic_abi.h"
 #include "xl6_concurrent_abi.h"
 #include "xl6_execution_language.h"
+#include "xl6_net_engine_abi.h"
 #include "xl6_task_pool_language.h"
 #include "xl6_channel_wait_abi.h"
 #include "xl6_channel_case_abi.h"

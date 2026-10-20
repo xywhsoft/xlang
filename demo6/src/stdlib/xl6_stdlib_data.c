@@ -495,88 +495,7 @@ const char* xl6StdlibLengthFramerClassSource =
 
 
 
-const char* xl6StdlibNetEngineStatsClassSource =
-    "class NetEngineStats\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_net_stats_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_net_stats_value\" func value(int index) as uint64\n"
-    "\n"
-    "    get state() as int\n"
-    "        return int(self.value(0))\n"
-    "    end\n"
-    "\n"
-    "    get workers() as uint64\n"
-    "        return self.value(1)\n"
-    "    end\n"
-    "\n"
-    "    get postsAccepted() as uint64\n"
-    "        return self.value(2)\n"
-    "    end\n"
-    "\n"
-    "    get postsRejected() as uint64\n"
-    "        return self.value(3)\n"
-    "    end\n"
-    "\n"
-    "    get postsExecuted() as uint64\n"
-    "        return self.value(4)\n"
-    "    end\n"
-    "\n"
-    "    get timersAccepted() as uint64\n"
-    "        return self.value(5)\n"
-    "    end\n"
-    "\n"
-    "    get timersRejected() as uint64\n"
-    "        return self.value(6)\n"
-    "    end\n"
-    "\n"
-    "    get timersFired() as uint64\n"
-    "        return self.value(7)\n"
-    "    end\n"
-    "\n"
-    "    get timersCancelled() as uint64\n"
-    "        return self.value(8)\n"
-    "    end\n"
-    "\n"
-    "    get timersClosed() as uint64\n"
-    "        return self.value(9)\n"
-    "    end\n"
-    "\n"
-    "    get timerErrors() as uint64\n"
-    "        return self.value(10)\n"
-    "    end\n"
-    "\n"
-    "    get events() as uint64\n"
-    "        return self.value(11)\n"
-    "    end\n"
-    "\n"
-    "    get waitErrors() as uint64\n"
-    "        return self.value(12)\n"
-    "    end\n"
-    "\n"
-    "    get nodeCacheHits() as uint64\n"
-    "        return self.value(13)\n"
-    "    end\n"
-    "\n"
-    "    get nodeCacheMisses() as uint64\n"
-    "        return self.value(14)\n"
-    "    end\n"
-    "\n"
-    "    get pendingCommands() as uint64\n"
-    "        return self.value(15)\n"
-    "    end\n"
-    "\n"
-    "    get activeTimers() as uint64\n"
-    "        return self.value(16)\n"
-    "    end\n"
-    "\n"
-    "    get nodeCachedBytes() as uint64\n"
-    "        return self.value(17)\n"
-    "    end\n"
-    "\n"
-    "    get liveObjects() as uint64\n"
-    "        return self.value(18)\n"
-    "    end\n"
-    "end\n";
+#include "xl6_stdlib_net_engine.inc"
 
 
 
@@ -886,29 +805,6 @@ const char* xl6StdlibNetProxyClassSource =
 
 
 
-const char* xl6StdlibNetEngineClassSource =
-    "class NetEngine\n"
-    "    native point handle\n"
-	"    extern \"xl6_xrt_net_engine_create\" create(int workerCount)\n"
-    "    extern \"xl6_xrt_net_engine_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_net_engine_native\" func nativeHandle() as point\n"
-    "    extern \"xl6_xrt_net_engine_start\" func start() as bool\n"
-    "    extern \"xl6_xrt_net_engine_stop\" func stop()\n"
-    "    extern \"xl6_xrt_net_engine_workers\" get workerCount() as int\n"
-    "    extern \"xl6_xrt_net_engine_stats\" func statsNative() as point\n"
-    "\n"
-    "    func post(func() task, int affinity = 0) as bool\n"
-    "        return __xl_std_runtime_net_engine_post(self.nativeHandle(), task, affinity)\n"
-    "    end\n"
-    "\n"
-    "    func postDelayed(func() task, int delayMs, int affinity = 0) as bool\n"
-    "        return __xl_std_runtime_net_engine_post_delayed(self.nativeHandle(), task, delayMs, affinity)\n"
-    "    end\n"
-    "\n"
-    "    func stats() as NetEngineStats\n"
-    "        return NetEngineStats(point(self.statsNative()))\n"
-    "    end\n"
-    "end\n";
 
 
 
@@ -2439,19 +2335,6 @@ static const XL6_StdlibParam xl6StdRuntimePathJoinParams[] = {
     {"string", "first"},
     {"string", "second"},
     {"var", "rest"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeNetEnginePostParams[] = {
-    {"point", "engine"},
-    {"func()", "task"},
-    {"int", "affinity"}
-};
-
-static const XL6_StdlibParam xl6StdRuntimeNetEnginePostDelayedParams[] = {
-    {"point", "engine"},
-    {"func()", "task"},
-    {"int", "delayMs"},
-    {"int", "affinity"}
 };
 
 
@@ -4845,10 +4728,7 @@ static const char xl6StdNetResolveAsyncBody[] =
     "end\n";
 
 static const char xl6StdNetStatsBody[] =
-    "extern \"xl6_xrt_net_runtime_stats\" func __xl_std_net_stats_native() as point\n"
-    "func __xl_std_net_stats() as NetEngineStats\n"
-    "    return NetEngineStats(point(__xl_std_net_stats_native()))\n"
-    "end\n";
+    "extern \"xl6NetEngineSnapshotV1\" @nonblocking func __xl_std_net_stats(NetEngine engine) as NetEngineStats\n";
 
 static const char xl6StdNetResolverStatsBody[] =
     "extern \"xl6_xrt_net_resolver_stats\" func __xl_std_net_resolver_stats_native() as point\n"
@@ -4862,9 +4742,7 @@ static const char xl6StdNetProxyBody[] =
     "end\n";
 
 static const char xl6StdNetEngineBody[] =
-	"func __xl_std_net_engine(int workerCount = 0) as NetEngine\n"
-	"    return NetEngine(workerCount)\n"
-    "end\n";
+    "extern \"xl6NetEngineCreateWorkersV1\" func __xl_std_net_engine(int workerCount = 0) as NetEngine\n";
 
 static const char xl6StdTcpConnectConfigBody[] =
     "func __xl_std_tcp_connect_config(string host, int port) as TcpConnectConfig\n"
@@ -5399,8 +5277,6 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"__xl_runtime", "dirGlob", "__xl_std_runtime_dir_glob", "xl6_xrt_dir_glob", xl6StdRuntimeDirGlobParams, 4, "var", NULL},
     {"__xl_runtime", "dirEntries", "__xl_std_runtime_dir_entries", "xl6_xrt_dir_entries", xl6StdRuntimeDirEntriesParams, 5, "var", NULL},
     {"__xl_runtime", "pathJoin", "__xl_std_runtime_path_join", "xl6_xrt_path_join", xl6StdRuntimePathJoinParams, 3, "point", NULL},
-    {"__xl_runtime", "netEnginePost", "__xl_std_runtime_net_engine_post", "xl6_xrt_net_engine_post", xl6StdRuntimeNetEnginePostParams, 3, "c_bool", NULL},
-    {"__xl_runtime", "netEnginePostDelayed", "__xl_std_runtime_net_engine_post_delayed", "xl6_xrt_net_engine_post_delayed", xl6StdRuntimeNetEnginePostDelayedParams, 4, "c_bool", NULL},
     {"tcc", "Context", "__xl_std_tcc_context", NULL, NULL, 0, "TccContext", xl6StdTccContextBody},
     {"tcc", "run", "__xl_std_tcc_run", NULL, NULL, 0, "int", xl6StdTccRunBody},
     {"tcc", "runFile", "__xl_std_tcc_run_file", NULL, NULL, 0, "int", xl6StdTccRunFileBody},

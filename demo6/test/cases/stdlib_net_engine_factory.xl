@@ -1,0 +1,8 @@
+auto engine = net.engine(1)
+assert(engine.configuration().workers == 1)
+engine.start()
+assert(engine.workerCount == 1)
+assert(engine.backend() == net.defaultBackend())
+engine.close()
+assert(engine.wait(5000))
+println("engine resident factory: ok")

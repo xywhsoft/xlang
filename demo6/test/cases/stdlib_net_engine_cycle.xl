@@ -1,0 +1,9 @@
+func abandonEngineCycle()
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    engine.after(60000,func()
+        assert engine.workerCount == 1
+    end)
+end
+abandonEngineCycle()
+println("engine retained timer cycle: ok")

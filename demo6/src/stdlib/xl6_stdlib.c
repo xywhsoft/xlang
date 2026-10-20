@@ -965,6 +965,7 @@ static int xl6StdlibNeedsNetInterfaceClass(const XL6_AstNode* root, const int* u
 static int xl6StdlibNeedsNetEngineClass(const XL6_AstNode* root, const int* used)
 {
     return xl6StdlibNodeUsesTypeName(root, "NetEngine") ||
+           xl6StdlibFuncUsed(used, "net", "stats") ||
            xl6StdlibFuncUsed(used, "net", "engine");
 }
 
@@ -1880,10 +1881,6 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsCryptoClass || needsFileClass ) {
         xl6StdlibMarkFuncUsed(used, "__xrt_string", "byteLen");
     }
-    if ( needsNetEngineClass ) {
-        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "netEnginePost");
-        xl6StdlibMarkFuncUsed(used, "__xl_runtime", "netEnginePostDelayed");
-    }
     if ( xl6StdlibFuncUsed(used, "signal", "cancelOn") ) {
         needsTaskGroupClass = 1;
     }
@@ -1964,7 +1961,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if (needsRegexSet) xl6StdlibBuilderAppend(&builder, xl6StdlibRegexSetSource);
     if (needsPattern) xl6StdlibBuilderAppend(&builder, xl6StdlibPatternSource);
     if (needsDateTime) xl6StdlibBuilderAppend(&builder, xl6StdlibDateTimeSource);
-    if (xl6StdlibNodeUsesTypeName(root,"NetBackend") ||
+    if (needsNetEngineClass || xl6StdlibNodeUsesTypeName(root,"NetEngineOptions") ||
+        xl6StdlibNodeUsesTypeName(root,"NetBackend") ||
         xl6StdlibFuncUsed(used,"net","backendCompiled") ||
         xl6StdlibFuncUsed(used,"net","backendCapabilities") ||
         xl6StdlibFuncUsed(used,"net","backendName") ||
@@ -2021,8 +2019,11 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetBytesClassSource);
     }
     if ( needsNetEngineStatsClass ) {
+        xl6StdlibBuilderAppend(&builder,xl6StdlibNetEngineStateSource);
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetEngineStatsClassSource);
     }
+    else if(xl6StdlibNodeUsesTypeName(root,"NetEngineState"))
+        xl6StdlibBuilderAppend(&builder,xl6StdlibNetEngineStateSource);
     if ( needsNetResolverStatsClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetResolverStatsClassSource);
     }
@@ -2030,8 +2031,11 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetProxyClassSource);
     }
     if ( needsNetEngineClass ) {
+        xl6StdlibBuilderAppend(&builder, xl6StdlibNetEngineOptionsSource);
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetEngineClassSource);
     }
+    else if (xl6StdlibNodeUsesTypeName(root,"NetEngineOptions"))
+        xl6StdlibBuilderAppend(&builder,xl6StdlibNetEngineOptionsSource);
     if ( needsTcpStreamStatsClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibTcpStreamStatsClassSource);
     }

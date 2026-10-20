@@ -1,0 +1,38 @@
+{
+  "Schema": 1,
+  "Purpose": "Nonallocating requested Engine config validation and exact native ownership quiescence",
+  "Integration": "Two exact sections only; no network time ABI migration or unselected source changes",
+  "CanonicalCommit": "ca0856824f649147419f3dc1342d5e8ce5a893ff",
+  "CanonicalSources": [
+    {
+      "Path": "include/xrt/net.h",
+      "Sha256": "7ce53b1f67e979921a0a38e7eff3938b890bb726b0c367bde3665adca536cdc0"
+    },
+    {
+      "Path": "src/network/engine.c",
+      "Sha256": "f6005d9903b0618d1126e6a9a97a2adce160e741e42e4003e2151fdc576008c5"
+    }
+  ],
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "5851ca8f085aca5eb347bfa3c73ffe30f84173ef095a875d6228fb7268147d6a",
+      "AfterSha256": "44d4c1970c4a5fecdc78739a3838c109d88a561cc7afe0329bd737f7f6184279"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "44e8c483f27d94c7d6dbb3cf220c9255df6dd4a1eb2aff783c7d21866f6a2777",
+      "AfterSha256": "c682dae7e1f5a263a3af4f7a9e324aa3eae7a6707afde3a0ed24fd06804ad345"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "7209eb65385a8c360a23d5abbe3228b67c12febf83849392cdd949120d5df29d",
+      "AfterSha256": "6f91f51476ca07e289ef2bfd6a4d99941a9280518ff5a00a1d4b57c48886cad2"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "c1fa9efc7074e8c495e9d77de54fc6b9d4dd9f7822200bde38b4c58394594521",
+      "AfterSha256": "17ff9519afa568addcc077b7e93dede519dd7917909896f675df339c4c1b5a42"
+    }
+  ]
+}

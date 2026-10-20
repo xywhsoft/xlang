@@ -1,0 +1,2 @@
+NetEngineStats invalid
+println(invalid.workers)

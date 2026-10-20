@@ -1,0 +1,23 @@
+import concurrent
+func exerciseEngineTimers()
+    auto count = AtomicInt64()
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    auto cancelled = engine.after(60000,func()
+        count.fetchAdd(100)
+    end)
+    engine.cancelTimer(cancelled)
+    engine.post(func()
+        count.fetchAdd(1)
+    end)
+    engine.stop()
+    assert count.load() == 1
+    assert engine.failureCount == 0
+    auto stats = engine.snapshot()
+    assert stats.timersCancelled == 1 and stats.timersFired == 0
+    engine.start()
+    engine.close()
+    assert engine.wait(5000)
+end
+exerciseEngineTimers()
+println("engine timers, cancellation and restart: ok")

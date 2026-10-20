@@ -8,11 +8,18 @@
  * graph Count/Trace dispatch. No void payload/function-pointer erasure.
  * Families are separate providers so Executor does not link TaskPool (or vice
  * versa); this declaration header has no native algorithm implementation. */
+typedef struct XL6_ExecutionCreateOptionsV1 {
+    XL6_ExecutionKindV1 kind;
+    union {
+        struct { uint32_t threads; size_t limit,stack; } workers;
+        const struct xnetengineconfig* engine; /* call-only, copied by the native ctor */
+    } value;
+} XL6_ExecutionCreateOptionsV1;
 typedef struct XL6_ExecutionFamilyV1 {
     size_t size;
     uint64_t abiTag;
     XL6_ExecutionKindV1 kind;
-    bool (*Create)(XL6_ExecutionResourceV1*,uint32_t,size_t,size_t);
+    bool (*Create)(XL6_ExecutionResourceV1*,const XL6_ExecutionCreateOptionsV1*);
     bool (*Rollback)(XL6_ExecutionResourceV1*);
     XL6_ModulePrepareResult (*Retire)(XL6_ExecutionResourceV1*);
     bool (*Finish)(XL6_ExecutionResourceV1*);
@@ -20,21 +27,22 @@ typedef struct XL6_ExecutionFamilyV1 {
     bool (*Trace)(const XL6_ExecutionResourceV1*,xrtownershipvisitor,void*);
     bool (*Close)(XL6_ExecutionResourceV1*);
     bool (*Cancel)(XL6_ExecutionResourceV1*);
+    size_t instanceBytes; /* typed provider extension; base is the first member */
 } XL6_ExecutionFamilyV1;
 #define XL6_EXECUTION_FAMILY_TAG_V1 UINT64_C(0x584C364558464D31)
 struct XL6_ExecutionResourceV1 {
     XL6_ExecutionSourceV1* source;
     const XL6_ExecutionFamilyV1* family;
     XL6_ExecutionResourceV1 *previous,*next;
-    xexecutor* executor;
+    struct xexecutor* executor;
     XL6_TaskPool* pool;
+    struct xnetengine* engine;
     XL6_ExecutionFailuresV1* failures;
-    xexecutorstats stats;
     size_t references,owners,entries;
     uint64_t cycle;
     XL6_ExecutionKindV1 kind;
     const void* claim;
-    bool requested,retiring,stalled,cleared;
+    bool requested,retiring,stalled,cleared,control;
 };
 #if defined(__GNUC__) && !defined(_WIN32)
 #define XL6_EXECUTION_INTERNAL __attribute__((visibility("hidden")))
@@ -42,7 +50,7 @@ struct XL6_ExecutionResourceV1 {
 #define XL6_EXECUTION_INTERNAL
 #endif
 XL6_EXECUTION_INTERNAL XL6_ExecutionResourceV1* xl6ExecutionCreateInternalV1(
-    XL6_ExecutionSourceV1*,const XL6_ExecutionFamilyV1*,uint32_t,size_t,size_t);
+    XL6_ExecutionSourceV1*,const XL6_ExecutionFamilyV1*,const XL6_ExecutionCreateOptionsV1*);
 XL6_EXECUTION_INTERNAL bool xl6ExecutionRequestedInternalV1(const XL6_ExecutionResourceV1*);
 XL6_CODE_LEASE_API const XL6_ExecutionFamilyV1* xl6ExecutionExecutorFamilyV1Get(void);
 XL6_CODE_LEASE_API const XL6_ExecutionFamilyV1* xl6ExecutionTaskPoolFamilyV1Get(void);

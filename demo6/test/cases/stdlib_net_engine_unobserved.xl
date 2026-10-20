@@ -1,0 +1,8 @@
+func abandonEngineFailure()
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    engine.post(func()
+        throw ValueError("unobserved engine")
+    end)
+end
+abandonEngineFailure()
