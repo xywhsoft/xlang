@@ -11250,6 +11250,19 @@ typedef struct xnettimerownershipv1 {
 	const xrtownershipops* Ops;
 } xnettimerownershipv1;
 
+/* Resident native-runtime family. Engine slots own ONE already-transferred
+ * reference; Release consumes that slot outside locks/mutation. Listed native
+ * timer callbacks already consume their own context reference: the descriptor
+ * certifies its physical graph edge, never adds a second Drop/retain. It does
+ * not certify arbitrary user callbacks or borrowed task data. */
+typedef struct xnetruntimeownershipv1 {
+	size_t size;
+	const xrtownershipops* Ops;
+	void (*Release)(ptr pData);
+	const xnettimerproc* OwnedTimers;
+	size_t OwnedTimerCount;
+} xnetruntimeownershipv1;
+
 
 
 /* Engine 内的端口事件通过 Completion 回到所属 Worker。 */
@@ -12225,6 +12238,16 @@ XRT_API const xrtownershipadapterv1* xrtNetEngineOwnershipAdapterV2(
 	const xnettaskownershipv1* const* pTaskPolicies, size_t iTaskPolicyCount,
 	const xnettimerownershipv1* const* pTimerPolicies, size_t iTimerPolicyCount,
 	const xnetengineworkerexitownershipv1* const* pExitPolicies, size_t iExitPolicyCount,
+	const xrtownershippreparationv1** ppPreparation);
+/* V1/V2 continue to refuse runtime-family slots/timers. V3 additionally admits
+ * their exact resident descriptors before following any native context edge.
+ * Pending native transition commands remain BUSY, not invented references. */
+XRT_API const xrtownershipadapterv1* xrtNetEngineOwnershipAdapterV3(
+	xrtownershipref Reference,
+	const xnettaskownershipv1* const* pTaskPolicies, size_t iTaskPolicyCount,
+	const xnettimerownershipv1* const* pTimerPolicies, size_t iTimerPolicyCount,
+	const xnetengineworkerexitownershipv1* const* pExitPolicies, size_t iExitPolicyCount,
+	const xnetruntimeownershipv1* const* pRuntimePolicies, size_t iRuntimePolicyCount,
 	const xrtownershippreparationv1** ppPreparation);
 XRT_API bool xrtNetEnginePostOwnedV1(xnetengine* pEngine, uint64 iAffinity,
 	ptr pData, const xnettaskownershipv1* pPolicy);
@@ -21106,6 +21129,22 @@ XRT_API xnetlistener* xrtNetListenerRef(xnetlistener* pListener);
 
 /* 释放 Listener 引用；关闭操作必须另行请求。 */
 XRT_API void xrtNetListenerDestroy(xnetlistener* pListener);
+
+/* Whole-domain frozen views. Engine V3 must admit these exact runtime-family
+ * descriptors. Real caller/runtime/timer/accept-queue references are counted;
+ * opaque callbacks, live external buffers and unmodelled Future contexts are
+ * refused, never flattened into a leaf. Preparation aborts/closes without
+ * waiting and becomes READY only after the runtime owner has physically left. */
+XRT_API xrtownershipref xrtNetStreamOwnership(const xnetstream* pStream);
+XRT_API xrtownershipref xrtNetListenerOwnership(const xnetlistener* pListener);
+XRT_API const xnetruntimeownershipv1* xrtNetStreamRuntimeOwnershipV1Get(void);
+XRT_API const xnetruntimeownershipv1* xrtNetListenerRuntimeOwnershipV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtNetStreamOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipquiescencev1* xrtNetListenerOwnershipQuiescenceV1Get(void);
+XRT_API const xrtownershipadapterv1* xrtNetStreamOwnershipAdapterV1(
+	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
+XRT_API const xrtownershipadapterv1* xrtNetListenerOwnershipAdapterV1(
+	xrtownershipref Reference, const xrtownershippreparationv1** ppPreparation);
 
 
 
