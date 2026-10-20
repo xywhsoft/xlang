@@ -52,6 +52,6 @@ xvalue* xl6SequenceNullableCScalarCreateV1(unsigned int role,uint64_t identity,u
     if (!data) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }
     *data=(NullableCScalarPolicy){.refs=1,.base=base,.type=type,.identity=boxedIdentity,
         .offset=(1+base->Align-1)/base->Align*base->Align};
-    XL6_SequenceAdmissionV3 admission={&ops,data,element,1,type->Size,type,boxedIdentity};
+    XL6_SequenceAdmissionV3 admission={&ops,data,element,1,xl6CScalarDomainTagV1(base),type->Size,type,boxedIdentity};
     return xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role,identity,&admission);
 }

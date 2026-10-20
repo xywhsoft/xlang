@@ -35,10 +35,17 @@ def main():
     sdk = driver.parent / 'include'
     cases = ('enum_numeric_bitwise', 'enum_numeric_bitwise_lifetime',
              'enum_numeric_bitwise_contract', 'enum_numeric_bitwise_stdlib',
-             'enum_numeric_runtime', 'operators')
-    contract = root / 'test/cases/xlir_numeric_enum_bitwise_contract.c'
+             'enum_numeric_runtime', 'operators', 'enum_dynamic_domains',
+             'dynamic_scalar_container_domains', 'dynamic_primitive_operators', 'stdlib_callable_native_scalars')
+    contracts = (
+        ('xlir_numeric_enum_bitwise_contract.c', 'enum_numeric_bitwise_contract.xl',
+         'XLIR: nominal enum bitwise:'),
+        ('xlir_enum_scalar_domain_contract.c', 'enum_scalar_domain_contract.xl',
+         'XLIR: enum scalar domain:'),
+    )
     inputs = {str(path): sha(path) for path in
-              (Path(__file__), manifest, driver, cc, contract,
+              (Path(__file__), manifest, driver, cc,
+               *[root / 'test/cases' / name for row in contracts for name in row[:2]],
                *[root / ('test/cases/' + case + '.xl') for case in cases])}
     out.mkdir(parents=True)
     env = dict(os.environ)
@@ -84,6 +91,11 @@ def main():
             generated = out / (case + '.c')
             run(case + '.emit', [driver, source, 'cgen-default', generated])
             product(generated)
+            if case in ('enum_dynamic_domains','dynamic_scalar_container_domains','dynamic_primitive_operators'):
+                code=generated.read_text(encoding='utf-8')
+                assert 'static xvalue* xlir_xvalue_binary' not in code and 'static xvalue* xlir_xvalue_unary' not in code
+                assert 'xl6ValueNumeric' in code
+                if case=='enum_dynamic_domains': assert 'xl6ValueEnumBindTakeV1(' in code
             for stage in ('typed', 'lowered'):
                 ir = out / (case + '.' + stage + '.json')
                 run(case + '.' + stage, [driver, source, 'ir-' + stage, ir])
@@ -185,8 +197,13 @@ def main():
     objects = [row['Path'] for row in build['Objects'] if Path(row['Source']).name not in
                ('xlir_public_source_driver.c', 'xlir_public_source_linux_driver.c')]
     assert len(objects) == len(build['Objects']) - 1
-    for opt in ('O0', 'O2'):
-        label = 'contract.' + opt
+    for contract_name, source_name, proof_text, opt in (
+        (name, source, proof, opt)
+        for name, source, proof in contracts
+        for opt in ('O0', 'O2')
+    ):
+        contract = root / 'test/cases' / contract_name
+        label = contract.stem + '.' + opt
         try:
             obj = out / (label + '.o')
             run(label + '.build', [cc, *flags, '-' + opt, '-c', contract, '-o', obj])
@@ -205,8 +222,8 @@ def main():
             product(response)
             run(label + '.link', [cc, '@' + str(response)])
             product(binary)
-            proof = run(label + '.run', [binary, root / 'test/cases/enum_numeric_bitwise_contract.xl'])
-            assert 'XLIR: nominal enum bitwise:' in proof
+            proof = run(label + '.run', [binary, root / 'test/cases' / source_name])
+            assert proof_text in proof
         except Exception as error:
             failures.append(dict(Name=label, Error=repr(error)))
             save()

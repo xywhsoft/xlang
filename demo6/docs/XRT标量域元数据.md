@@ -1,6 +1,6 @@
 # XRT 标量域元数据底座
 
-本批只完成通用的不可变元数据底座及嵌入快照，不宣称动态枚举运算已迁移。
+本文件描述通用的不可变元数据底座、嵌入快照及 xlang 的语言侧使用合同。
 原生来源为 XRT 提交 `43d6309b84e808e5f01e8d2588a524cc68f62b57`。
 
 `xrtValueScalarDomainBindV1(value, typeId, domain)` 原子提交语义上的身份二元组；
@@ -28,7 +28,21 @@ xlang 仅同步 value 公共声明、内部布局及 value.c 三段，保留其�
 验证实现 TU 与独立 SDK 声明 TU、GCC/TCC O0/O2、元数据保留、清理与布局。
 不承诺先包含声明头后在同一 TU 重新选择实现特性；提供者和 SDK 使用方分 TU。
 
-尚待后续批次：IR 明确携带名义整数域，所有枚举装箱入口绑定标签；驻留 runtime
-解释完整身份/位宽/符号并执行动态运算。当前双 var 枚举运算的旧问题仍未关闭。
-Cgen 不得按枚举名称、值大小或源 AST 猜测语义，也不应继续生成动态算法函数体。
-本批不是完整源码编译器、发布 DLL/JIT/AOT 或长期任务的最终验收。
+## xlang 使用合同
+
+语言层划分枚举、C 标量、基础值三种版本化命名空间，低字节记录精确的标量域。
+XRT 不依赖这些编码。IR 使用独立 checked `XVALUE_ENUM_BIND`，不允许枚举继续走
+旧的裸 TypeId 绑定；驻留 runtime 根据完整身份／位宽／符号执行动态位运算。
+未知身份或缺少域标签的绑定值按 checked 错误拒绝，不从名称、数值或 AST 猜测。
+普通动态运算也迁至驻留 provider；Cgen 仅声明、调用和清理，不再输出算法函数体。
+加法的字符串／Array 路径另设 provider，纯数值路径不拉入 Array 或网络依赖。
+
+`XL6_SequenceAdmissionV3` 在既有 64 位对齐空隙中增加 `scalarDomain`，大小仍为
+56 字节，原字段偏移不变。所有源码初始化列表同步更新；策略复制、相等判定和
+Array／Stack／List／Dict／Set 等擦除投影传递同一标签，不添加登记表或源代码引用。
+bool／null 的 XRT 永久单例不被改写。快照先绑定全新标量，再将拥有权移交数组；
+绑定或追加失败则释放整个未发布快照，不交付半成品。
+
+源码驱动的 JIT／模块／独立 AOT、严格 C、畸形 IR 和 provider 裁剪检查分别由
+`tools/check_numeric_enum_bitwise.py` 与 `tools/check_numeric_value_runtime.py` 记录。
+这些验收不等于发布 DLL／SDK 或长期任务的最终联合验收。

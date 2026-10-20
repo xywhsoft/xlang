@@ -491,7 +491,7 @@ static void activePins(void)
     for (unsigned family=0;family<3;++family) for (unsigned release=0;release<2;++release) {
         const Family* f=&families[family]; Gate* gate=xrtCalloc(1,sizeof(*gate)); assert(gate);
         gate->refs=1; xrtAtomic32Init(&gate->entered,0); xrtAtomic32Init(&gate->leave,0);
-        XL6_SequenceAdmissionV3 admission={&gateOps,gate,ELEMENT,1,sizeof(int64_t),xrtTypeInt64(),ELEMENT};
+        XL6_SequenceAdmissionV3 admission={&gateOps,gate,ELEMENT,1,0,sizeof(int64_t),xrtTypeInt64(),ELEMENT};
         xvalue* seed=xl6SequenceCreateAdmittedV1(XL6_SEQUENCE_ARRAY_V1,123,&admission); assert(seed);
         xvalue* q=f->create(ID,seed,4),*weak=xrtValueWeakRef(q); assert(q && weak);
         GateLane lane={f,q,XQUEUE_ERROR}; xthread* actor=xrtThreadCreate(gateWorker,&lane,0); assert(actor);

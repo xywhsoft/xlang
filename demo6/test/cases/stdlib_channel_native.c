@@ -241,7 +241,7 @@ static void pins(void)
     for (unsigned release=0;release<2;++release) {
         Gate* gate=xrtCalloc(1,sizeof(*gate)); assert(gate); gate->refs=1;
         xrtAtomic32Init(&gate->entered,0); xrtAtomic32Init(&gate->leave,0);
-        XL6_SequenceAdmissionV3 policy={&gateOps,gate,ELEMENT,1,sizeof(int64_t),xrtTypeInt64(),ELEMENT};
+        XL6_SequenceAdmissionV3 policy={&gateOps,gate,ELEMENT,1,0,sizeof(int64_t),xrtTypeInt64(),ELEMENT};
         xvalue* witness=xl6SequenceCreateAdmittedV1(1,123,&policy); assert(witness);
         xvalue* q=xl6ChannelCreateTakeV1(ID,witness,1),*weak=xrtValueWeakRef(q); assert(q && weak);
         PinLane lane={.q=q}; xthread* actor=xrtThreadCreate(pinWorker,&lane,0); assert(actor);

@@ -85,7 +85,7 @@ static bool samePolicy(const XL6_SequenceAdmissionV3* a,const XL6_SequenceAdmiss
 {
     return a->ops && a->ops==b->ops && a->elementIdentity==b->elementIdentity &&
         a->transfer==b->transfer && a->size==b->size && a->type==b->type &&
-        a->boxedIdentity==b->boxedIdentity &&
+        a->boxedIdentity==b->boxedIdentity && a->scalarDomain==b->scalarDomain &&
         (a->data==b->data || a->ops->Equivalent(a->data,b->data));
 }
 static bool layoutValid(const XL6_TreeLayoutV2* layout)
@@ -344,7 +344,7 @@ static bool witnessCopy(const xvalue* witness,const XL6_SequenceLayoutV1* expect
 static bool emptyPolicy(const XL6_SequenceAdmissionV3* policy)
 {
     return policy && !policy->ops && !policy->data && !policy->elementIdentity &&
-        !policy->transfer && !policy->size && !policy->type && !policy->boxedIdentity;
+        !policy->transfer && !policy->size && !policy->type && !policy->boxedIdentity && !policy->scalarDomain;
 }
 bool xl6TreeDomainsCopyV1(const XL6_TreeLayoutV2* layout,const xvalue* keys,const xvalue* values,
     XL6_SequenceAdmissionV3* keyOut,XL6_SequenceAdmissionV3* valueOut)

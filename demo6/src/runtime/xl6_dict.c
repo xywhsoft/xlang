@@ -1,6 +1,7 @@
 #include "src/runtime/xl6_dict.h"
 #include "src/runtime/xl6_dict_graph_access.h"
 #include "src/runtime/xl6_array_admission.h"
+#include "src/runtime/xl6_scalar_domain.h"
 #include "src/runtime/xl6_array_reference_value.h"
 #include "src/api/xl_foreign_error.h"
 #include <limits.h>
@@ -49,7 +50,7 @@ static void discard(xvalue* value)
     }
 }
 static bool emptyPolicy(const XL6_SequenceAdmissionV3* p)
-{ return p && !p->ops && !p->data && !p->elementIdentity && !p->transfer && !p->size && !p->type && !p->boxedIdentity; }
+{ return p && !p->ops && !p->data && !p->elementIdentity && !p->transfer && !p->size && !p->type && !p->boxedIdentity && !p->scalarDomain; }
 static bool sameLayout(const XL6_DictLayoutV1* a,const XL6_DictLayoutV1* b)
 {
     return a && b && a->identity==b->identity && a->value.identity==b->value.identity &&
@@ -60,7 +61,7 @@ static bool samePolicy(const XL6_SequenceAdmissionV3* a,const XL6_SequenceAdmiss
 {
     return a && b && a->ops && a->ops==b->ops && a->elementIdentity==b->elementIdentity &&
         a->transfer==b->transfer && a->size==b->size && a->type==b->type &&
-        a->boxedIdentity==b->boxedIdentity && (a->data==b->data || a->ops->Equivalent(a->data,b->data));
+        a->boxedIdentity==b->boxedIdentity && a->scalarDomain==b->scalarDomain && (a->data==b->data || a->ops->Equivalent(a->data,b->data));
 }
 static bool layoutValid(const XL6_DictLayoutV1* layout)
 {
@@ -680,7 +681,7 @@ static xvalue* admitProjection(const DictOwner* owner,xvalue* result,xl6_error_s
         /* Retained reference slots already carry their authentic identity.
          * Never rebind a borrowed source child while projecting a container. */
         if ((owner->layout.value.transfer!=3 && identity && tag!=XVALUE_NULL && tag!=XVALUE_BOOL &&
-            !xrtValueTypeIdBind(result,identity)) || !admitsValue(owner,result))
+            !xl6ScalarIdentityBindV1(result,identity,owner->policy.scalarDomain)) || !admitsValue(owner,result))
             xl6ErrorScopeCaptureFailure(scope);
     }
     if (!result || xrtGetError() || scope->failed) { xl6ErrorScopeCaptureFailure(scope); discard(result); return NULL; }

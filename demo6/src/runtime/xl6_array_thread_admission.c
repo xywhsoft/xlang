@@ -47,6 +47,6 @@ xvalue* xl6SequenceThreadCreateV1(unsigned int role,uint64_t identity,uint64_t e
     ThreadPolicy* policy=xrtMalloc(sizeof(*policy));
     if (!policy) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }
     *policy=(ThreadPolicy){.refs=1,.identity=baseIdentity,.nullable=nullable};
-    XL6_SequenceAdmissionV3 admission={&ops,policy,element,3,sizeof(xvalue*),xrtTypeValue(),0};
+    XL6_SequenceAdmissionV3 admission={&ops,policy,element,3,0,sizeof(xvalue*),xrtTypeValue(),0};
     return xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role,identity,&admission);
 }

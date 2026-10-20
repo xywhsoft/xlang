@@ -210,6 +210,7 @@ bool xl6ChannelAdmitsSchemaV1(const xvalue* value,uint64_t identity,
             owner->layout.size==layout->size && owner->layout.type==layout->type && domain->ops==policy->ops &&
             domain->elementIdentity==policy->elementIdentity && domain->transfer==policy->transfer &&
             domain->size==policy->size && domain->type==policy->type && domain->boxedIdentity==policy->boxedIdentity &&
+            domain->scalarDomain==policy->scalarDomain &&
             (domain->data==policy->data || domain->ops->Equivalent(domain->data,policy->data));
     }
     mutationEnd(&scope); return admitted;
@@ -224,7 +225,7 @@ bool xl6ChannelSchemaCopyV1(const xvalue* value,uint64_t identity,
         layout->identity || layout->elementIdentity ||
         layout->transfer || layout->size || layout->type || admission->ops || admission->data ||
         admission->elementIdentity || admission->transfer || admission->size || admission->type ||
-        admission->boxedIdentity) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
+        admission->boxedIdentity || admission->scalarDomain) { xrtSetErrorKind(XERR_ARGUMENT); return false; }
     xrtownershipscope scope={0}; mutationBegin(&scope);
     ChannelOwner* owner=borrow(value,identity);
     bool ok=owner && !owner->claim && owner->admission.ops && owner->admission.data &&

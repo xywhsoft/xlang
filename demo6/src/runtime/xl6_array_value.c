@@ -29,22 +29,26 @@ XL6_TEXT_API xvalue* xl6ArrayToValueV1(const xvalue* source, PARAMS, const xvalu
         xrtSetErrorKind(XERR_RANGE); xl6SequenceEndV1(owner); return NULL;
     }
     /* Callback execution may release the last source shell or attempt reentry.
-     * Sequence's operation pin keeps storage alive and rejects mutation. */
-    xvalue* result=xrtTypedArrayToValue(xl6SequenceStorageV1(owner),
-        transfer==3 ? xl6ArrayReferenceConverterV1() : converter);
-    /* Logical primitive identity is not part of XRT's physical descriptor.
-     * Bind each newly encoded owned value before publishing the snapshot.
-     * Retained reference/ANY/nominal payloads have no metadata pass. */
-    if (result && xl6SequenceBoxedIdentityV1(owner)) {
-        size_t count=xrtValueCount(result);
-        for (size_t i=0;i<count;++i) {
-            xvalue* item=xl6SequenceProjectionTakeV1(owner,xrtValueRetain(xrtValueArrayAt(result,(int64_t)i)));
-            if (!item) {
-                xerror* error=xrtTakeError(); xrtValueRelease(result); result=NULL;
-                xrtClearError(); xrtSetErrorTake(error); break;
-            }
-            xrtValueRelease(item);
-        }
+     * Sequence's operation pin keeps storage alive and rejects mutation.
+     * Bind each independently owned scalar BEFORE transferring it to the
+     * snapshot. A second pass over retained children would violate the first
+     * binding's unique, unpublished-owner requirement. */
+    xtypedarray* storage=xl6SequenceStorageV1(owner);
+    size_t count=xrtTypedArrayCount(storage);
+    const xvalueconverter* codec=transfer==3 ? xl6ArrayReferenceConverterV1() : converter;
+    xvalue* result=xrtValueArray();
+    xvalue* item=NULL;
+    bool ok=result && xrtValueReserve(result,count);
+    for (size_t i=0;ok && i<count;++i) {
+        item=xl6SequenceProjectionTakeV1(owner,xrtTypedArrayGetValue(storage,i,codec));
+        ok=item && xrtValueArrayAppendTake(result,&item);
+    }
+    if (!ok) {
+        xerror* error=xrtTakeError();
+        xrtValueRelease(item);
+        xrtValueRelease(result);
+        result=NULL;
+        xrtClearError(); xrtSetErrorTake(error);
     }
     xl6SequenceEndV1(owner); return result;
 }

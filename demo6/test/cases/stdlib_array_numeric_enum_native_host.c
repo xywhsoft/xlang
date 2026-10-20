@@ -2,6 +2,7 @@
 #include "src/runtime/xl6_array_erased.h"
 #include "src/runtime/xl6_array_value.h"
 #include "src/runtime/xl6_array_iterator.h"
+#include "src/runtime/xl6_scalar_domain.h"
 #include <assert.h>
 #include <limits.h>
 #include <stdio.h>
@@ -62,13 +63,14 @@ static xvalue* encoded(const Spec* s,uint64_t identity,bool high)
     xvalue* item=s->rule==XL6_VALUE_ADMIT_U64 ? xrtValueUInt(high ? UINT64_MAX : 0) :
         xrtValueInt(high ? s->high : s->low);
     assert(item);
-    if (identity) assert(xrtValueTypeIdBind(item,identity));
+    if (identity) assert(xrtValueScalarDomainBindV1(item,identity,xl6ScalarEnumDomainV1(s->rule)));
     return item;
 }
 static void observed(const Spec* s,xvalue* owner,int64_t at,const xvalue* expected)
 {
     xvalue* item=xl6ArrayErasedReadV1(owner,at); assert(item && xrtValueEqual(item,expected));
     assert(xrtValueTypeId(item)==(xrtValueType(expected)==XVALUE_NULL ? 0 : s->identity));
+    assert(xrtValueScalarDomainV1(item)==(xrtValueType(expected)==XVALUE_NULL ? 0 : xl6ScalarEnumDomainV1(s->rule)));
     xrtValueRelease(item);
 }
 static void refused(xvalue* owner,const xvalue* wrong)
@@ -116,6 +118,11 @@ static void vectors(const Spec* s)
     for (unsigned i=0;i<2;++i) {
         xvalue* wrong=encoded(s,i ? s->identity+1 : 0,false); refused(alias,wrong); xrtValueRelease(wrong);
     }
+    /* Matching TypeId alone is not an authenticated integer domain. */
+    xvalue* missingDomain=encoded(s,0,false);
+    assert(xrtValueTypeIdBind(missingDomain,s->identity));
+    refused(alias,missingDomain);
+    xrtValueRelease(missingDomain);
     xvalue* wrong=s->rule==XL6_VALUE_ADMIT_U64 ? xrtValueInt(0) : xrtValueUInt(0);
     assert(wrong && xrtValueTypeIdBind(wrong,s->identity)); refused(alias,wrong); xrtValueRelease(wrong);
     if (s->rule!=XL6_VALUE_ADMIT_I64 && s->rule!=XL6_VALUE_ADMIT_U64) {
@@ -137,7 +144,7 @@ static void vectors(const Spec* s)
     xrtValueRelease(alias); xrtValueRelease(owner);
     observed(s,clone,0,good); assert(xl6ArrayResizeV1(clone,LAYOUT(s),7));
     xvalue* zero=s->nullable ? xrtValueNull() : (s->rule==XL6_VALUE_ADMIT_U64 ? xrtValueUInt(0) : xrtValueInt(0));
-    assert(zero); if (!s->nullable) assert(xrtValueTypeIdBind(zero,s->identity));
+    assert(zero); if (!s->nullable) assert(xrtValueScalarDomainBindV1(zero,s->identity,xl6ScalarEnumDomainV1(s->rule)));
     for (int64_t i=4;i<7;++i) observed(s,clone,i,zero);
     xrtValueRelease(zero);
     assert(xl6ArrayIteratorAdvanceV1(cursor,999,s->element,1,s->type->Size,s->type));

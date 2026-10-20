@@ -245,6 +245,7 @@ static int xl6IrCgenVerifyInstructions(
                     !xl6IrCgenRuntimeClassConstructionCommitAbi(
                         module, instruction)) ||
                   ((instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TYPE_BIND ||
+                    instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ENUM_BIND ||
                     instruction->runtimeOp ==
                         XL6_IR_RUNTIME_XVALUE_TYPE_REBIND_OWNED) &&
                    (instruction->immediateText != NULL ||
@@ -639,6 +640,7 @@ static int xl6IrCgenVerifyInstructions(
                         XL6_IR_RUNTIME_CLASS_DERIVED_EQUAL &&
                     instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_TO_STRING &&
                     instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_TYPE_BIND &&
+                    instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_ENUM_BIND &&
                      instruction->runtimeOp !=
                          XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND &&
                      instruction->runtimeOp !=

@@ -61,6 +61,6 @@ xvalue* xl6SequenceUnionCreateV1(unsigned int role,uint64_t identity,uint64_t el
     UnionPolicy* data=xrtMalloc(sizeof(*data));
     if (!data) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }
     *data=(UnionPolicy){.refs=1,.identity=valueIdentity,.size=size,.nullable=nullable};
-    XL6_SequenceAdmissionV3 admission={&unionOps,data,element,3,sizeof(xvalue*),xrtTypeValue(),0};
+    XL6_SequenceAdmissionV3 admission={&unionOps,data,element,3,0,sizeof(xvalue*),xrtTypeValue(),0};
     return xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role,identity,&admission);
 }

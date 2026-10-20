@@ -33,6 +33,10 @@ typedef struct XL6_SequenceAdmissionV3 {
     const void* data;
     uint64_t elementIdentity;
     unsigned int transfer;
+    /* Immutable encoded scalar domain of a newly boxed projection; zero for
+     * references/non-scalar codecs. Uses the existing 64-bit alignment gap:
+     * V3 size and every preexisting field offset stay unchanged on Win/Linux64. */
+    uint32_t scalarDomain;
     size_t size;
     const xrttype* type;
     /* Required nonzero logical primitive identity on owned boxed projections.
@@ -55,6 +59,7 @@ XL6_TEXT_API bool xl6SequenceAdmitValueV1(XL6_Sequence*, const xvalue*);
 /* Valid only under an operation pin. Absent nullable projections keep the
  * canonical null identity; the returned ID is for present primitive values. */
 XL6_TEXT_API uint64_t xl6SequenceBoxedIdentityV1(XL6_Sequence*);
+XL6_TEXT_API uint32_t xl6SequenceScalarDomainV1(XL6_Sequence*);
 XL6_TEXT_API bool xl6SequenceAdmissionEquivalentV1(XL6_Sequence*, XL6_Sequence*);
 XL6_TEXT_API bool xl6SequenceAdmissionDefaultableV1(XL6_Sequence*);
 XL6_TEXT_API bool xl6SequenceResizeStorageV1(XL6_Sequence*, size_t);

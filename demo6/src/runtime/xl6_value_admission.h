@@ -26,6 +26,9 @@ XL6_TEXT_API bool xl6ValueTryReadF32V1(const xvalue*,uint64_t,bool*,float*);
 XL6_TEXT_API bool xl6ValueIntegerSlotAdmitsV1(const void*, unsigned int);
 XL6_TEXT_API bool xl6ValueReadIntegerV1(const xvalue*, unsigned int, uint64_t, bool, void*);
 XL6_TEXT_API xvalue* xl6ValueBoxIntegerV1(const void*, unsigned int, uint64_t, bool);
+/* Exact enum recipe; consumes one newly owned scalar on BOTH paths. A failed
+ * bind preserves its diagnostic through release and returns checked NULL. */
+XL6_TEXT_API xvalue* xl6ValueEnumBindTakeV1(xvalue*, unsigned int, uint64_t);
 /* Consumes one source owner on BOTH paths. Success preserves its content and
  * shell; failure preserves the validation error across destructive cleanup.
  * NONE/false requests only the container kind check. */

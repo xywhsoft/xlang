@@ -237,7 +237,7 @@ foreach ( $required in @(
     "xl6ArrayReadU64V1(v",
     "static uint64_t xlir_xvalue_int_map_at_i64_u64",
     "static uint64_t xlir_xvalue_object_get_literal_u64",
-    "xlir_xvalue_binary(v",
+    "xl6ValueAddV1(v",
     "if (frame->ArgumentCount > 0) { f0 = frame->Arguments[0]; bound0 = true; }",
     "if (bound0) { if (!xl6ValueReadIntegerV1(f0, 10, 0x7A24932689D8B089ULL, false, &a0)) goto argument_fail; }",
     "boxed = xl6ValueBoxIntegerV1(&value, 10, 0x7A24932689D8B089ULL, false);",

@@ -2053,7 +2053,7 @@ foreach ( $required in @(
 }
 foreach ( $required in @(
     "xlir_dynamic_unary_abi.xl", "xvalue-unary-pos", "xvalue-unary-neg",
-    "xvalue-unary-bit-not", "no ambiguous UNARY fallback", "xlir_xvalue_unary(",
+    "xvalue-unary-bit-not", "no ambiguous UNARY fallback", "xl6ValueNumericUnaryV1(",
     "ReadAllBytes", "-Werror"
 ) ) {
     if ( ! $dynamicUnaryAbiGateText.Contains($required) ) {
@@ -2064,8 +2064,8 @@ foreach ( $required in @(
     "xlir_dynamic_binary_extended_abi.xl", "xvalue-binary-div",
     "xvalue-binary-mod", "xvalue-binary-bit-and", "xvalue-binary-bit-or",
     "xvalue-binary-bit-xor", "xvalue-binary-shl", "xvalue-binary-shr",
-    "operatorErrorAbiName", "error-test", "xlir_xvalue_binary_failure(",
-    "xrtValueArrayConcat(left, right)", "ReadAllBytes", "-Werror"
+    "operatorErrorAbiName", "error-test", "xl6ValueNumericBinaryV1(",
+    "xl6ValueAddV1(", "ReadAllBytes", "-Werror"
 
 ) ) {
     if ( ! $dynamicBinaryExtendedAbiGateText.Contains($required) ) {

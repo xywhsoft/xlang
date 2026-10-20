@@ -26,7 +26,7 @@ static bool sameLayout(const XL6_SequenceLayoutV1* a,const XL6_SequenceLayoutV1*
 static bool samePolicy(const XL6_SequenceAdmissionV3* a,const XL6_SequenceAdmissionV3* b)
 {
     return a->ops==b->ops && a->elementIdentity==b->elementIdentity && a->transfer==b->transfer &&
-        a->size==b->size && a->type==b->type && a->boxedIdentity==b->boxedIdentity &&
+        a->size==b->size && a->type==b->type && a->boxedIdentity==b->boxedIdentity && a->scalarDomain==b->scalarDomain &&
         (a->data==b->data || a->ops->Equivalent(a->data,b->data));
 }
 static bool equivalent(const void* left,const void* right)

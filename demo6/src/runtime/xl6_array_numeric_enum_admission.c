@@ -1,5 +1,6 @@
 #include "src/runtime/xl6_array_admission.h"
 #include "src/runtime/xl6_value_domain.h"
+#include "src/runtime/xl6_scalar_domain.h"
 #include "src/runtime/xl6_scalar_type_abi.h"
 #include <stdlib.h>
 
@@ -45,7 +46,7 @@ static bool value(const void* opaque,const xvalue* item)
     if (tag==XVALUE_NULL) return data->nullable;
     /* The full backing integer domain is legal, not only declared variants.
      * Unlike primitive admission, an unbound integer is never an enum. */
-    if (xrtValueTypeId(item)!=data->identity) return false;
+    if (xrtValueTypeId(item)!=data->identity || xrtValueScalarDomainV1(item)!=xl6ScalarEnumDomainV1(data->rule)) return false;
     if (data->rule==XL6_VALUE_ADMIT_U64) return tag==XVALUE_UINT;
     int64_t number;
     return tag==XVALUE_INT && xrtValueGetInt(item,&number) && xl6IntegerDomainV1(number,data->rule);
@@ -70,6 +71,6 @@ xvalue* xl6SequenceNumericEnumCreateV1(unsigned int role,uint64_t identity,uint6
     NumericEnumPolicy* data=xrtMalloc(sizeof(*data));
     if (!data) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }
     *data=(NumericEnumPolicy){.refs=1,.rule=rule,.nullable=nullable,.identity=boxedIdentity};
-    XL6_SequenceAdmissionV3 admission={&ops,data,element,1,type->Size,type,boxedIdentity};
+    XL6_SequenceAdmissionV3 admission={&ops,data,element,1,xl6ScalarEnumDomainV1(rule),type->Size,type,boxedIdentity};
     return xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role,identity,&admission);
 }

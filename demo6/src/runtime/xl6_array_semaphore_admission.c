@@ -54,6 +54,6 @@ xvalue* xl6SequenceSemCreateV1(unsigned int role, uint64_t identity, uint64_t el
     if (!policy) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }
     *policy = (SemPolicy){.refs = 1, .identity = baseIdentity, .nullable = nullable};
     XL6_SequenceAdmissionV3 admission = {&ops, policy, element,
-        3, sizeof(xvalue*), xrtTypeValue(), 0};
+        3,0, sizeof(xvalue*), xrtTypeValue(), 0};
     return xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role, identity, &admission);
 }

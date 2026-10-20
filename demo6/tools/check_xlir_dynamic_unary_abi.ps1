@@ -60,9 +60,14 @@ if ( ! [System.Linq.Enumerable]::SequenceEqual(
     throw "XLIR dynamic unary C output is not deterministic"
 }
 $generated = [System.IO.File]::ReadAllText($generatedPath, [System.Text.Encoding]::UTF8)
-foreach ( $required in @("xlir_xvalue_unary(", "INT64_MIN", "xrtValueInt(~v)") ) {
+foreach ( $required in @("xl6ValueNumericUnaryV1(") ) {
     if ( ! $generated.Contains($required) ) {
         throw "XLIR dynamic unary C emission is incomplete: $required"
+    }
+}
+foreach ( $forbidden in @("static xvalue* xlir_xvalue_unary", "xrtValueInt(~v)") ) {
+    if ( $generated.Contains($forbidden) ) {
+        throw "XLIR dynamic unary emission contains a generated algorithm: $forbidden"
     }
 }
 

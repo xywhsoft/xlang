@@ -53,6 +53,6 @@ xvalue* xl6SequenceCScalarCreateV1(unsigned int role,uint64_t identity,uint64_t 
     CScalarPolicy* data=xrtMalloc(sizeof(*data));
     if (!data) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }
     *data=(CScalarPolicy){.refs=1,.type=type,.identity=boxedIdentity};
-    XL6_SequenceAdmissionV3 admission={&ops,data,element,1,type->Size,type,boxedIdentity};
+    XL6_SequenceAdmissionV3 admission={&ops,data,element,1,xl6CScalarDomainTagV1(type),type->Size,type,boxedIdentity};
     return xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role,identity,&admission);
 }

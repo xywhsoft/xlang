@@ -626,6 +626,27 @@ static XL6_ValueAdmissionV1 xl6IrIntegerAdmissionAbi(XL6_IrIntegerTarget target)
     }
 }
 
+XL6_ValueAdmissionV1 xl6IrEnumBindAdmission(const XL6_IrModule* module,const XL6_IrInstruction* bind)
+{
+    if(!module||!bind||bind->kind!=XL6_IR_INSTR_RUNTIME_CALL||bind->runtimeOp!=XL6_IR_RUNTIME_XVALUE_ENUM_BIND||
+        bind->operandCount!=1||bind->firstOperand>=module->operandCount||bind->immediateText||bind->targetSymbol||
+        bind->targetValue||bind->calleeType||bind->payloadType||bind->opcode!=XL6_IR_OPCODE_INVALID||
+        bind->integerSourceAbi!=XL6_IR_INTEGER_SOURCE_INVALID) return XL6_VALUE_ADMIT_NONE;
+    const XL6_IrType* identity=xl6IrTypeGet(&module->types,bind->runtimeIdentityType);
+    const XL6_IrType* result=xl6IrTypeGet(&module->types,bind->type);
+    const XL6_IrInstruction* source=xl6IrValueDefinition(module,module->operands[bind->firstOperand],NULL);
+    const XL6_IrType* boxed=source?xl6IrTypeGet(&module->types,source->type):NULL;
+    if(!identity||identity->kind!=XL6_IR_TYPE_NUMERIC_ENUM||!identity->typeValueId||
+        (identity->cAbi!=XL6_IR_C_ABI_I64&&identity->cAbi!=XL6_IR_C_ABI_U64)||
+        identity->integerTarget!=bind->integerTarget||!result||result->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR||
+        !source||source->kind!=XL6_IR_INSTR_RUNTIME_CALL||source->operandCount!=1||
+        source->firstOperand>=module->operandCount||!boxed||boxed->cAbi!=XL6_IR_C_ABI_RUNTIME_XVALUE_PTR||
+        source->runtimeOp!=(identity->cAbi==XL6_IR_C_ABI_U64?XL6_IR_RUNTIME_XVALUE_U64:XL6_IR_RUNTIME_XVALUE_I64))
+        return XL6_VALUE_ADMIT_NONE;
+    const XL6_IrInstruction* scalar=xl6IrValueDefinition(module,module->operands[source->firstOperand],NULL);
+    return scalar&&scalar->type==bind->runtimeIdentityType ? xl6IrIntegerAdmissionAbi(bind->integerTarget):XL6_VALUE_ADMIT_NONE;
+}
+
 XL6_ValueAdmissionV1 xl6IrValueAdmissionAbiForType(const XL6_IrTypePool* pool, const XL6_IrType* type)
 {
     if (!pool || !type) return XL6_VALUE_ADMIT_NONE;
@@ -21731,6 +21752,7 @@ XL6_IrCallErrorPhysicalAbi xl6IrRuntimeStringAllocationErrorPhysicalAbi(XL6_IrRu
 XL6_IrCallErrorPhysicalAbi xl6IrRuntimeBoxingErrorPhysicalAbi(XL6_IrRuntimeOp operation)
 {
     switch (operation) {
+    case XL6_IR_RUNTIME_XVALUE_ENUM_BIND:
     case XL6_IR_RUNTIME_STACK_ERASE:
         return XL6_IR_CALL_ERROR_PHYSICAL_NULL_RESULT;
     case XL6_IR_RUNTIME_NATIVE_VALUE_BOX:
@@ -40682,6 +40704,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                      ((instruction->kind == XL6_IR_INSTR_RUNTIME_CALL &&
                        (instruction->runtimeOp ==
                              XL6_IR_RUNTIME_XVALUE_TYPE_BIND ||
+                        instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ENUM_BIND ||
                         instruction->runtimeOp ==
                             XL6_IR_RUNTIME_XVALUE_TYPE_REBIND_OWNED ||
                         instruction->runtimeOp ==
@@ -41111,6 +41134,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                             return xl6IrDiag(diags, NULL,
                                 "XLIR tagged-enum payload projection has no exact result and ownership ABI");
                         }
+                    } else if (instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_ENUM_BIND) {
+                        if(!xl6IrEnumBindAdmission(module,instruction))
+                            return xl6IrDiag(diags,NULL,"XLIR enum bind has no exact fresh scalar, nominal identity and integer domain");
                     } else if ( instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TYPE_BIND ||
                          instruction->runtimeOp ==
                              XL6_IR_RUNTIME_XVALUE_TYPE_REBIND_OWNED ) {
@@ -41146,12 +41172,9 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                                 ? xl6IrTypeGet(&module->types, scalar->type) : NULL;
                             if ((identityType->kind == XL6_IR_TYPE_NUMERIC_ENUM ||
                                  (scalarType != NULL && scalarType->kind == XL6_IR_TYPE_NUMERIC_ENUM)) &&
-                                (scalarType == NULL || scalarType->kind != XL6_IR_TYPE_NUMERIC_ENUM ||
-                                 scalar->type != instruction->runtimeIdentityType ||
-                                 left->runtimeOp != (scalarType->cAbi == XL6_IR_C_ABI_U64
-                                     ? XL6_IR_RUNTIME_XVALUE_U64 : XL6_IR_RUNTIME_XVALUE_I64)))
+                                instruction->runtimeOp == XL6_IR_RUNTIME_XVALUE_TYPE_BIND)
                                 return xl6IrDiag(diags, NULL,
-                                    "XLIR numeric enum identity bind has no exact scalar producer and nominal identity ABI");
+                                    "XLIR numeric enum requires its checked domain bind, not a bare TypeId bind");
                         }
                         if ( instruction->runtimeOp ==
                                  XL6_IR_RUNTIME_XVALUE_TYPE_REBIND_OWNED &&
@@ -45769,6 +45792,7 @@ int xl6IrVerifyModule(const XL6_IrModule* module, XL6_DiagList* diags)
                       instruction->runtimeOp != XL6_IR_RUNTIME_INTEGER_CONVERT_WRAPPING &&
                       !xl6IrRuntimeOpIsCheckedIntegerArithmetic(
                           instruction->runtimeOp) &&
+                      instruction->runtimeOp != XL6_IR_RUNTIME_XVALUE_ENUM_BIND &&
                       (instruction->integerTarget != XL6_IR_INTEGER_TARGET_INVALID ||
                        instruction->integerSourceAbi != XL6_IR_INTEGER_SOURCE_INVALID)) ) {
                     return xl6IrDiag(diags, NULL,
@@ -49415,6 +49439,7 @@ static const char* xl6IrRuntimeOpName(XL6_IrRuntimeOp runtimeOp)
     case XL6_IR_RUNTIME_XVALUE_ITERATOR_DYNAMIC_LOGICAL_XVALUE:
         return "xvalue-iterator-dynamic-logical-xvalue";
     case XL6_IR_RUNTIME_XVALUE_TYPE_BIND: return "xvalue-type-bind";
+    case XL6_IR_RUNTIME_XVALUE_ENUM_BIND: return "xvalue-enum-bind";
     case XL6_IR_RUNTIME_XVALUE_CLASS_IDENTITY_BIND:
         return "xvalue-class-identity-bind";
     case XL6_IR_RUNTIME_XVALUE_CLASS_CONSTRUCTION_COMMIT:

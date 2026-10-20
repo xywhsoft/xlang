@@ -1,4 +1,5 @@
 #include "src/runtime/xl6_array_admission.h"
+#include "src/runtime/xl6_scalar_domain.h"
 #include "src/runtime/xl6_array.h"
 #include "src/runtime/xl6_array_erased.h"
 #include "src/runtime/xl6_array_iterator.h"
@@ -142,7 +143,7 @@ static void observed(const Spec* s,const xvalue* value,int64_t index,const xvalu
     assert(boxed && xrtValueTypeId(boxed)==projectionIdentity(s,expected));
     Slot read={0}; xl6ArrayReadV1(value,LAYOUT(s),index,&read); assert(!xrtGetError());
     xvalue* second=xrtValueFromTyped(s->type,&read,s->converter); assert(second && xrtValueEqual(second,expected));
-    if (projectionIdentity(s,second)) assert(xrtValueTypeIdBind(second,s->identity));
+    if (projectionIdentity(s,second)) assert(xrtValueScalarDomainBindV1(second,s->identity,xl6ScalarPrimitiveDomainV1(s->rule)));
     assert(xrtValueEqual(boxed,second));
     xrtValueRelease(second); xrtTypeDropValue(s->type,&read); xrtValueRelease(boxed);
 }
@@ -220,7 +221,10 @@ static void domainVectors(const Spec* s,xvalue* owner,const xvalue* good)
     if (s->rule!=XL6_VALUE_ADMIT_BOOL) {
         xvalue* foreign=element(s); assert(foreign && xrtValueTypeIdBind(foreign,s->identity+1));
         refusal(s,owner,foreign,NULL); xrtValueRelease(foreign);
-        assert(xrtValueTypeIdBind((xvalue*)good,s->identity));
+        xvalue* missingDomain=element(s);
+        assert(missingDomain && xrtValueTypeIdBind(missingDomain,s->identity));
+        refusal(s,owner,missingDomain,NULL); xrtValueRelease(missingDomain);
+        assert(xrtValueScalarDomainBindV1((xvalue*)good,s->identity,xl6ScalarPrimitiveDomainV1(s->rule)));
     }
     assert(xl6ArrayErasedSetV1(owner,0,good)); observed(s,owner,0,good);
     if (s->nullable) {
@@ -244,7 +248,7 @@ static void defaults(const Spec* s)
         else {
             Slot zero={0}; xvalue* expected=xrtValueFromTyped(s->type,&zero,s->converter);
             assert(expected);
-            if (projectionIdentity(s,expected)) assert(xrtValueTypeIdBind(expected,s->identity));
+            if (projectionIdentity(s,expected)) assert(xrtValueScalarDomainBindV1(expected,s->identity,xl6ScalarPrimitiveDomainV1(s->rule)));
             assert(xrtValueEqual(item,expected)); xrtValueRelease(expected);
         }
     }

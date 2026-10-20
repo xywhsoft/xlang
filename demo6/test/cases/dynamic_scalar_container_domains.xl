@@ -1,0 +1,52 @@
+// Erased projections must preserve the producer's declared scalar domain.
+array<int> numbers = [2, 3]
+var erasedNumbers = numbers
+var number = erasedNumbers[0]
+assert int(number | number) == 2
+array<int8> narrow = [1, 2]
+var erasedNarrow = narrow
+var small = erasedNarrow[0]
+assert int(small | small) == 1
+array<c_uchar> nativeValues = [c_uchar(1), c_uchar(2)]
+var erasedNative = nativeValues
+var foreignNumber = erasedNative[0]
+assert uint64(foreignNumber | foreignNumber) == 1
+list<int> sparse = list[2: 3]
+var erasedSparse = sparse
+var listed = erasedSparse[2]
+assert int(listed | listed) == 3
+dict<int> mapping = dict{"key": 2}
+var erasedMapping = mapping
+var mapped = erasedMapping["key"]
+assert int(mapped | mapped) == 2
+enum Mask as uint8
+ none = 0
+ one = 1
+end
+array<Mask> masks = [Mask.one]
+var erasedMasks = masks
+var mask = erasedMasks[0]
+assert uint8((~mask) as Mask) == 254
+list<Mask> sparseMasks = list[2: Mask.one]
+var erasedSparseMasks = sparseMasks
+var sparseMask = erasedSparseMasks[2]
+assert uint8((~sparseMask) as Mask) == 254
+dict<Mask> mappingMasks = dict{"key": Mask.one}
+var erasedMappingMasks = mappingMasks
+var mappedMask = erasedMappingMasks["key"]
+assert uint8((~mappedMask) as Mask) == 254
+array<array<Mask>> nested = [masks]
+var erasedNested = nested
+var inner = erasedNested[0]
+var nestedMask = inner[0]
+assert uint8((~nestedMask) as Mask) == 254
+for index, value in masks
+ assert type(index) == type(0)
+ assert index == 0
+ assert value == Mask.one
+end
+for index, value in narrow
+ assert type(index) == type(0)
+ assert int(value) == index + 1
+end
+println("dynamic scalar container domains ok")

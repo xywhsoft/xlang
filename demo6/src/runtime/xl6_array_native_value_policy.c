@@ -39,7 +39,7 @@ xvalue* xl6SequenceNativeValueCreateV1(unsigned int role,uint64_t identity,const
     if(p){
         const xrttype* type=profile->Type();p->refs=1;p->profile=profile;
         p->contract=(XL6_SequenceNativeValuePolicyV1){type,profile->Content(),profile->Empty,profile->Copy};
-        XL6_SequenceAdmissionV3 policy={&ops,p,profile->identity,XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1,
+        XL6_SequenceAdmissionV3 policy={&ops,p,profile->identity,XL6_SEQUENCE_TRANSFER_NATIVE_VALUE_V1,0,
             type->Size,type,profile->boxedIdentity};
         result=xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role,identity,&policy);
     }

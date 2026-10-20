@@ -1,6 +1,7 @@
 #include "src/runtime/xl6_value_admission.h"
 #include "src/runtime/xl6_value_admission_internal.h"
 #include "src/runtime/xl6_value_domain.h"
+#include "src/runtime/xl6_scalar_domain.h"
 #include <string.h>
 
 xvalue* xl6ValueTryBytesV1(const xvalue* value, uint64_t identity)
@@ -36,6 +37,7 @@ bool xl6ValueAdmitsV1(const xvalue* value, unsigned int rule, bool nullable, uin
      * as that primitive. Unbound XRT primitives remain valid inputs. */
     uint64_t actual=xrtValueTypeId(value);
     if (actual && actual!=identity) return false;
+    if(actual && xrtValueScalarDomainV1(value)!=xl6ScalarPrimitiveDomainV1(rule)) return false;
     if (rule>=XL6_VALUE_ADMIT_I8 && rule<=XL6_VALUE_ADMIT_U32) {
         int64_t number;
         if (tag!=XVALUE_INT || !xrtValueGetInt(value,&number)) return false;
@@ -97,8 +99,10 @@ bool xl6ValueReadIntegerV1(const xvalue* source, unsigned int rule,
     if (!output || rule < XL6_VALUE_ADMIT_I8 || rule > XL6_VALUE_ADMIT_U64 || !identity) {
         xrtSetErrorKind(XERR_ARGUMENT); return false;
     }
-    if (!xl6ValueAdmitsV1(source,rule,false,identity) ||
-        (nominal && xrtValueTypeId(source) != identity)) {
+    if (nominal ? (!source || xrtValueTypeId(source)!=identity ||
+            xrtValueScalarDomainV1(source)!=xl6ScalarEnumDomainV1(rule) ||
+            !xl6ScalarDomainAdmitsV1(source,xl6ScalarEnumDomainV1(rule))) :
+            !xl6ValueAdmitsV1(source,rule,false,identity)) {
         xrtSetErrorKind(XERR_TYPE); return false;
     }
     if (rule == XL6_VALUE_ADMIT_U64) {
@@ -122,10 +126,18 @@ xvalue* xl6ValueBoxIntegerV1(const void* slot, unsigned int rule, uint64_t ident
     } else {
         int64_t number; memcpy(&number,slot,sizeof(number)); value=xrtValueInt(number);
     }
-    if (!value || !nominal || xrtValueTypeIdBind(value,identity)) return value;
-    /* Binding can allocate. Preserve its error across destructive rollback. */
+    if (!value || !nominal || xrtValueScalarDomainBindV1(value,identity,xl6ScalarEnumDomainV1(rule))) return value;
+    /* Preserve the binding error across destructive rollback. */
     xerror* error=xrtTakeError(); xrtValueRelease(value); xrtClearError(); xrtSetErrorTake(error);
     return NULL;
+}
+xvalue* xl6ValueEnumBindTakeV1(xvalue* value,unsigned rule,uint64_t identity)
+{
+    uint32_t domain=xl6ScalarEnumDomainV1(rule);
+    if(!value||!identity||!domain) xrtSetErrorKind(XERR_ARGUMENT);
+    else if(!xl6ValueAdmitsV1(value,rule,false,identity)) xrtSetErrorKind(XERR_TYPE);
+    else if(xrtValueScalarDomainBindV1(value,identity,domain)) return value;
+    xerror* error=xrtTakeError();xrtValueRelease(value);xrtClearError();xrtSetErrorTake(error);return NULL;
 }
 typedef struct PrimitiveContext { unsigned int rule; bool nullable; uint64_t identity; } PrimitiveContext;
 static bool admits(const xvalue* value, const void* opaque)

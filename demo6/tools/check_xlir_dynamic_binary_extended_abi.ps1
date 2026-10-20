@@ -108,17 +108,16 @@ if ( ! [System.Linq.Enumerable]::SequenceEqual(
 }
 $generated = [System.IO.File]::ReadAllText($generatedPath, [System.Text.Encoding]::UTF8)
 foreach ( $required in @(
-    "xlir_xvalue_binary(",
-    "xlir_xvalue_binary_failure(",
-    "xrtValueArrayConcat(left, right)",
-    "ZeroDivisionError",
-    "shift count is outside the left operand width",
-    "b < 0 || b >= 64",
-    "(uint64_t)a + (uint64_t)b",
-    "INT64_MIN && b == -1"
+    "xl6ValueAddV1(",
+    "xl6ValueNumericBinaryV1("
 ) ) {
     if ( ! $generated.Contains($required) ) {
         throw "XLIR extended dynamic binary C emission is incomplete: $required"
+    }
+}
+foreach ( $forbidden in @("static xvalue* xlir_xvalue_binary", "xlir_xvalue_binary_failure(", "xrtValueArrayConcat(left, right)") ) {
+    if ( $generated.Contains($forbidden) ) {
+        throw "XLIR dynamic binary emission contains a generated algorithm: $forbidden"
     }
 }
 

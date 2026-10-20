@@ -22,7 +22,7 @@ static bool empty(const XL6_SequenceProjectionSchemaV1* schema)
         !schema->layout.size && !schema->layout.type && !schema->admission.ops &&
         !schema->admission.data && !schema->admission.elementIdentity &&
         !schema->admission.transfer && !schema->admission.size &&
-        !schema->admission.type && !schema->admission.boxedIdentity;
+        !schema->admission.type && !schema->admission.boxedIdentity && !schema->admission.scalarDomain;
 }
 static bool valid(const XL6_SequenceProjectionSchemaV1* schema)
 {

@@ -55,7 +55,7 @@ xvalue* xl6SequenceFutureCreateV1(unsigned int role,uint64_t identity,uint64_t e
     if (!policy) { if (!xrtGetError()) xrtSetErrorKind(XERR_MEMORY); return NULL; }
     *policy=(FuturePolicy){.refs=1,.identity=baseIdentity,.nullable=nullable};
     const xrttype* type=xrtTypeFuture();
-    XL6_SequenceAdmissionV3 admission={&ops,policy,element,XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1,
+    XL6_SequenceAdmissionV3 admission={&ops,policy,element,XL6_SEQUENCE_TRANSFER_FUTURE_REF_V1,0,
         sizeof(xfuture*),type,baseIdentity};
     return xl6SequenceCreateAdmittedV1((XL6_SequenceRoleV1)role,identity,&admission);
 }
