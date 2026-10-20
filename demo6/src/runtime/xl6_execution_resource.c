@@ -49,7 +49,7 @@ static void sourceLeave(Source* source)
 static void resourceDrop(Resource* resource)
 {
     xrtownershipscope mutation={0};begin(&mutation);if(!resource->references)abort();bool last=--resource->references==0;
-    if(last&&(resource->owners||resource->entries||resource->source||resource->executor||resource->pool||resource->retiring||
+    if(last&&(resource->owners||resource->entries||resource->source||resource->executor||resource->pool||resource->engine||resource->retiring||resource->control||
         (resource->claim&&!resource->cleared)))abort();
     end(&mutation);
     if(last){resource->family->Drop(resource);xrtFree(resource);}
@@ -73,7 +73,7 @@ static bool waitChanged(Source* source,bool finite)
     source->exited=true;source->workerId=0;end(&mutation);xrtErrorFree(error);return false;
 }
 static bool nativePresent(const Resource* resource)
-{return resource->executor||resource->pool;}
+{return resource->executor||resource->pool||resource->engine;}
 /* Transfer registry and source-back-reference slots to the caller's locals.
  * Both are still REAL owners until the caller drops them outside the gate. */
 static Source* unregisterLocked(Resource* resource)
@@ -125,7 +125,7 @@ static int32_t worker(void* raw)
             }else outcome.error=xrtTakeError();
             begin(&mutation);Source* detached=NULL;
             if(result==XL6_MODULE_PREPARE_READY){
-                selected->executor=NULL;selected->pool=NULL;detached=unregisterLocked(selected);
+                selected->executor=NULL;selected->pool=NULL;selected->engine=NULL;detached=unregisterLocked(selected);
             }else if(result==XL6_MODULE_PREPARE_FAILED)selected->stalled=true;
             else busy=true;
             selected->retiring=false;end(&mutation);
@@ -184,11 +184,13 @@ bool xl6ExecutionSourceSnapshotV1Get(Source* source,XL6_ExecutionSourceSnapshotV
     if(ok)*output=(XL6_ExecutionSourceSnapshotV1){sizeof(*output),source->count,source->entries-1,source->closed,source->active,source->exited,source->failed};
     end(&mutation);if(ok)sourceLeave(source);else xrtSetErrorKind(XERR_STATE);return ok;
 }
-Resource* xl6ExecutionCreateInternalV1(Source* source,const XL6_ExecutionFamilyV1* family,uint32_t threads,size_t limit,size_t stack)
+Resource* xl6ExecutionCreateInternalV1(Source* source,const XL6_ExecutionFamilyV1* family,const XL6_ExecutionCreateOptionsV1* options)
 {
     if(!family||family->size!=sizeof(*family)||family->abiTag!=XL6_EXECUTION_FAMILY_TAG_V1||
         !family->Create||!family->Rollback||!family->Retire||!family->Finish||!family->Drop||!family->Trace||!family->Close||!family->Cancel||
-        (family->kind!=XL6_EXECUTION_EXECUTOR_V1&&family->kind!=XL6_EXECUTION_TASK_POOL_V1)){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
+        family->instanceBytes<sizeof(Resource)||!options||options->kind!=family->kind||
+        (family->kind!=XL6_EXECUTION_EXECUTOR_V1&&family->kind!=XL6_EXECUTION_TASK_POOL_V1&&family->kind!=XL6_EXECUTION_NET_ENGINE_V1)){
+        xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
     xrtownershipscope mutation={0};begin(&mutation);bool entered=sourceEnterLocked(source,false);
     bool admitted=entered&&!source->closed&&!source->claim;end(&mutation);
     /* Separate entry acquisition from admission: a close race must still
@@ -197,10 +199,10 @@ Resource* xl6ExecutionCreateInternalV1(Source* source,const XL6_ExecutionFamilyV
         if(entered)sourceLeave(source);
         xrtSetErrorKind(XERR_STATE);return NULL;
     }
-    Resource* resource=xrtCalloc(1,sizeof(*resource));bool created=false;
+    Resource* resource=xrtCalloc(1,family->instanceBytes);bool created=false;
     if(resource){
         resource->references=1;resource->owners=1;resource->family=family;resource->kind=family->kind;
-        created=family->Create(resource,threads,limit,stack);
+        created=family->Create(resource,options);
     }
     bool ready=created&&nativePresent(resource);begin(&mutation);
     bool published=ready&&!source->closed&&!source->claim&&source->count<SIZE_MAX&&source->references<SIZE_MAX;
@@ -252,18 +254,26 @@ bool xl6ExecutionResourceSnapshotV1Get(Resource* resource,XL6_ExecutionResourceS
     if(ok)*output=(XL6_ExecutionResourceSnapshotV1){sizeof(*output),resource->owners,resource->entries,resource->kind,resource->requested,nativePresent(resource),resource->stalled};
     end(&mutation);if(!ok)xrtSetErrorKind(XERR_STATE);return ok;
 }
-bool xl6ExecutionResourceEnterV1(Resource* resource,bool submit,XL6_ExecutionScopeV1* scope)
+static bool resourceEnter(Resource* resource,bool submit,bool control,XL6_ExecutionScopeV1* scope)
 {
     if(!scope||scope->resource){xrtSetErrorKind(XERR_ARGUMENT);return false;}
     xrtownershipscope mutation={0};begin(&mutation);bool ok=resource&&resource->owners&&resource->references<SIZE_MAX&&
-        resource->entries<SIZE_MAX&&!resource->cleared&&!resource->claim&&!resource->retiring&&(!submit||(!resource->requested&&nativePresent(resource)));
-    if(ok){++resource->references;++resource->entries;*scope=(XL6_ExecutionScopeV1){resource,resource->executor,resource->pool,xrtThreadCurrentId()};}
+        resource->entries<SIZE_MAX&&!resource->cleared&&!resource->claim&&!resource->retiring&&!resource->control&&
+        (!control||!resource->entries)&&(!submit||(!resource->requested&&nativePresent(resource)));
+    if(ok){
+        ++resource->references;++resource->entries;resource->control=control;
+        *scope=(XL6_ExecutionScopeV1){.resource=resource,.executor=resource->executor,.pool=resource->pool,
+            .thread=xrtThreadCurrentId(),.engine=resource->engine,.control=control};
+    }
     end(&mutation);if(!ok)xrtSetErrorKind(XERR_STATE);return ok;
 }
+bool xl6ExecutionResourceEnterV1(Resource* r,bool submit,XL6_ExecutionScopeV1* s){return resourceEnter(r,submit,false,s);}
+bool xl6ExecutionResourceControlV1(Resource* r,bool submit,XL6_ExecutionScopeV1* s){return resourceEnter(r,submit,true,s);}
 void xl6ExecutionResourceLeaveV1(XL6_ExecutionScopeV1* scope)
 {
     if(!scope||!scope->resource||scope->thread!=xrtThreadCurrentId())abort();
     Resource* resource=scope->resource;xrtownershipscope mutation={0};begin(&mutation);if(!resource->entries)abort();
+    if(scope->control){if(!resource->control||resource->entries!=1)abort();resource->control=false;}
     --resource->entries;Source* source=resource->requested?wakeHoldLocked(resource):NULL;*scope=(XL6_ExecutionScopeV1){0};end(&mutation);
     wakeDrop(source);resourceDrop(resource);
 }
@@ -373,7 +383,7 @@ static bool resourceFinish(const void* raw,const void* token)
      * actual creator; explicit native/job pins preserve either Finish order. */
     bool ok=r->family->Finish(r);
     begin(&mutation);Source* source=NULL;
-    if(ok){r->executor=NULL;r->pool=NULL;if(r->source)source=unregisterLocked(r);}r->retiring=false;end(&mutation);
+    if(ok){r->executor=NULL;r->pool=NULL;r->engine=NULL;if(r->source)source=unregisterLocked(r);}r->retiring=false;end(&mutation);
     if(source){sourceDrop(source);resourceDrop(r);}return ok;
 }
 const xrtownershipadapterv1* xl6ExecutionOwnershipAdapterV1(xrtownershipref ref,

@@ -1,0 +1,55 @@
+const char* xl6StdlibNetEngineStateSource=
+    "enum NetEngineState as int\n"
+    "    stopped = 0\n    starting = 1\n    running = 2\n    stopping = 3\n    retiring = 4\nend\n";
+const char* xl6StdlibNetEngineOptionsSource=
+    "class NetEngineOptions\n    private native point handle\n"
+    "    extern \"xl6NetEngineConfigCreateV1\" @nonblocking create()\n"
+    "    extern \"xl6NetEngineConfigDestroyV1\" @no_raise destroy()\n"
+    "    extern \"xl6NetEngineConfigBackendV1\" @pure @no_raise @nonblocking get backend() as NetBackend\n"
+    "    extern \"xl6NetEngineConfigWithBackendV1\" @nonblocking func withBackend(NetBackend backend) as NetEngineOptions\n"
+    "    extern \"xl6NetEngineConfigWorkersV1\" @pure @no_raise @nonblocking get workers() as int\n"
+    "    extern \"xl6NetEngineConfigWithWorkersV1\" @nonblocking func withWorkers(int count) as NetEngineOptions\n"
+    "    extern \"xl6NetEngineConfigIdleWaitV1\" @pure @no_raise @nonblocking get idleWaitMillis() as int\n"
+    "    extern \"xl6NetEngineConfigWithIdleWaitV1\" @nonblocking func withIdleWaitMillis(int millis) as NetEngineOptions\n"
+    "    extern \"xl6NetEngineConfigBufferBudgetV1\" @pure @no_raise @nonblocking get bufferCacheBytes() as uint64\n"
+    "    extern \"xl6NetEngineConfigWithBufferBudgetV1\" @nonblocking func withBufferCacheBytes(uint64 bytes) as NetEngineOptions\n"
+    "    extern \"xl6NetEngineConfigBufferBlockSizeV1\" @pure @nonblocking func bufferBlockSize(int index) as uint64\n"
+    "    extern \"xl6NetEngineConfigBufferCacheLimitV1\" @pure @nonblocking func bufferCacheLimit(int index) as uint64\n"
+    "    extern \"xl6NetEngineConfigWithBufferClassV1\" @nonblocking func withBufferClass(int index, uint64 bytes, uint64 cacheLimit) as NetEngineOptions\n"
+#define XL6_NET_ENGINE_CONFIG_SIZE(Field,Name) \
+    "    extern \"xl6NetEngineConfig" #Field "V1\" @pure @no_raise @nonblocking get " #Name "() as uint64\n" \
+    "    extern \"xl6NetEngineConfigWith" #Field "V1\" @nonblocking func with" #Field "(uint64 value) as NetEngineOptions\n"
+#include "src/runtime/xl6_net_engine_config_fields.inc"
+#undef XL6_NET_ENGINE_CONFIG_SIZE
+    "end\n";
+const char* xl6StdlibNetEngineStatsClassSource=
+    "class NetEngineStats\n    private native point handle\n"
+    "    extern \"xl6NetEngineSnapshotDestroyV1\" @no_raise destroy()\n"
+    "    extern \"xl6NetEngineSnapshotStateV1\" @pure @no_raise @nonblocking get state() as NetEngineState\n"
+#define XL6_NET_ENGINE_STAT(Field,Name) "    extern \"xl6NetEngineSnapshot" #Field "V1\" @pure @no_raise @nonblocking get " #Name "() as uint64\n"
+#include "src/runtime/xl6_net_engine_stats_fields.inc"
+#undef XL6_NET_ENGINE_STAT
+    "end\n";
+const char* xl6StdlibNetEngineClassSource=
+    "class NetEngine\n    private native point handle\n"
+    "    extern \"xl6NetEngineCreateDefaultV1\" create()\n"
+    "    extern \"xl6NetEngineCreateV1\" create(NetEngineOptions options)\n"
+    "    extern \"xl6NetEngineDestroyV1\" @no_raise destroy()\n"
+    "    extern \"xl6NetEngineStartV1\" func start()\n"
+    "    extern \"xl6NetEngineStopV1\" func stop()\n"
+    "    extern \"xl6NetEngineTryStopV1\" func tryStop() as bool\n"
+    "    extern \"xl6NetEngineCloseV1\" @nonblocking func close()\n"
+    "    extern \"xl6NetEngineWaitV1\" func wait(int timeoutMillis = -1) as bool\n"
+    "    extern \"xl6NetEnginePostV1\" func post(func() work, uint64 affinity = 0)\n"
+    "    extern \"xl6NetEngineAfterV1\" func after(int delayMillis, func() work, uint64 affinity = 0) as uint64\n"
+    "    extern \"xl6NetEngineCancelTimerV1\" func cancelTimer(uint64 id)\n"
+    "    extern \"xl6NetEngineThrowV1\" @nonblocking func throwIfFailed()\n"
+    "    extern \"xl6NetEngineFailureCountV1\" @nonblocking get failureCount() as uint64\n"
+    "    extern \"xl6NetEngineFailureSaturatedV1\" @nonblocking get failureCountSaturated() as bool\n"
+    "    extern \"xl6NetEngineConfigurationV1\" @nonblocking func configuration() as NetEngineOptions\n"
+    "    extern \"xl6NetEngineSnapshotV1\" @nonblocking func snapshot() as NetEngineStats\n"
+    "    extern \"xl6NetEngineStateV1\" @nonblocking get state() as NetEngineState\n"
+    "    extern \"xl6NetEngineWorkersV1\" @nonblocking get workerCount() as uint64\n"
+    "    extern \"xl6NetEngineBackendV1\" @nonblocking func backend(int worker = 0) as NetBackend\n"
+    "    extern \"xl6NetEngineCapabilitiesV1\" @nonblocking func capabilities(int worker = 0) as int\n"
+    "end\n";

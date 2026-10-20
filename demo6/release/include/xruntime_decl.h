@@ -12830,6 +12830,9 @@ XRT_API xnetresult xrtNetPortWait(xnetport* pPort,
 
 /* 初始化兼顾吞吐与内存占用的 Engine 默认配置。 */
 XRT_API void xrtNetEngineConfigInit(xnetengineconfig* pConfig);
+/* Validate the same scalar/capacity/buffer constraints as Create, without
+ * allocation, port initialization or retaining caller storage. NULL is invalid. */
+XRT_API bool xrtNetEngineConfigValidate(const xnetengineconfig* pConfig);
 
 
 
@@ -12891,6 +12894,10 @@ XRT_API bool xrtNetEngineDestroy(xnetengine* pEngine);
  * Native OS exit/code-unload proof remains a separate host responsibility.
  * Rejection leaves the preparation output and ambient error unchanged. */
 XRT_API xrtownershipref xrtNetEngineOwnership(const xnetengine* pEngine);
+/* Frozen exact-identity transition capability, no context-policy dispatch.
+ * BUSY covers active workers/submissions, lifecycle joins and native exit
+ * tails. It does not admit borrowed work, raw ports or opaque buffer owners. */
+XRT_API const xrtownershipquiescencev1* xrtNetEngineOwnershipQuiescenceV1Get(void);
 XRT_API const xrtownershipadapterv1* xrtNetEngineOwnershipAdapterV1(
 	xrtownershipref Reference,
 	const xnettaskownershipv1* const* pTaskPolicies, size_t iTaskPolicyCount,

@@ -4,11 +4,13 @@
 #include "xl6_executor_jobs.h"
 struct xexecutorstats;
 struct XL6_ExecutionFamilyV1;
+struct xnetengine;
 typedef struct XL6_ExecutionSourceV1 XL6_ExecutionSourceV1;
 typedef struct XL6_ExecutionResourceV1 XL6_ExecutionResourceV1;
 typedef enum XL6_ExecutionKindV1 {
     XL6_EXECUTION_EXECUTOR_V1=1,
-    XL6_EXECUTION_TASK_POOL_V1=2
+    XL6_EXECUTION_TASK_POOL_V1=2,
+    XL6_EXECUTION_NET_ENGINE_V1=3
 } XL6_ExecutionKindV1;
 typedef struct XL6_ExecutionSourceSnapshotV1 {
     size_t size,resources,entries;
@@ -68,8 +70,14 @@ typedef struct XL6_ExecutionScopeV1 {
     struct xexecutor* executor;
     XL6_TaskPool* pool;
     uint64_t thread;
+    struct xnetengine* engine;
+    bool control;
 } XL6_ExecutionScopeV1;
 XL6_CODE_LEASE_API bool xl6ExecutionResourceEnterV1(XL6_ExecutionResourceV1*,bool,XL6_ExecutionScopeV1*);
+/* Exclusive physical lifecycle operation; fails rather than waiting on another
+ * entry (including a reentrant worker callback). No metadata lock or ownership
+ * mutation remains held by the returned scope. Ordinary Enter cannot overlap. */
+XL6_CODE_LEASE_API bool xl6ExecutionResourceControlV1(XL6_ExecutionResourceV1*,bool,XL6_ExecutionScopeV1*);
 XL6_CODE_LEASE_API void xl6ExecutionResourceLeaveV1(XL6_ExecutionScopeV1*);
 XL6_CODE_LEASE_API bool xl6ExecutionExecutorSubmitV1(XL6_ExecutionResourceV1*,XL6_Closure*);
 XL6_CODE_LEASE_API bool xl6ExecutionExecutorSubmitBatchV1(XL6_ExecutionResourceV1*,XL6_Closure* const*,size_t);

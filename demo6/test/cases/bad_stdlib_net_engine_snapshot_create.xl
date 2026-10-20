@@ -1,0 +1,2 @@
+auto invalid = NetEngineStats()
+println(invalid.workers)

@@ -1,0 +1,29 @@
+func exerciseEngineErrors()
+    auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+    engine.start()
+    engine.post(func()
+        throw ValueError("engine first")
+    end)
+    engine.post(func()
+        throw ValueError("engine later")
+    end)
+    engine.close()
+    bool caught = false
+    try
+        engine.wait(5000)
+    catch ValueError e
+        assert e.message == "engine first"
+        caught = true
+    end
+    assert caught and engine.failureCount == 2
+    caught = false
+    try
+        engine.throwIfFailed()
+    catch ValueError e
+        assert e.message == "engine first"
+        caught = true
+    end
+    assert caught and engine.failureCount == 2
+end
+exerciseEngineErrors()
+println("engine first failure and stable count: ok")

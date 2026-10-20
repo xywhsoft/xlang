@@ -78,7 +78,10 @@ def main():
             'if(error)sourceFailureLocked(source,&error);'),
             ('copied-family-admitted','xl6_execution_resource.c','families[i]==r->family','families[i]->kind==r->family->kind'),
             ('restore-stranded','xl6_execution_resource.c','s->claim=NULL;s->graphStop=false;','s->claim=NULL;s->graphStop=true;'),
-            ('pool-finish-order','xl6_execution_pool.c','xl6TaskPoolReleaseClearedOwnerV1(r->pool)','xl6TaskPoolControlV1Get()->Destroy(r->pool)'),
+            # Destroy now deliberately supports cleared graph owners as well;
+            # replacing ReleaseClearedOwner with it is no longer a mutation.
+            # Check the actual invariant: Finish must consume the real owner.
+            ('pool-owner-not-consumed','xl6_execution_pool.c','xl6TaskPoolReleaseClearedOwnerV1(r->pool)','true'),
             ('exited-source-never-ready','xl6_execution_resource.c','s->joined||s->exited||(s->graphStop&&s->parked)',
              's->joined||(s->graphStop&&s->parked)'),
             ('graph-notification-lost','xl6_execution_failures.c','bool pending=s->unreported;','bool pending=false;'),

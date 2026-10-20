@@ -62,6 +62,12 @@ void xl6DetachedWorkInvokeV1(void* raw)
     xrtClearError();xrtSetErrorTake(previous);
     /* Remain BUSY through Drop; no inspection of half-finished captures. */
 }
+void xl6DetachedWorkFailV1(void* raw,xerror* error)
+{
+    XL6_DetachedWorkV1* job=raw;xrtownershipscope mutation={0};begin(&job->gate,&mutation);
+    if(job->active||job->finished||(!!job->callback==!!job->boxed)||job->cleared)abort();
+    job->active=true;job->body=(xl6_error_result){false,error};end(&job->gate,&mutation);
+}
 void xl6DetachedWorkDropV1(void* raw,void* context)
 {
     if(context)abort();

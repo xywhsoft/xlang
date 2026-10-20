@@ -66,7 +66,7 @@ static void contracts(const char* path,bool text)
     XL6_IrNode* declaration=&unit.ir.nodes[layout->declaration-1];name=declaration->text;
     declaration->text="OtherBackend";refused(&unit.ir,enumTarget);declaration->text=name;
     assert(xl6IrVerifyModule(&unit.ir,NULL));xl6CompileUnitFree(&unit);
-    assert(xl6StdlibFuncCount==1000);
+    assert(xl6StdlibFuncCount==998);
 }
 static void balanced(const xmemdebugsnapshot* before)
 {

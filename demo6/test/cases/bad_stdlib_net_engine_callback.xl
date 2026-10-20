@@ -1,0 +1,4 @@
+auto engine = NetEngine()
+engine.post(func() as int
+    return 3
+end)

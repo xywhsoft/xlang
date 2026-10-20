@@ -1,0 +1,36 @@
+auto original = NetEngineOptions()
+auto changed = original.withWorkers(1).withBackend(NetBackend.select).withCommandCapacity(8)
+assert(original.workers == 0)
+assert(changed.workers == 1)
+assert(changed.backend == NetBackend.select)
+assert(changed.commandCapacity == 8)
+assert(changed.idleWaitMillis == 1000)
+assert(changed.withIdleWaitMillis(-1).idleWaitMillis == -1)
+assert(changed.withBufferCacheBytes(1048576).bufferCacheBytes == 1048576)
+assert(changed.bufferBlockSize(0) > 0)
+assert(changed.bufferCacheLimit(0) > 0)
+
+int rejected = 0
+try
+    auto invalid = changed.withWorkers(257)
+catch Error
+    rejected += 1
+end
+try
+    auto invalid = changed.withIdleWaitMillis(0)
+catch Error
+    rejected += 1
+end
+try
+    auto invalid = changed.withCommandCapacity(1)
+catch Error
+    rejected += 1
+end
+try
+    auto invalid = changed.bufferBlockSize(4)
+catch Error
+    rejected += 1
+end
+assert(rejected == 4)
+assert(changed.workers == 1)
+println("engine immutable options: ok")

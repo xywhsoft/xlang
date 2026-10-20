@@ -2,13 +2,15 @@
 #include "xl6_concurrent_deadline.h"
 #include "src/api/xl_foreign_error.h"
 typedef XL6_ExecutionResourceV1 Resource;
-static bool create(Resource* r,uint32_t threads,size_t limit,size_t stack)
+typedef struct ExecutorResource {Resource base;xexecutorstats stats;} ExecutorResource;
+_Static_assert(offsetof(ExecutorResource,base)==0,"Execution resource base must be first");
+static bool create(Resource* r,const XL6_ExecutionCreateOptionsV1* options)
 {
     r->failures=xl6ExecutionFailuresCreateV1();
     if(r->failures){
         XL6_ExecutionFailuresV1* owned=xl6ExecutionFailuresRetainV1(r->failures);
         if(owned){
-            xexecutorconfig config={threads,limit,stack};
+            xexecutorconfig config={options->value.workers.threads,options->value.workers.limit,options->value.workers.stack};
             r->executor=xrtExecutorCreateOwnedExitV1(&config,owned,xl6ExecutorWorkerExitPolicyV1Get());
             if(!r->executor){xerror* error=xrtTakeError();xl6ExecutionFailuresReleaseV1(owned);xrtClearError();xrtSetErrorTake(error);}
         }
@@ -23,7 +25,7 @@ static XL6_ModulePrepareResult retire(Resource* r)
     if(!xrtExecutorClose(r->executor))return XL6_MODULE_PREPARE_FAILED;
     xwaitresult result=xrtExecutorWaitFor(r->executor,0);
     if(result==XWAIT_TIMEOUT)return XL6_MODULE_PREPARE_BUSY;
-    if(result!=XWAIT_OK||!xrtExecutorGet(r->executor,&r->stats))return XL6_MODULE_PREPARE_FAILED;
+    if(result!=XWAIT_OK||!xrtExecutorGet(r->executor,&((ExecutorResource*)r)->stats))return XL6_MODULE_PREPARE_FAILED;
     if(!xrtExecutorDestroy(r->executor))return XL6_MODULE_PREPARE_FAILED;
     /* Physical completion and semantic failure are independent. The source
      * consumes its actual native creator even when a detached callback failed,
@@ -41,9 +43,12 @@ static bool trace(const Resource* r,xrtownershipvisitor visit,void* context)
 static bool cancel(Resource* r){return !r->executor||xrtExecutorCancel(r->executor);}
 static bool close(Resource* r){return !r->executor||xrtExecutorClose(r->executor);}
 const XL6_ExecutionFamilyV1* xl6ExecutionExecutorFamilyV1Get(void)
-{static const XL6_ExecutionFamilyV1 family={sizeof(family),XL6_EXECUTION_FAMILY_TAG_V1,XL6_EXECUTION_EXECUTOR_V1,create,rollback,retire,finish,drop,trace,close,cancel};return &family;}
+{static const XL6_ExecutionFamilyV1 family={sizeof(family),XL6_EXECUTION_FAMILY_TAG_V1,XL6_EXECUTION_EXECUTOR_V1,create,rollback,retire,finish,drop,trace,close,cancel,sizeof(ExecutorResource)};return &family;}
 Resource* xl6ExecutionExecutorCreateV1(XL6_ExecutionSourceV1* s,uint32_t n,size_t q,size_t stack)
-{return xl6ExecutionCreateInternalV1(s,xl6ExecutionExecutorFamilyV1Get(),n,q,stack);}
+{
+    XL6_ExecutionCreateOptionsV1 options={.kind=XL6_EXECUTION_EXECUTOR_V1,.value.workers={n,q,stack}};
+    return xl6ExecutionCreateInternalV1(s,xl6ExecutionExecutorFamilyV1Get(),&options);
+}
 bool xl6ExecutionExecutorSubmitBatchV1(Resource* resource,XL6_Closure* const* callbacks,size_t count)
 {
     XL6_ExecutionScopeV1 scope={0};if(!xl6ExecutionResourceEnterV1(resource,true,&scope))return false;
@@ -77,7 +82,7 @@ bool xl6ExecutionExecutorStatsV1(Resource* resource,xexecutorstats* output)
     if(!output){xrtSetErrorKind(XERR_ARGUMENT);return false;}
     XL6_ExecutionScopeV1 scope={0};if(!xl6ExecutionResourceEnterV1(resource,false,&scope))return false;
     bool ok=resource->kind==XL6_EXECUTION_EXECUTOR_V1;
-    if(ok){if(scope.executor)ok=xrtExecutorGet(scope.executor,output);else *output=resource->stats;}
+    if(ok){if(scope.executor)ok=xrtExecutorGet(scope.executor,output);else *output=((ExecutorResource*)resource)->stats;}
     else xrtSetErrorKind(XERR_TYPE);
     xl6ExecutionResourceLeaveV1(&scope);return ok;
 }

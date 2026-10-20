@@ -15,6 +15,10 @@ typedef struct XL6_DetachedWorkV1 XL6_DetachedWorkV1;
 XL6_CODE_LEASE_API XL6_DetachedWorkV1* xl6DetachedWorkCreateV1(XL6_ExecutionFailuresV1*,XL6_Closure*);
 XL6_CODE_LEASE_API XL6_DetachedWorkV1* xl6DetachedWorkCreateBoxedV1(XL6_ExecutionFailuresV1*,const struct xvalue*,uint64_t);
 XL6_CODE_LEASE_API void xl6DetachedWorkInvokeV1(void*);
+/* Accepted producer failed before invoking the body. Consumes the diagnostic
+ * (NULL is still failure), remains BUSY through Drop, counts one combined
+ * producer/capture-cleanup outcome. Not the ordinary cancellation path. */
+XL6_CODE_LEASE_API void xl6DetachedWorkFailV1(void*,struct xerror*);
 XL6_CODE_LEASE_API void xl6DetachedWorkDropV1(void*,void*);
 XL6_CODE_LEASE_API void xl6DetachedWorkAbortV1(XL6_DetachedWorkV1*);
 XL6_CODE_LEASE_API extern const struct xrtownershipops xl6DetachedWorkOpsV1;

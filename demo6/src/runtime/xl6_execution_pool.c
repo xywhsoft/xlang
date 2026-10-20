@@ -2,10 +2,10 @@
 #include "xl6_task_pool_exit.h"
 #include "src/api/xl_foreign_error.h"
 typedef XL6_ExecutionResourceV1 Resource;
-static bool create(Resource* r,uint32_t threads,size_t limit,size_t stack)
+static bool create(Resource* r,const XL6_ExecutionCreateOptionsV1* options)
 {
     r->failures=xl6ExecutionFailuresCreateV1();
-    XL6_TaskPoolConfig config={threads,limit,stack};
+    XL6_TaskPoolConfig config={options->value.workers.threads,options->value.workers.limit,options->value.workers.stack};
     if(r->failures)r->pool=xl6TaskPoolCreateManagedV1(&config,r->failures);
     return r->pool!=NULL;
 }
@@ -28,9 +28,12 @@ static bool trace(const Resource* r,xrtownershipvisitor visit,void* context)
 static bool cancel(Resource* r){return !r->pool||xl6TaskPoolControlV1Get()->Cancel(r->pool);}
 static bool close(Resource* r){return !r->pool||xl6TaskPoolControlV1Get()->Close(r->pool);}
 const XL6_ExecutionFamilyV1* xl6ExecutionTaskPoolFamilyV1Get(void)
-{static const XL6_ExecutionFamilyV1 family={sizeof(family),XL6_EXECUTION_FAMILY_TAG_V1,XL6_EXECUTION_TASK_POOL_V1,create,rollback,retire,finish,drop,trace,close,cancel};return &family;}
+{static const XL6_ExecutionFamilyV1 family={sizeof(family),XL6_EXECUTION_FAMILY_TAG_V1,XL6_EXECUTION_TASK_POOL_V1,create,rollback,retire,finish,drop,trace,close,cancel,sizeof(Resource)};return &family;}
 Resource* xl6ExecutionTaskPoolCreateV1(XL6_ExecutionSourceV1* s,uint32_t n,size_t q,size_t stack)
-{return xl6ExecutionCreateInternalV1(s,xl6ExecutionTaskPoolFamilyV1Get(),n,q,stack);}
+{
+    XL6_ExecutionCreateOptionsV1 options={.kind=XL6_EXECUTION_TASK_POOL_V1,.value.workers={n,q,stack}};
+    return xl6ExecutionCreateInternalV1(s,xl6ExecutionTaskPoolFamilyV1Get(),&options);
+}
 bool xl6ExecutionTaskPoolCheckExitV1(Resource* r)
 {
     XL6_ExecutionScopeV1 scope={0};if(!xl6ExecutionResourceEnterV1(r,false,&scope))return false;
