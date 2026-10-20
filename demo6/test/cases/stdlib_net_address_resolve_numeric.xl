@@ -1,0 +1,13 @@
+// The separate synchronous DNS provider is selected, but numeric host input
+// completes locally: no external host lookup or contact with other services.
+auto address = net.resolve("127.0.0.1", 80)
+assert address.equals(NetAddress.parse("127.0.0.1", 80))
+auto other = NetAddress("::1", 81)
+assert other.equals(NetAddress.loopback(6, 81))
+bool rejected = false
+try
+    auto invalid = net.resolve("a\0b", 80)
+catch failure
+    rejected = true
+end
+assert rejected

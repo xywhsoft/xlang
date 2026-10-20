@@ -130,6 +130,7 @@ extern const char* xl6StdlibAtomicBoolSource;
 extern const char* xl6StdlibAsn1ClassSource;
 extern const char* xl6StdlibCryptoClassSource;
 extern const char* xl6StdlibNetAddressClassSource;
+extern const char* xl6StdlibNetAddressListClassSource;
 extern const char* xl6StdlibNetInterfaceClassSource;
 extern const char* xl6StdlibNetBytesClassSource;
 extern const char* xl6StdlibNetFrameClassSource;

@@ -2000,6 +2000,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
     if ( needsNetAddressClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetAddressClassSource);
+        if(xl6StdlibNodeUsesTypeName(root,"NetAddressList") || xl6StdlibFuncUsed(used,"net","resolveAll") ||
+            xl6StdlibFuncUsed(used,"net","resolveAsync"))
+            xl6StdlibBuilderAppend(&builder,xl6StdlibNetAddressListClassSource);
     }
     if ( needsNetInterfaceClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetInterfaceClassSource);

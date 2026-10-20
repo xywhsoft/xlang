@@ -652,7 +652,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_execution_worker_exit.c",D(R(EXECUTION_FAILURES),R(THREAD_EXIT),R(FOREIGN_ERROR)),{NULL}},
     {"src/runtime/xl6_task_pool_exit.c",D(R(TASK_POOL),R(EXECUTION_WORKER_EXIT)),{NULL}},
     {"src/runtime/xl6_ownership_domain_task_pool_exit.c",D(R(OWNERSHIP_CATALOG),R(TASK_POOL_EXIT)),{NULL}},
-    {"src/runtime/xl6_ownership_domain_execution_failures.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_FAILURES)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_execution_failures.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_FAILURES)),{NULL}},
+    {"src/runtime/xl6_net_address.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_NET","XRT_MODULE_STRING","XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_net_resolve_address.c",D(R(NET_ADDRESS)),{"XRT_MODULE_NET_DNS","XRT_MODULE_STRING","XRT_MODULE_UNICODE_TEXT"}},
+    {"src/runtime/xl6_ownership_domain_net_address.c",D(R(OWNERSHIP_CATALOG),R(NET_ADDRESS)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

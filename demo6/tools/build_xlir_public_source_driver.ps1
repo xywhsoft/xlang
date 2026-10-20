@@ -314,6 +314,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_pattern_builder.c',
     'src/runtime/xl6_time_core.c',
     'src/runtime/xl6_time_datetime.c','src/runtime/xl6_time_local.c',
+    'src/runtime/xl6_net_address.c','src/runtime/xl6_net_resolve_address.c','src/runtime/xl6_ownership_domain_net_address.c',
     'src/runtime/xl6_time_text.c','src/runtime/xl6_time_datetime_text.c','src/runtime/xl6_environment.c','src/runtime/xl6_signal_core.c','src/runtime/xl6_signal_queue.c','src/runtime/xl6_signal_task_group.c',
     'src/runtime/xl6_process_command.c','src/runtime/xl6_process_options.c','src/runtime/xl6_process_run.c','src/runtime/xl6_process_status.c',
     'src/runtime/xl6_process_open.c','src/runtime/xl6_process_terminal.c',

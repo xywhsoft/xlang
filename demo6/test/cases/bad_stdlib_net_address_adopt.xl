@@ -1,0 +1,1 @@
+auto forbidden = NetAddress(point(0))

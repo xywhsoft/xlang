@@ -1,0 +1,71 @@
+// Offline numeric values only: no DNS, sockets, Engine or Resolver.
+auto empty = NetAddress()
+assert empty.family == 4 and empty.port == 0 and empty.isUnspecified
+auto v4 = NetAddress.parse("127.0.0.1", 65535)
+assert v4.family == 4 and v4.port == 65535 and v4.scope == 0
+assert v4.text() == "127.0.0.1" and v4.endpointText() == "127.0.0.1:65535"
+assert v4.isLoopback and not v4.isMulticast and not v4.isMapped
+auto raw = v4.bytes()
+assert raw.length == 4 and raw[0] == 127 and raw[3] == 1
+raw[0] = 1
+assert v4.bytes()[0] == 127
+auto changed = v4.withPort(42)
+assert changed.port == 42 and v4.port == 65535
+assert changed.sameIP(v4) and not changed.equals(v4) and changed.compare(v4) < 0
+assert v4.equals(v4.unmap()) and v4.compare(v4) == 0
+auto v6 = NetAddress.loopback(6, 80)
+assert v6.family == 6 and v6.isLoopback and v6.bytes().length == 16
+assert v6.text() == "::1" and v6.endpointText() == "[::1]:80"
+assert NetAddress.parseEndpoint("[::1]:80").equals(v6)
+assert NetAddress.parseEndpoint("127.0.0.1", 65535).equals(v4)
+assert NetAddress.parseEndpoint("127.0.0.1:42").equals(changed)
+assert NetAddress.any(6).isUnspecified and NetAddress.loopback().isLoopback
+auto scoped = NetAddress.parse("fe80::1%7", 10)
+assert scoped.scope == 7 and scoped.isLinkLocal
+assert scoped.endpointText() == "[fe80::1%7]:10"
+assert NetAddress.parseEndpoint(scoped.endpointText()).equals(scoped)
+assert scoped.withScope(4294967295).scope == 4294967295 and scoped.scope == 7
+assert not scoped.sameIP(scoped.withScope(8))
+auto mapped = NetAddress.parse("::ffff:127.0.0.1", 65535)
+assert mapped.isMapped and mapped.unmap().equals(v4)
+assert NetAddress.parse("10.1.2.3").isPrivate
+assert NetAddress.parse("fc00::1").isPrivate
+assert NetAddress.parse("224.0.0.1").isMulticast
+assert NetAddress.parse("ff02::1").isMulticast
+assert NetAddress.parse("169.254.1.2").isLinkLocal
+assert not NetAddress.parse("192.0.2.1").isPrivate
+int rejected = 0
+for ip in ["localhost", "a\0b", "", "fe80::1%eth0", "fe80::1%", "fe80::1%4294967296"]
+    try
+        auto invalid = NetAddress.parse(ip)
+    catch failure
+        rejected += 1
+    end
+end
+assert rejected == 6
+try
+    auto invalid = NetAddress.any(5)
+catch failure
+    rejected += 1
+end
+try
+    auto invalid = v4.withPort(-1)
+catch failure
+    rejected += 1
+end
+try
+    auto invalid = v4.withPort(65536)
+catch failure
+    rejected += 1
+end
+try
+    auto invalid = v4.withScope(1)
+catch failure
+    rejected += 1
+end
+try
+    auto invalid = v6.withScope(4294967296)
+catch failure
+    rejected += 1
+end
+assert rejected == 11
