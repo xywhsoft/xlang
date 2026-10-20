@@ -31,6 +31,18 @@ int main(int argc,char** argv)
     XL6_ArtifactRuntimePlan base;XL6_ArtifactOwnershipPlan async;
     assert(xl6ArtifactRuntimeClosePlan(&roots,&base)&&xl6ArtifactOwnershipPlanBuild(&base,&async));
     assert(!xl6ArtifactRuntimeSetHas(&async.runtime.components,XL6_ARTIFACT_EXECUTOR_JOBS));
+    assert(!xl6ArtifactRuntimeSetHas(&async.runtime.components,XL6_ARTIFACT_DETACHED_WORK));
+    assert(xl6ArtifactRuntimeSetHas(&closed.runtime.components,XL6_ARTIFACT_DETACHED_WORK));
+    assert(xl6ArtifactRuntimeSetHas(&closed.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_DETACHED_WORK));
+    roots=xl6ArtifactRuntimeSetSingleton(XL6_ARTIFACT_DETACHED_WORK);
+    assert(xl6ArtifactRuntimeClosePlan(&roots,&base)&&xl6ArtifactOwnershipPlanBuild(&base,&async));
+    assert(!has_module(&async.runtime,"XRT_MODULE_EXECUTOR"));
+    assert(!has_module(&async.runtime,"XRT_MODULE_TASK_POOL"));
+    assert(!has_module(&async.runtime,"XRT_MODULE_NET_ENGINE"));
+    assert(!xl6ArtifactRuntimeSetHas(&async.runtime.components,XL6_ARTIFACT_EXECUTOR_JOBS));
+    assert(!xl6ArtifactRuntimeSetHas(&async.runtime.components,XL6_ARTIFACT_EXECUTION_SOURCE));
+    assert(xl6ArtifactRuntimeSetHas(&async.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_DETACHED_WORK));
+    assert(xl6ArtifactRuntimeSymbolOwner("xl6DetachedWorkCreateV1")==XL6_ARTIFACT_DETACHED_WORK);
     puts("Executor jobs plan: exact producer/native domains, no TaskPool/default async dependency or implicit producer");
     return 0;
 }

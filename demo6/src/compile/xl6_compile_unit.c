@@ -632,7 +632,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_native_executor.c",D(R(OWNERSHIP_CATALOG)),{"XRT_MODULE_EXECUTOR"}},
     {"src/runtime/xl6_task_pool.c",NULL,0,{"XRT_MODULE_TASK_POOL","XRT_MODULE_ATOMIC"}},
     {"src/runtime/xl6_ownership_domain_task_pool.c",D(R(OWNERSHIP_CATALOG),R(TASK_POOL)),{NULL}},
-    {"src/runtime/xl6_executor_jobs.c",D(R(CLOSURE),R(FOREIGN_ERROR),R(EXECUTION_WORKER_EXIT)),{"XRT_MODULE_EXECUTOR"}},
+    {"src/runtime/xl6_executor_jobs.c",D(R(DETACHED_WORK),R(FOREIGN_ERROR),R(EXECUTION_WORKER_EXIT)),{"XRT_MODULE_EXECUTOR"}},
     {"src/runtime/xl6_ownership_domain_executor_jobs.c",D(R(OWNERSHIP_CATALOG),R(EXECUTOR_JOBS),R(OWNERSHIP_DOMAIN_NATIVE_EXECUTOR)),{NULL}},
     {"src/runtime/xl6_execution_resource.c",D(R(FOREIGN_ERROR)),{"XRT_MODULE_EVENT","XRT_MODULE_ATOMIC","XRT_MODULE_THREAD"}},
     {"src/runtime/xl6_execution_executor.c",D(R(EXECUTION_SOURCE),R(EXECUTOR_JOBS)),{NULL}},
@@ -665,7 +665,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_net_interface_address.c",D(R(OWNERSHIP_CATALOG),R(NET_INTERFACES)),{NULL}},
     {"src/runtime/xl6_net_backends.c",NULL,0,{"XRT_MODULE_NET_PORT_SELECT","XRT_MODULE_NET_PORT_IOCP",
         "XRT_MODULE_NET_PORT_EPOLL","XRT_MODULE_NET_PORT_URING","XRT_MODULE_NET_PORT_KQUEUE"}},
-    {"src/runtime/xl6_net_backend_text.c",D(R(NET_BACKENDS)),{"XRT_MODULE_STRING"}}
+    {"src/runtime/xl6_net_backend_text.c",D(R(NET_BACKENDS)),{"XRT_MODULE_STRING"}},
+    {"src/runtime/xl6_detached_work.c",D(R(CLOSURE),R(FOREIGN_ERROR),R(EXECUTION_FAILURES)),
+        {"XRT_MODULE_MEMORY","XRT_MODULE_ATOMIC","XRT_MODULE_THREAD","XRUNTIME_MODULE_RUNTIME_CALL","XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"}},
+    {"src/runtime/xl6_ownership_domain_detached_work.c",D(R(OWNERSHIP_CATALOG),R(DETACHED_WORK)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

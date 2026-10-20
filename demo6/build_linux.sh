@@ -154,6 +154,8 @@ RUNTIME_SOURCES=(
 	"$ROOT/src/runtime/xl6_task.c"
 	"$ROOT/src/runtime/xl6_task_pool.c"
 	"$ROOT/src/runtime/xl6_executor_jobs.c"
+	"$ROOT/src/runtime/xl6_detached_work.c"
+	"$ROOT/src/runtime/xl6_ownership_domain_detached_work.c"
 	"$ROOT/src/runtime/xl6_execution_failures.c"
 	"$ROOT/src/runtime/xl6_ownership_domain_execution_failures.c"
 	"$ROOT/src/runtime/xl6_execution_worker_exit.c"

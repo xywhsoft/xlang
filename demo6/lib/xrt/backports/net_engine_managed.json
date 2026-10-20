@@ -1,0 +1,60 @@
+{
+  "Schema": 1,
+  "Purpose": "Owned Engine worker exit, safe actual backend/config query and restartable nonwaiting stop",
+  "Integration": "Exact Engine-only delta. Fixed microsecond/absolute-deadline network ABI and all unselected sections unchanged",
+  "CanonicalCommit": "28dbd512afd6b0959890cf88cd0cb0628f9c5e61",
+  "CanonicalSources": [
+    {
+      "Path": "include/xrt/net.h",
+      "Sha256": "456e881bd9aa7f9682bbf311d9d97156a095bea9074efe5f0af8f8bae3350c8f"
+    },
+    {
+      "Path": "src/internal/xrt_net_engine.h",
+      "Sha256": "3d2b881c3ecfd2c5b4b96dc07d785968366bdbfe4c9ff4b84dab5f24c77c0906"
+    },
+    {
+      "Path": "src/network/engine.c",
+      "Sha256": "55a37b7158853c92653a083936507bd85138c89114c7f32954e66d9aeadae25d"
+    }
+  ],
+  "UnchangedAnchorAdaptation": {
+    "ImporterGuardUnmodified": true,
+    "ImportedAbiMigration": false,
+    "Rows": [
+      {
+        "Source": "before",
+        "InputSha256": "d2c42ad3e647ecb3011fec95fa5d3ed4395195b54a8a52a194e22c697d31eb59",
+        "OutputSha256": "d3e0f82e7179235e174055cc80e9f555ed67ccc9b09af9368bab7c8b162fcf9c",
+        "DroppedUnchangedContextSha256": "428298f2936958f4c894030ac279bdce67116e97f2c4ede9a40acbb505e0e438"
+      },
+      {
+        "Source": "after-r2",
+        "InputSha256": "aa4108a91249f5d8effa717fd415831d0fcb06ce4454cb6d11d435222f342984",
+        "OutputSha256": "cbcb574d52119256c9d4c96ebff69f6e662da945c505fb7dac1504f939a123b7",
+        "DroppedUnchangedContextSha256": "428298f2936958f4c894030ac279bdce67116e97f2c4ede9a40acbb505e0e438"
+      }
+    ]
+  },
+  "Consumers": [
+    {
+      "Path": "lib/xrt/xrt.h",
+      "BeforeSha256": "89da2b3c52825a6d40750c2a30eeb651345093c5589ed531e5748a2f4b109705",
+      "AfterSha256": "5851ca8f085aca5eb347bfa3c73ffe30f84173ef095a875d6228fb7268147d6a"
+    },
+    {
+      "Path": "lib/xruntime/xruntime.h",
+      "BeforeSha256": "caf256efcccaaa51a342b23a25b5122434645e31c91c7a08f1fb3ce0f11542c1",
+      "AfterSha256": "44e8c483f27d94c7d6dbb3cf220c9255df6dd4a1eb2aff783c7d21866f6a2777"
+    },
+    {
+      "Path": "release/include/xrt_decl.h",
+      "BeforeSha256": "731fa391768181004b7d93ca681ebda1b36964b9a87198f8a3e354aaf92ba982",
+      "AfterSha256": "7209eb65385a8c360a23d5abbe3228b67c12febf83849392cdd949120d5df29d"
+    },
+    {
+      "Path": "release/include/xruntime_decl.h",
+      "BeforeSha256": "38abfb3aef10c9de5dba3562e02dea264f47f8475b9130d4034e825398b78df7",
+      "AfterSha256": "c1fa9efc7074e8c495e9d77de54fc6b9d4dd9f7822200bde38b4c58394594521"
+    }
+  ]
+}
