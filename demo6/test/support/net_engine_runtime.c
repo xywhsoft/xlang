@@ -158,7 +158,7 @@ static void graph(unsigned order,bool restore,bool timer)
         xl6ExecutionNetEngineAfterV1(r,0,60000,callback,&id));xl6ClosureRuntimeV1Get()->Release(callback);}
     Graph g;xrtownershipscope frozen={0};xdeadline deadline=xrtDeadlineAfter(UINT64_C(5000000));
     for(;;){freeze(&frozen);if(collect(&g,source))break;assert(xrtOwnershipScopeEnd(&frozen)&&!xrtDeadlineExpired(deadline));xrtThreadYield();}
-    assert(g.count==(timer?6u:4u));int token=0;
+    assert(g.count==(timer?7u:4u));int token=0; /* started Worker owns one actual pool */
     for(size_t i=0;i<g.count;++i)assert(g.nodes[i].adapter->Hold(g.nodes[i].ref.Data)&&g.nodes[i].adapter->Claim(g.nodes[i].ref.Data,&token));
     assert(xrtOwnershipScopeEnd(&frozen));bool ready[LIMIT]={false};size_t pending=g.count;
     while(pending){for(size_t step=0;step<g.count;++step){size_t i=order&1?g.count-1-step:step;Node* n=&g.nodes[i];if(ready[i])continue;
@@ -210,6 +210,48 @@ static void nullEnvironment(void)
     assert(adapter->Finish(ref.Data,&token)&&adapter->Finish(ref.Data,&token)&&nullDrops==previous+1);
     xl6ClosureRuntimeV1Get()->Release(closure);adapter->Drop(ref.Data);assert(nullDrops==previous+1);balanced(&before);
 }
+typedef struct PoolProbe {xnetbufpool* pool;unsigned calls;} PoolProbe;
+static void probePoolRelease(void* raw,const uint8* data,size_t size)
+{
+    PoolProbe* p=raw;assert(data&&size==3);++p->calls;
+    xrtownershipscope frozen={0};freeze(&frozen);
+    const xrtownershipadapterv1* adapter=NULL;const xrtownershippreparationv1* preparation=NULL;
+    const XL6_OwnershipFinishV1* completion=NULL;
+    assert(xl6OwnershipCatalogProbeV1(xrtNetBufPoolOwnership(p->pool),catalog,&adapter,&preparation,&completion)==XL6_OWNERSHIP_ADMISSION_BUSY);
+    assert(!adapter&&!preparation&&!completion&&xrtOwnershipScopeEnd(&frozen));
+}
+static void nativeBufferDomain(void)
+{
+    xmemdebugsnapshot before;xrtMemDebugSnapshot(&before);
+    xnetbufpool* pool=xrtNetBufPoolCreate(NULL);xnetbytes* bytes=xrtNetBytesCopy("a\0b",3);assert(pool&&bytes);
+    xnetbuf buffer;assert(xrtNetBufInit(&buffer,pool)&&xrtNetBufAppendBytes(&buffer,bytes,0,3));
+    xrtownershipref poolRef=xrtNetBufPoolOwnership(pool),byteRef=xrtNetBytesOwnership(bytes);
+    xrtownershipscope frozen={0};freeze(&frozen);
+    const xrtownershipadapterv1 *pa=NULL,*ba=NULL;const xrtownershippreparationv1 *pp=NULL,*bp=NULL;
+    const XL6_OwnershipFinishV1 *pf=NULL,*bf=NULL;size_t count=0;int token=0;
+    assert(xl6OwnershipCatalogProbeV1(poolRef,catalog,&pa,&pp,&pf)==XL6_OWNERSHIP_ADMISSION_ADMITTED&&pa&&pp&&!pf);
+    assert(xl6OwnershipCatalogProbeV1(byteRef,catalog,&ba,&bp,&bf)==XL6_OWNERSHIP_ADMISSION_ADMITTED&&ba&&!bp&&!bf);
+    assert(poolRef.Ops->Count(pool,&count)&&count==2&&byteRef.Ops->Count(bytes,&count)&&count==2);
+    XL6_OwnershipCatalog* missing=xl6OwnershipCatalogCreateV1(NULL,0);assert(missing);
+    const xrtownershipadapterv1* unknown=NULL;const xrtownershippreparationv1* pending=NULL;const XL6_OwnershipFinishV1* finish=NULL;
+    assert(xl6OwnershipCatalogProbeV1(poolRef,missing,&unknown,&pending,&finish)==XL6_OWNERSHIP_ADMISSION_REFUSED);
+    assert(!unknown&&!pending&&!finish);xl6OwnershipCatalogDestroyV1(missing);
+    xrtownershipops copied=*byteRef.Ops;xrtownershipref impostor={bytes,&copied};
+    assert(xl6OwnershipCatalogProbeV1(impostor,catalog,&unknown,&pending,&finish)==XL6_OWNERSHIP_ADMISSION_REFUSED);
+    assert(!unknown&&!pending&&!finish);
+    assert(pa->Hold(pool)&&ba->Hold(bytes)&&pa->Claim(pool,&token)&&ba->Claim(bytes,&token));
+    assert(!pa->Claim(pool,&count));pa->Restore(pool,&token);assert(pa->Claim(pool,&token));
+    assert(xrtOwnershipScopeEnd(&frozen));
+    assert(!xrtNetBufAppendBytes(&buffer,bytes,0,3));xrtClearError();
+    xrtNetBufClear(&buffer);assert(pp->Prepare(pool,&token)==XRT_OWNERSHIP_PREPARE_READY);
+    freeze(&frozen);assert(pp->Ready(pool));pa->Clear(pool,&token);ba->Clear(bytes,&token);
+    assert(xrtOwnershipScopeEnd(&frozen)&&xrtNetBufPoolDestroy(pool));xrtNetBytesDestroy(bytes);
+    assert(xrtNetBytesView(bytes).Size==3&&memcmp(xrtNetBytesView(bytes).Data,"a\0b",3)==0);
+    pa->Drop(pool);ba->Drop(bytes);
+    PoolProbe probe={xrtNetBufPoolCreate(NULL),0};assert(probe.pool);
+    assert(xrtNetBufInit(&buffer,probe.pool)&&xrtNetBufAppendRef(&buffer,"abc",3,probePoolRelease,&probe));
+    xrtNetBufClear(&buffer);assert(probe.calls==1&&xrtNetBufPoolDestroy(probe.pool));balanced(&before);
+}
 int main(void)
 {
     assert(xrtMemDebugEnable(true));xrtSetErrorKind(XERR_STATE);xrtClearError();
@@ -218,6 +260,7 @@ int main(void)
         #include "net-engine-domains.h"
     };catalog=xl6OwnershipCatalogCreateV1(domains,sizeof(domains)/sizeof(*domains));assert(catalog);
     exactFamily();
+    nativeBufferDomain();
     for(unsigned i=0;i<4;++i){for(unsigned mode=0;mode<3;++mode){lifecycle(mode,false);lifecycle(mode,true);}
         timers();competingControl();producerFailure(false);producerFailure(true);nullEnvironment();}
     for(unsigned order=0;order<8;++order)for(unsigned flags=0;flags<4;++flags)graph(order,flags&1,flags&2);

@@ -3,7 +3,8 @@
 #undef main
 static XL6_ArtifactOwnershipPlan plan(const char* choice)
 {
-    XL6_ArtifactRuntimeSet roots=xl6ArtifactRuntimeSetSingleton(!strcmp(choice,"config")?XL6_ARTIFACT_NET_ENGINE_CONFIG:
+    XL6_ArtifactRuntimeSet roots=xl6ArtifactRuntimeSetSingleton(!strcmp(choice,"buffer-native")?XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_BUFFER_NATIVE:
+        !strcmp(choice,"config")?XL6_ARTIFACT_NET_ENGINE_CONFIG:
         !strcmp(choice,"stats")?XL6_ARTIFACT_NET_ENGINE_STATS:XL6_ARTIFACT_NET_ENGINE_LANGUAGE);
     if(!strcmp(choice,"all")){
         assert(xl6ComponentSetAdd(roots.words,XL6_ARTIFACT_RUNTIME_COUNT,XL6_ARTIFACT_NET_ENGINE_CONFIG));
@@ -22,13 +23,21 @@ int main(int argc,char** argv)
         return 2;
     }
     assert(argc==1);
+    XL6_ArtifactOwnershipPlan buffer=plan("buffer-native");
+    assert(buffer.domainCount==1&&!strcmp(buffer.domains[0],"xl6OwnershipDomainNetBufferNativeV1Get"));
+    assert(has_module(&buffer.runtime,"XRT_MODULE_NET_BUFFER")&&!has_module(&buffer.runtime,"XRT_MODULE_NET_ENGINE"));
+    assert(!xl6ArtifactRuntimeSetHas(&buffer.runtime.components,XL6_ARTIFACT_EXECUTION_NET_ENGINE));
+    assert(xl6ArtifactRuntimeSymbolOwner("xl6OwnershipDomainNetBufferNativeV1Get")==XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_BUFFER_NATIVE);
     XL6_ArtifactOwnershipPlan config=plan("config"),engine=plan("engine"),stats=plan("stats");
     assert(!xl6ArtifactRuntimeSetHas(&config.runtime.components,XL6_ARTIFACT_EXECUTION_SOURCE));
     assert(!xl6ArtifactRuntimeSetHas(&config.runtime.components,XL6_ARTIFACT_CLOSURE));
     assert(!xl6ArtifactRuntimeSetHas(&stats.runtime.components,XL6_ARTIFACT_EXECUTION_SOURCE));
     assert(!has_module(&stats.runtime,"XRT_MODULE_NET_ENGINE"));
+    assert(!xl6ArtifactRuntimeSetHas(&config.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_BUFFER_NATIVE));
+    assert(!xl6ArtifactRuntimeSetHas(&stats.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_BUFFER_NATIVE));
     assert(xl6ArtifactRuntimeSetHas(&engine.runtime.components,XL6_ARTIFACT_EXECUTION_SOURCE));
     assert(xl6ArtifactRuntimeSetHas(&engine.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_ENGINE_NATIVE));
+    assert(xl6ArtifactRuntimeSetHas(&engine.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_NET_BUFFER_NATIVE));
     assert(xl6ArtifactRuntimeSetHas(&engine.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_DETACHED_WORK));
     assert(!xl6ArtifactRuntimeSetHas(&engine.runtime.components,XL6_ARTIFACT_EXECUTOR_JOBS));
     assert(!xl6ArtifactRuntimeSetHas(&engine.runtime.components,XL6_ARTIFACT_TASK));

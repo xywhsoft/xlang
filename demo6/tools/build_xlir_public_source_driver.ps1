@@ -70,6 +70,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_execution_net_engine.c',
     'src/runtime/xl6_ownership_domain_execution_net_engine.c',
     'src/runtime/xl6_ownership_domain_net_engine_native.c',
+    'src/runtime/xl6_ownership_domain_net_buffer_native.c',
     'src/runtime/xl6_net_engine_config.c',
     'src/runtime/xl6_net_engine_language.c',
     'src/runtime/xl6_net_engine_stats.c',
