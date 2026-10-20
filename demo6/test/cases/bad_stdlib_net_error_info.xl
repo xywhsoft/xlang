@@ -1,0 +1,2 @@
+auto socket = NetSocket(NetSocketKind.datagram)
+auto status, count = socket.receiveErrorInto(Buffer(),NetDatagramInfo())

@@ -12,11 +12,14 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--root',type=Path,default=Path(__file__).resolve().parents[1])
     parser.add_argument('--out',type=Path,required=True);parser.add_argument('--compiler',action='append',required=True)
-    parser.add_argument('--sanitize',action='store_true');a=parser.parse_args()
+    parser.add_argument('--sanitize',action='store_true')
+    parser.add_argument('--error-queue',action='store_true',help='Offline error snapshots, typed control and empty queues; no error-producing packets')
+    a=parser.parse_args()
     root=a.root.resolve();out=a.out.resolve();assert not out.exists() and (not a.sanitize or os.name!='nt')
     compilers=[Path(shutil.which(cc) or cc).resolve() for cc in a.compiler]
     gcc=next(cc for cc in compilers if cc.stem.lower()!='tcc')
-    planSource=root/'test/support/net_datagram_plan.c';runtimeSource=root/'test/support/net_datagram_runtime.c'
+    stem='net_datagram_error' if a.error_queue else 'net_datagram'
+    planSource=root/('test/support/'+stem+'_plan.c');runtimeSource=root/('test/support/'+stem+'_runtime.c')
     files={Path(__file__).resolve(),*compilers,planSource,runtimeSource,root/'test/support/executor_catalog_plan.c'}
     for directory in ('src','lib/xrt','lib/xruntime','release/include'):
         files.update(f for f in (root/directory).rglob('*') if f.is_file() and f.suffix in ('.c','.h','.inc'))
@@ -24,7 +27,8 @@ def main():
     rows=[];products=[];failures=[]
     report=dict(Complete=False,InputsUnchanged=False,LogsUnchanged=False,Inputs=inputs,Rows=rows,Products=products,
         Failures=failures,Plans={},InstrumentedSelectedClosure=False,OwnLoopbackOnly=True,ExternalNetworkTests=False,
-        NetworkSecurityTests=False,MulticastTraffic=False,ShippingLibraryAcceptance=False,Scope=__doc__)
+        NetworkSecurityTests=False,MulticastTraffic=False,ShippingLibraryAcceptance=False,Scope=__doc__,
+        ErrorQueueAcceptance=a.error_queue,SuccessfulNativeErrorDequeue=False if a.error_queue else None)
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')
     def product(path):products.append(dict(Path=str(path),Sha256=sha(path)));save()
     def run(name,command,proof=None,sanitize=False):
@@ -49,7 +53,7 @@ def main():
             run('plan.'+opt+'.build',[*flags(gcc),'-'+opt,'-Wno-missing-field-initializers','-ffunction-sections','-fdata-sections',
                 '-fno-jump-tables','-fno-asynchronous-unwind-tables','-fno-unwind-tables',planSource,
                 root/'src/compile/xl6_compile_unit.c','-Wl,--gc-sections','-o',plan]);product(plan)
-            run('plan.'+opt+'.run',[plan],'Datagram plan: exact value/control/IO component identities')
+            run('plan.'+opt+'.run',[plan],'Datagram error plan:' if a.error_queue else 'Datagram plan: exact value/control/IO component identities')
             if opt=='O0':
                 for name in ('values','control','io','integration'):
                     sources=run(name+'.sources',[plan,'--sources',name]).splitlines()
@@ -66,7 +70,7 @@ def main():
                     domains=out/(name+'.domain.inc');domains.write_text('#include "'+name+'.domains.h"\n',encoding='utf8');product(domains)
         defines={'values':['-DTEST_DATAGRAM_VALUES_ONLY'],'control':['-DTEST_DATAGRAM_CONTROL_ONLY'],
             'io':['-DTEST_DATAGRAM_IO'],'integration':['-DTEST_DATAGRAM_IO','-DTEST_DATAGRAM_INTEGRATION']}
-        witness='Datagram runtime: exact values/graph/control/IO, checked errors and memory balance'
+        witness='Datagram error runtime:' if a.error_queue else 'Datagram runtime: exact values/graph/control/IO, checked errors and memory balance'
         for name in defines:
             directory=out/name;directory.mkdir()
             # The include name is fixed in the reusable C fixture, its consumed

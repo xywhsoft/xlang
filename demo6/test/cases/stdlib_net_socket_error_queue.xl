@@ -1,0 +1,36 @@
+// Empty local socket queue only; no transmitted packets or induced ICMP.
+auto socket = NetSocket(NetSocketKind.datagram)
+auto caps = socket.datagramCapabilities()
+if (int(caps) & int(NetDatagramCapabilities.pathMtuMode)) != 0
+    auto saved = socket.pathMtuMode()
+    socket.setPathMtuMode(NetPathMtuMode.fragment)
+    assert socket.pathMtuMode() == NetPathMtuMode.fragment
+    socket.setPathMtuMode(saved)
+end
+auto info = NetDatagramErrorInfo()
+auto output = Buffer(b"prefix")
+if (int(caps) & int(NetDatagramCapabilities.errorQueue)) != 0
+    socket.enableDatagramErrors()
+    assert socket.datagramErrorsEnabled()
+    auto status, count = socket.receiveErrorInto(output,info,16)
+    assert status == NetStatus.again and count == 0 and not info.hasError and output.length == 6
+    socket.enableDatagramErrors(false)
+    assert not socket.datagramErrorsEnabled()
+else
+    bool unsupported = false
+    try
+        socket.receiveErrorInto(output,info,16)
+    catch Error
+        unsupported = true
+    end
+    assert unsupported and not info.hasError and output.length == 6
+end
+bool badSize = false
+try
+    socket.receiveErrorInto(output,info,-1)
+catch RangeError
+    badSize = true
+end
+assert badSize and not info.hasError and output.length == 6
+socket.close()
+println("Socket typed PMTU and empty error queue: ok, no traffic")

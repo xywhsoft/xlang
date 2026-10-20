@@ -66,4 +66,25 @@ XL6_TEXT_API XL6_ProductI64U64V1 xl6NetSocketSendMessageBufferV1(void*,void*,con
 XL6_TEXT_API XL6_ProductI64U64V1 xl6NetSocketSendConnectedMessageTextV1(void*,xstrview,const void*,int64_t);
 XL6_TEXT_API XL6_ProductI64U64V1 xl6NetSocketSendConnectedMessageBytesV1(void*,const struct xvalue*,const void*,int64_t);
 XL6_TEXT_API XL6_ProductI64U64V1 xl6NetSocketSendConnectedMessageBufferV1(void*,void*,const void*,int64_t);
+XL6_TEXT_API void* xl6NetDatagramErrorInfoCreateV1(void);
+XL6_TEXT_API void xl6NetDatagramErrorInfoDestroyV1(void*);
+XL6_TEXT_API void xl6NetDatagramErrorInfoClearV1(void*);
+XL6_TEXT_API bool xl6NetDatagramErrorInfoValidV1(const void*);
+XL6_TEXT_API int64_t xl6NetDatagramErrorInfoFlagsV1(const void*);
+XL6_TEXT_API int64_t xl6NetDatagramErrorInfoOriginV1(const void*);
+XL6_TEXT_API int64_t xl6NetDatagramErrorInfoKindCodeV1(const void*);
+XL6_TEXT_API int64_t xl6NetDatagramErrorInfoSystemCodeV1(const void*);
+XL6_TEXT_API int64_t xl6NetDatagramErrorInfoTypeV1(const void*);
+XL6_TEXT_API int64_t xl6NetDatagramErrorInfoCodeV1(const void*);
+XL6_TEXT_API int64_t xl6NetDatagramErrorInfoInfoV1(const void*);
+XL6_TEXT_API int64_t xl6NetDatagramErrorInfoDataV1(const void*);
+XL6_TEXT_API uint64_t xl6NetDatagramErrorInfoPathMtuV1(const void*);
+XL6_TEXT_API void* xl6NetDatagramErrorInfoRemoteV1(const void*);
+XL6_TEXT_API void* xl6NetDatagramErrorInfoOffenderV1(const void*);
+XL6_TEXT_API XL6_ProductI64U64V1 xl6NetSocketReceiveErrorIntoV1(void*,void*,void*,int64_t);
+XL6_TEXT_API void xl6NetSocketPathMtuModeSetV1(void*,int64_t);
+XL6_TEXT_API int64_t xl6NetSocketPathMtuModeV1(void*);
+XL6_TEXT_API uint64_t xl6NetSocketPathMtuV1(void*);
+XL6_TEXT_API void xl6NetSocketDatagramErrorsSetV1(void*,bool);
+XL6_TEXT_API bool xl6NetSocketDatagramErrorsV1(void*);
 #endif

@@ -1,5 +1,7 @@
 /* Source declarations only. Native POD values never expose point constructors. */
+#include "xl6_stdlib_net_datagram_error.inc"
 #define XL6_NET_DATAGRAM_SOURCE \
+    XL6_NET_DATAGRAM_ERROR_SOURCE \
     "enum NetDatagramMetadata as int\n    none = 0\n    destination = 1\n    interfaceIndex = 2\n" \
     "    hopLimit = 4\n    trafficClass = 8\n    segmentSize = 16\n    truncated = 1073741824\nend\n" \
     "enum NetDatagramControlFlags as int\n    none = 0\n    source = 1\n    interfaceIndex = 2\n" \
@@ -29,6 +31,7 @@
     "    extern \"xl6NetDatagramControlSegmentSizeV1\" @nonblocking func withSegmentSize(int size) as NetDatagramControl\n" \
     "    extern \"xl6NetDatagramControlWithoutV1\" @nonblocking func without(NetDatagramControlFlags flags) as NetDatagramControl\nend\n"
 #define XL6_NET_SOCKET_DATAGRAM_METHODS \
+    XL6_NET_SOCKET_DATAGRAM_ERROR_METHODS \
     "    extern \"xl6NetSocketMetadataAvailableV1\" func metadataAvailable() as NetDatagramMetadata\n" \
     "    extern \"xl6NetSocketMetadataEnabledV1\" func metadataEnabled() as NetDatagramMetadata\n" \
     "    extern \"xl6NetSocketControlAvailableV1\" func controlAvailable() as NetDatagramControlFlags\n" \
