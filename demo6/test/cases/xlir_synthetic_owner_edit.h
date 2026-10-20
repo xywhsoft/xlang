@@ -75,8 +75,8 @@ static void syntheticInsert(XL6_IrModule* ir, XL6_IrFunction* fn, size_t block,
     for (i = 0; i < ir->callbackBoundaryCount; ++i)
         if (ir->callbackBoundaries[i].instruction >= at) ir->callbackBoundaries[i].instruction += count;
 }
-static void syntheticRollback(XL6_IrModule* ir, XL6_IrFunction* fn,
-    size_t block, XL6_IrValueId owner)
+static void syntheticRollbackEx(XL6_IrModule* ir, XL6_IrFunction* fn,
+    size_t block, XL6_IrValueId owner, int checkedTerminal)
 {
     XL6_IrInstruction release = {0};
     const XL6_IrInstruction* producer = &ir->instructions[syntheticDefinition(ir, owner)];
@@ -95,6 +95,14 @@ static void syntheticRollback(XL6_IrModule* ir, XL6_IrFunction* fn,
     ir->operands = xrtRealloc(ir->operands, (ir->operandCount + 1) * sizeof(*ir->operands));
     assert(ir->operands); ir->operandCapacity = ir->operandCount + 1;
     ir->operands[ir->operandCount++] = owner;
+    /* Preserve preceding observations and the mandatory END/terminal pair.
+     * Join the existing failure cleanup scope when one ends at this exit. */
+    if (checkedTerminal) {
+        at += ir->blocks[block].instructionCount - 1;
+        if (at > ir->blocks[block].firstInstruction && ir->instructions[at - 1].kind == XL6_IR_INSTR_ERROR_UNWIND_END) {
+            --at; release.errorScope = ir->instructions[at].errorScope;
+        }
+    }
     syntheticInsert(ir, fn, block, at, &release, 1);
 }
 static void syntheticMergeState(int* states, size_t block, int state, int* changed)
@@ -102,7 +110,7 @@ static void syntheticMergeState(int* states, size_t block, int state, int* chang
     if (states[block] < 0) { states[block] = state; *changed = 1; }
     else assert(states[block] == state);
 }
-static void syntheticCloseOwnerExits(XL6_IrModule* ir, XL6_IrFunction* fn, XL6_IrValueId root)
+static void syntheticCloseOwnerExitsEx(XL6_IrModule* ir, XL6_IrFunction* fn, XL6_IrValueId root, int checkedTerminal)
 {
     int *states = xrtMalloc(fn->blockCount * sizeof(*states)), changed = 1;
     unsigned char* rollback = xrtCalloc(fn->blockCount, 1);
@@ -126,7 +134,14 @@ static void syntheticCloseOwnerExits(XL6_IrModule* ir, XL6_IrFunction* fn, XL6_I
             }
             assert(block->instructionCount);
             last = &ir->instructions[block->firstInstruction + block->instructionCount - 1];
-            if (last->kind == XL6_IR_INSTR_RETURN || last->kind == XL6_IR_INSTR_THROW) { assert(!state); continue; }
+            if (last->kind == XL6_IR_INSTR_RETURN || last->kind == XL6_IR_INSTR_THROW) {
+                /* The replacement removed lowering's temporary owner. Give
+                 * this synthetic SSA region an explicit sink on every live
+                 * terminal edge, including checked cleanup added by callers. */
+                if (checkedTerminal && state) rollback[b] = 1;
+                else assert(!state);
+                continue;
+            }
             assert(last->kind == XL6_IR_INSTR_JUMP || last->kind == XL6_IR_INSTR_BRANCH || last->kind == XL6_IR_INSTR_ERROR_TEST);
             assert(last->trueTarget > fn->firstBlock && last->trueTarget <= fn->firstBlock + fn->blockCount);
             if (last->kind == XL6_IR_INSTR_BRANCH && state &&
@@ -150,7 +165,11 @@ static void syntheticCloseOwnerExits(XL6_IrModule* ir, XL6_IrFunction* fn, XL6_I
     }
     assert(!changed);
     for (b = 0; b < fn->blockCount; ++b)
-        if (rollback[b]) syntheticRollback(ir, fn, fn->firstBlock + b, root);
+        if (rollback[b]) syntheticRollbackEx(ir, fn, fn->firstBlock + b, root, checkedTerminal);
     xrtFree(states); xrtFree(rollback);
+}
+static void syntheticCloseOwnerExits(XL6_IrModule* ir, XL6_IrFunction* fn, XL6_IrValueId root)
+{
+    syntheticCloseOwnerExitsEx(ir, fn, root, 0);
 }
 #endif

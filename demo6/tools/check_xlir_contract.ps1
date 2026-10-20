@@ -556,7 +556,8 @@ if (!(Read-Utf8 'test/suites/03_core_function_abi.bat').Contains('tools\check_xl
     !(Read-Utf8 'test/suites/03_core_function_abi.bat').Contains('tools\check_xlir_continuation_owner_cfg.ps1') -or
     !(Read-Utf8 'tools/check_xlir_continuation_owner_cfg.ps1').Contains('xlir_continuation_owner_cfg_contract.c') -or
     !(Read-Utf8 'test/suites/03_core_function_abi.bat').Contains('tools\check_xlir_continuation_owner_calls.ps1') -or
-    !(Read-Utf8 'tools/check_xlir_continuation_owner_calls.ps1').Contains('xlir_continuation_owner_calls_contract.c') -or
+    !(Read-Utf8 'tools/check_xlir_continuation_owner_calls.ps1').Contains('check_xlir_continuation_owner_calls.py') -or
+    !(Read-Utf8 'tools/check_xlir_continuation_owner_calls.py').Contains('xlir_continuation_owner_calls_contract.c') -or
     !$source.Contains('xl6IrContinuationVerifyLiveSets(module, function, 0, machineIndex)') -or
     !$source.Contains('xl6IrContinuationVerifyLiveSets(module, function, 1, machineIndex)')) {
     throw 'Continuation owner/view safety regression must remain wired into the core suite'

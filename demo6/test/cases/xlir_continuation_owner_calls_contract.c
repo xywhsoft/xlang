@@ -1,4 +1,5 @@
 #include "xlir_continuation_owner_test.h"
+#include "xlir_internal_owned_params.h"
 typedef struct OwnerCallRegion { XL6_IrValueId root, alias; } OwnerCallRegion;
 static XL6_IrInstruction* valueDefinition(XL6_IrModule* ir, XL6_IrValueId value)
 {
@@ -193,6 +194,11 @@ int main(int argc, char** argv)
     XL6_IrInstruction zero = {0};
     assert(argc == 4); xl6ParseResultInit(&parse); xl6IrModuleInit(&ir);
     assert(xl6ParseFile("test/cases/xlir_continuation_owner_calls.xl", &parse));
+    /* This pass fixture needs consuming physical call edges, not the ordinary
+     * read-only language parameter ABI. Construct that internal contract
+     * explicitly; do not disable production copy elision or revive syntax. */
+    assert(xlirTestMarkOwnedNamedParams(parse.root,"ownerCallPlaceholder",1)==1);
+    assert(xlirTestMarkOwnedNamedParams(parse.root,"ownerCallPair",3)==2);
     assert(xl6StdlibExpandModule(parse.root, &parse.diags));
     assert(xl6SemCheckModule(parse.root, &parse.diags, "owner_calls"));
     assert(xl6IrBuildModuleFromAst(&ir, parse.root, &parse.diags));
@@ -239,7 +245,7 @@ int main(int argc, char** argv)
             }
         }
         assert(acquired == (kind == 1 ? 1u : 2u) && sinks == (kind == 1 ? 2u : 1u));
-        for (i = 0; i < acquired; ++i) syntheticCloseOwnerExits(&ir, fn, owners[i].root);
+        for (i = 0; i < acquired; ++i) syntheticCloseOwnerExitsEx(&ir, fn, owners[i].root, 1);
         relocateFresh(&ir, fn, firstFresh, ir.valueCount - firstFresh + 1);
         targets[kind] = fn->symbol; ++changed;
     }
