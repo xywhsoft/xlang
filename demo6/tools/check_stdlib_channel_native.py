@@ -25,7 +25,7 @@ def main():
     for row in build['Inputs']+build['Headers']+build['Objects']:
         assert sha(row['Path'])==row['Sha256'].lower(); files.add(Path(row['Path']))
     inputs=[dict(Path=str(f),Sha256=sha(f)) for f in sorted(files)]
-    out.mkdir(); rows=[]; products=[]; prefixes=[]; controls=[]
+    out.mkdir(parents=True); rows=[]; products=[]; prefixes=[]; controls=[]
     report=dict(Complete=False,InputsUnchanged=False,Scope=__doc__,Inputs=inputs,Rows=rows,
         Products=products,Prefixes=prefixes,NegativeControls=controls,PublicLanguageCutover=False,
         WaitQueueComplete=False,Full53Acceptance=False,ShippingArtifact=False,
@@ -33,10 +33,21 @@ def main():
     env=dict(os.environ)
     if os.name=='nt': shutil.copy2(runtime,out/'xl.dll')
     else: env['XL6_SOURCE_NATIVE_ROOT']=build['NativeRoot']
+    def save(): (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     def run(name,command,refused=False):
-        command=list(map(str,command)); result=subprocess.run(command,cwd=root,env=env,capture_output=True,timeout=600)
+        command=list(map(str,command));invocation=command;options={}
+        if command[0]==cc:
+            response=out/(name+'.rsp')
+            response.write_text('\n'.join('"'+token.replace('\\','/').replace('"','\\"')+'"' for token in command[1:])+'\n',encoding='utf-8')
+            product(response);invocation=[cc,'@'+str(response)]
+        if os.name!='nt':
+            import resource
+            options['preexec_fn']=lambda:resource.setrlimit(resource.RLIMIT_CORE,(0,0))
+        result=subprocess.run(invocation,cwd=root,env=env,capture_output=True,timeout=600,**options)
         data=result.stdout+result.stderr; log=out/(name+'.log'); log.write_bytes(data)
-        rows.append(dict(Name=name,Command=command,Exit=result.returncode,Log=str(log),LogSha256=sha(log)))
+        rows.append(dict(Name=name,Command=command,Invocation=invocation,Exit=result.returncode,
+            ExpectedRejection=refused,Log=str(log),LogSha256=sha(log)));save()
+        print(name+': '+str(result.returncode),flush=True)
         if refused: assert result.returncode!=0 and (b'assertion' in data or b'Assertion' in data),(name,data[-6000:])
         else: assert result.returncode==0,(name,data[-6000:])
         return data.decode(errors='replace')
@@ -76,8 +87,8 @@ def main():
                 'if (xrtGetError()) xl6ErrorScopeCaptureFailure(&scope);'),
             'overwrite-owned':('if (!empty) { xrtSetErrorKind(XERR_STATE); return false; }',
                 '(void)empty;'),
-            'omit-edge':('if (owner->layout.transfer!=3) return true;',
-                'if (owner->layout.transfer!=0) return true;'),
+            'omit-edge':('if(owner->layout.transfer<3)return true;',
+                'if(owner->layout.transfer!=UINT32_MAX)return true;'),
         }
         for tag,(old,new) in mutations.items():
             assert old in body
@@ -117,6 +128,6 @@ def main():
         report['LifetimesPerLane']=1000; report['Complete']=True
     finally:
         report['InputsUnchanged']=all(sha(row['Path'])==row['Sha256'] for row in inputs)
-        (out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+        save()
     assert report['Complete'] and report['InputsUnchanged']; print('Native owned Channel foundation verified',flush=True)
 if __name__=='__main__': main()
