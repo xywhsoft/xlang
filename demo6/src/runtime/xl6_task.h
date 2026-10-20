@@ -191,6 +191,11 @@ XL6_CODE_LEASE_API const XL6_TaskRuntimeV3* xl6TaskRuntimeV3Get(void);
  * native idle includes all finalizer tails may it join idle worker threads.
  * The caller holds the pool/code alive, outside ownership admission. */
 XL6_CODE_LEASE_API XL6_ModulePrepareResult xl6TaskPoolTryQuiesceV1(XL6_TaskPool*);
+/* Module preflight starts no graph-owned stop. It only resumes a previously
+ * requested physical quiescence, outside Freeze, so pending native joins
+ * cannot prevent the very snapshot that would otherwise drive preparation.
+ * Teardown retains the explicit blocking/nonblocking selection. */
+XL6_CODE_LEASE_API XL6_ModulePrepareResult xl6TaskPoolModulePrepareV1(XL6_TaskPool*,bool teardown,bool wait);
 /* Additive closed result publication, retaining the original frame/pool ABI.
  * Verified AsyncResultAbi selects kind before submission. The executor checks
  * the returned payload's exact resident Drop before publishing certification.

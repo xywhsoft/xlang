@@ -440,6 +440,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6TaskPoolOwnershipAdapterV1", (const void*)xl6TaskPoolOwnershipAdapterV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskSubmitPayloadV1", (const void*)xl6TaskSubmitPayloadV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6TaskPoolTryQuiesceV1", (const void*)xl6TaskPoolTryQuiesceV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6TaskPoolModulePrepareV1", (const void*)xl6TaskPoolModulePrepareV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV1Get", (const void*)xl6FutureCallbackRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV2Get", (const void*)xl6FutureCallbackRuntimeV2Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV4Get", (const void*)xl6FutureCallbackRuntimeV4Get)) return 0;

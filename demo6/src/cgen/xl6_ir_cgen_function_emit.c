@@ -53,10 +53,8 @@ static int xl6IrCgenEmitFunction(
             xl6OutputPuts("    if (teardown) { XL6_ModulePrepareResult source = xl6ExecutionModulePrepareV1(xlir_execution_source);\n"
                 "        if (source != XL6_MODULE_PREPARE_READY) return source; }\n",out);
         if (module->abi.taskPoolOwnershipAbi == XL6_IR_MODULE_TASK_POOL_OWNERSHIP_RESIDENT_NATIVE_JOBS_JOIN_V1)
-            xl6OutputPuts("    if (teardown) {\n"
-                "        XL6_ModulePrepareResult pool = wait\n"
-                "            ? (xlir_async_pool_quiesce() ? XL6_MODULE_PREPARE_READY : XL6_MODULE_PREPARE_FAILED)\n"
-                "            : xl6TaskPoolTryQuiesceV1(xlir_async_pool);\n"
+            xl6OutputPuts("    {\n"
+                "        XL6_ModulePrepareResult pool = xl6TaskPoolModulePrepareV1(xlir_async_pool, teardown, wait);\n"
                 "        if (pool != XL6_MODULE_PREPARE_READY) return pool;\n"
                 "    }\n", out);
         xl6OutputPuts("    return XL6_MODULE_PREPARE_READY;\n}\n"
