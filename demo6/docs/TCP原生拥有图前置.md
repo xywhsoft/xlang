@@ -148,3 +148,38 @@ Windows／Linux 各自独立检查 3,731 个符号与 423 个候选模块根，�
 下一步继续闭合真实 Future 等待／结果／取消、文件和回调组合状态，再实现完整受管理传输；
 本批不是 Stream／Listener／Dial／Server／UDP 语言标准库完成声明。P3 与总长期任务保持 active；
 标准库未决策分类未变化，仍为 CRT 0 项、XRT 11 组。
+
+## 2026-10-21：TCP Future 原生前置完成，尚未导入 xlang
+
+XRT 独立提交 `40704d476a40fce643ee58d34d82f796d8e0410e`，父提交为 `67f4f38b`。
+本节只记录上游原生实现和验收，不改变前文 xlang 固定快照／驻留拥有域的完成范围。
+
+- 一个物理等待激活由源等待链、Future 生产者槽、取消 Watch.Data 各拥有一份真实引用。
+  激活保留源对象、实际缓存分配器租约、Promise 和 Watch；Next 和取消链接不伪造拥有边。
+- Stream／Listener 导出真实等待链；接收结果认证为不可变 NetBytes，接受结果认证为真实
+  Stream。Future／Cancel／Watch 必须各自显式认可精确合同身份，不能复制描述符冒充能力。
+- Prepare 不等待、不取消已受理工作；完整图中的源对象按正常关闭／通知推进，协调器重新
+  冻结、发现及保活新节点。终态清空原生槽后才 Ready，生产者 Drop 只释放其真实引用。
+- 普通完成沿用 64／128 字节小节点缓存；确有收集器引用保活终态节点时，立即归还 Engine
+  缓存租约，留下不再拥有源／Promise／Watch 的外壳，避免 Engine 退役等待协调器销毁。
+- 终态使用 release／acquire 原子发布；非最后一次 Drop 后不再读取节点，避免与别的线程
+  最终释放竞争。旧缓存测试增加同 Worker 的 FIFO 屏障，不把 Future 终态误当生产者已返回。
+
+最终证据根目录：`F:/xlang-validation/five-groups-20261021/p3-tcp-future-ownership`。
+
+- `windows-r6/results.json`：244 阶段；`linux-r6/results.json`：305 阶段，全部通过。
+- GCC／TCC、O0／O2、模块化／单头、select 与 Windows IOCP／Linux epoll；Linux 另验
+  实际选定原生闭包的 ASan／UBSan。只使用离线检查和自建动态端口的普通字面回环。
+- 图夹具每次覆盖 24 种终态／准备／清理顺序、24 次真实外部根保活、24 次三线程最终 Drop
+  竞争和 16 个构造 OOM 前缀（六个实际失败点），均内存平衡；普通收发、Accept、四线程
+  取消／关闭和接收结果分配失败恢复也通过。阶段数含编译，不等同独立测试数量。
+- `native-verified-commit.json` 复核所有输入、日志和产物摘要，并证明 2,116 个候选路径与
+  实际提交索引一致。XRT 用户的文件／内存改动未提交，生成单头中的原有改动完整保留。
+- 前期 r4 含严格警告、响应文件转义和缓存检查时序问题，不作为最终通过证据；r5 全通过，
+  r6 在同一核心实现上增加真实并发最终释放测试后重新冻结、统一验收并提交。
+
+下一批先将这六个低层入口及明确选定的网络源码段导入 xlang，保持现有微秒／xdeadline ABI，
+补充真实 TCP Future 驻留拥有域和精确策略准入，再继续文件载荷、回调与上层组合控制器。
+未知 SendRef／SendRefs 上下文、文件块及 Dial／Server／UDP 的完整受管理传输仍未完成。
+本批没有变更 xlang 标准库公开 API、Cgen、发布 DLL／SO／VFS，也未进行公网或网络安全专项测试。
+P3 和总长期任务保持 active；CRT 0 项、XRT 11 组未决策分类不变。
