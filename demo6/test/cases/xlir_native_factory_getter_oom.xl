@@ -1,0 +1,25 @@
+// No deliberately caught failures: every injected allocation failure must
+// escape as MemoryError. Numeric address values only, never network I/O.
+class OomGetterAddress
+    private native point handle
+    extern "xl6NetAddressParseV1" create(string ip, int port = 0)
+    extern "xl6NetAddressDestroyV1" @no_raise destroy()
+    extern "xl6NetAddressUnmapV1" get ipv4() as OomGetterAddress
+    extern "xl6NetAddressWithPortV1" get item(int port) as OomGetterAddress
+    extern "xl6NetAddressPortV1" @pure @no_raise @nonblocking get port() as int
+end
+func makeOomGetter() as OomGetterAddress
+    return OomGetterAddress("::ffff:127.0.0.1",19)
+end
+func exerciseOomGetter()
+    auto value = makeOomGetter().ipv4
+    auto indexed = value.item[37]
+    auto chained = makeOomGetter().item[41].ipv4
+    OomGetterAddress? optional = makeOomGetter()
+    OomGetterAddress? projected = optional?.ipv4
+    auto result = projected ?? value
+    assert value.port == 19 and indexed.port == 37 and chained.port == 41 and result.port == 19
+    optional = null
+    assert optional?.ipv4 == null
+end
+exerciseOomGetter()

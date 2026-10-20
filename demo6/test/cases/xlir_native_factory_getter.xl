@@ -1,0 +1,35 @@
+// Numeric address values only; no DNS, socket, Engine or network traffic.
+// Registered owner identities apply to representation, not class spelling.
+class GetterAddress
+    private native point handle
+    extern "xl6NetAddressParseV1" create(string ip, int port = 0)
+    extern "xl6NetAddressDestroyV1" @no_raise destroy()
+    extern "xl6NetAddressUnmapV1" get ipv4() as GetterAddress
+    extern "xl6NetAddressWithPortV1" get item(int port) as GetterAddress
+    extern "xl6NetAddressPortV1" @pure @no_raise @nonblocking get port() as int
+    extern "xl6NetAddressFamilyV1" @pure @no_raise @nonblocking get family() as int
+end
+func temporaryGetter() as GetterAddress
+    return GetterAddress("::ffff:127.0.0.1",19)
+end
+auto first = temporaryGetter().ipv4
+assert first.family == 4 and first.port == 19
+auto second = first.item[73]
+assert second.port == 73 and first.port == 19
+auto third = temporaryGetter().item[81].ipv4
+assert third.family == 4 and third.port == 81
+GetterAddress? absent = null
+assert absent?.ipv4 == null
+GetterAddress? present = GetterAddress("::ffff:127.0.0.1",27)
+GetterAddress? projected = present?.ipv4
+assert projected != null
+auto plain = projected ?? first
+assert plain.family == 4 and plain.port == 27
+int caught = 0
+try
+    auto invalid = temporaryGetter().item[65536]
+catch Error
+    caught += 1
+end
+assert caught == 1 and first.port == 19 and second.port == 73
+println("Native factory getters: ordinary/indexed/temporary/nullable results and checked failure: ok")

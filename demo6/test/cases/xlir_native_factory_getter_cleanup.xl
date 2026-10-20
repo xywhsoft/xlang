@@ -1,0 +1,37 @@
+// Inherited canonical native field plus a raising language destructor.
+// Owned getter results must not leak if retiring the receiver fails.
+int nativeGetterDrops = 0
+class CleanupGetterBase
+    private native point handle
+    extern "xl6NetAddressDefaultV1" create()
+    extern "xl6NetAddressDestroyV1" @no_raise destroy()
+    extern "xl6NetAddressUnmapV1" get ipv4() as CleanupGetterBase
+    extern "xl6NetAddressWithPortV1" get item(int port) as CleanupGetterBase
+end
+class CleanupGetterDerived extends CleanupGetterBase
+    extern "xl6NetAddressParseV1" create(string ip, int port = 0)
+    destroy()
+        nativeGetterDrops += 1
+        throw ValueError "native getter receiver retirement failed"
+    end
+end
+func cleanupGetterTemporary() as CleanupGetterDerived
+    return CleanupGetterDerived("::ffff:127.0.0.1",19)
+end
+bool caught = false
+try
+    auto discarded = cleanupGetterTemporary().ipv4
+catch ValueError failure
+    caught = true
+end
+assert caught and nativeGetterDrops == 1
+caught = false
+try
+    auto discarded = cleanupGetterTemporary().item[65536]
+catch RangeError failure
+    caught = true
+end
+assert caught and nativeGetterDrops == 2
+CleanupGetterDerived? absent = null
+assert absent?.ipv4 == null and nativeGetterDrops == 2
+println("Native getter retirement error and original failure priority: ok")

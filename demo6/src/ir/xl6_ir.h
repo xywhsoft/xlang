@@ -3972,9 +3972,10 @@ typedef enum XL6_IrCallTargetKind {
     XL6_IR_CALL_TARGET_INVALID = 0,
     XL6_IR_CALL_TARGET_INTERNAL,
     XL6_IR_CALL_TARGET_EXTERN_C,
-    /* Constructor syntax for a pure native-handle class resolves to a C
-     * factory returning its opaque handle.  This is distinct from an ordinary
-     * extern declaration because the source special has no xlang return list. */
+    /* A canonical native-class result needs physical-field/value publication
+     * into a managed owner. This includes create() and registered extern
+     * functions/methods/getters returning such a class; it is a physical result
+     * contract, not a constructor-only source-syntax category. */
     XL6_IR_CALL_TARGET_NATIVE_FACTORY,
     XL6_IR_CALL_TARGET_INTERNAL_ASYNC,
     XL6_IR_CALL_TARGET_INTERNAL_GENERATOR
