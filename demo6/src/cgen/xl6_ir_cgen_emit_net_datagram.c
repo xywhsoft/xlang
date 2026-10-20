@@ -10,8 +10,6 @@ static int xl6IrCgenEmitNetDatagramRuntime(XL6_Output* out, const XL6_IrModule* 
         const XL6_IrCallTarget* target = &module->callTargets[i];
         if (target->reachability == XL6_IR_REACHABILITY_UNREACHABLE) continue;
         switch (target->runtimeBridge) {
-        case XL6_IR_RUNTIME_BRIDGE_NET_ADDRESS_LIST: component.addressList = 1; break;
-        case XL6_IR_RUNTIME_BRIDGE_NET_RESOLVE_ASYNC: component.resolveAsync = 1; break;
         case XL6_IR_RUNTIME_BRIDGE_NET_UDP_SOCKET:
             component.socket = 1;
             for (p = 0; p < target->parameterCount; ++p)
@@ -22,7 +20,6 @@ static int xl6IrCgenEmitNetDatagramRuntime(XL6_Output* out, const XL6_IrModule* 
         case XL6_IR_RUNTIME_BRIDGE_NET_UDP_BATCH: component.batch = 1; break;
         case XL6_IR_RUNTIME_BRIDGE_NET_UDP_RECV_ASYNC: component.recvAsync = 1; break;
         case XL6_IR_RUNTIME_BRIDGE_NET_ENGINE_STATS: component.engineStats = 1; break;
-        case XL6_IR_RUNTIME_BRIDGE_NET_RESOLVER_STATS: component.resolverStats = 1; break;
         case XL6_IR_RUNTIME_BRIDGE_NET_UDP_STATS: component.udpStats = 1; break;
         default: break;
         }
@@ -37,19 +34,12 @@ static int xl6IrCgenEmitNetDatagramRuntime(XL6_Output* out, const XL6_IrModule* 
             "{ return value != NULL && xrtValueTypeId(value) == UINT64_C(0x%016llX) ? (xbuffer*)xlir_net_datagram_buffer_borrow_handle(value) : NULL; }\n",
             (unsigned long long)type->typeValueId);
     }
-    if (component.resolveAsync || component.recvAsync) {
+    if (component.recvAsync) {
         xl6OutputPuts(
             "static void xlir_datagram_publish(xpromise* output, xvalue* owned)\n"
             "{ xlir_native_future_publish_xvalue(output, owned); }\n"
             "static xfuture* xlir_datagram_future_map(xfuture* source, xfuturecontinueproc mapper, void* argument)\n"
             "{ xfuture* result; if (source == NULL) return NULL; result = xlir_native_future_then(source, mapper, (uintptr_t)argument); xrtFutureDestroy(source); return result; }\n", out);
-    }
-    if (component.resolveAsync) {
-        XL6_IrTypeId type = xl6IrCgenNetFutureClassPayload(module, XL6_IR_RUNTIME_BRIDGE_NET_RESOLVE_ASYNC);
-        if (!xl6IrCgenEmitNetOwnedClassWrapper(out, module, type, "addresses", diags)) return 0;
-        xl6OutputPuts(
-            "static void xlir_datagram_map_addresses(const xfutureresult* input, xpromise* output, void* argument)\n"
-            "{ xnetaddrlist* list = input != NULL ? (xnetaddrlist*)input->Value : NULL; void* owned = list != NULL ? xrtNetAddrListWithPort(list, (uint16_t)(uintptr_t)argument) : NULL; xlir_datagram_publish(output, xlir_net_addresses_wrap_owned(owned)); }\n", out);
     }
     if (component.recvAsync) {
         XL6_IrTypeId type = xl6IrCgenNetFutureClassPayload(module, XL6_IR_RUNTIME_BRIDGE_NET_UDP_RECV_ASYNC);

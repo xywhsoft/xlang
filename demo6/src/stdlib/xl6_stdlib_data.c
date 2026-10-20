@@ -315,20 +315,7 @@ const char* xl6StdlibXidClassSource =
 #include "xl6_stdlib_crypto.inc"
 
 #include "xl6_stdlib_net_address.inc"
-const char* xl6StdlibNetAddressListClassSource =
-    "class NetAddressList\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_net_address_list_resolve\" create(string host, int port, int family)\n"
-    "    extern \"xl6_xrt_net_address_list_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_net_address_list_count\" func count() as int\n"
-    "    extern \"xl6_xrt_net_address_list_text\" func textNative(int index) as point\n"
-    "    extern \"xl6_xrt_net_address_list_family\" func family(int index) as int\n"
-    "    extern \"xl6_xrt_net_address_list_port\" func port(int index) as int\n"
-    "\n"
-    "    func text(int index) as string\n"
-    "        return __xl_std_runtime_take_cstr(self.textNative(index))\n"
-    "    end\n"
-    "end\n";
+#include "xl6_stdlib_net_resolver.inc"
 
 const char* xl6StdlibSipHasher64ClassSource =
     "class SipHasher64\n"
@@ -500,76 +487,6 @@ const char* xl6StdlibLengthFramerClassSource =
 
 
 
-const char* xl6StdlibNetResolverStatsClassSource =
-    "class NetResolverStats\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_net_stats_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_net_stats_value\" func value(int index) as uint64\n"
-    "\n"
-    "    get workers() as uint64\n"
-    "        return self.value(0)\n"
-    "    end\n"
-    "\n"
-    "    get submitted() as uint64\n"
-    "        return self.value(1)\n"
-    "    end\n"
-    "\n"
-    "    get rejected() as uint64\n"
-    "        return self.value(2)\n"
-    "    end\n"
-    "\n"
-    "    get cacheHits() as uint64\n"
-    "        return self.value(3)\n"
-    "    end\n"
-    "\n"
-    "    get cacheMisses() as uint64\n"
-    "        return self.value(4)\n"
-    "    end\n"
-    "\n"
-    "    get coalesced() as uint64\n"
-    "        return self.value(5)\n"
-    "    end\n"
-    "\n"
-    "    get queriesStarted() as uint64\n"
-    "        return self.value(6)\n"
-    "    end\n"
-    "\n"
-    "    get resolved() as uint64\n"
-    "        return self.value(7)\n"
-    "    end\n"
-    "\n"
-    "    get failed() as uint64\n"
-    "        return self.value(8)\n"
-    "    end\n"
-    "\n"
-    "    get cancelled() as uint64\n"
-    "        return self.value(9)\n"
-    "    end\n"
-    "\n"
-    "    get outstanding() as uint64\n"
-    "        return self.value(10)\n"
-    "    end\n"
-    "\n"
-    "    get activeQueries() as uint64\n"
-    "        return self.value(11)\n"
-    "    end\n"
-    "\n"
-    "    get queuedQueries() as uint64\n"
-    "        return self.value(12)\n"
-    "    end\n"
-    "\n"
-    "    get runningQueries() as uint64\n"
-    "        return self.value(13)\n"
-    "    end\n"
-    "\n"
-    "    get readyCallbacks() as uint64\n"
-    "        return self.value(14)\n"
-    "    end\n"
-    "\n"
-    "    get cachedResults() as uint64\n"
-    "        return self.value(15)\n"
-    "    end\n"
-    "end\n";
 
 
 
@@ -4723,18 +4640,16 @@ static const char xl6StdNetResolveAllBody[] =
     "end\n";
 
 static const char xl6StdNetResolveAsyncBody[] =
-    "extern \"xl6_xrt_net_resolve_async\" func __xl_std_net_resolve_async_native(string host, int port, int family) as future<NetAddressList>\n"
     "func __xl_std_net_resolve_async(string host, int port = 0, int family = 0) as future<NetAddressList>\n"
-    "    return __xl_std_net_resolve_async_native(host, port, family)\n"
+    "    return __xl_std_net_default_resolver.resolveAsync(host, port, family)\n"
     "end\n";
 
 static const char xl6StdNetStatsBody[] =
     "extern \"xl6NetEngineSnapshotV1\" @nonblocking func __xl_std_net_stats(NetEngine engine) as NetEngineStats\n";
 
 static const char xl6StdNetResolverStatsBody[] =
-    "extern \"xl6_xrt_net_resolver_stats\" func __xl_std_net_resolver_stats_native() as point\n"
     "func __xl_std_net_resolver_stats() as NetResolverStats\n"
-    "    return NetResolverStats(point(__xl_std_net_resolver_stats_native()))\n"
+    "    return __xl_std_net_default_resolver.snapshot()\n"
     "end\n";
 
 static const char xl6StdNetProxyBody[] =

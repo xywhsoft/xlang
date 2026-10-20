@@ -1,0 +1,42 @@
+// Validation only: no accepted queries or system name-service calls.
+auto resolver = NetResolver(NetResolverOptions().withWorkers(1))
+bool bad = false
+try
+ auto invalid = resolver.query("a\0b")
+catch ValueError
+ bad = true
+end
+assert bad
+bad = false
+try
+ auto invalid = resolver.query("")
+catch ValueError
+ bad = true
+end
+assert bad
+bad = false
+try
+ auto invalid = resolver.query("127.0.0.1", 99)
+catch ValueError
+ bad = true
+end
+assert bad and resolver.snapshot().submitted == 0
+async func badPort(NetResolver resolver) as bool
+ try
+  auto invalid = await resolver.resolveAsync("127.0.0.1", 65536)
+ catch RangeError
+  return true
+ end
+ return false
+end
+assert await badPort(resolver)
+bad = false
+try
+ resolver.wait(-2)
+catch RangeError
+ bad = true
+end
+assert bad and resolver.snapshot().submitted == 0
+resolver.close()
+assert resolver.wait(5000)
+println("Resolver checked control fields: ok")

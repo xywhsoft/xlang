@@ -3,6 +3,7 @@
  * ownership remain verified from these same descriptors before emission. */
 #include "xl6_net_vector_collection_contracts.inc"
 #include "xl6_net_batch_collection_contracts.inc"
+XL6_NATIVE_COLLECTION_BRIDGE("xl6NetAddressListFromArrayV1",T,V,1,{V},.resultOwner="xl6NetAddressListDestroyV1",.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_CLASS_ARRAY_V1,.nativeClassArrayParameter=1,.nativeClassArrayOwner="xl6NetAddressDestroyV1",.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE)
 XL6_NATIVE_COLLECTION_BRIDGE("xl6ExecutorSubmitBatchLanguageV1",T,XL6_IR_C_ABI_VOID,2,{V,V},.parameterOwners={"xl6ExecutorDestroyLanguageV1"},.nativeContext=XL6_IR_CALL_NATIVE_CONTEXT_NULLARY_VOID_ARRAY_V1,.nativeVoidCallbackArrayParameter=2,.errorPhysicalAbi=XL6_IR_CALL_ERROR_PHYSICAL_FOREIGN_SCOPE)
 XL6_NATIVE_COLLECTION_BRIDGE("xl6ProcessCommandDirectV1",T,V,4,{S,V,I,I},.resultOwner="xl6ProcessCommandDestroyV1",.parameterArrayItemAbis={0,S})
 XL6_NATIVE_COLLECTION_BRIDGE("xl6TextCharsV2",T,V,2,{S,I},C,.nativeArrayResultAbi=XL6_IR_CALL_NATIVE_ARRAY_RESULT_PRIMITIVE_IDS_V1)

@@ -1,0 +1,15 @@
+// Positive-only, offline owned graph for closed language allocation prefixes.
+func savedAddresses() as NetAddressList
+ array<NetAddress> addresses = [NetAddress.loopback(4, 12), NetAddress.loopback(6, 13)]
+ return NetAddressList(addresses)
+end
+array<NetAddressList> saved = [savedAddresses(), savedAddresses().clone()]
+auto changed = saved[0].withPort(100)
+assert changed.port(0) == 100 and saved[1].port(0) == 12
+auto resolver = NetResolver(NetResolverOptions().withWorkers(1).withCacheEntries(0))
+auto configuration = resolver.configuration()
+auto snapshot = resolver.snapshot()
+assert configuration.workers == 1 and snapshot.submitted == 0
+resolver.close()
+assert resolver.wait(5000)
+assert saved[0].at(1).port == 13 and snapshot.workers == 1

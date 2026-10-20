@@ -446,6 +446,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV2Get", (const void*)xl6FutureCallbackRuntimeV2Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV4Get", (const void*)xl6FutureCallbackRuntimeV4Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6FutureCallbackRuntimeV5Get", (const void*)xl6FutureCallbackRuntimeV5Get)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6FutureCallbackFailV1", (const void*)xl6FutureCallbackFailV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ChannelFutureRuntimeV1Get", (const void*)xl6ChannelFutureRuntimeV1Get)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ChannelDirectFutureRuntimeV1Get", (const void*)xl6ChannelDirectFutureRuntimeV1Get)) return 0;
 #define XL6_DEADLINE_SYMBOL(Name) if(!xlApiAddTccSymbol(s,#Name,(const void*)Name))return 0;

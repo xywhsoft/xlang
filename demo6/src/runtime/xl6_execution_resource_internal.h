@@ -13,6 +13,7 @@ typedef struct XL6_ExecutionCreateOptionsV1 {
     union {
         struct { uint32_t threads; size_t limit,stack; } workers;
         const struct xnetengineconfig* engine; /* call-only, copied by the native ctor */
+        const struct xnetresolverconfig* resolver; /* call-only, copied by the native ctor */
     } value;
 } XL6_ExecutionCreateOptionsV1;
 typedef struct XL6_ExecutionFamilyV1 {
@@ -37,6 +38,7 @@ struct XL6_ExecutionResourceV1 {
     struct xexecutor* executor;
     XL6_TaskPool* pool;
     struct xnetengine* engine;
+    struct xnetresolver* resolver;
     XL6_ExecutionFailuresV1* failures;
     size_t references,owners,entries;
     uint64_t cycle;
@@ -52,6 +54,10 @@ struct XL6_ExecutionResourceV1 {
 XL6_EXECUTION_INTERNAL XL6_ExecutionResourceV1* xl6ExecutionCreateInternalV1(
     XL6_ExecutionSourceV1*,const XL6_ExecutionFamilyV1*,const XL6_ExecutionCreateOptionsV1*);
 XL6_EXECUTION_INTERNAL bool xl6ExecutionRequestedInternalV1(const XL6_ExecutionResourceV1*);
+/* Exclusive Resolver lifecycle scope has already consumed its native creator.
+ * Clear the slot under the shared metadata gate; keep the registered resource
+ * until its actual user owners are released. No joins or releases here. */
+XL6_EXECUTION_INTERNAL void xl6ExecutionResolverConsumedInternalV1(XL6_ExecutionScopeV1*);
 XL6_CODE_LEASE_API const XL6_ExecutionFamilyV1* xl6ExecutionExecutorFamilyV1Get(void);
 XL6_CODE_LEASE_API const XL6_ExecutionFamilyV1* xl6ExecutionTaskPoolFamilyV1Get(void);
 #endif

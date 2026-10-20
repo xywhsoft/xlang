@@ -1,0 +1,21 @@
+// Start/retire an empty local worker pool; no lookup, sockets or external I/O.
+auto options = NetResolverOptions().withWorkers(1).withCacheEntries(0)
+auto resolver = NetResolver(options)
+assert not resolver.closed
+auto config = resolver.configuration()
+auto stats = resolver.snapshot()
+assert config.workers == 1 and config.cacheEntries == 0
+assert stats.workers == 1 and stats.submitted == 0 and stats.rejected == 0
+assert stats.outstanding == 0 and stats.activeQueries == 0 and stats.cachedResults == 0
+resolver.clearCache()
+resolver.close()
+assert resolver.closed and resolver.wait(5000) and resolver.wait(0)
+assert resolver.configuration().workers == 1
+bool stopped = false
+try
+ auto invalid = resolver.query("127.0.0.1", 4)
+catch RuntimeError
+ stopped = true
+end
+assert stopped and stats.submitted == 0
+println("Resolver checked lifecycle and independent snapshots: ok")

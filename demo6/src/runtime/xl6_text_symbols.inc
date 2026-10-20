@@ -889,6 +889,7 @@ XL6_TEXT_EXPORT(xl6TimeWeekRangeV1, TIME_CORE)
 XL6_TEXT_EXPORT(xl6TimeISOWeekV1, TIME_CORE)
 XL6_TEXT_EXPORT(xl6DateTimeSplitV1, TIME_DATETIME)
 #include "xl6_net_address_symbols.inc"
+#include "xl6_net_resolver_symbols.inc"
 #include "xl6_net_interfaces_symbols.inc"
 #include "xl6_net_backends_symbols.inc"
 #include "xl6_net_engine_symbols.inc"

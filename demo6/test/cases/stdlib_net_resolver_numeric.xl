@@ -1,0 +1,34 @@
+// Literal numeric addresses take XRT's numeric fast path, never getaddrinfo/DNS.
+async func check() as int
+ auto resolver = NetResolver(NetResolverOptions().withWorkers(1))
+ auto first = resolver.query("127.0.0.1", 4)
+ await first.waitAsync()
+ assert first.done and first.result(8000).at(0).equals(NetAddress.loopback(4, 8000))
+ assert first.result().port(0) == 0
+ auto second = await resolver.resolveAsync("::1", 9000, 6)
+ assert second.count() == 1 and second.family(0) == 6 and second.port(0) == 9000
+ auto same = await resolver.resolveAsync("127.0.0.1", 20, 4)
+ assert same.port(0) == 20 and first.result(8000).port(0) == 8000
+ auto stats = resolver.snapshot()
+ assert stats.submitted == 3 and stats.workers == 1
+ auto liveCancel = CancellationSource()
+ auto registered = await resolver.resolveAsyncCancel("::1", liveCancel.token, 9011, 6)
+ assert registered.port(0) == 9011 and resolver.snapshot().submitted == 4
+ auto cancel = CancellationSource()
+ cancel.cancel()
+ bool cancelled = false
+ try
+  auto invalid = await resolver.resolveAsyncCancel("127.0.0.1", cancel.token)
+ catch CancelledError
+  cancelled = true
+ end
+ assert cancelled and resolver.snapshot().submitted == 4
+ resolver.close()
+ assert resolver.wait(5000)
+ assert first.result(30).port(0) == 30
+ return 0
+end
+assert await check() == 0
+auto sync = net.resolveAll("127.0.0.1", 100, 4)
+assert sync.port(0) == 100 and sync.text(0) == "127.0.0.1"
+println("Resolver numeric async requests and token: ok")
