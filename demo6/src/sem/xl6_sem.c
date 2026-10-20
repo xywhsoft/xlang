@@ -1559,7 +1559,6 @@ static int xl6SemCheckAnonFunc(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCheckAwaitExpr(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemCheckYieldStmt(XL6_SemContext* ctx, XL6_AstNode* node);
 static int xl6SemTypeEquals(XL6_SemContext* ctx, const XL6_AstNode* a, const XL6_AstNode* b);
-static int xl6SemExprCanMatchFunctionType(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode);
 static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode, int reportError);
 static int xl6SemFuncHasVararg(const XL6_AstNode* params);
 static int xl6SemIsContainerBaseTypeName(const char* name);
@@ -1927,19 +1926,22 @@ static int xl6SemClassDeclHasDestroy(const XL6_AstNode* classNode)
     return 0;
 }
 
-static int xl6SemClassDeclHasNativeHandle(XL6_SemContext* ctx, const XL6_AstNode* classNode)
+static const XL6_AstNode* xl6SemClassNativeHandleField(
+    XL6_SemContext* ctx, const XL6_AstNode* classNode, const XL6_AstNode** fieldOwner)
 {
     const XL6_AstNode* owner = classNode;
-    int found = 0;
+    const XL6_AstNode* found = NULL;
+    const XL6_AstNode* foundOwner = NULL;
     size_t depth;
-    if ( ctx == NULL ) return 0;
+    if (fieldOwner != NULL) *fieldOwner = NULL;
+    if (ctx == NULL) return NULL;
     /* One unambiguous native field across the complete inheritance chain.
      * Bound traversal by the registered declarations so malformed cycles do
      * not turn this capability query into unbounded recursion. */
     for ( depth = 0; owner != NULL && depth <= ctx->types.count; ++depth ) {
         const XL6_AstNode* body;
         size_t i;
-        if ( owner->kind != XL6_AST_CLASS || owner->childCount < 2 ) return 0;
+        if ( owner->kind != XL6_AST_CLASS || owner->childCount < 2 ) return NULL;
         body = owner->children[1];
         for ( i = 0; body != NULL && i < body->childCount; ++i ) {
             const XL6_AstNode* member = body->children[i];
@@ -1948,15 +1950,21 @@ static int xl6SemClassDeclHasNativeHandle(XL6_SemContext* ctx, const XL6_AstNode
                  !xl6SemAstHasFlag(member, XL6_AST_FLAG_NATIVE) ||
                  xl6SemAstHasFlag(member, XL6_AST_FLAG_STATIC) ) continue;
             if ( found || !xl6TextEquals(member->text, "handle") ||
-                 member->childCount == 0 ) return 0;
+                 member->childCount == 0 ) return NULL;
             typeNode = xl6SemResolveAliasType(ctx, member->children[0]);
-            if ( typeNode == NULL || !xl6TextEquals(typeNode->text, "point") ) return 0;
-            found = 1;
+            if ( typeNode == NULL || !xl6TextEquals(typeNode->text, "point") ) return NULL;
+            found = member;
+            foundOwner = owner;
         }
         owner = xl6SemBaseClassDecl(ctx, owner);
     }
-    return owner == NULL && found;
+    if (owner != NULL) return NULL;
+    if (fieldOwner != NULL) *fieldOwner = foundOwner;
+    return found;
 }
+
+static int xl6SemClassDeclHasNativeHandle(XL6_SemContext* ctx, const XL6_AstNode* classNode)
+{ return xl6SemClassNativeHandleField(ctx,classNode,NULL) != NULL; }
 
 static int xl6SemBodyHasDerive(const XL6_AstNode* body, const char* ability)
 {
@@ -3742,7 +3750,11 @@ static int xl6SemContainerLiteralMatchesType(
     return 1;
 }
 
-static int xl6SemExprParamMatchCost(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode)
+/* Rejected overload candidates are probes, not user errors. Preserve the
+ * diagnostic mode through nullable/weak callable matching; the selected
+ * argument/assignment check keeps its ordinary reporting contract. */
+static int xl6SemExprParamMatchCostEx(
+    XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode, int reportError)
 {
     XL6_AstNode* exprTypeNode;
     const XL6_AstNode* nullableInner;
@@ -3782,7 +3794,7 @@ static int xl6SemExprParamMatchCost(XL6_SemContext* ctx, const XL6_AstNode* expr
             return 0;
         }
         xl6AstFree(exprTypeNode);
-        innerCost = xl6SemExprParamMatchCost(ctx, expr, nullableInner);
+        innerCost = xl6SemExprParamMatchCostEx(ctx, expr, nullableInner, reportError);
         return innerCost >= 0 ? innerCost + 5 : -1;
     }
     {
@@ -3800,7 +3812,7 @@ static int xl6SemExprParamMatchCost(XL6_SemContext* ctx, const XL6_AstNode* expr
                 return 0;
             }
             xl6AstFree(exprTypeNode);
-            targetCost = xl6SemExprParamMatchCost(ctx, expr, weakTarget);
+            targetCost = xl6SemExprParamMatchCostEx(ctx, expr, weakTarget, reportError);
             return targetCost >= 0 ? targetCost + 5 : -1;
         }
     }
@@ -3812,7 +3824,7 @@ static int xl6SemExprParamMatchCost(XL6_SemContext* ctx, const XL6_AstNode* expr
         return xl6SemExprCanBoxToVar(ctx, expr) ? 80 : -1;
     }
     if ( xl6TextEquals(targetType, "function") ) {
-        return xl6SemExprCanMatchFunctionType(ctx, expr, typeNode) ? 0 : -1;
+        return xl6SemExprCanMatchFunctionTypeEx(ctx, expr, typeNode, reportError) ? 0 : -1;
     }
     if ( xl6TextEquals(targetType, "type") ) {
         return exprType != NULL && xl6TextEquals(exprType, "type") ? 0 : -1;
@@ -3928,6 +3940,9 @@ static int xl6SemExprParamMatchCost(XL6_SemContext* ctx, const XL6_AstNode* expr
     return -1;
 }
 
+static int xl6SemExprParamMatchCost(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode)
+{ return xl6SemExprParamMatchCostEx(ctx,expr,typeNode,1); }
+
 static int xl6SemExprCanMatchParamType(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode)
 {
     return xl6SemExprParamMatchCost(ctx, expr, typeNode) >= 0;
@@ -4042,13 +4057,13 @@ static int xl6SemExprGenericParamMatchCost(
 
         index = xl6SemTypeParamIndexIn(typeParams, typeNode->text);
         if ( index < 0 && !xl6TextEquals(typeNode->text, "function") ) {
-            return xl6SemExprParamMatchCost(ctx, expr, typeNode);
+            return xl6SemExprParamMatchCostEx(ctx, expr, typeNode, 0);
         }
         return -1;
     }
 
     (void)inferredTypes;
-    return xl6SemExprParamMatchCost(ctx, expr, typeNode);
+    return xl6SemExprParamMatchCostEx(ctx, expr, typeNode, 0);
 }
 
 static const XL6_AstNode* xl6SemGenericTypeParamArg(
@@ -5585,6 +5600,12 @@ static XL6_AstNode* xl6SemResolveGenericClassCreate(
 
 static int xl6SemCheckNativeClassPointBindingCtor(XL6_SemContext* ctx, XL6_AstNode* call, XL6_AstNode* classNode)
 {
+    /* An implicit point binding writes the actual native field. It is not a
+     * public constructor declaration and cannot bypass private/protected
+     * access, including inherited native storage shadowed by another field. */
+    const XL6_AstNode* owner = NULL;
+    const XL6_AstNode* field = xl6SemClassNativeHandleField(ctx,classNode,&owner);
+    if (field == NULL || !xl6SemCheckClassMemberAccess(ctx,call,owner,field)) return 0;
     XL6_AstNode* args;
     XL6_AstNode* arg;
     XL6_AstNode* argExpr;
@@ -8134,11 +8155,6 @@ static int xl6SemExprCanMatchFunctionTypeEx(XL6_SemContext* ctx, const XL6_AstNo
         }
     }
     return 1;
-}
-
-static int xl6SemExprCanMatchFunctionType(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode)
-{
-    return xl6SemExprCanMatchFunctionTypeEx(ctx, expr, typeNode, 1);
 }
 
 static int xl6SemExprFunctionValueMatchAlreadyDiagnosed(XL6_SemContext* ctx, const XL6_AstNode* expr, const XL6_AstNode* typeNode)
@@ -12665,6 +12681,10 @@ static XL6_AstNode* xl6SemFunctionTypeFromCallableParts(
         xl6AstFree(returnTypes);
         return NULL;
     }
+    /* Invocation return projection uses a transport list. A callable type
+     * always owns the same RETURN_TYPES envelope as a parsed func/lambda,
+     * otherwise structural generic inference rejects identical signatures. */
+    returnTypes->kind = XL6_AST_RETURN_TYPES;
     if ( at != NULL ) {
         typeNode->line = at->line;
         typeNode->column = at->column;

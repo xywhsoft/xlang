@@ -655,7 +655,14 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_execution_failures.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_FAILURES)),{NULL}},
     {"src/runtime/xl6_net_address.c",D(R(NATIVE_HANDLE)),{"XRT_MODULE_NET","XRT_MODULE_STRING","XRT_MODULE_VALUE"}},
     {"src/runtime/xl6_net_resolve_address.c",D(R(NET_ADDRESS)),{"XRT_MODULE_NET_DNS","XRT_MODULE_STRING","XRT_MODULE_UNICODE_TEXT"}},
-    {"src/runtime/xl6_ownership_domain_net_address.c",D(R(OWNERSHIP_CATALOG),R(NET_ADDRESS)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_net_address.c",D(R(OWNERSHIP_CATALOG),R(NET_ADDRESS)),{NULL}},
+    {"src/runtime/xl6_net_interfaces.c",D(R(NATIVE_HANDLE),R(NET_ADDRESS)),{"XRT_MODULE_NET_INTERFACE","XRT_MODULE_STRING","XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_net_interfaces_text.c",D(R(NET_INTERFACES)),{"XRT_MODULE_UNICODE_TEXT","XRT_MODULE_STRING"}},
+    {"src/runtime/xl6_net_interface_query.c",NULL,0,{"XRT_MODULE_NET_INTERFACE","XRT_MODULE_UNICODE_TEXT","XRT_MODULE_STRING"}},
+    {"src/runtime/xl6_net_interface_local.c",D(R(NET_ADDRESS)),{"XRT_MODULE_NET_INTERFACE_TEXT","XRT_MODULE_VALUE"}},
+    {"src/runtime/xl6_ownership_domain_net_interfaces.c",D(R(OWNERSHIP_CATALOG),R(NET_INTERFACES)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_interface.c",D(R(OWNERSHIP_CATALOG),R(NET_INTERFACES)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_interface_address.c",D(R(OWNERSHIP_CATALOG),R(NET_INTERFACES)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");

@@ -1,0 +1,2 @@
+auto snapshot = net.interfaces()
+auto forbidden = snapshot.get(0).handle
