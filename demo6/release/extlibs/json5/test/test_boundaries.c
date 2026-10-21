@@ -230,20 +230,30 @@ int main(void) {
         size_t failures = 0u;
         for (i = 0u; i < 64u; ++i) {
             bool triggered;
+            xmemdebugsnapshot before, after;
+            xrtClearError();
+            xrtMemDebugSnapshot(&before);
             CHECK(xrtMemDebugFailAfter(i));
             root = xjson5_parse_len(nested, sizeof(nested) - 1u);
             triggered = xrtMemDebugFailTriggered();
             xrtMemDebugFailClear();
             if (!triggered) {
                 CHECK(root != NULL && !xjson5_has_error());
-                xrtValueRelease(root);
-                break;
+            } else {
+                CHECK(root != NULL && xrtGetError() != NULL &&
+                    xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+                ++failures;
             }
-            CHECK(root != NULL && xrtGetError() != NULL &&
-                xrtErrorKind(xrtGetError()) == XERR_MEMORY);
             xrtValueRelease(root);
             xrtClearError();
-            ++failures;
+            xrtMemDebugSnapshot(&after);
+            if (after.LiveCount != before.LiveCount ||
+                after.LiveBytes != before.LiveBytes) {
+                fprintf(stderr, "JSON5 parse allocation %zu leaked: %zu -> %zu\n",
+                    i, before.LiveCount, after.LiveCount);
+                return 1;
+            }
+            if (!triggered) break;
         }
         CHECK(failures > 0u && i < 64u);
     }
@@ -259,6 +269,9 @@ int main(void) {
     }
 
     /* 固定种子畸形输入保证每次覆盖同一组解析边界。 */
+    xmemdebugsnapshot before, after;
+    xrtClearError();
+    xrtMemDebugSnapshot(&before);
     for (i = 0; i < 5000; ++i) {
         size_t size = i % sizeof(noise);
         for (j = 0; j < size; ++j) {
@@ -269,6 +282,10 @@ int main(void) {
         CHECK(root != NULL);
         xrtValueRelease(root);
     }
+    xrtClearError();
+    xrtMemDebugSnapshot(&after);
+    CHECK(after.LiveCount == before.LiveCount &&
+        after.LiveBytes == before.LiveBytes);
     puts("json5 boundaries: ok");
     return 0;
 }
