@@ -49,7 +49,7 @@ static void sourceLeave(Source* source)
 static void resourceDrop(Resource* resource)
 {
     xrtownershipscope mutation={0};begin(&mutation);if(!resource->references)abort();bool last=--resource->references==0;
-    if(last&&(resource->owners||resource->entries||resource->source||resource->executor||resource->pool||resource->engine||resource->resolver||resource->retiring||resource->control||
+    if(last&&(resource->owners||resource->entries||resource->source||resource->family->Present(resource)||resource->retiring||resource->control||
         (resource->claim&&!resource->cleared)))abort();
     end(&mutation);
     if(last){resource->family->Drop(resource);xrtFree(resource);}
@@ -73,7 +73,7 @@ static bool waitChanged(Source* source,bool finite)
     source->exited=true;source->workerId=0;end(&mutation);xrtErrorFree(error);return false;
 }
 static bool nativePresent(const Resource* resource)
-{return resource->executor||resource->pool||resource->engine||resource->resolver;}
+{return resource->family->Present(resource);}
 /* Transfer registry and source-back-reference slots to the caller's locals.
  * Both are still REAL owners until the caller drops them outside the gate. */
 static Source* unregisterLocked(Resource* resource)
@@ -187,9 +187,9 @@ bool xl6ExecutionSourceSnapshotV1Get(Source* source,XL6_ExecutionSourceSnapshotV
 Resource* xl6ExecutionCreateInternalV1(Source* source,const XL6_ExecutionFamilyV1* family,const XL6_ExecutionCreateOptionsV1* options)
 {
     if(!family||family->size!=sizeof(*family)||family->abiTag!=XL6_EXECUTION_FAMILY_TAG_V1||
-        !family->Create||!family->Rollback||!family->Retire||!family->Finish||!family->Drop||!family->Trace||!family->Close||!family->Cancel||
+        !family->Create||!family->Rollback||!family->Retire||!family->Finish||!family->Drop||!family->Trace||!family->Close||!family->Cancel||!family->Present||
         family->instanceBytes<sizeof(Resource)||!options||options->kind!=family->kind||
-        (family->kind!=XL6_EXECUTION_EXECUTOR_V1&&family->kind!=XL6_EXECUTION_TASK_POOL_V1&&family->kind!=XL6_EXECUTION_NET_ENGINE_V1&&family->kind!=XL6_EXECUTION_NET_RESOLVER_V1)){
+        (family->kind<XL6_EXECUTION_EXECUTOR_V1||family->kind>XL6_EXECUTION_TCP_LISTENER_V1)){
         xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
     xrtownershipscope mutation={0};begin(&mutation);bool entered=sourceEnterLocked(source,false);
     bool admitted=entered&&!source->closed&&!source->claim;end(&mutation);

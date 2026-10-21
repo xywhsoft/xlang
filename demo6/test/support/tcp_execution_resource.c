@@ -1,0 +1,258 @@
+/* Real managed resource, parent owners and native TCP graph; loopback only. */
+#include "tcp-resource-modules.h"
+#define XRT_MODULE_MEMORY_DEBUG
+#define XRUNTIME_IMPLEMENTATION
+#include "lib/xruntime/xruntime.h"
+#include "src/runtime/xl6_execution_tcp_internal.h"
+#include "src/runtime/xl6_execution_net_engine.h"
+#include "src/runtime/xl6_ownership_catalog.h"
+#include "src/runtime/xl6_ownership_domains.h"
+#include "src/api/xl_foreign_error.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define CHECK(C) do{if(!(C)){fprintf(stderr,"line %u: %s\n",(unsigned)__LINE__,#C);abort();}}while(0)
+typedef XL6_ExecutionResourceV1 Resource;
+enum {CAPACITY=80};
+typedef struct Node {xrtownershipref ref;const xrtownershipadapterv1* adapter;
+    const xrtownershippreparationv1* prepare;const xrtownershipfinishv1* finish;bool ready,done;} Node;
+typedef struct Graph {XL6_ExecutionSourceV1* source;Resource *engine,*listener,*client,*peer,*pending;
+    Node nodes[CAPACITY];size_t count;bool pinned,busy;} Graph;
+static XL6_OwnershipCatalog* catalog;
+static unsigned graphs,ordinary,budgets,failures,abandoned,deferred;
+static void balanced(const xmemdebugsnapshot* before)
+{
+    xmemdebugsnapshot after;xrtClearError();xrtMemDebugSnapshot(&after);
+    CHECK(before->LiveCount==after.LiveCount&&before->LiveBytes==after.LiveBytes);
+    CHECK(after.AllocCount-before->AllocCount==after.FreeCount-before->FreeCount);
+    CHECK(before->InvalidFreeCount==after.InvalidFreeCount&&before->DoubleFreeCount==after.DoubleFreeCount&&
+        before->UseAfterFreeCount==after.UseAfterFreeCount&&before->OverflowCount==after.OverflowCount&&before->UnderflowCount==after.UnderflowCount);
+}
+static void freeze(xrtownershipscope* scope)
+{xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));while(!xrtOwnershipFreezeTryBegin(scope)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}}
+static bool admit(xrtownershipref ref,void* raw)
+{
+    Graph* graph=raw;const xrtownershipadapterv1* adapter=NULL;const xrtownershippreparationv1* prepare=NULL;
+    const xrtownershipfinishv1* finish=NULL;
+    XL6_OwnershipAdmissionV1 result=xl6OwnershipCatalogProbeV1(ref,catalog,&adapter,&prepare,&finish);
+    if(result==XL6_OWNERSHIP_ADMISSION_BUSY)graph->busy=true;
+    return result==XL6_OWNERSHIP_ADMISSION_ADMITTED;
+}
+static xrtownershipsnapshot* snapshot(Graph* graph,xrtownershipscope* scope)
+{
+    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    for(;;){
+        freeze(scope);graph->busy=false;
+        xrtownershipref anchors[CAPACITY+6]={xl6ExecutionSourceOwnershipV1(graph->source),xl6ExecutionResourceOwnershipV1(graph->engine),
+            xl6ExecutionResourceOwnershipV1(graph->listener),xl6ExecutionResourceOwnershipV1(graph->client),xl6ExecutionResourceOwnershipV1(graph->peer)};
+        /* Engine's original caller owner was really released. Each child
+         * owns a separate parent reference, enumerated by its actual family. */
+        xrtownershipref slots[CAPACITY+5]={anchors[0],anchors[2],anchors[3],anchors[4]};size_t a=5,s=4;
+        if(graph->pending){anchors[a++]=xl6ExecutionResourceOwnershipV1(graph->pending);slots[s++]=anchors[a-1];}
+        if(graph->pinned)for(size_t i=0;i<graph->count;++i){anchors[a++]=graph->nodes[i].ref;slots[s++]=graph->nodes[i].ref;}
+        xrtownershipsnapshot* proof=NULL;
+        if(xrtOwnershipSnapshotCreate(anchors,a,slots,s,admit,graph,&proof))return proof;
+        CHECK(graph->busy);xrtClearError();CHECK(xrtOwnershipScopeEnd(scope));CHECK(!xrtDeadlineExpired(until));xrtThreadYield();
+    }
+}
+static void discover(Graph* graph,xrtownershipsnapshot* proof)
+{
+    for(size_t i=0;i<xrtOwnershipSnapshotNodeCount(proof);++i){xrtownershipnode item;
+        CHECK(xrtOwnershipSnapshotNode(proof,i,&item)&&!item.Reachable);size_t j=0;
+        while(j<graph->count&&(graph->nodes[j].ref.Data!=item.Reference.Data||graph->nodes[j].ref.Ops!=item.Reference.Ops))++j;
+        if(j<graph->count)continue;
+        CHECK(graph->count<CAPACITY);Node* n=&graph->nodes[graph->count++];n->ref=item.Reference;
+        CHECK(xl6OwnershipCatalogResolveV1(n->ref,catalog,&n->adapter,&n->prepare,&n->finish));
+        CHECK(n->adapter->Hold(n->ref.Data)&&n->adapter->Claim(n->ref.Data,graph));
+    }
+    graph->pinned=true;
+}
+static void create(Graph* graph,xnetportbackend backend,bool managedAccept)
+{
+    graph->source=xl6ExecutionSourceCreateV1();CHECK(graph->source);
+    xnetengineconfig config;xrtNetEngineConfigInit(&config);config.Workers=1;config.Backend=backend;
+    graph->engine=xl6ExecutionNetEngineCreateV1(graph->source,&config);CHECK(graph->engine&&xl6ExecutionNetEngineStartV1(graph->engine));
+    xnetlistenconfig listen;xrtNetListenConfigInit(&listen);listen.Stream.ReadMode=XNET_STREAM_READ_PROBE;
+    CHECK(xrtNetAddrLoopback(&listen.Address,XNET_FAMILY_IPV4,0));
+    graph->listener=xl6ExecutionTcpListenV1(graph->source,graph->engine,&listen);CHECK(graph->listener);
+    xnetaddr address;CHECK(xl6ExecutionTcpLocalV1(graph->listener,&address));
+    xfuture* future=NULL;XL6_TcpScopeV1 scope={0};
+    if(managedAccept){
+        graph->peer=xl6ExecutionTcpPrepareAcceptV1(graph->source,graph->listener);CHECK(graph->peer);
+        CHECK(!xl6ExecutionTcpEnterInternalV1(graph->peer,XL6_EXECUTION_TCP_STREAM_V1,false,&scope));
+        xrtClearError();CHECK(!scope.execution.resource);
+        future=xl6ExecutionTcpAcceptSourceV1(graph->peer);CHECK(future&&xrtFutureState(future)==XFUTURE_PENDING);
+        xfuture* same=xl6ExecutionTcpAcceptSourceV1(graph->peer);CHECK(same==future);xrtFutureDestroy(same);
+    }else{
+        CHECK(xl6ExecutionTcpEnterInternalV1(graph->listener,XL6_EXECUTION_TCP_LISTENER_V1,false,&scope));
+        future=xrtNetListenerAcceptAsync(scope.listener);CHECK(future);xl6ExecutionTcpLeaveInternalV1(&scope);
+    }
+    graph->client=xl6ExecutionTcpConnectV1(graph->source,graph->engine,&address,0,&listen.Stream);CHECK(graph->client);
+    CHECK(xrtFutureWaitFor(future,UINT64_C(5000000))==XWAIT_OK&&xrtFutureState(future)==XFUTURE_RESOLVED);
+    if(managedAccept){
+        CHECK(xl6ExecutionTcpPromoteAcceptV1(graph->peer));
+        CHECK(!xl6ExecutionTcpPromoteAcceptV1(graph->peer));xrtClearError();
+    }else graph->peer=xl6ExecutionTcpAdoptV1(graph->source,graph->engine,xrtFutureValue(future));
+    CHECK(graph->peer);xrtFutureDestroy(future);
+    XL6_ExecutionResourceSnapshotV1 state={.size=sizeof(state)};
+    CHECK(xl6ExecutionResourceSnapshotV1Get(graph->engine,&state)&&state.owners==4);
+    xl6ExecutionResourceReleaseV1(graph->engine);
+    CHECK(xl6ExecutionResourceSnapshotV1Get(graph->engine,&state)&&state.owners==3&&!state.closing);
+    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));int phase=0;
+    while(xl6ExecutionTcpStateV1(graph->client,&phase)&&phase!=XNET_STREAM_OPEN){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    CHECK(phase==XNET_STREAM_OPEN);
+}
+static void roundTrip(Graph* graph)
+{
+    XL6_TcpScopeV1 scope={0};CHECK(xl6ExecutionTcpEnterInternalV1(graph->client,XL6_EXECUTION_TCP_STREAM_V1,true,&scope));
+    CHECK(xrtNetStreamSend(scope.stream,"abc\0def",7)==XNET_RESULT_OK);xl6ExecutionTcpLeaveInternalV1(&scope);
+    CHECK(xl6ExecutionTcpEnterInternalV1(graph->peer,XL6_EXECUTION_TCP_STREAM_V1,true,&scope));
+    xfuture* read=xrtNetStreamRecvAsync(scope.stream,7);CHECK(read);xl6ExecutionTcpLeaveInternalV1(&scope);
+    CHECK(xrtFutureWaitFor(read,UINT64_C(5000000))==XWAIT_OK&&xrtFutureState(read)==XFUTURE_RESOLVED);
+    xbytesview bytes=xrtNetBytesView(xrtFutureValue(read));CHECK(bytes.Size==7&&memcmp(bytes.Data,"abc\0def",7)==0);xrtFutureDestroy(read);
+    CHECK(!xl6ExecutionTcpEnterInternalV1(graph->listener,XL6_EXECUTION_TCP_STREAM_V1,false,&scope)&&xrtErrorKind(xrtGetError())==XERR_TYPE);
+    xrtClearError();CHECK(!scope.execution.resource&&!scope.listener&&!scope.stream);
+}
+static void dropOrdinary(Graph* graph)
+{
+    xl6ExecutionResourceReleaseV1(graph->pending);
+    xl6ExecutionResourceReleaseV1(graph->client);xl6ExecutionResourceReleaseV1(graph->peer);xl6ExecutionResourceReleaseV1(graph->listener);
+    CHECK(xl6ExecutionSourceCloseV1(graph->source));xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    for(;;){XL6_ExecutionRetireResultV1 result=xl6ExecutionSourceDestroyV1(&graph->source);CHECK(result.ok);
+        if(result.ready)break;
+        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+}
+static void collect(Graph* graph,unsigned order)
+{
+    xrtownershipscope scope={0};xrtownershipsnapshot* proof=snapshot(graph,&scope);discover(graph,proof);
+    xrtOwnershipSnapshotDestroy(proof);CHECK(xrtOwnershipScopeEnd(&scope));xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    for(;;){bool ready=true;
+        for(size_t step=0;step<graph->count;++step){size_t i=order&1?graph->count-1-step:step;Node* n=&graph->nodes[i];
+            if(!n->prepare||n->ready)continue;
+            proof=snapshot(graph,&scope);discover(graph,proof);xrtOwnershipSnapshotDestroy(proof);CHECK(xrtOwnershipScopeEnd(&scope));
+            xrtownershipprepareresult result=n->prepare->Prepare(n->ref.Data,graph);CHECK(result!=XRT_OWNERSHIP_PREPARE_FAILED);
+            n->ready=result==XRT_OWNERSHIP_PREPARE_READY;ready=ready&&n->ready;}
+        if(ready)break;
+        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    proof=snapshot(graph,&scope);discover(graph,proof);xrtOwnershipSnapshotDestroy(proof);
+    for(size_t i=0;i<graph->count;++i){Node* n=&graph->nodes[i];CHECK(!n->prepare||n->prepare->Ready(n->ref.Data));n->adapter->Clear(n->ref.Data,graph);}
+    CHECK(xrtOwnershipScopeEnd(&scope));until=xrtDeadlineAfter(UINT64_C(5000000));
+    for(;;){bool done=true;
+        for(size_t step=0;step<graph->count;++step){size_t i=order&2?graph->count-1-step:step;Node* n=&graph->nodes[i];if(n->done)continue;
+            if(n->finish){xrtownershipfinishresult result=n->finish->Step(n->ref.Data,graph);CHECK(result!=XRT_OWNERSHIP_FINISH_FAILED);n->done=result==XRT_OWNERSHIP_FINISH_READY;}
+            else n->done=!n->adapter->Finish||n->adapter->Finish(n->ref.Data,graph);
+            done=done&&n->done;}
+        if(done)break;
+        CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    xl6ExecutionResourceReleaseV1(graph->listener);xl6ExecutionResourceReleaseV1(graph->client);xl6ExecutionResourceReleaseV1(graph->peer);
+    xl6ExecutionResourceReleaseV1(graph->pending);
+    XL6_ExecutionRetireResultV1 result=xl6ExecutionSourceDestroyV1(&graph->source);CHECK(result.ready&&result.ok&&!graph->source);
+    for(size_t step=0;step<graph->count;++step){size_t i=order&4?graph->count-1-step:step;graph->nodes[i].adapter->Drop(graph->nodes[i].ref.Data);}
+}
+static void pending(Graph* graph,unsigned state)
+{
+    if(!state)return;
+    graph->pending=xl6ExecutionTcpPrepareAcceptV1(graph->source,graph->listener);CHECK(graph->pending);
+    if(state==2){xfuture* future=xl6ExecutionTcpAcceptSourceV1(graph->pending);CHECK(future&&xrtFutureState(future)==XFUTURE_PENDING);
+        xrtFutureDestroy(future);}
+}
+static void abandonedAccept(xnetportbackend backend)
+{
+    xmemdebugsnapshot before;xrtClearError();xrtMemDebugSnapshot(&before);Graph graph={0};create(&graph,backend,true);
+    Resource* carrier=xl6ExecutionTcpPrepareAcceptV1(graph.source,graph.listener);CHECK(carrier);
+    xfuture* future=xl6ExecutionTcpAcceptSourceV1(carrier);CHECK(future);
+    xnetaddr address;CHECK(xl6ExecutionTcpLocalV1(graph.listener,&address));
+    xnetstreamconfig config;xrtNetStreamConfigInit(&config);config.ReadMode=XNET_STREAM_READ_PROBE;
+    Resource* client=xl6ExecutionTcpConnectV1(graph.source,graph.engine,&address,0,&config);CHECK(client);
+    CHECK(xrtFutureWaitFor(future,UINT64_C(5000000))==XWAIT_OK&&xrtFutureState(future)==XFUTURE_RESOLVED);
+    xnetstream* observer=xrtNetStreamRef(xrtFutureValue(future));CHECK(observer);
+    /* Keep both the Engine and an actual native observer alive: dropping the
+     * unpromoted language carrier must close this unobserved accepted result,
+     * not wait for eventual Engine destruction to hide an orphan connection. */
+    xl6ExecutionResourceReleaseV1(carrier);xrtFutureDestroy(future);
+    xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    while(xrtNetStreamState(observer)!=XNET_STREAM_CLOSED){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    xrtNetStreamDestroy(observer);xl6ExecutionResourceReleaseV1(client);dropOrdinary(&graph);balanced(&before);++abandoned;
+}
+static void construction(xnetportbackend backend)
+{
+    for(unsigned kind=0;kind<5;++kind)for(unsigned budget=0;budget<16;++budget){
+        xmemdebugsnapshot before;xrtClearError();xrtMemDebugSnapshot(&before);Graph graph={0};create(&graph,backend,true);
+        Resource* carrier=NULL;xfuture* future=NULL;XL6_TcpScopeV1 borrowed={0};
+        xnetlistenconfig config;xrtNetListenConfigInit(&config);config.Stream.ReadMode=XNET_STREAM_READ_PROBE;
+        CHECK(xrtNetAddrLoopback(&config.Address,XNET_FAMILY_IPV4,0));
+        xnetaddr address;CHECK(xl6ExecutionTcpLocalV1(graph.listener,&address));
+        if(kind==2)CHECK(xl6ExecutionTcpEnterInternalV1(graph.peer,XL6_EXECUTION_TCP_STREAM_V1,false,&borrowed));
+        if(kind==4){carrier=xl6ExecutionTcpPrepareAcceptV1(graph.source,graph.listener);CHECK(carrier);}
+        CHECK(xrtMemDebugFailAfter(budget));++budgets;
+        switch(kind){
+            case 0:carrier=xl6ExecutionTcpListenV1(graph.source,graph.engine,&config);break;
+            case 1:carrier=xl6ExecutionTcpConnectV1(graph.source,graph.engine,&address,0,&config.Stream);break;
+            case 2:carrier=xl6ExecutionTcpAdoptV1(graph.source,graph.engine,borrowed.stream);break;
+            case 3:carrier=xl6ExecutionTcpPrepareAcceptV1(graph.source,graph.listener);break;
+            case 4:future=xl6ExecutionTcpAcceptSourceV1(carrier);break;
+        }
+        bool failed=xrtMemDebugFailTriggered();xrtMemDebugFailClear();
+        if(kind==4?!future:!carrier){CHECK(failed);++failures;}else CHECK(!failed);
+        xrtClearError();if(borrowed.execution.resource)xl6ExecutionTcpLeaveInternalV1(&borrowed);
+        xrtFutureDestroy(future);xl6ExecutionResourceReleaseV1(carrier);
+        dropOrdinary(&graph);balanced(&before);
+    }
+}
+/* Actual single-implementation source boundary, with no production test hook.
+ * Cancellation after native unlink stays pending and may resolve successfully.
+ * The source controller must keep the carrier until that delivery is observed. */
+static void deferredAccept(xnetportbackend backend)
+{
+    xmemdebugsnapshot before;xrtClearError();xrtMemDebugSnapshot(&before);Graph graph={0};create(&graph,backend,true);
+    Resource* carrier=xl6ExecutionTcpPrepareAcceptV1(graph.source,graph.listener);CHECK(carrier);
+    xfuture* future=xl6ExecutionTcpAcceptSourceV1(carrier);CHECK(future&&xrtFutureState(future)==XFUTURE_PENDING);
+    XL6_TcpScopeV1 scope={0};CHECK(xl6ExecutionTcpEnterInternalV1(graph.listener,XL6_EXECUTION_TCP_LISTENER_V1,true,&scope));
+    CHECK(__xrtNetListenerOwnershipEnter(scope.listener,false));xrtownershipscope mutation={0};CHECK(xrtOwnershipMutationBegin(&mutation));
+    __xrtSpinLock(&scope.listener->AcceptLock);
+    __xrt_net_listener_wait* waiter=scope.listener->WaitHead;CHECK(waiter&&__xrtNetListenerWaitRemove(scope.listener,waiter));
+    __xrtSpinUnlock(&scope.listener->AcceptLock);CHECK(xrtOwnershipScopeEnd(&mutation));__xrtNetListenerOwnershipLeave(scope.listener);
+    xnetaddr address;CHECK(xrtNetListenerLocal(scope.listener,&address));
+    xnetstreamconfig config;xrtNetStreamConfigInit(&config);config.ReadMode=XNET_STREAM_READ_PROBE;
+    Resource* client=xl6ExecutionTcpConnectV1(graph.source,graph.engine,&address,0,&config);CHECK(client);
+    xnetstream* peer=NULL;xdeadline until=xrtDeadlineAfter(UINT64_C(5000000));
+    while(!(peer=xrtNetListenerAccept(scope.listener))){CHECK(!xrtGetError()&&!xrtDeadlineExpired(until));xrtThreadYield();}
+    xl6ExecutionTcpLeaveInternalV1(&scope);xnetstream* observer=xrtNetStreamRef(peer);CHECK(observer);
+    xcancel* cancel=xrtFutureCancelToken(future);CHECK(cancel);
+    xl6ExecutionResourceReleaseV1(carrier);until=xrtDeadlineAfter(UINT64_C(5000000));
+    while(!xrtCancelRequested(cancel)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    CHECK(xrtFutureState(future)==XFUTURE_PENDING);
+    XL6_ExecutionSourceSnapshotV1 sourceState={.size=sizeof(sourceState)};
+    CHECK(xl6ExecutionSourceSnapshotV1Get(graph.source,&sourceState)&&sourceState.resources==6&&!sourceState.failed);
+    __xrtNetListenerWaitFinish(waiter,peer,false);xrtCancelDestroy(cancel);xrtFutureDestroy(future);
+    until=xrtDeadlineAfter(UINT64_C(5000000));
+    while(xrtNetStreamState(observer)!=XNET_STREAM_CLOSED){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
+    xrtNetStreamDestroy(observer);xl6ExecutionResourceReleaseV1(client);dropOrdinary(&graph);balanced(&before);++deferred;
+}
+int main(int argc,char** argv)
+{
+    CHECK(xrtMemDebugEnable(true));xl6_error_scope scope={0};CHECK(xl6ErrorScopeBegin(&scope));
+    xl6_error_result error=xl6ErrorScopeEnd(&scope);CHECK(error.ok);xrtErrorFree(error.error);
+    const XL6_OwnershipDomainV1* domains[]={
+        #include "tcp-resource-domains.h"
+    };catalog=xl6OwnershipCatalogCreateV1(domains,sizeof(domains)/sizeof(domains[0]));CHECK(catalog);
+    xnetportbackend backend=XNET_PORT_SELECT;
+    if(argc>1&&strcmp(argv[1],"native")==0){
+        #if defined(_WIN32) || defined(_WIN64)
+        backend=XNET_PORT_IOCP;
+        #elif defined(__linux__)
+        backend=XNET_PORT_EPOLL;
+        #endif
+    }
+    for(unsigned state=0;state<3;++state)for(unsigned order=0;order<9;++order){
+        xmemdebugsnapshot before;xrtClearError();xrtMemDebugSnapshot(&before);Graph graph={0};
+        create(&graph,backend,(order&1)!=0);roundTrip(&graph);pending(&graph,state);
+        if(order<8){collect(&graph,order);++graphs;}else{dropOrdinary(&graph);++ordinary;}
+        balanced(&before);
+    }
+    abandonedAccept(backend);deferredAccept(backend);construction(backend);CHECK(failures>0&&failures<budgets);
+    xl6OwnershipCatalogDestroyV1(catalog);CHECK(xrtMemDebugReset());
+    printf("managed TCP resources: graphs=%u ordinary=%u abandoned=%u deferred=%u allocation-budgets=%u failures=%u; parent owners, exact scoped kinds, NUL roundtrip; balanced backend=%d\n",
+        graphs,ordinary,abandoned,deferred,budgets,failures,(int)backend);
+    return 0;
+}

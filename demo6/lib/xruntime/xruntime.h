@@ -143488,6 +143488,12 @@ static void __xrtNetListenerWaitFinish(
 			pStream,
 			&__xrtNetTcpStreamPayload
 		) ) {
+			/* The real producer rejected result delivery (for example, its
+			 * Promise is already terminal). A cancellation request alone is
+			 * cooperative and does not make a pending Promise terminal.
+			 * No caller received this creator: close the orphan before dropping
+			 * it, otherwise the Engine runtime slot keeps an open stream alive. */
+			(void)xrtNetStreamAbort(pStream);
 			xrtNetStreamDestroy(pStream);
 		}
 	} else if ( bCancelled ) {

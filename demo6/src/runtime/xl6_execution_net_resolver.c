@@ -26,10 +26,11 @@ static bool trace(const Resource* r,xrtownershipvisitor visit,void* context)
 {return !r->resolver||visit(xrtNetResolverOwnership(r->resolver),context);}
 /* Close only orders language admission; no native destruction may race a query. */
 static bool close(Resource* r){(void)r;return true;}
+static bool present(const Resource* r){return r->resolver!=NULL;}
 const XL6_ExecutionFamilyV1* xl6ExecutionNetResolverFamilyV1Get(void)
 {
     static const XL6_ExecutionFamilyV1 family={sizeof(family),XL6_EXECUTION_FAMILY_TAG_V1,
-        XL6_EXECUTION_NET_RESOLVER_V1,create,rollback,retire,finish,drop,trace,close,close,sizeof(Resolver)};
+        XL6_EXECUTION_NET_RESOLVER_V1,create,rollback,retire,finish,drop,trace,close,close,sizeof(Resolver),present};
     return &family;
 }
 Resource* xl6ExecutionNetResolverCreateV1(XL6_ExecutionSourceV1* source,const xnetresolverconfig* config)
