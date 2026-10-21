@@ -1,0 +1,37 @@
+import color
+
+assert color.valid("aBcD") and color.alpha("aBcD") == 221
+assert color.fromHsv(0, -1, 0.5) == "#808080"
+assert color.fromHsv(120, 2, 2) == "#00FF00"
+assert color.fromHsl(-120, 1, 0.5) == "#0000FF"
+assert color.fromHsv(math.nan, 1, 1) == ""
+assert color.fromHsv(0, math.inf, 1) == ""
+assert color.fromHsl(0, 1, -math.inf) == ""
+assert color.mix("#000", "#fff", math.nan) == ""
+assert color.hex(-1, 0, 0) == "" and color.hexA(0, 0, 0, 256) == ""
+assert color.normalize("#abcd") == "#AABBCC"
+assert color.toName("#0000") == "" and color.toName("#000f") == "black"
+assert color.toName("#00ffff") == "aqua" and color.toName("#ff00ff") == "fuchsia"
+assert color.fromName("lightgoldenrodyellow") == "#FAFAD2"
+assert color.fromName("transparent") == "" and color.fromName("红色") == ""
+
+// 返回值跨越大量后续调用后仍独立存活，不能借用可覆盖的全局缓冲。
+array<string> palette = []
+for i in range(64)
+    palette.append(color.hex(i, 2, 3))
+end
+for i in range(64)
+    assert color.red(palette[i]) == i and color.green(palette[i]) == 2
+end
+// 每个 RGBA 分量都遍历 0..255，生成与解析必须逐字节往返。
+for i in range(256)
+    int g = (i * 73 + 19) % 256
+    int b = (i * 151 + 67) % 256
+    int a = (i * 199 + 29) % 256
+    string encoded = color.hexA(i, g, b, a)
+    assert color.valid(encoded)
+    assert color.red(encoded) == i and color.green(encoded) == g
+    assert color.blue(encoded) == b and color.alpha(encoded) == a
+    assert color.normalize(encoded) == color.hex(i, g, b)
+end
+println("color language boundaries: PASS")

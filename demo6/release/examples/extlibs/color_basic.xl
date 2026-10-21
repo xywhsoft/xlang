@@ -1,0 +1,34 @@
+import color
+
+// 将外部输入规范化，再检查颜色分量；数值转换和透明度是两个独立概念。
+string accent = color.normalize("#36c")
+assert color.valid(accent) and color.alpha(accent) == 255
+assert color.red(accent) == 51 and color.green(accent) == 102 and color.blue(accent) == 204
+assert color.fromHsv(color.hue(accent), color.saturation(accent), color.value(accent)) == accent
+assert color.lightness("#f00") == 0.5
+println("accent: " + accent)
+println("rgba: " + color.hexA(51, 102, 204, 128))
+println("hsl: " + color.fromHsl(120, 1, 0.5))
+println("named: " + color.fromName("RebeccaPurple") + " / " + color.toName("#663399"))
+println("middle: " + color.mix(color.hex(0, 0, 0), color.hex(255, 255, 255), 0.5))
+
+// 给调色板选择黑或白文字；这是普通文字对比度检查，不是整页可访问性认证。
+for background in ["#FFFFFF", accent, "#000000"]
+    float black = color.contrast(background, "#000000")
+    float white = color.contrast(background, "#FFFFFF")
+    string foreground = "#000000"
+    float ratio = black
+    if white > black then
+        foreground = "#FFFFFF"
+        ratio = white
+    end
+    string level = "AA"
+    if ratio >= 7 then level = "AAA" end
+    assert ratio >= 4.5
+    assert color.luminance(background) >= 0
+    assert color.isDark(background) != color.isLight(background)
+    println(background + " -> " + foreground + " " + level)
+end
+assert not color.valid("no-color") and color.red("no-color") == -1
+assert color.hex(256, 0, 0) == "" and color.fromName("unknown") == ""
+println("invalid: rejected")

@@ -79,5 +79,22 @@ func main(...) as int
     assert color.toName("#FF0000") == "red", "to name red"
     assert color.toName("#010203") == "", "unnamed hex empty"
 
+    // C 字符串桥接不可只解析内嵌 NUL 之前的有效前缀。
+    string badHex = "#fff\0suffix"
+    assert not color.valid(badHex)
+    assert color.red(badHex) == -1 and color.green(badHex) == -1
+    assert color.blue(badHex) == -1 and color.alpha(badHex) == -1
+    assert color.normalize(badHex) == ""
+    assert color.hue(badHex) == -1 and color.saturation(badHex) == -1
+    assert color.value(badHex) == -1 and color.lightness(badHex) == -1
+    assert color.luminance(badHex) == -1
+    assert color.contrast(badHex, "#fff") == -1
+    assert color.contrast("#fff", badHex) == -1
+    assert not color.isDark(badHex) and not color.isLight(badHex)
+    assert color.mix(badHex, "#fff", 0.5) == ""
+    assert color.mix("#fff", badHex, 0.5) == ""
+    assert color.fromName("red\0suffix") == ""
+    assert color.toName(badHex) == ""
+
     return 0
 end

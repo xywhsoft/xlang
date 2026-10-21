@@ -1,0 +1,9 @@
+accent: #3366CC
+rgba: #3366CC80
+hsl: #00FF00
+named: #663399 / rebeccapurple
+middle: #808080
+#FFFFFF -> #000000 AAA
+#3366CC -> #FFFFFF AA
+#000000 -> #FFFFFF AAA
+invalid: rejected

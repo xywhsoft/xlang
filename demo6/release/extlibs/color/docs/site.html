@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>color - 扩展库 - xlang</title>
+  <meta name="description" content="RGB/RGBA、HSV/HSL、命名色与对比度工具，提供无共享结果缓存的 C/xlang 接口。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+  <style>
+    .extlib-layout { overflow-wrap: anywhere; }
+    .extlib-layout h1 { font-size: 40px; letter-spacing: 0; }
+    .extlib-layout h2 { letter-spacing: 0; }
+    .extlib-layout pre { max-width: 100%; overflow-x: auto; }
+    .color-palette { display: flex; flex-wrap: wrap; gap: 12px; margin: 16px 0; }
+    .color-palette span { display: inline-flex; align-items: center; gap: 8px; }
+    .color-palette i { width: 24px; height: 24px; border: 1px solid #888; flex: none; }
+  </style>
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / color</p>
+    <div class="extlib-title-row"><h1>color</h1><span class="extlib-cat-badge">颜色工具</span></div>
+    <p class="extlib-lead">RGB/RGBA、HSV/HSL、命名色与对比度。C 输出由调用者持有，xlang 字符串独立拥有。</p>
+    <div class="color-palette" aria-label="范例颜色">
+      <span><i style="background:#36c" aria-hidden="true"></i>#3366CC</span>
+      <span><i style="background:#808080" aria-hidden="true"></i>#808080</span>
+      <span><i style="background:#fff" aria-hidden="true"></i>#FFFFFF</span>
+    </div>
+  </header>
+  <section class="ext-panel active" aria-labelledby="quickstart">
+    <h2 id="quickstart">规范化与混色</h2>
+    <pre><code class="language-xlang">import color
+string accent = color.normalize("#36c")
+println(accent)
+println(color.mix("#000", "#fff", 0.5))</code></pre>
+    <p>依次输出 #3366CC、#808080。十六进制输入支持 3/4/6/8 位，# 可省略，不接受空白。
+    四位和八位写法的 alpha 在末尾；名称先用 fromName 转换，valid("red") 为 false。</p>
+
+    <h2 id="api">全部函数</h2>
+    <p>下列颜色/名称参数为 string，RGB/alpha 分量为 int，h/s/v/l/t 为 float；所有参数均必填。</p>
+    <table class="ext-kv"><thead><tr><th>调用</th><th>返回与含义</th></tr></thead><tbody>
+      <tr><td><code>valid(text)</code></td><td>bool，是否为合法十六进制 RGB/RGBA。</td></tr>
+      <tr><td><code>red(text), green(text), blue(text), alpha(text)</code></td><td>int，0..255；无 alpha 默认 255；非法为 -1。</td></tr>
+      <tr><td><code>hex(r,g,b), hexA(r,g,b,a)</code></td><td>string，大写 #RRGGBB / #RRGGBBAA；分量越界为空串。</td></tr>
+      <tr><td><code>normalize(text)</code></td><td>string，展开短写、舍弃 alpha；非法为空串。</td></tr>
+      <tr><td><code>hue(text)</code></td><td>float，色相 [0,360)，灰色为 0。</td></tr>
+      <tr><td><code>saturation(text), value(text)</code></td><td>float，HSV 的 S/V，范围 [0,1]。</td></tr>
+      <tr><td><code>lightness(text)</code></td><td>float，HSL 的 L，范围 [0,1]；不是相对亮度。</td></tr>
+      <tr><td><code>fromHsv(h,s,v), fromHsl(h,s,l)</code></td><td>string，转换为 RGB；有限 hue 环绕，其他有限分量截至 [0,1]。</td></tr>
+      <tr><td><code>luminance(text), contrast(a,b)</code></td><td>float，相对亮度 [0,1] / 对比度 [1,21]。</td></tr>
+      <tr><td><code>isDark(text), isLight(text)</code></td><td>bool，合法颜色按相对亮度 0.5 分界；非法均 false。</td></tr>
+      <tr><td><code>mix(a,b,t)</code></td><td>string，编码后的 RGB 分量插值；有限 t 截至 [0,1]，舍弃 alpha。</td></tr>
+      <tr><td><code>fromName(name)</code></td><td>string，148 个 CSS 命名色，ASCII 大小写不敏感。</td></tr>
+      <tr><td><code>toName(text)</code></td><td>string，仅匹配不透明颜色；同值别名返回按字母顺序排列的第一个。</td></tr>
+    </tbody></table>
+    <p>数值查询遇到非法颜色返回 -1，文本查询返回空串。NaN/无穷浮点参数返回空串；
+    分配失败属于错误，不能当作正常空结果。saturation 返回 HSV 饱和度，不是 HSL 饱和度。</p>
+
+    <h2 id="semantics">使用边界</h2>
+    <p>normalize/mix 不保留 alpha，luminance/contrast 不进行背景合成。透明颜色应先确定实际背景。
+    isDark/isLight 是方便判断，不是可访问性结论。工具不解析 rgb()/hsl() 文本、系统颜色或其他色域。</p>
+    <p>fromName 不接受 transparent/currentColor 或前后空白；toName 不模糊寻找近似色。
+    cyan/aqua 等别名可能得到同一个规范名称，不承诺恢复原输入。</p>
+    <p>颜色值参考 <a href="https://www.w3.org/TR/2026/CRD-css-color-4-20260926/#named-colors">W3C 命名色表</a>，
+    亮度参考 <a href="https://www.w3.org/WAI/WCAG21/Understanding/relative-luminance.html">W3C sRGB 定义</a>。</p>
+
+    <h2 id="c-api">C 接口与所有权</h2>
+    <p>include/color.h 的数值接口返回 bool/int64_t/double，八个文本接口接收 char *output 与 size_t capacity。
+    XCOLOR_HEX_SIZE=10，XCOLOR_NAME_SIZE=24，容量包含结尾 NUL。足够大的输出可与输入共用缓冲。</p>
+    <p>C 核心结果不用释放，各线程使用自己的缓冲；没有共享可变缓存，正常路径不分配。
+    NULL/零容量输出设置 XERR_ARGUMENT，容量不足设置 XERR_RANGE；非法颜色正常返回 false 和空串。
+    每次公开调用清除旧 XRT 错误。输入是借用的 NUL 结尾文本，不保留指针。</p>
+    <p>仅 color_native.h 的 *_text 桥返回需 xrtFree 的独立字符串，NULL 表示分配失败；
+    xlang 已由 takeCstr 接管。普通 C 用户只链接 color_core.c 和所需 XRT，不需要语言编译器。</p>
+
+    <h2 id="examples">双语范例</h2>
+    <p>发行目录运行 xl run examples/extlibs/color_basic.xl；C 对照为 extlibs/color/examples/basic.c。
+    范例覆盖 21 个 API，实现同一组转换与黑/白前景选择，按固定黄金输出核对。
+    在 demo6 根目录也可直接运行 xl run release/extlibs/color/examples/basic.c；该 C 范例只内嵌纯 C 核心。
+    开发仓库仍可用 tools/run_extlib_c.ps1 -Package color -Source release/extlibs/color/examples/basic.c。</p>
+    <p>AA/AAA 标签只表示普通文字的对比度阈值，不是整页可访问性认证。</p>
+
+    <h2 id="verification">验收范围</h2>
+    <p>门禁检查 C 缓冲边界、输入输出重叠、非有限数、零分配核心、拥有结果的故障恢复，
+    四线程结果/错误隔离，独立数值和 148 个命名色参照，实际生成 C 原型、JIT/AOT、DLL 上下文及双语输出。</p>
+    <p>当前正式 xl.exe 的语言分配失败用例已通过。完整教学范例 AOT 仍等待共享文本快照符号修复；
+    源码驱动借用正式 DLL 的 TCC core，并非正式产品全量重建。此页不宣称全部发布形态已经准入。</p>
+    <p>xlang 字符串入口已拒绝内嵌 NUL，不把有效前缀误判为完整颜色。Linux 门禁现同次覆盖 C sanitizer/oracle、XLang 边界及分配故障、双语范例逐字节对照；32 位/ARM、TSan 和长期性能仍待验收。
+    Windows 当前可用 tools/check_extlib_color.ps1 -SkipAot 跑完非 AOT 检查；默认入口仍要求完整 AOT。
+    Linux 执行入口：tools/check_extlib_color.sh。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

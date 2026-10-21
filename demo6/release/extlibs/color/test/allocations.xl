@@ -1,0 +1,43 @@
+import color
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func result(int index) as string
+    if index == 0 then return color.hex(1, 2, 3) end
+    if index == 1 then return color.hexA(1, 2, 3, 4) end
+    if index == 2 then return color.normalize("#abc") end
+    if index == 3 then return color.fromHsv(0, 1, 1) end
+    if index == 4 then return color.fromHsl(120, 1, 0.5) end
+    if index == 5 then return color.mix("#000", "#fff", 0.5) end
+    if index == 6 then return color.fromName("red") end
+    return color.toName("#fff")
+end
+
+array<string> expected = ["#010203", "#01020304", "#AABBCC", "#FF0000", "#00FF00", "#808080", "#FF0000", "white"]
+int failures = 0
+int successes = 0
+for i in range(8)
+    for allocation in range(16)
+        bool caught = false
+        string value = ""
+        assert failAfter(uint64(allocation))
+        try
+            value = result(i)
+        catch MemoryError
+            caught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert triggered == caught, f"color allocation mismatch: api={i}, failAfter={allocation}, triggered={triggered}, caught={caught}"
+        if caught then
+            failures += 1
+        else
+            assert value == expected[i], f"color result mismatch: api={i}, failAfter={allocation}, value={value}"
+            successes += 1
+        end
+        assert result(i) == expected[i], f"color recovery mismatch: api={i}, failAfter={allocation}"
+    end
+end
+assert failures > 0 and successes > 0
+println("color language allocation: PASS")
