@@ -3695,12 +3695,13 @@ static void stbir__cleanup_gathered_coefficients( stbir_edge edge, stbir__filter
 
 static int stbir__pack_coefficients( int num_contributors, stbir__contributors* contributors, float * coefficents, int coefficient_width, int widest, int row0, int row1 ) 
 {
-  #define STBIR_MOVE_1( dest, src ) { STBIR_NO_UNROLL(dest); ((stbir_uint32*)(dest))[0] = ((stbir_uint32*)(src))[0]; }
-  #define STBIR_MOVE_2( dest, src ) { STBIR_NO_UNROLL(dest); ((stbir_uint64*)(dest))[0] = ((stbir_uint64*)(src))[0]; }
+  // 系数数组只保证 float 对齐，不能通过更宽的整数指针读写。
+  #define STBIR_MOVE_1( dest, src ) { STBIR_NO_UNROLL(dest); memcpy(dest, src, sizeof(float)); }
+  #define STBIR_MOVE_2( dest, src ) { STBIR_NO_UNROLL(dest); memcpy(dest, src, 2 * sizeof(float)); }
   #ifdef STBIR_SIMD
   #define STBIR_MOVE_4( dest, src ) { stbir__simdf t; STBIR_NO_UNROLL(dest); stbir__simdf_load( t, src ); stbir__simdf_store( dest, t ); }
   #else
-  #define STBIR_MOVE_4( dest, src ) { STBIR_NO_UNROLL(dest); ((stbir_uint64*)(dest))[0] = ((stbir_uint64*)(src))[0]; ((stbir_uint64*)(dest))[1] = ((stbir_uint64*)(src))[1]; }
+  #define STBIR_MOVE_4( dest, src ) { STBIR_NO_UNROLL(dest); memcpy(dest, src, 4 * sizeof(float)); }
   #endif
 
   int row_end = row1 + 1;
@@ -6832,13 +6833,16 @@ static void stbir__free_internal_mem( stbir__info *info )
     }
     for( i = 0 ; i < info->splits ; i++ )
     {
-      for( j = 0 ; j < info->alloc_ring_buffer_num_entries ; j++ )
+      if ( info->split_info[i].ring_buffers )
       {
-        #ifdef STBIR_SIMD8
-        if ( info->effective_channels == 3 )
-          --info->split_info[i].ring_buffers[j]; // avx in 3 channel mode needs one float at the start of the buffer
-        #endif
-        STBIR__FREE_AND_CLEAR( info->split_info[i].ring_buffers[j] );
+        for( j = 0 ; j < info->alloc_ring_buffer_num_entries ; j++ )
+        {
+          #ifdef STBIR_SIMD8
+          if ( info->effective_channels == 3 )
+            --info->split_info[i].ring_buffers[j]; // avx in 3 channel mode needs one float at the start of the buffer
+          #endif
+          STBIR__FREE_AND_CLEAR( info->split_info[i].ring_buffers[j] );
+        }
       }
 
       #ifdef STBIR_SIMD8
@@ -7053,7 +7057,10 @@ static stbir__info * stbir__alloc_internal_mem_and_build_samplers( stbir__sample
   void * alloced = 0;
   size_t alloced_total = 0;
   int vertical_first;
-  size_t decode_buffer_size, ring_buffer_length_bytes, ring_buffer_size, vertical_buffer_size;
+  size_t decode_buffer_size, ring_buffer_length_bytes, vertical_buffer_size;
+#ifndef STBIR__SEPARATE_ALLOCATIONS
+  size_t ring_buffer_size;
+#endif
   int alloc_ring_buffer_num_entries;
 
   int alpha_weighting_type = 0; // 0=none, 1=simple, 2=fancy
@@ -7123,7 +7130,9 @@ static stbir__info * stbir__alloc_internal_mem_and_build_samplers( stbir__sample
   if ( ( !vertical->is_gather ) && ( alloc_ring_buffer_num_entries > conservative_split_output_size ) )
     alloc_ring_buffer_num_entries = conservative_split_output_size;
 
+#ifndef STBIR__SEPARATE_ALLOCATIONS
   ring_buffer_size = (size_t)alloc_ring_buffer_num_entries * (size_t)ring_buffer_length_bytes;
+#endif
 
   // The vertical buffer is used differently, depending on whether we are scattering
   //   the vertical scanlines, or gathering them.
@@ -7140,7 +7149,8 @@ static stbir__info * stbir__alloc_internal_mem_and_build_samplers( stbir__sample
     stbir__sampler * possibly_use_horizontal_for_pivot = 0;
 
 #ifdef STBIR__SEPARATE_ALLOCATIONS
-    #define STBIR__NEXT_PTR( ptr, size, ntype ) if ( alloced ) { void * p = STBIR_MALLOC( size, user_data); if ( p == 0 ) { stbir__free_internal_mem( info ); return 0; } (ptr) = (ntype*)p; }
+    // The failure path walks these pointers; keep unallocated entries null.
+    #define STBIR__NEXT_PTR( ptr, size, ntype ) if ( alloced ) { void * p = STBIR_MALLOC( size, user_data); if ( p == 0 ) { stbir__free_internal_mem( info ); return 0; } memset( p, 0, size ); (ptr) = (ntype*)p; }
 #else
     #define STBIR__NEXT_PTR( ptr, size, ntype ) advance_mem = (void*) ( ( ((size_t)advance_mem) + 15 ) & ~15 ); if ( alloced ) ptr = (ntype*)advance_mem; advance_mem = (char*)(((size_t)advance_mem) + (size));
 #endif

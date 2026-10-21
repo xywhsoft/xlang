@@ -1,0 +1,82 @@
+import stb_image
+import stb_image_resize2
+
+func main(...) as int
+    stb_image.StbImage image = stb_image.load(path.join(path.appDir(), "examples/extlibs/assets/tiny.png"), 4)
+    Buffer pixels = image.pixels()
+    assert stb_image_resize2.resize(pixels, 16, 16, 4, 16, 16) == pixels
+    assert stb_image_resize2.resize(pixels, 16, 16, 4, 4, 4).len() == 64
+    assert stb_image_resize2.resizeLinear(pixels, 16, 16, 4, 3, 3).len() == 36
+
+    Buffer transparentWhite = Buffer()
+    Buffer transparentBlack = Buffer()
+    transparentWhite.appendByte(255)
+    transparentWhite.appendByte(0)
+    transparentWhite.appendByte(0)
+    transparentWhite.appendByte(255)
+    transparentBlack.appendByte(0)
+    transparentBlack.appendByte(0)
+    transparentBlack.appendByte(0)
+    transparentBlack.appendByte(255)
+    Buffer srgbWhite = stb_image_resize2.resize(transparentWhite, 2, 1, 2, 1, 1)
+    Buffer srgbBlack = stb_image_resize2.resize(transparentBlack, 2, 1, 2, 1, 1)
+    assert srgbWhite == srgbBlack
+    Buffer expectedGrayAlpha = Buffer()
+    expectedGrayAlpha.appendByte(0)
+    expectedGrayAlpha.appendByte(128)
+    assert srgbWhite == expectedGrayAlpha, "sRGB alpha-weighted grayscale"
+    Buffer linearWhite = stb_image_resize2.resizeLinear(transparentWhite, 2, 1, 2, 1, 1)
+    Buffer linearBlack = stb_image_resize2.resizeLinear(transparentBlack, 2, 1, 2, 1, 1)
+    assert linearWhite == linearBlack
+    assert linearWhite == expectedGrayAlpha, "linear alpha-weighted grayscale"
+
+    bool rejected = false
+    try
+        stb_image_resize2.resize(Buffer(), 16, 16, 4, 4, 4)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "empty source"
+
+    rejected = false
+    try
+        stb_image_resize2.resize(pixels, 16, 16, 4, 4, 4, 1)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "invalid stride"
+
+    rejected = false
+    try
+        stb_image_resize2.resize(pixels, 16, 16, 4, 16384, 16384)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "output limit"
+
+    rejected = false
+    try
+        stb_image_resize2.resize(pixels, 4294967312, 16, 4, 4, 4)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "input width must not wrap to C int"
+
+    rejected = false
+    try
+        stb_image_resize2.resize(pixels, 16, 16, 4, 4294967300, 4)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "output width must not wrap to C int"
+
+    rejected = false
+    try
+        stb_image_resize2.resize(pixels, 16, 16, 4, 4, 4, 4294967296)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "stride must not wrap to C int"
+    println("stb_image_resize2 XL boundaries: PASS")
+    return 0
+end

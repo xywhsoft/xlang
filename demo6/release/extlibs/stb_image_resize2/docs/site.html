@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>stb_image_resize2 - 扩展库 - xlang</title>
+  <meta name="description" content="stb_image_resize2 图片缩放，提供安全 Buffer 输入和 sRGB/linear 两种模式。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / stb_image_resize2</p><h1>stb_image_resize2</h1>
+    <p class="extlib-lead">用 Buffer 缩放 uint8 图片，支持 sRGB 与 linear 模式。</p>
+    <p>输入、输出各限 64 MiB；2 通道按灰度+alpha、4 通道按 RGBA 缩放。XLang 入口在传给 C 前拒绝尺寸及步长整数回绕。C/XL 包级测试、Windows GCC 和 Linux ASan/UBSan 已通过；XL AOT 仍需共享运行时缺符号问题解除。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>resize</code></td><td>sRGB 颜色空间缩放；可指定输入行字节步长</td></tr>
+      <tr><td><code>resizeLinear</code></td><td>线性空间缩放；参数与 resize 相同</td></tr>
+      <tr><td><code>available / version</code></td><td>检查模块与查询所用 stb 版本</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import stb_image
+import stb_image_resize2
+stb_image.StbImage image = stb_image.load("photo.png", 4)
+Buffer small = stb_image_resize2.resize(image.pixels(),
+    image.width(), image.height(), 4, 320, 240)</code></pre>
+    <h2 id="c-api">C</h2>
+    <p>包含 <code>include/stb_image_resize2_native.h</code>。<code>xstbir_resize</code> 返回的 <code>xbuffer*</code> 由调用方以 <code>xrtBufferDestroy</code> 释放；输入像素仅借用。</p>
+    <p>Windows 可从 demo6 目录运行 <code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/stb_image_resize2/test/check.ps1</code>，联合验证 C 边界、XLang 用例与双语范例的固定输出。灰度+alpha 的透明白/不透明黑缩放另核对固定像素值，C 与 XLang 均覆盖 sRGB 和 linear；Linux ASan/UBSan 门禁见包内 README。完整 XL AOT 仍待共享运行时缺符号问题解除。</p>
+  </section>
+</main>
+</body>
+</html>

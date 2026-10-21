@@ -1,0 +1,25 @@
+import stb_image_resize2
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    Buffer pixels = Buffer()
+    for i in range(16)
+        pixels.appendByte(i)
+    end
+
+    bool caught = false
+    assert failAfter(0)
+    try
+        stb_image_resize2.resize(pixels, 2, 2, 4, 4, 4)
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert triggered and caught, "resize allocation failure must remain MemoryError"
+    assert stb_image_resize2.resize(pixels, 2, 2, 4, 4, 4).len() == 64
+    return 0
+end

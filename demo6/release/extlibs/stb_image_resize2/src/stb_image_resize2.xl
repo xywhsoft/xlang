@@ -1,57 +1,47 @@
-// Source package exports. The compiler imports this source file directly.
+// 输出 Buffer 独立拥有缩放后的像素；输入 Buffer 在调用期间只被借用。
+extern "xstbir_available" func __available() as c_int
+extern "xstbir_version" func __version() as string
+extern "xstbir_resize" func __resize(point pixels, c_size length,
+    c_int width, c_int height, c_int channels, c_int outWidth,
+    c_int outHeight, c_int stride, c_int linear) as point
 
-extern "xstbir_available" func __xl6_native_stb_image_resize2_available() as bool
+func resizeMode(Buffer pixels, int width, int height, int channels,
+    int outWidth, int outHeight, int stride, int linear) as Buffer
+    // 先校验 int64，再收窄到 C int，避免尺寸和步长回绕成有效值。
+    if width < 1 or width > 16384 or height < 1 or height > 16384 then
+        throw ValueError "stb_image_resize2: input dimensions out of range"
+    end
+    if outWidth < 1 or outWidth > 16384 or outHeight < 1 or outHeight > 16384 then
+        throw ValueError "stb_image_resize2: output dimensions out of range"
+    end
+    if channels < 1 or channels > 4 or stride < 0 or stride > 2147483647 then
+        throw ValueError "stb_image_resize2: channels or stride out of range"
+    end
+    point result = __resize(pixels.data(), c_size(pixels.len()),
+        c_int(width), c_int(height), c_int(channels),
+        c_int(outWidth), c_int(outHeight), c_int(stride), c_int(linear))
+    if result == null then
+        throw ValueError "stb_image_resize2: image resize failed"
+    end
+    return Buffer(result)
+end
 
 export func available() as bool
-    return __xl6_native_stb_image_resize2_available()
+    return __available() != 0
 end
-extern "xstbir_version" func __xl6_native_stb_image_resize2_version() as string
 
 export func version() as string
-    return __xl6_native_stb_image_resize2_version()
+    return __version()
 end
-extern "xstbir_last_error" func __xl6_native_stb_image_resize2_last_error() as string
 
-export func last_error() as string
-    return __xl6_native_stb_image_resize2_last_error()
+export func resize(Buffer pixels, int width, int height, int channels,
+    int outWidth, int outHeight, int stride = 0) as Buffer
+    return resizeMode(pixels, width, height, channels,
+        outWidth, outHeight, stride, 0)
 end
-extern "xstbir_resize_uint8_srgb_native" func __xl6_native_stb_image_resize2_resize_uint8(point data, c_int width, c_int height, c_int channels, c_int out_width, c_int out_height, c_int input_stride) as point
 
-export func resize_uint8(point data, c_int width, c_int height, c_int channels, c_int out_width, c_int out_height, c_int input_stride) as point
-    return __xl6_native_stb_image_resize2_resize_uint8(data, width, height, channels, out_width, out_height, input_stride)
-end
-extern "xstbir_resize_uint8_linear_native" func __xl6_native_stb_image_resize2_resize_uint8_linear(point data, c_int width, c_int height, c_int channels, c_int out_width, c_int out_height, c_int input_stride) as point
-
-export func resize_uint8_linear(point data, c_int width, c_int height, c_int channels, c_int out_width, c_int out_height, c_int input_stride) as point
-    return __xl6_native_stb_image_resize2_resize_uint8_linear(data, width, height, channels, out_width, out_height, input_stride)
-end
-extern "xstbir_image_valid" func __xl6_native_stb_image_resize2_valid(point image) as c_int
-
-export func valid(point image) as c_int
-    return __xl6_native_stb_image_resize2_valid(image)
-end
-extern "xstbir_image_width" func __xl6_native_stb_image_resize2_width(point image) as c_int
-
-export func width(point image) as c_int
-    return __xl6_native_stb_image_resize2_width(image)
-end
-extern "xstbir_image_height" func __xl6_native_stb_image_resize2_height(point image) as c_int
-
-export func height(point image) as c_int
-    return __xl6_native_stb_image_resize2_height(image)
-end
-extern "xstbir_image_channels" func __xl6_native_stb_image_resize2_channels(point image) as c_int
-
-export func channels(point image) as c_int
-    return __xl6_native_stb_image_resize2_channels(image)
-end
-extern "xstbir_image_data" func __xl6_native_stb_image_resize2_data(point image) as point
-
-export func data(point image) as point
-    return __xl6_native_stb_image_resize2_data(image)
-end
-extern "xstbir_image_release" func __xl6_native_stb_image_resize2_release(point image) as c_int
-
-export func release(point image) as c_int
-    return __xl6_native_stb_image_resize2_release(image)
+export func resizeLinear(Buffer pixels, int width, int height, int channels,
+    int outWidth, int outHeight, int stride = 0) as Buffer
+    return resizeMode(pixels, width, height, channels,
+        outWidth, outHeight, stride, 1)
 end
