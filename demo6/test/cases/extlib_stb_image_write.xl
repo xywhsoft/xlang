@@ -4,6 +4,12 @@ func main(...) as int
     if not stb_image_write.available() then return 1 end
     if string.len(stb_image_write.version()) == 0 then return 2 end
     // 写入路径由完整范例验证；此 case 保持无文件副作用。
-    if string.len(stb_image_write.last_error()) < 0 then return 3 end
+    bool rejected = false
+    try
+        stb_image_write.encodePng(Buffer(), 1, 1, 4)
+    catch ValueError error
+        rejected = true
+    end
+    if not rejected then return 3 end
     return 0
 end

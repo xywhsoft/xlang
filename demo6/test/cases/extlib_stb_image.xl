@@ -2,17 +2,17 @@ import stb_image
 
 func main(...) as int
     string imagePath = "release/examples/extlibs/assets/tiny.png"
-    if not stb_image.available() then return 1 end
-    if stb_image.is_hdr(imagePath) != 0 then return 2 end
+    assert stb_image.available()
+    assert not stb_image.isHdr(imagePath)
 
-    point image = stb_image.load(imagePath, 4)
-    if stb_image.valid(image) == 0 then return 3 end
-    if stb_image.width(image) <= 0 or stb_image.height(image) <= 0 then return 4 end
-    if stb_image.channels(image) != 4 or stb_image.data(image) == null then return 5 end
-    if stb_image.release(image) == 0 then return 6 end
+    stb_image.StbImage image = stb_image.load(imagePath, 4)
+    assert image.valid()
+    assert image.width() == 16 and image.height() == 16
+    assert image.channels() == 4 and image.data() != null
+    assert image.pixels().len() == 1024
 
-    point floatImage = stb_image.loadf(imagePath, 4)
-    if stb_image.valid(floatImage) == 0 or stb_image.is_float(floatImage) == 0 then return 7 end
-    if stb_image.release(floatImage) == 0 then return 8 end
+    stb_image.StbImage floatImage = stb_image.loadf(imagePath, 4)
+    assert floatImage.valid() and floatImage.isFloat()
+    assert floatImage.byteSize() == 4096
     return 0
 end
