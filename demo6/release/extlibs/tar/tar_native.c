@@ -1,10 +1,24 @@
+#ifndef XRT_MODULE_FILE_TEMP
 #define XRT_MODULE_FILE_TEMP
+#endif
+#ifndef XRT_MODULE_FILE_TREE
 #define XRT_MODULE_FILE_TREE
+#endif
+#ifndef XRT_MODULE_IO_BUFFER
 #define XRT_MODULE_IO_BUFFER
+#endif
+#ifndef XRT_MODULE_IO_FILE
 #define XRT_MODULE_IO_FILE
+#endif
+#ifndef XRT_MODULE_STRING
 #define XRT_MODULE_STRING
+#endif
+#ifndef XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_VALUE_CONTAINER
+#endif
+#ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
-#define XRUNTIME_MODULE_TYPED_ARRAY
+#endif
 
 #include "xruntime.h"
 #include "include/xrt_tar.h"
@@ -23,6 +37,7 @@
 
 typedef struct {
 	xrttarreader* Reader;
+	xbuffer* OwnedInput;
 	xrttarentry Entry;
 	bool HasEntry;
 } xtar_reader_handle;
@@ -36,20 +51,6 @@ typedef struct {
 	cstr InvokeMessage;
 	bool InvokeFailed;
 } xtar_callback_context;
-
-/* xlang typed array 的只读扩展 ABI；Value 始终由 XRT typed container 持有。 */
-typedef struct {
-	volatile int32_t iRefCount;
-	uint32 iKind;
-	const void* pItemType;
-	const xrttype* pXrtType;
-	ptr pBridge;
-	ptr pValue;
-} xtar_typed_array;
-
-
-
-
 
 /* 把 TAR 状态映射为 XRT 通用错误类别。 */
 static xerrkind xtar_error_kind(int iCode)
@@ -133,22 +134,26 @@ XTAR_EXPORT const char* xtar_last_error(void)
 
 
 
+/* c_ulonglong 在 LP64 上不是 XRT uint64；导出签名须与生成的 C 原型一致。 */
 /* 在硬上限内把完整文件接管为 XRT Buffer。 */
-XTAR_EXPORT void* xtar_read_file(cstr sPath, uint64 iLimit)
+XTAR_EXPORT void* xtar_read_file(cstr sPath, unsigned long long iLimit)
 {
 	bytes pData;
 	size_t iSize = 0u;
 	xbuffer* pBuffer;
+	xrtresourcelimits Limits;
 
 	xrtClearError();
+	if ( iLimit == 0u ) {
+		xrtResourceLimitsInit(&Limits);
+		iLimit = Limits.iMaxInputBytes;
+	}
 	if ( iLimit > SIZE_MAX ) {
 		xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.tar",
 			XRT_TAR_ERROR_LIMIT, "TAR file input exceeds the platform size limit");
 		return NULL;
 	}
-	pData = iLimit != 0u ?
-		xrtFileReadAllLimit(sPath, (size_t)iLimit, &iSize) :
-		xrtFileReadAll(sPath, &iSize);
+	pData = xrtFileReadAllLimit(sPath, (size_t)iLimit, &iSize);
 	if ( pData == NULL ) { return NULL; }
 	pBuffer = xrtBufferCreateTake(&pData, iSize, iSize);
 	if ( pBuffer == NULL ) { xrtFree(pData); }
@@ -158,7 +163,7 @@ XTAR_EXPORT void* xtar_read_file(cstr sPath, uint64 iLimit)
 
 
 
-/* 只读取文件前六字节识别常用 TAR 压缩封装，零表示普通 TAR。 */
+/* 仅依据可验证的文件头识别压缩容器。 */
 XTAR_EXPORT int xtar_file_compression(cstr sPath)
 {
 	unsigned char arrHeader[6] = { 0 };
@@ -185,7 +190,7 @@ XTAR_EXPORT int xtar_file_compression(cstr sPath)
 		(arrHeader[1] == '7') && (arrHeader[2] == 'z') &&
 		(arrHeader[3] == 'X') && (arrHeader[4] == 'Z') &&
 		(arrHeader[5] == 0x00u) ) {
-		return 3;
+		return 4;
 	}
 	return 0;
 }
@@ -193,7 +198,7 @@ XTAR_EXPORT int xtar_file_compression(cstr sPath)
 
 
 /* 原子写入完整文件。 */
-XTAR_EXPORT bool xtar_write_file(cstr sPath, const void* pData, uint64 iSize)
+XTAR_EXPORT bool xtar_write_file(cstr sPath, void* pData, unsigned long long iSize)
 {
 	xrtClearError();
 	if ( iSize > SIZE_MAX ) {
@@ -210,7 +215,7 @@ XTAR_EXPORT bool xtar_write_file(cstr sPath, const void* pData, uint64 iSize)
 
 
 /* 校验 Reader 并包装当前条目状态。 */
-static void* xtar_validate_reader(xrttarreader* pReader)
+static void* xtar_validate_reader(xrttarreader* pReader, xbuffer* pOwnedInput)
 {
 	xtar_reader_handle* pHandle;
 	const xrttarerror* pError = xrtTarReaderError(pReader);
@@ -218,16 +223,19 @@ static void* xtar_validate_reader(xrttarreader* pReader)
 	if ( pReader == NULL || (pError != NULL && pError->iCode != XRT_TAR_OK) ) {
 		xtar_publish_reader_error(pReader);
 		xrtTarReaderDestroy(pReader);
+		xrtBufferDestroy(pOwnedInput);
 		return NULL;
 	}
 	pHandle = (xtar_reader_handle*)xrtCalloc(1u, sizeof(*pHandle));
 	if ( pHandle == NULL ) {
 		xrtTarReaderDestroy(pReader);
+		xrtBufferDestroy(pOwnedInput);
 		xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.tar",
 			XRT_TAR_ERROR_MEMORY, "cannot allocate TAR reader handle");
 		return NULL;
 	}
 	pHandle->Reader = pReader;
+	pHandle->OwnedInput = pOwnedInput;
 	xrtTarEntryInit(&pHandle->Entry);
 	return pHandle;
 }
@@ -235,24 +243,48 @@ static void* xtar_validate_reader(xrttarreader* pReader)
 
 
 /* 从内存创建 Reader 绑定。 */
-XTAR_EXPORT void* xtar_reader_open_memory(const void* pData, uint64 iSize,
-	uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem, uint64 iMaxEntries,
+XTAR_EXPORT void* xtar_reader_open_memory(void* pData, unsigned long long iSize,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput,
+	unsigned long long iMaxItem, unsigned long long iMaxEntries,
 	bool bAllowSymlinks, bool bAllowHardlinks, bool bAllowSpecialFiles,
 	bool bPreservePermissions)
 {
 	xrttaroptions Options;
+	xbuffer* pOwnedInput;
 
 	xrtClearError();
 	xtar_options(&Options, iMaxInput, iMaxOutput, iMaxItem, iMaxEntries,
 		bAllowSymlinks, bAllowHardlinks, bAllowSpecialFiles, bPreservePermissions);
-	return xtar_validate_reader(xrtTarReaderOpenMemory(pData, iSize, &Options));
+	if ( (iSize > SIZE_MAX) ||
+		(Options.tLimits.iMaxInputBytes != 0u &&
+		 iSize > Options.tLimits.iMaxInputBytes) ) {
+		xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.tar",
+			XRT_TAR_ERROR_LIMIT, "TAR input exceeds the configured limit");
+		return NULL;
+	}
+	if ( pData == NULL && iSize != 0u ) {
+		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.tar",
+			XRT_TAR_ERROR_ARGUMENT, "TAR input data is null");
+		return NULL;
+	}
+	/* XRT 内存 Reader 借用视图；语言桥持有副本到 Reader 销毁。 */
+	pOwnedInput = xrtBufferCreate();
+	if ( pOwnedInput == NULL ) { return NULL; }
+	if ( iSize != 0u && !xrtBufferAppend(pOwnedInput,
+		(xbytesview){ (const uint8*)pData, (size_t)iSize }) ) {
+		xrtBufferDestroy(pOwnedInput);
+		return NULL;
+	}
+	return xtar_validate_reader(
+		xrtTarReaderOpenMemory(pOwnedInput->Data, iSize, &Options), pOwnedInput);
 }
 
 
 
 /* 从文件创建 Reader 绑定。 */
 XTAR_EXPORT void* xtar_reader_open_file(cstr sPath,
-	uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem, uint64 iMaxEntries,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput,
+	unsigned long long iMaxItem, unsigned long long iMaxEntries,
 	bool bAllowSymlinks, bool bAllowHardlinks, bool bAllowSpecialFiles,
 	bool bPreservePermissions)
 {
@@ -261,7 +293,7 @@ XTAR_EXPORT void* xtar_reader_open_file(cstr sPath,
 	xrtClearError();
 	xtar_options(&Options, iMaxInput, iMaxOutput, iMaxItem, iMaxEntries,
 		bAllowSymlinks, bAllowHardlinks, bAllowSpecialFiles, bPreservePermissions);
-	return xtar_validate_reader(xrtTarReaderOpenFile(sPath, &Options));
+	return xtar_validate_reader(xrtTarReaderOpenFile(sPath, &Options), NULL);
 }
 
 
@@ -273,6 +305,7 @@ XTAR_EXPORT void xtar_reader_destroy(void* pValue)
 
 	if ( pHandle == NULL ) { return; }
 	xrtTarReaderDestroy(pHandle->Reader);
+	xrtBufferDestroy(pHandle->OwnedInput);
 	xrtFree(pHandle);
 }
 
@@ -488,39 +521,44 @@ XTAR_EXPORT bool xtar_reader_extract_all(void* pValue,
 
 /* 把 XLang 字符串数组借用为核心精确名称白名单。 */
 XTAR_EXPORT bool xtar_reader_extract_names(void* pValue,
-	cstr sDestination, bool bOverwrite, void* pNames)
+	cstr sDestination, bool bOverwrite, xvalue* pNames)
 {
 	xtar_reader_handle* pHandle = (xtar_reader_handle*)pValue;
-	xtar_typed_array* pArray = (xtar_typed_array*)pNames;
 	xstrview* pViews = NULL;
 	size_t iCount;
 	size_t i;
 	bool bResult;
 
 	if ( pHandle == NULL ) { return false; }
-	if ( pArray == NULL || pArray->iKind != 1u || pArray->pValue == NULL ) {
+	if ( pNames == NULL || xrtValueType(pNames) != XVALUE_ARRAY ) {
 		xrtSetErrorInfo(XERR_TYPE, "xlang.extlib.tar",
 			XRT_TAR_ERROR_ARGUMENT,
 			"TAR extraction names must be an array<string>");
 		return false;
 	}
-	iCount = xrtTypedArrayCount((const xtypedarray*)pArray->pValue);
+	iCount = xrtValueCount(pNames);
 	if ( iCount != 0u ) {
 		pViews = (xstrview*)xrtCalloc(iCount, sizeof(*pViews));
 		if ( pViews == NULL ) { return false; }
 	}
 	for ( i = 0u; i < iCount; ++i ) {
-		str* pName = (str*)xrtTypedArrayGet(
-			(xtypedarray*)pArray->pValue, i);
+		xvalue* pName = xrtValueArrayGet(pNames, i);
 
-		if ( pName == NULL ) {
+		if ( !xrtValueGetString(pName, &pViews[i]) ) {
 			xrtFree(pViews);
-			xrtSetErrorInfo(XERR_STATE, "xlang.extlib.tar",
+			xrtSetErrorInfo(XERR_TYPE, "xlang.extlib.tar",
 				XRT_TAR_ERROR_ARGUMENT,
-				"TAR extraction names contain an invalid item");
+				"TAR extraction names must contain strings");
 			return false;
 		}
-		pViews[i] = xrtStrView(*pName != NULL ? *pName : "");
+		if ( pViews[i].Size != 0u &&
+			memchr(pViews[i].Data, 0, pViews[i].Size) != NULL ) {
+			xrtFree(pViews);
+			xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.tar",
+				XRT_TAR_ERROR_ARGUMENT,
+				"TAR extraction name contains an embedded NUL");
+			return false;
+		}
 	}
 	bResult = xrtTarReaderExtractNames(pHandle->Reader, sDestination,
 		bOverwrite, pViews, iCount);
@@ -811,8 +849,9 @@ static void* xtar_validate_writer(xrttarwriter* pWriter)
 
 
 /* 创建内存 Writer 绑定。 */
-XTAR_EXPORT void* xtar_writer_create_memory(uint64 iMaxInput, uint64 iMaxOutput,
-	uint64 iMaxItem, uint64 iMaxEntries, bool bAllowSymlinks,
+XTAR_EXPORT void* xtar_writer_create_memory(unsigned long long iMaxInput,
+	unsigned long long iMaxOutput, unsigned long long iMaxItem,
+	unsigned long long iMaxEntries, bool bAllowSymlinks,
 	bool bAllowHardlinks, bool bAllowSpecialFiles)
 {
 	xrttaroptions Options;
@@ -827,7 +866,8 @@ XTAR_EXPORT void* xtar_writer_create_memory(uint64 iMaxInput, uint64 iMaxOutput,
 
 /* 创建事务文件 Writer 绑定。 */
 XTAR_EXPORT void* xtar_writer_open_file(cstr sPath,
-	uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem, uint64 iMaxEntries,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput,
+	unsigned long long iMaxItem, unsigned long long iMaxEntries,
 	bool bAllowSymlinks, bool bAllowHardlinks, bool bAllowSpecialFiles)
 {
 	xrttaroptions Options;
@@ -843,7 +883,8 @@ XTAR_EXPORT void* xtar_writer_open_file(cstr sPath,
 
 /* 流式复制已有条目并创建绑定同一路径的事务追加 Writer。 */
 XTAR_EXPORT void* xtar_writer_open_append(cstr sPath,
-	uint64 iMaxInput, uint64 iMaxOutput, uint64 iMaxItem, uint64 iMaxEntries,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput,
+	unsigned long long iMaxItem, unsigned long long iMaxEntries,
 	bool bAllowSymlinks, bool bAllowHardlinks, bool bAllowSpecialFiles,
 	bool bAppendMode)
 {
@@ -877,8 +918,9 @@ static bool xtar_writer_result(xrttarwriter* pWriter, bool bResult)
 
 /* 添加内存普通文件条目。 */
 XTAR_EXPORT bool xtar_writer_add(void* pValue, cstr sName,
-	const void* pData, uint64 iSize, int iMode, int64 iMTime,
-	uint64 iUID, uint64 iGID, cstr sUserName, cstr sGroupName)
+	void* pData, unsigned long long iSize, int iMode, long long iMTime,
+	unsigned long long iUID, unsigned long long iGID,
+	cstr sUserName, cstr sGroupName)
 {
 	xrttarwriter* pWriter = (xrttarwriter*)pValue;
 	xrttarentry Entry;
@@ -900,10 +942,12 @@ XTAR_EXPORT bool xtar_writer_add(void* pValue, cstr sName,
 
 /* 添加 UTF-8 文本条目。 */
 XTAR_EXPORT bool xtar_writer_add_str(void* pValue, cstr sName,
-	cstr sText, uint64 iSize, int iMode, int64 iMTime,
-	uint64 iUID, uint64 iGID, cstr sUserName, cstr sGroupName)
+	cstr sText, unsigned long long iSize, int iMode, long long iMTime,
+	unsigned long long iUID, unsigned long long iGID,
+	cstr sUserName, cstr sGroupName)
 {
-	return xtar_writer_add(pValue, sName, sText, iSize,
+	/* XLang point ABI 使用 void*；底层仅借用并读取文本字节。 */
+	return xtar_writer_add(pValue, sName, (void*)sText, iSize,
 		iMode, iMTime, iUID, iGID, sUserName, sGroupName);
 }
 
@@ -911,7 +955,7 @@ XTAR_EXPORT bool xtar_writer_add_str(void* pValue, cstr sName,
 
 /* 流式添加本地文件。 */
 XTAR_EXPORT bool xtar_writer_add_file(void* pValue,
-	cstr sName, cstr sPath, int iMode, int64 iMTime)
+	cstr sName, cstr sPath, int iMode, long long iMTime)
 {
 	xrttarwriter* pWriter = (xrttarwriter*)pValue;
 	return xtar_writer_result(pWriter,
@@ -922,7 +966,7 @@ XTAR_EXPORT bool xtar_writer_add_file(void* pValue,
 
 /* 添加目录条目。 */
 XTAR_EXPORT bool xtar_writer_add_directory(void* pValue,
-	cstr sName, int iMode, int64 iMTime)
+	cstr sName, int iMode, long long iMTime)
 {
 	xrttarwriter* pWriter = (xrttarwriter*)pValue;
 	return xtar_writer_result(pWriter,
@@ -933,7 +977,7 @@ XTAR_EXPORT bool xtar_writer_add_directory(void* pValue,
 
 /* 添加符号链接或硬链接条目。 */
 XTAR_EXPORT bool xtar_writer_add_link(void* pValue,
-	cstr sName, cstr sTarget, bool bHardLink, int iMode, int64 iMTime)
+	cstr sName, cstr sTarget, bool bHardLink, int iMode, long long iMTime)
 {
 	xrttarwriter* pWriter = (xrttarwriter*)pValue;
 
@@ -958,7 +1002,7 @@ XTAR_EXPORT bool xtar_writer_add_link(void* pValue,
 
 /* 添加 FIFO 元数据条目。 */
 XTAR_EXPORT bool xtar_writer_add_fifo(void* pValue,
-	cstr sName, int iMode, int64 iMTime)
+	cstr sName, int iMode, long long iMTime)
 {
 	xrttarwriter* pWriter = (xrttarwriter*)pValue;
 	xrttarentry Entry;

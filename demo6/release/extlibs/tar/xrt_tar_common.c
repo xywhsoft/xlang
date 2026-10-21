@@ -13,6 +13,8 @@ XRT_API void xrtTarOptionsInit(xrttaroptions* pOptions)
 	pOptions->iSize = sizeof(*pOptions);
 	pOptions->iVersion = XRT_TAR_OPTIONS_VERSION;
 	xrtResourceLimitsInit(&pOptions->tLimits);
+	pOptions->tLimits.iMaxDepth = 0u;
+	pOptions->tLimits.iMaxCompressionRatio = 0u;
 	pOptions->iFileModeMask = 0777u;
 }
 
@@ -36,8 +38,13 @@ bool __xrtTarCopyOptions(xrttaroptions* pOutput, const xrttaroptions* pInput)
 	xrtTarOptionsInit(pOutput);
 	if ( pInput == NULL ) { return true; }
 	if ( pInput->iVersion != XRT_TAR_OPTIONS_VERSION ||
-		pInput->iSize < offsetof(xrttaroptions, iReserved) ) { return false; }
+		pInput->iSize < offsetof(xrttaroptions, iReserved) ||
+		pInput->tLimits.iVersion != XRT_RESOURCE_LIMITS_VERSION ||
+		pInput->tLimits.iSize < sizeof(xrtresourcelimits) ) { return false; }
 	memcpy(pOutput, pInput, pInput->iSize < sizeof(*pOutput) ? pInput->iSize : sizeof(*pOutput));
+	if ( pOutput->tLimits.iReserved != 0u || pOutput->iReserved != 0u ||
+		pOutput->tLimits.iFlags != 0u || pOutput->tLimits.iMaxDepth != 0u ||
+		pOutput->tLimits.iMaxCompressionRatio != 0u ) { return false; }
 	pOutput->iSize = sizeof(*pOutput);
 	pOutput->iVersion = XRT_TAR_OPTIONS_VERSION;
 	return true;
@@ -124,6 +131,14 @@ void __xrtTarFailWriter(xrttarwriter* pWriter, int iCode, const char* sFormat, .
 	pWriter->Failed = true;
 }
 
+/* 流回调的内存故障保留类别；其他失败仍按普通 I/O 处理。 */
+int __xrtTarIoFailureCode(void)
+{
+	const xerror* pCause = xrtGetError();
+	return pCause != NULL && xrtErrorKind(pCause) == XERR_MEMORY ?
+		XRT_TAR_ERROR_MEMORY : XRT_TAR_ERROR_IO;
+}
+
 bool __xrtTarReadExact(xrttarreader* pReader, void* pData, uint64 iSize)
 {
 	bytes pOutput = (bytes)pData;
@@ -147,10 +162,18 @@ bool __xrtTarReadExact(xrttarreader* pReader, void* pData, uint64 iSize)
 		size_t iRead = 0u;
 
 		if ( !xrtReaderReadFull(pReader->Reader, pOutput, iChunk, &iRead) ) {
+			const xerror* pCause = xrtGetError();
 			pReader->Offset += iRead;
-			__xrtTarFailReader(pReader, XRT_TAR_ERROR_FORMAT,
-				"truncated TAR stream at byte %llu",
-				(unsigned long long)pReader->Offset);
+			if ( pCause != NULL && xrtErrorKind(pCause) == XERR_IO &&
+				xrtErrorCode(pCause) == XIO_ERROR_EOF ) {
+				__xrtTarFailReader(pReader, XRT_TAR_ERROR_FORMAT,
+					"truncated TAR stream at byte %llu",
+					(unsigned long long)pReader->Offset);
+			} else {
+				__xrtTarFailReader(pReader, __xrtTarIoFailureCode(),
+					"cannot read TAR stream at byte %llu",
+					(unsigned long long)pReader->Offset);
+			}
 			return false;
 		}
 		pOutput += iRead;
@@ -175,7 +198,7 @@ bool __xrtTarSkipBytes(xrttarreader* pReader, uint64 iSize)
 	if ( xrtReaderCanSeek(pReader->Reader) && (iSize <= INT64_MAX) ) {
 		if ( !xrtReaderSeek(pReader->Reader, (int64)iSize,
 			XSEEK_CURRENT, NULL) ) {
-			__xrtTarFailReader(pReader, XRT_TAR_ERROR_IO,
+			__xrtTarFailReader(pReader, __xrtTarIoFailureCode(),
 				"cannot seek over TAR input");
 			return false;
 		}
@@ -217,7 +240,7 @@ bool __xrtTarWriteAll(xrttarwriter* pWriter, const void* pData, uint64 iSize)
 		if ( !xrtWriterWriteFull(pWriter->Writer,
 			pInput, iChunk, &iWritten) ) {
 			pWriter->OutputBytes += iWritten;
-			__xrtTarFailWriter(pWriter, XRT_TAR_ERROR_IO,
+			__xrtTarFailWriter(pWriter, __xrtTarIoFailureCode(),
 				"cannot write TAR stream");
 			return false;
 		}

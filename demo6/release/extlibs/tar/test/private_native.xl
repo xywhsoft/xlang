@@ -1,0 +1,5 @@
+import tar
+
+auto writer = tar.create()
+writer.addStrNative("entry", "x", c_ulonglong(4096), c_int(420),
+    c_longlong(0), c_ulonglong(0), c_ulonglong(0), "", "")

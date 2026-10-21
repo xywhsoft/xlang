@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>tar - 扩展库 - xlang</title>
+  <meta name="description" content="TAR 内存/文件归档读写的 C 与 xlang 接口。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / tar</p><h1>tar</h1>
+    <p class="extlib-lead">内存与文件 TAR 归档读写。</p>
+    <p>提供条目元数据、追加、选择性提取与显式资源限额。硬链接仅能指向本次提取写出的文件，不借用目标目录原有文件。XLang <code>tar.open(Buffer)</code> 持有输入副本，支持内联临时 Buffer；XRT 原始 C 内存 Reader 仍借用输入。C Reader 的输入限额从当前读取位置起算，进度总量不包含归档前缀；无法取得当前位置时由流式读取执行限额，并将进度总量标为未知。Linux 联合门禁已通过 C sanitizer、LP64 桥接、XLang 边界与双语范例逐字对照；回调提取仍受主线函数值进入 <code>var</code> 的限制，完整 AOT 尚未签收。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">主要接口</h2>
+    <p>C 选项的顶层和嵌套资源限额保留字段必须为零；无效配置在读写器创建时拒绝。TAR 不使用深度、压缩倍率或资源标志：OptionsInit 将前两项清零，显式设置 <code>iMaxDepth</code>、<code>iMaxCompressionRatio</code> 或 <code>iFlags</code> 会报参数错误。</p>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>tar.create()</code>、<code>writer.add()</code>、<code>writer.finish()</code></td><td>在内存中创建归档并取得 Buffer</td></tr>
+      <tr><td><code>tar.open(buffer/path)</code>、<code>reader.next()</code></td><td>顺序读取归档条目</td></tr>
+      <tr><td><code>reader.info()</code>、<code>reader.read()</code></td><td>读取条目元数据与原始内容；元数据类型可写为 <code>tar.TarInfo</code></td></tr>
+      <tr><td><code>reader.extractAll()</code>、<code>extractSelected()</code></td><td>提取到指定目录；目标根路径允许调用方选用符号链接，归档条目不得经目录内链接逃逸；选择白名单按完整名称匹配，含 NUL 的名称在提取前拒绝</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import tar
+
+auto writer = tar.create()
+writer.add("hello.txt", "hello")
+Buffer packed = writer.finish()
+auto reader = tar.open(packed)
+assert reader.next()
+tar.TarInfo entry = reader.info()
+println(entry.name, reader.readText())</code></pre>
+    <h2 id="c-api">C</h2>
+    <p>包含 <code>include/xrt_tar.h</code>；用 <code>xrtTarWriterDestroy</code>、<code>xrtTarReaderDestroy</code> 和 <code>xrtBufferDestroy</code> 释放对应对象。包内 <code>examples/basic_c.c</code> 与 XLang 范例同输出；从发布目录直接运行 <code>./xl run extlibs/tar/examples/basic_c.c</code> 即可。单文件范例只包含三个读写实现单元，正式包仍按清单分别编译。</p>
+    <h2 id="verification">验证范围</h2>
+    <p>2026-10-15：C/XLang 最小归档范例均输出 <code>hello</code>；验证 UTF-8 正文、内联 Buffer 生命周期、限额、含 NUL 的路径/条目名，以及 mode/uid/gid 范围拒绝。选择提取的原生 ABI 已与生成的 <code>xvalue*</code> 原型一致；有效名称实际提取成功，含 NUL 名称不再误匹配前缀。中央 XLang 和 C 选择提取范例均使用独占系统临时目录并清理，避免固定目录误删及并发冲突；Windows/Linux 包门禁均运行并固定输出。<code>writer.save(path, "xz")</code> 写出标准 XZ 流，要求文件名以 <code>.xz</code> 结尾，<code>tar.open(path)</code> 可重开；Python 的 <code>lzma.FORMAT_XZ</code> 与 <code>tarfile</code> 已双向互通。不提供旧 <code>.lzma</code> 路径。压缩归档和原生文件读取桥的 <code>maxInput=0</code> 均使用 XRT 默认上限，不会回退为无上限读取；256 MiB + 1 字节稀疏文件在 Windows/Linux 桥接测试中被拒绝。Linux 桥接的 64 位参数与生成 C 原型一致。无效格式/扩展名不会提前关闭 writer。Windows 不支持还原 POSIX mode 时会在创建目标前拒绝。<code>extractWhere</code> / <code>extractWithProgress</code> 的 XLang 回调及完整 AOT 仍被主线问题阻断，不能将普通归档读写的通过结果外推到该路径。</p>
+    <p>PAX 记录按声明长度拒绝内嵌 NUL，包括数字、路径和未知扩展键；<code>size/uid/gid/mtime</code> 数字使用严格解析，也不接受无符号字段的正号。<code>mtime</code> 允许有数字的小数部分，但当前整数元数据只保存向零截取的整秒。读写器现在拒绝内嵌资源限制的未知版本或截断结构，返回参数错误。Linux 权限恢复以最后一个同名条目为准，<code>dir</code> 与 <code>dir/</code> 等价；旧文件改为链接后不会把旧 mode 施加到链接目标。Windows 可用 <code>test/check.ps1 -SkipAot</code> 单独复验包内 C/XLang 路径，Linux 可用 <code>test/check.sh</code> 运行 ASan/UBSan 与双语对照；默认完整 AOT 仍缺共享符号 <code>xl6NativeHandleTraceLeaf</code>，尚未发布签收。</p>
+    <p>2026-10-21：包内综合回调测试已去掉固定 <code>build/tmp/tar_xlang_test</code> 的递归删除，改用独占临时目录和 finally 清理；但仍在执行前受函数值入 var 的主线语义错误阻断。Windows/Linux 聚焦门禁通过不能代替该综合测试，路径改动与回调路径均待主线修复后验收。</p>
+    <p>自定义 C Reader/Writer 的回调故障区分内存故障与普通 I/O；归档正文真正提前结束仍报格式错误。文件提取的 Writer 阶段已有写入、刷新、关闭与复合失败的 C 注入矩阵，后续关闭故障不覆盖首次失败。Windows 聚焦门禁与 Linux C ASan/UBSan、XLang、XZ 互通通过。真实文件句柄的操作系统刷新/关闭失败尚未注入；完整回调测试和 AOT 仍未签收。</p>
+  </section>
+</main>
+</body>
+</html>

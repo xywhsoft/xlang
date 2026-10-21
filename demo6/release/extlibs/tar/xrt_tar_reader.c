@@ -125,7 +125,8 @@ static bool __xrtTarSetString(str* pTarget, const unsigned char* pValue, size_t 
 	while ( iLength != 0u && (pValue[iLength - 1u] == 0u || pValue[iLength - 1u] == '\n') ) {
 		--iLength;
 	}
-	if ( !xrtUtf8Valid((xstrview){ (const char*)pValue, iLength }, NULL) ) { return false; }
+	if ( memchr(pValue, 0, iLength) != NULL ||
+		!xrtUtf8Valid((xstrview){ (const char*)pValue, iLength }, NULL) ) { return false; }
 	sValue = xrtStrDupN((const char*)pValue, iLength);
 	if ( sValue == NULL ) { return false; }
 	xrtFree(*pTarget);
@@ -136,27 +137,28 @@ static bool __xrtTarSetString(str* pTarget, const unsigned char* pValue, size_t 
 static bool __xrtTarPaxNumber(const unsigned char* pValue, size_t iLength,
 	bool bSigned, int64* pSigned, uint64* pUnsigned)
 {
-	char sNumber[96];
-	char* pEnd;
-	if ( iLength == 0u || iLength >= sizeof(sNumber) ) { return false; }
-	memcpy(sNumber, pValue, iLength);
-	sNumber[iLength] = 0;
-	errno = 0;
+	if ( iLength == 0u || iLength >= 96u ) { return false; }
 	if ( bSigned ) {
-		long long iValue = strtoll(sNumber, &pEnd, 10);
-		if ( errno != 0 || pEnd == sNumber ) { return false; }
-		if ( *pEnd == '.' ) {
-			++pEnd;
-			while ( *pEnd >= '0' && *pEnd <= '9' ) { ++pEnd; }
+		size_t i = 0u;
+		int64 iValue;
+		while ( i < iLength && pValue[i] != '.' ) { ++i; }
+		if ( i < iLength ) {
+			size_t j = i + 1u;
+			if ( j == iLength ) { return false; }
+			for ( ; j < iLength; ++j ) {
+				if ( pValue[j] < '0' || pValue[j] > '9' ) { return false; }
+			}
 		}
-		if ( *pEnd != 0 ) { return false; }
-		if ( pSigned != NULL ) { *pSigned = (int64)iValue; }
+		if ( !xrtIntParse((xstrview){ (const char*)pValue, i },
+			10u, 0u, &iValue) ) { return false; }
+		if ( pSigned != NULL ) { *pSigned = iValue; }
 		return true;
 	}
 	else {
-		unsigned long long iValue = strtoull(sNumber, &pEnd, 10);
-		if ( sNumber[0] == '-' || errno != 0 || pEnd == sNumber || *pEnd != 0 ) { return false; }
-		if ( pUnsigned != NULL ) { *pUnsigned = (uint64)iValue; }
+		uint64 iValue;
+		if ( !xrtUIntParse((xstrview){ (const char*)pValue, iLength },
+			10u, 0u, &iValue) ) { return false; }
+		if ( pUnsigned != NULL ) { *pUnsigned = iValue; }
 		return true;
 	}
 }
@@ -166,6 +168,7 @@ static bool __xrtTarParsePax(xrttarreader* pReader, xrttarpax* pPax,
 {
 	size_t iOffset = 0u;
 	uint64 iRecords = 0u;
+	if ( iSize != 0u && memchr(pData, 0, iSize) != NULL ) { return false; }
 	while ( iOffset < iSize ) {
 		size_t i = iOffset;
 		uint64 iRecordLength = 0u;
@@ -383,6 +386,7 @@ XRT_API xrttarreader* xrtTarReaderCreate(xreader* pInput, bool bTakeOwnership,
 {
 	xrttarreader* pReader = (xrttarreader*)xrtCalloc(1u, sizeof(*pReader));
 	uint64 iSize = 0u;
+	uint64 iPosition = 0u;
 	if ( pReader == NULL ) { return NULL; }
 	xrtTarErrorInit(&pReader->Error);
 	xrtTarEntryInit(&pReader->Entry);
@@ -397,15 +401,15 @@ XRT_API xrttarreader* xrtTarReaderCreate(xreader* pInput, bool bTakeOwnership,
 	}
 	pReader->Reader = pInput;
 	pReader->TakeReader = bTakeOwnership;
-	if ( xrtReaderCanSize(pInput) ) {
-		if ( xrtReaderSize(pInput, &iSize) ) {
-			if ( (pReader->Options.tLimits.iMaxInputBytes != 0u) &&
-				(iSize > pReader->Options.tLimits.iMaxInputBytes) ) {
+	if ( pReader->Options.tLimits.iMaxInputBytes != 0u && xrtReaderCanSize(pInput) ) {
+		if ( xrtReaderSize(pInput, &iSize) &&
+			xrtReaderTell(pInput, &iPosition) && iPosition <= iSize ) {
+			if ( iSize - iPosition > pReader->Options.tLimits.iMaxInputBytes ) {
 				__xrtTarFailReader(pReader, XRT_TAR_ERROR_LIMIT,
 					"TAR input exceeds the configured limit");
 			}
 		} else {
-			/* 大小查询只是快速拒绝路径，流式读取仍会逐字节执行上限。 */
+			/* 长度或当前位置不可得时，仍由流式读取逐字节执行上限。 */
 			xrtClearError();
 		}
 	}
@@ -609,7 +613,7 @@ XRT_API bool xrtTarReaderReadTo(xrttarreader* pReader, xwriter* pWriter)
 		if ( !__xrtTarReadExact(pReader, sChunk, iChunk) ||
 			!xrtWriterWriteFull(pWriter, sChunk, (size_t)iChunk, NULL) ) {
 			if ( !pReader->Failed ) {
-				__xrtTarFailReader(pReader, XRT_TAR_ERROR_IO,
+				__xrtTarFailReader(pReader, __xrtTarIoFailureCode(),
 					"cannot copy TAR entry data");
 			}
 			return false;

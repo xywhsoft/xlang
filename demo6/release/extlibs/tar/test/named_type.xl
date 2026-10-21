@@ -1,0 +1,24 @@
+import tar
+
+func entryName(tar.TarInfo entry) as string
+    return entry.name
+end
+
+func main(...) as int
+    auto writer = tar.create()
+    writer.add("hello.txt", "hello")
+    Buffer packed = writer.finish()
+    auto reader = tar.open(packed)
+    assert reader.next()
+
+    tar.TarInfo entry = reader.info()
+    assert entryName(entry) == "hello.txt"
+    assert entry.isFile
+    assert entry.size == 5
+
+    auto all = tar.open(packed)
+    array<tar.TarInfo> entries = all.entries()
+    assert entries.length == 1
+    assert entryName(entries[0]) == "hello.txt"
+    return 0
+end

@@ -1,0 +1,22 @@
+import tar
+
+func main(...) as int
+    assert arg.length == 3
+    string mode = string(arg[1])
+    string archive = string(arg[2])
+    if mode == "write" then
+        auto writer = tar.create()
+        writer.add("interop.txt", "你好 tar")
+        writer.save(archive, "xz")
+    elseif mode == "read" then
+        auto reader = tar.open(archive)
+        assert reader.next()
+        assert reader.info().name == "interop.txt"
+        assert reader.readText() == "你好 tar"
+        assert not reader.next()
+    else
+        return 2
+    end
+    println("tar xz interop: PASS")
+    return 0
+end

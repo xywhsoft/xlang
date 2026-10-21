@@ -1,0 +1,164 @@
+import tar
+
+func checkCompressedLimit(string workDir, string format, string suffix)
+    string packedPath = path.join(workDir, "limit" + suffix)
+    auto writer = tar.create()
+    writer.add("packed.txt", "packed")
+    writer.save(packedPath, format)
+    auto reader = tar.open(packedPath)
+    assert reader.next() and reader.info().name == "packed.txt"
+    assert reader.readText() == "packed"
+    reader = tar.open(packedPath, 0)
+    assert reader.next() and reader.readText() == "packed"
+
+    // 解压器在分配完整 TAR 前执行调用方的归档输入限额。
+    bool limited = false
+    try
+        tar.open(packedPath, 512)
+    catch RangeError error
+        limited = not string.contains(error.message, "TAR input")
+    end
+    assert limited, format + " output must obey TAR maxInput before allocation"
+    assert file.delete(packedPath)
+end
+
+func checkBoundaries(string workDir)
+    // TAR 文本条目长度按 UTF-8 字节数计算。
+    auto writer = tar.create()
+    writer.add("text.txt", "你好")
+    auto reader = tar.open(writer.finish())
+    assert reader.next()
+    assert reader.readText() == "你好"
+
+    bool invalidLimit = false
+    try
+        tar.create(-1)
+    catch ValueError error
+        invalidLimit = true
+    end
+    assert invalidLimit
+
+    bool invalidName = false
+    writer = tar.create()
+    try
+        writer.add("ok\0hidden", "value")
+    catch ValueError error
+        invalidName = true
+    end
+    assert invalidName
+
+    bool invalidMode = false
+    try
+        writer.add("bad-mode.txt", "value", 4096)
+    catch ValueError error
+        invalidMode = true
+    end
+    assert invalidMode
+
+    bool invalidUid = false
+    try
+        writer.add("bad-uid.txt", "value", uid = -1)
+    catch ValueError error
+        invalidUid = true
+    end
+    assert invalidUid
+
+    bool invalidPath = false
+    try
+        tar.open("missing.tar\0hidden")
+    catch ValueError error
+        invalidPath = true
+    end
+    assert invalidPath
+
+    // 参数错误不能提前关闭并取走 writer 的内存归档。
+    writer = tar.create()
+    writer.add("before.txt", "before")
+    bool invalidCompress = false
+    try
+        writer.save("unused.tar", "invalid")
+    catch ValueError error
+        invalidCompress = true
+    end
+    assert invalidCompress
+    bool wrongSuffix = false
+    try
+        writer.save("unused.tar.lzma", "xz")
+    catch ValueError error
+        wrongSuffix = true
+    end
+    assert wrongSuffix
+    writer.add("after.txt", "after")
+    reader = tar.open(writer.finish())
+    assert reader.next() and reader.info().name == "before.txt"
+    assert reader.next() and reader.info().name == "after.txt"
+
+    string savedPath = path.join(workDir, "saved.tar")
+    writer = tar.create()
+    writer.add("saved.txt", "saved")
+    writer.save(savedPath)
+    reader = tar.open(savedPath)
+    assert reader.next() and reader.info().name == "saved.txt"
+    assert reader.readText() == "saved"
+    assert file.delete(savedPath)
+
+    // 三种压缩 TAR 均按文件头识别，并在解压时执行限额。
+    checkCompressedLimit(workDir, "gzip", ".tar.gz")
+    checkCompressedLimit(workDir, "bz2", ".tar.bz2")
+    checkCompressedLimit(workDir, "xz", ".tar.xz")
+
+    string xzPath = path.join(workDir, "invalid.tar.xz")
+    Buffer xzHeader = Buffer()
+    xzHeader.appendByte(253)
+    xzHeader.append("7zXZ")
+    xzHeader.appendByte(0)
+    file.writeBytes(xzPath, xzHeader.toBytes())
+    bool xzRejected = false
+    try
+        tar.open(xzPath)
+    catch IOError error
+        xzRejected = true
+    end
+    assert xzRejected
+    assert file.delete(xzPath)
+
+    // 精确名称白名单不能把含 NUL 的名称静默缩成可见前缀。
+    string selectedDir = path.join(workDir, "selected")
+    dir.createAll(selectedDir)
+    writer = tar.create()
+    writer.add("prefix.txt", "unexpected")
+    Buffer selectedArchive = writer.finish()
+    reader = tar.open(selectedArchive)
+    array<string> selectedNames = ["prefix.txt\0hidden"]
+    bool selectedRejected = false
+    try
+        reader.extractSelected(selectedDir, selectedNames)
+    catch ValueError error
+        selectedRejected = true
+    end
+    bool extractedPrefix = file.exists(path.join(selectedDir, "prefix.txt"))
+    assert reader.next() and reader.info().name == "prefix.txt"
+    reader = tar.open(selectedArchive)
+    array<string> noNames = []
+    reader.extractSelected(selectedDir, noNames)
+    assert not file.exists(path.join(selectedDir, "prefix.txt"))
+    reader = tar.open(selectedArchive)
+    array<string> validNames = ["prefix.txt"]
+    reader.extractSelected(selectedDir, validNames)
+    bool extractedValid = file.readText(path.join(selectedDir, "prefix.txt")) == "unexpected"
+    dir.delete(selectedDir)
+    assert selectedRejected and not extractedPrefix and extractedValid
+
+    println("tar boundaries: ok")
+end
+
+func main(...) as int
+    string workDir = path.join(path.temp(), "xlang_tar_boundary_" + crypto.randomString(20))
+    dir.createAll(workDir)
+    try
+        checkBoundaries(workDir)
+    finally
+        assert dir.delete(workDir), "temporary TAR test directory must be removed"
+    end
+    return 0
+end

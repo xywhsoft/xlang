@@ -8,16 +8,13 @@ end
 
 
 
-func main(...) as int
-    string root = "build/tmp/tar_xlang_test"
-    string archive = root + "/archive.tar"
-    string cancelOutput = root + "/cancel"
-    string errorOutput = root + "/error"
-    string selectedOutput = root + "/selected"
-    string whereOutput = root + "/where"
-    string whereErrorOutput = root + "/where-error"
-    dir.delete(root)
-    dir.createAll(root)
+func checkTar(string root)
+    string archive = path.join(root, "archive.tar")
+    string cancelOutput = path.join(root, "cancel")
+    string errorOutput = path.join(root, "error")
+    string selectedOutput = path.join(root, "selected")
+    string whereOutput = path.join(root, "where")
+    string whereErrorOutput = path.join(root, "where-error")
 
     auto writer = tar.create(archive, allowHardlinks = true)
     writer.hardlink("alias.txt", "target.txt", 416)
@@ -107,7 +104,15 @@ func main(...) as int
     end
     assert callbackError, "TAR callback error was replaced by cancellation"
 
-    dir.delete(root)
+end
+
+func main(...) as int
+    string root = dir.temp("", "xlang-tar-test-", "")
+    try
+        checkTar(root)
+    finally
+        assert dir.delete(root), "TAR test temporary directory must be removed"
+    end
     println("test_tar.xl: PASS")
     return 0
 end

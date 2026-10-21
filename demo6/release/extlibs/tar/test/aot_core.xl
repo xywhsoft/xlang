@@ -1,0 +1,21 @@
+import tar
+import lzma
+
+func main(...) as int
+    auto writer = tar.create()
+    writer.add("entry.txt", "content")
+    Buffer packed = writer.finish()
+    if packed.len() == 0 then return 1 end
+
+    auto reader = tar.open(packed)
+    if not reader.next() then return 2 end
+    if reader.readText() != "content" then return 3 end
+    if reader.next() then return 4 end
+
+    Buffer compressed = lzma.compress(packed)
+    Buffer unpacked = lzma.decompress(compressed)
+    auto again = tar.open(unpacked)
+    if not again.next() then return 5 end
+    if again.readText() != "content" then return 6 end
+    return 0
+end

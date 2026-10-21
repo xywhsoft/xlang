@@ -19,6 +19,45 @@ typedef struct xrttarpendingmode {
 
 
 
+/* 仅记录本次提取确实写出的普通文件和硬链接，避免借用目标目录原有文件。 */
+static uint64 __xrtTarNameHash(const void* pItem, ptr pUserData)
+{
+	cstr sName = *(cstr const*)pItem;
+	(void)pUserData;
+	return xrtHash64(sName, strlen(sName));
+}
+
+static bool __xrtTarNameEqual(const void* pLeft, const void* pRight,
+	ptr pUserData)
+{
+	(void)pUserData;
+	return strcmp(*(cstr const*)pLeft, *(cstr const*)pRight) == 0;
+}
+
+static bool __xrtTarNameCopy(ptr pTarget, const void* pSource, ptr pUserData)
+{
+	(void)pUserData;
+	*(str*)pTarget = xrtStrDup(*(cstr const*)pSource);
+	return *(str*)pTarget != NULL;
+}
+
+static void __xrtTarNameDrop(ptr pItem, ptr pUserData)
+{
+	(void)pUserData;
+	xrtFree(*(str*)pItem);
+}
+
+static bool __xrtTarTrackName(xrttarreader* pReader, xset* pNames,
+	cstr sName)
+{
+	if ( xrtSetAdd(pNames, &sName) ) { return true; }
+	__xrtTarSetReaderError(pReader, XRT_TAR_ERROR_MEMORY,
+		"cannot retain extracted TAR file name");
+	return false;
+}
+
+
+
 /* 在锚定根内处理已有末级对象，检查和删除都不跟随链接。 */
 static bool __xrtTarRootPrepareTarget(xrttarreader* pReader,
 	xroot Root, cstr sName, bool bOverwrite)
@@ -142,6 +181,30 @@ static bool __xrtTarRootEnsureParent(xrttarreader* pReader,
 
 
 
+/* 单条提取的 Writer 阶段；失败时保留最早的错误并始终关闭 Writer。 */
+bool __xrtTarExtractToWriter(xrttarreader* pReader, xwriter* pWriter, cstr sName)
+{
+	bool bRead;
+	bool bFlush;
+	bool bClose;
+	int iFlushError = XRT_TAR_ERROR_IO;
+
+	bRead = xrtTarReaderReadTo(pReader, pWriter);
+	bFlush = bRead && xrtWriterFlush(pWriter);
+	if ( bRead && !bFlush ) { iFlushError = __xrtTarIoFailureCode(); }
+	bClose = xrtWriterDestroy(pWriter);
+	if ( !bRead ) { return false; }
+	if ( !bFlush || !bClose ) {
+		__xrtTarFailReader(pReader,
+			!bFlush ? iFlushError : __xrtTarIoFailureCode(),
+			"cannot finish TAR extraction file: %s", sName);
+		return false;
+	}
+	return true;
+}
+
+
+
 /* 直接通过根句柄创建普通文件，末级符号链接永远不会被覆盖或跟随。 */
 static bool __xrtTarExtractFile(xrttarreader* pReader, xroot Root,
 	cstr sName, bool bOverwrite)
@@ -149,9 +212,6 @@ static bool __xrtTarExtractFile(xrttarreader* pReader, xroot Root,
 	xfileoptions Options;
 	xfile File;
 	xwriter* pWriter;
-	bool bRead;
-	bool bFlush;
-	bool bClose;
 
 	if ( !__xrtTarRootEnsureParent(pReader, Root, sName) ) { return false; }
 	xrtFileOptionsInit(&Options);
@@ -165,7 +225,7 @@ static bool __xrtTarExtractFile(xrttarreader* pReader, xroot Root,
 
 		__xrtTarSetReaderError(pReader,
 			(pError != NULL && xrtErrorKind(pError) == XERR_EXISTS) ?
-				XRT_TAR_ERROR_EXISTS : XRT_TAR_ERROR_IO,
+				XRT_TAR_ERROR_EXISTS : __xrtTarIoFailureCode(),
 			"cannot create TAR extraction file: %s", sName);
 		return false;
 	}
@@ -176,16 +236,7 @@ static bool __xrtTarExtractFile(xrttarreader* pReader, xroot Root,
 			"cannot allocate TAR extraction writer");
 		return false;
 	}
-	bRead = xrtTarReaderReadTo(pReader, pWriter);
-	bFlush = bRead && xrtWriterFlush(pWriter);
-	bClose = xrtWriterDestroy(pWriter);
-	if ( !bRead ) { return false; }
-	if ( !bFlush || !bClose ) {
-		__xrtTarFailReader(pReader, XRT_TAR_ERROR_IO,
-			"cannot finish TAR extraction file: %s", sName);
-		return false;
-	}
-	return true;
+	return __xrtTarExtractToWriter(pReader, pWriter, sName);
 }
 
 
@@ -216,7 +267,7 @@ static bool __xrtTarApplyModes(xrttarreader* pReader,
 
 	for ( pItem = pHead; pItem != NULL; pItem = pItem->pNext ) {
 		if ( !xrtRootSetMode(Root, pItem->sPath,
-			true, pItem->iMode) ) {
+			false, pItem->iMode) ) {
 			__xrtTarSetReaderError(pReader, XRT_TAR_ERROR_IO,
 				"cannot restore TAR entry permissions: %s", pItem->sPath);
 			return false;
@@ -232,6 +283,30 @@ static void __xrtTarFreeModes(xrttarpendingmode* pHead)
 		xrtFree(pHead->sPath);
 		xrtFree(pHead);
 		pHead = pNext;
+	}
+}
+
+/* 后续同名条目取代旧文件时，旧权限不应覆盖新条目或跟随新链接。 */
+static void __xrtTarDropShadowedModes(xrttarpendingmode** pHead,
+	cstr sPath)
+{
+	xrttarpendingmode** ppItem = pHead;
+	size_t iPathSize = strlen(sPath);
+	if ( iPathSize != 0u && sPath[iPathSize - 1u] == '/' ) { --iPathSize; }
+	while ( *ppItem != NULL ) {
+		xrttarpendingmode* pItem = *ppItem;
+		size_t iStoredSize = strlen(pItem->sPath);
+		if ( iStoredSize != 0u && pItem->sPath[iStoredSize - 1u] == '/' ) {
+			--iStoredSize;
+		}
+		if ( iStoredSize != iPathSize ||
+			memcmp(pItem->sPath, sPath, iPathSize) != 0 ) {
+			ppItem = &pItem->pNext;
+			continue;
+		}
+		*ppItem = pItem->pNext;
+		pItem->pNext = NULL;
+		__xrtTarFreeModes(pItem);
 	}
 }
 
@@ -280,7 +355,7 @@ static bool __xrtTarQueueHardlink(xrttarreader* pReader,
 }
 
 static bool __xrtTarCreateHardlinks(xrttarreader* pReader,
-	xroot Root, xrttarpendinglink* pHead, bool bOverwrite)
+	xroot Root, xrttarpendinglink* pHead, xset* pExtracted, bool bOverwrite)
 {
 	bool bRemaining;
 	bool bProgress;
@@ -294,6 +369,7 @@ static bool __xrtTarCreateHardlinks(xrttarreader* pReader,
 
 			if ( pItem->bDone ) { continue; }
 			bRemaining = true;
+			if ( !xrtSetHas(pExtracted, &pItem->sTarget) ) { continue; }
 			if ( !xrtRootStat(Root, pItem->sTarget, true, &Info) ) {
 				pError = xrtGetError();
 				if ( (pError != NULL) &&
@@ -318,6 +394,9 @@ static bool __xrtTarCreateHardlinks(xrttarreader* pReader,
 					__xrtTarSetReaderError(pReader, XRT_TAR_ERROR_IO,
 						"cannot create TAR hard link: %s", pItem->sOutput);
 				}
+				return false;
+			}
+			if ( !__xrtTarTrackName(pReader, pExtracted, pItem->sOutput) ) {
 				return false;
 			}
 			pItem->bDone = true;
@@ -346,6 +425,23 @@ static void __xrtTarFreeHardlinks(xrttarpendinglink* pHead)
 		xrtFree(pHead->sTarget);
 		xrtFree(pHead);
 		pHead = pNext;
+	}
+}
+
+/* 后续同名条目取代尚未落盘的硬链接，保持归档顺序语义。 */
+static void __xrtTarDropShadowedHardlinks(xrttarpendinglink** pHead,
+	cstr sOutput)
+{
+	xrttarpendinglink** ppItem = pHead;
+	while ( *ppItem != NULL ) {
+		xrttarpendinglink* pItem = *ppItem;
+		if ( strcmp((const char*)pItem->sOutput, sOutput) != 0 ) {
+			ppItem = &pItem->pNext;
+			continue;
+		}
+		*ppItem = pItem->pNext;
+		pItem->pNext = NULL;
+		__xrtTarFreeHardlinks(pItem);
 	}
 }
 
@@ -445,10 +541,14 @@ XRT_API bool xrtTarReaderExtractWhere(xrttarreader* pReader,
 	xrttarentry tEntry;
 	xrttarpendinglink* pLinks = NULL;
 	xrttarpendingmode* pModes = NULL;
+	xset Extracted = {0};
 	xroot Root = NULL;
 	uint64 iTotalInput = 0u;
+	uint64 iSize = 0u;
+	uint64 iPosition = 0u;
 	bool bTotalKnown;
 	bool bHaveCurrent;
+	bool bSetReady = false;
 	bool bResult = false;
 
 	if ( pReader == NULL || pReader->Failed ) { return false; }
@@ -457,6 +557,14 @@ XRT_API bool xrtTarReaderExtractWhere(xrttarreader* pReader,
 			"TAR extraction destination is required");
 		return false;
 	}
+	#if defined(_WIN32) || defined(_WIN64)
+		/* Windows 的 XRT 根文件接口不支持 POSIX mode，必须在写盘前拒绝。 */
+		if ( pReader->Options.bPreservePermissions ) {
+			__xrtTarSetReaderError(pReader, XRT_TAR_ERROR_UNSUPPORTED,
+				"TAR POSIX permission restoration is not available on Windows");
+			return false;
+		}
+	#endif
 	if ( !xrtDirExists(sDestination) && !xrtDirCreateAll(sDestination) ) {
 		__xrtTarSetReaderError(pReader, XRT_TAR_ERROR_IO,
 			"cannot create TAR extraction directory: %s", sDestination);
@@ -468,8 +576,28 @@ XRT_API bool xrtTarReaderExtractWhere(xrttarreader* pReader,
 			"cannot open TAR extraction directory: %s", sDestination);
 		return false;
 	}
-	bTotalKnown = xrtReaderSize(pReader->Reader, &iTotalInput);
-	if ( !bTotalKnown ) { xrtClearError(); }
+	if ( !xrtSetInit(&Extracted, sizeof(str)) ) {
+		__xrtTarSetReaderError(pReader, XRT_TAR_ERROR_MEMORY,
+			"cannot initialize extracted TAR file names");
+		goto cleanup;
+	}
+	bSetReady = true;
+	if ( !xrtSetSetKeyPolicy(&Extracted, __xrtTarNameHash,
+		__xrtTarNameEqual, NULL) ||
+		!xrtSetSetLifecycle(&Extracted, __xrtTarNameCopy,
+		__xrtTarNameDrop, NULL) ) {
+		__xrtTarSetReaderError(pReader, XRT_TAR_ERROR_MEMORY,
+			"cannot configure extracted TAR file names");
+		goto cleanup;
+	}
+	bTotalKnown = xrtReaderSize(pReader->Reader, &iSize) &&
+		xrtReaderTell(pReader->Reader, &iPosition) && iPosition <= iSize &&
+		pReader->Offset <= UINT64_MAX - (iSize - iPosition);
+	if ( bTotalKnown ) {
+		iTotalInput = pReader->Offset + (iSize - iPosition);
+	} else {
+		xrtClearError();
+	}
 	bHaveCurrent = pReader->HasCurrent;
 	for ( ;; ) {
 		bool bDirectory;
@@ -519,6 +647,10 @@ XRT_API bool xrtTarReaderExtractWhere(xrttarreader* pReader,
 				tEntry.sName != NULL ? tEntry.sName : "");
 			goto cleanup;
 		}
+		if ( !bDirectory ) {
+			__xrtTarDropShadowedHardlinks(&pLinks, tEntry.sName);
+		}
+		__xrtTarDropShadowedModes(&pModes, tEntry.sName);
 		if ( tEntry.iType == XRT_TAR_ENTRY_DIRECTORY ) {
 			if ( !__xrtTarRootEnsureDirectory(pReader, Root, tEntry.sName) ||
 				!xrtTarReaderSkip(pReader) ||
@@ -533,6 +665,7 @@ XRT_API bool xrtTarReaderExtractWhere(xrttarreader* pReader,
 		}
 		else if ( tEntry.iType == XRT_TAR_ENTRY_FILE ) {
 			if ( !__xrtTarExtractFile(pReader, Root, tEntry.sName, bOverwrite) ||
+				!__xrtTarTrackName(pReader, &Extracted, tEntry.sName) ||
 				!__xrtTarQueueMode(pReader, &pModes,
 					tEntry.sName, tEntry.iMode) ) {
 				goto cleanup;
@@ -544,12 +677,14 @@ XRT_API bool xrtTarReaderExtractWhere(xrttarreader* pReader,
 				!xrtTarReaderSkip(pReader) ) {
 				goto cleanup;
 			}
+			(void)xrtSetRemove(&Extracted, &tEntry.sName);
 		}
 		else if ( tEntry.iType == XRT_TAR_ENTRY_HARDLINK ) {
 			if ( !__xrtTarQueueHardlink(pReader, &pLinks, tEntry.sName,
 				tEntry.sLinkName) || !xrtTarReaderSkip(pReader) ) {
 				goto cleanup;
 			}
+			(void)xrtSetRemove(&Extracted, &tEntry.sName);
 		}
 		else if ( tEntry.iType == XRT_TAR_ENTRY_FIFO ) {
 			if ( !__xrtTarExtractFifo(pReader, Root,
@@ -559,6 +694,7 @@ XRT_API bool xrtTarReaderExtractWhere(xrttarreader* pReader,
 					tEntry.sName, tEntry.iMode) ) {
 				goto cleanup;
 			}
+			(void)xrtSetRemove(&Extracted, &tEntry.sName);
 		}
 		else if ( tEntry.iType == XRT_TAR_ENTRY_CHARACTER ||
 			tEntry.iType == XRT_TAR_ENTRY_BLOCK ) {
@@ -579,7 +715,7 @@ XRT_API bool xrtTarReaderExtractWhere(xrttarreader* pReader,
 		}
 	}
 	bResult = __xrtTarCreateHardlinks(pReader, Root,
-		pLinks, bOverwrite) &&
+		pLinks, &Extracted, bOverwrite) &&
 		__xrtTarApplyModes(pReader, Root, pModes);
 	if ( bResult ) {
 		(void)__xrtTarExtractProgress(pReader, NULL, iTotalInput,
@@ -587,6 +723,7 @@ XRT_API bool xrtTarReaderExtractWhere(xrttarreader* pReader,
 	}
 
 cleanup:
+	if ( bSetReady ) { xrtSetUnit(&Extracted); }
 	__xrtTarFreeHardlinks(pLinks);
 	__xrtTarFreeModes(pModes);
 	if ( (Root != NULL) && !xrtRootClose(Root) && bResult ) {

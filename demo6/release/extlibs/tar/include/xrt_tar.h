@@ -57,6 +57,7 @@ typedef struct {
 typedef struct {
 	uint32 iSize;
 	uint32 iVersion;
+	/* TAR 不使用深度、压缩倍率和资源标志；这些字段必须为零。 */
 	xrtresourcelimits tLimits;
 	bool bAllowSymlinks;
 	bool bAllowHardlinks;
@@ -87,7 +88,7 @@ typedef struct {
 typedef struct xrttarreader xrttarreader;
 typedef struct xrttarwriter xrttarwriter;
 
-/* 回调参数只在调用期间借用；条目为空且带 FINAL 时表示全部完成。返回 false 在条目边界取消。 */
+/* 回调参数只在调用期间借用；普通条目返回 false 可取消。FINAL 表示已完成，其返回值不影响结果。 */
 typedef bool (*xrttarprogressproc)(const xrttarentry* pEntry,
 	const xrtprogress* pProgress, ptr pUserData);
 

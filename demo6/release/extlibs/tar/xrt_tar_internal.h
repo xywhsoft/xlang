@@ -1,12 +1,33 @@
 #ifndef XRT_TAR_INTERNAL_H
 #define XRT_TAR_INTERNAL_H
 
+#ifndef XRT_MODULE_FILE_ROOT
 #define XRT_MODULE_FILE_ROOT
+#endif
+#ifndef XRT_MODULE_FILE_TEMP
 #define XRT_MODULE_FILE_TEMP
+#endif
+#ifndef XRT_MODULE_FILE_TREE
 #define XRT_MODULE_FILE_TREE
+#endif
+#ifndef XRT_MODULE_IO_FILE
 #define XRT_MODULE_IO_FILE
+#endif
+#ifndef XRT_MODULE_PATH_SAFE
 #define XRT_MODULE_PATH_SAFE
+#endif
+#ifndef XRT_MODULE_STRING_FORMAT
 #define XRT_MODULE_STRING_FORMAT
+#endif
+#ifndef XRT_MODULE_SET
+#define XRT_MODULE_SET
+#endif
+#ifndef XRT_MODULE_HASH64
+#define XRT_MODULE_HASH64
+#endif
+#ifndef XRT_MODULE_NUMBER_INTEGER
+#define XRT_MODULE_NUMBER_INTEGER
+#endif
 
 #include "include/xrt_tar.h"
 
@@ -69,9 +90,11 @@ void __xrtTarSetWriterError(xrttarwriter* pWriter, int iCode, const char* sForma
 void __xrtTarFailReader(xrttarreader* pReader, int iCode, const char* sFormat, ...);
 void __xrtTarFailWriter(xrttarwriter* pWriter, int iCode, const char* sFormat, ...);
 bool __xrtTarCopyOptions(xrttaroptions* pOutput, const xrttaroptions* pInput);
+int __xrtTarIoFailureCode(void);
 bool __xrtTarReadExact(xrttarreader* pReader, void* pData, uint64 iSize);
 bool __xrtTarSkipBytes(xrttarreader* pReader, uint64 iSize);
 bool __xrtTarWriteAll(xrttarwriter* pWriter, const void* pData, uint64 iSize);
+bool __xrtTarExtractToWriter(xrttarreader* pReader, xwriter* pWriter, cstr sName);
 bool __xrtTarEntryPathSafe(const char* sName, bool bDirectory, xrttarerror* pError,
 	uint64 iEntryIndex);
 void __xrtTarPaxClear(xrttarpax* pPax);

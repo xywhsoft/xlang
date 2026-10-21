@@ -1,0 +1,14 @@
+import tar
+
+func main(...) as int
+    auto writer = tar.create()
+    writer.add("hello.txt", "hello")
+    Buffer packed = writer.finish()
+
+    auto reader = tar.open(packed)
+    assert reader.next(), "missing TAR entry"
+    assert reader.info().name == "hello.txt", "wrong TAR entry"
+    println(reader.readText())
+    assert not reader.next(), "unexpected TAR entry"
+    return 0
+end

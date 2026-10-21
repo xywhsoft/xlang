@@ -28,13 +28,15 @@ func main(...) as int
     end
     assert count == 3, "TAR entry count mismatch"
 
-    string output = "build/tmp/tar_example_selected"
-    dir.delete(output)
-    reader = tar.open(packed)
-    reader.extractSelected(output, ["docs/hello.txt"])
-    assert file.readText(output + "/docs/hello.txt") == "hello TAR", "TAR selected extraction mismatch"
-    assert not file.exists(output + "/data.bin"), "TAR selected extraction wrote an unselected entry"
-    dir.delete(output)
+    string output = dir.temp("", "xlang-tar-example-", "")
+    try
+        reader = tar.open(packed)
+        reader.extractSelected(output, ["docs/hello.txt"])
+        assert file.readText(path.join(output, "docs/hello.txt")) == "hello TAR", "TAR selected extraction mismatch"
+        assert not file.exists(path.join(output, "data.bin")), "TAR selected extraction wrote an unselected entry"
+    finally
+        assert dir.delete(output), "TAR example temporary directory must be removed"
+    end
     println("tar example: PASS")
     return 0
 end

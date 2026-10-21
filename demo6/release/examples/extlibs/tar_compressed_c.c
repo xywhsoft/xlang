@@ -1,5 +1,22 @@
+#define XRT_MODULE_FILE_ROOT
+#define XRT_MODULE_FILE_TEMP
+#define XRT_MODULE_FILE_TREE
+#define XRT_MODULE_IO_FILE
+#define XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_PATH_SAFE
+#define XRT_MODULE_STRING_FORMAT
+#define XRT_MODULE_SET
+#define XRT_MODULE_HASH64
+#define XRT_MODULE_NUMBER_INTEGER
 #include "../../extlibs/gzip/include/xrt_gzip.h"
 #include "../../extlibs/tar/include/xrt_tar.h"
+#ifdef __TINYC__
+/* TCC 直接运行范例时，按包源码顺序合入实现。 */
+#include "../../extlibs/gzip/xrt_gzip.c"
+#include "../../extlibs/tar/xrt_tar_common.c"
+#include "../../extlibs/tar/xrt_tar_reader.c"
+#include "../../extlibs/tar/xrt_tar_writer.c"
+#endif
 
 #include <stdio.h>
 #include <string.h>

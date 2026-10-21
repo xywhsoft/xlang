@@ -10,6 +10,31 @@ extern "xtar_write_file" func __tar_write_file(string path, point data, c_ulongl
 extern "xtar_reader_extract_names" func __tar_extract_names(point handle,
     string destination, c_bool overwrite, array<string> names) as bool
 
+func __tar_c_string(string value)
+    // C 接口以 NUL 结尾；不能把 XLang 字符串静默截成另一个路径或条目名。
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "TAR C string contains an embedded NUL"
+    end
+end
+
+func __tar_limits(int maxInput, int maxOutput, int maxItem, int maxEntries)
+    if maxInput < 0 or maxOutput < 0 or maxItem < 0 or maxEntries < 0 then
+        throw ValueError "TAR resource limits cannot be negative"
+    end
+end
+
+func __tar_mode(int mode)
+    if mode < 0 or mode > 4095 then
+        throw ValueError "TAR mode must fit the 12-bit permission field"
+    end
+end
+
+func __tar_ids(int uid, int gid)
+    if uid < 0 or gid < 0 then
+        throw ValueError "TAR uid and gid cannot be negative"
+    end
+end
+
 
 
 func __tar_kind(int value) as string
@@ -33,7 +58,7 @@ end
 
 
 
-class TarInfo
+export class TarInfo
     string name
     string linkName
     string userName
@@ -93,26 +118,26 @@ class TarReader
         c_bool allowSpecialFiles, c_bool preservePermissions)
     extern "xtar_reader_destroy" destroy()
 
-    extern "xtar_reader_next" func nextNative() as bool
-    extern "xtar_reader_eof" func eofNative() as bool
-    extern "xtar_reader_name" func nameNative() as point
-    extern "xtar_reader_link_name" func linkNameNative() as point
-    extern "xtar_reader_user_name" func userNameNative() as point
-    extern "xtar_reader_group_name" func groupNameNative() as point
-    extern "xtar_reader_size" func sizeNative() as int
-    extern "xtar_reader_mtime" func mtimeNative() as int
-    extern "xtar_reader_uid" func uidNative() as int
-    extern "xtar_reader_gid" func gidNative() as int
-    extern "xtar_reader_mode" func modeNative() as int
-    extern "xtar_reader_device_major" func deviceMajorNative() as int
-    extern "xtar_reader_device_minor" func deviceMinorNative() as int
-    extern "xtar_reader_type" func typeNative() as int
-    extern "xtar_reader_read" func readNative() as point
-    extern "xtar_reader_skip" func skipNative() as bool
-    extern "xtar_reader_extract_all" func extractAllNative(string destination, c_bool overwrite) as bool
-    extern "xtar_reader_extract_to" func extractToNative(string destination) as bool
-    extern "xtar_reader_extract_progress" func extractProgressNative(string destination, c_bool overwrite, var callback) as bool
-    extern "xtar_reader_extract_where" func extractWhereNative(string destination, c_bool overwrite, var callback) as bool
+    private extern "xtar_reader_next" func nextNative() as bool
+    private extern "xtar_reader_eof" func eofNative() as bool
+    private extern "xtar_reader_name" func nameNative() as point
+    private extern "xtar_reader_link_name" func linkNameNative() as point
+    private extern "xtar_reader_user_name" func userNameNative() as point
+    private extern "xtar_reader_group_name" func groupNameNative() as point
+    private extern "xtar_reader_size" func sizeNative() as int
+    private extern "xtar_reader_mtime" func mtimeNative() as int
+    private extern "xtar_reader_uid" func uidNative() as int
+    private extern "xtar_reader_gid" func gidNative() as int
+    private extern "xtar_reader_mode" func modeNative() as c_int
+    private extern "xtar_reader_device_major" func deviceMajorNative() as c_int
+    private extern "xtar_reader_device_minor" func deviceMinorNative() as c_int
+    private extern "xtar_reader_type" func typeNative() as c_int
+    private extern "xtar_reader_read" func readNative() as point
+    private extern "xtar_reader_skip" func skipNative() as bool
+    private extern "xtar_reader_extract_all" func extractAllNative(string destination, c_bool overwrite) as bool
+    private extern "xtar_reader_extract_to" func extractToNative(string destination) as bool
+    private extern "xtar_reader_extract_progress" func extractProgressNative(string destination, c_bool overwrite, var callback) as bool
+    private extern "xtar_reader_extract_where" func extractWhereNative(string destination, c_bool overwrite, var callback) as bool
 
     get valid() as bool
         return self.handle != null
@@ -134,15 +159,19 @@ class TarReader
 
     func info() as TarInfo
         point nameResult = self.nameNative()
-        point linkResult = self.linkNameNative()
-        point userResult = self.userNameNative()
-        point groupResult = self.groupNameNative()
-        if nameResult == null or linkResult == null or userResult == null or groupResult == null then
-            throw ArchiveError __tar_error()
-        end
+        if nameResult == null then throw ArchiveError __tar_error() end
         string name = __xl_std_runtime_take_cstr(nameResult)
+
+        point linkResult = self.linkNameNative()
+        if linkResult == null then throw ArchiveError __tar_error() end
         string linkName = __xl_std_runtime_take_cstr(linkResult)
+
+        point userResult = self.userNameNative()
+        if userResult == null then throw ArchiveError __tar_error() end
         string userName = __xl_std_runtime_take_cstr(userResult)
+
+        point groupResult = self.groupNameNative()
+        if groupResult == null then throw ArchiveError __tar_error() end
         string groupName = __xl_std_runtime_take_cstr(groupResult)
         return TarInfo(name, linkName, userName, groupName, self.sizeNative(),
             self.mtimeNative(), self.uidNative(), self.gidNative(), self.modeNative(),
@@ -168,12 +197,14 @@ class TarReader
     end
 
     func extractAll(string destination, bool overwrite = false)
+        __tar_c_string(destination)
         if not self.extractAllNative(destination, c_bool(overwrite)) then
             throw ArchiveError __tar_error()
         end
     end
 
     func extractTo(string destination)
+        __tar_c_string(destination)
         if not self.extractToNative(destination) then
             throw ArchiveError __tar_error()
         end
@@ -182,6 +213,7 @@ class TarReader
     // Extract with progress callback: func(string name, int entryIndex, int bytesDone) as bool
     // Return false from callback to cancel extraction.
     func extractWithProgress(string destination, var progress, bool overwrite = false)
+        __tar_c_string(destination)
         if not self.extractProgressNative(destination, c_bool(overwrite), progress) then
             throw ArchiveError __tar_error()
         end
@@ -217,6 +249,7 @@ class TarReader
     end
 
     func extractSelected(string destination, array<string> names, bool overwrite = false)
+        __tar_c_string(destination)
         if not __tar_extract_names(self.handle, destination,
             c_bool(overwrite), names) then
             throw ArchiveError __tar_error()
@@ -225,6 +258,7 @@ class TarReader
 
     // Selector: func(string name, string kind, int size) as bool
     func extractWhere(string destination, var selector, bool overwrite = false)
+        __tar_c_string(destination)
         if not self.extractWhereNative(destination, c_bool(overwrite), selector) then
             throw ArchiveError __tar_error()
         end
@@ -247,24 +281,24 @@ class TarWriter
         c_bool appendMode)
     extern "xtar_writer_destroy" destroy()
 
-    extern "xtar_writer_add" func addNative(string name, point data, c_ulonglong size,
+    private extern "xtar_writer_add" func addNative(string name, point data, c_ulonglong size,
         c_int mode, c_longlong mtime, c_ulonglong uid, c_ulonglong gid,
         string userName, string groupName) as bool
-    extern "xtar_writer_add_str" func addStrNative(string name, string text, c_ulonglong size,
+    private extern "xtar_writer_add_str" func addStrNative(string name, string text, c_ulonglong size,
         c_int mode, c_longlong mtime, c_ulonglong uid, c_ulonglong gid,
         string userName, string groupName) as bool
-    extern "xtar_writer_add_file" func addFileNative(string name, string path,
+    private extern "xtar_writer_add_file" func addFileNative(string name, string path,
         c_int mode, c_longlong mtime) as bool
-    extern "xtar_writer_add_directory" func mkdirNative(string name,
+    private extern "xtar_writer_add_directory" func mkdirNative(string name,
         c_int mode, c_longlong mtime) as bool
-    extern "xtar_writer_add_link" func linkNative(string name, string target,
+    private extern "xtar_writer_add_link" func linkNative(string name, string target,
         c_bool hardLink, c_int mode, c_longlong mtime) as bool
-    extern "xtar_writer_add_fifo" func fifoNative(string name,
+    private extern "xtar_writer_add_fifo" func fifoNative(string name,
         c_int mode, c_longlong mtime) as bool
-    extern "xtar_writer_add_dir" func addDirNative(string arcPrefix, string localPath,
+    private extern "xtar_writer_add_dir" func addDirNative(string arcPrefix, string localPath,
         c_bool recursive) as bool
-    extern "xtar_writer_close" func closeNative() as bool
-    extern "xtar_writer_take_buffer" func takeBufferNative() as point
+    private extern "xtar_writer_close" func closeNative() as bool
+    private extern "xtar_writer_take_buffer" func takeBufferNative() as point
 
     get valid() as bool
         return self.handle != null
@@ -272,6 +306,11 @@ class TarWriter
 
     func add(string name, Buffer data, int mode = 420, int mtime = 0,
         int uid = 0, int gid = 0, string userName = "", string groupName = "")
+        __tar_c_string(name)
+        __tar_c_string(userName)
+        __tar_c_string(groupName)
+        __tar_mode(mode)
+        __tar_ids(uid, gid)
         if not self.addNative(name, data.data(), c_ulonglong(data.len()), c_int(mode),
             c_longlong(mtime), c_ulonglong(uid), c_ulonglong(gid), userName, groupName) then
             throw ArchiveError __tar_error()
@@ -280,43 +319,63 @@ class TarWriter
 
     func add(string name, string text, int mode = 420, int mtime = 0,
         int uid = 0, int gid = 0, string userName = "", string groupName = "")
-        if not self.addStrNative(name, text, c_ulonglong(string.len(text)), c_int(mode),
+        __tar_c_string(name)
+        __tar_c_string(userName)
+        __tar_c_string(groupName)
+        __tar_mode(mode)
+        __tar_ids(uid, gid)
+        if not self.addStrNative(name, text, c_ulonglong(string.byteLen(text)), c_int(mode),
             c_longlong(mtime), c_ulonglong(uid), c_ulonglong(gid), userName, groupName) then
             throw ArchiveError __tar_error()
         end
     end
 
     func addFile(string name, string path, int mode = 420, int mtime = 0)
+        __tar_c_string(name)
+        __tar_c_string(path)
+        __tar_mode(mode)
         if not self.addFileNative(name, path, c_int(mode), c_longlong(mtime)) then
             throw ArchiveError __tar_error()
         end
     end
 
     func mkdir(string name, int mode = 493, int mtime = 0)
+        __tar_c_string(name)
+        __tar_mode(mode)
         if not self.mkdirNative(name, c_int(mode), c_longlong(mtime)) then
             throw ArchiveError __tar_error()
         end
     end
 
     func symlink(string name, string target, int mode = 511, int mtime = 0)
+        __tar_c_string(name)
+        __tar_c_string(target)
+        __tar_mode(mode)
         if not self.linkNative(name, target, c_bool(false), c_int(mode), c_longlong(mtime)) then
             throw ArchiveError __tar_error()
         end
     end
 
     func hardlink(string name, string target, int mode = 511, int mtime = 0)
+        __tar_c_string(name)
+        __tar_c_string(target)
+        __tar_mode(mode)
         if not self.linkNative(name, target, c_bool(true), c_int(mode), c_longlong(mtime)) then
             throw ArchiveError __tar_error()
         end
     end
 
     func fifo(string name, int mode = 420, int mtime = 0)
+        __tar_c_string(name)
+        __tar_mode(mode)
         if not self.fifoNative(name, c_int(mode), c_longlong(mtime)) then
             throw ArchiveError __tar_error()
         end
     end
 
     func addDir(string arcName, string localPath, bool recursive = true)
+        __tar_c_string(arcName)
+        __tar_c_string(localPath)
         if not self.addDirNative(arcName, localPath, c_bool(recursive)) then
             throw ArchiveError __tar_error()
         end
@@ -338,16 +397,22 @@ class TarWriter
     end
 
     func save(string path, string compress = "none")
+        __tar_c_string(path)
+        if (compress != "none" and compress != "gzip" and compress != "gz" and
+            compress != "bz2" and compress != "xz") then
+            throw ValueError "tar compress must be none, gzip, bz2, or xz"
+        end
+        if compress == "xz" and not string.endsWith(path, ".xz", true) then
+            throw ValueError "XZ TAR path must end with .xz"
+        end
         Buffer data = self.finish()
         Buffer output = data
         if compress == "gzip" or compress == "gz" then
             output = gzip.compress(data)
         elseif compress == "bz2" then
             output = bz2.compress(data)
-        elseif compress == "xz" or compress == "lzma" then
+        elseif compress == "xz" then
             output = lzma.compress(data)
-        elseif compress != "none" then
-            throw ValueError "tar compress must be none, gzip, bz2, or xz"
         end
         if not __tar_write_file(path, output.data(), c_ulonglong(output.len())) then
             throw ArchiveError __tar_error()
@@ -369,31 +434,13 @@ func __tar_load_file(string path, int maxInput) as Buffer
     return Buffer(result)
 end
 
-func __tar_detect_compress(Buffer data) as string
-    if data.len() < 2 then
-        return "none"
-    end
-    int b0 = data.byteAt(0)
-    int b1 = data.byteAt(1)
-    if b0 == 31 and b1 == 139 then
-        return "gzip"
-    end
-    if b0 == 66 and b1 == 90 then
-        return "bz2"
-    end
-    if data.len() >= 6 and b0 == 253 and data.byteAt(1) == 55 and data.byteAt(2) == 122 and data.byteAt(3) == 88 and data.byteAt(4) == 90 then
-        return "xz"
-    end
-    return "none"
-end
-
-func __tar_decompress(Buffer data, string format) as Buffer
+func __tar_decompress(Buffer data, string format, int maxInput) as Buffer
     if format == "gzip" then
-        return gzip.decompress(data)
+        return gzip.decompress(data, maxInput, maxInput)
     elseif format == "bz2" then
-        return bz2.decompress(data)
+        return bz2.decompress(data, false, maxInput, maxInput)
     elseif format == "xz" then
-        return lzma.decompress(data)
+        return lzma.decompress(data, maxInput, maxInput)
     end
     return data
 end
@@ -402,6 +449,7 @@ export func open(Buffer data, int maxInput = 268435456, int maxOutput = 53687091
     int maxItem = 268435456, int maxEntries = 100000, bool allowSymlinks = false,
     bool allowHardlinks = false, bool allowSpecialFiles = false,
     bool preservePermissions = false) as TarReader
+    __tar_limits(maxInput, maxOutput, maxItem, maxEntries)
     TarReader result = TarReader(data.data(), c_ulonglong(data.len()),
         c_ulonglong(maxInput), c_ulonglong(maxOutput), c_ulonglong(maxItem),
         c_ulonglong(maxEntries), c_bool(allowSymlinks), c_bool(allowHardlinks),
@@ -416,6 +464,8 @@ export func open(string path, int maxInput = 268435456, int maxOutput = 53687091
     int maxItem = 268435456, int maxEntries = 100000, bool allowSymlinks = false,
     bool allowHardlinks = false, bool allowSpecialFiles = false,
     bool preservePermissions = false) as TarReader
+    __tar_c_string(path)
+    __tar_limits(maxInput, maxOutput, maxItem, maxEntries)
     int compression = int(__tar_file_compression(path))
     if compression < 0 then
         throw ArchiveError __tar_error()
@@ -430,14 +480,16 @@ export func open(string path, int maxInput = 268435456, int maxOutput = 53687091
         end
         return result
     end
-    Buffer fileData = __tar_load_file(path, maxInput)
+    // 0 在 TAR Reader 中使用 XRT 默认值；压缩层必须先执行同一上限。
+    int inputLimit = maxInput == 0 ? 268435456 : maxInput
+    Buffer fileData = __tar_load_file(path, inputLimit)
     string fmt = "gzip"
     if compression == 2 then
         fmt = "bz2"
-    elseif compression == 3 then
+    elseif compression == 4 then
         fmt = "xz"
     end
-    Buffer tarData = __tar_decompress(fileData, fmt)
+    Buffer tarData = __tar_decompress(fileData, fmt, inputLimit)
     return open(tarData, maxInput, maxOutput, maxItem, maxEntries,
         allowSymlinks, allowHardlinks, allowSpecialFiles, preservePermissions)
 end
@@ -445,6 +497,7 @@ end
 export func create(int maxInput = 268435456, int maxOutput = 536870912,
     int maxItem = 268435456, int maxEntries = 100000, bool allowSymlinks = false,
     bool allowHardlinks = false, bool allowSpecialFiles = false) as TarWriter
+    __tar_limits(maxInput, maxOutput, maxItem, maxEntries)
     TarWriter result = TarWriter(c_ulonglong(maxInput), c_ulonglong(maxOutput),
         c_ulonglong(maxItem), c_ulonglong(maxEntries), c_bool(allowSymlinks),
         c_bool(allowHardlinks), c_bool(allowSpecialFiles))
@@ -457,6 +510,8 @@ end
 export func create(string path, int maxInput = 268435456, int maxOutput = 536870912,
     int maxItem = 268435456, int maxEntries = 100000, bool allowSymlinks = false,
     bool allowHardlinks = false, bool allowSpecialFiles = false) as TarWriter
+    __tar_c_string(path)
+    __tar_limits(maxInput, maxOutput, maxItem, maxEntries)
     TarWriter result = TarWriter(path, c_ulonglong(maxInput), c_ulonglong(maxOutput),
         c_ulonglong(maxItem), c_ulonglong(maxEntries), c_bool(allowSymlinks),
         c_bool(allowHardlinks), c_bool(allowSpecialFiles))
@@ -470,6 +525,8 @@ export func openForAppend(string path, int maxInput = 268435456, int maxOutput =
     int maxItem = 268435456, int maxEntries = 100000,
     bool allowSymlinks = false, bool allowHardlinks = false,
     bool allowSpecialFiles = false) as TarWriter
+    __tar_c_string(path)
+    __tar_limits(maxInput, maxOutput, maxItem, maxEntries)
     int compression = int(__tar_file_compression(path))
     if compression < 0 then
         throw ArchiveError __tar_error()

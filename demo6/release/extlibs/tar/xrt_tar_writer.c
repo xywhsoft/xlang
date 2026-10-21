@@ -978,7 +978,7 @@ XRT_API bool xrtTarWriterClose(xrttarwriter* pWriter)
 		if ( !__xrtTarWriteAll(pWriter, sEnd, sizeof(sEnd)) ||
 			!xrtWriterFlush(pWriter->Writer) ) {
 			if ( !pWriter->Failed ) {
-				__xrtTarFailWriter(pWriter, XRT_TAR_ERROR_IO,
+				__xrtTarFailWriter(pWriter, __xrtTarIoFailureCode(),
 					"cannot finish TAR stream");
 			}
 			return false;
