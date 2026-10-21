@@ -19,7 +19,7 @@ println(feed["items"][0]["title"])
 
 生成 RSS 2.0 时，channel 必须有非空的 `title`、`link`、`description`；每个 item 至少有非空 `title` 或 `description`。生成 Atom 时，feed 必须有非空 `id`、`title`、`updated`；每个 entry 必须有非空 `id`、`title`、`updated`，并提供 `content` 或 `link`。作者写为字符串 `author`，entry 可继承 feed 的作者；未提供 feed 作者时，每个 entry 都必须有自己的作者。这里校验的是生成内容的最低结构，未实现日期格式、IRI、媒体类型或全部扩展元素的规范验证。解析器仍宽容读取字段不完整但 XML 正确、根类型正确的 feed。
 
-RSS 保留 `title/link/description/updated` 与 item 的 `title/link/description/pubDate/guid/author/categories`。Atom 保留 `title/subtitle/link/updated/id/author` 与 entry 的 `title/link/id/updated/summary/content/author`；解析 link 优先 `rel="alternate"`，否则取第一个 `href`。解析后的 Atom `entry.author` 是有效作者，依次取 entry 自身、entry 的 source、feed；扁平结果不保留作者来源或完整 source 元信息。没有实现的字段不保证往返。
+RSS 保留 `title/link/description/updated` 与 item 的 `title/link/description/pubDate/guid/author/categories`。Atom 保留 `title/subtitle/link/updated/id/author` 与 entry 的 `title/link/id/updated/summary/content/author`；按 [RFC 4287 第 4.2.7.2 节](https://www.rfc-editor.org/rfc/rfc4287#section-4.2.7.2)，未设置 `rel` 的 link 视为 `alternate`，优先选择第一个 alternate，否则取第一个 `href`。解析后的 Atom `entry.author` 是有效作者，依次取 entry 自身、entry 的 source、feed；扁平结果不保留作者来源或完整 source 元信息。没有实现的字段不保证往返。
 
 解析最大输入 8 MiB、10 万 XML 节点、深度 64；输入恰好 8 MiB 可解析，超一字节时 C 接口报告 `XERR_RANGE`，负长度仍报告 `XERR_VALUE`。生成的 XML 正文最大 16 MiB（不计返回缓冲末尾的 NUL），恰好达到上限仍有效，超一字节时 C 接口报告 `XERR_RANGE`，不返回截断结果。XML 字段完整保留，不静默截断；生成拒绝无效 UTF-8 和不符合 XML 1.0 字符范围的内容，包括 NUL、非法控制字符及 U+FFFE/U+FFFF。
 生成器对元素文本中的 CR 和 Atom `link` 属性中的 Tab/LF/CR 使用字符引用，避免 XML 解析器规范化字面空白时改变原始字段值；本包仍不校验链接是否为有效 IRI。
@@ -93,5 +93,12 @@ AOT，并与 C 黄金输出对照；当前构建在共享 `xl6ValueDataSnapshotV
 合法 RSS 可解析，超一字节报告 `XERR_RANGE`，负长度保持 `XERR_VALUE`。
 XLang 同条件抛 `RangeError`，`detect` 对超限输入仍返回空字符串。
 Windows `-SkipAot` 与 Linux C ASan/UBSan、XLang、双语门禁通过；
+默认 Windows 门禁的核心 AOT 通过，Atom 范例 AOT 仍缺共享符号
+`xl6ValueDataSnapshotV1`，整包不签收发布级。
+
+同日修正 Atom 缺省链接关系：原解析器在 `rel="hub"` 或 `rel="self"`
+出现在前时，未把随后省略 `rel` 的链接当作 alternate，可能返回错误的
+feed/entry 地址。C/XLang 负例先红后绿，原有显式 alternate 用例保持通过；
+Windows `-SkipAot` 与 Linux C ASan/UBSan、XLang、双语门禁通过。
 默认 Windows 门禁的核心 AOT 通过，Atom 范例 AOT 仍缺共享符号
 `xl6ValueDataSnapshotV1`，整包不签收发布级。

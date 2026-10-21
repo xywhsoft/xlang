@@ -51,6 +51,8 @@ try {
             'extlibs/rss/test/author_inheritance.xl')
         $null = Run 'XLang input limit' $xl @('run',
             'extlibs/rss/test/input_limit.xl')
+        $null = Run 'XLang implicit alternate' $xl @('run',
+            'extlibs/rss/test/implicit_alternate.xl')
         $rssXl = Run 'RSS XLang example' $xl @('run', 'examples/extlibs/rss_pair.xl')
         $atomXl = Run 'Atom XLang example' $xl @('run',
             'extlibs/rss/examples/atom_author.xl')

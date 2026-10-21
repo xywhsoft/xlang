@@ -1,0 +1,13 @@
+import rss
+
+func main(...) as int
+    string xml = ("<feed xmlns='http://www.w3.org/2005/Atom'>" +
+        "<link rel='hub' href='feed-hub'/><link href='feed-page'/>" +
+        "<entry><link rel='self' href='entry-self'/>" +
+        "<link href='entry-page'/></entry></feed>")
+    var feed = rss.parseAtom(xml)
+    assert feed["link"] == "feed-page"
+    assert feed["items"][0]["link"] == "entry-page"
+    println("rss implicit alternate: PASS")
+    return 0
+end

@@ -58,6 +58,7 @@ fi
     timeout 90s ./xl run ../test/cases/extlib_rss.xl
     timeout 90s ./xl run extlibs/rss/test/author_inheritance.xl
     timeout 90s ./xl run extlibs/rss/test/input_limit.xl
+    timeout 90s ./xl run extlibs/rss/test/implicit_alternate.xl
     timeout 90s ./xl run examples/extlibs/rss_pair.xl > "$work/rss_xl.txt"
     timeout 90s ./xl run extlibs/rss/examples/atom_author.xl > "$work/atom_xl.txt"
     timeout 90s ./xl run examples/extlibs/rss.xl > "$work/rss_full.txt"

@@ -34,9 +34,14 @@ static int test_parse(void) {
         "<item><title><![CDATA[<raw>]]></title><category>\xe4\xb8\xad\xe6\x96\x87</category>"
         "<category>&#x1F600;</category></item></channel></rss>";
     const char atom[] = "<feed xmlns='http://www.w3.org/2005/Atom'>"
-        "<title>Atom</title><link href='first'/><link rel='hub' href='hub'/>"
+        "<title>Atom</title><link rel='self' href='first'/><link rel='hub' href='hub'/>"
         "<link rel='alternate' href='site'/><entry><title>Post</title>"
         "<summary>A &lt; B</summary></entry></feed>";
+    const char implicitAlternate[] =
+        "<feed xmlns='http://www.w3.org/2005/Atom'>"
+        "<link rel='hub' href='feed-hub'/><link href='feed-page'/>"
+        "<entry><link rel='self' href='entry-self'/>"
+        "<link href='entry-page'/></entry></feed>";
     const char hiddenNul[] = "<rss version='2.0'><channel/></rss>\0<evil/>";
     xvalue *feed, *items, *item, *categories;
     size_t size;
@@ -73,6 +78,15 @@ static int test_parse(void) {
     items = xrtValueObjectGet(feed, (xstrview){"items", 5});
     item = xrtValueArrayAt(items, 0);
     CHECK(strcmp(field(item, "summary", &size), "A < B") == 0 && size == 5u);
+    xrtValueRelease(feed);
+
+    feed = xrss_parse_atom(implicitAlternate, sizeof(implicitAlternate) - 1u);
+    CHECK(feed != NULL && xrtValueType(feed) == XVALUE_OBJECT);
+    CHECK(strcmp(field(feed, "link", NULL), "feed-page") == 0);
+    items = xrtValueObjectGet(feed, (xstrview){"items", 5});
+    CHECK(items != NULL && xrtValueCount(items) == 1);
+    item = xrtValueArrayAt(items, 0);
+    CHECK(strcmp(field(item, "link", NULL), "entry-page") == 0);
     xrtValueRelease(feed);
 
     CHECK(rejected("<rss version='2.0'><channel></rss>",

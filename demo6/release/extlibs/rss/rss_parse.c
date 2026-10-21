@@ -74,7 +74,8 @@ static const char *rss_atom_link(const xrtxmldomnode *parent) {
         rel = (const char *)xrtXmlDomGetAttribute(node, (str)"rel");
         if (href == NULL) continue;
         if (first == NULL) first = href;
-        if (rel != NULL && strcmp(rel, "alternate") == 0) return href;
+        /* Atom 未指定 rel 时等同 alternate。 */
+        if (rel == NULL || strcmp(rel, "alternate") == 0) return href;
     }
     return first != NULL ? first : "";
 }
