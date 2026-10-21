@@ -1,21 +1,16 @@
 import daemon
 
-
-
 func main(...) as int
-    auto d = daemon.create("my_service")
-    println("name: ", d.name)
-    println("pid: ", d.pid)
-    println("running: ", d.isRunning)
-    println("daemonized: ", d.isDaemonized)
-    println("status: ", d.status)
+    auto service = daemon.create("sample-service")
+    string pidPath = path.join(path.temp(), "sample-service-" + string(service.pid) + ".pid")
 
-    // Check if current process is alive
-    println("alive: ", daemon.isAlive(d.pid))
+    assert service.writePidFile(pidPath)
+    println(service.name + " pid=" + string(daemon.readPidFile(pidPath)))
+    println("active=" + string(daemon.isAlive(service.pid)))
 
-    d.stop()
-    println("after stop, running: ", d.isRunning)
-
+    service.requestStop()
+    assert service.stopRequested
+    assert service.releasePidFile()
     println("daemon example: PASS")
     return 0
 end

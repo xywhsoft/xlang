@@ -1,0 +1,56 @@
+import daemon
+
+func capturedName() as string
+    auto service = daemon.create("owned-name")
+    return service.name
+end
+
+func main(...) as int
+    string name = capturedName()
+    assert name == "owned-name", "name result must outlive its daemon object"
+
+    bool rejected = false
+    try
+        daemon.create("service\0ignored")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "service name must not be truncated"
+
+    auto service = daemon.create("ffi-boundary")
+    string pidPath = path.join(path.temp(), "xl-daemon-ffi-" + string(service.pid) + ".pid")
+    rejected = false
+    try
+        service.writePidFile("")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "native path failure must be reported"
+    assert service.writePidFile(pidPath)
+
+    rejected = false
+    try
+        service.writePidFile(pidPath + "\0ignored")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "PID output path must not resolve to its prefix"
+
+    rejected = false
+    try
+        daemon.readPidFile(pidPath + "\0ignored")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "PID input path must not resolve to its prefix"
+    assert daemon.readPidFile(pidPath) == service.pid
+    assert service.releasePidFile()
+    assert not file.exists(pidPath)
+    assert file.writeText(pidPath, "0\n")
+    assert daemon.readPidFile(pidPath) == -1
+    assert file.writeText(pidPath, "7\n")
+    assert daemon.readPidFile(pidPath) == 7
+    assert file.delete(pidPath)
+    println("daemon FFI boundaries: PASS")
+    return 0
+end

@@ -1,0 +1,4 @@
+import daemon
+
+auto service = daemon.create("private-getter")
+service.pidNative()

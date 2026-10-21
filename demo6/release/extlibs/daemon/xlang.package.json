@@ -7,10 +7,13 @@
     "artifact": {
         "kind": "source",
         "cSources": ["daemon_native.c"],
-        "xlSources": ["src/daemon.xl"]
+        "includeDirs": ["include"],
+        "xlSources": ["src/daemon.xl"],
+        "xrtModules": ["XRT_MODULE_ATOMIC", "XRT_MODULE_FILE_LOCK", "XRT_MODULE_PATH", "XRT_MODULE_STRING_FORMAT", "XRT_MODULE_UNICODE"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/ffi_boundaries.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

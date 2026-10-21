@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>daemon - 扩展库 - xlang</title>
+  <meta name="description" content="daemon 提供前台服务的停止请求、进程查询和排他 PID 文件。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / daemon</p><h1>daemon</h1>
+    <p class="extlib-lead">前台服务的进程状态与排他 PID 文件。</p>
+    <p>支持 UTF-8 路径、协作式停止请求和持有期 PID 文件锁；不负责系统服务注册、后台化或重启。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>daemon.create(name)</code></td><td>创建前台服务状态对象</td></tr>
+      <tr><td><code>service.writePidFile(path)</code></td><td>持有排他 PID 文件锁</td></tr>
+      <tr><td><code>service.requestStop()</code></td><td>设置协作式停止标志</td></tr>
+      <tr><td><code>daemon.readPidFile(path)</code></td><td>严格读取正整数 PID；缺失或无效文件返回 -1</td></tr>
+      <tr><td><code>daemon.isAlive(pid)</code></td><td>查询当前进程可见状态</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import daemon
+auto service = daemon.create("web")
+string pidPath = path.join(path.temp(), "web-" + string(service.pid) + ".pid")
+assert service.writePidFile(pidPath)
+service.requestStop()
+assert service.releasePidFile()</code></pre>
+    <p>XLang 服务名和路径拒绝内嵌 NUL；<code>service.name</code> 返回可独立持有的字符串，C 的 <code>xdaemon_name</code> 则只借用对象内部文本。公开 C 操作不会把上次失败的 XRT 错误带入成功重试。Windows 默认门禁现要求完整范例 AOT 构建、运行并与 C 输出对照；当前构建缺共享 <code>xl6ValueDataSnapshotV1</code>，停在构建阶段，<code>-SkipAot</code> 只供 C/JIT 聚焦复验。C 句柄的释放、锁作用范围及包级验证见 README。</p>
+  </section>
+</main>
+</body>
+</html>

@@ -1,20 +1,22 @@
-extern "xl6_xrt_last_error_text" func __daemon_error() as string
-
-
+// 前台服务辅助。进程守护化和 OS 服务注册不属于此包。
+func __daemon_c_string(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "daemon: name or path contains an embedded NUL byte"
+    end
+end
 
 class Daemon
     native point handle
     extern "xdaemon_create" create(string name)
     extern "xdaemon_destroy" destroy()
 
-    extern "xdaemon_detach" func detachNative() as bool
-    extern "xdaemon_write_pidfile" func writePidNative(string path) as bool
-    extern "xdaemon_get_pid" func pidNative() as int
-    extern "xdaemon_is_daemonized" func isDaemonizedNative() as bool
-    extern "xdaemon_set_running" func setRunningNative(int val)
-    extern "xdaemon_is_running" func isRunningNative() as bool
-    extern "xdaemon_name" func nameNative() as string
-    extern "xdaemon_status" func statusNative() as string
+    private extern "xdaemon_write_pidfile" func writePidNative(string path) as int
+    private extern "xdaemon_release_pidfile" func releasePidNative() as int
+    private extern "xdaemon_get_pid" func pidNative() as int
+    private extern "xdaemon_name" func nameNative() as string
+    private extern "xdaemon_stop_requested" func stopRequestedNative() as int
+    extern "xdaemon_request_stop" func requestStop()
+    private extern "xdaemon_holds_pidfile" func holdsPidNative() as int
 
     get valid() as bool
         return self.handle != null
@@ -28,40 +30,37 @@ class Daemon
         return self.nameNative()
     end
 
-    get isDaemonized() as bool
-        return self.isDaemonizedNative()
+    get stopRequested() as bool
+        return self.stopRequestedNative() != 0
     end
 
-    get isRunning() as bool
-        return self.isRunningNative()
-    end
-
-    get status() as string
-        return self.statusNative()
-    end
-
-    func stop()
-        self.setRunningNative(0)
+    get holdsPidFile() as bool
+        return self.holdsPidNative() != 0
     end
 
     func writePidFile(string path) as bool
-        return self.writePidNative(path)
+        __daemon_c_string(path)
+        return self.writePidNative(path) != 0
+    end
+
+    func releasePidFile() as bool
+        return self.releasePidNative() != 0
     end
 end
 
 extern "xdaemon_read_pidfile" func __daemon_read_pid(string path) as int
-extern "xdaemon_is_alive" func __daemon_alive(int pid) as bool
-
-
+extern "xdaemon_is_alive" func __daemon_alive(int pid) as int
 
 export func create(string name) as Daemon
+    __daemon_c_string(name)
     return Daemon(name)
 end
 
 export func readPidFile(string path) as int
+    __daemon_c_string(path)
     return __daemon_read_pid(path)
 end
 
 export func isAlive(int pid) as bool
-    return __daemon_alive(pid)
+    return __daemon_alive(pid) != 0
 end

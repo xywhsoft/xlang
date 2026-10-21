@@ -1,0 +1,4 @@
+import daemon
+
+auto service = daemon.create("private-status")
+service.releasePidNative()

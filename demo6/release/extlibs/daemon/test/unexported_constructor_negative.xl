@@ -1,0 +1,3 @@
+import daemon
+
+auto direct = daemon.Daemon("truncated\0name")

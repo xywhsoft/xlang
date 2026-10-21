@@ -1,0 +1,4 @@
+import daemon
+
+auto service = daemon.create("private-access")
+service.writePidNative("hidden.pid")
