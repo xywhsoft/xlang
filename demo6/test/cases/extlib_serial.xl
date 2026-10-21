@@ -93,8 +93,10 @@ func main(...) as int
     bool missingPort = false
     try
         serial.open("XLANG_SERIAL_NO_SUCH_DEVICE_91D783AB")
-    catch error
-        missingPort = error.kind == "IOError"
+    catch IOError error
+        // 设备路径由 XRT 文件层打开；语言层应按 IOError 父类捕获，
+        // 同时保留更精确的 FileError 结构化诊断。
+        missingPort = error.kind == "FileError" and error.domain == "xrt.file" and error.operation == "open"
     end
     assert missingPort, "native device failure is catchable"
 
