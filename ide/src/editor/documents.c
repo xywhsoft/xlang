@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+_Static_assert(XIDE_TEXT_EOL_LF==XUI_CODE_EOL_LF && XIDE_TEXT_EOL_CRLF==XUI_CODE_EOL_CRLF &&
+               XIDE_TEXT_EOL_CR==XUI_CODE_EOL_CR,"Storage and editor EOL metadata must agree");
 static char* copy(const char* text)
 {
     size_t length=strlen(text)+1; char* result=malloc(length);

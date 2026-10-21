@@ -10,6 +10,8 @@ if (-not $SkipBuild) {
     & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'build.ps1') -Configuration $Configuration -Tests
     if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
 }
+& python -X utf8 -B (Join-Path $PSScriptRoot 'check_lsp_folding.py') --server (Join-Path $releaseRoot 'xlang-ls.exe') --output (Join-Path $testRoot ('resident-folding-'+[Guid]::NewGuid().ToString('N')))
+if ($LASTEXITCODE -ne 0) { throw 'Resident native folding, cache and cancellation gate failed.' }
 if ($NativeExtensionCompilerPath) {
     if (-not $CServerPath) { throw 'Native extension checks require CServerPath.' }
     & python -X utf8 (Join-Path $PSScriptRoot 'check_c_extensions.py') --compiler $NativeExtensionCompilerPath --server $CServerPath --fixture (Join-Path $releaseRoot 'c_extension_test.exe') --output (Join-Path $testRoot 'c-extensions')

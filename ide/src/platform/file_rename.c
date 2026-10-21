@@ -1,4 +1,6 @@
+#ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0601
+#endif
 #include "platform/file_rename.h"
 #include "platform/path.h"
 #include <windows.h>

@@ -1,6 +1,12 @@
 ﻿[CmdletBinding()]
-param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$Tests)
+param([ValidateSet('Debug','Release')][string]$Configuration='Debug', [switch]$Tests, [string]$FrontendRoot='')
 $ErrorActionPreference='Stop'
+function Get-XideSha256([string]$Path) {
+    $stream=[IO.File]::OpenRead($Path)
+    $hasher=[Security.Cryptography.SHA256]::Create()
+    try { return [BitConverter]::ToString($hasher.ComputeHash($stream)).Replace('-','').ToLowerInvariant() }
+    finally { $hasher.Dispose(); $stream.Dispose() }
+}
 $ideRoot = Split-Path -Parent $PSScriptRoot
 $sdkRoot = Join-Path $ideRoot 'third_party\xge_sdk'
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'verify_xge_sdk.ps1') -SdkRoot $sdkRoot
@@ -38,9 +44,22 @@ foreach ($source in $sources) {
     $objects += $object
 }
 $libraries = @((Join-Path $sdkRoot 'xge.lib'),'-lm','-lws2_32','-lwinhttp','-liphlpapi','-lgdi32','-luser32','-lshell32','-lopengl32','-lole32','-lwinmm','-lavrt','-lversion','-lbcrypt','-ladvapi32')
-$serverObjects = $objects | Where-Object { $_ -match 'src_(analysis_text|protocol_lsp_wire|services_language_check|services_language_snapshot|services_semantic_definition|services_semantic_completion|services_c_bridge_map|services_toolchain|platform_file_rename|platform_file_io|platform_text_file|platform_process|platform_path|editor_coordinates)\.c\.o$' }
-& $compiler @flags (Join-Path $ideRoot 'src\server\xlang_ls.c') @serverObjects @libraries -o (Join-Path $releaseRoot 'xlang-ls.exe')
-if ($LASTEXITCODE -ne 0) { throw 'Language server link failed.' }
+if (-not $FrontendRoot) {
+    $portableInputs=Join-Path $ideRoot 'data\portable-build-inputs.json'
+    if (Test-Path -LiteralPath $portableInputs) {
+        $portableConfig=Get-Content -LiteralPath $portableInputs -Raw | ConvertFrom-Json
+        if ($portableConfig.compiler_root) { $candidateFrontend=Split-Path -Parent (Join-Path $ideRoot $portableConfig.compiler_root); if (Test-Path -LiteralPath (Join-Path $candidateFrontend 'src\parser\xl6_parser.c')) { $FrontendRoot=$candidateFrontend } }
+    }
+    if (-not $FrontendRoot) { $FrontendRoot=Join-Path (Split-Path -Parent $ideRoot) 'demo6' }
+}
+$nativeRoot=Join-Path $objectRoot ('lsp-'+[Guid]::NewGuid().ToString('N'))
+$nativeArguments=@('-X','utf8','-B',(Join-Path $PSScriptRoot 'build_lsp_core.py'),'--server','--frontend-root',$FrontendRoot,'--output',$nativeRoot,'--cc',$compiler,'--configuration',$Configuration)
+if (-not $Tests) { $nativeArguments+='--skip-tests' }
+& python @nativeArguments
+if ($LASTEXITCODE -ne 0) { throw 'Standalone language server/core build failed.' }
+Copy-Item -LiteralPath (Join-Path $nativeRoot 'xlang-ls.exe') -Destination (Join-Path $releaseRoot 'xlang-ls.exe') -Force
+$nativeReport=Join-Path $nativeRoot 'build-result.json'
+[pscustomobject]@{report=$nativeReport;reportSha256=(Get-XideSha256 $nativeReport);frontendRoot=[IO.Path]::GetFullPath($FrontendRoot)} | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $objectRoot 'language-server-build.json') -Encoding utf8
 $consoleExe = Join-Path $releaseRoot 'xlang_ide_console.exe'
 & $compiler @flags (Join-Path $ideRoot 'src\main.c') @objects @libraries -o $consoleExe
 if ($LASTEXITCODE -ne 0) { throw 'Console link failed.' }
@@ -51,7 +70,7 @@ $guiExe=Join-Path $releaseRoot 'xlang_ide.exe'
 if (Test-Path -LiteralPath $guiExe) { [IO.File]::Replace($guiStaging,$guiExe,(Join-Path $objectRoot 'xlang_ide.previous.exe')) } else { [IO.File]::Move($guiStaging,$guiExe) }
 $sdkDll=Join-Path $sdkRoot 'xge.dll'
 $releaseDll=Join-Path $releaseRoot 'xge.dll'
-if (-not (Test-Path -LiteralPath $releaseDll) -or (Get-FileHash -LiteralPath $sdkDll -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $releaseDll -Algorithm SHA256).Hash) {
+if (-not (Test-Path -LiteralPath $releaseDll) -or (Get-XideSha256 $sdkDll) -ne (Get-XideSha256 $releaseDll)) {
     Copy-Item -LiteralPath $sdkDll -Destination $releaseDll -Force
 }
 [void](New-Item -ItemType Directory -Path (Join-Path $releaseRoot 'data') -Force)

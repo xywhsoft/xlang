@@ -41,9 +41,11 @@ def main():
     compiler = args.compiler.resolve(strict=True)
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=False)
-    protected = [server, server.with_name('xge.dll'), compiler,
+    protected = [server, compiler,
                  compiler.with_name('xlc.dll'), compiler.with_name('xl.dll'),
                  Path(__file__), Path(__file__).with_name('check_language_snapshots.py')]
+    if server.with_name('xge.dll').is_file():
+        protected.append(server.with_name('xge.dll'))
     inputs = [dict(path=str(p), sha256=sha(p)) for p in protected]
     report = dict(format='xlang-lsp-roundtrip-benchmark-1', status='running',
                   scope='stdio completion; not UI latency or semantic incrementality',

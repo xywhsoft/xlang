@@ -20,6 +20,14 @@ FRONTEND_SOURCES = (
     "src/diag/xl6_diag.c", "src/common/xl6_output.c", "src/common/xl6_console.c",
     "src/sem/xl6_completion.c", "src/compile/xl6_source_report.c",
 )
+SERVER_SOURCES = (
+    "src/protocol/lsp_wire.c", "src/services/language_check.c", "src/services/language_snapshot.c",
+    "src/services/semantic_definition.c", "src/services/semantic_completion.c", "src/services/c_bridge_map.c",
+    "src/services/toolchain.c", "src/platform/file_rename.c", "src/platform/file_io.c",
+    "src/platform/text_file.c", "src/platform/process.c", "src/platform/path.c", "src/editor/coordinates.c",
+    "src/server/xlang_ls.c",
+)
+CORE_TESTS = ("analysis_folding_test", "analysis_worker_test", "analysis_session_test", "analysis_text_test", "document_sync_test")
 
 
 def sha(path: Path) -> str:
@@ -53,6 +61,9 @@ def main() -> None:
     parser.add_argument("--frontend-root", type=Path, default=ide.parent / "demo6")
     parser.add_argument("--output", type=Path, required=True, help="fresh build directory")
     parser.add_argument("--cc", default=shutil.which("gcc") or "E:/software/w64devkit/bin/gcc.exe")
+    parser.add_argument("--server", action="store_true", help="also build the external language-server host")
+    parser.add_argument("--skip-tests", action="store_true", help="build only, without compiling or running core fixtures")
+    parser.add_argument("--configuration", choices=("Debug", "Release"), default="Release")
     args = parser.parse_args()
     frontend, output = args.frontend_root.resolve(), args.output.resolve()
     cc = Path(args.cc).resolve()
@@ -61,19 +72,26 @@ def main() -> None:
     sources = [(frontend / source, False) for source in FRONTEND_SOURCES]
     sources += [(ide / "src/analysis/runtime.c", False)]
     sources += [(ide / path, True) for path in (
-        "src/analysis/text.c", "src/analysis/session.c", "src/analysis/worker.c", "src/protocol/document_sync.c",
-        "tests/analysis_worker_test.c", "tests/analysis_session_test.c", "tests/analysis_text_test.c", "tests/document_sync_test.c",
+        "src/analysis/text.c", "src/analysis/session.c", "src/analysis/worker.c", "src/analysis/folding.c",
     )]
+    if not args.skip_tests:
+        sources += [(ide / "src/protocol/document_sync.c", True)]
+        sources += [(ide / "tests" / (name + ".c"), True) for name in CORE_TESTS]
+    if args.server:
+        if os.name != "nt":
+            parser.error("the current host still uses Windows transport/process adapters; the standalone core is separate")
+        sources += [(ide / path, True) for path in SERVER_SOURCES]
     if any(not path.is_file() for path, _ in sources):
         parser.error("frontend root must contain the shared xlang lexer, parser, AST and XRT assets")
     output.mkdir(parents=True, exist_ok=False)
     env = dict(os.environ)
     env["PATH"] = str(cc.parent) + os.pathsep + env.get("PATH", "")
-    common = ["-std=c11", "-O2", "-ffunction-sections", "-fdata-sections", "-DXRT_MODULE_ALL=",
+    common = ["-std=c11", "-ffunction-sections", "-fdata-sections", "-DXRT_MODULE_ALL=", "-DXLS_COMPILER_XRT=1",
               "-finput-charset=UTF-8", "-fexec-charset=UTF-8",
               "-I" + str(ide / "src"), "-I" + str(frontend),
               "-I" + str(frontend / "release"), "-I" + str(frontend / "release/include"),
               "-I" + str(frontend / "lib/xrt"), "-include", str(frontend / "lib/xrt/xrt.h")]
+    common += ["-O2"] if args.configuration == "Release" else ["-O0", "-g"]
     strict = ["-Wall", "-Wextra", "-Werror", "-Wno-unused-parameter"]
     shared = ["-Wall", "-Wno-pointer-sign", "-Wno-unused-function", "-Wno-unused-variable",
               "-Wno-unused-but-set-variable", "-Wno-format-truncation", "-Wno-dangling-pointer"]
@@ -84,7 +102,7 @@ def main() -> None:
     else:
         common += ["-D_GNU_SOURCE=1"]
         libraries += ["-pthread", "-ldl"]
-    commands, inputs, outputs, runs = [], {str(Path(__file__).resolve()): sha(Path(__file__))}, {}, []
+    commands, inputs, outputs, runs, imports = [], {str(Path(__file__).resolve()): sha(Path(__file__))}, {}, [], {}
     started = time.monotonic()
     status = "failed"
 
@@ -113,10 +131,11 @@ def main() -> None:
             objects[source.stem] = target
         ar = cc.with_name("ar.exe" if os.name == "nt" else "ar")
         core = output / "xlang-analysis-core.a"
-        members = [target for name, target in objects.items() if not name.endswith("_test") and name != "document_sync"]
+        core_names = {Path(source).stem for source in FRONTEND_SOURCES} | {"runtime", "text", "session", "worker", "folding"}
+        members = [target for name, target in objects.items() if name in core_names]
         run([str(ar), "rcs", str(core), *map(str, members)], "archive")
         suffix = ".exe" if os.name == "nt" else ""
-        for name in ("analysis_worker_test", "analysis_session_test", "analysis_text_test", "document_sync_test"):
+        for name in (() if args.skip_tests else CORE_TESTS):
             program = output / (name + suffix)
             extra = [str(objects["document_sync"])] if name == "document_sync_test" else []
             run([str(cc), str(objects[name]), *extra, str(core), "-Wl,--gc-sections", *libraries, "-o", str(program)], name + "-link")
@@ -125,6 +144,18 @@ def main() -> None:
                 raise RuntimeError(f"missing test completion receipt: {name}")
             runs.append(dict(name=name,stdout=result.stdout.decode("utf-8")))
             outputs[program.name] = sha(program)
+        if args.server:
+            program = output / ("xlang-ls" + suffix)
+            server_objects = [str(objects[Path(source).stem]) for source in SERVER_SOURCES]
+            run([str(cc), *server_objects, str(core), "-Wl,--gc-sections", *libraries, "-o", str(program)], "server-link")
+            outputs[program.name] = sha(program)
+        if os.name == "nt":
+            for name in outputs:
+                result = run([str(cc.with_name("objdump.exe")), "-p", str(output / name)], name + "-imports")
+                names = [line.split("DLL Name:",1)[1].strip() for line in result.stdout.decode().splitlines() if "DLL Name:" in line]
+                if not names or any(name.lower() in ("xge.dll", "xlc.dll") for name in names):
+                    raise RuntimeError("standalone runtime ownership failed: " + name)
+                imports[name] = names
         if any(sha(Path(path)) != digest for path, digest in inputs.items()):
             raise RuntimeError("source or toolchain changed during the build")
         outputs[core.name] = sha(core)
@@ -132,7 +163,8 @@ def main() -> None:
     finally:
         report = dict(schema=1,status=status,scope="standalone retained syntax core; not shipped LSP or semantic incrementality",
                       frontendRoot=str(frontend),compiler=str(cc),compilerSha256=sha(cc),inputs=inputs,outputs=outputs,
-                      commands=commands,runs=runs,elapsedSeconds=time.monotonic()-started)
+                      configuration=args.configuration,serverBuilt=args.server,testsBuilt=not args.skip_tests,
+                      commands=commands,runs=runs,imports=imports,elapsedSeconds=time.monotonic()-started)
         (output / "build-result.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps(dict(status=status,report=str(output / "build-result.json")),ensure_ascii=False))
 

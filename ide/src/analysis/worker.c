@@ -3,10 +3,10 @@
 #include <string.h>
 
 struct xls_worker { xtaskpool* pool; xls_session* session; xls_session_limits limits; };
-struct xls_query { xfuture* future; };
+struct xls_query { xfuture* future; xfuturewatch watch; int watchInitialized,watchLinked; void (*wake)(void*); void* user; };
 typedef struct query_document { char *key,*path; xls_text* text; uint64_t identity,revision; } query_document;
-typedef struct query_input { xls_worker* worker; xmap documents; char* target; } query_input;
-typedef struct query_result { xls_analysis_snapshot snapshot; xls_session_stats stats; uint64_t threadId; } query_result;
+typedef struct query_input { xls_worker* worker; xmap documents; char* target; int folding; size_t rangeLimit; } query_input;
+typedef struct query_result { xls_analysis_snapshot snapshot; xls_session_stats stats; uint64_t threadId; xls_folding* folding; } query_result;
 static xbytesview keyView(const char* key) { return (xbytesview){(const unsigned char*)key,strlen(key)}; }
 static int validLabel(const char* label)
 { size_t size=label ? strlen(label) : 0; return size && size<=262144 && xrtUtf8Valid((xstrview){label,size},NULL); }
@@ -15,7 +15,8 @@ static void dropDocument(xbytesview key,void* value,void* user)
 static void freeInput(void* value,void* user)
 { (void)user; query_input* input=value; xrtMapUnit(&input->documents); xrtFree(input->target); xrtFree(input); }
 static void freeResult(void* value,void* user)
-{ (void)user; query_result* result=value; xlsSyntaxRelease(result->snapshot.syntax); xrtFree(result); }
+{ (void)user; query_result* result=value; xlsFoldingDestroy(result->folding); xlsSyntaxRelease(result->snapshot.syntax); xrtFree(result); }
+static int cancelled(void* user) { return xrtCancelRequested(user); }
 static int live(const char* key,size_t size,void* user)
 { query_input* input=user; return xrtMapHas(&input->documents,(xbytesview){(const unsigned char*)key,size}); }
 typedef struct update_context { xls_session* session; xcancel* cancel; int okay; } update_context;
@@ -39,6 +40,10 @@ static xtaskoutcome execute(xcancel* cancel,void* value,xtaskvalue* output)
     if(!result) return XTASK_FAILED;
     memset(result,0,sizeof(*result));
     if(!xlsSessionSyntax(session,input->target,&result->snapshot)) { freeResult(result,NULL); return XTASK_FAILED; }
+    if(input->folding) {
+        result->folding=xlsFoldingCreate(result->snapshot.syntax,input->rangeLimit,cancelled,cancel);
+        if(!result->folding) { freeResult(result,NULL); return xrtCancelRequested(cancel) ? XTASK_CANCELLED : XTASK_FAILED; }
+    }
     xlsSessionStats(session,&result->stats); result->threadId=xrtThreadCurrentId();
     if(xrtCancelRequested(cancel)) { freeResult(result,NULL); return XTASK_CANCELLED; }
     *output=(xtaskvalue){result,freeResult,NULL}; return XTASK_SUCCESS;
@@ -72,12 +77,12 @@ int xlsWorkerLoad(xls_worker* worker,xls_worker_load* load)
     if(!worker || !xrtTaskPoolGet(worker->pool,&stats)) return 0;
     *load=(xls_worker_load){stats.Queued,stats.Running,stats.Submitted,stats.Completed,stats.Cancelled,stats.Rejected}; return 1;
 }
-xls_query* xlsWorkerSyntax(xls_worker* worker,const xls_analysis_document* documents,size_t count,const char* target)
+static xls_query* submit(xls_worker* worker,const xls_analysis_document* documents,size_t count,const char* target,int folding,size_t rangeLimit)
 {
     if(!worker || !documents || !count || count>worker->limits.documents || !validLabel(target)) return NULL;
     query_input* input=xrtMalloc(sizeof(*input));
     if(!input) return NULL;
-    memset(input,0,sizeof(*input)); input->worker=worker; input->target=xrtStrDup(target);
+    memset(input,0,sizeof(*input)); input->worker=worker; input->target=xrtStrDup(target); input->folding=folding; input->rangeLimit=rangeLimit;
     if(!input->target || !xrtMapInit(&input->documents,sizeof(query_document)) ||
         !xrtMapSetDrop(&input->documents,dropDocument,NULL)) { freeInput(input,NULL); return NULL; }
     size_t bytes=0;
@@ -95,13 +100,37 @@ xls_query* xlsWorkerSyntax(xls_worker* worker,const xls_analysis_document* docum
     if(!xrtMapHas(&input->documents,wanted)) goto failed;
     xls_query* query=xrtMalloc(sizeof(*query));
     if(!query) goto failed;
+    memset(query,0,sizeof(*query));
     xtaskargs args={.Destroy=freeInput}; query->future=xrtTaskSubmit(worker->pool,execute,input,&args);
     if(!query->future) { xrtFree(query); goto failed; }
     return query;
 failed: freeInput(input,NULL); return NULL;
 }
+xls_query* xlsWorkerSyntax(xls_worker* worker,const xls_analysis_document* documents,size_t count,const char* target)
+{ return submit(worker,documents,count,target,0,0); }
+xls_query* xlsWorkerFolding(xls_worker* worker,const xls_analysis_document* documents,size_t count,const char* target,size_t rangeLimit)
+{ return submit(worker,documents,count,target,1,rangeLimit); }
 void xlsQueryCancel(xls_query* query) { if(query) xrtFutureCancel(query->future); }
-void xlsQueryDestroy(xls_query* query) { if(query) { xrtFutureDestroy(query->future); xrtFree(query); } }
+static void wakeQuery(void* user) { xls_query* query=user; query->wake(query->user); }
+int xlsQuerySetWake(xls_query* query,void (*wake)(void*),void* user)
+{
+    if(!query || !wake || query->watchInitialized) return 0;
+    query->wake=wake; query->user=user;
+    if(!xrtFutureWatchInit(&query->watch,wakeQuery,NULL,query)) return 0;
+    query->watchInitialized=1;
+    xfuturewatchresult state=xrtFutureWatchAdd(query->future,&query->watch);
+    if(state==XFUTURE_WATCH_ERROR) return 0;
+    query->watchLinked=state==XFUTURE_WATCH_PENDING;
+    if(state==XFUTURE_WATCH_READY) wake(user);
+    return 1;
+}
+void xlsQueryDestroy(xls_query* query)
+{
+    if(query) {
+        if(query->watchLinked) xrtFutureWatchRemove(query->future,&query->watch);
+        xrtFutureDestroy(query->future); xrtFree(query);
+    }
+}
 enum xls_query_state xlsQueryResult(xls_query* query,xls_analysis_snapshot* result,xls_session_stats* stats,uint64_t* threadId)
 {
     if(result) memset(result,0,sizeof(*result));
@@ -118,4 +147,9 @@ enum xls_query_state xlsQueryResult(xls_query* query,xls_analysis_snapshot* resu
     if(stats) *stats=value->stats;
     if(threadId) *threadId=value->threadId;
     return XLS_QUERY_READY;
+}
+const xls_folding* xlsQueryFolding(const xls_query* query)
+{
+    if(!query || xrtFutureState(query->future)!=XFUTURE_RESOLVED) return NULL;
+    const query_result* result=xrtFutureValue(query->future); return result ? result->folding : NULL;
 }

@@ -2,7 +2,7 @@
 #include "protocol/lsp_wire.h"
 #include "services/language_check.h"
 #include "platform/path.h"
-#include "analysis/text.h"
+#include "analysis/worker.h"
 #include <windows.h>
 #include <shellapi.h>
 #include <stdio.h>
@@ -14,7 +14,8 @@
 #define TOTAL_LIMIT (32u*1024u*1024u)
 #define QUEUE_LIMIT (64u*1024u*1024u)
 typedef struct message { struct message* next; xvalue* value; size_t size; } message;
-typedef struct document { char *uri,*path; const char* text; xls_text* content; int version; unsigned long long generation; } document;
+typedef struct document { char *uri,*path; const char* text; xls_text* content; int version; unsigned long long generation,identity; } document;
+typedef struct native_request { xvalue* id; xls_query* query; int document,version; unsigned long long identity,generation; } native_request;
 typedef struct server {
  CRITICAL_SECTION lock; HANDLE reader,event; volatile LONG stop; message *head,*tail; size_t queueBytes,queueCount; int eof,readFailed;
  int initialized,shutdown,exitRequested,exitCode,writeFailed,checkOnSave; char *compiler,*directory; xide_toolchains* cache;
@@ -26,6 +27,8 @@ typedef struct server {
  int completionDocument,completionVersion,completionResponded,completionPublished,completionCancelled;
  unsigned long long completionGeneration,completionPendingGeneration;
  int completionPendingDocument,completionPendingEntry,completionPendingVersion,completionPendingLine,completionPendingCharacter;
+ xls_worker* analysis; native_request native[DOC_LIMIT]; size_t foldingLimit;
+ xls_session_stats analysisStats; uint64_t analysisThread;
 } server;
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
 static xvalue* get(const xvalue* o,const char* key) { return o && xrtValueType(o)==XVALUE_OBJECT ? xrtValueObjectGet(o,sv(key)) : NULL; }
@@ -88,6 +91,64 @@ static void cancel(server* s,int code,const char* reason)
 static int find(server* s,const char* uri) { if(uri) for(int i=0;i<DOC_LIMIT;++i) if(s->docs[i].uri && !strcmp(s->docs[i].uri,uri)) return i; return -1; }
 static void clearDocument(server* s,int i)
 { document* d=&s->docs[i]; s->textBytes-=xlsTextSize(d->content); free(d->uri); free(d->path); xlsTextRelease(d->content); memset(d,0,sizeof(*d)); }
+static void releaseNative(native_request* request)
+{ xlsQueryDestroy(request->query); xrtValueRelease(request->id); memset(request,0,sizeof(*request)); }
+static void cancelNative(server* s,int documentIndex,int code,const char* reason)
+{
+ for(size_t i=0;i<DOC_LIMIT;++i) if(s->native[i].query && (documentIndex<0 || s->native[i].document==documentIndex)) {
+  xlsQueryCancel(s->native[i].query); response(s,s->native[i].id,NULL,code,reason); releaseNative(&s->native[i]);
+ }
+}
+static void nativeWake(void* user) { server* s=user; SetEvent(s->event); }
+static void requestFolding(server* s,const xvalue* id,const xvalue* params)
+{
+ int index=find(s,string(get(get(params,"textDocument"),"uri"))),version=index>=0 ? s->docs[index].version : 0;
+ const xvalue* supplied=get(params,"version"); const char* namedId=string(id);
+ if(index<0 || (supplied && !integer(supplied,&version)) || version!=s->docs[index].version || (namedId && strlen(namedId)>65535)) { response(s,id,NULL,-32602,"Folding requires an open xlang document and a current supplied version."); return; }
+ size_t slot=DOC_LIMIT;
+ for(size_t i=0;i<DOC_LIMIT;++i) {
+  if(s->native[i].query && sameId(s->native[i].id,id)) { xlsQueryCancel(s->native[i].query); releaseNative(&s->native[i]); response(s,id,NULL,-32600,"Request ID is already active."); return; }
+  if(!s->native[i].query && slot==DOC_LIMIT) slot=i;
+ }
+ if(slot==DOC_LIMIT) { response(s,id,NULL,-32001,"The native analysis queue is full."); return; }
+ xvalue* captured=xrtValueDeepClone(id); if(!captured) { response(s,id,NULL,-32603,"Unable to retain analysis request."); return; }
+ xls_analysis_document inputs[DOC_LIMIT]; size_t count=0;
+ for(size_t i=0;i<DOC_LIMIT;++i) if(s->docs[i].uri) { document* d=&s->docs[i]; inputs[count++]=(xls_analysis_document){d->uri,d->path,d->content,d->identity,(uint64_t)((int64_t)d->version-INT_MIN)}; }
+ document* d=&s->docs[index]; xls_query* query=xlsWorkerFolding(s->analysis,inputs,count,d->uri,s->foldingLimit);
+ if(!query || !xlsQuerySetWake(query,nativeWake,s)) { xlsQueryCancel(query); xlsQueryDestroy(query); xrtValueRelease(captured); response(s,id,NULL,-32001,"Unable to submit native analysis; its queue may be full."); return; }
+ s->native[slot]=(native_request){captured,query,index,version,d->identity,d->generation};
+}
+static void pollNative(server* s)
+{
+ for(size_t i=0;i<DOC_LIMIT;++i) {
+  native_request* request=&s->native[i]; if(!request->query) continue;
+  xls_analysis_snapshot snapshot={0}; xls_session_stats stats={0}; uint64_t thread=0;
+  enum xls_query_state state=xlsQueryResult(request->query,&snapshot,&stats,&thread);
+  if(state==XLS_QUERY_PENDING) continue;
+  document* document=&s->docs[request->document];
+  if(state==XLS_QUERY_READY) { s->analysisStats=stats; s->analysisThread=thread; }
+  if(!document->uri || document->identity!=request->identity || document->version!=request->version || document->generation!=request->generation) response(s,request->id,NULL,-32801,"Native analysis input is no longer current.");
+  else if(state!=XLS_QUERY_READY) response(s,request->id,NULL,state==XLS_QUERY_CANCELLED ? -32800 : -32603,"Native analysis did not complete.");
+  else {
+   const xls_folding* folding=xlsQueryFolding(request->query); xvalue* result=xrtValueArray(); int okay=folding && result;
+   const xls_fold_range* ranges=xlsFoldingRanges(folding);
+   for(size_t j=0;okay && j<xlsFoldingCount(folding);++j) {
+    xvalue* range=xrtValueObject(); okay=range && put(range,"startLine",xrtValueInt((int64)ranges[j].startLine)) && put(range,"endLine",xrtValueInt((int64)ranges[j].endLine)) && xrtValueArrayAppend(result,range); xrtValueRelease(range);
+   }
+   response(s,request->id,result,okay ? 0 : -32603,okay ? NULL : "Unable to encode folding ranges.");
+  }
+  xlsSyntaxRelease(snapshot.syntax); releaseNative(request);
+ }
+}
+static void analysisStats(server* s,const xvalue* id)
+{
+ xls_worker_load load={0}; xlsWorkerLoad(s->analysis,&load); xvalue* result=xrtValueObject();
+ put(result,"runtime",xrtValueString(sv("compiler-xrt"))); put(result,"parses",xrtValueInt((int64)s->analysisStats.parses)); put(result,"cacheHits",xrtValueInt((int64)s->analysisStats.cacheHits));
+ put(result,"documents",xrtValueInt((int64)s->analysisStats.documents)); put(result,"textBytes",xrtValueInt((int64)s->analysisStats.textBytes));
+ put(result,"workerThreadId",xrtValueInt((int64)s->analysisThread)); put(result,"ownerThreadId",xrtValueInt((int64)xrtThreadCurrentId()));
+ put(result,"queued",xrtValueInt((int64)load.queued)); put(result,"running",xrtValueInt((int64)load.running)); put(result,"submitted",xrtValueInt((int64)load.submitted)); put(result,"completed",xrtValueInt((int64)load.completed)); put(result,"rejected",xrtValueInt((int64)load.rejected));
+ response(s,id,result,0,NULL);
+}
 static void startCheck(server* s,int index,const xvalue* id,int snapshots)
 {
  document* d=&s->docs[index]; xide_model_error e={0};
@@ -232,11 +293,12 @@ static void documents(server* s,const char* method,const xvalue* params)
   for(int j=0;j<DOC_LIMIT;++j) if(s->docs[j].uri && (xidePathLexicalEqual(path,s->docs[j].path) || xidePathEqual(path,s->docs[j].path))) { free(path); goto invalid; }
   xls_text* content=xlsTextCreate(text,strlen(text),TEXT_LIMIT,NULL); char* name=copy(uri);
   if(!content || !name) { free(path); xlsTextRelease(content); free(name); goto invalid; }
-  s->docs[i]=(document){.uri=name,.path=path,.text=xlsTextData(content),.content=content,.version=version,.generation=++s->generation}; s->textBytes+=xlsTextSize(content); cancelCompletion(s,-32801,"Open-document cursor input set changed.",1); if(s->check && s->snapshotMode) cancel(s,-32801,"Open-document snapshot set changed."); clearPublished(s); return;
+  unsigned long long generation=++s->generation;
+  s->docs[i]=(document){.uri=name,.path=path,.text=xlsTextData(content),.content=content,.version=version,.generation=generation,.identity=generation}; s->textBytes+=xlsTextSize(content); cancelCompletion(s,-32801,"Open-document cursor input set changed.",1); if(s->check && s->snapshotMode) cancel(s,-32801,"Open-document snapshot set changed."); clearPublished(s); return;
  }
  if(i<0) goto invalid;
  document* d=&s->docs[i];
- if(!strcmp(method,"textDocument/didClose")) { cancelCompletion(s,-32800,"Document closed.",1); if(s->check && (s->snapshotMode || s->checkDocument==i)) cancel(s,-32800,"Document closed."); if(s->pending==i) s->pending=-1; clearPublished(s); publish(s,d,NULL); ++s->generation; clearDocument(s,i); return; }
+ if(!strcmp(method,"textDocument/didClose")) { cancelNative(s,i,-32800,"Document closed."); cancelCompletion(s,-32800,"Document closed.",1); if(s->check && (s->snapshotMode || s->checkDocument==i)) cancel(s,-32800,"Document closed."); if(s->pending==i) s->pending=-1; clearPublished(s); publish(s,d,NULL); ++s->generation; clearDocument(s,i); return; }
  if(!strcmp(method,"textDocument/didChange")) {
   const xvalue* changes=get(params,"contentChanges"); int version=0;
   if(!integer(get(item,"version"),&version) || version<=d->version || !changes || xrtValueType(changes)!=XVALUE_ARRAY || xrtValueCount(changes)>1024) goto invalid;
@@ -261,6 +323,7 @@ static void documents(server* s,const char* method,const xvalue* params)
   if(xlsTextSize(content)>TOTAL_LIMIT-(s->textBytes-xlsTextSize(d->content))) { xlsTextRelease(content); goto invalid; }
   if(s->check && (s->snapshotMode || s->checkDocument==i)) cancel(s,-32801,"Document content changed.");
   cancelCompletion(s,-32801,"Open-document cursor content changed.",1);
+  cancelNative(s,i,-32801,"Native analysis document changed.");
   s->textBytes=s->textBytes-xlsTextSize(d->content)+xlsTextSize(content); xlsTextRelease(d->content); d->content=content; d->text=xlsTextData(content); d->version=version; d->generation=++s->generation; clearPublished(s); publish(s,d,NULL); return;
  }
  if(!strcmp(method,"textDocument/didSave")) {
@@ -291,25 +354,32 @@ static void dispatch(server* s,const xvalue* message)
   if(enc && xrtValueType(enc)==XVALUE_ARRAY) for(size_t i=0;i<xrtValueCount(enc);++i) { const char* name=string(xrtValueArrayGet(enc,i)); if(name && !strcmp(name,"utf-16")) utf16=1; }
   if(!utf16) { response(s,id,NULL,-32602,"UTF-16 position encoding is required."); return; }
   const xvalue* options=get(params,"initializationOptions"); bool check=true; const xvalue* enabled=get(options,"checkOnSave"); if(enabled && !xrtValueGetBool(enabled,&check)) { response(s,id,NULL,-32602,"checkOnSave must be boolean."); return; }
+  const xvalue* rangeLimit=get(get(get(get(params,"capabilities"),"textDocument"),"foldingRange"),"rangeLimit"); int64 limit=65536;
+  if(rangeLimit && (!xrtValueGetInt(rangeLimit,&limit) || limit<0 || limit>UINT32_MAX)) { response(s,id,NULL,-32602,"Folding rangeLimit must be a nonnegative 32-bit integer."); return; }
+  s->foldingLimit=(size_t)(limit>65536 ? 65536 : limit);
   xvalue *result=xrtValueObject(),*cap=xrtValueObject(),*sync=xrtValueObject(),*save=xrtValueObject(),*info=xrtValueObject(),*scope=xrtValueObject();
   put(cap,"positionEncoding",xrtValueString(sv("utf-16"))); put(sync,"openClose",xrtValueBool(true)); put(sync,"change",xrtValueInt(2)); put(save,"includeText",xrtValueBool(true)); put(sync,"save",save); put(cap,"textDocumentSync",sync);
+  put(cap,"foldingRangeProvider",xrtValueBool(true)); put(scope,"residentSyntax",xrtValueBool(true)); put(scope,"analysisRuntime",xrtValueString(sv("compiler-xrt")));
   put(scope,"savedEntryDiagnostics",xrtValueBool(true)); put(scope,"unsavedDependencies",xrtValueBool(true)); put(scope,"snapshotDiagnostics",xrtValueBool(true)); put(scope,"snapshotDocumentFingerprint",xrtValueBool(true)); put(scope,"snapshotInputGuard",xrtValueString(sv("background-poll"))); put(scope,"cSemantics",xrtValueBool(false)); put(scope,"snapshotDefinition",xrtValueBool(true)); put(cap,"definitionProvider",xrtValueBool(true)); put(cap,"hoverProvider",xrtValueBool(true)); put(cap,"documentSymbolProvider",xrtValueBool(true)); xvalue *completion=xrtValueObject(),*triggers=xrtValueArray(),*dot=xrtValueString(sv(".")); xrtValueArrayAppend(triggers,dot); xrtValueRelease(dot); put(completion,"resolveProvider",xrtValueBool(false)); put(completion,"triggerCharacters",triggers); put(cap,"completionProvider",completion); put(scope,"cursorCompletion",xrtValueBool(true)); put(scope,"completionInputGuard",xrtValueString(sv("background-poll"))); put(scope,"snapshotHover",xrtValueBool(true)); put(scope,"snapshotDocumentSymbols",xrtValueBool(true)); put(cap,"experimental",scope); put(result,"capabilities",cap);
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.5"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.6"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
- if(!strcmp(method,"shutdown")) { if(id) { s->shutdown=1; s->pending=-1; clearPublished(s); cancel(s,-32800,"Server shutting down."); cancelCompletion(s,-32800,"Server shutting down.",1); response(s,id,NULL,0,NULL); } return; }
+ if(!strcmp(method,"shutdown")) { if(id) { s->shutdown=1; s->pending=-1; cancelNative(s,-1,-32800,"Server shutting down."); clearPublished(s); cancel(s,-32800,"Server shutting down."); cancelCompletion(s,-32800,"Server shutting down.",1); response(s,id,NULL,0,NULL); } return; }
  if(!strcmp(method,"initialized")) { if(id) response(s,id,NULL,-32600,"initialized must be a notification."); return; }
  if(!strcmp(method,"$/cancelRequest")) {
   if(id) response(s,id,NULL,-32600,"Cancellation must be a notification.");
   else {
    const xvalue* cancelledId=get(params,"id");
+   for(size_t i=0;i<DOC_LIMIT;++i) if(s->native[i].query && sameId(s->native[i].id,cancelledId)) { xlsQueryCancel(s->native[i].query); response(s,s->native[i].id,NULL,-32800,"Request cancelled."); releaseNative(&s->native[i]); }
    if(s->checkId && sameId(s->checkId,cancelledId)) cancel(s,-32800,"Request cancelled.");
    if(s->completionId && sameId(s->completionId,cancelledId)) cancelCompletion(s,-32800,"Request cancelled.",0);
    if(s->completionPendingId && sameId(s->completionPendingId,cancelledId)) { response(s,s->completionPendingId,NULL,-32800,"Request cancelled."); xrtValueRelease(s->completionPendingId); s->completionPendingId=NULL; }
   }
   return;
  }
+ if(!strcmp(method,"textDocument/foldingRange")) { if(id) requestFolding(s,id,params); return; }
+ if(!strcmp(method,"xlang/analysisStats")) { if(id) analysisStats(s,id); return; }
  if(!strcmp(method,"textDocument/completion")) { if(id) requestCompletion(s,id,params); return; }
  if(!strcmp(method,"textDocument/definition")) { if(id) semanticQuery(s,id,params,0); return; }
  if(!strcmp(method,"textDocument/hover")) { if(id) semanticQuery(s,id,params,1); return; }
@@ -330,14 +400,22 @@ int main(void)
  if(argc!=3 || !argv || wcscmp(argv[1],L"--compiler")) { fputs("Usage: xlang-ls --compiler absolute-xl.exe\n",stderr); if(argv) LocalFree(argv); return 2; }
  char* compiler=utf8(argv[2]); LocalFree(argv); s.compiler=compiler ? xidePathResolveLexical(NULL,compiler) : NULL; free(compiler);
  wchar_t cwd[32768]; if(GetCurrentDirectoryW(32768,cwd)) s.directory=utf8(cwd);
- s.cache=xideToolchainsCreate(); InitializeCriticalSection(&s.lock); s.event=CreateEventW(NULL,FALSE,FALSE,NULL);
- if(s.compiler && s.directory && s.cache && s.event) s.reader=CreateThread(NULL,0,reader,&s,0,NULL);
+ s.cache=xideToolchainsCreate(); s.analysis=xlsWorkerCreate(NULL,DOC_LIMIT); InitializeCriticalSection(&s.lock); s.event=CreateEventW(NULL,FALSE,FALSE,NULL);
+ if(s.compiler && s.directory && s.cache && s.analysis && s.event) s.reader=CreateThread(NULL,0,reader,&s,0,NULL);
  if(s.reader) while(!s.exitRequested && !s.writeFailed) {
   EnterCriticalSection(&s.lock); message* m=s.head; if(m) { s.head=m->next; if(!s.head) s.tail=NULL; s.queueBytes-=m->size; --s.queueCount; } int eof=s.eof,failed=s.readFailed; LeaveCriticalSection(&s.lock);
   if(m) { dispatch(&s,m->value); xrtValueRelease(m->value); free(m); } else if(eof) { s.exitCode=failed ? 2 : 1; break; }
-  pollGuard(&s); pollCheck(&s); pollCompletion(&s); if(!m) WaitForSingleObject(s.event,10);
+  pollGuard(&s); pollCheck(&s); pollCompletion(&s); pollNative(&s); if(!m) WaitForSingleObject(s.event,10);
  }
- InterlockedExchange(&s.stop,1); if(s.reader) { CancelSynchronousIo(s.reader); WaitForSingleObject(s.reader,INFINITE); CloseHandle(s.reader); }
+ InterlockedExchange(&s.stop,1);
+ if(s.reader) {
+  /* A read can begin after a one-shot CancelSynchronousIo sees no pending I/O.
+   * Retry until the reader observes stop; clients need not close their stdin. */
+  do { CancelSynchronousIo(s.reader); } while(WaitForSingleObject(s.reader,20)==WAIT_TIMEOUT);
+  CloseHandle(s.reader);
+ }
+ for(size_t i=0;i<DOC_LIMIT;++i) if(s.native[i].query) { xlsQueryCancel(s.native[i].query); releaseNative(&s.native[i]); }
+ xlsWorkerDestroy(s.analysis);
  xideLanguageCheckDestroy(s.completion); xrtValueRelease(s.completionId); xrtValueRelease(s.completionPendingId); free(s.completionUri); xideLanguageCheckDestroy(s.check); xideLanguageCheckDestroy(s.guard); xrtValueRelease(s.guardId); free(s.guardUri); xrtValueRelease(s.checkId); xrtValueRelease(s.publishedGroups); xideToolchainsDestroy(s.cache);
  while(s.head) { message* m=s.head; s.head=m->next; xrtValueRelease(m->value); free(m); }
  for(int i=0;i<DOC_LIMIT;++i) clearDocument(&s,i);

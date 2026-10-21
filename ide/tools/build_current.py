@@ -51,6 +51,13 @@ def compile_snapshot(options, root, report):
         raise ValueError('windres is required when building tests')
     # build.ps1 invokes Python for pinned font verification; use this same runtime.
     environment['PATH'] = str(Path(sys.executable).parent) + os.pathsep + environment.get('PATH', '')
+    frontend = options.frontend_root
+    if frontend is None:
+        portable = json.loads((IDE / 'data/portable-build-inputs.json').read_text(encoding='utf-8-sig'))
+        pinned = (IDE / portable['compiler_root']).parent
+        frontend = pinned if (pinned / 'src/parser/xl6_parser.c').is_file() else IDE.parent / 'demo6'
+    frontend = frontend.resolve(strict=True)
+    regular(frontend / 'lib/xrt/xrt.h')
     sdk = IDE / 'third_party/xge_sdk'
     manifest_path = sdk / 'sdk_manifest.json'
     regular(manifest_path)
@@ -91,7 +98,7 @@ def compile_snapshot(options, root, report):
     report_path = root / 'current-build-report.json'
     receipt(report_path, report)
     arguments = ['powershell', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
-                 str(root / 'tools/build.ps1'), '-Configuration', options.configuration]
+                 str(root / 'tools/build.ps1'), '-Configuration', options.configuration, '-FrontendRoot', str(frontend)]
     if options.tests:
         arguments.append('-Tests')
     print('Building current sources: ' + str(root), flush=True)
@@ -118,10 +125,19 @@ def compile_snapshot(options, root, report):
                for p in sorted((root / 'build' / options.configuration).glob('*.c.o'))}
     source_changes = [r['path'] for r in inputs if not (IDE / r['path']).is_file()
                       or sha(IDE / r['path']) != r['sha256']]
+    native_pointer = root / 'build' / options.configuration / 'language-server-build.json'
+    native_build = json.loads(native_pointer.read_text(encoding='utf-8-sig')) if native_pointer.is_file() else None
+    if exit_code == 0:
+        if not native_build or sha(Path(native_build['report'])) != native_build['reportSha256']:
+            raise ValueError('Standalone language-server build receipt is missing or changed')
+        native_report = json.loads(Path(native_build['report']).read_text(encoding='utf-8'))
+        if native_report['status'] != 'passed' or not native_report['serverBuilt'] or native_report['outputs']['xlang-ls.exe'] != outputs['release/xlang-ls.exe']:
+            raise ValueError('Standalone language-server output does not match its build receipt')
     report.update(status='current-source-build-passed' if exit_code == 0 else 'current-source-build-failed',
                   exitCode=exit_code, elapsedSeconds=round(time.monotonic() - started, 3),
                   arguments=arguments, log=str(log_path), outputs=outputs, objects=objects,
                   currentSourceChangesDuringBuild=source_changes,
+                  languageServerBuild=native_build,
                   guiExecutable=str(root / 'release/xlang_ide.exe'))
     receipt(report_path, report)
     print(json.dumps(dict(status=report['status'], exitCode=exit_code,
@@ -154,6 +170,7 @@ if __name__ == '__main__':
     parser.add_argument('--configuration', choices=('Debug', 'Release'), default='Release')
     parser.add_argument('--tests', action='store_true')
     parser.add_argument('--toolchain-directory', type=Path)
+    parser.add_argument('--frontend-root', type=Path)
     try:
         raise SystemExit(build(parser.parse_args()))
     except (OSError, ValueError, KeyError) as error:
