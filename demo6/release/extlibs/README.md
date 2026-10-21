@@ -1,6 +1,8 @@
 # DEMO6 release extlibs
 
-本目录位于 `xl.exe` 同级目录下，只存放可发布的功能扩展库。package/import 回归测试用 fixture 已迁移到 `demo6/test/fixtures`，测试通过 `XLANG_PACKAGE_PATH` 访问。
+本目录位于 `xl.exe` 同级目录下，存放当前可导入的扩展库候选。package/import 回归测试用 fixture 已迁移到 `demo6/test/fixtures`，测试通过 `XLANG_PACKAGE_PATH` 访问。
+
+目录和清单仅表示提供该包，不代表完整 API 或发布候选验收。首期优先级与暂缓名单见 [扩展库生态重整](../../docs/扩展库生态重整_2026-10-12.md)。
 
 ## 使用方式
 
@@ -9,10 +11,13 @@
 - 大型框架包可用 `coverage.mode = "suite"` 和 `coverage.tests` 声明包内测试；这些测试会统一完成导入与语义检查。
 - `xlSources` 中的 `.xl` 文件是 import 的声明/实现来源；C 函数仍需要在 xlang 中显式 `extern` 声明。
 - 包内 `.c`、`.h`、`.xl`、`bin`、`third_party` 等文件是扩展库自身实现或运行所需资产。
+- 同目录同名的 `.c` 会成为 `.xl` 的自动伴随源；独立带 `main` 的 C 测试或范例须命名为 `*_c.c`。可运行 `tools/check_extlib_companions.ps1` 检查包内及 `release/examples/extlibs` 的冲突。
 
 ## 发布扩展库索引
 
 <!-- package-index:start -->
+- `cString`：显式 C 文本互操作；与语言双字段 string 分开，拒绝隐式截断内嵌 NUL。
+- `floatEnv`：显式导入的浮点环境高级模块，控制当前线程的舍入模式与异常标志。
 - `xmail`：新版 XRT MIME、SMTP、POP3 与 IMAP 体系的正式源码扩展包。
 - `xws`：WebSocket 连接、分片 Writer、Future、TLS、压缩与连接组扩展库。
 - `xhttp`：HTTP 客户端底层分片包。
@@ -32,7 +37,6 @@
 - `_tomlc17`：`toml` 使用的私有 tomlc17 源码包。
 - `_xge_native`：内部实现包。
 - `_zlib`：`gzip` 与 `zip` 共用的私有 zlib 源码包。
-- `acme`：发布扩展库。
 - `aho_corasick`：发布扩展库。
 - `barcode`：EAN-13 与 UPC-A 条形码生成扩展库。
 - `ansi`：终端 ANSI 转义序列构建、剥离与显示宽度扩展库。
@@ -65,15 +69,12 @@
 - `dinov3`：DINOv3 扩展库。
 - `dns`：发布扩展库。
 - `docker`：发布扩展库。
-- `docx`：发布扩展库。
 - `dotenv`：发布扩展库。
-- `duckdb`：发布扩展库。
 - `embeddings`：发布扩展库。
 - `enet`：发布扩展库。
 - `epub`：EPUB 3 电子书生成扩展库（自包含 stored-zip 容器）。
 - `etcd`：发布扩展库。
 - `faiss`：发布扩展库。
-- `ffmpeg`：发布扩展库。
 - `fix`：发布扩展库。
 - `flatbuffers`：发布扩展库。
 - `freetype`：发布扩展库。
@@ -85,7 +86,6 @@
 - `glad`：发布扩展库。
 - `gpio`：发布扩展库。
 - `graph`：图算法扩展库（拓扑排序、BFS、Dijkstra、连通分量与强连通分量）。
-- `grpc`：发布扩展库。
 - `gzip`：标准 gzip 一次性、增量与流式压缩扩展库。
 - `harfbuzz`：发布扩展库。
 - `hcl`：发布扩展库。
@@ -109,7 +109,6 @@
 - `leveldb`：发布扩展库。
 - `libsndfile`：发布扩展库。
 - `libsvm`：发布扩展库。
-- `libtorch`：发布扩展库。
 - `libusb`：发布扩展库。
 - `linalg`：发布扩展库。
 - `llama`：发布扩展库。
@@ -132,7 +131,6 @@
 - `murmur3`：发布扩展库。
 - `mysql`：发布扩展库。
 - `nanomsg`：发布扩展库。
-- `nats`：发布扩展库。
 - `ncnn`：发布扩展库。
 - `neo4j`：发布扩展库。
 - `netrc`：machine/default/macdef 凭据文件扩展库。
@@ -159,9 +157,7 @@
 - `procps`：发布扩展库。
 - `progress`：发布扩展库。
 - `prometheus`：发布扩展库。
-- `protobuf`：发布扩展库。
 - `qr`：二维码生成扩展库（矩阵、ASCII、半块字符与 SVG 输出）。
-- `quic`：发布扩展库。
 - `rabbitmq`：发布扩展库。
 - `rapidocr`：发布扩展库。
 - `ratatui`：发布扩展库。
@@ -178,7 +174,7 @@
 - `sha3`：发布扩展库。
 - `sharedmem`：发布扩展库。
 - `singleinstance`：发布扩展库。
-- `siphash`：发布扩展库。
+- `siphash128`：域分离的 128 位 SipHash 扩展库；64 位 `siphash` 已进入默认标准库。
 - `sitemap`：sitemap.xml 与 robots.txt 生成解析扩展库。
 - `skiplist`：发布扩展库。
 - `shellwords`：POSIX/Windows 命令行参数拆分与引用扩展库。
@@ -191,7 +187,6 @@
 - `sox`：发布扩展库。
 - `sqlite`：发布扩展库。
 - `xssh`：XRT SSH 全协议实现及 wire、密钥、known_hosts 的语言对象。
-- `stablediffusion`：发布扩展库。
 - `stb_image`：发布扩展库。
 - `stb_image_resize2`：发布扩展库。
 - `stb_image_write`：发布扩展库。
@@ -201,7 +196,6 @@
 - `taglib`：发布扩展库。
 - `tar`：ustar、PAX 与 GNU TAR 归档扩展库，支持锚定根安全提取、精确白名单与谓词选择器。
 - `tdengine`：发布扩展库。
-- `tensorrt`：发布扩展库。
 - `terraform_state`：发布扩展库。
 - `tokenizers`：发布扩展库。
 - `toml`：TOML 解析、编码与文件读写扩展库。
@@ -219,7 +213,6 @@
 - `volc.phone`：发布扩展库。
 - `volc.sts`：发布扩展库。
 - `watch`：发布扩展库。
-- `webrtc`：发布扩展库。
 - `webview`：发布扩展库。
 - `whisper`：发布扩展库。
 - `xbot`：发布扩展库。
@@ -227,7 +220,6 @@
 - `xfeat`：XFeat 扩展库。
 - `xge`：发布扩展库。
 - `xge_shape_ex`：发布扩展库。
-- `xlsx`：发布扩展库。
 - `xml.dom`：完整 XML 文档对象模型扩展库。
 - `xml.etree`：轻量 XML ElementTree 扩展库。
 - `xml.sax`：流式 XML SAX 事件扩展库。
