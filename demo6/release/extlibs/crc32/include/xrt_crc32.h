@@ -1,6 +1,12 @@
-#ifndef XRT_CRC32_H
-#define XRT_CRC32_H
+#ifndef XL_EXTLIB_CRC32_H
+#define XL_EXTLIB_CRC32_H
 
+#ifndef XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_BUFFER
+#endif
+#ifndef XRT_MODULE_ONCE
+#define XRT_MODULE_ONCE
+#endif
 #include "xrt.h"
 
 #ifdef __cplusplus

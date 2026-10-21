@@ -1,0 +1,15 @@
+import crc32
+
+// 一次性和增量计算处理同一组字节；digest 不终结状态。
+println("empty=" + crc32.checksumHex(""))
+println("check=" + crc32.checksum("123456789").toString())
+println("hex=" + crc32.checksumHex("123456789"))
+auto h = crc32.hasher()
+h.update("1234")
+Buffer tail = Buffer()
+tail.append("56789")
+h.update(tail)
+println("stream=" + h.digestHex())
+println("bytes=" + h.inputBytes.toString())
+h.reset()
+println("reset=" + h.digestHex())

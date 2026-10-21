@@ -1,271 +1,247 @@
 #include "include/xrt_crc32.h"
-
-#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
 #define XRT_CRC32_CHUNK 65536u
 
-/* ═══════════════════════════════════════════════════════════
- * CRC-32/ISO-HDLC slice-by-8 高性能实现
- * 多项式: 0xEDB88320 (反转表示)
- * 每次处理 8 字节，纯 C 无 SIMD 依赖，TCC 完全兼容
- * ═══════════════════════════════════════════════════════════ */
+// ----------------------------- CRC-32/ISO-HDLC -----------------------------
 
-static uint32_t crc32_table[8][256];
-static int crc32_table_ready = 0;
+/* 表只构造一次，发布后只读；复用 XRT Once，不增加常量资源或私有同步实现。 */
+static uint32 crc32_table[8][256];
+static xonce crc32_once = XRT_ONCE_INIT;
 
-static void crc32_init_tables(void)
+static bool crc32_init(ptr unused)
 {
-	uint32_t i, j;
-	if (crc32_table_ready) { return; }
-	/* 第一张表：标准逐字节 CRC32 */
-	for (i = 0; i < 256u; ++i) {
-		uint32_t crc = i;
-		for (j = 0; j < 8u; ++j) {
-			crc = (crc >> 1) ^ (0xEDB88320u & (0u - (crc & 1u)));
-		}
-		crc32_table[0][i] = crc;
-	}
-	/* 扩展表 1..7：slice-by-8 */
-	for (i = 0; i < 256u; ++i) {
-		uint32_t crc = crc32_table[0][i];
-		for (j = 1u; j < 8u; ++j) {
-			crc = crc32_table[0][crc & 0xffu] ^ (crc >> 8);
-			crc32_table[j][i] = crc;
-		}
-	}
-	crc32_table_ready = 1;
+    uint32 i, j;
+    (void)unused;
+    for (i = 0; i < 256; ++i) {
+        uint32 crc = i;
+        for (j = 0; j < 8; ++j) crc = (crc >> 1) ^ (0xEDB88320u & (0u - (crc & 1u)));
+        crc32_table[0][i] = crc;
+    }
+    for (i = 0; i < 256; ++i) {
+        uint32 crc = crc32_table[0][i];
+        for (j = 1; j < 8; ++j) {
+            crc = crc32_table[0][crc & 255] ^ (crc >> 8);
+            crc32_table[j][i] = crc;
+        }
+    }
+    return true;
 }
 
-static uint32_t crc32_slice8(uint32_t crc, const unsigned char* data, size_t len)
+/* 显式小端装载：不依赖宿主字节序、指针对齐或别名规则。 */
+static uint32 crc32_le32(const uint8* p)
+{ return (uint32)p[0] | ((uint32)p[1] << 8) | ((uint32)p[2] << 16) | ((uint32)p[3] << 24); }
+
+static uint32 crc32_update(uint32 value, const uint8* data, size_t size)
 {
-	/* 对齐到 8 字节边界 */
-	while (len != 0u && ((size_t)data & 7u) != 0u) {
-		crc = crc32_table[0][(crc ^ *data) & 0xffu] ^ (crc >> 8);
-		++data;
-		--len;
-	}
-	/* slice-by-8 主循环 */
-	while (len >= 8u) {
-		uint32_t lo, hi;
-		memcpy(&lo, data, 4u);
-		memcpy(&hi, data + 4u, 4u);
-		lo ^= crc;
-		crc = crc32_table[7][ lo        & 0xffu] ^
-		      crc32_table[6][(lo >>  8) & 0xffu] ^
-		      crc32_table[5][(lo >> 16) & 0xffu] ^
-		      crc32_table[4][(lo >> 24) & 0xffu] ^
-		      crc32_table[3][ hi        & 0xffu] ^
-		      crc32_table[2][(hi >>  8) & 0xffu] ^
-		      crc32_table[1][(hi >> 16) & 0xffu] ^
-		      crc32_table[0][(hi >> 24) & 0xffu];
-		data += 8u;
-		len -= 8u;
-	}
-	/* 尾部逐字节 */
-	while (len != 0u) {
-		crc = crc32_table[0][(crc ^ *data) & 0xffu] ^ (crc >> 8);
-		++data;
-		--len;
-	}
-	return crc;
+    uint32 crc = value ^ 0xFFFFFFFFu;
+    while (size >= 8) {
+        uint32 lo = crc32_le32(data) ^ crc, hi = crc32_le32(data + 4);
+        crc = crc32_table[7][lo & 255] ^ crc32_table[6][(lo >> 8) & 255] ^
+            crc32_table[5][(lo >> 16) & 255] ^ crc32_table[4][lo >> 24] ^
+            crc32_table[3][hi & 255] ^ crc32_table[2][(hi >> 8) & 255] ^
+            crc32_table[1][(hi >> 16) & 255] ^ crc32_table[0][hi >> 24];
+        data += 8;
+        size -= 8;
+    }
+    while (size--) crc = crc32_table[0][(crc ^ *data++) & 255] ^ (crc >> 8);
+    return crc ^ 0xFFFFFFFFu;
 }
 
-static uint32_t crc32_compute(const unsigned char* data, size_t len)
-{
-	crc32_init_tables();
-	return crc32_slice8(0xFFFFFFFFu, data, len) ^ 0xFFFFFFFFu;
-}
-
-static uint32_t crc32_update(uint32_t crc, const unsigned char* data, size_t len)
-{
-	crc32_init_tables();
-	return crc32_slice8(crc ^ 0xFFFFFFFFu, data, len) ^ 0xFFFFFFFFu;
-}
-
-
-/* ═══════════════════════════════════════════════════════════
- * 容器层：流式哈希器 + 一次性 + 文件流
- * ═══════════════════════════════════════════════════════════ */
+// ----------------------------- 错误与输入合同 -----------------------------
 
 struct xrtcrc32hasher {
-	uint32 Crc;
-	xrtcrc32options Options;
-	xrtcrc32error Error;
-	uint64 InputBytes;
-	bool Initialized;
-	bool Failed;
+    uint32 Crc;
+    xrtcrc32options Options;
+    xrtcrc32error Error;
+    uint64 InputBytes;
+    bool Failed;
 };
 
-static void __xrtCrc32SetError(xrtcrc32error* pError, int iCode, int iBackend,
-	uint64 iInput, uint64 iOutput, const char* sFormat, ...)
+static bool crc32_publish(const xrtcrc32error* error)
 {
-	va_list pArgs;
-	if (pError == NULL) { return; }
-	pError->iCode = iCode;
-	pError->iBackendCode = iBackend;
-	pError->iInputOffset = iInput;
-	pError->iOutputOffset = iOutput;
-	va_start(pArgs, sFormat);
-	vsnprintf(pError->sMessage, sizeof(pError->sMessage), sFormat, pArgs);
-	va_end(pArgs);
-	pError->sMessage[sizeof(pError->sMessage) - 1] = '\0';
+    xerrkind kind = XERR_ARGUMENT;
+    switch (error->iCode) {
+    case XRT_CRC32_ERROR_MEMORY: kind = XERR_MEMORY; break;
+    case XRT_CRC32_ERROR_IO: kind = XERR_IO; break;
+    case XRT_CRC32_ERROR_LIMIT: kind = XERR_RANGE; break;
+    case XRT_CRC32_ERROR_STATE: kind = XERR_STATE; break;
+    case XRT_CRC32_ERROR_CANCELLED: kind = XERR_CANCELLED; break;
+    default: break;
+    }
+    xrtSetErrorInfo(kind, "xlang.extlib.crc32", error->iCode, error->sMessage);
+    return false;
 }
 
-XRT_API void xrtCrc32ErrorInit(xrtcrc32error* pError)
+static bool crc32_fail(xrtcrc32error* error, int code, uint64 offset, const char* message)
 {
-	if (pError == NULL) { return; }
-	memset(pError, 0, sizeof(*pError));
-	pError->iCode = XRT_CRC32_OK;
+    xrtcrc32error local;
+    if (error == NULL) error = &local;
+    memset(error, 0, sizeof(*error));
+    error->iCode = code;
+    error->iInputOffset = offset;
+    snprintf(error->sMessage, sizeof(error->sMessage), "%s", message);
+    return crc32_publish(error);
 }
 
-XRT_API void xrtCrc32OptionsInit(xrtcrc32options* pOptions)
+static bool crc32_limits(const xrtresourcelimits* limits)
+{ return limits->iSize == sizeof(*limits) && limits->iVersion == XRT_RESOURCE_LIMITS_VERSION; }
+
+static bool crc32_input(uint64 current, uint64 add, uint64 maximum, xrtcrc32error* error)
 {
-	if (pOptions == NULL) { return; }
-	memset(pOptions, 0, sizeof(*pOptions));
-	pOptions->iSize = sizeof(*pOptions);
-	pOptions->iVersion = XRT_CRC32_OPTIONS_VERSION;
-	xrtResourceLimitsInit(&pOptions->tLimits);
+    if (add > UINT64_MAX - current ||
+        (maximum != 0 && (current > maximum || add > maximum - current)))
+        return crc32_fail(error, XRT_CRC32_ERROR_LIMIT, current, "crc32 input exceeds maxInput limit");
+    return true;
 }
 
-
-/* ---- 流式哈希器 ---- */
-
-XRT_API xrtcrc32hasher* xrtCrc32HasherCreate(const xrtcrc32options* pOptions)
+XRT_API void xrtCrc32ErrorInit(xrtcrc32error* error)
+{ if (error != NULL) memset(error, 0, sizeof(*error)); }
+XRT_API void xrtCrc32OptionsInit(xrtcrc32options* options)
 {
-	xrtcrc32hasher* pHasher;
-	crc32_init_tables();
-	pHasher = (xrtcrc32hasher*)xrtMalloc(sizeof(xrtcrc32hasher));
-	if (pHasher == NULL) { return NULL; }
-	memset(pHasher, 0, sizeof(*pHasher));
-	xrtCrc32ErrorInit(&pHasher->Error);
-	if (pOptions != NULL) {
-		pHasher->Options = *pOptions;
-	} else {
-		xrtCrc32OptionsInit(&pHasher->Options);
-	}
-	pHasher->Crc = 0u;
-	pHasher->Initialized = true;
-	return pHasher;
+    if (options == NULL) return;
+    memset(options, 0, sizeof(*options));
+    options->iSize = sizeof(*options);
+    options->iVersion = XRT_CRC32_OPTIONS_VERSION;
+    xrtResourceLimitsInit(&options->tLimits);
 }
 
-XRT_API bool xrtCrc32HasherUpdate(xrtcrc32hasher* pHasher, const void* pData, size_t iSize)
+// ----------------------------- 流式状态 -----------------------------
+
+XRT_API xrtcrc32hasher* xrtCrc32HasherCreate(const xrtcrc32options* options)
 {
-	if (pHasher == NULL || pHasher->Failed) { return false; }
-	if (iSize != 0u && pData == NULL) {
-		__xrtCrc32SetError(&pHasher->Error, XRT_CRC32_ERROR_ARGUMENT, 0,
-			pHasher->InputBytes, 0, "invalid crc32 input");
-		pHasher->Failed = true;
-		return false;
-	}
-	if (pHasher->Options.tLimits.iMaxInputBytes != 0u &&
-		pHasher->InputBytes + iSize > pHasher->Options.tLimits.iMaxInputBytes) {
-		__xrtCrc32SetError(&pHasher->Error, XRT_CRC32_ERROR_LIMIT, 0,
-			pHasher->InputBytes, 0, "crc32 input exceeds maxInput limit");
-		pHasher->Failed = true;
-		return false;
-	}
-	if (iSize != 0u) {
-		pHasher->Crc = crc32_update(pHasher->Crc, (const unsigned char*)pData, iSize);
-	}
-	pHasher->InputBytes += (uint64)iSize;
-	return true;
+    xrtcrc32hasher* h;
+    xrtClearError();
+    if (options != NULL && (options->iSize != sizeof(*options) ||
+        options->iVersion != XRT_CRC32_OPTIONS_VERSION || !crc32_limits(&options->tLimits))) {
+        crc32_fail(NULL, XRT_CRC32_ERROR_ARGUMENT, 0, "invalid crc32 options");
+        return NULL;
+    }
+    if (!xrtOnce(&crc32_once, crc32_init, NULL)) return NULL;
+    h = xrtMalloc(sizeof(*h));
+    if (h == NULL) return NULL;
+    memset(h, 0, sizeof(*h));
+    if (options != NULL) h->Options = *options;
+    else xrtCrc32OptionsInit(&h->Options);
+    return h;
 }
 
-XRT_API bool xrtCrc32HasherDigest(const xrtcrc32hasher* pHasher, uint32* pCrc)
+static bool crc32_ready(const xrtcrc32hasher* h)
 {
-	if (pHasher == NULL || pHasher->Failed || pCrc == NULL) { return false; }
-	*pCrc = pHasher->Crc;
-	return true;
+    if (h == NULL) return crc32_fail(NULL, XRT_CRC32_ERROR_STATE, 0, "invalid crc32 handle");
+    return !h->Failed || crc32_publish(&h->Error);
 }
 
-XRT_API bool xrtCrc32HasherReset(xrtcrc32hasher* pHasher)
+XRT_API bool xrtCrc32HasherUpdate(xrtcrc32hasher* h, const void* data, size_t size)
 {
-	if (pHasher == NULL || pHasher->Failed) { return false; }
-	pHasher->Crc = 0u;
-	pHasher->InputBytes = 0u;
-	return true;
+    xrtClearError();
+    if (!crc32_ready(h)) return false;
+    if (data == NULL && size != 0) {
+        h->Failed = true;
+        return crc32_fail(&h->Error, XRT_CRC32_ERROR_ARGUMENT, h->InputBytes, "invalid crc32 input");
+    }
+    if (!crc32_input(h->InputBytes, size, h->Options.tLimits.iMaxInputBytes, &h->Error)) {
+        h->Failed = true;
+        return false;
+    }
+    h->Crc = crc32_update(h->Crc, data, size);
+    h->InputBytes += size;
+    return true;
 }
 
-XRT_API uint64 xrtCrc32HasherInputBytes(const xrtcrc32hasher* pHasher)
+XRT_API bool xrtCrc32HasherDigest(const xrtcrc32hasher* h, uint32* crc)
 {
-	return pHasher != NULL ? pHasher->InputBytes : 0u;
+    xrtClearError();
+    if (!crc32_ready(h)) return false;
+    if (crc == NULL) return crc32_fail(NULL, XRT_CRC32_ERROR_ARGUMENT, h->InputBytes, "invalid crc32 output");
+    *crc = h->Crc;
+    return true;
 }
 
-XRT_API const xrtcrc32error* xrtCrc32HasherError(const xrtcrc32hasher* pHasher)
+XRT_API bool xrtCrc32HasherReset(xrtcrc32hasher* h)
 {
-	return pHasher != NULL ? &pHasher->Error : NULL;
+    xrtClearError();
+    if (h == NULL) return crc32_fail(NULL, XRT_CRC32_ERROR_STATE, 0, "invalid crc32 handle");
+    h->Crc = 0;
+    h->InputBytes = 0;
+    h->Failed = false;
+    xrtCrc32ErrorInit(&h->Error);
+    return true;
 }
 
-XRT_API void xrtCrc32HasherDestroy(xrtcrc32hasher* pHasher)
+XRT_API uint64 xrtCrc32HasherInputBytes(const xrtcrc32hasher* h)
+{ return h != NULL ? h->InputBytes : 0; }
+XRT_API const xrtcrc32error* xrtCrc32HasherError(const xrtcrc32hasher* h)
+{ return h != NULL ? &h->Error : NULL; }
+XRT_API void xrtCrc32HasherDestroy(xrtcrc32hasher* h)
+{ xrtFree(h); }
+
+XRT_API bool xrtCrc32Hash(const void* data, size_t size, uint32* crc, xrtcrc32error* error)
 {
-	if (pHasher == NULL) { return; }
-	xrtFree(pHasher);
+    xrtClearError();
+    xrtCrc32ErrorInit(error);
+    if (crc == NULL || (data == NULL && size != 0))
+        return crc32_fail(error, XRT_CRC32_ERROR_ARGUMENT, 0, "invalid crc32 input or output");
+    if (!xrtOnce(&crc32_once, crc32_init, NULL)) return false;
+    *crc = crc32_update(0, data, size);
+    return true;
 }
 
+// ----------------------------- 借用 Reader -----------------------------
 
-/* ---- 一次性哈希 ---- */
-
-XRT_API bool xrtCrc32Hash(const void* pData, size_t iSize, uint32* pCrc, xrtcrc32error* pError)
+/* 只复制诊断；Reader 和回调的 XRT 错误类别、消息与所有权保持原样。 */
+static void crc32_observe(xrtcrc32error* error, int code, uint64 offset)
 {
-	xrtCrc32ErrorInit(pError);
-	if (pCrc == NULL || (pData == NULL && iSize != 0u)) {
-		__xrtCrc32SetError(pError, XRT_CRC32_ERROR_ARGUMENT, 0, 0, 0, "invalid crc32 input");
-		return false;
-	}
-	*pCrc = crc32_compute((const unsigned char*)pData, iSize);
-	return true;
+    if (error == NULL) return;
+    error->iCode = code;
+    error->iInputOffset = offset;
+    snprintf(error->sMessage, sizeof(error->sMessage), "%s", xrtErrorMessage(xrtGetError()));
 }
 
-
-/* ---- 文件流式哈希 ---- */
-
-XRT_API bool xrtCrc32File(xreader* pReader, const xrtresourcelimits* pLimits,
-	uint32* pCrc, xrtprogressproc pProgress, ptr pUserData, xrtcrc32error* pError)
+XRT_API bool xrtCrc32File(xreader* reader, const xrtresourcelimits* limits,
+    uint32* crc, xrtprogressproc progress, ptr user, xrtcrc32error* error)
 {
-	uint8 sInput[XRT_CRC32_CHUNK];
-	uint32 iCrc = 0u;
-	uint64 iTotal = 0u;
-	uint64 iExpected = 0u;
-	bool bTotalKnown;
-	xrtCrc32ErrorInit(pError);
-	crc32_init_tables();
-	if (pReader == NULL || pCrc == NULL) {
-		__xrtCrc32SetError(pError, XRT_CRC32_ERROR_ARGUMENT, 0, 0, 0, "invalid crc32 stream");
-		return false;
-	}
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iExpected);
-	if (!bTotalKnown) { xrtClearError(); }
-	for (;;) {
-		uint64 iRead = 0u;
-		if (!xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead)) {
-			__xrtCrc32SetError(pError, XRT_CRC32_ERROR_IO, 0, iTotal, 0,
-				"cannot read crc32 input stream");
-			return false;
-		}
-		if (iRead == 0u) { break; }
-		iTotal += iRead;
-		if (pLimits != NULL && pLimits->iMaxInputBytes != 0u &&
-			iTotal > pLimits->iMaxInputBytes) {
-			__xrtCrc32SetError(pError, XRT_CRC32_ERROR_LIMIT, 0, iTotal, 0,
-				"crc32 input exceeds maxInput limit");
-			return false;
-		}
-		iCrc = crc32_update(iCrc, sInput, (size_t)iRead);
-		if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
-			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) {
-			__xrtCrc32SetError(pError, XRT_CRC32_ERROR_CANCELLED, 0, iTotal, 0,
-				"crc32 operation cancelled");
-			return false;
-		}
-	}
-	*pCrc = iCrc;
-	if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
-		XRT_PROGRESS_FINAL | (bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u))) {
-		__xrtCrc32SetError(pError, XRT_CRC32_ERROR_CANCELLED, 0, iTotal, 0,
-			"crc32 operation cancelled");
-		return false;
-	}
-	return true;
+    xrtresourcelimits defaults;
+    uint8 input[XRT_CRC32_CHUNK];
+    uint32 value = 0;
+    uint64 total = 0, expected = 0, position = 0, end = 0;
+    bool known = false;
+    xrtClearError();
+    xrtCrc32ErrorInit(error);
+    if (limits == NULL) { xrtResourceLimitsInit(&defaults); limits = &defaults; }
+    if (!crc32_limits(limits) || reader == NULL || crc == NULL)
+        return crc32_fail(error, XRT_CRC32_ERROR_ARGUMENT, 0, "invalid crc32 reader, output or limits");
+    if (!xrtOnce(&crc32_once, crc32_init, NULL)) return false;
+    if (xrtReaderCanSeek(reader)) {
+        known = xrtReaderTell(reader, &position) && xrtReaderSize(reader, &end) && end >= position;
+        if (known) expected = end - position;
+        else xrtClearError();
+    }
+    if (known && !crc32_input(0, expected, limits->iMaxInputBytes, error)) return false;
+    for (;;) {
+        size_t count = 0;
+        uint32 flags;
+        if (!xrtReaderRead(reader, input, sizeof(input), &count) || count > sizeof(input)) {
+            if (xrtGetError() == NULL)
+                return crc32_fail(error, XRT_CRC32_ERROR_IO, total, "cannot read crc32 input stream");
+            crc32_observe(error, xrtErrorKind(xrtGetError()) == XERR_MEMORY ?
+                XRT_CRC32_ERROR_MEMORY : XRT_CRC32_ERROR_IO, total);
+            return false;
+        }
+        if (!crc32_input(total, count, limits->iMaxInputBytes, error)) return false;
+        value = crc32_update(value, input, count);
+        total += count;
+        flags = (known ? XRT_PROGRESS_TOTAL_KNOWN : 0) | (count == 0 ? XRT_PROGRESS_FINAL : 0);
+        if (!xrtProgressReport(progress, user, total, expected, 0, flags)) {
+            if (xrtGetError() == NULL)
+                return crc32_fail(error, XRT_CRC32_ERROR_CANCELLED, total, "crc32 operation cancelled");
+            crc32_observe(error, XRT_CRC32_ERROR_CANCELLED, total);
+            return false;
+        }
+        if (count == 0) break;
+    }
+    /* 末尾通知也可能取消，所有步骤成功后才提交输出。 */
+    *crc = value;
+    return true;
 }

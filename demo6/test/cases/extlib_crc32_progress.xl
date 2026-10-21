@@ -1,0 +1,86 @@
+import crc32
+
+class Crc32Progress
+    int calls = 0
+    int last = 0
+end
+
+func main(...) as int
+    string root = "build/test/crc32-progress"
+    dir.createAll(root)
+    string source = root + "/中文源.txt"
+    string empty = root + "/empty.txt"
+    string text = ""
+    for i in range(12000)
+        text += "你好 "
+    end
+    file.writeText(source, text)
+    file.writeText(empty, "")
+    try
+        Crc32Progress state = Crc32Progress()
+        int result = crc32.checksumFile(source,
+            onProgress = func(int current, int total, int output) as bool
+                assert current >= state.last and total == string.byteLen(text) and output == 0
+                state.calls += 1
+                state.last = current
+                assert crc32.checksumFileHex(empty) == crc32.checksumHex("")
+                bool handled = false
+                try
+                    crc32.checksumFile(root + "/missing.txt")
+                catch FileError e
+                    handled = true
+                end
+                assert handled
+                return true
+            end)
+        assert state.calls == 3 and state.last == string.byteLen(text)
+        assert result == crc32.checksum(text)
+        assert crc32.checksumFileHex(source) == crc32.checksumHex(text)
+
+        for mode in range(3)
+            state = Crc32Progress()
+            bool caught = false
+            try
+                crc32.checksumFileHex(source, onProgress = func(int a, int b, int c) as bool
+                    state.calls += 1
+                    if mode == 2 then
+                        throw ValueError "crc32 callback marker"
+                    end
+                    return mode == 1 and state.calls < 3
+                end)
+            catch CancelledError e
+                assert mode < 2
+                caught = true
+            catch ValueError e
+                assert mode == 2 and e.message == "crc32 callback marker"
+                caught = true
+            end
+            assert caught
+            if mode == 1 then
+                assert state.calls == 3
+            end
+        end
+        bool caught = false
+        try
+            crc32.checksumFile(empty, onProgress = func(int a, int b, int c) as bool
+                assert a == 0 and b == 0 and c == 0
+                return false
+            end)
+        catch CancelledError e
+            caught = true
+        end
+        assert caught
+        caught = false
+        try
+            crc32.checksumFile(source, maxInput = 1)
+        catch RangeError e
+            caught = true
+        end
+        assert caught
+        assert crc32.checksumFile(source) == result and file.readText(source) == text
+    finally
+        file.delete(source)
+        file.delete(empty)
+    end
+    return 0
+end

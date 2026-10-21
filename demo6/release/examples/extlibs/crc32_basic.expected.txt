@@ -1,0 +1,6 @@
+empty=00000000
+check=3421780262
+hex=cbf43926
+stream=cbf43926
+bytes=9
+reset=00000000

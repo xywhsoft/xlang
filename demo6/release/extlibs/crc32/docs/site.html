@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>crc32 - 扩展库 - xlang</title>
+  <meta name="description" content="CRC-32/ISO-HDLC：文本、二进制、增量、文件进度与取消，C 和 xlang 共用 XRT 基础设施。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout c-hash" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / crc32</p>
+    <div class="extlib-title-row"><h1>crc32</h1><span class="extlib-cat-badge">数据校验</span></div>
+    <p class="extlib-lead">CRC-32/ISO-HDLC，面向文件与字节流的偶发损坏检测。随包 C 实现，无额外 CRC DLL；不用于密码、签名或防恶意篡改。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api">
+    <h2 id="api">函数</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>参数与返回</th></tr></thead><tbody>
+      <tr><td><code>version()</code></td><td>当前引擎版本 1.0.0。</td></tr>
+      <tr><td><code>checksum(data)</code></td><td>Buffer 或 string，返回 int，完整范围 0..4294967295。</td></tr>
+      <tr><td><code>checksumHex(data)</code></td><td>同样的输入，返回 8 个小写 hex 字符。</td></tr>
+      <tr><td><code>checksumFile(path, maxInput, onProgress)</code></td><td>返回 int；默认 maxInput=268435456、onProgress=null。</td></tr>
+      <tr><td><code>checksumFileHex(...)</code></td><td>相同参数，返回 hex。</td></tr>
+      <tr><td><code>hasher(maxInput=268435456)</code></td><td>返回 Crc32Hasher。</td></tr>
+    </tbody></table>
+    <p>文本按 UTF-8 字节计算；包含 NUL 的二进制内容使用 Buffer。空输入合法，CRC 为零。
+      maxInput 必须为正；一次性输入由调用方持有，不另设预算。</p>
+    <h2 id="stream">增量对象</h2>
+    <pre><code class="language-xlang">import crc32
+
+auto h = crc32.hasher()
+h.update("1234")
+h.update("56789")
+assert h.digestHex() == "cbf43926"
+assert h.digest() == 3421780262
+assert h.inputBytes == uint64(9)
+h.reset()</code></pre>
+    <p><code>update(Buffer|string)</code> 追加输入；digest 和 digestHex 是可重复读取的快照，之后仍可继续追加。
+      inputBytes 是 uint64 字节计数，valid 检查句柄非空。非法 update 或超限进入失败状态；
+      reset 清除输入与失败状态、保留预算。独立对象可并发，同一可变对象须串行访问。</p>
+    <h2 id="progress">文件、回调和错误</h2>
+    <pre><code class="language-xlang">int sum = crc32.checksumFile("data.bin",
+    onProgress = func(int current, int total, int output) as bool
+        return true
+    end)</code></pre>
+    <p>每块最多 64 KiB，EOF 再通知一次，空文件也通知。参数为已读字节、总长、输出字节；
+      未知总长为 0，输出恒为 0，末尾计数可能重复。返回 false 抛 CancelledError；
+      回调主动抛出的异常保留类别和消息。允许嵌套另一独立文件校验。</p>
+    <p>非法参数为 ValueError、超限为 RangeError、分配失败为 MemoryError；打开/读取错误保留 XRT 分类。
+      文件路径通过 XRT UTF-8 API 处理，不修改输入，不返回部分摘要。
+      预算不是 CPU 时限或并发写入下的文件快照保证。</p>
+    <h2 id="c-api">C 与验证</h2>
+    <p><code>include/xrt_crc32.h</code> 提供 xrtCrc32Hash、OptionsInit/ErrorInit、
+      HasherCreate/Update/Digest/Reset/InputBytes/Error/Destroy、File。
+      File 借用 Reader，从当前游标读取，最终通知成功后才写输出，保留 FINAL/TOTAL_KNOWN 标志。</p>
+    <p>核心 C 初始化配置中的零输入预算表示不设业务上限，仍检查整数溢出；薄绑定 maximum=0 表示默认预算。
+      <code>include/crc32_native.h</code> 提供精确原型。hex 借用 XRT 临时区，清理/回退后失效。
+      XRT Once 负责并发首次建表，字节装载不依赖对齐或宿主字节序。</p>
+    <p>双语范例：<code>examples/extlibs/crc32_basic.xl</code>、<code>extlibs/crc32/examples/basic.c</code>；
+      文件教学见 <code>examples/extlibs/crc32.xl</code>。</p>
+    <p>门禁 <code>tools/check_extlib_crc32.ps1</code> 覆盖固定答案、1536 组独立逐位差分、全部生成原型、
+      UTF-8/Buffer、Reader/回调、分配故障、首次并发及 JIT/AOT/GCC 双语输出。
+      <code>tools/check_extlib_crc32.sh</code> 验证 Linux 独立 C ASan/UBSan/泄漏边界。
+      结果绑定每次输入哈希，不是跨版本永久认证；不宣称 Linux xlang、真实大端目标、32 位/ARM、共享可变对象或性能已验收。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

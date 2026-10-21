@@ -21,7 +21,7 @@ assert crc32.checksumFile(samplePath) == crc32.checksum(sample), "crc32 checksum
 try
     crc32.checksumFile("")
     assert false, "crc32 empty path should fail"
-catch FileError
+catch ValueError
 end
 
 println("crc32 extlib ok")
