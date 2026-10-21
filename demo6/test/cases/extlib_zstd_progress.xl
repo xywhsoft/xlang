@@ -6,15 +6,16 @@ class ProgressState
     int lastTotal = 0
 end
 
-func main(...) as int
-    string sourcePath = "tmp/extlib_zstd_progress_source.txt"
-    string packedPath = "tmp/extlib_zstd_progress.zst"
-    string cancelledPath = "tmp/extlib_zstd_progress_cancelled.zst"
-    string failedPath = "tmp/extlib_zstd_progress_failed.zst"
+func exercise(string workDir)
+    string sourcePath = path.join(workDir, "source.txt")
+    string packedPath = path.join(workDir, "packed.zst")
+    string plainPath = path.join(workDir, "plain.txt")
+    string cancelledPath = path.join(workDir, "cancelled.zst")
+    string failedPath = path.join(workDir, "failed.zst")
     string text = ""
     int i = 0
     while i < 20000
-        text += "xlang-progress-"
+        text += "xlang-progress-" + string(i) + "\n"
         i += 1
     end
     file.writeText(sourcePath, text)
@@ -30,6 +31,51 @@ func main(...) as int
     assert state.calls > 0
     assert state.lastInput == string.byteLen(text)
     assert state.lastTotal == state.lastInput
+
+    ProgressState decoded = ProgressState()
+    zstd.decompressFile(packedPath, plainPath, onProgress = func(int inputBytes,
+        int totalBytes, int outputBytes) as bool
+        decoded.calls += 1
+        decoded.lastInput = inputBytes
+        decoded.lastTotal = totalBytes
+        return outputBytes >= 0
+    end)
+    assert decoded.calls > 0 and decoded.lastInput == decoded.lastTotal
+    assert file.readText(plainPath) == text
+
+    // 源或目标路径含 NUL 时，不能只处理其前缀文件。
+    string nulPackedPath = path.join(workDir, "nul_packed.zst")
+    string nulPlainPath = path.join(workDir, "nul_plain.txt")
+    if file.exists(nulPackedPath) then file.delete(nulPackedPath) end
+    if file.exists(nulPlainPath) then file.delete(nulPlainPath) end
+    bool badPath = false
+    try
+        zstd.compressFile(sourcePath + "\0hidden", nulPackedPath)
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath and not file.exists(nulPackedPath)
+    badPath = false
+    try
+        zstd.compressFile(sourcePath, nulPackedPath + "\0hidden")
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath and not file.exists(nulPackedPath)
+    badPath = false
+    try
+        zstd.decompressFile(packedPath + "\0hidden", nulPlainPath)
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath and not file.exists(nulPlainPath)
+    badPath = false
+    try
+        zstd.decompressFile(packedPath, nulPlainPath + "\0hidden")
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath and not file.exists(nulPlainPath)
 
     bool cancelled = false
     try
@@ -55,7 +101,40 @@ func main(...) as int
     assert callbackError
     assert not file.exists(failedPath)
 
-    file.delete(sourcePath)
-    file.delete(packedPath)
+    file.writeText(cancelledPath, "keep destination")
+    cancelled = false
+    try
+        zstd.decompressFile(packedPath, cancelledPath, onProgress = func(int inputBytes,
+            int totalBytes, int outputBytes) as bool
+            return false
+        end)
+    catch CancelledError e
+        cancelled = true
+    end
+    assert cancelled and file.readText(cancelledPath) == "keep destination"
+
+end
+
+func main(...) as int
+    string workDir = dir.temp(path.temp(), "xlang_zstd_progress_", "")
+    try
+        exercise(workDir)
+    finally
+        string sourcePath = path.join(workDir, "source.txt")
+        string packedPath = path.join(workDir, "packed.zst")
+        string plainPath = path.join(workDir, "plain.txt")
+        string cancelledPath = path.join(workDir, "cancelled.zst")
+        string failedPath = path.join(workDir, "failed.zst")
+        string nulPackedPath = path.join(workDir, "nul_packed.zst")
+        string nulPlainPath = path.join(workDir, "nul_plain.txt")
+        if file.exists(sourcePath) then assert file.delete(sourcePath) end
+        if file.exists(packedPath) then assert file.delete(packedPath) end
+        if file.exists(plainPath) then assert file.delete(plainPath) end
+        if file.exists(cancelledPath) then assert file.delete(cancelledPath) end
+        if file.exists(failedPath) then assert file.delete(failedPath) end
+        if file.exists(nulPackedPath) then assert file.delete(nulPackedPath) end
+        if file.exists(nulPlainPath) then assert file.delete(nulPlainPath) end
+        assert dir.delete(workDir)
+    end
     return 0
 end
