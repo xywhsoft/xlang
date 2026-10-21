@@ -1,0 +1,12 @@
+import tensorrt
+
+func main(...) as int
+    // TensorRT NVIDIA inference
+
+    println("Precision 0 = " + tensorrt.precision(0))
+    println("Layer 0 = " + tensorrt.layer(0))
+    println("Profile 1 = " + tensorrt.profile(1))
+
+    println("tensorrt example: PASS")
+    return 0
+end
