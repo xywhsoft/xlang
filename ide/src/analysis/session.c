@@ -1,17 +1,10 @@
 #include "analysis/frontend_internal.h"
 #include <string.h>
 
-struct xls_syntax {
-    xatomic32 references;
-    xls_text* text;
-    char* path;
-    XL6_ParseResult parse;
-    int accepted;
-};
 typedef struct analysis_document {
     char* path;
     xls_text* text;
-    xls_syntax* syntax;
+    xls_syntax *syntax,*baseline;
     uint64_t identity,revision,generation;
 } analysis_document;
 struct xls_session {
@@ -29,26 +22,14 @@ static int validLabel(const char* value)
 static void dropDocument(xbytesview key,void* value,void* user)
 {
     (void)key; (void)user; analysis_document* document=value;
-    xrtFree(document->path); xlsTextRelease(document->text); xlsSyntaxRelease(document->syntax);
+    xrtFree(document->path); xlsTextRelease(document->text); xlsSyntaxRelease(document->syntax); xlsSyntaxRelease(document->baseline);
 }
-xls_syntax* xlsSyntaxRetain(xls_syntax* syntax)
-{ if(syntax) xrtAtomic32FetchAdd(&syntax->references,1,XMEMORY_RELAXED); return syntax; }
-void xlsSyntaxRelease(xls_syntax* syntax)
+static xls_syntax* parse(const analysis_document* document,xls_session_stats* stats)
 {
-    if(syntax && xrtAtomic32FetchSub(&syntax->references,1,XMEMORY_ACQ_REL)==1) {
-        xl6ParseResultFree(&syntax->parse); xlsTextRelease(syntax->text); xrtFree(syntax->path); xrtFree(syntax);
-    }
-}
-static xls_syntax* parse(const analysis_document* document)
-{
-    xls_syntax* syntax=xrtMalloc(sizeof(*syntax));
-    if(!syntax) return NULL;
-    memset(syntax,0,sizeof(*syntax)); xrtAtomic32Init(&syntax->references,1);
-    syntax->text=xlsTextRetain(document->text); syntax->path=xrtStrDup(document->path);
-    if(!syntax->path) { xlsSyntaxRelease(syntax); return NULL; }
-    xl6ParseResultInit(&syntax->parse);
-    syntax->accepted=xl6ParseSource(xlsTextData(syntax->text),syntax->path,&syntax->parse);
-    return syntax;
+    xls_parse_work work={0};
+    xls_syntax* result=xlsSyntaxBuild(document->path,document->text,document->baseline,&work);
+    stats->parses+=work.full+work.fragments; stats->fullParses+=work.full; stats->fragmentParses+=work.fragments;
+    stats->reusedDeclarations+=work.reused; stats->parsedBytes+=work.bytes; return result;
 }
 xls_session* xlsSessionCreate(const xls_session_limits* limits)
 {
@@ -82,6 +63,7 @@ int xlsSessionUpdate(xls_session* session,const char* key,const char* path,
     analysis_document next={0};
     next.path=xrtStrDup(path); next.text=xlsTextRetain(equal ? previous->text : source);
     next.syntax=equal ? xlsSyntaxRetain(previous->syntax) : NULL;
+    if(sameIdentity && !strcmp(previous->path,path)) next.baseline=xlsSyntaxRetain(equal ? previous->baseline : previous->syntax ? previous->syntax : previous->baseline);
     next.identity=identity; next.revision=revision; next.generation=session->stats.generation+1;
     if(!next.path || !xrtMapSet(&session->documents,keyView(key),&next)) { dropDocument((xbytesview){0},&next,NULL); return 0; }
     session->stats.generation=next.generation; session->stats.documents=xrtMapCount(&session->documents);
@@ -125,24 +107,11 @@ int xlsSessionSyntax(xls_session* session,const char* key,xls_analysis_snapshot*
     analysis_document* document=xrtMapGet(&session->documents,keyView(key));
     if(!document) return 0;
     if(!document->syntax) {
-        document->syntax=parse(document);
+        document->syntax=parse(document,&session->stats);
         if(!document->syntax) return 0;
-        ++session->stats.parses;
+        xlsSyntaxRelease(document->baseline); document->baseline=NULL;
     } else ++session->stats.cacheHits;
     *result=(xls_analysis_snapshot){xlsSyntaxRetain(document->syntax),document->identity,document->revision,document->generation}; return 1;
 }
 void xlsSessionStats(const xls_session* session,xls_session_stats* stats)
 { if(stats) *stats=session ? session->stats : (xls_session_stats){0}; }
-int xlsSyntaxAccepted(const xls_syntax* syntax) { return syntax && syntax->accepted; }
-const char* xlsSyntaxPath(const xls_syntax* syntax) { return syntax ? syntax->path : NULL; }
-const xls_text* xlsSyntaxText(const xls_syntax* syntax) { return syntax ? syntax->text : NULL; }
-const XL6_AstNode* xlsSyntaxAst(const xls_syntax* syntax) { return syntax ? syntax->parse.root : NULL; }
-size_t xlsSyntaxDiagnosticCount(const xls_syntax* syntax) { return syntax ? syntax->parse.diags.count : 0; }
-int xlsSyntaxDiagnostic(const xls_syntax* syntax,size_t index,xls_syntax_diagnostic* result)
-{
-    if(!result) return 0;
-    memset(result,0,sizeof(*result));
-    if(!syntax || index>=syntax->parse.diags.count) return 0;
-    const XL6_Diag* diagnostic=&syntax->parse.diags.items[index];
-    *result=(xls_syntax_diagnostic){diagnostic->line,diagnostic->column,diagnostic->file ? diagnostic->file : syntax->path,diagnostic->message}; return 1;
-}
