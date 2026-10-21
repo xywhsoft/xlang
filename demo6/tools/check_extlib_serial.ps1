@@ -1,4 +1,4 @@
-﻿param([string]$Root = "")
+﻿param([string]$Root = "", [switch]$SkipAot)
 
 $ErrorActionPreference = "Stop"
 if ($Root -eq "") { $Root = Split-Path -Parent $PSScriptRoot }
@@ -26,7 +26,7 @@ foreach ($file in $sourceFiles) {
 
 
 # 每个检查独立进程、固定工作目录和超时；不触碰共享构建对象或宿主内存策略。
-function Run-Check([string]$Name, [string]$Program, [string[]]$Arguments) {
+function Run-Check([string]$Name, [string]$Program, [string[]]$Arguments, [bool]$ExpectFailure = $false) {
     $process = [Diagnostics.Process]::new()
     $process.StartInfo.FileName = $Program
     $process.StartInfo.WorkingDirectory = $Root
@@ -46,6 +46,11 @@ function Run-Check([string]$Name, [string]$Program, [string[]]$Arguments) {
         $text = $stdout.GetAwaiter().GetResult().Replace("`r`n", "`n").TrimEnd("`n")
         $errors = $stderr.GetAwaiter().GetResult()
         $checks.Add([ordered]@{ name = $Name; exitCode = $process.ExitCode; stdout = $text; stderr = $errors })
+        if ($ExpectFailure) {
+            if ($process.ExitCode -eq 0) { throw "$Name unexpectedly passed" }
+            Write-Host "[serial] ${Name}: rejected as expected"
+            return "$errors`n$text"
+        }
         if ($process.ExitCode -ne 0) { throw "$Name failed: $errors`n$text" }
         Write-Host "[serial] ${Name}: PASS"
         return $text
@@ -87,21 +92,38 @@ try {
     if ($text -ne "serial C boundaries: PASS") { throw "C JIT marker missing" }
     $text = Run-Check "xlang-jit" $xl @("run", "test/cases/extlib_serial.xl")
     if ($text -ne "serial xlang boundaries: PASS") { throw "xlang JIT marker missing" }
-    $aot = Join-Path $work "xlang.exe"
-    $null = Run-Check "xlang-build" $xl @("build", "test/cases/extlib_serial.xl", "-o", $aot)
-    $text = Run-Check "xlang-aot" $aot @()
-    if ($text -ne "serial xlang boundaries: PASS") { throw "xlang AOT marker missing" }
+    foreach ($case in @("text", "bytes")) {
+        $name = "private_${case}_negative"
+        $expected = if ($case -eq "text") { "writeNative" } else { "writeBytesNative" }
+        $diagnostic = Run-Check "xlang-$name" $xl @("check", "$package/test/$name.xl") $true
+        if (!$diagnostic.Contains($expected) -or !$diagnostic.Contains("access")) {
+            throw "$name did not report private access"
+        }
+    }
+    $null = Run-Check "xlang-nul-port" $xl @("run", "$package/test/nul_port.xl")
+    # 无实体串口时只验证设备范例的单文件入口可构建，收发由 Linux PTY 门禁执行。
+    $deviceExample = Join-Path $work "device_direct.exe"
+    $null = Run-Check "device-c-direct-build" $xl @("build", "$package/examples/device_c.c", "-o", $deviceExample)
+    if (!$SkipAot) {
+        $aot = Join-Path $work "xlang.exe"
+        $null = Run-Check "xlang-build" $xl @("build", "test/cases/extlib_serial.xl", "-o", $aot)
+        $text = Run-Check "xlang-aot" $aot @()
+        if ($text -ne "serial xlang boundaries: PASS") { throw "xlang AOT marker missing" }
+    }
 
     $exampleXl = Run-Check "example-xlang" $xl @("run", "release/examples/extlibs/serial.xl")
     $exampleC = Run-Check "example-c" $xl @("run", "release/examples/extlibs/serial_c.c")
     $exampleExe = Join-Path $work "example.exe"
     $null = Run-Check "example-gcc-build" $gcc ($flags + @("release/examples/extlibs/serial_c.c", $runtime, "-o", $exampleExe, "-lWs2_32", "-lIPHLPAPI", "-lShell32"))
     $exampleGcc = Run-Check "example-gcc" $exampleExe @()
-    $cAot = Join-Path $work "c-example.exe"
-    $null = Run-Check "example-c-build" $xl @("build", "release/examples/extlibs/serial_c.c", "-o", $cAot)
-    $exampleAot = Run-Check "example-c-aot" $cAot @()
-    if ($exampleXl -cne $exampleC -or $exampleXl -cne $exampleGcc -or $exampleXl -cne $exampleAot -or
-        ($exampleXl -split "`n").Count -ne 12) {
+    if (!$SkipAot) {
+        $cAot = Join-Path $work "c-example.exe"
+        $null = Run-Check "example-c-build" $xl @("build", "release/examples/extlibs/serial_c.c", "-o", $cAot)
+        $exampleAot = Run-Check "example-c-aot" $cAot @()
+        if ($exampleXl -cne $exampleAot) { throw "C AOT example output differs" }
+    }
+    if ($exampleXl -cne $exampleC -or $exampleXl -cne $exampleGcc -or
+        ($exampleXl -split "`n").Count -ne 13) {
         throw "C/xlang example output differs"
     }
     foreach ($file in $binaries) {

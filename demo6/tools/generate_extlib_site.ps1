@@ -1,6 +1,7 @@
-param(
+﻿param(
     [string]$Root = "",
-    [string]$WebsiteRoot = "D:\GIT\home\host\xlang\wwwroot"
+    [string]$WebsiteRoot = "D:\GIT\home\host\xlang\wwwroot",
+    [string[]]$Package = @()
 )
 
 $ErrorActionPreference = "Stop"
@@ -23,13 +24,35 @@ function Html([string]$Text) {
 }
 
 $audit = [System.IO.File]::ReadAllText($auditPath, [System.Text.UTF8Encoding]::new($false)) | ConvertFrom-Json
+foreach ($name in $Package) {
+    if ($name -notin @($audit.packages.name)) { throw "Unknown package: $name" }
+}
 $outputDir = Join-Path $WebsiteRoot "extlibs\generated"
 [System.IO.Directory]::CreateDirectory($outputDir) | Out-Null
 
 $indexRows = New-Object System.Collections.Generic.List[string]
 foreach ($pkg in @($audit.packages | Sort-Object name)) {
-    if ($pkg.status -eq "internal") { continue }
+    if ($pkg.visibility -eq "internal" -or $pkg.status -eq "internal") { continue }
+    if ($Package.Count -ne 0 -and $pkg.name -notin $Package) { continue }
     $fileName = $pkg.name.Replace('.', '_') + ".html"
+    # 包内详情页保存当前合同与带日期的证据；旧清单标签不能覆盖它或扩大验收范围。
+    $detailSource = Join-Path $Root "release/extlibs/$($pkg.name)/docs/site.html"
+    if (Test-Path -LiteralPath $detailSource -PathType Leaf) {
+        $detailTarget = Join-Path $WebsiteRoot "extlibs/$fileName"
+        Copy-Item -LiteralPath $detailSource -Destination $detailTarget -Force
+        $entry = @"
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>$(Html $pkg.name) - xlang</title><link rel="stylesheet" href="../../style.css"></head>
+<body><main class="extlib-layout"><h1>$(Html $pkg.name)</h1>
+<p><a href="../$fileName">API, examples, supported scope and dated verification</a></p>
+<p>This inventory entry does not imply complete protocol or production readiness.</p></main></body></html>
+"@
+        [IO.File]::WriteAllText((Join-Path $outputDir $fileName), $entry, [Text.UTF8Encoding]::new($false))
+        $indexRows.Add(('<tr><td><a href="../{0}"><code>{1}</code></a></td><td>documented</td><td>See the detailed contract and verification scope.</td></tr>' -f
+            $fileName, (Html $pkg.name))) | Out-Null
+        continue
+    }
     $apiItems = @($pkg.api | ForEach-Object { "<li><code>$(Html $_)</code></li>" })
     if ($apiItems.Count -eq 0) { $apiItems = @("<li>API inventory has not been extracted yet.</li>") }
     $page = @"
@@ -94,6 +117,8 @@ $index = @"
 </body>
 </html>
 "@
-[System.IO.File]::WriteAllText((Join-Path $outputDir "index.html"), $index, [System.Text.UTF8Encoding]::new($false))
+if ($Package.Count -eq 0) {
+    [System.IO.File]::WriteAllText((Join-Path $outputDir "index.html"), $index, [System.Text.UTF8Encoding]::new($false))
+}
 
 Write-Host "Generated extension library pages: $outputDir"
