@@ -1,4 +1,6 @@
+#ifndef XRT_MODULE_FILE_TEMP
 #define XRT_MODULE_FILE_TEMP
+#endif
 #define XRT_MODULE_PATH
 #define XRT_MODULE_STRING
 

@@ -119,7 +119,10 @@
             "platform/zip_source_file_xrt.c",
             "platform/zip_random_xrt.c"
         ],
-        "xlSources": []
+        "xlSources": [],
+        "xrtModules": [
+            "XRT_MODULE_FILE_TEMP"
+        ]
     },
     "links": [],
     "loadlibs": [],
