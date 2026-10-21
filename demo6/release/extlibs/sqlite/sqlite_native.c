@@ -1,408 +1,302 @@
+#ifndef XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_BUFFER
+#endif
+#ifndef XRT_MODULE_TEMP_MEMORY
+#define XRT_MODULE_TEMP_MEMORY
+#endif
+#include "xrt.h"
 #include "third_party/sqlite3.h"
-
+#include "include/sqlite_native.h"
+#include <limits.h>
 #include <stdio.h>
-#include <stdint.h>
 #include <string.h>
 
-#define XRT_MODULE_BUFFER
-#include "xrt.h"
-
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
 #define XSQLITE_EXPORT __declspec(dllexport)
 #else
 #define XSQLITE_EXPORT
 #endif
 
-#if defined(__GNUC__)
-#define XSQLITE_THREAD __thread
-#elif defined(_MSC_VER)
-#define XSQLITE_THREAD __declspec(thread)
-#else
-#define XSQLITE_THREAD
-#endif
-
-static XSQLITE_THREAD char g_xsqlite_error[1024];
-static XSQLITE_THREAD char g_xsqlite_int64[64];
-static XSQLITE_THREAD xbuffer g_xsqlite_returns[8];
-static XSQLITE_THREAD size_t g_xsqlite_return_slot;
-
-static void xsqlite_set_error(const char* text)
+/* 状态码入口保留 SQLite 合同；无状态码的失败通过当前 XRT 错误上下文报告。 */
+static void xsqlite_error(sqlite3* db, int rc)
 {
-	size_t len;
-	if ( text == NULL ) text = "";
-	len = strlen(text);
-	if ( len >= sizeof(g_xsqlite_error) ) {
-		len = sizeof(g_xsqlite_error) - 1u;
-	}
-	if ( len > 0u ) {
-		memcpy(g_xsqlite_error, text, len);
-	}
-	g_xsqlite_error[len] = '\0';
+    xerrkind kind = XERR_STATE;
+    switch (rc & 0xff) {
+    case SQLITE_NOMEM: kind = XERR_MEMORY; break;
+    case SQLITE_MISUSE: case SQLITE_RANGE: kind = XERR_ARGUMENT; break;
+    case SQLITE_TOOBIG: kind = XERR_RANGE; break;
+    case SQLITE_CANTOPEN: case SQLITE_READONLY: case SQLITE_IOERR: kind = XERR_IO; break;
+    default: break;
+    }
+    xrtSetErrorInfo(kind, "xlang.extlib.sqlite", rc,
+        db != NULL ? sqlite3_errmsg(db) : sqlite3_errstr(rc));
 }
 
-static const char* xsqlite_return_text(const char* text)
+/* 不使用环形返回槽；调用方借用到当前 XRT 临时区 clear/rewind 为止。 */
+static const char* xsqlite_text(const char* text)
 {
-	size_t len;
-	size_t slot;
-	xbuffer* output;
-
-	if ( text == NULL ) {
-		text = "";
-	}
-	len = strlen(text);
-	slot = g_xsqlite_return_slot % (sizeof(g_xsqlite_returns) / sizeof(g_xsqlite_returns[0]));
-	g_xsqlite_return_slot += 1u;
-	output = &g_xsqlite_returns[slot];
-	xrtBufferClear(output);
-	if ( !xrtBufferAppend(output, (xbytesview){ (cbytes)text, len }) ||
-		 !xrtBufferAppendByte(output, 0u) ) {
-		xrtBufferClear(output);
-		xsqlite_set_error("out of memory");
-		return "";
-	}
-	return (const char*)output->Data;
+    if (text == NULL) text = "";
+    char* copy = xrtTempStr(xrtTempCurrent(), (xstrview){text, strlen(text)});
+    return copy != NULL ? copy : "";
 }
 
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_OK = SQLITE_OK;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_ERROR = SQLITE_ERROR;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_INTERNAL = SQLITE_INTERNAL;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_PERM = SQLITE_PERM;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_ABORT = SQLITE_ABORT;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_BUSY = SQLITE_BUSY;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_LOCKED = SQLITE_LOCKED;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_NOMEM = SQLITE_NOMEM;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_READONLY = SQLITE_READONLY;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_INTERRUPT = SQLITE_INTERRUPT;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_IOERR = SQLITE_IOERR;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_CORRUPT = SQLITE_CORRUPT;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_NOTFOUND = SQLITE_NOTFOUND;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_FULL = SQLITE_FULL;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_CANTOPEN = SQLITE_CANTOPEN;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_PROTOCOL = SQLITE_PROTOCOL;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_EMPTY = SQLITE_EMPTY;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_SCHEMA = SQLITE_SCHEMA;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_TOOBIG = SQLITE_TOOBIG;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_CONSTRAINT = SQLITE_CONSTRAINT;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_MISMATCH = SQLITE_MISMATCH;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_MISUSE = SQLITE_MISUSE;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_NOLFS = SQLITE_NOLFS;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_AUTH = SQLITE_AUTH;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_FORMAT = SQLITE_FORMAT;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_RANGE = SQLITE_RANGE;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_NOTADB = SQLITE_NOTADB;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_NOTICE = SQLITE_NOTICE;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_WARNING = SQLITE_WARNING;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_ROW = SQLITE_ROW;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_DONE = SQLITE_DONE;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_INTEGER = SQLITE_INTEGER;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_FLOAT = SQLITE_FLOAT;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_TEXT = SQLITE_TEXT;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_BLOB = SQLITE_BLOB;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_NULL = SQLITE_NULL;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_OPEN_READONLY = SQLITE_OPEN_READONLY;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_OPEN_READWRITE = SQLITE_OPEN_READWRITE;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_OPEN_CREATE = SQLITE_OPEN_CREATE;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_OPEN_URI = SQLITE_OPEN_URI;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_OPEN_MEMORY = SQLITE_OPEN_MEMORY;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_OPEN_NOMUTEX = SQLITE_OPEN_NOMUTEX;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_OPEN_FULLMUTEX = SQLITE_OPEN_FULLMUTEX;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_OPEN_SHAREDCACHE = SQLITE_OPEN_SHAREDCACHE;
-XSQLITE_EXPORT int64_t xsqlite_const_SQLITE_OPEN_PRIVATECACHE = SQLITE_OPEN_PRIVATECACHE;
-
-static void xsqlite_set_db_error(sqlite3* db)
+static int xsqlite_column(sqlite3_stmt* stmt, int column, int require_row)
 {
-	if ( db == NULL ) {
-		xsqlite_set_error("null sqlite3 handle");
-		return;
-	}
-	xsqlite_set_error(sqlite3_errmsg(db));
+    xrtClearError();
+    if (stmt == NULL) {
+        xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.sqlite", SQLITE_MISUSE,
+            "null sqlite3_stmt handle");
+        return 0;
+    }
+    if (column < 0 || column >= sqlite3_column_count(stmt)) {
+        xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.sqlite", SQLITE_RANGE,
+            "sqlite column index out of range");
+        return 0;
+    }
+    if (require_row && sqlite3_data_count(stmt) == 0) {
+        xrtSetErrorInfo(XERR_STATE, "xlang.extlib.sqlite", SQLITE_MISUSE,
+            "sqlite statement has no current row");
+        return 0;
+    }
+    return 1;
 }
 
-XSQLITE_EXPORT const char* xsqlite3_last_error(void)
-{
-	return xsqlite_return_text(g_xsqlite_error);
-}
 
-XSQLITE_EXPORT const char* xsqlite_last_error_native(void)
+/* 打开失败释放半成品句柄；诊断在释放前复制到 XRT，不创建私有 TLS 错误系统。 */
+XSQLITE_EXPORT void* xsqlite3_open_v2_native(const char* filename, int flags, const char* vfs)
 {
-	return xsqlite3_last_error();
-}
-
-XSQLITE_EXPORT int xsqlite_available_native(void)
-{
-	return 1;
+    sqlite3* db = NULL;
+    xrtClearError();
+    int rc = sqlite3_open_v2(filename != NULL ? filename : "", &db, flags,
+        vfs != NULL && vfs[0] != '\0' ? vfs : NULL);
+    if (rc != SQLITE_OK) {
+        xsqlite_error(db, rc);
+        sqlite3_close(db);
+        return NULL;
+    }
+    return db;
 }
 
 XSQLITE_EXPORT void* xsqlite3_open_native(const char* filename)
 {
-	sqlite3* db = NULL;
-	int rc = sqlite3_open(filename == NULL ? "" : filename, &db);
-	if ( rc != SQLITE_OK ) {
-		xsqlite_set_db_error(db);
-		if ( db != NULL ) sqlite3_close(db);
-		return NULL;
-	}
-	xsqlite_set_error("");
-	return db;
+    return xsqlite3_open_v2_native(filename, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL);
 }
 
-XSQLITE_EXPORT void* xsqlite3_open_v2_native(const char* filename, int flags, const char* vfs)
+XSQLITE_EXPORT int xsqlite3_exec_native(void* db, const char* sql)
 {
-	sqlite3* db = NULL;
-	const char* use_vfs = (vfs != NULL && vfs[0] != '\0') ? vfs : NULL;
-	int rc = sqlite3_open_v2(filename == NULL ? "" : filename, &db, flags, use_vfs);
-	if ( rc != SQLITE_OK ) {
-		xsqlite_set_db_error(db);
-		if ( db != NULL ) sqlite3_close(db);
-		return NULL;
-	}
-	xsqlite_set_error("");
-	return db;
+    if (db == NULL) return SQLITE_MISUSE;
+    return sqlite3_exec((sqlite3*)db, sql != NULL ? sql : "", NULL, NULL, NULL);
 }
 
-XSQLITE_EXPORT int xsqlite3_exec_native(void* db_handle, const char* sql)
+/* prepare 只接收一条语句；多条执行必须显式使用 exec，不能静默丢弃尾部 SQL。 */
+XSQLITE_EXPORT void* xsqlite3_prepare_v2_native(void* handle, const char* sql)
 {
-	sqlite3* db = (sqlite3*)db_handle;
-	char* errmsg = NULL;
-	int rc;
-	if ( db == NULL ) {
-		xsqlite_set_error("null sqlite3 handle");
-		return SQLITE_MISUSE;
-	}
-	rc = sqlite3_exec(db, sql == NULL ? "" : sql, NULL, NULL, &errmsg);
-	if ( rc != SQLITE_OK ) {
-		xsqlite_set_error(errmsg != NULL ? errmsg : sqlite3_errmsg(db));
-		sqlite3_free(errmsg);
-		return rc;
-	}
-	xsqlite_set_error("");
-	return rc;
+    sqlite3* db = (sqlite3*)handle;
+    sqlite3_stmt* stmt = NULL;
+    sqlite3_stmt* extra = NULL;
+    const char* tail = NULL;
+    xrtClearError();
+    if (db == NULL) {
+        xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.sqlite", SQLITE_MISUSE, "null sqlite3 handle");
+        return NULL;
+    }
+    int rc = sqlite3_prepare_v2(db, sql != NULL ? sql : "", -1, &stmt, &tail);
+    if (rc != SQLITE_OK) {
+        xsqlite_error(db, rc);
+        return NULL;
+    }
+    if (stmt == NULL) {
+        xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.sqlite", SQLITE_MISUSE, "sqlite prepare requires one statement");
+        return NULL;
+    }
+    if (tail != NULL && *tail != '\0') {
+        rc = sqlite3_prepare_v2(db, tail, -1, &extra, NULL);
+        if (rc != SQLITE_OK || extra != NULL) {
+            sqlite3_finalize(extra);
+            sqlite3_finalize(stmt);
+            if ((rc & 0xff) == SQLITE_NOMEM) xsqlite_error(NULL, rc);
+            else xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.sqlite", SQLITE_MISUSE,
+                    "sqlite prepare accepts exactly one statement");
+            return NULL;
+        }
+    }
+    return stmt;
 }
 
-XSQLITE_EXPORT void* xsqlite3_prepare_v2_native(void* db_handle, const char* sql)
+/* 绑定使用 SQLITE_TRANSIENT；空 blob 与 SQL NULL 明确区分。 */
+XSQLITE_EXPORT int xsqlite3_bind_text_native(void* stmt, int index, const char* value)
 {
-	sqlite3* db = (sqlite3*)db_handle;
-	sqlite3_stmt* stmt = NULL;
-	int rc;
-	if ( db == NULL ) {
-		xsqlite_set_error("null sqlite3 handle");
-		return NULL;
-	}
-	rc = sqlite3_prepare_v2(db, sql == NULL ? "" : sql, -1, &stmt, NULL);
-	if ( rc != SQLITE_OK ) {
-		xsqlite_set_db_error(db);
-		return NULL;
-	}
-	xsqlite_set_error("");
-	return stmt;
+    return stmt != NULL ? sqlite3_bind_text((sqlite3_stmt*)stmt, index, value, -1, SQLITE_TRANSIENT) : SQLITE_MISUSE;
 }
 
-XSQLITE_EXPORT int xsqlite3_bind_text_native(void* stmt_handle, int index, const char* value)
+XSQLITE_EXPORT int xsqlite3_bind_blob_native(void* stmt, int index, void* data, size_t size)
 {
-	sqlite3_stmt* stmt = (sqlite3_stmt*)stmt_handle;
-	int rc;
-	if ( stmt == NULL ) {
-		xsqlite_set_error("null sqlite3_stmt handle");
-		return SQLITE_MISUSE;
-	}
-	rc = sqlite3_bind_text(stmt, index, value == NULL ? "" : value, -1, SQLITE_TRANSIENT);
-	if ( rc != SQLITE_OK ) xsqlite_set_error(sqlite3_errstr(rc));
-	else xsqlite_set_error("");
-	return rc;
+    if (stmt == NULL || (data == NULL && size != 0)) return SQLITE_MISUSE;
+    if (size > INT_MAX) return SQLITE_TOOBIG;
+    if (size == 0) return sqlite3_bind_zeroblob((sqlite3_stmt*)stmt, index, 0);
+    return sqlite3_bind_blob((sqlite3_stmt*)stmt, index, data, (int)size, SQLITE_TRANSIENT);
 }
 
-XSQLITE_EXPORT int xsqlite3_bind_blob_text_native(void* stmt_handle, int index, const char* value)
+XSQLITE_EXPORT int xsqlite3_bind_text_bytes_native(void* stmt, int index, void* data, size_t size)
 {
-	sqlite3_stmt* stmt = (sqlite3_stmt*)stmt_handle;
-	int rc;
-	if ( stmt == NULL ) {
-		xsqlite_set_error("null sqlite3_stmt handle");
-		return SQLITE_MISUSE;
-	}
-	if ( value == NULL ) value = "";
-	rc = sqlite3_bind_blob(stmt, index, value, (int)strlen(value), SQLITE_TRANSIENT);
-	if ( rc != SQLITE_OK ) xsqlite_set_error(sqlite3_errstr(rc));
-	else xsqlite_set_error("");
-	return rc;
+    if (stmt == NULL || (data == NULL && size != 0)) return SQLITE_MISUSE;
+    if (size > INT_MAX) return SQLITE_TOOBIG;
+    return sqlite3_bind_text((sqlite3_stmt*)stmt, index, data != NULL ? (const char*)data : "",
+        (int)size, SQLITE_TRANSIENT);
 }
 
-XSQLITE_EXPORT const char* xsqlite3_column_text_native(void* stmt_handle, int column)
+XSQLITE_EXPORT int xsqlite3_bind_blob_text_native(void* stmt, int index, const char* value)
 {
-	sqlite3_stmt* stmt = (sqlite3_stmt*)stmt_handle;
-	const unsigned char* text;
-	if ( stmt == NULL ) {
-		xsqlite_set_error("null sqlite3_stmt handle");
-		return "";
-	}
-	text = sqlite3_column_text(stmt, column);
-	xsqlite_set_error("");
-	return xsqlite_return_text(text == NULL ? "" : (const char*)text);
-}
-
-XSQLITE_EXPORT const char* xsqlite3_column_name_native(void* stmt_handle, int column)
-{
-	sqlite3_stmt* stmt = (sqlite3_stmt*)stmt_handle;
-	const char* name;
-	if ( stmt == NULL ) {
-		xsqlite_set_error("null sqlite3_stmt handle");
-		return "";
-	}
-	name = sqlite3_column_name(stmt, column);
-	xsqlite_set_error("");
-	return xsqlite_return_text(name == NULL ? "" : name);
-}
-
-XSQLITE_EXPORT const char* xsqlite3_last_insert_rowid_text_native(void* db_handle)
-{
-	sqlite3* db = (sqlite3*)db_handle;
-	if ( db == NULL ) {
-		xsqlite_set_error("null sqlite3 handle");
-		return "";
-	}
-	snprintf(g_xsqlite_int64, sizeof(g_xsqlite_int64), "%lld", (long long)sqlite3_last_insert_rowid(db));
-	xsqlite_set_error("");
-	return xsqlite_return_text(g_xsqlite_int64);
-}
-
-XSQLITE_EXPORT const char* xsqlite3_errstr_native(int rc)
-{
-	return xsqlite_return_text(sqlite3_errstr(rc));
-}
-
-XSQLITE_EXPORT const char* xsqlite3_libversion_native(void)
-{
-	return xsqlite_return_text(sqlite3_libversion());
-}
-
-XSQLITE_EXPORT const char* xsqlite_version_native(void)
-{
-	return xsqlite3_libversion_native();
-}
-
-XSQLITE_EXPORT int xsqlite3_libversion_number_native(void)
-{
-	return sqlite3_libversion_number();
-}
-
-XSQLITE_EXPORT int xsqlite3_close_native(void* db)
-{
-	return sqlite3_close((sqlite3*)db);
-}
-
-XSQLITE_EXPORT int xsqlite3_close_v2_native(void* db)
-{
-	return sqlite3_close_v2((sqlite3*)db);
-}
-
-XSQLITE_EXPORT const char* xsqlite3_errmsg_native(void* db)
-{
-	if ( db == NULL ) return xsqlite_return_text(g_xsqlite_error);
-	return xsqlite_return_text(sqlite3_errmsg((sqlite3*)db));
-}
-
-XSQLITE_EXPORT int xsqlite3_extended_errcode_native(void* db)
-{
-	if ( db == NULL ) return SQLITE_MISUSE;
-	return sqlite3_extended_errcode((sqlite3*)db);
-}
-
-XSQLITE_EXPORT int xsqlite3_changes_native(void* db)
-{
-	if ( db == NULL ) return 0;
-	return sqlite3_changes((sqlite3*)db);
-}
-
-XSQLITE_EXPORT int xsqlite3_total_changes_native(void* db)
-{
-	if ( db == NULL ) return 0;
-	return sqlite3_total_changes((sqlite3*)db);
-}
-
-XSQLITE_EXPORT int xsqlite3_step_native(void* stmt)
-{
-	return sqlite3_step((sqlite3_stmt*)stmt);
-}
-
-XSQLITE_EXPORT int xsqlite3_finalize_native(void* stmt)
-{
-	return sqlite3_finalize((sqlite3_stmt*)stmt);
-}
-
-XSQLITE_EXPORT int xsqlite3_reset_native(void* stmt)
-{
-	return sqlite3_reset((sqlite3_stmt*)stmt);
-}
-
-XSQLITE_EXPORT int xsqlite3_clear_bindings_native(void* stmt)
-{
-	return sqlite3_clear_bindings((sqlite3_stmt*)stmt);
+    return xsqlite3_bind_blob_native(stmt, index, (void*)value, value != NULL ? strlen(value) : 0);
 }
 
 XSQLITE_EXPORT int xsqlite3_bind_int_native(void* stmt, int index, int value)
 {
-	return sqlite3_bind_int((sqlite3_stmt*)stmt, index, value);
+    return stmt != NULL ? sqlite3_bind_int((sqlite3_stmt*)stmt, index, value) : SQLITE_MISUSE;
 }
 
 XSQLITE_EXPORT int xsqlite3_bind_int64_native(void* stmt, int index, int64_t value)
 {
-	return sqlite3_bind_int64((sqlite3_stmt*)stmt, index, (sqlite3_int64)value);
+    return stmt != NULL ? sqlite3_bind_int64((sqlite3_stmt*)stmt, index, (sqlite3_int64)value) : SQLITE_MISUSE;
 }
 
 XSQLITE_EXPORT int xsqlite3_bind_double_native(void* stmt, int index, double value)
 {
-	return sqlite3_bind_double((sqlite3_stmt*)stmt, index, value);
+    return stmt != NULL ? sqlite3_bind_double((sqlite3_stmt*)stmt, index, value) : SQLITE_MISUSE;
 }
 
 XSQLITE_EXPORT int xsqlite3_bind_null_native(void* stmt, int index)
 {
-	return sqlite3_bind_null((sqlite3_stmt*)stmt, index);
+    return stmt != NULL ? sqlite3_bind_null((sqlite3_stmt*)stmt, index) : SQLITE_MISUSE;
 }
 
-XSQLITE_EXPORT int xsqlite3_bind_parameter_count_native(void* stmt)
-{
-	return sqlite3_bind_parameter_count((sqlite3_stmt*)stmt);
-}
-
-XSQLITE_EXPORT int xsqlite3_column_count_native(void* stmt)
-{
-	return sqlite3_column_count((sqlite3_stmt*)stmt);
-}
-
+/* 当前行与列范围在调用 SQLite 前检查；SQLite 对这些误用不保证定义良好的行为。 */
 XSQLITE_EXPORT int xsqlite3_column_type_native(void* stmt, int column)
 {
-	return sqlite3_column_type((sqlite3_stmt*)stmt, column);
+    return xsqlite_column(stmt, column, 1) ? sqlite3_column_type(stmt, column) : SQLITE_NULL;
 }
 
 XSQLITE_EXPORT int xsqlite3_column_int_native(void* stmt, int column)
 {
-	return sqlite3_column_int((sqlite3_stmt*)stmt, column);
+    return xsqlite_column(stmt, column, 1) ? sqlite3_column_int(stmt, column) : 0;
 }
 
 XSQLITE_EXPORT int64_t xsqlite3_column_int64_native(void* stmt, int column)
 {
-	return (int64_t)sqlite3_column_int64((sqlite3_stmt*)stmt, column);
-}
-
-XSQLITE_EXPORT int64_t xsqlite3_last_insert_rowid_native(void* db)
-{
-	return db != NULL ? (int64_t)sqlite3_last_insert_rowid((sqlite3*)db) : 0;
-}
-
-XSQLITE_EXPORT int xsqlite3_busy_timeout_native(void* db, int milliseconds)
-{
-	if ( db == NULL || milliseconds < 0 ) {
-		xsqlite_set_error("invalid busy timeout arguments");
-		return SQLITE_MISUSE;
-	}
-	return sqlite3_busy_timeout((sqlite3*)db, milliseconds);
+    return xsqlite_column(stmt, column, 1) ? (int64_t)sqlite3_column_int64(stmt, column) : 0;
 }
 
 XSQLITE_EXPORT double xsqlite3_column_double_native(void* stmt, int column)
 {
-	return sqlite3_column_double((sqlite3_stmt*)stmt, column);
+    return xsqlite_column(stmt, column, 1) ? sqlite3_column_double(stmt, column) : 0.0;
 }
 
 XSQLITE_EXPORT int xsqlite3_column_bytes_native(void* stmt, int column)
 {
-	return sqlite3_column_bytes((sqlite3_stmt*)stmt, column);
+    if (!xsqlite_column(stmt, column, 1)) return 0;
+    int size = sqlite3_column_bytes(stmt, column);
+    if (sqlite3_errcode(sqlite3_db_handle(stmt)) == SQLITE_NOMEM) xsqlite_error(NULL, SQLITE_NOMEM);
+    return size;
 }
+
+XSQLITE_EXPORT const char* xsqlite3_column_text_native(void* stmt, int column)
+{
+    if (!xsqlite_column(stmt, column, 1)) return "";
+    const char* text = (const char*)sqlite3_column_text(stmt, column);
+    int size = sqlite3_column_bytes(stmt, column);
+    if (sqlite3_errcode(sqlite3_db_handle(stmt)) == SQLITE_NOMEM) {
+        xsqlite_error(NULL, SQLITE_NOMEM);
+        return "";
+    }
+    if (text != NULL && memchr(text, 0, (size_t)size) != NULL) {
+        xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.sqlite", SQLITE_MISMATCH,
+            "sqlite text contains NUL; read column_text_bytes instead");
+        return "";
+    }
+    return xsqlite_text(text);
+}
+
+static void* xsqlite_column_buffer(void* stmt, int column, int text)
+{
+    if (!xsqlite_column(stmt, column, 1)) return NULL;
+    const void* data = text ? (const void*)sqlite3_column_text(stmt, column) : sqlite3_column_blob(stmt, column);
+    int size = sqlite3_column_bytes(stmt, column);
+    if (sqlite3_errcode(sqlite3_db_handle(stmt)) == SQLITE_NOMEM) {
+        xsqlite_error(NULL, SQLITE_NOMEM);
+        return NULL;
+    }
+    return xrtBufferFrom((xbytesview){data, (size_t)size});
+}
+
+XSQLITE_EXPORT void* xsqlite3_column_blob_native(void* stmt, int column)
+{
+    return xsqlite_column_buffer(stmt, column, 0);
+}
+
+XSQLITE_EXPORT void* xsqlite3_column_text_bytes_native(void* stmt, int column)
+{
+    return xsqlite_column_buffer(stmt, column, 1);
+}
+
+XSQLITE_EXPORT const char* xsqlite3_column_name_native(void* stmt, int column)
+{
+    if (!xsqlite_column(stmt, column, 0)) return "";
+    const char* name = sqlite3_column_name(stmt, column);
+    if (name == NULL) { xsqlite_error(NULL, SQLITE_NOMEM); return ""; }
+    return xsqlite_text(name);
+}
+
+/* 元数据和资源管理：返回码入口不隐式抛出 SQL 执行错误；调用方保留完整状态码。 */
+XSQLITE_EXPORT int xsqlite_available_native(void) { return 1; }
+XSQLITE_EXPORT const char* xsqlite3_libversion_native(void) { return sqlite3_libversion(); }
+XSQLITE_EXPORT const char* xsqlite_version_native(void) { return sqlite3_libversion(); }
+XSQLITE_EXPORT int xsqlite3_libversion_number_native(void) { return sqlite3_libversion_number(); }
+XSQLITE_EXPORT const char* xsqlite3_last_error(void) { return xrtErrorMessage(xrtGetError()); }
+XSQLITE_EXPORT const char* xsqlite_last_error_native(void) { return xsqlite3_last_error(); }
+XSQLITE_EXPORT const char* xsqlite3_errstr_native(int rc) { return sqlite3_errstr(rc); }
+
+XSQLITE_EXPORT const char* xsqlite3_errmsg_native(void* db)
+{
+    return db != NULL ? xsqlite_text(sqlite3_errmsg(db)) : "null sqlite3 handle";
+}
+
+XSQLITE_EXPORT const char* xsqlite3_stmt_errmsg_native(void* stmt)
+{
+    return stmt != NULL ? xsqlite3_errmsg_native(sqlite3_db_handle(stmt)) : "null sqlite3_stmt handle";
+}
+
+XSQLITE_EXPORT int xsqlite3_close_native(void* db) { return sqlite3_close(db); }
+XSQLITE_EXPORT int xsqlite3_close_v2_native(void* db) { return sqlite3_close_v2(db); }
+XSQLITE_EXPORT int xsqlite3_extended_errcode_native(void* db)
+{
+    return db != NULL ? sqlite3_extended_errcode(db) : SQLITE_MISUSE;
+}
+XSQLITE_EXPORT int64_t xsqlite3_changes_native(void* db) { return db != NULL ? (int64_t)sqlite3_changes64(db) : 0; }
+XSQLITE_EXPORT int64_t xsqlite3_total_changes_native(void* db) { return db != NULL ? (int64_t)sqlite3_total_changes64(db) : 0; }
+XSQLITE_EXPORT int64_t xsqlite3_last_insert_rowid_native(void* db)
+{
+    return db != NULL ? (int64_t)sqlite3_last_insert_rowid(db) : 0;
+}
+XSQLITE_EXPORT const char* xsqlite3_last_insert_rowid_text_native(void* db)
+{
+    if (db == NULL) { xsqlite_error(NULL, SQLITE_MISUSE); return ""; }
+    char text[32];
+    snprintf(text, sizeof(text), "%lld", (long long)sqlite3_last_insert_rowid(db));
+    return xsqlite_text(text);
+}
+XSQLITE_EXPORT int xsqlite3_busy_timeout_native(void* db, int milliseconds)
+{
+    return db != NULL && milliseconds >= 0 ? sqlite3_busy_timeout(db, milliseconds) : SQLITE_MISUSE;
+}
+XSQLITE_EXPORT int xsqlite3_step_native(void* stmt) { return stmt != NULL ? sqlite3_step(stmt) : SQLITE_MISUSE; }
+XSQLITE_EXPORT int xsqlite3_finalize_native(void* stmt) { return sqlite3_finalize(stmt); }
+XSQLITE_EXPORT int xsqlite3_reset_native(void* stmt) { return stmt != NULL ? sqlite3_reset(stmt) : SQLITE_MISUSE; }
+XSQLITE_EXPORT int xsqlite3_clear_bindings_native(void* stmt)
+{
+    return stmt != NULL ? sqlite3_clear_bindings(stmt) : SQLITE_MISUSE;
+}
+XSQLITE_EXPORT int xsqlite3_bind_parameter_count_native(void* stmt)
+{
+    return stmt != NULL ? sqlite3_bind_parameter_count(stmt) : 0;
+}
+XSQLITE_EXPORT int xsqlite3_column_count_native(void* stmt) { return sqlite3_column_count(stmt); }

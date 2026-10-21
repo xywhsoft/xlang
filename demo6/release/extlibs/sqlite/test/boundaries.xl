@@ -1,0 +1,141 @@
+import sqlite
+
+func escapedStatement() as sqlite.Statement
+    auto db = sqlite.memory()
+    return db.prepare("select 42")
+end
+
+func main(...) as int
+    auto db = sqlite.memory()
+    assert db.execute("create table entry(id integer primary key, text_value text, payload blob, optional text)")
+    auto insert = db.prepare("insert into entry values(?, ?, ?, ?)")
+    Buffer source = Buffer()
+    source.appendByte(0)
+    source.appendByte(255)
+    source.appendByte(42)
+    assert insert.bind(1, 5000000000) == sqlite.SQLITE_OK
+    assert insert.bind(2, "你好 SQLite") == sqlite.SQLITE_OK
+    assert insert.bind(3, source) == sqlite.SQLITE_OK
+    assert insert.bind_null(4) == sqlite.SQLITE_OK
+    source.clear()
+    assert insert.done()
+    assert db.close() == sqlite.SQLITE_BUSY and db.valid()
+    assert insert.finalize() == sqlite.SQLITE_OK
+    assert insert.finalize() == sqlite.SQLITE_OK
+
+    var rows = db.query("select * from entry")
+    assert rows.length == 1
+    assert int(rows[0]["id"]) == 5000000000
+    assert string(rows[0]["text_value"]) == "你好 SQLite"
+    assert rows[0]["optional"] == null
+    Buffer held = rows[0]["payload"] as Buffer
+    assert held.len() == 3 and held[0] == 0 and held[1] == 255 and held[2] == 42
+
+    // 失败不是空结果；每次失败都必须释放自动 prepare 的语句。
+    bool caught = false
+    try
+        db.query("select from")
+    catch RuntimeError e
+        caught = true
+    end
+    assert caught
+    caught = false
+    try
+        db.query("select abs(-9223372036854775808)")
+    catch RuntimeError e
+        caught = true
+    end
+    assert caught
+    assert db.query("select id from entry where id = 0").length == 0
+
+    for query in ["", "select 1; select 2", "select 1; invalid SQL"]
+        caught = false
+        try
+            db.prepare(query)
+        catch ValueError e
+            caught = true
+        end
+        assert caught
+    end
+
+    auto stmt = db.prepare("select text_value, payload from entry; -- comment")
+    assert stmt.column_name(0) == "text_value"
+    caught = false
+    try
+        stmt.column_text(0)
+    catch RuntimeError e
+        caught = true
+    end
+    assert caught
+    assert stmt.row_ready()
+    for column in [-1, 2, 2147483648]
+        caught = false
+        try
+            stmt.column_text(column)
+        catch RangeError e
+            caught = true
+        end
+        assert caught
+    end
+    string text = stmt.column_text(0)
+    for i in range(40)
+        assert stmt.column_name(i % 2) != ""
+    end
+    assert text == "你好 SQLite"
+    assert stmt.reset() == sqlite.SQLITE_OK
+    assert stmt.finalize() == sqlite.SQLITE_OK
+
+    // SQL TEXT 中的 NUL 通过显式字节接口读写，普通字符串读取拒绝截断。
+    auto binary = db.prepare("select ?")
+    Buffer nulText = Buffer()
+    nulText.appendByte(65)
+    nulText.appendByte(0)
+    nulText.appendByte(66)
+    assert binary.bind_text_bytes(1, nulText) == sqlite.SQLITE_OK
+    assert binary.row_ready()
+    caught = false
+    try
+        binary.column_text(0)
+    catch ValueError e
+        caught = true
+    end
+    assert caught
+    Buffer roundtrip = binary.column_text_bytes(0)
+    assert roundtrip.len() == 3 and roundtrip[1] == 0 and roundtrip[2] == 66
+    assert binary.finalize() == sqlite.SQLITE_OK
+
+    auto duplicate = db.prepare("insert into entry(id) values(5000000000)")
+    assert duplicate.step() == sqlite.SQLITE_CONSTRAINT
+    assert string.contains(duplicate.last_error(), "UNIQUE")
+    assert duplicate.finalize() == sqlite.SQLITE_CONSTRAINT
+    assert db.close() == sqlite.SQLITE_OK and db.close() == sqlite.SQLITE_OK
+    assert held[1] == 255
+    caught = false
+    try
+        db.changes()
+    catch RuntimeError e
+        caught = true
+    end
+    assert caught
+    caught = false
+    try
+        duplicate.step()
+    catch RuntimeError e
+        caught = true
+    end
+    assert caught
+
+    // 数据库对象先离开作用域，待处理语句仍由 SQLite 的 close_v2 规则持有连接。
+    auto escaped = escapedStatement()
+    assert escaped.row_ready() and escaped.column_int(0) == 42
+    assert escaped.finalize() == sqlite.SQLITE_OK
+    caught = false
+    try
+        sqlite.open_v2(":memory:", sqlite.SQLITE_OPEN_READWRITE, "xlang-missing-vfs")
+    catch RuntimeError e
+        caught = true
+    end
+    assert caught
+    println("sqlite xlang boundaries ok")
+    return 0
+end

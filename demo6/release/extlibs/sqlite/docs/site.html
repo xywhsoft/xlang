@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sqlite - 扩展库 - xlang</title>
+  <meta name="description" content="SQLite 数据库、预编译参数、事务、二进制列与 C/xlang 互操作。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout c-db" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / sqlite</p>
+    <div class="extlib-title-row"><h1>sqlite</h1><span class="extlib-cat-badge">数据库</span></div>
+    <p class="extlib-lead">内置 SQLite 的本地数据库，提供 Database、Statement、精确状态码及 C 接口。支持内存库、UTF-8 文件路径、事务与二进制数据，不依赖额外数据库 DLL。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="quick">
+    <h2 id="quick">参数绑定与查询</h2>
+    <pre><code class="language-xlang">import sqlite
+
+auto db = sqlite.memory()
+assert db.execute("create table people(name text)")
+auto insert = db.prepare("insert into people values(?)")
+assert insert.bind(1, "O'Reilly") == sqlite.SQLITE_OK
+assert insert.done()
+insert.finalize()
+var rows = db.query("select name from people")
+println(rows[0]["name"])</code></pre>
+    <p>参数从 1 开始，列号从 0 开始。绑定复制数据，不要求调用方保持原字符串或 Buffer 存活。</p>
+    <h2 id="database">Database</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>合同</th></tr></thead><tbody>
+      <tr><td><code>memory()</code> / <code>open(filename)</code> / <code>open_v2(filename, flags, vfs)</code></td><td>独立内存库、读写创建文件、显式打开模式；空 vfs 使用 SQLite 默认值。</td></tr>
+      <tr><td><code>valid()</code> / <code>close()</code> / <code>close_v2()</code></td><td>查询与释放连接。close 遇到未释放语句返回 SQLITE_BUSY 并保留连接；close_v2 延迟到语句释放后销毁。</td></tr>
+      <tr><td><code>execute(sql)</code> / <code>exec_code(sql)</code> / <code>last_error()</code></td><td>成功布尔值、精确 SQLite 返回码、当前连接的 SQL 错误文本。</td></tr>
+      <tr><td><code>prepare(sql)</code> / <code>query(sql)</code></td><td>拥有型语句、全部行字典数组。prepare 只接受一条语句；query 失败抛错，不返回部分成功。</td></tr>
+      <tr><td><code>begin()</code> / <code>commit()</code> / <code>rollback()</code></td><td>事务操作，返回成功布尔值。</td></tr>
+      <tr><td><code>changes()</code> / <code>total_changes()</code> / <code>last_insert_rowid()</code></td><td>64 位计数与行号；另有 last_insert_rowid_text()。</td></tr>
+      <tr><td><code>busy_timeout(milliseconds)</code></td><td>设置锁等待上限；0 表示不等待，不自动重试整个事务。</td></tr>
+    </tbody></table>
+    <h2 id="statement">Statement</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>合同</th></tr></thead><tbody>
+      <tr><td><code>bind(index, int|float|string|Buffer)</code> / <code>bind_null(index)</code></td><td>保留 64 位整数；Buffer 是 BLOB，NULL 与空值分开。</td></tr>
+      <tr><td><code>bind_text_bytes(index, Buffer)</code> / <code>bind_blob_text(index, string)</code></td><td>精确长度 TEXT、把普通文本字节写为 BLOB。</td></tr>
+      <tr><td><code>step()</code> / <code>row_ready()</code> / <code>done()</code></td><td>每次推进一次。step 返回状态码；两个布尔便利方法在错误时抛出 RuntimeError。</td></tr>
+      <tr><td><code>column_count()</code> / <code>column_name(column)</code></td><td>元数据，可在 step 前读取。</td></tr>
+      <tr><td><code>column_type/int/float/text/blob/text_bytes/blob_text(column)</code></td><td>读取当前行；必须先得到 SQLITE_ROW，列越界或没有当前行会报错。</td></tr>
+      <tr><td><code>value(column)</code> / <code>row()</code></td><td>动态值、列名字典。BLOB 是 Buffer，SQL NULL 是 null；重复列名请用 SQL AS 区分。</td></tr>
+      <tr><td><code>reset()</code> / <code>clear_bindings()</code> / <code>last_error()</code></td><td>重执行时保留绑定、清空绑定、当前语句所属连接的 SQL 诊断。</td></tr>
+      <tr><td><code>valid()</code> / <code>finalize()</code></td><td>重复释放是成功空操作；释放后的其他对象操作报 RuntimeError。</td></tr>
+    </tbody></table>
+    <h2 id="binary">二进制与寿命</h2>
+    <pre><code class="language-xlang">auto stmt = db.prepare("select x'00ff2a'")
+assert stmt.row_ready()
+Buffer bytes = stmt.column_blob(0)
+stmt.finalize()
+// bytes 拥有副本，语句释放后仍可访问。
+assert bytes.len() == 3 and bytes[0] == 0</code></pre>
+    <p>含 NUL 的 TEXT 使用 bind_text_bytes/column_text_bytes；普通字符串读取会拒绝截断。
+    SQL NULL 与零长度 BLOB 不同，使用 column_type 或 value 区分。大结果集用 Statement 逐行读取，query 会物化全部行。</p>
+    <p>对象赋值共享身份，不复制句柄，不声明 copy/clone 能力。Database(point) 和 Statement(point) 接管原始句柄，
+    不增加引用；不得重复接管或从 C 再次释放。同一对象的多步操作由调用方串行化，不支持一边读列一边并发关闭/step/reset。</p>
+    <h2 id="low-level">模块级接口</h2>
+    <p>sqlite3_* 使用薄绑定。普通 int 参数进入 C int 前检查范围，SQLITE_* 常量只读。
+    模块级 last_error/sqlite3_last_error 只读取当前 XRT 错误；SQL 状态码对应的诊断使用连接/语句 last_error。</p>
+    <pre><code class="language-xlang">available() as bool
+version() as string
+last_error() as string
+sqlite3_last_error() as string
+sqlite3_open(string filename) as point
+sqlite3_open_v2(string filename, int flags, string vfs) as point
+sqlite3_close(point db) as int
+sqlite3_close_v2(point db) as int
+sqlite3_exec(point db, string sql) as int
+sqlite3_prepare_v2(point db, string sql) as point
+sqlite3_step(point stmt) as int
+sqlite3_finalize(point stmt) as int
+sqlite3_reset(point stmt) as int
+sqlite3_clear_bindings(point stmt) as int
+sqlite3_bind_int(point stmt, int index, int value) as int
+sqlite3_bind_int64(point stmt, int index, int value) as int
+sqlite3_bind_double(point stmt, int index, float value) as int
+sqlite3_bind_text(point stmt, int index, string value) as int
+sqlite3_bind_blob_text(point stmt, int index, string value) as int
+sqlite3_bind_blob(point stmt, int index, Buffer value) as int
+sqlite3_bind_text_bytes(point stmt, int index, Buffer value) as int
+sqlite3_bind_null(point stmt, int index) as int
+sqlite3_bind_parameter_count(point stmt) as int
+sqlite3_column_count(point stmt) as int
+sqlite3_column_type(point stmt, int column) as int
+sqlite3_column_int(point stmt, int column) as int
+sqlite3_column_int64(point stmt, int column) as int
+sqlite3_column_double(point stmt, int column) as float
+sqlite3_column_text(point stmt, int column) as string
+sqlite3_column_blob_text(point stmt, int column) as string
+sqlite3_column_blob(point stmt, int column) as Buffer
+sqlite3_column_text_bytes(point stmt, int column) as Buffer
+sqlite3_column_bytes(point stmt, int column) as int
+sqlite3_column_name(point stmt, int column) as string
+sqlite3_errmsg(point db) as string
+sqlite3_stmt_errmsg(point stmt) as string
+sqlite3_errstr(int rc) as string
+sqlite3_extended_errcode(point db) as int
+sqlite3_changes(point db) as int
+sqlite3_total_changes(point db) as int
+sqlite3_last_insert_rowid_text(point db) as string
+sqlite3_last_insert_rowid(point db) as int
+sqlite3_busy_timeout(point db, int milliseconds) as int
+sqlite3_libversion() as string
+sqlite3_libversion_number() as int
+open(string filename) as Database
+open_v2(string filename, int flags, string vfs) as Database
+memory() as Database</code></pre>
+    <h2 id="c-api">C 使用</h2>
+    <p>公开桥接头是 <code>include/sqlite_native.h</code>，上游完整 C 头是 <code>third_party/sqlite3.h</code>。
+    句柄必须来自同一份 SQLite。借用文本副本保存至 XRT 临时区 clear/rewind；返回的 xbuffer 由 C 调用方 xrtBufferDestroy。</p>
+    <p>成对范例：<code>examples/extlibs/sqlite_basic.xl</code> 与
+    <code>extlibs/sqlite/examples/basic.c</code>，C 范例可直接 <code>xl run</code> 或 <code>xl build</code>。底层状态码入口保留 SQLite 返回码，高层 query 不吞掉 SQL 错误。</p>
+    <h2 id="verification">2026-09-27 专项证据</h2>
+    <p>Windows 37 项检查通过：44 个生成原型、45 个常量、SQLite 的 149 个分配故障点、
+    XRT Buffer 与临时文本分配失败、四个独立线程、中文路径/锁竞争和 C/xlang JIT/AOT/GCC 范例输出对照。
+    Linux 独立 C 的 ASan/UBSan/泄漏检查通过；不是 Linux xlang 的验收。</p>
+    <p>2026-10-20：文件/锁测试改用独占临时目录；当前仍在执行前遇到主线 XLIR C emitter ABI 错误，
+    此项改动尚未完成运行验证，不能据此签收整包。</p>
+    <p>范围不包含断电恢复、网络文件系统、跨进程 WAL 故障矩阵、32 位/ARM 或性能认证。
+    包装尚未提供数据库加密、异步线程池、自动事务重试、备份/增量 BLOB、高级回调或自定义 SQL 函数。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+import sqlite
+
+// 参数绑定保留引号与字节，不拼接 SQL；Statement 和 Database 自动管理句柄。
+auto db = sqlite.memory()
+assert db.execute("create table people(id integer primary key, name text)")
+auto insert = db.prepare("insert into people(name) values(?)")
+for name in ["Ada", "O'Reilly"]
+    assert insert.bind(1, name) == sqlite.SQLITE_OK
+    assert insert.done()
+    assert insert.reset() == sqlite.SQLITE_OK
+end
+insert.finalize()
+
+println("sqlite demo")
+auto query = db.prepare("select id, name from people order by id")
+while query.row_ready()
+    println(f"{query.column_int(0)}: {query.column_text(1)}")
+end
+query.finalize()
+
+assert db.begin()
+assert db.execute("insert into people(name) values('discarded')")
+assert db.rollback()
+int count = db.query("select id from people").length
+println(f"rollback: {count}")
+
+// 二进制列用 Buffer；即使含零字节，也不会转成截断的字符串。
+auto binary = db.prepare("select x'00ff2a'")
+assert binary.row_ready()
+Buffer bytes = binary.column_blob(0)
+binary.finalize()
+assert db.close() == sqlite.SQLITE_OK
+println(f"blob: {bytes.len()} bytes")

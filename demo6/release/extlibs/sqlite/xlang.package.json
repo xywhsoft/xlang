@@ -12,7 +12,8 @@
                                   ],
                      "xlSources":  [
                                        "src/sqlite.xl"
-                                   ]
+                                   ],
+                     "xrtModules": ["XRT_MODULE_IO_BUFFER", "XRT_MODULE_TEMP_MEMORY"]
                  },
     "links":  [
 
@@ -23,6 +24,10 @@
     "dependencies":  [
 
                      ],
+    "coverage": {
+        "mode": "suite",
+        "tests": ["test/boundaries.xl", "test/file.xl"]
+    },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

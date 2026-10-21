@@ -1,0 +1,37 @@
+import sqlite
+
+func main(...) as int
+    string directory = dir.temp("", "xlang-sqlite-boundary-", "")
+    string filename = path.join(directory, "中文数据库.db")
+    try
+        auto first = sqlite.open(filename)
+        assert first.execute("create table log(value text)")
+        assert first.execute("insert into log values('原始数据')")
+        auto second = sqlite.open_v2(filename, sqlite.SQLITE_OPEN_READWRITE, "")
+        assert second.busy_timeout(0)
+        assert first.execute("begin immediate")
+        assert second.exec_code("insert into log values('blocked')") == sqlite.SQLITE_BUSY
+        assert string.contains(second.last_error(), "locked")
+        assert first.rollback()
+        assert second.execute("insert into log values('新数据')")
+        assert second.close() == sqlite.SQLITE_OK
+        assert first.close() == sqlite.SQLITE_OK
+
+        auto reader = sqlite.open_v2(filename, sqlite.SQLITE_OPEN_READONLY, "")
+        assert reader.query("select value from log order by rowid").length == 2
+        assert reader.exec_code("insert into log values('readonly')") == sqlite.SQLITE_READONLY
+        assert reader.close() == sqlite.SQLITE_OK
+        assert file.delete(filename)
+        bool caught = false
+        try
+            sqlite.open_v2(filename, sqlite.SQLITE_OPEN_READONLY, "")
+        catch IOError e
+            caught = true
+        end
+        assert caught
+    finally
+        assert dir.delete(directory), "SQLite boundary temporary directory must be removed"
+    end
+    println("sqlite file/locking boundaries ok")
+    return 0
+end

@@ -1,9 +1,15 @@
-// Source package exports. The compiler imports this source file directly.
+// 原生声明严格采用 C 的物理类型；公开参数保持 xlang int，转换前检查范围。
+func __sqlite_c_int(int value) as c_int
+    if value < -2147483648 or value > 2147483647 then
+        throw RangeError "sqlite argument exceeds C int range"
+    end
+    return c_int(value)
+end
 
-extern "xsqlite_available_native" func __xl6_native_sqlite_available() as bool
+extern "xsqlite_available_native" func __xl6_native_sqlite_available() as c_int
 
 export func available() as bool
-    return __xl6_native_sqlite_available()
+    return __xl6_native_sqlite_available() != 0
 end
 extern "xsqlite_version_native" func __xl6_native_sqlite_version() as string
 
@@ -25,22 +31,22 @@ extern "xsqlite3_open_native" func __xl6_native_sqlite_sqlite3_open(string filen
 export func sqlite3_open(string filename) as point
     return __xl6_native_sqlite_sqlite3_open(filename)
 end
-extern "xsqlite3_open_v2_native" func __xl6_native_sqlite_sqlite3_open_v2(string filename, int flags, string vfs) as point
+extern "xsqlite3_open_v2_native" func __xl6_native_sqlite_sqlite3_open_v2(string filename, c_int flags, string vfs) as point
 
 export func sqlite3_open_v2(string filename, int flags, string vfs) as point
-    return __xl6_native_sqlite_sqlite3_open_v2(filename, flags, vfs)
+    return __xl6_native_sqlite_sqlite3_open_v2(filename, __sqlite_c_int(flags), vfs)
 end
-extern "xsqlite3_close_native" func __xl6_native_sqlite_sqlite3_close(point db) as int
+extern "xsqlite3_close_native" func __xl6_native_sqlite_sqlite3_close(point db) as c_int
 
 export func sqlite3_close(point db) as int
     return __xl6_native_sqlite_sqlite3_close(db)
 end
-extern "xsqlite3_close_v2_native" func __xl6_native_sqlite_sqlite3_close_v2(point db) as int
+extern "xsqlite3_close_v2_native" func __xl6_native_sqlite_sqlite3_close_v2(point db) as c_int
 
 export func sqlite3_close_v2(point db) as int
     return __xl6_native_sqlite_sqlite3_close_v2(db)
 end
-extern "xsqlite3_exec_native" func __xl6_native_sqlite_sqlite3_exec(point db, string sql) as int
+extern "xsqlite3_exec_native" func __xl6_native_sqlite_sqlite3_exec(point db, string sql) as c_int
 
 export func sqlite3_exec(point db, string sql) as int
     return __xl6_native_sqlite_sqlite3_exec(db, sql)
@@ -50,127 +56,153 @@ extern "xsqlite3_prepare_v2_native" func __xl6_native_sqlite_sqlite3_prepare_v2(
 export func sqlite3_prepare_v2(point db, string sql) as point
     return __xl6_native_sqlite_sqlite3_prepare_v2(db, sql)
 end
-extern "xsqlite3_step_native" func __xl6_native_sqlite_sqlite3_step(point stmt) as int
+extern "xsqlite3_step_native" func __xl6_native_sqlite_sqlite3_step(point stmt) as c_int
 
 export func sqlite3_step(point stmt) as int
     return __xl6_native_sqlite_sqlite3_step(stmt)
 end
-extern "xsqlite3_finalize_native" func __xl6_native_sqlite_sqlite3_finalize(point stmt) as int
+extern "xsqlite3_finalize_native" func __xl6_native_sqlite_sqlite3_finalize(point stmt) as c_int
 
 export func sqlite3_finalize(point stmt) as int
     return __xl6_native_sqlite_sqlite3_finalize(stmt)
 end
-extern "xsqlite3_reset_native" func __xl6_native_sqlite_sqlite3_reset(point stmt) as int
+extern "xsqlite3_reset_native" func __xl6_native_sqlite_sqlite3_reset(point stmt) as c_int
 
 export func sqlite3_reset(point stmt) as int
     return __xl6_native_sqlite_sqlite3_reset(stmt)
 end
-extern "xsqlite3_clear_bindings_native" func __xl6_native_sqlite_sqlite3_clear_bindings(point stmt) as int
+extern "xsqlite3_clear_bindings_native" func __xl6_native_sqlite_sqlite3_clear_bindings(point stmt) as c_int
 
 export func sqlite3_clear_bindings(point stmt) as int
     return __xl6_native_sqlite_sqlite3_clear_bindings(stmt)
 end
-extern "xsqlite3_bind_int_native" func __xl6_native_sqlite_sqlite3_bind_int(point stmt, int index, int value) as int
+extern "xsqlite3_bind_int_native" func __xl6_native_sqlite_sqlite3_bind_int(point stmt, c_int index, c_int value) as c_int
 
 export func sqlite3_bind_int(point stmt, int index, int value) as int
-    return __xl6_native_sqlite_sqlite3_bind_int(stmt, index, value)
+    return __xl6_native_sqlite_sqlite3_bind_int(stmt, __sqlite_c_int(index), __sqlite_c_int(value))
 end
-extern "xsqlite3_bind_int64_native" func __xl6_native_sqlite_sqlite3_bind_int64(point stmt, int index, int value) as int
+extern "xsqlite3_bind_int64_native" func __xl6_native_sqlite_sqlite3_bind_int64(point stmt, c_int index, int64 value) as c_int
 
 export func sqlite3_bind_int64(point stmt, int index, int value) as int
-    return __xl6_native_sqlite_sqlite3_bind_int64(stmt, index, value)
+    return __xl6_native_sqlite_sqlite3_bind_int64(stmt, __sqlite_c_int(index), value)
 end
-extern "xsqlite3_bind_double_native" func __xl6_native_sqlite_sqlite3_bind_double(point stmt, int index, float value) as int
+extern "xsqlite3_bind_double_native" func __xl6_native_sqlite_sqlite3_bind_double(point stmt, c_int index, c_double value) as c_int
 
 export func sqlite3_bind_double(point stmt, int index, float value) as int
-    return __xl6_native_sqlite_sqlite3_bind_double(stmt, index, value)
+    return __xl6_native_sqlite_sqlite3_bind_double(stmt, __sqlite_c_int(index), value)
 end
-extern "xsqlite3_bind_text_native" func __xl6_native_sqlite_sqlite3_bind_text(point stmt, int index, string value) as int
+extern "xsqlite3_bind_text_native" func __xl6_native_sqlite_sqlite3_bind_text(point stmt, c_int index, string value) as c_int
 
 export func sqlite3_bind_text(point stmt, int index, string value) as int
-    return __xl6_native_sqlite_sqlite3_bind_text(stmt, index, value)
+    return __xl6_native_sqlite_sqlite3_bind_text(stmt, __sqlite_c_int(index), value)
 end
-extern "xsqlite3_bind_blob_text_native" func __xl6_native_sqlite_sqlite3_bind_blob_text(point stmt, int index, string value) as int
+extern "xsqlite3_bind_blob_text_native" func __xl6_native_sqlite_sqlite3_bind_blob_text(point stmt, c_int index, string value) as c_int
 
 export func sqlite3_bind_blob_text(point stmt, int index, string value) as int
-    return __xl6_native_sqlite_sqlite3_bind_blob_text(stmt, index, value)
+    return __xl6_native_sqlite_sqlite3_bind_blob_text(stmt, __sqlite_c_int(index), value)
 end
-extern "xsqlite3_bind_null_native" func __xl6_native_sqlite_sqlite3_bind_null(point stmt, int index) as int
+extern "xsqlite3_bind_blob_native" func __sqlite_bind_blob(point stmt, c_int index, point data, c_size size) as c_int
+extern "xsqlite3_bind_text_bytes_native" func __sqlite_bind_text_bytes(point stmt, c_int index, point data, c_size size) as c_int
+
+// 二进制与含 NUL 的文本按字节绑定；SQLite 复制数据，不保留 Buffer 的借用指针。
+export func sqlite3_bind_blob(point stmt, int index, Buffer value) as int
+    return __sqlite_bind_blob(stmt, __sqlite_c_int(index), value.data(), c_size(value.len()))
+end
+
+export func sqlite3_bind_text_bytes(point stmt, int index, Buffer value) as int
+    return __sqlite_bind_text_bytes(stmt, __sqlite_c_int(index), value.data(), c_size(value.len()))
+end
+extern "xsqlite3_bind_null_native" func __xl6_native_sqlite_sqlite3_bind_null(point stmt, c_int index) as c_int
 
 export func sqlite3_bind_null(point stmt, int index) as int
-    return __xl6_native_sqlite_sqlite3_bind_null(stmt, index)
+    return __xl6_native_sqlite_sqlite3_bind_null(stmt, __sqlite_c_int(index))
 end
-extern "xsqlite3_bind_parameter_count_native" func __xl6_native_sqlite_sqlite3_bind_parameter_count(point stmt) as int
+extern "xsqlite3_bind_parameter_count_native" func __xl6_native_sqlite_sqlite3_bind_parameter_count(point stmt) as c_int
 
 export func sqlite3_bind_parameter_count(point stmt) as int
     return __xl6_native_sqlite_sqlite3_bind_parameter_count(stmt)
 end
-extern "xsqlite3_column_count_native" func __xl6_native_sqlite_sqlite3_column_count(point stmt) as int
+extern "xsqlite3_column_count_native" func __xl6_native_sqlite_sqlite3_column_count(point stmt) as c_int
 
 export func sqlite3_column_count(point stmt) as int
     return __xl6_native_sqlite_sqlite3_column_count(stmt)
 end
-extern "xsqlite3_column_type_native" func __xl6_native_sqlite_sqlite3_column_type(point stmt, int column) as int
+extern "xsqlite3_column_type_native" func __xl6_native_sqlite_sqlite3_column_type(point stmt, c_int column) as c_int
 
 export func sqlite3_column_type(point stmt, int column) as int
-    return __xl6_native_sqlite_sqlite3_column_type(stmt, column)
+    return __xl6_native_sqlite_sqlite3_column_type(stmt, __sqlite_c_int(column))
 end
-extern "xsqlite3_column_int_native" func __xl6_native_sqlite_sqlite3_column_int(point stmt, int column) as int
+extern "xsqlite3_column_int_native" func __xl6_native_sqlite_sqlite3_column_int(point stmt, c_int column) as c_int
 
 export func sqlite3_column_int(point stmt, int column) as int
-    return __xl6_native_sqlite_sqlite3_column_int(stmt, column)
+    return __xl6_native_sqlite_sqlite3_column_int(stmt, __sqlite_c_int(column))
 end
-extern "xsqlite3_column_int64_native" func __xl6_native_sqlite_sqlite3_column_int64(point stmt, int column) as int
+extern "xsqlite3_column_int64_native" func __xl6_native_sqlite_sqlite3_column_int64(point stmt, c_int column) as int64
 
 export func sqlite3_column_int64(point stmt, int column) as int
-    return __xl6_native_sqlite_sqlite3_column_int64(stmt, column)
+    return __xl6_native_sqlite_sqlite3_column_int64(stmt, __sqlite_c_int(column))
 end
-extern "xsqlite3_column_double_native" func __xl6_native_sqlite_sqlite3_column_double(point stmt, int column) as float
+extern "xsqlite3_column_double_native" func __xl6_native_sqlite_sqlite3_column_double(point stmt, c_int column) as c_double
 
 export func sqlite3_column_double(point stmt, int column) as float
-    return __xl6_native_sqlite_sqlite3_column_double(stmt, column)
+    return __xl6_native_sqlite_sqlite3_column_double(stmt, __sqlite_c_int(column))
 end
-extern "xsqlite3_column_text_native" func __xl6_native_sqlite_sqlite3_column_text(point stmt, int column) as string
+extern "xsqlite3_column_text_native" func __xl6_native_sqlite_sqlite3_column_text(point stmt, c_int column) as string
 
 export func sqlite3_column_text(point stmt, int column) as string
-    return __xl6_native_sqlite_sqlite3_column_text(stmt, column)
+    return __xl6_native_sqlite_sqlite3_column_text(stmt, __sqlite_c_int(column))
 end
-extern "xsqlite3_column_text_native" func __xl6_native_sqlite_sqlite3_column_blob_text(point stmt, int column) as string
+extern "xsqlite3_column_text_native" func __xl6_native_sqlite_sqlite3_column_blob_text(point stmt, c_int column) as string
 
 export func sqlite3_column_blob_text(point stmt, int column) as string
-    return __xl6_native_sqlite_sqlite3_column_blob_text(stmt, column)
+    return __xl6_native_sqlite_sqlite3_column_blob_text(stmt, __sqlite_c_int(column))
 end
-extern "xsqlite3_column_bytes_native" func __xl6_native_sqlite_sqlite3_column_bytes(point stmt, int column) as int
+extern "xsqlite3_column_blob_native" func __sqlite_column_blob(point stmt, c_int column) as point
+extern "xsqlite3_column_text_bytes_native" func __sqlite_column_text_bytes(point stmt, c_int column) as point
+
+export func sqlite3_column_blob(point stmt, int column) as Buffer
+    return Buffer(__sqlite_column_blob(stmt, __sqlite_c_int(column)))
+end
+
+export func sqlite3_column_text_bytes(point stmt, int column) as Buffer
+    return Buffer(__sqlite_column_text_bytes(stmt, __sqlite_c_int(column)))
+end
+extern "xsqlite3_column_bytes_native" func __xl6_native_sqlite_sqlite3_column_bytes(point stmt, c_int column) as c_int
 
 export func sqlite3_column_bytes(point stmt, int column) as int
-    return __xl6_native_sqlite_sqlite3_column_bytes(stmt, column)
+    return __xl6_native_sqlite_sqlite3_column_bytes(stmt, __sqlite_c_int(column))
 end
-extern "xsqlite3_column_name_native" func __xl6_native_sqlite_sqlite3_column_name(point stmt, int column) as string
+extern "xsqlite3_column_name_native" func __xl6_native_sqlite_sqlite3_column_name(point stmt, c_int column) as string
 
 export func sqlite3_column_name(point stmt, int column) as string
-    return __xl6_native_sqlite_sqlite3_column_name(stmt, column)
+    return __xl6_native_sqlite_sqlite3_column_name(stmt, __sqlite_c_int(column))
 end
 extern "xsqlite3_errmsg_native" func __xl6_native_sqlite_sqlite3_errmsg(point db) as string
 
 export func sqlite3_errmsg(point db) as string
     return __xl6_native_sqlite_sqlite3_errmsg(db)
 end
-extern "xsqlite3_errstr_native" func __xl6_native_sqlite_sqlite3_errstr(int rc) as string
+extern "xsqlite3_stmt_errmsg_native" func __sqlite_stmt_error(point stmt) as string
+
+export func sqlite3_stmt_errmsg(point stmt) as string
+    return __sqlite_stmt_error(stmt)
+end
+extern "xsqlite3_errstr_native" func __xl6_native_sqlite_sqlite3_errstr(c_int rc) as string
 
 export func sqlite3_errstr(int rc) as string
-    return __xl6_native_sqlite_sqlite3_errstr(rc)
+    return __xl6_native_sqlite_sqlite3_errstr(__sqlite_c_int(rc))
 end
-extern "xsqlite3_extended_errcode_native" func __xl6_native_sqlite_sqlite3_extended_errcode(point db) as int
+extern "xsqlite3_extended_errcode_native" func __xl6_native_sqlite_sqlite3_extended_errcode(point db) as c_int
 
 export func sqlite3_extended_errcode(point db) as int
     return __xl6_native_sqlite_sqlite3_extended_errcode(db)
 end
-extern "xsqlite3_changes_native" func __xl6_native_sqlite_sqlite3_changes(point db) as int
+extern "xsqlite3_changes_native" func __xl6_native_sqlite_sqlite3_changes(point db) as int64
 
 export func sqlite3_changes(point db) as int
     return __xl6_native_sqlite_sqlite3_changes(db)
 end
-extern "xsqlite3_total_changes_native" func __xl6_native_sqlite_sqlite3_total_changes(point db) as int
+extern "xsqlite3_total_changes_native" func __xl6_native_sqlite_sqlite3_total_changes(point db) as int64
 
 export func sqlite3_total_changes(point db) as int
     return __xl6_native_sqlite_sqlite3_total_changes(db)
@@ -180,74 +212,81 @@ extern "xsqlite3_last_insert_rowid_text_native" func __xl6_native_sqlite_sqlite3
 export func sqlite3_last_insert_rowid_text(point db) as string
     return __xl6_native_sqlite_sqlite3_last_insert_rowid_text(db)
 end
-extern "xsqlite3_last_insert_rowid_native" func __xl6_native_sqlite_sqlite3_last_insert_rowid(point db) as int
+extern "xsqlite3_last_insert_rowid_native" func __xl6_native_sqlite_sqlite3_last_insert_rowid(point db) as int64
 
 export func sqlite3_last_insert_rowid(point db) as int
     return __xl6_native_sqlite_sqlite3_last_insert_rowid(db)
 end
-extern "xsqlite3_busy_timeout_native" func __xl6_native_sqlite_sqlite3_busy_timeout(point db, int milliseconds) as int
+extern "xsqlite3_busy_timeout_native" func __xl6_native_sqlite_sqlite3_busy_timeout(point db, c_int milliseconds) as c_int
 
 export func sqlite3_busy_timeout(point db, int milliseconds) as int
-    return __xl6_native_sqlite_sqlite3_busy_timeout(db, milliseconds)
+    return __xl6_native_sqlite_sqlite3_busy_timeout(db, __sqlite_c_int(milliseconds))
 end
 extern "xsqlite3_libversion_native" func __xl6_native_sqlite_sqlite3_libversion() as string
 
 export func sqlite3_libversion() as string
     return __xl6_native_sqlite_sqlite3_libversion()
 end
-extern "xsqlite3_libversion_number_native" func __xl6_native_sqlite_sqlite3_libversion_number() as int
+extern "xsqlite3_libversion_number_native" func __xl6_native_sqlite_sqlite3_libversion_number() as c_int
 
 export func sqlite3_libversion_number() as int
     return __xl6_native_sqlite_sqlite3_libversion_number()
 end
-export extern "xsqlite_const_SQLITE_OK" int SQLITE_OK
-export extern "xsqlite_const_SQLITE_ERROR" int SQLITE_ERROR
-export extern "xsqlite_const_SQLITE_INTERNAL" int SQLITE_INTERNAL
-export extern "xsqlite_const_SQLITE_PERM" int SQLITE_PERM
-export extern "xsqlite_const_SQLITE_ABORT" int SQLITE_ABORT
-export extern "xsqlite_const_SQLITE_BUSY" int SQLITE_BUSY
-export extern "xsqlite_const_SQLITE_LOCKED" int SQLITE_LOCKED
-export extern "xsqlite_const_SQLITE_NOMEM" int SQLITE_NOMEM
-export extern "xsqlite_const_SQLITE_READONLY" int SQLITE_READONLY
-export extern "xsqlite_const_SQLITE_INTERRUPT" int SQLITE_INTERRUPT
-export extern "xsqlite_const_SQLITE_IOERR" int SQLITE_IOERR
-export extern "xsqlite_const_SQLITE_CORRUPT" int SQLITE_CORRUPT
-export extern "xsqlite_const_SQLITE_NOTFOUND" int SQLITE_NOTFOUND
-export extern "xsqlite_const_SQLITE_FULL" int SQLITE_FULL
-export extern "xsqlite_const_SQLITE_CANTOPEN" int SQLITE_CANTOPEN
-export extern "xsqlite_const_SQLITE_PROTOCOL" int SQLITE_PROTOCOL
-export extern "xsqlite_const_SQLITE_EMPTY" int SQLITE_EMPTY
-export extern "xsqlite_const_SQLITE_SCHEMA" int SQLITE_SCHEMA
-export extern "xsqlite_const_SQLITE_TOOBIG" int SQLITE_TOOBIG
-export extern "xsqlite_const_SQLITE_CONSTRAINT" int SQLITE_CONSTRAINT
-export extern "xsqlite_const_SQLITE_MISMATCH" int SQLITE_MISMATCH
-export extern "xsqlite_const_SQLITE_MISUSE" int SQLITE_MISUSE
-export extern "xsqlite_const_SQLITE_NOLFS" int SQLITE_NOLFS
-export extern "xsqlite_const_SQLITE_AUTH" int SQLITE_AUTH
-export extern "xsqlite_const_SQLITE_FORMAT" int SQLITE_FORMAT
-export extern "xsqlite_const_SQLITE_RANGE" int SQLITE_RANGE
-export extern "xsqlite_const_SQLITE_NOTADB" int SQLITE_NOTADB
-export extern "xsqlite_const_SQLITE_NOTICE" int SQLITE_NOTICE
-export extern "xsqlite_const_SQLITE_WARNING" int SQLITE_WARNING
-export extern "xsqlite_const_SQLITE_ROW" int SQLITE_ROW
-export extern "xsqlite_const_SQLITE_DONE" int SQLITE_DONE
-export extern "xsqlite_const_SQLITE_INTEGER" int SQLITE_INTEGER
-export extern "xsqlite_const_SQLITE_FLOAT" int SQLITE_FLOAT
-export extern "xsqlite_const_SQLITE_TEXT" int SQLITE_TEXT
-export extern "xsqlite_const_SQLITE_BLOB" int SQLITE_BLOB
-export extern "xsqlite_const_SQLITE_NULL" int SQLITE_NULL
-export extern "xsqlite_const_SQLITE_OPEN_READONLY" int SQLITE_OPEN_READONLY
-export extern "xsqlite_const_SQLITE_OPEN_READWRITE" int SQLITE_OPEN_READWRITE
-export extern "xsqlite_const_SQLITE_OPEN_CREATE" int SQLITE_OPEN_CREATE
-export extern "xsqlite_const_SQLITE_OPEN_URI" int SQLITE_OPEN_URI
-export extern "xsqlite_const_SQLITE_OPEN_MEMORY" int SQLITE_OPEN_MEMORY
-export extern "xsqlite_const_SQLITE_OPEN_NOMUTEX" int SQLITE_OPEN_NOMUTEX
-export extern "xsqlite_const_SQLITE_OPEN_FULLMUTEX" int SQLITE_OPEN_FULLMUTEX
-export extern "xsqlite_const_SQLITE_OPEN_SHAREDCACHE" int SQLITE_OPEN_SHAREDCACHE
-export extern "xsqlite_const_SQLITE_OPEN_PRIVATECACHE" int SQLITE_OPEN_PRIVATECACHE
+export const int SQLITE_OK = 0
+export const int SQLITE_ERROR = 1
+export const int SQLITE_INTERNAL = 2
+export const int SQLITE_PERM = 3
+export const int SQLITE_ABORT = 4
+export const int SQLITE_BUSY = 5
+export const int SQLITE_LOCKED = 6
+export const int SQLITE_NOMEM = 7
+export const int SQLITE_READONLY = 8
+export const int SQLITE_INTERRUPT = 9
+export const int SQLITE_IOERR = 10
+export const int SQLITE_CORRUPT = 11
+export const int SQLITE_NOTFOUND = 12
+export const int SQLITE_FULL = 13
+export const int SQLITE_CANTOPEN = 14
+export const int SQLITE_PROTOCOL = 15
+export const int SQLITE_EMPTY = 16
+export const int SQLITE_SCHEMA = 17
+export const int SQLITE_TOOBIG = 18
+export const int SQLITE_CONSTRAINT = 19
+export const int SQLITE_MISMATCH = 20
+export const int SQLITE_MISUSE = 21
+export const int SQLITE_NOLFS = 22
+export const int SQLITE_AUTH = 23
+export const int SQLITE_FORMAT = 24
+export const int SQLITE_RANGE = 25
+export const int SQLITE_NOTADB = 26
+export const int SQLITE_NOTICE = 27
+export const int SQLITE_WARNING = 28
+export const int SQLITE_ROW = 100
+export const int SQLITE_DONE = 101
+export const int SQLITE_INTEGER = 1
+export const int SQLITE_FLOAT = 2
+export const int SQLITE_TEXT = 3
+export const int SQLITE_BLOB = 4
+export const int SQLITE_NULL = 5
+export const int SQLITE_OPEN_READONLY = 0x00000001
+export const int SQLITE_OPEN_READWRITE = 0x00000002
+export const int SQLITE_OPEN_CREATE = 0x00000004
+export const int SQLITE_OPEN_URI = 0x00000040
+export const int SQLITE_OPEN_MEMORY = 0x00000080
+export const int SQLITE_OPEN_NOMUTEX = 0x00008000
+export const int SQLITE_OPEN_FULLMUTEX = 0x00010000
+export const int SQLITE_OPEN_SHAREDCACHE = 0x00020000
+export const int SQLITE_OPEN_PRIVATECACHE = 0x00040000
 
-class Statement
-    point handle
+export class Statement
+    private point handle
+
+    private func checkedHandle() as point
+        if self.handle == null then
+            throw RuntimeError "sqlite statement is finalized"
+        end
+        return self.handle
+    end
 
     create()
         self.handle = null
@@ -270,7 +309,7 @@ class Statement
 
     func finalize() as int
         if self.handle == null then
-            return SQLITE_MISUSE
+            return SQLITE_OK
         end
         auto rc = sqlite3_finalize(self.handle)
         self.handle = null
@@ -278,71 +317,99 @@ class Statement
     end
 
     func reset() as int
-        return sqlite3_reset(self.handle)
+        return sqlite3_reset(self.checkedHandle())
     end
 
     func clear_bindings() as int
-        return sqlite3_clear_bindings(self.handle)
+        return sqlite3_clear_bindings(self.checkedHandle())
     end
 
     func bind(int index, int value) as int
-        return sqlite3_bind_int64(self.handle, index, value)
+        return sqlite3_bind_int64(self.checkedHandle(), index, value)
     end
 
     func bind(int index, float value) as int
-        return sqlite3_bind_double(self.handle, index, value)
+        return sqlite3_bind_double(self.checkedHandle(), index, value)
     end
 
     func bind(int index, string value) as int
-        return sqlite3_bind_text(self.handle, index, value)
+        return sqlite3_bind_text(self.checkedHandle(), index, value)
+    end
+
+    func bind(int index, Buffer value) as int
+        return sqlite3_bind_blob(self.checkedHandle(), index, value)
+    end
+
+    func bind_text_bytes(int index, Buffer value) as int
+        return sqlite3_bind_text_bytes(self.checkedHandle(), index, value)
     end
 
     func bind_null(int index) as int
-        return sqlite3_bind_null(self.handle, index)
+        return sqlite3_bind_null(self.checkedHandle(), index)
     end
 
     func bind_blob_text(int index, string value) as int
-        return sqlite3_bind_blob_text(self.handle, index, value)
+        return sqlite3_bind_blob_text(self.checkedHandle(), index, value)
     end
 
     func step() as int
-        return sqlite3_step(self.handle)
+        return sqlite3_step(self.checkedHandle())
     end
 
     func done() as bool
-        return self.step() == SQLITE_DONE
+        int rc = self.step()
+        if rc != SQLITE_ROW and rc != SQLITE_DONE then
+            throw RuntimeError self.last_error()
+        end
+        return rc == SQLITE_DONE
     end
 
     func row_ready() as bool
-        return self.step() == SQLITE_ROW
+        int rc = self.step()
+        if rc != SQLITE_ROW and rc != SQLITE_DONE then
+            throw RuntimeError self.last_error()
+        end
+        return rc == SQLITE_ROW
+    end
+
+    func last_error() as string
+        return sqlite3_stmt_errmsg(self.checkedHandle())
     end
 
     func column_count() as int
-        return sqlite3_column_count(self.handle)
+        return sqlite3_column_count(self.checkedHandle())
     end
 
     func column_name(int column) as string
-        return sqlite3_column_name(self.handle, column)
+        return sqlite3_column_name(self.checkedHandle(), column)
     end
 
     func column_type(int column) as int
-        return sqlite3_column_type(self.handle, column)
+        return sqlite3_column_type(self.checkedHandle(), column)
     end
 
     func column_int(int column) as int
-        return sqlite3_column_int64(self.handle, column)
+        return sqlite3_column_int64(self.checkedHandle(), column)
     end
 
     func column_float(int column) as float
-        return sqlite3_column_double(self.handle, column)
+        return sqlite3_column_double(self.checkedHandle(), column)
     end
 
     func column_text(int column) as string
-        return sqlite3_column_text(self.handle, column)
+        return sqlite3_column_text(self.checkedHandle(), column)
     end
 
     func column_blob_text(int column) as string
-        return sqlite3_column_blob_text(self.handle, column)
+        return sqlite3_column_blob_text(self.checkedHandle(), column)
+    end
+
+    func column_blob(int column) as Buffer
+        return sqlite3_column_blob(self.checkedHandle(), column)
+    end
+
+    func column_text_bytes(int column) as Buffer
+        return sqlite3_column_text_bytes(self.checkedHandle(), column)
     end
 
     func value(int column) as var
@@ -354,7 +421,7 @@ class Statement
         elseif kind == SQLITE_TEXT then
             return self.column_text(column)
         elseif kind == SQLITE_BLOB then
-            return self.column_blob_text(column)
+            return self.column_blob(column)
         end
         return null
     end
@@ -371,8 +438,15 @@ class Statement
     end
 end
 
-class Database
-    point handle
+export class Database
+    private point handle
+
+    private func checkedHandle() as point
+        if self.handle == null then
+            throw RuntimeError "sqlite database is closed"
+        end
+        return self.handle
+    end
 
     create()
         self.handle = null
@@ -399,7 +473,7 @@ class Database
 
     func close() as int
         if self.handle == null then
-            return SQLITE_MISUSE
+            return SQLITE_OK
         end
         auto rc = sqlite3_close(self.handle)
         if rc == SQLITE_OK then
@@ -410,7 +484,7 @@ class Database
 
     func close_v2() as int
         if self.handle == null then
-            return SQLITE_MISUSE
+            return SQLITE_OK
         end
         auto rc = sqlite3_close_v2(self.handle)
         if rc == SQLITE_OK then
@@ -420,39 +494,39 @@ class Database
     end
 
     func last_error() as string
-        return sqlite3_errmsg(self.handle)
+        return sqlite3_errmsg(self.checkedHandle())
     end
 
     func execute(string sql) as bool
-        return sqlite3_exec(self.handle, sql) == SQLITE_OK
+        return sqlite3_exec(self.checkedHandle(), sql) == SQLITE_OK
     end
 
     func exec_code(string sql) as int
-        return sqlite3_exec(self.handle, sql)
+        return sqlite3_exec(self.checkedHandle(), sql)
     end
 
     func prepare(string sql) as Statement
-        return Statement(sqlite3_prepare_v2(self.handle, sql))
+        return Statement(sqlite3_prepare_v2(self.checkedHandle(), sql))
     end
 
     func changes() as int
-        return sqlite3_changes(self.handle)
+        return sqlite3_changes(self.checkedHandle())
     end
 
     func total_changes() as int
-        return sqlite3_total_changes(self.handle)
+        return sqlite3_total_changes(self.checkedHandle())
     end
 
     func last_insert_rowid_text() as string
-        return sqlite3_last_insert_rowid_text(self.handle)
+        return sqlite3_last_insert_rowid_text(self.checkedHandle())
     end
 
     func last_insert_rowid() as int
-        return sqlite3_last_insert_rowid(self.handle)
+        return sqlite3_last_insert_rowid(self.checkedHandle())
     end
 
     func busy_timeout(int milliseconds) as bool
-        return sqlite3_busy_timeout(self.handle, milliseconds) == SQLITE_OK
+        return sqlite3_busy_timeout(self.checkedHandle(), milliseconds) == SQLITE_OK
     end
 
     func begin() as bool
@@ -470,13 +544,18 @@ class Database
     func query(string sql) as var
         var rows = []
         auto stmt = self.prepare(sql)
-        if stmt.valid() == false then
-            return rows
+        try
+            int rc = stmt.step()
+            while rc == SQLITE_ROW
+                rows.append(stmt.row())
+                rc = stmt.step()
+            end
+            if rc != SQLITE_DONE then
+                throw RuntimeError stmt.last_error()
+            end
+        finally
+            stmt.finalize()
         end
-        while stmt.step() == SQLITE_ROW
-            rows.append(stmt.row())
-        end
-        stmt.finalize()
         return rows
     end
 end

@@ -1,10 +1,6 @@
 import sqlite
 
-dir.createAll("examples_out/extlibs")
-string dbPath = "examples_out/extlibs/sqlite_demo.db"
-string db2Path = "examples_out/extlibs/sqlite_demo_v2.db"
-file.delete(dbPath)
-file.delete(db2Path)
+// 原生句柄示例使用独立内存库；文件和锁语义由 sqlite/test/file.xl 展示。
 
 assert sqlite.available(), "sqlite available failed"
 assert string.len(sqlite.version()) > 0, "sqlite version missing"
@@ -16,7 +12,7 @@ assert sqlite.SQLITE_ROW == 100, "sqlite SQLITE_ROW constant mismatch"
 assert sqlite.SQLITE_DONE == 101, "sqlite SQLITE_DONE constant mismatch"
 assert string.contains(sqlite.sqlite3_errstr(sqlite.SQLITE_OK), "not an error"), "sqlite errstr mismatch"
 
-point db = sqlite.sqlite3_open(dbPath)
+point db = sqlite.sqlite3_open(":memory:")
 assert db != null, "sqlite open failed"
 assert sqlite.sqlite3_busy_timeout(db, 3000) == sqlite.SQLITE_OK, "sqlite busy timeout failed"
 assert sqlite.sqlite3_exec(db, "create table items(id integer, amount real, name text, payload blob, optional text)") == sqlite.SQLITE_OK, "sqlite create table failed"
@@ -58,7 +54,7 @@ assert sqlite.sqlite3_column_type(queryStmt, 4) == sqlite.SQLITE_NULL, "sqlite n
 assert sqlite.sqlite3_step(queryStmt) == sqlite.SQLITE_DONE, "sqlite query done mismatch"
 assert sqlite.sqlite3_finalize(queryStmt) == sqlite.SQLITE_OK, "sqlite finalize query failed"
 
-point db2 = sqlite.sqlite3_open_v2(db2Path, sqlite.SQLITE_OPEN_READWRITE + sqlite.SQLITE_OPEN_CREATE, "")
+point db2 = sqlite.sqlite3_open_v2(":memory:", sqlite.SQLITE_OPEN_READWRITE + sqlite.SQLITE_OPEN_CREATE, "")
 assert db2 != null, "sqlite open_v2 failed"
 assert sqlite.sqlite3_close(db2) == sqlite.SQLITE_OK, "sqlite close failed"
 
@@ -86,8 +82,6 @@ assert mem.close() == sqlite.SQLITE_OK, "sqlite object close failed"
 
 point missing = null
 assert sqlite.sqlite3_exec(missing, "select 1") == sqlite.SQLITE_MISUSE, "sqlite null exec should fail"
-assert string.contains(sqlite.last_error(), "null sqlite3 handle"), "sqlite last_error alias mismatch"
-assert string.contains(sqlite.sqlite3_last_error(), "null sqlite3 handle"), "sqlite last_error mismatch"
 assert string.contains(sqlite.sqlite3_errmsg(missing), "null sqlite3 handle"), "sqlite errmsg null mismatch"
 
 assert sqlite.sqlite3_close_v2(db) == sqlite.SQLITE_OK, "sqlite close_v2 failed"

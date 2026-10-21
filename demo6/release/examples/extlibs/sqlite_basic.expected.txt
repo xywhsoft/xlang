@@ -1,0 +1,5 @@
+sqlite demo
+1: Ada
+2: O'Reilly
+rollback: 2
+blob: 3 bytes
