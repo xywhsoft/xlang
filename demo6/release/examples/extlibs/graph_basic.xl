@@ -1,0 +1,39 @@
+import graph
+
+func show(string label, array values, string separator)
+    print(label)
+    for i in range(values.length)
+        if i > 0 then
+            print(separator)
+        end
+        print(values[i])
+    end
+    println()
+end
+
+func main(...) as int
+    // 有向边从前置步骤指向后续步骤；单元素行声明孤立步骤。
+    var flow = [["parse", "check", 2], ["check", "emit", 3], ["parse", "emit", 9], ["docs"]]
+    println("dag=" + string(graph.isDag(flow)))
+    show("topo=", graph.topoSort(flow), ">")
+    show("bfs=", graph.bfs(flow, "parse"), ">")
+    show("nodes=", graph.nodes(flow), ",")
+    show("neighbors=", graph.neighbors(flow, "parse"), ",")
+
+    // 最少边数与最小权重不是同一个问题。
+    show("fewest-edges=", graph.shortestPath(flow, "parse", "emit"), ">")
+    var costs = graph.dijkstra(flow, "parse")
+    println("cost=" + string(int(costs["emit"])))
+    var weak = graph.components(flow)
+    println("weak=" + string(weak.length) + "; first-size=" + string(weak[0].length))
+
+    var calls = [["a", "b"], ["b", "a"], ["b", "c"]]
+    var strong = graph.scc(calls)
+    println("scc=" + string(strong.length) + "; first-size=" + string(strong[0].length))
+    try
+        graph.topoSort(calls)
+    catch ValueError e
+        println("cycle=rejected")
+    end
+    return 0
+end

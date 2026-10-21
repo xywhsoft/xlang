@@ -1,0 +1,10 @@
+dag=true
+topo=parse>docs>check>emit
+bfs=parse>check>emit
+nodes=check,docs,emit,parse
+neighbors=check,emit
+fewest-edges=parse>emit
+cost=5
+weak=2; first-size=3
+scc=2; first-size=2
+cycle=rejected

@@ -3,13 +3,13 @@ import graph
 
 
 func main(...) as int
-    // 微服务依赖拓扑：构建顺序
+    // 服务调用图：边表示调用者到被调用者，不是构建依赖顺序。
     var services = [
         ["gateway", "auth"], ["gateway", "orders"],
         ["auth", "users"], ["orders", "users"],
         ["orders", "billing"], ["billing", "users"]
     ]
-    println("build order:", graph.topoSort(services))
+    println("call order:", graph.topoSort(services))
     println("is dag:", graph.isDag(services))
 
     // 服务调用链最短路径

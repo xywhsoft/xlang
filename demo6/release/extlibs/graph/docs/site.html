@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>graph - 扩展库 - xlang</title>
+  <meta name="description" content="有向图遍历、拓扑排序、连通分量、最少边路径和 Dijkstra 距离。九项 xlang 与 C 对照 API。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+  <style>
+    .extlib-layout { overflow-wrap: anywhere; }
+    .extlib-layout h1 { font-size: 40px; letter-spacing: 0; }
+    .extlib-layout h2 { letter-spacing: 0; }
+    .extlib-layout pre { max-width: 100%; overflow-x: auto; }
+  </style>
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / graph</p>
+    <div class="extlib-title-row"><h1>graph</h1><span class="extlib-cat-badge">图算法</span></div>
+    <p class="extlib-lead">用边数组表示依赖、流程和连接关系。提供拓扑排序、遍历、强弱连通分量及距离计算，C 与 xlang 使用同一套 XRT 存储和算法。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="input">
+    <h2 id="input">图的表示</h2>
+    <pre><code class="language-xlang">import graph
+
+var jobs = [["parse", "check", 2], ["check", "emit", 3], ["parse", "emit", 9], ["docs"]]
+println(graph.isDag(jobs))                 // true
+println(graph.shortestPath(jobs, "parse", "emit").length)  // 2
+println(int(graph.dijkstra(jobs, "parse")["emit"]))        // 5</code></pre>
+    <p><code>[name]</code> 声明孤立点；<code>[from, to]</code> 声明权重 1 的有向边；
+    <code>[from, to, weight]</code> 显式指定权重。名称为大小写敏感字符串，允许空串和中文。
+    int/float 权重必须有限，内部为 float64，超大整数可能失去精度。</p>
+    <p>重复边和自环允许，重复节点声明不增加节点数。上限为 4096 个不同节点、32768 条边；
+    不预留上限大小的全局数组。此限额不等于名称总字节数或执行时间预算。</p>
+
+    <h2 id="api">九项操作</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>返回与语义</th></tr></thead><tbody>
+      <tr><td><code>isDag(edges) as bool</code></td><td>有环为 false；空图为 true。错误仍抛异常。</td></tr>
+      <tr><td><code>topoSort(edges) as array</code></td><td>拓扑序，有环抛 ValueError，空图为 []。</td></tr>
+      <tr><td><code>bfs(edges, start) as array</code></td><td>沿出边广度优先遍历，包含起点，每个节点最多一次。</td></tr>
+      <tr><td><code>shortestPath(edges, start, target) as array</code></td><td>最少边数路径，包含两端，忽略权重；不可达抛 ValueError。</td></tr>
+      <tr><td><code>dijkstra(edges, start) as dict</code></td><td>最小权重和，值为 float64；起点为 0，不可达节点没有键。要求全图非负权。</td></tr>
+      <tr><td><code>components(edges) as array</code></td><td>忽略方向的弱连通分量，每项为节点数组。</td></tr>
+      <tr><td><code>scc(edges) as array</code></td><td>强连通分量，每项为节点数组。</td></tr>
+      <tr><td><code>nodes(edges) as array</code></td><td>去重后按原始字节字典序排列的节点，不是区域化排序。</td></tr>
+      <tr><td><code>neighbors(edges, node) as array</code></td><td>出邻居，依边出现顺序去重，自环可包含自身。</td></tr>
+    </tbody></table>
+    <p>查询名必须已声明，缺少起点、终点或节点均抛 ValueError。起终点相同时 shortestPath 返回单节点数组。
+    所有行先完整校验；非加权算法也要求权重类型正确且有限，但允许有限负权。</p>
+
+    <h2 id="components">分量与环</h2>
+    <pre><code class="language-xlang">import graph
+
+var edges = [["a", "b"], ["b", "a"], ["b", "c"], ["alone"]]
+println(graph.components(edges).length)    // 2
+println(graph.scc(edges).length)           // 3
+try
+    graph.topoSort(edges)
+catch ValueError error
+    println("cycle")
+end</code></pre>
+    <p>分量及内部节点按输入节点首次出现的顺序输出。拓扑队列按节点首次出现顺序初始化，之后按出边顺序入队；
+    BFS 和最少边数路径也依出边顺序处理同层候选，不承诺字母序。</p>
+
+    <h2 id="cost">资源与性能</h2>
+    <p>每次调用独立构建图模型，没有隐式全局缓存。相同大图多次查询会重复建模，成本还包括读取、散列和复制名称字节。
+    不计建模及输出，遍历、拓扑和分量为 O(V+E)，Dijkstra 的索引堆为 O((V+E) log V)，节点排序为 O(V log V) 次字符串比较。</p>
+    <p>SCC 使用显式栈，不依赖递归深度。结果独立拥有容器和名称，后续调用或输入更新不破坏已有结果。
+    独立调用可并发，调用期间不得并发修改输入。非法输入、环和缺失路径为 ValueError；
+    容量超限以及可达节点最终没有可表示的有限最短距离时为 RangeError；单条溢出候选不会遮蔽其他有限路径。分配失败为 MemoryError，不返回截断结果。</p>
+
+    <h2 id="c-api">C 接口与互操作</h2>
+    <p>公共头 <code>extlibs/graph/include/graph.h</code> 提供 xg_is_dag、xg_topo_sort、xg_bfs、xg_shortest_path、
+    xg_dijkstra、xg_components、xg_scc、xg_nodes、xg_neighbors。
+    输入为借用 xvalue*，查询名为 const char* 与 size_t；结果由调用方 xrtValueRelease。</p>
+    <p>失败返回 NULL 并设置 XRT error；isDag 的 false 也可能是正常有环，C 调用者检查 xrtGetError()。
+    每个入口清除旧错误。依赖 VALUE_CONTAINER、ARRAY、MAP 模块，四个 C 编译单元由 manifest 统一声明。</p>
+    <p>C 名称接口按完整字节处理，支持内嵌 NUL。XLang 边界用例同样验证完整名称可查询，
+    且不会误匹配其 NUL 前缀。</p>
+
+    <h2 id="examples">双语范例与验证</h2>
+    <p>发行目录运行 <code>xl run examples/extlibs/graph_basic.xl</code>。
+    C 对照为 <code>extlibs/graph/examples/basic.c</code>，已显式包含四个原生源文件，可直接使用
+    <code>xl run release/extlibs/graph/examples/basic.c</code>；正式扩展包仍分别编译。
+    两者覆盖全部九项 API，对照同一份 graph_basic.expected.txt。</p>
+    <p>门禁覆盖 128 组参照图、容量与错误、218 个分配失败点、独立线程、九个实际生成 C 原型、
+    Windows JIT/AOT 和 DLL 上下文复用。Linux 包级脚本先运行 C ASan/UBSan 与泄漏检查，
+    再运行 XLang 边界和范例，并与 C 范例黄金输出逐字节比较；LP64 原型可单独验证。</p>
+    <p>不表示 32 位/ARM、TSan、同一可变输入并发或完整性能基准已经验收。
+    工具为 tools/check_extlib_graph.ps1 与 release/extlibs/graph/test/check.sh；构建或源码变化后须复验。
+    当前旧版 <code>xl.dll</code> 宿主运行集合结果的 <code>.length</code> 路径时缺少内置头文件，
+    <code>xlc.dll</code> 对照通过；Windows 完整门禁仍待发布 DLL 重建后复验。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

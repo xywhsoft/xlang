@@ -1,0 +1,107 @@
+import graph
+
+func main(...) as int
+    assert graph.isDag([])
+    assert graph.nodes([]).length == 0
+    assert graph.scc([]).length == 0
+    assert graph.components([]).length == 0
+    assert graph.topoSort([]).length == 0
+
+    // 空串、中文和内嵌 NUL 的名字都按完整字节比较。
+    string startName = "起点"
+    var labels = [[startName, ""], ["", "中文"]]
+    var walked = graph.bfs(labels, startName)
+    assert walked.length == 3 and walked[0] == startName and walked[2] == "中文", "complete node names"
+    assert graph.neighbors(labels, "")[0] == "中文", "empty name"
+    assert graph.shortestPath(labels, startName, "中文").length == 3, "Unicode shortest path"
+    assert graph.dijkstra(labels, startName)["中文"] == 2, "Unicode distance"
+
+    // 同一对节点可有不同权重；最少边数与最小权重是两种查询。
+    var weighted = [["a", "b", 9], ["a", "b", 2], ["a", "c", 1], ["c", "b", 2]]
+    assert graph.neighbors(weighted, "a").length == 2, "duplicate neighbor"
+    assert graph.shortestPath(weighted, "a", "b").length == 2, "fewest edges"
+    assert graph.dijkstra(weighted, "a")["b"] == 2, "least duplicate edge weight"
+
+    string binaryName = "a\0b"
+    var binaryEdges = [[binaryName, "end"]]
+    assert graph.bfs(binaryEdges, binaryName)[0] == binaryName, "NUL name round trip"
+    bool prefixRejected = false
+    try
+        graph.bfs(binaryEdges, "a")
+    catch ValueError e
+        prefixRejected = true
+    end
+    assert prefixRejected, "NUL name must not match its prefix"
+
+    // 输入和输出各自独立，后续调用与输入更新不破坏已有结果。
+    var saved = graph.nodes(labels)
+    labels.append(["other"])
+    assert saved.length == 3 and graph.nodes(labels).length == 4, "result ownership"
+    for i in range(20)
+        assert graph.nodes([["z"]])[0] == "z"
+    end
+    assert saved[0] == "", "sorted empty name"
+
+    var repeated = [["a", "b"], ["a", "b"], ["b", "b"], ["z"]]
+    assert not graph.isDag(repeated), "self loop"
+    assert graph.neighbors(repeated, "a").length == 1, "duplicate neighbors"
+    assert graph.components(repeated).length == 2, "weak components"
+    assert graph.scc(repeated).length == 3, "strong components"
+
+    var ring = []
+    for i in range(521)
+        ring.append([string(i), string((i + 1) % 521)])
+    end
+    var groups = graph.scc(ring)
+    assert groups.length == 1 and groups[0].length == 521, "large component"
+    assert graph.bfs(ring, "0").length == 521, "large bfs"
+
+    for bad in [null, 9, "bad", [], ["a", 7], ["a", "b", true], ["a", "b", 1, 2]]
+        bool caught = false
+        try
+            graph.nodes([["first", "second"], bad])
+        catch ValueError e
+            caught = true
+        end
+        assert caught, "invalid row"
+    end
+    for mode in range(4)
+        bool caught = false
+        try
+            if mode == 0 then
+                graph.dijkstra([["a", "b", -1]], "a")
+            elseif mode == 1 then
+                graph.topoSort([["a", "a"]])
+            elseif mode == 2 then
+                graph.bfs(labels, "a")
+            else
+                graph.shortestPath([["a"], ["b"]], "a", "b")
+            end
+        catch ValueError e
+            caught = true
+        end
+        assert caught, "invalid operation " + string(mode)
+        assert graph.isDag([["a", "b"]])
+    end
+    assert graph.dijkstra([["a", "b", 1e305]], "a")["b"] == 1e305, "large finite distance"
+    bool negativeDisconnected = false
+    try
+        graph.dijkstra([["a", "b", 1], ["x", "y", -1]], "a")
+    catch ValueError error
+        negativeDisconnected = true
+    end
+    assert negativeDisconnected, "negative weight outside the reachable component"
+    var distant = graph.dijkstra([["a", "b", 1], ["x", "y", 1e308], ["y", "z", 1e308]], "a")
+    assert distant.length == 2 and distant["b"] == 1, "unreachable path must not overflow"
+    var alternate = graph.dijkstra([["a", "b", 1e305], ["b", "c", 1.7976931348623157e308],
+        ["a", "d", 2e305], ["d", "c", 1e305]], "a")
+    assert alternate["c"] > 2e305 and alternate["c"] < 4e305, "overflowing candidate must not hide a later finite path"
+    bool overflowRejected = false
+    try
+        graph.dijkstra([["a", "b", 1e305], ["b", "c", 1.7976931348623157e308]], "a")
+    catch RangeError error
+        overflowRejected = true
+    end
+    assert overflowRejected, "unrepresentable shortest path must fail"
+    return 0
+end

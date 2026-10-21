@@ -1,634 +1,228 @@
-/*
- * graph_native.c - Graph algorithms over edge lists with string nodes.
- *
- * Edges cross the ABI as an array of [u, v] or [u, v, weight] arrays;
- * missing weights default to 1. Traversal algorithms are iterative with
- * explicit stacks so deep graphs cannot overflow the call stack. Nodes
- * are interned in insertion order and results preserve deterministic
- * ordering (sorted for node sets, insertion order for traversal output).
- */
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
+#include "graph_internal.h"
 
-#define XRT_MODULE_VALUE_CONTAINER
-#include "xrt.h"
-
-#define XG_DOMAIN "xlang.extlib.graph"
-#define XG_MAX_NODES 4096
-#define XG_MAX_EDGES 32768
-
-static void xg_error(const char *message) {
-    xrtSetErrorInfo(XERR_VALUE, XG_DOMAIN, 0, message);
+void xgError(xerrkind kind, const char* message)
+{
+    xrtSetErrorInfo(kind, "xlang.extlib.graph", 0, message);
 }
 
-static xvalue *xg_text(const char *s, size_t n) {
-    str owned = (str)xrtMalloc(n + 1);
-    xvalue *value;
-    if (owned == NULL) return NULL;
-    if (n > 0) memcpy(owned, s, n);
-    owned[n] = '\0';
-    value = xrtValueStringTake(&owned, n);
-    if (value == NULL && owned != NULL) xrtFree(owned);
-    return value;
+void xgUnit(xgmodel* g)
+{
+    xrtArrayUnit(&g->Edges);
+    xrtArrayUnit(&g->Nodes);
+    xrtMapUnit(&g->Names);
 }
 
-static xvalue *xg_null(void) {
-    return xrtValueNull();
-}
-
-/* ---------------- graph model ---------------- */
-
-typedef struct {
-    char *nodes[XG_MAX_NODES];
-    int nodeCount;
-    int from[XG_MAX_EDGES];
-    int to[XG_MAX_EDGES];
-    double weight[XG_MAX_EDGES];
-    int edgeCount;
-} XGraph;
-
-static void xg_free(XGraph *g) {
-    int i;
-    for (i = 0; i < g->nodeCount; i++) {
-        xrtFree(g->nodes[i]);
+/* XRT 字节键映射统一节点名，不用 strlen 截断输入字符串。 */
+static int intern(xgmodel* g, xvalue* value)
+{
+    xstrview name;
+    xbytesview key, stored;
+    int* id;
+    xgnode node;
+    if (xrtValueType(value) != XVALUE_STRING) {
+        xgError(XERR_VALUE, "graph node must be a string");
+        return -1;
     }
+    if (!xrtValueGetString(value, &name)) return -1;
+    key.Data = (const unsigned char*)name.Data;
+    key.Size = name.Size;
+    id = xrtMapGet(&g->Names, key);
+    if (id) return *id;
+    if (g->Nodes.Count == XG_MAX_NODES) {
+        xgError(XERR_RANGE, "graph node limit exceeded");
+        return -1;
+    }
+    id = xrtMapGetOrAdd(&g->Names, key, NULL);
+    if (!id) return -1;
+    *id = (int)g->Nodes.Count;
+    if (!xrtMapStoredKey(&g->Names, key, &stored)) return -1;
+    node.Name.Data = (const char*)stored.Data;
+    node.Name.Size = stored.Size;
+    node.FirstOut = node.LastOut = node.FirstIn = node.LastIn = -1;
+    return xrtArrayPush(&g->Nodes, &node) ? *id : -1;
 }
 
-static int xg_intern(XGraph *g, const char *name) {
-    int i;
-    for (i = 0; i < g->nodeCount; i++) {
-        if (strcmp(g->nodes[i], name) == 0) {
-            return i;
-        }
-    }
-    if (g->nodeCount >= XG_MAX_NODES) return -1;
-    g->nodes[g->nodeCount] = (char *)xrtMalloc(strlen(name) + 1);
-    if (g->nodes[g->nodeCount] == NULL) return -1;
-    strcpy(g->nodes[g->nodeCount], name);
-    return g->nodeCount++;
-}
-
-/* Copy a string element out of an array value. */
-static char *xg_read_str(xvalue *item) {
-    xstrview text;
-    char *copy;
-    if (item == NULL || !xrtValueGetString(item, &text)) {
-        return NULL;
-    }
-    copy = (char *)xrtMalloc(text.Size + 1);
-    if (copy == NULL) return NULL;
-    memcpy(copy, text.Data, text.Size);
-    copy[text.Size] = '\0';
-    return copy;
-}
-
-static int xg_read_num(xvalue *item, double *out) {
-    int64 i;
-    double d;
-    if (item == NULL || !xrtValueIsNumber(item)) return 0;
-    if (xrtValueGetFloat(item, &d)) {
-        *out = d;
-        return 1;
-    }
-    if (xrtValueGetInt(item, &i)) {
-        *out = (double)i;
-        return 1;
-    }
-    return 0;
-}
-
-/* Parse the edge list into the graph model. Returns 0 on failure. */
-static int xg_load(xvalue *edges, XGraph *g) {
-    int64 i;
-    int64 n;
+bool xgLoad(xgmodel* g, xvalue* input)
+{
+    xrtClearError();
     memset(g, 0, sizeof(*g));
-    if (edges == NULL || xrtValueType(edges) != XVALUE_ARRAY) {
-        xg_error("edges must be an array of [u, v] or [u, v, weight]");
-        return 0;
+    xrtMapInit(&g->Names, sizeof(int));
+    xrtArrayInit(&g->Nodes, sizeof(xgnode));
+    xrtArrayInit(&g->Edges, sizeof(xgedge));
+    if (xrtValueType(input) != XVALUE_ARRAY) {
+        xgError(XERR_VALUE, "graph edges must be an array");
+        goto fail;
     }
-    n = xrtValueCount(edges);
-    for (i = 0; i < n; i++) {
-        xvalue *edge = xrtValueArrayAt(edges, i);
-        xvalue *uItem;
-        xvalue *vItem;
-        char *u;
-        char *v;
-        double w = 1.0;
-        int ui;
-        int vi;
-        int64 arity;
-        if (edge == NULL || xrtValueType(edge) != XVALUE_ARRAY) {
-            xg_error("each edge must be [u], [u, v] or [u, v, weight]");
-            return 0;
+    for (size_t i = 0, n = xrtValueCount(input); i < n; ++i) {
+        xvalue* row = xrtValueArrayAt(input, i);
+        size_t count;
+        xgedge edge = {0, 0, -1, -1, 1.0};
+        int index;
+        xgnode *from, *to;
+        if (xrtValueType(row) != XVALUE_ARRAY ||
+            (count = xrtValueCount(row)) < 1 || count > 3) {
+            xgError(XERR_VALUE, "graph edge must be [node], [from,to] or [from,to,weight]");
+            goto fail;
         }
-        arity = xrtValueCount(edge);
-        if (arity < 1) {
-            xg_error("each edge must be [u], [u, v] or [u, v, weight]");
-            return 0;
+        edge.From = intern(g, xrtValueArrayAt(row, 0));
+        if (edge.From < 0) goto fail;
+        if (count == 1) continue;
+        if (g->Edges.Count == XG_MAX_EDGES) {
+            xgError(XERR_RANGE, "graph edge limit exceeded");
+            goto fail;
         }
-        uItem = xrtValueArrayAt(edge, 0);
-        u = xg_read_str(uItem);
-        if (u == NULL) {
-            xg_error("edge endpoints must be strings");
-            return 0;
-        }
-        ui = xg_intern(g, u);
-        xrtFree(u);
-        if (ui < 0) {
-            xg_error("graph is too large");
-            return 0;
-        }
-        if (arity == 1) {
-            /* single-element edge declares an isolated node */
-            continue;
-        }
-        vItem = xrtValueArrayAt(edge, 1);
-        v = xg_read_str(vItem);
-        if (v == NULL) {
-            xg_error("edge endpoints must be strings");
-            return 0;
-        }
-        if (arity >= 3) {
-            if (!xg_read_num(xrtValueArrayAt(edge, 2), &w)) {
-                xrtFree(v);
-                xg_error("edge weight must be a number");
-                return 0;
+        edge.To = intern(g, xrtValueArrayAt(row, 1));
+        if (edge.To < 0) goto fail;
+        if (count == 3) {
+            xvalue* weight = xrtValueArrayAt(row, 2);
+            if (xrtValueType(weight) == XVALUE_INT) {
+                int64 value;
+                if (!xrtValueGetInt(weight, &value)) goto fail;
+                edge.Weight = (double)value;
+            } else if (xrtValueType(weight) == XVALUE_FLOAT) {
+                if (!xrtValueGetFloat(weight, &edge.Weight)) goto fail;
+            } else {
+                xgError(XERR_VALUE, "graph weight must be an int or float");
+                goto fail;
+            }
+            if (!isfinite(edge.Weight)) {
+                xgError(XERR_VALUE, "graph weight must be finite");
+                goto fail;
             }
         }
-        vi = xg_intern(g, v);
-        xrtFree(v);
-        if (vi < 0 || g->edgeCount >= XG_MAX_EDGES) {
-            xg_error("graph is too large");
-            return 0;
-        }
-        g->from[g->edgeCount] = ui;
-        g->to[g->edgeCount] = vi;
-        g->weight[g->edgeCount] = w;
-        g->edgeCount++;
+        index = (int)g->Edges.Count;
+        if (!xrtArrayPush(&g->Edges, &edge)) goto fail;
+        from = &xgNodes(g)[edge.From];
+        to = &xgNodes(g)[edge.To];
+        if (from->LastOut < 0) from->FirstOut = index;
+        else xgEdges(g)[from->LastOut].NextOut = index;
+        if (to->LastIn < 0) to->FirstIn = index;
+        else xgEdges(g)[to->LastIn].NextIn = index;
+        from->LastOut = to->LastIn = index;
     }
-    return 1;
+    return true;
+fail:
+    xgUnit(g);
+    return false;
 }
 
-static xvalue *xg_node_list(const XGraph *g, const int *order, int count) {
-    xvalue *result = xrtValueArray();
-    int i;
-    if (result == NULL) return xg_null();
-    for (i = 0; i < count; i++) {
-        const char *name = g->nodes[order[i]];
-        if (!xrtValueArrayAppendNew(result, xg_text(name, strlen(name)))) {
-            return xg_null();
-        }
+int xgFind(xgmodel* g, const char* name, size_t size)
+{
+    xbytesview key;
+    const int* id;
+    if (!name && size) {
+        xgError(XERR_ARGUMENT, "graph node name must not be NULL");
+        return -1;
     }
-    return result;
-}
-
-/* ---------------- public API ---------------- */
-
-long long xg_is_dag(xvalue *edges) {
-    XGraph g;
-    int indegree[XG_MAX_NODES];
-    int queue[XG_MAX_NODES];
-    int head = 0;
-    int tail = 0;
-    int processed = 0;
-    int i;
-    if (!xg_load(edges, &g)) return -1;
-    memset(indegree, 0, sizeof(indegree));
-    for (i = 0; i < g.edgeCount; i++) {
-        indegree[g.to[i]]++;
-    }
-    for (i = 0; i < g.nodeCount; i++) {
-        if (indegree[i] == 0) queue[tail++] = i;
-    }
-    while (head < tail) {
-        int u = queue[head++];
-        processed++;
-        for (i = 0; i < g.edgeCount; i++) {
-            if (g.from[i] == u) {
-                if (--indegree[g.to[i]] == 0) queue[tail++] = g.to[i];
-            }
-        }
-    }
-    xg_free(&g);
-    return processed == g.nodeCount;
-}
-
-xvalue *xg_topo_sort(xvalue *edges) {
-    XGraph g;
-    int indegree[XG_MAX_NODES];
-    int queue[XG_MAX_NODES];
-    int order[XG_MAX_NODES];
-    int head = 0;
-    int tail = 0;
-    int processed = 0;
-    int i;
-    xvalue *result;
-    if (!xg_load(edges, &g)) return xg_null();
-    memset(indegree, 0, sizeof(indegree));
-    for (i = 0; i < g.edgeCount; i++) {
-        indegree[g.to[i]]++;
-    }
-    for (i = 0; i < g.nodeCount; i++) {
-        if (indegree[i] == 0) queue[tail++] = i;
-    }
-    while (head < tail) {
-        int u = queue[head++];
-        order[processed++] = u;
-        for (i = 0; i < g.edgeCount; i++) {
-            if (g.from[i] == u) {
-                if (--indegree[g.to[i]] == 0) queue[tail++] = g.to[i];
-            }
-        }
-    }
-    if (processed != g.nodeCount) {
-        xg_free(&g);
-        xg_error("graph has a cycle; topological sort is impossible");
-        return xg_null();
-    }
-    result = xg_node_list(&g, order, processed);
-    xg_free(&g);
-    return result;
-}
-
-/* Shared BFS returning parent array; start is a node name. */
-static int xg_find_node(const XGraph *g, const char *name) {
-    int i;
-    for (i = 0; i < g->nodeCount; i++) {
-        if (strcmp(g->nodes[i], name) == 0) return i;
-    }
+    key.Data = (const unsigned char*)name;
+    key.Size = size;
+    id = xrtMapConstGet(&g->Names, key);
+    if (id) return *id;
+    xgError(XERR_VALUE, "graph node was not declared");
     return -1;
 }
 
-static void xg_bfs_parents(const XGraph *g, int start, int *parent) {
-    int queue[XG_MAX_NODES];
-    int head = 0;
-    int tail = 0;
-    int i;
-    for (i = 0; i < g->nodeCount; i++) parent[i] = -2;
-    parent[start] = -1;
-    queue[tail++] = start;
-    while (head < tail) {
-        int u = queue[head++];
-        for (i = 0; i < g->edgeCount; i++) {
-            if (g->from[i] == u && parent[g->to[i]] == -2) {
-                parent[g->to[i]] = u;
-                queue[tail++] = g->to[i];
-            }
-        }
-    }
+static bool appendName(xvalue* result, xstrview name)
+{
+    xvalue* item = xrtValueString(name);
+    return item && xrtValueArrayAppendNew(result, item);
 }
 
-xvalue *xg_shortest_path(xvalue *edges, const char *start, const char *end) {
-    XGraph g;
-    int parent[XG_MAX_NODES];
-    int path[XG_MAX_NODES];
-    int len = 0;
-    int s;
-    int e;
-    int cur;
-    xvalue *result;
-    if (!xg_load(edges, &g)) return xg_null();
-    s = xg_find_node(&g, start);
-    e = xg_find_node(&g, end);
-    if (s < 0 || e < 0) {
-        xg_free(&g);
-        xg_error("start or end node is not in the graph");
-        return xg_null();
-    }
-    xg_bfs_parents(&g, s, parent);
-    if (parent[e] == -2) {
-        xg_free(&g);
-        xg_error("no path connects the two nodes");
-        return xg_null();
-    }
-    cur = e;
-    while (cur != -1) {
-        path[len++] = cur;
-        cur = parent[cur];
-    }
-    /* reverse */
-    {
-        int i;
-        for (i = 0; i < len / 2; i++) {
-            int tmp = path[i];
-            path[i] = path[len - 1 - i];
-            path[len - 1 - i] = tmp;
+xvalue* xgNodeList(xgmodel* g, const int* ids, int count)
+{
+    xvalue* result = xrtValueArray();
+    if (!result) return NULL;
+    for (int i = 0; i < count; ++i) {
+        if (!appendName(result, xgNodes(g)[ids[i]].Name)) {
+            xrtValueRelease(result);
+            return NULL;
         }
     }
-    result = xg_node_list(&g, path, len);
-    xg_free(&g);
     return result;
 }
 
-xvalue *xg_bfs(xvalue *edges, const char *start) {
-    XGraph g;
-    int parent[XG_MAX_NODES];
-    int order[XG_MAX_NODES];
-    int count = 0;
-    int s;
-    int i;
-    xvalue *result;
-    if (!xg_load(edges, &g)) return xg_null();
-    s = xg_find_node(&g, start);
-    if (s < 0) {
-        xg_free(&g);
-        xg_error("start node is not in the graph");
-        return xg_null();
+/* 分量及其内部节点都按输入首次出现顺序输出，不依赖算法发现顺序。 */
+xvalue* xgGroups(xgmodel* g, const int* component)
+{
+    xvalue* result = xrtValueArray();
+    xvalue** groups = NULL;
+    if (!result) return NULL;
+    if (g->Nodes.Count) {
+        groups = xrtCalloc(g->Nodes.Count, sizeof(*groups));
+        if (!groups) goto fail;
     }
-    xg_bfs_parents(&g, s, parent);
-    /* report visit order by replaying the BFS queue */
-    {
-        int queue[XG_MAX_NODES];
-        int head = 0;
-        int tail = 0;
-        int seen[XG_MAX_NODES];
-        memset(seen, 0, sizeof(seen));
-        seen[s] = 1;
-        queue[tail++] = s;
-        while (head < tail) {
-            int u = queue[head++];
-            order[count++] = u;
-            for (i = 0; i < g.edgeCount; i++) {
-                if (g.from[i] == u && !seen[g.to[i]]) {
-                    seen[g.to[i]] = 1;
-                    queue[tail++] = g.to[i];
-                }
-            }
+    for (size_t i = 0; i < g->Nodes.Count; ++i) {
+        int id = component[i];
+        if (!groups[id]) {
+            xvalue* group = xrtValueArray();
+            if (!group || !xrtValueArrayAppendNew(result, group)) goto fail;
+            groups[id] = group;
         }
+        if (!appendName(groups[id], xgNodes(g)[i].Name)) goto fail;
     }
-    result = xg_node_list(&g, order, count);
-    xg_free(&g);
+    xrtFree(groups);
     return result;
+fail:
+    xrtFree(groups);
+    xrtValueRelease(result);
+    return NULL;
 }
 
-xvalue *xg_dijkstra(xvalue *edges, const char *start) {
-    XGraph g;
-    double dist[XG_MAX_NODES];
-    int done[XG_MAX_NODES];
-    int s;
-    int i;
-    xvalue *result;
-    if (!xg_load(edges, &g)) return xg_null();
-    s = xg_find_node(&g, start);
-    if (s < 0) {
-        xg_free(&g);
-        xg_error("start node is not in the graph");
-        return xg_null();
-    }
-    for (i = 0; i < g.nodeCount; i++) {
-        dist[i] = 1e300;
-        done[i] = 0;
-    }
-    dist[s] = 0;
-    while (1) {
-        int u = -1;
-        double best = 1e300;
-        int k;
-        for (k = 0; k < g.nodeCount; k++) {
-            if (!done[k] && dist[k] < best) {
-                best = dist[k];
-                u = k;
-            }
-        }
-        if (u < 0) break;
-        done[u] = 1;
-        for (k = 0; k < g.edgeCount; k++) {
-            if (g.from[k] == u) {
-                double cand = dist[u] + g.weight[k];
-                if (cand < dist[g.to[k]]) {
-                    dist[g.to[k]] = cand;
-                }
-            }
-        }
-    }
-    result = xrtValueObject();
-    if (result == NULL) {
-        xg_free(&g);
-        return xg_null();
-    }
-    for (i = 0; i < g.nodeCount; i++) {
-        if (dist[i] < 1e300) {
-            xstrview view;
-            view.Data = g.nodes[i];
-            view.Size = strlen(g.nodes[i]);
-            xrtValueObjectSetNew(result, view,
-                xrtValueFloat(dist[i]));
-        }
-    }
-    xg_free(&g);
-    return result;
+static int compareName(const void* left, const void* right)
+{
+    const xstrview *a = left, *b = right;
+    size_t size = a->Size < b->Size ? a->Size : b->Size;
+    int order = size ? memcmp(a->Data, b->Data, size) : 0;
+    return order ? order : (a->Size > b->Size) - (a->Size < b->Size);
 }
 
-xvalue *xg_components(xvalue *edges) {
-    XGraph g;
-    int comp[XG_MAX_NODES];
-    int order[XG_MAX_NODES];
-    int compCount = 0;
-    int i;
-    xvalue *result;
-    if (!xg_load(edges, &g)) return xg_null();
-    memset(comp, -1, sizeof(comp));
-    /* undirected reachability by BFS per unvisited node */
-    for (i = 0; i < g.nodeCount; i++) {
-        if (comp[i] >= 0) continue;
-        {
-            int queue[XG_MAX_NODES];
-            int head = 0;
-            int tail = 0;
-            int k;
-            comp[i] = compCount;
-            queue[tail++] = i;
-            while (head < tail) {
-                int u = queue[head++];
-                for (k = 0; k < g.edgeCount; k++) {
-                    int other = -1;
-                    if (g.from[k] == u) other = g.to[k];
-                    else if (g.to[k] == u) other = g.from[k];
-                    if (other >= 0 && comp[other] < 0) {
-                        comp[other] = compCount;
-                        queue[tail++] = other;
-                    }
-                }
-            }
-        }
-        compCount++;
-    }
+xvalue* xg_nodes(xvalue* edges)
+{
+    xgmodel g;
+    xarray names;
+    xvalue* result = NULL;
+    if (!xgLoad(&g, edges)) return NULL;
+    xrtArrayInit(&names, sizeof(xstrview));
+    for (size_t i = 0; i < g.Nodes.Count; ++i)
+        if (!xrtArrayPush(&names, &xgNodes(&g)[i].Name)) goto done;
+    if (!xrtArraySort(&names, compareName)) goto done;
     result = xrtValueArray();
-    if (result == NULL) {
-        xg_free(&g);
-        return xg_null();
-    }
-    {
-        int c;
-        for (c = 0; c < compCount; c++) {
-            xvalue *group;
-            int count = 0;
-            for (i = 0; i < g.nodeCount; i++) {
-                if (comp[i] == c) order[count++] = i;
-            }
-            group = xg_node_list(&g, order, count);
-            if (group == NULL || !xrtValueArrayAppendNew(result, group)) {
-                xg_free(&g);
-                return xg_null();
-            }
+    if (!result) goto done;
+    for (size_t i = 0; i < names.Count; ++i) {
+        if (!appendName(result, ((xstrview*)names.Data)[i])) {
+            xrtValueRelease(result);
+            result = NULL;
+            break;
         }
     }
-    xg_free(&g);
+done:
+    xrtArrayUnit(&names);
+    xgUnit(&g);
     return result;
 }
 
-/* Tarjan strongly connected components, iterative. */
-xvalue *xg_scc(xvalue *edges) {
-    XGraph g;
-    int index[XG_MAX_NODES];
-    int low[XG_MAX_NODES];
-    int onStack[XG_MAX_NODES];
-    int stackArr[XG_MAX_NODES];
-    int stackTop = 0;
-    int nextIndex = 0;
-    int order[XG_MAX_NODES];
-    /* component buckets are large; keep them off the call stack */
-    static int comps[XG_MAX_NODES][XG_MAX_NODES / 8 + 8];
-    int compSize[XG_MAX_NODES];
-    int compCount = 0;
-    int i;
-    xvalue *result;
-    if (!xg_load(edges, &g)) return xg_null();
-    memset(index, -1, sizeof(index));
-    memset(low, 0, sizeof(low));
-    memset(onStack, 0, sizeof(onStack));
-    memset(compSize, 0, sizeof(compSize));
-    /* iterative Tarjan with an explicit call frame stack */
-    {
-        int frameNode[XG_MAX_NODES * 2];
-        int frameEdge[XG_MAX_NODES * 2];
-        int frameTop = 0;
-        for (i = 0; i < g.nodeCount; i++) {
-            if (index[i] >= 0) continue;
-            frameNode[frameTop] = i;
-            frameEdge[frameTop] = 0;
-            frameTop++;
-            while (frameTop > 0) {
-                int v = frameNode[frameTop - 1];
-                int ei = frameEdge[frameTop - 1];
-                if (index[v] < 0) {
-                    index[v] = nextIndex;
-                    low[v] = nextIndex;
-                    nextIndex++;
-                    stackArr[stackTop++] = v;
-                    onStack[v] = 1;
-                }
-                /* find next outgoing edge from v at position >= ei */
-                {
-                    int found = -1;
-                    while (ei < g.edgeCount) {
-                        if (g.from[ei] == v) {
-                            found = ei;
-                            break;
-                        }
-                        ei++;
-                    }
-                }
-                if (ei < g.edgeCount) {
-                    int w = g.to[ei];
-                    frameEdge[frameTop - 1] = ei + 1;
-                    if (index[w] < 0) {
-                        frameNode[frameTop] = w;
-                        frameEdge[frameTop] = 0;
-                        frameTop++;
-                    } else if (onStack[w]) {
-                        if (index[w] < low[v]) low[v] = index[w];
-                    }
-                } else {
-                    /* done with v */
-                    frameTop--;
-                    if (frameTop > 0) {
-                        int parent = frameNode[frameTop - 1];
-                        if (low[v] < low[parent]) low[parent] = low[v];
-                    }
-                    if (low[v] == index[v]) {
-                        int count = 0;
-                        while (stackTop > 0) {
-                            int w = stackArr[--stackTop];
-                            onStack[w] = 0;
-                            comps[compCount][count++] = w;
-                            if (w == v) break;
-                        }
-                        compSize[compCount] = count;
-                        compCount++;
-                    }
-                }
-            }
+xvalue* xg_neighbors(xvalue* edges, const char* node, size_t nodeSize)
+{
+    xgmodel g;
+    bool* seen = NULL;
+    xvalue* result = NULL;
+    int id;
+    if (!xgLoad(&g, edges)) return NULL;
+    if ((id = xgFind(&g, node, nodeSize)) < 0) goto done;
+    seen = xrtCalloc(g.Nodes.Count, sizeof(*seen));
+    if (!seen || !(result = xrtValueArray())) goto done;
+    for (int i = xgNodes(&g)[id].FirstOut; i >= 0; i = xgEdges(&g)[i].NextOut) {
+        int to = xgEdges(&g)[i].To;
+        if (seen[to]) continue;
+        seen[to] = true;
+        if (!appendName(result, xgNodes(&g)[to].Name)) {
+            xrtValueRelease(result);
+            result = NULL;
+            break;
         }
     }
-    result = xrtValueArray();
-    if (result == NULL) {
-        xg_free(&g);
-        return xg_null();
-    }
-    {
-        int c;
-        for (c = 0; c < compCount; c++) {
-            xvalue *group;
-            memcpy(order, comps[c], sizeof(int) * (size_t)compSize[c]);
-            group = xg_node_list(&g, order, compSize[c]);
-            if (group == NULL || !xrtValueArrayAppendNew(result, group)) {
-                xg_free(&g);
-                return xg_null();
-            }
-        }
-    }
-    xg_free(&g);
-    return result;
-}
-
-xvalue *xg_nodes(xvalue *edges) {
-    XGraph g;
-    int order[XG_MAX_NODES];
-    int i;
-    xvalue *result;
-    if (!xg_load(edges, &g)) return xg_null();
-    for (i = 0; i < g.nodeCount; i++) order[i] = i;
-    for (i = 1; i < g.nodeCount; i++) {
-        int key = order[i];
-        int j = i - 1;
-        while (j >= 0 && strcmp(g.nodes[order[j]], g.nodes[key]) > 0) {
-            order[j + 1] = order[j];
-            j--;
-        }
-        order[j + 1] = key;
-    }
-    result = xg_node_list(&g, order, g.nodeCount);
-    xg_free(&g);
-    return result;
-}
-
-xvalue *xg_neighbors(xvalue *edges, const char *node) {
-    XGraph g;
-    int order[XG_MAX_NODES];
-    int count = 0;
-    int u;
-    int i;
-    xvalue *result;
-    if (!xg_load(edges, &g)) return xg_null();
-    u = xg_find_node(&g, node);
-    if (u < 0) {
-        xg_free(&g);
-        xg_error("node is not in the graph");
-        return xg_null();
-    }
-    for (i = 0; i < g.edgeCount && count < XG_MAX_NODES; i++) {
-        if (g.from[i] == u) {
-            int dup = 0;
-            int k;
-            for (k = 0; k < count; k++) {
-                if (order[k] == g.to[i]) dup = 1;
-            }
-            if (!dup) order[count++] = g.to[i];
-        }
-    }
-    result = xg_node_list(&g, order, count);
-    xg_free(&g);
+done:
+    xrtFree(seen);
+    xgUnit(&g);
     return result;
 }
