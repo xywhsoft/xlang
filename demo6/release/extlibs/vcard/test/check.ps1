@@ -31,6 +31,7 @@ try {
         'release/extlibs/vcard/test/allocations.xl',
         'release/extlibs/vcard/test/uri_values.xl',
         'release/extlibs/vcard/test/structure.xl'
+        'release/extlibs/vcard/test/limits.xl'
     )) {
         & $xl run $source
         if ($LASTEXITCODE -ne 0) { throw "vcard XLang test failed: $source" }

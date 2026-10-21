@@ -120,7 +120,12 @@ xvalue *xv_parse(const char *text, size_t size) {
     size_t pos = 0;
     int phase = 0, version = 0, name = 0, seenProperty = 0;
     xrtClearError();
-    if (text == NULL || size == 0 || size > XV_LIMIT ||
+    if (size > XV_LIMIT) {
+        xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.vcard", 0,
+            "vCard input exceeds 4 MiB");
+        return NULL;
+    }
+    if (text == NULL || size == 0 ||
         memchr(text, 0, size) != NULL ||
         !xrtUtf8Valid((xstrview){text, size}, NULL)) {
         xv_error("invalid vCard input or UTF-8");

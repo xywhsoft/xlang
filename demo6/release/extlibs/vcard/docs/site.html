@@ -31,6 +31,7 @@ var contact = {"fn": "王小明", "email": ["home@example.com", "work@example.co
 string text = vcard.build(contact)
 println(vcard.parse(text)["fn"])</code></pre>
     <p>这是值映射，不保留属性参数、未知字段或原始格式；3.0 允许缺少 N，不能当作完整 RFC 校验器。4.0 要求 VERSION 紧随 <code>BEGIN:VCARD</code>，3.0 仍允许晚置 VERSION。3.0 的 VERSION 不允许参数；4.0 可读 <code>VERSION;VALUE=text:4.0</code>，重新生成时参数不会保留。分组 VERSION 不能替代整卡版本；分组 BEGIN/END 也不能作为普通未知字段绕过包络校验。<code>item1.EMAIL</code> 等普通分组字段仍可读取值，但不保留分组名。URL、IMPP、PHOTO、LOGO、GEO 按原始 URI/线值保存；FN、NOTE 等按 TEXT 转义。TEL 按默认 TEXT 处理，VALUE=uri 参数不往返。解析与生成拒绝非法 UTF-8、内嵌 NUL 和非法 ASCII 控制字符；TEXT 内存换行会被转义。生成结果超过 4 MiB 时 C 接口报告 <code>XERR_RANGE</code>，不会截断。C 接口、输入限制与发布验收状态见包内 README。</p>
+    <p>解析输入超过 4 MiB 时在读取内容前报告 <code>XERR_RANGE</code>；XLang 的 parse/build 对超限抛 <code>RangeError</code>，空输入和格式错误仍属值错误。</p>
     <p>Windows 包级 <code>test/check.ps1</code> 联合检查 C/XLang 边界、范例同输出及生成的 .vcf 文件字节；Linux <code>test/check.sh</code> 另以 ASan/UBSan 检查 C 路径。完整带输出 AOT 仍受共享主线缺符号阻断。</p>
   </section>
 </main>

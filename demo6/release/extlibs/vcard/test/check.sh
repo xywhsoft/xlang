@@ -33,6 +33,7 @@ timeout 90s "$xl" run release/extlibs/vcard/test/control_characters.xl
 timeout 90s "$xl" run release/extlibs/vcard/test/allocations.xl
 timeout 90s "$xl" run release/extlibs/vcard/test/uri_values.xl
 timeout 90s "$xl" run release/extlibs/vcard/test/structure.xl
+timeout 90s "$xl" run release/extlibs/vcard/test/limits.xl
 
 "$cc" "${flags[@]}" release/extlibs/vcard/vcard_native.c \
     release/extlibs/vcard/vcard_parse.c \

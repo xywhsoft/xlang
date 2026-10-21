@@ -257,6 +257,7 @@ static int test_limits_and_allocation(void) {
     memset(large, 'x', 4u * 1024u * 1024u);
     large[4u * 1024u * 1024u] = 0;
     CHECK(xv_parse(large, 4u * 1024u * 1024u + 1u) == NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_RANGE);
     CHECK(xrtValueObjectSetNew(card, (xstrview){"note", 4},
         xrtValueString((xstrview){large, 4u * 1024u * 1024u})));
     CHECK(xv_build(card) == NULL);

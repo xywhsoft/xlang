@@ -1,0 +1,25 @@
+import vcard
+
+func main(...) as int
+    string oversized = string.repeat("x", 4 * 1024 * 1024 + 1)
+    bool rejected = false
+    try
+        vcard.parse(oversized)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        vcard.build({"fn": string.repeat(",", 3 * 1024 * 1024)})
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+
+    string valid = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Test\r\nEND:VCARD\r\n"
+    assert vcard.parse(valid)["fn"] == "Test"
+    println("vcard limits: PASS")
+    return 0
+end

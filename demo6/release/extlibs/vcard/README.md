@@ -17,6 +17,10 @@ assert back["email"].length == 2
 3.0 的 `VERSION` 不允许属性参数；4.0 允许如 `VERSION;VALUE=text:4.0` 的写法，但本值映射器不保留参数，重新生成时写作普通 `VERSION:4.0`。
 `VERSION` 是整张卡片的结构属性，不接受 `item1.VERSION` 这样的分组前缀；`item1.BEGIN` / `item1.END` 也不能伪装成未知字段绕过包络校验。普通分组字段如 `item1.EMAIL` 仍可读取其值，分组名不会保留。
 
+超过 4 MiB 的解析输入会在读取内容前返回 `XERR_RANGE`；XLang 的
+`parse` 与 `build` 对容量超限均抛 `RangeError`。空输入、非法 UTF-8
+与畸形结构仍属值错误。超限失败后可继续解析其他名片。
+
 ## C 接口
 
 `include/vcard_native.h` 公开 `xv_parse(const char*, size_t)` 和 `xv_build(xvalue*)`。解析结果由调用方 `xrtValueRelease`，生成文本由调用方 `xrtFree`；二者不共享静态结果槽。文件读写交给 XRT `xrtFile*`，本库只处理文本。
