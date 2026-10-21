@@ -1,0 +1,30 @@
+extern "xgrpc_status" func __status(int id) as string
+extern "xgrpc_compression" func __compression(int id) as string
+extern "xgrpc_channel_state" func __channel_state(int id) as string
+extern "xgrpc_metadata_key" func __metadata_key(int id) as string
+extern "xgrpc_deadline_ms" func __deadline_ms(int seconds) as int
+extern "xgrpc_call_type" func __call_type(int id) as string
+
+export func status(int id) as string
+    return __status(id)
+end
+
+export func compression(int id) as string
+    return __compression(id)
+end
+
+export func channelState(int id) as string
+    return __channel_state(id)
+end
+
+export func metadataKey(int id) as string
+    return __metadata_key(id)
+end
+
+export func deadlineMs(int seconds) as int
+    return __deadline_ms(seconds)
+end
+
+export func callType(int id) as string
+    return __call_type(id)
+end

@@ -1,0 +1,12 @@
+import grpc
+
+func main(...) as int
+    // gRPC remote procedure calls
+
+    println("Status 0 = " + grpc.status(0))
+    println("Channel 2 = " + grpc.channelState(2))
+    println("CallType 0 = " + grpc.callType(0))
+
+    println("grpc example: PASS")
+    return 0
+end
