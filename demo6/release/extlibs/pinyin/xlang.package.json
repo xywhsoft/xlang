@@ -7,10 +7,13 @@
     "artifact": {
         "kind": "source",
         "cSources": ["pinyin_native.c"],
-        "xlSources": ["src/pinyin.xl"]
+        "includeDirs": ["include"],
+        "xlSources": ["src/pinyin.xl"],
+        "xrtModules": ["XRT_MODULE_BUFFER", "XRT_MODULE_UNICODE"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

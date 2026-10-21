@@ -1,0 +1,5 @@
+pinyin: zhong guo ren min
+initials: zgrm
+pinyin: ni hao shi 界
+initials: nhs界
+pinyin example: PASS

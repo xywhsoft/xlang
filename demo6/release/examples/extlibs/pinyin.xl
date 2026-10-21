@@ -4,12 +4,12 @@ import pinyin
 
 func main(...) as int
     // 中国人民 = zhong guo ren min
-    string text = "\xE4\xB8\xAD\xE5\x9B\xBD\xE4\xBA\xBA\xE6\xB0\x91"
+    string text = "中国人民"
     println("pinyin:", pinyin.convert(text))
     println("initials:", pinyin.initials(text))
 
-    // 你好世界 = ni hao shi jie
-    string hello = "\xE4\xBD\xA0\xE5\xA5\xBD\xE4\xB8\x96\xE7\x95\x8C"
+    // 未收录的“界”保持原样，便于识别固定字表的覆盖边界。
+    string hello = "你好世界"
     println("pinyin:", pinyin.convert(hello))
     println("initials:", pinyin.initials(hello))
 

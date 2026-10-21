@@ -1,0 +1,26 @@
+import pinyin
+
+func main(...) as int
+    assert pinyin.convert("hello中国123") == "hello zhong guo 123"
+    assert pinyin.initials("hello中国123") == "hellozg123"
+    assert pinyin.convert("龘中") == "龘 zhong"
+    assert pinyin.initials("龘中") == "龘z"
+    assert pinyin.convert("😀") == "😀"
+    assert pinyin.convert("") == ""
+    assert pinyin.initials("") == ""
+
+    string longText = ""
+    for i in range(5000)
+        longText += "中"
+    end
+    assert string.byteLen(pinyin.initials(longText)) == 5000
+
+    bool rejected = false
+    try
+        pinyin.convert("a\x00b")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
+    return 0
+end

@@ -1,15 +1,19 @@
-/*
- * pinyin_native.c - Chinese character to pinyin conversion (common subset)
- * Uses UTF-8 encoded lookup table for ~200 most common characters.
- */
-#include <stdlib.h>
+/* 常用单字的固定读音表；未知字符原样保留，不做词组多音字判断。 */
 #include <string.h>
-#include <stdio.h>
-static char py_buf[8192];
+
+#ifndef XRT_MODULE_BUFFER
+#define XRT_MODULE_BUFFER
+#endif
+#ifndef XRT_MODULE_UNICODE
+#define XRT_MODULE_UNICODE
+#endif
+#include "xrt.h"
+
+#define XPY_DOMAIN "xlang.extlib.pinyin"
 
 typedef struct { unsigned int code; const char *py; } PyEntry;
 
-/* UTF-8 codepoint -> pinyin for common characters */
+/* 常用 Unicode 字符到固定读音的映射。 */
 static const PyEntry py_table[] = {
     {0x4E00,"yi"},{0x4E01,"ding"},{0x4E03,"qi"},{0x4E07,"wan"},{0x4E08,"zhang"},
     {0x4E09,"san"},{0x4E0A,"shang"},{0x4E0B,"xia"},{0x4E0D,"bu"},{0x4E0E,"yu"},
@@ -85,82 +89,87 @@ static const PyEntry py_table[] = {
     {0x8BB8,"xu"},{0x8BBA,"lun"},{0x8BBE,"she"},{0x8BC1,"zheng"},{0x8BC4,"ping"},
     {0x8BD5,"shi"},{0x8BDD,"hua"},{0x8BE5,"gai"},{0x8BF4,"shuo"},{0x8BF7,"qing"},
     {0x8BFB,"du"},{0x8C01,"shei"},{0x8C03,"diao"},{0x8D77,"qi"},{0x8DEF,"lu"},
-    {0x8F66,"che"},{0x8FDB,"jin"},{0x8FD8,"hai"},{0x8FD9,"zhe"},{0x8FDE,"lian"},
+    {0x8F66,"che"},{0x8FD8,"hai"},{0x8FD9,"zhe"},{0x8FDB,"jin"},{0x8FDE,"lian"},
     {0x9009,"xuan"},{0x90A3,"na"},{0x90FD,"dou"},{0x91CC,"li"},{0x91CD,"zhong"},
     {0x91CF,"liang"},{0x94B1,"qian"},{0x9519,"cuo"},{0x95E8,"men"},{0x95EE,"wen"},
     {0x95F4,"jian"},{0x9645,"ji"},{0x9650,"xian"},{0x9662,"yuan"},{0x9762,"mian"},
-    {0x97F3,"yin"},{0x9879,"xiang"},{0x9898,"ti"},{0x98CE,"feng"},{0x9AD8,"gao"},
-    {0, NULL}
+    {0x97F3,"yin"},{0x9879,"xiang"},{0x9898,"ti"},{0x98CE,"feng"},{0x9AD8,"gao"}
 };
 
-static const char *py_lookup(unsigned int codepoint) {
-    int i;
-    for (i = 0; py_table[i].py; i++) {
-        if (py_table[i].code == codepoint) return py_table[i].py;
+static const char *py_lookup(uint32 scalar) {
+    size_t low = 0, high = sizeof(py_table) / sizeof(py_table[0]) - 1;
+    while (low < high) {
+        size_t mid = low + (high - low) / 2;
+        if (py_table[mid].code < scalar) low = mid + 1;
+        else high = mid;
     }
+    return py_table[low].code == scalar ? py_table[low].py : NULL;
+}
+
+static int py_append(xbuffer *output, const char *text, size_t size) {
+    return xrtBufferAppend(output, (xbytesview){(const uint8 *)text, size});
+}
+
+/* 共享解码和输出路径；initials 只改变映射字符的表示方式。 */
+static void *py_convert(const char *text, size_t size, int initials) {
+    xbuffer output;
+    size_t offset = 0;
+    int previousKind = 0;
+    xrtClearError();
+    if (text == NULL || size == SIZE_MAX) {
+        xrtSetErrorInfo(XERR_VALUE, XPY_DOMAIN, 0, "input must be valid UTF-8 without NUL");
+        return NULL;
+    }
+    if (!xrtBufferInit(&output)) return NULL;
+    while (offset < size) {
+        uint32 scalar;
+        size_t read;
+        const char *syllable;
+        int kind;
+        /* 解码时同时校验 UTF-8 和 NUL，避免对有效文本预扫描一遍。 */
+        if (xrtUtf8Decode((xstrview){text + offset, size - offset},
+                          &scalar, &read) != XUTF_OK || read == 0u || scalar == 0u) {
+            xrtSetErrorInfo(XERR_VALUE, XPY_DOMAIN, 0,
+                "input must be valid UTF-8 without NUL");
+            goto fail;
+        }
+        syllable = py_lookup(scalar);
+        kind = syllable != NULL ? 2 :
+               ((scalar >= '0' && scalar <= '9') ||
+                (scalar >= 'A' && scalar <= 'Z') ||
+                (scalar >= 'a' && scalar <= 'z')) ? 1 :
+               (scalar >= 0x3400 && scalar <= 0x9fff) ? 3 : 0;
+        if (!initials && syllable != NULL) {
+            if (previousKind && !xrtBufferAppendByte(&output, ' ')) goto fail;
+            if (!py_append(&output, syllable, strlen(syllable))) goto fail;
+        } else {
+            if (!initials && ((kind == 1 && previousKind >= 2) ||
+                              (kind == 3 && previousKind == 1) ||
+                              (kind == 3 && previousKind == 2)) &&
+                !xrtBufferAppendByte(&output, ' ')) goto fail;
+            if (initials && syllable != NULL) {
+                if (!xrtBufferAppendByte(&output, (uint8)syllable[0])) goto fail;
+            } else if (!py_append(&output, text + offset, read)) goto fail;
+        }
+        previousKind = kind;
+        offset += read;
+    }
+    if (!xrtBufferAppendByte(&output, 0)) goto fail;
+    return xrtBufferTake(&output, NULL, NULL);
+fail:
+    xrtBufferUnit(&output);
     return NULL;
 }
 
-/* Convert UTF-8 text to space-separated pinyin */
-const char *xpinyin_convert(const char *text) {
-    int pos = 0;
-    const unsigned char *p = (const unsigned char *)text;
-    int first = 1;
-    if (!text) return "";
-    py_buf[0] = '\0';
-
-    while (*p) {
-        unsigned int cp = 0;
-        int bytes = 0;
-        if (*p < 0x80) { cp = *p; bytes = 1; }
-        else if ((*p & 0xE0) == 0xC0) { cp = *p & 0x1F; bytes = 2; }
-        else if ((*p & 0xF0) == 0xE0) { cp = *p & 0x0F; bytes = 3; }
-        else if ((*p & 0xF8) == 0xF0) { cp = *p & 0x07; bytes = 4; }
-        else { p++; continue; }
-
-        { int i; for (i = 1; i < bytes; i++) { if (!p[i]) break; cp = (cp << 6) | (p[i] & 0x3F); } }
-        p += bytes;
-
-        if (cp < 0x80) {
-            /* ASCII: pass through */
-            if (pos < (int)sizeof(py_buf) - 2) py_buf[pos++] = (char)cp;
-        } else {
-            const char *py = py_lookup(cp);
-            if (py) {
-                if (!first && pos < (int)sizeof(py_buf) - 1) py_buf[pos++] = ' ';
-                int len = (int)strlen(py);
-                if (pos + len < (int)sizeof(py_buf) - 1) { memcpy(py_buf + pos, py, len); pos += len; }
-                first = 0;
-            }
-        }
-    }
-    py_buf[pos] = '\0';
-    return py_buf;
+void *xpinyin_convert_n(const char *text, size_t size) {
+    return py_convert(text, size, 0);
 }
-
-/* Get first letters (initials) of pinyin */
-const char *xpinyin_initials(const char *text) {
-    int pos = 0;
-    const unsigned char *p = (const unsigned char *)text;
-    if (!text) return "";
-    py_buf[0] = '\0';
-
-    while (*p) {
-        unsigned int cp = 0;
-        int bytes = 0;
-        if (*p < 0x80) { cp = *p; bytes = 1; }
-        else if ((*p & 0xE0) == 0xC0) { cp = *p & 0x1F; bytes = 2; }
-        else if ((*p & 0xF0) == 0xE0) { cp = *p & 0x0F; bytes = 3; }
-        else if ((*p & 0xF8) == 0xF0) { cp = *p & 0x07; bytes = 4; }
-        else { p++; continue; }
-        { int i; for (i = 1; i < bytes; i++) { if (!p[i]) break; cp = (cp << 6) | (p[i] & 0x3F); } }
-        p += bytes;
-
-        if (cp >= 0x80) {
-            const char *py = py_lookup(cp);
-            if (py && pos < (int)sizeof(py_buf) - 1) py_buf[pos++] = py[0];
-        }
-    }
-    py_buf[pos] = '\0';
-    return py_buf;
+void *xpinyin_initials_n(const char *text, size_t size) {
+    return py_convert(text, size, 1);
+}
+void *xpinyin_convert(const char *text) {
+    return xpinyin_convert_n(text, text ? strlen(text) : 0);
+}
+void *xpinyin_initials(const char *text) {
+    return xpinyin_initials_n(text, text ? strlen(text) : 0);
 }

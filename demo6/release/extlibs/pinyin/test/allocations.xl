@@ -1,0 +1,38 @@
+import pinyin
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+int failures = 0
+int successes = 0
+
+for operation in range(2)
+    for allocation in range(16)
+        bool memoryCaught = false
+        bool wrongCaught = false
+        assert failAfter(uint64(allocation))
+        try
+            if operation == 0 then
+                pinyin.convert("中国人民")
+            else
+                pinyin.initials("中国人民")
+            end
+        catch MemoryError error
+            memoryCaught = true
+        catch ValueError error
+            wrongCaught = true
+        catch RuntimeError error
+            wrongCaught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert not wrongCaught and memoryCaught == triggered
+        if triggered then failures += 1 else successes += 1 end
+    end
+end
+
+assert failures > 0 and successes > 0
+assert pinyin.convert("中国人民") == "zhong guo ren min"
+assert pinyin.initials("中国人民") == "zgrm"
+println("pinyin allocation: PASS")
