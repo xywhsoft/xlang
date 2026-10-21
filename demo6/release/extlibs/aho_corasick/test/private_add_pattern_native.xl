@@ -1,0 +1,4 @@
+import aho_corasick
+
+auto ac = aho_corasick.create()
+ac.addPatternNative("a", c_size(4096))

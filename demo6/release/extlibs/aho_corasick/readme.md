@@ -114,6 +114,10 @@ aho_corasick.create(
 
 限制字段为零时不限制。非零限制在添加、扫描或创建输出前执行，不会在超限后返回截断结果。
 
+`patterns` 的类型为 `array<string>`，不将数字或其他对象隐式转换成模式。单个字符串
+也不是模式数组。负数限制被拒绝；预算以字节数或对应对象计数为单位，不是 CPU 时间
+或整个进程的内存上限。
+
 传入非空 `patterns` 时自动调用 `build()`。不传模式时可以逐项添加后手动构建：
 
 ```xlang
@@ -124,6 +128,8 @@ words.build()
 ```
 
 空模式无定义且会被拒绝。`ignoreCase = true` 时，ASCII 大小写等价的重复模式也会被拒绝。
+`addPatterns` / `xrtAhoAddMany` 顺序添加，不是事务：后续元素失败时，之前成功添加的
+模式保留。空数组是无操作，但 C 入口仍要求有效的自动机指针。
 
 ### Automaton
 
@@ -160,6 +166,10 @@ words.build()
 
 `Scanner` 持有自动机引用，并复制当前输入分块。回调暂停或抛出异常时，剩余分块不会引用已经销毁的临时字符串。
 
+XLang 调用方使用 `Automaton`、`Scanner` 的公开包装方法；`*Native` 方法仅供类内部调用，不能自行传入字节长度或操作原生扫描状态。C 调用方仍可按公共头文件使用原生 API。
+
+原生 `Scanner(point)` 构造器目前仍可被包外代码引用；请只使用 `Automaton.scanner()`。最小复现和需要主线解决的权限边界见 `dev/extlib_blockers/aho_scanner_constructor.md`，因此本包尚不具备完整发布验收条件。
+
 ```xlang
 Scanner scanner = words.scanner()
 
@@ -187,6 +197,14 @@ end
 | `pending` | 是否仍有未消费分块 |
 | `offset` | 累计消费字节数 |
 | `matchCount` | 累计发送匹配数 |
+
+回调抛出的异常保留原类别和消息；已经交付的匹配不会在恢复时重复交付。
+同一个 Scanner 在回调内再次 `feed`、`resume` 或 `reset` 会被拒绝，其他独立
+搜索对象不受此限制。这是重入保护，不是允许多线程共享 Scanner 的锁。
+
+输入分块超过累计 `maxInputBytes` 时，在复制和消费前拒绝，原状态保持不变。
+扫描中途超过 `maxMatches` 等限制时，`offset` 保留真实已消费量，状态进入失败态，
+必须 `reset()` 后才能继续使用。回调暂停或回调异常不等同于扫描器失败态。
 
 
 
@@ -234,6 +252,7 @@ end
 |---|---|
 | `xrtAhoStateCreate` | 创建持有自动机引用的增量状态 |
 | `xrtAhoStateFeed` | 扫描一个借用分块 |
+| `xrtAhoStateCheckInput` | 不消费输入，预先检查状态和累计输入限制 |
 | `xrtAhoStateOffset` | 返回累计字节偏移 |
 | `xrtAhoStateMatches` | 返回累计发送数量 |
 | `xrtAhoStateReset` | 重置状态 |
@@ -248,7 +267,11 @@ end
 
 回调停止时，`pConsumed` 包含已经消费的当前分块字节数。同一结束位置可能还有待发送重叠匹配，因此下一次调用可能返回 `pConsumed == 0`。调用方必须再次传入原分块的剩余切片，直到返回 `COMPLETE`。
 
+中途发生匹配限制错误时，`pConsumed` 同样包含真实已消费的字节数，不会错误归零。
+
 C 增量状态不复制分块，只在 `xrtAhoStateFeed` 调用期间借用 `Chunk`。XLang `Scanner` 为了异常和暂停安全，会额外复制当前分块。
+原生 C 回调不得销毁、重置或再次进入正在执行的同一个状态；嵌套扫描使用独立状态。
+XLang `Scanner` 对同一对象的回调重入显式报错。
 
 ### 文本变换
 
@@ -258,10 +281,14 @@ C 增量状态不复制分块，只在 `xrtAhoStateFeed` 调用期间借用 `Chu
 | `xrtAhoMaskBytes` | 每个匹配字节重复一次 Mask，支持二进制 |
 | `xrtAhoMask` | 每个匹配 UTF-8 标量重复一次 Mask |
 | `xrtAhoHighlight` | 包裹合并后的重叠区间 |
+| `xrtAhoCheckOutputSize` | 检查输出字节预算，不分配缓冲区 |
 
 四个函数始终返回独立、补零的 XRT 字符串，调用方使用 `xrtFree` 释放。`pOutputSize` 返回真实字节长度，因此输出可以包含嵌入零字节。
 
 `xrtAhoMask` 严格校验文本和 Mask 的 UTF-8。匹配区间不是 UTF-8 标量边界时返回 `XRT_AHO_ERROR_UTF8`。任意二进制遮盖应使用 `xrtAhoMaskBytes`。
+
+XLang 的 `replaceWith` 也执行 `maxOutputBytes` 检查，包含未匹配文本、回调结果和
+尾部文本；没有匹配不意味着可以绕过输出限制。预算不限制用户回调自身的分配量。
 
 
 
@@ -279,7 +306,11 @@ C 增量状态不复制分块，只在 `xrtAhoStateFeed` 调用期间借用 `Chu
 | `XRT_AHO_ERROR_UTF8` | Unicode 遮盖输入无效 |
 | `XRT_AHO_ERROR_EXISTS` | 重复模式 |
 
-XLang 包装不会把失败伪装成 `false`、`0`、空字符串或原始文本，所有失败都会抛出 `RuntimeError`。
+XLang 包装不会把失败伪装成 `false`、`0`、空字符串或原始文本。异常类别遵循
+XRT 结构化错误：无效值、空模式、重复模式和无效 UTF-8 为 `ValueError`，
+原生索引及资源上限为 `RangeError`，分配失败为 `MemoryError`，状态错误为 `RuntimeError`。
+语言层 `Automaton.pattern(index)` 的下标预检查使用 `IndexError`。
+回调自己的异常原样传播，不能统一捕获为 `RuntimeError`。
 
 
 
@@ -304,8 +335,34 @@ XLang 包装不会把失败伪装成 `false`、`0`、空字符串或原始文本
 - UTF-8 标量遮盖与二进制字节遮盖；
 - 模式、节点、匹配、输入和输出限制；
 - 构建期分配失败后无污染重试；
-- 200 轮随机二进制模式与朴素匹配器差分；
+- 200 轮随机二进制模式与朴素匹配器差分，额外对照计数、首项、包含判断和随机分块；
+- 分块覆盖完整消费与每次命中即暂停两种模式，并验证零消费待发结果；
 - XRT memory-debug 下零活动分配、零越界、零重复释放和零 UAF 事件。
+
+2026-09-27 的完整专项门禁通过 44 项 Windows 检查，包含严格 GCC 编译、全部 41 个
+生成原型与公开 C 头对照、C/xlang JIT/AOT、三个工厂参数负例和成对范例固定输出。
+另外执行 `test_aho_native.c`、`test_aho_alloc.c`、`test_aho_threads.c` 与
+`test/boundaries.xl`：覆盖句柄寿命、状态与索引、回调异常/重入、输出预算、错误恢复、
+38 个分配失败点，以及四线程共享不可变自动机的 1000 次独立扫描。
+Linux 独立 C 的 ASan/UBSan/泄漏门禁也通过，包含两个 C 范例。
+
+从 demo6 目录执行：
+
+```powershell
+./tools/check_extlib_aho.ps1
+```
+
+```sh
+bash tools/check_extlib_aho.sh
+```
+
+证据：[Windows 专项](../../../docs/extlib_aho_2026-09-27.windows.results.json)、
+[Linux 独立 C 专项](../../../docs/extlib_aho_2026-09-27.linux.results.json)。
+此前的 [18 项增量记录](../../../docs/extlib_aho_2026-09-27.incremental.results.json)
+作为历史证据保留。检查项包含编译与执行步骤，不是 44 个独立 API。
+
+这不是全平台或性能认证：未覆盖 Linux xlang、32 位/ARM、同一 Scanner 的并发操作、
+Unicode 全量大小写折叠。C 层故障注入也不代表已经验证全部语言运行库分配失败路径。
 
 
 
@@ -314,10 +371,17 @@ XLang 包装不会把失败伪装成 `false`、`0`、空字符串或原始文本
 ```text
 aho_corasick/
 |- include/xrt_aho_corasick.h   C 公开契约
+|- include/aho_corasick_native.h XLang 桥接精确原型
 |- xrt_aho_corasick.c           稀疏自动机核心
 |- aho_corasick_native.c        XLang 薄适配层
 |- src/aho_corasick.xl          XLang 易用 API
 |- test/test_aho_corasick.c     C 边界与故障注入测试
+|- test/test_aho_native.c       C 桥接状态与寿命测试
+|- test/test_aho_alloc.c        分配失败恢复测试
+|- test/test_aho_threads.c      共享自动机并发测试
+|- test/boundaries.xl           XLang 边界测试
+|- examples/basic.c            与 XLang 对照的完整范例
+|- docs/site.html              本地官网详情页内容源
 |- xlang.package.json           包清单
 `- readme.md                    本文档
 ```
@@ -326,3 +390,8 @@ aho_corasick/
 
 - `release/examples/extlibs/aho_corasick.xl`
 - `release/examples/extlibs/aho_corasick_c.c`
+- `release/examples/extlibs/aho_corasick_basic.xl`
+- `release/extlibs/aho_corasick/examples/basic.c`
+
+最后两个范例的输出均与 `release/examples/extlibs/aho_corasick_basic.expected.txt`
+严格对照，展示相同的查询、变换、暂停恢复和 Unicode 遮盖能力。

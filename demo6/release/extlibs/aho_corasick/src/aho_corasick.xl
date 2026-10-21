@@ -3,8 +3,8 @@ extern "xac_scan_begin" func __ac_scan_begin(point automaton,
     string text, c_size size) as point
 extern "xac_search_non_overlapping" func __ac_search_non_overlapping(
     point automaton, string text, c_size size) as point
-extern "xac_text_range" func __ac_text_range(string text, c_size textSize,
-    c_size start, c_size count) as point
+extern "xac_output_append" func __ac_output_append(point automaton,
+    point output, string text, c_size textSize, c_size start, c_size count) as c_int
 extern "xac_replace" func __ac_replace_native(point automaton,
     string text, c_size textSize, string replacement,
     c_size replacementSize) as point
@@ -64,16 +64,18 @@ export class Scanner
     native point handle
     extern "xac_stream_create" create(point automaton)
     extern "xac_stream_destroy" destroy()
-    extern "xac_stream_feed" func feedNative(string chunk,
+    private extern "xac_stream_feed" func feedNative(string chunk,
         c_size size) as c_int
-    extern "xac_stream_next" func nextNative() as c_int
-    extern "xac_stream_pending" func pendingNative() as c_int
-    extern "xac_stream_offset" func offsetNative() as c_longlong
-    extern "xac_stream_matches" func matchesNative() as c_longlong
-    extern "xac_stream_start" func startNative() as c_longlong
-    extern "xac_stream_end_pos" func endNative() as c_longlong
-    extern "xac_stream_pattern" func patternNative() as point
-    extern "xac_stream_reset" func resetNative()
+    private extern "xac_stream_next" func nextNative() as c_int
+    private extern "xac_stream_enter" func enterNative() as c_int
+    private extern "xac_stream_leave" func leaveNative()
+    private extern "xac_stream_pending" func pendingNative() as c_int
+    private extern "xac_stream_offset" func offsetNative() as c_longlong
+    private extern "xac_stream_matches" func matchesNative() as c_longlong
+    private extern "xac_stream_start" func startNative() as c_longlong
+    private extern "xac_stream_end_pos" func endNative() as c_longlong
+    private extern "xac_stream_pattern" func patternNative() as point
+    private extern "xac_stream_reset" func resetNative()
 
     get valid() as bool
         return self.handle != null
@@ -108,26 +110,30 @@ export class Scanner
 
     // 继续消费当前分块；false 表示被回调暂停，之后可再次 resume。
     func resume(func(Match) as bool fn) as bool
-        if self.handle == null then
-            throw RuntimeError "aho_corasick: scanner is destroyed"
+        if self.enterNative() == 0 then
+            throw RuntimeError __aho_corasick_error()
         end
-        while true
-            c_int status = self.nextNative()
-            if status < 0 then
-                throw RuntimeError __aho_corasick_error()
-            elseif status == 0 then
-                return true
+        try
+            while true
+                c_int status = self.nextNative()
+                if status < 0 then
+                    throw RuntimeError __aho_corasick_error()
+                elseif status == 0 then
+                    return true
+                end
+                c_longlong nativeStart = self.startNative()
+                c_longlong nativeEnd = self.endNative()
+                if nativeStart < 0 or nativeEnd < 0 then
+                    throw RuntimeError __aho_corasick_error()
+                end
+                Match item = Match(__ac_text_result(self.patternNative()),
+                    int(nativeStart), int(nativeEnd))
+                if not fn(item) then
+                    return false
+                end
             end
-            c_longlong nativeStart = self.startNative()
-            c_longlong nativeEnd = self.endNative()
-            if nativeStart < 0 or nativeEnd < 0 then
-                throw RuntimeError __aho_corasick_error()
-            end
-            Match item = Match(__ac_text_result(self.patternNative()),
-                int(nativeStart), int(nativeEnd))
-            if not fn(item) then
-                return false
-            end
+        finally
+            self.leaveNative()
         end
         return true
     end
@@ -170,11 +176,12 @@ end
 
 
 
-// 创建一个明确字节范围的独立字符串。
-func __ac_slice(string text, int start, int count) as string
-    point result = __ac_text_range(text, c_size(string.byteLen(text)),
-        c_size(start), c_size(count))
-    return __ac_text_result(result)
+// 切片直接追加到最终 Buffer，避免每个间隙创建临时字符串。
+func __ac_append(point automaton, Buffer output, string text, int start, int count)
+    if __ac_output_append(automaton, output.handle, text,
+        c_size(string.byteLen(text)), c_size(start), c_size(count)) == 0 then
+        throw RuntimeError __aho_corasick_error()
+    end
 end
 
 
@@ -189,16 +196,16 @@ export class Automaton
         c_ulonglong maxOutputBytes)
     extern "xac_destroy" destroy()
 
-    extern "xac_add_pattern" func addPatternNative(string pattern,
+    private extern "xac_add_pattern" func addPatternNative(string pattern,
         c_size size) as c_int
-    extern "xac_build" func buildNative() as c_int
-    extern "xac_search" func searchNative(string text, c_size size) as point
-    extern "xac_find" func findNative(string text, c_size size) as point
-    extern "xac_contains" func containsNative(string text, c_size size) as c_int
-    extern "xac_count" func countNative(string text, c_size size) as c_longlong
-    extern "xac_pattern_count" func patternCountNative() as c_longlong
-    extern "xac_pattern" func patternNative(c_longlong index) as point
-    extern "xac_is_built" func isBuiltNative() as c_int
+    private extern "xac_build" func buildNative() as c_int
+    private extern "xac_search" func searchNative(string text, c_size size) as point
+    private extern "xac_find" func findNative(string text, c_size size) as point
+    private extern "xac_contains" func containsNative(string text, c_size size) as c_int
+    private extern "xac_count" func countNative(string text, c_size size) as c_longlong
+    private extern "xac_pattern_count" func patternCountNative() as c_longlong
+    private extern "xac_pattern" func patternNative(c_longlong index) as point
+    private extern "xac_is_built" func isBuiltNative() as c_int
 
     get valid() as bool
         return self.handle != null
@@ -262,8 +269,7 @@ export class Automaton
         if nativeResult == null then
             throw RuntimeError __aho_corasick_error()
         end
-        ResultHandle result = ResultHandle()
-        result.handle = nativeResult
+        ResultHandle result = ResultHandle(nativeResult)
         c_longlong nativeCount = result.countNative()
         if nativeCount < 0 then
             throw RuntimeError __aho_corasick_error()
@@ -287,8 +293,7 @@ export class Automaton
         if nativeResult == null then
             throw RuntimeError __aho_corasick_error()
         end
-        ResultHandle result = ResultHandle()
-        result.handle = nativeResult
+        ResultHandle result = ResultHandle(nativeResult)
         c_longlong nativeCount = result.countNative()
         if nativeCount < 0 then
             throw RuntimeError __aho_corasick_error()
@@ -340,13 +345,10 @@ export class Automaton
         if nativeResult == null then
             throw RuntimeError __aho_corasick_error()
         end
-        ResultHandle result = ResultHandle()
-        result.handle = nativeResult
+        ResultHandle result = ResultHandle(nativeResult)
         c_longlong nativeCount = result.countNative()
         if nativeCount < 0 then
             throw RuntimeError __aho_corasick_error()
-        elseif nativeCount == 0 then
-            return text
         end
 
         int count = int(nativeCount)
@@ -356,16 +358,18 @@ export class Automaton
         while i < count
             Match item = __ac_match(result, i)
             if item.start > position then
-                output.append(__ac_slice(text, position,
-                    item.start - position))
+                __ac_append(self.handle, output, text, position,
+                    item.start - position)
             end
-            output.append(fn(item))
+            string replacement = fn(item)
+            __ac_append(self.handle, output, replacement, 0,
+                string.byteLen(replacement))
             position = item.endPos
             i += 1
         end
         int textBytes = string.byteLen(text)
         if position < textBytes then
-            output.append(__ac_slice(text, position, textBytes - position))
+            __ac_append(self.handle, output, text, position, textBytes - position)
         end
         return output.text()
     end
@@ -412,8 +416,7 @@ export class Automaton
         if nativeScan == null then
             throw RuntimeError __aho_corasick_error()
         end
-        ScanHandle scan = ScanHandle()
-        scan.handle = nativeScan
+        ScanHandle scan = ScanHandle(nativeScan)
         while true
             c_int status = scan.nextNative()
             if status < 0 then
@@ -448,7 +451,7 @@ end
 
 
 
-export func create(var patterns = [], bool ignoreCase = false,
+export func create(array<string> patterns = [], bool ignoreCase = false,
     int maxPatterns = 0, int maxPatternBytes = 0,
     int maxTotalPatternBytes = 0, int maxNodes = 0,
     int maxMatches = 0, int maxInputBytes = 0,
@@ -470,7 +473,7 @@ export func create(var patterns = [], bool ignoreCase = false,
     end
     int i = 0
     while i < patterns.length
-        automaton.addPattern(string(patterns[i]))
+        automaton.addPattern(patterns[i])
         i += 1
     end
     if patterns.length > 0 then

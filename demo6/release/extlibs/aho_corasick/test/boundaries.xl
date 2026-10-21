@@ -1,0 +1,142 @@
+import aho_corasick
+from aho_corasick import Automaton, Match, Scanner
+
+// 返回值必须保留独立的拥有链，不能依赖工厂函数的局部变量存活。
+func escapedScanner() as Scanner
+    Automaton ac = aho_corasick.create(["he", "she", "hers"])
+    return ac.scanner()
+end
+
+func escapedMatches() as array<Match>
+    Automaton ac = aho_corasick.create(["he", "she", "hers"])
+    return ac.search("ushers")
+end
+
+func main(...) as int
+    array<Match> matches = escapedMatches()
+    assert matches.length == 3 and matches[0].pattern == "she"
+    Scanner stream = escapedScanner()
+    array<Match> retained = []
+    assert stream.feed("us", func(Match m) as bool => true)
+    assert stream.feed("hers", func(Match m) as bool
+        retained.push(m)
+        return true
+    end)
+    stream.reset()
+    assert retained.length == 3 and retained[2].pattern == "hers"
+    assert retained[2].start == 2 and retained[2].endPos == 6
+
+    // 回调异常保留原类别与消息；当前匹配已消费，resume 不应重复发送。
+    bool caught = false
+    try
+        stream.feed("ushers", func(Match m) as bool
+            throw ValueError "callback sentinel"
+            return true
+        end)
+    catch ValueError e
+        caught = e.message == "callback sentinel"
+    end
+    assert caught and stream.pending and stream.matchCount == 1
+    array<int> seen = [0]
+    assert stream.resume(func(Match m) as bool
+        seen[0] += 1
+        return true
+    end)
+    assert seen[0] == 2 and not stream.pending
+
+    // 原生 guard 使 C 与 xlang 都不能重入同一扫描器；其他搜索仍然合法。
+    stream.reset()
+    array<int> rejected = [0]
+    Automaton other = aho_corasick.create(["x"])
+    assert stream.feed("ushers", func(Match m) as bool
+        try
+            stream.reset()
+        catch RuntimeError e
+            rejected[0] += 1
+        end
+        try
+            stream.resume(func(Match nested) as bool => true)
+        catch RuntimeError e
+            rejected[0] += 1
+        end
+        try
+            stream.feed("x", func(Match nested) as bool => true)
+        catch RuntimeError e
+            rejected[0] += 1
+        end
+        assert other.contains("x")
+        return true
+    end)
+    assert rejected[0] == 9 and stream.offset == 6
+
+    // 超预算输入在接收前拒绝，仍可传入合适的分块。
+    Automaton inputLimit = aho_corasick.create(["ab"], maxInputBytes = 2)
+    Scanner bounded = inputLimit.scanner()
+    assert bounded.feed("a", func(Match m) as bool => true)
+    caught = false
+    try
+        bounded.feed("bb", func(Match m) as bool => true)
+    catch RangeError e
+        caught = true
+    end
+    assert caught and not bounded.pending and bounded.offset == 1
+    assert bounded.feed("b", func(Match m) as bool => true)
+    assert bounded.matchCount == 1
+
+    // 扫描中途达到匹配上限后必须 reset，不允许重放已经消费的字节。
+    Automaton matchLimit = aho_corasick.create(["a", "ab"], maxMatches = 1)
+    Scanner failed = matchLimit.scanner()
+    caught = false
+    try
+        failed.feed("aba", func(Match m) as bool => true)
+    catch RangeError e
+        caught = true
+    end
+    assert caught and not failed.pending and failed.offset == 2
+    caught = false
+    try
+        failed.resume(func(Match m) as bool => true)
+    catch RuntimeError e
+        caught = true
+    end
+    assert caught
+    failed.reset()
+    assert failed.feed("a", func(Match m) as bool => true)
+
+    // 无匹配原样返回、替换文本与尾部都要受同一输出预算约束。
+    Automaton outputLimit = aho_corasick.create(["a"], maxOutputBytes = 3)
+    assert outputLimit.replaceWith("a!", func(Match m) as string => "xy") == "xy!"
+    for text in ["aaaa", "xxxx", "a..."]
+        caught = false
+        try
+            outputLimit.replaceWith(text, func(Match m) as string => "x")
+        catch RangeError e
+            caught = true
+        end
+        assert caught
+    end
+    caught = false
+    try
+        outputLimit.replaceWith("a", func(Match m) as string
+            throw ValueError "replacement sentinel"
+            return ""
+        end)
+    catch ValueError e
+        caught = e.message == "replacement sentinel"
+    end
+    assert caught
+    assert outputLimit.replaceWith("a", func(Match m) as string => "ok") == "ok"
+
+    // 多字节位置保持字节半开区间，mask 的重复数则按 Unicode 标量。
+    Automaton unicode = aho_corasick.create(["你好", "好世"])
+    array<Match> utf8 = unicode.search("甲你好世界")
+    assert utf8[0].start == 3 and utf8[0].endPos == 9 and utf8[0].length == 6
+    assert unicode.replaceWith("甲你好世界", func(Match m) as string => "!") == "甲!世界"
+    assert unicode.mask("甲你好世界") == "甲***界"
+    for i in range(100)
+        array<Match> repeated = escapedMatches()
+        assert repeated[0].pattern == "she"
+    end
+    println("aho boundaries: lifetime, callbacks, recovery and limits passed")
+    return 0
+end

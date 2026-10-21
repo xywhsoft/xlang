@@ -1,0 +1,5 @@
+import aho_corasick
+
+auto ac = aho_corasick.create(["a"])
+auto scanner = ac.scanner()
+scanner.feedNative("a", c_size(4096))

@@ -240,6 +240,12 @@ XRT_API uint64 xrtAhoStateOffset(const xrtahostate* pState);
 /* 返回当前已经发送的匹配数量。 */
 XRT_API uint64 xrtAhoStateMatches(const xrtahostate* pState);
 
+/* 分配分块副本前校验累计输入上限；不消费输入或改变状态。 */
+XRT_API bool xrtAhoStateCheckInput(const xrtahostate* pState, size_t iSize);
+
+/* 自定义替换器也使用自动机的输出预算；不分配内存。 */
+XRT_API bool xrtAhoCheckOutputSize(const xrtaho* pAutomaton, size_t iSize);
+
 
 
 /*

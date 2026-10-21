@@ -554,7 +554,22 @@ static bool xaho_stop_match(const xrtahomatch* pMatch, ptr pUserData)
 
 
 
-/* 检查输出限制并创建补零缓冲。 */
+/* 检查输出字节预算，不分配或修改缓冲区。 */
+bool xrtAhoCheckOutputSize(const xrtaho* pAutomaton, size_t iSize)
+{
+	if ( pAutomaton == NULL ) {
+		return xaho_fail(XERR_ARGUMENT, XRT_AHO_ERROR_ARGUMENT,
+			"Aho-Corasick automaton is null");
+	}
+	if ( xaho_over_limit(pAutomaton->Options.iMaxOutputBytes, (uint64)iSize) ) {
+		return xaho_fail(XERR_RANGE, XRT_AHO_ERROR_LIMIT,
+			"Aho-Corasick output limit exceeded");
+	}
+	return true;
+}
+
+
+/* 校验预算后分配结果，失败时不发布部分文本。 */
 static str xaho_output_create(
 	const xrtaho* pAutomaton,
 	size_t iSize,
@@ -564,12 +579,7 @@ static str xaho_output_create(
 	str sResult;
 	size_t iCapacity;
 
-	if ( xaho_over_limit(pAutomaton->Options.iMaxOutputBytes,
-		(uint64)iSize) ) {
-		xaho_fail(XERR_RANGE, XRT_AHO_ERROR_LIMIT,
-			"Aho-Corasick output limit exceeded");
-		return NULL;
-	}
+	if ( !xrtAhoCheckOutputSize(pAutomaton, iSize) ) { return NULL; }
 	if ( !xaho_size_add(iSize, 1u, &iCapacity) ) { return NULL; }
 	sResult = (str)xaho_alloc(iCapacity);
 	if ( sResult == NULL ) {
@@ -846,9 +856,9 @@ bool xrtAhoAddMany(
 {
 	size_t i;
 
-	if ( iCount != 0u && arrPatterns == NULL ) {
+	if ( pAutomaton == NULL || (iCount != 0u && arrPatterns == NULL) ) {
 		return xaho_fail(XERR_ARGUMENT, XRT_AHO_ERROR_ARGUMENT,
-			"Aho-Corasick pattern array is null");
+			"Aho-Corasick automaton or pattern array is null");
 	}
 	for ( i = 0u; i < iCount; ++i ) {
 		if ( !xrtAhoAdd(pAutomaton, arrPatterns[i]) ) { return false; }
@@ -1071,6 +1081,27 @@ uint64 xrtAhoStateMatches(const xrtahostate* pState)
 }
 
 
+/* 分块输入的预检与实际扫描共用同一套溢出和预算规则。 */
+bool xrtAhoStateCheckInput(const xrtahostate* pState, size_t iSize)
+{
+	uint64 iEnd;
+	if ( pState == NULL || pState->Automaton == NULL ) {
+		return xaho_fail(XERR_ARGUMENT, XRT_AHO_ERROR_ARGUMENT,
+			"Aho-Corasick scan state is null");
+	}
+	if ( !pState->Automaton->Built ) {
+		return xaho_fail(XERR_STATE, XRT_AHO_ERROR_STATE,
+			"Aho-Corasick automaton must be built before scanning");
+	}
+	if ( !xaho_u64_add(pState->iOffset, (uint64)iSize, &iEnd) ) { return false; }
+	if ( xaho_over_limit(pState->Automaton->Options.iMaxInputBytes, iEnd) ) {
+		return xaho_fail(XERR_RANGE, XRT_AHO_ERROR_LIMIT,
+			"Aho-Corasick input limit exceeded");
+	}
+	return true;
+}
+
+
 
 /* 扫描一个增量分块。 */
 xrtahoscanstatus xrtAhoStateFeed(
@@ -1083,7 +1114,6 @@ xrtahoscanstatus xrtAhoStateFeed(
 {
 	xrtaho* pAutomaton;
 	size_t iPosition = 0u;
-	uint64 iEndOffset;
 
 	if ( pConsumed != NULL ) { *pConsumed = 0u; }
 	if ( pState == NULL || pState->Automaton == NULL ||
@@ -1093,19 +1123,7 @@ xrtahoscanstatus xrtAhoStateFeed(
 		return XRT_AHO_SCAN_ERROR;
 	}
 	pAutomaton = pState->Automaton;
-	if ( !pAutomaton->Built ) {
-		xaho_fail(XERR_STATE, XRT_AHO_ERROR_STATE,
-			"Aho-Corasick automaton must be built before scanning");
-		return XRT_AHO_SCAN_ERROR;
-	}
-	if ( !xaho_u64_add(pState->iOffset, (uint64)Chunk.Size, &iEndOffset) ) {
-		return XRT_AHO_SCAN_ERROR;
-	}
-	if ( xaho_over_limit(pAutomaton->Options.iMaxInputBytes, iEndOffset) ) {
-		xaho_fail(XERR_RANGE, XRT_AHO_ERROR_LIMIT,
-			"Aho-Corasick input limit exceeded");
-		return XRT_AHO_SCAN_ERROR;
-	}
+	if ( !xrtAhoStateCheckInput(pState, Chunk.Size) ) { return XRT_AHO_SCAN_ERROR; }
 
 	for ( ;; ) {
 		while ( pState->iEmitNode != XAHO_NONE ) {
@@ -1122,6 +1140,7 @@ xrtahoscanstatus xrtAhoStateFeed(
 					pState->iMatches + 1u) ) {
 				xaho_fail(XERR_RANGE, XRT_AHO_ERROR_LIMIT,
 					"Aho-Corasick match limit exceeded");
+				if ( pConsumed != NULL ) { *pConsumed = iPosition; }
 				return XRT_AHO_SCAN_ERROR;
 			}
 			{

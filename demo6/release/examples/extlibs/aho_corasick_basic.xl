@@ -1,0 +1,38 @@
+import aho_corasick
+from aho_corasick import Match
+
+// 构建一次，重复查询；search 排序与流式回调的顺序分别固定。
+auto ac = aho_corasick.create(["he", "she", "his", "hers"])
+println("sorted:")
+for m in ac.search("ushers")
+    println(f"{m.pattern}:{m.start}:{m.endPos}")
+end
+auto first = ac.searchFirst("ushers")
+if first != null then
+    println("first=" + first.pattern)
+else
+    throw "expected a match"
+end
+println("count=" + string(ac.count("ushers")))
+println("replace=" + ac.replace("ushers", "*"))
+println("highlight=" + ac.highlight("ushers", "<", ">"))
+println("mask=" + ac.mask("ushers", "#"))
+
+// Scanner 复制当前分块；回调 false 暂停，resume 接着交付剩余匹配。
+println("stream:")
+auto stream = ac.scanner()
+assert stream.feed("us", func(Match m) as bool => true)
+assert not stream.feed("hers", func(Match m) as bool
+    println(f"{m.pattern}:{m.start}:{m.endPos}")
+    return false
+end)
+assert stream.resume(func(Match m) as bool
+    println(f"{m.pattern}:{m.start}:{m.endPos}")
+    return true
+end)
+
+// Unicode 遮盖按字符数，匹配位置仍按 UTF-8 字节数。
+auto unicode = aho_corasick.create(["你好", "好世"])
+println("unicode=" + unicode.mask("甲你好世界"))
+auto folded = aho_corasick.create(["HTTP"], ignoreCase = true)
+println("ascii=" + string(folded.count("http")))

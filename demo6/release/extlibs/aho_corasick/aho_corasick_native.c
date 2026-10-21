@@ -1,16 +1,7 @@
-#define XRT_MODULE_IO_BUFFER
-#include "include/xrt_aho_corasick.h"
+#include "include/aho_corasick_native.h"
 
 #include <limits.h>
 #include <string.h>
-
-
-
-#if defined(_WIN32) || defined(_WIN64)
-	#define XAHO_EXPORT __declspec(dllexport)
-#else
-	#define XAHO_EXPORT
-#endif
 
 
 
@@ -30,11 +21,36 @@ typedef struct xaho_native_scan {
 	size_t Offset;
 	xrtahomatch Match;
 	bool Finished;
+	bool HasMatch;
+	bool Failed;
+	bool Active;
 } xaho_native_scan;
 
 
 
 typedef xaho_native_scan xaho_native_stream;
+
+
+/* C 与语言回调共用不可重入的分块消费边界；这不是跨线程互斥锁。 */
+static bool xac_stream_idle(xaho_native_stream* pStream)
+{
+	if ( pStream != NULL && !pStream->Active ) { return true; }
+	xrtSetErrorInfo(XERR_STATE, "xlang.extlib.aho_corasick",
+		XRT_AHO_ERROR_STATE, "Aho-Corasick scanner is null or its callback is active");
+	return false;
+}
+
+
+/* 位置和计数进入语言 int 前统一检查，不能静默变成负数。 */
+static int64 xac_signed(uint64 value)
+{
+	if ( value > (uint64)INT64_MAX ) {
+		xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_RANGE, "Aho-Corasick position or count exceeds int range");
+		return -1;
+	}
+	return (int64)value;
+}
 
 
 
@@ -137,7 +153,7 @@ XAHO_EXPORT void* xac_pattern(void* pHandle, int64 iIndex)
 	xstrview Pattern;
 	xbytesview Data;
 
-	if ( iIndex < 0 ) {
+	if ( iIndex < 0 || (uint64)iIndex > (uint64)SIZE_MAX ) {
 		xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.aho_corasick",
 			XRT_AHO_ERROR_RANGE, "Aho-Corasick pattern index is out of range");
 		return NULL;
@@ -265,13 +281,18 @@ XAHO_EXPORT int64 xac_result_count(void* pHandle)
 /* 读取结果并统一单项、数组两种包装。 */
 static bool xac_result_at(
 	xaho_native_result* pResult,
-	size_t iIndex,
+	int64 iIndex,
 	xrtahomatch* pMatch
 )
 {
 	if ( pResult == NULL ) {
 		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.aho_corasick",
 			XRT_AHO_ERROR_ARGUMENT, "Aho-Corasick result is null");
+		return false;
+	}
+	if ( iIndex < 0 || (uint64)iIndex > (uint64)SIZE_MAX ) {
+		xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_RANGE, "Aho-Corasick result index is out of range");
 		return false;
 	}
 	if ( pResult->Single ) {
@@ -283,7 +304,7 @@ static bool xac_result_at(
 		*pMatch = pResult->Match;
 		return true;
 	}
-	return xrtAhoResultAt(pResult->Result, iIndex, pMatch);
+	return xrtAhoResultAt(pResult->Result, (size_t)iIndex, pMatch);
 }
 
 
@@ -294,8 +315,7 @@ XAHO_EXPORT void* xac_result_pattern(void* pHandle, int64 iIndex)
 	xrtahomatch Match;
 	xbytesview Data;
 
-	if ( iIndex < 0 || !xac_result_at((xaho_native_result*)pHandle,
-		(size_t)iIndex, &Match) ) { return NULL; }
+	if ( !xac_result_at((xaho_native_result*)pHandle, iIndex, &Match) ) { return NULL; }
 	Data.Data = (const unsigned char*)Match.Pattern.Data;
 	Data.Size = Match.Pattern.Size;
 	return xrtBufferFrom(Data);
@@ -308,11 +328,8 @@ XAHO_EXPORT int64 xac_result_start(void* pHandle, int64 iIndex)
 {
 	xrtahomatch Match;
 
-	if ( iIndex < 0 || !xac_result_at((xaho_native_result*)pHandle,
-		(size_t)iIndex, &Match) || Match.iStart > (uint64)INT64_MAX ) {
-		return -1;
-	}
-	return (int64)Match.iStart;
+	if ( !xac_result_at((xaho_native_result*)pHandle, iIndex, &Match) ) { return -1; }
+	return xac_signed(Match.iStart);
 }
 
 
@@ -322,11 +339,8 @@ XAHO_EXPORT int64 xac_result_end(void* pHandle, int64 iIndex)
 {
 	xrtahomatch Match;
 
-	if ( iIndex < 0 || !xac_result_at((xaho_native_result*)pHandle,
-		(size_t)iIndex, &Match) || Match.iEnd > (uint64)INT64_MAX ) {
-		return -1;
-	}
-	return (int64)Match.iEnd;
+	if ( !xac_result_at((xaho_native_result*)pHandle, iIndex, &Match) ) { return -1; }
+	return xac_signed(Match.iEnd);
 }
 
 
@@ -399,8 +413,10 @@ static xbuffer* xac_take_string(str sText, size_t iSize)
 
 
 
-/* 返回明确字节范围的 Buffer。 */
-XAHO_EXPORT void* xac_text_range(
+/* 按字节直接追加切片，回调替换与固定替换使用同一输出预算。 */
+XAHO_EXPORT int xac_output_append(
+	void* pHandle,
+	void* pOutput,
 	const char* sText,
 	size_t iTextSize,
 	size_t iStart,
@@ -408,15 +424,19 @@ XAHO_EXPORT void* xac_text_range(
 )
 {
 	xbytesview Data;
+	xbuffer* pBuffer = (xbuffer*)pOutput;
 
-	if ( sText == NULL || iStart > iTextSize || iCount > (iTextSize - iStart) ) {
+	if ( pBuffer == NULL || (sText == NULL && iTextSize != 0u) ||
+		iStart > iTextSize || iCount > (iTextSize - iStart) ||
+		iCount > SIZE_MAX - pBuffer->Size ) {
 		xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.aho_corasick",
 			XRT_AHO_ERROR_RANGE, "Aho-Corasick text range is out of bounds");
-		return NULL;
+		return 0;
 	}
-	Data.Data = (const unsigned char*)sText + iStart;
+	if ( !xrtAhoCheckOutputSize((xrtaho*)pHandle, pBuffer->Size + iCount) ) { return 0; }
+	Data.Data = sText != NULL ? (const unsigned char*)sText + iStart : NULL;
 	Data.Size = iCount;
-	return xrtBufferFrom(Data);
+	return xrtBufferAppend(pBuffer, Data) ? 1 : 0;
 }
 
 
@@ -537,7 +557,12 @@ XAHO_EXPORT int xac_scan_next(void* pHandle)
 	size_t iConsumed = 0u;
 	xrtahoscanstatus iStatus;
 
-	if ( pScan == NULL ) { return -1; }
+	if ( pScan == NULL || pScan->Failed ) {
+		xrtSetErrorInfo(XERR_STATE, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_STATE, "Aho-Corasick scan requires reset after failure");
+		return -1;
+	}
+	pScan->HasMatch = false;
 	if ( pScan->Finished ) { return 0; }
 	Chunk.Data = pScan->Text.Size != 0u ?
 		pScan->Text.Data + pScan->Offset : NULL;
@@ -545,15 +570,25 @@ XAHO_EXPORT int xac_scan_next(void* pHandle)
 	iStatus = xrtAhoStateFeed(pScan->State, Chunk,
 		xac_scan_capture, pScan, &iConsumed);
 	pScan->Offset += iConsumed;
-	if ( iStatus == XRT_AHO_SCAN_ERROR ) { return -1; }
-	if ( iStatus == XRT_AHO_SCAN_STOPPED ) { return 1; }
+	if ( iStatus == XRT_AHO_SCAN_ERROR ) { pScan->Failed = true; }
+	if ( iStatus == XRT_AHO_SCAN_STOPPED ) { pScan->HasMatch = true; return 1; }
 	xrtFree(pScan->Owned);
 	pScan->Owned = NULL;
 	pScan->Text.Data = NULL;
 	pScan->Text.Size = 0u;
 	pScan->Offset = 0u;
 	pScan->Finished = true;
-	return 0;
+	return pScan->Failed ? -1 : 0;
+}
+
+
+/* 匹配只在 next 返回 1 后有效，不能读取初始化或结束后的旧值。 */
+static bool xac_scan_has_match(xaho_native_scan* pScan)
+{
+	if ( pScan != NULL && pScan->HasMatch ) { return true; }
+	xrtSetErrorInfo(XERR_STATE, "xlang.extlib.aho_corasick",
+		XRT_AHO_ERROR_STATE, "Aho-Corasick scan has no current match");
+	return false;
 }
 
 
@@ -563,8 +598,8 @@ XAHO_EXPORT int64 xac_scan_start(void* pHandle)
 {
 	xaho_native_scan* pScan = (xaho_native_scan*)pHandle;
 
-	return pScan != NULL && pScan->Match.iStart <= (uint64)INT64_MAX ?
-		(int64)pScan->Match.iStart : -1;
+	return xac_scan_has_match(pScan) ?
+		xac_signed(pScan->Match.iStart) : -1;
 }
 
 
@@ -574,8 +609,8 @@ XAHO_EXPORT int64 xac_scan_end_pos(void* pHandle)
 {
 	xaho_native_scan* pScan = (xaho_native_scan*)pHandle;
 
-	return pScan != NULL && pScan->Match.iEnd <= (uint64)INT64_MAX ?
-		(int64)pScan->Match.iEnd : -1;
+	return xac_scan_has_match(pScan) ?
+		xac_signed(pScan->Match.iEnd) : -1;
 }
 
 
@@ -586,7 +621,7 @@ XAHO_EXPORT void* xac_scan_pattern(void* pHandle)
 	xaho_native_scan* pScan = (xaho_native_scan*)pHandle;
 	xbytesview Data;
 
-	if ( pScan == NULL ) { return NULL; }
+	if ( !xac_scan_has_match(pScan) ) { return NULL; }
 	Data.Data = (const unsigned char*)pScan->Match.Pattern.Data;
 	Data.Size = pScan->Match.Pattern.Size;
 	return xrtBufferFrom(Data);
@@ -639,6 +674,7 @@ XAHO_EXPORT int xac_stream_feed(
 	xaho_native_stream* pStream = (xaho_native_stream*)pHandle;
 	str sCopy = NULL;
 
+	if ( !xac_stream_idle(pStream) ) { return 0; }
 	if ( pStream == NULL || (sChunk == NULL && iSize != 0u) ) {
 		xrtSetErrorInfo(XERR_ARGUMENT, "xlang.extlib.aho_corasick",
 			XRT_AHO_ERROR_ARGUMENT, "Aho-Corasick stream chunk is invalid");
@@ -649,6 +685,12 @@ XAHO_EXPORT int xac_stream_feed(
 			XRT_AHO_ERROR_STATE, "Aho-Corasick stream chunk must be resumed first");
 		return 0;
 	}
+	if ( pStream->Failed ) {
+		xrtSetErrorInfo(XERR_STATE, "xlang.extlib.aho_corasick",
+			XRT_AHO_ERROR_STATE, "Aho-Corasick scan requires reset after failure");
+		return 0;
+	}
+	if ( !xrtAhoStateCheckInput(pStream->State, iSize) ) { return 0; }
 	if ( iSize != 0u ) {
 		if ( iSize == SIZE_MAX ) {
 			xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.aho_corasick",
@@ -670,6 +712,7 @@ XAHO_EXPORT int xac_stream_feed(
 	pStream->Text.Size = iSize;
 	pStream->Offset = 0u;
 	pStream->Finished = false;
+	pStream->HasMatch = false;
 	return 1;
 }
 
@@ -679,6 +722,22 @@ XAHO_EXPORT int xac_stream_feed(
 XAHO_EXPORT int xac_stream_next(void* pHandle)
 {
 	return xac_scan_next(pHandle);
+}
+
+
+/* 进入/退出高级回调循环；调用方必须在所有返回和异常路径退出。 */
+XAHO_EXPORT int xac_stream_enter(void* pHandle)
+{
+	xaho_native_stream* pStream = (xaho_native_stream*)pHandle;
+	if ( !xac_stream_idle(pStream) ) { return 0; }
+	pStream->Active = true;
+	return 1;
+}
+
+XAHO_EXPORT void xac_stream_leave(void* pHandle)
+{
+	xaho_native_stream* pStream = (xaho_native_stream*)pHandle;
+	if ( pStream != NULL ) { pStream->Active = false; }
 }
 
 
@@ -754,13 +813,15 @@ XAHO_EXPORT void xac_stream_reset(void* pHandle)
 {
 	xaho_native_stream* pStream = (xaho_native_stream*)pHandle;
 
-	if ( pStream == NULL ) { return; }
+	if ( !xac_stream_idle(pStream) ) { return; }
 	xrtFree(pStream->Owned);
 	pStream->Owned = NULL;
 	pStream->Text.Data = NULL;
 	pStream->Text.Size = 0u;
 	pStream->Offset = 0u;
 	pStream->Finished = true;
+	pStream->HasMatch = false;
+	pStream->Failed = false;
 	xrtAhoStateReset(pStream->State);
 }
 

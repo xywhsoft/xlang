@@ -10,10 +10,13 @@
             "xrt_aho_corasick.c",
             "aho_corasick_native.c"
         ],
-        "xlSources": ["src/aho_corasick.xl"]
+        "xlSources": ["src/aho_corasick.xl"],
+        "includeDirs": ["include"],
+        "xrtModules": ["XRT_MODULE_ATOMIC", "XRT_MODULE_UNICODE", "XRT_MODULE_IO_BUFFER"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

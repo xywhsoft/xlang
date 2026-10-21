@@ -1,0 +1,15 @@
+sorted:
+she:1:4
+he:2:4
+hers:2:6
+first=she
+count=3
+replace=u*
+highlight=u<shers>
+mask=u#####
+stream:
+she:1:4
+he:2:4
+hers:2:6
+unicode=甲***界
+ascii=1

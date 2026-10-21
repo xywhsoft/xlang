@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>aho_corasick - 扩展库 - xlang</title>
+  <meta name="description" content="多模式字节匹配、跨分块扫描、文本替换与 UTF-8 遮盖，支持 C 和 xlang。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout c-txt" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / aho_corasick</p>
+    <div class="extlib-title-row"><h1>aho_corasick</h1><span class="extlib-cat-badge">文本处理</span></div>
+    <p class="extlib-lead">构建一次，多模式同时匹配。稀疏自动机提供排序搜索、即时扫描、跨分块恢复和文本变换；C 接口支持明确长度的二进制视图。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="quick">
+    <h2 id="quick">快速开始</h2>
+    <pre><code class="language-xlang">import aho_corasick
+
+auto ac = aho_corasick.create(["he", "she", "his", "hers"])
+for m in ac.search("ushers")
+    println(f"{m.pattern}:{m.start}:{m.endPos}")
+end
+assert ac.count("ushers") == 3
+assert ac.replace("ushers", "*") == "u*"
+assert ac.highlight("ushers", "&lt;", "&gt;") == "u&lt;shers&gt;"
+assert ac.mask("ushers", "#") == "u#####"</code></pre>
+    <p>结果为 <code>she:1:4</code>、<code>he:2:4</code>、<code>hers:2:6</code>。
+    start/endPos 是从零开始的 UTF-8 字节偏移，采用左闭右开区间，不是字符索引。</p>
+
+    <h2 id="create">创建与预算</h2>
+    <pre><code class="language-xlang">create(array&lt;string&gt; patterns = [], bool ignoreCase = false,
+    int maxPatterns = 0, int maxPatternBytes = 0,
+    int maxTotalPatternBytes = 0, int maxNodes = 0,
+    int maxMatches = 0, int maxInputBytes = 0,
+    int maxOutputBytes = 0) as Automaton</code></pre>
+    <p>非空模式数组会自动构建；空数组可继续 addPattern/addPatterns 后手动 build。
+    空模式、重复模式和负数限制会报错；不隐式把数字转换成模式。
+    ignoreCase 仅折叠 ASCII A-Z，不执行 Unicode 全量大小写折叠。</p>
+    <p>每项上限为 0 时不限制。输入、模式和输出长度按字节计算；超限报错，不静默截断。
+    这些限制不是整个进程的内存或 CPU 预算，也不限制用户回调自身的分配。
+    addPatterns 顺序添加，后续模式失败时保留已添加模式，不提供批量事务。</p>
+
+    <h2 id="automaton">Automaton 与 Match</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>语义</th></tr></thead><tbody>
+      <tr><td><code>valid / built / patternCount</code></td><td>句柄状态、构建状态和模式数量。</td></tr>
+      <tr><td><code>pattern(index)</code></td><td>模式的独立字符串，索引从 0 开始。</td></tr>
+      <tr><td><code>addPattern(pattern) / addPatterns(patterns) / build()</code></td><td>独占构建阶段；成功构建后不可再添加。</td></tr>
+      <tr><td><code>search(text) as array&lt;Match&gt;</code></td><td>全部重叠匹配，按起点、终点和注册序号升序排列。</td></tr>
+      <tr><td><code>searchFirst(text) as Match?</code></td><td>上述排序的首项，没有命中返回 null；不创建全部结果数组，但可能扫描全部输入。</td></tr>
+      <tr><td><code>contains(text) / count(text)</code></td><td>包含判断可以提前结束；计数包含重叠匹配。</td></tr>
+      <tr><td><code>scan(text, func(Match) as bool fn)</code></td><td>按结束位置即时回调；false 停止，返回是否完整扫描。</td></tr>
+      <tr><td><code>scanner()</code></td><td>创建可跨分块、可暂停恢复的 Scanner。</td></tr>
+      <tr><td><code>replace(text, replacement)</code></td><td>合并严格重叠区间后固定替换；相邻区间不合并。</td></tr>
+      <tr><td><code>replaceWith(text, func(Match) as string fn)</code></td><td>左优先最长非重叠选择，再逐项回调替换，与 replace 的合并规则不同。</td></tr>
+      <tr><td><code>mask(text, mask = "*")</code></td><td>合并后按 UTF-8 标量数重复 mask，严格检查 UTF-8 和边界。</td></tr>
+      <tr><td><code>highlight(text, openTag, closeTag)</code></td><td>包裹合并后的区间，不自动转义 HTML。</td></tr>
+    </tbody></table>
+    <p>Match 提供 <code>pattern</code>、<code>start</code>、<code>endPos</code> 和
+    <code>length</code>；length 也是字节数。search 的起点排序与 scan 的发现顺序不同。</p>
+
+    <h2 id="scanner">分块与暂停</h2>
+    <pre><code class="language-xlang">from aho_corasick import Match
+
+auto stream = ac.scanner()
+assert stream.feed("us", func(Match m) as bool =&gt; true)
+assert not stream.feed("hers", func(Match m) as bool
+    println(m.pattern)
+    return false
+end)
+assert stream.resume(func(Match m) as bool
+    println(m.pattern)
+    return true
+end)</code></pre>
+    <p>Scanner 提供 valid、pending、offset、matchCount，以及 feed、resume、reset。
+    暂停后先 resume，完成后才能 feed 新分块；偏移是全部分块累计字节数。
+    它复制当前分块，保存未交付结果；回调异常保留原错误，不重复交付已处理的匹配。
+    限制错误后的恢复边界见包内 README，不能把重试当成自动回滚。</p>
+    <p>同一个 Scanner 不支持并发操作，且拒绝回调期间重入 feed/resume/reset。
+    已构建自动机可以共享，但每个并发扫描应使用独立 Scanner。</p>
+
+    <h2 id="c-api">C 接口与所有权</h2>
+    <p>核心头为 <code>include/xrt_aho_corasick.h</code>，精确桥接头为
+    <code>include/aho_corasick_native.h</code>。核心使用 xstrview，支持嵌入 NUL。</p>
+    <pre><code class="language-c">#include "xrt_aho_corasick.h"
+
+int main(void)
+{
+    xrtaho* ac = xrtAhoCreate(NULL);
+    bool found = false;
+    bool ok = ac &amp;&amp; xrtAhoAdd(ac, XRT_STR_LITERAL("fatal"))
+        &amp;&amp; xrtAhoBuild(ac)
+        &amp;&amp; xrtAhoContains(ac, XRT_STR_LITERAL("fatal: disk"), &amp;found);
+    xrtAhoDestroy(ac);
+    return ok &amp;&amp; found ? 0 : 1;
+}</code></pre>
+    <p>C 还提供排序/非重叠结果集、计数、首项、统计、资源预检、字节遮盖与增量状态。
+    文本变换返回独立 XRT 分配字符串，由调用方 xrtFree；结果集与状态由对应 Destroy 释放。</p>
+    <p>结果集和状态持有自动机引用，可以比调用方自己的自动机引用活得更久。
+    借用的模式视图要求对应自动机仍存活。XLang 对象由其原生生命周期协议管理，
+    不得把同一个 C 句柄重复交给拥有型对象接管。</p>
+    <p>xrtAhoStateFeed 只在调用期间借用输入，返回 COMPLETE、STOPPED 或 ERROR 和已消费字节数。
+    停止后传入剩余切片；同一结束位置的待发送结果可能使下一次消费量为 0。
+    C 回调不得释放、重置或重入正在执行的同一状态，嵌套扫描应另建状态。</p>
+
+    <h2 id="errors">错误合同</h2>
+    <p>错误写入 XRT 结构化错误域 xlang.extlib.aho_corasick。
+    XLang 中无效值、重复/空模式与无效 UTF-8 为 ValueError，原生范围/预算为 RangeError，
+    分配失败为 MemoryError，状态错误为 RuntimeError；pattern(index) 的语言下标预检查是 IndexError。
+    回调异常不统一改写为 RuntimeError，失败不伪装成空搜索结果。</p>
+
+    <h2 id="examples">成对范例</h2>
+    <p><code>examples/extlibs/aho_corasick_basic.xl</code> 与
+    <code>extlibs/aho_corasick/examples/basic.c</code> 对照相同输入、顺序和固定输出，
+    展示查找、计数、替换、高亮、遮盖、跨分块暂停恢复和 ASCII 大小写匹配。
+    原教学范例 <code>examples/extlibs/aho_corasick.xl</code> 与
+    <code>examples/extlibs/aho_corasick_c.c</code> 也纳入门禁。</p>
+
+    <h2 id="verification">2026-09-27 专项证据</h2>
+    <p>44 项 Windows 检查通过，包含全部 41 个桥接生成原型、严格 GCC、C/xlang JIT/AOT、
+    工厂参数负例及成对范例输出。C 测试覆盖 200 轮随机二进制差分、随机分块/逐命中暂停、
+    38 个分配失败点、四线程共享自动机的 1000 次独立扫描和线程错误隔离。
+    Linux 独立 C 的 ASan/UBSan/泄漏检查也通过。</p>
+    <p>证据不扩大为 Linux xlang、32 位/ARM、同一 Scanner 的并发安全、完整 Unicode
+    大小写折叠或性能认证；检查项数包含构建和执行步骤，不是独立 API 数。
+    重现脚本为 <code>tools/check_extlib_aho.ps1</code> 与 <code>tools/check_extlib_aho.sh</code>。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

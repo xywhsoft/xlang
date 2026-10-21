@@ -30,6 +30,26 @@ typedef struct expectedmatch {
 	size_t End;
 } expectedmatch;
 
+typedef struct diffmatches {
+	expectedmatch Items[512];
+	size_t Count;
+	bool Stop;
+} diffmatches;
+
+
+/* 单条暂停与完整扫描使用相同收集器，再与朴素匹配结果比较。 */
+static bool collect_differential(const xrtahomatch* pMatch, ptr pUserData)
+{
+	diffmatches* p = (diffmatches*)pUserData;
+	if ( p->Count < sizeof(p->Items) / sizeof(p->Items[0]) ) {
+		p->Items[p->Count].Pattern = pMatch->iPattern;
+		p->Items[p->Count].Start = (size_t)pMatch->iStart;
+		p->Items[p->Count].End = (size_t)pMatch->iEnd;
+	}
+	p->Count += 1u;
+	return !p->Stop && p->Count <= 512u;
+}
+
 
 
 /* 输出失败原因并保留所有测试继续执行。 */
@@ -365,6 +385,16 @@ static int test_errors_and_limits(void)
 	size_t iSize;
 	int bOk = 1;
 
+	bOk &= check(!xrtAhoAddMany(NULL, NULL, 0u) &&
+		xrtErrorKind(xrtGetError()) == XERR_ARGUMENT,
+		"empty bulk add accepted a null automaton");
+	xrtClearError();
+	pAutomaton = xrtAhoCreate(NULL);
+	bOk &= check(pAutomaton != NULL && xrtAhoAddMany(pAutomaton, NULL, 0u) &&
+		xrtAhoBuild(pAutomaton) && xrtAhoAddMany(pAutomaton, NULL, 0u),
+		"empty bulk add should be a no-op on a valid automaton");
+	xrtAhoDestroy(pAutomaton);
+
 	xrtAhoOptionsInit(&Options);
 	Options.bIgnoreAsciiCase = true;
 	pAutomaton = xrtAhoCreate(&Options);
@@ -537,6 +567,59 @@ static int test_random_differential(void)
 		bOk &= check(pResult != NULL &&
 			xrtAhoResultCount(pResult) == iExpected,
 			"random result count mismatch");
+		{
+			uint64 iCount = UINT64_MAX;
+			bool bContains = false;
+			bool bFound = false;
+			xrtahomatch First;
+			xstrview Text = { arrText, sizeof(arrText) };
+			bOk &= check(xrtAhoCount(pAutomaton, Text, &iCount) && iCount == iExpected,
+				"random count mismatch");
+			bOk &= check(xrtAhoContains(pAutomaton, Text, &bContains) &&
+				bContains == (iExpected != 0u), "random contains mismatch");
+			bOk &= check(xrtAhoFind(pAutomaton, Text, &First, &bFound) &&
+				bFound == (iExpected != 0u), "random find presence mismatch");
+			if ( bFound ) {
+				bOk &= check(First.iPattern == arrExpected[0].Pattern &&
+					First.iStart == arrExpected[0].Start && First.iEnd == arrExpected[0].End,
+					"random find order mismatch");
+			}
+		}
+		/* 改变分块边界，交替完整消费和逐匹配暂停，含零消费的重叠续传。 */
+		for ( size_t mode = 0u; mode < 2u && bOk; ++mode ) {
+			diffmatches Stream = { { { 0u, 0u, 0u } }, 0u, mode != 0u };
+			xrtahostate* pState = xrtAhoStateCreate(pAutomaton);
+			size_t pos = 0u;
+			bOk &= check(pState != NULL, "random scanner create failed");
+			while ( pos < sizeof(arrText) && bOk ) {
+				size_t size = 1u + test_random_range(&iRandom, 9u);
+				size_t consumed = 0u;
+				size_t calls = 0u;
+				xrtahoscanstatus status;
+				if ( size > sizeof(arrText) - pos ) { size = sizeof(arrText) - pos; }
+				xstrview Chunk = { arrText + pos, size };
+				do {
+					status = xrtAhoStateFeed(pState, Chunk, collect_differential, &Stream, &consumed);
+					bOk &= check(status != XRT_AHO_SCAN_ERROR && consumed <= Chunk.Size &&
+						++calls <= 513u && Stream.Count <= 512u, "random scan failed to progress");
+					if ( !bOk ) { break; }
+					Chunk.Data += consumed;
+					Chunk.Size -= consumed;
+				} while ( status == XRT_AHO_SCAN_STOPPED );
+				bOk &= check(Chunk.Size == 0u, "random scan left an unconsumed chunk");
+				pos += size;
+			}
+			bOk &= check(Stream.Count == iExpected && xrtAhoStateOffset(pState) == sizeof(arrText) &&
+				xrtAhoStateMatches(pState) == iExpected, "random stream counters mismatch");
+			if ( bOk ) {
+				qsort(Stream.Items, Stream.Count, sizeof(Stream.Items[0]), expected_compare);
+				for ( i = 0u; i < iExpected && bOk; ++i ) {
+					bOk &= check(expected_compare(&Stream.Items[i], &arrExpected[i]) == 0,
+						"random stream differs from naive matcher");
+				}
+			}
+			xrtAhoStateDestroy(pState);
+		}
 		for ( i = 0u; i < iExpected && bOk; ++i ) {
 			xrtahomatch Match;
 
@@ -559,7 +642,8 @@ int main(void)
 {
 	int bOk = 1;
 
-#if defined(XRT_FEATURE_MEMORY_DEBUG)
+/* xl run 的宿主已有活动 XRT 分配，不能重置全局内存调试器。 */
+#if defined(XRT_FEATURE_MEMORY_DEBUG) && !defined(__TINYC__)
 	bOk &= check(xrtMemDebugEnable(true), "cannot enable XRT memory debugger");
 #endif
 	bOk &= test_search_and_lifetime();
@@ -571,7 +655,7 @@ int main(void)
 	bOk &= test_build_retry();
 	bOk &= test_random_differential();
 	xrtClearError();
-#if defined(XRT_FEATURE_MEMORY_DEBUG)
+#if defined(XRT_FEATURE_MEMORY_DEBUG) && !defined(__TINYC__)
 	{
 		xmemdebugsnapshot Snapshot;
 
