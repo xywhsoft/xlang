@@ -1,0 +1,9 @@
+import cString
+
+func main(...) as int
+    string text = "a\0b"
+    println("UTF-8:", cString.length("你好"))
+    println("XLang bytes:", string.byteLen(text))
+    println("C string:", cString.length(text))
+    return 0
+end

@@ -1,0 +1,11 @@
+import cString
+
+func main(...) as int
+    assert cString.length("") == 0, "empty C string"
+    assert cString.length("hello") == 5, "ASCII C string"
+    assert cString.length("你好") == 6, "UTF-8 bytes"
+    string embedded = "a\0b"
+    assert string.byteLen(embedded) == 3, "XLang keeps embedded NUL"
+    assert cString.length(embedded) == 1, "CRT stops at NUL"
+    return 0
+end

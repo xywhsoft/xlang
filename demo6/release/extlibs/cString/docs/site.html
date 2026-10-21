@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>cString - 扩展库 - xlang</title>
+  <meta name="description" content="显式调用 C strlen，获取首个 NUL 之前的字节数。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-txt" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / cString</p>
+    <h1>cString</h1>
+    <p class="extlib-lead">显式 C 字符串互操作：直接调用 CRT 的 strlen。</p>
+    <p>版本 1.0.0 · 纯 xlang 声明 · 无扩展库依赖</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import cString
+
+string text = "a\0b"
+assert string.byteLen(text) == 3
+assert cString.length(text) == 1
+assert cString.length("你好") == 6</code></pre>
+    <p><strong>结果只计算第一个 NUL 之前的字节，不是完整 XLang 字符串长度，也不是 UTF-8 字符数。</strong>普通文本使用 <code>string.len</code>；需要完整字节长度使用 <code>string.byteLen</code>。</p>
+  </section>
+  <section id="api">
+    <h2>接口</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>length(text) as c_size</code></td><td>CRT strlen：第一个 NUL 之前的字节数。</td></tr>
+    </tbody></table>
+    <p>本包没有额外原生封装、状态或资源所有权。它用于需要匹配 C 字符串合同的场合，不适合测量含 NUL 数据缓冲区。</p>
+  </section>
+  <section id="c-api">
+    <h2>C 对照</h2>
+    <pre><code>#include &lt;string.h&gt;
+
+int main(void)
+{
+    const char data[] = {'a', '\0', 'b', '\0'};
+    return strlen(data) == 1 &amp;&amp; sizeof(data) - 1 == 3 ? 0 : 1;
+}</code></pre>
+    <p>完整 C/XLang 对照范例位于 <code>release/extlibs/cString/examples/</code>。</p>
+  </section>
+  <section id="verify">
+    <h2>验证状态</h2>
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/cString/test/check.ps1 -SkipAot
+bash release/extlibs/cString/test/check.sh</code></pre>
+    <p>Windows 严格 GCC 与 Linux C ASan/UBSan、双平台 XLang 边界通过；独立 C、<code>xl run</code> 直跑 C 和 XLang 三条范例路径逐字节同输出。无输出边界 AOT 已通过；带输出范例 AOT 缺共享符号 <code>xl6ValueDataSnapshotV1</code>，尚未签收完整发布门禁。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>
