@@ -125,7 +125,7 @@ static void xrtree_split(XrtreeNode *node, XrtreeNode *sibling) {
     XrtreeEntry items[XRTREE_MAX_ENTRIES + 1];
     int assigned[XRTREE_MAX_ENTRIES + 1] = {0};
     int first = 0, second = 1, remaining = XRTREE_MAX_ENTRIES - 1;
-    long double worst = -1.0e300L;
+    long double worst = -LDBL_MAX;
     int i, j;
     memcpy(items, node->entries, sizeof(items));
     sibling->leaf = node->leaf;

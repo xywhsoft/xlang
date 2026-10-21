@@ -43,3 +43,5 @@ XLang 对对象状态、结果与异常口径的检查；C 层矩形和句柄校
 oracle/sanitizer 未因纯可见性修改重复执行，完整 AOT 共享阻断未变。
 
 2026-10-19：新增 Windows 单入口 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/rtree/test/check.ps1`，合并严格 GCC/ABI、2048 项 C 暴力查询参照、中央与包内 XLang 边界/分配故障，并将包运行器 C、直接 `xl run` C、XLang 范例各自对照固定输出。Linux `test/check.sh` 补跑此前遗漏的 `allocations.xl`、C 直跑和固定输出；Windows 与 Linux native/narrow 两档 ASan/UBSan 门禁均通过。索引算法未改，完整带输出 AOT 的共享缺符号阻断不变，不签收整包发布级。
+
+2026-10-22：二次分裂选种的固定 `-1e300` 初值在合法极端矩形下高于所有面积浪费值，原实现错误地回退到第 0、1 项。包内 C 用例用九个大矩形先复现，再验证应选第 2、3 项；初值改为平台 `long double` 下界。Windows 严格 GCC/C/XLang/双语门禁及 Linux native/narrow 两档 ASan/UBSan、XLang 门禁通过。公开 API 与查询语义不变；完整带输出 AOT 的共享缺符号阻断未解除，不签收整包发布级。

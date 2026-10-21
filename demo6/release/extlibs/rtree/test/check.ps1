@@ -21,9 +21,14 @@ try {
     & $gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only -Ilib/xrt `
         release/extlibs/rtree/test/abi_contract.c
     if ($LASTEXITCODE -ne 0) { throw 'rtree C ABI contract failed' }
+    & $gcc -std=c11 -Wall -Wextra -Werror -fsyntax-only -Ilib/xrt @moduleFlags `
+        release/extlibs/rtree/test/split_seeds.c
+    if ($LASTEXITCODE -ne 0) { throw 'rtree split seed syntax failed' }
 
     & $runner -Package rtree -Source release/extlibs/rtree/test/test_rtree.c
     if ($LASTEXITCODE -ne 0) { throw 'rtree C oracle and boundaries failed' }
+    & $runner -Package rtree -Source release/extlibs/rtree/test/split_seeds.c
+    if ($LASTEXITCODE -ne 0) { throw 'rtree split seed regression failed' }
     foreach ($source in @(
         'test/cases/extlib_rtree.xl',
         'release/extlibs/rtree/test/boundaries.xl',

@@ -29,6 +29,9 @@ for mode in "${modes[@]}"; do
         "$work/rtree_$mode.o" "$work/xrt_runtime.o" \
         -lm -ldl -o "$work/test_$mode"
     timeout 90s "$work/test_$mode"
+    "$cc" "${flags[@]}" "${extra[@]}" release/extlibs/rtree/test/split_seeds.c \
+        "$work/xrt_runtime.o" -lm -ldl -o "$work/split_$mode"
+    timeout 90s "$work/split_$mode"
 done
 
 "$cc" "${flags[@]}" -fsyntax-only release/examples/extlibs/rtree_c.c
