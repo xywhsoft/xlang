@@ -13,7 +13,9 @@ def main():
     parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--native-root',type=Path)
     parser.add_argument('--dial',action='store_true',help='Include the public Dial overloads and private-entry rejection')
+    parser.add_argument('--dial-interrupt',action='store_true',help='Include public parent/deadline Dial overloads and checked service contracts')
     args=parser.parse_args();root=Path(__file__).resolve().parents[1];out=args.out.resolve()
+    if args.dial_interrupt:args.dial=True
     manifest=args.source_build.resolve();build=json.loads(manifest.read_text(encoding='utf-8-sig'))
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     assert not out.exists() and build['SourceXrt'] and not build['RuntimeOnly'] and build['EnableExeCompiler']==1
@@ -26,6 +28,9 @@ def main():
         cases+=tuple('stdlib_tcp_dial_'+name for name in ('sync','async','host_validation'))
         cases+=('xlir_continuation_unused','xlir_continuation_used')
         negatives+=tuple('bad_stdlib_tcp_dial_'+name for name in ('private','resolver','addresses'))
+    if args.dial_interrupt:
+        cases+=('stdlib_tcp_dial_interrupt',)
+        negatives+=tuple('bad_stdlib_tcp_dial_interrupt_'+name for name in ('private','token','deadline'))
     contract=root/'test/cases/xlir_tcp_managed_contract.c'
     inputs={str(path):sha(path) for path in (Path(__file__).resolve(),manifest,driver,cc,contract,
         *[root/('test/cases/'+name+'.xl') for name in cases+negatives])}
@@ -33,6 +38,7 @@ def main():
     if os.name!='nt':assert args.native_root;env['XL6_SOURCE_NATIVE_ROOT']=str(args.native_root.resolve())
     report=dict(Complete=False,Inputs=inputs,Rows=rows,Products=products,Failures=failures,
         SourceBuild=str(manifest),SourceProductAcceptance=True,ShippingLibraryAcceptance=False,PublicDial=args.dial,
+        PublicDialInterruption=args.dial_interrupt,
         OrdinaryLiteralLoopback=True,ExternalNetworkTests=False,NetworkSecurityTests=False,Scope=__doc__)
     def save():(out/'results.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf8')
     def product(path):products.append(dict(Path=str(path),Sha256=sha(path)));save()
@@ -62,6 +68,14 @@ def main():
             assert data['moduleContinuationAbi']==(2 if asynchronous else 0)
             assert data['moduleTaskPoolAbi']=='none'
             text=generated.read_text()
+            if args.dial_interrupt:
+                assert bool(data['moduleDeadlineOwnershipAbi'])==(case=='stdlib_tcp_dial_interrupt')
+                if case=='stdlib_tcp_dial_interrupt':
+                    required=('xl6TcpDial'+part+'Start'+kind+default+'V1('
+                        for part in ('','Addresses') for kind in ('Cancel','Until','UntilCancel') for default in ('','Default'))
+                    assert all(name in text for name in required)
+                    assert 'xlir_deadline_source' in text and 'xrtCancelWatch(' not in text
+                else:assert 'xlir_deadline_source' not in text
             assert ('static XL6_ExecutionSourceV1* xlir_execution_source;' in text)==transport
             assert not any(symbol in text for symbol in ('xl6NetworkService','xl6_xrt_tcp','xlir_async_pool',
                 'xrtNetStreamRecvAsync(','xrtNetListenerAcceptAsync(','xrtNetEngineCreate('))
@@ -89,6 +103,7 @@ def main():
         # code-page output). Require the semantic boundary and NO generated
         # artifact, not an assumed English rendering of that diagnostic.
         if args.dial:reasons+=('private','[sem]','[sem]')
+        if args.dial_interrupt:reasons+=('private','[sem]','[sem]')
         for case,reason in zip(negatives,reasons):
             output=out/(case+'.c');diagnostic=run(case+'.refused',[driver,root/('test/cases/'+case+'.xl'),'cgen-default',output],True)
             assert reason in diagnostic and not output.exists(),(case,diagnostic)
@@ -122,7 +137,8 @@ def main():
             run('contract.'+opt+'.link',[cc,'@'+str(response)]);product(binary)
             if os.name=='nt' and not (out/'xl.dll').exists():shutil.copy2(root/'release/xl.dll',out/'xl.dll');product(out/'xl.dll')
             family='stdlib_tcp_dial_' if args.dial else 'stdlib_tcp_managed_'
-            proof=run('contract.'+opt+'.run',[binary,root/('test/cases/'+family+'sync.xl'),root/('test/cases/'+family+'async.xl')])
+            proof=run('contract.'+opt+'.run',[binary,root/('test/cases/'+family+'sync.xl'),
+                root/('test/cases/'+family+('interrupt' if args.dial_interrupt else 'async')+'.xl')])
             assert 'TCP XLIR:' in proof and 'before C/header output' in proof
         report['InputsUnchanged']=all(sha(path)==digest for path,digest in inputs.items()) and all(sha(row['Path'])==row['Sha256'].lower() for row in build['Inputs'])
         report['LogsUnchanged']=all(sha(row['Log'])==row['Sha256'] for row in rows)

@@ -73,4 +73,16 @@ XL6_TEXT_API uint64_t xl6TcpListenerStatsActiveDispatchesV1(const void*);
 XL6_TEXT_API uint64_t xl6TcpListenerStatsQueuedAcceptsV1(const void*);
 XL6_TEXT_API uint64_t xl6TcpListenerStatsPeakQueuedAcceptsV1(const void*);
 XL6_TEXT_API uint64_t xl6TcpListenerStatsAcceptWaitersV1(const void*);
+XL6_TEXT_API struct xfuture* xl6TcpDialStartCancelDefaultV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,xstrview host,int64_t port,void* parent);
+XL6_TEXT_API struct xfuture* xl6TcpDialStartCancelV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,xstrview host,int64_t port,const void* options,void* parent);
+XL6_TEXT_API struct xfuture* xl6TcpDialStartUntilDefaultV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,xstrview host,int64_t port,uint64_t due);
+XL6_TEXT_API struct xfuture* xl6TcpDialStartUntilV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,xstrview host,int64_t port,const void* options,uint64_t due);
+XL6_TEXT_API struct xfuture* xl6TcpDialStartUntilCancelDefaultV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,xstrview host,int64_t port,uint64_t due,void* parent);
+XL6_TEXT_API struct xfuture* xl6TcpDialStartUntilCancelV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,xstrview host,int64_t port,const void* options,uint64_t due,void* parent);
+XL6_TEXT_API struct xfuture* xl6TcpDialAddressesStartCancelDefaultV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,const void* addresses,void* parent);
+XL6_TEXT_API struct xfuture* xl6TcpDialAddressesStartCancelV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,const void* addresses,const void* options,void* parent);
+XL6_TEXT_API struct xfuture* xl6TcpDialAddressesStartUntilDefaultV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,const void* addresses,uint64_t due);
+XL6_TEXT_API struct xfuture* xl6TcpDialAddressesStartUntilV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,const void* addresses,const void* options,uint64_t due);
+XL6_TEXT_API struct xfuture* xl6TcpDialAddressesStartUntilCancelDefaultV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,const void* addresses,uint64_t due,void* parent);
+XL6_TEXT_API struct xfuture* xl6TcpDialAddressesStartUntilCancelV1(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,const void* addresses,const void* options,uint64_t due,void* parent);
 #endif

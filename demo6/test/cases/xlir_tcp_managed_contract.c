@@ -4,7 +4,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
-static size_t targets,refusals,contexts,byteFutures,policies,emissionGuards;
+static size_t targets,refusals,contexts,byteFutures,policies,emissionGuards,deadlines;
 static unsigned guardedKinds;
 static void refused(XL6_IrModule* module,const XL6_IrCallTarget* target,unsigned kind)
 {
@@ -47,6 +47,10 @@ static void check(const char* path)
         refused(module,target,2);*target=saved;
         target->nativeServicesRequired=saved.nativeServicesRequired?0:XL6_IR_CALL_NATIVE_SERVICE_EXECUTOR_V1;
         refused(module,target,3);*target=saved;
+        if(saved.nativeServicesRequired&XL6_IR_CALL_NATIVE_SERVICE_DEADLINE_V1){
+            target->nativeServicesRequired=saved.nativeServicesRequired&~XL6_IR_CALL_NATIVE_SERVICE_DEADLINE_V1;
+            refused(module,target,8);*target=saved;++deadlines;
+        }
         if(saved.nativeHandlePolicyCName){
             ++policies;target->nativeHandlePolicyCName="wrongTcpHandlePolicy";
             refused(module,NULL,4);*target=saved;
@@ -71,7 +75,7 @@ static void check(const char* path)
 int main(int argc,char** argv)
 {
     assert(argc==3);check(argv[1]);check(argv[2]);
-    assert(targets>50&&refusals>200&&contexts>=2&&policies>=4&&byteFutures>=1&&emissionGuards==8);
+    assert(targets>50&&refusals>200&&contexts>=2&&policies>=4&&byteFutures>=1&&emissionGuards==(deadlines?9u:8u));
     printf("TCP XLIR: %zu targets, %zu descriptor refusals, %zu violation kinds guarded by full verifier before C/header output; exact services, class fields, byte Futures, ownership and effects\n",targets,refusals,emissionGuards);
     return 0;
 }
