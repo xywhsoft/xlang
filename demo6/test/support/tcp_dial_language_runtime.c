@@ -116,7 +116,10 @@ static void dialRun(xnetportbackend backend,unsigned mode)
     xl6ContinuationExecutorClose(services.executor);CHECK(xl6ContinuationExecutorDestroy(services.executor));
     balanced(&before);++dialCases;
 }
-int main(int argc,char** argv)
+#ifndef XL6_TCP_DIAL_TEST_ENTRY
+#define XL6_TCP_DIAL_TEST_ENTRY main
+#endif
+int XL6_TCP_DIAL_TEST_ENTRY(int argc,char** argv)
 {
     CHECK(tcpLanguageRegressionMain(argc,argv)==0);CHECK(xrtMemDebugEnable(true));
     xnetportbackend backend=XNET_PORT_SELECT;

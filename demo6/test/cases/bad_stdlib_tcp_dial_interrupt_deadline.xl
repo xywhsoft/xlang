@@ -1,0 +1,3 @@
+func wrong(NetEngine engine, NetAddressList addresses) as future<TcpStream>
+    return tcp.dialAsyncUntil(engine, addresses, "tomorrow")
+end

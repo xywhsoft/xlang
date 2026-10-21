@@ -1,0 +1,3 @@
+func wrong(TcpStream stream, NetAddressList addresses) as future<TcpStream>
+    return stream.startDialAddressesUntilNative(stream, addresses, uint64(0))
+end

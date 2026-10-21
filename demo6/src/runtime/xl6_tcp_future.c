@@ -125,6 +125,8 @@ XL6_TcpClassCaptureV1* xl6TcpClassCapturePrepareInternalV1(XL6_NativeClassFieldC
 }
 xfuture* xl6TcpClassCapturePublishInternalV1(XL6_RuntimeServicesV1 services,XL6_TcpClassCaptureV1* capture,xfuture* source)
 {return publish(services,capture,source);}
+xfuture* xl6TcpClassCaptureFailInternalV1(XL6_TcpClassCaptureV1* capture,xfuture* source)
+{return failed(capture,source);}
 static xfuture* classFuture(XL6_RuntimeServicesV1 services,XL6_NativeClassFieldContextV1 context,void* receiver,const xvalue* object,bool accept)
 {
     XL6_ExecutionResourceV1* carrier=NULL;

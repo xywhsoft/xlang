@@ -14,4 +14,6 @@ XL6_EXECUTION_INTERNAL XL6_TcpClassCaptureV1* xl6TcpClassCapturePrepareInternalV
     XL6_TcpPromoteResidentV1,bool,XL6_ExecutionResourceV1**);
 XL6_EXECUTION_INTERNAL struct xfuture* xl6TcpClassCapturePublishInternalV1(
     XL6_RuntimeServicesV1,XL6_TcpClassCaptureV1*,struct xfuture*);
+XL6_EXECUTION_INTERNAL struct xfuture* xl6TcpClassCaptureFailInternalV1(
+    XL6_TcpClassCaptureV1*,struct xfuture*);
 #endif

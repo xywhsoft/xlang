@@ -769,7 +769,8 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_tcp_dial_future.c",D(R(TCP_DIAL),R(TCP_FUTURE)),{"XRT_MODULE_STRING","XRT_MODULE_UNICODE_TEXT"}},
     {"src/runtime/xl6_tcp_dial_sync.c",D(R(TCP_DIAL),R(FUTURE_PAYLOAD)),{"XRT_MODULE_STRING","XRT_MODULE_UNICODE_TEXT"}},
     {"src/runtime/xl6_future_callback_interrupt.c",D(R(FUTURE_CALLBACK_QUEUE),R(DEADLINE_SERVICE)),{"XRT_MODULE_TIME"}},
-    {"src/runtime/xl6_ownership_domain_future_callback_interrupt.c",D(R(OWNERSHIP_CATALOG),R(FUTURE_CALLBACK_INTERRUPT)),{NULL}}
+    {"src/runtime/xl6_ownership_domain_future_callback_interrupt.c",D(R(OWNERSHIP_CATALOG),R(FUTURE_CALLBACK_INTERRUPT)),{NULL}},
+    {"src/runtime/xl6_tcp_dial_interrupt_future.c",D(R(TCP_DIAL_FUTURE),R(FUTURE_CALLBACK_INTERRUPT)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
