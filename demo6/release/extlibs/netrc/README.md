@@ -195,3 +195,9 @@ Windows `-SkipAot`、Linux C ASan/UBSan 与 XLang/Python 联合门禁，
 字符串化成功后会先清理旧线程错误，分类只依据本次流操作。
 Windows 严格 C/ABI、C/XLang 边界、Python 文件互通与 Linux C
 ASan/UBSan、XLang 对照门禁通过；本次跳过完整 AOT，整包仍未发布签收。
+
+2026-10-22：新增原生绑定错误槽的双线程交错测试。线程 A 解析失败后，
+线程 B 成功解析并清理自己的错误；线程 A 的错误类别与行号仍保持不变，
+主线程也没有继承两者的错误。Windows `-SkipAot` 与 Linux C ASan/UBSan、
+XLang/Python 文件互通门禁通过。仅补测试，未改公开 API 或解析器；
+完整带输出 AOT 的共享阻断仍未签收。

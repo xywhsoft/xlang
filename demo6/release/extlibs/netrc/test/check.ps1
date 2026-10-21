@@ -46,7 +46,7 @@ try {
         '-DXRT_MODULE_VALUE_CONTAINER',
         'release/extlibs/netrc/netrc_native.c'))
 
-    foreach ($name in @('test_netrc', 'test_netrc_boundaries')) {
+    foreach ($name in @('test_netrc', 'test_netrc_boundaries', 'test_native_tls')) {
         $source = "release/extlibs/netrc/test/$name.c"
         $target = Join-Path $work "$name.exe"
         $null = Run "$name compile" $gcc ($flags + @($source, $runtime) +

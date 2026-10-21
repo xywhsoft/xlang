@@ -16,7 +16,7 @@ export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
     release/extlibs/netrc/netrc_native.c
 "$cc" "${flags[@]}" -c release/extlibs/netrc/test/xrt_runtime.c \
     -o "$work/xrt_runtime.o"
-for name in test_netrc test_netrc_boundaries; do
+for name in test_netrc test_netrc_boundaries test_native_tls; do
     "$cc" "${flags[@]}" "release/extlibs/netrc/test/$name.c" \
         "$work/xrt_runtime.o" -lm -ldl -o "$work/$name"
     ( cd "$work" && timeout 90s "$work/$name" )
