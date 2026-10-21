@@ -243,7 +243,7 @@ int64_t xep_build(const char *path, xvalue *meta, xvalue *chapters) {
     result = (int64_t)archive.data.Size;
     goto done;
 invalid:
-    if (xrtGetError() == NULL) xep_error("invalid EPUB metadata, chapter or 8 MiB limit");
+    if (xrtGetError() == NULL) xep_error("invalid EPUB metadata or chapter");
 done:
     xrtBufferUnit(&archive.data);
     xrtBufferUnit(&opf);

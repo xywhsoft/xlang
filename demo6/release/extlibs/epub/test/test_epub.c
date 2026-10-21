@@ -208,6 +208,27 @@ int main(int argc, char **argv) {
     CHECK(xep_build(path, meta, chapters) == 0);
     xrtClearError();
     CHECK(put(chapter, "text", long_line));
+    {
+        const size_t large_sizes[] = {
+            8u * 1024u * 1024u - 256u,
+            8u * 1024u * 1024u + 1u
+        };
+        char *large_text = (char *)xrtMalloc(large_sizes[1] + 1u);
+        CHECK(large_text != NULL);
+        memset(large_text, 'A', large_sizes[1] + 1u);
+        for (i = 0; i < 2; ++i) {
+            large_text[large_sizes[i]] = 0;
+            CHECK(put(chapter, "text", large_text));
+            CHECK(xep_build(path, meta, chapters) == 0);
+            CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_RANGE);
+            entry = xep_read_entry(path, "mimetype");
+            CHECK(entry != NULL && strcmp(entry, "application/epub+zip") == 0);
+            xrtFree(entry);
+            large_text[large_sizes[i]] = 'A';
+        }
+        xrtFree(large_text);
+        CHECK(put(chapter, "text", long_line));
+    }
     CHECK(xrtFileWriteAll(broken, (xbytesview){(cbytes)"PK\x03\x04", 4}));
     CHECK(xep_read_entry(broken, "mimetype") == NULL);
     xrtClearError();

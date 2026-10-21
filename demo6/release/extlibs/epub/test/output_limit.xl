@@ -1,0 +1,29 @@
+import epub
+
+func main(...) as int
+    string workDir = path.join(path.temp(), "xlang_epub_limit_" + crypto.randomString(20))
+    dir.createAll(workDir)
+    try
+        string target = path.join(workDir, "book.epub")
+        var meta = {"title": "Limit", "language": "en",
+            "identifier": "urn:xlang:test:epub-limit",
+            "modified": "2026-08-01T00:00:00Z"}
+        assert epub.build(target, meta, [{"title": "Chapter", "text": "old"}]) > 0
+
+        for size in [8 * 1024 * 1024 - 256, 8 * 1024 * 1024 + 1]
+            bool exceeded = false
+            try
+                epub.build(target, meta,
+                    [{"title": "Chapter", "text": string.repeat("A", size)}])
+            catch RangeError error
+                exceeded = true
+            end
+            assert exceeded
+            assert epub.readEntry(target, "OEBPS/ch1.xhtml").contains("old")
+        end
+        println("epub output limit: PASS")
+    finally
+        assert dir.delete(workDir), "temporary EPUB test directory must be removed"
+    end
+    return 0
+end

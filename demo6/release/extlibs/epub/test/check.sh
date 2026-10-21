@@ -40,6 +40,7 @@ cmp "$work/c.epub" "$work/c_direct.epub"
 timeout 90s release/xl run test/cases/extlib_epub.xl
 timeout 90s release/xl run test/cases/extlib_epub_boundaries.xl
 timeout 90s release/xl run release/extlibs/epub/test/ffi_boundaries.xl
+timeout 90s release/xl run release/extlibs/epub/test/output_limit.xl
 timeout 90s release/xl run release/examples/extlibs/epub.xl -- "$work/xlang.epub" > "$work/example_xl.txt"
 diff -u "$work/example_c.txt" "$work/example_xl.txt"
 

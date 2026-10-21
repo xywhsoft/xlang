@@ -5,7 +5,11 @@
 #include <string.h>
 
 int xep_append(xbuffer *out, const void *data, size_t size) {
-    if (out->Size > XEP_LIMIT || size > XEP_LIMIT - out->Size) return 0;
+    if (out->Size > XEP_LIMIT || size > XEP_LIMIT - out->Size) {
+        xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.epub", 0,
+            "EPUB output exceeds 8 MiB");
+        return 0;
+    }
     return xrtBufferAppend(out, (xbytesview){(cbytes)data, size});
 }
 
@@ -53,8 +57,12 @@ int xep_archive_add(XepArchive *archive, const char *name,
     XepEntry *entry;
     size_t name_size = strlen(name);
     if (archive->count >= XEP_MAX_ENTRIES || name_size == 0 ||
-        name_size >= sizeof(archive->entries[0].name) || size > XEP_LIMIT ||
-        data == NULL || out->Size > XEP_LIMIT) return 0;
+        name_size >= sizeof(archive->entries[0].name) || data == NULL) return 0;
+    if (out->Size > XEP_LIMIT || size > XEP_LIMIT - out->Size) {
+        xrtSetErrorInfo(XERR_RANGE, "xlang.extlib.epub", 0,
+            "EPUB output exceeds 8 MiB");
+        return 0;
+    }
     entry = &archive->entries[archive->count];
     memcpy(entry->name, name, name_size + 1);
     entry->size = (uint32)size;

@@ -36,7 +36,8 @@ try {
     foreach ($source in @(
         'test/cases/extlib_epub.xl',
         'test/cases/extlib_epub_boundaries.xl',
-        'release/extlibs/epub/test/ffi_boundaries.xl'
+        'release/extlibs/epub/test/ffi_boundaries.xl',
+        'release/extlibs/epub/test/output_limit.xl'
     )) {
         & $xl run $source
         if ($LASTEXITCODE -ne 0) { throw "epub XLang test failed: $source" }

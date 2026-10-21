@@ -22,7 +22,7 @@ int bytes = epub.build("book.epub", meta, chapters)
 
 未指定 `modified` 且系统时钟读取失败时，构建会失败并保留 XRT 的 I/O 错误，不会把失败时的零时间戳写成 1970 年，也不会创建或替换目标文件。显式提供 `modified` 不依赖系统时钟。
 
-`build` 返回生成文件字节数，失败抛异常；文件经 XRT 原子写入，失败不会先截断已有目标。输入字符串要求有效 UTF-8、无内嵌 NUL，生成的 ZIP 最大 8 MiB；不静默截断长行。XLang 接口在传入 C 前检查 `build` 的路径，以及 `readEntry` 的路径和条目名，拒绝内嵌 NUL，避免意外访问截断后的前缀路径或条目。`readEntry(path, name)` 仅用于读取本库生成的 **stored 文本条目**，返回独立字符串，找不到返回空串；损坏归档或不支持的压缩方式报错，不把它当成任意 EPUB 的通用读取器。C 接口见 `include/epub_native.h`，读取结果由调用方 `xrtFree`。
+`build` 返回生成文件字节数，失败抛异常；文件经 XRT 原子写入，失败不会先截断已有目标。输入字符串要求有效 UTF-8、无内嵌 NUL，生成的 ZIP 最大 8 MiB；单段内容或累积 ZIP 超限时，C 接口报告 `XERR_RANGE`，XLang 抛 `RangeError`，已有目标保持不变。不静默截断长行。XLang 接口在传入 C 前检查 `build` 的路径，以及 `readEntry` 的路径和条目名，拒绝内嵌 NUL，避免意外访问截断后的前缀路径或条目。`readEntry(path, name)` 仅用于读取本库生成的 **stored 文本条目**，返回独立字符串，找不到返回空串；损坏归档或不支持的压缩方式报错，不把它当成任意 EPUB 的通用读取器。C 接口见 `include/epub_native.h`，读取结果由调用方 `xrtFree`。
 
 C 构建结果使用 `int64_t`，与 XLang `int` 的 ABI 一致；公开头可单独包含，不要求调用方预定义 XRT 值容器模块宏。
 
@@ -122,3 +122,5 @@ PowerShell 5.1 在解析脚本前因系统代码页误读中文。完整 AOT 阻
 2026-10-19：新增 Windows `test/check.ps1`，把严格 GCC 清单宏/ABI、C 边界、中央及包内 XLang 边界、C/XLang 同输出与同字节 EPUB，以及 Python 独立 ZIP CRC/XML 检查收成一条可复跑门禁。临时电子书只存于本次系统临时目录，完成后清理；Windows 与 Linux ASan/UBSan 联合门禁通过。构建算法未改，完整 AOT 共享缺符号阻断仍在，不签收发布级。
 
 2026-10-20：Windows 门禁新增显式 `-SkipAot` 快速模式；默认模式继续构建并运行核心 AOT，再构建双语范例 AOT、核对输出与 EPUB 文件字节。AOT 核心电子书使用系统临时目录的随机文件名并在 `finally` 删除，门禁构建产物使用本次独占目录，成功或失败均清理。Windows 快速模式与核心 AOT 通过；默认门禁在范例 AOT 链接处准确报告共享 `xl6ValueDataSnapshotV1` 缺符号，并以非零状态退出，不误报整包通过。完整发布验收仍待主线修复。
+
+2026-10-21：生成超出 8 MiB 原错误归类为参数错误。C/XLang 回归先复现，现单段输出与累积 ZIP 超限均保留范围错误，并核对失败不覆盖已有 EPUB。Windows `test/check.ps1 -SkipAot` 和 Linux `test/check.sh` 的 C ASan/UBSan、XLang、独立 ZIP/XML 门禁通过；默认 Windows 门禁的核心 AOT 通过，范例 AOT 仍缺共享符号 `xl6ValueDataSnapshotV1`。

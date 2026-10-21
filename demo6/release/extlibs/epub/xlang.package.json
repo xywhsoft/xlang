@@ -8,7 +8,7 @@
     "links": [],
     "loadlibs": [],
     "native": { "singleton": false, "loadName": "", "version": "" },
-    "coverage": { "mode": "suite", "tests": ["test/ffi_boundaries.xl"] },
+    "coverage": { "mode": "suite", "tests": ["test/ffi_boundaries.xl", "test/output_limit.xl"] },
     "artifact": {
         "kind": "source",
         "includeDirs": ["include"],
