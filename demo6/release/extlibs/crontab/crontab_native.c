@@ -1,120 +1,231 @@
-/*
- * crontab_native.c - Cron expression parser and matcher
- * Format: minute hour day_of_month month day_of_week
- */
-#include <stdlib.h>
-#include <string.h>
+/* 五字段本地时间 cron；解析无共享状态，时间分解复用 XRT。 */
+#include "include/crontab_native.h"
+
+#include <limits.h>
 #include <stdio.h>
-#include <time.h>
-static char cron_buf[4096];
+#include <string.h>
 
-/* Parse a single cron field into a bitmask.
-   Supports: *, N, N-M, N/S, N-M/S, comma lists */
-static int parse_field(const char *field, int min, int max, unsigned long long *mask) {
-    char buf[256];
-    char *tok;
-    *mask = 0;
-    strncpy(buf, field, sizeof(buf) - 1);
-    buf[sizeof(buf) - 1] = '\0';
+#ifndef XRT_MODULE_TIME
+#define XRT_MODULE_TIME
+#endif
+#ifndef XRT_MODULE_TIME_LOCAL
+#define XRT_MODULE_TIME_LOCAL
+#endif
+#include "xrt.h"
 
-    tok = strtok(buf, ",");
-    while (tok) {
-        int lo = min, hi = max, step = 1;
-        char *slash = strchr(tok, '/');
-        if (slash) { *slash = '\0'; step = atoi(slash + 1); if (step < 1) step = 1; }
-        if (strcmp(tok, "*") == 0) { lo = min; hi = max; }
-        else {
-            char *dash = strchr(tok, '-');
-            if (dash) { *dash = '\0'; lo = atoi(tok); hi = atoi(dash + 1); }
-            else { lo = hi = atoi(tok); }
+#define XCRON_MAX_TEXT 1024
+#define XCRON_SEARCH_MINUTES (INT64_C(8) * 366 * 24 * 60)
+
+typedef struct {
+    uint64_t mask;
+    bool leading_star;
+    const char *text;
+    size_t size;
+} XcronField;
+
+typedef struct {
+    XcronField field[5];
+} XcronExpr;
+
+static const int xcron_min[5] = {0, 0, 1, 1, 0};
+static const int xcron_max[5] = {59, 23, 31, 12, 7};
+
+static int xcron_number(const char **cursor, const char *end, int maximum, int *out) {
+    int value = 0, any = 0;
+    while (*cursor < end && **cursor >= '0' && **cursor <= '9') {
+        int digit = **cursor - '0';
+        if (digit > maximum || value > (maximum - digit) / 10) return 0;
+        value = value * 10 + digit;
+        ++*cursor;
+        any = 1;
+    }
+    if (!any) return 0;
+    *out = value;
+    return 1;
+}
+
+static int xcron_field(XcronField *field, int index) {
+    const char *cursor = field->text;
+    const char *end = cursor + field->size;
+    int minimum = xcron_min[index], maximum = xcron_max[index];
+    if (cursor == end) return 0;
+    field->mask = 0;
+    field->leading_star = *cursor == '*';
+    while (cursor < end) {
+        int lo, hi, step = 1, value;
+        if (*cursor == '*') {
+            lo = minimum;
+            hi = maximum;
+            ++cursor;
+        } else {
+            if (!xcron_number(&cursor, end, maximum, &lo) || lo < minimum) return 0;
+            hi = lo;
+            if (cursor < end && *cursor == '-') {
+                ++cursor;
+                if (!xcron_number(&cursor, end, maximum, &hi) || hi < lo) return 0;
+            } else if (cursor < end && *cursor == '/') {
+                hi = maximum;  /* N/S 从 N 起每隔 S 个值。 */
+            }
         }
-        if (lo < min) lo = min;
-        if (hi > max) hi = max;
-        { int v; for (v = lo; v <= hi; v += step) *mask |= (1ULL << v); }
-        tok = strtok(NULL, ",");
+        if (cursor < end && *cursor == '/') {
+            ++cursor;
+            if (!xcron_number(&cursor, end, INT_MAX, &step) || step == 0) return 0;
+        }
+        value = lo;
+        for (;;) {
+            int bit = index == 4 && value == 7 ? 0 : value;
+            field->mask |= UINT64_C(1) << bit;
+            if (step > hi - value) break;
+            value += step;
+        }
+        if (cursor == end) break;
+        if (*cursor != ',') return 0;
+        ++cursor;
+        if (cursor == end) return 0;
+    }
+    return field->mask != 0;
+}
+
+static int xcron_parse(const char *text, size_t size, XcronExpr *out) {
+    size_t position = 0;
+    int index;
+    if (text == NULL || out == NULL || size == 0 || size > XCRON_MAX_TEXT) return 0;
+    for (index = 0; index < 5; ++index) {
+        size_t start;
+        while (position < size && (text[position] == ' ' || text[position] == '\t')) ++position;
+        start = position;
+        while (position < size && text[position] != ' ' && text[position] != '\t' && text[position] != '\0') ++position;
+        if (start == position || (position < size && text[position] == '\0')) return 0;
+        out->field[index].text = text + start;
+        out->field[index].size = position - start;
+        if (!xcron_field(&out->field[index], index)) return 0;
+    }
+    while (position < size && (text[position] == ' ' || text[position] == '\t')) ++position;
+    return position == size;
+}
+
+static int xcron_match(const XcronExpr *expr, const xdatetime *date) {
+    int day = (expr->field[2].mask & (UINT64_C(1) << date->Day)) != 0;
+    int weekday = (expr->field[4].mask & (UINT64_C(1) << date->Weekday)) != 0;
+    int dateMatch;
+    dateMatch = (expr->field[2].leading_star || expr->field[4].leading_star) ?
+        day && weekday : day || weekday;
+    return dateMatch &&
+        (expr->field[0].mask & (UINT64_C(1) << date->Minute)) != 0 &&
+        (expr->field[1].mask & (UINT64_C(1) << date->Hour)) != 0 &&
+        (expr->field[3].mask & (UINT64_C(1) << date->Month)) != 0;
+}
+
+static int xcron_local(int64_t seconds, xdatetime *date) {
+    xtime time;
+    if (!xrtTimeFromUnix(seconds, &time) || !xrtTimeLocal(time, date)) {
+        xrtClearError();
+        return 0;
     }
     return 1;
 }
 
-typedef struct {
-    unsigned long long minute;   /* 0-59 */
-    unsigned long long hour;     /* 0-23 */
-    unsigned long long dom;      /* 1-31 */
-    unsigned long long month;    /* 1-12 */
-    unsigned long long dow;      /* 0-6 (0=Sunday) */
-} CronExpr;
-
-static int cron_parse(const char *expr, CronExpr *ce) {
-    char buf[512];
-    char *fields[5];
-    int i = 0;
-    char *tok;
-    if (!expr) return 0;
-    strncpy(buf, expr, sizeof(buf) - 1);
-    buf[sizeof(buf) - 1] = '\0';
-    tok = strtok(buf, " \t");
-    while (tok && i < 5) { fields[i++] = tok; tok = strtok(NULL, " \t"); }
-    if (i < 5) return 0;
-    parse_field(fields[0], 0, 59, &ce->minute);
-    parse_field(fields[1], 0, 23, &ce->hour);
-    parse_field(fields[2], 1, 31, &ce->dom);
-    parse_field(fields[3], 1, 12, &ce->month);
-    parse_field(fields[4], 0, 6, &ce->dow);
-    return 1;
-}
-
-int xcron_matches(const char *expr, long long timestamp) {
-    CronExpr ce;
-    time_t t = (time_t)timestamp;
-    struct tm *tm_info = localtime(&t);
-    if (!cron_parse(expr, &ce)) return 0;
-    if (!(ce.minute & (1ULL << tm_info->tm_min))) return 0;
-    if (!(ce.hour & (1ULL << tm_info->tm_hour))) return 0;
-    if (!(ce.dom & (1ULL << tm_info->tm_mday))) return 0;
-    if (!(ce.month & (1ULL << (tm_info->tm_mon + 1)))) return 0;
-    if (!(ce.dow & (1ULL << tm_info->tm_wday))) return 0;
-    return 1;
-}
-
-long long xcron_next(const char *expr, long long from_timestamp) {
-    CronExpr ce;
-    time_t t;
-    int iterations = 0;
-    if (!cron_parse(expr, &ce)) return -1;
-    /* start from next minute */
-    t = (time_t)from_timestamp;
-    t = t - (t % 60) + 60;
-    while (iterations < 525960) {  /* max ~1 year of minutes */
-        struct tm *tm_info = localtime(&t);
-        if ((ce.minute & (1ULL << tm_info->tm_min)) &&
-            (ce.hour & (1ULL << tm_info->tm_hour)) &&
-            (ce.dom & (1ULL << tm_info->tm_mday)) &&
-            (ce.month & (1ULL << (tm_info->tm_mon + 1))) &&
-            (ce.dow & (1ULL << tm_info->tm_wday))) {
-            return (long long)t;
+/* 仅当月内日不以 * 开头、星期以 * 开头时，可用月内日提前判定不可达。 */
+static bool xcron_calendar_possible(const XcronExpr *expr) {
+    static const unsigned char maxDay[13] =
+        {0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    int month, day;
+    if (!expr->field[4].leading_star || expr->field[2].leading_star) return true;
+    for (month = 1; month <= 12; ++month) {
+        if ((expr->field[3].mask & (UINT64_C(1) << month)) == 0) continue;
+        for (day = 1; day <= maxDay[month]; ++day) {
+            if ((expr->field[2].mask & (UINT64_C(1) << day)) != 0) return true;
         }
-        t += 60;
-        iterations++;
+    }
+    return false;
+}
+
+/* ------------ 公开 API ------------ */
+
+bool xcron_is_valid(const char *text, size_t size) {
+    XcronExpr expr;
+    xrtClearError();
+    return xcron_parse(text, size, &expr) != 0;
+}
+
+bool xcron_matches(const char *text, size_t size, int64_t timestamp) {
+    XcronExpr expr;
+    xdatetime date;
+    xrtClearError();
+    return xcron_parse(text, size, &expr) && xcron_local(timestamp, &date) &&
+        xcron_match(&expr, &date);
+}
+
+int64_t xcron_next(const char *text, size_t size, int64_t after) {
+    XcronExpr expr;
+    int64_t candidate, delta, iteration, previous;
+    int previousOffset;
+    xdatetime date;
+    xrtClearError();
+    if (!xcron_parse(text, size, &expr) || !xcron_calendar_possible(&expr)) return -1;
+    if (!xcron_local(after, &date)) return -1;
+    /* 历史时区可能有秒级 UTC 偏移，不能用 Unix 秒数对齐本地分钟。 */
+    delta = 60 - date.Second;
+    if (after > INT64_MAX - delta) return -1;
+    previous = after;
+    previousOffset = date.Offset;
+    candidate = after + delta;
+    for (iteration = 0; iteration < XCRON_SEARCH_MINUTES; ++iteration) {
+        if (!xcron_local(candidate, &date)) return -1;
+        if (date.Offset != previousOffset) {
+            int64_t probe;
+            /* 时差切换可让新的本地整分钟落在原步长之前。 */
+            for (probe = previous + 1; probe < candidate; ++probe) {
+                xdatetime crossed;
+                if (!xcron_local(probe, &crossed)) return -1;
+                if (crossed.Second == 0 && xcron_match(&expr, &crossed))
+                    return probe;
+            }
+        }
+        if (date.Second == 0 && xcron_match(&expr, &date)) return candidate;
+        previous = candidate;
+        previousOffset = date.Offset;
+        delta = 60 - date.Second;
+        if (candidate > INT64_MAX - delta) break;
+        candidate += delta;
     }
     return -1;
 }
 
-const char *xcron_describe(const char *expr) {
-    CronExpr ce;
-    int pos = 0;
-    if (!cron_parse(expr, &ce)) return "invalid";
-
-    /* simple description */
-    if (ce.minute == ~0ULL >> (64 - 60)) pos += snprintf(cron_buf + pos, sizeof(cron_buf) - pos, "every minute");
-    else pos += snprintf(cron_buf + pos, sizeof(cron_buf) - pos, "at specific minutes");
-
-    if (ce.hour != (~0ULL >> (64 - 24))) pos += snprintf(cron_buf + pos, sizeof(cron_buf) - pos, ", specific hours");
-    if (ce.dom != (~0ULL >> (64 - 32))) pos += snprintf(cron_buf + pos, sizeof(cron_buf) - pos, ", specific days");
-
-    return cron_buf;
-}
-
-int xcron_is_valid(const char *expr) {
-    CronExpr ce;
-    return cron_parse(expr, &ce);
+void *xcron_describe(const char *text, size_t size) {
+    XcronExpr expr;
+    static const char *labels[5] = {"minute", "hour", "day", "month", "weekday"};
+    char *result;
+    size_t capacity, used = 0;
+    int index;
+    xrtClearError();
+    if (!xcron_parse(text, size, &expr)) {
+        result = xrtMalloc(8);
+        if (result != NULL) memcpy(result, "invalid", 8);
+        return result;
+    }
+    /* 步长字段虽以 * 开头，却不是“每分钟”。 */
+    if (expr.field[0].leading_star && expr.field[0].size == 1 &&
+        expr.field[1].leading_star && expr.field[1].size == 1 &&
+        expr.field[2].leading_star && expr.field[2].size == 1 &&
+        expr.field[3].leading_star && expr.field[3].size == 1 &&
+        expr.field[4].leading_star && expr.field[4].size == 1) {
+        result = xrtMalloc(13);
+        if (result != NULL) memcpy(result, "every minute", 13);
+        return result;
+    }
+    capacity = size + 64;
+    result = xrtMalloc(capacity);
+    if (result == NULL) return NULL;
+    for (index = 0; index < 5; ++index) {
+        int written = snprintf(result + used, capacity - used, "%s%s=%.*s",
+            index == 0 ? "" : "; ", labels[index], (int)expr.field[index].size,
+            expr.field[index].text);
+        if (written < 0 || (size_t)written >= capacity - used) {
+            xrtFree(result);
+            return NULL;
+        }
+        used += (size_t)written;
+    }
+    return result;
 }

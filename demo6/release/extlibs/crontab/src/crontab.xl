@@ -1,22 +1,26 @@
-extern "xcron_matches" func __cron_matches(string expr, int timestamp) as bool
-extern "xcron_next" func __cron_next(string expr, int fromTimestamp) as int
-extern "xcron_describe" func __cron_describe(string expr) as string
-extern "xcron_is_valid" func __cron_is_valid(string expr) as bool
+extern "xcron_matches" func __cron_matches(string expr, c_size length, int timestamp) as bool
+extern "xcron_next" func __cron_next(string expr, c_size length, int fromTimestamp) as int
+extern "xcron_describe" func __cron_describe(string expr, c_size length) as point
+extern "xcron_is_valid" func __cron_is_valid(string expr, c_size length) as bool
 
 
 
 export func matches(string expr, int timestamp) as bool
-    return __cron_matches(expr, timestamp)
+    return __cron_matches(expr, c_size(string.byteLen(expr)), timestamp)
 end
 
 export func next(string expr, int fromTimestamp) as int
-    return __cron_next(expr, fromTimestamp)
+    return __cron_next(expr, c_size(string.byteLen(expr)), fromTimestamp)
 end
 
 export func describe(string expr) as string
-    return __cron_describe(expr)
+    point result = __cron_describe(expr, c_size(string.byteLen(expr)))
+    if result == null then
+        throw MemoryError "crontab: cannot create description"
+    end
+    return __xl_runtime.takeCstr(result)
 end
 
 export func isValid(string expr) as bool
-    return __cron_is_valid(expr)
+    return __cron_is_valid(expr, c_size(string.byteLen(expr)))
 end

@@ -1,0 +1,13 @@
+import crontab
+
+// 此用例须在 TZ=America/New_York 且具有 IANA 历史时区数据的 Linux 上运行。
+int midnight = crontab.next("0 0 * * *", -2840123039)
+assert midnight == -2840123038
+assert crontab.matches("0 0 * * *", midnight)
+
+// 1883 年时差切换后的第一个本地整分钟不能被原步长跳过。
+int noon = crontab.next("0 12 * * *", -2717650858)
+assert noon == -2717650800
+assert crontab.matches("0 12 * * *", noon)
+
+println("crontab historical timezone: PASS")

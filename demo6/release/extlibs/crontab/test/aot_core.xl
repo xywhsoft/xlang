@@ -1,0 +1,20 @@
+import crontab
+
+func main(...) as int
+    assert crontab.isValid("*/5 * * * *")
+    int from = 1700000000
+    int nextMinute = crontab.next("* * * * *", from)
+    assert nextMinute == from - from % 60 + 60
+    assert crontab.matches("* * * * *", nextMinute)
+    int jan15 = crontab.next("0 12 15 1 *", from)
+    int jan16 = crontab.next("0 12 16 1 *", from)
+    int jan23 = crontab.next("0 12 23 1 *", from)
+    assert jan15 > 0 and jan16 > 0 and jan23 > 0
+    assert not crontab.matches("0 12 15 1 */2", jan15)
+    assert not crontab.matches("0 12 15 1 */2", jan16)
+    assert not crontab.matches("0 12 */2 1 2", jan16)
+    assert crontab.matches("0 12 */2 1 2", jan23)
+    assert crontab.matches("0 12 1-31 1 2", jan15)
+    assert string.indexOf(crontab.describe("*/5 * * * *"), "minute=*/5") >= 0
+    return 0
+end

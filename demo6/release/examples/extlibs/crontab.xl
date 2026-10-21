@@ -9,7 +9,12 @@ func main(...) as int
     int base = 1700000000
     println("next '* * * * *' from", base, ":", crontab.next("* * * * *", base))
     println("next '0 * * * *' from", base, ":", crontab.next("0 * * * *", base))
-    println("next '*/15 * * * *' from", base, ":", crontab.next("*/15 * * * *", base))
+    int quarter = crontab.next("*/15 * * * *", base)
+    println("next '*/15 * * * *' from", base, ":", quarter)
+    bool aligned = quarter >= 0 and crontab.matches("*/15 * * * *", quarter)
+    assert aligned
+    println("matches '*/15 * * * *' at next:", aligned)
+    println("next '0 9 */2 * 1' from", base, ":", crontab.next("0 9 */2 * 1", base))
 
     println("describe '*/5 * * * *':", crontab.describe("*/5 * * * *"))
 

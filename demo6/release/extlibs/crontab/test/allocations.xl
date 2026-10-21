@@ -1,0 +1,26 @@
+import crontab
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+array<string> expressions = ["* * * * *", "bad"]
+for expr in expressions
+    bool caught = false
+    assert failAfter(0)
+    try
+        crontab.describe(expr)
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert caught and triggered
+    if expr == "bad" then
+        assert crontab.describe(expr) == "invalid"
+    else
+        assert crontab.describe(expr) == "every minute"
+    end
+end
+
+println("crontab allocation: PASS")

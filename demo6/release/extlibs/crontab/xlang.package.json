@@ -7,10 +7,13 @@
     "artifact": {
         "kind": "source",
         "cSources": ["crontab_native.c"],
-        "xlSources": ["src/crontab.xl"]
+        "xlSources": ["src/crontab.xl"],
+        "includeDirs": ["include"],
+        "xrtModules": ["XRT_MODULE_TIME", "XRT_MODULE_TIME_LOCAL"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/allocations.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

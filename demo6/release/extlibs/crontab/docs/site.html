@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>crontab - 扩展库 - xlang</title>
+  <meta name="description" content="本地时区五字段 cron 表达式解析、匹配与下一次触发时间。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / crontab</p><h1>crontab</h1>
+    <p class="extlib-lead">本地时间 cron 调度。</p>
+    <p>严格解析五字段规则，查询匹配及下一次触发时间。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>isValid(expr)</code></td><td>验证五字段表达式</td></tr>
+      <tr><td><code>matches(expr, timestamp)</code></td><td>按进程本地时区匹配 Unix 秒</td></tr>
+      <tr><td><code>next(expr, timestamp)</code></td><td>严格晚于输入的下一次分钟触发</td></tr>
+      <tr><td><code>describe(expr)</code></td><td>字段摘要</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import crontab
+int nextRun = crontab.next("*/15 * * * *", 1700000000)
+println(nextRun)</code></pre>
+    <p>DOM 与 DOW 都不以 <code>*</code> 开头时采用 OR；任一字段以 <code>*</code> 开头时按实际位图取 AND，<code>*/2</code> 仍保留步长约束。Linux 固定时区测试覆盖春季跳时、秋季重复分钟、历史秒级时差与标准时切换；历史边界同时运行 C 与 XLang 用例。<code>next</code> 返回本地整分钟，不要求 Unix 秒数为 60 的倍数。<code>describe</code> 的分配失败在 C 中保留 <code>XERR_MEMORY</code>，在 xlang 中抛 <code>MemoryError</code>，清除故障后可重试。Windows 默认门禁现在于核心后构建运行完整范例 AOT 并与同机 C 输出对照；实测核心通过、范例仍缺共享 <code>xl6ValueDataSnapshotV1</code>，不能签收完整 AOT。时区、8 年搜索边界及 C 接口见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>
