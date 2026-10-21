@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$Root = ""
 )
 
@@ -23,11 +23,6 @@ if (!(Test-Path -LiteralPath $extlibRoot -PathType Container)) {
 
 function Read-Utf8Text([string]$Path) {
     return [System.IO.File]::ReadAllText($Path, [System.Text.UTF8Encoding]::new($false))
-}
-
-function Test-PlaceholderSource([string]$Path) {
-    $text = Read-Utf8Text $Path
-    return $text -match '(?im)\bTODO\b|\bnot implemented\b|\bplaceholder\b|return\s+(NULL|0|false)\s*;\s*(/\*.*\*/)?\s*$|\bunsupported\b'
 }
 
 $featuredNames = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
@@ -68,7 +63,6 @@ $existingHardeningNames = @(
     "clipboard", "dinov3", "imagehash", "md4c", "onnxruntime", "opencv", "rapidocr", "sqlite",
     "stb_image", "stb_image_resize2", "stb_image_write", "stb_truetype", "xfeat", "xbot", "xge", "xge_shape_ex"
 )
-$rebuildCandidateNames = @()
 $platformNames = @(
     "acme", "canbus", "clickhouse", "clip", "coap", "com", "daemon", "docker", "enet",
     "etcd", "ftp", "git", "gpio", "ldap", "libusb",
@@ -84,26 +78,51 @@ foreach ($directory in Get-ChildItem -LiteralPath $extlibRoot -Directory | Sort-
     $name = $directory.Name
     $manifestPath = Join-Path $directory.FullName "xlang.package.json"
     $manifest = $null
+    $issues = [Collections.Generic.List[string]]::new()
     if (Test-Path -LiteralPath $manifestPath -PathType Leaf) {
-        try { $manifest = Read-Utf8Text $manifestPath | ConvertFrom-Json } catch { }
-    }
+        try {
+            $manifest = Read-Utf8Text $manifestPath | ConvertFrom-Json
+            if ($manifest -isnot [pscustomobject] -or $manifest.format -cne 'xlang-package-1') {
+                $issues.Add('invalid manifest format')
+                $manifest = $null
+            }
+        } catch { $issues.Add('manifest JSON cannot be parsed') }
+    } else { $issues.Add('manifest missing') }
+    if ($null -ne $manifest -and $manifest.name -cne $name) { $issues.Add('manifest name differs from directory') }
 
-    $xlSources = @(Get-ChildItem -LiteralPath $directory.FullName -Recurse -File -Filter "*.xl" -ErrorAction SilentlyContinue)
-    $cSources = @(Get-ChildItem -LiteralPath $directory.FullName -Recurse -File -Filter "*.c" -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notmatch '\\tests?\\' })
+    # 清点实际参与构建的源文件，不把 test、废弃副本或未接入的源码当作实现证据。
+    $declared = @{ cSources = [Collections.Generic.List[object]]::new(); xlSources = [Collections.Generic.List[object]]::new() }
+    if ($null -ne $manifest -and $manifest.artifact.kind -eq 'source') {
+        foreach ($kind in @('cSources', 'xlSources')) {
+            foreach ($relative in @($manifest.artifact.$kind)) {
+                if ($null -eq $relative) { continue }
+                if ($relative -isnot [string] -or [string]::IsNullOrWhiteSpace($relative)) {
+                    $issues.Add("invalid artifact.$kind entry")
+                    continue
+                }
+                $path = Join-Path $directory.FullName $relative
+                if (!(Test-Path -LiteralPath $path -PathType Leaf)) {
+                    $issues.Add("missing artifact.${kind}: $relative")
+                    continue
+                }
+                $declared[$kind].Add((Get-Item -LiteralPath $path))
+            }
+        }
+        if ($declared.cSources.Count + $declared.xlSources.Count -eq 0) { $issues.Add('source package has no available declared sources') }
+    } elseif ($null -ne $manifest) {
+        $issues.Add('artifact kind requires an explicit audit implementation')
+    }
+    $xlSources = @($declared.xlSources.ToArray())
+    $cSources = @($declared.cSources.ToArray())
     $tests = @(Get-ChildItem -LiteralPath $directory.FullName -Recurse -File -ErrorAction SilentlyContinue |
         Where-Object { $_.FullName -match '\\tests?\\' })
     $casePath = Join-Path $caseRoot ("extlib_{0}.xl" -f $name.Replace('.', '_'))
     $examplePath = Join-Path $exampleRoot ("{0}.xl" -f $name.Replace('.', '_'))
-    $hasPlaceholder = $false
     $usesLegacyErrorAbi = $false
     $usesLegacyValueAbi = $false
     $usesRedeclaredXrtAbi = $false
     foreach ($source in $cSources) {
         $sourceText = Read-Utf8Text $source.FullName
-        if ($sourceText -match '(?im)\bTODO\b|\bnot implemented\b|\bplaceholder\b|\bunsupported\b|return\s+(NULL|0|false)\s*;\s*(/\*.*\*/)?\s*$') {
-            $hasPlaceholder = $true
-        }
         # Do not redeclare XRT errors in an extension library. Such declarations
         # drift whenever XRT refines public ABI typedefs.
         if ($sourceText -match '(?m)xrtSetError\s*\(\s*"|extern\s+void\s+xrtSetError\s*\([^\r\n]*bFree|^\s*extern\s+void\s+xrtSetErrorInfo\s*\(') {
@@ -119,70 +138,49 @@ foreach ($directory in Get-ChildItem -LiteralPath $extlibRoot -Directory | Sort-
         }
     }
 
-    $implementationScope = "placeholder"
-    $budgetScope = "first-phase-new-code"
-    if ($usesLegacyErrorAbi -or $usesLegacyValueAbi -or $usesRedeclaredXrtAbi) {
-        $status = "needs-xrt-migration"
-        $implementationScope = "existing-implementation"
-        $budgetScope = "not-applicable-existing-implementation"
+    $gates = @()
+    if ($featuredNames.Contains($name)) { $gates += 'featured' }
+    if ($phase1Names.Contains($name)) { $gates += 'phase1' }
+    if ($platformGateNames.Contains($name)) { $gates += 'platform' }
+    $implementationScope = "requires-source-review"
+    $budgetScope = "requires-new-code-estimate"
+    if ($issues.Count -ne 0) {
+        $status = 'invalid-package'
+        $reason = [string]::Join('; ', $issues)
+    } elseif ($usesLegacyErrorAbi -or $usesLegacyValueAbi -or $usesRedeclaredXrtAbi) {
+        $status = "needs-abi-review"
         $reason = if ($usesLegacyValueAbi) {
-            "uses the retired xvo dynamic-value ABI and must migrate to current XRT xvalue ownership before phase-one publication"
+            "text scan found retired xvo ABI markers; confirm active use and compile against current XRT"
         } elseif ($usesRedeclaredXrtAbi) {
-            "redeclares XRT APIs instead of using public XRT declarations and must migrate before phase-one publication"
+            "text scan found local XRT API declarations; check their necessity and physical ABI against public headers"
         } else {
-            "declares or uses a retired XRT error ABI instead of the public XRT declaration and must migrate before phase-one publication"
+            "text scan found retired error ABI markers; confirm the call site before declaring a migration blocker"
         }
     } elseif ($internalNames -contains $name) {
         $status = "internal"
         $implementationScope = "internal-dependency"
         $budgetScope = "not-applicable-internal"
         $reason = "private dependency package"
-    } elseif ($featuredNames.Contains($name)) {
-        $status = "featured-rc"
-        $implementationScope = "verified-implementation"
-        $budgetScope = "not-applicable-verified"
-        $reason = "covered by the featured extension RC gate"
-    } elseif ($phase1Names.Contains($name)) {
-        $status = "phase1-verified"
-        $implementationScope = "verified-implementation"
-        $budgetScope = "not-applicable-verified"
-        $reason = "covered by the phase-one xlang/example/C smoke suite"
-    } elseif ($platformGateNames.Contains($name)) {
-        $status = "platform-verified"
-        $implementationScope = "verified-implementation"
-        $budgetScope = "not-applicable-verified"
-        $reason = "covered by an explicit platform integration gate; not included in the side-effect-free phase-one suite"
+    } elseif ($gates.Count -ne 0) {
+        $status = "registered"
+        $reason = "registered in $($gates -join ', ') suites; registration is not a test result or release admission"
     } elseif ($platformNames -contains $name) {
-        $status = "deferred-platform"
-        $implementationScope = "environment-bound"
-        $budgetScope = "not-applicable-environment-bound"
-        $reason = "requires an external service, device, platform SDK, credentials, or a controlled integration environment"
+        $status = "environment-review"
+        $reason = "historical environment-sensitive candidate; inspect current backend and controlled test requirements before deciding deferral"
     } elseif ($existingHardeningNames -contains $name) {
         $status = "existing-hardening"
         $implementationScope = "existing-implementation"
         $budgetScope = "not-applicable-existing-implementation"
         $reason = "has an existing implementation footprint; harden its real backend, tests, examples, and platform boundary before first-phase admission"
-    } elseif ($rebuildCandidateNames -contains $name) {
-        $status = "phase1-rebuild-candidate"
-        $implementationScope = "placeholder"
-        $budgetScope = "within-10000-lines-estimate"
-        $reason = "current surface is simplified; a bounded real implementation is planned within the 10000-line first-phase placeholder budget"
     } elseif ($largeNames -contains $name) {
-        $status = "deferred-large"
-        $implementationScope = "placeholder"
-        $budgetScope = "over-10000-lines-estimate"
-        $reason = "placeholder completion requires more than the 10000-line first-phase implementation budget or a large native dependency"
-    } elseif ($hasPlaceholder -or $cSources.Count -le 1) {
-        $status = "placeholder"
-        $implementationScope = "placeholder"
-        $budgetScope = "requires-estimate"
-        $reason = "current native surface is a skeleton or simplified implementation and must not be advertised as production ready"
+        $status = "budget-review"
+        $reason = "historical large-backend candidate; only a reviewed placeholder's NEW implementation estimate can establish the 10000-line deferral"
     } else {
-        $status = "phase1-candidate"
-        $implementationScope = "existing-implementation"
-        $budgetScope = "not-applicable-existing-implementation"
-        $reason = "has a local implementation footprint and is suitable for focused hardening"
+        $status = "source-review"
+        $reason = "declared sources exist; completeness cannot be inferred from file count, maintenance comments or defensive failure returns"
     }
+    # 已有真实后端的预算豁免不取决于套件登记，不能把旧功能重新计入占位实现预算。
+    if ($existingHardeningNames -contains $name) { $budgetScope = 'not-applicable-existing-implementation' }
 
     $api = New-Object System.Collections.Generic.List[string]
     foreach ($source in $xlSources) {
@@ -199,10 +197,15 @@ foreach ($directory in Get-ChildItem -LiteralPath $extlibRoot -Directory | Sort-
         name = $name
         version = if ($null -ne $manifest) { [string]$manifest.version } else { "" }
         status = $status
+        visibility = if ($internalNames -contains $name) { 'internal' } else { 'public' }
+        gates = $gates
+        verification = 'not-evaluated-by-inventory'
         implementationScope = $implementationScope
         budgetScope = $budgetScope
         reason = $reason
         manifest = Test-Path -LiteralPath $manifestPath -PathType Leaf
+        manifestValid = $issues.Count -eq 0
+        issues = @($issues.ToArray())
         xlangSources = $xlSources.Count
         cSources = $cSources.Count
         packageTests = $tests.Count
@@ -227,14 +230,14 @@ foreach ($pkg in $packages) {
 for ($pass = 0; $pass -lt $packages.Count; ++$pass) {
     $changed = $false
     foreach ($pkg in $packages) {
-        if ($pkg.status -eq "internal" -or $pkg.status -eq "needs-xrt-migration") { continue }
+        if ($pkg.status -in @('invalid-package', 'blocked-dependency')) { continue }
         foreach ($dependency in @($pkg.dependencies)) {
-            if (!$packageByName.ContainsKey($dependency)) { continue }
-            $dependencyStatus = [string]$packageByName[$dependency].status
-            if ($dependencyStatus -eq "needs-xrt-migration" -or $dependencyStatus -eq "blocked-dependency") {
+            $missing = !$packageByName.ContainsKey($dependency)
+            $dependencyStatus = if ($missing) { 'missing' } else { [string]$packageByName[$dependency].status }
+            if ($dependencyStatus -in @('missing', 'invalid-package', 'blocked-dependency')) {
                 if ($pkg.status -ne "blocked-dependency") { $changed = $true }
                 $pkg.status = "blocked-dependency"
-                $pkg.reason = "blocked by dependency '$dependency': its XRT ABI migration or transitive dependency blocker must be resolved first"
+                $pkg.reason = "blocked by dependency '${dependency}': $dependencyStatus"
                 break
             }
         }
@@ -243,7 +246,7 @@ for ($pass = 0; $pass -lt $packages.Count; ++$pass) {
 }
 
 $report = [pscustomobject]@{
-    format = "xlang-extlib-ecosystem-1"
+    format = "xlang-extlib-ecosystem-2"
     generatedAt = (Get-Date).ToUniversalTime().ToString("o")
     root = "release/extlibs"
     packages = $packages.ToArray()
@@ -254,7 +257,8 @@ $counts = @($packages | Group-Object status | Sort-Object Name)
 $lines = New-Object System.Collections.Generic.List[string]
 $lines.Add("# Extension Library Ecosystem Audit") | Out-Null
 $lines.Add("") | Out-Null
-$lines.Add("Generated by tools/audit_extlib_ecosystem.ps1. This is an inventory, not a release claim.") | Out-Null
+$lines.Add("Generated by tools/audit_extlib_ecosystem.ps1. No code is executed. Registration, source inventory and historical review candidates are not verification or release admission.") | Out-Null
+$lines.Add("Only declared manifest sources are counted. ABI text matches are review hints, not proof of a compiler failure. Placeholder/new-code budget decisions require manual scope and cost evidence.") | Out-Null
 $lines.Add("") | Out-Null
 $lines.Add("## Summary") | Out-Null
 $lines.Add("") | Out-Null
@@ -264,10 +268,10 @@ foreach ($count in $counts) { $lines.Add(("| `{0}` | {1} |" -f $count.Name, $cou
 $lines.Add("") | Out-Null
 $lines.Add("## Package Inventory") | Out-Null
 $lines.Add("") | Out-Null
-$lines.Add("| Package | Status | XL | C | Test | Example | Reason |") | Out-Null
-$lines.Add("| --- | --- | ---: | ---: | --- | --- | --- |") | Out-Null
+$lines.Add("| Package | Status | Gates | XL | C | Focused file | Example file | Reason |") | Out-Null
+$lines.Add("| --- | --- | --- | ---: | ---: | --- | --- | --- |") | Out-Null
 foreach ($pkg in $packages) {
-    $lines.Add(("| `{0}` | `{1}` | {2} | {3} | {4} | {5} | {6} |" -f $pkg.name, $pkg.status, $pkg.xlangSources, $pkg.cSources, $pkg.focusedCase, $pkg.example, $pkg.reason)) | Out-Null
+    $lines.Add(("| `{0}` | `{1}` | {2} | {3} | {4} | {5} | {6} | {7} |" -f $pkg.name, $pkg.status, ($pkg.gates -join ', '), $pkg.xlangSources, $pkg.cSources, $pkg.focusedCase, $pkg.example, $pkg.reason.Replace('|', '\|'))) | Out-Null
 }
 [System.IO.File]::WriteAllText($outputMarkdown, [string]::Join("`n", $lines) + "`n", [System.Text.UTF8Encoding]::new($false))
 

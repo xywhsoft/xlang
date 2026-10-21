@@ -51,7 +51,7 @@ $forbiddenTextPatterns = @(
     @{ Name = "absolute drive path"; Regex = "(?<![A-Za-z0-9_%+])[A-Za-z]:[\\/]" },
     @{ Name = "legacy release/libs path"; Regex = "release[\\/]libs" },
     @{ Name = "legacy demo5 path"; Regex = "demo5" },
-    @{ Name = "host absolute path"; Regex = "(^|[^A-Za-z0-9_])/(home|usr)/" }
+    @{ Name = "host absolute path"; Regex = "(^|[^A-Za-z0-9_])/(home|(?-i:Users))/" }
 )
 $forbiddenExportNames = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::OrdinalIgnoreCase)
 @("unsupported") | ForEach-Object {
@@ -135,9 +135,12 @@ function Check-ReleaseTextContent($rootPath, $label)
     )
     foreach ( $file in $files ) {
         $relative = $file.FullName.Substring($script:Root.Length).TrimStart("\", "/")
+        $isTestFixture = $relative -match '^release[\\/]extlibs[\\/][^\\/]+[\\/]test[\\/]'
         $lines = [System.IO.File]::ReadAllLines($file.FullName, [System.Text.Encoding]::UTF8)
         for ( $i = 0; $i -lt $lines.Count; ++$i ) {
             foreach ( $pattern in $script:forbiddenTextPatterns ) {
+                # 测试夹具可以包含待验证的绝对路径样本，其他发布内容仍禁止写死盘符。
+                if ( $isTestFixture -and $pattern.Name -eq "absolute drive path" ) { continue }
                 if ( [regex]::IsMatch($lines[$i], $pattern.Regex, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase) ) {
                     Add-Failure "release $label contains $($pattern.Name): ${relative}:$($i + 1)"
                 }
