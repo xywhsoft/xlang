@@ -19,6 +19,12 @@
 
 ## 范例与验证
 
+2026-10-22：有限拉丁转写表的 287 项映射保持不变，按码点升序排列并改用
+二分查找，避免长段重音文本逐字符扫描整张表。C/XLang 新增表头、表中和
+表尾映射的固定回归；Windows 严格 C、线程、XLang 与双语快测，以及 Linux
+C ASan/UBSan、线程、XLang 联合门禁通过。完整带输出 AOT 的共享缺符号
+阻断仍在，不签收整包发布级。
+
 - XLang：`release/examples/extlibs/slugify.xl`
 - 同输出 C：`release/extlibs/slugify/examples/slugify_c.c`
 
