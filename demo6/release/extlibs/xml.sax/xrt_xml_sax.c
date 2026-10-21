@@ -385,7 +385,15 @@ XRT_API int xrtXmlSaxNext(xrtxmlsax* pParser, const xrtxmlevent** ppEvent,
 {
 	int iResult;
 	if ( ppEvent != NULL ) { *ppEvent = NULL; }
-	if ( pParser == NULL || !pParser->bPull ) { return XRT_XML_NEXT_ERROR; }
+	xrtXmlErrorInit(pError);
+	if ( pParser == NULL || !pParser->bPull ) {
+		if ( pError != NULL ) {
+			pError->iCode = XRT_XML_ERROR_ARGUMENT;
+			snprintf(pError->sMessage, sizeof(pError->sMessage),
+				"invalid XML pull reader");
+		}
+		return XRT_XML_NEXT_ERROR;
+	}
 	if ( __xrtXmlTakePendingEvent(pParser) ) {
 		if ( ppEvent != NULL ) { *ppEvent = &pParser->tEvent; }
 		return XRT_XML_NEXT_EVENT;
@@ -462,6 +470,19 @@ XRT_API xrtxmlsax* xrtXmlSaxRetain(xrtxmlsax* pParser)
 	return pParser;
 }
 
+static bool __xrtXmlRequireHandler(xrtxml_event_proc pHandler,
+	xrtxmlerror* pError)
+{
+	if ( pHandler != NULL ) { return true; }
+	xrtXmlErrorInit(pError);
+	if ( pError != NULL ) {
+		pError->iCode = XRT_XML_ERROR_ARGUMENT;
+		snprintf(pError->sMessage, sizeof(pError->sMessage),
+			"XML event callback is required");
+	}
+	return false;
+}
+
 XRT_API bool xrtXmlSaxParse(xreader* pReader, bool bTakeOwnership,
 	const xrtxmloptions* pOptions, xrtxml_event_proc pHandler, ptr pContext,
 	xrtxmlerror* pError)
@@ -469,7 +490,7 @@ XRT_API bool xrtXmlSaxParse(xreader* pReader, bool bTakeOwnership,
 	xrtxmlsax* pParser;
 	bool bClosed = true;
 	int iResult;
-	if ( pHandler == NULL ) {
+	if ( !__xrtXmlRequireHandler(pHandler, pError) ) {
 		if ( pReader != NULL && bTakeOwnership ) { xrtReaderDestroy(pReader); }
 		return false;
 	}
@@ -501,6 +522,7 @@ XRT_API bool xrtXmlSaxParseMemory(const void* pData, uint64 iSize,
 	xrtxmlerror* pError)
 {
 	xreader* pReader;
+	if ( !__xrtXmlRequireHandler(pHandler, pError) ) { return false; }
 	if ( !__xrtXmlMemoryPreflight(pData, iSize, pOptions, false, pError) ) {
 		return false;
 	}
@@ -519,7 +541,9 @@ XRT_API bool xrtXmlSaxParseMemory(const void* pData, uint64 iSize,
 XRT_API bool xrtXmlSaxParseFile(str sPath, const xrtxmloptions* pOptions,
 	xrtxml_event_proc pHandler, ptr pContext, xrtxmlerror* pError)
 {
-	xreader* pReader = xrtReaderOpen(sPath);
+	xreader* pReader;
+	if ( !__xrtXmlRequireHandler(pHandler, pError) ) { return false; }
+	pReader = xrtReaderOpen(sPath);
 	if ( pReader == NULL ) {
 		int iCode = __xrtXmlReaderFailureCode();
 		xrtXmlErrorInit(pError);

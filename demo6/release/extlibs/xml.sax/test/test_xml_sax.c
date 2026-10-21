@@ -426,6 +426,41 @@ static bool testReaderMemoryErrors(void)
 	return bOk;
 }
 
+static bool testInvalidApiArguments(void)
+{
+	xreaderops Ops = {0};
+	test_close_reader Probe = { "<r/>", 4u, 0u, 0 };
+	xrtxmlerror Error;
+	xreader* pReader;
+	xrtxmlsax* pPull;
+	const xrtxmlevent* pEvent = (const xrtxmlevent*)1;
+	bool bOk;
+	memset(&Error, 0x7f, sizeof(Error));
+	bOk = xrtXmlSaxNext(NULL, &pEvent, &Error) == XRT_XML_NEXT_ERROR &&
+		pEvent == NULL && Error.iCode == XRT_XML_ERROR_ARGUMENT &&
+		Error.sMessage[0] != 0;
+	memset(&Error, 0x7f, sizeof(Error));
+	bOk = !xrtXmlSaxParseMemory("<r/>", 4u, NULL, NULL, NULL, &Error) &&
+		Error.iCode == XRT_XML_ERROR_ARGUMENT && bOk;
+	memset(&Error, 0x7f, sizeof(Error));
+	bOk = !xrtXmlSaxParseFile("xml-sax-no-such-file", NULL, NULL, NULL,
+		&Error) && Error.iCode == XRT_XML_ERROR_ARGUMENT && bOk;
+	Ops.Read = readForClose;
+	Ops.Close = passClose;
+	pReader = xrtReaderCreate(&Ops, &Probe);
+	if ( pReader == NULL ) { return false; }
+	memset(&Error, 0x7f, sizeof(Error));
+	bOk = !xrtXmlSaxParse(pReader, true, NULL, NULL, NULL, &Error) &&
+		Error.iCode == XRT_XML_ERROR_ARGUMENT && Probe.Closed == 1 && bOk;
+	pPull = xrtXmlSaxOpenMemory("<r/>", 4u, NULL, &Error);
+	if ( pPull == NULL ) { return false; }
+	Error.iCode = XRT_XML_ERROR_FORMAT;
+	bOk = xrtXmlSaxNext(pPull, &pEvent, &Error) == XRT_XML_NEXT_EVENT &&
+		pEvent != NULL && Error.iCode == XRT_XML_OK && bOk;
+	xrtXmlSaxDestroy(pPull);
+	return bOk;
+}
+
 int main(void)
 {
 	const char* sXml = "<root id=\"7\" xmlns:p=\"urn:test\"><p:item>ok</p:item></root>";
@@ -444,6 +479,7 @@ int main(void)
 	memset(&tState, 0, sizeof(tState));
 	xrtXmlOptionsInit(&tOptions);
 	bOk = testSmallLimits() && testZeroLimits() && testUnsupportedLimits() &&
+		testInvalidApiArguments() &&
 		testParseCloseFailure() &&
 		testPullCloseFailure() && testEarlyClose() &&
 		testReaderMemoryErrors() &&

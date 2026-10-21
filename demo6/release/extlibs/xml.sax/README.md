@@ -32,6 +32,10 @@ pull 入口正常读取到 EOF 时，拥有型 Reader 会在返回 `END` 前关�
 XML 错误通道抛出；正常读到 EOF 后也可调用 close。
 自定义 Reader 的读取回调也遵循同一分类：报告内存故障时保留
 `XRT_XML_ERROR_MEMORY`，其他流读取失败报告 `XRT_XML_ERROR_IO`。
+C push 入口要求非空事件回调；无效回调在读取输入前报告
+`XRT_XML_ERROR_ARGUMENT`，已交付的拥有型 Reader 仍会关闭。C pull 的
+`xrtXmlSaxNext` 对无效 Reader 也报告参数错误，成功调用清空传入的旧
+`xrtxmlerror`。
 
 验证：
 

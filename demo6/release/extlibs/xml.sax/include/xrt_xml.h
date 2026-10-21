@@ -92,6 +92,7 @@ XRT_API bool xrtXmlNameValid(str sName);
 XRT_API void xrtXmlEventClear(xrtxmlevent* pEvent);
 
 /* pull SAX：事件中的字符串在下一次 Next、Close 或 Destroy 前有效。
+ * Next 每次重置错误输出；无效读取器报告 ARGUMENT。
  * 拥有型 Reader 在 EOF 关闭，失败时 Next 返回 ERROR/IO；提前停止应显式 Close。 */
 XRT_API xrtxmlsax* xrtXmlSaxOpen(xreader* pReader, bool bTakeOwnership,
 	const xrtxmloptions* pOptions, xrtxmlerror* pError);
@@ -107,7 +108,8 @@ XRT_API bool xrtXmlSaxClose(xrtxmlsax* pParser, xrtxmlerror* pError);
 XRT_API xrtxmlsax* xrtXmlSaxRetain(xrtxmlsax* pParser);
 XRT_API void xrtXmlSaxDestroy(xrtxmlsax* pParser);
 
-/* push SAX：回调返回 false 会立即终止解析；拥有型 Reader 关闭失败报告 IO。 */
+/* push SAX：回调必需；为空时先报 ARGUMENT，传入的拥有型 Reader 仍释放。
+ * 回调返回 false 会立即终止解析；拥有型 Reader 关闭失败报告 IO。 */
 XRT_API bool xrtXmlSaxParse(xreader* pReader, bool bTakeOwnership,
 	const xrtxmloptions* pOptions, xrtxml_event_proc pHandler, ptr pContext,
 	xrtxmlerror* pError);
