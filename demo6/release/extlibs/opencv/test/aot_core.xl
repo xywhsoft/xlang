@@ -1,0 +1,13 @@
+import opencv
+
+func main(...) as int
+    assert opencv.available(), "OpenCV bridge is unavailable"
+    auto source = opencv.imread("extlibs/opencv/test/fixture.ppm")
+    assert source.valid(), "cannot read OpenCV fixture"
+    auto resized = opencv.resize(source, 4, 4)
+    assert resized.valid(), "cannot resize OpenCV fixture"
+    assert resized.width() == 4 and resized.height() == 4
+    resized.release()
+    source.release()
+    return 0
+end

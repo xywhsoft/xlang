@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>opencv - 扩展库 - xlang</title>
+  <meta name="description" content="OpenCV 图像操作的 C/xlang 桥接接口。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / opencv</p><h1>opencv</h1>
+    <p class="extlib-lead">图像读写、裁剪、缩放、变换与张量转换。</p>
+    <p>当前 Windows 包通过 <code>bin/opencv_xlang.dll</code> 接入后端。桥接 DLL 的源码尚未提供；本页说明已验证的 C/xlang 调用接口，不代表后端所有算法、平台或并发行为已验收。</p>
+    <p><code>OPENCV_XLANG_DLL</code> 指定后端路径时只尝试该文件；未设置时才搜索常规位置。缺少公开桥接符号的 DLL 会被拒绝，<code>available()</code> 不会误报可用。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">主要接口</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>available()</code>、<code>backend()</code></td><td>检查后端并查询加载路径</td></tr>
+      <tr><td><code>imread(path)</code>、<code>imwrite(path, image)</code></td><td>读写图像</td></tr>
+      <tr><td><code>resize(image, width, height)</code>、<code>crop(...)</code></td><td>缩放与裁剪</td></tr>
+      <tr><td><code>Image.width()</code>、<code>height()</code>、<code>release()</code></td><td>读取尺寸并释放图像句柄</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import opencv
+
+auto source = opencv.imread("extlibs/opencv/test/fixture.ppm")
+assert source.valid()
+auto resized = opencv.resize(source, 4, 4)
+assert resized.valid()
+println("opencv image: " + string(source.width()) + " x " + string(source.height()) +
+        " -&gt; " + string(resized.width()) + " x " + string(resized.height()))
+resized.release()
+source.release()</code></pre>
+    <h2 id="c-api">C</h2>
+    <p>包含 <code>include/opencv.h</code>。<code>opencv_imread_native</code>、<code>opencv_resize_native</code> 等返回拥有型句柄，使用 <code>opencv_release_native</code> 释放；<code>backend</code>、<code>last_error</code> 等文本是借用结果，不得释放。对应范例在 <code>examples/image_info_c.c</code>，从发行目录可直接用 <code>xl run extlibs/opencv/examples/image_info_c.c</code> 或构建为 C 可执行文件。</p>
+    <p>完整截图范例 <code>examples/extlibs/opencv.xl</code> 需要可截图的桌面；图像文件使用独占系统临时目录并在退出时删除，不覆盖工作目录中的固定文件。日常双语门禁仍使用包内固定 PPM 夹具，不依赖桌面截图。</p>
+    <h2 id="verification">验证范围</h2>
+    <p>2026-10-20：GCC 分离构建、C 单文件 JIT、C 单文件构建执行与 XLang 对同一张 P6 图片读入及 4×4 缩放的输出一致。包级调用门禁还覆盖缺图、无效尺寸、释放、UTF-8 路径、显式后端路径以及残缺桥接 DLL 拒绝；首次查询 <code>last_error</code> 也会等待完整装载，再返回可读诊断。XLang 读写路径中的 NUL 会被拒绝。同一无输出 AOT 图像调用探针在 XRT 模块裁剪前后为 3,793,920 / 865,792 字节，均实际读图和缩放成功；带输出范例仍受主线共享符号缺失阻断。桥接 DLL 的源码和算法矩阵由插件独立维护，不作为本包调用层验收条件。</p>
+  </section>
+</main>
+</body>
+</html>

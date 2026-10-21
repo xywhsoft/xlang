@@ -1,0 +1,13 @@
+import opencv
+
+func main(...) as int
+    auto source = opencv.imread("extlibs/opencv/test/fixture.ppm")
+    assert source.valid(), "cannot read OpenCV fixture"
+    auto resized = opencv.resize(source, 4, 4)
+    assert resized.valid(), "cannot resize OpenCV fixture"
+    println("opencv image: " + string(source.width()) + " x " + string(source.height()) +
+            " -> " + string(resized.width()) + " x " + string(resized.height()))
+    resized.release()
+    source.release()
+    return 0
+end

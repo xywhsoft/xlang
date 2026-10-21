@@ -19,9 +19,10 @@ assert screen.aspect() > 0.0, "opencv Image.aspect failed"
 assert string.contains(screen.shape_json(), "\"width\""), "opencv Image.shape_json failed"
 assert string.contains(opencv.shape_json(screen), "\"channels\""), "opencv shape_json failed"
 
-string sourcePath = "examples_out/opencv_extlib_source.png"
-string outputPath = "examples_out/opencv_extlib_output.png"
-dir.createAll(path.dir(sourcePath))
+string directory = dir.temp("", "xlang-opencv-example-", "")
+string sourcePath = path.join(directory, "source.png")
+string outputPath = path.join(directory, "output.png")
+try
 assert screen.save(sourcePath) == true, "opencv Image.save failed"
 
 auto color = opencv.imread(sourcePath)
@@ -110,6 +111,9 @@ assert gray.release() == true, "opencv gray release failed"
 assert colorByRead.release() == true, "opencv colorByRead release failed"
 assert color.release() == true, "opencv color release failed"
 assert screen.release() == true, "opencv screen release failed"
+finally
+    assert dir.delete(directory), "opencv example temporary directory must be removed"
+end
 
 println("opencv extlib ok")
 return 0

@@ -1,0 +1,38 @@
+import opencv
+
+func main(...) as int
+    auto missing = opencv.imread("extlibs/opencv/test/not_found.ppm")
+    assert missing.empty()
+    assert not missing.release()
+
+    auto source = opencv.imread("extlibs/opencv/test/fixture.ppm")
+    assert source.valid()
+    assert source.width() == 2 and source.height() == 2 and source.channels() == 3
+    bool rejected = false
+    try
+        opencv.imread("extlibs/opencv/test/fixture.ppm\0hidden")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
+
+    string directory = dir.temp("", "xlang-opencv-boundary-", "")
+    string output = path.join(directory, "nul_output.png")
+    try
+        rejected = false
+        try
+            source.save(output + "\0hidden")
+        catch ValueError e
+            rejected = true
+        end
+        assert rejected and not file.exists(output)
+    finally
+        assert dir.delete(directory), "opencv boundary temporary directory must be removed"
+    end
+    auto invalid = opencv.resize(source, 0, 4)
+    assert invalid.empty()
+    assert not invalid.release()
+    assert source.release()
+    println("opencv XLang boundary: PASS")
+    return 0
+end

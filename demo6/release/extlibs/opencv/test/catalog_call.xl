@@ -1,0 +1,18 @@
+import opencv
+
+func main(...) as int
+    // 通用门禁从 demo6 根目录运行；只检查公开读图、缩放及句柄释放。
+    assert opencv.available()
+    auto missing = opencv.imread("release/extlibs/opencv/test/not_found.ppm")
+    assert missing.empty()
+    assert not missing.release()
+    auto source = opencv.imread("release/extlibs/opencv/test/fixture.ppm")
+    assert source.valid()
+    assert source.width() == 2 and source.height() == 2
+    auto resized = opencv.resize(source, 4, 4)
+    assert resized.valid()
+    assert resized.width() == 4 and resized.height() == 4
+    assert resized.release()
+    assert source.release()
+    return 0
+end

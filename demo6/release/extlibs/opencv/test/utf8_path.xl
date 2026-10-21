@@ -1,0 +1,14 @@
+import opencv
+
+func main(...) as int
+    string imagePath = "../build/test/opencv/中文.ppm"
+    if arg.length > 1 then
+        imagePath = string(arg[1])
+    end
+    auto image = opencv.imread(imagePath)
+    assert image.valid(), "OpenCV cannot read UTF-8 path"
+    assert image.width() == 2 and image.height() == 2
+    image.release()
+    println("opencv XLang UTF-8 path: PASS")
+    return 0
+end

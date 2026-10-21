@@ -11,6 +11,13 @@
                                   ],
                      "xlSources":  [
                                        "src/opencv.xl"
+                                   ],
+                     "xrtModules":  [
+                                        "XRT_MODULE_ONCE",
+                                        "XRT_MODULE_CHARSET",
+                                        "XRT_MODULE_PATH_SYSTEM",
+                                        "XRT_MODULE_ENVIRONMENT",
+                                        "XRT_MODULE_STRING"
                                    ]
                  },
     "links":  [
@@ -22,6 +29,7 @@
     "dependencies":  [
 
                      ],
+    "coverage": { "mode": "suite", "tests": ["test/catalog_call.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

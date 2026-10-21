@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "xrt.h"
+#include "include/opencv.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define XL_EXPORT __declspec(dllexport)
@@ -34,7 +36,6 @@ typedef const char* (*CvTextFn)(void);
 typedef int (*CvAvailableFn)(void);
 
 typedef struct CvApi {
-	int attempted;
 	int loaded;
 #if defined(_WIN32) || defined(_WIN64)
 	HMODULE module;
@@ -62,10 +63,11 @@ typedef struct CvApi {
 	CvAvailableFn available;
 	CvTextFn version;
 	CvTextFn last_error;
-	char path[512];
+	char* path;
 } CvApi;
 
 static CvApi g_cv;
+static xonce g_cv_once = XRT_ONCE_INIT;
 static char g_error[512];
 
 static void cv_copy(char* out, size_t out_size, const char* text)
@@ -87,59 +89,6 @@ static void cv_set_error(const char* text)
 	cv_copy(g_error, sizeof(g_error), text);
 }
 
-static int cv_join_path(char* out, size_t out_size, const char* a, const char* b)
-{
-	const char* sep;
-	size_t a_len;
-	int written;
-	if ( out == NULL || out_size == 0u || a == NULL || b == NULL ) return 0;
-	a_len = strlen(a);
-	sep = (a_len > 0u && (a[a_len - 1u] == '\\' || a[a_len - 1u] == '/')) ? "" : "\\";
-	written = snprintf(out, out_size, "%s%s%s", a, sep, b);
-	return written > 0 && (size_t)written < out_size;
-}
-
-static void cv_dir_name(char* out, size_t out_size, const char* path)
-{
-	const char* p;
-	const char* last_sep = NULL;
-	size_t len;
-	if ( out == NULL || out_size == 0u ) return;
-	out[0] = '\0';
-	if ( path == NULL || path[0] == '\0' ) return;
-	for ( p = path; *p != '\0'; ++p ) {
-		if ( *p == '\\' || *p == '/' || *p == ':' ) last_sep = p;
-	}
-	if ( last_sep == NULL ) return;
-	len = (size_t)(last_sep - path);
-	if ( *last_sep == ':' ) len += 1u;
-	if ( len >= out_size ) len = out_size - 1u;
-	memcpy(out, path, len);
-	out[len] = '\0';
-}
-
-static int cv_exe_dir(char* out, size_t out_size)
-{
-	char path[512];
-	if ( out == NULL || out_size == 0u ) return 0;
-	out[0] = '\0';
-#if defined(_WIN32) || defined(_WIN64)
-	{
-		DWORD len = GetModuleFileNameA(NULL, path, (DWORD)sizeof(path));
-		if ( len == 0 || len >= sizeof(path) ) return 0;
-		path[len] = '\0';
-	}
-#else
-	{
-		ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1u);
-		if ( len <= 0 || (size_t)len >= sizeof(path) ) return 0;
-		path[len] = '\0';
-	}
-#endif
-	cv_dir_name(out, out_size, path);
-	return out[0] != '\0';
-}
-
 static void* cv_sym(const char* name)
 {
 #if defined(_WIN32) || defined(_WIN64)
@@ -153,7 +102,12 @@ static int cv_try_load(const char* path)
 {
 	if ( path == NULL || path[0] == '\0' ) return 0;
 #if defined(_WIN32) || defined(_WIN64)
-	g_cv.module = LoadLibraryExA(path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+	{
+		uint16* wide = xrtUtf8To16(path, NULL);
+		if ( wide == NULL ) return 0;
+		g_cv.module = LoadLibraryExW((LPCWSTR)wide, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+		xrtFree(wide);
+	}
 #else
 	g_cv.module = dlopen(path, RTLD_NOW | RTLD_LOCAL);
 #endif
@@ -180,55 +134,96 @@ static int cv_try_load(const char* path)
 	g_cv.available = (CvAvailableFn)cv_sym("opencv_xl_available");
 	g_cv.version = (CvTextFn)cv_sym("opencv_xl_version");
 	g_cv.last_error = (CvTextFn)cv_sym("opencv_xl_last_error");
-	if ( g_cv.imread == NULL || g_cv.resize == NULL || g_cv.release == NULL ) {
+	if ( g_cv.imread == NULL || g_cv.imwrite == NULL || g_cv.resize == NULL ||
+		g_cv.crop == NULL || g_cv.perspective_crop == NULL ||
+		g_cv.rotate180 == NULL || g_cv.rotate90ccw == NULL ||
+		g_cv.capture_rect == NULL || g_cv.capture_window == NULL ||
+		g_cv.cvt_color == NULL || g_cv.copy_make_border == NULL ||
+		g_cv.rectangle == NULL || g_cv.normalize == NULL ||
+		g_cv.to_chw_tensor_json == NULL || g_cv.width == NULL ||
+		g_cv.height == NULL || g_cv.channels == NULL || g_cv.release == NULL ||
+		g_cv.available == NULL || g_cv.version == NULL ||
+		g_cv.last_error == NULL ) {
+		#if defined(_WIN32) || defined(_WIN64)
+		FreeLibrary(g_cv.module);
+		#else
+		dlclose(g_cv.module);
+		#endif
+		g_cv.module = NULL;
 		cv_set_error("opencv shim loaded but required symbols are missing");
 		return 0;
 	}
+	g_cv.path = xrtStrDup(path);
+	if ( g_cv.path == NULL ) {
+		#if defined(_WIN32) || defined(_WIN64)
+		FreeLibrary(g_cv.module);
+		#else
+		dlclose(g_cv.module);
+		#endif
+		g_cv.module = NULL;
+		cv_set_error("opencv shim path allocation failed");
+		return 0;
+	}
 	g_cv.loaded = 1;
-	cv_copy(g_cv.path, sizeof(g_cv.path), path);
 	cv_set_error("");
 	return 1;
 }
 
 static int cv_try_load_from_exe(const char* relative)
 {
-	char exe_dir[512];
-	char parent_dir[512];
-	char path[1024];
-	if ( !cv_exe_dir(exe_dir, sizeof(exe_dir)) ) return 0;
-	if ( !cv_join_path(path, sizeof(path), exe_dir, relative) ) return 0;
-	if ( cv_try_load(path) ) return 1;
-	cv_dir_name(parent_dir, sizeof(parent_dir), exe_dir);
-	if ( parent_dir[0] == '\0' || !cv_join_path(path, sizeof(path), parent_dir, relative) ) return 0;
-	return cv_try_load(path);
+	char* exe_dir = xrtPathAppDir();
+	char* parent_dir = exe_dir != NULL ? xrtPathParent(exe_dir) : NULL;
+	char* path = exe_dir != NULL ? xrtPathJoin(exe_dir, relative) : NULL;
+	int loaded = path != NULL && cv_try_load(path);
+	xrtFree(path);
+	if ( !loaded && parent_dir != NULL ) {
+		path = xrtPathJoin(parent_dir, relative);
+		loaded = path != NULL && cv_try_load(path);
+		xrtFree(path);
+	}
+	xrtFree(parent_dir);
+	xrtFree(exe_dir);
+	return loaded;
 }
 
-static int cv_load(void)
+/* DLL 装载和函数表发布必须一起完成，等待中的线程不能观察半初始化状态。 */
+static bool cv_load_once(ptr unused)
 {
-	const char* env_path;
+	char* env_path;
 	const char* candidates[] = {
 		"opencv_xlang.dll",
 		"bin\\opencv_xlang.dll",
 		"extlibs\\opencv\\bin\\opencv_xlang.dll",
 		"release\\extlibs\\opencv\\bin\\opencv_xlang.dll",
-		"release\extlibs\\opencv\\bin\\opencv_xlang.dll",
 		"libs\\opencv\\bin\\opencv_xlang.dll",
 		"release\\libs\\opencv\\bin\\opencv_xlang.dll",
-		"release\examples\\libs\\opencv\\bin\\opencv_xlang.dll",
 		NULL
 	};
 	int i;
-	if ( g_cv.loaded ) return 1;
-	if ( g_cv.attempted ) return 0;
-	g_cv.attempted = 1;
-	env_path = getenv("OPENCV_XLANG_DLL");
-	if ( env_path != NULL && env_path[0] != '\0' && cv_try_load(env_path) ) return 1;
-	if ( cv_try_load_from_exe("extlibs\\opencv\\bin\\opencv_xlang.dll") ) return 1;
-	for ( i = 0; candidates[i] != NULL; ++i ) {
-		if ( cv_try_load(candidates[i]) ) return 1;
+	(void)unused;
+	env_path = xrtEnvGet("OPENCV_XLANG_DLL");
+	if ( env_path != NULL && env_path[0] != '\0' ) {
+		int loaded = cv_try_load(env_path);
+		if ( !loaded && g_error[0] == '\0' ) {
+			cv_set_error("opencv shim not found at OPENCV_XLANG_DLL");
+		}
+		xrtFree(env_path);
+		return true;
 	}
-	cv_set_error("opencv shim not found; set OPENCV_XLANG_DLL or place opencv_xlang.dll under extlibs\\opencv\\bin");
-	return 0;
+	xrtFree(env_path);
+	if ( cv_try_load_from_exe("extlibs/opencv/bin/opencv_xlang.dll") ) return true;
+	for ( i = 0; candidates[i] != NULL; ++i ) {
+		if ( cv_try_load(candidates[i]) ) return true;
+	}
+	if ( g_error[0] == '\0' ) {
+		cv_set_error("opencv shim not found; set OPENCV_XLANG_DLL or place opencv_xlang.dll under extlibs\\opencv\\bin");
+	}
+	return true;
+}
+
+static int cv_load(void)
+{
+	return xrtOnce(&g_cv_once, cv_load_once, NULL) && g_cv.loaded;
 }
 
 XL_EXPORT int opencv_available_native(void)
@@ -241,7 +236,7 @@ XL_EXPORT const char* opencv_backend_native(void) { return cv_load() ? g_cv.path
 
 XL_EXPORT const char* opencv_last_error_native(void)
 {
-	if ( g_cv.loaded && g_cv.last_error != NULL ) {
+	if ( cv_load() && g_cv.last_error != NULL ) {
 		const char* backend_error = g_cv.last_error();
 		if ( backend_error != NULL && backend_error[0] != '\0' ) return backend_error;
 	}
