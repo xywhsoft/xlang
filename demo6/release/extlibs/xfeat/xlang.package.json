@@ -11,8 +11,20 @@
                                   ],
                      "xlSources":  [
                                        "src/xfeat.xl"
+                                   ],
+                     "xrtModules":  [
+                                        "XRT_MODULE_PATH_SYSTEM",
+                                        "XRT_MODULE_ENVIRONMENT",
+                                        "XRT_MODULE_ONCE",
+                                        "XRT_MODULE_MUTEX",
+                                        "XRT_MODULE_THREAD_KEY",
+                                        "XRT_MODULE_VALUE_CONTAINER",
+                                        "XRT_MODULE_JSON",
+                                        "XRT_MODULE_BUFFER",
+                                        "XRT_MODULE_UNICODE"
                                    ]
                  },
+    "coverage": { "mode": "suite", "tests": ["test/nul_arguments.xl"] },
     "links":  [
 
               ],

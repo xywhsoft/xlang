@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>xfeat - 扩展库 - xlang</title>
+  <meta name="description" content="使用 XFeat ONNX 模型在目标图中定位查询图片。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / xfeat</p><h1>xfeat</h1>
+    <p class="extlib-lead">提取局部特征，在目标图片中定位查询图片。</p>
+    <p>依赖 OpenCV 与 ONNX Runtime；查询与目标 ONNX 模型路径由使用者显式传入，包不分发权重。预处理为 RGB、0–1 归一化和右下补零。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>xfeat.open(queryModel, targetModel)</code></td><td>创建推理引擎</td></tr>
+      <tr><td><code>xfeat.prepare_query(engine, queryPath)</code></td><td>预处理多尺度查询图</td></tr>
+      <tr><td><code>xfeat.locate_json(engine, querySet, targetPath)</code></td><td>返回位置、内点数和边界框 JSON</td></tr>
+      <tr><td><code>xfeat.release_query(querySet) / xfeat.close(engine)</code></td><td>释放查询集与引擎</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import xfeat
+
+point engine = xfeat.open(queryModelPath, targetModelPath)
+assert engine != null, xfeat.last_error()
+point querySet = xfeat.prepare_query(engine, queryImagePath)
+assert querySet != null, xfeat.last_error()
+println(xfeat.locate_json(engine, querySet, targetImagePath))
+xfeat.release_query(querySet)
+xfeat.close(engine)</code></pre>
+    <p>定位器会拒绝宽或高超过目标图一半的框，整图对自身不是正例。包内 <code>examples/live_model.xl</code> 从目标图生成局部查询裁块；<code>examples/live_model_c.c</code> 用公开 C API 做相同的六尺度定位。Linux 门禁包含无模型 XLang 导入与 <code>available()</code> 探针。设置 <code>XFEAT_MODEL</code> 后，门禁用包内固定正负图片验证找到与未找到路径，并逐行核对 C/XLang 正例输出；<code>XFEAT_TEST_IMAGE</code> 可覆盖正例图片。另可加 <code>-ParallelLive</code> 做两线程独立定位。模型权重仍由调用者提供；完整 AOT 与插件内部长期并发稳定性未验收，当前不标记为生产发布完成。</p>
+  </section>
+</main>
+</body>
+</html>

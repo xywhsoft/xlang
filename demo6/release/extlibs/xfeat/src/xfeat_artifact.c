@@ -1,14 +1,19 @@
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(_POSIX_C_SOURCE)
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 #else
 #include <dlfcn.h>
 #endif
 #include <math.h>
-#include <stdarg.h>
-#include <stdio.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include "xrt.h"
+#include "../include/xfeat.h"
 
 #if defined(__AVX2__)
 #include <immintrin.h>
@@ -30,7 +35,6 @@ typedef float (*OrtResultFloatAtFn)(void*, int);
 typedef const float* (*OrtResultFloatDataFn)(void*);
 
 typedef struct XFeatOrtApi {
-	int attempted;
 	int loaded;
 #if defined(_WIN32) || defined(_WIN64)
 	HMODULE module;
@@ -48,8 +52,6 @@ typedef struct XFeatFeatures {
 	int capacity;
 	int image_w;
 	int image_h;
-	int resized_w;
-	int resized_h;
 	float* xy;
 	float* score;
 	float* desc;
@@ -88,9 +90,11 @@ typedef struct XFeatStatsBucket {
 XL_EXPORT int xfeat_features_release_native(void* handle);
 
 static XFeatOrtApi g_ort;
-static char g_error[512];
-static char* g_json;
-static size_t g_json_cap;
+static xonce g_ort_once = XRT_ONCE_INIT;
+static xthreadkey* g_error_key;
+static xonce g_error_once = XRT_ONCE_INIT;
+static xmutex g_stats_lock;
+static xonce g_stats_once = XRT_ONCE_INIT;
 static XFeatStatsBucket g_stats[3];
 
 static void xfeat_copy(char* out, size_t out_size, const char* text)
@@ -104,67 +108,66 @@ static void xfeat_copy(char* out, size_t out_size, const char* text)
 	out[len] = '\0';
 }
 
+static bool xfeat_error_key_init(ptr unused)
+{
+	(void)unused;
+	g_error_key = xrtThreadKeyCreate(xrtFree);
+	return g_error_key != NULL;
+}
+
+static char* xfeat_error_buffer(bool create)
+{
+	char* buffer;
+	if ( !xrtOnce(&g_error_once, xfeat_error_key_init, NULL) ) return NULL;
+	buffer = (char*)xrtThreadKeyGet(g_error_key);
+	if ( buffer != NULL || !create ) return buffer;
+	buffer = (char*)xrtMalloc(512u);
+	if ( buffer == NULL ) return NULL;
+	buffer[0] = '\0';
+	if ( !xrtThreadKeySet(g_error_key, buffer) ) { xrtFree(buffer); return NULL; }
+	return buffer;
+}
+
 static void xfeat_set_error(const char* text)
 {
-	xfeat_copy(g_error, sizeof(g_error), text);
+	char* buffer = xfeat_error_buffer(text != NULL && text[0] != '\0');
+	if ( buffer != NULL ) xfeat_copy(buffer, 512u, text);
 }
 
-static void xfeat_append(char* out, size_t out_size, size_t* used, const char* text)
+static bool xfeat_stats_lock_init(ptr unused)
 {
-	size_t len;
-	if ( out == NULL || out_size == 0u || used == NULL || text == NULL || *used >= out_size ) return;
-	len = strlen(text);
-	if ( len >= out_size - *used ) len = out_size - *used - 1u;
-	memcpy(out + *used, text, len);
-	*used += len;
-	out[*used] = '\0';
+	(void)unused;
+	return xrtMutexInit(&g_stats_lock);
 }
 
-static void xfeat_appendf(char* out, size_t out_size, size_t* used, const char* fmt, ...)
+static bool xfeat_stats_lock_enter(void)
 {
-	va_list args;
-	int n;
-	if ( out == NULL || out_size == 0u || used == NULL || fmt == NULL || *used >= out_size ) return;
-	va_start(args, fmt);
-	n = vsnprintf(out + *used, out_size - *used, fmt, args);
-	va_end(args);
-	if ( n <= 0 ) return;
-	if ( (size_t)n >= out_size - *used ) {
-		*used = out_size - 1u;
-	} else {
-		*used += (size_t)n;
-	}
-	out[*used] = '\0';
+	return xrtOnce(&g_stats_once, xfeat_stats_lock_init, NULL) && xrtMutexLock(&g_stats_lock);
 }
 
-static void xfeat_json_escape(char* out, size_t out_size, size_t* used, const char* text)
+static bool xfeat_json_name_int(xjsonwriter* writer, const char* name, int64 value)
 {
-	const char* p;
-	if ( text == NULL ) return;
-	for ( p = text; *p != '\0' && *used + 2u < out_size; ++p ) {
-		if ( *p == '"' || *p == '\\' ) out[(*used)++] = '\\';
-		out[(*used)++] = *p;
-	}
-	out[*used] = '\0';
+	return xrtJsonWriterName(writer, xrtStrView(name)) && xrtJsonWriterInt(writer, value);
 }
 
-static int xfeat_json_reserve(size_t cap)
+static bool xfeat_json_name_float(xjsonwriter* writer, const char* name, double value)
 {
-	char* next;
-	if ( cap < 512u ) cap = 512u;
-	if ( g_json != NULL && g_json_cap >= cap ) {
-		g_json[0] = '\0';
-		return 1;
-	}
-	next = (char*)realloc(g_json, cap);
-	if ( next == NULL ) {
-		xfeat_set_error("out of memory");
-		return 0;
-	}
-	g_json = next;
-	g_json_cap = cap;
-	g_json[0] = '\0';
-	return 1;
+	return xrtJsonWriterName(writer, xrtStrView(name)) && xrtJsonWriterFloat(writer, value);
+}
+
+static bool xfeat_json_name_string(xjsonwriter* writer, const char* name, const char* value)
+{
+	return xrtJsonWriterName(writer, xrtStrView(name)) &&
+		xrtJsonWriterString(writer, xrtStrView(value != NULL ? value : ""));
+}
+
+static char* xfeat_json_take(xjsonwriter* writer, bool valid)
+{
+	char* text = NULL;
+	if ( valid && xrtJsonWriterFinish(writer) ) text = xrtJsonWriterTake(writer, NULL);
+	xrtJsonWriterFree(writer);
+	xfeat_set_error(text != NULL ? "" : "XFeat JSON serialization failed");
+	return text;
 }
 
 static void* xfeat_sym(const char* name)
@@ -180,7 +183,12 @@ static int xfeat_try_load(const char* path)
 {
 	if ( path == NULL || path[0] == '\0' ) return 0;
 #if defined(_WIN32) || defined(_WIN64)
-	g_ort.module = LoadLibraryExA(path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+	{
+		uint16* wide = xrtUtf8To16(path, NULL);
+		if ( wide == NULL ) { xrtClearError(); return 0; }
+		g_ort.module = LoadLibraryExW((LPCWSTR)wide, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+		xrtFree(wide);
+	}
 #else
 	g_ort.module = dlopen(path, RTLD_NOW | RTLD_LOCAL);
 #endif
@@ -190,7 +198,12 @@ static int xfeat_try_load(const char* path)
 	g_ort.result_at = (OrtResultFloatAtFn)xfeat_sym("onnxruntime_xl_result_float_at");
 	g_ort.result_data = (OrtResultFloatDataFn)xfeat_sym("onnxruntime_xl_result_float_data");
 	if ( g_ort.result_shape == NULL || g_ort.result_count == NULL || g_ort.result_at == NULL ) {
-		xfeat_set_error("onnxruntime_xlang.dll loaded but result reader symbols are missing");
+		#if defined(_WIN32) || defined(_WIN64)
+		FreeLibrary(g_ort.module);
+		#else
+		dlclose(g_ort.module);
+		#endif
+		g_ort.module = NULL;
 		return 0;
 	}
 	g_ort.loaded = 1;
@@ -198,58 +211,52 @@ static int xfeat_try_load(const char* path)
 	return 1;
 }
 
-#if defined(_WIN32) || defined(_WIN64)
-static int xfeat_try_load_near_exe(const char* relative_path)
+static int xfeat_try_load_under(const char* base, const char* relative_path)
 {
-	char path[MAX_PATH];
-	DWORD len;
-	char* slash;
-	size_t base_len;
-	size_t rel_len;
-	if ( relative_path == NULL || relative_path[0] == '\0' ) return 0;
-	len = GetModuleFileNameA(NULL, path, (DWORD)sizeof(path));
-	if ( len == 0u || len >= (DWORD)sizeof(path) ) return 0;
-	slash = strrchr(path, '\\');
-	if ( slash == NULL ) slash = strrchr(path, '/');
-	if ( slash == NULL ) return 0;
-	slash[1] = '\0';
-	base_len = strlen(path);
-	rel_len = strlen(relative_path);
-	if ( base_len + rel_len >= sizeof(path) ) return 0;
-	memcpy(path + base_len, relative_path, rel_len + 1u);
-	return xfeat_try_load(path);
+	char* path;
+	int loaded;
+	if ( base == NULL || relative_path == NULL ) return 0;
+	path = xrtPathJoin(base, relative_path);
+	if ( path == NULL ) { xrtClearError(); return 0; }
+	loaded = xfeat_try_load(path);
+	xrtFree(path);
+	return loaded;
 }
+
+static bool xfeat_ort_load_once(ptr unused)
+{
+	char* env_path = xrtEnvGet("ONNXRUNTIME_XLANG_DLL");
+	char* app_dir = xrtPathAppDir();
+	char* parent_dir = app_dir != NULL ? xrtPathParent(app_dir) : NULL;
+#if defined(_WIN32) || defined(_WIN64)
+	const char* name = "onnxruntime_xlang.dll";
+#else
+	const char* name = "onnxruntime_xlang.so";
 #endif
+	char* relative = xrtPathJoin("extlibs/onnxruntime/bin", name);
+	int loaded = 0;
+	(void)unused;
+	if ( env_path != NULL ) loaded = xfeat_try_load(env_path);
+	if ( !loaded ) loaded = xfeat_try_load_under(app_dir, relative);
+	if ( !loaded ) loaded = xfeat_try_load_under(parent_dir, relative);
+	if ( !loaded ) loaded = xfeat_try_load_under(".", relative);
+	if ( !loaded ) loaded = xfeat_try_load_under("release", relative);
+	if ( !loaded ) loaded = xfeat_try_load(name);
+	xrtFree(relative);
+	xrtFree(parent_dir);
+	xrtFree(app_dir);
+	xrtFree(env_path);
+	xrtClearError();
+	return true;
+}
 
 static int xfeat_ort_load(void)
 {
-	const char* env_path;
-	const char* candidates[] = {
-		"onnxruntime_xlang.dll",
-		"bin\\onnxruntime_xlang.dll",
-		"extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"release\\extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"release\extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"release\\libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"release\examples\\libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		NULL
-	};
-	int i;
-	if ( g_ort.loaded ) return 1;
-	if ( g_ort.attempted ) return 0;
-	g_ort.attempted = 1;
-	env_path = getenv("ONNXRUNTIME_XLANG_DLL");
-	if ( xfeat_try_load(env_path) ) return 1;
-#if defined(_WIN32) || defined(_WIN64)
-	if ( xfeat_try_load_near_exe("extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll") ) return 1;
-	if ( xfeat_try_load_near_exe("bin\\onnxruntime_xlang.dll") ) return 1;
-#endif
-	for ( i = 0; candidates[i] != NULL; ++i ) {
-		if ( xfeat_try_load(candidates[i]) ) return 1;
+	if ( !xrtOnce(&g_ort_once, xfeat_ort_load_once, NULL) || !g_ort.loaded ) {
+		xfeat_set_error("failed to load onnxruntime_xlang bridge");
+		return 0;
 	}
-	xfeat_set_error("failed to load onnxruntime_xlang.dll");
-	return 0;
+	return 1;
 }
 
 static int xfeat_is_finite(float v)
@@ -289,52 +296,68 @@ XL_EXPORT double xfeat_now_ms_native(void)
 
 XL_EXPORT int xfeat_stats_reset_native(void)
 {
+	if ( !xfeat_stats_lock_enter() ) return 0;
 	memset(g_stats, 0, sizeof(g_stats));
-	return 1;
+	return xrtMutexUnlock(&g_stats_lock) ? 1 : 0;
 }
 
 XL_EXPORT int xfeat_stats_add_native(int kind, double preprocess_ms, double ort_ms, double parse_ms)
 {
 	XFeatStatsBucket* bucket;
-	if ( kind < 0 || kind >= (int)(sizeof(g_stats) / sizeof(g_stats[0])) ) kind = 0;
+	if ( kind < 0 || kind >= (int)(sizeof(g_stats) / sizeof(g_stats[0])) ||
+		!isfinite(preprocess_ms) || !isfinite(ort_ms) || !isfinite(parse_ms) ) return 0;
+	if ( !xfeat_stats_lock_enter() ) return 0;
+	bucket = &g_stats[0];
+	if ( bucket->count == INT_MAX || (kind != 0 && g_stats[kind].count == INT_MAX) ) {
+		xrtMutexUnlock(&g_stats_lock);
+		return 0;
+	}
+	bucket->count++;
+	bucket->preprocess_ms += preprocess_ms;
+	bucket->ort_ms += ort_ms;
+	bucket->parse_ms += parse_ms;
+	if ( kind == 0 ) return xrtMutexUnlock(&g_stats_lock) ? 1 : 0;
 	bucket = &g_stats[kind];
 	bucket->count++;
 	bucket->preprocess_ms += preprocess_ms;
 	bucket->ort_ms += ort_ms;
 	bucket->parse_ms += parse_ms;
-	return 1;
+	return xrtMutexUnlock(&g_stats_lock) ? 1 : 0;
 }
 
-static void xfeat_stats_bucket_json(char* out, size_t out_size, size_t* used, const char* name, const XFeatStatsBucket* bucket)
+static bool xfeat_stats_bucket_json(xjsonwriter* writer, const char* name, const XFeatStatsBucket* bucket)
 {
 	double count = bucket != NULL && bucket->count > 0 ? (double)bucket->count : 1.0;
-	xfeat_appendf(out, out_size, used,
-		"\"%s\":{\"count\":%d,\"preprocess_ms\":%.6g,\"ort_ms\":%.6g,\"parse_ms\":%.6g,\"feature_total_ms\":%.6g,\"avg_preprocess_ms\":%.6g,\"avg_ort_ms\":%.6g,\"avg_parse_ms\":%.6g,\"avg_feature_total_ms\":%.6g}",
-		name,
-		bucket != NULL ? bucket->count : 0,
-		bucket != NULL ? bucket->preprocess_ms : 0.0,
-		bucket != NULL ? bucket->ort_ms : 0.0,
-		bucket != NULL ? bucket->parse_ms : 0.0,
-		bucket != NULL ? bucket->preprocess_ms + bucket->ort_ms + bucket->parse_ms : 0.0,
-		bucket != NULL ? bucket->preprocess_ms / count : 0.0,
-		bucket != NULL ? bucket->ort_ms / count : 0.0,
-		bucket != NULL ? bucket->parse_ms / count : 0.0,
-		bucket != NULL ? (bucket->preprocess_ms + bucket->ort_ms + bucket->parse_ms) / count : 0.0
-	);
+	return xrtJsonWriterName(writer, xrtStrView(name)) && xrtJsonWriterObject(writer) &&
+		xfeat_json_name_int(writer, "count", bucket->count) &&
+		xfeat_json_name_float(writer, "preprocess_ms", bucket->preprocess_ms) &&
+		xfeat_json_name_float(writer, "ort_ms", bucket->ort_ms) &&
+		xfeat_json_name_float(writer, "parse_ms", bucket->parse_ms) &&
+		xfeat_json_name_float(writer, "feature_total_ms", bucket->preprocess_ms + bucket->ort_ms + bucket->parse_ms) &&
+		xfeat_json_name_float(writer, "avg_preprocess_ms", bucket->preprocess_ms / count) &&
+		xfeat_json_name_float(writer, "avg_ort_ms", bucket->ort_ms / count) &&
+		xfeat_json_name_float(writer, "avg_parse_ms", bucket->parse_ms / count) &&
+		xfeat_json_name_float(writer, "avg_feature_total_ms", (bucket->preprocess_ms + bucket->ort_ms + bucket->parse_ms) / count) &&
+		xrtJsonWriterEnd(writer);
 }
 
-XL_EXPORT const char* xfeat_stats_json_native(void)
+XL_EXPORT void* xfeat_stats_json_native(void)
 {
-	size_t used = 0;
-	if ( !xfeat_json_reserve(2048u) ) return "{}";
-	xfeat_append(g_json, g_json_cap, &used, "{");
-	xfeat_stats_bucket_json(g_json, g_json_cap, &used, "all", &g_stats[0]);
-	xfeat_append(g_json, g_json_cap, &used, ",");
-	xfeat_stats_bucket_json(g_json, g_json_cap, &used, "query", &g_stats[1]);
-	xfeat_append(g_json, g_json_cap, &used, ",");
-	xfeat_stats_bucket_json(g_json, g_json_cap, &used, "target", &g_stats[2]);
-	xfeat_append(g_json, g_json_cap, &used, "}");
-	return g_json;
+	xjsonwriteconfig config;
+	xjsonwriter* writer;
+	XFeatStatsBucket snapshot[3];
+	if ( !xfeat_stats_lock_enter() ) return NULL;
+	memcpy(snapshot, g_stats, sizeof(snapshot));
+	if ( !xrtMutexUnlock(&g_stats_lock) ) return NULL;
+	xrtJsonWriteConfigInit(&config);
+	writer = xrtJsonWriterCreate(&config);
+	if ( writer == NULL ) { xfeat_set_error("out of memory"); return NULL; }
+	return xfeat_json_take(writer,
+		xrtJsonWriterObject(writer) &&
+		xfeat_stats_bucket_json(writer, "all", &snapshot[0]) &&
+		xfeat_stats_bucket_json(writer, "query", &snapshot[1]) &&
+		xfeat_stats_bucket_json(writer, "target", &snapshot[2]) &&
+		xrtJsonWriterEnd(writer));
 }
 
 static float xfeat_dot64(const float* a, const float* b)
@@ -402,7 +425,8 @@ XL_EXPORT int xfeat_available_native(void)
 
 XL_EXPORT const char* xfeat_last_error_native(void)
 {
-	return g_error;
+	char* buffer = xfeat_error_buffer(false);
+	return buffer != NULL ? buffer : "";
 }
 
 XL_EXPORT void* xfeat_engine_create_native(void* query_session, void* target_session)
@@ -500,25 +524,55 @@ XL_EXPORT int xfeat_query_release_native(void* handle)
 	return 1;
 }
 
-XL_EXPORT void* xfeat_features_from_result_native(void* result_handle, int image_w, int image_h, int resized_w, int resized_h)
+static int xfeat_shape_rows(const char* text, int* rows)
+{
+	xvalue* shape;
+	size_t count;
+	size_t i;
+	int result = 1;
+	if ( text == NULL || rows == NULL || strlen(text) > 256u ) return 0;
+	shape = xrtJsonParse(xrtStrView(text));
+	if ( xrtValueType(shape) != XVALUE_ARRAY ) goto failed;
+	count = xrtValueCount(shape);
+	if ( count != 2u && count != 3u ) goto failed;
+	for ( i = 0u; i < count; ++i ) {
+		int64 dimension;
+		if ( !xrtValueGetInt(xrtValueArrayGet(shape, i), &dimension) ) goto failed;
+		if ( i == count - 1u ) {
+			if ( dimension != XFEAT_ROW_DIM ) goto failed;
+		} else {
+			if ( dimension < 0 || dimension > 100000 || result > 100000 / (dimension > 0 ? dimension : 1) ) goto failed;
+			result *= (int)dimension;
+		}
+	}
+	xrtValueRelease(shape);
+	*rows = result;
+	return 1;
+failed:
+	xrtValueRelease(shape);
+	xrtClearError();
+	return 0;
+}
+
+XL_EXPORT void* xfeat_features_from_result_native(void* result_handle, int image_w, int image_h, int padded_w, int padded_h)
 {
 	XFeatFeatures* features;
 	const float* result_data;
 	int float_count;
 	int row_count;
 	int i;
-	if ( result_handle == NULL || image_w <= 0 || image_h <= 0 || resized_w <= 0 || resized_h <= 0 ) {
+	if ( result_handle == NULL || image_w <= 0 || image_h <= 0 || padded_w < image_w || padded_h < image_h ) {
 		xfeat_set_error("invalid XFeat result or image shape");
 		return NULL;
 	}
 	if ( !xfeat_ort_load() ) return NULL;
 	float_count = g_ort.result_count(result_handle);
-	if ( float_count < XFEAT_ROW_DIM || (float_count % XFEAT_ROW_DIM) != 0 ) {
+	if ( !xfeat_shape_rows(g_ort.result_shape(result_handle), &row_count) ||
+		float_count != row_count * XFEAT_ROW_DIM ) {
 		xfeat_set_error("unexpected XFeat ONNX output shape");
 		return NULL;
 	}
 	result_data = g_ort.result_data != NULL ? g_ort.result_data(result_handle) : NULL;
-	row_count = float_count / XFEAT_ROW_DIM;
 	features = (XFeatFeatures*)calloc(1, sizeof(*features));
 	if ( features == NULL ) {
 		xfeat_set_error("out of memory");
@@ -527,12 +581,12 @@ XL_EXPORT void* xfeat_features_from_result_native(void* result_handle, int image
 	features->capacity = row_count;
 	features->image_w = image_w;
 	features->image_h = image_h;
-	features->resized_w = resized_w;
-	features->resized_h = resized_h;
-	features->xy = (float*)malloc(sizeof(float) * (size_t)row_count * 2u);
-	features->score = (float*)malloc(sizeof(float) * (size_t)row_count);
-	features->desc = (float*)malloc(sizeof(float) * (size_t)row_count * XFEAT_DESC_DIM);
-	if ( features->xy == NULL || features->score == NULL || features->desc == NULL ) {
+	if ( row_count > 0 ) {
+		features->xy = (float*)malloc(sizeof(float) * (size_t)row_count * 2u);
+		features->score = (float*)malloc(sizeof(float) * (size_t)row_count);
+		features->desc = (float*)malloc(sizeof(float) * (size_t)row_count * XFEAT_DESC_DIM);
+	}
+	if ( row_count > 0 && (features->xy == NULL || features->score == NULL || features->desc == NULL) ) {
 		xfeat_features_release_native(features);
 		xfeat_set_error("out of memory");
 		return NULL;
@@ -541,19 +595,31 @@ XL_EXPORT void* xfeat_features_from_result_native(void* result_handle, int image
 		int base = i * XFEAT_ROW_DIM;
 		const float* row = result_data != NULL ? result_data + base : NULL;
 		float score = row != NULL ? row[2] : g_ort.result_at(result_handle, base + 2);
+		float x;
+		float y;
 		int j;
-		if ( score <= 0.0f || !xfeat_is_finite(score) ) continue;
-		features->xy[features->count * 2] = (row != NULL ? row[0] : g_ort.result_at(result_handle, base)) * (float)image_w / (float)resized_w;
-		features->xy[features->count * 2 + 1] = (row != NULL ? row[1] : g_ort.result_at(result_handle, base + 1)) * (float)image_h / (float)resized_h;
+		if ( !xfeat_is_finite(score) ) goto invalid_values;
+		if ( score <= 0.0f ) continue;
+		x = row != NULL ? row[0] : g_ort.result_at(result_handle, base);
+		y = row != NULL ? row[1] : g_ort.result_at(result_handle, base + 1);
+		if ( !xfeat_is_finite(x) || !xfeat_is_finite(y) ) goto invalid_values;
+		if ( x < 0.0f || y < 0.0f || x >= (float)image_w || y >= (float)image_h ) continue;
+		features->xy[features->count * 2] = x;
+		features->xy[features->count * 2 + 1] = y;
 		features->score[features->count] = score;
 		for ( j = 0; j < XFEAT_DESC_DIM; ++j ) {
 			features->desc[features->count * XFEAT_DESC_DIM + j] = row != NULL ? row[3 + j] : g_ort.result_at(result_handle, base + 3 + j);
+			if ( !xfeat_is_finite(features->desc[features->count * XFEAT_DESC_DIM + j]) ) goto invalid_values;
 		}
 		xfeat_normalize_desc(features->desc + features->count * XFEAT_DESC_DIM);
 		features->count++;
 	}
 	xfeat_set_error("");
 	return features;
+invalid_values:
+	xfeat_features_release_native(features);
+	xfeat_set_error("non-finite XFeat output values");
+	return NULL;
 }
 
 XL_EXPORT int xfeat_features_release_native(void* handle)
@@ -759,7 +825,7 @@ static XFeatLocation* xfeat_estimate_affine(const double* src, const double* dst
 	XFeatLocation* loc;
 	unsigned char* best_mask;
 	unsigned char* mask;
-	double best_affine[6];
+	double best_affine[6] = {0};
 	double affine[6];
 	double refined[6];
 	double best_error = 1.0e9;
@@ -767,7 +833,7 @@ static XFeatLocation* xfeat_estimate_affine(const double* src, const double* dst
 	int iter;
 	int max_iter;
 	unsigned int seed;
-	if ( match_count < min_inliers || match_count < 3 ) return NULL;
+	if ( min_inliers < 3 || match_count < min_inliers ) return NULL;
 	loc = (XFeatLocation*)calloc(1, sizeof(*loc));
 	best_mask = (unsigned char*)calloc((size_t)match_count, 1u);
 	mask = (unsigned char*)calloc((size_t)match_count, 1u);
@@ -835,6 +901,11 @@ XL_EXPORT void* xfeat_match_native(void* query_handle, void* target_handle, doub
 	int qi;
 	int ti;
 	XFeatLocation* loc;
+	if ( min_inliers < 3 || !(ransac_reproj > 0.0 && isfinite(ransac_reproj)) ||
+		!(scale > 0.0 && isfinite(scale)) || !isfinite(min_cossim) ) {
+		xfeat_set_error("invalid XFeat match parameters");
+		return NULL;
+	}
 	if ( q == NULL || t == NULL || q->count <= 0 || t->count <= 0 ) {
 		xfeat_set_error("empty XFeat features");
 		return NULL;
@@ -945,41 +1016,49 @@ XL_EXPORT int xfeat_location_bbox_h_native(void* handle)
 	return loc != NULL ? loc->bbox[3] : 0;
 }
 
-XL_EXPORT const char* xfeat_location_json_native(void* handle, const char* image_name, const char* output_name)
+XL_EXPORT void* xfeat_location_json_native(void* handle, const char* image_name, const char* output_name)
 {
 	XFeatLocation* loc = (XFeatLocation*)handle;
-	size_t used = 0;
-	if ( !xfeat_json_reserve(2048u) ) return "{}";
-	xfeat_append(g_json, g_json_cap, &used, "{\"image\":\"");
-	xfeat_json_escape(g_json, g_json_cap, &used, image_name != NULL ? image_name : "");
-	xfeat_append(g_json, g_json_cap, &used, "\",\"output\":\"");
-	xfeat_json_escape(g_json, g_json_cap, &used, output_name != NULL ? output_name : "");
-	xfeat_append(g_json, g_json_cap, &used, "\"");
+	xjsonwriteconfig config;
+	xjsonwriter* writer;
+	bool ok;
+	int i;
+	xrtJsonWriteConfigInit(&config);
+	writer = xrtJsonWriterCreate(&config);
+	if ( writer == NULL ) { xfeat_set_error("out of memory"); return NULL; }
+	ok = xrtJsonWriterObject(writer) &&
+		xfeat_json_name_string(writer, "image", image_name) &&
+		xfeat_json_name_string(writer, "output", output_name);
 	if ( loc == NULL ) {
-		xfeat_append(g_json, g_json_cap, &used, ",\"found\":false,\"matches\":0}");
-		return g_json;
+		ok = ok && xrtJsonWriterName(writer, xrtStrView("found")) &&
+			xrtJsonWriterBool(writer, false) && xfeat_json_name_int(writer, "matches", 0);
+	} else if ( !loc->found ) {
+		ok = ok && xrtJsonWriterName(writer, xrtStrView("found")) &&
+			xrtJsonWriterBool(writer, false) &&
+			xfeat_json_name_int(writer, "matches", loc->matches) &&
+			xfeat_json_name_float(writer, "scale", loc->scale);
+	} else {
+		ok = ok && xrtJsonWriterName(writer, xrtStrView("found")) &&
+			xrtJsonWriterBool(writer, true) &&
+			xfeat_json_name_string(writer, "method", loc->method != NULL ? loc->method : "affine") &&
+			xfeat_json_name_float(writer, "scale", loc->scale) &&
+			xfeat_json_name_int(writer, "matches", loc->matches) &&
+			xfeat_json_name_int(writer, "inliers", loc->inliers) &&
+			xfeat_json_name_float(writer, "reprojection_error", loc->reprojection_error) &&
+			xfeat_json_name_float(writer, "score", loc->score) &&
+			xrtJsonWriterName(writer, xrtStrView("polygon")) &&
+			xrtJsonWriterArray(writer);
+		for ( i = 0; ok && i < 4; ++i ) {
+			ok = xrtJsonWriterArray(writer) &&
+				xrtJsonWriterFloat(writer, loc->polygon[i * 2]) &&
+				xrtJsonWriterFloat(writer, loc->polygon[i * 2 + 1]) &&
+				xrtJsonWriterEnd(writer);
+		}
+		ok = ok && xrtJsonWriterEnd(writer) &&
+			xrtJsonWriterName(writer, xrtStrView("bbox_xywh")) &&
+			xrtJsonWriterArray(writer);
+		for ( i = 0; ok && i < 4; ++i ) ok = xrtJsonWriterInt(writer, loc->bbox[i]);
+		ok = ok && xrtJsonWriterEnd(writer);
 	}
-	if ( !loc->found ) {
-		xfeat_appendf(g_json, g_json_cap, &used, ",\"found\":false,\"matches\":%d,\"scale\":%.6g}", loc->matches, (double)loc->scale);
-		return g_json;
-	}
-	xfeat_appendf(
-		g_json,
-		g_json_cap,
-		&used,
-		",\"found\":true,\"method\":\"%s\",\"scale\":%.6g,\"matches\":%d,\"inliers\":%d,\"reprojection_error\":%.9g,\"score\":%.9g,",
-		loc->method != NULL ? loc->method : "affine",
-		(double)loc->scale,
-		loc->matches,
-		loc->inliers,
-		loc->reprojection_error,
-		loc->score
-	);
-	xfeat_append(g_json, g_json_cap, &used, "\"polygon\":[");
-	xfeat_appendf(g_json, g_json_cap, &used, "[%.6g,%.6g],[%.6g,%.6g],[%.6g,%.6g],[%.6g,%.6g]",
-		loc->polygon[0], loc->polygon[1], loc->polygon[2], loc->polygon[3],
-		loc->polygon[4], loc->polygon[5], loc->polygon[6], loc->polygon[7]);
-	xfeat_appendf(g_json, g_json_cap, &used, "],\"bbox_xywh\":[%d,%d,%d,%d]}",
-		loc->bbox[0], loc->bbox[1], loc->bbox[2], loc->bbox[3]);
-	return g_json;
+	return xfeat_json_take(writer, ok && xrtJsonWriterEnd(writer));
 }

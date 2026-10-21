@@ -1,0 +1,15 @@
+import xfeat
+
+func main(...) as int
+    assert arg.length == 4, "usage: live_negative.xl model.onnx query.png target.png"
+    point engine = xfeat.open(string(arg[1]), string(arg[1]))
+    assert engine != null, xfeat.last_error()
+    point query = xfeat.prepare_query(engine, string(arg[2]))
+    assert query != null, xfeat.last_error()
+    string result = xfeat.locate_json(engine, query, string(arg[3]))
+    assert string.contains(result, "\"found\":false"), "unrelated image matched"
+    assert xfeat.release_query(query)
+    assert xfeat.close(engine)
+    println("xfeat unrelated image: PASS")
+    return 0
+end

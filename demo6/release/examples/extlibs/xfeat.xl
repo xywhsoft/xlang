@@ -6,16 +6,6 @@ assert string.len(xfeat.last_error()) >= 0, "xfeat last_error failed"
 assert xfeat.reset_stats(), "xfeat reset_stats failed"
 assert string.contains(xfeat.stats_json(), "\"all\""), "xfeat stats_json failed"
 
-point engineDefault = xfeat.open()
-if engineDefault != null then
-	assert xfeat.close(engineDefault), "xfeat close default engine failed"
-end
-
-point engineThreaded = xfeat.open(1, 1)
-if engineThreaded != null then
-	assert xfeat.close(engineThreaded), "xfeat close threaded engine failed"
-end
-
 point engineMissing = xfeat.open("__missing_xfeat_query_model__.onnx", "__missing_xfeat_target_model__.onnx")
 assert engineMissing == null, "xfeat missing model open should fail"
 
@@ -29,27 +19,17 @@ assert prepared == null, "xfeat prepare_query null engine failed"
 assert xfeat.release_query(nullQuerySet), "xfeat release_query null failed"
 assert xfeat.close(nullEngine), "xfeat close null failed"
 
-string jsonDefault = xfeat.locate_json("__missing_query__.png", "__missing_target__.png")
-assert string.contains(jsonDefault, "\"found\":false"), "xfeat locate_json default failed"
-
 string jsonPrepared = xfeat.locate_json(nullEngine, nullQuerySet, "__missing_target__.png")
 assert string.contains(jsonPrepared, "\"found\":false"), "xfeat locate_json prepared failed"
 
 string jsonEngine = xfeat.locate_json(nullEngine, "__missing_query__.png", "__missing_target__.png")
 assert string.contains(jsonEngine, "\"found\":false"), "xfeat locate_json engine failed"
 
-string jsonNamed = xfeat.locate_json("__missing_query__.png", "__missing_target__.png", "target.png", "out.png")
-assert string.contains(jsonNamed, "\"image\":\"target.png\""), "xfeat locate_json named image failed"
-assert string.contains(jsonNamed, "\"output\":\"out.png\""), "xfeat locate_json named output failed"
-
 string jsonEngineNamed = xfeat.locate_json(nullEngine, "__missing_query__.png", "__missing_target__.png", "target.png", "out.png")
 assert string.contains(jsonEngineNamed, "\"found\":false"), "xfeat locate_json engine named failed"
 
 string jsonPreparedNamed = xfeat.locate_json(nullEngine, nullQuerySet, "__missing_target__.png", "target.png", "out.png")
 assert string.contains(jsonPreparedNamed, "\"found\":false"), "xfeat locate_json prepared named failed"
-
-string savedDefault = xfeat.locate_and_save("__missing_query__.png", "__missing_target__.png", "__missing_output__.png")
-assert string.contains(savedDefault, "\"found\":false"), "xfeat locate_and_save default failed"
 
 string savedPrepared = xfeat.locate_and_save(nullEngine, nullQuerySet, "__missing_target__.png", "__missing_output__.png")
 assert string.contains(savedPrepared, "\"found\":false"), "xfeat locate_and_save prepared failed"

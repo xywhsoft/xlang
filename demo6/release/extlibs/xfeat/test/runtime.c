@@ -1,0 +1,26 @@
+#ifndef XRT_MODULE_PATH_SYSTEM
+#define XRT_MODULE_PATH_SYSTEM
+#endif
+#ifndef XRT_MODULE_ENVIRONMENT
+#define XRT_MODULE_ENVIRONMENT
+#endif
+#ifndef XRT_MODULE_ONCE
+#define XRT_MODULE_ONCE
+#endif
+#ifndef XRT_MODULE_MUTEX
+#define XRT_MODULE_MUTEX
+#endif
+#ifndef XRT_MODULE_THREAD_KEY
+#define XRT_MODULE_THREAD_KEY
+#endif
+#ifndef XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_VALUE_CONTAINER
+#endif
+#ifndef XRT_MODULE_JSON
+#define XRT_MODULE_JSON
+#endif
+#ifndef XRT_MODULE_BUFFER
+#define XRT_MODULE_BUFFER
+#endif
+#define XRT_IMPLEMENTATION
+#include "xrt.h"

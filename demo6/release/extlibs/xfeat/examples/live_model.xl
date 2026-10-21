@@ -1,0 +1,45 @@
+import xfeat
+import opencv
+
+func main(...) as int
+    assert arg.length == 4, "usage: live_model.xl model.onnx target.png query-output.png"
+    string modelPath = string(arg[1])
+    string imagePath = string(arg[2])
+    string queryPath = string(arg[3])
+    auto image = opencv.imread(imagePath)
+    assert image.width() >= 128 and image.height() >= 128, "target image is too small"
+    int cropWidth = image.width() / 4
+    int cropHeight = image.height() / 4
+    auto query = opencv.crop(image, (image.width() - cropWidth) / 2, (image.height() - cropHeight) / 2, cropWidth, cropHeight)
+    assert opencv.imwrite(queryPath, query), "failed to write query image"
+    point engine = xfeat.open(modelPath, modelPath)
+    if engine == null then
+        println("open: " + xfeat.last_error())
+        return 1
+    end
+    println("open: ok")
+    point querySet = null
+    try
+        querySet = xfeat.prepare_query(engine, queryPath)
+    catch RuntimeError e
+        println("runtime error: " + e.message)
+        xfeat.close(engine)
+        return 1
+    catch ValueError e
+        println("value error: " + e.message)
+        xfeat.close(engine)
+        return 1
+    end
+    if querySet == null then
+        println("prepare_query: " + xfeat.last_error())
+        xfeat.close(engine)
+        return 1
+    end
+    println("prepare_query: ok")
+    string result = xfeat.locate_json(engine, querySet, imagePath)
+    println(result)
+    assert string.contains(result, "\"found\":true"), "cropped image was not located"
+    assert xfeat.release_query(querySet)
+    assert xfeat.close(engine)
+    return 0
+end

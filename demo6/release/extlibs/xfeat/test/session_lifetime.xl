@@ -1,0 +1,21 @@
+import xfeat
+
+func main(...) as int
+    // 仅验证真实 ONNX 会话的创建和释放，不把 OCR 模型当作 XFeat 模型推理。
+    string model = "extlibs/rapidocr/models/ch_ppocr_mobile_v2.0_cls_infer.onnx"
+    bool rejected = false
+    try
+        xfeat.open(model, "extlibs/rapidocr/models/ch_ppocr_mobile_v2.0_cls_infer.onnx\0hidden")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "target path must be checked before opening any session"
+    point engine = xfeat.open(model, model)
+    assert engine != null, "ONNX sessions should open"
+    assert xfeat.close(engine), "both ONNX sessions should close once"
+    point configured = xfeat.open(model, model, 1, 1)
+    assert configured != null, "configured ONNX sessions should open"
+    assert xfeat.close(configured), "configured ONNX sessions should close once"
+    println("xfeat session ownership: PASS")
+    return 0
+end

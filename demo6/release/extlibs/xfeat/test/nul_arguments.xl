@@ -1,0 +1,44 @@
+import xfeat
+
+func main(...) as int
+    bool rejected = false
+    try
+        xfeat.open("__missing_model__.onnx\0hidden", "__missing_target__.onnx")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "model path must reject embedded NUL"
+
+    rejected = false
+    try
+        xfeat.open("__missing_model__.onnx", "__missing_target__.onnx\0hidden")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "target model path must reject embedded NUL"
+
+    rejected = false
+    try
+        xfeat.locate_json(null, "__missing_query__.png", "__missing_target__.png", "image\0hidden", "output.png")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "image name must reject embedded NUL"
+
+    rejected = false
+    try
+        xfeat.locate_json(null, "__missing_query__.png", "__missing_target__.png", "image.png", "output\0hidden")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "output name must reject embedded NUL"
+
+    rejected = false
+    try
+        xfeat.locate_and_save(null, "__missing_query__.png", "__missing_target__.png", "output\0hidden")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "saved output path must reject embedded NUL"
+    return 0
+end

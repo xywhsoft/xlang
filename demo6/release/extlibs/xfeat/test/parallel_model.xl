@@ -1,0 +1,34 @@
+import xfeat
+
+string parallelModelPath = ""
+string parallelQueryPath = ""
+string parallelTargetPath = ""
+
+func locateOnce() as int
+    point engine = xfeat.open(parallelModelPath, parallelModelPath)
+    if engine == null then return 1 end
+    point querySet = xfeat.prepare_query(engine, parallelQueryPath)
+    if querySet == null then
+        xfeat.close(engine)
+        return 2
+    end
+    string result = xfeat.locate_json(engine, querySet, parallelTargetPath)
+    bool found = string.contains(result, "\"found\":true")
+    xfeat.release_query(querySet)
+    xfeat.close(engine)
+    if not found then return 3 end
+    return 0
+end
+
+func main(...) as int
+    assert arg.length == 4, "usage: parallel_model.xl model.onnx query.png target.png"
+    parallelModelPath = string(arg[1])
+    parallelQueryPath = string(arg[2])
+    parallelTargetPath = string(arg[3])
+    thread first = thread(locateOnce)
+    thread second = thread(locateOnce)
+    assert first.wait() and second.wait(), "worker wait failed"
+    assert first.exitCode() == 0 and second.exitCode() == 0, "parallel localization failed"
+    println("xfeat parallel call: PASS")
+    return 0
+end
