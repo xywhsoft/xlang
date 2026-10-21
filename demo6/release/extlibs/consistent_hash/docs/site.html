@@ -34,7 +34,7 @@ ring.addNode("node-A")
 ring.addNode("node-B")
 println(ring.getNode("user:42"))</code></pre>
     <p>映射布局与 XRT 哈希算法和副本数相关；XLang 节点名和键拒绝内嵌 NUL，不提供节点健康检测或数据迁移。C 接口、所有权、容量和验证命令见包内 README。</p>
-    <p>C 调用失败后可直接重试；后续成功调用清除本线程旧的 XRT 错误。创建、添加和查询的内存故障经 C/XLang 回归验证；节点表与虚拟节点表同时扩容失败时，原环映射不变且可重试。C 教学范例可在 Windows/Linux 单文件 <code>xl run</code>，正式包仍分别编译原生源。Windows 联合门禁覆盖严格 GCC、C 故障/线程、XLang、私有入口和双语输出；Linux 严格 GCC + ASan/UBSan 覆盖对应边界。完整 AOT 仍被共享符号 <code>xl6ValueDataSnapshotV1</code> 阻断。</p>
+    <p>C 调用失败后可直接重试；后续成功调用清除本线程旧的 XRT 错误。创建、添加和查询的内存故障经 C/XLang 回归验证；节点表与虚拟节点表同时扩容失败时，原环映射不变且可重试。C 教学范例可在 Windows/Linux 单文件 <code>xl run</code>，正式包仍分别编译原生源。Windows 联合门禁覆盖严格 GCC、C 故障/线程、XLang、私有入口和双语固定映射输出；Linux 严格 GCC + ASan/UBSan 覆盖对应边界与黄金输出。默认 Windows 门禁的核心 AOT 已通过，带输出范例 AOT 仍被共享符号 <code>xl6ValueDataSnapshotV1</code> 阻断，整包尚未签收。</p>
   </section>
 </main>
 </body>

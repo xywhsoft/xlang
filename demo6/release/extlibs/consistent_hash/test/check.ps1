@@ -16,11 +16,12 @@ function Run([string]$name, [string]$program, [string[]]$arguments) {
     $ErrorActionPreference = 'Continue'
     try {
         $output = & $program @arguments 2>&1
+        $code = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $previousPreference
     }
-    if ($LASTEXITCODE -ne 0) {
-        throw "${name}: exit $LASTEXITCODE`n$($output -join "`n")"
+    if ($code -ne 0) {
+        throw "${name}: exit $code`n$($output -join "`n")"
     }
     Write-Host "[consistent_hash] ${name}: PASS"
     return ($output -join "`n").Replace("`r`n", "`n").TrimEnd("`n")
@@ -75,16 +76,32 @@ try {
 
     $xlOutput = Run 'XLang example' $xl @('run',
         'release/examples/extlibs/consistent_hash.xl')
-    if ($cOutput -cne $xlOutput) {
-        throw "C/XLang examples differ:`nC:`n$cOutput`nXL:`n$xlOutput"
+    $goldenPath = Join-Path $root 'release/extlibs/consistent_hash/examples/consistent_hash.expected.txt'
+    $golden = [IO.File]::ReadAllText($goldenPath).Replace("`r`n", "`n").TrimEnd("`n")
+    if ($cOutput -cne $golden -or $xlOutput -cne $golden) {
+        throw "C/XLang examples differ from fixed mapping:`nC:`n$cOutput`nXL:`n$xlOutput"
     }
-    Write-Host '[consistent_hash] C/XLang parity: PASS'
+    Write-Host '[consistent_hash] C/XLang golden output: PASS'
 
     if (-not $SkipAot) {
+        $core = Join-Path $work 'consistent_hash_core.exe'
+        $null = Run 'XLang core build' $xl @('build',
+            'test/cases/extlib_consistent_hash.xl', '-o', $core)
+        if ((Run 'XLang core AOT' $core @()) -cne '') {
+            throw 'consistent_hash core AOT produced output'
+        }
+        $exampleAot = Join-Path $work 'consistent_hash_example_aot.exe'
+        $null = Run 'XLang example build' $xl @('build',
+            'release/examples/extlibs/consistent_hash.xl', '-o', $exampleAot)
+        if ((Run 'XLang example AOT' $exampleAot @()) -cne $golden) {
+            throw 'consistent_hash AOT output differs from fixed mapping'
+        }
         $aot = Join-Path $work 'consistent_hash_boundaries.exe'
         $null = Run 'XLang boundaries build' $xl @('build',
             'release/extlibs/consistent_hash/test/boundaries.xl', '-o', $aot)
-        $null = Run 'XLang boundaries AOT' $aot @()
+        if ((Run 'XLang boundaries AOT' $aot @()) -cne '') {
+            throw 'consistent_hash boundaries AOT produced output'
+        }
     }
 } finally {
     Pop-Location

@@ -34,8 +34,11 @@
 在 `demo6/release` 运行 `xl run extlibs/consistent_hash/test/boundaries.xl`。在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File tools/run_extlib_c.ps1 -Package consistent_hash -Source release/extlibs/consistent_hash/test/test_consistent_hash.c`。2026-10-12 已通过 Windows 严格 GCC、Linux ASan/UBSan、并发读写、XL JIT 和 C/XL 双语对照；2026-10-13 补充内嵌 NUL 的红绿用例。同日加入节点分配故障逐点测试，失败时节点数、虚拟节点数和已有键映射不变；C 定向测试、严格 GCC 语法检查和 XL 边界通过。
 Linux 可在 `demo6` 运行 `bash release/extlibs/consistent_hash/test/check.sh`，
 用严格 GCC + ASan/UBSan 检查 C 边界、并发及 C 范例，同时运行中央与
-包内 XLang 用例，并逐字节比较 C/XLang 范例输出。
-Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/consistent_hash/test/check.ps1 -SkipAot`，一并检查严格 GCC、C 故障与线程、中央和包内 XLang、原生入口私有性及双语同输出。去掉 `-SkipAot` 会继续构建完整边界 AOT，当前会明确停在共享缺符号问题。C 教学范例内含包的原生实现，可在两平台直接 `xl run release/extlibs/consistent_hash/examples/consistent_hash_c.c`；正式包仍按清单分别编译该原生源码。
+包内 XLang 用例，并将双语范例与 `examples/consistent_hash.expected.txt`
+的固定映射逐字节比较。
+Windows 可在 `demo6` 运行 `powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/consistent_hash/test/check.ps1 -SkipAot`，一并检查严格 GCC、C 故障与线程、中央和包内 XLang、原生入口私有性及双语黄金输出。去掉 `-SkipAot` 会依次构建运行核心、带输出范例及边界 AOT；当前范例构建会明确停在共享缺符号问题，不能签收整包。C 教学范例内含包的原生实现，可在两平台直接 `xl run release/extlibs/consistent_hash/examples/consistent_hash_c.c`；正式包仍按清单分别编译该原生源码。
+
+2026-10-22：新增固定节点映射黄金输出，Windows 快测和 Linux C ASan/UBSan、XLang 门禁通过。Windows 默认模式核心 AOT 通过，范例 AOT 构建缺共享 `xl6ValueDataSnapshotV1`，所以范例运行比较及后续边界 AOT 尚未执行；每次独占构建目录已清理。本轮不修改哈希算法或 C/XLang API。
 
 当前 `xl build extlibs/consistent_hash/test/boundaries.xl -o ../build/test/consistent_hash_xl_test.exe` 报共享链接缺符号 `xl6ValueDataSnapshotV1`；**AOT 尚未验收**。阻断记录见 `dev/extlib_blockers/text_snapshot_link.md`，修复后需重跑该命令。
 

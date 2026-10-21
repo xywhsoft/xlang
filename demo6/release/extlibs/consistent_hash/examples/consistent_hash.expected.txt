@@ -1,0 +1,9 @@
+nodes: 3  vnodes: 450
+user:100 -> node-1
+user:200 -> node-2
+user:300 -> node-2
+order:42  -> node-3
+after removing node-2:
+user:100 -> node-1
+user:200 -> node-3
+consistent_hash example: PASS

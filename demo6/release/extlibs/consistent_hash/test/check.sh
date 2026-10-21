@@ -25,6 +25,8 @@ done
 "$cc" "${flags[@]}" release/extlibs/consistent_hash/examples/consistent_hash_c.c \
     "$work/xrt_runtime.o" -lm -ldl -o "$work/consistent_hash_example"
 timeout 90s "$work/consistent_hash_example" > "$work/consistent_hash_c.txt"
+diff -u release/extlibs/consistent_hash/examples/consistent_hash.expected.txt \
+    "$work/consistent_hash_c.txt"
 
 xl=release/xl
 if [[ ! -x "$xl" ]]; then
@@ -51,5 +53,6 @@ if ! grep -Fq 'addNative' "$work/private_native.txt" ||
 fi
 timeout 90s "$xl" run release/examples/extlibs/consistent_hash.xl > \
     "$work/consistent_hash_xl.txt"
-diff -u "$work/consistent_hash_c.txt" "$work/consistent_hash_xl.txt"
+diff -u release/extlibs/consistent_hash/examples/consistent_hash.expected.txt \
+    "$work/consistent_hash_xl.txt"
 printf 'consistent_hash Linux C/XL ASan/UBSan gate: PASS\n'
