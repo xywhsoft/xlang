@@ -57,7 +57,8 @@ static bool frame_trace(const void* data,xrtownershipvisitor visit,void* context
     return (!frame->lease || visit(xl6CodeLeaseOwnership(frame->lease),context)) &&
         visit(xrtFutureOwnership(frame->source),context) && visit(xrtPromiseOwnership(frame->output),context) &&
         visit(xrtCancelOwnership(frame->cancel),context) &&
-        visit(xrtCancelWatchOwnership(frame->cancelSource),context) && (!frame->payloadLive ||
+        visit(xrtCancelWatchOwnership(frame->cancelSource),context) &&
+        (!frame->interruptOps || frame->interruptOps->Trace(frame,visit,context)) && (!frame->payloadLive ||
             (frame->layoutV2 ? xl6CaptureRuntimeV2Get()->Trace(frame->layoutV2,frame->data,frame->dataSize,visit,context) :
              frame->layout ? xl6CaptureRuntimeV1Get()->Trace(frame->layout,frame->data,visit,context)
                            : frame->trace(frame->data,visit,context)));
@@ -144,7 +145,9 @@ static void frame_release(FutureCallback* frame)
     if(--frame->references){frame_end(frame,&mutation);return;}
     if(frame->active || frame->payloadLive || frame->source || frame->output || frame->cancel || frame->cancelSource ||
         (frame->ticket && frame->ticket->queue))abort();
-    lease=frame->lease;frame_unlock(frame);xrtFree(frame);mutation_end(&mutation);xl6CodeLeaseRelease(lease);
+    lease=frame->lease;frame_unlock(frame);
+    if(frame->interruptOps)frame->interruptOps->Destroy(frame);
+    xrtFree(frame);mutation_end(&mutation);xl6CodeLeaseRelease(lease);
 }
 static void producer_drop(const void* data) { frame_release((FutureCallback*)data); }
 void xl6CallbackFrameReleaseV1(FutureCallback* frame) {frame_release(frame);}
@@ -188,6 +191,7 @@ static bool bind_output(FutureCallback* frame)
 bool xl6CallbackFrameBindOutputV1(FutureCallback* frame) {return bind_output(frame);}
 static void detach_transport(FutureCallback* frame)
 {
+    if(frame->interruptOps)frame->interruptOps->Detach(frame);
     xrtownershipscope mutation={0};xfuture* source;xpromise* output;xcancel* cancel;xcancelwatch* cancelSource;
     frame_begin(frame,&mutation);++frame->active;
     source=frame->source;output=frame->output;cancel=frame->cancel;cancelSource=frame->cancelSource;
@@ -201,6 +205,7 @@ void xl6CallbackFrameRetireV1(FutureCallback* frame,bool consume)
 {
     XL6_CodeScope code={0};xrtownershipscope mutation={0};xerror* previous=xrtTakeError();
     xl6CodeScopeEnter(&code,frame->lease);
+    if(frame->interruptOps)frame->interruptOps->Detach(frame);
     frame_begin(frame,&mutation);if(!frame->payloadLive)abort();frame->retiring=true;++frame->active;frame_end(frame,&mutation);
     if(frame_has_layout(frame))cleanup(frame->data);else frame->drop(frame->data,NULL);
     frame_begin(frame,&mutation);frame->payloadLive=false;--frame->active;frame_end(frame,&mutation);
@@ -214,7 +219,7 @@ static void drop_release(void* data) {xl6CallbackFrameRetireV1(data,true);}
 static void discard(void* data)
 {
     FutureCallback* frame=header(data);if(!frame)return;
-    if(frame->committed || frame->publishing || frame->references!=1)abort();
+    if(frame->committed || frame->publishing || (!frame->interruptOps && frame->references!=1))abort();
     drop_release(frame);
 }
 void xl6CallbackFrameInvokeV1(FutureCallback* frame)
@@ -222,8 +227,10 @@ void xl6CallbackFrameInvokeV1(FutureCallback* frame)
     XL6_CodeScope code={0};xrtownershipscope mutation={0};xfutureresult input={0};
     xerror* previous=xrtTakeError();xl6CodeScopeEnter(&code,frame->lease);
     frame_begin(frame,&mutation);++frame->active;frame_end(frame,&mutation);
-    bool valid=xrtFutureResult(frame->source,&input);
+    bool valid=frame->source && xrtFutureResult(frame->source,&input);xerror* selected=NULL;
+    if(frame->interruptOps){frame->interruptOps->Select(frame,&input,&selected);valid=true;}
     frame->proc(valid?&input:NULL,frame->output,frame->cancel,frame->data);
+    xrtErrorFree(selected);
     frame_begin(frame,&mutation);--frame->active;frame_end(frame,&mutation);
     xl6CodeScopeLeave(&code);xrtClearError();xrtSetErrorTake(previous);
 }
@@ -254,7 +261,8 @@ static void restore_frame(const void* data,const void* token)
 static bool prepared_frame(const void* data)
 {
     const FutureCallback* frame=data;
-    return !frame->payloadLive && !frame->active && !frame->retiring && !frame->source && !frame->output && !frame->cancel && !frame->cancelSource;
+    return !frame->payloadLive && !frame->active && !frame->retiring && !frame->source && !frame->output && !frame->cancel && !frame->cancelSource &&
+        (!frame->interruptOps || frame->interruptOps->Idle(frame));
 }
 static xrtownershipprepareresult prepare_frame(const void* data,const void* token)
 {

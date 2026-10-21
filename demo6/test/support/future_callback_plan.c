@@ -11,6 +11,11 @@ int main(int argc,char** argv)
     XL6_ArtifactRuntimePlan base;XL6_ArtifactOwnershipPlan plan;
     assert(xl6ArtifactRuntimeClosePlan(&roots,&base)&&xl6ArtifactOwnershipPlanBuild(&base,&plan));
     assert(xl6ArtifactRuntimeSetHas(&plan.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_FUTURE_CALLBACK_QUEUE));
+    assert(xl6ArtifactRuntimeSetHas(&plan.runtime.components,XL6_ARTIFACT_OWNERSHIP_DOMAIN_NATIVE_FUTURE));
+    bool nativeDomain=false;
+    for(size_t i=0;i<plan.domainCount;++i)
+        if(!strcmp(plan.domains[i],"xl6OwnershipDomainNativeFutureV1Get"))nativeDomain=true;
+    assert(nativeDomain);
     for(size_t i=0;i<plan.runtime.nativeModuleCount;++i){
         assert(strncmp(plan.runtime.nativeModules[i],"XRT_MODULE_NET",14));
         assert(strncmp(plan.runtime.nativeModules[i],"XRT_MODULE_TLS",14));

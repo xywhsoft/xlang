@@ -59,16 +59,20 @@ static const XL6_ContinuationStorageV2 storage={hold,release,ownership,watch_ini
 const XL6_ContinuationStorageV2* xl6FutureCallbackQueuedStorageV2Get(void) {return &storage;}
 static void run(void* data) {xl6CallbackFrameInvokeV1(xl6CallbackFrameHeaderV1(data));}
 static void retire(void* data) {xl6CallbackFrameRetireV1(xl6CallbackFrameHeaderV1(data),false);}
-static xfuture* start_body(XL6_ContinuationExecutor* executor,void* data,xfuture* source,bool exclusive)
+static xfuture* start_owned_body(XL6_ContinuationExecutor* executor,void* data,xfuture* source,bool exclusive,bool interrupted)
 {
     Frame* frame=xl6CallbackFrameHeaderV1(data);xfuture* future=NULL;xrtownershipscope mutation={0};
-    if(!executor||!frame||!frame->queued||!frame->layoutV2||!source||frame->references!=1||
+    if(!executor||!frame||!frame->queued||!frame->layoutV2||
+        (interrupted ? !frame->interruptOps || !frame->references : frame->interruptOps || !source || frame->references!=1)||
+        frame->source||frame->output||
         frame->committed||frame->publishing||!frame->ticket||frame->ticket->queue){xrtSetErrorKind(XERR_ARGUMENT);return NULL;}
-    frame->source=xrtFutureRef(source);if(!frame->source)goto failed;
+    xfuture* retained=source?xrtFutureRef(source):NULL;if(source&&!retained)goto failed;
+    xl6CallbackFrameBeginV1(frame,&mutation);frame->source=retained;xl6CallbackFrameEndV1(frame,&mutation);
+    if(frame->interruptOps)frame->interruptOps->Bound(frame);
     frame->output=xrtPromiseCreate(&future,NULL);if(!frame->output)goto failed;
     if(!xl6CallbackFrameBindOutputV1(frame))goto failed;
     frame->cancel=xrtPromiseCancelToken(frame->output);if(!frame->cancel)goto failed;
-    if(exclusive&&!xl6CallbackFrameBindCancellationV1(frame))goto failed;
+    if(exclusive&&source&&!xl6CallbackFrameBindCancellationV1(frame))goto failed;
     XL6_ContinuationAdmission admitted=xl6ContinuationExecutorReserve(executor,frame->ticket,run,retire,data);
     if(admitted!=XL6_CONTINUATION_ADMITTED){
         if(!xrtGetError())xrtSetErrorKind(admitted==XL6_CONTINUATION_FULL?XERR_RANGE:
@@ -79,11 +83,14 @@ static xfuture* start_body(XL6_ContinuationExecutor* executor,void* data,xfuture
      * no extra code lease, hidden owner or independent ticket node exists. */
     xl6CallbackFrameBeginV1(frame,&mutation);frame->ticket->storage=&storage;frame->publishing=true;
     xl6CallbackFrameEndV1(frame,&mutation);
-    if(!xl6ContinuationWatchRegister(frame->ticket,&frame->watch,source)){
+    if(source&&!xl6ContinuationWatchRegister(frame->ticket,&frame->watch,source)){
         if(!xl6ContinuationAbort(frame->ticket))abort();
         xl6CallbackFrameBeginV1(frame,&mutation);frame->publishing=false;xl6CallbackFrameEndV1(frame,&mutation);
         goto failed;
     }
+    /* A pre-start stop has no native operation/Watch to invent. The same
+     * reserved frame is ready, with no transport credit, before publication. */
+    if(!source){xl6ContinuationReady(frame->ticket);xl6ContinuationTransportReleased(frame->ticket);}
     xl6ContinuationCommit(frame->ticket); /* final handoff: frame may retire */
     return future;
 failed:;
@@ -91,6 +98,10 @@ failed:;
     xrtClearError();if(previous)xrtSetErrorTake(previous);else xrtSetErrorKind(XERR_INTERNAL);
     return NULL;
 }
+static xfuture* start_body(XL6_ContinuationExecutor* executor,void* data,xfuture* source,bool exclusive)
+{return start_owned_body(executor,data,source,exclusive,false);}
+xfuture* xl6CallbackFrameStartInterruptedInternalV1(XL6_ContinuationExecutor* executor,void* data,xfuture* source)
+{XL6_OWNERSHIP_RETURN(xfuture*,start_owned_body(executor,data,source,true,true));}
 static xfuture* start(XL6_ContinuationExecutor* executor,void* data,xfuture* source)
 {XL6_OWNERSHIP_RETURN(xfuture*,start_body(executor,data,source,false));}
 static xfuture* start_exclusive(XL6_ContinuationExecutor* executor,void* data,xfuture* source)

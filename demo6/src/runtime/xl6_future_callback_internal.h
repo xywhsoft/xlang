@@ -2,6 +2,18 @@
 #define XL6_FUTURE_CALLBACK_INTERNAL_H
 #include "xl6_future_callback.h"
 #include "xl6_continuation_queue.h"
+struct XL6_FutureCallbackFrameV1;
+/* Optional resident transport, uniquely contained by the real frame. Its
+ * sources own real frame references; it is NOT another reference-count node.
+ * All methods/code are permanent resident, never module callbacks. */
+typedef struct XL6_CallbackInterruptOpsV1 {
+    void (*Bound)(struct XL6_FutureCallbackFrameV1*);
+    void (*Select)(struct XL6_FutureCallbackFrameV1*,struct xfutureresult*,struct xerror**);
+    void (*Detach)(struct XL6_FutureCallbackFrameV1*);
+    bool (*Trace)(const struct XL6_FutureCallbackFrameV1*,xrtownershipvisitor,void*);
+    bool (*Idle)(const struct XL6_FutureCallbackFrameV1*);
+    void (*Destroy)(struct XL6_FutureCallbackFrameV1*);
+} XL6_CallbackInterruptOpsV1;
 /* Same-source resident ABI. Inline and queued transports share ONE physical
  * activation and capture lifetime. Queue/Watch slots are uniquely contained;
  * their real references pin this allocation, never a synthetic frame shell. */
@@ -21,6 +33,8 @@ typedef struct XL6_FutureCallbackFrameV1 {
     xpromise* output;
     xcancel* cancel;
     xcancelwatch* cancelSource;
+    const XL6_CallbackInterruptOpsV1* interruptOps;
+    void* interrupt;
     /* Optional aligned tail of this SAME allocation; native inline frames
      * do not pay for an unused ticket or a second heap allocation. */
     XL6_ContinuationTicket* ticket;
@@ -44,4 +58,5 @@ void xl6CallbackFrameInvokeV1(XL6_FutureCallbackFrameV1*);
 void xl6CallbackFrameRetireV1(XL6_FutureCallbackFrameV1*,bool consume);
 struct xl6_foreign_error_result xl6CallbackFrameCleanupResultV1(XL6_FutureCallbackFrameV1*,struct xl6_foreign_error_result);
 void* xl6CallbackFrameAllocateQueuedV1(const XL6_CodeOwner*,size_t,XL6_FutureCallbackProc,const XL6_CaptureLayoutV2*);
+xfuture* xl6CallbackFrameStartInterruptedInternalV1(struct XL6_ContinuationExecutor*,void*,xfuture*);
 #endif

@@ -29,7 +29,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_capture.c", D(R(CELL),R(CLOSURE),R(FOREIGN_ERROR),R(GENERATOR),R(VALUE_ITERATOR)),
         {"XRT_MODULE_MEMORY", "XRT_MODULE_VALUE", "XRT_MODULE_FUTURE"}},
     {"src/runtime/xl6_value_iterator.c", D(R(ARRAY_VALUE_ITERATOR),R(FOREIGN_ERROR)), {"XRT_MODULE_MEMORY", "XRT_MODULE_ATOMIC", "XRT_MODULE_VALUE_CONTAINER"}},
-    {"src/runtime/xl6_future_callback.c", D(R(CAPTURE_V2),R(CODE_LEASE)),
+    {"src/runtime/xl6_future_callback.c", D(R(CAPTURE_V2),R(CODE_LEASE),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE)),
         {"XRT_MODULE_FUTURE", "XRT_MODULE_THREAD"}},
     {"src/runtime/xl6_generator.c", D(R(CAPTURE_V2),R(CODE_LEASE),R(FOREIGN_ERROR)), {"XRT_MODULE_ATOMIC"}},
     {"src/runtime/xl6_future_payload.c", D(R(CLOSURE),R(GENERATOR),R(FOREIGN_ERROR)),
@@ -767,7 +767,9 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_execution_tcp_dial.c",D(R(EXECUTION_TCP),R(EXECUTION_NET_RESOLVER),R(OWNERSHIP_DOMAIN_NET_DIAL_NATIVE)),{"XRT_MODULE_NET_TCP_DIAL_FUTURE"}},
     {"src/runtime/xl6_tcp_dial.c",D(R(EXECUTION_TCP_DIAL),R(TCP_LANGUAGE)),{NULL}},
     {"src/runtime/xl6_tcp_dial_future.c",D(R(TCP_DIAL),R(TCP_FUTURE)),{"XRT_MODULE_STRING","XRT_MODULE_UNICODE_TEXT"}},
-    {"src/runtime/xl6_tcp_dial_sync.c",D(R(TCP_DIAL),R(FUTURE_PAYLOAD)),{"XRT_MODULE_STRING","XRT_MODULE_UNICODE_TEXT"}}
+    {"src/runtime/xl6_tcp_dial_sync.c",D(R(TCP_DIAL),R(FUTURE_PAYLOAD)),{"XRT_MODULE_STRING","XRT_MODULE_UNICODE_TEXT"}},
+    {"src/runtime/xl6_future_callback_interrupt.c",D(R(FUTURE_CALLBACK_QUEUE),R(DEADLINE_SERVICE)),{"XRT_MODULE_TIME"}},
+    {"src/runtime/xl6_ownership_domain_future_callback_interrupt.c",D(R(OWNERSHIP_CATALOG),R(FUTURE_CALLBACK_INTERRUPT)),{NULL}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
