@@ -44,12 +44,13 @@ XRT 独立提交：`2ecf0443af254c6913734eb95dbd5220bb6850db`。
 
 ## 后续仍需完成
 
-1. 原生聚合 Server 自身的 Engine／Listener／接受队列拥有图、Child 回调绑定和
-   checked 退休。当前 Child 只是内部稳定数组地址，没有可假定的独立 RC。
-2. Server Accept Future 的真实生产者、取消 Watch、拥有型 Stream 结果和终态清理；
-   不能把旧 raw Promise／Watch 路径当作已有完整图合同。
-3. 不可变多端点配置、聚合状态／统计、同步／异步接受和生命周期的驻留语言入口。
-4. 固定快照的选择性同步及实际 JIT／独立 AOT／裁剪验收。
+原生聚合 Server 的实际 Engine／Listener／队列拥有图、计数绑定、checked 退休，
+以及 Accept Future 的生产者／取消 Watch／拥有型结果，已由 XRT `c09e357a` 完成。
+573 阶段及准确边界见 [Server 原生闭包验收](tcp-server-owned-native.md)。
+Child 现在有真实引用计数及父拥有边，不是把原有裸地址直接当成独立节点。
+
+仍需不可变多端点配置、聚合状态／统计、同步／异步接受和生命周期的驻留语言入口，
+以及固定快照的选择性同步、实际 JIT／独立 AOT／裁剪验收。
 
 本批尚未同步到 xlang 的固定 XRT／xruntime 头；现有产品 ABI、微秒／绝对期限
 合同和发布二进制均未修改。后续随 Server 原生闭包统一同步并验收，避免将
