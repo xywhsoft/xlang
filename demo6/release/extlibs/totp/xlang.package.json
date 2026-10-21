@@ -7,10 +7,12 @@
     "artifact": {
         "kind": "source",
         "cSources": ["totp_native.c"],
-        "xlSources": ["src/totp.xl"]
+        "xlSources": ["src/totp.xl"],
+        "xrtModules": ["XRT_MODULE_CRYPTO_SHA1", "XRT_MODULE_TIME"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }

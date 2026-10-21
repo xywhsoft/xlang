@@ -1,0 +1,62 @@
+import totp
+
+string secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
+assert totp.hotp(secret, 0) == "755224"
+assert totp.hotp(secret, 9) == "520489"
+assert totp.generateAt(secret, 59, 30, 8) == "94287082"
+assert totp.generateAt(secret, 1111111109, 30, 8) == "07081804"
+assert totp.generateAt(secret, 29) == "755224"
+assert totp.generateAt(secret, 30) == "287082"
+assert totp.generateAt(secret, 60) == "359152"
+assert totp.hotp(secret, 0, 9) == "284755224"
+assert totp.hotp("AEBAGBAFAYDQQCIKBMGA2DQPCAIREEYUCULBOGAZDINRYHI6D4QCCIRDEQSSMJZIFEVCWLBNFYXTAMJSGM2DKNRXHA4TUOZ4HU7D6QCBIJBUIRKGI5EESSSLJRGU4T2Q", 1) == "999505"
+string maxSecret = string.repeat("A", 256)
+assert totp.generateAt(maxSecret, 9223372036854775807, 1, 9) == "852875294"
+assert totp.verifyAt(maxSecret, "852875294", 9223372036854775807, 1, 9, 10)
+assert totp.hotp("MY", 0) == totp.hotp("MY======", 0)
+assert totp.hotp("my", 0) == totp.hotp("MY", 0)
+assert totp.verifyAt(secret, "287082", 59, 30, 6, 0)
+assert not totp.verifyAt(secret, "755224", 59, 30, 6, 0)
+assert totp.verifyAt(secret, "755224", 59, 30, 6, 1)
+assert totp.verifyAt(secret, "359152", 59, 30, 6, 1)
+assert not totp.verifyAt(secret, "359152", 59, 30, 6, 0)
+assert not totp.verifyAt(secret, "28\0" + "082", 59, 30, 6, 0)
+
+int rejected = 0
+try
+    totp.hotp("MZ", 0)
+catch ValueError error
+    rejected += 1
+end
+try
+    totp.hotp("MY=", 0)
+catch ValueError error
+    rejected += 1
+end
+try
+    totp.hotp("MY\0", 0)
+catch ValueError error
+    rejected += 1
+end
+try
+    totp.hotp(string.repeat("A", 257), 0)
+catch ValueError error
+    rejected += 1
+end
+try
+    totp.hotp(secret, -1)
+catch ValueError error
+    rejected += 1
+end
+try
+    totp.generateAt(secret, 1, 2147483648)
+catch ValueError error
+    rejected += 1
+end
+try
+    totp.verifyAt(secret, "755224", 0, 30, 6, 11)
+catch ValueError error
+    rejected += 1
+end
+assert rejected == 7
+println("totp boundaries: PASS")

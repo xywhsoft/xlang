@@ -1,175 +1,258 @@
-/*
- * totp_native.c - TOTP/HOTP (RFC 6238 / RFC 4226) with HMAC-SHA1
- */
-#include <stdlib.h>
+/* RFC 4226/6238 的 HMAC-SHA1 配置；SHA-1 与时钟由 XRT 提供。 */
+#ifndef XRT_MODULE_CRYPTO_SHA1
+#define XRT_MODULE_CRYPTO_SHA1
+#endif
+#ifndef XRT_MODULE_TIME
+#define XRT_MODULE_TIME
+#endif
+#include "xrt.h"
+#include "include/totp_native.h"
 #include <string.h>
-#include <stdio.h>
-#include <time.h>
-static char totp_buf[64];
 
-/* ------------------------------------------------------------------ */
-/* Minimal SHA-1 implementation                                        */
-/* ------------------------------------------------------------------ */
-typedef struct {
-    unsigned int state[5];
-    unsigned long long count;
-    unsigned char buffer[64];
-} SHA1_CTX;
+#define XTOTP_DOMAIN "xlang.extlib.totp"
+#define XTOTP_MAX_SECRET_TEXT 256u
+#define XTOTP_MAX_SECRET_BYTES 160u
+#define XTOTP_MAX_WINDOW 10
 
-#define SHA1_ROL(v, b) (((v) << (b)) | ((v) >> (32 - (b))))
-
-static void sha1_transform(unsigned int state[5], const unsigned char buf[64]) {
-    unsigned int a, b, c, d, e, w[80];
-    int i;
-    for (i = 0; i < 16; i++)
-        w[i] = (buf[i*4]<<24)|(buf[i*4+1]<<16)|(buf[i*4+2]<<8)|buf[i*4+3];
-    for (i = 16; i < 80; i++)
-        w[i] = SHA1_ROL(w[i-3]^w[i-8]^w[i-14]^w[i-16], 1);
-    a=state[0]; b=state[1]; c=state[2]; d=state[3]; e=state[4];
-    for (i = 0; i < 80; i++) {
-        unsigned int f, k, tmp;
-        if (i < 20) { f = (b&c)|((~b)&d); k = 0x5A827999; }
-        else if (i < 40) { f = b^c^d; k = 0x6ED9EBA1; }
-        else if (i < 60) { f = (b&c)|(b&d)|(c&d); k = 0x8F1BBCDC; }
-        else { f = b^c^d; k = 0xCA62C1D6; }
-        tmp = SHA1_ROL(a,5) + f + e + k + w[i];
-        e=d; d=c; c=SHA1_ROL(b,30); b=a; a=tmp;
-    }
-    state[0]+=a; state[1]+=b; state[2]+=c; state[3]+=d; state[4]+=e;
+static void xtotp_error(xerrkind kind, const char* message)
+{
+    xrtSetErrorInfo(kind, XTOTP_DOMAIN, 0, message);
 }
 
-static void sha1_init(SHA1_CTX *ctx) {
-    ctx->state[0]=0x67452301; ctx->state[1]=0xEFCDAB89;
-    ctx->state[2]=0x98BADCFE; ctx->state[3]=0x10325476;
-    ctx->state[4]=0xC3D2E1F0; ctx->count=0;
-}
-
-static void sha1_update(SHA1_CTX *ctx, const unsigned char *data, unsigned long len) {
-    unsigned long i, idx;
-    idx = (unsigned long)(ctx->count & 63);
-    ctx->count += len;
-    for (i = 0; i < len; i++) {
-        ctx->buffer[idx++] = data[i];
-        if (idx == 64) { sha1_transform(ctx->state, ctx->buffer); idx = 0; }
-    }
-}
-
-static void sha1_final(SHA1_CTX *ctx, unsigned char digest[20]) {
-    unsigned long idx = (unsigned long)(ctx->count & 63);
-    unsigned long long bits = ctx->count * 8;
-    int i;
-    ctx->buffer[idx++] = 0x80;
-    if (idx > 56) { memset(ctx->buffer+idx, 0, 64-idx); sha1_transform(ctx->state, ctx->buffer); idx = 0; }
-    memset(ctx->buffer+idx, 0, 56-idx);
-    for (i = 0; i < 8; i++) ctx->buffer[56+i] = (unsigned char)(bits >> (56 - i*8));
-    sha1_transform(ctx->state, ctx->buffer);
-    for (i = 0; i < 20; i++) digest[i] = (unsigned char)(ctx->state[i/4] >> (24 - (i%4)*8));
-}
-
-/* ------------------------------------------------------------------ */
-/* HMAC-SHA1                                                           */
-/* ------------------------------------------------------------------ */
-static void hmac_sha1(const unsigned char *key, int key_len,
-                      const unsigned char *msg, int msg_len,
-                      unsigned char out[20]) {
-    SHA1_CTX ctx;
-    unsigned char k_pad[64], tk[20];
-    int i;
-    if (key_len > 64) {
-        sha1_init(&ctx); sha1_update(&ctx, key, key_len); sha1_final(&ctx, tk);
-        key = tk; key_len = 20;
-    }
-    memset(k_pad, 0x36, 64);
-    for (i = 0; i < key_len; i++) k_pad[i] ^= key[i];
-    sha1_init(&ctx); sha1_update(&ctx, k_pad, 64); sha1_update(&ctx, msg, msg_len); sha1_final(&ctx, out);
-    memset(k_pad, 0x5c, 64);
-    for (i = 0; i < key_len; i++) k_pad[i] ^= key[i];
-    sha1_init(&ctx); sha1_update(&ctx, k_pad, 64); sha1_update(&ctx, out, 20); sha1_final(&ctx, out);
-}
-
-/* ------------------------------------------------------------------ */
-/* Base32 decode (RFC 4648)                                            */
-/* ------------------------------------------------------------------ */
-static int b32_val(char c) {
-    if (c >= 'A' && c <= 'Z') return c - 'A';
-    if (c >= 'a' && c <= 'z') return c - 'a';
-    if (c >= '2' && c <= '7') return c - '2' + 26;
+static int xtotp_base32_digit(unsigned char value)
+{
+    if (value >= 'A' && value <= 'Z') return value - 'A';
+    if (value >= 'a' && value <= 'z') return value - 'a';
+    if (value >= '2' && value <= '7') return value - '2' + 26;
     return -1;
 }
 
-static int base32_decode(const char *in, unsigned char *out, int max_out) {
-    int bits = 0, val = 0, olen = 0;
-    while (*in && *in != '=') {
-        int v = b32_val(*in);
-        if (v < 0) { in++; continue; }
-        val = (val << 5) | v;
-        bits += 5;
-        if (bits >= 8) {
-            bits -= 8;
-            if (olen < max_out) out[olen++] = (unsigned char)(val >> bits);
+/* 接受 RFC 4648 的带/不带尾部填充形式，拒绝非零填充位。 */
+static bool xtotp_decode_secret(const char* text, long long length,
+    unsigned char output[XTOTP_MAX_SECRET_BYTES], size_t* output_size)
+{
+    size_t i, symbols = 0u, padding = 0u, bytes = 0u;
+    unsigned int pending = 0u, bits = 0u;
+    size_t expected_padding;
+    if (text == NULL || length <= 0 || length > XTOTP_MAX_SECRET_TEXT) {
+        xtotp_error(XERR_RANGE, "base32 secret length must be 1..256 bytes");
+        return false;
+    }
+    for (i = 0u; i < (size_t)length; ++i) {
+        int digit;
+        if (text[i] == '=') { ++padding; continue; }
+        digit = xtotp_base32_digit((unsigned char)text[i]);
+        if (digit < 0 || padding != 0u) {
+            xtotp_error(XERR_VALUE, "secret is not canonical base32");
+            return false;
         }
-        in++;
+        pending = (pending << 5) | (unsigned int)digit;
+        bits += 5u;
+        ++symbols;
+        if (bits >= 8u) {
+            bits -= 8u;
+            output[bytes++] = (unsigned char)(pending >> bits);
+            pending &= (1u << bits) - 1u;
+        }
     }
-    return olen;
-}
-
-/* ------------------------------------------------------------------ */
-/* HOTP / TOTP                                                         */
-/* ------------------------------------------------------------------ */
-static int hotp_generate(const unsigned char *secret, int secret_len,
-                         long long counter, int digits) {
-    unsigned char msg[8], hmac[20];
-    int offset, code, i;
-    for (i = 7; i >= 0; i--) { msg[i] = (unsigned char)(counter & 0xFF); counter >>= 8; }
-    hmac_sha1(secret, secret_len, msg, 8, hmac);
-    offset = hmac[19] & 0x0F;
-    code = ((hmac[offset] & 0x7F) << 24) | (hmac[offset+1] << 16) |
-           (hmac[offset+2] << 8) | hmac[offset+3];
-    for (i = 0; i < digits; i++) code = code % 1000000000;
-    /* compute mod 10^digits */
-    { int mod = 1; for (i = 0; i < digits; i++) mod *= 10; code = code % mod; }
-    return code;
-}
-
-const char *xtotp_hotp(const char *b32_secret, long long counter, int digits) {
-    unsigned char secret[128];
-    int slen, code;
-    if (!b32_secret) return "";
-    if (digits < 6) digits = 6;
-    if (digits > 9) digits = 9;
-    slen = base32_decode(b32_secret, secret, sizeof(secret));
-    if (slen <= 0) return "";
-    code = hotp_generate(secret, slen, counter, digits);
-    snprintf(totp_buf, sizeof(totp_buf), "%0*d", digits, code);
-    return totp_buf;
-}
-
-const char *xtotp_generate_at(const char *b32_secret, long long timestamp,
-                              int time_step, int digits) {
-    long long counter;
-    if (time_step <= 0) time_step = 30;
-    counter = timestamp / time_step;
-    return xtotp_hotp(b32_secret, counter, digits);
-}
-
-const char *xtotp_generate(const char *b32_secret, int time_step, int digits) {
-    long long now = (long long)time(NULL);
-    return xtotp_generate_at(b32_secret, now, time_step, digits);
-}
-
-int xtotp_verify_at(const char *b32_secret, const char *code,
-                    long long timestamp, int time_step, int digits, int window) {
-    int w;
-    if (time_step <= 0) time_step = 30;
-    for (w = -window; w <= window; w++) {
-        long long ts = timestamp + w * time_step;
-        const char *gen = xtotp_generate_at(b32_secret, ts, time_step, digits);
-        if (strcmp(gen, code) == 0) return 1;
+    switch (symbols % 8u) {
+    case 0u: expected_padding = 0u; break;
+    case 2u: expected_padding = 6u; break;
+    case 4u: expected_padding = 4u; break;
+    case 5u: expected_padding = 3u; break;
+    case 7u: expected_padding = 1u; break;
+    default: expected_padding = 9u; break;
     }
-    return 0;
+    if (bytes == 0u || expected_padding == 9u ||
+        (padding != 0u && padding != expected_padding) || pending != 0u) {
+        xtotp_error(XERR_VALUE, "secret has invalid base32 padding");
+        return false;
+    }
+    *output_size = bytes;
+    return true;
 }
 
-int xtotp_verify(const char *b32_secret, const char *code, int time_step, int digits, int window) {
-    long long now = (long long)time(NULL);
-    return xtotp_verify_at(b32_secret, code, now, time_step, digits, window);
+/* XRT 尚无 HMAC-SHA1 接口；只组合已有的 SHA-1 流函数。 */
+static bool xtotp_hmac_sha1(const unsigned char* key, size_t key_size,
+    const unsigned char message[8], unsigned char digest[20])
+{
+    unsigned char hashed_key[20] = {0};
+    unsigned char pad[64] = {0};
+    unsigned char inner[20] = {0};
+    xsha1 state;
+    size_t i;
+    bool valid = false;
+    if (key_size > sizeof(pad)) {
+        if (!xrtSha1(key, key_size, hashed_key)) goto done;
+        key = hashed_key;
+        key_size = sizeof(hashed_key);
+    }
+    memcpy(pad, key, key_size);
+    for (i = 0u; i < sizeof(pad); ++i) pad[i] ^= 0x36u;
+    xrtSha1Init(&state);
+    if (!xrtSha1Update(&state, pad, sizeof(pad)) ||
+        !xrtSha1Update(&state, message, 8u) ||
+        !xrtSha1Final(&state, inner)) goto done;
+    for (i = 0u; i < sizeof(pad); ++i) pad[i] ^= 0x36u ^ 0x5cu;
+    xrtSha1Init(&state);
+    valid = xrtSha1Update(&state, pad, sizeof(pad)) &&
+        xrtSha1Update(&state, inner, sizeof(inner)) &&
+        xrtSha1Final(&state, digest);
+done:
+    xrtSecureZero(&state, sizeof(state));
+    xrtSecureZero(hashed_key, sizeof(hashed_key));
+    xrtSecureZero(pad, sizeof(pad));
+    xrtSecureZero(inner, sizeof(inner));
+    if (!valid) xtotp_error(XERR_INTERNAL, "HMAC-SHA1 calculation failed");
+    return valid;
+}
+
+static bool xtotp_code(const unsigned char* secret, size_t secret_size,
+    uint64 counter, int digits, uint32* output)
+{
+    static const uint32 moduli[] = {1000000u, 10000000u, 100000000u, 1000000000u};
+    unsigned char message[8], digest[20] = {0};
+    uint32 value;
+    int offset, i;
+    for (i = 7; i >= 0; --i) {
+        message[i] = (unsigned char)counter;
+        counter >>= 8;
+    }
+    if (!xtotp_hmac_sha1(secret, secret_size, message, digest)) {
+        xrtSecureZero(digest, sizeof(digest));
+        return false;
+    }
+    offset = digest[19] & 15;
+    value = ((uint32)(digest[offset] & 0x7fu) << 24) |
+        ((uint32)digest[offset + 1] << 16) |
+        ((uint32)digest[offset + 2] << 8) | (uint32)digest[offset + 3];
+    *output = value % moduli[digits - 6];
+    xrtSecureZero(digest, sizeof(digest));
+    return true;
+}
+
+static bool xtotp_options(int time_step, int digits)
+{
+    if (time_step <= 0 || digits < 6 || digits > 9) {
+        xtotp_error(XERR_RANGE, "time step must be positive and digits 6..9");
+        return false;
+    }
+    return true;
+}
+
+static void* xtotp_format(uint32 code, int digits)
+{
+    char* result = (char*)xrtMalloc((size_t)digits + 1u);
+    int i;
+    if (result == NULL) return NULL;
+    for (i = digits - 1; i >= 0; --i) {
+        result[i] = (char)('0' + code % 10u);
+        code /= 10u;
+    }
+    result[digits] = '\0';
+    return result;
+}
+
+void* xtotp_hotp(const char* secret_text, long long secret_length,
+    long long counter, int digits)
+{
+    unsigned char secret[XTOTP_MAX_SECRET_BYTES] = {0};
+    size_t secret_size = 0u;
+    uint32 code;
+    void* result = NULL;
+    xrtClearError();
+    if (counter < 0 || !xtotp_options(30, digits)) {
+        if (counter < 0) xtotp_error(XERR_RANGE, "counter must be nonnegative");
+        return NULL;
+    }
+    if (xtotp_decode_secret(secret_text, secret_length, secret, &secret_size) &&
+        xtotp_code(secret, secret_size, (uint64)counter, digits, &code))
+        result = xtotp_format(code, digits);
+    xrtSecureZero(secret, sizeof(secret));
+    return result;
+}
+
+void* xtotp_generate_at(const char* secret, long long secret_length,
+    long long timestamp, int time_step, int digits)
+{
+    xrtClearError();
+    if (!xtotp_options(time_step, digits)) return NULL;
+    if (timestamp < 0) {
+        xtotp_error(XERR_RANGE, "timestamp must be nonnegative");
+        return NULL;
+    }
+    return xtotp_hotp(secret, secret_length, timestamp / time_step, digits);
+}
+
+void* xtotp_generate(const char* secret, long long secret_length,
+    int time_step, int digits)
+{
+    long long timestamp;
+    xrtClearError();
+    timestamp = xrtTimeUnix(xrtNow());
+    if (xrtGetError() != NULL) return NULL;
+    return xtotp_generate_at(secret, secret_length, timestamp, time_step, digits);
+}
+
+int xtotp_verify_at(const char* secret_text, long long secret_length,
+    const char* candidate, long long candidate_length, long long timestamp,
+    int time_step, int digits, int window)
+{
+    unsigned char secret[XTOTP_MAX_SECRET_BYTES] = {0};
+    size_t secret_size = 0u;
+    uint64 counter;
+    int offset, i, matched = 0;
+    xrtClearError();
+    if (!xtotp_options(time_step, digits) || timestamp < 0 ||
+        window < 0 || window > XTOTP_MAX_WINDOW) {
+        if (timestamp < 0 || window < 0 || window > XTOTP_MAX_WINDOW)
+            xtotp_error(XERR_RANGE, "timestamp or verification window is invalid");
+        return -1;
+    }
+    if (!xtotp_decode_secret(secret_text, secret_length, secret, &secret_size)) {
+        xrtSecureZero(secret, sizeof(secret));
+        return -1;
+    }
+    if (candidate == NULL || candidate_length != digits) goto done;
+    for (i = 0; i < digits; ++i)
+        if (candidate[i] < '0' || candidate[i] > '9') goto done;
+    counter = (uint64)(timestamp / time_step);
+    /* 不因提前命中而缩短循环；单次比较始终处理所有数字位。 */
+    for (offset = -window; offset <= window; ++offset) {
+        uint64 current = counter;
+        uint32 code;
+        unsigned int mismatch = 0u;
+        int valid = 1;
+        if (offset < 0) {
+            if (current < (uint64)(-offset)) valid = 0;
+            else current -= (uint64)(-offset);
+        } else {
+            current += (uint64)offset;
+        }
+        if (!xtotp_code(secret, secret_size, current, digits, &code)) {
+            matched = -1;
+            goto done;
+        }
+        for (i = digits - 1; i >= 0; --i) {
+            mismatch |= (unsigned int)((unsigned char)candidate[i] ^
+                (unsigned char)('0' + code % 10u));
+            code /= 10u;
+        }
+        matched |= (mismatch == 0u) & valid;
+    }
+done:
+    xrtSecureZero(secret, sizeof(secret));
+    return matched;
+}
+
+int xtotp_verify(const char* secret, long long secret_length,
+    const char* candidate, long long candidate_length, int time_step,
+    int digits, int window)
+{
+    long long timestamp;
+    xrtClearError();
+    timestamp = xrtTimeUnix(xrtNow());
+    if (xrtGetError() != NULL) return -1;
+    return xtotp_verify_at(secret, secret_length, candidate, candidate_length,
+        timestamp, time_step, digits, window);
 }

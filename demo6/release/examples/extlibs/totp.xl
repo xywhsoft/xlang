@@ -4,18 +4,10 @@ import totp
 
 func main(...) as int
     string secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
-
-    // Generate current TOTP code
-    string code = totp.generate(secret)
-    println("Current TOTP:", code)
-
-    // HOTP with counter
-    println("HOTP(0):", totp.hotp(secret, 0))
-    println("HOTP(1):", totp.hotp(secret, 1))
-
-    // Verify
-    println("verify current:", totp.verify(secret, code))
-
-    println("totp example: PASS")
+    string hotp = totp.hotp(secret, 0)
+    string code = totp.generateAt(secret, 59, 30, 8)
+    println("HOTP(0):", hotp)
+    println("TOTP(59):", code)
+    println("valid:", totp.verifyAt(secret, code, 59, 30, 8, 0))
     return 0
 end

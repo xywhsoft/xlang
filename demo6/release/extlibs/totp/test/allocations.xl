@@ -1,0 +1,28 @@
+import totp
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    for api in range(0, 3)
+        bool memoryError = false
+        bool valueError = false
+        assert failAfter(0)
+        try
+            if api == 0 then totp.hotp("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", 1) end
+            if api == 1 then totp.generateAt("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", 59, 30, 8) end
+            if api == 2 then totp.generate("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ") end
+        catch MemoryError e
+            memoryError = true
+        catch ValueError e
+            valueError = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert triggered and memoryError and not valueError
+    end
+    assert totp.generateAt("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ", 59, 30, 8) == "94287082"
+    println("totp allocation: PASS")
+    return 0
+end
