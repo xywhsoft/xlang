@@ -33,5 +33,52 @@ func main(...) as int
         duplicate = true
     end
     assert duplicate, "INI duplicate key must throw ConfigError"
+
+    bool malformed = false
+    try
+        ini.parse("[broken\nkey=value\n")
+    catch ConfigError e
+        malformed = true
+    end
+    assert malformed, "malformed section must throw ConfigError"
+
+    bool limited = false
+    try
+        ini.parse("name=value\n", maxInput=4)
+    catch ConfigError e
+        limited = true
+    end
+    assert limited, "input limit must throw ConfigError"
+
+    auto insensitive = ini.parse("[Main]\nName=Value\n", caseSensitive=false)
+    assert insensitive.get("main", "name") == "Value", "case-insensitive lookup"
+
+    bool missing = false
+    try
+        config.get("server", "missing")
+    catch ConfigError e
+        missing = true
+    end
+    assert missing, "missing key must throw ConfigError"
+    assert config.getOr("server", "missing", "fallback") == "fallback", "missing key fallback"
+
+    config.set("server", "port", "not-an-integer")
+    bool invalidInt = false
+    try
+        config.getInt("server", "port")
+    catch ConfigError e
+        invalidInt = true
+    end
+    assert invalidInt, "invalid int must throw ConfigError"
+    config.set("server", "port", "9090")
+    assert config.getInt("server", "port") == 9090, "conversion failure must not poison config"
+
+    bool missingFile = false
+    try
+        ini.load("ini/nonexistent-config-file.ini")
+    catch ConfigError e
+        missingFile = true
+    end
+    assert missingFile, "missing file must throw ConfigError"
     return 0
 end
