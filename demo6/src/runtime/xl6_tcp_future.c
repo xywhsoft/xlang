@@ -150,7 +150,9 @@ static xfuture* streamFuture(XL6_RuntimeServicesV1 services,void* receiver,int64
     else if(!xl6TcpPositiveSizeV1(argument,&bytes))return failed(NULL,NULL);
     Capture* capture=prepare(operation==0?RECEIVE:WAIT,receiver,xl6TcpStreamHandlePolicyV1Get());
     if(!capture||!capture->receiver)return failed(capture,NULL);
-    XL6_TcpScopeV1 scope={0};if(!xl6TcpEnterV1(receiver,XL6_EXECUTION_TCP_STREAM_V1,true,&scope))return failed(capture,NULL);
+    /* Waiting observes transport state, including explicit Close. Only Receive
+     * submits new data work. The retained capture keeps the native child alive. */
+    XL6_TcpScopeV1 scope={0};if(!xl6TcpEnterV1(receiver,XL6_EXECUTION_TCP_STREAM_V1,operation==0,&scope))return failed(capture,NULL);
     xfuture* source=operation==0?xrtNetStreamRecvAsync(scope.stream,bytes):operation==1?
         xrtNetStreamWaitAsync(scope.stream,(xnetstreamwait)argument):xrtNetStreamWaitAvailableAsync(scope.stream,bytes);
     xl6ExecutionTcpLeaveInternalV1(&scope);return publish(services,capture,source);

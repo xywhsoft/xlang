@@ -1,0 +1,92 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto resolver = NetResolver()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto proxy = NetProxy(NetProxyType.socks5, "127.0.0.1", listener.localAddress().port)
+auto authenticated = NetProxy(NetProxyType.socks5, "127.0.0.1", listener.localAddress().port, b"user", b"password", NetProxyAuth.required)
+auto http = NetProxy(NetProxyType.httpConnect, "127.0.0.1", listener.localAddress().port)
+auto options = TcpProxyDialOptions().withTransportOptions(TcpDialOptions().withFamily(4)).withTimeoutMillis(5000)
+auto active = CancellationSource()
+uint64 due = time.clock() + uint64(10000000)
+auto waiting = listener.acceptAsync()
+auto pending = TcpStream.dialProxyAsyncCancel(engine, resolver, proxy, "origin.test", 8443, options, active.token)
+TcpStream server = await waiting
+assert active.cancel()
+int stopped = 0
+try
+    auto unused = await pending
+catch CancelledError
+    stopped = stopped + 1
+end
+assert stopped == 1
+server.abort()
+auto already = CancellationSource()
+assert already.cancel()
+try
+    auto unused = TcpStream.dialProxyCancel(engine, resolver, proxy, "origin.test", 8443, already.token)
+catch CancelledError
+    stopped = stopped + 1
+end
+try
+    auto unused = await TcpStream.dialProxyAsyncCancel(engine, resolver, proxy, "origin.test", 8443, already.token)
+catch CancelledError
+    stopped = stopped + 1
+end
+try
+    auto unused = TcpStream.dialProxyCancel(engine, resolver, proxy, "origin.test", 8443, options, already.token)
+catch CancelledError
+    stopped = stopped + 1
+end
+try
+    auto unused = await TcpStream.dialProxyAsyncCancel(engine, resolver, proxy, "origin.test", 8443, options, already.token)
+catch CancelledError
+    stopped = stopped + 1
+end
+try
+    auto unused = TcpStream.dialProxyUntilCancel(engine, resolver, proxy, "origin.test", 8443, due, already.token)
+catch CancelledError
+    stopped = stopped + 1
+end
+try
+    auto unused = await TcpStream.dialProxyAsyncUntilCancel(engine, resolver, proxy, "origin.test", 8443, due, already.token)
+catch CancelledError
+    stopped = stopped + 1
+end
+try
+    auto unused = TcpStream.dialProxyUntilCancel(engine, resolver, proxy, "origin.test", 8443, options, due, already.token)
+catch CancelledError
+    stopped = stopped + 1
+end
+try
+    auto unused = await TcpStream.dialProxyAsyncUntilCancel(engine, resolver, proxy, "origin.test", 8443, options, due, already.token)
+catch CancelledError
+    stopped = stopped + 1
+end
+assert stopped == 9
+int expired = 0
+try
+    auto unused = TcpStream.dialProxyUntil(engine, resolver, proxy, "origin.test", 8443, uint64(0))
+catch TimeoutError
+    expired = expired + 1
+end
+try
+    auto unused = await TcpStream.dialProxyAsyncUntil(engine, resolver, proxy, "origin.test", 8443, uint64(0))
+catch TimeoutError
+    expired = expired + 1
+end
+try
+    auto unused = TcpStream.dialProxyUntil(engine, resolver, proxy, "origin.test", 8443, options, uint64(0))
+catch TimeoutError
+    expired = expired + 1
+end
+try
+    auto unused = await TcpStream.dialProxyAsyncUntil(engine, resolver, proxy, "origin.test", 8443, options, uint64(0))
+catch TimeoutError
+    expired = expired + 1
+end
+assert expired == 4
+listener.close()
+resolver.close()
+engine.close()
+assert engine.wait(5000)
+println("managed Proxy real cancellation and pre-admission deadline controls: ok")

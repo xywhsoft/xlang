@@ -1,0 +1,25 @@
+auto original = TcpProxyDialOptions()
+assert original.timeoutMillis == 30000
+assert original.receiveLimit == uint64(65536)
+auto transport = TcpDialOptions().withFamily(4).withTimeoutMillis(5000)
+auto changed = original.withTransportOptions(transport).withTimeoutMillis(-1).withReceiveLimit(uint64(1024))
+assert changed.timeoutMillis == -1
+assert changed.receiveLimit == uint64(1024)
+assert changed.transportOptions().family == 4
+assert changed.transportOptions().timeoutMillis == 5000
+assert original.timeoutMillis == 30000
+assert original.receiveLimit == uint64(65536)
+assert original.transportOptions().family != 4
+int rejected = 0
+try
+    auto invalid = original.withTimeoutMillis(0)
+catch RangeError
+    rejected = rejected + 1
+end
+try
+    auto invalid = original.withReceiveLimit(uint64(0))
+catch RangeError
+    rejected = rejected + 1
+end
+assert rejected == 2
+println("immutable Proxy Dial options: ok")

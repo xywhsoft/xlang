@@ -594,6 +594,7 @@ const char* xl6StdlibUdpStatsClassSource =
 
 #include "src/stdlib/xl6_stdlib_net_proxy.inc"
 #include "src/stdlib/xl6_stdlib_tcp_options.inc"
+#include "src/stdlib/xl6_stdlib_tcp_proxy.inc"
 
 
 

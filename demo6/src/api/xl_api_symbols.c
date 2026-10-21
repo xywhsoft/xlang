@@ -540,6 +540,7 @@ static int xlAddDefaultTccApiSymbols(TCCState* s)
         !xlApiAddTccSymbol(s, "xl6ExecutionTcpDialSourceV1", (const void*)xl6ExecutionTcpDialSourceV1) ||
         !xlApiAddTccSymbol(s, "xl6ExecutionTcpDialAddressesSourceV1", (const void*)xl6ExecutionTcpDialAddressesSourceV1) ||
         !xlApiAddTccSymbol(s, "xl6ExecutionTcpPromoteDialV1", (const void*)xl6ExecutionTcpPromoteDialV1)) return 0;
+    if (!xlApiAddTccSymbol(s, "xl6ExecutionTcpProxyDialSourceV1", (const void*)xl6ExecutionTcpProxyDialSourceV1)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6ClassDynamicFieldPathV3", (const void*)xl6ClassDynamicFieldPathV3)) return 0;
     if (!xlApiAddTccSymbol(s, "xl6CodeLeaseAcquire", (const void*)xl6CodeLeaseAcquire) ||
         !xlApiAddTccSymbol(s, "xl6CodeActivityEnterV1", (const void*)xl6CodeActivityEnterV1) ||
