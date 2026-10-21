@@ -1,0 +1,35 @@
+import murmur3
+
+// 非加密哈希；32 位整数与 hex 的小端字节顺序是不同的表示。
+func main(...) as int
+    println("empty32=" + string(murmur3.hash32("")))
+    println("abc32=" + string(murmur3.hash32("abc")))
+    println("abc32hex=" + murmur3.hash32Hex("abc"))
+    println("abc128=" + murmur3.hash128Hex("abc", 42))
+    println("utf8=" + murmur3.hash128Hex("你好🌍尾"))
+
+    // Buffer 可包含 NUL；不要把任意二进制解释为字符串。
+    Buffer binary = Buffer()
+    for i in range(256)
+        binary.appendByte((i * 37 + 11) % 256)
+    end
+    println("binary32=" + string(murmur3.hash32(binary, 42)))
+    println("binary128=" + murmur3.hash128Hex(binary, 42))
+    assert murmur3.hash32Bytes(binary).len() == 4
+    assert murmur3.hash128Bytes(binary).len() == 16
+
+    // 摘要不终结对象，clone 显式创建独立状态，reset 保留 seed 和预算。
+    auto h = murmur3.hasher(seed = 42, maxInput = 1024)
+    h.update("a")
+    auto branch = h.clone()
+    h.update("bc")
+    branch.reset()
+    branch.update("foo")
+    assert h.valid and h.digestBytes().len() == 16
+    println("stream=" + h.digestHex())
+    println("clone=" + branch.digestHex())
+    println("bytes=" + string(h.inputBytes))
+    h.reset()
+    println("reset=" + h.digestHex())
+    return 0
+end

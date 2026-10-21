@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>murmur3 - 扩展库 - xlang</title>
+  <meta name="description" content="MurmurHash3 x86_32 与 x64_128：UTF-8 文本、二进制 Buffer、流式快照与克隆、文件进度与取消，C/xlang 双语支持。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout c-hash" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / murmur3</p>
+    <div class="extlib-title-row"><h1>murmur3</h1><span class="extlib-cat-badge">非加密哈希</span></div>
+    <p class="extlib-lead">MurmurHash3 x86_32 与 x64_128，用于非对抗性散列和既有格式互操作。不用于密码、签名、认证或防恶意碰撞。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api">
+    <h2 id="api">公开函数</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>参数与结果</th></tr></thead><tbody>
+      <tr><td><code>version()</code></td><td>引擎版本 3.0.0；包版本另由清单记录为 1.0.0。</td></tr>
+      <tr><td><code>hash32(data, seed=0)</code></td><td>string 或 Buffer，返回 0..4294967295 的 int，不是有符号 32 位结果。</td></tr>
+      <tr><td><code>hash32Hex(data, seed=0)</code></td><td>同样输入，返回 4 字节小端摘要的 8 个小写 hex 字符。</td></tr>
+      <tr><td><code>hash32Bytes(data, seed=0)</code></td><td>返回同样的小端 4 字节 Buffer。</td></tr>
+      <tr><td><code>hash128Hex(data, seed=0)</code></td><td>x64_128，不是 x86_128；返回 32 个小写 hex 字符。</td></tr>
+      <tr><td><code>hash128Bytes(data, seed=0)</code></td><td>返回 x64_128 的小端 16 字节 Buffer。</td></tr>
+      <tr><td><code>hashFile32(path, seed=0, maxInput=268435456, onProgress=null)</code></td><td>文件的 x86_32 数值摘要。</td></tr>
+      <tr><td><code>hashFile128Hex(path, seed=0, maxInput=268435456, onProgress=null)</code></td><td>文件的 x64_128 文本摘要。</td></tr>
+      <tr><td><code>hasher(seed=0, maxInput=268435456)</code></td><td>创建 Murmur3Hasher，增量算法为 x64_128。</td></tr>
+    </tbody></table>
+    <p>seed 必须在 0..4294967295，maxInput 必须大于零。文本按 UTF-8 字节处理，
+      空输入合法；包含 NUL 的数据使用 Buffer。32 位 hex 表示摘要字节，
+      不是数值的通常书写顺序，例如 abc 的 hash32 为 3017643002，hash32Hex 为 fa93ddb3。</p>
+    <h2 id="stream">流式快照与克隆</h2>
+    <pre><code class="language-xlang">import murmur3
+
+auto h = murmur3.hasher(seed = 42)
+h.update("a")
+h.update("bc")
+assert h.digestHex() == "d6f7cfb39f08850d303d35422b711075"
+auto branch = h.clone()
+branch.update("!")
+assert h.inputBytes == uint64(3)
+h.reset()</code></pre>
+    <p><code>update(string|Buffer)</code> 追加数据；<code>digestHex()</code> 和
+      <code>digestBytes()</code> 是非终结快照，可以反复读取并继续追加。
+      clone 创建独立状态；reset 清空输入和失败状态，保留 seed 和预算。
+      inputBytes 为 uint64，valid 仅表示句柄非空。失败的 update 不部分接收数据，
+      后续摘要与克隆也失败，必须先 reset。独立对象可并发，同一可变对象需串行访问。</p>
+    <h2 id="progress">文件、进度与取消</h2>
+    <pre><code class="language-xlang">string digest = murmur3.hashFile128Hex("data.bin",
+    onProgress = func(int current, int total, int output) as bool
+        return true
+    end)</code></pre>
+    <p>每块最多读取 64 KiB，EOF 另通知一次，空文件也通知；最后计数可能重复。
+      current/total 为已读字节/总长度，未知总长为零，output 恒为零。
+      XRT 的 uint64 计数转公开 int 前检查范围。返回 false 抛 CancelledError，
+      EOF 通知同样可以取消；回调异常保留类别与消息，允许嵌套独立操作。</p>
+    <p>无效参数为 ValueError，预算或表示范围超限为 RangeError，分配失败为 MemoryError；
+      文件失败保留 XRT 错误分类。路径使用 XRT UTF-8 文件 API，失败不交付部分摘要。
+      输入预算不是超时机制，读取也不承诺并发修改文件时的快照一致性。</p>
+    <h2 id="c-api">C API 与所有权</h2>
+    <p><code>include/xrt_murmur3.h</code> 提供 Hash32/Hash128、OptionsInit/ErrorInit、
+      HasherCreate/Update/Digest/Clone/Reset/InputBytes/Error/Destroy 和 File32/File128。
+      C 核心独立于 xlang；已有 XRT 宿主只使用一份运行库。数值摘要零也是有效结果，
+      C 端应读取 XRT 错误或显式错误记录，不把零当成通用失败标记。</p>
+    <p>文件核心借用 Reader，从当前游标读取，不销毁或回退它；最终回调成功后才提交摘要。
+      已知剩余长度可预检，未知长度按块检查预算。进度帧包含 uint64 计数与 FINAL/TOTAL_KNOWN 标志。
+      C 核心零预算代表无业务上限，仍检查累计溢出。</p>
+    <p><code>include/murmur3_native.h</code> 给出精确薄绑定 ABI。
+      hex 文本借用 XRT 临时区，清理或回退后失效，后续正常调用不会覆盖此前文本。
+      返回的 xbuffer 归调用者所有，C 使用 xrtBufferDestroy，xlang 由 Buffer 接管。
+      adopt 只转移真实句柄的所有权，不允许伪造任意指针。</p>
+    <h2 id="verification">双语范例与验证范围</h2>
+    <p><code>examples/extlibs/murmur3_basic.xl</code> 与
+      <code>extlibs/murmur3/examples/basic.c</code> 展示文本、二进制、种子、流式与克隆。
+      <code>examples/extlibs/murmur3.xl</code> 与 <code>extlibs/murmur3/examples/files.c</code>
+      展示中文路径、文件进度、取消、回调异常和预算；两组分别与固定预期输出对照。</p>
+    <p><code>tools/check_extlib_murmur3.ps1</code> 验证 576 组独立参考答案、8 种地址偏移、
+      23 个生成原型、UTF-8/Buffer、状态与 Reader 边界、回调、分配故障、四线程独立对象及 C/xlang JIT/AOT/GCC。
+      <code>tools/check_extlib_murmur3.sh</code> 验证 Linux 独立 C ASan/UBSan/泄漏边界及范例输出。
+      测试记录输入哈希，不代表 Linux xlang、大端、32 位/ARM、共享可变对象或吞吐性能已验收。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

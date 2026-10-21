@@ -1,257 +1,235 @@
 #include "include/xrt_murmur3.h"
 #include "third_party/MurmurHash3.h"
-
-#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
-#define XRT_MURMUR3_CHUNK 262144u
+#define XRT_MURMUR3_CHUNK 65536u
+
+// ----------------------------- 状态与统一错误 -----------------------------
 
 struct xrtmurmur3hasher {
-	murmur3_128_state State;
-	xrtmurmur3options Options;
-	xrtmurmur3error Error;
-	uint64 InputBytes;
-	uint32 Seed;
-	bool Initialized;
-	bool Failed;
+    murmur3_128_state State;
+    xrtmurmur3options Options;
+    xrtmurmur3error Error;
+    bool Failed;
 };
 
-static void __xrtMurmur3SetError(xrtmurmur3error* pError, int iCode, int iBackend,
-	uint64 iInput, uint64 iOutput, const char* sFormat, ...)
+static bool murmur3_publish(const xrtmurmur3error* error)
 {
-	va_list pArgs;
-	if (pError == NULL) { return; }
-	pError->iCode = iCode;
-	pError->iBackendCode = iBackend;
-	pError->iInputOffset = iInput;
-	pError->iOutputOffset = iOutput;
-	va_start(pArgs, sFormat);
-	vsnprintf(pError->sMessage, sizeof(pError->sMessage), sFormat, pArgs);
-	va_end(pArgs);
-	pError->sMessage[sizeof(pError->sMessage) - 1] = '\0';
+    xerrkind kind = XERR_ARGUMENT;
+    switch (error->iCode) {
+    case XRT_MURMUR3_ERROR_MEMORY: kind = XERR_MEMORY; break;
+    case XRT_MURMUR3_ERROR_IO: kind = XERR_IO; break;
+    case XRT_MURMUR3_ERROR_LIMIT: kind = XERR_RANGE; break;
+    case XRT_MURMUR3_ERROR_STATE: kind = XERR_STATE; break;
+    case XRT_MURMUR3_ERROR_CANCELLED: kind = XERR_CANCELLED; break;
+    default: break;
+    }
+    xrtSetErrorInfo(kind, "xlang.extlib.murmur3", error->iCode, error->sMessage);
+    return false;
 }
 
-XRT_API void xrtMurmur3ErrorInit(xrtmurmur3error* pError)
+static bool murmur3_fail(xrtmurmur3error* error, int code, uint64 offset, const char* message)
 {
-	if (pError == NULL) { return; }
-	memset(pError, 0, sizeof(*pError));
-	pError->iCode = XRT_MURMUR3_OK;
+    xrtmurmur3error local;
+    if (error == NULL) error = &local;
+    memset(error, 0, sizeof(*error));
+    error->iCode = code;
+    error->iInputOffset = offset;
+    snprintf(error->sMessage, sizeof(error->sMessage), "%s", message);
+    return murmur3_publish(error);
 }
 
-XRT_API void xrtMurmur3OptionsInit(xrtmurmur3options* pOptions)
+/* Reader 和回调的原始错误留在 XRT 中，详情对象只复制描述。 */
+static void murmur3_observe(xrtmurmur3error* error, int code, uint64 offset)
 {
-	if (pOptions == NULL) { return; }
-	memset(pOptions, 0, sizeof(*pOptions));
-	pOptions->iSize = sizeof(*pOptions);
-	pOptions->iVersion = XRT_MURMUR3_OPTIONS_VERSION;
-	xrtResourceLimitsInit(&pOptions->tLimits);
+    if (error == NULL) return;
+    error->iCode = code;
+    error->iInputOffset = offset;
+    snprintf(error->sMessage, sizeof(error->sMessage), "%s", xrtErrorMessage(xrtGetError()));
 }
 
-XRT_API xrtmurmur3hasher* xrtMurmur3HasherCreate(const xrtmurmur3options* pOptions, uint32 iSeed)
+static bool murmur3_limits(const xrtresourcelimits* limits)
+{ return limits->iSize == sizeof(*limits) && limits->iVersion == XRT_RESOURCE_LIMITS_VERSION; }
+
+static bool murmur3_input(uint64 current, uint64 add, uint64 maximum, xrtmurmur3error* error)
 {
-	xrtmurmur3hasher* pHasher = (xrtmurmur3hasher*)xrtMalloc(sizeof(xrtmurmur3hasher));
-	if (pHasher == NULL) { return NULL; }
-	memset(pHasher, 0, sizeof(*pHasher));
-	xrtMurmur3ErrorInit(&pHasher->Error);
-	if (pOptions != NULL) {
-		pHasher->Options = *pOptions;
-	} else {
-		xrtMurmur3OptionsInit(&pHasher->Options);
-	}
-	pHasher->Seed = iSeed;
-	murmur3_128_init(&pHasher->State, iSeed);
-	pHasher->Initialized = true;
-	return pHasher;
+    if (add > UINT64_MAX - current ||
+        (maximum != 0 && (current > maximum || add > maximum - current)))
+        return murmur3_fail(error, XRT_MURMUR3_ERROR_LIMIT, current, "murmur3 input exceeds maxInput limit");
+    return true;
 }
 
-XRT_API bool xrtMurmur3HasherUpdate(xrtmurmur3hasher* pHasher, const void* pData, size_t iSize)
+XRT_API void xrtMurmur3ErrorInit(xrtmurmur3error* error)
+{ if (error != NULL) memset(error, 0, sizeof(*error)); }
+
+XRT_API void xrtMurmur3OptionsInit(xrtmurmur3options* options)
 {
-	if (pHasher == NULL || pHasher->Failed) { return false; }
-	if (iSize != 0u && pData == NULL) {
-		__xrtMurmur3SetError(&pHasher->Error, XRT_MURMUR3_ERROR_ARGUMENT, 0,
-			pHasher->InputBytes, 0, "invalid murmur3 input");
-		pHasher->Failed = true;
-		return false;
-	}
-	if (pHasher->Options.tLimits.iMaxInputBytes != 0u &&
-		pHasher->InputBytes + iSize > pHasher->Options.tLimits.iMaxInputBytes) {
-		__xrtMurmur3SetError(&pHasher->Error, XRT_MURMUR3_ERROR_LIMIT, 0,
-			pHasher->InputBytes, 0, "murmur3 input exceeds maxInput limit");
-		pHasher->Failed = true;
-		return false;
-	}
-	if (iSize != 0u) {
-		murmur3_128_update(&pHasher->State, pData, iSize);
-	}
-	pHasher->InputBytes += (uint64)iSize;
-	return true;
+    if (options == NULL) return;
+    memset(options, 0, sizeof(*options));
+    options->iSize = sizeof(*options);
+    options->iVersion = XRT_MURMUR3_OPTIONS_VERSION;
+    xrtResourceLimitsInit(&options->tLimits);
 }
 
-XRT_API bool xrtMurmur3HasherDigest(const xrtmurmur3hasher* pHasher, uint8* pOut)
+// ----------------------------- 有预算的流式对象 -----------------------------
+
+XRT_API xrtmurmur3hasher* xrtMurmur3HasherCreate(const xrtmurmur3options* options, uint32 seed)
 {
-	murmur3_128_state copy;
-	if (pHasher == NULL || pHasher->Failed || pOut == NULL) { return false; }
-	memcpy(&copy, &pHasher->State, sizeof(copy));
-	murmur3_128_final(&copy, pOut);
-	return true;
+    xrtmurmur3hasher* h;
+    xrtClearError();
+    if (options != NULL && (options->iSize != sizeof(*options) ||
+        options->iVersion != XRT_MURMUR3_OPTIONS_VERSION || !murmur3_limits(&options->tLimits))) {
+        murmur3_fail(NULL, XRT_MURMUR3_ERROR_ARGUMENT, 0, "invalid murmur3 options");
+        return NULL;
+    }
+    h = xrtMalloc(sizeof(*h));
+    if (h == NULL) return NULL;
+    memset(h, 0, sizeof(*h));
+    if (options != NULL) h->Options = *options;
+    else xrtMurmur3OptionsInit(&h->Options);
+    murmur3_128_init(&h->State, seed);
+    return h;
 }
 
-XRT_API bool xrtMurmur3HasherReset(xrtmurmur3hasher* pHasher)
+static bool murmur3_ready(const xrtmurmur3hasher* h)
 {
-	if (pHasher == NULL || pHasher->Failed) { return false; }
-	murmur3_128_init(&pHasher->State, pHasher->Seed);
-	pHasher->InputBytes = 0u;
-	return true;
+    if (h == NULL) return murmur3_fail(NULL, XRT_MURMUR3_ERROR_STATE, 0, "invalid murmur3 handle");
+    return !h->Failed || murmur3_publish(&h->Error);
 }
 
-XRT_API uint64 xrtMurmur3HasherInputBytes(const xrtmurmur3hasher* pHasher)
+XRT_API bool xrtMurmur3HasherUpdate(xrtmurmur3hasher* h, const void* data, size_t size)
 {
-	return pHasher != NULL ? pHasher->InputBytes : 0u;
+    xrtClearError();
+    if (!murmur3_ready(h)) return false;
+    if (data == NULL && size != 0) {
+        h->Failed = true;
+        return murmur3_fail(&h->Error, XRT_MURMUR3_ERROR_ARGUMENT, h->State.total, "invalid murmur3 input");
+    }
+    if (!murmur3_input(h->State.total, size, h->Options.tLimits.iMaxInputBytes, &h->Error)) {
+        h->Failed = true;
+        return false;
+    }
+    murmur3_128_update(&h->State, data, size);
+    return true;
 }
 
-XRT_API xrtmurmur3hasher* xrtMurmur3HasherClone(const xrtmurmur3hasher* pSrc)
+XRT_API bool xrtMurmur3HasherDigest(const xrtmurmur3hasher* h, uint8* digest)
 {
-	xrtmurmur3hasher* pNew;
-	if (pSrc == NULL) { return NULL; }
-	pNew = (xrtmurmur3hasher*)xrtMalloc(sizeof(xrtmurmur3hasher));
-	if (pNew == NULL) { return NULL; }
-	memcpy(pNew, pSrc, sizeof(*pNew));
-	return pNew;
+    xrtClearError();
+    if (!murmur3_ready(h)) return false;
+    if (digest == NULL) return murmur3_fail(NULL, XRT_MURMUR3_ERROR_ARGUMENT, h->State.total, "invalid murmur3 output");
+    murmur3_128_final(&h->State, digest);
+    return true;
 }
 
-XRT_API const xrtmurmur3error* xrtMurmur3HasherError(const xrtmurmur3hasher* pHasher)
+XRT_API bool xrtMurmur3HasherReset(xrtmurmur3hasher* h)
 {
-	return pHasher != NULL ? &pHasher->Error : NULL;
+    xrtClearError();
+    if (h == NULL) return murmur3_fail(NULL, XRT_MURMUR3_ERROR_STATE, 0, "invalid murmur3 handle");
+    murmur3_128_init(&h->State, h->State.seed);
+    h->Failed = false;
+    xrtMurmur3ErrorInit(&h->Error);
+    return true;
 }
 
-XRT_API void xrtMurmur3HasherDestroy(xrtmurmur3hasher* pHasher)
+XRT_API xrtmurmur3hasher* xrtMurmur3HasherClone(const xrtmurmur3hasher* h)
 {
-	if (pHasher == NULL) { return; }
-	xrtFree(pHasher);
+    xrtmurmur3hasher* copy;
+    xrtClearError();
+    if (!murmur3_ready(h)) return NULL;
+    copy = xrtMalloc(sizeof(*copy));
+    if (copy != NULL) memcpy(copy, h, sizeof(*copy));
+    return copy;
 }
 
+XRT_API uint64 xrtMurmur3HasherInputBytes(const xrtmurmur3hasher* h)
+{ return h != NULL ? h->State.total : 0; }
+XRT_API const xrtmurmur3error* xrtMurmur3HasherError(const xrtmurmur3hasher* h)
+{ return h != NULL ? &h->Error : NULL; }
+XRT_API void xrtMurmur3HasherDestroy(xrtmurmur3hasher* h)
+{ xrtFree(h); }
 
-/* ---- 一次性哈希 ---- */
+// ----------------------------- 一次性与借用 Reader -----------------------------
 
-XRT_API uint32 xrtMurmur3Hash32(const void* pData, size_t iSize, uint32 iSeed,
-	xrtmurmur3error* pError)
+XRT_API uint32 xrtMurmur3Hash32(const void* data, size_t size, uint32 seed, xrtmurmur3error* error)
 {
-	xrtMurmur3ErrorInit(pError);
-	if (pData == NULL && iSize != 0u) {
-		__xrtMurmur3SetError(pError, XRT_MURMUR3_ERROR_ARGUMENT, 0, 0, 0, "invalid murmur3 input");
-		return 0u;
-	}
-	return murmur3_32(pData, iSize, iSeed);
+    xrtClearError();
+    xrtMurmur3ErrorInit(error);
+    if (data == NULL && size != 0) {
+        murmur3_fail(error, XRT_MURMUR3_ERROR_ARGUMENT, 0, "invalid murmur3 input");
+        return 0;
+    }
+    return murmur3_32(data, size, seed);
 }
 
-XRT_API bool xrtMurmur3Hash128(const void* pData, size_t iSize, uint32 iSeed,
-	uint8* pOut, xrtmurmur3error* pError)
+XRT_API bool xrtMurmur3Hash128(const void* data, size_t size, uint32 seed, uint8* digest, xrtmurmur3error* error)
 {
-	xrtMurmur3ErrorInit(pError);
-	if (pOut == NULL || (pData == NULL && iSize != 0u)) {
-		__xrtMurmur3SetError(pError, XRT_MURMUR3_ERROR_ARGUMENT, 0, 0, 0, "invalid murmur3 input");
-		return false;
-	}
-	murmur3_128(pData, iSize, iSeed, pOut);
-	return true;
+    xrtClearError();
+    xrtMurmur3ErrorInit(error);
+    if (digest == NULL || (data == NULL && size != 0))
+        return murmur3_fail(error, XRT_MURMUR3_ERROR_ARGUMENT, 0, "invalid murmur3 input or output");
+    murmur3_128(data, size, seed, digest);
+    return true;
 }
 
-
-/* ---- 文件流式哈希 ---- */
-
-XRT_API uint32 xrtMurmur3File32(xreader* pReader, const xrtresourcelimits* pLimits,
-	uint32 iSeed, xrtprogressproc pProgress, ptr pUserData, xrtmurmur3error* pError)
+/* 两种摘要共享读取和取消规则，成功以后才写调用方输出。 */
+static bool murmur3_file(xreader* reader, const xrtresourcelimits* limits, uint32 seed,
+    bool wide, void* digest, xrtprogressproc progress, ptr user, xrtmurmur3error* error)
 {
-	uint8 sInput[XRT_MURMUR3_CHUNK];
-	murmur3_32_state state;
-	uint64 iTotal = 0u;
-	uint64 iExpected = 0u;
-	bool bTotalKnown;
-	xrtMurmur3ErrorInit(pError);
-	if (pReader == NULL) {
-		__xrtMurmur3SetError(pError, XRT_MURMUR3_ERROR_ARGUMENT, 0, 0, 0, "invalid murmur3 stream");
-		return 0u;
-	}
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iExpected);
-	if (!bTotalKnown) { xrtClearError(); }
-	murmur3_32_init(&state, iSeed);
-	for (;;) {
-		uint64 iRead = 0u;
-		if (!xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead)) {
-			__xrtMurmur3SetError(pError, XRT_MURMUR3_ERROR_IO, 0, iTotal, 0,
-				"cannot read murmur3 input stream");
-			return 0u;
-		}
-		if (iRead == 0u) { break; }
-		iTotal += iRead;
-		if (pLimits->iMaxInputBytes != 0u && iTotal > pLimits->iMaxInputBytes) {
-			__xrtMurmur3SetError(pError, XRT_MURMUR3_ERROR_LIMIT, 0, iTotal, 0,
-				"murmur3 input exceeds maxInput limit");
-			return 0u;
-		}
-		murmur3_32_update(&state, sInput, (size_t)iRead);
-		if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
-			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) {
-			__xrtMurmur3SetError(pError, XRT_MURMUR3_ERROR_CANCELLED, 0, iTotal, 0,
-				"murmur3 operation cancelled");
-			return 0u;
-		}
-	}
-	if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
-		XRT_PROGRESS_FINAL | (bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u))) {
-		__xrtMurmur3SetError(pError, XRT_MURMUR3_ERROR_CANCELLED, 0, iTotal, 0,
-			"murmur3 operation cancelled");
-		return 0u;
-	}
-	return murmur3_32_final(&state);
+    union { murmur3_32_state narrow; murmur3_128_state wide; } state;
+    xrtresourcelimits defaults;
+    uint8 input[XRT_MURMUR3_CHUNK];
+    uint64 total = 0, expected = 0, position = 0, end = 0;
+    bool known = false;
+    xrtClearError();
+    xrtMurmur3ErrorInit(error);
+    if (limits == NULL) { xrtResourceLimitsInit(&defaults); limits = &defaults; }
+    if (!murmur3_limits(limits) || reader == NULL || digest == NULL)
+        return murmur3_fail(error, XRT_MURMUR3_ERROR_ARGUMENT, 0, "invalid murmur3 reader, output or limits");
+    if (xrtReaderCanSeek(reader)) {
+        known = xrtReaderTell(reader, &position) && xrtReaderSize(reader, &end) && end >= position;
+        if (known) expected = end - position;
+        else xrtClearError();
+    }
+    if (known && !murmur3_input(0, expected, limits->iMaxInputBytes, error)) return false;
+    if (wide) murmur3_128_init(&state.wide, seed);
+    else murmur3_32_init(&state.narrow, seed);
+    for (;;) {
+        size_t count = 0;
+        uint32 flags;
+        if (!xrtReaderRead(reader, input, sizeof(input), &count)) {
+            if (xrtGetError() == NULL)
+                return murmur3_fail(error, XRT_MURMUR3_ERROR_IO, total, "cannot read murmur3 stream");
+            murmur3_observe(error, xrtErrorKind(xrtGetError()) == XERR_MEMORY ?
+                XRT_MURMUR3_ERROR_MEMORY : XRT_MURMUR3_ERROR_IO, total);
+            return false;
+        }
+        if (!murmur3_input(total, count, limits->iMaxInputBytes, error)) return false;
+        if (wide) murmur3_128_update(&state.wide, input, count);
+        else murmur3_32_update(&state.narrow, input, count);
+        total += count;
+        flags = (known ? XRT_PROGRESS_TOTAL_KNOWN : 0) | (count == 0 ? XRT_PROGRESS_FINAL : 0);
+        if (!xrtProgressReport(progress, user, total, expected, 0, flags)) {
+            if (xrtGetError() == NULL)
+                return murmur3_fail(error, XRT_MURMUR3_ERROR_CANCELLED, total, "murmur3 operation cancelled");
+            murmur3_observe(error, XRT_MURMUR3_ERROR_CANCELLED, total);
+            return false;
+        }
+        if (count == 0) break;
+    }
+    if (wide) murmur3_128_final(&state.wide, digest);
+    else *(uint32*)digest = murmur3_32_final(&state.narrow);
+    return true;
 }
 
-XRT_API bool xrtMurmur3File128(xreader* pReader, const xrtresourcelimits* pLimits,
-	uint32 iSeed, uint8* pOut, xrtprogressproc pProgress, ptr pUserData,
-	xrtmurmur3error* pError)
+XRT_API uint32 xrtMurmur3File32(xreader* reader, const xrtresourcelimits* limits,
+    uint32 seed, xrtprogressproc progress, ptr user, xrtmurmur3error* error)
 {
-	uint8 sInput[XRT_MURMUR3_CHUNK];
-	murmur3_128_state state;
-	uint64 iTotal = 0u;
-	uint64 iExpected = 0u;
-	bool bTotalKnown;
-	xrtMurmur3ErrorInit(pError);
-	if (pReader == NULL || pOut == NULL) {
-		__xrtMurmur3SetError(pError, XRT_MURMUR3_ERROR_ARGUMENT, 0, 0, 0, "invalid murmur3 stream");
-		return false;
-	}
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iExpected);
-	if (!bTotalKnown) { xrtClearError(); }
-	murmur3_128_init(&state, iSeed);
-	for (;;) {
-		uint64 iRead = 0u;
-		if (!xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead)) {
-			__xrtMurmur3SetError(pError, XRT_MURMUR3_ERROR_IO, 0, iTotal, 0,
-				"cannot read murmur3 input stream");
-			return false;
-		}
-		if (iRead == 0u) { break; }
-		iTotal += iRead;
-		if (pLimits->iMaxInputBytes != 0u && iTotal > pLimits->iMaxInputBytes) {
-			__xrtMurmur3SetError(pError, XRT_MURMUR3_ERROR_LIMIT, 0, iTotal, 0,
-				"murmur3 input exceeds maxInput limit");
-			return false;
-		}
-		murmur3_128_update(&state, sInput, (size_t)iRead);
-		if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
-			bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u)) {
-			__xrtMurmur3SetError(pError, XRT_MURMUR3_ERROR_CANCELLED, 0, iTotal, 0,
-				"murmur3 operation cancelled");
-			return false;
-		}
-	}
-	murmur3_128_final(&state, pOut);
-	if (!xrtProgressReport(pProgress, pUserData, iTotal, iExpected, 0u,
-		XRT_PROGRESS_FINAL | (bTotalKnown ? XRT_PROGRESS_TOTAL_KNOWN : 0u))) {
-		__xrtMurmur3SetError(pError, XRT_MURMUR3_ERROR_CANCELLED, 0, iTotal, 0,
-			"murmur3 operation cancelled");
-		return false;
-	}
-	return true;
+    uint32 digest = 0;
+    murmur3_file(reader, limits, seed, false, &digest, progress, user, error);
+    return digest;
 }
+XRT_API bool xrtMurmur3File128(xreader* reader, const xrtresourcelimits* limits,
+    uint32 seed, uint8* digest, xrtprogressproc progress, ptr user, xrtmurmur3error* error)
+{ return murmur3_file(reader, limits, seed, true, digest, progress, user, error); }

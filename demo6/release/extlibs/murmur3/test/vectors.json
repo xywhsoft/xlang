@@ -1,0 +1,4188 @@
+{
+  "pattern": "byte[i]=(i*37+11)%256",
+  "vectors": [
+    {
+      "size": 0,
+      "seed": 0,
+      "h32": 0,
+      "hex128": "00000000000000000000000000000000",
+      "id": "pattern"
+    },
+    {
+      "size": 1,
+      "seed": 0,
+      "h32": 1299793004,
+      "hex128": "e7f117e6ccc72f93dc08456c814b437a",
+      "id": "pattern"
+    },
+    {
+      "size": 2,
+      "seed": 0,
+      "h32": 1811814569,
+      "hex128": "9db37154aee5f7cf3675c477b2c34985",
+      "id": "pattern"
+    },
+    {
+      "size": 3,
+      "seed": 0,
+      "h32": 949716199,
+      "hex128": "b1a481deb8c0fa6a43b26a81fbf4dc0c",
+      "id": "pattern"
+    },
+    {
+      "size": 4,
+      "seed": 0,
+      "h32": 423224893,
+      "hex128": "729f1fb8d1eea4d3cd20a4d92af24c8f",
+      "id": "pattern"
+    },
+    {
+      "size": 5,
+      "seed": 0,
+      "h32": 2759925676,
+      "hex128": "0b997f08400f33b00bf5639975f993ad",
+      "id": "pattern"
+    },
+    {
+      "size": 6,
+      "seed": 0,
+      "h32": 797100141,
+      "hex128": "127a07040bf1d1327e932938ad91574b",
+      "id": "pattern"
+    },
+    {
+      "size": 7,
+      "seed": 0,
+      "h32": 245387485,
+      "hex128": "3b98626668cc4083f9f67faadf388fa0",
+      "id": "pattern"
+    },
+    {
+      "size": 8,
+      "seed": 0,
+      "h32": 988039666,
+      "hex128": "d7ce897f0044b1f0a1f97a2d832122d0",
+      "id": "pattern"
+    },
+    {
+      "size": 9,
+      "seed": 0,
+      "h32": 1497301005,
+      "hex128": "b1a0c8ae8e08b3dba909fe2e1824decb",
+      "id": "pattern"
+    },
+    {
+      "size": 10,
+      "seed": 0,
+      "h32": 2256872131,
+      "hex128": "1e374ffdf82ec87fb098625916c71a7a",
+      "id": "pattern"
+    },
+    {
+      "size": 11,
+      "seed": 0,
+      "h32": 3555518110,
+      "hex128": "64d520094d5a10ced6c17f729b12c7c5",
+      "id": "pattern"
+    },
+    {
+      "size": 12,
+      "seed": 0,
+      "h32": 2098193718,
+      "hex128": "b8bbc3af9fa5ee11f8db0d9b584d30de",
+      "id": "pattern"
+    },
+    {
+      "size": 13,
+      "seed": 0,
+      "h32": 1872826240,
+      "hex128": "e7c40c79c7c00b3c7eb2f9120da44bf3",
+      "id": "pattern"
+    },
+    {
+      "size": 14,
+      "seed": 0,
+      "h32": 3081949077,
+      "hex128": "71a1eebe7852f04a09fb75ea3c2e3027",
+      "id": "pattern"
+    },
+    {
+      "size": 15,
+      "seed": 0,
+      "h32": 1800930354,
+      "hex128": "ff837fb647f00629ac1f70e78f33ca49",
+      "id": "pattern"
+    },
+    {
+      "size": 16,
+      "seed": 0,
+      "h32": 3861322793,
+      "hex128": "fbf05e0c58669cdaf75f6cbb87ae5a88",
+      "id": "pattern"
+    },
+    {
+      "size": 17,
+      "seed": 0,
+      "h32": 3348299041,
+      "hex128": "d1075e779aeeb878e0fc9816309067e3",
+      "id": "pattern"
+    },
+    {
+      "size": 18,
+      "seed": 0,
+      "h32": 890727551,
+      "hex128": "d8f705b6e9ec2250ac678dec1eb2d116",
+      "id": "pattern"
+    },
+    {
+      "size": 19,
+      "seed": 0,
+      "h32": 761743038,
+      "hex128": "5efde245631a5940af7c0243d6312b3d",
+      "id": "pattern"
+    },
+    {
+      "size": 20,
+      "seed": 0,
+      "h32": 2170288208,
+      "hex128": "f359858821eb5af8ee2468b44aec5ea6",
+      "id": "pattern"
+    },
+    {
+      "size": 21,
+      "seed": 0,
+      "h32": 1424782282,
+      "hex128": "f3b68d41138c122ca80f19df988c8193",
+      "id": "pattern"
+    },
+    {
+      "size": 22,
+      "seed": 0,
+      "h32": 295034813,
+      "hex128": "7250039f38c3ffc034f5dcc1aedffa6d",
+      "id": "pattern"
+    },
+    {
+      "size": 23,
+      "seed": 0,
+      "h32": 2061386753,
+      "hex128": "aa53dc84fbd4b70199faedb924c3d55a",
+      "id": "pattern"
+    },
+    {
+      "size": 24,
+      "seed": 0,
+      "h32": 1356410187,
+      "hex128": "1ceb61ebfee27283031bf0f3aa05f4e8",
+      "id": "pattern"
+    },
+    {
+      "size": 25,
+      "seed": 0,
+      "h32": 932336518,
+      "hex128": "a25d9d7243299eed13f95fbd43b84b70",
+      "id": "pattern"
+    },
+    {
+      "size": 26,
+      "seed": 0,
+      "h32": 670061668,
+      "hex128": "c4de7c332e42cd9fb58d81860ea98f62",
+      "id": "pattern"
+    },
+    {
+      "size": 27,
+      "seed": 0,
+      "h32": 2393550491,
+      "hex128": "74fda002126a4a45768bea9803ffa5e3",
+      "id": "pattern"
+    },
+    {
+      "size": 28,
+      "seed": 0,
+      "h32": 1911833001,
+      "hex128": "de024c1d9f41eac2daeca3cf58e0b282",
+      "id": "pattern"
+    },
+    {
+      "size": 29,
+      "seed": 0,
+      "h32": 3080468912,
+      "hex128": "41f23c5a42e5b22a06fcdb00bae3f6be",
+      "id": "pattern"
+    },
+    {
+      "size": 30,
+      "seed": 0,
+      "h32": 2911684184,
+      "hex128": "8b46735c9530e5fd7cdda03b486a2a3e",
+      "id": "pattern"
+    },
+    {
+      "size": 31,
+      "seed": 0,
+      "h32": 2782874203,
+      "hex128": "2f53c5d41e06cab163377b9e482669cb",
+      "id": "pattern"
+    },
+    {
+      "size": 32,
+      "seed": 0,
+      "h32": 1993167388,
+      "hex128": "9b79fe8eeb7473afffd6cd4d9200523a",
+      "id": "pattern"
+    },
+    {
+      "size": 33,
+      "seed": 0,
+      "h32": 3747216045,
+      "hex128": "a99b09c3888ab808f98adfb5bd6fc015",
+      "id": "pattern"
+    },
+    {
+      "size": 34,
+      "seed": 0,
+      "h32": 39200807,
+      "hex128": "b8f17403b7fbe64694bdce4a96e370c9",
+      "id": "pattern"
+    },
+    {
+      "size": 35,
+      "seed": 0,
+      "h32": 775173310,
+      "hex128": "9f8f49afb9d4b63d06137c8c04af8fa3",
+      "id": "pattern"
+    },
+    {
+      "size": 36,
+      "seed": 0,
+      "h32": 1915079806,
+      "hex128": "f7f7cc1f84cae3ae105390909508671c",
+      "id": "pattern"
+    },
+    {
+      "size": 37,
+      "seed": 0,
+      "h32": 198343847,
+      "hex128": "b3f41dc772304dff6c7bae521296784b",
+      "id": "pattern"
+    },
+    {
+      "size": 38,
+      "seed": 0,
+      "h32": 3971257665,
+      "hex128": "8f17daf8c3e00350491e8003b4037d43",
+      "id": "pattern"
+    },
+    {
+      "size": 39,
+      "seed": 0,
+      "h32": 1813263282,
+      "hex128": "c751da12d8214224f8c34adc13b86d83",
+      "id": "pattern"
+    },
+    {
+      "size": 40,
+      "seed": 0,
+      "h32": 3690168588,
+      "hex128": "fc7c5ee622aa77bf8b74054c1b95f215",
+      "id": "pattern"
+    },
+    {
+      "size": 41,
+      "seed": 0,
+      "h32": 1465117080,
+      "hex128": "9922f6ce4610e6af8d34430d6cee449e",
+      "id": "pattern"
+    },
+    {
+      "size": 42,
+      "seed": 0,
+      "h32": 2534070932,
+      "hex128": "2dc2b200587599d3bd5f041c76596e76",
+      "id": "pattern"
+    },
+    {
+      "size": 43,
+      "seed": 0,
+      "h32": 3609489353,
+      "hex128": "d769ba0897de49187a69ee3af981ade4",
+      "id": "pattern"
+    },
+    {
+      "size": 44,
+      "seed": 0,
+      "h32": 3783728081,
+      "hex128": "249ece06a5600be8ac74da9cd797c7a4",
+      "id": "pattern"
+    },
+    {
+      "size": 45,
+      "seed": 0,
+      "h32": 529531027,
+      "hex128": "0505a534e0dc51d9f6aee7694be35400",
+      "id": "pattern"
+    },
+    {
+      "size": 46,
+      "seed": 0,
+      "h32": 3195003592,
+      "hex128": "6550e8442a56b3354ffbf35a3005b968",
+      "id": "pattern"
+    },
+    {
+      "size": 47,
+      "seed": 0,
+      "h32": 4138239588,
+      "hex128": "6b360f4efcbc449ce09f92fed1b24d9c",
+      "id": "pattern"
+    },
+    {
+      "size": 48,
+      "seed": 0,
+      "h32": 633715428,
+      "hex128": "ede9a419ca7ebe5f6cad7701125cb660",
+      "id": "pattern"
+    },
+    {
+      "size": 49,
+      "seed": 0,
+      "h32": 1816901675,
+      "hex128": "36fbba5d50b81d9832d6fa25d1978c88",
+      "id": "pattern"
+    },
+    {
+      "size": 50,
+      "seed": 0,
+      "h32": 3074535625,
+      "hex128": "e10e9dc0e30ddb126eb17e1ebe48a404",
+      "id": "pattern"
+    },
+    {
+      "size": 51,
+      "seed": 0,
+      "h32": 1374286315,
+      "hex128": "32328de3467f99d50a65a0d55920c225",
+      "id": "pattern"
+    },
+    {
+      "size": 52,
+      "seed": 0,
+      "h32": 3466276527,
+      "hex128": "6fce0caa8538a52ec3e64224fe288aa2",
+      "id": "pattern"
+    },
+    {
+      "size": 53,
+      "seed": 0,
+      "h32": 1607119432,
+      "hex128": "9d25457ad526c49941691a561bea2e1e",
+      "id": "pattern"
+    },
+    {
+      "size": 54,
+      "seed": 0,
+      "h32": 3914432072,
+      "hex128": "e4e92162d833641b3cc4c57a24878ee3",
+      "id": "pattern"
+    },
+    {
+      "size": 55,
+      "seed": 0,
+      "h32": 760046906,
+      "hex128": "533b4459029d7d3cdb0088c04cf9a96c",
+      "id": "pattern"
+    },
+    {
+      "size": 56,
+      "seed": 0,
+      "h32": 1677805096,
+      "hex128": "f7e1073a302b317bb28697ac1c451527",
+      "id": "pattern"
+    },
+    {
+      "size": 57,
+      "seed": 0,
+      "h32": 1336550638,
+      "hex128": "f4c1af5ace4e5b559a62ef64860ef726",
+      "id": "pattern"
+    },
+    {
+      "size": 58,
+      "seed": 0,
+      "h32": 1905197225,
+      "hex128": "786180bba63dd491f0599f6a63ca7c86",
+      "id": "pattern"
+    },
+    {
+      "size": 59,
+      "seed": 0,
+      "h32": 3722481501,
+      "hex128": "910feccddb32350cb59b8ebb0cabb450",
+      "id": "pattern"
+    },
+    {
+      "size": 60,
+      "seed": 0,
+      "h32": 2418328889,
+      "hex128": "9842d7036811b76fb04dd413127bdb06",
+      "id": "pattern"
+    },
+    {
+      "size": 61,
+      "seed": 0,
+      "h32": 2641544594,
+      "hex128": "0347a45ea7ae6b0fe18658737eda2bf4",
+      "id": "pattern"
+    },
+    {
+      "size": 62,
+      "seed": 0,
+      "h32": 4294617448,
+      "hex128": "f7013f66f9164d08fe33cc32cac718ee",
+      "id": "pattern"
+    },
+    {
+      "size": 63,
+      "seed": 0,
+      "h32": 328341421,
+      "hex128": "ee533560e225192897edb294f65c4975",
+      "id": "pattern"
+    },
+    {
+      "size": 64,
+      "seed": 0,
+      "h32": 153664524,
+      "hex128": "07e16151a36778498e8ad7f936356c9a",
+      "id": "pattern"
+    },
+    {
+      "size": 65,
+      "seed": 0,
+      "h32": 3927318340,
+      "hex128": "e2fb4ccafd61fd1140cc426fea543fbc",
+      "id": "pattern"
+    },
+    {
+      "size": 66,
+      "seed": 0,
+      "h32": 1450029779,
+      "hex128": "23f9c47277011a14b479e4554846044c",
+      "id": "pattern"
+    },
+    {
+      "size": 67,
+      "seed": 0,
+      "h32": 2573981572,
+      "hex128": "55b409f2eb010636b41db31bcdff105a",
+      "id": "pattern"
+    },
+    {
+      "size": 68,
+      "seed": 0,
+      "h32": 1957285862,
+      "hex128": "3a8c779f2025acdd67f60dd9a57a2655",
+      "id": "pattern"
+    },
+    {
+      "size": 69,
+      "seed": 0,
+      "h32": 2913920231,
+      "hex128": "173c37c9895c3afb76c74ef68b5e402b",
+      "id": "pattern"
+    },
+    {
+      "size": 70,
+      "seed": 0,
+      "h32": 654226616,
+      "hex128": "d6a89d3fd5251fb0af5d9af88f5ff25c",
+      "id": "pattern"
+    },
+    {
+      "size": 71,
+      "seed": 0,
+      "h32": 3961536290,
+      "hex128": "5bf71547848a97b09bf9ea6fa21df78a",
+      "id": "pattern"
+    },
+    {
+      "size": 72,
+      "seed": 0,
+      "h32": 1788658275,
+      "hex128": "5e9bd0e757f6b6b139e20e3a8f5d7557",
+      "id": "pattern"
+    },
+    {
+      "size": 73,
+      "seed": 0,
+      "h32": 2951744865,
+      "hex128": "49b3c3e49e490537ba59296852bbe07a",
+      "id": "pattern"
+    },
+    {
+      "size": 74,
+      "seed": 0,
+      "h32": 1165433677,
+      "hex128": "2cc30b2826d28273e2503d5cfa9768c6",
+      "id": "pattern"
+    },
+    {
+      "size": 75,
+      "seed": 0,
+      "h32": 1901247600,
+      "hex128": "29fc118a83e6f69472eef138c2b1b291",
+      "id": "pattern"
+    },
+    {
+      "size": 76,
+      "seed": 0,
+      "h32": 4085166787,
+      "hex128": "568ce42235bf6b1224b01b0ab0ebaef4",
+      "id": "pattern"
+    },
+    {
+      "size": 77,
+      "seed": 0,
+      "h32": 839354258,
+      "hex128": "28b5086f29ec351d9c971572872035a7",
+      "id": "pattern"
+    },
+    {
+      "size": 78,
+      "seed": 0,
+      "h32": 756049242,
+      "hex128": "3c17d48d84f9b9b5a3fcd82d0b2fe306",
+      "id": "pattern"
+    },
+    {
+      "size": 79,
+      "seed": 0,
+      "h32": 3019366049,
+      "hex128": "7b9451611d897acf7b92f4f8a8e88fe9",
+      "id": "pattern"
+    },
+    {
+      "size": 80,
+      "seed": 0,
+      "h32": 251865034,
+      "hex128": "5715cb52de23dab65f7a431f283e1da2",
+      "id": "pattern"
+    },
+    {
+      "size": 81,
+      "seed": 0,
+      "h32": 2139498433,
+      "hex128": "e83c5baf414a746d06e15597b33f8c80",
+      "id": "pattern"
+    },
+    {
+      "size": 82,
+      "seed": 0,
+      "h32": 2879123658,
+      "hex128": "fbc31e8c4ddc22f837764b334eb0d2ba",
+      "id": "pattern"
+    },
+    {
+      "size": 83,
+      "seed": 0,
+      "h32": 3804053648,
+      "hex128": "a81091e5978d1174203fb389f178da33",
+      "id": "pattern"
+    },
+    {
+      "size": 84,
+      "seed": 0,
+      "h32": 2583512133,
+      "hex128": "c616feb6ff4fcefa75bb94a567537727",
+      "id": "pattern"
+    },
+    {
+      "size": 85,
+      "seed": 0,
+      "h32": 2104594227,
+      "hex128": "dff3d5aaa8db24b805a38e6c6359247d",
+      "id": "pattern"
+    },
+    {
+      "size": 86,
+      "seed": 0,
+      "h32": 232943558,
+      "hex128": "36c18f7c9b711a5ccc3be823a2cc7a0d",
+      "id": "pattern"
+    },
+    {
+      "size": 87,
+      "seed": 0,
+      "h32": 415447976,
+      "hex128": "2aa420404786a60481fd02b0b1c164dd",
+      "id": "pattern"
+    },
+    {
+      "size": 88,
+      "seed": 0,
+      "h32": 2661325813,
+      "hex128": "a3f63f886270b745a4f0b5026db2485f",
+      "id": "pattern"
+    },
+    {
+      "size": 89,
+      "seed": 0,
+      "h32": 1692322580,
+      "hex128": "67a20f92ee0ec0d66245d77a6973209d",
+      "id": "pattern"
+    },
+    {
+      "size": 90,
+      "seed": 0,
+      "h32": 1328764267,
+      "hex128": "99c9e0e3adb2ecd1c1aae716253a7de6",
+      "id": "pattern"
+    },
+    {
+      "size": 91,
+      "seed": 0,
+      "h32": 1523192492,
+      "hex128": "87addb82a872675803d635361eceef9c",
+      "id": "pattern"
+    },
+    {
+      "size": 92,
+      "seed": 0,
+      "h32": 3519855309,
+      "hex128": "3fc285d52b3fd6d825d1010e4ccd4656",
+      "id": "pattern"
+    },
+    {
+      "size": 93,
+      "seed": 0,
+      "h32": 2416106123,
+      "hex128": "ba1465f760d4e89262cf39c167ee1794",
+      "id": "pattern"
+    },
+    {
+      "size": 94,
+      "seed": 0,
+      "h32": 536804721,
+      "hex128": "d6981c3b3afae62db77eb9fd26a5bb2f",
+      "id": "pattern"
+    },
+    {
+      "size": 95,
+      "seed": 0,
+      "h32": 1326465389,
+      "hex128": "ed6607329426d932c6b4cd55ec8f8ebb",
+      "id": "pattern"
+    },
+    {
+      "size": 96,
+      "seed": 0,
+      "h32": 26542783,
+      "hex128": "7e9bebdd1810e8a014d917257bfaa445",
+      "id": "pattern"
+    },
+    {
+      "size": 97,
+      "seed": 0,
+      "h32": 3302136876,
+      "hex128": "75ec75504143dda954ff4fd919af4d48",
+      "id": "pattern"
+    },
+    {
+      "size": 98,
+      "seed": 0,
+      "h32": 1471686142,
+      "hex128": "0223197fb28c6f9fc43a75840c4a6f72",
+      "id": "pattern"
+    },
+    {
+      "size": 99,
+      "seed": 0,
+      "h32": 760768323,
+      "hex128": "f7bfb32e13cdd1653620c1f84d8776af",
+      "id": "pattern"
+    },
+    {
+      "size": 100,
+      "seed": 0,
+      "h32": 4281961650,
+      "hex128": "7ab7e0eec83be626e45eb9b50b225ac0",
+      "id": "pattern"
+    },
+    {
+      "size": 101,
+      "seed": 0,
+      "h32": 4217097461,
+      "hex128": "2744e3cdd304f2db0f87725c705be7c3",
+      "id": "pattern"
+    },
+    {
+      "size": 102,
+      "seed": 0,
+      "h32": 618075622,
+      "hex128": "29492d18a41e633f53c7c9ab5a7693a5",
+      "id": "pattern"
+    },
+    {
+      "size": 103,
+      "seed": 0,
+      "h32": 1141267609,
+      "hex128": "6fb02f14d24530fdd79d55337f0787c8",
+      "id": "pattern"
+    },
+    {
+      "size": 104,
+      "seed": 0,
+      "h32": 3964510009,
+      "hex128": "49942f8e48c4f8ef8bb44de9b50e6d0f",
+      "id": "pattern"
+    },
+    {
+      "size": 105,
+      "seed": 0,
+      "h32": 3555241269,
+      "hex128": "a1508d97b1f24ef186d693ea4a2b6823",
+      "id": "pattern"
+    },
+    {
+      "size": 106,
+      "seed": 0,
+      "h32": 2112642286,
+      "hex128": "490c9ea1ee6a9028a3e2a0e45c4e5168",
+      "id": "pattern"
+    },
+    {
+      "size": 107,
+      "seed": 0,
+      "h32": 4077001796,
+      "hex128": "4411e6c03a37da8a9cc7283c579aafce",
+      "id": "pattern"
+    },
+    {
+      "size": 108,
+      "seed": 0,
+      "h32": 1512679062,
+      "hex128": "15c4d8c9166384d1ae211a2a1814f598",
+      "id": "pattern"
+    },
+    {
+      "size": 109,
+      "seed": 0,
+      "h32": 2276661451,
+      "hex128": "8bd9d466a27bd7edece51b15c8a75b2c",
+      "id": "pattern"
+    },
+    {
+      "size": 110,
+      "seed": 0,
+      "h32": 2786779621,
+      "hex128": "fdf2ffab226ad9e322690d40bea6c776",
+      "id": "pattern"
+    },
+    {
+      "size": 111,
+      "seed": 0,
+      "h32": 1990237834,
+      "hex128": "a28ea81a6fd45698574079e76069646a",
+      "id": "pattern"
+    },
+    {
+      "size": 112,
+      "seed": 0,
+      "h32": 3466423964,
+      "hex128": "ae910d7d4162bac00e3594c4f1f05ec4",
+      "id": "pattern"
+    },
+    {
+      "size": 113,
+      "seed": 0,
+      "h32": 4125393666,
+      "hex128": "88d96b00dbffd6483a648fe3078e422c",
+      "id": "pattern"
+    },
+    {
+      "size": 114,
+      "seed": 0,
+      "h32": 110108133,
+      "hex128": "d64382d738b124abddc7fde8c1ee38ed",
+      "id": "pattern"
+    },
+    {
+      "size": 115,
+      "seed": 0,
+      "h32": 428138673,
+      "hex128": "7a0b865a93f8c007d64ce1825d19d278",
+      "id": "pattern"
+    },
+    {
+      "size": 116,
+      "seed": 0,
+      "h32": 2164180236,
+      "hex128": "83267989f02bd79936e2a88dd4a8c191",
+      "id": "pattern"
+    },
+    {
+      "size": 117,
+      "seed": 0,
+      "h32": 3977745844,
+      "hex128": "f2692bc2d5888c468c1fd9ca0a370701",
+      "id": "pattern"
+    },
+    {
+      "size": 118,
+      "seed": 0,
+      "h32": 2251731566,
+      "hex128": "14119c1620b572f5f204e2d267f7558b",
+      "id": "pattern"
+    },
+    {
+      "size": 119,
+      "seed": 0,
+      "h32": 2381665592,
+      "hex128": "ffffc3c2516c96bcf2d67fd1a5eff81b",
+      "id": "pattern"
+    },
+    {
+      "size": 120,
+      "seed": 0,
+      "h32": 216545389,
+      "hex128": "cc1ed1c56a43b73025be1dc9b53e5f87",
+      "id": "pattern"
+    },
+    {
+      "size": 121,
+      "seed": 0,
+      "h32": 1952792004,
+      "hex128": "127087d96e48f2e037c9ed05bfa1efe6",
+      "id": "pattern"
+    },
+    {
+      "size": 122,
+      "seed": 0,
+      "h32": 717828694,
+      "hex128": "24cfacbbf573b196b0ae926dd7b5a5a5",
+      "id": "pattern"
+    },
+    {
+      "size": 123,
+      "seed": 0,
+      "h32": 2531234407,
+      "hex128": "1d5fa72a67d121775aec3bef2974204c",
+      "id": "pattern"
+    },
+    {
+      "size": 124,
+      "seed": 0,
+      "h32": 396359070,
+      "hex128": "62af7fc0f0a3ced38a2fc8662d25eee9",
+      "id": "pattern"
+    },
+    {
+      "size": 125,
+      "seed": 0,
+      "h32": 833450628,
+      "hex128": "bba2360759cf48a2d84df97329efefc2",
+      "id": "pattern"
+    },
+    {
+      "size": 126,
+      "seed": 0,
+      "h32": 2766031449,
+      "hex128": "b21ba8cc658a65167d7c1115831ef18b",
+      "id": "pattern"
+    },
+    {
+      "size": 127,
+      "seed": 0,
+      "h32": 3973764761,
+      "hex128": "2861f64b2378405290ae2b31fd561b7d",
+      "id": "pattern"
+    },
+    {
+      "size": 128,
+      "seed": 0,
+      "h32": 313333630,
+      "hex128": "e24bcab3365e6227d7cfdb84f636bac8",
+      "id": "pattern"
+    },
+    {
+      "size": 255,
+      "seed": 0,
+      "h32": 4240365565,
+      "hex128": "2fd61cd0b2395f8ec5d27444354f7b36",
+      "id": "pattern"
+    },
+    {
+      "size": 256,
+      "seed": 0,
+      "h32": 3892245152,
+      "hex128": "d37385729716657286f7beb08c9f7c43",
+      "id": "pattern"
+    },
+    {
+      "size": 257,
+      "seed": 0,
+      "h32": 2602491849,
+      "hex128": "329e7c1cf39bc7186e8c16d1328524af",
+      "id": "pattern"
+    },
+    {
+      "size": 511,
+      "seed": 0,
+      "h32": 2833596368,
+      "hex128": "3c943920250cd3cd54155488c263e5ef",
+      "id": "pattern"
+    },
+    {
+      "size": 512,
+      "seed": 0,
+      "h32": 102981945,
+      "hex128": "8ff9e20658acf56ac5bd3c3329ab2e6f",
+      "id": "pattern"
+    },
+    {
+      "size": 513,
+      "seed": 0,
+      "h32": 2337806130,
+      "hex128": "9f632654609302b08ce80745d5a9facc",
+      "id": "pattern"
+    },
+    {
+      "size": 1023,
+      "seed": 0,
+      "h32": 1111132594,
+      "hex128": "40eed272be94f21527466c0a2229af77",
+      "id": "pattern"
+    },
+    {
+      "size": 1024,
+      "seed": 0,
+      "h32": 2673188824,
+      "hex128": "46fbac7cb9da3b9d9a25a6253deb6957",
+      "id": "pattern"
+    },
+    {
+      "size": 1025,
+      "seed": 0,
+      "h32": 2990474806,
+      "hex128": "2529755b546b00319c9d7e069238d362",
+      "id": "pattern"
+    },
+    {
+      "size": 4095,
+      "seed": 0,
+      "h32": 543668973,
+      "hex128": "67737156b79bd2e516af39d0839415a6",
+      "id": "pattern"
+    },
+    {
+      "size": 4096,
+      "seed": 0,
+      "h32": 1672352309,
+      "hex128": "8534b87969c1add0d8505ededf92dc1a",
+      "id": "pattern"
+    },
+    {
+      "size": 4097,
+      "seed": 0,
+      "h32": 761146405,
+      "hex128": "bd7ec217cd80d3f6f590d089cbd4a2e2",
+      "id": "pattern"
+    },
+    {
+      "size": 65535,
+      "seed": 0,
+      "h32": 2287535730,
+      "hex128": "0f8a8ea40d9fa3ad3985967a1470b919",
+      "id": "pattern"
+    },
+    {
+      "size": 65536,
+      "seed": 0,
+      "h32": 1191306691,
+      "hex128": "daf9c9d10f6666b264b6803299877e42",
+      "id": "pattern"
+    },
+    {
+      "size": 65537,
+      "seed": 0,
+      "h32": 1657124503,
+      "hex128": "be30e43a149fe147af4714225db145c0",
+      "id": "pattern"
+    },
+    {
+      "size": 0,
+      "seed": 1,
+      "h32": 1364076727,
+      "hex128": "b55cff6ee5ab10468335f878aa2d6251",
+      "id": "pattern"
+    },
+    {
+      "size": 1,
+      "seed": 1,
+      "h32": 1063438773,
+      "hex128": "e4b5d5bf30883858d690c01f49cc5404",
+      "id": "pattern"
+    },
+    {
+      "size": 2,
+      "seed": 1,
+      "h32": 2016738173,
+      "hex128": "695ae34cf93219d339f37376ee87e0f0",
+      "id": "pattern"
+    },
+    {
+      "size": 3,
+      "seed": 1,
+      "h32": 922718754,
+      "hex128": "41df53d2a7669d3563270f69d94022a2",
+      "id": "pattern"
+    },
+    {
+      "size": 4,
+      "seed": 1,
+      "h32": 1978409138,
+      "hex128": "6176a17b5ed7dee3b720d06c68a1b14c",
+      "id": "pattern"
+    },
+    {
+      "size": 5,
+      "seed": 1,
+      "h32": 3360050110,
+      "hex128": "8f7a7f28989d9480b64dd9561730f46d",
+      "id": "pattern"
+    },
+    {
+      "size": 6,
+      "seed": 1,
+      "h32": 817789446,
+      "hex128": "c7c0a69b28d5a73764c1277dcba6bcdd",
+      "id": "pattern"
+    },
+    {
+      "size": 7,
+      "seed": 1,
+      "h32": 165465056,
+      "hex128": "6890476a7dc84fe89b8de7c90be4146d",
+      "id": "pattern"
+    },
+    {
+      "size": 8,
+      "seed": 1,
+      "h32": 399245205,
+      "hex128": "38241177bb5c86d97dc84662da313c8a",
+      "id": "pattern"
+    },
+    {
+      "size": 9,
+      "seed": 1,
+      "h32": 139329454,
+      "hex128": "3e7c73ed87cdfe2ac3c053ac0aae756a",
+      "id": "pattern"
+    },
+    {
+      "size": 10,
+      "seed": 1,
+      "h32": 468590462,
+      "hex128": "e98ea0033dbf5ec5464805669ee74705",
+      "id": "pattern"
+    },
+    {
+      "size": 11,
+      "seed": 1,
+      "h32": 1658177339,
+      "hex128": "1858c27b64d6a5753ec7c257ca0af214",
+      "id": "pattern"
+    },
+    {
+      "size": 12,
+      "seed": 1,
+      "h32": 3185969973,
+      "hex128": "5111ff645a986586f6174b7d719aa507",
+      "id": "pattern"
+    },
+    {
+      "size": 13,
+      "seed": 1,
+      "h32": 1845140117,
+      "hex128": "5ae74c4eb4d66d9f9781deb23f1fdb30",
+      "id": "pattern"
+    },
+    {
+      "size": 14,
+      "seed": 1,
+      "h32": 1254629657,
+      "hex128": "257d1262799c42220049e95cac7f53e0",
+      "id": "pattern"
+    },
+    {
+      "size": 15,
+      "seed": 1,
+      "h32": 1943181269,
+      "hex128": "3ebaa1937febfaf211ac5acbc66ab20c",
+      "id": "pattern"
+    },
+    {
+      "size": 16,
+      "seed": 1,
+      "h32": 3273361213,
+      "hex128": "e0f6d0d15809076795a8158cd854d4ec",
+      "id": "pattern"
+    },
+    {
+      "size": 17,
+      "seed": 1,
+      "h32": 2646367041,
+      "hex128": "47818f1b9aa771d91fc7c799ebc5f706",
+      "id": "pattern"
+    },
+    {
+      "size": 18,
+      "seed": 1,
+      "h32": 4271480658,
+      "hex128": "9f0884a8f2b999eb762678d5ff84631e",
+      "id": "pattern"
+    },
+    {
+      "size": 19,
+      "seed": 1,
+      "h32": 2292917144,
+      "hex128": "a59a3eddb589baa58f9dfdc7645df0b2",
+      "id": "pattern"
+    },
+    {
+      "size": 20,
+      "seed": 1,
+      "h32": 2061768371,
+      "hex128": "1f4b062108b9bd5bb52adc28a32d364a",
+      "id": "pattern"
+    },
+    {
+      "size": 21,
+      "seed": 1,
+      "h32": 2942329256,
+      "hex128": "d694cad150c3bf302414ad9643a322b1",
+      "id": "pattern"
+    },
+    {
+      "size": 22,
+      "seed": 1,
+      "h32": 2988269939,
+      "hex128": "ef40a44976a22b0d54d435fc9fac5311",
+      "id": "pattern"
+    },
+    {
+      "size": 23,
+      "seed": 1,
+      "h32": 1812684174,
+      "hex128": "47aa28d01e6d8cd247663d23ac460449",
+      "id": "pattern"
+    },
+    {
+      "size": 24,
+      "seed": 1,
+      "h32": 2589611602,
+      "hex128": "55269a7255db19616e79d32685721b39",
+      "id": "pattern"
+    },
+    {
+      "size": 25,
+      "seed": 1,
+      "h32": 3009062596,
+      "hex128": "c65a8bb1dfb5bff6f1f80fc3f47ffed2",
+      "id": "pattern"
+    },
+    {
+      "size": 26,
+      "seed": 1,
+      "h32": 3537401370,
+      "hex128": "aeeeec96436b248d87bbacefeafe9cea",
+      "id": "pattern"
+    },
+    {
+      "size": 27,
+      "seed": 1,
+      "h32": 3501641127,
+      "hex128": "4f94bc646da5191c4001a6ac5926fce2",
+      "id": "pattern"
+    },
+    {
+      "size": 28,
+      "seed": 1,
+      "h32": 1072433679,
+      "hex128": "3efd8fe21409d08535c346007b0bd5e4",
+      "id": "pattern"
+    },
+    {
+      "size": 29,
+      "seed": 1,
+      "h32": 3752802951,
+      "hex128": "e90f8d65f30e05c3c9e42e36b86bc537",
+      "id": "pattern"
+    },
+    {
+      "size": 30,
+      "seed": 1,
+      "h32": 3220591265,
+      "hex128": "9b082d1827e7c44cb6e970cd6c7c1397",
+      "id": "pattern"
+    },
+    {
+      "size": 31,
+      "seed": 1,
+      "h32": 1018793619,
+      "hex128": "fa3c9469378a84c8b37eefba86f02214",
+      "id": "pattern"
+    },
+    {
+      "size": 32,
+      "seed": 1,
+      "h32": 863639487,
+      "hex128": "2b9469a4cd9e2e8481acef974a8676d3",
+      "id": "pattern"
+    },
+    {
+      "size": 33,
+      "seed": 1,
+      "h32": 1748402891,
+      "hex128": "1524867264160c613e9aa7795e6e5c93",
+      "id": "pattern"
+    },
+    {
+      "size": 34,
+      "seed": 1,
+      "h32": 1668457394,
+      "hex128": "52757f8738b6447ca11bc6473711fef2",
+      "id": "pattern"
+    },
+    {
+      "size": 35,
+      "seed": 1,
+      "h32": 1510972242,
+      "hex128": "33fffad4227db439143b70df1ba894ca",
+      "id": "pattern"
+    },
+    {
+      "size": 36,
+      "seed": 1,
+      "h32": 429307800,
+      "hex128": "2f152c39780ae6ea25dc24f63c845a20",
+      "id": "pattern"
+    },
+    {
+      "size": 37,
+      "seed": 1,
+      "h32": 4124357442,
+      "hex128": "a13b3c5917d2aac3892a2b00db34da0f",
+      "id": "pattern"
+    },
+    {
+      "size": 38,
+      "seed": 1,
+      "h32": 271296030,
+      "hex128": "7c2399f1c9f0151bca29758d460d2056",
+      "id": "pattern"
+    },
+    {
+      "size": 39,
+      "seed": 1,
+      "h32": 1852926957,
+      "hex128": "2a385a011c109ee752d4737f1747aa99",
+      "id": "pattern"
+    },
+    {
+      "size": 40,
+      "seed": 1,
+      "h32": 2093853512,
+      "hex128": "5ad755a4c1522c7e93ad2dbfc1c9645b",
+      "id": "pattern"
+    },
+    {
+      "size": 41,
+      "seed": 1,
+      "h32": 2649943323,
+      "hex128": "54b652a3ffed16ff1e295f1882b0c9bc",
+      "id": "pattern"
+    },
+    {
+      "size": 42,
+      "seed": 1,
+      "h32": 1640997964,
+      "hex128": "1b6a73972edc327e220de379fd0e9e3b",
+      "id": "pattern"
+    },
+    {
+      "size": 43,
+      "seed": 1,
+      "h32": 2609054777,
+      "hex128": "c7aede25d2be78be2084cfaabdabf0c5",
+      "id": "pattern"
+    },
+    {
+      "size": 44,
+      "seed": 1,
+      "h32": 2169979576,
+      "hex128": "5ab37a840d73a0ea79cba336eab5e15e",
+      "id": "pattern"
+    },
+    {
+      "size": 45,
+      "seed": 1,
+      "h32": 3011534629,
+      "hex128": "57b6b5d091958f258eff0c80c0f99ca3",
+      "id": "pattern"
+    },
+    {
+      "size": 46,
+      "seed": 1,
+      "h32": 690945048,
+      "hex128": "e0ed88b82a7965f9b6dd53539f353c56",
+      "id": "pattern"
+    },
+    {
+      "size": 47,
+      "seed": 1,
+      "h32": 2706241322,
+      "hex128": "c1f835aec526d78805bd2e1b897fde29",
+      "id": "pattern"
+    },
+    {
+      "size": 48,
+      "seed": 1,
+      "h32": 3427625776,
+      "hex128": "451331fa9a01877f0c455b93bc858644",
+      "id": "pattern"
+    },
+    {
+      "size": 49,
+      "seed": 1,
+      "h32": 2557280889,
+      "hex128": "509fb3d7899913a851a9fb8909c60c15",
+      "id": "pattern"
+    },
+    {
+      "size": 50,
+      "seed": 1,
+      "h32": 3830383190,
+      "hex128": "a3f7133f78e74238dc90188cce395e58",
+      "id": "pattern"
+    },
+    {
+      "size": 51,
+      "seed": 1,
+      "h32": 2695455756,
+      "hex128": "218471a32dcc31d43dd984d062d4c3eb",
+      "id": "pattern"
+    },
+    {
+      "size": 52,
+      "seed": 1,
+      "h32": 3036792309,
+      "hex128": "c5aed02550b1b4f7dbf924d5382b943f",
+      "id": "pattern"
+    },
+    {
+      "size": 53,
+      "seed": 1,
+      "h32": 992861884,
+      "hex128": "c5e220a7cc3cb39a187bd51689bc19ad",
+      "id": "pattern"
+    },
+    {
+      "size": 54,
+      "seed": 1,
+      "h32": 1542746146,
+      "hex128": "940d07459911a7c50014fbe273b809fe",
+      "id": "pattern"
+    },
+    {
+      "size": 55,
+      "seed": 1,
+      "h32": 3089572848,
+      "hex128": "21a9995db3c8d7327d4936dd1cb9b710",
+      "id": "pattern"
+    },
+    {
+      "size": 56,
+      "seed": 1,
+      "h32": 3830478025,
+      "hex128": "0f81dac7a50cfe15a84ea1231154fe24",
+      "id": "pattern"
+    },
+    {
+      "size": 57,
+      "seed": 1,
+      "h32": 2551726867,
+      "hex128": "5234c10f81950f12089dbb0cef8b676d",
+      "id": "pattern"
+    },
+    {
+      "size": 58,
+      "seed": 1,
+      "h32": 2698591039,
+      "hex128": "13e1782825243b64bf7fd4402596038b",
+      "id": "pattern"
+    },
+    {
+      "size": 59,
+      "seed": 1,
+      "h32": 1114297044,
+      "hex128": "0079f60f45f05f72854203d9aef3043a",
+      "id": "pattern"
+    },
+    {
+      "size": 60,
+      "seed": 1,
+      "h32": 4097010966,
+      "hex128": "85891c0849d131645e430f7cf64a215c",
+      "id": "pattern"
+    },
+    {
+      "size": 61,
+      "seed": 1,
+      "h32": 272627566,
+      "hex128": "170f3a4ab3a45334e103c5a276a80cdb",
+      "id": "pattern"
+    },
+    {
+      "size": 62,
+      "seed": 1,
+      "h32": 2762647173,
+      "hex128": "7f65655f60ca8c55d903da717096ce43",
+      "id": "pattern"
+    },
+    {
+      "size": 63,
+      "seed": 1,
+      "h32": 1893981090,
+      "hex128": "cc1f08df594cf429504dc64b9f900f46",
+      "id": "pattern"
+    },
+    {
+      "size": 64,
+      "seed": 1,
+      "h32": 603465498,
+      "hex128": "d4177245a26e743e24edc81725a070f3",
+      "id": "pattern"
+    },
+    {
+      "size": 65,
+      "seed": 1,
+      "h32": 368791863,
+      "hex128": "1f9ba5791e81e85f1ec7411f139d3722",
+      "id": "pattern"
+    },
+    {
+      "size": 66,
+      "seed": 1,
+      "h32": 740195242,
+      "hex128": "6516dcd398bd9d957521bfbe8e04a6e2",
+      "id": "pattern"
+    },
+    {
+      "size": 67,
+      "seed": 1,
+      "h32": 310527495,
+      "hex128": "45b93f026464c77227f675c11ac43372",
+      "id": "pattern"
+    },
+    {
+      "size": 68,
+      "seed": 1,
+      "h32": 532815630,
+      "hex128": "0a8e279f9db1ebaf67344d34416ed5c2",
+      "id": "pattern"
+    },
+    {
+      "size": 69,
+      "seed": 1,
+      "h32": 2818889445,
+      "hex128": "c24f74a54a94c3a0ec6b9f6bb2a4b9c0",
+      "id": "pattern"
+    },
+    {
+      "size": 70,
+      "seed": 1,
+      "h32": 4278946154,
+      "hex128": "07f2f937a1dc53ee99cb1adb9b0c53dd",
+      "id": "pattern"
+    },
+    {
+      "size": 71,
+      "seed": 1,
+      "h32": 772035576,
+      "hex128": "afeb2c44c750eca9e6f3f028c3336e05",
+      "id": "pattern"
+    },
+    {
+      "size": 72,
+      "seed": 1,
+      "h32": 2409147799,
+      "hex128": "47a12b66cded23501557fbbb2db16d4a",
+      "id": "pattern"
+    },
+    {
+      "size": 73,
+      "seed": 1,
+      "h32": 3729023051,
+      "hex128": "fe3866e6403c04156b13e946ed837952",
+      "id": "pattern"
+    },
+    {
+      "size": 74,
+      "seed": 1,
+      "h32": 3111893700,
+      "hex128": "7621a3d43d592eaaa81c8e344542c300",
+      "id": "pattern"
+    },
+    {
+      "size": 75,
+      "seed": 1,
+      "h32": 2584084482,
+      "hex128": "9e80a491116012fd829051c7f7cda087",
+      "id": "pattern"
+    },
+    {
+      "size": 76,
+      "seed": 1,
+      "h32": 1767747940,
+      "hex128": "530810187de440fa9f685b382aeb6229",
+      "id": "pattern"
+    },
+    {
+      "size": 77,
+      "seed": 1,
+      "h32": 2862033389,
+      "hex128": "aa683dc63c638ea057b614dd143bb871",
+      "id": "pattern"
+    },
+    {
+      "size": 78,
+      "seed": 1,
+      "h32": 3020820477,
+      "hex128": "22d25422ed374619b2d11c89f2403a8b",
+      "id": "pattern"
+    },
+    {
+      "size": 79,
+      "seed": 1,
+      "h32": 3748211116,
+      "hex128": "6c505775ecd19e0abdd03b8a1d0e8759",
+      "id": "pattern"
+    },
+    {
+      "size": 80,
+      "seed": 1,
+      "h32": 2733558843,
+      "hex128": "12604e13181646a3954fd620bbd88aff",
+      "id": "pattern"
+    },
+    {
+      "size": 81,
+      "seed": 1,
+      "h32": 1211542034,
+      "hex128": "edeab2c5ea7adac53c60a8c47bbfcc57",
+      "id": "pattern"
+    },
+    {
+      "size": 82,
+      "seed": 1,
+      "h32": 2023035293,
+      "hex128": "b2191de7a3dc4dfec2ccbd65b7f9b8a9",
+      "id": "pattern"
+    },
+    {
+      "size": 83,
+      "seed": 1,
+      "h32": 2687330464,
+      "hex128": "121ef24b9324311a65e8defe1d83b012",
+      "id": "pattern"
+    },
+    {
+      "size": 84,
+      "seed": 1,
+      "h32": 2073763593,
+      "hex128": "455e989bdc879e38abb864d7b411092d",
+      "id": "pattern"
+    },
+    {
+      "size": 85,
+      "seed": 1,
+      "h32": 4265569052,
+      "hex128": "91f7ccedff2d102fe715f7bc0a445feb",
+      "id": "pattern"
+    },
+    {
+      "size": 86,
+      "seed": 1,
+      "h32": 179797986,
+      "hex128": "59f33f4f23efde02d3882360d291411c",
+      "id": "pattern"
+    },
+    {
+      "size": 87,
+      "seed": 1,
+      "h32": 4201833911,
+      "hex128": "9c1ec60ff6988b1006da41e6ae903725",
+      "id": "pattern"
+    },
+    {
+      "size": 88,
+      "seed": 1,
+      "h32": 3882748816,
+      "hex128": "dd3e1281354faff569a097841e1e211f",
+      "id": "pattern"
+    },
+    {
+      "size": 89,
+      "seed": 1,
+      "h32": 4092440652,
+      "hex128": "7871e56c5e0aacba6d27abb871459c12",
+      "id": "pattern"
+    },
+    {
+      "size": 90,
+      "seed": 1,
+      "h32": 180236816,
+      "hex128": "cd060064792add3f0ceff7810932523d",
+      "id": "pattern"
+    },
+    {
+      "size": 91,
+      "seed": 1,
+      "h32": 2095216902,
+      "hex128": "a77489b390b0a61b94b43a9e7ebdcc86",
+      "id": "pattern"
+    },
+    {
+      "size": 92,
+      "seed": 1,
+      "h32": 1963069966,
+      "hex128": "290fb76fa50094c571eb3620e45942ee",
+      "id": "pattern"
+    },
+    {
+      "size": 93,
+      "seed": 1,
+      "h32": 4254072050,
+      "hex128": "d1a8d0bf475457bca1264e6b61d7932c",
+      "id": "pattern"
+    },
+    {
+      "size": 94,
+      "seed": 1,
+      "h32": 2640011290,
+      "hex128": "2342747da4653ec7a8d177062e9af97c",
+      "id": "pattern"
+    },
+    {
+      "size": 95,
+      "seed": 1,
+      "h32": 4018877721,
+      "hex128": "7af03f7d8f37e7f9a37ddf216425c8d9",
+      "id": "pattern"
+    },
+    {
+      "size": 96,
+      "seed": 1,
+      "h32": 2954218116,
+      "hex128": "a372af58ba6e70b527c93a77ba19d00e",
+      "id": "pattern"
+    },
+    {
+      "size": 97,
+      "seed": 1,
+      "h32": 1641431467,
+      "hex128": "ec91458d09bc1d43a3731971a0e60e31",
+      "id": "pattern"
+    },
+    {
+      "size": 98,
+      "seed": 1,
+      "h32": 2580582249,
+      "hex128": "1b00991a2a87a612d5b94fa783619316",
+      "id": "pattern"
+    },
+    {
+      "size": 99,
+      "seed": 1,
+      "h32": 2908183701,
+      "hex128": "669c2ff42b3633da7393a073039e6fc9",
+      "id": "pattern"
+    },
+    {
+      "size": 100,
+      "seed": 1,
+      "h32": 1729041077,
+      "hex128": "9918bd3cf872e64e8fe80c13f8f062aa",
+      "id": "pattern"
+    },
+    {
+      "size": 101,
+      "seed": 1,
+      "h32": 2004760995,
+      "hex128": "27ea50a5cadde37f99d81ad1b2e7e538",
+      "id": "pattern"
+    },
+    {
+      "size": 102,
+      "seed": 1,
+      "h32": 717024770,
+      "hex128": "aabb633f9393a0f84c129e963d3aa9e0",
+      "id": "pattern"
+    },
+    {
+      "size": 103,
+      "seed": 1,
+      "h32": 750525070,
+      "hex128": "7f40fc518e47b3d9d7f854cd484524f3",
+      "id": "pattern"
+    },
+    {
+      "size": 104,
+      "seed": 1,
+      "h32": 3152462301,
+      "hex128": "594e21a95c9b82cf1e4f4d7b842a5c34",
+      "id": "pattern"
+    },
+    {
+      "size": 105,
+      "seed": 1,
+      "h32": 3744913136,
+      "hex128": "2a82df3322c7dbadbf0eb8225d07d7ad",
+      "id": "pattern"
+    },
+    {
+      "size": 106,
+      "seed": 1,
+      "h32": 1677745050,
+      "hex128": "ff42b1c00558face5a325dcd66fee907",
+      "id": "pattern"
+    },
+    {
+      "size": 107,
+      "seed": 1,
+      "h32": 3677347246,
+      "hex128": "71678b88f8aac57d0c76e8aac318030b",
+      "id": "pattern"
+    },
+    {
+      "size": 108,
+      "seed": 1,
+      "h32": 2743801144,
+      "hex128": "9ce20ed32f68aae86aa1be15138aa5e7",
+      "id": "pattern"
+    },
+    {
+      "size": 109,
+      "seed": 1,
+      "h32": 1124216457,
+      "hex128": "ad8050e260dccdd924cae4bcd064756a",
+      "id": "pattern"
+    },
+    {
+      "size": 110,
+      "seed": 1,
+      "h32": 4077416803,
+      "hex128": "be1e741460a191e615cd37f927a28786",
+      "id": "pattern"
+    },
+    {
+      "size": 111,
+      "seed": 1,
+      "h32": 60671218,
+      "hex128": "08158365a015a8a501bd815c46dca36d",
+      "id": "pattern"
+    },
+    {
+      "size": 112,
+      "seed": 1,
+      "h32": 393264345,
+      "hex128": "17d51b0e6d2b9b78bbd336f0fcd8f88d",
+      "id": "pattern"
+    },
+    {
+      "size": 113,
+      "seed": 1,
+      "h32": 4434274,
+      "hex128": "dd778720e9382443a06f380b20e854aa",
+      "id": "pattern"
+    },
+    {
+      "size": 114,
+      "seed": 1,
+      "h32": 2098212511,
+      "hex128": "e5b5a073ccb5fe87cebb2d6c1a55e52c",
+      "id": "pattern"
+    },
+    {
+      "size": 115,
+      "seed": 1,
+      "h32": 1835936322,
+      "hex128": "cbfbfaf34920ab02a6d337a02bef9cd6",
+      "id": "pattern"
+    },
+    {
+      "size": 116,
+      "seed": 1,
+      "h32": 828317837,
+      "hex128": "403b4a7e2d4f447f3d46c2bfb494935c",
+      "id": "pattern"
+    },
+    {
+      "size": 117,
+      "seed": 1,
+      "h32": 3702574475,
+      "hex128": "87a6cbbd80f20927893ca81bf4dd0f8a",
+      "id": "pattern"
+    },
+    {
+      "size": 118,
+      "seed": 1,
+      "h32": 2120655,
+      "hex128": "bcfa3ecd1f3f414c7cf654214d8472db",
+      "id": "pattern"
+    },
+    {
+      "size": 119,
+      "seed": 1,
+      "h32": 1889679534,
+      "hex128": "c75832a8cac862716a70ce82c39ce98d",
+      "id": "pattern"
+    },
+    {
+      "size": 120,
+      "seed": 1,
+      "h32": 3714268338,
+      "hex128": "faf52a45115ac508a6a7a154ceadf871",
+      "id": "pattern"
+    },
+    {
+      "size": 121,
+      "seed": 1,
+      "h32": 142496147,
+      "hex128": "f86dc6dd29e2b365a5cc27ba30078aab",
+      "id": "pattern"
+    },
+    {
+      "size": 122,
+      "seed": 1,
+      "h32": 932537313,
+      "hex128": "4f55651058ee8c09bb8bb1ac418e2eae",
+      "id": "pattern"
+    },
+    {
+      "size": 123,
+      "seed": 1,
+      "h32": 1532315859,
+      "hex128": "8edd72ee71ae036d2ae1fb86932fb4a0",
+      "id": "pattern"
+    },
+    {
+      "size": 124,
+      "seed": 1,
+      "h32": 1727423682,
+      "hex128": "cc56217ea26759f0034ba97f1ddcd9b0",
+      "id": "pattern"
+    },
+    {
+      "size": 125,
+      "seed": 1,
+      "h32": 3963140628,
+      "hex128": "ed48c809cad46aa6d05237d83529eaea",
+      "id": "pattern"
+    },
+    {
+      "size": 126,
+      "seed": 1,
+      "h32": 2268697730,
+      "hex128": "99c2a0f3ecad2107fe71503c6781185f",
+      "id": "pattern"
+    },
+    {
+      "size": 127,
+      "seed": 1,
+      "h32": 350126052,
+      "hex128": "48594545a008c9b8c7d153f753963b09",
+      "id": "pattern"
+    },
+    {
+      "size": 128,
+      "seed": 1,
+      "h32": 3475323580,
+      "hex128": "c303d88143e991045ff6cb2a0e819f47",
+      "id": "pattern"
+    },
+    {
+      "size": 255,
+      "seed": 1,
+      "h32": 1207085505,
+      "hex128": "520af3c1c8a8375c8f63c534c00e0ee6",
+      "id": "pattern"
+    },
+    {
+      "size": 256,
+      "seed": 1,
+      "h32": 627967131,
+      "hex128": "c66d2853468dca032dd9b311f70e1ba5",
+      "id": "pattern"
+    },
+    {
+      "size": 257,
+      "seed": 1,
+      "h32": 4027229220,
+      "hex128": "89fd9a8831b760b1a97354b4b5e47d88",
+      "id": "pattern"
+    },
+    {
+      "size": 511,
+      "seed": 1,
+      "h32": 3603492875,
+      "hex128": "0d8f8d282d30190cf26fcab0a0c82caf",
+      "id": "pattern"
+    },
+    {
+      "size": 512,
+      "seed": 1,
+      "h32": 1439724011,
+      "hex128": "6014e7c88b72ecee8b78c6e68b72b331",
+      "id": "pattern"
+    },
+    {
+      "size": 513,
+      "seed": 1,
+      "h32": 1262542208,
+      "hex128": "d8cc869301b754f4554eab00845daa27",
+      "id": "pattern"
+    },
+    {
+      "size": 1023,
+      "seed": 1,
+      "h32": 4099735111,
+      "hex128": "c51470d6b60bc70cc9bbf7923fae7450",
+      "id": "pattern"
+    },
+    {
+      "size": 1024,
+      "seed": 1,
+      "h32": 3896825786,
+      "hex128": "0653932c398f4d69e83e9f8450ac9bf8",
+      "id": "pattern"
+    },
+    {
+      "size": 1025,
+      "seed": 1,
+      "h32": 848501105,
+      "hex128": "00430cebd9a1d16893d20f00c781b834",
+      "id": "pattern"
+    },
+    {
+      "size": 4095,
+      "seed": 1,
+      "h32": 4175534352,
+      "hex128": "2687bdfe43b9cc28f4128cace89ab643",
+      "id": "pattern"
+    },
+    {
+      "size": 4096,
+      "seed": 1,
+      "h32": 301763402,
+      "hex128": "17cebd4ae12cd8e7cca756624025ddd8",
+      "id": "pattern"
+    },
+    {
+      "size": 4097,
+      "seed": 1,
+      "h32": 3592412178,
+      "hex128": "ef0caeeb0ae1e0041ca3ec00c8585470",
+      "id": "pattern"
+    },
+    {
+      "size": 65535,
+      "seed": 1,
+      "h32": 423913335,
+      "hex128": "7e31b7aa10c46e83b53ad3253b1c8cce",
+      "id": "pattern"
+    },
+    {
+      "size": 65536,
+      "seed": 1,
+      "h32": 3305167937,
+      "hex128": "c4fa92ee1ce3d5f44883e7b331b69940",
+      "id": "pattern"
+    },
+    {
+      "size": 65537,
+      "seed": 1,
+      "h32": 332968674,
+      "hex128": "8c23ee60d5787ab700d11d2a61f918d3",
+      "id": "pattern"
+    },
+    {
+      "size": 0,
+      "seed": 42,
+      "h32": 142593372,
+      "hex128": "23851bfa7da72af0b9cb11da106601d1",
+      "id": "pattern"
+    },
+    {
+      "size": 1,
+      "seed": 42,
+      "h32": 806208038,
+      "hex128": "496bad9026b79514e80b465a297af3b9",
+      "id": "pattern"
+    },
+    {
+      "size": 2,
+      "seed": 42,
+      "h32": 2092235505,
+      "hex128": "0826c260fa31f622be049baeb3fb5c39",
+      "id": "pattern"
+    },
+    {
+      "size": 3,
+      "seed": 42,
+      "h32": 3594166572,
+      "hex128": "80ababe8ea76ebb411b990f3c30a18ab",
+      "id": "pattern"
+    },
+    {
+      "size": 4,
+      "seed": 42,
+      "h32": 534638413,
+      "hex128": "49b5919de9b7f419c54abee5fb719742",
+      "id": "pattern"
+    },
+    {
+      "size": 5,
+      "seed": 42,
+      "h32": 2656742945,
+      "hex128": "fce00eb4767cd778811cb7ca5fac91b9",
+      "id": "pattern"
+    },
+    {
+      "size": 6,
+      "seed": 42,
+      "h32": 2576662257,
+      "hex128": "a57bfd1efaafa7cf5626018fbc578754",
+      "id": "pattern"
+    },
+    {
+      "size": 7,
+      "seed": 42,
+      "h32": 3136522315,
+      "hex128": "31dbeb441fb4a4c19f75c52747c36234",
+      "id": "pattern"
+    },
+    {
+      "size": 8,
+      "seed": 42,
+      "h32": 1475633032,
+      "hex128": "672b1f3f251f38b3a7635b4327a7f4cd",
+      "id": "pattern"
+    },
+    {
+      "size": 9,
+      "seed": 42,
+      "h32": 1475190417,
+      "hex128": "3fccbdcfe34b9d2bf3f550ee3711bb51",
+      "id": "pattern"
+    },
+    {
+      "size": 10,
+      "seed": 42,
+      "h32": 1286527667,
+      "hex128": "9c02547bb6a96185e78bcc3b5926ff74",
+      "id": "pattern"
+    },
+    {
+      "size": 11,
+      "seed": 42,
+      "h32": 1326231483,
+      "hex128": "2a47732295857fba3841b09d2a756bd2",
+      "id": "pattern"
+    },
+    {
+      "size": 12,
+      "seed": 42,
+      "h32": 2686766602,
+      "hex128": "ad2026ae56f06e8613c4cfb2ced01dce",
+      "id": "pattern"
+    },
+    {
+      "size": 13,
+      "seed": 42,
+      "h32": 3021089191,
+      "hex128": "6672d0884ba543571f94f9f08d081d23",
+      "id": "pattern"
+    },
+    {
+      "size": 14,
+      "seed": 42,
+      "h32": 3575547179,
+      "hex128": "ec89f823f63dc568a8587996ba57ccde",
+      "id": "pattern"
+    },
+    {
+      "size": 15,
+      "seed": 42,
+      "h32": 1127842806,
+      "hex128": "0987365f572bec139a727ab03728d36e",
+      "id": "pattern"
+    },
+    {
+      "size": 16,
+      "seed": 42,
+      "h32": 465409344,
+      "hex128": "5e11e9847de5b70d7bc40f543a7151a3",
+      "id": "pattern"
+    },
+    {
+      "size": 17,
+      "seed": 42,
+      "h32": 437710607,
+      "hex128": "59ca06b778dd536764d7bdeec8d096e8",
+      "id": "pattern"
+    },
+    {
+      "size": 18,
+      "seed": 42,
+      "h32": 3342218730,
+      "hex128": "fa4eeaec3a6405df6c640cc8ccf07a6a",
+      "id": "pattern"
+    },
+    {
+      "size": 19,
+      "seed": 42,
+      "h32": 1390473378,
+      "hex128": "2ee643cbb12430bba765c703a9c549ba",
+      "id": "pattern"
+    },
+    {
+      "size": 20,
+      "seed": 42,
+      "h32": 3686367747,
+      "hex128": "f8a750d210be530d5fb728acab2c1971",
+      "id": "pattern"
+    },
+    {
+      "size": 21,
+      "seed": 42,
+      "h32": 3806033681,
+      "hex128": "333ed9557dc975450eff127b2163dc3c",
+      "id": "pattern"
+    },
+    {
+      "size": 22,
+      "seed": 42,
+      "h32": 784239232,
+      "hex128": "22f899e64746713b6b97f2a0b23f1f91",
+      "id": "pattern"
+    },
+    {
+      "size": 23,
+      "seed": 42,
+      "h32": 1757351858,
+      "hex128": "e16c6c41096feec5c1dd17059ce2c1a9",
+      "id": "pattern"
+    },
+    {
+      "size": 24,
+      "seed": 42,
+      "h32": 144361652,
+      "hex128": "048250d24961860a0efe1e084f314254",
+      "id": "pattern"
+    },
+    {
+      "size": 25,
+      "seed": 42,
+      "h32": 2913103175,
+      "hex128": "70223858b206f0455423a448d5bf668f",
+      "id": "pattern"
+    },
+    {
+      "size": 26,
+      "seed": 42,
+      "h32": 278331298,
+      "hex128": "951f084976f42e1fff64e1fdae1f8648",
+      "id": "pattern"
+    },
+    {
+      "size": 27,
+      "seed": 42,
+      "h32": 2091879183,
+      "hex128": "c352beb1f3ff204ae7adea5d3eeabc87",
+      "id": "pattern"
+    },
+    {
+      "size": 28,
+      "seed": 42,
+      "h32": 2382451626,
+      "hex128": "d614a13ed65bbaf96d75e369fe93ae35",
+      "id": "pattern"
+    },
+    {
+      "size": 29,
+      "seed": 42,
+      "h32": 4145268169,
+      "hex128": "1b29ccd0dded0985889be4755465756a",
+      "id": "pattern"
+    },
+    {
+      "size": 30,
+      "seed": 42,
+      "h32": 3059321983,
+      "hex128": "e550e40b350ee8e98ea946c48f793b4b",
+      "id": "pattern"
+    },
+    {
+      "size": 31,
+      "seed": 42,
+      "h32": 477475430,
+      "hex128": "d5cc86869b126b4b9e3bb4329631b0d4",
+      "id": "pattern"
+    },
+    {
+      "size": 32,
+      "seed": 42,
+      "h32": 3163549469,
+      "hex128": "2403aa6c0c70aecdc2287cf3580a228b",
+      "id": "pattern"
+    },
+    {
+      "size": 33,
+      "seed": 42,
+      "h32": 1608056000,
+      "hex128": "2c8f9feaa7ceb41be5b6e5d15ee070a3",
+      "id": "pattern"
+    },
+    {
+      "size": 34,
+      "seed": 42,
+      "h32": 4176300774,
+      "hex128": "fd6c9e198b65a78c50e9f9f82d24d0fa",
+      "id": "pattern"
+    },
+    {
+      "size": 35,
+      "seed": 42,
+      "h32": 2048334685,
+      "hex128": "c6d28d90219691389f9fb56abd91deb2",
+      "id": "pattern"
+    },
+    {
+      "size": 36,
+      "seed": 42,
+      "h32": 1983225462,
+      "hex128": "b05fb17c05d6066108313df24ab90e9e",
+      "id": "pattern"
+    },
+    {
+      "size": 37,
+      "seed": 42,
+      "h32": 2995751093,
+      "hex128": "bce3b5cb8afc971904eb0afc16375939",
+      "id": "pattern"
+    },
+    {
+      "size": 38,
+      "seed": 42,
+      "h32": 3646662943,
+      "hex128": "5489b72455301ff13ae3008d03536e92",
+      "id": "pattern"
+    },
+    {
+      "size": 39,
+      "seed": 42,
+      "h32": 3059957032,
+      "hex128": "ee040cc0e2e9a9199e888bf59b27b6c6",
+      "id": "pattern"
+    },
+    {
+      "size": 40,
+      "seed": 42,
+      "h32": 3156194147,
+      "hex128": "4d096f7dce940a1e3c1ebfa3938e7673",
+      "id": "pattern"
+    },
+    {
+      "size": 41,
+      "seed": 42,
+      "h32": 3263299825,
+      "hex128": "ce6c4c422bbb42df73f810f738e10665",
+      "id": "pattern"
+    },
+    {
+      "size": 42,
+      "seed": 42,
+      "h32": 2551471733,
+      "hex128": "c1c69fe438b4bd8cb14e8beff6a7052d",
+      "id": "pattern"
+    },
+    {
+      "size": 43,
+      "seed": 42,
+      "h32": 3490508990,
+      "hex128": "7c5e0de9a94fccca731566d33f9d064c",
+      "id": "pattern"
+    },
+    {
+      "size": 44,
+      "seed": 42,
+      "h32": 3095271125,
+      "hex128": "c38045bfbb0387e414c95ec79b518666",
+      "id": "pattern"
+    },
+    {
+      "size": 45,
+      "seed": 42,
+      "h32": 4159304506,
+      "hex128": "8dbd11d38936f1804b0c07a99f8970bd",
+      "id": "pattern"
+    },
+    {
+      "size": 46,
+      "seed": 42,
+      "h32": 1224868315,
+      "hex128": "21c2074147ad1b9f5650374f73e36469",
+      "id": "pattern"
+    },
+    {
+      "size": 47,
+      "seed": 42,
+      "h32": 1150478559,
+      "hex128": "7f5b63e4b6ea7ff980db9f5eb189e736",
+      "id": "pattern"
+    },
+    {
+      "size": 48,
+      "seed": 42,
+      "h32": 3143003320,
+      "hex128": "5e929b2bfdba1a3366c6d06df6e10890",
+      "id": "pattern"
+    },
+    {
+      "size": 49,
+      "seed": 42,
+      "h32": 219276037,
+      "hex128": "d77527774caf8e171c9e8e1365f28dc7",
+      "id": "pattern"
+    },
+    {
+      "size": 50,
+      "seed": 42,
+      "h32": 4130377020,
+      "hex128": "cc48e08dd849edf04c3435cc8d03fbcd",
+      "id": "pattern"
+    },
+    {
+      "size": 51,
+      "seed": 42,
+      "h32": 330599072,
+      "hex128": "cc19d3cd20ae754e5aa646dcca6d6d79",
+      "id": "pattern"
+    },
+    {
+      "size": 52,
+      "seed": 42,
+      "h32": 3004149997,
+      "hex128": "a525ebcf6b28a2925696455b3447c376",
+      "id": "pattern"
+    },
+    {
+      "size": 53,
+      "seed": 42,
+      "h32": 3481695359,
+      "hex128": "85c429909c329a263e5756c7d96f6c45",
+      "id": "pattern"
+    },
+    {
+      "size": 54,
+      "seed": 42,
+      "h32": 356878733,
+      "hex128": "a62bcd9aa8a9b120dd7714d8e4332ef4",
+      "id": "pattern"
+    },
+    {
+      "size": 55,
+      "seed": 42,
+      "h32": 2183222425,
+      "hex128": "08748fb488d5e06f3997cbf8fbc88be7",
+      "id": "pattern"
+    },
+    {
+      "size": 56,
+      "seed": 42,
+      "h32": 1579328621,
+      "hex128": "7321dfb312560005dc48294e5824a4ba",
+      "id": "pattern"
+    },
+    {
+      "size": 57,
+      "seed": 42,
+      "h32": 2497098416,
+      "hex128": "390c0787a8a498d340966ecd2b93c599",
+      "id": "pattern"
+    },
+    {
+      "size": 58,
+      "seed": 42,
+      "h32": 3981053879,
+      "hex128": "4f8d724237f3ff419d107577333c6143",
+      "id": "pattern"
+    },
+    {
+      "size": 59,
+      "seed": 42,
+      "h32": 3786157697,
+      "hex128": "bc2f4e54c751585dfaee1fc5f524c355",
+      "id": "pattern"
+    },
+    {
+      "size": 60,
+      "seed": 42,
+      "h32": 3779578182,
+      "hex128": "e359de012b9c40a68b1a60819bdd9acd",
+      "id": "pattern"
+    },
+    {
+      "size": 61,
+      "seed": 42,
+      "h32": 2406324139,
+      "hex128": "3af51a9e4db05f849d1b05608405ca80",
+      "id": "pattern"
+    },
+    {
+      "size": 62,
+      "seed": 42,
+      "h32": 1225237521,
+      "hex128": "d3b8d7bde8e94817eab06fa02bd924e9",
+      "id": "pattern"
+    },
+    {
+      "size": 63,
+      "seed": 42,
+      "h32": 642106869,
+      "hex128": "dca4c5f4965f2c2ea47c7acc50fad5dc",
+      "id": "pattern"
+    },
+    {
+      "size": 64,
+      "seed": 42,
+      "h32": 62323741,
+      "hex128": "81dc8ef34f1d4f05e3d9f5625dcd8c85",
+      "id": "pattern"
+    },
+    {
+      "size": 65,
+      "seed": 42,
+      "h32": 410732605,
+      "hex128": "fa89f91845d948538acaf2262298bd79",
+      "id": "pattern"
+    },
+    {
+      "size": 66,
+      "seed": 42,
+      "h32": 586679571,
+      "hex128": "a29b39e43c2aec7cbbd22c7f5a699c09",
+      "id": "pattern"
+    },
+    {
+      "size": 67,
+      "seed": 42,
+      "h32": 1012917010,
+      "hex128": "5f262e02af311cb8a3acaaa191a81713",
+      "id": "pattern"
+    },
+    {
+      "size": 68,
+      "seed": 42,
+      "h32": 4144352739,
+      "hex128": "df7135c38e34815c117b262f9307ed8b",
+      "id": "pattern"
+    },
+    {
+      "size": 69,
+      "seed": 42,
+      "h32": 750935180,
+      "hex128": "a46fe394150b02ab537272fe10e6feee",
+      "id": "pattern"
+    },
+    {
+      "size": 70,
+      "seed": 42,
+      "h32": 2820019241,
+      "hex128": "63d478872a01751f4823448d40a716d9",
+      "id": "pattern"
+    },
+    {
+      "size": 71,
+      "seed": 42,
+      "h32": 2496439550,
+      "hex128": "59214c627bab4a7ed37b4031fde823a4",
+      "id": "pattern"
+    },
+    {
+      "size": 72,
+      "seed": 42,
+      "h32": 3059208102,
+      "hex128": "2dbe18aa5a1750a78cfb1f5b3e2f37cc",
+      "id": "pattern"
+    },
+    {
+      "size": 73,
+      "seed": 42,
+      "h32": 1514623832,
+      "hex128": "4bdb6c7b717e4aa18f91e3f084a37370",
+      "id": "pattern"
+    },
+    {
+      "size": 74,
+      "seed": 42,
+      "h32": 3860195476,
+      "hex128": "0c6b752dd3dfeab23efdfe1755d08e1a",
+      "id": "pattern"
+    },
+    {
+      "size": 75,
+      "seed": 42,
+      "h32": 143699642,
+      "hex128": "99263bfd08617818af508a23f5f1c1f5",
+      "id": "pattern"
+    },
+    {
+      "size": 76,
+      "seed": 42,
+      "h32": 1899721785,
+      "hex128": "68862ccaa874ee75335981f1c3b5323f",
+      "id": "pattern"
+    },
+    {
+      "size": 77,
+      "seed": 42,
+      "h32": 1547962613,
+      "hex128": "d8040451e070b8cc6c5fa9d394fa6579",
+      "id": "pattern"
+    },
+    {
+      "size": 78,
+      "seed": 42,
+      "h32": 1715308007,
+      "hex128": "d9f8d2721e2498905a4cebf1f3b41742",
+      "id": "pattern"
+    },
+    {
+      "size": 79,
+      "seed": 42,
+      "h32": 3092291888,
+      "hex128": "60bb977a30c6f67cc6d790f1e2aa7311",
+      "id": "pattern"
+    },
+    {
+      "size": 80,
+      "seed": 42,
+      "h32": 975551487,
+      "hex128": "e3197e736c82be022596426a1db2f9e6",
+      "id": "pattern"
+    },
+    {
+      "size": 81,
+      "seed": 42,
+      "h32": 3129880761,
+      "hex128": "f63b523efcb4eca8df1a307c810886e6",
+      "id": "pattern"
+    },
+    {
+      "size": 82,
+      "seed": 42,
+      "h32": 2851957647,
+      "hex128": "8b57160a20146301ae3f8ab74a7b2e34",
+      "id": "pattern"
+    },
+    {
+      "size": 83,
+      "seed": 42,
+      "h32": 1519628228,
+      "hex128": "4291aa3b36c7d0d8ac87070d9edade74",
+      "id": "pattern"
+    },
+    {
+      "size": 84,
+      "seed": 42,
+      "h32": 2525753095,
+      "hex128": "25a58dff11b83591d9fd02062367fdbe",
+      "id": "pattern"
+    },
+    {
+      "size": 85,
+      "seed": 42,
+      "h32": 2621113590,
+      "hex128": "4a1244b71fb2e142b259f3aa50aad553",
+      "id": "pattern"
+    },
+    {
+      "size": 86,
+      "seed": 42,
+      "h32": 3091794155,
+      "hex128": "8fcffb010aaef87a798d1ef6be1f3b6c",
+      "id": "pattern"
+    },
+    {
+      "size": 87,
+      "seed": 42,
+      "h32": 410107908,
+      "hex128": "4f65a727f940b109d3066113614d5ad7",
+      "id": "pattern"
+    },
+    {
+      "size": 88,
+      "seed": 42,
+      "h32": 2635664104,
+      "hex128": "9271fd307ff07e0ba48bf7da717253f9",
+      "id": "pattern"
+    },
+    {
+      "size": 89,
+      "seed": 42,
+      "h32": 3001833101,
+      "hex128": "4b2ff19f27ffa072c439c45bad4bca33",
+      "id": "pattern"
+    },
+    {
+      "size": 90,
+      "seed": 42,
+      "h32": 2184701916,
+      "hex128": "8b7b97015277013ee0414c456a05928a",
+      "id": "pattern"
+    },
+    {
+      "size": 91,
+      "seed": 42,
+      "h32": 3303622493,
+      "hex128": "b0ca9c5add0f0ffa9a748dc675da559b",
+      "id": "pattern"
+    },
+    {
+      "size": 92,
+      "seed": 42,
+      "h32": 1797565512,
+      "hex128": "e776b34a94825bd32ae9c2328366fcfa",
+      "id": "pattern"
+    },
+    {
+      "size": 93,
+      "seed": 42,
+      "h32": 3453488302,
+      "hex128": "24e063536b29d5fb48adda16e7c9767a",
+      "id": "pattern"
+    },
+    {
+      "size": 94,
+      "seed": 42,
+      "h32": 171675201,
+      "hex128": "90928a01e105c1d8e4d4bfb711498036",
+      "id": "pattern"
+    },
+    {
+      "size": 95,
+      "seed": 42,
+      "h32": 3127410903,
+      "hex128": "b91f65aea3c5be08dc6ef8969c5428bf",
+      "id": "pattern"
+    },
+    {
+      "size": 96,
+      "seed": 42,
+      "h32": 2347308720,
+      "hex128": "86cf2430a724b660b8abbe7e8246e381",
+      "id": "pattern"
+    },
+    {
+      "size": 97,
+      "seed": 42,
+      "h32": 2021506247,
+      "hex128": "8ebcb653b1dfebe3727f98229b26af15",
+      "id": "pattern"
+    },
+    {
+      "size": 98,
+      "seed": 42,
+      "h32": 3426890460,
+      "hex128": "a179c94f0d3cf5996bcca7dd0e26e896",
+      "id": "pattern"
+    },
+    {
+      "size": 99,
+      "seed": 42,
+      "h32": 2316420732,
+      "hex128": "db2ca0eb3e3388c780b3850b2a7de41d",
+      "id": "pattern"
+    },
+    {
+      "size": 100,
+      "seed": 42,
+      "h32": 1336872779,
+      "hex128": "a69de41e4c18d0694ee6efc7f5fa8422",
+      "id": "pattern"
+    },
+    {
+      "size": 101,
+      "seed": 42,
+      "h32": 3428172545,
+      "hex128": "e482d1e28be990bf00679bad65d27bf8",
+      "id": "pattern"
+    },
+    {
+      "size": 102,
+      "seed": 42,
+      "h32": 3136176652,
+      "hex128": "d8ed0cc6a72146dae1af477a46496fe6",
+      "id": "pattern"
+    },
+    {
+      "size": 103,
+      "seed": 42,
+      "h32": 612172907,
+      "hex128": "8668f30fd0e14168df05fd3f7fd1d32c",
+      "id": "pattern"
+    },
+    {
+      "size": 104,
+      "seed": 42,
+      "h32": 480965327,
+      "hex128": "827691dcb143c89e0658202563bffc70",
+      "id": "pattern"
+    },
+    {
+      "size": 105,
+      "seed": 42,
+      "h32": 2142523162,
+      "hex128": "3f203ce13edcb3b15c5500f0733f7702",
+      "id": "pattern"
+    },
+    {
+      "size": 106,
+      "seed": 42,
+      "h32": 1957575907,
+      "hex128": "b56c1c1e1affe8dd92af7ec4c00befe1",
+      "id": "pattern"
+    },
+    {
+      "size": 107,
+      "seed": 42,
+      "h32": 3712356017,
+      "hex128": "a4a679d731ad1f27df9a1509de67a83a",
+      "id": "pattern"
+    },
+    {
+      "size": 108,
+      "seed": 42,
+      "h32": 1532346713,
+      "hex128": "07618512253618d286e72c737dd8bb9c",
+      "id": "pattern"
+    },
+    {
+      "size": 109,
+      "seed": 42,
+      "h32": 1495483958,
+      "hex128": "e8e1b6976643921a8e8eaebe51d1f7d2",
+      "id": "pattern"
+    },
+    {
+      "size": 110,
+      "seed": 42,
+      "h32": 1332008831,
+      "hex128": "e76d33a38822da9f0a5b0b615bed3780",
+      "id": "pattern"
+    },
+    {
+      "size": 111,
+      "seed": 42,
+      "h32": 1371067982,
+      "hex128": "b0385a1676e56e2a3d707dd8cef8c6aa",
+      "id": "pattern"
+    },
+    {
+      "size": 112,
+      "seed": 42,
+      "h32": 1491954505,
+      "hex128": "444291c027f215bde41559f445f26b6c",
+      "id": "pattern"
+    },
+    {
+      "size": 113,
+      "seed": 42,
+      "h32": 345330868,
+      "hex128": "e0557c23f31ce5d8a856134065f09492",
+      "id": "pattern"
+    },
+    {
+      "size": 114,
+      "seed": 42,
+      "h32": 1942587724,
+      "hex128": "961efbfd6ec66c856ef62dbba64cb3b3",
+      "id": "pattern"
+    },
+    {
+      "size": 115,
+      "seed": 42,
+      "h32": 859070372,
+      "hex128": "8f7e1a2a275a3bceed539a672d6afc50",
+      "id": "pattern"
+    },
+    {
+      "size": 116,
+      "seed": 42,
+      "h32": 1142685519,
+      "hex128": "55ef3996e745f14b52cac250098ff77b",
+      "id": "pattern"
+    },
+    {
+      "size": 117,
+      "seed": 42,
+      "h32": 312248951,
+      "hex128": "9602e9df0e908fb4e32b62966d302863",
+      "id": "pattern"
+    },
+    {
+      "size": 118,
+      "seed": 42,
+      "h32": 1774816782,
+      "hex128": "24b1b30eaf79a0c6151e9d25f71e5db4",
+      "id": "pattern"
+    },
+    {
+      "size": 119,
+      "seed": 42,
+      "h32": 1743174856,
+      "hex128": "0f9d0ef58bc977e6b3d2348b39d2b0a6",
+      "id": "pattern"
+    },
+    {
+      "size": 120,
+      "seed": 42,
+      "h32": 4203274889,
+      "hex128": "876da9731d37ad03cce17507f63c0eb3",
+      "id": "pattern"
+    },
+    {
+      "size": 121,
+      "seed": 42,
+      "h32": 2283252937,
+      "hex128": "4905f6a4086be81c7c1cd31353b695dc",
+      "id": "pattern"
+    },
+    {
+      "size": 122,
+      "seed": 42,
+      "h32": 4196541422,
+      "hex128": "139d49daed2e8fde37c5f9aeb713de09",
+      "id": "pattern"
+    },
+    {
+      "size": 123,
+      "seed": 42,
+      "h32": 4065782621,
+      "hex128": "9dc0eabc6d55ee5481930a14f3f196b2",
+      "id": "pattern"
+    },
+    {
+      "size": 124,
+      "seed": 42,
+      "h32": 2284271077,
+      "hex128": "579e82601740c454a7719074020ca318",
+      "id": "pattern"
+    },
+    {
+      "size": 125,
+      "seed": 42,
+      "h32": 537620542,
+      "hex128": "ebb485e72cbc0b8f5b76805c5207d7bf",
+      "id": "pattern"
+    },
+    {
+      "size": 126,
+      "seed": 42,
+      "h32": 1162476837,
+      "hex128": "0f39c95b08673bd25f4e49c6da004707",
+      "id": "pattern"
+    },
+    {
+      "size": 127,
+      "seed": 42,
+      "h32": 761691769,
+      "hex128": "d463cc1d64111fabc3db5cda809d569f",
+      "id": "pattern"
+    },
+    {
+      "size": 128,
+      "seed": 42,
+      "h32": 1010277668,
+      "hex128": "57f8d27449fa8b9c288565e4eaf97046",
+      "id": "pattern"
+    },
+    {
+      "size": 255,
+      "seed": 42,
+      "h32": 1724429546,
+      "hex128": "18299f8ca6ea02af4c7a7b419f41211d",
+      "id": "pattern"
+    },
+    {
+      "size": 256,
+      "seed": 42,
+      "h32": 4199235228,
+      "hex128": "e831a644bcc04895cad11db61d7abdcb",
+      "id": "pattern"
+    },
+    {
+      "size": 257,
+      "seed": 42,
+      "h32": 2203118827,
+      "hex128": "2e7c239d5b2f79fa9fbf4cc1a57e22e3",
+      "id": "pattern"
+    },
+    {
+      "size": 511,
+      "seed": 42,
+      "h32": 3856998612,
+      "hex128": "f3acf986f9d10b8a0d946d0723290ce5",
+      "id": "pattern"
+    },
+    {
+      "size": 512,
+      "seed": 42,
+      "h32": 970332851,
+      "hex128": "f924f0e4d94e05068ad7b3d2a445289b",
+      "id": "pattern"
+    },
+    {
+      "size": 513,
+      "seed": 42,
+      "h32": 3499349014,
+      "hex128": "70e328046032620c3b3295c6926aff5b",
+      "id": "pattern"
+    },
+    {
+      "size": 1023,
+      "seed": 42,
+      "h32": 2842267672,
+      "hex128": "1bc567c7f84282a37670344ce3ff3a3a",
+      "id": "pattern"
+    },
+    {
+      "size": 1024,
+      "seed": 42,
+      "h32": 847910315,
+      "hex128": "c22a8643117dfbdfaecf962f81b0fd0e",
+      "id": "pattern"
+    },
+    {
+      "size": 1025,
+      "seed": 42,
+      "h32": 1022741402,
+      "hex128": "a327da0709a50bdb33b194b1ce63b85a",
+      "id": "pattern"
+    },
+    {
+      "size": 4095,
+      "seed": 42,
+      "h32": 1423798842,
+      "hex128": "9e389252285de915f52651821138f901",
+      "id": "pattern"
+    },
+    {
+      "size": 4096,
+      "seed": 42,
+      "h32": 3148447805,
+      "hex128": "7ef2a810bd2dcd6914f6bd477b576812",
+      "id": "pattern"
+    },
+    {
+      "size": 4097,
+      "seed": 42,
+      "h32": 780843038,
+      "hex128": "674e0067412d00990541e62044f6f84b",
+      "id": "pattern"
+    },
+    {
+      "size": 65535,
+      "seed": 42,
+      "h32": 4272556499,
+      "hex128": "418b7a0961a98486e4b4ac5686b2a05c",
+      "id": "pattern"
+    },
+    {
+      "size": 65536,
+      "seed": 42,
+      "h32": 3143622985,
+      "hex128": "d6d73ab7c59baea665beacd5aa5acc86",
+      "id": "pattern"
+    },
+    {
+      "size": 65537,
+      "seed": 42,
+      "h32": 305728134,
+      "hex128": "4310e17db52821beeb02e57f852c0e72",
+      "id": "pattern"
+    },
+    {
+      "size": 0,
+      "seed": 4294967295,
+      "h32": 2180083513,
+      "hex128": "ecc93b9d4ddff16a6b44e61e12217485",
+      "id": "pattern"
+    },
+    {
+      "size": 1,
+      "seed": 4294967295,
+      "h32": 55984731,
+      "hex128": "840041ed2f664d02bb52aa5029e08a6a",
+      "id": "pattern"
+    },
+    {
+      "size": 2,
+      "seed": 4294967295,
+      "h32": 2073658598,
+      "hex128": "98bbfd2a6ba5b1072cc1007e5f4e3092",
+      "id": "pattern"
+    },
+    {
+      "size": 3,
+      "seed": 4294967295,
+      "h32": 2660611745,
+      "hex128": "fbae8d64e0e29bd9ab254ac25ddebdd3",
+      "id": "pattern"
+    },
+    {
+      "size": 4,
+      "seed": 4294967295,
+      "h32": 3731435376,
+      "hex128": "8a77093eab7352a3b1abdcb46832f3ba",
+      "id": "pattern"
+    },
+    {
+      "size": 5,
+      "seed": 4294967295,
+      "h32": 4164890126,
+      "hex128": "1de19ef66ac24c830dc5d63cb2de422c",
+      "id": "pattern"
+    },
+    {
+      "size": 6,
+      "seed": 4294967295,
+      "h32": 2337373908,
+      "hex128": "fda4bfdb246117843e9c8e31980e6518",
+      "id": "pattern"
+    },
+    {
+      "size": 7,
+      "seed": 4294967295,
+      "h32": 1597623545,
+      "hex128": "cf749027249dfecc425cb2ec2b3375fb",
+      "id": "pattern"
+    },
+    {
+      "size": 8,
+      "seed": 4294967295,
+      "h32": 2190330284,
+      "hex128": "19f93a4be7a5c3e8083266466bdc5cde",
+      "id": "pattern"
+    },
+    {
+      "size": 9,
+      "seed": 4294967295,
+      "h32": 730953983,
+      "hex128": "1807cef0b97e3454b12c2f2b7bae7723",
+      "id": "pattern"
+    },
+    {
+      "size": 10,
+      "seed": 4294967295,
+      "h32": 3973228924,
+      "hex128": "84888d79355175d2f4258a9c7fed0be9",
+      "id": "pattern"
+    },
+    {
+      "size": 11,
+      "seed": 4294967295,
+      "h32": 2959279881,
+      "hex128": "645bdc9026c7b33e298e07530f6b8f87",
+      "id": "pattern"
+    },
+    {
+      "size": 12,
+      "seed": 4294967295,
+      "h32": 1593696866,
+      "hex128": "f53caa708cdbc0e9e9704175388800b3",
+      "id": "pattern"
+    },
+    {
+      "size": 13,
+      "seed": 4294967295,
+      "h32": 184652272,
+      "hex128": "2dc2db17f87eb99ed9891f78181a63d5",
+      "id": "pattern"
+    },
+    {
+      "size": 14,
+      "seed": 4294967295,
+      "h32": 2119670924,
+      "hex128": "f20ab006a2195f32106d7432c5a96674",
+      "id": "pattern"
+    },
+    {
+      "size": 15,
+      "seed": 4294967295,
+      "h32": 95405981,
+      "hex128": "d66dc2520af57e79bc0a9f6caecf4ee7",
+      "id": "pattern"
+    },
+    {
+      "size": 16,
+      "seed": 4294967295,
+      "h32": 363130239,
+      "hex128": "3662fe7633fcd306d5889426ebc893bf",
+      "id": "pattern"
+    },
+    {
+      "size": 17,
+      "seed": 4294967295,
+      "h32": 3881935976,
+      "hex128": "39151af1fe79dd2f49d6d25255298e7a",
+      "id": "pattern"
+    },
+    {
+      "size": 18,
+      "seed": 4294967295,
+      "h32": 1126895393,
+      "hex128": "1911f5124d3fd7916b7aedeea4813235",
+      "id": "pattern"
+    },
+    {
+      "size": 19,
+      "seed": 4294967295,
+      "h32": 429141194,
+      "hex128": "7ac4acbf0870a02767f48b2f9750817c",
+      "id": "pattern"
+    },
+    {
+      "size": 20,
+      "seed": 4294967295,
+      "h32": 3233093335,
+      "hex128": "63e745da3daec787d761ec98a5fdb230",
+      "id": "pattern"
+    },
+    {
+      "size": 21,
+      "seed": 4294967295,
+      "h32": 2293729599,
+      "hex128": "7700f6ed16580a1c5a687a155ddbcd0d",
+      "id": "pattern"
+    },
+    {
+      "size": 22,
+      "seed": 4294967295,
+      "h32": 150393109,
+      "hex128": "88c8965cb843ec655b065446a342afa6",
+      "id": "pattern"
+    },
+    {
+      "size": 23,
+      "seed": 4294967295,
+      "h32": 752871212,
+      "hex128": "6e742e4bbb907f34bddf7074aeab55e7",
+      "id": "pattern"
+    },
+    {
+      "size": 24,
+      "seed": 4294967295,
+      "h32": 1770882158,
+      "hex128": "27802493481628f63237c7f29808d54d",
+      "id": "pattern"
+    },
+    {
+      "size": 25,
+      "seed": 4294967295,
+      "h32": 379160088,
+      "hex128": "e54a1d403c610e7b440e04a83ed15d7c",
+      "id": "pattern"
+    },
+    {
+      "size": 26,
+      "seed": 4294967295,
+      "h32": 2130678520,
+      "hex128": "c167970a2618457a9d72cbe6a4ea468f",
+      "id": "pattern"
+    },
+    {
+      "size": 27,
+      "seed": 4294967295,
+      "h32": 4276094760,
+      "hex128": "6c19d68e23f30b4ad86ee71162632118",
+      "id": "pattern"
+    },
+    {
+      "size": 28,
+      "seed": 4294967295,
+      "h32": 522235295,
+      "hex128": "281d41e3a3a9c04a783a72e273b7ddc7",
+      "id": "pattern"
+    },
+    {
+      "size": 29,
+      "seed": 4294967295,
+      "h32": 3931321907,
+      "hex128": "3676291a1023b228264df060161e8896",
+      "id": "pattern"
+    },
+    {
+      "size": 30,
+      "seed": 4294967295,
+      "h32": 367375602,
+      "hex128": "15fad2ba7950bfdf43ac7a352059dee5",
+      "id": "pattern"
+    },
+    {
+      "size": 31,
+      "seed": 4294967295,
+      "h32": 3194389571,
+      "hex128": "676e99af9d473a2f6b79d57c883ab643",
+      "id": "pattern"
+    },
+    {
+      "size": 32,
+      "seed": 4294967295,
+      "h32": 765929027,
+      "hex128": "0dcca335239ef320bb8fb828c77a3459",
+      "id": "pattern"
+    },
+    {
+      "size": 33,
+      "seed": 4294967295,
+      "h32": 1148325959,
+      "hex128": "afc33a1a1c7d693633ac9fe13b721d22",
+      "id": "pattern"
+    },
+    {
+      "size": 34,
+      "seed": 4294967295,
+      "h32": 1647502283,
+      "hex128": "d3dc67fb3f87d05b1cfe47dcdb0c1797",
+      "id": "pattern"
+    },
+    {
+      "size": 35,
+      "seed": 4294967295,
+      "h32": 438311993,
+      "hex128": "cc5d1170cdfd32e15777cc20194de94c",
+      "id": "pattern"
+    },
+    {
+      "size": 36,
+      "seed": 4294967295,
+      "h32": 990774760,
+      "hex128": "7cb349be70dac4fe1d931e69dfedb865",
+      "id": "pattern"
+    },
+    {
+      "size": 37,
+      "seed": 4294967295,
+      "h32": 2757131669,
+      "hex128": "127862c067454e58e6e5110f9760bbf9",
+      "id": "pattern"
+    },
+    {
+      "size": 38,
+      "seed": 4294967295,
+      "h32": 4199376489,
+      "hex128": "5727c3931c9fb5ff53bf293c3055cd75",
+      "id": "pattern"
+    },
+    {
+      "size": 39,
+      "seed": 4294967295,
+      "h32": 932775236,
+      "hex128": "7d7eb80a758051042dd277897ba0c049",
+      "id": "pattern"
+    },
+    {
+      "size": 40,
+      "seed": 4294967295,
+      "h32": 1349639786,
+      "hex128": "cde622233f858d43c0d26cecbe3e44cb",
+      "id": "pattern"
+    },
+    {
+      "size": 41,
+      "seed": 4294967295,
+      "h32": 2661130581,
+      "hex128": "8c2e2f78736ca488c1dbd3534c025a6b",
+      "id": "pattern"
+    },
+    {
+      "size": 42,
+      "seed": 4294967295,
+      "h32": 1329082209,
+      "hex128": "d8027a583362f452a63adc26c6a97a5f",
+      "id": "pattern"
+    },
+    {
+      "size": 43,
+      "seed": 4294967295,
+      "h32": 1145672926,
+      "hex128": "28c82b193b70f16730cef2556258d057",
+      "id": "pattern"
+    },
+    {
+      "size": 44,
+      "seed": 4294967295,
+      "h32": 345155681,
+      "hex128": "41c5dd64f146d96394437f5664ca06d3",
+      "id": "pattern"
+    },
+    {
+      "size": 45,
+      "seed": 4294967295,
+      "h32": 4143941663,
+      "hex128": "cc24f9f267b5823135f3614e685efcf9",
+      "id": "pattern"
+    },
+    {
+      "size": 46,
+      "seed": 4294967295,
+      "h32": 351323817,
+      "hex128": "05d6f68a290f285d198b2eaa081333a0",
+      "id": "pattern"
+    },
+    {
+      "size": 47,
+      "seed": 4294967295,
+      "h32": 18571183,
+      "hex128": "8f2c365c2dbb460c51593f9a39fe0971",
+      "id": "pattern"
+    },
+    {
+      "size": 48,
+      "seed": 4294967295,
+      "h32": 86291084,
+      "hex128": "eec042624a28bd351f730ca53a26c3c3",
+      "id": "pattern"
+    },
+    {
+      "size": 49,
+      "seed": 4294967295,
+      "h32": 4158825063,
+      "hex128": "13a3a3b183fc72aa05e5a380e16a5cbb",
+      "id": "pattern"
+    },
+    {
+      "size": 50,
+      "seed": 4294967295,
+      "h32": 2699910321,
+      "hex128": "247100c0552280273cf572c614ce1f5d",
+      "id": "pattern"
+    },
+    {
+      "size": 51,
+      "seed": 4294967295,
+      "h32": 2081720136,
+      "hex128": "3c44cc236d609f29bb73106603eaba46",
+      "id": "pattern"
+    },
+    {
+      "size": 52,
+      "seed": 4294967295,
+      "h32": 2916864599,
+      "hex128": "a544fa6c021adbcbeee2a698a46bad31",
+      "id": "pattern"
+    },
+    {
+      "size": 53,
+      "seed": 4294967295,
+      "h32": 102168810,
+      "hex128": "de34325bc4b315c871c2ed32bbe3f99d",
+      "id": "pattern"
+    },
+    {
+      "size": 54,
+      "seed": 4294967295,
+      "h32": 675802442,
+      "hex128": "c1cd08b8c6306edabd0ea9173872cea7",
+      "id": "pattern"
+    },
+    {
+      "size": 55,
+      "seed": 4294967295,
+      "h32": 4146255106,
+      "hex128": "14063916ff694b6d3d33cbea72da0112",
+      "id": "pattern"
+    },
+    {
+      "size": 56,
+      "seed": 4294967295,
+      "h32": 1776197744,
+      "hex128": "2408a95dccab717d1217be8617123b8c",
+      "id": "pattern"
+    },
+    {
+      "size": 57,
+      "seed": 4294967295,
+      "h32": 1957049859,
+      "hex128": "1d7c3b4b95b91144a3900fbba4148916",
+      "id": "pattern"
+    },
+    {
+      "size": 58,
+      "seed": 4294967295,
+      "h32": 3707099306,
+      "hex128": "27eb666cf8a4298194855247768e8642",
+      "id": "pattern"
+    },
+    {
+      "size": 59,
+      "seed": 4294967295,
+      "h32": 1222113068,
+      "hex128": "63115aa9f37cca7f225889299a845b47",
+      "id": "pattern"
+    },
+    {
+      "size": 60,
+      "seed": 4294967295,
+      "h32": 3507676315,
+      "hex128": "0589ec8c124f4399ebed72cf0867f636",
+      "id": "pattern"
+    },
+    {
+      "size": 61,
+      "seed": 4294967295,
+      "h32": 1647822154,
+      "hex128": "f2cef8819f33de80cb9eda554f6a87e9",
+      "id": "pattern"
+    },
+    {
+      "size": 62,
+      "seed": 4294967295,
+      "h32": 1321998101,
+      "hex128": "732f17946b8cc90d1bca0acf50c5d453",
+      "id": "pattern"
+    },
+    {
+      "size": 63,
+      "seed": 4294967295,
+      "h32": 50503041,
+      "hex128": "135e80c40b966f82f4d6cccf178ad1b3",
+      "id": "pattern"
+    },
+    {
+      "size": 64,
+      "seed": 4294967295,
+      "h32": 3710498557,
+      "hex128": "85e56d7e5396768fed93088abc20b3f5",
+      "id": "pattern"
+    },
+    {
+      "size": 65,
+      "seed": 4294967295,
+      "h32": 1573468081,
+      "hex128": "9b3ebb02a5903da749bb300d44b4b43c",
+      "id": "pattern"
+    },
+    {
+      "size": 66,
+      "seed": 4294967295,
+      "h32": 2845569689,
+      "hex128": "2423a035dc611f836a1e91b4be978865",
+      "id": "pattern"
+    },
+    {
+      "size": 67,
+      "seed": 4294967295,
+      "h32": 2559073269,
+      "hex128": "e3deac68628c86516638bd08e29f52a5",
+      "id": "pattern"
+    },
+    {
+      "size": 68,
+      "seed": 4294967295,
+      "h32": 577288198,
+      "hex128": "27148d60649a52e985a1ed2cc86745a5",
+      "id": "pattern"
+    },
+    {
+      "size": 69,
+      "seed": 4294967295,
+      "h32": 2345208621,
+      "hex128": "0a610e4d7cdabe2fedea1a5f3f3103ba",
+      "id": "pattern"
+    },
+    {
+      "size": 70,
+      "seed": 4294967295,
+      "h32": 2738729575,
+      "hex128": "8394679826f9ea1d192caeb43c2483b4",
+      "id": "pattern"
+    },
+    {
+      "size": 71,
+      "seed": 4294967295,
+      "h32": 2986648097,
+      "hex128": "6a29b183bac43b67ce64fc421752bab5",
+      "id": "pattern"
+    },
+    {
+      "size": 72,
+      "seed": 4294967295,
+      "h32": 3032557336,
+      "hex128": "49c77ac3f3d9fca9adb3e209d9179896",
+      "id": "pattern"
+    },
+    {
+      "size": 73,
+      "seed": 4294967295,
+      "h32": 3939150758,
+      "hex128": "66f5a838843c716c90ee080ec7223ac3",
+      "id": "pattern"
+    },
+    {
+      "size": 74,
+      "seed": 4294967295,
+      "h32": 1877031303,
+      "hex128": "2e7afc0f722357d721ad34d311e42d04",
+      "id": "pattern"
+    },
+    {
+      "size": 75,
+      "seed": 4294967295,
+      "h32": 2078817535,
+      "hex128": "f50142747f23f5f36183dad7e8361a49",
+      "id": "pattern"
+    },
+    {
+      "size": 76,
+      "seed": 4294967295,
+      "h32": 328269558,
+      "hex128": "49f8a7e37e7f688daa953aef5b25b96c",
+      "id": "pattern"
+    },
+    {
+      "size": 77,
+      "seed": 4294967295,
+      "h32": 956883441,
+      "hex128": "f9454eab2e8d8f8e3d986499968b91ba",
+      "id": "pattern"
+    },
+    {
+      "size": 78,
+      "seed": 4294967295,
+      "h32": 4075509990,
+      "hex128": "c341925087333f338e0cc91716d5608f",
+      "id": "pattern"
+    },
+    {
+      "size": 79,
+      "seed": 4294967295,
+      "h32": 636692016,
+      "hex128": "45e28317d4f88d160af6632196e4fb3b",
+      "id": "pattern"
+    },
+    {
+      "size": 80,
+      "seed": 4294967295,
+      "h32": 4227244307,
+      "hex128": "873bce5a31b2e366a03b317ad4692ed7",
+      "id": "pattern"
+    },
+    {
+      "size": 81,
+      "seed": 4294967295,
+      "h32": 318845778,
+      "hex128": "b53aee160fe187de4d9e5edb2be8063a",
+      "id": "pattern"
+    },
+    {
+      "size": 82,
+      "seed": 4294967295,
+      "h32": 3098558490,
+      "hex128": "1ea2fa8d550536c6087a30f4831d1e9e",
+      "id": "pattern"
+    },
+    {
+      "size": 83,
+      "seed": 4294967295,
+      "h32": 3775271111,
+      "hex128": "d6b27a266d0c8918b91b3ece9b034960",
+      "id": "pattern"
+    },
+    {
+      "size": 84,
+      "seed": 4294967295,
+      "h32": 2557800610,
+      "hex128": "2427a49fc2cd76c0135f0f139df2b571",
+      "id": "pattern"
+    },
+    {
+      "size": 85,
+      "seed": 4294967295,
+      "h32": 2616754228,
+      "hex128": "9e05f635aca66d5d2913afe4d491b4ac",
+      "id": "pattern"
+    },
+    {
+      "size": 86,
+      "seed": 4294967295,
+      "h32": 3207947280,
+      "hex128": "05b96b02156ecc8675ff9b431baa4b47",
+      "id": "pattern"
+    },
+    {
+      "size": 87,
+      "seed": 4294967295,
+      "h32": 1553083093,
+      "hex128": "5c732d56a5dc658f2e7677ee8d60ed52",
+      "id": "pattern"
+    },
+    {
+      "size": 88,
+      "seed": 4294967295,
+      "h32": 739386044,
+      "hex128": "80b5f3486eabf7878b9b03203bd4c4be",
+      "id": "pattern"
+    },
+    {
+      "size": 89,
+      "seed": 4294967295,
+      "h32": 3151348962,
+      "hex128": "f462484ff3fe6253c77f2dc43cff2e0c",
+      "id": "pattern"
+    },
+    {
+      "size": 90,
+      "seed": 4294967295,
+      "h32": 1550502089,
+      "hex128": "fd086014dacf8dfac409cd45886533f4",
+      "id": "pattern"
+    },
+    {
+      "size": 91,
+      "seed": 4294967295,
+      "h32": 2819080197,
+      "hex128": "8c6693e01ebdac528932ac98600b0b21",
+      "id": "pattern"
+    },
+    {
+      "size": 92,
+      "seed": 4294967295,
+      "h32": 3329555670,
+      "hex128": "6cb6df1955b7ad8a58b0eef55345b4e9",
+      "id": "pattern"
+    },
+    {
+      "size": 93,
+      "seed": 4294967295,
+      "h32": 2107435233,
+      "hex128": "ff76ad7a216df2e944472b4a0ad16b99",
+      "id": "pattern"
+    },
+    {
+      "size": 94,
+      "seed": 4294967295,
+      "h32": 3103934390,
+      "hex128": "f1c569d0ae8764bcfc14567ff3b1a072",
+      "id": "pattern"
+    },
+    {
+      "size": 95,
+      "seed": 4294967295,
+      "h32": 1504798602,
+      "hex128": "214eb55f1010d6d607c3a6f76adc1db8",
+      "id": "pattern"
+    },
+    {
+      "size": 96,
+      "seed": 4294967295,
+      "h32": 3258236551,
+      "hex128": "37e7a458c524e010a1c2f79bc574762f",
+      "id": "pattern"
+    },
+    {
+      "size": 97,
+      "seed": 4294967295,
+      "h32": 2134491901,
+      "hex128": "b5db327439624fda21b5e99caff2cd88",
+      "id": "pattern"
+    },
+    {
+      "size": 98,
+      "seed": 4294967295,
+      "h32": 440205106,
+      "hex128": "e9a4920fbc41441b57eb16ef08de3c00",
+      "id": "pattern"
+    },
+    {
+      "size": 99,
+      "seed": 4294967295,
+      "h32": 380663036,
+      "hex128": "40bbf39622b21c489752789cf51f6c48",
+      "id": "pattern"
+    },
+    {
+      "size": 100,
+      "seed": 4294967295,
+      "h32": 4179499705,
+      "hex128": "64f565ed508826b54c7582171f07cd14",
+      "id": "pattern"
+    },
+    {
+      "size": 101,
+      "seed": 4294967295,
+      "h32": 1153809121,
+      "hex128": "aca3c5b3cd1a34a439f2a87a84be149f",
+      "id": "pattern"
+    },
+    {
+      "size": 102,
+      "seed": 4294967295,
+      "h32": 3545914853,
+      "hex128": "8829b0f1e7655a1ef1a3111e8b8946b2",
+      "id": "pattern"
+    },
+    {
+      "size": 103,
+      "seed": 4294967295,
+      "h32": 4265344223,
+      "hex128": "cd83ca664d0f4a37e6f7f489b0fe62e3",
+      "id": "pattern"
+    },
+    {
+      "size": 104,
+      "seed": 4294967295,
+      "h32": 2805503597,
+      "hex128": "f90f8a091bb419e89b6f7b64f62736fd",
+      "id": "pattern"
+    },
+    {
+      "size": 105,
+      "seed": 4294967295,
+      "h32": 1515147477,
+      "hex128": "9abc147b6dca8277f4420f781ce4fa3e",
+      "id": "pattern"
+    },
+    {
+      "size": 106,
+      "seed": 4294967295,
+      "h32": 2554799934,
+      "hex128": "0d840d272cb1220637a04b6c581519f8",
+      "id": "pattern"
+    },
+    {
+      "size": 107,
+      "seed": 4294967295,
+      "h32": 3342350621,
+      "hex128": "b4cdf1ef3d73cdc550e64544e6824d5b",
+      "id": "pattern"
+    },
+    {
+      "size": 108,
+      "seed": 4294967295,
+      "h32": 537638763,
+      "hex128": "489826c12f396e38675a0aa6cd5ef1cd",
+      "id": "pattern"
+    },
+    {
+      "size": 109,
+      "seed": 4294967295,
+      "h32": 3238225551,
+      "hex128": "93a1785033792e03fea7a2514536ad34",
+      "id": "pattern"
+    },
+    {
+      "size": 110,
+      "seed": 4294967295,
+      "h32": 4111496551,
+      "hex128": "7294246c3cd9eb750e90db9b354d32dc",
+      "id": "pattern"
+    },
+    {
+      "size": 111,
+      "seed": 4294967295,
+      "h32": 1965102463,
+      "hex128": "2742a2f2c3eae2f7ea266a45e3a8e2d3",
+      "id": "pattern"
+    },
+    {
+      "size": 112,
+      "seed": 4294967295,
+      "h32": 3557752510,
+      "hex128": "9247cf3aecb6b8c3e49d85531a84afbe",
+      "id": "pattern"
+    },
+    {
+      "size": 113,
+      "seed": 4294967295,
+      "h32": 3422011220,
+      "hex128": "f5be023b45d10741a4688c55144cc69d",
+      "id": "pattern"
+    },
+    {
+      "size": 114,
+      "seed": 4294967295,
+      "h32": 3986814480,
+      "hex128": "bcc70c5adf668beb19153ce4781a920c",
+      "id": "pattern"
+    },
+    {
+      "size": 115,
+      "seed": 4294967295,
+      "h32": 4243242722,
+      "hex128": "2625af54e53483500ebd160d10820520",
+      "id": "pattern"
+    },
+    {
+      "size": 116,
+      "seed": 4294967295,
+      "h32": 3446419877,
+      "hex128": "1b67cf14c0554f9f7febd9155cd1237d",
+      "id": "pattern"
+    },
+    {
+      "size": 117,
+      "seed": 4294967295,
+      "h32": 2425471822,
+      "hex128": "b06254cde40b9c6d4180c7fa6e7ba55c",
+      "id": "pattern"
+    },
+    {
+      "size": 118,
+      "seed": 4294967295,
+      "h32": 74052285,
+      "hex128": "3c7b2c91777c4e26fcc22fa466060b42",
+      "id": "pattern"
+    },
+    {
+      "size": 119,
+      "seed": 4294967295,
+      "h32": 3258060804,
+      "hex128": "68c567acff3c71bfdddb8ead9f195376",
+      "id": "pattern"
+    },
+    {
+      "size": 120,
+      "seed": 4294967295,
+      "h32": 1226301396,
+      "hex128": "f157782aa2b456d6179d10a758784c70",
+      "id": "pattern"
+    },
+    {
+      "size": 121,
+      "seed": 4294967295,
+      "h32": 3924002774,
+      "hex128": "0426b66a11f99aefeeeb885519fbbb5c",
+      "id": "pattern"
+    },
+    {
+      "size": 122,
+      "seed": 4294967295,
+      "h32": 3006026449,
+      "hex128": "eeee0c4a93a3a8eda2cdfdab74e12f5e",
+      "id": "pattern"
+    },
+    {
+      "size": 123,
+      "seed": 4294967295,
+      "h32": 1558403687,
+      "hex128": "685ae4940a2d132bcf3015505cf7529a",
+      "id": "pattern"
+    },
+    {
+      "size": 124,
+      "seed": 4294967295,
+      "h32": 1672983549,
+      "hex128": "96aa4ca0fd34703caa77bf2a91fb0b62",
+      "id": "pattern"
+    },
+    {
+      "size": 125,
+      "seed": 4294967295,
+      "h32": 692973739,
+      "hex128": "76870da112f4c82429fe1b8c87c66a43",
+      "id": "pattern"
+    },
+    {
+      "size": 126,
+      "seed": 4294967295,
+      "h32": 1934406956,
+      "hex128": "6aa980dece742111e4f96efa7729d089",
+      "id": "pattern"
+    },
+    {
+      "size": 127,
+      "seed": 4294967295,
+      "h32": 1819615925,
+      "hex128": "d972c894ed964d96b144dba9a56cebb6",
+      "id": "pattern"
+    },
+    {
+      "size": 128,
+      "seed": 4294967295,
+      "h32": 2544559531,
+      "hex128": "55c914f88eb755a8fa0d119ddbe42e07",
+      "id": "pattern"
+    },
+    {
+      "size": 255,
+      "seed": 4294967295,
+      "h32": 1147614274,
+      "hex128": "7334948b4ae51dcff91c51185286a04d",
+      "id": "pattern"
+    },
+    {
+      "size": 256,
+      "seed": 4294967295,
+      "h32": 3969335869,
+      "hex128": "436df141ff6a048cacdf1a1eef5c3228",
+      "id": "pattern"
+    },
+    {
+      "size": 257,
+      "seed": 4294967295,
+      "h32": 3194578095,
+      "hex128": "9e61749ecd84e50e30fa10631db7c71d",
+      "id": "pattern"
+    },
+    {
+      "size": 511,
+      "seed": 4294967295,
+      "h32": 1715842373,
+      "hex128": "b1913095b9e87c228f75d06def8d6caf",
+      "id": "pattern"
+    },
+    {
+      "size": 512,
+      "seed": 4294967295,
+      "h32": 2123862191,
+      "hex128": "c2dc46616ed734910596f0dad6b24aa4",
+      "id": "pattern"
+    },
+    {
+      "size": 513,
+      "seed": 4294967295,
+      "h32": 301984190,
+      "hex128": "4b01034fd1a21f1baa0d3cd11f784e29",
+      "id": "pattern"
+    },
+    {
+      "size": 1023,
+      "seed": 4294967295,
+      "h32": 2266119675,
+      "hex128": "5c73a5a0c3308ab6839d8d55ccdccb8a",
+      "id": "pattern"
+    },
+    {
+      "size": 1024,
+      "seed": 4294967295,
+      "h32": 2258240971,
+      "hex128": "2234d85621bc4970fc22c71e45d18bf8",
+      "id": "pattern"
+    },
+    {
+      "size": 1025,
+      "seed": 4294967295,
+      "h32": 382583793,
+      "hex128": "7ece284de63b241157d7f4e3e29bfc29",
+      "id": "pattern"
+    },
+    {
+      "size": 4095,
+      "seed": 4294967295,
+      "h32": 3784092644,
+      "hex128": "dfd7feee97ce0803005b8d1d87453f85",
+      "id": "pattern"
+    },
+    {
+      "size": 4096,
+      "seed": 4294967295,
+      "h32": 1920249986,
+      "hex128": "0ba0bbee7a7f1c27c275c094309bc423",
+      "id": "pattern"
+    },
+    {
+      "size": 4097,
+      "seed": 4294967295,
+      "h32": 3556796351,
+      "hex128": "cc0e33c0d82c4f407944b9bb52922802",
+      "id": "pattern"
+    },
+    {
+      "size": 65535,
+      "seed": 4294967295,
+      "h32": 3089300539,
+      "hex128": "7704929e30adf77672f927b5e2d3dad6",
+      "id": "pattern"
+    },
+    {
+      "size": 65536,
+      "seed": 4294967295,
+      "h32": 3974720778,
+      "hex128": "c0329a523f3b08fd72680db6b64cd90f",
+      "id": "pattern"
+    },
+    {
+      "size": 65537,
+      "seed": 4294967295,
+      "h32": 3960385148,
+      "hex128": "fe0dec6300bd2a9edff7a764fc57ae57",
+      "id": "pattern"
+    }
+  ],
+  "fixed": [
+    {
+      "size": 0,
+      "seed": 0,
+      "h32": 0,
+      "hex128": "00000000000000000000000000000000",
+      "id": "empty"
+    },
+    {
+      "size": 3,
+      "seed": 0,
+      "h32": 3017643002,
+      "hex128": "6778ad3f3f3f96b4522dca264174a23b",
+      "id": "abc"
+    },
+    {
+      "size": 3,
+      "seed": 0,
+      "h32": 4138058784,
+      "hex128": "6145f501578671e2877dba2be487af7e",
+      "id": "foo"
+    },
+    {
+      "size": 13,
+      "seed": 0,
+      "h32": 860641026,
+      "hex128": "c9d0f49f430181d18ae93978fc73cec5",
+      "id": "utf8"
+    },
+    {
+      "size": 9,
+      "seed": 0,
+      "h32": 3036607362,
+      "hex128": "a4cc66db5e64843c05a11e3ac7faf899",
+      "id": "digits"
+    },
+    {
+      "size": 0,
+      "seed": 1,
+      "h32": 1364076727,
+      "hex128": "b55cff6ee5ab10468335f878aa2d6251",
+      "id": "empty"
+    },
+    {
+      "size": 3,
+      "seed": 1,
+      "h32": 2859854335,
+      "hex128": "f0618a9a4ebe889c6c251bf38bc812ca",
+      "id": "abc"
+    },
+    {
+      "size": 3,
+      "seed": 1,
+      "h32": 884891506,
+      "hex128": "532079698ccea5716b33c2fa4e18189d",
+      "id": "foo"
+    },
+    {
+      "size": 13,
+      "seed": 1,
+      "h32": 705628204,
+      "hex128": "43513484793cba4077e44b3942b4f45b",
+      "id": "utf8"
+    },
+    {
+      "size": 9,
+      "seed": 1,
+      "h32": 1422972671,
+      "hex128": "0be814e11f766bf1169f1246e26a5fbe",
+      "id": "digits"
+    },
+    {
+      "size": 0,
+      "seed": 42,
+      "h32": 142593372,
+      "hex128": "23851bfa7da72af0b9cb11da106601d1",
+      "id": "empty"
+    },
+    {
+      "size": 3,
+      "seed": 42,
+      "h32": 1313807976,
+      "hex128": "d6f7cfb39f08850d303d35422b711075",
+      "id": "abc"
+    },
+    {
+      "size": 3,
+      "seed": 42,
+      "h32": 2972666014,
+      "hex128": "f2537063519d56f4a99ab0eed8b579a2",
+      "id": "foo"
+    },
+    {
+      "size": 13,
+      "seed": 42,
+      "h32": 27169981,
+      "hex128": "e5c9c9302d1afc0b7248dcda8d95379b",
+      "id": "utf8"
+    },
+    {
+      "size": 9,
+      "seed": 42,
+      "h32": 3059026825,
+      "hex128": "d91c7e2ab66d52113fcca17c019c9a68",
+      "id": "digits"
+    },
+    {
+      "size": 0,
+      "seed": 4294967295,
+      "h32": 2180083513,
+      "hex128": "ecc93b9d4ddff16a6b44e61e12217485",
+      "id": "empty"
+    },
+    {
+      "size": 3,
+      "seed": 4294967295,
+      "h32": 4236296879,
+      "hex128": "180f268085792d5a89376cd3330ef15b",
+      "id": "abc"
+    },
+    {
+      "size": 3,
+      "seed": 4294967295,
+      "h32": 1844504349,
+      "hex128": "84accc201e726e8c45b0da98e2f7568e",
+      "id": "foo"
+    },
+    {
+      "size": 13,
+      "seed": 4294967295,
+      "h32": 3937299950,
+      "hex128": "2d821e98158b94f244077cf944a63a6f",
+      "id": "utf8"
+    },
+    {
+      "size": 9,
+      "seed": 4294967295,
+      "h32": 898914019,
+      "hex128": "84bf5e1a82f91e956dc72393f1f0bc79",
+      "id": "digits"
+    }
+  ],
+  "oracle": {
+    "repository": "https://github.com/aappleby/smhasher",
+    "commit": "07bb4de10a63e8cc2e1724865454eba635742383",
+    "sourceSha256": "30F121ED155EBF336AF398AABB7D8D157AFDFAFC8D981E7B48D2A1CEB4B63E4E",
+    "headerSha256": "9AF2003E3885C841FA0AC08CB5D5F31541EE9D793F8A9C4A4F771F43FB0D6F41",
+    "generatorSha256": "6D1945DA6DADE3ECD3F22BFFA26C8203CFD9C1FFBE3E9C2EE4DADD52670F25EA",
+    "platform": "Windows x86_64 little-endian",
+    "command": "g++ -std=c++11 -O2 -fno-strict-aliasing -Ibuild/test/murmur3_oracle release/extlibs/murmur3/test/generate_vectors.cpp build/test/murmur3_oracle/MurmurHash3.cpp -o build/test/murmur3_oracle/generate.exe"
+  }
+}

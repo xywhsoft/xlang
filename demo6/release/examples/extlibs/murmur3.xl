@@ -1,45 +1,57 @@
 import murmur3
 
-// MurmurHash3 高性能非加密哈希（32/128 位），适合哈希表、布隆过滤器。
+class Progress
+    int calls = 0
+end
 
-string sample = "hello xlang"
+// 文件示例会创建自己的测试目录，结束时清理文件；与 examples/files.c 输出一致。
+func main(...) as int
+    string root = "build/test/murmur3-example"
+    dir.createAll(root)
+    string source = root + "/中文.txt"
+    file.writeText(source, "abc")
+    try
+        Progress state = Progress()
+        string digest = murmur3.hashFile128Hex(source, seed = 42,
+            onProgress = func(int current, int total, int output) as bool
+                assert current == 3 and total == 3 and output == 0
+                state.calls += 1
+                return true
+            end)
+        println("file128=" + digest)
+        println("callbacks=" + string(state.calls))
+        println("file32=" + string(murmur3.hashFile32(source, seed = 42)))
 
-// 32 位哈希（整数 + hex）
-int h32 = murmur3.hash32(sample)
-println("MurmurHash3-32: " + string(h32))
-println("MurmurHash3-32 hex: " + murmur3.hash32Hex(sample))
-
-// 带 seed
-println("MurmurHash3-32 (seed=42): " + murmur3.hash32Hex(sample, 42))
-
-// 128 位哈希
-println("MurmurHash3-128: " + murmur3.hash128Hex(sample))
-println("MurmurHash3-128 (seed=42): " + murmur3.hash128Hex(sample, 42))
-
-// 流式哈希器（128 位变体）
-auto hasher = murmur3.hasher()
-hasher.update("hello ")
-hasher.update("xlang")
-assert hasher.digestHex() == murmur3.hash128Hex(sample), "murmur3 streaming mismatch"
-println("streaming inputBytes: " + string(hasher.inputBytes))
-
-// reset 复位
-hasher.reset()
-hasher.update(sample)
-assert hasher.digestHex() == murmur3.hash128Hex(sample), "murmur3 reset mismatch"
-
-// clone 独立副本
-auto h1 = murmur3.hasher()
-h1.update("hello")
-auto h2 = h1.clone()
-h1.update(" xlang")
-h2.update(" world")
-println("clone h1: " + h1.digestHex())
-println("clone h2: " + h2.digestHex())
-
-// 文件哈希
-dir.createAll("examples_out/extlibs")
-file.writeText("examples_out/extlibs/murmur3_sample.txt", sample)
-assert murmur3.hashFile128Hex("examples_out/extlibs/murmur3_sample.txt") == murmur3.hash128Hex(sample), "murmur3 file mismatch"
-
-println("murmur3 extlib ok")
+        // 返回 false 取消，抛出异常保留类别与说明，不交付部分摘要。
+        bool cancelled = false
+        try
+            murmur3.hashFile128Hex(source,
+                onProgress = func(int current, int total, int output) as bool
+                    return false
+                end)
+        catch CancelledError e
+            cancelled = true
+        end
+        println("cancelled=" + string(cancelled))
+        bool callbackError = false
+        try
+            murmur3.hashFile128Hex(source,
+                onProgress = func(int current, int total, int output) as bool
+                    throw ValueError "callback marker"
+                end)
+        catch ValueError e
+            callbackError = e.message == "callback marker"
+        end
+        println("callback-error=" + string(callbackError))
+        bool exceeded = false
+        try
+            murmur3.hashFile128Hex(source, maxInput = 2)
+        catch RangeError e
+            exceeded = true
+        end
+        println("budget=" + string(exceeded))
+    finally
+        file.delete(source)
+    end
+    return 0
+end
