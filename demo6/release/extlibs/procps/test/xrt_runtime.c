@@ -1,0 +1,7 @@
+/* 本包独立 C 测试所需的 XRT 实现。 */
+#define XRT_MODULE_VALUE_CONTAINER
+#define XRT_MODULE_FILE_WHOLE
+#define XRT_MODULE_UNICODE
+#define XRT_MODULE_NUMBER_INTEGER
+#define XRT_IMPLEMENTATION
+#include "xrt.h"

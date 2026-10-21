@@ -1,0 +1,29 @@
+import procps
+
+int selfId = procps.pid()
+assert selfId > 0
+assert procps.ppid() > 0
+assert procps.exists(selfId)
+assert not procps.exists(0)
+assert not procps.exists(-1)
+assert not procps.exists(9223372036854775807)
+assert procps.name(selfId) != ""
+assert procps.memKb(selfId) > 0
+assert procps.memKb(-1) == -1
+
+array<int> ids = procps.pids()
+bool found = false
+for processId in ids
+    if processId == selfId then found = true end
+end
+assert found
+assert procps.count() > 0
+
+int failures = 0
+try
+    procps.name(-1)
+catch ValueError error
+    failures += 1
+end
+assert failures == 1
+println("procps boundaries: PASS")

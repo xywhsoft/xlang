@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>procps - 扩展库 - xlang</title>
+  <meta name="description" content="procps 提供 Windows/Linux 进程枚举、名称与常驻内存查询。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / procps</p><h1>procps</h1>
+    <p class="extlib-lead">完整进程快照、UTF-8 名称与常驻内存查询。</p>
+    <p>Windows/Linux C、Linux sanitizer、中央及包内 XLang JIT 边界与双语范例固定输出对照已通过；C 教学范例也可直接单文件运行。进程快照接口为返回数组的 <code>pids()</code>，不保留旧字符串接口。XL AOT 仍受共享主线符号缺失阻断。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>pid / ppid / exists</code></td><td>当前进程、父进程与存在性</td></tr>
+      <tr><td><code>pids / count</code></td><td>系统进程快照与数量；相邻调用可能不同</td></tr>
+      <tr><td><code>name</code></td><td>UTF-8 可执行文件名</td></tr>
+      <tr><td><code>memKb</code></td><td>RSS/Working Set，单位 KiB；不可读取或数据畸形时返回 -1</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import procps
+int selfId = procps.pid()
+array&lt;int&gt; ids = procps.pids()
+println(procps.name(selfId))</code></pre>
+    <h2 id="c-api">C 与范围</h2>
+    <p>头文件 <code>include/procps_native.h</code>。C 调用方释放 <code>xprocps_pids</code> 返回的 XRT 值和 <code>xprocps_name</code> 返回的字符串。Linux 进程名含非法 UTF-8 时拒绝返回，XLang 抛 <code>ValueError</code>，C 返回 <code>NULL</code> 并设置 <code>XERR_VALUE</code>。Linux 的 <code>statm</code> 前两列必须是完整的非负整数，畸形数据按不可读取返回 -1，不静默接受有效前缀。公开 C 入口先清理旧 XRT 错误。目标进程可能退出或拒绝访问；接口不保证跨调用快照一致。详情与验证命令见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>

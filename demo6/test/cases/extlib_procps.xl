@@ -25,9 +25,13 @@ func main(...) as int
     auto cnt = procps.count()
     assert cnt >= 1, "at least 1 process"
 
-    // List PIDs
-    auto pids = procps.listPids()
-    assert string.len(pids) > 0, "pids non-empty"
+    // 快照以整数数组返回，并包含当前进程。
+    array<int> ids = procps.pids()
+    bool found = false
+    for processId in ids
+        if processId == mypid then found = true end
+    end
+    assert found, "self in pid snapshot"
 
     return 0
 end

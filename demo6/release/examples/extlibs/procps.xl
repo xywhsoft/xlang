@@ -1,14 +1,13 @@
 import procps
 
-
-
-func main(...) as int
-    println("PID: ", procps.pid())
-    println("PPID: ", procps.ppid())
-    println("Name: ", procps.name(procps.pid()))
-    println("Process count: ", procps.count())
-    println("Self exists: ", procps.exists(procps.pid()))
-
-    println("procps example: PASS")
-    return 0
+int selfId = procps.pid()
+array<int> ids = procps.pids()
+bool found = false
+for processId in ids
+    if processId == selfId then found = true end
 end
+
+println("self exists: " + string(procps.exists(selfId)))
+println("name known: " + string(procps.name(selfId) != ""))
+println("self listed: " + string(found))
+println("rss positive: " + string(procps.memKb(selfId) > 0))
