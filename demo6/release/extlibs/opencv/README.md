@@ -24,9 +24,17 @@ XLang 读图与写图入口拒绝含 NUL 的路径，避免 C 字符串只处理
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/opencv/test/check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/opencv/test/check.ps1 -SkipAot
 ```
 
-门禁执行严格 GCC 编译、C/XLang 范例同输出、缺图与无效尺寸负例、所有权释放、中文 UTF-8 路径读图、显式 DLL 路径正例、残缺桥接 DLL 拒绝及无输出 AOT 调用。开发期间可加 `-SkipAot` 跳过最后一项。测试图像和残缺 DLL 源码在包内；门禁每次在 `build/test` 下使用独占目录，结束时清理，不触碰旧的固定目录。Linux 可运行 `sh release/extlibs/opencv/test/check.sh` 做严格语法检查；当前仓库只有 Windows 版桥接 DLL，Linux 检查不宣称能运行图像后端。
+门禁执行严格 GCC 编译、C/XLang 范例同输出、缺图与无效尺寸负例、
+所有权释放、中文 UTF-8 路径读图、显式 DLL 路径正例及残缺桥接 DLL
+拒绝。默认模式还验证 C 直接构建、无输出核心 AOT，以及完整 XLang
+图像信息范例 AOT 与 C 同输出；`-SkipAot` 只做 C/JIT 聚焦检查。
+测试图像和残缺 DLL 源码在包内；门禁每次在 `build/test` 下使用独占
+目录，结束时清理，不触碰旧的固定目录。Linux 可运行
+`sh release/extlibs/opencv/test/check.sh` 做严格语法检查；当前仓库
+只有 Windows 版桥接 DLL，Linux 检查不宣称能运行图像后端。
 
 `release/extlibs/rapidocr/test/check.ps1 -SkipAot -Stress` 另用 C 16 线程和 XLang 双线程冷探针同时覆盖 OpenCV 与 ONNX Runtime 的首次装载。当前机器均通过。桥接源码、完整图像操作矩阵、跨平台二进制和长时并发由插件独立维护，不纳入普通扩展库调用验收。
 
@@ -51,3 +59,10 @@ BOM UTF-8；PowerShell 5.1 按系统代码页误读，使中文路径用例失�
 各运行成功一次；Windows `-SkipAot` 的严格 GCC、C/XLang 双语调用、
 UTF-8 路径和残缺桥接拒绝门禁通过。仍只验公开调用层，不宣称桥接源码
 可复现构建或完整带输出 AOT 已通过。
+
+2026-10-22：默认门禁原在无输出核心 AOT 后报告全绿，未构建公开图像
+信息范例。现默认继续构建/运行该范例并与同次 C 输出对照；`-SkipAot`
+跳过全部 AOT 路径。聚焦门禁通过，默认门禁的 C 直接构建、核心 AOT、
+UTF-8 路径和残缺 DLL 检查通过后，完整范例构建在共享主线符号
+`xl6ValueDataSnapshotV1` 处准确失败。脚本 UTF-8 BOM 保持不变，本次
+独占目录在失败后清理；不签收完整 AOT 或桥接插件内部实现。

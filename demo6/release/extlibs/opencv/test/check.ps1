@@ -40,11 +40,14 @@ try {
         $wrapper, $runtime) + $links + @('-o', $example))
     $cOutput = Run 'C example' $example @()
     $directOutput = Run 'C example direct JIT' $xl @('run', 'extlibs/opencv/examples/image_info_c.c')
-    $directExe = Join-Path $work 'image_info_direct.exe'
-    $null = Run 'C example direct build' $xl @('build', 'extlibs/opencv/examples/image_info_c.c', '-o', $directExe)
-    $directAot = Run 'C example direct executable' $directExe @()
+    if (!$SkipAot) {
+        $directExe = Join-Path $work 'image_info_direct.exe'
+        $null = Run 'C example direct build' $xl @('build', 'extlibs/opencv/examples/image_info_c.c', '-o', $directExe)
+        $directAot = Run 'C example direct executable' $directExe @()
+        if ($cOutput -cne $directAot) { throw 'C direct executable image results differ' }
+    }
     $xlOutput = Run 'XLang example' $xl @('run', 'extlibs/opencv/examples/image_info.xl')
-    if ($cOutput -cne $xlOutput -or $cOutput -cne $directOutput -or $cOutput -cne $directAot) {
+    if ($cOutput -cne $xlOutput -or $cOutput -cne $directOutput) {
         throw 'C/XLang image results differ'
     }
 
@@ -95,6 +98,13 @@ try {
         }
     } finally {
         $env:OPENCV_XLANG_DLL = $previousShim
+    }
+    if (!$SkipAot) {
+        $exampleAot = Join-Path $work 'image_info_xl.exe'
+        $null = Run 'XLang example AOT build' $xl @('build',
+            'extlibs/opencv/examples/image_info.xl', '-o', $exampleAot)
+        $aotOutput = Run 'XLang example AOT' $exampleAot @()
+        if ($cOutput -cne $aotOutput) { throw 'XLang AOT image results differ' }
     }
 } finally {
     Pop-Location
