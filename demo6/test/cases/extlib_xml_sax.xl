@@ -39,17 +39,17 @@ func main(...) as int
         auto broken = xml.sax.reader("<root><child></root>")
         for event in broken
         end
-    catch XmlError e
+    catch ValueError e
         malformed = true
     end
-    assert malformed and xml.sax.errorCode() != 0, "malformed XML must throw XmlError"
+    assert malformed and xml.sax.errorCode() != 0, "malformed XML must throw ValueError"
 
     bool dtdRejected = false
     try
         auto unsafe = xml.sax.reader("<!DOCTYPE root [<!ENTITY x \"boom\">]><root>&x;</root>")
         for event in unsafe
         end
-    catch XmlError e
+    catch ValueError e
         dtdRejected = true
     end
     assert dtdRejected, "DTD must be rejected by default"
