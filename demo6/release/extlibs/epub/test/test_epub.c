@@ -188,6 +188,17 @@ int main(int argc, char **argv) {
     CHECK(put(meta, "modified", "2026-99-99T00:00:00Z"));
     CHECK(xep_build(path, meta, chapters) == 0);
     xrtClearError();
+    CHECK(put(meta, "modified", "2024-02-30T00:00:00Z"));
+    CHECK(xep_build(path, meta, chapters) == 0);
+    xrtClearError();
+    entry = xep_read_entry(path, "OEBPS/content.opf");
+    CHECK(entry != NULL && strstr(entry, "2026-08-01T00:00:00Z") != NULL);
+    xrtFree(entry);
+    CHECK(put(meta, "modified", "2024-02-29T00:00:00Z"));
+    CHECK(xep_build(path, meta, chapters) > 0);
+    entry = xep_read_entry(path, "OEBPS/content.opf");
+    CHECK(entry != NULL && strstr(entry, "2024-02-29T00:00:00Z") != NULL);
+    xrtFree(entry);
     CHECK(put(meta, "modified", "2026-08-01T00:00:00Z"));
     CHECK(put(meta, "title", "bad \xef\xbf\xbe title"));
     CHECK(xep_build(path, meta, chapters) == 0);

@@ -37,6 +37,20 @@ func main(...) as int
         caught += 1
     end
     try
+        epub.build(target, {"title": "不存在的日期", "language": "zh",
+            "identifier": "urn:xlang:test:invalid-day",
+            "modified": "2024-02-30T00:00:00Z"}, chapters)
+    catch e
+        caught += 1
+    end
+    assert epub.readEntry(target, "OEBPS/content.opf").contains("2026-08-01T00:00:00Z")
+    var leapMeta = {"title": "闰日", "language": "zh",
+        "identifier": "urn:xlang:test:leap-day",
+        "modified": "2024-02-29T00:00:00Z"}
+    assert epub.build(target, leapMeta, chapters) > 0
+    assert epub.readEntry(target, "OEBPS/content.opf").contains("2024-02-29T00:00:00Z")
+    assert epub.build(target, meta, chapters) > 0
+    try
         epub.build(target, meta, [])
     catch e
         caught += 1
@@ -52,7 +66,7 @@ func main(...) as int
     catch e
         caught += 1
     end
-    assert caught == 5
+    assert caught == 6
     assert epub.readEntry(target, "OEBPS/ch1.xhtml") == chapter
     file.delete(target)
     println("epub boundaries: PASS")

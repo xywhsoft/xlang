@@ -31,7 +31,7 @@ var meta = {"title": "xlang 电子书", "language": "zh-CN",
             "identifier": "urn:xlang:example:epub"}
 var chapters = [{"title": "第一章", "text": "# 开始\n\n你好，xlang。"}]
 epub.build("book.epub", meta, chapters)</code></pre>
-    <p>适合纯文本手册；不解析完整 Markdown，也不打包图片、CSS 或字体。缺省修改时间需要有效系统时钟；时钟失败时构建报错且不写目标文件。生成和读取上限均为 8 MiB，读取超限时报范围错误；元数据与章节文本按 XML 1.0 字符范围校验，元数据、章节标题及语言属性中的 Tab/LF/CR 使用字符引用保留原值，章节正文仍按分段规则处理；路径和条目名中的内嵌 NUL 会被拒绝。C 构建结果使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。C 教学范例可直接使用 <code>xl run release/extlibs/epub/examples/basic.c</code>；Linux 门禁核对它与 GCC 分离编译生成的 EPUB 字节一致。Windows/Linux 门禁均检查 C/XLang 边界、双语同字节 EPUB，并用 Python 标准库验证 ZIP CRC、容器、manifest、spine 和 XHTML；Linux 另有时钟故障注入及 C ASan/UBSan。固定范例检查不替代全面 EPUBCheck 认证；完整 AOT 仍待主线缺符号修复。C 接口及验收范围见包内 README。</p>
+    <p>适合纯文本手册；不解析完整 Markdown，也不打包图片、CSS 或字体。缺省修改时间需要有效系统时钟；时钟失败时构建报错且不写目标文件。显式修改时间按真实日历校验，非法日期不会覆盖已有文件；C/XLang 回归包含闰日正例和 2 月 30 日负例。生成和读取上限均为 8 MiB，读取超限时报范围错误；元数据与章节文本按 XML 1.0 字符范围校验，元数据、章节标题及语言属性中的 Tab/LF/CR 使用字符引用保留原值，章节正文仍按分段规则处理；路径和条目名中的内嵌 NUL 会被拒绝。C 构建结果使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。C 教学范例可直接使用 <code>xl run release/extlibs/epub/examples/basic.c</code>；Linux 门禁核对它与 GCC 分离编译生成的 EPUB 字节一致。Windows/Linux 门禁均检查 C/XLang 边界、双语同字节 EPUB，并用 Python 标准库验证 ZIP CRC、容器、manifest、spine 和 XHTML；Linux 另有时钟故障注入及 C ASan/UBSan。固定范例检查不替代全面 EPUBCheck 认证；完整 AOT 仍待主线缺符号修复。C 接口及验收范围见包内 README。</p>
   </section>
 </main>
 </body>

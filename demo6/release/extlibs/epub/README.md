@@ -17,6 +17,9 @@ int bytes = epub.build("book.epub", meta, chapters)
 
 `meta` 必须有非空 `title`、`language`、`identifier`；`author` 可选。`identifier` 应由作者为每部出版物提供稳定且唯一的值，不再使用固定默认 ID。`modified` 可选，默认当前 UTC 时间；显式指定时必须是有效的 `YYYY-MM-DDThh:mm:ssZ`。章节数组为 1 到 100 项，每项必须有非空 `title`，`text` 可为空。行首 `# ` / `## ` 转成一、二级标题，空行分段；其他文本按纯文本处理并进行 XML 转义，不解析完整 Markdown。
 
+`modified` 会按真实日历校验：闰年的 `2024-02-29T00:00:00Z` 有效，
+`2024-02-30T00:00:00Z` 无效；非法日期不会覆盖已有目标文件。
+
 未指定 `modified` 且系统时钟读取失败时，构建会失败并保留 XRT 的 I/O 错误，不会把失败时的零时间戳写成 1970 年，也不会创建或替换目标文件。显式提供 `modified` 不依赖系统时钟。
 
 `build` 返回生成文件字节数，失败抛异常；文件经 XRT 原子写入，失败不会先截断已有目标。输入字符串要求有效 UTF-8、无内嵌 NUL，生成的 ZIP 最大 8 MiB；不静默截断长行。XLang 接口在传入 C 前检查 `build` 的路径，以及 `readEntry` 的路径和条目名，拒绝内嵌 NUL，避免意外访问截断后的前缀路径或条目。`readEntry(path, name)` 仅用于读取本库生成的 **stored 文本条目**，返回独立字符串，找不到返回空串；损坏归档或不支持的压缩方式报错，不把它当成任意 EPUB 的通用读取器。C 接口见 `include/epub_native.h`，读取结果由调用方 `xrtFree`。
