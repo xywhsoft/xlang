@@ -95,7 +95,7 @@ int main(void)
     second=xlsSemanticCheckCreate(absolute,NULL,0,1,NULL,NULL,error,sizeof(error));
     CHECK(second && xlsSemanticCheckInfo(second).accepted && xlsSemanticCheckValidate(second));
     CHECK(xrtFileWriteAtomic(absolute,(xbytesview){(const unsigned char*)good,strlen(good)}));
-    CHECK(!xlsSemanticCheckValidate(second) && !xlsSemanticCheckInfo(second).accepted && !xlsSemanticCheckIndex(second) && !xlsSemanticCheckJson(second,NULL));
+    CHECK(!xlsSemanticCheckValidate(second) && !xlsSemanticCheckInfo(second).accepted && !xlsSemanticCheckTypedIndex(second) && !xlsSemanticCheckIndex(second) && !xlsSemanticCheckJson(second,NULL) && !xlsSemanticCheckReportJson(second,NULL));
     CHECK(!xlsSemanticCheckValidate(second));
     xlsSemanticCheckDestroy(second); xlsSemanticCheckDestroy(first);
     xrtFree(absolute); xrtFree(disk); xrtFree(path); xrtFree(dep);
