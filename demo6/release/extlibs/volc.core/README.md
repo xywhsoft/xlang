@@ -12,6 +12,8 @@ string preview = volc.core.sign_preview_acep(
 
 `extra_pairs` 是逐行 `key=value` 文本，规范化时按键和值排序并对 UTF-8 字节做百分号编码。`x_date` 为空时使用 XRT 当前 UTC 时间；显式指定时必须是有效的 `YYYYMMDDTHHMMSSZ`，无效日期直接报错，不静默改用当前时间。预览返回含 `query`、`x_date`、`x_content_sha256`、`signed_headers`、`authorization` 的 JSON 字符串，不发网络请求。预览中的凭据只应使用测试值；真实授权头不应写入日志。
 
+直接拼入规范请求或授权头的方法、主机、路径、服务、区域、访问密钥 ID、会话令牌和内容类型不能包含 ASCII 控制字符（含 CR/LF、TAB 和 DEL）；签名前会报 `invalid signed field`。请求体仍可包含换行，查询值由百分号编码路径处理。此校验不代替真实服务的凭据和请求参数验证。
+
 ## C 接口
 
 声明见 `include/volc_core_native.h`。返回的 `const char*` 由包持有，调用方不得释放；需要跨线程或长期保存时应立即复制。返回槽及 `last_error`/`last_status` 使用 XRT 原生线程局部键，线程退出时清理；不同线程的诊断与返回缓存不会互相覆盖。**这只是离线签名层的线程隔离验证，不是在线客户端的并发认证。**在线 `request*` 会创建并销毁一个 XRT 网络引擎及 HTTP 客户端，尚未验收连接复用、并发和真实服务行为。
@@ -41,3 +43,5 @@ C 边界与离线范例均通过。XLang 导入链仍在 `xhttp.multipart` 的
 `Buffer.appendBytes` 处失败，不据此签收双语或在线路径。
 
 同轮横查发现四个在线/STS 入口的 `timeout_ms`、`duration_seconds` 在 C 侧也是 `int`，XLang extern 原来直接接收 64 位 `int`。现在公开函数保持原签名，传入 C 前检查 `[-2147483648, 2147483647]` 并转换为 `c_int`；超出范围抛 `RangeError`，不会静默截断。`xl parse` 通过，但完整 `xl check` 仍先被上述导入链阻断，恢复后须补 XLang 正常值、上下界和越界调用回归，并验收真实请求路径。
+
+2026-10-22：通用签名入口拒绝上述签名字段中的控制字符，防止改变规范请求行结构或授权头；C 离线测试覆盖八个字段的 CR/LF、主机 TAB/DEL，以及含换行请求体的成功恢复。Windows 严格 GCC 和 Linux ASan/UBSan 离线门禁通过；XLang 与在线路径仍未验收。

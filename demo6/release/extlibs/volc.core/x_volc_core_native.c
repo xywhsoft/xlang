@@ -542,6 +542,16 @@ static int xvolc_utc_now(char x_date[17], char date_stamp[9])
 	return 1;
 }
 
+static int xvolc_signed_field_valid(const char* text)
+{
+	const unsigned char* p = (const unsigned char*)(text ? text : "");
+	while ( *p != 0u ) {
+		if ( *p < 0x20u || *p == 0x7fu ) return 0;
+		++p;
+	}
+	return 1;
+}
+
 static int xvolc_sign(const char* method,
 	const char* host,
 	const char* path,
@@ -586,6 +596,14 @@ static int xvolc_sign(const char* method,
 	xvolc_buf_init(&auth);
 	if ( p_access_key[0] == '\0' || p_secret_key[0] == '\0' || host == NULL || host[0] == '\0' ) {
 		xvolc_set_error("missing host/access_key/secret_key");
+		return 0;
+	}
+	/* 这些值直接进入签名行或 HTTP 头；请求体和查询值由各自的编码路径处理。 */
+	if ( !xvolc_signed_field_valid(p_method) || !xvolc_signed_field_valid(host) ||
+		!xvolc_signed_field_valid(p_path) || !xvolc_signed_field_valid(p_service) ||
+		!xvolc_signed_field_valid(p_region) || !xvolc_signed_field_valid(p_access_key) ||
+		!xvolc_signed_field_valid(session_token) || !xvolc_signed_field_valid(p_content_type) ) {
+		xvolc_set_error("invalid signed field");
 		return 0;
 	}
 	if ( x_date_arg != NULL && x_date_arg[0] != '\0' ) {

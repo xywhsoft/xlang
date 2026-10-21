@@ -13,6 +13,7 @@
 static void test_pair_allocation_failure(void);
 static void test_thread_isolation(void);
 static void test_buffer_bounds(void);
+static void test_signed_fields(void);
 
 static int fail(const char* message)
 {
@@ -55,12 +56,48 @@ int main(void)
     }
     test_pair_allocation_failure();
     test_buffer_bounds();
+    test_signed_fields();
     test_thread_isolation();
     puts("volc.core C smoke: PASS");
     return 0;
 }
 
 #include "../x_volc_core_native.c"
+
+/* 控制字符不能改变规范请求的行结构或授权头。 */
+static void test_signed_fields(void)
+{
+    const char* fields[] = {
+        "POST", "open.volcengineapi.com", "/", "ACEP", "cn-north-1",
+        "AKID", "token", "application/json"
+    };
+    size_t i;
+    for (i = 0u; i < sizeof(fields) / sizeof(fields[0]); ++i) {
+        const char* original = fields[i];
+        const char* preview;
+        fields[i] = "bad\r\nheader";
+        preview = x_volc_core_sign_preview(fields[0], fields[1], fields[2],
+            fields[3], fields[4], "ListApps", "2020-01-01", fields[5],
+            "SECRET", fields[6], fields[7], "", "{}", "20240102T030405Z");
+        assert(strcmp(preview, "") == 0);
+        assert(strcmp(x_volc_core_last_error(), "invalid signed field") == 0);
+        fields[i] = original;
+    }
+    fields[1] = "bad\thost";
+    assert(strcmp(x_volc_core_sign_preview(fields[0], fields[1], fields[2],
+        fields[3], fields[4], "ListApps", "2020-01-01", fields[5],
+        "SECRET", fields[6], fields[7], "", "{}", "20240102T030405Z"), "") == 0);
+    fields[1] = "bad\x7f";
+    assert(strcmp(x_volc_core_sign_preview(fields[0], fields[1], fields[2],
+        fields[3], fields[4], "ListApps", "2020-01-01", fields[5],
+        "SECRET", fields[6], fields[7], "", "{}", "20240102T030405Z"), "") == 0);
+    fields[1] = "open.volcengineapi.com";
+    assert(strstr(x_volc_core_sign_preview(fields[0], fields[1], fields[2],
+        fields[3], fields[4], "ListApps", "2020-01-01", fields[5],
+        "SECRET", fields[6], fields[7], "", "line\nbody", "20240102T030405Z"),
+        "authorization") != NULL);
+    assert(x_volc_core_last_error()[0] == '\0');
+}
 
 /* 正常扩容保留内容，极限长度必须在计算容量前拒绝。 */
 static void test_buffer_bounds(void)
