@@ -754,7 +754,7 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_ownership_domain_tcp_dial_options.c",D(R(OWNERSHIP_CATALOG),R(TCP_DIAL_OPTIONS)),{NULL}},
     {"src/runtime/xl6_ownership_domain_tcp_listen_options.c",D(R(OWNERSHIP_CATALOG),R(TCP_LISTEN_OPTIONS)),{NULL}},
     {"src/runtime/xl6_ownership_domain_net_buffer_native.c",D(R(OWNERSHIP_CATALOG)),{"XRT_MODULE_NET_BUFFER"}},
-    {"src/runtime/xl6_ownership_domain_net_tcp_native.c",D(R(OWNERSHIP_CATALOG),R(OWNERSHIP_DOMAIN_NET_ENGINE_NATIVE),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE)),{"XRT_MODULE_NET_TCP_FUTURE"}},
+    {"src/runtime/xl6_ownership_domain_net_tcp_native.c",D(R(OWNERSHIP_CATALOG),R(OWNERSHIP_DOMAIN_NET_TCP_BASE_NATIVE),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE)),{"XRT_MODULE_NET_TCP_FUTURE"}},
     {"src/runtime/xl6_execution_tcp.c",D(R(EXECUTION_SOURCE),R(EXECUTION_NET_ENGINE),R(OWNERSHIP_DOMAIN_NET_TCP_NATIVE)),{"XRT_MODULE_NET_TCP"}},
     {"src/runtime/xl6_ownership_domain_execution_tcp.c",D(R(OWNERSHIP_CATALOG),R(EXECUTION_TCP),R(OWNERSHIP_DOMAIN_NET_TCP_NATIVE)),{NULL}},
     {"src/runtime/xl6_tcp_language.c",D(R(EXECUTION_TCP),R(NATIVE_HANDLE),R(FOREIGN_ERROR),R(NET_ADDRESS)),{"XRT_MODULE_VALUE","XRT_MODULE_BUFFER"}},
@@ -795,7 +795,10 @@ static const XL6_ArtifactRuntimeComponent xl6ArtifactComponents[] = {
     {"src/runtime/xl6_net_vector_buffer_input.c",D(R(NET_VECTOR_INPUT),R(BUFFER_CORE)),{NULL}},
     {"src/runtime/xl6_tcp_receive_into_net_buffer_future.c",D(R(TCP_RECEIVE_INTO_FUTURE)),{NULL}},
     {"src/runtime/xl6_tcp_receive_into_line_future.c",D(R(TCP_RECEIVE_INTO_FUTURE),R(NET_FRAME_LINE)),{NULL}},
-    {"src/runtime/xl6_tcp_receive_into_length_future.c",D(R(TCP_RECEIVE_INTO_FUTURE),R(NET_FRAME_LENGTH)),{NULL}}
+    {"src/runtime/xl6_tcp_receive_into_length_future.c",D(R(TCP_RECEIVE_INTO_FUTURE),R(NET_FRAME_LENGTH)),{NULL}},
+    {"src/runtime/xl6_ownership_domain_net_tcp_base_native.c",D(R(OWNERSHIP_CATALOG),R(OWNERSHIP_DOMAIN_NET_ENGINE_NATIVE)),{"XRT_MODULE_NET_TCP"}},
+    {"src/runtime/xl6_ownership_domain_net_server_native.c",D(R(OWNERSHIP_CATALOG),R(OWNERSHIP_DOMAIN_NET_TCP_BASE_NATIVE)),{"XRT_MODULE_NET_TCP_SERVER"}},
+    {"src/runtime/xl6_ownership_domain_net_server_future_native.c",D(R(OWNERSHIP_CATALOG),R(OWNERSHIP_DOMAIN_NET_SERVER_NATIVE),R(OWNERSHIP_DOMAIN_NATIVE_FUTURE)),{"XRT_MODULE_NET_TCP_SERVER_FUTURE"}}
 };
 _Static_assert(sizeof(xl6ArtifactComponents)/sizeof(xl6ArtifactComponents[0]) == XL6_ARTIFACT_RUNTIME_COUNT,
     "Every resident component needs one dependency descriptor");
