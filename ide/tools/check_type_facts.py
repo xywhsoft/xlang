@@ -117,7 +117,10 @@ def main():
    overlay=work/'capture.utf8';overlay.write_bytes(text.encode())
    transport=command('actual-overlay-type-index',compiler,['check',entry,'--json','--source-report','--semantic-index','--source-overlay',entry,overlay]);assert transport['semanticIndex']==raw['semanticIndex']
    def controlled(value,expectReady=True):
-    (work/'snapshot-response.json').write_text(json.dumps(value,ensure_ascii=False),encoding='utf8');(work/'snapshot-mode.txt').write_text('indexed exit0');c=Client(server,fixture,work);clients.append(c);c.initialize();c.open(entry,text,9);c.check(entry,9,2);m,_=c.reply(2)
+    (work/'snapshot-response.json').write_text(json.dumps(value,ensure_ascii=False),encoding='utf8');(work/'snapshot-mode.txt').write_text('indexed exit0');(work/'snapshot-signal.txt').unlink(missing_ok=True)
+    # Injected compiler responses must use the explicit CLI oracle. Default
+    # native analysis deliberately does not execute this fixture program.
+    c=Client(server,fixture,work);clients.append(c);c.initialize('cli');c.open(entry,text,9);c.check(entry,9,2);m,_=c.reply(2);assert (work/'snapshot-signal.txt').is_file()
     if expectReady:assert m.get('result',{}).get('semanticDefinitions'),m
     else:assert m['error']['code']==-32603 and '语义索引' in m['error']['message'],m
     return c

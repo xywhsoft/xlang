@@ -30,13 +30,12 @@ static int abi(const char* text)
 static int symbolKind(const char* kind)
 { if(!strcmp(kind,"func") || !strcmp(kind,"export_func")) return 12; if(!strcmp(kind,"class")) return 5; if(!strcmp(kind,"protocol")) return 11; if(!strcmp(kind,"enum")) return 10; if(!strcmp(kind,"type_alias") || !strcmp(kind,"extern_type_alias")) return 26; if(!strcmp(kind,"union")) return 23; if(!strcmp(kind,"variant")) return 22; if(!strcmp(kind,"var_decl")) return 13; if(!strcmp(kind,"const_decl")) return 14; return 0; }
 static int typeKind(const node* n) { return n->kind==5 || n->kind==10 || n->kind==26 || n->kind==23 || n->kind==11; }
-static int typeFacts(xide_semantic_definitions* d,node* n,const xvalue* row,size_t index,int* metadata)
+static int applyTypeFacts(xide_semantic_definitions* d,node* n,size_t index,int present,unsigned declared,unsigned referenced,int* metadata)
 {
- const xvalue *decl=get(row,"declaredTypeId"),*ref=get(row,"referencedTypeId"); int present=decl!=NULL || ref!=NULL; int64 declared=0,referenced=0;
  if(*metadata<0) *metadata=present;
  if(*metadata!=present) return 0;
  if(!present) { n->declaredType=n->declared && typeKind(n) ? n->typeId : 0; n->referencedType=n->typeSyntax ? n->typeId : 0; return 1; }
- if(!number(decl,&declared,0,UINT_MAX) || !number(ref,&referenced,0,UINT_MAX) || (declared && referenced) || (declared && declared!=n->typeId) || (referenced && referenced!=n->typeId)) return 0;
+ if((declared && referenced) || (declared && declared!=n->typeId) || (referenced && referenced!=n->typeId)) return 0;
  const node* parent=n->parent ? &d->nodes[n->parent-1] : NULL;
  n->genericType=n->nameSyntax && parent && parent->typeParams;
  if(declared && !typeKind(n) && !n->genericType) return 0;
@@ -45,6 +44,12 @@ static int typeFacts(xide_semantic_definitions* d,node* n,const xvalue* row,size
  n->declaredType=(unsigned)declared; n->referencedType=(unsigned)referenced;
  if(declared && n->genericType) n->kind=26;
  return 1;
+}
+static int typeFacts(xide_semantic_definitions* d,node* n,const xvalue* row,size_t index,int* metadata)
+{
+ const xvalue *decl=get(row,"declaredTypeId"),*ref=get(row,"referencedTypeId"); int present=decl!=NULL || ref!=NULL; int64 declared=0,referenced=0;
+ if(present && (!number(decl,&declared,0,UINT_MAX) || !number(ref,&referenced,0,UINT_MAX))) return 0;
+ return applyTypeFacts(d,n,index,present,(unsigned)declared,(unsigned)referenced,metadata);
 }
 static int retainType(xide_semantic_definitions* d,node* n,const xvalue* row)
 {
@@ -62,6 +67,14 @@ static int compareEndpoint(const void* a,const void* b) { const endpoint *x=a,*y
 static int compareDeclaration(const void* a,const void* b) { const declaration *x=a,*y=b; return (x->symbol>y->symbol)-(x->symbol<y->symbol); }
 static int sameTypeLocation(const node* a,const node* b)
 { return a->typeAbi==b->typeAbi && a->genericType==b->genericType && a->selection.source && a->selection.source==b->selection.source && a->selection.endOffset>a->selection.startOffset && a->selection.startOffset==b->selection.startOffset && a->selection.endOffset==b->selection.endOffset && a->full.source==b->full.source && a->full.startOffset==b->full.startOffset && a->full.endOffset==b->full.endOffset; }
+static int captureRange(int source,const xide_semantic_source* sources,size_t count,span* out,endpoint* ends,size_t* used,
+ size_t a,size_t b,int sl,int sc,int el,int ec)
+{
+ if(source<1 || (size_t)source>count || !(sources[source-1].kind&1) || a>INT_MAX || b<a || b>INT_MAX || sl<1 || sc<1 || el<1 || ec<1) return 0;
+ out->source=source; out->startOffset=(int)a; out->endOffset=(int)b;
+ ends[(*used)++]=(endpoint){source,(int)a,sl,sc,&out->start};
+ ends[(*used)++]=(endpoint){source,(int)b,el,ec,&out->end}; return 1;
+}
 static int range(const xvalue* value,int source,const xide_semantic_source* sources,size_t count,span* out,endpoint* ends,size_t* used)
 {
  if(!value) return 0;
@@ -69,10 +82,33 @@ static int range(const xvalue* value,int source,const xide_semantic_source* sour
  if(source<1 || (size_t)source>count || !(sources[source-1].kind&1)) return 0;
  int64 a,b,sl,sc,el,ec;
  if(!number(get(value,"startOffset"),&a,0,INT_MAX) || !number(get(value,"endOffset"),&b,a,INT_MAX) || !number(get(value,"startLine"),&sl,1,INT_MAX) || !number(get(value,"startColumn"),&sc,1,INT_MAX) || !number(get(value,"endLine"),&el,1,INT_MAX) || !number(get(value,"endColumn"),&ec,1,INT_MAX)) return 0;
- out->source=source; out->startOffset=(int)a; out->endOffset=(int)b;
- ends[(*used)++]=(endpoint){source,(int)a,(int)sl,(int)sc,&out->start};
- ends[(*used)++]=(endpoint){source,(int)b,(int)el,(int)ec,&out->end}; return 1;
+ return captureRange(source,sources,count,out,ends,used,(size_t)a,(size_t)b,(int)sl,(int)sc,(int)el,(int)ec);
 }
+static void nodeShape(xide_semantic_definitions* d,node* n,unsigned parent,unsigned declared,unsigned target,const char* kind)
+{
+ n->parent=parent; n->depth=parent ? d->nodes[parent-1].depth+1 : 1; n->declared=declared; n->target=target;
+ n->call=!strcmp(kind,"call"); n->kind=symbolKind(kind); n->typeSyntax=!strcmp(kind,"type"); n->nameSyntax=!strcmp(kind,"name"); n->typeParams=!strcmp(kind,"type_params"); n->typeConstraint=!strcmp(kind,"generic_constraint");
+}
+#ifdef XLS_COMPILER_XRT
+static int typedRange(xls_index_range r,int source,const xide_semantic_source* sources,size_t count,span* out,endpoint* ends,size_t* used)
+{ return !r.known || captureRange(source,sources,count,out,ends,used,r.startOffset,r.endOffset,r.startLine,r.startColumn,r.endLine,r.endColumn); }
+static int typedNode(xide_semantic_definitions* d,node* n,const xls_semantic_index* index,size_t at,
+ const xide_semantic_source* sources,size_t count,endpoint* ends,size_t* used,int* metadata)
+{
+ xls_index_fact f;
+ if(!xlsSemanticIndexFact(index,at,&f) || f.id!=at+1 || f.parent>at || f.source>count || f.selectionSource>count ||
+    (f.declaredSymbol && f.declaredSymbol!=f.symbol) || !f.kind || !*f.kind || strlen(f.kind)>64 || f.typeOrigin<0 || f.typeOrigin>3) return 0;
+ nodeShape(d,n,f.parent,f.declaredSymbol,f.targetSymbol,f.kind);
+ n->typeId=f.typeId; n->typeAbi=f.typeAbi; n->origin=f.typeOrigin;
+ if(f.typeOrigin) {
+  if(!f.canonical || !*f.canonical || !(n->type=retain(d,f.canonical,strlen(f.canonical),8192))) return 0;
+ } else if(f.canonical) return 0;
+ return n->depth<=DEPTH_LIMIT && applyTypeFacts(d,n,at,1,f.declaredType,f.referencedType,metadata) &&
+  typedRange(f.range,(int)f.source,sources,count,&n->full,ends,used) &&
+  typedRange(f.tokenRange,(int)f.source,sources,count,&n->token,ends,used) &&
+  typedRange(f.selectionRange,(int)f.selectionSource,sources,count,&n->selection,ends,used);
+}
+#endif
 static int convert(endpoint* ends,size_t used,const xide_semantic_source* sources)
 {
  qsort(ends,used,sizeof(*ends),compareEndpoint); int source=0,line=1,column=1,character=0; size_t at=0,size=0; const char* text=NULL;
@@ -108,23 +144,44 @@ int xideSemanticRangesToLsp(const xide_semantic_source* sources,size_t count,xid
 }
 void xideSemanticDefinitionsDestroy(xide_semantic_definitions* d)
 { if(d) { if(d->paths) for(size_t i=0;i<d->sourceCount;++i) free(d->paths[i]); free(d->paths); if(d->nodes) for(size_t i=0;i<d->count;++i) { free(d->nodes[i].name); free(d->nodes[i].header); free(d->nodes[i].type); } free(d->declarations); free(d->typeDeclarations); free(d->nodes); free(d); } }
-xide_semantic_definitions* xideSemanticDefinitionsCreate(const xvalue* index,const xide_semantic_source* sources,size_t count,xide_model_error* error)
+static xide_semantic_definitions* definitionsCreate(const xvalue* index,
+#ifdef XLS_COMPILER_XRT
+ const xls_semantic_index* typed,
+#endif
+ const xide_semantic_source* sources,size_t count,xide_model_error* error)
 {
  int64 schema=0; bool complete=false; const xvalue* rows=get(index,"nodes");
- if(!sources || !count || count>512 || !number(get(index,"schema"),&schema,1,1) || !equal(get(index,"scope"),"checked-compilation") || !xrtValueGetBool(get(index,"complete"),&complete) || !complete || !equal(get(index,"offsetEncoding"),"utf-8-after-bom") || !equal(get(index,"columnEncoding"),"unicode-scalar-1-based") || !equal(get(index,"rangeConvention"),"half-open") || !rows || xrtValueType(rows)!=XVALUE_ARRAY || xrtValueCount(rows)>NODE_LIMIT) goto invalid;
+ if(!sources || !count || count>512) goto invalid;
+ size_t nodeCount=0;
+#ifdef XLS_COMPILER_XRT
+ if(typed) nodeCount=xlsSemanticIndexCount(typed);
+ else
+#endif
+ {
+  if(!number(get(index,"schema"),&schema,1,1) || !equal(get(index,"scope"),"checked-compilation") || !xrtValueGetBool(get(index,"complete"),&complete) || !complete || !equal(get(index,"offsetEncoding"),"utf-8-after-bom") || !equal(get(index,"columnEncoding"),"unicode-scalar-1-based") || !equal(get(index,"rangeConvention"),"half-open") || !rows || xrtValueType(rows)!=XVALUE_ARRAY) goto invalid;
+  nodeCount=xrtValueCount(rows);
+ }
+ if(nodeCount>NODE_LIMIT) goto invalid;
  xide_semantic_definitions* d=calloc(1,sizeof(*d)); endpoint* ends=NULL;
  if(!d) goto invalid;
- d->count=xrtValueCount(rows); d->sourceCount=count; d->paths=calloc(count,sizeof(*d->paths)); d->nodes=calloc(d->count+1,sizeof(*d->nodes)); d->declarations=calloc(d->count+1,sizeof(*d->declarations)); d->typeDeclarations=calloc(d->count+1,sizeof(*d->typeDeclarations)); ends=calloc(d->count*6+1,sizeof(*ends));
+ d->count=nodeCount; d->sourceCount=count; d->paths=calloc(count,sizeof(*d->paths)); d->nodes=calloc(d->count+1,sizeof(*d->nodes)); d->declarations=calloc(d->count+1,sizeof(*d->declarations)); d->typeDeclarations=calloc(d->count+1,sizeof(*d->typeDeclarations)); ends=calloc(d->count*6+1,sizeof(*ends));
  int okay=d->paths && d->nodes && d->declarations && d->typeDeclarations && ends; size_t used=0; int typeMetadata=-1;
  for(size_t i=0;okay && i<count;++i) okay=sources[i].path && sources[i].text && (sources[i].utf16Prefix==0 || sources[i].utf16Prefix==1) && (d->paths[i]=copy(sources[i].path))!=NULL;
  for(size_t i=0;okay && i<d->count;++i) {
-  const xvalue* v=xrtValueArrayGet(rows,i); node* n=&d->nodes[i]; int64 id,parent,source,selected,declared,symbol,target,operatorId; const char* kind=string(get(v,"kind"));
+  node* n=&d->nodes[i];
+#ifdef XLS_COMPILER_XRT
+  if(typed) okay=typedNode(d,n,typed,i,sources,count,ends,&used,&typeMetadata);
+  else
+#endif
+  {
+  const xvalue* v=xrtValueArrayGet(rows,i); int64 id,parent,source,selected,declared,symbol,target,operatorId; const char* kind=string(get(v,"kind"));
   okay=kind && *kind && strlen(kind)<=64 && number(get(v,"id"),&id,(int64)i+1,(int64)i+1) && number(get(v,"parent"),&parent,0,(int64)i) && number(get(v,"sourceId"),&source,0,(int64)count) && number(get(v,"selectionSourceId"),&selected,0,(int64)count) && number(get(v,"declaredSymbolId"),&declared,0,UINT_MAX) && number(get(v,"symbolId"),&symbol,0,UINT_MAX) && number(get(v,"targetSymbolId"),&target,0,UINT_MAX) && number(get(v,"compoundOperatorSymbolId"),&operatorId,0,UINT_MAX) && (!declared || declared==symbol);
   if(!okay) break;
-  n->parent=(unsigned)parent; n->depth=parent ? d->nodes[parent-1].depth+1 : 1; n->declared=(unsigned)declared; n->target=(unsigned)target; n->call=!strcmp(kind,"call"); n->kind=symbolKind(kind); n->typeSyntax=!strcmp(kind,"type"); n->nameSyntax=!strcmp(kind,"name"); n->typeParams=!strcmp(kind,"type_params"); n->typeConstraint=!strcmp(kind,"generic_constraint");
+  nodeShape(d,n,(unsigned)parent,(unsigned)declared,(unsigned)target,kind);
   okay=n->depth<=DEPTH_LIMIT && retainType(d,n,v) && typeFacts(d,n,v,i,&typeMetadata) && range(get(v,"range"),(int)source,sources,count,&n->full,ends,&used) && range(get(v,"tokenRange"),(int)source,sources,count,&n->token,ends,&used) && range(get(v,"selectionRange"),(int)selected,sources,count,&n->selection,ends,&used);
+  }
   if(okay && n->token.source && n->full.source) okay=n->token.startOffset>=n->full.startOffset && n->token.endOffset<=n->full.endOffset;
-  if(okay && declared) d->declarations[d->declCount++]=(declaration){(unsigned)declared,i};
+  if(okay && n->declared) d->declarations[d->declCount++]=(declaration){n->declared,i};
   if(okay && n->declaredType) d->typeDeclarations[d->typeCount++]=(declaration){n->declaredType,i};
  }
  if(okay) okay=convert(ends,used,sources);
@@ -164,6 +221,16 @@ xide_semantic_definitions* xideSemanticDefinitionsCreate(const xvalue* index,con
 invalid:
  if(error) { error->code=XIDE_MODEL_INVALID; snprintf(error->message,sizeof(error->message),"编译器语义索引的身份、来源或范围无法验证。"); } return NULL;
 }
+xide_semantic_definitions* xideSemanticDefinitionsCreate(const xvalue* index,const xide_semantic_source* sources,size_t count,xide_model_error* error)
+{ return definitionsCreate(index,
+#ifdef XLS_COMPILER_XRT
+ NULL,
+#endif
+ sources,count,error); }
+#ifdef XLS_COMPILER_XRT
+xide_semantic_definitions* xideSemanticDefinitionsCreateTyped(const xls_semantic_index* index,const xide_semantic_source* sources,size_t count,xide_model_error* error)
+{ return definitionsCreate(NULL,index,sources,count,error); }
+#endif
 static int comparePoint(point a,point b) { return a.line!=b.line ? (a.line>b.line)-(a.line<b.line) : (a.character>b.character)-(a.character<b.character); }
 static int contains(const span* s,int source,point p) { return s->source==source && comparePoint(s->start,p)<=0 && comparePoint(p,s->end)<0; }
 static xvalue* position(point p) { xvalue* v=xrtValueObject(); if(v && put(v,"line",xrtValueInt(p.line)) && put(v,"character",xrtValueInt(p.character))) return v; xrtValueRelease(v); return NULL; }
