@@ -30,6 +30,8 @@ C 字符串传递，含嵌入 NUL 时抛出 `ValueError`，不会静默截断。
 格式错误或超限不会覆盖已有文件。
 保存与流写出遇到底层内存失败时，C 层报告 `XRT_XML_ERROR_MEMORY`，
 XLang `save()` 抛出 `MemoryError`；真实写入/关闭失败仍报告 IO。
+C 的 `xrtXmlDomWrite` 空 Writer、`xrtXmlDomSave` 空路径在序列化前
+返回 `XRT_XML_ERROR_ARGUMENT`，不会把无效参数误报为 I/O 故障。
 
 C API 的节点引用由调用方 `xrtXmlDomNodeRelease`；`Child`、`Parent`、
 `DocumentElement` 返回保留过的引用。`xrtXmlDomStringify` 的结果用

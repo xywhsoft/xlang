@@ -81,6 +81,7 @@ XRT_API bool xrtXmlDomRemoveAttribute(xrtxmldomnode* pNode, str sName);
 
 XRT_API xbuffer* xrtXmlDomStringify(const xrtxmldomnode* pNode,
 	const xrtxmldomwriteoptions* pOptions, xrtxmlerror* pError);
+/* 空 Writer 或空保存路径在序列化前报告 ARGUMENT。 */
 XRT_API bool xrtXmlDomWrite(const xrtxmldomnode* pNode, xwriter* pWriter,
 	bool bTakeOwnership, const xrtxmldomwriteoptions* pOptions,
 	xrtxmlerror* pError);

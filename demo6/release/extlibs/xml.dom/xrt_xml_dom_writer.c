@@ -348,9 +348,15 @@ XRT_API bool xrtXmlDomWrite(const xrtxmldomnode* pNode, xwriter* pWriter,
 	bool bTakeOwnership, const xrtxmldomwriteoptions* pOptions,
 	xrtxmlerror* pError)
 {
-	xbuffer* pBuffer = xrtXmlDomStringify(pNode, pOptions, pError);
+	xbuffer* pBuffer;
 	bool bOk = false;
 	int iOutputError = XRT_XML_ERROR_IO;
+	if ( pWriter == NULL ) {
+		__xrtXmlDomSetError(pError, XRT_XML_ERROR_ARGUMENT,
+			"XML DOM output writer is null");
+		return false;
+	}
+	pBuffer = xrtXmlDomStringify(pNode, pOptions, pError);
 	if ( pBuffer != NULL && pWriter != NULL ) {
 		xrtClearError();
 		bOk = xrtWriterWriteFull(pWriter, pBuffer->Data, pBuffer->Size, NULL) &&
@@ -375,8 +381,14 @@ XRT_API bool xrtXmlDomWrite(const xrtxmldomnode* pNode, xwriter* pWriter,
 XRT_API bool xrtXmlDomSave(str sPath, const xrtxmldomnode* pNode,
 	const xrtxmldomwriteoptions* pOptions, xrtxmlerror* pError)
 {
-	xbuffer* pBuffer = xrtXmlDomStringify(pNode, pOptions, pError);
+	xbuffer* pBuffer;
 	bool bOk;
+	if ( sPath == NULL || sPath[0] == 0 ) {
+		__xrtXmlDomSetError(pError, XRT_XML_ERROR_ARGUMENT,
+			"XML DOM output path is empty");
+		return false;
+	}
+	pBuffer = xrtXmlDomStringify(pNode, pOptions, pError);
 	if ( pBuffer == NULL ) { return false; }
 	xrtClearError();
 	bOk = xrtFileWriteAtomic((cstr)sPath,

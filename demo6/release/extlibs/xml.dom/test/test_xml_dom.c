@@ -266,6 +266,16 @@ static int testWriterBoundaries(void)
 	int bOk = pDocument != NULL && pRoot != NULL && pText != NULL;
 	bOk = bOk && xrtXmlDomAppendChild(pDocument, pRoot) &&
 		xrtXmlDomAppendChild(pRoot, pText);
+	if ( bOk ) {
+		int bArguments = !xrtXmlDomWrite(pDocument, NULL, false, NULL,
+			&tError) && tError.iCode == XRT_XML_ERROR_ARGUMENT;
+		bArguments = !xrtXmlDomSave(NULL, pDocument, NULL, &tError) &&
+			tError.iCode == XRT_XML_ERROR_ARGUMENT && bArguments;
+		bArguments = !xrtXmlDomSave((str)"", pDocument, NULL, &tError) &&
+			tError.iCode == XRT_XML_ERROR_ARGUMENT && bArguments;
+		if ( !bArguments ) { fputs("DOM output arguments were misclassified\n", stderr); }
+		bOk = bArguments;
+	}
 	pUnicode = xrtXmlDomCreateElement(pDocument,
 		(str)"\xe4\xb8\xad\xe6\x96\x87");
 	bOk = bOk && xrtXmlDomCreateElement(pDocument, (str)"1root") == NULL &&
