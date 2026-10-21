@@ -6,8 +6,35 @@ extern "mqtt_fixture_close" func fixtureClose(point fixture) as bool
 
 
 
+// 参数校验失败不应消费 TCP 数据，也不应覆盖原始 MQTT 诊断。
+func invalidTransport(TcpStream stream, int kind)
+    if kind == 0 then
+        mqtt.recvFrame(stream, timeoutMs = -2)
+    elseif kind == 1 then
+        mqtt.recvFrame(stream, packetLimit = 1)
+    elseif kind == 2 then
+        mqtt.sendFrame(stream, mqtt.pingreqFrame(), timeoutMs = 0)
+    elseif kind == 3 then
+        mqtt.handshake(stream, "bad", keepalive = -1)
+    elseif kind == 4 then
+        mqtt.handshake(stream, "bad", timeoutMs = 9223372036854775807)
+    else
+        mqtt.sendFrame(stream, mqtt.hexToFrame("c000d000"))
+    end
+end
+
 func conversation(point fixture)
     TcpStream stream = TcpStream(fixtureClient(fixture))
+    for kind in range(6)
+        bool raised = false
+        try
+            invalidTransport(stream, kind)
+        catch e
+            raised = true
+            assert e.message.contains("mqtt:")
+        end
+        assert raised
+    end
     var ack = mqtt.handshake(stream, "xlang-client", keepalive = 0)
     assert ack["returnCode"] == 0
     Buffer incoming = mqtt.recvFrame(stream)

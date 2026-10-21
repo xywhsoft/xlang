@@ -84,6 +84,45 @@ static void check_payload(void)
 
 
 
+static void check_limits(void)
+{
+    xbuffer* text = xrtBufferCreate();
+    xbuffer* frame;
+    xvalue* parsed;
+    xmqttheader header;
+    xmqttmessage message;
+    xstrview maximum, too_long;
+    static const uint8 largest_header[] = {0x30, 0xff, 0xff, 0xff, 0x7f};
+    assert(text != NULL && xrtBufferResize(text, 65536));
+    memset(text->Data, 'x', text->Size);
+    maximum = (xstrview){(const char*)text->Data, 65535};
+    too_long = (xstrview){(const char*)text->Data, 65536};
+    frame = xrtMqttConnect(maximum, maximum, (xbytesview){text->Data, 65535}, 65535, false);
+    assert(frame != NULL && xrtMqttInspect(xrtBufferView(frame), &header) == XMQTT_READY);
+    assert(header.Remaining == 196621 && header.HeaderSize == 4);
+    parsed = xrtMqttParse(xrtBufferView(frame));
+    assert(parsed != NULL && integer(field(parsed, "keepalive")) == 65535);
+    xrtValueRelease(parsed);
+    xrtBufferDestroy(frame);
+    frame = xrtMqttPublish(1, maximum, (xbytesview){NULL, 0}, 65535, true, true);
+    assert(frame != NULL && xrtMqttPublishView(xrtBufferView(frame), &message));
+    assert(message.Topic.Size == 65535 && message.Payload.Size == 0 && message.PacketId == 65535);
+    xrtBufferDestroy(frame);
+
+    /* 大小检查先于字段读取；只检查超大长度，不分配 256MiB 正文。 */
+    assert(xrtMqttConnect(too_long, maximum, (xbytesview){NULL, 0}, 0, true) == NULL);
+    assert(xrtMqttConnect(maximum, too_long, (xbytesview){NULL, 0}, 0, true) == NULL);
+    assert(xrtMqttConnect(maximum, maximum, xrtBufferView(text), 0, true) == NULL);
+    assert(xrtMqttPublish(0, too_long, (xbytesview){NULL, 0}, 0, false, false) == NULL);
+    assert(xrtMqttPublish(0, maximum, (xbytesview){text->Data, SIZE_MAX}, 0, false, false) == NULL);
+    xrtClearError();
+    assert(xrtMqttInspect((xbytesview){largest_header, sizeof(largest_header)}, &header) == XMQTT_MORE);
+    assert(header.PacketSize == (size_t)XMQTT_MAX_REMAINING + 5 && xrtGetError() == NULL);
+    xrtBufferDestroy(text);
+}
+
+
+
 int main(void)
 {
     static const char* invalid[] = {
@@ -119,6 +158,7 @@ int main(void)
     check_frame(xrtBufferFromHex(xrtStrView("20020100"), 0), "20020100", 2);
     check_frame(xrtBufferFromHex(xrtStrView("d000"), 0), "d000", 13);
     check_payload();
+    check_limits();
 
     frame = xrtBufferFromHex(xrtStrView("9006000900010280"), 0);
     parsed = xrtMqttParse(xrtBufferView(frame));

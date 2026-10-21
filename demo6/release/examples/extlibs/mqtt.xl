@@ -3,29 +3,35 @@ import mqtt
 
 
 func main(...) as int
-    // 构造各类帧（实际 broker 交互走 TcpStream）
-    println("connect:  ", mqtt.connect("sensor-1", "", "", 60, true))
-    println("publish:  ", mqtt.publish(0, "home/livingroom/temp", "22.5", 0))
-    println("publish1: ", mqtt.publish(1, "alert/motion", "detected", 42))
-    println("subscribe:", mqtt.subscribe(1, "home/+/temp", 0))
-    println("puback:   ", mqtt.puback(42))
-    println("ping:     ", mqtt.pingreq())
-    println("disconnect:", mqtt.disconnect())
+    // 不需要 broker。与 mqtt_c.c 输出完全相同，展示构帧、解析与拥有权。
+    Buffer connect = mqtt.connectFrame("sensor-1", keepalive = 0)
+    var options = mqtt.parseFrame(connect)
+    println(f"connect: {mqtt.frameToHex(connect)}")
+    println(f`keepalive: {options["keepalive"]}`)
 
-    // 模拟服务器应答
+    Buffer frame = mqtt.publishFrame(1, "home/temp", "22.5", 42)
+    var message = mqtt.parseFrame(frame)
+    println(f"publish: {mqtt.frameToHex(frame)}")
+    println(f`topic: {message["topic"]}`)
+    println(f`payload: {message["payload"]}`)
+    println(f`packetId: {message["packetId"]}`)
+    println(f`subscribe: {mqtt.subscribe(7, "home/+/temp", 1)}`)
+    var suback = mqtt.parse("9003000701")
+    println(f`granted: {suback["granted"][0]}`)
+    println(f"puback: {mqtt.puback(42)}")
+    println(f"ping: {mqtt.pingreq()}")
+    println(f"disconnect: {mqtt.disconnect()}")
+
+    // 原始字节使用 Buffer；提取的副本不受原帧清空影响。
+    Buffer binary = mqtt.hexToFrame("00ff61")
+    Buffer packet = mqtt.publishFrame(0, "raw", binary)
+    Buffer saved = mqtt.payloadBytes(packet)
+    assert packet.clear()
+    println(f"binary: {mqtt.frameToHex(saved)}")
+    Buffer prefix = mqtt.hexToFrame("308001")
+    println(f"frameSize: {mqtt.frameSize(prefix)}")
     var ack = mqtt.parse("20020000")
-    println("connack code:", ack["returnCode"])
-
-    var msg = mqtt.parse("320e0005746f706963000b776f726c64")
-    println("publish reply:", msg["topic"], "->", msg["payload"], "qos", msg["qos"], "pid", msg["packetId"])
-
-    var suback = mqtt.parse("9003000100")
-    println("suback granted:", suback["granted"][0])
-
-    // 与真实 broker 交互：
-    // TcpStream broker = tcp.connect("broker.example.com", 1883)
-    // mqtt.handshake(broker, "sensor-1", "", "", 60)
-    // 发送 publish 帧 / 接收并 parse 应答
+    println(f`connack: {ack["returnCode"]}`)
 
     println("mqtt example: PASS")
     return 0

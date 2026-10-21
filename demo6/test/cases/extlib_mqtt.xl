@@ -3,13 +3,13 @@ import mqtt
 
 
 func main(...) as int
-    // CONNECT 帧：client "demo"，QoS 级别 4，keepalive 60
+    // CONNECT 帧：client "demo"，协议级别 4，keepalive 60
     string conn = mqtt.connect("demo", "", "", 60, true)
     // 10 10 + MQTT 长度4 + 级别4 + 标志2 + keepalive + client
     assert conn.contains("101000044d5154540402003c000464656d6f"), "connect frame body"
     assert conn.length == 36, "connect frame hex length"
 
-    // 匿名 CONNECT（cleanSession false）
+    // 不清理会话的 CONNECT，keepalive=0 原样保留。
     string conn2 = mqtt.connect("ab", "", "", 0, false)
     assert conn2.contains("00044d5154540400"), "no clean flag"
 

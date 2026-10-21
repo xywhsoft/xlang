@@ -64,10 +64,21 @@ static void check_empty_wait(void)
     mqtt_test_close(&pair);
 }
 
-static int32 cancel_later(void* data)
+typedef struct cancel_read {
+    xnetstream* Stream;
+    xcancel* Cancel;
+} cancel_read;
+
+static int32 cancel_after_read(void* data)
 {
-    xrtSleep(50);
-    assert(xrtCancelRequest(data));
+    cancel_read* state = data;
+    xdeadline deadline = xrtDeadlineAfter(5000000);
+    /* 先确认测试前缀被消费，再取消正文等待，不依赖线程启动时机。 */
+    while (xrtNetStreamAvailable(state->Stream) != 0) {
+        assert(!xrtDeadlineExpired(deadline));
+        xrtSleep(1);
+    }
+    assert(xrtCancelRequest(state->Cancel));
     return 0;
 }
 
@@ -77,17 +88,20 @@ static void check_broken_frame(unsigned int mode)
     xbuffer* received;
     xcancel* cancel = NULL;
     xthread* thread = NULL;
+    cancel_read state;
     static const uint8 oversized[] = {0x30, 127};
     static const uint8 invalid[] = {0x21, 2};
     static const uint8 partial[] = {0x20, 2};
     xbytesview data = {mode == 0 ? oversized : mode == 1 ? invalid : partial, 2};
     mqtt_test_open(&pair);
     mqtt_test_send(pair.Peer, data);
+    assert(xrtNetStreamWaitAvailable(pair.Client, data.Size, xrtDeadlineAfter(5000000), NULL));
     if (mode == 3) assert(xrtNetStreamClose(pair.Peer));
     if (mode == 4) {
         cancel = xrtCancelCreate();
         assert(cancel != NULL);
-        thread = xrtThreadCreate(cancel_later, cancel, 0);
+        state = (cancel_read){pair.Client, cancel};
+        thread = xrtThreadCreate(cancel_after_read, &state, 0);
         assert(thread != NULL);
     }
     received = xrtMqttRecvFrame(pair.Client, 64, xrtDeadlineAfter(mode == 2 ? 20000 : 5000000), cancel);

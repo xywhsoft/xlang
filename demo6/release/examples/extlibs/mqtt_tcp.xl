@@ -1,0 +1,31 @@
+import mqtt
+
+
+
+func main(...) as int
+    // 本机随机端口，不需要公共 broker；双方交替发送即可展示完整交换。
+    TcpServer server = tcp.listen(0)
+    TcpStream client = tcp.connect("127.0.0.1", int(server.port()), 5000)
+    TcpStream peer = server.accept(5000)
+
+    mqtt.sendFrame(client, mqtt.connectFrame("sensor-1", keepalive = 0))
+    var connect = mqtt.parseFrame(mqtt.recvFrame(peer))
+    println(f`connect: {connect["clientId"]}`)
+    mqtt.sendFrame(peer, mqtt.hexToFrame("20020000"))
+    assert mqtt.parseFrame(mqtt.recvFrame(client))["returnCode"] == 0
+
+    mqtt.sendFrame(client, mqtt.publishFrame(1, "home/temp", "22.5", 42))
+    var message = mqtt.parseFrame(mqtt.recvFrame(peer))
+    println(f`publish: {message["topic"]}={message["payload"]}`)
+    mqtt.sendFrame(peer, mqtt.pubackFrame(int(message["packetId"])))
+    var ack = mqtt.parseFrame(mqtt.recvFrame(client))
+    println(f`puback: {ack["packetId"]}`)
+
+    // 发出 DISCONNECT 是协议动作；仍需关闭底层 TCP 连接。
+    mqtt.sendFrame(client, mqtt.disconnectFrame())
+    assert mqtt.parseFrame(mqtt.recvFrame(peer))["type"] == 14
+    client.close()
+    peer.close()
+    println("mqtt TCP example: PASS")
+    return 0
+end

@@ -8,11 +8,12 @@
         "kind": "source",
         "cSources": ["mqtt_frame.c", "mqtt_build.c", "mqtt_parse.c", "mqtt_net.c", "mqtt_native.c"],
         "xlSources": ["src/mqtt.xl", "src/mqtt_net.xl"],
+        "includeDirs": ["include"],
         "xrtModules": ["XRT_MODULE_BUFFER_HEX", "XRT_MODULE_STRING", "XRT_MODULE_UNICODE", "XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_NET_TCP_SYNC"]
     },
-    "includeDirs": ["include"],
     "dependencies": [],
     "links": [],
     "loadlibs": [],
-    "native": { "singleton": false, "loadName": "", "version": "" }
+    "native": { "singleton": false, "loadName": "", "version": "" },
+    "coverage": { "tests": ["test/mqtt_boundaries.xl"] }
 }

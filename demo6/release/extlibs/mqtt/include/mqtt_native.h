@@ -21,7 +21,7 @@ void* xmq_pingreq_frame(void);
 void* xmq_disconnect_frame(void);
 void* xmq_hex_to_frame(const char* hex);
 void* xmq_frame_to_hex(void* data, size_t size);
-/* var 返回值总是拥有型 xvalue；失败返回语言 null 值并保留 XRT 错误。 */
+/* var 返回拥有型 xvalue；失败转成语言 null 并保留错误，null 自身分配失败仍返回 NULL。 */
 xvalue* xmq_parse_frame(void* data, size_t size);
 void* xmq_payload_bytes(void* data, size_t size);
 int64_t xmq_frame_size(void* data, size_t size);

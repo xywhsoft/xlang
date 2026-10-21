@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mqtt - 扩展库 - xlang</title>
+  <meta name="description" content="MQTT 3.1.1 QoS 0/1 报文编解码、TCP 逐帧收发与握手，C/xlang 双语 API 和本地回环范例。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <style>
+    .mqtt-toc {display:flex;flex-wrap:wrap;gap:12px 24px;margin:24px 0;}
+    .mqtt-table {overflow-x:auto;margin:16px 0;}
+    .mqtt-table table {min-width:560px;}
+    .mqtt-table td {overflow-wrap:anywhere;}
+    .mqtt-table code {white-space:normal;}
+    .mqtt-note {border-left:3px solid var(--brand);padding:4px 16px;margin:24px 0;}
+    .mqtt-detail section {scroll-margin-top:90px;}
+    .mqtt-detail pre {overflow:auto;}
+  </style>
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li>
+    <li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout c-net mqtt-detail" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / mqtt</p>
+    <div class="extlib-title-row"><h1>mqtt</h1><span class="extlib-cat-badge">网络通信</span></div>
+    <div class="extlib-badges"><span class="extlib-badge">1.0.0</span><span class="extlib-badge">C / xlang</span><span class="extlib-badge">二进制报文</span></div>
+    <p class="extlib-lead">MQTT 3.1.1 QoS 0/1 报文编解码、TCP 逐帧收发与一次性握手。使用 Buffer 处理二进制，使用 hex 检查报文；C 与 xlang 共享 XRT 内存、错误和网络设施。</p>
+  </header>
+  <p class="mqtt-note"><strong>范围：</strong>这是协议与传输工具库，不是完整客户端或 broker。没有自动心跳、重连、重发、去重、订阅路由、持久会话、Will、UNSUBSCRIBE、QoS 2、MQTT 5 或 TLS 集成。构造 QoS 1 报文不等于完整的会话交付保证。本文对应当前源码，不代表旧下载包已包含更新。</p>
+  <nav class="mqtt-toc" aria-label="本文目录"><a href="#start">快速开始</a><a href="#api">xlang API</a><a href="#transport">传输约定</a><a href="#c-api">C API</a><a href="#tests">范例与验证</a></nav>
+
+  <section id="start"><h2>快速开始</h2>
+    <div class="code-block"><div class="code-header"><span>离线构帧与解析</span></div><div class="code-body"><pre><code>import mqtt
+
+func main(...) as int
+    Buffer frame = mqtt.publishFrame(1, "home/temp", "22.5", 42)
+    var message = mqtt.parseFrame(frame)
+    println(message["topic"])
+    println(message["payload"])
+    println(mqtt.frameToHex(frame))
+    return 0
+end</code></pre></div></div>
+    <p>正文含零字节或不是 UTF-8 时，传入 Buffer 并用 <code>mqtt.payloadBytes(frame)</code> 提取独立副本。文本重载通过 C 字符串传参，不保留嵌入 NUL。不要把协议字节当作普通文本。</p>
+  </section>
+
+  <section id="api"><h2>xlang API</h2>
+    <div class="mqtt-table"><table class="ext-kv"><thead><tr><th>入口</th><th>返回与合同</th></tr></thead><tbody>
+      <tr><td><code>connectFrame(clientId, username = "", password = "", keepalive = 60, cleanSession = true)</code></td><td>Buffer；前三项为 string，keepalive 为 int 秒，0 不开启心跳。password 也可为 Buffer，此时 username 必填。</td></tr>
+      <tr><td><code>publishFrame(qos, topic, payload, packetId = 0, retain = false, duplicate = false)</code></td><td>Buffer；qos/packetId 为 int，topic 为 string，payload 为 string 或 Buffer。QoS 0 只允许 id=0、DUP=false；QoS 1 的 id 为 1..65535。</td></tr>
+      <tr><td><code>pubackFrame(packetId)</code></td><td>Buffer；packetId 为 1..65535。</td></tr>
+      <tr><td><code>subscribeFrame(packetId, topic, qos = 0)</code></td><td>Buffer；单个过滤器，支持独占层级的 + 和末级 #，QoS 0/1。</td></tr>
+      <tr><td><code>pingreqFrame()</code> / <code>disconnectFrame()</code></td><td>Buffer；仅构帧，不自动操作连接。</td></tr>
+      <tr><td><code>hexToFrame(string hex)</code> / <code>frameToHex(Buffer frame)</code></td><td>Buffer / 小写 hex string；只转换字节，不验证完整协议。</td></tr>
+      <tr><td><code>frameSize(Buffer prefix)</code></td><td>int；固定头未齐返回 0，头齐后返回第一帧总长度，正文可尚未收齐。</td></tr>
+      <tr><td><code>parseFrame(Buffer frame)</code> / <code>parse(string hex)</code></td><td>var 字典；恰好一帧，拒绝截断、尾随数据和无效字段；结果不借用原帧。</td></tr>
+      <tr><td><code>payloadBytes(Buffer frame)</code></td><td>严格验证 PUBLISH，返回正文的独立 Buffer。</td></tr>
+      <tr><td><code>connect</code>、<code>publish</code>、<code>puback</code>、<code>subscribe</code>、<code>pingreq</code>、<code>disconnect</code></td><td>同名 *Frame 文本重载的 hex 便捷形式，参数相同，返回 string。</td></tr>
+    </tbody></table></div>
+    <p>构造/解析/范围错误抛 ValueError。协议文本必须是无 NUL 的有效 UTF-8，单字段上限 65535 字节。空 username/password 表示不携带字段；非空密码要求非空 username；构造入口不能区分不存在与存在但长度为零的认证字段。</p>
+    <h3>解析字段</h3>
+    <p>所有报文有 <code>type</code> 和 <code>remaining</code>。CONNECT 有 clientId、cleanSession、keepalive、username、password；CONNACK 有 returnCode、sessionPresent；PUBLISH 有 topic、payload、qos、retain、dup，仅 QoS 1 有 packetId。PUBACK 有 packetId。SUBSCRIBE 有 packetId、subscriptions（topic/qos 项）；SUBACK 有 packetId、granted（0/1/2/128）。PINGREQ/PINGRESP/DISCONNECT 没有额外字段。</p>
+    <p>granted=2 可作为协议数据解析，但不表示库实现 QoS 2。解析器不维护 packetId 状态；应用应检查应答是否匹配请求。二进制正文请使用 payloadBytes，不能依赖 var 字典转文本的结果。</p>
+  </section>
+
+  <section id="transport"><h2>TCP 与失败边界</h2>
+    <div class="mqtt-table"><table class="ext-kv"><thead><tr><th>入口</th><th>行为</th></tr></thead><tbody>
+      <tr><td><code>sendFrame(TcpStream stream, Buffer frame, int timeoutMs = 5000, point cancel = null)</code></td><td>检查固定头及总长度，分片发送并等待队列排空，不重新验证正文。</td></tr>
+      <tr><td><code>recvFrame(TcpStream stream, int timeoutMs = 5000, int packetLimit = 1048576, point cancel = null)</code></td><td>返回独立 Buffer，只消费本帧，不吞后续帧；正文语义交给 parseFrame。</td></tr>
+      <tr><td><code>handshake(TcpStream stream, string clientId, string username = "", string password = "", int keepalive = 60, int timeoutMs = 5000, point cancel = null)</code></td><td>Clean Session CONNECT 与成功 CONNACK 共用一个截止时间；返回解析字典，不接管 stream。</td></tr>
+    </tbody></table></div>
+    <ul>
+      <li>timeoutMs=-1 不限时，0 立即超时，正数为整个操作的总预算，不逐片重置。C API 使用单调微秒绝对截止时间。</li>
+      <li>默认接收限制 1MiB，含固定头；范围 2..268435460，在分配正文前检查。</li>
+      <li>同一连接上的读取与写入分别串行化，握手独占双向操作；阻塞 API 不可在该连接的驱动 worker 回调中使用。</li>
+      <li>cancel 是借用的 XRT xcancel*，存活至调用结束；null 不取消，不能传其他句柄。</li>
+      <li>空连接等待超时/取消可以重试；读入半帧后失败会终止连接。CONNECT 发出后，握手失败也会终止连接。</li>
+      <li>发送开始后失败会终止连接，部分数据可能已经到达对端；成功不是业务确认，不应据此盲目重发。</li>
+      <li>网络入口抛 IOError 并保留底层诊断；未开始 I/O 的参数失败不改变连接。</li>
+    </ul>
+  </section>
+
+  <section id="c-api"><h2>C API</h2>
+    <p>公开头为 <code>extlibs/mqtt/include/xrt_mqtt.h</code> 和 <code>xrt_mqtt_net.h</code>。编解码编译 mqtt_frame.c、mqtt_build.c、mqtt_parse.c，网络增加 mqtt_net.c，链接一份 XRT。不需要 xlang 编译器或 mqtt_native.c。</p>
+    <div class="mqtt-table"><table class="ext-kv"><thead><tr><th>函数</th><th>拥有权</th></tr></thead><tbody>
+      <tr><td><code>xrtMqttConnect / Publish / Puback / Subscribe / Pingreq / Disconnect</code></td><td>实际函数均以 xrtMqtt 开头；返回 xbuffer*，失败 NULL，用 xrtBufferDestroy 释放。</td></tr>
+      <tr><td><code>xrtMqttInspect</code></td><td>ERROR/MORE/READY；MORE 不设置新错误，完整头填写 PacketSize。</td></tr>
+      <tr><td><code>xrtMqttPublishView</code></td><td>bool；Topic/Payload 借用原帧，原帧修改或销毁后失效。</td></tr>
+      <tr><td><code>xrtMqttParse</code></td><td>xvalue*，复制内容；失败 NULL，用 xrtValueRelease 释放。</td></tr>
+      <tr><td><code>xrtMqttSendFrame</code></td><td>bool；借用 stream、frame、cancel。</td></tr>
+      <tr><td><code>xrtMqttRecvFrame / xrtMqttHandshake</code></td><td>拥有型 xbuffer* / xvalue*；失败 NULL；不接管连接。</td></tr>
+    </tbody></table></div>
+    <p>以返回值判断本次操作是否失败；成功不清除之前的 xrtGetError 错误槽。语言桥的 16 个 xmq_* 声明单独放在 mqtt_native.h，并与编译器生成的原型进行严格 C 类型核对。</p>
+  </section>
+
+  <section id="tests"><h2>范例与验证</h2>
+    <div class="code-block"><div class="code-body"><pre><code>xl run examples/extlibs/mqtt.xl
+xl run examples/extlibs/mqtt_c.c
+xl run examples/extlibs/mqtt_tcp.xl
+xl run examples/extlibs/mqtt_tcp_c.c</code></pre></div></div>
+    <p>前两份离线构帧/解析范例输出相同的 15 行；后两份本机随机端口 TCP 范例输出相同的 4 行。无需公共 broker；均可用 xl build 编译。</p>
+    <div class="code-block"><div class="code-body"><pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File tools/check_extlib_mqtt.ps1
+bash tools/check_extlib_mqtt.sh</code></pre></div></div>
+    <p>2026-09-26 本地验收范围：Windows GCC、C/xlang JIT/AOT、原型与黄金输出对照；Linux 独立 C ASan/UBSan。覆盖逐字节分包、粘包、64KiB 二进制、无效包、OOM、发送背压、异常 CONNACK、超时与取消。构建及源码哈希绑定实际结果。</p>
+    <p>未覆盖真实 broker 矩阵、Linux xlang JIT/AOT、长时会话、TLS 或公网环境。测试通过不能作为未实现会话能力的证明。仓库门禁结果见 build/test/mqtt_guard 与 mqtt_linux_guard。</p>
+    <p>协议依据 <a href="https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/errata01/os/mqtt-v3.1.1-errata01-os-complete.html">OASIS MQTT 3.1.1 Errata 01</a>；完整 API 合同位于发行包 extlibs/mqtt/README.md。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>
