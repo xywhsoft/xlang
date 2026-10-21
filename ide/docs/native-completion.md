@@ -1,12 +1,16 @@
 # 原生 xlang 语义补全
 
-2026-10-22 开发更新：补全及诊断客户端保留文档镜像，按 `textDocumentSync` 协商增量或全文变化。重复查询复用未变正文，不关闭并重新打开全部文档；单字修改按 UTF-16 范围发送最小连续差异。身份变化、连接重启及旧服务全文回退均经过真实原生测试。开发服务 0.6 已迁移至独立编译器 XRT，但补全的语义高频路径仍主要走 CLI，常驻语义增量尚在后续阶段，详见 [长期实施计划](lsp-development.md)；已发布候选保持原版本。
+2026-10-22 开发更新：服务 0.7 默认在进程内组合共享 xlang 前端完成语义补全，移除每次查询的能力探测进程、临时覆盖文件和分析进程。保留局部作用域、成员类型、未保存依赖、来源／导入候选守卫以及 IDE 的过期结果校验。协议 owner 同时等待输入和旧查询线程的真实完成信号，避免回收轮询延迟下一次补全。已发布候选保持原版本，开发版本的验收记录见 [长期实施计划](lsp-development.md)。
+
+补全及诊断客户端保留文档镜像，按 `textDocumentSync` 协商增量或全文变化。重复查询复用未变正文，不关闭并重新打开全部文档；单字修改按 UTF-16 范围发送最小连续差异。原生语义查询当前仍新建私有 AST，尚未实现函数级语义增量；诊断／导航和 C 桥接仍有 CLI 路径。独立编译器 XRT 与 IDE 的 XGE/XRT 按进程隔离，详见 [分析核心](lsp-analysis-core.md)。
 
 2026-10-07，原生 CodeEdit 已接入真实光标补全查询。命名的 `.xl` 文档在 xlang 模式下，以当前正文和全部已打开命名 `.xl` 的未保存内容查询候选。无需先成功检查，也不把候选当作整份编译成功。
 
 ## 使用
 
-选择支持 `check --json --source-overlay --source-report --completion-at` 的编译器。编辑器保留 C/xlang 双语法；未命名文档及旧 xlang 工具链继续提供目录补全。命名 C/header 可单独配置 clangd，见 [C 原生补全](c-language-service.md)。
+开发服务 0.7 的原生补全使用自身构建绑定的共享前端，不再要求所选执行编译器支持 `--completion-at`。服务启动仍保留 `--compiler` 配置，供诊断／导航及显式 CLI 兼容后端使用。已发布旧服务和显式 CLI 后端仍要求编译器支持 `check --json --source-overlay --source-report --completion-at`。编辑器保留 C/xlang 双语法；未命名文档继续提供目录补全。命名 C/header 可单独配置 clangd，见 [C 原生补全](c-language-service.md)。
+
+`initialize.initializationOptions.completionBackend` 可选 `native`（默认）或 `cli`；其他值返回无效参数。`capabilities.experimental.nativeCursorCompletion` 和 `completionBackend` 明确返回实际后端。CLI 是兼容／对照路径，原生分析失败时不会静默改用 CLI。CLI 恶意响应测试显式选择此路径，不能将它们当作原生语义路径的验证。
 
 本轮验证使用[固定补全工具链](../build/toolchains/demo6-completion-a96b23d8-16c9-4eae-9da7-6d082d45f5a7/xl.exe)。在 `ide` 目录启动本地验证版本：
 

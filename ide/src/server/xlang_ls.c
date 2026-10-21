@@ -1,4 +1,4 @@
-/* stdio server. Compiler processes and disk analysis never run on the UI thread. */
+/* stdio server. Native analysis and compatibility processes run off-owner. */
 #include "protocol/lsp_wire.h"
 #include "services/language_check.h"
 #include "platform/path.h"
@@ -18,7 +18,7 @@ typedef struct document { char *uri,*path; const char* text; xls_text* content; 
 typedef struct native_request { xvalue* id; xls_query* query; int document,version; unsigned long long identity,generation; } native_request;
 typedef struct server {
  CRITICAL_SECTION lock; HANDLE reader,event; volatile LONG stop; message *head,*tail; size_t queueBytes,queueCount; int eof,readFailed;
- int initialized,shutdown,exitRequested,exitCode,writeFailed,checkOnSave; char *compiler,*directory; xide_toolchains* cache;
+ int initialized,shutdown,exitRequested,exitCode,writeFailed,checkOnSave,cliCompletion; char *compiler,*directory; xide_toolchains* cache;
  document docs[DOC_LIMIT]; size_t textBytes; unsigned long long generation; xide_language_check* check; xvalue* checkId;
  int checkDocument,checkVersion,cancelCode,pending; unsigned long long checkGeneration; const char* cancelReason;
  int snapshotMode; unsigned long long checkBatchGeneration; xvalue* publishedGroups;
@@ -227,7 +227,8 @@ static void startCompletion(server* s)
  for(int j=0;j<DOC_LIMIT;++j) if(s->docs[j].uri) inputs[count++]=(xide_language_snapshot){s->docs[j].path,s->docs[j].text,s->docs[j].version};
  char* uri=copy(d->uri);
  if(!uri) { response(s,s->completionPendingId,NULL,-32603,"Unable to retain cursor input identity."); goto discard; }
- s->completion=xideLanguageCheckStartCompletionSnapshots(s->cache,s->compiler,s->directory,s->docs[entry].path,inputs,count,d->path,s->completionPendingLine,s->completionPendingCharacter,&e);
+ xide_language_completion_options options={!s->cliCompletion,nativeWake,s};
+ s->completion=xideLanguageCheckStartCompletionSnapshotsEx(s->cache,s->compiler,s->directory,s->docs[entry].path,inputs,count,d->path,s->completionPendingLine,s->completionPendingCharacter,&options,&e);
  if(!s->completion) { free(uri); response(s,s->completionPendingId,NULL,-32603,*e.message ? e.message : "Unable to start cursor query."); goto discard; }
  s->completionUri=uri; s->completionId=s->completionPendingId; s->completionPendingId=NULL;
  s->completionDocument=i; s->completionVersion=d->version; s->completionGeneration=s->generation;
@@ -354,14 +355,18 @@ static void dispatch(server* s,const xvalue* message)
   if(enc && xrtValueType(enc)==XVALUE_ARRAY) for(size_t i=0;i<xrtValueCount(enc);++i) { const char* name=string(xrtValueArrayGet(enc,i)); if(name && !strcmp(name,"utf-16")) utf16=1; }
   if(!utf16) { response(s,id,NULL,-32602,"UTF-16 position encoding is required."); return; }
   const xvalue* options=get(params,"initializationOptions"); bool check=true; const xvalue* enabled=get(options,"checkOnSave"); if(enabled && !xrtValueGetBool(enabled,&check)) { response(s,id,NULL,-32602,"checkOnSave must be boolean."); return; }
+  const xvalue* backendOption=get(options,"completionBackend"); const char* backend=string(backendOption);
+  if(backendOption && (!backend || (strcmp(backend,"native") && strcmp(backend,"cli")))) { response(s,id,NULL,-32602,"completionBackend must be native or cli."); return; }
+  s->cliCompletion=backend && !strcmp(backend,"cli");
   const xvalue* rangeLimit=get(get(get(get(params,"capabilities"),"textDocument"),"foldingRange"),"rangeLimit"); int64 limit=65536;
   if(rangeLimit && (!xrtValueGetInt(rangeLimit,&limit) || limit<0 || limit>UINT32_MAX)) { response(s,id,NULL,-32602,"Folding rangeLimit must be a nonnegative 32-bit integer."); return; }
   s->foldingLimit=(size_t)(limit>65536 ? 65536 : limit);
   xvalue *result=xrtValueObject(),*cap=xrtValueObject(),*sync=xrtValueObject(),*save=xrtValueObject(),*info=xrtValueObject(),*scope=xrtValueObject();
   put(cap,"positionEncoding",xrtValueString(sv("utf-16"))); put(sync,"openClose",xrtValueBool(true)); put(sync,"change",xrtValueInt(2)); put(save,"includeText",xrtValueBool(true)); put(sync,"save",save); put(cap,"textDocumentSync",sync);
   put(cap,"foldingRangeProvider",xrtValueBool(true)); put(scope,"residentSyntax",xrtValueBool(true)); put(scope,"analysisRuntime",xrtValueString(sv("compiler-xrt")));
+  put(scope,"nativeCursorCompletion",xrtValueBool(!s->cliCompletion)); put(scope,"completionBackend",xrtValueString(sv(s->cliCompletion ? "cli" : "native")));
   put(scope,"savedEntryDiagnostics",xrtValueBool(true)); put(scope,"unsavedDependencies",xrtValueBool(true)); put(scope,"snapshotDiagnostics",xrtValueBool(true)); put(scope,"snapshotDocumentFingerprint",xrtValueBool(true)); put(scope,"snapshotInputGuard",xrtValueString(sv("background-poll"))); put(scope,"cSemantics",xrtValueBool(false)); put(scope,"snapshotDefinition",xrtValueBool(true)); put(cap,"definitionProvider",xrtValueBool(true)); put(cap,"hoverProvider",xrtValueBool(true)); put(cap,"documentSymbolProvider",xrtValueBool(true)); xvalue *completion=xrtValueObject(),*triggers=xrtValueArray(),*dot=xrtValueString(sv(".")); xrtValueArrayAppend(triggers,dot); xrtValueRelease(dot); put(completion,"resolveProvider",xrtValueBool(false)); put(completion,"triggerCharacters",triggers); put(cap,"completionProvider",completion); put(scope,"cursorCompletion",xrtValueBool(true)); put(scope,"completionInputGuard",xrtValueString(sv("background-poll"))); put(scope,"snapshotHover",xrtValueBool(true)); put(scope,"snapshotDocumentSymbols",xrtValueBool(true)); put(cap,"experimental",scope); put(result,"capabilities",cap);
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.6"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.7"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
@@ -405,7 +410,13 @@ int main(void)
  if(s.reader) while(!s.exitRequested && !s.writeFailed) {
   EnterCriticalSection(&s.lock); message* m=s.head; if(m) { s.head=m->next; if(!s.head) s.tail=NULL; s.queueBytes-=m->size; --s.queueCount; } int eof=s.eof,failed=s.readFailed; LeaveCriticalSection(&s.lock);
   if(m) { dispatch(&s,m->value); xrtValueRelease(m->value); free(m); } else if(eof) { s.exitCode=failed ? 2 : 1; break; }
-  pollGuard(&s); pollCheck(&s); pollCompletion(&s); pollNative(&s); if(!m) WaitForSingleObject(s.event,10);
+  pollGuard(&s); pollCheck(&s); pollCompletion(&s); pollNative(&s);
+  if(!m) {
+   HANDLE waits[2]={s.event,s.completionCancelled ? xideLanguageCheckWorkerSignal(s.completion) : NULL};
+   /* A retired guard can exit after pollCompletion. Wake on the real thread
+      signal, so a new query never waits for the 10 ms fallback timer. */
+   WaitForMultipleObjects(waits[1] ? 2 : 1,waits,FALSE,10);
+  }
  }
  InterlockedExchange(&s.stop,1);
  if(s.reader) {

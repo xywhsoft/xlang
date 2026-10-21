@@ -18,7 +18,7 @@ typedef struct completion_input { xide_document* document; uint64_t id; uint32_t
 typedef struct completion_binding { struct completion_binding* next; xide_app* app; xui_widget editor; xui_widget_event_proc handlers[5]; void* users[5]; } completion_binding;
 struct xide_completion_view {
  xide_app* app; xide_language_client* client; char *compiler,*directory,*package;
- completion_input inputs[COMPLETION_DOCS]; size_t inputCount; int nextId,initialized,supported,syncKind; xls_sync* sync;
+ completion_input inputs[COMPLETION_DOCS]; size_t inputCount; int nextId,initialized,supported,syncKind,nativeBackend; xls_sync* sync;
  xide_document* document; uint64_t id,due; uint32_t version; int offset,wanted,pending,request,ready,sawOpen,refreshing;
  xvalue* result; xui_code_completion_item_t* items; const char** nameIndex; int count,start,end,collectEligible;
  xui_widget repeatEditor; uint64_t repeatId; int repeatOffset;
@@ -81,7 +81,7 @@ static void cvfreeInputs(xide_completion_view* v)
 { for(size_t i=0;i<v->inputCount;++i) cvfreeInput(&v->inputs[i]); v->inputCount=0; }
 static void cvstopClient(xide_completion_view* v)
 {
- cvdismiss(v); xideLanguageClientStop(v->client); v->client=NULL; cvfreeInputs(v); xlsSyncDestroy(v->sync); v->sync=NULL; free(v->compiler); free(v->directory); free(v->package); v->compiler=v->directory=v->package=NULL; v->initialized=v->supported=v->syncKind=0;
+ cvdismiss(v); xideLanguageClientStop(v->client); v->client=NULL; cvfreeInputs(v); xlsSyncDestroy(v->sync); v->sync=NULL; free(v->compiler); free(v->directory); free(v->package); v->compiler=v->directory=v->package=NULL; v->initialized=v->supported=v->syncKind=v->nativeBackend=0;
 }
 static void cvwake(void* user) { (void)user; xgeRenderRequest(); }
 static char* cvserverPath(void)
@@ -100,7 +100,7 @@ static int cvstartClient(xide_completion_view* v)
 {
  if(v->client) return 1;
  xlsSyncDestroy(v->sync); v->sync=NULL; free(v->compiler); free(v->directory); free(v->package);
- v->compiler=v->directory=v->package=NULL; v->initialized=v->supported=v->syncKind=0;
+ v->compiler=v->directory=v->package=NULL; v->initialized=v->supported=v->syncKind=v->nativeBackend=0;
  const char* compiler=xideTaskViewCompiler(v->app); char* program=cvserverPath();
  v->compiler=compiler ? cvcopy(compiler) : NULL; v->directory=xidePathDirectory(v->document->path);
  int ok=program && v->compiler && v->directory && xideLanguageCheckPackagePath(&v->package,NULL);
@@ -228,6 +228,7 @@ static void cvread(xide_completion_view* v,int refresh)
   if(method && !strcmp(method,"xlang/completionInvalidated")) { int query=0; if(cvnumber(cvget(cvget(m,"params"),"queryId"),&query) && query==v->request) cvdismiss(v); }
   else if(cvnumber(cvget(m,"id"),&id) && id==1 && !v->initialized) {
    const xvalue* caps=cvget(cvget(m,"result"),"capabilities"); v->initialized=1; v->supported=cvbool(cvget(cvget(caps,"experimental"),"cursorCompletion"),1) && xrtValueType(cvget(caps,"completionProvider"))==XVALUE_OBJECT;
+   v->nativeBackend=cvbool(cvget(cvget(caps,"experimental"),"nativeCursorCompletion"),1);
    int64 kind=1; const xvalue* sync=cvget(caps,"textDocumentSync");
    if(xrtValueType(sync)==XVALUE_OBJECT) sync=cvget(sync,"change");
    if(sync && !xrtValueGetInt(sync,&kind)) kind=0;

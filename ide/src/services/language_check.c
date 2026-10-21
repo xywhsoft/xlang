@@ -86,9 +86,10 @@ done:
  EnterCriticalSection(&q->lock); q->state=cancelled(q) ? XIDE_CHECK_CANCELLED : success ? XIDE_CHECK_READY : XIDE_CHECK_FAILED;
  if(q->state==XIDE_CHECK_READY) { q->result=result; result=NULL; if(q->snapshotCount) q->guardState=XIDE_GUARD_RUNNING; } else snprintf(q->error,sizeof(q->error),"%s",cancelled(q) ? "源码检查已取消。" : *e.message ? e.message : "未取得有效编译器诊断。");
  LeaveCriticalSection(&q->lock); xrtValueRelease(result);
+ if(q->wake) q->wake(q->wakeUser);
  if(success && q->snapshotCount) while(WaitForSingleObject(q->stopEvent,1000)==WAIT_TIMEOUT) {
   xide_model_error changed={0}; if(xideLanguageSnapshotGuard(q,&changed)) continue;
-  if(!cancelled(q)) { EnterCriticalSection(&q->lock); q->guardState=XIDE_GUARD_INVALID; snprintf(q->guardError,sizeof(q->guardError),"%s",*changed.message ? changed.message : "发布后检查输入无法复核。"); LeaveCriticalSection(&q->lock); }
+  if(!cancelled(q)) { EnterCriticalSection(&q->lock); q->guardState=XIDE_GUARD_INVALID; snprintf(q->guardError,sizeof(q->guardError),"%s",*changed.message ? changed.message : "发布后检查输入无法复核。"); LeaveCriticalSection(&q->lock); if(q->wake) q->wake(q->wakeUser); }
   break;
  }
  return 0;
@@ -106,6 +107,7 @@ xvalue* xideLanguageCheckResult(xide_language_check* q) { if(!q) return NULL; En
 enum xide_guard_state xideLanguageCheckGuardState(xide_language_check* q,char* message,size_t capacity)
 { if(!q) return XIDE_GUARD_NONE; EnterCriticalSection(&q->lock); enum xide_guard_state state=q->guardState; if(message && capacity) snprintf(message,capacity,"%s",q->guardError); LeaveCriticalSection(&q->lock); return state; }
 int xideLanguageCheckWorkerFinished(xide_language_check* q) { return !q || !q->worker || WaitForSingleObject(q->worker,0)==WAIT_OBJECT_0; }
+void* xideLanguageCheckWorkerSignal(xide_language_check* q) { return q ? q->worker : NULL; }
 xvalue* xideLanguageCheckDefinition(xide_language_check* q,const char* path,int version,int line,int character)
 {
  if(!q || !path) return NULL;
@@ -164,19 +166,25 @@ invalid:
  xideLanguageCheckDestroy(q); fail(e,"无法创建全文快照检查：正文、路径别名、入口或容量无效。"); return NULL;
 }
 
-static xide_language_check* startSnapshots(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const char* queryPath,int line,int character,xide_model_error* e)
+static xide_language_check* startSnapshots(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const char* queryPath,int line,int character,const xide_language_completion_options* options,xide_model_error* e)
 {
+#ifndef XLS_COMPILER_XRT
+ if(options && options->nativeBackend) { fail(e,"Native semantic analysis requires the standalone compiler-XRT host."); return NULL; }
+#endif
  xide_language_check* q=createSnapshots(cache,compiler,directory,entry,documents,count,queryPath,line,character,0,e);
  if(!q) return NULL;
+ if(options) { q->nativeSemantic=options->nativeBackend; q->wake=options->wake; q->wakeUser=options->user; }
  q->stopEvent=CreateEventW(NULL,TRUE,FALSE,NULL); if(q->stopEvent) q->worker=CreateThread(NULL,0,worker,q,0,NULL);
  if(q->worker) return q;
  xideLanguageCheckDestroy(q); fail(e,"Cannot start copied snapshot worker."); return NULL;
 }
 
 xide_language_check* xideLanguageCheckStartSnapshots(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,xide_model_error* e)
-{ return startSnapshots(cache,compiler,directory,entry,documents,count,NULL,0,0,e); }
+{ return startSnapshots(cache,compiler,directory,entry,documents,count,NULL,0,0,NULL,e); }
 xide_language_check* xideLanguageCheckStartCompletionSnapshots(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const char* queryPath,int line,int character,xide_model_error* e)
-{ if(!queryPath) { fail(e,"补全查询需要打开文档路径。"); return NULL; } return startSnapshots(cache,compiler,directory,entry,documents,count,queryPath,line,character,e); }
+{ return xideLanguageCheckStartCompletionSnapshotsEx(cache,compiler,directory,entry,documents,count,queryPath,line,character,NULL,e); }
+xide_language_check* xideLanguageCheckStartCompletionSnapshotsEx(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const char* queryPath,int line,int character,const xide_language_completion_options* options,xide_model_error* e)
+{ if(!queryPath) { fail(e,"补全查询需要打开文档路径。"); return NULL; } return startSnapshots(cache,compiler,directory,entry,documents,count,queryPath,line,character,options,e); }
 
 static int bridgeArgument(const char* path)
 { size_t n=path ? strlen(path) : 0; return n && n<=32767 && path[0]!='-' && MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,path,(int)n,NULL,0); }

@@ -9,6 +9,7 @@ struct xide_language_check {
  int version; enum xide_check_state state; char error[512]; xvalue* result;
  xide_language_snapshot* snapshots; size_t snapshotCount;
  char* queryPath; int queryOffset,queryVersion;
+ int nativeSemantic; void (*wake)(void*); void* wakeUser;
  int nativeBridge; const char* const* bridgeArgs; size_t bridgeArgCount;
  int (*externalCancel)(void*); void* externalUser;
  char* packagePath; int packagePathCaptured;

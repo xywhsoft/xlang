@@ -12,7 +12,11 @@ def main():
  protected={str(p):sha(p) for p in [compiler,compiler.with_name('xlc.dll'),compiler.with_name('xl.dll'),ide/'third_party/xge_sdk/xge.dll']}; cases=[]; clients=[]; status='failed'; rid=10; temp_before={p.name for p in Path(os.environ['TEMP']).glob('xide-check-*')}
  def done(name): cases.append({'name':name,'passed':True})
  def client(tool=compiler):
-  c=Client(server,tool,root); clients.append(c); c.send('initialize',{'capabilities':{},'initializationOptions':{'checkOnSave':False}},1); m,_=c.reply(1); cap=m['result']['capabilities']; assert cap['completionProvider']=={'resolveProvider':False,'triggerCharacters':['.']} and cap['experimental']['cursorCompletion'] and not cap['experimental']['cSemantics']; c.send('initialized',{}); return c
+  # Controlled malformed/slow compiler responses exercise only the explicit
+  # CLI oracle. Real-source cases use the host's default native backend.
+  options={'checkOnSave':False}
+  if tool!=compiler: options['completionBackend']='cli'
+  c=Client(server,tool,root); clients.append(c); c.send('initialize',{'capabilities':{},'initializationOptions':options},1); m,_=c.reply(1); cap=m['result']['capabilities']; assert cap['completionProvider']=={'resolveProvider':False,'triggerCharacters':['.']} and cap['experimental']['cursorCompletion'] and not cap['experimental']['cSemantics']; c.send('initialized',{}); return c
  def params(text,at,path=entry,version=1,standard=False,**kwargs):
   p={'textDocument':{'uri':path.as_uri()},'position':position(text,at)}
   if not standard: p['version']=version

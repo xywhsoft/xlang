@@ -12,6 +12,13 @@ xide_language_check* xideLanguageCheckStartSnapshots(xide_toolchains* cache,cons
    UTF-16 position must identify a scalar boundary in the query overlay.
    Result is a CompletionList with whole-token textEdit, never diagnostics. */
 xide_language_check* xideLanguageCheckStartCompletionSnapshots(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const char* queryPath,int line,int character,xide_model_error* error);
+/* Native backend requires the standalone compiler-XRT build. The callback
+   only wakes an owner, may run on the worker, and must not reenter/destroy the
+   check. Its user data outlives Destroy. CLI remains an explicit oracle. */
+typedef struct xide_language_completion_options {
+ int nativeBackend; void (*wake)(void*); void* user;
+} xide_language_completion_options;
+xide_language_check* xideLanguageCheckStartCompletionSnapshotsEx(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const char* queryPath,int line,int character,const xide_language_completion_options* options,xide_model_error* error);
 
 /* Worker-only C ABI query: disk entry is allowed, open .xl overlays remain
    copied and guarded. Options are real compiler include/C-source inputs. */
@@ -46,6 +53,10 @@ enum xide_guard_state xideLanguageCheckGuardState(xide_language_check* check,cha
 /* Nonblocking retirement: Destroy can be called after WorkerFinished without
    waiting for disk work on the owner thread. Cache must outlive the worker. */
 int xideLanguageCheckWorkerFinished(xide_language_check* check);
+/* Windows service adapter only: borrowed thread-completion wait handle. It
+   stays valid until Destroy; host can wait alongside protocol input instead
+   of delaying the next cursor request by its periodic polling interval. */
+void* xideLanguageCheckWorkerSignal(xide_language_check* check);
 /* Caller frees the copied process-local package environment; NULL is unset. */
 int xideLanguageCheckPackagePath(char** out,xide_model_error* error);
 void xideLanguageCheckCancel(xide_language_check* check);
