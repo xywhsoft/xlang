@@ -1,0 +1,81 @@
+import uia
+
+func main(...) as int
+	auto events = uia.events()
+	assert events.valid(), "event queue creation failed"
+	assert events.poll_json(0) == "{}", "empty poll should return no event"
+	assert uia.last_error() == "", "normal poll timeout must not set an error"
+	assert events.release(), "event queue release failed"
+
+	bool caught = false
+	try
+		uia.from_point(2147483648, 0)
+	catch e
+		caught = true
+	end
+	assert caught, "C int overflow must be rejected"
+
+	auto window = uia.test_window()
+	assert window.valid(), "test window unavailable"
+	auto edit = uia.from_hwnd(window.edit_hwnd())
+	assert edit.valid(), "edit element unavailable"
+	assert edit.set_value("fallback text"), "edit value update failed"
+	assert edit.text() == "fallback text", "text fallback must clear unsupported-pattern error"
+	caught = false
+	try
+		edit.set_value("fallback\0hidden")
+	catch ValueError e
+		caught = true
+	end
+	assert caught, "set_value must reject embedded NUL"
+	assert edit.text() == "fallback text", "rejected set_value must not alter the control"
+	caught = false
+	try
+		uia.by_name("Edit\0hidden")
+	catch ValueError e
+		caught = true
+	end
+	assert caught, "name condition must reject embedded NUL"
+	caught = false
+	try
+		uia.by_automation_id("id\0hidden")
+	catch ValueError e
+		caught = true
+	end
+	assert caught, "automation ID must reject embedded NUL"
+	caught = false
+	try
+		uia.by_class_name("Edit\0hidden")
+	catch ValueError e
+		caught = true
+	end
+	assert caught, "class name must reject embedded NUL"
+	caught = false
+	try
+		uia.launch("__missing_uia_command__\0hidden")
+	catch ValueError e
+		caught = true
+	end
+	assert caught, "launch command must reject embedded NUL"
+	auto root = uia.from_hwnd(window.hwnd())
+	auto editClass = uia.by_class_name("Edit")
+	auto editType = uia.by_control_type(50004)
+	auto combined = uia.all_of(editClass, editType)
+	assert editClass.release(), "class condition release failed"
+	assert editType.release(), "type condition release failed"
+	auto found = root.find_first(combined, 1000)
+	assert found.valid(), "combined condition lost released children"
+	assert found.release(), "found element release failed"
+	assert combined.release(), "combined condition release failed"
+	auto missing = uia.by_name("uia-never-matches")
+	auto matches = root.find_all(missing, 7, 10)
+	assert matches.length == 0, "find_all should return an empty array"
+	assert uia.last_error() == "", "empty find_all is not an error"
+	assert missing.release(), "missing condition release failed"
+	assert root.release(), "query root release failed"
+	assert edit.release(), "edit release failed"
+	assert window.release(), "window release failed"
+	assert uia.shutdown(), "uia shutdown failed"
+	println("uia boundaries ok")
+	return 0
+end

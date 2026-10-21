@@ -1,0 +1,21 @@
+import uia
+
+func main(...) as int
+	println("uia import ok")
+	println(uia.version())
+
+	auto window = uia.test_window()
+	assert window.valid(), "test window unavailable"
+	println("uia window ok")
+
+	auto root = uia.from_hwnd(window.hwnd())
+	assert root.valid(), "test window root unavailable"
+	println("uia root ok")
+
+	assert root.release(), "root release failed"
+	assert window.close(), "window close failed"
+	assert window.release(), "window release failed"
+	assert uia.shutdown(), "uia shutdown failed"
+	println("uia basic ok")
+	return 0
+end

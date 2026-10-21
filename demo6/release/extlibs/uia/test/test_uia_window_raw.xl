@@ -1,0 +1,13 @@
+import uia
+
+extern "x_uia_test_window_create" func rawCreate() as point
+extern "x_uia_test_window_valid" func rawValid(point handle) as c_int
+extern "x_uia_test_window_release" func rawRelease(point handle) as c_int
+
+func main(...) as int
+	point handle = rawCreate()
+	assert rawValid(handle) != 0, "test window unavailable"
+	assert rawRelease(handle) != 0, "window release failed"
+	println("uia raw window ok")
+	return 0
+end

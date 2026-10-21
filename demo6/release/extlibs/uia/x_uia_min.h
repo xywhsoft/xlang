@@ -3,8 +3,13 @@
 
 #include <windows.h>
 
+#if !defined(__TINYC__)
+#include <oleauto.h>
+#endif
+
 #ifndef X_UIA_OLEAUTO_MIN_H
 #define X_UIA_OLEAUTO_MIN_H
+#if defined(__TINYC__)
 #ifndef VT_EMPTY
 typedef unsigned short VARTYPE;
 enum {
@@ -34,6 +39,9 @@ typedef struct tagVARIANT {
 			union {
 				LONG lVal;
 				BSTR bstrVal;
+#if defined(_WIN64)
+				unsigned char abi_value[16];
+#endif
 			};
 		};
 	};
@@ -47,6 +55,9 @@ X_UIA_OLEAUTO_IMPORT void WINAPI SysFreeString(BSTR text);
 X_UIA_OLEAUTO_IMPORT HRESULT WINAPI VariantClear(VARIANT* value);
 X_UIA_OLEAUTO_IMPORT void WINAPI VariantInit(VARIANT* value);
 #endif
+#endif
+
+__declspec(dllimport) void WINAPI CoUninitialize(void);
 
 #ifndef CONST_VTBL
 #define CONST_VTBL const
@@ -540,7 +551,12 @@ typedef struct IUIAutomationVtbl {
 	HRESULT (STDMETHODCALLTYPE *CreateCacheRequest)(IUIAutomation*, IUIAutomationCacheRequest**);
 	HRESULT (STDMETHODCALLTYPE *CreateTrueCondition)(IUIAutomation*, IUIAutomationCondition**);
 	HRESULT (STDMETHODCALLTYPE *CreateFalseCondition)(IUIAutomation*, IUIAutomationCondition**);
+	/* TCC 的 Win64 大结构体按值传参不符合这里的 COM ABI，实际传递的是临时结构地址。 */
+#if defined(__TINYC__) && defined(_WIN64)
+	HRESULT (STDMETHODCALLTYPE *CreatePropertyCondition)(IUIAutomation*, PROPERTYID, const VARIANT*, IUIAutomationCondition**);
+#else
 	HRESULT (STDMETHODCALLTYPE *CreatePropertyCondition)(IUIAutomation*, PROPERTYID, VARIANT, IUIAutomationCondition**);
+#endif
 	HRESULT (STDMETHODCALLTYPE *CreatePropertyConditionEx)(IUIAutomation*, PROPERTYID, VARIANT, enum PropertyConditionFlags, IUIAutomationCondition**);
 	HRESULT (STDMETHODCALLTYPE *CreateAndCondition)(IUIAutomation*, IUIAutomationCondition*, IUIAutomationCondition*, IUIAutomationCondition**);
 	HRESULT (STDMETHODCALLTYPE *CreateAndConditionFromArray)(IUIAutomation*, SAFEARRAY*, IUIAutomationCondition**);

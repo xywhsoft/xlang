@@ -1,0 +1,8 @@
+import uia
+
+func main(...) as int
+	auto window = uia.test_window()
+	assert window.valid(), "test window unavailable"
+	println("uia auto window ok")
+	return 0
+end

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>uia - 扩展库 - xlang</title>
+  <meta name="description" content="Windows UI Automation：窗口、元素定位、属性与协议、事件，支持 xlang 与 C。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-sys" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / uia</p>
+    <h1>uia</h1>
+    <p class="extlib-lead">Windows UI Automation 的 xlang 与 C 接口：查找窗口和控件、读取属性、调用控件协议、订阅事件。</p>
+    <p>版本 0.1.0 · Windows 专用 · C / xlang</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import uia
+
+auto window = uia.test_window()
+auto edit = uia.from_hwnd(window.edit_hwnd())
+assert edit.set_value("hello")
+println(edit.text())
+edit.release()
+window.release()
+uia.shutdown()</code></pre>
+    <p><code>test_window()</code> 只供自建窗口测试。真实桌面可从 <code>desktop()</code>、<code>focused()</code>、<code>from_hwnd()</code> 或 <code>from_point()</code> 进入。</p>
+  </section>
+  <section id="api">
+    <h2>接口</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>by_name / by_automation_id / by_class_name</code></td><td>构造元素查询条件。</td></tr>
+      <tr><td><code>Element.find_first / find_all / children</code></td><td>查找目标与枚举元素。</td></tr>
+      <tr><td><code>Element.value / text / set_value / invoke / toggle</code></td><td>使用目标控件支持的 UIA 协议；不支持的协议会报告失败。</td></tr>
+      <tr><td><code>Element.snapshot_json / locator_json</code></td><td>获取元素快照与可复用定位信息。</td></tr>
+      <tr><td><code>events().poll_json(timeout_ms)</code></td><td>轮询焦点或属性事件；无事件返回 <code>{}</code>。</td></tr>
+    </tbody></table>
+    <p>对象自动析构，也可调用 <code>release()</code> 提前释放。C 使用 <code>extlibs/uia/include/uia.h</code>；C 调用方须释放拥有型句柄及元素数组内的每个原生句柄，返回文本仅短暂借用。BSTR 文本转换按需扩容；内嵌 NUL、无效 UTF-16 与分配失败明确报错，缓冲在 <code>shutdown()</code> 时释放。快照与事件 JSON 完整输出上限为 16 MiB，超限返回错误，不返回截断结果。</p>
+  </section>
+  <section id="verify">
+    <h2>验证与边界</h2>
+    <pre><code>xl run examples/extlibs/uia_quick.xl
+xl run examples/extlibs/uia_quick_c.c extlibs/uia/x_uia_artifact.c --link user32 --link ole32 --link oleaut32
+powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/uia/test/check.ps1 -StrictC</code></pre>
+    <p>自建窗口的 C/JIT、自动与显式释放、原生组合条件、文本入口内嵌 NUL 拒绝、跨线程拒绝、事件短轮次压力和双语同输出已通过。构造 9,001 字符 BSTR 的转换层、9,000 字符快照属性和超过旧 64 KiB 的 JSON 均通过 C 回归；自建 Windows 控件的 UIA 属性只返回 4,096 字节，不能作为第三方控件超长属性端到端验收。定位器仍采用定长字段和最多 16 层的类路径；超长字段、超限路径、文本或数值属性读取失败及关键遍历失败均返回错误，不生成貌似有效的截断结果。自建窗口的正常定位器及 <code>ui.auto</code> 门禁已通过。最小核心 AOT 已构建并运行；完整范例 AOT 仍受共享运行时缺符号阻断。UIA 上下文限定在创建线程使用；真实应用的权限、DPI、远程会话及 Windows 版本矩阵仍需验证。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

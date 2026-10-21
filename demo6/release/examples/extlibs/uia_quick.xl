@@ -1,0 +1,17 @@
+import uia
+
+func main(...) as int
+	auto window = uia.test_window()
+	assert window.valid(), "test window unavailable"
+	auto edit = uia.from_hwnd(window.edit_hwnd())
+	assert edit.valid(), "edit element unavailable"
+	assert edit.set_value("hello"), "edit update failed"
+
+	println("uia version: " + uia.version())
+	println("edit text: " + edit.text())
+
+	assert edit.release(), "edit release failed"
+	assert window.release(), "window release failed"
+	assert uia.shutdown(), "uia shutdown failed"
+	return 0
+end

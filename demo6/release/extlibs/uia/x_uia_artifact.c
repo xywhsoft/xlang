@@ -1,13 +1,25 @@
 #include "x_uia_min.h"
 
-#define XRT_MODULE_ALL
 #include "xrt.h"
+#include "include/uia.h"
 
 #include <stdint.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
+
+#ifndef WC_ERR_INVALID_CHARS
+#define WC_ERR_INVALID_CHARS 0x80
+#endif
+#if defined(__TINYC__)
+/* 内嵌 TCC 的 OLE 头缺少这两个公开 Win32 原型。 */
+UINT WINAPI SysStringLen(BSTR value);
+HRESULT WINAPI CoCreateInstance(const CLSID* clsid, IUnknown* outer,
+	DWORD context, REFIID iid, void** result);
+#endif
 
 #if defined(_WIN32) || defined(_WIN64)
 #define XL_EXPORT __declspec(dllexport)
@@ -22,6 +34,7 @@
 #define X_UIA_MAGIC_CONDITION UINT32_C(0x58554943)
 #define X_UIA_MAGIC_EVENTS UINT32_C(0x58554951)
 #define X_UIA_EVENT_QUEUE_CAPACITY 64
+#define X_UIA_JSON_MAX_BYTES (16u * 1024u * 1024u)
 #define X_UIA_TEST_WINDOW_FOCUS_EDIT (WM_APP + 10u)
 #define X_UIA_TEST_WINDOW_FOCUS_BUTTON (WM_APP + 11u)
 #define X_UIA_CONDITION_TRUE 0
@@ -60,11 +73,6 @@ typedef struct XUiaElement {
 typedef struct XUiaCondition {
 	uint32_t magic;
 	IUIAutomationCondition* condition;
-	int kind;
-	int int_value;
-	char text_value[512];
-	struct XUiaCondition* left;
-	struct XUiaCondition* right;
 } XUiaCondition;
 
 typedef struct XUiaJsonBuilder {
@@ -117,6 +125,8 @@ typedef struct XUiaPropertyHandler {
 
 struct XUiaEvents {
 	uint32_t magic;
+	volatile LONG ref_count;
+	volatile LONG closing;
 	CRITICAL_SECTION lock;
 	HANDLE signal;
 	XUiaEventRecord records[X_UIA_EVENT_QUEUE_CAPACITY];
@@ -126,7 +136,6 @@ struct XUiaEvents {
 	int focus_subscribed;
 	int property_subscribed;
 	PROPERTYID property_id;
-	HWINEVENTHOOK focus_hook;
 	IUIAutomationElement* property_element;
 	XUiaFocusHandler* focus_handler;
 	XUiaPropertyHandler* property_handler;
@@ -134,11 +143,24 @@ struct XUiaEvents {
 
 static IUIAutomation* g_x_uia = NULL;
 static int g_x_uia_com_initialized = 0;
+static volatile LONG g_x_uia_owner_thread = 0;
+static volatile LONG g_x_uia_live_handles = 0;
 static char g_x_uia_error[512] = "";
 static char g_x_uia_text[8192] = "";
-static char g_x_uia_json[65536] = "";
+static char* g_x_uia_bstr_text = NULL;
+static size_t g_x_uia_bstr_capacity = 0u;
+static char* g_x_uia_json = NULL;
+static size_t g_x_uia_json_capacity = 0u;
 static const IID X_UIA_IID_IUnknown = { 0x00000000, 0x0000, 0x0000, { 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46 } };
-static XUiaEvents* g_x_uia_focus_hook_queue = NULL;
+
+static void x_uia_events_drop_ref(XUiaEvents* queue)
+{
+	if ( InterlockedDecrement(&queue->ref_count) != 0 ) return;
+	if ( queue->signal != NULL ) CloseHandle(queue->signal);
+	DeleteCriticalSection(&queue->lock);
+	free(queue);
+	InterlockedDecrement(&g_x_uia_live_handles);
+}
 
 XL_EXPORT int x_uia_shutdown(void);
 static HRESULT STDMETHODCALLTYPE x_uia_focus_handler_query_interface(IUIAutomationFocusChangedEventHandler* self, REFIID riid, void** out);
@@ -149,7 +171,6 @@ static HRESULT STDMETHODCALLTYPE x_uia_property_handler_query_interface(IUIAutom
 static ULONG STDMETHODCALLTYPE x_uia_property_handler_add_ref(IUIAutomationPropertyChangedEventHandler* self);
 static ULONG STDMETHODCALLTYPE x_uia_property_handler_release(IUIAutomationPropertyChangedEventHandler* self);
 static HRESULT STDMETHODCALLTYPE x_uia_property_handler_handle(IUIAutomationPropertyChangedEventHandler* self, IUIAutomationElement* sender, PROPERTYID property_id, VARIANT new_value);
-static void CALLBACK x_uia_focus_win_event_proc(HWINEVENTHOOK hook, DWORD event_id, HWND hwnd, LONG object_id, LONG child_id, DWORD event_thread, DWORD event_time);
 
 static const IUIAutomationFocusChangedEventHandlerVtbl g_x_uia_focus_handler_vtbl = {
 	x_uia_focus_handler_query_interface,
@@ -346,6 +367,11 @@ static void x_uia_append_text(char* dst, size_t dst_size, const char* text)
 
 static void x_uia_set_error(const char* text)
 {
+	LONG owner = InterlockedCompareExchange(&g_x_uia_owner_thread, 0, 0);
+	if ( owner != 0 && (DWORD)owner != GetCurrentThreadId() ) {
+		xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.uia", 1, "UIA context belongs to another thread");
+		return;
+	}
 	x_uia_copy_text(g_x_uia_error, sizeof(g_x_uia_error), text);
 	if ( text != NULL && text[0] != '\0' ) {
 		xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.uia", 1, text);
@@ -356,42 +382,74 @@ static void x_uia_set_error(const char* text)
 
 static void x_uia_set_hresult_error(const char* op, HRESULT hr)
 {
+	if ( InterlockedCompareExchange(&g_x_uia_owner_thread, 0, 0) != (LONG)GetCurrentThreadId() ) {
+		xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.uia", 1, "UIA context belongs to another thread");
+		return;
+	}
 	snprintf(g_x_uia_error, sizeof(g_x_uia_error), "%s: HRESULT 0x%08lx", op, (unsigned long)hr);
 	xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.uia", (int)hr, g_x_uia_error);
 }
 
-static void x_uia_json_init(XUiaJsonBuilder* json, char* buffer, size_t capacity)
+static void x_uia_json_init(XUiaJsonBuilder* json)
 {
-	json->data = buffer;
-	json->capacity = capacity;
+	xrtClearError();
+	json->data = g_x_uia_json;
+	json->capacity = g_x_uia_json_capacity;
 	json->length = 0u;
 	json->overflow = 0;
-	if ( capacity > 0u ) {
-		buffer[0] = '\0';
-	}
+	if ( json->data != NULL ) { json->data[0] = '\0'; }
 }
 
 static void x_uia_json_append_raw(XUiaJsonBuilder* json, const char* text)
 {
 	size_t len;
-	size_t remain;
+	size_t needed;
+	size_t capacity;
+	char* expanded;
 
-	if ( (json == NULL) || (text == NULL) || (json->capacity == 0u) ) {
-		return;
-	}
-	if ( json->length >= (json->capacity - 1u) ) {
-		json->overflow = 1;
-		return;
-	}
+	if ( json == NULL || text == NULL || json->overflow ) { return; }
 	len = strlen(text);
-	remain = json->capacity - 1u - json->length;
-	if ( len > remain ) {
-		len = remain;
+	if ( len > X_UIA_JSON_MAX_BYTES - json->length ) {
 		json->overflow = 1;
+		return;
+	}
+	needed = json->length + len + 1u;
+	if ( needed > json->capacity ) {
+		capacity = json->capacity != 0u ? json->capacity : 1024u;
+		while ( capacity < needed ) {
+			capacity = capacity > (X_UIA_JSON_MAX_BYTES + 1u) / 2u ?
+				X_UIA_JSON_MAX_BYTES + 1u : capacity * 2u;
+		}
+		expanded = json->data != NULL ?
+			(char*)xrtRealloc(json->data, capacity) : (char*)xrtMalloc(capacity);
+		if ( expanded == NULL ) { json->overflow = 2; return; }
+		json->data = expanded;
+		json->capacity = capacity;
+		g_x_uia_json = expanded;
+		g_x_uia_json_capacity = capacity;
 	}
 	memcpy(json->data + json->length, text, len);
 	json->length += len;
 	json->data[json->length] = '\0';
+}
+
+static const char* x_uia_json_finish(XUiaJsonBuilder* json, const char* limit_error)
+{
+	if ( json->overflow == 2 ) {
+		x_uia_copy_text(g_x_uia_error, sizeof(g_x_uia_error),
+			"UIA JSON allocation failed");
+		if ( xrtGetError() == NULL ) {
+			xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.uia", 0,
+				"UIA JSON allocation failed");
+		}
+		return "{}";
+	}
+	if ( json->overflow ) {
+		if ( xrtGetError() == NULL ) { x_uia_set_error(limit_error); }
+		return "{}";
+	}
+	x_uia_set_error("");
+	return json->data != NULL ? json->data : "{}";
 }
 
 static void x_uia_json_append_format(XUiaJsonBuilder* json, const char* fmt, ...)
@@ -410,10 +468,8 @@ static void x_uia_json_append_format(XUiaJsonBuilder* json, const char* fmt, ...
 		return;
 	}
 	if ( (size_t)written >= sizeof(temp) ) {
-		temp[sizeof(temp) - 1u] = '\0';
-		if ( json != NULL ) {
-			json->overflow = 1;
-		}
+		if ( json != NULL ) { json->overflow = 1; }
+		return;
 	}
 	x_uia_json_append_raw(json, temp);
 }
@@ -429,6 +485,7 @@ static void x_uia_json_append_escaped(XUiaJsonBuilder* json, const char* text)
 		return;
 	}
 	for ( p = (const unsigned char*)text; *p != 0u; ++p ) {
+		if ( json->overflow ) { return; }
 		switch ( *p ) {
 			case '\"':
 				x_uia_json_append_raw(json, "\\\"");
@@ -469,6 +526,13 @@ static void x_uia_json_append_escaped(XUiaJsonBuilder* json, const char* text)
 static int x_uia_ensure(void)
 {
 	HRESULT hr;
+	LONG current = (LONG)GetCurrentThreadId();
+	LONG owner = InterlockedCompareExchange(&g_x_uia_owner_thread, current, 0);
+
+	if ( owner != 0 && owner != current ) {
+		x_uia_set_error("UIA context belongs to another thread");
+		return 0;
+	}
 
 	if ( g_x_uia != NULL ) {
 		return 1;
@@ -478,6 +542,7 @@ static int x_uia_ensure(void)
 		g_x_uia_com_initialized = 1;
 	} else if ( hr != RPC_E_CHANGED_MODE ) {
 		x_uia_set_hresult_error("CoInitializeEx", hr);
+		InterlockedExchange(&g_x_uia_owner_thread, 0);
 		return 0;
 	}
 	hr = CoCreateInstance(&X_UIA_CLSID_CUIAutomation, NULL, CLSCTX_INPROC_SERVER, &X_UIA_IID_IUIAutomation, (void**)&g_x_uia);
@@ -487,6 +552,7 @@ static int x_uia_ensure(void)
 			CoUninitialize();
 			g_x_uia_com_initialized = 0;
 		}
+		InterlockedExchange(&g_x_uia_owner_thread, 0);
 		return 0;
 	}
 	x_uia_set_error("");
@@ -508,6 +574,7 @@ static XUiaElement* x_uia_wrap_element(IUIAutomationElement* element)
 	}
 	wrapped->magic = X_UIA_MAGIC_ELEMENT;
 	wrapped->element = element;
+	InterlockedIncrement(&g_x_uia_live_handles);
 	return wrapped;
 }
 
@@ -526,12 +593,14 @@ static XUiaCondition* x_uia_wrap_condition(IUIAutomationCondition* condition)
 	}
 	wrapped->magic = X_UIA_MAGIC_CONDITION;
 	wrapped->condition = condition;
+	InterlockedIncrement(&g_x_uia_live_handles);
 	return wrapped;
 }
 
 static XUiaElement* x_uia_element_from_handle(void* handle)
 {
 	XUiaElement* element = (XUiaElement*)handle;
+	if ( InterlockedCompareExchange(&g_x_uia_owner_thread, 0, 0) != (LONG)GetCurrentThreadId() ) return NULL;
 	if ( (element == NULL) || (element->magic != X_UIA_MAGIC_ELEMENT) || (element->element == NULL) ) {
 		return NULL;
 	}
@@ -541,35 +610,90 @@ static XUiaElement* x_uia_element_from_handle(void* handle)
 static XUiaCondition* x_uia_condition_from_handle(void* handle)
 {
 	XUiaCondition* condition = (XUiaCondition*)handle;
+	if ( InterlockedCompareExchange(&g_x_uia_owner_thread, 0, 0) != (LONG)GetCurrentThreadId() ) return NULL;
 	if ( (condition == NULL) || (condition->magic != X_UIA_MAGIC_CONDITION) || (condition->condition == NULL) ) {
 		return NULL;
 	}
 	return condition;
 }
 
-static XUiaCondition* x_uia_condition_create(int kind, const char* text_value, int int_value, XUiaCondition* left, XUiaCondition* right, const char* op)
+static BSTR x_uia_utf8_to_bstr(const char* text);
+
+/* UIA 原生条件持有组合依赖，调用方可以独立释放子条件句柄。 */
+static XUiaCondition* x_uia_condition_create(int kind, const char* text_value, int int_value, const char* op)
 {
-	IUIAutomationCondition* true_condition = NULL;
+	IUIAutomationCondition* native = NULL;
 	XUiaCondition* wrapped;
+	PROPERTYID property_id;
+	VARIANT value;
+	BSTR text = NULL;
 	HRESULT hr;
 
 	if ( !x_uia_ensure() ) {
 		return NULL;
 	}
-	hr = g_x_uia->lpVtbl->CreateTrueCondition(g_x_uia, &true_condition);
-	if ( FAILED(hr) || (true_condition == NULL) ) {
+	switch ( kind ) {
+	case X_UIA_CONDITION_NAME: property_id = UIA_NamePropertyId; break;
+	case X_UIA_CONDITION_AUTOMATION_ID: property_id = UIA_AutomationIdPropertyId; break;
+	case X_UIA_CONDITION_CLASS_NAME: property_id = UIA_ClassNamePropertyId; break;
+	case X_UIA_CONDITION_CONTROL_TYPE: property_id = UIA_ControlTypePropertyId; break;
+	case X_UIA_CONDITION_PROCESS_ID: property_id = UIA_ProcessIdPropertyId; break;
+	default:
+		x_uia_set_error("condition: unsupported property");
+		return NULL;
+	}
+	VariantInit(&value);
+	if ( kind == X_UIA_CONDITION_CONTROL_TYPE || kind == X_UIA_CONDITION_PROCESS_ID ) {
+		value.vt = VT_I4;
+		value.lVal = int_value;
+	} else {
+		text = x_uia_utf8_to_bstr(text_value);
+		if ( text == NULL ) {
+			x_uia_set_error("condition: UTF-8 conversion failed");
+			return NULL;
+		}
+		value.vt = VT_BSTR;
+		value.bstrVal = text;
+	}
+#if defined(__TINYC__) && defined(_WIN64)
+	hr = g_x_uia->lpVtbl->CreatePropertyCondition(g_x_uia, property_id, &value, &native);
+#else
+	hr = g_x_uia->lpVtbl->CreatePropertyCondition(g_x_uia, property_id, value, &native);
+#endif
+	SysFreeString(text);
+	if ( FAILED(hr) || native == NULL ) {
 		x_uia_set_hresult_error(op, hr);
 		return NULL;
 	}
-	wrapped = x_uia_wrap_condition(true_condition);
-	if ( wrapped == NULL ) {
+	wrapped = x_uia_wrap_condition(native);
+	if ( wrapped != NULL ) x_uia_set_error("");
+	return wrapped;
+}
+
+static XUiaCondition* x_uia_condition_compose(int kind, XUiaCondition* left, XUiaCondition* right, const char* op)
+{
+	IUIAutomationCondition* native = NULL;
+	XUiaCondition* wrapped;
+	HRESULT hr;
+
+	if ( left == NULL || (kind != X_UIA_CONDITION_NOT && right == NULL) ) {
+		x_uia_set_error("condition: invalid child");
 		return NULL;
 	}
-	wrapped->kind = kind;
-	wrapped->int_value = int_value;
-	wrapped->left = left;
-	wrapped->right = right;
-	x_uia_copy_text(wrapped->text_value, sizeof(wrapped->text_value), text_value);
+	if ( !x_uia_ensure() ) return NULL;
+	if ( kind == X_UIA_CONDITION_AND ) {
+		hr = g_x_uia->lpVtbl->CreateAndCondition(g_x_uia, left->condition, right->condition, &native);
+	} else if ( kind == X_UIA_CONDITION_OR ) {
+		hr = g_x_uia->lpVtbl->CreateOrCondition(g_x_uia, left->condition, right->condition, &native);
+	} else {
+		hr = g_x_uia->lpVtbl->CreateNotCondition(g_x_uia, left->condition, &native);
+	}
+	if ( FAILED(hr) || native == NULL ) {
+		x_uia_set_hresult_error(op, hr);
+		return NULL;
+	}
+	wrapped = x_uia_wrap_condition(native);
+	if ( wrapped != NULL ) x_uia_set_error("");
 	return wrapped;
 }
 
@@ -581,7 +705,7 @@ static BSTR x_uia_utf8_to_bstr(const char* text)
 	if ( text == NULL ) {
 		text = "";
 	}
-	wide_len = MultiByteToWideChar(CP_UTF8, 0, text, -1, NULL, 0);
+	wide_len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text, -1, NULL, 0);
 	if ( wide_len <= 0 ) {
 		return NULL;
 	}
@@ -589,45 +713,83 @@ static BSTR x_uia_utf8_to_bstr(const char* text)
 	if ( out == NULL ) {
 		return NULL;
 	}
-	MultiByteToWideChar(CP_UTF8, 0, text, -1, out, wide_len);
+	if ( MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text, -1, out, wide_len) != wide_len ) {
+		SysFreeString(out);
+		return NULL;
+	}
 	return out;
 }
 
 static const char* x_uia_bstr_to_text(BSTR value)
 {
-	int len;
-
-	g_x_uia_text[0] = '\0';
-	if ( value == NULL ) {
-		return g_x_uia_text;
+	UINT length;
+	int bytes;
+	char* expanded;
+	if ( value == NULL ) { return ""; }
+	length = SysStringLen(value);
+	if ( length == 0u ) { return ""; }
+	if ( length > INT_MAX || wmemchr(value, L'\0', length) != NULL ) {
+		x_uia_set_error("string conversion: invalid BSTR length or embedded NUL");
+		return NULL;
 	}
-	len = WideCharToMultiByte(CP_UTF8, 0, value, -1, g_x_uia_text, (int)sizeof(g_x_uia_text), NULL, NULL);
-	if ( len <= 0 ) {
+	bytes = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, value,
+		(int)length, NULL, 0, NULL, NULL);
+	if ( bytes <= 0 ) {
+		x_uia_set_error("string conversion: invalid UTF-16");
+		return NULL;
+	}
+	if ( (size_t)bytes + 1u > g_x_uia_bstr_capacity ) {
+		expanded = (char*)xrtRealloc(g_x_uia_bstr_text, (size_t)bytes + 1u);
+		if ( expanded == NULL ) {
+			x_uia_copy_text(g_x_uia_error, sizeof(g_x_uia_error),
+				"string conversion: out of memory");
+			if ( xrtGetError() == NULL ) {
+				xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.uia", 0,
+					"string conversion: out of memory");
+			}
+			return NULL;
+		}
+		g_x_uia_bstr_text = expanded;
+		g_x_uia_bstr_capacity = (size_t)bytes + 1u;
+	}
+	if ( WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, value,
+		(int)length, g_x_uia_bstr_text, bytes, NULL, NULL) != bytes ) {
 		x_uia_set_error("string conversion failed");
-		g_x_uia_text[0] = '\0';
+		return NULL;
 	}
-	return g_x_uia_text;
+	g_x_uia_bstr_text[bytes] = '\0';
+	return g_x_uia_bstr_text;
 }
 
-static const char* x_uia_bstr_to_buffer(BSTR value, char* buffer, size_t capacity)
+static void x_uia_json_append_bstr(XUiaJsonBuilder* json, BSTR value)
 {
-	int len;
-
-	if ( (buffer == NULL) || (capacity == 0u) ) {
-		return "";
+	const char* text = x_uia_bstr_to_text(value);
+	if ( text == NULL ) {
+		json->overflow = 1;
+		return;
 	}
-	buffer[0] = '\0';
-	if ( value == NULL ) {
-		return buffer;
-	}
-	len = WideCharToMultiByte(CP_UTF8, 0, value, -1, buffer, (int)capacity, NULL, NULL);
-	if ( len <= 0 ) {
-		buffer[0] = '\0';
-	}
-	return buffer;
+	x_uia_json_append_escaped(json, text);
 }
 
-static void x_uia_current_bstr_to_buffer(
+static int x_uia_bstr_to_buffer(BSTR value, char* buffer, size_t capacity)
+{
+	const char* text;
+	size_t length;
+
+	if ( buffer == NULL || capacity == 0u ) { return 0; }
+	buffer[0] = '\0';
+	text = x_uia_bstr_to_text(value);
+	if ( text == NULL ) { return 0; }
+	length = strlen(text);
+	if ( length >= capacity ) {
+		x_uia_set_error("locator: text exceeds field limit");
+		return 0;
+	}
+	memcpy(buffer, text, length + 1u);
+	return 1;
+}
+
+static int x_uia_current_bstr_to_buffer(
 	IUIAutomationElement* element,
 	HRESULT (STDMETHODCALLTYPE *getter)(IUIAutomationElement*, BSTR*),
 	char* buffer,
@@ -638,17 +800,21 @@ static void x_uia_current_bstr_to_buffer(
 	HRESULT hr;
 
 	if ( (buffer == NULL) || (capacity == 0u) ) {
-		return;
+		return 0;
 	}
 	buffer[0] = '\0';
 	if ( (element == NULL) || (getter == NULL) ) {
-		return;
+		return 1;
 	}
 	hr = getter(element, &value);
 	if ( SUCCEEDED(hr) ) {
-		(void)x_uia_bstr_to_buffer(value, buffer, capacity);
+		int ok = x_uia_bstr_to_buffer(value, buffer, capacity);
+		SysFreeString(value);
+		return ok;
 	}
 	SysFreeString(value);
+	x_uia_set_hresult_error("locator property", hr);
+	return 0;
 }
 
 static const char* x_uia_element_bstr_property(void* handle, HRESULT (STDMETHODCALLTYPE *getter)(IUIAutomationElement*, BSTR*), const char* op)
@@ -670,63 +836,9 @@ static const char* x_uia_element_bstr_property(void* handle, HRESULT (STDMETHODC
 	}
 	text = x_uia_bstr_to_text(value);
 	SysFreeString(value);
+	if ( text == NULL ) { return ""; }
+	x_uia_set_error("");
 	return text;
-}
-
-static int x_uia_element_current_bstr_equals(IUIAutomationElement* element, HRESULT (STDMETHODCALLTYPE *getter)(IUIAutomationElement*, BSTR*), const char* expected)
-{
-	BSTR value = NULL;
-	char text[512];
-	HRESULT hr;
-
-	if ( (element == NULL) || (getter == NULL) ) {
-		return 0;
-	}
-	hr = getter(element, &value);
-	if ( FAILED(hr) ) {
-		return 0;
-	}
-	(void)x_uia_bstr_to_buffer(value, text, sizeof(text));
-	SysFreeString(value);
-	return strcmp(text, expected == NULL ? "" : expected) == 0;
-}
-
-static int x_uia_condition_matches_element(XUiaCondition* condition, IUIAutomationElement* element)
-{
-	CONTROLTYPEID control_type = 0;
-	int process_id = 0;
-
-	if ( (condition == NULL) || (element == NULL) ) {
-		return 0;
-	}
-	switch ( condition->kind ) {
-	case X_UIA_CONDITION_TRUE:
-		return 1;
-	case X_UIA_CONDITION_NAME:
-		return x_uia_element_current_bstr_equals(element, element->lpVtbl->get_CurrentName, condition->text_value);
-	case X_UIA_CONDITION_AUTOMATION_ID:
-		return x_uia_element_current_bstr_equals(element, element->lpVtbl->get_CurrentAutomationId, condition->text_value);
-	case X_UIA_CONDITION_CLASS_NAME:
-		return x_uia_element_current_bstr_equals(element, element->lpVtbl->get_CurrentClassName, condition->text_value);
-	case X_UIA_CONDITION_CONTROL_TYPE:
-		if ( FAILED(element->lpVtbl->get_CurrentControlType(element, &control_type)) ) {
-			return 0;
-		}
-		return (int)control_type == condition->int_value;
-	case X_UIA_CONDITION_PROCESS_ID:
-		if ( FAILED(element->lpVtbl->get_CurrentProcessId(element, &process_id)) ) {
-			return 0;
-		}
-		return process_id == condition->int_value;
-	case X_UIA_CONDITION_AND:
-		return x_uia_condition_matches_element(condition->left, element) && x_uia_condition_matches_element(condition->right, element);
-	case X_UIA_CONDITION_OR:
-		return x_uia_condition_matches_element(condition->left, element) || x_uia_condition_matches_element(condition->right, element);
-	case X_UIA_CONDITION_NOT:
-		return !x_uia_condition_matches_element(condition->left, element);
-	default:
-		return 0;
-	}
 }
 
 static void* x_uia_get_pattern(XUiaElement* wrapped, PATTERNID pattern_id, REFIID iid, const char* op)
@@ -766,6 +878,7 @@ static int x_uia_guid_equal(REFIID left, const IID* right)
 static XUiaEvents* x_uia_events_from_handle(void* handle)
 {
 	XUiaEvents* queue = (XUiaEvents*)handle;
+	if ( InterlockedCompareExchange(&g_x_uia_owner_thread, 0, 0) != (LONG)GetCurrentThreadId() ) return NULL;
 	if ( (queue == NULL) || (queue->magic != X_UIA_MAGIC_EVENTS) ) {
 		return NULL;
 	}
@@ -779,7 +892,7 @@ static void x_uia_event_push(XUiaEvents* queue, const char* type, int property_i
 	CONTROLTYPEID control_type = 0;
 	int slot;
 
-	if ( (queue == NULL) || (queue->magic != X_UIA_MAGIC_EVENTS) ) {
+	if ( (queue == NULL) || InterlockedCompareExchange(&queue->closing, 0, 0) != 0 ) {
 		return;
 	}
 	memset(&rec, 0, sizeof(rec));
@@ -793,6 +906,10 @@ static void x_uia_event_push(XUiaEvents* queue, const char* type, int property_i
 	rec.control_type = (int)control_type;
 
 	EnterCriticalSection(&queue->lock);
+	if ( InterlockedCompareExchange(&queue->closing, 0, 0) != 0 ) {
+		LeaveCriticalSection(&queue->lock);
+		return;
+	}
 	if ( queue->count == X_UIA_EVENT_QUEUE_CAPACITY ) {
 		queue->head = (queue->head + 1) % X_UIA_EVENT_QUEUE_CAPACITY;
 		queue->count--;
@@ -830,6 +947,7 @@ static ULONG STDMETHODCALLTYPE x_uia_focus_handler_release(IUIAutomationFocusCha
 	XUiaFocusHandler* handler = (XUiaFocusHandler*)self;
 	LONG count = InterlockedDecrement(&handler->ref_count);
 	if ( count == 0 ) {
+		x_uia_events_drop_ref(handler->queue);
 		free(handler);
 		return 0u;
 	}
@@ -868,6 +986,7 @@ static ULONG STDMETHODCALLTYPE x_uia_property_handler_release(IUIAutomationPrope
 	XUiaPropertyHandler* handler = (XUiaPropertyHandler*)self;
 	LONG count = InterlockedDecrement(&handler->ref_count);
 	if ( count == 0 ) {
+		x_uia_events_drop_ref(handler->queue);
 		free(handler);
 		return 0u;
 	}
@@ -882,43 +1001,6 @@ static HRESULT STDMETHODCALLTYPE x_uia_property_handler_handle(IUIAutomationProp
 	return S_OK;
 }
 
-static void x_uia_focus_hook_push(XUiaEvents* queue, HWND hwnd)
-{
-	XUiaEventRecord rec;
-	int slot;
-
-	if ( (queue == NULL) || (queue->magic != X_UIA_MAGIC_EVENTS) ) {
-		return;
-	}
-	memset(&rec, 0, sizeof(rec));
-	x_uia_copy_text(rec.type, sizeof(rec.type), "focus");
-	rec.property_id = 0;
-	rec.control_type = 0;
-	rec.hwnd = hwnd;
-	EnterCriticalSection(&queue->lock);
-	if ( queue->count == X_UIA_EVENT_QUEUE_CAPACITY ) {
-		queue->head = (queue->head + 1) % X_UIA_EVENT_QUEUE_CAPACITY;
-		queue->count--;
-		queue->overflow_count++;
-	}
-	slot = (queue->head + queue->count) % X_UIA_EVENT_QUEUE_CAPACITY;
-	queue->records[slot] = rec;
-	queue->count++;
-	SetEvent(queue->signal);
-	LeaveCriticalSection(&queue->lock);
-}
-
-static void CALLBACK x_uia_focus_win_event_proc(HWINEVENTHOOK hook, DWORD event_id, HWND hwnd, LONG object_id, LONG child_id, DWORD event_thread, DWORD event_time)
-{
-	(void)hook;
-	(void)event_thread;
-	(void)event_time;
-	if ( (event_id != EVENT_OBJECT_FOCUS) || (object_id != OBJID_CLIENT) || (child_id != CHILDID_SELF) ) {
-		return;
-	}
-	x_uia_focus_hook_push(g_x_uia_focus_hook_queue, hwnd);
-}
-
 XL_EXPORT const char* x_uia_version(void)
 {
 	return X_UIA_VERSION;
@@ -926,11 +1008,22 @@ XL_EXPORT const char* x_uia_version(void)
 
 XL_EXPORT const char* x_uia_last_error(void)
 {
+	LONG owner = InterlockedCompareExchange(&g_x_uia_owner_thread, 0, 0);
+	if ( owner != 0 && (DWORD)owner != GetCurrentThreadId() ) return "UIA context belongs to another thread";
 	return g_x_uia_error;
 }
 
 XL_EXPORT int x_uia_shutdown(void)
 {
+	LONG owner = InterlockedCompareExchange(&g_x_uia_owner_thread, 0, 0);
+	if ( owner != 0 && (DWORD)owner != GetCurrentThreadId() ) {
+		x_uia_set_error("UIA context belongs to another thread");
+		return 0;
+	}
+	if ( InterlockedCompareExchange(&g_x_uia_live_handles, 0, 0) != 0 ) {
+		x_uia_set_error("shutdown: UIA handles are still active");
+		return 0;
+	}
 	if ( g_x_uia != NULL ) {
 		g_x_uia->lpVtbl->Release(g_x_uia);
 		g_x_uia = NULL;
@@ -939,6 +1032,13 @@ XL_EXPORT int x_uia_shutdown(void)
 		CoUninitialize();
 		g_x_uia_com_initialized = 0;
 	}
+	xrtFree(g_x_uia_bstr_text);
+	g_x_uia_bstr_text = NULL;
+	g_x_uia_bstr_capacity = 0u;
+	xrtFree(g_x_uia_json);
+	g_x_uia_json = NULL;
+	g_x_uia_json_capacity = 0u;
+	InterlockedExchange(&g_x_uia_owner_thread, 0);
 	x_uia_set_error("");
 	return 1;
 }
@@ -1132,6 +1232,7 @@ XL_EXPORT int x_uia_test_window_focus_button(void* handle)
 XL_EXPORT int x_uia_test_window_close(void* handle)
 {
 	XUiaTestWindow* win = x_uia_test_window_from_handle(handle);
+	DWORD waited;
 	if ( win == NULL ) {
 		return 0;
 	}
@@ -1139,7 +1240,11 @@ XL_EXPORT int x_uia_test_window_close(void* handle)
 		PostMessageA(win->hwnd, WM_CLOSE, 0, 0);
 	}
 	if ( win->thread != NULL ) {
-		WaitForSingleObject(win->thread, 2000u);
+		waited = WaitForSingleObject(win->thread, 2000u);
+		if ( waited != WAIT_OBJECT_0 ) {
+			x_uia_set_error("test_window.close: window thread did not stop");
+			return 0;
+		}
 	}
 	x_uia_set_error("");
 	return 1;
@@ -1151,7 +1256,9 @@ XL_EXPORT int x_uia_test_window_release(void* handle)
 	if ( win == NULL ) {
 		return 0;
 	}
-	x_uia_test_window_close(handle);
+	if ( !x_uia_test_window_close(handle) ) {
+		return 0;
+	}
 	if ( win->thread != NULL ) {
 		CloseHandle(win->thread);
 		win->thread = NULL;
@@ -1185,6 +1292,8 @@ XL_EXPORT void* x_uia_events_create(void)
 	}
 	InitializeCriticalSection(&queue->lock);
 	queue->magic = X_UIA_MAGIC_EVENTS;
+	queue->ref_count = 1;
+	InterlockedIncrement(&g_x_uia_live_handles);
 	x_uia_set_error("");
 	return queue;
 }
@@ -1211,32 +1320,8 @@ XL_EXPORT int x_uia_events_subscribe_focus_changed(void* handle)
 	if ( !x_uia_ensure() ) {
 		return 0;
 	}
-	if ( (g_x_uia_focus_hook_queue != NULL) && (g_x_uia_focus_hook_queue != queue) ) {
-		x_uia_set_error("events.subscribe_focus_changed: another focus queue is already active");
-		return 0;
-	}
-	if ( g_x_uia_focus_hook_queue == NULL ) {
-		queue->focus_hook = SetWinEventHook(
-			EVENT_OBJECT_FOCUS,
-			EVENT_OBJECT_FOCUS,
-			NULL,
-			x_uia_focus_win_event_proc,
-			0u,
-			0u,
-			WINEVENT_OUTOFCONTEXT);
-		if ( queue->focus_hook == NULL ) {
-			x_uia_set_error("events.subscribe_focus_changed: SetWinEventHook failed");
-			return 0;
-		}
-		g_x_uia_focus_hook_queue = queue;
-	}
 	handler = (XUiaFocusHandler*)calloc(1u, sizeof(XUiaFocusHandler));
 	if ( handler == NULL ) {
-		if ( queue->focus_hook != NULL ) {
-			UnhookWinEvent(queue->focus_hook);
-			queue->focus_hook = NULL;
-			g_x_uia_focus_hook_queue = NULL;
-		}
 		x_uia_set_error("events.subscribe_focus_changed: out of memory");
 		return 0;
 	}
@@ -1246,8 +1331,10 @@ XL_EXPORT int x_uia_events_subscribe_focus_changed(void* handle)
 	hr = g_x_uia->lpVtbl->AddFocusChangedEventHandler(g_x_uia, NULL, (IUIAutomationFocusChangedEventHandler*)handler);
 	if ( FAILED(hr) ) {
 		free(handler);
-		handler = NULL;
+		x_uia_set_hresult_error("events.subscribe_focus_changed", hr);
+		return 0;
 	}
+	InterlockedIncrement(&queue->ref_count);
 	queue->focus_handler = handler;
 	queue->focus_subscribed = 1;
 	x_uia_set_error("");
@@ -1299,6 +1386,7 @@ XL_EXPORT int x_uia_events_subscribe_property_changed(void* handle, void* elemen
 		x_uia_set_hresult_error("events.subscribe_property_changed", hr);
 		return 0;
 	}
+	InterlockedIncrement(&queue->ref_count);
 	element->element->lpVtbl->AddRef(element->element);
 	queue->property_element = element->element;
 	queue->property_handler = handler;
@@ -1312,6 +1400,7 @@ XL_EXPORT const char* x_uia_events_poll_json(void* handle, int timeout_ms)
 {
 	XUiaEvents* queue = x_uia_events_from_handle(handle);
 	XUiaEventRecord rec;
+	XUiaJsonBuilder json;
 	int has_event = 0;
 	int overflow = 0;
 	DWORD started;
@@ -1337,7 +1426,7 @@ XL_EXPORT const char* x_uia_events_poll_json(void* handle, int timeout_ms)
 		} else {
 			elapsed = GetTickCount() - started;
 			if ( elapsed >= (DWORD)timeout_ms ) {
-				x_uia_set_error("events.poll_json: timeout");
+				x_uia_set_error("");
 				return "{}";
 			}
 			wait_ms = (DWORD)timeout_ms - elapsed;
@@ -1353,7 +1442,12 @@ XL_EXPORT const char* x_uia_events_poll_json(void* handle, int timeout_ms)
 			}
 			continue;
 		}
-		x_uia_set_error("events.poll_json: timeout");
+		if ( wait_result == WAIT_TIMEOUT ) {
+			x_uia_set_error("");
+		} else {
+			snprintf(g_x_uia_error, sizeof(g_x_uia_error), "events.poll_json: Win32 wait error %lu", (unsigned long)GetLastError());
+			xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.uia", 1, g_x_uia_error);
+		}
 		return "{}";
 	}
 	EnterCriticalSection(&queue->lock);
@@ -1370,20 +1464,19 @@ XL_EXPORT const char* x_uia_events_poll_json(void* handle, int timeout_ms)
 	}
 	LeaveCriticalSection(&queue->lock);
 	if ( !has_event ) {
-		x_uia_set_error("events.poll_json: timeout");
+		x_uia_set_error("");
 		return "{}";
 	}
-	snprintf(
-		g_x_uia_json,
-		sizeof(g_x_uia_json),
+	x_uia_json_init(&json);
+	x_uia_json_append_format(
+		&json,
 		"{\"type\":\"%s\",\"propertyId\":%d,\"controlType\":%d,\"hwnd\":\"%p\",\"overflow\":%d}",
 		rec.type,
 		rec.property_id,
 		rec.control_type,
 		rec.hwnd,
 		overflow);
-	x_uia_set_error("");
-	return g_x_uia_json;
+	return x_uia_json_finish(&json, "events.poll_json: output limit exceeded");
 }
 
 XL_EXPORT int x_uia_events_release(void* handle)
@@ -1394,49 +1487,34 @@ XL_EXPORT int x_uia_events_release(void* handle)
 	if ( queue == NULL ) {
 		return 0;
 	}
-	if ( g_x_uia != NULL ) {
-		if ( queue->property_subscribed && (queue->property_element != NULL) && (queue->property_handler != NULL) ) {
-			hr = g_x_uia->lpVtbl->RemovePropertyChangedEventHandler(
-				g_x_uia,
-				queue->property_element,
-				(IUIAutomationPropertyChangedEventHandler*)queue->property_handler);
-			(void)hr;
+	InterlockedExchange(&queue->closing, 1);
+	if ( queue->property_subscribed ) {
+		hr = g_x_uia->lpVtbl->RemovePropertyChangedEventHandler(
+			g_x_uia, queue->property_element,
+			(IUIAutomationPropertyChangedEventHandler*)queue->property_handler);
+		if ( FAILED(hr) ) {
+			x_uia_set_hresult_error("events.release property", hr);
+			return 0;
 		}
-		if ( queue->focus_subscribed && (queue->focus_handler != NULL) ) {
-			hr = g_x_uia->lpVtbl->RemoveFocusChangedEventHandler(
-				g_x_uia,
-				(IUIAutomationFocusChangedEventHandler*)queue->focus_handler);
-			(void)hr;
-		}
-	}
-	if ( queue->focus_hook != NULL ) {
-		UnhookWinEvent(queue->focus_hook);
-		queue->focus_hook = NULL;
-		if ( g_x_uia_focus_hook_queue == queue ) {
-			g_x_uia_focus_hook_queue = NULL;
-		}
-	}
-	if ( queue->property_element != NULL ) {
+		queue->property_subscribed = 0;
 		queue->property_element->lpVtbl->Release(queue->property_element);
 		queue->property_element = NULL;
-	}
-	if ( queue->property_handler != NULL ) {
-		queue->property_handler->queue = NULL;
 		queue->property_handler->lpVtbl->Release((IUIAutomationPropertyChangedEventHandler*)queue->property_handler);
 		queue->property_handler = NULL;
 	}
-	if ( queue->focus_handler != NULL ) {
-		queue->focus_handler->queue = NULL;
+	if ( queue->focus_subscribed ) {
+		hr = g_x_uia->lpVtbl->RemoveFocusChangedEventHandler(
+			g_x_uia, (IUIAutomationFocusChangedEventHandler*)queue->focus_handler);
+		if ( FAILED(hr) ) {
+			x_uia_set_hresult_error("events.release focus", hr);
+			return 0;
+		}
+		queue->focus_subscribed = 0;
 		queue->focus_handler->lpVtbl->Release((IUIAutomationFocusChangedEventHandler*)queue->focus_handler);
 		queue->focus_handler = NULL;
 	}
-	if ( queue->signal != NULL ) {
-		CloseHandle(queue->signal);
-		queue->signal = NULL;
-	}
-	DeleteCriticalSection(&queue->lock);
 	queue->magic = 0u;
-	free(queue);
+	x_uia_events_drop_ref(queue);
 	x_uia_set_error("");
 	return 1;
 }
@@ -1520,6 +1598,7 @@ XL_EXPORT int x_uia_element_release(void* handle)
 	}
 	wrapped->magic = 0u;
 	free(wrapped);
+	InterlockedDecrement(&g_x_uia_live_handles);
 	return 1;
 }
 
@@ -1617,7 +1696,6 @@ static void x_uia_snapshot_append_bstr_property(
 )
 {
 	BSTR value = NULL;
-	char text[1024];
 	HRESULT hr;
 
 	x_uia_json_append_raw(&ctx->json, ",\"");
@@ -1626,9 +1704,10 @@ static void x_uia_snapshot_append_bstr_property(
 	hr = getter(element, &value);
 	if ( FAILED(hr) ) {
 		x_uia_json_append_escaped(&ctx->json, "");
+		SysFreeString(value);
 		return;
 	}
-	x_uia_json_append_escaped(&ctx->json, x_uia_bstr_to_buffer(value, text, sizeof(text)));
+	x_uia_json_append_bstr(&ctx->json, value);
 	SysFreeString(value);
 }
 
@@ -1658,9 +1737,9 @@ static void x_uia_snapshot_append_element(XUiaSnapshotContext* ctx, IUIAutomatio
 	x_uia_json_append_raw(&ctx->json, "\"name\":");
 	{
 		BSTR value = NULL;
-		char text[1024];
 		hr = element->lpVtbl->get_CurrentName(element, &value);
-		x_uia_json_append_escaped(&ctx->json, SUCCEEDED(hr) ? x_uia_bstr_to_buffer(value, text, sizeof(text)) : "");
+		if ( SUCCEEDED(hr) ) { x_uia_json_append_bstr(&ctx->json, value); }
+		else { x_uia_json_append_escaped(&ctx->json, ""); }
 		SysFreeString(value);
 	}
 	x_uia_snapshot_append_bstr_property(ctx, element, "automationId", element->lpVtbl->get_CurrentAutomationId);
@@ -1729,7 +1808,7 @@ XL_EXPORT const char* x_uia_element_snapshot_json(void* handle, int depth, int m
 		max_nodes = 512;
 	}
 	memset(&ctx, 0, sizeof(ctx));
-	x_uia_json_init(&ctx.json, g_x_uia_json, sizeof(g_x_uia_json));
+	x_uia_json_init(&ctx.json);
 	ctx.max_nodes = max_nodes;
 	hr = g_x_uia->lpVtbl->get_ControlViewWalker(g_x_uia, &ctx.walker);
 	if ( FAILED(hr) || (ctx.walker == NULL) ) {
@@ -1738,12 +1817,7 @@ XL_EXPORT const char* x_uia_element_snapshot_json(void* handle, int depth, int m
 	}
 	x_uia_snapshot_append_element(&ctx, wrapped->element, depth);
 	ctx.walker->lpVtbl->Release(ctx.walker);
-	if ( ctx.json.overflow ) {
-		x_uia_set_error("snapshot_json: output truncated");
-	} else {
-		x_uia_set_error("");
-	}
-	return g_x_uia_json;
+	return x_uia_json_finish(&ctx.json, "snapshot_json: output limit exceeded");
 }
 
 static HRESULT x_uia_create_snapshot_cache_request(IUIAutomationCacheRequest** request)
@@ -1769,29 +1843,6 @@ static HRESULT x_uia_create_snapshot_cache_request(IUIAutomationCacheRequest** r
 	(void)cache->lpVtbl->AddProperty(cache, UIA_BoundingRectanglePropertyId);
 	*request = cache;
 	return S_OK;
-}
-
-static void x_uia_cached_snapshot_append_bstr_property(
-	XUiaSnapshotContext* ctx,
-	IUIAutomationElement* element,
-	const char* name,
-	HRESULT (STDMETHODCALLTYPE *getter)(IUIAutomationElement*, BSTR*)
-)
-{
-	BSTR value = NULL;
-	char text[1024];
-	HRESULT hr;
-
-	x_uia_json_append_raw(&ctx->json, ",\"");
-	x_uia_json_append_raw(&ctx->json, name);
-	x_uia_json_append_raw(&ctx->json, "\":");
-	hr = getter(element, &value);
-	if ( FAILED(hr) ) {
-		x_uia_json_append_escaped(&ctx->json, "");
-		return;
-	}
-	x_uia_json_append_escaped(&ctx->json, x_uia_bstr_to_buffer(value, text, sizeof(text)));
-	SysFreeString(value);
 }
 
 static void x_uia_cached_snapshot_append_element(XUiaSnapshotContext* ctx, IUIAutomationElement* element, int depth)
@@ -1821,13 +1872,13 @@ static void x_uia_cached_snapshot_append_element(XUiaSnapshotContext* ctx, IUIAu
 	x_uia_json_append_raw(&ctx->json, "\"name\":");
 	{
 		BSTR value = NULL;
-		char text[1024];
 		hr = element->lpVtbl->get_CachedName(element, &value);
-		x_uia_json_append_escaped(&ctx->json, SUCCEEDED(hr) ? x_uia_bstr_to_buffer(value, text, sizeof(text)) : "");
+		if ( SUCCEEDED(hr) ) { x_uia_json_append_bstr(&ctx->json, value); }
+		else { x_uia_json_append_escaped(&ctx->json, ""); }
 		SysFreeString(value);
 	}
-	x_uia_cached_snapshot_append_bstr_property(ctx, element, "automationId", element->lpVtbl->get_CachedAutomationId);
-	x_uia_cached_snapshot_append_bstr_property(ctx, element, "className", element->lpVtbl->get_CachedClassName);
+	x_uia_snapshot_append_bstr_property(ctx, element, "automationId", element->lpVtbl->get_CachedAutomationId);
+	x_uia_snapshot_append_bstr_property(ctx, element, "className", element->lpVtbl->get_CachedClassName);
 	x_uia_json_append_format(&ctx->json, ",\"controlType\":%d", (int)control_type);
 	x_uia_json_append_raw(&ctx->json, ",\"hwnd\":");
 	x_uia_json_append_format(&ctx->json, "\"%p\"", hwnd);
@@ -1908,16 +1959,11 @@ XL_EXPORT const char* x_uia_element_cached_children_json(void* handle, int depth
 		return "{}";
 	}
 	memset(&ctx, 0, sizeof(ctx));
-	x_uia_json_init(&ctx.json, g_x_uia_json, sizeof(g_x_uia_json));
+	x_uia_json_init(&ctx.json);
 	ctx.max_nodes = max_nodes;
 	x_uia_cached_snapshot_append_element(&ctx, cached, depth);
 	cached->lpVtbl->Release(cached);
-	if ( ctx.json.overflow ) {
-		x_uia_set_error("cached_children_json: output truncated");
-	} else {
-		x_uia_set_error("");
-	}
-	return g_x_uia_json;
+	return x_uia_json_finish(&ctx.json, "cached_children_json: output limit exceeded");
 }
 
 static int x_uia_locator_same_element(IUIAutomationElement* left, IUIAutomationElement* right)
@@ -1941,12 +1987,18 @@ static int x_uia_locator_same_signature(IUIAutomationElement* element, const cha
 {
 	char child_class[512];
 	CONTROLTYPEID child_type = 0;
+	HRESULT hr;
 
 	if ( element == NULL ) {
 		return 0;
 	}
-	x_uia_current_bstr_to_buffer(element, element->lpVtbl->get_CurrentClassName, child_class, sizeof(child_class));
-	(void)element->lpVtbl->get_CurrentControlType(element, &child_type);
+	if ( !x_uia_current_bstr_to_buffer(element, element->lpVtbl->get_CurrentClassName,
+		child_class, sizeof(child_class)) ) { return -1; }
+	hr = element->lpVtbl->get_CurrentControlType(element, &child_type);
+	if ( FAILED(hr) ) {
+		x_uia_set_hresult_error("locator child control type", hr);
+		return -1;
+	}
 	return (child_type == control_type) && (strcmp(child_class, class_name) == 0);
 }
 
@@ -1966,9 +2018,17 @@ static int x_uia_locator_sibling_index(
 		return 0;
 	}
 	hr = walker->lpVtbl->GetFirstChildElement(walker, parent, &child);
+	if ( FAILED(hr) ) {
+		x_uia_set_hresult_error("locator first child", hr);
+		return -1;
+	}
 	while ( SUCCEEDED(hr) && (child != NULL) ) {
 		IUIAutomationElement* next = NULL;
 		int same_signature = x_uia_locator_same_signature(child, class_name, control_type);
+		if ( same_signature < 0 ) {
+			child->lpVtbl->Release(child);
+			return -1;
+		}
 		if ( x_uia_locator_same_element(child, target) ) {
 			child->lpVtbl->Release(child);
 			return index;
@@ -1980,10 +2040,13 @@ static int x_uia_locator_sibling_index(
 		child->lpVtbl->Release(child);
 		child = next;
 	}
-	return 0;
+	if ( child != NULL ) { child->lpVtbl->Release(child); }
+	if ( FAILED(hr) ) { x_uia_set_hresult_error("locator next sibling", hr); }
+	else { x_uia_set_error("locator: target is not a child of its parent"); }
+	return -1;
 }
 
-static void x_uia_locator_build_path(IUIAutomationElement* element, XUiaLocatorInfo* info)
+static int x_uia_locator_build_path(IUIAutomationElement* element, XUiaLocatorInfo* info)
 {
 	IUIAutomationTreeWalker* walker = NULL;
 	IUIAutomationElement* current;
@@ -1993,12 +2056,13 @@ static void x_uia_locator_build_path(IUIAutomationElement* element, XUiaLocatorI
 	int i;
 
 	if ( (element == NULL) || (info == NULL) ) {
-		return;
+		return 0;
 	}
 	info->class_path[0] = '\0';
 	hr = g_x_uia->lpVtbl->get_ControlViewWalker(g_x_uia, &walker);
 	if ( FAILED(hr) || (walker == NULL) ) {
-		return;
+		x_uia_set_hresult_error("locator walker", hr);
+		return 0;
 	}
 	current = element;
 	current->lpVtbl->AddRef(current);
@@ -2008,17 +2072,48 @@ static void x_uia_locator_build_path(IUIAutomationElement* element, XUiaLocatorI
 		CONTROLTYPEID control_type = 0;
 		int sibling_index = 0;
 
-		x_uia_current_bstr_to_buffer(current, current->lpVtbl->get_CurrentClassName, class_name, sizeof(class_name));
-		(void)current->lpVtbl->get_CurrentControlType(current, &control_type);
+		if ( !x_uia_current_bstr_to_buffer(current, current->lpVtbl->get_CurrentClassName,
+			class_name, sizeof(class_name)) ) {
+			current->lpVtbl->Release(current);
+			walker->lpVtbl->Release(walker);
+			return 0;
+		}
+		hr = current->lpVtbl->get_CurrentControlType(current, &control_type);
+		if ( FAILED(hr) ) {
+			current->lpVtbl->Release(current);
+			walker->lpVtbl->Release(walker);
+			x_uia_set_hresult_error("locator path control type", hr);
+			return 0;
+		}
 		hr = walker->lpVtbl->GetParentElement(walker, current, &parent);
+		if ( FAILED(hr) ) {
+			if ( parent != NULL ) { parent->lpVtbl->Release(parent); }
+			current->lpVtbl->Release(current);
+			walker->lpVtbl->Release(walker);
+			x_uia_set_hresult_error("locator parent", hr);
+			return 0;
+		}
 		if ( SUCCEEDED(hr) && (parent != NULL) ) {
 			sibling_index = x_uia_locator_sibling_index(walker, parent, current, class_name, (int)control_type);
+			if ( sibling_index < 0 ) {
+				parent->lpVtbl->Release(parent);
+				current->lpVtbl->Release(current);
+				walker->lpVtbl->Release(walker);
+				return 0;
+			}
 		}
 		if ( segment_count == 0 ) {
 			info->sibling_index = sibling_index;
 		}
 		if ( class_name[0] != '\0' ) {
-			(void)snprintf(segments[segment_count], sizeof(segments[segment_count]), "%.120s[%d]", class_name, sibling_index);
+			if ( snprintf(segments[segment_count], sizeof(segments[segment_count]), "%s[%d]",
+				class_name, sibling_index) >= (int)sizeof(segments[segment_count]) ) {
+				x_uia_set_error("locator: class path segment exceeds limit");
+				if ( parent != NULL ) { parent->lpVtbl->Release(parent); }
+				current->lpVtbl->Release(current);
+				walker->lpVtbl->Release(walker);
+				return 0;
+			}
 		} else {
 			(void)snprintf(segments[segment_count], sizeof(segments[segment_count]), "controlType:%d[%d]", (int)control_type, sibling_index);
 		}
@@ -2026,39 +2121,51 @@ static void x_uia_locator_build_path(IUIAutomationElement* element, XUiaLocatorI
 		current->lpVtbl->Release(current);
 		current = parent;
 	}
+	if ( current != NULL ) {
+		current->lpVtbl->Release(current);
+		walker->lpVtbl->Release(walker);
+		x_uia_set_error("locator: class path exceeds depth limit");
+		return 0;
+	}
 	for ( i = segment_count - 1; i >= 0; --i ) {
 		size_t used = strlen(info->class_path);
-		size_t remaining = sizeof(info->class_path) - used;
-		if ( remaining <= 1u ) {
-			break;
+		size_t needed = used + (used > 0u ? 1u : 0u) + strlen(segments[i]);
+		if ( needed >= sizeof(info->class_path) ) {
+			walker->lpVtbl->Release(walker);
+			x_uia_set_error("locator: class path exceeds text limit");
+			return 0;
 		}
 		if ( used > 0u ) {
 			x_uia_append_text(info->class_path, sizeof(info->class_path), "/");
-			used = strlen(info->class_path);
-			remaining = sizeof(info->class_path) - used;
-		}
-		if ( remaining <= 1u ) {
-			break;
 		}
 		x_uia_append_text(info->class_path, sizeof(info->class_path), segments[i]);
 	}
 	walker->lpVtbl->Release(walker);
+	return 1;
 }
 
-static void x_uia_locator_read_info(IUIAutomationElement* element, XUiaLocatorInfo* info)
+static int x_uia_locator_read_info(IUIAutomationElement* element, XUiaLocatorInfo* info)
 {
+	HRESULT hr;
 	if ( (element == NULL) || (info == NULL) ) {
-		return;
+		return 0;
 	}
 	memset(info, 0, sizeof(*info));
-	x_uia_current_bstr_to_buffer(element, element->lpVtbl->get_CurrentName, info->name, sizeof(info->name));
-	x_uia_current_bstr_to_buffer(element, element->lpVtbl->get_CurrentAutomationId, info->automation_id, sizeof(info->automation_id));
-	x_uia_current_bstr_to_buffer(element, element->lpVtbl->get_CurrentClassName, info->class_name, sizeof(info->class_name));
-	(void)element->lpVtbl->get_CurrentControlType(element, &info->control_type);
-	(void)element->lpVtbl->get_CurrentProcessId(element, &info->process_id);
-	(void)element->lpVtbl->get_CurrentNativeWindowHandle(element, &info->hwnd);
-	(void)element->lpVtbl->get_CurrentBoundingRectangle(element, &info->rect);
-	x_uia_locator_build_path(element, info);
+	if ( !x_uia_current_bstr_to_buffer(element, element->lpVtbl->get_CurrentName,
+		info->name, sizeof(info->name)) ||
+		!x_uia_current_bstr_to_buffer(element, element->lpVtbl->get_CurrentAutomationId,
+			info->automation_id, sizeof(info->automation_id)) ||
+		!x_uia_current_bstr_to_buffer(element, element->lpVtbl->get_CurrentClassName,
+			info->class_name, sizeof(info->class_name)) ) { return 0; }
+	hr = element->lpVtbl->get_CurrentControlType(element, &info->control_type);
+	if ( FAILED(hr) ) { x_uia_set_hresult_error("locator control type", hr); return 0; }
+	hr = element->lpVtbl->get_CurrentProcessId(element, &info->process_id);
+	if ( FAILED(hr) ) { x_uia_set_hresult_error("locator process id", hr); return 0; }
+	hr = element->lpVtbl->get_CurrentNativeWindowHandle(element, &info->hwnd);
+	if ( FAILED(hr) ) { x_uia_set_hresult_error("locator window handle", hr); return 0; }
+	hr = element->lpVtbl->get_CurrentBoundingRectangle(element, &info->rect);
+	if ( FAILED(hr) ) { x_uia_set_hresult_error("locator rectangle", hr); return 0; }
+	return x_uia_locator_build_path(element, info);
 }
 
 static const char* x_uia_locator_json_for_element(IUIAutomationElement* element)
@@ -2069,13 +2176,12 @@ static const char* x_uia_locator_json_for_element(IUIAutomationElement* element)
 	const char* expression;
 	int confidence;
 
-	x_uia_json_init(&json, g_x_uia_json, sizeof(g_x_uia_json));
 	if ( element == NULL ) {
-		x_uia_json_append_raw(&json, "{}");
 		x_uia_set_error("locator: invalid element");
-		return g_x_uia_json;
+		return "{}";
 	}
-	x_uia_locator_read_info(element, &info);
+	x_uia_json_init(&json);
+	if ( !x_uia_locator_read_info(element, &info) ) { return "{}"; }
 	if ( info.automation_id[0] != '\0' ) {
 		strategy = "automationId";
 		expression = "by_automation_id + by_control_type";
@@ -2122,12 +2228,7 @@ static const char* x_uia_locator_json_for_element(IUIAutomationElement* element)
 		(long)(info.rect.bottom - info.rect.top)
 	);
 	x_uia_json_append_raw(&json, "}");
-	if ( json.overflow ) {
-		x_uia_set_error("locator: output truncated");
-	} else {
-		x_uia_set_error("");
-	}
-	return g_x_uia_json;
+	return x_uia_json_finish(&json, "locator: output limit exceeded");
 }
 
 XL_EXPORT const char* x_uia_locator_for(void* handle)
@@ -2165,27 +2266,27 @@ XL_EXPORT const char* x_uia_focused_locator(void)
 
 XL_EXPORT void* x_uia_by_name(const char* name)
 {
-	return x_uia_condition_create(X_UIA_CONDITION_NAME, name, 0, NULL, NULL, "by_name");
+	return x_uia_condition_create(X_UIA_CONDITION_NAME, name, 0, "by_name");
 }
 
 XL_EXPORT void* x_uia_by_automation_id(const char* automation_id)
 {
-	return x_uia_condition_create(X_UIA_CONDITION_AUTOMATION_ID, automation_id, 0, NULL, NULL, "by_automation_id");
+	return x_uia_condition_create(X_UIA_CONDITION_AUTOMATION_ID, automation_id, 0, "by_automation_id");
 }
 
 XL_EXPORT void* x_uia_by_class_name(const char* class_name)
 {
-	return x_uia_condition_create(X_UIA_CONDITION_CLASS_NAME, class_name, 0, NULL, NULL, "by_class_name");
+	return x_uia_condition_create(X_UIA_CONDITION_CLASS_NAME, class_name, 0, "by_class_name");
 }
 
 XL_EXPORT void* x_uia_by_control_type(int control_type)
 {
-	return x_uia_condition_create(X_UIA_CONDITION_CONTROL_TYPE, "", control_type, NULL, NULL, "by_control_type");
+	return x_uia_condition_create(X_UIA_CONDITION_CONTROL_TYPE, "", control_type, "by_control_type");
 }
 
 XL_EXPORT void* x_uia_by_process_id(int process_id)
 {
-	return x_uia_condition_create(X_UIA_CONDITION_PROCESS_ID, "", process_id, NULL, NULL, "by_process_id");
+	return x_uia_condition_create(X_UIA_CONDITION_PROCESS_ID, "", process_id, "by_process_id");
 }
 
 XL_EXPORT void* x_uia_condition_and(void* left, void* right)
@@ -2197,7 +2298,7 @@ XL_EXPORT void* x_uia_condition_and(void* left, void* right)
 		x_uia_set_error("all_of: invalid condition");
 		return NULL;
 	}
-	return x_uia_condition_create(X_UIA_CONDITION_AND, "", 0, a, b, "all_of");
+	return x_uia_condition_compose(X_UIA_CONDITION_AND, a, b, "all_of");
 }
 
 XL_EXPORT void* x_uia_condition_or(void* left, void* right)
@@ -2209,7 +2310,7 @@ XL_EXPORT void* x_uia_condition_or(void* left, void* right)
 		x_uia_set_error("any_of: invalid condition");
 		return NULL;
 	}
-	return x_uia_condition_create(X_UIA_CONDITION_OR, "", 0, a, b, "any_of");
+	return x_uia_condition_compose(X_UIA_CONDITION_OR, a, b, "any_of");
 }
 
 XL_EXPORT void* x_uia_condition_not(void* handle)
@@ -2220,7 +2321,7 @@ XL_EXPORT void* x_uia_condition_not(void* handle)
 		x_uia_set_error("not_condition: invalid condition");
 		return NULL;
 	}
-	return x_uia_condition_create(X_UIA_CONDITION_NOT, "", 0, wrapped, NULL, "not_condition");
+	return x_uia_condition_compose(X_UIA_CONDITION_NOT, wrapped, NULL, "not_condition");
 }
 
 XL_EXPORT int x_uia_condition_release(void* handle)
@@ -2235,6 +2336,7 @@ XL_EXPORT int x_uia_condition_release(void* handle)
 	}
 	wrapped->magic = 0u;
 	free(wrapped);
+	InterlockedDecrement(&g_x_uia_live_handles);
 	return 1;
 }
 
@@ -2247,13 +2349,10 @@ XL_EXPORT void* x_uia_element_find_first(void* element_handle, void* condition_h
 {
 	XUiaElement* element = x_uia_element_from_handle(element_handle);
 	XUiaCondition* condition = x_uia_condition_from_handle(condition_handle);
-	IUIAutomationElementArray* found = NULL;
 	IUIAutomationElement* item = NULL;
 	DWORD started;
 	DWORD now;
 	HRESULT hr;
-	int count = 0;
-	int i;
 	int effective_timeout;
 
 	if ( element == NULL ) {
@@ -2267,26 +2366,16 @@ XL_EXPORT void* x_uia_element_find_first(void* element_handle, void* condition_h
 	effective_timeout = timeout_ms < 0 ? 0 : timeout_ms;
 	started = GetTickCount();
 	do {
-		found = NULL;
-		hr = element->element->lpVtbl->FindAll(element->element, (enum TreeScope)scope, condition->condition, &found);
-		if ( FAILED(hr) || (found == NULL) ) {
+		item = NULL;
+		hr = element->element->lpVtbl->FindFirst(element->element, (enum TreeScope)scope, condition->condition, &item);
+		if ( FAILED(hr) ) {
 			x_uia_set_hresult_error("find_first", hr);
 			return NULL;
 		}
-		count = 0;
-		(void)found->lpVtbl->get_Length(found, &count);
-		for ( i = 0; i < count; ++i ) {
-			item = NULL;
-			if ( SUCCEEDED(found->lpVtbl->GetElement(found, i, &item)) && (item != NULL) ) {
-				if ( x_uia_condition_matches_element(condition, item) ) {
-					found->lpVtbl->Release(found);
-					x_uia_set_error("");
-					return x_uia_wrap_element(item);
-				}
-				item->lpVtbl->Release(item);
-			}
+		if ( item != NULL ) {
+			x_uia_set_error("");
+			return x_uia_wrap_element(item);
 		}
-		found->lpVtbl->Release(found);
 		now = GetTickCount();
 		if ( effective_timeout <= 0 || (int)(now - started) >= effective_timeout ) {
 			break;
@@ -2305,36 +2394,46 @@ XL_EXPORT xvalue* x_uia_element_find_all(void* element_handle, void* condition_h
 	IUIAutomationElementArray* found = NULL;
 	IUIAutomationElement* item = NULL;
 	HRESULT hr;
+	DWORD started;
+	DWORD elapsed;
 	int count = 0;
 	int i;
 
-	(void)timeout_ms;
 	if ( (element == NULL) || (condition == NULL) ) {
 		x_uia_set_error("find_all: invalid element or condition");
 		return out;
 	}
-	hr = element->element->lpVtbl->FindAll(element->element, (enum TreeScope)scope, condition->condition, &found);
-	if ( FAILED(hr) || (found == NULL) ) {
-		x_uia_set_hresult_error("find_all", hr);
-		return out;
+	started = GetTickCount();
+	for ( ;; ) {
+		found = NULL;
+		hr = element->element->lpVtbl->FindAll(element->element, (enum TreeScope)scope, condition->condition, &found);
+		if ( FAILED(hr) || found == NULL ) {
+			x_uia_set_hresult_error("find_all", hr);
+			return out;
+		}
+		hr = found->lpVtbl->get_Length(found, &count);
+		if ( FAILED(hr) ) {
+			found->lpVtbl->Release(found);
+			x_uia_set_hresult_error("find_all length", hr);
+			return out;
+		}
+		if ( count > 0 || timeout_ms <= 0 ) break;
+		elapsed = GetTickCount() - started;
+		if ( elapsed >= (DWORD)timeout_ms ) break;
+		found->lpVtbl->Release(found);
+		Sleep((DWORD)timeout_ms - elapsed < 50u ? (DWORD)timeout_ms - elapsed : 50u);
 	}
-	if ( SUCCEEDED(found->lpVtbl->get_Length(found, &count)) ) {
-		for ( i = 0; i < count; ++i ) {
-			item = NULL;
-			if ( SUCCEEDED(found->lpVtbl->GetElement(found, i, &item)) && (item != NULL) ) {
-				if ( x_uia_condition_matches_element(condition, item) ) {
-					XUiaElement* wrapped = x_uia_wrap_element(item);
-					if ( wrapped == NULL || !xrtValueArrayAppendNew(out,
-						xrtValuePointer(wrapped)) ) {
-						x_uia_element_release(wrapped);
-					}
-				} else {
-					item->lpVtbl->Release(item);
-				}
+	for ( i = 0; i < count; ++i ) {
+		item = NULL;
+		if ( SUCCEEDED(found->lpVtbl->GetElement(found, i, &item)) && item != NULL ) {
+			XUiaElement* wrapped = x_uia_wrap_element(item);
+			if ( wrapped == NULL || !xrtValueArrayAppendNew(out, xrtValuePointer(wrapped)) ) {
+				x_uia_element_release(wrapped);
 			}
 		}
 	}
 	found->lpVtbl->Release(found);
+	x_uia_set_error("");
 	return out;
 }
 
@@ -2517,6 +2616,8 @@ XL_EXPORT const char* x_uia_element_value(void* handle)
 	}
 	text = x_uia_bstr_to_text(value);
 	SysFreeString(value);
+	if ( text == NULL ) { return ""; }
+	x_uia_set_error("");
 	return text;
 }
 
@@ -2568,6 +2669,7 @@ XL_EXPORT const char* x_uia_element_text(void* handle)
 			if ( SUCCEEDED(hr) ) {
 				text = x_uia_bstr_to_text(text_bstr);
 				SysFreeString(text_bstr);
+				if ( text == NULL ) { return ""; }
 				if ( text[0] != '\0' ) {
 					x_uia_set_error("");
 					return text;

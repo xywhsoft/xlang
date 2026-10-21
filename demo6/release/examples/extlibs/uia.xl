@@ -50,11 +50,6 @@ assert checkbox.toggle() == true, "uia toggle failed"
 assert checkbox.toggle_state() >= 0, "uia toggle_state failed"
 assert checkbox.click_timeout(1000) == true, "uia click_timeout failed"
 assert checkbox.click() == true, "uia click failed"
-assert root.scroll(2, 2) == false or root.scroll(2, 2) == true, "uia scroll should return bool"
-assert root.range_value() >= 0.0 or root.range_value() < 0.0, "uia range_value should return float"
-assert root.range_min() >= 0.0 or root.range_min() < 0.0, "uia range_min should return float"
-assert root.range_max() >= 0.0 or root.range_max() < 0.0, "uia range_max should return float"
-assert root.set_range_value(0.0) == false or root.set_range_value(0.0) == true, "uia set_range_value should return bool"
 
 auto nameCondition = uia.by_name("xlang uia test")
 auto editClassCondition = uia.by_class_name("Edit")

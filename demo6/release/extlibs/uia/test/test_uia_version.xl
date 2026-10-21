@@ -1,0 +1,7 @@
+import uia
+
+func main(...) as int
+	assert uia.available(), "uia module unavailable"
+	println("uia version ", uia.version())
+	return 0
+end

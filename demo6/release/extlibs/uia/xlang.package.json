@@ -7,11 +7,14 @@
     "artifact":  {
                      "kind":  "source",
                      "cSources":  [
-                                      "x_uia_artifact.c"
+                     "x_uia_artifact.c"
                                   ],
                      "xlSources":  [
-                                       "src/uia.xl"
-                                   ]
+                     "src/uia.xl"
+                 ],
+                 "xrtModules": [
+                     "XRT_MODULE_VALUE_CONTAINER"
+                 ]
                  },
     "links":  [
                   "ole32",
@@ -24,6 +27,7 @@
     "dependencies":  [
 
                      ],
+    "coverage": { "mode": "suite", "tests": ["test/test_uia_boundaries.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",
