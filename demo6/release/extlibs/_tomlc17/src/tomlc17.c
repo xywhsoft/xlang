@@ -1369,12 +1369,8 @@ static int parse_inline_table(parser_t *pp, token_t tok,
     // Got an RBRACE: done!
     if (tok.toktyp == TOK_RBRACE) {
       if (was_comma) {
-        /*
         return SETERROR(pp->ebuf, tok.lineno,
                         "extra comma before closing brace");
-        */
-        // extra comma before RBRACE is allowed for v1.1
-        (void)0;
       }
       break;
     }
@@ -1388,11 +1384,8 @@ static int parse_inline_table(parser_t *pp, token_t tok,
       return SETERROR(pp->ebuf, tok.lineno, "unexpected comma");
     }
 
-    // Newline not allowed in inline table.
-    // newline is allowed in v1.1
     if (tok.toktyp == TOK_ENDL) {
-      // return SETERROR(pp->ebuf, tok.lineno, "unexpected newline");
-      continue;
+      return SETERROR(pp->ebuf, tok.lineno, "unexpected newline");
     }
 
     // Not a comma, but need a comma: error!
@@ -1789,26 +1782,6 @@ static int parse_norm(parser_t *pp, token_t tok, span_t *ret_span) {
       *dst++ = '\r';
       p += 2;
       continue;
-    case 'e':
-      *dst++ = '\033';
-      p += 2;
-      continue;
-    case 'x': {
-      char buf[3];
-      memcpy(buf, p + 2, 2);
-      buf[2] = 0;
-      // There is no need to check for two hex digits here because
-      // the scanner already checked it.
-      int32_t ucs = strtol(buf, 0, 16);
-      int n = ucs_to_utf8(ucs, dst);
-      if (n < 0) {
-        return SETERROR(pp->ebuf, tok.lineno, "error converting UCS %s to UTF8",
-                        buf);
-      }
-      dst += n;
-      p += 2 + 2; // \xNN
-      continue;
-    }
     case 'u':
     case 'U': {
       char buf[9];
@@ -1968,10 +1941,10 @@ static int scan_escape_chars(scanner_t *sp) {
     return 0;
   }
   int ch = *p++;
-  if (ch && strchr("btnfre\"\\", ch)) {
+  if (ch && strchr("btnfr\"\\", ch)) {
     return p - sp->cur;
   }
-  int hex = (ch == 'x') ? 2 : (ch == 'u') ? 4 : (ch == 'U') ? 8 : 0;
+  int hex = (ch == 'u') ? 4 : (ch == 'U') ? 8 : 0;
   if (hex) {
     int i = 0;
     for (; i < hex && p < sp->endp && is_hex_char(*p); i++, p++)
@@ -2287,9 +2260,7 @@ static int read_time(const char *p, int *hour, int *minute, int *second,
     return 0;
   }
   if (p[2] != ':') {
-    // seconds are optional in v1.1
-    p += 2;
-    return p - pp;
+    return 0;
   }
   p += 3;
 
@@ -2746,42 +2717,6 @@ static int scan_nonstring_literal(scanner_t *sp, token_t *tok) {
   return SETERROR(sp->ebuf, lineno, "invalid value");
 }
 
-// Return true if Unicode codepoint is allowed in a TOML 1.1 bare key.
-// Ranges taken verbatim from the TOML 1.1 spec grammar for bare-key-char.
-static bool is_unicode_bare_key_char(uint32_t cp) {
-  if (cp == 0xB2 || cp == 0xB3 || cp == 0xB9)
-    return true;
-  if (0xBC <= cp && cp <= 0xBE)
-    return true;
-  if (0xC0 <= cp && cp <= 0xD6)
-    return true;
-  if (0xD8 <= cp && cp <= 0xF6)
-    return true;
-  if (0xF8 <= cp && cp <= 0x37D)
-    return true;
-  if (0x37F <= cp && cp <= 0x1FFF)
-    return true;
-  if (cp == 0x200C || cp == 0x200D)
-    return true;
-  if (0x203F <= cp && cp <= 0x2040)
-    return true;
-  if (0x2070 <= cp && cp <= 0x218F)
-    return true;
-  if (0x2460 <= cp && cp <= 0x24FF)
-    return true;
-  if (0x2C00 <= cp && cp <= 0x2FEF)
-    return true;
-  if (0x3001 <= cp && cp <= 0xD7FF)
-    return true;
-  if (0xF900 <= cp && cp <= 0xFDCF)
-    return true;
-  if (0xFDF0 <= cp && cp <= 0xFFFD)
-    return true;
-  if (0x10000 <= cp && cp <= 0xEFFFF)
-    return true;
-  return false;
-}
-
 // Scan a literal
 static int scan_literal(scanner_t *sp, token_t *tok) {
   *tok = mktoken(sp, TOK_LIT);
@@ -2790,14 +2725,6 @@ static int scan_literal(scanner_t *sp, token_t *tok) {
     if (isalnum((unsigned char)*p) || *p == '_' || *p == '-') {
       p++;
       continue;
-    }
-    if ((unsigned char)*p >= 0x80) {
-      uint32_t cp;
-      int n = utf8_to_ucs(p, sp->endp - p, &cp);
-      if (n > 0 && is_unicode_bare_key_char(cp)) {
-        p += n;
-        continue;
-      }
     }
     break;
   }

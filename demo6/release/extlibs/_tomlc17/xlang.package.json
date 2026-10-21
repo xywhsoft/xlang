@@ -7,7 +7,8 @@
     "artifact": {
         "kind": "source",
         "cSources": ["tomlc17_xrt.c"],
-        "xlSources": []
+        "xlSources": [],
+        "xrtModules": ["XRT_MODULE_NUMBER_FLOAT"]
     },
     "links": [],
     "loadlibs": [],
