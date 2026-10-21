@@ -69,7 +69,8 @@ def main():
                     domains=run(choice+'.domains',[plan,'--domains',choice])
                     assert len(sources)==len(set(sources)) and not any('resolver' in source or 'task_pool' in source for source in sources)
                     if choice=='tcp-resource':
-                        assert len(sources)==25 and 'xl6OwnershipDomainExecutionTcpV1Get(),\n' in domains
+                        assert 'src/runtime/xl6_execution_tcp.c' in sources and 'xl6OwnershipDomainExecutionTcpV1Get(),\n' in domains
+                        assert 'src/runtime/xl6_ownership_domain_net_tcp_base_native.c' in sources
                         assert 'xl6OwnershipDomainNetTcpNativeV1Get(),\n' in domains
                         assert 'XRT_MODULE_NET_TCP_FUTURE\n' in modules
                         for kind,text in (('modules',modules),('domains',domains)):

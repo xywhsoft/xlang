@@ -219,12 +219,32 @@ static void deferredAccept(xnetportbackend backend)
     while(!(peer=xrtNetListenerAccept(scope.listener))){CHECK(!xrtGetError()&&!xrtDeadlineExpired(until));xrtThreadYield();}
     xl6ExecutionTcpLeaveInternalV1(&scope);xnetstream* observer=xrtNetStreamRef(peer);CHECK(observer);
     xcancel* cancel=xrtFutureCancelToken(future);CHECK(cancel);
+    /* Inspection pins keep the record, not a user owner. Observe a complete
+     * retirement attempt under Freeze after cancellation was requested; a
+     * flag alone can otherwise race with dropping an abandoned source. */
+    const xrtownershipadapterv1* carrierAdapter=NULL;const xrtownershippreparationv1* carrierPrepare=NULL;
+    const xrtownershipfinishv1* carrierFinish=NULL;xrtownershipscope inspection={0};freeze(&inspection);
+    CHECK(xl6OwnershipCatalogProbeV1(xl6ExecutionResourceOwnershipV1(carrier),catalog,
+        &carrierAdapter,&carrierPrepare,&carrierFinish)==XL6_OWNERSHIP_ADMISSION_ADMITTED);
+    CHECK(carrierAdapter->Hold(carrier)&&xrtOwnershipScopeEnd(&inspection));
     xl6ExecutionResourceReleaseV1(carrier);until=xrtDeadlineAfter(UINT64_C(5000000));
     while(!xrtCancelRequested(cancel)){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
     CHECK(xrtFutureState(future)==XFUTURE_PENDING);
+    for(;;){freeze(&inspection);
+        const xrtownershipadapterv1* adapter=NULL;const xrtownershippreparationv1* prepare=NULL;const xrtownershipfinishv1* finish=NULL;
+        XL6_OwnershipAdmissionV1 admission=xl6OwnershipCatalogProbeV1(xl6ExecutionResourceOwnershipV1(carrier),catalog,&adapter,&prepare,&finish);
+        if(admission!=XL6_OWNERSHIP_ADMISSION_BUSY){
+            CHECK(admission==XL6_OWNERSHIP_ADMISSION_ADMITTED&&carrier->source==graph.source);
+            XL6_ExecutionResourceSnapshotV1 observed={.size=sizeof(observed)};
+            CHECK(xl6ExecutionResourceSnapshotV1Get(carrier,&observed)&&observed.nativePresent);
+            CHECK(xrtOwnershipScopeEnd(&inspection));break;
+        }
+        CHECK(xrtOwnershipScopeEnd(&inspection)&&!xrtDeadlineExpired(until));xrtThreadYield();
+    }
     XL6_ExecutionSourceSnapshotV1 sourceState={.size=sizeof(sourceState)};
     CHECK(xl6ExecutionSourceSnapshotV1Get(graph.source,&sourceState)&&sourceState.resources==6&&!sourceState.failed);
     __xrtNetListenerWaitFinish(waiter,peer,false);xrtCancelDestroy(cancel);xrtFutureDestroy(future);
+    carrierAdapter->Drop(carrier);
     until=xrtDeadlineAfter(UINT64_C(5000000));
     while(xrtNetStreamState(observer)!=XNET_STREAM_CLOSED){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
     xrtNetStreamDestroy(observer);xl6ExecutionResourceReleaseV1(client);dropOrdinary(&graph);balanced(&before);++deferred;

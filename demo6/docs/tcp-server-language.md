@@ -123,3 +123,16 @@ Listener、Data／回调指针不直接提升为默认类 API。后续继续完�
 UDP／多播、网络文件／任务组合和剩余并发，以及 P4 非对称密钥、P5 X.509、P6 TLS、
 P7 发布产品联合验收。当前源码与专项通过不能代替这些目标完成。
 未决策仍 CRT 0／XRT 11，范围与上一批不变。
+
+## 补充：旧 Listener 专项的验收卫生
+
+聚合 Server 提交 `dea1487c1` 后，单独修复旧 Listener 专项的两处测试问题，未修改
+生产实现：不再用旧的 25 个源文件数量代替依赖语义，明确核验共享 TCP 基础域；
+延迟结果对照也使用真实检查 pin／Freeze／静止状态，消除取消标志与退休之间的
+观测竞态，不放宽 abandoned-source 拒绝要求。
+
+`listener-regression-win-r1` 31 阶段、Linux
+`/var/tmp/xlang-server-language-listener-regression-linux-r1` 34 阶段通过；GCC／TCC
+O0／O2、select／IOCP 或 epoll、Linux ASan／UBSan。每次仍为 24 次整图、3 次普通
+清理、未交付／延迟结果、80 个预算（12 失败），三个原拒绝对照全部生效。输入／
+日志／产物哈希不变。这 65 个补充阶段与主批 266 分开记录，合计 331，不重写主批报告。
