@@ -1,0 +1,8 @@
+import vcard
+
+func main(...) as int
+    var card = vcard.parse("BEGIN:VCARD\nVERSION:3.0\nFN:Alice\nEMAIL:a@example.com\nEND:VCARD\n")
+    assert card["fn"] == "Alice"
+    assert vcard.build(card).contains("EMAIL:a@example.com")
+    return 0
+end

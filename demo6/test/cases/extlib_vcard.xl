@@ -54,9 +54,14 @@ END:VCARD
     string note2 = string(back2["note"])
     assert note2 == longDash(120), "fold round trip"
 
-    // 空卡片
-    var empty = vcard.parse("BEGIN:VCARD\r\nEND:VCARD\r\n")
-    assert empty != null, "empty card parses"
+    // 缺少必需的 VERSION/FN 必须拒绝
+    int caught = 0
+    try
+        vcard.parse("BEGIN:VCARD\r\nEND:VCARD\r\n")
+    catch e
+        caught += 1
+    end
+    assert caught == 1, "incomplete card rejected"
 
     return 0
 end

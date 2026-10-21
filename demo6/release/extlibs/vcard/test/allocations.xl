@@ -1,0 +1,46 @@
+import vcard
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func main(...) as int
+    string source = "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:张三\r\nTEL:123\r\nTEL:456\r\nEND:VCARD\r\n"
+    var card = {"fn": "张三", "tel": ["123", "456"]}
+    for api in range(2)
+        int failures = 0
+        int successes = 0
+        for point in range(24)
+            bool memoryError = false
+            bool accepted = false
+            assert failAfter(uint64(point))
+            try
+                if api == 0 then
+                    var parsed = vcard.parse(source)
+                    accepted = parsed["fn"] == "张三"
+                else
+                    string built = vcard.build(card)
+                    accepted = string.indexOf(built, "FN:张三") >= 0
+                end
+            catch MemoryError e
+                memoryError = true
+            end
+            bool triggered = failTriggered()
+            failClear()
+            assert triggered == memoryError
+            if triggered then
+                failures += 1
+            else
+                assert accepted
+                successes += 1
+            end
+            if api == 0 then
+                assert vcard.parse(source)["fn"] == "张三"
+            else
+                assert string.indexOf(vcard.build(card), "FN:张三") >= 0
+            end
+        end
+        assert failures > 1 and successes > 0
+    end
+    return 0
+end

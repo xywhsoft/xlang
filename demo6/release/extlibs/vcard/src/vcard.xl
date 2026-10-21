@@ -1,20 +1,24 @@
-extern "xv_parse" func __v_parse(string text) as var
-extern "xv_build" func __v_build(var card) as string
+extern "xv_parse" func __v_parse(string text, c_size size) as var
+extern "xv_build" func __v_build(var card) as point
 
 
 
-// parse 解析 vCard 文本（3.0/4.0 通用），返回字段映射
+// parse 解析 vCard 3.0/4.0 常用字段，返回值映射
 // 重复字段（TEL/EMAIL/ADR 等）自动提升为数组；折行自动展开；转义解码
 // 常见字段：fn、n、nickname、tel、email、org、title、adr、url、note、bday 等
 export func parse(string text) as var
-    var r = __v_parse(text)
+    var r = __v_parse(text, c_size(string.byteLen(text)))
     if r == null then
-        throw ValueError "vcard: input is null"
+        throw ValueError "vcard: invalid vCard 3.0/4.0 input"
     end
     return r
 end
 
-// build 由字段映射生成 vCard 3.0 文本（长行按 74 字节折叠）
+// build 生成 vCard 3.0/4.0 常用字段文本；未指定 version 时默认 3.0
 export func build(var card) as string
-    return __v_build(card)
+    point result = __v_build(card)
+    if result == null then
+        throw ValueError "vcard: invalid contact fields"
+    end
+    return __xl_runtime.takeCstr(result)
 end

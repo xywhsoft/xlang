@@ -1,0 +1,34 @@
+import vcard
+
+func main(...) as int
+    int caught = 0
+    try
+        vcard.parse("BEGIN:VCARD\r\nVERSION:3.0\r\nFN:A\u001b\r\nEND:VCARD\r\n")
+    catch e
+        caught += 1
+    end
+    try
+        vcard.parse("BEGIN:VCARD\r\nVERSION:4.0\r\nFN:A\r\nX-RAW:bad\u001b\r\nEND:VCARD\r\n")
+    catch e
+        caught += 1
+    end
+    try
+        vcard.build({"fn": "A\u001b"})
+    catch e
+        caught += 1
+    end
+    try
+        vcard.build({"fn": "A", "note": "bad\u001b"})
+    catch e
+        caught += 1
+    end
+    try
+        vcard.build({"fn": "A", "n": "bad\u001b"})
+    catch e
+        caught += 1
+    end
+    assert caught == 5
+    assert vcard.parse("BEGIN:VCARD\r\nVERSION:4.0\r\nFN:A\tB\r\nEND:VCARD\r\n")["fn"] == "A\tB"
+    println("vcard control characters: PASS")
+    return 0
+end

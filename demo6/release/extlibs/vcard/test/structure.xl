@@ -1,0 +1,68 @@
+import vcard
+
+func main(...) as int
+    string nested = "BEGIN:VCARD\nVERSION:3.0\nFN:A\nBEGIN:VCARD\nEND:VCARD\n"
+    string stray = "BEGIN:VCARD\nVERSION:3.0\nFN:A\nEND:VFOO\nEND:VCARD\n"
+    string lateVersion = "BEGIN:VCARD\nFN:A\nVERSION:4.0\nEND:VCARD\n"
+    string blankBeforeVersion = "BEGIN:VCARD\n\nVERSION:4.0\nFN:A\nEND:VCARD\n"
+    string versionParamThree = "BEGIN:VCARD\nVERSION;X=1:3.0\nFN:A\nEND:VCARD\n"
+    string groupedVersionFour = "BEGIN:VCARD\nitem1.VERSION:4.0\nFN:A\nEND:VCARD\n"
+    string groupedVersionThree = "BEGIN:VCARD\nitem1.VERSION:3.0\nFN:A\nEND:VCARD\n"
+    string groupedBegin = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nitem1.BEGIN:VFOO\nEND:VCARD\n"
+    string groupedEnd = "BEGIN:VCARD\nVERSION:4.0\nFN:A\nitem1.END:VFOO\nEND:VCARD\n"
+    int rejected = 0
+    try
+        vcard.parse(nested)
+    catch e
+        rejected += 1
+    end
+    try
+        vcard.parse(stray)
+    catch e
+        rejected += 1
+    end
+    try
+        vcard.parse(lateVersion)
+    catch e
+        rejected += 1
+    end
+    try
+        vcard.parse(blankBeforeVersion)
+    catch e
+        rejected += 1
+    end
+    try
+        vcard.parse(versionParamThree)
+    catch e
+        rejected += 1
+    end
+    try
+        vcard.parse(groupedVersionFour)
+    catch e
+        rejected += 1
+    end
+    try
+        vcard.parse(groupedVersionThree)
+    catch e
+        rejected += 1
+    end
+    try
+        vcard.parse(groupedBegin)
+    catch e
+        rejected += 1
+    end
+    try
+        vcard.parse(groupedEnd)
+    catch e
+        rejected += 1
+    end
+    assert rejected == 9, "invalid vCard structure must be rejected"
+    var oldCard = vcard.parse("BEGIN:VCARD\nFN:A\nVERSION:3.0\nEND:VCARD\n")
+    assert oldCard["version"] == "3.0", "vCard 3.0 may place VERSION after FN"
+    var newCard = vcard.parse("BEGIN:VCARD\nVERSION;VALUE=text:4.0\nFN:A\nEND:VCARD\n")
+    assert newCard["version"] == "4.0", "vCard 4.0 permits VERSION parameters"
+    var groupedCard = vcard.parse("BEGIN:VCARD\nVERSION:4.0\nFN:A\nitem1.EMAIL:a@example.com\nEND:VCARD\n")
+    assert groupedCard["email"] == "a@example.com", "grouped values remain readable"
+    println("vcard structure: PASS")
+    return 0
+end
