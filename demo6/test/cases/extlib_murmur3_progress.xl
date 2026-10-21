@@ -1,0 +1,106 @@
+import murmur3
+
+class MurmurProgress
+    int calls = 0
+    int last = 0
+end
+
+func hashFile(string path, bool wide, (func(int, int, int) as bool)? callback = null) as string
+    if wide then
+        return murmur3.hashFile128Hex(path, seed = 42, onProgress = callback)
+    end
+    return string(murmur3.hashFile32(path, seed = 42, onProgress = callback))
+end
+
+func main(...) as int
+    string root = "build/test/murmur3-progress"
+    dir.createAll(root)
+    string source = root + "/中文源.txt"
+    string empty = root + "/empty.txt"
+    string text = ""
+    for i in range(12000)
+        text += "你好 "
+    end
+    file.writeText(source, text)
+    file.writeText(empty, "")
+    try
+        for wide in [false, true]
+            MurmurProgress state = MurmurProgress()
+            string result = hashFile(source, wide, func(int current, int total, int output) as bool
+                assert current >= state.last and total == string.byteLen(text) and output == 0
+                state.calls += 1
+                state.last = current
+                assert murmur3.hashFile32(empty) == 0
+                assert murmur3.hashFile128Hex(empty) == murmur3.hash128Hex("")
+                bool handled = false
+                try
+                    hashFile(root + "/missing.txt", wide)
+                catch FileError e
+                    handled = true
+                end
+                assert handled
+                return true
+            end)
+            assert state.calls == 3 and state.last == string.byteLen(text)
+            if wide then
+                assert result == murmur3.hash128Hex(text, 42)
+            else
+                assert result == string(murmur3.hash32(text, 42))
+            end
+            assert hashFile(source, wide) == result
+
+            // 块回调、EOF 最终回调都允许取消，抛错保持原类别与消息。
+            for mode in range(3)
+                state = MurmurProgress()
+                bool caught = false
+                try
+                    hashFile(source, wide, func(int a, int b, int c) as bool
+                        state.calls += 1
+                        if mode == 2 then
+                            throw ValueError "murmur3 callback marker"
+                        end
+                        return mode == 1 and state.calls < 3
+                    end)
+                catch CancelledError e
+                    assert mode < 2
+                    caught = true
+                catch ValueError e
+                    assert mode == 2 and e.message == "murmur3 callback marker"
+                    caught = true
+                end
+                assert caught
+                if mode == 1 then
+                    assert state.calls == 3
+                else
+                    assert state.calls == 1
+                end
+                assert hashFile(source, wide) == result, "callback failure must not poison later operations"
+            end
+            bool caught = false
+            try
+                hashFile(empty, wide, func(int a, int b, int c) as bool
+                    assert a == 0 and b == 0 and c == 0
+                    return false
+                end)
+            catch CancelledError e
+                caught = true
+            end
+            assert caught
+            caught = false
+            try
+                if wide then
+                    murmur3.hashFile128Hex(source, maxInput = 1)
+                else
+                    murmur3.hashFile32(source, maxInput = 1)
+                end
+            catch RangeError e
+                caught = true
+            end
+            assert caught and file.readText(source) == text
+        end
+    finally
+        file.delete(source)
+        file.delete(empty)
+    end
+    return 0
+end
