@@ -3,6 +3,10 @@ import brotli
 
 
 func main(...) as int
+    dir.createAll("build/test/brotli-files")
+    assert brotli.version() != ""
+    assert brotli.decompressText(brotli.compress("你好，Brotli")) == "你好，Brotli"
+    assert brotli.decompressText(brotli.compress("")) == ""
     Buffer source = Buffer()
     source.append("abc")
     source.appendByte(0)
@@ -19,6 +23,7 @@ func main(...) as int
     encoder.finish()
     Buffer incremental = encoder.drain()
     auto decoder = brotli.decompressor()
+    assert encoder.valid and decoder.valid
     decoder.update(incremental)
     decoder.finish()
     if decoder.drain().text() != "leftright" then
@@ -27,13 +32,41 @@ func main(...) as int
     if decoder.members != 1 then
         return 6
     end
+    assert encoder.outputBytes == incremental.len()
+    assert decoder.inputBytes == incremental.len() and decoder.outputBytes == 9
+
+    bool stateError = false
+    try
+        encoder.update("late")
+    catch RuntimeError e
+        stateError = true
+    end
+    assert stateError
+
+    // 禁止 maxRatio 被窄化成零后绕过限制。
+    bool ratioError = false
+    try
+        brotli.decompress(packed, maxRatio = 4294967296)
+    catch RangeError e
+        ratioError = true
+    end
+    assert ratioError
+    bool outputError = false
+    try
+        brotli.decompress(packed, maxOutput = 1)
+    catch RangeError e
+        outputError = true
+    end
+    assert outputError
 
     // 流式分块收集 + 字节计数器（进度回显基础）。
     auto enc2 = brotli.compressor()
     Buffer collected = Buffer()
     enc2.update("aaaa")
     collected.append(enc2.drain())
-    enc2.update("bbbb")
+    Buffer piece = Buffer()
+    piece.append("bbbb")
+    enc2.update(piece)
     collected.append(enc2.drain())
     enc2.finish()
     collected.append(enc2.drain())
@@ -95,30 +128,35 @@ func main(...) as int
     end
 
     bool rejected = false
-    int mid = incremental.len() / 2
-    incremental[mid] = incremental[mid] ^ 255
+    // Brotli 不带通用内容校验和；截断必须拒绝，任意翻位不一定是非法流。
+    Buffer truncated = Buffer()
+    for i in range(incremental.len() - 1)
+        truncated.appendByte(incremental[i])
+    end
     try
-        brotli.decompress(incremental)
-    catch CompressionError e
+        brotli.decompress(truncated)
+    catch IOError e
+        assert string.contains(e.message, "truncated")
         rejected = true
     end
     if not rejected then
         return 3
     end
 
-    string sourcePath = "tmp/extlib_brotli_source.bin"
-    string packedPath = "tmp/extlib_brotli_stream.br"
-    string plainPath = "tmp/extlib_brotli_plain.bin"
-    file.writeBytes(sourcePath, source)
+    string sourcePath = "build/test/brotli-files/source.bin"
+    string packedPath = "build/test/brotli-files/stream.br"
+    string plainPath = "build/test/brotli-files/plain.bin"
+    file.writeBytes(sourcePath, source.toBytes())
     brotli.compressFile(sourcePath, packedPath)
     brotli.decompressFile(packedPath, plainPath)
-    if file.readBytes(plainPath) != source then
+    if file.readBytes(plainPath) != source.toBytes() then
         return 4
     end
     bool overwriteRejected = false
     try
         brotli.compressFile(sourcePath, packedPath, overwrite = false)
-    catch CompressionError e
+    catch ValueError e
+        assert string.contains(e.message, "exists")
         overwriteRejected = true
     end
     if not overwriteRejected then
