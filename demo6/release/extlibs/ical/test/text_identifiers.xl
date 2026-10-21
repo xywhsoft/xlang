@@ -1,0 +1,54 @@
+import ical
+
+var event = {
+    "uid": "meet,1;v2@example",
+    "dtstamp": "20260801T000000Z",
+    "dtstart": "20260810T090000Z",
+    "summary": "Team, A",
+    "url": "https://e.test/a,b;c=1",
+    "rrule": "FREQ=WEEKLY;BYDAY=MO,TU"
+}
+var calendar = {
+    "prodid": "Widget, Inc; ical\nEdition",
+    "events": [event]
+}
+string wire = ical.build(calendar)
+assert wire.contains("PRODID:Widget\\, Inc\\; ical\\nEdition\r\n"), "PRODID TEXT"
+assert wire.contains("UID:meet\\,1\\;v2@example\r\n"), "UID TEXT"
+assert wire.contains("SUMMARY:Team\\, A\r\n"), "SUMMARY TEXT"
+assert wire.contains("URL:https://e.test/a,b;c=1\r\n"), "URL URI remains raw"
+assert wire.contains("RRULE:FREQ=WEEKLY;BYDAY=MO,TU\r\n"), "RRULE remains raw"
+var back = ical.parse(wire)
+assert back["prodid"] == calendar["prodid"]
+assert back["events"][0]["uid"] == event["uid"]
+assert back["events"][0]["url"] == event["url"]
+int rejected = 0
+try
+    ical.build({"events": [{"uid": "one@demo", "dtstamp": "20260801T000000Z",
+        "dtstart": "20260810T090000Z", "dtstartTZID": "Asia/Shanghai"}]})
+catch e
+    rejected += 1
+end
+try
+    ical.build({"events": [{"uid": "one@demo", "dtstamp": "20260801T000000Z",
+        "dtstart": "20260810T090000Z", "dtstartVALUE": "DATE-TIME"}]})
+catch e
+    rejected += 1
+end
+try
+    ical.build({"events": [{"uid": "one@demo", "dtstamp": "20260801T000000Z",
+        "dtstart": "20260810T090000Z", "dtstartTzid": ""}]})
+catch e
+    rejected += 1
+end
+try
+    ical.build({"events": [{"uid": "one@demo", "dtstamp": "20260801T000000Z",
+        "dtstart": "20260810T090000Z", "dtstartValue": ""}]})
+catch e
+    rejected += 1
+end
+assert rejected == 4
+assert ical.build({"events": [{"uid": "one@demo", "dtstamp": "20260801T000000Z",
+    "dtstart": "20260810T090000Z", "dtstartTzid": "Asia/Shanghai",
+    "dtstartValue": "DATE-TIME"}]}).contains("DTSTART;TZID=Asia/Shanghai;VALUE=DATE-TIME:")
+println("ical TEXT identifiers: PASS")

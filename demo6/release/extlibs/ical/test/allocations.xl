@@ -1,0 +1,51 @@
+import ical
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+var calendar = {
+    "events": [{
+        "uid": "meeting@example",
+        "dtstamp": "20260801T000000Z",
+        "dtstart": "20260817T013000Z",
+        "summary": "团队例会"
+    }]
+}
+string document = ical.build(calendar)
+int failures = 0
+int successes = 0
+
+for operation in range(2)
+    for allocation in range(48)
+        bool memoryCaught = false
+        bool wrongCaught = false
+        assert failAfter(uint64(allocation))
+        try
+            if operation == 0 then
+                ical.parse(document)
+            else
+                ical.build(calendar)
+            end
+        catch MemoryError error
+            memoryCaught = true
+        catch RuntimeError error
+            wrongCaught = true
+        catch ValueError error
+            wrongCaught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        if wrongCaught or memoryCaught != triggered then
+            println("operation=", operation, " allocation=", allocation,
+                " triggered=", triggered, " memory=", memoryCaught,
+                " wrong=", wrongCaught)
+        end
+        assert not wrongCaught and memoryCaught == triggered, "allocation error kind"
+        if triggered then failures += 1 else successes += 1 end
+    end
+end
+
+assert failures > 0 and successes > 0
+assert ical.parse(ical.build(calendar))["events"][0]["summary"] == "团队例会"
+println("ical allocation: PASS")

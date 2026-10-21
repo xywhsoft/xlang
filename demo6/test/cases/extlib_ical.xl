@@ -8,6 +8,7 @@ VERSION:2.0
 PRODID:-//demo//test//EN
 BEGIN:VEVENT
 UID:evt-1@demo
+DTSTAMP:20260801T000000Z
 DTSTART:20260815T090000Z
 DTEND:20260815T100000Z
 SUMMARY:语言设计评审
@@ -19,11 +20,13 @@ END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:evt-2@demo
+DTSTAMP:20260801T000000Z
 DTSTART;TZID=Asia/Shanghai:20260816T140000
 SUMMARY:折行测试 —— 这是一个非常长非常长非常长非常长非常长非常长非常长非常长的标题
 END:VEVENT
 BEGIN:VTODO
 UID:todo-1@demo
+DTSTAMP:20260801T000000Z
 DUE:20260820T170000Z
 SUMMARY:整理会议纪要
 END:VTODO
@@ -47,6 +50,7 @@ END:VCALENDAR
     var e2 = cal["events"][1]
     assert e2["uid"] == "evt-2@demo", "second event"
     assert e2["dtstart"] == "20260816T140000", "TZID param dropped"
+    assert e2["dtstartTzid"] == "Asia/Shanghai", "TZID retained"
 
     // 折行标题被拼回一行
     string sum2 = string(e2["summary"])
@@ -65,6 +69,7 @@ END:VCALENDAR
     assert rebuilt.contains("SUMMARY:语言设计评审"), "build summary"
     assert rebuilt.contains("BEGIN:VEVENT"), "build event"
     assert rebuilt.contains("END:VTODO"), "build todo"
+    assert rebuilt.contains("DTSTART;TZID=Asia/Shanghai:20260816T140000"), "TZID round trip"
     assert rebuilt.contains("\\n"), "newline escaped on build"
 
     var back = ical.parse(rebuilt)

@@ -1,0 +1,295 @@
+/* 解析日历包络与事件/待办；嵌套 VALARM 等组件不会污染父事件。 */
+#include "ical_internal.h"
+#include "include/ical_native.h"
+
+#include <string.h>
+
+typedef struct {
+    xvalue *calendar;
+    xvalue *current;
+    xvalue *target;
+    char stack[8][32];
+    int depth;
+    int version;
+    int prodid;
+} XiParser;
+
+static int xi_set_text(xvalue *object, const char *key, xstrview value) {
+    xvalue *item = xrtValueString(value);
+    return item != NULL && xrtValueObjectSetNew(object,
+        (xstrview){key, strlen(key)}, item);
+}
+
+static int xi_unescape(xstrview raw, xbuffer *out) {
+    size_t i;
+    for (i = 0; i < raw.Size; ++i) {
+        unsigned char ch = (unsigned char)raw.Data[i];
+        if (ch == '\\') {
+            if (++i == raw.Size) return 0;
+            ch = (unsigned char)raw.Data[i];
+            if (ch == 'n' || ch == 'N') ch = '\n';
+            else if (ch != '\\' && ch != ';' && ch != ',') return 0;
+        }
+        if (ch == 0 || ch == '\r' || !xi_append(out, (const char *)&ch, 1)) return 0;
+    }
+    return 1;
+}
+
+static int xi_set_unescaped_text(xvalue *object, const char *key, xstrview raw) {
+    xbuffer decoded;
+    int ok;
+    if (!xrtBufferInit(&decoded)) return 0;
+    ok = xi_unescape(raw, &decoded) && xi_set_text(object, key,
+        (xstrview){decoded.Size ? (char *)decoded.Data : "", decoded.Size});
+    xrtBufferUnit(&decoded);
+    return ok;
+}
+
+static int xi_add_property(xvalue *object, const XiProperty *property, xstrview raw) {
+    xstrview key = {property->key, strlen(property->key)};
+    xvalue *previous = xrtValueObjectGet(object, key);
+    xvalue *item;
+    xbuffer decoded;
+    if (!xrtBufferInit(&decoded)) return 0;
+    if (property->is_text) {
+        if (!xi_unescape(raw, &decoded)) goto fail;
+    } else if (!xi_append(&decoded, raw.Data, raw.Size)) goto fail;
+    item = xrtValueString((xstrview){decoded.Size ? (char *)decoded.Data : "", decoded.Size});
+    xrtBufferUnit(&decoded);
+    if (item == NULL) return 0;
+    if (previous == NULL) return xrtValueObjectSetNew(object, key, item);
+    if (xi_is_time_property(property) || property == xi_properties ||
+        property == xi_properties + 1 || property == xi_properties + 9) {
+        xrtValueRelease(item);
+        return 0;
+    }
+    if (xrtValueType(previous) == XVALUE_ARRAY) {
+        return xrtValueArrayAppendNew(previous, item);
+    }
+    {
+        xstrview prior_text;
+        xvalue *array = xrtValueArray();
+        int appended = 0;
+        if (array == NULL) { xrtValueRelease(item); return 0; }
+        if (xrtValueGetString(previous, &prior_text)) {
+            xvalue *old = xrtValueString(prior_text);
+            if (old != NULL && xrtValueArrayAppendNew(array, old)) {
+                appended = xrtValueArrayAppendNew(array, item);
+                item = NULL;
+            }
+        }
+        xrtValueRelease(item);
+        if (!appended) { xrtValueRelease(array); return 0; }
+        return xrtValueObjectSetNew(object, key, array);
+    }
+fail:
+    xrtBufferUnit(&decoded);
+    return 0;
+}
+
+static int xi_param_value(xvalue *object, const XiProperty *property,
+    xstrview name, xstrview value) {
+    char key[48];
+    size_t base = strlen(property->key), i;
+    const char *suffix;
+    if (name.Size == 4 && xi_ascii_equal(name.Data, name.Size, "TZID")) {
+        suffix = "Tzid";
+        if (value.Size == 0 || value.Size > 128) return 0;
+        for (i = 0; i < value.Size; ++i) {
+            unsigned char ch = (unsigned char)value.Data[i];
+            if (!((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+                  (ch >= '0' && ch <= '9') || ch == '/' || ch == '_' ||
+                  ch == '-' || ch == '+' || ch == '.')) return 0;
+        }
+    } else if (xi_ascii_equal(name.Data, name.Size, "VALUE")) {
+        suffix = "Value";
+        if (!xi_ascii_equal(value.Data, value.Size, "DATE") &&
+            !xi_ascii_equal(value.Data, value.Size, "DATE-TIME")) return 0;
+    } else return 1;
+    if (base + strlen(suffix) >= sizeof(key)) return 0;
+    memcpy(key, property->key, base);
+    strcpy(key + base, suffix);
+    if (xrtValueObjectGet(object, (xstrview){key, strlen(key)}) != NULL) return 0;
+    return xi_set_text(object, key, value);
+}
+
+static int xi_params(xvalue *object, const XiProperty *property,
+    xstrview line, size_t semi, size_t colon) {
+    size_t pos;
+    if (!xi_is_time_property(property) || semi >= colon) return 1;
+    pos = semi + 1;
+    while (pos < colon) {
+        size_t start = pos, end, equal;
+        int quoted = 0;
+        while (pos < colon) {
+            if (line.Data[pos] == '"') quoted = !quoted;
+            if (line.Data[pos] == ';' && !quoted) break;
+            ++pos;
+        }
+        end = pos;
+        if (quoted) return 0;
+        if (pos < colon) ++pos;
+        for (equal = start; equal < end && line.Data[equal] != '='; ++equal) {}
+        if (equal == start || equal == end || equal + 1 == end) return 0;
+        {
+            xstrview value = {line.Data + equal + 1, end - equal - 1};
+            if (value.Size >= 2 && value.Data[0] == '"' &&
+                value.Data[value.Size - 1] == '"') {
+                ++value.Data;
+                value.Size -= 2;
+            }
+            if (!xi_param_value(object, property,
+                (xstrview){line.Data + start, equal - start}, value)) return 0;
+        }
+    }
+    return 1;
+}
+
+static int xi_property_line(XiParser *parser, xstrview line) {
+    size_t i, colon = line.Size, semi = line.Size;
+    int quoted = 0;
+    const XiProperty *property;
+    for (i = 0; i < line.Size; ++i) {
+        char ch = line.Data[i];
+        if (ch == '"') quoted = !quoted;
+        if (ch == ';' && !quoted && semi == line.Size) semi = i;
+        if (ch == ':' && !quoted) { colon = i; break; }
+    }
+    if (quoted || colon == line.Size || colon == 0) return 0;
+    if (semi > colon) semi = colon;
+    /* 结构标记只能是无参数的 BEGIN:/END: 行，不能降级为未知属性。 */
+    if (xi_ascii_equal(line.Data, semi, "BEGIN") ||
+        xi_ascii_equal(line.Data, semi, "END")) return 0;
+    if (parser->depth == 1) {
+        if (xi_ascii_equal(line.Data, semi, "VERSION")) {
+            if (parser->version || line.Size - colon - 1 != 3 ||
+                memcmp(line.Data + colon + 1, "2.0", 3) != 0) return 0;
+            parser->version = 1;
+            return 1;
+        }
+        if (xi_ascii_equal(line.Data, semi, "PRODID")) {
+            if (parser->prodid || colon + 1 == line.Size) return 0;
+            parser->prodid = 1;
+            return xi_set_unescaped_text(parser->calendar, "prodid",
+                (xstrview){line.Data + colon + 1, line.Size - colon - 1});
+        }
+        return 1;
+    }
+    if (parser->depth != 2 || parser->current == NULL) return 1;
+    property = xi_property_wire(line.Data, semi);
+    if (property == NULL) return 1;
+    return xi_params(parser->current, property, line, semi, colon) &&
+        xi_add_property(parser->current, property,
+            (xstrview){line.Data + colon + 1, line.Size - colon - 1});
+}
+
+static int xi_line(XiParser *parser, xstrview line) {
+    size_t length;
+    char *name;
+    if (!xi_wire_chars(line, 0)) return 0;
+    if (line.Size == 0) return 1;
+    if (line.Size >= 6 && xi_ascii_equal(line.Data, 5, "BEGIN") && line.Data[5] == ':') {
+        length = line.Size - 6;
+        if (length == 0 || length >= sizeof(parser->stack[0]) || parser->depth == 8) return 0;
+        /* VCALENDAR 只能占据唯一根层，不能伪装成可忽略的子组件。 */
+        if (xi_ascii_equal(line.Data + 6, length, "VCALENDAR") !=
+            (parser->depth == 0)) return 0;
+        name = parser->stack[parser->depth];
+        memcpy(name, line.Data + 6, length);
+        name[length] = 0;
+        {
+            size_t i;
+            for (i = 0; i < length; ++i) {
+                if (name[i] >= 'a' && name[i] <= 'z') name[i] -= 'a' - 'A';
+            }
+        }
+        ++parser->depth;
+        if (parser->depth == 2) {
+            if (xi_ascii_equal(name, length, "VEVENT")) {
+                parser->current = xrtValueObject();
+                parser->target = xrtValueObjectGet(parser->calendar,
+                    (xstrview){"events", 6});
+            } else if (xi_ascii_equal(name, length, "VTODO")) {
+                parser->current = xrtValueObject();
+                parser->target = xrtValueObjectGet(parser->calendar,
+                    (xstrview){"todos", 5});
+            }
+            if (parser->target != NULL && parser->current == NULL) return 0;
+        }
+        return 1;
+    }
+    if (line.Size >= 4 && xi_ascii_equal(line.Data, 3, "END") && line.Data[3] == ':') {
+        if (parser->depth == 0 ||
+            !xi_ascii_equal(line.Data + 4, line.Size - 4,
+                parser->stack[parser->depth - 1])) return 0;
+        if (parser->depth == 2 && parser->current != NULL) {
+            if (!xrtValueArrayAppendNew(parser->target, parser->current)) {
+                parser->current = NULL;
+                return 0;
+            }
+            parser->current = NULL;
+            parser->target = NULL;
+        }
+        --parser->depth;
+        return parser->depth != 0 || (parser->version && parser->prodid);
+    }
+    return parser->depth != 0 && xi_property_line(parser, line);
+}
+
+xvalue *xi_parse(const char *text, size_t size) {
+    XiParser parser = {0};
+    xbuffer line;
+    size_t pos = 0;
+    int closed = 0;
+    xrtClearError();
+    if (text == NULL || size == 0 || size > XI_LIMIT ||
+        memchr(text, 0, size) != NULL ||
+        !xrtUtf8Valid((xstrview){text, size}, NULL)) {
+        xi_error("invalid iCalendar input or UTF-8");
+        return NULL;
+    }
+    if (!xrtBufferInit(&line)) return NULL;
+    parser.calendar = xrtValueObject();
+    if (parser.calendar == NULL) goto invalid;
+    if (!xrtValueObjectSetNew(parser.calendar, (xstrview){"events", 6},
+            xrtValueArray()) ||
+        !xrtValueObjectSetNew(parser.calendar, (xstrview){"todos", 5},
+            xrtValueArray())) goto invalid;
+    while (pos < size) {
+        size_t start = pos, end;
+        int folded;
+        while (pos < size && text[pos] != '\n') ++pos;
+        end = pos;
+        if (pos < size) ++pos;
+        if (end > start && text[end - 1] == '\r') --end;
+        if (memchr(text + start, '\r', end - start) != NULL) goto invalid;
+        folded = end > start && (text[start] == ' ' || text[start] == '\t');
+        if (folded) {
+            if (line.Size == 0 ||
+                !xi_append(&line, text + start + 1, end - start - 1)) goto invalid;
+        } else {
+            if (closed && line.Size != 0) goto invalid;
+            if (line.Size != 0 && !xi_line(&parser,
+                    (xstrview){(char *)line.Data, line.Size})) goto invalid;
+            if (parser.depth == 0 && line.Size != 0) closed = 1;
+            xrtBufferClear(&line);
+            if (!xi_append(&line, text + start, end - start)) goto invalid;
+        }
+    }
+    if (closed && line.Size != 0) goto invalid;
+    if (line.Size != 0 && !xi_line(&parser,
+            (xstrview){(char *)line.Data, line.Size})) goto invalid;
+    if (parser.depth == 0 && line.Size != 0) closed = 1;
+    xrtBufferUnit(&line);
+    if (closed && parser.version && parser.prodid) return parser.calendar;
+    xrtValueRelease(parser.current);
+    xrtValueRelease(parser.calendar);
+    xi_error("iCalendar requires VCALENDAR, VERSION:2.0 and PRODID");
+    return NULL;
+invalid:
+    xrtBufferUnit(&line);
+    xrtValueRelease(parser.current);
+    xrtValueRelease(parser.calendar);
+    if (xrtGetError() == NULL) xi_error("invalid iCalendar structure or input too large");
+    return NULL;
+}

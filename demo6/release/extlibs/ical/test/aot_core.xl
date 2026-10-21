@@ -1,0 +1,13 @@
+import ical
+
+func main(...) as int
+    var event = {
+        "uid": "one@demo", "dtstamp": "20260801T000000Z",
+        "dtstart": "20260810T090000Z", "summary": "Meeting"
+    }
+    string output = ical.build({"events": [event]})
+    var back = ical.parse(output)
+    assert back["events"].length == 1
+    assert back["events"][0]["uid"] == "one@demo"
+    return 0
+end

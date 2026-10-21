@@ -1,21 +1,22 @@
-extern "xi_parse" func __i_parse(string text) as var
-extern "xi_build" func __i_build(var calendar) as string
-
-
-
+extern "xi_parse" func __i_parse(string text, c_size size) as var
+extern "xi_build" func __i_build(var calendar) as point
 // parse 解析 iCalendar 文本，返回 {events: [...], todos: [...]}
-// 每个事件对象含 uid、summary、dtstart、dtend、location、description 等字段
-// 自动展开折行并解码转义；属性参数（如 TZID）被忽略
+// 常用字段为字符串；日期的 TZID、VALUE 分别保存在 *Tzid、*Value 中。
+// 自动展开折行，仅对 TEXT 字段解码转义。
 export func parse(string text) as var
-    var r = __i_parse(text)
+    var r = __i_parse(text, c_size(string.byteLen(text)))
     if r == null then
-        throw ValueError "ical: input is null"
+        throw ValueError "ical: invalid iCalendar input"
     end
     return r
 end
 
 // build 由 {events: [...], todos: [...]} 生成 iCalendar 文本
-// 值重新转义，长行按 74 字节折叠
+// TEXT 值重新转义，物理行按最多 75 字节折叠。
 export func build(var calendar) as string
-    return __i_build(calendar)
+    point result = __i_build(calendar)
+    if result == null then
+        throw ValueError "ical: invalid event or calendar fields"
+    end
+    return __xl_runtime.takeCstr(result)
 end

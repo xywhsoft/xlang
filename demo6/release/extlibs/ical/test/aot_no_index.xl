@@ -1,0 +1,20 @@
+import ical
+
+func main(...) as int
+    var event = {
+        "uid": "one@demo", "dtstamp": "20260801T000000Z",
+        "dtstart": "20260810T090000Z", "summary": "Meeting",
+        "rrule": "FREQ=WEEKLY;BYDAY=MO,TU"
+    }
+    string output = ical.build({"events": [event]})
+    assert output.contains("RRULE:FREQ=WEEKLY;BYDAY=MO,TU")
+    assert output.contains("END:VCALENDAR")
+    int caught = 0
+    try
+        ical.build({"event": []})
+    catch e
+        caught += 1
+    end
+    assert caught == 1
+    return 0
+end
