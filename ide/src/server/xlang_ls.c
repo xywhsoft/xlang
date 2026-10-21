@@ -27,7 +27,7 @@ typedef struct server {
  int completionDocument,completionVersion,completionResponded,completionPublished,completionCancelled;
  unsigned long long completionGeneration,completionPendingGeneration;
  int completionPendingDocument,completionPendingEntry,completionPendingVersion,completionPendingLine,completionPendingCharacter;
- xls_worker* analysis; native_request native[DOC_LIMIT]; size_t foldingLimit;
+ xls_worker *analysis,*semanticAnalysis; native_request native[DOC_LIMIT]; size_t foldingLimit;
  xls_session_stats analysisStats; uint64_t analysisThread;
 } server;
 static xstrview sv(const char* s) { return (xstrview){s,strlen(s)}; }
@@ -36,6 +36,8 @@ static const char* string(const xvalue* v) { xstrview s={0}; return v && xrtValu
 static int put(xvalue* o,const char* key,xvalue* v) { return v && xrtValueObjectSetNew(o,sv(key),v); }
 static char* copy(const char* s) { size_t n=strlen(s)+1; char* p=malloc(n); if(p) memcpy(p,s,n); return p; }
 static int validText(const char* s) { size_t n=s ? strlen(s) : TEXT_LIMIT+1u; return n<=TEXT_LIMIT && (!n || MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,s,(int)n,NULL,0)); }
+static int validPosition(const document* d,int line,int character)
+{ size_t offset=0; return line>=0 && character>=0 && xlsTextOffset(d->content,(xls_position){(size_t)line,(size_t)character},&offset); }
 static int validId(const xvalue* id) { return id && (xrtValueType(id)==XVALUE_INT || string(id)!=NULL); }
 static int sameId(const xvalue* a,const xvalue* b) { int64 x=0,y=0; const char *s=string(a),*t=string(b); return s && t ? !strcmp(s,t) : xrtValueGetInt(a,&x) && xrtValueGetInt(b,&y) && x==y; }
 static int integer(const xvalue* v,int* n) { int64 x=0; if(!v || !xrtValueGetInt(v,&x) || x<INT_MIN || x>INT_MAX) return 0; *n=(int)x; return 1; }
@@ -154,10 +156,16 @@ static void startCheck(server* s,int index,const xvalue* id,int snapshots)
  document* d=&s->docs[index]; xide_model_error e={0};
  if(s->check) { if(id) response(s,id,NULL,-32001,"A source check is still stopping; retry after its response."); else s->pending=index; return; }
  if(snapshots) {
-  xide_language_snapshot inputs[DOC_LIMIT]; size_t count=0;
-  for(int i=0;i<DOC_LIMIT;++i) if(s->docs[i].uri) inputs[count++]=(xide_language_snapshot){s->docs[i].path,s->docs[i].text,s->docs[i].version};
   xide_language_analysis_options options={!s->cliDiagnostics,nativeWake,s};
-  s->check=xideLanguageCheckStartSnapshotsEx(s->cache,s->compiler,s->directory,d->path,inputs,count,&options,&e);
+  if(!s->cliDiagnostics) {
+   xls_analysis_document inputs[DOC_LIMIT]; size_t count=0;
+   for(int i=0;i<DOC_LIMIT;++i) if(s->docs[i].uri) { document* in=&s->docs[i]; inputs[count++]=(xls_analysis_document){in->uri,in->path,in->content,in->identity,(uint64_t)((int64_t)in->version-INT_MIN)}; }
+   s->check=xideLanguageCheckStartRetained(s->cache,s->compiler,s->directory,s->semanticAnalysis,inputs,count,d->uri,NULL,0,0,&options,&e);
+  } else {
+   xide_language_snapshot inputs[DOC_LIMIT]; size_t count=0;
+   for(int i=0;i<DOC_LIMIT;++i) if(s->docs[i].uri) inputs[count++]=(xide_language_snapshot){s->docs[i].path,s->docs[i].text,s->docs[i].version};
+   s->check=xideLanguageCheckStartSnapshotsEx(s->cache,s->compiler,s->directory,d->path,inputs,count,&options,&e);
+  }
  } else s->check=xideLanguageCheckStart(s->cache,s->compiler,s->directory,d->path,d->text,d->version,&e);
  if(!s->check) { if(id) response(s,id,NULL,-32602,*e.message ? e.message : "Unable to start source check."); else fprintf(stderr,"xlang-ls: %s\n",e.message); return; }
  s->snapshotMode=snapshots; s->checkBatchGeneration=s->generation; clearPublished(s);
@@ -224,12 +232,18 @@ static void startCompletion(server* s)
  if(s->completion || !s->completionPendingId || s->shutdown) return;
  int i=s->completionPendingDocument,entry=s->completionPendingEntry; document* d=&s->docs[i]; xide_model_error e={0};
  if(!d->uri || !s->docs[entry].uri || s->completionPendingGeneration!=s->generation || d->version!=s->completionPendingVersion) { response(s,s->completionPendingId,NULL,-32801,"Open-document cursor inputs changed before starting."); goto discard; }
- xide_language_snapshot inputs[DOC_LIMIT]; size_t count=0;
- for(int j=0;j<DOC_LIMIT;++j) if(s->docs[j].uri) inputs[count++]=(xide_language_snapshot){s->docs[j].path,s->docs[j].text,s->docs[j].version};
  char* uri=copy(d->uri);
  if(!uri) { response(s,s->completionPendingId,NULL,-32603,"Unable to retain cursor input identity."); goto discard; }
  xide_language_completion_options options={!s->cliCompletion,nativeWake,s};
- s->completion=xideLanguageCheckStartCompletionSnapshotsEx(s->cache,s->compiler,s->directory,s->docs[entry].path,inputs,count,d->path,s->completionPendingLine,s->completionPendingCharacter,&options,&e);
+ if(!s->cliCompletion) {
+  xls_analysis_document inputs[DOC_LIMIT]; size_t count=0;
+  for(int j=0;j<DOC_LIMIT;++j) if(s->docs[j].uri) { document* in=&s->docs[j]; inputs[count++]=(xls_analysis_document){in->uri,in->path,in->content,in->identity,(uint64_t)((int64_t)in->version-INT_MIN)}; }
+  s->completion=xideLanguageCheckStartRetained(s->cache,s->compiler,s->directory,NULL,inputs,count,s->docs[entry].uri,d->path,s->completionPendingLine,s->completionPendingCharacter,&options,&e);
+ } else {
+  xide_language_snapshot inputs[DOC_LIMIT]; size_t count=0;
+  for(int j=0;j<DOC_LIMIT;++j) if(s->docs[j].uri) inputs[count++]=(xide_language_snapshot){s->docs[j].path,s->docs[j].text,s->docs[j].version};
+  s->completion=xideLanguageCheckStartCompletionSnapshotsEx(s->cache,s->compiler,s->directory,s->docs[entry].path,inputs,count,d->path,s->completionPendingLine,s->completionPendingCharacter,&options,&e);
+ }
  if(!s->completion) { free(uri); response(s,s->completionPendingId,NULL,-32603,*e.message ? e.message : "Unable to start cursor query."); goto discard; }
  s->completionUri=uri; s->completionId=s->completionPendingId; s->completionPendingId=NULL;
  s->completionDocument=i; s->completionVersion=d->version; s->completionGeneration=s->generation;
@@ -238,12 +252,12 @@ discard: xrtValueRelease(s->completionPendingId); s->completionPendingId=NULL;
 }
 static void requestCompletion(server* s,const xvalue* id,const xvalue* params)
 {
- int i=find(s,string(get(get(params,"textDocument"),"uri"))),entry=i,line=0,character=0,version=i>=0 ? s->docs[i].version : 0,offset=0;
+ int i=find(s,string(get(get(params,"textDocument"),"uri"))),entry=i,line=0,character=0,version=i>=0 ? s->docs[i].version : 0;
  const xvalue *requested=get(params,"version"),*entryDocument=get(params,"entryDocument"),*context=get(params,"context");
  const char* requestName=string(id); if(requestName && strlen(requestName)>65535) { response(s,id,NULL,-32602,"Completion request ID exceeds 64 KiB."); return; }
  if(entryDocument) entry=find(s,string(get(entryDocument,"uri")));
- if(i<0 || entry<0 || (requested && !integer(requested,&version)) || version!=s->docs[i].version || !integer(get(get(params,"position"),"line"),&line) || !integer(get(get(params,"position"),"character"),&character) || !xideLspPositionToOffset(s->docs[i].text,line,character,&offset)) { response(s,id,NULL,-32602,"Completion requires an open xlang document, a current version and a valid UTF-16 scalar position."); return; }
- if(i>=0 && strlen(s->docs[i].text)>=3 && !memcmp(s->docs[i].text,"\xef\xbb\xbf",3) && line==0 && character==0) { response(s,id,NULL,-32602,"Position precedes the source BOM."); return; }
+ if(i<0 || entry<0 || (requested && !integer(requested,&version)) || version!=s->docs[i].version || !integer(get(get(params,"position"),"line"),&line) || !integer(get(get(params,"position"),"character"),&character) || !validPosition(&s->docs[i],line,character)) { response(s,id,NULL,-32602,"Completion requires an open xlang document, a current version and a valid UTF-16 scalar position."); return; }
+ if(i>=0 && xlsTextSize(s->docs[i].content)>=3 && !memcmp(s->docs[i].text,"\xef\xbb\xbf",3) && line==0 && character==0) { response(s,id,NULL,-32602,"Position precedes the source BOM."); return; }
  if(context) { int trigger=0; const xvalue* raw=get(context,"triggerCharacter"); const char* characterText=string(raw); if(!integer(get(context,"triggerKind"),&trigger) || trigger<1 || trigger>3 || (raw && (!characterText || !*characterText || strlen(characterText)>8)) || (trigger==2 && !characterText)) { response(s,id,NULL,-32602,"Completion context is invalid."); return; } }
  xvalue* captured=xrtValueDeepClone(id); if(!captured) { response(s,id,NULL,-32603,"Unable to retain completion request."); return; }
  cancelCompletion(s,-32800,"Cursor query superseded by a newer request.",1);
@@ -339,7 +353,7 @@ static void semanticQuery(server* s,const xvalue* id,const xvalue* params,int qu
 {
  int i=find(s,string(get(get(params,"textDocument"),"uri"))),version=i>=0 ? s->docs[i].version : 0,line=0,character=0; const xvalue* batch=get(params,"checkId"),*suppliedVersion=get(params,"version");
  if(i<0 || (suppliedVersion && !integer(suppliedVersion,&version)) || version!=s->docs[i].version || (query!=2 && (!integer(get(get(params,"position"),"line"),&line) || line<0 || !integer(get(get(params,"position"),"character"),&character) || character<0)) || (batch && !validId(batch))) { response(s,id,NULL,-32602,"Open document and valid UTF-16 position are required; supplied version/checkId must be current."); return; }
- int offset=0; if(query!=2 && !xideLspPositionToOffset(s->docs[i].text,line,character,&offset)) { response(s,id,NULL,-32602,"Position is not a UTF-16 scalar boundary."); return; }
+ if(query!=2 && !validPosition(&s->docs[i],line,character)) { response(s,id,NULL,-32602,"Position is not a UTF-16 scalar boundary."); return; }
  if(!s->guard || s->guardCancelled || (batch && !sameId(batch,s->guardId))) { response(s,id,NULL,-32801,"Checked compilation is no longer current."); return; }
  xvalue* result=query==2 ? xideLanguageCheckDocumentSymbols(s->guard,s->docs[i].path,version) : query==1 ? xideLanguageCheckHover(s->guard,s->docs[i].path,version,line,character) : xideLanguageCheckDefinition(s->guard,s->docs[i].path,version,line,character);
  if(!result) response(s,id,NULL,-32801,"No current semantic index; run a successful source check first.");
@@ -370,9 +384,10 @@ static void dispatch(server* s,const xvalue* message)
   put(cap,"foldingRangeProvider",xrtValueBool(true)); put(scope,"residentSyntax",xrtValueBool(true)); put(scope,"analysisRuntime",xrtValueString(sv("compiler-xrt")));
   put(scope,"nativeCursorCompletion",xrtValueBool(!s->cliCompletion)); put(scope,"completionBackend",xrtValueString(sv(s->cliCompletion ? "cli" : "native")));
   put(scope,"nativeSnapshotDiagnostics",xrtValueBool(!s->cliDiagnostics)); put(scope,"diagnosticsBackend",xrtValueString(sv(s->cliDiagnostics ? "cli" : "native")));
+  put(scope,"retainedSemanticChecks",xrtValueBool(!s->cliDiagnostics)); put(scope,"retainedNativeInputs",xrtValueBool(!s->cliDiagnostics || !s->cliCompletion));
   put(scope,"savedDiagnosticsBackend",xrtValueString(sv("cli")));
   put(scope,"savedEntryDiagnostics",xrtValueBool(true)); put(scope,"unsavedDependencies",xrtValueBool(true)); put(scope,"snapshotDiagnostics",xrtValueBool(true)); put(scope,"snapshotDocumentFingerprint",xrtValueBool(true)); put(scope,"snapshotInputGuard",xrtValueString(sv("background-poll"))); put(scope,"cSemantics",xrtValueBool(false)); put(scope,"snapshotDefinition",xrtValueBool(true)); put(cap,"definitionProvider",xrtValueBool(true)); put(cap,"hoverProvider",xrtValueBool(true)); put(cap,"documentSymbolProvider",xrtValueBool(true)); xvalue *completion=xrtValueObject(),*triggers=xrtValueArray(),*dot=xrtValueString(sv(".")); xrtValueArrayAppend(triggers,dot); xrtValueRelease(dot); put(completion,"resolveProvider",xrtValueBool(false)); put(completion,"triggerCharacters",triggers); put(cap,"completionProvider",completion); put(scope,"cursorCompletion",xrtValueBool(true)); put(scope,"completionInputGuard",xrtValueString(sv("background-poll"))); put(scope,"snapshotHover",xrtValueBool(true)); put(scope,"snapshotDocumentSymbols",xrtValueBool(true)); put(cap,"experimental",scope); put(result,"capabilities",cap);
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.8"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.9"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
@@ -411,8 +426,8 @@ int main(void)
  if(argc!=3 || !argv || wcscmp(argv[1],L"--compiler")) { fputs("Usage: xlang-ls --compiler absolute-xl.exe\n",stderr); if(argv) LocalFree(argv); return 2; }
  char* compiler=utf8(argv[2]); LocalFree(argv); s.compiler=compiler ? xidePathResolveLexical(NULL,compiler) : NULL; free(compiler);
  wchar_t cwd[32768]; if(GetCurrentDirectoryW(32768,cwd)) s.directory=utf8(cwd);
- s.cache=xideToolchainsCreate(); s.analysis=xlsWorkerCreate(NULL,DOC_LIMIT); InitializeCriticalSection(&s.lock); s.event=CreateEventW(NULL,FALSE,FALSE,NULL);
- if(s.compiler && s.directory && s.cache && s.analysis && s.event) s.reader=CreateThread(NULL,0,reader,&s,0,NULL);
+ s.cache=xideToolchainsCreate(); s.analysis=xlsWorkerCreate(NULL,DOC_LIMIT); s.semanticAnalysis=xlsWorkerCreate(NULL,8); InitializeCriticalSection(&s.lock); s.event=CreateEventW(NULL,FALSE,FALSE,NULL);
+ if(s.compiler && s.directory && s.cache && s.analysis && s.semanticAnalysis && s.event) s.reader=CreateThread(NULL,0,reader,&s,0,NULL);
  if(s.reader) while(!s.exitRequested && !s.writeFailed) {
   EnterCriticalSection(&s.lock); message* m=s.head; if(m) { s.head=m->next; if(!s.head) s.tail=NULL; s.queueBytes-=m->size; --s.queueCount; } int eof=s.eof,failed=s.readFailed; LeaveCriticalSection(&s.lock);
   if(m) { dispatch(&s,m->value); xrtValueRelease(m->value); free(m); } else if(eof) { s.exitCode=failed ? 2 : 1; break; }
@@ -436,7 +451,7 @@ int main(void)
  }
  for(size_t i=0;i<DOC_LIMIT;++i) if(s.native[i].query) { xlsQueryCancel(s.native[i].query); releaseNative(&s.native[i]); }
  xlsWorkerDestroy(s.analysis);
- xideLanguageCheckDestroy(s.completion); xrtValueRelease(s.completionId); xrtValueRelease(s.completionPendingId); free(s.completionUri); xideLanguageCheckDestroy(s.check); xideLanguageCheckDestroy(s.guard); xrtValueRelease(s.guardId); free(s.guardUri); xrtValueRelease(s.checkId); xrtValueRelease(s.publishedGroups); xideToolchainsDestroy(s.cache);
+ xideLanguageCheckDestroy(s.completion); xrtValueRelease(s.completionId); xrtValueRelease(s.completionPendingId); free(s.completionUri); xideLanguageCheckDestroy(s.check); xideLanguageCheckDestroy(s.guard); xlsWorkerDestroy(s.semanticAnalysis); xrtValueRelease(s.guardId); free(s.guardUri); xrtValueRelease(s.checkId); xrtValueRelease(s.publishedGroups); xideToolchainsDestroy(s.cache);
  while(s.head) { message* m=s.head; s.head=m->next; xrtValueRelease(m->value); free(m); }
  for(int i=0;i<DOC_LIMIT;++i) clearDocument(&s,i);
  if(s.event) { CloseHandle(s.event); } DeleteCriticalSection(&s.lock); free(s.compiler); free(s.directory); return s.writeFailed ? 2 : s.exitCode;

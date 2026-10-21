@@ -133,7 +133,23 @@ xvalue* xideLanguageCheckDocumentSymbols(xide_language_check* q,const char* path
  LeaveCriticalSection(&q->lock); return out;
 }
 void xideLanguageCheckCancel(xide_language_check* q) { if(q) { InterlockedExchange(&q->cancel,1); if(q->stopEvent) SetEvent(q->stopEvent); } }
-void xideLanguageCheckDestroy(xide_language_check* q) { if(q) { xideLanguageCheckCancel(q); if(q->worker) { WaitForSingleObject(q->worker,INFINITE); CloseHandle(q->worker); } for(size_t i=0;i<q->snapshotCount;++i) { free((char*)q->snapshots[i].path); free((char*)q->snapshots[i].text); } free(q->snapshots); if(q->stopEvent) CloseHandle(q->stopEvent); xrtValueRelease(q->guardFiles); xrtValueRelease(q->guardResolution); xideSemanticDefinitionsDestroy(q->definitions); free(q->queryPath); free(q->packagePath); free(q->compiler); free(q->directory); free(q->path); free(q->text); xrtValueRelease(q->result); DeleteCriticalSection(&q->lock); free(q); } }
+void xideLanguageCheckDestroy(xide_language_check* q)
+{
+ if(!q) return;
+ xideLanguageCheckCancel(q); if(q->worker) { WaitForSingleObject(q->worker,INFINITE); CloseHandle(q->worker); }
+ for(size_t i=0;i<q->snapshotCount;++i) {
+  free((char*)q->snapshots[i].path);
+#ifdef XLS_COMPILER_XRT
+  free(q->snapshotKeys[i]);
+  if(q->snapshotTexts[i]) xlsTextRelease(q->snapshotTexts[i]); else
+#endif
+  free((char*)q->snapshots[i].text);
+ }
+#ifdef XLS_COMPILER_XRT
+ free(q->semanticTarget);
+#endif
+ free(q->snapshots); if(q->stopEvent) CloseHandle(q->stopEvent); xrtValueRelease(q->guardFiles); xrtValueRelease(q->guardResolution); xideSemanticDefinitionsDestroy(q->definitions); free(q->queryPath); free(q->packagePath); free(q->compiler); free(q->directory); free(q->path); free(q->text); xrtValueRelease(q->result); DeleteCriticalSection(&q->lock); free(q);
+}
 
 static xide_language_check* createSnapshots(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const char* queryPath,int line,int character,int diskEntry,xide_model_error* e)
 {
@@ -187,6 +203,55 @@ xide_language_check* xideLanguageCheckStartCompletionSnapshots(xide_toolchains* 
 { return xideLanguageCheckStartCompletionSnapshotsEx(cache,compiler,directory,entry,documents,count,queryPath,line,character,NULL,e); }
 xide_language_check* xideLanguageCheckStartCompletionSnapshotsEx(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const char* queryPath,int line,int character,const xide_language_completion_options* options,xide_model_error* e)
 { if(!queryPath) { fail(e,"补全查询需要打开文档路径。"); return NULL; } return startSnapshots(cache,compiler,directory,entry,documents,count,queryPath,line,character,options,e); }
+
+#ifdef XLS_COMPILER_XRT
+static int retainedLabel(const char* s)
+{ size_t n=s ? strlen(s) : 0; return n && n<=262144 && xrtUtf8Valid((xstrview){s,n},NULL); }
+xide_language_check* xideLanguageCheckStartRetained(xide_toolchains* cache,const char* compiler,
+ const char* directory,xls_worker* actor,const xls_analysis_document* documents,size_t count,
+ const char* target,const char* queryPath,int line,int character,
+ const xide_language_analysis_options* options,xide_model_error* e)
+{
+ if(!cache || !compiler || !directory || !documents || !count || count>64 || !retainedLabel(target) ||
+    (!queryPath && !actor) || (queryPath && (line<0 || character<0)) || (options && !options->nativeBackend)) {
+  fail(e,"Invalid retained native analysis request."); return NULL;
+ }
+ xide_language_check* q=calloc(1,sizeof(*q)); if(!q) return NULL;
+ InitializeCriticalSection(&q->lock); q->cache=cache; q->nativeSemantic=q->retainedSnapshots=1; q->semanticActor=actor;
+ q->compiler=xidePathResolveLexical(NULL,compiler); q->directory=xidePathResolveLexical(NULL,directory);
+ q->semanticTarget=copy(target); q->snapshots=calloc(count,sizeof(*q->snapshots)); q->captureThread=xrtThreadCurrentId();
+ if(!q->compiler || !q->directory || !q->semanticTarget || !q->snapshots) goto invalid;
+ size_t bytes=0;
+ for(size_t i=0;i<count;++i) {
+  const xls_analysis_document* d=&documents[i]; size_t n=xlsTextSize(d->text);
+  if(!d->text || !retainedLabel(d->key) || !retainedLabel(d->path) || !xrtPathIsAbs(d->path) ||
+     !xidePathHasExtension(d->path,".xl") || d->revision>UINT32_MAX || n>TEXT_LIMIT || n>32u*1024u*1024u-bytes) goto invalid;
+  char *path=xidePathResolveLexical(q->directory,d->path),*key=copy(d->key);
+  if(!path || !key) { free(path); free(key); goto invalid; }
+  for(size_t j=0;j<i;++j) if(xidePathLexicalEqual(path,q->snapshots[j].path) || !strcmp(key,q->snapshotKeys[j])) { free(path); free(key); goto invalid; }
+  q->snapshotKeys[i]=key; q->snapshotTexts[i]=xlsTextRetain(d->text); q->snapshotIdentities[i]=d->identity;
+  q->snapshots[q->snapshotCount++]=(xide_language_snapshot){path,xlsTextData(d->text),(int)((int64_t)d->revision+INT_MIN)};
+  bytes+=n;
+  if(!strcmp(key,target)) { q->path=copy(path); q->version=q->snapshots[i].version; if(!q->path) goto invalid; }
+ }
+ if(!q->path) goto invalid;
+ if(queryPath) {
+  q->queryPath=xidePathResolveLexical(q->directory,queryPath); int found=0;
+  if(!q->queryPath) goto invalid;
+  for(size_t i=0;i<count;++i) if(xidePathLexicalEqual(q->queryPath,q->snapshots[i].path)) {
+   size_t offset=0,bom=xlsTextSize(q->snapshotTexts[i])>=3 && !memcmp(q->snapshots[i].text,"\xef\xbb\xbf",3) ? 3 : 0;
+   if(!xlsTextOffset(q->snapshotTexts[i],(xls_position){(size_t)line,(size_t)character},&offset) || offset<bom) goto invalid;
+   q->queryOffset=(int)(offset-bom); q->queryVersion=q->snapshots[i].version; found=1;
+  }
+  if(!found) goto invalid;
+ }
+ if(options) { q->wake=options->wake; q->wakeUser=options->user; }
+ q->stopEvent=CreateEventW(NULL,TRUE,FALSE,NULL); if(q->stopEvent) q->worker=CreateThread(NULL,0,worker,q,0,NULL);
+ if(q->worker) return q;
+invalid:
+ xideLanguageCheckDestroy(q); fail(e,"Cannot capture retained native analysis inputs."); return NULL;
+}
+#endif
 
 static int bridgeArgument(const char* path)
 { size_t n=path ? strlen(path) : 0; return n && n<=32767 && path[0]!='-' && MultiByteToWideChar(CP_UTF8,MB_ERR_INVALID_CHARS,path,(int)n,NULL,0); }
