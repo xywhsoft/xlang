@@ -27,6 +27,7 @@ int main(void)
     xstrview Bytes;
     xstrview Key = XRT_STR_LITERAL("value");
     int Ok;
+    void* Frame;
 
     if (Args == NULL || !append_text(Args, "SET", 3u) ||
         !append_text(Args, "a\0b", 3u) || !append_text(Args, "hello", 5u)) {
@@ -49,6 +50,14 @@ int main(void)
     if (Ok) printf("bulk value bytes: %llu\n", (unsigned long long)Bytes.Size);
     Ok = Ok && ArrayValue != NULL && xrtValueType(ArrayValue) == XVALUE_ARRAY;
     if (Ok) printf("array reply: %llu items\n", (unsigned long long)xrtValueCount(ArrayValue));
+
+    /* 收包缓冲可搬迁；增量状态只记录已经扫描的字节偏移。 */
+    Frame = xr_frame_create();
+    Ok = Ok && Frame != NULL &&
+        !xr_frame_check(Frame, "*1\r\n$3\r\nab", 10u) && xrtGetError() == NULL &&
+        xr_frame_check(Frame, "*1\r\n$3\r\nabc\r\n", 13u) &&
+        xrtGetError() == NULL;
+    xr_frame_destroy(Frame);
 
     BinaryArgs = xrtValueArray();
     BinaryValue = xrtValueBytes((xbytesview){ (const unsigned char*)"\x00\xff" "A", 3u });

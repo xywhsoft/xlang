@@ -24,6 +24,24 @@ func serve(TcpStream peer, string response) as int
     return 1
 end
 
+// 分段跨越 bulk、数组头和整数行，检验增量帧状态与最终解码一致。
+func serveArray(TcpStream peer) as int
+    string request = ""
+    while not redis.isComplete(request)
+        string chunk = peer.recv(5000)
+        assert chunk != ""
+        request += chunk
+    end
+    var parts = ["*3\r\n$3\r\nab", "c\r\n*2\r\n", ":1\r\n$-1\r\n", "+OK\r\n"]
+    for part in parts
+        assert peer.send(string(part))
+        assert peer.drain(5000)
+        time.sleep(10)
+    end
+    peer.close()
+    return 1
+end
+
 // 持续滴送不完整 bulk；单次读取都能及时返回，但整条命令必须按总期限失败。
 func serveSlow(TcpStream peer) as int
     string request = ""
@@ -140,6 +158,18 @@ func main(...) as int
     assert redis.command(client, ["PING"], 250) == "PONG"
     assert job.wait()
     client.close()
+
+    TcpStream arrayClient = tcp.connect("127.0.0.1", int(server.port()), 5000)
+    TcpStream arrayPeer = server.accept(5000)
+    future<int> arrayJob = task.spawn(serveArray, arrayPeer)
+    var arrayReply = redis.command(arrayClient, ["PING"])
+    assert arrayReply.length == 3
+    assert arrayReply[0]["value"] == "abc"
+    assert arrayReply[1]["value"][0]["value"] == 1
+    assert arrayReply[1]["value"][1]["value"] == null
+    assert arrayReply[2]["value"] == "OK"
+    assert arrayJob.wait(), "fragmented array server failed"
+    arrayClient.close()
 
     TcpStream client2 = tcp.connect("127.0.0.1", int(server.port()), 5000)
     TcpStream peer2 = server.accept(5000)

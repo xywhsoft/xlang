@@ -180,8 +180,12 @@ int main(void)
         const unsigned char Frame[] =
             "*3\r\n+OK\r\n$3\r\nA\0\xff\r\n*2\r\n:17\r\n$-1\r\n";
         size_t length;
+        void* Scanner = xr_frame_create();
+        CHECK(Scanner != NULL);
         for (length = 0; length < sizeof(Frame) - 1u; ++length) {
             CHECK(!xr_is_complete_raw((void*)Frame, length) &&
+                xrtGetError() == NULL);
+            CHECK(!xr_frame_check(Scanner, (void*)Frame, length) &&
                 xrtGetError() == NULL);
             Reply = xr_decode_raw((void*)Frame, length);
             CHECK(Reply != NULL && xrtValueType(Reply) == XVALUE_NULL &&
@@ -189,6 +193,9 @@ int main(void)
             xrtValueRelease(Reply);
         }
         CHECK(xr_is_complete_raw((void*)Frame, length) && xrtGetError() == NULL);
+        CHECK(xr_frame_check(Scanner, (void*)Frame, length) &&
+            xrtGetError() == NULL);
+        xr_frame_destroy(Scanner);
         Reply = xr_decode_raw((void*)Frame, length);
         CHECK(Reply != NULL && xrtValueType(Reply) == XVALUE_OBJECT &&
             text_equals(field(Reply, "rest"), "", 0u) && xrtGetError() == NULL);
@@ -208,6 +215,69 @@ int main(void)
             Number == 17 &&
             xrtValueType(field(xrtValueArrayAt(Item, 1), "value")) == XVALUE_NULL);
         xrtValueRelease(Reply);
+    }
+
+    /* 大数组逐项送入：增量检查器不能反复重扫已完成的前缀。 */
+    {
+        const size_t count = 10000u;
+        char header[32];
+        int headerSize = snprintf(header, sizeof(header), "*%u\r\n", (unsigned)count);
+        size_t frameSize = (size_t)headerSize + count * 4u;
+        char* frame = xrtMalloc(frameSize);
+        void* scanner = xr_frame_create();
+        size_t part;
+        CHECK(headerSize > 0 && frame != NULL && scanner != NULL);
+        memcpy(frame, header, (size_t)headerSize);
+        for (part = 0u; part < count; ++part)
+            memcpy(frame + headerSize + part * 4u, ":1\r\n", 4u);
+        for (part = 1u; part <= count; ++part) {
+            CHECK(xr_frame_check(scanner, frame,
+                (size_t)headerSize + part * 4u) == (part == count));
+            CHECK(xrtGetError() == NULL);
+        }
+        CHECK(xr_is_complete_raw(frame, frameSize) && xrtGetError() == NULL);
+        xr_frame_destroy(scanner);
+        xrtFree(frame);
+    }
+
+    {
+        const char Invalid[] = "*2\r\n+OK\r\n?\r\n";
+        void* scanner = xr_frame_create();
+        CHECK(scanner != NULL &&
+            !xr_frame_check(scanner, (void*)Invalid, sizeof(Invalid) - 1u) &&
+            xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        xr_frame_destroy(scanner);
+    }
+
+    {
+        static const char* const Frames[] = {
+            "+OK\r\n", "-ERR\r\n", ":+3\r\n", "$0\r\n\r\n",
+            "$-1\r\n", "*0\r\n", "*1\r\n*1\r\n:3\r\n",
+            "+OK\r\n$1\r\na\r\n", "$-2\r\n",
+            ":9223372036854775808\r\n", "$2\r\nab\rx"
+        };
+        size_t caseIndex;
+        for (caseIndex = 0u; caseIndex < sizeof(Frames) / sizeof(Frames[0]);
+             ++caseIndex) {
+            const char* frame = Frames[caseIndex];
+            size_t length, size = strlen(frame);
+            char first[64], second[64];
+            void* scanner = xr_frame_create();
+            CHECK(scanner != NULL && size < sizeof(first));
+            for (length = 0u; length <= size; ++length) {
+                char* relocated = (length & 1u) ? first : second;
+                bool expected = xr_is_complete_raw((void*)frame, length);
+                const xerror* oldError = xrtGetError();
+                bool oldFailed = oldError != NULL;
+                xerrkind oldKind = oldFailed ? xrtErrorKind(oldError) : 0;
+                memcpy(relocated, frame, length);
+                bool actual = xr_frame_check(scanner, relocated, length);
+                const xerror* newError = xrtGetError();
+                CHECK(actual == expected && (newError != NULL) == oldFailed);
+                if (oldFailed) CHECK(xrtErrorKind(newError) == oldKind);
+            }
+            xr_frame_destroy(scanner);
+        }
     }
 
     /* 不完整回复不报错；非法长度和非法换行则保留结构化错误。 */
@@ -232,12 +302,26 @@ int main(void)
     Input = xrtValueString(XRT_STR_LITERAL("*100001\r\n"));
     CHECK(Input != NULL && !xr_is_complete(Input) &&
         xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    {
+        void* scanner = xr_frame_create();
+        CHECK(scanner != NULL &&
+            !xr_frame_check(scanner, "*100001\r\n", 9u) &&
+            xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        xr_frame_destroy(scanner);
+    }
     xrtValueRelease(Input);
     for (i = 0; i < 65; ++i) memcpy(Deep + i * 4, "*1\r\n", 4u);
     memcpy(Deep + 65 * 4, "+X\r\n", 4u);
     Input = xrtValueString((xstrview){ Deep, 65u * 4u + 4u });
     CHECK(Input != NULL && !xr_is_complete(Input) &&
         xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
+    {
+        void* scanner = xr_frame_create();
+        CHECK(scanner != NULL &&
+            !xr_frame_check(scanner, Deep, 65u * 4u + 4u) &&
+            xrtErrorKind(xrtGetError()) == XERR_VALUE);
+        xr_frame_destroy(scanner);
+    }
     xrtValueRelease(Input);
 
     memset(LongText, 'x', sizeof(LongText));

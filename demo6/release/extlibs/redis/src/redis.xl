@@ -4,6 +4,9 @@ extern "xr_decode" func __r_decode(var reply) as var
 extern "xr_is_complete" func __r_is_complete(var reply) as bool
 extern "xr_decode_raw" func __r_decode_raw(point data, c_size size) as var
 extern "xr_is_complete_raw" func __r_is_complete_raw(point data, c_size size) as bool
+extern "xr_frame_create" func __r_frame_create() as point
+extern "xr_frame_check" func __r_frame_check(point frame, point data, c_size size) as bool
+extern "xr_frame_destroy" func __r_frame_destroy(point frame)
 
 
 
@@ -66,6 +69,7 @@ export func command(TcpStream stream, var args, int timeoutMs = 5000,
     uint64 started = time.monotonic()
     uint64 limitUs = uint64(timeoutMs) * 1000
     Buffer payload = encodeBytes(args)
+    point frame = __r_frame_create()
     bool synchronized = false
     var reply = null
     try
@@ -81,7 +85,8 @@ export func command(TcpStream stream, var args, int timeoutMs = 5000,
             throw ValueError "redis: send timed out"
         end
         Buffer buffer = Buffer()
-        while not isCompleteBytes(buffer)
+        bool complete = false
+        while not complete
             elapsed = time.monotonic() - started
             if elapsed >= limitUs then
                 throw ValueError "redis: command timed out"
@@ -108,6 +113,7 @@ export func command(TcpStream stream, var args, int timeoutMs = 5000,
             if not buffer.append(chunk) then
                 throw MemoryError "redis: could not buffer reply"
             end
+            complete = __r_frame_check(frame, buffer.data(), c_size(buffer.len()))
         end
         reply = decodeBytes(buffer)
         if reply["rest"] != "" then
@@ -115,6 +121,7 @@ export func command(TcpStream stream, var args, int timeoutMs = 5000,
         end
         synchronized = true
     finally
+        __r_frame_destroy(frame)
         if not synchronized then
             stream.abort()
         end

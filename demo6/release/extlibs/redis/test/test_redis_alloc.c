@@ -101,6 +101,15 @@ static int test_decode(void)
 
 int main(void)
 {
+    void* frame;
+    CHECK(xrtMemDebugFailAfter(0u));
+    frame = xr_frame_create();
+    CHECK(frame == NULL && xrtMemDebugFailTriggered() &&
+        xrtErrorKind(xrtGetError()) == XERR_MEMORY);
+    xrtMemDebugFailClear();
+    frame = xr_frame_create();
+    CHECK(frame != NULL && xrtGetError() == NULL);
+    xr_frame_destroy(frame);
     CHECK(test_encode() == 0);
     CHECK(test_decode() == 0);
     puts("redis allocation: PASS");

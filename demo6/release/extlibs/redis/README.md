@@ -46,6 +46,12 @@ Redis error 回复抛 `ValueError`，同次读取出现额外回复时
 畸形回复、超限或多余回复使请求与回复无法可靠对应时，`command`
 调用 `stream.abort()`，此连接不得再用于下一条命令，调用方应显式重连。
 这不改变调用方对 `TcpStream` 对象的所有权。
+`command` 收包时使用增量 RESP 帧检查器：每次只扫描新追加的字节，
+不会因大数组被拆成许多小 TCP 片段而反复解析旧前缀；完整回复仍由原解码器
+构造一次结果。C 可使用 `xr_frame_create/check/destroy` 实现相同检查；
+`check` 的缓冲内容必须只追加，地址可变，返回 `false` 且无 XRT 错误表示
+尚未收齐，格式错误则报告 XRT 错误。原有 `isComplete`/`isCompleteBytes`
+仍是独立输入的无状态检查，不持有或缓存缓冲内容。
 本地回环还以含非 UTF-8 字节的完整 error 帧验证：`command` 抛出带
 `redis:` 前缀的 `ValueError`，同一连接随后执行 `PING` 仍能成功。
 

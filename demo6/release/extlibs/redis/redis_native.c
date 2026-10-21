@@ -334,6 +334,138 @@ static bool xr_complete_reader(xrreader* Reader)
     return Status == XR_OK;
 }
 
+typedef enum xrframemode {
+    XR_FRAME_TYPE,
+    XR_FRAME_LINE,
+    XR_FRAME_BULK,
+    XR_FRAME_DONE,
+    XR_FRAME_BAD
+} xrframemode;
+
+typedef struct xrframe {
+    size_t Pos;
+    size_t SeenSize;
+    size_t LineStart;
+    size_t Scan;
+    size_t BulkSize;
+    size_t Nodes;
+    size_t Remaining[XR_MAX_DEPTH];
+    unsigned Depth;
+    char Type;
+    xrframemode Mode;
+} xrframe;
+
+static bool xr_frame_invalid(xrframe* Frame)
+{
+    Frame->Mode = XR_FRAME_BAD;
+    xr_error(XERR_VALUE, "RESP reply is malformed");
+    return false;
+}
+
+/* 一个值完成后，逐层结清父数组；状态只保存偏移，不借用缓冲地址。 */
+static void xr_frame_finish(xrframe* Frame)
+{
+    while (Frame->Depth != 0u) {
+        size_t* Left = &Frame->Remaining[Frame->Depth - 1u];
+        if (--*Left != 0u) {
+            Frame->Mode = XR_FRAME_TYPE;
+            return;
+        }
+        --Frame->Depth;
+    }
+    Frame->Mode = XR_FRAME_DONE;
+}
+
+void* xr_frame_create(void)
+{
+    xrtClearError();
+    return xrtCalloc(1u, sizeof(xrframe));
+}
+
+void xr_frame_destroy(void* Frame)
+{
+    xrtFree(Frame);
+}
+
+bool xr_frame_check(void* Handle, void* Data, size_t Size)
+{
+    xrframe* Frame = Handle;
+    const char* Bytes = Data;
+    xrtClearError();
+    if (Frame == NULL || (Data == NULL && Size != 0u) ||
+        Size < Frame->SeenSize) {
+        xr_error(XERR_ARGUMENT, "RESP frame requires an append-only buffer");
+        return false;
+    }
+    if (Size > XR_MAX_BYTES) {
+        xr_error(XERR_RANGE, "RESP reply exceeds 64 MiB");
+        return false;
+    }
+    Frame->SeenSize = Size;
+    if (Frame->Mode == XR_FRAME_BAD) return xr_frame_invalid(Frame);
+    if (Frame->Mode == XR_FRAME_DONE) return true;
+    if (Bytes == NULL) Bytes = "";
+
+    for (;;) {
+        if (Frame->Mode == XR_FRAME_TYPE) {
+            if (Frame->Pos == Size) return false;
+            if (Frame->Depth >= XR_MAX_DEPTH || Frame->Nodes >= XR_MAX_ITEMS)
+                return xr_frame_invalid(Frame);
+            ++Frame->Nodes;
+            Frame->Type = Bytes[Frame->Pos++];
+            if (Frame->Type != '+' && Frame->Type != '-' && Frame->Type != ':' &&
+                Frame->Type != '$' && Frame->Type != '*')
+                return xr_frame_invalid(Frame);
+            Frame->LineStart = Frame->Scan = Frame->Pos;
+            Frame->Mode = XR_FRAME_LINE;
+        }
+        if (Frame->Mode == XR_FRAME_LINE) {
+            size_t End = Frame->Scan;
+            int64 Number;
+            while (End < Size && Bytes[End] != '\r') {
+                if (Bytes[End] == '\n') return xr_frame_invalid(Frame);
+                ++End;
+            }
+            Frame->Scan = End;
+            if (End == Size || End + 1u == Size) return false;
+            if (Bytes[End + 1u] != '\n') return xr_frame_invalid(Frame);
+            Frame->Pos = End + 2u;
+            if (Frame->Type == '+' || Frame->Type == '-') {
+                xr_frame_finish(Frame);
+            } else {
+                if (!xr_integer(Bytes + Frame->LineStart,
+                        End - Frame->LineStart, &Number))
+                    return xr_frame_invalid(Frame);
+                if (Frame->Type == ':') {
+                    xr_frame_finish(Frame);
+                } else if (Number == -1) {
+                    xr_frame_finish(Frame);
+                } else if (Number < 0 || (uint64)Number > XR_MAX_BYTES ||
+                           (Frame->Type == '*' && (uint64)Number > XR_MAX_ITEMS)) {
+                    return xr_frame_invalid(Frame);
+                } else if (Frame->Type == '$') {
+                    Frame->BulkSize = (size_t)Number;
+                    Frame->Mode = XR_FRAME_BULK;
+                } else if (Number == 0) {
+                    xr_frame_finish(Frame);
+                } else {
+                    Frame->Remaining[Frame->Depth++] = (size_t)Number;
+                    Frame->Mode = XR_FRAME_TYPE;
+                }
+            }
+        }
+        if (Frame->Mode == XR_FRAME_BULK) {
+            if (Size - Frame->Pos < Frame->BulkSize + 2u) return false;
+            if (Bytes[Frame->Pos + Frame->BulkSize] != '\r' ||
+                Bytes[Frame->Pos + Frame->BulkSize + 1u] != '\n')
+                return xr_frame_invalid(Frame);
+            Frame->Pos += Frame->BulkSize + 2u;
+            xr_frame_finish(Frame);
+        }
+        if (Frame->Mode == XR_FRAME_DONE) return true;
+    }
+}
+
 xvalue* xr_decode(xvalue* Reply)
 {
     xrreader Reader;
