@@ -55,7 +55,9 @@ assert json.patch.get(old, "/values/1") == 2
 包内 `test/test_boundaries.c`、`test/boundaries.xl` 覆盖数组插入、根路径、
 内嵌 NUL、长路径与畸形 UTF-8、同数组双向移动、复合值逻辑相等、
 补丁原子性、合并深度、旧错误污染及复制失败的错误分类。
-分配故障扫描还覆盖同数组 `move` 和对象 `copy`，检查原文档不变、错误类别与内存释放平衡。
+分配故障扫描还覆盖同数组 `move`、对象 `copy` 和 `test` 的结构相等比较，
+检查原文档不变、内存错误类别与释放平衡；比较期间的分配失败不得误报
+为补丁条件不匹配。
 `test/allocations.xl` 在公开语言入口逐点注入故障，验证 `apply` 与 `merge`
 的 `MemoryError` 分类、完整结果及原文档不变；已接入包清单和双平台门禁。
 `examples/basic_c.c` 与 `examples/basic.xl` 运行输出相同；Windows 严格 GCC、

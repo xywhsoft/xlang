@@ -102,11 +102,13 @@ static int allocation_boundaries(xvalue* doc, xvalue* operations) {
     xvalue* mergeDelete = parse("{\"name\":null}");
     xvalue* movePatch = parse("[{\"op\":\"move\",\"from\":\"/arr/0\",\"path\":\"/arr/1\"}]");
     xvalue* copyPatch = parse("[{\"op\":\"copy\",\"from\":\"/name\",\"path\":\"/copy\"}]");
+    /* test 的结构相等比较也会分配，故障不能被改报为比较失败。 */
+    xvalue* testPatch = parse("[{\"op\":\"test\",\"path\":\"/arr\",\"value\":[1,2]}]");
     int operation;
     CHECK(mergePatch != NULL && mergeDelete != NULL &&
-        movePatch != NULL && copyPatch != NULL);
+        movePatch != NULL && copyPatch != NULL && testPatch != NULL);
     CHECK(xrtMemDebugEnabled() || xrtMemDebugEnable(true));
-    for (operation = 0; operation < 7; ++operation) {
+    for (operation = 0; operation < 8; ++operation) {
         int successes = 0;
         int failures = 0;
         int index;
@@ -123,7 +125,8 @@ static int allocation_boundaries(xvalue* doc, xvalue* operations) {
             else if (operation == 3) result = xjsonpatch_merge(doc, mergePatch);
             else if (operation == 4) result = xjsonpatch_merge(doc, mergeDelete);
             else if (operation == 5) result = xjsonpatch_apply(doc, movePatch);
-            else result = xjsonpatch_apply(doc, copyPatch);
+            else if (operation == 6) result = xjsonpatch_apply(doc, copyPatch);
+            else result = xjsonpatch_apply(doc, testPatch);
             injected = xrtMemDebugFailTriggered();
             xrtMemDebugFailClear();
             if (injected) {
@@ -138,6 +141,8 @@ static int allocation_boundaries(xvalue* doc, xvalue* operations) {
                     CHECK(same(result, "{\"arr\":[2,1],\"name\":\"ok\",\"nil\":null}"));
                 } else if (operation == 6) {
                     CHECK(same(result, "{\"arr\":[1,2],\"name\":\"ok\",\"nil\":null,\"copy\":\"ok\"}"));
+                } else if (operation == 7) {
+                    CHECK(same(result, "{\"arr\":[1,2],\"name\":\"ok\",\"nil\":null}"));
                 }
                 ++successes;
             }
@@ -154,6 +159,7 @@ static int allocation_boundaries(xvalue* doc, xvalue* operations) {
     xrtValueRelease(mergeDelete);
     xrtValueRelease(movePatch);
     xrtValueRelease(copyPatch);
+    xrtValueRelease(testPatch);
     return 1;
 }
 

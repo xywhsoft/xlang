@@ -6,9 +6,10 @@ extern "xrtMemDebugFailClear" func failClear()
 
 var document = {"values": [1, 2], "settings": {"mode": "old"}}
 var operations = [{"op": "add", "path": "/values/1", "value": 9}]
+var testOperations = [{"op": "test", "path": "/values", "value": [1, 2]}]
 var changes = {"settings": {"mode": "new"}}
 
-for operation in range(2)
+for operation in range(3)
     int failures = 0
     int successes = 0
     for allocation in range(256)
@@ -20,9 +21,12 @@ for operation in range(2)
             if operation == 0 then
                 var result = json.patch.apply(document, operations)
                 complete = result["values"][1] == 9
-            else
+            elseif operation == 1 then
                 var result = json.patch.merge(document, changes)
                 complete = result["settings"]["mode"] == "new"
+            else
+                var result = json.patch.apply(document, testOperations)
+                complete = result["values"][1] == 2
             end
         catch MemoryError error
             memoryCaught = true
