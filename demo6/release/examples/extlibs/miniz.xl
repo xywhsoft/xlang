@@ -18,9 +18,7 @@ func main(...) as int
     Buffer packed = miniz.compress(source)
     Buffer plain = miniz.decompress(packed)
     assert plain == source, "miniz Buffer round trip failed"
-    for i in range(packed.len() - 8, packed.len())
-        assert packed[i] == 0, "miniz member end record must be deterministic"
-    end
+    assert packed[0] == 120, "zlib CMF header missing"
     println("一次性: ", source.len(), " 字节 -> ", packed.len(), " 字节")
 
     // 直接压缩字符串（内部自动转 Buffer）。
@@ -36,12 +34,12 @@ func main(...) as int
     streamPacked.append(encoder.drain())
     encoder.update("stream")
     streamPacked.append(encoder.drain())
-    encoder.finish()                 // 封存流（写入成员结束标记）
+    encoder.finish()                 // 写完单条 zlib 流及 Adler-32
     streamPacked.append(encoder.drain())
     println("流式压缩: 喂入 ", encoder.inputBytes, " 字节, 产出 ",
         encoder.outputBytes, " 字节")
 
-    // ─── 3. 增量流式解压 + 进度回显 + 多成员统计 ───
+    // ─── 3. 增量流式解压 + 进度回显 ───
     auto decoder = miniz.decompressor()
     Buffer restored = Buffer()
     decoder.update(streamPacked)
@@ -52,20 +50,18 @@ func main(...) as int
     restored.append(decoder.drain())
     assert restored.text() == "hello stream", "miniz incremental round trip failed"
 
-    // 前一成员完整时，不能掩盖后一成员缺失结束记录。
-    Buffer chainedTruncated = Buffer()
-    chainedTruncated.append(packed)
-    for i in range(0, streamPacked.len() - 12)
-        chainedTruncated.appendByte(streamPacked[i])
+    // 缺少末尾校验字节时必须拒绝。
+    Buffer truncated = Buffer()
+    for i in range(0, streamPacked.len() - 1)
+        truncated.appendByte(streamPacked[i])
     end
     bool truncatedRejected = false
     try
-        miniz.decompress(chainedTruncated)
-    catch CompressionError e
+        miniz.decompress(truncated)
+    catch IOError e
         truncatedRejected = true
     end
-    assert truncatedRejected, "truncated final miniz member must be rejected"
-    println("成员数: ", decoder.members) // 1；>1 表示串联多成员流
+    assert truncatedRejected, "truncated zlib stream must be rejected"
 
     // ─── 4. 压缩级别调优（0..10，越高压缩率越高但越慢）───
     auto tuned = miniz.compressor(miniz.MINIZ_MAX_LEVEL)
@@ -74,37 +70,40 @@ func main(...) as int
     assert miniz.decompress(tuned.drain()).text() == "tune me"
     println("最高级别 L10 流式往返: OK")
 
-    // ─── 5. 损坏数据必然抛出 CompressionError（块体安全校验生效）───
+    // ─── 5. 损坏数据必然抛出 IOError ───
     bool rejected = false
-    int mid = streamPacked.len() / 2
-    streamPacked[mid] = streamPacked[mid] ^ 255
+    streamPacked[0] = 0
     try
         miniz.decompress(streamPacked)
-    catch CompressionError e
+    catch IOError e
         rejected = true
     end
-    assert rejected, "corrupt miniz must raise CompressionError"
+    assert rejected, "corrupt zlib stream must raise IOError"
     println("损坏检出: OK")
 
     // ─── 6. 文件便捷接口（XRT reader/writer，临时文件+原子重命名）───
-    dir.createAll("tmp")
-    file.writeBytes("tmp/miniz_example_source.bin", source)
-    FileProgress progress = FileProgress()
-    miniz.compressFile("tmp/miniz_example_source.bin", "tmp/miniz_example.miniz",
-        onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
-            progress.calls += 1
-            progress.inputBytes = inputBytes
-            progress.totalBytes = totalBytes
-            return true
-        end)
-    assert progress.calls > 0
-    assert progress.inputBytes == source.len()
-    assert progress.totalBytes == source.len()
-    miniz.decompressFile("tmp/miniz_example.miniz", "tmp/miniz_example_plain.bin")
-    assert file.readBytes("tmp/miniz_example_plain.bin") == source
-    file.delete("tmp/miniz_example_source.bin")
-    file.delete("tmp/miniz_example.miniz")
-    file.delete("tmp/miniz_example_plain.bin")
+    string directory = dir.temp("", "xlang-miniz-example-", "")
+    string sourcePath = path.join(directory, "source.bin")
+    string packedPath = path.join(directory, "packed.zz")
+    string restoredPath = path.join(directory, "restored.bin")
+    try
+        assert file.writeBytes(sourcePath, source.toBytes())
+        FileProgress progress = FileProgress()
+        miniz.compressFile(sourcePath, packedPath,
+            onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
+                progress.calls += 1
+                progress.inputBytes = inputBytes
+                progress.totalBytes = totalBytes
+                return true
+            end)
+        assert progress.calls > 0
+        assert progress.inputBytes == source.len()
+        assert progress.totalBytes == source.len()
+        miniz.decompressFile(packedPath, restoredPath)
+        assert file.readBytes(restoredPath) == source.toBytes()
+    finally
+        assert dir.delete(directory), "miniz example temporary directory must be removed"
+    end
 
     println("miniz example: PASS")
     return 0

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09090a">
+  <title>miniz - 扩展库 - xlang</title>
+  <meta name="description" content="miniz 扩展库：复用 XRT 的标准 zlib 流式压缩，提供二进制安全的一次性、文件与增量接口，以及 0..10 级别调优。">
+  <link rel="icon" href="../favicon.png">
+  <meta property="og:title" content="miniz - xlang 扩展库">
+  <meta property="og:description" content="miniz 轻量级 deflate 压缩：一次性、文件级与增量流式。">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航">
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+    <ul class="nav-links" id="site-navigation">
+      <li><a href="../index.html#highlights">亮点</a></li>
+      <li><a href="../index.html#features">特性</a></li>
+      <li><a href="../index.html#start">快速开始</a></li>
+      <li><a href="../tour.html">语法导览</a></li>
+      <li><a href="../book/index.html">教程</a></li>
+      <li><a href="../stdlib.html">标准库</a></li>
+      <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+      <li><a href="../guide.html">文档</a></li>
+      <li><a href="../download.html">下载</a></li>
+      <li><a href="https://gitee.com/xywhsoft/x-lang" target="_blank" rel="noopener">Gitee</a></li>
+    </ul>
+    <div class="nav-actions" aria-label="页面工具"></div>
+  </div>
+</nav>
+
+<div class="extlib-layout c-zip" id="main-content">
+  <div class="extlib-head">
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;"><a href="../extlibs.html" style="color:var(--brand);text-decoration:none;">扩展库</a><span style="margin:0 6px;">/</span><span style="color:var(--text-soft);">miniz</span></p>
+    <div class="extlib-title-row"><h1>miniz</h1><span class="extlib-cat-badge">压缩归档</span></div>
+    <div class="extlib-badges"><span class="extlib-badge">v1.0.0</span><span class="extlib-badge hot">C 混编</span><span class="extlib-badge">0 依赖</span><span class="extlib-badge">ABI 1</span></div>
+    <p class="extlib-lead">标准 zlib 流压缩，底层复用 XRT 的 deflate/inflate，不重复携带另一套压缩引擎。xlang 层提供二进制安全的 <code>Buffer</code> 一次性、文件级和 <code>update → drain → finish</code> 增量流式接口。</p>
+  </div>
+
+  <div class="ext-tabs" id="extTabs">
+    <button class="ext-tab active" data-panel="overview">概览</button>
+    <button class="ext-tab" data-panel="api">API 参考</button>
+    <button class="ext-tab" data-panel="examples">范例</button>
+    <button class="ext-tab" data-panel="tests">测试</button>
+  </div>
+
+  <div class="ext-panel active" id="panel-overview">
+    <h2>典型场景</h2>
+    <div class="ext-scenes"><span class="ext-scene">嵌入式压缩</span><span class="ext-scene">zlib 兼容</span><span class="ext-scene">轻量集成</span><span class="ext-scene">日志压缩</span><span class="ext-scene">缓存压缩</span><span class="ext-scene">进度回显传输</span></div>
+    <h2>快速开始</h2>
+    <div class="code-block"><div class="code-header"><span>quick_start.xl</span></div><div class="code-body"><pre>import miniz
+
+func main(...) as int
+    Buffer packed = miniz.compress("hello miniz")
+    println(miniz.decompressText(packed))   // hello miniz
+
+    auto enc = miniz.compressor()
+    enc.update("part1 ")
+    enc.update("part2")
+    enc.finish()
+    Buffer blob = enc.drain()
+
+    auto dec = miniz.decompressor()
+    dec.update(blob)
+    dec.finish()
+    println(dec.drain().text())           // part1 part2
+    return 0
+end</pre></div></div>
+    <h2>核心特性</h2>
+    <ul>
+      <li><strong>标准 zlib 流</strong> — 可与 zlib 工具互通；它不是 gzip 容器</li>
+      <li><strong>二进制安全</strong> — 原始输出使用 <code>Buffer</code>；<code>decompressText</code> 只接受合法 UTF-8 明文</li>
+      <li><strong>三种粒度</strong> — 一次性内存、文件级、增量流式（<code>MinizCompressor</code>/<code>MinizDecompressor</code>）</li>
+      <li><strong>真流式输出</strong> — <code>drain()</code> 随时取走已产出字节</li>
+      <li><strong>进度回显</strong> — <code>inputBytes</code>/<code>outputBytes</code> 字节计数器</li>
+      <li><strong>完整性校验</strong> — Adler-32、截断和尾部数据由 XRT 解码器检查</li>
+      <li><strong>级别 0..10</strong> — 0 不压缩、10 最高压缩率、6 默认平衡</li>
+      <li><strong>文件原子写</strong> — 临时文件 + 原子重命名</li>
+    </ul>
+    <h2>包信息</h2>
+    <table class="ext-kv">
+      <tr><th>包名</th><td>miniz</td></tr><tr><th>版本</th><td>1.0.0</td></tr>
+      <tr><th>引擎</th><td>XRT deflate/inflate（zlib 格式）</td></tr>
+      <tr><th>实现方式</th><td>XRT 编解码 + C/XLang 接口层</td></tr>
+      <tr><th>依赖</th><td>无</td></tr><tr><th>ABI 版本</th><td>1</td></tr>
+      <tr><th>导出符号</th><td>compress(), decompress(), decompressText(), compressFile(), decompressFile(), compressor(), decompressor(), MinizCompressor, MinizDecompressor, MINIZ_* 常量</td></tr>
+      <tr><th>源文件</th><td>extlibs/miniz/src/miniz.xl</td></tr>
+    </table>
+  </div>
+
+  <div class="ext-panel" id="panel-api">
+    <div class="api-group-title">常量</div>
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export const int</span> <span class="fn">MINIZ_MIN_LEVEL</span> = <span class="kw">0</span>
+<span class="kw">export const int</span> <span class="fn">MINIZ_MAX_LEVEL</span> = <span class="kw">10</span>
+<span class="kw">export const int</span> <span class="fn">MINIZ_DEFAULT_LEVEL</span> = <span class="kw">6</span></div>
+      <p>压缩级别常量。0 不压缩、10 压缩率最高、6 为默认平衡点。</p>
+    </div>
+    <div class="api-group-title">一次性 / 文件 / 流式</div>
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export func</span> <span class="fn">compress</span>(<span class="type">Buffer</span> data, <span class="type">int</span> level = <span class="kw">6</span>, ...) <span class="kw">as</span> <span class="type">Buffer</span>
+<span class="kw">export func</span> <span class="fn">decompress</span>(<span class="type">Buffer</span> data, ...) <span class="kw">as</span> <span class="type">Buffer</span>
+<span class="kw">export func</span> <span class="fn">compressFile</span>(...) / <span class="fn">decompressFile</span>(...)
+<span class="kw">export func</span> <span class="fn">compressor</span>(<span class="type">int</span> level = <span class="kw">6</span>, ...) <span class="kw">as</span> <span class="type">MinizCompressor</span>
+<span class="kw">export func</span> <span class="fn">decompressor</span>(...) <span class="kw">as</span> <span class="type">MinizDecompressor</span></div>
+      <p>提供一次性、文件级和增量流式三种接口。流式类提供 update/drain/finish、inputBytes/outputBytes/finished；每次编码只生成一条 zlib 流，解码拒绝第二条拼接流及旧私有容器。</p>
+      <div class="api-note">文件接口末尾支持可空 <code>onProgress(inputBytes, totalBytes, outputBytes)</code>。含 NUL 的源/目标路径报 <code>ValueError</code>；返回 false 删除临时输出并抛 <code>CancelledError</code>；回调异常原样传播。C 层对应 <code>xrtprogressproc</code> + <code>void* userData</code>。C 流式接口的进度从 Reader 当前读取位置起算；无法同时取得总长和当前位置时不设置 <code>TOTAL_KNOWN</code>。</div>
+      <div class="api-note"><code>level</code> 越界抛 <code>ValueError</code>；数据损坏抛 <code>CompressionError</code>。</div>
+    </div>
+  </div>
+
+  <div class="ext-panel" id="panel-examples">
+    <h2>教学范例</h2>
+    <p>完整源文件：<code>examples/extlibs/miniz.xl</code></p>
+    <h3>1. 一次性 + 流式</h3>
+    <div class="code-block"><div class="code-header"><span>miniz.xl</span></div><div class="code-body"><pre>import miniz
+
+Buffer packed = miniz.compress("xlang miniz")
+assert miniz.decompressText(packed) == "xlang miniz"
+println("引擎版本: ", miniz.version())
+
+auto encoder = miniz.compressor()
+Buffer streamPacked = Buffer()
+encoder.update("hello ")
+streamPacked.append(encoder.drain())
+encoder.update("stream")
+streamPacked.append(encoder.drain())
+encoder.finish()
+streamPacked.append(encoder.drain())
+
+auto decoder = miniz.decompressor()
+decoder.update(streamPacked)
+decoder.finish()
+assert decoder.drain().text() == "hello stream"</pre></div></div>
+    <h3>2. 最高级别 L10</h3>
+    <div class="code-block"><div class="code-header"><span>调优</span></div><div class="code-body"><pre>auto tuned = miniz.compressor(miniz.MINIZ_MAX_LEVEL)
+tuned.update("tune me")
+tuned.finish()
+assert miniz.decompress(tuned.drain()).text() == "tune me"</pre></div></div>
+    <h3>运行范例</h3>
+    <div class="code-block"><div class="code-header"><span>终端</span></div><div class="code-body"><pre>cd release
+xl.exe run examples\extlibs\miniz.xl</pre></div></div>
+    <p>C 对照范例可从 <code>release</code> 目录直接运行：<code>xl.exe run extlibs/miniz/examples/basic.c</code>。正式包仍按清单分离编译原生源码。</p>
+  </div>
+
+  <div class="ext-panel" id="panel-tests">
+    <h2>测试覆盖</h2>
+    <p>测试文件：<code>extlibs/miniz/test/file_ops.xl</code>、<code>extlibs/miniz/test/test_miniz.c</code>，以及中央 <code>test/cases/extlib_miniz.xl</code>。C 入口先验证选项和资源限制结构的长度、版本、保留字段及 0..10 级别；条目、节点、深度限额及未知标志不适用于单条 zlib 流，显式设置会报参数错误，不读取文件流输入。</p>
+    <ul>
+      <li>一次性二进制往返（含 NUL / 0xFF）</li>
+      <li>流式往返 + finished 状态</li>
+      <li>分块收集 + inputBytes 计数器</li>
+      <li>最高级别 MINIZ_MAX_LEVEL（L10）往返</li>
+      <li>级别越界抛 ValueError</li>
+      <li>Python zlib 双向互通、拼接流与尾部数据拒绝</li>
+      <li>损坏数据抛 IOError</li>
+      <li>文件级往返 + overwrite 拒绝</li>
+      <li>文件进度回调、取消清理及限额失败时的既有目标保护</li>
+      <li>C Reader/Writer 二进制流往返与进度回调</li>
+      <li>一次性编解码的 XRT 分配失败、空输出、释放平衡与恢复；XLang 公开入口须抛 MemoryError</li>
+      <li>流对象、一次性及文件流入口的选项 ABI 和 -1/11 级别拒绝；0..10 全部可往返</li>
+    </ul>
+    <h3>运行测试</h3>
+    <div class="code-block"><div class="code-header"><span>终端（demo6 目录）</span></div><div class="code-body"><pre>powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/miniz/test/check.ps1 -SkipAot
+bash release/extlibs/miniz/test/check.sh</pre></div></div>
+  </div>
+
+  <a href="../extlibs.html" class="ext-back">← 返回扩展库列表</a>
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a class="brand-wordmark" href="../index.html" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+      <p>以 C 为后端的现代编程语言。生成本地二进制，也可作为运行时嵌入现有 C/C++ 工程。</p>
+    </div>
+    <div class="footer-col">
+      <h4>文档</h4>
+      <ul>
+        <li><a href="../tour.html">语法导览</a></li>
+        <li><a href="../book/index.html">系统教程</a></li>
+        <li><a href="../stdlib.html">标准库</a></li>
+        <li><a href="../extlibs.html">扩展库</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>项目</h4>
+      <ul>
+        <li><a href="../download.html">下载</a></li>
+        <li><a href="https://gitee.com/xywhsoft/x-lang" target="_blank" rel="noopener">Gitee 仓库</a></li>
+        <li><a href="https://gitee.com/xywhsoft/x-lang/issues" target="_blank" rel="noopener">问题反馈</a></li>
+        <li><a href="https://xrt.xywhsoft.com" target="_blank" rel="noopener">XRT 文档</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">xlang &copy; 2026 xLeaves (xywhsoft) · MIT License</div>
+</footer>
+<script src="../main.js"></script>
+<script>(function(){var tabs=document.querySelectorAll('#extTabs .ext-tab');var panels=document.querySelectorAll('.ext-panel');tabs.forEach(function(tab){tab.addEventListener('click',function(){tabs.forEach(function(t){t.classList.remove('active');});panels.forEach(function(p){p.classList.remove('active');});tab.classList.add('active');document.getElementById('panel-'+tab.dataset.panel).classList.add('active');});});})();</script>
+</body>
+</html>

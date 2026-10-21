@@ -1,0 +1,9 @@
+import miniz
+
+func main(...) as int
+    Buffer packed = miniz.compress("hello miniz")
+    string plain = miniz.decompressText(packed)
+    assert plain == "hello miniz"
+    println(plain)
+    return 0
+end

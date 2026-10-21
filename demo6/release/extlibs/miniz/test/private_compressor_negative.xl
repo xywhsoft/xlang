@@ -1,0 +1,5 @@
+import miniz
+
+// 仅编译：包外不能绕开 Buffer 长度校验。
+auto stream = miniz.compressor()
+stream.updateNative(null, c_size(1))

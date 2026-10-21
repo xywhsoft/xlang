@@ -1,0 +1,5 @@
+import miniz
+
+// 仅编译：包外不能伪造输入地址和长度。
+auto stream = miniz.decompressor()
+stream.updateNative(null, c_size(1))

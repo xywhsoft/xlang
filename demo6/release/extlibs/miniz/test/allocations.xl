@@ -1,0 +1,35 @@
+import miniz
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+Buffer packed = miniz.compress("hello miniz")
+
+for operation in range(2)
+    int failures = 0
+    for index in range(24)
+        bool memoryCaught = false
+        bool wrongCaught = false
+        assert failAfter(uint64(index))
+        try
+            if operation == 0 then
+                miniz.compress("hello miniz")
+            else
+                miniz.decompress(packed)
+            end
+        catch MemoryError error
+            memoryCaught = true
+        catch CompressionError error
+            wrongCaught = true
+        end
+        bool triggered = failTriggered()
+        failClear()
+        assert not wrongCaught and (not triggered or memoryCaught)
+        if triggered and memoryCaught then failures += 1 end
+    end
+    assert failures > 0
+end
+
+assert miniz.decompressText(miniz.compress("hello miniz")) == "hello miniz"
+println("miniz allocation: PASS")

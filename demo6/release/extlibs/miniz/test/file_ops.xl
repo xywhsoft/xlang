@@ -1,0 +1,73 @@
+import miniz
+
+class MinizFileProgress
+    int calls = 0
+end
+
+func main(...) as int
+    assert miniz.decompressText(miniz.compress("level zero", miniz.MINIZ_MIN_LEVEL)) == "level zero"
+    Buffer binary = Buffer.fromHex("00ff41")
+    Buffer binaryPacked = miniz.compress(binary)
+    assert miniz.decompress(binaryPacked) == binary, "binary data must round-trip"
+    bool invalidText = false
+    try
+        miniz.decompressText(binaryPacked)
+    catch ValueError error
+        invalidText = true
+    end
+    assert invalidText, "decompressText must reject non-UTF-8 bytes"
+    string workDir = path.join(path.temp(), "xlang_miniz_file_" + crypto.randomString(20))
+    dir.createAll(workDir)
+    string source = path.join(workDir, "source.txt")
+    string packed = path.join(workDir, "source.zz")
+    string restored = path.join(workDir, "restored.txt")
+    string cancelledPath = path.join(workDir, "cancelled.zz")
+    string content = "你好 xlang\n" + string.repeat("zlib-file-boundary\n", 4096)
+    try
+        assert file.writeText(source, content)
+        MinizFileProgress progress = MinizFileProgress()
+        miniz.compressFile(source, packed, onProgress = func(int inputBytes,
+            int totalBytes, int outputBytes) as bool
+            progress.calls += 1
+            return inputBytes <= totalBytes and outputBytes >= 0
+        end)
+        assert progress.calls > 0
+        miniz.decompressFile(packed, restored)
+        assert file.readText(restored) == content
+
+        bool rejected = false
+        try
+            miniz.compressFile(source, packed, overwrite = false)
+        catch ValueError e
+            rejected = true
+        end
+        assert rejected and file.readText(restored) == content
+
+        bool cancelled = false
+        try
+            miniz.compressFile(source, cancelledPath, onProgress = func(int inputBytes,
+                int totalBytes, int outputBytes) as bool
+                return false
+            end)
+        catch CancelledError e
+            cancelled = true
+        end
+        assert cancelled and not file.exists(cancelledPath)
+
+        bool limited = false
+        try
+            miniz.decompressFile(packed, restored, maxOutput = 8)
+        catch RangeError e
+            limited = true
+        end
+        assert limited and file.readText(restored) == content
+    finally
+        if file.exists(source) then assert file.delete(source) end
+        if file.exists(packed) then assert file.delete(packed) end
+        if file.exists(restored) then assert file.delete(restored) end
+        if file.exists(cancelledPath) then assert file.delete(cancelledPath) end
+        assert dir.delete(workDir), "temporary miniz directory must be removed"
+    end
+    println("miniz file operations: PASS")
+    return 0
+end

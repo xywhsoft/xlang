@@ -1,8 +1,25 @@
+#ifndef XRT_MODULE_ERROR_FORMAT
 #define XRT_MODULE_ERROR_FORMAT
+#endif
+#ifndef XRT_MODULE_FILE_TEMP
+#define XRT_MODULE_FILE_TEMP
+#endif
+#ifndef XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_BUFFER
+#endif
+#ifndef XRT_MODULE_IO_FILE
+#define XRT_MODULE_IO_FILE
+#endif
+#ifndef XRT_MODULE_PATH
+#define XRT_MODULE_PATH
+#endif
+#ifndef XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
 #define XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE
+#endif
 
 #include "xruntime.h"
 #include "include/xrt_miniz.h"
+#include "include/miniz_native.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define XMINIZ_EXPORT __declspec(dllexport)
@@ -42,6 +59,9 @@ static void xminiz_publish_error(const xrtminizerror* pError)
 		pError->sMessage : "miniz operation failed";
 	int iCode = pError != NULL ? pError->iCode : XRT_MINIZ_ERROR_IO;
 
+	/* 保留分配器、IO 或回调已经发布的首个错误。 */
+	if ( xrtGetError() != NULL ) { return; }
+
 	xrtSetErrorInfo(
 		xminiz_error_kind(iCode),
 		"xlang.extlib.miniz",
@@ -63,23 +83,8 @@ static void xminiz_options(xrtminizoptions* pOptions, int iLevel, uint64 iMaxInp
 }
 
 
-/* 删除失败事务的临时文件，同时保留原始失败原因。 */
-static void xminiz_remove_temp(cstr sTemp)
-{
-	xerror* pError;
-
-	if ( sTemp == NULL ) { return; }
-	pError = xrtTakeError();
-	if ( xrtFileExists(sTemp) ) { (void)xrtFileDelete(sTemp); }
-	xrtClearError();
-	if ( pError != NULL ) {
-		xrtSetError(pError);
-		xrtErrorFree(pError);
-	}
-}
-
 /* 1 成功，0 处理失败，-1 用户取消，-2 回调抛错。 */
-static int xminiz_transform_file(str sSource, str sDestination, bool bCompress,
+static int xminiz_transform_file(const char* sSource, const char* sDestination, bool bCompress,
 	bool bOverwrite, const xrtminizoptions* pOptions, xvalue* pCallback)
 {
 	xrtminizerror tError;
@@ -91,6 +96,7 @@ static int xminiz_transform_file(str sSource, str sDestination, bool bCompress,
 	str sTemp = NULL;
 	bool bResult = false;
 	int iResult = 0;
+	xerror* pSaved;
 
 	xrtMinizErrorInit(&tError);
 	xrtProgressCallInit(&tProgress, pCallback);
@@ -100,10 +106,15 @@ static int xminiz_transform_file(str sSource, str sDestination, bool bCompress,
 			XRT_MINIZ_ERROR_ARGUMENT, "miniz source and destination paths are required");
 		return 0;
 	}
-	if ( xrtPathExists(sDestination) && !bOverwrite ) {
-		xrtSetErrorFormat(XERR_EXISTS, "xlang.extlib.miniz", XRT_MINIZ_ERROR_IO,
-			"miniz destination already exists: %s", sDestination);
-		return 0;
+	if ( !bOverwrite ) {
+		xfileinfo Info;
+		if ( xrtPathStat(sDestination, false, &Info) ) {
+			xrtSetErrorFormat(XERR_EXISTS, "xlang.extlib.miniz", XRT_MINIZ_ERROR_IO,
+				"miniz destination already exists: %s", sDestination);
+			return 0;
+		}
+		if ( xrtErrorKind(xrtGetError()) != XERR_NOT_FOUND ) { return 0; }
+		xrtClearError();
 	}
 	pReader = xrtReaderOpen(sSource);
 	if ( pReader == NULL ) { goto cleanup; }
@@ -125,17 +136,32 @@ static int xminiz_transform_file(str sSource, str sDestination, bool bCompress,
 	}
 
 cleanup:
-	if ( (pWriter != NULL) && !xrtWriterDestroy(pWriter) && bResult ) { bResult = false; }
-	if ( (TempFile != NULL) && !xrtClose(TempFile) && bResult ) { bResult = false; }
-	if ( (pReader != NULL) && !xrtReaderDestroy(pReader) && bResult ) { bResult = false; }
-	if ( bResult && !xrtPathRename(sTemp, sDestination, bOverwrite) ) { bResult = false; }
-	if ( !bResult ) {
-		if ( (xrtGetError() == NULL) && !tProgress.InvokeFailed &&
-			(tError.iCode == XRT_MINIZ_OK) ) {
-			xrtSetErrorInfo(XERR_IO, "xlang.extlib.miniz",
-				XRT_MINIZ_ERROR_IO, "miniz file operation failed");
-		}
-		xminiz_remove_temp(sTemp);
+	/* 析构或删除临时文件不得覆盖回调、内存和首个 IO 错误。 */
+	pSaved = xrtTakeError();
+	if ( pSaved != NULL ) { bResult = false; }
+	if ( (pWriter != NULL) && !xrtWriterDestroy(pWriter) && bResult ) {
+		bResult = false; pSaved = xrtTakeError();
+	}
+	xrtClearError();
+	if ( (TempFile != NULL) && !xrtClose(TempFile) && bResult ) {
+		bResult = false; pSaved = xrtTakeError();
+	}
+	xrtClearError();
+	if ( (pReader != NULL) && !xrtReaderDestroy(pReader) && bResult ) {
+		bResult = false; pSaved = xrtTakeError();
+	}
+	xrtClearError();
+	if ( bResult && !xrtPathRename(sTemp, sDestination, bOverwrite) ) {
+		bResult = false; pSaved = xrtTakeError();
+	}
+	if ( !bResult && sTemp != NULL ) { (void)xrtFileDelete(sTemp); }
+	xrtClearError();
+	if ( pSaved != NULL ) {
+		xrtSetError(pSaved);
+		xrtErrorFree(pSaved);
+	} else if ( !bResult && !tProgress.InvokeFailed ) {
+		xrtSetErrorInfo(XERR_IO, "xlang.extlib.miniz", XRT_MINIZ_ERROR_IO,
+			"miniz file operation failed");
 	}
 	xrtFree(sDirectory);
 	xrtFree(sTemp);
@@ -164,8 +190,8 @@ XMINIZ_EXPORT const char* xminiz_last_error(void)
 
 
 
-XMINIZ_EXPORT void* xminiz_compress(const void* pData, size_t iSize, int iLevel,
-	uint64 iMaxInput, uint64 iMaxOutput)
+XMINIZ_EXPORT void* xminiz_compress(void* pData, size_t iSize, int iLevel,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput)
 {
 	xrtminizoptions tOptions;
 	xrtminizerror tError;
@@ -180,13 +206,13 @@ XMINIZ_EXPORT void* xminiz_compress(const void* pData, size_t iSize, int iLevel,
 }
 
 XMINIZ_EXPORT void* xminiz_compress_str(const char* sText, size_t iSize, int iLevel,
-	uint64 iMaxInput, uint64 iMaxOutput)
+	unsigned long long iMaxInput, unsigned long long iMaxOutput)
 {
-	return xminiz_compress((const void*)sText, iSize, iLevel, iMaxInput, iMaxOutput);
+	return xminiz_compress((void*)sText, iSize, iLevel, iMaxInput, iMaxOutput);
 }
 
-XMINIZ_EXPORT void* xminiz_decompress(const void* pData, size_t iSize, uint64 iMaxInput,
-	uint64 iMaxOutput, uint32 iMaxRatio)
+XMINIZ_EXPORT void* xminiz_decompress(void* pData, size_t iSize, unsigned long long iMaxInput,
+	unsigned long long iMaxOutput, unsigned int iMaxRatio)
 {
 	xrtminizoptions tOptions;
 	xrtminizerror tError;
@@ -200,8 +226,8 @@ XMINIZ_EXPORT void* xminiz_decompress(const void* pData, size_t iSize, uint64 iM
 	return pOutput;
 }
 
-XMINIZ_EXPORT int xminiz_compress_file(str sSource, str sDestination, int iLevel,
-	bool bOverwrite, uint64 iMaxInput, uint64 iMaxOutput, xvalue* pCallback)
+XMINIZ_EXPORT int xminiz_compress_file(const char* sSource, const char* sDestination, int iLevel,
+	bool bOverwrite, unsigned long long iMaxInput, unsigned long long iMaxOutput, xvalue* pCallback)
 {
 	xrtminizoptions tOptions;
 	xrtClearError();
@@ -209,8 +235,8 @@ XMINIZ_EXPORT int xminiz_compress_file(str sSource, str sDestination, int iLevel
 	return xminiz_transform_file(sSource, sDestination, true, bOverwrite, &tOptions, pCallback);
 }
 
-XMINIZ_EXPORT int xminiz_decompress_file(str sSource, str sDestination, bool bOverwrite,
-	uint64 iMaxInput, uint64 iMaxOutput, uint32 iMaxRatio, xvalue* pCallback)
+XMINIZ_EXPORT int xminiz_decompress_file(const char* sSource, const char* sDestination, bool bOverwrite,
+	unsigned long long iMaxInput, unsigned long long iMaxOutput, unsigned int iMaxRatio, xvalue* pCallback)
 {
 	xrtminizoptions tOptions;
 	xrtClearError();
@@ -220,14 +246,21 @@ XMINIZ_EXPORT int xminiz_decompress_file(str sSource, str sDestination, bool bOv
 
 
 
-XMINIZ_EXPORT void* xminiz_compressor_create(int iLevel, uint64 iMaxInput, uint64 iMaxOutput)
+XMINIZ_EXPORT void* xminiz_compressor_create(int iLevel, unsigned long long iMaxInput, unsigned long long iMaxOutput)
 {
 	xrtminizoptions tOptions;
 	xrtminizcompressor* pCompressor;
 	xrtClearError();
 	xminiz_options(&tOptions, iLevel, iMaxInput, iMaxOutput, 0u);
 	pCompressor = xrtMinizCompressorCreate(&tOptions);
-	if ( pCompressor == NULL || xrtMinizCompressorError(pCompressor)->iCode != XRT_MINIZ_OK ) {
+	if ( pCompressor == NULL ) {
+		if ( xrtGetError() == NULL ) {
+			xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.miniz",
+				XRT_MINIZ_ERROR_MEMORY, "cannot allocate miniz compressor");
+		}
+		return NULL;
+	}
+	if ( xrtMinizCompressorError(pCompressor)->iCode != XRT_MINIZ_OK ) {
 		xminiz_publish_error(xrtMinizCompressorError(pCompressor));
 		xrtMinizCompressorDestroy(pCompressor);
 		return NULL;
@@ -240,7 +273,7 @@ XMINIZ_EXPORT void xminiz_compressor_destroy(void* pHandle)
 	xrtMinizCompressorDestroy((xrtminizcompressor*)pHandle);
 }
 
-XMINIZ_EXPORT bool xminiz_compressor_update(void* pHandle, const void* pData, size_t iSize)
+XMINIZ_EXPORT bool xminiz_compressor_update(void* pHandle, void* pData, size_t iSize)
 {
 	xrtminizcompressor* pCompressor = (xrtminizcompressor*)pHandle;
 	if ( !xrtMinizCompressorUpdate(pCompressor, pData, iSize) ) {
@@ -252,7 +285,7 @@ XMINIZ_EXPORT bool xminiz_compressor_update(void* pHandle, const void* pData, si
 
 XMINIZ_EXPORT bool xminiz_compressor_update_str(void* pHandle, const char* sText, size_t iSize)
 {
-	return xminiz_compressor_update(pHandle, (const void*)sText, iSize);
+	return xminiz_compressor_update(pHandle, (void*)sText, iSize);
 }
 
 XMINIZ_EXPORT bool xminiz_compressor_finish(void* pHandle)
@@ -276,27 +309,34 @@ XMINIZ_EXPORT void* xminiz_compressor_drain(void* pHandle)
 	return pOutput;
 }
 
-XMINIZ_EXPORT uint64 xminiz_compressor_input_bytes(void* pHandle)
+XMINIZ_EXPORT unsigned long long xminiz_compressor_input_bytes(void* pHandle)
 {
 	return xrtMinizCompressorInputBytes((const xrtminizcompressor*)pHandle);
 }
 
-XMINIZ_EXPORT uint64 xminiz_compressor_output_bytes(void* pHandle)
+XMINIZ_EXPORT unsigned long long xminiz_compressor_output_bytes(void* pHandle)
 {
 	return xrtMinizCompressorOutputBytes((const xrtminizcompressor*)pHandle);
 }
 
 
 
-XMINIZ_EXPORT void* xminiz_decompressor_create(uint64 iMaxInput, uint64 iMaxOutput,
-	uint32 iMaxRatio)
+XMINIZ_EXPORT void* xminiz_decompressor_create(unsigned long long iMaxInput, unsigned long long iMaxOutput,
+	unsigned int iMaxRatio)
 {
 	xrtminizoptions tOptions;
 	xrtminizdecompressor* pDecompressor;
 	xrtClearError();
 	xminiz_options(&tOptions, -1, iMaxInput, iMaxOutput, iMaxRatio);
 	pDecompressor = xrtMinizDecompressorCreate(&tOptions);
-	if ( pDecompressor == NULL || xrtMinizDecompressorError(pDecompressor)->iCode != XRT_MINIZ_OK ) {
+	if ( pDecompressor == NULL ) {
+		if ( xrtGetError() == NULL ) {
+			xrtSetErrorInfo(XERR_MEMORY, "xlang.extlib.miniz",
+				XRT_MINIZ_ERROR_MEMORY, "cannot allocate miniz decompressor");
+		}
+		return NULL;
+	}
+	if ( xrtMinizDecompressorError(pDecompressor)->iCode != XRT_MINIZ_OK ) {
 		xminiz_publish_error(xrtMinizDecompressorError(pDecompressor));
 		xrtMinizDecompressorDestroy(pDecompressor);
 		return NULL;
@@ -309,7 +349,7 @@ XMINIZ_EXPORT void xminiz_decompressor_destroy(void* pHandle)
 	xrtMinizDecompressorDestroy((xrtminizdecompressor*)pHandle);
 }
 
-XMINIZ_EXPORT bool xminiz_decompressor_update(void* pHandle, const void* pData, size_t iSize)
+XMINIZ_EXPORT bool xminiz_decompressor_update(void* pHandle, void* pData, size_t iSize)
 {
 	xrtminizdecompressor* pDecompressor = (xrtminizdecompressor*)pHandle;
 	if ( !xrtMinizDecompressorUpdate(pDecompressor, pData, iSize) ) {
@@ -340,12 +380,12 @@ XMINIZ_EXPORT void* xminiz_decompressor_drain(void* pHandle)
 	return pOutput;
 }
 
-XMINIZ_EXPORT uint64 xminiz_decompressor_input_bytes(void* pHandle)
+XMINIZ_EXPORT unsigned long long xminiz_decompressor_input_bytes(void* pHandle)
 {
 	return xrtMinizDecompressorInputBytes((const xrtminizdecompressor*)pHandle);
 }
 
-XMINIZ_EXPORT uint64 xminiz_decompressor_output_bytes(void* pHandle)
+XMINIZ_EXPORT unsigned long long xminiz_decompressor_output_bytes(void* pHandle)
 {
 	return xrtMinizDecompressorOutputBytes((const xrtminizdecompressor*)pHandle);
 }
@@ -353,9 +393,4 @@ XMINIZ_EXPORT uint64 xminiz_decompressor_output_bytes(void* pHandle)
 XMINIZ_EXPORT bool xminiz_decompressor_finished(void* pHandle)
 {
 	return xrtMinizDecompressorFinished((const xrtminizdecompressor*)pHandle);
-}
-
-XMINIZ_EXPORT uint64 xminiz_decompressor_members(void* pHandle)
-{
-	return xrtMinizDecompressorMembers((const xrtminizdecompressor*)pHandle);
 }

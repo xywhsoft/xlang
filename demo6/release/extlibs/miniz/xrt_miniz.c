@@ -7,25 +7,12 @@
 
 
 
-/* 单个块的最大原始字节数。miniz 一次性 API 以 mz_ulong 传递长度，
- * 这里取 1MB 以便流式产出粒度适中、内存占用可控。 */
-#define XRT_MINIZ_BLOCK_SIZE 1048576u
 #define XRT_MINIZ_CHUNK 65536u
-#define XRT_MINIZ_HEADER_SIZE 12u
-/* miniz 一次性 API 的长度上限（与 mz_ulong 安全范围保持一致）。 */
-#define XRT_MINIZ_MAX_PLAIN 0x7e000000u
-
-/* 容器格式（自定义多块成员流，支持串联多成员）：
- *   成员 = 块* + 结束标记
- *   块   = u32le(原始大小 n, n>0) + u32le(压缩大小 c) + u32le(原始数据 CRC32) + zlib 压缩字节(c 字节)
- *   结束 = u32le(0)
- * 压缩块实际长度通常小于 mz_compressBound(n)，故必须显式记录 c；
- * zlib 流自带 Adler32，但仍额外记录原始数据 CRC32 以双重检出损坏，
- * 解压侧据此精确定位块边界、校验完整性并统计 members。 */
+/* 公开结果是 RFC 1950 zlib 流；块边界与 Adler-32 均由 XRT 维护。 */
 
 struct xrtminizcompressor {
-	xbuffer* Pending;            /* 尚未成块的原始输入 */
-	xbuffer* Output;             /* 已产出的压缩字节 */
+	xdeflate* Codec;
+	xbuffer* Output;
 	xrtminizoptions Options;
 	xrtminizerror Error;
 	uint64 InputBytes;
@@ -34,24 +21,13 @@ struct xrtminizcompressor {
 	bool Failed;
 };
 
-typedef enum {
-	XRT_MINIZ_DEC_HEADER = 0,   /* 读取 12 字节块头 */
-	XRT_MINIZ_DEC_BLOCK = 1     /* 读取压缩块体 */
-} xrtminizdecstate;
-
 struct xrtminizdecompressor {
-	xbuffer* Carry;              /* 尚未消费完的输入字节 */
-	xbuffer* Output;             /* 已产出的原始字节 */
+	xinflate* Codec;
+	xbuffer* Output;
 	xrtminizoptions Options;
 	xrtminizerror Error;
 	uint64 InputBytes;
 	uint64 OutputBytes;
-	uint64 MemberCount;
-	size_t BlockDeclared;       /* 当前块声明的原始大小 */
-	size_t BlockCompressed;     /* 当前块声明的压缩大小 */
-	uint32 BlockCrc;            /* 当前块声明的原始数据 CRC32 */
-	int State;
-	bool MemberEnded;
 	bool Finished;
 	bool Failed;
 };
@@ -141,35 +117,47 @@ static xbuffer* __xrtMinizBufferCreate(size_t iCapacity)
 	return pBuffer;
 }
 
-static void __xrtMinizWriteU32LE(uint8* pDst, uint32 iValue)
+static bool __xrtMinizEncodeOutput(xbytesview Data, ptr pUserData)
 {
-	pDst[0] = (uint8)(iValue & 0xffu);
-	pDst[1] = (uint8)((iValue >> 8) & 0xffu);
-	pDst[2] = (uint8)((iValue >> 16) & 0xffu);
-	pDst[3] = (uint8)((iValue >> 24) & 0xffu);
-}
-
-static uint32 __xrtMinizReadU32LE(const uint8* pSrc)
-{
-	return (uint32)pSrc[0] | ((uint32)pSrc[1] << 8) |
-		((uint32)pSrc[2] << 16) | ((uint32)pSrc[3] << 24);
-}
-
-/* 标准 CRC32（IEEE 802.3，多项式 0xEDB88320，反射输入输出，异或 0xFFFFFFFF）。
- * 逐位计算，无需查表，仅用于块级完整性校验，性能需求不高。 */
-static uint32 __xrtMinizCrc32(const void* pData, size_t iLen)
-{
-	const uint8* pBuf = (const uint8*)pData;
-	uint32 iCrc = 0xFFFFFFFFu;
-	size_t i;
-	for ( i = 0u; i < iLen; ++i ) {
-		int j;
-		iCrc ^= (uint32)pBuf[i];
-		for ( j = 0; j < 8; ++j ) {
-			iCrc = (iCrc >> 1) ^ (0xEDB88320u & (0u - (iCrc & 1u)));
-		}
+	xrtminizcompressor* pCompressor = (xrtminizcompressor*)pUserData;
+	if ( __xrtMinizAddOverLimit(pCompressor->OutputBytes, Data.Size,
+		pCompressor->Options.tLimits.iMaxOutputBytes) ) {
+		__xrtMinizSetError(&pCompressor->Error, XRT_MINIZ_ERROR_LIMIT, 0,
+			pCompressor->InputBytes, pCompressor->OutputBytes, "miniz output exceeds maxOutput limit");
+		return false;
 	}
-	return iCrc ^ 0xFFFFFFFFu;
+	if ( !xrtBufferAppend(pCompressor->Output, Data) ) {
+		__xrtMinizSetError(&pCompressor->Error, XRT_MINIZ_ERROR_MEMORY, 0,
+			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot grow miniz output buffer");
+		return false;
+	}
+	pCompressor->OutputBytes += Data.Size;
+	return true;
+}
+
+static bool __xrtMinizDecodeOutput(xbytesview Data, ptr pUserData)
+{
+	xrtminizdecompressor* pDecompressor = (xrtminizdecompressor*)pUserData;
+	if ( ((pDecompressor->Options.tLimits.iMaxItemBytes != 0u) &&
+		  __xrtMinizAddOverLimit(pDecompressor->OutputBytes, Data.Size,
+			pDecompressor->Options.tLimits.iMaxItemBytes)) ||
+		 __xrtMinizAddOverLimit(pDecompressor->OutputBytes, Data.Size,
+			pDecompressor->Options.tLimits.iMaxOutputBytes) ||
+		 __xrtMinizOverRatio(&pDecompressor->Options.tLimits,
+			pDecompressor->InputBytes, pDecompressor->OutputBytes + (uint64)Data.Size) ) {
+		__xrtMinizSetError(&pDecompressor->Error, XRT_MINIZ_ERROR_LIMIT, 0,
+			pDecompressor->InputBytes, pDecompressor->OutputBytes,
+			"miniz output exceeds decompression limit");
+		return false;
+	}
+	if ( !xrtBufferAppend(pDecompressor->Output, Data) ) {
+		__xrtMinizSetError(&pDecompressor->Error, XRT_MINIZ_ERROR_MEMORY, 0,
+			pDecompressor->InputBytes, pDecompressor->OutputBytes,
+			"cannot grow miniz output buffer");
+		return false;
+	}
+	pDecompressor->OutputBytes += Data.Size;
+	return true;
 }
 
 
@@ -189,6 +177,31 @@ XRT_API void xrtMinizOptionsInit(xrtminizoptions* pOptions)
 	pOptions->iVersion = XRT_MINIZ_OPTIONS_VERSION;
 	pOptions->iLevel = XDEFLATE_LEVEL_DEFAULT;
 	xrtResourceLimitsInit(&pOptions->tLimits);
+	pOptions->tLimits.iMaxEntries = 0u;
+	pOptions->tLimits.iMaxNodes = 0u;
+	pOptions->tLimits.iMaxDepth = 0u;
+}
+
+/* 外层长度未确认前不可复制选项或读取内嵌限额。 */
+static bool __xrtMinizCopyOptions(xrtminizoptions* pOutput,
+	const xrtminizoptions* pInput)
+{
+	xrtMinizOptionsInit(pOutput);
+	if ( pInput == NULL ) { return true; }
+	if ( pInput->iSize != sizeof(*pInput) ||
+		pInput->iVersion != XRT_MINIZ_OPTIONS_VERSION ) { return false; }
+	if ( pInput->sReserved[0] != 0u || pInput->sReserved[1] != 0u ||
+		pInput->sReserved[2] != 0u || pInput->sReserved[3] != 0u ||
+		pInput->iLevel < 0 || pInput->iLevel > 10 ||
+		pInput->tLimits.iSize != sizeof(pInput->tLimits) ||
+		pInput->tLimits.iVersion != XRT_RESOURCE_LIMITS_VERSION ||
+		pInput->tLimits.iReserved != 0u ||
+		pInput->tLimits.iFlags != 0u ||
+		pInput->tLimits.iMaxEntries != 0u ||
+		pInput->tLimits.iMaxNodes != 0u ||
+		pInput->tLimits.iMaxDepth != 0u ) { return false; }
+	*pOutput = *pInput;
+	return true;
 }
 
 
@@ -198,113 +211,32 @@ XRT_API void xrtMinizOptionsInit(xrtminizoptions* pOptions)
 XRT_API xrtminizcompressor* xrtMinizCompressorCreate(const xrtminizoptions* pOptions)
 {
 	xrtminizcompressor* pCompressor;
+	xdeflateconfig Config;
 	pCompressor = (xrtminizcompressor*)xrtMalloc(sizeof(xrtminizcompressor));
 	if ( pCompressor == NULL ) { return NULL; }
 	memset(pCompressor, 0, sizeof(*pCompressor));
 	xrtMinizErrorInit(&pCompressor->Error);
-	if ( pOptions != NULL ) {
-		pCompressor->Options = *pOptions;
-	} else {
-		xrtMinizOptionsInit(&pCompressor->Options);
-	}
-	pCompressor->Pending = __xrtMinizBufferCreate(XRT_MINIZ_CHUNK);
-	pCompressor->Output = __xrtMinizBufferCreate(XRT_MINIZ_CHUNK);
-	if ( pCompressor->Pending == NULL || pCompressor->Output == NULL ) {
-		__xrtMinizSetError(&pCompressor->Error, XRT_MINIZ_ERROR_MEMORY, 0, 0, 0,
-			"cannot allocate miniz compressor");
+	if ( !__xrtMinizCopyOptions(&pCompressor->Options, pOptions) ) {
+		__xrtMinizSetError(&pCompressor->Error, XRT_MINIZ_ERROR_ARGUMENT,
+			0, 0, 0, "invalid miniz options");
 		pCompressor->Failed = true;
 		return pCompressor;
 	}
-	return pCompressor;
-}
-
-/* 将 Pending 中恰好 iSize 字节压缩为一个块（大小头 + 压缩体）写入 Output。 */
-static bool __xrtMinizFlushBlock(xrtminizcompressor* pCompressor, size_t iSize)
-{
-	xdeflateconfig Config;
-	uint8 sHeader[XRT_MINIZ_HEADER_SIZE];
-	bytes pCompressed;
-	xbytesview Pending;
-	size_t iWritten = 0u;
-	size_t iGenerated;
-	if ( iSize == 0u ) { return true; }
-	Pending = xrtBufferView(pCompressor->Pending);
-	if ( iSize > Pending.Size ) {
-		__xrtMinizSetError(&pCompressor->Error, XRT_MINIZ_ERROR_STATE, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "invalid miniz pending state");
-		pCompressor->Failed = true;
-		return false;
-	}
-	if ( iSize > XRT_MINIZ_MAX_PLAIN ) {
-		__xrtMinizSetError(&pCompressor->Error, XRT_MINIZ_ERROR_ARGUMENT, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "miniz block too large");
-		pCompressor->Failed = true;
-		return false;
-	}
-	if ( __xrtMinizAddOverLimit(pCompressor->OutputBytes, XRT_MINIZ_HEADER_SIZE,
-		pCompressor->Options.tLimits.iMaxOutputBytes) ) {
-		__xrtMinizSetError(&pCompressor->Error, XRT_MINIZ_ERROR_LIMIT, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "miniz output exceeds maxOutput limit");
-		pCompressor->Failed = true;
-		return false;
-	}
+	pCompressor->Output = __xrtMinizBufferCreate(XRT_MINIZ_CHUNK);
 	xrtDeflateConfigInit(&Config);
 	Config.Format = XDEFLATE_ZLIB;
 	Config.Level = pCompressor->Options.iLevel;
 	if ( pCompressor->Options.tLimits.iMaxOutputBytes != 0u ) {
-		Config.OutputLimit = pCompressor->Options.tLimits.iMaxOutputBytes -
-			pCompressor->OutputBytes - XRT_MINIZ_HEADER_SIZE;
+		Config.OutputLimit = pCompressor->Options.tLimits.iMaxOutputBytes;
 	}
-	pCompressed = xrtDeflateAll(
-		(xbytesview){ Pending.Data, iSize },
-		&Config,
-		&iWritten
-	);
-	if ( pCompressed == NULL ) {
-		__xrtMinizSetCodecError(&pCompressor->Error, XRT_MINIZ_ERROR_DATA,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "miniz block compression failed");
+	pCompressor->Codec = xrtDeflateCreate(&Config);
+	if ( pCompressor->Output == NULL || pCompressor->Codec == NULL ) {
+		__xrtMinizSetCodecError(&pCompressor->Error, XRT_MINIZ_ERROR_MEMORY,
+			0, 0, "cannot create miniz compressor");
 		pCompressor->Failed = true;
-		return false;
+		return pCompressor;
 	}
-	if ( iWritten > UINT32_MAX ) {
-		__xrtMinizSetError(&pCompressor->Error, XRT_MINIZ_ERROR_DATA, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "miniz compressed block is too large");
-		xrtFree(pCompressed);
-		pCompressor->Failed = true;
-		return false;
-	}
-	__xrtMinizWriteU32LE(sHeader, (uint32)iSize);
-	__xrtMinizWriteU32LE(sHeader + 4u, (uint32)iWritten);
-	__xrtMinizWriteU32LE(sHeader + 8u,
-		__xrtMinizCrc32(Pending.Data, iSize));
-	iGenerated = XRT_MINIZ_HEADER_SIZE + (size_t)iWritten;
-	if ( __xrtMinizAddOverLimit(pCompressor->OutputBytes, iGenerated,
-		pCompressor->Options.tLimits.iMaxOutputBytes) ) {
-		__xrtMinizSetError(&pCompressor->Error, XRT_MINIZ_ERROR_LIMIT, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "miniz output exceeds maxOutput limit");
-		xrtFree(pCompressed);
-		pCompressor->Failed = true;
-		return false;
-	}
-	if ( !xrtBufferAppend(pCompressor->Output,
-			(xbytesview){ (const unsigned char*)sHeader, XRT_MINIZ_HEADER_SIZE }) ||
-		 !xrtBufferAppend(pCompressor->Output,
-			(xbytesview){ (const unsigned char*)pCompressed, (size_t)iWritten }) ) {
-		__xrtMinizSetError(&pCompressor->Error, XRT_MINIZ_ERROR_MEMORY, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot grow miniz output buffer");
-		xrtFree(pCompressed);
-		pCompressor->Failed = true;
-		return false;
-	}
-	xrtFree(pCompressed);
-	pCompressor->OutputBytes += (uint64)iGenerated;
-	if ( !xrtBufferRemove(pCompressor->Pending, 0u, iSize) ) {
-		__xrtMinizSetError(&pCompressor->Error, XRT_MINIZ_ERROR_STATE, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot consume miniz pending buffer");
-		pCompressor->Failed = true;
-		return false;
-	}
-	return true;
+	return pCompressor;
 }
 
 XRT_API bool xrtMinizCompressorUpdate(xrtminizcompressor* pCompressor, const void* pData, size_t iSize)
@@ -329,46 +261,33 @@ XRT_API bool xrtMinizCompressorUpdate(xrtminizcompressor* pCompressor, const voi
 		pCompressor->Failed = true;
 		return false;
 	}
-	if ( iSize != 0u &&
-		!xrtBufferAppend(pCompressor->Pending,
-			(xbytesview){ (const unsigned char*)pData, iSize }) ) {
-		__xrtMinizSetError(&pCompressor->Error, XRT_MINIZ_ERROR_MEMORY, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot grow miniz pending buffer");
+	pCompressor->InputBytes += iSize;
+	if ( iSize != 0u && !xrtDeflateWrite(pCompressor->Codec,
+		(xbytesview){ (const unsigned char*)pData, iSize }, XDEFLATE_FLUSH_NONE,
+		__xrtMinizEncodeOutput, pCompressor) ) {
+		if ( pCompressor->Error.iCode == XRT_MINIZ_OK ) {
+			__xrtMinizSetCodecError(&pCompressor->Error, XRT_MINIZ_ERROR_DATA,
+				pCompressor->InputBytes, pCompressor->OutputBytes, "miniz compression failed");
+		}
 		pCompressor->Failed = true;
 		return false;
-	}
-	pCompressor->InputBytes += iSize;
-	while ( xrtBufferView(pCompressor->Pending).Size >= XRT_MINIZ_BLOCK_SIZE ) {
-		if ( !__xrtMinizFlushBlock(pCompressor, XRT_MINIZ_BLOCK_SIZE) ) { return false; }
 	}
 	return true;
 }
 
 XRT_API bool xrtMinizCompressorFinish(xrtminizcompressor* pCompressor)
 {
-	uint8 sEnd[XRT_MINIZ_HEADER_SIZE] = { 0 };
-	size_t iPending;
 	if ( pCompressor == NULL || pCompressor->Failed ) { return false; }
 	if ( pCompressor->Finished ) { return true; }
-	iPending = xrtBufferView(pCompressor->Pending).Size;
-	if ( iPending != 0u ) {
-		if ( !__xrtMinizFlushBlock(pCompressor, iPending) ) { return false; }
-	}
-	if ( __xrtMinizAddOverLimit(pCompressor->OutputBytes, XRT_MINIZ_HEADER_SIZE,
-		pCompressor->Options.tLimits.iMaxOutputBytes) ) {
-		__xrtMinizSetError(&pCompressor->Error, XRT_MINIZ_ERROR_LIMIT, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "miniz output exceeds maxOutput limit");
+	if ( !xrtDeflateWrite(pCompressor->Codec, (xbytesview){ NULL, 0u },
+		XDEFLATE_FLUSH_FINISH, __xrtMinizEncodeOutput, pCompressor) ) {
+		if ( pCompressor->Error.iCode == XRT_MINIZ_OK ) {
+			__xrtMinizSetCodecError(&pCompressor->Error, XRT_MINIZ_ERROR_DATA,
+				pCompressor->InputBytes, pCompressor->OutputBytes, "miniz finish failed");
+		}
 		pCompressor->Failed = true;
 		return false;
 	}
-	if ( !xrtBufferAppend(pCompressor->Output,
-		(xbytesview){ (const unsigned char*)sEnd, sizeof(sEnd) }) ) {
-		__xrtMinizSetError(&pCompressor->Error, XRT_MINIZ_ERROR_MEMORY, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot grow miniz output buffer");
-		pCompressor->Failed = true;
-		return false;
-	}
-	pCompressor->OutputBytes += XRT_MINIZ_HEADER_SIZE;
 	pCompressor->Finished = true;
 	return true;
 }
@@ -425,7 +344,7 @@ XRT_API const xrtminizerror* xrtMinizCompressorError(const xrtminizcompressor* p
 XRT_API void xrtMinizCompressorDestroy(xrtminizcompressor* pCompressor)
 {
 	if ( pCompressor == NULL ) { return; }
-	xrtBufferDestroy(pCompressor->Pending);
+	xrtDeflateDestroy(pCompressor->Codec);
 	xrtBufferDestroy(pCompressor->Output);
 	xrtFree(pCompressor);
 }
@@ -437,139 +356,47 @@ XRT_API void xrtMinizCompressorDestroy(xrtminizcompressor* pCompressor)
 XRT_API xrtminizdecompressor* xrtMinizDecompressorCreate(const xrtminizoptions* pOptions)
 {
 	xrtminizdecompressor* pDecompressor;
+	xinflateconfig Config;
 	pDecompressor = (xrtminizdecompressor*)xrtMalloc(sizeof(xrtminizdecompressor));
 	if ( pDecompressor == NULL ) { return NULL; }
 	memset(pDecompressor, 0, sizeof(*pDecompressor));
 	xrtMinizErrorInit(&pDecompressor->Error);
-	if ( pOptions != NULL ) {
-		pDecompressor->Options = *pOptions;
-	} else {
-		xrtMinizOptionsInit(&pDecompressor->Options);
-	}
-	pDecompressor->Carry = __xrtMinizBufferCreate(XRT_MINIZ_CHUNK);
-	pDecompressor->Output = __xrtMinizBufferCreate(XRT_MINIZ_CHUNK);
-	if ( pDecompressor->Carry == NULL || pDecompressor->Output == NULL ) {
-		__xrtMinizSetError(&pDecompressor->Error, XRT_MINIZ_ERROR_MEMORY, 0, 0, 0,
-			"cannot allocate miniz decompressor");
+	if ( !__xrtMinizCopyOptions(&pDecompressor->Options, pOptions) ) {
+		__xrtMinizSetError(&pDecompressor->Error, XRT_MINIZ_ERROR_ARGUMENT,
+			0, 0, 0, "invalid miniz options");
 		pDecompressor->Failed = true;
 		return pDecompressor;
 	}
-	pDecompressor->State = XRT_MINIZ_DEC_HEADER;
-	return pDecompressor;
-}
-
-/* 消费 Carry 中的输入；*pConsumed 返回实际消费字节数。 */
-static bool __xrtMinizDecompressConsume(xrtminizdecompressor* pDecompressor, size_t* pConsumed)
-{
-	size_t iPos = 0u;
-	xbytesview Carry = xrtBufferView(pDecompressor->Carry);
-	const uint8* pBuf = (const uint8*)Carry.Data;
-	size_t iLen = Carry.Size;
-	while ( iPos < iLen ) {
-		if ( pDecompressor->State == XRT_MINIZ_DEC_HEADER ) {
-			uint32 iDeclared;
-			uint32 iCompressed;
-			if ( iLen - iPos < XRT_MINIZ_HEADER_SIZE ) { break; }
-			iDeclared = __xrtMinizReadU32LE(pBuf + iPos);
-			iCompressed = __xrtMinizReadU32LE(pBuf + iPos + 4u);
-			iPos += XRT_MINIZ_HEADER_SIZE;
-			if ( iDeclared == 0u ) {
-				pDecompressor->MemberEnded = true;
-				pDecompressor->MemberCount += 1u;
-				continue;   /* 可能紧跟下一个成员 */
-			}
-			pDecompressor->MemberEnded = false;
-			pDecompressor->BlockDeclared = (size_t)iDeclared;
-			pDecompressor->BlockCompressed = (size_t)iCompressed;
-			pDecompressor->BlockCrc = __xrtMinizReadU32LE(pBuf + iPos - 4u);
-			pDecompressor->State = XRT_MINIZ_DEC_BLOCK;
-		} else {
-			xinflateconfig Config;
-			bytes pPlain;
-			size_t iWritten = 0u;
-			if ( (pDecompressor->BlockDeclared > XRT_MINIZ_MAX_PLAIN) ||
-				 (pDecompressor->BlockCompressed == 0u) ) {
-				__xrtMinizSetError(&pDecompressor->Error, XRT_MINIZ_ERROR_DATA, 0,
-					pDecompressor->InputBytes, pDecompressor->OutputBytes,
-					"miniz block declares too large output");
-				pDecompressor->Failed = true;
-				*pConsumed = iPos;
-				return false;
-			}
-			if ( iLen - iPos < pDecompressor->BlockCompressed ) { break; }
-			if ( ((pDecompressor->Options.tLimits.iMaxItemBytes != 0u) &&
-				  (pDecompressor->BlockDeclared > pDecompressor->Options.tLimits.iMaxItemBytes)) ||
-				 __xrtMinizAddOverLimit(pDecompressor->OutputBytes,
-					pDecompressor->BlockDeclared,
-					pDecompressor->Options.tLimits.iMaxOutputBytes) ||
-				 __xrtMinizOverRatio(&pDecompressor->Options.tLimits,
-					pDecompressor->InputBytes,
-					pDecompressor->OutputBytes + (uint64)pDecompressor->BlockDeclared) ) {
-				__xrtMinizSetError(&pDecompressor->Error, XRT_MINIZ_ERROR_LIMIT, 0,
-					pDecompressor->InputBytes, pDecompressor->OutputBytes,
-					"miniz output exceeds decompression limit");
-				pDecompressor->Failed = true;
-				*pConsumed = iPos;
-				return false;
-			}
-			xrtInflateConfigInit(&Config);
-			Config.Format = XINFLATE_ZLIB;
-			Config.OutputLimit = (uint64)pDecompressor->BlockDeclared;
-			pPlain = xrtInflateAll(
-				(xbytesview){ pBuf + iPos, pDecompressor->BlockCompressed },
-				&Config,
-				&iWritten
-			);
-			if ( pPlain == NULL ) {
-				__xrtMinizSetCodecError(&pDecompressor->Error, XRT_MINIZ_ERROR_DATA,
-					pDecompressor->InputBytes, pDecompressor->OutputBytes,
-					"miniz block decompression failed");
-				pDecompressor->Failed = true;
-				*pConsumed = iPos;
-				return false;
-			}
-			if ( iWritten != pDecompressor->BlockDeclared ) {
-				__xrtMinizSetError(&pDecompressor->Error, XRT_MINIZ_ERROR_DATA, 0,
-					pDecompressor->InputBytes, pDecompressor->OutputBytes,
-					"miniz decompression size mismatch");
-				xrtFree(pPlain);
-				pDecompressor->Failed = true;
-				*pConsumed = iPos;
-				return false;
-			}
-			iPos += pDecompressor->BlockCompressed;
-			if ( __xrtMinizCrc32(pPlain, (size_t)iWritten) != pDecompressor->BlockCrc ) {
-				__xrtMinizSetError(&pDecompressor->Error, XRT_MINIZ_ERROR_DATA, 0,
-					pDecompressor->InputBytes, pDecompressor->OutputBytes,
-					"miniz block checksum mismatch");
-				xrtFree(pPlain);
-				pDecompressor->Failed = true;
-				*pConsumed = iPos;
-				return false;
-			}
-			if ( !xrtBufferAppend(pDecompressor->Output,
-				(xbytesview){ (const unsigned char*)pPlain, (size_t)iWritten }) ) {
-				__xrtMinizSetError(&pDecompressor->Error, XRT_MINIZ_ERROR_MEMORY, 0,
-					pDecompressor->InputBytes, pDecompressor->OutputBytes,
-					"cannot grow miniz output buffer");
-				xrtFree(pPlain);
-				pDecompressor->Failed = true;
-				*pConsumed = iPos;
-				return false;
-			}
-			xrtFree(pPlain);
-			pDecompressor->OutputBytes += (uint64)iWritten;
-			pDecompressor->State = XRT_MINIZ_DEC_HEADER;
-		}
+	pDecompressor->Output = __xrtMinizBufferCreate(XRT_MINIZ_CHUNK);
+	xrtInflateConfigInit(&Config);
+	Config.Format = XINFLATE_ZLIB;
+	if ( pDecompressor->Options.tLimits.iMaxOutputBytes != 0u ) {
+		Config.OutputLimit = pDecompressor->Options.tLimits.iMaxOutputBytes;
 	}
-	*pConsumed = iPos;
-	return true;
+	if ( pDecompressor->Options.tLimits.iMaxItemBytes != 0u &&
+		pDecompressor->Options.tLimits.iMaxItemBytes < Config.OutputLimit ) {
+		Config.OutputLimit = pDecompressor->Options.tLimits.iMaxItemBytes;
+	}
+	pDecompressor->Codec = xrtInflateCreate(&Config);
+	if ( pDecompressor->Output == NULL || pDecompressor->Codec == NULL ) {
+		__xrtMinizSetCodecError(&pDecompressor->Error, XRT_MINIZ_ERROR_MEMORY,
+			0, 0, "cannot create miniz decompressor");
+		pDecompressor->Failed = true;
+		return pDecompressor;
+	}
+	return pDecompressor;
 }
 
 XRT_API bool xrtMinizDecompressorUpdate(xrtminizdecompressor* pDecompressor, const void* pData, size_t iSize)
 {
-	size_t iConsumed = 0u;
 	if ( pDecompressor == NULL || pDecompressor->Failed ) { return false; }
+	if ( pDecompressor->Finished || xrtInflateDone(pDecompressor->Codec) ) {
+		__xrtMinizSetError(&pDecompressor->Error, XRT_MINIZ_ERROR_STATE, 0,
+			pDecompressor->InputBytes, pDecompressor->OutputBytes,
+			"miniz decompressor already reached stream end");
+		pDecompressor->Failed = true;
+		return false;
+	}
 	if ( iSize != 0u && pData == NULL ) {
 		__xrtMinizSetError(&pDecompressor->Error, XRT_MINIZ_ERROR_ARGUMENT, 0,
 			pDecompressor->InputBytes, pDecompressor->OutputBytes, "invalid miniz input");
@@ -583,20 +410,14 @@ XRT_API bool xrtMinizDecompressorUpdate(xrtminizdecompressor* pDecompressor, con
 		pDecompressor->Failed = true;
 		return false;
 	}
-	if ( iSize != 0u &&
-		!xrtBufferAppend(pDecompressor->Carry,
-			(xbytesview){ (const unsigned char*)pData, iSize }) ) {
-		__xrtMinizSetError(&pDecompressor->Error, XRT_MINIZ_ERROR_MEMORY, 0,
-			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot grow miniz input buffer");
-		pDecompressor->Failed = true;
-		return false;
-	}
 	pDecompressor->InputBytes += iSize;
-	if ( !__xrtMinizDecompressConsume(pDecompressor, &iConsumed) ) { return false; }
-	if ( (iConsumed != 0u) &&
-		 !xrtBufferRemove(pDecompressor->Carry, 0u, iConsumed) ) {
-		__xrtMinizSetError(&pDecompressor->Error, XRT_MINIZ_ERROR_STATE, 0,
-			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot consume miniz input buffer");
+	if ( iSize != 0u && !xrtInflateWrite(pDecompressor->Codec,
+		(xbytesview){ (const unsigned char*)pData, iSize }, false,
+		__xrtMinizDecodeOutput, pDecompressor) ) {
+		if ( pDecompressor->Error.iCode == XRT_MINIZ_OK ) {
+			__xrtMinizSetCodecError(&pDecompressor->Error, XRT_MINIZ_ERROR_DATA,
+				pDecompressor->InputBytes, pDecompressor->OutputBytes, "invalid zlib stream");
+		}
 		pDecompressor->Failed = true;
 		return false;
 	}
@@ -607,11 +428,13 @@ XRT_API bool xrtMinizDecompressorFinish(xrtminizdecompressor* pDecompressor)
 {
 	if ( pDecompressor == NULL || pDecompressor->Failed ) { return false; }
 	if ( pDecompressor->Finished ) { return true; }
-	if ( (pDecompressor->MemberCount == 0u) || !pDecompressor->MemberEnded ||
-		(pDecompressor->State != XRT_MINIZ_DEC_HEADER) ||
-		(xrtBufferView(pDecompressor->Carry).Size != 0u) ) {
-		__xrtMinizSetError(&pDecompressor->Error, XRT_MINIZ_ERROR_TRUNCATED, 0,
-			pDecompressor->InputBytes, pDecompressor->OutputBytes, "miniz stream is truncated or empty");
+	if ( !xrtInflateDone(pDecompressor->Codec) &&
+		 !xrtInflateWrite(pDecompressor->Codec, (xbytesview){ NULL, 0u }, true,
+			__xrtMinizDecodeOutput, pDecompressor) ) {
+		if ( pDecompressor->Error.iCode == XRT_MINIZ_OK ) {
+			__xrtMinizSetCodecError(&pDecompressor->Error, XRT_MINIZ_ERROR_TRUNCATED,
+				pDecompressor->InputBytes, pDecompressor->OutputBytes, "zlib stream is incomplete");
+		}
 		pDecompressor->Failed = true;
 		return false;
 	}
@@ -665,12 +488,8 @@ XRT_API uint64 xrtMinizDecompressorOutputBytes(const xrtminizdecompressor* pDeco
 
 XRT_API bool xrtMinizDecompressorFinished(const xrtminizdecompressor* pDecompressor)
 {
-	return pDecompressor != NULL && pDecompressor->MemberEnded;
-}
-
-XRT_API uint64 xrtMinizDecompressorMembers(const xrtminizdecompressor* pDecompressor)
-{
-	return pDecompressor != NULL ? pDecompressor->MemberCount : 0u;
+	return pDecompressor != NULL && pDecompressor->Codec != NULL &&
+		!pDecompressor->Failed && xrtInflateDone(pDecompressor->Codec);
 }
 
 XRT_API const xrtminizerror* xrtMinizDecompressorError(const xrtminizdecompressor* pDecompressor)
@@ -681,7 +500,7 @@ XRT_API const xrtminizerror* xrtMinizDecompressorError(const xrtminizdecompresso
 XRT_API void xrtMinizDecompressorDestroy(xrtminizdecompressor* pDecompressor)
 {
 	if ( pDecompressor == NULL ) { return; }
-	xrtBufferDestroy(pDecompressor->Carry);
+	xrtInflateDestroy(pDecompressor->Codec);
 	xrtBufferDestroy(pDecompressor->Output);
 	xrtFree(pDecompressor);
 }
@@ -693,7 +512,6 @@ XRT_API void xrtMinizDecompressorDestroy(xrtminizdecompressor* pDecompressor)
 XRT_API bool xrtMinizCompress(const void* pData, size_t iSize, const xrtminizoptions* pOptions,
 	xbuffer** ppOutput, xrtminizerror* pError)
 {
-	xrtminizoptions tOptions;
 	xrtminizcompressor* pCompressor;
 	bool bRet;
 	xrtMinizErrorInit(pError);
@@ -702,8 +520,7 @@ XRT_API bool xrtMinizCompress(const void* pData, size_t iSize, const xrtminizopt
 		__xrtMinizSetError(pError, XRT_MINIZ_ERROR_ARGUMENT, 0, 0, 0, "invalid miniz input");
 		return false;
 	}
-	if ( pOptions != NULL ) { tOptions = *pOptions; } else { xrtMinizOptionsInit(&tOptions); }
-	pCompressor = xrtMinizCompressorCreate(&tOptions);
+	pCompressor = xrtMinizCompressorCreate(pOptions);
 	if ( pCompressor == NULL ) {
 		__xrtMinizSetError(pError, XRT_MINIZ_ERROR_MEMORY, 0, iSize, 0, "cannot allocate miniz compressor");
 		return false;
@@ -719,7 +536,6 @@ XRT_API bool xrtMinizCompress(const void* pData, size_t iSize, const xrtminizopt
 XRT_API bool xrtMinizDecompress(const void* pData, size_t iSize, const xrtminizoptions* pOptions,
 	xbuffer** ppOutput, xrtminizerror* pError)
 {
-	xrtminizoptions tOptions;
 	xrtminizdecompressor* pDecompressor;
 	bool bRet;
 	xrtMinizErrorInit(pError);
@@ -728,8 +544,7 @@ XRT_API bool xrtMinizDecompress(const void* pData, size_t iSize, const xrtminizo
 		__xrtMinizSetError(pError, XRT_MINIZ_ERROR_ARGUMENT, 0, 0, 0, "invalid miniz input");
 		return false;
 	}
-	if ( pOptions != NULL ) { tOptions = *pOptions; } else { xrtMinizOptionsInit(&tOptions); }
-	pDecompressor = xrtMinizDecompressorCreate(&tOptions);
+	pDecompressor = xrtMinizDecompressorCreate(pOptions);
 	if ( pDecompressor == NULL ) {
 		__xrtMinizSetError(pError, XRT_MINIZ_ERROR_MEMORY, 0, iSize, 0, "cannot allocate miniz decompressor");
 		return false;
@@ -746,6 +561,20 @@ XRT_API bool xrtMinizDecompress(const void* pData, size_t iSize, const xrtminizo
 
 // ------------------------------------ 文件流接口 ------------------------------------
 
+/* 进度总量以本次读取起点为基准，不能包含 Reader 中已跳过的前缀。 */
+static bool __xrtMinizReaderRemaining(xreader* pReader, uint64* pRemaining)
+{
+	uint64 iSize = 0u;
+	uint64 iPosition = 0u;
+	if ( xrtReaderSize(pReader, &iSize) &&
+		xrtReaderTell(pReader, &iPosition) && iPosition <= iSize ) {
+		*pRemaining = iSize - iPosition;
+		return true;
+	}
+	xrtClearError();
+	return false;
+}
+
 XRT_API bool xrtMinizCompressStream(xreader* pReader, xwriter* pWriter, const xrtminizoptions* pOptions,
 	xrtprogressproc pProgress, ptr pUserData, xrtminizerror* pError)
 {
@@ -759,10 +588,18 @@ XRT_API bool xrtMinizCompressStream(xreader* pReader, xwriter* pWriter, const xr
 		__xrtMinizSetError(pError, XRT_MINIZ_ERROR_ARGUMENT, 0, 0, 0, "invalid miniz stream");
 		return false;
 	}
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iTotal);
-	if ( !bTotalKnown ) { xrtClearError(); }
+	bTotalKnown = __xrtMinizReaderRemaining(pReader, &iTotal);
 	pCompressor = xrtMinizCompressorCreate(pOptions);
-	if ( pCompressor == NULL ) { return false; }
+	if ( pCompressor == NULL ) {
+		__xrtMinizSetError(pError, XRT_MINIZ_ERROR_MEMORY,
+			0, 0, 0, "cannot allocate miniz compressor");
+		return false;
+	}
+	if ( pCompressor->Failed ) {
+		__xrtMinizCopyError(pError, &pCompressor->Error);
+		xrtMinizCompressorDestroy(pCompressor);
+		return false;
+	}
 	while ( bRet ) {
 		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
@@ -808,10 +645,18 @@ XRT_API bool xrtMinizDecompressStream(xreader* pReader, xwriter* pWriter, const 
 		__xrtMinizSetError(pError, XRT_MINIZ_ERROR_ARGUMENT, 0, 0, 0, "invalid miniz stream");
 		return false;
 	}
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iTotal);
-	if ( !bTotalKnown ) { xrtClearError(); }
+	bTotalKnown = __xrtMinizReaderRemaining(pReader, &iTotal);
 	pDecompressor = xrtMinizDecompressorCreate(pOptions);
-	if ( pDecompressor == NULL ) { return false; }
+	if ( pDecompressor == NULL ) {
+		__xrtMinizSetError(pError, XRT_MINIZ_ERROR_MEMORY,
+			0, 0, 0, "cannot allocate miniz decompressor");
+		return false;
+	}
+	if ( pDecompressor->Failed ) {
+		__xrtMinizCopyError(pError, &pDecompressor->Error);
+		xrtMinizDecompressorDestroy(pDecompressor);
+		return false;
+	}
 	while ( bRet ) {
 		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {

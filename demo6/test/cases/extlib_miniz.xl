@@ -24,9 +24,6 @@ func main(...) as int
     if decoder.drain().text() != "leftright" then
         return 2
     end
-    if decoder.members != 1 then
-        return 6
-    end
 
     // 流式分块收集 + 字节计数器（进度回显基础）。
     auto enc2 = miniz.compressor()
@@ -67,7 +64,7 @@ func main(...) as int
         return 11
     end
 
-    // 串联多成员流：两个独立成员拼接后一次解出。
+    // zlib 是单条流；拼接两个完整流不能被静默接受。
     auto frameA = miniz.compressor()
     frameA.update("AAA")
     frameA.finish()
@@ -77,41 +74,41 @@ func main(...) as int
     Buffer joined = Buffer()
     joined.append(frameA.drain())
     joined.append(frameB.drain())
-    auto multi = miniz.decompressor()
-    multi.update(joined)
-    multi.finish()
-    if multi.drain().text() != "AAABBB" then
-        return 12
+    bool concatenatedRejected = false
+    try
+        miniz.decompress(joined)
+    catch IOError e
+        concatenatedRejected = true
     end
-    if multi.members != 2 then
-        return 13
+    if not concatenatedRejected then
+        return 12
     end
 
     bool rejected = false
-    int mid = incremental.len() / 2
-    incremental[mid] = incremental[mid] ^ 255
+    incremental[0] = 0
     try
         miniz.decompress(incremental)
-    catch CompressionError e
+    catch IOError e
         rejected = true
     end
     if not rejected then
         return 3
     end
 
-    string sourcePath = "tmp/extlib_miniz_source.bin"
-    string packedPath = "tmp/extlib_miniz_stream.miniz"
-    string plainPath = "tmp/extlib_miniz_plain.bin"
-    file.writeBytes(sourcePath, source)
+    dir.createAll("build/test/miniz-baseline")
+    string sourcePath = "build/test/miniz-baseline/source.bin"
+    string packedPath = "build/test/miniz-baseline/stream.zz"
+    string plainPath = "build/test/miniz-baseline/plain.bin"
+    file.writeBytes(sourcePath, source.toBytes())
     miniz.compressFile(sourcePath, packedPath)
     miniz.decompressFile(packedPath, plainPath)
-    if file.readBytes(plainPath) != source then
+    if file.readBytes(plainPath) != source.toBytes() then
         return 4
     end
     bool overwriteRejected = false
     try
         miniz.compressFile(sourcePath, packedPath, overwrite = false)
-    catch CompressionError e
+    catch ValueError e
         overwriteRejected = true
     end
     if not overwriteRejected then

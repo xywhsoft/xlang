@@ -1,6 +1,18 @@
 #ifndef XRT_MINIZ_H
 #define XRT_MINIZ_H
 
+#ifndef XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_BUFFER
+#endif
+#ifndef XRT_MODULE_IO_FILE
+#define XRT_MODULE_IO_FILE
+#endif
+#ifndef XRT_MODULE_DEFLATE
+#define XRT_MODULE_DEFLATE
+#endif
+#ifndef XRT_MODULE_INFLATE
+#define XRT_MODULE_INFLATE
+#endif
 #include "xrt.h"
 
 #ifdef __cplusplus
@@ -34,6 +46,7 @@ typedef struct {
 	uint32 iVersion;
 	int iLevel;
 	uint8 sReserved[4];
+	/* 单个 zlib 流：entries/nodes/depth/flags 不适用。 */
 	xrtresourcelimits tLimits;
 } xrtminizoptions;
 
@@ -63,7 +76,6 @@ XRT_API xbuffer* xrtMinizDecompressorDrainBuffer(xrtminizdecompressor* pDecompre
 XRT_API uint64 xrtMinizDecompressorInputBytes(const xrtminizdecompressor* pDecompressor);
 XRT_API uint64 xrtMinizDecompressorOutputBytes(const xrtminizdecompressor* pDecompressor);
 XRT_API bool xrtMinizDecompressorFinished(const xrtminizdecompressor* pDecompressor);
-XRT_API uint64 xrtMinizDecompressorMembers(const xrtminizdecompressor* pDecompressor);
 XRT_API const xrtminizerror* xrtMinizDecompressorError(const xrtminizdecompressor* pDecompressor);
 XRT_API void xrtMinizDecompressorDestroy(xrtminizdecompressor* pDecompressor);
 

@@ -40,6 +40,27 @@ func __miniz_check_limit(int value, string name)
     end
 end
 
+func __miniz_file_path(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "miniz file path contains NUL"
+    end
+end
+
+// C 计数器和进度均为无符号 64 位，语言公开 int 前先检查范围。
+func __miniz_count(c_ulonglong value) as int
+    if value > c_ulonglong(9223372036854775807) then
+        throw RangeError "miniz byte count exceeds int range"
+    end
+    return int(value)
+end
+
+func __miniz_progress(func(int, int, int) as bool callback) as var
+    return xcall(func(uint64 inputBytes, uint64 totalBytes, uint64 outputBytes) as bool
+        return callback(__miniz_count(c_ulonglong(inputBytes)),
+            __miniz_count(c_ulonglong(totalBytes)), __miniz_count(c_ulonglong(outputBytes)))
+    end)
+end
+
 func __miniz_check_file_result(int status)
     if status == -1 then
         throw CancelledError "miniz operation cancelled"
@@ -68,7 +89,7 @@ export func compress(string text, int level = MINIZ_DEFAULT_LEVEL,
     __miniz_check_level(level)
     __miniz_check_limit(maxInput, "maxInput")
     __miniz_check_limit(maxOutput, "maxOutput")
-    point result = __miniz_compress_str(text, c_size(string.len(text)), c_int(level),
+    point result = __miniz_compress_str(text, c_size(string.byteLen(text)), c_int(level),
         c_ulonglong(maxInput), c_ulonglong(maxOutput))
     if result == null then
         throw CompressionError __miniz_error()
@@ -81,6 +102,9 @@ export func decompress(Buffer data, int maxInput = 268435456,
     __miniz_check_limit(maxInput, "maxInput")
     __miniz_check_limit(maxOutput, "maxOutput")
     __miniz_check_limit(maxRatio, "maxRatio")
+    if maxRatio > 4294967295 then
+        throw RangeError "miniz maxRatio must fit uint32"
+    end
     point result = __miniz_decompress(data.data(), c_size(data.len()),
         c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio))
     if result == null then
@@ -98,12 +122,14 @@ export func compressFile(string source, string destination,
     int level = MINIZ_DEFAULT_LEVEL, bool overwrite = true,
     int maxInput = 268435456, int maxOutput = 536870912,
     (func(int, int, int) as bool)? onProgress = null)
+    __miniz_file_path(source)
+    __miniz_file_path(destination)
     __miniz_check_level(level)
     __miniz_check_limit(maxInput, "maxInput")
     __miniz_check_limit(maxOutput, "maxOutput")
     var progress = null
     if onProgress != null then
-        progress = xcall(onProgress)
+        progress = __miniz_progress(onProgress)
     end
     int status = __miniz_compress_file(source, destination, c_int(level), c_bool(overwrite),
         c_ulonglong(maxInput), c_ulonglong(maxOutput), progress)
@@ -113,12 +139,17 @@ end
 export func decompressFile(string source, string destination, bool overwrite = true,
     int maxInput = 268435456, int maxOutput = 536870912, int maxRatio = 1000,
     (func(int, int, int) as bool)? onProgress = null)
+    __miniz_file_path(source)
+    __miniz_file_path(destination)
     __miniz_check_limit(maxInput, "maxInput")
     __miniz_check_limit(maxOutput, "maxOutput")
     __miniz_check_limit(maxRatio, "maxRatio")
+    if maxRatio > 4294967295 then
+        throw RangeError "miniz maxRatio must fit uint32"
+    end
     var progress = null
     if onProgress != null then
-        progress = xcall(onProgress)
+        progress = __miniz_progress(onProgress)
     end
     int status = __miniz_decompress_file(source, destination, c_bool(overwrite),
         c_ulonglong(maxInput), c_ulonglong(maxOutput), c_uint(maxRatio), progress)
@@ -133,12 +164,12 @@ export class MinizCompressor
     native point handle
     extern "xminiz_compressor_create" create(c_int level, c_ulonglong maxInput, c_ulonglong maxOutput)
     extern "xminiz_compressor_destroy" destroy()
-    extern "xminiz_compressor_update" func updateNative(point data, c_size size) as bool
-    extern "xminiz_compressor_update_str" func updateStrNative(string data, c_size size) as bool
-    extern "xminiz_compressor_finish" func finishNative() as bool
-    extern "xminiz_compressor_drain" func drainNative() as point
-    extern "xminiz_compressor_input_bytes" func inputBytesNative() as int
-    extern "xminiz_compressor_output_bytes" func outputBytesNative() as int
+    private extern "xminiz_compressor_update" func updateNative(point data, c_size size) as bool
+    private extern "xminiz_compressor_update_str" func updateStrNative(string data, c_size size) as bool
+    private extern "xminiz_compressor_finish" func finishNative() as bool
+    private extern "xminiz_compressor_drain" func drainNative() as point
+    private extern "xminiz_compressor_input_bytes" func inputBytesNative() as c_ulonglong
+    private extern "xminiz_compressor_output_bytes" func outputBytesNative() as c_ulonglong
 
     get valid() as bool
         return self.handle != null
@@ -146,12 +177,12 @@ export class MinizCompressor
 
     // 已喂入的原始字节数（进度回显用）。
     get inputBytes() as int
-        return self.inputBytesNative()
+        return __miniz_count(self.inputBytesNative())
     end
 
     // 已产出的压缩字节数（进度回显用）。
     get outputBytes() as int
-        return self.outputBytesNative()
+        return __miniz_count(self.outputBytesNative())
     end
 
     func update(Buffer data)
@@ -161,7 +192,7 @@ export class MinizCompressor
     end
 
     func update(string text)
-        if not self.updateStrNative(text, c_size(string.len(text))) then
+        if not self.updateStrNative(text, c_size(string.byteLen(text))) then
             throw CompressionError __miniz_error()
         end
     end
@@ -175,7 +206,7 @@ export class MinizCompressor
         return Buffer(result)
     end
 
-    // 封存压缩流（写入成员结束标记）。返回后 drain() 可取走最后的压缩字节。
+    // 封存标准 zlib 流。返回后 drain() 可取走最后的压缩字节。
     func finish() as bool
         if not self.finishNative() then
             throw CompressionError __miniz_error()
@@ -187,18 +218,17 @@ end
 
 
 // 增量流式解压器：update() 喂入压缩字节，drain() 随时取走已解压数据，
-// finished 反映当前成员是否结束，members 统计已完整解出的成员数（支持串联多成员流）。
+// finished 在完整 zlib 流解出后为 true；不支持拼接多个独立流。
 export class MinizDecompressor
     native point handle
     extern "xminiz_decompressor_create" create(c_ulonglong maxInput, c_ulonglong maxOutput, c_uint maxRatio)
     extern "xminiz_decompressor_destroy" destroy()
-    extern "xminiz_decompressor_update" func updateNative(point data, c_size size) as bool
-    extern "xminiz_decompressor_finish" func finishNative() as bool
-    extern "xminiz_decompressor_drain" func drainNative() as point
-    extern "xminiz_decompressor_input_bytes" func inputBytesNative() as int
-    extern "xminiz_decompressor_output_bytes" func outputBytesNative() as int
-    extern "xminiz_decompressor_finished" func finishedNative() as bool
-    extern "xminiz_decompressor_members" func membersNative() as int
+    private extern "xminiz_decompressor_update" func updateNative(point data, c_size size) as bool
+    private extern "xminiz_decompressor_finish" func finishNative() as bool
+    private extern "xminiz_decompressor_drain" func drainNative() as point
+    private extern "xminiz_decompressor_input_bytes" func inputBytesNative() as c_ulonglong
+    private extern "xminiz_decompressor_output_bytes" func outputBytesNative() as c_ulonglong
+    private extern "xminiz_decompressor_finished" func finishedNative() as bool
 
     get valid() as bool
         return self.handle != null
@@ -206,12 +236,12 @@ export class MinizDecompressor
 
     // 已喂入的压缩字节数（进度回显用）。
     get inputBytes() as int
-        return self.inputBytesNative()
+        return __miniz_count(self.inputBytesNative())
     end
 
     // 已产出的解压字节数（进度回显用）。
     get outputBytes() as int
-        return self.outputBytesNative()
+        return __miniz_count(self.outputBytesNative())
     end
 
     // 当前成员是否已完整解出（流结束时为 true）。
@@ -219,10 +249,6 @@ export class MinizDecompressor
         return self.finishedNative()
     end
 
-    // 已完整解出的成员数；大于 1 表示输入是串联的多成员 miniz 流。
-    get members() as int
-        return self.membersNative()
-    end
 
     func update(Buffer data)
         if not self.updateNative(data.data(), c_size(data.len())) then
@@ -268,6 +294,9 @@ export func decompressor(int maxInput = 268435456, int maxOutput = 536870912,
     __miniz_check_limit(maxInput, "maxInput")
     __miniz_check_limit(maxOutput, "maxOutput")
     __miniz_check_limit(maxRatio, "maxRatio")
+    if maxRatio > 4294967295 then
+        throw RangeError "miniz maxRatio must fit uint32"
+    end
     MinizDecompressor result = MinizDecompressor(c_ulonglong(maxInput),
         c_ulonglong(maxOutput), c_uint(maxRatio))
     if not result.valid then
