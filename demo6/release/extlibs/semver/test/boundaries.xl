@@ -16,6 +16,10 @@ func main(...) as int
     assert not semver.satisfies("2.0.0", ">= 1.2.3 < 2.0.0"), "spaced upper bound"
     assert semver.satisfies("1.2.3", "~\t1.2"), "spaced tilde"
     assert semver.satisfies("2.5.0", "^ 1.0.0 || ^ 2.0.0"), "spaced caret alternatives"
+    assert semver.satisfies("2.1.0", "1.2.3  -  2.3.4"), "spaced hyphen range"
+    assert not semver.satisfies("2.4.0", "1.2.3  -  2.3.4"), "spaced hyphen upper bound"
+    assert semver.satisfies("2.1.0", "1.2.3\t-\t2.3.4"), "tab hyphen range"
+    assert not semver.satisfies("2.1.0", "1.2.3 - 2.3.4 >=2.0.0"), "combined hyphen range"
 
     // 数值溢出或格式错误不能被转换成某个有效范围。
     assert not semver.valid("9223372036854775808.0.0"), "major overflow"

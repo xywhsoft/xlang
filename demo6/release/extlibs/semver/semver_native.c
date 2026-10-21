@@ -666,9 +666,14 @@ static int semver_is_range_operator(const char *token) {
         strcmp(token, "^") == 0;
 }
 
+static int semver_is_range_space(char c) {
+    return c == ' ' || c == '\t';
+}
+
 static int semver_parse_set(const char *text, ComparatorSet *set) {
     char buf[XSEMVER_MAX_TEXT];
-    char *hyphen;
+    char *hyphen = NULL;
+    char *scan;
     int i;
 
     set->count = 0;
@@ -677,20 +682,33 @@ static int semver_parse_set(const char *text, ComparatorSet *set) {
     }
     strcpy(buf, text);
 
-    hyphen = strstr(buf, " - ");
+    for (scan = buf; *scan; ++scan) {
+        if (scan > buf && *scan == '-' &&
+            semver_is_range_space(scan[-1]) &&
+            semver_is_range_space(scan[1])) {
+            hyphen = scan;
+            break;
+        }
+    }
     if (hyphen) {
         Partial lo;
         Partial hi;
         char left[XSEMVER_MAX_TEXT];
         char right[XSEMVER_MAX_TEXT];
-        size_t left_len = (size_t)(hyphen - buf);
-        size_t right_len = strlen(hyphen + 3);
+        char *left_end = hyphen;
+        char *right_start = hyphen + 1;
+        size_t left_len;
+        size_t right_len;
+        while (left_end > buf && semver_is_range_space(left_end[-1])) left_end--;
+        while (semver_is_range_space(*right_start)) right_start++;
+        left_len = (size_t)(left_end - buf);
+        right_len = strlen(right_start);
         if (left_len >= sizeof(left) || right_len >= sizeof(right)) {
             return 0;
         }
         memcpy(left, buf, left_len);
         left[left_len] = '\0';
-        memcpy(right, hyphen + 3, right_len);
+        memcpy(right, right_start, right_len);
         right[right_len] = '\0';
         if (!semver_parse_partial(left, &lo) || !semver_parse_partial(right, &hi)) {
             return 0;
