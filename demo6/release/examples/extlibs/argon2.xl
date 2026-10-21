@@ -3,7 +3,7 @@
 //
 // Argon2 是 2015 年密码哈希竞赛（PHC）冠军，RFC 9106 标准。
 // 本库完整实现 Argon2d / Argon2i / Argon2id 三种变体，
-// 对标 Python argon2-cffi 全部功能。
+// 支持参数配置、PHC 编码与密码验证；公开能力以包内 README 为准。
 //
 // 典型场景：用户密码存储、会话令牌派生、密钥拉伸。
 // ═══════════════════════════════════════════════════════════
@@ -56,7 +56,7 @@ func main(...) as int
 
     // timeCost: 迭代次数（越大越慢，抗暴力破解）
     // memoryCost: 内存消耗 KiB（越大越抗 GPU/ASIC）
-    // parallelism: 并行线程数（影响哈希值，不只是性能）
+    // parallelism: 算法 lane 数（影响哈希值）；当前参考后端顺序处理各 lane
     // hashLen: 输出哈希长度（字节）
     // saltLen: 自动盐长度（字节）
     string custom = argon2.hash("pw",
@@ -76,8 +76,8 @@ func main(...) as int
     // ─────────────────────────────────────────────────────────────
     println("\n=== 4. 三种变体 ===")
 
-    // Argon2d: 数据依赖寻址，抗 GPU 最强，但有侧信道风险
-    // Argon2i: 数据无关寻址，抗侧信道，但抗 GPU 稍弱
+    // Argon2d: 数据依赖寻址
+    // Argon2i: 数据无关寻址
     // Argon2id: 混合（前半 Argon2i + 后半 Argon2d），RFC 推荐
     string hd = argon2.hash("test", salt = salt, type = argon2.ARGON2D)
     string hi = argon2.hash("test", salt = salt, type = argon2.ARGON2I)
@@ -98,14 +98,10 @@ func main(...) as int
     println("\n=== 5. secret 密钥哈希 ===")
 
     // secret 是一个服务器端密钥，不存入数据库
-    // 即使数据库完全泄露（盐+哈希），没有 secret 也无法暴力破解
     string serverKey = "my_server_secret_key_2024"
     string withKey = argon2.hash("user_password", secret = serverKey)
     println("带密钥: ", withKey)
-
-    // 注意：verify() 不含 secret 参数
-    // 带 secret 生成的哈希，普通 verify 无法通过（设计意图）
-    // 实际部署中，验证时需要重新 hash 后比较
+    println("带密钥验证: ", argon2.verify("user_password", withKey, secret = serverKey))
 
     // ─────────────────────────────────────────────────────────────
     // 6. ad 附加数据（绑定上下文）
@@ -113,9 +109,10 @@ func main(...) as int
     println("\n=== 6. ad 附加数据 ===")
 
     // ad 将哈希绑定到特定上下文（如用户ID、租户ID）
-    // 防止攻击者将一个用户的哈希复制到另一个用户
+    // ad 不写入 PHC；验证方需要再次提供相同的上下文。
     string withAd = argon2.hash("password", ad = "tenant=acme;user=42")
     println("带AD: ", withAd)
+    println("带AD验证: ", argon2.verify("password", withAd, ad = "tenant=acme;user=42"))
 
     // ─────────────────────────────────────────────────────────────
     // 7. hashRaw：原始 hex 输出
@@ -196,11 +193,13 @@ func main(...) as int
     string password = "S3cur3!Pass#2024"
 
     // 一行完成：自动盐 + 推荐参数 + PHC 编码
-    string stored = argon2.hash(password, ad = "user=" + username)
-    println("存储到DB: ", stored)
+    string stored = argon2.hash(password)
+    println("存储用户: ", username, " 哈希: ", stored)
 
     // ── 登录 ──
     string inputPassword = "S3cur3!Pass#2024"
+    assert argon2.verify(inputPassword, stored), "registration/login must accept the correct password"
+    assert not argon2.verify("hacker_guess", stored), "registration/login must reject the wrong password"
 
     if argon2.verify(inputPassword, stored) then
         println("登录成功!")
@@ -208,7 +207,7 @@ func main(...) as int
         // 检查是否需要升级参数（安全策略更新后）
         if argon2.checkNeedsRehash(stored) then
             println("参数已过期，重新哈希...")
-            stored = argon2.hash(inputPassword, ad = "user=" + username)
+            stored = argon2.hash(inputPassword)
             // UPDATE users SET password_hash = stored WHERE ...
         end
     else

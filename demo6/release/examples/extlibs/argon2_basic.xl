@@ -1,0 +1,19 @@
+// 固定盐和低成本仅用于可重复演示；保存用户密码时使用默认自动盐并按环境调节成本。
+import argon2
+
+func main(...) as int
+    string encoded = argon2.hash("password", salt = "somesalt12345678",
+        timeCost = 2, memoryCost = 64, parallelism = 1)
+    println("verified:", argon2.verify("password", encoded))
+    println("wrong password:", argon2.verify("wrong", encoded))
+    string contextual = argon2.hash("password", salt = "somesalt12345678",
+        secret = "server-key", ad = "tenant-42", timeCost = 2, memoryCost = 64,
+        parallelism = 1)
+    println("context verified:", argon2.verify("password", contextual,
+        secret = "server-key", ad = "tenant-42"))
+    println("wrong context:", argon2.verify("password", contextual,
+        secret = "server-key", ad = "other"))
+    println("needs rehash:", argon2.checkNeedsRehash(encoded))
+    println("salt hex length:", string.byteLen(argon2.generateSalt(16)))
+    return 0
+end

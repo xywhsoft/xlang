@@ -26,12 +26,33 @@ func main(...) as int
     string withSecret = argon2.hash("pw", salt = salt, secret = "server_key", timeCost = 2, memoryCost = 64, parallelism = 1)
     string noSecret = argon2.hash("pw", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1)
     assert withSecret != noSecret, "secret changes the hash"
-    // 注意：verify 不含 secret，所以用 secret 生成的哈希无法通过普通 verify
-    // 这是设计意图：需要 secret 才能验证
+    assert argon2.verify("pw", withSecret, secret = "server_key"), "secret verification"
+    assert not argon2.verify("pw", withSecret), "missing secret must fail"
+    assert not argon2.verify("pw", withSecret, secret = "wrong"), "wrong secret must fail"
 
     // ═══ 4. ad 附加数据 ═══
     string withAd = argon2.hash("pw", salt = salt, ad = "user_id=42", timeCost = 2, memoryCost = 64, parallelism = 1)
     assert withAd != noSecret, "ad changes the hash"
+    assert argon2.verify("pw", withAd, ad = "user_id=42"), "ad verification"
+    assert not argon2.verify("pw", withAd, ad = "user_id=43"), "wrong ad must fail"
+
+    // 显式长度 ABI：内嵌 NUL 必须参与密码、盐与上下文计算。
+    string nulSalt = "somesalt\0tail"
+    string nulPassword = argon2.hash("pw\0tail", salt = nulSalt,
+        secret = "key\0tail", ad = "tenant\0tail", timeCost = 1,
+        memoryCost = 64, parallelism = 1)
+    string shortPassword = argon2.hash("pw", salt = nulSalt,
+        secret = "key\0tail", ad = "tenant\0tail", timeCost = 1,
+        memoryCost = 64, parallelism = 1)
+    assert nulPassword != shortPassword, "NUL password is not a prefix"
+    assert argon2.verify("pw\0tail", nulPassword,
+        secret = "key\0tail", ad = "tenant\0tail"), "NUL context roundtrip"
+    assert not argon2.verify("pw\0tail", nulPassword,
+        secret = "key", ad = "tenant\0tail"), "NUL secret is not a prefix"
+    assert not argon2.verify("pw\0tail", nulPassword,
+        secret = "key\0tail", ad = "tenant"), "NUL ad is not a prefix"
+    assert not argon2.verify("pw\0tail", nulPassword + "\0tail",
+        secret = "key\0tail", ad = "tenant\0tail"), "PHC rejects NUL"
 
     // ═══ 5. parallelism 可配 ═══
     string p1 = argon2.hash("pw", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1)
@@ -92,9 +113,9 @@ func main(...) as int
 
     // ═══ 12. Profiles 常量 ═══
     assert argon2.PROFILE_LOW_MEMORY_TIME == 3, "low mem time"
-    assert argon2.PROFILE_LOW_MEMORY_MEMORY == 19456, "low mem memory"
-    assert argon2.PROFILE_LOW_MEMORY_PARALLELISM == 1, "low mem p"
-    assert argon2.PROFILE_HIGH_MEMORY_TIME == 4, "high mem time"
+    assert argon2.PROFILE_LOW_MEMORY_MEMORY == 65536, "low mem memory"
+    assert argon2.PROFILE_LOW_MEMORY_PARALLELISM == 4, "low mem p"
+    assert argon2.PROFILE_HIGH_MEMORY_TIME == 1, "high mem time"
     assert argon2.PROFILE_HIGH_MEMORY_MEMORY == 2097152, "high mem memory"
     assert argon2.PROFILE_HIGH_MEMORY_PARALLELISM == 4, "high mem p"
 
@@ -120,6 +141,23 @@ func main(...) as int
         caught = true
     end
     assert caught, "too-short generated salt must throw"
+
+    caught = false
+    try
+        argon2.verify("pw", "$argon2id$v=19$m=2097153,t=1,p=1$c29tZXNhbHQ$AAAAAA")
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "verification must enforce the same resource bound as hashing"
+    assert not argon2.verify("pw", "invalid"), "malformed PHC is not a match"
+
+    caught = false
+    try
+        argon2.checkNeedsRehash(encoded, timeCost = 0)
+    catch ValueError e
+        caught = true
+    end
+    assert caught, "rehash parameters must not silently wrap to uint32"
 
     println("argon2: all tests passed")
     return 0

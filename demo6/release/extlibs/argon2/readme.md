@@ -1,247 +1,75 @@
-# argon2 — 密码哈希（RFC 9106）
+# argon2
 
-将用户密码转换为不可逆的安全哈希，用于凭证存储。基于 Argon2 算法（2015 年密码哈希竞赛冠军），具备内存硬特性，有效抵抗 GPU/ASIC 暴力破解。
+官方 Argon2 参考实现的 xlang/C 包，内存、临时字符串、安全随机数和错误槽复用 XRT。
+支持 Argon2d、Argon2i、Argon2id，默认 Argon2id。当前后端按顺序处理各 lane；
+`parallelism` 是算法参数，不承诺创建相同数量的系统线程。
 
-对标 Python `argon2-cffi` 全功能实现。
-
----
-
-## 典型应用场景
-
-| 场景 | 说明 |
-|------|------|
-| 用户密码存储 | 注册时 hash，登录时 verify，数据库只存 PHC 编码 |
-| 会话令牌派生 | 从主密钥 + 用户上下文派生唯一令牌 |
-| 密钥拉伸 | 将短密码拉伸为高强度加密密钥 |
-| 参数升级 | 安全策略更新后，检测并重新哈希旧密码 |
-| 防篡改绑定 | 通过 ad 参数将哈希绑定到特定用户/租户 |
-
----
-
-## 快速开始
+## 使用
 
 ```xlang
 import argon2
 
-// 注册：一行搞定（自动生成随机盐）
-string stored = argon2.hash("user_password")
-
-// 登录：一行验证
-if argon2.verify("user_password", stored)
-    println("欢迎回来!")
-end
-```
-
----
-
-## 核心概念
-
-### PHC 编码字符串
-
-`hash()` 返回标准 PHC 格式，包含算法、版本、参数、盐、哈希的全部信息：
-
-```
-$argon2id$v=19$m=65536,t=3,p=4$c29tZXNhbHQ$RdescudvJCsgt3ub+b+dWRWJTmaaJObG
- ──┬─── ─┬─ ─────┬──────── ─────┬──── ─────────┬────────────────
-  算法  版本    参数(m,t,p)    盐(base64)     哈希(base64)
-```
-
-存储到数据库时只需保存这一个字符串。验证时 `verify()` 自动解析全部信息。
-
-### 三种变体
-
-| 变体 | 常量 | 特点 | 适用 |
-|------|------|------|------|
-| Argon2d | `argon2.ARGON2D` | 数据依赖寻址，抗 GPU 最强 | 加密货币、无侧信道风险场景 |
-| Argon2i | `argon2.ARGON2I` | 数据无关寻址，抗侧信道 | 高安全环境 |
-| **Argon2id** | `argon2.ARGON2ID` | 混合（推荐） | **密码存储（默认）** |
-
-### 参数含义
-
-| 参数 | 说明 | 增大效果 |
-|------|------|----------|
-| `timeCost` | 迭代次数 | 计算时间线性增长 |
-| `memoryCost` | 内存消耗（KiB） | 抗 GPU/ASIC 能力增强 |
-| `parallelism` | 并行度 | 利用多核，同时影响哈希值 |
-| `hashLen` | 输出长度（字节） | 通常 32 即可 |
-| `saltLen` | 自动盐长度（字节） | 通常 16 即可 |
-
----
-
-## API 参考
-
-### 核心函数
-
-| 函数 | 返回值 | 说明 |
-|------|--------|------|
-| `hash(password, ...)` | `string` | PHC 编码（自动盐） |
-| `hashRaw(password, ...)` | `string` | 原始 hex 字符串 |
-| `verify(password, encoded)` | `bool` | 验证密码 |
-| `checkNeedsRehash(encoded, ...)` | `bool` | 参数是否需要升级 |
-
-### hash / hashRaw 参数
-
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `salt` | `""` | 空 = 自动生成 CSPRNG 随机盐 |
-| `secret` | `""` | 服务器端密钥（pepper） |
-| `ad` | `""` | 附加数据（绑定上下文） |
-| `timeCost` | `3` | 迭代次数 |
-| `memoryCost` | `65536` | 内存 KiB（64 MiB） |
-| `parallelism` | `4` | 并行度 |
-| `hashLen` | `32` | 输出字节数 |
-| `saltLen` | `16` | 自动盐字节数 |
-| `type` | `ARGON2ID` | 变体选择 |
-
-### 参数提取
-
-| 函数 | 说明 |
-|------|------|
-| `extractType(encoded)` | 变体类型（0/1/2） |
-| `extractTimeCost(encoded)` | 迭代次数 |
-| `extractMemoryCost(encoded)` | 内存 KiB |
-| `extractParallelism(encoded)` | 并行度 |
-
-### 辅助函数
-
-| 函数 | 说明 |
-|------|------|
-| `generateSalt(len = 16)` | CSPRNG 随机盐（hex） |
-| `recommendedTime()` | 推荐迭代次数（3） |
-| `recommendedMemory()` | 推荐内存（65536） |
-| `recommendedParallelism()` | 推荐并行度（4） |
-| `recommendedHashLen()` | 推荐哈希长度（32） |
-| `recommendedSaltLen()` | 推荐盐长度（16） |
-
-### 常量
-
-| 常量 | 值 | 说明 |
-|------|-----|------|
-| `ARGON2D` / `ARGON2I` / `ARGON2ID` | 0/1/2 | 变体 |
-| `PROFILE_LOW_MEMORY_*` | t=3, m=19456, p=1 | RFC 9106 低内存推荐 |
-| `PROFILE_HIGH_MEMORY_*` | t=4, m=2097152, p=4 | RFC 9106 高内存推荐 |
-
----
-
-## 由浅入深
-
-### 第 1 步：存储与验证
-
-```xlang
 string stored = argon2.hash("password")
-bool ok = argon2.verify("password", stored)
+assert argon2.verify("password", stored)
+assert not argon2.verify("wrong", stored)
 ```
 
-### 第 2 步：调节安全强度
+正式密码存储使用自动随机盐，不复制范例中的固定盐或低成本配置。
+成本需要结合部署机器和服务并发量测量，不由库保证统一的响应时间。
 
-```xlang
-// 高安全：增大内存和时间
-string stored = argon2.hash("password", timeCost = 5, memoryCost = 262144)
-```
+## API 与边界
 
-### 第 3 步：密钥哈希（防数据库泄露）
+| API | 合同 |
+| --- | --- |
+| `hash(password, salt="", secret="", ad="", timeCost=3, memoryCost=65536, parallelism=4, hashLen=32, saltLen=16, type=ARGON2ID)` | PHC 字符串；空 salt 自动生成安全随机盐 |
+| `hashRaw(...)` | 同参数，输出小写 hex；不携带成本和盐元数据 |
+| `verify(password, encoded, secret="", ad="")` | 验证 PHC；错误密码或错误上下文返回 false；原生资源错误通过 XRT 错误槽进入 XLang 异常 |
+| `checkNeedsRehash(encoded, timeCost=3, memoryCost=65536, parallelism=4)` | 参数或版本不同、编码无效时为 true；目标成本必须有效 |
+| `extractType/TimeCost/MemoryCost/Parallelism(encoded)` | 无效编码返回 -1，不执行密码计算 |
+| `generateSalt(len=16)` | len 字节随机数的 hex，字符串长为 len*2 |
+| `recommendedTime/Memory/Parallelism/HashLen/SaltLen()` | 当前默认配置，分别为 3/65536/4/32/16 |
 
-```xlang
-// secret 存在配置/环境变量中，不进数据库
-string stored = argon2.hash("password", secret = serverSecret)
-```
+- C ABI 的密码、手动盐、secret、ad 和 PHC 文本均接收显式字节长度；XLang
+  封装传入 `string.byteLen`。含 NUL 的密码与上下文参与完整哈希，PHC 文本
+  内嵌 NUL 被拒绝，不存在按前缀处理的旧接口。C 回归及 Linux sanitizer 已通过；
+  XLang 往返仍受下述 XLIR 阻断，见 `dev/extlib_blockers/argon2_text_nul.md`。
+  当前没有对外承诺 Buffer 重载。
+- 输出 4..256 字节，盐 8..64 字节；成本为正数，内存单位 KiB，最大 2097152 KiB。
+  验证外部 PHC 同样先检查此边界。算法还要求内存与 lane 数匹配。
+- 上限不是请求配额：不要把未受信任的 PHC 直接当成可无限运行的任务。
+  本层没有取消、中途预算或自动限制并发。
+- PHC 不存储 `secret` 与 `ad`；验证时必须传入与创建时相同的值。
+  不推荐普通字符串比较代替认证比较。
+- 失败使用 XRT 结构化错误。无效参数为 ValueError，分配失败为 MemoryError，
+  随机源失败为 IOError；成功不会清除调用前已有的错误槽。
 
-### 第 4 步：参数升级
+`PROFILE_LOW_MEMORY_*` 使用 t=3/m=65536/p=4；`PROFILE_HIGH_MEMORY_*` 使用
+t=1/m=2097152/p=4。两组对应 [RFC 9106 第 4 节](https://www.rfc-editor.org/rfc/rfc9106.html#section-4)，
+此前混入的非 RFC 参数已纠正。默认值使用 64 MiB 组，高内存组不是自动升级行为。
 
-```xlang
-// 用户登录成功后
-if argon2.checkNeedsRehash(storedHash)
-    storedHash = argon2.hash(password)  // 用新默认参数重新哈希
-    // 更新数据库
-end
-```
+## C 与验证
 
-### 第 5 步：审计与迁移
+公开声明位于 `include/argon2_native.h`，每个输入指针均紧邻其 `size_t` 字节长度；
+零长度盐触发随机盐生成。C 返回字符串借用当前 XRT 临时区，
+需要跨越该临时区生命周期时先复制；失败详情读取 `xrtGetError()`。
+源文件以 package manifest 为准，链接一份 XRT。输入密码由调用方拥有，库不会擦除它。
 
-```xlang
-// 检查数据库中旧哈希的参数
-int t = argon2.extractTimeCost(oldHash)
-int m = argon2.extractMemoryCost(oldHash)
-if m < 65536
-    // 标记为需要升级
-end
-```
+范例：`examples/extlibs/argon2.xl` 为教学覆盖；`argon2_basic.xl` 与 `argon2_c.c`
+为六行同结果对照。当前 C 范例已通过，XLang 侧受下述主线问题阻断。
 
----
+专项门禁：`tools/check_extlib_argon2_bloom.ps1`，包含生成的全部 C 原型、严格 GCC、
+C/xlang JIT/AOT、负例和分配故障。具体运行结果应查看该次 `results.json`，不能只凭
+测试脚本存在认定通过。二进制重载、验证任务预算和性能标定仍是后续项。
+`test/test_argon2.c` 另核对 RFC 9106 第 5 节 Argon2d/i/id 的三个固定 Tag，
+覆盖密码、盐、secret 和 ad 的完整字节传递，避免仅用本库生成再由本库验证。
+该用例已通过 Windows 严格 GCC、TCC C JIT 与 Linux ASan/UBSan；不替代 XLang 验收。
+当前 `xl.exe` 在包内 `string.byteAt(info, 0) - 48` 处报告 typed XLIR
+物理转换错误，导致导入后不能编译；最小复现及修复建议见
+`dev/extlib_blockers/argon2_byteat_sub.md`。新长度 ABI 与含 NUL 往返仍待主线修复后完成 XLang 运行验收；外部调用的 XRT 错误转异常规则已核对生成器和其他包的边界测试，不能代替本包的最终实测。
 
-## 安全最佳实践
-
-### 参数选择（OWASP 2024 推荐）
-
-| 场景 | timeCost | memoryCost | parallelism |
-|------|----------|------------|-------------|
-| 一般 Web 应用 | 3 | 65536 (64 MiB) | 4 |
-| 高安全（金融） | 4 | 262144 (256 MiB) | 4 |
-| 低内存环境 | 3 | 19456 (19 MiB) | 1 |
-
-**原则**：在不影响用户体验的前提下，尽量增大 `memoryCost`。
-
-### 盐的策略
-
-- **永远不要**复用盐（每个密码独立随机盐）
-- **永远不要**自己实现随机数生成（用 `hash()` 的自动盐或 `generateSalt()`）
-- 盐不需要保密，它随哈希一起存储在 PHC 编码中
-
-### secret（pepper）的策略
-
-- secret 是服务器端密钥，存在环境变量或 HSM 中
-- 不随哈希存储，数据库泄露后攻击者无法离线暴力破解
-- 更换 secret 需要重新哈希所有密码
-
----
-
-## 注意事项
-
-### verify 不含 secret
-
-如果 `hash()` 时传了 `secret`，则 `verify()` 无法直接验证（因为 verify 不接受 secret 参数）。这是设计意图——需要 secret 的场景下，验证逻辑需要自行重新 hash 后比较。
-
-### parallelism 影响哈希值
-
-`parallelism` 不仅是性能参数，它**改变哈希结果**。同一密码用 p=1 和 p=4 产生不同哈希。verify 从 PHC 编码中自动读取 p 值，所以验证不受影响。
-
-### 内存消耗
-
-`memoryCost=65536` 表示每次哈希消耗 64 MiB 内存。高并发场景需评估服务器总内存：
-
-```
-总内存 ≈ 并发哈希数 × memoryCost
-```
-
-### 性能参考
-
-| 参数 | 单次耗时（参考） |
-|------|-----------------|
-| t=3, m=65536, p=4 | ~200-500 ms |
-| t=3, m=19456, p=1 | ~50-100 ms |
-| t=1, m=4096, p=1 | ~5-10 ms |
-
-首次集成时建议用目标硬件实测，确保登录延迟可接受。
-
-### 与 bcrypt/scrypt 的互操作
-
-本库仅处理 Argon2 格式。如需验证旧 bcrypt 哈希，需先用对应库验证，成功后用 `argon2.hash()` 重新哈希并迁移。
-
----
-
-## 文件结构
-
-```
-argon2/
-├── argon2_native.c      # C 引擎：Blake2b + Argon2 核心 + PHC 编解码
-├── src/
-│   └── argon2.xl        # xlang API 层
-├── xlang.package.json   # 包清单
-└── readme.md            # 本文件
-```
-
----
-
-## 完整范例
-
-参见 `release/examples/extlibs/argon2.xl`，包含 11 节逐步教学，覆盖全部 API。
+2026-10-21：C 测试原在 `assert` 中执行 PHC 校验、非法输入和随机盐调用，
+定义 `NDEBUG` 会跳过这些操作。测试单元现保持断言启用，仅 `argon2`
+在 Windows/Linux 共用门禁中以 `-DNDEBUG` 编译，未改变范围外 `bloom`
+的测试配置；预处理确认盐生成调用仍在。Windows 严格 C 与 C JIT、
+Linux C ASan/UBSan 和分配故障门禁通过。Windows 随后的语言 cgen
+仍在 `extlib_argon2.xl:93` 遇到既有 typed XLIR 错误，未签收发布级。

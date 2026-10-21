@@ -1,0 +1,6 @@
+verified: true
+wrong password: false
+context verified: true
+wrong context: false
+needs rehash: true
+salt hex length: 32

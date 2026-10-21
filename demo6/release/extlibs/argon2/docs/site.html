@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09090a">
+  <title>argon2 - 扩展库 - xlang</title>
+  <meta name="description" content="argon2 扩展库：Argon2 密码哈希（RFC 9106），2015 年密码哈希竞赛冠军算法。自动 CSPRNG 随机盐、三种变体、secret 密钥哈希、参数升级检测，提供当前包公开的密码哈希与 PHC 验证能力。">
+  <link rel="icon" href="../favicon.png">
+  <meta property="og:title" content="argon2 - xlang 扩展库">
+  <meta property="og:description" content="Argon2 密码哈希（RFC 9106）：自动随机盐、三变体、参数升级。">
+  <meta property="og:type" content="website">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+
+<nav class="nav" aria-label="主导航">
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+    <ul class="nav-links" id="site-navigation">
+      <li><a href="../index.html#highlights">亮点</a></li>
+      <li><a href="../index.html#features">特性</a></li>
+      <li><a href="../index.html#start">快速开始</a></li>
+      <li><a href="../tour.html">语法导览</a></li>
+      <li><a href="../book/index.html">教程</a></li>
+      <li><a href="../stdlib.html">标准库</a></li>
+      <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+      <li><a href="../guide.html">文档</a></li>
+      <li><a href="../download.html">下载</a></li>
+      <li><a href="https://gitee.com/xywhsoft/x-lang" target="_blank" rel="noopener">Gitee</a></li>
+    </ul>
+    <div class="nav-actions" aria-label="页面工具"></div>
+  </div>
+</nav>
+
+<div class="extlib-layout c-sec" id="main-content">
+
+  <!-- 面包屑 -->
+  <div class="extlib-head">
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:14px;">
+      <a href="../extlibs.html" style="color:var(--brand);text-decoration:none;">扩展库</a>
+      <span style="margin:0 6px;">/</span>
+      <span style="color:var(--text-soft);">argon2</span>
+    </p>
+    <div class="extlib-title-row">
+      <h1>argon2</h1>
+      <span class="extlib-cat-badge">加密安全</span>
+    </div>
+    <div class="extlib-badges">
+      <span class="extlib-badge">v2.0.0</span>
+      <span class="extlib-badge hot">C 混编</span>
+      <span class="extlib-badge">0 依赖</span>
+      <span class="extlib-badge">ABI 1</span>
+    </div>
+    <p class="extlib-lead">Argon2 密码哈希（RFC 9106）— 2015 年密码哈希竞赛（PHC）冠军算法，具备内存硬特性，有效抵抗 GPU/ASIC 暴力破解。C 层实现 Blake2b + Argon2 完整核心，xlang 层提供安全、易用的高层 API，提供当前包公开的密码哈希与 PHC 验证能力。</p>
+    <p>当前发布版的 C 接口已验证；XLang 导入仍受 <code>uint8 - int</code> 的编译器问题阻断，以下 XLang 范例暂不能在该版本运行。</p>
+  </div>
+
+  <!-- Tab 栏 -->
+  <div class="ext-tabs" id="extTabs">
+    <button class="ext-tab active" data-panel="overview">概览</button>
+    <button class="ext-tab" data-panel="api">API 参考</button>
+    <button class="ext-tab" data-panel="examples">范例</button>
+    <button class="ext-tab" data-panel="tests">测试</button>
+  </div>
+
+  <!-- ═══════════ 面板 1：概览 ═══════════ -->
+  <div class="ext-panel active" id="panel-overview">
+    <h2>当前合同与验证</h2>
+    <p>2026-09-26 原生 ABI 与错误边界更新。公开 C 声明为 <code>include/argon2_native.h</code>，
+    专项门禁为 <code>tools/check_extlib_argon2_bloom.ps1</code>，执行记录绑定源码和宿主哈希。</p>
+    <ul>
+      <li>无效参数使用 ValueError，分配失败使用 MemoryError，安全随机源失败使用 IOError。</li>
+      <li>输出 4..256 字节、盐 8..64 字节、内存最多 2097152 KiB；verify 同样检查资源上限。
+      该上限不是并发配额或时间预算，不承诺取消与中途终止。</li>
+      <li>RFC 9106 参数组：64 MiB / t=3 / p=4，或 2 GiB / t=1 / p=4；
+      默认使用前者。<a href="https://www.rfc-editor.org/rfc/rfc9106.html#section-4">标准原文</a>。</li>
+      <li>parallelism 是 lane 数，当前参考实现顺序处理。C ABI 对密码、盐、secret、ad 和 PHC 文本传入显式字节长度；含 NUL 的密码与上下文不会被截断，PHC 文本含 NUL 则拒绝。</li>
+      <li>verify 接收 secret/ad，验证者必须重传与 hash 相同的上下文。当前 XLang 包导入仍被 XLIR 编译问题阻断，C 成功路径已验收；不要把它当成已完成 XLang 发布验收。</li>
+      <li><code>argon2_basic.xl</code> 与 <code>argon2_c.c</code> 提供同结果范例，
+      固定盐与低成本仅用于可重复演示。</li>
+    </ul>
+
+    <h2>典型场景</h2>
+    <div class="ext-scenes">
+      <span class="ext-scene">用户密码存储</span>
+      <span class="ext-scene">会话令牌派生</span>
+      <span class="ext-scene">密钥拉伸</span>
+      <span class="ext-scene">参数升级</span>
+      <span class="ext-scene">防篡改绑定</span>
+      <span class="ext-scene">凭证迁移</span>
+    </div>
+
+    <h2>快速开始</h2>
+    <div class="code-block"><div class="code-header"><span>quick_start.xl</span></div><div class="code-body"><pre>import argon2
+
+func main(...) as int
+    // 注册：一行哈希（自动生成 CSPRNG 随机盐）
+    string stored = argon2.hash("user_password")
+
+    // 登录：一行验证
+    if argon2.verify("user_password", stored)
+        println("登录成功")
+    end
+    return 0
+end</pre></div></div>
+
+    <h2>核心特性</h2>
+    <ul>
+      <li><strong>内存硬</strong> — 每次哈希消耗可配置内存（默认 64 MiB），提高专用硬件并行猜测的内存成本</li>
+      <li><strong>自动随机盐</strong> — 使用操作系统 CSPRNG（通过 XRT 的系统安全随机源），无需手动管理</li>
+      <li><strong>PHC 标准编码</strong> — 算法、版本、参数、盐、哈希全部内嵌于一个字符串，直接存入数据库</li>
+      <li><strong>三种变体</strong> — Argon2d（抗 GPU）/ Argon2i（抗侧信道）/ Argon2id（混合，RFC 推荐默认）</li>
+      <li><strong>secret + ad</strong> — 服务器端密钥哈希（pepper）与附加数据绑定用户上下文</li>
+      <li><strong>恒定时间比较</strong> — verify 内部 XOR 累积比较，防时序攻击</li>
+      <li><strong>安全内存擦除</strong> — 哈希中间状态与盐用后即清，不残留在内存中</li>
+      <li><strong>参数升级检测</strong> — <code>checkNeedsRehash</code> 判断旧哈希是否需要用新参数重新计算</li>
+    </ul>
+
+    <h2>包信息</h2>
+    <table class="ext-kv">
+      <tr><th>包名</th><td>argon2</td></tr>
+      <tr><th>版本</th><td>2.0.0</td></tr>
+      <tr><th>实现方式</th><td>C 混编（Blake2b + Argon2 核心 C，API 层 xlang）</td></tr>
+      <tr><th>依赖</th><td>无</td></tr>
+      <tr><th>ABI 版本</th><td>1</td></tr>
+      <tr><th>导出符号</th><td>hash, hashRaw, verify, checkNeedsRehash, extract*, generateSalt, recommended*</td></tr>
+      <tr><th>源文件</th><td>extlibs/argon2/src/argon2.xl</td></tr>
+    </table>
+  </div>
+
+  <!-- ═══════════ 面板 2：API 参考 ═══════════ -->
+  <div class="ext-panel" id="panel-api">
+
+    <div class="api-group-title">核心函数</div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export func</span> <span class="fn">hash</span>(<span class="type">string</span> password, <span class="type">string</span> salt = <span class="str">""</span>, <span class="type">string</span> secret = <span class="str">""</span>, <span class="type">string</span> ad = <span class="str">""</span>, <span class="type">int</span> timeCost = <span class="num">3</span>, <span class="type">int</span> memoryCost = <span class="num">65536</span>, <span class="type">int</span> parallelism = <span class="num">4</span>, <span class="type">int</span> hashLen = <span class="num">32</span>, <span class="type">int</span> saltLen = <span class="num">16</span>, <span class="type">int</span> type = ARGON2ID) <span class="kw">as</span> <span class="type">string</span></div>
+      <p>计算密码哈希，返回 PHC 编码字符串。<code>salt</code> 为空时自动生成 <code>saltLen</code> 字节的 CSPRNG 随机盐。</p>
+      <div class="api-note">输出格式：<code>$argon2id$v=19$m=65536,t=3,p=4$&lt;salt_b64&gt;$&lt;hash_b64&gt;</code>，包含算法、成本、盐和哈希；secret/ad 不在其中。</div>
+    </div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export func</span> <span class="fn">hashRaw</span>(<span class="type">string</span> password, ...) <span class="kw">as</span> <span class="type">string</span></div>
+      <p>参数与 <code>hash</code> 完全相同，返回原始哈希的 hex 字符串（不含元数据）。适用于自行管理存储格式的场景。</p>
+    </div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export func</span> <span class="fn">verify</span>(<span class="type">string</span> password, <span class="type">string</span> encoded, <span class="type">string</span> secret = <span class="str">""</span>, <span class="type">string</span> ad = <span class="str">""</span>) <span class="kw">as</span> <span class="type">bool</span></div>
+      <p>验证密码是否匹配 PHC 编码字符串。自动解析编码中的算法变体、全部参数、盐和哈希值，重新计算后以恒定时间比较。</p>
+      <div class="api-note">secret/ad 不保存在 PHC 中，调用方须重传。原生资源错误通过 XRT 错误槽进入 XLang 异常；完整 XLang 验收仍受 XLIR 问题阻断。不要用普通字符串比较替代验证。</div>
+    </div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export func</span> <span class="fn">checkNeedsRehash</span>(<span class="type">string</span> encoded, <span class="type">int</span> timeCost = <span class="num">3</span>, <span class="type">int</span> memoryCost = <span class="num">65536</span>, <span class="type">int</span> parallelism = <span class="num">4</span>) <span class="kw">as</span> <span class="type">bool</span></div>
+      <p>判断已有哈希的参数是否与期望值不同。参数不完全匹配即返回 <code>true</code>。典型用法：用户登录成功后检查，若需升级则重新 hash 并更新存储。</p>
+    </div>
+
+    <div class="api-group-title">参数提取</div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export func</span> <span class="fn">extractType</span>(<span class="type">string</span> encoded) <span class="kw">as</span> <span class="type">int</span>
+<span class="kw">export func</span> <span class="fn">extractTimeCost</span>(<span class="type">string</span> encoded) <span class="kw">as</span> <span class="type">int</span>
+<span class="kw">export func</span> <span class="fn">extractMemoryCost</span>(<span class="type">string</span> encoded) <span class="kw">as</span> <span class="type">int</span>
+<span class="kw">export func</span> <span class="fn">extractParallelism</span>(<span class="type">string</span> encoded) <span class="kw">as</span> <span class="type">int</span></div>
+      <p>从 PHC 编码中提取各项参数，无需手动解码 base64。适用于安全审计与批量迁移场景。解析失败返回 <code>-1</code>。</p>
+    </div>
+
+    <div class="api-group-title">盐生成</div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export func</span> <span class="fn">generateSalt</span>(<span class="type">int</span> len = <span class="num">16</span>) <span class="kw">as</span> <span class="type">string</span></div>
+      <p>生成 CSPRNG 随机盐，返回 hex 字符串（<code>len</code> 字节 → <code>len*2</code> 个 hex 字符）。范围 8-64 字节。</p>
+    </div>
+
+    <div class="api-group-title">推荐参数</div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export func</span> <span class="fn">recommendedTime</span>() <span class="kw">as</span> <span class="type">int</span>       <span class="cm">// 3</span>
+<span class="kw">export func</span> <span class="fn">recommendedMemory</span>() <span class="kw">as</span> <span class="type">int</span>     <span class="cm">// 65536 (64 MiB)</span>
+<span class="kw">export func</span> <span class="fn">recommendedParallelism</span>() <span class="kw">as</span> <span class="type">int</span> <span class="cm">// 4</span>
+<span class="kw">export func</span> <span class="fn">recommendedHashLen</span>() <span class="kw">as</span> <span class="type">int</span>    <span class="cm">// 32</span>
+<span class="kw">export func</span> <span class="fn">recommendedSaltLen</span>() <span class="kw">as</span> <span class="type">int</span>    <span class="cm">// 16</span></div>
+      <p>返回当前推荐的安全参数，作为 <code>checkNeedsRehash</code> 的默认对比基准。</p>
+    </div>
+
+    <div class="api-group-title">常量</div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export const int</span> ARGON2D = <span class="num">0</span>   <span class="cm">// 数据依赖寻址</span>
+<span class="kw">export const int</span> ARGON2I = <span class="num">1</span>   <span class="cm">// 数据无关寻址，抗侧信道</span>
+<span class="kw">export const int</span> ARGON2ID = <span class="num">2</span>  <span class="cm">// 混合（推荐，默认值）</span></div>
+      <p>变体选择常量，传入 <code>hash</code> 的 <code>type</code> 参数。</p>
+    </div>
+
+    <div class="api-item">
+      <div class="api-sig"><span class="kw">export const int</span> PROFILE_LOW_MEMORY_TIME = <span class="num">3</span>        <span class="cm">// RFC 9106 §4 低内存</span>
+<span class="kw">export const int</span> PROFILE_LOW_MEMORY_MEMORY = <span class="num">65536</span>   <span class="cm">// ~64 MiB</span>
+<span class="kw">export const int</span> PROFILE_LOW_MEMORY_PARALLELISM = <span class="num">4</span>
+<span class="kw">export const int</span> PROFILE_HIGH_MEMORY_TIME = <span class="num">1</span>       <span class="cm">// RFC 9106 §4 高内存</span>
+<span class="kw">export const int</span> PROFILE_HIGH_MEMORY_MEMORY = <span class="num">2097152</span> <span class="cm">// 2 GiB</span>
+<span class="kw">export const int</span> PROFILE_HIGH_MEMORY_PARALLELISM = <span class="num">4</span></div>
+      <p>RFC 9106 预定义参数集，直接传入 <code>hash</code> 对应参数即可使用。</p>
+    </div>
+  </div>
+
+  <!-- ═══════════ 面板 3：范例 ═══════════ -->
+  <div class="ext-panel" id="panel-examples">
+    <h2>教学范例</h2>
+    <p>以下范例逐步展示全部 API，从最简用法到综合实战。完整源文件：<code>examples/extlibs/argon2.xl</code></p>
+
+    <h3>1. 最简用法：一行哈希，一行验证</h3>
+    <div class="code-block"><div class="code-header"><span>自动盐 + verify</span></div><div class="code-body"><pre>import argon2
+
+// hash() 自动生成 CSPRNG 随机盐，返回 PHC 标准编码字符串
+string encoded = argon2.hash("my_secure_password")
+println("哈希: ", encoded)
+// 输出: $argon2id$v=19$m=65536,t=3,p=4$&lt;salt_b64&gt;$&lt;hash_b64&gt;
+
+// verify() 自动解析编码中的算法、参数、盐，重新计算并比较
+println("正确密码: ", argon2.verify("my_secure_password", encoded))  // true
+println("错误密码: ", argon2.verify("wrong_password", encoded))       // false
+
+// 每次 hash() 调用产生不同盐 → 不同编码，但都能验证通过
+string encoded2 = argon2.hash("my_secure_password")
+println("两次哈希不同: ", encoded != encoded2)  // true</pre></div></div>
+
+    <h3>2. 手动盐（确定性输出）</h3>
+    <div class="code-block"><div class="code-header"><span>固定盐</span></div><div class="code-body"><pre>// 传入固定盐 → 相同输入产生相同输出（用于测试/互操作）
+string salt = "my_fixed_salt_16"  // 至少 8 字节
+string h1 = argon2.hash("password", salt = salt)
+string h2 = argon2.hash("password", salt = salt)
+println("确定性: ", h1 == h2)  // true
+
+// generateSalt() 生成随机盐的 hex 字符串
+string randomSalt = argon2.generateSalt(16)
+println("随机盐: ", randomSalt)  // 32 个 hex 字符</pre></div></div>
+
+    <h3>3. 参数调节</h3>
+    <div class="code-block"><div class="code-header"><span>timeCost / memoryCost / parallelism</span></div><div class="code-body"><pre>// timeCost: 迭代次数（越大越慢，抗暴力破解）
+// memoryCost: 内存消耗 KiB（越大越抗 GPU/ASIC）
+// parallelism: 并行度（影响哈希值，不只是性能）
+string custom = argon2.hash("pw",
+    timeCost = 5,          // 5 次迭代
+    memoryCost = 131072,   // 128 MiB
+    parallelism = 2,       // 2 路并行
+    hashLen = 64,          // 64 字节输出
+    saltLen = 32           // 32 字节盐
+)
+
+// 验证时不需要传参数 — 全部从 PHC 编码中自动解析
+println("验证: ", argon2.verify("pw", custom))  // true</pre></div></div>
+
+    <h3>4. 三种变体</h3>
+    <div class="code-block"><div class="code-header"><span>Argon2d / Argon2i / Argon2id</span></div><div class="code-body"><pre>// Argon2d: 数据依赖寻址
+// Argon2i: 数据无关寻址
+// Argon2id: 混合（前半 i + 后半 d），RFC 推荐，默认值
+string hd  = argon2.hash("test", salt = salt, type = argon2.ARGON2D)
+string hi  = argon2.hash("test", salt = salt, type = argon2.ARGON2I)
+string hid = argon2.hash("test", salt = salt, type = argon2.ARGON2ID)
+
+// 所有变体都能正确验证（verify 自动识别类型）
+println("验证 d: ", argon2.verify("test", hd))   // true
+println("验证 i: ", argon2.verify("test", hi))   // true
+println("验证 id: ", argon2.verify("test", hid)) // true</pre></div></div>
+
+    <h3>5. secret 密钥哈希（pepper）</h3>
+    <div class="code-block"><div class="code-header"><span>附加输入演示</span></div><div class="code-body"><pre>// secret 不写入 PHC 编码
+string serverKey = "my_server_secret_key_2024"
+string withKey = argon2.hash("user_password", secret = serverKey)
+bool keyOk = argon2.verify("user_password", withKey, secret = serverKey)
+// secret 不在 PHC 中；验证方须妥善保管并重新提供</pre></div></div>
+
+    <h3>6. ad 附加数据（绑定上下文）</h3>
+    <div class="code-block"><div class="code-header"><span>附加数据演示</span></div><div class="code-body"><pre>// ad 将哈希绑定到特定上下文（如用户ID、租户ID）
+// ad 不写入 PHC；验证时必须传入同一个上下文
+string withAd = argon2.hash("password", ad = "tenant=acme;user=42")
+bool adOk = argon2.verify("password", withAd, ad = "tenant=acme;user=42")</pre></div></div>
+
+    <h3>7. hashRaw：原始 hex 输出</h3>
+    <div class="code-block"><div class="code-header"><span>自行管理存储格式</span></div><div class="code-body"><pre>// 不生成 PHC 编码，直接返回 hex 字符串
+string raw = argon2.hashRaw("password", salt = salt, hashLen = 32)
+println("Raw hex: ", raw)       // 64 个 hex 字符
+println("长度: ", raw.length)   // 64（32字节 × 2）</pre></div></div>
+
+    <h3>8. checkNeedsRehash：参数升级检测</h3>
+    <div class="code-block"><div class="code-header"><span>安全策略升级</span></div><div class="code-body"><pre>// 场景：系统升级后提高了安全参数
+string oldHash = argon2.hash("pw", salt = salt,
+    timeCost = 1, memoryCost = 4096, parallelism = 1)
+
+// 对比当前推荐参数
+bool needsUpgrade = argon2.checkNeedsRehash(oldHash,
+    timeCost = 3, memoryCost = 65536, parallelism = 4)
+println("需要升级: ", needsUpgrade)  // true
+
+// 用新参数重新哈希后，不再需要升级
+string newHash = argon2.hash("pw", timeCost = 3, memoryCost = 65536, parallelism = 4)
+println("升级后: ", argon2.checkNeedsRehash(newHash,
+    timeCost = 3, memoryCost = 65536, parallelism = 4))  // false</pre></div></div>
+
+    <h3>9. 参数提取（审计/迁移）</h3>
+    <div class="code-block"><div class="code-header"><span>从 PHC 编码读取参数</span></div><div class="code-body"><pre>string sample = argon2.hash("x", salt = salt,
+    timeCost = 5, memoryCost = 1024, parallelism = 2)
+
+println("类型: ", argon2.extractType(sample))         // 2 (ARGON2ID)
+println("迭代: ", argon2.extractTimeCost(sample))     // 5
+println("内存: ", argon2.extractMemoryCost(sample))   // 1024
+println("并行: ", argon2.extractParallelism(sample))  // 2</pre></div></div>
+
+    <h3>10. 推荐参数与 Profiles</h3>
+    <div class="code-block"><div class="code-header"><span>RFC 9106 预定义参数集</span></div><div class="code-body"><pre>println("推荐迭代: ", argon2.recommendedTime())          // 3
+println("推荐内存: ", argon2.recommendedMemory())        // 65536 KiB
+println("推荐并行: ", argon2.recommendedParallelism())   // 4
+
+// 使用 RFC 9106 低内存 Profile
+string profiled = argon2.hash("pw",
+    timeCost = argon2.PROFILE_LOW_MEMORY_TIME,
+    memoryCost = argon2.PROFILE_LOW_MEMORY_MEMORY,
+    parallelism = argon2.PROFILE_LOW_MEMORY_PARALLELISM)</pre></div></div>
+
+    <h3>11. 综合实战：用户注册/登录流程</h3>
+    <div class="code-block"><div class="code-header"><span>完整业务流程</span></div><div class="code-body"><pre>// ── 注册 ──
+string username = "alice"
+string password = "S3cur3!Pass#2024"
+
+// 一行完成：自动盐 + 推荐参数 + PHC 编码
+string stored = argon2.hash(password)
+
+// ── 登录 ──
+string inputPassword = "S3cur3!Pass#2024"
+assert argon2.verify(inputPassword, stored), "registration/login must accept the correct password"
+assert not argon2.verify("hacker_guess", stored), "registration/login must reject the wrong password"
+
+if argon2.verify(inputPassword, stored) then
+    println("登录成功!")
+
+    // 检查是否需要升级参数（安全策略更新后）
+    if argon2.checkNeedsRehash(stored) then
+        println("参数已过期，重新哈希...")
+        stored = argon2.hash(inputPassword)
+        // UPDATE users SET password_hash = stored WHERE ...
+    end
+else
+    println("密码错误!")
+end</pre></div></div>
+
+    <h3>运行范例</h3>
+    <div class="code-block"><div class="code-header"><span>终端</span></div><div class="code-body"><pre>cd release
+xl.exe run examples\extlibs\argon2.xl</pre></div></div>
+  </div>
+
+  <!-- ═══════════ 面板 4：测试 ═══════════ -->
+  <div class="ext-panel" id="panel-tests">
+    <h2>测试覆盖</h2>
+    <p>测试文件：<code>test/cases/extlib_argon2.xl</code>，覆盖全部公开 API：</p>
+    <ul>
+      <li>自动盐：每次 hash 产生不同编码，均可 verify 通过</li>
+      <li>手动盐确定性：相同输入产生相同输出</li>
+      <li>secret 密钥哈希改变结果</li>
+      <li>ad 附加数据改变结果</li>
+      <li>parallelism 不同值产生不同哈希，均可验证</li>
+      <li>三变体（d/i/id）互不相同，均可验证</li>
+      <li>hashRaw hex 长度与确定性</li>
+      <li>checkNeedsRehash 弱参数检测与强参数通过</li>
+      <li>参数提取：type/timeCost/memoryCost/parallelism</li>
+      <li>generateSalt 随机性与长度</li>
+      <li>推荐参数返回值</li>
+      <li>Profile 常量值</li>
+      <li>不同 hashLen 输出长度</li>
+    </ul>
+
+    <h2>测试片段（完整边界以仓库套件为准）</h2>
+    <div class="code-block"><div class="code-header"><span>extlib_argon2.xl</span></div><div class="code-body"><pre>import argon2
+
+func main(...) as int
+    // ═══ 1. 自动盐 ═══
+    string encoded = argon2.hash("password123", timeCost = 2, memoryCost = 64, parallelism = 1)
+    assert encoded.length &gt; 0, "hash should produce output"
+    assert encoded[0] == '$', "PHC starts with $"
+
+    string encoded2 = argon2.hash("password123", timeCost = 2, memoryCost = 64, parallelism = 1)
+    assert encoded != encoded2, "auto salt produces different hashes"
+    assert argon2.verify("password123", encoded), "verify auto-salt 1"
+    assert argon2.verify("password123", encoded2), "verify auto-salt 2"
+    assert not argon2.verify("wrong", encoded), "wrong password fails"
+
+    // ═══ 2. 手动盐（确定性） ═══
+    string salt = "somesalt12345678"
+    string h1 = argon2.hash("pw", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1)
+    string h2 = argon2.hash("pw", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1)
+    assert h1 == h2, "same salt = same hash (deterministic)"
+
+    // ═══ 3. secret 密钥哈希 ═══
+    string withSecret = argon2.hash("pw", salt = salt, secret = "server_key",
+        timeCost = 2, memoryCost = 64, parallelism = 1)
+    string noSecret = argon2.hash("pw", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1)
+    assert withSecret != noSecret, "secret changes the hash"
+
+    // ═══ 4. ad 附加数据 ═══
+    string withAd = argon2.hash("pw", salt = salt, ad = "user_id=42",
+        timeCost = 2, memoryCost = 64, parallelism = 1)
+    assert withAd != noSecret, "ad changes the hash"
+
+    // ═══ 5. parallelism 可配 ═══
+    string p1 = argon2.hash("pw", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 1)
+    string p2 = argon2.hash("pw", salt = salt, timeCost = 2, memoryCost = 64, parallelism = 2)
+    assert p1 != p2, "different parallelism = different hash"
+    assert argon2.verify("pw", p1), "verify p=1"
+    assert argon2.verify("pw", p2), "verify p=2"
+
+    // ═══ 6. 三变体 ═══
+    string enc_d = argon2.hash("test", salt = salt, timeCost = 2, memoryCost = 64,
+        parallelism = 1, type = argon2.ARGON2D)
+    string enc_i = argon2.hash("test", salt = salt, timeCost = 2, memoryCost = 64,
+        parallelism = 1, type = argon2.ARGON2I)
+    string enc_id = argon2.hash("test", salt = salt, timeCost = 2, memoryCost = 64,
+        parallelism = 1, type = argon2.ARGON2ID)
+    assert enc_d != enc_i, "argon2d != argon2i"
+    assert enc_i != enc_id, "argon2i != argon2id"
+    assert argon2.verify("test", enc_d), "verify argon2d"
+    assert argon2.verify("test", enc_i), "verify argon2i"
+    assert argon2.verify("test", enc_id), "verify argon2id"
+
+    // ═══ 7. hashRaw ═══
+    string raw = argon2.hashRaw("pw", salt = salt, timeCost = 2, memoryCost = 64,
+        parallelism = 1, hashLen = 32)
+    assert raw.length == 64, "32-byte = 64 hex chars"
+    string raw2 = argon2.hashRaw("pw", salt = salt, timeCost = 2, memoryCost = 64,
+        parallelism = 1, hashLen = 32)
+    assert raw == raw2, "hashRaw deterministic"
+
+    // ═══ 8. checkNeedsRehash ═══
+    string weak = argon2.hash("pw", salt = salt, timeCost = 1, memoryCost = 64, parallelism = 1)
+    assert argon2.checkNeedsRehash(weak, timeCost = 3, memoryCost = 65536, parallelism = 4),
+        "weak needs rehash"
+    string strong = argon2.hash("pw", salt = salt, timeCost = 3, memoryCost = 65536, parallelism = 4)
+    assert not argon2.checkNeedsRehash(strong, timeCost = 3, memoryCost = 65536, parallelism = 4),
+        "strong ok"
+
+    // ═══ 9. 参数提取 ═══
+    string sample = argon2.hash("x", salt = salt, timeCost = 5, memoryCost = 1024,
+        parallelism = 2, hashLen = 48)
+    assert argon2.extractType(sample) == argon2.ARGON2ID, "extract type"
+    assert argon2.extractTimeCost(sample) == 5, "extract time"
+    assert argon2.extractMemoryCost(sample) == 1024, "extract memory"
+    assert argon2.extractParallelism(sample) == 2, "extract parallelism"
+
+    // ═══ 10. generateSalt ═══
+    string s1 = argon2.generateSalt(16)
+    string s2 = argon2.generateSalt(16)
+    assert s1.length == 32, "16 bytes = 32 hex"
+    assert s1 != s2, "random salts differ"
+
+    // ═══ 11. 推荐参数 ═══
+    assert argon2.recommendedTime() == 3, "rec time"
+    assert argon2.recommendedMemory() == 65536, "rec memory"
+    assert argon2.recommendedParallelism() == 4, "rec parallelism"
+    assert argon2.recommendedHashLen() == 32, "rec hashlen"
+    assert argon2.recommendedSaltLen() == 16, "rec saltlen"
+
+    // ═══ 12. Profiles ═══
+    assert argon2.PROFILE_LOW_MEMORY_TIME == 3, "low mem time"
+    assert argon2.PROFILE_LOW_MEMORY_MEMORY == 65536, "low mem memory"
+    assert argon2.PROFILE_LOW_MEMORY_PARALLELISM == 4, "low mem p"
+    assert argon2.PROFILE_HIGH_MEMORY_TIME == 1, "high mem time"
+    assert argon2.PROFILE_HIGH_MEMORY_MEMORY == 2097152, "high mem memory"
+    assert argon2.PROFILE_HIGH_MEMORY_PARALLELISM == 4, "high mem p"
+
+    // ═══ 13. 不同 hashLen ═══
+    string h16 = argon2.hashRaw("pw", salt = salt, timeCost = 2, memoryCost = 64,
+        parallelism = 1, hashLen = 16)
+    string h64 = argon2.hashRaw("pw", salt = salt, timeCost = 2, memoryCost = 64,
+        parallelism = 1, hashLen = 64)
+    assert h16.length == 32, "16-byte = 32 hex"
+    assert h64.length == 128, "64-byte = 128 hex"
+
+    println("argon2: all tests passed")
+    return 0
+end</pre></div></div>
+
+    <h3>运行测试</h3>
+    <div class="code-block"><div class="code-header"><span>终端</span></div><div class="code-body"><pre>cd release
+xl.exe run ..\test\cases\extlib_argon2.xl</pre></div></div>
+  </div>
+
+  <!-- 返回 -->
+  <a href="../extlibs.html" class="ext-back">← 返回扩展库列表</a>
+</div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a class="brand-wordmark" href="../index.html" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+      <p>以 C 为后端的现代编程语言。生成本地二进制，也可作为运行时嵌入现有 C/C++ 工程。</p>
+    </div>
+    <div class="footer-col">
+      <h4>文档</h4>
+      <ul>
+        <li><a href="../tour.html">语法导览</a></li>
+        <li><a href="../book/index.html">系统教程</a></li>
+        <li><a href="../stdlib.html">标准库</a></li>
+        <li><a href="../extlibs.html">扩展库</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>项目</h4>
+      <ul>
+        <li><a href="../download.html">下载</a></li>
+        <li><a href="https://gitee.com/xywhsoft/x-lang" target="_blank" rel="noopener">Gitee 仓库</a></li>
+        <li><a href="https://gitee.com/xywhsoft/x-lang/issues" target="_blank" rel="noopener">问题反馈</a></li>
+        <li><a href="https://xrt.xywhsoft.com" target="_blank" rel="noopener">XRT 文档</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">xlang &copy; 2026 xLeaves (xywhsoft) · MIT License</div>
+</footer>
+
+<script src="../main.js"></script>
+<script>
+// Tab 切换
+(function(){
+  var tabs = document.querySelectorAll('#extTabs .ext-tab');
+  var panels = document.querySelectorAll('.ext-panel');
+  tabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      tabs.forEach(function(t){ t.classList.remove('active'); });
+      panels.forEach(function(p){ p.classList.remove('active'); });
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
+    });
+  });
+})();
+</script>
+</body>
+</html>
