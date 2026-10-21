@@ -4,8 +4,21 @@ set -euo pipefail
 # 独立 C/内存检查，不重建编译器，也不替换运行库快照。
 root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$root"
-work="$root/build/test/argon2_bloom_linux_guard"
-mkdir -p "$work"
+work_root="$root/build/test/argon2_bloom_linux_guard"
+mkdir -p "$work_root"
+work=$(mktemp -d "$work_root/run_XXXXXX")
+cleanup() {
+    status=$?
+    if ((status == 0)); then
+        case "$work" in
+            "$work_root"/run_*) rm -rf -- "$work" ;;
+            *) printf 'unsafe Argon2/Bloom work path: %s\n' "$work" >&2; return 1 ;;
+        esac
+    else
+        printf 'Argon2/Bloom Linux failure artifacts: %s\n' "$work" >&2
+    fi
+}
+trap cleanup EXIT
 cc=${CC:-gcc}
 argon=release/extlibs/argon2
 bloom=release/extlibs/bloom
