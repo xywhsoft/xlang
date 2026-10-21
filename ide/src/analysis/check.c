@@ -70,8 +70,10 @@ xls_semantic_check* xlsSemanticCheckCreate(const char* entry,
         char indexError[256]={0};
         r->index=xl6SemIndexJson(r->parse.root,&r->report,indexError,sizeof(indexError));
         if(!r->index) {
-            r->phase="semantic-index"; r->accepted=0;
-            xl6DiagAddFile(&r->parse.diags,r->path,1,1,*indexError ? indexError : "cannot retain semantic index");
+            /* An index budget/allocation failure is infrastructure failure,
+             * never a diagnostic claiming that valid user code is wrong. */
+            fail(error,capacity,*indexError ? indexError : "cannot retain semantic index");
+            xlsSemanticCheckDestroy(r); return NULL;
         }
     }
     if(stopped(cancelled,user)) goto cancel;
@@ -121,7 +123,7 @@ char* xlsSemanticCheckJson(xls_semantic_check* r,size_t* size)
         if(!xl6OutputHasFailed(&out)) text=xl6OutputTakeMemoryText(&out,&length);
         xl6OutputDiscard(&out);
     }
-    if(length>12u*1024u*1024u || !xlsSemanticCheckValidate(r)) { xrtFree(text); text=NULL; length=0; }
+    if(length>XLS_CHECK_REPORT_BYTES || !xlsSemanticCheckValidate(r)) { xrtFree(text); text=NULL; length=0; }
     if(size) *size=length;
     return text;
 }

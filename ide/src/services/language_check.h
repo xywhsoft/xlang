@@ -3,10 +3,15 @@
 #include "services/toolchain.h"
 typedef struct xide_language_check xide_language_check;
 typedef struct xide_language_snapshot { const char *path,*text; int version; } xide_language_snapshot;
+typedef struct xide_language_analysis_options {
+ int nativeBackend; void (*wake)(void*); void* user;
+} xide_language_analysis_options;
+typedef xide_language_analysis_options xide_language_completion_options;
 /* Immutable 64-file, 8 MiB/file, 32 MiB batch; entry must be present. Never
    writes original files. Result documents carry per-file UTF-16 diagnostics
    and versions for open files. Disk inputs are verified before publication and while the result is retained. */
 xide_language_check* xideLanguageCheckStartSnapshots(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,xide_model_error* error);
+xide_language_check* xideLanguageCheckStartSnapshotsEx(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const xide_language_analysis_options* options,xide_model_error* error);
 
 /* Independent cursor query over the same immutable, guarded input contract.
    UTF-16 position must identify a scalar boundary in the query overlay.
@@ -15,9 +20,6 @@ xide_language_check* xideLanguageCheckStartCompletionSnapshots(xide_toolchains* 
 /* Native backend requires the standalone compiler-XRT build. The callback
    only wakes an owner, may run on the worker, and must not reenter/destroy the
    check. Its user data outlives Destroy. CLI remains an explicit oracle. */
-typedef struct xide_language_completion_options {
- int nativeBackend; void (*wake)(void*); void* user;
-} xide_language_completion_options;
 xide_language_check* xideLanguageCheckStartCompletionSnapshotsEx(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const char* queryPath,int line,int character,const xide_language_completion_options* options,xide_model_error* error);
 
 /* Worker-only C ABI query: disk entry is allowed, open .xl overlays remain

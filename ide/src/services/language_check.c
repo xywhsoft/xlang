@@ -84,7 +84,7 @@ static DWORD WINAPI worker(void* user)
 done:
  free(help); free(json); xrtValueRelease(raw); xrtValueRelease(list); xideToolchainProfileClear(&profile);
  EnterCriticalSection(&q->lock); q->state=cancelled(q) ? XIDE_CHECK_CANCELLED : success ? XIDE_CHECK_READY : XIDE_CHECK_FAILED;
- if(q->state==XIDE_CHECK_READY) { q->result=result; result=NULL; if(q->snapshotCount) q->guardState=XIDE_GUARD_RUNNING; } else snprintf(q->error,sizeof(q->error),"%s",cancelled(q) ? "源码检查已取消。" : *e.message ? e.message : "未取得有效编译器诊断。");
+ if(q->state==XIDE_CHECK_READY) { q->result=result; result=NULL; if(q->snapshotCount) q->guardState=XIDE_GUARD_RUNNING; } else snprintf(q->error,sizeof(q->error),"%s",cancelled(q) ? "源码检查已取消。" : *e.message ? e.message : "未取得可验证的源码分析结果。");
  LeaveCriticalSection(&q->lock); xrtValueRelease(result);
  if(q->wake) q->wake(q->wakeUser);
  if(success && q->snapshotCount) while(WaitForSingleObject(q->stopEvent,1000)==WAIT_TIMEOUT) {
@@ -180,7 +180,9 @@ static xide_language_check* startSnapshots(xide_toolchains* cache,const char* co
 }
 
 xide_language_check* xideLanguageCheckStartSnapshots(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,xide_model_error* e)
-{ return startSnapshots(cache,compiler,directory,entry,documents,count,NULL,0,0,NULL,e); }
+{ return xideLanguageCheckStartSnapshotsEx(cache,compiler,directory,entry,documents,count,NULL,e); }
+xide_language_check* xideLanguageCheckStartSnapshotsEx(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const xide_language_analysis_options* options,xide_model_error* e)
+{ return startSnapshots(cache,compiler,directory,entry,documents,count,NULL,0,0,options,e); }
 xide_language_check* xideLanguageCheckStartCompletionSnapshots(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const char* queryPath,int line,int character,xide_model_error* e)
 { return xideLanguageCheckStartCompletionSnapshotsEx(cache,compiler,directory,entry,documents,count,queryPath,line,character,NULL,e); }
 xide_language_check* xideLanguageCheckStartCompletionSnapshotsEx(xide_toolchains* cache,const char* compiler,const char* directory,const char* entry,const xide_language_snapshot* documents,size_t count,const char* queryPath,int line,int character,const xide_language_completion_options* options,xide_model_error* e)

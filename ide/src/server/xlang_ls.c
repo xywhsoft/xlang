@@ -18,7 +18,7 @@ typedef struct document { char *uri,*path; const char* text; xls_text* content; 
 typedef struct native_request { xvalue* id; xls_query* query; int document,version; unsigned long long identity,generation; } native_request;
 typedef struct server {
  CRITICAL_SECTION lock; HANDLE reader,event; volatile LONG stop; message *head,*tail; size_t queueBytes,queueCount; int eof,readFailed;
- int initialized,shutdown,exitRequested,exitCode,writeFailed,checkOnSave,cliCompletion; char *compiler,*directory; xide_toolchains* cache;
+ int initialized,shutdown,exitRequested,exitCode,writeFailed,checkOnSave,cliCompletion,cliDiagnostics; char *compiler,*directory; xide_toolchains* cache;
  document docs[DOC_LIMIT]; size_t textBytes; unsigned long long generation; xide_language_check* check; xvalue* checkId;
  int checkDocument,checkVersion,cancelCode,pending; unsigned long long checkGeneration; const char* cancelReason;
  int snapshotMode; unsigned long long checkBatchGeneration; xvalue* publishedGroups;
@@ -156,7 +156,8 @@ static void startCheck(server* s,int index,const xvalue* id,int snapshots)
  if(snapshots) {
   xide_language_snapshot inputs[DOC_LIMIT]; size_t count=0;
   for(int i=0;i<DOC_LIMIT;++i) if(s->docs[i].uri) inputs[count++]=(xide_language_snapshot){s->docs[i].path,s->docs[i].text,s->docs[i].version};
-  s->check=xideLanguageCheckStartSnapshots(s->cache,s->compiler,s->directory,d->path,inputs,count,&e);
+  xide_language_analysis_options options={!s->cliDiagnostics,nativeWake,s};
+  s->check=xideLanguageCheckStartSnapshotsEx(s->cache,s->compiler,s->directory,d->path,inputs,count,&options,&e);
  } else s->check=xideLanguageCheckStart(s->cache,s->compiler,s->directory,d->path,d->text,d->version,&e);
  if(!s->check) { if(id) response(s,id,NULL,-32602,*e.message ? e.message : "Unable to start source check."); else fprintf(stderr,"xlang-ls: %s\n",e.message); return; }
  s->snapshotMode=snapshots; s->checkBatchGeneration=s->generation; clearPublished(s);
@@ -341,7 +342,7 @@ static void semanticQuery(server* s,const xvalue* id,const xvalue* params,int qu
  int offset=0; if(query!=2 && !xideLspPositionToOffset(s->docs[i].text,line,character,&offset)) { response(s,id,NULL,-32602,"Position is not a UTF-16 scalar boundary."); return; }
  if(!s->guard || s->guardCancelled || (batch && !sameId(batch,s->guardId))) { response(s,id,NULL,-32801,"Checked compilation is no longer current."); return; }
  xvalue* result=query==2 ? xideLanguageCheckDocumentSymbols(s->guard,s->docs[i].path,version) : query==1 ? xideLanguageCheckHover(s->guard,s->docs[i].path,version,line,character) : xideLanguageCheckDefinition(s->guard,s->docs[i].path,version,line,character);
- if(!result) response(s,id,NULL,-32801,"No current semantic index; check successfully with a semantic-index compiler first.");
+ if(!result) response(s,id,NULL,-32801,"No current semantic index; run a successful source check first.");
  else response(s,id,result,0,NULL);
 }
 static void dispatch(server* s,const xvalue* message)
@@ -358,6 +359,9 @@ static void dispatch(server* s,const xvalue* message)
   const xvalue* backendOption=get(options,"completionBackend"); const char* backend=string(backendOption);
   if(backendOption && (!backend || (strcmp(backend,"native") && strcmp(backend,"cli")))) { response(s,id,NULL,-32602,"completionBackend must be native or cli."); return; }
   s->cliCompletion=backend && !strcmp(backend,"cli");
+  const xvalue* diagnosticsOption=get(options,"diagnosticsBackend"); const char* diagnostics=string(diagnosticsOption);
+  if(diagnosticsOption && (!diagnostics || (strcmp(diagnostics,"native") && strcmp(diagnostics,"cli")))) { response(s,id,NULL,-32602,"diagnosticsBackend must be native or cli."); return; }
+  s->cliDiagnostics=diagnostics && !strcmp(diagnostics,"cli");
   const xvalue* rangeLimit=get(get(get(get(params,"capabilities"),"textDocument"),"foldingRange"),"rangeLimit"); int64 limit=65536;
   if(rangeLimit && (!xrtValueGetInt(rangeLimit,&limit) || limit<0 || limit>UINT32_MAX)) { response(s,id,NULL,-32602,"Folding rangeLimit must be a nonnegative 32-bit integer."); return; }
   s->foldingLimit=(size_t)(limit>65536 ? 65536 : limit);
@@ -365,8 +369,10 @@ static void dispatch(server* s,const xvalue* message)
   put(cap,"positionEncoding",xrtValueString(sv("utf-16"))); put(sync,"openClose",xrtValueBool(true)); put(sync,"change",xrtValueInt(2)); put(save,"includeText",xrtValueBool(true)); put(sync,"save",save); put(cap,"textDocumentSync",sync);
   put(cap,"foldingRangeProvider",xrtValueBool(true)); put(scope,"residentSyntax",xrtValueBool(true)); put(scope,"analysisRuntime",xrtValueString(sv("compiler-xrt")));
   put(scope,"nativeCursorCompletion",xrtValueBool(!s->cliCompletion)); put(scope,"completionBackend",xrtValueString(sv(s->cliCompletion ? "cli" : "native")));
+  put(scope,"nativeSnapshotDiagnostics",xrtValueBool(!s->cliDiagnostics)); put(scope,"diagnosticsBackend",xrtValueString(sv(s->cliDiagnostics ? "cli" : "native")));
+  put(scope,"savedDiagnosticsBackend",xrtValueString(sv("cli")));
   put(scope,"savedEntryDiagnostics",xrtValueBool(true)); put(scope,"unsavedDependencies",xrtValueBool(true)); put(scope,"snapshotDiagnostics",xrtValueBool(true)); put(scope,"snapshotDocumentFingerprint",xrtValueBool(true)); put(scope,"snapshotInputGuard",xrtValueString(sv("background-poll"))); put(scope,"cSemantics",xrtValueBool(false)); put(scope,"snapshotDefinition",xrtValueBool(true)); put(cap,"definitionProvider",xrtValueBool(true)); put(cap,"hoverProvider",xrtValueBool(true)); put(cap,"documentSymbolProvider",xrtValueBool(true)); xvalue *completion=xrtValueObject(),*triggers=xrtValueArray(),*dot=xrtValueString(sv(".")); xrtValueArrayAppend(triggers,dot); xrtValueRelease(dot); put(completion,"resolveProvider",xrtValueBool(false)); put(completion,"triggerCharacters",triggers); put(cap,"completionProvider",completion); put(scope,"cursorCompletion",xrtValueBool(true)); put(scope,"completionInputGuard",xrtValueString(sv("background-poll"))); put(scope,"snapshotHover",xrtValueBool(true)); put(scope,"snapshotDocumentSymbols",xrtValueBool(true)); put(cap,"experimental",scope); put(result,"capabilities",cap);
-  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.7"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
+  put(info,"name",xrtValueString(sv("xlang-ls"))); put(info,"version",xrtValueString(sv("0.8"))); put(result,"serverInfo",info); s->initialized=1; s->checkOnSave=check; response(s,id,result,0,NULL); return;
  }
  if(!s->initialized) { if(id) response(s,id,NULL,-32002,"Server not initialized."); return; }
  if(s->shutdown) { if(id) response(s,id,NULL,-32600,"Server has shut down."); return; }
@@ -412,10 +418,13 @@ int main(void)
   if(m) { dispatch(&s,m->value); xrtValueRelease(m->value); free(m); } else if(eof) { s.exitCode=failed ? 2 : 1; break; }
   pollGuard(&s); pollCheck(&s); pollCompletion(&s); pollNative(&s);
   if(!m) {
-   HANDLE waits[2]={s.event,s.completionCancelled ? xideLanguageCheckWorkerSignal(s.completion) : NULL};
+   HANDLE waits[4]={s.event}; DWORD count=1;
+   if(s.completionCancelled) { HANDLE h=xideLanguageCheckWorkerSignal(s.completion); if(h) waits[count++]=h; }
+   if(s.guardCancelled) { HANDLE h=xideLanguageCheckWorkerSignal(s.guard); if(h) waits[count++]=h; }
+   if(s.check) { HANDLE h=xideLanguageCheckWorkerSignal(s.check); if(h) waits[count++]=h; }
    /* A retired guard can exit after pollCompletion. Wake on the real thread
       signal, so a new query never waits for the 10 ms fallback timer. */
-   WaitForMultipleObjects(waits[1] ? 2 : 1,waits,FALSE,10);
+   WaitForMultipleObjects(count,waits,FALSE,10);
   }
  }
  InterlockedExchange(&s.stop,1);

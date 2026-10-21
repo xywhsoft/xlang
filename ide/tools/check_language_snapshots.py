@@ -36,8 +36,10 @@ class Client:
   while True:
    m=self.next();seen.append(m)
    if m.get('id')==id:return m,seen
- def initialize(self):
-  self.send('initialize',{'capabilities':{},'initializationOptions':{'checkOnSave':False}},1)
+ def initialize(self,diagnostics_backend=None):
+  options={'checkOnSave':False}
+  if diagnostics_backend is not None:options['diagnosticsBackend']=diagnostics_backend
+  self.send('initialize',{'capabilities':{},'initializationOptions':options},1)
   m,_=self.reply(1);cap=m['result']['capabilities'];assert cap['positionEncoding']=='utf-16' and cap['experimental']['unsavedDependencies'] and cap['experimental']['snapshotInputGuard']=='background-poll';self.send('initialized',{})
  def open(self,path,text,version=1):self.send('textDocument/didOpen',{'textDocument':{'uri':path.as_uri(),'text':text,'version':version,'languageId':'xlang'}})
  def change(self,path,text,version):self.send('textDocument/didChange',{'textDocument':{'uri':path.as_uri(),'version':version},'contentChanges':[{'text':text}]})
@@ -55,7 +57,9 @@ def main():
  results=[];clients=[];start=datetime.datetime.now(datetime.timezone.utc).isoformat();status='failed'
  def done(name,**fields):results.append({'name':name,'passed':True,**fields})
  def client(tool=compiler):
-  c=Client(server,tool,root);clients.append(c);c.initialize();return c
+  # Controlled response corruption/timing exercises the explicit CLI oracle;
+  # real source inputs use the host's default native diagnostics backend.
+  c=Client(server,tool,root);clients.append(c);c.initialize('cli' if tool!=compiler else None);return c
  def result(c,id=2):
   m,seen=c.reply(id);assert 'error' not in m,m
   r=m['result'];assert r['scope']=='entry-with-open-overlays' and r['guardScope']=='background-poll';return r,seen

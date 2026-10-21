@@ -11,7 +11,9 @@ def main():
  protected={str(p):sha(p) for p in [compiler,compiler.with_name('xlc.dll'),compiler.with_name('xl.dll'),ide/'third_party/xge_sdk/xge.dll']}; results=[]; clients=[]; rid=10; status='failed'
  def done(name): results.append({'name':name,'passed':True})
  def client(tool=compiler):
-  c=Client(server,tool,root); clients.append(c); c.send('initialize',{'capabilities':{},'initializationOptions':{'checkOnSave':False}},1); m,_=c.reply(1); cap=m['result']['capabilities']; assert cap['hoverProvider'] and cap['documentSymbolProvider'] and cap['experimental']['snapshotHover'] and cap['experimental']['snapshotDocumentSymbols'] and not cap['experimental']['cSemantics']; c.send('initialized',{}); return c
+  options={'checkOnSave':False}
+  if tool!=compiler: options['diagnosticsBackend']='cli'
+  c=Client(server,tool,root); clients.append(c); c.send('initialize',{'capabilities':{},'initializationOptions':options},1); m,_=c.reply(1); cap=m['result']['capabilities']; assert cap['hoverProvider'] and cap['documentSymbolProvider'] and cap['experimental']['snapshotHover'] and cap['experimental']['snapshotDocumentSymbols'] and not cap['experimental']['cSemantics']; c.send('initialized',{}); return c
  def check(c,text,version=1,extra=()):
   c.open(entry,text,version)
   for p,t,v in extra: c.open(p,t,v)

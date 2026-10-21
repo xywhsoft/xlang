@@ -1,6 +1,7 @@
 #include "analysis/check.h"
 #include <xrt.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static unsigned checks;
@@ -69,6 +70,22 @@ int main(void)
     CHECK(!xlsSemanticCheckCreate(path,NULL,1,1,NULL,NULL,error,sizeof(error)));
     CHECK(!xlsSemanticCheckCreate(path,NULL,0,2,NULL,NULL,error,sizeof(error)));
     CHECK(!xlsSemanticCheckDiagnostic(first,1000,&d));
+
+    /* A normal 3004-line file with a long path exceeded the CLI's 8 MiB limit.
+       Native analysis must retain its complete index instead of reporting a
+       false source error. Use 1500 functions to cross 8 MiB on short paths too. */
+    size_t capacity=128u*1024u,used=0; char* large=malloc(capacity); CHECK(large);
+    for(unsigned i=0;i<1500;++i) {
+        int n=snprintf(large+used,capacity-used,"func helper_%u(int value) as int\n return value + 1\nend\n",i);
+        CHECK(n>0 && (size_t)n<capacity-used); used+=(size_t)n;
+    }
+    CHECK(strlen(good)<capacity-used); memcpy(large+used,good,strlen(good)+1); used+=strlen(good);
+    inputs[0]=(xls_semantic_input){path,large,used};
+    second=xlsSemanticCheckCreate(path,inputs,1,1,NULL,NULL,error,sizeof(error)); free(large);
+    CHECK(second && xlsSemanticCheckInfo(second).accepted && xlsSemanticCheckInfo(second).hasIndex);
+    json=xlsSemanticCheckJson(second,&size); printf("native large index bytes: %zu\n",size);
+    CHECK(json && size>8u*1024u*1024u && size<=XLS_CHECK_REPORT_BYTES);
+    xlsSemanticStringFree(json); xlsSemanticCheckDestroy(second);
 
     char root[160]; snprintf(root,sizeof(root),"build/native-check-core-%llu-%llu",
         (unsigned long long)xrtThreadCurrentId(),(unsigned long long)xrtClock());

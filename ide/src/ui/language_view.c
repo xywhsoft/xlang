@@ -25,7 +25,7 @@ struct xide_language_view {
  xide_app* app; document_binding inputs[SNAPSHOT_DOCS]; size_t inputCount;
  annotation_binding annotations[SNAPSHOT_GROUPS]; size_t annotationCount;
  char* packagePath; int packageCaptured,lastSnapshotId,retryInputs,retryFailures;
- xvalue* snapshotResult; int snapshotMode,snapshotSupported,syncKind; xls_sync* sync; uint64_t recheckAt,observedEdits;
+ xvalue* snapshotResult; int snapshotMode,snapshotSupported,syncKind,nativeBackend; xls_sync* sync; uint64_t recheckAt,observedEdits;
  xide_language_client* client; char *compiler,*directory,*uri,*path; xide_document *document,*pendingSave;
  xvalue* diagnostics; uint64_t documentId; uint32_t version; int wireVersion,requestId,nextId,initialized,busy,waitingInitialize,invalidated,automatic;
  int definitionRequest,definitionCheck,definitionSupported; xide_document* definitionDocument; uint64_t definitionDocumentId; uint32_t definitionDocumentVersion; int definitionCaret;
@@ -111,7 +111,7 @@ static void closeDocument(xide_language_view* v)
 static void reset(xide_app* app)
 {
  xide_language_view* v=app->languageView; clearDiagnostics(app); xideLanguageClientStop(v->client); v->client=NULL; free(v->compiler); free(v->directory); free(v->uri); free(v->path);
- v->compiler=v->directory=v->uri=v->path=NULL; free(v->packagePath); v->packagePath=NULL; v->packageCaptured=0; freeInputs(v); xlsSyncDestroy(v->sync); v->sync=NULL; v->snapshotSupported=v->syncKind=0; v->initialized=v->busy=v->waitingInitialize=0; v->invalidated=1; v->document=NULL; v->requestId=0; v->automatic=0; v->recheckAt=0;
+ v->compiler=v->directory=v->uri=v->path=NULL; free(v->packagePath); v->packagePath=NULL; v->packageCaptured=0; freeInputs(v); xlsSyncDestroy(v->sync); v->sync=NULL; v->snapshotSupported=v->syncKind=v->nativeBackend=0; v->initialized=v->busy=v->waitingInitialize=0; v->invalidated=1; v->document=NULL; v->requestId=0; v->automatic=0; v->recheckAt=0;
 }
 static char* serverPath(void)
 {
@@ -414,6 +414,7 @@ void xideLanguageViewPoll(xide_app* app)
      if(!v->sync) { snprintf(v->message,sizeof(v->message),"语言服务初始化失败：文档同步能力不兼容。"); reset(app); }
      else {
       bool snapshots=false,fingerprint=false; v->snapshotSupported=xrtValueGetBool(get(get(cap,"experimental"),"snapshotDiagnostics"),&snapshots) && snapshots && xrtValueGetBool(get(get(cap,"experimental"),"snapshotDocumentFingerprint"),&fingerprint) && fingerprint;
+      bool native=false; v->nativeBackend=xrtValueGetBool(get(get(cap,"experimental"),"nativeSnapshotDiagnostics"),&native) && native;
       bool definition=false; v->definitionSupported=xrtValueGetBool(get(get(cap,"experimental"),"snapshotDefinition"),&definition) && definition;
       bool hover=false,outline=false; v->hoverSupported=xrtValueGetBool(get(get(cap,"experimental"),"snapshotHover"),&hover) && hover; v->outlineSupported=xrtValueGetBool(get(get(cap,"experimental"),"snapshotDocumentSymbols"),&outline) && outline;
       v->initialized=1;
