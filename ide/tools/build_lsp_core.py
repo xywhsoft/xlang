@@ -123,7 +123,12 @@ def main() -> None:
               "-I" + str(ide / "src"), "-I" + str(frontend),
               "-I" + str(frontend / "release"), "-I" + str(frontend / "release/include"),
               "-I" + str(frontend / "lib/xrt"), "-include", str(frontend / "lib/xrt/xrt.h")]
-    common += ["-O2"] if args.configuration == "Release" else ["-O0", "-g"]
+    # MODULE_ALL also selects memory-debug pointer validation. Its release
+    # path scans heap ownership when freeing large JSON trees. Select the
+    # library's existing release policy consistently in EVERY translation unit;
+    # Debug keeps the diagnostic allocator. This does not change analysis or
+    # source/provenance validation and does not touch the XGE-owned GUI runtime.
+    common += ["-O2", "-DXRT_EXCLUDE_MEMORY_DEBUG="] if args.configuration == "Release" else ["-O0", "-g"]
     index_budget_flag = "-DXL6_INDEX_BYTES=" + str(NATIVE_INDEX_BYTES) + "u"
     common += [index_budget_flag]
     strict = ["-Wall", "-Wextra", "-Werror", "-Wno-unused-parameter"]
@@ -139,6 +144,7 @@ def main() -> None:
     commands, inputs, outputs, runs, imports = [], {str(Path(__file__).resolve()): sha(Path(__file__)),
         str(original_index): index_overlay["sourceSha256"]}, {}, [], {}
     source_overlays = [index_overlay]
+    runtime_profiles = []
     started = time.monotonic()
     status = "failed"
 
@@ -151,6 +157,18 @@ def main() -> None:
         return result
 
     try:
+        probe_sources = [ide / "src/analysis/runtime.c", frontend / "src/ast/xl6_ast.c"]
+        if args.server:
+            probe_sources.append(ide / "src/server/xlang_ls.c")
+        for source in probe_sources:
+            result = run([str(cc), *common, "-dM", "-E", str(source)], source.stem + "-runtime-features")
+            features = {line.split()[1] for line in result.stdout.decode("utf-8").splitlines()
+                        if line.startswith("#define ") and len(line.split()) > 1}
+            debug_memory = "XRT_FEATURE_MEMORY_DEBUG" in features
+            if debug_memory != (args.configuration == "Debug") or not {"XRT_MODULE_ALL", "XRT_FEATURE_VALUE"} <= features:
+                raise RuntimeError("inconsistent native XRT runtime profile: " + str(source))
+            runtime_profiles.append(dict(source=str(source), memoryDebug=debug_memory,
+                macroSha256=hashlib.sha256(result.stdout).hexdigest()))
         for source, owned in sources:
             flags = common + (strict if owned else shared)
             result = run([str(cc), *flags, "-MM", "-MT", "xlsObject", str(source)], source.stem + "-deps")
@@ -209,6 +227,7 @@ def main() -> None:
                       configuration=args.configuration,serverBuilt=args.server,testsBuilt=not args.skip_tests,
                       commands=commands,runs=runs,imports=imports,elapsedSeconds=time.monotonic()-started)
         report["sourceOverlays"] = source_overlays
+        report["runtimeProfiles"] = runtime_profiles
         (output / "build-result.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print(json.dumps(dict(status=status,report=str(output / "build-result.json")),ensure_ascii=False))
 
