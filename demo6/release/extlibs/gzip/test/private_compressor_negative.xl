@@ -1,0 +1,5 @@
+import gzip
+
+// 仅编译：包外不能自行组合压缩输入地址和长度。
+auto stream = gzip.compressor()
+stream.updateNative(null, c_size(1))

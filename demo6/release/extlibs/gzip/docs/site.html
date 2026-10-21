@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>gzip - 扩展库 - xlang</title>
+  <meta name="description" content="复用 XRT 的 gzip 编解码器、增量流和事务文件接口，支持进度、取消以及 C/xlang 双语调用。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout c-zip" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / gzip</p>
+    <div class="extlib-title-row"><h1>gzip</h1><span class="extlib-cat-badge">压缩</span></div>
+    <p>2026-10-14 当前发布物的文件 OOM 事务故障注入在独立 C、<code>xl run</code>、<code>xl build</code> 产物及 <code>xl.dll</code>/<code>xlc.dll</code> 公开 C 脚本宿主上均通过。完整 XLang 用例仍被已记录的 XLIR 字节异或错误阻断，不据此宣称整个包已完成 RC 验收。</p>
+    <p class="extlib-lead">UTF-8 文本、二进制、增量流与事务文件压缩。直接复用宿主 XRT 的 gzip 编解码器和校验，无额外压缩 DLL。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api">
+    <h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>参数与返回</th></tr></thead><tbody>
+      <tr><td><code>compress(data)</code></td><td>Buffer 或 string 输入，返回 Buffer；level=-1、mtime=0。</td></tr>
+      <tr><td><code>decompress(data)</code></td><td>Buffer 输入，返回 Buffer；maxRatio=1000。</td></tr>
+      <tr><td><code>decompressText(data)</code></td><td>解压后按字符串读取；任意二进制内容使用 decompress。</td></tr>
+      <tr><td><code>compressFile(source, destination)</code></td><td>level、mtime、overwrite=true、输入/输出限额、onProgress=null。</td></tr>
+      <tr><td><code>decompressFile(source, destination)</code></td><td>overwrite=true、输入/输出限额、maxRatio、onProgress=null。</td></tr>
+      <tr><td><code>compressor()</code></td><td>gzip.GzipCompressor；level、mtime、输入/输出限额。</td></tr>
+      <tr><td><code>decompressor()</code></td><td>gzip.GzipDecompressor；输入/输出限额、maxRatio。</td></tr>
+    </tbody></table>
+    <p>maxInput 默认 268435456 字节，maxOutput 默认 536870912 字节，均须为正。
+    level 为 -1 或 0..9，-1 使用 XRT 默认级别；mtime 为 Unix 秒数 0..4294967295，默认零。
+    普通字符串按 UTF-8 字节数编码，不把字符数量当作字节长度。</p>
+    <p>两个导出类均有 valid、inputBytes、outputBytes、finished 只读属性，以及
+    <code>drain() as Buffer</code>、<code>finish() as Buffer</code>。
+    压缩器 update 接收 Buffer 或 string，解压器只接收 Buffer。</p>
+    <h2 id="examples">xlang 范例</h2>
+    <pre><code>import gzip
+
+Buffer packed = gzip.compress("你好，gzip", level = 6)
+assert gzip.decompressText(packed) == "你好，gzip"
+
+gzip.GzipCompressor encoder = gzip.compressor()
+encoder.update("left")
+Buffer output = encoder.drain()
+encoder.update("right")
+output.append(encoder.finish())
+assert gzip.decompressText(output) == "leftright"</code></pre>
+    <p>drain 移交当前输出，不强制后端刷新；finish 只交付剩余字节，重复调用返回空 Buffer。
+    已交付的 Buffer 独立持有。完成后不能继续 update，同一对象需要串行访问。</p>
+    <h2 id="files">文件与回调</h2>
+    <pre><code>gzip.compressFile("input.txt", "output.gz",
+    onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
+        println(inputBytes, "/", totalBytes)
+        return true
+    end)</code></pre>
+    <p>回调同步执行，参数均为字节数；总量未知时 totalBytes=0。返回 false 抛 CancelledError，
+    回调抛出的异常保留原类型与消息。最终通知也可以取消；不能用 inputBytes==totalBytes
+    判定唯一的最终事件，输入读完之后仍可能有结束输出。</p>
+    <p>目标目录中建立独占临时文件，处理、最终通知、flush 和 close 全部成功后才替换目标。
+    常规失败或取消保留原目标并清理临时文件；当前发布物的文件 OOM 专项证据与其他边界见页首。
+    支持源和目标为同一路径；不覆盖模式区分目标缺失与查询失败。
+    overwrite=false 禁止覆盖。源或目标路径含 NUL 时抛 ValueError，不会静默操作前缀文件。
+    这不承诺断电持久性或多写者事务隔离。</p>
+    <h2 id="contract">格式、错误与资源边界</h2>
+    <ul>
+      <li>支持合法空内容、串联成员、可选头字段和头校验；目前没有读取头元数据的 API。</li>
+      <li>CRC/ISIZE、保留标志错误、截断与尾部垃圾均拒绝；CRC 不是加密认证。</li>
+      <li>格式和文件错误为 IOError，限额为 RangeError，无效 level 或非正限额为 ValueError，
+      错误状态为 RuntimeError，分配失败为 MemoryError。不要统一只捕获 CompressionError。</li>
+      <li>maxRatio 为 1..4294967295，按累计输出/已提交压缩输入检查，分块会影响检查时点。
+      maxOutput 为硬输出限额；这些选项不是 CPU 截止时间、总内存上限或沙箱。</li>
+      <li>输入参数错误可纠正重试；编解码、限额或 writer 失败后必须新建对象。</li>
+      <li>借用 reader/writer 的裸流失败前可能已有部分输出；只有文件便捷接口提供失败原子性。</li>
+    </ul>
+    <h2 id="c-api">C 接口与双语范例</h2>
+    <p>核心头 <code>include/xrt_gzip.h</code> 提供 OptionsInit、ErrorInit、Compress/Decompress、
+    Compressor/Decompressor 对象与 CompressStream/DecompressStream。首次包含 XRT 完整头前完成模块选择，
+    完整清单见 artifact.xrtModules；只链接一份 XRT/xruntime。</p>
+    <p>C 结果由 xrtBufferDestroy 释放；Finish 不移交 Buffer，DrainBuffer 可多次移交，
+    TakeBuffer 仅在完成后移交一次。流函数借用 Reader/Writer，不关闭它们。
+    C 进度结构另有 TOTAL_KNOWN、FINAL 标志，支持任意 user 指针。</p>
+    <p>C 配置 level=-1..9、strategy 为 XRT DEFAULT..FIXED。输入、输出与倍率限制为零时关闭对应限制；
+    OptionsInit 将 tLimits 中不适用的归档/文档字段清零；显式设置这些字段或 iFlags 会报参数错误，不会静默忽略。薄绑定头 <code>include/gzip_native.h</code>
+    的 22 个原型与实际 xlang 生成声明接受 GCC 比对。</p>
+    <p><code>extlibs/gzip/examples/basic.c</code> 与 <code>examples/extlibs/gzip_basic.xl</code>
+    使用相同输入与黄金输出；C 范例可从发布目录直接运行 <code>./xl run extlibs/gzip/examples/basic.c</code>。
+    单文件路径仅包含所用的包实现，正式构建仍分离编译。<code>examples/extlibs/gzip.xl</code>
+    覆盖增量、mtime、串联成员和文件回调；文件段使用独占临时目录，
+    但综合范例目前仍在此前的 typed XLIR 字节 XOR 处编译失败，不能视为已完整运行。</p>
+    <h2 id="verification">验证范围</h2>
+    <p>2026-09-27：Windows 固定快照专项 34 项通过，含 C/xlang JIT/AOT、22 个生成原型、
+    139 项 Python/zlib 双向验证、9 个分配故障点、UTF-8 路径、取消和异常、同路径替换及原目标保留。
+    WSL Linux C 路径通过相同互通测试及 ASan/UBSan/泄漏检查；包内 <code>test/file_ops.xl</code> 在 Windows/Linux 通过 UTF-8 文件往返、取消与失败目标保护。</p>
+    <p>可重复门禁为 <code>tools/check_extlib_gzip.ps1</code> 和 <code>tools/check_extlib_gzip.sh</code>。
+    2026-10-16 Linux xlang 基础范例已运行通过；2026-10-17 包内文件用例加入 Linux 门禁。完整语言用例仍受 Buffer 字节索引异或的 XLIR 错误阻断。完整 Linux JIT/AOT、超大文件、并发压力、性能基准和断电恢复尚未验收。
+    不把有日期、有范围的通过记录当作所有平台生产认证。</p>
+    <p>2026-10-19：C 范例单文件直跑、独立构建和包运行器输出一致；Linux
+    ASan/UBSan、139 项 zlib 互通、文件事务及 C/XLang 范例对照通过。
+    共享 XLIR 阻断不变，整包发布级尚未签收。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

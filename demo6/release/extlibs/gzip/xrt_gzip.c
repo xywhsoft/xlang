@@ -1,753 +1,473 @@
+#ifndef XRT_MODULE_DEFLATE
 #define XRT_MODULE_DEFLATE
+#endif
+#ifndef XRT_MODULE_INFLATE
 #define XRT_MODULE_INFLATE
-
+#endif
 #include "include/xrt_gzip.h"
-
-#include <stdarg.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
+#define GZIP_CHUNK 65536u
+
+/* 两类对象共用限额与所有权规则，编解码算法完全由 XRT 提供。 */
+typedef struct gzip_state {
+    xrtgzipoptions Options;
+    xrtgziperror Error;
+    xbuffer* Output;
+    uint64 InputBytes;
+    uint64 OutputBytes;
+    bool Finished;
+    bool Failed;
+    bool Busy;
+} gzip_state;
+
+struct xrtgzipcompressor { gzip_state State; xdeflate* Codec; };
+struct xrtgzipdecompressor { gzip_state State; xinflate* Codec; };
 
 
-#define XRT_GZIP_CHUNK 65536u
-#define XRT_GZIP_HEADER_SIZE 10u
-#define XRT_GZIP_TRAILER_SIZE 8u
+// ----------------------------- 错误与参数 -----------------------------
 
-
-
-struct xrtgzipcompressor {
-	xdeflate* Deflate;
-	xbuffer* Output;
-	xrtgzipoptions Options;
-	xrtgziperror Error;
-	uint64 InputBytes;
-	uint64 OutputBytes;
-	uint32 Crc;
-	bool Finished;
-	bool Failed;
-};
-
-
-struct xrtgzipdecompressor {
-	xinflate* Inflate;
-	xbuffer* Output;
-	xrtgzipoptions Options;
-	xrtgziperror Error;
-	uint64 InputBytes;
-	uint64 OutputBytes;
-	bool Finished;
-	bool Failed;
-};
-
-
-
-/* 写入 gzip 模块错误，并记录输入输出位置。 */
-static void __xrtGzipSetError(xrtgziperror* pError, int iCode, int iBackend,
-	uint64 iInput, uint64 iOutput, const char* sFormat, ...)
+static xerrkind gzip_kind(int code)
 {
-	va_list pArgs;
+    switch (code) {
+    case XRT_GZIP_ERROR_ARGUMENT: return XERR_ARGUMENT;
+    case XRT_GZIP_ERROR_MEMORY: return XERR_MEMORY;
+    case XRT_GZIP_ERROR_LIMIT: return XERR_RANGE;
+    case XRT_GZIP_ERROR_STATE: return XERR_STATE;
+    case XRT_GZIP_ERROR_CANCELLED: return XERR_CANCELLED;
+    case XRT_GZIP_ERROR_DATA: case XRT_GZIP_ERROR_TRUNCATED: return XERR_PROTOCOL;
+    default: return XERR_IO;
+    }
+}
 
-	if ( pError == NULL ) { return; }
-	pError->iCode = iCode;
-	pError->iBackendCode = iBackend;
-	pError->iInputOffset = iInput;
-	pError->iOutputOffset = iOutput;
-	va_start(pArgs, sFormat);
-	vsnprintf(pError->sMessage, sizeof(pError->sMessage), sFormat, pArgs);
-	va_end(pArgs);
-	pError->sMessage[sizeof(pError->sMessage) - 1u] = 0;
+static bool gzip_error(gzip_state* state, int code, const char* message)
+{
+    if (state != NULL) {
+        state->Error.iCode = code;
+        state->Error.iBackendCode = 0;
+        state->Error.iInputOffset = state->InputBytes;
+        state->Error.iOutputOffset = state->OutputBytes;
+        snprintf(state->Error.sMessage, sizeof(state->Error.sMessage), "%s", message);
+    }
+    xrtSetErrorInfo(gzip_kind(code), "xlang.extlib.gzip", code, message);
+    return false;
+}
+
+/* 底层 IO、分配器或用户回调有原始错误时只取快照，不替换错误对象。 */
+static bool gzip_backend_error(gzip_state* state, int fallback, const char* message)
+{
+    const xerror* error = xrtGetError();
+    int code = fallback;
+    if (state->Error.iCode != XRT_GZIP_OK) {
+        if (error == NULL)
+            xrtSetErrorInfo(gzip_kind(state->Error.iCode), "xlang.extlib.gzip",
+                state->Error.iCode, state->Error.sMessage);
+        return false;
+    }
+    if (error == NULL) return gzip_error(state, fallback, message);
+    switch (xrtErrorKind(error)) {
+    case XERR_ARGUMENT: code = XRT_GZIP_ERROR_ARGUMENT; break;
+    case XERR_MEMORY: code = XRT_GZIP_ERROR_MEMORY; break;
+    case XERR_RANGE: code = XRT_GZIP_ERROR_LIMIT; break;
+    case XERR_STATE: code = XRT_GZIP_ERROR_STATE; break;
+    case XERR_CANCELLED: code = XRT_GZIP_ERROR_CANCELLED; break;
+    default: break;
+    }
+    state->Error.iCode = code;
+    state->Error.iBackendCode = xrtErrorCode(error);
+    state->Error.iInputOffset = state->InputBytes;
+    state->Error.iOutputOffset = state->OutputBytes;
+    snprintf(state->Error.sMessage, sizeof(state->Error.sMessage), "%s", xrtErrorMessage(error));
+    return false;
+}
+
+XRT_API void xrtGzipErrorInit(xrtgziperror* error)
+{ if (error != NULL) memset(error, 0, sizeof(*error)); }
+
+XRT_API void xrtGzipOptionsInit(xrtgzipoptions* options)
+{
+    if (options == NULL) return;
+    memset(options, 0, sizeof(*options));
+    options->iSize = sizeof(*options);
+    options->iVersion = XRT_GZIP_OPTIONS_VERSION;
+    options->iLevel = -1;
+    options->iStrategy = XDEFLATE_STRATEGY_DEFAULT;
+    xrtResourceLimitsInit(&options->tLimits);
+    options->tLimits.iMaxItemBytes = 0;
+    options->tLimits.iMaxEntries = 0;
+    options->tLimits.iMaxNodes = 0;
+    options->tLimits.iMaxDepth = 0;
+}
+
+static bool gzip_init(gzip_state* state, const xrtgzipoptions* options)
+{
+    xrtClearError();
+    xrtGzipOptionsInit(&state->Options);
+    if (options != NULL) {
+        if (options->iSize != sizeof(*options) || options->iVersion != XRT_GZIP_OPTIONS_VERSION ||
+            options->iReserved != 0 || options->tLimits.iSize != sizeof(options->tLimits) ||
+            options->tLimits.iVersion != XRT_RESOURCE_LIMITS_VERSION || options->tLimits.iReserved != 0)
+            return gzip_error(state, XRT_GZIP_ERROR_ARGUMENT, "invalid gzip options or limits version");
+        if (options->tLimits.iFlags != 0 || options->tLimits.iMaxItemBytes != 0 ||
+            options->tLimits.iMaxEntries != 0 || options->tLimits.iMaxNodes != 0 ||
+            options->tLimits.iMaxDepth != 0)
+            return gzip_error(state, XRT_GZIP_ERROR_ARGUMENT, "unsupported gzip resource limits");
+        state->Options = *options;
+    }
+    if (state->Options.iLevel < -1 || state->Options.iLevel > 9)
+        return gzip_error(state, XRT_GZIP_ERROR_ARGUMENT, "gzip level must be -1..9");
+    if (state->Options.iStrategy < XDEFLATE_STRATEGY_DEFAULT || state->Options.iStrategy > XDEFLATE_STRATEGY_FIXED)
+        return gzip_error(state, XRT_GZIP_ERROR_ARGUMENT, "invalid gzip strategy");
+    state->Output = xrtBufferCreate();
+    return state->Output != NULL || gzip_backend_error(state, XRT_GZIP_ERROR_MEMORY, "cannot allocate gzip buffer");
+}
+
+/* 参数/状态误用可纠正；编解码或写入失败是终态，不能继续交付部分结果。 */
+static bool gzip_ready(gzip_state* state, bool writing)
+{
+    if (state == NULL) return gzip_error(NULL, XRT_GZIP_ERROR_ARGUMENT, "gzip object is null");
+    if (state->Busy) {
+        state->Failed = true;
+        return gzip_error(state, XRT_GZIP_ERROR_STATE, "gzip object cannot be reentered from its writer");
+    }
+    if (state->Failed) {
+        xrtSetErrorInfo(gzip_kind(state->Error.iCode), "xlang.extlib.gzip",
+            state->Error.iCode, state->Error.sMessage);
+        return false;
+    }
+    if (state->Output == NULL || (writing && state->Finished))
+        return gzip_error(state, XRT_GZIP_ERROR_STATE, "gzip stream is finished or its buffer was taken");
+    xrtGzipErrorInit(&state->Error);
+    xrtClearError();
+    return true;
+}
+
+static bool gzip_input(gzip_state* state, const void* data, size_t size)
+{
+    uint64 maximum;
+    if (!gzip_ready(state, true)) return false;
+    if (data == NULL && size != 0) return gzip_error(state, XRT_GZIP_ERROR_ARGUMENT, "gzip input is null");
+    maximum = state->Options.tLimits.iMaxInputBytes;
+    if ((uint64)size > UINT64_MAX - state->InputBytes ||
+        (maximum != 0 && (state->InputBytes > maximum || (uint64)size > maximum - state->InputBytes))) {
+        state->Failed = true;
+        return gzip_error(state, XRT_GZIP_ERROR_LIMIT, "gzip input exceeds maxInput limit");
+    }
+    state->InputBytes += (uint64)size;
+    return true;
+}
+
+static bool gzip_append(gzip_state* state, xbytesview data, bool decode)
+{
+    const xrtresourcelimits* limits = &state->Options.tLimits;
+    uint64 size, ratio = limits->iMaxCompressionRatio;
+    if ((uint64)data.Size > UINT64_MAX - state->OutputBytes)
+        return gzip_error(state, XRT_GZIP_ERROR_LIMIT, "gzip output size overflow");
+    size = state->OutputBytes + (uint64)data.Size;
+    if ((limits->iMaxOutputBytes != 0 && size > limits->iMaxOutputBytes) ||
+        (decode && ratio != 0 && state->InputBytes <= UINT64_MAX / ratio && size > state->InputBytes * ratio))
+        return gzip_error(state, XRT_GZIP_ERROR_LIMIT, "gzip output exceeds size or expansion ratio limit");
+    if (!xrtBufferAppend(state->Output, data))
+        return gzip_backend_error(state, XRT_GZIP_ERROR_MEMORY, "cannot grow gzip output");
+    state->OutputBytes = size;
+    return true;
+}
+
+/* MTIME 只覆盖 RFC 1952 固定头的四字节；CRC、ISIZE 与 DEFLATE 不在包中重复实现。 */
+static bool gzip_encode_output(xbytesview data, ptr user)
+{
+    gzip_state* state = user;
+    uint64 offset = state->OutputBytes;
+    size_t start = xrtBufferView(state->Output).Size;
+    unsigned int i;
+    if (!gzip_append(state, data, false)) return false;
+    for (i = 4; i < 8; ++i) {
+        if (offset <= i && i - offset < data.Size)
+            state->Output->Data[start + (size_t)(i - offset)] = (uint8)(state->Options.iMTime >> ((i - 4) * 8));
+    }
+    return true;
+}
+
+static bool gzip_decode_output(xbytesview data, ptr user)
+{ return gzip_append(user, data, true); }
+
+
+// ----------------------------- 输出所有权 -----------------------------
+
+static bool gzip_drain(gzip_state* state, xwriter* writer)
+{
+    xbytesview output;
+    bool ok;
+    if (!gzip_ready(state, false)) return false;
+    if (writer == NULL) return gzip_error(state, XRT_GZIP_ERROR_ARGUMENT, "gzip writer is null");
+    output = xrtBufferView(state->Output);
+    state->Busy = true;
+    ok = output.Size == 0 || xrtWriterWriteFull(writer, output.Data, output.Size, NULL);
+    state->Busy = false;
+    if (!ok || state->Failed) {
+        state->Failed = true;
+        return gzip_backend_error(state, XRT_GZIP_ERROR_IO, "cannot write gzip output");
+    }
+    xrtBufferClear(state->Output);
+    return true;
+}
+
+static xbuffer* gzip_take(gzip_state* state, bool final)
+{
+    xbuffer* output;
+    xbuffer* replacement = NULL;
+    if (!gzip_ready(state, false)) return NULL;
+    if (final && !state->Finished) {
+        gzip_error(state, XRT_GZIP_ERROR_STATE, "finish gzip before taking its buffer");
+        return NULL;
+    }
+    if (!final) {
+        replacement = xrtBufferCreate();
+        if (replacement == NULL) {
+            gzip_backend_error(state, XRT_GZIP_ERROR_MEMORY, "cannot replace gzip output buffer");
+            return NULL;
+        }
+    }
+    output = state->Output;
+    state->Output = replacement;
+    return output;
 }
 
 
-/* 复制模块错误；空来源表示成功状态。 */
-static void __xrtGzipCopyError(xrtgziperror* pTarget, const xrtgziperror* pSource)
+// ----------------------------- 压缩器与解压器 -----------------------------
+
+XRT_API xrtgzipcompressor* xrtGzipCompressorCreate(const xrtgzipoptions* options)
 {
-	if ( pTarget == NULL ) { return; }
-	if ( pSource != NULL ) { *pTarget = *pSource; }
-	else { xrtGzipErrorInit(pTarget); }
+    xrtgzipcompressor* c = xrtMalloc(sizeof(*c));
+    xdeflateconfig config;
+    if (c == NULL) return NULL;
+    memset(c, 0, sizeof(*c));
+    if (!gzip_init(&c->State, options)) goto failed;
+    xrtDeflateConfigInit(&config);
+    config.Format = XDEFLATE_GZIP;
+    config.Level = c->State.Options.iLevel < 0 ? XDEFLATE_LEVEL_DEFAULT : c->State.Options.iLevel;
+    config.Strategy = (xdeflatestrategy)c->State.Options.iStrategy;
+    config.OutputLimit = c->State.Options.tLimits.iMaxOutputBytes != 0 ?
+        c->State.Options.tLimits.iMaxOutputBytes : XDEFLATE_OUTPUT_UNLIMITED;
+    c->Codec = xrtDeflateCreate(&config);
+    if (c->Codec != NULL) return c;
+failed:
+    xrtGzipCompressorDestroy(c);
+    return NULL;
+}
+
+XRT_API xrtgzipdecompressor* xrtGzipDecompressorCreate(const xrtgzipoptions* options)
+{
+    xrtgzipdecompressor* d = xrtMalloc(sizeof(*d));
+    xinflateconfig config;
+    if (d == NULL) return NULL;
+    memset(d, 0, sizeof(*d));
+    if (!gzip_init(&d->State, options)) goto failed;
+    xrtInflateConfigInit(&config);
+    config.Format = XINFLATE_GZIP;
+    config.OutputLimit = d->State.Options.tLimits.iMaxOutputBytes != 0 ?
+        d->State.Options.tLimits.iMaxOutputBytes : XINFLATE_OUTPUT_UNLIMITED;
+    d->Codec = xrtInflateCreate(&config);
+    if (d->Codec != NULL) return d;
+failed:
+    xrtGzipDecompressorDestroy(d);
+    return NULL;
+}
+
+XRT_API bool xrtGzipCompressorUpdate(xrtgzipcompressor* c, const void* data, size_t size)
+{
+    if (!gzip_input(c != NULL ? &c->State : NULL, data, size)) return false;
+    if (size == 0 || xrtDeflateWrite(c->Codec, (xbytesview){data, size},
+        XDEFLATE_FLUSH_NONE, gzip_encode_output, &c->State)) return true;
+    c->State.Failed = true;
+    return gzip_backend_error(&c->State, XRT_GZIP_ERROR_DATA, "gzip compression failed");
+}
+
+XRT_API bool xrtGzipDecompressorUpdate(xrtgzipdecompressor* d, const void* data, size_t size)
+{
+    if (!gzip_input(d != NULL ? &d->State : NULL, data, size)) return false;
+    if (size == 0 || xrtInflateWrite(d->Codec, (xbytesview){data, size},
+        false, gzip_decode_output, &d->State)) return true;
+    d->State.Failed = true;
+    return gzip_backend_error(&d->State, XRT_GZIP_ERROR_DATA, "invalid gzip data");
+}
+
+XRT_API bool xrtGzipCompressorFinish(xrtgzipcompressor* c)
+{
+    if (!gzip_ready(c != NULL ? &c->State : NULL, false)) return false;
+    if (c->State.Finished) return true;
+    if (!xrtDeflateWrite(c->Codec, (xbytesview){NULL, 0}, XDEFLATE_FLUSH_FINISH,
+        gzip_encode_output, &c->State)) {
+        c->State.Failed = true;
+        return gzip_backend_error(&c->State, XRT_GZIP_ERROR_DATA, "cannot finish gzip compressor");
+    }
+    c->State.Finished = true;
+    return true;
+}
+
+XRT_API bool xrtGzipDecompressorFinish(xrtgzipdecompressor* d)
+{
+    if (!gzip_ready(d != NULL ? &d->State : NULL, false)) return false;
+    if (d->State.Finished) return true;
+    if (!xrtInflateWrite(d->Codec, (xbytesview){NULL, 0}, true, gzip_decode_output, &d->State)) {
+        d->State.Failed = true;
+        return gzip_backend_error(&d->State, XRT_GZIP_ERROR_TRUNCATED, "gzip stream is truncated");
+    }
+    d->State.Finished = true;
+    return true;
+}
+
+XRT_API bool xrtGzipCompressorDrain(xrtgzipcompressor* c, xwriter* writer)
+{ return gzip_drain(c != NULL ? &c->State : NULL, writer); }
+XRT_API bool xrtGzipDecompressorDrain(xrtgzipdecompressor* d, xwriter* writer)
+{ return gzip_drain(d != NULL ? &d->State : NULL, writer); }
+XRT_API xbuffer* xrtGzipCompressorTakeBuffer(xrtgzipcompressor* c)
+{ return gzip_take(c != NULL ? &c->State : NULL, true); }
+XRT_API xbuffer* xrtGzipDecompressorTakeBuffer(xrtgzipdecompressor* d)
+{ return gzip_take(d != NULL ? &d->State : NULL, true); }
+XRT_API xbuffer* xrtGzipCompressorDrainBuffer(xrtgzipcompressor* c)
+{ return gzip_take(c != NULL ? &c->State : NULL, false); }
+XRT_API xbuffer* xrtGzipDecompressorDrainBuffer(xrtgzipdecompressor* d)
+{ return gzip_take(d != NULL ? &d->State : NULL, false); }
+XRT_API uint64 xrtGzipCompressorInputBytes(const xrtgzipcompressor* c)
+{ return c != NULL ? c->State.InputBytes : 0; }
+XRT_API uint64 xrtGzipCompressorOutputBytes(const xrtgzipcompressor* c)
+{ return c != NULL ? c->State.OutputBytes : 0; }
+XRT_API uint64 xrtGzipDecompressorInputBytes(const xrtgzipdecompressor* d)
+{ return d != NULL ? d->State.InputBytes : 0; }
+XRT_API uint64 xrtGzipDecompressorOutputBytes(const xrtgzipdecompressor* d)
+{ return d != NULL ? d->State.OutputBytes : 0; }
+XRT_API bool xrtGzipCompressorFinished(const xrtgzipcompressor* c)
+{ return c != NULL && c->State.Finished && !c->State.Failed; }
+XRT_API bool xrtGzipDecompressorFinished(const xrtgzipdecompressor* d)
+{ return d != NULL && d->State.Finished && !d->State.Failed; }
+XRT_API const xrtgziperror* xrtGzipCompressorError(const xrtgzipcompressor* c)
+{ return c != NULL ? &c->State.Error : NULL; }
+XRT_API const xrtgziperror* xrtGzipDecompressorError(const xrtgzipdecompressor* d)
+{ return d != NULL ? &d->State.Error : NULL; }
+
+XRT_API void xrtGzipCompressorDestroy(xrtgzipcompressor* c)
+{
+    if (c == NULL) return;
+    if (c->State.Busy) { (void)gzip_ready(&c->State, false); return; }
+    xrtDeflateDestroy(c->Codec);
+    xrtBufferDestroy(c->State.Output);
+    xrtFree(c);
+}
+
+XRT_API void xrtGzipDecompressorDestroy(xrtgzipdecompressor* d)
+{
+    if (d == NULL) return;
+    if (d->State.Busy) { (void)gzip_ready(&d->State, false); return; }
+    xrtInflateDestroy(d->Codec);
+    xrtBufferDestroy(d->State.Output);
+    xrtFree(d);
 }
 
 
-/* 把 XRT 压缩底座错误折叠到 gzip 的稳定模块错误码。 */
-static int __xrtGzipMapError(int iFallback)
-{
-	const xerror* pError = xrtGetError();
+// ----------------------------- 便捷与借用流 -----------------------------
 
-	switch ( xrtErrorKind(pError) ) {
-		case XERR_ARGUMENT:
-			return XRT_GZIP_ERROR_ARGUMENT;
-		case XERR_MEMORY:
-			return XRT_GZIP_ERROR_MEMORY;
-		case XERR_RANGE:
-			return XRT_GZIP_ERROR_LIMIT;
-		case XERR_STATE:
-			return XRT_GZIP_ERROR_STATE;
-		case XERR_PROTOCOL:
-			return iFallback == XRT_GZIP_ERROR_TRUNCATED ?
-				XRT_GZIP_ERROR_TRUNCATED : XRT_GZIP_ERROR_DATA;
-		default:
-			return iFallback;
-	}
+static void gzip_result_error(xrtgziperror* error, gzip_state* state)
+{
+    if (error == NULL) return;
+    if (state != NULL) *error = state->Error;
+    else {
+        gzip_state missing = {0};
+        gzip_backend_error(&missing, XRT_GZIP_ERROR_MEMORY, "cannot create gzip stream");
+        *error = missing.Error;
+    }
 }
 
-
-/* 保留 XRT 底座诊断，同时补齐 gzip 流位置。 */
-static void __xrtGzipSetCodecError(xrtgziperror* pError, int iFallback,
-	uint64 iInput, uint64 iOutput, const char* sFallback)
+static bool gzip_all(const void* data, size_t size, const xrtgzipoptions* options,
+    xbuffer** output, xrtgziperror* error, bool decode)
 {
-	const xerror* pCodecError = xrtGetError();
-	const char* sMessage = xrtErrorMessage(pCodecError);
-	int iBackend = pCodecError != NULL ? xrtErrorCode(pCodecError) : 0;
-
-	if ( (pError != NULL) && (pError->iCode != XRT_GZIP_OK) ) { return; }
-	__xrtGzipSetError(pError, __xrtGzipMapError(iFallback), iBackend,
-		iInput, iOutput, "%s", sMessage != NULL ? sMessage : sFallback);
+    xrtgzipcompressor* c = NULL;
+    xrtgzipdecompressor* d = NULL;
+    gzip_state* state;
+    bool ok;
+    xrtGzipErrorInit(error);
+    if (output != NULL) *output = NULL;
+    if (output == NULL || (data == NULL && size != 0)) {
+        gzip_state invalid = {0};
+        gzip_error(&invalid, XRT_GZIP_ERROR_ARGUMENT, "invalid gzip input or output slot");
+        gzip_result_error(error, &invalid);
+        return false;
+    }
+    if (decode) d = xrtGzipDecompressorCreate(options);
+    else c = xrtGzipCompressorCreate(options);
+    state = d != NULL ? &d->State : (c != NULL ? &c->State : NULL);
+    if (state == NULL) { gzip_result_error(error, NULL); return false; }
+    ok = decode ? xrtGzipDecompressorUpdate(d, data, size) && xrtGzipDecompressorFinish(d) :
+        xrtGzipCompressorUpdate(c, data, size) && xrtGzipCompressorFinish(c);
+    if (ok) { *output = gzip_take(state, true); ok = *output != NULL; }
+    if (!ok) gzip_result_error(error, state);
+    xrtGzipCompressorDestroy(c);
+    xrtGzipDecompressorDestroy(d);
+    return ok;
 }
 
+XRT_API bool xrtGzipCompress(const void* data, size_t size, const xrtgzipoptions* options,
+    xbuffer** output, xrtgziperror* error)
+{ return gzip_all(data, size, options, output, error, false); }
+XRT_API bool xrtGzipDecompress(const void* data, size_t size, const xrtgzipoptions* options,
+    xbuffer** output, xrtgziperror* error)
+{ return gzip_all(data, size, options, output, error, true); }
 
-/* 验证并复制完整配置。 */
-static bool __xrtGzipOptionsCopy(xrtgzipoptions* pTarget,
-	const xrtgzipoptions* pSource, xrtgziperror* pError)
+/* Reader/Writer 均为借用；进度不保存回调，不因最终取消而提前宣告成功。 */
+static bool gzip_stream(xreader* reader, xwriter* writer, const xrtgzipoptions* options,
+    xrtprogressproc progress, ptr user, xrtgziperror* error, bool decode)
 {
-	xrtGzipOptionsInit(pTarget);
-	if ( pSource == NULL ) { return true; }
-	if ( (pSource->iSize < sizeof(xrtgzipoptions)) ||
-		(pSource->iVersion != XRT_GZIP_OPTIONS_VERSION) ) {
-		__xrtGzipSetError(pError, XRT_GZIP_ERROR_ARGUMENT, 0, 0, 0,
-			"invalid gzip options version");
-		return false;
-	}
-	*pTarget = *pSource;
-	if ( (pTarget->iLevel < -1) || (pTarget->iLevel > 9) ) {
-		__xrtGzipSetError(pError, XRT_GZIP_ERROR_ARGUMENT, 0, 0, 0,
-			"gzip compression level must be -1..9");
-		return false;
-	}
-	if ( (pTarget->iStrategy < XDEFLATE_STRATEGY_DEFAULT) ||
-		(pTarget->iStrategy > XDEFLATE_STRATEGY_FIXED) ) {
-		__xrtGzipSetError(pError, XRT_GZIP_ERROR_ARGUMENT, 0, 0, 0,
-			"invalid gzip compression strategy");
-		return false;
-	}
-	return true;
+    uint8 input[GZIP_CHUNK];
+    xrtgzipcompressor* c = NULL;
+    xrtgzipdecompressor* d = NULL;
+    gzip_state* state;
+    uint64 total = 0, position = 0;
+    bool known = false, ok = true;
+    xrtGzipErrorInit(error);
+    if (reader == NULL || writer == NULL) {
+        gzip_state invalid = {0};
+        gzip_error(&invalid, XRT_GZIP_ERROR_ARGUMENT, "gzip reader and writer are required");
+        gzip_result_error(error, &invalid);
+        return false;
+    }
+    if (decode) d = xrtGzipDecompressorCreate(options);
+    else c = xrtGzipCompressorCreate(options);
+    state = d != NULL ? &d->State : (c != NULL ? &c->State : NULL);
+    if (state == NULL) { gzip_result_error(error, NULL); return false; }
+    if (xrtReaderCanSize(reader) && xrtReaderCanSeek(reader)) {
+        ok = xrtReaderSize(reader, &total) && xrtReaderTell(reader, &position);
+        if (!ok) gzip_backend_error(state, XRT_GZIP_ERROR_IO, "cannot query gzip input size");
+        else if (position <= total) { total -= position; known = true; }
+        else total = 0;
+    }
+    while (ok) {
+        size_t size = 0;
+        if (!xrtReaderRead(reader, input, sizeof(input), &size)) {
+            ok = gzip_backend_error(state, XRT_GZIP_ERROR_IO, "cannot read gzip input");
+            break;
+        }
+        if (size == 0) break;
+        ok = decode ? xrtGzipDecompressorUpdate(d, input, size) : xrtGzipCompressorUpdate(c, input, size);
+        if (ok) ok = gzip_drain(state, writer);
+        if (ok && !xrtProgressReport(progress, user, state->InputBytes, total,
+            state->OutputBytes, known ? XRT_PROGRESS_TOTAL_KNOWN : 0))
+            ok = gzip_backend_error(state, XRT_GZIP_ERROR_CANCELLED, "gzip operation cancelled");
+    }
+    if (ok) ok = decode ? xrtGzipDecompressorFinish(d) : xrtGzipCompressorFinish(c);
+    if (ok) ok = gzip_drain(state, writer);
+    if (ok && !xrtProgressReport(progress, user, state->InputBytes, total,
+        state->OutputBytes, XRT_PROGRESS_FINAL | (known ? XRT_PROGRESS_TOTAL_KNOWN : 0)))
+        ok = gzip_backend_error(state, XRT_GZIP_ERROR_CANCELLED, "gzip operation cancelled");
+    if (!ok) gzip_result_error(error, state);
+    xrtGzipCompressorDestroy(c);
+    xrtGzipDecompressorDestroy(d);
+    return ok;
 }
 
-
-/* 检查输入计数累加是否溢出或越过非零硬上限。 */
-static bool __xrtGzipInputAllowed(const xrtresourcelimits* pLimits,
-	uint64 iOld, size_t iAdded, xrtgziperror* pError, uint64 iOutput)
-{
-	uint64 iIncrement = (uint64)iAdded;
-
-	if ( (iIncrement > (UINT64_MAX - iOld)) ||
-		((pLimits->iMaxInputBytes != 0u) &&
-		 ((iOld + iIncrement) > pLimits->iMaxInputBytes)) ) {
-		__xrtGzipSetError(pError, XRT_GZIP_ERROR_LIMIT, 0, iOld, iOutput,
-			"gzip input exceeds the configured limit");
-		return false;
-	}
-	return true;
-}
-
-
-/* 检查输出计数、硬上限和解压倍率。 */
-static bool __xrtGzipOutputAllowed(const xrtresourcelimits* pLimits,
-	uint64 iInput, uint64 iOld, size_t iAdded, bool bCheckRatio,
-	xrtgziperror* pError)
-{
-	uint64 iIncrement = (uint64)iAdded;
-	uint64 iNew;
-	uint64 iRatio = pLimits->iMaxCompressionRatio;
-
-	if ( iIncrement > (UINT64_MAX - iOld) ) {
-		__xrtGzipSetError(pError, XRT_GZIP_ERROR_LIMIT, 0, iInput, iOld,
-			"gzip output size overflow");
-		return false;
-	}
-	iNew = iOld + iIncrement;
-	if ( (pLimits->iMaxOutputBytes != 0u) &&
-		(iNew > pLimits->iMaxOutputBytes) ) {
-		__xrtGzipSetError(pError, XRT_GZIP_ERROR_LIMIT, 0, iInput, iOld,
-			"gzip output exceeds the configured limit");
-		return false;
-	}
-	if ( bCheckRatio && (iRatio != 0u) && (iInput != 0u) &&
-		(iInput <= (UINT64_MAX / iRatio)) &&
-		(iNew > (iInput * iRatio)) ) {
-		__xrtGzipSetError(pError, XRT_GZIP_ERROR_LIMIT, 0, iInput, iOld,
-			"gzip expansion ratio exceeds the configured limit");
-		return false;
-	}
-	return true;
-}
-
-
-/* 创建带初始容量的 Buffer。 */
-static xbuffer* __xrtGzipBufferCreate(size_t iCapacity)
-{
-	xbuffer* pBuffer = xrtBufferCreate();
-
-	if ( (pBuffer != NULL) && !xrtBufferReserve(pBuffer, iCapacity) ) {
-		xrtBufferDestroy(pBuffer);
-		pBuffer = NULL;
-	}
-	return pBuffer;
-}
-
-
-/* 在已验证限额后追加输出。 */
-static bool __xrtGzipAppend(xbuffer* pOutput, xbytesview Data,
-	uint64 iInput, uint64* pOutputBytes, const xrtresourcelimits* pLimits,
-	bool bCheckRatio, xrtgziperror* pError)
-{
-	if ( Data.Size == 0u ) { return true; }
-	if ( !__xrtGzipOutputAllowed(pLimits, iInput, *pOutputBytes,
-		Data.Size, bCheckRatio, pError) ) {
-		return false;
-	}
-	if ( !xrtBufferAppend(pOutput, Data) ) {
-		__xrtGzipSetError(pError, XRT_GZIP_ERROR_MEMORY, 0,
-			iInput, *pOutputBytes, "cannot grow gzip output buffer");
-		return false;
-	}
-	*pOutputBytes += (uint64)Data.Size;
-	return true;
-}
-
-
-/* 更新 IEEE CRC32 状态，初值和结束异或均由调用方管理。 */
-static uint32 __xrtGzipCrc32Update(uint32 iCrc, const void* pData, size_t iSize)
-{
-	const uint8* pBytes = (const uint8*)pData;
-	size_t i;
-
-	for ( i = 0u; i < iSize; ++i ) {
-		int j;
-		iCrc ^= (uint32)pBytes[i];
-		for ( j = 0; j < 8; ++j ) {
-			iCrc = (iCrc >> 1) ^ (UINT32_C(0xedb88320) &
-				(UINT32_C(0) - (iCrc & UINT32_C(1))));
-		}
-	}
-	return iCrc;
-}
-
-
-/* 按小端序写出 gzip 头尾字段。 */
-static void __xrtGzipWriteU32(uint8* pOutput, uint32 iValue)
-{
-	pOutput[0] = (uint8)(iValue & UINT32_C(0xff));
-	pOutput[1] = (uint8)((iValue >> 8) & UINT32_C(0xff));
-	pOutput[2] = (uint8)((iValue >> 16) & UINT32_C(0xff));
-	pOutput[3] = (uint8)((iValue >> 24) & UINT32_C(0xff));
-}
-
-
-
-XRT_API void xrtGzipOptionsInit(xrtgzipoptions* pOptions)
-{
-	if ( pOptions == NULL ) { return; }
-	memset(pOptions, 0, sizeof(*pOptions));
-	pOptions->iSize = sizeof(*pOptions);
-	pOptions->iVersion = XRT_GZIP_OPTIONS_VERSION;
-	pOptions->iLevel = -1;
-	pOptions->iStrategy = XDEFLATE_STRATEGY_DEFAULT;
-	xrtResourceLimitsInit(&pOptions->tLimits);
-}
-
-
-XRT_API void xrtGzipErrorInit(xrtgziperror* pError)
-{
-	if ( pError != NULL ) { memset(pError, 0, sizeof(*pError)); }
-}
-
-
-
-// ------------------------------------ 压缩器 ------------------------------------
-
-/* 接收 XRT raw-deflate 输出并追加到 gzip 成员。 */
-static bool __xrtGzipCompressOutput(xbytesview Data, ptr pData)
-{
-	xrtgzipcompressor* pCompressor = (xrtgzipcompressor*)pData;
-
-	return __xrtGzipAppend(pCompressor->Output, Data,
-		pCompressor->InputBytes, &pCompressor->OutputBytes,
-		&pCompressor->Options.tLimits, false, &pCompressor->Error);
-}
-
-
-XRT_API xrtgzipcompressor* xrtGzipCompressorCreate(const xrtgzipoptions* pOptions)
-{
-	xrtgzipcompressor* pCompressor;
-	xdeflateconfig Config;
-	uint8 sHeader[XRT_GZIP_HEADER_SIZE] = {
-		0x1fu, 0x8bu, 0x08u, 0x00u, 0u, 0u, 0u, 0u, 0u, 0xffu
-	};
-	int iLevel;
-
-	pCompressor = (xrtgzipcompressor*)xrtMalloc(sizeof(*pCompressor));
-	if ( pCompressor == NULL ) { return NULL; }
-	memset(pCompressor, 0, sizeof(*pCompressor));
-	if ( !__xrtGzipOptionsCopy(&pCompressor->Options, pOptions,
-		&pCompressor->Error) ) {
-		pCompressor->Failed = true;
-		return pCompressor;
-	}
-	pCompressor->Output = __xrtGzipBufferCreate(XRT_GZIP_CHUNK);
-	if ( pCompressor->Output == NULL ) {
-		__xrtGzipSetError(&pCompressor->Error, XRT_GZIP_ERROR_MEMORY,
-			0, 0, 0, "cannot create gzip output buffer");
-		pCompressor->Failed = true;
-		return pCompressor;
-	}
-	xrtDeflateConfigInit(&Config);
-	Config.Format = XDEFLATE_RAW;
-	Config.Level = pCompressor->Options.iLevel < 0 ?
-		XDEFLATE_LEVEL_DEFAULT : pCompressor->Options.iLevel;
-	Config.Strategy = (xdeflatestrategy)pCompressor->Options.iStrategy;
-	if ( pCompressor->Options.tLimits.iMaxOutputBytes != 0u ) {
-		if ( pCompressor->Options.tLimits.iMaxOutputBytes <
-			(XRT_GZIP_HEADER_SIZE + XRT_GZIP_TRAILER_SIZE) ) {
-			__xrtGzipSetError(&pCompressor->Error, XRT_GZIP_ERROR_LIMIT,
-				0, 0, 0, "gzip output limit is too small");
-			pCompressor->Failed = true;
-			return pCompressor;
-		}
-		Config.OutputLimit = pCompressor->Options.tLimits.iMaxOutputBytes -
-			XRT_GZIP_HEADER_SIZE - XRT_GZIP_TRAILER_SIZE;
-	}
-	pCompressor->Deflate = xrtDeflateCreate(&Config);
-	if ( pCompressor->Deflate == NULL ) {
-		__xrtGzipSetCodecError(&pCompressor->Error, XRT_GZIP_ERROR_MEMORY,
-			0, 0, "cannot initialize gzip compressor");
-		pCompressor->Failed = true;
-		return pCompressor;
-	}
-	__xrtGzipWriteU32(sHeader + 4u, pCompressor->Options.iMTime);
-	iLevel = Config.Level;
-	sHeader[8] = (uint8)(iLevel >= 9 ? 2 : (iLevel == 1 ? 4 : 0));
-	if ( !__xrtGzipAppend(pCompressor->Output,
-		(xbytesview){ sHeader, sizeof(sHeader) }, 0u,
-		&pCompressor->OutputBytes, &pCompressor->Options.tLimits,
-		false, &pCompressor->Error) ) {
-		pCompressor->Failed = true;
-		return pCompressor;
-	}
-	pCompressor->Crc = UINT32_MAX;
-	return pCompressor;
-}
-
-
-XRT_API bool xrtGzipCompressorUpdate(xrtgzipcompressor* pCompressor,
-	const void* pData, size_t iSize)
-{
-	if ( (pCompressor == NULL) || pCompressor->Failed ||
-		pCompressor->Finished || ((pData == NULL) && (iSize != 0u)) ) {
-		return false;
-	}
-	if ( !__xrtGzipInputAllowed(&pCompressor->Options.tLimits,
-		pCompressor->InputBytes, iSize, &pCompressor->Error,
-		pCompressor->OutputBytes) ) {
-		pCompressor->Failed = true;
-		return false;
-	}
-	if ( (iSize != 0u) && !xrtDeflateWrite(pCompressor->Deflate,
-		(xbytesview){ (const unsigned char*)pData, iSize },
-		XDEFLATE_FLUSH_NONE, __xrtGzipCompressOutput, pCompressor) ) {
-		__xrtGzipSetCodecError(&pCompressor->Error, XRT_GZIP_ERROR_DATA,
-			pCompressor->InputBytes, pCompressor->OutputBytes,
-			"gzip compression failed");
-		pCompressor->Failed = true;
-		return false;
-	}
-	pCompressor->Crc = __xrtGzipCrc32Update(pCompressor->Crc,
-		pData, iSize);
-	pCompressor->InputBytes += (uint64)iSize;
-	return true;
-}
-
-
-XRT_API bool xrtGzipCompressorFinish(xrtgzipcompressor* pCompressor)
-{
-	uint8 sTrailer[XRT_GZIP_TRAILER_SIZE];
-
-	if ( (pCompressor == NULL) || pCompressor->Failed ) { return false; }
-	if ( pCompressor->Finished ) { return true; }
-	if ( !xrtDeflateWrite(pCompressor->Deflate,
-		(xbytesview){ NULL, 0u }, XDEFLATE_FLUSH_FINISH,
-		__xrtGzipCompressOutput, pCompressor) ) {
-		__xrtGzipSetCodecError(&pCompressor->Error, XRT_GZIP_ERROR_DATA,
-			pCompressor->InputBytes, pCompressor->OutputBytes,
-			"cannot finish gzip compressor");
-		pCompressor->Failed = true;
-		return false;
-	}
-	__xrtGzipWriteU32(sTrailer, pCompressor->Crc ^ UINT32_MAX);
-	__xrtGzipWriteU32(sTrailer + 4u, (uint32)pCompressor->InputBytes);
-	if ( !__xrtGzipAppend(pCompressor->Output,
-		(xbytesview){ sTrailer, sizeof(sTrailer) },
-		pCompressor->InputBytes, &pCompressor->OutputBytes,
-		&pCompressor->Options.tLimits, false, &pCompressor->Error) ) {
-		pCompressor->Failed = true;
-		return false;
-	}
-	pCompressor->Finished = true;
-	return true;
-}
-
-
-XRT_API bool xrtGzipCompressorDrain(xrtgzipcompressor* pCompressor,
-	xwriter* pWriter)
-{
-	xbytesview Output;
-
-	if ( (pCompressor == NULL) || pCompressor->Failed ||
-		(pWriter == NULL) ) {
-		return false;
-	}
-	Output = xrtBufferView(pCompressor->Output);
-	if ( (Output.Size != 0u) &&
-		!xrtWriterWriteFull(pWriter, Output.Data, Output.Size, NULL) ) {
-		__xrtGzipSetError(&pCompressor->Error, XRT_GZIP_ERROR_IO, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes,
-			"cannot write gzip output stream");
-		pCompressor->Failed = true;
-		return false;
-	}
-	xrtBufferClear(pCompressor->Output);
-	return true;
-}
-
-
-XRT_API xbuffer* xrtGzipCompressorTakeBuffer(xrtgzipcompressor* pCompressor)
-{
-	xbuffer* pOutput;
-
-	if ( (pCompressor == NULL) || pCompressor->Failed ||
-		!pCompressor->Finished ) {
-		return NULL;
-	}
-	pOutput = pCompressor->Output;
-	pCompressor->Output = NULL;
-	return pOutput;
-}
-
-
-XRT_API const xrtgziperror* xrtGzipCompressorError(
-	const xrtgzipcompressor* pCompressor)
-{
-	return pCompressor != NULL ? &pCompressor->Error : NULL;
-}
-
-
-XRT_API void xrtGzipCompressorDestroy(xrtgzipcompressor* pCompressor)
-{
-	if ( pCompressor == NULL ) { return; }
-	xrtDeflateDestroy(pCompressor->Deflate);
-	xrtBufferDestroy(pCompressor->Output);
-	xrtFree(pCompressor);
-}
-
-
-
-// ------------------------------------ 解压器 ------------------------------------
-
-/* 接收 XRT gzip-inflate 输出并执行总量与倍率限制。 */
-static bool __xrtGzipDecompressOutput(xbytesview Data, ptr pData)
-{
-	xrtgzipdecompressor* pDecompressor = (xrtgzipdecompressor*)pData;
-
-	return __xrtGzipAppend(pDecompressor->Output, Data,
-		pDecompressor->InputBytes, &pDecompressor->OutputBytes,
-		&pDecompressor->Options.tLimits, true, &pDecompressor->Error);
-}
-
-
-XRT_API xrtgzipdecompressor* xrtGzipDecompressorCreate(
-	const xrtgzipoptions* pOptions)
-{
-	xrtgzipdecompressor* pDecompressor;
-	xinflateconfig Config;
-
-	pDecompressor = (xrtgzipdecompressor*)xrtMalloc(sizeof(*pDecompressor));
-	if ( pDecompressor == NULL ) { return NULL; }
-	memset(pDecompressor, 0, sizeof(*pDecompressor));
-	if ( !__xrtGzipOptionsCopy(&pDecompressor->Options, pOptions,
-		&pDecompressor->Error) ) {
-		pDecompressor->Failed = true;
-		return pDecompressor;
-	}
-	pDecompressor->Output = __xrtGzipBufferCreate(XRT_GZIP_CHUNK);
-	if ( pDecompressor->Output == NULL ) {
-		__xrtGzipSetError(&pDecompressor->Error, XRT_GZIP_ERROR_MEMORY,
-			0, 0, 0, "cannot create gzip output buffer");
-		pDecompressor->Failed = true;
-		return pDecompressor;
-	}
-	xrtInflateConfigInit(&Config);
-	Config.Format = XINFLATE_GZIP;
-	Config.OutputLimit = pDecompressor->Options.tLimits.iMaxOutputBytes != 0u ?
-		pDecompressor->Options.tLimits.iMaxOutputBytes :
-		XINFLATE_OUTPUT_UNLIMITED;
-	pDecompressor->Inflate = xrtInflateCreate(&Config);
-	if ( pDecompressor->Inflate == NULL ) {
-		__xrtGzipSetCodecError(&pDecompressor->Error,
-			XRT_GZIP_ERROR_MEMORY, 0, 0,
-			"cannot initialize gzip decompressor");
-		pDecompressor->Failed = true;
-	}
-	return pDecompressor;
-}
-
-
-XRT_API bool xrtGzipDecompressorUpdate(xrtgzipdecompressor* pDecompressor,
-	const void* pData, size_t iSize)
-{
-	if ( (pDecompressor == NULL) || pDecompressor->Failed ||
-		pDecompressor->Finished || ((pData == NULL) && (iSize != 0u)) ) {
-		return false;
-	}
-	if ( !__xrtGzipInputAllowed(&pDecompressor->Options.tLimits,
-		pDecompressor->InputBytes, iSize, &pDecompressor->Error,
-		pDecompressor->OutputBytes) ) {
-		pDecompressor->Failed = true;
-		return false;
-	}
-	pDecompressor->InputBytes += (uint64)iSize;
-	if ( (iSize != 0u) && !xrtInflateWrite(pDecompressor->Inflate,
-		(xbytesview){ (const unsigned char*)pData, iSize }, false,
-		__xrtGzipDecompressOutput, pDecompressor) ) {
-		__xrtGzipSetCodecError(&pDecompressor->Error, XRT_GZIP_ERROR_DATA,
-			pDecompressor->InputBytes, pDecompressor->OutputBytes,
-			"gzip data is invalid");
-		pDecompressor->Failed = true;
-		return false;
-	}
-	return true;
-}
-
-
-XRT_API bool xrtGzipDecompressorFinish(xrtgzipdecompressor* pDecompressor)
-{
-	if ( (pDecompressor == NULL) || pDecompressor->Failed ) { return false; }
-	if ( pDecompressor->Finished ) { return true; }
-	if ( !xrtInflateWrite(pDecompressor->Inflate,
-		(xbytesview){ NULL, 0u }, true,
-		__xrtGzipDecompressOutput, pDecompressor) ) {
-		__xrtGzipSetCodecError(&pDecompressor->Error,
-			XRT_GZIP_ERROR_TRUNCATED, pDecompressor->InputBytes,
-			pDecompressor->OutputBytes, "gzip stream is truncated");
-		pDecompressor->Failed = true;
-		return false;
-	}
-	pDecompressor->Finished = true;
-	return true;
-}
-
-
-XRT_API bool xrtGzipDecompressorDrain(xrtgzipdecompressor* pDecompressor,
-	xwriter* pWriter)
-{
-	xbytesview Output;
-
-	if ( (pDecompressor == NULL) || pDecompressor->Failed ||
-		(pWriter == NULL) ) {
-		return false;
-	}
-	Output = xrtBufferView(pDecompressor->Output);
-	if ( (Output.Size != 0u) &&
-		!xrtWriterWriteFull(pWriter, Output.Data, Output.Size, NULL) ) {
-		__xrtGzipSetError(&pDecompressor->Error, XRT_GZIP_ERROR_IO, 0,
-			pDecompressor->InputBytes, pDecompressor->OutputBytes,
-			"cannot write decompressed stream");
-		pDecompressor->Failed = true;
-		return false;
-	}
-	xrtBufferClear(pDecompressor->Output);
-	return true;
-}
-
-
-XRT_API xbuffer* xrtGzipDecompressorTakeBuffer(
-	xrtgzipdecompressor* pDecompressor)
-{
-	xbuffer* pOutput;
-
-	if ( (pDecompressor == NULL) || pDecompressor->Failed ||
-		!pDecompressor->Finished ) {
-		return NULL;
-	}
-	pOutput = pDecompressor->Output;
-	pDecompressor->Output = NULL;
-	return pOutput;
-}
-
-
-XRT_API const xrtgziperror* xrtGzipDecompressorError(
-	const xrtgzipdecompressor* pDecompressor)
-{
-	return pDecompressor != NULL ? &pDecompressor->Error : NULL;
-}
-
-
-XRT_API void xrtGzipDecompressorDestroy(xrtgzipdecompressor* pDecompressor)
-{
-	if ( pDecompressor == NULL ) { return; }
-	xrtInflateDestroy(pDecompressor->Inflate);
-	xrtBufferDestroy(pDecompressor->Output);
-	xrtFree(pDecompressor);
-}
-
-
-
-// ------------------------------------ 便捷与流式接口 ------------------------------------
-
-XRT_API bool xrtGzipCompress(const void* pData, size_t iSize,
-	const xrtgzipoptions* pOptions, xbuffer** ppOutput,
-	xrtgziperror* pError)
-{
-	xrtgzipcompressor* pCompressor;
-	bool bResult;
-
-	if ( ppOutput != NULL ) { *ppOutput = NULL; }
-	xrtGzipErrorInit(pError);
-	if ( (ppOutput == NULL) || ((pData == NULL) && (iSize != 0u)) ) {
-		__xrtGzipSetError(pError, XRT_GZIP_ERROR_ARGUMENT, 0,
-			0, 0, "invalid gzip input");
-		return false;
-	}
-	pCompressor = xrtGzipCompressorCreate(pOptions);
-	if ( pCompressor == NULL ) {
-		__xrtGzipSetError(pError, XRT_GZIP_ERROR_MEMORY, 0,
-			0, 0, "cannot allocate gzip compressor");
-		return false;
-	}
-	bResult = xrtGzipCompressorUpdate(pCompressor, pData, iSize) &&
-		xrtGzipCompressorFinish(pCompressor);
-	if ( bResult ) {
-		*ppOutput = xrtGzipCompressorTakeBuffer(pCompressor);
-		bResult = *ppOutput != NULL;
-	}
-	if ( !bResult ) {
-		__xrtGzipCopyError(pError, &pCompressor->Error);
-	}
-	xrtGzipCompressorDestroy(pCompressor);
-	return bResult;
-}
-
-
-XRT_API bool xrtGzipDecompress(const void* pData, size_t iSize,
-	const xrtgzipoptions* pOptions, xbuffer** ppOutput,
-	xrtgziperror* pError)
-{
-	xrtgzipdecompressor* pDecompressor;
-	bool bResult;
-
-	if ( ppOutput != NULL ) { *ppOutput = NULL; }
-	xrtGzipErrorInit(pError);
-	if ( (ppOutput == NULL) || ((pData == NULL) && (iSize != 0u)) ) {
-		__xrtGzipSetError(pError, XRT_GZIP_ERROR_ARGUMENT, 0,
-			0, 0, "invalid gzip input");
-		return false;
-	}
-	pDecompressor = xrtGzipDecompressorCreate(pOptions);
-	if ( pDecompressor == NULL ) {
-		__xrtGzipSetError(pError, XRT_GZIP_ERROR_MEMORY, 0,
-			0, 0, "cannot allocate gzip decompressor");
-		return false;
-	}
-	bResult = xrtGzipDecompressorUpdate(pDecompressor, pData, iSize) &&
-		xrtGzipDecompressorFinish(pDecompressor);
-	if ( bResult ) {
-		*ppOutput = xrtGzipDecompressorTakeBuffer(pDecompressor);
-		bResult = *ppOutput != NULL;
-	}
-	if ( !bResult ) {
-		__xrtGzipCopyError(pError, &pDecompressor->Error);
-	}
-	xrtGzipDecompressorDestroy(pDecompressor);
-	return bResult;
-}
-
-
-XRT_API bool xrtGzipCompressStream(xreader* pReader, xwriter* pWriter,
-	const xrtgzipoptions* pOptions, xrtgziperror* pError)
-{
-	uint8 sInput[XRT_GZIP_CHUNK];
-	xrtgzipcompressor* pCompressor;
-	bool bResult = true;
-
-	xrtGzipErrorInit(pError);
-	if ( (pReader == NULL) || (pWriter == NULL) ) {
-		__xrtGzipSetError(pError, XRT_GZIP_ERROR_ARGUMENT, 0,
-			0, 0, "invalid gzip stream");
-		return false;
-	}
-	pCompressor = xrtGzipCompressorCreate(pOptions);
-	if ( pCompressor == NULL ) { return false; }
-	while ( bResult ) {
-		size_t iRead = 0u;
-
-		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
-			__xrtGzipSetError(&pCompressor->Error, XRT_GZIP_ERROR_IO,
-				0, pCompressor->InputBytes, pCompressor->OutputBytes,
-				"cannot read gzip input stream");
-			bResult = false;
-			break;
-		}
-		if ( iRead == 0u ) { break; }
-		bResult = xrtGzipCompressorUpdate(pCompressor, sInput, iRead) &&
-			xrtGzipCompressorDrain(pCompressor, pWriter);
-	}
-	if ( bResult ) {
-		bResult = xrtGzipCompressorFinish(pCompressor) &&
-			xrtGzipCompressorDrain(pCompressor, pWriter);
-	}
-	if ( !bResult ) {
-		__xrtGzipCopyError(pError, &pCompressor->Error);
-	}
-	xrtGzipCompressorDestroy(pCompressor);
-	return bResult;
-}
-
-
-XRT_API bool xrtGzipDecompressStream(xreader* pReader, xwriter* pWriter,
-	const xrtgzipoptions* pOptions, xrtgziperror* pError)
-{
-	uint8 sInput[XRT_GZIP_CHUNK];
-	xrtgzipdecompressor* pDecompressor;
-	bool bResult = true;
-
-	xrtGzipErrorInit(pError);
-	if ( (pReader == NULL) || (pWriter == NULL) ) {
-		__xrtGzipSetError(pError, XRT_GZIP_ERROR_ARGUMENT, 0,
-			0, 0, "invalid gzip stream");
-		return false;
-	}
-	pDecompressor = xrtGzipDecompressorCreate(pOptions);
-	if ( pDecompressor == NULL ) { return false; }
-	while ( bResult ) {
-		size_t iRead = 0u;
-
-		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
-			__xrtGzipSetError(&pDecompressor->Error, XRT_GZIP_ERROR_IO,
-				0, pDecompressor->InputBytes, pDecompressor->OutputBytes,
-				"cannot read gzip input stream");
-			bResult = false;
-			break;
-		}
-		if ( iRead == 0u ) { break; }
-		bResult = xrtGzipDecompressorUpdate(pDecompressor, sInput, iRead) &&
-			xrtGzipDecompressorDrain(pDecompressor, pWriter);
-	}
-	if ( bResult ) {
-		bResult = xrtGzipDecompressorFinish(pDecompressor) &&
-			xrtGzipDecompressorDrain(pDecompressor, pWriter);
-	}
-	if ( !bResult ) {
-		__xrtGzipCopyError(pError, &pDecompressor->Error);
-	}
-	xrtGzipDecompressorDestroy(pDecompressor);
-	return bResult;
-}
+XRT_API bool xrtGzipCompressStream(xreader* reader, xwriter* writer, const xrtgzipoptions* options,
+    xrtprogressproc progress, ptr user, xrtgziperror* error)
+{ return gzip_stream(reader, writer, options, progress, user, error, false); }
+XRT_API bool xrtGzipDecompressStream(xreader* reader, xwriter* writer, const xrtgzipoptions* options,
+    xrtprogressproc progress, ptr user, xrtgziperror* error)
+{ return gzip_stream(reader, writer, options, progress, user, error, true); }

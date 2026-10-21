@@ -2,11 +2,14 @@
 #define XRT_GZIP_H
 
 /* gzip 公共契约直接依赖连续缓冲和通用 Reader/Writer。 */
-#ifndef XRT_MODULE_BUFFER
-#define XRT_MODULE_BUFFER
+#ifndef XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_BUFFER
 #endif
-#ifndef XRT_MODULE_IO
-#define XRT_MODULE_IO
+#ifndef XRT_MODULE_DEFLATE
+#define XRT_MODULE_DEFLATE
+#endif
+#ifndef XRT_MODULE_INFLATE
+#define XRT_MODULE_INFLATE
 #endif
 
 #include "xrt.h"
@@ -25,7 +28,8 @@ typedef enum {
 	XRT_GZIP_ERROR_TRUNCATED = 4,
 	XRT_GZIP_ERROR_LIMIT = 5,
 	XRT_GZIP_ERROR_IO = 6,
-	XRT_GZIP_ERROR_STATE = 7
+	XRT_GZIP_ERROR_STATE = 7,
+	XRT_GZIP_ERROR_CANCELLED = 8
 } xrtgzipstatus;
 
 typedef struct {
@@ -43,6 +47,7 @@ typedef struct {
 	int iStrategy;
 	uint32 iMTime;
 	uint32 iReserved;
+	/* 仅使用输入、输出和解压倍率限制；其他字段必须为零。 */
 	xrtresourcelimits tLimits;
 } xrtgzipoptions;
 
@@ -57,6 +62,11 @@ XRT_API bool xrtGzipCompressorUpdate(xrtgzipcompressor* pCompressor, const void*
 XRT_API bool xrtGzipCompressorFinish(xrtgzipcompressor* pCompressor);
 XRT_API bool xrtGzipCompressorDrain(xrtgzipcompressor* pCompressor, xwriter* pWriter);
 XRT_API xbuffer* xrtGzipCompressorTakeBuffer(xrtgzipcompressor* pCompressor);
+/* DrainBuffer 随时移交本次输出；TakeBuffer 只在 Finish 后移交一次最终所有权。 */
+XRT_API xbuffer* xrtGzipCompressorDrainBuffer(xrtgzipcompressor* pCompressor);
+XRT_API uint64 xrtGzipCompressorInputBytes(const xrtgzipcompressor* pCompressor);
+XRT_API uint64 xrtGzipCompressorOutputBytes(const xrtgzipcompressor* pCompressor);
+XRT_API bool xrtGzipCompressorFinished(const xrtgzipcompressor* pCompressor);
 XRT_API const xrtgziperror* xrtGzipCompressorError(const xrtgzipcompressor* pCompressor);
 XRT_API void xrtGzipCompressorDestroy(xrtgzipcompressor* pCompressor);
 
@@ -65,6 +75,10 @@ XRT_API bool xrtGzipDecompressorUpdate(xrtgzipdecompressor* pDecompressor, const
 XRT_API bool xrtGzipDecompressorFinish(xrtgzipdecompressor* pDecompressor);
 XRT_API bool xrtGzipDecompressorDrain(xrtgzipdecompressor* pDecompressor, xwriter* pWriter);
 XRT_API xbuffer* xrtGzipDecompressorTakeBuffer(xrtgzipdecompressor* pDecompressor);
+XRT_API xbuffer* xrtGzipDecompressorDrainBuffer(xrtgzipdecompressor* pDecompressor);
+XRT_API uint64 xrtGzipDecompressorInputBytes(const xrtgzipdecompressor* pDecompressor);
+XRT_API uint64 xrtGzipDecompressorOutputBytes(const xrtgzipdecompressor* pDecompressor);
+XRT_API bool xrtGzipDecompressorFinished(const xrtgzipdecompressor* pDecompressor);
 XRT_API const xrtgziperror* xrtGzipDecompressorError(const xrtgzipdecompressor* pDecompressor);
 XRT_API void xrtGzipDecompressorDestroy(xrtgzipdecompressor* pDecompressor);
 
@@ -73,9 +87,9 @@ XRT_API bool xrtGzipCompress(const void* pData, size_t iSize, const xrtgzipoptio
 XRT_API bool xrtGzipDecompress(const void* pData, size_t iSize, const xrtgzipoptions* pOptions,
 	xbuffer** ppOutput, xrtgziperror* pError);
 XRT_API bool xrtGzipCompressStream(xreader* pReader, xwriter* pWriter, const xrtgzipoptions* pOptions,
-	xrtgziperror* pError);
+	xrtprogressproc pProgress, ptr pUserData, xrtgziperror* pError);
 XRT_API bool xrtGzipDecompressStream(xreader* pReader, xwriter* pWriter, const xrtgzipoptions* pOptions,
-	xrtgziperror* pError);
+	xrtprogressproc pProgress, ptr pUserData, xrtgziperror* pError);
 
 #ifdef __cplusplus
 }

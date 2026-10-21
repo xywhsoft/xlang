@@ -1,57 +1,93 @@
 import gzip
 
 func main(...) as int
+    assert gzip.decompressText(gzip.compress("你好，gzip")) == "你好，gzip"
+    assert gzip.decompressText(gzip.compress("")) == ""
     Buffer source = Buffer()
     source.append("abc")
     source.appendByte(0)
     source.appendByte(255)
-    Buffer packed = gzip.compress(source)
-    Buffer plain = gzip.decompress(packed)
-    if not (plain == source) or plain != source then
-        return 1
-    end
+    Buffer packed = gzip.compress(source, mtime = 305419896)
+    assert packed[4] == 120 and packed[5] == 86 and packed[6] == 52 and packed[7] == 18
+    assert gzip.decompress(packed) == source
 
-    auto encoder = gzip.compressor()
-    encoder.update("left")
-    encoder.update("right")
-    Buffer incremental = encoder.finish()
-    auto decoder = gzip.decompressor()
+    // 提前 drain 的 Buffer 归调用者；finish 只交付剩余字节，可重复调用。
+    gzip.GzipCompressor encoder = gzip.compressor()
+    assert encoder.valid and not encoder.finished
+    encoder.update("左")
+    Buffer incremental = encoder.drain()
+    encoder.update("右")
+    encoder.update(source)
+    incremental.append(encoder.finish())
+    assert encoder.finished and encoder.finish().len() == 0
+    assert encoder.inputBytes == 6 + source.len()
+    assert encoder.outputBytes == incremental.len()
+    gzip.GzipDecompressor decoder = gzip.decompressor()
+    assert decoder.valid
     decoder.update(incremental)
-    if decoder.finish().text() != "leftright" then
-        return 2
-    end
+    Buffer plain = decoder.drain()
+    plain.append(decoder.finish())
+    Buffer expected = Buffer()
+    expected.append("左右")
+    expected.append(source)
+    assert plain == expected
+    assert decoder.finished and decoder.finish().len() == 0
+    assert decoder.inputBytes == incremental.len() and decoder.outputBytes == expected.len()
 
     bool rejected = false
-    incremental[incremental.len() - 1] = incremental[incremental.len() - 1] ^ 1
     try
-        gzip.decompress(incremental)
-    catch CompressionError e
+        encoder.update("late")
+    catch RuntimeError e
         rejected = true
     end
-    if not rejected then
-        return 3
-    end
+    assert rejected
 
-    string sourcePath = "tmp/extlib_gzip_source.bin"
-    string packedPath = "tmp/extlib_gzip_stream.gz"
-    string plainPath = "tmp/extlib_gzip_plain.bin"
-    file.writeBytes(sourcePath, source)
-    gzip.compressFile(sourcePath, packedPath)
-    gzip.decompressFile(packedPath, plainPath)
-    if file.readBytes(plainPath) != source then
-        return 4
-    end
-    bool overwriteRejected = false
+    // 串联成员保留全部内容；CRC/ISIZE 错误由 XRT 映射为 IOError。
+    Buffer joined = gzip.compress("one")
+    joined.append(gzip.compress("two"))
+    assert gzip.decompressText(joined) == "onetwo"
+    incremental[incremental.len() - 1] = incremental[incremental.len() - 1] ^ 1
+    rejected = false
     try
-        gzip.compressFile(sourcePath, packedPath, overwrite = false)
-    catch CompressionError e
-        overwriteRejected = true
+        gzip.decompress(incremental)
+    catch IOError e
+        rejected = true
     end
-    if not overwriteRejected then
-        return 5
+    assert rejected
+    rejected = false
+    try
+        gzip.decompress(packed, maxOutput = 1)
+    catch RangeError e
+        rejected = true
     end
-    file.delete(sourcePath)
-    file.delete(packedPath)
-    file.delete(plainPath)
+    assert rejected
+    rejected = false
+    try
+        gzip.decompress(packed, maxRatio = 4294967296)
+    catch RangeError e
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        gzip.compress("a", mtime = -1)
+    catch RangeError e
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        gzip.compressor(level = 10)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
+    rejected = false
+    try
+        gzip.decompressor(maxInput = 0)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected
     return 0
 end

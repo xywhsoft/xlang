@@ -3,6 +3,11 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifdef __TINYC__
+/* 单文件 xl run 使用包内实现；正式包仍按清单分别编译。 */
+#include "../../extlibs/gzip/xrt_gzip.c"
+#endif
+
 
 
 int main(void)

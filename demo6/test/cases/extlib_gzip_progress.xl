@@ -1,0 +1,219 @@
+import gzip
+
+class GzipProgressState
+    int calls = 0
+    int lastInput = 0
+    int lastTotal = 0
+end
+
+func exercise() as int
+    dir.createAll("build/test/gzip-progress")
+    string sourcePath = "build/test/gzip-progress/source.txt"
+    string packedPath = "build/test/gzip-progress/packed.gz"
+    string plainPath = "build/test/gzip-progress/plain.txt"
+    string cancelledPath = "build/test/gzip-progress/cancelled.gz"
+    string text = ""
+    int i = 0
+    while i < 6000
+        text += "xlang-progress-" + string(i) + "\n"
+        i += 1
+    end
+    file.writeText(sourcePath, text)
+
+    GzipProgressState packedState = GzipProgressState()
+    gzip.compressFile(sourcePath, packedPath, onProgress = func(int inputBytes,
+        int totalBytes, int outputBytes) as bool
+        packedState.calls += 1
+        packedState.lastInput = inputBytes
+        packedState.lastTotal = totalBytes
+        return outputBytes >= 0
+    end)
+    assert packedState.calls > 0
+    assert packedState.lastInput == string.byteLen(text)
+    assert packedState.lastTotal == packedState.lastInput
+
+    GzipProgressState plainState = GzipProgressState()
+    gzip.decompressFile(packedPath, plainPath, onProgress = func(int inputBytes,
+        int totalBytes, int outputBytes) as bool
+        plainState.calls += 1
+        plainState.lastInput = inputBytes
+        plainState.lastTotal = totalBytes
+        return outputBytes >= 0
+    end)
+    assert plainState.calls > 0
+    assert plainState.lastInput == plainState.lastTotal
+    assert file.readText(plainPath) == text
+
+    bool cancelled = false
+    try
+        gzip.compressFile(sourcePath, cancelledPath, onProgress = func(int inputBytes,
+            int totalBytes, int outputBytes) as bool
+            return false
+        end)
+    catch CancelledError e
+        cancelled = true
+    end
+    assert cancelled
+    assert not file.exists(cancelledPath)
+
+    // 失败只清理本次临时文件，不覆盖旧目标；回调异常必须保持类型与原消息。
+    file.writeText(cancelledPath, "keep destination")
+    bool callbackError = false
+    try
+        gzip.compressFile(sourcePath, cancelledPath, onProgress = func(int a, int b, int c) as bool
+            throw ValueError "callback marker"
+        end)
+    catch ValueError e
+        assert e.message == "callback marker"
+        callbackError = true
+    end
+    assert callbackError
+    assert file.readText(cancelledPath) == "keep destination"
+
+    cancelled = false
+    try
+        gzip.decompressFile(packedPath, cancelledPath, onProgress = func(int a, int b, int c) as bool
+            return false
+        end)
+    catch CancelledError e
+        cancelled = true
+    end
+    assert cancelled and file.readText(cancelledPath) == "keep destination"
+
+    // 空文件仅触发最终进度，最终通知取消同样不能提交输出。
+    string emptyPath = "build/test/gzip-progress/empty.txt"
+    file.writeText(emptyPath, "")
+    GzipProgressState finalState = GzipProgressState()
+    cancelled = false
+    try
+        gzip.compressFile(emptyPath, cancelledPath, onProgress = func(int a, int b, int c) as bool
+            assert a == 0 and b == 0 and c > 0
+            finalState.calls += 1
+            return false
+        end)
+    catch CancelledError e
+        cancelled = true
+    end
+    assert cancelled and finalState.calls == 1
+    assert file.readText(cancelledPath) == "keep destination"
+
+    bool truncated = false
+    try
+        gzip.decompressFile(emptyPath, cancelledPath)
+    catch IOError e
+        truncated = true
+    end
+    assert truncated and file.readText(cancelledPath) == "keep destination"
+    file.delete(emptyPath)
+
+    // 嵌套调用有独立进度状态；UTF-8 路径也走同一事务文件路径。
+    string unicodePath = "build/test/gzip-progress/中文结果.txt"
+    GzipProgressState nested = GzipProgressState()
+    gzip.decompressFile(packedPath, unicodePath, onProgress = func(int a, int b, int c) as bool
+        nested.calls += 1
+        assert gzip.decompressText(gzip.compress("你好", level = 1)) == "你好"
+        return true
+    end)
+    assert nested.calls > 0 and file.readText(unicodePath) == text
+    gzip.compressFile(unicodePath, unicodePath, level = 4)
+    gzip.decompressFile(unicodePath, unicodePath)
+    assert file.readText(unicodePath) == text
+    file.delete(unicodePath)
+
+    bool overwriteRejected = false
+    try
+        gzip.compressFile(sourcePath, cancelledPath, overwrite = false)
+    catch ValueError e
+        overwriteRejected = true
+    end
+    assert overwriteRejected and file.readText(cancelledPath) == "keep destination"
+
+    // 缺失源文件、非法流以及回调异常均不得截断原目标。
+    bool missing = false
+    try
+        gzip.compressFile(sourcePath + ".missing", cancelledPath)
+    catch IOError e
+        missing = true
+    end
+    assert missing and file.readText(cancelledPath) == "keep destination"
+    callbackError = false
+    try
+        gzip.decompressFile(packedPath, cancelledPath, onProgress = func(int a, int b, int c) as bool
+            throw ValueError "decode callback marker"
+        end)
+    catch ValueError e
+        assert e.message == "decode callback marker"
+        callbackError = true
+    end
+    assert callbackError and file.readText(cancelledPath) == "keep destination"
+
+    // 路径交给零终止 C 接口前必须拒绝 NUL，不能静默操作可见前缀。
+    string nulPackedPath = "build/test/gzip-progress/nul-packed.gz"
+    string nulPlainPath = "build/test/gzip-progress/nul-plain.txt"
+    file.writeText(nulPackedPath, "keep packed")
+    file.writeText(nulPlainPath, "keep plain")
+    bool rejected = false
+    try
+        gzip.compressFile(sourcePath + "\0.hidden", nulPackedPath)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected and file.readText(nulPackedPath) == "keep packed"
+    rejected = false
+    try
+        gzip.compressFile(sourcePath, nulPackedPath + "\0.hidden")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected and file.readText(nulPackedPath) == "keep packed"
+    rejected = false
+    try
+        gzip.decompressFile(packedPath + "\0.hidden", nulPlainPath)
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected and file.readText(nulPlainPath) == "keep plain"
+    rejected = false
+    try
+        gzip.decompressFile(packedPath, nulPlainPath + "\0.hidden")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected and file.readText(nulPlainPath) == "keep plain"
+    file.delete(nulPackedPath)
+    file.delete(nulPlainPath)
+
+    // 目录中不能遗留事务临时文件。
+    for name in dir.files("build/test/gzip-progress")
+        assert not string.contains(string(name), ".xrt-gzip-")
+    end
+
+    file.delete(sourcePath)
+    file.delete(packedPath)
+    file.delete(plainPath)
+    file.delete(cancelledPath)
+    return 0
+end
+
+func cleanup(string name)
+    string target = "build/test/gzip-progress/" + name
+    if file.exists(target) then
+        file.delete(target)
+    end
+end
+
+func main(...) as int
+    try
+        return exercise()
+    finally
+        // 即使断言失败，也只清理本测试明确拥有的文件。
+        cleanup("source.txt")
+        cleanup("packed.gz")
+        cleanup("plain.txt")
+        cleanup("cancelled.gz")
+        cleanup("empty.txt")
+        cleanup("中文结果.txt")
+        cleanup("nul-packed.gz")
+        cleanup("nul-plain.txt")
+    end
+end

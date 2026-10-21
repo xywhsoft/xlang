@@ -12,11 +12,20 @@
         ],
         "xlSources": [
             "src/gzip.xl"
+        ],
+        "xrtModules": [
+            "XRT_MODULE_DEFLATE",
+            "XRT_MODULE_INFLATE",
+            "XRT_MODULE_IO_BUFFER",
+            "XRT_MODULE_IO_FILE",
+            "XRT_MODULE_FILE_TEMP",
+            "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"
         ]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/file_ops.xl"] },
     "native": {
         "singleton": false,
         "loadName": "",
