@@ -1,0 +1,11 @@
+import graph
+string name = "a\0b"
+var nodes = [[name, "end"]]
+assert graph.bfs(nodes, name).length == 2
+bool rejected = false
+try
+    graph.bfs(nodes, "a")
+catch ValueError e
+    rejected = true
+end
+assert rejected, "different names must not collapse at embedded NUL"

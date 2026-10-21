@@ -1,0 +1,18 @@
+// CSV 字典层触发的编译器边界：字段迭代应与局部数组迭代一致。
+class FieldNames
+    private array<string> names = ["first", "second"]
+
+    func joined() as string
+        string result = ""
+        for name in self.names
+            result += name
+        end
+        return result
+    end
+end
+
+func main(...) as int
+    FieldNames names = FieldNames()
+    assert names.joined() == "firstsecond"
+    return 0
+end

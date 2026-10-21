@@ -1,0 +1,3 @@
+// 独立于 graph：显式长度字符串经过标准库 C 文本桥后被截短。
+string value = "a\0b"
+assert string.byteLen(value) == 3, "string.byteLen must preserve embedded NUL"

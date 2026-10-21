@@ -1,0 +1,13 @@
+import csv
+
+// 有拥有权的循环变量在内层 catch 后仍需可用，循环本身仍然存活。
+array<string> inputs = ["\"unfinished", "a\"b"]
+for text in inputs
+    bool caught = false
+    try
+        csv.parse(text)
+    catch CsvError e
+        caught = true
+    end
+    assert caught and text != ""
+end
