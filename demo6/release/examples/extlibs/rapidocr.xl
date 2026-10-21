@@ -36,7 +36,7 @@ assert string.len(rapidocr.assemble_result4("[]", rec0, rec0, rec0, rec0)) > 0, 
 assert string.len(rapidocr.assemble_result4("[]", rec0, rec0, rec0, rec0, 1.25)) > 0, "rapidocr assemble_result4 elapse failed"
 assert string.len(rapidocr.last_error()) >= 0, "rapidocr last_error failed"
 
-auto engine = rapidocr.RapidOCR("__missing_det__.onnx", "__missing_cls__.onnx", "__missing_rec__.onnx", keysPath)
+auto engine = rapidocr.RapidOCR()
 assert engine.valid(), "rapidocr engine valid failed"
 assert engine.set_det_threshold(0.3), "rapidocr set_det_threshold failed"
 assert engine.set_text_score(0.5), "rapidocr set_text_score failed"
@@ -52,31 +52,31 @@ assert engine.set_rec_image_shape(320, 48), "rapidocr set_rec_image_shape failed
 
 auto output = engine.op_call("__missing_image__.png")
 assert output.ok() == false, "rapidocr missing image output ok failed"
-assert string.len(output.text()) >= 0, "rapidocr output text failed"
-assert string.len(output.to_json()) >= 0, "rapidocr output json failed"
-assert string.len(output.to_ocr_json()) >= 0, "rapidocr output ocr json failed"
-assert string.len(output.to_ocr_json(0.25)) >= 0, "rapidocr output ocr json score failed"
+assert string.contains(output.error(), "cannot open OCR image"), "rapidocr missing image error failed"
+assert output.text() == "", "rapidocr output text failed"
+assert output.to_json() == "", "rapidocr output json failed"
 assert output.vis("__missing_rapidocr_output.png") == false, "rapidocr output vis failed"
 
 auto outputFlags = engine.op_call("__missing_image__.png", true, false, false)
-assert string.len(outputFlags.to_json()) >= 0, "rapidocr output flags failed"
+assert outputFlags.ok() == false, "rapidocr output flags failed"
 
-auto defaultEngine = rapidocr.RapidOCR()
-assert defaultEngine.valid(), "rapidocr default engine valid failed"
-auto defaultOutput = defaultEngine.op_call("__missing_image__.png")
-assert defaultOutput.ok() == false, "rapidocr default missing image output ok failed"
+auto missingModel = rapidocr.RapidOCR("__missing_det__.onnx", "__missing_cls__.onnx", "__missing_rec__.onnx", keysPath)
+assert missingModel.valid() == false, "rapidocr missing model accepted"
+auto missingOutput = missingModel.op_call("__missing_image__.png")
+assert missingOutput.ok() == false, "rapidocr missing model output ok failed"
+assert string.contains(missingOutput.error(), "model sessions are unavailable"), "rapidocr missing model error failed"
 
 auto configEngine = rapidocr.RapidOCR("__missing_rapidocr_config__.json")
-assert configEngine.valid(), "rapidocr config engine valid failed"
+assert configEngine.valid() == false, "rapidocr missing config accepted"
 auto configOutput = configEngine.op_call("__missing_image__.png")
 assert configOutput.ok() == false, "rapidocr config missing image output ok failed"
 
 assert output.release() == false, "rapidocr output release failed"
 assert outputFlags.release() == false, "rapidocr output flags release failed"
-assert defaultOutput.release() == false, "rapidocr default output release failed"
+assert missingOutput.release() == false, "rapidocr missing output release failed"
 assert configOutput.release() == false, "rapidocr config output release failed"
-assert defaultEngine.release(), "rapidocr default engine release failed"
-assert configEngine.release(), "rapidocr config engine release failed"
+assert missingModel.release(), "rapidocr missing model release failed"
+assert configEngine.release() == false, "rapidocr invalid config engine owns no resources"
 assert engine.release(), "rapidocr engine release failed"
 
 println("rapidocr extlib ok")

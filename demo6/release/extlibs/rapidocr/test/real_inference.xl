@@ -1,0 +1,77 @@
+import rapidocr
+
+func main(...) as int
+    string work = env.get("RAPIDOCR_TEST_DIR") ?? ""
+    string image = env.get("RAPIDOCR_TEST_IMAGE") ?? ""
+    assert work != "" and file.exists(image), "rapidocr test fixture is missing"
+    auto engine = rapidocr.RapidOCR()
+    assert engine.valid()
+    auto result = engine.op_call(image)
+    assert result.ok(), result.error()
+    assert string.contains(result.to_json(), "HELLO123")
+    assert result.text() == "HELLO123"
+    assert json.valid(result.to_ocr_json())
+    assert string.contains(result.to_ocr_json(), "HELLO123")
+    assert result.error() == ""
+
+    bool rejectedNulPath = false
+    try
+        engine.op_call(image + "\0hidden")
+    catch ValueError error
+        rejectedNulPath = true
+    end
+    assert rejectedNulPath, "image path with embedded NUL must be rejected"
+    rejectedNulPath = false
+    try
+        engine.op_call(image + "\0hidden", true, true, true)
+    catch ValueError error
+        rejectedNulPath = true
+    end
+    assert rejectedNulPath, "optioned OCR call must reject an embedded NUL path"
+    rejectedNulPath = false
+    try
+        result.vis(path.join(work, "vis.png") + "\0hidden")
+    catch ValueError error
+        rejectedNulPath = true
+    end
+    assert rejectedNulPath, "visualization path with embedded NUL must be rejected"
+
+    string modelDir = rapidocr.default_model_dir()
+    string snapshotKeys = path.join(work, "charset_snapshot.txt")
+    assert not file.exists(snapshotKeys)
+    assert file.copy(modelDir + "/ppocr_keys_v1.txt", snapshotKeys)
+    auto snapshotEngine = rapidocr.RapidOCR(
+        modelDir + "/ch_PP-OCRv4_det_infer.onnx",
+        modelDir + "/ch_ppocr_mobile_v2.0_cls_infer.onnx",
+        modelDir + "/ch_PP-OCRv4_rec_infer.onnx", snapshotKeys)
+    assert snapshotEngine.valid()
+    assert file.delete(snapshotKeys)
+    auto snapshotResult = snapshotEngine.op_call(image)
+    assert snapshotResult.ok(), snapshotResult.error()
+    assert snapshotResult.text() == "HELLO123"
+    assert snapshotEngine.release()
+
+    auto missingImage = engine.op_call(path.join(work, "missing_image.png"))
+    assert not missingImage.ok()
+    assert string.contains(missingImage.error(), "cannot open OCR image")
+    assert engine.release()
+    assert not engine.valid()
+    assert not engine.release()
+
+    auto missingModel = rapidocr.RapidOCR(path.join(work, "missing_det.onnx"), path.join(work, "missing_cls.onnx"), path.join(work, "missing_rec.onnx"), path.join(work, "missing_keys.txt"))
+    assert not missingModel.valid()
+    auto invalidResult = missingModel.op_call(image)
+    assert not invalidResult.ok()
+    assert string.contains(invalidResult.error(), "model sessions are unavailable")
+    missingModel.release()
+
+    bool rejectedLargeIndex = false
+    try
+        rapidocr.box_x("[]", 2147483648)
+    catch ValueError error
+        rejectedLargeIndex = true
+    end
+    assert rejectedLargeIndex
+    println("rapidocr real inference: PASS")
+    return 0
+end

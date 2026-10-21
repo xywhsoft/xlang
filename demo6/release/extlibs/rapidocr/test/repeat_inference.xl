@@ -1,0 +1,18 @@
+import rapidocr
+
+func main(...) as int
+    string image = env.get("RAPIDOCR_TEST_IMAGE") ?? ""
+    assert file.exists(image), "rapidocr test fixture is missing"
+    for cycle in range(0, 3)
+        auto engine = rapidocr.RapidOCR()
+        assert engine.valid()
+        for round in range(0, 3)
+            auto output = engine.op_call(image)
+            assert output.ok(), output.error()
+            assert output.text() == "HELLO123"
+        end
+        assert engine.release()
+    end
+    println("rapidocr repeated inference: PASS")
+    return 0
+end

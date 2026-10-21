@@ -1,0 +1,36 @@
+import rapidocr
+
+func recognizeOnce() as int
+    auto engine = rapidocr.RapidOCR()
+    if not engine.valid() then
+        println("rapidocr worker: engine creation failed: " + rapidocr.last_error())
+        return 1
+    end
+    string image = env.get("RAPIDOCR_TEST_IMAGE") ?? ""
+    auto result = engine.op_call(image)
+    if not result.ok() or result.text() != "HELLO123" then
+        println("rapidocr worker: inference failed: " + result.error() + " text=" + result.text())
+        engine.release()
+        return 2
+    end
+    if not engine.release() then return 3 end
+    return 0
+end
+
+func main(...) as int
+    bool cold = arg.length > 1 and string(arg[1]) == "--cold"
+    if cold then println("rapidocr cold start") end
+    if not cold then
+        assert rapidocr.available()
+        assert file.exists(env.get("RAPIDOCR_TEST_IMAGE") ?? "")
+    end
+    thread first = thread(recognizeOnce)
+    thread second = thread(recognizeOnce)
+    assert first.wait()
+    assert second.wait()
+    println("rapidocr worker exit codes: " + string(first.exitCode()) + ", " + string(second.exitCode()))
+    assert first.exitCode() == 0, "first OCR worker failed"
+    assert second.exitCode() == 0, "second OCR worker failed"
+    println("rapidocr parallel inference: PASS")
+    return 0
+end

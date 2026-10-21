@@ -1,0 +1,35 @@
+import rapidocr
+import opencv
+import onnxruntime
+
+func probeOnce() as int
+    if not opencv.available() then
+        println("cold probe: opencv unavailable: " + opencv.last_error())
+        return 1
+    end
+    if not onnxruntime.available() then
+        println("cold probe: onnxruntime unavailable: " + onnxruntime.last_error())
+        return 2
+    end
+    string modelDir = rapidocr.default_model_dir()
+    if not file.exists(path.join(modelDir, "ch_PP-OCRv4_det_infer.onnx")) then
+        println("cold probe: model missing: " + modelDir)
+        return 3
+    end
+    if not file.exists(env.get("RAPIDOCR_TEST_IMAGE") ?? "") then
+        println("cold probe: fixture missing")
+        return 4
+    end
+    return 0
+end
+
+func main(...) as int
+    thread first = thread(probeOnce)
+    thread second = thread(probeOnce)
+    assert first.wait()
+    assert second.wait()
+    println("cold probe exit codes: " + string(first.exitCode()) + ", " + string(second.exitCode()))
+    assert first.exitCode() == 0
+    assert second.exitCode() == 0
+    return 0
+end

@@ -1,0 +1,9 @@
+import rapidocr
+
+func main(...) as int
+    assert rapidocr.available()
+    auto engine = rapidocr.RapidOCR()
+    assert engine.valid()
+    assert engine.release()
+    return 0
+end

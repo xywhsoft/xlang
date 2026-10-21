@@ -1,0 +1,18 @@
+import rapidocr
+
+func main(...) as int
+    assert rapidocr.available()
+    auto engine = rapidocr.RapidOCR()
+    assert engine.valid()
+
+    auto output = engine.op_call("ok.png")
+    assert output.ok()
+    assert output.text() == "mock text"
+    assert output.release()
+
+    auto missing = engine.op_call("missing.png")
+    assert not missing.ok()
+    assert string.contains(missing.error(), "mock missing image")
+    assert engine.release()
+    return 0
+end

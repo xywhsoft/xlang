@@ -1,0 +1,125 @@
+import rapidocr
+func main(...) as int
+    string keys = "extlibs/rapidocr/test/charset_special.txt"
+    var info = json.parse(rapidocr.charset_info(keys))
+    assert int(info["count"]) == 3
+    assert string(info["first"]) == "\""
+    bool rejectedNulPath = false
+    try
+        rapidocr.charset_info(keys + "\0hidden")
+    catch ValueError error
+        rejectedNulPath = true
+    end
+    assert rejectedNulPath, "charset path with embedded NUL must be rejected"
+    assert json.valid(rapidocr.charset_info(rapidocr.default_model_dir() + "\\ppocr_keys_v1.txt"))
+    string source = `{"shape":[3,4],"data":[0,1,0,0,0,0,1,0,0,0,0,1]}`
+    string decoded = rapidocr.rec_decode(source, keys)
+    bool rejectedNulJson = false
+    try
+        rapidocr.rec_decode(source + "\0invalid", keys)
+    catch ValueError error
+        rejectedNulJson = true
+    end
+    assert rejectedNulJson, "recognizer JSON with embedded NUL must be rejected"
+    assert rapidocr.box_count("[]") == 0
+    rejectedNulJson = false
+    try
+        rapidocr.box_count("[]\0invalid")
+    catch ValueError error
+        rejectedNulJson = true
+    end
+    assert rejectedNulJson, "box JSON with embedded NUL must be rejected"
+    string boxes = `[{"box":[[0,0],[10,0],[10,4],[0,4]]}]`
+    string resultJson = rapidocr.assemble_result(boxes, `{"text":"ok","score":1}`)
+    assert json.valid(rapidocr.to_ocr_items_json(resultJson))
+    rejectedNulJson = false
+    try
+        rapidocr.assemble_result(boxes, `{"text":"ok","score":1}` + "\0invalid")
+    catch ValueError error
+        rejectedNulJson = true
+    end
+    assert rejectedNulJson, "recognition JSON with embedded NUL must be rejected"
+    rejectedNulJson = false
+    try
+        rapidocr.to_ocr_items_json(resultJson + "\0invalid")
+    catch ValueError error
+        rejectedNulJson = true
+    end
+    assert rejectedNulJson, "result JSON with embedded NUL must be rejected"
+    rejectedNulPath = false
+    try
+        rapidocr.rec_decode(source, keys + "\0hidden")
+    catch ValueError error
+        rejectedNulPath = true
+    end
+    assert rejectedNulPath, "decode path with embedded NUL must be rejected"
+    rejectedNulPath = false
+    try
+        rapidocr.rec_decode_result(null, keys + "\0hidden")
+    catch ValueError error
+        rejectedNulPath = true
+    end
+    assert rejectedNulPath, "result decoder path with embedded NUL must be rejected"
+    rejectedNulPath = false
+    try
+        rapidocr.RapidOCR("__missing_config__.json\0hidden")
+    catch ValueError error
+        rejectedNulPath = true
+    end
+    assert rejectedNulPath, "config path with embedded NUL must be rejected"
+    rejectedNulPath = false
+    try
+        rapidocr.RapidOCREngine("__missing_config__.json\0hidden")
+    catch ValueError error
+        rejectedNulPath = true
+    end
+    assert rejectedNulPath, "direct config constructor must reject embedded NUL"
+    rejectedNulPath = false
+    try
+        rapidocr.RapidOCR("__missing_det__.onnx\0hidden", "cls", "rec", keys)
+    catch ValueError error
+        rejectedNulPath = true
+    end
+    assert rejectedNulPath, "model path with embedded NUL must be rejected"
+    rejectedNulPath = false
+    try
+        rapidocr.RapidOCREngine("__missing_det__.onnx\0hidden", "cls", "rec", keys)
+    catch ValueError error
+        rejectedNulPath = true
+    end
+    assert rejectedNulPath, "direct model constructor must reject embedded NUL"
+    rejectedNulPath = false
+    try
+        rapidocr.vis_image("__missing_image__.png\0hidden", "[]", "out.png")
+    catch ValueError error
+        rejectedNulPath = true
+    end
+    assert rejectedNulPath, "visualization source path with embedded NUL must be rejected"
+    rejectedNulPath = false
+    try
+        rapidocr.vis_image("", "[]", "out.png\0hidden")
+    catch ValueError error
+        rejectedNulPath = true
+    end
+    assert rejectedNulPath, "visualization output path with embedded NUL must be rejected"
+    var value = json.parse(decoded)
+    assert string(value["text"]) == "\"\\A"
+    assert int(value["tokens"]) == 3
+
+    assert rapidocr.rec_decode(`{"shape":[3,4],"data":[0,1]}`, keys) == "{}"
+    assert string.contains(rapidocr.last_error(), "incomplete")
+    assert rapidocr.rec_decode(source, "__missing_rapidocr_charset__.txt") == "{}"
+    assert string.contains(rapidocr.last_error(), "charset")
+    point none = null
+    assert rapidocr.rec_decode_result(none, keys) == "{}"
+    assert rapidocr.cls_decode_result(none) == "{}"
+    bool invalidAssembly = false
+    try
+        rapidocr.assemble_result("not-json", "{}")
+    catch ValueError error
+        invalidAssembly = true
+    end
+    assert invalidAssembly
+    println("rapidocr rec decode: PASS")
+    return 0
+end

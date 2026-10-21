@@ -1,3 +1,7 @@
+#if !defined(_WIN32) && !defined(_WIN64)
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 #else
@@ -8,6 +12,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <limits.h>
+#include "xrt.h"
+#include "rapidocr.h"
+#include "rapidocr_json_private.h"
 
 #if defined(_WIN32) || defined(_WIN64)
 #define XL_EXPORT __declspec(dllexport)
@@ -18,6 +26,7 @@
 typedef void* (*RapidCreateFn)(const char*);
 typedef void (*RapidReleaseFn)(void*);
 typedef void* (*RapidCallFn)(void*, const char*, int, int, int, int);
+typedef int (*RapidAvailableFn)(void);
 typedef int (*RapidOkFn)(void*);
 typedef const char* (*RapidTextFn)(void*);
 typedef double (*RapidFloatFn)(void*);
@@ -32,7 +41,6 @@ typedef void* (*RapidCvRectangleFn)(void*, int, int, int, int, double, double, d
 typedef void (*RapidCvReleaseFn)(void*);
 
 typedef struct RapidApi {
-	int attempted;
 	int loaded;
 #if defined(_WIN32) || defined(_WIN64)
 	HMODULE module;
@@ -40,6 +48,7 @@ typedef struct RapidApi {
 	void* module;
 #endif
 	RapidCreateFn create;
+	RapidAvailableFn available;
 	RapidReleaseFn release;
 	RapidCallFn call;
 	RapidReleaseFn output_release;
@@ -54,31 +63,25 @@ typedef struct RapidApi {
 	RapidFloatFn output_elapse;
 	RapidVisFn output_vis;
 	RapidLastErrorFn last_error;
-	char path[512];
+	char* path;
 } RapidApi;
 
-typedef struct RapidFallbackOutput {
-	char json[256];
-} RapidFallbackOutput;
+typedef struct RapidCharset {
+	bytes data;
+	char** items;
+	int count;
+} RapidCharset;
 
 static RapidApi g_rapid;
-static char g_error[512];
-static char g_det_boxes_json[32768];
-static char g_charset_json[512];
-static char g_rec_json_ring[16][4096];
-static int g_rec_json_index;
-static char g_assembled_json[65536];
-static char g_ocr_items_json[65536];
-static char g_cls_json[256];
-static char g_charset_cache_path[1024];
-static char** g_charset_cache_items;
-static int g_charset_cache_count;
-static char g_resource_path[1024];
+static const char* g_rapid_load_error =
+	"rapidocr shim not found; set RAPIDOCR_XLANG_DLL or place rapidocr_xlang.dll under extlibs/rapidocr/bin";
+static xonce g_rapid_once = XRT_ONCE_INIT;
+static xonce g_error_once = XRT_ONCE_INIT;
+static xthreadkey* g_error_key;
 
 #define RAPIDOCR_MAX_BOXES 256
 
 typedef struct RapidOrtApi {
-	int attempted;
 	int loaded;
 #if defined(_WIN32) || defined(_WIN64)
 	HMODULE module;
@@ -91,9 +94,9 @@ typedef struct RapidOrtApi {
 } RapidOrtApi;
 
 static RapidOrtApi g_ort;
+static xonce g_ort_once = XRT_ONCE_INIT;
 
 typedef struct RapidCvApi {
-	int attempted;
 	int loaded;
 #if defined(_WIN32) || defined(_WIN64)
 	HMODULE module;
@@ -107,14 +110,7 @@ typedef struct RapidCvApi {
 } RapidCvApi;
 
 static RapidCvApi g_cv;
-
-static char* rapid_next_rec_json(void)
-{
-	char* buffer = g_rec_json_ring[g_rec_json_index & 15];
-	g_rec_json_index = (g_rec_json_index + 1) & 15;
-	buffer[0] = '\0';
-	return buffer;
-}
+static xonce g_cv_once = XRT_ONCE_INIT;
 
 static void rapid_copy(char* out, size_t out_size, const char* text)
 {
@@ -127,129 +123,106 @@ static void rapid_copy(char* out, size_t out_size, const char* text)
 	out[len] = '\0';
 }
 
+static bool rapid_error_key_init(ptr unused)
+{
+	(void)unused;
+	g_error_key = xrtThreadKeyCreate(xrtFree);
+	return g_error_key != NULL;
+}
+
+static char* rapid_error_buffer(int create)
+{
+	char* buffer;
+	if ( !xrtOnce(&g_error_once, rapid_error_key_init, NULL) ) return NULL;
+	buffer = (char*)xrtThreadKeyGet(g_error_key);
+	if ( buffer != NULL || !create ) return buffer;
+	buffer = (char*)xrtMalloc(512u);
+	if ( buffer == NULL ) return NULL;
+	buffer[0] = '\0';
+	if ( !xrtThreadKeySet(g_error_key, buffer) ) {
+		xrtFree(buffer);
+		return NULL;
+	}
+	return buffer;
+}
+
 static void rapid_set_error(const char* text)
 {
-	rapid_copy(g_error, sizeof(g_error), text);
+	char* buffer = rapid_error_buffer(text != NULL && text[0] != '\0');
+	if ( buffer != NULL ) rapid_copy(buffer, 512u, text);
 }
 
-static int rapid_path_exists(const char* path)
+static void* rapid_open_module(const char* path)
 {
-	if ( path == NULL || path[0] == '\0' ) return 0;
+	if ( path == NULL || path[0] == '\0' ) return NULL;
 #if defined(_WIN32) || defined(_WIN64)
-	return GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
+	{
+		uint16* wide = xrtUtf8To16(path, NULL);
+		HMODULE module;
+		if ( wide == NULL ) {
+			xrtClearError();
+			return NULL;
+		}
+		module = LoadLibraryExW((LPCWSTR)wide, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
+		xrtFree(wide);
+		return (void*)module;
+	}
 #else
-	return access(path, F_OK) == 0;
+	return dlopen(path, RTLD_NOW | RTLD_LOCAL);
 #endif
 }
 
-static int rapid_join_path(char* out, size_t out_size, const char* a, const char* b)
+static void rapid_close_module(void* module)
 {
-	size_t a_len;
-	const char* sep;
-	int written;
-	if ( out == NULL || out_size == 0u || a == NULL || b == NULL ) return 0;
-	a_len = strlen(a);
-	sep = (a_len > 0u && (a[a_len - 1u] == '\\' || a[a_len - 1u] == '/')) ? "" : "\\";
-	written = snprintf(out, out_size, "%s%s%s", a, sep, b);
-	return written > 0 && (size_t)written < out_size;
-}
-
-static void rapid_dir_name(char* out, size_t out_size, const char* path)
-{
-	const char* last_sep = NULL;
-	const char* p;
-	size_t len;
-	if ( out == NULL || out_size == 0u ) return;
-	out[0] = '\0';
-	if ( path == NULL || path[0] == '\0' ) return;
-	for ( p = path; *p != '\0'; ++p ) {
-		if ( *p == '\\' || *p == '/' || *p == ':' ) last_sep = p;
-	}
-	if ( last_sep == NULL ) return;
-	len = (size_t)(last_sep - path);
-	if ( *last_sep == ':' ) len += 1u;
-	if ( len >= out_size ) len = out_size - 1u;
-	memcpy(out, path, len);
-	out[len] = '\0';
-}
-
-static int rapid_exe_dir(char* out, size_t out_size)
-{
-	char path[512];
-	if ( out == NULL || out_size == 0u ) return 0;
-	out[0] = '\0';
+	if ( module == NULL ) return;
 #if defined(_WIN32) || defined(_WIN64)
-	{
-		DWORD len = GetModuleFileNameA(NULL, path, (DWORD)sizeof(path));
-		if ( len == 0 || len >= sizeof(path) ) return 0;
-		path[len] = '\0';
-	}
+	FreeLibrary((HMODULE)module);
 #else
-	{
-		ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1u);
-		if ( len <= 0 || (size_t)len >= sizeof(path) ) return 0;
-		path[len] = '\0';
-	}
+	dlclose(module);
 #endif
-	rapid_dir_name(out, out_size, path);
-	return out[0] != '\0';
 }
 
-static const char* rapid_resource_path(const char* relative)
+static char* rapid_resource_path(const char* relative)
 {
+	char* app_dir = xrtPathAppDir();
+	char* parent_dir = app_dir != NULL ? xrtPathParent(app_dir) : NULL;
+	char* app_base = app_dir != NULL ? xrtPathJoin(app_dir, "extlibs/rapidocr") : NULL;
+	char* parent_base = parent_dir != NULL ? xrtPathJoin(parent_dir, "extlibs/rapidocr") : NULL;
+	const char* bases[4] = { app_base, parent_base, "extlibs/rapidocr", "release/extlibs/rapidocr" };
+	char* fallback = NULL;
+	char* selected = NULL;
 	const char* rel = relative != NULL ? relative : "";
-	char exe_dir[512];
-	char parent_dir[512];
-	char base[1024];
+	int i;
 
-	if ( rapid_exe_dir(exe_dir, sizeof(exe_dir)) &&
-	     rapid_join_path(base, sizeof(base), exe_dir, "extlibs\\rapidocr") &&
-	     rapid_join_path(g_resource_path, sizeof(g_resource_path), base, rel) ) {
-		if ( rapid_path_exists(g_resource_path) ) return g_resource_path;
+	for ( i = 0; i < 4; ++i ) {
+		char* candidate;
+		if ( bases[i] == NULL || bases[i][0] == '\0' ) continue;
+		candidate = xrtPathJoin(bases[i], rel);
+		if ( candidate == NULL ) {
+			xrtClearError();
+			continue;
+		}
+		if ( i == 0 ) fallback = candidate;
+		if ( xrtPathExists(candidate) ) {
+			selected = candidate;
+			if ( selected == fallback ) fallback = NULL;
+			break;
+		}
+		xrtClearError();
+		if ( candidate != fallback ) xrtFree(candidate);
 	}
-	if ( exe_dir[0] != '\0' &&
-	     (rapid_dir_name(parent_dir, sizeof(parent_dir), exe_dir), parent_dir[0] != '\0') &&
-	     rapid_join_path(base, sizeof(base), parent_dir, "extlibs\\rapidocr") &&
-	     rapid_join_path(g_resource_path, sizeof(g_resource_path), base, rel) ) {
-		if ( rapid_path_exists(g_resource_path) ) return g_resource_path;
+	if ( selected == NULL ) {
+		selected = fallback != NULL ? fallback : xrtPathJoin("extlibs/rapidocr", rel);
+		fallback = NULL;
 	}
-	if ( rapid_join_path(base, sizeof(base), "extlibs\\rapidocr", rel) ) {
-		rapid_copy(g_resource_path, sizeof(g_resource_path), base);
-		if ( rapid_path_exists(g_resource_path) ) return g_resource_path;
-	}
-	if ( rapid_join_path(base, sizeof(base), "release\\extlibs\\rapidocr", rel) ) {
-		rapid_copy(g_resource_path, sizeof(g_resource_path), base);
-		if ( rapid_path_exists(g_resource_path) ) return g_resource_path;
-	}
-	if ( rapid_join_path(base, sizeof(base), "release\extlibs\\rapidocr", rel) ) {
-		rapid_copy(g_resource_path, sizeof(g_resource_path), base);
-		if ( rapid_path_exists(g_resource_path) ) return g_resource_path;
-	}
-	if ( rapid_exe_dir(exe_dir, sizeof(exe_dir)) &&
-	     rapid_join_path(base, sizeof(base), exe_dir, "extlibs\\rapidocr") &&
-	     rapid_join_path(g_resource_path, sizeof(g_resource_path), base, rel) ) {
-		return g_resource_path;
-	}
-	if ( exe_dir[0] != '\0' &&
-	     (rapid_dir_name(parent_dir, sizeof(parent_dir), exe_dir), parent_dir[0] != '\0') &&
-	     rapid_join_path(base, sizeof(base), parent_dir, "extlibs\\rapidocr") &&
-	     rapid_join_path(g_resource_path, sizeof(g_resource_path), base, rel) ) {
-		return g_resource_path;
-	}
-	rapid_join_path(g_resource_path, sizeof(g_resource_path), "extlibs\\rapidocr", rel);
-	return g_resource_path;
-}
-
-static void rapid_append(char* out, size_t out_size, size_t* used, const char* text)
-{
-	size_t n;
-	if ( out == NULL || out_size == 0u || used == NULL || text == NULL ) return;
-	if ( *used >= out_size ) return;
-	n = strlen(text);
-	if ( n >= out_size - *used ) n = out_size - *used - 1u;
-	memcpy(out + *used, text, n);
-	*used += n;
-	out[*used] = '\0';
+	xrtFree(fallback);
+	xrtFree(parent_base);
+	xrtFree(app_base);
+	xrtFree(parent_dir);
+	xrtFree(app_dir);
+	if ( selected == NULL ) xrtClearError();
+	rapid_set_error(selected != NULL ? "" : "rapidocr resource path resolution failed");
+	return selected;
 }
 
 static void* rapid_sym(const char* name)
@@ -264,13 +237,10 @@ static void* rapid_sym(const char* name)
 static int rapid_try_load(const char* path)
 {
 	if ( path == NULL || path[0] == '\0' ) return 0;
-#if defined(_WIN32) || defined(_WIN64)
-	g_rapid.module = LoadLibraryExA(path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
-#else
-	g_rapid.module = dlopen(path, RTLD_NOW | RTLD_LOCAL);
-#endif
+	g_rapid.module = rapid_open_module(path);
 	if ( g_rapid.module == NULL ) return 0;
 	g_rapid.create = (RapidCreateFn)rapid_sym("rapidocr_xl_create");
+	g_rapid.available = (RapidAvailableFn)rapid_sym("rapidocr_xl_available");
 	g_rapid.release = (RapidReleaseFn)rapid_sym("rapidocr_xl_release");
 	g_rapid.call = (RapidCallFn)rapid_sym("rapidocr_xl_call");
 	g_rapid.output_release = (RapidReleaseFn)rapid_sym("rapidocr_xl_output_release");
@@ -285,54 +255,93 @@ static int rapid_try_load(const char* path)
 	g_rapid.output_elapse = (RapidFloatFn)rapid_sym("rapidocr_xl_output_elapse");
 	g_rapid.output_vis = (RapidVisFn)rapid_sym("rapidocr_xl_output_vis");
 	g_rapid.last_error = (RapidLastErrorFn)rapid_sym("rapidocr_xl_last_error");
-	if ( g_rapid.create == NULL || g_rapid.call == NULL ) {
-		rapid_set_error("rapidocr shim loaded but required symbols are missing");
+	if ( g_rapid.create == NULL || g_rapid.available == NULL ||
+		g_rapid.release == NULL ||
+		g_rapid.call == NULL || g_rapid.output_release == NULL ||
+		g_rapid.output_ok == NULL || g_rapid.output_json == NULL ||
+		g_rapid.output_text == NULL || g_rapid.output_boxes == NULL ||
+		g_rapid.output_txts == NULL || g_rapid.output_scores == NULL ||
+		g_rapid.output_word_results == NULL || g_rapid.output_elapse_list == NULL ||
+		g_rapid.output_elapse == NULL || g_rapid.output_vis == NULL ||
+		g_rapid.last_error == NULL ) {
+		rapid_close_module(g_rapid.module);
+		memset(&g_rapid, 0, sizeof(g_rapid));
+		g_rapid_load_error = "rapidocr shim loaded but required symbols are missing";
+		rapid_set_error(g_rapid_load_error);
+		return 0;
+	}
+	g_rapid.path = xrtStrDup(path);
+	if ( g_rapid.path == NULL ) {
+		rapid_close_module(g_rapid.module);
+		memset(&g_rapid, 0, sizeof(g_rapid));
+		g_rapid_load_error = "rapidocr shim path allocation failed";
+		rapid_set_error(g_rapid_load_error);
 		return 0;
 	}
 	g_rapid.loaded = 1;
-	rapid_copy(g_rapid.path, sizeof(g_rapid.path), path);
 	rapid_set_error("");
 	return 1;
 }
 
 static int rapid_try_load_from_exe_or_parent(const char* relative, int (*load_fn)(const char*))
 {
-	char exe_dir[512];
-	char parent_dir[512];
-	char path[1024];
+	char* app_dir = load_fn != NULL ? xrtPathAppDir() : NULL;
+	char* parent_dir = app_dir != NULL ? xrtPathParent(app_dir) : NULL;
+	char* path = NULL;
+	int loaded = 0;
+	if ( app_dir != NULL ) {
+		path = xrtPathJoin(app_dir, relative);
+		if ( path != NULL ) loaded = load_fn(path);
+		xrtFree(path);
+	}
+	if ( !loaded && parent_dir != NULL ) {
+		path = xrtPathJoin(parent_dir, relative);
+		if ( path != NULL ) loaded = load_fn(path);
+		xrtFree(path);
+	}
+	xrtFree(parent_dir);
+	xrtFree(app_dir);
+	if ( !loaded ) xrtClearError();
+	return loaded;
+}
 
-	if ( load_fn == NULL || !rapid_exe_dir(exe_dir, sizeof(exe_dir)) ) return 0;
-	if ( rapid_join_path(path, sizeof(path), exe_dir, relative) && load_fn(path) ) return 1;
-	rapid_dir_name(parent_dir, sizeof(parent_dir), exe_dir);
-	if ( parent_dir[0] == '\0' || !rapid_join_path(path, sizeof(path), parent_dir, relative) ) return 0;
-	return load_fn(path);
+static bool rapid_load_once(ptr unused)
+{
+	char* env_path;
+	const char* candidates[] = {
+		"rapidocr_xlang.dll",
+		"bin/rapidocr_xlang.dll",
+		"extlibs/rapidocr/bin/rapidocr_xlang.dll",
+		"release/extlibs/rapidocr/bin/rapidocr_xlang.dll",
+		NULL
+	};
+	int i;
+	(void)unused;
+	env_path = xrtEnvGet("RAPIDOCR_XLANG_DLL");
+	if ( env_path != NULL ) {
+		int explicit_path = env_path[0] != '\0';
+		if ( explicit_path ) (void)rapid_try_load(env_path);
+		xrtFree(env_path);
+		if ( explicit_path ) {
+			xrtClearError();
+			return true;
+		}
+	}
+	xrtClearError();
+	if ( rapid_try_load_from_exe_or_parent("extlibs/rapidocr/bin/rapidocr_xlang.dll", rapid_try_load) ) return true;
+	for ( i = 0; candidates[i] != NULL; ++i ) {
+		if ( rapid_try_load(candidates[i]) ) return true;
+	}
+	return true;
 }
 
 static int rapid_load(void)
 {
-	const char* env_path;
-	const char* candidates[] = {
-		"rapidocr_xlang.dll",
-		"bin\\rapidocr_xlang.dll",
-		"extlibs\\rapidocr\\bin\\rapidocr_xlang.dll",
-		"release\\extlibs\\rapidocr\\bin\\rapidocr_xlang.dll",
-		"libs\\rapidocr\\bin\\rapidocr_xlang.dll",
-		"release\\libs\\rapidocr\\bin\\rapidocr_xlang.dll",
-		"release\examples\\libs\\rapidocr\\bin\\rapidocr_xlang.dll",
-		NULL
-	};
-	int i;
-	if ( g_rapid.loaded ) return 1;
-	if ( g_rapid.attempted ) return 0;
-	g_rapid.attempted = 1;
-	env_path = getenv("RAPIDOCR_XLANG_DLL");
-	if ( env_path != NULL && env_path[0] != '\0' && rapid_try_load(env_path) ) return 1;
-	if ( rapid_try_load_from_exe_or_parent("extlibs\\rapidocr\\bin\\rapidocr_xlang.dll", rapid_try_load) ) return 1;
-	for ( i = 0; candidates[i] != NULL; ++i ) {
-		if ( rapid_try_load(candidates[i]) ) return 1;
+	if ( !xrtOnce(&g_rapid_once, rapid_load_once, NULL) || !g_rapid.loaded ) {
+		rapid_set_error(g_rapid_load_error);
+		return 0;
 	}
-	rapid_set_error("rapidocr shim not found; set RAPIDOCR_XLANG_DLL or place rapidocr_xlang.dll under extlibs\\rapidocr\\bin");
-	return 0;
+	return 1;
 }
 
 static void* rapid_ort_sym(const char* name)
@@ -347,44 +356,53 @@ static void* rapid_ort_sym(const char* name)
 static int rapid_ort_try_load(const char* path)
 {
 	if ( path == NULL || path[0] == '\0' ) return 0;
-#if defined(_WIN32) || defined(_WIN64)
-	g_ort.module = LoadLibraryExA(path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
-#else
-	g_ort.module = dlopen(path, RTLD_NOW | RTLD_LOCAL);
-#endif
+	g_ort.module = rapid_open_module(path);
 	if ( g_ort.module == NULL ) return 0;
 	g_ort.shape_json = (OrtResultShapeFn)rapid_ort_sym("onnxruntime_xl_result_float_shape_json");
 	g_ort.float_count = (OrtResultCountFn)rapid_ort_sym("onnxruntime_xl_result_float_count");
 	g_ort.float_at = (OrtResultFloatAtFn)rapid_ort_sym("onnxruntime_xl_result_float_at");
-	if ( g_ort.shape_json == NULL || g_ort.float_count == NULL || g_ort.float_at == NULL ) return 0;
+	if ( g_ort.shape_json == NULL || g_ort.float_count == NULL || g_ort.float_at == NULL ) {
+		rapid_close_module(g_ort.module);
+		g_ort.module = NULL;
+		return 0;
+	}
 	g_ort.loaded = 1;
 	return 1;
 }
 
-static int rapid_ort_load(void)
+static bool rapid_ort_load_once(ptr unused)
 {
-	const char* env_path;
+	char* env_path;
 	const char* candidates[] = {
 		"onnxruntime_xlang.dll",
-		"bin\\onnxruntime_xlang.dll",
-		"extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"release\\extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"release\\libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",
-		"release\examples\\libs\\onnxruntime\\bin\\onnxruntime_xlang.dll",		NULL
+		"bin/onnxruntime_xlang.dll",
+		"extlibs/onnxruntime/bin/onnxruntime_xlang.dll",
+		"release/extlibs/onnxruntime/bin/onnxruntime_xlang.dll",
+		NULL
 	};
 	int i;
-	if ( g_ort.loaded ) return 1;
-	if ( g_ort.attempted ) return 0;
-	g_ort.attempted = 1;
-	env_path = getenv("ONNXRUNTIME_XLANG_DLL");
-	if ( env_path != NULL && env_path[0] != '\0' && rapid_ort_try_load(env_path) ) return 1;
-	if ( rapid_try_load_from_exe_or_parent("extlibs\\onnxruntime\\bin\\onnxruntime_xlang.dll", rapid_ort_try_load) ) return 1;
-	for ( i = 0; candidates[i] != NULL; ++i ) {
-		if ( rapid_ort_try_load(candidates[i]) ) return 1;
+	(void)unused;
+	env_path = xrtEnvGet("ONNXRUNTIME_XLANG_DLL");
+	if ( env_path != NULL ) {
+		int loaded = rapid_ort_try_load(env_path);
+		xrtFree(env_path);
+		if ( loaded ) return true;
 	}
-	rapid_set_error("onnxruntime_xlang.dll with typed output symbols was not found");
-	return 0;
+	xrtClearError();
+	if ( rapid_try_load_from_exe_or_parent("extlibs/onnxruntime/bin/onnxruntime_xlang.dll", rapid_ort_try_load) ) return true;
+	for ( i = 0; candidates[i] != NULL; ++i ) {
+		if ( rapid_ort_try_load(candidates[i]) ) return true;
+	}
+	return true;
+}
+
+static int rapid_ort_load(void)
+{
+	if ( !xrtOnce(&g_ort_once, rapid_ort_load_once, NULL) || !g_ort.loaded ) {
+		rapid_set_error("onnxruntime_xlang.dll with typed output symbols was not found");
+		return 0;
+	}
+	return 1;
 }
 
 static void* rapid_cv_sym(const char* name)
@@ -399,45 +417,54 @@ static void* rapid_cv_sym(const char* name)
 static int rapid_cv_try_load(const char* path)
 {
 	if ( path == NULL || path[0] == '\0' ) return 0;
-#if defined(_WIN32) || defined(_WIN64)
-	g_cv.module = LoadLibraryExA(path, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
-#else
-	g_cv.module = dlopen(path, RTLD_NOW | RTLD_LOCAL);
-#endif
+	g_cv.module = rapid_open_module(path);
 	if ( g_cv.module == NULL ) return 0;
 	g_cv.imread = (RapidCvImreadFn)rapid_cv_sym("opencv_xl_imread");
 	g_cv.imwrite = (RapidCvImwriteFn)rapid_cv_sym("opencv_xl_imwrite");
 	g_cv.rectangle = (RapidCvRectangleFn)rapid_cv_sym("opencv_xl_rectangle");
 	g_cv.release = (RapidCvReleaseFn)rapid_cv_sym("opencv_xl_release");
-	if ( g_cv.imread == NULL || g_cv.imwrite == NULL || g_cv.release == NULL ) return 0;
+	if ( g_cv.imread == NULL || g_cv.imwrite == NULL || g_cv.release == NULL ) {
+		rapid_close_module(g_cv.module);
+		g_cv.module = NULL;
+		return 0;
+	}
 	g_cv.loaded = 1;
 	return 1;
 }
 
-static int rapid_cv_load(void)
+static bool rapid_cv_load_once(ptr unused)
 {
-	const char* env_path;
+	char* env_path;
 	const char* candidates[] = {
 		"opencv_xlang.dll",
-		"bin\\opencv_xlang.dll",
-		"extlibs\\opencv\\bin\\opencv_xlang.dll",
-		"release\\extlibs\\opencv\\bin\\opencv_xlang.dll",
-		"libs\\opencv\\bin\\opencv_xlang.dll",
-		"release\\libs\\opencv\\bin\\opencv_xlang.dll",
-		"release\examples\\libs\\opencv\\bin\\opencv_xlang.dll",		NULL
+		"bin/opencv_xlang.dll",
+		"extlibs/opencv/bin/opencv_xlang.dll",
+		"release/extlibs/opencv/bin/opencv_xlang.dll",
+		NULL
 	};
 	int i;
-	if ( g_cv.loaded ) return 1;
-	if ( g_cv.attempted ) return 0;
-	g_cv.attempted = 1;
-	env_path = getenv("OPENCV_XLANG_DLL");
-	if ( env_path != NULL && env_path[0] != '\0' && rapid_cv_try_load(env_path) ) return 1;
-	if ( rapid_try_load_from_exe_or_parent("extlibs\\opencv\\bin\\opencv_xlang.dll", rapid_cv_try_load) ) return 1;
-	for ( i = 0; candidates[i] != NULL; ++i ) {
-		if ( rapid_cv_try_load(candidates[i]) ) return 1;
+	(void)unused;
+	env_path = xrtEnvGet("OPENCV_XLANG_DLL");
+	if ( env_path != NULL ) {
+		int loaded = rapid_cv_try_load(env_path);
+		xrtFree(env_path);
+		if ( loaded ) return true;
 	}
-	rapid_set_error("opencv_xlang.dll with drawing symbols was not found");
-	return 0;
+	xrtClearError();
+	if ( rapid_try_load_from_exe_or_parent("extlibs/opencv/bin/opencv_xlang.dll", rapid_cv_try_load) ) return true;
+	for ( i = 0; candidates[i] != NULL; ++i ) {
+		if ( rapid_cv_try_load(candidates[i]) ) return true;
+	}
+	return true;
+}
+
+static int rapid_cv_load(void)
+{
+	if ( !xrtOnce(&g_cv_once, rapid_cv_load_once, NULL) || !g_cv.loaded ) {
+		rapid_set_error("opencv_xlang.dll with drawing symbols was not found");
+		return 0;
+	}
+	return 1;
 }
 
 static int rapid_parse_box_rect_at(const char* boxes_json, int target_index, int* out_x1, int* out_y1, int* out_x2, int* out_y2);
@@ -450,53 +477,40 @@ static int rapid_parse_first_box_rect(const char* boxes_json, int* out_x1, int* 
 
 static int rapid_parse_box_rect_at(const char* boxes_json, int target_index, int* out_x1, int* out_y1, int* out_x2, int* out_y2)
 {
-	const char* p = boxes_json;
-	int values[8];
-	int count = 0;
-	int current_index = 0;
+	double points[8];
+	int i;
+	int min_x, min_y, max_x, max_y;
 	if ( out_x1 == NULL || out_y1 == NULL || out_x2 == NULL || out_y2 == NULL ) return 0;
-	if ( p == NULL || target_index < 0 ) return 0;
-	while ( *p != '\0' ) {
-		const char* box = strstr(p, "\"box\"");
-		if ( box == NULL ) return 0;
-		p = strchr(box, '[');
-		if ( p == NULL ) return 0;
-		count = 0;
-		while ( *p != '\0' && count < 8 ) {
-			char* endp;
-			while ( *p != '\0' && *p != '-' && (*p < '0' || *p > '9') ) ++p;
-			if ( *p == '\0' ) break;
-			values[count++] = (int)strtol(p, &endp, 10);
-			if ( endp == p ) break;
-			p = endp;
-		}
-		if ( count >= 8 && current_index == target_index ) break;
-		++current_index;
+	if ( !rapidocr_json_box_points_at(boxes_json, target_index, points) ) return 0;
+	for ( i = 0; i < 8; ++i ) {
+		if ( points[i] < (double)INT_MIN || points[i] > (double)INT_MAX ) return 0;
 	}
-	if ( count < 8 ) return 0;
-	*out_x1 = values[0];
-	*out_y1 = values[1];
-	*out_x2 = values[0];
-	*out_y2 = values[1];
-	for ( count = 2; count < 8; count += 2 ) {
-		if ( values[count] < *out_x1 ) *out_x1 = values[count];
-		if ( values[count] > *out_x2 ) *out_x2 = values[count];
-		if ( values[count + 1] < *out_y1 ) *out_y1 = values[count + 1];
-		if ( values[count + 1] > *out_y2 ) *out_y2 = values[count + 1];
+	min_x = max_x = (int)points[0];
+	min_y = max_y = (int)points[1];
+	for ( i = 2; i < 8; i += 2 ) {
+		int x = (int)points[i];
+		int y = (int)points[i + 1];
+		if ( x < min_x ) min_x = x;
+		if ( x > max_x ) max_x = x;
+		if ( y < min_y ) min_y = y;
+		if ( y > max_y ) max_y = y;
 	}
+	*out_x1 = min_x;
+	*out_y1 = min_y;
+	*out_x2 = max_x;
+	*out_y2 = max_y;
 	return 1;
 }
 
 static int rapid_box_count(const char* boxes_json)
 {
-	const char* p = boxes_json;
-	int count = 0;
-	if ( p == NULL ) return 0;
-	while ( (p = strstr(p, "\"box\"")) != NULL ) {
-		++count;
-		p += 5;
-	}
-	return count;
+	return rapidocr_json_box_count(boxes_json);
+}
+
+static int rapid_rect_extent(int lower, int upper)
+{
+	int64 width = (int64)upper - (int64)lower;
+	return width > 0 && width <= INT_MAX ? (int)width : 0;
 }
 
 XL_EXPORT int rapidocr_vis_image_native(const char* source_path, const char* boxes_json, const char* save_path)
@@ -570,14 +584,14 @@ XL_EXPORT int rapidocr_box_width_native(const char* boxes_json, int index)
 {
 	int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
 	(void)y1; (void)y2;
-	return rapid_parse_box_rect_at(boxes_json, index, &x1, &y1, &x2, &y2) && x2 > x1 ? x2 - x1 : 0;
+	return rapid_parse_box_rect_at(boxes_json, index, &x1, &y1, &x2, &y2) ? rapid_rect_extent(x1, x2) : 0;
 }
 
 XL_EXPORT int rapidocr_box_height_native(const char* boxes_json, int index)
 {
 	int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
 	(void)x1; (void)x2;
-	return rapid_parse_box_rect_at(boxes_json, index, &x1, &y1, &x2, &y2) && y2 > y1 ? y2 - y1 : 0;
+	return rapid_parse_box_rect_at(boxes_json, index, &x1, &y1, &x2, &y2) ? rapid_rect_extent(y1, y2) : 0;
 }
 
 XL_EXPORT int rapidocr_first_box_y_native(const char* boxes_json)
@@ -591,79 +605,147 @@ XL_EXPORT int rapidocr_first_box_width_native(const char* boxes_json)
 {
 	int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
 	(void)y1; (void)y2;
-	return rapid_parse_first_box_rect(boxes_json, &x1, &y1, &x2, &y2) && x2 > x1 ? x2 - x1 : 0;
+	return rapid_parse_first_box_rect(boxes_json, &x1, &y1, &x2, &y2) ? rapid_rect_extent(x1, x2) : 0;
 }
 
 XL_EXPORT int rapidocr_first_box_height_native(const char* boxes_json)
 {
 	int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
 	(void)x1; (void)x2;
-	return rapid_parse_first_box_rect(boxes_json, &x1, &y1, &x2, &y2) && y2 > y1 ? y2 - y1 : 0;
+	return rapid_parse_first_box_rect(boxes_json, &x1, &y1, &x2, &y2) ? rapid_rect_extent(y1, y2) : 0;
 }
 
-XL_EXPORT int rapidocr_available_native(void) { return rapid_load(); }
+XL_EXPORT int rapidocr_available_native(void)
+{
+	const char* message;
+	if ( !rapid_load() ) return 0;
+	if ( g_rapid.available() ) {
+		rapid_set_error("");
+		return 1;
+	}
+	message = g_rapid.last_error();
+	rapid_set_error(message != NULL && message[0] != '\0' ? message :
+		"rapidocr bridge is unavailable");
+	return 0;
+}
 XL_EXPORT const char* rapidocr_backend_native(void) { return rapid_load() ? g_rapid.path : ""; }
-XL_EXPORT const char* rapidocr_last_error_native(void) { return g_error; }
-XL_EXPORT const char* rapidocr_extlib_path_native(const char* relative) { return rapid_resource_path(relative); }
-XL_EXPORT void* rapidocr_create_native(const char* config_path) { return (rapid_load() && g_rapid.create != NULL) ? g_rapid.create(config_path) : calloc(1, 1); }
-XL_EXPORT int rapidocr_release_native(void* handle) { if ( rapid_load() && g_rapid.release != NULL ) g_rapid.release(handle); else free(handle); return 1; }
+XL_EXPORT const char* rapidocr_last_error_native(void)
+{
+	const char* buffer = rapid_error_buffer(0);
+	return buffer != NULL ? buffer : "";
+}
+XL_EXPORT void* rapidocr_extlib_path_native(const char* relative) { return rapid_resource_path(relative); }
+
+static void rapid_bridge_error(const char* fallback)
+{
+	const char* message = g_rapid.last_error != NULL ? g_rapid.last_error() : NULL;
+	rapid_set_error(message != NULL && message[0] != '\0' ? message : fallback);
+}
+
+static int rapid_require_output(void* handle)
+{
+	if ( !rapid_load() ) return 0;
+	if ( handle != NULL ) return 1;
+	rapid_set_error("rapidocr output handle is null");
+	return 0;
+}
+
+static const char* rapid_output_text(void* handle, RapidTextFn get)
+{
+	const char* result;
+	if ( !rapid_require_output(handle) ) return NULL;
+	result = get(handle);
+	if ( result == NULL ) rapid_bridge_error("rapidocr output text is unavailable");
+	else rapid_set_error("");
+	return result;
+}
+
+XL_EXPORT void* rapidocr_create_native(const char* config_path)
+{
+	void* result;
+	if ( !rapid_load() ) return NULL;
+	if ( !g_rapid.available() ) {
+		rapid_bridge_error("rapidocr bridge is unavailable");
+		return NULL;
+	}
+	result = g_rapid.create(config_path != NULL ? config_path : "");
+	if ( result == NULL ) rapid_bridge_error("rapidocr engine creation failed");
+	else rapid_set_error("");
+	return result;
+}
+
+XL_EXPORT int rapidocr_release_native(void* handle)
+{
+	if ( !rapid_load() ) return 0;
+	if ( handle == NULL ) {
+		rapid_set_error("rapidocr engine handle is null");
+		return 0;
+	}
+	g_rapid.release(handle);
+	rapid_set_error("");
+	return 1;
+}
+
 XL_EXPORT void* rapidocr_call_native(void* handle, const char* img, int use_det, int use_cls, int use_rec, int return_word_box)
 {
-	RapidFallbackOutput* out;
-	(void)img; (void)use_det; (void)use_cls; (void)use_rec; (void)return_word_box;
-	if ( rapid_load() && g_rapid.call != NULL ) return g_rapid.call(handle, img, use_det, use_cls, use_rec, return_word_box);
-	out = (RapidFallbackOutput*)calloc(1, sizeof(RapidFallbackOutput));
-	if ( out != NULL ) rapid_copy(out->json, sizeof(out->json), "{\"boxes\":[],\"txts\":[],\"scores\":[],\"word_results\":[],\"elapse_list\":[],\"elapse\":0}");
-	return out;
-}
-XL_EXPORT int rapidocr_output_release_native(void* handle) { if ( rapid_load() && g_rapid.output_release != NULL ) g_rapid.output_release(handle); else free(handle); return 1; }
-XL_EXPORT int rapidocr_output_ok_native(void* handle) { return (handle != NULL && rapid_load() && g_rapid.output_ok != NULL) ? g_rapid.output_ok(handle) : 0; }
-XL_EXPORT const char* rapidocr_output_json_native(void* handle) { return (handle != NULL && rapid_load() && g_rapid.output_json != NULL) ? g_rapid.output_json(handle) : "{\"boxes\":[],\"txts\":[],\"scores\":[],\"word_results\":[],\"elapse_list\":[],\"elapse\":0}"; }
-XL_EXPORT const char* rapidocr_output_text_native(void* handle) { return (handle != NULL && rapid_load() && g_rapid.output_text != NULL) ? g_rapid.output_text(handle) : ""; }
-XL_EXPORT const char* rapidocr_output_boxes_native(void* handle) { return (handle != NULL && rapid_load() && g_rapid.output_boxes != NULL) ? g_rapid.output_boxes(handle) : "[]"; }
-XL_EXPORT const char* rapidocr_output_txts_native(void* handle) { return (handle != NULL && rapid_load() && g_rapid.output_txts != NULL) ? g_rapid.output_txts(handle) : "[]"; }
-XL_EXPORT const char* rapidocr_output_scores_native(void* handle) { return (handle != NULL && rapid_load() && g_rapid.output_scores != NULL) ? g_rapid.output_scores(handle) : "[]"; }
-XL_EXPORT const char* rapidocr_output_word_results_native(void* handle) { return (handle != NULL && rapid_load() && g_rapid.output_word_results != NULL) ? g_rapid.output_word_results(handle) : "[]"; }
-XL_EXPORT const char* rapidocr_output_elapse_list_native(void* handle) { return (handle != NULL && rapid_load() && g_rapid.output_elapse_list != NULL) ? g_rapid.output_elapse_list(handle) : "[]"; }
-XL_EXPORT double rapidocr_output_elapse_native(void* handle) { return (handle != NULL && rapid_load() && g_rapid.output_elapse != NULL) ? g_rapid.output_elapse(handle) : 0.0; }
-XL_EXPORT int rapidocr_output_vis_native(void* handle, const char* save_path) { return (handle != NULL && rapid_load() && g_rapid.output_vis != NULL) ? g_rapid.output_vis(handle, save_path) : 0; }
-
-static const char* rapid_find_data_array(const char* json)
-{
-	const char* data = strstr(json != NULL ? json : "", "\"data\"");
-	if ( data == NULL ) data = strstr(json != NULL ? json : "", "data");
-	if ( data == NULL ) return NULL;
-	data = strchr(data, '[');
-	return data != NULL ? data + 1 : NULL;
+	void* result;
+	if ( !rapid_load() ) return NULL;
+	if ( handle == NULL || img == NULL ) {
+		rapid_set_error("rapidocr engine or image path is null");
+		return NULL;
+	}
+	result = g_rapid.call(handle, img, use_det, use_cls, use_rec, return_word_box);
+	if ( result == NULL ) rapid_bridge_error("rapidocr inference failed");
+	else rapid_set_error("");
+	return result;
 }
 
-static int rapid_parse_shape_hw(const char* json, int* out_h, int* out_w)
+XL_EXPORT int rapidocr_output_release_native(void* handle)
 {
-	const char* shape = strstr(json != NULL ? json : "", "\"shape\"");
-	int values[8];
-	int count = 0;
-	if ( out_h == NULL || out_w == NULL ) return 0;
-	if ( shape == NULL ) shape = strstr(json != NULL ? json : "", "shape");
-	if ( shape == NULL ) return 0;
-	shape = strchr(shape, '[');
-	if ( shape == NULL ) return 0;
-	++shape;
-	while ( *shape != '\0' && *shape != ']' && count < 8 ) {
-		char* endp;
-		long value = strtol(shape, &endp, 10);
-		if ( endp != shape ) {
-			values[count++] = (int)value;
-			shape = endp;
-		} else {
-			++shape;
-		}
+	if ( !rapid_require_output(handle) ) return 0;
+	g_rapid.output_release(handle);
+	rapid_set_error("");
+	return 1;
+}
+
+XL_EXPORT int rapidocr_output_ok_native(void* handle)
+{
+	int result;
+	if ( !rapid_require_output(handle) ) return 0;
+	result = g_rapid.output_ok(handle);
+	rapid_set_error("");
+	return result;
+}
+
+XL_EXPORT const char* rapidocr_output_json_native(void* handle) { return rapid_output_text(handle, g_rapid.output_json); }
+XL_EXPORT const char* rapidocr_output_text_native(void* handle) { return rapid_output_text(handle, g_rapid.output_text); }
+XL_EXPORT const char* rapidocr_output_boxes_native(void* handle) { return rapid_output_text(handle, g_rapid.output_boxes); }
+XL_EXPORT const char* rapidocr_output_txts_native(void* handle) { return rapid_output_text(handle, g_rapid.output_txts); }
+XL_EXPORT const char* rapidocr_output_scores_native(void* handle) { return rapid_output_text(handle, g_rapid.output_scores); }
+XL_EXPORT const char* rapidocr_output_word_results_native(void* handle) { return rapid_output_text(handle, g_rapid.output_word_results); }
+XL_EXPORT const char* rapidocr_output_elapse_list_native(void* handle) { return rapid_output_text(handle, g_rapid.output_elapse_list); }
+
+XL_EXPORT double rapidocr_output_elapse_native(void* handle)
+{
+	double result;
+	if ( !rapid_require_output(handle) ) return 0.0;
+	result = g_rapid.output_elapse(handle);
+	rapid_set_error("");
+	return result;
+}
+
+XL_EXPORT int rapidocr_output_vis_native(void* handle, const char* save_path)
+{
+	int result;
+	if ( !rapid_require_output(handle) ) return 0;
+	if ( save_path == NULL ) {
+		rapid_set_error("rapidocr visualization path is null");
+		return 0;
 	}
-	if ( count >= 2 ) {
-		*out_h = values[count - 2];
-		*out_w = values[count - 1];
-		return *out_h > 0 && *out_w > 0;
-	}
-	return 0;
+	result = g_rapid.output_vis(handle, save_path);
+	if ( !result ) rapid_bridge_error("rapidocr visualization failed");
+	else rapid_set_error("");
+	return result;
 }
 
 static int rapid_component_range_bounds(const double* values, int map_w, int min_x, int min_y, int max_x, int max_y, int range_x1, int range_x2, double threshold, int* out_min_x, int* out_min_y, int* out_max_x, int* out_max_y, double* out_score, int* out_hits)
@@ -772,9 +854,8 @@ static int rapid_component_vertical_split(const double* values, int map_w, int m
 	return 1;
 }
 
-XL_EXPORT const char* rapidocr_det_boxes_from_output_native(const char* output_json, int image_width, int image_height, double threshold)
+XL_EXPORT void* rapidocr_det_boxes_from_output_native(const char* output_json, int image_width, int image_height, double threshold)
 {
-	const char* p;
 	int map_h = 0;
 	int map_w = 0;
 	int x;
@@ -788,22 +869,17 @@ XL_EXPORT const char* rapidocr_det_boxes_from_output_native(const char* output_j
 	int kept_y1[RAPIDOCR_MAX_BOXES];
 	int kept_x2[RAPIDOCR_MAX_BOXES];
 	int kept_y2[RAPIDOCR_MAX_BOXES];
-	size_t used = 0;
+	RapidJsonBox out_boxes[RAPIDOCR_MAX_BOXES];
+	void* output;
 	if ( output_json == NULL || output_json[0] == '\0' || image_width <= 0 || image_height <= 0 ) {
 		rapid_set_error("invalid detector output or image size");
-		return "[]";
+		return NULL;
 	}
 	if ( threshold <= 0.0 ) threshold = 0.3;
-	if ( !rapid_parse_shape_hw(output_json, &map_h, &map_w) ) {
-		rapid_set_error("detector output shape not found");
-		return "[]";
+	if ( !rapidocr_json_tensor_values(output_json, &map_h, &map_w, &values) ) {
+		rapid_set_error("invalid detector tensor JSON");
+		return NULL;
 	}
-	p = rapid_find_data_array(output_json);
-	if ( p == NULL ) {
-		rapid_set_error("detector output data not found");
-		return "[]";
-	}
-	values = (double*)calloc((size_t)map_w * (size_t)map_h, sizeof(double));
 	visited = (unsigned char*)calloc((size_t)map_w * (size_t)map_h, sizeof(unsigned char));
 	queue_x = (int*)malloc((size_t)map_w * (size_t)map_h * sizeof(int));
 	queue_y = (int*)malloc((size_t)map_w * (size_t)map_h * sizeof(int));
@@ -813,28 +889,8 @@ XL_EXPORT const char* rapidocr_det_boxes_from_output_native(const char* output_j
 		free(queue_x);
 		free(queue_y);
 		rapid_set_error("out of memory");
-		return "[]";
+		return NULL;
 	}
-	for ( y = 0; y < map_h; ++y ) {
-		for ( x = 0; x < map_w; ++x ) {
-			char* endp;
-			double v = strtod(p, &endp);
-			if ( endp == p ) {
-				free(values);
-				free(visited);
-				free(queue_x);
-				free(queue_y);
-				rapid_set_error("detector output data parse failed");
-				return "[]";
-			}
-			values[(size_t)y * (size_t)map_w + (size_t)x] = v;
-			p = endp;
-			while ( *p == ',' || *p == ' ' || *p == '\r' || *p == '\n' || *p == '\t' ) ++p;
-		}
-	}
-	g_det_boxes_json[0] = '\0';
-	rapid_copy(g_det_boxes_json, sizeof(g_det_boxes_json), "[");
-	used = 1;
 	for ( y = 0; y < map_h && box_count < RAPIDOCR_MAX_BOXES; ++y ) {
 		for ( x = 0; x < map_w && box_count < RAPIDOCR_MAX_BOXES; ++x ) {
 			int head = 0;
@@ -950,9 +1006,13 @@ XL_EXPORT const char* rapidocr_det_boxes_from_output_native(const char* output_j
 				}
 				if ( suppress ) continue;
 			}
-			if ( box_count > 0 ) rapid_append(g_det_boxes_json, sizeof(g_det_boxes_json), &used, ",");
-			snprintf(g_det_boxes_json + used, sizeof(g_det_boxes_json) - used, "{\"box\":[[%d,%d],[%d,%d],[%d,%d],[%d,%d]],\"score\":%.6g,\"pixels\":%d}", x1, y1, x2, y1, x2, y2, x1, y2, score, hits);
-			used += strlen(g_det_boxes_json + used);
+			{
+				RapidJsonBox* box = &out_boxes[box_count];
+				int points[8] = { x1, y1, x2, y1, x2, y2, x1, y2 };
+				memcpy(box->points, points, sizeof(points));
+				box->score = score;
+				box->pixels = hits;
+			}
 			kept_x1[box_count] = x1;
 			kept_y1[box_count] = y1;
 			kept_x2[box_count] = x2;
@@ -960,24 +1020,17 @@ XL_EXPORT const char* rapidocr_det_boxes_from_output_native(const char* output_j
 			++box_count;
 		}
 	}
-	if ( box_count == 0 ) {
-		free(values);
-		free(visited);
-		free(queue_x);
-		free(queue_y);
-		rapid_set_error("");
-		return "[]";
-	}
-	rapid_append(g_det_boxes_json, sizeof(g_det_boxes_json), &used, "]");
+	output = rapidocr_boxes_json_encode(out_boxes, (size_t)box_count);
 	free(values);
 	free(visited);
 	free(queue_x);
 	free(queue_y);
-	rapid_set_error("");
-	return g_det_boxes_json;
+	if ( output == NULL ) xrtClearError();
+	rapid_set_error(output != NULL ? "" : "detector JSON encoding failed");
+	return output;
 }
 
-XL_EXPORT const char* rapidocr_det_boxes_from_result_native(void* result_handle, int image_width, int image_height, double threshold)
+XL_EXPORT void* rapidocr_det_boxes_from_result_native(void* result_handle, int image_width, int image_height, double threshold)
 {
 	int map_h = 0;
 	int map_w = 0;
@@ -995,22 +1048,29 @@ XL_EXPORT const char* rapidocr_det_boxes_from_result_native(void* result_handle,
 	double kept_score[RAPIDOCR_MAX_BOXES];
 	int kept_pixels[RAPIDOCR_MAX_BOXES];
 	int kept_active[RAPIDOCR_MAX_BOXES];
-	size_t used = 0;
+	RapidJsonBox out_boxes[RAPIDOCR_MAX_BOXES];
+	void* output;
 	int data_count;
 	if ( result_handle == NULL || image_width <= 0 || image_height <= 0 ) {
 		rapid_set_error("invalid detector result or image size");
-		return "[]";
+		return NULL;
 	}
 	if ( threshold <= 0.0 ) threshold = 0.3;
-	if ( !rapid_ort_load() ) return "[]";
+	if ( !rapid_ort_load() ) return NULL;
 	if ( !rapid_parse_shape_tail(g_ort.shape_json(result_handle), &map_h, &map_w) ) {
 		rapid_set_error("detector typed output shape not found");
-		return "[]";
+		return NULL;
+	}
+	if ( map_w > INT_MAX / map_h || (size_t)map_w * (size_t)map_h > RAPIDOCR_MAX_TENSOR_CELLS ) {
+		char detail[128];
+		snprintf(detail, sizeof(detail), "detector typed output shape is too large: %d x %d", map_w, map_h);
+		rapid_set_error(detail);
+		return NULL;
 	}
 	data_count = g_ort.float_count(result_handle);
 	if ( data_count < map_w * map_h ) {
 		rapid_set_error("detector typed output data is incomplete");
-		return "[]";
+		return NULL;
 	}
 	values = (double*)calloc((size_t)map_w * (size_t)map_h, sizeof(double));
 	visited = (unsigned char*)calloc((size_t)map_w * (size_t)map_h, sizeof(unsigned char));
@@ -1022,16 +1082,19 @@ XL_EXPORT const char* rapidocr_det_boxes_from_result_native(void* result_handle,
 		free(queue_x);
 		free(queue_y);
 		rapid_set_error("out of memory");
-		return "[]";
+		return NULL;
 	}
 	for ( y = 0; y < map_h; ++y ) {
 		for ( x = 0; x < map_w; ++x ) {
-			values[(size_t)y * (size_t)map_w + (size_t)x] = (double)g_ort.float_at(result_handle, y * map_w + x);
+			double value = (double)g_ort.float_at(result_handle, y * map_w + x);
+			if ( !isfinite(value) ) {
+				free(values); free(visited); free(queue_x); free(queue_y);
+				rapid_set_error("detector typed output contains non-finite data");
+				return NULL;
+			}
+			values[(size_t)y * (size_t)map_w + (size_t)x] = value;
 		}
 	}
-	g_det_boxes_json[0] = '\0';
-	rapid_copy(g_det_boxes_json, sizeof(g_det_boxes_json), "[");
-	used = 1;
 	for ( y = 0; y < map_h && box_count < RAPIDOCR_MAX_BOXES; ++y ) {
 		for ( x = 0; x < map_w && box_count < RAPIDOCR_MAX_BOXES; ++x ) {
 			int head = 0;
@@ -1194,12 +1257,14 @@ XL_EXPORT const char* rapidocr_det_boxes_from_result_native(void* result_handle,
 		}
 	}
 	if ( box_count == 0 ) {
+		output = rapidocr_boxes_json_encode(NULL, 0u);
 		free(values);
 		free(visited);
 		free(queue_x);
 		free(queue_y);
-		rapid_set_error("");
-		return "[]";
+		if ( output == NULL ) xrtClearError();
+		rapid_set_error(output != NULL ? "" : "detector JSON encoding failed");
+		return output;
 	}
 	{
 		int i;
@@ -1314,31 +1379,25 @@ XL_EXPORT const char* rapidocr_det_boxes_from_result_native(void* result_handle,
 			}
 		}
 	}
-	if ( box_count == 0 ) {
-		free(values);
-		free(visited);
-		free(queue_x);
-		free(queue_y);
-		rapid_set_error("");
-		return "[]";
-	}
-	rapid_copy(g_det_boxes_json, sizeof(g_det_boxes_json), "[");
-	used = 1;
 	{
 		int i;
 		for ( i = 0; i < box_count; ++i ) {
-			if ( i > 0 ) rapid_append(g_det_boxes_json, sizeof(g_det_boxes_json), &used, ",");
-			snprintf(g_det_boxes_json + used, sizeof(g_det_boxes_json) - used, "{\"box\":[[%d,%d],[%d,%d],[%d,%d],[%d,%d]],\"score\":%.6g,\"pixels\":%d}", kept_x1[i], kept_y1[i], kept_x2[i], kept_y1[i], kept_x2[i], kept_y2[i], kept_x1[i], kept_y2[i], kept_score[i], kept_pixels[i]);
-			used += strlen(g_det_boxes_json + used);
+			RapidJsonBox* box = &out_boxes[i];
+			int points[8] = { kept_x1[i], kept_y1[i], kept_x2[i], kept_y1[i],
+				kept_x2[i], kept_y2[i], kept_x1[i], kept_y2[i] };
+			memcpy(box->points, points, sizeof(points));
+			box->score = kept_score[i];
+			box->pixels = kept_pixels[i];
 		}
 	}
-	rapid_append(g_det_boxes_json, sizeof(g_det_boxes_json), &used, "]");
+	output = rapidocr_boxes_json_encode(out_boxes, (size_t)box_count);
 	free(values);
 	free(visited);
 	free(queue_x);
 	free(queue_y);
-	rapid_set_error("");
-	return g_det_boxes_json;
+	if ( output == NULL ) xrtClearError();
+	rapid_set_error(output != NULL ? "" : "detector JSON encoding failed");
+	return output;
 }
 
 typedef struct RapidDbBox {
@@ -1684,7 +1743,7 @@ static void rapid_db_sort_boxes(RapidDbBox* boxes, int count)
 	}
 }
 
-XL_EXPORT const char* rapidocr_det_boxes_from_result_db_native(void* result_handle, int image_width, int image_height, double threshold, double box_thresh, double unclip_ratio, int use_dilation, int min_box_size, int filter_small_boxes)
+XL_EXPORT void* rapidocr_det_boxes_from_result_db_native(void* result_handle, int image_width, int image_height, double threshold, double box_thresh, double unclip_ratio, int use_dilation, int min_box_size, int filter_small_boxes)
 {
 	int map_h = 0;
 	int map_w = 0;
@@ -1696,27 +1755,34 @@ XL_EXPORT const char* rapidocr_det_boxes_from_result_db_native(void* result_hand
 	int* queue_x;
 	int* queue_y;
 	RapidDbBox boxes[RAPIDOCR_MAX_BOXES];
+	RapidJsonBox out_boxes[RAPIDOCR_MAX_BOXES];
 	int box_count = 0;
 	int x;
 	int y;
-	size_t used = 0;
+	void* output;
 	if ( result_handle == NULL || image_width <= 0 || image_height <= 0 ) {
 		rapid_set_error("invalid detector result or image size");
-		return "[]";
+		return NULL;
 	}
 	if ( threshold <= 0.0 ) threshold = 0.3;
 	if ( box_thresh <= 0.0 ) box_thresh = 0.5;
 	if ( unclip_ratio <= 0.0 ) unclip_ratio = 1.6;
 	if ( min_box_size <= 0 ) min_box_size = 3;
-	if ( !rapid_ort_load() ) return "[]";
+	if ( !rapid_ort_load() ) return NULL;
 	if ( !rapid_parse_shape_tail(g_ort.shape_json(result_handle), &map_h, &map_w) ) {
 		rapid_set_error("detector typed output shape not found");
-		return "[]";
+		return NULL;
+	}
+	if ( map_w > INT_MAX / map_h || (size_t)map_w * (size_t)map_h > RAPIDOCR_MAX_TENSOR_CELLS ) {
+		char detail[128];
+		snprintf(detail, sizeof(detail), "detector typed output shape is too large: %d x %d", map_w, map_h);
+		rapid_set_error(detail);
+		return NULL;
 	}
 	data_count = g_ort.float_count(result_handle);
 	if ( data_count < map_w * map_h ) {
 		rapid_set_error("detector typed output data is incomplete");
-		return "[]";
+		return NULL;
 	}
 	values = (double*)calloc((size_t)map_w * (size_t)map_h, sizeof(double));
 	raw = (unsigned char*)calloc((size_t)map_w * (size_t)map_h, sizeof(unsigned char));
@@ -1732,12 +1798,17 @@ XL_EXPORT const char* rapidocr_det_boxes_from_result_db_native(void* result_hand
 		free(queue_x);
 		free(queue_y);
 		rapid_set_error("out of memory");
-		return "[]";
+		return NULL;
 	}
 	for ( y = 0; y < map_h; ++y ) {
 		for ( x = 0; x < map_w; ++x ) {
 			size_t idx = (size_t)y * (size_t)map_w + (size_t)x;
 			values[idx] = (double)g_ort.float_at(result_handle, y * map_w + x);
+			if ( !isfinite(values[idx]) ) {
+				free(values); free(raw); free(bitmap); free(visited); free(queue_x); free(queue_y);
+				rapid_set_error("detector typed output contains non-finite data");
+				return NULL;
+			}
 			raw[idx] = values[idx] > threshold ? 1u : 0u;
 		}
 	}
@@ -1793,199 +1864,183 @@ XL_EXPORT const char* rapidocr_det_boxes_from_result_db_native(void* result_hand
 			}
 		}
 	}
-	if ( box_count == 0 ) {
-		free(values);
-		free(raw);
-		free(bitmap);
-		free(visited);
-		free(queue_x);
-		free(queue_y);
-		rapid_set_error("");
-		return "[]";
-	}
-	rapid_db_sort_boxes(boxes, box_count);
-	rapid_copy(g_det_boxes_json, sizeof(g_det_boxes_json), "[");
-	used = 1;
+	if ( box_count > 0 ) rapid_db_sort_boxes(boxes, box_count);
 	for ( x = 0; x < box_count; ++x ) {
-		char item[256];
-		if ( x > 0 ) rapid_append(g_det_boxes_json, sizeof(g_det_boxes_json), &used, ",");
-		snprintf(item, sizeof(item), "{\"box\":[[%d,%d],[%d,%d],[%d,%d],[%d,%d]],\"score\":%.6g,\"pixels\":%d}",
-			boxes[x].pts[0], boxes[x].pts[1],
-			boxes[x].pts[2], boxes[x].pts[3],
-			boxes[x].pts[4], boxes[x].pts[5],
-			boxes[x].pts[6], boxes[x].pts[7],
-			boxes[x].score, boxes[x].pixels);
-		rapid_append(g_det_boxes_json, sizeof(g_det_boxes_json), &used, item);
+		memcpy(out_boxes[x].points, boxes[x].pts, sizeof(boxes[x].pts));
+		out_boxes[x].score = boxes[x].score;
+		out_boxes[x].pixels = boxes[x].pixels;
 	}
-	rapid_append(g_det_boxes_json, sizeof(g_det_boxes_json), &used, "]");
+	output = rapidocr_boxes_json_encode(out_boxes, (size_t)box_count);
 	free(values);
 	free(raw);
 	free(bitmap);
 	free(visited);
 	free(queue_x);
 	free(queue_y);
-	rapid_set_error("");
-	return g_det_boxes_json;
+	if ( output == NULL ) xrtClearError();
+	rapid_set_error(output != NULL ? "" : "detector JSON encoding failed");
+	return output;
 }
 
-XL_EXPORT const char* rapidocr_charset_info_native(const char* path)
+static RapidCharset* rapid_load_charset(const char* path);
+static void rapid_free_charset(RapidCharset* charset);
+
+XL_EXPORT void* rapidocr_charset_info_native(const char* path)
 {
-	FILE* fp;
-	char line[512];
-	char first[128] = "";
-	char last[128] = "";
-	int count = 0;
+	RapidCharset* charset = rapid_load_charset(path);
+	void* output;
+	if ( charset == NULL ) return NULL;
+	output = rapidocr_charset_json_encode(path, charset->count,
+		charset->items[0], charset->items[charset->count - 1]);
+	rapid_free_charset(charset);
+	if ( output == NULL ) {
+		xrtClearError();
+		rapid_set_error("charset JSON encoding failed");
+	} else {
+		rapid_set_error("");
+	}
+	return output;
+}
+
+static RapidCharset* rapid_load_charset(const char* path)
+{
+	bytes data;
+	size_t size = 0u;
+	size_t lines = 0u;
+	size_t start;
+	size_t i;
+	RapidCharset* charset;
 	if ( path == NULL || path[0] == '\0' ) {
 		rapid_set_error("empty charset path");
-		return "{}";
+		return NULL;
 	}
-	fp = fopen(path, "rb");
-	if ( fp == NULL ) {
-		snprintf(g_error, sizeof(g_error), "failed to open charset: %s", path);
-		return "{}";
+	data = xrtFileReadAllLimit(path, 4u * 1024u * 1024u, &size);
+	if ( data == NULL ) {
+		xrtClearError();
+		rapid_set_error("failed to read charset");
+		return NULL;
 	}
-	while ( fgets(line, sizeof(line), fp) != NULL ) {
-		size_t len = strlen(line);
-		while ( len > 0u && (line[len - 1u] == '\n' || line[len - 1u] == '\r') ) line[--len] = '\0';
-		if ( count == 0 ) rapid_copy(first, sizeof(first), line);
-		rapid_copy(last, sizeof(last), line);
-		++count;
+	if ( memchr(data, '\0', size) != NULL ) {
+		xrtFree(data);
+		rapid_set_error("charset contains NUL byte");
+		return NULL;
 	}
-	fclose(fp);
-	snprintf(g_charset_json, sizeof(g_charset_json), "{\"path\":\"%s\",\"count\":%d,\"first\":\"%s\",\"last\":\"%s\"}", path, count, first, last);
+	for ( i = 0u; i < size; ++i ) {
+		if ( data[i] == '\n' ) ++lines;
+	}
+	if ( size > 0u && data[size - 1u] != '\n' ) ++lines;
+	if ( lines == 0u || lines > 65536u ) {
+		xrtFree(data);
+		rapid_set_error("invalid charset line count");
+		return NULL;
+	}
+	charset = (RapidCharset*)xrtMalloc(sizeof(*charset));
+	if ( charset == NULL ) goto out_of_memory;
+	charset->items = (char**)xrtMalloc(lines * sizeof(char*));
+	if ( charset->items == NULL ) {
+		xrtFree(charset);
+		goto out_of_memory;
+	}
+	charset->data = data;
+	charset->count = 0;
+	/* XRT 文件缓冲多分配了末尾字节，行分隔符可直接改为 NUL。 */
+	start = 0u;
+	while ( start < size ) {
+		size_t end = start;
+		while ( end < size && data[end] != '\n' ) ++end;
+		charset->items[charset->count++] = (char*)data + start;
+		if ( end > start && data[end - 1u] == '\r' ) data[end - 1u] = '\0';
+		data[end] = '\0';
+		start = end + 1u;
+	}
 	rapid_set_error("");
-	return g_charset_json;
+	return charset;
+
+out_of_memory:
+	xrtFree(data);
+	xrtClearError();
+	rapid_set_error("out of memory");
+	return NULL;
 }
 
-static int rapid_load_charset(const char* path, char*** out_items, int* out_count)
+static void rapid_free_charset(RapidCharset* charset)
 {
-	FILE* fp;
-	char line[512];
-	char** items = NULL;
-	int count = 0;
-	int cap = 0;
-	if ( out_items == NULL || out_count == NULL ) return 0;
-	*out_items = NULL;
-	*out_count = 0;
-	if ( path != NULL && g_charset_cache_items != NULL && strcmp(path, g_charset_cache_path) == 0 ) {
-		*out_items = g_charset_cache_items;
-		*out_count = g_charset_cache_count;
-		return 1;
-	}
-	fp = fopen(path, "rb");
-	if ( fp == NULL ) {
-		snprintf(g_error, sizeof(g_error), "failed to open charset: %s", path != NULL ? path : "");
-		return 0;
-	}
-	while ( fgets(line, sizeof(line), fp) != NULL ) {
-		size_t len = strlen(line);
-		char* item;
-		while ( len > 0u && (line[len - 1u] == '\n' || line[len - 1u] == '\r') ) line[--len] = '\0';
-		if ( count >= cap ) {
-			int next_cap = cap == 0 ? 256 : cap * 2;
-			char** next = (char**)realloc(items, (size_t)next_cap * sizeof(char*));
-			if ( next == NULL ) {
-				fclose(fp);
-				rapid_set_error("out of memory");
-				return 0;
-			}
-			items = next;
-			cap = next_cap;
-		}
-		item = (char*)malloc(len + 1u);
-		if ( item == NULL ) {
-			fclose(fp);
-			rapid_set_error("out of memory");
-			return 0;
-		}
-		memcpy(item, line, len + 1u);
-		items[count++] = item;
-	}
-	fclose(fp);
-	if ( path != NULL && path[0] != '\0' ) {
-		if ( g_charset_cache_items != NULL ) {
-			int i;
-			for ( i = 0; i < g_charset_cache_count; ++i ) free(g_charset_cache_items[i]);
-			free(g_charset_cache_items);
-		}
-		g_charset_cache_items = items;
-		g_charset_cache_count = count;
-		rapid_copy(g_charset_cache_path, sizeof(g_charset_cache_path), path);
-	}
-	*out_items = items;
-	*out_count = count;
+	if ( charset == NULL ) return;
+	xrtFree(charset->items);
+	xrtFree(charset->data);
+	xrtFree(charset);
+}
+
+XL_EXPORT void* rapidocr_charset_open_native(const char* path)
+{
+	return rapid_load_charset(path);
+}
+
+XL_EXPORT int rapidocr_charset_release_native(void* handle)
+{
+	if ( handle == NULL ) return 0;
+	rapid_free_charset((RapidCharset*)handle);
 	return 1;
 }
 
-static void rapid_free_charset(char** items, int count)
+static int rapid_rec_append(xbuffer* text, const char* character)
 {
-	int i;
-	if ( items == NULL ) return;
-	if ( items == g_charset_cache_items ) return;
-	for ( i = 0; i < count; ++i ) free(items[i]);
-	free(items);
+	size_t length = strlen(character);
+	if ( length > 4u * 1024u * 1024u || text->Size > 4u * 1024u * 1024u - length ) return 0;
+	return xrtBufferAppend(text, (xbytesview){ (const unsigned char*)character, length }) ? 1 : 0;
 }
 
-XL_EXPORT const char* rapidocr_rec_decode_native(const char* output_json, const char* keys_path)
+XL_EXPORT void* rapidocr_rec_decode_native(const char* output_json, const char* keys_path)
 {
 	int shape_h = 0;
 	int classes = 0;
 	int t;
 	int c;
-	const char* p;
-	char** charset = NULL;
-	int charset_count = 0;
+	double* values = NULL;
+	RapidCharset* charset = NULL;
 	int last_idx = -1;
-	int text_len = 0;
 	double score_sum = 0.0;
 	int score_count = 0;
-	char* rec_json = rapid_next_rec_json();
+	xbuffer text;
+	xbytesview view;
+	void* output;
 	if ( output_json == NULL || output_json[0] == '\0' || keys_path == NULL || keys_path[0] == '\0' ) {
 		rapid_set_error("invalid recognizer output or keys path");
-		return "{}";
+		return NULL;
 	}
-	if ( !rapid_parse_shape_hw(output_json, &shape_h, &classes) || shape_h <= 0 || classes <= 0 ) {
-		rapid_set_error("recognizer output shape not found");
-		return "{}";
+	if ( !rapidocr_json_tensor_values(output_json, &shape_h, &classes, &values) ) {
+		rapid_set_error("recognizer output data is incomplete or invalid");
+		return NULL;
 	}
-	p = rapid_find_data_array(output_json);
-	if ( p == NULL ) {
-		rapid_set_error("recognizer output data not found");
-		return "{}";
+	charset = rapid_load_charset(keys_path);
+	if ( charset == NULL ) {
+		free(values);
+		return NULL;
 	}
-	if ( !rapid_load_charset(keys_path, &charset, &charset_count) ) return "{}";
-	rapid_copy(rec_json, 4096u, "{\"text\":\"");
-	text_len = (int)strlen(rec_json);
+	if ( !xrtBufferInit(&text) ) {
+		free(values);
+		rapid_free_charset(charset);
+		xrtClearError();
+		rapid_set_error("out of memory");
+		return NULL;
+	}
 	for ( t = 0; t < shape_h; ++t ) {
 		int best_idx = 0;
 		double best_value = -1.0e300;
 		for ( c = 0; c < classes; ++c ) {
-			char* endp;
-			while ( *p != '\0' && *p != ']' && *p != '-' && *p != '+' && *p != '.' && (*p < '0' || *p > '9') ) ++p;
-			if ( *p == ']' || *p == '\0' ) goto rapid_rec_decode_done;
-			double v = strtod(p, &endp);
-			if ( endp == p ) {
-				if ( *p == ']' ) goto rapid_rec_decode_done;
-				rapid_free_charset(charset, charset_count);
-				rapid_set_error("recognizer output data parse failed");
-				return "{}";
-			}
-			if ( v > best_value ) {
-				best_value = v;
+			double value = values[(size_t)t * (size_t)classes + (size_t)c];
+			if ( value > best_value ) {
+				best_value = value;
 				best_idx = c;
 			}
-			p = endp;
-			while ( *p == ',' || *p == ' ' || *p == '\r' || *p == '\n' || *p == '\t' ) ++p;
 		}
 		if ( best_idx > 0 && best_idx != last_idx ) {
 			int char_idx = best_idx - 1;
-			if ( char_idx >= 0 && char_idx < charset_count ) {
-				const char* s = charset[char_idx];
-				size_t n = strlen(s);
-				if ( text_len + (int)n + 64 < 4096 ) {
-					memcpy(rec_json + text_len, s, n);
-					text_len += (int)n;
-					rec_json[text_len] = '\0';
+			if ( char_idx >= 0 && char_idx < charset->count ) {
+				if ( !rapid_rec_append(&text, charset->items[char_idx]) ) {
+					xrtClearError();
+					rapid_set_error("recognizer text is too large or out of memory");
+					goto failed;
 				}
 				score_sum += best_value;
 				++score_count;
@@ -1993,102 +2048,85 @@ XL_EXPORT const char* rapidocr_rec_decode_native(const char* output_json, const 
 		}
 		last_idx = best_idx;
 	}
-rapid_rec_decode_done:
-	snprintf(rec_json + text_len, 4096u - (size_t)text_len, "\",\"score\":%.6g,\"tokens\":%d}", score_count > 0 ? score_sum / (double)score_count : 0.0, score_count);
-	rapid_free_charset(charset, charset_count);
-	rapid_set_error("");
-	return rec_json;
+	view = xrtBufferView(&text);
+	output = rapidocr_rec_json_encode(view.Data, view.Size,
+		score_count > 0 ? score_sum / (double)score_count : 0.0, score_count);
+	if ( output == NULL ) xrtClearError();
+	rapid_set_error(output != NULL ? "" : "recognizer JSON encoding failed");
+	free(values);
+	rapid_free_charset(charset);
+	xrtBufferUnit(&text);
+	return output;
+
+failed:
+	free(values);
+	rapid_free_charset(charset);
+	xrtBufferUnit(&text);
+	return NULL;
 }
 
 static int rapid_parse_shape_tail(const char* shape_json, int* out_time, int* out_classes)
 {
-	const char* p = shape_json;
 	int values[8];
-	int count = 0;
+	int count;
 	if ( out_time == NULL || out_classes == NULL ) return 0;
 	*out_time = 0;
 	*out_classes = 0;
-	if ( p == NULL ) return 0;
-	while ( *p != '\0' && count < 8 ) {
-		char* endp;
-		while ( *p != '\0' && *p != '-' && (*p < '0' || *p > '9') ) ++p;
-		if ( *p == '\0' ) break;
-		values[count++] = (int)strtol(p, &endp, 10);
-		if ( endp == p ) break;
-		p = endp;
-	}
+	count = rapidocr_json_shape_dims(shape_json, values, 8);
 	if ( count < 2 ) return 0;
 	*out_time = values[count - 2];
 	*out_classes = values[count - 1];
-	return *out_time > 0 && *out_classes > 0;
+	return 1;
 }
 
-static int rapid_parse_shape_dims(const char* shape_json, int* values, int max_values)
+static void* rapid_rec_decode_range(void* result_handle, const RapidCharset* charset,
+	int offset, int shape_h, int classes)
 {
-	const char* p = shape_json;
-	int count = 0;
-	if ( values == NULL || max_values <= 0 || p == NULL ) return 0;
-	while ( *p != '\0' && count < max_values ) {
-		char* endp;
-		while ( *p != '\0' && *p != '-' && (*p < '0' || *p > '9') ) ++p;
-		if ( *p == '\0' ) break;
-		values[count++] = (int)strtol(p, &endp, 10);
-		if ( endp == p ) break;
-		p = endp;
-	}
-	return count;
-}
-
-XL_EXPORT const char* rapidocr_rec_decode_result_native(void* result_handle, const char* keys_path)
-{
-	int shape_h = 0;
-	int classes = 0;
-	int data_count;
+	int data_count = g_ort.float_count(result_handle);
 	int t;
 	int c;
-	char** charset = NULL;
-	int charset_count = 0;
 	int last_idx = -1;
-	int text_len = 0;
-	double score_sum = 0.0;
 	int score_count = 0;
-	char* rec_json = rapid_next_rec_json();
-	if ( result_handle == NULL || keys_path == NULL || keys_path[0] == '\0' ) {
-		rapid_set_error("invalid recognizer result or keys path");
-		return "{}";
+	double score_sum = 0.0;
+	xbuffer text;
+	xbytesview view;
+	void* output;
+	int count;
+	if ( charset == NULL || shape_h <= 0 || classes <= 0 || shape_h > INT_MAX / classes ) {
+		rapid_set_error("invalid recognizer output shape");
+		return NULL;
 	}
-	if ( !rapid_ort_load() ) return "{}";
-	if ( !rapid_parse_shape_tail(g_ort.shape_json(result_handle), &shape_h, &classes) ) {
-		rapid_set_error("recognizer typed output shape not found");
-		return "{}";
-	}
-	data_count = g_ort.float_count(result_handle);
-	if ( data_count <= 0 || data_count < shape_h * classes ) {
+	count = shape_h * classes;
+	if ( data_count < count || offset < 0 || offset > data_count - count ) {
 		rapid_set_error("recognizer typed output data is incomplete");
-		return "{}";
+		return NULL;
 	}
-	if ( !rapid_load_charset(keys_path, &charset, &charset_count) ) return "{}";
-	rapid_copy(rec_json, 4096u, "{\"text\":\"");
-	text_len = (int)strlen(rec_json);
+	if ( !xrtBufferInit(&text) ) {
+		xrtClearError();
+		rapid_set_error("out of memory");
+		return NULL;
+	}
 	for ( t = 0; t < shape_h; ++t ) {
 		int best_idx = 0;
 		double best_value = -1.0e300;
 		for ( c = 0; c < classes; ++c ) {
-			double v = (double)g_ort.float_at(result_handle, t * classes + c);
-			if ( v > best_value ) {
-				best_value = v;
+			double value = (double)g_ort.float_at(result_handle, offset + t * classes + c);
+			if ( !isfinite(value) ) {
+				rapid_set_error("recognizer typed output contains non-finite data");
+				goto failed;
+			}
+			if ( value > best_value ) {
+				best_value = value;
 				best_idx = c;
 			}
 		}
 		if ( best_idx > 0 && best_idx != last_idx ) {
 			int char_idx = best_idx - 1;
-			if ( char_idx >= 0 && char_idx < charset_count ) {
-				const char* s = charset[char_idx];
-				size_t n = strlen(s);
-				if ( text_len + (int)n + 64 < 4096 ) {
-					memcpy(rec_json + text_len, s, n);
-					text_len += (int)n;
-					rec_json[text_len] = '\0';
+			if ( char_idx >= 0 && char_idx < charset->count ) {
+				if ( !rapid_rec_append(&text, charset->items[char_idx]) ) {
+					xrtClearError();
+					rapid_set_error("recognizer text is too large or out of memory");
+					goto failed;
 				}
 				score_sum += best_value;
 				++score_count;
@@ -2096,119 +2134,96 @@ XL_EXPORT const char* rapidocr_rec_decode_result_native(void* result_handle, con
 		}
 		last_idx = best_idx;
 	}
-	snprintf(rec_json + text_len, 4096u - (size_t)text_len, "\",\"score\":%.6g,\"tokens\":%d}", score_count > 0 ? score_sum / (double)score_count : 0.0, score_count);
-	rapid_free_charset(charset, charset_count);
-	rapid_set_error("");
-	return rec_json;
+	view = xrtBufferView(&text);
+	output = rapidocr_rec_json_encode(view.Data, view.Size,
+		score_count > 0 ? score_sum / (double)score_count : 0.0, score_count);
+	if ( output == NULL ) xrtClearError();
+	rapid_set_error(output != NULL ? "" : "recognizer JSON encoding failed");
+	xrtBufferUnit(&text);
+	return output;
+
+failed:
+	xrtBufferUnit(&text);
+	return NULL;
 }
 
-XL_EXPORT const char* rapidocr_rec_decode_result_at_native(void* result_handle, const char* keys_path, int batch_index)
+XL_EXPORT void* rapidocr_rec_decode_result_native(void* result_handle, const char* keys_path)
+{
+	int shape_h = 0;
+	int classes = 0;
+	RapidCharset* charset;
+	void* output;
+	if ( result_handle == NULL || keys_path == NULL || keys_path[0] == '\0' ) {
+		rapid_set_error("invalid recognizer result or keys path");
+		return NULL;
+	}
+	if ( !rapid_ort_load() ) return NULL;
+	if ( !rapid_parse_shape_tail(g_ort.shape_json(result_handle), &shape_h, &classes) ) {
+		rapid_set_error("recognizer typed output shape not found");
+		return NULL;
+	}
+	charset = rapid_load_charset(keys_path);
+	if ( charset == NULL ) return NULL;
+	output = rapid_rec_decode_range(result_handle, charset, 0, shape_h, classes);
+	rapid_free_charset(charset);
+	return output;
+}
+
+XL_EXPORT void* rapidocr_rec_decode_result_at_charset_native(void* result_handle,
+	void* charset_handle, int batch_index)
 {
 	int dims[8];
 	int dim_count;
 	int batch = 1;
-	int shape_h = 0;
-	int classes = 0;
-	int data_count;
-	int offset;
-	int t;
-	int c;
-	char** charset = NULL;
-	int charset_count = 0;
-	int last_idx = -1;
-	int text_len = 0;
-	double score_sum = 0.0;
-	int score_count = 0;
-	char* rec_json = rapid_next_rec_json();
-	if ( result_handle == NULL || keys_path == NULL || keys_path[0] == '\0' || batch_index < 0 ) {
-		rapid_set_error("invalid recognizer result, keys path, or batch index");
-		return "{}";
+	int shape_h;
+	int classes;
+	int stride;
+	if ( result_handle == NULL || charset_handle == NULL || batch_index < 0 ) {
+		rapid_set_error("invalid recognizer result, charset, or batch index");
+		return NULL;
 	}
-	if ( !rapid_ort_load() ) return "{}";
-	dim_count = rapid_parse_shape_dims(g_ort.shape_json(result_handle), dims, 8);
+	if ( !rapid_ort_load() ) return NULL;
+	dim_count = rapidocr_json_shape_dims(g_ort.shape_json(result_handle), dims, 8);
 	if ( dim_count < 2 ) {
 		rapid_set_error("recognizer typed output shape not found");
-		return "{}";
+		return NULL;
 	}
 	shape_h = dims[dim_count - 2];
 	classes = dims[dim_count - 1];
 	if ( dim_count >= 3 ) batch = dims[dim_count - 3];
-	if ( batch_index >= batch || shape_h <= 0 || classes <= 0 ) {
-		rapid_set_error("recognizer batch index is out of range");
-		return "{}";
+	if ( batch_index >= batch || shape_h <= 0 || classes <= 0 ||
+		shape_h > INT_MAX / classes ) {
+		rapid_set_error("recognizer batch index or shape is out of range");
+		return NULL;
 	}
-	data_count = g_ort.float_count(result_handle);
-	offset = batch_index * shape_h * classes;
-	if ( data_count <= 0 || data_count < offset + shape_h * classes ) {
-		rapid_set_error("recognizer typed output data is incomplete");
-		return "{}";
+	stride = shape_h * classes;
+	if ( batch_index > INT_MAX / stride ) {
+		rapid_set_error("recognizer batch offset is out of range");
+		return NULL;
 	}
-	if ( !rapid_load_charset(keys_path, &charset, &charset_count) ) return "{}";
-	rapid_copy(rec_json, 4096u, "{\"text\":\"");
-	text_len = (int)strlen(rec_json);
-	for ( t = 0; t < shape_h; ++t ) {
-		int best_idx = 0;
-		double best_value = -1.0e300;
-		for ( c = 0; c < classes; ++c ) {
-			double v = (double)g_ort.float_at(result_handle, offset + t * classes + c);
-			if ( v > best_value ) {
-				best_value = v;
-				best_idx = c;
-			}
-		}
-		if ( best_idx > 0 && best_idx != last_idx ) {
-			int char_idx = best_idx - 1;
-			if ( char_idx >= 0 && char_idx < charset_count ) {
-				const char* s = charset[char_idx];
-				size_t n = strlen(s);
-				if ( text_len + (int)n + 64 < 4096 ) {
-					memcpy(rec_json + text_len, s, n);
-					text_len += (int)n;
-					rec_json[text_len] = '\0';
-				}
-				score_sum += best_value;
-				++score_count;
-			}
-		}
-		last_idx = best_idx;
-	}
-	snprintf(rec_json + text_len, 4096u - (size_t)text_len, "\",\"score\":%.6g,\"tokens\":%d}", score_count > 0 ? score_sum / (double)score_count : 0.0, score_count);
-	rapid_free_charset(charset, charset_count);
-	rapid_set_error("");
-	return rec_json;
+	return rapid_rec_decode_range(result_handle, (const RapidCharset*)charset_handle, batch_index * stride,
+		shape_h, classes);
 }
 
-XL_EXPORT const char* rapidocr_cls_decode_result_native(void* result_handle)
+XL_EXPORT void* rapidocr_rec_decode_result_at_native(void* result_handle,
+	const char* keys_path, int batch_index)
 {
-	int classes = 0;
-	int data_count;
-	int i;
-	int best_idx = 0;
-	double best_value = -1.0e300;
-	if ( result_handle == NULL ) {
-		rapid_set_error("invalid classifier result");
-		return "{}";
+	RapidCharset* charset;
+	void* output;
+	if ( result_handle == NULL || keys_path == NULL || keys_path[0] == '\0' || batch_index < 0 ) {
+		rapid_set_error("invalid recognizer result, keys path, or batch index");
+		return NULL;
 	}
-	if ( !rapid_ort_load() ) return "{}";
-	data_count = g_ort.float_count(result_handle);
-	if ( data_count <= 0 ) {
-		rapid_set_error("classifier typed output data is empty");
-		return "{}";
-	}
-	classes = data_count;
-	for ( i = 0; i < data_count; ++i ) {
-		double v = (double)g_ort.float_at(result_handle, i);
-		if ( v > best_value ) {
-			best_value = v;
-			best_idx = i;
-		}
-	}
-	snprintf(g_cls_json, sizeof(g_cls_json), "{\"label\":\"%s\",\"index\":%d,\"score\":%.6g,\"classes\":%d}", best_idx == 1 ? "180" : "0", best_idx, best_value, classes);
-	rapid_set_error("");
-	return g_cls_json;
+	charset = rapid_load_charset(keys_path);
+	if ( charset == NULL ) return NULL;
+	output = rapidocr_rec_decode_result_at_charset_native(result_handle,
+		charset, batch_index);
+	rapid_free_charset(charset);
+	return output;
 }
 
-XL_EXPORT const char* rapidocr_cls_decode_result_at_native(void* result_handle, int batch_index)
+/* 分类输出按批次独立序列化，不借用全局结果槽。 */
+XL_EXPORT void* rapidocr_cls_decode_result_at_native(void* result_handle, int batch_index)
 {
 	int dims[8];
 	int dim_count;
@@ -2218,254 +2233,62 @@ XL_EXPORT const char* rapidocr_cls_decode_result_at_native(void* result_handle, 
 	int offset;
 	int i;
 	int best_idx = 0;
-	double best_value = -1.0e300;
+	double best_value = -INFINITY;
+	void* output;
 	if ( result_handle == NULL || batch_index < 0 ) {
 		rapid_set_error("invalid classifier result or batch index");
-		return "{}";
+		return NULL;
 	}
-	if ( !rapid_ort_load() ) return "{}";
+	if ( !rapid_ort_load() ) return NULL;
 	data_count = g_ort.float_count(result_handle);
 	if ( data_count <= 0 ) {
 		rapid_set_error("classifier typed output data is empty");
-		return "{}";
+		return NULL;
 	}
-	dim_count = rapid_parse_shape_dims(g_ort.shape_json(result_handle), dims, 8);
-	if ( dim_count >= 2 ) {
-		classes = dims[dim_count - 1];
-		batch = dims[dim_count - 2];
-	} else {
-		classes = data_count;
-		batch = 1;
+	dim_count = rapidocr_json_shape_dims(g_ort.shape_json(result_handle), dims, 8);
+	if ( dim_count < 1 ) {
+		rapid_set_error("invalid classifier output shape");
+		return NULL;
 	}
-	if ( classes <= 0 || batch_index >= batch || data_count < (batch_index + 1) * classes ) {
+	classes = dims[dim_count - 1];
+	for ( i = 0; i < dim_count - 1; ++i ) {
+		if ( batch > INT_MAX / dims[i] ) {
+			rapid_set_error("classifier batch count is out of range");
+			return NULL;
+		}
+		batch *= dims[i];
+	}
+	if ( batch_index >= batch || classes > INT_MAX / batch ||
+		data_count != batch * classes ) {
 		rapid_set_error("classifier batch index is out of range");
-		return "{}";
+		return NULL;
 	}
 	offset = batch_index * classes;
 	for ( i = 0; i < classes; ++i ) {
 		double v = (double)g_ort.float_at(result_handle, offset + i);
+		if ( !isfinite(v) ) {
+			rapid_set_error("classifier output contains non-finite data");
+			return NULL;
+		}
 		if ( v > best_value ) {
 			best_value = v;
 			best_idx = i;
 		}
 	}
-	snprintf(g_cls_json, sizeof(g_cls_json), "{\"label\":\"%s\",\"index\":%d,\"score\":%.6g,\"classes\":%d}", best_idx == 1 ? "180" : "0", best_idx, best_value, classes);
-	rapid_set_error("");
-	return g_cls_json;
+	output = rapidocr_cls_json_encode(best_idx, best_value, classes);
+	if ( output == NULL ) xrtClearError();
+	rapid_set_error(output != NULL ? "" : "classifier JSON encoding failed");
+	return output;
 }
 
-static int rapid_json_string_value(const char* json, const char* key, char* out, size_t out_size)
+XL_EXPORT void* rapidocr_cls_decode_result_native(void* result_handle)
 {
-	const char* p;
-	size_t key_len;
-	if ( out == NULL || out_size == 0u ) return 0;
-	out[0] = '\0';
-	if ( json == NULL || key == NULL ) return 0;
-	p = strstr(json, key);
-	if ( p == NULL ) return 0;
-	key_len = strlen(key);
-	p += key_len;
-	p = strchr(p, ':');
-	if ( p == NULL ) return 0;
-	p = strchr(p, '"');
-	if ( p == NULL ) return 0;
-	++p;
-	{
-		size_t n = 0;
-		while ( p[n] != '\0' && p[n] != '"' && n + 1u < out_size ) {
-			out[n] = p[n];
-			++n;
-		}
-		out[n] = '\0';
-		return 1;
-	}
-}
-
-static double rapid_json_number_value(const char* json, const char* key, double fallback)
-{
-	const char* p;
-	if ( json == NULL || key == NULL ) return fallback;
-	p = strstr(json, key);
-	if ( p == NULL ) return fallback;
-	p = strchr(p + strlen(key), ':');
-	if ( p == NULL ) return fallback;
-	return strtod(p + 1, NULL);
-}
-
-XL_EXPORT int rapidocr_cls_should_rotate_native(const char* cls_json, double threshold)
-{
-	char label[32];
-	double score;
-	if ( threshold <= 0.0 ) threshold = 0.9;
-	if ( !rapid_json_string_value(cls_json, "\"label\"", label, sizeof(label)) ) return 0;
-	score = rapid_json_number_value(cls_json, "\"score\"", 0.0);
-	return strcmp(label, "180") == 0 && score > threshold ? 1 : 0;
-}
-
-XL_EXPORT const char* rapidocr_assemble_result_native(const char* boxes_json, const char* rec_json, double elapse)
-{
-	char text[1024];
-	double score;
-	if ( boxes_json == NULL || boxes_json[0] == '\0' ) boxes_json = "[]";
-	if ( rec_json == NULL || rec_json[0] == '\0' ) rec_json = "{}";
-	if ( !rapid_json_string_value(rec_json, "\"text\"", text, sizeof(text)) ) text[0] = '\0';
-	score = rapid_json_number_value(rec_json, "\"score\"", 0.0);
-	snprintf(g_assembled_json, sizeof(g_assembled_json), "{\"boxes\":%s,\"txts\":[\"%s\"],\"scores\":[%.6g],\"word_results\":[],\"elapse_list\":[],\"elapse\":%.6g}", boxes_json, text, score, elapse);
-	rapid_set_error("");
-	return g_assembled_json;
-}
-
-XL_EXPORT const char* rapidocr_assemble_result2_native(const char* boxes_json, const char* rec0_json, const char* rec1_json, double elapse)
-{
-	char text0[1024];
-	char text1[1024];
-	double score0;
-	double score1;
-	if ( boxes_json == NULL || boxes_json[0] == '\0' ) boxes_json = "[]";
-	if ( rec0_json == NULL || rec0_json[0] == '\0' ) rec0_json = "{}";
-	if ( rec1_json == NULL || rec1_json[0] == '\0' ) rec1_json = "{}";
-	if ( !rapid_json_string_value(rec0_json, "\"text\"", text0, sizeof(text0)) ) text0[0] = '\0';
-	if ( !rapid_json_string_value(rec1_json, "\"text\"", text1, sizeof(text1)) ) text1[0] = '\0';
-	score0 = rapid_json_number_value(rec0_json, "\"score\"", 0.0);
-	score1 = rapid_json_number_value(rec1_json, "\"score\"", 0.0);
-	snprintf(g_assembled_json, sizeof(g_assembled_json), "{\"boxes\":%s,\"txts\":[\"%s\",\"%s\"],\"scores\":[%.6g,%.6g],\"word_results\":[],\"elapse_list\":[],\"elapse\":%.6g}", boxes_json, text0, text1, score0, score1, elapse);
-	rapid_set_error("");
-	return g_assembled_json;
-}
-
-XL_EXPORT const char* rapidocr_assemble_result4_native(const char* boxes_json, const char* rec0_json, const char* rec1_json, const char* rec2_json, const char* rec3_json, double elapse)
-{
-	char text0[1024], text1[1024], text2[1024], text3[1024];
-	double score0, score1, score2, score3;
-	if ( boxes_json == NULL || boxes_json[0] == '\0' ) boxes_json = "[]";
-	if ( rec0_json == NULL || rec0_json[0] == '\0' ) rec0_json = "{}";
-	if ( rec1_json == NULL || rec1_json[0] == '\0' ) rec1_json = "{}";
-	if ( rec2_json == NULL || rec2_json[0] == '\0' ) rec2_json = "{}";
-	if ( rec3_json == NULL || rec3_json[0] == '\0' ) rec3_json = "{}";
-	if ( !rapid_json_string_value(rec0_json, "\"text\"", text0, sizeof(text0)) ) text0[0] = '\0';
-	if ( !rapid_json_string_value(rec1_json, "\"text\"", text1, sizeof(text1)) ) text1[0] = '\0';
-	if ( !rapid_json_string_value(rec2_json, "\"text\"", text2, sizeof(text2)) ) text2[0] = '\0';
-	if ( !rapid_json_string_value(rec3_json, "\"text\"", text3, sizeof(text3)) ) text3[0] = '\0';
-	score0 = rapid_json_number_value(rec0_json, "\"score\"", 0.0);
-	score1 = rapid_json_number_value(rec1_json, "\"score\"", 0.0);
-	score2 = rapid_json_number_value(rec2_json, "\"score\"", 0.0);
-	score3 = rapid_json_number_value(rec3_json, "\"score\"", 0.0);
-	snprintf(g_assembled_json, sizeof(g_assembled_json), "{\"boxes\":%s,\"txts\":[\"%s\",\"%s\",\"%s\",\"%s\"],\"scores\":[%.6g,%.6g,%.6g,%.6g],\"word_results\":[],\"elapse_list\":[],\"elapse\":%.6g}", boxes_json, text0, text1, text2, text3, score0, score1, score2, score3, elapse);
-	rapid_set_error("");
-	return g_assembled_json;
-}
-
-XL_EXPORT const char* rapidocr_assemble_result_list_native(const char* boxes_json, const char* recs_json, double elapse)
-{
-	const char* p = recs_json != NULL ? recs_json : "";
-	size_t used = 0;
-	int count = 0;
-	if ( boxes_json == NULL || boxes_json[0] == '\0' ) boxes_json = "[]";
-	snprintf(g_assembled_json, sizeof(g_assembled_json), "{\"boxes\":%s,\"txts\":[", boxes_json);
-	used = strlen(g_assembled_json);
-	while ( (p = strstr(p, "\"text\"")) != NULL && count < 256 ) {
-		char text[1024];
-		if ( !rapid_json_string_value(p, "\"text\"", text, sizeof(text)) ) text[0] = '\0';
-		if ( count > 0 ) rapid_append(g_assembled_json, sizeof(g_assembled_json), &used, ",");
-		rapid_append(g_assembled_json, sizeof(g_assembled_json), &used, "\"");
-		rapid_append(g_assembled_json, sizeof(g_assembled_json), &used, text);
-		rapid_append(g_assembled_json, sizeof(g_assembled_json), &used, "\"");
-		++count;
-		p += 6;
-	}
-	rapid_append(g_assembled_json, sizeof(g_assembled_json), &used, "],\"scores\":[");
-	p = recs_json != NULL ? recs_json : "";
-	count = 0;
-	while ( (p = strstr(p, "\"score\"")) != NULL && count < 256 ) {
-		char number[64];
-		double score = rapid_json_number_value(p, "\"score\"", 0.0);
-		if ( count > 0 ) rapid_append(g_assembled_json, sizeof(g_assembled_json), &used, ",");
-		snprintf(number, sizeof(number), "%.6g", score);
-		rapid_append(g_assembled_json, sizeof(g_assembled_json), &used, number);
-		++count;
-		p += 7;
-	}
-	rapid_append(g_assembled_json, sizeof(g_assembled_json), &used, "],\"word_results\":[],\"elapse_list\":[],\"elapse\":");
-	{
-		char number[64];
-		snprintf(number, sizeof(number), "%.6g", elapse);
-		rapid_append(g_assembled_json, sizeof(g_assembled_json), &used, number);
-	}
-	rapid_append(g_assembled_json, sizeof(g_assembled_json), &used, "}");
-	rapid_set_error("");
-	return g_assembled_json;
-}
-
-static const char* rapid_find_matching_bracket(const char* open)
-{
-	const char* p = open;
-	int depth = 0;
-	int in_string = 0;
-	int escape = 0;
-	if ( open == NULL || *open != '[' ) return NULL;
-	while ( *p != '\0' ) {
-		if ( in_string ) {
-			if ( escape ) {
-				escape = 0;
-			} else if ( *p == '\\' ) {
-				escape = 1;
-			} else if ( *p == '"' ) {
-				in_string = 0;
-			}
-		} else if ( *p == '"' ) {
-			in_string = 1;
-		} else if ( *p == '[' ) {
-			++depth;
-		} else if ( *p == ']' ) {
-			--depth;
-			if ( depth == 0 ) return p;
-		}
-		++p;
-	}
-	return NULL;
-}
-
-static int rapid_json_array_slice(const char* json, const char* key, const char** out_begin, const char** out_end)
-{
-	const char* p;
-	if ( out_begin == NULL || out_end == NULL ) return 0;
-	*out_begin = NULL;
-	*out_end = NULL;
-	if ( json == NULL || key == NULL ) return 0;
-	p = strstr(json, key);
-	if ( p == NULL ) return 0;
-	p = strchr(p, '[');
-	if ( p == NULL ) return 0;
-	*out_begin = p;
-	*out_end = rapid_find_matching_bracket(p);
-	return *out_end != NULL;
+	return rapidocr_cls_decode_result_at_native(result_handle, 0);
 }
 
 static int rapid_parse_box_points_at(const char* boxes_json, int target_index, double values[8])
 {
-	const char* p = boxes_json;
-	int count = 0;
-	int current_index = 0;
-	if ( values == NULL || p == NULL || target_index < 0 ) return 0;
-	while ( *p != '\0' ) {
-		const char* box = strstr(p, "\"box\"");
-		if ( box == NULL ) return 0;
-		p = strchr(box, '[');
-		if ( p == NULL ) return 0;
-		count = 0;
-		while ( *p != '\0' && count < 8 ) {
-			char* endp;
-			while ( *p != '\0' && *p != '-' && *p != '+' && *p != '.' && (*p < '0' || *p > '9') ) ++p;
-			if ( *p == '\0' ) break;
-			values[count] = strtod(p, &endp);
-			if ( endp == p ) break;
-			++count;
-			p = endp;
-		}
-		if ( count >= 8 && current_index == target_index ) return 1;
-		++current_index;
-	}
-	return 0;
+	return rapidocr_json_box_points_at(boxes_json, target_index, values);
 }
 
 XL_EXPORT double rapidocr_box_point_x_native(const char* boxes_json, int index, int point_index)
@@ -2484,157 +2307,92 @@ XL_EXPORT double rapidocr_box_point_y_native(const char* boxes_json, int index, 
 	return pts[point_index * 2 + 1];
 }
 
-XL_EXPORT int rapidocr_box_rec_target_width_native(const char* boxes_json, int index, int rec_img_w, int rec_img_h)
+static int rapid_rec_target_width_points(const double pts[8], int rec_img_w, int rec_img_h)
 {
-	double pts[8];
 	double width_top;
 	double width_bottom;
 	double height_left;
 	double height_right;
 	double crop_w;
 	double crop_h;
+	double scaled_w;
 	int target_w;
 	if ( rec_img_w <= 0 ) rec_img_w = 320;
 	if ( rec_img_h <= 0 ) rec_img_h = 48;
-	if ( !rapid_parse_box_points_at(boxes_json, index, pts) ) return rec_img_w;
 	width_top = rapid_db_distance(pts[0], pts[1], pts[2], pts[3]);
 	width_bottom = rapid_db_distance(pts[4], pts[5], pts[6], pts[7]);
 	height_left = rapid_db_distance(pts[0], pts[1], pts[6], pts[7]);
 	height_right = rapid_db_distance(pts[2], pts[3], pts[4], pts[5]);
 	crop_w = width_top > width_bottom ? width_top : width_bottom;
 	crop_h = height_left > height_right ? height_left : height_right;
-	if ( crop_w <= 0.0 || crop_h <= 0.0 ) return rec_img_w;
+	if ( !isfinite(crop_w) || !isfinite(crop_h) || crop_w <= 0.0 || crop_h <= 0.0 ) return rec_img_w;
 	if ( crop_h * 2.0 >= crop_w * 3.0 ) {
 		double tmp = crop_w;
 		crop_w = crop_h;
 		crop_h = tmp;
 	}
 	if ( crop_h <= 0.0 ) return rec_img_w;
-	target_w = (int)ceil(crop_w * (double)rec_img_h / crop_h);
+	scaled_w = ceil(crop_w * (double)rec_img_h / crop_h);
+	if ( !isfinite(scaled_w) ) return rec_img_w;
+	if ( scaled_w >= 2048.0 ) return 2048;
+	target_w = (int)scaled_w;
 	if ( target_w < rec_img_w ) target_w = rec_img_w;
 	if ( target_w > 2048 ) target_w = 2048;
 	return target_w;
 }
 
-static int rapid_json_string_array_value_at(const char* begin, const char* end, int target_index, char* out, size_t out_size)
+XL_EXPORT int rapidocr_box_rec_target_width_native(const char* boxes_json, int index, int rec_img_w, int rec_img_h)
 {
-	const char* p = begin;
-	int index = 0;
-	if ( out == NULL || out_size == 0u ) return 0;
-	out[0] = '\0';
-	if ( begin == NULL || end == NULL || target_index < 0 ) return 0;
-	while ( p < end && *p != '\0' ) {
-		if ( *p == '"' ) {
-			size_t used = 0;
-			++p;
-			while ( p < end && *p != '\0' ) {
-				if ( *p == '\\' && p + 1 < end ) {
-					if ( used + 2u < out_size ) {
-						out[used++] = *p++;
-						out[used++] = *p++;
-					} else {
-						p += 2;
-					}
-					continue;
-				}
-				if ( *p == '"' ) break;
-				if ( used + 1u < out_size ) out[used++] = *p;
-				++p;
-			}
-			out[used] = '\0';
-			if ( index == target_index ) return 1;
-			++index;
-		}
-		++p;
-	}
-	return 0;
+	double pts[8];
+	if ( !rapid_parse_box_points_at(boxes_json, index, pts) ) return rec_img_w > 0 ? rec_img_w : 320;
+	return rapid_rec_target_width_points(pts, rec_img_w, rec_img_h);
 }
 
-static int rapid_json_number_array_value_at(const char* begin, const char* end, int target_index, double* out)
+XL_EXPORT void* rapidocr_boxes_open_native(const char* boxes_json)
 {
-	const char* p = begin;
-	int index = 0;
-	if ( out == NULL || begin == NULL || end == NULL || target_index < 0 ) return 0;
-	while ( p < end && *p != '\0' ) {
-		char* endp;
-		while ( p < end && *p != '\0' && *p != '-' && *p != '+' && *p != '.' && (*p < '0' || *p > '9') ) ++p;
-		if ( p >= end || *p == '\0' ) break;
-		*out = strtod(p, &endp);
-		if ( endp == p ) break;
-		if ( index == target_index ) return 1;
-		++index;
-		p = endp;
-	}
-	return 0;
+	RapidJsonGeometry* geometry = rapidocr_json_geometry_open(boxes_json);
+	rapid_set_error(geometry != NULL ? "" : "invalid detector boxes JSON or out of memory");
+	return geometry;
 }
 
-XL_EXPORT const char* rapidocr_to_ocr_items_json2_native(const char* result_json, double text_score)
+XL_EXPORT int rapidocr_boxes_release_native(void* handle)
 {
-	const char* boxes_begin = NULL;
-	const char* boxes_end = NULL;
-	const char* txts_begin = NULL;
-	const char* txts_end = NULL;
-	const char* scores_begin = NULL;
-	const char* scores_end = NULL;
-	size_t used = 0;
-	int count;
-	int i;
-	int out_count = 0;
-	if ( text_score < 0.0 ) text_score = 0.0;
-	rapid_copy(g_ocr_items_json, sizeof(g_ocr_items_json), "[");
-	used = 1;
-	if ( result_json == NULL || result_json[0] == '\0' ) return g_ocr_items_json;
-	if ( !rapid_json_array_slice(result_json, "\"boxes\"", &boxes_begin, &boxes_end) ) return "[]";
-	if ( !rapid_json_array_slice(result_json, "\"txts\"", &txts_begin, &txts_end) ) return "[]";
-	if ( !rapid_json_array_slice(result_json, "\"scores\"", &scores_begin, &scores_end) ) return "[]";
-	(void)boxes_end;
-	count = rapid_box_count(result_json);
-	for ( i = 0; i < count && i < 256; ++i ) {
-		double pts[8];
-		double score = 0.0;
-		double x;
-		double y;
-		double w;
-		double h;
-		double min_x;
-		double min_y;
-		double max_x;
-		double max_y;
-		int p;
-		int cx;
-		int cy;
-		char text[1024];
-		char item[1536];
-		if ( !rapid_parse_box_points_at(result_json, i, pts) ) continue;
-		if ( !rapid_json_string_array_value_at(txts_begin, txts_end, i, text, sizeof(text)) ) text[0] = '\0';
-		(void)rapid_json_number_array_value_at(scores_begin, scores_end, i, &score);
-		if ( text[0] == '\0' || score < text_score ) continue;
-		min_x = max_x = pts[0];
-		min_y = max_y = pts[1];
-		for ( p = 1; p < 4; ++p ) {
-			if ( pts[p * 2] < min_x ) min_x = pts[p * 2];
-			if ( pts[p * 2] > max_x ) max_x = pts[p * 2];
-			if ( pts[p * 2 + 1] < min_y ) min_y = pts[p * 2 + 1];
-			if ( pts[p * 2 + 1] > max_y ) max_y = pts[p * 2 + 1];
-		}
-		x = min_x;
-		y = min_y;
-		w = max_x - min_x;
-		h = max_y - min_y;
-		cx = (int)(x + w / 2.0);
-		cy = (int)(y + h / 2.0);
-		if ( out_count > 0 ) rapid_append(g_ocr_items_json, sizeof(g_ocr_items_json), &used, ",");
-		snprintf(item, sizeof(item), "\n    {\n        \"Ratio\": %.15g,\n        \"Text\": \"%s\",\n        \"cx\": %d,\n        \"cy\": %d,\n        \"h\": %.1f,\n        \"w\": %.1f,\n        \"x\": %.1f,\n        \"y\": %.1f\n    }", score, text, cx, cy, h, w, x, y);
-		rapid_append(g_ocr_items_json, sizeof(g_ocr_items_json), &used, item);
-		++out_count;
-	}
-	if ( out_count > 0 ) rapid_append(g_ocr_items_json, sizeof(g_ocr_items_json), &used, "\n");
-	rapid_append(g_ocr_items_json, sizeof(g_ocr_items_json), &used, "]");
-	rapid_set_error("");
-	return g_ocr_items_json;
+	if ( handle == NULL ) return 0;
+	xrtFree(handle);
+	return 1;
 }
 
-XL_EXPORT const char* rapidocr_to_ocr_items_json_native(const char* result_json)
+XL_EXPORT int rapidocr_boxes_count_handle_native(void* handle)
+{
+	const RapidJsonGeometry* geometry = (const RapidJsonGeometry*)handle;
+	return geometry != NULL ? geometry->count : 0;
+}
+
+XL_EXPORT double rapidocr_boxes_coord_native(void* handle, int index, int coordinate)
+{
+	const RapidJsonGeometry* geometry = (const RapidJsonGeometry*)handle;
+	if ( geometry == NULL || index < 0 || index >= geometry->count ||
+		coordinate < 0 || coordinate >= 8 ) return 0.0;
+	return geometry->points[(size_t)index * 8u + (size_t)coordinate];
+}
+
+XL_EXPORT int rapidocr_boxes_rec_target_width_native(void* handle, int index, int rec_img_w, int rec_img_h)
+{
+	const RapidJsonGeometry* geometry = (const RapidJsonGeometry*)handle;
+	if ( geometry == NULL || index < 0 || index >= geometry->count ) return rec_img_w > 0 ? rec_img_w : 320;
+	return rapid_rec_target_width_points(geometry->points + (size_t)index * 8u,
+		rec_img_w, rec_img_h);
+}
+
+XL_EXPORT void* rapidocr_to_ocr_items_json2_native(const char* result_json, double text_score)
+{
+	void* output = rapidocr_ocr_items_json_encode(result_json, text_score);
+	if ( output == NULL ) xrtClearError();
+	rapid_set_error(output != NULL ? "" : "invalid OCR result JSON or out of memory");
+	return output;
+}
+
+XL_EXPORT void* rapidocr_to_ocr_items_json_native(const char* result_json)
 {
 	return rapidocr_to_ocr_items_json2_native(result_json, 0.5);
 }

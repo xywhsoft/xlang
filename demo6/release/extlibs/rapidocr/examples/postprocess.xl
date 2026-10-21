@@ -1,0 +1,14 @@
+import rapidocr
+
+func main(...) as int
+    string boxes = `[{"box":[[0,0],[10,0],[10,4],[0,4]]}]`
+    string result = rapidocr.assemble_result(boxes, `{"text":"HELLO123","score":0.99}`)
+    assert rapidocr.box_count(boxes) == 1
+    assert json.valid(result)
+    assert string.contains(result, `"HELLO123"`)
+    string items = rapidocr.to_ocr_items_json(result)
+    assert json.valid(items)
+    assert string.contains(items, `"HELLO123"`)
+    println("rapidocr postprocess ok")
+    return 0
+end

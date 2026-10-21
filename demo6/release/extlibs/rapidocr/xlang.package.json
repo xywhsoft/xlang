@@ -7,11 +7,14 @@
     "artifact":  {
                      "kind":  "source",
                      "cSources":  [
-                                      "src/rapidocr_artifact.c"
+                                      "src/rapidocr_artifact.c",
+                                      "src/rapidocr_json.c"
                                   ],
                      "xlSources":  [
                                        "src/rapidocr.xl"
-                                   ]
+                                   ],
+                   "includeDirs": ["include"],
+                   "xrtModules": ["XRT_MODULE_VALUE_CONTAINER", "XRT_MODULE_JSON", "XRT_MODULE_BUFFER", "XRT_MODULE_FILE_WHOLE", "XRT_MODULE_PATH_SYSTEM", "XRT_MODULE_ENVIRONMENT", "XRT_MODULE_ONCE", "XRT_MODULE_THREAD_KEY"]
                  },
     "links":  [
 

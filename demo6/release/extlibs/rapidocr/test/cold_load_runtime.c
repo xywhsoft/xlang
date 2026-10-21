@@ -1,0 +1,20 @@
+#ifndef XRT_MODULE_ONCE
+#define XRT_MODULE_ONCE
+#endif
+#ifndef XRT_MODULE_CHARSET
+#define XRT_MODULE_CHARSET
+#endif
+#ifndef XRT_MODULE_PATH_SYSTEM
+#define XRT_MODULE_PATH_SYSTEM
+#endif
+#ifndef XRT_MODULE_ENVIRONMENT
+#define XRT_MODULE_ENVIRONMENT
+#endif
+#ifndef XRT_MODULE_STRING
+#define XRT_MODULE_STRING
+#endif
+#ifndef XRT_MODULE_THREAD_KEY
+#define XRT_MODULE_THREAD_KEY
+#endif
+#define XRT_IMPLEMENTATION
+#include "xrt.h"

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>rapidocr - 扩展库 - xlang</title>
+  <meta name="description" content="基于 OpenCV 与 ONNX Runtime 的 xlang 图片文字识别扩展库。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../book/index.html">教程</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li></ul>
+</div></nav>
+<main class="extlib-layout c-ai" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / rapidocr</p>
+    <h1>rapidocr</h1>
+    <p class="extlib-lead">使用 OpenCV 与 ONNX Runtime 完成图片文字检测、方向分类和识别。</p>
+    <p>版本 0.1.0 · 默认模型已随包提供 · 依赖 opencv、onnxruntime</p>
+  </header>
+  <section id="start">
+    <h2>快速开始</h2>
+    <pre><code>import rapidocr
+
+auto engine = rapidocr.RapidOCR()
+assert engine.valid()
+auto output = engine.op_call("picture.png")
+if output.ok() then
+    println(output.text())
+else
+    println(output.error())
+end
+engine.release()</code></pre>
+    <p>默认模型位于包的 <code>models/</code> 目录。识别成功但未发现文字时，<code>ok()</code> 为真，<code>text()</code> 为空。</p>
+  </section>
+  <section id="api">
+    <h2>接口</h2>
+    <table class="ext-kv"><thead><tr><th>入口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>RapidOCR()</code></td><td>创建默认模型引擎；模型不可用时 <code>valid()</code> 为假。</td></tr>
+      <tr><td><code>engine.op_call(path)</code></td><td>识别图片并返回结果对象。</td></tr>
+      <tr><td><code>output.text / to_json / error</code></td><td>读取文本、结构化输出或失败原因。</td></tr>
+      <tr><td><code>output.to_ocr_json() / rapidocr.to_ocr_items_json(result_json)</code></td><td>将结果转换为 OCR 条目 JSON；支持文字和置信度阈值。</td></tr>
+      <tr><td><code>release()</code></td><td>提前释放引擎或结果；对象析构也会释放原生资源。</td></tr>
+    </tbody></table>
+    <p>C 头文件 <code>extlibs/rapidocr/include/rapidocr.h</code> 当前提供后处理与可选原生桥接层入口。缺少或残缺桥接层时 C 创建与调用明确返回空句柄及错误，不再制造伪引擎或空 JSON；显式桥接路径失败不回退搜索。XLang 无桥接时仍可使用包内 OpenCV/ONNX 模型链路。C 不能独立完成整套 OCR 推理，不能把 C 后处理范例当作 C OCR 成品。</p>
+  </section>
+  <section id="verify">
+    <h2>验证与现状</h2>
+    <pre><code>powershell -NoProfile -ExecutionPolicy Bypass -File extlibs/rapidocr/test/check.ps1 -SkipAot</code></pre>
+    <p>固定测试图已真实识别为 <code>HELLO123</code>；严格 GCC、缺图/缺模型、重复推理及 C/XLang 后处理对照通过。XLang 的路径与传入原生接口的 JSON 均拒绝内嵌 NUL，避免合法前缀后的内容被静默忽略。结果组装、三条检测框路径、识别与分类解码、字符表信息和 OCR 条目转换入口返回独立的 XRT 字符串，C 调用方须以 <code>xrtFree</code> 释放；长文本、转义字符、超过旧检测框缓冲上限与错误输入已有定向测试。资源定位与可选 DLL 加载支持 UTF-8 路径；检测框几何使用结构化 JSON 解析。包级错误按线程隔离，可选后端首次加载使用 once。XLang 引擎只在创建时读取字典，批量识别复用只读快照；多框几何也只解析一次，C 可用拥有型几何句柄复用。测试专用完整桥接层验证 C/XLang 成功、失败、恢复和释放，残缺桥接层被拒绝；此项只证明 ABI 转发。包内 OpenCV/ONNX 调用链已验证；其桥接实现与压力矩阵由插件独立维护。C 完整推理仍需真实桥接层，完整 AOT 被当前主线链接缺符号阻断。</p>
+    <p>2026-10-21：Windows 门禁将图片、测试 DLL 和可执行文件写入每次独占的 <code>build/test/rapidocr/run_&lt;id&gt;</code> 并在退出时清理；Linux C 门禁使用独占系统临时目录。既有固定目录文件不再被覆盖。Windows 真实模型 <code>HELLO123</code>、完整/残缺测试桥接调用和 Linux C 公开调用均复验通过；本轮未重跑压力模式，完整 AOT 与缺源码插件内部仍未签收。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>
