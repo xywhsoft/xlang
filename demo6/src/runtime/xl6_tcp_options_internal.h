@@ -31,4 +31,5 @@ static inline int64_t xl6TcpOptionsMillisV1(uint64_t micros)
 /* Separate provider, so merely using Dial/Listen need not include projections
  * which allocate a NetAddress. Copy returns an independent configuration. */
 void* xl6TcpStreamOptionsCopyV1(const xnetstreamconfig*);
+void* xl6TcpDialOptionsCopyV1(const xnetdialconfig*);
 #endif

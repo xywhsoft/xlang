@@ -1639,6 +1639,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsNetProxyClass;
     int needsNetProxyHandshake;
     int needsTcpStreamOptions,needsTcpDialOptions,needsTcpListenOptions;
+    int needsTcpProxyDial,needsTcpProxyDialOptions;
     int needsNetEngineClass;
     int needsTcpStreamStatsClass;
     int needsTcpListenerStatsClass;
@@ -1778,7 +1779,16 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     }
 	needsTlsSessionClass = xl6StdlibNeedsTlsSessionClass(root) ||
 		needsTlsStreamClass || needsTlsServerClass;
-    needsTcpDialOptions=xl6StdlibNodeUsesTypeName(root,"TcpDialOptions");
+    needsTcpProxyDial=xl6StdlibNodeUsesMemberName(root,"dialProxy")||
+        xl6StdlibNodeUsesMemberName(root,"dialProxyAsync")||
+        xl6StdlibNodeUsesMemberName(root,"dialProxyCancel")||
+        xl6StdlibNodeUsesMemberName(root,"dialProxyUntil")||
+        xl6StdlibNodeUsesMemberName(root,"dialProxyUntilCancel")||
+        xl6StdlibNodeUsesMemberName(root,"dialProxyAsyncCancel")||
+        xl6StdlibNodeUsesMemberName(root,"dialProxyAsyncUntil")||
+        xl6StdlibNodeUsesMemberName(root,"dialProxyAsyncUntilCancel");
+    needsTcpProxyDialOptions=needsTcpProxyDial||xl6StdlibNodeUsesTypeName(root,"TcpProxyDialOptions");
+    needsTcpDialOptions=needsTcpProxyDialOptions||xl6StdlibNodeUsesTypeName(root,"TcpDialOptions");
     needsTcpListenOptions=xl6StdlibNodeUsesTypeName(root,"TcpListenOptions")||xl6StdlibNodeUsesTypeName(root,"TcpAcceptDistribution");
     needsTcpStreamOptions=needsTcpDialOptions||needsTcpListenOptions||xl6StdlibNodeUsesTypeName(root,"TcpStreamOptions")||xl6StdlibNodeUsesTypeName(root,"TcpReadMode");
     needsNetAddressClass = needsTcpListenOptions || xl6StdlibNeedsNetAddressClass(root, used);
@@ -1822,6 +1832,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
 
     /* 依赖由高层类型向基础类型单向闭包。 */
     needsTcpStreamClass = needsTcpStreamClass || needsTcpListenerClass;
+    needsTcpProxyDial=needsTcpProxyDial&&needsTcpStreamClass;
+    needsNetProxyClass=needsNetProxyClass||needsTcpProxyDial;
     needsNetEngineClass=needsNetEngineClass||needsTcpStreamClass;
     needsNetAddressClass=needsNetAddressClass||needsTcpStreamClass;
     needsTcpStreamOptions=needsTcpStreamOptions||needsTcpStreamClass;
@@ -2073,6 +2085,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if(needsNetProxyHandshake)xl6StdlibBuilderAppend(&builder,xl6StdlibNetProxyHandshakeSource);
     if(needsTcpStreamOptions)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpStreamOptionsSource);
     if(needsTcpDialOptions)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpDialOptionsSource);
+    if(needsTcpProxyDialOptions)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpProxyDialOptionsSource);
     if(needsTcpListenOptions)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpListenOptionsSource);
     if ( needsNetEngineClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetEngineOptionsSource);
@@ -2093,7 +2106,9 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if(needsTcpStreamClass||xl6StdlibNodeUsesTypeName(root,"TcpWait"))
         xl6StdlibBuilderAppend(&builder,xl6StdlibTcpWaitSource);
     if ( needsTcpStreamClass ) {
-        xl6StdlibBuilderAppend(&builder, xl6StdlibTcpStreamClassSource);
+        xl6StdlibBuilderAppend(&builder, xl6StdlibTcpStreamClassBodySource);
+        if(needsTcpProxyDial)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpProxyDialMembersSource);
+        xl6StdlibBuilderAppend(&builder,"end\n");
     }
     if ( needsTcpListenerClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibTcpListenerClassSource);

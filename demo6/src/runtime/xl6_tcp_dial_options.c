@@ -6,6 +6,7 @@ static void* publish(const xnetdialconfig* value)
 }
 void* xl6TcpDialOptionsCreateV1(void)
 {xnetdialconfig value;xrtNetDialConfigInit(&value);return publish(&value);}
+void* xl6TcpDialOptionsCopyV1(const xnetdialconfig* value){return publish(value);}
 void xl6TcpDialOptionsDestroyV1(void* raw){xrtFree(raw);}
 void* xl6TcpDialOptionsStreamV1(const void* raw){return xl6TcpStreamOptionsCopyV1(&((const xnetdialconfig*)raw)->Stream);}
 void* xl6TcpDialOptionsWithStreamV1(const void* raw,const void* stream)

@@ -1,0 +1,4 @@
+auto engine = NetEngine()
+auto resolver = NetResolver()
+auto proxy = NetProxy(NetProxyType.socks5, "127.0.0.1", 1234)
+auto invalid = TcpStream.dialProxy(engine, resolver, 12, "origin.test", 8443)

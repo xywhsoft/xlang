@@ -1,0 +1,112 @@
+async func proxyReadExact(TcpStream stream, int count) as bytes
+    bytes result = b""
+    while result.length < count
+        bytes part = await stream.recvAsync(count - result.length)
+        assert part.length > 0
+        result = result + part
+    end
+    return result
+end
+async func proxyPeer(TcpListener listener, bool http, bool auth) as bool
+    TcpStream server = await listener.acceptAsync()
+    if http
+        bytes expected = b"CONNECT origin.test:8443 HTTP/1.1\r\nHost: origin.test:8443\r\n\r\n"
+        assert await proxyReadExact(server, expected.length) == expected
+        assert server.send(b"HTTP/1.1 200 Tunnel Ready\r\n\r\na\x00b") == NetStatus.ok
+    else
+        if auth
+            assert await proxyReadExact(server, 3) == b"\x05\x01\x02"
+            assert server.send(b"\x05\x02") == NetStatus.ok
+            assert await proxyReadExact(server, 15) == b"\x01\x04user\x08password"
+            assert server.send(b"\x01\x00") == NetStatus.ok
+        else
+            assert await proxyReadExact(server, 3) == b"\x05\x01\x00"
+            assert server.send(b"\x05\x00") == NetStatus.ok
+        end
+        assert await proxyReadExact(server, 18) == b"\x05\x01\x00\x03\x0borigin.test\x20\xfb"
+        assert server.send(b"\x05\x00\x00\x01\x7f\x00\x00\x01\x20\xfba\x00b") == NetStatus.ok
+    end
+    assert await proxyReadExact(server, 3) == b"x\x00y"
+    assert server.send(b"done") == NetStatus.ok
+    server.close()
+    assert await server.waitAsync(TcpWait.close)
+    return true
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto resolver = NetResolver()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto proxy = NetProxy(NetProxyType.socks5, "127.0.0.1", listener.localAddress().port)
+auto authenticated = NetProxy(NetProxyType.socks5, "127.0.0.1", listener.localAddress().port, b"user", b"password", NetProxyAuth.required)
+auto http = NetProxy(NetProxyType.httpConnect, "127.0.0.1", listener.localAddress().port)
+auto options = TcpProxyDialOptions().withTransportOptions(TcpDialOptions().withFamily(4)).withTimeoutMillis(5000)
+auto active = CancellationSource()
+uint64 due = time.clock() + uint64(10000000)
+auto peerbaseDefault = proxyPeer(listener, false, false)
+TcpStream clientbaseDefault = await TcpStream.dialProxyAsync(engine, resolver, proxy, "origin.test", 8443)
+assert await proxyReadExact(clientbaseDefault, 3) == b"a\x00b"
+assert clientbaseDefault.send(b"x\x00y") == NetStatus.ok
+assert await proxyReadExact(clientbaseDefault, 4) == b"done"
+assert await peerbaseDefault
+clientbaseDefault.abort()
+auto peerbaseOptions = proxyPeer(listener, false, true)
+TcpStream clientbaseOptions = await TcpStream.dialProxyAsync(engine, resolver, authenticated, "origin.test", 8443, options)
+assert await proxyReadExact(clientbaseOptions, 3) == b"a\x00b"
+assert clientbaseOptions.send(b"x\x00y") == NetStatus.ok
+assert await proxyReadExact(clientbaseOptions, 4) == b"done"
+assert await peerbaseOptions
+clientbaseOptions.abort()
+auto peerCancelDefault = proxyPeer(listener, false, false)
+TcpStream clientCancelDefault = await TcpStream.dialProxyAsyncCancel(engine, resolver, proxy, "origin.test", 8443, active.token)
+assert await proxyReadExact(clientCancelDefault, 3) == b"a\x00b"
+assert clientCancelDefault.send(b"x\x00y") == NetStatus.ok
+assert await proxyReadExact(clientCancelDefault, 4) == b"done"
+assert await peerCancelDefault
+clientCancelDefault.abort()
+auto peerCancelOptions = proxyPeer(listener, false, true)
+TcpStream clientCancelOptions = await TcpStream.dialProxyAsyncCancel(engine, resolver, authenticated, "origin.test", 8443, options, active.token)
+assert await proxyReadExact(clientCancelOptions, 3) == b"a\x00b"
+assert clientCancelOptions.send(b"x\x00y") == NetStatus.ok
+assert await proxyReadExact(clientCancelOptions, 4) == b"done"
+assert await peerCancelOptions
+clientCancelOptions.abort()
+auto peerUntilDefault = proxyPeer(listener, false, false)
+TcpStream clientUntilDefault = await TcpStream.dialProxyAsyncUntil(engine, resolver, proxy, "origin.test", 8443, due)
+assert await proxyReadExact(clientUntilDefault, 3) == b"a\x00b"
+assert clientUntilDefault.send(b"x\x00y") == NetStatus.ok
+assert await proxyReadExact(clientUntilDefault, 4) == b"done"
+assert await peerUntilDefault
+clientUntilDefault.abort()
+auto peerUntilOptions = proxyPeer(listener, false, true)
+TcpStream clientUntilOptions = await TcpStream.dialProxyAsyncUntil(engine, resolver, authenticated, "origin.test", 8443, options, due)
+assert await proxyReadExact(clientUntilOptions, 3) == b"a\x00b"
+assert clientUntilOptions.send(b"x\x00y") == NetStatus.ok
+assert await proxyReadExact(clientUntilOptions, 4) == b"done"
+assert await peerUntilOptions
+clientUntilOptions.abort()
+auto peerUntilCancelDefault = proxyPeer(listener, false, false)
+TcpStream clientUntilCancelDefault = await TcpStream.dialProxyAsyncUntilCancel(engine, resolver, proxy, "origin.test", 8443, due, active.token)
+assert await proxyReadExact(clientUntilCancelDefault, 3) == b"a\x00b"
+assert clientUntilCancelDefault.send(b"x\x00y") == NetStatus.ok
+assert await proxyReadExact(clientUntilCancelDefault, 4) == b"done"
+assert await peerUntilCancelDefault
+clientUntilCancelDefault.abort()
+auto peerUntilCancelOptions = proxyPeer(listener, false, true)
+TcpStream clientUntilCancelOptions = await TcpStream.dialProxyAsyncUntilCancel(engine, resolver, authenticated, "origin.test", 8443, options, due, active.token)
+assert await proxyReadExact(clientUntilCancelOptions, 3) == b"a\x00b"
+assert clientUntilCancelOptions.send(b"x\x00y") == NetStatus.ok
+assert await proxyReadExact(clientUntilCancelOptions, 4) == b"done"
+assert await peerUntilCancelOptions
+clientUntilCancelOptions.abort()
+auto httpPeer = proxyPeer(listener, true, false)
+TcpStream tunneled = await TcpStream.dialProxyAsync(engine, resolver, http, "origin.test", 8443, options)
+assert await proxyReadExact(tunneled, 3) == b"a\x00b"
+assert tunneled.send(b"x\x00y") == NetStatus.ok
+assert await proxyReadExact(tunneled, 4) == b"done"
+assert await httpPeer
+tunneled.abort()
+listener.close()
+resolver.close()
+engine.close()
+assert engine.wait(5000)
+println("managed Proxy async: all eight overloads, auth, HTTP and NUL: ok")

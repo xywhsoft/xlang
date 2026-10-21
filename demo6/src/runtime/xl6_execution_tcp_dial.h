@@ -3,6 +3,8 @@
 #include "xl6_execution_tcp.h"
 struct xnetaddrlist;
 struct xnetdialconfig;
+struct xnetproxy;
+struct xnetproxydialconfig;
 /* Prepare owns actual parents and submits NOTHING. The caller publishes its
  * prebuilt result class before starting work. A non-NULL Resolver selects the
  * host path; NULL selects the immutable address-list path. No implicit DNS or
@@ -17,4 +19,7 @@ XL6_CODE_LEASE_API struct xfuture* xl6ExecutionTcpDialSourceV1(
 XL6_CODE_LEASE_API struct xfuture* xl6ExecutionTcpDialAddressesSourceV1(
     XL6_ExecutionResourceV1*,const struct xnetaddrlist*,const struct xnetdialconfig*);
 XL6_CODE_LEASE_API bool xl6ExecutionTcpPromoteDialV1(XL6_ExecutionResourceV1*);
+XL6_CODE_LEASE_API struct xfuture* xl6ExecutionTcpProxyDialSourceV1(
+    XL6_ExecutionResourceV1*,const struct xnetproxy*,const char*,uint16_t,
+    const struct xnetproxydialconfig*);
 #endif

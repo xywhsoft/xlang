@@ -1,0 +1,48 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto resolver = NetResolver()
+auto proxy = NetProxy(NetProxyType.socks5, "127.0.0.1", 1234)
+auto options = TcpProxyDialOptions().withTimeoutMillis(5000)
+auto stopped = CancellationSource()
+assert stopped.cancel()
+uint64 due = time.clock() + uint64(10000000)
+int cancelled = 0
+try
+    auto unused = TcpStream.dialProxyCancel(engine, resolver, proxy, "origin.test", 8443, stopped.token)
+catch CancelledError
+    cancelled = cancelled + 1
+end
+try
+    auto unused = TcpStream.dialProxyCancel(engine, resolver, proxy, "origin.test", 8443, options, stopped.token)
+catch CancelledError
+    cancelled = cancelled + 1
+end
+try
+    auto unused = TcpStream.dialProxyUntilCancel(engine, resolver, proxy, "origin.test", 8443, due, stopped.token)
+catch CancelledError
+    cancelled = cancelled + 1
+end
+try
+    auto unused = TcpStream.dialProxyUntilCancel(engine, resolver, proxy, "origin.test", 8443, options, due, stopped.token)
+catch CancelledError
+    cancelled = cancelled + 1
+end
+assert cancelled == 4
+int expired = 0
+try
+    auto unused = TcpStream.dialProxyUntil(engine, resolver, proxy, "origin.test", 8443, uint64(0))
+catch TimeoutError
+    expired = expired + 1
+end
+try
+    auto unused = TcpStream.dialProxyUntil(engine, resolver, proxy, "origin.test", 8443, options, uint64(0))
+catch TimeoutError
+    expired = expired + 1
+end
+assert expired == 2
+assert resolver.snapshot().submitted == 0
+assert resolver.snapshot().queriesStarted == 0
+resolver.close()
+engine.close()
+assert engine.wait(5000)
+println("synchronous Proxy controls: no native submission or language ready queue: ok")

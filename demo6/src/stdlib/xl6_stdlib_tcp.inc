@@ -22,7 +22,9 @@ const char* xl6StdlibTcpListenerStatsClassSource=
 #include "src/runtime/xl6_tcp_stats_fields.inc"
 #undef XL6_TCP_LISTENER_UINT
     "end\n";
-const char* xl6StdlibTcpStreamClassSource=
+/* Class body is composed with optional declared method families, then closed
+ * once by the builder. TCP-only users never acquire Proxy declarations. */
+const char* xl6StdlibTcpStreamClassBodySource=
     "class TcpStream\n    private native point handle\n"
     "    extern \"xl6TcpStreamCreateDefaultV1\" create(NetEngine engine, NetAddress remote)\n"
     "    extern \"xl6TcpStreamCreateV1\" create(NetEngine engine, NetAddress remote, TcpStreamOptions options, int worker = 0)\n"
@@ -108,7 +110,7 @@ const char* xl6StdlibTcpStreamClassSource=
     "    private extern \"xl6TcpConnectedStartV1\" @nonblocking func connectedNative(TcpStream value) as future<TcpStream>\n"
     "    func connectedAsync() as future<TcpStream>\n        return self.connectedNative(self)\n    end\n"
     "    extern \"xl6TcpStreamSnapshotV1\" @nonblocking func snapshot() as TcpStreamStats\n"
-    "end\n";
+    ;
 static const char xl6StdTcpDialAsyncBody[] =
     "func __xl_std_tcp_dial_async(NetEngine engine, NetResolver resolver, string host, int port) as future<TcpStream>\n"
     "    return TcpStream.dialAsync(engine, resolver, host, port)\nend\n"

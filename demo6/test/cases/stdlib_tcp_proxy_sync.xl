@@ -1,0 +1,114 @@
+func proxyReadExactSync(TcpStream stream, int count) as bytes
+    bytes result = b""
+    while result.length < count
+        bytes part = stream.recv(count - result.length, 5000)
+        assert part.length > 0
+        result = result + part
+    end
+    return result
+end
+async func proxyReadExact(TcpStream stream, int count) as bytes
+    bytes result = b""
+    while result.length < count
+        bytes part = await stream.recvAsync(count - result.length)
+        assert part.length > 0
+        result = result + part
+    end
+    return result
+end
+async func proxyPeer(TcpListener listener, bool http, bool auth) as bool
+    TcpStream server = await listener.acceptAsync()
+    if http
+        bytes expected = b"CONNECT origin.test:8443 HTTP/1.1\r\nHost: origin.test:8443\r\n\r\n"
+        assert await proxyReadExact(server, expected.length) == expected
+        assert server.send(b"HTTP/1.1 200 Tunnel Ready\r\n\r\na\x00b") == NetStatus.ok
+    else
+        if auth
+            assert await proxyReadExact(server, 3) == b"\x05\x01\x02"
+            assert server.send(b"\x05\x02") == NetStatus.ok
+            assert await proxyReadExact(server, 15) == b"\x01\x04user\x08password"
+            assert server.send(b"\x01\x00") == NetStatus.ok
+        else
+            assert await proxyReadExact(server, 3) == b"\x05\x01\x00"
+            assert server.send(b"\x05\x00") == NetStatus.ok
+        end
+        assert await proxyReadExact(server, 18) == b"\x05\x01\x00\x03\x0borigin.test\x20\xfb"
+        assert server.send(b"\x05\x00\x00\x01\x7f\x00\x00\x01\x20\xfba\x00b") == NetStatus.ok
+    end
+    assert await proxyReadExact(server, 3) == b"x\x00y"
+    assert server.send(b"done") == NetStatus.ok
+    server.close()
+    assert await server.waitAsync(TcpWait.close)
+    return true
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto resolver = NetResolver()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto proxy = NetProxy(NetProxyType.socks5, "127.0.0.1", listener.localAddress().port)
+auto authenticated = NetProxy(NetProxyType.socks5, "127.0.0.1", listener.localAddress().port, b"user", b"password", NetProxyAuth.required)
+auto http = NetProxy(NetProxyType.httpConnect, "127.0.0.1", listener.localAddress().port)
+auto options = TcpProxyDialOptions().withTransportOptions(TcpDialOptions().withFamily(4)).withTimeoutMillis(5000)
+auto active = CancellationSource()
+uint64 due = time.clock() + uint64(10000000)
+auto peerbaseDefault = proxyPeer(listener, false, false)
+TcpStream clientbaseDefault = TcpStream.dialProxy(engine, resolver, proxy, "origin.test", 8443)
+assert proxyReadExactSync(clientbaseDefault, 3) == b"a\x00b"
+assert clientbaseDefault.send(b"x\x00y") == NetStatus.ok
+assert proxyReadExactSync(clientbaseDefault, 4) == b"done"
+assert peerbaseDefault.wait()
+clientbaseDefault.abort()
+auto peerbaseOptions = proxyPeer(listener, false, true)
+TcpStream clientbaseOptions = TcpStream.dialProxy(engine, resolver, authenticated, "origin.test", 8443, options)
+assert proxyReadExactSync(clientbaseOptions, 3) == b"a\x00b"
+assert clientbaseOptions.send(b"x\x00y") == NetStatus.ok
+assert proxyReadExactSync(clientbaseOptions, 4) == b"done"
+assert peerbaseOptions.wait()
+clientbaseOptions.abort()
+auto peerCancelDefault = proxyPeer(listener, false, false)
+TcpStream clientCancelDefault = TcpStream.dialProxyCancel(engine, resolver, proxy, "origin.test", 8443, active.token)
+assert proxyReadExactSync(clientCancelDefault, 3) == b"a\x00b"
+assert clientCancelDefault.send(b"x\x00y") == NetStatus.ok
+assert proxyReadExactSync(clientCancelDefault, 4) == b"done"
+assert peerCancelDefault.wait()
+clientCancelDefault.abort()
+auto peerCancelOptions = proxyPeer(listener, false, true)
+TcpStream clientCancelOptions = TcpStream.dialProxyCancel(engine, resolver, authenticated, "origin.test", 8443, options, active.token)
+assert proxyReadExactSync(clientCancelOptions, 3) == b"a\x00b"
+assert clientCancelOptions.send(b"x\x00y") == NetStatus.ok
+assert proxyReadExactSync(clientCancelOptions, 4) == b"done"
+assert peerCancelOptions.wait()
+clientCancelOptions.abort()
+auto peerUntilDefault = proxyPeer(listener, false, false)
+TcpStream clientUntilDefault = TcpStream.dialProxyUntil(engine, resolver, proxy, "origin.test", 8443, due)
+assert proxyReadExactSync(clientUntilDefault, 3) == b"a\x00b"
+assert clientUntilDefault.send(b"x\x00y") == NetStatus.ok
+assert proxyReadExactSync(clientUntilDefault, 4) == b"done"
+assert peerUntilDefault.wait()
+clientUntilDefault.abort()
+auto peerUntilOptions = proxyPeer(listener, false, true)
+TcpStream clientUntilOptions = TcpStream.dialProxyUntil(engine, resolver, authenticated, "origin.test", 8443, options, due)
+assert proxyReadExactSync(clientUntilOptions, 3) == b"a\x00b"
+assert clientUntilOptions.send(b"x\x00y") == NetStatus.ok
+assert proxyReadExactSync(clientUntilOptions, 4) == b"done"
+assert peerUntilOptions.wait()
+clientUntilOptions.abort()
+auto peerUntilCancelDefault = proxyPeer(listener, false, false)
+TcpStream clientUntilCancelDefault = TcpStream.dialProxyUntilCancel(engine, resolver, proxy, "origin.test", 8443, due, active.token)
+assert proxyReadExactSync(clientUntilCancelDefault, 3) == b"a\x00b"
+assert clientUntilCancelDefault.send(b"x\x00y") == NetStatus.ok
+assert proxyReadExactSync(clientUntilCancelDefault, 4) == b"done"
+assert peerUntilCancelDefault.wait()
+clientUntilCancelDefault.abort()
+auto peerUntilCancelOptions = proxyPeer(listener, false, true)
+TcpStream clientUntilCancelOptions = TcpStream.dialProxyUntilCancel(engine, resolver, authenticated, "origin.test", 8443, options, due, active.token)
+assert proxyReadExactSync(clientUntilCancelOptions, 3) == b"a\x00b"
+assert clientUntilCancelOptions.send(b"x\x00y") == NetStatus.ok
+assert proxyReadExactSync(clientUntilCancelOptions, 4) == b"done"
+assert peerUntilCancelOptions.wait()
+clientUntilCancelOptions.abort()
+listener.close()
+resolver.close()
+engine.close()
+assert engine.wait(5000)
+println("managed Proxy synchronous: all eight overloads, auth and NUL: ok")

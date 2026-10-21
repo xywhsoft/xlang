@@ -180,7 +180,7 @@ def main():
             run('dial-pre-submit-negative.refused',[binary],reject=True)
             report['NegativeControls'].append('stopped-before-native-dial-submission');save()
         if args.dial_sync_controls:
-            original=root/'src/runtime/xl6_tcp_dial_sync.c';body=original.read_text(encoding='utf8')
+            original=root/'src/runtime/xl6_tcp_dial_sync_common.c';body=original.read_text(encoding='utf8')
             needle='(void)xrtFutureCancel(source);(void)xrtFutureWait(source);';assert body.count(needle)==1
             mutant=out/'no-sync-native-join.c';mutant.write_text(body.replace(needle,'(void)xrtFutureCancel(source);'),encoding='utf8');product(mutant)
             binary=out/('sync-join-negative'+ext)
