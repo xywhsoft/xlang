@@ -1,0 +1,64 @@
+import roaring
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+int createFailures = 0
+int createSuccesses = 0
+for allocation in range(12)
+    bool caught = false
+    assert failAfter(uint64(allocation))
+    try
+        roaring.RoaringBitmap candidate = roaring.create()
+        assert candidate.valid
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert caught == triggered
+    if caught then createFailures += 1 else createSuccesses += 1 end
+end
+assert createFailures > 0 and createSuccesses > 0
+
+int addFailures = 0
+int addSuccesses = 0
+for allocation in range(12)
+    roaring.RoaringBitmap bitmap = roaring.create()
+    bool caught = false
+    assert failAfter(uint64(allocation))
+    try
+        bitmap.add(123)
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert caught == triggered
+    if caught then
+        assert bitmap.count == 0 and not bitmap.contains(123)
+        addFailures += 1
+    else
+        assert bitmap.count == 1 and bitmap.contains(123)
+        addSuccesses += 1
+    end
+end
+assert addFailures > 0 and addSuccesses > 0
+
+roaring.RoaringBitmap upgraded = roaring.create()
+for i in range(4096)
+    upgraded.add(i)
+end
+assert failAfter(0)
+bool caught = false
+try
+    upgraded.add(4096)
+catch MemoryError
+    caught = true
+end
+assert caught and failTriggered()
+failClear()
+assert upgraded.count == 4096 and not upgraded.contains(4096)
+upgraded.add(4096)
+assert upgraded.count == 4097 and upgraded.contains(4096)

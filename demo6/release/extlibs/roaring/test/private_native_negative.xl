@@ -1,0 +1,5 @@
+import roaring
+
+// 导入方只能通过会检查 uint32 范围的公开方法操作集合。
+auto bitmap = roaring.create()
+bitmap.addNative(-1)

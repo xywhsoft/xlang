@@ -2,32 +2,41 @@ extern "xl6_xrt_last_error_text" func __roaring_error() as string
 
 
 
-class RoaringBitmap
+export class RoaringBitmap
     native point handle
     extern "xroaring_create" create()
     extern "xroaring_destroy" destroy()
 
-    extern "xroaring_add" func addNative(int value)
-    extern "xroaring_remove" func removeNative(int value)
-    extern "xroaring_contains" func containsNative(int value) as bool
-    extern "xroaring_count" func countNative() as int
-    extern "xroaring_clear" func clearNative()
-    extern "xroaring_min" func minNative() as int
-    extern "xroaring_max" func maxNative() as int
+    private extern "xroaring_add" func addNative(int value) as bool
+    private extern "xroaring_remove" func removeNative(int value) as bool
+    private extern "xroaring_contains" func containsNative(int value) as bool
+    private extern "xroaring_count" func countNative() as int
+    private extern "xroaring_clear" func clearNative()
+    private extern "xroaring_min" func minNative() as int
+    private extern "xroaring_max" func maxNative() as int
 
     get valid() as bool
         return self.handle != null
     end
 
     get count() as int
+        if self.handle == null then
+            throw RuntimeError "roaring: instance is destroyed"
+        end
         return self.countNative()
     end
 
     get min() as int
+        if self.handle == null then
+            throw RuntimeError "roaring: instance is destroyed"
+        end
         return self.minNative()
     end
 
     get max() as int
+        if self.handle == null then
+            throw RuntimeError "roaring: instance is destroyed"
+        end
         return self.maxNative()
     end
 
@@ -35,19 +44,30 @@ class RoaringBitmap
         if self.handle == null then
             throw RuntimeError "roaring: instance is destroyed"
         end
-        self.addNative(value)
+        if value < 0 or value > 4294967295 then
+            throw ValueError "roaring: value must be uint32"
+        end
+        if not self.addNative(value) then
+            throw RuntimeError __roaring_error()
+        end
     end
 
-    func remove(int value)
+    func remove(int value) as bool
         if self.handle == null then
             throw RuntimeError "roaring: instance is destroyed"
         end
-        self.removeNative(value)
+        if value < 0 or value > 4294967295 then
+            throw ValueError "roaring: value must be uint32"
+        end
+        return self.removeNative(value)
     end
 
     func contains(int value) as bool
         if self.handle == null then
             throw RuntimeError "roaring: instance is destroyed"
+        end
+        if value < 0 or value > 4294967295 then
+            throw ValueError "roaring: value must be uint32"
         end
         return self.containsNative(value)
     end
@@ -63,5 +83,9 @@ end
 
 
 export func create() as RoaringBitmap
-    return RoaringBitmap()
+    RoaringBitmap bitmap = RoaringBitmap()
+    if not bitmap.valid then
+        throw RuntimeError __roaring_error()
+    end
+    return bitmap
 end

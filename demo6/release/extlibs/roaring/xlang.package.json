@@ -6,11 +6,14 @@
     "kind": "demo6-extlib",
     "artifact": {
         "kind": "source",
+        "includeDirs": ["include"],
         "cSources": ["roaring_native.c"],
-        "xlSources": ["src/roaring.xl"]
+        "xlSources": ["src/roaring.xl"],
+        "xrtModules": []
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/allocations.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }
