@@ -232,3 +232,80 @@ Linux 同时覆盖实际选定闭包的 ASan／UBSan，两个后端均真实自�
 下一步将这套实际拥有域用于受管理 Stream／Listener 的语言资源与 Future 结果投影，
 再闭合文件／用户引用载荷、Dial／Server／UDP 组合状态和联合验收。本批不是完整 TCP
 语言标准库完成声明；P3、其余已批准分类和总长期目标均保持 active，未决策分类未变化。
+
+## 2026-10-21：托管 Stream／Listener 资源和私有 Accept 结果载体
+
+驻留层新增 `xl6_execution_tcp.c` 及精确 `ExecutionTcp` 拥有域。Stream／Listener 是
+既有 ExecutionSource 管辖的强类型资源，复用同一个退役控制线程，不为连接或等待创建线程。
+具体结构以共有资源为首成员；原有 Executor／TaskPool／Engine／Resolver 的基础实例不增加
+TCP 指针。内部 family 只增加纯槽位存在性查询，旧四个 family 使用各自真实字段。
+
+- 每个传输资源拥有一份真实 Engine 语言资源引用。释放 Engine 原变量不会停止仍有子资源
+  使用的引擎。私有 Accept 载体还拥有真实 Listener 语言引用，不能只靠原生句柄保活来掩盖
+  Listener 语言层的提前自动关闭。所有槽位由其真实物理节点枚举，没有估算拥有边。
+- 原生 callback／Data 保持空；原生指针只经精确 family 验证的同线程调用域借出，不跨 Leave
+  保存。复用既有资源的独占控制域来完成结果提升，与关闭、退役和图收集互斥。
+- 构造及类包装前的 `PrepareAccept` 只保留 Engine／Listener，不提交 Accept。这样构造失败
+  或模块关闭拒绝发布时，回滚不可能遗弃已在执行的接受操作。`AcceptSource` 才创建唯一的
+  原生 Future；重取只是增加同一 Future 的真实引用，不另排等待。成功提升只保留真实 Stream，
+  然后归还 Future／Listener 槽。这个载体必须由后续语言包装保持私有，完成后才交给用户。
+- 协作取消不伪造 Future 终态。放弃结果时，控制器请求取消，但保留实际 Future 到生产端
+  真正完成；若 native unlink 已先取得连接而随后正常交付，先 Abort 未交付的连接再归还引用。
+  不用“反正 Engine 最终会关闭”掩盖仍在运行的 Engine 上的孤立连接。
+- 显式 Close 遵循原生优雅关闭语义；丢失最后一个拥有者则中止剩余工作。需要保证发送交付
+  的调用者必须显式等待相应完成边界，不能把析构当隐式无限刷新。清理仍走可检查的共有退役
+  机制，Busy 保留资源，失败保留原错误和资源，不在释放路径自动吞掉失败或直接 abort。
+- 配置按值复制且保留调用者选定的 ReadMode；不为了适配新接口偷偷强制改变读取模式。
+  已有状态、端点、半关闭、暂停／恢复和独立统计快照底座通过精确调用域复用原生 API。
+
+新增组件只追加 ID；选择 TCP 资源时明确选入其真实原生 Future／源拥有域。只用 Engine、
+原生 TCP 或其他资源不会拉入 TCP 托管实现；Resolver／TaskPool 也不是 TCP 资源的隐式依赖。
+本批不修改 IR、Cgen 或标准库公开类，后续公开 Future 结果投影复用既有私有类载体机制和
+固定工作线程的队列延续，不把语言对象的最终释放放进 I/O Worker 的内联回调。
+
+同时导入 XRT `a68481ce` 的一个明确 `tcp_future.c` 源码段：生产者拒绝 Accept 结果发布时，
+先 Abort 未交付连接再 Destroy。它不是“请求取消必定使 Promise 取消”的语义变更。
+两份固定产品的声明、微秒期限、TCP 配置布局和原生导出集合均不变。
+上游以干净父提交加三份明确任务文件生成候选；文件／内存等用户工作区改动未被混入。
+
+证据根目录：`F:/xlang-validation/five-groups-20261021/p3-tcp-managed`。
+
+- 上游 `native-win-r2`／`native-linux-r2` 共 244／305 阶段。移除拒绝交付时 Abort 的独立
+  对照按预期在孤立连接检查处失败。r1 的失败来自测试误把协作请求当终态，已修正该假设；
+  保留发现证据，不将 r1 列作最终验收，也未以更改取消语义迁就测试。
+- `resource-win-r1`／`resource-linux-r1` 共 31／34 阶段：GCC／TCC、O0／O2、select 与
+  IOCP／epoll，Linux 含真实选定闭包 ASan／UBSan；每次执行 24 种图清理、三种普通退役、
+  未交付结果与取消后仍 Pending 的真实完成边界，以及 80 个构造分配预算（12 个实际失败）。
+  字节收发包含 NUL，所有健康路径内存平衡。阶段数包含构建和预期拒绝，不等同独立测试数。
+- 缺少 Stream family、缺少 Listener family、过早遗弃 Pending Accept 的三个独立对照，
+  均在真实目录／生命周期断言处被明确检出。没有用假计数、模拟传输或替代策略绕过拒绝。
+
+完整收口验证如下，均已通过；公开语言项是原有 Engine／配置回归，不是新 TCP 公开类验收。
+
+| 验收 | Windows | Linux |
+|---|---:|---:|
+| SourceXrt 完整源码构建（翻译单元；Windows 按摘要复用未变对象） | 726 | 725 |
+| `resource-*-r1`：新增托管 TCP 资源／真实 Accept 载体 | 31 | 34 |
+| `execution-*-r2`：共有 Source／Executor／TaskPool、13 项对照 | 84 | 86 |
+| `engine-runtime-*-r2`：共有 Engine／Pool 拥有域及拒绝对照 | 46 | 48 |
+| `resolver-runtime-*-r1`：数字地址及离线 Resolver 生命周期 | 76 | 88 |
+| `future-*-r1`：固定 ABI 原生图及真实目录 Future 图 | 43 | 49 |
+| `engine-language-win-r1`／`engine-language-linux-r2`：JIT／模块／独立 AOT | 73 | 73 |
+| `options-language-*-r1`：TCP 配置／代理／分帧／signal | 148 | 148 |
+
+源码构建之外共 1,027 阶段，包含预期拒绝；配置每端 O0／O2 各 359 个 OOM 前缀均平衡。
+独立链接探测仍为每端 3,737 个原生符号／423 个根，公开声明和链接目录未变化。
+共有回归的 r1 在最后清单检查处检出 Linux 发布清单缺少四个网络 provider（本批两个、
+前批两个）。补齐 `build_linux.sh` 后重跑受影响的共有执行资源和 Engine r2；各端 runtime／
+compiler 共四份清单均恰好覆盖 682 个 provider，无缺失或重复。其余验收输入摘要未变，
+不重跑已通过的源码构建／专项，也不覆盖原始失败报告。这仍只是发布源码清单证明，
+没有把它当成新发布 DLL／SO 的二进制验收。
+
+仍未完成：公开 Stream／Listener Future 结果投影和语言类迁移；文件／引用载荷、Dial／Server／
+UDP 及后续 P4—P7。发布 DLL／SO／VFS 未更新，P3 和总长期任务保持 active。全部验证只用
+离线检查与普通自建字面回环，不做公网、DNS、扫描、攻击模拟或网络安全专项测试。
+
+公开投影还必须闭合队列延续的独占源取消路由：现有 V5 Start 是共享源语义，不能直接
+当成原生操作的独占 Start，否则输出的取消请求可能无法传到仍 Pending 的 Accept。
+后续应以显式版本化合同复用既有独占生产协议，不改变普通 Future 延续的共享语义，
+也不以 I/O Worker 内联释放语言对象或每次等待新建线程来绕过这一点。

@@ -27,8 +27,9 @@ static bool trace(const Resource* r,xrtownershipvisitor visit,void* context)
     (!r->failures||visit(xl6ExecutionFailuresOwnershipV1(r->failures),context));}
 static bool cancel(Resource* r){return !r->pool||xl6TaskPoolControlV1Get()->Cancel(r->pool);}
 static bool close(Resource* r){return !r->pool||xl6TaskPoolControlV1Get()->Close(r->pool);}
+static bool present(const Resource* r){return r->pool!=NULL;}
 const XL6_ExecutionFamilyV1* xl6ExecutionTaskPoolFamilyV1Get(void)
-{static const XL6_ExecutionFamilyV1 family={sizeof(family),XL6_EXECUTION_FAMILY_TAG_V1,XL6_EXECUTION_TASK_POOL_V1,create,rollback,retire,finish,drop,trace,close,cancel,sizeof(Resource)};return &family;}
+{static const XL6_ExecutionFamilyV1 family={sizeof(family),XL6_EXECUTION_FAMILY_TAG_V1,XL6_EXECUTION_TASK_POOL_V1,create,rollback,retire,finish,drop,trace,close,cancel,sizeof(Resource),present};return &family;}
 Resource* xl6ExecutionTaskPoolCreateV1(XL6_ExecutionSourceV1* s,uint32_t n,size_t q,size_t stack)
 {
     XL6_ExecutionCreateOptionsV1 options={.kind=XL6_EXECUTION_TASK_POOL_V1,.value.workers={n,q,stack}};

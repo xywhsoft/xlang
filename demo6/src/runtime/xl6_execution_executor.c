@@ -42,8 +42,9 @@ static bool trace(const Resource* r,xrtownershipvisitor visit,void* context)
     (!r->failures||visit(xl6ExecutionFailuresOwnershipV1(r->failures),context));}
 static bool cancel(Resource* r){return !r->executor||xrtExecutorCancel(r->executor);}
 static bool close(Resource* r){return !r->executor||xrtExecutorClose(r->executor);}
+static bool present(const Resource* r){return r->executor!=NULL;}
 const XL6_ExecutionFamilyV1* xl6ExecutionExecutorFamilyV1Get(void)
-{static const XL6_ExecutionFamilyV1 family={sizeof(family),XL6_EXECUTION_FAMILY_TAG_V1,XL6_EXECUTION_EXECUTOR_V1,create,rollback,retire,finish,drop,trace,close,cancel,sizeof(ExecutorResource)};return &family;}
+{static const XL6_ExecutionFamilyV1 family={sizeof(family),XL6_EXECUTION_FAMILY_TAG_V1,XL6_EXECUTION_EXECUTOR_V1,create,rollback,retire,finish,drop,trace,close,cancel,sizeof(ExecutorResource),present};return &family;}
 Resource* xl6ExecutionExecutorCreateV1(XL6_ExecutionSourceV1* s,uint32_t n,size_t q,size_t stack)
 {
     XL6_ExecutionCreateOptionsV1 options={.kind=XL6_EXECUTION_EXECUTOR_V1,.value.workers={n,q,stack}};

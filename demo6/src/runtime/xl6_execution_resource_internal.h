@@ -14,6 +14,7 @@ typedef struct XL6_ExecutionCreateOptionsV1 {
         struct { uint32_t threads; size_t limit,stack; } workers;
         const struct xnetengineconfig* engine; /* call-only, copied by the native ctor */
         const struct xnetresolverconfig* resolver; /* call-only, copied by the native ctor */
+        const struct XL6_TcpCreateOptionsV1* tcp; /* call-only typed transport factory */
     } value;
 } XL6_ExecutionCreateOptionsV1;
 typedef struct XL6_ExecutionFamilyV1 {
@@ -29,6 +30,11 @@ typedef struct XL6_ExecutionFamilyV1 {
     bool (*Close)(XL6_ExecutionResourceV1*);
     bool (*Cancel)(XL6_ExecutionResourceV1*);
     size_t instanceBytes; /* typed provider extension; base is the first member */
+    /* Pure native-slot presence, under the metadata gate / graph Freeze.
+     * Atomic loads only; no resource control, allocation, locks, callbacks or
+     * reference changes.
+     * Extended families keep typed storage outside every other resource. */
+    bool (*Present)(const XL6_ExecutionResourceV1*);
 } XL6_ExecutionFamilyV1;
 #define XL6_EXECUTION_FAMILY_TAG_V1 UINT64_C(0x584C364558464D31)
 struct XL6_ExecutionResourceV1 {

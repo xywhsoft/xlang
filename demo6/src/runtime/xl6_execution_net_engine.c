@@ -57,8 +57,9 @@ static bool trace(const Resource* r,xrtownershipvisitor visit,void* context)
  * is driven by explicit Wait or final-owner retirement, not by an unsafe
  * concurrent lifecycle call here. The Engine has no separate job-cancel API. */
 static bool close(Resource* r){(void)r;return true;}
+static bool present(const Resource* r){return r->engine!=NULL;}
 const XL6_ExecutionFamilyV1* xl6ExecutionNetEngineFamilyV1Get(void)
-{static const XL6_ExecutionFamilyV1 family={sizeof(family),XL6_EXECUTION_FAMILY_TAG_V1,XL6_EXECUTION_NET_ENGINE_V1,create,rollback,retire,finish,drop,trace,close,close,sizeof(Resource)};return &family;}
+{static const XL6_ExecutionFamilyV1 family={sizeof(family),XL6_EXECUTION_FAMILY_TAG_V1,XL6_EXECUTION_NET_ENGINE_V1,create,rollback,retire,finish,drop,trace,close,close,sizeof(Resource),present};return &family;}
 Resource* xl6ExecutionNetEngineCreateV1(XL6_ExecutionSourceV1* source,const xnetengineconfig* config)
 {
     XL6_ExecutionCreateOptionsV1 options={.kind=XL6_EXECUTION_NET_ENGINE_V1,.value.engine=config};
