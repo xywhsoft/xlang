@@ -1,0 +1,38 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto sender = TcpStream(engine, listener.localAddress())
+auto receiver = listener.accept(5000)
+assert sender.wait(TcpWait.open, 5000) == NetStatus.ok
+auto shared = NetBytes(b"a\0b")
+array<NetBytes> chunks = []
+bytes expected = b""
+int i = 0
+while i < 65
+    chunks.push(shared)
+    expected = expected + b"a\0b"
+    i += 1
+end
+assert sender.sendRefs(chunks) == NetStatus.ok
+chunks.clear()
+shared = NetBytes(b"replacement")
+bytes received = b""
+while received.length < expected.length
+    bytes part = receiver.recv(expected.length - received.length, 5000)
+    assert part.length > 0
+    received = received + part
+end
+assert received == expected
+auto empty = NetBytes()
+i = 0
+while i < 65
+    chunks.push(empty)
+    i += 1
+end
+assert sender.sendRefs(chunks) == NetStatus.ok
+sender.close()
+receiver.close()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("TCP large ref batch: 65 nonempty native items, duplicate owners, early source drop, NUL and 65 empty items")

@@ -180,6 +180,7 @@ $sources = @('src/api/xl_api.c','src/api/xl_api_symbols.c','src/api/xl_api_path.
     'src/runtime/xl6_tcp_recv_owned_sync.c',
     'src/runtime/xl6_tcp_recv_owned_future.c',
     'src/runtime/xl6_tcp_recv_owned_interrupt.c',
+    'src/runtime/xl6_tcp_send_refs.c',
     'src/runtime/xl6_net_buffer_value.c',
     'src/runtime/xl6_net_buffer_buffer.c',
     'src/runtime/xl6_net_frame_result.c',
