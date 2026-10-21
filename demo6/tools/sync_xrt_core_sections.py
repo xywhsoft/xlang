@@ -123,6 +123,13 @@ def replace(text: str, old: str, new: str, kind: str, name: str, allow_terminal:
     old_lines = old[old_start:old_end].splitlines(keepends=True)
     new_lines = new[new_start:new_end].splitlines(keepends=True)
     current = text[start:end]
+    # A whole section's exact identity is a stronger guard than any repeated
+    # four-line diff context (common in generated ownership implementations).
+    # No fuzzy matching or unselected content is involved in this path.
+    if current == old[old_start:old_end]:
+        return text[:start] + new[new_start:new_end] + text[end:]
+    if current == new[new_start:new_end]:
+        return text
     # Nearby edits share guard lines. Applying them independently would change
     # the next edit's OLD guard and falsely refuse an exact source delta. Merge
     # overlapping contexts before validation, never weaken the context match.

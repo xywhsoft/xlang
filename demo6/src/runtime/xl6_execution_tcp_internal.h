@@ -10,7 +10,25 @@ typedef struct XL6_TcpCreateOptionsV1 {
     const xnetlistenconfig* listener;
     xnetstream* accepted;
     XL6_ExecutionResourceV1* accepting; /* retained parent Listener, no operation yet */
+    XL6_ExecutionResourceV1* resolving; /* optional real Resolver parent */
+    bool dialing; /* prepared Dial, including the no-Resolver address-list path */
 } XL6_TcpCreateOptionsV1;
+
+typedef enum XL6_TcpPendingKindV1 {
+    XL6_TCP_PENDING_NONE_V1,XL6_TCP_PENDING_ACCEPT_V1,XL6_TCP_PENDING_DIAL_V1
+} XL6_TcpPendingKindV1;
+/* Concrete resident extension, never part of the shared Resource/public ABI.
+ * pendingKind is immutable after creation; pointer slots are guarded by the
+ * Resource control/mutation protocol, not by borrowed callback aliases. */
+typedef struct XL6_TcpStreamResourceV1 {
+    XL6_ExecutionResourceV1 base;
+    XL6_ExecutionResourceV1 *parent,*accepting,*resolving;
+    xatomicptr native,pending;
+    xatomic32 prepared;
+    XL6_TcpPendingKindV1 pendingKind;
+} XL6_TcpStreamResourceV1;
+XL6_EXECUTION_INTERNAL bool xl6ExecutionTcpPromotePendingInternalV1(
+    XL6_ExecutionResourceV1*,XL6_TcpPendingKindV1);
 typedef struct XL6_TcpScopeV1 {
     XL6_ExecutionScopeV1 execution;
     xnetstream* stream;
