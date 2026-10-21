@@ -1,0 +1,39 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(2).withBackend(NetBackend.select))
+engine.start()
+auto listener = TcpListener(engine, TcpListenOptions(NetAddress.loopback(4, 0)))
+auto options = TcpStreamOptions().withWriteWatermarks(uint64(4), uint64(2), uint64(8))
+auto sender = TcpStream(engine, listener.localAddress(), options)
+auto receiver = listener.accept(5000)
+assert sender.wait(TcpWait.open, 5000) == NetStatus.ok
+auto tooLarge = Buffer(b"123456789")
+assert sender.sendMove(tooLarge) == NetStatus.again
+assert tooLarge.toBytes() == b"123456789"
+auto moving = Buffer(b"m\x00v")
+auto alias = moving
+assert sender.sendMove(moving) == NetStatus.ok
+assert moving.len() == 0 and alias.len() == 0
+assert moving.append(b"reuse")
+bytes data = b""
+while data.length < 3
+    data = data + receiver.recv(3 - data.length, 5000)
+end
+assert data == b"m\x00v"
+auto payload = NetBytes(b"r\x00f")
+assert sender.sendRef(payload, 20, 1) == NetStatus.ok
+assert payload.toBytes() == b"r\x00f"
+payload = NetBytes(b"replacement")
+data = b""
+while data.length < 2
+    data = data + receiver.recv(2 - data.length, 5000)
+end
+assert data == b"\x00f"
+auto zero = Buffer()
+assert zero.reserve(16)
+assert sender.sendMove(zero) == NetStatus.ok
+assert zero.len() == 0 and zero.capacity() == 0
+sender.abort()
+receiver.abort()
+listener.close()
+engine.close()
+assert engine.wait(5000)
+println("TCP owned sends: immutable retained slice, whole Buffer move, alias empty/reuse, backpressure preserves source")

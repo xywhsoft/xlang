@@ -74,10 +74,11 @@ static void discover(Graph* graph,xrtownershipsnapshot* proof)
     }
     graph->pinned=true;
 }
-static void create(Graph* graph,xnetportbackend backend,bool managedAccept)
+static void createWithEngineOptions(Graph* graph,xnetportbackend backend,bool managedAccept,const xnetengineconfig* requested)
 {
     graph->source=xl6ExecutionSourceCreateV1();CHECK(graph->source);
-    xnetengineconfig config;xrtNetEngineConfigInit(&config);config.Workers=1;config.Backend=backend;
+    xnetengineconfig config;if(requested)config=*requested;else xrtNetEngineConfigInit(&config);
+    config.Workers=1;config.Backend=backend;
     graph->engine=xl6ExecutionNetEngineCreateV1(graph->source,&config);CHECK(graph->engine&&xl6ExecutionNetEngineStartV1(graph->engine));
     xnetlistenconfig listen;xrtNetListenConfigInit(&listen);listen.Stream.ReadMode=XNET_STREAM_READ_PROBE;
     CHECK(xrtNetAddrLoopback(&listen.Address,XNET_FAMILY_IPV4,0));
@@ -111,6 +112,8 @@ static void create(Graph* graph,xnetportbackend backend,bool managedAccept)
     while(xl6ExecutionTcpStateV1(graph->client,&phase)&&phase!=XNET_STREAM_OPEN){CHECK(!xrtDeadlineExpired(until));xrtThreadYield();}
     CHECK(phase==XNET_STREAM_OPEN);
 }
+static void create(Graph* graph,xnetportbackend backend,bool managedAccept)
+{createWithEngineOptions(graph,backend,managedAccept,NULL);}
 static void roundTrip(Graph* graph)
 {
     XL6_TcpScopeV1 scope={0};CHECK(xl6ExecutionTcpEnterInternalV1(graph->client,XL6_EXECUTION_TCP_STREAM_V1,true,&scope));

@@ -13,13 +13,15 @@ def main():
     parser.add_argument('--out',type=Path,required=True)
     parser.add_argument('--compiler',action='append',required=True)
     parser.add_argument('--sanitize',action='store_true')
+    parser.add_argument('--profile',choices=('server','owned-sends'),default='server')
     args=parser.parse_args();root=Path(__file__).resolve().parents[1];out=args.out.resolve()
     assert not out.exists() and (not args.sanitize or os.name!='nt')
     compilers=[Path(shutil.which(cc) or cc).resolve() for cc in args.compiler]
     gcc=next(cc for cc in compilers if cc.stem!='tcc')
     sha=lambda path:hashlib.sha256(Path(path).read_bytes()).hexdigest()
     files={Path(__file__).resolve(),*compilers,*[root/('test/support/'+name+'.c')
-        for name in ('net_engine_plan','executor_catalog_plan','tcp_server_execution_resource','tcp_server_poll_runtime')]}
+        for name in ('net_engine_plan','executor_catalog_plan','tcp_server_execution_resource','tcp_server_poll_runtime',
+            'net_bytes_runtime','tcp_send_owned_runtime')]}
     for area in ('src','lib/xrt','lib/xruntime','release/include'):
         files.update(path for path in (root/area).rglob('*') if path.is_file() and path.suffix in ('.c','.h','.inc'))
     inputs={str(path):sha(path) for path in sorted(files)};out.mkdir(parents=True)
@@ -44,7 +46,7 @@ def main():
             ExpectedRejection=reject,Log=str(log),Sha256=sha(log)));save();print(name,code,flush=True)
         assert code is not None and (code!=0 if reject else code==0),(name,str(log),timeout)
         text=log.read_text(encoding='utf8',errors='replace')
-        if reject:assert 'line ' in text,(name,'expected lifecycle/ownership assertion')
+        if reject:assert 'line ' in text or (args.profile=='owned-sends' and 'Assertion' in text),(name,'expected lifecycle/ownership assertion')
         return text
     def flags(cc,mode):
         result=[cc,'-std=c11','-Wall','-Wextra','-Werror',*mode,'-I'+str(root),
@@ -63,21 +65,28 @@ def main():
                 '-Wl,--gc-sections','-o',plan]);product(plan)
             run('plan.'+opt+'.run',[plan])
             if opt=='O0':
-                for choice in ('server-resource','server-language','server-options'):
+                choices=('server-resource','server-language','server-options') if args.profile=='server' else ('net-bytes','net-bytes-buffer','tcp-owned')
+                for choice in choices:
                     sources=run(choice+'.sources',[plan,'--sources',choice]).splitlines()
                     modules=run(choice+'.modules',[plan,'--modules',choice])
                     domains=run(choice+'.domains',[plan,'--domains',choice])
                     assert len(sources)==len(set(sources)) and not any('resolver' in source or 'task_pool' in source for source in sources)
-                    if choice=='server-resource':
+                    if choice in ('server-resource','tcp-owned'):
                         assert 'xl6OwnershipDomainExecutionTcpServerV1Get(),\n' in domains and 'xl6OwnershipDomainExecutionTcpV1Get(),\n' in domains
                         assert 'xl6OwnershipDomainNetTcpNativeV1Get(),\n' in domains
                         assert 'XRT_MODULE_NET_TCP_FUTURE\n' in modules
                         for kind,text in (('modules',modules),('domains',domains)):
                             header=out/('tcp-server-resource-'+kind+'.h');header.write_text(text,encoding='utf8');product(header)
                     else:assert not any('execution_tcp.c' in source for source in sources)
+                    if choice.startswith('net-bytes'):
+                        assert 'xl6OwnershipDomainNetBytesV1Get(),\n' in domains and 'xl6OwnershipDomainNetBufferNativeV1Get(),\n' in domains
+                        assert not any('execution_' in source for source in sources)
+                        assert all(module not in modules for module in ('XRT_MODULE_NET_ENGINE\n','XRT_MODULE_NET_TCP\n','XRT_MODULE_FUTURE\n'))
+                    if choice=='net-bytes-buffer':
+                        header=out/'net-bytes-modules.h';header.write_text(modules,encoding='utf8');product(header)
                     if choice=='server-options':assert 'xl6OwnershipDomainExecutionTcpServerV1Get(),\n' not in domains
                     report['Plans'][choice]=dict(Sources=sources,Modules=modules,Domains=domains);save()
-        sources=report['Plans']['server-resource']['Sources']
+        sources=report['Plans']['server-resource' if args.profile=='server' else 'tcp-owned']['Sources']
         for index,cc in enumerate(compilers):
             modes=[('O0',['-O0']),('O2',['-O2'])]
             if args.sanitize and cc.stem!='tcc':modes.append(('instrumented',
@@ -85,6 +94,18 @@ def main():
             for opt,mode in modes:
                 name=f'{index}.{opt}.resource';binary=out/(name+ext)
                 try:
+                    if args.profile=='owned-sends':
+                        pure=out/(f'{index}.{opt}.net-bytes'+ext)
+                        run(f'{index}.{opt}.net-bytes.build',flags(cc,mode)+[root/'test/support/net_bytes_runtime.c',
+                            *[root/source for source in report['Plans']['net-bytes-buffer']['Sources']],*libs,'-o',pure]);product(pure)
+                        text=run(f'{index}.{opt}.net-bytes.run',[pure],opt=='instrumented')
+                        assert 'exact two-node owning graph' in text and '16 allocation budgets' in text
+                        run(name+'.build',flags(cc,mode)+[root/'test/support/tcp_send_owned_runtime.c',
+                            *[root/source for source in sources],*libs,'-o',binary]);product(binary)
+                        for backend,extra in (('select',[]),('native',['native'])):
+                            text=run(name+'.'+backend,[binary,*extra],opt=='instrumented')
+                            assert 'TCP owned sends: budgets=16' in text and 'source unchanged on OOM/close, balanced' in text
+                        continue
                     run(name+'.build',flags(cc,mode)+[root/'test/support/tcp_server_execution_resource.c',
                         *[root/source for source in sources],*libs,'-o',binary]);product(binary)
                     for backend,extra in (('select',[]),('native',['native'])):
@@ -116,13 +137,26 @@ def main():
         guard='if(xrtFutureState(pending)==XFUTURE_PENDING)abort();'
         wait='if(xrtFutureState(pending)==XFUTURE_PENDING)return XL6_MODULE_PREPARE_BUSY;'
         assert body.count(guard)==1 and body.count(wait)==1
-        controls.append(('abandon-pending-accept',resource,body.replace(guard,'').replace(wait,'')))
+        if args.profile=='server':controls.append(('abandon-pending-accept',resource,body.replace(guard,'').replace(wait,'')))
+        if args.profile=='owned-sends':
+            payload=root/'src/runtime/xl6_ownership_domain_net_bytes.c';body=payload.read_text(encoding='utf8')
+            needle='XL6_OWNERSHIP_DOMAIN_POLICY(NetBytes,Handle,xl6NetBytesHandlePolicyV1Get)';assert body.count(needle)==1
+            controls.append(('missing-bytes-policy',payload,body.replace(needle,
+                'static bool empty(XL6_OwnershipCatalog* c){(void)c;return true;}\nXL6_OWNERSHIP_DOMAIN(NetBytes,empty,NULL)')))
+            payload=root/'src/runtime/xl6_net_bytes.c';body=payload.read_text(encoding='utf8')
+            needle='XL6_DEFINE_NATIVE_HANDLE_POLICY(xl6NetBytesHandlePolicyV1Get,xl6NetBytesDestroyV1,trace)';assert body.count(needle)==1
+            controls.append(('bytes-false-leaf',payload,body.replace(needle,
+                'XL6_DEFINE_NATIVE_LEAF_HANDLE_POLICY(xl6NetBytesHandlePolicyV1Get,xl6NetBytesDestroyV1)')))
         for name,original,body in controls:
             try:
                 mutant=out/(name+'.c');mutant.write_text(body,encoding='utf8');product(mutant)
-                binary=out/(name+ext);selected=[mutant if root/source==original else root/source for source in sources]
-                run(name+'.build',flags(gcc,['-O0'])+['-I'+str(root/'src/runtime'),
-                    root/'test/support/tcp_server_execution_resource.c',*selected,*libs,'-o',binary]);product(binary)
+                pure_control=name in ('missing-bytes-policy','bytes-false-leaf')
+                selected_sources=report['Plans']['net-bytes-buffer']['Sources'] if pure_control else sources
+                selected=[mutant if root/source==original else root/source for source in selected_sources]
+                fixture='net_bytes_runtime' if pure_control else 'tcp_send_owned_runtime' if args.profile=='owned-sends' else 'tcp_server_execution_resource'
+                binary=out/(name+ext)
+                run(name+'.build',flags(gcc,['-O0'])+['-Wno-unused-function','-I'+str(root/'src/runtime'),
+                    root/('test/support/'+fixture+'.c'),*selected,*libs,'-o',binary]);product(binary)
                 run(name+'.refused',[binary],reject=True);report['NegativeControls'].append(name);save()
             except Exception as error:failures.append(dict(Name=name,Error=repr(error)));save()
     except Exception as error:failures.append(dict(Name='planning',Error=repr(error)));save()

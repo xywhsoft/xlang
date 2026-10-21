@@ -12,6 +12,7 @@ def main():
     parser.add_argument('--source-build', type=Path, required=True)
     parser.add_argument('--out', type=Path, required=True)
     parser.add_argument('--native-root', type=Path)
+    parser.add_argument('--profile',choices=('server','owned-sends'),default='server')
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     out = args.out.resolve()
@@ -31,9 +32,15 @@ def main():
     cc = Path(shutil.which('gcc') or 'E:/software/w64devkit/bin/gcc.exe').resolve()
     cases=tuple('stdlib_tcp_server_'+name for name in ('options','core','sync','async','stops','poll'))+('stdlib_tcp_managed_async','stdlib_tcp_data_buffer_async_only')
     negatives=tuple('bad_stdlib_tcp_server_'+name for name in ('mode','options','future'))
+    if args.profile=='owned-sends':
+        cases=('stdlib_net_bytes_value','stdlib_net_bytes_buffer','stdlib_tcp_send_ref_move',
+            'stdlib_tcp_server_poll','stdlib_tcp_managed_async')
+        negatives=('bad_stdlib_net_bytes_pointer','bad_stdlib_tcp_send_ref_bytes')
     contract = root / 'test/cases/xlir_tcp_server_contract.c'
     poll_contract = root/'test/cases/xlir_tcp_server_poll_contract.c'
-    inputs = {str(path): sha(path) for path in (Path(__file__).resolve(), manifest, driver, cc, contract, poll_contract, root/'test/cases/xlir_tcp_managed_contract.c',
+    owned_contract = root/'test/cases/xlir_tcp_send_owned_contract.c'
+    inputs = {str(path): sha(path) for path in (Path(__file__).resolve(), manifest, driver, cc, contract, poll_contract, owned_contract,
+        root/'test/cases/xlir_tcp_managed_contract.c',root/'test/cases/stdlib_tcp_data_receive_async.xl',
         *[root / ('test/cases/' + name + '.xl') for name in cases + negatives])}
     env = dict(os.environ)
     if os.name != 'nt':
@@ -81,7 +88,7 @@ def main():
             run(case + '.ir', [driver, source, 'ir-lowered', ir])
             product(ir)
             data = json.loads(ir.read_text())
-            transport = case != 'stdlib_tcp_server_options'
+            transport = case != 'stdlib_tcp_server_options' and not case.startswith('stdlib_net_bytes_')
             asynchronous = case.endswith(('_async', '_async_only', '_stops'))
             assert data['moduleExecutionOwnershipAbi'] == int(transport)
             assert data['moduleContinuationAbi'] == (2 if asynchronous else 0)
@@ -96,6 +103,12 @@ def main():
             if case=='stdlib_tcp_server_core':
                 assert 'xl6TcpServerCreateV1(' in text and 'xl6TcpServerAcceptStartV1(' not in text
                 assert 'xl6OwnershipDomainNetServerFutureNativeV1Get(),' not in text
+            if case.startswith('stdlib_net_bytes_'):
+                assert 'xl6NetBytes' in text and 'xl6_xrt_net_bytes_' not in text
+                assert 'xl6NetBytesHandlePolicyV1Get()' in text
+                assert 'xl6OwnershipDomainExecutionNetEngineV1Get(),' not in text
+            if case=='stdlib_tcp_send_ref_move':
+                assert 'xl6TcpStreamSendRefV1(' in text and 'xl6TcpStreamSendMoveV1(' in text
             if case=='stdlib_tcp_server_poll':
                 assert 'xl6TcpServerTryAcceptV1(' in text
                 assert 'xl6OwnershipDomainNetServerFutureNativeV1Get(),' not in text
@@ -118,6 +131,17 @@ def main():
             run(case + '.aot.run', [exe])
             native = Path(str(argument) + '.temps') / 'xl6_xrt_impl.c'
             product(native)
+            # The artifact linker appends the actual private catalog to the
+            # final module, not the original Cgen-only source or XRT TU.
+            assembled=native.parent/'module.c';product(assembled)
+            assembled_text=assembled.read_text()
+            if case.startswith('stdlib_net_bytes_') or case=='stdlib_tcp_send_ref_move':
+                assert 'xl6OwnershipDomainNetBytesV1Get(),' in assembled_text
+                assert 'xl6OwnershipDomainNetBufferNativeV1Get(),' in assembled_text
+            if case.startswith('stdlib_net_bytes_'):
+                assert 'xl6OwnershipDomainExecutionNetEngineV1Get(),' not in assembled_text
+            if case in ('stdlib_tcp_server_options','stdlib_tcp_server_core','stdlib_tcp_server_poll'):
+                assert 'xl6OwnershipDomainNetServerFutureNativeV1Get(),' not in assembled_text
             native_text = native.read_text()
             assert '_MODULE_ALL' not in native_text
             for module in ('TLS', 'TASK_POOL', 'COROUTINE_SCHEDULER', 'NET_TCP_DIAL_FUTURE'):
@@ -128,6 +152,8 @@ def main():
             if case=='stdlib_tcp_server_poll':
                 assert '#define XRT_MODULE_NET_TCP_SERVER_FUTURE\n' not in native_text
                 assert 'xl6_future_callback_queue.c' not in native_text and 'xl6_tcp_server_sync.c' not in native_text
+            if case.startswith('stdlib_net_bytes_'):
+                assert all('#define XRT_MODULE_'+module+'\n' not in native_text for module in ('NET_ENGINE','NET_TCP','NET_TCP_FUTURE'))
             imports = run(case + '.imports', ['E:/software/w64devkit/bin/objdump.exe', '-p', exe]
                 if os.name == 'nt' else ['readelf', '-d', exe])
             assert not any(name in imports.lower() for name in ('xl.dll', 'xlc.dll', 'libxl.so', 'libxlc.so'))
@@ -142,8 +168,10 @@ def main():
         contracts=(('contract',contract,[root/'test/cases/stdlib_tcp_server_async.xl',
             root/'test/cases/stdlib_tcp_data_receive_async.xl'],'TCP XLIR:'),
             ('poll-contract',poll_contract,[root/'test/cases/stdlib_tcp_server_poll.xl'],'TCP optional owner:'))
-        for label,source,arguments,marker in contracts:
-          for opt in ('O0', 'O2'):
+        if args.profile=='owned-sends':
+            contracts=(('owned-contract',owned_contract,[root/'test/cases/stdlib_tcp_send_ref_move.xl',
+                root/'test/cases/stdlib_tcp_managed_async.xl'],'TCP owned sends:'),)
+        for (label,source,arguments,marker),opt in ((item,opt) for item in contracts for opt in ('O0','O2')):
             name=label+'.'+opt
             obj = out / (name + '.o')
             run(name + '.build', [cc, *flags, '-Wno-missing-field-initializers', '-' + opt,

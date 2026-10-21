@@ -366,23 +366,7 @@ const char* xl6StdlibSipHasher64ClassEndSource = "end\n";
 
 
 
-const char* xl6StdlibNetBytesClassSource =
-    "class NetBytes\n"
-    "    native point handle\n"
-    "    extern \"xl6_xrt_net_bytes_destroy\" destroy()\n"
-    "    extern \"xl6_xrt_net_bytes_len\" func len() as int\n"
-    "    extern \"xl6_xrt_net_bytes_data\" func data() as point\n"
-    "    extern \"xl6_xrt_net_bytes_buffer\" func bufferNative() as point\n"
-    "    extern \"xl6_xrt_net_bytes_text\" func textNative() as point\n"
-    "\n"
-    "    func buffer() as Buffer\n"
-    "        return Buffer(point(self.bufferNative()))\n"
-    "    end\n"
-    "\n"
-    "    func text() as string\n"
-    "        return __xl_std_runtime_take_cstr(self.textNative())\n"
-    "    end\n"
-    "end\n";
+#include "xl6_stdlib_net_bytes.inc"
 
 
 
@@ -855,7 +839,7 @@ const char* xl6StdlibTlsStreamClassSource =
     "    end\n"
     "\n"
     "    func recvOwned(int timeoutMs = -1, int maxBytes = 65536) as NetBytes\n"
-    "        return NetBytes(point(self.recvOwnedNative(c_size(maxBytes), timeoutMs)))\n"
+    "        return __xl_std_runtime_take_net_bytes(point(self.recvOwnedNative(c_size(maxBytes), timeoutMs)))\n"
     "    end\n"
     "\n"
     "    func recvBytesAsync(int maxBytes = 65536) as future<NetBytes>\n"

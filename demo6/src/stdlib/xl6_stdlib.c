@@ -1819,7 +1819,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesTypeName(root,"NetDatagramPacket")||xl6StdlibNodeUsesTypeName(root,"NetBatchProgress");
     if(needsNetSocketClass)needsNetAddressClass=1;
     needsNetInterfaceClass = xl6StdlibNeedsNetInterfaceClass(root, used);
-    needsNetBytesClass = xl6StdlibNodeUsesTypeName(root, "NetBytes");
+    needsNetBytesClass = xl6StdlibNodeUsesTypeName(root, "NetBytes") || xl6StdlibNodeUsesMemberName(root,"sendRef");
     needsNetEngineStatsClass = xl6StdlibNeedsNetEngineStatsClass(root, used);
     needsNetResolverStatsClass = xl6StdlibNeedsNetResolverStatsClass(root, used);
     needsNetResolverStatsClass=needsNetResolverStatsClass||needsNetResolverClass;
@@ -2074,6 +2074,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsNetBytesClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetBytesClassSource);
     }
+    if(needsTlsStreamClass)xl6StdlibBuilderAppend(&builder,xl6StdlibNetBytesAdoptSource);
     if ( needsNetEngineStatsClass ) {
         xl6StdlibBuilderAppend(&builder,xl6StdlibNetEngineStateSource);
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetEngineStatsClassSource);
@@ -2117,6 +2118,8 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibBuilderAppend(&builder, xl6StdlibTcpStreamClassBodySource);
         if(needsTcpProxyDial)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpProxyDialMembersSource);
         if(xl6StdlibNodeUsesMemberName(root,"sendVector"))xl6StdlibBuilderAppend(&builder,xl6StdlibTcpVectorMembersSource);
+        if(needsNetBytesClass)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpSendRefMembersSource);
+        if(xl6StdlibNodeUsesMemberName(root,"sendMove"))xl6StdlibBuilderAppend(&builder,xl6StdlibTcpSendMoveMembersSource);
         if(needsNetBuffer)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpNetBufferMembersSource);
         if(needsNetLineFramer)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpLineMembersSource);
         if(needsNetLengthFramer)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpLengthMembersSource);

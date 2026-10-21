@@ -127,6 +127,11 @@
     src\runtime\xl6_ownership_domain_execution_net_resolver.c
     src\runtime\xl6_ownership_domain_net_resolver_native.c
     src\runtime\xl6_net_buffer.c
+    src\runtime\xl6_net_bytes.c
+    src\runtime\xl6_net_bytes_buffer.c
+    src\runtime\xl6_ownership_domain_net_bytes.c
+    src\runtime\xl6_tcp_send_ref.c
+    src\runtime\xl6_tcp_send_move.c
     src\runtime\xl6_net_buffer_value.c
     src\runtime\xl6_net_buffer_buffer.c
     src\runtime\xl6_net_frame_result.c
