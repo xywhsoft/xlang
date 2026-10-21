@@ -137,3 +137,7 @@ Windows `-SkipAot` 严格 C/语言门禁及 Linux C ASan/UBSan/语言门禁通�
 带输出的 `examples/basic.xl` 在 AOT 构建阶段仍缺共享
 `xl6ValueDataSnapshotV1`，门禁退出 1。该阻断不属于范围解析器；主线修复后
 须重跑完整门禁，不能用 JIT 或无输出 AOT 代替发布签收。
+
+同日对新增的比较符后空格/tab 范围用例补跑固定 node-semver 7.8.5
+独立语义对照：203,136 组版本/范围零差异。该结果只证明公开范围子集的
+语义一致，不解除带输出范例的 AOT 链接阻断。
