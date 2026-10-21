@@ -63,6 +63,46 @@ static int testParseAllocationFailures(void)
 	return bCompleted && iFailure > 0u;
 }
 
+/* 子节点的拥有型引用必须让原文档在根句柄释放后继续存活。 */
+static int testRetainedChildOutlivesDocument(void)
+{
+	static const char sXml[] = "<root><child>仍有效</child></root>";
+	xmemdebugsnapshot tBefore;
+	xmemdebugsnapshot tAfter;
+	xrtxmlerror tError;
+	xrtxmldomnode* pDocument;
+	xrtxmldomnode* pRoot;
+	xrtxmldomnode* pChild;
+	xrtxmldomnode* pParent;
+	str sText;
+	int bOk;
+	xrtMemDebugSnapshot(&tBefore);
+	pDocument = xrtXmlDomParseMemory(sXml, sizeof(sXml) - 1u, NULL, &tError);
+	if ( pDocument == NULL ) { return 0; }
+	pRoot = xrtXmlDomDocumentElement(pDocument);
+	if ( pRoot == NULL ) { xrtXmlDomNodeRelease(pDocument); return 0; }
+	pChild = xrtXmlDomNodeChild(pRoot, 0u);
+	if ( pChild == NULL ) {
+		xrtXmlDomNodeRelease(pRoot);
+		xrtXmlDomNodeRelease(pDocument);
+		return 0;
+	}
+	xrtXmlDomNodeRelease(pRoot);
+	xrtXmlDomNodeRelease(pDocument);
+	sText = xrtXmlDomTextContent(pChild);
+	pParent = xrtXmlDomNodeParent(pChild);
+	bOk = pChild != NULL && pParent != NULL && sText != NULL &&
+		strcmp((const char*)xrtXmlDomNodeName(pChild), "child") == 0 &&
+		strcmp((const char*)xrtXmlDomNodeName(pParent), "root") == 0 &&
+		strcmp((const char*)sText, "仍有效") == 0;
+	xrtFree(sText);
+	xrtXmlDomNodeRelease(pParent);
+	xrtXmlDomNodeRelease(pChild);
+	xrtMemDebugSnapshot(&tAfter);
+	return bOk && tAfter.LiveCount == tBefore.LiveCount &&
+		tAfter.LiveBytes == tBefore.LiveBytes;
+}
+
 
 static int testParseAndRoundTrip(void)
 {
@@ -568,7 +608,8 @@ static int testDeepTree(void)
 int main(void)
 {
 	int bOk;
-	bOk = testParseAllocationFailures() && testParseAndRoundTrip() && testConstructionAndMutation() &&
+	bOk = testParseAllocationFailures() && testRetainedChildOutlivesDocument() &&
+		testParseAndRoundTrip() && testConstructionAndMutation() &&
 		testInvalidInputs() && testZeroLimits() && testWriterBoundaries() &&
 		testWriteStreamFailures() &&
 		testParseCloseFailure() && testDeepTree();

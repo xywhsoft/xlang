@@ -36,6 +36,12 @@ C 的 `xrtXmlDomWrite` 空 Writer、`xrtXmlDomSave` 空路径在序列化前
 C API 的节点引用由调用方 `xrtXmlDomNodeRelease`；`Child`、`Parent`、
 `DocumentElement` 返回保留过的引用。`xrtXmlDomStringify` 的结果用
 `xrtBufferDestroy` 释放。XLang `Node` 负责对应的生命周期。
+子节点可在最初的文档句柄离开作用域后继续使用，最后一个节点句柄析构后
+释放文档。当前 `Node` 尚未作为包外可命名类型导出：原生 `create(point)`
+若随类型导出，即使标为 `private`，当前编译器仍允许包外构造任意指针；
+这是已记录的共享访问控制阻断，见
+`demo6/dev/extlib_blockers/sharedmem_private_native_constructor.md`。
+在修复主线前，通过 `auto` 或 `var` 接收节点，不能在包外用 `Node` 写函数签名。
 
 安全边界：SAX 基座禁止 DTD 与外部实体，DOM 继承该策略；包级 C/XL
 测试均覆盖 DTD 拒绝。XML 输入不应作为拥有文件或网络访问权限的实体解析器。

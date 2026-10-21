@@ -1,6 +1,17 @@
 import xml.dom
 
+// 子节点离开创建它的文档作用域后，仍持有 DOM 文档引用。
+func childAfterDocument() as var
+    auto document = xml.dom.parse("<root><child>仍有效</child></root>")
+    return document.documentElement.child(0)
+end
+
 func main(...) as int
+    auto retainedChild = childAfterDocument()
+    assert retainedChild.name == "child"
+    assert retainedChild.textContent == "仍有效"
+    assert retainedChild.parent.name == "root"
+
     string input = "<root id='one'><child>你好</child>" + "</root>"
     auto document = xml.dom.parse(input)
     input = ""
