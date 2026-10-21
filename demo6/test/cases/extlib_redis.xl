@@ -18,7 +18,13 @@ func main(...) as int
     string cmd = redis.encode(["SET", "key", "value"])
     assert cmd == "*3\r\n$3\r\nSET\r\n$3\r\nkey\r\n$5\r\nvalue\r\n", "set encoding"
     assert redis.encode(["PING"]) == "*1\r\n$4\r\nPING\r\n", "ping encoding"
-    assert redis.encode([]) == "*0\r\n", "empty command"
+    bool emptyRejected = false
+    try
+        redis.encode([])
+    catch RangeError error
+        emptyRejected = true
+    end
+    assert emptyRejected, "empty command rejected"
 
     // 解码：简单字符串
     r = redis.decode("+OK\r\n")
