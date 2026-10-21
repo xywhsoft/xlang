@@ -1,0 +1,20 @@
+import docx
+
+func main(...) as int
+    // DOCX document helpers
+
+    // Alignment
+    println("Align 1 = " + docx.alignment(1))
+
+    // Heading styles
+    println("Heading 1 = " + docx.headingStyle(1))
+
+    // Fonts
+    println("Font 0 = " + docx.fontName(0))
+
+    // Page sizes
+    println("Page 2 = " + docx.pageSize(2))
+
+    println("docx example: PASS")
+    return 0
+end
