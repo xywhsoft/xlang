@@ -1,0 +1,31 @@
+import csv
+
+// 字典层固定列顺序，字段仍是字符串，不隐式推断数字。
+auto output = csv.createDict(["name", "city", "note"])
+output.write(dict<string>{"city": "上海", "name": "Alice", "note": "a,b"})
+output.write(dict<string>{"name": "Bob", "city": "深圳", "note": "say \"hi\""})
+auto input = csv.openDict(output.finish())
+int count = 0
+while input.next()
+    auto row = input.row()
+    println(row["name"] + "|" + row["city"] + "|" + row["note"])
+    count += 1
+end
+input.close()
+println("rows: " + string(count))
+
+// TAB 是普通分隔符，字段内部的 TAB 会自动加引号。
+auto tsv = csv.create(delimiter = "\t")
+tsv.write(["甲", "a\tb", ""])
+auto tabInput = csv.open(tsv.finish(), delimiter = "\t")
+assert tabInput.next() and tabInput.count == 3 and tabInput.field(1) == "a\tb"
+println("tsv: preserved")
+
+bool rejected = false
+try
+    csv.parse("\"unfinished")
+catch CsvError e
+    rejected = true
+end
+assert rejected
+println("invalid: CsvError")

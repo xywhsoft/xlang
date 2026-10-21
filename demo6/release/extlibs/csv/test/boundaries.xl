@@ -1,0 +1,304 @@
+import csv
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+func makeInput(string text) as Buffer
+    Buffer data = Buffer()
+    data.append(text)
+    return data
+end
+
+// Reader 拥有输入快照，字段和 row() 的结果不随推进或关闭失效。
+func readerLifetime()
+Buffer input = makeInput("name,value\n张三,\"a,b\"\n")
+auto source = csv.open(input)
+input.append("ignored\n")
+assert source.count == -1 and source.rowNumber == -1 and not source.eof
+assert source.next() and source.rowNumber == 0 and source.count == 2
+array<string> header = source.row()
+string kept = source.field(0)
+bool caught = false
+try
+    source.field(-1)
+catch IndexError e
+    caught = true
+end
+assert caught and source.field(0) == "name"
+assert source.next() and source.rowNumber == 1 and source.field(1) == "a,b"
+assert not source.next() and source.eof
+assert not source.next() and source.count == -1 and source.rowNumber == -1
+source.close()
+source.close()
+assert kept == "name" and header[1] == "value"
+caught = false
+try
+    source.next()
+catch RuntimeError e
+    caught = true
+end
+assert caught
+end
+
+// 零字段空行、一个空字段、尾部分隔符，以及 quoted 字段内的换行均无损。
+func syntaxRoundtrip()
+bool caught = false
+auto rows = csv.parse("\n\"\"\r\na,\r\"a\r\nb\",\"say \"\"hi\"\"\"\n")
+assert rows.length == 4 and rows[0].length == 0
+assert rows[1].length == 1 and rows[1][0] == ""
+assert rows[2].length == 2 and rows[2][1] == ""
+assert rows[3][0] == "a\r\nb" and rows[3][1] == "say \"hi\""
+auto tsv = csv.create(delimiter = "\t")
+tsv.write(["甲", "a\tb", ""])
+auto tabRows = csv.open(tsv.finish(), delimiter = "\t")
+assert tabRows.next() and tabRows.count == 3 and tabRows.field(1) == "a\tb"
+auto output = csv.create(delimiter = ";", quote = "'", newline = "crlf", quoteAll = true, writeBOM = true)
+output.write(["甲", "a;b", "it's"])
+output.close()
+output.close()
+Buffer encoded = output.finish()
+auto roundtrip = csv.open(encoded, delimiter = ";", quote = "'")
+assert roundtrip.next() and roundtrip.field(0) == "甲" and roundtrip.field(2) == "it's"
+roundtrip.close()
+caught = false
+try
+    output.finish()
+catch RuntimeError e
+    caught = true
+end
+assert caught
+caught = false
+try
+    output.write(["late"])
+catch RuntimeError e
+    caught = true
+end
+assert caught
+end
+
+func rejectText(string text)
+    bool caught = false
+    try
+        csv.parse(text)
+    catch CsvError e
+        caught = true
+    end
+    assert caught
+end
+
+// strict 只控制引号语法；宽松模式仍验证 UTF-8 并拒绝零字节。
+func malformedInput()
+bool caught = false
+array<string> invalid = ["\"unfinished", "a\"b", "\"a\"x"]
+for text in invalid
+    rejectText(text)
+end
+assert csv.parse("\"unfinished", strict = false)[0][0] == "unfinished"
+assert csv.parse("a\"b", strict = false)[0][0] == "a\"b"
+for bad in [0, 255]
+    Buffer data = makeInput("a")
+    data.appendByte(bad)
+    data.append("b\n")
+    auto reader = csv.open(data, strict = false)
+    caught = false
+    try
+        reader.next()
+    catch CsvError e
+        caught = true
+    end
+    assert caught and not reader.eof
+    caught = false
+    try
+        reader.next()
+    catch CsvError e
+        caught = true
+    end
+    assert caught
+end
+end
+
+// 字符串到 C 字符串的交接不能把内嵌 NUL 后面的数据静默丢掉。
+func nulBoundaries()
+string embedded = "a\0b"
+assert string.byteLen(embedded) == 3
+bool caught = false
+try
+    csv.parse(embedded)
+catch CsvError e
+    caught = true
+end
+assert caught
+caught = false
+try
+    csv.open("missing.csv\0suffix")
+catch ValueError e
+    caught = true
+end
+assert caught
+caught = false
+try
+    csv.create(delimiter = ",\0suffix")
+catch ValueError e
+    caught = true
+end
+assert caught
+caught = false
+try
+    csv.open(makeInput("a,b\n"), quote = "\"\0suffix")
+catch ValueError e
+    caught = true
+end
+assert caught
+caught = false
+try
+    csv.createFile("missing.csv\0suffix")
+catch ValueError e
+    caught = true
+end
+assert caught
+auto output = csv.create()
+caught = false
+try
+    output.write([embedded])
+catch CsvError e
+    caught = true
+end
+assert caught
+output.write(["ok"])
+assert output.finish().text() == "ok\n"
+caught = false
+try
+    csv.createDict([embedded], writeHeader = false)
+catch CsvError e
+    caught = true
+end
+assert caught
+end
+
+// 五种配额分别验证，零明确代表无限；负数不允许绕过检查。
+func limits()
+bool caught = false
+for mode in range(5)
+    caught = false
+    try
+        if mode == 0 then csv.parse("a,b\n", maxInput = 3) end
+        if mode == 1 then csv.parse("ab\n", maxOutput = 1) end
+        if mode == 2 then csv.parse("中文\n", maxField = 5) end
+        if mode == 3 then csv.parse("a\nb\n", maxRows = 1) end
+        if mode == 4 then csv.parse("a,b\n", maxFields = 1) end
+    catch RangeError e
+        caught = true
+    end
+    assert caught
+end
+assert csv.parse("abc", maxInput = 0, maxOutput = 0, maxField = 0, maxRows = 0, maxFields = 0)[0][0] == "abc"
+// 文本入口应在分配输入快照之前按 UTF-8 字节数拒绝超限。
+bool inputRejected = false
+bool allocationFailed = false
+assert failAfter(8)
+try
+    csv.parse("中文", maxInput = 5)
+catch RangeError e
+    inputRejected = true
+catch MemoryError e
+    allocationFailed = true
+end
+bool allocationTriggered = failTriggered()
+failClear()
+assert inputRejected and not allocationFailed and not allocationTriggered
+for mode in range(5)
+    caught = false
+    try
+        if mode == 0 then csv.create(maxInput = -1) end
+        if mode == 1 then csv.create(delimiter = ",,") end
+        if mode == 2 then csv.create(delimiter = "中") end
+        if mode == 3 then csv.create(delimiter = "\"") end
+        if mode == 4 then csv.create(newline = "cr") end
+    catch ValueError e
+        caught = true
+    end
+    assert caught
+end
+auto limited = csv.create(maxField = 2)
+caught = false
+try
+    limited.write(["abc"])
+catch RangeError e
+    caught = true
+end
+assert caught
+caught = false
+try
+    limited.close()
+catch RangeError e
+    caught = true
+end
+assert caught
+end
+
+func rejectDictionary(string text)
+    bool caught = false
+    try
+        auto record = csv.openDict(makeInput(text))
+        record.next()
+    catch CsvError e
+        caught = true
+    end
+    assert caught
+end
+
+// 字典按表头输出：缺项填空，多项拒绝；表头副本不改变原对象。
+func dictionaries()
+bool caught = false
+array<string> names = ["name", "note"]
+auto dictionary = csv.createDict(names)
+names[0] = "mutated"
+auto snapshot = dictionary.headers
+snapshot[0] = "also mutated"
+assert dictionary.headers[0] == "name"
+caught = false
+try
+    dictionary.write(dict<string>{"extra": "x"})
+catch CsvError e
+    caught = true
+end
+assert caught
+dictionary.write(dict<string>{"name": "甲"})
+auto records = csv.openDict(dictionary.finish())
+assert records.rowNumber == 0 and records.headers[1] == "note"
+caught = false
+try
+    records.row()
+catch RuntimeError e
+    caught = true
+end
+assert caught
+assert records.next() and records.rowNumber == 1
+auto first = records.row()
+assert first["name"] == "甲" and first["note"] == ""
+assert not records.next() and records.eof
+records.close()
+assert first["name"] == "甲"
+for text in ["", "a,a\n", "a,b\nonly-one\n", "a\none,two\n"]
+    rejectDictionary(text)
+end
+caught = false
+try
+    csv.createDict(["same", "same"])
+catch CsvError e
+    caught = true
+end
+assert caught
+auto noHeader = csv.createDict(["a"], writeHeader = false)
+noHeader.write(dict<string>{"a": "value"})
+assert noHeader.finish().text() == "value\n"
+end
+
+readerLifetime()
+syntaxRoundtrip()
+malformedInput()
+nulBoundaries()
+limits()
+dictionaries()
+println("csv language boundaries: PASS")

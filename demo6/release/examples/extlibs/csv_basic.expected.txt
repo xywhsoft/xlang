@@ -1,0 +1,5 @@
+Alice|上海|a,b
+Bob|深圳|say "hi"
+rows: 2
+tsv: preserved
+invalid: CsvError

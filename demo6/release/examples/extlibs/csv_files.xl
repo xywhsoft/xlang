@@ -1,0 +1,38 @@
+import csv
+
+func abandon(string target)
+    auto output = csv.createFile(target)
+    output.write(["not committed"])
+    // 没有 close，离开作用域只清理暂存文件，不覆盖旧目标。
+end
+
+func main(...) as int
+    string directory = dir.temp("", "xlang-csv-example-", "")
+    string target = path.join(directory, "报表.csv")
+    try
+        file.writeText(target, "keep")
+        abandon(target)
+        assert file.readText(target) == "keep"
+        println("uncommitted: preserved")
+
+        auto output = csv.createDictFile(target, ["name", "qty"], newline = "crlf", writeBOM = true)
+        output.write(dict<string>{"name": "甲", "qty": "2"})
+        output.write(dict<string>{"name": "乙", "qty": "3"})
+        assert file.readText(target) == "keep"
+        output.close()
+
+        auto input = csv.openDict(target)
+        int rows = 0
+        int total = 0
+        while input.next()
+            total += int(input.row()["qty"])
+            rows += 1
+        end
+        input.close()
+        assert rows == 2 and total == 5
+        println("committed: " + string(rows) + " rows, total " + string(total))
+    finally
+        assert dir.delete(directory), "CSV example temporary directory must be removed"
+    end
+    return 0
+end

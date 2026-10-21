@@ -17,6 +17,8 @@ XRT_API void xrtCsvDialectInit(xrtcsvdialect* pDialect)
 	pDialect->iNewline = XRT_CSV_NEWLINE_LF;
 	pDialect->bStrict = true;
 	xrtResourceLimitsInit(&pDialect->tLimits);
+	pDialect->tLimits.iMaxDepth = 0u;
+	pDialect->tLimits.iMaxCompressionRatio = 0u;
 }
 
 XRT_API void xrtCsvErrorInit(xrtcsverror* pError)
@@ -29,16 +31,18 @@ bool __xrtCsvCopyDialect(xrtcsvdialect* pOutput, const xrtcsvdialect* pInput)
 {
 	xrtCsvDialectInit(pOutput);
 	if ( pInput != NULL ) {
-		if ( pInput->iVersion != XRT_CSV_DIALECT_VERSION ||
-			pInput->iSize < offsetof(xrtcsvdialect, tLimits) + sizeof(xrtresourcelimits) ) {
+		if ( pInput->iVersion != XRT_CSV_DIALECT_VERSION || pInput->iSize != sizeof(*pInput) ||
+			pInput->bReserved || pInput->tLimits.iSize != sizeof(pInput->tLimits) ||
+			pInput->tLimits.iVersion != XRT_RESOURCE_LIMITS_VERSION ||
+			pInput->tLimits.iMaxDepth != 0u ||
+			pInput->tLimits.iMaxCompressionRatio != 0u ||
+			pInput->tLimits.iFlags != 0u || pInput->tLimits.iReserved != 0u ) {
 			return false;
 		}
-		memcpy(pOutput, pInput, pInput->iSize < sizeof(*pOutput) ?
-			pInput->iSize : sizeof(*pOutput));
-		pOutput->iSize = sizeof(*pOutput);
-		pOutput->iVersion = XRT_CSV_DIALECT_VERSION;
+		*pOutput = *pInput;
 	}
-	return pOutput->iDelimiter >= 0x20 && pOutput->iDelimiter <= 0x7e &&
+	return (pOutput->iDelimiter == '\t' ||
+		(pOutput->iDelimiter >= 0x20 && pOutput->iDelimiter <= 0x7e)) &&
 		pOutput->iQuote >= 0x20 && pOutput->iQuote <= 0x7e &&
 		pOutput->iDelimiter != pOutput->iQuote &&
 		pOutput->iDelimiter != '\r' && pOutput->iDelimiter != '\n' &&
@@ -47,41 +51,89 @@ bool __xrtCsvCopyDialect(xrtcsvdialect* pOutput, const xrtcsvdialect* pInput)
 		 pOutput->iNewline == XRT_CSV_NEWLINE_CRLF);
 }
 
-static void __xrtCsvSetError(xrtcsverror* pError, int iCode, uint64 iRow,
-	uint64 iColumn, uint64 iOffset, const char* sFormat, va_list tArgs)
+static xerrkind __xrtCsvErrorKind(int iCode)
 {
+	switch ( iCode ) {
+	case XRT_CSV_ERROR_ARGUMENT: return XERR_ARGUMENT;
+	case XRT_CSV_ERROR_MEMORY: return XERR_MEMORY;
+	case XRT_CSV_ERROR_FORMAT: return XERR_VALUE;
+	case XRT_CSV_ERROR_IO: return XERR_IO;
+	case XRT_CSV_ERROR_LIMIT: return XERR_RANGE;
+	default: return XERR_STATE;
+	}
+}
+
+/* 保留流/分配器的第一处原因；CSV 位置是独立的输入位置，不是 C 源码位置。 */
+static void __xrtCsvSetError(xrtcsverror* pError, int iCode, uint64 iRow,
+	uint64 iLine, uint64 iColumn, uint64 iOffset, const char* sOperation,
+	const char* sFormat, va_list tArgs)
+{
+	char sData[192];
+	xerrordesc tDesc = {0};
+	xerror* pCause;
+	xerror* pPublished;
 	if ( pError == NULL ) { return; }
+	pCause = xrtTakeError();
+	if ( iCode == XRT_CSV_ERROR_IO && xrtErrorKind(pCause) == XERR_MEMORY ) {
+		iCode = XRT_CSV_ERROR_MEMORY;
+	}
 	pError->iCode = iCode;
 	pError->iRow = iRow;
+	pError->iLine = iLine;
 	pError->iColumn = iColumn;
 	pError->iOffset = iOffset;
 	vsnprintf(pError->sMessage, sizeof(pError->sMessage), sFormat, tArgs);
 	pError->sMessage[sizeof(pError->sMessage) - 1u] = 0;
-	/* 结构化错误保存在 Reader/Writer 上，同时发布到当前 XRT 上下文。 */
-	xrtSetErrorInfo(XERR_STATE, "xlang.extlib.csv", iCode,
-		pError->sMessage);
+	(void)snprintf(sData, sizeof(sData),
+		"{\"row\":%llu,\"line\":%llu,\"column\":%llu,\"offset\":%llu}",
+		(unsigned long long)iRow, (unsigned long long)iLine,
+		(unsigned long long)iColumn, (unsigned long long)iOffset);
+	tDesc.Kind = __xrtCsvErrorKind(iCode);
+	tDesc.Code = iCode;
+	tDesc.Domain = "xrt.csv";
+	tDesc.Operation = sOperation;
+	tDesc.Message = pError->sMessage;
+	tDesc.Data = sData;
+	if ( iCode == XRT_CSV_ERROR_IO || iCode == XRT_CSV_ERROR_MEMORY ) {
+		tDesc.Cause = pCause;
+		tDesc.SystemCode = xrtErrorSystemCode(pCause);
+	}
+	pPublished = xrtErrorBuild(&tDesc);
+	if ( pPublished != NULL ) { xrtSetErrorTake(pPublished); }
+	xrtErrorFree(pCause);
+}
+
+bool __xrtCsvFailed(const xerror* pError)
+{
+	xrtSetError(pError);
+	return false;
 }
 
 void __xrtCsvSetReaderError(xrtcsvreader* pReader, int iCode, const char* sFormat, ...)
 {
 	va_list tArgs;
 	if ( pReader == NULL ) { return; }
+	if ( pReader->Failed ) { (void)__xrtCsvFailed(pReader->Failure); return; }
 	va_start(tArgs, sFormat);
 	__xrtCsvSetError(&pReader->Error, iCode, pReader->RowNumber,
-		pReader->Column, pReader->Offset, sFormat, tArgs);
+		pReader->LastLine, pReader->LastColumn, pReader->LastOffset,
+		"read", sFormat, tArgs);
 	va_end(tArgs);
 	pReader->Failed = true;
+	pReader->Failure = xrtErrorRef(xrtGetError());
 }
 
 void __xrtCsvSetWriterError(xrtcsvwriter* pWriter, int iCode, const char* sFormat, ...)
 {
 	va_list tArgs;
 	if ( pWriter == NULL ) { return; }
+	if ( pWriter->Failed ) { (void)__xrtCsvFailed(pWriter->Failure); return; }
 	va_start(tArgs, sFormat);
 	__xrtCsvSetError(&pWriter->Error, iCode, pWriter->RowNumber,
-		0u, pWriter->OutputBytes, sFormat, tArgs);
+		0u, 0u, pWriter->OutputBytes, "write", sFormat, tArgs);
 	va_end(tArgs);
 	pWriter->Failed = true;
+	pWriter->Failure = xrtErrorRef(xrtGetError());
 }
 
 bool __xrtCsvWriterWriteAll(xrtcsvwriter* pWriter, const void* pData, uint64 iSize)
@@ -100,6 +152,7 @@ bool __xrtCsvWriterWriteAll(xrtcsvwriter* pWriter, const void* pData, uint64 iSi
 		__xrtCsvSetWriterError(pWriter, XRT_CSV_ERROR_IO, "cannot write CSV stream");
 		return false;
 	}
+	if ( pWriter->Failed ) { return __xrtCsvFailed(pWriter->Failure); }
 	pWriter->OutputBytes += iSize;
 	return true;
 }

@@ -1,0 +1,54 @@
+import csv
+
+// 测试只操作自己的目标；正常 close 提交，失败或未提交析构保留旧文件。
+func abandon(string target)
+    auto output = csv.createFile(target)
+    output.write(["discarded"])
+end
+
+func main(...) as int
+    string root = dir.temp("", "xlang-csv-files-", "")
+    string target = path.join(root, "中文.csv")
+    try
+        assert file.writeText(target, "keep")
+        abandon(target)
+        assert file.readText(target) == "keep"
+        auto output = csv.createFile(target)
+        output.write(["name", "value"])
+        output.write(["张三", "a,b"])
+        assert file.readText(target) == "keep"
+        output.close()
+        output.close()
+        auto input = csv.open(target)
+        assert input.next() and input.rowNumber == 0
+        assert input.next() and input.field(0) == "张三" and input.field(1) == "a,b"
+        input.close()
+        auto records = csv.openDict(target)
+        assert records.next() and records.row()["value"] == "a,b"
+        records.close()
+
+        auto dictionary = csv.createDictFile(target, ["key", "value"])
+        dictionary.write(dict<string>{"key": "one", "value": "1"})
+        dictionary.close()
+        assert file.readText(target) == "key,value\none,1\n"
+        auto failed = csv.createFile(target, maxOutput = 2)
+        bool caught = false
+        try
+            failed.write(["too long"])
+        catch RangeError e
+            caught = true
+        end
+        assert caught
+        caught = false
+        try
+            failed.close()
+        catch RangeError e
+            caught = true
+        end
+        assert caught and file.readText(target) == "key,value\none,1\n"
+    finally
+        assert dir.delete(root), "CSV file test temporary directory must be removed"
+    end
+    println("csv language files: PASS")
+    return 0
+end

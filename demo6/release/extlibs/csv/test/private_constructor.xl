@@ -1,0 +1,4 @@
+import csv
+
+csv.Reader source = csv.Reader(null, uint64(4096), ",", "\"", c_bool(true),
+    uint64(0), uint64(0), uint64(0), uint64(0), uint64(0))

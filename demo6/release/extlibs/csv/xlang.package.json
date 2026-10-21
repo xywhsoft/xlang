@@ -14,11 +14,20 @@
         ],
         "xlSources": [
             "src/csv.xl"
-        ]
+        ],
+        "xrtModules": [
+            "XRT_MODULE_IO_BUFFER", "XRT_MODULE_IO_FILE",
+            "XRT_MODULE_FILE_TEMP", "XRT_MODULE_UNICODE"
+        ],
+        "includeDirs": ["include"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": {
+        "mode": "suite",
+        "tests": ["test/boundaries.xl", "test/files.xl"]
+    },
     "native": {
         "singleton": false,
         "loadName": "",

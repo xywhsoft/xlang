@@ -1,0 +1,19 @@
+import csv
+
+func main(...) as int
+    csv.Writer writer = csv.create()
+    writer.write(["name", "city"])
+    writer.write(["Alice", "上海"])
+    Buffer data = writer.finish()
+
+    csv.Reader reader = csv.open(data)
+    assert reader.next()
+    assert reader.count == 2
+    assert reader.field(0) == "name"
+    assert reader.next()
+    assert reader.field(0) == "Alice"
+    assert reader.field(1) == "上海"
+    assert not reader.next()
+    reader.close()
+    return 0
+end

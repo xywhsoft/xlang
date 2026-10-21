@@ -1,0 +1,4 @@
+import csv
+
+auto output = csv.create()
+output.fieldNative("visible\0hidden")

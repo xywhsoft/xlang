@@ -13,13 +13,21 @@ enum {
 
 static int __xrtCsvRawGet(xrtcsvreader* pReader)
 {
-	unsigned char c;
-	uint64 iRead = 0u;
-	if ( !xrtReaderRead(pReader->Reader, &c, 1u, &iRead) ) {
-		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_IO, "cannot read CSV stream");
-		return -2;
+	if ( pReader->InputIndex == pReader->InputSize ) {
+		size_t iRequest = sizeof(pReader->Input);
+		uint64 iLimit = pReader->Dialect.tLimits.iMaxInputBytes;
+		/* 多读一个探测字节，区分恰好达到上限和真正超限。 */
+		if ( iLimit != 0u && iLimit - pReader->InputBytes < iRequest ) {
+			iRequest = (size_t)(iLimit - pReader->InputBytes) + 1u;
+		}
+		pReader->InputIndex = 0u;
+		if ( !xrtReaderRead(pReader->Reader, pReader->Input, iRequest, &pReader->InputSize) ) {
+			__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_IO, "cannot read CSV stream");
+			return -2;
+		}
+		if ( pReader->Failed ) { (void)__xrtCsvFailed(pReader->Failure); return -2; }
+		if ( pReader->InputSize == 0u ) { return -1; }
 	}
-	if ( iRead == 0u ) { return -1; }
 	if ( pReader->Dialect.tLimits.iMaxInputBytes != 0u &&
 		pReader->InputBytes >= pReader->Dialect.tLimits.iMaxInputBytes ) {
 		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_LIMIT,
@@ -27,7 +35,7 @@ static int __xrtCsvRawGet(xrtcsvreader* pReader)
 		return -2;
 	}
 	pReader->InputBytes += 1u;
-	return c;
+	return pReader->Input[pReader->InputIndex++];
 }
 
 static bool __xrtCsvPreparePrefix(xrtcsvreader* pReader)
@@ -39,6 +47,8 @@ static bool __xrtCsvPreparePrefix(xrtcsvreader* pReader)
 		if ( c == -2 ) { return false; }
 		if ( c == -1 ) { break; }
 		pReader->Prefix[pReader->PrefixCount++] = (unsigned char)c;
+		if ( (pReader->PrefixCount == 1u && c != 0xef) ||
+			(pReader->PrefixCount == 2u && c != 0xbb) ) { break; }
 	}
 	if ( pReader->PrefixCount == 3u && pReader->Prefix[0] == 0xefu &&
 		pReader->Prefix[1] == 0xbbu && pReader->Prefix[2] == 0xbfu ) {
@@ -49,20 +59,37 @@ static bool __xrtCsvPreparePrefix(xrtcsvreader* pReader)
 	return true;
 }
 
-static int __xrtCsvGet(xrtcsvreader* pReader)
+static int __xrtCsvPeek(xrtcsvreader* pReader)
 {
 	int c;
-	if ( pReader->Pending >= 0 ) {
-		c = pReader->Pending;
-		pReader->Pending = -1;
-		return c;
-	}
+	if ( pReader->Pending != -3 ) { return pReader->Pending; }
 	if ( !__xrtCsvPreparePrefix(pReader) ) { return -2; }
 	if ( pReader->PrefixIndex < pReader->PrefixCount ) {
 		c = pReader->Prefix[pReader->PrefixIndex++];
 	}
 	else { c = __xrtCsvRawGet(pReader); }
-	if ( c >= 0 ) { pReader->Offset += 1u; }
+	pReader->Pending = c;
+	return c;
+}
+
+/* 游标只在消费字节时前进；CR 的预读不能提前消费下一行首字节。 */
+static int __xrtCsvGet(xrtcsvreader* pReader)
+{
+	int c;
+	pReader->LastOffset = pReader->Offset;
+	pReader->LastLine = pReader->Line;
+	pReader->LastColumn = pReader->Column;
+	c = __xrtCsvPeek(pReader);
+	if ( c >= 0 ) {
+		pReader->LastOffset = pReader->Offset;
+		pReader->Pending = -3;
+		pReader->Offset += 1u;
+		if ( c == '\r' || c == '\n' ) {
+			if ( c != '\n' || !pReader->PreviousCR ) { pReader->Line += 1u; }
+			pReader->Column = 1u;
+		} else { pReader->Column += 1u; }
+		pReader->PreviousCR = c == '\r';
+	}
 	return c;
 }
 
@@ -76,6 +103,19 @@ static void __xrtCsvClearFields(xrtcsvreader* pReader)
 
 static bool __xrtCsvAppendByte(xrtcsvreader* pReader, unsigned char c)
 {
+	uint64 iOutputLimit = pReader->Dialect.tLimits.iMaxOutputBytes;
+	if ( c == 0u ) {
+		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_FORMAT,
+			"CSV string fields cannot contain a zero byte");
+		return false;
+	}
+	/* 解码配额必须在字段增长前检查，不能等到分隔符才限制内存消耗。 */
+	if ( iOutputLimit != 0u && (pReader->OutputBytes >= iOutputLimit ||
+		pReader->Field->Size >= iOutputLimit - pReader->OutputBytes) ) {
+		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_LIMIT,
+			"CSV decoded output exceeds the configured limit");
+		return false;
+	}
 	if ( pReader->Dialect.tLimits.iMaxItemBytes != 0u &&
 		pReader->Field->Size >= pReader->Dialect.tLimits.iMaxItemBytes ) {
 		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_LIMIT,
@@ -100,7 +140,7 @@ static bool __xrtCsvFinishField(xrtcsvreader* pReader)
 			"CSV field count exceeds the configured limit");
 		return false;
 	}
-	/* xrtIsUTF8 的长度 0 表示 NUL 结尾输入；空字段无需调用该接口。 */
+	/* 空字段无需 UTF-8 解码；非空字段按明确长度验证。 */
 	if ( pReader->Field->Size != 0u &&
 		!xrtUtf8Valid((xstrview){ (cstr)pReader->Field->Data,
 			pReader->Field->Size }, NULL) ) {
@@ -125,8 +165,8 @@ static bool __xrtCsvFinishField(xrtcsvreader* pReader)
 		return false;
 	}
 	if ( pReader->FieldCount == pReader->FieldCapacity ) {
-		uint32 iCapacity = pReader->FieldCapacity != 0u ? pReader->FieldCapacity * 2u : 16u;
-		if ( iCapacity < pReader->FieldCapacity ) {
+		uint64 iCapacity = pReader->FieldCapacity != 0u ? (uint64)pReader->FieldCapacity * 2u : 16u;
+		if ( iCapacity > UINT32_MAX || iCapacity > SIZE_MAX / sizeof(str) ) {
 			xrtFree(sValue);
 			__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_LIMIT, "too many CSV fields");
 			return false;
@@ -139,7 +179,7 @@ static bool __xrtCsvFinishField(xrtcsvreader* pReader)
 			return false;
 		}
 		pReader->Fields = pFields;
-		pReader->FieldCapacity = iCapacity;
+		pReader->FieldCapacity = (uint32)iCapacity;
 	}
 	pReader->Fields[pReader->FieldCount++] = sValue;
 	pReader->OutputBytes += pReader->Field->Size;
@@ -153,37 +193,59 @@ static int __xrtCsvNewline(xrtcsvreader* pReader, int c, int* pSecond)
 	int iNext;
 	*pSecond = -1;
 	if ( c != '\r' ) { return c == '\n'; }
-	iNext = __xrtCsvGet(pReader);
+	iNext = __xrtCsvPeek(pReader);
 	if ( iNext == -2 ) { return -1; }
-	if ( iNext == '\n' ) { *pSecond = '\n'; }
-	else if ( iNext >= 0 ) { pReader->Pending = iNext; }
+	if ( iNext == '\n' ) { *pSecond = __xrtCsvGet(pReader); }
 	return 1;
 }
 
 XRT_API xrtcsvreader* xrtCsvReaderCreate(xreader* pInput, bool bTakeOwnership,
 	const xrtcsvdialect* pDialect)
 {
-	xrtcsvreader* pReader = (xrtcsvreader*)xrtCalloc(1u, sizeof(*pReader));
-	uint64 iSize = 0u;
-	if ( pReader == NULL ) { return NULL; }
+	xrtcsvreader* pReader;
+	uint64 iSize = 0u, iPosition = 0u;
+	xrtClearError();
+	pReader = (xrtcsvreader*)xrtCalloc(1u, sizeof(*pReader));
+	if ( pReader == NULL ) {
+		xerror* pSaved = xrtTakeError();
+		if ( bTakeOwnership ) { (void)xrtReaderDestroy(pInput); }
+		xrtSetErrorTake(pSaved);
+		return NULL;
+	}
 	xrtCsvErrorInit(&pReader->Error);
 	pReader->Reader = pInput;
 	pReader->TakeReader = bTakeOwnership;
 	pReader->Line = 1u;
 	pReader->Column = 1u;
-	pReader->Pending = -1;
-	pReader->Field = xrtBufferCreate();
-	if ( pInput == NULL || pReader->Field == NULL ||
-		!xrtBufferReserve(pReader->Field, 256u) ||
-		!__xrtCsvCopyDialect(&pReader->Dialect, pDialect) ) {
-		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_ARGUMENT,
-			"invalid CSV reader or dialect");
+	pReader->LastLine = 1u;
+	pReader->LastColumn = 1u;
+	pReader->Pending = -3;
+	if ( pInput == NULL ) {
+		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_ARGUMENT, "CSV input stream is required");
 		return pReader;
 	}
-	if ( xrtReaderSize(pInput, &iSize) && pReader->Dialect.tLimits.iMaxInputBytes != 0u &&
-		iSize > pReader->Dialect.tLimits.iMaxInputBytes ) {
-		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_LIMIT,
-			"CSV input exceeds the configured limit");
+	xrtClearError();
+	if ( !__xrtCsvCopyDialect(&pReader->Dialect, pDialect) ) {
+		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_ARGUMENT, "invalid CSV dialect");
+		return pReader;
+	}
+	pReader->Field = xrtBufferCreate();
+	if ( pReader->Field == NULL || !xrtBufferReserve(pReader->Field, 256u) ) {
+		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_MEMORY, "cannot allocate CSV field buffer");
+		return pReader;
+	}
+	/* 只按本次将消费的剩余视图预检；无法定位的流在读取时执行同一配额。 */
+	if ( xrtReaderCanSize(pInput) && xrtReaderCanSeek(pInput) ) {
+		if ( !xrtReaderSize(pInput, &iSize) || !xrtReaderTell(pInput, &iPosition) ) {
+			__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_IO, "cannot query CSV input size or position");
+		} else {
+			iSize = iPosition <= iSize ? iSize - iPosition : 0u;
+			if ( pReader->Dialect.tLimits.iMaxInputBytes != 0u &&
+				iSize > pReader->Dialect.tLimits.iMaxInputBytes ) {
+				__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_LIMIT,
+					"CSV input exceeds the configured limit");
+			}
+		}
 	}
 	return pReader;
 }
@@ -191,14 +253,23 @@ XRT_API xrtcsvreader* xrtCsvReaderCreate(xreader* pInput, bool bTakeOwnership,
 XRT_API xrtcsvreader* xrtCsvReaderOpenMemory(const void* pData, uint64 iSize,
 	const xrtcsvdialect* pDialect)
 {
-	xreader* pInput = pData != NULL || iSize == 0u ?
-		xrtReaderFromMemory((xbytesview){ (cbytes)pData, (size_t)iSize }) : NULL;
+	xreader* pInput;
+	xrtClearError();
+	if ( iSize > SIZE_MAX || (pData == NULL && iSize != 0u) ) {
+		xrtSetErrorInfo(XERR_ARGUMENT, "xrt.csv", XRT_CSV_ERROR_ARGUMENT, "invalid CSV memory input");
+		return NULL;
+	}
+	pInput = xrtReaderFromMemory((xbytesview){ (cbytes)pData, (size_t)iSize });
+	if ( pInput == NULL ) { return NULL; }
 	return xrtCsvReaderCreate(pInput, true, pDialect);
 }
 
-XRT_API xrtcsvreader* xrtCsvReaderOpenFile(str sPath, const xrtcsvdialect* pDialect)
+XRT_API xrtcsvreader* xrtCsvReaderOpenFile(cstr sPath, const xrtcsvdialect* pDialect)
 {
-	xreader* pInput = sPath != NULL ? xrtReaderOpen(sPath) : NULL;
+	xreader* pInput;
+	xrtClearError();
+	pInput = xrtReaderOpen(sPath);
+	if ( pInput == NULL ) { return NULL; }
 	return xrtCsvReaderCreate(pInput, true, pDialect);
 }
 
@@ -207,18 +278,23 @@ XRT_API const xrtcsverror* xrtCsvReaderError(const xrtcsvreader* pReader)
 	return pReader != NULL ? &pReader->Error : NULL;
 }
 
-XRT_API bool xrtCsvReaderNext(xrtcsvreader* pReader, xrtcsvrow* pRow)
+static bool __xrtCsvReaderNext(xrtcsvreader* pReader, xrtcsvrow* pRow)
 {
 	int iState = XRT_CSV_FIELD_START;
 	bool bSawInput = false;
-	if ( pReader == NULL || pRow == NULL || pReader->Failed || pReader->EOFReached ) { return false; }
-	if ( pReader->Dialect.tLimits.iMaxEntries != 0u &&
-		pReader->RowNumber >= pReader->Dialect.tLimits.iMaxEntries ) {
-		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_LIMIT,
-			"CSV row count exceeds the configured limit");
+	xrtClearError();
+	if ( pRow != NULL ) { memset(pRow, 0, sizeof(*pRow)); }
+	if ( pReader == NULL || pRow == NULL ) {
+		xrtSetErrorInfo(XERR_ARGUMENT, "xrt.csv", XRT_CSV_ERROR_ARGUMENT, "CSV reader and row are required");
+		return false;
+	}
+	if ( pReader->Failed ) { return __xrtCsvFailed(pReader->Failure); }
+	if ( pReader->Closed ) {
+		xrtSetErrorInfo(XERR_STATE, "xrt.csv", XRT_CSV_ERROR_STATE, "CSV reader is closed");
 		return false;
 	}
 	__xrtCsvClearFields(pReader);
+	if ( pReader->EOFReached ) { return false; }
 	for ( ;; ) {
 		int c = __xrtCsvGet(pReader);
 		int iSecond = -1;
@@ -241,6 +317,12 @@ XRT_API bool xrtCsvReaderNext(xrtcsvreader* pReader, xrtcsvrow* pRow)
 			pReader->EOFReached = true;
 			break;
 		}
+		if ( !bSawInput && pReader->Dialect.tLimits.iMaxEntries != 0u &&
+			pReader->RowNumber >= pReader->Dialect.tLimits.iMaxEntries ) {
+			__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_LIMIT,
+				"CSV row count exceeds the configured limit");
+			return false;
+		}
 		bSawInput = true;
 		iNewline = c == '\r' || c == '\n' ? __xrtCsvNewline(pReader, c, &iSecond) : 0;
 		if ( iNewline < 0 ) { return false; }
@@ -251,8 +333,6 @@ XRT_API bool xrtCsvReaderNext(xrtcsvreader* pReader, xrtcsvrow* pRow)
 					(iSecond >= 0 && !__xrtCsvAppendByte(pReader, (unsigned char)iSecond)) ) {
 					return false;
 				}
-				if ( iNewline ) { pReader->Line += 1u; pReader->Column = 1u; }
-				else { pReader->Column += 1u; }
 			}
 			continue;
 		}
@@ -261,8 +341,6 @@ XRT_API bool xrtCsvReaderNext(xrtcsvreader* pReader, xrtcsvrow* pRow)
 				pReader->FieldCount != 0u ) {
 				if ( !__xrtCsvFinishField(pReader) ) { return false; }
 			}
-			pReader->Line += 1u;
-			pReader->Column = 1u;
 			break;
 		}
 		if ( iState == XRT_CSV_FIELD_START ) {
@@ -306,7 +384,6 @@ XRT_API bool xrtCsvReaderNext(xrtcsvreader* pReader, xrtcsvrow* pRow)
 				iState = XRT_CSV_FIELD_UNQUOTED;
 			}
 		}
-		pReader->Column += 1u;
 	}
 	pRow->iRow = pReader->RowNumber;
 	pRow->iCount = pReader->FieldCount;
@@ -320,12 +397,68 @@ XRT_API bool xrtCsvReaderEOF(const xrtcsvreader* pReader)
 	return pReader != NULL && pReader->EOFReached && !pReader->Failed;
 }
 
+static bool __xrtCsvReaderClose(xrtcsvreader* pReader)
+{
+	bool bOk = true;
+	xrtClearError();
+	if ( pReader == NULL ) {
+		xrtSetErrorKind(XERR_ARGUMENT);
+		return false;
+	}
+	if ( !pReader->Closed ) {
+		pReader->Closed = true;
+		if ( pReader->TakeReader ) { bOk = xrtReaderDestroy(pReader->Reader); }
+		pReader->Reader = NULL;
+		pReader->TakeReader = false;
+		__xrtCsvClearFields(pReader);
+		if ( !bOk ) { __xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_IO, "cannot close CSV stream"); }
+	}
+	return pReader->Failed ? __xrtCsvFailed(pReader->Failure) : bOk;
+}
+
+/* IO 回调可使用其他对象，但不能重新推进、关闭或释放当前解析器。 */
+XRT_API bool xrtCsvReaderNext(xrtcsvreader* pReader, xrtcsvrow* pRow)
+{
+	bool bOk;
+	if ( pReader != NULL && pReader->Busy ) {
+		if ( pRow != NULL ) { memset(pRow, 0, sizeof(*pRow)); }
+		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_STATE, "CSV reader callback cannot reenter its reader");
+		return false;
+	}
+	if ( pReader != NULL ) { pReader->Busy = true; }
+	bOk = __xrtCsvReaderNext(pReader, pRow);
+	if ( pReader != NULL ) { pReader->Busy = false; }
+	return bOk;
+}
+
+XRT_API bool xrtCsvReaderClose(xrtcsvreader* pReader)
+{
+	bool bOk;
+	if ( pReader != NULL && pReader->Busy ) {
+		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_STATE, "CSV reader callback cannot close its reader");
+		return false;
+	}
+	if ( pReader != NULL ) { pReader->Busy = true; }
+	bOk = __xrtCsvReaderClose(pReader);
+	if ( pReader != NULL ) { pReader->Busy = false; }
+	return bOk;
+}
+
 XRT_API void xrtCsvReaderDestroy(xrtcsvreader* pReader)
 {
+	xerror* pSaved;
 	if ( pReader == NULL ) { return; }
+	if ( pReader->Busy ) {
+		__xrtCsvSetReaderError(pReader, XRT_CSV_ERROR_STATE, "CSV reader callback cannot destroy its reader");
+		return;
+	}
+	pReader->Busy = true;
+	pSaved = xrtTakeError();
 	if ( pReader->TakeReader && pReader->Reader != NULL ) { xrtReaderDestroy(pReader->Reader); }
 	__xrtCsvClearFields(pReader);
 	xrtFree(pReader->Fields);
 	xrtBufferDestroy(pReader->Field);
+	xrtErrorFree(pReader->Failure);
 	xrtFree(pReader);
+	xrtSetErrorTake(pSaved);
 }

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>csv - 扩展库 - xlang</title>
+  <meta name="description" content="UTF-8 CSV/TSV 流式读写、字典行、资源配额及事务文件输出，包含 C/xlang 对照范例。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+  <style>
+    .extlib-layout { overflow-wrap: anywhere; }
+    .extlib-layout h1 { font-size: 40px; letter-spacing: 0; }
+    .extlib-layout h2 { letter-spacing: 0; }
+    .extlib-layout pre { max-width: 100%; overflow-x: auto; }
+  </style>
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / csv</p>
+    <div class="extlib-title-row"><h1>csv</h1><span class="extlib-cat-badge">数据格式</span></div>
+    <p class="extlib-lead">基于 XRT 的 UTF-8 CSV/TSV 读写。按行处理大文件，按表头读写字典，显式提交文件输出。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="quickstart">
+    <h2 id="quickstart">内存表格</h2>
+    <pre><code class="language-xlang">import csv
+
+csv.Writer output = csv.create()
+output.write(["name", "city"])
+output.write(["Alice", "上海"])
+Buffer data = output.finish()
+
+csv.DictReader rows = csv.openDict(data)
+while rows.next()
+    dict&lt;string&gt; row = rows.row()
+    println(row["name"] + "|" + row["city"])
+end
+rows.close()</code></pre>
+    <p>输出 Alice|上海。open(string) 接受的是文件路径，不是 CSV 文本；文本使用 parse(text)，
+    原始字节使用 open(Buffer)。全部字段为字符串，不自动猜测数字和日期。</p>
+
+    <h2 id="api">函数与对象</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>返回值与用途</th></tr></thead><tbody>
+      <tr><td><code>open(Buffer|string path)</code></td><td>Reader；Buffer 输入保存快照，文件输入逐行读取。</td></tr>
+      <tr><td><code>parse(string text)</code></td><td>array&lt;var&gt;，每项是一行字符串数组；整份结果驻留内存。</td></tr>
+      <tr><td><code>create() / createFile(string path)</code></td><td>Writer；内存或事务文件输出。</td></tr>
+      <tr><td><code>stringify(array&lt;array&lt;string&gt;&gt; rows)</code></td><td>完整 CSV 字符串。</td></tr>
+      <tr><td><code>openDict(Buffer|string path)</code></td><td>DictReader；首行为表头，重复名称或数据列数不符抛 CsvError。</td></tr>
+      <tr><td><code>createDict(headers, writeHeader=true)</code></td><td>DictWriter；headers 为 array&lt;string&gt;，决定列顺序。</td></tr>
+      <tr><td><code>createDictFile(path, headers, writeHeader=true)</code></td><td>字典行文件写入器；缺失键写空串，多余键抛 CsvError。</td></tr>
+    </tbody></table>
+    <p>Reader 提供 next()、field(index)、row()、close()，及 eof、rowNumber、count 属性。
+    行号和字段索引从 0 开始，没有当前行时 rowNumber/count 为 -1。field/row 返回独立结果。
+    DictReader 提供 next/row/close、eof/rowNumber 和表头副本 headers，第一条数据行编号为 1。</p>
+    <p>Writer/DictWriter 提供 write、close、finish。finish 仅限内存模式，完成并取走 Buffer，
+    只能取一次。最后一行没有换行时，next 可返回 true 而 eof 已为 true；遍历始终使用 while next()。</p>
+
+    <h2 id="options">格式与限额</h2>
+    <p>读选项顺序：delimiter、quote、strict、maxInput、maxOutput、maxField、maxRows、maxFields。
+    写选项顺序：delimiter、quote、newline、quoteAll、writeBOM，然后是相同的五项限额。
+    stringify 只接受前五项写格式选项，使用默认限额。可以按名字只传所需选项。</p>
+    <table class="ext-kv"><thead><tr><th>参数</th><th>默认值与约束</th></tr></thead><tbody>
+      <tr><td>delimiter / quote</td><td>逗号 / 双引号；均为单个可打印 ASCII，分隔符另允许 TAB，两者不可相同。</td></tr>
+      <tr><td>strict</td><td>true；false 只放宽引号语法，不允许非法 UTF-8 或 NUL。</td></tr>
+      <tr><td>newline / quoteAll / writeBOM</td><td>"lf" / false / false；输出换行另可选 "crlf"。</td></tr>
+      <tr><td>maxInput</td><td>268435456；读原始输入字节，写字段 UTF-8 字节累计量。</td></tr>
+      <tr><td>maxOutput</td><td>536870912；读解码字段字节，写包含引号/分隔符/BOM/换行的总字节。</td></tr>
+      <tr><td>maxField</td><td>16777216；单字段 UTF-8 字节，不是字符数。</td></tr>
+      <tr><td>maxRows / maxFields</td><td>1000000 / 10000000；累计行数/字段数，包含表头。</td></tr>
+    </tbody></table>
+    <pre><code class="language-xlang">import csv
+
+csv.Writer output = csv.create(delimiter="\t", newline="crlf")
+output.write(["甲", "a\tb", ""])
+csv.Reader rows = csv.open(output.finish(), delimiter="\t")
+assert rows.next()
+assert rows.field(1) == "a\tb"
+println(rows.count)    // 3
+rows.close()</code></pre>
+    <p>读取支持 LF/CRLF/CR，保留引用字段内部的换行，只跳过开头的 UTF-8 BOM。
+    单个空字段与零字段空行不同。限额 0 取消该项上限，负数拒绝；这些配额不等于总内存或 CPU 限额。
+    parse(string) 在复制输入前按 UTF-8 字节数检查 maxInput；大输入应使用流式 open。
+    不支持多字节分隔符、编码猜测、反斜杠转义方言或 Excel 公式防护。</p>
+
+    <h2 id="files">文件必须显式提交</h2>
+    <p>createFile/createDictFile 使用目标同目录的临时文件，父目录必须已存在。
+    只有 close 成功才替换目标；未提交析构或失败时保留旧目标，并清理临时文件。
+    这不承诺断电持久性；文件系统故障可能使清理失败，远程文件系统的原子性不作保证。</p>
+    <p>发生错误不要继续提交原 Writer。内存结果使用 finish，文件使用 close；析构不是隐式提交。</p>
+
+    <h2 id="errors">错误与生命周期</h2>
+    <p>参数非法为 ValueError，限额超出为 RangeError，字段索引越界为 IndexError，
+    格式/UTF-8/表头错误为 CsvError，关闭后使用等状态错误为 RuntimeError，
+    分配与读写故障分别为 MemoryError/IOError。错误保留底层原因和 CSV 数据位置。</p>
+    <p>原始字节中 NUL 不合法，Buffer 输入按真实长度拒绝。语言层的文本、字段、表头、
+    路径及方言选项在进入 C 字符串接口前拒绝内嵌 NUL；任意二进制输入请使用 Buffer。
+    同一对象串行使用，不同对象可并发；自定义 IO 回调不得重入操作或销毁当前 CSV 对象。</p>
+
+    <h2 id="c-api">C API</h2>
+    <p>公共头为 extlibs/csv/include/xrt_csv.h，实现为 manifest 的四个 C 编译单元。
+    xrtCsvReaderCreate/OpenMemory/OpenFile、Next/EOF/Error、Close/Destroy 负责读取；
+    xrtCsvWriterCreate/CreateMemory/OpenFile、Write、Close/TakeBuffer、Error/Destroy 负责写入。
+    方言必须通过 xrtCsvDialectInit 初始化；五项有效限额继承 XRT 默认值。
+    深度、压缩倍率、资源标志及保留字段必须为零，显式设置会在 reader/writer 创建时拒绝。</p>
+    <p>C OpenMemory 借用内存，必须保持输入有效不变；行字段在下次 Next/Close/Destroy 后失效。
+    takeOwnership=true 在创建失败时也消费传入流。创建可能返回带错误的非 NULL 对象，需检查 Error()->iCode。
+    Next=false 需区分 EOF 与错误。内存 Writer 要先 Close 再 TakeBuffer，结果由调用者 xrtBufferDestroy。</p>
+    <p>C 外部输出流失败后不能回滚已写前缀。C 输入字符串以 NUL 结尾，不保留调用者字段；
+    Destroy(NULL) 安全，文件 Destroy 不自动提交。</p>
+
+    <h2 id="examples">双语范例</h2>
+    <p>发行目录：xl run examples/extlibs/csv_basic.xl；xl run examples/extlibs/csv_files.xl。
+    C 对照位于 extlibs/csv/examples/basic.c 和 files.c，教学范例显式包含 CSV 核心源码，
+    可直接运行 <code>xl run release/extlibs/csv/examples/basic.c</code> 或
+    <code>xl run release/extlibs/csv/examples/files.c</code>；正式包仍分别编译四个 C 源。</p>
+    <p>两组固定输出覆盖表头、Unicode、TSV、严格错误、未提交保留旧文件和提交后读取汇总。
+    C 与 XLang 文件范例都通过 XRT 排他创建临时目录，只操作其中的报表.csv，并在结束时清理；XLang 范例不再写入固定的 build/test 路径，不会覆盖工作目录中的同名文件。</p>
+    <p>2026-10-20：包内 XLang 文件事务测试也改用独占临时目录，单独运行及 Windows/Linux 包级门禁通过；完整 AOT 仍受主线缺符号阻断。</p>
+
+    <h2 id="verification">验证与发布边界</h2>
+    <p>Windows 专项包含七组 C 测试、143 个普通分配失败点与 47 个文件分配失败点、
+    四线程 1000 次往返、17 个实际生成 C 原型、XL JIT 与无输出核心 AOT、独立 C 与 TCC C 范例同输出。
+    Python 标准库 csv 双向互操作共 454 项，覆盖四种分隔符、两种引号、换行、BOM 及拒绝非法输入。
+    两份 C 教学范例的直接运行、GCC 编译与 XLang 范例已按同一固定输出对照。</p>
+    <p>2026-10-16 复跑：Linux 独立 C 的 ASan/UBSan/泄漏检查、454 项 Python 互操作，以及 Linux XLang 中央与包内用例、固定输出范例 JIT 均通过。默认语言门禁的无输出核心 AOT 在当前发布构建缺 <code>xl6NativeHandleTraceLeaf</code>；独立 Buffer 最小程序同样复现。旧构建核心 AOT 通过记录不代表当前产物已通过；<code>test/check_xlang.sh --skip-aot</code> 只用于明确验收 JIT，默认仍要求 AOT。Linux 全路径及 TSan 尚未验收。
+    当前页面是包能力与限定验证记录，不宣称完整 CLI/DLL、32 位/ARM 或长期负载已达到发布准入。</p>
+    <p>2026-10-17 Linux 包级门禁同次通过 C ASan/UBSan、Python 独立互操作 454 项、中央及包内 XLang JIT 用例、三份语言范例和两组 C/XLang 黄金输出逐字节对照。完整 AOT 的共享缺符号阻断不变。</p>
+    <p>门禁：tools/check_extlib_csv.ps1、tools/check_extlib_csv.sh、release/extlibs/csv/test/check_xlang.sh；每次源码或构建变更均应重新验证。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

@@ -1,6 +1,5 @@
-/* 独立 C 测试和包导入使用相同的完整 XRT 类型表。 */
-#define XRT_MODULE_ALL
-#include "xrt.h"
+/* 独立 C 测试也按实际依赖选择模块。 */
+#define XRT_MODULE_DIR_TEMP
 #include "../include/xrt_csv.h"
 
 #include <stdio.h>
@@ -25,7 +24,7 @@ static int check(int bCondition, const char* sMessage)
 	return 0;
 }
 
-static bool shortRead(ptr pContext, ptr pBuffer, uint64 iRequest, uint64* pRead)
+static bool shortRead(ptr pContext, ptr pBuffer, size_t iRequest, size_t* pRead)
 {
 	short_reader* pSource = (short_reader*)pContext;
 	uint64 iRemain = pSource->Size - pSource->Position;
@@ -36,7 +35,7 @@ static bool shortRead(ptr pContext, ptr pBuffer, uint64 iRequest, uint64* pRead)
 		memcpy(pBuffer, pSource->Data + pSource->Position, (size_t)iSize);
 		pSource->Position += iSize;
 	}
-	*pRead = iSize;
+	*pRead = (size_t)iSize;
 	return true;
 }
 
@@ -239,13 +238,22 @@ static int testWriterOptionsAndLimits(void)
 
 static int testUtf8File(void)
 {
-	const str sPath = (str)"build/tmp/csv_\xe8\xb7\xaf\xe5\xbe\x84/\xe6\xb5\x8b\xe8\xaf\x95.csv";
+	str sDirectory;
+	str sPath;
 	const str sFields[] = { (str)"key", (str)"value" };
 	xrtcsvwriter* pWriter;
 	xrtcsvreader* pReader;
 	xrtcsvrow tRow;
 	int bOk = 1;
-	xrtDirCreateAll((str)"build/tmp/csv_\xe8\xb7\xaf\xe5\xbe\x84");
+	if (!xrtDirCreateAll("build/test")) return check(0, "cannot create test directory");
+	sDirectory = xrtDirTemp("build/test", "csv-", "");
+	if (sDirectory == NULL) return check(0, "cannot create private CSV directory");
+	sPath = xrtPathJoin(sDirectory, "\xe6\xb5\x8b\xe8\xaf\x95.csv");
+	if (sPath == NULL) {
+		xrtDirRemove(sDirectory);
+		xrtFree(sDirectory);
+		return check(0, "cannot form test path");
+	}
 	pWriter = xrtCsvWriterOpenFile(sPath, NULL);
 	bOk &= check(pWriter != NULL && xrtCsvWriterWrite(pWriter, 2u, sFields) &&
 		xrtCsvWriterClose(pWriter), pWriter != NULL ?
@@ -256,7 +264,9 @@ static int testUtf8File(void)
 		tRow.iCount == 2u && fieldEquals(&tRow, 1u, "value"),
 		pReader != NULL ? xrtCsvReaderError(pReader)->sMessage : "cannot read UTF-8 CSV path");
 	xrtCsvReaderDestroy(pReader);
-	xrtDirRemoveAll("build/tmp/csv_\xe8\xb7\xaf\xe5\xbe\x84");
+	bOk &= check(xrtFileDelete(sPath) && xrtDirRemove(sDirectory), "cannot remove CSV fixture");
+	xrtFree(sPath);
+	xrtFree(sDirectory);
 	return bOk;
 }
 
@@ -273,8 +283,3 @@ int main(void)
 	if ( bOk ) { puts("test_csv: PASS"); }
 	return bOk ? 0 : 1;
 }
-
-/* 单文件 C smoke：声明、实现与测试共享同一份 XRT 模块配置。 */
-#include "../xrt_csv_common.c"
-#include "../xrt_csv_reader.c"
-#include "../xrt_csv_writer.c"
