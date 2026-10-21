@@ -3,15 +3,27 @@ import hcl
 
 
 func main(...) as int
-    auto conf = "variable \"name\" {\n  default = \"myapp\"\n}\n\nresource \"server\" \"main\" {\n  port = 8080\n  tls = true\n}\n"
+    auto conf = "variable \"name\" {\n  default = \"myapp\"\n  title = \"\\u4F60\\U0001F642\"\n}\n\nresource \"server\" \"main\" {\n  port/* service port */ = 8080/* default */\n  tls = true\n}\n"
+
+    assert hcl.get(conf, "default") == "myapp"
+    assert hcl.get(conf, "title") == "你🙂"
+    assert hcl.getInt(conf, "port") == 8080
+    assert hcl.getBool(conf, "tls")
+    assert hcl.has(conf, "tls") and not hcl.has(conf, "missing")
+    assert hcl.countBlocks(conf, "resource") == 1
+    assert hcl.blockLabel(conf, "resource", 0) == "server"
+    assert hcl.validate(conf)
 
     println("name:   ", hcl.get(conf, "default"))
+    println("unicode: ", hcl.get(conf, "title"))
     println("port:   ", hcl.getInt(conf, "port"))
     println("tls:    ", hcl.getBool(conf, "tls"))
+    println("has tls: ", hcl.has(conf, "tls"))
+    println("has none:", hcl.has(conf, "missing"))
     println("blocks: ", hcl.countBlocks(conf, "resource"))
     println("label:  ", hcl.blockLabel(conf, "resource", 0))
     println("valid:  ", hcl.validate(conf))
 
-    println("hcl example: PASS")
+    println("hcl C/XL example: PASS")
     return 0
 end

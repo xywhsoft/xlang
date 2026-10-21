@@ -17,6 +17,12 @@
                      "xlSources":  [
                                        "src/hcl.xl"
                                    ],
+                     "xrtModules":  [
+                                        "XRT_MODULE_BUFFER",
+                                        "XRT_MODULE_CHARSET",
+                                        "XRT_MODULE_NUMBER_FLOAT",
+                                        "XRT_MODULE_NUMBER_INTEGER"
+                                    ],
                      "kind":  "source"
                  },
     "name":  "hcl",
@@ -26,5 +32,6 @@
     "loadlibs":  [
 
                  ],
-    "abiVersion":  "1"
+    "abiVersion":  "1",
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] }
 }

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>hcl - 扩展库 - xlang</title>
+  <meta name="description" content="HCL 配置的受限语法查询，支持属性、块、标签和原始表达式读取。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / hcl</p><h1>hcl</h1>
+    <p class="extlib-lead">只读查询 HCL 的属性、块与标签；表达式保留原文。</p>
+    <p>受限语法查询，不执行 Terraform 表达式，也不解析变量和 provider schema。HCL 正文、属性名和块类型含嵌入 NUL 时会拒绝，不会截断；整份正文须为有效 UTF-8。查询命中后仍会校验后续内容和块体，块及表达式括号最多嵌套 64 层；<code>()</code>、<code>[]</code>、<code>{}</code> 必须按顺序闭合。双引号中的真实换行无效，需使用 <code>\n</code> 转义；非法转义会报错，<code>\u</code>/<code>\U</code> 可解码为 UTF-8，解码结果含 NUL 时拒绝 C 字符串查询。XL AOT 当前受共享运行时链接缺符号阻断，尚未完成发布验收。</p>
+    <p>HCL 正文最多 8 MiB UTF-8 字节；超过上限时所有查询和 <code>validate</code> 都在解析前报告 <code>RangeError</code>，C 侧报告 <code>XERR_RANGE</code>。属性声明和块头支持 <code>/* ... */</code> 行内注释，不会把注释两侧的标识符拼接；<code>get</code> 忽略值末尾注释，<code>getRaw</code> 保留原文。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>get / getRaw</code></td><td>读取属性文本或原始表达式</td></tr>
+      <tr><td><code>getInt / getFloat / getBool</code></td><td>读取明确的标量；整数严格解析完整十进制值，浮点固定点号十进制且不受区域设置影响</td></tr>
+      <tr><td><code>has / countAttrs</code></td><td>查询属性存在性和数量；<code>has</code> 的空属性名报参数错</td></tr>
+      <tr><td><code>countBlocks / blockLabel / blockLabelCount / blockLabelAt</code></td><td>查询块及标签</td></tr>
+      <tr><td><code>validate</code></td><td>检查受支持的语法；非法内容抛 ValueError</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import hcl
+string config = "resource \"server\" \"main\" { port = 8080 }"
+assert hcl.blockLabelAt(config, "resource", 0, 1) == "main"
+assert hcl.getInt(config, "port") == 8080</code></pre>
+    <h2 id="c-api">C</h2>
+    <p>包含 <code>include/hcl_native.h</code>。文本结果由调用方持有，必须使用 <code>xrtFree</code>；失败时返回 NULL 并保留 XRT 错误。C 范例可直接运行 <code>xl run examples/extlibs/hcl_c.c</code>。</p>
+    <p>2026-10-19：C 回归对固定文档逐字节截断和替换，核对 <code>validate</code> 与属性、原文、块标签和块计数查询的结果及错误状态一致；非法 UTF-8 必须拒绝。Windows 包级 C/XLang 与 Linux C ASan/UBSan、双语对照通过。该矩阵不证明完整 HCL 规范支持。Linux 入口为 <code>bash release/extlibs/hcl/test/check.sh</code>，完整 AOT 尚未验收。</p>
+  </section>
+</main>
+</body>
+</html>

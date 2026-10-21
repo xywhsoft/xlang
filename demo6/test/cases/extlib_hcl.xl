@@ -33,7 +33,13 @@ func main(...) as int
 
     // Validate
     assert hcl.validate(conf), "valid hcl"
-    assert not hcl.validate("bad { unclosed\n"), "invalid hcl"
+    bool invalidRejected = false
+    try
+        hcl.validate("bad { unclosed\n")
+    catch ValueError error
+        invalidRejected = true
+    end
+    assert invalidRejected, "invalid hcl"
 
     // Count attrs
     assert hcl.countAttrs(conf) == 6, "6 attrs"
@@ -49,7 +55,13 @@ func main(...) as int
     assert hcl.get(advanced, "name") == "web = primary", "string value"
     assert hcl.getRaw(advanced, "tags") == "{\n    role = \"api\"\n  }", "raw object expression"
     assert hcl.countAttrs(advanced) == 3, "nested attrs"
-    assert not hcl.validate("resource \"bad\" { name = \"unterminated }"), "unterminated string"
+    invalidRejected = false
+    try
+        hcl.validate("resource \"bad\" { name = \"unterminated }")
+    catch ValueError error
+        invalidRejected = true
+    end
+    assert invalidRejected, "unterminated string"
 
     return 0
 end

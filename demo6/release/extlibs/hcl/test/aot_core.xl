@@ -1,0 +1,18 @@
+import hcl
+
+func main(...) as int
+    string config = "resource \"server\" \"main\" { port = 8080 }"
+    if not hcl.validate(config)
+        return 1
+    end
+    if hcl.countBlocks(config, "resource") != 1
+        return 2
+    end
+    if hcl.getInt(config, "port") != 8080
+        return 3
+    end
+    if hcl.getFloat("ratio = 1.25\n", "ratio") != 1.25
+        return 4
+    end
+    return 0
+end

@@ -1,66 +1,90 @@
 // HCL 语法感知查询。表达式保持原文，不会在本库内执行 Terraform 求值。
-extern "xhcl_get" func __get(string hcl, string key) as string
-extern "xhcl_get_raw" func __get_raw(string hcl, string key) as string
+extern "xhcl_get" func __get(string hcl, string key) as point
+extern "xhcl_get_raw" func __get_raw(string hcl, string key) as point
 extern "xhcl_get_int" func __get_int(string hcl, string key) as int
 extern "xhcl_get_float" func __get_float(string hcl, string key) as float
 extern "xhcl_get_bool" func __get_bool(string hcl, string key) as bool
 extern "xhcl_has" func __has(string hcl, string key) as bool
 extern "xhcl_count_blocks" func __count_blocks(string hcl, string blockType) as int
-extern "xhcl_block_label" func __block_label(string hcl, string blockType, int index) as string
+extern "xhcl_block_label" func __block_label(string hcl, string blockType, int index) as point
 extern "xhcl_block_label_count" func __label_count(string hcl, string blockType, int index) as int
-extern "xhcl_block_label_at" func __label_at(string hcl, string blockType, int index, int labelIndex) as string
+extern "xhcl_block_label_at" func __label_at(string hcl, string blockType, int index, int labelIndex) as point
 extern "xhcl_validate" func __validate(string hcl) as bool
 extern "xhcl_count_attrs" func __count_attrs(string hcl) as int
-extern "xhcl_last_error" func __last_error() as string
+
+// 原生 HCL 接口使用 C 字符串，拒绝被 NUL 静默截断的输入。
+func __hcl_cstr(string value)
+    if string.indexOf(value, "\0", false, string.byteLen(value), 1) >= 0 then
+        throw ValueError "HCL source, name or block type contains an embedded NUL byte"
+    end
+end
 
 export func get(string hcl, string key) as string
-    return __get(hcl, key)
+    __hcl_cstr(hcl)
+    __hcl_cstr(key)
+    return __xl_runtime.takeCstr(__get(hcl, key))
 end
 
 export func getRaw(string hcl, string key) as string
-    return __get_raw(hcl, key)
+    __hcl_cstr(hcl)
+    __hcl_cstr(key)
+    return __xl_runtime.takeCstr(__get_raw(hcl, key))
 end
 
 export func getInt(string hcl, string key) as int
+    __hcl_cstr(hcl)
+    __hcl_cstr(key)
     return __get_int(hcl, key)
 end
 
 export func getFloat(string hcl, string key) as float
+    __hcl_cstr(hcl)
+    __hcl_cstr(key)
     return __get_float(hcl, key)
 end
 
 export func getBool(string hcl, string key) as bool
+    __hcl_cstr(hcl)
+    __hcl_cstr(key)
     return __get_bool(hcl, key)
 end
 
 export func has(string hcl, string key) as bool
+    __hcl_cstr(hcl)
+    __hcl_cstr(key)
     return __has(hcl, key)
 end
 
 export func countBlocks(string hcl, string blockType) as int
+    __hcl_cstr(hcl)
+    __hcl_cstr(blockType)
     return __count_blocks(hcl, blockType)
 end
 
 export func blockLabel(string hcl, string blockType, int index) as string
-    return __block_label(hcl, blockType, index)
+    __hcl_cstr(hcl)
+    __hcl_cstr(blockType)
+    return __xl_runtime.takeCstr(__block_label(hcl, blockType, index))
 end
 
 export func blockLabelCount(string hcl, string blockType, int index) as int
+    __hcl_cstr(hcl)
+    __hcl_cstr(blockType)
     return __label_count(hcl, blockType, index)
 end
 
 export func blockLabelAt(string hcl, string blockType, int index, int labelIndex) as string
-    return __label_at(hcl, blockType, index, labelIndex)
+    __hcl_cstr(hcl)
+    __hcl_cstr(blockType)
+    return __xl_runtime.takeCstr(__label_at(hcl, blockType, index, labelIndex))
 end
 
 export func validate(string hcl) as bool
+    __hcl_cstr(hcl)
     return __validate(hcl)
 end
 
 export func countAttrs(string hcl) as int
+    __hcl_cstr(hcl)
     return __count_attrs(hcl)
-end
-
-export func lastError() as string
-    return __last_error()
 end

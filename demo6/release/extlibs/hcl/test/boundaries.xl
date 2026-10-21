@@ -1,0 +1,221 @@
+import hcl
+
+func expectInvalidQuotedLine(string source)
+    bool rejected = false
+    try
+        hcl.validate(source)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "quoted HCL string must stay on one physical line"
+end
+
+func expectInvalidExpression(string source)
+    bool rejected = false
+    try
+        hcl.validate(source)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "crossed expression delimiters must be rejected"
+end
+
+func main(...) as int
+    string source = ("name = \"web = primary\"\nport = 8080\nenabled = true\n" +
+        "resource \"aws_instance\" \"web\" {\n  tags = { role = \"api\" }\n}\n")
+    assert hcl.validate(source)
+    assert hcl.get(source, "name") == "web = primary"
+    assert hcl.getInt(source, "port") == 8080
+    bool badInt = false
+    try
+        hcl.getInt("count = \" 42\"\n", "count")
+    catch ValueError error
+        badInt = true
+    end
+    assert badInt, "getInt must reject leading whitespace"
+    assert hcl.getInt("count = -42\n", "count") == -42
+    assert hcl.getFloat("ratio = 1.25\n", "ratio") == 1.25
+    bool badFloat = false
+    try
+        hcl.getFloat("ratio = \"0x1p2\"\n", "ratio")
+    catch ValueError error
+        badFloat = true
+    end
+    assert badFloat, "getFloat must reject non-decimal input"
+    assert hcl.getBool(source, "enabled")
+    assert hcl.has(source, "name")
+    assert not hcl.has(source, "missing")
+    bool emptyNameRejected = false
+    try
+        hcl.has(source, "")
+    catch ValueError error
+        emptyNameRejected = true
+    end
+    assert emptyNameRejected, "empty attribute name must not mean absent"
+    assert hcl.has(source, "name")
+    assert hcl.get(source, "missing") == ""
+    assert hcl.countBlocks(source, "resource") == 1
+    assert hcl.blockLabelCount(source, "resource", 0) == 2
+    assert hcl.blockLabelAt(source, "resource", 0, 1) == "web"
+
+    string held = hcl.get(source, "name")
+    int i = 0
+    while i < 12
+        assert hcl.get(source, "name") == "web = primary"
+        i += 1
+    end
+    assert held == "web = primary"
+
+    bool rejected = false
+    try
+        hcl.validate("resource \"bad\" { name = \"unterminated }")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected
+
+    rejected = false
+    try
+        hcl.get("name = \"ready\"\ninvalid = \"unterminated", "name")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "attribute query must validate the entire source"
+
+    rejected = false
+    try
+        hcl.blockLabel("resource \"web\" { invalid = }", "resource", 0)
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "block query must validate the matched body"
+
+    string deep = ""
+    i = 0
+    while i < 65
+        deep += "b {\n"
+        i += 1
+    end
+    i = 0
+    while i < 65
+        deep += "}\n"
+        i += 1
+    end
+    rejected = false
+    try
+        hcl.validate(deep)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected, "nested HCL must stop at the depth limit"
+
+    expectInvalidQuotedLine("name = \"first\nsecond\"\n")
+    expectInvalidQuotedLine("name = \"first\rsecond\"\n")
+    expectInvalidQuotedLine("name = \"first\\\nsecond\"\n")
+    expectInvalidQuotedLine("resource \"first\nsecond\" {}\n")
+    assert hcl.validate("name = \"first\\nsecond\"\n")
+    expectInvalidExpression("name = ([)]\n")
+    expectInvalidExpression("name = ({)}\n")
+    assert hcl.validate("name = ([{}])\n")
+    assert hcl.validate("name = \"([)]\"\n")
+    string deepExpression = "name = "
+    for depth in range(64)
+        deepExpression += "("
+    end
+    deepExpression += "1"
+    for depth in range(64)
+        deepExpression += ")"
+    end
+    assert hcl.validate(deepExpression + "\n")
+    string tooDeepExpression = "name = "
+    for depth in range(65)
+        tooDeepExpression += "("
+    end
+    tooDeepExpression += "1"
+    for depth in range(65)
+        tooDeepExpression += ")"
+    end
+    rejected = false
+    try
+        hcl.validate(tooDeepExpression + "\n")
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected, "expression nesting must stop at 64 levels"
+    expectInvalidQuotedLine("name = \"bad\\q\"\n")
+    expectInvalidQuotedLine("name = \"bad\\uD800\"\n")
+    assert hcl.get("name = \"\\u4F60\\U0001F642\"\n", "name") == "你🙂"
+    string commented = ("name/* token */ = /* lead */ \"web\" /* tail */\n" +
+        "count = 42/* number */\n" +
+        "resource/* type */\"srv\"/* brace */ { enabled = true/* bool */ }\n")
+    assert hcl.validate(commented)
+    assert hcl.get(commented, "name") == "web"
+    assert hcl.getRaw(commented, "name") == "\"web\" /* tail */"
+    assert hcl.getInt(commented, "count") == 42
+    assert hcl.getBool(commented, "enabled")
+    assert hcl.countBlocks(commented, "resource") == 1
+    assert hcl.blockLabel(commented, "resource", 0) == "srv"
+    rejected = false
+    try
+        hcl.validate("na/* split */me = 1\n")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "comment must not join identifier fragments"
+    assert hcl.get("name = \"a/*b*/c\"/* tail */\n", "name") == "a/*b*/c"
+    assert hcl.get("items = [1, /* middle */ 2] /* tail */\n", "items") == "[1, /* middle */ 2]"
+    assert hcl.getRaw("items = [1, /* middle */ 2] /* tail */\n", "items") == "[1, /* middle */ 2] /* tail */"
+    assert hcl.validate("name = \"a\\u0000b\"\n")
+    assert hcl.getRaw("name = \"a\\u0000b\"\n", "name") == "\"a\\u0000b\""
+    rejected = false
+    try
+        hcl.get("name = \"a\\u0000b\"\n", "name")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "decoded NUL must not truncate the text result"
+
+    rejected = false
+    try
+        hcl.validate("name = 1\0invalid suffix")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "HCL source must not be truncated at NUL"
+
+    rejected = false
+    try
+        hcl.get(source, "name\0ignored")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "HCL key must not be treated as a prefix"
+
+    rejected = false
+    try
+        hcl.countBlocks(source, "resource\0ignored")
+    catch ValueError error
+        rejected = true
+    end
+    assert rejected, "HCL block type must not be treated as a prefix"
+
+    string atLimit = string.repeat(" ", 8 * 1024 * 1024)
+    assert hcl.validate(atLimit)
+    rejected = false
+    try
+        hcl.validate(atLimit + " ")
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected, "HCL input above 8 MiB must fail before parsing"
+    rejected = false
+    try
+        hcl.get(atLimit + " ", "missing")
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected, "HCL queries must share the input budget"
+    assert hcl.validate("name = 1\n")
+    println("hcl boundaries: ok")
+    return 0
+end
