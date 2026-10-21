@@ -25,7 +25,7 @@ assert db.rollback(), "rollback should work"
 assert db.query("select id from entry").length == 1, "rollback should discard data"
 
 assert sqlite.sqlite3_exec(null, "select 1") == sqlite.SQLITE_MISUSE, "null raw handle should be rejected"
-assert string.contains(sqlite.last_error(), "null sqlite3 handle"), "raw error diagnostic mismatch"
+assert string.contains(sqlite.sqlite3_errmsg(null), "null sqlite3 handle"), "raw error diagnostic mismatch"
 assert db.close() == sqlite.SQLITE_OK, "database close should work"
 
 println("sqlite case ok")
