@@ -11,6 +11,12 @@
                                   ],
                      "xlSources":  [
                                        "src/com.xl"
+                                   ],
+                     "includeDirs": [
+                                        "include"
+                                    ],
+                     "xrtModules": [
+                                        "XRT_MODULE_VALUE_CONTAINER"
                                    ]
                  },
     "links":  [
@@ -23,6 +29,7 @@
     "dependencies":  [
 
                      ],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/real_server_object.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

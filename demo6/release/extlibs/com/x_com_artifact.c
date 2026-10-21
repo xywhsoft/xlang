@@ -1,287 +1,23 @@
-#define INITGUID
-#include <windows.h>
 #include <stdint.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#ifndef XRT_MODULE_VALUE_CONTAINER
 #define XRT_MODULE_VALUE_CONTAINER
+#endif
 #include "xrt.h"
 
-/* demo6's embedded TCC Win32 headers do not ship OleAut/OAIdl headers. */
-#ifndef XL_COM_MINIMAL_OLEAUT_DEFINED
-#define XL_COM_MINIMAL_OLEAUT_DEFINED
-#ifndef STDMETHODCALLTYPE
-#define STDMETHODCALLTYPE WINAPI
-#endif
-#ifndef DISPATCH_METHOD
-#define DISPATCH_METHOD 0x1
-#endif
-#ifndef DISPATCH_PROPERTYGET
-#define DISPATCH_PROPERTYGET 0x2
-#endif
-#ifndef DISPATCH_PROPERTYPUT
-#define DISPATCH_PROPERTYPUT 0x4
-#endif
-#ifndef DISPATCH_PROPERTYPUTREF
-#define DISPATCH_PROPERTYPUTREF 0x8
-#endif
-#ifndef DISPID_PROPERTYPUT
-#define DISPID_PROPERTYPUT (-3)
-#endif
-#ifndef COINIT_APARTMENTTHREADED
-#define COINIT_APARTMENTTHREADED 0x2
-#endif
-#ifndef CLSCTX_INPROC_SERVER
-#define CLSCTX_INPROC_SERVER 0x1
-#endif
-#ifndef CLSCTX_LOCAL_SERVER
-#define CLSCTX_LOCAL_SERVER 0x4
-#endif
-#ifndef LOCALE_USER_DEFAULT
-#define LOCALE_USER_DEFAULT 0x0400
-#endif
-#ifndef RPC_E_CHANGED_MODE
-#define RPC_E_CHANGED_MODE ((HRESULT)0x80010106L)
-#endif
-#ifndef E_NOINTERFACE
-#define E_NOINTERFACE ((HRESULT)0x80004002L)
-#endif
-#ifndef E_POINTER
-#define E_POINTER ((HRESULT)0x80004003L)
-#endif
-#ifndef DISP_E_MEMBERNOTFOUND
-#define DISP_E_MEMBERNOTFOUND ((HRESULT)0x80020003L)
-#endif
-#ifndef DISP_E_PARAMNOTFOUND
-#define DISP_E_PARAMNOTFOUND ((HRESULT)0x80020004L)
-#endif
-#ifndef DISP_E_TYPEMISMATCH
-#define DISP_E_TYPEMISMATCH ((HRESULT)0x80020005L)
-#endif
-#ifndef DISP_E_UNKNOWNNAME
-#define DISP_E_UNKNOWNNAME ((HRESULT)0x80020006L)
-#endif
-#ifndef DISP_E_BADINDEX
-#define DISP_E_BADINDEX ((HRESULT)0x8002000BL)
-#endif
-#ifndef VARIANT_TRUE
-#define VARIANT_TRUE ((VARIANT_BOOL)-1)
-#endif
-#ifndef VARIANT_FALSE
-#define VARIANT_FALSE ((VARIANT_BOOL)0)
-#endif
+#include "internal/com_ole.h"
 
-typedef struct IDispatch IDispatch;
-typedef struct IDispatchVtbl IDispatchVtbl;
-typedef struct ITypeInfo ITypeInfo;
-typedef struct IRecordInfo IRecordInfo;
-typedef struct IUnknown IUnknown;
-typedef struct IUnknownVtbl IUnknownVtbl;
-typedef struct SAFEARRAY SAFEARRAY;
-typedef WCHAR OLECHAR;
-typedef OLECHAR* LPOLESTR;
-typedef const OLECHAR* LPCOLESTR;
-typedef OLECHAR* BSTR;
-typedef BSTR* LPBSTR;
-typedef SHORT VARIANT_BOOL;
-typedef USHORT VARTYPE;
-typedef double DATE;
-typedef LONG DISPID;
-typedef LONG SCODE;
-typedef union tagCY {
-	struct {
-		unsigned long Lo;
-		long Hi;
-	};
-	LONGLONG int64;
-} CY;
-typedef struct tagDEC {
-	USHORT wReserved;
-	union {
-		struct {
-			BYTE scale;
-			BYTE sign;
-		};
-		USHORT signscale;
-	};
-	ULONG Hi32;
-	union {
-		struct {
-			ULONG Lo32;
-			ULONG Mid32;
-		};
-		ULONGLONG Lo64;
-	};
-} DECIMAL;
-typedef struct tagSAFEARRAYBOUND {
-	ULONG cElements;
-	LONG lLbound;
-} SAFEARRAYBOUND;
-struct SAFEARRAY {
-	USHORT cDims;
-	USHORT fFeatures;
-	ULONG cbElements;
-	ULONG cLocks;
-	PVOID pvData;
-	SAFEARRAYBOUND rgsabound[1];
-};
-typedef struct tagVARIANT VARIANT;
-struct tagVARIANT {
-	union {
-		struct {
-			VARTYPE vt;
-			WORD wReserved1;
-			WORD wReserved2;
-			WORD wReserved3;
-			union {
-				LONGLONG llVal;
-				LONG lVal;
-				BYTE bVal;
-				SHORT iVal;
-				FLOAT fltVal;
-				double dblVal;
-				VARIANT_BOOL boolVal;
-				SCODE scode;
-				CY cyVal;
-				DATE date;
-				BSTR bstrVal;
-				IUnknown* punkVal;
-				IDispatch* pdispVal;
-				SAFEARRAY* parray;
-				BYTE* pbVal;
-				SHORT* piVal;
-				LONG* plVal;
-				LONGLONG* pllVal;
-				FLOAT* pfltVal;
-				double* pdblVal;
-				VARIANT_BOOL* pboolVal;
-				SCODE* pscode;
-				CY* pcyVal;
-				DATE* pdate;
-				BSTR* pbstrVal;
-				IUnknown** ppunkVal;
-				IDispatch** ppdispVal;
-				SAFEARRAY** pparray;
-				VARIANT* pvarVal;
-				PVOID byref;
-				CHAR cVal;
-				USHORT uiVal;
-				ULONG ulVal;
-				ULONGLONG ullVal;
-				INT intVal;
-				UINT uintVal;
-				DECIMAL* pdecVal;
-				CHAR* pcVal;
-				USHORT* puiVal;
-				ULONG* pulVal;
-				ULONGLONG* pullVal;
-				INT* pintVal;
-				UINT* puintVal;
-				struct {
-					PVOID pvRecord;
-					IRecordInfo* pRecInfo;
-				} brecVal;
-			};
-		};
-		DECIMAL decVal;
-	};
-};
-typedef VARIANT VARIANTARG;
-
-#ifndef VT_EMPTY
-enum {
-	VT_EMPTY = 0,
-	VT_NULL = 1,
-	VT_I2 = 2,
-	VT_I4 = 3,
-	VT_R4 = 4,
-	VT_R8 = 5,
-	VT_CY = 6,
-	VT_DATE = 7,
-	VT_BSTR = 8,
-	VT_DISPATCH = 9,
-	VT_ERROR = 10,
-	VT_BOOL = 11,
-	VT_VARIANT = 12,
-	VT_UNKNOWN = 13,
-	VT_DECIMAL = 14,
-	VT_I1 = 16,
-	VT_UI1 = 17,
-	VT_UI2 = 18,
-	VT_UI4 = 19,
-	VT_I8 = 20,
-	VT_UI8 = 21,
-	VT_INT = 22,
-	VT_UINT = 23,
-	VT_ARRAY = 0x2000,
-	VT_BYREF = 0x4000
-};
-#endif
-
-typedef struct tagDISPPARAMS {
-	VARIANTARG* rgvarg;
-	DISPID* rgdispidNamedArgs;
-	UINT cArgs;
-	UINT cNamedArgs;
-} DISPPARAMS;
-typedef struct tagEXCEPINFO {
-	WORD wCode;
-	WORD wReserved;
-	BSTR bstrSource;
-	BSTR bstrDescription;
-	BSTR bstrHelpFile;
-	DWORD dwHelpContext;
-	PVOID pvReserved;
-	HRESULT (WINAPI* pfnDeferredFillIn)(struct tagEXCEPINFO*);
-	SCODE scode;
-} EXCEPINFO;
-
-struct IUnknownVtbl {
-	HRESULT (WINAPI* QueryInterface)(IUnknown* This, REFIID riid, void** ppvObject);
-	ULONG (WINAPI* AddRef)(IUnknown* This);
-	ULONG (WINAPI* Release)(IUnknown* This);
-};
-struct IUnknown {
-	struct IUnknownVtbl* lpVtbl;
-};
-
-struct IDispatchVtbl {
-	HRESULT (WINAPI* QueryInterface)(IDispatch* This, REFIID riid, void** ppvObject);
-	ULONG (WINAPI* AddRef)(IDispatch* This);
-	ULONG (WINAPI* Release)(IDispatch* This);
-	HRESULT (WINAPI* GetTypeInfoCount)(IDispatch* This, UINT* pctinfo);
-	HRESULT (WINAPI* GetTypeInfo)(IDispatch* This, UINT iTInfo, LCID lcid, ITypeInfo** ppTInfo);
-	HRESULT (WINAPI* GetIDsOfNames)(IDispatch* This, REFIID riid, LPOLESTR* rgszNames, UINT cNames, LCID lcid, DISPID* rgDispId);
-	HRESULT (WINAPI* Invoke)(IDispatch* This, DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr);
-};
-struct IDispatch {
-	struct IDispatchVtbl* lpVtbl;
-};
-
-static void x_com_VariantInit(VARIANTARG* value)
-{
-	if ( value != NULL ) {
-		memset(value, 0, sizeof(*value));
-	}
-}
-#define VariantInit x_com_VariantInit
-
-HRESULT WINAPI VariantClear(VARIANTARG* pvarg);
-HRESULT WINAPI VariantChangeType(VARIANTARG* pvargDest, VARIANTARG* pvarSrc, USHORT wFlags, VARTYPE vt);
-BSTR WINAPI SysAllocString(const OLECHAR* text);
-BSTR WINAPI SysAllocStringLen(const OLECHAR* text, UINT len);
-void WINAPI SysFreeString(BSTR text);
-UINT WINAPI SysStringLen(BSTR text);
-UINT WINAPI SafeArrayGetDim(SAFEARRAY* array);
-HRESULT WINAPI SafeArrayGetLBound(SAFEARRAY* array, UINT dim, LONG* lower);
-HRESULT WINAPI SafeArrayGetUBound(SAFEARRAY* array, UINT dim, LONG* upper);
-HRESULT WINAPI SafeArrayGetVartype(SAFEARRAY* array, VARTYPE* vt);
-HRESULT WINAPI SafeArrayGetElement(SAFEARRAY* array, LONG* indices, void* value);
+#ifdef __TINYC__
+void WINAPI CoUninitialize(void);
+HRESULT WINAPI CoCreateInstance(REFCLSID clsid, IUnknown* outer,
+	DWORD context, REFIID iid, void** instance);
 #endif
 
 static const IID x_com_iid_null = { 0x00000000, 0x0000, 0x0000, { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } };
-static const IID x_com_iid_iunknown = { 0x00000000, 0x0000, 0x0000, { 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46 } };
 static const IID x_com_iid_idispatch = { 0x00020400, 0x0000, 0x0000, { 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46 } };
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -292,71 +28,20 @@ static const IID x_com_iid_idispatch = { 0x00020400, 0x0000, 0x0000, { 0xC0, 0x0
 
 typedef struct XComObject {
 	IDispatch* dispatch;
+	DWORD owner_thread;
+	int owns_apartment;
+	char* text;
+	size_t text_size;
+	size_t text_capacity;
 } XComObject;
 
-static char g_x_com_text[4096];
-static char g_x_com_error[512];
-static int g_x_com_initialized = 0;
 static int g_x_com_missing_sentinel = 0;
 
 static xvalue* x_com_variant_to_xvalue(VARIANT* value);
 
-static void x_com_copy_cstr(char* out, size_t out_size, const char* text)
-{
-	size_t len;
-
-	if ( out == NULL || out_size == 0 ) {
-		return;
-	}
-	if ( text == NULL ) {
-		text = "";
-	}
-	len = strlen(text);
-	if ( len >= out_size ) {
-		len = out_size - 1;
-	}
-	if ( len > 0 ) {
-		memcpy(out, text, len);
-	}
-	out[len] = '\0';
-}
-
-typedef struct XComTestDispatch {
-	IDispatch dispatch;
-	LONG refs;
-	int has_child;
-} XComTestDispatch;
-
-static HRESULT STDMETHODCALLTYPE x_com_test_QueryInterface(IDispatch* self, REFIID riid, void** ppv);
-static ULONG STDMETHODCALLTYPE x_com_test_AddRef(IDispatch* self);
-static ULONG STDMETHODCALLTYPE x_com_test_Release(IDispatch* self);
-static HRESULT STDMETHODCALLTYPE x_com_test_GetTypeInfoCount(IDispatch* self, UINT* pctinfo);
-static HRESULT STDMETHODCALLTYPE x_com_test_GetTypeInfo(IDispatch* self, UINT iTInfo, LCID lcid, ITypeInfo** ppTInfo);
-static HRESULT STDMETHODCALLTYPE x_com_test_GetIDsOfNames(IDispatch* self, REFIID riid, LPOLESTR* rgszNames, UINT cNames, LCID lcid, DISPID* rgDispId);
-static HRESULT STDMETHODCALLTYPE x_com_test_Invoke(IDispatch* self, DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr);
-
-static IDispatchVtbl g_x_com_test_vtbl = {
-	x_com_test_QueryInterface,
-	x_com_test_AddRef,
-	x_com_test_Release,
-	x_com_test_GetTypeInfoCount,
-	x_com_test_GetTypeInfo,
-	x_com_test_GetIDsOfNames,
-	x_com_test_Invoke
-};
-
-#define X_COM_TEST_DISP_SUB 1
-#define X_COM_TEST_DISP_OPTIONAL_ADD 2
-#define X_COM_TEST_DISP_BUMP 3
-#define X_COM_TEST_DISP_CHILD 4
-#define X_COM_TEST_DISP_HAS_CHILD 5
-#define X_COM_TEST_DISP_LEFT 101
-#define X_COM_TEST_DISP_RIGHT 102
-#define X_COM_TEST_DISP_VALUE 103
 
 static void x_com_set_error(const char* text)
 {
-	x_com_copy_cstr(g_x_com_error, sizeof(g_x_com_error), text);
 	if ( text != NULL && text[0] != '\0' ) {
 		xrtSetErrorInfo(XERR_VALUE, "xlang.extlib.com", 0, text);
 	} else {
@@ -366,271 +51,35 @@ static void x_com_set_error(const char* text)
 
 static void x_com_set_hresult_error(const char* prefix, HRESULT hr)
 {
-	snprintf(g_x_com_error, sizeof(g_x_com_error), "%s: 0x%08lx", prefix, (unsigned long)hr);
+	char message[160];
+	snprintf(message, sizeof(message), "%s: 0x%08lx", prefix, (unsigned long)hr);
+	x_com_set_error(message);
 }
 
-static int x_com_wide_equals_ci(const wchar_t* left, const wchar_t* right)
-{
-	wchar_t a;
-	wchar_t b;
 
-	if ( left == NULL || right == NULL ) {
-		return 0;
-	}
-	while ( *left != 0 && *right != 0 ) {
-		a = *left++;
-		b = *right++;
-		if ( a >= L'A' && a <= L'Z' ) {
-			a = (wchar_t)(a - L'A' + L'a');
-		}
-		if ( b >= L'A' && b <= L'Z' ) {
-			b = (wchar_t)(b - L'A' + L'a');
-		}
-		if ( a != b ) {
-			return 0;
-		}
-	}
-	return (*left == 0 && *right == 0) ? 1 : 0;
-}
-
-static int x_com_test_name_to_dispid(const wchar_t* name, DISPID* dispid)
-{
-	if ( dispid == NULL ) {
-		return 0;
-	}
-	if ( x_com_wide_equals_ci(name, L"Sub") ) {
-		*dispid = X_COM_TEST_DISP_SUB;
-		return 1;
-	}
-	if ( x_com_wide_equals_ci(name, L"OptionalAdd") ) {
-		*dispid = X_COM_TEST_DISP_OPTIONAL_ADD;
-		return 1;
-	}
-	if ( x_com_wide_equals_ci(name, L"Bump") ) {
-		*dispid = X_COM_TEST_DISP_BUMP;
-		return 1;
-	}
-	if ( x_com_wide_equals_ci(name, L"Child") ) {
-		*dispid = X_COM_TEST_DISP_CHILD;
-		return 1;
-	}
-	if ( x_com_wide_equals_ci(name, L"HasChild") ) {
-		*dispid = X_COM_TEST_DISP_HAS_CHILD;
-		return 1;
-	}
-	if ( x_com_wide_equals_ci(name, L"left") ) {
-		*dispid = X_COM_TEST_DISP_LEFT;
-		return 1;
-	}
-	if ( x_com_wide_equals_ci(name, L"right") ) {
-		*dispid = X_COM_TEST_DISP_RIGHT;
-		return 1;
-	}
-	if ( x_com_wide_equals_ci(name, L"value") ) {
-		*dispid = X_COM_TEST_DISP_VALUE;
-		return 1;
-	}
-	return 0;
-}
-
-static int x_com_test_variant_to_int(VARIANT* value, int fallback)
-{
-	VARIANT converted;
-	int out = fallback;
-
-	if ( value == NULL ) {
-		return fallback;
-	}
-	if ( value->vt == VT_ERROR && value->scode == DISP_E_PARAMNOTFOUND ) {
-		return fallback;
-	}
-	if ( (value->vt & VT_BYREF) != 0 && (value->vt & ~VT_BYREF) == VT_VARIANT && value->pvarVal != NULL ) {
-		return x_com_test_variant_to_int(value->pvarVal, fallback);
-	}
-	VariantInit(&converted);
-	if ( SUCCEEDED(VariantChangeType(&converted, value, 0, VT_I4)) ) {
-		out = converted.lVal;
-	}
-	VariantClear(&converted);
-	return out;
-}
-
-static VARIANT* x_com_test_arg_by_position(DISPPARAMS* params, UINT index)
-{
-	if ( params == NULL || params->rgvarg == NULL || index >= params->cArgs ) {
-		return NULL;
-	}
-	return &params->rgvarg[params->cArgs - 1u - index];
-}
-
-static VARIANT* x_com_test_arg_by_name(DISPPARAMS* params, DISPID dispid)
-{
-	UINT i;
-
-	if ( params == NULL || params->rgvarg == NULL || params->rgdispidNamedArgs == NULL ) {
-		return NULL;
-	}
-	for ( i = 0u; i < params->cNamedArgs && i < params->cArgs; ++i ) {
-		if ( params->rgdispidNamedArgs[i] == dispid ) {
-			return &params->rgvarg[i];
-		}
-	}
-	return NULL;
-}
-
-static VARIANT* x_com_test_arg(DISPPARAMS* params, DISPID dispid, UINT positional_index)
-{
-	VARIANT* value = x_com_test_arg_by_name(params, dispid);
-	return (value != NULL) ? value : x_com_test_arg_by_position(params, positional_index);
-}
-
-static HRESULT STDMETHODCALLTYPE x_com_test_QueryInterface(IDispatch* self, REFIID riid, void** ppv)
-{
-	if ( ppv == NULL ) {
-		return E_POINTER;
-	}
-	*ppv = NULL;
-	if ( riid == NULL ) {
-		return E_NOINTERFACE;
-	}
-	if ( IsEqualIID(riid, &x_com_iid_idispatch) || IsEqualIID(riid, &x_com_iid_iunknown) ) {
-		*ppv = self;
-		self->lpVtbl->AddRef(self);
-		return S_OK;
-	}
-	return E_NOINTERFACE;
-}
-
-static ULONG STDMETHODCALLTYPE x_com_test_AddRef(IDispatch* self)
-{
-	XComTestDispatch* object = (XComTestDispatch*)self;
-	return (ULONG)InterlockedIncrement(&object->refs);
-}
-
-static ULONG STDMETHODCALLTYPE x_com_test_Release(IDispatch* self)
-{
-	XComTestDispatch* object = (XComTestDispatch*)self;
-	LONG refs = InterlockedDecrement(&object->refs);
-	if ( refs == 0 ) {
-		free(object);
-	}
-	return (ULONG)refs;
-}
-
-static HRESULT STDMETHODCALLTYPE x_com_test_GetTypeInfoCount(IDispatch* self, UINT* pctinfo)
-{
-	(void)self;
-	if ( pctinfo != NULL ) {
-		*pctinfo = 0u;
-	}
-	return S_OK;
-}
-
-static HRESULT STDMETHODCALLTYPE x_com_test_GetTypeInfo(IDispatch* self, UINT iTInfo, LCID lcid, ITypeInfo** ppTInfo)
-{
-	(void)self;
-	(void)iTInfo;
-	(void)lcid;
-	if ( ppTInfo != NULL ) {
-		*ppTInfo = NULL;
-	}
-	return DISP_E_BADINDEX;
-}
-
-static HRESULT STDMETHODCALLTYPE x_com_test_GetIDsOfNames(IDispatch* self, REFIID riid, LPOLESTR* rgszNames, UINT cNames, LCID lcid, DISPID* rgDispId)
-{
-	UINT i;
-
-	(void)self;
-	(void)riid;
-	(void)lcid;
-	if ( rgszNames == NULL || rgDispId == NULL ) {
-		return E_POINTER;
-	}
-	for ( i = 0u; i < cNames; ++i ) {
-		if ( !x_com_test_name_to_dispid(rgszNames[i], &rgDispId[i]) ) {
-			return DISP_E_UNKNOWNNAME;
-		}
-	}
-	return S_OK;
-}
-
-static HRESULT STDMETHODCALLTYPE x_com_test_Invoke(IDispatch* self, DISPID dispIdMember, REFIID riid, LCID lcid, WORD wFlags, DISPPARAMS* pDispParams, VARIANT* pVarResult, EXCEPINFO* pExcepInfo, UINT* puArgErr)
-{
-	XComTestDispatch* object = (XComTestDispatch*)self;
-	VARIANT* left;
-	VARIANT* right;
-	VARIANT* value;
-	int left_value;
-
-	(void)riid;
-	(void)lcid;
-	(void)pExcepInfo;
-	(void)puArgErr;
-	if ( pVarResult != NULL ) {
-		VariantInit(pVarResult);
-	}
-	switch ( dispIdMember ) {
-	case X_COM_TEST_DISP_SUB:
-		left = x_com_test_arg(pDispParams, X_COM_TEST_DISP_LEFT, 0u);
-		right = x_com_test_arg(pDispParams, X_COM_TEST_DISP_RIGHT, 1u);
-		if ( pVarResult != NULL ) {
-			pVarResult->vt = VT_I4;
-			pVarResult->lVal = x_com_test_variant_to_int(left, 0) - x_com_test_variant_to_int(right, 0);
-		}
-		return S_OK;
-	case X_COM_TEST_DISP_OPTIONAL_ADD:
-		left = x_com_test_arg(pDispParams, X_COM_TEST_DISP_LEFT, 0u);
-		right = x_com_test_arg(pDispParams, X_COM_TEST_DISP_RIGHT, 1u);
-		if ( pVarResult != NULL ) {
-			pVarResult->vt = VT_I4;
-			pVarResult->lVal = x_com_test_variant_to_int(left, 0) + x_com_test_variant_to_int(right, 10);
-		}
-		return S_OK;
-	case X_COM_TEST_DISP_BUMP:
-		value = x_com_test_arg(pDispParams, X_COM_TEST_DISP_VALUE, 0u);
-		if ( value != NULL && (value->vt & VT_BYREF) != 0 && (value->vt & ~VT_BYREF) == VT_VARIANT && value->pvarVal != NULL ) {
-			left_value = x_com_test_variant_to_int(value->pvarVal, 0) + 1;
-			VariantClear(value->pvarVal);
-			value->pvarVal->vt = VT_I4;
-			value->pvarVal->lVal = left_value;
-			if ( pVarResult != NULL ) {
-				pVarResult->vt = VT_I4;
-				pVarResult->lVal = left_value;
-			}
-			return S_OK;
-		}
-		return DISP_E_TYPEMISMATCH;
-	case X_COM_TEST_DISP_CHILD:
-		if ( (wFlags & DISPATCH_PROPERTYPUTREF) != 0 ) {
-			object->has_child = 1;
-			return S_OK;
-		}
-		return DISP_E_MEMBERNOTFOUND;
-	case X_COM_TEST_DISP_HAS_CHILD:
-		if ( pVarResult != NULL ) {
-			pVarResult->vt = VT_BOOL;
-			pVarResult->boolVal = object->has_child ? VARIANT_TRUE : VARIANT_FALSE;
-		}
-		return S_OK;
-	default:
-		break;
-	}
-	return DISP_E_MEMBERNOTFOUND;
-}
-
-static int x_com_init(void)
+static int x_com_begin_apartment(int* owns_apartment)
 {
 	HRESULT hr;
-	if ( g_x_com_initialized ) {
-		return 1;
-	}
+	*owns_apartment = 0;
 	hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
 	if ( FAILED(hr) && hr != RPC_E_CHANGED_MODE ) {
 		x_com_set_hresult_error("CoInitializeEx failed", hr);
 		return 0;
 	}
-	g_x_com_initialized = 1;
+	*owns_apartment = SUCCEEDED(hr);
+	return 1;
+}
+static int x_com_check_handle(const XComObject* object)
+{
+	if ( object == NULL || object->dispatch == NULL ) {
+		x_com_set_error("invalid COM handle");
+		return 0;
+	}
+	if ( object->owner_thread != GetCurrentThreadId() ) {
+		x_com_set_error("COM handle belongs to another thread");
+		return 0;
+	}
+	x_com_set_error("");
 	return 1;
 }
 
@@ -644,10 +93,7 @@ static int x_com_utf8_to_wide(const char* src, wchar_t* dst, int dst_count)
 	if ( src == NULL ) {
 		return 0;
 	}
-	n = MultiByteToWideChar(CP_UTF8, 0, src, -1, dst, dst_count);
-	if ( n <= 0 ) {
-		n = MultiByteToWideChar(CP_ACP, 0, src, -1, dst, dst_count);
-	}
+	n = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src, -1, dst, dst_count);
 	if ( n <= 0 ) {
 		dst[0] = 0;
 		return 0;
@@ -656,37 +102,81 @@ static int x_com_utf8_to_wide(const char* src, wchar_t* dst, int dst_count)
 	return 1;
 }
 
-static const char* x_com_wide_to_utf8(const wchar_t* src)
+static char* x_com_utf8_from_wide(const wchar_t* src, size_t length, size_t* output_size)
 {
 	int n;
-	g_x_com_text[0] = '\0';
-	if ( src == NULL ) {
-		return g_x_com_text;
+	char* output;
+	if ( output_size != NULL ) {
+		*output_size = 0u;
 	}
-	n = WideCharToMultiByte(CP_UTF8, 0, src, -1, g_x_com_text, (int)sizeof(g_x_com_text), NULL, NULL);
+	if ( src == NULL || length == 0u ) {
+		output = (char*)xrtMalloc(1u);
+		if ( output != NULL ) {
+			output[0] = '\0';
+		}
+		return output;
+	}
+	if ( length > INT_MAX ) {
+		x_com_set_error("COM string is too long");
+		return NULL;
+	}
+	n = WideCharToMultiByte(CP_UTF8, 0, src, (int)length, NULL, 0, NULL, NULL);
 	if ( n <= 0 ) {
-		WideCharToMultiByte(CP_ACP, 0, src, -1, g_x_com_text, (int)sizeof(g_x_com_text), NULL, NULL);
+		x_com_set_error("COM UTF-16 conversion failed");
+		return NULL;
 	}
-	g_x_com_text[sizeof(g_x_com_text) - 1] = '\0';
-	return g_x_com_text;
+	output = (char*)xrtMalloc((size_t)n + 1u);
+	if ( output == NULL ) {
+		x_com_set_error("out of memory");
+		return NULL;
+	}
+	if ( WideCharToMultiByte(CP_UTF8, 0, src, (int)length, output, n, NULL, NULL) != n ) {
+		xrtFree(output);
+		x_com_set_error("COM UTF-16 conversion failed");
+		return NULL;
+	}
+	output[n] = '\0';
+	if ( output_size != NULL ) {
+		*output_size = (size_t)n;
+	}
+	return output;
 }
 
-static int x_com_wide_to_utf8_buffer(const wchar_t* src, char* dst, int dst_count)
+static void x_com_finish_exception(EXCEPINFO* info, HRESULT hr, const char* prefix, int report)
 {
-	int n;
-	if ( dst == NULL || dst_count <= 0 ) {
-		return 0;
+	if ( info->pfnDeferredFillIn != NULL ) {
+		info->pfnDeferredFillIn(info);
 	}
-	dst[0] = '\0';
-	if ( src == NULL ) {
-		return 0;
+	if ( report && FAILED(hr) ) {
+		char* message = x_com_utf8_from_wide(info->bstrDescription,
+			info->bstrDescription != NULL ? SysStringLen(info->bstrDescription) : 0u, NULL);
+		if ( message != NULL && message[0] != '\0' ) {
+			x_com_set_error(message);
+		} else {
+			x_com_set_hresult_error(prefix, hr);
+		}
+		xrtFree(message);
 	}
-	n = WideCharToMultiByte(CP_UTF8, 0, src, -1, dst, dst_count, NULL, NULL);
-	if ( n <= 0 ) {
-		n = WideCharToMultiByte(CP_ACP, 0, src, -1, dst, dst_count, NULL, NULL);
+	SysFreeString(info->bstrSource);
+	SysFreeString(info->bstrDescription);
+	SysFreeString(info->bstrHelpFile);
+	memset(info, 0, sizeof(*info));
+}
+
+static xvalue* x_com_value_from_wide(BSTR text)
+{
+	size_t size;
+	char* utf8 = x_com_utf8_from_wide(text, text != NULL ? SysStringLen(text) : 0u, &size);
+	xvalue* value;
+	xstrview view;
+	if ( utf8 == NULL ) {
+		return xrtValueNull();
 	}
-	dst[dst_count - 1] = '\0';
-	return n > 0;
+	view.Data = utf8;
+	view.Size = size;
+	value = xrtValueString(view);
+	xrtFree(utf8);
+	return value;
 }
 
 static BSTR x_com_bstr_from_utf8_slice(const char* src, int src_len)
@@ -698,48 +188,36 @@ static BSTR x_com_bstr_from_utf8_slice(const char* src, int src_len)
 		return SysAllocString(L"");
 	}
 	if ( src_len < 0 ) {
-		wide_len = MultiByteToWideChar(CP_UTF8, 0, src, -1, NULL, 0);
-		if ( wide_len <= 0 ) {
-			wide_len = MultiByteToWideChar(CP_ACP, 0, src, -1, NULL, 0);
-			if ( wide_len <= 0 ) {
-				return SysAllocString(L"");
-			}
-			wide = (wchar_t*)calloc((size_t)wide_len, sizeof(wchar_t));
-			if ( wide == NULL ) {
-				return NULL;
-			}
-			MultiByteToWideChar(CP_ACP, 0, src, -1, wide, wide_len);
-		} else {
-			wide = (wchar_t*)calloc((size_t)wide_len, sizeof(wchar_t));
-			if ( wide == NULL ) {
-				return NULL;
-			}
-			MultiByteToWideChar(CP_UTF8, 0, src, -1, wide, wide_len);
+		size_t length = strlen(src);
+		if ( length > INT_MAX ) {
+			x_com_set_error("COM string is too long");
+			return NULL;
 		}
-		result = SysAllocString(wide);
-		free(wide);
-		return result;
+		src_len = (int)length;
 	}
-	wide_len = MultiByteToWideChar(CP_UTF8, 0, src, src_len, NULL, 0);
+	if ( src_len == 0 ) {
+		return SysAllocString(L"");
+	}
+	wide_len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src, src_len, NULL, 0);
 	if ( wide_len <= 0 ) {
-		wide_len = MultiByteToWideChar(CP_ACP, 0, src, src_len, NULL, 0);
-		if ( wide_len <= 0 ) {
-			return SysAllocString(L"");
-		}
-		wide = (wchar_t*)calloc((size_t)wide_len + 1u, sizeof(wchar_t));
-		if ( wide == NULL ) {
-			return NULL;
-		}
-		MultiByteToWideChar(CP_ACP, 0, src, src_len, wide, wide_len);
-	} else {
-		wide = (wchar_t*)calloc((size_t)wide_len + 1u, sizeof(wchar_t));
-		if ( wide == NULL ) {
-			return NULL;
-		}
-		MultiByteToWideChar(CP_UTF8, 0, src, src_len, wide, wide_len);
+		x_com_set_error("invalid UTF-8 COM argument");
+		return NULL;
+	}
+	wide = (wchar_t*)xrtMalloc((size_t)wide_len * sizeof(wchar_t));
+	if ( wide == NULL ) {
+		x_com_set_error("out of memory");
+		return NULL;
+	}
+	if ( MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, src, src_len, wide, wide_len) != wide_len ) {
+		xrtFree(wide);
+		x_com_set_error("invalid UTF-8 COM argument");
+		return NULL;
 	}
 	result = SysAllocStringLen(wide, (UINT)wide_len);
-	free(wide);
+	xrtFree(wide);
+	if ( result == NULL ) {
+		x_com_set_error("out of memory");
+	}
 	return result;
 }
 
@@ -783,12 +261,14 @@ static int x_com_invoke0_variant(IDispatch* dispatch, const char* name, WORD fla
 	memset(&excep, 0, sizeof(excep));
 	hr = dispatch->lpVtbl->Invoke(dispatch, dispid, &x_com_iid_null, LOCALE_USER_DEFAULT, flags, &params, result, &excep, &arg_error);
 	if ( FAILED(hr) && (flags & DISPATCH_PROPERTYGET) != 0 ) {
+		x_com_finish_exception(&excep, hr, "Invoke failed", 0);
 		VariantClear(result);
 		VariantInit(result);
 		hr = dispatch->lpVtbl->Invoke(dispatch, dispid, &x_com_iid_null, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, result, &excep, &arg_error);
 	}
+	x_com_finish_exception(&excep, hr, "Invoke failed", 1);
 	if ( FAILED(hr) ) {
-		x_com_set_hresult_error("Invoke failed", hr);
+		VariantClear(result);
 		return 0;
 	}
 	return 1;
@@ -801,7 +281,6 @@ static int x_com_variant_from_xvalue(VARIANT* dst, const xvalue* value)
 	int64 iValue;
 	xstrview Text;
 	ptr pValue;
-	wchar_t wide_value[1024];
 	if ( dst == NULL ) {
 		return 0;
 	}
@@ -832,10 +311,13 @@ static int x_com_variant_from_xvalue(VARIANT* dst, const xvalue* value)
 		return xrtValueGetFloat(value, &dst->dblVal) ? 1 : 0;
 	case XVALUE_STRING:
 		if ( !xrtValueGetString(value, &Text) ) { return 0; }
+		if ( Text.Size > INT_MAX ) {
+			x_com_set_error("COM string is too long");
+			return 0;
+		}
 		dst->vt = VT_BSTR;
 		dst->bstrVal = x_com_bstr_from_utf8_slice(Text.Data, (int)Text.Size);
 		if ( dst->bstrVal == NULL ) {
-			x_com_set_error("argument allocation failed");
 			return 0;
 		}
 		return 1;
@@ -855,131 +337,9 @@ static int x_com_variant_from_xvalue(VARIANT* dst, const xvalue* value)
 		dst->vt = VT_EMPTY;
 		return 1;
 	default:
-		x_com_utf8_to_wide("", wide_value, (int)(sizeof(wide_value) / sizeof(wide_value[0])));
-		dst->vt = VT_BSTR;
-		dst->bstrVal = SysAllocString(wide_value);
-		if ( dst->bstrVal == NULL ) {
-			x_com_set_error("argument allocation failed");
-			return 0;
-		}
-		return 1;
-	}
-}
-
-static int x_com_invoke_text_args_variant(IDispatch* dispatch, const char* name, int argc, const char** argv, VARIANT* result)
-{
-	DISPID dispid;
-	DISPPARAMS params;
-	EXCEPINFO excep;
-	UINT arg_error = 0;
-	VARIANT args[16];
-	int i;
-	HRESULT hr;
-	if ( result == NULL ) {
+		x_com_set_error("unsupported COM argument type");
 		return 0;
 	}
-	VariantInit(result);
-	if ( argc < 0 || argc > 16 ) {
-		x_com_set_error("unsupported argument count");
-		return 0;
-	}
-	if ( !x_com_get_dispid(dispatch, name, &dispid) ) {
-		return 0;
-	}
-	for ( i = 0; i < argc; ++i ) {
-		VariantInit(&args[i]);
-	}
-	for ( i = 0; i < argc; ++i ) {
-		wchar_t wide_value[1024];
-		int dst = argc - i - 1;
-		const char* value = (argv != NULL && argv[i] != NULL) ? argv[i] : "";
-		x_com_utf8_to_wide(value, wide_value, (int)(sizeof(wide_value) / sizeof(wide_value[0])));
-		args[dst].vt = VT_BSTR;
-		args[dst].bstrVal = SysAllocString(wide_value);
-		if ( args[dst].bstrVal == NULL ) {
-			int j;
-			for ( j = 0; j < i; ++j ) {
-				VariantClear(&args[argc - j - 1]);
-			}
-			x_com_set_error("argument allocation failed");
-			return 0;
-		}
-	}
-	memset(&params, 0, sizeof(params));
-	memset(&excep, 0, sizeof(excep));
-	params.rgvarg = (argc != 0) ? args : NULL;
-	params.cArgs = (UINT)argc;
-	hr = dispatch->lpVtbl->Invoke(dispatch, dispid, &x_com_iid_null, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, result, &excep, &arg_error);
-	if ( FAILED(hr) ) {
-		VariantClear(result);
-		VariantInit(result);
-		memset(&excep, 0, sizeof(excep));
-		arg_error = 0;
-		hr = dispatch->lpVtbl->Invoke(dispatch, dispid, &x_com_iid_null, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &params, result, &excep, &arg_error);
-	}
-	for ( i = 0; i < argc; ++i ) {
-		VariantClear(&args[i]);
-	}
-	if ( FAILED(hr) ) {
-		x_com_set_hresult_error("Invoke failed", hr);
-		return 0;
-	}
-	return 1;
-}
-
-static int x_com_invoke_var_args_variant(IDispatch* dispatch, const char* name, int argc, xvalue* const* argv, VARIANT* result)
-{
-	DISPID dispid;
-	DISPPARAMS params;
-	EXCEPINFO excep;
-	UINT arg_error = 0;
-	VARIANT args[16];
-	int i;
-	HRESULT hr;
-	if ( result == NULL ) {
-		return 0;
-	}
-	VariantInit(result);
-	if ( argc < 0 || argc > 16 ) {
-		x_com_set_error("unsupported argument count");
-		return 0;
-	}
-	if ( !x_com_get_dispid(dispatch, name, &dispid) ) {
-		return 0;
-	}
-	for ( i = 0; i < argc; ++i ) {
-		VariantInit(&args[i]);
-	}
-	for ( i = 0; i < argc; ++i ) {
-		int dst = argc - i - 1;
-		if ( !x_com_variant_from_xvalue(&args[dst], (argv != NULL) ? argv[i] : NULL) ) {
-			int j;
-			for ( j = 0; j < argc; ++j ) {
-				VariantClear(&args[j]);
-			}
-			return 0;
-		}
-	}
-	memset(&params, 0, sizeof(params));
-	memset(&excep, 0, sizeof(excep));
-	params.rgvarg = (argc != 0) ? args : NULL;
-	params.cArgs = (UINT)argc;
-	hr = dispatch->lpVtbl->Invoke(dispatch, dispid, &x_com_iid_null, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, result, &excep, &arg_error);
-	if ( FAILED(hr) ) {
-		VariantClear(result);
-		VariantInit(result);
-		memset(&excep, 0, sizeof(excep));
-		arg_error = 0;
-		hr = dispatch->lpVtbl->Invoke(dispatch, dispid, &x_com_iid_null, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYGET, &params, result, &excep, &arg_error);
-	}
-	for ( i = 0; i < argc; ++i ) {
-		VariantClear(&args[i]);
-	}
-	if ( FAILED(hr) ) {
-		x_com_set_hresult_error("Invoke failed", hr);
-		return 0;
-	}
-	return 1;
 }
 
 static int x_com_put_var_variant(IDispatch* dispatch, const char* name, const xvalue* value)
@@ -1010,46 +370,89 @@ static int x_com_put_var_variant(IDispatch* dispatch, const char* name, const xv
 	params.cNamedArgs = 1;
 	hr = dispatch->lpVtbl->Invoke(dispatch, dispid, &x_com_iid_null, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYPUT, &params, NULL, &excep, &arg_error);
 	VariantClear(&arg);
+	x_com_finish_exception(&excep, hr, "Property put failed", 1);
 	if ( FAILED(hr) ) {
-		x_com_set_hresult_error("Property put failed", hr);
 		return 0;
 	}
 	return 1;
 }
 
-static int x_com_append_text(char* dst, size_t dst_size, size_t* used, const char* text)
+static int x_com_reserve_text(XComObject* object, size_t extra)
 {
-	size_t len;
-	if ( dst == NULL || used == NULL || dst_size == 0u ) {
+	size_t required;
+	size_t capacity;
+	char* output;
+	if ( object == NULL || extra > SIZE_MAX - object->text_size - 1u ) {
+		x_com_set_error("COM text size overflow");
 		return 0;
 	}
-	if ( text == NULL ) {
-		text = "";
+	required = object->text_size + extra + 1u;
+	if ( required <= object->text_capacity ) {
+		return 1;
 	}
-	len = strlen(text);
-	if ( *used >= dst_size - 1u ) {
+	capacity = object->text_capacity != 0u ? object->text_capacity : 64u;
+	while ( capacity < required ) {
+		if ( capacity > SIZE_MAX / 2u ) {
+			capacity = required;
+			break;
+		}
+		capacity *= 2u;
+	}
+	output = (char*)xrtRealloc(object->text, capacity);
+	if ( output == NULL ) {
+		x_com_set_error("out of memory");
 		return 0;
 	}
-	if ( len > dst_size - 1u - *used ) {
-		len = dst_size - 1u - *used;
-	}
-	if ( len != 0u ) {
-		memcpy(dst + *used, text, len);
-		*used += len;
-		dst[*used] = '\0';
-	}
+	object->text = output;
+	object->text_capacity = capacity;
 	return 1;
 }
 
-static int x_com_variant_to_utf8_buffer(VARIANT* value, char* dst, int dst_count)
+static void x_com_clear_text(XComObject* object)
+{
+	object->text_size = 0u;
+	if ( object->text != NULL ) {
+		object->text[0] = '\0';
+	}
+}
+
+static int x_com_append_text(XComObject* object, const char* text, size_t size)
+{
+	if ( !x_com_reserve_text(object, size) ) {
+		return 0;
+	}
+	if ( size != 0u ) {
+		memcpy(object->text + object->text_size, text, size);
+		object->text_size += size;
+	}
+	object->text[object->text_size] = '\0';
+	return 1;
+}
+
+static int x_com_append_wide(XComObject* object, BSTR text)
+{
+	size_t size;
+	char* utf8 = x_com_utf8_from_wide(text, text != NULL ? SysStringLen(text) : 0u, &size);
+	int ok;
+	if ( utf8 == NULL ) {
+		return 0;
+	}
+	if ( memchr(utf8, 0, size) != NULL ) {
+		x_com_set_error("COM text contains NUL; use invoke() for a value result");
+		xrtFree(utf8);
+		return 0;
+	}
+	ok = x_com_append_text(object, utf8, size);
+	xrtFree(utf8);
+	return ok;
+}
+
+static int x_com_append_variant_text(XComObject* object, VARIANT* value)
 {
 	VARIANT text;
 	HRESULT hr;
+	int ok;
 	VariantInit(&text);
-	if ( dst == NULL || dst_count <= 0 ) {
-		return 0;
-	}
-	dst[0] = '\0';
 	if ( value == NULL || value->vt == VT_EMPTY || value->vt == VT_NULL ) {
 		return 1;
 	}
@@ -1058,61 +461,75 @@ static int x_com_variant_to_utf8_buffer(VARIANT* value, char* dst, int dst_count
 		x_com_set_hresult_error("VariantChangeType string failed", hr);
 		return 0;
 	}
-	x_com_wide_to_utf8_buffer(text.bstrVal, dst, dst_count);
+	ok = x_com_append_wide(object, text.bstrVal);
 	VariantClear(&text);
-	return 1;
+	return ok;
 }
 
-static const char* x_com_safearray_to_text(VARIANT* value)
+static int x_com_safearray_to_text(XComObject* object, VARIANT* value)
 {
 	SAFEARRAY* array;
 	VARTYPE item_vt;
 	LONG lower;
 	LONG upper;
 	LONG index;
-	size_t used = 0u;
-	g_x_com_text[0] = '\0';
 	if ( value == NULL || (value->vt & VT_ARRAY) == 0 ) {
-		return g_x_com_text;
+		return 1;
 	}
 	array = (value->vt & VT_BYREF) ? *value->pparray : value->parray;
 	if ( array == NULL ) {
-		return g_x_com_text;
+		return 1;
 	}
 	if ( SafeArrayGetDim(array) != 1u ) {
 		x_com_set_error("only one-dimensional SAFEARRAY is supported");
-		return g_x_com_text;
+		return 0;
 	}
 	if ( FAILED(SafeArrayGetLBound(array, 1u, &lower)) || FAILED(SafeArrayGetUBound(array, 1u, &upper)) ) {
 		x_com_set_error("SAFEARRAY bounds failed");
-		return g_x_com_text;
+		return 0;
 	}
 	item_vt = value->vt & ~(VT_ARRAY | VT_BYREF);
-	for ( index = lower; index <= upper; ++index ) {
-		char item_text[1024];
+	for ( index = lower; index <= upper; ) {
 		VARIANT item;
 		HRESULT hr;
 		if ( index != lower ) {
-			x_com_append_text(g_x_com_text, sizeof(g_x_com_text), &used, ",");
+			if ( !x_com_append_text(object, ",", 1u) ) {
+				return 0;
+			}
 		}
 		VariantInit(&item);
 		if ( item_vt == VT_VARIANT || item_vt == VT_EMPTY ) {
 			hr = SafeArrayGetElement(array, &index, &item);
-			if ( SUCCEEDED(hr) ) {
-				x_com_variant_to_utf8_buffer(&item, item_text, (int)sizeof(item_text));
-				x_com_append_text(g_x_com_text, sizeof(g_x_com_text), &used, item_text);
+			if ( FAILED(hr) ) {
+				x_com_set_hresult_error("SAFEARRAY element read failed", hr);
+				VariantClear(&item);
+				return 0;
+			}
+			if ( !x_com_append_variant_text(object, &item) ) {
+				VariantClear(&item);
+				return 0;
 			}
 			VariantClear(&item);
-			continue;
+		} else {
+			item.vt = item_vt;
+			hr = SafeArrayGetElement(array, &index, &item.byref);
+			if ( FAILED(hr) ) {
+				x_com_set_hresult_error("SAFEARRAY element read failed", hr);
+				VariantClear(&item);
+				return 0;
+			}
+			if ( !x_com_append_variant_text(object, &item) ) {
+				VariantClear(&item);
+				return 0;
+			}
+			VariantClear(&item);
 		}
-		item.vt = item_vt;
-		hr = SafeArrayGetElement(array, &index, &item.byref);
-		if ( SUCCEEDED(hr) ) {
-			x_com_variant_to_utf8_buffer(&item, item_text, (int)sizeof(item_text));
-			x_com_append_text(g_x_com_text, sizeof(g_x_com_text), &used, item_text);
+		if ( index == upper ) {
+			break;
 		}
+		++index;
 	}
-	return g_x_com_text;
+	return 1;
 }
 
 static int x_com_safearray_get_variant(SAFEARRAY* array, VARTYPE item_vt, LONG* indices, VARIANT* item)
@@ -1198,7 +615,7 @@ static xvalue* x_com_safearray_to_xvalue_rec(
 	if ( pResult == NULL ) {
 		return xrtValueNull();
 	}
-	for ( index = lower[dim]; index <= upper[dim]; ++index ) {
+	for ( index = lower[dim]; index <= upper[dim]; ) {
 		xvalue* pItem;
 		indices[dim] = index;
 		if ( (dim + 1u) < dim_count ) {
@@ -1209,13 +626,25 @@ static xvalue* x_com_safearray_to_xvalue_rec(
 				pItem = x_com_variant_to_xvalue(&item);
 				VariantClear(&item);
 			} else {
-				pItem = xrtValueNull();
+				VariantClear(&item);
+				x_com_set_error("SAFEARRAY element read failed");
+				xrtValueRelease(pResult);
+				return xrtValueNull();
 			}
+		}
+		if ( xrtGetError() != NULL ) {
+			xrtValueRelease(pItem);
+			xrtValueRelease(pResult);
+			return xrtValueNull();
 		}
 		if ( !xrtValueArrayAppendNew(pResult, pItem) ) {
 			xrtValueRelease(pResult);
 			return xrtValueNull();
 		}
+		if ( index == upper[dim] ) {
+			break;
+		}
+		++index;
 	}
 	return pResult;
 }
@@ -1257,27 +686,17 @@ static xvalue* x_com_safearray_to_xvalue(VARIANT* value)
 	return x_com_safearray_to_xvalue_rec(array, item_vt, 0u, dim_count, lower, upper, indices);
 }
 
-static const char* x_com_variant_to_text(VARIANT* value)
+static const char* x_com_variant_to_text(XComObject* object, VARIANT* value)
 {
-	VARIANT text;
-	HRESULT hr;
-	VariantInit(&text);
+	x_com_clear_text(object);
 	if ( value == NULL || value->vt == VT_EMPTY || value->vt == VT_NULL ) {
-		g_x_com_text[0] = '\0';
-		return g_x_com_text;
+		return "";
 	}
 	if ( (value->vt & VT_ARRAY) != 0 ) {
-		return x_com_safearray_to_text(value);
+		return x_com_safearray_to_text(object, value)
+			? (object->text != NULL ? object->text : "") : "";
 	}
-	hr = VariantChangeType(&text, value, 0, VT_BSTR);
-	if ( FAILED(hr) ) {
-		x_com_set_hresult_error("VariantChangeType string failed", hr);
-		g_x_com_text[0] = '\0';
-		return g_x_com_text;
-	}
-	x_com_wide_to_utf8(text.bstrVal);
-	VariantClear(&text);
-	return g_x_com_text;
+	return x_com_append_variant_text(object, value) ? object->text : "";
 }
 
 static xvalue* x_com_variant_to_xvalue(VARIANT* value)
@@ -1302,8 +721,7 @@ static xvalue* x_com_variant_to_xvalue(VARIANT* value)
 			return xrtValueFloat(*value->pdblVal);
 		}
 		if ( vt == VT_BSTR && value->pbstrVal != NULL ) {
-			const char* sText = x_com_wide_to_utf8(*value->pbstrVal);
-			return xrtValueString(xrtStrView(sText));
+			return x_com_value_from_wide(*value->pbstrVal);
 		}
 		return xrtValueNull();
 	}
@@ -1333,16 +751,17 @@ static xvalue* x_com_variant_to_xvalue(VARIANT* value)
 	case VT_I8:
 		return xrtValueInt((int64)value->llVal);
 	case VT_UI8:
+		if ( value->ullVal > INT64_MAX ) {
+			x_com_set_error("COM uint64 exceeds XLang int range");
+			return xrtValueNull();
+		}
 		return xrtValueInt((int64)value->ullVal);
 	case VT_R4:
 		return xrtValueFloat((double)value->fltVal);
 	case VT_R8:
 		return xrtValueFloat(value->dblVal);
 	case VT_BSTR:
-	{
-		const char* sText = x_com_wide_to_utf8(value->bstrVal);
-		return xrtValueString(xrtStrView(sText));
-	}
+		return x_com_value_from_wide(value->bstrVal);
 	case VT_DISPATCH:
 		if ( value->pdispVal != NULL ) {
 			value->pdispVal->lpVtbl->AddRef(value->pdispVal);
@@ -1361,8 +780,7 @@ static xvalue* x_com_variant_to_xvalue(VARIANT* value)
 		VariantInit(&text);
 		if ( SUCCEEDED(VariantChangeType(&text, value, 0, VT_BSTR)) ) {
 			xvalue* pResult;
-			const char* sText = x_com_wide_to_utf8(text.bstrVal);
-			pResult = xrtValueString(xrtStrView(sText));
+			pResult = x_com_value_from_wide(text.bstrVal);
 			VariantClear(&text);
 			return pResult;
 		}
@@ -1377,67 +795,81 @@ XL_EXPORT void* x_com_create(const char* progid)
 	IDispatch* dispatch = NULL;
 	XComObject* object;
 	HRESULT hr;
+	int owns_apartment;
 	x_com_set_error("");
-	if ( !x_com_init() ) {
+	if ( !x_com_begin_apartment(&owns_apartment) ) {
 		return NULL;
 	}
 	if ( !x_com_utf8_to_wide(progid, wide_progid, (int)(sizeof(wide_progid) / sizeof(wide_progid[0]))) ) {
 		x_com_set_error("ProgID conversion failed");
-		return NULL;
+		goto fail;
 	}
 	hr = CLSIDFromProgID(wide_progid, &clsid);
 	if ( FAILED(hr) ) {
 		x_com_set_hresult_error("CLSIDFromProgID failed", hr);
-		return NULL;
+		goto fail;
 	}
 	hr = CoCreateInstance(&clsid, NULL, CLSCTX_INPROC_SERVER | CLSCTX_LOCAL_SERVER, &x_com_iid_idispatch, (void**)&dispatch);
 	if ( FAILED(hr) ) {
 		x_com_set_hresult_error("CoCreateInstance failed", hr);
-		return NULL;
+		goto fail;
 	}
-	object = (XComObject*)calloc(1, sizeof(XComObject));
+	object = (XComObject*)xrtCalloc(1u, sizeof(*object));
 	if ( object == NULL ) {
 		dispatch->lpVtbl->Release(dispatch);
 		x_com_set_error("out of memory");
-		return NULL;
+		goto fail;
 	}
 	object->dispatch = dispatch;
+	object->owner_thread = GetCurrentThreadId();
+	object->owns_apartment = owns_apartment;
 	return object;
+
+fail:
+	if ( owns_apartment ) {
+		CoUninitialize();
+	}
+	return NULL;
 }
 
 XL_EXPORT void* x_com_attach(void* dispatch)
 {
 	XComObject* object;
+	int owns_apartment;
 	x_com_set_error("");
 	if ( dispatch == NULL ) {
 		x_com_set_error("COM dispatch pointer is null");
 		return NULL;
 	}
-	object = (XComObject*)calloc(1, sizeof(XComObject));
+	if ( !x_com_begin_apartment(&owns_apartment) ) {
+		return NULL;
+	}
+	object = (XComObject*)xrtCalloc(1u, sizeof(*object));
 	if ( object == NULL ) {
 		x_com_set_error("out of memory");
+		if ( owns_apartment ) {
+			CoUninitialize();
+		}
 		return NULL;
 	}
 	object->dispatch = (IDispatch*)dispatch;
+	object->owner_thread = GetCurrentThreadId();
+	object->owns_apartment = owns_apartment;
 	return object;
 }
 
-XL_EXPORT void* x_com_test_object(void)
-{
-	XComTestDispatch* object = (XComTestDispatch*)calloc(1, sizeof(XComTestDispatch));
-	if ( object == NULL ) {
-		x_com_set_error("out of memory");
-		return NULL;
-	}
-	object->dispatch.lpVtbl = &g_x_com_test_vtbl;
-	object->refs = 1;
-	object->has_child = 0;
-	return &object->dispatch;
-}
 
-XL_EXPORT int x_com_available(void)
+XL_EXPORT int64_t x_com_available(void)
 {
-	return x_com_init();
+	int owns_apartment;
+	x_com_set_error("");
+	if ( !x_com_begin_apartment(&owns_apartment) ) {
+		return 0;
+	}
+	if ( owns_apartment ) {
+		CoUninitialize();
+	}
+	return 1;
 }
 
 XL_EXPORT const char* x_com_version(void)
@@ -1445,26 +877,35 @@ XL_EXPORT const char* x_com_version(void)
 	return "0.1.0";
 }
 
-XL_EXPORT int x_com_release(void* handle)
+XL_EXPORT int64_t x_com_release(void* handle)
 {
 	XComObject* object = (XComObject*)handle;
 	if ( object == NULL ) {
+		return 0;
+	}
+	if ( !x_com_check_handle(object) ) {
 		return 0;
 	}
 	if ( object->dispatch != NULL ) {
 		object->dispatch->lpVtbl->Release(object->dispatch);
 		object->dispatch = NULL;
 	}
-	free(object);
+	if ( object->owns_apartment ) {
+		CoUninitialize();
+	}
+	xrtFree(object->text);
+	xrtFree(object);
 	return 1;
 }
 
 XL_EXPORT const char* x_com_last_error(void)
 {
-	return g_x_com_error;
+	const xerror* error = xrtGetError();
+	return error != NULL && strcmp(xrtErrorDomain(error), "xlang.extlib.com") == 0
+		? xrtErrorMessage(error) : "";
 }
 
-XL_EXPORT int x_com_is_null(void* handle)
+XL_EXPORT int64_t x_com_is_null(void* handle)
 {
 	return handle == NULL ? 1 : 0;
 }
@@ -1474,38 +915,34 @@ XL_EXPORT const char* x_com_get_text(void* handle, const char* name)
 	XComObject* object = (XComObject*)handle;
 	VARIANT result;
 	const char* text;
-	if ( object == NULL || object->dispatch == NULL ) {
-		x_com_set_error("invalid COM handle");
-		g_x_com_text[0] = '\0';
-		return g_x_com_text;
+	if ( !x_com_check_handle(object) ) {
+		return "";
 	}
 	if ( !x_com_invoke0_variant(object->dispatch, name, DISPATCH_PROPERTYGET, &result) ) {
-		g_x_com_text[0] = '\0';
-		return g_x_com_text;
+		return "";
 	}
-	text = x_com_variant_to_text(&result);
+	text = x_com_variant_to_text(object, &result);
 	VariantClear(&result);
 	return text;
 }
 
-XL_EXPORT int x_com_get_int(void* handle, const char* name)
+XL_EXPORT int64_t x_com_get_int(void* handle, const char* name)
 {
 	XComObject* object = (XComObject*)handle;
 	VARIANT result;
 	VARIANT number;
-	int value = 0;
+	int64_t value = 0;
 	HRESULT hr;
-	if ( object == NULL || object->dispatch == NULL ) {
-		x_com_set_error("invalid COM handle");
+	if ( !x_com_check_handle(object) ) {
 		return 0;
 	}
 	if ( !x_com_invoke0_variant(object->dispatch, name, DISPATCH_PROPERTYGET, &result) ) {
 		return 0;
 	}
 	VariantInit(&number);
-	hr = VariantChangeType(&number, &result, 0, VT_I4);
+	hr = VariantChangeType(&number, &result, 0, VT_I8);
 	if ( SUCCEEDED(hr) ) {
-		value = number.lVal;
+		value = number.llVal;
 	} else {
 		x_com_set_hresult_error("VariantChangeType int failed", hr);
 	}
@@ -1514,11 +951,10 @@ XL_EXPORT int x_com_get_int(void* handle, const char* name)
 	return value;
 }
 
-XL_EXPORT int x_com_put_var(void* handle, const char* name, xvalue* value)
+XL_EXPORT int64_t x_com_put_var(void* handle, const char* name, xvalue* value)
 {
 	XComObject* object = (XComObject*)handle;
-	if ( object == NULL || object->dispatch == NULL ) {
-		x_com_set_error("invalid COM handle");
+	if ( !x_com_check_handle(object) ) {
 		return 0;
 	}
 	return x_com_put_var_variant(object->dispatch, name, value);
@@ -1555,35 +991,77 @@ static int x_com_value_truthy(const xvalue* pValue)
 	return 1;
 }
 
-static const char* x_com_value_text(const xvalue* pValue)
+static int x_com_resolve_call_names(IDispatch* dispatch, const char* method,
+	const xvalue* names_value, size_t count, size_t* destinations,
+	DISPID* method_id, DISPID* named_ids, UINT* named_count)
 {
-	xstrview Text;
-	size_t iSize;
+	BSTR names[65] = { 0 };
+	DISPID ids[65];
+	UINT used = 0u;
+	size_t i;
+	int ok = 0;
+	HRESULT hr;
 
-	if ( !xrtValueGetString(pValue, &Text) ) {
-		return "";
+	if ( names_value == NULL ) {
+		for ( i = 0u; i < count; ++i ) {
+			destinations[i] = SIZE_MAX;
+		}
+		*named_count = 0u;
+		return x_com_get_dispid(dispatch, method, method_id);
 	}
-	iSize = Text.Size;
-	if ( iSize >= sizeof(g_x_com_text) ) {
-		memcpy(g_x_com_text, Text.Data, sizeof(g_x_com_text) - 1u);
-		g_x_com_text[sizeof(g_x_com_text) - 1u] = '\0';
-		return g_x_com_text;
-	}
-	memcpy(g_x_com_text, Text.Data, iSize);
-	g_x_com_text[iSize] = '\0';
-	return g_x_com_text;
-}
-
-static int x_com_named_arg_dispid(IDispatch* dispatch, const xvalue* pName, DISPID* dispid)
-{
-	const char* arg_name;
-
-	if ( (dispatch == NULL) || (dispid == NULL) ||
-		(xrtValueType(pName) != XVALUE_STRING) || (x_com_value_text(pName)[0] == '\0') ) {
+	names[0] = x_com_bstr_from_utf8_slice(method, -1);
+	if ( names[0] == NULL ) {
 		return 0;
 	}
-	arg_name = x_com_value_text(pName);
-	return x_com_get_dispid(dispatch, arg_name, dispid);
+	for ( i = 0u; i < count; ++i ) {
+		const xvalue* item = names_value != NULL ? xrtValueArrayGet(names_value, i) : NULL;
+		xstrview text;
+		if ( item == NULL || xrtValueType(item) == XVALUE_NULL ) {
+			destinations[i] = SIZE_MAX;
+			continue;
+		}
+		if ( !xrtValueGetString(item, &text) ) {
+			x_com_set_error("named argument must be a string or null");
+			goto done;
+		}
+		if ( text.Size == 0u ) {
+			destinations[i] = SIZE_MAX;
+			continue;
+		}
+		if ( text.Size > INT_MAX || memchr(text.Data, 0, text.Size) != NULL ) {
+			x_com_set_error("invalid named COM argument");
+			goto done;
+		}
+		names[used + 1u] = x_com_bstr_from_utf8_slice(text.Data, (int)text.Size);
+		if ( names[used + 1u] == NULL ) {
+			goto done;
+		}
+		destinations[i] = used++;
+	}
+	hr = dispatch->lpVtbl->GetIDsOfNames(dispatch, &x_com_iid_null,
+		(LPOLESTR*)names, used + 1u, LOCALE_USER_DEFAULT, ids);
+	if ( FAILED(hr) ) {
+		x_com_set_hresult_error("GetIDsOfNames failed", hr);
+		goto done;
+	}
+	for ( i = 0u; i < used; ++i ) {
+		size_t j;
+		for ( j = 0u; j < i; ++j ) {
+			if ( ids[i + 1u] == ids[j + 1u] ) {
+				x_com_set_error("duplicate named COM argument");
+				goto done;
+			}
+		}
+		named_ids[i] = ids[i + 1u];
+	}
+	*method_id = ids[0];
+	*named_count = used;
+	ok = 1;
+done:
+	for ( i = 0u; i <= used; ++i ) {
+		SysFreeString(names[i]);
+	}
+	return ok;
 }
 
 static xvalue* x_com_invoke_array_internal(
@@ -1604,18 +1082,16 @@ static xvalue* x_com_invoke_array_internal(
 	UINT arg_error = 0;
 	VARIANT invoke_args[64];
 	VARIANT holders[64];
+	size_t destinations[64];
 	VARIANT result;
 	size_t iCount;
 	size_t i;
+	size_t positional_count = 0u;
 	UINT named_count = 0u;
 	HRESULT hr;
 	xvalue* pOutput;
 
-	if ( object == NULL || object->dispatch == NULL ) {
-		x_com_set_error("invalid COM handle");
-		return xrtValueNull();
-	}
-	if ( !x_com_get_dispid(object->dispatch, name, &dispid) ) {
+	if ( !x_com_check_handle(object) ) {
 		return xrtValueNull();
 	}
 	iCount = pArgs != NULL ? xrtValueCount(pArgs) : 0u;
@@ -1627,15 +1103,32 @@ static xvalue* x_com_invoke_array_internal(
 		x_com_set_error("unsupported argument count");
 		return xrtValueNull();
 	}
+	if ( pNames != NULL &&
+		(xrtValueType(pNames) != XVALUE_ARRAY || xrtValueCount(pNames) != iCount) ) {
+		x_com_set_error("named arguments must match argument count");
+		return xrtValueNull();
+	}
+	if ( pByRefs != NULL &&
+		(xrtValueType(pByRefs) != XVALUE_ARRAY || xrtValueCount(pByRefs) != iCount) ) {
+		x_com_set_error("byref flags must match argument count");
+		return xrtValueNull();
+	}
 	memset(named_ids, 0, sizeof(named_ids));
 	for ( i = 0u; i < 64u; ++i ) {
 		VariantInit(&invoke_args[i]);
 		VariantInit(&holders[i]);
 	}
+	if ( !x_com_resolve_call_names(object->dispatch, name, pNames, iCount,
+		destinations, &dispid, named_ids, &named_count) ) {
+		goto fail;
+	}
 	for ( i = 0u; i < iCount; ++i ) {
-		size_t iDestination = iCount - 1u - i;
+		size_t iDestination = destinations[i];
 		const xvalue* pItem = pArgs != NULL ? xrtValueArrayGet(pArgs, i) : NULL;
 		const xvalue* pByRef = pByRefs != NULL ? xrtValueArrayGet(pByRefs, i) : NULL;
+		if ( iDestination == SIZE_MAX ) {
+			iDestination = iCount - 1u - positional_count++;
+		}
 		if ( !x_com_variant_from_xvalue(&holders[i], pItem) ) {
 			goto fail;
 		}
@@ -1647,15 +1140,6 @@ static xvalue* x_com_invoke_array_internal(
 			VariantInit(&holders[i]);
 		}
 	}
-	if ( pNames != NULL && xrtValueType(pNames) == XVALUE_ARRAY ) {
-		for ( i = 0u; i < iCount; ++i ) {
-			const xvalue* pName = xrtValueArrayGet(pNames, iCount - 1u - i);
-			if ( x_com_named_arg_dispid(object->dispatch, pName, &named_ids[named_count]) ) {
-				named_count += 1u;
-			}
-		}
-	}
-
 	memset(&params, 0, sizeof(params));
 	memset(&excep, 0, sizeof(excep));
 	VariantInit(&result);
@@ -1665,12 +1149,14 @@ static xvalue* x_com_invoke_array_internal(
 	params.rgdispidNamedArgs = (named_count != 0u) ? named_ids : NULL;
 	hr = object->dispatch->lpVtbl->Invoke(object->dispatch, dispid, &x_com_iid_null, LOCALE_USER_DEFAULT, flags, &params, &result, &excep, &arg_error);
 	if ( FAILED(hr) && (flags & DISPATCH_PROPERTYGET) != 0 ) {
+		x_com_finish_exception(&excep, hr, "Invoke failed", 0);
 		VariantClear(&result);
 		VariantInit(&result);
 		hr = object->dispatch->lpVtbl->Invoke(object->dispatch, dispid, &x_com_iid_null, LOCALE_USER_DEFAULT, DISPATCH_METHOD, &params, &result, &excep, &arg_error);
 	}
+	x_com_finish_exception(&excep, hr, "Invoke failed", 1);
 	if ( FAILED(hr) ) {
-		x_com_set_hresult_error("Invoke failed", hr);
+		VariantClear(&result);
 		goto fail;
 	}
 	if ( bReturnOutArgs ) {
@@ -1716,7 +1202,7 @@ XL_EXPORT xvalue* x_com_invoke_named(void* handle, const char* name, xvalue* pAr
 	return x_com_invoke_array_internal(handle, name, pArgs, pNames, NULL, DISPATCH_METHOD | DISPATCH_PROPERTYGET, 0);
 }
 
-XL_EXPORT int x_com_put_ref(void* handle, const char* name, xvalue* value)
+XL_EXPORT int64_t x_com_put_ref(void* handle, const char* name, xvalue* value)
 {
 	XComObject* object = (XComObject*)handle;
 	DISPID dispid;
@@ -1727,8 +1213,7 @@ XL_EXPORT int x_com_put_ref(void* handle, const char* name, xvalue* value)
 	VARIANT arg;
 	HRESULT hr;
 
-	if ( object == NULL || object->dispatch == NULL ) {
-		x_com_set_error("invalid COM handle");
+	if ( !x_com_check_handle(object) ) {
 		return 0;
 	}
 	if ( !x_com_get_dispid(object->dispatch, name, &dispid) ) {
@@ -1745,126 +1230,9 @@ XL_EXPORT int x_com_put_ref(void* handle, const char* name, xvalue* value)
 	params.rgdispidNamedArgs = &named_arg;
 	hr = object->dispatch->lpVtbl->Invoke(object->dispatch, dispid, &x_com_iid_null, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYPUTREF, &params, NULL, &excep, &arg_error);
 	VariantClear(&arg);
+	x_com_finish_exception(&excep, hr, "Property putref failed", 1);
 	if ( FAILED(hr) ) {
-		x_com_set_hresult_error("Property putref failed", hr);
 		return 0;
 	}
 	return 1;
-}
-
-XL_EXPORT const char* x_com_invoke_text0(void* handle, const char* name)
-{
-	return x_com_get_text(handle, name);
-}
-
-static const char* x_com_invoke_text_args(void* handle, const char* name, int argc, const char** argv)
-{
-	XComObject* object = (XComObject*)handle;
-	VARIANT result;
-	const char* text;
-	if ( object == NULL || object->dispatch == NULL ) {
-		x_com_set_error("invalid COM handle");
-		g_x_com_text[0] = '\0';
-		return g_x_com_text;
-	}
-	if ( !x_com_invoke_text_args_variant(object->dispatch, name, argc, argv, &result) ) {
-		g_x_com_text[0] = '\0';
-		return g_x_com_text;
-	}
-	text = x_com_variant_to_text(&result);
-	VariantClear(&result);
-	return text;
-}
-
-static const char* x_com_invoke_var_args(void* handle, const char* name, int argc, xvalue* const* argv)
-{
-	XComObject* object = (XComObject*)handle;
-	VARIANT result;
-	const char* text;
-	if ( object == NULL || object->dispatch == NULL ) {
-		x_com_set_error("invalid COM handle");
-		g_x_com_text[0] = '\0';
-		return g_x_com_text;
-	}
-	if ( !x_com_invoke_var_args_variant(object->dispatch, name, argc, argv, &result) ) {
-		g_x_com_text[0] = '\0';
-		return g_x_com_text;
-	}
-	text = x_com_variant_to_text(&result);
-	VariantClear(&result);
-	return text;
-}
-
-static xvalue* x_com_invoke_value_args(void* handle, const char* name, int argc, xvalue* const* argv)
-{
-	XComObject* object = (XComObject*)handle;
-	VARIANT result;
-	xvalue* pValue;
-	if ( object == NULL || object->dispatch == NULL ) {
-		x_com_set_error("invalid COM handle");
-		return xrtValueNull();
-	}
-	if ( argc == 0 ) {
-		if ( !x_com_invoke0_variant(object->dispatch, name, DISPATCH_PROPERTYGET, &result) ) {
-			return xrtValueNull();
-		}
-	} else if ( !x_com_invoke_var_args_variant(object->dispatch, name, argc, argv, &result) ) {
-		return xrtValueNull();
-	}
-	pValue = x_com_variant_to_xvalue(&result);
-	VariantClear(&result);
-	return pValue;
-}
-
-XL_EXPORT xvalue* x_com_invoke_var0(void* handle, const char* name)
-{
-	return x_com_invoke_value_args(handle, name, 0, NULL);
-}
-
-XL_EXPORT xvalue* x_com_invoke_var1(void* handle, const char* name, xvalue* a0)
-{
-	xvalue* args[1] = { a0 };
-	return x_com_invoke_value_args(handle, name, 1, args);
-}
-
-XL_EXPORT xvalue* x_com_invoke_var2(void* handle, const char* name, xvalue* a0, xvalue* a1)
-{
-	xvalue* args[2] = { a0, a1 };
-	return x_com_invoke_value_args(handle, name, 2, args);
-}
-
-XL_EXPORT xvalue* x_com_invoke_var3(void* handle, const char* name, xvalue* a0, xvalue* a1, xvalue* a2)
-{
-	xvalue* args[3] = { a0, a1, a2 };
-	return x_com_invoke_value_args(handle, name, 3, args);
-}
-
-XL_EXPORT xvalue* x_com_invoke_var4(void* handle, const char* name, xvalue* a0, xvalue* a1, xvalue* a2, xvalue* a3)
-{
-	xvalue* args[4] = { a0, a1, a2, a3 };
-	return x_com_invoke_value_args(handle, name, 4, args);
-}
-
-XL_EXPORT xvalue* x_com_invoke_var5(void* handle, const char* name, xvalue* a0, xvalue* a1, xvalue* a2, xvalue* a3, xvalue* a4)
-{
-	xvalue* args[5] = { a0, a1, a2, a3, a4 };
-	return x_com_invoke_value_args(handle, name, 5, args);
-}
-
-XL_EXPORT xvalue* x_com_invoke_var6(void* handle, const char* name, xvalue* a0, xvalue* a1, xvalue* a2, xvalue* a3, xvalue* a4, xvalue* a5)
-{
-	xvalue* args[6] = { a0, a1, a2, a3, a4, a5 };
-	return x_com_invoke_value_args(handle, name, 6, args);
-}
-
-XL_EXPORT xvalue* x_com_invoke_var7(void* handle, const char* name, xvalue* a0, xvalue* a1, xvalue* a2, xvalue* a3, xvalue* a4, xvalue* a5, xvalue* a6)
-{
-	xvalue* args[7] = { a0, a1, a2, a3, a4, a5, a6 };
-	return x_com_invoke_value_args(handle, name, 7, args);
-}
-
-XL_EXPORT xvalue* x_com_invoke_var8(void* handle, const char* name, xvalue* a0, xvalue* a1, xvalue* a2, xvalue* a3, xvalue* a4, xvalue* a5, xvalue* a6, xvalue* a7)
-{
-	xvalue* args[8] = { a0, a1, a2, a3, a4, a5, a6, a7 };
-	return x_com_invoke_value_args(handle, name, 8, args);
 }

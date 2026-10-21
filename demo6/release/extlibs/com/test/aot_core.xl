@@ -1,0 +1,6 @@
+import com
+
+func main(...) as int
+    if com.available() == false then return 1 end
+    return 0
+end

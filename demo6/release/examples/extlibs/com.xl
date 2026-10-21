@@ -1,4 +1,5 @@
 import com
+extern "x_com_test_object" func x_com_test_object() as point
 
 func require(bool condition, string message)
     assert condition, message
@@ -7,18 +8,30 @@ end
 require(com.available(), "COM should be available on Windows")
 require(com.version() == "0.1.0", "COM version mismatch")
 
-auto invalid = com.create("XLang.Demo6.Missing.Com.Object")
-require(com.is_null(invalid) != 0, "missing COM object should not be valid")
-require(com.last_error() != "", "failed create should expose last_error")
+try
+    com.create("XLang.Demo6.Missing.Com.Object")
+    assert false, "missing COM object should fail"
+catch ValueError
+end
 
-auto attachedNull = com.attach(invalid)
-require(com.is_null(attachedNull) != 0, "attach(null) should not be valid")
-require(com.last_error() != "", "failed attach should expose last_error")
+try
+    com.attach(null)
+    assert false, "attach(null) should fail"
+catch ValueError
+end
 
-auto obj = com.test_object()
+auto obj = com.attach(x_com_test_object())
 require(com.is_null(obj) == 0, "test COM object should be valid")
-require(com.get_text(obj, "missing") == "", "missing property text should be empty")
-require(com.put_var(obj, "Child", com.missing()) == 0, "plain property put should fail for Child")
+try
+    com.get_text(obj, "missing")
+    assert false, "missing property should fail"
+catch ValueError
+end
+try
+    com.put_var(obj, "Child", com.missing())
+    assert false, "plain property put should fail for Child"
+catch ValueError
+end
 
 var subResult = com.invoke(obj, "Sub", array[9, 4])
 var optionalResult = com.invoke(obj, "OptionalAdd", array[7])

@@ -1,0 +1,75 @@
+import com
+extern "x_com_test_object" func x_com_test_object() as point
+
+func main(...) as int
+    assert com.available(), "COM should be available"
+    point handle = com.attach(x_com_test_object())
+    assert com.is_null(handle) == 0, "test object"
+
+    string text = com.get_text(handle, "LongText")
+    assert string.byteLen(text) == 6006, "long UTF-8 text"
+    assert string.slice(text, 6000, 2) == "你好", "long UTF-8 suffix"
+    assert com.get_int(handle, "BigInt") == 1099511627776, "64-bit COM integer"
+
+    bool truncatedName = false
+    try
+        com.get_text(handle, "LongText\0ignored")
+    catch ValueError error
+        truncatedName = true
+    end
+    assert truncatedName, "member name must not resolve to its prefix"
+    truncatedName = false
+    try
+        com.invoke(handle, "LongText\0ignored", array[])
+    catch ValueError error
+        truncatedName = true
+    end
+    assert truncatedName, "method name must not resolve to its prefix"
+
+    var value = com.invoke(handle, "LongText", array[])
+    assert string.byteLen(string(value)) == 6006, "long value text"
+    assert int(com.invoke_named(handle, "Sub", array[9, 4], array["left", ""])) == 5, "named then positional"
+    assert int(com.invoke_named(handle, "Sub", array[9, 4], array["", "right"])) == 5, "positional then named"
+    try
+        com.invoke(handle, "Sub", array[array[1], 4])
+        assert false, "unsupported COM argument should fail"
+    catch ValueError
+    end
+
+    var values = com.invoke(handle, "Values", array[])
+    assert int(values[0]) == 42 and string(values[1]) == "hello", "mixed SAFEARRAY"
+    assert com.get_text(handle, "Values") == "42,hello", "SAFEARRAY text"
+    var grid = com.invoke(handle, "Grid", array[])
+    assert int(grid[0][0]) == 1 and int(grid[1][1]) == 4, "two-dimensional SAFEARRAY"
+    var empty = com.invoke(handle, "Empty", array[])
+    assert empty.length == 0, "empty SAFEARRAY"
+    assert com.get_text(handle, "Empty") == "", "empty SAFEARRAY text"
+    try
+        com.get_text(handle, "Grid")
+        assert false, "multidimensional SAFEARRAY text should fail"
+    catch ValueError
+    end
+
+    try
+        com.invoke(handle, "Fail", array[])
+        assert false, "COM exception should fail"
+    catch ValueError
+    end
+
+    assert com.release(handle) != 0, "release"
+
+    com.ComObject wrapped = com.ComObject(com.attach(x_com_test_object()))
+    assert wrapped.valid(), "public COM class"
+    assert wrapped.int("HasChild") == 0, "COM class member"
+    truncatedName = false
+    try
+        wrapped.text("LongText\0ignored")
+    catch ValueError error
+        truncatedName = true
+    end
+    assert truncatedName, "COM class must reject truncated member name"
+    assert wrapped.close(), "COM class close"
+    assert not wrapped.valid(), "COM class closed"
+    println("com boundaries ok")
+    return 0
+end

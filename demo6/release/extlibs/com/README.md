@@ -1,0 +1,81 @@
+# com
+
+Windows-only IDispatch late binding for XLang and C. This package exposes a
+small COM automation surface, not arbitrary interface/vtable binding. It does
+not implement event sinks or cross-apartment marshaling.
+
+## Use
+
+`import com` provides `create(progid)`, `attach(dispatch)`, `invoke`,
+`invoke_named`, `invoke_out`, `get_text`, `get_int`, `put_var`, `put_ref`,
+`last_error`, and `release`. `ComObject` wraps the same handle with methods.
+The deterministic test fixture lives only under `test/`; it is not part of the
+package artifact. See [XLang example](examples/basic.xl) and
+[C example](examples/basic_c.c).
+
+The C declarations are in [include/com.h](include/com.h). `x_com_create` owns
+the returned handle. `x_com_attach` takes ownership of one existing
+`IDispatch*` reference on success; on failure the caller retains it and may
+retry or release it. A
+successful `x_com_invoke_*` result is an XRT `xvalue*` owned by the caller and
+must be released with `xrtValueRelease`. `x_com_get_text` returns borrowed
+UTF-8 text valid until the next text read on that handle or `x_com_release`.
+Text with embedded NUL cannot use this C-string getter; use `invoke` to receive
+an XRT string value with its explicit byte length.
+
+Each handle initializes COM on its creating thread and balances that call when
+released there. A handle cannot be called or released from a different thread;
+marshal the COM interface explicitly before using it in another apartment.
+`available()` only probes initialization and leaves no outstanding reference.
+`last_error()` reads this package's thread-local XRT error. Invalid UTF-8 is
+rejected rather than interpreted as a Windows code page. XLang calls propagate
+XRT errors as `ValueError`; use `try`/`catch` for invalid ProgIDs or members.
+XLang ProgIDs and member names containing an embedded NUL are rejected before
+the C-string COM lookup; value strings may still contain NUL. Named argument
+strings are checked with their explicit XRT byte lengths in the native bridge.
+The C functions return null/zero on failure and expose `x_com_last_error()`.
+
+`ComObject` releases its handle on destruction; `close()` gives deterministic
+early release. Raw `point` handles require an explicit `release()`. Always
+close handles even after a failed invocation. Low-level `point` values
+are raw native pointers; only pass valid `IDispatch*` values or the package's
+`missing()` sentinel as COM pointer arguments.
+
+## Verification
+
+From `demo6`, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File release/extlibs/com/test/check.ps1 -SkipAot
+```
+
+The focused gate covers strict GCC, C tests, XLang boundaries, and C/XLang
+example parity. Add `-RealServer` to exercise the installed Windows
+`Scripting.Dictionary` COM server from both languages. The package manifest
+declares only its direct XRT Value Container dependency; the C test runtime
+adds Memory Debug solely to check allocation failure and retry without
+changing the published dependency set. The real-server call-through test
+uses the same package code. Each gate run builds its own XRT and C objects in
+an isolated directory and removes only that run's artifacts on exit.
+The no-output `test/aot_core.xl` builds and runs as a 608,768-byte Windows
+executable. Full AOT is separately blocked by the shared DEMO6
+`xl6ValueDataSnapshotV1` link issue. SAFEARRAY
+empty, nonzero-lower-bound, mixed-value, and multidimensional paths are covered
+by the package's deterministic C/XLang boundary test.
+
+The optional `xl run extlibs/com/test/real_server_object.xl` verifies the
+`ComObject` convenience syntax against the real `Scripting.Dictionary` server.
+The package manifest registers both the deterministic boundary case and this
+real-server object case as `coverage.tests`. `com` belongs to the platform
+suite, so catalog smoke runs them only when Windows COM packages are selected.
+
+2026-10-17: The public C header now forward-declares `xvalue`, so it can be
+included before selecting XRT value modules. The Windows package gate compiles
+the header both ways and passes C/XLang boundaries and example parity with
+`-SkipAot`. Full AOT remains blocked by the shared link issue above.
+
+2026-10-18: Re-ran `test/check.ps1 -SkipAot -RealServer` against the installed
+Windows `Scripting.Dictionary` server. The strict C/header checks, C and XLang
+real-server calls, object wrapper, and bilingual output comparison all passed.
+This verifies the published IDispatch call path on this host, not event sinks,
+cross-apartment use, other COM servers, or the still-blocked full AOT path.

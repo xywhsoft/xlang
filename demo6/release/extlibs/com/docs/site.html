@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>com - 扩展库 - xlang</title>
+  <meta name="description" content="com 为 Windows 提供 IDispatch 自动化调用。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / com</p><h1>com</h1>
+    <p class="extlib-lead">在 Windows 上调用 IDispatch 自动化对象。</p>
+    <p>支持 ProgID 创建、属性读写、位置/命名参数与输出参数调用；不提供任意 COM vtable 绑定、事件 sink 或跨 apartment 自动封送。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>接口</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>com.ComObject(progid)</code></td><td>创建自动释放的 COM 对象</td></tr>
+      <tr><td><code>com.create / attach / release</code></td><td>管理原始 point 句柄</td></tr>
+      <tr><td><code>invoke / invoke_named / invoke_out</code></td><td>执行自动化调用</td></tr>
+      <tr><td><code>get_text / get_int / put_var / put_ref</code></td><td>读取或写入属性</td></tr>
+    </tbody></table>
+    <h2>范例</h2>
+    <pre><code>import com
+auto dictionary = com.ComObject("Scripting.Dictionary")
+dictionary.invoke("Add", array["key", "value"])
+println(dictionary.int("Count"))
+dictionary.close()</code></pre>
+    <p>范例需要系统提供对应 ProgID。句柄只能在创建它的线程调用和释放；ProgID 与成员名拒绝内嵌 NUL，值字符串可保留 NUL。C 结果所有权及线程限制见包内 README。最小无输出 AOT 已通过；完整 AOT 仍受共享运行时缺符号阻断。</p>
+  </section>
+</main>
+</body>
+</html>
