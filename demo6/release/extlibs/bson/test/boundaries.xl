@@ -6,6 +6,16 @@ func main(...) as int
     var wire = bson.encode(document)
     assert type(wire) == bytes, "encoded BSON is bytes"
     assert bson.docLength(wire) > 5, "document length"
+    bytes unsupportedBody = Buffer.fromHex("0800000013610000").toBytes()
+    assert bson.docLength(unsupportedBody) == 8, "length query checks only the envelope"
+    bool rejectedUnsupported = false
+    try
+        bson.decode(unsupportedBody)
+    catch ValueError e
+        rejectedUnsupported = true
+    end
+    assert rejectedUnsupported, "decode validates the document body"
+    assert bson.docLength(Buffer.fromHex("0900000013610000").toBytes()) == 0, "invalid document envelope has no length"
     var restored = bson.decode(wire)
     assert restored["name"] == "你好", "UTF-8 field"
     assert restored["count"] == 7, "integer field"

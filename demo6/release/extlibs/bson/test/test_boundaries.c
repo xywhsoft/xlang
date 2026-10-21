@@ -624,6 +624,11 @@ int main(int argc, char** argv) {
     CHECK(invalid(bad_bool, sizeof(bad_bool)));
     CHECK(invalid(bad_utf8, sizeof(bad_utf8)));
     CHECK(invalid(unsupported, sizeof(unsupported)));
+    source = input(unsupported, sizeof(unsupported));
+    CHECK(source != NULL && xbson_doc_length(source) == (int64)sizeof(unsupported) &&
+        xrtGetError() == NULL);
+    xrtValueRelease(source);
+    CHECK(xbson_doc_length(NULL) == 0 && xrtGetError() == NULL);
     CHECK(invalid(undefined, sizeof(undefined)));
     CHECK(invalid(bad_key, sizeof(bad_key)));
     CHECK(invalid(trailing, sizeof(trailing)));

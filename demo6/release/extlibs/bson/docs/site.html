@@ -42,7 +42,7 @@ println(bson.docLength(wire))</code></pre>
       <tr><td><code>objectId() / oidTime(hex24)</code></td><td>生成 24 位十六进制 ID；提取时间并返回 XLang <code>time</code>。</td></tr>
       <tr><td><code>toHex(data) / docLength(data)</code></td><td>诊断十六进制和读取文档长度。</td></tr>
     </tbody></table>
-    <p>支持嵌套字典、连续数组/列表、UTF-8 字符串、<code>bytes</code>（Binary subtype 0）、int32/int64、double、bool、null 和 BSON Date。二进制字段可原样往返。ObjectId 解码为十六进制字符串，再编码不会保留 ObjectId 类型。其余 BSON 特殊类型不在公开模型内。重复键、非连续数组索引、无效 UTF-8、截断及尾随数据报错。单次数据上限 64 MiB；<code>toHex</code> 的输出翻倍，输入最多 32 MiB，超限在分配前拒绝。文档层数上限 64（根文档计一层）；整份文档的字段/数组项合计最多 100 万，连续流 decodeAll 对全部文档累计计数。编解码、concat 和 toHex 的资源超限对应 C <code>XERR_RANGE</code> / XLang <code>RangeError</code>，畸形格式仍报值错误；docLength 对非法输入返回 0。</p>
+    <p>支持嵌套字典、连续数组/列表、UTF-8 字符串、<code>bytes</code>（Binary subtype 0）、int32/int64、double、bool、null 和 BSON Date。二进制字段可原样往返。ObjectId 解码为十六进制字符串，再编码不会保留 ObjectId 类型。其余 BSON 特殊类型不在公开模型内。重复键、非连续数组索引、无效 UTF-8、截断及尾随数据报错。单次数据上限 64 MiB；<code>toHex</code> 的输出翻倍，输入最多 32 MiB，超限在分配前拒绝。文档层数上限 64（根文档计一层）；整份文档的字段/数组项合计最多 100 万，连续流 decodeAll 对全部文档累计计数。编解码、concat 和 toHex 的资源超限对应 C <code>XERR_RANGE</code> / XLang <code>RangeError</code>，畸形格式仍报值错误。<code>docLength</code> 只检查外层头部长度、总字节数和结束字节；检查不通过返回 0，正文是否有效仍须由 <code>decode</code> 验证。</p>
     <p>BSON Date 仅有毫秒精度；微秒时间不能整除 1000 时拒绝编码，不会静默丢精度。超出 XRT 时间范围的 BSON Date 也拒绝解码。</p>
     <p>路径和 ObjectId 文本不允许内嵌 NUL；错误不会按截断后的名称读写文件。生成的 ObjectId 使用时间戳及安全随机字节，不承诺顺序递增。</p>
   </section>
