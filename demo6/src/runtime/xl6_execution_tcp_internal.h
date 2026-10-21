@@ -12,10 +12,12 @@ typedef struct XL6_TcpCreateOptionsV1 {
     XL6_ExecutionResourceV1* accepting; /* retained parent Listener, no operation yet */
     XL6_ExecutionResourceV1* resolving; /* optional real Resolver parent */
     bool dialing; /* prepared Dial, including the no-Resolver address-list path */
+    bool serverAccept; /* accepting is a real Server, not a Listener */
 } XL6_TcpCreateOptionsV1;
 
 typedef enum XL6_TcpPendingKindV1 {
-    XL6_TCP_PENDING_NONE_V1,XL6_TCP_PENDING_ACCEPT_V1,XL6_TCP_PENDING_DIAL_V1
+    XL6_TCP_PENDING_NONE_V1,XL6_TCP_PENDING_ACCEPT_V1,XL6_TCP_PENDING_DIAL_V1,
+    XL6_TCP_PENDING_SERVER_ACCEPT_V1
 } XL6_TcpPendingKindV1;
 /* Concrete resident extension, never part of the shared Resource/public ABI.
  * pendingKind is immutable after creation; pointer slots are guarded by the

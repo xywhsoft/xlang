@@ -1,0 +1,17 @@
+#ifndef XL6_TCP_SERVER_UINT
+#define XL6_TCP_SERVER_UINT(Field,Name)
+#define XL6_TCP_SERVER_UINT_DEFAULTED
+#endif
+XL6_TCP_SERVER_UINT(Accepted,accepted)
+XL6_TCP_SERVER_UINT(Rejected,rejected)
+XL6_TCP_SERVER_UINT(Errors,errors)
+XL6_TCP_SERVER_UINT(Endpoints,endpoints)
+XL6_TCP_SERVER_UINT(Listeners,listeners)
+XL6_TCP_SERVER_UINT(ClosedListeners,closedListeners)
+XL6_TCP_SERVER_UINT(QueuedAccepts,queuedAccepts)
+XL6_TCP_SERVER_UINT(PeakQueuedAccepts,peakQueuedAccepts)
+XL6_TCP_SERVER_UINT(AcceptWaiters,acceptWaiters)
+#ifdef XL6_TCP_SERVER_UINT_DEFAULTED
+#undef XL6_TCP_SERVER_UINT
+#undef XL6_TCP_SERVER_UINT_DEFAULTED
+#endif

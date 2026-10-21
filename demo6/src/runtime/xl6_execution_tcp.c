@@ -39,7 +39,7 @@ static bool streamCreate(Resource* base,const XL6_ExecutionCreateOptionsV1* opti
             if(c->resolving)r->resolving=xl6ExecutionResourceRetainV1(c->resolving);
             if(!c->resolving||r->resolving)xrtAtomic32Store(&r->prepared,1,XMEMORY_RELEASE);
         }else if(c->accepting){
-            r->pendingKind=XL6_TCP_PENDING_ACCEPT_V1;
+            r->pendingKind=c->serverAccept?XL6_TCP_PENDING_SERVER_ACCEPT_V1:XL6_TCP_PENDING_ACCEPT_V1;
             r->accepting=xl6ExecutionResourceRetainV1(c->accepting);
             if(r->accepting)xrtAtomic32Store(&r->prepared,1,XMEMORY_RELEASE);
         }else if(c->accepted){

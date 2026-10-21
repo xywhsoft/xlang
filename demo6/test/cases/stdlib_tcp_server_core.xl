@@ -1,0 +1,32 @@
+func makeServer(NetEngine engine) as TcpServer
+    auto first = TcpListenOptions(NetAddress.loopback(4, 0))
+    auto options = TcpServerOptions(first).withAddedEndpoint(first).withAcceptQueueLimit(4)
+    return tcp.server(engine, options)
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(2).withBackend(NetBackend.select))
+engine.start()
+auto server = makeServer(engine)
+assert server.state == TcpServerState.open
+assert server.endpointCount == 2
+assert server.listenerCount == 2
+assert server.localAddress(0).port > 0
+assert server.localAddress(1).port > 0
+auto stats = server.snapshot()
+assert stats.state == TcpServerState.open
+assert stats.endpoints == 2
+assert stats.listeners == 2
+assert stats.accepted == 0
+assert stats.rejected == 0
+assert stats.errors == 0
+assert stats.closedListeners == 0
+assert stats.queuedAccepts == 0
+assert stats.peakQueuedAccepts == 0
+assert stats.acceptWaiters == 0
+server.close()
+engine.close()
+assert engine.wait(5000)
+assert server.state == TcpServerState.closed
+assert server.snapshot().closedListeners == 2
+assert stats.state == TcpServerState.open
+assert server.localAddress(1).port > 0
+println("Server core: detached options, two endpoints, aggregate and post-close snapshots")

@@ -1,0 +1,45 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(1).withBackend(NetBackend.select))
+engine.start()
+auto server = TcpServer(engine, TcpServerOptions(TcpListenOptions(NetAddress.loopback(4, 0))))
+auto stopped = CancellationSource()
+assert stopped.cancel()
+int cancelled = 0
+try
+    auto value = server.acceptCancel(stopped.token, 5000)
+catch CancelledError
+    cancelled = cancelled + 1
+end
+try
+    auto value = await server.acceptAsyncCancel(stopped.token)
+catch CancelledError
+    cancelled = cancelled + 1
+end
+try
+    auto value = await server.acceptAsyncUntilCancel(time.clock() + uint64(5000000), stopped.token)
+catch CancelledError
+    cancelled = cancelled + 1
+end
+assert cancelled == 3
+int expired = 0
+try
+    auto value = server.accept(0)
+catch TimeoutError
+    expired = expired + 1
+end
+try
+    auto value = server.acceptUntil(uint64(0))
+catch TimeoutError
+    expired = expired + 1
+end
+try
+    auto value = await server.acceptAsyncUntil(uint64(0))
+catch TimeoutError
+    expired = expired + 1
+end
+assert expired == 3
+assert server.snapshot().acceptWaiters == 0
+assert server.snapshot().accepted == 0
+server.close()
+engine.close()
+assert engine.wait(5000)
+println("Server stops: checked cancellation and expiry, no accepted or abandoned work")

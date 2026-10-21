@@ -1645,6 +1645,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     int needsTcpListenerStatsClass;
     int needsTcpStreamClass;
     int needsTcpListenerClass;
+    int needsTcpServerClass,needsTcpServerOptions,needsTcpServerStats;
     int needsUdpStatsClass;
     int needsUdpClass;
     int needsUdpConfigClass;
@@ -1789,7 +1790,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         xl6StdlibNodeUsesMemberName(root,"dialProxyAsyncUntilCancel");
     needsTcpProxyDialOptions=needsTcpProxyDial||xl6StdlibNodeUsesTypeName(root,"TcpProxyDialOptions");
     needsTcpDialOptions=needsTcpProxyDialOptions||xl6StdlibNodeUsesTypeName(root,"TcpDialOptions");
-    needsTcpListenOptions=xl6StdlibNodeUsesTypeName(root,"TcpListenOptions")||xl6StdlibNodeUsesTypeName(root,"TcpAcceptDistribution");
+    needsTcpServerClass=xl6StdlibNodeUsesTypeName(root,"TcpServer")||xl6StdlibFuncUsed(used,"tcp","server");
+    needsTcpServerOptions=needsTcpServerClass||xl6StdlibNodeUsesTypeName(root,"TcpServerOptions")||xl6StdlibNodeUsesTypeName(root,"TcpServerMode");
+    needsTcpServerStats=needsTcpServerClass||xl6StdlibNodeUsesTypeName(root,"TcpServerStats")||xl6StdlibNodeUsesTypeName(root,"TcpServerState");
+    needsTcpListenOptions=needsTcpServerOptions||xl6StdlibNodeUsesTypeName(root,"TcpListenOptions")||xl6StdlibNodeUsesTypeName(root,"TcpAcceptDistribution");
     needsTcpStreamOptions=needsTcpDialOptions||needsTcpListenOptions||xl6StdlibNodeUsesTypeName(root,"TcpStreamOptions")||xl6StdlibNodeUsesTypeName(root,"TcpReadMode");
     needsNetAddressClass = needsTcpListenOptions || xl6StdlibNeedsNetAddressClass(root, used);
     needsNetDefaultResolver=xl6StdlibFuncUsed(used,"net","resolveAsync")||xl6StdlibFuncUsed(used,"net","resolverStats");
@@ -1831,7 +1835,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     needsUdpConfigClass = xl6StdlibNeedsUdpConfigClass(root, used);
 
     /* 依赖由高层类型向基础类型单向闭包。 */
-    needsTcpStreamClass = needsTcpStreamClass || needsTcpListenerClass;
+    needsTcpStreamClass = needsTcpStreamClass || needsTcpListenerClass || needsTcpServerClass;
     needsTcpProxyDial=needsTcpProxyDial&&needsTcpStreamClass;
     needsNetProxyClass=needsNetProxyClass||needsTcpProxyDial;
     needsNetEngineClass=needsNetEngineClass||needsTcpStreamClass;
@@ -1856,7 +1860,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsNetBytesClass ||
         needsNetEngineStatsClass || needsNetResolverStatsClass ||
         needsNetEngineClass ||
-        needsTcpStreamStatsClass || needsTcpListenerStatsClass ||
+        needsTcpServerStats || needsTcpStreamStatsClass || needsTcpListenerStatsClass ||
         needsTcpStreamClass || needsTcpListenerClass ||
         needsUdpStatsClass || needsUdpClass || needsUdpConfigClass;
     needsFileClass = xl6StdlibNeedsFileClass(root, used);
@@ -1930,7 +1934,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
         needsNetBytesClass ||
         needsNetEngineStatsClass || needsNetResolverStatsClass ||
         needsNetProxyClass || needsNetEngineClass || needsTcpStreamStatsClass ||
-        needsTcpListenerStatsClass || needsTcpStreamClass || needsTcpListenerClass ||
+        needsTcpServerStats || needsTcpListenerStatsClass || needsTcpStreamClass || needsTcpListenerClass ||
         needsUdpStatsClass || needsUdpClass || needsUdpConfigClass ||
         needsTlsSessionClass || needsTlsStreamClass || needsTlsServerClass ||
         needsHttp1Class || needsHttpDecoderClass || needsWsFrameClass ||
@@ -2087,6 +2091,10 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if(needsTcpDialOptions)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpDialOptionsSource);
     if(needsTcpProxyDialOptions)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpProxyDialOptionsSource);
     if(needsTcpListenOptions)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpListenOptionsSource);
+    if(needsTcpServerOptions)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpServerOptionsSource);
+    if(needsTcpServerStats)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpServerStatsSource);
+    if(needsTcpServerStats||xl6StdlibNodeUsesTypeName(root,"TcpServerState"))
+        xl6StdlibBuilderAppend(&builder,xl6StdlibTcpServerStateSource);
     if ( needsNetEngineClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetEngineOptionsSource);
         xl6StdlibBuilderAppend(&builder, xl6StdlibNetEngineClassSource);
@@ -2118,6 +2126,7 @@ int xl6StdlibExpandModule(XL6_AstNode* root, XL6_DiagList* diags)
     if ( needsTcpListenerClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibTcpListenerClassSource);
     }
+    if(needsTcpServerClass)xl6StdlibBuilderAppend(&builder,xl6StdlibTcpServerClassSource);
     if ( needsUdpStatsClass ) {
         xl6StdlibBuilderAppend(&builder, xl6StdlibUdpStatsClassSource);
     }

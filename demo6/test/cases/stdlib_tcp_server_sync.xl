@@ -1,0 +1,35 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(2).withBackend(NetBackend.select))
+engine.start()
+auto listen = TcpListenOptions(NetAddress.loopback(4, 0))
+auto server = TcpServer(engine, TcpServerOptions(listen).withAddedEndpoint(listen))
+auto active = CancellationSource()
+uint64 due = time.clock() + uint64(10000000)
+auto client = TcpStream(engine, server.localAddress(0))
+auto peer = server.accept(5000)
+assert client.wait(TcpWait.open, 5000) == NetStatus.ok
+assert client.send(b"a\x00b") == NetStatus.ok
+bytes data = b""
+while data.length < 3
+    data = data + peer.recv(3 - data.length, 5000)
+end
+assert data == b"a\x00b"
+client.abort()
+peer.abort()
+client = TcpStream(engine, server.localAddress(1))
+peer = server.acceptCancel(active.token, 5000)
+client.abort()
+peer.abort()
+client = TcpStream(engine, server.localAddress(0))
+peer = server.acceptUntil(due)
+client.abort()
+peer.abort()
+client = TcpStream(engine, server.localAddress(1))
+peer = server.acceptUntilCancel(due, active.token)
+client.abort()
+peer.abort()
+assert server.snapshot().accepted == 4
+server.close()
+engine.close()
+assert engine.wait(5000)
+assert server.snapshot().accepted == 4
+println("Server sync: four exact accepting contracts and NUL roundtrip across endpoints")

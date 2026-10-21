@@ -1,0 +1,29 @@
+async func exchange(future<TcpStream> accepting, NetEngine engine, NetAddress address) as bool
+    TcpStream client = await tcp.connectAsync(engine, address)
+    TcpStream peer = await accepting
+    assert client.send(b"a\x00b") == NetStatus.ok
+    bytes data = b""
+    while data.length < 3
+        data = data + await peer.recvAsync(3 - data.length)
+    end
+    assert data == b"a\x00b"
+    client.abort()
+    peer.abort()
+    return true
+end
+auto engine = NetEngine(NetEngineOptions().withWorkers(2).withBackend(NetBackend.select))
+engine.start()
+auto listen = TcpListenOptions(NetAddress.loopback(4, 0))
+auto server = TcpServer(engine, TcpServerOptions(listen).withAddedEndpoint(listen))
+auto active = CancellationSource()
+uint64 due = time.clock() + uint64(10000000)
+assert await exchange(server.acceptAsync(), engine, server.localAddress(0))
+assert await exchange(server.acceptAsyncCancel(active.token), engine, server.localAddress(1))
+assert await exchange(server.acceptAsyncUntil(due), engine, server.localAddress(0))
+assert await exchange(server.acceptAsyncUntilCancel(due, active.token), engine, server.localAddress(1))
+assert server.snapshot().accepted == 4
+assert server.snapshot().acceptWaiters == 0
+server.close()
+engine.close()
+assert engine.wait(5000)
+println("Server async: real owned Stream delivery, four cancellation/deadline contracts")

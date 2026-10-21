@@ -1,0 +1,23 @@
+auto engine = NetEngine(NetEngineOptions().withWorkers(2).withBackend(NetBackend.select))
+engine.start()
+auto options = TcpServerOptions(TcpListenOptions(NetAddress.loopback(4, 0))).withMode(TcpServerMode.reusePort)
+auto server = TcpServer(engine, options)
+assert server.endpointCount == 1
+assert server.listenerCount == 2
+auto client = TcpStream(engine, server.localAddress())
+auto peer = server.accept(5000)
+assert client.wait(TcpWait.open, 5000) == NetStatus.ok
+assert client.send(b"r\x00p") == NetStatus.ok
+bytes data = b""
+while data.length < 3
+    data = data + peer.recv(3 - data.length, 5000)
+end
+assert data == b"r\x00p"
+client.abort()
+peer.abort()
+server.close()
+engine.close()
+assert engine.wait(5000)
+assert server.snapshot().closedListeners == 2
+assert server.snapshot().accepted == 1
+println("Server Linux reusePort: two actual worker listeners, owned Stream and cumulative stats")

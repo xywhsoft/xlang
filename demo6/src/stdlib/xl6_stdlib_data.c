@@ -603,6 +603,7 @@ const char* xl6StdlibUdpStatsClassSource =
 
 
 #include "src/stdlib/xl6_stdlib_tcp.inc"
+#include "src/stdlib/xl6_stdlib_tcp_server.inc"
 
 const char* xl6StdlibUdpClassSource =
     "class UdpPacket\n"
@@ -5740,6 +5741,7 @@ const XL6_StdlibFunc xl6StdlibFuncs[] = {
     {"template", "compileFileIn", "__xl_std_template_compile_file_in", NULL, NULL, 0, "Template", xl6StdTemplateCompileVfsBody},
     {"template", "renderFileIn", "__xl_std_template_render_file_in", NULL, NULL, 0, "string", xl6StdTemplateRenderVfsBody},
     {"template", "errorLocation", "__xl_std_template_error_location", NULL, NULL, 0, "TemplateLocation?", xl6StdTemplateErrorLocationBody},
+    {"tcp", "server", "__xl_std_tcp_server", NULL, NULL, 0, "TcpServer", xl6StdTcpServerBody},
 };
 
 const XL6_StdlibForeignContract xl6StdlibForeignContracts[] = {

@@ -1,0 +1,3 @@
+auto engine = NetEngine()
+auto server = TcpServer(engine, TcpServerOptions())
+future<TcpListener> wrong = server.acceptAsync()

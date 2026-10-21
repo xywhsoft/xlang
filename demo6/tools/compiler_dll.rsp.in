@@ -30,6 +30,19 @@
     src\runtime\xl6_ownership_domain_net_tcp_base_native.c
     src\runtime\xl6_ownership_domain_net_server_native.c
     src\runtime\xl6_ownership_domain_net_server_future_native.c
+    src\runtime\xl6_execution_tcp_server.c
+    src\runtime\xl6_ownership_domain_execution_tcp_server.c
+    src\runtime\xl6_execution_tcp_server_accept.c
+    src\runtime\xl6_tcp_server_options.c
+    src\runtime\xl6_ownership_domain_tcp_server_options.c
+    src\runtime\xl6_tcp_server_language.c
+    src\runtime\xl6_ownership_domain_tcp_server.c
+    src\runtime\xl6_tcp_server_accept.c
+    src\runtime\xl6_tcp_server_future.c
+    src\runtime\xl6_tcp_server_interrupt_future.c
+    src\runtime\xl6_tcp_server_sync.c
+    src\runtime\xl6_tcp_server_stats.c
+    src\runtime\xl6_ownership_domain_tcp_server_stats.c
     src\runtime\xl6_ownership_domain_net_dial_native.c
     src\runtime\xl6_execution_tcp_dial.c
     src\runtime\xl6_execution_tcp_dial_common.c

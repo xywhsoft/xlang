@@ -32,6 +32,7 @@ struct xlir_closure;
 #include "xl6_net_proxy_abi.h"
 #include "xl6_tcp_options_abi.h"
 #include "xl6_tcp_abi.h"
+#include "xl6_tcp_server_abi.h"
 #include "xl6_tcp_proxy_abi.h"
 #include "xl6_tcp_data_abi.h"
 #include "xl6_net_interfaces_abi.h"
