@@ -19,9 +19,12 @@
 extern "C" {
 #endif
 
-#if !defined(BROTLI_ENCODER_CLEANUP_ON_OOM) && \
-    !defined(BROTLI_ENCODER_EXIT_ON_OOM)
-#define BROTLI_ENCODER_EXIT_ON_OOM
+/* 嵌入库不能退出宿主；统一启用上游的分配失败清理路径。 */
+#if defined(BROTLI_ENCODER_EXIT_ON_OOM)
+#error "Brotli extension requires recoverable allocation failures"
+#endif
+#if !defined(BROTLI_ENCODER_CLEANUP_ON_OOM)
+#define BROTLI_ENCODER_CLEANUP_ON_OOM
 #endif
 
 #if !defined(BROTLI_ENCODER_EXIT_ON_OOM)

@@ -7,641 +7,490 @@
 #include <stdio.h>
 #include <string.h>
 
-
-
-/* 单个块最大原始字节数。brotli 一次性 API 以 size_t 传递长度，
- * 这里取 1MB 以便流式产出粒度适中、内存占用可控。 */
-#define XRT_BROTLI_BLOCK_SIZE 1048576u
 #define XRT_BROTLI_CHUNK 65536u
-#define XRT_BROTLI_HEADER_SIZE 12u
 
-/* 容器格式（自定义多块成员流，支持串联多成员）：
- *   成员 = 块* + 结束标记
- *   块   = u32le(原始大小 n, n>0) + u32le(压缩大小 c) + u32le(原始数据 CRC32) + brotli 压缩字节(c 字节)
- *   结束 = u32le(0)
- * brotli 流自带完整性校验，但仍额外记录原始数据 CRC32 以双重检出损坏，
- * 解压侧据此精确定位块边界、校验完整性并统计 members。 */
-
+/* 使用官方流状态机；输出直接是 Brotli 字节流，不附加私有块头或校验码。 */
 struct xrtbrotlicompressor {
-	xbuffer* Pending;            /* 尚未成块的原始输入 */
-	xbuffer* Output;             /* 已产出的压缩字节 */
-	xrtbrotlioptions Options;
-	xrtbrotlierror Error;
-	uint64 InputBytes;
-	uint64 OutputBytes;
-	bool Finished;
-	bool Failed;
+    BrotliEncoderState* Backend;
+    xbuffer* Output;
+    xrtbrotlioptions Options;
+    xrtbrotlierror Error;
+    uint64 InputBytes;
+    uint64 OutputBytes;
+    bool Finished;
+    bool Failed;
+    bool AllocationFailed;
 };
-
-typedef enum {
-	XRT_BROTLI_DEC_HEADER = 0,   /* 读取 12 字节块头 */
-	XRT_BROTLI_DEC_BLOCK = 1     /* 读取压缩块体 */
-} xrtbrotlidecstate;
 
 struct xrtbrotlidecompressor {
-	xbuffer* Carry;              /* 尚未消费完的输入字节 */
-	xbuffer* Output;             /* 已产出的原始字节 */
-	xrtbrotlioptions Options;
-	xrtbrotlierror Error;
-	uint64 InputBytes;
-	uint64 OutputBytes;
-	uint64 MemberCount;
-	size_t BlockDeclared;       /* 当前块声明的原始大小 */
-	size_t BlockCompressed;     /* 当前块声明的压缩大小 */
-	uint32 BlockCrc;            /* 当前块声明的原始数据 CRC32 */
-	int State;
-	bool MemberEnded;
-	bool Finished;
-	bool Failed;
+    BrotliDecoderState* Backend;
+    xbuffer* Output;
+    xrtbrotlioptions Options;
+    xrtbrotlierror Error;
+    uint64 InputBytes;
+    uint64 OutputBytes;
+    uint64 MemberCount;
+    bool Finished;
+    bool Sealed;
+    bool Failed;
+    bool AllocationFailed;
 };
 
-
-
-static void __xrtBrotliSetError(xrtbrotlierror* pError, int iCode, int iBackend,
-	uint64 iInput, uint64 iOutput, const char* sFormat, ...)
+static void __xrtBrotliSetError(xrtbrotlierror* error, int code, int backend,
+    uint64 input, uint64 output, const char* format, ...)
 {
-	va_list pArgs;
-	if ( pError == NULL ) { return; }
-	pError->iCode = iCode;
-	pError->iBackendCode = iBackend;
-	pError->iInputOffset = iInput;
-	pError->iOutputOffset = iOutput;
-	va_start(pArgs, sFormat);
-	vsnprintf(pError->sMessage, sizeof(pError->sMessage), sFormat, pArgs);
-	va_end(pArgs);
-	pError->sMessage[sizeof(pError->sMessage) - 1] = '\0';
+    va_list args;
+    if (error == NULL) return;
+    error->iCode = code;
+    error->iBackendCode = backend;
+    error->iInputOffset = input;
+    error->iOutputOffset = output;
+    va_start(args, format);
+    vsnprintf(error->sMessage, sizeof(error->sMessage), format, args);
+    va_end(args);
+    error->sMessage[sizeof(error->sMessage) - 1] = '\0';
 }
 
-static void __xrtBrotliCopyError(xrtbrotlierror* pDst, const xrtbrotlierror* pSrc)
+static void __xrtBrotliCopyError(xrtbrotlierror* dst, const xrtbrotlierror* src)
 {
-	if ( pDst == NULL || pSrc == NULL ) { return; }
-	*pDst = *pSrc;
+    if (dst != NULL && src != NULL) *dst = *src;
 }
 
-static bool __xrtBrotliOverRatio(const xrtresourcelimits* pLimits, uint64 iInput, uint64 iOutput)
+/* 后端同样使用 XRT 分配器；单独记录 OOM，避免把它误报为压缩数据损坏。 */
+static void* __xrtBrotliAlloc(void* context, size_t size)
 {
-	uint64 iRatio = pLimits->iMaxCompressionRatio;
-	if ( iRatio == 0u || iInput == 0u ) { return false; }
-	if ( iInput > (UINT64_MAX / iRatio) ) { return false; }
-	return iOutput > iInput * iRatio;
+    void* result = xrtMalloc(size);
+    if (result == NULL) *(bool*)context = true;
+    return result;
 }
 
-/* 检查计数累加是否溢出或越过非零硬上限。 */
-static bool __xrtBrotliAddOverLimit(uint64 iCurrent, size_t iAdded, uint64 iLimit)
+static void __xrtBrotliFree(void* context, void* data)
 {
-	uint64 iIncrement = (uint64)iAdded;
-
-	if ( iIncrement > (UINT64_MAX - iCurrent) ) { return true; }
-	return (iLimit != 0u) && ((iCurrent + iIncrement) > iLimit);
+    (void)context;
+    xrtFree(data);
 }
 
-/* 创建带初始容量的 Buffer，失败时不泄漏半初始化对象。 */
-static xbuffer* __xrtBrotliBufferCreate(size_t iCapacity)
+static bool __xrtBrotliAddOverLimit(uint64 current, size_t added, uint64 limit)
 {
-	xbuffer* pBuffer = xrtBufferCreate();
-
-	if ( (pBuffer != NULL) && !xrtBufferReserve(pBuffer, iCapacity) ) {
-		xrtBufferDestroy(pBuffer);
-		pBuffer = NULL;
-	}
-	return pBuffer;
+    if ((uint64)added > UINT64_MAX - current) return true;
+    return limit != 0 && current + (uint64)added > limit;
 }
 
-static void __xrtBrotliWriteU32LE(uint8* pDst, uint32 iValue)
+static bool __xrtBrotliAppend(xbuffer* buffer, const void* data, size_t size,
+    const xrtresourcelimits* limits, xrtbrotlierror* error, uint64 input, uint64* output)
 {
-	pDst[0] = (uint8)(iValue & 0xffu);
-	pDst[1] = (uint8)((iValue >> 8) & 0xffu);
-	pDst[2] = (uint8)((iValue >> 16) & 0xffu);
-	pDst[3] = (uint8)((iValue >> 24) & 0xffu);
+    if (__xrtBrotliAddOverLimit(*output, size, limits->iMaxOutputBytes)) {
+        __xrtBrotliSetError(error, XRT_BROTLI_ERROR_LIMIT, 0, input, *output,
+            "brotli output exceeds maxOutput limit");
+        return false;
+    }
+    if (!xrtBufferAppend(buffer, (xbytesview){data, size})) {
+        __xrtBrotliSetError(error, XRT_BROTLI_ERROR_MEMORY, 0, input, *output,
+            "cannot grow brotli output buffer");
+        return false;
+    }
+    *output += (uint64)size;
+    return true;
 }
 
-static uint32 __xrtBrotliReadU32LE(const uint8* pSrc)
+static bool __xrtBrotliOptionsValid(const xrtbrotlioptions* options)
 {
-	return (uint32)pSrc[0] | ((uint32)pSrc[1] << 8) |
-		((uint32)pSrc[2] << 16) | ((uint32)pSrc[3] << 24);
+    return options->iSize == sizeof(*options) &&
+        options->iVersion == XRT_BROTLI_OPTIONS_VERSION &&
+        options->tLimits.iSize == sizeof(options->tLimits) &&
+        options->tLimits.iVersion == XRT_RESOURCE_LIMITS_VERSION &&
+        options->tLimits.iReserved == 0 &&
+        options->tLimits.iFlags == 0 && options->tLimits.iMaxItemBytes == 0 &&
+        options->tLimits.iMaxEntries == 0 && options->tLimits.iMaxNodes == 0 &&
+        options->tLimits.iMaxDepth == 0 &&
+        options->iQuality >= BROTLI_MIN_QUALITY && options->iQuality <= BROTLI_MAX_QUALITY &&
+        options->iWindow >= BROTLI_MIN_WINDOW_BITS && options->iWindow <= BROTLI_MAX_WINDOW_BITS &&
+        options->iMode >= BROTLI_MODE_GENERIC && options->iMode <= BROTLI_MODE_FONT;
 }
 
-/* 标准 CRC32（IEEE 802.3，多项式 0xEDB88320，反射输入输出，异或 0xFFFFFFFF）。
- * 逐位计算，无需查表，仅用于块级完整性校验，性能需求不高。 */
-static uint32 __xrtBrotliCrc32(const void* pData, size_t iLen)
+XRT_API void xrtBrotliErrorInit(xrtbrotlierror* error)
 {
-	const uint8* pBuf = (const uint8*)pData;
-	uint32 iCrc = 0xFFFFFFFFu;
-	size_t i;
-	for ( i = 0u; i < iLen; ++i ) {
-		int j;
-		iCrc ^= (uint32)pBuf[i];
-		for ( j = 0; j < 8; ++j ) {
-			iCrc = (iCrc >> 1) ^ (0xEDB88320u & (0u - (iCrc & 1u)));
-		}
-	}
-	return iCrc ^ 0xFFFFFFFFu;
+    if (error != NULL) memset(error, 0, sizeof(*error));
 }
 
-
-
-XRT_API void xrtBrotliErrorInit(xrtbrotlierror* pError)
+XRT_API void xrtBrotliOptionsInit(xrtbrotlioptions* options)
 {
-	if ( pError == NULL ) { return; }
-	memset(pError, 0, sizeof(*pError));
-	pError->iCode = XRT_BROTLI_OK;
+    if (options == NULL) return;
+    memset(options, 0, sizeof(*options));
+    options->iSize = sizeof(*options);
+    options->iVersion = XRT_BROTLI_OPTIONS_VERSION;
+    options->iQuality = BROTLI_DEFAULT_QUALITY;
+    options->iWindow = BROTLI_DEFAULT_WINDOW;
+    options->iMode = BROTLI_DEFAULT_MODE;
+    xrtResourceLimitsInit(&options->tLimits);
+    options->tLimits.iMaxItemBytes = 0;
+    options->tLimits.iMaxEntries = 0;
+    options->tLimits.iMaxNodes = 0;
+    options->tLimits.iMaxDepth = 0;
 }
 
-XRT_API void xrtBrotliOptionsInit(xrtbrotlioptions* pOptions)
+/* 先分配替换的空 Buffer 再转移拥有权；失败不消耗已有输出，可清错后重试。 */
+static xbuffer* __xrtBrotliDrainBuffer(xbuffer** slot, xrtbrotlierror* error,
+    uint64 input, uint64 output)
 {
-	if ( pOptions == NULL ) { return; }
-	memset(pOptions, 0, sizeof(*pOptions));
-	pOptions->iSize = sizeof(*pOptions);
-	pOptions->iVersion = XRT_BROTLI_OPTIONS_VERSION;
-	pOptions->iQuality = BROTLI_DEFAULT_QUALITY;
-	pOptions->iWindow = BROTLI_DEFAULT_WINDOW;
-	pOptions->iMode = BROTLI_DEFAULT_MODE;
-	xrtResourceLimitsInit(&pOptions->tLimits);
+    xbuffer* replacement = xrtBufferCreate();
+    xbuffer* result;
+    if (replacement == NULL) {
+        __xrtBrotliSetError(error, XRT_BROTLI_ERROR_MEMORY, 0, input, output,
+            "cannot allocate brotli drain buffer");
+        return NULL;
+    }
+    result = *slot;
+    *slot = replacement;
+    xrtBrotliErrorInit(error);
+    return result;
 }
 
+/* ------------------------------------ 压缩器 ------------------------------------ */
 
-
-// ------------------------------------ 压缩器 ------------------------------------
-
-XRT_API xrtbrotlicompressor* xrtBrotliCompressorCreate(const xrtbrotlioptions* pOptions)
+XRT_API xrtbrotlicompressor* xrtBrotliCompressorCreate(const xrtbrotlioptions* options)
 {
-	xrtbrotlicompressor* pCompressor;
-	pCompressor = (xrtbrotlicompressor*)xrtMalloc(sizeof(xrtbrotlicompressor));
-	if ( pCompressor == NULL ) { return NULL; }
-	memset(pCompressor, 0, sizeof(*pCompressor));
-	xrtBrotliErrorInit(&pCompressor->Error);
-	if ( pOptions != NULL ) {
-		pCompressor->Options = *pOptions;
-	} else {
-		xrtBrotliOptionsInit(&pCompressor->Options);
-	}
-	pCompressor->Pending = __xrtBrotliBufferCreate(XRT_BROTLI_CHUNK);
-	pCompressor->Output = __xrtBrotliBufferCreate(XRT_BROTLI_CHUNK);
-	if ( pCompressor->Pending == NULL || pCompressor->Output == NULL ) {
-		__xrtBrotliSetError(&pCompressor->Error, XRT_BROTLI_ERROR_MEMORY, 0, 0, 0,
-			"cannot allocate brotli compressor");
-		pCompressor->Failed = true;
-		return pCompressor;
-	}
-	return pCompressor;
+    xrtbrotlicompressor* c = (xrtbrotlicompressor*)xrtCalloc(1, sizeof(*c));
+    if (c == NULL) return NULL;
+    if (options != NULL) c->Options = *options;
+    else xrtBrotliOptionsInit(&c->Options);
+    if (!__xrtBrotliOptionsValid(&c->Options)) {
+        __xrtBrotliSetError(&c->Error, XRT_BROTLI_ERROR_ARGUMENT, 0, 0, 0,
+            "invalid brotli options");
+        c->Failed = true;
+        return c;
+    }
+    c->Output = xrtBufferCreate();
+    c->Backend = BrotliEncoderCreateInstance(__xrtBrotliAlloc, __xrtBrotliFree, &c->AllocationFailed);
+    if (c->Output == NULL || c->Backend == NULL) {
+        __xrtBrotliSetError(&c->Error, XRT_BROTLI_ERROR_MEMORY, 0, 0, 0,
+            "cannot allocate brotli compressor");
+        c->Failed = true;
+    } else if (!BrotliEncoderSetParameter(c->Backend, BROTLI_PARAM_QUALITY, (uint32_t)c->Options.iQuality) ||
+        !BrotliEncoderSetParameter(c->Backend, BROTLI_PARAM_LGWIN, (uint32_t)c->Options.iWindow) ||
+        !BrotliEncoderSetParameter(c->Backend, BROTLI_PARAM_MODE, (uint32_t)c->Options.iMode)) {
+        __xrtBrotliSetError(&c->Error, XRT_BROTLI_ERROR_ARGUMENT, 0, 0, 0,
+            "brotli encoder rejected options");
+        c->Failed = true;
+    }
+    return c;
 }
 
-/* 将 Pending 中恰好 iSize 字节压缩为一个块（大小头 + 压缩体）写入 Output。 */
-static bool __xrtBrotliFlushBlock(xrtbrotlicompressor* pCompressor, size_t iSize)
+static bool __xrtBrotliEncode(xrtbrotlicompressor* c, const void* data, size_t size,
+    BrotliEncoderOperation operation)
 {
-	size_t iBound;
-	size_t iWritten;
-	uint8 sHeader[XRT_BROTLI_HEADER_SIZE];
-	ptr pCompressed;
-	xbytesview Pending;
-	size_t iGenerated;
-	if ( iSize == 0u ) { return true; }
-	Pending = xrtBufferView(pCompressor->Pending);
-	if ( iSize > Pending.Size ) {
-		__xrtBrotliSetError(&pCompressor->Error, XRT_BROTLI_ERROR_STATE, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "invalid brotli pending state");
-		pCompressor->Failed = true;
-		return false;
-	}
-	iBound = BrotliEncoderMaxCompressedSize(iSize);
-	if ( iBound == 0u ) {
-		__xrtBrotliSetError(&pCompressor->Error, XRT_BROTLI_ERROR_ARGUMENT, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "brotli block too large");
-		pCompressor->Failed = true;
-		return false;
-	}
-	pCompressed = xrtMalloc(iBound);
-	if ( pCompressed == NULL ) {
-		__xrtBrotliSetError(&pCompressor->Error, XRT_BROTLI_ERROR_MEMORY, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "out of memory");
-		pCompressor->Failed = true;
-		return false;
-	}
-	iWritten = iBound;
-	if ( BrotliEncoderCompress(pCompressor->Options.iQuality, pCompressor->Options.iWindow,
-		(BrotliEncoderMode)pCompressor->Options.iMode, iSize,
-		(const uint8*)Pending.Data, &iWritten,
-		(uint8*)pCompressed) != BROTLI_TRUE ) {
-		__xrtBrotliSetError(&pCompressor->Error, XRT_BROTLI_ERROR_DATA, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "brotli compression failed");
-		xrtFree(pCompressed);
-		pCompressor->Failed = true;
-		return false;
-	}
-	__xrtBrotliWriteU32LE(sHeader, (uint32)iSize);
-	__xrtBrotliWriteU32LE(sHeader + 4u, (uint32)iWritten);
-	__xrtBrotliWriteU32LE(sHeader + 8u,
-		__xrtBrotliCrc32(Pending.Data, iSize));
-	iGenerated = XRT_BROTLI_HEADER_SIZE + iWritten;
-	if ( __xrtBrotliAddOverLimit(pCompressor->OutputBytes, iGenerated,
-		pCompressor->Options.tLimits.iMaxOutputBytes) ) {
-		__xrtBrotliSetError(&pCompressor->Error, XRT_BROTLI_ERROR_LIMIT, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "brotli output exceeds maxOutput limit");
-		xrtFree(pCompressed);
-		pCompressor->Failed = true;
-		return false;
-	}
-	if ( iWritten > UINT32_MAX ) {
-		__xrtBrotliSetError(&pCompressor->Error, XRT_BROTLI_ERROR_DATA, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "brotli compressed block is too large");
-		xrtFree(pCompressed);
-		pCompressor->Failed = true;
-		return false;
-	}
-	if ( !xrtBufferAppend(pCompressor->Output,
-			(xbytesview){ (const unsigned char*)sHeader, XRT_BROTLI_HEADER_SIZE }) ||
-		 !xrtBufferAppend(pCompressor->Output,
-			(xbytesview){ (const unsigned char*)pCompressed, iWritten }) ) {
-		__xrtBrotliSetError(&pCompressor->Error, XRT_BROTLI_ERROR_MEMORY, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot grow brotli output buffer");
-		xrtFree(pCompressed);
-		pCompressor->Failed = true;
-		return false;
-	}
-	xrtFree(pCompressed);
-	pCompressor->OutputBytes += (uint64)iGenerated;
-	if ( !xrtBufferRemove(pCompressor->Pending, 0u, iSize) ) {
-		__xrtBrotliSetError(&pCompressor->Error, XRT_BROTLI_ERROR_STATE, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot consume brotli pending buffer");
-		pCompressor->Failed = true;
-		return false;
-	}
-	return true;
+    const uint8_t* next = (const uint8_t*)data;
+    size_t remaining = size;
+    uint8_t chunk[XRT_BROTLI_CHUNK];
+    do {
+        uint8_t* output = chunk;
+        size_t capacity = sizeof(chunk);
+        size_t before = remaining;
+        if (!BrotliEncoderCompressStream(c->Backend, operation, &remaining, &next,
+                &capacity, &output, NULL)) {
+            __xrtBrotliSetError(&c->Error, c->AllocationFailed ? XRT_BROTLI_ERROR_MEMORY :
+                XRT_BROTLI_ERROR_STATE, 0, c->InputBytes, c->OutputBytes,
+                "brotli encoder failed");
+            c->Failed = true;
+            return false;
+        }
+        c->InputBytes += (uint64)(before - remaining);
+        if (!__xrtBrotliAppend(c->Output, chunk, sizeof(chunk) - capacity,
+                &c->Options.tLimits, &c->Error, c->InputBytes, &c->OutputBytes)) {
+            c->Failed = true;
+            return false;
+        }
+    } while (remaining != 0 || BrotliEncoderHasMoreOutput(c->Backend) ||
+        (operation == BROTLI_OPERATION_FINISH && !BrotliEncoderIsFinished(c->Backend)));
+    return true;
 }
 
-XRT_API bool xrtBrotliCompressorUpdate(xrtbrotlicompressor* pCompressor, const void* pData, size_t iSize)
+XRT_API bool xrtBrotliCompressorUpdate(xrtbrotlicompressor* c, const void* data, size_t size)
 {
-	if ( pCompressor == NULL || pCompressor->Failed ) { return false; }
-	if ( pCompressor->Finished ) {
-		__xrtBrotliSetError(&pCompressor->Error, XRT_BROTLI_ERROR_STATE, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "brotli compressor already finished");
-		pCompressor->Failed = true;
-		return false;
-	}
-	if ( iSize != 0u && pData == NULL ) {
-		__xrtBrotliSetError(&pCompressor->Error, XRT_BROTLI_ERROR_ARGUMENT, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "invalid brotli input");
-		pCompressor->Failed = true;
-		return false;
-	}
-	if ( __xrtBrotliAddOverLimit(pCompressor->InputBytes, iSize,
-		pCompressor->Options.tLimits.iMaxInputBytes) ) {
-		__xrtBrotliSetError(&pCompressor->Error, XRT_BROTLI_ERROR_LIMIT, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "brotli input exceeds maxInput limit");
-		pCompressor->Failed = true;
-		return false;
-	}
-	if ( iSize != 0u &&
-		!xrtBufferAppend(pCompressor->Pending,
-			(xbytesview){ (const unsigned char*)pData, iSize }) ) {
-		__xrtBrotliSetError(&pCompressor->Error, XRT_BROTLI_ERROR_MEMORY, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot grow brotli pending buffer");
-		pCompressor->Failed = true;
-		return false;
-	}
-	pCompressor->InputBytes += iSize;
-	while ( xrtBufferView(pCompressor->Pending).Size >= XRT_BROTLI_BLOCK_SIZE ) {
-		if ( !__xrtBrotliFlushBlock(pCompressor, XRT_BROTLI_BLOCK_SIZE) ) { return false; }
-	}
-	return true;
+    if (c == NULL || c->Failed) return false;
+    if (c->Finished || c->Output == NULL || (data == NULL && size != 0)) {
+        __xrtBrotliSetError(&c->Error, c->Finished || c->Output == NULL ?
+            XRT_BROTLI_ERROR_STATE : XRT_BROTLI_ERROR_ARGUMENT, 0, c->InputBytes,
+            c->OutputBytes, "invalid brotli compressor update");
+        c->Failed = true;
+        return false;
+    }
+    if (__xrtBrotliAddOverLimit(c->InputBytes, size, c->Options.tLimits.iMaxInputBytes)) {
+        __xrtBrotliSetError(&c->Error, XRT_BROTLI_ERROR_LIMIT, 0, c->InputBytes,
+            c->OutputBytes, "brotli input exceeds maxInput limit");
+        c->Failed = true;
+        return false;
+    }
+    return __xrtBrotliEncode(c, data, size, BROTLI_OPERATION_PROCESS);
 }
 
-XRT_API bool xrtBrotliCompressorFinish(xrtbrotlicompressor* pCompressor)
+XRT_API bool xrtBrotliCompressorFinish(xrtbrotlicompressor* c)
 {
-	uint8 sEnd[XRT_BROTLI_HEADER_SIZE] = { 0 };
-	size_t iPending;
-	if ( pCompressor == NULL || pCompressor->Failed ) { return false; }
-	if ( pCompressor->Finished ) { return true; }
-	iPending = xrtBufferView(pCompressor->Pending).Size;
-	if ( iPending != 0u ) {
-		if ( !__xrtBrotliFlushBlock(pCompressor, iPending) ) { return false; }
-	}
-	if ( __xrtBrotliAddOverLimit(pCompressor->OutputBytes, XRT_BROTLI_HEADER_SIZE,
-		pCompressor->Options.tLimits.iMaxOutputBytes) ) {
-		__xrtBrotliSetError(&pCompressor->Error, XRT_BROTLI_ERROR_LIMIT, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "brotli output exceeds maxOutput limit");
-		pCompressor->Failed = true;
-		return false;
-	}
-	if ( !xrtBufferAppend(pCompressor->Output,
-		(xbytesview){ (const unsigned char*)sEnd, sizeof(sEnd) }) ) {
-		__xrtBrotliSetError(&pCompressor->Error, XRT_BROTLI_ERROR_MEMORY, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot grow brotli output buffer");
-		pCompressor->Failed = true;
-		return false;
-	}
-	pCompressor->OutputBytes += XRT_BROTLI_HEADER_SIZE;
-	pCompressor->Finished = true;
-	return true;
+    if (c == NULL || c->Failed) return false;
+    if (c->Finished) return true;
+    if (!__xrtBrotliEncode(c, NULL, 0, BROTLI_OPERATION_FINISH)) return false;
+    c->Finished = true;
+    return true;
 }
 
-XRT_API bool xrtBrotliCompressorDrain(xrtbrotlicompressor* pCompressor, xwriter* pWriter)
+XRT_API bool xrtBrotliCompressorDrain(xrtbrotlicompressor* c, xwriter* writer)
 {
-	xbytesview Output;
-	if ( pCompressor == NULL || pCompressor->Failed || pWriter == NULL ) { return false; }
-	Output = xrtBufferView(pCompressor->Output);
-	if ( Output.Size != 0u &&
-		!xrtWriterWriteFull(pWriter, Output.Data, Output.Size, NULL) ) {
-		__xrtBrotliSetError(&pCompressor->Error, XRT_BROTLI_ERROR_IO, 0,
-			pCompressor->InputBytes, pCompressor->OutputBytes, "cannot write brotli output stream");
-		pCompressor->Failed = true;
-		return false;
-	}
-	xrtBufferClear(pCompressor->Output);
-	return true;
+    xbytesview output;
+    if (c == NULL || c->Failed) return false;
+    if (c->Output == NULL) {
+        __xrtBrotliSetError(&c->Error, XRT_BROTLI_ERROR_STATE, 0, c->InputBytes,
+            c->OutputBytes, "brotli output was already taken");
+        c->Failed = true;
+        return false;
+    }
+    output = xrtBufferView(c->Output);
+    if (writer == NULL || !xrtWriterWriteFull(writer, output.Data, output.Size, NULL)) {
+        __xrtBrotliSetError(&c->Error, XRT_BROTLI_ERROR_IO, 0, c->InputBytes,
+            c->OutputBytes, "cannot write brotli output stream");
+        c->Failed = true;
+        return false;
+    }
+    xrtBufferClear(c->Output);
+    return true;
 }
 
-XRT_API xbuffer* xrtBrotliCompressorTakeBuffer(xrtbrotlicompressor* pCompressor)
+XRT_API xbuffer* xrtBrotliCompressorTakeBuffer(xrtbrotlicompressor* c)
 {
-	xbuffer* pOutput;
-	if ( pCompressor == NULL || pCompressor->Failed || !pCompressor->Finished ) { return NULL; }
-	pOutput = pCompressor->Output;
-	pCompressor->Output = NULL;
-	return pOutput;
+    xbuffer* result;
+    if (c == NULL || c->Failed) return NULL;
+    if (!c->Finished || c->Output == NULL) {
+        __xrtBrotliSetError(&c->Error, XRT_BROTLI_ERROR_STATE, 0, c->InputBytes,
+            c->OutputBytes, "brotli take requires finished, owned output");
+        c->Failed = true;
+        return NULL;
+    }
+    result = c->Output;
+    c->Output = NULL;
+    return result;
 }
 
-XRT_API xbuffer* xrtBrotliCompressorDrainBuffer(xrtbrotlicompressor* pCompressor)
+XRT_API xbuffer* xrtBrotliCompressorDrainBuffer(xrtbrotlicompressor* c)
 {
-	xbuffer* pOutput;
-	if ( pCompressor == NULL || pCompressor->Failed || pCompressor->Output == NULL ) { return NULL; }
-	pOutput = xrtBufferFrom(xrtBufferView(pCompressor->Output));
-	if ( pOutput != NULL ) { xrtBufferClear(pCompressor->Output); }
-	return pOutput;
+    if (c == NULL || c->Failed) return NULL;
+    if (c->Output == NULL) {
+        __xrtBrotliSetError(&c->Error, XRT_BROTLI_ERROR_STATE, 0, c->InputBytes,
+            c->OutputBytes, "brotli output was already taken");
+        c->Failed = true;
+        return NULL;
+    }
+    return __xrtBrotliDrainBuffer(&c->Output, &c->Error, c->InputBytes, c->OutputBytes);
 }
 
-XRT_API uint64 xrtBrotliCompressorInputBytes(const xrtbrotlicompressor* pCompressor)
+XRT_API uint64 xrtBrotliCompressorInputBytes(const xrtbrotlicompressor* c)
 {
-	return pCompressor != NULL ? pCompressor->InputBytes : 0u;
+    return c != NULL ? c->InputBytes : 0;
 }
 
-XRT_API uint64 xrtBrotliCompressorOutputBytes(const xrtbrotlicompressor* pCompressor)
+XRT_API uint64 xrtBrotliCompressorOutputBytes(const xrtbrotlicompressor* c)
 {
-	return pCompressor != NULL ? pCompressor->OutputBytes : 0u;
+    return c != NULL ? c->OutputBytes : 0;
 }
 
-XRT_API const xrtbrotlierror* xrtBrotliCompressorError(const xrtbrotlicompressor* pCompressor)
+XRT_API const xrtbrotlierror* xrtBrotliCompressorError(const xrtbrotlicompressor* c)
 {
-	return pCompressor != NULL ? &pCompressor->Error : NULL;
+    return c != NULL ? &c->Error : NULL;
 }
 
-XRT_API void xrtBrotliCompressorDestroy(xrtbrotlicompressor* pCompressor)
+XRT_API void xrtBrotliCompressorDestroy(xrtbrotlicompressor* c)
 {
-	if ( pCompressor == NULL ) { return; }
-	xrtBufferDestroy(pCompressor->Pending);
-	xrtBufferDestroy(pCompressor->Output);
-	xrtFree(pCompressor);
+    if (c == NULL) return;
+    BrotliEncoderDestroyInstance(c->Backend);
+    xrtBufferDestroy(c->Output);
+    xrtFree(c);
 }
 
+/* ------------------------------------ 解压器 ------------------------------------ */
 
-
-// ------------------------------------ 解压器 ------------------------------------
-
-XRT_API xrtbrotlidecompressor* xrtBrotliDecompressorCreate(const xrtbrotlioptions* pOptions)
+XRT_API xrtbrotlidecompressor* xrtBrotliDecompressorCreate(const xrtbrotlioptions* options)
 {
-	xrtbrotlidecompressor* pDecompressor;
-	pDecompressor = (xrtbrotlidecompressor*)xrtMalloc(sizeof(xrtbrotlidecompressor));
-	if ( pDecompressor == NULL ) { return NULL; }
-	memset(pDecompressor, 0, sizeof(*pDecompressor));
-	xrtBrotliErrorInit(&pDecompressor->Error);
-	if ( pOptions != NULL ) {
-		pDecompressor->Options = *pOptions;
-	} else {
-		xrtBrotliOptionsInit(&pDecompressor->Options);
-	}
-	pDecompressor->Carry = __xrtBrotliBufferCreate(XRT_BROTLI_CHUNK);
-	pDecompressor->Output = __xrtBrotliBufferCreate(XRT_BROTLI_CHUNK);
-	if ( pDecompressor->Carry == NULL || pDecompressor->Output == NULL ) {
-		__xrtBrotliSetError(&pDecompressor->Error, XRT_BROTLI_ERROR_MEMORY, 0, 0, 0,
-			"cannot allocate brotli decompressor");
-		pDecompressor->Failed = true;
-		return pDecompressor;
-	}
-	pDecompressor->State = XRT_BROTLI_DEC_HEADER;
-	return pDecompressor;
+    xrtbrotlidecompressor* d = (xrtbrotlidecompressor*)xrtCalloc(1, sizeof(*d));
+    if (d == NULL) return NULL;
+    if (options != NULL) d->Options = *options;
+    else xrtBrotliOptionsInit(&d->Options);
+    if (!__xrtBrotliOptionsValid(&d->Options)) {
+        __xrtBrotliSetError(&d->Error, XRT_BROTLI_ERROR_ARGUMENT, 0, 0, 0,
+            "invalid brotli options");
+        d->Failed = true;
+        return d;
+    }
+    d->Output = xrtBufferCreate();
+    if (d->Output == NULL) {
+        __xrtBrotliSetError(&d->Error, XRT_BROTLI_ERROR_MEMORY, 0, 0, 0,
+            "cannot allocate brotli decompressor");
+        d->Failed = true;
+    }
+    return d;
 }
 
-/* 消费 Carry 中的输入；*pConsumed 返回实际消费字节数。 */
-static bool __xrtBrotliDecompressConsume(xrtbrotlidecompressor* pDecompressor, size_t* pConsumed)
+XRT_API bool xrtBrotliDecompressorUpdate(xrtbrotlidecompressor* d, const void* data, size_t size)
 {
-	size_t iPos = 0u;
-	xbytesview Carry = xrtBufferView(pDecompressor->Carry);
-	const uint8* pBuf = (const uint8*)Carry.Data;
-	size_t iLen = Carry.Size;
-	while ( iPos < iLen ) {
-		if ( pDecompressor->State == XRT_BROTLI_DEC_HEADER ) {
-			uint32 iDeclared;
-			uint32 iCompressed;
-			if ( iLen - iPos < XRT_BROTLI_HEADER_SIZE ) { break; }
-			iDeclared = __xrtBrotliReadU32LE(pBuf + iPos);
-			iCompressed = __xrtBrotliReadU32LE(pBuf + iPos + 4u);
-			iPos += XRT_BROTLI_HEADER_SIZE;
-			if ( iDeclared == 0u ) {
-				pDecompressor->MemberEnded = true;
-				pDecompressor->MemberCount += 1u;
-				continue;   /* 可能紧跟下一个成员 */
-			}
-			pDecompressor->MemberEnded = false;
-			pDecompressor->BlockDeclared = (size_t)iDeclared;
-			pDecompressor->BlockCompressed = (size_t)iCompressed;
-			pDecompressor->BlockCrc = __xrtBrotliReadU32LE(pBuf + iPos - 4u);
-			pDecompressor->State = XRT_BROTLI_DEC_BLOCK;
-		} else {
-			size_t iWritten;
-			ptr pPlain;
-			if ( pDecompressor->BlockCompressed == 0u ) {
-				__xrtBrotliSetError(&pDecompressor->Error, XRT_BROTLI_ERROR_DATA, 0,
-					pDecompressor->InputBytes, pDecompressor->OutputBytes,
-					"brotli block declares invalid compressed size");
-				pDecompressor->Failed = true;
-				*pConsumed = iPos;
-				return false;
-			}
-			if ( iLen - iPos < pDecompressor->BlockCompressed ) { break; }
-			if ( ((pDecompressor->Options.tLimits.iMaxItemBytes != 0u) &&
-				  (pDecompressor->BlockDeclared > pDecompressor->Options.tLimits.iMaxItemBytes)) ||
-				 __xrtBrotliAddOverLimit(pDecompressor->OutputBytes,
-					pDecompressor->BlockDeclared,
-					pDecompressor->Options.tLimits.iMaxOutputBytes) ||
-				 __xrtBrotliOverRatio(&pDecompressor->Options.tLimits,
-					pDecompressor->InputBytes,
-					pDecompressor->OutputBytes + (uint64)pDecompressor->BlockDeclared) ) {
-				__xrtBrotliSetError(&pDecompressor->Error, XRT_BROTLI_ERROR_LIMIT, 0,
-					pDecompressor->InputBytes, pDecompressor->OutputBytes,
-					"brotli output exceeds decompression limit");
-				pDecompressor->Failed = true;
-				*pConsumed = iPos;
-				return false;
-			}
-			pPlain = xrtMalloc(pDecompressor->BlockDeclared);
-			if ( pPlain == NULL ) {
-				__xrtBrotliSetError(&pDecompressor->Error, XRT_BROTLI_ERROR_MEMORY, 0,
-					pDecompressor->InputBytes, pDecompressor->OutputBytes, "out of memory");
-				pDecompressor->Failed = true;
-				*pConsumed = iPos;
-				return false;
-			}
-			iWritten = pDecompressor->BlockDeclared;
-			if ( BrotliDecoderDecompress(pDecompressor->BlockCompressed, pBuf + iPos,
-				&iWritten, (uint8*)pPlain) != BROTLI_DECODER_RESULT_SUCCESS ||
-				iWritten != pDecompressor->BlockDeclared ) {
-				__xrtBrotliSetError(&pDecompressor->Error, XRT_BROTLI_ERROR_DATA, 0,
-					pDecompressor->InputBytes, pDecompressor->OutputBytes,
-					"brotli decompression failed");
-				xrtFree(pPlain);
-				pDecompressor->Failed = true;
-				*pConsumed = iPos;
-				return false;
-			}
-			iPos += pDecompressor->BlockCompressed;
-			if ( __xrtBrotliCrc32(pPlain, iWritten) != pDecompressor->BlockCrc ) {
-				__xrtBrotliSetError(&pDecompressor->Error, XRT_BROTLI_ERROR_DATA, 0,
-					pDecompressor->InputBytes, pDecompressor->OutputBytes,
-					"brotli block checksum mismatch");
-				xrtFree(pPlain);
-				pDecompressor->Failed = true;
-				*pConsumed = iPos;
-				return false;
-			}
-			if ( !xrtBufferAppend(pDecompressor->Output,
-				(xbytesview){ (const unsigned char*)pPlain, iWritten }) ) {
-				__xrtBrotliSetError(&pDecompressor->Error, XRT_BROTLI_ERROR_MEMORY, 0,
-					pDecompressor->InputBytes, pDecompressor->OutputBytes,
-					"cannot grow brotli output buffer");
-				xrtFree(pPlain);
-				pDecompressor->Failed = true;
-				*pConsumed = iPos;
-				return false;
-			}
-			xrtFree(pPlain);
-			pDecompressor->OutputBytes += (uint64)iWritten;
-			pDecompressor->State = XRT_BROTLI_DEC_HEADER;
-		}
-	}
-	*pConsumed = iPos;
-	return true;
+    const uint8_t* next = (const uint8_t*)data;
+    size_t remaining = size;
+    uint8_t chunk[XRT_BROTLI_CHUNK];
+    if (d == NULL || d->Failed) return false;
+    if (d->Sealed || d->Output == NULL || (data == NULL && size != 0)) {
+        __xrtBrotliSetError(&d->Error, d->Sealed || d->Output == NULL ?
+            XRT_BROTLI_ERROR_STATE : XRT_BROTLI_ERROR_ARGUMENT, 0, d->InputBytes,
+            d->OutputBytes, "invalid brotli decompressor update");
+        d->Failed = true;
+        return false;
+    }
+    if (__xrtBrotliAddOverLimit(d->InputBytes, size, d->Options.tLimits.iMaxInputBytes)) {
+        __xrtBrotliSetError(&d->Error, XRT_BROTLI_ERROR_LIMIT, 0, d->InputBytes,
+            d->OutputBytes, "brotli input exceeds maxInput limit");
+        d->Failed = true;
+        return false;
+    }
+    if (size == 0) return true;
+    for (;;) {
+        BrotliDecoderResult result;
+        uint8_t* output = chunk;
+        size_t capacity = sizeof(chunk);
+        size_t before = remaining;
+        if (d->Backend == NULL) {
+            d->Backend = BrotliDecoderCreateInstance(__xrtBrotliAlloc, __xrtBrotliFree, &d->AllocationFailed);
+            if (d->Backend == NULL) {
+                __xrtBrotliSetError(&d->Error, XRT_BROTLI_ERROR_MEMORY, 0, d->InputBytes,
+                    d->OutputBytes, "cannot allocate brotli decoder state");
+                d->Failed = true;
+                return false;
+            }
+            d->Finished = false;
+        }
+        result = BrotliDecoderDecompressStream(d->Backend, &remaining, &next, &capacity, &output, NULL);
+        d->InputBytes += (uint64)(before - remaining);
+        if (result == BROTLI_DECODER_RESULT_ERROR) {
+            int code = (int)BrotliDecoderGetErrorCode(d->Backend);
+            __xrtBrotliSetError(&d->Error, d->AllocationFailed ? XRT_BROTLI_ERROR_MEMORY :
+                XRT_BROTLI_ERROR_DATA, code, d->InputBytes, d->OutputBytes,
+                "brotli decoder failed: %s", BrotliDecoderErrorString((BrotliDecoderErrorCode)code));
+            d->Failed = true;
+            return false;
+        }
+        if (!__xrtBrotliAppend(d->Output, chunk, sizeof(chunk) - capacity,
+                &d->Options.tLimits, &d->Error, d->InputBytes, &d->OutputBytes)) {
+            d->Failed = true;
+            return false;
+        }
+        /* 比例在完整成员边界检查，避免输入分块大小改变是否被接纳；输出硬限额始终生效。 */
+        if (result == BROTLI_DECODER_RESULT_SUCCESS) {
+            uint64 ratio = d->Options.tLimits.iMaxCompressionRatio;
+            if (ratio != 0 && d->InputBytes <= UINT64_MAX / ratio &&
+                d->OutputBytes > d->InputBytes * ratio) {
+                __xrtBrotliSetError(&d->Error, XRT_BROTLI_ERROR_LIMIT, 0, d->InputBytes,
+                    d->OutputBytes, "brotli output exceeds maxRatio limit");
+                d->Failed = true;
+                return false;
+            }
+            ++d->MemberCount;
+            d->Finished = true;
+            BrotliDecoderDestroyInstance(d->Backend);
+            d->Backend = NULL;
+            if (remaining == 0) return true;
+        } else if (result == BROTLI_DECODER_RESULT_NEEDS_MORE_INPUT) {
+            return true;
+        }
+    }
 }
 
-XRT_API bool xrtBrotliDecompressorUpdate(xrtbrotlidecompressor* pDecompressor, const void* pData, size_t iSize)
+XRT_API bool xrtBrotliDecompressorFinish(xrtbrotlidecompressor* d)
 {
-	size_t iConsumed = 0u;
-	if ( pDecompressor == NULL || pDecompressor->Failed ) { return false; }
-	if ( iSize != 0u && pData == NULL ) {
-		__xrtBrotliSetError(&pDecompressor->Error, XRT_BROTLI_ERROR_ARGUMENT, 0,
-			pDecompressor->InputBytes, pDecompressor->OutputBytes, "invalid brotli input");
-		pDecompressor->Failed = true;
-		return false;
-	}
-	if ( __xrtBrotliAddOverLimit(pDecompressor->InputBytes, iSize,
-		pDecompressor->Options.tLimits.iMaxInputBytes) ) {
-		__xrtBrotliSetError(&pDecompressor->Error, XRT_BROTLI_ERROR_LIMIT, 0,
-			pDecompressor->InputBytes, pDecompressor->OutputBytes, "brotli input exceeds maxInput limit");
-		pDecompressor->Failed = true;
-		return false;
-	}
-	if ( iSize != 0u &&
-		!xrtBufferAppend(pDecompressor->Carry,
-			(xbytesview){ (const unsigned char*)pData, iSize }) ) {
-		__xrtBrotliSetError(&pDecompressor->Error, XRT_BROTLI_ERROR_MEMORY, 0,
-			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot grow brotli input buffer");
-		pDecompressor->Failed = true;
-		return false;
-	}
-	pDecompressor->InputBytes += iSize;
-	if ( !__xrtBrotliDecompressConsume(pDecompressor, &iConsumed) ) { return false; }
-	if ( (iConsumed != 0u) &&
-		 !xrtBufferRemove(pDecompressor->Carry, 0u, iConsumed) ) {
-		__xrtBrotliSetError(&pDecompressor->Error, XRT_BROTLI_ERROR_STATE, 0,
-			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot consume brotli input buffer");
-		pDecompressor->Failed = true;
-		return false;
-	}
-	return true;
+    if (d == NULL || d->Failed) return false;
+    if (!d->Finished || d->MemberCount == 0) {
+        __xrtBrotliSetError(&d->Error, XRT_BROTLI_ERROR_TRUNCATED, 0, d->InputBytes,
+            d->OutputBytes, "brotli input is empty or truncated");
+        d->Failed = true;
+        return false;
+    }
+    d->Sealed = true;
+    return true;
 }
 
-XRT_API bool xrtBrotliDecompressorFinish(xrtbrotlidecompressor* pDecompressor)
+XRT_API bool xrtBrotliDecompressorDrain(xrtbrotlidecompressor* d, xwriter* writer)
 {
-	if ( pDecompressor == NULL || pDecompressor->Failed ) { return false; }
-	if ( pDecompressor->Finished ) { return true; }
-	if ( (pDecompressor->MemberCount == 0u) || !pDecompressor->MemberEnded ||
-		(pDecompressor->State != XRT_BROTLI_DEC_HEADER) ||
-		(xrtBufferView(pDecompressor->Carry).Size != 0u) ) {
-		__xrtBrotliSetError(&pDecompressor->Error, XRT_BROTLI_ERROR_TRUNCATED, 0,
-			pDecompressor->InputBytes, pDecompressor->OutputBytes, "brotli stream is truncated or empty");
-		pDecompressor->Failed = true;
-		return false;
-	}
-	pDecompressor->Finished = true;
-	return true;
+    xbytesview output;
+    if (d == NULL || d->Failed) return false;
+    if (d->Output == NULL) {
+        __xrtBrotliSetError(&d->Error, XRT_BROTLI_ERROR_STATE, 0, d->InputBytes,
+            d->OutputBytes, "brotli output was already taken");
+        d->Failed = true;
+        return false;
+    }
+    output = xrtBufferView(d->Output);
+    if (writer == NULL || !xrtWriterWriteFull(writer, output.Data, output.Size, NULL)) {
+        __xrtBrotliSetError(&d->Error, XRT_BROTLI_ERROR_IO, 0, d->InputBytes,
+            d->OutputBytes, "cannot write brotli output stream");
+        d->Failed = true;
+        return false;
+    }
+    xrtBufferClear(d->Output);
+    return true;
 }
 
-XRT_API bool xrtBrotliDecompressorDrain(xrtbrotlidecompressor* pDecompressor, xwriter* pWriter)
+XRT_API xbuffer* xrtBrotliDecompressorTakeBuffer(xrtbrotlidecompressor* d)
 {
-	xbytesview Output;
-	if ( pDecompressor == NULL || pDecompressor->Failed || pWriter == NULL ) { return false; }
-	Output = xrtBufferView(pDecompressor->Output);
-	if ( Output.Size != 0u &&
-		!xrtWriterWriteFull(pWriter, Output.Data, Output.Size, NULL) ) {
-		__xrtBrotliSetError(&pDecompressor->Error, XRT_BROTLI_ERROR_IO, 0,
-			pDecompressor->InputBytes, pDecompressor->OutputBytes, "cannot write brotli output stream");
-		pDecompressor->Failed = true;
-		return false;
-	}
-	xrtBufferClear(pDecompressor->Output);
-	return true;
+    xbuffer* result;
+    if (d == NULL || d->Failed) return NULL;
+    if (!d->Sealed || d->Output == NULL) {
+        __xrtBrotliSetError(&d->Error, XRT_BROTLI_ERROR_STATE, 0, d->InputBytes,
+            d->OutputBytes, "brotli take requires finished, owned output");
+        d->Failed = true;
+        return NULL;
+    }
+    result = d->Output;
+    d->Output = NULL;
+    return result;
 }
 
-XRT_API xbuffer* xrtBrotliDecompressorTakeBuffer(xrtbrotlidecompressor* pDecompressor)
+XRT_API xbuffer* xrtBrotliDecompressorDrainBuffer(xrtbrotlidecompressor* d)
 {
-	xbuffer* pOutput;
-	if ( pDecompressor == NULL || pDecompressor->Failed || !pDecompressor->Finished ) { return NULL; }
-	pOutput = pDecompressor->Output;
-	pDecompressor->Output = NULL;
-	return pOutput;
+    if (d == NULL || d->Failed) return NULL;
+    if (d->Output == NULL) {
+        __xrtBrotliSetError(&d->Error, XRT_BROTLI_ERROR_STATE, 0, d->InputBytes,
+            d->OutputBytes, "brotli output was already taken");
+        d->Failed = true;
+        return NULL;
+    }
+    return __xrtBrotliDrainBuffer(&d->Output, &d->Error, d->InputBytes, d->OutputBytes);
 }
 
-XRT_API xbuffer* xrtBrotliDecompressorDrainBuffer(xrtbrotlidecompressor* pDecompressor)
+XRT_API uint64 xrtBrotliDecompressorInputBytes(const xrtbrotlidecompressor* d)
 {
-	xbuffer* pOutput;
-	if ( pDecompressor == NULL || pDecompressor->Failed || pDecompressor->Output == NULL ) { return NULL; }
-	pOutput = xrtBufferFrom(xrtBufferView(pDecompressor->Output));
-	if ( pOutput != NULL ) { xrtBufferClear(pDecompressor->Output); }
-	return pOutput;
+    return d != NULL ? d->InputBytes : 0;
 }
 
-XRT_API uint64 xrtBrotliDecompressorInputBytes(const xrtbrotlidecompressor* pDecompressor)
+XRT_API uint64 xrtBrotliDecompressorOutputBytes(const xrtbrotlidecompressor* d)
 {
-	return pDecompressor != NULL ? pDecompressor->InputBytes : 0u;
+    return d != NULL ? d->OutputBytes : 0;
 }
 
-XRT_API uint64 xrtBrotliDecompressorOutputBytes(const xrtbrotlidecompressor* pDecompressor)
+XRT_API bool xrtBrotliDecompressorFinished(const xrtbrotlidecompressor* d)
 {
-	return pDecompressor != NULL ? pDecompressor->OutputBytes : 0u;
+    return d != NULL && !d->Failed && d->Finished;
 }
 
-XRT_API bool xrtBrotliDecompressorFinished(const xrtbrotlidecompressor* pDecompressor)
+XRT_API uint64 xrtBrotliDecompressorMembers(const xrtbrotlidecompressor* d)
 {
-	return pDecompressor != NULL && pDecompressor->MemberEnded;
+    return d != NULL ? d->MemberCount : 0;
 }
 
-XRT_API uint64 xrtBrotliDecompressorMembers(const xrtbrotlidecompressor* pDecompressor)
+XRT_API const xrtbrotlierror* xrtBrotliDecompressorError(const xrtbrotlidecompressor* d)
 {
-	return pDecompressor != NULL ? pDecompressor->MemberCount : 0u;
+    return d != NULL ? &d->Error : NULL;
 }
 
-XRT_API const xrtbrotlierror* xrtBrotliDecompressorError(const xrtbrotlidecompressor* pDecompressor)
+XRT_API void xrtBrotliDecompressorDestroy(xrtbrotlidecompressor* d)
 {
-	return pDecompressor != NULL ? &pDecompressor->Error : NULL;
+    if (d == NULL) return;
+    BrotliDecoderDestroyInstance(d->Backend);
+    xrtBufferDestroy(d->Output);
+    xrtFree(d);
 }
-
-XRT_API void xrtBrotliDecompressorDestroy(xrtbrotlidecompressor* pDecompressor)
-{
-	if ( pDecompressor == NULL ) { return; }
-	xrtBufferDestroy(pDecompressor->Carry);
-	xrtBufferDestroy(pDecompressor->Output);
-	xrtFree(pDecompressor);
-}
-
-
 
 // ------------------------------------ 一次性接口 ------------------------------------
 
@@ -660,7 +509,7 @@ XRT_API bool xrtBrotliCompress(const void* pData, size_t iSize, const xrtbrotlio
 	if ( pOptions != NULL ) { tOptions = *pOptions; } else { xrtBrotliOptionsInit(&tOptions); }
 	pCompressor = xrtBrotliCompressorCreate(&tOptions);
 	if ( pCompressor == NULL ) {
-		__xrtBrotliSetError(pError, XRT_BROTLI_ERROR_MEMORY, 0, iSize, 0, "cannot allocate brotli compressor");
+		__xrtBrotliSetError(pError, XRT_BROTLI_ERROR_MEMORY, 0, 0, 0, "cannot allocate brotli compressor");
 		return false;
 	}
 	bRet = xrtBrotliCompressorUpdate(pCompressor, pData, iSize) &&
@@ -686,7 +535,7 @@ XRT_API bool xrtBrotliDecompress(const void* pData, size_t iSize, const xrtbrotl
 	if ( pOptions != NULL ) { tOptions = *pOptions; } else { xrtBrotliOptionsInit(&tOptions); }
 	pDecompressor = xrtBrotliDecompressorCreate(&tOptions);
 	if ( pDecompressor == NULL ) {
-		__xrtBrotliSetError(pError, XRT_BROTLI_ERROR_MEMORY, 0, iSize, 0, "cannot allocate brotli decompressor");
+		__xrtBrotliSetError(pError, XRT_BROTLI_ERROR_MEMORY, 0, 0, 0, "cannot allocate brotli decompressor");
 		return false;
 	}
 	bRet = xrtBrotliDecompressorUpdate(pDecompressor, pData, iSize) &&
@@ -701,6 +550,20 @@ XRT_API bool xrtBrotliDecompress(const void* pData, size_t iSize, const xrtbrotl
 
 // ------------------------------------ 文件流接口 ------------------------------------
 
+/* 进度总量指本次尚未读取的范围；无法查询时报告未知，不改变读取位置。 */
+static bool __xrtBrotliRemainingSize(xreader* reader, uint64* total)
+{
+    uint64 position;
+    if (xrtReaderCanSeek(reader) && xrtReaderSize(reader, total) &&
+        xrtReaderTell(reader, &position) && position <= *total) {
+        *total -= position;
+        return true;
+    }
+    *total = 0;
+    xrtClearError();
+    return false;
+}
+
 XRT_API bool xrtBrotliCompressStream(xreader* pReader, xwriter* pWriter, const xrtbrotlioptions* pOptions,
 	xrtprogressproc pProgress, ptr pUserData, xrtbrotlierror* pError)
 {
@@ -714,10 +577,18 @@ XRT_API bool xrtBrotliCompressStream(xreader* pReader, xwriter* pWriter, const x
 		__xrtBrotliSetError(pError, XRT_BROTLI_ERROR_ARGUMENT, 0, 0, 0, "invalid brotli stream");
 		return false;
 	}
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iTotal);
-	if ( !bTotalKnown ) { xrtClearError(); }
+	bTotalKnown = __xrtBrotliRemainingSize(pReader, &iTotal);
 	pCompressor = xrtBrotliCompressorCreate(pOptions);
-	if ( pCompressor == NULL ) { return false; }
+	if ( pCompressor == NULL ) {
+		__xrtBrotliSetError(pError, XRT_BROTLI_ERROR_MEMORY, 0, 0, 0,
+			"cannot allocate brotli compressor");
+		return false;
+	}
+	if ( pCompressor->Failed ) {
+		__xrtBrotliCopyError(pError, &pCompressor->Error);
+		xrtBrotliCompressorDestroy(pCompressor);
+		return false;
+	}
 	while ( bRet ) {
 		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {
@@ -763,10 +634,18 @@ XRT_API bool xrtBrotliDecompressStream(xreader* pReader, xwriter* pWriter, const
 		__xrtBrotliSetError(pError, XRT_BROTLI_ERROR_ARGUMENT, 0, 0, 0, "invalid brotli stream");
 		return false;
 	}
-	bTotalKnown = xrtReaderCanSeek(pReader) && xrtReaderSize(pReader, &iTotal);
-	if ( !bTotalKnown ) { xrtClearError(); }
+	bTotalKnown = __xrtBrotliRemainingSize(pReader, &iTotal);
 	pDecompressor = xrtBrotliDecompressorCreate(pOptions);
-	if ( pDecompressor == NULL ) { return false; }
+	if ( pDecompressor == NULL ) {
+		__xrtBrotliSetError(pError, XRT_BROTLI_ERROR_MEMORY, 0, 0, 0,
+			"cannot allocate brotli decompressor");
+		return false;
+	}
+	if ( pDecompressor->Failed ) {
+		__xrtBrotliCopyError(pError, &pDecompressor->Error);
+		xrtBrotliDecompressorDestroy(pDecompressor);
+		return false;
+	}
 	while ( bRet ) {
 		size_t iRead = 0u;
 		if ( !xrtReaderRead(pReader, sInput, sizeof(sInput), &iRead) ) {

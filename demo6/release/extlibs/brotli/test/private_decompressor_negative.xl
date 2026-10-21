@@ -1,0 +1,5 @@
+import brotli
+
+// 仅编译：解压输入不能接收自造的指针和长度。
+auto stream = brotli.decompressor()
+stream.updateNative(null, c_size(1))

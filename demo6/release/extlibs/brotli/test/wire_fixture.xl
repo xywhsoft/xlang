@@ -1,0 +1,23 @@
+import brotli
+
+func main(...) as int
+    // 固定流由 Node.js 24 的 zlib Brotli 编码器生成，明文含 UTF-8、NUL 和 0xff。
+    Buffer wire = codec.hexDecodeBytes("1b8600004437678acb591014068218dfc2cb4bb4b5bfe49726114695e8ce7e67e04626b4b2195808f902")
+    Buffer expected = Buffer()
+    for i in range(6)
+        expected.append("你好 hello brotli | ")
+    end
+    expected.appendByte(0)
+    expected.appendByte(255)
+    expected.appendByte(0)
+
+    assert brotli.decompress(wire) == expected
+    bool limited = false
+    try
+        brotli.decompress(wire, maxOutput = expected.len() - 1)
+    catch RangeError e
+        limited = true
+    end
+    assert limited
+    return 0
+end

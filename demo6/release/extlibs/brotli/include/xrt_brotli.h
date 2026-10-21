@@ -1,6 +1,10 @@
 #ifndef XRT_BROTLI_H
 #define XRT_BROTLI_H
 
+/* 公共 C 接口依赖 reader/writer/Buffer，直接包含时也必须可用。 */
+#ifndef XRT_MODULE_IO_BUFFER
+#define XRT_MODULE_IO_BUFFER
+#endif
 #include "xrt.h"
 
 #ifdef __cplusplus
@@ -35,6 +39,7 @@ typedef struct {
 	int iQuality;
 	int iWindow;
 	int iMode;
+	/* 仅使用输入、输出及解压倍率限制；其他字段必须为零。 */
 	xrtresourcelimits tLimits;
 } xrtbrotlioptions;
 

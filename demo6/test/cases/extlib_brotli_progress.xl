@@ -7,10 +7,11 @@ class BrotliProgressState
 end
 
 func main(...) as int
-    string sourcePath = "tmp/extlib_brotli_progress_source.txt"
-    string packedPath = "tmp/extlib_brotli_progress.bin"
-    string plainPath = "tmp/extlib_brotli_progress_plain.txt"
-    string cancelledPath = "tmp/extlib_brotli_progress_cancelled.bin"
+    dir.createAll("build/test/brotli-progress")
+    string sourcePath = "build/test/brotli-progress/source.txt"
+    string packedPath = "build/test/brotli-progress/packed.br"
+    string plainPath = "build/test/brotli-progress/plain.txt"
+    string cancelledPath = "build/test/brotli-progress/cancelled.br"
     string text = ""
     int i = 0
     while i < 6000
@@ -43,6 +44,40 @@ func main(...) as int
     assert plainState.lastInput == plainState.lastTotal
     assert file.readText(plainPath) == text
 
+    // 含 NUL 的源/目标路径都不能退化成前缀路径。
+    string nulPacked = "build/test/brotli-progress/nul_packed.br"
+    string nulPlain = "build/test/brotli-progress/nul_plain.txt"
+    if file.exists(nulPacked) then file.delete(nulPacked) end
+    if file.exists(nulPlain) then file.delete(nulPlain) end
+    bool badPath = false
+    try
+        brotli.compressFile(sourcePath + "\0hidden", nulPacked)
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath and not file.exists(nulPacked)
+    badPath = false
+    try
+        brotli.compressFile(sourcePath, nulPacked + "\0hidden")
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath and not file.exists(nulPacked)
+    badPath = false
+    try
+        brotli.decompressFile(packedPath + "\0hidden", nulPlain)
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath and not file.exists(nulPlain)
+    badPath = false
+    try
+        brotli.decompressFile(packedPath, nulPlain + "\0hidden")
+    catch ValueError e
+        badPath = true
+    end
+    assert badPath and not file.exists(nulPlain)
+
     bool cancelled = false
     try
         brotli.compressFile(sourcePath, cancelledPath, onProgress = func(int inputBytes,
@@ -55,8 +90,78 @@ func main(...) as int
     assert cancelled
     assert not file.exists(cancelledPath)
 
+    // 失败只清理本次临时文件，不覆盖旧目标；回调异常必须保持类型与原消息。
+    file.writeText(cancelledPath, "keep destination")
+    bool callbackError = false
+    try
+        brotli.compressFile(sourcePath, cancelledPath, onProgress = func(int a, int b, int c) as bool
+            throw ValueError "callback marker"
+        end)
+    catch ValueError e
+        assert e.message == "callback marker"
+        callbackError = true
+    end
+    assert callbackError
+    assert file.readText(cancelledPath) == "keep destination"
+
+    cancelled = false
+    try
+        brotli.decompressFile(packedPath, cancelledPath, onProgress = func(int a, int b, int c) as bool
+            return false
+        end)
+    catch CancelledError e
+        cancelled = true
+    end
+    assert cancelled and file.readText(cancelledPath) == "keep destination"
+
+    // 空文件仅触发最终进度，最终通知取消同样不能提交输出。
+    string emptyPath = "build/test/brotli-progress/empty.txt"
+    file.writeText(emptyPath, "")
+    BrotliProgressState finalState = BrotliProgressState()
+    cancelled = false
+    try
+        brotli.compressFile(emptyPath, cancelledPath, onProgress = func(int a, int b, int c) as bool
+            assert a == 0 and b == 0 and c > 0
+            finalState.calls += 1
+            return false
+        end)
+    catch CancelledError e
+        cancelled = true
+    end
+    assert cancelled and finalState.calls == 1
+    assert file.readText(cancelledPath) == "keep destination"
+
+    bool truncated = false
+    try
+        brotli.decompressFile(emptyPath, cancelledPath)
+    catch IOError e
+        truncated = true
+    end
+    assert truncated and file.readText(cancelledPath) == "keep destination"
+    file.delete(emptyPath)
+
+    // 嵌套调用有独立进度状态；UTF-8 路径也走同一事务文件路径。
+    string unicodePath = "build/test/brotli-progress/中文结果.txt"
+    BrotliProgressState nested = BrotliProgressState()
+    brotli.decompressFile(packedPath, unicodePath, onProgress = func(int a, int b, int c) as bool
+        nested.calls += 1
+        assert brotli.decompressText(brotli.compress("你好", quality = 1)) == "你好"
+        return true
+    end)
+    assert nested.calls > 0 and file.readText(unicodePath) == text
+    brotli.compressFile(unicodePath, unicodePath, quality = 4)
+    brotli.decompressFile(unicodePath, unicodePath)
+    assert file.readText(unicodePath) == text
+    file.delete(unicodePath)
+
+    // 目录中不能遗留事务临时文件。
+    for name in dir.files("build/test/brotli-progress")
+        assert not string.contains(string(name), ".xrt-brotli-")
+    end
+
     file.delete(sourcePath)
     file.delete(packedPath)
     file.delete(plainPath)
+    file.delete(cancelledPath)
     return 0
 end

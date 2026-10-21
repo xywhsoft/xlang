@@ -43,7 +43,15 @@
                                   ],
                      "xlSources":  [
                                        "src/brotli.xl"
-                                   ]
+                                   ],
+                     "xrtModules": [
+                         "XRT_MODULE_IO_BUFFER",
+                         "XRT_MODULE_IO_FILE",
+                         "XRT_MODULE_FILE_TEMP",
+                         "XRT_MODULE_ERROR_FORMAT",
+                         "XRT_MODULE_TEMP_MEMORY",
+                         "XRUNTIME_MODULE_RUNTIME_VALUE_CALLABLE"
+                     ]
                  },
     "links":  [
 
@@ -54,6 +62,7 @@
     "dependencies":  [
 
                      ],
+    "coverage": { "mode": "suite", "tests": ["test/wire_fixture.xl"] },
     "native":  {
                    "singleton":  false,
                    "loadName":  "",

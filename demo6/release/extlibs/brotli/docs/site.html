@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <script>try{if(localStorage.getItem('xl-theme')==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>brotli - 扩展库 - xlang</title>
+  <meta name="description" content="标准 Brotli 压缩、增量流与事务文件接口，提供 C 和 xlang API、进度回调及明确的资源限制。">
+  <link rel="icon" href="../favicon.png">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links" id="site-navigation">
+    <li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li>
+    <li><a href="../extlibs.html" aria-current="page">扩展库</a></li>
+    <li><a href="../guide.html">文档</a></li><li><a href="../download.html">下载</a></li>
+  </ul><div class="nav-actions" aria-label="页面工具"></div>
+</div></nav>
+<main class="extlib-layout c-zip" id="main-content">
+  <header class="extlib-head">
+    <p><a href="../extlibs.html">扩展库</a> / brotli</p>
+    <div class="extlib-title-row"><h1>brotli</h1><span class="extlib-cat-badge">压缩</span></div>
+    <p>文件 OOM 修复已同步到包源码。2026-10-17 当前 <code>release/xl.exe</code> 使用该源码时，JIT 与生成的 AOT 程序均通过逐分配点故障扫描，验证目标文件保留及临时文件清理。
+    当前 <code>xl.dll</code>/<code>xlc.dll</code> 的公开 C 源码执行宿主亦通过同一故障夹具；旧预编译程序未复验，纯 VFS 仍沿用此前隔离候选专项结果。</p>
+    <p class="extlib-lead">标准 Brotli 字节流、UTF-8 文本、增量处理与事务文件。内嵌 Brotli 1.1.0 后端，复用宿主 XRT/xruntime，无需安装 Brotli 动态库。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api">
+    <h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>函数</th><th>参数与返回</th></tr></thead><tbody>
+      <tr><td><code>version()</code></td><td>返回后端版本字符串。</td></tr>
+      <tr><td><code>compress(data)</code></td><td>Buffer 或 string 输入，返回 Buffer。quality=11，window=22，mode=0。</td></tr>
+      <tr><td><code>decompress(data)</code></td><td>Buffer 输入，返回 Buffer；maxRatio=1000。</td></tr>
+      <tr><td><code>decompressText(data)</code></td><td>解压并读取字符串；任意二进制数据使用 decompress。</td></tr>
+      <tr><td><code>compressFile(source, destination)</code></td><td>支持质量、窗口、模式、overwrite=true、限额和 onProgress=null。</td></tr>
+      <tr><td><code>decompressFile(source, destination)</code></td><td>支持 overwrite=true、限额、解压比和 onProgress=null。</td></tr>
+      <tr><td><code>compressor()</code></td><td>BrotliCompressor；参数与 compress 的压缩配置及限额相同。</td></tr>
+      <tr><td><code>decompressor()</code></td><td>BrotliDecompressor；参数为输入、输出与解压比限额。</td></tr>
+    </tbody></table>
+    <p>maxInput 默认 268435456 字节，maxOutput 默认 536870912 字节，均须为正。
+    quality 范围 0..11，window 范围 10..24；模式为 GENERIC=0、TEXT=1、FONT=2，
+    模块提供 <code>BROTLI_MODE_*</code> 和质量、窗口上下限常量。Q11 并非所有实时场景的合适配置。</p>
+    <p>压缩器支持 <code>update(Buffer|string)</code>、<code>drain() as Buffer</code>、<code>finish() as bool</code>，
+    只读属性为 valid、inputBytes、outputBytes。解压器 update 只接收 Buffer，另有 finished、members 属性。</p>
+    <h2 id="examples">xlang 范例</h2>
+    <pre><code>import brotli
+
+Buffer packed = brotli.compress("你好，Brotli", quality = 4)
+assert brotli.decompressText(packed) == "你好，Brotli"
+
+auto encoder = brotli.compressor(quality = 4)
+Buffer output = Buffer()
+encoder.update("part one")
+output.append(encoder.drain())
+encoder.update("part two")
+encoder.finish()
+output.append(encoder.drain())</code></pre>
+    <h2 id="callbacks">文件与回调</h2>
+    <pre><code>brotli.compressFile("input.txt", "output.br", quality = 4,
+    onProgress = func(int inputBytes, int totalBytes, int outputBytes) as bool
+        println(inputBytes, "/", totalBytes)
+        return true
+    end)</code></pre>
+    <p>回调同步执行，三个参数均为字节数；返回 false 抛 CancelledError，抛出的异常保留原类型与消息。
+    无法查询总长度时 totalBytes=0。文件在目标目录建立独占临时文件，成功关闭后再替换目标；
+    常规失败或取消保留原目标并清理临时文件，冻结运行库的晚期 OOM 限制见页首。
+    支持源与目标相同；含 NUL 的源/目标路径报 ValueError，不访问前缀路径。
+    不覆盖模式区分目标缺失与查询失败。这不是断电持久性承诺。</p>
+    <h2 id="contract">流与错误边界</h2>
+    <ul>
+      <li>输出无私有帧头、结束记录或 CRC。Brotli 不提供内容认证；有些翻位仍会形成合法数据。</li>
+      <li>空明文有效，空压缩输入无效。截断或识别出的格式错误为 IOError，限额为 RangeError，
+      非法参数为 ValueError，分配失败为 MemoryError，结束后 update 为 RuntimeError。</li>
+      <li>drain 转移已积累的输出，不强制后端刷新，也不重置累计限额。finish 可重复调用。</li>
+      <li>本解压器可以连续读取多个独立流；不能假定所有第三方解码器都支持这种拼接。</li>
+      <li>maxRatio 为 1..4294967295，在完整流边界检查；硬输出限额始终生效。
+      这些限制不等于 CPU 截止时间或后端峰值堆内存限制。</li>
+      <li>裸 reader/writer 失败前可能已有部分输出；只有文件便捷接口提供目标替换的失败原子性。</li>
+      <li>同一对象须串行访问，不允许 update 过程中重入；不同对象可以独立使用。</li>
+    </ul>
+    <h2 id="c-api">C API 与对照范例</h2>
+    <p>核心头为 <code>include/xrt_brotli.h</code>，薄绑定 ABI 为 <code>include/brotli_native.h</code>。
+    <code>xrtBrotliOptionsInit</code> 初始化配置，<code>xrtBrotliCompress/Decompress</code> 返回拥有型 xbuffer，
+    由调用方 xrtBufferDestroy。配置长度/版本必须匹配、限额保留字段必须为零，错误配置在读取前拒绝。C 核心只使用输入、输出和解压倍率限额；OptionsInit 将无关的单项、条目、节点及深度字段清零，显式设置这些字段或 iFlags 会报参数错误。C 核心有效限额为零表示禁用对应限额；薄绑定零值使用默认限额。</p>
+    <p>模块选择须在第一次包含 XRT 单头文件之前完成，完整依赖见包清单的 artifact.xrtModules。
+    C 示例 <code>extlibs/brotli/examples/basic.c</code> 与 <code>examples/extlibs/brotli_basic.xl</code>
+    使用相同数据与黄金输出；教学范例为 <code>examples/extlibs/brotli.xl</code>。其文件段使用独占系统临时目录并在异常路径清理，不写入固定的构建目录。</p>
+    <h2 id="verification">验证记录</h2>
+    <p>2026-09-27 的固定输入专项包含 60 项 Windows 检查：独立 GCC、C/xlang JIT/AOT、
+    23 个实际生成原型、回调取消与异常、文件原子性、双语范例、109 次分配故障。
+    Linux 联合门禁同次通过 C ASan/UBSan 与泄漏检查、两组 XLang JIT 用例及 C/XLang 基础范例逐字节黄金输出对照；不代表 Linux AOT 已验收。</p>
+    <p>门禁为 <code>tools/check_extlib_brotli.ps1</code> 和 <code>tools/check_extlib_brotli.sh</code>。
+    尚未覆盖 Windows ARM、全部外部解码器和生产负载性能。后端必须保留 CLEANUP_ON_OOM 配置，
+    不能在内存不足时退出宿主进程。</p>
+  </section>
+</main>
+<script src="../main.js"></script>
+</body>
+</html>

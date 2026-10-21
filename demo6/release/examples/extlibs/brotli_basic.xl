@@ -1,0 +1,40 @@
+import brotli
+
+func main(...) as int
+    // 普通字符串按 UTF-8 字节编码，中文不会因字符数与字节数不同而丢失。
+    string text = "hello 世界"
+    assert brotli.decompressText(brotli.compress(text, quality = 4)) == text
+    println("utf8: ok")
+
+    // Buffer 保留 NUL 和任意字节，与 C 范例逐字节比较相同。
+    Buffer binary = Buffer()
+    for value in [0, 255, 128, 65]
+        binary.appendByte(int(value))
+    end
+    assert brotli.decompress(brotli.compress(binary, quality = 4)) == binary
+    println("binary: ok")
+
+    auto encoder = brotli.compressor(quality = 4)
+    Buffer packed = Buffer()
+    encoder.update("left")
+    packed.append(encoder.drain())
+    encoder.update("right")
+    encoder.finish()
+    packed.append(encoder.drain())
+    auto decoder = brotli.decompressor()
+    decoder.update(packed)
+    decoder.finish()
+    assert decoder.drain().text() == "leftright"
+    assert encoder.inputBytes == 9 and decoder.members == 1
+    println("stream: ok")
+
+    bool rejected = false
+    try
+        brotli.decompress(Buffer())
+    catch IOError e
+        rejected = true
+    end
+    assert rejected
+    println("truncated: rejected")
+    return 0
+end
