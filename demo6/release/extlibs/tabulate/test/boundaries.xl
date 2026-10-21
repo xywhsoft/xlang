@@ -1,0 +1,74 @@
+import tabulate
+
+tabulate.Table t = tabulate.create()
+assert t.valid and t.rowCount == 0 and t.colCount == 0
+assert t.render() == ""
+t.setHeaders(["名", "Age"])
+t.addRow(["你好", "3"])
+t.addRow(["", "a,b"])
+assert t.rowCount == 2 and t.colCount == 2
+string expected = "+------+-----+\n| 名   | Age |\n+------+-----+\n| 你好 | 3   |\n|      | a,b |\n+------+-----+\n"
+assert t.render() == expected
+string first = t.render()
+string second = t.render()
+assert first == second
+t.setHeaders(["X"])
+assert t.rowCount == 2 and t.colCount == 2
+string beforeBadHeader = t.render()
+bool badHeader = false
+try
+    t.setHeaders(["bad\nheader"])
+catch ValueError error
+    badHeader = true
+end
+assert badHeader and t.render() == beforeBadHeader, "bad headers preserve table"
+t.setHeaders([])
+assert t.colCount == 2
+
+int rejected = 0
+try
+    t.addRow(["bad\nline"])
+catch ValueError error
+    rejected += 1
+end
+try
+    t.addRow(["a\0b"])
+catch ValueError error
+    rejected += 1
+end
+try
+    t.addRow([])
+catch ValueError error
+    rejected += 1
+end
+assert rejected == 3 and t.rowCount == 2
+array<string> tooMany = []
+for index in range(0, 33)
+    tooMany.append("x")
+end
+try
+    t.addRow(tooMany)
+catch ValueError error
+    rejected += 1
+end
+assert rejected == 4 and t.rowCount == 2, "too many columns roll back"
+try
+    t.addRow(["a\u202Eb"])
+catch ValueError error
+    rejected += 1
+end
+assert rejected == 5 and t.rowCount == 2, "bidi control must not enter terminal table"
+try
+    t.addRow(["a\u2028b"])
+catch ValueError error
+    rejected += 1
+end
+try
+    t.addRow(["a\u2029b"])
+catch ValueError error
+    rejected += 1
+end
+assert rejected == 7 and t.rowCount == 2, "Unicode line separators must not split a table row"
+t.addRow(["after", "rollback"])
+assert t.rowCount == 3
+println("tabulate boundaries: PASS")

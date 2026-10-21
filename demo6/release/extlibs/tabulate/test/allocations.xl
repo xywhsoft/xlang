@@ -1,0 +1,51 @@
+import tabulate
+
+extern "xrtMemDebugFailAfter" func failAfter(uint64 count) as c_bool
+extern "xrtMemDebugFailTriggered" func failTriggered() as c_bool
+extern "xrtMemDebugFailClear" func failClear()
+
+int createFailures = 0
+int createSuccesses = 0
+for allocation in range(64)
+    bool caught = false
+    assert failAfter(uint64(allocation))
+    try
+        auto table = tabulate.create()
+        assert table.valid
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert caught == triggered, "create failure mapping at " + string(allocation)
+    if caught then createFailures += 1 else createSuccesses += 1 end
+end
+assert createFailures > 0 and createSuccesses > 0, "create scan coverage"
+
+int rowFailures = 0
+int rowSuccesses = 0
+for allocation in range(64)
+    auto table = tabulate.create()
+    table.addRow(["old"])
+    bool caught = false
+    assert failAfter(uint64(allocation))
+    try
+        table.addRow(["new"])
+    catch MemoryError
+        caught = true
+    end
+    bool triggered = failTriggered()
+    failClear()
+    assert caught == triggered, "row failure mapping at " + string(allocation)
+    if caught then
+        assert table.rowCount == 1, "row rollback count at " + string(allocation)
+        assert not string.contains(table.render(), "new"), "row rollback content at " + string(allocation)
+        rowFailures += 1
+    else
+        assert table.rowCount == 2, "row commit count at " + string(allocation)
+        assert string.contains(table.render(), "new"), "row commit content at " + string(allocation)
+        rowSuccesses += 1
+    end
+end
+assert rowFailures > 0 and rowSuccesses > 0, "row scan coverage"
+println("tabulate allocations: PASS")

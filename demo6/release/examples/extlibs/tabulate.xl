@@ -4,15 +4,13 @@ import tabulate
 
 func main(...) as int
     auto t = tabulate.create()
-    t.setHeaders("Language,Year,Creator")
-    t.addRow("C,1972,Ritchie")
-    t.addRow("Python,1991,van Rossum")
-    t.addRow("Rust,2010,Hoare")
-    t.addRow("xlang,2024,xlang-team")
+    t.setHeaders(["Language", "Year", "Notes"])
+    t.addRow(["C", "1972", "systems"])
+    t.addRow(["Python", "1991", "scripting"])
+    t.addRow(["xlang", "2024", "中文, UTF-8"])
 
     println(t.render())
-    println("rows:", t.rowCount, " cols:", t.colCount)
-
-    println("tabulate example: PASS")
+    println("rows:", t.rowCount)
+    println("cols:", t.colCount)
     return 0
 end

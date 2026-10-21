@@ -1,0 +1,5 @@
+import tabulate
+
+// 不执行：伪造长度不能绕过表格事务的公开包装方法。
+auto table = tabulate.create()
+table.appendCellNative("x", c_longlong(4096))

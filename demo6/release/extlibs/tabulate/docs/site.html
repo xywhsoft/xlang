@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>tabulate - 扩展库 - xlang</title>
+  <meta name="description" content="tabulate 把单元格数组排版为纯文本终端表格。">
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="../extlibs.css">
+  <link rel="stylesheet" href="../refactor.css">
+</head>
+<body class="page-extlib-detail" data-page="extlib-detail" data-root="../">
+<a class="skip-link" href="#main-content">跳到主要内容</a>
+<nav class="nav" aria-label="主导航"><div class="nav-inner">
+  <a href="../index.html" class="nav-logo" aria-label="xlang 首页"><span class="logo-x">x</span><span class="logo-rest">lang</span></a>
+  <ul class="nav-links"><li><a href="../tour.html">语法导览</a></li><li><a href="../stdlib.html">标准库</a></li><li><a href="../extlibs.html" aria-current="page">扩展库</a></li><li><a href="../guide.html">文档</a></li></ul>
+</div></nav>
+<main class="extlib-layout" id="main-content">
+  <header class="extlib-head"><p><a href="../extlibs.html">扩展库</a> / tabulate</p><h1>tabulate</h1>
+    <p class="extlib-lead">用单元格数组生成纯文本终端表格。</p>
+    <p>支持空单元格、逗号文本和常见中文列宽；单元格限定为单行文本，拒绝 U+2028/U+2029 行与段落分隔符、常见零宽及双向控制符，写入失败自动回滚。完整 AOT 发布验收仍受共享链接问题阻断。</p>
+  </header>
+  <section class="ext-panel active" aria-labelledby="api"><h2 id="api">API</h2>
+    <table class="ext-kv"><thead><tr><th>成员</th><th>用途</th></tr></thead><tbody>
+      <tr><td><code>create()</code></td><td>创建表对象；分配失败时抛错</td></tr>
+      <tr><td><code>setHeaders(array&lt;string&gt;)</code></td><td>替换或清除表头</td></tr>
+      <tr><td><code>addRow(array&lt;string&gt;)</code></td><td>追加数据行</td></tr>
+      <tr><td><code>render / rowCount / colCount</code></td><td>生成文本及读取表规模</td></tr>
+    </tbody></table>
+    <h2 id="example">xlang</h2>
+    <pre><code>import tabulate
+tabulate.Table table = tabulate.create()
+table.setHeaders(["Name", "City"])
+table.addRow(["Alice", "北京, 中国"])
+println(table.render())</code></pre>
+    <p>这不是 CSV 解析器，也不承诺复杂 emoji 字素簇的精确终端宽度。C 行列计数使用与 XLang <code>int</code> 一致的 <code>int64_t</code>。Windows/Linux 门禁验证 C 边界、XLang 分配故障、私有原生入口编译负例与双语范例固定输出；Linux 另有 C sanitizer。C 接口、资源上限及 AOT 状态见包内 README。</p>
+  </section>
+</main>
+</body>
+</html>

@@ -1,54 +1,79 @@
 extern "xl6_xrt_last_error_text" func __tabulate_error() as string
 
-
-
-class Table
+export class Table
     native point handle
     extern "xtab_create" create()
     extern "xtab_destroy" destroy()
 
-    extern "xtab_set_headers" func setHeadersNative(string csv)
-    extern "xtab_add_row" func addRowNative(string csv)
-    extern "xtab_render" func renderNative() as string
-    extern "xtab_row_count" func rowCountNative() as int
-    extern "xtab_col_count" func colCountNative() as int
+    private extern "xtab_begin_headers" func beginHeadersNative() as c_int
+    private extern "xtab_begin_row" func beginRowNative() as c_int
+    private extern "xtab_append_cell" func appendCellNative(string text, c_longlong length) as c_int
+    private extern "xtab_commit" func commitNative() as c_int
+    private extern "xtab_abort" func abortNative()
+    private extern "xtab_render" func renderNative() as point
+    private extern "xtab_row_count" func rowCountNative() as int
+    private extern "xtab_col_count" func colCountNative() as int
 
     get valid() as bool
         return self.handle != null
     end
 
     get rowCount() as int
-        return self.rowCountNative()
+        int count = self.rowCountNative()
+        if count < 0 then throw RuntimeError __tabulate_error() end
+        return count
     end
 
     get colCount() as int
-        return self.colCountNative()
+        int count = self.colCountNative()
+        if count < 0 then throw RuntimeError __tabulate_error() end
+        return count
     end
 
-    func setHeaders(string csv)
-        if self.handle == null then
-            throw RuntimeError "tabulate: instance is destroyed"
+    func setHeaders(array<string> cells)
+        if self.handle == null then throw RuntimeError "tabulate: instance is destroyed" end
+        if self.beginHeadersNative() == 0 then throw ValueError __tabulate_error() end
+        bool committed = false
+        try
+            for cell in cells
+                if self.appendCellNative(cell, c_longlong(string.byteLen(cell))) == 0 then
+                    throw ValueError __tabulate_error()
+                end
+            end
+            if self.commitNative() == 0 then throw ValueError __tabulate_error() end
+            committed = true
+        finally
+            if not committed then self.abortNative() end
         end
-        self.setHeadersNative(csv)
     end
 
-    func addRow(string csv)
-        if self.handle == null then
-            throw RuntimeError "tabulate: instance is destroyed"
+    func addRow(array<string> cells)
+        if self.handle == null then throw RuntimeError "tabulate: instance is destroyed" end
+        if self.beginRowNative() == 0 then throw ValueError __tabulate_error() end
+        bool committed = false
+        try
+            for cell in cells
+                if self.appendCellNative(cell, c_longlong(string.byteLen(cell))) == 0 then
+                    throw ValueError __tabulate_error()
+                end
+            end
+            if self.commitNative() == 0 then throw ValueError __tabulate_error() end
+            committed = true
+        finally
+            if not committed then self.abortNative() end
         end
-        self.addRowNative(csv)
     end
 
     func render() as string
-        if self.handle == null then
-            throw RuntimeError "tabulate: instance is destroyed"
-        end
-        return self.renderNative()
+        if self.handle == null then throw RuntimeError "tabulate: instance is destroyed" end
+        point result = self.renderNative()
+        if result == null then throw ValueError __tabulate_error() end
+        return __xl_runtime.takeCstr(result)
     end
 end
 
-
-
 export func create() as Table
-    return Table()
+    Table table = Table()
+    if not table.valid then throw RuntimeError __tabulate_error() end
+    return table
 end

@@ -6,11 +6,13 @@
     "kind": "demo6-extlib",
     "artifact": {
         "kind": "source",
-        "cSources": ["tabulate_native.c"],
-        "xlSources": ["src/tabulate.xl"]
+        "cSources": ["tabulate_native.c", "tabulate_render.c"],
+        "xlSources": ["src/tabulate.xl"],
+        "xrtModules": ["XRT_MODULE_BUFFER", "XRT_MODULE_UNICODE"]
     },
     "links": [],
     "loadlibs": [],
     "dependencies": [],
+    "coverage": { "mode": "suite", "tests": ["test/boundaries.xl", "test/allocations.xl"] },
     "native": { "singleton": false, "loadName": "", "version": "" }
 }
