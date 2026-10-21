@@ -1,0 +1,11 @@
+mode: 4.0
+variance: 1.0
+varianceSample: 1.33
+stdevSample: 1.15
+mad: 1.0
+iqr: 2.0
+percentile25: 4.0
+geomean: 2.0
+harmmean: 1.6
+covariance: 1.33
+covarianceSample: 2.0

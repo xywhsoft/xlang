@@ -1,0 +1,26 @@
+import statistics
+
+func rounded2(float value) as float
+    return math.round(value * 100) / 100
+end
+
+func main(...) as int
+    // 分布、增长因子和线性关系分别使用适合的样本。
+    var scores = [4, 4, 6, 6]
+    var factors = [1, 4, 4, 1]
+    var periods = [1, 2, 3]
+    var sales = [2, 4, 6]
+
+    println("mode:", statistics.mode(scores))
+    println("variance:", statistics.variance(scores))
+    println("varianceSample:", rounded2(statistics.varianceSample(scores)))
+    println("stdevSample:", rounded2(statistics.stdevSample(scores)))
+    println("mad:", statistics.mad(scores))
+    println("iqr:", statistics.iqr(scores))
+    println("percentile25:", statistics.percentile(scores, 25))
+    println("geomean:", statistics.geomean(factors))
+    println("harmmean:", statistics.harmmean(factors))
+    println("covariance:", rounded2(statistics.covariance(periods, sales)))
+    println("covarianceSample:", statistics.covarianceSample(periods, sales))
+    return 0
+end

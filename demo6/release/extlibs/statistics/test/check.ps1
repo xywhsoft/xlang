@@ -62,6 +62,12 @@ try {
         $links + @('-o', $trendExample))
     $cTrend = Run 'C trend' $trendExample @()
 
+    $distributionExample = Join-Path $work 'statistics_distribution.exe'
+    $null = Run 'C distribution compile' $gcc ($flags + @(
+        'release/extlibs/statistics/examples/distribution_c.c', $runtime) +
+        $links + @('-o', $distributionExample))
+    $cDistribution = Run 'C distribution' $distributionExample @()
+
     Push-Location (Join-Path $root 'release')
     try {
         $null = Run 'XLang existing test' $xl @('run', '../test/cases/extlib_statistics.xl')
@@ -90,6 +96,21 @@ try {
             throw 'direct C trend differs from the common golden file'
         }
         Write-Host '[statistics] C/XLang trend golden: PASS'
+
+        $xlDistribution = Run 'XLang distribution' $xl @('run',
+            'extlibs/statistics/examples/distribution.xl')
+        $distributionPath = Join-Path $root 'release/extlibs/statistics/examples/distribution.expected.txt'
+        $distributionGolden = [IO.File]::ReadAllText($distributionPath).Replace("`r`n", "`n").TrimEnd("`n")
+        if ($cDistribution -cne $distributionGolden -or
+            $xlDistribution -cne $distributionGolden) {
+            throw 'C/XLang distribution output differs from the common golden file'
+        }
+        $directDistribution = Run 'C distribution xl run' $xl @('run',
+            'extlibs/statistics/examples/distribution_c.c')
+        if ($directDistribution -cne $distributionGolden) {
+            throw 'direct C distribution differs from the common golden file'
+        }
+        Write-Host '[statistics] C/XLang distribution golden: PASS'
 
         if (-not $SkipAot) {
             $target = Join-Path $work 'statistics_xl_test.exe'

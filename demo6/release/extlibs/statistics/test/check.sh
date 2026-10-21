@@ -62,4 +62,16 @@ diff -u release/extlibs/statistics/examples/trend.expected.txt "$work/trend_xl.t
 diff -u "$work/trend_c.txt" "$work/trend_xl.txt"
 timeout 90s "$xl" run release/extlibs/statistics/examples/trend_c.c > "$work/trend_direct_c.txt"
 diff -u "$work/trend_c.txt" "$work/trend_direct_c.txt"
+
+"$cc" "${flags[@]}" release/extlibs/statistics/examples/distribution_c.c \
+    release/extlibs/statistics/test/xrt_runtime.c \
+    -lm -ldl -o "$work/distribution"
+ASAN_OPTIONS=detect_leaks=1:halt_on_error=1 \
+UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+    timeout 30s "$work/distribution" > "$work/distribution_c.txt"
+diff -u release/extlibs/statistics/examples/distribution.expected.txt "$work/distribution_c.txt"
+timeout 90s "$xl" run release/extlibs/statistics/examples/distribution.xl > "$work/distribution_xl.txt"
+diff -u "$work/distribution_c.txt" "$work/distribution_xl.txt"
+timeout 90s "$xl" run release/extlibs/statistics/examples/distribution_c.c > "$work/distribution_direct_c.txt"
+diff -u "$work/distribution_c.txt" "$work/distribution_direct_c.txt"
 printf 'statistics Linux C ASan/UBSan and XLang parity gate: PASS\n'
