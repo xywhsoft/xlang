@@ -1,0 +1,135 @@
+import json5
+
+func main(...) as int
+    string source = "{ // comment\n unquoted: 'hello', hex: +0x2a, items: [1, 2,], nested: {ok: true}, '你好': '世界', }"
+    assert json5.valid(source), "JSON5 document"
+    var value = json5.parse(source)
+    assert value["unquoted"] == "hello", "single-quoted value"
+    assert value["hex"] == 42, "hexadecimal number"
+    assert value["items"][1] == 2, "trailing array comma"
+    assert value["nested"]["ok"] == true, "nested object"
+    assert value["你好"] == "世界", "Unicode key"
+    var unicodeNames = json5.parse("{你好:1, \\u006Eame:2, cafe\\u0301:3}")
+    assert unicodeNames["你好"] == 1, "unquoted Unicode key"
+    assert unicodeNames["name"] == 2, "escaped identifier start"
+    // 键名最后两个码点为 e 与 U+0301 组合重音。
+    assert unicodeNames["café"] == 3, "escaped identifier continuation"
+    string escapedNul = "{'a\\u0000b':'x\\u0000y',v:'x\\u0000y'}"
+    var nulDocument = json5.parse(escapedNul)
+    assert string.byteLen(string(nulDocument["a\0b"])) == 3, "escaped NUL key and value length"
+    assert nulDocument["a\0b"] == "x\0y", "escaped NUL key and value"
+    assert json5.getValue(escapedNul, "v") == "x\0y", "typed path preserves NUL value"
+    bool nulTextRejected = false
+    try
+        json5.get(escapedNul, "v")
+    catch ValueError e
+        nulTextRejected = true
+    end
+    assert nulTextRejected, "text path cannot truncate NUL value"
+    assert json5.getValue(source, "nested.ok") == true, "typed path"
+    assert json5.get(source, "items.0") == "1", "text path"
+    assert json5.parse("null") == null, "valid null"
+    assert json5.parse(".5") == 0.5, "leading dot"
+    assert json5.parse("1.") == 1.0, "trailing dot"
+    assert json5.parse("'\\uD83C\\uDFBC'") == "🎼", "UTF-16 surrogate pair"
+    assert not json5.valid("'\\uD800'"), "isolated high surrogate rejected"
+    assert not json5.valid("'\\uDC00'"), "isolated low surrogate rejected"
+    assert math.isInf(float(json5.parse("Infinity"))), "Infinity"
+    assert math.isInf(float(json5.parse("-Infinity"))), "negative Infinity"
+    assert math.isNaN(float(json5.parse("NaN"))), "NaN"
+    assert math.isFinite(float(json5.parse("1.7976931348623157e308"))), "finite float64 limit"
+    assert type(json5.parse("0xdead")) == int, "hex e digit remains int"
+    assert type(json5.parse("0xBEEF")) == int, "hex E digit remains int"
+    assert json5.parse("-0x1e") == -30 and type(json5.parse("-0x1e")) == int, "negative hex remains int"
+    float wideHex = float(json5.parse("0x8000000000000000"))
+    assert wideHex > 9e18 and wideHex < 9.3e18, "wide hexadecimal number"
+    string hugeHex = "0x1" + string.repeat("0", 256)
+    assert not json5.valid(hugeHex), "finite hexadecimal literal cannot overflow to Infinity"
+    bool overflowRejected = false
+    try
+        json5.parse(hugeHex)
+    catch ValueError e
+        overflowRejected = true
+    end
+    assert overflowRejected, "parse rejects overflowing hexadecimal literal"
+    assert not json5.valid("1e999"), "finite decimal literal cannot overflow to Infinity"
+    assert not json5.valid("1e"), "incomplete exponent"
+    assert not json5.valid("/* unclosed"), "unclosed comment"
+    assert not json5.valid("{a:1, a:2}"), "duplicate key"
+    assert not json5.valid("true false"), "trailing value"
+    assert not json5.valid("{a:1} trailing"), "trailing text after object"
+    bool badTail = false
+    try
+        json5.getValue("{a:1} trailing", "a")
+    catch ValueError error
+        badTail = true
+    end
+    assert badTail, "path lookup must validate the complete document"
+    string nested = ""
+    int depth = 0
+    while depth < 64
+        nested += "["
+        depth += 1
+    end
+    nested += "0"
+    depth = 0
+    while depth < 64
+        nested += "]"
+        depth += 1
+    end
+    assert json5.valid(nested), "64 levels of nesting"
+    assert not json5.valid("[" + nested + "]"), "nesting beyond 64 levels"
+    bool depthLimited = false
+    try
+        json5.parse("[" + nested + "]")
+    catch RangeError error
+        depthLimited = true
+    end
+    assert depthLimited, "depth limit raises RangeError"
+    depthLimited = false
+    try
+        json5.getValue("[" + nested + "]", "0")
+    catch RangeError error
+        depthLimited = true
+    end
+    assert depthLimited, "typed path preserves depth limit"
+    depthLimited = false
+    try
+        json5.get("[" + nested + "]", "0")
+    catch RangeError error
+        depthLimited = true
+    end
+    assert depthLimited, "text path preserves depth limit"
+    assert not json5.valid("{☃:1}"), "non-identifier Unicode key"
+    assert not json5.valid("{'你好':1, \\u4F60\\u597D:2}"), "escaped duplicate key"
+
+    bool rejected = false
+    try
+        json5.parse("{a:1, a:2}")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "duplicate key error"
+    rejected = false
+    try
+        json5.getValue(source, "missing")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "missing path error"
+    rejected = false
+    try
+        json5.getValue("{a:1}", "a\0ignored")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "typed path must not resolve a truncated prefix"
+    rejected = false
+    try
+        json5.get("{a:1}", "a\0ignored")
+    catch ValueError e
+        rejected = true
+    end
+    assert rejected, "text path must not resolve a truncated prefix"
+    return 0
+end

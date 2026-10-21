@@ -1,0 +1,21 @@
+import json5
+
+func main(...) as int
+    string config = "{service:'xlang', workers:4, tags:['api',], 标题:'JSON5',}"
+    var value = json5.parse(config)
+    assert value["service"] == "xlang"
+    assert value["workers"] == 4
+    assert value["tags"][0] == "api"
+    assert value["标题"] == "JSON5"
+    assert json5.valid(config)
+    assert json5.getValue(config, "workers") == 4
+    assert json5.get(config, "service") == "xlang"
+    println("service=" + string(value["service"]))
+    println("workers=" + string(value["workers"]))
+    println("first=" + string(value["tags"][0]))
+    println("title=" + string(value["标题"]))
+    println("valid=" + string(json5.valid(config)))
+    println("typed=" + string(json5.getValue(config, "workers")))
+    println("path=" + json5.get(config, "service"))
+    return 0
+end

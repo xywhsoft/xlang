@@ -1,0 +1,10 @@
+import json5
+
+func main(...) as int
+    string source = "{answer:0x2a, enabled:true,}"
+    if not json5.valid(source)
+        return 1
+    end
+    var document = json5.parse(source)
+    return 0
+end

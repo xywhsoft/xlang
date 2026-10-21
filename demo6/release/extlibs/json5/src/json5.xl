@@ -1,12 +1,49 @@
-extern "xjson5_valid" func __json5_valid(string text) as bool
-extern "xjson5_get" func __json5_get(string text, string path) as string
+// JSON5 使用长度感知解析；合法 null 与错误由 XRT 错误状态区分。
+extern "xjson5_parse_len" func __parse(string text, c_size size) as var
+extern "xjson5_valid_len" func __valid(string text, c_size size) as bool
+extern "xjson5_get_value_len" func __get_value(string text, c_size size, string path) as var
+extern "xjson5_get_text_abi" func __get_text(string text, c_size size, string path) as point
+extern "xjson5_has_error" func __has_error() as bool
+extern "xjson5_error_message" func __error() as string
 
+// 路径交给 C 字符串解析器前检查完整 XLang 文本，避免 NUL 前缀误命中。
+func __json5_path(string path)
+    if string.indexOf(path, "\0", false, string.byteLen(path), 1) >= 0 then
+        throw ValueError "JSON5 path contains an embedded NUL byte"
+    end
+end
 
+export func parse(string text) as var
+    var result = __parse(text, c_size(string.byteLen(text)))
+    if __has_error() then
+        throw ValueError __error()
+    end
+    return result
+end
 
 export func valid(string text) as bool
-    return __json5_valid(text)
+    bool result = __valid(text, c_size(string.byteLen(text)))
+    if __has_error() then
+        throw MemoryError __error()
+    end
+    return result
+end
+
+// 简单点号路径；含点的键请先 parse，再用 [] 直接访问。
+export func getValue(string text, string path) as var
+    __json5_path(path)
+    var result = __get_value(text, c_size(string.byteLen(text)), path)
+    if __has_error() then
+        throw ValueError __error()
+    end
+    return result
 end
 
 export func get(string text, string path) as string
-    return __json5_get(text, path)
+    __json5_path(path)
+    point result = __get_text(text, c_size(string.byteLen(text)), path)
+    if result == null then
+        throw ValueError __error()
+    end
+    return __xl_runtime.takeCstr(result)
 end
