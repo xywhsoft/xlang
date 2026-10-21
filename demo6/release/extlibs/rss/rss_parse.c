@@ -209,8 +209,12 @@ static xrtxmldomnode *rss_document(const char *xml, int64 length) {
     xrtxmldomnode *document;
     xrtClearError();
     if (xml == NULL) { rss_error("null feed text"); return NULL; }
-    if (length < 0 || length > 8 * 1024 * 1024) {
-        rss_error("invalid feed length or feed exceeds 8 MiB limit");
+    if (length < 0) {
+        rss_error("invalid feed length");
+        return NULL;
+    }
+    if (length > 8 * 1024 * 1024) {
+        xrtSetErrorInfo(XERR_RANGE, RSS_DOMAIN, 0, "feed exceeds 8 MiB limit");
         return NULL;
     }
     xrtXmlOptionsInit(&options);

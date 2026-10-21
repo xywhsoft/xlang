@@ -1,0 +1,20 @@
+import rss
+
+func main(...) as int
+    string prefix = "<rss version='2.0'><channel/></rss>"
+    string exact = prefix + string.repeat(" ", 8 * 1024 * 1024 - string.byteLen(prefix))
+    var feed = rss.parse(exact)
+    assert feed["type"] == "rss"
+
+    string oversized = exact + " "
+    assert rss.detect(oversized) == ""
+    bool rejected = false
+    try
+        rss.parse(oversized)
+    catch RangeError error
+        rejected = true
+    end
+    assert rejected
+    println("rss input limit: PASS")
+    return 0
+end

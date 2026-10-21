@@ -87,9 +87,33 @@ static int test_parse(void) {
     {
         xvalue *bad = xrss_parse("<rss version='2.0'><channel/></rss>", -1);
         CHECK(bad != NULL && xrtValueType(bad) == XVALUE_NULL);
+        CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_VALUE);
         xrtValueRelease(bad);
         xrtClearError();
     }
+    return 0;
+}
+
+static int test_input_limit(void) {
+    static const char prefix[] = "<rss version='2.0'><channel/></rss>";
+    const size_t limit = 8u * 1024u * 1024u;
+    char *xml = (char *)xrtMalloc(limit + 2u);
+    xvalue *feed;
+    CHECK(xml != NULL);
+    memcpy(xml, prefix, sizeof(prefix) - 1u);
+    memset(xml + sizeof(prefix) - 1u, ' ', limit + 1u - (sizeof(prefix) - 1u));
+    xml[limit + 1u] = 0;
+
+    feed = xrss_parse(xml, (int64)limit);
+    CHECK(feed != NULL && xrtValueType(feed) == XVALUE_OBJECT);
+    xrtValueRelease(feed);
+    feed = xrss_parse(xml, (int64)limit + 1);
+    CHECK(feed != NULL && xrtValueType(feed) == XVALUE_NULL);
+    CHECK(xrtGetError() != NULL && xrtErrorKind(xrtGetError()) == XERR_RANGE);
+    xrtValueRelease(feed);
+    CHECK(strcmp(xrss_detect(xml, (int64)limit + 1), "") == 0 &&
+        xrtGetError() == NULL);
+    xrtFree(xml);
     return 0;
 }
 
@@ -410,6 +434,7 @@ static int test_allocation_errors(void) {
 int main(void) {
     CHECK(test_allocation_errors() == 0);
     CHECK(test_parse() == 0);
+    CHECK(test_input_limit() == 0);
     CHECK(test_build() == 0);
     CHECK(test_output_limit() == 0);
     CHECK(test_atom_build() == 0);
